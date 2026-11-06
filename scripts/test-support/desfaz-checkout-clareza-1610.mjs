@@ -1,3 +1,4 @@
+import { semH3Turbo0511 } from './desfaz-h3-turbo-0511.mjs' // KINEO-H3-TURBO-ABRE-0511
 // KINEO-CHECKOUT-CLAREZA-1610 — DESFAZ, em memória, a garantia única, o preço por filme, a linha UGC e o prazo de 48 h do
 // WELCOME20 nos arquivos que JÁ existiam, para os guardiões antigos que conferem esses arquivos BYTE A BYTE contra uma base
 // anterior (cada um ganhou o comentário "reancorado KINEO-CHECKOUT-CLAREZA-1610"). Módulo auxiliar; não é teste.
@@ -235,6 +236,7 @@ export const CHECKOUT_CLAREZA_1610_ARQUIVOS = Object.keys(BLOCOS)
 
 /** Tira as mudanças KINEO-CHECKOUT-CLAREZA-1610 de `src` (caminho relativo com "/"). Outros arquivos voltam intocados. */
 export function semClareza1610(rel, src) {
+  src = semH3Turbo0511(src, rel) // KINEO-H3-TURBO-ABRE-0511 — a camada mais nova sai primeiro
   const blocos = BLOCOS[String(rel).replace(/\\/g, '/')]
   if (!blocos || typeof src !== 'string') return src
   const crlf = src.includes('\r\n')

@@ -130,7 +130,7 @@ export function buildCheckoutValueContext(input: CheckoutValueContextInput): Che
   const outputCount = Math.floor(input.credits / TRIAL_BALANCE_BRIDGE_COST)
   return {
     lineItemDescription: withPromoLine(
-      `${input.credits} credits a month · up to ${outputCount} Seedance ${TRIAL_BALANCE_BRIDGE_DURATION}s films · Cancel anytime`),
+      `${input.credits} credits a month · up to ${outputCount} MiniMax H3 Turbo ${TRIAL_BALANCE_BRIDGE_DURATION}s films · Cancel anytime`),
     outputCount,
     submitMessage: promoSubmit,
     variant: 'trial_balance_seedance',

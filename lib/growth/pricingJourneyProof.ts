@@ -37,7 +37,7 @@ export type PricingJourneyProofDecision =
       state: 'before_first_delivery'
       completedCountBucket: '0'
       creationHref: string
-      engineLabel: 'Seedance 1.5' | 'Kineo 1'
+      engineLabel: 'MiniMax H3 Turbo' | 'Kineo 1'
       duration: 35
       version: typeof PRICING_JOURNEY_PROOF_VERSION
     }
@@ -77,7 +77,7 @@ export function decidePricingJourneyProof(input: PricingJourneyProofInput): Pric
       completedCountBucket: '0',
       creationHref:
         `/studio/create?engine=${engine}&duration=35&intent_campaign=${PRICING_JOURNEY_PROOF_VERSION}`,
-      engineLabel: input.reverseTrial ? 'Seedance 1.5' : 'Kineo 1',
+      engineLabel: input.reverseTrial ? 'MiniMax H3 Turbo' : 'Kineo 1',
       duration: 35,
       version: PRICING_JOURNEY_PROOF_VERSION,
     }

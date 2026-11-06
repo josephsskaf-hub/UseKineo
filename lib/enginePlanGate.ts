@@ -102,7 +102,7 @@ export function engineDisplayName(engine: string): string {
 export function engineGateMessage(engine: string): string {
   // KINEO-PRECO-V8-A-2026-09-28 — "$59" é literal espelhado de TIER_PRICES.pro (módulo puro, sem import);
   // o guardião scripts/test-preco-v8-A-2026-09-28.mjs confere a igualdade lendo os dois arquivos.
-  return `${engineDisplayName(engine)} is a Studio engine ($59/mo, every engine). Starter and Creator include Kineo 1 and Seedance 1.5.`
+  return `${engineDisplayName(engine)} is a Studio engine ($59/mo, every engine). Starter and Creator include Kineo 1 and MiniMax H3 Turbo.`
 }
 
 // KINEO-VEO-CARD-HONESTO-2026-09-29 — o selo "Studio" nas superfícies (card do

@@ -685,7 +685,7 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
           <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text)' }}>What changed on your account:</div>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
             <tbody>
-              <tr><td style={{ padding: '8px 4px', borderBottom: '1px solid var(--border)', color: 'var(--muted2)' }}>AI engines (Seedance, Kling…)</td><td style={{ padding: '8px 4px', borderBottom: '1px solid var(--border)', textAlign: 'right', fontWeight: 800, color: 'var(--danger)' }}>locked</td></tr>
+              <tr><td style={{ padding: '8px 4px', borderBottom: '1px solid var(--border)', color: 'var(--muted2)' }}>AI engines (MiniMax H3 Turbo, Kling…)</td><td style={{ padding: '8px 4px', borderBottom: '1px solid var(--border)', textAlign: 'right', fontWeight: 800, color: 'var(--danger)' }}>locked</td></tr>
               <tr><td style={{ padding: '8px 4px', borderBottom: '1px solid var(--border)', color: 'var(--muted2)' }}>Clean download</td><td style={{ padding: '8px 4px', borderBottom: '1px solid var(--border)', textAlign: 'right', fontWeight: 800, color: 'var(--danger)' }}>watermarked</td></tr>
               <tr><td style={{ padding: '8px 4px', borderBottom: '1px solid var(--border)', color: 'var(--text2)' }}>Your finished videos</td><td style={{ padding: '8px 4px', borderBottom: '1px solid var(--border)', textAlign: 'right', fontWeight: 800, color: 'var(--success)' }}>still yours</td></tr>
               {/* Saldo REAL da mesma fonte do badge do topo — "0 credits" era

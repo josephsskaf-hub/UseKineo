@@ -66,7 +66,7 @@ export function filmPassCoversRequest(fit: LimitPurchaseFit | null): boolean {
 /** "One 60-second film, no subscription — 35 credits." Derivado. */
 export function filmPassCopy(fit: LimitPurchaseFit | null): { title: string; sub: string } {
   const title = `Just one film? ${packPriceLabel()}, no subscription`
-  const base = `${PACK_CREDITS.starter} credits — one ${PACK_ADVERTISED_SECONDS.starter}-second Seedance 1.5 film. Paid once.`
+  const base = `${PACK_CREDITS.starter} credits — one ${PACK_ADVERTISED_SECONDS.starter}-second MiniMax H3 Turbo film. Paid once.`
   return { title, sub: filmPassCoversRequest(fit) ? `Covers this film. ${base}` : base }
 }
 

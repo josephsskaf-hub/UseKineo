@@ -68,7 +68,7 @@ export default function HomeWelcomeGoalRouter() {
           Who is this first Short for?
         </h2>
         <p className={styles.intro}>
-          Pick the job first. Kineo will show one ready-to-edit Seedance brief for that outcome before you open Studio.
+          Pick the job first. Kineo will show one ready-to-edit film brief for that outcome before you open Studio.
         </p>
 
         <div className={styles.goalGrid} role="list" aria-label="Choose who the first Short is for">

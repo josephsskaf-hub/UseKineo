@@ -218,7 +218,7 @@ console.log('== 3. varredura do texto público (literais e JSX, sem comentários
   const achados = varre()
   checa(`${FONTES_PUBLICAS.length} fontes públicas sem "free Kineo 1", "two Kineo 1", cota semanal grátis nem filme grátis de 35 s${achados.length ? ' — ' + achados.join(' | ') : ''}`, achados.length === 0)
   const muts = [
-    ['app/pricing/PricingClient.tsx', "outcome: `Seedance 1.5: ${videosPerMonth('basic', 'cinematic_ai')} AI films", "outcome: `Seedance 1.5, enough for two Kineo 1 films: ${videosPerMonth('basic', 'cinematic_ai')} AI films"],
+    ['app/pricing/PricingClient.tsx', "outcome: `MiniMax H3 Turbo: ${videosPerMonth('basic', 'cinematic_ai')} AI films", "outcome: `MiniMax H3 Turbo, enough for two Kineo 1 films: ${videosPerMonth('basic', 'cinematic_ai')} AI films"],
     // Revisão da E2b: os dois alvos abaixo mudaram de texto (a negação da cota saiu; o padrão das páginas é o Seedance) —
     // o mutante segue a linha nova, com a mesma frase proibida de antes.
     ['lib/freeTierOffer.ts', "  residual: 'your saved library',", "  residual: '1 free Kineo 1 video every week',"],

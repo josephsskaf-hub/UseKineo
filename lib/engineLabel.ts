@@ -32,11 +32,21 @@ const MAPA: Record<string, string> = {
   pro: 'Kineo 1',
 }
 
+// KINEO-H3-TURBO-ABRE-0511 — o filme padrão vende na chave 'seedance' e quality 'cinematic_ai', mas anima no H3 Max Turbo: o selo vem do modelo
+// que o claim assinado guarda. Filme antigo, reserva de texto, filme grátis e Kling 4 não entram: seguem com o selo de sempre.
+const H3_TURBO_FAL_MODEL = 'minimax/h3-max-turbo/image-to-video'
+export function engineUsedDoFilmePadrao(claim: { quality?: unknown; falModels?: unknown; response?: Record<string, unknown> | null } | null | undefined): 'h3_max_turbo' | null {
+  if (!claim || claim.quality !== 'cinematic_ai' || !Array.isArray(claim.falModels)) return null
+  if (claim.response?.kling4_paid || claim.response?.kling4_trial) return null
+  return claim.falModels.includes(H3_TURBO_FAL_MODEL) ? 'h3_max_turbo' : null
+}
+
 /** Nome público do motor para um quality_mode; null = não inventar selo. */
 export function engineLabelFor(qualityMode: string | null | undefined, engineUsed?: string | null): string | null {
   if (engineUsed) {
     const actual: Record<string, string> = {
       kling4: 'Kling 4.0', kling3: 'Kling 3',
+      h3_max_turbo: 'MiniMax H3 Turbo', // KINEO-H3-TURBO-ABRE-0511
       seedance15_fallback: 'Seedance 1.5', seedance15_cap: 'Seedance 1.5',
       seedance: 'Seedance 1.5', seedance2: 'Seedance 2', veo31: 'Veo 3.1',
     }

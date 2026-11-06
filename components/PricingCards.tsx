@@ -93,7 +93,7 @@ const FREE_FEATURES = [
 
 const STARTER_FEATURES = [
   // KINEO-FILME-GRATIS-15S-2026-09-29 — contagem em Seedance 1.5 (o motor de stock saiu do catálogo público).
-  `${videosPerMonth('starter', 'cinematic_ai')} Seedance 1.5 AI films/month (60 s)`,
+  `${videosPerMonth('starter', 'cinematic_ai')} MiniMax H3 Turbo AI films/month (60 s)`,
   'AI writes script + voiceover',
   'Auto-captions pipeline',
   'Download watermark-free MP4',
@@ -110,9 +110,9 @@ const STARTER_FEATURES = [
 // Os números agora saem de videosPerMonth(): grant do plano ÷ custo do motor,
 // calculado na hora, das mesmas constantes que o servidor debita.
 const BASIC_FEATURES = [
-  `~${CREATOR_AI_FILMS} AI-generated videos/month (Seedance)`,
+  `~${CREATOR_AI_FILMS} AI-generated videos/month (MiniMax H3 Turbo)`,
   `Or ${videosPerMonth('basic', 'cinematic_h3')} MiniMax H3 films/month`,
-  'Seedance AI engine (great quality)',
+  'MiniMax H3 Turbo AI engine (great quality)',
   'AI writes script + voiceover',
   'Auto-captions pipeline',
   'Download watermark-free MP4',
@@ -122,7 +122,7 @@ const BASIC_FEATURES = [
 // KINEO-PRICING-V6-2026-08-19 — o Studio é o plano que FECHA um filme
 // Hollywood (180 ≥ 150). A promessa que estava no card errado veio para cá.
 const PRO_FEATURES = [
-  `${STUDIO_HOLLYWOOD_FILMS} Kling 4.0 film/month — or ~${videosPerMonth('pro', 'cinematic_h3')} MiniMax H3, or ~${STUDIO_AI_FILMS} Seedance`,
+  `${STUDIO_HOLLYWOOD_FILMS} Kling 4.0 film/month — or ~${videosPerMonth('pro', 'cinematic_h3')} MiniMax H3, or ~${STUDIO_AI_FILMS} MiniMax H3 Turbo`,
   'MiniMax H3 + Kling 4.0 engines (top-tier cinematic)',
   'AI writes script + voiceover',
   'Auto-captions pipeline',
@@ -514,7 +514,7 @@ export default function PricingCards({
           price={priceFor('starter')}
           period="/ month"
           renewNote={introNoteFor('starter')}
-          tagline={`${PLANS.starter.credits} credits/month — ${videosPerMonth('starter', 'cinematic_ai')} Seedance 1.5 AI films of 60 s (more if shorter), with AI voiceover.`}
+          tagline={`${PLANS.starter.credits} credits/month — ${videosPerMonth('starter', 'cinematic_ai')} MiniMax H3 Turbo AI films of 60 s (more if shorter), with AI voiceover.`}
           features={STARTER_FEATURES}
           selected={selectedPlan === 'starter'}
           onSelect={() => setSelectedPlan('starter')}

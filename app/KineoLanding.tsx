@@ -924,7 +924,8 @@ export default function KineoLanding({
                       pagina) + caixinha com monograma/glifo de cada produto. */}
                   {/* KINEO-MENU-VIDEO-LIMPO-2026-10-09 — fundador ("2 sim"): sem letra, sem selo; Kineo 1 saiu (fora da entrada desde
                       29/09, o menu ainda dizia "fastest"). O filme do 2.5 continua indo aos planos (só roda em plano pago). */}
-                  <NavEngineItem href="/studio?engine=seedance&intent_campaign=nav_mega" name="Seedance 1.5" desc="Fast, everyday narrated films" preview="/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4" thumb="/nav-thumbs/seedance.webp" />
+                  {/* KINEO-H3-TURBO-ABRE-0511 — o filme padrão com o nome do motor real; a chave segue 'seedance'. Sem preview nem miniatura até haver render dele na vitrine (selo honesto). */}
+                  <NavEngineItem href="/studio?engine=seedance&intent_campaign=nav_mega" name="MiniMax H3 Turbo" desc="Fast, everyday narrated films" />
                   {/* KINEO-VEO-CARD-HONESTO-2026-09-29 — 1080p pelo mesmo preço desde 16/08; o chip
                       STUDIO só volta se o gate religar na fonte (lib/enginePlanGate.ts). */}
                   {/* KINEO-OMNI-FORA-2026-10-12 — o item do Omni Flash saiu do mega-menu (motor fora da oferta,
@@ -1432,7 +1433,7 @@ export default function KineoLanding({
                   apontava para o composer, que nao existe mais. */}
               <div className="fchips">
                 {showKineo1 && <Link href="/studio?engine=fast&intent_campaign=final_chip">Kineo 1</Link>}
-                <Link href="/studio?engine=seedance&intent_campaign=final_chip">Seedance 1.5</Link>
+                <Link href="/studio?engine=seedance&intent_campaign=final_chip">MiniMax H3 Turbo</Link>
                 <Link href="/studio?engine=hollywood&intent_campaign=final_chip">Kling 4.0</Link>
               </div>
               {/* KINEO-SEM-PORTEIRO-2026-09-02 b — o CTA final da home escapou

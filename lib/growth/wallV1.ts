@@ -63,6 +63,7 @@ export function wallV1QualityMode(mode: string, aiEngine: string): string {
 
 /** Rótulo público do motor (Kineo 1, Seedance 1.5, Kling 3…). Fallback: nunca vazio. */
 export function wallV1EngineLabel(mode: string, aiEngine: string): string {
+  if (wallV1QualityMode(mode, aiEngine) === 'cinematic_ai') return 'MiniMax H3 Turbo' // KINEO-H3-TURBO-ABRE-0511 — o selo do catálogo protege os filmes antigos; aqui é o filme novo
   return engineLabelFor(wallV1QualityMode(mode, aiEngine)) ?? (mode === 'fast' || mode === 'creator' ? 'Kineo 1' : 'this engine')
 }
 

@@ -35,8 +35,8 @@ function provas(M) {
     // pelo Kling 2.5; os minutos por motor (acima) e os créditos cobrados não mudaram.
     // reancorado KINEO-PRECOS-CLIPES-KLING25-1610 — decisão do fundador 15/10: filme do Kling 2.5 60 → 75 cr/min. 150 cr = 2 min
     // (era 2,5); 60 cr = 0,8 → 0,5 min, para BAIXO (era 1). O Kling 3 (150) segue fora da linha de 60 cr.
-    ['linha curta legível', M.minutesLine(150) === '4 min of Seedance 1.5 · 3 min of MiniMax H3 · 1 min of Kling 4.0'],
-    ['linha omite motor que não rende meio minuto', M.minutesLine(60) === '1.5 min of Seedance 1.5 · 1 min of MiniMax H3'],
+    ['linha curta legível', M.minutesLine(150) === '4 min of MiniMax H3 Turbo · 3 min of MiniMax H3 · 1 min of Kling 4.0'],
+    ['linha omite motor que não rende meio minuto', M.minutesLine(60) === '1.5 min of MiniMax H3 Turbo · 1 min of MiniMax H3'],
     ['linha padrão não cita o Kineo 1', !/Kineo 1/.test(M.minutesLine(150)) && !/Kineo 1/.test(M.minutesLine(1000))],
   ]
 }

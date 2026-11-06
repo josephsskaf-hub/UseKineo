@@ -40,6 +40,7 @@ export function rotuloMotorGrupo(quality: string, entregues: Array<MotorEntregue
   if (codes.size !== 1) return curto
   const nomeEntregue = engineLabelFor(null, entregues[0]!.code)
   if (!nomeEntregue) return curto
+  if (quality === 'cinematic_ai' && entregues[0]!.code === 'h3_max_turbo' && !entregues.some((e) => e!.freeFilm)) return nomeEntregue // KINEO-H3-TURBO-ABRE-0511 — é o motor vendido, não uma venda diferente
   const vendido = nomeVendido(quality, paidLive)
   if (!vendido) return curto
   // KINEO-PAINEL-MOTOR-CLARO-0311 — fundador 03/11: "deixa mais claro qual é o filme que está renderizando". "Seedance 1.5 → Kling 4.0 (filme grátis)"

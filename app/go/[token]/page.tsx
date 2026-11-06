@@ -176,7 +176,7 @@ export default async function GoPage({
   }
 
   const engine = isHandoffEngine(row.engine_hint) ? row.engine_hint : 'seedance'
-  const engineLabel = ENGINE_LABELS[engine]
+  const engineLabel = engine === 'seedance' ? 'MiniMax H3 Turbo' : ENGINE_LABELS[engine] // KINEO-H3-TURBO-ABRE-0511 — o rótulo do conector segue igual ao contrato enviado à OpenAI; a tela diz o motor real
   const family = engineFamily(engine)
   // O ENQUADRAMENTO, com nome humano e destino (lib/aspect.ts). Até 06/09 a
   // página mostrava só "9:16" cru, e o link do botão descartava o formato —

@@ -64,7 +64,7 @@ export function OneTimeItemOfferView({ surface, lang = 'en', orderId, pending = 
       const label = isPass ? pass.price : oneTimeItemPriceLabel('one_time_ad')
       const title = isPass ? (pt ? `1 filme de ${pass.seconds} s` : `1 film of ${pass.seconds} s`) : pt ? '1 anúncio sem marca' : ad.label
       const description = isPass
-        ? (pt ? `${pass.credits} créditos: um filme de ${pass.seconds} s com Seedance 1.5, a partir da sua ideia. Pagamento único, sem assinatura.` : `${pass.credits} credits: one ${pass.seconds}-second Seedance 1.5 film from your own idea. One-time payment, no subscription.`)
+        ? (pt ? `${pass.credits} créditos: um filme de ${pass.seconds} s com MiniMax H3 Turbo, a partir da sua ideia. Pagamento único, sem assinatura.` : `${pass.credits} credits: one ${pass.seconds}-second MiniMax H3 Turbo film from your own idea. One-time payment, no subscription.`)
         : pt ? 'Um anúncio de 15 s no Studio Ads, nível Commercial. Créditos para um anúncio e acesso ao Studio Ads.' : ad.description
       const cta = waiting ? (pt ? 'Abrindo pagamento…' : 'Opening checkout…') : (pt ? 'Comprar só 1' : 'Buy just 1')
       return <article className="oti-item" key={sku} data-sku={sku}>

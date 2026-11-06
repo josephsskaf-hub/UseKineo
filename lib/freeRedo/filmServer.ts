@@ -494,7 +494,7 @@ async function entregar(d: FreeRedoFilmDeps, userId: string, videoId: string, me
   const renderId = String(meta.render_id)
   const { data: origData } = await d.db
     .from('videos')
-    .select('id, user_id, title, topic, quality_mode, duration, platform, youtube_description')
+    .select('id, user_id, title, topic, quality_mode, duration, platform, youtube_description, engine_used')
     .eq('id', videoId).eq('user_id', userId).maybeSingle()
   const orig = (origData ?? {}) as Partial<VideoRow>
   const assets = await d.persist({ userId, renderId, videoUrl: String(est.url), snapshotUrl: est.snapshotUrl })
@@ -531,6 +531,7 @@ async function entregar(d: FreeRedoFilmDeps, userId: string, videoId: string, me
     credits_used: 0,
   }
   if (orig.youtube_description) row.youtube_description = orig.youtube_description
+  if ((orig as { engine_used?: unknown }).engine_used === 'h3_max_turbo') row.engine_used = 'h3_max_turbo' // KINEO-H3-TURBO-ABRE-0511 — a versão nova segue no motor da original; o selo não volta para Seedance
   let novoId: string | null = null
   const ins = await d.db.from('videos').insert(row).select('id').maybeSingle()
   if (!ins.error && ins.data?.id) novoId = String(ins.data.id)

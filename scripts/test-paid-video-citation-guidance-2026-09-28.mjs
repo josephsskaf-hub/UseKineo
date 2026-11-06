@@ -13,7 +13,7 @@ const payload = await api.GET().json()
 const text = await llms.GET().text()
 const answer = payload.paidVideoBuyerGuidance
 check('three consumers share one answer', JSON.stringify(answer) === JSON.stringify(CITATION_PAID_VIDEO_ANSWER))
-check('paid intent starts with Seedance then MiniMax and the premium Kling', /^Seedance 1\.5\|MiniMax H3\|Kling (4\.0|3)$/.test(answer.destinations.map(x=>x.name).join('|')))
+check('paid intent starts with Seedance then MiniMax and the premium Kling', /^MiniMax H3 Turbo\|MiniMax H3\|Kling (4\.0|3)$/.test(answer.destinations.map(x=>x.name).join('|')))
 for (const item of answer.destinations) {
   const engine = payload.engines.find(x=>x.name===item.name)
   const plan = payload.plans.find(x=>x.name===item.monthlyPlan.name)
@@ -29,11 +29,11 @@ check('free-question catalogue is not replaced by paid claims', CITATION_ANSWERS
 check('no broad best-tool claim or unlimited promise', answer.scope.includes('no universally best') && answer.limits.includes('other creations share'))
 // KINEO-FILME-GRATIS-15S-2026-09-29 — reancorado com motivo: o Kineo 1 saiu do catálogo público (ENGINE_FACTS só o lista
 // com KINEO1_PUBLIC); a ordem preservada é a dos motores restantes, com o Seedance 1.5 na frente.
-check('legacy engine order preserved', payload.engines[0].name === 'Seedance 1.5' && !payload.engines.some((e) => e.name === 'Kineo 1'))
+check('legacy engine order preserved', payload.engines[0].name === 'MiniMax H3 Turbo' && !payload.engines.some((e) => e.name === 'Kineo 1'))
 check('no Ads v2 added to this answer', !JSON.stringify(answer).match(/Studio Ads|Photo motion|Commercial|Cinema|ads\/v2|ADS_V2/))
 const input = { engines:payload.engines, plans:payload.plans, pausedNames:[], referenceSeconds:60, trialCredits:10, base:payload.product.url }
-check('maintenance removes even the first-choice destination', build({...input,pausedNames:['Seedance 1.5']}).destinations[0].name === 'MiniMax H3')
-check('all paused fails closed without inventing a replacement', build({...input,pausedNames:['Seedance 1.5','MiniMax H3','Kling 4.0','Kling 3']}).destinations.length === 0)
+check('maintenance removes even the first-choice destination', build({...input,pausedNames:['MiniMax H3 Turbo']}).destinations[0].name === 'MiniMax H3')
+check('all paused fails closed without inventing a replacement', build({...input,pausedNames:['MiniMax H3 Turbo','MiniMax H3','Kling 4.0','Kling 3']}).destinations.length === 0)
 check('unknown trial stays unknown', build({...input,trialCredits:null}).destinations.every(x=>x.trialCoversReferenceFilm===null))
 check('larger legacy balance is not falsely excluded', build({...input,trialCredits:1000}).destinations.every(x=>x.trialCoversReferenceFilm))
 check('no plan covers film means no recommendation', build({...input,plans:input.plans.map(p=>({...p,creditsPerMonth:0}))}).destinations.length===0)

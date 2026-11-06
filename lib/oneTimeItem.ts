@@ -24,7 +24,7 @@ export function oneTimeItemOrderId(value: unknown): string | null {
 export function getOneTimeItem(id: OneTimeItemId) {
   return id === 'one_time_ad'
     ? { id, usdMinor: ONE_TIME_ITEM_USD_MINOR[id], credits: adsV2Credits('commercial', 15), label: '1 ad without a watermark', description: 'One 15-second Studio Ads ad, Commercial level. Credits for one ad and Studio Ads access. One-time payment, no subscription.', successPath: '/ads/v2?mode=simple' }
-    : { id, usdMinor: ONE_TIME_ITEM_USD_MINOR[id], credits: creditCostForDuration('cinematic_ai', true, 35), label: '1 film of 35 s without a watermark', description: 'One 35-second Seedance 1.5 film. Credits for one film. One-time payment, no subscription.', successPath: '/studio?engine=seedance&duration=35&script_mode=ai' }
+    : { id, usdMinor: ONE_TIME_ITEM_USD_MINOR[id], credits: creditCostForDuration('cinematic_ai', true, 35), label: '1 film of 35 s without a watermark', description: 'One 35-second MiniMax H3 Turbo film. Credits for one film. One-time payment, no subscription.', successPath: '/studio?engine=seedance&duration=35&script_mode=ai' }
 }
 export function oneTimeItemPriceLabel(id: OneTimeItemId): string {
   return formatCheckoutMoney('usd', getOneTimeItem(id).usdMinor)

@@ -8,7 +8,7 @@ export interface EngineMinutes { quality: Quality; label: string; creditsPerMinu
 /** Motores mostrados na tradução, do mais barato ao mais caro (nomes públicos do site). */
 export const MINUTE_ENGINES: ReadonlyArray<{ quality: Quality; label: string }> = [
   { quality: 'fast', label: 'Kineo 1' },
-  { quality: 'cinematic_ai', label: 'Seedance 1.5' },
+  { quality: 'cinematic_ai', label: 'MiniMax H3 Turbo' },
   { quality: 'cinematic_h3', label: 'MiniMax H3' }, // KINEO-MOTORES-SAEM-0511: saem Kling 2.5 e Veo 3.1
   { quality: 'cinematic_hollywood', label: 'Kling 4.0' },
 ]

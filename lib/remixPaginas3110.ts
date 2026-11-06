@@ -40,7 +40,7 @@ export function remixSourceVideoId(value: string | null | undefined): string | n
 export function remixEngineFromEngineUsed(engineUsed: string | null | undefined): RemixEngine | null {
   const e = (engineUsed ?? '').trim().toLowerCase()
   if (e === 'kling4') return 'hollywood'
-  if (e === 'seedance15_fallback') return 'seedance'
+  if (e === 'seedance15_fallback' || e === 'h3_max_turbo') return 'seedance' // KINEO-H3-TURBO-ABRE-0511 — o filme padrão segue na chave 'seedance'
   return null
 }
 
@@ -49,6 +49,7 @@ export function remixEngineLabel(engineUsed: string | null | undefined): string 
   const e = (engineUsed ?? '').trim().toLowerCase()
   if (e === 'kling4') return 'Kling 4.0'
   if (e === 'seedance15_fallback') return 'Seedance 1.5'
+  if (e === 'h3_max_turbo') return 'MiniMax H3 Turbo' // KINEO-H3-TURBO-ABRE-0511
   return null
 }
 

@@ -127,7 +127,7 @@ export default function UpgradeModal({ onClose }: UpgradeModalProps) {
             // para conta paga, então a faixa é literalmente o menor e o maior
             // grant do catálogo — e agora ela sai deles.
             // KINEO-FILME-GRATIS-15S-2026-09-29 — faixa em Seedance 1.5 (o motor de stock saiu do catálogo público).
-            `🎬 ${videosPerMonth('starter', 'cinematic_ai')}–${videosPerMonth('pro', 'cinematic_ai')} Seedance 1.5 AI films / month`,
+            `🎬 ${videosPerMonth('starter', 'cinematic_ai')}–${videosPerMonth('pro', 'cinematic_ai')} MiniMax H3 Turbo AI films / month`,
             '🎬 AI script + voiceover pipeline',
             '🔤 Auto-captions engine',
             '📥 Watermark-free MP4 output',

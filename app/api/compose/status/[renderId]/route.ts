@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { engineUsedDoFilmePadrao } from '@/lib/engineLabel' // KINEO-H3-TURBO-ABRE-0511
 import { createClient as createServerSupabase } from '@/lib/supabase/server'
 import { MAX_EPISODE_MEMORY_CHARS } from '@/lib/episodeMemory'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
@@ -111,7 +112,7 @@ async function persistCompletedVideo(args: {
   duration: number
   topic: string
   creditsUsed: number
-  engineUsed?: 'kling4' | 'seedance15_fallback'
+  engineUsed?: 'kling4' | 'seedance15_fallback' | 'h3_max_turbo' // KINEO-H3-TURBO-ABRE-0511
   // PUSH #100 — descrição já BRANDED (helper aplicado pelo caller). Vazio =
   // não escreve a coluna, deixando o /api/video-summary preencher depois.
   youtubeDescription?: string
@@ -1162,6 +1163,7 @@ export async function GET(
             ...((prepaidCinematicClaim?.response?.kling4_paid as Record<string, unknown> | undefined)?.version !== 'kling4_paid_2810' &&
               await import('@/lib/kling4TrialClaim').then((m) => m.kling4TrialEngineFromClaim(prepaidCinematicClaim?.response as Record<string, unknown> | null | undefined))
               ? { engineUsed: (await import('@/lib/kling4TrialClaim')).kling4TrialEngineFromClaim(prepaidCinematicClaim?.response as Record<string, unknown> | null | undefined) === 'kling4' ? 'kling4' as const : 'seedance15_fallback' as const } : {}),
+            ...(engineUsedDoFilmePadrao(prepaidCinematicClaim) ? { engineUsed: 'h3_max_turbo' as const } : {}), // KINEO-H3-TURBO-ABRE-0511 — filme novo no H3 Max Turbo, pelo modelo do claim assinado
             youtubeDescription: historyDescription,
             // sprint-retencao #4 — a fala do filme, do claim. Uma leitura, aqui,
             // no único momento em que a linha de `videos` é criada.
@@ -1613,7 +1615,7 @@ export async function GET(
           const m = await import('@/lib/kling4TrialClaim')
           const resp = prepaidCinematicClaim?.response as Record<string, unknown> | null | undefined
           const engine = m.kling4TrialEngineFromClaim(resp)
-          if (!engine) return {}
+          if (!engine) return engineUsedDoFilmePadrao(prepaidCinematicClaim) ? { engine_used: 'h3_max_turbo' } : {} // KINEO-H3-TURBO-ABRE-0511
           return { engine_used: engine === 'kling4' ? 'kling4' : 'seedance15_fallback', ...(m.kling4TrialFallbackPorFalaLonga(resp) ? { engine_note: 'narration_over_15s' } : m.kling4TrialFalaEncurtada(resp) ? { engine_note: 'narration_shortened' } : {}) }
         })()),
         final_video_url: responseVideoUrl,

@@ -127,7 +127,7 @@ async function atender(videoIdRaw: unknown, confirmar: boolean): Promise<NextRes
   // 2) O filme e o RenderScript B guardado na montagem dele (só da própria conta, só do mesmo render).
   const { data: videoData, error: videoErr } = await admin
     .from('videos')
-    .select('id, user_id, status, render_id, title, topic, quality_mode, duration, platform, youtube_description')
+    .select('id, user_id, status, render_id, title, topic, quality_mode, duration, platform, youtube_description, engine_used')
     .eq('id', videoId)
     .maybeSingle()
   if (videoErr) return responder({ ok: false, motivo: 'banco_indisponivel' }, 503)
@@ -279,6 +279,7 @@ async function acompanhar(a: { admin: SupabaseClient; userId: string; video: Vid
     credits_used: 0,
   }
   if (video.youtube_description) row.youtube_description = video.youtube_description
+  if ((video as { engine_used?: unknown }).engine_used === 'h3_max_turbo') row.engine_used = 'h3_max_turbo' // KINEO-H3-TURBO-ABRE-0511 — mesmo filme, mesmo selo
   let bVideoId: string | null = null
   let criado = false
   const ins = await admin.from('videos').insert(row).select('id').maybeSingle()

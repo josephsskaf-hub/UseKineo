@@ -465,7 +465,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
               {[
                 ['~3 min', 'from topic to finished video'],
                 ['9:16', 'built for Shorts, TikTok & Reels'],
-                ['5 engines', 'Kling 4.0, MiniMax H3, Seedance…'],
+                ['5 engines', 'Kling 4.0, MiniMax H3, H3 Turbo…'],
                 // KINEO-EXIT-INTENT-VERDADE-2026-09-27 — o tile "$1 for 7 days of
                 // Creator" anunciava um trial DESLIGADO (lib/checkoutPricing.ts
                 // CARD_TRIAL_LIVE = false). Entra o Starter, com preço e créditos
@@ -607,7 +607,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
             <span className="text-[10px] font-black uppercase tracking-[.12em] text-[var(--muted)] mb-1.5">
               Starter · {formatPlanFilmCapacity(
                 videosPerMonth('starter', 'cinematic_ai'),
-                'Seedance film',
+                'MiniMax H3 Turbo film',
                 TIER_CREDITS.starter,
               )}
             </span>
@@ -652,7 +652,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
             <span className="text-[10px] font-black uppercase tracking-[.12em] mb-1.5" style={{ color: 'var(--accent)' }}>
               Creator · {formatPlanFilmCapacity(
                 videosPerMonth('basic', 'cinematic_ai'),
-                'Seedance film',
+                'MiniMax H3 Turbo film',
                 TIER_CREDITS.basic,
               )}
             </span>

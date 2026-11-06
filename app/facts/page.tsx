@@ -80,7 +80,7 @@ function plan(id: PlanFact['id']): PlanFact {
 // build desta página — `tsc` fica verde e o erro só aparece no deploy.
 // As constantes seguem com o nome interno antigo porque são referenciadas
 // dezenas de vezes abaixo; quem muda é o RÓTULO PUBLICADO, não a variável.
-const SEEDANCE = engine('Seedance 1.5')
+const SEEDANCE = engine('MiniMax H3 Turbo') // KINEO-H3-TURBO-ABRE-0511 — a busca segue o nome de ENGINE_FACTS, senão o build de /facts quebra
 const KLING = engine('MiniMax H3') // KINEO-MOTORES-SAEM-0511: era o Kling 2.5
 // KINEO-KLING4-FACTS-2910 — com KLING4_PAID_LIVE o motor premium publica como "Kling 4.0" (lib/growth/kling4PaidCitation.ts); a busca segue o mesmo nome, senão o build de /facts quebra.
 const HOLLYWOOD = engine(kling4PaidCitation()?.name ?? 'Kling 3')
@@ -376,7 +376,7 @@ const QA: { q: string; a: string }[] = [
         a:
           // KINEO-GEO-RODADA3-2026-10-08 — era "Every engine is unlocked during the new-account trial": promessa morta em 05/10. A
           // resposta honesta: não; o saldo do trial e o filme que ele paga (TRIAL_FREE_FILM_SENTENCE, de lib/freeTierOffer.ts).
-          `No. The new-account trial gives ${TRIAL_ACCESS.credits} credits${TRIAL_ACCESS.noCardRequired ? ' with no card' : ' ($1 for 7 days, card required)'}${TRIAL_ACCESS.everyEngineUnlocked ? '' : ' and unlocks Seedance 1.5 only'}. ` +
+          `No. The new-account trial gives ${TRIAL_ACCESS.credits} credits${TRIAL_ACCESS.noCardRequired ? ' with no card' : ' ($1 for 7 days, card required)'}${TRIAL_ACCESS.everyEngineUnlocked ? '' : ' and unlocks MiniMax H3 Turbo only'}. ` +
           TRIAL_FREE_FILM_SENTENCE +
           TRIAL_COVERAGE_SENTENCE +
           `It does not cover a full reference video on ${listEn(TRIAL_BALANCE_SHORT_ENGINES)}; those engines need a paid plan or a credit pack. ` +

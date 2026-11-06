@@ -314,7 +314,7 @@ export function calculatePlanFit(input: PlanFitInput): PlanFitResult {
 export function engineName(quality: PlanFitQuality): string {
   switch (quality) {
     case 'fast': return 'Kineo 1'
-    case 'cinematic_ai': return 'Seedance 1.5'
+    case 'cinematic_ai': return 'MiniMax H3 Turbo' // KINEO-H3-TURBO-ABRE-0511
     case 'cinematic_kling': return 'Kling 2.5'
     case 'cinematic_hollywood': return 'Kling 4.0' // KINEO-MOTORES-SAEM-0511
     case 'cinematic_veo': return 'Veo 3.1'

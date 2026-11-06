@@ -105,7 +105,7 @@ async function problems(replacements = {}) {
   const html = renderToStaticMarkup(React.createElement(oti.OneTimeItemOfferView, { surface: 'pricing' }))
   const htmlWall = renderToStaticMarkup(React.createElement(oti.OneTimeItemOfferView, { surface: 'generate_paywall' }))
   for (const [nome, h] of [['/pricing', html], ['parede de criação', htmlWall]]) {
-    for (const want of ['ONE-TIME PACK', 'Not ready for a plan? One 60-second film for $4.99, once.', '$4.99', '1 film of 60 s', `${prices.PACK_CREDITS.starter} credits: one 60-second Seedance 1.5 film`, '$9', '1 ad without a watermark', 'No subscription']) if (!h.includes(want)) p.push(`${nome}: o pacote não diz "${want}"`)
+    for (const want of ['ONE-TIME PACK', 'Not ready for a plan? One 60-second film for $4.99, once.', '$4.99', '1 film of 60 s', `${prices.PACK_CREDITS.starter} credits: one 60-second MiniMax H3 Turbo film`, '$9', '1 ad without a watermark', 'No subscription']) if (!h.includes(want)) p.push(`${nome}: o pacote não diz "${want}"`)
     for (const bad of ['$5.00', '35 s', '35-second', 'Buy just one']) if (h.includes(bad)) p.push(`${nome}: ainda mostra "${bad}" (o pacote de US$ 5)`)
   }
   const htmlPt = renderToStaticMarkup(React.createElement(oti.OneTimeItemOfferView, { surface: 'pricing', lang: 'pt' }))

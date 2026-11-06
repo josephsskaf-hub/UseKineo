@@ -51,7 +51,7 @@ equal(creatorBridge.variant, 'trial_balance_seedance', 'Creator bridge is person
 const SEEDANCE_35S = engineCost.creditCostForDuration('cinematic_ai', true, 35)
 const SEEDANCE_60S = engineCost.creditCostForDuration('cinematic_ai', true, 60)
 equal(creatorBridge.outputCount, Math.floor(90 / SEEDANCE_35S), `Creator translates 90 credits into canonical ${SEEDANCE_35S}-credit films`)
-check(creatorBridge.lineItemDescription.includes(`up to ${Math.floor(90 / SEEDANCE_35S)} Seedance 35s films`), 'Creator names the tangible output')
+check(creatorBridge.lineItemDescription.includes(`up to ${Math.floor(90 / SEEDANCE_35S)} MiniMax H3 Turbo 35s films`), 'Creator names the tangible output')
 check(creatorBridge.lineItemDescription.endsWith('· Cancel anytime'), 'the bridge is one short line too (KINEO-CHECKOUT-FINO-0411)')
 
 const studioBridge = policy.buildCheckoutValueContext({

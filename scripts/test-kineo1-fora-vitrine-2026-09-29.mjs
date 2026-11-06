@@ -136,7 +136,7 @@ const semKineo1 = (html) => !html.includes('Kineo 1') && !html.includes('engine=
   // ficam 2 portas do Kineo 1 para a casa (mega-menu e chip final), ainda atrás de showKineo1.
   // REANCORADO KINEO-S25-ABRE-2026-10-06: "Six ... Seedance 1.5 and Seedance 2.5 (paid plans)".
   // KINEO-H3MAX-2026-10-13 — reancorado: + "MiniMax H3 Max" na lista do FAQ (contagem "Seven").
-  checa('home (visitante): sem grade de tiles e FAQ "Seven ... and Seedance 2.5 (paid plans)"', conta(pub, 'class="tile') === 0 && pub.includes('Kling 4.0, MiniMax H3, MiniMax H3 Max, Seedance 1.5 and Seedance 2.5 (paid plans)')) // KINEO-MOTORES-SAEM-0511
+  checa('home (visitante): sem grade de tiles e FAQ "Seven ... and Seedance 2.5 (paid plans)"', conta(pub, 'class="tile') === 0 && pub.includes('Kling 4.0, MiniMax H3, MiniMax H3 Max, MiniMax H3 Turbo and Seedance 2.5 (paid plans)')) // KINEO-MOTORES-SAEM-0511
   // KINEO-MENU-VIDEO-LIMPO-2026-10-09 — re-ancorado: o fundador ("2 sim") tirou o Kineo 1 do mega-menu também para a casa; sobra o chip final.
   checa('home (casa): sobra 1 porta do Kineo 1 (chip final); mega-menu e tile sem ele', conta(casa, 'engine=fast&amp;intent_campaign=nav_mega') === 0 && conta(casa, 'engine=fast&amp;intent_campaign=engine_tile') === 0 && conta(casa, 'engine=fast&amp;intent_campaign=final_chip') === 1)
   checa('mutante (predicado aplicado à casa, que vê as portas) → vermelho', !semKineo1(casa))

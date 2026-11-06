@@ -282,10 +282,10 @@ export default function WelcomeOfferModal({
       name: 'Creator',
       capacity: formatPlanFilmCapacity(
         videosPerMonth('basic', 'cinematic_ai'),
-        'Seedance film',
+        'MiniMax H3 Turbo film',
         TIER_CREDITS.basic,
       ),
-      perks: [`${formatResultCount(videosPerMonth('basic', 'cinematic_ai'), 'Seedance film')} or ${formatResultCount(videosPerMonth('basic', 'cinematic_h3'), 'MiniMax H3 film')}`, 'Every engine incl. MiniMax H3', 'Watermark-free exports you own'],
+      perks: [`${formatResultCount(videosPerMonth('basic', 'cinematic_ai'), 'MiniMax H3 Turbo film')} or ${formatResultCount(videosPerMonth('basic', 'cinematic_h3'), 'MiniMax H3 film')}`, 'Every engine incl. MiniMax H3', 'Watermark-free exports you own'],
       highlight: false,
     },
     {
@@ -293,7 +293,7 @@ export default function WelcomeOfferModal({
       name: 'Studio',
       capacity: formatPlanFilmCapacity(
         videosPerMonth('pro', 'cinematic_ai'),
-        'Seedance film',
+        'MiniMax H3 Turbo film',
         TIER_CREDITS.pro,
       ),
       perks: [`${formatResultCount(videosPerMonth('pro', studioLead.quality), studioLead.film)} or ${formatResultCount(videosPerMonth('pro', 'cinematic_h3'), 'MiniMax H3 film')}`, 'Kling 4.0 directed film scenes', '2 free HD Enhance upscales / month'],

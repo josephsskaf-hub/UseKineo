@@ -254,7 +254,7 @@ export default function ClipsFirstHome({
               </p>
               <div className="p2a" style={{ marginTop: 14 }}>
                 <Link className="bt" href={clipsFirstFilmHref(signedIn)} data-home-cta="open_studio"><UiLabel>Open the Studio</UiLabel></Link>
-                <small>{`Seedance 1.5 film: ${filmCredits} credits`}</small>
+                <small>{`MiniMax H3 Turbo film: ${filmCredits} credits`}</small>
               </div>
             </div>
             <div className="fls">

@@ -118,7 +118,7 @@ export default function Creator30OfferModal() {
         {/* UI#3 — os três fatos que vendem, em vez de prosa corrida. */}
         <ul style={{ color: '#c7c7cc', fontSize: 12.5, lineHeight: 1.7, margin: '0 0 14px', paddingLeft: 18 }}>
           {/* KINEO-FILME-GRATIS-15S-2026-09-29 — sem a parcela do motor de stock (fora do catálogo público). */}
-          <li>{TIER_CREDITS.basic} credits — {videosPerMonth('basic', 'cinematic_ai')} Seedance films or {videosPerMonth('basic', 'cinematic_h3')} MiniMax H3 films</li>
+          <li>{TIER_CREDITS.basic} credits — {videosPerMonth('basic', 'cinematic_ai')} MiniMax H3 Turbo films or {videosPerMonth('basic', 'cinematic_h3')} MiniMax H3 films</li>
           <li>Every engine, including Kling 4.0 &amp; MiniMax H3</li>
           <li>Watermark-free exports + AI images, audio studio and HD enhance</li>
         </ul>

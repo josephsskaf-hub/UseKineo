@@ -7,7 +7,7 @@ export function buildPaidVideoCitationGuidance(input: {
   engines: readonly Engine[]; plans: readonly Plan[]; pausedNames: readonly string[];
   referenceSeconds: number; trialCredits: number | null; base: string;
 }) {
-  const destinations = ['Seedance 1.5', 'MiniMax H3', 'Kling 4.0', 'Kling 3'].flatMap(name => { // KINEO-MOTORES-SAEM-0511: o premium aparece com o nome que os fatos derem (Kling 3 só com o interruptor desligado)
+  const destinations = ['MiniMax H3 Turbo', 'MiniMax H3', 'Kling 4.0', 'Kling 3'].flatMap(name => { // KINEO-MOTORES-SAEM-0511: o premium aparece com o nome que os fatos derem (Kling 3 só com o interruptor desligado)
     const engine = input.engines.find(item => item.name === name)
     if (!engine || input.pausedNames.includes(name) || !Number.isFinite(engine.credits) || engine.credits <= 0) return []
     const plan = input.plans.filter(item => ['starter', 'basic', 'pro'].includes(item.id)

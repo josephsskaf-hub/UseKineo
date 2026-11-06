@@ -65,8 +65,8 @@ export function engineOffered(engine: string | null | undefined): boolean {
 // qualquer débito e de qualquer POST), com a saída que aceita o mesmo pedido em toda língua: o Seedance 1.5 é da mesma estrada clássica.
 export interface EngineRetirement { since: string; label: string; alternative: { key: 'seedance'; label: string }; message: string }
 export const ENGINE_RETIREMENT: Record<string, EngineRetirement> = {
-  kling: { since: '2026-11-05', label: 'Kling 2.5', alternative: { key: 'seedance', label: 'Seedance 1.5' }, message: 'Kling 2.5 is no longer available for new films. Nothing was charged. Your existing Kling 2.5 films stay in your library. Seedance 1.5 is the closest engine and is available right now.' },
-  veo: { since: '2026-11-05', label: 'Veo 3.1', alternative: { key: 'seedance', label: 'Seedance 1.5' }, message: 'Veo 3.1 is no longer available for new films. Nothing was charged. Your existing Veo 3.1 films stay in your library. Seedance 1.5 is the closest engine and is available right now.' },
+  kling: { since: '2026-11-05', label: 'Kling 2.5', alternative: { key: 'seedance', label: 'MiniMax H3 Turbo' }, message: 'Kling 2.5 is no longer available for new films. Nothing was charged. Your existing Kling 2.5 films stay in your library. MiniMax H3 Turbo is the closest engine and is available right now.' },
+  veo: { since: '2026-11-05', label: 'Veo 3.1', alternative: { key: 'seedance', label: 'MiniMax H3 Turbo' }, message: 'Veo 3.1 is no longer available for new films. Nothing was charged. Your existing Veo 3.1 films stay in your library. MiniMax H3 Turbo is the closest engine and is available right now.' },
 }
 /** Aposentadoria do motor pela chave da UI/rota; null quando o motor segue na oferta (ou é só pausa, como o Omni). */
 export function engineRetired(engine: string | null | undefined): EngineRetirement | null {
@@ -95,8 +95,8 @@ export function qualityPaused(quality: string | null | undefined): EnginePause |
 // recusa antes de qualquer débito. Desligar o motor se o canário falhar = trocar esta linha para false. [KINEO-H3MAX-2026-10-13]
 // Guardião: scripts/test-h3max-motor-2026-10-13.mjs. [KINEO-H3MAX-2026-10-13]
 export const H3MAX_PUBLIC = true // KINEO-H3MAX-2026-10-13
-// KINEO-H3-TURBO-0511 [TRAVA 8.2 — fundador 05/11, vendo a comparação de motores: "O H3 é o melhor... vamos colocar esses dois motores para funcionar"]: o filme padrão (35 cr) anima os quadros no H3 Max Turbo. false = só as contas da casa, até o filme real passar. Sem still na cena, a reserva de texto segue no Seedance.
-export const H3_TURBO_PUBLIC = false as boolean
+// KINEO-H3-TURBO-0511 [TRAVA 8.2 — fundador 05/11, vendo a comparação de motores: "O H3 é o melhor... vamos colocar esses dois motores para funcionar"]: o filme padrão (35 cr) anima os quadros no H3 Max Turbo. false = só as contas da casa. KINEO-H3-TURBO-ABRE-0511 [fundador 05/11: "pode abrir para os clientes"]: true. Sem still na cena, a reserva de texto segue no Seedance; o filme grátis e o desenho infantil também ficam no Seedance.
+export const H3_TURBO_PUBLIC = true as boolean
 export function h3TurboNoFilmePadrao(email?: string | null): boolean {
   return H3_TURBO_PUBLIC || isInternalEmail(email)
 }
@@ -266,7 +266,7 @@ export function estrelaVisible(email?: string | null): boolean {
 const PUBLIC_VIDEO_ENGINE_NAMES: readonly string[] = [
   PREMIUM_FILM_ENGINE_OFFER_NAME, 'MiniMax H3', // KINEO-H3MAX-2026-10-13 · KINEO-MOTORES-SAEM-0511: saem Veo 3.1 e Kling 2.5; o Kling 3 vira Kling 4.0
   ...(H3MAX_PUBLIC && enginePaused('h3max') === null ? ['MiniMax H3 Max'] : []), // KINEO-H3MAX-2026-10-13: sete — o H3 Max entra
-  'Seedance 1.5', // KINEO-H3MAX-2026-10-13
+  'MiniMax H3 Turbo', // KINEO-H3MAX-2026-10-13 · KINEO-H3-TURBO-ABRE-0511
   ...(S25_PUBLIC && enginePaused('s25') === null ? ['Seedance 2.5 (paid plans)'] : []),
   ...(KINEO1_PUBLIC ? ['Kineo 1'] : []),
   ...(AVATAR_PUBLIC ? ['Avatar'] : []),

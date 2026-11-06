@@ -7404,7 +7404,8 @@ async function manipularPost(req: NextRequest) {
     // it cannot create a duplicate billable CLIP.
     // KINEO-ANCORA-3-MOTORES-2026-09-16: Kling 2.5 (validado 16/09), Seedance 1.5 e Veo 3.1; Sora fica em t2v (sem i2v conferido).
     const anchorEngine: 'kling' | 'veo' | 'seedance' | null = wantsKling ? 'kling' : wantsVeo ? 'veo' : wantsSora ? null : 'seedance'
-    const i2vDoFilmePadrao = h3TurboNoFilmePadrao(user.email) ? H3_TURBO_I2V_MODEL : SEEDANCE_I2V_MODEL // KINEO-H3-TURBO-0511
+    // KINEO-H3-TURBO-ABRE-0511 — com o interruptor público, o filme grátis (15 s de quem não paga, reserva do Kling 4 inclusive) e o desenho infantil continuam no Seedance: o fundador abriu só o filme padrão.
+    const i2vDoFilmePadrao = h3TurboNoFilmePadrao(user.email) && !(seedanceShortFilm && !isPaidUser) && !desenhoInfantil.ativo ? H3_TURBO_I2V_MODEL : SEEDANCE_I2V_MODEL // KINEO-H3-TURBO-0511
     const anchorI2vModel = anchorEngine === 'kling' ? KLING_I2V_MODEL : anchorEngine === 'veo' ? VEO_I2V_MODEL : i2vDoFilmePadrao // KINEO-H3-TURBO-0511 — era SEEDANCE_I2V_MODEL
     const anchorActive = anchorEngine !== null && CINEMATIC_ANCHOR_ENABLED
     const sceneStills: (string | null)[] = new Array(scenes.length).fill(null)

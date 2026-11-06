@@ -152,7 +152,7 @@ const ENGINES: { paused?: boolean; /* KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 */
   { key: 'fast', icon: '⚡', name: 'Kineo 1', tag: 'Start here', desc: 'Cheapest way to see your idea as a film', res: '720p', credits: `${creditCostFor('fast', true)} cr`, supportsRef: false },
   // 'Popular' saiu: ele nao era popular por escolha, era o PADRAO. Chamar de
   // popular o que ninguem escolheu e uma prova social inventada.
-  { key: 'seedance', preview: '/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4', icon: 'S', name: 'Seedance 1.5', desc: 'The workhorse AI video engine', res: '720p', credits: `${creditCostFor('cinematic_ai', true)} cr`, supportsRef: false },
+  { key: 'seedance', icon: 'H3T', name: 'MiniMax H3 Turbo', desc: 'The workhorse AI video engine', res: '768p', /* KINEO-H3-TURBO-ABRE-0511 — a chave segue 'seedance'. Sem preview até haver filme dele na vitrine: clipe de outro motor não entra (selo honesto). */ credits: `${creditCostFor('cinematic_ai', true)} cr`, supportsRef: false },
   // Sobe para logo depois do Seedance, com o selo honesto do que cabe no plano.
   // e nenhum cliente o escolheu em 45 dias porque ele estava atrás de Kling/Veo/Kling 3.
   // KINEO-MOTORES-R6-2026-09-09 — relatório dos motores: H3 tirou 85% e custa 45 cr,
@@ -1175,8 +1175,8 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
               >
                 <b style={{ color: 'var(--accent)' }}><UiLabel>Continue exactly where ChatGPT stopped.</UiLabel></b>{' '}
                 {chatGptQuickstart === 'finished_script'
-                  ? 'Paste the full answer below. “Use my script as is” and the 35s target are already selected; review the Seedance cost, then press Generate.'
-                  : 'Paste the idea or one sentence below. Kineo will write the hook, scenes and payoff; Seedance and the 60s target are already selected.'}
+                  ? 'Paste the full answer below. “Use my script as is” and the 35s target are already selected; review the cost, then press Generate.'
+                  : 'Paste the idea or one sentence below. Kineo will write the hook, scenes and payoff; MiniMax H3 Turbo and the 60s target are already selected.'}
               </div>
             ) : null}
             {/* BEGIN COMPRA-CLAREZA-2610 OWN-IDEA START */}
@@ -1337,7 +1337,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                   90s é o tier de alcance. */}
               {/* KINEO-SEEDANCE-15S-2026-09-29 — 15 s só no Seedance 1.5 e só com o interruptor (ou quando já veio em 15 pela URL). */}
               {engine === 'seedance' && (seedance15Ok || duration === SEEDANCE_SHORT_SECONDS) && (
-                <button type="button" className={`pill${duration === SEEDANCE_SHORT_SECONDS ? ' on' : ''}`} onClick={() => setDuration(SEEDANCE_SHORT_SECONDS)} onClickCapture={marcarEscolhaDeDuracao} title="Seedance 1.5 only — a short AI film">{SEEDANCE_SHORT_SECONDS}s</button>
+                <button type="button" className={`pill${duration === SEEDANCE_SHORT_SECONDS ? ' on' : ''}`} onClick={() => setDuration(SEEDANCE_SHORT_SECONDS)} onClickCapture={marcarEscolhaDeDuracao} title="MiniMax H3 Turbo only — a short AI film">{SEEDANCE_SHORT_SECONDS}s</button>
               )}
               {/* KINEO-DURACOES-CURTAS-2026-09-29 — as curtas dos outros motores (Kling 2.5/Veo 15 s; hollywood 15/30 s), da tabela do servidor,
                   com o interruptor DURACOES_CURTAS_PUBLIC (ou quando já veio numa curta que o motor oferece). */}
@@ -1408,7 +1408,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                 ))}
               </select>
               {!isHollywoodLanguage(language) && (
-                <span style={{ fontSize: 11, color: 'var(--muted2)' }}>{kineo1Shown ? 'Kineo 1, ' : ''}Seedance 1.5 narrates in this language. Kling 4.0, H3, H3 Max and Seedance 2.5: English, Portuguese, Spanish only.{/* KINEO-H3MAX-2026-10-13 */}{/* KINEO-OMNI-FORA-2026-10-12 */}</span>
+                <span style={{ fontSize: 11, color: 'var(--muted2)' }}>{kineo1Shown ? 'Kineo 1, ' : ''}MiniMax H3 Turbo narrates in this language. Kling 4.0, H3, H3 Max and Seedance 2.5: English, Portuguese, Spanish only.{/* KINEO-H3MAX-2026-10-13 */}{/* KINEO-OMNI-FORA-2026-10-12 */}</span>
               )}
             </div>
             {/* ⚠️ KINEO-RES-HONESTA-2026-08-20 — a tela se contradizia.
@@ -1619,7 +1619,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
             padrão do motor… não deixar uma tela em branco". O filme da casa daquele motor (o líder escolhido pelo fundador
             primeiro), com o selo do motor que o gerou; troca junto com o seletor. No modo Clipe o motor é o Seedance 1.5. */}
         <aside className="studio-engine-hero" aria-label={t('Engine preview', 'Vista del motor')}>
-          <EngineHero key={`${scriptMode === 'clip' ? 'seedance' : engine}:${heroPick && heroPick.engine === (scriptMode === 'clip' ? 'seedance' : engine) ? heroPick.id : ''}`} name={scriptMode === 'clip' ? 'Seedance 1.5' : engine === 'hollywood' ? kling4PaidName(kling4Availability) : ENGINES.find((e) => e.key === engine)!.name} desc={scriptMode === 'clip' ? ENGINES.find((e) => e.key === 'seedance')?.desc : eng.desc} meta={scriptMode === 'clip' ? undefined : `${engineCostLabel(engine)} · ${duration}s · 1080p`} videos={scriptMode !== 'clip' && engine === 'hollywood' && kling4Availability?.paidLive ? KLING4_STUDIO_HEROES : withPick(engineHeroes[scriptMode === 'clip' ? 'seedance' : engine] ?? [], heroPick, scriptMode === 'clip' ? 'seedance' : engine)} fallback={scriptMode === 'clip' ? ENGINES.find((e) => e.key === 'seedance')?.preview : eng.preview} />
+          <EngineHero key={`${scriptMode === 'clip' ? 'seedance' : engine}:${heroPick && heroPick.engine === (scriptMode === 'clip' ? 'seedance' : engine) ? heroPick.id : ''}`} name={scriptMode === 'clip' ? 'Seedance 1.5' : engine === 'hollywood' ? kling4PaidName(kling4Availability) : ENGINES.find((e) => e.key === engine)!.name} desc={scriptMode === 'clip' ? ENGINES.find((e) => e.key === 'seedance')?.desc : eng.desc} meta={scriptMode === 'clip' ? undefined : `${engineCostLabel(engine)} · ${duration}s · 1080p`} videos={scriptMode !== 'clip' && engine === 'seedance' ? [] /* KINEO-H3-TURBO-ABRE-0511 — os filmes da vitrine são de Seedance: sob este nome, sem clipe (selo honesto) */ : scriptMode !== 'clip' && engine === 'hollywood' && kling4Availability?.paidLive ? KLING4_STUDIO_HEROES : withPick(engineHeroes[scriptMode === 'clip' ? 'seedance' : engine] ?? [], heroPick, scriptMode === 'clip' ? 'seedance' : engine)} fallback={scriptMode === 'clip' ? '/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4' /* KINEO-H3-TURBO-ABRE-0511 — o modo Clipe segue no Seedance 1.5 */ : eng.preview} />
         </aside>
       </div>
         {/* KINEO-STUDIO-MELHORES-2026-09-30 — fundador: "na parte de baixo sempre tem que ser os melhores vídeos… uns oito,
@@ -1632,7 +1632,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
               <p><UiLabel>Tap a film to use its engine.</UiLabel></p>
             </div>
             <div className="studio-best-grid">
-              {bestFilms.map((f, idx) => {
+              {bestFilms.filter((f) => f.engine !== 'seedance').map((f, idx) => { /* KINEO-H3-TURBO-ABRE-0511 — "use o motor dele": filme de Seedance não pode apontar para o Turbo (selo honesto) */
                 const e = ENGINES.find((x) => x.key === f.engine)
                 const pausa = enginePaused(f.engine as EngineKey)
                 return (
