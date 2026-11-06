@@ -1,5 +1,5 @@
 // KINEO-PRECO-CIFRAO-0611 — fundador 06/11: "o cifrão está esquisito". O preço grande não usa número de largura fixa
-// (abria vão no "1") e o símbolo sai menor e no alto, nos cartões e na aba de empresas.
+// (abria vão no "1") e o símbolo sai menor e no alto, nos cartões; o preço de empresa só fica menos pesado.
 import { readFileSync } from 'node:fs'
 const ler = (f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8')
 const cartao = ler('components/pricing/PlanValueStage.tsx')
@@ -14,7 +14,7 @@ ok('contagens do cartão sem largura fixa', regra(cartao, '.pv-n') !== '' && !re
 ok('tabela por motor segue alinhada', regra(cartao, '.pv-table td b').includes('tabular-nums'))
 ok('cifrão menor e no alto', /\.pv-cur\{[^}]*top:-\.62em[^}]*font-size:\.56em/.test(cartao))
 ok('cartão usa o símbolo separado', cartao.includes('className="pv-cur"'))
-ok('empresa usa o mesmo desenho', empresa.includes('className="kb-biz-cur"') && /top:-\.62em/.test(empresa))
+ok('preço de empresa sem peso excessivo', /\.kb-biz-price\{[^}]*font-weight:700;letter-spacing:-\.03em/.test(empresa))
 
 const src = /export function partesDoPreco[\s\S]*?\n}/.exec(cartao)?.[0] ?? ''
 const re = new RegExp(/exec\(amount/.test(src) ? /\/(\^.*\$)\/\.exec/.exec(src)[1] : '$^')
