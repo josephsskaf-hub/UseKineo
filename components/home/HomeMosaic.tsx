@@ -57,21 +57,27 @@ type MosaicImage = HomeGalleryImage & { dir: string }
 /** KINEO-MWK-MOSAICO-3110 — um estilo de anúncio no mosaico da página Made with Kineo (dados do antigo bloco do /trending). */
 export interface MosaicStyle { key: string; title: string; engine: string | null; video: string; poster: string | null; href: string }
 
+type MotionTile = { kind: 'motion'; title: string; video: string; poster: string; focus: string; desktopOnly?: true; desktopVideo?: string }
+
 type Tile =
   | { kind: 'clip'; clip: (typeof HOME_NEW_CLIPS)[number] }
   | { kind: 'film'; title: string; badge: string; video: string; poster?: string; focus?: string }
-  | { kind: 'motion'; title: string; video: string; poster: string; focus: string } // KINEO-HOME-DOIS-EIXOS-0611
+  | MotionTile
   | { kind: 'effect'; effect: ClipEffect }
   | { kind: 'image'; img: MosaicImage }
   | { kind: 'style'; style: MosaicStyle } // KINEO-MWK-MOSAICO-3110 — estilo de anúncio (prévia feita pelo próprio estilo)
   | { kind: 'novo'; clip: ClipeNovo; grande: boolean } // KINEO-CLIPES-NOS-2-LUGARES-0411 — os clipes da lista compartilhada; grande = cartão de 2 colunas
 
 // KINEO-CLIPES-NOS-2-LUGARES-0411 — efeitos que a data já passou saem da vitrine (lista em lib/clipesNos2Lugares.ts).
-// KINEO-HOME-DOIS-EIXOS-0611 — fundador 06/11: "coloca esses dois vídeos na tela principal". Vários planos num clipe só, feitos no Kling 3 (selo honesto). O foco mantém fora do quadro a placa com letras do fundo.
-export const HOME_MOTION_TILES: readonly Tile[] = [
-  { kind: 'motion', title: 'Four cameras, one wave', video: '/previews/motion-surf-0611.mp4', poster: '/posters/motion-surf-0611.webp', focus: '50% 55%' },
-  { kind: 'motion', title: 'Camera pulls back', video: '/previews/motion-rua-0611.mp4', poster: '/posters/motion-rua-0611.webp', focus: '50% 75%' },
-  { kind: 'motion', title: 'One rider, one mountain', video: '/previews/motion-neve-0611.mp4', poster: '/posters/motion-neve-0611.webp', focus: '50% 50%' },
+// KINEO-HOME-DOIS-EIXOS-0611 — uma fileira de seis clipes no desktop; abaixo de 1100px,
+// os três clipes originais mantêm mídia e ordem. Alternar terra, água, rua, neve e ar.
+export const HOME_MOTION_TILES: readonly MotionTile[] = [
+  { kind: 'motion', title: 'Four cameras, one wave', video: '/previews/motion-surf-0611.mp4', desktopVideo: '/previews/motion-surf-0611-desktop.mp4', poster: '/posters/motion-surf-0611.webp', focus: '50% 55%' },
+  { kind: 'motion', title: 'An eagle soars over the cliffs', video: '/previews/motion-eagle-0611.mp4', poster: '/posters/motion-eagle-0611.webp', focus: '50% 50%', desktopOnly: true },
+  { kind: 'motion', title: 'Camera pulls back', video: '/previews/motion-rua-0611.mp4', desktopVideo: '/previews/motion-rua-0611-desktop.mp4', poster: '/posters/motion-rua-0611.webp', focus: '50% 75%' },
+  { kind: 'motion', title: 'A manta ray glides underwater', video: '/previews/motion-manta-0611.mp4', poster: '/posters/motion-manta-0611.webp', focus: '50% 50%', desktopOnly: true },
+  { kind: 'motion', title: 'One rider, one mountain', video: '/previews/motion-neve-0611.mp4', desktopVideo: '/previews/motion-neve-0611-desktop.mp4', poster: '/posters/motion-neve-0611.webp', focus: '50% 50%' },
+  { kind: 'motion', title: 'A horse runs along the coast', video: '/previews/motion-horse-0611.mp4', poster: '/posters/motion-horse-0611.webp', focus: '50% 50%', desktopOnly: true },
 ]
 
 const efeitosDaVitrine = () => publicEffectPages().filter((e) => !FORA_DE_ESTACAO.efeitos.includes(e.key))
@@ -214,9 +220,17 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                 </Link>
               )
             }
-            if (t.kind === 'motion') return ( // KINEO-HOME-DOIS-EIXOS-0611
-              <Link key={t.video} href={filmHref} className="kmz-t kmz-big" data-home-cta="mosaic_motion" aria-label={`${t.title} — Kling 3`}>
-                <div className="kmz-md" style={focusStyle(t.poster, t.focus)}><WallMedia src={t.video} /></div>
+            if (t.kind === 'motion') return (
+              <Link key={t.video} href={filmHref} className="kmz-t kmz-big" data-home-cta="mosaic_motion"
+                style={t.desktopOnly ? { display: 'none' } : undefined} aria-label={t.title + ' — Kling 3'}>
+                <div className="kmz-md" style={focusStyle(t.poster, t.focus)}>
+                  {t.desktopVideo ? (
+                    <>
+                      <div className="kmz-motion-original"><WallMedia src={t.video} /></div>
+                      <div className="kmz-motion-desktop" style={{ display: 'none' }}><WallMedia src={t.desktopVideo} /></div>
+                    </>
+                  ) : <WallMedia src={t.video} />}
+                </div>
                 <span className="kmz-shade" aria-hidden="true" />
                 <span className="kmz-copy"><i>Multi-camera · Kling 3</i><b>{t.title}</b></span>
               </Link>

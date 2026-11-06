@@ -77,8 +77,8 @@ const INICIO = Date.parse('2026-11-05T12:00:00Z')
 const DIA = 86400000
 const NATAL = ['snow_globe', 'santa_cartoon', 'pet_xmas_tree', 'pet_xmas_angel']
 const estilos = (n) => Array.from({ length: n }, (_, i) => ({ key: `est-${i}`, title: `Estilo ${i}`, engine: null, video: `/e${i}.mp4`, poster: null, href: `/e${i}` }))
-// KINEO-HOME-DOIS-EIXOS-0611 — [fundador 06/11] a fileira dos 2 vídeos fica à parte (cheia, provada em test-home-dois-eixos-0611.mjs); estas regras valem para a grade que vem depois.
-function semFileiraMotion0611(f) { return (...a) => { const r = f(...a); return r[0]?.kind === 'motion' ? r.slice(3) : r } }
+// KINEO-HOME-DOIS-EIXOS-0611 — [fundador 06/11] a fileira dos vídeos de motion fica à parte (cheia, provada em test-home-dois-eixos-0611.mjs); estas regras valem para a grade que vem depois.
+function semFileiraMotion0611(f) { return (...a) => f(...a).filter((t) => t.kind !== 'motion') }
 const chave = (t) => t.kind === 'novo' ? 'novo:' + t.clip.id : t.kind === 'clip' ? 'clip:' + t.clip.id : t.kind === 'film' ? 'film:' + t.video : t.kind === 'motion' ? 'motion:' + t.video : t.kind === 'effect' ? 'effect:' + t.effect.key : t.kind === 'style' ? 'style:' + t.style.key : 'img:' + t.img.file
 
 /** Todas as provas; devolve a lista de erros (vazia = verde). */

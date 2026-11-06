@@ -374,3 +374,55 @@ body::before{z-index:-1}
 @media(max-width:767px){
   body:has(.ksx) .kineo-aviso-teste{display:none!important}
 }
+
+/* KINEO-HOME-DOIS-EIXOS-0611 — duas fileiras de mesma altura na primeira tela do computador. */
+@media (min-width:1100px){
+  :root{--k2f:max(300px,calc((100vh - 244px)/2))!important}
+  .klp:has(> #samples) .k3c-grid{max-width:100%!important}
+  .klp:has(> #samples) .k3c-card{aspect-ratio:auto!important;height:var(--k2f)!important}
+  .klp:has(> #samples) .k3c{padding-bottom:clamp(4px,calc(4px + (100vh - 720px) * .2),12px)!important;margin-bottom:0!important}
+  .klp #samples .kmz{padding-top:0!important}
+  .klp #samples .kmz-grid{grid-auto-rows:calc((var(--k2f) - 24px)/3)!important}
+  .klp #samples .kmz-grid>.kmz-t:nth-child(-n+6)[data-home-cta="mosaic_motion"]{display:block!important;grid-column:span 1!important;grid-row:span 3!important}
+  .klp #samples [data-home-cta="mosaic_motion"] .kmz-motion-original{display:none!important}
+  .klp #samples [data-home-cta="mosaic_motion"] .kmz-motion-desktop{display:block!important}
+  .klp #samples [data-home-cta="mosaic_motion"] .kmz-md{background-size:contain!important;background-position:50% 50%!important}
+  .klp #samples [data-home-cta="mosaic_motion"] video{object-fit:contain!important;object-position:50% 50%!important}
+
+  /* Nas telas baixas, usar o espaço do cabeçalho sem esconder links nem baixar o piso dos cartões. */
+  .klp:has(> #samples){--k2f-nav:clamp(54px,calc(54px + (100vh - 720px) * .27),88px)!important}
+  .klp:has(> #samples) .nav-in{height:var(--k2f-nav)!important}
+  .klp:has(> #samples) .nav-mobile-menu{top:var(--k2f-nav)!important;max-height:calc(100dvh - var(--k2f-nav))!important}
+  .klp:has(> #samples) .knb{padding-block:clamp(3px,calc(3px + (100vh - 720px) * .06),9px)!important}
+  .klp:has(> #samples) .k3c{padding-top:clamp(3px,calc(3px + (100vh - 720px) * .18),26px)!important}
+  .klp:has(> #samples) .k3c-head{margin-bottom:clamp(3px,calc(3px + (100vh - 720px) * .1),14px)!important}
+  .klp:has(> #samples) > .hero{padding-top:clamp(0px,calc((100vh - 780px) * .24),18px)!important}
+}
+
+/* Capas aprovadas: o mesmo enquadramento no pôster, durante o vídeo e no hover. */
+.klp .k3c-card .k3c-media[data-home-cover] :is(.k3c-cycle-poster,video[data-home-cycle-slot]){
+  object-fit:cover!important;object-position:50% 0%!important;transform:none!important
+}
+.klp .k3c-card .k3c-media[data-home-cover="ugc-headphones"]{container:ugc-cover / size;background:#122331}
+.klp .k3c-card .k3c-media[data-home-cover="ugc-headphones"] :is(.k3c-cycle-poster,video[data-home-cycle-slot]){
+  max-width:126cqh;margin-inline:auto;filter:none!important
+}
+@container ugc-cover (max-aspect-ratio:4/5){
+  .klp .k3c-card .k3c-media[data-home-cover="ugc-headphones"] :is(.k3c-cycle-poster,video[data-home-cycle-slot]){object-fit:contain!important}
+}
+@media(min-width:768px){
+  /* Mantém o texto na faixa vazia do vídeo, inclusive nos cartões mais baixos. */
+  .klp .k3c-card:has([data-home-cover="ugc-headphones"]) .k3c-body{gap:4px;padding:0 16px 12px}
+  .klp .k3c-card:has([data-home-cover="ugc-headphones"]) .k3c-sub{max-width:none;font-size:13px;line-height:1.2}
+  .klp .k3c-card:has([data-home-cover="ugc-headphones"]) .k3c-cta{margin-top:2px;padding:8px 14px}
+}
+@media(min-width:1100px){
+  .klp .k3c-card:has([data-home-cover="ugc-headphones"]) .k3c-body{
+    display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"title cta" "sub sub";gap:4px 10px;align-items:center
+  }
+  .klp .k3c-card:has([data-home-cover="ugc-headphones"]) .k3c-title{grid-area:title;text-wrap:balance}
+  .klp .k3c-card:has([data-home-cover="ugc-headphones"]) .k3c-sub{grid-area:sub}
+  .klp .k3c-card[data-home-card="ugc_ads"]:has([data-home-cover="ugc-headphones"]) .k3c-cta{
+    grid-area:cta;max-width:10.5rem;justify-self:end;text-wrap:balance;font-size:13px;line-height:1.15;padding:8px 12px
+  }
+}
