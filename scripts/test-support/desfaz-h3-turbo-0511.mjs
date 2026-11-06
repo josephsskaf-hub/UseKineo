@@ -1,6 +1,7 @@
 // KINEO-H3-TURBO-0511 — [TRAVA 8.2 — fundador 05/11: "vamos colocar esses dois motores para funcionar"]. Desfaz exato desta entrega, para os guardiões
 // históricos. KINEO-H3-TURBO-ABRE-0511 — a abertura ("pode abrir para os clientes") entra no mesmo recibo (gerar-recibo-h3-turbo-0511.mjs).
 // Texto sem nenhum trecho desta entrega = devolve como veio. Parte dos trechos ausente ou repetida = lança. Nunca usar em lib/app.
+import { semReservaH30611 } from './desfaz-reserva-h3-0611.mjs' // KINEO-RESERVA-H3-0611
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { join } from 'node:path'
@@ -8,6 +9,7 @@ const ESCOPO = JSON.parse(readFileSync(new URL('./desfaz-h3-turbo-0511-fontes.js
 const MARCA = /H3_TURBO|KINEO-H3-TURBO-ABRE-0511/
 const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 export function semH3Turbo0511(source, file) {
+  source = semReservaH30611(source, file) // KINEO-RESERVA-H3-0611 — a camada de cima sai antes, por qualquer caminho
   const hunks = ESCOPO[rel(file)]
   if (typeof source !== 'string' || !hunks) return source
   const crlf = source.includes('\r\n')

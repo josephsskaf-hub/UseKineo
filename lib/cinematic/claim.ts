@@ -1,5 +1,4 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
-import { RESERVA_H3_MODEL, entradaDaReserva, modeloDaReservaDoTeste } from '@/lib/kling4TrialClaim' // KINEO-RESERVA-H3-0611
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   COMPOSE_CLAIM_EVENT,
@@ -8,6 +7,23 @@ import {
   validComposeGenerationId,
   verifyComposeClaim,
 } from '@/lib/composeClaim'
+
+// KINEO-RESERVA-H3-0611 [TRAVA 8.2 — fundador 06/11: "quero sim o H3... pode trocar"]: quando o Kling 4 do filme grátis não entrega, a reserva é o H3 Max Turbo.
+// O H3 só anda a partir de uma imagem: com as 3 cenas com imagem aprovada, vai H3; faltando alguma, o filme inteiro segue no Seedance de texto, sem misturar motor.
+// RESERVA-INICIO
+export const RESERVA_H3_MODEL = 'minimax/h3-max-turbo/image-to-video'
+export const RESERVA_SEEDANCE_MODEL = 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
+export type ReservaShot = { prompt?: unknown; duration?: unknown; image_url?: unknown }
+const temImagemDaReserva = (s: ReservaShot | null | undefined) => typeof s?.image_url === 'string' && /^https:\/\//.test(s.image_url)
+export function modeloDaReservaDoTeste(shots: readonly ReservaShot[]): string {
+  return shots.length > 0 && shots.every(temImagemDaReserva) ? RESERVA_H3_MODEL : RESERVA_SEEDANCE_MODEL
+}
+/** O corpo enviado à fal, na forma que cada motor pede. */
+export function entradaDaReserva(shot: ReservaShot, model: string): Record<string, unknown> {
+  if (model === RESERVA_H3_MODEL) return { prompt: String(shot.prompt), image_url: String(shot.image_url), duration: Number(shot.duration), resolution: '768P', prompt_expansion_mode: 'disabled' }
+  return { prompt: String(shot.prompt), duration: String(shot.duration), resolution: '720p', aspect_ratio: '9:16', generate_audio: false }
+}
+// RESERVA-FIM
 
 export const CINEMATIC_CLAIM_EVENT = 'cinematic_submission_claim'
 export const CINEMATIC_CLAIM_PATH = '/api/generate-video-cinematic'
@@ -996,7 +1012,7 @@ export async function switchKling4TrialToSeedanceFallback(args: {
     clip_word_starts: Array.isArray(fallback.clip_word_starts) ? fallback.clip_word_starts : [0, 0, 0],
     fal_request_ids: [...args.requestIds], fal_models: args.requestIds.map(() => model), fal_model: model,
     scene_prompts: shots.map(s => s.prompt),
-    scene_fal_inputs: shots.map(s => model === RESERVA_H3_MODEL ? entradaDaReserva(s, model) : ({ prompt: s.prompt, duration: String(s.duration), resolution: '720p', aspect_ratio: '9:16', generate_audio: false })),
+    scene_fal_inputs: shots.map(s => entradaDaReserva(s, model)),
     clip_seconds: shots.map(s => Number(s.duration)),
     // Null slots are deliberately excluded after the three once-only attempts finish. They are never retried.
     submission_uncertain: false, terminal_failed_jobs: [],

@@ -1,0 +1,82 @@
+{
+ "app/api/compose/status/[renderId]/route.ts": [
+  {
+   "antes": "import { createClient as createServerSupabase } from '@/lib/supabase/server'\nimport { MAX_EPISODE_MEMORY_CHARS } from '@/lib/episodeMemory'",
+   "depois": "import { createClient as createServerSupabase } from '@/lib/supabase/server'\nimport { engineDaReservaDoGratis } from '@/lib/engineLabel' // KINEO-RESERVA-H3-0611\nimport { MAX_EPISODE_MEMORY_CHARS } from '@/lib/episodeMemory'"
+  },
+  {
+   "antes": "            narration: await lerNarracaoDoEpisodio(),\n            // KINEO-PEDIDO-CERTO-2710 — autoridade: o tema do claim do compose (gravado no envio) → o pedido que a rota cinematográfica",
+   "depois": "            narration: await lerNarracaoDoEpisodio(),\n            ...(engineDaReservaDoGratis(prepaidCinematicClaim) ? { engineUsed: 'h3_max_turbo' as const } : {}), // KINEO-RESERVA-H3-0611\n            // KINEO-PEDIDO-CERTO-2710 — autoridade: o tema do claim do compose (gravado no envio) → o pedido que a rota cinematográfica"
+  },
+  {
+   "antes": "        })()),\n        final_video_url: responseVideoUrl,",
+   "depois": "        })()),\n        ...(engineDaReservaDoGratis(prepaidCinematicClaim) ? { engine_used: 'h3_max_turbo' } : {}), // KINEO-RESERVA-H3-0611\n        final_video_url: responseVideoUrl,"
+  }
+ ],
+ "app/api/generate-video-cinematic/route.ts": [
+  {
+   "antes": "    const anchorEngine: 'kling' | 'veo' | 'seedance' | null = wantsKling ? 'kling' : wantsVeo ? 'veo' : wantsSora ? null : 'seedance'\n    // KINEO-H3-TURBO-ABRE-0511 — com o interruptor público, o filme grátis (15 s de quem não paga, reserva do Kling 4 inclusive) e o desenho infantil continuam no Seedance: o fundador abriu só o filme padrão.\n    const i2vDoFilmePadrao = h3TurboNoFilmePadrao(user.email) && !(seedanceShortFilm && !isPaidUser) && !desenhoInfantil.ativo ? H3_TURBO_I2V_MODEL : SEEDANCE_I2V_MODEL // KINEO-H3-TURBO-0511\n    const anchorI2vModel = anchorEngine === 'kling' ? KLING_I2V_MODEL : anchorEngine === 'veo' ? VEO_I2V_MODEL : i2vDoFilmePadrao // KINEO-H3-TURBO-0511 — era SEEDANCE_I2V_MODEL",
+   "depois": "    const anchorEngine: 'kling' | 'veo' | 'seedance' | null = wantsKling ? 'kling' : wantsVeo ? 'veo' : wantsSora ? null : 'seedance'\n    // KINEO-H3-TURBO-ABRE-0511 · KINEO-RESERVA-H3-0611 [TRAVA 8.2 — fundador 06/11: \"pode trocar\"] — o filme grátis que não sai no Kling 4 também vai de H3; só o desenho infantil continua no Seedance.\n    const i2vDoFilmePadrao = h3TurboNoFilmePadrao(user.email) && !desenhoInfantil.ativo ? H3_TURBO_I2V_MODEL : SEEDANCE_I2V_MODEL // KINEO-H3-TURBO-0511\n    const anchorI2vModel = anchorEngine === 'kling' ? KLING_I2V_MODEL : anchorEngine === 'veo' ? VEO_I2V_MODEL : i2vDoFilmePadrao // KINEO-H3-TURBO-0511 — era SEEDANCE_I2V_MODEL"
+  },
+  {
+   "antes": "      if (kling4Encaixe.r) (response.kling4_trial as Record<string, unknown>).narration_refit = kling4Encaixe.r.rastro // KINEO-K4-SEMPRE-0511 — quanto foi encurtada\n      if (kling4Trial.job) {",
+   "depois": "      if (kling4Encaixe.r) (response.kling4_trial as Record<string, unknown>).narration_refit = kling4Encaixe.r.rastro // KINEO-K4-SEMPRE-0511 — quanto foi encurtada\n      if (kling4Trial.job) (response.kling4_trial as Record<string, unknown>).fallback_scenes = classicScenePrompts.map((prompt, i) => ({ prompt, duration: scenes[i].clipSeconds ?? 6, ...(kling4ApprovedStills[i] ? { image_url: kling4ApprovedStills[i] } : {}) })) // KINEO-RESERVA-H3-0611 — a imagem aprovada viaja assinada para a reserva\n      if (kling4Trial.job) {"
+  }
+ ],
+ "lib/cinematic/claim.ts": [
+  {
+   "antes": "\nexport const CINEMATIC_CLAIM_EVENT = 'cinematic_submission_claim'",
+   "depois": "\n// KINEO-RESERVA-H3-0611 [TRAVA 8.2 — fundador 06/11: \"quero sim o H3... pode trocar\"]: quando o Kling 4 do filme grátis não entrega, a reserva é o H3 Max Turbo.\n// O H3 só anda a partir de uma imagem: com as 3 cenas com imagem aprovada, vai H3; faltando alguma, o filme inteiro segue no Seedance de texto, sem misturar motor.\n// RESERVA-INICIO\nexport const RESERVA_H3_MODEL = 'minimax/h3-max-turbo/image-to-video'\nexport const RESERVA_SEEDANCE_MODEL = 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'\nexport type ReservaShot = { prompt?: unknown; duration?: unknown; image_url?: unknown }\nconst temImagemDaReserva = (s: ReservaShot | null | undefined) => typeof s?.image_url === 'string' && /^https:\\/\\//.test(s.image_url)\nexport function modeloDaReservaDoTeste(shots: readonly ReservaShot[]): string {\n  return shots.length > 0 && shots.every(temImagemDaReserva) ? RESERVA_H3_MODEL : RESERVA_SEEDANCE_MODEL\n}\n/** O corpo enviado à fal, na forma que cada motor pede. */\nexport function entradaDaReserva(shot: ReservaShot, model: string): Record<string, unknown> {\n  if (model === RESERVA_H3_MODEL) return { prompt: String(shot.prompt), image_url: String(shot.image_url), duration: Number(shot.duration), resolution: '768P', prompt_expansion_mode: 'disabled' }\n  return { prompt: String(shot.prompt), duration: String(shot.duration), resolution: '720p', aspect_ratio: '9:16', generate_audio: false }\n}\n// RESERVA-FIM\n\nexport const CINEMATIC_CLAIM_EVENT = 'cinematic_submission_claim'"
+  },
+  {
+   "antes": "  const fallback = marker.fallback_response as Record<string, unknown> | undefined\n  const shots = marker.fallback_scenes as Array<{ prompt?: unknown; duration?: unknown }> | undefined\n  if (!fallback || !Array.isArray(fallback.scenes) || fallback.scenes.length !== 3 ||",
+   "depois": "  const fallback = marker.fallback_response as Record<string, unknown> | undefined\n  const shots = marker.fallback_scenes as Array<{ prompt?: unknown; duration?: unknown; image_url?: unknown }> | undefined\n  if (!fallback || !Array.isArray(fallback.scenes) || fallback.scenes.length !== 3 ||"
+  },
+  {
+   "antes": "  }\n  const model = 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'\n  const nextResponse = { ...response, scenes: fallback.scenes,",
+   "depois": "  }\n  const model = modeloDaReservaDoTeste(shots) // KINEO-RESERVA-H3-0611 — a mesma regra do envio, com os mesmos dados assinados\n  const nextResponse = { ...response, scenes: fallback.scenes,"
+  },
+  {
+   "antes": "    scene_prompts: shots.map(s => s.prompt),\n    scene_fal_inputs: shots.map(s => ({ prompt: s.prompt, duration: String(s.duration), resolution: '720p', aspect_ratio: '9:16', generate_audio: false })),\n    clip_seconds: shots.map(s => Number(s.duration)),",
+   "depois": "    scene_prompts: shots.map(s => s.prompt),\n    scene_fal_inputs: shots.map(s => entradaDaReserva(s, model)),\n    clip_seconds: shots.map(s => Number(s.duration)),"
+  }
+ ],
+ "lib/engineLabel.ts": [
+  {
+   "antes": "}",
+   "depois": "}\n\n// KINEO-RESERVA-H3-0611 — a reserva do filme grátis leva o selo do motor que rodou de verdade. Kling 4 entregue não entra.\nexport function engineDaReservaDoGratis(claim: { falModels?: unknown; response?: Record<string, unknown> | null } | null | undefined): 'h3_max_turbo' | null {\n  const teste = claim?.response?.kling4_trial as { engine_used?: unknown } | undefined\n  if (!teste || (teste.engine_used !== 'seedance15_fallback' && teste.engine_used !== 'seedance15_cap')) return null\n  return Array.isArray(claim?.falModels) && claim.falModels.includes('minimax/h3-max-turbo/image-to-video') ? 'h3_max_turbo' : null\n}"
+  }
+ ],
+ "lib/kling4TrialClaim.ts": [
+  {
+   "antes": "      !r.fal_models.every(model => model === 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video' ||\n        model === 'fal-ai/bytedance/seedance/v1.5/pro/image-to-video')) return null\n  return r",
+   "depois": "      !r.fal_models.every(model => model === 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video' ||\n        model === 'fal-ai/bytedance/seedance/v1.5/pro/image-to-video' || model === 'minimax/h3-max-turbo/image-to-video' /* KINEO-RESERVA-H3-0611 */)) return null\n  return r"
+  }
+ ],
+ "lib/kling4TrialFallback.ts": [
+  {
+   "antes": "import type { SupabaseClient } from '@supabase/supabase-js'\nimport { loadVerifiedCinematicClaim, startKling4TrialFallback, switchKling4TrialToSeedanceFallback, type CinematicClaim } from '@/lib/cinematic/claim'\n",
+   "depois": "import type { SupabaseClient } from '@supabase/supabase-js'\nimport { RESERVA_H3_MODEL, entradaDaReserva, loadVerifiedCinematicClaim, modeloDaReservaDoTeste, startKling4TrialFallback, switchKling4TrialToSeedanceFallback, type CinematicClaim } from '@/lib/cinematic/claim'\n"
+  },
+  {
+   "antes": "\n/** Called only after a server poll proves failure or the signed eight-minute window has elapsed.",
+   "depois": "\n/** KINEO-RESERVA-H3-0611 — a mesma disciplina do envio do Seedance: um POST só, sem repetição; recibo incerto nunca autoriza outro envio. */\nexport async function submitKling4TrialH3Fallback(input: Record<string, unknown>): Promise<string> {\n  const key = process.env.FAL_KEY\n  if (!key) throw new Kling4FallbackSubmitError(false)\n  let response: Response\n  try {\n    response = await fetch(`https://queue.fal.run/${RESERVA_H3_MODEL}`, {\n      method: 'POST', headers: { Authorization: `Key ${key}`, 'Content-Type': 'application/json' },\n      body: JSON.stringify(input), cache: 'no-store', signal: AbortSignal.timeout(10_000),\n    })\n  } catch { throw new Kling4FallbackSubmitError(true) }\n  if (!response.ok) throw new Kling4FallbackSubmitError(response.status === 408 || response.status >= 500)\n  try {\n    const body = await response.json() as { request_id?: unknown }\n    if (typeof body.request_id === 'string' && body.request_id.trim() && body.request_id.length <= 512) return body.request_id.trim()\n  } catch { /* An accepted POST with an unreadable receipt is ambiguous. */ }\n  throw new Kling4FallbackSubmitError(true)\n}\n\n/** Called only after a server poll proves failure or the signed eight-minute window has elapsed."
+  },
+  {
+   "antes": "  submit?: (input: Kling4FallbackInput) => Promise<string>\n}): Promise<Kling4FallbackResult> {",
+   "depois": "  submit?: (input: Kling4FallbackInput) => Promise<string>\n  submitH3?: (input: Record<string, unknown>) => Promise<string> // KINEO-RESERVA-H3-0611\n}): Promise<Kling4FallbackResult> {"
+  },
+  {
+   "antes": "  const original = marker.original_request_id\n  const shots = marker.fallback_scenes as Array<{ prompt?: unknown; duration?: unknown }> | undefined\n  const fallback = marker.fallback_response as Record<string, unknown> | undefined",
+   "depois": "  const original = marker.original_request_id\n  const shots = marker.fallback_scenes as Array<{ prompt?: unknown; duration?: unknown; image_url?: unknown }> | undefined\n  const fallback = marker.fallback_response as Record<string, unknown> | undefined"
+  },
+  {
+   "antes": "  const submit = args.submit ?? submitKling4TrialSeedanceFallback\n  await Promise.all(shots.map(async (shot, index) => {",
+   "depois": "  const submit = args.submit ?? submitKling4TrialSeedanceFallback\n  const submitH3 = args.submitH3 ?? submitKling4TrialH3Fallback // KINEO-RESERVA-H3-0611\n  const modeloDaReserva = modeloDaReservaDoTeste(shots) // KINEO-RESERVA-H3-0611 — decidido uma vez, para o filme inteiro\n  await Promise.all(shots.map(async (shot, index) => {"
+  },
+  {
+   "antes": "      try {\n        const id = await submit({ prompt: String(shot.prompt), duration: Number(shot.duration), resolution: '720p', aspect_ratio: '9:16', generate_audio: false })\n        if (typeof id !== 'string' || !id.trim() || id.length > 512) throw new Kling4FallbackSubmitError(true)",
+   "depois": "      try {\n        const id = modeloDaReserva === RESERVA_H3_MODEL\n          ? await submitH3(entradaDaReserva(shot, modeloDaReserva))\n          : await submit({ prompt: String(shot.prompt), duration: Number(shot.duration), resolution: '720p', aspect_ratio: '9:16', generate_audio: false })\n        if (typeof id !== 'string' || !id.trim() || id.length > 512) throw new Kling4FallbackSubmitError(true)"
+  }
+ ]
+}

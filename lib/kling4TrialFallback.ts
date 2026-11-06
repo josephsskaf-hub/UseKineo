@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { loadVerifiedCinematicClaim, startKling4TrialFallback, switchKling4TrialToSeedanceFallback, type CinematicClaim } from '@/lib/cinematic/claim'
-import { RESERVA_H3_MODEL, entradaDaReserva, modeloDaReservaDoTeste } from '@/lib/kling4TrialClaim' // KINEO-RESERVA-H3-0611
+import { RESERVA_H3_MODEL, entradaDaReserva, loadVerifiedCinematicClaim, modeloDaReservaDoTeste, startKling4TrialFallback, switchKling4TrialToSeedanceFallback, type CinematicClaim } from '@/lib/cinematic/claim'
 
 export const KLING4_TRIAL_FALLBACK_MODEL = 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
 export type Kling4FallbackInput = { prompt: string; duration: number; resolution: '720p'; aspect_ratio: '9:16'; generate_audio: false }

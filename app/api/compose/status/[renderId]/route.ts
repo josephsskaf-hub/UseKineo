@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { engineUsedDoFilmePadrao } from '@/lib/engineLabel' // KINEO-H3-TURBO-ABRE-0511
 import { createClient as createServerSupabase } from '@/lib/supabase/server'
+import { engineDaReservaDoGratis } from '@/lib/engineLabel' // KINEO-RESERVA-H3-0611
 import { MAX_EPISODE_MEMORY_CHARS } from '@/lib/episodeMemory'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { pollCreatomateRender } from '@/lib/compose'
@@ -1168,6 +1169,7 @@ export async function GET(
             // sprint-retencao #4 — a fala do filme, do claim. Uma leitura, aqui,
             // no único momento em que a linha de `videos` é criada.
             narration: await lerNarracaoDoEpisodio(),
+            ...(engineDaReservaDoGratis(prepaidCinematicClaim) ? { engineUsed: 'h3_max_turbo' as const } : {}), // KINEO-RESERVA-H3-0611
             // KINEO-PEDIDO-CERTO-2710 — autoridade: o tema do claim do compose (gravado no envio) → o pedido que a rota cinematográfica
             // KINEO-PEDIDO-CERTO-2710 — RECEBEU (claim assinado, limpo de marcadores) → o ?topic= da aba. Conferidos contra a fala.
             temasCandidatos: () => [ // KINEO-PEDIDO-CERTO-2710
@@ -1616,8 +1618,9 @@ export async function GET(
           const resp = prepaidCinematicClaim?.response as Record<string, unknown> | null | undefined
           const engine = m.kling4TrialEngineFromClaim(resp)
           if (!engine) return engineUsedDoFilmePadrao(prepaidCinematicClaim) ? { engine_used: 'h3_max_turbo' } : {} // KINEO-H3-TURBO-ABRE-0511
-          return { engine_used: engineUsedDoFilmePadrao(prepaidCinematicClaim) ?? (engine === 'kling4' ? 'kling4' : 'seedance15_fallback'), ...(m.kling4TrialFallbackPorFalaLonga(resp) ? { engine_note: 'narration_over_15s' } : m.kling4TrialFalaEncurtada(resp) ? { engine_note: 'narration_shortened' } : {}) }
+          return { engine_used: engine === 'kling4' ? 'kling4' : 'seedance15_fallback', ...(m.kling4TrialFallbackPorFalaLonga(resp) ? { engine_note: 'narration_over_15s' } : m.kling4TrialFalaEncurtada(resp) ? { engine_note: 'narration_shortened' } : {}) }
         })()),
+        ...(engineDaReservaDoGratis(prepaidCinematicClaim) ? { engine_used: 'h3_max_turbo' } : {}), // KINEO-RESERVA-H3-0611
         final_video_url: responseVideoUrl,
         ...(linkDoBucketDepois ? { asset_pending: true } : {}), // KINEO-FILME-RAPIDO-1710 — a tela troca pelo link do bucket (?asset=1)
         video_id: videoId,

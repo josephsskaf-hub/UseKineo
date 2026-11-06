@@ -8190,7 +8190,7 @@ async function manipularPost(req: NextRequest) {
         ...(kling4Trial.reason ? { reason: kling4Trial.reason } : {}), ...(kling4Fala ? { narration_fit: kling4Fala } : {}), // KINEO-K4-NARRACAO-CABE-0111 — rastro: fala medida × teto do clipe de 15 s
         ...(kling4Trial.job ? {
           original_request_id: kling4Trial.job.requestId, submitted_at: kling4Trial.job.submittedAt,
-          fallback_scenes: classicScenePrompts.map((prompt, i) => ({ prompt, duration: scenes[i].clipSeconds ?? 6, ...(kling4ApprovedStills[i] ? { image_url: kling4ApprovedStills[i] } : {}) })), // KINEO-RESERVA-H3-0611 — a imagem aprovada viaja assinada para a reserva
+          fallback_scenes: classicScenePrompts.map((prompt, i) => ({ prompt, duration: scenes[i].clipSeconds ?? 6 })),
           fallback_response: {
             scenes: response.scenes, scene_captions: response.scene_captions,
             scene_prompts: classicScenePrompts, clip_seconds: response.clip_seconds,
@@ -8199,6 +8199,7 @@ async function manipularPost(req: NextRequest) {
         } : {}),
       }
       if (kling4Encaixe.r) (response.kling4_trial as Record<string, unknown>).narration_refit = kling4Encaixe.r.rastro // KINEO-K4-SEMPRE-0511 — quanto foi encurtada
+      if (kling4Trial.job) (response.kling4_trial as Record<string, unknown>).fallback_scenes = classicScenePrompts.map((prompt, i) => ({ prompt, duration: scenes[i].clipSeconds ?? 6, ...(kling4ApprovedStills[i] ? { image_url: kling4ApprovedStills[i] } : {}) })) // KINEO-RESERVA-H3-0611 — a imagem aprovada viaja assinada para a reserva
       if (kling4Trial.job) {
         const shotSeconds = kling4TrialSceneDurations(kling4Timing.voiceovers, kling4Timing.wordsPerSecond)
         let shotStart = 0
