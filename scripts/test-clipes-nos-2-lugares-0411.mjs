@@ -77,7 +77,9 @@ const INICIO = Date.parse('2026-11-05T12:00:00Z')
 const DIA = 86400000
 const NATAL = ['snow_globe', 'santa_cartoon', 'pet_xmas_tree', 'pet_xmas_angel']
 const estilos = (n) => Array.from({ length: n }, (_, i) => ({ key: `est-${i}`, title: `Estilo ${i}`, engine: null, video: `/e${i}.mp4`, poster: null, href: `/e${i}` }))
-const chave = (t) => t.kind === 'novo' ? 'novo:' + t.clip.id : t.kind === 'clip' ? 'clip:' + t.clip.id : t.kind === 'film' ? 'film:' + t.video : t.kind === 'effect' ? 'effect:' + t.effect.key : t.kind === 'style' ? 'style:' + t.style.key : 'img:' + t.img.file
+// KINEO-HOME-DOIS-EIXOS-0611 — [fundador 06/11] a fileira dos 2 vídeos fica à parte (cheia, provada em test-home-dois-eixos-0611.mjs); estas regras valem para a grade que vem depois.
+function semFileiraMotion0611(f) { return (...a) => { const r = f(...a); return r[0]?.kind === 'motion' ? r.slice(3) : r } }
+const chave = (t) => t.kind === 'novo' ? 'novo:' + t.clip.id : t.kind === 'clip' ? 'clip:' + t.clip.id : t.kind === 'film' ? 'film:' + t.video : t.kind === 'motion' ? 'motion:' + t.video : t.kind === 'effect' ? 'effect:' + t.effect.key : t.kind === 'style' ? 'style:' + t.style.key : 'img:' + t.img.file
 
 /** Todas as provas; devolve a lista de erros (vazia = verde). */
 function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(path.join(ROOT, rel))) {
@@ -115,7 +117,7 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
   const lugares = { home: {}, galeria: { full: true, styles: estilos(17) }, 'galeria com 3 estilos': { full: true, styles: estilos(3) } } // 17 = os estilos de anúncio com vídeo hoje
   for (const [lugar, opts] of Object.entries(lugares)) {
     for (let d = 0; d < 7; d++) {
-      const tiles = mosaico.homeMosaicTiles(INICIO + d * DIA, opts)
+      const tiles = semFileiraMotion0611(mosaico.homeMosaicTiles)(INICIO + d * DIA, opts)
       const novos = tiles.filter((t) => t.kind === 'novo').map((t) => t.clip.id).sort()
       if (JSON.stringify(novos) !== JSON.stringify([...ids].sort())) { e.push(`B ${lugar} (dia ${d}): clipes ≠ lista (${novos.length} de ${ids.length})`); break }
       if (new Set(tiles.map(chave)).size !== tiles.length) { e.push(`B ${lugar} (dia ${d}): cartão repetido`); break }
@@ -162,7 +164,7 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
     if (!fs.existsSync(path.join(ROOT, rel))) e.push(`C arquivo apagado: ${rel}`)
   }
   // (D) embaralhado
-  const ordem = (now, opts) => mosaico.homeMosaicTiles(now, opts).map(chave).join(',')
+  const ordem = (now, opts) => semFileiraMotion0611(mosaico.homeMosaicTiles)(now, opts).map(chave).join(',')
   const relogio = Date.now
   const sorteio = Math.random
   for (const [lugar, opts] of Object.entries(lugares)) {
@@ -177,7 +179,7 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
     }
     // variedade: nunca em bloco, sempre cedo, a pessoa nunca colada, a cadência da grade intacta
     for (let d = 0; d < 400; d++) {
-      const tiles = mosaico.homeMosaicTiles(INICIO + d * DIA, opts)
+      const tiles = semFileiraMotion0611(mosaico.homeMosaicTiles)(INICIO + d * DIA, opts)
       const primeiros = tiles.slice(0, 12).filter((t) => t.kind === 'novo').length
       if (primeiros < 2) { e.push(`D ${lugar}: só ${primeiros} clipes novos nos 12 primeiros cartões (dia ${d})`); break }
       const noTopo = tiles.slice(0, 15).filter((t) => t.kind === 'novo').length
@@ -215,7 +217,7 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
   }
   for (const [lugar, opts] of Object.entries({ home: lugares.home, galeria: lugares.galeria })) {
     for (let d = 0; d < 60; d++) {
-      const n = buracos(mosaico.homeMosaicTiles(INICIO + d * DIA, opts))
+      const n = buracos(semFileiraMotion0611(mosaico.homeMosaicTiles)(INICIO + d * DIA, opts))
       if (n > 6) { e.push(`G ${lugar}: ${n} células vazias na grade (dia ${d}); antes do pedido eram 6`); break }
     }
   }

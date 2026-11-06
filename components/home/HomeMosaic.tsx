@@ -60,12 +60,20 @@ export interface MosaicStyle { key: string; title: string; engine: string | null
 type Tile =
   | { kind: 'clip'; clip: (typeof HOME_NEW_CLIPS)[number] }
   | { kind: 'film'; title: string; badge: string; video: string; poster?: string; focus?: string }
+  | { kind: 'motion'; title: string; video: string; poster: string; focus: string } // KINEO-HOME-DOIS-EIXOS-0611
   | { kind: 'effect'; effect: ClipEffect }
   | { kind: 'image'; img: MosaicImage }
   | { kind: 'style'; style: MosaicStyle } // KINEO-MWK-MOSAICO-3110 — estilo de anúncio (prévia feita pelo próprio estilo)
   | { kind: 'novo'; clip: ClipeNovo; grande: boolean } // KINEO-CLIPES-NOS-2-LUGARES-0411 — os clipes da lista compartilhada; grande = cartão de 2 colunas
 
 // KINEO-CLIPES-NOS-2-LUGARES-0411 — efeitos que a data já passou saem da vitrine (lista em lib/clipesNos2Lugares.ts).
+// KINEO-HOME-DOIS-EIXOS-0611 — fundador 06/11: "coloca esses dois vídeos na tela principal". Vários planos num clipe só, feitos no Kling 3 (selo honesto). O foco mantém fora do quadro a placa com letras do fundo.
+export const HOME_MOTION_TILES: readonly Tile[] = [
+  { kind: 'motion', title: 'Four cameras, one wave', video: '/previews/motion-surf-0611.mp4', poster: '/posters/motion-surf-0611.webp', focus: '50% 55%' },
+  { kind: 'motion', title: 'Camera pulls back', video: '/previews/motion-rua-0611.mp4', poster: '/posters/motion-rua-0611.webp', focus: '50% 75%' },
+  { kind: 'motion', title: 'Street-level tracking', video: '/previews/motion-corrida-0611.mp4', poster: '/posters/motion-corrida-0611.webp', focus: '50% 70%' },
+]
+
 const efeitosDaVitrine = () => publicEffectPages().filter((e) => !FORA_DE_ESTACAO.efeitos.includes(e.key))
 
 // KINEO-VITRINE-ESTACAO-3110 — a lista da estação mora em lib/clips/clipSeason.ts (a mesma do "Trending this week" do Clipe).
@@ -125,7 +133,9 @@ export function homeMosaicTiles(now: number = Date.now(), opts: { full?: boolean
   const ePequeno = (t: Tile) => t.kind === 'effect' || t.kind === 'style' || (t.kind === 'novo' && !t.grande) // KINEO-CLIPES-NOS-2-LUGARES-0411
   const mesmoTamanho = (a: Tile, b: Tile) => (eGrande(a) && eGrande(b)) || (ePequeno(a) && ePequeno(b)) // KINEO-CLIPES-NOS-2-LUGARES-0411
   const semBloco = afastaVizinhos(out, (t) => t.kind === 'novo', mesmoTamanho, 2) // KINEO-CLIPES-NOS-2-LUGARES-0411 — misturado, nunca 3 clipes novos em bloco
-  return afastaVizinhos(semBloco, (t) => t.kind === 'novo' && t.clip.pessoa, (a, b) => mesmoTamanho(a, b) && b.kind !== 'novo') // KINEO-CLIPES-NOS-2-LUGARES-0411 — a mesma pessoa nunca colada nela mesma
+  const ordem = afastaVizinhos(semBloco, (t) => t.kind === 'novo' && t.clip.pessoa, (a, b) => mesmoTamanho(a, b) && b.kind !== 'novo') // KINEO-CLIPES-NOS-2-LUGARES-0411 — a mesma pessoa nunca colada nela mesma
+  if (opts.full) return ordem // KINEO-HOME-DOIS-EIXOS-0611
+  return [...HOME_MOTION_TILES, ...ordem] // KINEO-HOME-DOIS-EIXOS-0611 — fileira própria e cheia, sem tirar nada da grade
 }
 
 const CSS = `
@@ -204,6 +214,13 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                 </Link>
               )
             }
+            if (t.kind === 'motion') return ( // KINEO-HOME-DOIS-EIXOS-0611
+              <Link key={t.video} href={filmHref} className="kmz-t kmz-big" data-home-cta="mosaic_motion" aria-label={`${t.title} — Kling 3`}>
+                <div className="kmz-md" style={focusStyle(t.poster, t.focus)}><WallMedia src={t.video} /></div>
+                <span className="kmz-shade" aria-hidden="true" />
+                <span className="kmz-copy"><i>Multi-camera · Kling 3</i><b>{t.title}</b></span>
+              </Link>
+            )
             if (t.kind === 'film') return (
               <Link key={t.video} href={filmHref} className="kmz-t kmz-big" data-home-cta="mosaic_film" aria-label={`${t.title} — narrated film`}>
                 <div className="kmz-md" style={focusStyle(t.poster, t.focus)}><WallMedia src={t.video} /></div>
