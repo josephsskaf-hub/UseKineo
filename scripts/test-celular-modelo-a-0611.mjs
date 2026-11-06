@@ -45,5 +45,12 @@ for (const f of ['public/posters/ugc-porta.webp', 'public/home-images/perfume-sp
 checa('evento novo não está na lista só do servidor', !ler('app/api/events/route.ts').includes('home_phone_box_clicked'))
 checa('Generate segue com nome para leitor de tela', caixa.includes('aria-label="Generate"'))
 checa('tela de criar: mudança só abaixo de 768 px', caixa.includes('.ksx-marca,.ksx-chip img{display:none}') && caixa.includes('@media (max-width:767px)'))
+const entradas = css.slice(css.indexOf('KINEO-CELULAR-ENTRADAS-0611'))
+checa('entradas no escuro só no celular', entradas.includes('@media(max-width:767px)') && entradas.includes("html[data-theme='dark'] .kpl{--kpl-bg:#07090D"))
+checa('cor clara principal tem par escura', entradas.includes('[style*="color:#0E1116"]') && entradas.includes('[style*="background:#FFFFFF"]'))
+checa('menu lateral nas entradas', entradas.includes('.kpn-menu{position:fixed!important') && entradas.includes('.kpn-toggle input:checked{position:fixed!important'))
+checa('entradas não mostram título de galeria sem galeria', entradas.includes('.kpl .kpc-tit{display:none!important}'))
+checa('idioma no menu das entradas', ler('components/seo/PaginaClara.tsx').includes('<InterfaceLanguageSelect emMenu />'))
+checa('véu do tema escuro abaixo do texto', css.includes('body::before{z-index:-1}'))
 if (falhas) { console.error(falhas + ' falha(s)'); process.exit(1) }
 console.log('TUDO OK')

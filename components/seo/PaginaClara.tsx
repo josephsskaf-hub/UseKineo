@@ -58,6 +58,7 @@ export function PaginaClaraTopo() {
               <Link href={MENU_CARTOON_HREF} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>
               <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM}>{MENU_CONNECTOR_LABEL}</Link>
               <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
+              <InterfaceLanguageSelect emMenu />{/* KINEO-CELULAR-ENTRADAS-0611 — no celular o idioma sai do topo e fica no menu */}
               <Link href="/login" data-nav-item="login"><UiLabel>Log in</UiLabel></Link>
               <Link className="kpn-cta" href="/signup?utm_source=nav-mobile"><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>
             </label>
