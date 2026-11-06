@@ -7,7 +7,12 @@ for(const signedIn of [false,true])for(const language of ['en','es']){
  const html=renderPage(page,false,{interfaceLanguage:language,previewCredits:540},{initialUser:signedIn})
  const main=html.match(/<nav aria-label="Main">([\s\S]*?)<\/nav>/)?.[1]??''
  const hero=html.match(/<header class="hero">([\s\S]*?)<\/header>/)?.[1]??''
- check((main.match(/class="kineo-interface-language"/g)||[]).length===1,'one language control in Main')
+ // KINEO-HOME-TOPO-0511 — reancorado: fundador 05/11 "deixar só Log in e Get started, o English vai no menu". Um seletor em cada menu (o do topo e o compacto) e nenhum solto à direita.
+ const control=/class="kineo-interface-language kineo-idioma-menu"/g
+ const right=main.indexOf('class="nav-right"'),compact=main.indexOf('id="mobile-nav-menu"')
+ check((main.slice(0,right).match(control)||[]).length===1,'one language control in the top menu')
+ check((main.slice(compact).match(control)||[]).length===1,'one language control in the compact menu')
+ check(!main.slice(right,compact).includes('kineo-interface-language'),'no language control beside Log in')
  check(!hero.includes('kineo-interface-language')&&!hero.includes('home-jump'),'no language or duplicate shortcuts in hero')
  // React also emits lang on each option; attribute adjacency is not a contract.
  check(new RegExp('<option(?=[^>]*value="'+language+'")[^>]*selected=""').test(main),'current language selected')

@@ -7,6 +7,7 @@ import { readAnnualWelcomeBar } from '@/lib/billing/annualWelcomeBarServer' // K
 import { extractShortTitle } from '@/lib/resumeStrip'
 import type { ResumeStripData } from '@/lib/resumeStrip'
 import { getEngineHero, getTrending } from '@/lib/engineWall'
+import { filmeGratisPermitido } from '@/lib/freeFilmPolicy' // KINEO-HOME-TOPO-0511
 import { homeReferralBridgeSource } from '@/lib/growth/homeReferralBridge'
 import { BRAND_ALIASES, BRAND_NAME, BRAND_URL } from '@/lib/brandIdentity'
 import { BRAND_DISAMBIGUATION } from '@/lib/brandIdentity' // KINEO-VISIBILIDADE-CHATGPT-2026-10-06
@@ -191,6 +192,7 @@ export default async function HomePage({
       <AnnualWelcomeBar initial={annualWelcomeBar} placement="home" />
       <KineoLanding
         initialUser={user ? { id: user.id } : null}
+        freeFilmInCountry={filmeGratisPermitido(headers().get('x-vercel-ip-country'))}
         engineWall={engineWall}
         trending={trending}
         initialEmail={email}

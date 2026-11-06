@@ -71,7 +71,33 @@
    "depois": "            <div className=\"studio-best-grid\">\n              {bestFilms.filter((f) => f.engine !== 'seedance').map((f, idx) => { /* KINEO-H3-TURBO-ABRE-0511 — \"use o motor dele\": filme de Seedance não pode apontar para o Turbo (selo honesto) */\n                const e = ENGINES.find((x) => x.key === f.engine)"
   }
  ],
+ "app/(dashboard)/studio/page.tsx": [
+  {
+   "antes": "import StudioSimples from '@/components/studio/StudioSimples' // KINEO-CAIXA-UNICA-0411\nimport { campanhaDaCaixa, motorDaCaixa, usarCaixaUnica } from '@/lib/growth/studioSimples' // KINEO-CAIXA-UNICA-0411",
+   "depois": "import StudioSimples from '@/components/studio/StudioSimples' // KINEO-CAIXA-UNICA-0411\nimport { filmesDaPorta0511 } from '@/lib/growth/filmesDaPorta0511' // KINEO-HOME-TOPO-0511\nimport { campanhaDaCaixa, motorDaCaixa, usarCaixaUnica } from '@/lib/growth/studioSimples' // KINEO-CAIXA-UNICA-0411"
+  },
+  {
+   "antes": "        <StudioIdeaArrival />\n        <StudioSimples filmes={bestFilms.flatMap((f) => (f.poster ? [{ id: f.id, title: f.title, engine: f.engine, poster: f.poster }] : []))} motor={motorDaCaixa(searchParams.engine)} campanha={campanhaDaCaixa(searchParams.intent_campaign)} />\n      </>",
+   "depois": "        <StudioIdeaArrival />\n        <StudioSimples filmes={filmesDaPorta0511()} motor={motorDaCaixa(searchParams.engine)} campanha={campanhaDaCaixa(searchParams.intent_campaign)} />\n      </>"
+  }
+ ],
  "app/KineoLanding.tsx": [
+  {
+   "antes": "import { CARD_ENTRY_COPY, CARD_ENTRY_ONLY } from '@/lib/entryPolicy'\n",
+   "depois": "import { CARD_ENTRY_COPY, CARD_ENTRY_ONLY } from '@/lib/entryPolicy'\nimport CaixaDePresente0511 from '@/components/CaixaDePresente0511' // KINEO-HOME-TOPO-0511\n"
+  },
+  {
+   "antes": "  initialAcquisitionSource?: HomeReferralBridgeSource | null\n  showWelcomeGoalRouter?: boolean",
+   "depois": "  initialAcquisitionSource?: HomeReferralBridgeSource | null\n  /** KINEO-HOME-TOPO-0511 — o país deste pedido recebe o filme grátis (lib/freeFilmPolicy.ts). Sem o dado, a caixa do visitante não promete. */\n  freeFilmInCountry?: boolean\n  showWelcomeGoalRouter?: boolean"
+  },
+  {
+   "antes": ".klp .nd-mega .nm-more a:hover{color:#fff}\n.klp .nav-login{font-size:14px;font-weight:550;color:var(--muted);white-space:nowrap;transition:color var(--dur-fast) ease}\n.klp .nav-login:hover{color:var(--txt)}\n.klp .nav-mobile-menu .nav-mobile-kicker{padding:18px 4px 6px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);font-weight:700}",
+   "depois": ".klp .nd-mega .nm-more a:hover{color:#fff}\n.klp .nav-login{display:inline-flex;align-items:center;height:40px;font-size:14px;font-weight:650;color:var(--txt);white-space:nowrap;transition:color var(--dur-fast) ease} /* KINEO-HOME-TOPO-0511 — mesma altura e mesma letra do Get started */\n.klp .nav-login:hover{color:var(--blue)}\n.klp .nav-right>.btn-w,.klp .nav-right .nav-dashboard{height:40px;line-height:1} /* KINEO-HOME-TOPO-0511 */\n.klp .nav-right .appearance-icon{width:40px;height:40px;border-color:var(--line);background:transparent;color:var(--txt)} /* KINEO-HOME-TOPO-0511 — o presente, na altura dos botões */\n.klp [data-kineo=\"caixa-presente\"] [role=\"dialog\"]{margin-top:6px;padding:8px}\n.klp [data-kineo=\"caixa-presente\"] [role=\"dialog\"] a{padding:10px 12px}\n.klp [data-kineo=\"caixa-presente\"] [role=\"status\"]{padding:6px 12px 4px} /* KINEO-HOME-TOPO-0511 — a home zera margem e recuo de tudo em .klp * */\n.klp select.kineo-idioma-menu{appearance:none;-webkit-appearance:none;width:calc(var(--idioma-letras,7) * 1ch + 14px);max-width:170px;height:auto;min-height:0;margin:0;padding:0 14px 0 0;border:0;border-radius:4px;font:inherit;letter-spacing:inherit;color:inherit;color-scheme:inherit;cursor:pointer;background:transparent url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none' stroke='%238a8f98' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m1 1 4 4 4-4'/%3E%3C/svg%3E\") no-repeat right center} /* KINEO-HOME-TOPO-0511 — o seletor com a letra e a cor dos itens do menu */\n.klp .nav-links>select.kineo-idioma-menu{color:var(--txt)}\nhtml:not([data-theme=dark]) .klp .nav-links>select.kineo-idioma-menu{color:#0E1116} /* KINEO-HOME-TOPO-0511 — a cor dos outros itens (app/kineoLandingTheme.ts) */\n.klp select.kineo-idioma-menu:focus-visible{outline:2px solid var(--blue);outline-offset:3px}\n.klp select.kineo-idioma-menu option{color:var(--txt);background:var(--card)}\n.klp .nav-right .nav-mobile-menu select.kineo-idioma-menu{width:100%!important;max-width:none!important;min-height:44px;padding:10px 20px 10px 4px!important;font-size:15px!important;font-weight:500;color:var(--txt)!important;background-color:transparent!important;background-position:right 4px center;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;flex:none} /* KINEO-HOME-TOPO-0511 — vence o tema do seletor em .nav-right; a mesma linha dos itens do menu compacto */\n.klp .nav-mobile-menu .nav-mobile-kicker{padding:18px 4px 6px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);font-weight:700}"
+  },
+  {
+   "antes": "  initialAcquisitionSource = null,\n  showWelcomeGoalRouter = false,",
+   "depois": "  initialAcquisitionSource = null,\n  freeFilmInCountry = false,\n  showWelcomeGoalRouter = false,"
+  },
   {
    "antes": "                      29/09, o menu ainda dizia \"fastest\"). O filme do 2.5 continua indo aos planos (só roda em plano pago). */}\n                  <NavEngineItem href=\"/studio?engine=seedance&intent_campaign=nav_mega\" name=\"Seedance 1.5\" desc=\"Fast, everyday narrated films\" preview=\"/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4\" thumb=\"/nav-thumbs/seedance.webp\" />\n                  {/* KINEO-VEO-CARD-HONESTO-2026-09-29 — 1080p pelo mesmo preço desde 16/08; o chip",
    "depois": "                      29/09, o menu ainda dizia \"fastest\"). O filme do 2.5 continua indo aos planos (só roda em plano pago). */}\n                  {/* KINEO-H3-TURBO-ABRE-0511 — o filme padrão com o nome do motor real; a chave segue 'seedance'. Prévia = clipe real do H3 Max Turbo (Adeus 2026, render 05/11). */}\n                  <NavEngineItem href=\"/studio?engine=seedance&intent_campaign=nav_mega\" name=\"MiniMax H3 Turbo\" desc=\"Fast, everyday narrated films\" preview=\"/previews/galeria/adeus-2026.mp4\" thumb=\"/posters/galeria/adeus-2026.webp\" />\n                  {/* KINEO-VEO-CARD-HONESTO-2026-09-29 — 1080p pelo mesmo preço desde 16/08; o chip"
@@ -79,6 +105,18 @@
   {
    "antes": "                  {/* KINEO-H3MAX-2026-10-13 — o MiniMax H3 Max entra no lugar que era do Omni (interruptor H3MAX_PUBLIC; desligado, só a casa vê). Sem preview nem miniatura: ainda não há render dele na vitrine (selo honesto). */}\n                  {h3maxVisible(initialEmail) && !enginePaused('h3max') && <NavEngineItem href=\"/studio?engine=h3max&intent_campaign=nav_mega\" name=\"MiniMax H3 Max\" desc=\"MiniMax’s sharpest film engine\" chip={H3MAX_PUBLIC ? 'NEW' : 'INTERNAL'} icon=\"H3+\" />} {/* KINEO-H3MAX-2026-10-13 */}\n                  {/* KINEO-S25-LAUNCH-2026-09-01 — Seedance 2.5: so a casa ve ate o",
    "depois": "                  {/* KINEO-H3MAX-2026-10-13 — o MiniMax H3 Max entra no lugar que era do Omni (interruptor H3MAX_PUBLIC; desligado, só a casa vê). Sem preview nem miniatura: ainda não há render dele na vitrine (selo honesto). */}\n                  {h3maxVisible(initialEmail) && !enginePaused('h3max') && <NavEngineItem href=\"/studio?engine=h3max&intent_campaign=nav_mega\" name=\"MiniMax H3 Max\" desc=\"MiniMax’s sharpest film engine\" chip={H3MAX_PUBLIC ? 'NEW' : 'INTERNAL'} thumb=\"/nav-thumbs/h3max.webp\" />} {/* KINEO-H3MAX-2026-10-13 · KINEO-MENU-THUMB-H3MAX-0511: quadro do filme real do H3 Max (15cff0dc, 13/10) */}\n                  {/* KINEO-S25-LAUNCH-2026-09-01 — Seedance 2.5: so a casa ve ate o"
+  },
+  {
+   "antes": "            <Link href=\"/pricing\" data-nav-item=\"pricing\"><UiLabel>Pricing</UiLabel></Link>\n          </div>",
+   "depois": "            <Link href=\"/pricing\" data-nav-item=\"pricing\"><UiLabel>Pricing</UiLabel></Link>\n            <InterfaceLanguageSelect emMenu />{/* KINEO-HOME-TOPO-0511 — fundador 05/11: \"deixar só Log in e Get started. O English vai no menu\" */}\n          </div>"
+  },
+  {
+   "antes": "        <div className=\"nav-right\">\n          <InterfaceLanguageSelect />\n          {/* KINEO-NAV-4-ITENS-2026-09-25 — \"Log in\" em texto ao lado do CTA de",
+   "depois": "        <div className=\"nav-right\">\n          {/* KINEO-HOME-TOPO-0511 — fundador 05/11: \"cadê o presentinho?\". Fora do .nav-cta, que some no celular; à esquerda de Log in para visitante e dos créditos para quem entrou. */}\n          <CaixaDePresente0511 visitante={!initialUser} filmeGratisNoPais={freeFilmInCountry} />\n          {/* KINEO-NAV-4-ITENS-2026-09-25 — \"Log in\" em texto ao lado do CTA de"
+  },
+  {
+   "antes": "              <Link href=\"/pricing\" data-nav-item=\"pricing\"><UiLabel>Pricing</UiLabel></Link>\n              {initialUser",
+   "depois": "              <Link href=\"/pricing\" data-nav-item=\"pricing\"><UiLabel>Pricing</UiLabel></Link>\n              <InterfaceLanguageSelect emMenu />{/* KINEO-HOME-TOPO-0511 — par do topo no celular */}\n              {initialUser"
   },
   {
    "antes": "                {showKineo1 && <Link href=\"/studio?engine=fast&intent_campaign=final_chip\">Kineo 1</Link>}\n                <Link href=\"/studio?engine=seedance&intent_campaign=final_chip\">Seedance 1.5</Link>\n                <Link href=\"/studio?engine=hollywood&intent_campaign=final_chip\">Kling 4.0</Link>",
@@ -171,6 +209,16 @@
    "depois": "                  '@type': 'Answer',\n                  text: `A 60-second film costs ${creditCostForDuration('cinematic_ai', true, 60)} credits on MiniMax H3 Turbo, with voice, captions and score included. The free trial gives ${TRIAL_CREDITS_SHOWN} credits — a ${FREE_FILM_LABEL}.`, // KINEO-FILME-GRATIS-15S-2026-09-29 // KINEO-FATOS-VIGENCIA-2026-09-23 — \"25\" literal no FAQ enquanto o parágrafo acima já lia TRIAL_CREDITS_SHOWN (10 desde 16/09)\n                },"
   }
  ],
+ "app/page.tsx": [
+  {
+   "antes": "import { getEngineHero, getTrending } from '@/lib/engineWall'\nimport { homeReferralBridgeSource } from '@/lib/growth/homeReferralBridge'",
+   "depois": "import { getEngineHero, getTrending } from '@/lib/engineWall'\nimport { filmeGratisPermitido } from '@/lib/freeFilmPolicy' // KINEO-HOME-TOPO-0511\nimport { homeReferralBridgeSource } from '@/lib/growth/homeReferralBridge'"
+  },
+  {
+   "antes": "        initialUser={user ? { id: user.id } : null}\n        engineWall={engineWall}",
+   "depois": "        initialUser={user ? { id: user.id } : null}\n        freeFilmInCountry={filmeGratisPermitido(headers().get('x-vercel-ip-country'))}\n        engineWall={engineWall}"
+  }
+ ],
  "app/pricing/PricingClient.tsx": [
   {
    "antes": "    // engines: every engine is on every paid plan now (no Studio exclusivity).\n    a: `AI Generated uses the Seedance engine (great quality, ${creditsPerReferenceVideo('cinematic_ai')} credits per 60-second video). Cinematic AI uses the MiniMax H3 engine for top-tier cinematic motion (${creditsPerReferenceVideo('cinematic_h3')} credits per 60-second video). Every paid plan can access every engine once its balance covers the full cost; you can add extra credits when needed. Fast Mode uses smart stock footage.`,\n  },",
@@ -205,6 +253,24 @@
    "depois": "          <div className=\"flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-[12.5px] font-semibold text-[var(--muted)]\">\n            <span>🎬 Film (MiniMax H3 Turbo) — <b className=\"text-[var(--text)]\">{creditsPerReferenceVideo('cinematic_ai')} cr</b></span>\n            <span>🎥 MiniMax H3 — <b className=\"text-[var(--text)]\">{creditsPerReferenceVideo('cinematic_h3')} cr</b></span>"
   }
  ],
+ "components/CaixaDePresente0511.tsx": [
+  {
+   "antes": "import { annualOfferClock } from '@/lib/billing/annualWelcomeOffer'\nimport { CAIXA_SEM_LEITURA, lerCaixa, linhasAindaValidas, linhasDaCaixa, type CaixaLinha } from '@/lib/ui/caixaPresente0511'\n",
+   "depois": "import { annualOfferClock } from '@/lib/billing/annualWelcomeOffer'\nimport { CAIXA_SEM_LEITURA, lerCaixa, linhasAindaValidas, linhasDaCaixa, linhasDoVisitante, type CaixaLinha } from '@/lib/ui/caixaPresente0511'\n"
+  },
+  {
+   "antes": "\nexport default function CaixaDePresente0511() {\n  const [aberta, setAberta] = useState(false)",
+   "depois": "\n// KINEO-HOME-TOPO-0511 — visitante (a home deslogada): as linhas saem de linhasDoVisitante, sem nenhuma leitura; sem conta, /api/credits só devolveria 401.\nexport default function CaixaDePresente0511({ visitante = false, filmeGratisNoPais = false }: { visitante?: boolean; filmeGratisNoPais?: boolean }) {\n  const [aberta, setAberta] = useState(false)"
+  },
+  {
+   "antes": "  const abrir = () => {\n    pedidoRef.current?.abort()",
+   "depois": "  const abrir = () => {\n    if (visitante) {\n      setAberta(true)\n      setLinhas(linhasDoVisitante(filmeGratisNoPais))\n      return\n    }\n    pedidoRef.current?.abort()"
+  },
+  {
+   "antes": "                  data-kineo={`caixa-presente-${linha.id}`}\n                  className=\"flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-[13px] hover:bg-[var(--card2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]\"",
+   "depois": "                  data-kineo={`caixa-presente-${linha.id}`}\n                  data-auth-modal={linha.modal}\n                  className=\"flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-[13px] hover:bg-[var(--card2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]\""
+  }
+ ],
  "components/Creator30OfferModal.tsx": [
   {
    "antes": "          {/* KINEO-FILME-GRATIS-15S-2026-09-29 — sem a parcela do motor de stock (fora do catálogo público). */}\n          <li>{TIER_CREDITS.basic} credits — {videosPerMonth('basic', 'cinematic_ai')} Seedance films or {videosPerMonth('basic', 'cinematic_h3')} MiniMax H3 films</li>\n          <li>Every engine, including Kling 4.0 &amp; MiniMax H3</li>",
@@ -229,6 +295,28 @@
   {
    "antes": "        <p className={styles.intro}>\n          Pick the job first. Kineo will show one ready-to-edit Seedance brief for that outcome before you open Studio.\n        </p>",
    "depois": "        <p className={styles.intro}>\n          Pick the job first. Kineo will show one ready-to-edit film brief for that outcome before you open Studio.\n        </p>"
+  }
+ ],
+ "components/InterfaceLanguage.tsx": [
+  {
+   "antes": "\nimport { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'\nimport { INTERFACE_LANGUAGE_KEY, INTERFACE_LANGUAGE_OPTIONS, interfaceLanguageIsRtl, normalizeInterfaceCopy, parseInterfaceLanguage, type InterfaceLanguage } from '@/lib/ui/interfaceLanguage'",
+   "depois": "\nimport { createContext, useCallback, useContext, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'\nimport { INTERFACE_LANGUAGE_KEY, INTERFACE_LANGUAGE_OPTIONS, interfaceLanguageIsRtl, normalizeInterfaceCopy, parseInterfaceLanguage, type InterfaceLanguage } from '@/lib/ui/interfaceLanguage'"
+  },
+  {
+   "antes": "\nexport function InterfaceLanguageSelect() {\n  const { language, choose } = useContext(InterfaceLanguageContext)",
+   "depois": "\n// KINEO-HOME-TOPO-0511 — emMenu: o mesmo seletor, com a letra do menu da home (o CSS mora em app/KineoLanding.tsx). A largura segue o nome do idioma atual, para não sobrar buraco depois de \"English\".\nexport function InterfaceLanguageSelect({ emMenu = false }: { emMenu?: boolean }) {\n  const { language, choose } = useContext(InterfaceLanguageContext)"
+  },
+  {
+   "antes": "  const { language, choose } = useContext(InterfaceLanguageContext)\n  return (",
+   "depois": "  const { language, choose } = useContext(InterfaceLanguageContext)\n  const nome = INTERFACE_LANGUAGE_OPTIONS.find((o) => o.code === language)?.native ?? ''\n  return ("
+  },
+  {
+   "antes": "  return (\n    <select className=\"kineo-interface-language\" aria-label=\"Interface language / Idioma de interfaz\" value={language}\n      onChange={event => choose(parseInterfaceLanguage(event.target.value))}",
+   "depois": "  return (\n    <select className={emMenu ? 'kineo-interface-language kineo-idioma-menu' : 'kineo-interface-language'} aria-label=\"Interface language / Idioma de interfaz\" value={language}\n      onChange={event => choose(parseInterfaceLanguage(event.target.value))}"
+  },
+  {
+   "antes": "      onChange={event => choose(parseInterfaceLanguage(event.target.value))}\n      style={{ color: 'var(--text)', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 9, padding: '8px 6px', minHeight: 36, maxWidth: 110, fontSize: 12, cursor: 'pointer', colorScheme: 'inherit' }}>\n      {INTERFACE_LANGUAGE_OPTIONS.map((o) => (",
+   "depois": "      onChange={event => choose(parseInterfaceLanguage(event.target.value))}\n      style={emMenu\n        ? ({ '--idioma-letras': nome.length } as CSSProperties)\n        : { color: 'var(--text)', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 9, padding: '8px 6px', minHeight: 36, maxWidth: 110, fontSize: 12, cursor: 'pointer', colorScheme: 'inherit' }}>\n      {INTERFACE_LANGUAGE_OPTIONS.map((o) => ("
   }
  ],
  "components/OneTimeItemOffer.tsx": [
@@ -315,6 +403,12 @@
   {
    "antes": "      })}\n      <p style={{ color: 'var(--muted)', fontSize: 12, lineHeight: 1.5 }}>Capacity uses Seedance 1.5, with the entire allowance used for one format, without extras. Films and clips are alternatives, not added together.</p>\n      <FilmsMadeProof surface=\"upgrade\" />{/* KINEO-VALOR-NO-CHECKOUT-3110 — a prova social real, colada nos botões de pagar (muda abaixo do piso) */}",
    "depois": "      })}\n      <p style={{ color: 'var(--muted)', fontSize: 12, lineHeight: 1.5 }}>Capacity uses MiniMax H3 Turbo, with the entire allowance used for one format, without extras. Films and clips are alternatives, not added together.</p>\n      <FilmsMadeProof surface=\"upgrade\" />{/* KINEO-VALOR-NO-CHECKOUT-3110 — a prova social real, colada nos botões de pagar (muda abaixo do piso) */}"
+  }
+ ],
+ "components/studio/StudioSimples.tsx": [
+  {
+   "antes": "            {filmes.map((f, i) => (\n              <button key={f.id} type=\"button\" className=\"ksx-film\" data-kineo=\"studio-simple-film\" onClick={() => { setTexto(f.title); setAviso(null); registrar('mrr_idea_entered'); void trackEvent('studio_best_film_clicked', { film_id: f.id, engine: f.engine, position: i + 1, surface: 'studio_simple' }); caixa.current?.focus() }}>\n                {/* eslint-disable-next-line @next/next/no-img-element */}",
+   "depois": "            {filmes.map((f, i) => (\n              <button key={f.id} type=\"button\" className=\"ksx-film\" data-kineo=\"studio-simple-film\" onClick={() => { setTexto(f.ideia ?? f.title); setAviso(null); registrar('mrr_idea_entered'); void trackEvent('studio_best_film_clicked', { film_id: f.id, engine: f.engine, position: i + 1, surface: 'studio_simple' }); caixa.current?.focus() }}>\n                {/* eslint-disable-next-line @next/next/no-img-element */}"
   }
  ],
  "lib/admin/motorEntregue.ts": [
@@ -515,6 +609,12 @@
    "depois": "        `/studio/create?engine=${engine}&duration=35&intent_campaign=${PRICING_JOURNEY_PROOF_VERSION}`,\n      engineLabel: input.reverseTrial ? 'MiniMax H3 Turbo' : 'Kineo 1',\n      duration: 35,"
   }
  ],
+ "lib/growth/studioSimples.ts": [
+  {
+   "antes": "\nexport interface FilmeDaCaixa { id: string; title: string; engine: string; poster: string }\n",
+   "depois": "\nexport interface FilmeDaCaixa { id: string; title: string; engine: string; poster: string; /** KINEO-HOME-TOPO-0511 — o texto que o cartão põe na caixa; sem ele, o título. */ ideia?: string }\n"
+  }
+ ],
  "lib/growth/wallV1.ts": [
   {
    "antes": "export function wallV1EngineLabel(mode: string, aiEngine: string): string {\n  return engineLabelFor(wallV1QualityMode(mode, aiEngine)) ?? (mode === 'fast' || mode === 'creator' ? 'Kineo 1' : 'this engine')",
@@ -565,6 +665,20 @@
   {
    "antes": "  if (e === 'seedance15_fallback') return 'Seedance 1.5'\n  return null",
    "depois": "  if (e === 'seedance15_fallback') return 'Seedance 1.5'\n  if (e === 'h3_max_turbo') return 'MiniMax H3 Turbo' // KINEO-H3-TURBO-ABRE-0511\n  return null"
+  }
+ ],
+ "lib/ui/caixaPresente0511.ts": [
+  {
+   "antes": "import { KLING4_PAID_COPY, kling4PromoZeroCredits, rebaseKling4Lease } from '@/lib/kling4PaidPresentation'\n",
+   "depois": "import { KLING4_PAID_COPY, kling4PromoZeroCredits, rebaseKling4Lease } from '@/lib/kling4PaidPresentation'\nimport { TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOffer' // KINEO-HOME-TOPO-0511\n"
+  },
+  {
+   "antes": "  venceEmMs?: number\n}",
+   "depois": "  venceEmMs?: number\n  /** KINEO-HOME-TOPO-0511 — a linha abre o cadastro no modal da home (data-auth-modal). */\n  modal?: 'signup'\n}"
+  },
+  {
+   "antes": "\n/** A caixa aberta na hora em que a janela fecha: a linha do anual sai junto com o relógio. */",
+   "depois": "\n// KINEO-HOME-TOPO-0511 [fundador 05/11: \"cadê o presentinho?\"] — quem não tem conta não tem saldo, plano nem relógio para ler: nenhuma pergunta à rede, nenhum preço, nenhuma promoção (regra sem-card-de-promo-0411).\n// Só o que vale para qualquer visitante: o filme grátis, se o país dele recebe (a mesma régua que concede o crédito no cadastro), e o programa de afiliados.\nexport const LINHA_GRATIS_DO_VISITANTE = 'Your first film is free'\n\nexport function linhasDoVisitante(filmeGratisNoPais: boolean): CaixaLinha[] {\n  const linhas: CaixaLinha[] = []\n  if (filmeGratisNoPais) linhas.push({ id: 'filme', titulo: LINHA_GRATIS_DO_VISITANTE, detalhe: `${TRIAL_FREE_FILM_SECONDS} s, no card`, href: '/signup?utm_source=gift_box', modal: 'signup' })\n  return [...linhas, ...linhasDaCaixa(CAIXA_SEM_LEITURA, 0)] // sem leitura nenhuma, sobra só a linha do afiliado\n}\n\n/** A caixa aberta na hora em que a janela fecha: a linha do anual sai junto com o relógio. */"
   }
  ]
 }

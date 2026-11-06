@@ -1,7 +1,7 @@
 // KINEO-CAIXA-UNICA-0411 [fundador 04/11: "1a"] — as regras puras da caixa única: quem a vê, qual motor e o pedido que ela monta.
 import { linguaDoRoteiro } from '@/lib/linguaDoRoteiro' // KINEO-ROTEIRO-NA-LINGUA-0411
 
-export interface FilmeDaCaixa { id: string; title: string; engine: string; poster: string }
+export interface FilmeDaCaixa { id: string; title: string; engine: string; poster: string; /** KINEO-HOME-TOPO-0511 — o texto que o cartão põe na caixa; sem ele, o título. */ ideia?: string }
 
 /** Parâmetros de quem só chegou. Qualquer outro (texto do ChatGPT, retomada, episódio, volta do pagamento) segue para o Studio completo, que sabe tratá-lo. */
 const SO_CHEGOU = /^(?:engine|intent_campaign|utm_[a-z]+|ref|gclid|msclkid|fbclid|ttclid)$/

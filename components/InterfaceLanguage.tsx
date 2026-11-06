@@ -2,7 +2,7 @@
 
 import { KineoBoltText } from '@/components/KineoBolt'
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { INTERFACE_LANGUAGE_KEY, INTERFACE_LANGUAGE_OPTIONS, interfaceLanguageIsRtl, normalizeInterfaceCopy, parseInterfaceLanguage, type InterfaceLanguage } from '@/lib/ui/interfaceLanguage'
 import { INTERFACE_ES } from '@/lib/ui/interfaceLabels'
 import { canonicalCopySpanish } from '@/lib/ui/canonicalCopySpanish'
@@ -99,12 +99,16 @@ export function UiLabel({ children }: { children: string }) {
   return <UiText es={es}>{children}</UiText>
 }
 
-export function InterfaceLanguageSelect() {
+// KINEO-HOME-TOPO-0511 — emMenu: o mesmo seletor, com a letra do menu da home (o CSS mora em app/KineoLanding.tsx). A largura segue o nome do idioma atual, para não sobrar buraco depois de "English".
+export function InterfaceLanguageSelect({ emMenu = false }: { emMenu?: boolean }) {
   const { language, choose } = useContext(InterfaceLanguageContext)
+  const nome = INTERFACE_LANGUAGE_OPTIONS.find((o) => o.code === language)?.native ?? ''
   return (
-    <select className="kineo-interface-language" aria-label="Interface language / Idioma de interfaz" value={language}
+    <select className={emMenu ? 'kineo-interface-language kineo-idioma-menu' : 'kineo-interface-language'} aria-label="Interface language / Idioma de interfaz" value={language}
       onChange={event => choose(parseInterfaceLanguage(event.target.value))}
-      style={{ color: 'var(--text)', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 9, padding: '8px 6px', minHeight: 36, maxWidth: 110, fontSize: 12, cursor: 'pointer', colorScheme: 'inherit' }}>
+      style={emMenu
+        ? ({ '--idioma-letras': nome.length } as CSSProperties)
+        : { color: 'var(--text)', background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 9, padding: '8px 6px', minHeight: 36, maxWidth: 110, fontSize: 12, cursor: 'pointer', colorScheme: 'inherit' }}>
       {INTERFACE_LANGUAGE_OPTIONS.map((o) => (
         <option key={o.code} value={o.code} lang={o.code} dir={o.rtl ? 'rtl' : undefined}>{o.native}</option>
       ))}

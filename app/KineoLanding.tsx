@@ -109,6 +109,7 @@ import {
   type HomeReferralBridgeSource,
 } from '@/lib/growth/homeReferralBridge'
 import { CARD_ENTRY_COPY, CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
+import CaixaDePresente0511 from '@/components/CaixaDePresente0511' // KINEO-HOME-TOPO-0511
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -120,6 +121,8 @@ type Props = {
   // KINEO-FAIXA-CONTINUAR-2026-09-01 — faixa "continue de onde parou".
   resume?: { title: string; episode: number; videoId: string } | null
   initialAcquisitionSource?: HomeReferralBridgeSource | null
+  /** KINEO-HOME-TOPO-0511 — o país deste pedido recebe o filme grátis (lib/freeFilmPolicy.ts). Sem o dado, a caixa do visitante não promete. */
+  freeFilmInCountry?: boolean
   showWelcomeGoalRouter?: boolean
   // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 — braço clips_first do A/B: a MESMA home, com Clipes no topo (menu e página)
   // e os filmes narrados logo embaixo. Desligado = a home de sempre, byte a byte no que o visitante vê.
@@ -245,8 +248,19 @@ html{scroll-behavior:smooth}
 .klp .nd-mega .nm-more{min-width:170px}
 .klp .nd-mega .nm-more a{padding:8px 15px;font-size:13px;color:var(--muted2)}
 .klp .nd-mega .nm-more a:hover{color:#fff}
-.klp .nav-login{font-size:14px;font-weight:550;color:var(--muted);white-space:nowrap;transition:color var(--dur-fast) ease}
-.klp .nav-login:hover{color:var(--txt)}
+.klp .nav-login{display:inline-flex;align-items:center;height:40px;font-size:14px;font-weight:650;color:var(--txt);white-space:nowrap;transition:color var(--dur-fast) ease} /* KINEO-HOME-TOPO-0511 — mesma altura e mesma letra do Get started */
+.klp .nav-login:hover{color:var(--blue)}
+.klp .nav-right>.btn-w,.klp .nav-right .nav-dashboard{height:40px;line-height:1} /* KINEO-HOME-TOPO-0511 */
+.klp .nav-right .appearance-icon{width:40px;height:40px;border-color:var(--line);background:transparent;color:var(--txt)} /* KINEO-HOME-TOPO-0511 — o presente, na altura dos botões */
+.klp [data-kineo="caixa-presente"] [role="dialog"]{margin-top:6px;padding:8px}
+.klp [data-kineo="caixa-presente"] [role="dialog"] a{padding:10px 12px}
+.klp [data-kineo="caixa-presente"] [role="status"]{padding:6px 12px 4px} /* KINEO-HOME-TOPO-0511 — a home zera margem e recuo de tudo em .klp * */
+.klp select.kineo-idioma-menu{appearance:none;-webkit-appearance:none;width:calc(var(--idioma-letras,7) * 1ch + 14px);max-width:170px;height:auto;min-height:0;margin:0;padding:0 14px 0 0;border:0;border-radius:4px;font:inherit;letter-spacing:inherit;color:inherit;color-scheme:inherit;cursor:pointer;background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none' stroke='%238a8f98' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m1 1 4 4 4-4'/%3E%3C/svg%3E") no-repeat right center} /* KINEO-HOME-TOPO-0511 — o seletor com a letra e a cor dos itens do menu */
+.klp .nav-links>select.kineo-idioma-menu{color:var(--txt)}
+html:not([data-theme=dark]) .klp .nav-links>select.kineo-idioma-menu{color:#0E1116} /* KINEO-HOME-TOPO-0511 — a cor dos outros itens (app/kineoLandingTheme.ts) */
+.klp select.kineo-idioma-menu:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+.klp select.kineo-idioma-menu option{color:var(--txt);background:var(--card)}
+.klp .nav-right .nav-mobile-menu select.kineo-idioma-menu{width:100%!important;max-width:none!important;min-height:44px;padding:10px 20px 10px 4px!important;font-size:15px!important;font-weight:500;color:var(--txt)!important;background-color:transparent!important;background-position:right 4px center;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;flex:none} /* KINEO-HOME-TOPO-0511 — vence o tema do seletor em .nav-right; a mesma linha dos itens do menu compacto */
 .klp .nav-mobile-menu .nav-mobile-kicker{padding:18px 4px 6px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);font-weight:700}
 .klp .nav-mobile-menu a.nav-mobile-more{font-size:14px;color:var(--muted)}
 
@@ -800,6 +814,7 @@ export default function KineoLanding({
   initialUser,
   initialEmail = null,
   initialAcquisitionSource = null,
+  freeFilmInCountry = false,
   showWelcomeGoalRouter = false,
   engineWall = [],
   trending = [],
@@ -971,9 +986,11 @@ export default function KineoLanding({
             {/* KINEO-JUNTA-TRENDING-3110 — o item saiu do topo: o Trending virou o topo da página Made with Kineo (fundador 30/10). Histórico: KINEO-TRENDING-2026-10-13 — fundador 13/10: "🔥 Trending now" no topo (vídeos reais feitos na Kineo, cada um com "Make mine"). Item
                 novo logo antes de Pricing; nada saiu nem encolheu. Pares: menu do celular abaixo, /examples, /trending, Sidebar/MobileNav. */}
             <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
+            <InterfaceLanguageSelect emMenu />{/* KINEO-HOME-TOPO-0511 — fundador 05/11: "deixar só Log in e Get started. O English vai no menu" */}
           </div>
         <div className="nav-right">
-          <InterfaceLanguageSelect />
+          {/* KINEO-HOME-TOPO-0511 — fundador 05/11: "cadê o presentinho?". Fora do .nav-cta, que some no celular; à esquerda de Log in para visitante e dos créditos para quem entrou. */}
+          <CaixaDePresente0511 visitante={!initialUser} filmeGratisNoPais={freeFilmInCountry} />
           {/* KINEO-NAV-4-ITENS-2026-09-25 — "Log in" em texto ao lado do CTA de
               cadastro, so para visitante; no celular ele mora no menu. */}
           {initialUser ? null : <Link className="nav-login" href="/login" data-nav-item="login" data-auth-modal="login"><UiLabel>Log in</UiLabel></Link>}
@@ -996,6 +1013,7 @@ export default function KineoLanding({
               <Link href={MENU_CARTOON_HREF} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>{/* KINEO-HOME-REMODELA-2010 — par do topo */}
               <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM}>{MENU_CONNECTOR_LABEL}</Link>{/* KINEO-HOME-REMODELA-2010 — par do topo */}
               <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
+              <InterfaceLanguageSelect emMenu />{/* KINEO-HOME-TOPO-0511 — par do topo no celular */}
               {initialUser
                 ? <Link className="btn btn-w" href="/studio"><UiLabel>Dashboard</UiLabel></Link>
                 : <Link href="/login" data-nav-item="login" data-auth-modal="login"><UiLabel>Log in</UiLabel></Link>}

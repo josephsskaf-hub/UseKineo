@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { UiLabel, useUiCopy } from '@/components/InterfaceLanguage'
 import { annualOfferClock } from '@/lib/billing/annualWelcomeOffer'
-import { CAIXA_SEM_LEITURA, lerCaixa, linhasAindaValidas, linhasDaCaixa, type CaixaLinha } from '@/lib/ui/caixaPresente0511'
+import { CAIXA_SEM_LEITURA, lerCaixa, linhasAindaValidas, linhasDaCaixa, linhasDoVisitante, type CaixaLinha } from '@/lib/ui/caixaPresente0511'
 
 const PAINEL_ID = 'kineo-caixa-presente-painel'
 
@@ -28,7 +28,8 @@ function RelogioDoAnual({ venceEmMs, aoVencer }: { venceEmMs: number; aoVencer: 
   return <span lang="en" className="kineo-ltr-island" style={{ fontVariantNumeric: 'tabular-nums' }}>Ends in {annualOfferClock(venceEmMs - agoraMs)}</span>
 }
 
-export default function CaixaDePresente0511() {
+// KINEO-HOME-TOPO-0511 — visitante (a home deslogada): as linhas saem de linhasDoVisitante, sem nenhuma leitura; sem conta, /api/credits só devolveria 401.
+export default function CaixaDePresente0511({ visitante = false, filmeGratisNoPais = false }: { visitante?: boolean; filmeGratisNoPais?: boolean }) {
   const [aberta, setAberta] = useState(false)
   const [lendo, setLendo] = useState(false)
   const [linhas, setLinhas] = useState<CaixaLinha[]>([])
@@ -46,6 +47,11 @@ export default function CaixaDePresente0511() {
   }, [])
 
   const abrir = () => {
+    if (visitante) {
+      setAberta(true)
+      setLinhas(linhasDoVisitante(filmeGratisNoPais))
+      return
+    }
     pedidoRef.current?.abort()
     const pedido = new AbortController()
     pedidoRef.current = pedido
@@ -132,6 +138,7 @@ export default function CaixaDePresente0511() {
                   href={linha.href}
                   onClick={() => fechar(false)}
                   data-kineo={`caixa-presente-${linha.id}`}
+                  data-auth-modal={linha.modal}
                   className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-[13px] hover:bg-[var(--card2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
                   style={{ minHeight: 44, color: 'inherit', textDecoration: 'none' }}
                 >

@@ -163,7 +163,7 @@ export default function StudioSimples({ filmes, motor, campanha }: { filmes: Rea
         <>
           <div className="ksx-films">
             {filmes.map((f, i) => (
-              <button key={f.id} type="button" className="ksx-film" data-kineo="studio-simple-film" onClick={() => { setTexto(f.title); setAviso(null); registrar('mrr_idea_entered'); void trackEvent('studio_best_film_clicked', { film_id: f.id, engine: f.engine, position: i + 1, surface: 'studio_simple' }); caixa.current?.focus() }}>
+              <button key={f.id} type="button" className="ksx-film" data-kineo="studio-simple-film" onClick={() => { setTexto(f.ideia ?? f.title); setAviso(null); registrar('mrr_idea_entered'); void trackEvent('studio_best_film_clicked', { film_id: f.id, engine: f.engine, position: i + 1, surface: 'studio_simple' }); caixa.current?.focus() }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={f.poster} alt="" loading={i < 4 ? 'eager' : 'lazy'} />
                 <span>{f.title}</span>

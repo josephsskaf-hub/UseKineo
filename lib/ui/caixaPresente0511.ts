@@ -13,6 +13,7 @@ import { ANNUAL_WELCOME_API, ANNUAL_WELCOME_WINDOW_MS } from '@/lib/billing/annu
 import { ANNUAL_WELCOME_DISCOUNT_PERCENT } from '@/lib/checkoutPricing'
 import { LINHA_DO_FILME_GRATIS, filmeGratisNaCaixa } from '@/lib/growth/filmeGratisNaCaixa'
 import { KLING4_PAID_COPY, kling4PromoZeroCredits, rebaseKling4Lease } from '@/lib/kling4PaidPresentation'
+import { TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOffer' // KINEO-HOME-TOPO-0511
 
 export const CAIXA_CREDITS_API = '/api/credits'
 export const CAIXA_KLING4_API = '/api/kling4-paid/availability'
@@ -33,6 +34,8 @@ export type CaixaLinha = {
   href: string
   /** Só a linha do anual: o instante, no relógio deste navegador, em que ela deixa de valer. */
   venceEmMs?: number
+  /** KINEO-HOME-TOPO-0511 — a linha abre o cadastro no modal da home (data-auth-modal). */
+  modal?: 'signup'
 }
 
 export const CAIXA_SEM_LEITURA: CaixaLeituras = { credits: null, annual: null, kling4: null }
@@ -63,6 +66,16 @@ export function linhasDaCaixa(l: CaixaLeituras, agoraMs: number): CaixaLinha[] {
   if (kling4PromoZeroCredits(l.kling4, KLING4_SEGUNDOS_DA_LEITURA, agoraMs)) linhas.push({ id: 'kling4', titulo: KLING4_PAID_COPY.included, href: '/studio?engine=hollywood' })
   linhas.push({ id: 'afiliado', titulo: `Earn ${AFFILIATE_COMMISSION_PCT}`, detalhe: 'Affiliate program', href: '/affiliate' })
   return linhas
+}
+
+// KINEO-HOME-TOPO-0511 [fundador 05/11: "cadê o presentinho?"] — quem não tem conta não tem saldo, plano nem relógio para ler: nenhuma pergunta à rede, nenhum preço, nenhuma promoção (regra sem-card-de-promo-0411).
+// Só o que vale para qualquer visitante: o filme grátis, se o país dele recebe (a mesma régua que concede o crédito no cadastro), e o programa de afiliados.
+export const LINHA_GRATIS_DO_VISITANTE = 'Your first film is free'
+
+export function linhasDoVisitante(filmeGratisNoPais: boolean): CaixaLinha[] {
+  const linhas: CaixaLinha[] = []
+  if (filmeGratisNoPais) linhas.push({ id: 'filme', titulo: LINHA_GRATIS_DO_VISITANTE, detalhe: `${TRIAL_FREE_FILM_SECONDS} s, no card`, href: '/signup?utm_source=gift_box', modal: 'signup' })
+  return [...linhas, ...linhasDaCaixa(CAIXA_SEM_LEITURA, 0)] // sem leitura nenhuma, sobra só a linha do afiliado
 }
 
 /** A caixa aberta na hora em que a janela fecha: a linha do anual sai junto com o relógio. */

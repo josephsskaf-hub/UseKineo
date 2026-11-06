@@ -9,6 +9,7 @@ import { getHouseEngineExamples } from '@/lib/engineWall'
 import { ENGINE_PAGE_LEAD, FOUNDER_SHOWCASE } from '@/lib/publicExamples'
 import StudioClient, { type StudioBestFilm, type StudioHeroVideo } from './StudioClient'
 import StudioSimples from '@/components/studio/StudioSimples' // KINEO-CAIXA-UNICA-0411
+import { filmesDaPorta0511 } from '@/lib/growth/filmesDaPorta0511' // KINEO-HOME-TOPO-0511
 import { campanhaDaCaixa, motorDaCaixa, usarCaixaUnica } from '@/lib/growth/studioSimples' // KINEO-CAIXA-UNICA-0411
 import StudioIdeaArrival from '@/components/StudioIdeaArrival'
 import { SEEDANCE_15S_PUBLIC } from '@/lib/engineLaunch' // KINEO-STUDIO-CLS-2026-10-13 — o motor que a tela abre (o mesmo useState do StudioClient)
@@ -67,7 +68,7 @@ export default function StudioPage({ searchParams = {} }: { searchParams?: Recor
     return (
       <>
         <StudioIdeaArrival />
-        <StudioSimples filmes={bestFilms.flatMap((f) => (f.poster ? [{ id: f.id, title: f.title, engine: f.engine, poster: f.poster }] : []))} motor={motorDaCaixa(searchParams.engine)} campanha={campanhaDaCaixa(searchParams.intent_campaign)} />
+        <StudioSimples filmes={filmesDaPorta0511()} motor={motorDaCaixa(searchParams.engine)} campanha={campanhaDaCaixa(searchParams.intent_campaign)} />
       </>
     )
   }
