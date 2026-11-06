@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { loadVerifiedCinematicClaim, startKling4TrialFallback, switchKling4TrialToSeedanceFallback, type CinematicClaim } from '@/lib/cinematic/claim'
+import { RESERVA_H3_MODEL, entradaDaReserva, modeloDaReservaDoTeste } from '@/lib/kling4TrialClaim' // KINEO-RESERVA-H3-0611
 
 export const KLING4_TRIAL_FALLBACK_MODEL = 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
 export type Kling4FallbackInput = { prompt: string; duration: number; resolution: '720p'; aspect_ratio: '9:16'; generate_audio: false }
@@ -29,6 +30,25 @@ export async function submitKling4TrialSeedanceFallback(input: Kling4FallbackInp
   throw new Kling4FallbackSubmitError(true)
 }
 
+/** KINEO-RESERVA-H3-0611 — a mesma disciplina do envio do Seedance: um POST só, sem repetição; recibo incerto nunca autoriza outro envio. */
+export async function submitKling4TrialH3Fallback(input: Record<string, unknown>): Promise<string> {
+  const key = process.env.FAL_KEY
+  if (!key) throw new Kling4FallbackSubmitError(false)
+  let response: Response
+  try {
+    response = await fetch(`https://queue.fal.run/${RESERVA_H3_MODEL}`, {
+      method: 'POST', headers: { Authorization: `Key ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(input), cache: 'no-store', signal: AbortSignal.timeout(10_000),
+    })
+  } catch { throw new Kling4FallbackSubmitError(true) }
+  if (!response.ok) throw new Kling4FallbackSubmitError(response.status === 408 || response.status >= 500)
+  try {
+    const body = await response.json() as { request_id?: unknown }
+    if (typeof body.request_id === 'string' && body.request_id.trim() && body.request_id.length <= 512) return body.request_id.trim()
+  } catch { /* An accepted POST with an unreadable receipt is ambiguous. */ }
+  throw new Kling4FallbackSubmitError(true)
+}
+
 /** Called only after a server poll proves failure or the signed eight-minute window has elapsed.
  * Fresh claims wait at most 60s after a worker dies; finalized unknown slots are abandoned, never retried.
  * With no accepted receipt, callers refund/release. Exact-once paid POST and guaranteed delivery cannot both
@@ -37,6 +57,7 @@ export async function ensureKling4TrialFallback(args: {
   db: SupabaseClient; secret: string; userId: string; generationId: string; claim: CinematicClaim
   reason: 'provider_failed' | 'timeout'
   submit?: (input: Kling4FallbackInput) => Promise<string>
+  submitH3?: (input: Record<string, unknown>) => Promise<string> // KINEO-RESERVA-H3-0611
 }): Promise<Kling4FallbackResult> {
   const pending = (claim = args.claim): Kling4FallbackResult => ({ ok: false, claim, pending: true, ambiguous: false, noAccepted: false })
   let loaded: Awaited<ReturnType<typeof loadVerifiedCinematicClaim>>
@@ -53,7 +74,7 @@ export async function ensureKling4TrialFallback(args: {
   }
   if (claim.authorizedCompletedUrls.some(Boolean)) return { ok: true, claim, pending: false, ambiguous: false, noAccepted: false }
   const original = marker.original_request_id
-  const shots = marker.fallback_scenes as Array<{ prompt?: unknown; duration?: unknown }> | undefined
+  const shots = marker.fallback_scenes as Array<{ prompt?: unknown; duration?: unknown; image_url?: unknown }> | undefined
   const fallback = marker.fallback_response as Record<string, unknown> | undefined
   if (typeof original !== 'string' || !original || claim.falRequestIds.length !== 1 || claim.falRequestIds[0] !== original ||
       !Array.isArray(shots) || shots.length !== 3 || !fallback || !Array.isArray(fallback.scenes) || fallback.scenes.length !== 3 ||
@@ -64,6 +85,8 @@ export async function ensureKling4TrialFallback(args: {
     claim = started.claim
   } catch { return pending(claim) }
   const submit = args.submit ?? submitKling4TrialSeedanceFallback
+  const submitH3 = args.submitH3 ?? submitKling4TrialH3Fallback // KINEO-RESERVA-H3-0611
+  const modeloDaReserva = modeloDaReservaDoTeste(shots) // KINEO-RESERVA-H3-0611 — decidido uma vez, para o filme inteiro
   await Promise.all(shots.map(async (shot, index) => {
     const identity = { p_job_id: args.generationId, p_user_id: args.userId, p_original_request_id: original }
     const token = randomUUID()
@@ -74,7 +97,9 @@ export async function ensureKling4TrialFallback(args: {
       let state: 'accepted' | 'rejected' | 'ambiguous' = 'ambiguous'
       let requestId: string | null = null
       try {
-        const id = await submit({ prompt: String(shot.prompt), duration: Number(shot.duration), resolution: '720p', aspect_ratio: '9:16', generate_audio: false })
+        const id = modeloDaReserva === RESERVA_H3_MODEL
+          ? await submitH3(entradaDaReserva(shot, modeloDaReserva))
+          : await submit({ prompt: String(shot.prompt), duration: Number(shot.duration), resolution: '720p', aspect_ratio: '9:16', generate_audio: false })
         if (typeof id !== 'string' || !id.trim() || id.length > 512) throw new Kling4FallbackSubmitError(true)
         requestId = id.trim(); state = 'accepted'
       } catch (error) { state = error instanceof Kling4FallbackSubmitError && !error.ambiguous ? 'rejected' : 'ambiguous' }

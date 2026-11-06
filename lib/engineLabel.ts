@@ -37,7 +37,10 @@ const MAPA: Record<string, string> = {
 const H3_TURBO_FAL_MODEL = 'minimax/h3-max-turbo/image-to-video'
 export function engineUsedDoFilmePadrao(claim: { quality?: unknown; falModels?: unknown; response?: Record<string, unknown> | null } | null | undefined): 'h3_max_turbo' | null {
   if (!claim || claim.quality !== 'cinematic_ai' || !Array.isArray(claim.falModels)) return null
-  if (claim.response?.kling4_paid || claim.response?.kling4_trial) return null
+  if (claim.response?.kling4_paid) return null
+  // KINEO-RESERVA-H3-0611 — filme grátis: Kling 4 entregue não entra; a reserva leva o selo do motor que rodou de verdade.
+  const teste = claim.response?.kling4_trial as { engine_used?: unknown } | undefined
+  if (teste && teste.engine_used !== 'seedance15_fallback' && teste.engine_used !== 'seedance15_cap') return null
   return claim.falModels.includes(H3_TURBO_FAL_MODEL) ? 'h3_max_turbo' : null
 }
 

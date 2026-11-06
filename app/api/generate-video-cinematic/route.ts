@@ -7404,8 +7404,8 @@ async function manipularPost(req: NextRequest) {
     // it cannot create a duplicate billable CLIP.
     // KINEO-ANCORA-3-MOTORES-2026-09-16: Kling 2.5 (validado 16/09), Seedance 1.5 e Veo 3.1; Sora fica em t2v (sem i2v conferido).
     const anchorEngine: 'kling' | 'veo' | 'seedance' | null = wantsKling ? 'kling' : wantsVeo ? 'veo' : wantsSora ? null : 'seedance'
-    // KINEO-H3-TURBO-ABRE-0511 — com o interruptor público, o filme grátis (15 s de quem não paga, reserva do Kling 4 inclusive) e o desenho infantil continuam no Seedance: o fundador abriu só o filme padrão.
-    const i2vDoFilmePadrao = h3TurboNoFilmePadrao(user.email) && !(seedanceShortFilm && !isPaidUser) && !desenhoInfantil.ativo ? H3_TURBO_I2V_MODEL : SEEDANCE_I2V_MODEL // KINEO-H3-TURBO-0511
+    // KINEO-H3-TURBO-ABRE-0511 · KINEO-RESERVA-H3-0611 [TRAVA 8.2 — fundador 06/11: "pode trocar"] — o filme grátis que não sai no Kling 4 também vai de H3; só o desenho infantil continua no Seedance.
+    const i2vDoFilmePadrao = h3TurboNoFilmePadrao(user.email) && !desenhoInfantil.ativo ? H3_TURBO_I2V_MODEL : SEEDANCE_I2V_MODEL // KINEO-H3-TURBO-0511
     const anchorI2vModel = anchorEngine === 'kling' ? KLING_I2V_MODEL : anchorEngine === 'veo' ? VEO_I2V_MODEL : i2vDoFilmePadrao // KINEO-H3-TURBO-0511 — era SEEDANCE_I2V_MODEL
     const anchorActive = anchorEngine !== null && CINEMATIC_ANCHOR_ENABLED
     const sceneStills: (string | null)[] = new Array(scenes.length).fill(null)
@@ -8190,7 +8190,7 @@ async function manipularPost(req: NextRequest) {
         ...(kling4Trial.reason ? { reason: kling4Trial.reason } : {}), ...(kling4Fala ? { narration_fit: kling4Fala } : {}), // KINEO-K4-NARRACAO-CABE-0111 — rastro: fala medida × teto do clipe de 15 s
         ...(kling4Trial.job ? {
           original_request_id: kling4Trial.job.requestId, submitted_at: kling4Trial.job.submittedAt,
-          fallback_scenes: classicScenePrompts.map((prompt, i) => ({ prompt, duration: scenes[i].clipSeconds ?? 6 })),
+          fallback_scenes: classicScenePrompts.map((prompt, i) => ({ prompt, duration: scenes[i].clipSeconds ?? 6, ...(kling4ApprovedStills[i] ? { image_url: kling4ApprovedStills[i] } : {}) })), // KINEO-RESERVA-H3-0611 — a imagem aprovada viaja assinada para a reserva
           fallback_response: {
             scenes: response.scenes, scene_captions: response.scene_captions,
             scene_prompts: classicScenePrompts, clip_seconds: response.clip_seconds,

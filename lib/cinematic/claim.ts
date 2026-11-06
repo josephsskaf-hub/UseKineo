@@ -1,4 +1,5 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
+import { RESERVA_H3_MODEL, entradaDaReserva, modeloDaReservaDoTeste } from '@/lib/kling4TrialClaim' // KINEO-RESERVA-H3-0611
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   COMPOSE_CLAIM_EVENT,
@@ -983,19 +984,19 @@ export async function switchKling4TrialToSeedanceFallback(args: {
     return { ok: false, error: 'original source changed or already authorized', conflict: true }
   }
   const fallback = marker.fallback_response as Record<string, unknown> | undefined
-  const shots = marker.fallback_scenes as Array<{ prompt?: unknown; duration?: unknown }> | undefined
+  const shots = marker.fallback_scenes as Array<{ prompt?: unknown; duration?: unknown; image_url?: unknown }> | undefined
   if (!fallback || !Array.isArray(fallback.scenes) || fallback.scenes.length !== 3 ||
       !fallback.scenes.every(s => typeof s === 'string') || !Array.isArray(shots) || shots.length !== 3 ||
       shots.some(s => !s || typeof s.prompt !== 'string' || !s.prompt.trim() || ![6,7,8].includes(Number(s.duration)))) {
     return { ok: false, error: 'signed fallback plan missing' }
   }
-  const model = 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
+  const model = modeloDaReservaDoTeste(shots) // KINEO-RESERVA-H3-0611 — a mesma regra do envio, com os mesmos dados assinados
   const nextResponse = { ...response, scenes: fallback.scenes,
     scene_captions: Array.isArray(fallback.scene_captions) ? fallback.scene_captions : ['', '', ''],
     clip_word_starts: Array.isArray(fallback.clip_word_starts) ? fallback.clip_word_starts : [0, 0, 0],
     fal_request_ids: [...args.requestIds], fal_models: args.requestIds.map(() => model), fal_model: model,
     scene_prompts: shots.map(s => s.prompt),
-    scene_fal_inputs: shots.map(s => ({ prompt: s.prompt, duration: String(s.duration), resolution: '720p', aspect_ratio: '9:16', generate_audio: false })),
+    scene_fal_inputs: shots.map(s => model === RESERVA_H3_MODEL ? entradaDaReserva(s, model) : ({ prompt: s.prompt, duration: String(s.duration), resolution: '720p', aspect_ratio: '9:16', generate_audio: false })),
     clip_seconds: shots.map(s => Number(s.duration)),
     // Null slots are deliberately excluded after the three once-only attempts finish. They are never retried.
     submission_uncertain: false, terminal_failed_jobs: [],

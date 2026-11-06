@@ -1,6 +1,21 @@
 // Read only after verifying the cinematic birth claim. Browser fields never select this path.
 export type Kling4TrialEngine = 'kling4' | 'seedance15_fallback' | 'seedance15_cap'
 
+// KINEO-RESERVA-H3-0611 [TRAVA 8.2 — fundador 06/11: "quero sim o H3... pode trocar"]: quando o Kling 4 do filme grátis não entrega, a reserva é o H3 Max Turbo.
+// O H3 só anda a partir de uma imagem: com as 3 cenas com imagem aprovada, vai H3; faltando alguma, o filme inteiro segue no Seedance de texto, sem misturar motor.
+export const RESERVA_H3_MODEL = 'minimax/h3-max-turbo/image-to-video'
+export const RESERVA_SEEDANCE_MODEL = 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
+export type ReservaShot = { prompt?: unknown; duration?: unknown; image_url?: unknown }
+const temImagem = (s: ReservaShot | null | undefined) => typeof s?.image_url === 'string' && /^https:\/\//.test(s.image_url)
+export function modeloDaReservaDoTeste(shots: readonly ReservaShot[]): string {
+  return shots.length > 0 && shots.every(temImagem) ? RESERVA_H3_MODEL : RESERVA_SEEDANCE_MODEL
+}
+/** O corpo enviado à fal, na forma que cada motor pede. A duração do H3 é número; a do Seedance vai como texto no envio. */
+export function entradaDaReserva(shot: ReservaShot, model: string): Record<string, unknown> {
+  if (model === RESERVA_H3_MODEL) return { prompt: String(shot.prompt), image_url: String(shot.image_url), duration: Number(shot.duration), resolution: '768P', prompt_expansion_mode: 'disabled' }
+  return { prompt: String(shot.prompt), duration: Number(shot.duration), resolution: '720p', aspect_ratio: '9:16', generate_audio: false }
+}
+
 export function kling4TrialEngineFromClaim(response: Record<string, unknown> | null | undefined): Kling4TrialEngine | null {
   if (response?.duration !== 15 || response.quality !== 'cinematic_ai' || response.aspect !== '9:16') return null
   const marker = response.kling4_trial
@@ -46,6 +61,6 @@ export function kling4TrialReplacement(value: unknown, generationId: string): Re
       !r.fal_request_ids.every(id => id === null || typeof id === 'string' && id.length > 0 && id.length <= 512) ||
       !Array.isArray(r.fal_models) || r.fal_models.length !== r.fal_request_ids.length ||
       !r.fal_models.every(model => model === 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video' ||
-        model === 'fal-ai/bytedance/seedance/v1.5/pro/image-to-video')) return null
+        model === 'fal-ai/bytedance/seedance/v1.5/pro/image-to-video' || model === RESERVA_H3_MODEL)) return null
   return r
 }

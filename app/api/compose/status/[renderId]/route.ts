@@ -1616,7 +1616,7 @@ export async function GET(
           const resp = prepaidCinematicClaim?.response as Record<string, unknown> | null | undefined
           const engine = m.kling4TrialEngineFromClaim(resp)
           if (!engine) return engineUsedDoFilmePadrao(prepaidCinematicClaim) ? { engine_used: 'h3_max_turbo' } : {} // KINEO-H3-TURBO-ABRE-0511
-          return { engine_used: engine === 'kling4' ? 'kling4' : 'seedance15_fallback', ...(m.kling4TrialFallbackPorFalaLonga(resp) ? { engine_note: 'narration_over_15s' } : m.kling4TrialFalaEncurtada(resp) ? { engine_note: 'narration_shortened' } : {}) }
+          return { engine_used: engineUsedDoFilmePadrao(prepaidCinematicClaim) ?? (engine === 'kling4' ? 'kling4' : 'seedance15_fallback'), ...(m.kling4TrialFallbackPorFalaLonga(resp) ? { engine_note: 'narration_over_15s' } : m.kling4TrialFalaEncurtada(resp) ? { engine_note: 'narration_shortened' } : {}) }
         })()),
         final_video_url: responseVideoUrl,
         ...(linkDoBucketDepois ? { asset_pending: true } : {}), // KINEO-FILME-RAPIDO-1710 — a tela troca pelo link do bucket (?asset=1)
