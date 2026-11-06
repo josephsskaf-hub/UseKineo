@@ -5,6 +5,7 @@ import { KLING4_PAID_COPY, kling4PaidName, kling4PromoZeroCredits } from '@/lib/
 
 import Kling4TrialNotice from '@/components/Kling4TrialNotice'
 import PricingIncludes0511 from '@/components/pricing/PricingIncludes0511' // KINEO-PRICING-INCLUI-0511
+import { alternativasDoPlano, incluidoEmTodoPlano } from '@/lib/pricing/planoDetalhado' // KINEO-PRICING-DETALHE-0611
 
 import KineoBolt, { KineoBoltText, KineoBrandIcon } from '@/components/KineoBolt'
 import CreditMinutesSummary from '@/components/CreditMinutesSummary'
@@ -1087,7 +1088,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                 para quem já está decidindo QUAL plano pagar. */}
             {/* KINEO-PRECOS-REFINO-2026-10-09 — no anual a política já está colada no seletor logo abaixo (data-testid=annual-refund-policy); repetir aqui era a mesma frase duas vezes acima dos planos. */}
             {/* KINEO-CHECKOUT-CLAREZA-1610 — a frase única da garantia (mensal 7 dias do 1º pagamento, anual 14) nos dois modos. */}
-            {['Cancel anytime', MONEY_BACK_GUARANTEE].map((label) => (
+            {[MONEY_BACK_GUARANTEE].map((label) => ( /* KINEO-PRICING-DETALHE-0611 — fundador 06/11: cancelar perto do botão dá má impressão; nenhum dos 3 concorrentes faz */
               <div key={label} className="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--muted)]">
                 <span aria-hidden="true" style={{ color: 'var(--accent)' }}>✓</span>
                 <span>{label}</span>
@@ -1266,8 +1267,8 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                           : welcome !== null
                             ? affiliateOnCard(tier) && affiliateOffer
                               ? affiliateOfferCopy(interfaceLanguage, affiliateOffer.partnerName)
-                              : <>Save <b>{formatCheckoutMoney(resolvedCurrency, getTierPrice(tier, resolvedCurrency, resolvedRegion) - welcome)}</b> on your first month · cancel anytime{welcomeDeadline.label ? <> · <b>{welcomeDeadline.label}</b></> : null /* KINEO-CHECKOUT-CLAREZA-1610 */}</>
-                            : 'Cancel anytime'}
+                              : <>Save <b>{formatCheckoutMoney(resolvedCurrency, getTierPrice(tier, resolvedCurrency, resolvedRegion) - welcome)}</b> on your first month{welcomeDeadline.label ? <> · <b>{welcomeDeadline.label}</b></> : null /* KINEO-CHECKOUT-CLAREZA-1610 */}</>
+                            : undefined}
                         extra={localMethod === 'upi' && billing === 'monthly' && !planSwitch.subscribed && !affiliateOnCard(p.tier) ? (
                           <a
                             href={`/api/dodo/checkout?tier=${p.tier}&utm_source=pricing_plan&utm_medium=local_method&utm_campaign=upi`}
@@ -1278,10 +1279,9 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                             Pay monthly with UPI / RuPay →
                           </a>
                         ) : undefined}
+                        alternatives={alternativasDoPlano(TIER_CREDITS[tier])}
                         included={[
-                          'No watermark',
-                          'Commercial use',
-                          'Voice, captions and music on films',
+                          ...incluidoEmTodoPlano(),
                           ...('storageLine' in p && p.storageLine ? [p.storageLine] : []),
                           // Studio: 2 Enhance HD grátis por mês (app/api/enhance/route.ts, plano 'pro', `(count ?? 0) < 2`).
                           ...(p.tier === 'pro' ? ['2 free HD enhances a month'] : []),

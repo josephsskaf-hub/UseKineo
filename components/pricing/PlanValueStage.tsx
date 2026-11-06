@@ -153,11 +153,13 @@ export interface PlanValueCardProps {
   ctaLabel: string
   ctaDisabled: boolean
   onBuy: () => void
-  /** A linha logo abaixo do botão (economia do anual, ou "Cancel anytime"). */
+  /** A linha logo abaixo do botão (a economia do anual ou da oferta). */
   save?: ReactNode
   extra?: ReactNode
   /** O que vem incluso, uma frase por item (a página monta: marca d'água, uso comercial, armazenamento…). */
   included: string[]
+  /** KINEO-PRICING-DETALHE-0611 — o que os mesmos créditos também podem virar. */
+  alternatives?: string[]
   footnote?: string
   /** KINEO-CHECKOUT-CLAREZA-1610 — o preço CHEIO por mês em centavos de US$ (mensal: TIER_PRICES; anual: ANNUAL_PRICES ÷ 12).
    *  O cartão divide pelos filmes de 60 s que ele mesmo conta. Ausente/0 = a linha não aparece. */
@@ -264,8 +266,33 @@ export function PlanValueCard(props: PlanValueCardProps) {
         {props.extra ? <div className="pv-extra">{props.extra}</div> : null}
       </div>
 
-      <details className="pv-more">{/* KINEO-PRICING-LIMPO-0411 — a lista por motor e o "incluso" ficam a um clique: a página cabia em 3 telas de rolagem */}
-      <summary>See everything included</summary>
+      {/* KINEO-PRICING-DETALHE-0611 — fundador 06/11: a lista fica aberta, para a pessoa ver tudo o que está comprando. Só a tabela por motor segue a um clique. */}
+      <div className="pv-sec" data-kineo="plano-detalhe">
+        {props.alternatives?.length ? (
+          <>
+            <div className="pv-label">Or use your credits for</div>
+            <ul className="pv-inc">
+              {props.alternatives.map((item) => (
+                <li key={item}>
+                  <CheckIcon />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
+        <div className="pv-label">Included</div>
+        <ul className="pv-inc">
+          {props.included.map((item) => (
+            <li key={item}>
+              <CheckIcon />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <details className="pv-more">
+      <summary>See credits by engine</summary>
       <div className="pv-sec">
         <div className="pv-label">Each month, by engine</div>
         <table className="pv-table">
@@ -289,17 +316,6 @@ export function PlanValueCard(props: PlanValueCardProps) {
         <p className="pv-caption">A clip is one AI scene. A film is a finished Short with voice, captions and music.</p>
       </div>
 
-      <div className="pv-sec">
-        <div className="pv-label">Included</div>
-        <ul className="pv-inc">
-          {props.included.map((item) => (
-            <li key={item}>
-              <CheckIcon />
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
       </details>
       {props.footnote ? <div className="pv-foot">{props.footnote}</div> : null}
     </div>
