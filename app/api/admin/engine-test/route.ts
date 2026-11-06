@@ -71,8 +71,30 @@ function falReady(): boolean {
   return true
 }
 
+// KINEO-MOTION-SONDA-0611 — fundador 06/11: "motion com várias câmeras… me dá dois exemplos". Vários planos num clipe só, no Kling 3 (multi_prompt, schema lido em 06/11; US$ 0,112/s sem áudio). Só exemplo: não entra em produto nenhum.
+const MOTION_MODEL = 'fal-ai/kling-video/v3/pro/text-to-video'
+const MOTION_NEGATIVE = 'text, letters, numbers, logo, watermark, caption, subtitles, on-screen text, readable signs, blur, distort, low quality'
+function planosFrom(raw: unknown): Array<{ prompt: string; duration: string }> | null {
+  if (!Array.isArray(raw) || raw.length < 2 || raw.length > 6) return null
+  const planos = raw.map((p) => ({ prompt: promptFrom((p as { prompt?: unknown })?.prompt), seconds: (p as { seconds?: unknown })?.seconds }))
+  if (planos.some((p) => !p.prompt || p.prompt.length > 512 || !Number.isInteger(p.seconds) || (p.seconds as number) < 1)) return null
+  if (planos.reduce((soma, p) => soma + (p.seconds as number), 0) > 15) return null
+  return planos.map((p) => ({ prompt: p.prompt as string, duration: String(p.seconds) }))
+}
+
 export async function POST(req: NextRequest) {
   if (!(await adminUser())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (req.nextUrl.searchParams.get('motion') === '1') {
+    const planos = planosFrom(((await req.json().catch(() => null)) as { shots?: unknown } | null)?.shots)
+    if (!planos) return NextResponse.json({ error: 'bad_shots' }, { status: 400 })
+    if (!falReady()) return NextResponse.json({ error: 'fal_unavailable' }, { status: 503 })
+    try {
+      const sub = await fal.queue.submit(MOTION_MODEL, { input: { multi_prompt: planos, shot_type: 'customize', aspect_ratio: '9:16', generate_audio: false, negative_prompt: MOTION_NEGATIVE } as never })
+      return NextResponse.json({ model: MOTION_MODEL, request_id: sub.request_id })
+    } catch (e) {
+      return NextResponse.json({ error: 'submit_failed', detail: falDetail(e) }, { status: 502 })
+    }
+  }
   const body = (await req.json().catch(() => null)) as { engine?: unknown; prompt?: unknown; image_url?: unknown; seconds?: unknown } | null
   const engine = engineFrom(body?.engine)
   if (!engine) return NextResponse.json({ error: 'unknown_engine', engines: Object.keys(ENGINES) }, { status: 400 })
@@ -92,7 +114,8 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   if (!(await adminUser())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  const engine = engineFrom(req.nextUrl.searchParams.get('engine'))
+  const motion = req.nextUrl.searchParams.get('engine') === 'motion' // KINEO-MOTION-SONDA-0611
+  const engine = motion ? { model: MOTION_MODEL } : engineFrom(req.nextUrl.searchParams.get('engine'))
   const requestId = (req.nextUrl.searchParams.get('request_id') ?? '').trim()
   if (!engine || !/^[0-9a-f-]{20,64}$/i.test(requestId)) return NextResponse.json({ error: 'bad_request' }, { status: 400 })
   if (!falReady()) return NextResponse.json({ error: 'fal_unavailable' }, { status: 503 })
