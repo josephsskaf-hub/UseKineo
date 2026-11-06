@@ -11,7 +11,7 @@ import { MADE_WITH_KINEO_HREF } from '@/lib/homeGaleria'
 const CSS = `
 .kpc{display:none}
 @media(max-width:767px){
-.kpc{display:block;padding:12px 20px 0}
+.klp section.kpc{display:block;padding:12px 0 0}
 .kpc-portas{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 .kpc-porta{display:block;text-align:center;font-size:12px;font-weight:600;line-height:1.25;color:var(--txt)}
 .kpc-porta span{display:block;aspect-ratio:1;border-radius:14px;overflow:hidden;margin-bottom:6px;background:var(--card);border:1px solid var(--line)}

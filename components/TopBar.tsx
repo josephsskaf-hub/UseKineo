@@ -47,6 +47,7 @@ export default function TopBar({ title, subtitle, onMenuToggle, isPro, presente 
         onClick={onMenuToggle}
         className="md:hidden w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0 transition-all"
         style={{
+          minWidth: 44, minHeight: 44, // KINEO-CELULAR-A-0611 — a raiz do painel tem 14 px: w-11 dava 39 px
           background: 'rgba(255,255,255,.03)',
           border: '1px solid var(--border)',
           color: 'var(--muted2)',
