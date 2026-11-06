@@ -310,10 +310,10 @@ html .pricing-blue [data-kineo=credit-minutes]{background:var(--card2)!important
   .klp .k3c{padding-top:12px!important}
   .klp .k3c-head{display:none!important}
   .klp .k3c-grid{padding-bottom:8px}
-  .klp .k3c-card{flex:0 0 88%!important;max-width:none!important;aspect-ratio:5/4!important;border-radius:16px!important}
+  .klp .k3c-card{flex:0 0 68%!important;max-width:280px!important;aspect-ratio:5/6!important;border-radius:16px!important}
   .klp .k3c-body{padding:14px!important}
   .klp .k3c-title{font-size:1.15rem!important}
-  .klp .k3c-sub{font-size:13px!important}
-  .klp .k3c-cta{display:none!important}
+  .klp .k3c-sub{display:none!important}
+  .klp .k3c-cta{font-size:13px!important;padding:9px 14px!important;margin-top:8px!important}
   .klp .hero{padding-top:10px!important}
 }
