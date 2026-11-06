@@ -27,6 +27,7 @@ export function renderCardArrival({ root = fixtureRoot, search = '', referrer = 
     react: hooks,
     'react/jsx-runtime': require('react/jsx-runtime'),
     'next/link': { __esModule: true, default: ({ children, ...props }) => React.createElement('a', props, children) },
+    'next/navigation': { usePathname: () => '/' }, // KINEO-CAIXA-COM-IDEIA-0611
     '@/components/InterfaceLanguage': { UiLabel: ({ children }) => children, useInterfaceLanguage: () => language, useUiCopy: () => text => text },
     '@/lib/analytics': { trackEvent: (event, metadata) => { events.push({ event, metadata }); return Promise.resolve() } },
   }
