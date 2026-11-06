@@ -46,12 +46,18 @@ export function ideiaDaPagina(pathname: string | null | undefined): string | nul
   return nicho && Object.hasOwn(NICHOS, nicho) ? NICHOS[nicho] : null
 }
 
-/** Texto que chegou no link: uma linha, sem link solto, até 200 caracteres. Qualquer outra coisa = caixa vazia. */
+/** Texto que chegou no link: sem link solto, até 2.000 caracteres, com as quebras de linha de quem escreveu. Qualquer outra coisa = caixa vazia. */
 export function ideiaDoLink(valor: string | string[] | undefined): string {
   if (typeof valor !== 'string') return ''
-  const texto = valor.replace(/\s+/g, ' ').trim()
-  if (!texto || texto.length > 200 || /^https?:\/\//i.test(texto)) return ''
+  const texto = valor.replace(/[^\S\n]+/g, ' ').trim()
+  if (!texto || texto.length > 2000 || /^https?:\/\//i.test(texto)) return ''
   return texto
+}
+
+/** KINEO-PEDIDO-GUARDA-TEXTO-0611 — quem pede o filme grátis com texto na caixa volta para a mesma caixa, com o texto. Vazio ou longo demais = null (segue o destino de antes). */
+export function voltaParaCaixa(texto: string | null | undefined): string | null {
+  const limpo = String(texto ?? '').trim()
+  return limpo && limpo.length <= 2000 ? `/studio?${new URLSearchParams({ ideia: limpo }).toString()}` : null
 }
 
 export function hrefDaCaixa(ideia: string | null): string {

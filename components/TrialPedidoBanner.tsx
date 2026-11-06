@@ -6,6 +6,7 @@ import { trackEvent } from '@/lib/analytics'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { pickInterfaceCopy } from '@/lib/ui/interfaceLanguage'
 import { filmeGratisDestino, TRIAL_PEDIDO_CLAIM_PATH, TRIAL_PEDIDO_COPY, TRIAL_PEDIDO_TESTE } from '@/lib/trialPedido'
+import { voltaParaCaixa } from '@/lib/growth/ideiaDaPagina' // KINEO-PEDIDO-GUARDA-TEXTO-0611
 
 export default function TrialPedidoBanner() {
   const language = useInterfaceLanguage()
@@ -28,6 +29,10 @@ export default function TrialPedidoBanner() {
       window.dispatchEvent(new Event('creditsChanged'))
       // KINEO-FLUXO2-G-0411 — a ideia que está na tela (a caixa da prévia ou o ?prompt= da página) volta com a pessoa; antes ela caía no /studio vazio.
       const caixa = document.getElementById('previa-idea') as HTMLTextAreaElement | null
+      // KINEO-PEDIDO-GUARDA-TEXTO-0611 — 06/11, glauciaag78: escreveu na caixa do Studio, pediu o filme grátis e voltou com a caixa vazia.
+      const naCaixaUnica = document.querySelector<HTMLTextAreaElement>('[data-testid="studio-simples"] textarea')?.value
+      const volta = voltaParaCaixa(naCaixaUnica)
+      if (volta) { window.location.assign(volta); return }
       window.location.assign(filmeGratisDestino(caixa?.value || new URLSearchParams(window.location.search).get('prompt')))
     } catch {
       setEstado('falhou')
