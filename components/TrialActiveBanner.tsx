@@ -587,7 +587,7 @@ export default function TrialActiveBanner({ userKey, reserve = false }: { userKe
         <div
           aria-hidden="true"
           data-trial-banner-reserve="1"
-          className="mx-3 mt-3 rounded-xl md:mx-6"
+          className="kineo-aviso-teste mx-3 mt-3 rounded-xl md:mx-6"
           style={{ minHeight: TRIAL_BANNER_RESERVE_MIN_HEIGHT, background: 'linear-gradient(135deg, rgba(41,151,255,.12), rgba(41,151,255,.04))', border: '1px solid rgba(41,151,255,.32)' }}
         />
       )
@@ -688,7 +688,7 @@ export default function TrialActiveBanner({ userKey, reserve = false }: { userKe
     <div
       role="region"
       aria-label="Free trial status"
-      className="mx-3 mt-3 rounded-xl px-4 py-3 md:mx-6"
+      className="kineo-aviso-teste mx-3 mt-3 rounded-xl px-4 py-3 md:mx-6"
       style={{
         background: 'linear-gradient(135deg, rgba(41,151,255,.12), rgba(41,151,255,.04))',
         border: '1px solid rgba(41,151,255,.32)',

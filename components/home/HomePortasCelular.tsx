@@ -2,6 +2,8 @@
 // KINEO-CELULAR-A-0611 [fundador 06/11: "Modelo A, fundo escuro"]: abaixo do carrossel, as 4 portas, o título da galeria e a caixa flutuante.
 // Só abaixo de 768 px; imagens com lazy não são baixadas no computador. Os destinos são os mesmos dos cartões da home.
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { hrefDaCaixa, ideiaDaPagina } from '@/lib/growth/ideiaDaPagina' // KINEO-CAIXA-COM-IDEIA-0611
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { trackEvent } from '@/lib/analytics'
 import { HOME_CARD_EVENT, homeCardClickMetadata, homeCardHref, type HomeCardId } from '@/lib/ui/homeThreeCards'
@@ -33,6 +35,7 @@ const PORTAS: ReadonlyArray<{ card: HomeCardId; rotulo: string; img: string }> =
 ]
 
 export default function HomePortasCelular({ signedIn }: { signedIn: boolean }) {
+  const ideia = ideiaDaPagina(usePathname()) // KINEO-CAIXA-COM-IDEIA-0611
   return (
     <section className="kpc" aria-label="What to make" data-kineo="home-portas-celular">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
@@ -52,8 +55,8 @@ export default function HomePortasCelular({ signedIn }: { signedIn: boolean }) {
         <span><small>Made with Kineo</small><b><UiLabel>Make one like this</UiLabel></b></span>
         <Link href={MADE_WITH_KINEO_HREF}><UiLabel>View all</UiLabel> ›</Link>
       </div>
-      <Link className="kpc-caixa" href="/studio?intent_campaign=home_phone_box" onClick={() => { void trackEvent('home_phone_box_clicked', { signed_in: signedIn }) }}>
-        <em><UiLabel>What&apos;s your film about?</UiLabel></em><i aria-hidden="true">↑</i>
+      <Link className="kpc-caixa" href={hrefDaCaixa(ideia)} onClick={() => { void trackEvent('home_phone_box_clicked', { signed_in: signedIn, with_idea: ideia !== null }) }}>
+        <em>{ideia ?? <UiLabel>What&apos;s your film about?</UiLabel>}</em><i aria-hidden="true">↑</i>
       </Link>
     </section>
   )

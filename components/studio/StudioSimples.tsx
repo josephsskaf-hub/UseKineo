@@ -91,11 +91,11 @@ const PRODUTOS: ReadonlyArray<{ rotulo: string; href: string | null; img: string
   { rotulo: 'Clip', href: '/clips', img: '/posters/galeria/knight-cat.webp' },
 ]
 
-export default function StudioSimples({ filmes, motor, campanha }: { filmes: ReadonlyArray<FilmeDaCaixa>; motor: string; campanha: string }) {
+export default function StudioSimples({ filmes, motor, campanha, ideiaInicial = '' }: { filmes: ReadonlyArray<FilmeDaCaixa>; motor: string; campanha: string; ideiaInicial?: string }) {
   const router = useRouter()
   const registrar = useMrrStudioFunnel()
   const caixa = useRef<HTMLTextAreaElement>(null)
-  const [texto, setTexto] = useState('')
+  const [texto, setTexto] = useState(ideiaInicial) // KINEO-CAIXA-COM-IDEIA-0611 — só preenche; o filme nunca começa sozinho
   const [duracao, setDuracao] = useState<number>(60)
   const [formato, setFormato] = useState<string>('9:16')
   const [lingua, setLingua] = useState<string>('auto') /* KINEO-ROTEIRO-NA-LINGUA-0411 — sem escolha, o filme fala a língua do texto */
@@ -150,7 +150,7 @@ export default function StudioSimples({ filmes, motor, campanha }: { filmes: Rea
     }
     setAviso(null)
     registrar('mrr_generate_clicked')
-    void trackEvent('studio_simple_generate_clicked', { engine: motor, duration: duracao, aspect: formato, language: lingua, verbatim: palavraPorPalavra, chars: t.length })
+    void trackEvent('studio_simple_generate_clicked', { engine: motor, duration: duracao, aspect: formato, language: lingua, verbatim: palavraPorPalavra, chars: t.length, page_idea_kept: ideiaInicial !== '' && t === ideiaInicial.trim() })
     try { sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine: motor, prompt: t, language: lingua === 'auto' ? 'en' : lingua })) } catch {}
     router.push(pedidoDoStudioSimples({ motor, texto: t, duracao, formato, lingua, palavraPorPalavra, campanha }))
   }

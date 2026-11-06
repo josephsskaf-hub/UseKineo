@@ -9,6 +9,7 @@ import { getHouseEngineExamples } from '@/lib/engineWall'
 import { ENGINE_PAGE_LEAD, FOUNDER_SHOWCASE } from '@/lib/publicExamples'
 import StudioClient, { type StudioBestFilm, type StudioHeroVideo } from './StudioClient'
 import StudioSimples from '@/components/studio/StudioSimples' // KINEO-CAIXA-UNICA-0411
+import { ideiaDoLink } from '@/lib/growth/ideiaDaPagina' // KINEO-CAIXA-COM-IDEIA-0611
 import { filmesDaPorta0511 } from '@/lib/growth/filmesDaPorta0511' // KINEO-HOME-TOPO-0511
 import { campanhaDaCaixa, motorDaCaixa, usarCaixaUnica } from '@/lib/growth/studioSimples' // KINEO-CAIXA-UNICA-0411
 import StudioIdeaArrival from '@/components/StudioIdeaArrival'
@@ -68,7 +69,7 @@ export default function StudioPage({ searchParams = {} }: { searchParams?: Recor
     return (
       <>
         <StudioIdeaArrival />
-        <StudioSimples filmes={filmesDaPorta0511()} motor={motorDaCaixa(searchParams.engine)} campanha={campanhaDaCaixa(searchParams.intent_campaign)} />
+        <StudioSimples filmes={filmesDaPorta0511()} motor={motorDaCaixa(searchParams.engine)} campanha={campanhaDaCaixa(searchParams.intent_campaign)} ideiaInicial={ideiaDoLink(searchParams.ideia)} />
       </>
     )
   }
