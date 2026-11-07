@@ -6,6 +6,8 @@
 // IndexNow avisa o Bing na primeira hora depois do deploy. Guardião: scripts/test-paginas-citadas-0511.mjs.
 import { ANNUAL_DISCOUNT_PERCENT, TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing'
 import { creditCostForDuration } from '@/lib/credits/engineCost'
+import { H3_TURBO_PUBLIC } from '@/lib/engineLaunch'
+import { H3_TURBO_PAGE_UPDATED } from '@/lib/growth/h3TurboPage'
 
 export const PAGINAS_CITADAS_0511_ATUALIZADO = '2026-11-05'
 export const PAGINAS_CITADAS_0511_LASTMOD = `${PAGINAS_CITADAS_0511_ATUALIZADO}T12:00:00.000Z`
@@ -64,10 +66,13 @@ export function planosPorFilmeTexto0511(pt: boolean): PlanosPorFilmeTexto {
 /** Carimba só as 6 páginas, e só para frente: data mais nova que a nossa fica como está. */
 export function carimbaPaginasCitadas0511<T extends { url: string; lastModified?: string | Date }>(entries: readonly T[]): T[] {
   const alvo = new Set(PAGINAS_CITADAS_0511_PATHS)
-  const carimbo = Date.parse(PAGINAS_CITADAS_0511_LASTMOD)
   return entries.map((entry) => {
     if (!alvo.has(new URL(entry.url).pathname)) return entry
+    const lastModified = H3_TURBO_PUBLIC && new URL(entry.url).pathname === '/ai-video-generator/seedance'
+      ? `${H3_TURBO_PAGE_UPDATED}T12:00:00.000Z`
+      : PAGINAS_CITADAS_0511_LASTMOD
+    const carimbo = Date.parse(lastModified)
     const atual = entry.lastModified ? new Date(entry.lastModified).getTime() : 0
-    return atual >= carimbo ? entry : { ...entry, lastModified: PAGINAS_CITADAS_0511_LASTMOD }
+    return atual >= carimbo ? entry : { ...entry, lastModified }
   })
 }

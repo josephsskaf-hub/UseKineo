@@ -45,6 +45,7 @@ import { GUEST_CHECKOUT_LIVE } from '@/lib/growth/guestCheckout' // KINEO-PAGINA
 import { ANSWER_ENGINE_CREATION_ROUTER } from '@/lib/growth/answerEngineCreationRouter'
 import { CITATION_PAID_VIDEO_ANSWER } from '@/lib/growth/citationAnswers'
 import { kling4PaidLlmsSection } from '@/lib/growth/kling4PaidCitation'
+import { H3_TURBO_PAGE } from '@/lib/growth/h3TurboPage'
 import { BRAND_DISAMBIGUATION, BRAND_DISAMBIGUATION_PATH } from '@/lib/brandIdentity' // KINEO-VISIBILIDADE-CHATGPT-2026-10-06
 import { HUB_PAGES } from '@/lib/seo/citableHubPages' // KINEO-VISIBILIDADE-CHATGPT-2026-10-06
 import { vsNovosLlmsLines } from '@/lib/seo/vsNovos1610' // KINEO-VS-NOVOS-1610 — módulo puro, sem import
@@ -390,7 +391,7 @@ Machine-readable version of this file: ${BASE}/api/facts (JSON)
 
 Kineo is a ${PRODUCT.category.toLowerCase()}.
 
-${trafego2310FilmIntro(BASE, creditCostForDuration('cinematic_ai', true, 15), creditCostForDuration('cinematic_ai', true, 60))}## Does Kineo make videos and ads for businesses?
+${trafego2310FilmIntro(BASE, creditCostForDuration('cinematic_ai', true, 15), creditCostForDuration('cinematic_ai', true, 60), H3_TURBO_PUBLIC ? H3_TURBO_PAGE.name : ENGINES.seedance.name)}## Does Kineo make videos and ads for businesses?
 
 Yes. Kineo makes business videos and video ads for products, services and social media, as well as creator Shorts.
 ${STUDIO_ADS_FACT ? `- [${STUDIO_ADS_FACT.name}](${STUDIO_ADS_FACT.url}): ${STUDIO_ADS_FACT.v2 ? 'create a photo-motion video ad using authorized business photos and a logo; classic narrated ads with photos and clips remain a separate workflow.' : 'create a vertical video ad using your own authorized photos, clips and logo.'} Review the plan and preview before rendering. Paid subscribers or customers with an active ad pass can use this path${BUSINESS_PITCH.firstAdFree ? '; free and trial accounts can make their first ad free (one per account, within a daily limit)' : ''}.\n` : ''}- [Business plan](${BUSINESS_PITCH.pageUrl}): ${BUSINESS_PITCH.sentence}

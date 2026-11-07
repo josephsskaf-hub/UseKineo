@@ -24,6 +24,8 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Footer from '@/components/Footer'
 import { CitationDirectAnswer, CitationDetails } from '@/components/seo/TrafficCitation2310'
+import H3TurboDetails from '@/components/H3TurboDetails'
+import { H3_TURBO_PAGE } from '@/lib/growth/h3TurboPage'
 import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import SeedanceHeroActions from '@/components/SeedanceHeroActions'
@@ -49,7 +51,7 @@ import { ENGINES, ENGINE_SLUGS, engineOfferName, engineOfferPath, type Engine } 
 import { EngineAnswerLead, EnginePriceCard, engineGeoFor, pausedAccessNote } from '@/components/EngineCitationAnswer' // KINEO-MOTORES-GEO-2026-10-06
 import { EngineBuyerGuide } from '@/components/PaginasMotor1610' // KINEO-PAGINAS-MOTOR-1610
 import { S25_PAGE_SLUG } from '@/lib/growth/s25EnginePage' // KINEO-S25-ABRE-2026-10-06 — rota própria do 2.5
-import { enginePaused } from '@/lib/engineLaunch' // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15
+import { enginePaused, H3_TURBO_PUBLIC } from '@/lib/engineLaunch'
 import { engineAlternates, LOCALIZED_ENGINE_SLUGS, type LocalizedEngineSlug } from '@/lib/seo/enginePageLangs' // KINEO-MOTORES-16-LINGUAS-2026-09-21
 import { PaginaClaraCards, PaginaClaraTopo, PaginaClaraVitrine } from '@/components/seo/PaginaClara' // KINEO-PAGINAS-IA-CLARAS-2110 — o menu do topo, os 4 cards e a vitrine atual da home
 import { PAGINA_CLARA_CLASSE, PAGINA_CLARA_FUNDO } from '@/lib/seo/paginasIaClaras2110' // KINEO-PAGINAS-IA-CLARAS-2110
@@ -74,7 +76,7 @@ export function generateStaticParams() {
 const BASE = 'https://www.usekineo.com'
 
 export function generateMetadata({ params }: { params: { engine: string } }): Metadata {
-  const e = ENGINES[params.engine]
+  const e = params.engine === 'seedance' && H3_TURBO_PUBLIC ? H3_TURBO_PAGE : ENGINES[params.engine]
   if (!e) return {}
   const pause = enginePaused(e.param)
   const title = pause
@@ -103,9 +105,10 @@ export function generateMetadata({ params }: { params: { engine: string } }): Me
 const CARD = { background: '#FFFFFF', border: '1px solid #E4E4E0' }
 
 export default async function EnginePage({ params }: { params: { engine: string } }) {
-  const e = ENGINES[params.engine]
+  const standardH3 = params.engine === 'seedance' && H3_TURBO_PUBLIC
+  const e = standardH3 ? H3_TURBO_PAGE : ENGINES[params.engine]
   if (!e) notFound()
-  const geo = engineGeoFor(params.engine) // KINEO-MOTORES-GEO-2026-10-06 — camada citável; null = motor pausado/aposentado (página no modo antigo)
+  const geo = standardH3 ? null : engineGeoFor(params.engine)
 
   // KINEO-PAGINAS-IA-CLARAS-2110 — a galeria velha (renders do banco + filmes da casa deste motor) saiu; a página mostra a vitrine atual da home.
   const paidBudget = paidEngineBudget(params.engine)
@@ -142,7 +145,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
     ],
   }
 
-  const tierNote = geo ? geo.accessNote : enginePaused(e.param) ? pausedAccessNote(e.name, enginePaused(e.param)!) : e.tier === 'Free'
+  const tierNote = standardH3 ? 'Paid plans provide clean downloads. Check trial eligibility, the selected model and the credit cost in Studio before generating.' : geo ? geo.accessNote : enginePaused(e.param) ? pausedAccessNote(e.name, enginePaused(e.param)!) : e.tier === 'Free'
     ? ft(OFFER, 'Free with a watermark · no card', OFFER.copy.chip)
     : `${e.name} is unlocked on every account. Its ${e.creditCost}-credit 60-second cost is covered by the ${e.tier} monthly grant; the ${TRIAL_CREDITS_SHOWN}-credit free trial ${TRIAL_CREDITS_SHOWN >= e.creditCost ? 'covers one' : 'does not cover one'}.`
 
@@ -169,8 +172,8 @@ export default async function EnginePage({ params }: { params: { engine: string 
           <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.6rem)', fontWeight: 650, lineHeight: 1.15, margin: '16px 0 0' }}>{e.h1}</h1>
           {/* KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — quem chega pelo 301 do Kineo 1 (?from=kineo-1) lê o que mudou; no Seedance o
               botão principal do hero passou a ser a compra direta do Creator (SeedanceHeroActions buyPage). */}
-          {params.engine === 'seedance' && <Kineo1RetiredNotice />}
-          {params.engine === 'seedance' ? <CitationDirectAnswer page="seedance" /> : geo && <EngineAnswerLead geo={geo} />}
+          {params.engine === 'seedance' && !standardH3 && <Kineo1RetiredNotice />}
+          {standardH3 ? <p style={{ fontSize: '1.02rem', color: '#5A5F67', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 680 }}>{e.intro}</p> : params.engine === 'seedance' ? <CitationDirectAnswer page="seedance" /> : geo && <EngineAnswerLead geo={geo} />}
           <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
           {!enginePaused(e.param) && <PaidEngineBudget slug={params.engine} />}
           {enginePaused(e.param) && (
@@ -179,7 +182,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
               <Link href={`/studio?engine=${enginePaused(e.param)!.alternative.key}&intent_campaign=engine_paused`} style={{ color: '#A35A00', fontWeight: 700 }}>Open {enginePaused(e.param)!.alternative.label} →</Link>
             </div>
           )}
-          <p style={{ fontSize: '1.02rem', color: '#5A5F67', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 680 }}>{e.intro}</p>
+          {!standardH3 && <p style={{ fontSize: '1.02rem', color: '#5A5F67', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 680 }}>{e.intro}</p>}
           {params.engine === 'seedance' || params.engine === 'veo' ? (
             <SeedanceHeroActions signupHref={signupUrl} campaign={campaign} buyPage={params.engine === 'seedance' ? 'seedance' : undefined} />
           ) : <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 22 }}>
@@ -234,7 +237,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
         )}
 
         <PaginaClaraVitrine />{/* KINEO-PAGINAS-IA-CLARAS-2110 — a vitrine atual (a mesma da /claude-connector) no lugar das galerias velhas deste motor */}
-        {params.engine === 'seedance' ? <CitationDetails page="seedance" /> : null}
+        {standardH3 ? <H3TurboDetails /> : params.engine === 'seedance' ? <CitationDetails page="seedance" /> : null}
         <p style={{ textAlign: 'center', margin: '16px 0 0', fontSize: '0.85rem' }}>
           <Link href="/examples" style={{ color: '#0A5CFF', textDecoration: 'none', fontWeight: 700 }}>See the 20 best across every engine →</Link>
         </p>
@@ -250,7 +253,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
                   ['Cost per video', engineCostLabel(e)],
                   ['Smallest monthly grant that covers one', paidBudget?.label ?? (e.tier === 'Free' ? 'None — runs on a free account' : e.tier)],
                   ['Output', 'Vertical 9:16 MP4, script + AI voiceover + captions already assembled'],
-                  ['Typical turnaround', geo ? geo.turnaround : e.param === 'h3max' ? 'New engine: the turnaround is measured from its first delivered films' : '3–7 minutes from idea to download'], // KINEO-H3MAX-2026-10-13 — sem tempo medido ainda, sem faixa digitada
+                  ['Typical turnaround', standardH3 ? 'Varies by film and duration. Follow progress in Studio.' : geo ? geo.turnaround : e.param === 'h3max' ? 'New engine: the turnaround is measured from its first delivered films' : '3–7 minutes from idea to download'],
                   ['Best for', e.bestFor],
                   ['Trade-off', e.tradeoff],
                 ].map(([k, v], i) => (
