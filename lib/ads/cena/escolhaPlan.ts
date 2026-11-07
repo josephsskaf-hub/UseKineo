@@ -83,8 +83,12 @@ function speechInput(input: CenaInput, product: string): CenaInput {
 export function escolhaSpokenProduct(product: string, maxWords = 30, language?: string): string { // KINEO-AMOSTRA-TEXTO-LONGO-0711
   const full = clean(product), cap = Math.max(3, Math.floor(maxWords * 0.4)) // KINEO-AMOSTRA-TEXTO-LONGO-0711
   if (words(full, language) <= cap) return full // KINEO-AMOSTRA-TEXTO-LONGO-0711
-  const segments = full.split(/\s*(?:[+/|·—–;:,([]|\s-\s)\s*/u).map(clean).filter(Boolean) // KINEO-AMOSTRA-TEXTO-LONGO-0711 — hífen interno (K-Sérum, GHK-Cu) não separa
-  const head = segments.find(s => words(s, language) >= 2) ?? full // KINEO-AMOSTRA-TEXTO-LONGO-0711 — um rótulo de 1 palavra ("Promoção:") não vira o nome
+  const pieces = full.split(/(\s*(?:[+/|·—–;:,([]|\s-\s)\s*)/u), segments: { text: string; sep: string }[] = [] // KINEO-AMOSTRA-TEXTO-LONGO-0711 — hífen interno (K-Sérum, GHK-Cu) não separa; os ímpares são os separadores
+  for (let i = 0; i < pieces.length; i += 2) { const text = clean(pieces[i]); if (text) segments.push({ text, sep: (pieces[i + 1] ?? '').trim() }) } // KINEO-AMOSTRA-TEXTO-LONGO-0711
+  const preambulo = (k: number): boolean => words(segments[k].text, language) < 2 || /^[:—–-]$/u.test(segments[k].sep) && words(segments[k].text, language) < words(segments[k + 1].text, language) // KINEO-AMOSTRA-TEXTO-LONGO-0711 — "Promoção:", "Oferta da semana:", "Lançamento exclusivo -": rótulo curto seguido de dois-pontos/travessão e de um trecho maior não vira o nome; vírgula e "+" separam atributos, não preâmbulo
+  let k = 0 // KINEO-AMOSTRA-TEXTO-LONGO-0711
+  while (k < segments.length - 1 && preambulo(k)) k++ // KINEO-AMOSTRA-TEXTO-LONGO-0711 — o último trecho nunca é pulado
+  const head = segments[k]?.text ?? full // KINEO-AMOSTRA-TEXTO-LONGO-0711
   return clean(joinNarrationTokens(narrationTokens(head, language).slice(0, cap), language).replace(/[\s.,;:+/|·—–-]+$/u, '')) || full // KINEO-AMOSTRA-TEXTO-LONGO-0711
 }
 /** A whole-sentence budget, never a substring/ellipsis of the CTA. The original offer stays in input for one final overlay. */
@@ -196,7 +200,7 @@ export async function planCenaEscolha(input: CenaInput, route: CenaRoute, json: 
   const wardrobe = 'the exact original outfit visible in the approved presenter portrait, with identical colour, fabric and sleeves'
   const choice: CenaEscolhaSelection = { marker: CENA_ESCOLHA_MARK, presenterId: presenter.id, scenarioId: scenario.id, category, actorUrl, wardrobe, captionLane: scenario.captionLane, shotPrompts: ['', '', ''] }
   if (sample) choice.sample = ADS_ESCOLHA_SAMPLE_MARK // KINEO-AMOSTRA-ANUNCIO-2410
-  const plan: CenaEscolhaPlan = { marker: 'KINEO-ADS-CENA-2110', input, product, category, format: '', setting: scenario.setting, interaction: scenario.interaction, actor: '', script: fitCenaEscolhaScript(draft, input, product), keyframePrompts: ['', ''], videoPrompt: '', segmentPrompts: ['', ''], voice_mode: input.voice_mode, audioMode: input.voice_mode === 'talking' ? 'native' : 'voiceover', continuity: { actorUrl, wardrobe, productWrist: category === 'wearable' ? 'left' : null }, ajusteLive: { version: 'KINEO-ADS-CENA-RETOMADA-2110', music: true }, escolha: choice, quality_notes: quality.quality_notes }
+  const plan: CenaEscolhaPlan = { marker: 'KINEO-ADS-CENA-2110', input, product, category, format: '', setting: scenario.setting, interaction: scenario.interaction, actor: '', script: fitCenaEscolhaScript(draft, input, product, maxWords), keyframePrompts: ['', ''], videoPrompt: '', segmentPrompts: ['', ''], voice_mode: input.voice_mode, audioMode: input.voice_mode === 'talking' ? 'native' : 'voiceover', continuity: { actorUrl, wardrobe, productWrist: category === 'wearable' ? 'left' : null }, ajusteLive: { version: 'KINEO-ADS-CENA-RETOMADA-2110', music: true }, escolha: choice, quality_notes: quality.quality_notes } // KINEO-AMOSTRA-TEXTO-LONGO-0711 — o MESMO teto do escritor (18 na amostra): com o padrão 30 o nome falado de 12 palavras não batia com o roteiro escrito para 7 e a amostra fora de pt/en recusava (escolha_script_invalid) o que a base aceitava
   if (sample) plan.script = fitCenaEscolhaScript(draft, input, product, maxWords) // KINEO-AMOSTRA-ANUNCIO-2410
   prompts(plan); aplicarQualidadeDoAnuncio(plan); preflightCenaEscolha(plan, route) // KINEO-QUALIDADE-TODOS-MOTORES-2910
   return plan

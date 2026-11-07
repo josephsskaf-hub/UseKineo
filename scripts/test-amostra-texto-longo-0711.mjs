@@ -103,6 +103,14 @@ async function casoReal(modBase, modHoje) {
     const h = await planeja(modHoje, entrada(PEDRO, 'en'), w())
     f('1.12 hoje a mesma tentativa sai sem "+" e com as frases do escritor', !!h.plan && semMais(h.plan.script.narration) && fold(h.plan.script.narration) === fold(`Ready for your routine? Meet ${PEDRO_FALADO}. Choose it.`), h.plan?.script.narration ?? h.erro)
   }
+  // 1.3 — preâmbulo de loja ("Oferta da semana:") na frente do título (achado da revisão adversarial, 07/11)
+  {
+    const frase = `Oferta da semana: ${PEDRO_FALADO}`
+    const w = () => escritor({ produto: frase, hooks: HOOKS.pt, use: (p) => `Conheça o ${p}.`, cta: 'Peça o seu.' })
+    const b = await planeja(modBase, entrada(frase, 'pt'), w()), h = await planeja(modHoje, entrada(frase, 'pt'), w())
+    f('1.13 base lia o preâmbulo junto ("Conhece Oferta da semana: …?")', !!b.plan && /^Conhece Oferta da semana:/u.test(b.plan.script.narration), b.plan?.script.narration ?? b.erro)
+    f('1.14 hoje a fala nomeia o produto, não o preâmbulo', !!h.plan && nomeia(h.plan.script.narration, PEDRO_FALADO) && !nomeia(h.plan.script.narration, 'Oferta da semana'), h.plan?.script.narration ?? h.erro)
+  }
   return falhas
 }
 
@@ -123,6 +131,18 @@ async function casoEspanhol(modBase, modHoje) {
     f('2.3 a fala cabe, nomeia o produto e não lê "+"', palavras(n) <= 18 && nomeia(n, LOPEZ_FALADO) && semMais(n), n)
     f('2.4 nenhuma palavra em inglês ou português entrou (só as frases do escritor)', n === `¿Qué kit eliges hoy? Conoce el ${LOPEZ_FALADO}. Pídelo hoy mismo.`, n)
     f('2.5 plan.product guarda o nome completo', h.plan.product === LOPEZ, '')
+  }
+  // nome SEM separador de 8 palavras (a base aceitava: 16 ≤ 18) e de 12 (a base recusava) — achado da revisão adversarial 07/11: a 1ª
+  // chamada do ajuste usava o teto padrão (30 → nome de 12) contra um roteiro escrito para o nome de 7 e recusava com escolha_script_invalid
+  for (const [n, nome, esperado] of [
+    ['2.6', 'Kit Hidrabene K-Sérum Harmonizador Facial Coreano Original Novo', 'Kit Hidrabene K-Sérum Harmonizador Facial Coreano Original'],
+    ['2.7', 'Kit Hidrabene K-Sérum Harmonizador Facial Coreano Original Novo Premium Importado Autêntico Completo', 'Kit Hidrabene K-Sérum Harmonizador Facial Coreano Original'],
+  ]) {
+    const w = () => escritor({ produto: nome, hooks: HOOKS_ES, use: (p) => `Conoce el ${p}.`, cta: 'Pídelo hoy.' })
+    const b = await planeja(modBase, entrada(`${nome}; natural.`, 'es'), w()), h = await planeja(modHoje, entrada(`${nome}; natural.`, 'es'), w())
+    if (n === '2.6') f('2.6 base aceitava o nome de 8 palavras sem separador', !!b.plan && b.plan.script.narration.includes(nome), b.plan?.script.narration ?? b.erro)
+    else f('2.7 base recusava o nome de 12 palavras sem separador', b.erro === 'escolha_spoken_core_exceeds_15s', JSON.stringify(b).slice(0, 200))
+    f(`${n} hoje aceita e fala o nome de 7 palavras`, !!h.plan && nomeia(h.plan.script.narration, esperado) && palavras(h.plan.script.narration) <= 18 && h.plan.product === nome, h.plan?.script.narration ?? h.erro)
   }
   return falhas
 }
@@ -203,6 +223,13 @@ function tabelaNomeFalado(mod) {
     ['iPhone 15 Pro Max 256GB Titânio Natural Apple Smartphone', 18, 'pt', 'iPhone 15 Pro Max 256GB Titânio Natural'], // sem separador: as 7 primeiras
     ['Zapatillas Nike Air Max 90 - Blancas Hombre Original Nuevas', 18, 'es', 'Zapatillas Nike Air Max 90'], // " - " separa
     ['GLOW cream', 18, 'en', 'GLOW cream'],
+    ['Oferta da semana: Kit Linha Coreana Hidrabene K-Sérum Harmonizador Facial', 18, 'pt', 'Kit Linha Coreana Hidrabene K-Sérum Harmonizador Facial'], // preâmbulo de 3 palavras + dois-pontos
+    ['Frete grátis: Tênis Nike Air Max 90 Branco Masculino Original', 18, 'pt', 'Tênis Nike Air Max 90 Branco Masculino'], // preâmbulo fora, 7 primeiras do título
+    ['Lançamento exclusivo - Smartwatch Xiaomi Mi Band 8 Pro preta', 18, 'pt', 'Smartwatch Xiaomi Mi Band 8 Pro preta'],
+    ['Pousada Vista Mar – Búzios: diária com café da manhã', 18, 'pt', 'Pousada Vista Mar'], // nome curto seguido de trecho MENOR não é preâmbulo
+    ['Nike Air Zoom, tênis de corrida masculino leve e confortável', 18, 'pt', 'Nike Air Zoom'], // vírgula separa atributo, não preâmbulo
+    ['Café, grãos especiais do Cerrado Mineiro torra média escura', 18, 'pt', 'grãos especiais do Cerrado Mineiro torra média'], // 1 palavra antes da vírgula não vira o nome
+    ['Honda CG 160 Titan 2024 vermelha 0 km - financiamento', 18, 'pt', 'Honda CG 160 Titan 2024 vermelha 0'],
     ['Kit Hidrabene K-Sérum Harmonizador Facial Coreano Original', 18, 'pt', 'Kit Hidrabene K-Sérum Harmonizador Facial Coreano Original'], // 7 palavras: inteiro
     ['Kit Hidrabene K-Sérum Harmonizador Facial Coreano Original Novo', 18, 'pt', 'Kit Hidrabene K-Sérum Harmonizador Facial Coreano Original'], // 8: corta na 7ª
     ['', 18, 'en', ''],
@@ -253,9 +280,11 @@ const MUTANTES = [
   ['M1 teto do nome falado desligado', 'cap = Math.max(3, Math.floor(maxWords * 0.4))', 'cap = 999', ['1.', '2.', '5.n']],
   ['M2 encurtamento com as frases do autor removido', "= [['hook'], ['use'], ['benefit'], []] // KINEO", '= [] // KINEO', ['3.2']],
   ['M3 o escritor recebe o nome inteiro', 'writeAjusteScript(spoken, falado, json', 'writeAjusteScript(spoken, product, json', ['1.5', '1.9', '1.12']],
-  ['M4 separador de lista ignorado', 'full.split(/\\s*(?:[+/|·—–;:,([]|\\s-\\s)\\s*/u)', '[full]', ['5.n']],
-  ['M5 rótulo de 1 palavra vira o nome', 'segments.find(s => words(s, language) >= 2) ?? full', 'segments[0] ?? full', ['5.n']],
+  ['M4 separador de lista ignorado', 'full.split(/(\\s*(?:[+/|·—–;:,([]|\\s-\\s)\\s*)/u)', '[full]', ['5.n']],
+  ['M5 rótulo de 1 palavra vira o nome', 'words(segments[k].text, language) < 2 || ', '', ['5.n']],
   ['M6 colapso pt/en trocado pelas frases do autor', '> maxWords && legacy) {', '> maxWords && false) {', ['4.c']],
+  ['M7 a 1ª chamada do ajuste volta ao teto padrão (o defeito da revisão)', 'script: fitCenaEscolhaScript(draft, input, product, maxWords), keyframePrompts', 'script: fitCenaEscolhaScript(draft, input, product), keyframePrompts', ['2.6']],
+  ['M8 preâmbulo de 2+ palavras vira o nome', '/^[:—–-]$/u.test(segments[k].sep) && words(segments[k].text, language) < words(segments[k + 1].text, language)', 'false', ['1.14', '5.n']],
 ]
 for (const [nome, de, para, esperadas] of MUTANTES) {
   const rm = await bateria(modBase, mundo(troca(de, para)))
