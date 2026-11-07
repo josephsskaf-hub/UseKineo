@@ -81,7 +81,7 @@ export function buyCreatorCopy(lang: BuyCreatorLang = 'en', live: boolean = WELC
       priceLine: price.firstMonth
         ? `${price.firstMonth} no 1º mês, depois ${price.full}/mês`
         : `${price.full}/mês`,
-      note: `${TIER_CREDITS.basic} créditos por mês = ${films} filmes de ${s} s no MiniMax H3 Turbo, sem marca d’água. Cancele quando quiser. Preço de referência em USD; no Brasil a cobrança normalmente é em reais.`,
+      note: `${TIER_CREDITS.basic} créditos por mês = ${films} filmes de ${s} s no MiniMax H3 Turbo, sem marca d’água. Preço de referência em USD; no Brasil a cobrança normalmente é em reais.`,
     }
   }
   if (lang === 'es') {
@@ -92,7 +92,7 @@ export function buyCreatorCopy(lang: BuyCreatorLang = 'en', live: boolean = WELC
       priceLine: price.firstMonth
         ? `${price.firstMonth} el primer mes, después ${price.full}/mes`
         : `${price.full}/mes`,
-      note: `${TIER_CREDITS.basic} créditos al mes = ${films} videos de ${s} s en MiniMax H3 Turbo, sin marca de agua. Cancela cuando quieras. Precio de referencia en USD.`,
+      note: `${TIER_CREDITS.basic} créditos al mes = ${films} videos de ${s} s en MiniMax H3 Turbo, sin marca de agua. Precio de referencia en USD.`,
     }
   }
   return {
@@ -102,6 +102,6 @@ export function buyCreatorCopy(lang: BuyCreatorLang = 'en', live: boolean = WELC
     priceLine: price.firstMonth
       ? `${price.firstMonth} for the first month, then ${price.full}/month`
       : `${price.full}/month`,
-    note: `${TIER_CREDITS.basic} credits a month = ${films} watermark-free ${s}-second films on MiniMax H3 Turbo. Cancel anytime.`,
+    note: `${TIER_CREDITS.basic} credits a month = ${films} watermark-free ${s}-second films on MiniMax H3 Turbo.`,
   }
 }
