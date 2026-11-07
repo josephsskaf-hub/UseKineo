@@ -73,14 +73,30 @@ function speechInput(input: CenaInput, product: string): CenaInput {
   const cta = offer && escolhaHasOffer(input.cta ?? '', offer) ? legacySpeech(input) ? `${pt ? 'Conheça' : 'Discover'} ${product}.` : undefined : input.cta
   return { ...input, oferta: '', frase: offer ? stripSpokenOffer(input.frase, offer) : input.frase, beneficios: (input.beneficios ?? []).filter(b => !escolhaHasOffer(b, offer)), cta }
 }
+// KINEO-AMOSTRA-TEXTO-LONGO-0711 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — o nome FALADO do produto.
+// Caso real (pedido f9fbd513, 05/11, 1º uso, BR via ChatGPT): o título da loja tinha 14 palavras ("Kit Linha Coreana Hidrabene K-Sérum // KINEO-AMOSTRA-TEXTO-LONGO-0711
+// Harmonizador Facial + Sérum GHK-Cu + Sérum PDRN Skincare"); a amostra de 8 s exige o nome INTEIRO na fala dentro de 18 palavras e // KINEO-AMOSTRA-TEXTO-LONGO-0711
+// recusava (escolha_spoken_core_exceeds_15s) ou lia "+ Sérum GHK-Cu + Sérum PDRN" em voz alta. Em espanhol (pedido 20b709d7, 06/11) // KINEO-AMOSTRA-TEXTO-LONGO-0711
+// não há nenhum encurtamento: só recusa. A fala passa a usar as PRÓPRIAS palavras do cliente, cortadas no primeiro separador de lista // KINEO-AMOSTRA-TEXTO-LONGO-0711
+// (+ / | · — – ; : , parênteses, " - ") e limitadas a ~40% do orçamento (7 palavras na amostra, 12 no anúncio de 15 s); o nome // KINEO-AMOSTRA-TEXTO-LONGO-0711
+// completo segue no plano, na vitrine e na etiqueta da imagem. Nome curto (até o teto) sai idêntico ao de hoje. // KINEO-AMOSTRA-TEXTO-LONGO-0711
+export function escolhaSpokenProduct(product: string, maxWords = 30, language?: string): string { // KINEO-AMOSTRA-TEXTO-LONGO-0711
+  const full = clean(product), cap = Math.max(3, Math.floor(maxWords * 0.4)) // KINEO-AMOSTRA-TEXTO-LONGO-0711
+  if (words(full, language) <= cap) return full // KINEO-AMOSTRA-TEXTO-LONGO-0711
+  const segments = full.split(/\s*(?:[+/|·—–;:,([]|\s-\s)\s*/u).map(clean).filter(Boolean) // KINEO-AMOSTRA-TEXTO-LONGO-0711 — hífen interno (K-Sérum, GHK-Cu) não separa
+  const head = segments.find(s => words(s, language) >= 2) ?? full // KINEO-AMOSTRA-TEXTO-LONGO-0711 — um rótulo de 1 palavra ("Promoção:") não vira o nome
+  return clean(joinNarrationTokens(narrationTokens(head, language).slice(0, cap), language).replace(/[\s.,;:+/|·—–-]+$/u, '')) || full // KINEO-AMOSTRA-TEXTO-LONGO-0711
+}
 /** A whole-sentence budget, never a substring/ellipsis of the CTA. The original offer stays in input for one final overlay. */
 export function fitCenaEscolhaScript(raw: unknown, input: CenaInput, product: string, maxWords = 30): CenaScript {
+  product = escolhaSpokenProduct(product, maxWords, input.language) // KINEO-AMOSTRA-TEXTO-LONGO-0711 — daqui para baixo "product" é o nome falado; o nome completo fica em plan.product
   const spoken = speechInput(input, product), legacy = legacySpeech(input), base = legacy ? fitAjusteScript(raw, spoken, product) : localizedEscolhaScript(raw, spoken, product)
   const pt = (input.language ?? 'en').startsWith('pt'), offer = clean(input.oferta)
   const excludeOffer = (s: string): string => sentences(s, input.language).filter(sentence => !escolhaHasOffer(sentence, offer)).join(' ')
   const script: CenaScript = { ...base, hooks: [...base.hooks] as [string, string, string], hook: excludeOffer(base.hook), use: excludeOffer(base.use), benefit: excludeOffer(base.benefit), cta: excludeOffer(base.cta), narration: '' }
   if (!script.cta) { if (!legacy) throw new Error('escolha_script_language_unavailable'); script.cta = `${pt ? 'Conheça' : 'Discover'} ${product}.` }
   if (!script.hook && legacy) script.hook = `${pt ? 'Conhece' : 'Know'} ${product}?`
+  const autor = { hook: script.hook, use: script.use, benefit: script.benefit, cta: script.cta } // KINEO-AMOSTRA-TEXTO-LONGO-0711 — as frases inteiras do escritor, antes de qualquer corte
   const join = () => [script.hook, script.use, script.benefit, script.cta].filter(Boolean).join(' ')
   for (const field of ['use', 'benefit'] as const) {
     const pieces = sentences(script[field], input.language)
@@ -91,11 +107,18 @@ export function fitCenaEscolhaScript(raw: unknown, input: CenaInput, product: st
     }
   }
   if (!includes(join(), product)) { if (!legacy) throw new Error('escolha_spoken_core_exceeds_15s'); script.hook = `${pt ? 'Conhece' : 'Know'} ${product}?` }
-  if (words(join(), input.language) > maxWords) {
-    if (!legacy) throw new Error('escolha_spoken_core_exceeds_15s')
+  if (words(join(), input.language) > maxWords && legacy) { // KINEO-AMOSTRA-TEXTO-LONGO-0711 — o colapso de sempre do pt/en, como antes
     script.hook = includes(script.cta, product) ? '' : `${pt ? 'Conhece' : 'Know'} ${product}?`
     script.use = ''; script.benefit = ''
   }
+  if (words(join(), input.language) > maxWords) { // KINEO-AMOSTRA-TEXTO-LONGO-0711 — antes de recusar, o menor conjunto de frases INTEIRAS do próprio escritor que nomeia o produto e termina na chamada; nada é escrito em outra língua
+    const combos: ReadonlyArray<ReadonlyArray<'hook' | 'use' | 'benefit'>> = [['hook'], ['use'], ['benefit'], []] // KINEO-AMOSTRA-TEXTO-LONGO-0711
+    for (const keep of combos) { // KINEO-AMOSTRA-TEXTO-LONGO-0711
+      const trial = { hook: keep.includes('hook') ? autor.hook : '', use: keep.includes('use') ? autor.use : '', benefit: keep.includes('benefit') ? autor.benefit : '', cta: autor.cta } // KINEO-AMOSTRA-TEXTO-LONGO-0711
+      const text = [trial.hook, trial.use, trial.benefit, trial.cta].filter(Boolean).join(' ') // KINEO-AMOSTRA-TEXTO-LONGO-0711
+      if (trial.cta && includes(text, product) && words(text, input.language) <= maxWords) { Object.assign(script, trial); break } // KINEO-AMOSTRA-TEXTO-LONGO-0711
+    } // KINEO-AMOSTRA-TEXTO-LONGO-0711
+  } // KINEO-AMOSTRA-TEXTO-LONGO-0711
   script.narration = join(); script.hooks[0] = script.hook
   if (!script.narration || words(script.narration, input.language) > maxWords) throw new Error('escolha_spoken_core_exceeds_15s')
   return script
@@ -167,9 +190,9 @@ export async function planCenaEscolha(input: CenaInput, route: CenaRoute, json: 
   catch { classified = { category, product: clean(input.frase.split(/[;.!?]/u)[0]).slice(0, 160), benefits: [], offer: '' }; addAjusteQuality(quality, { stage: 'classification', code: 'classifier_repaired', message: 'Typed product and selected category retained after an unavailable classifier.' }) }
   if (classified.category !== 'other' && classified.category !== category) throw new Error('escolha_scenario_category_mismatch')
   input = { ...input, actorUrl, oferta: input.oferta || classified.offer, beneficios: [...new Set([...(input.beneficios ?? []), ...classified.benefits])], voice_mode: sample ? 'narrated' : input.voice_mode ?? 'narrated' } // KINEO-AMOSTRA-ANUNCIO-2410
-  const product = classified.product, spoken = speechInput(input, product)
-  const scriptPrompt = `${ajusteScriptPrompt(spoken, product)} NEW SCENE SELECTION: at most${maxWords} spoken words in the selected language, completed sentences. The typed offer is a final visual overlay ONLY: never say a discount, price, promotion or offer in the speech. Name the product once. No description of actors or cameras.` // KINEO-AMOSTRA-ANUNCIO-2410
-  const draft = legacySpeech(input) ? await writeAjusteScript(spoken, product, json, raw => naturalAjusteScript(raw, spoken, product), scriptPrompt, note => addAjusteQuality(quality, note)) : await writeLocalizedEscolhaScript(spoken, product, json, scriptPrompt)
+  const product = classified.product, falado = escolhaSpokenProduct(product, maxWords, input.language), spoken = speechInput(input, falado) // KINEO-AMOSTRA-TEXTO-LONGO-0711 — o escritor recebe o nome FALADO (curto); plan.product segue com o nome completo
+  const scriptPrompt = `${ajusteScriptPrompt(spoken, falado)} NEW SCENE SELECTION: at most${maxWords} spoken words in the selected language, completed sentences. The typed offer is a final visual overlay ONLY: never say a discount, price, promotion or offer in the speech. Name the product once. No description of actors or cameras.` // KINEO-AMOSTRA-ANUNCIO-2410 // KINEO-AMOSTRA-TEXTO-LONGO-0711
+  const draft = legacySpeech(input) ? await writeAjusteScript(spoken, falado, json, raw => naturalAjusteScript(raw, spoken, falado), scriptPrompt, note => addAjusteQuality(quality, note)) : await writeLocalizedEscolhaScript(spoken, falado, json, scriptPrompt) // KINEO-AMOSTRA-TEXTO-LONGO-0711
   const wardrobe = 'the exact original outfit visible in the approved presenter portrait, with identical colour, fabric and sleeves'
   const choice: CenaEscolhaSelection = { marker: CENA_ESCOLHA_MARK, presenterId: presenter.id, scenarioId: scenario.id, category, actorUrl, wardrobe, captionLane: scenario.captionLane, shotPrompts: ['', '', ''] }
   if (sample) choice.sample = ADS_ESCOLHA_SAMPLE_MARK // KINEO-AMOSTRA-ANUNCIO-2410

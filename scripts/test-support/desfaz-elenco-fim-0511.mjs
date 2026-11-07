@@ -5,9 +5,11 @@ import { semReservaH30611 } from './desfaz-reserva-h3-0611.mjs' // KINEO-RESERVA
 import { readFileSync } from 'node:fs'
 import { semH3Turbo0511 } from './desfaz-h3-turbo-0511.mjs' // KINEO-H3-TURBO-0511 — a camada mais nova sai primeiro
 import { semFimNaoVolta0611 } from './desfaz-fim-nao-volta-0611.mjs' // KINEO-FIM-NAO-VOLTA-0611 — a camada mais nova (06/11, laço do revisor) sai primeiro
+import { semAmostraTextoLongo0711 } from './desfaz-amostra-texto-longo-0711.mjs' // KINEO-AMOSTRA-TEXTO-LONGO-0711 — a camada mais nova (07/11, laço do revisor) sai primeiro
 const ESCOPO = JSON.parse(readFileSync(new URL('./desfaz-elenco-fim-0511-fontes.json', import.meta.url), 'utf8'))
 const MARCA = 'KINEO-ELENCO-ATE-O-FIM-0511'
 export function semElencoFim0511(source, file) {
+  source = semAmostraTextoLongo0711(source, file) // KINEO-AMOSTRA-TEXTO-LONGO-0711
   source = semReservaH30611(source, file) // KINEO-RESERVA-H3-0611 — a camada mais nova sai primeiro
   source = semFimNaoVolta0611(source, file) // KINEO-FIM-NAO-VOLTA-0611
   source = semH3Turbo0511(source, file) // KINEO-H3-TURBO-0511
