@@ -23,6 +23,7 @@ import { ADS_SAMPLE_PROBE_PARAM, adsSampleProbeOn } from '@/lib/ads/sampleEntry'
 import { v2Fail } from '@/lib/ads/v2Server'
 import { adsV2StartFor } from '@/lib/ads/v2StartCore'
 import { isEscolhaPersonalOrder } from '@/lib/ads/cena/escolhaPersonalAccess'
+import { paisDoRequest } from '@/lib/freeFilmPolicy' // KINEO-AMOSTRA-START-PAIS-0711 — o país do pedido para a conta da amostra pessoal
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
     const escolhaPersonal = await isEscolhaPersonalOrder(access.admin, user.id, body?.order_id)
     if (escolhaPersonal) access = await loadAdsAccess(user.id, user.email)
     if (adsSampleProbeOn(access.reason, req.nextUrl?.searchParams?.get(ADS_SAMPLE_PROBE_PARAM))) access.reason = 'none' // KINEO-UGC-AJUSTES-2010 — conta INTERNA com ?sample_probe=1 vira 'none': cai nas travas da amostra de verdade (1 por conta, tetos, marca-d'água); ninguém de fora aciona
-    return await adsV2StartFor(user, access, async () => body, started, { escolhaPersonal })
+    return await adsV2StartFor(user, access, async () => body, started, { escolhaPersonal, sampleCountry: paisDoRequest(req.headers) }) // KINEO-AMOSTRA-START-PAIS-0711 — a mesma régua de país da rota da cena
   } catch (e) {
     console.warn('[ads/v2/start] falhou:', e instanceof Error ? e.message : String(e))
     return v2Fail('start_failed', 502)

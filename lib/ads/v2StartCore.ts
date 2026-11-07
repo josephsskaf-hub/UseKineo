@@ -60,7 +60,7 @@ import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy'
 const DISPATCH_BUDGET_MS = 40_000
 
 /** O início do anúncio v2 para `user`, com o acesso `access` já resolvido. `readBody` lê o corpo só depois das portas. */
-export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, readBody: () => Promise<unknown>, started: number = Date.now(), dependencies: { moderate?: typeof moderateContent; escolhaPersonal?: boolean } = {}): Promise<NextResponse> { // KINEO-ADS-CENA-95-PACING-2110 — server-only DI; request bodies cannot supply it.
+export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, readBody: () => Promise<unknown>, started: number = Date.now(), dependencies: { moderate?: typeof moderateContent; escolhaPersonal?: boolean; sampleCountry?: string | null } = {}): Promise<NextResponse> { // KINEO-ADS-CENA-95-PACING-2110 — server-only DI; request bodies cannot supply it. // KINEO-AMOSTRA-START-PAIS-0711 — sampleCountry = o país do PEDIDO (x-vercel-ip-country), lido pela rota, usado só na conta da amostra.
   let locked: { id: string; user_id: string; billing_ref: string | null } | null = null
   let admin: Awaited<ReturnType<typeof loadAdsAccess>>['admin'] | null = null
   try {
@@ -100,7 +100,7 @@ export async function adsV2StartFor(user: AdsV2Caller, access: AdsAccessLoad, re
     if (dependencies.escolhaPersonal && !escolhaSample && !escolhaUpgrade) return v2Fail('no_access', 403)
     if (escolhaSample) {
       if (!ADS_ESCOLHA_SAMPLE_LIVE) return v2Fail('ads_sample_disabled', 403)
-      if (uid !== user.id || !await escolhaSampleAccountOk(admin, user.id)) return v2Fail('ads_sample_account_blocked', 403)
+      if (uid !== user.id || !await escolhaSampleAccountOk(admin, user.id, dependencies.sampleCountry ?? null)) return v2Fail('ads_sample_account_blocked', 403) // KINEO-AMOSTRA-START-PAIS-0711 — a mesma régua de país de plan/stills (internalEscolha.ts): sem o país do pedido, o perfil sem país passava lá e era recusado aqui. Caso real: 6be0bbc0 (BR, 05/11)
       if (!await hasEscolhaSampleReservation(admin, { orderId, actorId: user.id, ownerId: uid, route: cena!.route })) return v2Fail('ads_sample_unavailable', 503)
     }
     sampleRun = escolhaSample || sampleRun && !escolhaUpgrade
