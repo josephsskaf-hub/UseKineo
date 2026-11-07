@@ -22,6 +22,12 @@ const productWall = (format: 'desktop' | 'mobile'): HomeCardClip => ({
 })
 const PRODUCT_WALL_DESKTOP = [productWall('desktop')] as const
 const PRODUCT_WALL_MOBILE = [productWall('mobile')] as const
+const CARTOON_DESKTOP = [{
+  src: '/previews/home-card-trailer-cartoon-desktop.mp4',
+  poster: '/posters/home-card-trailer-cartoon-desktop.webp',
+  objectPosition: '50% 0%',
+  objectFit: 'contain',
+}] as const satisfies HomeCardPlaylist
 const UGC_COVER: HomeCardPlaylist = [{
   src: '/previews/home-card-ugc-fone-0611.mp4',
   poster: '/posters/home-card-ugc-fone-0611.webp',
@@ -34,27 +40,30 @@ export default function HomeCardCycleMedia({ card, language, playlist }: { card:
   const clips = playlist ?? homeCardClips(card, language) // KINEO-CARDS-TRAILER-0411
   const showWall = !!playlist && card === 'product_ads'
   const showHeadphones = !!playlist && card === 'ugc_ads'
-  const activeClips = showHeadphones ? UGC_COVER : clips
+  const showCartoon = !!playlist && card === 'kids_cartoon'
+  const desktopClips = showWall ? PRODUCT_WALL_DESKTOP : showCartoon ? CARTOON_DESKTOP : undefined
+  // Cartoon keeps its existing trailer and poster below the desktop breakpoint.
+  const activeClips = showWall ? PRODUCT_WALL_MOBILE : showHeadphones ? UGC_COVER : clips
   useEffect(() => {
     const el = root.current
     if (!el) return
-    if (!showWall) return attachHomeCardPlayback(el, activeClips)
+    if (!desktopClips) return attachHomeCardPlayback(el, activeClips)
 
     const query = window.matchMedia(DESKTOP_MEDIA)
     let detach: (() => void) | undefined
     const connect = () => {
       detach?.()
-      detach = attachHomeCardPlayback(el, query.matches ? PRODUCT_WALL_DESKTOP : PRODUCT_WALL_MOBILE)
+      detach = attachHomeCardPlayback(el, query.matches ? desktopClips : activeClips)
     }
     connect()
     query.addEventListener('change', connect)
     return () => { query.removeEventListener('change', connect); detach?.() }
-  }, [activeClips, showWall])
-  const first = showWall ? PRODUCT_WALL_MOBILE[0] : activeClips[0]
+  }, [activeClips, desktopClips])
+  const first = activeClips[0]
   return (
-    <span className="k3c-media k3c-cycle" ref={root} data-home-cycle={card} data-home-cover={showWall ? 'product-wall' : showHeadphones ? 'ugc-headphones' : undefined}>
+    <span className="k3c-media k3c-cycle" ref={root} data-home-cycle={card} data-home-cover={showWall ? 'product-wall' : showHeadphones ? 'ugc-headphones' : showCartoon ? 'cartoon-responsive' : undefined}>
       <picture>
-        {showWall ? <source media={DESKTOP_MEDIA} srcSet={PRODUCT_WALL_DESKTOP[0].poster} /> : null}
+        {desktopClips ? <source media={DESKTOP_MEDIA} srcSet={desktopClips[0].poster} /> : null}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="k3c-cycle-poster" src={first.poster} alt="" style={{
           '--home-clip-position': first.objectPosition,
