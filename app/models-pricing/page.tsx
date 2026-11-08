@@ -89,6 +89,7 @@ export default function ModelsPricingPage() {
       <h1 style={{ fontSize: 34, fontWeight: 800, margin: '0 0 12px', letterSpacing: '-0.02em' }}>
         What each AI video engine costs
       </h1>
+      <p style={{ fontSize: 13, color: '#a9a9b6' }}>Updated <time dateTime="2026-11-08">November 8, 2026</time>.</p>
       <p style={{ fontSize: 17, lineHeight: 1.7, color: '#a9a9b6', margin: '0 0 8px', maxWidth: 720 }}>
         Priced per <strong style={{ color: '#e9e9ee' }}>finished film</strong>, not per 5-second clip — voice,
         karaoke captions and score included in every number below.
