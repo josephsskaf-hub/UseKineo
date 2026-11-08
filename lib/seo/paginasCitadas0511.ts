@@ -8,6 +8,7 @@ import { ANNUAL_DISCOUNT_PERCENT, TIER_CREDITS, TIER_PRICES } from '@/lib/checko
 import { creditCostForDuration } from '@/lib/credits/engineCost'
 import { H3_TURBO_PUBLIC } from '@/lib/engineLaunch'
 import { H3_TURBO_PAGE_UPDATED } from '@/lib/growth/h3TurboPage'
+import { H3_TURBO_LOCALIZED, H3_TURBO_LOCALIZED_UPDATED } from '@/lib/growth/h3TurboLocalized'
 
 export const PAGINAS_CITADAS_0511_ATUALIZADO = '2026-11-05'
 export const PAGINAS_CITADAS_0511_LASTMOD = `${PAGINAS_CITADAS_0511_ATUALIZADO}T12:00:00.000Z`
@@ -63,12 +64,15 @@ export function planosPorFilmeTexto0511(pt: boolean): PlanosPorFilmeTexto {
   }
 }
 
-/** Carimba só as 6 páginas, e só para frente: data mais nova que a nossa fica como está. */
+/** Carimba as páginas revistas, preservando datas posteriores à revisão correspondente. */
 export function carimbaPaginasCitadas0511<T extends { url: string; lastModified?: string | Date }>(entries: readonly T[]): T[] {
   const alvo = new Set(PAGINAS_CITADAS_0511_PATHS)
   return entries.map((entry) => {
-    if (!alvo.has(new URL(entry.url).pathname)) return entry
-    const lastModified = H3_TURBO_PUBLIC && new URL(entry.url).pathname === '/ai-video-generator/seedance'
+    const path = new URL(entry.url).pathname
+    const localizedH3 = H3_TURBO_PUBLIC && Object.keys(H3_TURBO_LOCALIZED).some(lang => path === `/ai-video-generator/seedance/${lang}`)
+    if (!alvo.has(path) && !localizedH3) return entry
+    const lastModified = localizedH3 ? `${H3_TURBO_LOCALIZED_UPDATED}T12:00:00.000Z`
+      : H3_TURBO_PUBLIC && path === '/ai-video-generator/seedance'
       ? `${H3_TURBO_PAGE_UPDATED}T12:00:00.000Z`
       : PAGINAS_CITADAS_0511_LASTMOD
     const carimbo = Date.parse(lastModified)

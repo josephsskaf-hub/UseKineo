@@ -45,6 +45,7 @@ function prova(mutar = {}) {
   const carrega = carregador(mutar)
   const P = carrega('@/' + LIB.replace(/\.ts$/, ''))
   const preco = carrega('@/lib/checkoutPricing'), custo = carrega('@/lib/credits/engineCost')
+  const { H3_TURBO_PUBLIC } = carrega('@/lib/engineLaunch')
   const { CitationDetails } = carrega('@/' + COMP.replace(/\.tsx$/, ''))
   const cr = (s) => custo.creditCostForDuration('cinematic_ai', true, s)
 
@@ -86,7 +87,7 @@ function prova(mutar = {}) {
   const mapa = [...P.PAGINAS_CITADAS_0511_PATHS, '/pricing', '/free-ai-shorts/mythology'].map((p) => ({ url: base + (p === '/' ? '' : p), lastModified: '2026-10-23T12:00:00.000Z' }))
   const saida = P.carimbaPaginasCitadas0511([...mapa, { url: base + '/text-to-video-shorts', lastModified: '2026-12-01T00:00:00.000Z' }])
   const dia = (x) => new Date(x.lastModified).toISOString().slice(0, 10)
-  exige(P.PAGINAS_CITADAS_0511_PATHS.length === 6 && saida.slice(0, 6).every((x) => dia(x) === '2026-11-05'), 'mapa: as 6 páginas com 05/11')
+  exige(P.PAGINAS_CITADAS_0511_PATHS.length === 6 && saida.slice(0, 6).every((x) => dia(x) === (H3_TURBO_PUBLIC && new URL(x.url).pathname === '/ai-video-generator/seedance' ? '2026-11-07' : '2026-11-05')), 'mapa: datas aprovadas das 6 páginas, incluindo correção H3 de 07/11')
   exige(dia(saida[6]) === '2026-10-23' && dia(saida[7]) === '2026-10-23', 'mapa: nenhuma outra página muda de data')
   exige(dia(saida[8]) === '2026-12-01', 'mapa: data mais nova fica')
   const fonteMapa = (mutar[MAPA] ?? ((t) => t))(ler(MAPA))
@@ -115,7 +116,7 @@ const MUTANTES = [
   ['data parada em 23/10', COMP, (t) => t.replace('<time dateTime={PAGINAS_CITADAS_0511_ATUALIZADO}>{planos.atualizadoEm}</time>', '<time dateTime="2026-10-23">October 23, 2026</time>'), /data de 05\/11|data antiga/],
   ['tabela fora da tela', COMP, (t) => t.replace('<tbody>{planos.rows.map(', '<tbody>{[].map('), /com preço e créditos|filmes de 60 s/],
   ['página em português com texto em inglês', LIB, (t) => t.replace("const ou = pt ? 'ou' : 'or'", "pt = false\n  const ou = 'or'"), /língua da página/],
-  ['carimbo alarga para todo o mapa', LIB, (t) => t.replace("if (!alvo.has(new URL(entry.url).pathname)) return entry", ''), /nenhuma outra página/],
+  ['carimbo alarga para todo o mapa', LIB, (t) => t.replace('if (!alvo.has(path) && !localizedH3) return entry', ''), /nenhuma outra página/],
   ['carimbo anda para trás', LIB, (t) => t.replace('return atual >= carimbo ? entry : ', 'return '), /data mais nova fica/],
   ['carimbo desligado do mapa', MAPA, (t) => t.replace('return carimbaPaginasCitadas0511(filtrarSitemapPorLingua(', 'return (filtrarSitemapPorLingua('), /ligado por fora/],
   ['anual escrito à mão', LIB, (t) => t.replaceAll('${ANNUAL_DISCOUNT_PERCENT}%', '50%'), /desconto do anual/],

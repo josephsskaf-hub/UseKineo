@@ -15,9 +15,12 @@ import WallMedia from '@/components/WallMedia'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { getEngineRenders, getHouseEngineExamples } from '@/lib/engineWall'
 import { TRIAL_CREDITS_SHOWN } from '@/lib/freeTierOffer'
-import { STARTER_MONTH } from '@/lib/marketingPrice'
+import { STARTER_MONTH, STARTER_PRICE } from '@/lib/marketingPrice'
 import { ENGINES } from '@/lib/growth/enginePageCatalog'
-import { enginePaused } from '@/lib/engineLaunch'
+import { enginePaused, H3_TURBO_PUBLIC } from '@/lib/engineLaunch'
+import { H3_TURBO_PAGE } from '@/lib/growth/h3TurboPage'
+import { H3_TURBO_LOCALIZED } from '@/lib/growth/h3TurboLocalized'
+import H3TurboDetails from '@/components/H3TurboDetails'
 import { FREE_SHORTS_LANG_BY_CODE } from '@/lib/seo/freeShortsGeneratorLangs'
 import { ENGINE_LANGS, ENGINE_LANG_CODES, LOCALIZED_ENGINE_SLUGS, engineAlternates, type LocalizedEngineSlug } from '@/lib/seo/enginePageLangs'
 // KINEO-GEO-RODADA3-2026-10-08 — a FAQ do tempo cita a mediana MEDIDA do motor no Kineo AI Video Index (era uma faixa digitada).
@@ -35,11 +38,12 @@ function resolve(params: { engine: string; lang: string }) {
   const slug = LOCALIZED_ENGINE_SLUGS.find((s) => s === params.engine)
   const L = ENGINE_LANGS[params.lang as keyof typeof ENGINE_LANGS]
   const P = FREE_SHORTS_LANG_BY_CODE[params.lang]
-  const e = slug ? ENGINES[slug] : undefined
+  const h3 = slug === 'seedance' && H3_TURBO_PUBLIC ? H3_TURBO_LOCALIZED[params.lang] : undefined
+  const e = h3 ? H3_TURBO_PAGE : slug ? ENGINES[slug] : undefined
   if (!slug || !L || !P || !e) return null
   const facts = { engine: e.name, credits: e.creditCost, trial: TRIAL_CREDITS_SHOWN }
   const covers = TRIAL_CREDITS_SHOWN >= e.creditCost
-  return { slug, L, P, e, facts, covers, starter: STARTER_MONTH }
+  return { slug, L, P, e, facts, covers, h3, starter: h3 ? STARTER_PRICE : STARTER_MONTH }
 }
 
 export function generateMetadata({ params }: { params: { engine: string; lang: string } }): Metadata {
@@ -47,7 +51,7 @@ export function generateMetadata({ params }: { params: { engine: string; lang: s
   if (!r) return {}
   const url = `${BASE}/ai-video-generator/${r.slug}/${params.lang}`
   const title = r.L.title(r.facts)
-  const description = r.L.description(r.facts)
+  const description = r.h3 ? r.h3.description(r.facts.credits) : r.L.description(r.facts)
   return {
     metadataBase: new URL(BASE),
     title,
@@ -61,11 +65,11 @@ export function generateMetadata({ params }: { params: { engine: string; lang: s
 export default async function EngineLangPage({ params }: { params: { engine: string; lang: string } }) {
   const r = resolve(params)
   if (!r) notFound()
-  const { slug, L, P, e, facts, covers, starter } = r
+  const { slug, L, P, e, facts, covers, h3, starter } = r
   const renders = await getEngineRenders(e.qualityMode, 8)
   const house = renders.length > 0 ? [] : getHouseEngineExamples(e.qualityMode, 6) // KINEO-GALERIA-DA-CASA-2026-09-21
   const campaign = `seo_engine_${slug}_${P.code}` // prefixo seo_ = atribuição orgânica
-  const faq = L.faq({ ...facts, covers, starter, ...measuredLangFacts(e.qualityMode) })
+  const faq = h3 ? h3.faq(facts.credits, starter) : L.faq({ ...facts, covers, starter, ...measuredLangFacts(e.qualityMode) })
   const faqJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -85,8 +89,8 @@ export default async function EngineLangPage({ params }: { params: { engine: str
           </span>
           <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.6rem)', fontWeight: 900, lineHeight: 1.15, margin: '16px 0 0' }}>{L.h1(facts)}</h1>
           {/* KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — o 301 do Kineo 1 nas 13 línguas chega aqui com ?from=kineo-1. */}
-          {params.engine === 'seedance' && <Kineo1RetiredNotice />}
-          <p style={{ ...p, fontSize: '1.08rem', marginTop: 14 }}>{L.lead(facts)}</p>
+          {params.engine === 'seedance' && !h3 && <Kineo1RetiredNotice />}
+          <p style={{ ...p, fontSize: '1.08rem', marginTop: 14 }}>{h3 ? h3.lead(facts.credits, starter) : L.lead(facts)}</p>
           {pause && (
             <p style={{ ...p, color: '#ffb454' }}>{e.name} — maintenance · <Link href={`/studio?engine=${pause.alternative.key}&intent_campaign=engine_paused`} style={{ color: '#ffb454', fontWeight: 700 }}>{pause.alternative.label} →</Link></p>
           )}
@@ -104,8 +108,8 @@ export default async function EngineLangPage({ params }: { params: { engine: str
 
         {house.length > 0 && (
           <section style={{ marginTop: 40 }}>
-            <p style={{ margin: '0 0 4px', color: '#2997ff', fontSize: 12, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', textAlign: 'center' }}>{P.proof.eyebrow} · {e.name}</p>
-            <p style={{ ...p, textAlign: 'center', fontSize: '0.9rem' }}>{P.proof.line}</p>
+            <p style={{ margin: '0 0 4px', color: '#2997ff', fontSize: 12, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', textAlign: 'center' }}>{h3 ? h3.proofHeading : `${P.proof.eyebrow} · ${e.name}`}</p>
+            <p style={{ ...p, textAlign: 'center', fontSize: '0.9rem' }}>{h3 ? h3.proofLine : P.proof.line}</p>
             <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
               {house.map((v) => (
                 <div key={v.id} style={{ overflow: 'hidden', borderRadius: 14, ...CARD }}>
@@ -121,13 +125,13 @@ export default async function EngineLangPage({ params }: { params: { engine: str
         )}
 
         <section style={{ marginTop: 44 }}>
-          <p style={{ ...p, fontSize: '1.02rem' }}>{L.about[slug](facts)}</p>
+          <p style={{ ...p, fontSize: '1.02rem' }}>{h3 ? h3.about : L.about[slug](facts)}</p>
         </section>
 
         {renders.length > 0 && (
           <section style={{ marginTop: 44 }}>
-            <h2 style={h2}>{L.proofTitle(facts)}</h2>
-            <p style={{ ...p, textAlign: 'center', fontSize: '0.9rem' }}>{L.proofLine}</p>
+            <h2 style={h2}>{h3 ? h3.proofHeading : L.proofTitle(facts)}</h2>
+            <p style={{ ...p, textAlign: 'center', fontSize: '0.9rem' }}>{h3 ? h3.proofLine : L.proofLine}</p>
             <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
               {renders.map((v) => (
                 <Link key={v.id} href={`/v/${v.id}`} style={{ display: 'block', overflow: 'hidden', borderRadius: 14, ...CARD, textDecoration: 'none', color: 'inherit' }}>
@@ -145,13 +149,14 @@ export default async function EngineLangPage({ params }: { params: { engine: str
         <section style={{ marginTop: 44 }}>
           <h2 style={h2}>{L.howTitle}</h2>
           <ol className={styles.steps} style={{ ...p }}>
-            {L.how.map((step) => <li key={step} style={{ marginBottom: 6 }}>{step}</li>)}
+            {L.how.map((step, index) => <li key={step} style={{ marginBottom: 6 }}>{h3 && index === 0 ? h3.howStart : step}</li>)}
           </ol>
         </section>
 
         <section style={{ marginTop: 36 }}>
           <h2 style={h2}>{L.costTitle}</h2>
-          <p style={{ ...p, textAlign: 'center' }}>{L.cost({ ...facts, covers, starter })}</p>
+          <p style={{ ...p, textAlign: 'center' }}>{h3 ? h3.cost(facts.credits, starter) : L.cost({ ...facts, covers, starter })}</p>
+          {h3 && <H3TurboDetails language={h3.code} />}
         </section>
 
         <section style={{ marginTop: 44 }}>
