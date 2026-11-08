@@ -398,47 +398,9 @@ body::before{z-index:-1}
 }
 
 /* Capas aprovadas: o mesmo enquadramento no pôster, durante o vídeo e no hover. */
-.klp .k3c-card .k3c-media:is([data-home-cover="product-wall"],[data-home-cover="ugc-headphones"]) :is(.k3c-cycle-poster,video[data-home-cycle-slot]){
+.klp .k3c-card .k3c-media[data-home-cover="product-wall"] :is(.k3c-cycle-poster,video[data-home-cycle-slot]){
   object-fit:cover!important;object-position:50% 0%!important;transform:none!important
 }
-.klp .k3c-card .k3c-media[data-home-cover="ugc-headphones"]{container:ugc-cover / size;background:#122331}
 .klp .k3c-card .k3c-media[data-home-cover="ugc-headphones"] :is(.k3c-cycle-poster,video[data-home-cycle-slot]){
-  max-width:126cqh;margin-inline:auto;filter:none!important
-}
-@container ugc-cover (max-aspect-ratio:4/5){
-  .klp .k3c-card .k3c-media[data-home-cover="ugc-headphones"] :is(.k3c-cycle-poster,video[data-home-cycle-slot]){object-fit:contain!important}
-}
-@media(min-width:768px){
-  /* A altura do texto segue as classes comuns, inclusive quando a tradução quebra linha. */
-  .klp .k3c-card:has(>[data-home-cover="ugc-headphones"]){
-    display:grid;grid-template-rows:minmax(0,1fr) auto;background:#0a0e14
-  }
-  .klp .k3c-card:has(>[data-home-cover="ugc-headphones"])>.k3c-body{position:relative;grid-row:2}
-  .klp .k3c-card:has(>[data-home-cover="ugc-headphones"]) .k3c-sub{max-width:100%}
-  .klp .k3c-card>.k3c-media[data-home-cover="ugc-headphones"]{
-    position:relative;grid-row:1;min-height:0;overflow:hidden;
-    background:linear-gradient(180deg,#102233 40%,#0a0e14);
-    mask-image:linear-gradient(#000 97%,transparent)
-  }
-  /* A montagem existente só usa a parte de cima do vídeo; ocultar apenas a faixa vazia. */
-  .klp .k3c-card>.k3c-media[data-home-cover="ugc-headphones"] :is(.k3c-cycle-poster,video[data-home-cycle-slot]){
-    height:181%;max-width:none;object-fit:contain!important
-  }
-}
-@media(min-width:1100px){
-  /* A frase mais longa usa duas linhas no desktop de referência, com o mesmo corpo dos outros cards. */
-  .klp .k3c-card:has(>[data-home-cover="ugc-headphones"]) .k3c-sub{
-    width:min(calc(100% + 12px),42ch);max-width:none;min-height:2lh;text-wrap:balance
-  }
-  .klp .k3c-card:has(>[data-home-cover="cartoon-responsive"]){
-    display:grid;grid-template-rows:minmax(0,1fr) auto;background:#101831
-  }
-  .klp .k3c-card:has(>[data-home-cover="cartoon-responsive"])>.k3c-body{position:relative;grid-row:2}
-  .klp .k3c-card>.k3c-media[data-home-cover="cartoon-responsive"]{
-    position:relative;grid-row:1;min-height:0;overflow:hidden;background:#101831;
-    mask-image:linear-gradient(#000 97%,transparent)
-  }
-  .klp .k3c-card>.k3c-media[data-home-cover="cartoon-responsive"] :is(.k3c-cycle-poster,video[data-home-cycle-slot]){
-    height:174%;object-fit:contain!important;object-position:50% 0%!important;transform:none!important
-  }
+  filter:none!important
 }
