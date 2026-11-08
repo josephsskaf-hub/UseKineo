@@ -30,11 +30,36 @@ const CARTOON_COVER: HomeCardPlaylist = [{
   mobileObjectPosition: '50% 35%',
   objectFit: 'cover',
 }]
-const UGC_COVER: HomeCardPlaylist = [{
+// Approved 08/11: headphones opens the reel; the cream scene was excluded by the founder.
+const UGC_SCENES: HomeCardPlaylist = [{
   src: '/previews/galeria/ugc-indiano-fone.mp4',
   poster: '/posters/home-card-ugc-scene-0811.webp',
   objectPosition: '50% 45%',
   mobileObjectPosition: '50% 25%',
+  objectFit: 'cover',
+}, {
+  src: '/previews/galeria/ugc-homem-cafe.mp4',
+  poster: '/posters/home-card-ugc-cafe-scene-0811.webp',
+  objectPosition: '50% 40%',
+  mobileObjectPosition: '50% 30%',
+  objectFit: 'cover',
+}, {
+  src: '/previews/home-card-ugc-unboxing-scene-0811.mp4',
+  poster: '/posters/home-card-ugc-unboxing-scene-0811.webp',
+  objectPosition: '50% 28%',
+  mobileObjectPosition: '50% 30%',
+  objectFit: 'cover',
+}, {
+  src: '/previews/home-card-novo-ugc_shaker.mp4',
+  poster: '/posters/home-card-ugc-academia-scene-0811.webp',
+  objectPosition: '50% 40%',
+  mobileObjectPosition: '50% 15%',
+  objectFit: 'cover',
+}, {
+  src: '/previews/home-card-novo-ugc_podcast.mp4',
+  poster: '/posters/home-card-ugc-podcast-scene-0811.webp',
+  objectPosition: '50% 40%',
+  mobileObjectPosition: '50% 35%',
   objectFit: 'cover',
 }]
 
@@ -42,10 +67,10 @@ export default function HomeCardCycleMedia({ card, language, playlist }: { card:
   const root = useRef<HTMLSpanElement>(null)
   const clips = playlist ?? homeCardClips(card, language) // KINEO-CARDS-TRAILER-0411
   const showWall = !!playlist && card === 'product_ads'
-  const showHeadphones = !!playlist && card === 'ugc_ads'
+  const showUgcScenes = !!playlist && card === 'ugc_ads'
   const showCartoon = !!playlist && card === 'kids_cartoon'
   const desktopClips = showWall ? PRODUCT_WALL_DESKTOP : undefined
-  const activeClips = showWall ? PRODUCT_WALL_MOBILE : showHeadphones ? UGC_COVER : showCartoon ? CARTOON_COVER : clips
+  const activeClips = showWall ? PRODUCT_WALL_MOBILE : showUgcScenes ? UGC_SCENES : showCartoon ? CARTOON_COVER : clips
   useEffect(() => {
     const el = root.current
     if (!el) return
@@ -63,7 +88,7 @@ export default function HomeCardCycleMedia({ card, language, playlist }: { card:
   }, [activeClips, desktopClips])
   const first = activeClips[0]
   return (
-    <span className="k3c-media k3c-cycle" ref={root} data-home-cycle={card} data-home-cover={showWall ? 'product-wall' : showHeadphones ? 'ugc-headphones' : showCartoon ? 'cartoon-scene' : undefined}>
+    <span className="k3c-media k3c-cycle" ref={root} data-home-cycle={card} data-home-cover={showWall ? 'product-wall' : showUgcScenes ? 'ugc-scenes' : showCartoon ? 'cartoon-scene' : undefined}>
       <picture>
         {desktopClips ? <source media={DESKTOP_MEDIA} srcSet={desktopClips[0].poster} /> : null}
         {/* eslint-disable-next-line @next/next/no-img-element */}

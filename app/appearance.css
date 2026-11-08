@@ -401,6 +401,6 @@ body::before{z-index:-1}
 .klp .k3c-card .k3c-media[data-home-cover="product-wall"] :is(.k3c-cycle-poster,video[data-home-cycle-slot]){
   object-fit:cover!important;object-position:50% 0%!important;transform:none!important
 }
-.klp .k3c-card .k3c-media[data-home-cover="ugc-headphones"] :is(.k3c-cycle-poster,video[data-home-cycle-slot]){
+.klp .k3c-card .k3c-media[data-home-cover="ugc-scenes"] :is(.k3c-cycle-poster,video[data-home-cycle-slot]){
   filter:none!important
 }
