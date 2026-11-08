@@ -5,11 +5,11 @@ import {
   creditsPerReferenceVideo, videosPerMonth, costPerFilmUsd, formatUsd,
 } from '@/lib/marketingPrice'
 import { CITATION_COST_DECISION_CSS } from '@/lib/ui/citationCostDecisionStyles'
-import { H3_TURBO_PAGE } from '@/lib/growth/h3TurboPage'
+import { CITATION_COST_ENGINE_NAME } from '@/lib/growth/citationAnswers'
 
 const CAMPAIGN = 'citacoes_cost_decision_v1'
 const ENGINES = [
-  { quality: 'cinematic_ai', name: H3_TURBO_PAGE.name, visuals: 'AI-generated scenes' },
+  { quality: 'cinematic_ai', name: CITATION_COST_ENGINE_NAME, visuals: 'AI-generated scenes' },
 ] as const
 
 export function CitationCostComparePlans() {
