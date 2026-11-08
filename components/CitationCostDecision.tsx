@@ -5,11 +5,11 @@ import {
   creditsPerReferenceVideo, videosPerMonth, costPerFilmUsd, formatUsd,
 } from '@/lib/marketingPrice'
 import { CITATION_COST_DECISION_CSS } from '@/lib/ui/citationCostDecisionStyles'
+import { H3_TURBO_PAGE } from '@/lib/growth/h3TurboPage'
 
 const CAMPAIGN = 'citacoes_cost_decision_v1'
 const ENGINES = [
-  // KINEO-FILME-GRATIS-15S-2026-09-29 — a linha do Kineo 1 saiu (fora do catálogo público); fica o Seedance 1.5.
-  { quality: 'cinematic_ai', name: 'Seedance 1.5', visuals: 'AI-generated scenes' },
+  { quality: 'cinematic_ai', name: H3_TURBO_PAGE.name, visuals: 'AI-generated scenes' },
 ] as const
 
 export function CitationCostComparePlans() {
@@ -39,7 +39,7 @@ export default function CitationCostDecision() {
         </article>
       })}
     </div>
-    <p className="kccd-limit"><strong>A share of the monthly fee, not a separate price charged per render.</strong> Each example assigns the entire monthly fee to the complete films that fit in that engine. Choose either example; the two film counts are not combined.</p>
+    <p className="kccd-limit"><strong>USD allocated from the monthly subscription.</strong> This example assigns the monthly fee to the complete standard films that fit in the plan balance.</p>
     <p className="kccd-limit">Any remaining credits can go toward other work, but do not cover another complete film in that example. Regenerations, other engines or different durations change how many films your balance covers. Unused monthly credits do not roll over.</p>
     <p className="kccd-currency">Figures use the USD Starter price. Brazilian customers pay in reais.</p>
     <Link className="kccd-calculator" href="/cheapest-ai-shorts-maker">Calculate other durations and monthly volumes →</Link>

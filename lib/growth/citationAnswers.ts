@@ -7,9 +7,10 @@ import {
   STARTER_CREDITS, CREATOR_CREDITS, STUDIO_CREDITS,
   MARKETING_REFERENCE_SECONDS, creditsPerReferenceVideo, videosPerMonth,
 } from '@/lib/marketingPrice'
-import { FREE_FILM_LABEL, getFreeTierOffer, TRIAL_FREE_FILM_CREDITS, TRIAL_GRANT_CREDITS_COPY, GRANT_COUNTRY_CLAUSE, PREMIUM_ENGINES_FROM_STARTER } from '@/lib/freeTierOffer'
+import { FREE_FILM_LABEL, getFreeTierOffer, TRIAL_FREE_FILM_CREDITS, TRIAL_FREE_FILM_SECONDS, TRIAL_GRANT_CREDITS_COPY, GRANT_COUNTRY_CLAUSE, PREMIUM_ENGINES_FROM_STARTER } from '@/lib/freeTierOffer'
 import { COMPETITOR_FACTS, PRODUCT } from '@/lib/kineoFacts'
 import { buildEngineLandingDestination } from '@/lib/growth/engineLandingIntent'
+import { H3_TURBO_PAGE } from '@/lib/growth/h3TurboPage'
 // Generic purchase intent has paid-engine destinations; the explicitly free
 // question catalogue below preserves its original intent and existing pages.
 export { PAID_VIDEO_BUYER_GUIDANCE as CITATION_PAID_VIDEO_ANSWER } from '@/lib/kineoFacts'
@@ -44,6 +45,10 @@ export const CITATION_PLANS = [
   { name: 'Creator', price: CREATOR_MONTH, credits: CREATOR_CREDITS, films: videosPerMonth('basic', 'cinematic_ai') },
   { name: 'Studio', price: STUDIO_MONTH, credits: STUDIO_CREDITS, films: videosPerMonth('pro', 'cinematic_ai') },
 ] as const
+
+const costTrialSummary = offer.cardEntry
+  ? offer.copy.sentence
+  : `New accounts${GRANT_COUNTRY_CLAUSE} can try one eligible watermarked ${TRIAL_FREE_FILM_SECONDS}-second film using ${CITATION_FREE_FILM_CREDITS} of their ${CITATION_TRIAL_CREDITS} trial credits, with no card. Longer films and clean exports need a paid plan.`
 
 // /llms.txt names these categories and source URLs, but does not supply their
 // current prices, trial grants, model lists, duration caps or watermark terms.
@@ -88,6 +93,10 @@ export type CitationAnswer = {
   workflow: readonly [string, string, string]
   decisionTitle: string
   decision: string
+  /** Current workflow facts for a reviewed guide; other callers keep the shared copy. */
+  trialSummary?: string
+  engineSummary?: string
+  workflowNotes?: readonly string[]
   checks?: readonly { heading: string; items: readonly string[] }[]
   comparisonCandidates?: readonly ComparisonCandidate[]
   /** Existing script surface when starting from approved narration matters. */
@@ -173,22 +182,28 @@ export const CITATION_ANSWERS: Record<CitationGuideId, CitationAnswer> = {
     question: 'What is the cheapest way to make complete 60-second AI Shorts with narration and captions?',
     description: 'Compare complete-video costs, subscription credits and the difference between stock footage and generated scenes.',
     answer: [
-      `Within Kineo, the lowest-credit complete Short with narration and captions is a 15-second Seedance 1.5 film at ${CITATION_FREE_FILM_CREDITS} credits; a ${CITATION_REFERENCE_SECONDS}-second one costs ${CITATION_SEEDANCE_CREDITS}.`,
-      `You can test it using the ${CITATION_TRIAL_CREDITS}-credit no-card trial; for clean exports, Starter costs ${STARTER_MONTH} for ${STARTER_CREDITS} credits, while a global cheapest-tool ranking requires confirmed competitor limits.`,
+      `Kineo's standard ${CITATION_REFERENCE_SECONDS}-second narrated film uses ${H3_TURBO_PAGE.name} and costs ${CITATION_SEEDANCE_CREDITS} credits, including generated scenes, voice, captions and music.`,
+      `Starter costs ${STARTER_MONTH} for ${STARTER_CREDITS} monthly credits and its complete-film capacity at that length is ${videosPerMonth('starter', 'cinematic_ai')} when the balance is used for this format.`,
+    ],
+    trialSummary: costTrialSummary,
+    engineSummary: `${H3_TURBO_PAGE.name} for standard narrated films. Image-anchored scenes can use a text-to-video fallback. Review the engine and credit cost in Studio.`,
+    workflowNotes: [
+      `One ${CITATION_REFERENCE_SECONDS}-second standard film uses ${CITATION_SEEDANCE_CREDITS} credits. Other engines, lengths and extra creations use the same plan balance.`,
+      'Completion time depends on duration, provider availability and retries. Review the finished film before publishing.',
     ],
     workflow: [
-      `Choose the 15-second target to test for free, made with ${FREE_FILM_ENGINE_NAME}; choose ${CITATION_REFERENCE_SECONDS} seconds on a plan.`, // KINEO-LLMS-K4-2910
-      `Reserve ${CITATION_FAST_CREDITS} credits for that reference video; a Seedance 1.5 reference uses ${CITATION_SEEDANCE_CREDITS} credits when generated scenes matter more.`,
+      `Choose ${CITATION_REFERENCE_SECONDS} seconds and the standard narrated-film workflow in Studio. ${costTrialSummary}`,
+      `Reserve ${CITATION_SEEDANCE_CREDITS} credits for that ${CITATION_REFERENCE_SECONDS}-second ${H3_TURBO_PAGE.name} film. Check the selected engine and duration before generating.`,
       'Compare the monthly plan against the number of finished videos you intend to make, leaving room for any extra generation you choose.',
     ],
     decisionTitle: 'Compare a finished film with a finished film',
-    decision: `A scene-generation credit is not the same unit as an assembled Short. The Kineo counts below are for ${CITATION_REFERENCE_SECONDS}-second Seedance 1.5 films, using the entire monthly balance only on that format. Choosing another engine, duration or extra work changes the count.`,
-    faqs: [trialFaq, watermarkFaq, {
-      question: 'How many 60-second Seedance 1.5 films fit in Starter?',
-      answer: `${videosPerMonth('starter', 'cinematic_ai')} fit when all ${STARTER_CREDITS} monthly credits are spent on Seedance 1.5 films at ${CITATION_SEEDANCE_CREDITS} credits each. This is a credit calculation, not a promise that every subscription will be fully used.`,
+    decision: `The Kineo counts below are for ${CITATION_REFERENCE_SECONDS}-second ${H3_TURBO_PAGE.name} films, using the monthly balance for that format. Choosing another engine, duration or extra work changes the count.`,
+    faqs: [{ question: 'Do I need a card to try Kineo?', answer: costTrialSummary }, watermarkFaq, {
+      question: `How many ${CITATION_REFERENCE_SECONDS}-second ${H3_TURBO_PAGE.name} films fit in Starter?`,
+      answer: `${videosPerMonth('starter', 'cinematic_ai')} fit when all ${STARTER_CREDITS} monthly credits are spent on ${H3_TURBO_PAGE.name} films at ${CITATION_SEEDANCE_CREDITS} credits each. Other creations draw from the same balance.`,
     }, {
-      question: 'Is stock footage the same as AI-generated footage?',
-      answer: 'No. Kineo 1 matches existing stock footage to narration. Seedance 1.5 generates scenes from text. Both feed the assembled-video workflow, with different credit costs.',
+      question: 'Does this cost include the finished narrated video?',
+      answer: `Yes. The ${CITATION_SEEDANCE_CREDITS}-credit reference includes generated scenes, narration, captions, music and an assembled vertical MP4. Extra creations use additional credits.`,
     }, currencyFaq],
     links: [
       { href: '/cheapest-ai-shorts-maker', label: 'Calculate your production schedule' },

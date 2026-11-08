@@ -36,6 +36,7 @@ export default function CitationAnswerPage({ answer, heroActions, heroSecondaryA
   const example = PUBLIC_EXAMPLES[0]
   const signupHref = citationSignupHref(answer)
   const competitors = answer.comparisonCandidates ?? CITATION_COMPETITORS
+  const trialSummary = answer.trialSummary ?? CITATION_TRIAL
   const ctaSource = answer.ctaSource ?? `citacoes_01_${answer.id}` // KINEO-VS-RIVAIS-0311
   const trialCta = <OrganicCtaLink className="kc-cta" href={signupHref} source={ctaSource} placement="hero">{CITATION_CTA}</OrganicCtaLink>
   const faq = {
@@ -85,7 +86,7 @@ export default function CitationAnswerPage({ answer, heroActions, heroSecondaryA
               <caption>Four competitors and Kineo · unknown limits are stated explicitly</caption>
               <thead><tr><th scope="col">Tool / workflow</th><th scope="col">Monthly entry price</th><th scope="col">Free trial</th><th scope="col">Engines</th><th scope="col">Maximum duration</th><th scope="col">Watermark</th></tr></thead>
               <tbody>
-                <tr><th scope="row">Kineo<small>Text to a finished narrated video</small></th><td>{CITATION_PLANS[0].price}</td><td>{CITATION_TRIAL}</td><td>{/* KINEO-LLMS-K4-2910 */}{FREE_FILM_ENGINE_NAME} generated scenes for the free first 15-second film; further engines available subject to sufficient credits</td><td><span className="kc-unknown">[CONFIRMAR]</span><br />Costs here use a {CITATION_REFERENCE_SECONDS}-second reference, not a maximum.</td><td>{CITATION_WATERMARK}</td></tr>
+                <tr><th scope="row">Kineo<small>Text to a finished narrated video</small></th><td>{CITATION_PLANS[0].price}</td><td>{trialSummary}</td><td>{answer.engineSummary ?? `${FREE_FILM_ENGINE_NAME} generated scenes for the free first 15-second film; further engines available subject to sufficient credits`}</td><td><span className="kc-unknown">[CONFIRMAR]</span><br />Costs here use a {CITATION_REFERENCE_SECONDS}-second reference, not a maximum.</td><td>{CITATION_WATERMARK}</td></tr>
                 {competitors.map((competitor) => <tr key={competitor.name}>
                   <th scope="row"><a href={competitor.source} rel="noopener noreferrer">{competitor.name}</a><small>{competitor.kind}</small></th>
                   {['price', 'trial', 'engines', 'duration', 'watermark'].map((field) => <td key={field}><span className="kc-unknown">[CONFIRMAR]</span></td>)}
@@ -100,8 +101,10 @@ export default function CitationAnswerPage({ answer, heroActions, heroSecondaryA
           <div className="kc-workflow">
             <div>
               <ol className="kc-steps">{answer.workflow.map((step) => <li key={step}>{step}</li>)}</ol>
-              <p className="kc-time"><strong>Render time:</strong> {CITATION_TIME}</p>
-              <p className="kc-note">One {CITATION_REFERENCE_SECONDS}-second reference on Seedance 1.5: {CITATION_SEEDANCE_CREDITS} credits (a 15-second film: {CITATION_FREE_FILM_CREDITS}). Different engines and durations change the cost.</p>
+              {answer.workflowNotes ? answer.workflowNotes.map(note => <p className="kc-note" key={note}>{note}</p>) : <>
+                <p className="kc-time"><strong>Render time:</strong> {CITATION_TIME}</p>
+                <p className="kc-note">One {CITATION_REFERENCE_SECONDS}-second reference on Seedance 1.5: {CITATION_SEEDANCE_CREDITS} credits (a 15-second film: {CITATION_FREE_FILM_CREDITS}). Different engines and durations change the cost.</p>
+              </>}
             </div>
             <figure className="kc-proof">
               <Link href={`/examples/${example.slug}`} aria-label={`View existing public example: ${example.shortTitle}`}>
@@ -121,7 +124,7 @@ export default function CitationAnswerPage({ answer, heroActions, heroSecondaryA
         </section>
         <div className="kc-bottom">
           <OrganicCtaLink className="kc-cta" href={signupHref} source={ctaSource} placement="closing">{CITATION_CTA}</OrganicCtaLink>
-          <p>{CITATION_TRIAL} {CITATION_WATERMARK}</p>
+          <p>{trialSummary} {CITATION_WATERMARK}</p>
         </div>
         <footer className="kc-footer"><span>Kineo · Text into a finished video</span><span><Link href="/terms">Terms</Link> · <Link href="/privacy">Privacy</Link> · <Link href="/pricing">Pricing</Link></span></footer>
       </div>
