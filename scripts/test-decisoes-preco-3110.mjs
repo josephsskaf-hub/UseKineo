@@ -178,7 +178,9 @@ async function problems(replacements = {}) {
     if (plan.annualSaving !== prices.formatCheckoutMoney('usd', esperado[tier])) p.push(`parede: "Save ${plan.annualSaving}/yr" no ${tier}, esperado ${prices.formatCheckoutMoney('usd', esperado[tier])}`)
     if (mrr.conversionPlan(tier, 'monthly', 'usd', 'standard').annualSaving !== null) p.push(`mensal do ${tier} mostra economia do anual`)
   }
-  if (!src(PRICING).includes('const annualSavingMinor = getTierPrice(tier, resolvedCurrency, resolvedRegion) * 12 - annualMinorFor(tier)') || !src(PRICING).includes('<>Save <b>{formatCheckoutMoney(resolvedCurrency, annualSavingMinor)}</b> a year compared to monthly</>')) p.push('/pricing: o cartão perdeu o "Save $X a year" da conta real')
+  // KINEO-PRECOS-ECONOMIA-0911 [fundador 09/11: "Sim para as 5" — decisão 1] — a mesma conta (12 × mensal − o anual que o cartão cobra), agora por mês E por ano;
+  // a conta mora em lib/annualSavingCopy.ts (guardião próprio: scripts/test-precos-economia-0911.mjs).
+  if (!src(PRICING).includes('const annualSaving = annualSavingMinor(getTierPrice(tier, resolvedCurrency, resolvedRegion), annualMinorFor(tier))') || !src(PRICING).includes('<b>{formatCheckoutMoney(resolvedCurrency, annualSaving.perYearMinor)}{savingWords.year}</b>') || !readFileSync(resolve(root, 'lib/annualSavingCopy.ts'), 'utf8').includes('const perYearMinor = monthlyMinor * 12 - annualMinor')) p.push('/pricing: o cartão perdeu o "Save $X a year" da conta real')
   if (!src(UPGRADE).includes("useState<ConversionBilling>('annual')") || !src(UPGRADE).includes('Save {plan.annualSaving}/yr')) p.push('parede: anual não pré-selecionado ou sem "Save $X/yr"')
   return p
 }

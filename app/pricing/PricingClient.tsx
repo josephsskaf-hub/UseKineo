@@ -143,6 +143,7 @@ import {
   type PricingTierHandoffTier,
 } from '@/lib/growth/pricingTierHandoff'
 import { annualOfferCoversTier } from '@/lib/billing/annualWelcomeOffer' // KINEO-CREDITOS-B-0511
+import { annualSavingMinor, annualSavingWords } from '@/lib/annualSavingCopy' // KINEO-PRECOS-ECONOMIA-0911
 import {
   checkoutSetupFailureStorageKey,
   checkoutSetupFailureTelemetry,
@@ -1230,7 +1231,11 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                       : signedIn === false && !guestCheckoutCoversPlanClick({ live: GUEST_CHECKOUT_LIVE, promoRequested: arrivedWithPromo, introDiscount: billing === 'monthly' && (p.tier === 'starter' || p.tier === 'basic') && hasIntroOffer(p.tier, resolvedCurrency, resolvedRegion) })
                         ? 'Sign up & continue'
                         : ctaLabel
-                    const annualSavingMinor = getTierPrice(tier, resolvedCurrency, resolvedRegion) * 12 - annualMinorFor(tier)
+                    // KINEO-PRECOS-ECONOMIA-0911 [fundador 09/11: "Sim para as 5" — decisão 1] — a economia em dinheiro, por mês e por ano:
+                    // 12 × getTierPrice − o anual que este cartão cobra (com a oferta de 3 h, o preço dela). Nada digitado.
+                    const annualSaving = annualSavingMinor(getTierPrice(tier, resolvedCurrency, resolvedRegion), annualMinorFor(tier))
+                    const brlSaving = annualSavingMinor(planSettlementAmountMinor(tier, 'monthly', 'brl', getTierPrice(tier, 'usd')), planSettlementAmountMinor(tier, 'annual', 'brl', annualMinorFor(tier), ofertaNoPlano(tier) ? 'welcome' : 'regular'))
+                    const savingWords = annualSavingWords(interfaceLanguage)
                     // KINEO-WELCOME20-NO-CARTAO-2026-10-09 — mensal do Creator/Studio: o 1º mês com 20%, o preço cheio riscado ao lado.
                     const welcome = (affiliateOnCard(tier) || welcomeOnCard(tier)) && displayCurrency ? welcomeFirstMonthMinor(tier as 'basic' | 'pro') : null
                     return (
@@ -1253,17 +1258,17 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                           ? welcome !== null
                             // KINEO-WELCOME20-NO-CARTAO-2026-10-09 — em reais, o cupom vale igual: 1º mês com 20%, depois o mensal da tabela.
                             ? `Charged in BRL: ${formatSettlementMoney('brl', Math.round((planSettlementAmountMinor(tier, 'monthly', 'brl', getTierPrice(tier, 'usd')) * (100 - (affiliateOnCard(tier) ? 50 : WELCOME20_PERCENT_OFF))) / 100))} first month, then ${formatSettlementMoney('brl', planSettlementAmountMinor(tier, 'monthly', 'brl', getTierPrice(tier, 'usd')))}/mo`
-                            : settlementNote(
+                            : `${settlementNote(
                             planSettlementAmountMinor(tier, billing === 'annual' ? 'annual' : 'monthly', 'brl', billing === 'annual' ? getAnnualPrice(tier, 'usd') : getTierPrice(tier, 'usd'), ofertaNoPlano(tier) ? 'welcome' : 'regular'),
                             'brl',
                             billing === 'annual' ? 'yr' : 'mo',
-                          )
+                          )}${annual && brlSaving.perYearMinor > 0 ? ` · ${savingWords.save} ${formatSettlementMoney('brl', Math.round(brlSaving.perMonthMinor))}${savingWords.month} · ${formatSettlementMoney('brl', brlSaving.perYearMinor)}${savingWords.year}` : ''}`
                           : undefined}
                         ctaLabel={buyLabel}
                         ctaDisabled={purchasing === p.tier}
                         onBuy={() => handleBuy(tier)}
-                        save={annual && displayCurrency && annualSavingMinor > 0
-                          ? <>Save <b>{formatCheckoutMoney(resolvedCurrency, annualSavingMinor)}</b> a year compared to monthly</>
+                        save={annual && displayCurrency && annualSaving.perYearMinor > 0
+                          ? <span data-testid={`annual-saving-${tier}`}>{savingWords.save} <b>{formatCheckoutMoney(resolvedCurrency, annualSaving.perMonthMinor)}{savingWords.month}</b> · <b>{formatCheckoutMoney(resolvedCurrency, annualSaving.perYearMinor)}{savingWords.year}</b> {savingWords.vs}</span>
                           : welcome !== null
                             ? affiliateOnCard(tier) && affiliateOffer
                               ? affiliateOfferCopy(interfaceLanguage, affiliateOffer.partnerName)
