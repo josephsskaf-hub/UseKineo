@@ -430,6 +430,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.8,
   }))
   return carimbaPaginasCitadas0511(filtrarSitemapPorLingua(trafego2310Sitemap(carimbaBingSeo1510([ // KINEO-5-LINGUAS-0311 (filtro por fora) · KINEO-BING-SEO-1510 — lastmod das páginas tocadas (ver carimbaBingSeo1510)
+    {
+      url: `${BASE}/ai-video-generator/for/story-videos`,
+      lastModified: new Date('2026-11-09T12:00:00.000Z'),
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    },
     // Reviewed film-cost pages. The existing canonical deduplication keeps the newer date.
     ...['/models-pricing', '/ai-video-generator/complete-60-second-shorts-cost'].map(path => ({
       url: `${BASE}${path}`,
