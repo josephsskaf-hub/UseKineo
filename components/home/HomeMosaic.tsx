@@ -11,6 +11,9 @@
 // KINEO-CARDS-SEM-ETIQUETA-0911 — fundador 09/11, sobre a etiqueta pequena do tipo em cima do título: "Só a etiqueta". O cartão fica só com o
 // título (mais "Recreate", "⚡ NEW" e as views reais onde existem): nenhuma etiqueta de tipo nem nome de motor aparece na tela. O tipo continua
 // no aria-label (leitor de tela) e no dado (selo, engine); nada mudou no link.
+// KINEO-ENQUADRAMENTO-0911 — fundador 09/11 ("a gente não pode errar isso"): toda mídia nova desta vitrine (clipe, filme, efeito, estilo, foto,
+// multicâmera) entra com o quadro conferido: node scripts/enquadra.mjs <id> → olhar a folha → focus aqui → linha em lib/vitrineEnquadramento.ts.
+// O guardião scripts/test-enquadramento-vitrine-0911.mjs fica vermelho sem a linha, com focus diferente ou com arquivo trocado.
 import Link from 'next/link'
 import type { CSSProperties } from 'react'
 import WallMedia from '@/components/WallMedia'
@@ -53,9 +56,18 @@ export const HOME_MOSAIC_EXTRA_IMAGES: readonly HomeGalleryImage[] = [
 
 // KINEO-ENQUADRA-2910 — fundador 29/10 ("tem outros que estão saindo do quadro, consegue verificar todos?"): cada vídeo da vitrine
 // conferido quadro a quadro na janela do cartão (~5:6). Só os que perdiam cabeça, chapéu, estrela ou espada ganham foco próprio.
-export const MOSAIC_CLIP_FOCUS: Record<string, string> = { 'pebble-castle': '50% 25%', 'knight-cat': '50% 15%', capybara: '50% 45%', 'wizard-cat': '50% 25%' }
-export const MOSAIC_FILM_FOCUS: Record<string, string> = { 'robot-action': '50% 35%', 'volcano-scene': '50% 35%' }
-export const MOSAIC_EFFECT_FOCUS: Record<string, string> = { witch: '50% 30%', pet_lion: '50% 25%', pet_xmas_tree: '50% 25%', pet_xmas_angel: '50% 30%', santa_cartoon: '50% 25%', snow_globe: '50% 35%' }
+// KINEO-ENQUADRAMENTO-0911 — fundador 09/11: "tem muitos que estão fora de quadro… a gente não pode errar isso… rever todos os vídeos".
+// A janela de 5:6 de 29/10 não era a pior: na home do computador (app/appearance.css, #samples) a fileira é (max(300, (alto−244)/2)−24)/3 e o
+// cartão fica DEITADO — 297×230 (1,29) numa tela 1920×1080 —, mostrando só 43% da altura do vídeo 9:16. Cada mídia foi revista quadro a
+// quadro nessa janela (scripts/enquadra.mjs) e o foco abaixo é o conferido; o registro (lib/vitrineEnquadramento.ts) guarda o mesmo valor, e
+// scripts/test-enquadramento-vitrine-0911.mjs fica vermelho se um dos dois mudar sem o outro, ou se entrar mídia sem conferência.
+export const MOSAIC_CLIP_FOCUS: Record<string, string> = { 'golden-ball': '50% 12%', lion: '50% 22%', 'cake-kitten': '50% 20%', 'pebble-castle': '50% 18%', 'knight-cat': '50% 15%', capybara: '50% 32%', 'wizard-cat': '50% 16%' }
+export const MOSAIC_FILM_FOCUS: Record<string, string> = { 'robot-action': '50% 12%', 'volcano-scene': '50% 48%', 'lighthouse-scene': '50% 14%' }
+export const MOSAIC_EFFECT_FOCUS: Record<string, string> = { witch: '50% 30%', pet_lion: '50% 14%', pet_xmas_tree: '50% 8%', pet_xmas_angel: '50% 18%', santa_cartoon: '50% 10%', snow_globe: '50% 8%', giant_product: '50% 28%', pet_bee: '50% 12%', kiss: '50% 22%', hug: '50% 22%', storm_behind: '50% 40%', wings: '50% 18%', restore_old_photo: '50% 22%', melt: '50% 33%', dollar_rain: '50% 25%', muscle_surge: '50% 22%', secret_cake: '50% 40%', color_burst: '50% 15%', cinematic_slowmo: '50% 28%', bring_to_life: '50% 38%', product_360: '50% 32%' }
+/** KINEO-ENQUADRAMENTO-0911 — estilos de anúncio do /made-with-kineo (antes, todos em 50% 45%). */
+export const MOSAIC_STYLE_FOCUS: Record<string, string> = { dreamlike_cloud: '50% 55%', lighting_ad: '50% 55%', boom_drop: '50% 38%', mechanical_assembly: '50% 40%', poster_ad: '50% 50%', package_explosion: '50% 60%', graffiti_ad: '50% 62%' }
+/** KINEO-ENQUADRAMENTO-0911 — fotos da vitrine (antes, todas no centro): o homem que pula a poça e o cachorro de suéter perdiam a cabeça. */
+export const MOSAIC_IMAGE_FOCUS: Record<string, string> = { 'puddle.webp': '50% 32%', 'raincoat.webp': '50% 44%', 'matcha.webp': '50% 35%', 'dog-sweater.webp': '50% 25%', 'roses.webp': '50% 30%', 'ad-04.webp': '50% 38%', 'perfume-snow.webp': '50% 37%', 'ad-09.webp': '50% 37%', 'ad-08.webp': '50% 41%', 'ad-01.webp': '50% 45%', 'lighthouse.webp': '50% 30%', 'perfume-splash.webp': '50% 28%' }
 const assetOf = (url: string) => url.split('/').pop()?.replace(/\.mp4$/, '') ?? ''
 
 type MosaicImage = HomeGalleryImage & { dir: string }
@@ -77,13 +89,13 @@ type Tile =
 // KINEO-CLIPES-NOS-2-LUGARES-0411 — efeitos que a data já passou saem da vitrine (lista em lib/clipesNos2Lugares.ts).
 // KINEO-HOME-DOIS-EIXOS-0611 — uma fileira de seis clipes no desktop; abaixo de 1100px,
 // os três clipes originais mantêm mídia e ordem. Alternar terra, água, rua, neve e ar.
-export const HOME_MOTION_TILES: readonly MotionTile[] = [
+export const HOME_MOTION_TILES: readonly MotionTile[] = [ // KINEO-ENQUADRAMENTO-0911 — águia 25%, arraia 35%, cavalo 32%: asa, ponta e orelhas saíam do quadro
   { kind: 'motion', title: 'Four cameras, one wave', video: '/previews/motion-surf-0611.mp4', poster: '/posters/motion-surf-0611.webp', focus: '50% 55%' },
-  { kind: 'motion', title: 'An eagle soars over the cliffs', video: '/previews/motion-eagle-0611.mp4', poster: '/posters/motion-eagle-0611.webp', focus: '50% 50%', desktopOnly: true },
+  { kind: 'motion', title: 'An eagle soars over the cliffs', video: '/previews/motion-eagle-0611.mp4', poster: '/posters/motion-eagle-0611.webp', focus: '50% 25%', desktopOnly: true },
   { kind: 'motion', title: 'Camera pulls back', video: '/previews/motion-rua-0611.mp4', poster: '/posters/motion-rua-0611.webp', focus: '50% 75%' },
-  { kind: 'motion', title: 'A manta ray glides underwater', video: '/previews/motion-manta-0611.mp4', poster: '/posters/motion-manta-0611.webp', focus: '50% 50%', desktopOnly: true },
+  { kind: 'motion', title: 'A manta ray glides underwater', video: '/previews/motion-manta-0611.mp4', poster: '/posters/motion-manta-0611.webp', focus: '50% 35%', desktopOnly: true },
   { kind: 'motion', title: 'One rider, one mountain', video: '/previews/motion-neve-0611.mp4', poster: '/posters/motion-neve-0611.webp', focus: '50% 50%' },
-  { kind: 'motion', title: 'A horse runs along the coast', video: '/previews/motion-horse-0611.mp4', poster: '/posters/motion-horse-0611.webp', focus: '50% 50%', desktopOnly: true },
+  { kind: 'motion', title: 'A horse runs along the coast', video: '/previews/motion-horse-0611.mp4', poster: '/posters/motion-horse-0611.webp', focus: '50% 32%', desktopOnly: true },
 ]
 
 const efeitosDaVitrine = () => publicEffectPages().filter((e) => !FORA_DE_ESTACAO.efeitos.includes(e.key))
@@ -314,7 +326,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
               const st = t.style
               return (
                 <Link key={'style-' + st.key} href={st.href} className="kmz-t" data-home-cta={`mosaic_style_${st.key}`} aria-label={`${st.title} — ad style`}>
-                  <div className="kmz-md" style={focusStyle(st.poster ?? undefined, '50% 45%')}><WallMedia src={st.video} /></div>
+                  <div className="kmz-md" style={focusStyle(st.poster ?? undefined, MOSAIC_STYLE_FOCUS[st.key] ?? '50% 45%')}><WallMedia src={st.video} /></div>
                   <Recreate />
                 <span className="kmz-shade" aria-hidden="true" />
                   <span className="kmz-copy"><b><UiLabel>{st.title}</UiLabel></b></span>
@@ -325,7 +337,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
             return (
               <Link key={img.file} href="/images" className={`kmz-t ${img.w > img.h ? 'kmz-wide' : HOME_GALLERY_BIG.has(img.file) ? 'kmz-big' : ''}`} data-home-cta="mosaic_image" aria-label={`${img.alt}. Open Kineo Images`}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={`${img.dir}${img.file}`} width={img.w} height={img.h} alt={img.alt} loading="lazy" decoding="async" />
+                <img src={`${img.dir}${img.file}`} width={img.w} height={img.h} alt={img.alt} loading="lazy" decoding="async" style={MOSAIC_IMAGE_FOCUS[img.file] ? { objectPosition: MOSAIC_IMAGE_FOCUS[img.file] } : undefined} />{/* KINEO-ENQUADRAMENTO-0911 */}
               </Link>
             )
           })}
