@@ -257,6 +257,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // no Claude (URL exigida pelo Connectors Directory). Página viva fora do
     // mapa mede zero (peça-sem-superfície).
     { path: '/claude-connector', priority: 0.7, freq: 'monthly' },
+    // KINEO-NO-CLAUDE-0911 — "Kineo dentro do Claude e do ChatGPT" (conector Kineo Studio, filme feito na conta da pessoa).
+    { path: '/kineo-in-claude', priority: 0.8, freq: 'weekly' },
     // KINEO-B2B-BULK-2026-08-27 — the checkout and four approved one-time
     // agency packs existed without a single public caller. This is the first
     // indexable door for freelancers, agencies and businesses buying batches.

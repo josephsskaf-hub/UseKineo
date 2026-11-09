@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { CLAUDE_ADD_CONNECTOR_URL, CLAUDE_STUDIO_CONNECT_ANCHOR, CLAUDE_STUDIO_MCP_SERVER_URL } from '@/lib/claudeConnect'
 import { studioLiveMode } from '@/lib/mcp/studioLaunch'
 import { CopyField } from './ConnectPanel'
+import { GENERATE_IN_CLAUDE_PATH } from '@/lib/generateInClaude' // KINEO-NO-CLAUDE-0911
 import { MCP_PALETTE as C } from './palette'
 
 const CARD: CSSProperties = { background: C.card, border: `1px solid ${C.line}`, borderRadius: 16, padding: '18px 20px' }
@@ -96,6 +97,9 @@ export default function StudioSection() {
       {steps(STEPS_EN)}
       <p style={sub}>In ChatGPT {mode === 'all' && <span style={live}>Live</span>}</p>
       {steps(STEPS_CHATGPT_EN)}
+      <p style={{ ...small, margin: '0 0 8px', maxWidth: 820 }}>{/* KINEO-NO-CLAUDE-0911 — a página do Kineo Studio no molde Higgsfield */}
+        <Link href={GENERATE_IN_CLAUDE_PATH} style={{ color: C.accent, textDecoration: 'none', fontWeight: 700 }}>What you can ask Kineo Studio for, step by step →</Link>
+      </p>
       <p style={{ ...small, margin: '4px 0 0', maxWidth: 820 }}>
         <a href={CLAUDE_ADD_CONNECTOR_URL} target="_blank" rel="noopener noreferrer" style={{ color: C.accent, textDecoration: 'none', fontWeight: 700 }}>Open Claude&apos;s “Add custom connector” dialog ↗</a>
         {' '}· Tools: kineo_account, kineo_create_video, kineo_video_status, kineo_list_videos. Each render is one film; a
