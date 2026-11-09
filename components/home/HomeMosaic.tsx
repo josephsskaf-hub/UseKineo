@@ -5,12 +5,14 @@
 // Regras de sempre: nada novo é inventado aqui — clipes, filmes, efeitos e imagens vêm das MESMAS listas curadas das faixas
 // antigas (lib/homeGaleria, lib/ui/homeFeaturedFilms, lib/clips/clipEffects, HomeImageGallery); selo honesto = o motor real;
 // sem preço no cartão; vídeo só toca na tela (WallMedia); cada cartão leva ao lugar que já levava.
+// KINEO-CARDS-SEM-MOTOR-0911 — fundador 09/11: "quero que você tire os nomes dos motores, porque eu não vejo em outros sites". Nenhum
+// cartão mostra nome de motor (nem no texto, nem no aria-label): só o tipo (Clip, Multi-camera, Narrated film, Effect, Ad style,
+// Trending format). O motor real segue gravado no dado (engine, badge) e no link (/clips?engine=…).
 import Link from 'next/link'
 import type { CSSProperties } from 'react'
 import WallMedia from '@/components/WallMedia'
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { HOME_NEW_CLIPS } from '@/components/home/HomeClipsStrip'
-import { CLIP_ENGINES } from '@/lib/clips/clipCatalog'
 import { faceRemixHref, hasFaceRemix } from '@/lib/clips/faceRemix'
 import { viaSignup } from '@/lib/homeGaleria'
 import { HOME_FEATURED_PLAYLISTS } from '@/lib/ui/homeFeaturedFilms'
@@ -240,11 +242,11 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
             if (t.kind === 'clip') {
               const c = t.clip
               const card = (
-                <Link key={c.id} href={viaSignup('/clips?' + new URLSearchParams({ engine: c.engine, prompt: c.prompt }).toString(), signedIn)} className="kmz-t kmz-big" data-home-cta="mosaic_clip" aria-label={`${c.title} — ${CLIP_ENGINES[c.engine].label}`}>
+                <Link key={c.id} href={viaSignup('/clips?' + new URLSearchParams({ engine: c.engine, prompt: c.prompt }).toString(), signedIn)} className="kmz-t kmz-big" data-home-cta="mosaic_clip" aria-label={`${c.title} — clip`}>
                   <div className="kmz-md" style={focusStyle(c.poster, MOSAIC_CLIP_FOCUS[c.id] ?? c.focus)}><WallMedia src={c.video} /></div>
                   <Recreate />
                 <span className="kmz-shade" aria-hidden="true" />
-                  <span className="kmz-copy"><i><UiLabel>Clip</UiLabel> · {CLIP_ENGINES[c.engine].label}</i><b><UiLabel>{c.title}</UiLabel></b><Views video={c.video} /></span>
+                  <span className="kmz-copy"><i><UiLabel>Clip</UiLabel></i><b><UiLabel>{c.title}</UiLabel></b><Views video={c.video} /></span>
                 </Link>
               )
               return hasFaceRemix(c.id) ? (
@@ -256,9 +258,9 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
             }
             if (t.kind === 'novo') { // KINEO-CLIPES-NOS-2-LUGARES-0411 — selo = o motor real; o pôster é <img loading="lazy">: os 15 não somam nada ao 1º carregamento, e o vídeo só nasce na tela (WallMedia)
               const c = t.clip
-              const motor = c.engine === null ? c.selo : CLIP_ENGINES[c.engine].label // KINEO-OUTFIT-MORPH-HOME-0911 — formato da moda: o selo é o formato, nunca um motor que não fez o clipe
+              const tipo = c.selo ?? 'Clip' // KINEO-CARDS-SEM-MOTOR-0911 — o cartão diz o TIPO (Clip / Trending format), nunca o motor; o motor real segue no dado e no link
               return (
-                <Link key={'novo-' + c.id} href={viaSignup(clipeNovoDestino(c), signedIn)} className={`kmz-t${t.grande ? ' kmz-big' : ''}`} data-home-cta="mosaic_clip" data-clip-novo={c.id} aria-label={`${c.title} — ${motor}`}>
+                <Link key={'novo-' + c.id} href={viaSignup(clipeNovoDestino(c), signedIn)} className={`kmz-t${t.grande ? ' kmz-big' : ''}`} data-home-cta="mosaic_clip" data-clip-novo={c.id} aria-label={`${c.title} — ${tipo}`}>
                   <div className="kmz-md" style={focusStyle(undefined, c.focus)}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={clipeNovoPoster(c)} width={540} height={960} alt="" loading="lazy" decoding="async" style={{ objectPosition: c.focus, transform: 'none' }} />
@@ -266,13 +268,13 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                   </div>
                   <Recreate />
                 <span className="kmz-shade" aria-hidden="true" />
-                  <span className="kmz-copy">{c.selo ? <i><UiLabel>{c.selo}</UiLabel></i> : <i><UiLabel>Clip</UiLabel> · {motor}</i>}<b><UiLabel>{c.title}</UiLabel></b><Views video={clipeNovoVideo(c)} /></span>{/* KINEO-OUTFIT-MORPH-HOME-0911 */}
+                  <span className="kmz-copy"><i><UiLabel>{tipo}</UiLabel></i><b><UiLabel>{c.title}</UiLabel></b><Views video={clipeNovoVideo(c)} /></span>{/* KINEO-OUTFIT-MORPH-HOME-0911 */}
                 </Link>
               )
             }
             if (t.kind === 'motion') return (
               <Link key={t.video} href={filmHref} className="kmz-t kmz-big" data-home-cta="mosaic_motion"
-                style={t.desktopOnly ? { display: 'none' } : undefined} aria-label={t.title + ' — Kling 3'}>
+                style={t.desktopOnly ? { display: 'none' } : undefined} aria-label={t.title + ' — multi-camera'}>
                 <div className="kmz-md" style={focusStyle(t.poster, t.focus)}>
                   {t.desktopVideo ? (
                     <>
@@ -283,7 +285,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                 </div>
                 <Recreate />
                 <span className="kmz-shade" aria-hidden="true" />
-                <span className="kmz-copy"><i>Multi-camera · Kling 3</i><b>{t.title}</b><Views video={t.video} /></span>
+                <span className="kmz-copy"><i>Multi-camera</i><b>{t.title}</b><Views video={t.video} /></span>
               </Link>
             )
             if (t.kind === 'film') return (
@@ -291,7 +293,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                 <div className="kmz-md" style={focusStyle(t.poster, t.focus)}><WallMedia src={t.video} /></div>
                 <Recreate />
                 <span className="kmz-shade" aria-hidden="true" />
-                <span className="kmz-copy"><i><UiLabel>Narrated film</UiLabel> · {t.badge}</i><b><UiLabel>{t.title}</UiLabel></b><Views video={t.video} /></span>
+                <span className="kmz-copy"><i><UiLabel>Narrated film</UiLabel></i><b><UiLabel>{t.title}</UiLabel></b><Views video={t.video} /></span>
               </Link>
             )
             if (t.kind === 'effect') {
@@ -313,7 +315,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                   <div className="kmz-md" style={focusStyle(st.poster ?? undefined, '50% 45%')}><WallMedia src={st.video} /></div>
                   <Recreate />
                 <span className="kmz-shade" aria-hidden="true" />
-                  <span className="kmz-copy"><i><UiLabel>Ad style</UiLabel>{st.engine ? ` · ${st.engine}` : ''}</i><b><UiLabel>{st.title}</UiLabel></b></span>
+                  <span className="kmz-copy"><i><UiLabel>Ad style</UiLabel></i><b><UiLabel>{st.title}</UiLabel></b></span>
                 </Link>
               )
             }

@@ -25,7 +25,9 @@ function problems(landing, mosaic) {
   if (!/export const HOME_MOSAIC_FILMS = 6/.test(mosaic)) p.push('filmes ≠ 6')
   if (!/export const HOME_MOSAIC_EFFECTS = (\d+)/.test(mosaic) || Number(mosaic.match(/export const HOME_MOSAIC_EFFECTS = (\d+)/)[1]) < 8) p.push('efeitos < 8')
   if (/credits|\bcr\b/.test(mosaic.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, ''))) p.push('preço no cartão')
-  if (!mosaic.includes('CLIP_ENGINES[c.engine].label') || !mosaic.includes('{t.badge}')) p.push('selo do motor ausente')
+  // KINEO-CARDS-SEM-MOTOR-0911 [fundador 09/11: "tire os nomes dos motores"] — o cartão não imprime motor; o motor segue no dado e no link
+  if (/CLIP_ENGINES\[[^\]]*\]\.label|\{t\.badge\}|\{st\.engine|Multi-camera · |— Kling/.test(mosaic)) p.push('nome de motor impresso no cartão')
+  if (!mosaic.includes('new URLSearchParams({ engine: c.engine, prompt: c.prompt })') || !mosaic.includes('viaSignup(clipeNovoDestino(c), signedIn)')) p.push('o link perdeu o motor real')
   return p
 }
 
@@ -46,6 +48,9 @@ mut('interruptor off', LANDING, MOSAIC.replace('HOME_MOSAIC_LIVE = true', 'HOME_
 mut('trending volta', LANDING.replace('{!HOME_MOSAIC_LIVE && trending.length >= 6', '{trending.length >= 6'), MOSAIC)
 mut('4 filmes', LANDING, MOSAIC.replace('HOME_MOSAIC_FILMS = 6', 'HOME_MOSAIC_FILMS = 4'))
 mut('4 efeitos', LANDING, MOSAIC.replace(/HOME_MOSAIC_EFFECTS = \d+/, 'HOME_MOSAIC_EFFECTS = 4'))
+mut('motor volta no selo do clipe', LANDING, MOSAIC.replace('<i><UiLabel>Clip</UiLabel></i>', '<i><UiLabel>Clip</UiLabel> · {CLIP_ENGINES[c.engine].label}</i>')) // KINEO-CARDS-SEM-MOTOR-0911
+mut('motor volta no filme', LANDING, MOSAIC.replace('<i><UiLabel>Narrated film</UiLabel></i>', '<i><UiLabel>Narrated film</UiLabel> · {t.badge}</i>')) // KINEO-CARDS-SEM-MOTOR-0911
+mut('link do clipe perde o motor', LANDING, MOSAIC.replace('new URLSearchParams({ engine: c.engine, prompt: c.prompt })', 'new URLSearchParams({ prompt: c.prompt })')) // KINEO-CARDS-SEM-MOTOR-0911
 mut('2 respostas diretas', LANDING + '\n<CitationDirectAnswer page="home" />', MOSAIC)
 
 console.log(`${pass} ok, ${fail} falha(s)`)

@@ -77,11 +77,16 @@ const VERDADE = {
   'outfit-morph': ['fal:0ab1d30e/bo9VslFC3Y8vO9Fk5QBwW+0ab1d315/oyRjMp3igUDfHE0rwpW9O', null, 'foto', 'Trending format'],
 }
 // KINEO-OUTFIT-MORPH-HOME-0911 — nomes de motor que um cartão de FORMATO nunca pode mostrar (nem em texto, nem no aria-label, nem no link).
-const NOMES_DE_MOTOR = /Kling|Seedance|MiniMax|\bH3\b|Veo|Omni|Hailuo|Wan\b|Sora|Runway|Pika|Kineo 1/i
+const NOMES_DE_MOTOR = /\b(Kling|Seedance|MiniMax|H3|Veo|Omni|Hailuo|Wan|Sora|Runway|Pika|Kineo 1)\b/i
+// KINEO-CARDS-SEM-MOTOR-0911 [fundador 09/11: "quero que você tire os nomes dos motores, porque eu não vejo em outros sites"] — nenhum cartão
+// da vitrine mostra motor (texto visível nem aria-label). A regra vira: o motor GRAVADO no dado é o real (VERDADE) e o link abre nele.
+const { CLIP_ENGINES } = require(path.join(ROOT, 'lib/clips/clipCatalog.ts'))
+const escapa = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+const motorNoTexto = new RegExp(`${NOMES_DE_MOTOR.source}|${Object.values(CLIP_ENGINES).map((m) => escapa(m.label)).join('|')}`, 'i')
 const INICIO = Date.parse('2026-11-05T12:00:00Z')
 const DIA = 86400000
 const NATAL = ['snow_globe', 'santa_cartoon', 'pet_xmas_tree', 'pet_xmas_angel']
-const estilos = (n) => Array.from({ length: n }, (_, i) => ({ key: `est-${i}`, title: `Estilo ${i}`, engine: null, video: `/e${i}.mp4`, poster: null, href: `/e${i}` }))
+const estilos = (n) => Array.from({ length: n }, (_, i) => ({ key: `est-${i}`, title: `Estilo ${i}`, engine: i % 2 ? 'Seedance 1.5' : null /* KINEO-CARDS-SEM-MOTOR-0911 — estilo com motor no dado: o cartão não pode imprimir */, video: `/e${i}.mp4`, poster: null, href: `/e${i}` }))
 // KINEO-HOME-DOIS-EIXOS-0611 — [fundador 06/11] a fileira dos vídeos de motion fica à parte (cheia, provada em test-home-dois-eixos-0611.mjs); estas regras valem para a grade que vem depois.
 function semFileiraMotion0611(f) { return (...a) => f(...a).filter((t) => t.kind !== 'motion') }
 const chave = (t) => t.kind === 'novo' ? 'novo:' + t.clip.id : t.kind === 'clip' ? 'clip:' + t.clip.id : t.kind === 'film' ? 'film:' + t.video : t.kind === 'motion' ? 'motion:' + t.video : t.kind === 'effect' ? 'effect:' + t.effect.key : t.kind === 'style' ? 'style:' + t.style.key : 'img:' + t.img.file
@@ -135,12 +140,13 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
       const ini = html.lastIndexOf('<a ', i)
       const fim = html.indexOf('</a>', i)
       const cartao = html.slice(ini, fim)
-      if (c.engine === null) { // KINEO-OUTFIT-MORPH-HOME-0911 — cartão de formato: o selo é o formato, e nenhum motor aparece em lugar nenhum do cartão
-        if (!cartao.includes(`>${VERDADE[c.id]?.[3] ?? '?'}</`)) e.push(`B ${lugar}: ${c.id} sem o selo do formato`)
-        if (/Clip<\/span> ·|Clip · /.test(cartao)) e.push(`B ${lugar}: ${c.id} (formato) mostra "Clip · motor"`)
-        const achado = NOMES_DE_MOTOR.exec(cartao)
-        if (achado) e.push(`B ${lugar}: ${c.id} (formato) mostra o motor "${achado[0]}"`)
-      } else if (!cartao.includes(`Clip</span> · ${VERDADE[c.id]?.[3] ?? '?'}`) && !cartao.includes(`Clip · ${VERDADE[c.id]?.[3] ?? '?'}`)) e.push(`B ${lugar}: ${c.id} sem o selo real`)
+      // KINEO-CARDS-SEM-MOTOR-0911 — o selo é só o TIPO: "Clip" (motor do /clips) ou o formato (KINEO-OUTFIT-MORPH-HOME-0911); motor nenhum no cartão
+      const tipo = c.engine === null ? VERDADE[c.id]?.[3] ?? '?' : 'Clip'
+      if (!cartao.includes(`>${tipo}</`)) e.push(`B ${lugar}: ${c.id} sem o selo "${tipo}"`)
+      if (/Clip<\/span> ·|Clip · /.test(cartao)) e.push(`B ${lugar}: ${c.id} mostra "Clip · motor"`)
+      const achado = motorNoTexto.exec(cartao.replace(/href="[^"]*"/g, ''))
+      if (achado) e.push(`B ${lugar}: ${c.id} mostra o motor "${achado[0]}"`)
+      if (c.engine !== null && CLIP_ENGINES[c.engine]?.label !== VERDADE[c.id]?.[3]) e.push(`B ${lugar}: ${c.id}: o motor gravado (${c.engine}) não é o da tabela`)
       if (/\bAd\b|Ads\b/.test(cartao.replace(/href="[^"]*"/, ''))) e.push(`B ${lugar}: ${c.id} fala em anúncio`)
       const bruto = (/href="([^"]+)"/.exec(cartao)?.[1] ?? '').replace(/&amp;/g, '&')
       const destino = bruto.startsWith('/signup?') ? new URLSearchParams(bruto.split('?').slice(1).join('?')).get('redirect') ?? '' : ''
@@ -151,6 +157,11 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
       if (!c.prompt && pedido.has('prompt')) e.push(`B ${lugar}: ${c.id} preenche texto que não tem`)
       if (!cartao.includes(`src="${lib.clipeNovoPoster(c)}"`)) e.push(`B ${lugar}: ${c.id} sem pôster`)
       if (!cartao.includes(`--kmz-focus:${c.focus}`)) e.push(`B ${lugar}: ${c.id} sem foco na janela`)
+    }
+    { // KINEO-CARDS-SEM-MOTOR-0911 — a vitrine INTEIRA (clipe, novo, multi-camera, filme, efeito, estilo, imagem): nenhum motor no texto nem no aria-label
+      const visivel = html.replace(/(href|src|style|data-home-cta|data-clip-novo)="[^"]*"/g, '')
+      const nome = motorNoTexto.exec(visivel)
+      if (nome) e.push(`B ${lugar}: a vitrine mostra o motor "${nome[0]}" (…${visivel.slice(Math.max(0, nome.index - 60), nome.index + 20)}…)`)
     }
     // (C) estação
     const proibido = /pumpkin|jack-o|werewolf|witch|zombie|catrina|day of the dead|skull/i
@@ -304,14 +315,22 @@ mutante('fechaOFim aceita arrumação que piora', { [LIB]: troca('if (c[0] < mel
 mutante('pessoa colada no fim, sem busca para trás', { [LIB]: troca('for (const alvo of trocou ? [] : [i, i - run + 1]) {', 'for (const alvo of []) {') })
 mutante('pôster baixa antes da hora', { [MOSAICO]: troca('alt="" loading="lazy" decoding="async" style={{ objectPosition', 'alt="" decoding="async" style={{ objectPosition') })
 mutante('vídeo direto no cartão', { [MOSAICO]: troca('<WallMedia src={clipeNovoVideo(c)} />', '<video src={clipeNovoVideo(c)} autoPlay muted loop playsInline />') }, { mosaico: rd(MOSAICO).replace('<WallMedia src={clipeNovoVideo(c)} />', '') })
-mutante('cartão chama de anúncio', { [MOSAICO]: troca('<i><UiLabel>Clip</UiLabel> · {motor}</i>', '<i><UiLabel>Ad</UiLabel> · {motor}</i>') })
+mutante('cartão chama de anúncio', { [MOSAICO]: troca("const tipo = c.selo ?? 'Clip'", "const tipo = c.selo ?? 'Ad'") }) // KINEO-CARDS-SEM-MOTOR-0911 — alvo novo: o selo agora é o tipo
 mutante('cartão leva às Ads', { [MOSAICO]: troca('href={viaSignup(clipeNovoDestino(c), signedIn)}', "href={viaSignup('/ads/new', signedIn)}") })
 // KINEO-OUTFIT-MORPH-HOME-0911 — o ramo do cartão de formato
-mutante('formato mostra motor', { [MOSAICO]: troca('{c.selo ? <i><UiLabel>{c.selo}</UiLabel></i>', '{c.selo ? <i><UiLabel>Clip</UiLabel> · Kling 4.0</i>') })
-mutante('formato perde o selo', { [MOSAICO]: troca('{c.selo ? <i><UiLabel>{c.selo}</UiLabel></i>', '{c.selo ? <i></i>') })
+mutante('formato mostra motor', { [MOSAICO]: troca('<i><UiLabel>{tipo}</UiLabel></i>', "<i><UiLabel>{tipo}</UiLabel>{c.selo ? ' · Kling 4.0' : ''}</i>") })
+mutante('formato perde o selo', { [MOSAICO]: troca("const tipo = c.selo ?? 'Clip'", "const tipo = 'Clip'") })
 mutante('formato leva ao /clips com motor', { [LIB]: troca("if (c.engine === null) return '/clips'", "if (c.engine === null) return '/clips?engine=hollywood'") })
 mutante('formato rotulado com motor errado', { [LIB]: troca("id: 'outfit-morph', title: 'Outfit morph', engine: null, selo: 'Trending format'", "id: 'outfit-morph', title: 'Outfit morph', engine: 'hollywood', selo: undefined") })
-mutante('formato no aria-label com motor', { [MOSAICO]: troca('aria-label={`${c.title} — ${motor}`}', 'aria-label={`${c.title} — ${motor} · Kling 4.0`}') })
+mutante('formato no aria-label com motor', { [MOSAICO]: troca('aria-label={`${c.title} — ${tipo}`}', 'aria-label={`${c.title} — ${tipo}${c.selo ? \' · Kling 4.0\' : \'\'}`}') })
+// KINEO-CARDS-SEM-MOTOR-0911 — o motor não volta por nenhum tipo de cartão, nem pelo aria-label; e o dado segue honesto
+mutante('motor volta no clipe novo', { [MOSAICO]: (s) => "import { CLIP_ENGINES as CE } from '@/lib/clips/clipCatalog'\n" + troca('<i><UiLabel>{tipo}</UiLabel></i>', "<i><UiLabel>{tipo}</UiLabel>{c.engine ? ' · ' + CE[c.engine].label : ''}</i>")(s) })
+mutante('motor no aria-label do clipe novo', { [MOSAICO]: (s) => "import { CLIP_ENGINES as CE } from '@/lib/clips/clipCatalog'\n" + troca('aria-label={`${c.title} — ${tipo}`}', 'aria-label={`${c.title} — ${c.engine ? CE[c.engine].label : tipo}`}')(s) })
+mutante('motor volta no clipe grande', { [MOSAICO]: (s) => "import { CLIP_ENGINES as CE } from '@/lib/clips/clipCatalog'\n" + troca('<i><UiLabel>Clip</UiLabel></i>', '<i><UiLabel>Clip</UiLabel> · {CE[c.engine].label}</i>')(s) })
+mutante('motor volta no multi-camera', { [MOSAICO]: troca('<i>Multi-camera</i>', '<i>Multi-camera · Kling 3</i>') })
+mutante('motor no aria-label do multi-camera', { [MOSAICO]: troca("aria-label={t.title + ' — multi-camera'}", "aria-label={t.title + ' — Kling 3'}") })
+mutante('motor volta no filme', { [MOSAICO]: troca('<i><UiLabel>Narrated film</UiLabel></i>', '<i><UiLabel>Narrated film</UiLabel> · {t.badge}</i>') })
+mutante('motor volta no estilo', { [MOSAICO]: troca('<i><UiLabel>Ad style</UiLabel></i>', "<i><UiLabel>Ad style</UiLabel>{st.engine ? ` · ${st.engine}` : ''}</i>") })
 mutante('arquivo faltando',{}, {}, (rel) => !rel.includes('pet-barista.mp4') && fs.existsSync(path.join(ROOT, rel)))
 mutante('pôster faltando', {}, {}, (rel) => !rel.endsWith('produto-tenis-rua.webp') && fs.existsSync(path.join(ROOT, rel)))
 mutante('"newest first" de volta', {}, { pagina: rd(PAGINA) + '\nClips, newest first.' })
