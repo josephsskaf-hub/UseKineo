@@ -13,7 +13,6 @@ import { CLAUDE_ADD_CONNECTOR_URL, CLAUDE_CONNECT_EVENTS, CLAUDE_NEW_CHAT_URL, i
 import { CHATGPT_NEW_CHAT_URL, vemDoChatgpt } from '@/lib/seo/paginasIaClaras2110'
 import {
   ASK_LANGUAGE_NAMES,
-  CURRENT_CLAUDE_MODEL,
   GENERATE_IN_CLAUDE_STEPS_ANCHOR,
   GENERATE_IN_CLAUDE_TABS,
   STUDIO_ONLY_FORMATS_LINE,
@@ -393,7 +392,7 @@ function faq(name: string, scriptsOnlyHref: string, durations: readonly number[]
     ['How much does it cost?', 'The same credits as making the film in Kineo Studio. Kineo asks the assistant to confirm the cost with you before it starts, nothing is charged if your balance does not cover it, and a failed film gives its credits back.'],
     ['Where do my films go?', `To your Kineo library, like any film you make on the website. ${name} gives you the link when the film is ready, and can list your recent films.`],
     ['Is Kineo part of Claude or ChatGPT?', `No. Kineo is an independent product. Kineo Studio is a custom connector you add yourself, by URL, in ${name}.`],
-    ['Which Claude model does it work with?', `You talk to Claude as usual — today that is ${CURRENT_CLAUDE_MODEL} — and Claude calls the Kineo Studio tools when you ask for a film.`],
+    ['Which Claude model does it work with?', 'Any Claude model. You talk to Claude as usual, and Claude calls the Kineo Studio tools when you ask for a film.'],
     ['I only want help writing the script, without an account.', <>Use the scripts-only Kineo connector: it writes the script and hands it to Kineo Studio as a link, and never renders or charges. <Link href={scriptsOnlyHref} style={{ color: C.accent, textDecoration: 'none', fontWeight: 700 }}>See how it works →</Link></>],
   ]
 }

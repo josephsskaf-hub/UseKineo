@@ -181,4 +181,3 @@ export const STUDIO_ONLY_FORMATS_LINE =
 export const ASK_LANGUAGE_NAMES: Readonly<Record<string, string>> = { es: 'Spanish', pt: 'Portuguese', fr: 'French', de: 'German' }
 
 /** O modelo com que a pessoa conversa no Claude hoje (o fundador autorizou nomear; nada de parceria). */
-export const CURRENT_CLAUDE_MODEL = 'Fable 5.2'
