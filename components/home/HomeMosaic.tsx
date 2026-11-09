@@ -20,7 +20,7 @@ import { HOME_GALLERY_BIG, HOME_GALLERY_DIR, HOME_GALLERY_IMAGES, type HomeGalle
 import { clipsFirstFilmHref } from '@/lib/growth/homeClipsFirst'
 import { cardStatFor, compactCount } from '@/lib/home/cardSocialStats' // KINEO-CARDS-VIEWS-0911
 import { seasonalEffectKeys } from '@/lib/clips/clipSeason' // KINEO-VITRINE-ESTACAO-3110
-import { FORA_DE_ESTACAO, afastaVizinhos, semLargoNoFim, clipeNovoDestino, clipeNovoPoster, clipeNovoVideo, clipesNovosDoDia, diaDaVitrine, embaralhaDoDia, intercala, type ClipeNovo } from '@/lib/clipesNos2Lugares' // KINEO-CLIPES-NOS-2-LUGARES-0411
+import { FORA_DE_ESTACAO, afastaVizinhos, fechaOFim, semLargoNoFim, clipeNovoDestino, clipeNovoPoster, clipeNovoVideo, clipesNovosDoDia, diaDaVitrine, embaralhaDoDia, intercala, type ClipeNovo } from '@/lib/clipesNos2Lugares' // KINEO-CLIPES-NOS-2-LUGARES-0411
 
 /** Interruptor da vitrine contínua (false = a home volta às faixas separadas de antes, intactas no KineoLanding). */
 export const HOME_MOSAIC_LIVE = true
@@ -140,7 +140,25 @@ export function homeMosaicTiles(now: number = Date.now(), opts: { full?: boolean
   const ePequeno = (t: Tile) => t.kind === 'effect' || t.kind === 'style' || (t.kind === 'novo' && !t.grande) // KINEO-CLIPES-NOS-2-LUGARES-0411
   const mesmoTamanho = (a: Tile, b: Tile) => (eGrande(a) && eGrande(b)) || (ePequeno(a) && ePequeno(b)) // KINEO-CLIPES-NOS-2-LUGARES-0411
   const semBloco = afastaVizinhos(out, (t) => t.kind === 'novo', mesmoTamanho, 2) // KINEO-CLIPES-NOS-2-LUGARES-0411 — misturado, nunca 3 clipes novos em bloco
-  const ordem = afastaVizinhos(semBloco, (t) => t.kind === 'novo' && t.clip.pessoa, (a, b) => mesmoTamanho(a, b) && b.kind !== 'novo') // KINEO-CLIPES-NOS-2-LUGARES-0411 — a mesma pessoa nunca colada nela mesma
+  const ordem0 = afastaVizinhos(semBloco, (t) => t.kind === 'novo' && t.clip.pessoa, (a, b) => mesmoTamanho(a, b) && b.kind !== 'novo') // KINEO-CLIPES-NOS-2-LUGARES-0411 — a mesma pessoa nunca colada nela mesma
+  // KINEO-OUTFIT-MORPH-HOME-0911 — com 16 clipes o último cartão grande às vezes sobrava sozinho e deixava um degrau vazio no fim da grade:
+  // adianta um dos 2 últimos grandes só se fechar o degrau no computador (6 colunas) sem piorar tablet (4) nem celular (2), e sem colar pessoa
+  // nem juntar 3 clipes novos. Os tamanhos são os do CSS abaixo (.kmz-big 2×4 / 1×3 no celular, .kmz-wide 2×2, cartão 1×2).
+  const largo = (t: Tile) => t.kind === 'image' && t.img.w > t.img.h
+  const alto = (t: Tile) => eGrande(t) || (t.kind === 'image' && HOME_GALLERY_BIG.has(t.img.file))
+  const tamanhoDesk = (t: Tile): readonly [number, number] => (alto(t) ? [2, 4] : largo(t) ? [2, 2] : [1, 2])
+  const tamanhoCel = (t: Tile): readonly [number, number] => (alto(t) ? [1, 3] : largo(t) ? [2, 2] : [1, 2])
+  const semColar = (fila: readonly Tile[]) => {
+    let novos = 0; let pessoa = -9
+    for (let i = 0; i < fila.length; i++) {
+      const t = fila[i]
+      novos = t.kind === 'novo' ? novos + 1 : 0
+      if (novos > 2) return false
+      if (t.kind === 'novo' && t.clip.pessoa) { if (i - pessoa < 2) return false; pessoa = i }
+    }
+    return true
+  }
+  const ordem = fechaOFim(ordem0, alto, [{ colunas: 6, tamanho: tamanhoDesk }, { colunas: 4, tamanho: tamanhoDesk }, { colunas: 2, tamanho: tamanhoCel }], semColar) // KINEO-OUTFIT-MORPH-HOME-0911
   if (opts.full) return ordem // KINEO-HOME-DOIS-EIXOS-0611
   return [...HOME_MOTION_TILES, ...ordem] // KINEO-HOME-DOIS-EIXOS-0611 — fileira própria e cheia, sem tirar nada da grade
 }
@@ -238,7 +256,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
             }
             if (t.kind === 'novo') { // KINEO-CLIPES-NOS-2-LUGARES-0411 — selo = o motor real; o pôster é <img loading="lazy">: os 15 não somam nada ao 1º carregamento, e o vídeo só nasce na tela (WallMedia)
               const c = t.clip
-              const motor = CLIP_ENGINES[c.engine].label
+              const motor = c.engine === null ? c.selo : CLIP_ENGINES[c.engine].label // KINEO-OUTFIT-MORPH-HOME-0911 — formato da moda: o selo é o formato, nunca um motor que não fez o clipe
               return (
                 <Link key={'novo-' + c.id} href={viaSignup(clipeNovoDestino(c), signedIn)} className={`kmz-t${t.grande ? ' kmz-big' : ''}`} data-home-cta="mosaic_clip" data-clip-novo={c.id} aria-label={`${c.title} — ${motor}`}>
                   <div className="kmz-md" style={focusStyle(undefined, c.focus)}>
@@ -248,7 +266,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                   </div>
                   <Recreate />
                 <span className="kmz-shade" aria-hidden="true" />
-                  <span className="kmz-copy"><i><UiLabel>Clip</UiLabel> · {motor}</i><b><UiLabel>{c.title}</UiLabel></b><Views video={clipeNovoVideo(c)} /></span>
+                  <span className="kmz-copy">{c.selo ? <i><UiLabel>{c.selo}</UiLabel></i> : <i><UiLabel>Clip</UiLabel> · {motor}</i>}<b><UiLabel>{c.title}</UiLabel></b><Views video={clipeNovoVideo(c)} /></span>{/* KINEO-OUTFIT-MORPH-HOME-0911 */}
                 </Link>
               )
             }

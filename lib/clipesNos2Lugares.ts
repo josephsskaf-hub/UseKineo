@@ -9,11 +9,9 @@
 // linha da tabela `clips`, nunca "anúncio feito pela ferramenta de Ads" (estes saíram do /clips e do /images).
 export const CLIPES_NOS_2_LUGARES_MARK = 'KINEO-CLIPES-NOS-2-LUGARES-0411'
 
-export interface ClipeNovo {
+interface ClipeNovoBase {
   id: string
   title: string
-  /** Chave de CLIP_ENGINES: o motor que de fato fez o clipe (o selo do cartão sai daqui). */
-  engine: 'seedance' | 'hollywood' | 'h3'
   /** Linha da tabela `clips` de onde o clipe saiu. */
   clipId: string
   /** Que faixa do vídeo 9:16 a janela do cartão mostra (object-position), medida quadro a quadro. */
@@ -24,6 +22,23 @@ export interface ClipeNovo {
    *  movimento ("Keep the same woman…") e sem a foto mentiria; o cartão abre o /clips no motor e a pessoa manda a foto dela. */
   prompt: string | null
 }
+
+// KINEO-OUTFIT-MORPH-HOME-0911 — fundador 09/11: um clipe pode entrar como FORMATO da moda, sem nome de motor no cartão (ele quer menos
+// nome de motor nesse tipo de cartão). Honestidade: engine null + selo 'Trending format' quando quem fez o clipe não é um motor do /clips
+// (CLIP_ENGINES). O cartão então não mostra motor nenhum (nunca um errado) e leva ao /clips puro, sem motor e sem texto.
+export type ClipeNovo = ClipeNovoBase & (
+  | {
+      /** Chave de CLIP_ENGINES: o motor que de fato fez o clipe (o selo do cartão sai daqui). */
+      engine: 'seedance' | 'hollywood' | 'h3'
+      selo?: undefined
+    }
+  | {
+      /** Feito fora dos motores do /clips: nenhum motor no selo nem no destino. A verdade fica no comentário da entrada. */
+      engine: null
+      /** O que o cartão mostra no lugar de "Clip · <motor>". */
+      selo: 'Trending format'
+    }
+)
 
 export const CLIPES_NOVOS: readonly ClipeNovo[] = [
   // KINEO-CLIPES-E-CARDS-0511 [fundador 05/11: "5 clips aprovados, viram vitrine"; "outros modelos de ugc"] — feitos no H3 Max Turbo pela rota interna /api/admin/engine-test; clipId = fal:<pedido>, sem linha na tabela `clips`.
@@ -42,6 +57,11 @@ export const CLIPES_NOVOS: readonly ClipeNovo[] = [
   { id: 'spinning-headphones', title: 'Spinning headphones', engine: 'seedance', clipId: '6e6b1249-69c9-4036-b2b3-36e5c157dda1', focus: '50% 43%', pessoa: false, prompt: 'Vertical commercial tech product shot, one continuous shot. Matte black over-ear wireless headphones, completely plain with no logos and no markings, spin slowly in mid-air in the centre of the frame against a deep electric blue background. They rotate a full turn, soft neon cyan and magenta light slides across the curves, the ear cups open outward and fold back, tiny glowing dust particles drift past, the camera pushes in slowly. Crisp studio light, sleek high-end tech commercial. The headphones keep the same shape throughout. No text, no letters, no logos, no hands, no people.' },
   { id: 'perfume-splash', title: 'Perfume splash', engine: 'hollywood', clipId: 'c9d321e0-0fe4-44b7-871b-2407a55bec91', focus: '50% 55%', pessoa: false, prompt: 'Vertical luxury perfume commercial, one continuous shot, no cuts. Super slow motion: one square glass perfume bottle with a gold cap and amber liquid, completely blank with no label, plunges into deep turquoise water from above, a huge crown of water erupts around it, thousands of silver bubbles rush upward, the bottle rotates slowly in the centre of the frame and catches golden light, the camera pushes in. The bottle keeps exactly the same shape and stays sharp. Rich saturated colours, high-end fragrance film. No text, no letters, no logos, no hands, no people.' },
   { id: 'iced-coffee-pour', title: 'Iced coffee pour', engine: 'seedance', clipId: 'a3576c28-47ba-4c19-a141-b5e8e196c9dd', focus: '50% 35%', pessoa: false, prompt: 'Vertical commercial coffee shot, one continuous shot. Super slow motion: dark espresso pours in a thick glossy stream from above into a tall clear glass of cold milk and ice cubes on a warm caramel background. The coffee plunges down and blooms through the white milk in swirling clouds, ice cubes turn, a few drops splash above the rim, the camera pushes in slowly. Crisp studio light, rich warm colours, high-end drink commercial. The glass is plain with no label and keeps the same shape. No text, no letters, no logos, no hands, no people.' },
+  // KINEO-OUTFIT-MORPH-HOME-0911 [fundador 09/11: "tá aprovado, pode colocar na tela inicial também esse daí, outfit v6"] — formato "Outfit Morph"
+  // (câmera de cima, ela rola do sofá para o tapete e a roupa troca no clique do controle e nas pás do ventilador). Verdade: feito com Kling 4.0
+  // (kling/v4/image-to-video na fal), dois pedidos unidos no ffmpeg em 09/11/2026, saídas 0ab1d30e/bo9VslFC3Y8vO9Fk5QBwW e
+  // 0ab1d315/oyRjMp3igUDfHE0rwpW9O. Kling 4.0 não é motor do /clips e não há linha na tabela `clips`: o cartão não mostra motor nenhum.
+  { id: 'outfit-morph', title: 'Outfit morph', engine: null, selo: 'Trending format', clipId: 'fal:0ab1d30e/bo9VslFC3Y8vO9Fk5QBwW+0ab1d315/oyRjMp3igUDfHE0rwpW9O', focus: '50% 40%', pessoa: true, prompt: null }, // KINEO-OUTFIT-MORPH-HOME-0911
 ]
 
 export const clipeNovoVideo = (c: Pick<ClipeNovo, 'id'>): string => `/previews/galeria/${c.id}.mp4`
@@ -49,6 +69,7 @@ export const clipeNovoPoster = (c: Pick<ClipeNovo, 'id'>): string => `/posters/g
 
 /** Para onde o cartão leva (o chamador passa por viaSignup, como todo clipe da vitrine). Nada é gerado sem o clique em Gerar. */
 export function clipeNovoDestino(c: Pick<ClipeNovo, 'engine' | 'prompt'>): string {
+  if (c.engine === null) return '/clips' // KINEO-OUTFIT-MORPH-HOME-0911 — formato sem motor do /clips: nem motor, nem texto
   const q = new URLSearchParams({ engine: c.engine })
   if (c.prompt) q.set('prompt', c.prompt)
   return '/clips?' + q.toString()
@@ -122,8 +143,72 @@ export function afastaVizinhos<T>(itens: readonly T[], colado: (t: T) => boolean
       }
       if (trocou) break
     }
+    // KINEO-OUTFIT-MORPH-HOME-0911 — sem candidato à frente (fim da fila, poucos efeitos depois do Natal), procura para trás, do mais perto ao
+    // mais longe. Só roda quando a busca de sempre falhou: onde ela achava par, a ordem é a mesma de antes.
+    for (const alvo of trocou ? [] : [i, i - run + 1]) {
+      for (let j = i - run; j >= 0 && !trocou; j--) {
+        if (colado(out[j]) || !podeTrocar(out[alvo], out[j]) || seguidos(j, -1) + seguidos(j, 1) + 1 > maximo) continue
+        const guarda = out[alvo]; out[alvo] = out[j]; out[j] = guarda
+        trocou = true
+      }
+      if (trocou) break
+    }
   }
   return out
+}
+
+/** Quantas células a grade deixa vazias: simula o `grid-auto-flow: row dense` do CSS (cada item na 1ª vaga livre, de cima para baixo). */
+export function celulasVazias<T>(itens: readonly T[], tamanho: (t: T) => readonly [number, number], colunas: number): number { // KINEO-OUTFIT-MORPH-HOME-0911
+  const g: boolean[][] = []
+  const livre = (r: number, c: number, w: number, h: number) => {
+    if (c + w > colunas) return false
+    for (let y = r; y < r + h; y++) for (let x = c; x < c + w; x++) if (g[y]?.[x]) return false
+    return true
+  }
+  let topo = 0 // 1ª fileira que ainda tem vaga: acima dela nada cabe mais
+  for (const t of itens) {
+    const [w0, h] = tamanho(t)
+    const w = Math.min(w0, colunas)
+    const cheia = (r: number) => { for (let x = 0; x < colunas; x++) if (!g[r]?.[x]) return false; return true }
+    while (cheia(topo)) topo++
+    let feito = false
+    for (let r = topo; !feito; r++) for (let c = 0; c < colunas && !feito; c++) if (livre(r, c, w, h)) {
+      for (let y = r; y < r + h; y++) { g[y] = g[y] || []; for (let x = c; x < c + w; x++) g[y][x] = true }
+      feito = true
+    }
+  }
+  let n = 0
+  for (let y = 0; y < g.length; y++) for (let x = 0; x < colunas; x++) if (!g[y]?.[x]) n++
+  return n
+}
+
+/** Fecha o fim da grade: um cartão alto que sobra sozinho no fim deixa um degrau vazio embaixo. Tenta adiantar um dos 2 últimos cartões
+ *  `alto` em 1 a 12 posições e fica com a 1ª arrumação que deixa MENOS células vazias na 1ª grade sem piorar nenhuma outra e que `aceita`.
+ *  Sem ganho, devolve a fila como veio. Determinístico: mesma fila = mesma resposta. */
+export function fechaOFim<T>( // KINEO-OUTFIT-MORPH-HOME-0911
+  itens: readonly T[],
+  alto: (t: T) => boolean,
+  grades: readonly { colunas: number; tamanho: (t: T) => readonly [number, number] }[],
+  aceita: (fila: readonly T[]) => boolean = () => true,
+): T[] {
+  const custo = (fila: readonly T[]) => grades.map((g) => celulasVazias(fila, g.tamanho, g.colunas))
+  const base = custo(itens)
+  if (!grades.length) return [...itens]
+  const area = itens.reduce((s, t) => { const [w, h] = grades[0].tamanho(t); return s + Math.min(w, grades[0].colunas) * h }, 0)
+  if (base[0] <= (grades[0].colunas - (area % grades[0].colunas)) % grades[0].colunas) return [...itens] // já no mínimo possível: nada a fechar
+  let melhor: readonly T[] = itens
+  let melhorCusto = base
+  const altos = itens.map((t, i) => (alto(t) ? i : -1)).filter((i) => i >= 0).slice(-2).reverse()
+  for (const de of altos) {
+    for (let k = 1; k <= 12 && de - k >= 0; k++) {
+      const fila = [...itens]
+      const [movido] = fila.splice(de, 1)
+      fila.splice(de - k, 0, movido)
+      const c = custo(fila)
+      if (c[0] < melhorCusto[0] && c.every((v, n) => v <= base[n]) && aceita(fila)) { melhor = fila; melhorCusto = c }
+    }
+  }
+  return [...melhor]
 }
 
 /** Tira do fim da fila os itens `largo` (voltam a `cauda` posições antes do fim): cartão largo no fim da grade deixa buraco, porque não sobra

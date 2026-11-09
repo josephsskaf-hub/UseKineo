@@ -72,7 +72,12 @@ const VERDADE = {
   'spinning-headphones': ['6e6b1249-69c9-4036-b2b3-36e5c157dda1', 'seedance', 'texto', 'Seedance 1.5'],
   'perfume-splash': ['c9d321e0-0fe4-44b7-871b-2407a55bec91', 'hollywood', 'texto', 'Kling 3'],
   'iced-coffee-pour': ['a3576c28-47ba-4c19-a141-b5e8e196c9dd', 'seedance', 'texto', 'Seedance 1.5'],
+  // KINEO-OUTFIT-MORPH-HOME-0911 [fundador 09/11] — feito com Kling 4.0 (kling/v4/image-to-video na fal, 2 pedidos unidos), que NÃO é motor
+  // do /clips e não tem linha em `clips`: motor null, selo = o formato ("Trending format"), destino = /clips puro. clipId = as 2 saídas da fal.
+  'outfit-morph': ['fal:0ab1d30e/bo9VslFC3Y8vO9Fk5QBwW+0ab1d315/oyRjMp3igUDfHE0rwpW9O', null, 'foto', 'Trending format'],
 }
+// KINEO-OUTFIT-MORPH-HOME-0911 — nomes de motor que um cartão de FORMATO nunca pode mostrar (nem em texto, nem no aria-label, nem no link).
+const NOMES_DE_MOTOR = /Kling|Seedance|MiniMax|\bH3\b|Veo|Omni|Hailuo|Wan\b|Sora|Runway|Pika|Kineo 1/i
 const INICIO = Date.parse('2026-11-05T12:00:00Z')
 const DIA = 86400000
 const NATAL = ['snow_globe', 'santa_cartoon', 'pet_xmas_tree', 'pet_xmas_angel']
@@ -98,6 +103,7 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
     if (!c) { e.push(`A ${id} fora da lista`); continue }
     if (c.clipId !== clipId) e.push(`A ${id}: clipId ≠ tabela`)
     if (c.engine !== motor) e.push(`A ${id}: motor ${c.engine}, a tabela diz ${motor}`)
+    if ((c.engine === null) !== (c.selo === 'Trending format') || (c.engine !== null && c.selo !== undefined)) e.push(`A ${id}: selo de formato só existe (e é obrigatório) quando não há motor do /clips`) // KINEO-OUTFIT-MORPH-HOME-0911
     if (modo === 'foto' && c.prompt !== null) e.push(`A ${id}: clipe de foto preenchendo texto de movimento`)
     if (modo === 'texto' && !(typeof c.prompt === 'string' && c.prompt.length > 80 && c.prompt.length <= 1000)) e.push(`A ${id}: clipe de texto sem o texto (ou além do teto do campo)`)
     if (/keep the same (woman|face)/i.test(c.prompt ?? '')) e.push(`A ${id}: texto que depende de foto`)
@@ -129,12 +135,18 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
       const ini = html.lastIndexOf('<a ', i)
       const fim = html.indexOf('</a>', i)
       const cartao = html.slice(ini, fim)
-      if (!cartao.includes(`Clip</span> · ${VERDADE[c.id]?.[3] ?? '?'}`) && !cartao.includes(`Clip · ${VERDADE[c.id]?.[3] ?? '?'}`)) e.push(`B ${lugar}: ${c.id} sem o selo real`)
+      if (c.engine === null) { // KINEO-OUTFIT-MORPH-HOME-0911 — cartão de formato: o selo é o formato, e nenhum motor aparece em lugar nenhum do cartão
+        if (!cartao.includes(`>${VERDADE[c.id]?.[3] ?? '?'}</`)) e.push(`B ${lugar}: ${c.id} sem o selo do formato`)
+        if (/Clip<\/span> ·|Clip · /.test(cartao)) e.push(`B ${lugar}: ${c.id} (formato) mostra "Clip · motor"`)
+        const achado = NOMES_DE_MOTOR.exec(cartao)
+        if (achado) e.push(`B ${lugar}: ${c.id} (formato) mostra o motor "${achado[0]}"`)
+      } else if (!cartao.includes(`Clip</span> · ${VERDADE[c.id]?.[3] ?? '?'}`) && !cartao.includes(`Clip · ${VERDADE[c.id]?.[3] ?? '?'}`)) e.push(`B ${lugar}: ${c.id} sem o selo real`)
       if (/\bAd\b|Ads\b/.test(cartao.replace(/href="[^"]*"/, ''))) e.push(`B ${lugar}: ${c.id} fala em anúncio`)
       const bruto = (/href="([^"]+)"/.exec(cartao)?.[1] ?? '').replace(/&amp;/g, '&')
       const destino = bruto.startsWith('/signup?') ? new URLSearchParams(bruto.split('?').slice(1).join('?')).get('redirect') ?? '' : ''
       const pedido = new URLSearchParams(destino.split('?').slice(1).join('?'))
-      if (!destino.startsWith('/clips?') || pedido.get('engine') !== c.engine) e.push(`B ${lugar}: ${c.id} não leva ao /clips no motor: ${bruto.slice(0, 80)}`)
+      if (c.engine === null) { if (destino !== '/clips') e.push(`B ${lugar}: ${c.id} (formato) não leva ao /clips puro, sem motor e sem texto: ${bruto.slice(0, 80)}`) } // KINEO-OUTFIT-MORPH-HOME-0911 — exceção testada à regra de baixo
+      else if (!destino.startsWith('/clips?') || pedido.get('engine') !== c.engine) e.push(`B ${lugar}: ${c.id} não leva ao /clips no motor: ${bruto.slice(0, 80)}`)
       if (c.prompt && pedido.get('prompt') !== c.prompt) e.push(`B ${lugar}: ${c.id} sem o texto no /clips`)
       if (!c.prompt && pedido.has('prompt')) e.push(`B ${lugar}: ${c.id} preenche texto que não tem`)
       if (!cartao.includes(`src="${lib.clipeNovoPoster(c)}"`)) e.push(`B ${lugar}: ${c.id} sem pôster`)
@@ -283,12 +295,24 @@ mutante('a moça colada nela mesma', { [MOSAICO]: troca("return afastaVizinhos(s
 mutante('3 clipes novos seguidos', { [MOSAICO]: troca("const semBloco = afastaVizinhos(out, (t) => t.kind === 'novo', mesmoTamanho, 2)", 'const semBloco = out') })
 mutante('imagem grande sai da 1ª fileira', { [MOSAICO]: troca('...imagensDaVitrine.filter((i) => HOME_GALLERY_BIG.has(i.file)), ...embaralhaDoDia(imagensDaVitrine.filter((i) => !HOME_GALLERY_BIG.has(i.file)), dia,', '...embaralhaDoDia(imagensDaVitrine, dia,') })
 mutante('cartão grande demais abre buraco', { [LIB]: troca('const nGrandes = Math.ceil(lista.length / 4)', 'const nGrandes = Math.ceil(lista.length / 2)') })
-mutante('imagem larga no fim abre buraco', { [MOSAICO]: troca("(i) => i.w > i.h, 8)", "() => false, 8)") })
+// KINEO-OUTFIT-MORPH-HOME-0911 — desde o 16º clipe o fim da grade tem DUAS proteções (imagem larga fora da cauda + fechaOFim). Sem a 2ª, o
+// mutante da 1ª passava batido: agora ele derruba as duas juntas, e cada uma tem o seu mutante sozinho.
+const SEM_FECHAR = (s) => troca('const ordem = fechaOFim(ordem0, alto,', 'const ordem = ((x) => x)(ordem0, alto,')(s)
+mutante('imagem larga no fim abre buraco', { [MOSAICO]: (s) => SEM_FECHAR(troca("(i) => i.w > i.h, 8)", "() => false, 8)")(s)) })
+mutante('o fim da grade não fecha (16 clipes, degrau vazio)', { [MOSAICO]: SEM_FECHAR })
+mutante('fechaOFim aceita arrumação que piora', { [LIB]: troca('if (c[0] < melhorCusto[0] && c.every((v, n) => v <= base[n]) && aceita(fila))', 'if (c[0] > melhorCusto[0])') })
+mutante('pessoa colada no fim, sem busca para trás', { [LIB]: troca('for (const alvo of trocou ? [] : [i, i - run + 1]) {', 'for (const alvo of []) {') })
 mutante('pôster baixa antes da hora', { [MOSAICO]: troca('alt="" loading="lazy" decoding="async" style={{ objectPosition', 'alt="" decoding="async" style={{ objectPosition') })
 mutante('vídeo direto no cartão', { [MOSAICO]: troca('<WallMedia src={clipeNovoVideo(c)} />', '<video src={clipeNovoVideo(c)} autoPlay muted loop playsInline />') }, { mosaico: rd(MOSAICO).replace('<WallMedia src={clipeNovoVideo(c)} />', '') })
 mutante('cartão chama de anúncio', { [MOSAICO]: troca('<i><UiLabel>Clip</UiLabel> · {motor}</i>', '<i><UiLabel>Ad</UiLabel> · {motor}</i>') })
 mutante('cartão leva às Ads', { [MOSAICO]: troca('href={viaSignup(clipeNovoDestino(c), signedIn)}', "href={viaSignup('/ads/new', signedIn)}") })
-mutante('arquivo faltando', {}, {}, (rel) => !rel.includes('pet-barista.mp4') && fs.existsSync(path.join(ROOT, rel)))
+// KINEO-OUTFIT-MORPH-HOME-0911 — o ramo do cartão de formato
+mutante('formato mostra motor', { [MOSAICO]: troca('{c.selo ? <i><UiLabel>{c.selo}</UiLabel></i>', '{c.selo ? <i><UiLabel>Clip</UiLabel> · Kling 4.0</i>') })
+mutante('formato perde o selo', { [MOSAICO]: troca('{c.selo ? <i><UiLabel>{c.selo}</UiLabel></i>', '{c.selo ? <i></i>') })
+mutante('formato leva ao /clips com motor', { [LIB]: troca("if (c.engine === null) return '/clips'", "if (c.engine === null) return '/clips?engine=hollywood'") })
+mutante('formato rotulado com motor errado', { [LIB]: troca("id: 'outfit-morph', title: 'Outfit morph', engine: null, selo: 'Trending format'", "id: 'outfit-morph', title: 'Outfit morph', engine: 'hollywood', selo: undefined") })
+mutante('formato no aria-label com motor', { [MOSAICO]: troca('aria-label={`${c.title} — ${motor}`}', 'aria-label={`${c.title} — ${motor} · Kling 4.0`}') })
+mutante('arquivo faltando',{}, {}, (rel) => !rel.includes('pet-barista.mp4') && fs.existsSync(path.join(ROOT, rel)))
 mutante('pôster faltando', {}, {}, (rel) => !rel.endsWith('produto-tenis-rua.webp') && fs.existsSync(path.join(ROOT, rel)))
 mutante('"newest first" de volta', {}, { pagina: rd(PAGINA) + '\nClips, newest first.' })
 
