@@ -1,0 +1,21 @@
+{
+  "base": "eb505e48d68d0bd72aa5034c927159d70b8291a2",
+  "checkedAt": "2026-11-09T22:42:02.739Z",
+  "outcomes": [
+    {
+      "test": "test-clipes-2026-09-29.mjs",
+      "exit": 1,
+      "signature": "AssertionError [ERR_ASSERTION]: US$ do Studio = TIER_PRICES.pro"
+    },
+    {
+      "test": "test-studio-series-review.mjs",
+      "exit": 1,
+      "signature": "Error: semEstreia3110: app/(dashboard)/studio/StudioClient.tsx mudou fora da camada (0x)"
+    },
+    {
+      "test": "test-five-improvements.mjs",
+      "exit": 1,
+      "signature": "ReferenceError: require is not defined"
+    }
+  ]
+}

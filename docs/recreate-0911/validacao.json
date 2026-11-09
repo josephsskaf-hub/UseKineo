@@ -1,0 +1,32 @@
+{
+  "date": "2026-11-09",
+  "integratedBase": "0989e374eb81f0518c9a0702866a4258e41e3f22",
+  "typecheckAfterIntegration": "passed; exit 0",
+  "regressionAfterIntegration": "regressao-base-atual.json",
+  "kind": "local verification; no production credentials or paid render",
+  "evidence": "Command exit codes and browser observations recorded in this Codex session",
+  "passed": [
+    "node node_modules/typescript/bin/tsc --noEmit --incremental false",
+    "Next 14 configSchema.safeParse(next.config.js)",
+    "node docs/recreate-0911/test-recreate.cjs",
+    "node docs/recreate-0911/test-migration.cjs (isolated PGlite 0.3.16)",
+    "node scripts/test-rosto-no-clipe-2810.mjs",
+    "node scripts/test-clip-efeitos-2026-10-05.mjs",
+    "node scripts/test-efeitos-novos-1310.mjs",
+    "node scripts/test-clips-tela-0511.mjs",
+    "node scripts/test-showcase-premium.mjs",
+    "node scripts/test-sharing-safety.mjs",
+    "git diff --check"
+  ],
+  "baselineFailures": "baseline.json: all three failures reproduced using immutable original sources, without editing the working tree",
+  "browser": {
+    "backend": "Explicit local fixtures. Upload, paid generation and live API requests refused.",
+    "verified": ["simulation feedback", "expand dialog", "selecting Elevator", "selecting Kiss with two-photo fields", "desktop layout", "390 x 844 mobile layout", "no mobile horizontal overflow"],
+    "screenshots": ["desktop.png", "mobile.png", "antes-depois.png"],
+    "staticComparison": "ANTES-DEPOIS.html",
+    "interactiveFixture": "INTERATIVO.html",
+    "mediaPlayback": "Not verified: house posters only in the local fixture",
+    "cleanup": "Viewport restored, QA tab closed, owned loopback server stopped"
+  },
+  "notExecuted": ["full Next build", "production migration", "real upload/moderation", "Recast provider request", "production debit/refund", "production like/report", "production deploy", "Part 2 series button implementation"]
+}

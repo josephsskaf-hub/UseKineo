@@ -1,0 +1,20 @@
+{
+  "verifiedOn": "2026-11-09",
+  "method": "ffprobe format.duration; SHA-256 compared between approved local source and worktree copy",
+  "items": [
+    {
+      "id": "outfit-morph",
+      "approvedSource": "C:/kineo/docs/referencias/ugc-motion-0911/outfit-morph-v6.mp4",
+      "repoFile": "lib/recreate/assets/outfit-morph-v6.mp4",
+      "durationSeconds": 9.916667,
+      "sha256": "E17B1BB0DC2398E2DDD9820A83F11336CBA011E7CA0C23AEDC9AA04D2F72551D"
+    },
+    {
+      "id": "elevador",
+      "approvedSource": "C:/kineo/docs/referencias/ugc-motion-0911/elevador-v1.mp4",
+      "repoFile": "lib/recreate/assets/elevador-v1.mp4",
+      "durationSeconds": 10.041667,
+      "sha256": "1BF1844AA6D439522F6D9E52C5CC161BA8B762FEC1F5D9A32CDFC3162540700F"
+    }
+  ]
+}
