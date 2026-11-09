@@ -91,6 +91,10 @@ function problems(overrides = {}) {
     ...req('lib/freeTierOffer.ts'),
     ...req('lib/freeFilmPolicy.ts'),
     ...req('lib/growth/affiliateProgramComparison.ts'),
+    ...req('lib/affiliateViewsOffer.ts'), // KINEO-AFILIADO-VIEWS-0911
+    // KINEO-AFILIADO-VIEWS-0911 — a resposta "Can I test Kineo first?" usa FREE_FILM_ENGINE_NAME desde KINEO-LLMS-K4-2910
+    // e o escopo não a tinha (o guardião estava vermelho na origin/main por isso, e pelo comentário no fim da linha).
+    ...req('lib/freeFilmEngine.ts'),
   }
   const evalExpr = (expr, extra = {}) => {
     const sc = { ...scope, ...extra }
@@ -121,7 +125,8 @@ function problems(overrides = {}) {
   const A = (q) => items.find((i) => i.q === q)?.a ?? ''
   if ((page.match(/const faq = \[/g) || []).length !== 1) p.push('mais de uma lista de FAQ na página')
   if ((page.match(/FAQPage/g) || []).length !== 1 || (page.match(/application\/ld\+json/g) || []).length !== 1) p.push('JSON-LD de FAQ duplicado ou ausente')
-  if (!page.includes("mainEntity: faq.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),")) p.push('JSON-LD não sai da lista inteira `faq`')
+  // KINEO-AFILIADO-VIEWS-0911 — o JSON-LD passa a ser faq + viewsFaq (a FAQ curta da seção #paid-per-views), as duas inteiras.
+  if (!page.includes("mainEntity: [...faq, ...viewsFaq].map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),")) p.push('JSON-LD não sai das listas inteiras `faq` + `viewsFaq`')
   const visible = page.match(/id="affiliate-program-faq"[\s\S]*?<\/section>/)?.[0] ?? ''
   if (!visible.includes('{faq.map((f) => (') || !visible.includes('{f.q}') || !visible.includes('{f.a}')) p.push('FAQ visível não desenha a lista inteira `faq`')
   if (/\?<\/div>|\?<\/p>|\?<\/summary>|<details/.test(visible)) p.push('FAQ visível tem pergunta escrita fora da lista (some do JSON-LD)')
@@ -205,6 +210,46 @@ function problems(overrides = {}) {
   } catch (e) { p.push('mídia não carrega: ' + e.message) }
   if (!/PUBLIC_EXAMPLES\.find\(\(e\) => e\.slug === 'north-sentinel-island'\)/.test(page) || !/adsV2Style\('giant_product'\)/.test(page)) p.push('mídia não vem de lib/publicExamples + lib/ads/v2Styles')
 
+  // ── (7) KINEO-AFILIADO-VIEWS-0911 — pago por views (fundador 09/11, "Sim para as 5", decisão 4) ────────────────────
+  // A regra é a decidida (US$ 25 por mil views, teto US$ 100 por vídeo, US$ 300 por mês no total, contadas 30 dias depois),
+  // vem de lib/affiliateViewsOffer.ts (nenhum número digitado na página), e a página diz: teto por vídeo, orçamento mensal,
+  // "after 30 days", nunca adiantado, aprovação antes do post, revisão/pagamento pela equipe. O teto de mil views da (3)
+  // continua valendo para qualquer texto DIGITADO: per-views só existe via a fonte.
+  const V = req('lib/affiliateViewsOffer.ts')
+  const decided = V.VIEWS_OFFER_USD_PER_UNIT === 25 && V.VIEWS_OFFER_UNIT === 1000 && V.VIEWS_OFFER_CAP_PER_VIDEO_USD === 100 &&
+    V.VIEWS_OFFER_MONTHLY_BUDGET_USD === 300 && V.VIEWS_OFFER_COUNT_AFTER_DAYS === 30 && V.VIEWS_OFFER_MIN_INTEGRATION_SECONDS === 30
+  if (!decided) p.push('pago por views: números da fonte diferentes da decisão do fundador de 09/11 (25/1000, teto 100, mês 300, 30 dias, 30 s)')
+  if (V.viewsOfferPayoutUsd(1000) !== 25 || V.viewsOfferPayoutUsd(4000) !== 100 || V.viewsOfferPayoutUsd(10000) !== 100 || V.VIEWS_OFFER_VIEWS_AT_CAP !== 4000) p.push('pago por views: aritmética/teto por vídeo quebrado')
+  if (!/^import \{[\s\S]*?\} from '@\/lib\/affiliateViewsOffer'/m.test(page)) p.push('pago por views: a página não importa lib/affiliateViewsOffer')
+  const viewsSection = code.match(/<section id="paid-per-views"[\s\S]*?<\/section>/)?.[0] ?? ''
+  if (!viewsSection) p.push('seção #paid-per-views sumiu')
+  if (!viewsSection.includes('Get paid per views</h2>')) p.push('seção sem o título "Get paid per views"')
+  if (!viewsSection.includes('{viewsFaq.map((f) => (') || !viewsSection.includes('{viewsSteps.map((s) => (')) p.push('seção não desenha viewsFaq/viewsSteps inteiros')
+  if (!viewsSection.includes('href={VIEWS_OFFER_APPLY_MAILTO}') || !/<OrganicCtaLink href=\{APPLY\} source="partners" placement="paid_per_views"/.test(viewsSection)) p.push('seção não aponta para a inscrição existente (APPLY) e o e-mail de aprovação')
+  for (const t of ['t: `Capped at ${viewsOfferUsd(VIEWS_OFFER_CAP_PER_VIDEO_USD)} per video`', 't: `${viewsOfferUsd(VIEWS_OFFER_MONTHLY_BUDGET_USD)} per month for the whole program`', 't: `Paid after ${VIEWS_OFFER_COUNT_AFTER_DAYS} days, never in advance`']) {
+    if (!viewsSection.includes(t)) p.push('seção sem o cartão: ' + t.slice(0, 60))
+  }
+  const viewsBlock = page.match(/const viewsFaq = \[\n([\s\S]*?)\n  \]\n/)
+  const vItems = []
+  if (!viewsBlock) p.push('lista `const viewsFaq = [...]` não encontrada')
+  else for (const line of viewsBlock[1].split('\n')) {
+    if (/^\s*\/\//.test(line) || !line.trim()) continue
+    const m = line.match(/^\s*\{ q: '((?:[^'\\]|\\.)*)', a: ([\s\S]*) \},\s*$/)
+    if (!m) { p.push('linha da viewsFaq fora do formato: ' + line.slice(0, 70)); continue }
+    let a
+    try { a = evalExpr(m[2], local) } catch (e) { p.push(`viewsFaq "${m[1]}" não avalia: ${e.message}`); continue }
+    if (typeof a !== 'string' || /undefined|NaN|\[object/.test(a)) p.push(`viewsFaq "${m[1]}" sai quebrada`)
+    vItems.push({ q: m[1], a })
+  }
+  const VA = (q) => vItems.find((i) => i.q === q)?.a ?? ''
+  const cap = VA('Is there a cap on paid views?')
+  if (!cap.includes('US$ 100 per video') || !cap.includes('US$ 300 per month in total')) p.push('FAQ não diz o teto de US$ 100 por vídeo e o orçamento de US$ 300 por mês')
+  const when = VA('When am I paid for views?')
+  if (!when.includes('After the 30 days, never in advance') || !/our team reviews it/.test(when) || !/Payment is manual/.test(when)) p.push('FAQ não diz "after 30 days", nunca adiantado e pago pela equipe (manual)')
+  if (!/posted before we approved it, do not count/.test(VA('What counts as a view?'))) p.push('FAQ não diz que só vídeo aprovado antes do post conta')
+  if (!VA('Can I combine paid views with commission?').includes(`earning ${PCT} of each eligible payment`)) p.push('FAQ de combinação não usa a comissão da fonte')
+  items.push(...vItems)
+
   return { p, items, PCT }
 }
 
@@ -229,7 +274,8 @@ const mutants = [
   ['M3 promete acesso antecipado', F.page, "d: 'Everything Kineo makes is AI-generated.", "d: 'Everything Kineo makes is AI-generated. Partners get early access to new engines."],
   ['M4 promete cortesia renovada todo mês', F.page, 'email us and we can grant it again.', 'we renew it every month.'],
   ['M5 ignora o interruptor do pacote', F.page, "const PACK_DELIVERY = PARTNER_PACK_LIVE ? 'added the moment you join' : 'added by our team — email us after you join'", "const PACK_DELIVERY = 'added the moment you join'"],
-  ['M6 JSON-LD de outra lista', F.page, 'mainEntity: faq.map((f) =>', 'mainEntity: faq.slice(1).map((f) =>'],
+  ['M6 JSON-LD de outra lista', F.page, 'mainEntity: [...faq, ...viewsFaq].map((f) =>', 'mainEntity: [...faq.slice(1), ...viewsFaq].map((f) =>'],
+  ['M6b JSON-LD perde a FAQ do pago por views', F.page, 'mainEntity: [...faq, ...viewsFaq].map((f) =>', 'mainEntity: faq.map((f) =>'],
   ['M7 FAQ visível filtra pergunta (JSON-LD ≠ visível)', F.page, '{faq.map((f) => (', "{faq.filter((f) => f.q !== 'Who can join?').map((f) => ("],
   ['M8 cupom muda na fonte e a página fica', F.coupon, 'export const AFFILIATE_COUPON_PERCENT = 50', 'export const AFFILIATE_COUPON_PERCENT = 25'],
   ['M9 regra do selo de IA some', F.page, "{ t: 'Label it as AI', d: 'Everything Kineo makes is AI-generated. Use your platform’s AI label or say it in the caption.' },\n", ''],
@@ -242,6 +288,13 @@ const mutants = [
   ['M16 FAQ visível ganha pergunta escrita à mão', F.page, '            {faq.map((f) => (', '            <p>Is Kineo free forever?</p>\n            {faq.map((f) => ('],
   ['M17 promete vitrine nos canais da Kineo', F.page, 'is the hook we use on our own channels.', 'is the hook we use on our own channels. The best posts get featured on our channels.'],
   ['M18 mídia digitada fora da lista', F.page, 'src={AD_EXAMPLE.preview}', 'src="/videos/random-client.mp4"'],
+  // KINEO-AFILIADO-VIEWS-0911
+  ['M19 teto por vídeo sobe na fonte sem decisão', 'lib/affiliateViewsOffer.ts', 'export const VIEWS_OFFER_CAP_PER_VIDEO_USD = 100', 'export const VIEWS_OFFER_CAP_PER_VIDEO_USD = 500'],
+  ['M20 orçamento mensal some da FAQ', F.page, 'and ${viewsOfferUsd(VIEWS_OFFER_MONTHLY_BUDGET_USD)} per month in total for the whole program', 'with no monthly limit for the program'],
+  ['M21 promete pagar adiantado', F.page, 'a: `After the ${VIEWS_OFFER_COUNT_AFTER_DAYS} days, never in advance.', 'a: `Half up front, the rest later.'],
+  ['M22 views digitadas na página', F.page, '<li>No follower minimum</li>', '<li>No follower minimum</li>\n            <li>Paid per 1,000 views</li>'],
+  ['M23 seção some', F.page, '<section id="paid-per-views"', '<section id="pago-por-views"'],
+  ['M24 conta vídeo não aprovado', F.page, 'Views on other videos, or on a video posted before we approved it, do not count.', 'Every video counts.'],
 ]
 for (const [name, file, from, to] of mutants) {
   const o = mut(file, from, to)
@@ -268,7 +321,12 @@ if (process.env.PARTNERS_URL) {
   const ld = faqs[0] ?? { mainEntity: [] }
   const decode = (s) => s.replace(/<!-- -->/g, '').replace(/<[^>]+>/g, '').replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
   const sec = html.match(/id="affiliate-program-faq"[\s\S]*?<\/section>/)[0]
-  const vis = [...sec.matchAll(/<div style="font-weight:600[^"]*">([\s\S]*?)<\/div><p[^>]*>([\s\S]*?)<\/p>/g)].map((m) => ({ q: decode(m[1]), a: decode(m[2]) }))
+  // KINEO-AFILIADO-VIEWS-0911 — o JSON-LD = FAQ geral + FAQ curta da seção #paid-per-views (nessa ordem).
+  const secViews = html.match(/id="paid-per-views"[\s\S]*?<\/section>/)?.[0] ?? ''
+  const vis = [
+    ...[...sec.matchAll(/<div style="font-weight:600[^"]*">([\s\S]*?)<\/div><p[^>]*>([\s\S]*?)<\/p>/g)],
+    ...[...secViews.matchAll(/<div style="font-weight:600;margin-bottom:6px;font-size:0.95rem[^"]*">([\s\S]*?)<\/div><p[^>]*>([\s\S]*?)<\/p>/g)],
+  ].map((m) => ({ q: decode(m[1]), a: decode(m[2]) }))
   const same = vis.length === ld.mainEntity.length && ld.mainEntity.every((e, i) => e.name === vis[i].q && e.acceptedAnswer.text === vis[i].a)
   ok(same, `HTML servido: JSON-LD (${ld.mainEntity.length}) = FAQ visível (${vis.length}), texto a texto`)
 }

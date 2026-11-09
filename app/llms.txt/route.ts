@@ -78,6 +78,7 @@ import { EDITING_TOOLS, MAX_FILE_BYTES, MAX_CLIP_SECONDS } from '@/lib/videoEdit
 import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 import { ANNUAL_DISCOUNT_PERCENT as ANNUAL_DISCOUNT_PERCENT_FACT, ANNUAL_WELCOME_DISCOUNT_PERCENT, ANNUAL_WELCOME_PRICES, TIER_PRICES, TOPUPS_LIVE, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { AFFILIATE_COMMISSION_PCT } from '@/lib/affiliateCommission'
+import { VIEWS_OFFER_RULE } from '@/lib/affiliateViewsOffer' // KINEO-AFILIADO-VIEWS-0911
 import { AGENCIES_PAGE_PATH, AGENCY_OFFER } from '@/lib/growth/agencyProgram' // KINEO-AGENCIAS-2026-10-13
 import { ENGINE_PAUSE, PAUSED_ON_OFFER_KEYS, H3_TURBO_PUBLIC, KINEO1_PUBLIC } from '@/lib/engineLaunch'
 import { H3MAX_PUBLIC } from '@/lib/engineLaunch' // KINEO-H3MAX-2026-10-13
@@ -750,6 +751,7 @@ COPY of the person's own local file, which is never uploaded — not a generated
 ## Programs and free embeds
 
 - [Affiliate program](${BASE}/partners): ${AFFILIATE_COMMISSION_PCT} commission on every eligible payment from a customer you refer, including renewals for as long as they stay subscribed. First-touch tracking lasts ${AFFILIATE_FIRST_TOUCH_DAYS} days. Open to anyone with an account — you get your link immediately.
+- [Paid per views for partners](${BASE}/partners#paid-per-views): on top of the commission, ${VIEWS_OFFER_RULE}
 - [Referral program](${BASE}/referral): give ${REFERRAL_REWARD_CREDITS} credits, get ${REFERRAL_REWARD_CREDITS} credits. Both sides are credited once the invited person confirms their email and finishes their first video. A referrer is rewarded for up to ${REFERRAL_MAX_REWARDED_FRIENDS} friends; the invited person is always credited. Requires a Kineo account.
 - [Shorts Idea of the Day widget](${BASE}/widget): a free embeddable widget that shows a new AI-generated YouTube Shorts idea every day. One copy-paste iframe, no account and no cost, plus a "Made with Kineo" badge you can put on anything you built with Kineo. The widget itself is served at ${BASE}/widget/embed.
 

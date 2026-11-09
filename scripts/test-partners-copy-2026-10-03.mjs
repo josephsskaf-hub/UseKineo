@@ -50,7 +50,10 @@ function faqAnswer(pageSrc, overrides) {
   const offer = req('lib/freeTierOffer.ts')
   const pack = req('lib/partnerPack.ts')
   const policy = req('lib/freeFilmPolicy.ts')
-  const scope = { ...offer, ...pack, ...policy }
+  // KINEO-AFILIADO-VIEWS-0911 — a resposta usa FREE_FILM_ENGINE_NAME desde KINEO-LLMS-K4-2910 (a01c4523b); sem ela no
+  // escopo este guardião estava vermelho na origin/main.
+  const engine = req('lib/freeFilmEngine.ts')
+  const scope = { ...offer, ...pack, ...policy, ...engine }
   return new Function(...Object.keys(scope), `return ${m[1]}`)(...Object.values(scope))
 }
 
@@ -64,8 +67,12 @@ function problems(pageSrc, overrides = {}) {
   const pack = req('lib/partnerPack.ts')
   if (/every engine unlocked|all engines/i.test(a)) p.push('copy volta a prometer "every engine unlocked"')
   if (!a.includes(`${offer.TRIAL_CREDITS_SHOWN} credits`)) p.push('créditos de cadastro não batem com lib/freeTierOffer')
-  if (!a.includes(`${offer.TRIAL_FREE_FILM_SECONDS}-second Seedance 1.5`) || !/watermarked/.test(a)) p.push('não diz o que os créditos pagam (Seedance 1.5 curto, com marca)')
-  if (!/Kling, Veo and the other Studio engines need a paid plan/.test(a)) p.push('não diz que Kling/Veo pedem plano')
+  // Reancorado 09/11 (KINEO-AFILIADO-VIEWS-0911): desde KINEO-LLMS-K4-2910 a copy nomeia o motor pela fonte
+  // (FREE_FILM_ENGINE_NAME, lib/freeFilmEngine.ts) e diz que o resto pede plano. Mesma regra: o que os créditos pagam,
+  // com marca, e que o resto exige plano pago.
+  const engineName = req('lib/freeFilmEngine.ts').FREE_FILM_ENGINE_NAME
+  if (!a.includes(`${offer.TRIAL_FREE_FILM_SECONDS}-second film`) || !a.includes(`made with ${engineName}`) || !/watermarked/.test(a)) p.push('não diz o que os créditos pagam (filme curto do motor grátis da fonte, com marca)')
+  if (!/Other engines and longer films need a paid plan/.test(a)) p.push('não diz que os outros motores pedem plano')
   if (!a.includes(`${pack.PARTNER_PACK_STAGE1_CREDITS} credits`) || !a.includes(`${pack.PARTNER_PACK_DAYS} days`) || !a.includes(`plus ${pack.PARTNER_PACK_STAGE2_CREDITS} more`)) p.push('pacote de demonstração sem os números de lib/partnerPack')
   if (pack.PARTNER_PACK_LIVE ? !/added when you join/.test(a) : (/added when you join/.test(a) || !/Email us after you join/.test(a))) p.push('copy do pacote não segue o interruptor PARTNER_PACK_LIVE')
   if (/week|weekly|semana/i.test(a)) p.push('copy anuncia a cota semanal (não anunciada)')

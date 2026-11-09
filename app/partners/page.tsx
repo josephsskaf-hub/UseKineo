@@ -68,6 +68,23 @@ import {
 // O que a Higgsfield promete e a Kineo NÃO executa (crédito mensal automático, vitrine dos melhores posts, acesso
 // antecipado, prazo de resposta) ficou FORA — decisão do fundador. Guardião: scripts/test-partners-criadores-1610.mjs.
 import { PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
+// KINEO-AFILIADO-VIEWS-0911 — pago por views (fundador 09/11, "Sim para as 5", decisão 4): regra, tetos, prazo e e-mail de
+// aprovação vêm TODOS de lib/affiliateViewsOffer.ts; esta página não digita nenhum desses números. Pagamento é manual.
+import {
+  VIEWS_OFFER_APPLY_MAILTO,
+  VIEWS_OFFER_CAP_PER_VIDEO_USD,
+  VIEWS_OFFER_CONTACT_EMAIL,
+  VIEWS_OFFER_COUNT_AFTER_DAYS,
+  VIEWS_OFFER_MIN_INTEGRATION_SECONDS,
+  VIEWS_OFFER_MONTHLY_BUDGET_USD,
+  VIEWS_OFFER_PAYOUT_METHODS,
+  VIEWS_OFFER_UNIT,
+  VIEWS_OFFER_USD_PER_UNIT,
+  VIEWS_OFFER_VIEWS_AT_CAP,
+  viewsOfferPayoutUsd,
+  viewsOfferUsd,
+  viewsOfferViews,
+} from '@/lib/affiliateViewsOffer'
 import { adsV2Style } from '@/lib/ads/v2Styles'
 
 // KINEO-PRICING-V6-2026-08-19 — a ilustração de ganhos é CALCULADA, não
@@ -152,7 +169,8 @@ export default function PartnersPage() {
     { q: 'What should I post?', a: 'The film you made with Kineo, in full — it is the demo. A before-and-after of a product ad (the plain photo, then the ad Studio Ads made from it). Or the idea you typed next to the finished film. Kineo turns one topic or script into a finished 9:16 Short with script structure, AI voice, matched visuals and captions.' },
     { q: 'What are the rules?', a: 'Label your posts as AI-made. Share only your real opinion — no fake reviews, no invented results. Say that your link or code is an affiliate link where your platform asks for it. Purchases through your own link or code do not earn commission.' },
     { q: 'How does Kineo compare with other AI video affiliate programs?', a: `Rates are not directly comparable unless duration is included. As verified ${AFFILIATE_COMPARISON_VERIFIED_HUMAN}, Kineo publishes ${AFFILIATE_COMMISSION_PCT} recurring while the referred customer stays subscribed; OpusClip publishes 25% recurring through the first year; InVideo publishes 50% on monthly or 25% on annual purchases for the first billing cycle only; and VEED publishes a 20% recurring base with performance bonuses up to 50%. The comparison on this page links every official source.` },
-    { q: 'Can I test Kineo first?', a: `Yes. Every new account${FREE_FILM_COUNTRY_CLAUSE} starts free with ${TRIAL_CREDITS_SHOWN} credits, no card — enough for ${TRIAL_SEEDANCE15_FILMS === 1 ? 'one' : TRIAL_SEEDANCE15_FILMS} watermarked ${TRIAL_FREE_FILM_SECONDS}-second film${TRIAL_SEEDANCE15_FILMS === 1 ? '' : 's'} made with ${FREE_FILM_ENGINE_NAME}. Other engines and longer films need a paid plan. Partners can also get a demo pack to create with: ${PARTNER_PACK_STAGE1_CREDITS} credits with paid-plan engine access for ${PARTNER_PACK_DAYS} days, plus ${PARTNER_PACK_STAGE2_CREDITS} more after you share one public post with your link or coupon and we review it. ${PARTNER_PACK_LIVE ? 'The first part is added when you join.' : 'Email us after you join to get it.'}` }, // KINEO-LLMS-K4-2910
+    // KINEO-LLMS-K4-2910 (o marcador saiu do fim da linha abaixo: a FAQ é uma pergunta por linha e o guardião avalia cada uma)
+    { q: 'Can I test Kineo first?', a: `Yes. Every new account${FREE_FILM_COUNTRY_CLAUSE} starts free with ${TRIAL_CREDITS_SHOWN} credits, no card — enough for ${TRIAL_SEEDANCE15_FILMS === 1 ? 'one' : TRIAL_SEEDANCE15_FILMS} watermarked ${TRIAL_FREE_FILM_SECONDS}-second film${TRIAL_SEEDANCE15_FILMS === 1 ? '' : 's'} made with ${FREE_FILM_ENGINE_NAME}. Other engines and longer films need a paid plan. Partners can also get a demo pack to create with: ${PARTNER_PACK_STAGE1_CREDITS} credits with paid-plan engine access for ${PARTNER_PACK_DAYS} days, plus ${PARTNER_PACK_STAGE2_CREDITS} more after you share one public post with your link or coupon and we review it. ${PARTNER_PACK_LIVE ? 'The first part is added when you join.' : 'Email us after you join to get it.'}` },
     { q: 'How is attribution tracked?', a: 'Your Kineo affiliate link records first-touch clicks, signups, payments and renewals in your affiliate dashboard. The first affiliate link a visitor touches wins, and that attribution holds for 90 days.' },
     // KINEO-CUPOM-AFILIADO-2026-08-21 — esta pagina prometia SO o link, e link
     // nao existe dentro de um video de TikTok/Reels/Shorts, que e exatamente
@@ -169,11 +187,27 @@ export default function PartnersPage() {
     { q: 'When do I get paid?', a: `Every commission is recorded automatically the moment a referred customer pays, and lands in your dashboard as pending. ${AFFILIATE_PAYOUT_TERMS} Before your first payout we e-mail you to confirm the PayPal account to pay — there is nothing to set up in the dashboard.` },
     { q: 'Is there a bonus for my first customer?', a: AFFILIATE_BONUS_TERMS },
   ]
+  // KINEO-AFILIADO-VIEWS-0911 — FAQ curta da seção "Get paid per views". Mesmo formato (uma pergunta por linha), desenhada
+  // dentro da seção #paid-per-views e somada ao JSON-LD abaixo. Todo número sai de lib/affiliateViewsOffer.ts.
+  const viewsFaq = [
+    { q: 'When am I paid for views?', a: `After the ${VIEWS_OFFER_COUNT_AFTER_DAYS} days, never in advance. Once you send the screenshot, our team reviews it and pays by ${VIEWS_OFFER_PAYOUT_METHODS}, together with your affiliate commission payout. Payment is manual: nothing is paid automatically.` },
+    { q: 'What counts as a view?', a: `The view count YouTube Studio or TikTok analytics shows for that one approved video ${VIEWS_OFFER_COUNT_AFTER_DAYS} days after it went live, on the screenshot you send us. Views on other videos, or on a video posted before we approved it, do not count.` },
+    { q: 'Is there a cap on paid views?', a: `Yes. ${viewsOfferUsd(VIEWS_OFFER_CAP_PER_VIDEO_USD)} per video (${viewsOfferViews(VIEWS_OFFER_VIEWS_AT_CAP)} views already reaches it), and ${viewsOfferUsd(VIEWS_OFFER_MONTHLY_BUDGET_USD)} per month in total for the whole program, shared by every creator, first approved, first served. If the month's budget is already committed, a new video is not approved for that month.` },
+    { q: 'Can I combine paid views with commission?', a: `Yes. Paid views come on top of the affiliate program: you keep earning ${AFFILIATE_COMMISSION_PCT} of each eligible payment from customers you refer, and your audience still gets the first-month discount through your link or coupon.` },
+  ]
   // KINEO-PARTNERS-CRIADORES-1610 — o JSON-LD sai da MESMA lista que a seção visível desenha (faq.map nos dois lados).
+  // KINEO-AFILIADO-VIEWS-0911 — + viewsFaq, que a seção #paid-per-views desenha inteira (viewsFaq.map).
   const faqJsonLd = {
     '@context': 'https://schema.org', '@type': 'FAQPage',
-    mainEntity: faq.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+    mainEntity: [...faq, ...viewsFaq].map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
   }
+  const viewsSteps = [
+    { n: '1', t: 'Apply and get approved', d: `Join as a partner to get your link, then e-mail ${VIEWS_OFFER_CONTACT_EMAIL} with your channel link, the video you plan to post and a screenshot of your audience countries. We answer by e-mail. Only videos we approve before they go live are paid.` },
+    { n: '2', t: 'Post with your link', d: `Publish a dedicated video, or an integration of at least ${VIEWS_OFFER_MIN_INTEGRATION_SECONDS} seconds, made with Kineo. Put your affiliate link in the description and in the pinned comment.` },
+    { n: '3', t: 'Send the screenshot, get paid', d: `${VIEWS_OFFER_COUNT_AFTER_DAYS} days after the video goes live, reply with the YouTube Studio or TikTok analytics screenshot of its views. Our team reviews it and pays you together with your commission.` },
+  ]
+  // Exemplos de ganho = aritmética da regra (viewsOfferPayoutUsd), nunca digitados.
+  const viewsExamples = [VIEWS_OFFER_UNIT, VIEWS_OFFER_UNIT * 2, VIEWS_OFFER_VIEWS_AT_CAP, VIEWS_OFFER_VIEWS_AT_CAP * 5 / 2]
   const steps = [
     { n: '1', t: 'Join with your Kineo account', d: 'Sign in and press Apply. No forms, no follower count, no interview. Your link and your coupon code appear on the same screen, already active.' },
     { n: '2', t: 'Get a courtesy account and your link', d: `No paid plan? Your partner pack: ${PARTNER_PACK_STAGE1_CREDITS} credits with Creator-level engines for ${PARTNER_PACK_DAYS} days, ${PACK_DELIVERY}. While you are an active partner, Seedance 2.5 and Studio Ads open too.` },
@@ -293,6 +327,75 @@ export default function PartnersPage() {
           </div>
           <p style={{ fontSize: '0.8rem', color: 'var(--muted)', textAlign: 'center', margin: '10px 0 0', lineHeight: 1.5 }}>
 Example only, not a promise. Illustration based on {AFFILIATE_COMMISSION_PCT} of current USD list prices ({PRICE_RANGE}), before taxes, refunds or failed payments. Commission always uses the amount actually paid. With your link or coupon, the first month of Creator or Studio monthly is 50% smaller — so is that first commission. Full monthly price applies from month two.</p>
+        </section>
+
+        {/* KINEO-AFILIADO-VIEWS-0911 — pago por views: regra, 3 passos, exemplos calculados e FAQ curta */}
+        <section id="paid-per-views" style={{ marginTop: 48 }}>
+          <div style={{ textAlign: 'center', maxWidth: 650, margin: '0 auto 18px' }}>
+            <div style={{ color: 'var(--accent)', fontWeight: 650, fontSize: '0.72rem', letterSpacing: '.09em', textTransform: 'uppercase' }}>On top of your commission</div>
+            <h2 style={{ fontSize: '1.45rem', fontWeight: 650, margin: '8px 0' }}>Get paid per views</h2>
+            <p style={{ color: 'var(--muted)', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>
+              Make a video about Kineo and, if we approve it before you post, we pay <b style={{ color: 'var(--text)' }}>{viewsOfferUsd(VIEWS_OFFER_USD_PER_UNIT)} per {viewsOfferViews(VIEWS_OFFER_UNIT)} real views</b>, counted {VIEWS_OFFER_COUNT_AFTER_DAYS} days after it goes live. This comes on top of your {AFFILIATE_COMMISSION_PCT} recurring commission.
+            </p>
+          </div>
+          <ul className="partners-rules">
+            {[
+              { t: `${viewsOfferUsd(VIEWS_OFFER_USD_PER_UNIT)} per ${viewsOfferViews(VIEWS_OFFER_UNIT)} real views`, d: `Counted on that one approved video ${VIEWS_OFFER_COUNT_AFTER_DAYS} days after it goes live, from your YouTube Studio or TikTok analytics screenshot.` },
+              { t: `Capped at ${viewsOfferUsd(VIEWS_OFFER_CAP_PER_VIDEO_USD)} per video`, d: `${viewsOfferViews(VIEWS_OFFER_VIEWS_AT_CAP)} views reaches the cap. Views above it are not paid.` },
+              { t: `${viewsOfferUsd(VIEWS_OFFER_MONTHLY_BUDGET_USD)} per month for the whole program`, d: 'One budget shared by every creator, first approved, first served. That is why approval comes before you post.' },
+              { t: `Paid after ${VIEWS_OFFER_COUNT_AFTER_DAYS} days, never in advance`, d: `Our team reviews your screenshot and pays by ${VIEWS_OFFER_PAYOUT_METHODS}, together with your commission payout.` },
+            ].map((r) => (
+              <li key={r.t} className="partners-card" style={{ ...CARD }}>
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>{r.t}</div>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--muted)', lineHeight: 1.5 }}>{r.d}</p>
+              </li>
+            ))}
+          </ul>
+          <div className="partners-card" style={{ ...CARD, marginTop: 12, borderRadius: 14, padding: '14px 18px' }}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>What a video needs</div>
+            <ul style={{ margin: 0, paddingLeft: 18, color: 'var(--muted)', fontSize: '0.85rem', lineHeight: 1.6 }}>
+              <li>A dedicated video, or an integration of at least {VIEWS_OFFER_MIN_INTEGRATION_SECONDS} seconds, made with Kineo.</li>
+              <li>Your affiliate link in the description and in the pinned comment.</li>
+              <li>Your audience countries, shown to us before approval.</li>
+            </ul>
+          </div>
+          <h3 style={{ fontSize: '1.05rem', fontWeight: 650, textAlign: 'center', margin: '24px 0 14px' }}>How paid views work</h3>
+          <div className="partners-steps">
+            {viewsSteps.map((s) => (
+              <div key={s.n} className="partners-card" style={{ ...CARD, borderRadius: 14, padding: 18 }}>
+                <div style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--accent-soft)', color: 'var(--accent)', fontWeight: 650, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>{s.n}</div>
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>{s.t}</div>
+                <p style={{ margin: 0, fontSize: '0.86rem', color: 'var(--muted)', lineHeight: 1.55 }}>{s.d}</p>
+              </div>
+            ))}
+          </div>
+          <div className="partners-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginTop: 14 }}>
+            {viewsExamples.map((v) => (
+              <div key={v} className="partners-card" style={{ ...CARD, borderRadius: 14, padding: 14, textAlign: 'center' }}>
+                <div style={{ fontSize: '1.2rem', fontWeight: 650 }}>{viewsOfferViews(v)}</div>
+                <div style={{ color: 'var(--muted)', fontSize: '0.8rem', margin: '2px 0 6px' }}>views after {VIEWS_OFFER_COUNT_AFTER_DAYS} days</div>
+                <div style={{ color: 'var(--accent)', fontWeight: 600 }}>{viewsOfferUsd(viewsOfferPayoutUsd(v))}</div>
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: '0.8rem', color: 'var(--muted)', textAlign: 'center', margin: '10px 0 0', lineHeight: 1.5 }}>
+            Arithmetic of the rule, not a promise of views. Paid only for approved videos, within the program’s monthly budget.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 18 }}>
+            {viewsFaq.map((f) => (
+              <div key={f.q} style={{ ...CARD, borderRadius: 12, padding: '16px 18px' }}>
+                <div style={{ fontWeight: 600, marginBottom: 6, fontSize: '0.95rem' }}>{f.q}</div>
+                <p style={{ margin: 0, color: 'var(--muted)', lineHeight: 1.6, fontSize: '0.9rem' }}>{f.a}</p>
+              </div>
+            ))}
+          </div>
+          <div style={{ textAlign: 'center', marginTop: 18 }}>
+            <OrganicCtaLink href={APPLY} source="partners" placement="paid_per_views" className="partners-primary" style={{ display: 'inline-block', background: 'var(--indigo)', color: 'var(--on-accent)', fontWeight: 650, padding: '11px 22px', borderRadius: 11, textDecoration: 'none', fontSize: '0.9rem' }}>1. Join as a partner →</OrganicCtaLink>
+            <div style={{ marginTop: 10, fontSize: '0.85rem' }}>
+              <a href={VIEWS_OFFER_APPLY_MAILTO} style={{ color: 'var(--accent)', fontWeight: 600 }}>2. Ask for approval at {VIEWS_OFFER_CONTACT_EMAIL}</a>
+              <span style={{ color: 'var(--muted)' }}> with your channel link, the video you plan and your audience countries.</span>
+            </div>
+          </div>
         </section>
 
         <section style={{ marginTop: 44 }}>
