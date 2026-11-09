@@ -3,19 +3,23 @@
 // dois pedaços, "BEING CLEVER DOESN'T MEAN" e "YOU SHOULD FORGET ALLAH" — o segundo ficou 2,2 s sozinho na tela dizendo o CONTRÁRIO
 // da frase. No mesmo filme: "BEING RICH DOESN'T MAKE" | "YOU BETTER THAN OTHERS" e "HIS WEALTH COULD NOT" | "SAVE HIM". O pedaço
 // fechou pelo TETO de palavras (não por ponto, vírgula nem pausa) logo depois da negação, e o que ela nega desceu sem ela.
-// A regra, pura e comum a todo corte de legenda por teto de palavras: quando um pedaço fecha pelo teto, tem uma negação dentro e a
-// oração termina (ponto, vírgula, pausa ou fim da fala) em poucas palavras, a negação desce e abre o pedaço seguinte, que estica
-// só o necessário para levar a oração até o fim — no máximo `maxPalavras` palavras e `maxLetras` letras (o que protege a pílula).
-// Oração negada maior que isso fica como era (limite declarado). Pedaço sem negação nunca muda: a função devolve o MESMO array.
+// A regra, pura e comum a todo corte de legenda por teto de palavras: quando um pedaço bate no teto com uma negação dentro, a
+// negação passa a ABRIR um pedaço que estica até a oração fechar (ponto, vírgula, pausa ou fim da fala) ou até onde a pílula
+// deixa — `cabe` (linhas da pílula) e `maxPalavras` —, levando junto o que ela nega; o que vier antes dela fecha como pedaço
+// próprio (2 palavras ou mais; uma palavra sozinha fica com a negação). O que sobrar da oração volta ao corte normal.
+// (2) — volta do revisor: a 1ª versão só agia quando a oração negada INTEIRA cabia em 6 palavras e 40 letras; fora disso ficava
+// como era ("YOU SHOULD DISRESPECT MUHAMMAD", "YOU CAN STOP PAYING", "QUE VOCÊ DEVE ESQUECER" continuavam sozinhos). Agora o
+// pedaço da negação estica sempre, e o limite é o da pílula (3 linhas), não 6 palavras.
 // Línguas: inglês, português, espanhol, francês, alemão e italiano, cada uma com a sua lista (o "no" do português é "em + o", não
 // negação). Idioma ausente = inglês (o padrão do produto); idioma fora da lista = regra desligada, legenda byte a byte como antes.
-// Não cobre: negação que vem DEPOIS do que ela nega (alemão "… nicht" no fim, turco, japonês, coreano), árabe, urdu, hindi, russo,
-// chinês e as demais línguas do catálogo.
+// Não cobre: o que a negação nega para ALÉM do pedaço dela (oração negada com mais palavras do que cabem na pílula), pedaço que
+// fechou em pausa da fala no meio da oração, negação que vem DEPOIS do que ela nega (alemão "… nicht" no fim, turco, japonês,
+// coreano), árabe, urdu, hindi, russo, chinês e as demais línguas do catálogo.
 export const LEGENDA_NEGACAO_IDIOMAS = ['en', 'pt', 'es', 'fr', 'de', 'it'] as const
-/** Palavras a mais que o teto normal do pedaço (4 → 6): cabe "DOESN'T MEAN YOU SHOULD FORGET ALLAH". */
-export const LEGENDA_NEGACAO_FOLGA = 2
-/** Letras (com os espaços) do pedaço esticado: 2 a 3 linhas na caixa de 9:16, o mesmo envelope de 4 palavras longas. */
-export const LEGENDA_NEGACAO_LETRAS = 40
+/** Linhas que o pedaço da negação pode ocupar na pílula: o pior caso que o teto normal já permite é maior (4 palavras longas = 4 linhas). */
+export const LEGENDA_NEGACAO_LINHAS = 3
+/** Palavras do pedaço da negação, no máximo: o que cabe em 3 linhas no vertical; segura o pedaço nos formatos largos, em que a linha leva o dobro de letras. */
+export const LEGENDA_NEGACAO_PALAVRAS = 10
 
 const NEGADORES: Readonly<Record<string, ReadonlySet<string>>> = {
   en: new Set(['not', 'never', 'no', 'cannot', 'nor', 'neither', 'nobody', 'nothing', 'none', 'nowhere']),
@@ -36,61 +40,56 @@ export function ehNegacaoDaLegenda(palavra: unknown, idioma?: unknown): boolean 
   const p = limpa(palavra)
   if (!p) return false
   if (lista.has(p)) return true
-  if (lingua === 'en') return /n't$/.test(p) // doesn't, don't, can't, won't, isn't…
+  if (lingua === 'en') return /n't(?:'ve)?$/.test(p) // doesn't, don't, can't, won't, isn't, couldn't've…
   if (lingua === 'fr') return /^n'\p{L}/u.test(p) // n'est, n'a, n'oublie…
   return false
 }
 
+/** Quantas linhas o texto ocupa numa caixa em que cabem `porLinha` letras por linha (a quebra é só entre palavras; palavra maior que a linha ocupa uma linha sozinha). */
+export function linhasDaLegenda(palavras: readonly unknown[], porLinha: number): number {
+  let linhas = 0
+  let usado = 0
+  for (const palavra of palavras) {
+    const letras = Array.from(String(palavra ?? '').trim()).length
+    if (!letras) continue
+    if (linhas === 0 || usado + 1 + letras > porLinha) { linhas++; usado = letras } else usado += 1 + letras
+  }
+  return linhas
+}
+
 /**
- * Recebe os pedaços já cortados e devolve os pedaços com a negação junto do que ela nega. Pura; nunca perde, troca nem
- * reordena palavra. Só mexe num pedaço que fechou pelo teto (`fechoNatural` falso), que tem negação e cuja oração — da negação
- * até o primeiro fecho natural (ou o fim) — cabe em `maxPalavras` palavras e `maxLetras` letras. A palavra que sobraria sozinha
- * antes da negação, e a palavra-função colada nela ("and not…", "que no…"), descem junto quando cabem. Sem mudança: o MESMO array.
+ * O plano do pedaço da negação. `atual` é o pedaço que acabou de bater no teto (sem ponto, vírgula nem pausa) e `resto` são as
+ * palavras que faltam para a oração fechar. Devolve quantas palavras de `atual` fecham ANTES da negação (`prefixo`) e de quantas
+ * palavras fica o pedaço que ela abre (`tamanho`, contando as que já estão em `atual`) — ou null quando nada muda (sem negação,
+ * ou sem ganho). Pura: não perde, não troca e não reordena palavra; só diz onde cortar.
+ *  - o pedaço começa na primeira negação; a palavra-função colada antes dela ("and not…", "que no…") vem junto, e uma palavra que
+ *    ficaria sozinha antes dela também (nunca nasce pedaço de 1 palavra antes da negação);
+ *  - estica até a oração fechar, enquanto `cabe` e até `maxPalavras` palavras; se a oração não coube inteira, o pedaço não
+ *    termina em palavra-função (ela abre o pedaço seguinte, como no corte normal).
  */
-export function juntarNegacaoComONegado<T>(
-  grupos: T[][],
+export function planoDaNegacao<T>(
+  atual: readonly T[],
+  resto: readonly T[],
   o: {
     palavra: (item: T) => unknown
-    /** O pedaço fechou em ponto, vírgula ou pausa (e não pelo teto)? O último pedaço da fala conta como fechado. */
-    fechoNatural: (grupo: T[], indice: number) => boolean
     maxPalavras: number
-    maxLetras?: number
+    /** O pedaço com estes itens cabe na pílula? */
+    cabe: (itens: T[]) => boolean
     idioma?: unknown
     /** Palavra-função que viaja com a palavra seguinte (artigo, preposição, conjunção). */
     viajaComASeguinte?: (item: T) => boolean
   },
-): T[][] {
-  const maxLetras = o.maxLetras ?? LEGENDA_NEGACAO_LETRAS
-  const cabe = (itens: T[]): boolean =>
-    itens.length <= o.maxPalavras && itens.map((x) => String(o.palavra(x) ?? '').trim()).join(' ').length <= maxLetras
-  const saida: T[][] = []
-  let mudou = false
-  for (let g = 0; g < grupos.length; g++) {
-    const atual = grupos[g]
-    saida.push(atual)
-    if (g + 1 >= grupos.length || atual.length === 0 || o.fechoNatural(atual, g)) continue
-    // o resto da oração: os pedaços seguintes até o primeiro fecho natural (ou o fim da fala)
-    const resto: T[] = []
-    let fim = g + 1
-    let fecha = false
-    while (fim < grupos.length && resto.length < o.maxPalavras) {
-      resto.push(...grupos[fim])
-      fecha = fim === grupos.length - 1 || o.fechoNatural(grupos[fim], fim)
-      fim++
-      if (fecha) break
-    }
-    if (!fecha) continue
-    for (let p = 0; p < atual.length; p++) {
-      if (!ehNegacaoDaLegenda(o.palavra(atual[p]), o.idioma) || !cabe([...atual.slice(p), ...resto])) continue
-      let ini = p
-      while (ini > 0 && (ini === 1 || o.viajaComASeguinte?.(atual[ini - 1]) === true) && cabe([...atual.slice(ini - 1), ...resto])) ini--
-      saida.pop()
-      if (ini > 0) saida.push(atual.slice(0, ini))
-      saida.push([...atual.slice(ini), ...resto])
-      g = fim - 1
-      mudou = true
-      break
-    }
-  }
-  return mudou ? saida : grupos
+): { prefixo: number; tamanho: number } | null {
+  const p = atual.findIndex((item) => ehNegacaoDaLegenda(o.palavra(item), o.idioma))
+  if (p < 0 || resto.length === 0) return null
+  const viaja = (item: T): boolean => o.viajaComASeguinte?.(item) === true
+  let prefixo = p
+  while (prefixo > 0 && viaja(atual[prefixo - 1])) prefixo--
+  if (prefixo === 1) prefixo = 0
+  const oracao = [...atual.slice(prefixo), ...resto]
+  const jaTem = atual.length - prefixo
+  let tamanho = jaTem
+  while (tamanho < oracao.length && tamanho < o.maxPalavras && o.cabe(oracao.slice(0, tamanho + 1))) tamanho++
+  if (tamanho < oracao.length) while (tamanho > jaTem && viaja(oracao[tamanho - 1])) tamanho--
+  return tamanho > jaTem ? { prefixo, tamanho } : null
 }

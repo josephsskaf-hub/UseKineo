@@ -8,7 +8,7 @@ import { narrationWordCount, narrationTokens, joinNarrationTokens } from '@/lib/
 import { createHash } from 'node:crypto'
 import { captionFontFor, DEFAULT_CAPTION_FONT, usesMiniMaxNarration, minimaxVoiceFor, isRtlLanguage, textDirectionOf, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-15-2026-09-17 // KINEO-LEGENDA-RTL-2710
 import { algarismosDaLegendaRtl, numeroPresoAPalavraRtl } from '@/lib/textLanguage' // KINEO-LEGENDA-NUMERO-RTL-0111
-import { juntarNegacaoComONegado, LEGENDA_NEGACAO_FOLGA } from '@/lib/legendaNegacao' // KINEO-LEGENDA-NEGACAO-0911
+import { planoDaNegacao, linhasDaLegenda, LEGENDA_NEGACAO_LINHAS, LEGENDA_NEGACAO_PALAVRAS } from '@/lib/legendaNegacao' // KINEO-LEGENDA-NEGACAO-0911
 import { toFile } from 'openai'
 import { createClient as createSupabaseClient, type SupabaseClient } from '@supabase/supabase-js'
 import { buildCaptionSegments, pickHighlightWord, OPENAI_TTS_TIMEOUT_MS, OPENAI_WHISPER_TIMEOUT_MS, type CaptionSegment } from '@/lib/openai'
@@ -1299,18 +1299,34 @@ export function buildCaptionsFromWhisperWords(
   // identical to the previous implementation.
   const SENTENCE_GAP_SECONDS = 0.28
   const groups: WhisperWord[][] = []
-  const fechosNaturais = new Set<WhisperWord>() // KINEO-LEGENDA-NEGACAO-0911 — as palavras em que o pedaço fechou por ponto, vírgula ou pausa (não pelo teto)
   {
     let current: WhisperWord[] = []
+    // KINEO-LEGENDA-NEGACAO-0911 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — render dc469323 (cliente pagante, 09/11): "BEING CLEVER DOESN'T MEAN" |
+    // KINEO-LEGENDA-NEGACAO-0911 — "YOU SHOULD FORGET ALLAH": o teto fechou o pedaço logo depois da negação e o pedaço seguinte, sozinho na tela, disse o contrário da frase.
+    // KINEO-LEGENDA-NEGACAO-0911 — Pedaço que bate no teto (sem ponto, vírgula nem pausa) com uma negação dentro: a negação passa a abrir um pedaço que estica até a oração fechar, no máximo
+    // KINEO-LEGENDA-NEGACAO-0911 — 3 linhas de pílula e 10 palavras (lib/legendaNegacao, planoDaNegacao), levando junto o que ela nega; o que sobrar da oração volta ao corte normal, com
+    // KINEO-LEGENDA-NEGACAO-0911 — as mesmas regras irmãs no fecho (palavra-função, nome antes do número). Sem negação, nada aqui muda: o teto do pedaço continua sendo maxWords.
+    let teto = maxWords // KINEO-LEGENDA-NEGACAO-0911 — o teto do pedaço aberto: maxWords, ou o tamanho que o plano deu ao pedaço da negação
+    let pedacoDaNegacao = false // KINEO-LEGENDA-NEGACAO-0911 — o pedaço aberto já é o da negação (não se planeja duas vezes)
+    const fechaAOracao = (j: number): boolean => { const a = windowWords[j], b = windowWords[j + 1]; return a.sentenceEnd === true || (!!b && b.start - a.end >= SENTENCE_GAP_SECONDS) || /[,;:،؛，、；]$/.test((a.word ?? '').trim()) } // KINEO-LEGENDA-NEGACAO-0911 — o mesmo fecho natural da linha `natural` abaixo, para olhar à frente
     for (let i = 0; i < windowWords.length; i++) {
       const w = windowWords[i]
       current.push(w)
       const next = windowWords[i + 1]
       const gap = next ? next.start - w.end : Number.POSITIVE_INFINITY
       const natural = w.sentenceEnd === true || (Number.isFinite(gap) && gap >= SENTENCE_GAP_SECONDS) || /[,;:،؛，、；]$/.test((w.word ?? '').trim()) // KINEO-LEGENDA-FRASE-3010: vírgula também fecha · KINEO-LEGENDA-PONTO-ALFABETOS: vírgula árabe/chinesa também
-      if (natural) fechosNaturais.add(w) // KINEO-LEGENDA-NEGACAO-0911
+      if (maxWords > 1 && !natural && next && !pedacoDaNegacao && current.length >= teto) { // KINEO-LEGENDA-NEGACAO-0911 — maxWords 1 é o uso como tokenizador (lib/filmes/faceless15): nada a planejar
+        let fim = i + 1 // KINEO-LEGENDA-NEGACAO-0911 — a oração vai até o primeiro fecho natural (ou o fim da fala)
+        while (fim < windowWords.length - 1 && !fechaAOracao(fim)) fim++ // KINEO-LEGENDA-NEGACAO-0911
+        const plano = planoDaNegacao(current, windowWords.slice(i + 1, fim + 1), { palavra: (x) => x.word, maxPalavras: LEGENDA_NEGACAO_PALAVRAS, cabe: (itens) => pedacoDaNegacaoCabe(itens.map((x) => x.word), itens[0].start < LEGENDA_GANCHO_ATE_SEGUNDOS), idioma: ACTIVE_CAPTION_IDIOMA, viajaComASeguinte: (x) => terminaEmPalavraFuncao(x.word) }) // KINEO-LEGENDA-NEGACAO-0911
+        if (plano) { // KINEO-LEGENDA-NEGACAO-0911
+          if (plano.prefixo > 0) { groups.push(current.slice(0, plano.prefixo)); current = current.slice(plano.prefixo) } // KINEO-LEGENDA-NEGACAO-0911 — o que vem antes da negação fecha como pedaço próprio
+          teto = plano.tamanho // KINEO-LEGENDA-NEGACAO-0911
+          pedacoDaNegacao = true // KINEO-LEGENDA-NEGACAO-0911
+        } // KINEO-LEGENDA-NEGACAO-0911
+      } // KINEO-LEGENDA-NEGACAO-0911
       const boundary =
-        current.length >= maxWords ||
+        current.length >= teto || // KINEO-LEGENDA-NEGACAO-0911 — era maxWords; sem plano da negação, teto === maxWords
         natural
       if (boundary) {
         // KINEO-LEGENDA-FRASE-3010 — fechou só pelo teto e a última palavra é artigo/preposição: ela abre o próximo chunk.
@@ -1328,18 +1344,12 @@ export function buildCaptionsFromWhisperWords(
           groups.push(current)
           current = []
         }
+        teto = maxWords // KINEO-LEGENDA-NEGACAO-0911 — o pedaço seguinte volta ao teto normal
+        pedacoDaNegacao = false // KINEO-LEGENDA-NEGACAO-0911
       }
     }
     if (current.length) groups.push(current)
   }
-  // KINEO-LEGENDA-NEGACAO-0911 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — render dc469323 (cliente pagante, 09/11): "BEING CLEVER DOESN'T MEAN" |
-  // KINEO-LEGENDA-NEGACAO-0911 — "YOU SHOULD FORGET ALLAH": o teto fechou o pedaço logo depois da negação e o pedaço seguinte, sozinho na tela, disse o contrário da frase.
-  // KINEO-LEGENDA-NEGACAO-0911 — Pedaço que fechou pelo teto com uma negação dentro: a negação desce e o pedaço seguinte estica até o fim da oração (no máximo teto + 2
-  // KINEO-LEGENDA-NEGACAO-0911 — palavras e 40 letras; lib/legendaNegacao). Sem negação, ou com a oração maior que isso, os pedaços ficam exatamente como eram.
-  if (maxWords > 1) { // KINEO-LEGENDA-NEGACAO-0911 — maxWords 1 é o uso como tokenizador (lib/filmes/faceless15): nada a juntar
-    const semNegacaoPartida = juntarNegacaoComONegado(groups, { palavra: (w) => w.word, fechoNatural: (g) => fechosNaturais.has(g[g.length - 1]), maxPalavras: maxWords + LEGENDA_NEGACAO_FOLGA, idioma: ACTIVE_CAPTION_IDIOMA, viajaComASeguinte: (w) => terminaEmPalavraFuncao(w.word) }) // KINEO-LEGENDA-NEGACAO-0911
-    if (semNegacaoPartida !== groups) groups.splice(0, groups.length, ...semNegacaoPartida) // KINEO-LEGENDA-NEGACAO-0911
-  } // KINEO-LEGENDA-NEGACAO-0911
 
   for (let i = 0; i < groups.length; i++) {
     const chunk = groups[i]
@@ -1418,14 +1428,51 @@ export function buildCaptionsFromWhisperWords(
   return result
 }
 
-// KINEO-LEGENDA-NEGACAO-0911 — a mesma regra no corte proporcional (sem Whisper, buildCaptionSegments fatia cada frase do roteiro de N em N palavras): o pedaço
-// KINEO-LEGENDA-NEGACAO-0911 — que termina em ponto ou vírgula fechou a oração; os outros fecharam pelo teto. Nada a juntar = o MESMO array, com os mesmos segmentos.
+// KINEO-LEGENDA-NEGACAO-0911 (2) — o pedaço da negação cabe na pílula? Até LEGENDA_NEGACAO_LINHAS linhas, pela MESMA conta de letras de fonteDaLegendaQueCabe (0,72 em por letra em caixa
+// KINEO-LEGENDA-NEGACAO-0911 — alta; caixa do formato com 8% de respiro). `gancho` = o pedaço pode sair na fonte maior do gancho (a 1ª frase do filme, que vai até 6 s): a conta usa a fonte maior.
+const LEGENDA_GANCHO_ATE_SEGUNDOS = 6 // KINEO-LEGENDA-NEGACAO-0911 — o teto de firstSentenceEndsAt (KINEO-HOOK-SENTENCE-2026-07-31)
+function pedacoDaNegacaoCabe(palavras: readonly unknown[], gancho: boolean): boolean { // KINEO-LEGENDA-NEGACAO-0911
+  const caixa = ACTIVE_ASPECT.width * ((parseFloat(ACTIVE_ASPECT.captionWidth) || 78) / 100) * 0.92 // KINEO-LEGENDA-NEGACAO-0911
+  const porLinha = Math.max(1, Math.floor(caixa / ((gancho ? ACTIVE_ASPECT.hookFontSize : ACTIVE_ASPECT.captionFontSize) * LEGENDA_LETRA_EM))) // KINEO-LEGENDA-NEGACAO-0911
+  return linhasDaLegenda(palavras, porLinha) <= LEGENDA_NEGACAO_LINHAS // KINEO-LEGENDA-NEGACAO-0911
+} // KINEO-LEGENDA-NEGACAO-0911
+
+// KINEO-LEGENDA-NEGACAO-0911 — a mesma regra no corte proporcional (sem Whisper, buildCaptionSegments fatia cada frase do roteiro de N em N palavras): dentro de cada frase, o pedaço que
+// KINEO-LEGENDA-NEGACAO-0911 — bate no teto com uma negação dentro passa pelo mesmo plano (a oração vai até a vírgula ou o fim da frase) e o resto da frase volta a ser fatiado de N em N.
+// KINEO-LEGENDA-NEGACAO-0911 — Aqui não se sabe o tempo do pedaço: a conta das linhas usa sempre a fonte do gancho (a maior). Frase sem plano = os MESMOS segmentos; nada a mudar = o MESMO array.
 export function segmentosSemNegacaoPartida(segmentos: CaptionSegment[], maxWords: number): CaptionSegment[] { // KINEO-LEGENDA-NEGACAO-0911
-  const grupos = segmentos.map((seg) => narrationTokens(seg.text)) // KINEO-LEGENDA-NEGACAO-0911
-  const juntos = juntarNegacaoComONegado(grupos, { palavra: (w) => w, fechoNatural: (g) => /[.!?…,;:،؛，、；؟۔।。！？]["'”’»)\]」』]*$/.test(g[g.length - 1] ?? ''), maxPalavras: maxWords + LEGENDA_NEGACAO_FOLGA, idioma: ACTIVE_CAPTION_IDIOMA, viajaComASeguinte: (w) => terminaEmPalavraFuncao(w) }) // KINEO-LEGENDA-NEGACAO-0911
-  if (juntos === grupos) return segmentos // KINEO-LEGENDA-NEGACAO-0911
-  const original = new Map(grupos.map((g, i) => [g, segmentos[i]])) // KINEO-LEGENDA-NEGACAO-0911 — pedaço que não mudou sai com o segmento de antes
-  return juntos.map((g) => original.get(g) ?? ((text) => ({ text, highlight: pickHighlightWord(text) }))(joinNarrationTokens(g).trim())) // KINEO-LEGENDA-NEGACAO-0911
+  if (!(maxWords > 1)) return segmentos // KINEO-LEGENDA-NEGACAO-0911
+  const fechaAFrase = (palavra: string): boolean => /[.!?…؟۔।。！？]["'”’»)\]」』]*$/.test(palavra) // KINEO-LEGENDA-NEGACAO-0911
+  const fechaAOracao = (palavra: string): boolean => fechaAFrase(palavra) || /[,;:،؛，、；]["'”’»)\]」』]*$/.test(palavra) // KINEO-LEGENDA-NEGACAO-0911
+  const saida: CaptionSegment[] = [] // KINEO-LEGENDA-NEGACAO-0911
+  let mudou = false // KINEO-LEGENDA-NEGACAO-0911
+  for (let i = 0; i < segmentos.length;) { // KINEO-LEGENDA-NEGACAO-0911
+    let j = i // KINEO-LEGENDA-NEGACAO-0911 — a frase: os segmentos até o que termina em ponto (buildCaptionSegments nunca atravessa uma frase)
+    while (j < segmentos.length - 1 && !fechaAFrase(segmentos[j].text.trim())) j++ // KINEO-LEGENDA-NEGACAO-0911
+    const palavras = segmentos.slice(i, j + 1).flatMap((seg) => narrationTokens(seg.text)) // KINEO-LEGENDA-NEGACAO-0911
+    const pedacos: string[][] = [] // KINEO-LEGENDA-NEGACAO-0911
+    let atual: string[] = [], teto = maxWords, pedacoDaNegacao = false, planejou = false // KINEO-LEGENDA-NEGACAO-0911
+    for (let k = 0; k < palavras.length; k++) { // KINEO-LEGENDA-NEGACAO-0911
+      atual.push(palavras[k]) // KINEO-LEGENDA-NEGACAO-0911
+      const ultima = k === palavras.length - 1 // KINEO-LEGENDA-NEGACAO-0911
+      if (!ultima && !pedacoDaNegacao && atual.length >= teto && !fechaAOracao(palavras[k])) { // KINEO-LEGENDA-NEGACAO-0911
+        let fim = k + 1 // KINEO-LEGENDA-NEGACAO-0911
+        while (fim < palavras.length - 1 && !fechaAOracao(palavras[fim])) fim++ // KINEO-LEGENDA-NEGACAO-0911
+        const plano = planoDaNegacao(atual, palavras.slice(k + 1, fim + 1), { palavra: (x) => x, maxPalavras: LEGENDA_NEGACAO_PALAVRAS, cabe: (itens) => pedacoDaNegacaoCabe(itens, true), idioma: ACTIVE_CAPTION_IDIOMA, viajaComASeguinte: (x) => terminaEmPalavraFuncao(x) }) // KINEO-LEGENDA-NEGACAO-0911
+        if (plano) { // KINEO-LEGENDA-NEGACAO-0911
+          if (plano.prefixo > 0) { pedacos.push(atual.slice(0, plano.prefixo)); atual = atual.slice(plano.prefixo) } // KINEO-LEGENDA-NEGACAO-0911
+          teto = plano.tamanho // KINEO-LEGENDA-NEGACAO-0911
+          pedacoDaNegacao = true // KINEO-LEGENDA-NEGACAO-0911
+          planejou = true // KINEO-LEGENDA-NEGACAO-0911
+        } // KINEO-LEGENDA-NEGACAO-0911
+      } // KINEO-LEGENDA-NEGACAO-0911
+      if (ultima || atual.length >= teto) { pedacos.push(atual); atual = []; teto = maxWords; pedacoDaNegacao = false } // KINEO-LEGENDA-NEGACAO-0911
+    } // KINEO-LEGENDA-NEGACAO-0911
+    if (planejou) { mudou = true; for (const pedaco of pedacos) { const text = joinNarrationTokens(pedaco).trim(); if (text) saida.push({ text, highlight: pickHighlightWord(text) }) } } // KINEO-LEGENDA-NEGACAO-0911
+    else for (let s = i; s <= j; s++) saida.push(segmentos[s]) // KINEO-LEGENDA-NEGACAO-0911 — frase sem negação partida: os segmentos de antes, os mesmos objetos
+    i = j + 1 // KINEO-LEGENDA-NEGACAO-0911
+  } // KINEO-LEGENDA-NEGACAO-0911
+  return mudou ? saida : segmentos // KINEO-LEGENDA-NEGACAO-0911
 } // KINEO-LEGENDA-NEGACAO-0911
 
 function wordCount(s: string): number {
