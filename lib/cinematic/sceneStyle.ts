@@ -127,8 +127,41 @@ export function deriveStyleAnchor(scriptAndVisuals: string, explicitStyleSuffix?
   const base = LOOKS[look]
   // Estilo explícito do cliente (globalStyle) manda: entra depois da trava.
   const extra = explicitStyleSuffix && explicitStyleSuffix.trim() ? explicitStyleSuffix.trim().replace(/^,\s*/, '') : ''
+  if (look === 'animated3d' && pedeTomEscuro(`${t}\n${explicit}`)) { // KINEO-3D-ESCURO-0911
+    const extraEscuro = extra.replace(MOOD_ALEGRE_3D_G, ' ').split(',').map((s) => s.trim()).filter(Boolean) // KINEO-3D-ESCURO-0911
+    return { look, lookPhrase: LOOK_3D_ESCURO, suffix: `, ${base.lock}, suspenseful, moody${extraEscuro.length ? `, ${extraEscuro.join(', ')}` : ''}` } // KINEO-3D-ESCURO-0911
+  }
   return { look, lookPhrase: base.phrase, suffix: `, ${base.lock}${extra ? `, ${extra}` : ''}` }
 }
+
+// ═══ KINEO-3D-ESCURO-0911 — 3D de terror não é Pixar ═══
+// CASO (sgtoxic481, 09/11 17:11, filme grátis, render 6b84079a): o cliente colou do ChatGPT "Genre: Psychological horror …
+// Visual style: Dark, cinematic 3D animation. Consistent character and realistic environments." O look 3D tinha UM molde só —
+// "soft rounded shapes, bright saturated colors" — e o plano ainda colava ", energetic". Saiu desenho alegre de olho grande
+// num terror (nota 4). Agora: look 3D + pedido de tom escuro (terror/suspense/sombrio, nas línguas da casa; "dark" só colado a
+// palavra de estilo, nunca "dark hair") ⇒ 3D cinematográfico de luz baixa, e o mood alegre do plano sai. Pedido infantil ou
+// negado ("not scary") fica no molde de sempre, byte a byte. Fotorreal, anime, ilustração e noir: intocados.
+const LOOK_3D_ESCURO = 'cinematic 3D animated film look, realistic environments, moody low-key lighting, deep shadows, muted desaturated colors, not photorealistic' // KINEO-3D-ESCURO-0911
+const MOOD_ALEGRE_3D_G = /(?<![\p{L}\p{N}])(?:energetic|energizing|upbeat|cheerful|cheery|happy|joyful|joyous|playful|fun|lively|bubbly|peppy|uplifting|feel[- ]good|festive|bright)(?![\p{L}\p{N}])/giu // KINEO-3D-ESCURO-0911
+const TOM_ESCURO_RE = new RegExp([ // KINEO-3D-ESCURO-0911
+  String.raw`horror|creepy|scary|eerie|sinister|haunted|haunting|thriller|suspense|suspenseful|ominous|gloomy|gothic|terrifying|nightmarish|menacing|macabre|dread`,
+  String.raw`terror|assustador|assustadora|sombrio|sombria|macabro|arrepiante|suspense|miedo|siniestro|siniestra|escalofriante|oscuro|oscura|tenebroso|tenebrosa`,
+  String.raw`horreur|effrayant|angoissant|sombre|gruselig|unheimlich|orrore|inquietante`,
+].map((g) => String.raw`(?<![\p{L}\p{N}])(?:${g})(?![\p{L}\p{N}])`).join('|'), 'giu') // KINEO-3D-ESCURO-0911
+const DARK_DE_ESTILO_RE = /\bdark(?:er)?\b[\s,]*(?:and\s+)?(?:cinematic|moody|gritty|3d|animated|animation|style|tone|mood|atmosphere|look|aesthetic|fantasy)\b|\b(?:style|tone|mood|look|atmosphere|aesthetic)\s*[:=-]?\s*dark\b/i // KINEO-3D-ESCURO-0911
+const PEDIDO_INFANTIL_RE = /(?<![\p{L}\p{N}])(?:kids?|children|child|toddlers?|nursery|lullaby|bedtime|preschool|infantil|criança|crianças|niños|niñas|enfants)(?![\p{L}\p{N}])/iu // KINEO-3D-ESCURO-0911
+const NEGADOR_ANTES_RE = /(?:^|[\s,(])(?:no|not|never|without|non|sem|sin|não|nao|nada|nunca|pas|ohne|senza|zero)(?:\s+\S+){0,2}\s*$/i // KINEO-3D-ESCURO-0911
+/** O texto do cliente pede um 3D de tom escuro (terror, suspense, sombrio)? Negado ("not scary") e pedido infantil não contam. */
+export function pedeTomEscuro(texto: string | null | undefined): boolean { // KINEO-3D-ESCURO-0911
+  const t = String(texto ?? '').slice(0, 8000) // KINEO-3D-ESCURO-0911
+  if (!t.trim() || PEDIDO_INFANTIL_RE.test(t)) return false // KINEO-3D-ESCURO-0911
+  if (DARK_DE_ESTILO_RE.test(t)) return true // KINEO-3D-ESCURO-0911
+  for (const m of t.matchAll(TOM_ESCURO_RE)) { // KINEO-3D-ESCURO-0911
+    const antes = t.slice(Math.max(0, (m.index ?? 0) - 40), m.index ?? 0).split(/[.!?;\n]/).pop() ?? '' // KINEO-3D-ESCURO-0911
+    if (!NEGADOR_ANTES_RE.test(antes)) return true // KINEO-3D-ESCURO-0911
+  } // KINEO-3D-ESCURO-0911
+  return false // KINEO-3D-ESCURO-0911
+} // KINEO-3D-ESCURO-0911
 
 /** Aplica o look ao prompt clássico: troca o fragmento fotorreal quando o look não é fotorreal e cola a trava. */
 export function applyStyleAnchor(prompt: string, anchor: StyleAnchor): string {
