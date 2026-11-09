@@ -49,10 +49,16 @@ const expected = [
 ]
 const byPath = new Map(sitemap.map(e => [new URL(e.url).pathname, e]))
 const CITADAS_0511 = new Set(['/', '/ai-video-generator/seedance', '/text-to-video-shorts', '/free-ai-shorts/horror', '/ai-video-generator/for/urdu', '/gerador-de-shorts-gratis']) // KINEO-PAGINAS-CITADAS-0511
+// KINEO-CITACOES-0911: revisões publicadas depois do snapshot de 23/10; datas específicas, sem aceitar qualquer data recente.
+const REVISED_DATES = new Map([
+  ['/ai-video-generator/for/story-videos', '2026-11-09'],
+  ['/ai-video-generator/seedance', '2026-11-07'],
+  ['/pricing', '2026-11-06'],
+])
 assert.equal(sitemap.length, new Set(sitemap.map(e => e.url)).size, 'canonical deduplication')
 for (const path of [...expected, '/ai-kids-cartoon-videos', '/desenho-infantil-3d-com-ia', '/pricing']) {
   assert.ok(byPath.has(path), `mapped: ${path}`)
-  assert.equal(new Date(byPath.get(path).lastModified).toISOString().slice(0, 10), CITADAS_0511.has(path) ? '2026-11-05' : '2026-10-23', `review date: ${path}`) // KINEO-PAGINAS-CITADAS-0511 — as 6 páginas relidas andam; o resto fica em 23/10
+  assert.equal(new Date(byPath.get(path).lastModified).toISOString().slice(0, 10), REVISED_DATES.get(path) ?? (CITADAS_0511.has(path) ? '2026-11-05' : '2026-10-23'), `review date: ${path}`)
 }
 for (const entry of sitemap) {
   assert.equal(new URL(entry.url).origin, 'https://www.usekineo.com')
@@ -72,7 +78,8 @@ const intro = body.slice(0, body.indexOf('## Videos from an idea or a script'))
 const facts = llmsLoad('lib/kineoFacts.ts').getKineoFacts()
 assert.ok(intro.includes(facts.studioAds.url) && intro.includes(facts.businessVideoService.url), 'current intro preserves both public Ads paths after Film first')
 assert.ok(intro.includes('free and trial accounts can make their first ad free (one per account, within a daily limit)') && intro.includes('guaranteed sales') && !intro.includes('free trial does not include it'), 'current intro preserves the actual first-ad sample limits and excludes a sales guarantee')
-for (const text of ['Product information reviewed: 2026-10-23', 'Customers in Brazil pay in BRL', '/text-to-video-shorts', '/ai-video-generator/for/urdu', 'AI UGC']) assert.ok(body.includes(text), `llms: ${text}`)
+for (const text of ['Product information reviewed: 2026-10-23', 'Customers in Brazil pay in BRL', '/text-to-video-shorts', 'AI UGC']) assert.ok(body.includes(text), `llms: ${text}`)
+assert.ok(!body.includes('/ai-video-generator/for/urdu'), 'a língua cortada em 03/11 não é promovida no llms')
 assert.doesNotMatch(body, /charges? (?:plan prices )?in USD worldwide|All prices in USD\./i)
 const cost = llmsLoad('lib/credits/engineCost.ts').creditCostForDuration
 assert.ok(body.includes(`${cost('cinematic_ai', true, 15)} credits at 15 seconds or ${cost('cinematic_ai', true, 60)} credits at 60 seconds`))

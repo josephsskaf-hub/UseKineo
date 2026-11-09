@@ -344,7 +344,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ])
   const staticEntries = routes.filter((r) => !engineNoIndex.some((p) => r.path === p || r.path.startsWith(`${p}/`))).map((r) => ({
     url: `${BASE}${r.path}`,
-    lastModified: r.path.endsWith('/made-with-kineo') ? new Date('2026-10-26T00:00:00.000Z') : r.path === '/ads' ? ADS_DOOR_LAST_MODIFIED
+    // KINEO-CITACOES-0911 — datas das mudanças materiais já publicadas; não a data da leitura.
+    // /pricing: e31d52c09 (06/11); Kling 4: 4aba8a177 (02/11). Não altera as seis páginas em teste.
+    lastModified: r.path === '/pricing' ? new Date('2026-11-06T18:40:25.000Z')
+      : r.path === '/ai-video-generator/kling-4' ? new Date('2026-11-02T15:25:13.000Z')
+      : r.path.endsWith('/made-with-kineo') ? new Date('2026-10-26T00:00:00.000Z') : r.path === '/ads' ? ADS_DOOR_LAST_MODIFIED
       : ['/business-video-ads', '/sora-alternative'].includes(r.path)
       ? new Date('2026-09-24T13:51:19.000Z') : geoRodada2Revised.has(r.path) ? GEO_RODADA2_LAST_MODIFIED : geoRodada3Revised.has(r.path) ? GEO_RODADA3_LAST_MODIFIED : r.path === STATE_STUDY_PATH ? STATE_STUDY_LAST_MODIFIED : engineGeoRevised.has(r.path) ? ENGINE_GEO_LAST_MODIFIED : LAST_MODIFIED,
     changeFrequency: r.freq,
