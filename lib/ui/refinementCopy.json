@@ -1,5 +1,10 @@
 {
   "en": {
+    "Kineo inside Claude": "Kineo inside Claude",
+    "Kineo inside ChatGPT": "Kineo inside ChatGPT",
+    "Ask Claude for a film. Kineo makes it in your account, with your credits.": "Ask Claude for a film. Kineo makes it in your account, with your credits.",
+    "Ask ChatGPT for a film. Kineo makes it in your account, with your credits.": "Ask ChatGPT for a film. Kineo makes it in your account, with your credits.",
+    "Use now": "Use now",
     "Account": "Account",
     "Upgrade": "Upgrade",
     "My videos": "My videos",
@@ -379,6 +384,11 @@
     "Change": "Change"
   },
   "pt": {
+    "Kineo inside Claude": "Kineo dentro do Claude",
+    "Kineo inside ChatGPT": "Kineo dentro do ChatGPT",
+    "Ask Claude for a film. Kineo makes it in your account, with your credits.": "Peça um filme ao Claude. A Kineo faz na sua conta, com seus créditos.",
+    "Ask ChatGPT for a film. Kineo makes it in your account, with your credits.": "Peça um filme ao ChatGPT. A Kineo faz na sua conta, com seus créditos.",
+    "Use now": "Usar agora",
     "Account": "Conta",
     "Upgrade": "Fazer upgrade",
     "My videos": "Meus vídeos",
@@ -757,6 +767,11 @@
     "Change": "Trocar"
   },
   "es": {
+    "Kineo inside Claude": "Kineo dentro de Claude",
+    "Kineo inside ChatGPT": "Kineo dentro de ChatGPT",
+    "Ask Claude for a film. Kineo makes it in your account, with your credits.": "Pídele una película a Claude. Kineo la hace en tu cuenta, con tus créditos.",
+    "Ask ChatGPT for a film. Kineo makes it in your account, with your credits.": "Pídele una película a ChatGPT. Kineo la hace en tu cuenta, con tus créditos.",
+    "Use now": "Usar ahora",
     "Account": "Cuenta",
     "Upgrade": "Mejorar plan",
     "My videos": "Mis videos",
@@ -1134,6 +1149,11 @@
     "Change": "Cambiar"
   },
   "fr": {
+    "Kineo inside Claude": "Kineo dans Claude",
+    "Kineo inside ChatGPT": "Kineo dans ChatGPT",
+    "Ask Claude for a film. Kineo makes it in your account, with your credits.": "Demande un film à Claude. Kineo le crée dans ton compte, avec tes crédits.",
+    "Ask ChatGPT for a film. Kineo makes it in your account, with your credits.": "Demande un film à ChatGPT. Kineo le crée dans ton compte, avec tes crédits.",
+    "Use now": "Utiliser maintenant",
     "Account": "Compte",
     "Upgrade": "Changer de formule",
     "My videos": "Mes vidéos",
@@ -1512,6 +1532,11 @@
     "Change": "Changer"
   },
   "de": {
+    "Kineo inside Claude": "Kineo in Claude",
+    "Kineo inside ChatGPT": "Kineo in ChatGPT",
+    "Ask Claude for a film. Kineo makes it in your account, with your credits.": "Bitte Claude um einen Film. Kineo erstellt ihn in deinem Konto, mit deinen Credits.",
+    "Ask ChatGPT for a film. Kineo makes it in your account, with your credits.": "Bitte ChatGPT um einen Film. Kineo erstellt ihn in deinem Konto, mit deinen Credits.",
+    "Use now": "Jetzt nutzen",
     "Account": "Konto",
     "Upgrade": "Upgrade",
     "My videos": "Meine Videos",
@@ -1890,6 +1915,11 @@
     "Change": "Ändern"
   },
   "it": {
+    "Kineo inside Claude": "Kineo dentro Claude",
+    "Kineo inside ChatGPT": "Kineo dentro ChatGPT",
+    "Ask Claude for a film. Kineo makes it in your account, with your credits.": "Chiedi un film a Claude. Kineo lo crea nel tuo account, con i tuoi crediti.",
+    "Ask ChatGPT for a film. Kineo makes it in your account, with your credits.": "Chiedi un film a ChatGPT. Kineo lo crea nel tuo account, con i tuoi crediti.",
+    "Use now": "Usa ora",
     "Account": "Account",
     "Upgrade": "Passa a un piano superiore",
     "My videos": "I miei video",
@@ -2268,6 +2298,11 @@
     "Change": "Cambia"
   },
   "nl": {
+    "Kineo inside Claude": "Kineo in Claude",
+    "Kineo inside ChatGPT": "Kineo in ChatGPT",
+    "Ask Claude for a film. Kineo makes it in your account, with your credits.": "Vraag Claude om een film. Kineo maakt hem in je account, met je credits.",
+    "Ask ChatGPT for a film. Kineo makes it in your account, with your credits.": "Vraag ChatGPT om een film. Kineo maakt hem in je account, met je credits.",
+    "Use now": "Nu gebruiken",
     "Account": "Account",
     "Upgrade": "Upgraden",
     "My videos": "Mijn video’s",
@@ -2646,6 +2681,11 @@
     "Change": "Wijzigen"
   },
   "pl": {
+    "Kineo inside Claude": "Kineo w Claude",
+    "Kineo inside ChatGPT": "Kineo w ChatGPT",
+    "Ask Claude for a film. Kineo makes it in your account, with your credits.": "Poproś Claude o film. Kineo zrobi go na Twoim koncie, za Twoje kredyty.",
+    "Ask ChatGPT for a film. Kineo makes it in your account, with your credits.": "Poproś ChatGPT o film. Kineo zrobi go na Twoim koncie, za Twoje kredyty.",
+    "Use now": "Użyj teraz",
     "Account": "Konto",
     "Upgrade": "Wyższy plan",
     "My videos": "Moje filmy",
@@ -3024,6 +3064,11 @@
     "Change": "Zmień"
   },
   "tr": {
+    "Kineo inside Claude": "Claude içinde Kineo",
+    "Kineo inside ChatGPT": "ChatGPT içinde Kineo",
+    "Ask Claude for a film. Kineo makes it in your account, with your credits.": "Claude'dan bir film iste. Kineo onu hesabında, kredilerinle yapar.",
+    "Ask ChatGPT for a film. Kineo makes it in your account, with your credits.": "ChatGPT'den bir film iste. Kineo onu hesabında, kredilerinle yapar.",
+    "Use now": "Şimdi kullan",
     "Account": "Hesap",
     "Upgrade": "Planı yükselt",
     "My videos": "Videolarım",
@@ -3402,6 +3447,11 @@
     "Change": "Değiştir"
   },
   "ru": {
+    "Kineo inside Claude": "Kineo внутри Claude",
+    "Kineo inside ChatGPT": "Kineo внутри ChatGPT",
+    "Ask Claude for a film. Kineo makes it in your account, with your credits.": "Попроси Claude снять фильм. Kineo сделает его в твоём аккаунте за твои кредиты.",
+    "Ask ChatGPT for a film. Kineo makes it in your account, with your credits.": "Попроси ChatGPT снять фильм. Kineo сделает его в твоём аккаунте за твои кредиты.",
+    "Use now": "Использовать",
     "Account": "Аккаунт",
     "Upgrade": "Повысить тариф",
     "My videos": "Мои видео",
@@ -3780,6 +3830,11 @@
     "Change": "Заменить"
   },
   "uk": {
+    "Kineo inside Claude": "Kineo всередині Claude",
+    "Kineo inside ChatGPT": "Kineo всередині ChatGPT",
+    "Ask Claude for a film. Kineo makes it in your account, with your credits.": "Попроси Claude зробити фільм. Kineo створить його у твоєму акаунті за твої кредити.",
+    "Ask ChatGPT for a film. Kineo makes it in your account, with your credits.": "Попроси ChatGPT зробити фільм. Kineo створить його у твоєму акаунті за твої кредити.",
+    "Use now": "Використати",
     "Account": "Акаунт",
     "Upgrade": "Підвищити тариф",
     "My videos": "Мої відео",
@@ -4158,6 +4213,11 @@
     "Change": "Змінити"
   },
   "ar": {
+    "Kineo inside Claude": "Kineo داخل Claude",
+    "Kineo inside ChatGPT": "Kineo داخل ChatGPT",
+    "Ask Claude for a film. Kineo makes it in your account, with your credits.": "اطلب من Claude فيلمًا. يصنعه Kineo في حسابك وبأرصدتك.",
+    "Ask ChatGPT for a film. Kineo makes it in your account, with your credits.": "اطلب من ChatGPT فيلمًا. يصنعه Kineo في حسابك وبأرصدتك.",
+    "Use now": "استخدم الآن",
     "Account": "الحساب",
     "Upgrade": "ترقية الخطة",
     "My videos": "مقاطع الفيديو الخاصة بي",
@@ -4536,6 +4596,11 @@
     "Change": "تغيير"
   },
   "ur": {
+    "Kineo inside Claude": "Claude کے اندر Kineo",
+    "Kineo inside ChatGPT": "ChatGPT کے اندر Kineo",
+    "Ask Claude for a film. Kineo makes it in your account, with your credits.": "Claude سے فلم مانگیں۔ Kineo اسے آپ کے اکاؤنٹ میں، آپ کے کریڈٹس سے بناتا ہے۔",
+    "Ask ChatGPT for a film. Kineo makes it in your account, with your credits.": "ChatGPT سے فلم مانگیں۔ Kineo اسے آپ کے اکاؤنٹ میں، آپ کے کریڈٹس سے بناتا ہے۔",
+    "Use now": "ابھی استعمال کریں",
     "Account": "اکاؤنٹ",
     "Upgrade": "پلان اپ گریڈ کریں",
     "My videos": "میری ویڈیوز",
@@ -4914,6 +4979,11 @@
     "Change": "بدلیں"
   },
   "hi": {
+    "Kineo inside Claude": "Claude के अंदर Kineo",
+    "Kineo inside ChatGPT": "ChatGPT के अंदर Kineo",
+    "Ask Claude for a film. Kineo makes it in your account, with your credits.": "Claude से एक फ़िल्म माँगें। Kineo उसे आपके खाते में, आपके क्रेडिट से बनाता है।",
+    "Ask ChatGPT for a film. Kineo makes it in your account, with your credits.": "ChatGPT से एक फ़िल्म माँगें। Kineo उसे आपके खाते में, आपके क्रेडिट से बनाता है।",
+    "Use now": "अभी इस्तेमाल करें",
     "Account": "खाता",
     "Upgrade": "प्लान अपग्रेड करें",
     "My videos": "मेरे वीडियो",
@@ -5290,6 +5360,11 @@
     "Change": "बदलें"
   },
   "id": {
+    "Kineo inside Claude": "Kineo di dalam Claude",
+    "Kineo inside ChatGPT": "Kineo di dalam ChatGPT",
+    "Ask Claude for a film. Kineo makes it in your account, with your credits.": "Minta film ke Claude. Kineo membuatnya di akunmu, dengan kreditmu.",
+    "Ask ChatGPT for a film. Kineo makes it in your account, with your credits.": "Minta film ke ChatGPT. Kineo membuatnya di akunmu, dengan kreditmu.",
+    "Use now": "Pakai sekarang",
     "Account": "Akun",
     "Upgrade": "Tingkatkan paket",
     "My videos": "Video saya",
@@ -5668,6 +5743,11 @@
     "Change": "Ganti"
   },
   "vi": {
+    "Kineo inside Claude": "Kineo trong Claude",
+    "Kineo inside ChatGPT": "Kineo trong ChatGPT",
+    "Ask Claude for a film. Kineo makes it in your account, with your credits.": "Nhờ Claude làm một bộ phim. Kineo tạo phim trong tài khoản của bạn, bằng tín dụng của bạn.",
+    "Ask ChatGPT for a film. Kineo makes it in your account, with your credits.": "Nhờ ChatGPT làm một bộ phim. Kineo tạo phim trong tài khoản của bạn, bằng tín dụng của bạn.",
+    "Use now": "Dùng ngay",
     "Account": "Tài khoản",
     "Upgrade": "Nâng cấp",
     "My videos": "Video của tôi",

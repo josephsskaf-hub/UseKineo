@@ -4,11 +4,13 @@
 // INERTE ATÉ O CLIQUE (lição de 04/11: um laço de render congelou uma tela logada sem nenhum teste pegar): montar não lê nada, não agenda nada e não mexe em estado. A rede sai só de abrir(),
 // e os ouvintes só existem com a caixa aberta. Sem bolinha, sem animação, nada abre sozinho (regra sem-card-de-promo-0411). Cada abertura lê de novo: nada fica guardado entre aberturas.
 // A regra de quais linhas aparecem mora em lib/ui/caixaPresente0511.ts. Guardião: scripts/test-caixa-presente-0511.mjs.
+// KINEO-PRESENTE-CONECTOR-0911 — o clique numa linha manda um evento (trackClosedEvent: só o que está escrito aqui, sem utm do navegador e sem guardar nada); montar e abrir seguem mudos. O recuo do botão "Use now" vai em style porque a home zera o recuo de tudo em .klp *.
 import Link from 'next/link'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { UiLabel, useUiCopy } from '@/components/InterfaceLanguage'
 import { annualOfferClock } from '@/lib/billing/annualWelcomeOffer'
-import { CAIXA_SEM_LEITURA, lerCaixa, linhasAindaValidas, linhasDaCaixa, linhasDoVisitante, type CaixaLinha } from '@/lib/ui/caixaPresente0511'
+import { trackClosedEvent } from '@/lib/analytics' // KINEO-PRESENTE-CONECTOR-0911
+import { CAIXA_CLIQUE_EVENTO, CAIXA_SEM_LEITURA, lerCaixa, linhasAindaValidas, linhasDaCaixa, linhasDoVisitante, type CaixaLinha } from '@/lib/ui/caixaPresente0511'
 
 const PAINEL_ID = 'kineo-caixa-presente-painel'
 
@@ -136,7 +138,10 @@ export default function CaixaDePresente0511({ visitante = false, filmeGratisNoPa
               <li key={linha.id}>
                 <Link
                   href={linha.href}
-                  onClick={() => fechar(false)}
+                  onClick={() => {
+                    void trackClosedEvent(CAIXA_CLIQUE_EVENTO, { entry: linha.id, visitor: visitante }) // KINEO-PRESENTE-CONECTOR-0911 — cliques por linha
+                    fechar(false)
+                  }}
                   data-kineo={`caixa-presente-${linha.id}`}
                   data-auth-modal={linha.modal}
                   className="flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-[13px] hover:bg-[var(--card2)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
@@ -147,7 +152,13 @@ export default function CaixaDePresente0511({ visitante = false, filmeGratisNoPa
                     {linha.detalhe && <span className="block text-xs" style={{ color: 'var(--muted)' }}><UiLabel>{linha.detalhe}</UiLabel></span>}
                     {linha.venceEmMs !== undefined && <span className="block text-xs" style={{ color: 'var(--muted)' }}><RelogioDoAnual venceEmMs={linha.venceEmMs} aoVencer={tirarVencidas} /></span>}
                   </span>
-                  <span aria-hidden="true" style={{ color: 'var(--muted)' }}>→</span>
+                  {linha.acao ? (
+                    <span className="shrink-0 whitespace-nowrap text-xs font-semibold" style={{ padding: '4px 10px', borderRadius: 999, border: '1px solid var(--border)', color: 'var(--text)' }}>
+                      <UiLabel>{linha.acao}</UiLabel> <span aria-hidden="true">→</span>
+                    </span>
+                  ) : (
+                    <span aria-hidden="true" style={{ color: 'var(--muted)' }}>→</span>
+                  )}
                 </Link>
               </li>
             ))}

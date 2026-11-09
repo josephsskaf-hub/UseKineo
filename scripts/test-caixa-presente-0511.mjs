@@ -19,6 +19,7 @@ const F = {
   afiliado: 'lib/affiliateCommission.ts',
   filme: 'lib/growth/filmeGratisNaCaixa.ts',
   rotaAnual: 'app/api/offers/annual-welcome/route.ts',
+  traducao: 'lib/ui/refinementCopy.json', // KINEO-PRESENTE-CONECTOR-0911
 }
 const lf = (rel) => fs.readFileSync(path.join(raiz, rel), 'utf8').replace(/\r\n/g, '\n')
 const SRC = Object.fromEntries(Object.values(F).map((rel) => [rel, lf(rel)]))
@@ -73,6 +74,7 @@ function carregarComponente(load, fonte, ambiente) {
     if (nome === 'react') return ambiente.hooks
     if (nome === 'next/link') return { default: ambiente.Link, __esModule: true }
     if (nome === '@/components/InterfaceLanguage') return { UiLabel: ambiente.UiLabel, useUiCopy: () => (s) => s }
+    if (nome === '@/lib/analytics') return { trackClosedEvent: ambiente.track } // KINEO-PRESENTE-CONECTOR-0911 — o evento do clique, contado
     if (nome.startsWith('@/lib/')) return load(nome)
     throw new Error('import inesperado: ' + nome)
   }
@@ -121,7 +123,7 @@ async function problemas(mut = {}) {
 
   // ─── Afiliado: sempre, com a constante ───────────────────────────────────────────────────────────────────────────────────────
   const soAfiliado = so({})
-  checa('todas as leituras falharam: fica só o afiliado', ids(soAfiliado) === 'afiliado')
+  checa('todas as leituras falharam: ficam o conector e o afiliado', ids(soAfiliado) === 'claude,chatgpt,afiliado')
   checa('afiliado: Earn com a taxa da constante, para /affiliate', soAfiliado.at(-1)?.titulo === `Earn ${AFFILIATE_COMMISSION_PCT}` && soAfiliado.at(-1)?.href === '/affiliate')
   checa('afiliado: a mesma taxa do menu', lf('components/Sidebar.tsx').includes(`label="Earn ${AFFILIATE_COMMISSION_PCT}"`))
 
@@ -157,7 +159,7 @@ async function problemas(mut = {}) {
   const agoraLocal = T0 + 137 * 1000 // o relógio do visitante, adiantado
   checa('anual: o prazo vem do servidor, não do relógio do visitante', com(corpoAnual({ criada: criadaHa(H) }), creditsTeste, agoraLocal)?.venceEmMs === agoraLocal + 2 * H)
   checa('anual: dentro do prazo a linha fica', R.linhasAindaValidas([aberta], aberta.venceEmMs - 1).length === 1)
-  checa('anual: vencida com a caixa aberta, a linha sai', R.linhasAindaValidas([aberta, soAfiliado[0]], aberta.venceEmMs).map((l) => l.id).join() === 'afiliado')
+  checa('anual: vencida com a caixa aberta, a linha sai', R.linhasAindaValidas([aberta, soAfiliado.at(-1)], aberta.venceEmMs).map((l) => l.id).join() === 'afiliado')
 
   // ─── Kling 4: só a promoção confirmada para esta conta ───────────────────────────────────────────────────────────────────────
   const temKling = (corpo, agora = T0) => ids(so({ kling4: corpo }, agora)).includes('kling4')
@@ -179,14 +181,15 @@ async function problemas(mut = {}) {
   checa('leitura: as 3 rotas que já existem, cada uma uma vez', urls.slice().sort().join() === ['/api/credits', '/api/kling4-paid/availability', '/api/offers/annual-welcome'].join())
   checa('leitura: o Kling 4 com relógio torto do servidor ainda confirma', ids(R.linhasDaCaixa(lidas, Date.now())).includes('kling4'))
   const ruim = await R.lerCaixa(buscaOk({ [R.CAIXA_CREDITS_API]: 500, [O.ANNUAL_WELCOME_API]: 'não é json' }))
-  checa('leitura: 500, corpo ruim e rede caída viram null e nunca rejeitam', ruim.credits === null && ruim.annual === null && ids(R.linhasDaCaixa(ruim, T0)) === 'afiliado')
+  checa('leitura: 500, corpo ruim e rede caída viram null e nunca rejeitam', ruim.credits === null && ruim.annual === null && ids(R.linhasDaCaixa(ruim, T0)) === 'claude,chatgpt,afiliado')
 
   // ─── O componente: inerte até o clique ───────────────────────────────────────────────────────────────────────────────────────
   const montar = (corpos) => {
     const a = {
-      hooks: {}, chamadas: [], ouvintes: { pointerdown: new Set(), keydown: new Set() }, relogios: [], focos: [],
+      hooks: {}, chamadas: [], eventos: [], ouvintes: { pointerdown: new Set(), keydown: new Set() }, relogios: [], focos: [],
       Link: ({ children }) => children, UiLabel: ({ children }) => children,
     }
+    a.track = (nome, meta) => { a.eventos.push({ nome, meta }); return Promise.resolve('stored') }
     a.fetch = async (url) => { a.chamadas.push(url); const c = corpos[url]; if (c === undefined) throw new Error('rede'); return { ok: true, json: async () => c } }
     a.document = {
       addEventListener: (n, f) => a.ouvintes[n]?.add(f),
@@ -209,7 +212,7 @@ async function problemas(mut = {}) {
   const a = montar(corposCheios)
   a.m.render()
   for (let n = 0; n < 5; n++) a.m.render() // a tela de cima desenhando de novo
-  checa('montado: nenhuma chamada de rede antes do clique', a.chamadas.length === 0)
+  checa('montado: nenhuma chamada de rede antes do clique', a.chamadas.length === 0 && a.eventos.length === 0)
   checa('montado: nenhum estado mexido em efeito', a.m.setsNoEfeito === 0)
   checa('montado: um render por pedido, sem laço', a.m.laco === false && a.m.renders === 6)
   checa('montado: nada escutando e nenhum relógio', a.ouvintes.pointerdown.size === 0 && a.ouvintes.keydown.size === 0 && a.relogios.length === 0)
@@ -219,14 +222,14 @@ async function problemas(mut = {}) {
 
   botao0.props.onClick()
   a.m.render()
-  checa('clique: abre o painel na hora, com o afiliado e o aviso de leitura', Boolean(a.painel()) && a.links().length === 1 && nodes(a.m.arvore).some((n) => n.props?.role === 'status'))
-  checa('clique: lê as 3 rotas', a.chamadas.length === 3)
+  checa('clique: abre o painel na hora, com o conector, o afiliado e o aviso de leitura', Boolean(a.painel()) && a.links().length === 3 && nodes(a.m.arvore).some((n) => n.props?.role === 'status'))
+  checa('clique: lê as 3 rotas, e abrir não manda evento', a.chamadas.length === 3 && a.eventos.length === 0)
   checa('clique: o foco vai para o painel', a.focos.includes('dialog'))
   checa('clique: Esc e clique fora passam a escutar', a.ouvintes.keydown.size === 1 && a.ouvintes.pointerdown.size === 1)
   for (let n = 0; n < 5; n++) await tique()
   a.m.render()
   const hrefs = a.links().map((l) => l.props.href)
-  checa('leitura pronta: as linhas confirmadas, na ordem', hrefs.join() === '/studio,/pricing?billing=annual,/studio?engine=hollywood,/affiliate')
+  checa('leitura pronta: as linhas confirmadas, na ordem', hrefs.join() === '/studio,/pricing?billing=annual,/studio?engine=hollywood,/kineo-in-claude?utm_source=gift_box,/kineo-in-claude?tab=chatgpt&utm_source=gift_box,/affiliate')
   checa('leitura pronta: sem aviso de leitura', !nodes(a.m.arvore).some((n) => n.props?.role === 'status'))
   checa('leitura pronta: sem laço de render', a.m.laco === false && a.chamadas.length === 3)
 
@@ -294,6 +297,14 @@ async function problemas(mut = {}) {
   link?.props.onClick?.()
   e.m.render()
   checa('escolher uma linha fecha a caixa', !e.painel())
+  // KINEO-PRESENTE-CONECTOR-0911 — cada clique conta a linha certa, uma vez.
+  checa('clique numa linha: um evento, com a linha', e.eventos.length === 1 && e.eventos[0].nome === R.CAIXA_CLIQUE_EVENTO && e.eventos[0].meta?.entry === 'afiliado' && e.eventos[0].meta?.visitor === false)
+  e.botao().props.onClick()
+  e.m.render()
+  for (let n = 0; n < 5; n++) await tique()
+  e.m.render()
+  e.links().find((l) => l.props['data-kineo'] === 'caixa-presente-chatgpt')?.props.onClick?.()
+  checa('clique no ChatGPT: o evento diz chatgpt', e.eventos.length === 2 && e.eventos[1].meta?.entry === 'chatgpt')
 
   // Conta de país sem grátis, na tela de verdade, e leitura que falha, na tela de verdade.
   const r = montar({ [R.CAIXA_CREDITS_API]: corpoCredits(regiao), [O.ANNUAL_WELCOME_API]: { nowMs: T0, offer: null, endsAtMs: null }, [R.CAIXA_KLING4_API]: semAssinatura })
@@ -302,14 +313,14 @@ async function problemas(mut = {}) {
   r.m.render()
   for (let n = 0; n < 5; n++) await tique()
   r.m.render()
-  checa('tela: region_paid_only vê só o afiliado', r.links().map((l) => l.props.href).join() === '/affiliate')
+  checa('tela: region_paid_only vê só o conector e o afiliado', r.links().map((l) => l.props.href).join() === '/kineo-in-claude?utm_source=gift_box,/kineo-in-claude?tab=chatgpt&utm_source=gift_box,/affiliate')
   const f = montar({})
   f.m.render()
   f.botao().props.onClick()
   f.m.render()
   for (let n = 0; n < 5; n++) await tique()
   f.m.render()
-  checa('tela: tudo falhou, o afiliado fica e o aviso de leitura sai', f.links().map((l) => l.props.href).join() === '/affiliate' && !nodes(f.m.arvore).some((n) => n.props?.role === 'status'))
+  checa('tela: tudo falhou, o conector e o afiliado ficam e o aviso de leitura sai', f.links().map((l) => l.props.href).join() === '/kineo-in-claude?utm_source=gift_box,/kineo-in-claude?tab=chatgpt&utm_source=gift_box,/affiliate' && !nodes(f.m.arvore).some((n) => n.props?.role === 'status'))
 
   // ─── A costura e o que não pode existir ──────────────────────────────────────────────────────────────────────────────────────
   const semComentario = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/\s\/\/ .*$/gm, '')
@@ -322,6 +333,34 @@ async function problemas(mut = {}) {
   checa('nenhum percentual digitado na regra', !/\d+\s*%/.test(regraCodigo))
   checa('nenhum percentual digitado no componente', !/\d+\s*%/.test(compCodigo))
   checa('a régua do filme é a do Studio', regraCodigo.includes('filmeGratisNaCaixa(l.credits)'))
+
+  // ─── KINEO-PRESENTE-CONECTOR-0911: Kineo dentro do Claude e do ChatGPT ───────────────────────────────────────────────────────
+  const { GENERATE_IN_CLAUDE_PATH } = load('lib/generateInClaude.ts')
+  const conector = (linhas) => linhas.filter((l) => l.id === 'claude' || l.id === 'chatgpt')
+  const claude = soAfiliado.find((l) => l.id === 'claude')
+  const chatgpt = soAfiliado.find((l) => l.id === 'chatgpt')
+  const destino = (l) => { const u = new URL(l?.href ?? 'x:', 'https://www.usekineo.com'); return { path: u.pathname, tab: u.searchParams.get('tab'), utm: u.searchParams.get('utm_source') } }
+  checa('conector: a linha do Claude abre /kineo-in-claude na aba do Claude', GENERATE_IN_CLAUDE_PATH === '/kineo-in-claude' && destino(claude).path === GENERATE_IN_CLAUDE_PATH && destino(claude).tab === null && destino(claude).utm === 'gift_box')
+  checa('conector: a linha do ChatGPT abre /kineo-in-claude?tab=chatgpt', destino(chatgpt).path === GENERATE_IN_CLAUDE_PATH && destino(chatgpt).tab === 'chatgpt' && destino(chatgpt).utm === 'gift_box')
+  checa('conector: os textos combinados', claude?.titulo === 'Kineo inside Claude' && chatgpt?.titulo === 'Kineo inside ChatGPT' && claude?.acao === 'Use now' && chatgpt?.acao === 'Use now' && /Claude/.test(claude?.detalhe ?? '') && /ChatGPT/.test(chatgpt?.detalhe ?? ''))
+  const textoConector = conector(soAfiliado).flatMap((l) => [l.titulo, l.detalhe ?? '', l.acao ?? '']).join(' ')
+  checa('conector: sem preço, número ou percentual', !/[$€£%]|\d/.test(textoConector))
+  checa('conector: nada de grátis, ilimitado, desconto ou presente de crédito', !/\b(free|unlimited|discount|off|bonus|gift|trial)\b/i.test(textoConector))
+  checa('conector: nenhum nome de motor', !/kling|seedance|veo|minimax|hailuo|omni|sora|runway|pixverse|\bwan\b|luma|\bh3\b|kineo 1|nano banana|lyria/i.test(textoConector))
+  checa('conector: diz que o filme gasta os créditos da conta', conector(soAfiliado).every((l) => /with your credits/.test(l.detalhe ?? '')))
+  checa('conector: sem relógio e sem modal de cadastro', conector(soAfiliado).every((l) => l.venceEmMs === undefined && l.modal === undefined))
+  for (const [nome, leituras] of Object.entries({ 'conta em teste': { credits: creditsTeste }, 'conta que pagou': { credits: { ...creditsTeste, hasPaid: true } }, 'país sem grátis': { credits: corpoCredits(regiao) }, 'tudo cheio': lidas })) {
+    checa(`conector: ${nome} vê as duas linhas, antes do afiliado`, ids(R.linhasDaCaixa({ ...R.CAIXA_SEM_LEITURA, ...leituras }, T0)).endsWith('claude,chatgpt,afiliado'))
+  }
+  checa('conector: o visitante também vê (a página é pública)', ids(R.linhasDoVisitante(false)) === 'claude,chatgpt,afiliado' && ids(R.linhasDoVisitante(true)) === 'filme,claude,chatgpt,afiliado')
+  const dic = JSON.parse(fonte(F.traducao))
+  for (const lingua of ['es', 'pt', 'fr', 'de']) {
+    const faltam = conector(soAfiliado).flatMap((l) => [l.titulo, l.detalhe, l.acao]).filter((s) => typeof dic[lingua]?.[s] !== 'string' || !dic[lingua][s].trim())
+    checa(`conector: traduzido em ${lingua}`, faltam.length === 0)
+    const traducoes = conector(soAfiliado).flatMap((l) => [dic[lingua]?.[l.titulo], dic[lingua]?.[l.detalhe]]).join(' ')
+    checa(`conector: ${lingua} mantém Claude e ChatGPT por extenso e sem número`, /Claude/.test(traducoes) && /ChatGPT/.test(traducoes) && !/[$€£%]|\d/.test(traducoes))
+  }
+  checa('conector: o componente desenha o botão da linha', fonte(F.comp).includes('<UiLabel>{linha.acao}</UiLabel>'))
   return p
 }
 
@@ -351,6 +390,19 @@ const MUTANTES = {
   'visitante sem login vê a caixa': troca(F.shell, 'presente={isLoggedIn ? <CaixaDePresente0511 /> : null', 'presente={true ? <CaixaDePresente0511 /> : null'),
   'bolinha piscando': troca(F.comp, 'className="appearance-icon"', 'className="appearance-icon animate-pulse"'),
   'linha do filme sem a régua do Studio': troca(F.filme, "if (d.filmsDelivered !== 0) return false", ''),
+  // KINEO-PRESENTE-CONECTOR-0911
+  'conector some da caixa': troca(F.regra, '  linhas.push(...LINHAS_DO_CONECTOR) // KINEO-PRESENTE-CONECTOR-0911\n', ''),
+  'conector só para quem tem leitura da conta': troca(F.regra, '  linhas.push(...LINHAS_DO_CONECTOR)', '  if (objeto(l.credits)) linhas.push(...LINHAS_DO_CONECTOR)'),
+  'ChatGPT abre a aba do Claude': troca(F.regra, '?tab=chatgpt&utm_source=', '?utm_source='),
+  'conector sem o carimbo gift_box': troca(F.regra, "export const CAIXA_UTM = 'gift_box'", "export const CAIXA_UTM = 'claude'"),
+  'conector promete grátis': troca(F.regra, "detalhe: 'Ask Claude for a film. Kineo makes it in your account, with your credits.'", "detalhe: 'Ask Claude for a free film, made in your Kineo account.'"),
+  'conector com preço': troca(F.regra, "titulo: 'Kineo inside ChatGPT'", "titulo: 'Kineo inside ChatGPT · from 5 credits'"),
+  'conector com nome de motor': troca(F.regra, "titulo: 'Kineo inside Claude'", "titulo: 'Kineo inside Claude (Seedance)'"),
+  'conector sem o botão Use now': troca(F.comp, '<UiLabel>{linha.acao}</UiLabel> ', ''),
+  'clique sem evento': troca(F.comp, '                    void trackClosedEvent(CAIXA_CLIQUE_EVENTO, { entry: linha.id, visitor: visitante })', '                    void 0'),
+  'evento com a linha errada': troca(F.comp, '{ entry: linha.id, visitor: visitante }', "{ entry: 'gift_box', visitor: visitante }"),
+  'evento ao abrir a caixa': troca(F.comp, '    setAberta(true)\n    setLendo(true)', "    void trackClosedEvent(CAIXA_CLIQUE_EVENTO, { entry: 'open' })\n    setAberta(true)\n    setLendo(true)"),
+  'tradução em português some': troca(F.traducao, '"Kineo inside Claude": "Kineo dentro do Claude",', '"Kineo inside Claude (old)": "Kineo dentro do Claude",'),
 }
 
 let falhou = false

@@ -1,7 +1,7 @@
 // KINEO-CAIXA-PRESENTE-0511 [fundador 04/11, olhando a Higgsfield; 05/11 "faz tudo"] — a regra da caixa de presente da barra de cima: o que ESTA conta realmente tem.
 //
 // A pessoa abre quando quer (regra sem-card-de-promo-0411): nada aqui salta na tela. A leitura só acontece no clique, nas rotas que já existem; cada linha precisa da prova do servidor.
-// Leitura que falhou, campo ausente ou de outro tipo = a linha some. O programa de afiliados é a única linha sem condição.
+// Leitura que falhou, campo ausente ou de outro tipo = a linha some. O programa de afiliados e as duas linhas do conector (KINEO-PRESENTE-CONECTOR-0911) são as únicas sem condição.
 //   · Filme grátis: a MESMA régua da linha do Studio (filmeGratisNaCaixa sobre /api/credits). Conta region_paid_only chega com trial.phase 'none' e não passa. A cota semanal de quem saiu
 //     do teste fica de fora de propósito: depende do país do pedido e a E4 decidiu não anunciá-la (ver lib/freeWeeklyFilm.ts).
 //   · Anual a 50%: /api/offers/annual-welcome, a mesma régua do checkout (resolveAnnualOffer). Só welcome_3h: o relógio da Black Friday é outro, e esta linha fala das 3 h.
@@ -14,6 +14,7 @@ import { ANNUAL_WELCOME_DISCOUNT_PERCENT } from '@/lib/checkoutPricing'
 import { LINHA_DO_FILME_GRATIS, filmeGratisNaCaixa } from '@/lib/growth/filmeGratisNaCaixa'
 import { KLING4_PAID_COPY, kling4PromoZeroCredits, rebaseKling4Lease } from '@/lib/kling4PaidPresentation'
 import { TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOffer' // KINEO-HOME-TOPO-0511
+import { GENERATE_IN_CLAUDE_PATH } from '@/lib/generateInClaude' // KINEO-PRESENTE-CONECTOR-0911
 
 export const CAIXA_CREDITS_API = '/api/credits'
 export const CAIXA_KLING4_API = '/api/kling4-paid/availability'
@@ -26,7 +27,7 @@ const KLING4_SEGUNDOS_DA_LEITURA = 60
 const FOLGA_DE_RELOGIO_MS = 60_000
 
 export type CaixaLeituras = { credits: unknown; annual: unknown; kling4: unknown }
-export type CaixaLinhaId = 'filme' | 'anual' | 'kling4' | 'afiliado'
+export type CaixaLinhaId = 'filme' | 'anual' | 'kling4' | 'claude' | 'chatgpt' | 'afiliado'
 export type CaixaLinha = {
   id: CaixaLinhaId
   titulo: string
@@ -36,6 +37,8 @@ export type CaixaLinha = {
   venceEmMs?: number
   /** KINEO-HOME-TOPO-0511 — a linha abre o cadastro no modal da home (data-auth-modal). */
   modal?: 'signup'
+  /** KINEO-PRESENTE-CONECTOR-0911 — o rótulo do botão no fim da linha ("Use now"); sem ele, só a seta. */
+  acao?: string
 }
 
 export const CAIXA_SEM_LEITURA: CaixaLeituras = { credits: null, annual: null, kling4: null }
@@ -57,13 +60,27 @@ function linhaDoAnual(l: CaixaLeituras, agoraMs: number): CaixaLinha | null {
   return { id: 'anual', titulo: `Your ${ANNUAL_WELCOME_DISCOUNT_PERCENT}% annual offer`, href: '/pricing?billing=annual', venceEmMs: agoraMs + faltaMs }
 }
 
-/** As linhas desta conta, nesta ordem. A do afiliado existe sempre, então a caixa nunca abre vazia. */
+// KINEO-PRESENTE-CONECTOR-0911 [fundador 09/11: "colocar o MCP, tanto do GPT quanto do Claude, na caixa de presente. Use agora"] — atalho para a página do conector
+// Kineo Studio (/kineo-in-claude), não presente: conectar não custa nada e o filme pedido no chat sai da conta com os créditos da conta, igual ao site
+// (lib/mcp/studioTools.ts cobra o mesmo débito; a página diz "using your account's credits"). Por isso a linha diz "with your credits" e nunca "free".
+// Sem preço, sem motor, sem logo de terceiro: "Claude" e "ChatGPT" em texto. Vale para toda conta e para o visitante (a página é pública).
+// utm_source=gift_box, o mesmo carimbo da linha do filme do visitante: sem ele, o pouso limpo nesta rota vira a estimativa ai_assistant_likely (KINEO-ORIGEM-CLAUDE-0911).
+export const CAIXA_UTM = 'gift_box'
+export const LINHAS_DO_CONECTOR: readonly CaixaLinha[] = [
+  { id: 'claude', titulo: 'Kineo inside Claude', detalhe: 'Ask Claude for a film. Kineo makes it in your account, with your credits.', href: `${GENERATE_IN_CLAUDE_PATH}?utm_source=${CAIXA_UTM}`, acao: 'Use now' },
+  { id: 'chatgpt', titulo: 'Kineo inside ChatGPT', detalhe: 'Ask ChatGPT for a film. Kineo makes it in your account, with your credits.', href: `${GENERATE_IN_CLAUDE_PATH}?tab=chatgpt&utm_source=${CAIXA_UTM}`, acao: 'Use now' },
+]
+/** O clique numa linha da caixa (qualquer linha): { entry: id da linha, visitor }. Só no clique; nada guardado no navegador (trackClosedEvent). */
+export const CAIXA_CLIQUE_EVENTO = 'gift_box_entry_click'
+
+/** As linhas desta conta, nesta ordem. As do conector e a do afiliado existem sempre, então a caixa nunca abre vazia. */
 export function linhasDaCaixa(l: CaixaLeituras, agoraMs: number): CaixaLinha[] {
   const linhas: CaixaLinha[] = []
   if (filmeGratisNaCaixa(l.credits)) linhas.push({ id: 'filme', titulo: LINHA_DO_FILME_GRATIS, href: '/studio' })
   const anual = linhaDoAnual(l, agoraMs)
   if (anual) linhas.push(anual)
   if (kling4PromoZeroCredits(l.kling4, KLING4_SEGUNDOS_DA_LEITURA, agoraMs)) linhas.push({ id: 'kling4', titulo: KLING4_PAID_COPY.included, href: '/studio?engine=hollywood' })
+  linhas.push(...LINHAS_DO_CONECTOR) // KINEO-PRESENTE-CONECTOR-0911
   linhas.push({ id: 'afiliado', titulo: `Earn ${AFFILIATE_COMMISSION_PCT}`, detalhe: 'Affiliate program', href: '/affiliate' })
   return linhas
 }
@@ -75,7 +92,7 @@ export const LINHA_GRATIS_DO_VISITANTE = 'Your first film is free'
 export function linhasDoVisitante(filmeGratisNoPais: boolean): CaixaLinha[] {
   const linhas: CaixaLinha[] = []
   if (filmeGratisNoPais) linhas.push({ id: 'filme', titulo: LINHA_GRATIS_DO_VISITANTE, detalhe: `${TRIAL_FREE_FILM_SECONDS} s, no card`, href: '/signup?utm_source=gift_box', modal: 'signup' })
-  return [...linhas, ...linhasDaCaixa(CAIXA_SEM_LEITURA, 0)] // sem leitura nenhuma, sobra só a linha do afiliado
+  return [...linhas, ...linhasDaCaixa(CAIXA_SEM_LEITURA, 0)] // sem leitura nenhuma, sobram as linhas do conector e a do afiliado
 }
 
 /** A caixa aberta na hora em que a janela fecha: a linha do anual sai junto com o relógio. */
