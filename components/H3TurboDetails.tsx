@@ -21,13 +21,16 @@ const TEXT = {
   },
 }
 
-export default function H3TurboDetails({ language = 'en' }: { language?: 'en' | 'fr' | 'de' }) {
+export default function H3TurboDetails({ language = 'en', reviewedOn, heading }: { language?: 'en' | 'fr' | 'de'; reviewedOn?: string; heading?: string }) {
   const text = TEXT[language]
   const muted = language === 'en' ? '#5A5F67' : '#a1a1a6'
-  const updated = language === 'en' ? H3_TURBO_PAGE_UPDATED : H3_TURBO_LOCALIZED_UPDATED
+  const updated = reviewedOn ?? (language === 'en' ? H3_TURBO_PAGE_UPDATED : H3_TURBO_LOCALIZED_UPDATED)
+  const date = reviewedOn
+    ? new Intl.DateTimeFormat(language === 'en' ? 'en-US' : language, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${reviewedOn}T12:00:00Z`))
+    : text.date
   return (
     <section aria-labelledby="h3-turbo-cost" style={{ marginTop: 36 }} data-kineo="h3-turbo-cost">
-      <h2 id="h3-turbo-cost" style={{ fontSize: '1.3rem', fontWeight: 650 }}>{text.heading}</h2>
+      <h2 id="h3-turbo-cost" style={{ fontSize: '1.3rem', fontWeight: 650 }}>{heading ?? text.heading}</h2>
       <div style={{ overflowX: 'auto', border: '1px solid #E4E4E0', borderRadius: 14, background: '#fff', color: '#0E1116' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, lineHeight: 1.55 }}>
           <thead style={{ background: '#EEF3FF', textAlign: 'left' }}>
@@ -43,7 +46,7 @@ export default function H3TurboDetails({ language = 'en' }: { language?: 'en' | 
         </table>
       </div>
       <p style={{ fontSize: 13, color: muted, lineHeight: 1.6 }}>{text.note(formatCheckoutMoney('usd', TIER_PRICES.starter.usd), TIER_CREDITS.starter)}</p>
-      <p style={{ fontSize: 13, color: muted }}>{text.updated} <time dateTime={updated}>{text.date}</time>. <a href="/models-pricing">{text.engines}</a> · <a href="/pricing">{text.plans}</a>.</p>
+      <p style={{ fontSize: 13, color: muted }}>{text.updated} <time dateTime={updated}>{date}</time>. <a href="/models-pricing">{text.engines}</a> · <a href="/pricing">{text.plans}</a>.</p>
     </section>
   )
 }

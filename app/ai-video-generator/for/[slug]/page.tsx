@@ -18,6 +18,8 @@ import { PUBLIC_ENGINE_EXAMPLES } from '@/lib/publicExamples'
 import { getIntentPage, INTENT_FAMILY_LABEL, INTENT_HUB_PATH, INTENT_PAGES, INTENT_SLUGS, intentPagePath, type IntentEngine } from '@/lib/seo/intentPages'
 import { PaginaClaraCards, PaginaClaraTopo, PaginaClaraVitrine } from '@/components/seo/PaginaClara' // KINEO-PAGINAS-IA-CLARAS-2110 — o menu do topo, os 4 cards e a vitrine atual da home
 import { PAGINA_CLARA_CLASSE, PAGINA_CLARA_FUNDO } from '@/lib/seo/paginasIaClaras2110' // KINEO-PAGINAS-IA-CLARAS-2110
+import { STORY_VIDEO_COPY, STORY_VIDEO_ENGINE, STORY_VIDEO_UPDATED } from '@/lib/growth/storyVideoPage'
+import H3TurboDetails from '@/components/H3TurboDetails'
 
 const OFFER = getFreeTierOffer()
 const BASE = 'https://www.usekineo.com'
@@ -34,7 +36,7 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
   const p = getIntentPage(params.slug)
   if (!p) return {}
   const url = `${BASE}${intentPagePath(p.slug)}`
-  const description = `${p.intro.slice(0, 150).replace(/\s+\S*$/, '')}… Real films, ${ENGINE_NAME[p.engine]} and generative engines, free trial with no card.`
+  const description = p.slug === 'story-videos' ? STORY_VIDEO_COPY.description : `${p.intro.slice(0, 150).replace(/\s+\S*$/, '')}… Real films, ${ENGINE_NAME[p.engine]} and generative engines, free trial with no card.`
   return {
     metadataBase: new URL(BASE),
     title: p.title,
@@ -77,6 +79,8 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
   if (!p) notFound()
   const url = `${BASE}${intentPagePath(p.slug)}`
   const engineCost = creditsPerReferenceVideo(p.engine)
+  const story = p.slug === 'story-videos'
+  const offerName = story ? STORY_VIDEO_ENGINE : ENGINE_NAME[p.engine]
   // KINEO-FILME-GRATIS-15S-2026-09-29 — o Kineo 1 ('fast') não é mais oferecido a conta nova: a página não diz que o trial
   // cobre filmes dele (era "the trial covers 2 Kineo 1 films"). O que o trial paga é o Seedance 1.5 de 15 s.
   const trialFilms = p.engine === 'fast' ? 0 : trialFilmsForEngine(engineCost)
@@ -90,14 +94,15 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
   const cta = studioHref(p.slug, p.examplePrompt, p.engine, p.language)
   const campaign = `intent_${p.slug}`
   const siblings = INTENT_PAGES.filter((x) => x.family === p.family && x.slug !== p.slug).slice(0, 8)
+  const faqs = story
+    ? [...STORY_VIDEO_COPY.faq, { q: 'Which model creates the story scenes?', a: STORY_VIDEO_COPY.engineAnswer }, { q: 'How much does it cost?', a: STORY_VIDEO_COPY.costAnswer }]
+    : [...p.faq, { q: 'How much does it cost?', a: `The free trial gives ${TRIAL_CREDITS_SHOWN} credits with no card. ${ENGINE_NAME[p.engine]} costs ${engineCost} credits for a 60-second film${trialFilms > 0 ? `, so the trial covers ${trialFilms} film${trialFilms > 1 ? 's' : ''}` : `, which needs a plan${trialFreeFilm}`}. Plans start at ${STARTER_MONTH} for ${STARTER_CREDITS} credits.` }]
+  const visibleFaqs = story ? faqs : [...p.faq, { q: 'How much does it cost?', a: `The free trial gives ${TRIAL_CREDITS_SHOWN} credits with no card. ${ENGINE_NAME[p.engine]} costs ${engineCost} credits per 60-second film${trialFilms > 0 ? `, so the trial covers ${trialFilms} film${trialFilms > 1 ? 's' : ''}` : `, which needs a plan${trialFreeFilm}`}. Plans start at ${STARTER_MONTH} for ${STARTER_CREDITS} credits.` }]
 
   const faqJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: [
-      ...p.faq,
-      { q: 'How much does it cost?', a: `The free trial gives ${TRIAL_CREDITS_SHOWN} credits with no card. ${ENGINE_NAME[p.engine]} costs ${engineCost} credits for a 60-second film${trialFilms > 0 ? `, so the trial covers ${trialFilms} film${trialFilms > 1 ? 's' : ''}` : `, which needs a plan${trialFreeFilm}`}. Plans start at ${STARTER_MONTH} for ${STARTER_CREDITS} credits.` },
-    ].map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+    mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
   }
   const breadcrumbJsonLd = {
     '@context': 'https://schema.org',
@@ -137,22 +142,24 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
 
         <section style={{ marginTop: 30, textAlign: 'center' }}>
           <div style={{ display: 'inline-block', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#0A5CFF', background: '#E8EFFF', border: '1px solid rgba(10,92,255,0.35)', borderRadius: 980, padding: '6px 12px' }}>
-            {ENGINE_NAME[p.engine]} · {engineCost} credits per 60-second film
+            {offerName} · {engineCost} credits per 60-second film
           </div>
           <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.6rem)', fontWeight: 650, lineHeight: 1.15, margin: '16px 0 0' }}>{p.h1}</h1>
-          {params.slug === 'urdu' ? <CitationDirectAnswer page="urdu" /> : <p style={{ fontSize: '1.02rem', color: '#5A5F67', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 680 }}>{p.intro}</p>}
+          {params.slug === 'urdu' ? <CitationDirectAnswer page="urdu" /> : <p style={{ fontSize: '1.02rem', color: '#5A5F67', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 680 }}>{story ? STORY_VIDEO_COPY.intro : p.intro}</p>}
           <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 22 }}>
             <OrganicCtaLink href={cta} source={campaign} placement="hero" style={{ display: 'inline-block', background: '#0A5CFF', color: '#fff', fontWeight: 750, padding: '15px 32px', borderRadius: 980, textDecoration: 'none', fontSize: '1.05rem' }}>
-              Make this film free →
+              {story ? 'Prepare this story →' : 'Make this film free →'}
             </OrganicCtaLink>
             <Link href="/pricing" style={{ display: 'inline-block', border: '1px solid #D2D2CD', color: '#0E1116', fontWeight: 800, padding: '14px 24px', borderRadius: 980, textDecoration: 'none' }}>
               See plans &amp; credits
             </Link>
           </div>
           <p style={{ fontSize: '0.82rem', color: '#5A5F67', margin: '12px 0 0' }}>
-            {ft(OFFER, `${TRIAL_CREDITS_SHOWN} free credits, no card`, OFFER.copy.chip)}
-            {trialFilms > 0 ? ` · the trial covers ${trialFilms} ${ENGINE_NAME[p.engine]} film${trialFilms > 1 ? 's' : ''}` : `${TRIAL_SEEDANCE15_FILMS >= 1 ? ` · the trial pays for one ${FREE_FILM_LABEL}` : ''} · 60-second films on a plan (from ${STARTER_MONTH})`}
+            {story ? 'Review the prepared story, selected model, duration and credit cost in Studio before generating.' : <>
+              {ft(OFFER, `${TRIAL_CREDITS_SHOWN} free credits, no card`, OFFER.copy.chip)}
+              {trialFilms > 0 ? ` · the trial covers ${trialFilms} ${ENGINE_NAME[p.engine]} film${trialFilms > 1 ? 's' : ''}` : `${TRIAL_SEEDANCE15_FILMS >= 1 ? ` · the trial pays for one ${FREE_FILM_LABEL}` : ''} · 60-second films on a plan (from ${STARTER_MONTH})`}
+            </>}
           </p>
         </section>
 
@@ -167,13 +174,15 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
             <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#5A5F67' }}>What you get</div>
             <ul style={{ margin: '10px 0 0', paddingLeft: 18, lineHeight: 1.7, color: '#2A2F37', fontSize: '0.95rem' }}>
               <li>A hook-first script and a natural AI voice</li>
-              <li>A scene for every line, {p.engine === 'fast' ? 'from real footage and generated stills' : 'generated from the text'}</li>
+              <li>{story ? 'AI-generated scenes planned around the narration' : <>A scene for every line, {p.engine === 'fast' ? 'from real footage and generated stills' : 'generated from the text'}</>}</li>
               <li>Captions timed to the voice, music, a vertical MP4</li>
-              <li>A written next episode, so it becomes a series</li>
+              <li>{story ? 'Review the story, narration and character continuity before publishing' : 'A written next episode, so it becomes a series'}</li>
             </ul>
             <p style={{ margin: '10px 0 0', fontSize: '0.82rem', color: '#5A5F67' }}>{p.engineWhy}</p>
           </div>
         </section>
+
+        {story && <H3TurboDetails reviewedOn={STORY_VIDEO_UPDATED} heading={`${offerName} cost per finished story`} />}
 
         {p.competitor && (
           <section style={{ marginTop: 36, ...CARD, padding: 18 }}>
@@ -193,7 +202,7 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
         {/* FAQ */}
         <section style={{ marginTop: 44 }}>
           <h2 style={{ fontSize: '1.3rem', fontWeight: 650, margin: '0 0 12px' }}>Questions</h2>
-          {[...p.faq, { q: 'How much does it cost?', a: `The free trial gives ${TRIAL_CREDITS_SHOWN} credits with no card. ${ENGINE_NAME[p.engine]} costs ${engineCost} credits per 60-second film${trialFilms > 0 ? `, so the trial covers ${trialFilms} film${trialFilms > 1 ? 's' : ''}` : `, which needs a plan${trialFreeFilm}`}. Plans start at ${STARTER_MONTH} for ${STARTER_CREDITS} credits.` }].map((f) => (
+          {visibleFaqs.map((f) => (
             <details key={f.q} style={{ ...CARD, padding: '12px 16px', marginBottom: 8 }}>
               <summary style={{ cursor: 'pointer', fontWeight: 800 }}>{f.q}</summary>
               <p style={{ margin: '8px 0 0', color: '#2A2F37', lineHeight: 1.6 }}>{f.a}</p>
@@ -216,7 +225,7 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
 
         <section style={{ marginTop: 44, textAlign: 'center' }}>
           <OrganicCtaLink href={cta} source={campaign} placement="footer" style={{ display: 'inline-block', background: '#0A5CFF', color: '#fff', fontWeight: 750, padding: '15px 32px', borderRadius: 980, textDecoration: 'none', fontSize: '1.05rem' }}>
-            Make this film free →
+            {story ? 'Prepare this story →' : 'Make this film free →'}
           </OrganicCtaLink>
         </section>
       </div>
