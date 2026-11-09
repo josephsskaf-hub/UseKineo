@@ -276,6 +276,7 @@ const CONTENT_LANDING_SEGMENTS = new Set([
   'gerador-de-shorts-gratis',
   'how-much-do-youtube-shorts-pay',
   'how-to-start-a-faceless-youtube-channel',
+  'kineo-in-claude', // KINEO-ORIGEM-CLAUDE-0911 — o clique real do Claude (teste do Cowork 09/11) chega aqui sem referrer; /claude-connector fica fora (tela do conector, proibida no guardião 1610)
   'kineo-vs-higgsfield',
   'kineo-vs-kineo-studio',
   'make-money-clipping-with-ai',
