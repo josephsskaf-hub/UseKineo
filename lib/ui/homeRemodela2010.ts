@@ -25,7 +25,7 @@ export const MENU_CARTOON_LABEL = 'AI Cartoon Videos'
 export const MENU_CARTOON_NAV_ITEM = 'more:cartoon'
 
 /** Item do conector, "ao lado" dos 4 principais: a página do MCP (Claude e ChatGPT usam o mesmo servidor /api/mcp). */
-export const MENU_CONNECTOR_HREF = '/claude-connector'
+export const MENU_CONNECTOR_HREF = '/kineo-in-claude' // KINEO-MENU-CLAUDE-0911 — fundador 09/11: "também quero isso: generate in Claude, with Kineo AI"; a página nova liga de volta para /claude-connector (documentação do conector do diretório)
 /** Nomes de produto: não passam pela tradução. Selo honesto: "Claude & ChatGPT" = funciona nos dois, sem "official"/"partner". */
 export const MENU_CONNECTOR_LABEL = 'Claude & ChatGPT'
 export const MENU_CONNECTOR_NAV_ITEM = 'more:mcp'

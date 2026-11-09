@@ -74,7 +74,7 @@ function checaLib(src, navSrc) {
   if (Array.isArray(L)) return L
   if (JSON.stringify([...L.TOP_MENU_ORDER]) !== JSON.stringify(TOPO)) e.push(`ordem do topo: ${JSON.stringify(L.TOP_MENU_ORDER)}`)
   if (L.MENU_CARTOON_HREF !== '/ai-kids-cartoon-videos') e.push('destino do 4º principal')
-  if (L.MENU_CONNECTOR_HREF !== '/claude-connector') e.push('destino do conector')
+  if (L.MENU_CONNECTOR_HREF !== '/kineo-in-claude') e.push('destino do conector') // KINEO-MENU-CLAUDE-0911
   if (L.MENU_CONNECTOR_LABEL !== 'Claude & ChatGPT') e.push('rótulo do conector')
   if (L.HOME_GALLERY_TITLE !== 'Images made by Kineo') e.push('título da galeria')
   if (L.HOME_CLIPS_COUNT !== 8) e.push('contagem de clipes ≠ 8')
