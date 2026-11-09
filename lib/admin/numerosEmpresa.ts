@@ -2,7 +2,7 @@
 export type PeriodoChave = 'hoje' | 'ontem' | 'd7' | 'd10' | 'media7' | 'media7antes' | 'media30'
 export type Periodo = {
   chave: PeriodoChave
-  visitas: number | null; chatgpt: number | null; cadastros: number | null; pais_que_paga: number | null
+  visitas: number | null; chatgpt: number | null; claude?: number | null; cadastros: number | null; pais_que_paga: number | null
   pct_com_filme: number | null; pct_baixou_primeiro: number | null; downloads: number | null; pagantes: number | null
   nota: number | null; filmes_vistos: number | null
 }
@@ -28,6 +28,7 @@ export const LINHAS: Array<{ campo: keyof Periodo; rotulo: string; forte?: boole
   { campo: 'nota', rotulo: 'Nota dos filmes', forte: true },
   { campo: 'visitas', rotulo: 'Visitas' },
   { campo: 'chatgpt', rotulo: 'Visitas do ChatGPT', forte: true, meta: '75' },
+  { campo: 'claude', rotulo: 'Visitas do Claude', forte: true }, // KINEO-ADMIN-CLAUDE-0911 — fundador 09/11: "tem visitas do GPT, eu quero visitas do Claude"; sessão com utm/source "claude…" ou referrer claude.ai (RPC admin_numeros_empresa, migration admin_numeros_empresa_visitas_claude_0911)
   { campo: 'cadastros', rotulo: 'Cadastros', forte: true },
   { campo: 'pais_que_paga', rotulo: 'Cadastros de país que paga', meta: '25' },
   { campo: 'pct_com_filme', rotulo: 'Cadastros que têm filme', forte: true, sufixo: '%' },
