@@ -163,14 +163,29 @@ const CSS = `
 .klp .kmz-big .kmz-copy{left:16px;bottom:14px}
 .klp .kmz-big .kmz-copy b{font-size:clamp(16px,1.3vw,20px)}
 .klp .kmz-new{position:absolute;top:8px;left:8px;z-index:2;background:#ff3b6b;color:#fff;font-size:10px;font-weight:800;letter-spacing:.06em;padding:2px 7px;border-radius:999px}
+.klp .kmz-re{position:absolute;top:8px;right:8px;z-index:3;display:inline-flex;align-items:center;gap:5px;padding:4px 10px 4px 8px;border-radius:999px;background:rgba(8,14,24,.62);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:11px;font-weight:700;letter-spacing:.01em;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:background .2s ease,color .2s ease}
+.klp .kmz-re svg{width:12px;height:12px;flex:none}
+.klp .kmz-t:hover .kmz-re,.klp .kmz-t:focus-visible .kmz-re{background:#fff;color:#0b1119;border-color:#fff}
 .klp .kmz-cell{position:relative;min-width:0}
 .klp .kmz-cell>.kmz-t{height:100%}
 .klp .kmz-face{position:absolute;top:10px;left:10px;z-index:4;display:inline-flex;align-items:center;min-height:30px;padding:6px 12px;border-radius:999px;background:#fff;color:#0b1119;font-size:12px;font-weight:700;text-decoration:none}
 .klp .kmz-face:hover{background:#eaf3ff}
 @media(max-width:1099px){.klp .kmz-grid{grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:clamp(100px,15vw,150px)}}
-@media(max-width:700px){.klp .kmz-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:27vw;gap:8px}.klp .kmz-t{grid-row:span 2;border-radius:11px}.klp .kmz-big{grid-column:span 1;grid-row:span 3}.klp .kmz-wide{grid-column:span 2;grid-row:span 2}.klp .kmz-cell{grid-row:span 3}.klp .kmz-copy b,.klp .kmz-big .kmz-copy b{font-size:12px}.klp .kmz-face{top:6px;left:6px;min-height:24px;padding:4px 9px;font-size:10px}}
+@media(max-width:700px){.klp .kmz-re{top:6px;right:6px;padding:3px 8px 3px 6px;font-size:10px}.klp .kmz-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:27vw;gap:8px}.klp .kmz-t{grid-row:span 2;border-radius:11px}.klp .kmz-big{grid-column:span 1;grid-row:span 3}.klp .kmz-wide{grid-column:span 2;grid-row:span 2}.klp .kmz-cell{grid-row:span 3}.klp .kmz-copy b,.klp .kmz-big .kmz-copy b{font-size:12px}.klp .kmz-face{top:6px;left:6px;min-height:24px;padding:4px 9px;font-size:10px}}
 @media(prefers-reduced-motion:reduce){.klp .kmz-t img{transition:none}.klp .kmz-t:hover img{transform:none}}
 `
+
+// KINEO-CARDS-RECREATE-0911 — fundador 09/11 (print do Higgsfield): todo cartão de vídeo mostra "Recreate" para a pessoa já ver que
+// dá para refazer. É um selo dentro do próprio cartão (sem <a> dentro de <a>): o clique no cartão inteiro já leva ao lugar de refazer
+// (o /clips com motor e texto, a página do efeito, o Studio). Imagem não recebe: o /images ainda não aceita o texto pronto.
+function Recreate() {
+  return (
+    <span className="kmz-re" aria-hidden="true">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" /><path d="M13.5 2.5v3h-3" /></svg>
+      <UiLabel>Recreate</UiLabel>
+    </span>
+  )
+}
 
 function focusStyle(poster: string | undefined, focus: string | undefined): CSSProperties | undefined {
   const style: Record<string, string> = {}
@@ -194,7 +209,8 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
               const card = (
                 <Link key={c.id} href={viaSignup('/clips?' + new URLSearchParams({ engine: c.engine, prompt: c.prompt }).toString(), signedIn)} className="kmz-t kmz-big" data-home-cta="mosaic_clip" aria-label={`${c.title} — ${CLIP_ENGINES[c.engine].label}`}>
                   <div className="kmz-md" style={focusStyle(c.poster, MOSAIC_CLIP_FOCUS[c.id] ?? c.focus)}><WallMedia src={c.video} /></div>
-                  <span className="kmz-shade" aria-hidden="true" />
+                  <Recreate />
+                <span className="kmz-shade" aria-hidden="true" />
                   <span className="kmz-copy"><i><UiLabel>Clip</UiLabel> · {CLIP_ENGINES[c.engine].label}</i><b><UiLabel>{c.title}</UiLabel></b></span>
                 </Link>
               )
@@ -215,7 +231,8 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                     <img src={clipeNovoPoster(c)} width={540} height={960} alt="" loading="lazy" decoding="async" style={{ objectPosition: c.focus, transform: 'none' }} />
                     <WallMedia src={clipeNovoVideo(c)} />
                   </div>
-                  <span className="kmz-shade" aria-hidden="true" />
+                  <Recreate />
+                <span className="kmz-shade" aria-hidden="true" />
                   <span className="kmz-copy"><i><UiLabel>Clip</UiLabel> · {motor}</i><b><UiLabel>{c.title}</UiLabel></b></span>
                 </Link>
               )
@@ -231,6 +248,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                     </>
                   ) : <WallMedia src={t.video} />}
                 </div>
+                <Recreate />
                 <span className="kmz-shade" aria-hidden="true" />
                 <span className="kmz-copy"><i>Multi-camera · Kling 3</i><b>{t.title}</b></span>
               </Link>
@@ -238,6 +256,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
             if (t.kind === 'film') return (
               <Link key={t.video} href={filmHref} className="kmz-t kmz-big" data-home-cta="mosaic_film" aria-label={`${t.title} — narrated film`}>
                 <div className="kmz-md" style={focusStyle(t.poster, t.focus)}><WallMedia src={t.video} /></div>
+                <Recreate />
                 <span className="kmz-shade" aria-hidden="true" />
                 <span className="kmz-copy"><i><UiLabel>Narrated film</UiLabel> · {t.badge}</i><b><UiLabel>{t.title}</UiLabel></b></span>
               </Link>
@@ -248,7 +267,8 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                 <Link key={e.key} href={effectPagePath(effectSlug(e))} className="kmz-t" data-home-cta={`mosaic_effect_${e.key}`} aria-label={`${e.title} — effect`}>
                   <div className="kmz-md" style={focusStyle(e.preview?.poster, MOSAIC_EFFECT_FOCUS[e.key] ?? '50% 45%')}>{e.preview ? <WallMedia src={`${e.preview.video}#t=1.6`} /> : null}</div>
                   {newKeys.has(e.key) ? <span className="kmz-new">⚡ NEW</span> : null}
-                  <span className="kmz-shade" aria-hidden="true" />
+                  <Recreate />
+                <span className="kmz-shade" aria-hidden="true" />
                   <span className="kmz-copy"><i><UiLabel>Effect</UiLabel></i><b><UiLabel>{e.title}</UiLabel></b></span>
                 </Link>
               )
@@ -258,7 +278,8 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
               return (
                 <Link key={'style-' + st.key} href={st.href} className="kmz-t" data-home-cta={`mosaic_style_${st.key}`} aria-label={`${st.title} — ad style`}>
                   <div className="kmz-md" style={focusStyle(st.poster ?? undefined, '50% 45%')}><WallMedia src={st.video} /></div>
-                  <span className="kmz-shade" aria-hidden="true" />
+                  <Recreate />
+                <span className="kmz-shade" aria-hidden="true" />
                   <span className="kmz-copy"><i><UiLabel>Ad style</UiLabel>{st.engine ? ` · ${st.engine}` : ''}</i><b><UiLabel>{st.title}</UiLabel></b></span>
                 </Link>
               )
