@@ -30,7 +30,8 @@ for (const [selector, property, value] of required) {
 assert.ok(mosaic.includes('[...HOME_MOTION_TILES, ...ordem]'), 'motion abre a vitrine')
 assert.ok(mosaic.includes('if (opts.full) return ordem'), 'Made with Kineo mantém a vitrine original')
 // KINEO-CARDS-SEM-MOTOR-0911 [fundador 09/11: "tire os nomes dos motores"] — o selo diz só o tipo; nada de motor no texto nem no aria-label
-assert.ok(mosaic.includes('<i>Multi-camera</i>') && !/Multi-camera · |' — Kling/.test(mosaic), 'selo sem motor')
+// KINEO-CARDS-SEM-ETIQUETA-0911 [fundador 09/11: "Só a etiqueta"] — nem etiqueta de tipo na tela: o tipo vive só no aria-label
+assert.ok(!mosaic.includes('<i>Multi-camera') && mosaic.includes("aria-label={t.title + ' — multi-camera'}") && !/Multi-camera · |' — Kling/.test(mosaic), 'sem etiqueta nem motor; tipo no aria-label')
 const tiles = [...mosaic.matchAll(/kind: 'motion', title: .+?video: '\/previews\/motion-(\w+)-0611\.mp4', (.+) \},/g)]
 assert.deepEqual(tiles.map(m => m[1]), ['surf', 'eagle', 'rua', 'manta', 'neve', 'horse'])
 assert.deepEqual(tiles.filter(m => !m[2].includes('desktopOnly: true')).map(m => m[1]), ['surf', 'rua', 'neve'])

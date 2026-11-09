@@ -8,6 +8,9 @@
 // KINEO-CARDS-SEM-MOTOR-0911 — fundador 09/11: "quero que você tire os nomes dos motores, porque eu não vejo em outros sites". Nenhum
 // cartão mostra nome de motor (nem no texto, nem no aria-label): só o tipo (Clip, Multi-camera, Narrated film, Effect, Ad style,
 // Trending format). O motor real segue gravado no dado (engine, badge) e no link (/clips?engine=…).
+// KINEO-CARDS-SEM-ETIQUETA-0911 — fundador 09/11, sobre a etiqueta pequena do tipo em cima do título: "Só a etiqueta". O cartão fica só com o
+// título (mais "Recreate", "⚡ NEW" e as views reais onde existem): nenhuma etiqueta de tipo nem nome de motor aparece na tela. O tipo continua
+// no aria-label (leitor de tela) e no dado (selo, engine); nada mudou no link.
 import Link from 'next/link'
 import type { CSSProperties } from 'react'
 import WallMedia from '@/components/WallMedia'
@@ -179,7 +182,6 @@ const CSS = `
 .klp .kmz-t:hover img{transform:scale(1.03)}
 .klp .kmz-shade{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,transparent 50%,rgba(3,9,18,.82) 100%)}
 .klp .kmz-copy{position:absolute;left:12px;right:12px;bottom:10px;z-index:2;display:flex;flex-direction:column;align-items:flex-start;gap:3px}
-.klp .kmz-copy i{font-style:normal;font-size:9px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#c8ddf1}
 .klp .kmz-copy b{font-size:13px;line-height:1.2;font-weight:650;color:#fff;text-wrap:balance}
 .klp .kmz-big .kmz-copy{left:16px;bottom:14px}
 .klp .kmz-big .kmz-copy b{font-size:clamp(16px,1.3vw,20px)}
@@ -246,7 +248,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                   <div className="kmz-md" style={focusStyle(c.poster, MOSAIC_CLIP_FOCUS[c.id] ?? c.focus)}><WallMedia src={c.video} /></div>
                   <Recreate />
                 <span className="kmz-shade" aria-hidden="true" />
-                  <span className="kmz-copy"><i><UiLabel>Clip</UiLabel></i><b><UiLabel>{c.title}</UiLabel></b><Views video={c.video} /></span>
+                  <span className="kmz-copy"><b><UiLabel>{c.title}</UiLabel></b><Views video={c.video} /></span>
                 </Link>
               )
               return hasFaceRemix(c.id) ? (
@@ -258,7 +260,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
             }
             if (t.kind === 'novo') { // KINEO-CLIPES-NOS-2-LUGARES-0411 — selo = o motor real; o pôster é <img loading="lazy">: os 15 não somam nada ao 1º carregamento, e o vídeo só nasce na tela (WallMedia)
               const c = t.clip
-              const tipo = c.selo ?? 'Clip' // KINEO-CARDS-SEM-MOTOR-0911 — o cartão diz o TIPO (Clip / Trending format), nunca o motor; o motor real segue no dado e no link
+              const tipo = c.selo ?? 'Clip' // KINEO-CARDS-SEM-MOTOR-0911 — o TIPO (Clip / Trending format), nunca o motor; o motor real segue no dado e no link · KINEO-CARDS-SEM-ETIQUETA-0911 — o tipo vive só no aria-label
               return (
                 <Link key={'novo-' + c.id} href={viaSignup(clipeNovoDestino(c), signedIn)} className={`kmz-t${t.grande ? ' kmz-big' : ''}`} data-home-cta="mosaic_clip" data-clip-novo={c.id} aria-label={`${c.title} — ${tipo}`}>
                   <div className="kmz-md" style={focusStyle(undefined, c.focus)}>
@@ -268,7 +270,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                   </div>
                   <Recreate />
                 <span className="kmz-shade" aria-hidden="true" />
-                  <span className="kmz-copy"><i><UiLabel>{tipo}</UiLabel></i><b><UiLabel>{c.title}</UiLabel></b><Views video={clipeNovoVideo(c)} /></span>{/* KINEO-OUTFIT-MORPH-HOME-0911 */}
+                  <span className="kmz-copy"><b><UiLabel>{c.title}</UiLabel></b><Views video={clipeNovoVideo(c)} /></span>{/* KINEO-OUTFIT-MORPH-HOME-0911 */}
                 </Link>
               )
             }
@@ -285,7 +287,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                 </div>
                 <Recreate />
                 <span className="kmz-shade" aria-hidden="true" />
-                <span className="kmz-copy"><i>Multi-camera</i><b>{t.title}</b><Views video={t.video} /></span>
+                <span className="kmz-copy"><b>{t.title}</b><Views video={t.video} /></span>
               </Link>
             )
             if (t.kind === 'film') return (
@@ -293,7 +295,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                 <div className="kmz-md" style={focusStyle(t.poster, t.focus)}><WallMedia src={t.video} /></div>
                 <Recreate />
                 <span className="kmz-shade" aria-hidden="true" />
-                <span className="kmz-copy"><i><UiLabel>Narrated film</UiLabel></i><b><UiLabel>{t.title}</UiLabel></b><Views video={t.video} /></span>
+                <span className="kmz-copy"><b><UiLabel>{t.title}</UiLabel></b><Views video={t.video} /></span>
               </Link>
             )
             if (t.kind === 'effect') {
@@ -304,7 +306,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                   {newKeys.has(e.key) ? <span className="kmz-new">⚡ NEW</span> : null}
                   <Recreate />
                 <span className="kmz-shade" aria-hidden="true" />
-                  <span className="kmz-copy"><i><UiLabel>Effect</UiLabel></i><b><UiLabel>{e.title}</UiLabel></b><Views video={e.preview?.video} /></span>
+                  <span className="kmz-copy"><b><UiLabel>{e.title}</UiLabel></b><Views video={e.preview?.video} /></span>
                 </Link>
               )
             }
@@ -315,7 +317,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                   <div className="kmz-md" style={focusStyle(st.poster ?? undefined, '50% 45%')}><WallMedia src={st.video} /></div>
                   <Recreate />
                 <span className="kmz-shade" aria-hidden="true" />
-                  <span className="kmz-copy"><i><UiLabel>Ad style</UiLabel></i><b><UiLabel>{st.title}</UiLabel></b></span>
+                  <span className="kmz-copy"><b><UiLabel>{st.title}</UiLabel></b></span>
                 </Link>
               )
             }

@@ -141,8 +141,10 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
       const fim = html.indexOf('</a>', i)
       const cartao = html.slice(ini, fim)
       // KINEO-CARDS-SEM-MOTOR-0911 — o selo é só o TIPO: "Clip" (motor do /clips) ou o formato (KINEO-OUTFIT-MORPH-HOME-0911); motor nenhum no cartão
+      // KINEO-CARDS-SEM-ETIQUETA-0911 [fundador 09/11: "Só a etiqueta"] — o tipo saiu da tela: vive só no aria-label (leitor de tela)
       const tipo = c.engine === null ? VERDADE[c.id]?.[3] ?? '?' : 'Clip'
-      if (!cartao.includes(`>${tipo}</`)) e.push(`B ${lugar}: ${c.id} sem o selo "${tipo}"`)
+      if (!cartao.includes(`aria-label="${c.title} — ${tipo}"`)) e.push(`B ${lugar}: ${c.id} sem o tipo "${tipo}" no aria-label`)
+      if (cartao.includes(`>${tipo}</`)) e.push(`B ${lugar}: ${c.id} mostra a etiqueta "${tipo}" na tela`)
       if (/Clip<\/span> ·|Clip · /.test(cartao)) e.push(`B ${lugar}: ${c.id} mostra "Clip · motor"`)
       const achado = motorNoTexto.exec(cartao.replace(/href="[^"]*"/g, ''))
       if (achado) e.push(`B ${lugar}: ${c.id} mostra o motor "${achado[0]}"`)
@@ -162,6 +164,9 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
       const visivel = html.replace(/(href|src|style|data-home-cta|data-clip-novo)="[^"]*"/g, '')
       const nome = motorNoTexto.exec(visivel)
       if (nome) e.push(`B ${lugar}: a vitrine mostra o motor "${nome[0]}" (…${visivel.slice(Math.max(0, nome.index - 60), nome.index + 20)}…)`)
+      // KINEO-CARDS-SEM-ETIQUETA-0911 [fundador 09/11: "Só a etiqueta"] — nenhuma etiqueta de tipo aparece como texto em cartão nenhum
+      const etiqueta = />\s*(Clip|Multi-camera|Narrated film|Effect|Ad style|Trending format)\s*</.exec(html)
+      if (etiqueta) e.push(`B ${lugar}: a vitrine mostra a etiqueta "${etiqueta[1]}" na tela`)
     }
     // (C) estação
     const proibido = /pumpkin|jack-o|werewolf|witch|zombie|catrina|day of the dead|skull/i
@@ -318,19 +323,27 @@ mutante('vídeo direto no cartão', { [MOSAICO]: troca('<WallMedia src={clipeNov
 mutante('cartão chama de anúncio', { [MOSAICO]: troca("const tipo = c.selo ?? 'Clip'", "const tipo = c.selo ?? 'Ad'") }) // KINEO-CARDS-SEM-MOTOR-0911 — alvo novo: o selo agora é o tipo
 mutante('cartão leva às Ads', { [MOSAICO]: troca('href={viaSignup(clipeNovoDestino(c), signedIn)}', "href={viaSignup('/ads/new', signedIn)}") })
 // KINEO-OUTFIT-MORPH-HOME-0911 — o ramo do cartão de formato
-mutante('formato mostra motor', { [MOSAICO]: troca('<i><UiLabel>{tipo}</UiLabel></i>', "<i><UiLabel>{tipo}</UiLabel>{c.selo ? ' · Kling 4.0' : ''}</i>") })
+// KINEO-CARDS-SEM-ETIQUETA-0911 — os cartões não têm mais etiqueta: os mutantes de motor injetam o texto logo antes do título, onde ela ficava
+const COPIA_NOVO = '<span className="kmz-copy"><b><UiLabel>{c.title}</UiLabel></b><Views video={clipeNovoVideo(c)} />'
+const COPIA_CLIPE = '<span className="kmz-copy"><b><UiLabel>{c.title}</UiLabel></b><Views video={c.video} />'
+const injeta = (alvo, texto) => troca(alvo, alvo.replace('<span className="kmz-copy">', `<span className="kmz-copy">${texto}`))
+mutante('etiqueta volta no clipe novo', { [MOSAICO]: injeta(COPIA_NOVO, '<i><UiLabel>{tipo}</UiLabel></i>') })
+mutante('etiqueta volta no multi-camera', { [MOSAICO]: injeta('<span className="kmz-copy"><b>{t.title}</b>', '<i>Multi-camera</i>') })
+mutante('etiqueta volta no efeito', { [MOSAICO]: injeta('<span className="kmz-copy"><b><UiLabel>{e.title}</UiLabel></b>', '<i><UiLabel>Effect</UiLabel></i>') })
+mutante('tipo sai do aria-label', { [MOSAICO]: troca('aria-label={`${c.title} — ${tipo}`}', 'aria-label={c.title}') })
+mutante('formato mostra motor', { [MOSAICO]: injeta(COPIA_NOVO, "<i>{c.selo ? 'Kling 4.0' : ''}</i>") })
 mutante('formato perde o selo', { [MOSAICO]: troca("const tipo = c.selo ?? 'Clip'", "const tipo = 'Clip'") })
 mutante('formato leva ao /clips com motor', { [LIB]: troca("if (c.engine === null) return '/clips'", "if (c.engine === null) return '/clips?engine=hollywood'") })
 mutante('formato rotulado com motor errado', { [LIB]: troca("id: 'outfit-morph', title: 'Outfit morph', engine: null, selo: 'Trending format'", "id: 'outfit-morph', title: 'Outfit morph', engine: 'hollywood', selo: undefined") })
 mutante('formato no aria-label com motor', { [MOSAICO]: troca('aria-label={`${c.title} — ${tipo}`}', 'aria-label={`${c.title} — ${tipo}${c.selo ? \' · Kling 4.0\' : \'\'}`}') })
 // KINEO-CARDS-SEM-MOTOR-0911 — o motor não volta por nenhum tipo de cartão, nem pelo aria-label; e o dado segue honesto
-mutante('motor volta no clipe novo', { [MOSAICO]: (s) => "import { CLIP_ENGINES as CE } from '@/lib/clips/clipCatalog'\n" + troca('<i><UiLabel>{tipo}</UiLabel></i>', "<i><UiLabel>{tipo}</UiLabel>{c.engine ? ' · ' + CE[c.engine].label : ''}</i>")(s) })
+mutante('motor volta no clipe novo', { [MOSAICO]: (s) => "import { CLIP_ENGINES as CE } from '@/lib/clips/clipCatalog'\n" + injeta(COPIA_NOVO, "<i>{c.engine ? CE[c.engine].label : ''}</i>")(s) })
 mutante('motor no aria-label do clipe novo', { [MOSAICO]: (s) => "import { CLIP_ENGINES as CE } from '@/lib/clips/clipCatalog'\n" + troca('aria-label={`${c.title} — ${tipo}`}', 'aria-label={`${c.title} — ${c.engine ? CE[c.engine].label : tipo}`}')(s) })
-mutante('motor volta no clipe grande', { [MOSAICO]: (s) => "import { CLIP_ENGINES as CE } from '@/lib/clips/clipCatalog'\n" + troca('<i><UiLabel>Clip</UiLabel></i>', '<i><UiLabel>Clip</UiLabel> · {CE[c.engine].label}</i>')(s) })
-mutante('motor volta no multi-camera', { [MOSAICO]: troca('<i>Multi-camera</i>', '<i>Multi-camera · Kling 3</i>') })
+mutante('motor volta no clipe grande', { [MOSAICO]: (s) => "import { CLIP_ENGINES as CE } from '@/lib/clips/clipCatalog'\n" + injeta(COPIA_CLIPE, '<i>{CE[c.engine].label}</i>')(s) })
+mutante('motor volta no multi-camera', { [MOSAICO]: injeta('<span className="kmz-copy"><b>{t.title}</b>', '<i>Kling 3</i>') })
 mutante('motor no aria-label do multi-camera', { [MOSAICO]: troca("aria-label={t.title + ' — multi-camera'}", "aria-label={t.title + ' — Kling 3'}") })
-mutante('motor volta no filme', { [MOSAICO]: troca('<i><UiLabel>Narrated film</UiLabel></i>', '<i><UiLabel>Narrated film</UiLabel> · {t.badge}</i>') })
-mutante('motor volta no estilo', { [MOSAICO]: troca('<i><UiLabel>Ad style</UiLabel></i>', "<i><UiLabel>Ad style</UiLabel>{st.engine ? ` · ${st.engine}` : ''}</i>") })
+mutante('motor volta no filme', { [MOSAICO]: injeta('<span className="kmz-copy"><b><UiLabel>{t.title}</UiLabel></b>', '<i>{t.badge}</i>') })
+mutante('motor volta no estilo', { [MOSAICO]: injeta('<span className="kmz-copy"><b><UiLabel>{st.title}</UiLabel></b>', "<i>{st.engine ?? ''}</i>") })
 mutante('arquivo faltando',{}, {}, (rel) => !rel.includes('pet-barista.mp4') && fs.existsSync(path.join(ROOT, rel)))
 mutante('pôster faltando', {}, {}, (rel) => !rel.endsWith('produto-tenis-rua.webp') && fs.existsSync(path.join(ROOT, rel)))
 mutante('"newest first" de volta', {}, { pagina: rd(PAGINA) + '\nClips, newest first.' })

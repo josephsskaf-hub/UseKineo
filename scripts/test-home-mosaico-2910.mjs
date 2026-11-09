@@ -27,6 +27,9 @@ function problems(landing, mosaic) {
   if (/credits|\bcr\b/.test(mosaic.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, ''))) p.push('preço no cartão')
   // KINEO-CARDS-SEM-MOTOR-0911 [fundador 09/11: "tire os nomes dos motores"] — o cartão não imprime motor; o motor segue no dado e no link
   if (/CLIP_ENGINES\[[^\]]*\]\.label|\{t\.badge\}|\{st\.engine|Multi-camera · |— Kling/.test(mosaic)) p.push('nome de motor impresso no cartão')
+  // KINEO-CARDS-SEM-ETIQUETA-0911 [fundador 09/11: "Só a etiqueta"] — nenhuma etiqueta de tipo na tela; o tipo fica no aria-label de cada cartão
+  if (/<i>\s*(<UiLabel>)?\s*(Clip|Multi-camera|Narrated film|Effect|Ad style|Trending format|\{tipo\})/.test(mosaic)) p.push('etiqueta de tipo visível no cartão')
+  for (const a of ['— clip`}', "' — multi-camera'}", '— narrated film`}', '— effect`}', '— ad style`}', '— ${tipo}`}']) if (!mosaic.includes(a)) p.push(`tipo fora do aria-label (${a})`)
   if (!mosaic.includes('new URLSearchParams({ engine: c.engine, prompt: c.prompt })') || !mosaic.includes('viaSignup(clipeNovoDestino(c), signedIn)')) p.push('o link perdeu o motor real')
   return p
 }
@@ -48,8 +51,13 @@ mut('interruptor off', LANDING, MOSAIC.replace('HOME_MOSAIC_LIVE = true', 'HOME_
 mut('trending volta', LANDING.replace('{!HOME_MOSAIC_LIVE && trending.length >= 6', '{trending.length >= 6'), MOSAIC)
 mut('4 filmes', LANDING, MOSAIC.replace('HOME_MOSAIC_FILMS = 6', 'HOME_MOSAIC_FILMS = 4'))
 mut('4 efeitos', LANDING, MOSAIC.replace(/HOME_MOSAIC_EFFECTS = \d+/, 'HOME_MOSAIC_EFFECTS = 4'))
-mut('motor volta no selo do clipe', LANDING, MOSAIC.replace('<i><UiLabel>Clip</UiLabel></i>', '<i><UiLabel>Clip</UiLabel> · {CLIP_ENGINES[c.engine].label}</i>')) // KINEO-CARDS-SEM-MOTOR-0911
-mut('motor volta no filme', LANDING, MOSAIC.replace('<i><UiLabel>Narrated film</UiLabel></i>', '<i><UiLabel>Narrated film</UiLabel> · {t.badge}</i>')) // KINEO-CARDS-SEM-MOTOR-0911
+// KINEO-CARDS-SEM-ETIQUETA-0911 — sem etiqueta na fonte, os mutantes injetam o texto logo antes do título (onde ela ficava); troca que não acha o alvo não conta
+const injeta = (alvo, texto) => { if (!MOSAIC.includes(alvo)) throw new Error('alvo do mutante sumiu: ' + alvo); return MOSAIC.replace(alvo, alvo.replace('<span className="kmz-copy">', `<span className="kmz-copy">${texto}`)) }
+mut('motor volta no selo do clipe', LANDING, injeta('<span className="kmz-copy"><b><UiLabel>{c.title}</UiLabel></b><Views video={c.video} />', '<i>{CLIP_ENGINES[c.engine].label}</i>')) // KINEO-CARDS-SEM-MOTOR-0911
+mut('motor volta no filme', LANDING, injeta('<span className="kmz-copy"><b><UiLabel>{t.title}</UiLabel></b>', '<i>{t.badge}</i>')) // KINEO-CARDS-SEM-MOTOR-0911
+mut('etiqueta volta no clipe', LANDING, injeta('<span className="kmz-copy"><b><UiLabel>{c.title}</UiLabel></b><Views video={c.video} />', '<i><UiLabel>Clip</UiLabel></i>')) // KINEO-CARDS-SEM-ETIQUETA-0911
+mut('etiqueta volta no estilo', LANDING, injeta('<span className="kmz-copy"><b><UiLabel>{st.title}</UiLabel></b>', '<i><UiLabel>Ad style</UiLabel></i>')) // KINEO-CARDS-SEM-ETIQUETA-0911
+mut('tipo sai do aria-label do filme', LANDING, MOSAIC.replace('— narrated film`}', '`}')) // KINEO-CARDS-SEM-ETIQUETA-0911
 mut('link do clipe perde o motor', LANDING, MOSAIC.replace('new URLSearchParams({ engine: c.engine, prompt: c.prompt })', 'new URLSearchParams({ prompt: c.prompt })')) // KINEO-CARDS-SEM-MOTOR-0911
 mut('2 respostas diretas', LANDING + '\n<CitationDirectAnswer page="home" />', MOSAIC)
 
