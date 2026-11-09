@@ -18,6 +18,7 @@ import type { ClipEffect } from '@/lib/clips/clipEffects'
 import { publicEffectPages, effectPagePath, effectSlug } from '@/lib/clips/clipEffectPages'
 import { HOME_GALLERY_BIG, HOME_GALLERY_DIR, HOME_GALLERY_IMAGES, type HomeGalleryImage } from '@/components/home/HomeImageGallery'
 import { clipsFirstFilmHref } from '@/lib/growth/homeClipsFirst'
+import { cardStatFor, compactCount } from '@/lib/home/cardSocialStats' // KINEO-CARDS-VIEWS-0911
 import { seasonalEffectKeys } from '@/lib/clips/clipSeason' // KINEO-VITRINE-ESTACAO-3110
 import { FORA_DE_ESTACAO, afastaVizinhos, semLargoNoFim, clipeNovoDestino, clipeNovoPoster, clipeNovoVideo, clipesNovosDoDia, diaDaVitrine, embaralhaDoDia, intercala, type ClipeNovo } from '@/lib/clipesNos2Lugares' // KINEO-CLIPES-NOS-2-LUGARES-0411
 
@@ -166,6 +167,8 @@ const CSS = `
 .klp .kmz-re{position:absolute;top:8px;right:8px;z-index:3;display:inline-flex;align-items:center;gap:5px;padding:4px 10px 4px 8px;border-radius:999px;background:rgba(8,14,24,.62);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:11px;font-weight:700;letter-spacing:.01em;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:background .2s ease,color .2s ease}
 .klp .kmz-re svg{width:12px;height:12px;flex:none}
 .klp .kmz-t:hover .kmz-re,.klp .kmz-t:focus-visible .kmz-re{background:#fff;color:#0b1119;border-color:#fff}
+.klp .kmz-views{display:inline-flex;align-items:center;gap:4px;margin-top:2px;font-size:11px;font-weight:650;color:rgba(255,255,255,.88)}
+.klp .kmz-views svg{width:13px;height:13px;flex:none}
 .klp .kmz-cell{position:relative;min-width:0}
 .klp .kmz-cell>.kmz-t{height:100%}
 .klp .kmz-face{position:absolute;top:10px;left:10px;z-index:4;display:inline-flex;align-items:center;min-height:30px;padding:6px 12px;border-radius:999px;background:#fff;color:#0b1119;font-size:12px;font-weight:700;text-decoration:none}
@@ -183,6 +186,18 @@ function Recreate() {
     <span className="kmz-re" aria-hidden="true">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" /><path d="M13.5 2.5v3h-3" /></svg>
       <UiLabel>Recreate</UiLabel>
+    </span>
+  )
+}
+
+// KINEO-CARDS-VIEWS-0911 — views reais do post do mesmo vídeo na @usekineo (lib/home/cardSocialStats.ts); sem post, sem número.
+function Views({ video }: { video?: string }) {
+  const stat = cardStatFor(video)
+  if (!stat) return null
+  return (
+    <span className="kmz-views" title={`${stat.views.toLocaleString('en-US')} views on ${stat.source}`}>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8Z" /><circle cx="8" cy="8" r="2" /></svg>
+      {compactCount(stat.views)}<span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}> views on {stat.source}</span>
     </span>
   )
 }
@@ -211,7 +226,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                   <div className="kmz-md" style={focusStyle(c.poster, MOSAIC_CLIP_FOCUS[c.id] ?? c.focus)}><WallMedia src={c.video} /></div>
                   <Recreate />
                 <span className="kmz-shade" aria-hidden="true" />
-                  <span className="kmz-copy"><i><UiLabel>Clip</UiLabel> · {CLIP_ENGINES[c.engine].label}</i><b><UiLabel>{c.title}</UiLabel></b></span>
+                  <span className="kmz-copy"><i><UiLabel>Clip</UiLabel> · {CLIP_ENGINES[c.engine].label}</i><b><UiLabel>{c.title}</UiLabel></b><Views video={c.video} /></span>
                 </Link>
               )
               return hasFaceRemix(c.id) ? (
@@ -233,7 +248,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                   </div>
                   <Recreate />
                 <span className="kmz-shade" aria-hidden="true" />
-                  <span className="kmz-copy"><i><UiLabel>Clip</UiLabel> · {motor}</i><b><UiLabel>{c.title}</UiLabel></b></span>
+                  <span className="kmz-copy"><i><UiLabel>Clip</UiLabel> · {motor}</i><b><UiLabel>{c.title}</UiLabel></b><Views video={clipeNovoVideo(c)} /></span>
                 </Link>
               )
             }
@@ -250,7 +265,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                 </div>
                 <Recreate />
                 <span className="kmz-shade" aria-hidden="true" />
-                <span className="kmz-copy"><i>Multi-camera · Kling 3</i><b>{t.title}</b></span>
+                <span className="kmz-copy"><i>Multi-camera · Kling 3</i><b>{t.title}</b><Views video={t.video} /></span>
               </Link>
             )
             if (t.kind === 'film') return (
@@ -258,7 +273,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                 <div className="kmz-md" style={focusStyle(t.poster, t.focus)}><WallMedia src={t.video} /></div>
                 <Recreate />
                 <span className="kmz-shade" aria-hidden="true" />
-                <span className="kmz-copy"><i><UiLabel>Narrated film</UiLabel> · {t.badge}</i><b><UiLabel>{t.title}</UiLabel></b></span>
+                <span className="kmz-copy"><i><UiLabel>Narrated film</UiLabel> · {t.badge}</i><b><UiLabel>{t.title}</UiLabel></b><Views video={t.video} /></span>
               </Link>
             )
             if (t.kind === 'effect') {
@@ -269,7 +284,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                   {newKeys.has(e.key) ? <span className="kmz-new">⚡ NEW</span> : null}
                   <Recreate />
                 <span className="kmz-shade" aria-hidden="true" />
-                  <span className="kmz-copy"><i><UiLabel>Effect</UiLabel></i><b><UiLabel>{e.title}</UiLabel></b></span>
+                  <span className="kmz-copy"><i><UiLabel>Effect</UiLabel></i><b><UiLabel>{e.title}</UiLabel></b><Views video={e.preview?.video} /></span>
                 </Link>
               )
             }
