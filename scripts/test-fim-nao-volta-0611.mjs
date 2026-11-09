@@ -23,6 +23,7 @@ import ts from 'typescript'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { semFimNaoVolta0611 } from './test-support/desfaz-fim-nao-volta-0611.mjs'
+import { semLegendaNegacao0911 } from './test-support/desfaz-legenda-negacao-0911.mjs' // KINEO-LEGENDA-NEGACAO-0911 — a camada mais nova de lib/compose.ts sai antes do recibo desta
 
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const nativeRequire = createRequire(import.meta.url)
@@ -60,7 +61,7 @@ function carregar(texto) {
 }
 
 const FONTE_HOJE = fs.readFileSync(path.join(RAIZ, 'lib/compose.ts'), 'utf8').replace(/\r\n/g, '\n')
-const FONTE_BASE = semFimNaoVolta0611(FONTE_HOJE, 'lib/compose.ts').replace(/\r\n/g, '\n')
+const FONTE_BASE = semFimNaoVolta0611(semLegendaNegacao0911(FONTE_HOJE, 'lib/compose.ts'), 'lib/compose.ts').replace(/\r\n/g, '\n') // KINEO-LEGENDA-NEGACAO-0911
 
 // ── a pista de vídeo (track 2) de um source ──
 const pista = (source) => source.elements.filter((e) => e.track === 2 && (e.type === 'video' || e.type === 'image'))

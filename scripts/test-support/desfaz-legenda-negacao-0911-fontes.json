@@ -1,0 +1,50 @@
+{
+ "base": "1c67e14f25611f904bd278a7df40b8c5d3e65514",
+ "scope": {
+  "lib/compose.ts": {
+   "beforeSha256": "c51828d45f133b28b4a7bf947fe38b020bc120d79cd3e59aa8200415aa14e108",
+   "afterSha256": "9dd8d7f33f252cd1f889dd8a846d9fdaf4bf551161eb606239baeb7cb52c486f",
+   "hunks": [
+    {
+     "before": "import { algarismosDaLegendaRtl, numeroPresoAPalavraRtl } from '@/lib/textLanguage' // KINEO-LEGENDA-NUMERO-RTL-0111\nimport { toFile } from 'openai'",
+     "after": "import { algarismosDaLegendaRtl, numeroPresoAPalavraRtl } from '@/lib/textLanguage' // KINEO-LEGENDA-NUMERO-RTL-0111\nimport { juntarNegacaoComONegado, LEGENDA_NEGACAO_FOLGA } from '@/lib/legendaNegacao' // KINEO-LEGENDA-NEGACAO-0911\nimport { toFile } from 'openai'"
+    },
+    {
+     "before": "let ACTIVE_CAPTION_RTL = false // KINEO-LEGENDA-RTL-2710\nexport function setActiveCaptionFont(language?: unknown): string {",
+     "after": "let ACTIVE_CAPTION_RTL = false // KINEO-LEGENDA-RTL-2710\n// KINEO-LEGENDA-NEGACAO-0911 — a língua do filme decide a lista de negações da legenda (lib/legendaNegacao); mesmo padrão e mesma chamada do RTL acima. null = inglês, o padrão do produto.\nlet ACTIVE_CAPTION_IDIOMA: string | null = null // KINEO-LEGENDA-NEGACAO-0911\nexport function setActiveCaptionFont(language?: unknown): string {"
+    },
+    {
+     "before": "  ACTIVE_CAPTION_RTL = isRtlLanguage(language) // KINEO-LEGENDA-RTL-2710 — mesma chamada, mesmo instante, mesma request\n  return ACTIVE_CAPTION_FONT",
+     "after": "  ACTIVE_CAPTION_RTL = isRtlLanguage(language) // KINEO-LEGENDA-RTL-2710 — mesma chamada, mesmo instante, mesma request\n  ACTIVE_CAPTION_IDIOMA = typeof language === 'string' ? language : null // KINEO-LEGENDA-NEGACAO-0911\n  return ACTIVE_CAPTION_FONT"
+    },
+    {
+     "before": "  const groups: WhisperWord[][] = []\n  {",
+     "after": "  const groups: WhisperWord[][] = []\n  const fechosNaturais = new Set<WhisperWord>() // KINEO-LEGENDA-NEGACAO-0911 — as palavras em que o pedaço fechou por ponto, vírgula ou pausa (não pelo teto)\n  {"
+    },
+    {
+     "before": "      const natural = w.sentenceEnd === true || (Number.isFinite(gap) && gap >= SENTENCE_GAP_SECONDS) || /[,;:،؛，、；]$/.test((w.word ?? '').trim()) // KINEO-LEGENDA-FRASE-3010: vírgula também fecha · KINEO-LEGENDA-PONTO-ALFABETOS: vírgula árabe/chinesa também\n      const boundary =",
+     "after": "      const natural = w.sentenceEnd === true || (Number.isFinite(gap) && gap >= SENTENCE_GAP_SECONDS) || /[,;:،؛，、；]$/.test((w.word ?? '').trim()) // KINEO-LEGENDA-FRASE-3010: vírgula também fecha · KINEO-LEGENDA-PONTO-ALFABETOS: vírgula árabe/chinesa também\n      if (natural) fechosNaturais.add(w) // KINEO-LEGENDA-NEGACAO-0911\n      const boundary ="
+    },
+    {
+     "before": "  }\n",
+     "after": "  }\n  // KINEO-LEGENDA-NEGACAO-0911 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — render dc469323 (cliente pagante, 09/11): \"BEING CLEVER DOESN'T MEAN\" |\n  // KINEO-LEGENDA-NEGACAO-0911 — \"YOU SHOULD FORGET ALLAH\": o teto fechou o pedaço logo depois da negação e o pedaço seguinte, sozinho na tela, disse o contrário da frase.\n  // KINEO-LEGENDA-NEGACAO-0911 — Pedaço que fechou pelo teto com uma negação dentro: a negação desce e o pedaço seguinte estica até o fim da oração (no máximo teto + 2\n  // KINEO-LEGENDA-NEGACAO-0911 — palavras e 40 letras; lib/legendaNegacao). Sem negação, ou com a oração maior que isso, os pedaços ficam exatamente como eram.\n  if (maxWords > 1) { // KINEO-LEGENDA-NEGACAO-0911 — maxWords 1 é o uso como tokenizador (lib/filmes/faceless15): nada a juntar\n    const semNegacaoPartida = juntarNegacaoComONegado(groups, { palavra: (w) => w.word, fechoNatural: (g) => fechosNaturais.has(g[g.length - 1]), maxPalavras: maxWords + LEGENDA_NEGACAO_FOLGA, idioma: ACTIVE_CAPTION_IDIOMA, viajaComASeguinte: (w) => terminaEmPalavraFuncao(w.word) }) // KINEO-LEGENDA-NEGACAO-0911\n    if (semNegacaoPartida !== groups) groups.splice(0, groups.length, ...semNegacaoPartida) // KINEO-LEGENDA-NEGACAO-0911\n  } // KINEO-LEGENDA-NEGACAO-0911\n"
+    },
+    {
+     "before": "\nfunction wordCount(s: string): number {",
+     "after": "\n// KINEO-LEGENDA-NEGACAO-0911 — a mesma regra no corte proporcional (sem Whisper, buildCaptionSegments fatia cada frase do roteiro de N em N palavras): o pedaço\n// KINEO-LEGENDA-NEGACAO-0911 — que termina em ponto ou vírgula fechou a oração; os outros fecharam pelo teto. Nada a juntar = o MESMO array, com os mesmos segmentos.\nexport function segmentosSemNegacaoPartida(segmentos: CaptionSegment[], maxWords: number): CaptionSegment[] { // KINEO-LEGENDA-NEGACAO-0911\n  const grupos = segmentos.map((seg) => narrationTokens(seg.text)) // KINEO-LEGENDA-NEGACAO-0911\n  const juntos = juntarNegacaoComONegado(grupos, { palavra: (w) => w, fechoNatural: (g) => /[.!?…,;:،؛，、；؟۔।。！？][\"'”’»)\\]」』]*$/.test(g[g.length - 1] ?? ''), maxPalavras: maxWords + LEGENDA_NEGACAO_FOLGA, idioma: ACTIVE_CAPTION_IDIOMA, viajaComASeguinte: (w) => terminaEmPalavraFuncao(w) }) // KINEO-LEGENDA-NEGACAO-0911\n  if (juntos === grupos) return segmentos // KINEO-LEGENDA-NEGACAO-0911\n  const original = new Map(grupos.map((g, i) => [g, segmentos[i]])) // KINEO-LEGENDA-NEGACAO-0911 — pedaço que não mudou sai com o segmento de antes\n  return juntos.map((g) => original.get(g) ?? ((text) => ({ text, highlight: pickHighlightWord(text) }))(joinNarrationTokens(g).trim())) // KINEO-LEGENDA-NEGACAO-0911\n} // KINEO-LEGENDA-NEGACAO-0911\n\nfunction wordCount(s: string): number {"
+    },
+    {
+     "before": "    // proportional-fallback renders can never disagree on caption granularity.\n    const scriptSegments = buildCaptionSegments(voiceoverScript, CAPTION_WORDS_PER_CHUNK)\n    const captionsClean: CaptionSegment[] = scriptSegments.length > 0",
+     "after": "    // proportional-fallback renders can never disagree on caption granularity.\n    const scriptSegments = segmentosSemNegacaoPartida(buildCaptionSegments(voiceoverScript, CAPTION_WORDS_PER_CHUNK), CAPTION_WORDS_PER_CHUNK) // KINEO-LEGENDA-NEGACAO-0911\n    const captionsClean: CaptionSegment[] = scriptSegments.length > 0"
+    },
+    {
+     "before": "      // Proportional fallback within the block window.\n      const segments = buildCaptionSegments(block.text, /* KINEO-SPRINT-12H-2026-07-29: was a hardcoded 3. Hollywood is the most expensive tier and was the last place still slicing captions three-at-a-time, i.e. the only path still able to burn `IT IT'S CALLED` on screen. Track the same knob every other tier uses. */ CAPTION_WORDS_PER_CHUNK)\n      const totalWords = segments.reduce((s, seg) => s + Math.max(1, wordCount(seg.text)), 0) || 1",
+     "after": "      // Proportional fallback within the block window.\n      const segments = segmentosSemNegacaoPartida(buildCaptionSegments(block.text, /* KINEO-SPRINT-12H-2026-07-29: was a hardcoded 3. Hollywood is the most expensive tier and was the last place still slicing captions three-at-a-time, i.e. the only path still able to burn `IT IT'S CALLED` on screen. Track the same knob every other tier uses. */ CAPTION_WORDS_PER_CHUNK), CAPTION_WORDS_PER_CHUNK) // KINEO-LEGENDA-NEGACAO-0911\n      const totalWords = segments.reduce((s, seg) => s + Math.max(1, wordCount(seg.text)), 0) || 1"
+    }
+   ]
+  }
+ },
+ "addedSources": {
+  "lib/legendaNegacao.ts": "d7eba1586d4bcae53b9699df4ef8fb9354f7e33720f26b800a61a323342ad0e6"
+ }
+}
