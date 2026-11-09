@@ -1,3 +1,4 @@
+// KINEO-ENQUADRAMENTO-0911 — mídia desta lista que entra na vitrine (home e /made-with-kineo) passa antes por node scripts/enquadra.mjs <id> e ganha linha em lib/vitrineEnquadramento.ts (fundador 09/11: "a gente não pode errar isso"); sem ela, scripts/test-enquadramento-vitrine-0911.mjs fica vermelho.
 // KINEO-TRENDING-2026-10-13 — a página "🔥 Trending now" (/trending), pedida pelo fundador na noite de 13/10.
 //
 // O QUE ELA É: uma vitrine pública (visitante e logado) feita SÓ de mídia que já existe no repositório — nenhum render

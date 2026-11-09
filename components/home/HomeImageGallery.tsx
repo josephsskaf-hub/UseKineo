@@ -1,3 +1,4 @@
+// KINEO-ENQUADRAMENTO-0911 — mídia desta lista que entra na vitrine (home e /made-with-kineo) passa antes por node scripts/enquadra.mjs <id> e ganha linha em lib/vitrineEnquadramento.ts (fundador 09/11: "a gente não pode errar isso"); sem ela, scripts/test-enquadramento-vitrine-0911.mjs fica vermelho.
 // KINEO-HOME-LIMPA-1410 — fundador 14/10: dentro de "More tools", uma galeria grande de fotos feitas no Kineo Images
 // (Nano Banana), "no meio da rua", para a home parecer rica. Regras:
 //   · SÓ imagens geradas pelas contas da casa (nunca de cliente), baixadas uma vez e servidas de public/home-images/

@@ -1,3 +1,4 @@
+// KINEO-ENQUADRAMENTO-0911 — mídia desta lista que entra na vitrine (home e /made-with-kineo) passa antes por node scripts/enquadra.mjs <id> e ganha linha em lib/vitrineEnquadramento.ts (fundador 09/11: "a gente não pode errar isso"); sem ela, scripts/test-enquadramento-vitrine-0911.mjs fica vermelho.
 // KINEO-CLIPS-PRIMEIRO-2026-10-05 — EFEITOS DE 1 CLIQUE (a porta de entrada no estilo dos concorrentes de clipe).
 //
 // Decisão do fundador (04/10): a Kineo passa a ter 2 produtos — PRODUTO 1 = CLIPES (entrada), PRODUTO 2 = FILME NARRADO
