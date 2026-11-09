@@ -35,6 +35,7 @@ import {
   type ClipRequestInput,
 } from './clipCatalog'
 import { clipCreditCost, clipFalUsd } from './clipPricing'
+import type { RecreatePlan } from '@/lib/recreate/generation'
 import { clipEffectCredits, clipEffectEventMetadata, clipEffectForRow, clipTemplateForRequest } from './clipEffects'
 // KINEO-ROSTO-QUADRO-CHAVE-2810 — "Put your face in it" em DUAS etapas (lib/clips/faceRemix.ts): o submitClip confere o `remix` do
 // KINEO-ROSTO-QUADRO-CHAVE-2810 — pedido no catálogo, cobra os 10 e manda a etapa 1 (quadro-chave, Nano Banana edit) no lugar do i2v;
@@ -187,7 +188,7 @@ export function clipTelemetry(row: Pick<ClipRow, 'engine' | 'seconds' | 'mode' |
 
 export async function submitClip(
   deps: ClipSubmitDeps,
-  args: { userId: string; idempotencyKey: string; body: ClipRequestInput },
+  args: { userId: string; idempotencyKey: string; body: ClipRequestInput; recreatePlan?: RecreatePlan },
 ): Promise<ClipSubmitResult> {
   if (!VALID_CLIP_KEY.test(args.idempotencyKey)) {
     return { ok: false, status: 400, code: 'idempotency', error: 'A valid request key is required. Please try again.' }
@@ -195,6 +196,9 @@ export async function submitClip(
   const checked = validateClipRequest(args.body, { userId: args.userId, supabaseUrl: deps.supabaseUrl })
   if (!checked.ok) return { ok: false, status: checked.status, code: checked.code, error: checked.error }
   const req = checked.request
+  // Recreate is a trusted argument supplied only by /api/recreate after access and catalog validation.
+  // The public /api/clips route never forwards it from the request body.
+  const recreate = args.recreatePlan
   // KINEO-EFEITOS-NOVOS-2026-10-13 — efeito-modelo (template do fornecedor): conferido no catálogo ANTES de qualquer custo. O
   // modelo, a entrada da fal e o preço saem de effect.template; motor visível, replay, teto, foto, moderação, saldo, linha,
   // débito e estorno são os de baixo, iguais para todo clipe. Sem `effect` no pedido, `template` é null e nada muda.
@@ -229,7 +233,7 @@ export async function submitClip(
     return { ok: false, status: access.status, code: `engine_${access.reason}`, error }
   }
 
-  const fingerprint = clipFingerprint(req)
+  const fingerprint = recreate ? JSON.stringify([clipFingerprint(req), recreate.model, recreate.input]) : clipFingerprint(req)
   const existing = await deps.findByKey(args.userId, args.idempotencyKey)
   if (existing) {
     if (existing.fingerprint !== fingerprint) {
@@ -240,7 +244,7 @@ export async function submitClip(
 
   // KINEO-MOTORES-SAEM-0511 [TRAVA 8.2 — fundador 05/11 "3 sim"] — depois do replay de propósito: o pedido que já existe volta como sempre (job antigo termina);
   // só o clipe NOVO em Kling 2.5/Veo 3.1 é recusado, antes de foto, moderação, saldo, débito e fornecedor. Efeito-modelo e remix nem perguntam.
-  if (!template && !remix) {
+  if (!template && !remix && !recreate) {
     const recusa = deps.retiredClipRefusal?.(req) ?? null
     if (recusa) return { ok: false, status: 410, code: 'engine_retired', error: recusa }
   }
@@ -252,18 +256,19 @@ export async function submitClip(
   if (req.imageUrl) {
     try {
       await deps.verifyImage(req.imageUrl)
+      for (const photo of recreate?.photos.slice(1) ?? []) await deps.verifyImage(photo)
       if (faceImageUrl) await deps.verifyImage(faceImageUrl) // KINEO-ROSTO-QUADRO-CHAVE-2810 — o recorte também tem de ser JPG/PNG de verdade
     } catch {
       return { ok: false, status: 400, code: 'image', error: 'We could not read your photo. Upload a JPG or PNG again.' }
     }
   }
 
-  const safety = await deps.moderate({ text: req.prompt, imageUrls: [...(req.imageUrl ? [req.imageUrl] : []), ...(faceImageUrl ? [faceImageUrl] : [])] }) // KINEO-ROSTO-QUADRO-CHAVE-2810 — + recorte do rosto
+  const safety = await deps.moderate({ text: req.prompt, imageUrls: recreate?.photos ?? [...(req.imageUrl ? [req.imageUrl] : []), ...(faceImageUrl ? [faceImageUrl] : [])] }) // KINEO-ROSTO-QUADRO-CHAVE-2810 — + recorte do rosto
   if (!safety.ok) {
     return { ok: false, status: safety.status, code: safety.reason === 'blocked' ? 'moderation' : `moderation_${safety.reason}`, error: safety.message }
   }
 
-  const credits = remix ? faceRemixCredits(remix) : tpl.effect && template ? clipEffectCredits(tpl.effect) : clipCreditCost(req.engine, req.seconds, req.mode === 'i2v') // KINEO-EFEITOS-NOVOS-2026-10-13 · KINEO-ROSTO-QUADRO-CHAVE-2810 — remix: os 10 do fundador (as duas etapas)
+  const credits = recreate ? recreate.credits : remix ? faceRemixCredits(remix) : tpl.effect && template ? clipEffectCredits(tpl.effect) : clipCreditCost(req.engine, req.seconds, req.mode === 'i2v') // KINEO-EFEITOS-NOVOS-2026-10-13 · KINEO-ROSTO-QUADRO-CHAVE-2810 — remix: os 10 do fundador (as duas etapas)
   const balance = await deps.getBalance(args.userId)
   if (balance < credits) {
     return { ok: false, status: 402, code: 'credits', error: `This clip costs ${credits} credits. You have ${balance}. Not enough credits.`, balance }
@@ -278,13 +283,13 @@ export async function submitClip(
     billing_reference: `clips-${id}`,
     engine: req.engine,
     mode: req.mode === 'i2v' ? 'image' : 'text',
-    model: remix ? FACE_REMIX_KEYFRAME_MODEL : template ? template.model : req.model, // KINEO-EFEITOS-NOVOS-2026-10-13 — o pollFal lê o resultado deste modelo · KINEO-ROSTO-QUADRO-CHAVE-2810 — remix nasce na etapa 1 (quadro-chave); o settleClip troca para o i2v
+    model: recreate ? recreate.model : remix ? FACE_REMIX_KEYFRAME_MODEL : template ? template.model : req.model, // KINEO-EFEITOS-NOVOS-2026-10-13 — o pollFal lê o resultado deste modelo · KINEO-ROSTO-QUADRO-CHAVE-2810 — remix nasce na etapa 1 (quadro-chave); o settleClip troca para o i2v
     seconds: req.seconds,
     aspect: req.aspect,
     prompt: req.prompt,
     image_url: req.imageUrl,
     credits,
-    fal_usd: remix ? faceRemixFalUsd(remix) : template ? template.usd : clipFalUsd(req.engine, req.seconds, req.mode === 'i2v'), // KINEO-EFEITOS-NOVOS-2026-10-13 · KINEO-ROSTO-QUADRO-CHAVE-2810 — remix: quadro-chave + vídeo
+    fal_usd: recreate ? recreate.falUsd : remix ? faceRemixFalUsd(remix) : template ? template.usd : clipFalUsd(req.engine, req.seconds, req.mode === 'i2v'), // KINEO-EFEITOS-NOVOS-2026-10-13 · KINEO-ROSTO-QUADRO-CHAVE-2810 — remix: quadro-chave + vídeo
     status: 'pending',
     fal_request_id: null,
     video_url: null,
@@ -317,7 +322,8 @@ export async function submitClip(
     }
   }
 
-  const debit = await deps.debit(row.billing_reference, credits)
+  // Free Recreate entitlement is reserved atomically by the database's partial unique index on clips.
+  const debit = recreate && credits === 0 ? { ok: true as const, balance } : await deps.debit(row.billing_reference, credits)
   if (!debit.ok) {
     // O RPC pode ter gravado o débito e perdido a resposta: o estorno pela mesma chave cobre os dois casos.
     const out = await closeWithRefund('debit_failed', 402, 'Not enough credits to start this clip.')
@@ -327,13 +333,15 @@ export async function submitClip(
   // KINEO-EFEITOS-NOVOS-2026-10-13 — efeito-modelo: endpoint e entrada do catálogo; a foto é a já conferida (posse + bytes + moderação).
   // KINEO-ROSTO-QUADRO-CHAVE-2810 — remix: a etapa 1 vai ao edit do Nano Banana com a foto (e o recorte do rosto primeiro, quando veio);
   // KINEO-ROSTO-QUADRO-CHAVE-2810 — o motor de vídeo NÃO é chamado aqui — só no settleClip, com o quadro-chave nosso pronto.
-  const sent = remix && req.imageUrl // KINEO-ROSTO-QUADRO-CHAVE-2810
+  const sent = recreate
+    ? await deps.submit(recreate.model, recreate.input)
+    : remix && req.imageUrl // KINEO-ROSTO-QUADRO-CHAVE-2810
     ? await deps.submit(FACE_REMIX_KEYFRAME_MODEL, faceRemixKeyframeInput(remix, req.imageUrl, faceImageUrl)) // KINEO-ROSTO-QUADRO-CHAVE-2810
     : template && req.imageUrl // KINEO-ROSTO-QUADRO-CHAVE-2810
     ? await deps.submit(template.model, template.input(req.imageUrl))
     : await deps.submit(req.model, buildClipFalInput(req))
   // KINEO-CLIPE-AUTO-3110 — a fal recusou no envio: uma tentativa no Seedance 1.5 antes de devolver erro ao cliente.
-  if (!sent.ok && !sent.ambiguous && !template && !remix && deps.switchEngine) { // KINEO-ROSTO-QUADRO-CHAVE-2810 — remix fora: a etapa 1 é o quadro-chave, não um clipe
+  if (!sent.ok && !sent.ambiguous && !template && !remix && !recreate && deps.switchEngine) { // KINEO-ROSTO-QUADRO-CHAVE-2810 — remix fora: a etapa 1 é o quadro-chave, não um clipe
     const fb = clipFallbackRequest(req)
     if (fb && deps.engineAccess(fb.engine).ok) {
       const second = await deps.submit(fb.model, buildClipFalInput(fb))

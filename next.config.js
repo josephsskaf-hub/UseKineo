@@ -90,6 +90,12 @@ const VS_ALIAS_REDIRECTS = VS_CANONICAL_SLUGS.map((canonical) => ({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    outputFileTracingIncludes: {
+      '/api/recreate': ['./lib/recreate/assets/*'],
+      '/api/recreate/assets/*': ['./lib/recreate/assets/*'],
+    },
+  },
   // Push #92 — Core Web Vitals: remotePatterns was an empty array, which
   // disables remote image optimization entirely (every remote <Image> falls
   // back to unoptimized). Added the external hosts actually referenced by

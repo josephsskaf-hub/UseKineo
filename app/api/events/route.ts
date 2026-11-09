@@ -364,6 +364,7 @@ const SERVER_ONLY_EVENTS = new Set([
   // KINEO-CLIP-EFEITOS-2026-10-05 — efeitos de 1 clique do /clips (lib/clips/clipEffects.ts CLIP_EFFECT_EVENTS): pedido
   // aceito (/api/clips), clipe pronto (settleClip, só quem move a linha) e clique no upsell (/api/clips/effect-upsell).
   'clip_effect_chosen',
+  'recreate_started',
   'clip_effect_ready',
   'clip_effect_film_upsell_clicked',
   // KINEO-AVISO-CLIPE-GRATIS-2026-10-06 — escrito SÓ por /api/clips quando o pedido que nasceu da ideia pronta do aviso "Você

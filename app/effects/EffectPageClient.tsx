@@ -10,8 +10,8 @@ import EffectPreview from './EffectPreview'
 import './effects.css'
 import ClipTelemetry from '@/lib/clips/ClipTelemetry'
 
-export default function EffectPageClient({ effect, language, signedIn, related, measurementActor }: {
-  effect: EffectPageCard; language: InterfaceLanguage; signedIn: boolean; related: EffectPageCard[]; measurementActor: string | null
+export default function EffectPageClient({ effect, language, signedIn, related, measurementActor, recreateEnabled = false }: {
+  effect: EffectPageCard; language: InterfaceLanguage; signedIn: boolean; related: EffectPageCard[]; measurementActor: string | null; recreateEnabled?: boolean
 }) {
   const router = useRouter()
   const t = (text: string) => effectText(language, text)
@@ -33,9 +33,9 @@ export default function EffectPageClient({ effect, language, signedIn, related, 
           <span className="ep-eyebrow">{t('Made on Kineo')}</span>
           <h1 id="effect-title">{t(effect.title)}</h1>
           <p className="ep-lead">{t(effect.sub)}</p>
-          <span className="ep-engine" dir="ltr">{clipEffectEngineLabel(effect)}</span>
+          {!recreateEnabled && <span className="ep-engine" dir="ltr">{clipEffectEngineLabel(effect)}</span>}
           <ol className="ep-steps"><li>{t('Use this effect')}</li><li>{t('Add your photo')}</li><li>{t('Generate your clip')}</li></ol>
-          <Link className="ep-cta" href={effectDestination(effect, signedIn)} prefetch={false} data-effect-use={effect.key} data-clip-action="use_effect" data-clip-effect={effect.key}>{t('Use this effect')} <span aria-hidden="true">↗</span></Link>
+          <Link className="ep-cta" href={recreateEnabled ? `/recreate/effect-${effectSlug(effect)}` : effectDestination(effect, signedIn)} prefetch={false} data-effect-use={effect.key} data-clip-action="use_effect" data-clip-effect={effect.key}>{t('Use this effect')} <span aria-hidden="true">↗</span></Link>
           <p className="ep-note">{t('Your result depends on your photo.')}</p>
         </div>
         <figure className="ep-stage" data-clip-action="preview">
@@ -49,7 +49,7 @@ export default function EffectPageClient({ effect, language, signedIn, related, 
           {/* House posters only; no additional videos or paid renders. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={item.preview!.poster} alt={t(item.title)} loading="lazy" width={270} height={480} />
-          <span className="ep-card-engine" dir="ltr">{clipEffectEngineLabel(item)}</span>
+          {!recreateEnabled && <span className="ep-card-engine" dir="ltr">{clipEffectEngineLabel(item)}</span>}
           <h3>{t(item.title)}</h3>
         </Link>)}</div>
       </section>
