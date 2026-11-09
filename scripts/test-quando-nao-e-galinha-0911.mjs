@@ -55,6 +55,49 @@ const POSITIVOS = [
   ['THE HEN Clara lived on a farm. Clara laid an egg.', 'Clara', 'hen', 'CAIXA ALTA: THE HEN Clara'],
   ['The fox Ângelo ran across the field. Ângelo hid in the grass.', 'Ângelo', 'fox', 'the fox Ângelo (nome com acento)'],
   ['Dino woke up in the jungle. Dino ran to the river.', 'Dino', 'dinosaur', 'Dino (pela forma do nome)'],
+  // volta 2 (revisor 09/11): bicho COMPOSTO antes do nome continua o bicho do fim, como na base
+  ['The goldfish Bubbles swam in circles. Bubbles was bored.', 'Bubbles', 'fish', 'the goldfish Bubbles'],
+  ['The catfish Carl hid under a rock. Carl was shy.', 'Carl', 'fish', 'the catfish Carl'],
+  ['The mudfish Moe slept. Moe woke up.', 'Moe', 'fish', 'the mudfish Moe'],
+  ['The bluebird Bella sang every morning. Bella flew away.', 'Bella', 'bird', 'the bluebird Bella'],
+  ['The hummingbird Hugo drank nectar. Hugo zoomed away.', 'Hugo', 'bird', 'the hummingbird Hugo'],
+  ['The redbird Ruby sang. Ruby flew home.', 'Ruby', 'bird', 'the redbird Ruby'],
+  ['The lovebird Lulu cuddled. Lulu chirped.', 'Lulu', 'bird', 'the lovebird Lulu'],
+  ['The sheepdog Shep guarded the flock. Shep barked loudly.', 'Shep', 'dog', 'the sheepdog Shep'],
+  ['The bobcat Bob prowled the canyon. Bob hunted at night.', 'Bob', 'cat', 'the bobcat Bob'],
+  ['The tomcat Tom chased the mouse. Tom fell asleep.', 'Tom', 'cat', 'the tomcat Tom'],
+  ['The wildcat Willa climbed the tree. Willa hissed.', 'Willa', 'cat', 'the wildcat Willa'],
+]
+// volta 2 (revisor 09/11): a combinação gerada — 11 compostos × 19 nomes × 6 moldes, todos a espécie do fim
+const COMPOSTOS = [['goldfish', 'fish'], ['catfish', 'fish'], ['bluebird', 'bird'], ['blackbird', 'bird'], ['songbird', 'bird'], ['hummingbird', 'bird'], ['sheepdog', 'dog'], ['bobcat', 'cat'], ['tomcat', 'cat'], ['wildcat', 'cat'], ['polecat', 'cat']]
+const NOMES = ['Lucas', 'Maria', 'Pedro', 'Ana', 'Tom', 'Bella', 'Rusty', 'Clara', 'Bruno', 'Mishu', 'Ruby', 'Hugo', 'Joana', 'Ivan', 'Marta', 'Rafael', 'Tomás', 'Ágata', 'Ângelo']
+const MOLDES = [
+  (c, n) => `The ${c} ${n} lived by the river. ${n} was happy.`,
+  (c, n) => `A ${c} named ${n} lived by the river. ${n} was happy.`,
+  (c, n) => `An old ${c} called ${n} slept all day. ${n} woke up at night.`,
+  (c, n) => `It was 3 a.m. ${c} ${n} received a mysterious call. ${n} answered it.`,
+  (c, n) => `Two ${c}s named ${n} lived in the barn. ${n} played all day.`,
+  (c, n) => `THE ${c.toUpperCase()} ${n} ran away. ${n} came back.`,
+]
+for (const [c, e] of COMPOSTOS) for (const n of NOMES) for (const [i, m] of MOLDES.entries()) POSITIVOS.push([m(c, n), n, e, `${c} ${n} molde ${i + 1}`])
+// volta 2 (revisor 09/11): histórias reais com "Then X"/"When X" que viravam galinha
+NEGATIVOS.push(
+  ['The oxygen tank exploded. Then Lovell radioed Houston. Lovell stayed calm.', 'Lovell', 'Apollo 13: Then Lovell'],
+  ['The ship was huge. When Jack boarded, he smiled. Jack never came back.', 'Jack', 'Titanic: When Jack'],
+  ['The crowd cheered when Kennedy waved. Kennedy smiled at them.', 'Kennedy', 'When Kennedy waved'],
+  ['For 29 years he hid in the jungle. Then Onoda finally surrendered. Onoda wept.', 'Onoda', 'Then Onoda'],
+  ['The sky exploded over Siberia. Then Semenov was thrown from his chair. Semenov survived.', 'Semenov', 'Tunguska: Then Semenov'],
+  ['Nobody believed it when Warren bought Coca-Cola. Warren held the stock for decades.', 'Warren', 'When Warren bought'],
+  ['The Range Rover stopped. Then Marco stepped out. Marco looked around.', 'Marco', 'Range Rover: Then Marco'],
+  ['The old Jaguar roared. Then Nina hit the gas. Nina laughed.', 'Nina', 'Jaguar: Then Nina'],
+  ['Imagine waking up when Pedro knocks on the door. Pedro is smiling.', 'Pedro', 'Imagine waking up when Pedro'],
+)
+// volta 2: composto cuja espécie NÃO é a do fim (jellyfish, starfish, seahorse, wombat) não vira a espécie errada (a base dizia fish/horse/bat)
+const COMPOSTO_ERRADO = [
+  ['The jellyfish Jelly floated in the sea. Jelly glowed at night.', 'Jelly', 'fish'],
+  ['The starfish Patrick lay on the sand. Patrick smiled.', 'Patrick', 'fish'],
+  ['The seahorse Sunny swam slowly. Sunny hid in the weeds.', 'Sunny', 'horse'],
+  ['The wombat Wally dug a burrow. Wally slept all day.', 'Wally', 'bat'],
 ]
 
 function prova(ep) {
@@ -67,6 +110,10 @@ function prova(ep) {
     const p = quem(ep, texto, nome)
     if (!p) erros.push(`P ${rotulo}: ${nome} sumiu do elenco`)
     else if (p.tipo === 'humano' || !new RegExp(`\\b${especie}\\b`, 'i').test(p.descricao)) erros.push(`P ${rotulo}: ${p.tipo} "${p.descricao.slice(0, 50)}"`)
+  }
+  for (const [texto, nome, errada] of COMPOSTO_ERRADO) {
+    const p = quem(ep, texto, nome)
+    if (p && new RegExp(`\\b${errada}\\b`, 'i').test(p.descricao)) erros.push(`X ${nome}: "${p.descricao.slice(0, 50)}"`)
   }
   return erros
 }
@@ -88,16 +135,18 @@ function prova(ep) {
 
 // ── C. mutantes: desfazer o conserto tem de derrubar ─────────────────────────────────────────────────────────────────────
 {
-  const marca = '(?<![\\p{L}\\p{N}])(${CRIATURAS}|${ANIMAIS})'
+  const marca = '(?<![\\p{L}\\p{N}])${composto}(${CRIATURAS}|${ANIMAIS})'
   const fonte = readFileSync(join(raiz, EPOCA), 'utf8')
   checa('C a fronteira está no código, uma vez', fonte.split(marca).length === 2)
   const m1 = prova(carrega((t) => t.replace(marca, '(${CRIATURAS}|${ANIMAIS})')))
   checa('C mutante M1 (sem a fronteira, como na base): volta a virar bicho ' + m1.length, m1.length >= 8 && m1.some((e) => e.includes('caso real')))
-  const m2 = prova(carrega((t) => t.replace(marca, '(?<![\\p{L}])(${CRIATURAS}|${ANIMAIS})').replace("'iu').exec(frases) // KINEO-ELENCO-EPOCA-2710 // KINEO-QUANDO", "'i').exec(frases) // KINEO-ELENCO-EPOCA-2710 // KINEO-QUANDO")))
+  const m2 = prova(carrega((t) => t.replace(marca, '(?<![\\p{L}])${composto}(${CRIATURAS}|${ANIMAIS})').replace("'iu').exec(frases) // KINEO-ELENCO-EPOCA-2710 // KINEO-QUANDO", "'i').exec(frases) // KINEO-ELENCO-EPOCA-2710 // KINEO-QUANDO")))
   checa('C mutante M2 (sem a flag u, \\p{L} vira letra p literal): reprova ' + m2.length, m2.length > 0)
-  const m3 = prova(carrega((t) => t.replace(marca, '(?<![\\p{L}])(${CRIATURAS}|${ANIMAIS})')))
+  const m3 = prova(carrega((t) => t.replace(marca, '(?<![\\p{L}])${composto}(${CRIATURAS}|${ANIMAIS})')))
   checa('C controle M3 (fronteira só de letra): o mesmo resultado do conserto ' + m3.join(' | '), m3.length === 0)
-  console.log('     M1 derrubou: ' + m1.map((e) => e.split(':')[0]).join(' · '))
+  const m4 = prova(carrega((t) => t.replace(marca, '(?<![\\p{L}\\p{N}])(${CRIATURAS}|${ANIMAIS})')))
+  checa('C mutante M4 (sem os compostos, a volta 1 reprovada): goldfish/bobcat/sheepdog voltam a virar gente ' + m4.length, m4.length >= 11 * 19 * 6 && m4.some((e) => e.includes('goldfish Bubbles')) && m4.some((e) => e.includes('sheepdog Shep')))
+  console.log('     M1 derrubou: ' + m1.slice(0, 12).map((e) => e.split(':')[0]).join(' · ') + ` … (${m1.length})`)
 }
 
 // ── D. recibo exato da TRAVA 8.2 ────────────────────────────────────────────────────────────────────────────────────────
