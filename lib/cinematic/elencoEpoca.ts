@@ -407,7 +407,7 @@ function tipoDe(nome: string, aposto: string | null, frases: string, titulos: st
     return { tipo: 'criatura', especie: nucleo.toLowerCase() } // KINEO-ELENCO-EPOCA-2710 — geleia, nuvem, estrela que fala
   } // KINEO-ELENCO-EPOCA-2710
   // sem aposto: a espécie que as frases do nome dizem perto dele ("the dragon Mishu flew") — gente por padrão // KINEO-ELENCO-EPOCA-2710
-  const janela = new RegExp(String.raw`(?:(${CRIATURAS}|${ANIMAIS})s?\s+(?:named\s+|called\s+)?${escapaRe(nome)}|${escapaRe(nome)}\s+the\s+(?:[\p{Ll}-]+\s+){0,2}(${CRIATURAS}|${ANIMAIS})s?)\b`, 'iu').exec(frases) // KINEO-ELENCO-EPOCA-2710
+  const janela = new RegExp(String.raw`(?:(?<![\p{L}\p{N}])(${CRIATURAS}|${ANIMAIS})s?\s+(?:named\s+|called\s+)?${escapaRe(nome)}|${escapaRe(nome)}\s+the\s+(?:[\p{Ll}-]+\s+){0,2}(${CRIATURAS}|${ANIMAIS})s?)\b`, 'iu').exec(frases) // KINEO-ELENCO-EPOCA-2710 // KINEO-QUANDO-NAO-E-GALINHA-0911 — a espécie só é lida de palavra inteira: "when Lucas" não é "hen Lucas"
   if (janela) { const e = (janela[1] ?? janela[2]).toLowerCase(); return { tipo: CRIATURA_RE.test(e) ? 'criatura' : 'animal', especie: e === 'dino' ? 'dinosaur' : e } } // KINEO-ELENCO-EPOCA-2710
   // o próprio nome diz a espécie ("Dino", "Leo the Lion" já caiu acima): como em lib/cinematic/folhaDePersonagem tipoDoNome // KINEO-ELENCO-EPOCA-2710
   const pelaForma = CRIATURA_RE.exec(nome.toLowerCase()) ?? ANIMAL_RE.exec(nome.toLowerCase()) // KINEO-ELENCO-EPOCA-2710

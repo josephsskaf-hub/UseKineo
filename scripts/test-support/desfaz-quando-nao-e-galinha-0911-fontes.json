@@ -1,0 +1,16 @@
+{
+ "base": "1c67e14f25611f904bd278a7df40b8c5d3e65514",
+ "scope": {
+  "lib/cinematic/elencoEpoca.ts": {
+   "beforeSha256": "b18d1d3371db974f170665796191ac03422fcf20ca58e18f629e33b5c254684b",
+   "afterSha256": "c2d79381faeda9c31bab1b824bf6e237491d3bc0b33de1c49be2f30edc937ca7",
+   "hunks": [
+    {
+     "before": "  // sem aposto: a espécie que as frases do nome dizem perto dele (\"the dragon Mishu flew\") — gente por padrão // KINEO-ELENCO-EPOCA-2710\n  const janela = new RegExp(String.raw`(?:(${CRIATURAS}|${ANIMAIS})s?\\s+(?:named\\s+|called\\s+)?${escapaRe(nome)}|${escapaRe(nome)}\\s+the\\s+(?:[\\p{Ll}-]+\\s+){0,2}(${CRIATURAS}|${ANIMAIS})s?)\\b`, 'iu').exec(frases) // KINEO-ELENCO-EPOCA-2710\n  if (janela) { const e = (janela[1] ?? janela[2]).toLowerCase(); return { tipo: CRIATURA_RE.test(e) ? 'criatura' : 'animal', especie: e === 'dino' ? 'dinosaur' : e } } // KINEO-ELENCO-EPOCA-2710",
+     "after": "  // sem aposto: a espécie que as frases do nome dizem perto dele (\"the dragon Mishu flew\") — gente por padrão // KINEO-ELENCO-EPOCA-2710\n  const janela = new RegExp(String.raw`(?:(?<![\\p{L}\\p{N}])(${CRIATURAS}|${ANIMAIS})s?\\s+(?:named\\s+|called\\s+)?${escapaRe(nome)}|${escapaRe(nome)}\\s+the\\s+(?:[\\p{Ll}-]+\\s+){0,2}(${CRIATURAS}|${ANIMAIS})s?)\\b`, 'iu').exec(frases) // KINEO-ELENCO-EPOCA-2710 // KINEO-QUANDO-NAO-E-GALINHA-0911 — a espécie só é lida de palavra inteira: \"when Lucas\" não é \"hen Lucas\"\n  if (janela) { const e = (janela[1] ?? janela[2]).toLowerCase(); return { tipo: CRIATURA_RE.test(e) ? 'criatura' : 'animal', especie: e === 'dino' ? 'dinosaur' : e } } // KINEO-ELENCO-EPOCA-2710"
+    }
+   ]
+  }
+ },
+ "addedSources": {}
+}
