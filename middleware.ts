@@ -1,4 +1,5 @@
-import { NextResponse, type NextRequest } from 'next/server'
+import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server'
+import { registrarLeituraDeRoboIa } from '@/lib/seo/aiFetchLog' // KINEO-ROBO-IA-1011
 import { updateSession } from '@/lib/supabase/middleware'
 import {
   HOME_VISITOR_COOKIE,
@@ -43,7 +44,10 @@ function runsOnLegacyHost(pathname: string): boolean {
   return LEGACY_HOST_DIRECT_PREFIXES.some((prefix) => pathname.startsWith(prefix))
 }
 
-export async function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest, event: NextFetchEvent) {
+  // KINEO-ROBO-IA-1011 [D1 do CEO 09/11] — registra a leitura de robô de IA (Claude-User etc.) sem atrasar a página:
+  // só para user-agent da lista, trabalho entregue ao waitUntil, 1 linha por robô+página+período. Regra: lib/seo/aiFetchLog.ts.
+  registrarLeituraDeRoboIa(request, (p) => event.waitUntil(p))
   // Keep one permanent public origin. The production Vercel hostname was
   // serving a full 200 copy of every page, while the former brand domains
   // were configured as temporary redirects. This application-level 308

@@ -250,6 +250,7 @@ async function problems(over = {}) {
       // KINEO-CHECKOUT-ROBO-1510: o portão do checkout só age em /api/stripe/checkout (provado em scripts/test-checkout-robo-1510.mjs).
       '@/lib/growth/checkoutRobotGate': { decideCheckoutGate: () => ({ action: 'pass', reason: 'other_path' }), checkoutGateHtml: () => '', checkoutGateStatus: () => 200, CHECKOUT_GATE_HEADERS: {} },
       '@/lib/seo/linguasPublicas0311': { caminhoForaDasLinguas: () => false }, // KINEO-5-LINGUAS-0311 — inerte aqui (a regra real: test-5-linguas-0311)
+      '@/lib/seo/aiFetchLog': { registrarLeituraDeRoboIa: () => undefined }, // KINEO-ROBO-IA-1011 — só registra robô de IA, nunca muda a resposta (a regra real: test-robo-ia-1011)
     })
     const ledger = pure(S('ledger'), F.ledger)
     payment = compile(
