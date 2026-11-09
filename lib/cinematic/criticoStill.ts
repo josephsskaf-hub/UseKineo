@@ -246,6 +246,96 @@ export function custoDoCriticoUsd(usage: { prompt_tokens?: unknown; completion_t
   return arred(e * STILL_CRITIC_USD_POR_TOKEN_ENTRADA + s * STILL_CRITIC_USD_POR_TOKEN_SAIDA)
 }
 
+// ═══ KINEO-CRITICO-OBSERVA-0911 [TRAVA 8.2 — "vai no crítico" do fundador 09/11] — o modelo OBSERVA, o código DECIDE ═══
+// Medido em 09/11 (docs/MEDICAO-CRITICO-STILL-2026-11-09.md): desde 04/11 100% dos FAIL traziam "estilo"; em 36 stills reais com
+// gabarito no olho o pedido de sempre reprovou 22 de 26 imagens boas (chamou desenho 3D de "fotográfico" e foto de "não
+// fotorrealista"). O gpt-4o-mini enxerga certo quando só descreve; erra quando o pedido manda "ALSO FAIL…". Aqui ele devolve
+// observações (meio, pessoas, defeitos) e a REGRA fica no código: estilo pedido × meio visto, "sem gente" × pessoas visíveis.
+// Mesma medição: 0 de 26 reprovações à toa, 1 de 5 defeitos perdidos (origem), igual em 2 rodadas. Só vale SEM folha de
+// personagem (a identidade com 2 imagens não foi medida: segue o pedido de sempre). Interruptor: STILL_CRITIC_FORMAT=veredito
+// volta tudo ao pedido antigo sem publicar nada.
+export const MARCA_CRITICO_OBSERVA = 'KINEO-CRITICO-OBSERVA-0911'
+export const STILL_CRITIC_OBSERVA_MAX_TOKENS = 320
+export function formatoDoCritico(valor?: string | null): 'observa' | 'veredito' {
+  const bruto = valor === undefined ? (typeof process !== 'undefined' ? process.env.STILL_CRITIC_FORMAT : undefined) : valor
+  return String(bruto ?? '').trim().toLowerCase() === 'veredito' ? 'veredito' : 'observa'
+}
+/** O pedido observador vale nesta entrada? Só sem folha de personagem e com o interruptor no padrão. */
+export function usarCriticoObservador(e: Pick<EntradaCritico, 'referencia'>, formato: 'observa' | 'veredito' = formatoDoCritico()): boolean {
+  return formato === 'observa' && !e.referencia
+}
+export const STILL_CRITIC_SISTEMA_OBSERVA =
+  'You inspect ONE still image that will become the first frame of a shot in a narrated short film. First LOOK and REPORT what is actually in the image; do not guess what the film wanted. ' +
+  'Report only what you can clearly see. Reply ONLY with JSON: {"seen":"<max 10 words: what the image actually shows>",' +
+  '"medium":"photo"|"3d_animation"|"2d_cartoon_or_anime"|"painting_or_illustration"|"toy_plush_doll_figurine_or_clay"|"other" (how the main subject is rendered: a real photographed person or animal is "photo"; a plush toy, doll, figurine or clay model, even when photographed, is "toy_plush_doll_figurine_or_clay"),' +
+  '"people_visible":<integer, people whose body or face is clearly visible; ignore tiny distant silhouettes>,' +
+  '"anatomy_defect":<true only for a clearly deformed body or face: extra/missing/fused fingers or limbs, melted or duplicated face>,' +
+  '"garbled_text":<true only when readable letters, words or numbers appear that are misspelled, nonsense or invented>,' +
+  '"artifact":<true only for split screen, collage, panels, border, watermark, merged objects, heavy noise, blank or corrupted image>,' +
+  '"subject_kind_ok":<false only when the KIND of main subject is clearly wrong: a different species, object or category than the shot must show (e.g. a car instead of a person, a dog instead of a hen, an empty room when a person or animal must appear), or a cute cartoon mascot, plush toy, chibi or generic smiling creature standing in for a requested person, god, hero, mythical figure or named character. Names cannot be recognised: any person or animal of the requested kind counts as the named character. Pose, angle, framing, hair or clothing details, lighting, and missing secondary details never make it false>,' +
+  '"era_violation":<true only when something clearly visible was invented or became common or fashionable only after the stated period: jeans or denim, hoodies, sneakers, puffer jackets, modern streetwear or haircuts, a smartwatch or modern wristwatch, a smartphone, earbuds, a present-day car, LED screens or lights — judge each item against the stated year: anything already common in that year is period-accurate and fine (e.g. in 1997 jeans, hoodies, sneakers and puffer jackets are fine); when unsure it is false; false when no period is stated>,' +
+  '"main_person_looks":"<max 6 words: apparent skin tone and facial features of the main person, empty if no person>","origin_mismatch":<compare main_person_looks with the stated origin: true only when a clearly visible main person clearly looks from a different part of the world than the stated origin; false when no origin is stated or when unsure>,' +
+  '"reason":"<max 10 words naming the defect, empty if none>"}'
+/** O pedido observador: o que a cena deve mostrar + elenco + fala + época/origem declaradas. Uma imagem, detail 'low'. */
+export function montarPedidoObservado(e: EntradaCritico, url: string): { messages: MensagemDoCritico[]; imagens: number; caracteres: number } {
+  const ctx = contextoDoCritico0311(e.prompt)
+  const elenco = elencoNoPrompt(e.prompt)
+  const texto = [
+    `SHOT ${e.indice + 1}`,
+    `What the shot must show: ${limpa(e.mostra || e.prompt).slice(0, 420)}`,
+    ...(elenco ? [`Named character(s) who must appear: ${elenco}`] : []),
+    `Narration heard during the shot: "${limpa(e.fala).slice(0, 300)}"`,
+    ...(ctx.epoca ? [`Stated period: ${ctx.epoca}`] : []),
+    ...(ctx.origem ? [`Stated origin of the main person: ${ctx.origem}`] : []),
+  ].join('\n')
+  return {
+    messages: [{ role: 'system', content: STILL_CRITIC_SISTEMA_OBSERVA }, { role: 'user', content: [{ type: 'text', text: texto }, { type: 'image_url', image_url: { url, detail: 'low' } }] }],
+    imagens: 1,
+    caracteres: STILL_CRITIC_SISTEMA_OBSERVA.length + texto.length,
+  }
+}
+const MEIO_DESENHADO = new Set(['3d_animation', '2d_cartoon_or_anime', 'painting_or_illustration', 'toy_plush_doll_figurine_or_clay'])
+/** O meio que o modelo escreveu, normalizado (variações como "3D animation", "cartoon", "photograph", "plush toy"). */
+function meioNormalizado(v: unknown): string {
+  const t = String(v ?? '').trim().toLowerCase()
+  if (/toy|plush|doll|figurine|clay|puppet/.test(t)) return 'toy_plush_doll_figurine_or_clay'
+  if (/photo|realistic|live[- ]?action/.test(t) && !/anim|cartoon|anime/.test(t)) return 'photo' // "photorealistic render/CGI" é foto, nunca desenho (o defeito que este conserto mata)
+  if (/3d|cgi|render/.test(t)) return '3d_animation'
+  if (/cartoon|anime|2d|animat/.test(t)) return '2d_cartoon_or_anime'
+  if (/paint|illustr|drawing|sketch/.test(t)) return 'painting_or_illustration'
+  if (/photo|real|live/.test(t)) return 'photo'
+  return t
+}
+/** true/false do modelo, aceitando "true"/"false" escritos como texto. */
+const sim = (v: unknown) => v === true || String(v).trim().toLowerCase() === 'true'
+const nao = (v: unknown) => v === false || String(v).trim().toLowerCase() === 'false'
+/** Lê a observação e decide em código. null = não é observação (ex.: veio no formato antigo com "verdict") ou ilegível. */
+export function lerObservacaoDoCritico(raw: string, ctx: ContextoCritico0311): RespostaDoCritico | null {
+  let j: Record<string, unknown>
+  try {
+    const p = JSON.parse(raw) as unknown
+    if (!p || typeof p !== 'object' || Array.isArray(p)) return null
+    j = p as Record<string, unknown>
+  } catch {
+    return null
+  }
+  if ((!('medium' in j) && !('seen' in j)) || 'verdict' in j) return null // resposta no formato antigo (ou híbrida com verdict) segue a leitura de sempre
+  const medio = meioNormalizado(j.medium)
+  const problemas: ProblemaStill[] = []
+  if (ctx.estilo === 'foto' && MEIO_DESENHADO.has(medio)) problemas.push('estilo')
+  if (ctx.estilo === 'desenho' && medio === 'photo') problemas.push('estilo')
+  if (ctx.semGente && Number(j.people_visible) > 0) problemas.push('pessoa')
+  if (sim(j.anatomy_defect)) problemas.push('anatomia')
+  if (sim(j.garbled_text)) problemas.push('texto')
+  if (sim(j.artifact)) problemas.push('artefato')
+  if (nao(j.subject_kind_ok)) problemas.push('sujeito')
+  if (ctx.epoca && sim(j.era_violation)) problemas.push('epoca')
+  if (ctx.origem && sim(j.origin_mismatch)) problemas.push('origem')
+  if (problemas.length === 0) return { veredito: 'PASS', problemas: [], motivo: '', nota: 90 }
+  const motivo = limpa(typeof j.reason === 'string' ? j.reason : '').slice(0, 160) // sem "reason" o motivo fica vazio: nunca vira exigência inventada na foto nova
+  return { veredito: 'FAIL', problemas, motivo, nota: Math.max(10, 30 - 10 * (problemas.length - 1)) } // escala: PASS 90; FAIL 30, 20, 10 (perto das notas FAIL de sempre, 20-30)
+}
+
 /** Uma chamada com teto próprio (AbortController). Nunca lança: qualquer falha = ERRO com o motivo. */
 export async function chamarCritico(
   e: EntradaCritico,
@@ -254,7 +344,8 @@ export async function chamarCritico(
 ): Promise<ChamadaDoCritico> {
   const agora = opts.agora ?? (() => Date.now())
   const t0 = agora()
-  const { messages, imagens, caracteres } = montarPedidoAoCritico(e, url)
+  const observa = usarCriticoObservador(e) // KINEO-CRITICO-OBSERVA-0911
+  const { messages, imagens, caracteres } = observa ? montarPedidoObservado(e, url) : montarPedidoAoCritico(e, url) // KINEO-CRITICO-OBSERVA-0911 — era: montarPedidoAoCritico(e, url)
   const base: ChamadaDoCritico = { veredito: 'ERRO', problemas: [], motivo: '', nota: null, custoUsd: 0, ms: 0, erro: null }
   const key = opts.apiKey ?? (typeof process !== 'undefined' ? process.env.OPENAI_API_KEY : undefined)
   if (!key) return { ...base, erro: 'sem_chave', ms: agora() - t0 }
@@ -267,12 +358,12 @@ export async function chamarCritico(
       method: 'POST',
       signal: ctrl.signal,
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model: STILL_CRITIC_MODELO, temperature: 0, max_tokens: 120, response_format: { type: 'json_object' }, messages }),
+      body: JSON.stringify({ model: STILL_CRITIC_MODELO, temperature: 0, max_tokens: observa ? STILL_CRITIC_OBSERVA_MAX_TOKENS : 120, response_format: { type: 'json_object' }, messages }), // KINEO-CRITICO-OBSERVA-0911 — a observação é mais longa que o veredito; era: max_tokens: 120
     })
     if (!res.ok) return { ...base, erro: `http_${res.status}`, ms: agora() - t0 }
     const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
     const custoUsd = custoDoCriticoUsd(data.usage, imagens, caracteres)
-    const r = lerRespostaDoCritico(data.choices?.[0]?.message?.content ?? '', Boolean(e.referencia)) // KINEO-META95-PERSONAGEM-2010 — "identity" só conta com a folha; era: lerRespostaDoCritico(conteúdo)
+    const r = (observa ? lerObservacaoDoCritico(data.choices?.[0]?.message?.content ?? '', contextoDoCritico0311(e.prompt)) : null) ?? lerRespostaDoCritico(data.choices?.[0]?.message?.content ?? '', Boolean(e.referencia)) // KINEO-CRITICO-OBSERVA-0911 — observação lida primeiro; resposta no formato antigo (verdict) cai na leitura de sempre // KINEO-META95-PERSONAGEM-2010 — "identity" só conta com a folha; era: lerRespostaDoCritico(conteúdo)
     if (r) Object.assign(r, aplicarPerguntas0311(r, data.choices?.[0]?.message?.content ?? '', contextoDoCritico0311(e.prompt))) // KINEO-JUIZ-PERGUNTAS-0311 — "era"/"person"/"style" só contam quando o prompt da cena os pediu
     if (!r) return { ...base, erro: 'resposta_ilegivel', custoUsd, ms: agora() - t0 }
     return { ...base, veredito: r.veredito, problemas: r.problemas, motivo: r.motivo, nota: r.nota, custoUsd, ms: agora() - t0 }
