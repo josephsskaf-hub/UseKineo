@@ -4,10 +4,12 @@
 //     troca sozinha, sem lista digitada aqui;
 //   · prévia = o clipe feito com o próprio efeito a partir de uma foto gerada (o mesmo selo honesto da página do efeito);
 //   · cada cartão leva à página pública do efeito (/effects/<slug>), que já cuida de login e volta para o efeito;
+//     KINEO-EFEITO-DIRETO-1011 — agora leva DIRETO ao Recreate (effectCardHref, o mesmo da vitrine); a página do efeito só com o Recreate fechado;
 //   · vídeo mudo em loop com pôster e preload="none" (a home não baixa os 4 MP4 antes de aparecerem).
 import Link from 'next/link'
 import { UiLabel } from '@/components/InterfaceLanguage'
-import { publicEffectPages, effectSlug, effectPagePath } from '@/lib/clips/clipEffectPages'
+import { publicEffectPages } from '@/lib/clips/clipEffectPages'
+import { effectCardHref } from '@/components/home/HomeMosaic' // KINEO-EFEITO-DIRETO-1011 — o mesmo destino do cartão de efeito da vitrine
 
 export const HOME_NEW_EFFECTS_COUNT = 4
 
@@ -15,7 +17,7 @@ export function homeNewEffects() {
   return publicEffectPages().slice(-HOME_NEW_EFFECTS_COUNT).reverse()
 }
 
-export default function HomeNewEffects() {
+export default function HomeNewEffects({ signedIn = false }: { signedIn?: boolean }) {
   const effects = homeNewEffects()
   if (effects.length === 0) return null
   return (
@@ -32,7 +34,7 @@ export default function HomeNewEffects() {
           {effects.map((effect) => (
             <Link
               key={effect.key}
-              href={effectPagePath(effectSlug(effect))}
+              href={effectCardHref(effect, signedIn)}
               data-home-cta={`new_effect_${effect.key}`}
               style={{ position: 'relative', display: 'block', borderRadius: 16, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--card)', color: 'inherit', textDecoration: 'none' }}
             >

@@ -460,5 +460,69 @@ mutante('arquivo faltando',{}, {}, (rel) => !rel.includes('pet-barista.mp4') && 
 mutante('pôster faltando', {}, {}, (rel) => !rel.endsWith('produto-tenis-rua.webp') && fs.existsSync(path.join(ROOT, rel)))
 mutante('"newest first" de volta', {}, { pagina: rd(PAGINA) + '\nClips, newest first.' })
 
+// ─── KINEO-EFEITO-DIRETO-1011 [fundador 10/11: "Tá caindo nessa página aqui, que era anterior, acho que deveria não cair mais"] ──────────
+// O cartão de EFEITO (vitrine da home + /made-with-kineo, e a faixa antiga "New effects") leva DIRETO ao /recreate/effect-<slug>; visitante
+// passa pelo cadastro e volta para lá. Com o interruptor do Recreate em 'internal' volta à página pública do efeito; efeito fora do catálogo
+// também. A medição (data-home-cta mosaic_effect_<key> / new_effect_<key>) não muda. Executa os componentes DE VERDADE, nos dois estados.
+const RELEASE = 'lib/recreate/release.ts'
+const NOVOS_EFEITOS = 'components/home/HomeNewEffects.tsx'
+const FECHA_RECREATE = (s) => { const de = "export const RECREATE_RELEASE: InternalRelease = 'public'"; if (!s.includes(de)) throw new Error('interruptor do Recreate sumiu'); return s.replace(de, "export const RECREATE_RELEASE: InternalRelease = 'internal'") }
+function checaEfeitos(novasTrocas = {}) {
+  const e = []
+  for (const aberto of [true, false]) {
+    const tr = aberto ? novasTrocas : { ...novasTrocas, [RELEASE]: FECHA_RECREATE }
+    const { mosaico } = carrega(tr)
+    const novos = require(path.join(ROOT, NOVOS_EFEITOS))
+    const { RECREATE_RELEASE } = require(path.join(ROOT, RELEASE))
+    const estado = aberto ? 'Recreate público' : "Recreate 'internal'"
+    if ((RECREATE_RELEASE === 'public') !== aberto) { e.push(`X ${estado}: interruptor não está no estado do teste (${RECREATE_RELEASE})`); continue }
+    const telas = [
+      ['vitrine da home', (signedIn) => React.createElement(mosaico.default, { signedIn }), 'mosaic_effect_', mosaico.homeMosaicTiles(Date.now(), {}).filter((t) => t.kind === 'effect').length],
+      ['galeria', (signedIn) => React.createElement(mosaico.default, { signedIn, full: true, styles: estilos(3) }), 'mosaic_effect_', null],
+      ['faixa "New effects"', (signedIn) => React.createElement(novos.default, { signedIn }), 'new_effect_', novos.homeNewEffects().length],
+    ]
+    for (const [tela, el, prefixo, esperados] of telas) {
+      for (const signedIn of [false, true]) {
+        const html = lf(renderToStaticMarkup(el(signedIn)))
+        const cartoes = [...html.matchAll(new RegExp(`<a [^>]*data-home-cta="${prefixo}([a-z0-9_]+)"[^>]*>`, 'g'))]
+        const quem = `${estado}, ${tela}, ${signedIn ? 'logado' : 'visitante'}`
+        if (cartoes.length === 0) { e.push(`X ${quem}: nenhum cartão de efeito medido como ${prefixo}<key>`); continue }
+        if (esperados !== null && cartoes.length !== esperados) e.push(`X ${quem}: ${cartoes.length} cartões medidos de ${esperados} efeitos`)
+        for (const [tag, key] of cartoes) {
+          const href = (/href="([^"]+)"/.exec(tag)?.[1] ?? '').replace(/&amp;/g, '&')
+          const slug = key.replaceAll('_', '-')
+          const recreate = `/recreate/effect-${slug}`
+          const certo = aberto
+            ? (signedIn ? recreate : '/signup?' + new URLSearchParams({ redirect: recreate }).toString())
+            : `/effects/${slug}`
+          if (href !== certo) e.push(`X ${quem}: ${key} leva a ${href.slice(0, 90)} (devia ${certo})`)
+        }
+      }
+    }
+    // efeito fora do catálogo do Recreate: o destino antigo, logado ou não, aberto ou fechado
+    for (const signedIn of [false, true]) {
+      const fora = mosaico.effectCardHref({ key: 'fora_do_catalogo_1011' }, signedIn)
+      if (fora !== '/effects/fora-do-catalogo-1011') e.push(`X ${estado}: efeito fora do catálogo leva a ${fora}`)
+    }
+  }
+  if (!rd(MOSAICO).includes('data-home-cta={`mosaic_effect_${e.key}`}')) e.push('X a medição mosaic_effect_<key> mudou na fonte')
+  return e
+}
+const errosEfeito = checaEfeitos()
+for (const m of errosEfeito) console.log('     →', m)
+ok(errosEfeito.length === 0, `(X) cartão de efeito direto ao Recreate (visitante via cadastro), página do efeito com o interruptor fechado e fora do catálogo${errosEfeito.length ? `: ${errosEfeito.length} erro(s)` : ''}`)
+const mutanteEfeito = (nome, novasTrocas) => {
+  let r
+  try { r = checaEfeitos(novasTrocas) } catch (err) { r = ['quebrou: ' + err.message] }
+  ok(r.length > 0, `M ${nome}: vermelho${r.length ? ' — ' + String(r[0]).slice(0, 90) : ' (passou batido)'}`)
+}
+mutanteEfeito('cartão de efeito volta à página antiga', { [MOSAICO]: troca('href={effectCardHref(e, signedIn)}', 'href={effectPagePath(effectSlug(e))}') })
+mutanteEfeito('faixa "New effects" volta à página antiga', { [NOVOS_EFEITOS]: troca('href={effectCardHref(effect, signedIn)}', "href={'/effects/' + effect.key.replaceAll('_', '-')}") })
+mutanteEfeito('visitante pula o cadastro', { [MOSAICO]: troca('return recreate ? viaSignup(recreate, signedIn) :', 'return recreate ? recreate :') })
+mutanteEfeito('ignora o interruptor do Recreate', { [MOSAICO]: troca('const recreate = publicRecreatePath(`effect-${effectSlug(e)}`)', 'const recreate = `/recreate/effect-${effectSlug(e)}`') })
+mutanteEfeito('sem caminho de volta (interruptor fechado vai ao /clips)', { [MOSAICO]: troca(': effectPagePath(effectSlug(e))\n}', ": '/clips'\n}") })
+mutanteEfeito('medição do efeito muda no cartão', { [MOSAICO]: troca('data-home-cta={`mosaic_effect_${e.key}`}', 'data-home-cta="mosaic_effect"') })
+carrega()
+
 console.log(`${pass} ok, ${fail} falha(s)`)
 process.exit(fail ? 1 : 0)

@@ -1064,7 +1064,7 @@ export default function KineoLanding({
         </div>
       </header>
 
-      {HOME_MOSAIC_LIVE ? <div id="samples"><HomeMosaic signedIn={isSignedIn} /></div> : <HomeNewEffects />}<div className="wrap"><CitationDirectAnswer page="home" /></div>{/* KINEO-HOME-MOSAICO-2910 — fundador 29/10 "uma coisa grande com tudo, sem separações": clipes, filmes, efeitos e imagens numa grade só · KINEO-HOME-NOVOS-EFEITOS-2910 — fundador 29/10: os 4 efeitos mais novos logo abaixo dos filmes */}
+      {HOME_MOSAIC_LIVE ? <div id="samples"><HomeMosaic signedIn={isSignedIn} /></div> : <HomeNewEffects signedIn={isSignedIn} />}<div className="wrap"><CitationDirectAnswer page="home" /></div>{/* KINEO-HOME-MOSAICO-2910 — fundador 29/10 "uma coisa grande com tudo, sem separações": clipes, filmes, efeitos e imagens numa grade só · KINEO-HOME-NOVOS-EFEITOS-2910 — fundador 29/10: os 4 efeitos mais novos logo abaixo dos filmes */}
 
       {/* The post-signup route intentionally lands on this engine showroom.
           The router comes AFTER the founder-curated four-video hero, so it

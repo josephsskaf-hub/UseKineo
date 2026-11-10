@@ -36,6 +36,15 @@ export const HOME_MOSAIC_LIVE = true
 export const HOME_MOSAIC_FILMS = 6
 export const HOME_MOSAIC_EFFECTS = 8
 
+/** KINEO-EFEITO-DIRETO-1011 [fundador 10/11: "Tá caindo nessa página aqui, que era anterior, acho que deveria não cair mais"] — o cartão de
+ *  efeito leva DIRETO à criação no Recreate (/recreate/effect-<slug>; visitante passa pelo cadastro e volta para lá, como os outros cartões).
+ *  publicRecreatePath devolve null com o Recreate fechado ('internal') ou efeito fora do catálogo: aí volta a página pública do efeito, que
+ *  continua no ar para busca e IA. Só o clique de dentro do site deixa de passar por ela. */
+export function effectCardHref(e: Pick<ClipEffect, 'key'>, signedIn: boolean): string {
+  const recreate = publicRecreatePath(`effect-${effectSlug(e)}`)
+  return recreate ? viaSignup(recreate, signedIn) : effectPagePath(effectSlug(e))
+}
+
 /** Pasta das imagens novas da vitrine (a pasta /home-images/ continua sendo SÓ a da galeria antiga, guardião test-home-limpa-1410). */
 export const HOME_MOSAIC_DIR = '/home-mosaic/'
 
@@ -349,7 +358,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
             if (t.kind === 'effect') {
               const e = t.effect
               return (
-                <Link key={e.key} href={effectPagePath(effectSlug(e))} className="kmz-t" data-home-cta={`mosaic_effect_${e.key}`} aria-label={`${e.title} — effect`}>
+                <Link key={e.key} href={effectCardHref(e, signedIn)} className="kmz-t" data-home-cta={`mosaic_effect_${e.key}`} aria-label={`${e.title} — effect`}>
                   <div className="kmz-md" style={focusStyle(e.preview?.poster, MOSAIC_EFFECT_FOCUS[e.key] ?? '50% 45%')}>{e.preview ? <WallMedia src={`${e.preview.video}#t=1.6`} /> : null}</div>
                   {newKeys.has(e.key) ? <span className="kmz-new">⚡ NEW</span> : null}
                   {podeRecriar(t) ? <Recreate /> : null}
