@@ -28,7 +28,7 @@ import { HOME_GALLERY_BIG, HOME_GALLERY_DIR, HOME_GALLERY_IMAGES, type HomeGalle
 import { clipsFirstFilmHref } from '@/lib/growth/homeClipsFirst'
 import { cardStatFor, compactCount } from '@/lib/home/cardSocialStats' // KINEO-CARDS-VIEWS-0911
 import { seasonalEffectKeys } from '@/lib/clips/clipSeason' // KINEO-VITRINE-ESTACAO-3110
-import { FORA_DE_ESTACAO, afastaVizinhos, fechaOFim, semLargoNoFim, clipeNovoDestino, clipeNovoPoster, clipeNovoVideo, clipesNovosDoDia, diaDaVitrine, embaralhaDoDia, intercala, type ClipeNovo } from '@/lib/clipesNos2Lugares' // KINEO-CLIPES-NOS-2-LUGARES-0411
+import { FORA_DE_ESTACAO, afastaVizinhos, fechaOFim, semLargoNoFim, clipeNovoAbreStudio, clipeNovoDestino, clipeNovoPoster, clipeNovoVideo, clipesNovosDoDia, diaDaVitrine, embaralhaDoDia, intercala, type ClipeNovo } from '@/lib/clipesNos2Lugares' // KINEO-CLIPES-NOS-2-LUGARES-0411
 
 /** Interruptor da vitrine contínua (false = a home volta às faixas separadas de antes, intactas no KineoLanding). */
 export const HOME_MOSAIC_LIVE = true
@@ -274,7 +274,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
               const c = t.clip
               const tipo = c.selo ?? 'Clip' // KINEO-CARDS-SEM-MOTOR-0911 — o TIPO (Clip / Trending format), nunca o motor; o motor real segue no dado e no link · KINEO-CARDS-SEM-ETIQUETA-0911 — o tipo vive só no aria-label
               return (
-                <Link key={'novo-' + c.id} href={viaSignup(clipeNovoDestino(c), signedIn)} className={`kmz-t${t.grande ? ' kmz-big' : ''}`} data-home-cta="mosaic_clip" data-clip-novo={c.id} aria-label={`${c.title} — ${tipo}`}>
+                <Link key={'novo-' + c.id} href={clipeNovoAbreStudio(c) ? filmHref /* KINEO-VITRINE-10-1011 — filme do Studio: o link dos filmes */ : viaSignup(clipeNovoDestino(c), signedIn)} className={`kmz-t${t.grande ? ' kmz-big' : ''}`} data-home-cta="mosaic_clip" data-clip-novo={c.id} aria-label={`${c.title} — ${tipo}`}>
                   <div className="kmz-md" style={focusStyle(undefined, c.focus)}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={clipeNovoPoster(c)} width={540} height={960} alt="" loading="lazy" decoding="async" style={{ objectPosition: c.focus, transform: 'none' }} />

@@ -40,8 +40,9 @@ export type ClipeNovo = ClipeNovoBase & (
   | {
       /** Feito fora dos motores do /clips: nenhum motor no selo nem no destino. A verdade fica no comentário da entrada. */
       engine: null
-      /** O que o cartão mostra no lugar de "Clip · <motor>". */
-      selo: 'Trending format'
+      /** O tipo do cartão (só no aria-label). 'Trending format' = clipe de uma cena, abre o /clips puro. 'Narrated film' = filme narrado feito
+       *  de verdade no Kineo Studio: abre o Studio pelo mesmo link dos filmes da vitrine (KINEO-VITRINE-10-1011). */
+      selo: 'Trending format' | 'Narrated film'
     }
 )
 
@@ -67,10 +68,32 @@ export const CLIPES_NOVOS: readonly ClipeNovo[] = [
   // (kling/v4/image-to-video na fal), dois pedidos unidos no ffmpeg em 09/11/2026, saídas 0ab1d30e/bo9VslFC3Y8vO9Fk5QBwW e
   // 0ab1d315/oyRjMp3igUDfHE0rwpW9O. Kling 4.0 não é motor do /clips e não há linha na tabela `clips`: o cartão não mostra motor nenhum.
   { id: 'outfit-morph', title: 'Outfit morph', engine: null, selo: 'Trending format', clipId: 'fal:0ab1d30e/bo9VslFC3Y8vO9Fk5QBwW+0ab1d315/oyRjMp3igUDfHE0rwpW9O', focus: '50% 30%', pessoa: true, prompt: null }, // KINEO-OUTFIT-MORPH-HOME-0911
+  // KINEO-VITRINE-10-1011 [fundador 10/11: "tá muito legal os 10… Pode colocar os 10 na tela inicial"; sobre a dança e o boneco de neve:
+  // "Deixa como está"] — os 10 aprovados de 09/11. Nenhum tem linha na tabela `clips`; o clipId guarda a origem real.
+  // 3 FILMES narrados, feitos de verdade no Kineo Studio com Kling 4.0 em 09/11/2026: selo 'Narrated film', o cartão abre o Studio como os outros
+  // filmes da vitrine. clipId = studio:<job>/<vídeo>. Prévia = o melhor trecho contínuo, só escalado para 540×960 (sem corte nem tarja nova):
+  // Mary Celeste 0–6,5 s (a tomada de abertura; 8 s não cabia em 600 KB), Anticítera 8–15 s (a engrenagem), Porta do Inferno 0–8 s (cratera e lava).
+  { id: 'filme-mary-celeste', title: 'The ghost ship Mary Celeste', engine: null, selo: 'Narrated film', clipId: 'studio:772be5b8/9302d8c6', focus: '50% 36%', pessoa: false, prompt: null }, // KINEO-VITRINE-10-1011 — Studio job 772be5b8, vídeo 9302d8c6, Kling 4.0, 09/11/2026
+  { id: 'filme-anticitera', title: 'The 2,000-year-old computer', engine: null, selo: 'Narrated film', clipId: 'studio:1b9e1d60/a451a9b4', focus: '50% 38%', pessoa: false, prompt: null }, // KINEO-VITRINE-10-1011 — Studio job 1b9e1d60, vídeo a451a9b4, Kling 4.0, 09/11/2026
+  { id: 'filme-porta-do-inferno', title: 'The Door to Hell is fading', engine: null, selo: 'Narrated film', clipId: 'studio:9a3e5b44/1fcab375', focus: '50% 50%', pessoa: false, prompt: null }, // KINEO-VITRINE-10-1011 — Studio job 9a3e5b44, vídeo 1fcab375, Kling 4.0, 09/11/2026
+  // 7 CLIPES de uma cena: foto do Nano Banana Pro + Kling 4.0 image-to-video (kling/v4/image-to-video na fal), 09/11/2026. Kling 4.0 não é motor
+  // do /clips: como o outfit-morph, nenhum motor no cartão, selo 'Trending format', destino /clips puro (sem motor, sem texto). Nada leva às Ads
+  // nem ao Cartoon: não foram esses produtos que fizeram estes vídeos. clipId = fal:<saída>.
+  { id: 'passarela', title: 'Fashion catwalk', engine: null, selo: 'Trending format', clipId: 'fal:0ab1d89b/HbvScocR9LQY-FT8vl-CA', focus: '50% 30%', pessoa: true, prompt: null }, // KINEO-VITRINE-10-1011
+  { id: 'escolha-o-favorito', title: 'Pick your favorite', engine: null, selo: 'Trending format', clipId: 'fal:0ab1d9f9/EnyKpFmu87NtPpo-kfujT', focus: '50% 22%', pessoa: true, prompt: null }, // KINEO-VITRINE-10-1011
+  { id: 'dinheiro', title: 'Counting cash', engine: null, selo: 'Trending format', clipId: 'fal:0ab1d9f0/7vfzrcsW7He9IOli4H5Lk', focus: '50% 25%', pessoa: true, prompt: null }, // KINEO-VITRINE-10-1011
+  { id: 'duelo-de-danca', title: 'Parking lot dance-off', engine: null, selo: 'Trending format', clipId: 'fal:0ab1d9f3/iLdN6Py4oNvS6P4yUAQlQ', focus: '50% 66%', pessoa: true, prompt: null }, // KINEO-VITRINE-10-1011
+  { id: 'kit-skincare', title: 'Holiday skincare gift set', engine: null, selo: 'Trending format', clipId: 'fal:0ab1da00/tKyNDXU7RAxwcmy_kF-BU', focus: '50% 48%', pessoa: false, prompt: null }, // KINEO-VITRINE-10-1011
+  { id: 'dragaozinho', title: 'The little dragon afraid of fire', engine: null, selo: 'Trending format', clipId: 'fal:0ab1da07/LBX9mJqp4LXh5eUkA37kb', focus: '50% 56%', pessoa: false, prompt: null }, // KINEO-VITRINE-10-1011
+  { id: 'boneco-de-neve', title: 'The snowman who hides from the sun', engine: null, selo: 'Trending format', clipId: 'fal:0ab1da01/aYq5oKWE2FXdjYSbpJnH0', focus: '50% 68%', pessoa: false, prompt: null }, // KINEO-VITRINE-10-1011
 ]
 
 export const clipeNovoVideo = (c: Pick<ClipeNovo, 'id'>): string => `/previews/galeria/${c.id}.mp4`
 export const clipeNovoPoster = (c: Pick<ClipeNovo, 'id'>): string => `/posters/galeria/${c.id}.webp`
+
+/** KINEO-VITRINE-10-1011 — filme narrado do Kineo Studio: o cartão não usa clipeNovoDestino; abre o Studio pelo MESMO link dos filmes da
+ *  vitrine (clipsFirstFilmHref, em components/home/HomeMosaic.tsx). */
+export const clipeNovoAbreStudio = (c: Pick<ClipeNovo, 'selo'>): boolean => c.selo === 'Narrated film'
 
 /** Para onde o cartão leva (o chamador passa por viaSignup, como todo clipe da vitrine). Nada é gerado sem o clique em Gerar. */
 export function clipeNovoDestino(c: Pick<ClipeNovo, 'engine' | 'prompt'>): string {
@@ -239,7 +262,10 @@ function alterna<T>(a: T[], b: T[], n: number): T[] {
 export function clipesNovosDoDia(dia: string, lista: readonly ClipeNovo[] = CLIPES_NOVOS): { grandes: ClipeNovo[]; pequenos: ClipeNovo[] } {
   const pessoas = embaralhaDoDia(lista.filter((c) => c.pessoa), dia, 'novos-pessoa')
   const produtos = embaralhaDoDia(lista.filter((c) => !c.pessoa), dia, 'novos-produto')
-  const nGrandes = Math.ceil(lista.length / 4)
+  // KINEO-VITRINE-10-1011 [fundador 10/11: "Pode colocar os 10 na tela inicial"] — teto de 4 grandes: quem segura o cartão grande são as
+  // imagens da vitrine (2 por grande), e elas não cresceram com a lista. Com 26 clipes, 1/4 dava 7 grandes, as imagens acabavam antes e os
+  // últimos grandes sobravam sozinhos (22 células vazias no computador). Até 16 clipes a conta é a mesma de antes (16/4 = 4).
+  const nGrandes = Math.min(4, Math.ceil(lista.length / 4))
   const grandes = alterna(produtos, pessoas, nGrandes)
   const pequenos = alterna(pessoas, produtos, lista.length - nGrandes)
   return { grandes, pequenos }

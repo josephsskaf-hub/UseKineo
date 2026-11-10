@@ -75,6 +75,19 @@ const VERDADE = {
   // KINEO-OUTFIT-MORPH-HOME-0911 [fundador 09/11] — feito com Kling 4.0 (kling/v4/image-to-video na fal, 2 pedidos unidos), que NÃO é motor
   // do /clips e não tem linha em `clips`: motor null, selo = o formato ("Trending format"), destino = /clips puro. clipId = as 2 saídas da fal.
   'outfit-morph': ['fal:0ab1d30e/bo9VslFC3Y8vO9Fk5QBwW+0ab1d315/oyRjMp3igUDfHE0rwpW9O', null, 'foto', 'Trending format'],
+  // KINEO-VITRINE-10-1011 [fundador 10/11: "tá muito legal os 10… Pode colocar os 10 na tela inicial"] — nenhum tem linha em `clips`.
+  // 3 filmes narrados feitos no Kineo Studio (Kling 4.0, 09/11): selo 'Narrated film', o cartão abre o Studio pelo MESMO link dos filmes da vitrine.
+  'filme-mary-celeste': ['studio:772be5b8/9302d8c6', null, 'filme', 'Narrated film'],
+  'filme-anticitera': ['studio:1b9e1d60/a451a9b4', null, 'filme', 'Narrated film'],
+  'filme-porta-do-inferno': ['studio:9a3e5b44/1fcab375', null, 'filme', 'Narrated film'],
+  // 7 clipes de uma cena (Nano Banana Pro + Kling 4.0 image-to-video, 09/11): como o outfit-morph — sem motor, 'Trending format', /clips puro.
+  'passarela': ['fal:0ab1d89b/HbvScocR9LQY-FT8vl-CA', null, 'foto', 'Trending format'],
+  'escolha-o-favorito': ['fal:0ab1d9f9/EnyKpFmu87NtPpo-kfujT', null, 'foto', 'Trending format'],
+  'dinheiro': ['fal:0ab1d9f0/7vfzrcsW7He9IOli4H5Lk', null, 'foto', 'Trending format'],
+  'duelo-de-danca': ['fal:0ab1d9f3/iLdN6Py4oNvS6P4yUAQlQ', null, 'foto', 'Trending format'],
+  'kit-skincare': ['fal:0ab1da00/tKyNDXU7RAxwcmy_kF-BU', null, 'foto', 'Trending format'],
+  'dragaozinho': ['fal:0ab1da07/LBX9mJqp4LXh5eUkA37kb', null, 'foto', 'Trending format'],
+  'boneco-de-neve': ['fal:0ab1da01/aYq5oKWE2FXdjYSbpJnH0', null, 'foto', 'Trending format'],
 }
 // KINEO-OUTFIT-MORPH-HOME-0911 — nomes de motor que um cartão de FORMATO nunca pode mostrar (nem em texto, nem no aria-label, nem no link).
 const NOMES_DE_MOTOR = /\b(Kling|Seedance|MiniMax|H3|Veo|Omni|Hailuo|Wan|Sora|Runway|Pika|Kineo 1)\b/i
@@ -108,7 +121,8 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
     if (!c) { e.push(`A ${id} fora da lista`); continue }
     if (c.clipId !== clipId) e.push(`A ${id}: clipId ≠ tabela`)
     if (c.engine !== motor) e.push(`A ${id}: motor ${c.engine}, a tabela diz ${motor}`)
-    if ((c.engine === null) !== (c.selo === 'Trending format') || (c.engine !== null && c.selo !== undefined)) e.push(`A ${id}: selo de formato só existe (e é obrigatório) quando não há motor do /clips`) // KINEO-OUTFIT-MORPH-HOME-0911
+    if ((c.engine === null) !== (c.selo !== undefined) || (c.engine === null && c.selo !== VERDADE[id][3])) e.push(`A ${id}: selo de formato só existe (e é obrigatório) quando não há motor do /clips, e é o da verdade (${VERDADE[id][3]})`) // KINEO-OUTFIT-MORPH-HOME-0911 · KINEO-VITRINE-10-1011 — 'Narrated film' só nos 3 filmes do Studio
+    if (modo === 'filme' && c.prompt !== null) e.push(`A ${id}: filme preenchendo texto no /clips`) // KINEO-VITRINE-10-1011
     if (modo === 'foto' && c.prompt !== null) e.push(`A ${id}: clipe de foto preenchendo texto de movimento`)
     if (modo === 'texto' && !(typeof c.prompt === 'string' && c.prompt.length > 80 && c.prompt.length <= 1000)) e.push(`A ${id}: clipe de texto sem o texto (ou além do teto do campo)`)
     if (/keep the same (woman|face)/i.test(c.prompt ?? '')) e.push(`A ${id}: texto que depende de foto`)
@@ -121,7 +135,10 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
       if (rel.endsWith('.mp4') && sz > 600 * 1024) e.push(`A prévia pesada: ${id}`)
     }
   }
-  if (bytes > 9 * 1024 * 1024) e.push(`A ${(bytes / 1048576).toFixed(1)} MB de mídia nova (> 9)`)
+  // KINEO-VITRINE-10-1011 [fundador 10/11: "Pode colocar os 10 na tela inicial"] — teto do total 9 → 11 MB, o menor que cabe (26 clipes = 10,8 MB;
+  // eram 6,7 MB com 16). Seguro: o pôster é <img loading="lazy"> e cada vídeo só baixa quando o cartão aparece na tela (WallMedia, preload none,
+  // provado em E abaixo); nada disso entra no 1º carregamento. O teto de 600 KB por prévia continua o mesmo.
+  if (bytes > 11 * 1024 * 1024) e.push(`A ${(bytes / 1048576).toFixed(1)} MB de mídia nova (> 11)`)
   // (B) nos dois lugares, de verdade
   if (!fonteLanding.includes('<HomeMosaic signedIn={isSignedIn} />')) e.push('B a home não monta a vitrine')
   if (!fontePagina.includes('<HomeMosaic signedIn={signedIn} full styles={adStyles} />')) e.push('B o /made-with-kineo não monta a vitrine')
@@ -153,7 +170,10 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
       const bruto = (/href="([^"]+)"/.exec(cartao)?.[1] ?? '').replace(/&amp;/g, '&')
       const destino = bruto.startsWith('/signup?') ? new URLSearchParams(bruto.split('?').slice(1).join('?')).get('redirect') ?? '' : ''
       const pedido = new URLSearchParams(destino.split('?').slice(1).join('?'))
-      if (c.engine === null) { if (destino !== '/clips') e.push(`B ${lugar}: ${c.id} (formato) não leva ao /clips puro, sem motor e sem texto: ${bruto.slice(0, 80)}`) } // KINEO-OUTFIT-MORPH-HOME-0911 — exceção testada à regra de baixo
+      if (VERDADE[c.id]?.[2] === 'filme') { // KINEO-VITRINE-10-1011 — filme do Studio: o MESMO link dos filmes da vitrine, nunca o /clips
+        const filme = /<a href="([^"]+)"[^>]*data-home-cta="mosaic_film"/.exec(html)?.[1]
+        if (!bruto.startsWith('/signup?redirect=%2Fstudio') || (filme && filme.replace(/&amp;/g, '&') !== bruto)) e.push(`B ${lugar}: ${c.id} (filme) não abre o Studio como os filmes da vitrine: ${bruto.slice(0, 80)}`)
+      } else if (c.engine === null) { if (destino !== '/clips') e.push(`B ${lugar}: ${c.id} (formato) não leva ao /clips puro, sem motor e sem texto: ${bruto.slice(0, 80)}`) } // KINEO-OUTFIT-MORPH-HOME-0911 — exceção testada à regra de baixo
       else if (!destino.startsWith('/clips?') || pedido.get('engine') !== c.engine) e.push(`B ${lugar}: ${c.id} não leva ao /clips no motor: ${bruto.slice(0, 80)}`)
       if (c.prompt && pedido.get('prompt') !== c.prompt) e.push(`B ${lugar}: ${c.id} sem o texto no /clips`)
       if (!c.prompt && pedido.has('prompt')) e.push(`B ${lugar}: ${c.id} preenche texto que não tem`)
@@ -310,18 +330,29 @@ mutante('clipes em bloco no topo', { [LIB]: troca('const passo = Math.max(1, Mat
 mutante('a moça colada nela mesma', { [MOSAICO]: troca("return afastaVizinhos(semBloco, (t) => t.kind === 'novo' && t.clip.pessoa,", 'return afastaVizinhos(semBloco, () => false,') })
 mutante('3 clipes novos seguidos', { [MOSAICO]: troca("const semBloco = afastaVizinhos(out, (t) => t.kind === 'novo', mesmoTamanho, 2)", 'const semBloco = out') })
 mutante('imagem grande sai da 1ª fileira', { [MOSAICO]: troca('...imagensDaVitrine.filter((i) => HOME_GALLERY_BIG.has(i.file)), ...embaralhaDoDia(imagensDaVitrine.filter((i) => !HOME_GALLERY_BIG.has(i.file)), dia,', '...embaralhaDoDia(imagensDaVitrine, dia,') })
-mutante('cartão grande demais abre buraco', { [LIB]: troca('const nGrandes = Math.ceil(lista.length / 4)', 'const nGrandes = Math.ceil(lista.length / 2)') })
+mutante('cartão grande demais abre buraco', { [LIB]: troca('const nGrandes = Math.min(4, Math.ceil(lista.length / 4))', 'const nGrandes = Math.ceil(lista.length / 2)') }) // KINEO-VITRINE-10-1011 — alvo novo: a conta ganhou o teto
+mutante('sem o teto de 4 grandes (26 clipes, grandes sobrando no fim)', { [LIB]: troca('const nGrandes = Math.min(4, Math.ceil(lista.length / 4))', 'const nGrandes = Math.ceil(lista.length / 4)') }) // KINEO-VITRINE-10-1011
 // KINEO-OUTFIT-MORPH-HOME-0911 — desde o 16º clipe o fim da grade tem DUAS proteções (imagem larga fora da cauda + fechaOFim). Sem a 2ª, o
 // mutante da 1ª passava batido: agora ele derruba as duas juntas, e cada uma tem o seu mutante sozinho.
 const SEM_FECHAR = (s) => troca('const ordem = fechaOFim(ordem0, alto,', 'const ordem = ((x) => x)(ordem0, alto,')(s)
 mutante('imagem larga no fim abre buraco', { [MOSAICO]: (s) => SEM_FECHAR(troca("(i) => i.w > i.h, 8)", "() => false, 8)")(s)) })
-mutante('o fim da grade não fecha (16 clipes, degrau vazio)', { [MOSAICO]: SEM_FECHAR })
-mutante('fechaOFim aceita arrumação que piora', { [LIB]: troca('if (c[0] < melhorCusto[0] && c.every((v, n) => v <= base[n]) && aceita(fila))', 'if (c[0] > melhorCusto[0])') })
-mutante('pessoa colada no fim, sem busca para trás', { [LIB]: troca('for (const alvo of trocou ? [] : [i, i - run + 1]) {', 'for (const alvo of []) {') })
+// KINEO-VITRINE-10-1011 — com 26 clipes (teto de 4 grandes) o fim da grade de hoje fecha sem precisar do fechaOFim nem da busca para trás, e
+// estes 3 mutantes passariam batido. As duas proteções continuam no código para a lista que encolher de novo: são provadas na lista de 16
+// clipes de 09/11 (a mesma de quando nasceram), olhando só a grade e a mistura (G e D). Primeiro a lista de 16 tem de ficar verde nelas.
+const LISTA_16 = (s) => troca('export const clipeNovoVideo', 'export const CLIPES_NOVOS = _TODOS_1011.slice(0, 16); export const clipeNovoVideo')(troca('export const CLIPES_NOVOS: readonly ClipeNovo[] = [', 'const _TODOS_1011: readonly ClipeNovo[] = [')(s))
+const grade16 = (novasTrocas) => { const t = { ...novasTrocas, [LIB]: (s) => LISTA_16(novasTrocas[LIB] ? novasTrocas[LIB](s) : s) }; let r; try { r = checa(carrega(t)) } catch (err) { r = ['G quebrou: ' + err.message] } return r.filter((x) => /^[DG] /.test(x)) }
+{ const r = grade16({}); for (const m of r) console.log('     →', m); ok(r.length === 0, `lista de 16 clipes (09/11): grade e mistura verdes${r.length ? ': ' + r.length + ' erro(s)' : ''}`) }
+const mutante16 = (nome, novasTrocas) => { const r = grade16(novasTrocas); ok(r.length > 0, `M ${nome} (lista de 16): vermelho${r.length ? ' — ' + String(r[0]).slice(0, 90) : ' (passou batido)'}`) }
+mutante16('o fim da grade não fecha (16 clipes, degrau vazio)', { [MOSAICO]: SEM_FECHAR })
+mutante16('fechaOFim aceita arrumação que piora', { [LIB]: troca('if (c[0] < melhorCusto[0] && c.every((v, n) => v <= base[n]) && aceita(fila))', 'if (c[0] > melhorCusto[0])') })
+mutante16('pessoa colada no fim, sem busca para trás', { [LIB]: troca('for (const alvo of trocou ? [] : [i, i - run + 1]) {', 'for (const alvo of []) {') })
 mutante('pôster baixa antes da hora', { [MOSAICO]: troca('alt="" loading="lazy" decoding="async" style={{ objectPosition', 'alt="" decoding="async" style={{ objectPosition') })
 mutante('vídeo direto no cartão', { [MOSAICO]: troca('<WallMedia src={clipeNovoVideo(c)} />', '<video src={clipeNovoVideo(c)} autoPlay muted loop playsInline />') }, { mosaico: rd(MOSAICO).replace('<WallMedia src={clipeNovoVideo(c)} />', '') })
 mutante('cartão chama de anúncio', { [MOSAICO]: troca("const tipo = c.selo ?? 'Clip'", "const tipo = c.selo ?? 'Ad'") }) // KINEO-CARDS-SEM-MOTOR-0911 — alvo novo: o selo agora é o tipo
-mutante('cartão leva às Ads', { [MOSAICO]: troca('href={viaSignup(clipeNovoDestino(c), signedIn)}', "href={viaSignup('/ads/new', signedIn)}") })
+mutante('cartão leva às Ads', { [MOSAICO]: troca(': viaSignup(clipeNovoDestino(c), signedIn)}', ": viaSignup('/ads/new', signedIn)}") }) // KINEO-VITRINE-10-1011 — o link ganhou o ramo do filme antes deste
+mutante('filme do Studio leva ao /clips', { [LIB]: troca("export const clipeNovoAbreStudio = (c: Pick<ClipeNovo, 'selo'>): boolean => c.selo === 'Narrated film'", "export const clipeNovoAbreStudio = (c: Pick<ClipeNovo, 'selo'>): boolean => false") }) // KINEO-VITRINE-10-1011
+mutante('clipe de foto rotulado como filme', { [LIB]: troca("id: 'kit-skincare', title: 'Holiday skincare gift set', engine: null, selo: 'Trending format'", "id: 'kit-skincare', title: 'Holiday skincare gift set', engine: null, selo: 'Narrated film'") }) // KINEO-VITRINE-10-1011
+mutante('anúncio de skincare leva às Ads', { [LIB]: troca("if (c.engine === null) return '/clips'", "if (c.engine === null) return '/ads/new'") }) // KINEO-VITRINE-10-1011
 // KINEO-OUTFIT-MORPH-HOME-0911 — o ramo do cartão de formato
 // KINEO-CARDS-SEM-ETIQUETA-0911 — os cartões não têm mais etiqueta: os mutantes de motor injetam o texto logo antes do título, onde ela ficava
 const COPIA_NOVO = '<span className="kmz-copy"><b><UiLabel>{c.title}</UiLabel></b><Views video={clipeNovoVideo(c)} />'
