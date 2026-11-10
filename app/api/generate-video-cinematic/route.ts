@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 // KINEO-QUALIDADE-TODOS-MOTORES-2910 — shared quality and owner-bound continuation.
 import { decidirQualidadeDoFilme, prepararQualidadeDoFilme, travarEstiloDoFilme, promptCurtoDoFilmeKling4, limitarPromptDoFilmeKling25, referenciaDaCena, FILM_QUALITY_VERSION } from '@/lib/cinematic/filmQuality'
 import { promptDaCenaKling4 } from '@/lib/cinematic/cenaKling4' // KINEO-CENA-PEDIDO-3010
-import { eixoDoFilmeGratis } from '@/lib/cinematic/cenaKling4' // KINEO-REPETICAO-FREE15-1011 (linha própria)
+import { eixosDoFilmeGratis, semEixoDoFilmeGratis } from '@/lib/cinematic/cenaKling4' // KINEO-REPETICAO-FREE15-1011 (linha própria)
 import { comSuperficieSemTexto } from '@/lib/cinematic/superficieSemTexto' // KINEO-CENA-PEDIDO-3010
 import { TRIAL_PEDIDO_REFUSAL, TRIAL_PEDIDO_STATUS } from '@/lib/trialPedido' // KINEO-TRIAL-A-PEDIDO-0411
 import { escritaLatina, conferenciaDaLeitura, elencoConferido, CONFERENCIA_ELENCO_VERSAO, EVENTO_CONFERENCIA_ELENCO } from '@/lib/cinematic/conferenciaDoElenco' // KINEO-SO-GENTE-NA-FICHA-0411
@@ -7409,7 +7409,7 @@ async function manipularPost(req: NextRequest) {
     const i2vDoFilmePadrao = h3TurboNoFilmePadrao(user.email) && !desenhoInfantil.ativo ? H3_TURBO_I2V_MODEL : SEEDANCE_I2V_MODEL // KINEO-H3-TURBO-0511
     const anchorI2vModel = anchorEngine === 'kling' ? KLING_I2V_MODEL : anchorEngine === 'veo' ? VEO_I2V_MODEL : i2vDoFilmePadrao // KINEO-H3-TURBO-0511 — era SEEDANCE_I2V_MODEL
     const anchorActive = anchorEngine !== null && CINEMATIC_ANCHOR_ENABLED
-    if (kling4TrialCandidate) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = eixoDoFilmeGratis(classicScenePrompts[i], i) // KINEO-REPETICAO-FREE15-1011 [aval permanente do fundador 01/11 (laço do revisor)] — filme grátis de 15 s (Kling 4 e reserva Seedance 1.5): as 3 imagens-chave (mesma seed) e os 3 clipes da reserva nasciam sem eixo de câmera; o rodízio do Kling 2.5 entra depois da trava de estilo, nada cortado. Pagos e 35/60/90: kling4TrialCandidate é false, vetor byte a byte
+    if (kling4TrialCandidate) classicScenePrompts.splice(0, classicScenePrompts.length, ...eixosDoFilmeGratis(classicScenePrompts, styleAnchor)) // KINEO-REPETICAO-FREE15-1011 [aval permanente do fundador 01/11 (laço do revisor)] — filme grátis de 15 s (Kling 4 e reserva Seedance 1.5): cena sem plano próprio ganha um plano que o filme ainda não tem (a última mostra o sujeito inteiro na ação final); cena que já diz plano fica intocada; nada cortado. Pagos e 35/60/90: kling4TrialCandidate é false, vetor byte a byte
     const sceneStills: (string | null)[] = new Array(scenes.length).fill(null)
     const kling4ExtraStillApprovals: Array<{ cena: number; url: string | null; veredito: string | null }> = []
     // ═══ KINEO-CENA-CLASSICA-2026-09-28 — o payload que foi ao fal, cena a cena ═══
@@ -7603,6 +7603,7 @@ async function manipularPost(req: NextRequest) {
         // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — o juiz lê o Veo também SEM o eixo (veoStripShotAxis = o inverso exato do prefixo);
         // o payload da fal segue com ele. Splice na posição já gravada: a rota mantém UMA atribuição a c.submittedPrompts[...].
         if (wantsVeo) c.submittedPrompts.splice(sceneIndex, 1, veoStripShotAxis(cinematic).slice(0, 240))
+        if (kling4TrialCandidate) c.submittedPrompts.splice(sceneIndex, 1, semEixoDoFilmeGratis(cinematic).slice(0, 240)) // KINEO-REPETICAO-FREE15-1011 — a reserva Seedance do grátis: o juiz lê a cena SEM o plano, como no Kling 2.5 e no Veo
         c.attempts[sceneIndex] = despachoCena.attempts
         c.totalPosts += despachoCena.posts
         if (despachoCena.outcome.reason_class === 'balance_quota') c.balanceExhausted = true
@@ -7935,7 +7936,7 @@ async function manipularPost(req: NextRequest) {
       c.planned = 1
       c.outcomes = [acceptedScene(0, kling4Trial.job.model)]
       c.attempts = [[{ model: kling4Trial.job.model, status: 200, ambiguous: false, accepted: true }]]
-      c.submittedPrompts = [classicScenePrompts.join(' ').slice(0, 240)]
+      c.submittedPrompts = [classicScenePrompts.map(semEixoDoFilmeGratis).join(' ').slice(0, 240)] // KINEO-REPETICAO-FREE15-1011 — o juiz lê sem o plano do grátis (sem plano = o texto de antes)
     } else if (kling4Posts && ctxDespacho().attempts[0]) {
       // The abandoned Kling attempt is still a real POST; do not erase it from dispatch accounting.
       ctxDespacho().attempts[0].unshift({ model: buildKling4TrialInput(kling4Prompts, kling4ApprovedStills, kling4Timing).model,
