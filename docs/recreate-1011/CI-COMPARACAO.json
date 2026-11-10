@@ -1,0 +1,303 @@
+{
+  "date": "2026-11-10T08:22:38.215Z",
+  "base": "10407b89a43bb2a5800ce5c706a88be34cd9484b",
+  "kind": "Local Node22 replay; not GitHub Linux or a fresh npm ci",
+  "scopedRecheck": {
+    "date": "2026-11-10T08:20:32.893Z",
+    "passed": 6,
+    "file": "validacao-final.json"
+  },
+  "normalization": "Loopback admin rechecked outside localhost sandbox restriction in both trees. Windows file-open failure in disk-mutant suite rechecked alone after restoring the known mutant. Original failures retained; source content compared to Git with LF line endings.",
+  "main": {
+    "commands": 107,
+    "passed": 54,
+    "failed": 53
+  },
+  "candidate": {
+    "commands": 109,
+    "passed": 57,
+    "failed": 52
+  },
+  "regressions": [],
+  "fixed": [
+    "scripts/test-five-improvements.mjs"
+  ],
+  "newGates": [
+    {
+      "command": "docs/recreate-0911/test-recreate.cjs",
+      "passed": true
+    },
+    {
+      "command": "docs/recreate-0911/test-migration.cjs",
+      "passed": true
+    }
+  ],
+  "preservedHashes": {
+    "lib/clipesNos2Lugares.ts": "8afc6c015083becd307a03004245d92948abda41c446b779800c3225cb337000",
+    "lib/vitrineEnquadramento.ts": "726d121c9c8db38ddf43c447a48ceeaa12650d182219c23a76cf6c27db8a523b",
+    "app/(dashboard)/studio/StudioClient.tsx": "48fd7807d4f983303b21de1868ebd4aba0b39c1e36958443422785f850c1a4ac",
+    "app/(dashboard)/generate/GenerateClient.tsx": "8a93163b5379b9d2ec8d77ca1bb4e425f75ed95891754c064f866bb49246abaf"
+  },
+  "inherited": [
+    {
+      "command": "scripts/test-cards-giro-undo-2410.mjs",
+      "mainSignature": "Error: KINEO-LEVA-2410: fonte divergente components/home/HomeKidsCard.tsx\r",
+      "candidateSignature": "Error: KINEO-LEVA-2410: fonte divergente .github/workflows/guardiao.yml\r"
+    },
+    {
+      "command": "scripts/test-leva-integration-2410.mjs",
+      "mainSignature": "Error: semEstreia3110: app/(dashboard)/ads/v2/AdsV2Client.tsx mudou fora da camada (0x)\r",
+      "candidateSignature": "Error: KINEO-LEVA-2410: fonte divergente .github/workflows/guardiao.yml\r"
+    },
+    {
+      "command": "scripts/test-leva-rebase-2610.mjs",
+      "mainSignature": "AssertionError [ERR_ASSERTION]: complete current main product survives byte-exact beneath the exact 27/10 layers: lib/filmes/faceless15.ts\r",
+      "candidateSignature": "AssertionError [ERR_ASSERTION]: complete current main product survives byte-exact beneath the exact 27/10 layers: lib/filmes/faceless15.ts\r"
+    },
+    {
+      "command": "scripts/test-ads-amostra-anuncio-2410.mjs",
+      "mainSignature": "AssertionError [ERR_ASSERTION]: every logged-in account may request the personal sample: {\"status\":502,\"body\":{\"error\":\"cena_plan_failed\",\"reason\":\"cena_plan_failed\",\"reason_detail\":\"cena_plan_failed\"}}\r",
+      "candidateSignature": "AssertionError [ERR_ASSERTION]: every logged-in account may request the personal sample: {\"status\":502,\"body\":{\"error\":\"cena_plan_failed\",\"reason\":\"cena_plan_failed\",\"reason_detail\":\"cena_plan_failed\"}}\r"
+    },
+    {
+      "command": "scripts/test-ads-amostra-data-2410.mjs",
+      "mainSignature": "AssertionError [ERR_ASSERTION]: confirmed auth email and existing antifarm required: {}\r",
+      "candidateSignature": "AssertionError [ERR_ASSERTION]: confirmed auth email and existing antifarm required: {}\r"
+    },
+    {
+      "command": "scripts/test-support/ads-escolha-sample-media-2410.mjs",
+      "mainSignature": "AssertionError [ERR_ASSERTION]: mutant must apply exactly once: native ambience leaked into sample\r",
+      "candidateSignature": "AssertionError [ERR_ASSERTION]: mutant must apply exactly once: native ambience leaked into sample\r"
+    },
+    {
+      "command": "scripts/test-support/ads-amostra-race-2410.mjs",
+      "mainSignature": "Error: Unexpected import: @fal-ai/client\r",
+      "candidateSignature": "Error: Unexpected import: @fal-ai/client\r"
+    },
+    {
+      "command": "scripts/test-support/ads-amostra-upgrade-retry-2410.mjs",
+      "mainSignature": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\r",
+      "candidateSignature": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\r"
+    },
+    {
+      "command": "scripts/test-support/ads-amostra-entry-2410.mjs",
+      "mainSignature": "AssertionError [ERR_ASSERTION]: free account with the old Close sample used can upload for its unused choice sample\r",
+      "candidateSignature": "AssertionError [ERR_ASSERTION]: free account with the old Close sample used can upload for its unused choice sample\r"
+    },
+    {
+      "command": "scripts/test-ads-amostra-undo-2410.mjs",
+      "mainSignature": "Error: semEstreia3110: app/(dashboard)/ads/v2/AdsV2Client.tsx mudou fora da camada (0x)\r",
+      "candidateSignature": "Error: KINEO-LEVA-2410: fonte divergente .github/workflows/guardiao.yml\r"
+    },
+    {
+      "command": "scripts/test-apresentadores-voice-2410.mjs",
+      "mainSignature": "AssertionError [ERR_ASSERTION]: Missing expected rejection: inert candidate metadata fails the production callback contract\r",
+      "candidateSignature": "AssertionError [ERR_ASSERTION]: Missing expected rejection: inert candidate metadata fails the production callback contract\r"
+    },
+    {
+      "command": "scripts/test-apresentadores-undo-2410.mjs",
+      "mainSignature": "Error: KINEO-LEVA-2410: fonte divergente lib/ads/cena/escolhaPlan.ts\r",
+      "candidateSignature": "Error: KINEO-LEVA-2410: fonte divergente .github/workflows/guardiao.yml\r"
+    },
+    {
+      "command": "scripts/test-compra-avulsa-delivery-2410.mjs --mutants",
+      "mainSignature": "ReferenceError: paidKling4PriceVerified is not defined\r",
+      "candidateSignature": "ReferenceError: paidKling4PriceVerified is not defined\r"
+    },
+    {
+      "command": "scripts/test-compra-avulsa-ui-2410.mjs --mutants",
+      "mainSignature": "AssertionError [ERR_ASSERTION]: pricing: both one-off SKUs are offered\r",
+      "candidateSignature": "AssertionError [ERR_ASSERTION]: pricing: both one-off SKUs are offered\r"
+    },
+    {
+      "command": "scripts/test-compra-avulsa-undo-2410.mjs",
+      "mainSignature": "Error: semEstreia3110: app/(dashboard)/ads/v2/AdsV2Client.tsx mudou fora da camada (0x)\r",
+      "candidateSignature": "Error: KINEO-LEVA-2410: fonte divergente .github/workflows/guardiao.yml\r"
+    },
+    {
+      "command": "scripts/test-ads-formatos-escolha-2410.mjs",
+      "mainSignature": "Error: Unexpected import: @/components/Kling4PaidNotice\r",
+      "candidateSignature": "Error: Unexpected import: @/components/Kling4PaidNotice\r"
+    },
+    {
+      "command": "scripts/test-idiomas-formatos-undo-2410.mjs",
+      "mainSignature": "Error: KINEO-LEVA-2410: fonte divergente app/(dashboard)/ads/v2/AdsV2Escolha.tsx\r",
+      "candidateSignature": "Error: KINEO-LEVA-2410: fonte divergente .github/workflows/guardiao.yml\r"
+    },
+    {
+      "command": "scripts/test-ads-escolha-publico-2410.mjs",
+      "mainSignature": "ReferenceError: isKling4AdPromoRef is not defined\r",
+      "candidateSignature": "ReferenceError: isKling4AdPromoRef is not defined\r"
+    },
+    {
+      "command": "scripts/test-ads-escolha-2310.mjs",
+      "mainSignature": "Error: desfaz-idiomas-formatos-2410: fonte divergente lib/ads/cena/plan.ts\r",
+      "candidateSignature": "Error: desfaz-idiomas-formatos-2410: fonte divergente lib/ads/cena/plan.ts\r"
+    },
+    {
+      "command": "scripts/test-ads-render-fix-2310.mjs",
+      "mainSignature": "Error: desfaz-amostra-anuncio-2410: fonte divergente lib/ads/cena/escolhaVideo.ts\r",
+      "candidateSignature": "Error: desfaz-amostra-anuncio-2410: fonte divergente lib/ads/cena/escolhaVideo.ts\r"
+    },
+    {
+      "command": "scripts/test-trafego-pages-2310.mjs",
+      "mainSignature": "AssertionError [ERR_ASSERTION]: app/ai-video-generator/[engine]/page.tsx: title/canonical unchanged\r",
+      "candidateSignature": "AssertionError [ERR_ASSERTION]: app/ai-video-generator/[engine]/page.tsx: title/canonical unchanged\r"
+    },
+    {
+      "command": "scripts/test-trafego-undo-2310.mjs",
+      "mainSignature": "AssertionError [ERR_ASSERTION]: app/KineoLanding.tsx: Idiomas removal preserves the exact published Traffic layer\r",
+      "candidateSignature": "Error: desfaz-compra-avulsa-2410: fonte divergente .github/workflows/guardiao.yml\r"
+    },
+    {
+      "command": "scripts/test-admin-leve-undo-2310.mjs",
+      "mainSignature": "FAIL KINEO-ADMIN-LEVE-2310: app/api/admin/live/route.ts hunk 0: expected exactly 1 candidate match, found 0",
+      "candidateSignature": "FAIL desfaz-compra-avulsa-2410: fonte divergente .github/workflows/guardiao.yml"
+    },
+    {
+      "command": "scripts/test-roteiro-curto-undo-2210.mjs",
+      "mainSignature": "FAIL COMPRA-CLAREZA-2610: scripts/test-support/desfaz-roteiro-curto-2210.mjs hunk 2: expected exactly 1 candidate match, found 0",
+      "candidateSignature": "FAIL COMPRA-CLAREZA-2610: scripts/test-support/desfaz-roteiro-curto-2210.mjs hunk 2: expected exactly 1 candidate match, found 0"
+    },
+    {
+      "command": "docs/video-fiel-2610/juiz-offline.mjs",
+      "mainSignature": "AssertionError [ERR_ASSERTION]: unexpected import: lib/regua95/perguntasHonestas.ts\r",
+      "candidateSignature": "AssertionError [ERR_ASSERTION]: unexpected import: lib/regua95/perguntasHonestas.ts\r"
+    },
+    {
+      "command": "docs/video-fiel-2610/cenas-test.mjs",
+      "mainSignature": "AssertionError [ERR_ASSERTION]: Mutation anchor exists: drop shared direction from actual descriptor\r",
+      "candidateSignature": "AssertionError [ERR_ASSERTION]: Mutation anchor exists: drop shared direction from actual descriptor\r"
+    },
+    {
+      "command": "docs/video-fiel-2610/test-legacy-layer.mjs",
+      "mainSignature": "Error: semRecusaBotao3110: app/(dashboard)/generate/GenerateClient.tsx mudou fora da camada (0x)\r",
+      "candidateSignature": "AssertionError [ERR_ASSERTION]: frozen candidate: .github/workflows/guardiao.yml\r"
+    },
+    {
+      "command": "docs/free15-quality-v2/caption-legacy-test.mjs",
+      "mainSignature": "AssertionError [ERR_ASSERTION]: frozen after: .github/workflows/guardiao.yml\r",
+      "candidateSignature": "AssertionError [ERR_ASSERTION]: frozen after: .github/workflows/guardiao.yml\r"
+    },
+    {
+      "command": "scripts/test-filme15-legenda-canonica-2610.mjs",
+      "mainSignature": "ReferenceError: kling4TrialEngineFromClaim is not defined\r",
+      "candidateSignature": "ReferenceError: kling4TrialEngineFromClaim is not defined\r"
+    },
+    {
+      "command": "scripts/test-filme15-perfeito-undo-2610.mjs",
+      "mainSignature": "Error: FILME15-PERFEITO-2610: partial or ambiguous source app/api/compose/route.ts\r",
+      "candidateSignature": "AssertionError [ERR_ASSERTION]: exact current bytes: .github/workflows/guardiao.yml\r"
+    },
+    {
+      "command": "docs/compra-clareza-2610/test-recurring-plan-value.mjs",
+      "mainSignature": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\r",
+      "candidateSignature": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\r"
+    },
+    {
+      "command": "docs/compra-clareza-2610/test-own-idea-start.mjs",
+      "mainSignature": "AssertionError [ERR_ASSERTION]: no unrelated Studio byte changed\r",
+      "candidateSignature": "AssertionError [ERR_ASSERTION]: no unrelated Studio byte changed\r"
+    },
+    {
+      "command": "docs/compra-clareza-2610/test-result-script-review.mjs",
+      "mainSignature": "AssertionError [ERR_ASSERTION]: no additional event carries the edited script\r",
+      "candidateSignature": "AssertionError [ERR_ASSERTION]: no additional event carries the edited script\r"
+    },
+    {
+      "command": "docs/compra-clareza-2610/test-legacy-layer.mjs",
+      "mainSignature": "Error: semRecusaBotao3110: app/(dashboard)/generate/GenerateClient.tsx mudou fora da camada (0x)\r",
+      "candidateSignature": "Error: semRecusaBotao3110: app/(dashboard)/generate/GenerateClient.tsx mudou fora da camada (0x)\r"
+    },
+    {
+      "command": "scripts/test-afiliados-acordam.mjs",
+      "mainSignature": "Error: lib/credits/engineCost.ts: unexpected import @/lib/kling4PaidPolicy\r",
+      "candidateSignature": "Error: lib/credits/engineCost.ts: unexpected import @/lib/kling4PaidPolicy\r"
+    },
+    {
+      "command": "scripts/test-coerencia-kineo1-2026-09-16.mjs",
+      "mainSignature": "Error: semEstreia3110: app/(dashboard)/studio/StudioClient.tsx mudou fora da camada (0x)\r",
+      "candidateSignature": "Error: semEstreia3110: app/(dashboard)/studio/StudioClient.tsx mudou fora da camada (0x)\r"
+    },
+    {
+      "command": "scripts/test-juiz-still-2026-10-06.mjs",
+      "mainSignature": "Error: desfaz KINEO-ELENCO-EPOCA-2710: app/api/generate-video-cinematic/route.ts mudou fora da camada (0x)\r",
+      "candidateSignature": "Error: desfaz KINEO-ELENCO-EPOCA-2710: app/api/generate-video-cinematic/route.ts mudou fora da camada (0x)\r"
+    },
+    {
+      "command": "scripts/test-gpt-v31-facts-2026-09-24.mjs",
+      "mainSignature": "FAIL trial copy separates balance from access in same statement",
+      "candidateSignature": "FAIL trial copy separates balance from access in same statement"
+    },
+    {
+      "command": "scripts/test-gpt-v31-facts-2026-09-24.mjs --mutant",
+      "mainSignature": "FAIL trial copy separates balance from access in same statement",
+      "candidateSignature": "FAIL trial copy separates balance from access in same statement"
+    },
+    {
+      "command": "scripts/test-seedance-hero-plans-2026-09-28.mjs",
+      "mainSignature": "Error: KINEO-TRAFEGO-2310: app/ai-video-generator/[engine]/page.tsx hunk 0: expected exactly 1 candidate match, found 0\r",
+      "candidateSignature": "Error: KINEO-TRAFEGO-2310: app/ai-video-generator/[engine]/page.tsx hunk 0: expected exactly 1 candidate match, found 0\r"
+    },
+    {
+      "command": "scripts/test-motores-geo-2026-10-06.mjs",
+      "mainSignature": "Error: KINEO-TRAFEGO-2310: app/ai-video-generator/[engine]/page.tsx hunk 0: expected exactly 1 candidate match, found 0\r",
+      "candidateSignature": "Error: KINEO-TRAFEGO-2310: app/ai-video-generator/[engine]/page.tsx hunk 0: expected exactly 1 candidate match, found 0\r"
+    },
+    {
+      "command": "scripts/test-locale-readiness.mjs",
+      "mainSignature": "AssertionError [ERR_ASSERTION]: approved current dictionary exact lib/ui/interfaceHindi.ts\r",
+      "candidateSignature": "AssertionError [ERR_ASSERTION]: approved current dictionary exact lib/ui/interfaceHindi.ts\r"
+    },
+    {
+      "command": "scripts/test-app-blue-layout.mjs",
+      "mainSignature": "TypeError: Cannot destructure property 'children' of 'undefined' as it is undefined.\r",
+      "candidateSignature": "AssertionError [ERR_ASSERTION]: button AnnualSAVE 30%\r"
+    },
+    {
+      "command": "scripts/test-cinematic-timeline-2026-09-11.mjs",
+      "mainSignature": "Error: FILME15-PERFEITO-2610: partial or ambiguous source lib/compose.ts\r",
+      "candidateSignature": "Error: FILME15-PERFEITO-2610: partial or ambiguous source lib/compose.ts\r"
+    },
+    {
+      "command": "scripts/test-cinematic-speech-2026-09-11.mjs",
+      "mainSignature": "Error: FILME15-PERFEITO-2610: partial or ambiguous source lib/compose.ts\r",
+      "candidateSignature": "Error: FILME15-PERFEITO-2610: partial or ambiguous source lib/compose.ts\r"
+    },
+    {
+      "command": "scripts/test-music-direction-2026-09-11.mjs",
+      "mainSignature": "TypeError: Cannot read properties of undefined (reading 'allowGeneration')\r",
+      "candidateSignature": "TypeError: Cannot read properties of undefined (reading 'allowGeneration')\r"
+    },
+    {
+      "command": "scripts/test-visual-contract-2026-09-11.mjs",
+      "mainSignature": "Error: desfaz KINEO-ELENCO-EPOCA-2710: app/api/generate-video-cinematic/route.ts mudou fora da camada (0x)\r",
+      "candidateSignature": "Error: desfaz KINEO-ELENCO-EPOCA-2710: app/api/generate-video-cinematic/route.ts mudou fora da camada (0x)\r"
+    },
+    {
+      "command": "scripts/test-quality-route-integration-2026-09-11.mjs",
+      "mainSignature": "ReferenceError: elencoTravaRelato is not defined\r",
+      "candidateSignature": "ReferenceError: elencoTravaRelato is not defined\r"
+    },
+    {
+      "command": "scripts/test-quality-failure-ui-2026-09-11.mjs",
+      "mainSignature": "Error: semRecusaBotao3110: app/(dashboard)/generate/GenerateClient.tsx mudou fora da camada (0x)\r",
+      "candidateSignature": "Error: semRecusaBotao3110: app/(dashboard)/generate/GenerateClient.tsx mudou fora da camada (0x)\r"
+    },
+    {
+      "command": "scripts/test-cinematic-terminal-proof-2026-09-11.mjs",
+      "mainSignature": "Error: Unexpected import: @/lib/kling4Trial\r",
+      "candidateSignature": "Error: Unexpected import: @/lib/kling4Trial\r"
+    },
+    {
+      "command": "scripts/test-cinematic-poll-diagnostic-2026-09-11.mjs",
+      "mainSignature": "Error: Unexpected import: @/lib/kling4PaidAsyncStatus\r",
+      "candidateSignature": "Error: Unexpected import: @/lib/kling4PaidAsyncStatus\r"
+    },
+    {
+      "command": "scripts/test-cartoon-tracao.mjs --mutants",
+      "mainSignature": "AssertionError [ERR_ASSERTION]: direct answer 40–60 words pt\r",
+      "candidateSignature": "AssertionError [ERR_ASSERTION]: direct answer 40–60 words pt\r"
+    }
+  ]
+}

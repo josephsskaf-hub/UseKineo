@@ -17,15 +17,6 @@ export function createOfflineLoader({ mocks = {}, env = {}, globals = {}, source
     'node:crypto': crypto, crypto,
     openai: { __esModule: true, default: class { constructor() { unavailable('OpenAI') } }, toFile: () => unavailable('toFile') },
     '@supabase/supabase-js': { createClient: () => unavailable('Supabase') },
-    // Import/configuration is pure; every provider operation still fails closed.
-    // Runtime modules may import the SDK without invoking it in this scenario.
-    '@fal-ai/client': { fal: {
-      config() {},
-      subscribe: () => unavailable('fal.subscribe'),
-      run: () => unavailable('fal.run'),
-      queue: new Proxy({}, {get:(_target,key)=>()=>unavailable('fal.queue.'+String(key))}),
-      storage: {upload:()=>unavailable('fal.storage.upload')},
-    } },
     ...mocks,
   }
   const context = {
@@ -42,7 +33,7 @@ export function createOfflineLoader({ mocks = {}, env = {}, globals = {}, source
       : specifier.startsWith('.') ? path.resolve(parent, specifier) : path.resolve(root, specifier)
     if (!filename.startsWith(root + path.sep)) throw new Error(`Module outside test workspace: ${specifier}`)
     if (/\.json$/.test(filename) && fs.existsSync(filename)) return JSON.parse(fs.readFileSync(filename, 'utf8')) // KINEO-APRESENTADORES-2410
-    if (!fs.existsSync(filename)) filename = ['.ts','.tsx','/index.ts','/index.tsx'].map(extension=>filename+extension).find(candidate=>fs.existsSync(candidate)) ?? filename+'.ts'
+    if (!fs.existsSync(filename)) filename += '.ts'
     if (!fs.existsSync(filename) || !/\.tsx?$/.test(filename)) throw new Error(`Unexpected import: ${specifier}`)
     if (cache.has(filename)) return cache.get(filename)
     const exports = {}

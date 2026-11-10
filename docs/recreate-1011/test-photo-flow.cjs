@@ -42,7 +42,14 @@ function harness(id, balance = 40) {
     throw new Error('Unexpected API: ' + url)
   }
   render()
-  return { states, calls, button, generate, add, replace, fetch, render, consent: () => find(n => n.type === 'input' && n.props.type === 'checkbox').props.onChange({ target: { checked: true } }) }
+  async function drop(slot, type = 'image/jpeg') {
+    const node = find(n => n.type === 'button' && n.props['aria-label'] === `${states[1]?.[slot] ? 'Change photo' : 'Add photo of person'} ${slot + 1}`)
+    let prevented = false
+    node.props.onDrop({ preventDefault() { prevented = true }, dataTransfer: { files: [new File(['fixture'], 'drop.jpg', { type })] } })
+    await tick(); await tick()
+    assert(prevented, 'drop cannot navigate away to the dropped file')
+  }
+  return { states, calls, button, generate, add, replace, drop, find, fetch, render, consent: () => find(n => n.type === 'input' && n.props.type === 'checkbox').props.onChange({ target: { checked: true } }) }
 }
 async function main() {
   const oldFetch = global.fetch, oldWindow = global.window
@@ -77,6 +84,18 @@ async function main() {
     await poor.generate().props.onClick(); await tick()
     assert.deepEqual(poor.calls.uploads, []); assert.deepEqual(poor.calls.requests, [])
     assert.match(poor.states[6], /40 more credits/)
+    const dropped = harness('elevador'); global.fetch = dropped.fetch
+    await dropped.drop(0, 'application/pdf')
+    assert.equal(dropped.find(n => n.props?.['data-step-state']).props['data-step-state'], 'error')
+    assert(dropped.generate().props.disabled); assert.deepEqual(dropped.calls.uploads, [])
+    await dropped.drop(1); await dropped.drop(0); dropped.consent()
+    assert.equal(dropped.generate().props.disabled, false)
+    assert.equal(dropped.find(n => n.props?.role === 'progressbar').props['aria-valuenow'], 2)
+    await dropped.drop(0, 'application/pdf')
+    assert(dropped.generate().props.disabled, 'a failed replacement must be resolved before generation')
+    assert(dropped.states[1][0], 'failed replacement preserves the previous photo for review')
+    await dropped.drop(0)
+    assert.equal(dropped.generate().props.disabled, false)
     console.log('PASS: actual photo UI handlers preserve person positions, replace/remove independently, clear on template change, retain pair/crop recipes and refuse insufficient-credit uploads.')
   } finally { global.fetch = oldFetch; if (oldWindow === undefined) delete global.window; else global.window = oldWindow }
 }

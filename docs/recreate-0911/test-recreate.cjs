@@ -62,6 +62,9 @@ async function main() {
   const ctx = { userId: U, supabaseUrl: URL, paying: false }
   const plan = generation.planRecreate(request, ctx)
   assert(plan.ok); assert.equal(plan.plan.credits, 40); assert.equal(plan.plan.input.resolution, '768P')
+  const pairRequest = { ...request, format: 'elevador', photos: [PHOTO, PHOTO] }
+  assert(generation.planRecreate(pairRequest, ctx).ok)
+  for (const photos of [[], [PHOTO], [PHOTO, PHOTO, PHOTO]]) assert.equal(generation.planRecreate({ ...pairRequest, photos }, ctx).status, 400, 'server requires the exact number of catalog photo slots before debit')
   assert.deepEqual(generation.RECREATE_PRICING, { 10: 40, 15: 60 })
   const future = loader({}, { 'lib/recreate/formats.ts': read('lib/recreate/formats.ts').replace("seconds: 10, type: 'swap'", "seconds: 15, type: 'swap'") })('lib/recreate/generation')
   assert.equal(future.planRecreate({ ...request, seconds: 15 }, { ...ctx, paying: true }).plan.credits, 60)

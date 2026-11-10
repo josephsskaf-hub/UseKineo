@@ -31,7 +31,7 @@ export function planRecreate(raw: Record<string, unknown>, ctx: { userId: string
   if (seconds === 15 && !ctx.paying) return bad('Upgrade your plan to use this duration.', 402)
   // Recast inherits source duration; its API has no duration parameter. Never sell 15 s from a 10 s source.
   if (seconds !== f.seconds) return bad('This duration needs an approved source video of the same length.', 409)
-  if (!Array.isArray(raw.photos) || raw.photos.length < 1 || raw.photos.length > Math.min(4, f.photoSlots)) return bad('Add a photo for each person you want to replace.')
+  if (!Array.isArray(raw.photos) || raw.photos.length !== f.photoSlots) return bad('Add a photo for each person in this format.')
   const photos: string[] = []
   for (const value of raw.photos) {
     const url = typeof value === 'string' ? ownedClipImageUrl(value, ctx.userId, ctx.supabaseUrl) : null

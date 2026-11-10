@@ -1,0 +1,80 @@
+{
+  "date": "2026-11-10T08:20:32.893Z",
+  "node": "v22.23.4",
+  "workflowSha256": "ff01619ad0c7693b83905c996533e8ec9f99e436cd4fe6bb3673f5a647095dbd",
+  "localOnly": true,
+  "results": [
+    {
+      "args": [
+        "scripts/test-five-improvements.mjs"
+      ],
+      "expected": "pass",
+      "status": 0,
+      "passed": true,
+      "ms": 1824,
+      "output": "Five improvements: 659 checks passed; offline only.",
+      "error": null
+    },
+    {
+      "args": [
+        "scripts/test-clipes-2026-09-29.mjs"
+      ],
+      "expected": "pass",
+      "status": 0,
+      "passed": true,
+      "ms": 4793,
+      "output": "OK test-clipes-2026-09-29: 2117 verificações\n\n[clips] clip_failed stage=submit reason=provider_rejected engine=kling clip=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee: fal 422\n[clips] clip_failed stage=submit reason=submit_ambiguous engine=kling clip=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee: timeout\n[clips] clip_failed stage=settle reason=provider_failed engine=kling clip=c1 request=req_1: 422",
+      "error": null
+    },
+    {
+      "args": [
+        "scripts/test-studio-series-review.mjs"
+      ],
+      "expected": "pass",
+      "status": 0,
+      "passed": true,
+      "ms": 564,
+      "output": "OK studio_milestone preserves canonical topic through review and Generate\nOK studio_milestone preserves canonical topic through review and Generate\nOK studio_milestone preserves canonical topic through review and Generate\nOK studio_video_tile preserves canonical topic through review and Generate\nOK studio_video_tile preserves canonical topic through review and Generate\nOK studio_video_tile preserves canonical topic through review and Generate\nOK manual edits after arrival win\nOK empty topic falls back without phantom series: null\nOK empty topic falls back without phantom series: undefined\nOK empty topic falls back without phantom series: \nOK empty topic falls back without phantom series:    \nOK unrelated/authored/invalid links are not this adapter\nOK unrelated/authored/invalid links are not this adapter\nOK unrelated/authored/invalid links are not this adapter\nOK both real JSX href callers execute the adapter\nOK 35s preservation matches real compositor default option\n16 acceptance checks passed; browser, preview approval and deployment still pending.",
+      "error": null
+    },
+    {
+      "args": [
+        "docs/recreate-0911/test-recreate.cjs"
+      ],
+      "expected": "pass",
+      "status": 0,
+      "passed": true,
+      "ms": 5409,
+      "output": "PASS: actual photo UI handlers preserve person positions, replace/remove independently, clear on template change, retain pair/crop recipes and refuse insufficient-credit uploads.\nPASS: external/internal/anonymous/off sessions, anonymous API denial, login return paths, real effect/home links, no engine badge, catalog-only links and legacy rollback.\nPASS: access on all APIs, spoofed inputs, house source server adapter, photos, consent, duration, simulation, replay, moderation/debit order, refunds, persistence, every photo-effect tariff, rendered names/prices/counts; five security/UI mutants killed.\n\n[clips] clip_failed stage=settle reason=provider_failed engine=h3 clip=11111111-2222-3333-4444-555555555555 request=fixture-request: fixture",
+      "error": null
+    },
+    {
+      "args": [
+        "docs/recreate-0911/test-migration.cjs"
+      ],
+      "expected": "pass",
+      "status": 0,
+      "passed": true,
+      "ms": 994,
+      "output": "PASS: migration in isolated Postgres; zero-cost rows rejected, repeat paid generations allowed, request idempotency preserved, paid 40/60 rows, unique real likes, RLS and denied anon/authenticated access.",
+      "error": null
+    },
+    {
+      "args": [
+        "--max-old-space-size=4096",
+        "node_modules/typescript/bin/tsc",
+        "--noEmit",
+        "--incremental",
+        "false"
+      ],
+      "expected": "pass",
+      "status": 0,
+      "passed": true,
+      "ms": 38137,
+      "output": "",
+      "error": null
+    }
+  ],
+  "kind": "Three requested gates, Recreate, isolated migration and complete typecheck",
+  "base": "10407b89a43bb2a5800ce5c706a88be34cd9484b"
+}

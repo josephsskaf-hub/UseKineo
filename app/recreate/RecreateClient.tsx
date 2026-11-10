@@ -206,12 +206,13 @@ export default function RecreateClient({ initialId, internalTools = false }: { i
   const photoCount = photos.filter(Boolean).length
   const photosReady = !!selected && photoCount === selected.photoSlots
   const editingDisabled = busy || photoBusy || active
-  const photosDone = photosReady && consent
+  const photoIssue = photoErrors.some(Boolean)
+  const photosDone = photosReady && consent && !photoIssue
   type StepState = 'todo' | 'active' | 'done' | 'error'
-  const states: StepState[] = [photoErrors.some(Boolean) ? 'error' : photosDone ? 'done' : 'active', photosDone ? detailsOpen ? 'active' : 'done' : 'todo', createError || clip?.status === 'failed' ? 'error' : clip?.status === 'done' ? 'done' : active || photosDone && !detailsOpen ? 'active' : 'todo']
+  const states: StepState[] = [photoIssue ? 'error' : photosDone ? 'done' : 'active', photosDone ? detailsOpen ? 'active' : 'done' : 'todo', createError || clip?.status === 'failed' ? 'error' : clip?.status === 'done' ? 'done' : active || photosDone && !detailsOpen ? 'active' : 'todo']
   const stateLabel = (state: StepState) => ({ todo: 'To do', active: 'Active', done: 'Done', error: 'Needs attention' })[state]
   const marker = (step: number) => <span className="rc-step-number" aria-hidden="true">{states[step - 1] === 'done' ? '✓' : states[step - 1] === 'error' ? '!' : step}</span>
-  const blocker = busy || photoBusy ? 'Preparing your photos…' : active ? 'Your version is being created.' : !quote ? 'Checking availability…' : !quote.available || quote.credits === null ? 'This option is currently unavailable.' : quote.shortfall > 0 ? `You need ${quote.shortfall} more credits.` : !photosReady ? selected?.photoSlots === 2 ? 'Add both photos to continue.' : 'Add your photo to continue.' : !consent ? 'Confirm photo permission to continue.' : 'Ready when you are.'
+  const blocker = busy || photoBusy ? 'Preparing your photos…' : active ? 'Your version is being created.' : !quote ? 'Checking availability…' : !quote.available || quote.credits === null ? 'This option is currently unavailable.' : quote.shortfall > 0 ? `You need ${quote.shortfall} more credits.` : photoIssue ? 'Replace the highlighted photo.' : !photosReady ? selected?.photoSlots === 2 ? 'Add both photos to continue.' : 'Add your photo to continue.' : !consent ? 'Confirm photo permission to continue.' : 'Ready when you are.'
   function showTemplates() {
     galleryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     galleryRef.current?.querySelector<HTMLElement>('h1, h2')?.focus({ preventScroll: true })
@@ -250,7 +251,7 @@ export default function RecreateClient({ initialId, internalTools = false }: { i
         </details></section>
         <section className={`rc-step rc-generate-area rc-step-${states[2]}`} data-step-state={states[2]} aria-labelledby="rc-create-heading">
           <div className="rc-step-heading">{marker(3)}<h2 id="rc-create-heading">Create your version</h2><span className="rc-step-status">{stateLabel(states[2])}</span></div>
-          <button className="rc-generate" data-recreate-generate aria-describedby="rc-generate-reason" disabled={editingDisabled || !quote?.available || quote.credits === null || quote.shortfall > 0 || !consent || !photosReady} onClick={() => void generate(false)}>{busy ? 'Preparing…' : active ? 'Creating…' : 'Generate'}{quote?.credits !== null && quote?.credits !== undefined && <span>✦ {quote.credits}</span>}</button>
+          <button className="rc-generate" data-recreate-generate aria-describedby="rc-generate-reason" disabled={editingDisabled || !quote?.available || quote.credits === null || quote.shortfall > 0 || !photosDone} onClick={() => void generate(false)}>{busy ? 'Preparing…' : active ? 'Creating…' : 'Generate'}{quote?.credits !== null && quote?.credits !== undefined && <span>✦ {quote.credits}</span>}</button>
           <p className="rc-next-note" id="rc-generate-reason" role="status">{blocker}{quote?.available && quote.shortfall > 0 && <> <Link href="/pricing">See plans ↗</Link></>}</p>
           {internalTools && <button className="rc-simulate" disabled={busy} onClick={() => void generate(true)}>Simulate · no generation</button>}
         </section>

@@ -1,0 +1,85 @@
+{
+  "date": "2026-11-10T08:14:20.993Z",
+  "kind": "Actual hydrated Recreate components, local fixture APIs, isolated Chromium; not authenticated production QA; no provider, real upload, debit or generation",
+  "checks": [
+    {
+      "device": "desktop",
+      "width": 1440,
+      "overflow": false,
+      "headerAligned": true,
+      "baseBeforeOrRight": true,
+      "radii": [
+        "15px",
+        "15px",
+        "15px"
+      ],
+      "borders": [
+        "1px",
+        "1px",
+        "1px"
+      ],
+      "gaps": [
+        14,
+        14
+      ],
+      "simulation": false,
+      "nativeControls": false,
+      "reason": "Add both photos to continue.",
+      "oneLine": true,
+      "dragDropError": true,
+      "validCrop": true,
+      "replaceRemovePreservesSlots": true,
+      "completedThumbnail": true,
+      "progress": true,
+      "keyboardFocus": {
+        "visible": true,
+        "width": "2px",
+        "style": "solid"
+      },
+      "customPlayback": true,
+      "customMute": true,
+      "oneExplicitSubmission": true
+    },
+    {
+      "device": "mobile",
+      "width": 375,
+      "overflow": false,
+      "headerAligned": true,
+      "baseBeforeOrRight": true,
+      "radii": [
+        "15px",
+        "15px",
+        "15px"
+      ],
+      "borders": [
+        "1px",
+        "1px",
+        "1px"
+      ],
+      "gaps": [
+        14,
+        14
+      ],
+      "simulation": false,
+      "nativeControls": false,
+      "reason": "Add both photos to continue.",
+      "oneLine": true,
+      "dragDropError": true,
+      "validCrop": true,
+      "replaceRemovePreservesSlots": true,
+      "completedThumbnail": true,
+      "progress": true,
+      "keyboardFocus": {
+        "visible": true,
+        "width": "2px",
+        "style": "solid"
+      },
+      "customPlayback": true,
+      "customMute": true,
+      "oneExplicitSubmission": true
+    }
+  ],
+  "internalSimulation": true,
+  "externalRequests": [],
+  "runtimeExceptions": []
+}

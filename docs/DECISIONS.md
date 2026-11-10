@@ -966,3 +966,7 @@ Slug do X confirmado: utm_source=x.
 ## 2026-11-10 — Preparação da publicação do Recreate para todas as contas
 
 **DECISÃO APROVADA — Joseph nesta conversa:** “Gostei, pode preparar a publicação para todos.” Preparar o candidato público para todas as contas autenticadas, com retorno ao formato escolhido após cadastro/login. O alvo público substitui o limite interno somente no Recreate; o botão de série permanece separado e Motion desligado. A abertura das entradas da home se limita aos ids que existem no catálogo aprovado; os demais destinos e a curadoria são preservados. A publicação efetiva segue a conferência/aplicação da migration pela sessão CEO, validação técnica e primeiro canário real daquela sessão, conforme o pedido original. O agente não executa renders pagos. Pacote e gates pendentes: `docs/recreate-1011/PUBLICACAO.md`.
+
+## 10/11/2026 — bloco final para merge da manhã
+
+**DECISÃO APROVADA:** o fundador mandou seguir docs/CODEX-PRONTO-PARA-MERGE-BLOCO-2026-11-10.md, prazo 10h BRT, sem publicar ou enfileirar. Esta orientação substitui a abertura preparada anteriormente: Recreate primeiro só interno; o caminho público fica pronto e desligado. Entrega inclui acabamento e os três gates solicitados; falhas já vermelhas na main são listadas, sem correção ampliada neste lote. Film/paletas são propostas em branch de documentos separada, fora do merge do Recreate; receita de Ads é só mapa; novo botão de série não deve ser iniciado agora. Migration, canário e publicação ficam para a sessão CEO com o fundador acordado.

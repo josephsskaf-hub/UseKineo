@@ -54,6 +54,12 @@ async function main(){
   assert.equal((await publicPage({params:{id:'effect-kiss'}})).props.internalTools,false)
   const publicApi=loader({'@/lib/recreate/server':{...publicServer,recreateSubmitDeps:noIO},'@/lib/clips/clipServer':{clipsAdmin:noIO,loadClipAccount:noIO},'@/lib/serverEvents':{writeServerEvent:noIO},'@/app/api/admin/_shared/mrr':{isPayingPlan:noIO}},publicOverride)('app/api/recreate/route')
   assert.equal((await publicApi.POST(request())).status,404,'public rollout cannot expose the internal simulation tool')
+  for(const email of ['test-hacker@example.org','test+fixture@example.org','mailinator@example.org']){
+    assert(loader()('lib/internalAccounts').isInternalEmail(email),'fixture really matches metric exclusion, not authorization')
+    user={id:'external-user-fixture',email}
+    assert.equal((await publicPage({params:{id:'effect-kiss'}})).props.internalTools,false,'metric exclusion patterns do not grant internal tools: '+email)
+    assert.equal((await publicApi.POST(request())).status,404,'metric exclusion patterns cannot simulate: '+email)
+  }
   user=null
   await assert.rejects(publicPage({params:{id:'effect-kiss'}}),e=>e.message.startsWith('redirect:')&&new URL(e.message.slice(9),'https://fixture').searchParams.get('redirect')==='/recreate/effect-kiss')
 
@@ -78,6 +84,13 @@ async function main(){
       const tag=html.match(/<a[^>]*data-clip-novo="outfit-morph"[^>]*>/)[0],href=tag.match(/href="([^"]+)"/)[1].replaceAll('&amp;','&')
       const actual=signedIn?href:new URL(href,'https://fixture').searchParams.get('redirect')
       assert.equal(actual,mode==='public'?'/recreate/outfit-morph':'/clips')
+      for(const id of ['anuncio-skincare','anuncio-relogio','anuncio-colar','anuncio-caneca','anuncio-sueter-pet','anuncio-manta']){
+        const ad=html.match(new RegExp('<a[^>]*data-clip-novo="'+id+'"[^>]*>[\\s\\S]*?</a>'))?.[0]
+        assert(ad,'new main Christmas ad remains in the mosaic: '+id)
+        assert(ad.includes('data-home-cta="mosaic_ad"'));assert(ad.includes('Make your ad'));assert(!ad.includes('>Recreate<'))
+        const destination=ad.match(/href="([^"]+)"/)[1].replaceAll('&amp;','&')
+        assert.equal(signedIn?destination:new URL(destination,'https://fixture').searchParams.get('redirect'),'/ads/new','ad examples never become Recreate links')
+      }
     }
   }
   console.log('PASS: external/internal/anonymous/off sessions, anonymous API denial, login return paths, real effect/home links, no engine badge, catalog-only links and legacy rollback.')

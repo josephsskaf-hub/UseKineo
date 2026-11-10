@@ -8,7 +8,7 @@ import { planRecreate } from '@/lib/recreate/generation'
 import { recreateCreditCost } from '@/lib/checkoutPricing'
 import { recreateEngineAccess, recreateSession, recreateSubmitDeps, RECREATE_HEADERS } from '@/lib/recreate/server'
 import { writeServerEvent } from '@/lib/serverEvents'
-import { isInternalEmail } from '@/lib/internalAccounts'
+import { releaseVisible } from '@/lib/recreate/access'
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
   if (raw.mode && raw.mode !== 'swap') return json({ error: 'This mode is unavailable.' }, 400)
   // Simulation exits before profile reads, moderation, writes, debits, uploads or provider calls.
   if (raw.simulate === true) {
-    if (!isInternalEmail(user.email)) return json({ error: 'Not found.' }, 404)
+    if (!releaseVisible(user.email, 'internal')) return json({ error: 'Not found.' }, 404)
     return json({ simulation: true, format: format.title, seconds: format.seconds, photos: format.photoSlots, credits: format.type === 'swap' ? recreateCreditCost(format.seconds) : recreateEffectCredits(format), mode: format.type === 'swap' ? 'Face swap' : 'Photo effect', charged: false })
   }
   if (raw.consent !== true) return json({ error: 'Confirm you have permission to use these photos.' }, 400)
