@@ -1,0 +1,26 @@
+{
+ "app/api/generate-video-cinematic/route.ts": [
+  {
+   "antes": "import { promptDaCenaKling4 } from '@/lib/cinematic/cenaKling4' // KINEO-CENA-PEDIDO-3010\nimport { comSuperficieSemTexto } from '@/lib/cinematic/superficieSemTexto' // KINEO-CENA-PEDIDO-3010",
+   "depois": "import { promptDaCenaKling4 } from '@/lib/cinematic/cenaKling4' // KINEO-CENA-PEDIDO-3010\nimport { eixoDoFilmeGratis } from '@/lib/cinematic/cenaKling4' // KINEO-REPETICAO-FREE15-1011 (linha própria)\nimport { comSuperficieSemTexto } from '@/lib/cinematic/superficieSemTexto' // KINEO-CENA-PEDIDO-3010"
+  },
+  {
+   "antes": "    const anchorActive = anchorEngine !== null && CINEMATIC_ANCHOR_ENABLED\n    const sceneStills: (string | null)[] = new Array(scenes.length).fill(null)",
+   "depois": "    const anchorActive = anchorEngine !== null && CINEMATIC_ANCHOR_ENABLED\n    if (kling4TrialCandidate) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = eixoDoFilmeGratis(classicScenePrompts[i], i) // KINEO-REPETICAO-FREE15-1011 [aval permanente do fundador 01/11 (laço do revisor)] — filme grátis de 15 s (Kling 4 e reserva Seedance 1.5): as 3 imagens-chave (mesma seed) e os 3 clipes da reserva nasciam sem eixo de câmera; o rodízio do Kling 2.5 entra depois da trava de estilo, nada cortado. Pagos e 35/60/90: kling4TrialCandidate é false, vetor byte a byte\n    const sceneStills: (string | null)[] = new Array(scenes.length).fill(null)"
+  }
+ ],
+ "lib/cinematic/cenaKling4.ts": [
+  {
+   "antes": "import { promptCurtoDoFilmeKling4 } from '@/lib/cinematic/filmQuality'\nimport { kling25ShotAxis } from '@/lib/cinematic/klingShots'\nimport type { StyleAnchor } from '@/lib/cinematic/sceneStyle'",
+   "depois": "import { promptCurtoDoFilmeKling4 } from '@/lib/cinematic/filmQuality'\nimport { kling25ShotAxis, kling25StripShotAxis } from '@/lib/cinematic/klingShots'\nimport type { StyleAnchor } from '@/lib/cinematic/sceneStyle'"
+  },
+  {
+   "antes": "\n/** O prompt final da cena do Kling 4: sem moldura, cortado pelo adaptador de sempre e com o eixo de câmera se couber. */",
+   "depois": "\n// ═══ KINEO-REPETICAO-FREE15-1011 [aval permanente do fundador 01/11 (laço do revisor)] ═══════════════════════════════════\n// Revisor 09/11: 4 de 4 primeiros filmes grátis de 15 s \"mostram a mesma coisa\" (mão no mapa em 3 quadros, rapaz escrevendo\n// em 4 de 8). Provado no claim (cinematic_submission_claim.response): os 3 textos de cena JÁ são diferentes, mas o vetor\n// classicScenePrompts — que desenha as 3 imagens-chave FLUX do Kling 4 grátis (todas com a MESMA seed) e é o próprio prompt\n// dos 3 clipes da reserva Seedance 1.5 — não tinha eixo de câmera nenhum (\"smooth camera motion\" igual nas 3): o rodízio de\n// klingShots só entra no Kling 2.5 (wantsKling). O eixo curto acima vai só no texto do clipe, DEPOIS da imagem-chave, e cai\n// quando não cabe nos 512 (mapa 1963 e Jesus: 0 de 3 cenas com eixo).\n// Aqui o MESMO rodízio (kling25ShotAxis) entra no vetor do filme grátis, DEPOIS da trava de estilo (\"Film visual medium: …. \"\n// continua a 1ª coisa do prompt, que criticoStill/perguntasHonestas/kidsCartoon leem), como prefixo do corpo: nada é cortado\n// nem normalizado. Plano 1 médio (o \"Opening shot\" pede o sujeito legível), 2 aberto, 3 detalhe — o mesmo índice do eixo curto,\n// então imagem-chave e clipe pedem a mesma escala. Guardião: scripts/test-repeticao-free15-1011.mjs.\nconst TRAVA_DO_ESTILO_1011 = /^Film visual medium: .+?\\. /\n\n/** O eixo do plano `index` logo depois da trava de estilo; prompt que já tem um eixo do rodízio volta intocado. */\nexport function eixoDoFilmeGratis(prompt: string, index: number): string {\n  const texto = String(prompt ?? '')\n  const trava = TRAVA_DO_ESTILO_1011.exec(texto)?.[0] ?? ''\n  const corpo = texto.slice(trava.length)\n  if (kling25StripShotAxis(corpo) !== corpo) return texto\n  return `${trava}${kling25ShotAxis(index)}. ${corpo}`\n}\n\n/** O inverso exato: devolve o prompt de antes (o texto do clipe do Kling 4 nasce dele, em promptDaCenaKling4Com). */\nexport function semEixoDoFilmeGratis(prompt: string): string {\n  const texto = String(prompt ?? '')\n  const trava = TRAVA_DO_ESTILO_1011.exec(texto)?.[0] ?? ''\n  return trava + kling25StripShotAxis(texto.slice(trava.length))\n}\n\n/** O prompt final da cena do Kling 4: sem moldura, cortado pelo adaptador de sempre e com o eixo de câmera se couber. */"
+  },
+  {
+   "antes": "export function promptDaCenaKling4Com(compactar: (p: string, s: StyleAnchor) => string, prompt: string, style: StyleAnchor, index: number): string {\n  const curto = compactar(semMolduraParaKling4(prompt, style), style)",
+   "depois": "export function promptDaCenaKling4Com(compactar: (p: string, s: StyleAnchor) => string, prompt: string, style: StyleAnchor, index: number): string {\n  prompt = semEixoDoFilmeGratis(prompt) // KINEO-REPETICAO-FREE15-1011 — o eixo do vetor (imagem-chave/reserva) sai; o texto do clipe segue byte a byte o de antes, com o eixo curto do mesmo índice\n  const curto = compactar(semMolduraParaKling4(prompt, style), style)"
+  }
+ ]
+}
