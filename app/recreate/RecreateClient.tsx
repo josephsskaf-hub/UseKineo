@@ -7,7 +7,7 @@ import { compressPhoto, cropFace, composePairPhoto } from '@/lib/recreate/photos
 import './recreate.css'
 
 type Social = { count: number; liked: boolean }
-type Quote = { id: string; credits: number | null; available: boolean }
+type Quote = { id: string; credits: number | null; available: boolean; shortfall: number }
 type Photo = { file: File; url: string }
 type Clip = { id: string; status: string; video_url?: string | null; credits_refunded?: number }
 
@@ -124,6 +124,9 @@ export default function RecreateClient({ initialId }: { initialId?: string }) {
     try {
       let payload: Record<string, unknown> = { format: selected.id, mode: 'swap', seconds: selected.seconds, prompt, consent, simulate }
       if (!simulate) {
+        const currentQuote = quotes.find(q => q.id === selected.id)
+        if (!currentQuote?.available || currentQuote.credits === null) throw new Error('Check availability before generating.')
+        if (currentQuote.shortfall > 0) throw new Error(`You need ${currentQuote.shortfall} more credits.`)
         if (!consent || !photos.length || (selected.type === 'effect' && photos.length !== selected.photoSlots)) throw new Error('Add the required photos and confirm permission first.')
         if (selected.type === 'swap') payload.photos = await Promise.all(photos.map(p => upload(p.file)))
         else {
@@ -139,7 +142,13 @@ export default function RecreateClient({ initialId }: { initialId?: string }) {
       if (!requestKey.current) requestKey.current = `recreate-${crypto.randomUUID()}`
       const res = await fetch('/api/recreate', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': requestKey.current }, body: JSON.stringify(payload) })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Could not start. Please retry.')
+      if (!res.ok) {
+        if (data.code === 'credits') {
+          if (typeof data.shortfall === 'number' && data.shortfall > 0) setQuotes(previous => previous.map(q => q.id === selected.id ? { ...q, shortfall: data.shortfall } : q))
+          await loadQuotes()
+        }
+        throw new Error(data.error ?? 'Could not start. Please retry.')
+      }
       if (simulate) setSimulation(data)
       else { setClip(data.clip); void loadQuotes() }
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not confirm. Retry this request before changing the form.') }
@@ -187,8 +196,9 @@ export default function RecreateClient({ initialId }: { initialId?: string }) {
         <textarea id="rc-prompt" maxLength={550} value={prompt} readOnly={selected.type === 'effect'} disabled={busy} onChange={e => { setPrompt(e.target.value); requestKey.current = null }} />
         {selected.type === 'effect' && <p className="rc-muted">This effect uses its original preset.</p>}
         <div className="rc-generate-area">
-          <button className="rc-generate" data-recreate-generate disabled={busy || photoBusy || active || !quote?.available || quote.credits === null || !consent || !photos.length || (selected.type === 'effect' && photos.length !== selected.photoSlots)} onClick={() => void generate(false)}>{busy ? 'Preparing…' : active ? 'Creating…' : 'Generate'}{quote?.credits !== null && quote?.credits !== undefined && <span>✦ {quote.credits}</span>}</button>
+          <button className="rc-generate" data-recreate-generate disabled={busy || photoBusy || active || !quote?.available || quote.credits === null || quote.shortfall > 0 || !consent || !photos.length || (selected.type === 'effect' && photos.length !== selected.photoSlots)} onClick={() => void generate(false)}>{busy ? 'Preparing…' : active ? 'Creating…' : 'Generate'}{quote?.credits !== null && quote?.credits !== undefined && <span>✦ {quote.credits}</span>}</button>
           {quote && !quote.available && <p className="rc-muted">This option is unavailable for your account.</p>}
+          {quote?.available && quote.shortfall > 0 && <p className="rc-muted" role="status">You need {quote.shortfall} more credits. <Link href="/pricing">See plans ↗</Link></p>}
           <button className="rc-simulate" disabled={busy} onClick={() => void generate(true)}>Simulate · no generation</button>
         </div>
         {simulation && <output className="rc-result"><strong>Simulation · no generation</strong><p>{simulation.format} · {simulation.seconds} s · {simulation.mode}</p><p>Up to {simulation.photos} photos. No upload, debit or render was made.</p></output>}

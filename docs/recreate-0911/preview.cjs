@@ -75,4 +75,13 @@ function frame(src,w,h){const scaled=w>600;return `<div class="canvas ${scaled?'
 const html='<!doctype html><html lang="pt"><head><meta charset="UTF-8"><title>Recreate — antes e depois</title><style>body{background:#e9e9e5;color:#202120;margin:0;padding:30px;font:14px Arial}h1{letter-spacing:-1px;font-size:32px}p{max-width:950px;line-height:1.6}.pair{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap}section{margin:42px 0}h2{font-size:19px}h3{font-size:12px;letter-spacing:1px}.canvas{background:#fff;overflow:hidden;border-radius:12px;box-shadow:0 4px 20px #0002;height:var(--h)}.desktop{width:614px}.mobile{width:390px}iframe{border:0;display:block}.note{max-width:570px;padding:25px;border:1px dashed #777;border-radius:12px;line-height:1.7}</style></head><body><h1>Recreate · comparação antes/depois</h1><p>Renderização dos componentes reais em HTML autocontido. Dados de demonstração: curtidas zero e saldo/custo simulados para inspeção visual. Não é produção nem prova de geração. Os vídeos usam os pôsteres próprios nesta comparação estática. As páginas novas não existiam na base; efeitos conservam o comportamento público com o interruptor fechado.</p>'+sections+'</body></html>'
 fs.writeFileSync(path.join(__dirname,'ANTES-DEPOIS.html'),html)
 fs.writeFileSync(path.join(__dirname,'FORMATO.html'),doc(render('outfit-morph')))
+const previous = execFileSync('git',['show','f3af4dfe2:app/recreate/RecreateClient.tsx'],{cwd:ROOT,encoding:'utf8'})
+const beforePrice = render('outfit-morph',true,{'app/recreate/RecreateClient.tsx':previous},40,0)
+const pricingRows = [
+  ['Desktop · saldo 40',1280,1000,render('outfit-morph')],
+  ['Desktop · faltam créditos',1280,1000,render('outfit-morph',true,{},20)],
+  ['Mobile · saldo 40',390,1100,render('outfit-morph')],
+  ['Mobile · faltam créditos',390,1100,render('outfit-morph',true,{},20)],
+].map(([title,w,h,after])=>'<section><h2>'+title+'</h2><div class="pair"><div><h3>ANTES · política substituída</h3>'+frame(doc(beforePrice),w,h)+'</div><div><h3>DEPOIS · preço aprovado · sem grátis</h3>'+frame(doc(after),w,h)+'</div></div></section>').join('')
+fs.writeFileSync(path.join(__dirname,'PRECO-ANTES-DEPOIS.html'),html.slice(0,html.indexOf('<body>'))+'<body><h1>Recreate · correção de preço</h1><p>09/11/2026 · componentes reais, saldo simulado. Compare a política anterior com a nova tarifa no Generate e o aviso de quanto falta, com acesso aos planos. Não comprova cobrança ou render em produção.</p>'+pricingRows+'</body></html>')
 console.log('Generated standalone comparison and format preview from real React components.')

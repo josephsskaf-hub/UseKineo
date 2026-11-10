@@ -27,10 +27,10 @@ export function planRecreate(raw: Record<string, unknown>, ctx: { userId: string
   if (raw.mode && raw.mode !== 'swap') return bad(RECREATE_MOTION_ENABLED ? 'This mode is not ready.' : 'This mode is unavailable.')
   if (raw.consent !== true) return bad('Confirm you have permission to use these photos.')
   const seconds = Number(raw.seconds)
-  if (seconds !== RECREATE_PRICING.freeSeconds && seconds !== RECREATE_PRICING.paidSeconds) return bad('Choose an available duration.')
-  if (seconds === RECREATE_PRICING.paidSeconds && !ctx.paying) return bad('Upgrade your plan to use this duration.', 402)
+  if (seconds !== 10 && seconds !== 15) return bad('Choose an available duration.')
+  if (seconds === 15 && !ctx.paying) return bad('Upgrade your plan to use this duration.', 402)
   // Recast inherits source duration; its API has no duration parameter. Never sell 15 s from a 10 s source.
-  if (seconds > f.seconds) return bad('This duration needs an approved source video of the same length.', 409)
+  if (seconds !== f.seconds) return bad('This duration needs an approved source video of the same length.', 409)
   if (!Array.isArray(raw.photos) || raw.photos.length < 1 || raw.photos.length > Math.min(4, f.photoSlots)) return bad('Add a photo for each person you want to replace.')
   const photos: string[] = []
   for (const value of raw.photos) {
@@ -41,7 +41,7 @@ export function planRecreate(raw: Record<string, unknown>, ctx: { userId: string
   const text = typeof raw.prompt === 'string' ? raw.prompt.trim() : ''
   if (text.length > 550) return bad('Keep the description under 550 characters.')
   const prompt = `${RECREATE_SWAP_PROMPT}${text && text !== RECREATE_SWAP_PROMPT ? ` Additional face instructions: ${text}` : ''}`
-  const credits = seconds === RECREATE_PRICING.freeSeconds ? RECREATE_PRICING.freeCredits : RECREATE_PRICING.paidCredits
+  const credits = RECREATE_PRICING[seconds]
   return { ok: true, plan: {
     body: { engine: 'h3', seconds, aspect: null, prompt, imageUrl: photos[0] },
     model: RECREATE_MODEL, credits, falUsd: seconds * RECREATE_USD_PER_SECOND, photos,

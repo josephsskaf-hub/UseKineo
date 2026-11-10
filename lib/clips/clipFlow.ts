@@ -322,8 +322,8 @@ export async function submitClip(
     }
   }
 
-  // Free Recreate entitlement is reserved atomically by the database's partial unique index on clips.
-  const debit = recreate && credits === 0 ? { ok: true as const, balance } : await deps.debit(row.billing_reference, credits)
+  // Every generation, including Recreate, uses the existing atomic server debit.
+  const debit = await deps.debit(row.billing_reference, credits)
   if (!debit.ok) {
     // O RPC pode ter gravado o débito e perdido a resposta: o estorno pela mesma chave cobre os dois casos.
     const out = await closeWithRefund('debit_failed', 402, 'Not enough credits to start this clip.')

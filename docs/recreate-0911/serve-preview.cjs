@@ -1,8 +1,8 @@
-// Loopback-only static QA server; exactly three authored HTML documents, no arbitrary file access or API proxy.
+// Loopback-only static QA server; authored HTML documents only, no arbitrary file access or API proxy.
 const http = require('node:http')
 const fs = require('node:fs')
 const path = require('node:path')
-const pages = new Map([['/comparison', 'ANTES-DEPOIS.html'],['/format','FORMATO.html'],['/interactive','INTERATIVO.html']])
+const pages = new Map([['/comparison', 'ANTES-DEPOIS.html'],['/format','FORMATO.html'],['/interactive','INTERATIVO.html'],['/pricing','PRECO-ANTES-DEPOIS.html']])
 http.createServer((req,res)=>{
   const file=pages.get(req.url)
   if(req.method!=='GET'||!file){res.writeHead(404);res.end();return}

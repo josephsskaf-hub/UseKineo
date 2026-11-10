@@ -4,8 +4,9 @@ import { submitClip } from '@/lib/clips/clipFlow'
 import { clipEffectByKey, resolveClipEffectRequest } from '@/lib/clips/clipEffects'
 import { isPayingPlan } from '@/app/api/admin/_shared/mrr'
 import { recreateFormat, RECREATE_FORMATS, recreateEffectCredits } from '@/lib/recreate/formats'
-import { planRecreate, RECREATE_PRICING } from '@/lib/recreate/generation'
-import { freeRecreateAvailable, recreateEngineAccess, recreateSession, recreateSubmitDeps, RECREATE_HEADERS } from '@/lib/recreate/server'
+import { planRecreate } from '@/lib/recreate/generation'
+import { recreateCreditCost } from '@/lib/checkoutPricing'
+import { recreateEngineAccess, recreateSession, recreateSubmitDeps, RECREATE_HEADERS } from '@/lib/recreate/server'
 import { writeServerEvent } from '@/lib/serverEvents'
 
 export const dynamic = 'force-dynamic'
@@ -20,10 +21,11 @@ export async function GET() {
   const admin = clipsAdmin()
   const account = await loadClipAccount(supabase, user)
   if (!admin || !account) return json({ error: 'Could not load your account. Please retry.' }, 503)
-  const freeAvailable = await freeRecreateAvailable(admin, user.id)
-  if (freeAvailable === null) return json({ error: 'Could not check your free Recreate. Please retry.' }, 503)
   const access = engineAccessFor(account)
-  return json({ freeAvailable, catalog: RECREATE_FORMATS.map(f => ({ id: f.id, credits: f.type === 'swap' ? (freeAvailable ? RECREATE_PRICING.freeCredits : null) : recreateEffectCredits(f), available: f.type === 'swap' ? freeAvailable && recreateEngineAccess().ok : access(clipEffectByKey(f.effectKey)!.engine).ok })) })
+  return json({ catalog: RECREATE_FORMATS.map(f => {
+    const credits = f.type === 'swap' ? recreateCreditCost(f.seconds) : recreateEffectCredits(f)
+    return { id: f.id, credits, shortfall: credits === null ? 0 : Math.max(0, credits - account.balance), available: credits !== null && (f.type === 'swap' ? recreateEngineAccess().ok : access(clipEffectByKey(f.effectKey)!.engine).ok) }
+  }) })
 }
 
 export async function POST(req: NextRequest) {
@@ -36,7 +38,7 @@ export async function POST(req: NextRequest) {
   if (!format) return json({ error: 'Choose a format from the catalog.' }, 400)
   if (raw.mode && raw.mode !== 'swap') return json({ error: 'This mode is unavailable.' }, 400)
   // Simulation exits before profile reads, moderation, writes, debits, uploads or provider calls.
-  if (raw.simulate === true) return json({ simulation: true, format: format.title, seconds: format.seconds, photos: format.photoSlots, credits: format.type === 'swap' ? RECREATE_PRICING.freeCredits : recreateEffectCredits(format), mode: format.type === 'swap' ? 'Face swap' : 'Photo effect', charged: false })
+  if (raw.simulate === true) return json({ simulation: true, format: format.title, seconds: format.seconds, photos: format.photoSlots, credits: format.type === 'swap' ? recreateCreditCost(format.seconds) : recreateEffectCredits(format), mode: format.type === 'swap' ? 'Face swap' : 'Photo effect', charged: false })
   if (raw.consent !== true) return json({ error: 'Confirm you have permission to use these photos.' }, 400)
   const admin = clipsAdmin()
   const account = await loadClipAccount(supabase, user)
@@ -58,7 +60,17 @@ export async function POST(req: NextRequest) {
       body = resolved.body
     }
     const result = await submitClip(deps, { userId: user.id, idempotencyKey: key, body, recreatePlan })
-    if (!result.ok) return json({ error: result.code === 'idempotency_conflict' ? 'This request or your free Recreate is already reserved. Check your clips before trying again.' : 'Could not start this clip. Check your photos, plan and balance, then retry.', code: result.code }, result.status)
+    if (!result.ok) {
+      if (result.code === 'credits' || result.code === 'debit_failed') {
+        const credits = recreatePlan?.credits ?? recreateEffectCredits(format)
+        const balance = result.balance ?? (await loadClipAccount(supabase, user))?.balance
+        if (credits !== null && balance !== undefined && credits > balance) {
+          const shortfall = credits - balance
+          return json({ error: `You need ${shortfall} more credits.`, code: 'credits', shortfall, plans: '/pricing' }, result.status)
+        }
+      }
+      return json({ error: result.code === 'idempotency_conflict' ? 'This request is already reserved. Check your clips before trying again.' : 'Could not start this clip. Check your photos, plan and balance, then retry.', code: result.code }, result.status)
+    }
     if (!result.replay) await writeServerEvent({ name: 'recreate_started', userId: user.id, path: '/api/recreate', metadata: { format: format.id, clip_id: result.clip.id, seconds: result.clip.seconds, credits: result.clip.credits } }).catch(() => false)
     return json({ clip: { id: result.clip.id, status: result.clip.status }, replay: result.replay }, result.status)
   } catch {

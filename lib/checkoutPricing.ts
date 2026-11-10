@@ -7,8 +7,11 @@
 import { creditCostFor, creditCostForDuration } from '@/lib/credits/engineCost'
 import { AUTOPILOT_ALLOWED_ENGINES, AUTOPILOT_PILOT_DAYS } from '@/lib/autopilot/config'
 
-// Recreate only. Founder 09/11/2026, "Sim para as 5", decision 5. Existing plans/checkout are unchanged.
-export const RECREATE_PRICING = { freeSeconds: 10, freeCredits: 0, paidSeconds: 15, paidCredits: 45 } as const
+// Recreate only. Founder 09/11/2026, evening: paid v1; supersedes the earlier gift and 45-credit tariff.
+export const RECREATE_PRICING = { 10: 40, 15: 60 } as const
+export function recreateCreditCost(seconds: number): number | null {
+  return Object.prototype.hasOwnProperty.call(RECREATE_PRICING, seconds) ? RECREATE_PRICING[seconds as keyof typeof RECREATE_PRICING] : null
+}
 
 export const ONE_TIME_ITEM_USD_MINOR = { one_time_ad: 900, one_time_film35: 500 } as const // KINEO-COMPRA-AVULSA-2410 — founder-approved single-item prices; monthly plans unchanged.
 export const ONE_TIME_ITEM_V1_AMOUNTS = { one_time_ad: { usd: 900, brl: 4490 }, one_time_film35: { usd: 500, brl: 2490 } } as const // KINEO-COMPRA-AVULSA-2410 — immutable receipt snapshot; future prices must never reprice a paid V1 session.

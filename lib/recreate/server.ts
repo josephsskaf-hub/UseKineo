@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { createClient } from '@/lib/supabase/server'
 import { recreateVisible } from './access'
-import { clipsAdmin, submitDepsFor, type ClipAccount } from '@/lib/clips/clipServer'
+import { submitDepsFor, type ClipAccount } from '@/lib/clips/clipServer'
 import { RECREATE_ASSETS, type RecreateFormat } from './formats'
 import { RECREATE_MODEL } from './generation'
 import { enginePaused } from '@/lib/engineLaunch'
@@ -12,7 +12,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 export const RECREATE_HEADERS = { 'Cache-Control': 'private, no-store', 'X-Robots-Tag': 'noindex, nofollow' }
 export function recreateEngineAccess(): ClipEngineAccess {
-  // Recreate has its own approved free entitlement, independent of the old H3 film's Studio-plan gate.
+  // Recreate has its own approved credit tariff, independent of the old H3 film's Studio-plan gate.
   return enginePaused('h3') === null ? { ok: true } : { ok: false, reason: 'paused', status: 409 }
 }
 export async function recreateSession() {
@@ -43,10 +43,4 @@ export function recreateSubmitDeps(admin: SupabaseClient, userSupabase: Supabase
       return { ok: false as const, ambiguous: false, error: 'Source unavailable' }
     }
   } }
-}
-
-export async function freeRecreateAvailable(admin: ReturnType<typeof clipsAdmin>, userId: string): Promise<boolean | null> {
-  if (!admin) return null
-  const { count, error } = await admin.from('clips').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('model', RECREATE_MODEL).eq('credits', 0).or('status.neq.failed,failure_reason.eq.submit_ambiguous')
-  return error ? null : count === 0
 }

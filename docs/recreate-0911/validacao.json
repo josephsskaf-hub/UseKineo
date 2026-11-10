@@ -1,5 +1,15 @@
 {
   "date": "2026-11-09",
+  "eveningPricingUpdate": {
+    "tariff": { "10": 40, "15": 60 },
+    "freeGeneration": false,
+    "source": "lib/checkoutPricing.ts",
+    "testedOffline": ["mandatory debit before provider", "Starter balance and repeat request", "future 15s fixture costs 60", "duration must match catalog source", "client price spoof ignored", "refund", "all existing effect tariffs unchanged", "quote API and credit-race shortfall", "zero-cost SQL rows rejected", "paid SQL rows and request idempotency preserved"],
+    "visualComparison": "PRECO-ANTES-DEPOIS.html; regenerated from actual components, not visually verified",
+    "browserLimitation": "Computer Use stopped: could not determine the current Chrome URL confidently enough to enforce policy. No further browser input.",
+    "oldScreenshots": "desktop.png, mobile.png and antes-depois.png show the superseded initial policy; historical only",
+    "cleanup": "Owned loopback server stopped"
+  },
   "integratedBase": "0989e374eb81f0518c9a0702866a4258e41e3f22",
   "typecheckAfterIntegration": "passed; exit 0",
   "regressionAfterIntegration": "regressao-base-atual.json",
