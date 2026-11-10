@@ -170,7 +170,6 @@ import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { affiliateOfferCopy, affiliateOfferScopeCopy } from '@/lib/affiliateOfferCopy'
 import OneTimeItemOffer from '@/components/OneTimeItemOffer' // KINEO-COMPRA-AVULSA-2410
 import { FilmsLikeThisNote, FilmsMadeProof } from '@/components/checkout/ValorNoCheckout' // KINEO-VALOR-NO-CHECKOUT-3110 — "Which plan fits me?", prova social real e "≈ N more films like this"
-import { createEntryHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"]
 
 // PAYPAL-DISABLED-2026-07-06 — PayPal checkout is hidden on pricing until it's
 // verified working end-to-end (business account still needs verification). All
@@ -2112,7 +2111,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
               Your plan is active. If your credits look low, they may still be syncing.
             </p>
             <a
-              href={createEntryHref('film', '/studio') /* KINEO-ENTRADAS-TELA-NOVA-1011 — "Go to Dashboard" abre a aba Film da tela nova */}
+              href="/studio"
               className="mt-3 inline-block rounded-lg bg-[var(--indigo)] px-5 py-2 text-[13px] font-extrabold text-[var(--on-accent)] shadow-[0_4px_14px_rgba(41,151,255,.35)] transition hover:bg-[var(--indigo)]"
             >
               Go to Dashboard →

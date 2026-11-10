@@ -37,10 +37,10 @@ const PORTAS: ReadonlyArray<{ card: HomeCardId; rotulo: string; img: string }> =
 
 export default function HomePortasCelular({ signedIn, entradaNova = false }: { signedIn: boolean; entradaNova?: boolean }) {
   const ideia = ideiaDaPagina(usePathname()) // KINEO-CAIXA-COM-IDEIA-0611
-  // KINEO-ENTRADAS-TELA-NOVA-1011 — só na home (entradaNova): a porta Film e a caixa abrem a aba Film (visitante pelo cadastro, de volta à aba).
+  // KINEO-ENTRADAS-TELA-NOVA-1011 — só na home (entradaNova): a porta Film e a caixa abrem a aba Film para quem está LOGADO; o visitante segue no destino de hoje (KINEO-ENTRADAS-SO-LOGADO-1011).
   // O Cartoon (leva utm_source, que abre o desenho sem conta) e as portas de anúncio (?entry=) seguem no destino de hoje.
-  const entrada = (href: string) => (entradaNova ? createEntryForLegacyHref(href) : href)
-  const caixaHref = entradaNova ? createEntryForLegacyHref(hrefDaCaixa(ideia), { signedIn }) : hrefDaCaixa(ideia)
+  const entrada = (href: string) => (entradaNova ? createEntryForLegacyHref(href, signedIn) : href)
+  const caixaHref = entradaNova ? createEntryForLegacyHref(hrefDaCaixa(ideia), signedIn) : hrefDaCaixa(ideia)
   return (
     <section className="kpc" aria-label="What to make" data-kineo="home-portas-celular">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />

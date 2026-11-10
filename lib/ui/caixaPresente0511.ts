@@ -93,7 +93,7 @@ export const CAIXA_CLIQUE_EVENTO = 'gift_box_entry_click'
 /** As linhas desta conta, nesta ordem. As do conector e a do afiliado existem sempre, então a caixa nunca abre vazia. */
 export function linhasDaCaixa(l: CaixaLeituras, agoraMs: number): CaixaLinha[] {
   const linhas: CaixaLinha[] = []
-  if (filmeGratisNaCaixa(l.credits)) linhas.push({ id: 'filme', titulo: LINHA_DO_FILME_GRATIS, href: createEntryHref('film', '/studio') })
+  if (filmeGratisNaCaixa(l.credits)) linhas.push({ id: 'filme', titulo: LINHA_DO_FILME_GRATIS, href: createEntryHref('film', '/studio', true) }) /* a linha só existe com a leitura de /api/credits da conta: é sempre logado */
   const anual = linhaDoAnual(l, agoraMs)
   if (anual) linhas.push(anual)
   if (kling4PromoZeroCredits(l.kling4, KLING4_SEGUNDOS_DA_LEITURA, agoraMs)) linhas.push({ id: 'kling4', titulo: KLING4_PAID_COPY.included, href: '/studio?engine=hollywood' })

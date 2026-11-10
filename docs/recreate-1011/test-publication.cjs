@@ -128,9 +128,9 @@ async function main(){
         assert(ad.includes('data-home-cta="mosaic_ad"'));assert(ad.includes('Make your ad'));assert(!ad.includes('>Recreate<'))
         const destination=ad.match(/href="([^"]+)"/)[1].replaceAll('&amp;','&')
         // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — o destino é o da entrada de anúncio
-        // (lib/create/entry.ts: /create/ads com o interruptor public; /ads/new com ele em off). Nunca um link do Recreate.
-        const adsEntry=loader({})('lib/create/entry').createEntryHref('ads','/ads/new')
-        assert.equal(adsEntry,'/create/ads','the shipped entry switch is public')
+        // (lib/create/entry.ts: logado → /create/ads com o interruptor public; visitante, ou 'off' → /ads/new). Nunca um link do Recreate.
+        const adsEntry=loader({})('lib/create/entry').createEntryHref('ads','/ads/new',signedIn)
+        assert.equal(adsEntry,signedIn?'/create/ads':'/ads/new','the shipped entry switch is public; visitors keep today\'s door')
         assert.equal(signedIn?destination:new URL(destination,'https://fixture').searchParams.get('redirect'),adsEntry,'ad examples never become Recreate links')
       }
     }

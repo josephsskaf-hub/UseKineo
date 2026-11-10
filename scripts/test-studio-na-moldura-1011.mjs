@@ -70,7 +70,14 @@ function offChecks(o) {
   }
   // Comportamento sem moldura: o mesmo pedido e os mesmos eventos da main pelo caminho de hoje.
   ok(JSON.stringify(viaMain(o, {})) === JSON.stringify(viaMain({ ...o, ...MAIN }, {})), 'StudioSimples sem moldura: pedido + eventos = main')
-  const changed = execFileSync('git', ['diff', '--name-only', BASE, '--', 'app/(dashboard)', 'lib/credits', 'lib/growth', 'app/api', 'lib/recreate', 'middleware.ts'], { cwd: ROOT, encoding: 'utf8' }).trim()
+  // KINEO-REGIAO-PAGA-1011 [CEO 10/11, publicado em fb3235afb] — a faixa da prévia recusada mexeu, de propósito, nestes 4 arquivos protegidos.
+  // A referência deles passa a ser o arquivo COMO ESTÁ na origin/main fb3235afb (byte a byte); qualquer outra mudança neles, ou em
+  // qualquer outro arquivo protegido desde o BASE, segue vermelha.
+  const REGIAO_PAGA_REF = 'fb3235afb'
+  const REGIAO_PAGA = ['app/(dashboard)/studio/previa/ScenePreviewClient.tsx', 'app/api/events/route.ts', 'app/api/scene-preview/pricing-strip/route.ts', 'lib/growth/regiaoPaga1011.ts']
+  const desdeRef = f => execFileSync('git', ['diff', '--name-only', REGIAO_PAGA_REF, '--', f], { cwd: ROOT, encoding: 'utf8' }).trim()
+  const changed = execFileSync('git', ['diff', '--name-only', BASE, '--', 'app/(dashboard)', 'lib/credits', 'lib/growth', 'app/api', 'lib/recreate', 'middleware.ts'], { cwd: ROOT, encoding: 'utf8' }).trim().split('\n').filter(Boolean)
+    .filter(f => !(REGIAO_PAGA.includes(f) && desdeRef(f) === '')).join(', ')
   ok(changed === '', `Studio, Generate, crédito, rotas e Recreate intocados (${changed})`)
 }
 
@@ -237,7 +244,7 @@ async function headerChecks(o) {
       t.mount(el(t)); await t.settle()
       const h = nav(t.html()), txt = visibleText(h).replace(/\s+/g, ' ')
       ok(h !== '' && new RegExp(`> ?${saldo} credits?<`).test(h.replace(/<!-- -->/g, '')) && t.log.fetches.some(f => f[0] === '/api/credits'), `${nome}: saldo ${saldo} = o campo credits de GET /api/credits`)
-      ok(/<a [^>]*data-create-nav="pricing"[^>]*href="\/pricing"[^>]*>Pricing</.test(h) && /<a [^>]*href="\/clips"[^>]*>My videos ↗</.test(h), `${nome}: Pricing → /pricing e My videos → /clips`)
+      ok(/<a [^>]*data-create-nav="pricing"[^>]*href="\/pricing"[^>]*>Pricing</.test(h) && /<a [^>]*href="\/library"[^>]*>My videos ↗</.test(h) && aba(o).m('components/create/CreateNavConta').CREATE_NAV_VIDEOS_HREF === '/library', `${nome}: Pricing → /pricing e My videos → /library`) // KINEO-ENTRADAS-SO-LOGADO-1011 — era /clips (só clipes); os filmes da aba Film moram na /library
       ok(!/(\d+\s?%|\boff\b|hurry|ends in|last chance|\d{1,2}:\d{2}|countdown|deal|sale|free)/i.test(txt), `${nome}: sem promoção nem relógio no cabeçalho (${txt})`)
     }
     const falhou = aba(o, { cookie: SESSION, credits: null })
@@ -271,6 +278,7 @@ const mutants = [
   ['Pricing aponta para outro lugar', { 'components/create/CreateNavConta.tsx': src('components/create/CreateNavConta.tsx').replace("CREATE_NAV_PRICING_HREF = '/pricing'", "CREATE_NAV_PRICING_HREF = '/pricing?promo=1'") }],
   ['Recreate sem o cabeçalho novo', { 'app/recreate/RecreateClient.tsx': src('app/recreate/RecreateClient.tsx').replace('{createTabs ? <CreateNavConta /> :', '{false ? <CreateNavConta /> :') }],
   ['abas sem o cabeçalho novo', { 'components/create/CreateShell.tsx': src('components/create/CreateShell.tsx').replace('<CreateNavConta />', '<Link href="/clips">My videos ↗</Link>') }],
+  ['My videos volta para /clips (só clipes)', { 'components/create/CreateNavConta.tsx': src('components/create/CreateNavConta.tsx').replace("CREATE_NAV_VIDEOS_HREF = '/library'", "CREATE_NAV_VIDEOS_HREF = '/clips'") }], // KINEO-ENTRADAS-SO-LOGADO-1011
   ['cabeçalho com promoção', { 'components/create/CreateNavConta.tsx': src('components/create/CreateNavConta.tsx').replace('>Pricing</Link>', '>Pricing · 50% off</Link>') }],
   ['cabeçalho quebra no celular', { 'components/create/create.css': src('components/create/create.css').replace('min-width:0;white-space:nowrap}', 'min-width:0}') }],
   ['interruptor de volta a internal', { 'lib/create/release.ts': src('lib/create/release.ts').replace("CREATE_FILM_INPLACE: InternalRelease = 'public'", "CREATE_FILM_INPLACE: InternalRelease = 'internal'") }],

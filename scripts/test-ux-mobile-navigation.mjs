@@ -74,7 +74,7 @@ const expected = ['/studio', '/ads/new', '/library', '/pricing', '/made-with-kin
 // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — Make a film · Product ads · Cartoon passam pela entrada
 // única (lib/create/entry.ts): o destino ANTIGO segue sendo a identidade do item (medição e ativo); o link abre a tela nova (/create/<aba>).
 const ENTRY = loadPure('@/lib/create/entry')
-const entrada = (href) => ENTRY.createEntryForLegacyHref(href)
+const entrada = (href) => ENTRY.createEntryForLegacyHref(href, true) // logado (o render padrão); KINEO-ENTRADAS-SO-LOGADO-1011: visitante fica no antigo
 assert.deepEqual(['/studio', '/ads/new', '/kids-cartoon'].map(entrada), ['/create/film?intent_campaign=studio_simple', '/create/ads', '/create/cartoon'])
 check('all 11 approved destinations, no duplicates', () => assert.deepEqual(links.map((n) => n.props.href).sort(), expected.map(entrada).sort()))
 for (const href of expected) {
@@ -89,6 +89,7 @@ check('five primary slots', () => {
 })
 check('guest cannot see invite, affiliate or account', () => {
   const guestLinks = nodes(render('/studio', false)).filter((n) => n.type === Link).map((n) => n.props.href)
+  for (const href of ['/studio', '/ads/new', '/kids-cartoon']) assert.ok(guestLinks.includes(href) && !guestLinks.some((h) => h.startsWith('/create/'))) // KINEO-ENTRADAS-SO-LOGADO-1011 — visitante: o destino de hoje
   for (const href of ['/referral', '/affiliate', '/account']) assert.ok(!guestLinks.includes(href))
   assert.ok(guestLinks.includes('/pricing'))
 })

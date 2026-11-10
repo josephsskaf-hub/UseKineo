@@ -132,7 +132,7 @@ async function problemas(mut = {}) {
   const comFilme = so({ credits: creditsTeste })
   // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — a linha abre a aba Film da tela nova pela entrada única
   // (createEntryHref('film', '/studio')); com CREATE_ENTRY_RELEASE 'off' volta a ser /studio.
-  const entradaFilme = load('lib/create/entry.ts').createEntryHref('film', '/studio')
+  const entradaFilme = load('lib/create/entry.ts').createEntryHref('film', '/studio', true) /* a linha só existe com a leitura da conta: logado */
   checa('teste ativo sem gasto e sem filme: filme grátis, para a aba Film (antes /studio)', entradaFilme === '/create/film?intent_campaign=studio_simple' && comFilme[0]?.id === 'filme' && comFilme[0]?.titulo === LINHA_DO_FILME_GRATIS && comFilme[0]?.href === entradaFilme)
   const regiao = { trial_status: 'region_paid_only', trial_ends_at: null, trial_credits_used: 0, trial_credits_granted: 0, plan: 'free', has_paid: false, video_credits: 25 }
   checa('region_paid_only com saldo, sem pagar e sem filme nunca vê filme grátis', !ids(so({ credits: corpoCredits(regiao) })).includes('filme'))

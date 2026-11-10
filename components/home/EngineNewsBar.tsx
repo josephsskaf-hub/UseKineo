@@ -27,7 +27,7 @@ export const ENGINE_NEWS_BAR_HREF = '/pricing?intent_campaign=home_news_bar_k4'
 // botão leva a fazer o filme, não aos planos. Sem o 1º filme, volta a oferta do Creator de sempre.
 export function engineNewsBarTrialHref(signedIn: boolean): string {
   const studio = '/studio?intent_campaign=home_news_bar_k4_trial'
-  return createEntryForLegacyHref(signedIn ? studio : `/signup?redirect=${encodeURIComponent(studio)}`) // KINEO-ENTRADAS-TELA-NOVA-1011 — a aba Film da tela nova (interruptor CREATE_ENTRY_RELEASE)
+  return createEntryForLegacyHref(signedIn ? studio : `/signup?redirect=${encodeURIComponent(studio)}`, signedIn) // KINEO-ENTRADAS-TELA-NOVA-1011 — logado: a aba Film da tela nova; visitante: o de hoje (interruptor CREATE_ENTRY_RELEASE)
 }
 
 // KINEO-FAIXA-UNICA-2910 — fundador 29/10 ("melhora as letras… Kling 4.0 e Halloween, não gostei muito"): as 2 faixas empilhadas viraram UMA,

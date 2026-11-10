@@ -291,7 +291,7 @@ function focusStyle(poster: string | undefined, focus: string | undefined): CSSP
 export default function HomeMosaic({ signedIn, full = false, styles = [] }: { signedIn: boolean; full?: boolean; styles?: readonly MosaicStyle[] }) {
   const tiles = homeMosaicTiles(Date.now(), { full, styles })
   const newKeys = mosaicNewEffectKeys()
-  const filmHref = createEntryForLegacyHref(clipsFirstFilmHref(signedIn)) // KINEO-ENTRADAS-TELA-NOVA-1011 — a aba Film da tela nova (mesma campanha; visitante pelo cadastro)
+  const filmHref = createEntryForLegacyHref(clipsFirstFilmHref(signedIn), signedIn) // KINEO-ENTRADAS-TELA-NOVA-1011 — logado: a aba Film da tela nova (mesma campanha); visitante: o de hoje
   return (
     <section className="kmz" aria-label="Made with Kineo" data-home-section="mosaic">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
@@ -319,7 +319,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
               const c = t.clip
               const tipo = c.selo ?? 'Clip' // KINEO-CARDS-SEM-MOTOR-0911 — o TIPO (Clip / Trending format), nunca o motor; o motor real segue no dado e no link · KINEO-CARDS-SEM-ETIQUETA-0911 — o tipo vive só no aria-label
               return ( // KINEO-ADS-NATAL-VITRINE-1011 — exemplo de anúncio: clipeNovoDestino dá /ads/new (via viaSignup), medido à parte como mosaic_ad
-                <Link key={'novo-' + c.id} href={clipeNovoAbreStudio(c) ? filmHref /* KINEO-VITRINE-10-1011 — filme do Studio: o link dos filmes */ : createEntryForLegacyHref(viaSignup(publicRecreatePath(c.id) ?? clipeNovoDestino(c), signedIn)) /* KINEO-ENTRADAS-TELA-NOVA-1011 — só /ads/new seco vira /create/ads */} className={`kmz-t${t.grande ? ' kmz-big' : ''}`} data-home-cta={podeFazerAnuncio(t) ? 'mosaic_ad' : 'mosaic_clip'} data-clip-novo={c.id} aria-label={`${c.title} — ${tipo}`}>
+                <Link key={'novo-' + c.id} href={clipeNovoAbreStudio(c) ? filmHref /* KINEO-VITRINE-10-1011 — filme do Studio: o link dos filmes */ : createEntryForLegacyHref(viaSignup(publicRecreatePath(c.id) ?? clipeNovoDestino(c), signedIn), signedIn) /* KINEO-ENTRADAS-TELA-NOVA-1011 — logado: só /ads/new seco vira /create/ads */} className={`kmz-t${t.grande ? ' kmz-big' : ''}`} data-home-cta={podeFazerAnuncio(t) ? 'mosaic_ad' : 'mosaic_clip'} data-clip-novo={c.id} aria-label={`${c.title} — ${tipo}`}>
                   <div className="kmz-md" style={focusStyle(undefined, c.focus)}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={clipeNovoPoster(c)} width={540} height={960} alt="" loading="lazy" decoding="async" style={{ objectPosition: c.focus, transform: 'none' }} />

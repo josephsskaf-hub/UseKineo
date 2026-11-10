@@ -933,7 +933,7 @@ export default function KineoLanding({
             <PublicNavDropdown item="video" label="Make a film">
               <span className="nd-menu nd-mega">
                 <span className="nm-col">
-                  <Link href={createEntryHref('film', '/studio?intent_campaign=nav_door', { signedIn: isSignedIn })} data-nav-item="video"><span className="nm-tx"><b><UiLabel>Start a narrated film</UiLabel></b><i><UiLabel>One idea in, a finished film out</UiLabel></i></span></Link>
+                  <Link href={createEntryHref('film', '/studio?intent_campaign=nav_door', isSignedIn)} data-nav-item="video"><span className="nm-tx"><b><UiLabel>Start a narrated film</UiLabel></b><i><UiLabel>One idea in, a finished film out</UiLabel></i></span></Link>
                   <span className="nm-h nm-h-next"><UiLabel>Narrated films</UiLabel></span>
                   {/* KINEO-MENU-ICONES-2026-08-17 (fundador, ref. Higgsfield):
                       SEM preco no menu (atrito antes da hora — preco mora na
@@ -965,7 +965,7 @@ export default function KineoLanding({
                 </span>
                 <span className="nm-col">
                   <span className="nm-h"><UiLabel>Create</UiLabel></span>
-                  <Link href={createEntryHref('film', '/studio', { signedIn: isSignedIn })}><span className="nm-tx"><b><UiLabel>Studio</UiLabel></b><i><UiLabel>Every control, one screen</UiLabel></i></span></Link>
+                  <Link href={createEntryHref('film', '/studio', isSignedIn)}><span className="nm-tx"><b><UiLabel>Studio</UiLabel></b><i><UiLabel>Every control, one screen</UiLabel></i></span></Link>
                   {/* KINEO-CLIPES-2026-09-29 — par do Sidebar/MobileNav: clipe avulso de 5–15 s. KINEO-HOME-CLIPES-EM-CIMA-2026-10-05:
                       o Clips subiu para o grupo próprio no topo da 1ª coluna ("Photo to clip" / "Text to clip"). */}
                   <Link href="/examples" data-nav-item="examples"><span className="nm-tx"><b><UiLabel>Examples</UiLabel></b><i><UiLabel>Real renders, every engine</UiLabel></i></span></Link>
@@ -976,7 +976,7 @@ export default function KineoLanding({
             </PublicNavDropdown>
             {/* KINEO-NAV-TOPO-ADS-2026-09-30 — /ads/new leva quem está logado ao montador e o visitante à porta pública /ads.
                 KINEO-DUAS-PORTAS-2026-10-13 — vira a 2ª porta do topo, "Product ads", com o mesmo peso do "Make a film". */}
-            <Link href={createEntryHref('ads', '/ads/new', { signedIn: isSignedIn })} data-nav-item="business" className="nav-primary"><UiLabel>Product ads</UiLabel></Link>
+            <Link href={createEntryHref('ads', '/ads/new', isSignedIn)} data-nav-item="business" className="nav-primary"><UiLabel>Product ads</UiLabel></Link>
             <NavUgcAdsLink data-nav-item="more:ugc" />{/* KINEO-MENU-UGC-2010 — fundador 20/10 ("o 2 no menu no topo, sim"): "AI UGC Ads" logo depois de "Product ads", leva à pilar /ai-ugc-ads (PT → /anuncios-ugc-com-ia); nada saiu nem mudou de ordem */}
             {/* KINEO-GALERIA-HOME-2710 — [TRAVA 8.2 — pedido do fundador 27/10 "uma seção no início onde a gente mostra todos os nossos clips, imagens, tudo junto"]: item "Made with Kineo" (nome exato dele) logo depois dos itens de filme e de anúncio; nada saiu nem mudou de ordem */}
             <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>{MADE_WITH_KINEO_LABEL}</Link>{/* KINEO-GALERIA-HOME-2710 */}
@@ -996,7 +996,7 @@ export default function KineoLanding({
               cadastro, so para visitante; no celular ele mora no menu. */}
           {initialUser ? null : <Link className="nav-login" href="/login" data-nav-item="login" data-auth-modal="login"><UiLabel>Log in</UiLabel></Link>}
           {initialUser
-            ? <div className="nav-cta"><NavCreditsBadge /><Link className="btn btn-w nav-dashboard" style={{ padding: '12px 20px', fontSize: '14px' }} href={createEntryHref('film', '/studio')}><UiLabel>Dashboard</UiLabel></Link></div>
+            ? <div className="nav-cta"><NavCreditsBadge /><Link className="btn btn-w nav-dashboard" style={{ padding: '12px 20px', fontSize: '14px' }} href={createEntryHref('film', '/studio', isSignedIn)}><UiLabel>Dashboard</UiLabel></Link></div>
             : <Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} data-auth-modal="signup" href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav'}><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>}
           <div className="nav-toggle-wrap">
             <input type="checkbox" id="nav-toggle" className="nav-toggle-input" aria-label="Menu" aria-controls="mobile-nav-menu" />
@@ -1007,8 +1007,8 @@ export default function KineoLanding({
               {/* KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 — par do mega-menu: Clipes em cima, filmes narrados embaixo. */}
               {/* KINEO-DUAS-PORTAS-2026-10-13 — par do topo: as 2 portas + Pricing + Log in/Dashboard em cima; embaixo, sob o
                   rótulo "More tools", tudo o que saiu do topo (Imagem com os motores primeiro, Clips, Spaces, MCP, Examples). */}
-              <Link href={createEntryHref('film', '/studio', { signedIn: isSignedIn })} data-nav-item="video"><UiLabel>Make a film</UiLabel></Link>
-              <Link href={createEntryHref('ads', '/ads/new', { signedIn: isSignedIn })} data-nav-item="business"><UiLabel>Product ads</UiLabel></Link>
+              <Link href={createEntryHref('film', '/studio', isSignedIn)} data-nav-item="video"><UiLabel>Make a film</UiLabel></Link>
+              <Link href={createEntryHref('ads', '/ads/new', isSignedIn)} data-nav-item="business"><UiLabel>Product ads</UiLabel></Link>
               <NavUgcAdsLink data-nav-item="more:ugc" />{/* KINEO-MENU-UGC-2010 — par do topo no celular */}
               <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>{MADE_WITH_KINEO_LABEL}</Link>{/* KINEO-GALERIA-HOME-2710 — par do topo no celular */}
               <Link href={MENU_CARTOON_HREF} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>{/* KINEO-HOME-REMODELA-2010 — par do topo */}
@@ -1016,7 +1016,7 @@ export default function KineoLanding({
               <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
               <InterfaceLanguageSelect emMenu />{/* KINEO-HOME-TOPO-0511 — par do topo no celular */}
               {initialUser
-                ? <Link className="btn btn-w" href={createEntryHref('film', '/studio')}><UiLabel>Dashboard</UiLabel></Link>
+                ? <Link className="btn btn-w" href={createEntryHref('film', '/studio', isSignedIn)}><UiLabel>Dashboard</UiLabel></Link>
                 : <Link href="/login" data-nav-item="login" data-auth-modal="login"><UiLabel>Log in</UiLabel></Link>}
               {/* KINEO-HOME-REMODELA-2010 — par do topo no celular: o rótulo "More tools" e os itens dele saíram (Images, Clips, Spaces, Examples seguem no rodapé) */}
               {initialUser
@@ -1051,7 +1051,7 @@ export default function KineoLanding({
             <>
               <div className="home-business-heading" style={{ marginBottom: 6 }}>
                 <h2><UiLabel>Narrated films</UiLabel></h2>
-                <Link href={createEntryForLegacyHref(clipsFirstFilmHref(isSignedIn))} className="btn btn-ghost" data-home-cta="open_studio"><UiLabel>Open Studio</UiLabel> ↗</Link>
+                <Link href={createEntryForLegacyHref(clipsFirstFilmHref(isSignedIn), isSignedIn)} className="btn btn-ghost" data-home-cta="open_studio"><UiLabel>Open Studio</UiLabel> ↗</Link>
               </div>
               <p style={{ margin: '0 0 16px', color: 'var(--muted)', fontSize: 15, maxWidth: 640 }}><UiLabel>Type an idea — Kineo writes, narrates, scores and edits the whole film.</UiLabel></p>
             </>
@@ -1460,7 +1460,7 @@ export default function KineoLanding({
                   o caminho vive dentro de um ternário. Lição registrada: para
                   achar link nesta base não basta procurar `href=`, tem que
                   procurar a STRING do caminho. */}
-              <div className="fcta"><Link className="btn btn-w" data-auth-modal="signup" href={isSignedIn ? createEntryHref('film', '/studio') : referralBridge ? '#try-kineo' : '/signup?utm_source=final_cta'}>{isSignedIn ? 'Create a video' : CARD_ENTRY_COPY.ctaShort}</Link></div>
+              <div className="fcta"><Link className="btn btn-w" data-auth-modal="signup" href={isSignedIn ? createEntryHref('film', '/studio', isSignedIn) : referralBridge ? '#try-kineo' : '/signup?utm_source=final_cta'}>{isSignedIn ? 'Create a video' : CARD_ENTRY_COPY.ctaShort}</Link></div>
               {/* ONDA6 #1 (14/08) — o fechamento ganha a linha de reversao de
                   risco do hero: fecha a pagina com a mesma forca que abre.
                   KINEO-TRIAL-SWAP-LEAK-2026-08-15 — esta linha NASCEU fora da

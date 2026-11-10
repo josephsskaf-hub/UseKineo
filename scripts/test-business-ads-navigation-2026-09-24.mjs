@@ -2,10 +2,10 @@ import { readFileSync } from 'node:fs'
 import { renderPage } from './preview-ux-complete.mjs'
 import { createRequire } from 'node:module'
 // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — o topo passa pela entrada única (lib/create/entry.ts):
-// "Product ads" leva à aba Ads da tela nova (visitante pelo cadastro, de volta à aba); com CREATE_ENTRY_RELEASE 'off', /ads/new de novo.
+// "Product ads" leva o LOGADO à aba Ads da tela nova; o VISITANTE (este render) segue no /ads/new de hoje (KINEO-ENTRADAS-SO-LOGADO-1011).
 const { loader } = createRequire(import.meta.url)('../docs/recreate-0911/test-recreate.cjs')
 const entry = loader()('lib/create/entry')
-const ADS_TOP = entry.createEntryHref('ads', '/ads/new', { signedIn: false }), FILM_TOP = entry.createEntryHref('film', '/studio', { signedIn: false })
+const ADS_TOP = entry.createEntryHref('ads', '/ads/new', false), FILM_TOP = entry.createEntryHref('film', '/studio', false)
 const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const check = (name, condition) => { if (!condition) throw Error(name); console.log('PASS '+name) }
 const read = file => readFileSync(new URL('../'+file, import.meta.url), 'utf8')
@@ -24,7 +24,7 @@ const linked = html => html.includes(destination) && /Videos for businesses|For 
 // O rodapé segue "Videos for businesses" → /ads.
 // reancorado 13/10 (KINEO-DUAS-PORTAS-2026-10-13, fundador "tudo sim", ação B): o item vira a 2ª porta, "Product ads", mesmo
 // destino /ads/new; Imagem e Spaces desceram para o "More tools" (depois da porta), Pricing segue por último.
-const topLinked = html => new RegExp('href="' + esc(ADS_TOP) + '"[^>]*>(?:<!-- -->)?(?:<[^>]+>)*Product ads<').test(html) && ADS_TOP === '/signup?redirect=%2Fcreate%2Fads' && entry.LEGACY_ENTRY_PATH.ads === '/ads/new' && !html.includes('buy.stripe.com') && !/For businesses/.test(html)
+const topLinked = html => new RegExp('href="' + esc(ADS_TOP) + '"[^>]*>(?:<!-- -->)?(?:<[^>]+>)*Product ads<').test(html) && ADS_TOP === '/ads/new' && entry.createEntryHref('ads', '/ads/new', true) === '/create/ads' && entry.LEGACY_ENTRY_PATH.ads === '/ads/new' && !html.includes('buy.stripe.com') && !/For businesses/.test(html)
 check('desktop menu opens the Ads panel, not checkout', topLinked(desktop))
 check('mobile menu opens the Ads panel, not checkout', topLinked(mobile))
 // KINEO-HOME-REMODELA-2010 — reancorado 20/10, fundador: "esses vão ser os quatro principais, e ao lado vai ser o MCP do Claude e do GPT… more tools a gente vai cancelar" — Images e Spaces saíram do topo (rodapé).

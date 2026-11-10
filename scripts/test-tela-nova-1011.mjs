@@ -106,7 +106,7 @@ function destinationChecks(o = {}) {
   ok([...ads.searchParams.keys()].join() === 'utm_source' && adsPage.includes("for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'])") && /\^\[A-Za-z0-9\._~-\]\{1,100\}\$/.test(adsPage) && /^[A-Za-z0-9._~-]{1,100}$/.test(ads.searchParams.get('utm_source')), 'Ads: só utm_source, que o /ads/new lê e repassa')
   // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — o menu "Product ads" passa pela entrada única
   // (createEntryHref('ads', '/ads/new')): o destino ANTIGO do menu continua sendo o mesmo /ads/new que o "Make your ad" entrega.
-  ok(m('lib/clipesNos2Lugares').CRIAR_ANUNCIO_HREF === '/ads/new' && read('app/KineoLanding.tsx').includes("href={createEntryHref('ads', '/ads/new', { signedIn: isSignedIn })} data-nav-item=\"business\" className=\"nav-primary\"") && m('lib/create/entry').LEGACY_ENTRY_PATH.ads === m('lib/clipesNos2Lugares').CRIAR_ANUNCIO_HREF, 'Ads: o mesmo destino do menu "Product ads"')
+  ok(m('lib/clipesNos2Lugares').CRIAR_ANUNCIO_HREF === '/ads/new' && read('app/KineoLanding.tsx').includes("href={createEntryHref('ads', '/ads/new', isSignedIn)} data-nav-item=\"business\" className=\"nav-primary\"") && m('lib/create/entry').LEGACY_ENTRY_PATH.ads === m('lib/clipesNos2Lugares').CRIAR_ANUNCIO_HREF, 'Ads: o mesmo destino do menu "Product ads"')
   // O botão renderizado aponta para o builder
   for (const tab of ['film', 'cartoon', 'ads']) ok(shell.continueHref(tab, idea, true) === (tab === 'film' ? tabs.filmContinueHref(idea, true) : tab === 'cartoon' ? '/kids-cartoon' : '/ads/new?utm_source=create_ads'), `continueHref(${tab})`)
 }

@@ -1,6 +1,6 @@
 // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"]
 // O ÚNICO lugar que decide para onde vai cada ENTRADA de criação do site (menu do topo, menu lateral, menu do celular, cartões
-// da home, caixa de presente, "Go to Dashboard" do /pricing): a tela nova (/create/<aba>) ou o destino antigo.
+// da home, caixa de presente): a tela nova (/create/<aba>) ou o destino antigo.
 //
 // Regra: a entrada vai para a tela nova SÓ quando os três interruptores estão em 'public' (CREATE_ENTRY_RELEASE, o da casca
 // CREATE_SHELL_RELEASE e, para Film, CREATE_FILM_INPLACE) E quando a tela nova RECEBE o mesmo dado e faz a mesma coisa:
@@ -12,6 +12,10 @@
 //   · Cartoon — só /kids-cartoon SECO (sem query). Personagem, ideia, utm de abertura sem conta… = destino antigo.
 //   · Ads     — só /ads/new SECO. Entrada com estilo, formato, foto, link de produto, rascunho ou origem = destino antigo.
 // Com qualquer interruptor fora de 'public' a função devolve o destino antigo byte a byte.
+// KINEO-ENTRADAS-SO-LOGADO-1011 [CEO 10/11: "VISITANTE (deslogado) FICA NO DESTINO ANTIGO… só quem está LOGADO vai para as abas novas"] — o canal
+// que paga chega por visitante (13 de 17 pagantes compram na 1ª hora); a porta dele não muda sem medição. O estado de login é ARGUMENTO
+// obrigatório: só signedIn === true vira tela nova. Visitante, ou superfície que não sabe (render de servidor/SEO), = destino antigo byte a byte
+// (inclusive o embrulho '/signup?redirect=…' que algumas funções da home já fazem para visitante).
 // Módulo PURO (sem rede, sem e-mail, sem env): o guardião scripts/test-entradas-tela-nova-1011.mjs o executa.
 import { CREATE_ENTRY_RELEASE, CREATE_FILM_INPLACE, CREATE_SHELL_RELEASE } from './release'
 import type { InternalRelease } from '@/lib/recreate/release'
@@ -34,9 +38,6 @@ const ARRIVAL_KEYS = /^(?:signup|welcome)$/
 const BASE = 'https://kineo.local'
 
 export interface CreateEntryOpts {
-  /** false = visitante: o destino novo passa pelo cadastro com retorno à aba (viaSignup). undefined = o chamador já embrulha (ou a
-   *  própria /create/<aba> manda ao cadastro preservando a query). Só vale para o destino NOVO; o antigo volta intacto. */
-  signedIn?: boolean
   entry?: InternalRelease
   shell?: InternalRelease
   filmInplace?: InternalRelease
@@ -69,7 +70,8 @@ export function filmParamsSupported(params: URLSearchParams | Record<string, str
 }
 
 /** O destino da entrada. `legacyHref` é o destino de HOJE (sem o embrulho do cadastro). */
-export function createEntryHref(kind: CreateEntryKind, legacyHref: string, opts: CreateEntryOpts = {}): string {
+export function createEntryHref(kind: CreateEntryKind, legacyHref: string, signedIn: boolean, opts: CreateEntryOpts = {}): string {
+  if (signedIn !== true) return legacyHref // KINEO-ENTRADAS-SO-LOGADO-1011 — visitante (ou desconhecido) fica no destino de hoje
   const entry = opts.entry ?? CREATE_ENTRY_RELEASE
   const shell = opts.shell ?? CREATE_SHELL_RELEASE
   const film = opts.filmInplace ?? CREATE_FILM_INPLACE
@@ -86,7 +88,7 @@ export function createEntryHref(kind: CreateEntryKind, legacyHref: string, opts:
     if (u.search) return legacyHref
     target = `/create/${kind}`
   }
-  return opts.signedIn === false ? '/signup?' + new URLSearchParams({ redirect: target }).toString() : target
+  return target
 }
 
 /** A query de chegada de /create/<aba> como string (lista = a chave repetida), para devolvê-la intacta ao /studio ou ao cadastro. */
@@ -97,20 +99,12 @@ export function queryDaChegada(searchParams: Record<string, string | string[] | 
 }
 
 /**
- * Para quem já tem o href pronto (menus que guardam o destino antigo como identidade; funções de cartão que já embrulham o cadastro):
- * '/studio…' · '/ads/new' · '/kids-cartoon', ou '/signup?redirect=<um desses>' (SÓ com o redirect: outra chave = intacto).
- * Qualquer outro href volta intacto. O embrulho do cadastro é refeito no formato das funções da home (encodeURIComponent).
+ * Para quem já tem o href pronto (menus que guardam o destino antigo como identidade; funções de cartão da home):
+ * '/studio…' · '/ads/new' · '/kids-cartoon'. Qualquer outro href (inclusive o '/signup?redirect=…' do visitante) volta intacto.
  */
-export function createEntryForLegacyHref(legacyHref: string, opts: CreateEntryOpts = {}): string {
+export function createEntryForLegacyHref(legacyHref: string, signedIn: boolean, opts: CreateEntryOpts = {}): string {
   const u = parse(legacyHref)
   if (!u) return legacyHref
-  if (u.pathname === '/signup') {
-    const keys = Array.from(u.searchParams.keys())
-    const inner = u.searchParams.get('redirect')
-    if (keys.length !== 1 || keys[0] !== 'redirect' || !inner) return legacyHref
-    const novo = createEntryForLegacyHref(inner, { ...opts, signedIn: undefined })
-    return novo === inner ? legacyHref : `/signup?redirect=${encodeURIComponent(novo)}`
-  }
   const kind = (Object.keys(LEGACY_ENTRY_PATH) as CreateEntryKind[]).find(k => LEGACY_ENTRY_PATH[k] === u.pathname)
-  return kind ? createEntryHref(kind, legacyHref, opts) : legacyHref
+  return kind ? createEntryHref(kind, legacyHref, signedIn, opts) : legacyHref
 }

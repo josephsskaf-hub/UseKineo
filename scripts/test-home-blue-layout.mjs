@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs' // KINEO-HOME-MOSAICO-2910
 import {renderPage} from './preview-ux-complete.mjs'
 import { createRequire } from 'node:module' // KINEO-ENTRADAS-TELA-NOVA-1011
-const ENTRADA_FILME=createRequire(import.meta.url)('../docs/recreate-0911/test-recreate.cjs').loader()('lib/create/entry').createEntryHref('film','/studio') // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — o Dashboard do logado abre a aba Film (antes /studio)
+const ENTRADA_FILME=createRequire(import.meta.url)('../docs/recreate-0911/test-recreate.cjs').loader()('lib/create/entry').createEntryHref('film','/studio',true) // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — o Dashboard do logado abre a aba Film (antes /studio)
 let checks=0
 const check=(v,label)=>{assert.ok(v,label);checks++}
 for(const signedIn of [false,true])for(const source of [null,'chatgpt','taaft'])for(const language of ['en','es','hi']){

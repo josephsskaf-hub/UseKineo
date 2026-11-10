@@ -97,7 +97,7 @@ function CardMedia({ card, language }: { card: HomeCardId; language: string }) {
 
 import HomePortasCelular from '@/components/home/HomePortasCelular' // KINEO-CELULAR-A-0611
 
-// KINEO-ENTRADAS-TELA-NOVA-1011 — entradaNova: só a HOME passa true (o card Films e a caixa do celular abrem a aba Film da tela nova); as páginas
+// KINEO-ENTRADAS-TELA-NOVA-1011 — entradaNova: só a HOME passa true (para quem está LOGADO, o card Films e a caixa do celular abrem a aba Film da tela nova; visitante = o de hoje); as páginas
 // de SEO (components/seo/PaginaClara.tsx) não passam e ficam byte a byte no destino antigo. Os cards de anúncio levam dado (?entry=) e não mudam.
 export default function HomeThreeCards({ signedIn, kidsCard = false, entradaNova = false }: { signedIn: boolean; kidsCard?: boolean; entradaNova?: boolean }) { // KINEO-BEBE-QUE-FALA-2010 — + kidsCard (o 4º card); era: export default function HomeThreeCards({ signedIn }: { signedIn: boolean }) {
   const copy = useUiCopy()
@@ -125,7 +125,7 @@ export default function HomeThreeCards({ signedIn, kidsCard = false, entradaNova
           {cardOrder.map((card, index) => card === 'kids_cartoon' ? ( // KINEO-PAGINAS-IA-CLARAS-2110 — ordem DOM e teclado seguem a ordem visual; chaves estáveis.
             <HomeKidsCard key={card} signedIn={signedIn} position={index + 1} /> // KINEO-PAGINAS-IA-CLARAS-2110
           ) : (
-            <Link key={card} href={entradaNova ? createEntryForLegacyHref(homeCardHref(card, signedIn)) : homeCardHref(card, signedIn)} className="k3c-card" data-home-card={card} onClick={() => track(card, index + 1)}>
+            <Link key={card} href={entradaNova ? createEntryForLegacyHref(homeCardHref(card, signedIn), signedIn) : homeCardHref(card, signedIn)} className="k3c-card" data-home-card={card} onClick={() => track(card, index + 1)}>
               {kidsCard && card === 'product_ads' ? <HomeProductAdsReel language={language} /> : <CardMedia card={card} language={language} />}{/* KINEO-BEBE-QUE-FALA-2010 — modo 4 cards: o reel Lume + 3 trios no card de produto; era: <CardMedia card={card} language={language} /> */}
               <span className="k3c-shade" aria-hidden="true" />
               <span className="k3c-glass" aria-hidden="true" />

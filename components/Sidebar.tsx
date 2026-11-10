@@ -229,6 +229,7 @@ function NavItem({
   pathname,
   onClick,
   badge,
+  signedIn = false,
 }: {
   href: string
   icon: React.ReactNode
@@ -237,6 +238,8 @@ function NavItem({
   pathname: string
   onClick?: () => void
   badge?: string
+  /** KINEO-ENTRADAS-SO-LOGADO-1011 — só logado vai à tela nova; sem saber, o destino de hoje */
+  signedIn?: boolean
 }) {
   const router = useRouter()
   const [hovered, setHovered] = useState(false)
@@ -265,7 +268,7 @@ function NavItem({
   // only light up when they mean something.
   return (
     <Link
-      href={createEntryForLegacyHref(href)} // KINEO-ENTRADAS-TELA-NOVA-1011 — Make a film · Product ads · Cartoon abrem a tela nova (lib/create/entry.ts); a identidade (ativo, medição) segue o destino antigo
+      href={createEntryForLegacyHref(href, signedIn)} // KINEO-ENTRADAS-TELA-NOVA-1011 — Make a film · Product ads · Cartoon abrem a tela nova (só logado) (lib/create/entry.ts); a identidade (ativo, medição) segue o destino antigo
       data-nav-item={navItemIdFor(hrefPath)} // KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25 — medição nav_item_clicked
       aria-current={active ? (pathname === hrefPath ? 'page' : 'location') : undefined}
       onClick={handleClick}
@@ -651,7 +654,7 @@ export default function Sidebar({
               "More tools" SEMPRE ABERTO (Imagem, Clipes, Espaços — 1 clique, como antes). Par: MobileNav.tsx e o topo do site. */}
           {/* KINEO-MENU-LATERAL-3110 — fundador 30/10: sem o grupo "More tools"; uma lista só de Make a film até Clips, Spaces sai da
               lateral (a página segue no ar e no topo do site) e Library + Pricing descem para o fim (são de conta/configuração). */}
-          {sidebarNavItems(clipsVisible(userEmail)).map(item => <NavItem key={item.href} {...item} icon={NAV_ICONS[item.icon]} exact={false} pathname={pathname} onClick={onClose} />)}
+          {sidebarNavItems(clipsVisible(userEmail)).map(item => <NavItem key={item.href} {...item} icon={NAV_ICONS[item.icon]} exact={false} pathname={pathname} onClick={onClose} signedIn={isLoggedIn} />)}
           {/* KINEO-MENU-ENXUTO-2026-10-09 — o "More" saiu (fundador, "1 sim"): Animate/Audio/Autopilot/Channel Builder fora do menu;
               Invite & Earn + Affiliate viraram um item só, "Earn 30%" (o programa de afiliados; 30% para quem entra desde 14/10 — KINEO-AFILIADO-30-NOVOS-2026-10-13). */}
           {isLoggedIn && (

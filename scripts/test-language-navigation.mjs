@@ -24,8 +24,8 @@ for(const signedIn of [false,true])for(const language of ['en','es']){
   // 30/09 (KINEO-NAV-TOPO-ADS, fundador): topo = Video · Images · Spaces · Ads · Pricing; "Ads" vai a /ads/new, que leva o
  // logado ao painel e o visitante à porta pública /ads (não mais ao /login — ver app/(dashboard)/ads/new/page.tsx).
  // KINEO-HOME-REMODELA-2010 — 20/10, fundador: "esses vão ser os quatro principais, e ao lado vai ser o MCP do Claude e do GPT… more tools a gente vai cancelar" — topo = /studio · /ads/new · AI UGC Ads · /ai-kids-cartoon-videos · /claude-connector · /trending · /pricing; Images e Spaces saíram do topo (rodapé); Examples segue no mega-menu do filme.
-// KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — "Make a film" e "Product ads" levam à tela nova (visitante pelo cadastro).
-check([ENTRY.createEntryHref('film','/studio',{signedIn:!!signedIn}),ENTRY.createEntryHref('ads','/ads/new',{signedIn:!!signedIn}),'/ai-kids-cartoon-videos','/kineo-in-claude','/pricing','/examples'].every(h=>main.includes('href="'+h+'"'))&&!main.includes('href="#pricing"')&&!main.includes('href="/spaces"'),'canonical navigation retained') // KINEO-HOME-REMODELA-2010
+// KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — "Make a film" e "Product ads" levam o logado à tela nova; o visitante fica no destino de hoje (KINEO-ENTRADAS-SO-LOGADO-1011).
+check([ENTRY.createEntryHref('film','/studio',signedIn===true),ENTRY.createEntryHref('ads','/ads/new',signedIn===true),'/ai-kids-cartoon-videos','/kineo-in-claude','/pricing','/examples'].every(h=>main.includes('href="'+h+'"'))&&!main.includes('href="#pricing"')&&!main.includes('href="/spaces"'),'canonical navigation retained') // KINEO-HOME-REMODELA-2010
  if(signedIn){
   check(main.indexOf('kineo-interface-language')<main.indexOf('540 credits'),'language precedes balance')
   check(main.includes('nav-dashboard')&&main.includes('540 credits'),'balance and Dashboard preserved')
