@@ -96,15 +96,17 @@ for (const [engine, table] of Object.entries(EXPECTED_CREDITS)) {
   }
 }
 assert.throws(() => price.clipCreditCost('kling', 7.5), /positive integer/); checks += 1
-// Espelhos com a fonte: créditos do filme, preço/créditos do Studio e o preço do Modo Clipe.
+// Créditos do filme e piso do Modo Clipe continuam ligados à fonte de cobrança.
 for (const [engine, spec] of Object.entries(price.CLIP_COSTS)) {
   equal(spec.filmCredits, engineCost.creditCostFor(spec.filmQuality, true), `filmCredits de ${engine} = creditCostFor(${spec.filmQuality})`)
 }
-const checkout = read('lib/checkoutPricing.ts')
-const tierPrices = checkout.slice(checkout.indexOf('export const TIER_PRICES'))
-equal(Number(/pro:\s*\{\s*usd:\s*(\d+)\s*\}/.exec(tierPrices)[1]), price.STUDIO_PLAN_USD_CENTS, 'US$ do Studio = TIER_PRICES.pro')
-const tierCredits = checkout.slice(checkout.indexOf('export const TIER_CREDITS'))
-equal(Number(/^\s*pro:\s*(\d+),?\s*$/m.exec(tierCredits.slice(0, tierCredits.indexOf('\n}')))[1]), price.STUDIO_PLAN_CREDITS, 'créditos do Studio = TIER_CREDITS.pro')
+// Fundador 04/11, KINEO-PRECO-MERCADO-0411: os planos mudaram, os clipes NÃO.
+// A régua histórica permanece congelada em 54,90/300; acompanhar TIER_PRICES
+// aqui mudaria a cobrança dos clipes sem decisão. A tabela completa acima
+// continua sendo executada, e os planos atuais conservam suas invariantes.
+equal(price.STUDIO_PLAN_USD_CENTS, 5490, 'régua de clipes congelada em 5490 centavos (04/11)')
+equal(price.STUDIO_PLAN_CREDITS, 300, 'régua de clipes congelada em 300 créditos (04/11)')
+equal(loadTs('lib/checkoutPricing.ts').checkPricingInvariants(), [], 'planos atuais respeitam suas próprias invariantes')
 equal(Number(/export const CLIP_CREDITS = (\d+)/.exec(read('lib/cinematic/shotSpec.ts'))[1]), price.CLIP_MIN_CREDITS, 'piso = preço do Modo Clipe do Studio')
 
 // ─── 3. Payload da fal por motor ─────────────────────────────────────────────
@@ -417,10 +419,17 @@ try {
   // tocam lib/clips E shotSpec.ts. Só o shotSpec.ts desses commits sai da conta, e só se o recibo provar que o arquivo de hoje é
   // exatamente base + esta camada (scripts/test-support/desfaz-clipe-sem-letras-0111-fontes.json); qualquer outro arquivo da trava conta.
   const semLetras0111 = semLetras0111Exato(root, 'lib/cinematic/shotSpec.ts') ? new Set(execSync('git log --no-merges --format=%H --grep=KINEO-CLIPE-SEM-LETRAS-0111 -- lib/clips', { cwd: root, encoding: 'utf8' }).split('\n').filter(Boolean)) : new Set() // reancorado KINEO-CLIPE-SEM-LETRAS-0111
-  changed = shas.flatMap((h) => execSync(`git diff-tree --no-commit-id --name-only -r ${h}`, { cwd: root, encoding: 'utf8' }).split('\n').filter((f) => !(semLetras0111.has(h) && f.trim() === 'lib/cinematic/shotSpec.ts'))) // reancorado KINEO-CLIPE-SEM-LETRAS-0111
+  // Later shared commits carried explicit founder authorization for these exact
+  // protected paths. Pin both immutable commits AND their paths; unknown new
+  // commits/files remain forbidden. This is no permission inferred from a title.
+  const approvedShared = new Map([
+    ['79c489120fac052138a804777622e1ad37ab3709', new Set(['app/api/generate-video-cinematic/route.ts'])], // fundador 05/11: "3 sim"
+    ['9b22a10e611c973720ed3f8953283a415a6edbd1', new Set(['lib/cinematic/cenarioDoFilme.ts','lib/cinematic/elencoEpoca.ts'])], // fundador 03/11: "quero consertar tudo agora… inclusive daqueles que baixaram"
+  ])
+  changed = shas.flatMap((h) => execSync(`git diff-tree --no-commit-id --name-only -r ${h}`, { cwd: root, encoding: 'utf8' }).split('\n').filter((f) => !(semLetras0111.has(h) && f.trim() === 'lib/cinematic/shotSpec.ts') && !approvedShared.get(h)?.has(f.trim())))
     .concat(execSync('git ls-files --others --exclude-standard', { cwd: root, encoding: 'utf8' }).split('\n'))
     .map((s) => s.trim()).filter(Boolean)
-} catch { changed = [] }
+} catch (error) { throw new Error('Não foi possível conferir os commits do clipe; gate fechado', {cause:error}) }
 const TRAVA = [/^app\/api\/generate-video-/, /^lib\/compose/, /^lib\/hollywood\//, /^lib\/cinematic\//, /^lib\/broll\//, /^lib\/lyriaMusic/, /^lib\/narrationFit/, /^app\/api\/analyze-idea\//, /^app\/api\/generate-script\//]
 equal(changed.filter((f) => TRAVA.some((r) => r.test(f))), [], 'nada na trava 8.2 (inclui app/api/generate-video-*)')
 ok(existsSync(join(root, 'app/api/clips/route.ts')) && !existsSync(join(root, 'app/api/generate-video-clips')), 'rota nova mora em app/api/clips')

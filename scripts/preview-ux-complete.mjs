@@ -78,6 +78,13 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
       if(id==='@/components/studioKit')return load('components/studioKit.tsx')
       if(id==='@/components/InterfaceLanguage')return load('components/InterfaceLanguage.tsx')
       if(id==='@/components/KineoBolt')return load('components/KineoBolt.tsx')
+      // Premiere exports a hook as well as components. A component-only stub
+      // cannot execute usePremiereBeacon; run the real hook with effects disabled.
+      if(id==='@/components/premiere/Premiere')return load('components/premiere/Premiere.tsx')
+      if(id==='@/components/video/useReadyBeacon')return load('components/video/useReadyBeacon.ts')
+      if(id==='@/components/Kling4PaidNotice')return load('components/Kling4PaidNotice.tsx')
+      if(id==='@/components/pricing/AnnualOfferCountdown')return load('components/pricing/AnnualOfferCountdown.tsx')
+      if(file.startsWith('components/premiere/') && id.startsWith('.') && !id.endsWith('.css'))return load(path.posix.join(path.posix.dirname(file),id)+'.tsx')
       if(id==='@/components/AppearanceSettings')return load('components/AppearanceSettings.tsx')
       if(id==='@/components/CreditMinutesSummary')return load('components/CreditMinutesSummary.tsx')
       if(id==='@/components/LibraryRecentProject')return load('components/LibraryRecentProject.tsx')

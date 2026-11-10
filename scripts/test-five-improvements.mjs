@@ -4,11 +4,13 @@ import vm from 'node:vm'
 import assert from 'node:assert/strict'
 import ts from 'typescript'
 import {execFileSync} from 'node:child_process'
+import {createOfflineLoader} from './test-support/offline-ts-loader.mjs'
 import {renderPage} from './preview-ux-complete.mjs'
-import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — reverse only the authorized delta before the unchanged AST comparison.
 let checks=0
 const ok=(v,m)=>{assert.ok(v,m);checks++},eq=(a,b,m)=>{assert.deepEqual(a,b,m);checks++}
-function pure(file){const exports={};vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:1,target:9}}).outputText,{exports,URLSearchParams,Date});return exports}
+// Engine pricing now imports its paid-policy modules. Resolve real local imports
+// with the shared fail-closed loader; network, SDKs and credentials stay blocked.
+const pure=createOfflineLoader()
 const focus=pure('lib/ui/workspaceFocus.ts')
 for(const path of ['/studio','/studio/create','/library','/images','/audio','/avatar'])eq(focus.isFocusedWorkspace(path),true,'creation is focused')
 for(const path of ['/pricing','/affiliate','/referral','/studio-not-real','/'])eq(focus.isFocusedWorkspace(path),false,'other paths keep contextual notices')
@@ -133,11 +135,24 @@ const OMNI_REDIRECT_BLOCK=[
 const nextCfg=fs.readFileSync('next.config.js','utf8').replace(/\r\n/g,'\n')
 ok(nextCfg.split(KINEO1_REDIRECT_BLOCK).length===2,'next.config carries the exact Kineo 1 301 block once')
 ok(nextCfg.split(KINEO1_REDIRECT_BLOCK+OMNI_REDIRECT_BLOCK).length===2,'next.config carries the exact Omni 301 block once, right after the Kineo 1 block')
-eq(nextCfg.replace(KINEO1_REDIRECT_BLOCK+OMNI_REDIRECT_BLOCK,''),execFileSync('git',['show','19708bd0:next.config.js'],{encoding:'utf8'}).replace(/\r\n/g,'\n'),'build settings remain the production baseline pending cross-lane route fix')
-// AST compare all functional Studio handlers to the approved base, not regex names.
+// Reanchor the complete config to the integrated approved main (09/11), which
+// includes the later bio/retired-engine redirects. Recreate adds ONLY private
+// asset tracing; require its exact block once, then compare every remaining byte.
+const APPROVED_MAIN='f59d53882be6db18a0f1f96f9915cf3587621120'
+const tracing=[
+'  experimental: {',
+'    outputFileTracingIncludes: {',
+"      '/api/recreate': ['./lib/recreate/assets/*'],",
+"      '/api/recreate/assets/*': ['./lib/recreate/assets/*'],",
+'    },',
+'  },',''].join('\n')
+eq(nextCfg.split(tracing).length,2,'Recreate private asset tracing exists exactly once')
+eq(nextCfg.replace(tracing,''),execFileSync('git',['show',APPROVED_MAIN+':next.config.js'],{encoding:'utf8'}).replace(/\r\n/g,'\n'),'all approved build settings and redirects preserved beyond exact Recreate tracing')
+// Compare ALL current request-bound Studio attributes to the integrated main;
+// historical undo layers must not replace the current product under this test.
 const file='app/(dashboard)/studio/StudioClient.tsx'
-const old=execFileSync('git',['show','5b155dc5:'+file],{encoding:'utf8'})
+const old=execFileSync('git',['show',APPROVED_MAIN+':'+file],{encoding:'utf8'})
 function behavior(code){const sf=ts.createSourceFile(file,code,99,true,4),out=[];function visit(n){if(ts.isJsxAttribute(n)&&['onClick','onChange','disabled','value','checked','src'].includes(n.name.getText(sf)))out.push(n.getText(sf).replace(/\r\n/g,'\n'));ts.forEachChild(n,visit)}visit(sf);return out}
 // KINEO-TRES-MODOS-2026-09-11 — o modo clipe (ordem do fundador) ACRESCENTA handlers ao Studio; a trava passa a exigir que todo handler da base continue presente e inalterado (remoção/mudança segue reprovando).
-{const now=behavior(semRoteiroCurto2210(fs.readFileSync(file,'utf8'),file)),base=behavior(old);const missing=base.filter(h=>!now.includes(h));eq(missing,[],'Studio handlers and request-bound fields of the base are preserved')} // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
+eq(behavior(fs.readFileSync(file,'utf8')),behavior(old),'all current Studio handlers and request-bound fields are preserved, in order')
 console.log(`Five improvements: ${checks} checks passed; offline only.`)

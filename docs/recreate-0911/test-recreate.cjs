@@ -53,8 +53,8 @@ async function main() {
   for (const release of ['off', 'internal']) for (const email of [null, 'test-hacker@example.org', 'mailinator@example.org', 'customer@example.org']) assert.equal(access.releaseVisible(email, release), false)
   assert.equal(access.recreateVisible('josephsskaf@gmail.com'), true)
   assert.equal(access.releaseVisible('josephsskaf@gmail.com', 'off'), false)
-  assert.equal(access.RECREATE_RELEASE, 'public'); assert.equal(access.RECREATE_MOTION_ENABLED, false)
-  assert.equal(access.recreateVisible('customer@example.org'), true)
+  assert.equal(access.RECREATE_RELEASE, 'internal'); assert.equal(access.RECREATE_MOTION_ENABLED, false)
+  assert.equal(access.recreateVisible('customer@example.org'), false)
   assert.equal(access.SERIES_RELEASE, 'internal'); assert.equal(access.seriesVisible('customer@example.org'), false)
   assert.equal(formats.recreateFormat('futebol'), null)
   assert(formats.recreateFormat('effect-kiss').photoSlots === 2)
@@ -131,7 +131,7 @@ async function main() {
   // Auth and simulation execute the real API before all I/O.
   const never = () => { throw new Error('Unexpected I/O') }
   const routeStubs = {
-    '@/lib/recreate/server': { recreateSession: async () => ({ user: { id: U }, supabase: {} }), RECREATE_HEADERS: {}, recreateSubmitDeps: never },
+    '@/lib/recreate/server': { recreateSession: async () => ({ user: { id: U, email: 'josephsskaf@gmail.com' }, supabase: {} }), RECREATE_HEADERS: {}, recreateSubmitDeps: never },
     '@/lib/clips/clipServer': { clipsAdmin: never, loadClipAccount: never, engineAccessFor: never },
     '@/app/api/admin/_shared/mrr': { isPayingPlan: never }, '@/lib/serverEvents': { writeServerEvent: never },
   }
@@ -175,8 +175,8 @@ async function main() {
   function contracts(overrides = {}) {
     const modules = loader({}, overrides)
     const a = modules('lib/recreate/access')
-    assert.equal(a.recreateVisible('customer@example.org'), true)
-    assert.equal(a.RECREATE_RELEASE, 'public')
+    assert.equal(a.recreateVisible('customer@example.org'), false)
+    assert.equal(a.RECREATE_RELEASE, 'internal')
     assert.equal(a.releaseVisible('customer@example.org', 'off'), false)
     assert.equal(a.RECREATE_MOTION_ENABLED, false)
     const g = modules('lib/recreate/generation')
@@ -188,10 +188,10 @@ async function main() {
   }
   contracts()
   const mutants = [
-    ['lib/recreate/release.ts', "RECREATE_RELEASE: InternalRelease = 'public'", "RECREATE_RELEASE: InternalRelease = 'internal'"],
+    ['lib/recreate/release.ts', "RECREATE_RELEASE: InternalRelease = 'internal'", "RECREATE_RELEASE: InternalRelease = 'public'"],
     ['lib/recreate/release.ts', 'RECREATE_MOTION_ENABLED = false', 'RECREATE_MOTION_ENABLED = true'],
     ['lib/recreate/generation.ts', 'if (seconds !== f.seconds)', 'if (false)'],
-    ['app/recreate/RecreateClient.tsx', '<section className="rc-step rc-generate-area"', '<p>✦ {quote?.credits}</p><section className="rc-step rc-generate-area"'],
+    ['app/recreate/RecreateClient.tsx', '<section className={`rc-step rc-generate-area', '<p>✦ {quote?.credits}</p><section className={`rc-step rc-generate-area'],
     ['app/recreate/RecreateClient.tsx', '<h1>Your version, step by step.</h1>', '<h1>MiniMax Recreate</h1>'],
   ]
   for (const [file, before, after] of mutants) {

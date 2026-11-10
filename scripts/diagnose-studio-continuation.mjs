@@ -6,11 +6,12 @@ import path from 'node:path'
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
-import { semRoteiroCurto2210 } from './test-support/desfaz-roteiro-curto-2210.mjs' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — retain the historical callback harness after the exact authorized delta.
 const require = createRequire(import.meta.url)
 const ts = require('typescript')
 const root = path.resolve(import.meta.dirname, '..')
-const text = semRoteiroCurto2210(fs.readFileSync(path.join(root, 'app/(dashboard)/studio/StudioClient.tsx'), 'utf8'), 'app/(dashboard)/studio/StudioClient.tsx') // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
+// Exercise the live URL reader and Generate body. Historical presentation
+// adapters used to restore an obsolete Studio before this acceptance test.
+const text = fs.readFileSync(path.join(root, 'app/(dashboard)/studio/StudioClient.tsx'), 'utf8')
 const source = ts.createSourceFile('StudioClient.tsx', text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
 const all = []
 function visit(node) { all.push(node); ts.forEachChild(node, visit) }
@@ -44,6 +45,10 @@ export function loadLocal(file) {
 const review = loadLocal('lib/navigation/studioSeriesReview.ts')
 // KINEO-IDIOMAS-15-2026-09-17 — o Studio passou a ler ?language= (catálogo de 16) e a levá-lo ao /generate.
 const textLanguage = loadLocal('lib/textLanguage.ts')
+const scriptInput = loadLocal('lib/scriptInput.ts')
+const aspects = loadLocal('lib/aspect.ts')
+const episode = loadLocal('lib/proximoEpisodioLink.ts')
+const scriptLanguage = loadLocal('lib/linguaDoRoteiro.ts')
 export function roundTrip(href, initial = {}, edits = {}) {
   const query = href.slice(href.indexOf('?') + 1)
   const state = { engine: 'fast', duration: 60, prompt: '', scriptMode: 'ai', aspect: '9:16', language: 'en', ...initial }
@@ -54,6 +59,12 @@ export function roundTrip(href, initial = {}, edits = {}) {
   let reviewFocus = 0
   const campaignRef = { current: 'studio_v4' }
   const onboardingGoalRef = { current: null }
+  const storage = new Map()
+  const sessionStorage = {
+    getItem:key=>storage.get(key) ?? null,
+    setItem:(key,value)=>{storage.set(key,value);if(key==='kineo:studio:go:v1')writes.push({key,value})},
+    removeItem:key=>storage.delete(key),
+  }
   evaluate(reader, {
     searchSignature: query,
     ENGINES: engineKeys.map((key) => ({ key })),
@@ -66,6 +77,8 @@ export function roundTrip(href, initial = {}, edits = {}) {
     setAspect: (v) => { state.aspect = v },
     setLanguage: (v) => { state.language = v }, // KINEO-IDIOMAS-15
     narrationLanguage: textLanguage.narrationLanguage,
+    ...scriptInput, allAspectSpecs:aspects.allAspectSpecs,
+    sessionStorage, setOriginalIdea:()=>{}, h3maxOk:true,
     isStudioSeriesReview: review.isStudioSeriesReview,
     window: { requestAnimationFrame: (callback) => frames.push(callback) },
     promptRef: { current: { focus: () => { reviewFocus++ }, scrollIntoView: () => {} } },
@@ -87,7 +100,9 @@ export function roundTrip(href, initial = {}, edits = {}) {
     searchSignature: query,
     carryStudioSeriesReview: review.carryStudioSeriesReview,
     campaignRef, onboardingGoalRef,
-    sessionStorage: { setItem: (key, value) => writes.push({ key, value }), removeItem: () => {} },
+    sessionStorage,
+    ...scriptInput, ...episode, ...scriptLanguage,
+    linguaTocadaRef:{current:true},
     trialFirstDeliveryStudioIntent: () => null,
     // KINEO-PRIMEIRO-FILME-2026-10-13 — generate() consulta a descida para o filme grátis de 15 s (lib/growth/descidaFilmeGratis.ts,
     // com guardião próprio: scripts/test-primeiro-filme-1310.mjs); o simulador entra com conta que não desce (o caminho de antes).
