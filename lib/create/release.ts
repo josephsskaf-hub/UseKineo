@@ -7,3 +7,8 @@ import type { InternalRelease } from '@/lib/recreate/release'
 // KINEO-TELA-NOVA-ABRE-1011 [fundador 10/11: "Quero todas as telas com o design que fizemos no codex"] — aberto ao público em 10/11/2026,
 // depois da conferência logada em produção (e76afc095). VOLTA: 'internal' fecha de novo (só a casa); 'off' tira de todos.
 export const CREATE_SHELL_RELEASE: InternalRelease = 'public'
+
+// KINEO-STUDIO-NA-MOLDURA-1011 [fundador 10/11: "Quero todas as telas com o design que fizemos no codex"] — a aba Film É o Studio:
+// a caixa única real (components/studio/StudioSimples.tsx, mesmo estado, mesmo Generate, mesmo pedido) dentro da moldura nova.
+// 'off' = ninguém · 'internal' = só a allowlist exata da casa · 'public' = toda conta que já vê /create/film. Fora dele: o "Continue" de sempre.
+export const CREATE_FILM_INPLACE: InternalRelease = 'internal'

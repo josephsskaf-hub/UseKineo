@@ -1,6 +1,6 @@
 // KINEO-TELA-NOVA-1011 — quem vê a tela nova. Mesma regra do Recreate: allowlist EXATA da casa no modo 'internal'.
 import { releaseVisible, recreateVisible } from '@/lib/recreate/access'
-import { CREATE_SHELL_RELEASE } from './release'
+import { CREATE_FILM_INPLACE, CREATE_SHELL_RELEASE } from './release'
 import type { InternalRelease } from '@/lib/recreate/release'
 import { createTabHref, isCreateTab, type CreateTab } from './tabs'
 
@@ -20,4 +20,9 @@ export function createShellDecision(tab: string, user: { email?: string | null }
   if (!createShellVisible(user.email, release)) return { kind: 'not_found' }
   // A aba Recreate só aparece para quem abre o /recreate (senão ela levaria a um 404).
   return { kind: 'show', showRecreate: recreateVisible(user.email) }
+}
+
+/** KINEO-STUDIO-NA-MOLDURA-1011 — a aba Film mostra o Studio real (caixa única) dentro da moldura? Só para quem JÁ vê /create/film. */
+export function filmNaMoldura(tab: string, email: string | null | undefined, release: InternalRelease = CREATE_FILM_INPLACE): boolean {
+  return tab === 'film' && !!email && releaseVisible(email, release)
 }

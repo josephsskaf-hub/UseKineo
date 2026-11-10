@@ -5,7 +5,7 @@
 // ideia e o "Continue" ENTREGA ao gerador que já existe. Aqui não há preço, crédito, débito, moderação nem geração.
 // Dívida anotada: o RecreateClient ainda não usa estes componentes (repetimos a estrutura de classes e importamos o MESMO CSS).
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { KineoBrandIcon } from '@/components/KineoBolt'
 import RecreatePlayer from '@/app/recreate/RecreatePlayer'
 import CreateTabs from './CreateTabs'
@@ -19,7 +19,9 @@ export function continueHref(tab: CreateTab, idea: string, signedIn: boolean): s
   return tab === 'film' ? filmContinueHref(idea, signedIn) : tab === 'cartoon' ? cartoonContinueHref(signedIn) : adsContinueHref(signedIn)
 }
 
-export default function CreateShell({ tab, signedIn = true, showRecreate = true }: { tab: CreateTab; signedIn?: boolean; showRecreate?: boolean }) {
+// KINEO-STUDIO-NA-MOLDURA-1011 — `painel` (opcional) troca SÓ os passos do painel pelos do Studio real (StudioSimples); `aoEscolher` recebe a
+// ideia do exemplo. Sem eles, o HTML é byte a byte o de antes (scripts/test-studio-na-moldura-1011.mjs).
+export default function CreateShell({ tab, signedIn = true, showRecreate = true, painel, aoEscolher }: { tab: CreateTab; signedIn?: boolean; showRecreate?: boolean; painel?: ReactNode; aoEscolher?: (ideia: string) => void }) {
   const copy = CREATE_COPY[tab]
   const examples = CREATE_EXAMPLES[tab]
   const [example, setExample] = useState<CreateExample>(examples[0])
@@ -46,7 +48,7 @@ export default function CreateShell({ tab, signedIn = true, showRecreate = true 
 
   function choose(e: CreateExample) {
     setExample(e)
-    if (hasInput && e.idea) setIdea(e.idea.slice(0, maxChars))
+    if (hasInput && e.idea) { if (aoEscolher) aoEscolher(e.idea.slice(0, maxChars)); else setIdea(e.idea.slice(0, maxChars)) }
     void trackClosedEvent(CREATE_EVENTS.exampleClicked, { tab, example: e.id })
     if (window.matchMedia('(max-width: 640px)').matches) window.requestAnimationFrame(() => document.querySelector('.rc-reference')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
@@ -67,6 +69,7 @@ export default function CreateShell({ tab, signedIn = true, showRecreate = true 
       <aside className="rc-panel" aria-label={copy.title}>
         <CreateTabs active={tab} showRecreate={showRecreate} />
         <div className="rc-panel-intro"><span className="rc-eyebrow">{copy.eyebrow}</span><h1>{copy.title}</h1><p className="rc-subtitle">{copy.subtitle}</p></div>
+        {painel ?? <>
         <div className="rc-progress"><span>{ready ? 'Ready to continue' : 'Start with your idea'}</span><div role="progressbar" aria-label="Steps completed" aria-valuemin={0} aria-valuemax={3} aria-valuenow={states.filter(s => s === 'done').length}>{states.map((s, i) => <i key={i} className={`rc-progress-${s}`} />)}</div></div>
         <section className={`rc-step rc-step-${states[0]}`} data-step-state={states[0]} aria-labelledby="ct-step1">
           <div className="rc-step-heading">{marker(1)}<h2 id="ct-step1">{copy.step1}</h2><span className="rc-step-status">{hasInput ? stateLabel(states[0]) : 'Next screen'}</span></div>
@@ -86,11 +89,12 @@ export default function CreateShell({ tab, signedIn = true, showRecreate = true 
           <button type="button" className="rc-generate" data-create-continue={continueHref(tab, idea, signedIn)} aria-describedby="ct-continue-reason" disabled={!ready} onClick={go}>{copy.button} <span aria-hidden="true">→</span></button>
           <p className="rc-next-note" id="ct-continue-reason" role="status">{blocker ?? copy.note}</p>
         </section>
+        </>}
       </aside>
       <section className="rc-reference" aria-label={copy.stageTag.toLowerCase()}>
         <div className="rc-reference-heading"><div><h2>{example.title}</h2><p>{tab === 'ads' ? 'An example to spark ideas' : 'An example to get you started'}</p></div></div>
         <div className="rc-stage"><RecreatePlayer key={example.id} src={example.video} poster={example.poster} preview label={example.title} /><span className="rc-preview-tag">{copy.stageTag}</span></div>
-        <p className="rc-preview-caption"><span aria-hidden="true" />Nothing starts until you continue.</p>
+        <p className="rc-preview-caption"><span aria-hidden="true" />{painel ? 'Nothing starts until you press Generate.' : 'Nothing starts until you continue.'}</p>
       </section>
       <section className="rc-gallery" aria-label={copy.galleryTitle}>
         <div className="rc-gallery-heading"><h2>{copy.galleryTitle}</h2><p>{copy.galleryHint}</p></div>

@@ -4,9 +4,11 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { createShellDecision } from '@/lib/create/access'
-import type { CreateTab } from '@/lib/create/tabs'
+import { createShellDecision, filmNaMoldura } from '@/lib/create/access'
+import { CREATE_FILM_CAMPAIGN, type CreateTab } from '@/lib/create/tabs'
 import CreateShell from '@/components/create/CreateShell'
+import StudioNaMoldura from '@/components/create/StudioNaMoldura' // KINEO-STUDIO-NA-MOLDURA-1011
+import { motorDaCaixa } from '@/lib/growth/studioSimples' // KINEO-STUDIO-NA-MOLDURA-1011
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: { absolute: 'Create | Kineo' }, robots: { index: false, follow: false } }
@@ -17,5 +19,7 @@ export default async function Page({ params }: { params: { tab: string } }) {
   const decision = createShellDecision(params.tab, user)
   if (decision.kind === 'signup') redirect(decision.href)
   if (decision.kind !== 'show') notFound()
+  // KINEO-STUDIO-NA-MOLDURA-1011 — o Studio real na moldura (interruptor CREATE_FILM_INPLACE). A campanha é a MESMA que o "Continue" leva.
+  if (filmNaMoldura(params.tab, user?.email)) return <StudioNaMoldura showRecreate={decision.showRecreate} motor={motorDaCaixa(undefined)} campanha={CREATE_FILM_CAMPAIGN} />
   return <CreateShell tab={params.tab as CreateTab} signedIn showRecreate={decision.showRecreate} />
 }

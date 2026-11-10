@@ -12,3 +12,14 @@
 .create-shell .ct-step-text{font-size:13px;line-height:1.6;color:var(--rc-muted);margin:11px 0 0}
 .create-shell .rc-card-bottom>div{justify-content:flex-end}
 @media(max-width:640px){.ct-tabs{margin-inline:-16px;padding-inline:16px}.create-shell .ct-idea{min-height:120px}}
+/* KINEO-STUDIO-NA-MOLDURA-1011 — os ajustes do Studio (passo 2 "Details") e o aviso de recusa na aba Film. Mesmos tokens --rc-*. */
+.create-shell .ct-alert{margin:8px 0 0;font-size:13px;font-weight:600;line-height:1.45;color:var(--danger,#d7263d)}
+.create-shell .ct-details{display:flex;flex-direction:column;gap:14px}
+.create-shell .ct-lab,.create-shell .ct-details label.ct-lab{display:block;font-size:11px;color:var(--rc-muted);margin:0 0 8px}
+.create-shell .ct-opts{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px}
+.create-shell .ct-opt{min-height:40px;border-radius:10px;border:1px solid var(--rc-line);background:var(--rc-input);color:var(--rc-body);font-size:13px;font-weight:650}
+.create-shell .ct-opt[aria-pressed="true"]{border-color:var(--rc-accent);color:var(--rc-accent);background:var(--rc-soft)}
+.create-shell .ct-sel{width:100%;min-height:40px;border-radius:10px;border:1px solid var(--rc-line);background:var(--rc-input);color:var(--rc-body);font-size:13px;padding:0 10px}
+.create-shell .ct-details label.ct-check{display:flex;gap:10px;align-items:center;min-height:40px;margin:0;font-size:13px;color:var(--rc-body)}
+.create-shell .ct-check input{width:18px;height:18px;flex:none}
+.create-shell .ct-more{align-self:flex-start;font-size:13px;color:var(--rc-accent)}

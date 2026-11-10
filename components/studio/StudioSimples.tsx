@@ -4,7 +4,7 @@
 // Olhando a Higgsfield: "a gente não deixa ele chegar na parte onde pode escrever a história dele"; "tem muito conteúdo a página"; "o motor está muito em
 // evidência". O Generate monta o MESMO pedido do Studio completo e cai no /studio/create, que confere saldo e motor e, sem conta, manda ao cadastro e devolve
 // ao mesmo pedido. Nada é cobrado aqui. O Studio completo segue vivo em "More options" (motor, estrela, logo, referências, clipe).
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { useRouter } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics'
 import { useMrrStudioFunnel } from '@/lib/growth/useMrrStudioFunnel'
@@ -91,7 +91,15 @@ const PRODUTOS: ReadonlyArray<{ rotulo: string; href: string | null; img: string
   { rotulo: 'Clip', href: '/clips', img: '/posters/galeria/knight-cat.webp' },
 ]
 
-export default function StudioSimples({ filmes, motor, campanha, ideiaInicial = '' }: { filmes: ReadonlyArray<FilmeDaCaixa>; motor: string; campanha: string; ideiaInicial?: string }) {
+// KINEO-STUDIO-NA-MOLDURA-1011 [fundador 10/11: "Quero todas as telas com o design que fizemos no codex"] — o que a moldura nova recebe:
+// o estado e os handlers DESTE componente, sem cópia. Gerar, recusas, eventos e o pedido continuam só aqui (gerar()).
+export interface CaixaNaMoldura {
+  motor: string; texto: string; escrever: (v: string) => void; caixa: RefObject<HTMLTextAreaElement>; aviso: string | null; limiteMax: number
+  duracao: number; opcoesDuracao: readonly number[]; setDuracao: (d: number) => void; formato: string; formatos: readonly string[]; setFormato: (f: string) => void
+  lingua: string; setLingua: (l: string) => void; palavraPorPalavra: boolean; setPalavraPorPalavra: (v: boolean) => void; maisOpcoes: string; temFilmeGratis: boolean; gerar: () => void
+}
+
+export default function StudioSimples({ filmes, motor, campanha, ideiaInicial = '', moldura }: { filmes: ReadonlyArray<FilmeDaCaixa>; motor: string; campanha: string; ideiaInicial?: string; moldura?: (c: CaixaNaMoldura) => ReactNode }) {
   const router = useRouter()
   const registrar = useMrrStudioFunnel()
   const caixa = useRef<HTMLTextAreaElement>(null)
@@ -153,6 +161,12 @@ export default function StudioSimples({ filmes, motor, campanha, ideiaInicial = 
     void trackEvent('studio_simple_generate_clicked', { engine: motor, duration: duracao, aspect: formato, language: lingua, verbatim: palavraPorPalavra, chars: t.length, page_idea_kept: ideiaInicial !== '' && t === ideiaInicial.trim() })
     try { sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine: motor, prompt: t, language: lingua === 'auto' ? 'en' : lingua })) } catch {}
     router.push(pedidoDoStudioSimples({ motor, texto: t, duracao, formato, lingua, palavraPorPalavra, campanha }))
+  }
+
+  // KINEO-STUDIO-NA-MOLDURA-1011 — com a moldura (só /create/film, interruptor CREATE_FILM_INPLACE), troca SÓ o desenho; sem ela, nada muda.
+  if (moldura) {
+    const escrever = (v: string) => { setTexto(v); setAviso(null); if (v.trim()) registrar('mrr_idea_entered') } // o mesmo onChange da caixa abaixo
+    return <>{moldura({ motor, texto, escrever, caixa, aviso, limiteMax: limite.max, duracao, opcoesDuracao, setDuracao, formato, formatos: FORMATOS, setFormato, lingua, setLingua, palavraPorPalavra, setPalavraPorPalavra, maisOpcoes, temFilmeGratis, gerar })}</>
   }
 
   return (
