@@ -12,6 +12,11 @@
 //
 // Módulo puro, sem import: scripts/test-clipes-nos-2-lugares-0411.mjs o executa direto. Sem preço no cartão; selo = o motor real da
 // linha da tabela `clips`, nunca "anúncio feito pela ferramenta de Ads" (estes saíram do /clips e do /images).
+// KINEO-ADS-NATAL-VITRINE-1011 — fundador 10/11: "Pode colocar todos na página inicial como anúncios, né? E daí a gente vai usar 'faça seu
+// anúncio aqui', né? Em vez de Recreate, a pessoa vai fazer o anúncio dela." Muda o LINK, não a verdade: o tipo 'Ad example' (exemplo de
+// anúncio, dito só no aria-label) é o ÚNICO cartão que leva à criação de anúncio (/ads/new, o mesmo destino do item "Product ads" do menu do
+// topo) e mostra o convite "Make your ad" no lugar do "Recreate". Continua PROIBIDO dizer ou insinuar que o vídeo foi feito pela ferramenta
+// de Ads ("made with Kineo Ads", "made by the ad tool"): os 6 de 10/11 foram feitos à mão, fora do produto de Ads. O convite chama; não atribui.
 export const CLIPES_NOS_2_LUGARES_MARK = 'KINEO-CLIPES-NOS-2-LUGARES-0411'
 
 interface ClipeNovoBase {
@@ -42,7 +47,7 @@ export type ClipeNovo = ClipeNovoBase & (
       engine: null
       /** O tipo do cartão (só no aria-label). 'Trending format' = clipe de uma cena, abre o /clips puro. 'Narrated film' = filme narrado feito
        *  de verdade no Kineo Studio: abre o Studio pelo mesmo link dos filmes da vitrine (KINEO-VITRINE-10-1011). */
-      selo: 'Trending format' | 'Narrated film'
+      selo: 'Trending format' | 'Narrated film' | 'Ad example' // KINEO-ADS-NATAL-VITRINE-1011 — 'Ad example' = exemplo de anúncio: abre a criação de anúncio
     }
 )
 
@@ -86,6 +91,17 @@ export const CLIPES_NOVOS: readonly ClipeNovo[] = [
   { id: 'kit-skincare', title: 'Holiday skincare gift set', engine: null, selo: 'Trending format', clipId: 'fal:0ab1da00/tKyNDXU7RAxwcmy_kF-BU', focus: '50% 48%', pessoa: false, prompt: null }, // KINEO-VITRINE-10-1011
   { id: 'dragaozinho', title: 'The little dragon afraid of fire', engine: null, selo: 'Trending format', clipId: 'fal:0ab1da07/LBX9mJqp4LXh5eUkA37kb', focus: '50% 56%', pessoa: false, prompt: null }, // KINEO-VITRINE-10-1011
   { id: 'boneco-de-neve', title: 'The snowman who hides from the sun', engine: null, selo: 'Trending format', clipId: 'fal:0ab1da01/aYq5oKWE2FXdjYSbpJnH0', focus: '50% 68%', pessoa: false, prompt: null }, // KINEO-VITRINE-10-1011
+  // KINEO-ADS-NATAL-VITRINE-1011 [fundador 10/11: "Pode colocar todos na página inicial como anúncios… Em vez de Recreate, a pessoa vai fazer o
+  // anúncio dela"] — 6 anúncios de Natal aprovados. VERDADE: os seis feitos em 10/11/2026 com uma foto do Nano Banana Pro cada + Kling 4.0
+  // image-to-video com `multi_prompt` (três tomadas), À MÃO, FORA do produto de Ads; nenhuma linha em `clips` nem em `ads_v2_orders`.
+  // Por isso: sem motor no cartão, clipId = 'manual:<arquivo de origem>' (docs/referencias/ads-natal-1011/), e nada diz que a ferramenta de
+  // Ads os fez — o cartão só CONVIDA ("Make your ad") e leva à criação de anúncio. Prévia = o melhor trecho contínuo ≤ 8 s, cruzando 1 corte.
+  { id: 'anuncio-skincare', title: 'Skincare gift review', engine: null, selo: 'Ad example', clipId: 'manual:ads-natal-1011/ad1-ugc-skincare.mp4', focus: '50% 25%', pessoa: true, prompt: null }, // KINEO-ADS-NATAL-VITRINE-1011 — prévia 6,0–14,0 s: conta-gotas em close → ela com a caixa
+  { id: 'anuncio-relogio', title: 'The gift watch', engine: null, selo: 'Ad example', clipId: 'manual:ads-natal-1011/ad2-relogio.mp4', focus: '50% 50%', pessoa: false, prompt: null }, // KINEO-ADS-NATAL-VITRINE-1011 — prévia 4,2–12,0 s: órbita da caixa → a mão fecha no pulso
+  { id: 'anuncio-colar', title: 'Gold necklace gift', engine: null, selo: 'Ad example', clipId: 'manual:ads-natal-1011/ad3-colar.mp4', focus: '50% 50%', pessoa: false, prompt: null }, // KINEO-ADS-NATAL-VITRINE-1011 — prévia 4,2–12,0 s: órbita da caixa de veludo → no pescoço
+  { id: 'anuncio-caneca', title: 'Hot chocolate mug', engine: null, selo: 'Ad example', clipId: 'manual:ads-natal-1011/ad4-caneca.mp4', focus: '50% 33%', pessoa: true, prompt: null }, // KINEO-ADS-NATAL-VITRINE-1011 — prévia 4,2–12,0 s: chocolate despejado em macro → ela brinda
+  { id: 'anuncio-sueter-pet', title: 'Christmas dog sweater', engine: null, selo: 'Ad example', clipId: 'manual:ads-natal-1011/ad5-pet.mp4', focus: '50% 38%', pessoa: true, prompt: null }, // KINEO-ADS-NATAL-VITRINE-1011 — prévia 6,5–14,5 s: o corgi corre até a lente → o abraço
+  { id: 'anuncio-manta', title: 'The warmest gift', engine: null, selo: 'Ad example', clipId: 'manual:ads-natal-1011/ad6-manta.mp4', focus: '50% 34%', pessoa: true, prompt: null }, // KINEO-ADS-NATAL-VITRINE-1011 — prévia 7,0–15,0 s: abre a caixa → enrolado na manta
 ]
 
 export const clipeNovoVideo = (c: Pick<ClipeNovo, 'id'>): string => `/previews/galeria/${c.id}.mp4`
@@ -95,8 +111,14 @@ export const clipeNovoPoster = (c: Pick<ClipeNovo, 'id'>): string => `/posters/g
  *  vitrine (clipsFirstFilmHref, em components/home/HomeMosaic.tsx). */
 export const clipeNovoAbreStudio = (c: Pick<ClipeNovo, 'selo'>): boolean => c.selo === 'Narrated film'
 
+/** KINEO-ADS-NATAL-VITRINE-1011 — exemplo de anúncio: o cartão mostra "Make your ad" (não "Recreate") e leva à criação de anúncio. */
+export const clipeNovoAnuncio = (c: Pick<ClipeNovo, 'selo'>): boolean => c.selo === 'Ad example'
+/** KINEO-ADS-NATAL-VITRINE-1011 — o MESMO destino do item "Product ads" do menu do topo (app/KineoLanding.tsx, href="/ads/new"). */
+export const CRIAR_ANUNCIO_HREF = '/ads/new'
+
 /** Para onde o cartão leva (o chamador passa por viaSignup, como todo clipe da vitrine). Nada é gerado sem o clique em Gerar. */
-export function clipeNovoDestino(c: Pick<ClipeNovo, 'engine' | 'prompt'>): string {
+export function clipeNovoDestino(c: Pick<ClipeNovo, 'engine' | 'prompt' | 'selo'>): string {
+  if (clipeNovoAnuncio(c)) return CRIAR_ANUNCIO_HREF // KINEO-ADS-NATAL-VITRINE-1011 — só o exemplo de anúncio leva à criação de anúncio
   if (c.engine === null) return '/clips' // KINEO-OUTFIT-MORPH-HOME-0911 — formato sem motor do /clips: nem motor, nem texto
   const q = new URLSearchParams({ engine: c.engine })
   if (c.prompt) q.set('prompt', c.prompt)

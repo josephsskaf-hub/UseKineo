@@ -28,7 +28,7 @@ import { HOME_GALLERY_BIG, HOME_GALLERY_DIR, HOME_GALLERY_IMAGES, type HomeGalle
 import { clipsFirstFilmHref } from '@/lib/growth/homeClipsFirst'
 import { cardStatFor, compactCount } from '@/lib/home/cardSocialStats' // KINEO-CARDS-VIEWS-0911
 import { seasonalEffectKeys } from '@/lib/clips/clipSeason' // KINEO-VITRINE-ESTACAO-3110
-import { FORA_DE_ESTACAO, afastaVizinhos, fechaOFim, semLargoNoFim, clipeNovoAbreStudio, clipeNovoDestino, clipeNovoPoster, clipeNovoVideo, clipesNovosDoDia, diaDaVitrine, embaralhaDoDia, intercala, type ClipeNovo } from '@/lib/clipesNos2Lugares' // KINEO-CLIPES-NOS-2-LUGARES-0411
+import { FORA_DE_ESTACAO, afastaVizinhos, fechaOFim, semLargoNoFim, clipeNovoAbreStudio, clipeNovoAnuncio, clipeNovoDestino, clipeNovoPoster, clipeNovoVideo, clipesNovosDoDia, diaDaVitrine, embaralhaDoDia, intercala, type ClipeNovo } from '@/lib/clipesNos2Lugares' // KINEO-CLIPES-NOS-2-LUGARES-0411
 
 /** Interruptor da vitrine contínua (false = a home volta às faixas separadas de antes, intactas no KineoLanding). */
 export const HOME_MOSAIC_LIVE = true
@@ -223,10 +223,20 @@ const CSS = `
 //   · não: multicâmera e filme narrado (abrem o Studio em branco), clipe novo sem prompt (clipe por foto e os de formato, como o outfit-morph
 //     e os 7 de 09/11: abrem o /clips vazio) e imagem.
 // Quando existir a página pública de Recreate e o cartão de formato levar a ela, o selo volta para esses cartões — aqui.
+// KINEO-ADS-NATAL-VITRINE-1011 — o exemplo de anúncio é um caso À PARTE e explícito: nunca "Recreate" (o clique não refaz aquele vídeo),
+// e sim o convite "Make your ad" (podeFazerAnuncio), que abre a criação de anúncio.
 export function podeRecriar(t: Tile): boolean {
   if (t.kind === 'clip') return !!t.clip.prompt
-  if (t.kind === 'novo') return !!t.clip.prompt
+  if (t.kind === 'novo') return !!t.clip.prompt && !clipeNovoAnuncio(t.clip)
   return t.kind === 'effect' || t.kind === 'style'
+}
+
+// KINEO-ADS-NATAL-VITRINE-1011 — fundador 10/11: "Pode colocar todos na página inicial como anúncios, né? E daí a gente vai usar 'faça seu
+// anúncio aqui', né? Em vez de Recreate, a pessoa vai fazer o anúncio dela." Só o cartão de exemplo de anúncio ('Ad example' na lista
+// compartilhada) mostra o convite; o cartão inteiro leva à criação de anúncio (o mesmo /ads/new do item "Product ads" do menu do topo). O
+// convite chama a pessoa a fazer o DELA: nada no cartão diz que este vídeo saiu da ferramenta de Ads (não saiu: foi feito à mão).
+export function podeFazerAnuncio(t: Tile): boolean {
+  return t.kind === 'novo' && clipeNovoAnuncio(t.clip)
 }
 
 function Recreate() {
@@ -234,6 +244,16 @@ function Recreate() {
     <span className="kmz-re" aria-hidden="true">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" /><path d="M13.5 2.5v3h-3" /></svg>
       <UiLabel>Recreate</UiLabel>
+    </span>
+  )
+}
+
+/** KINEO-ADS-NATAL-VITRINE-1011 — o convite do exemplo de anúncio, no lugar do "Recreate" (mesmo desenho; o clique é o do cartão inteiro). */
+function MakeYourAd() {
+  return (
+    <span className="kmz-re kmz-mkad" aria-hidden="true">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v10" /><path d="M3 8h10" /></svg>
+      <UiLabel>Make your ad</UiLabel>
     </span>
   )
 }
@@ -287,14 +307,15 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
             if (t.kind === 'novo') { // KINEO-CLIPES-NOS-2-LUGARES-0411 — selo = o motor real; o pôster é <img loading="lazy">: os 15 não somam nada ao 1º carregamento, e o vídeo só nasce na tela (WallMedia)
               const c = t.clip
               const tipo = c.selo ?? 'Clip' // KINEO-CARDS-SEM-MOTOR-0911 — o TIPO (Clip / Trending format), nunca o motor; o motor real segue no dado e no link · KINEO-CARDS-SEM-ETIQUETA-0911 — o tipo vive só no aria-label
-              return (
-                <Link key={'novo-' + c.id} href={clipeNovoAbreStudio(c) ? filmHref /* KINEO-VITRINE-10-1011 — filme do Studio: o link dos filmes */ : viaSignup(clipeNovoDestino(c), signedIn)} className={`kmz-t${t.grande ? ' kmz-big' : ''}`} data-home-cta="mosaic_clip" data-clip-novo={c.id} aria-label={`${c.title} — ${tipo}`}>
+              return ( // KINEO-ADS-NATAL-VITRINE-1011 — exemplo de anúncio: clipeNovoDestino dá /ads/new (via viaSignup), medido à parte como mosaic_ad
+                <Link key={'novo-' + c.id} href={clipeNovoAbreStudio(c) ? filmHref /* KINEO-VITRINE-10-1011 — filme do Studio: o link dos filmes */ : viaSignup(clipeNovoDestino(c), signedIn)} className={`kmz-t${t.grande ? ' kmz-big' : ''}`} data-home-cta={podeFazerAnuncio(t) ? 'mosaic_ad' : 'mosaic_clip'} data-clip-novo={c.id} aria-label={`${c.title} — ${tipo}`}>
                   <div className="kmz-md" style={focusStyle(undefined, c.focus)}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={clipeNovoPoster(c)} width={540} height={960} alt="" loading="lazy" decoding="async" style={{ objectPosition: c.focus, transform: 'none' }} />
                     <WallMedia src={clipeNovoVideo(c)} />
                   </div>
                   {podeRecriar(t) ? <Recreate /> : null}
+                  {podeFazerAnuncio(t) ? <MakeYourAd /> : null}{/* KINEO-ADS-NATAL-VITRINE-1011 */}
                 <span className="kmz-shade" aria-hidden="true" />
                   <span className="kmz-copy"><b><UiLabel>{c.title}</UiLabel></b><Views video={clipeNovoVideo(c)} /></span>{/* KINEO-OUTFIT-MORPH-HOME-0911 */}
                 </Link>

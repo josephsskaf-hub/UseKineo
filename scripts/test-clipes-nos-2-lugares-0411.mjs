@@ -88,7 +88,19 @@ const VERDADE = {
   'kit-skincare': ['fal:0ab1da00/tKyNDXU7RAxwcmy_kF-BU', null, 'foto', 'Trending format'],
   'dragaozinho': ['fal:0ab1da07/LBX9mJqp4LXh5eUkA37kb', null, 'foto', 'Trending format'],
   'boneco-de-neve': ['fal:0ab1da01/aYq5oKWE2FXdjYSbpJnH0', null, 'foto', 'Trending format'],
+  // KINEO-ADS-NATAL-VITRINE-1011 [fundador 10/11: "Pode colocar todos na página inicial como anúncios… Em vez de Recreate, a pessoa vai fazer o
+  // anúncio dela"] — 6 anúncios de Natal feitos À MÃO em 10/11 (Nano Banana Pro + Kling 4.0 multi_prompt), FORA do produto de Ads: sem linha em
+  // `clips` nem em `ads_v2_orders`. Modo 'anuncio': sem motor, sem texto, selo 'Ad example', o cartão convida ("Make your ad") e leva ao /ads/new.
+  'anuncio-skincare': ['manual:ads-natal-1011/ad1-ugc-skincare.mp4', null, 'anuncio', 'Ad example'],
+  'anuncio-relogio': ['manual:ads-natal-1011/ad2-relogio.mp4', null, 'anuncio', 'Ad example'],
+  'anuncio-colar': ['manual:ads-natal-1011/ad3-colar.mp4', null, 'anuncio', 'Ad example'],
+  'anuncio-caneca': ['manual:ads-natal-1011/ad4-caneca.mp4', null, 'anuncio', 'Ad example'],
+  'anuncio-sueter-pet': ['manual:ads-natal-1011/ad5-pet.mp4', null, 'anuncio', 'Ad example'],
+  'anuncio-manta': ['manual:ads-natal-1011/ad6-manta.mp4', null, 'anuncio', 'Ad example'],
 }
+// KINEO-ADS-NATAL-VITRINE-1011 — o que NENHUM cartão pode dizer nem insinuar (nem no texto, nem no aria-label): que o vídeo foi feito pela
+// ferramenta de Ads. Os exemplos de anúncio foram feitos à mão; o convite "Make your ad" chama a pessoa, não atribui a autoria.
+const ATRIBUI_AS_ADS = /\b(made|created|generated|built|produced)\s+(with|by|in|on|using)\s+(the\s+)?(Kineo\s+Ads|Studio\s+Ads|(the\s+)?ads?\s+(tool|maker|product|generator))|\bKineo\s+Ads\b|\bStudio\s+Ads\b|\bads?\s+tool\b/i
 // KINEO-OUTFIT-MORPH-HOME-0911 — nomes de motor que um cartão de FORMATO nunca pode mostrar (nem em texto, nem no aria-label, nem no link).
 const NOMES_DE_MOTOR = /\b(Kling|Seedance|MiniMax|H3|Veo|Omni|Hailuo|Wan|Sora|Runway|Pika|Kineo 1)\b/i
 // KINEO-CARDS-SEM-MOTOR-0911 [fundador 09/11: "quero que você tire os nomes dos motores, porque eu não vejo em outros sites"] — nenhum cartão
@@ -123,6 +135,7 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
     if (c.engine !== motor) e.push(`A ${id}: motor ${c.engine}, a tabela diz ${motor}`)
     if ((c.engine === null) !== (c.selo !== undefined) || (c.engine === null && c.selo !== VERDADE[id][3])) e.push(`A ${id}: selo de formato só existe (e é obrigatório) quando não há motor do /clips, e é o da verdade (${VERDADE[id][3]})`) // KINEO-OUTFIT-MORPH-HOME-0911 · KINEO-VITRINE-10-1011 — 'Narrated film' só nos 3 filmes do Studio
     if (modo === 'filme' && c.prompt !== null) e.push(`A ${id}: filme preenchendo texto no /clips`) // KINEO-VITRINE-10-1011
+    if (modo === 'anuncio' && c.prompt !== null) e.push(`A ${id}: exemplo de anúncio preenchendo texto`) // KINEO-ADS-NATAL-VITRINE-1011
     if (modo === 'foto' && c.prompt !== null) e.push(`A ${id}: clipe de foto preenchendo texto de movimento`)
     if (modo === 'texto' && !(typeof c.prompt === 'string' && c.prompt.length > 80 && c.prompt.length <= 1000)) e.push(`A ${id}: clipe de texto sem o texto (ou além do teto do campo)`)
     if (/keep the same (woman|face)/i.test(c.prompt ?? '')) e.push(`A ${id}: texto que depende de foto`)
@@ -138,7 +151,10 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
   // KINEO-VITRINE-10-1011 [fundador 10/11: "Pode colocar os 10 na tela inicial"] — teto do total 9 → 11 MB, o menor que cabe (26 clipes = 10,8 MB;
   // eram 6,7 MB com 16). Seguro: o pôster é <img loading="lazy"> e cada vídeo só baixa quando o cartão aparece na tela (WallMedia, preload none,
   // provado em E abaixo); nada disso entra no 1º carregamento. O teto de 600 KB por prévia continua o mesmo.
-  if (bytes > 11 * 1024 * 1024) e.push(`A ${(bytes / 1048576).toFixed(1)} MB de mídia nova (> 11)`)
+  // KINEO-ADS-NATAL-VITRINE-1011 [fundador 10/11: "Pode colocar todos na página inicial como anúncios"] — teto do total 11 → 14 MB, o menor
+  // redondo que cabe (32 clipes = 13,8 MB; eram 10,8 MB com 26). Mesmo motivo de segurança: pôster <img loading="lazy"> e vídeo só na tela
+  // (WallMedia, preload none, provado em E); nada disso entra no 1º carregamento. O teto de 600 KB por prévia continua o mesmo.
+  if (bytes > 14 * 1024 * 1024) e.push(`A ${(bytes / 1048576).toFixed(1)} MB de mídia nova (> 14)`)
   // (B) nos dois lugares, de verdade
   if (!fonteLanding.includes('<HomeMosaic signedIn={isSignedIn} />')) e.push('B a home não monta a vitrine')
   if (!fontePagina.includes('<HomeMosaic signedIn={signedIn} full styles={adStyles} />')) e.push('B o /made-with-kineo não monta a vitrine')
@@ -166,11 +182,20 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
       const achado = motorNoTexto.exec(cartao.replace(/href="[^"]*"/g, ''))
       if (achado) e.push(`B ${lugar}: ${c.id} mostra o motor "${achado[0]}"`)
       if (c.engine !== null && CLIP_ENGINES[c.engine]?.label !== VERDADE[c.id]?.[3]) e.push(`B ${lugar}: ${c.id}: o motor gravado (${c.engine}) não é o da tabela`)
-      if (/\bAd\b|Ads\b/.test(cartao.replace(/href="[^"]*"/, ''))) e.push(`B ${lugar}: ${c.id} fala em anúncio`)
+      // KINEO-ADS-NATAL-VITRINE-1011 [fundador 10/11: "como anúncios… em vez de Recreate, a pessoa vai fazer o anúncio dela"] — só o exemplo de
+      // anúncio pode falar em anúncio (o tipo no aria-label e o convite "Make your ad"); nenhum cartão diz que a ferramenta de Ads fez o vídeo.
+      if (VERDADE[c.id]?.[2] !== 'anuncio' && /\bAd\b|Ads\b/.test(cartao.replace(/href="[^"]*"/, ''))) e.push(`B ${lugar}: ${c.id} fala em anúncio`)
+      const atribui = ATRIBUI_AS_ADS.exec(cartao.replace(/(href|data-home-cta)="[^"]*"/g, ''))
+      if (atribui) e.push(`B ${lugar}: ${c.id} diz que a ferramenta de Ads fez o vídeo ("${atribui[0]}")`)
       const bruto = (/href="([^"]+)"/.exec(cartao)?.[1] ?? '').replace(/&amp;/g, '&')
       const destino = bruto.startsWith('/signup?') ? new URLSearchParams(bruto.split('?').slice(1).join('?')).get('redirect') ?? '' : ''
       const pedido = new URLSearchParams(destino.split('?').slice(1).join('?'))
-      if (VERDADE[c.id]?.[2] === 'filme') { // KINEO-VITRINE-10-1011 — filme do Studio: o MESMO link dos filmes da vitrine, nunca o /clips
+      if (VERDADE[c.id]?.[2] === 'anuncio') { // KINEO-ADS-NATAL-VITRINE-1011 — exemplo de anúncio: o MESMO destino do "Product ads" do menu do topo, via signup
+        const menu = /<Link href="([^"]+)" data-nav-item="business" className="nav-primary"><UiLabel>Product ads<\/UiLabel><\/Link>/.exec(fonteLanding)?.[1]
+        if (!menu || destino !== menu || bruto !== '/signup?' + new URLSearchParams({ redirect: menu }).toString()) e.push(`B ${lugar}: ${c.id} (exemplo de anúncio) não abre a criação de anúncio do menu "Product ads" (${menu}) via signup: ${bruto.slice(0, 80)}`)
+        if (!/data-home-cta="mosaic_ad"/.test(cartao)) e.push(`B ${lugar}: ${c.id} (exemplo de anúncio) medido como outro tipo de cartão`)
+      } else if (/data-home-cta="mosaic_ad"/.test(cartao) || destino.startsWith('/ads')) e.push(`B ${lugar}: ${c.id} não é exemplo de anúncio e leva às Ads: ${bruto.slice(0, 80)}`)
+      else if (VERDADE[c.id]?.[2] === 'filme') { // KINEO-VITRINE-10-1011 — filme do Studio: o MESMO link dos filmes da vitrine, nunca o /clips
         const filme = /<a href="([^"]+)"[^>]*data-home-cta="mosaic_film"/.exec(html)?.[1]
         if (!bruto.startsWith('/signup?redirect=%2Fstudio') || (filme && filme.replace(/&amp;/g, '&') !== bruto)) e.push(`B ${lugar}: ${c.id} (filme) não abre o Studio como os filmes da vitrine: ${bruto.slice(0, 80)}`)
       } else if (c.engine === null) { if (destino !== '/clips') e.push(`B ${lugar}: ${c.id} (formato) não leva ao /clips puro, sem motor e sem texto: ${bruto.slice(0, 80)}`) } // KINEO-OUTFIT-MORPH-HOME-0911 — exceção testada à regra de baixo
@@ -185,7 +210,7 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
       const nome = motorNoTexto.exec(visivel)
       if (nome) e.push(`B ${lugar}: a vitrine mostra o motor "${nome[0]}" (…${visivel.slice(Math.max(0, nome.index - 60), nome.index + 20)}…)`)
       // KINEO-CARDS-SEM-ETIQUETA-0911 [fundador 09/11: "Só a etiqueta"] — nenhuma etiqueta de tipo aparece como texto em cartão nenhum
-      const etiqueta = />\s*(Clip|Multi-camera|Narrated film|Effect|Ad style|Trending format)\s*</.exec(html)
+      const etiqueta = />\s*(Clip|Multi-camera|Narrated film|Effect|Ad style|Trending format|Ad example)\s*</.exec(html) // KINEO-ADS-NATAL-VITRINE-1011 — + Ad example
       if (etiqueta) e.push(`B ${lugar}: a vitrine mostra a etiqueta "${etiqueta[1]}" na tela`)
     }
     { // KINEO-RECREATE-SO-ONDE-RECRIA-1011 [fundador 10/11: "tem que colocar só os que recriam"] — o selo Recreate aparece EXATAMENTE nos
@@ -200,8 +225,12 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
         const tem = cartao.includes('class="kmz-re"')
         vistos[tipo] = (vistos[tipo] ?? 0) + 1
         if (tem !== deve) e.push(`R ${lugar}: ${tipo} ${deve ? 'sem' : 'com'} o selo Recreate (${(/aria-label="([^"]+)"/.exec(cartao)?.[1] ?? cta).slice(0, 60)})`)
+        // KINEO-ADS-NATAL-VITRINE-1011 [fundador 10/11: "Em vez de Recreate, a pessoa vai fazer o anúncio dela"] — o convite "Make your ad" é um caso
+        // à parte e explícito: EXATAMENTE nos exemplos de anúncio (cta mosaic_ad), nunca junto do Recreate, nunca em outro cartão.
+        const convite = /class="kmz-re kmz-mkad"[^>]*>[\s\S]*?Make your ad/.test(cartao)
+        if (convite !== (tipo === 'ad')) e.push(`R ${lugar}: ${tipo} ${tipo === 'ad' ? 'sem' : 'com'} o convite "Make your ad" (${(/aria-label="([^"]+)"/.exec(cartao)?.[1] ?? cta).slice(0, 60)})`)
       }
-      for (const k of ['efeito', 'clipe com texto', 'clipe sem texto', 'image', 'film', ...(opts.full ? ['estilo'] : ['motion'])]) if (!vistos[k]) e.push(`R ${lugar}: nenhum cartão "${k}" para provar a regra do selo`)
+      for (const k of ['efeito', 'clipe com texto', 'clipe sem texto', 'ad', 'image', 'film', ...(opts.full ? ['estilo'] : ['motion'])]) if (!vistos[k]) e.push(`R ${lugar}: nenhum cartão "${k}" para provar a regra do selo`)
     }
     // (C) estação
     const proibido = /pumpkin|jack-o|werewolf|witch|zombie|catrina|day of the dead|skull/i
@@ -324,6 +353,8 @@ const mutante = (nome, novasTrocas, fontes = {}, existe) => {
   try { r = checa(carrega(novasTrocas), fontes, existe) } catch (err) { r = ['quebrou: ' + err.message] }
   ok(r.length > 0, `M ${nome}: vermelho${r.length ? ' — ' + String(r[0]).slice(0, 90) : ' (passou batido)'}`)
 }
+const COPIA_NOVO = '<span className="kmz-copy"><b><UiLabel>{c.title}</UiLabel></b><Views video={clipeNovoVideo(c)} />' // KINEO-ADS-NATAL-VITRINE-1011 — subiu para antes dos mutantes do anúncio
+const injeta = (alvo, texto) => troca(alvo, alvo.replace('<span className="kmz-copy">', `<span className="kmz-copy">${texto}`)) // KINEO-ADS-NATAL-VITRINE-1011 — subiu para antes dos mutantes do anúncio
 const troca = (de, para) => (s) => { if (!s.includes(de)) throw new Error('mutante sem alvo: ' + de.slice(0, 60)); return s.replace(de, para) }
 const NOVOS = 'const novos = clipesNovosDoDia(dia)'
 mutante('clipe falta na home', { [MOSAICO]: troca(NOVOS, "const novos = opts.full ? clipesNovosDoDia(dia) : { grandes: clipesNovosDoDia(dia).grandes, pequenos: clipesNovosDoDia(dia).pequenos.slice(1) }") })
@@ -350,7 +381,13 @@ mutante('sem o teto de 4 grandes (26 clipes, grandes sobrando no fim)', { [LIB]:
 // KINEO-OUTFIT-MORPH-HOME-0911 — desde o 16º clipe o fim da grade tem DUAS proteções (imagem larga fora da cauda + fechaOFim). Sem a 2ª, o
 // mutante da 1ª passava batido: agora ele derruba as duas juntas, e cada uma tem o seu mutante sozinho.
 const SEM_FECHAR = (s) => troca('const ordem = fechaOFim(ordem0, alto,', 'const ordem = ((x) => x)(ordem0, alto,')(s)
-mutante('imagem larga no fim abre buraco', { [MOSAICO]: (s) => SEM_FECHAR(troca("(i) => i.w > i.h, 8)", "() => false, 8)")(s)) })
+// KINEO-ADS-NATAL-VITRINE-1011 — com 32 clipes o fim da grade de hoje fecha mesmo sem as duas proteções juntas, e este mutante passaria batido.
+// As proteções continuam no código para a lista que encolher: ele passa a ser provado na lista de 26 clipes de 10/11 (a de quando era vermelho
+// na lista inteira), olhando só a grade e a mistura (G e D). Primeiro a lista de 26 tem de ficar verde nelas.
+const LISTA_N = (n) => (s) => troca('export const clipeNovoVideo', `export const CLIPES_NOVOS = _TODOS_1011.slice(0, ${n}); export const clipeNovoVideo`)(troca('export const CLIPES_NOVOS: readonly ClipeNovo[] = [', 'const _TODOS_1011: readonly ClipeNovo[] = [')(s))
+const gradeN = (n, novasTrocas) => { const t = { ...novasTrocas, [LIB]: (s) => LISTA_N(n)(novasTrocas[LIB] ? novasTrocas[LIB](s) : s) }; let r; try { r = checa(carrega(t)) } catch (err) { r = ['G quebrou: ' + err.message] } return r.filter((x) => /^[DG] /.test(x)) }
+{ const r = gradeN(26, {}); for (const m of r) console.log('     →', m); ok(r.length === 0, `lista de 26 clipes (10/11): grade e mistura verdes${r.length ? ': ' + r.length + ' erro(s)' : ''}`) }
+{ const r = gradeN(26, { [MOSAICO]: (s) => SEM_FECHAR(troca("(i) => i.w > i.h, 8)", "() => false, 8)")(s)) }); ok(r.length > 0, `M imagem larga no fim abre buraco (lista de 26): vermelho${r.length ? ' — ' + String(r[0]).slice(0, 90) : ' (passou batido)'}`) }
 // KINEO-VITRINE-10-1011 — com 26 clipes (teto de 4 grandes) o fim da grade de hoje fecha sem precisar do fechaOFim nem da busca para trás, e
 // estes 3 mutantes passariam batido. As duas proteções continuam no código para a lista que encolher de novo: são provadas na lista de 16
 // clipes de 09/11 (a mesma de quando nasceram), olhando só a grade e a mistura (G e D). Primeiro a lista de 16 tem de ficar verde nelas.
@@ -368,11 +405,27 @@ mutante('cartão leva às Ads', { [MOSAICO]: troca(': viaSignup(clipeNovoDestino
 mutante('filme do Studio leva ao /clips', { [LIB]: troca("export const clipeNovoAbreStudio = (c: Pick<ClipeNovo, 'selo'>): boolean => c.selo === 'Narrated film'", "export const clipeNovoAbreStudio = (c: Pick<ClipeNovo, 'selo'>): boolean => false") }) // KINEO-VITRINE-10-1011
 mutante('clipe de foto rotulado como filme', { [LIB]: troca("id: 'kit-skincare', title: 'Holiday skincare gift set', engine: null, selo: 'Trending format'", "id: 'kit-skincare', title: 'Holiday skincare gift set', engine: null, selo: 'Narrated film'") }) // KINEO-VITRINE-10-1011
 mutante('anúncio de skincare leva às Ads', { [LIB]: troca("if (c.engine === null) return '/clips'", "if (c.engine === null) return '/ads/new'") }) // KINEO-VITRINE-10-1011
+// KINEO-ADS-NATAL-VITRINE-1011 [fundador 10/11: "Pode colocar todos na página inicial como anúncios… Em vez de Recreate, a pessoa vai fazer o
+// anúncio dela"] — o link às Ads agora é permitido SÓ no exemplo de anúncio; a AUTORIA continua proibida. Cada lado tem o seu mutante.
+const ARIA_NOVO = 'aria-label={`${c.title} — ${tipo}`}'
+// A autoria falsa tem de ficar vermelha PELA REGRA DA AUTORIA (não por tabela de outra regra): o mutante só passa se o erro "diz que a
+// ferramenta de Ads fez o vídeo" aparecer.
+const mutanteAutoria = (nome, novasTrocas) => { let r; try { r = checa(carrega(novasTrocas)) } catch (err) { r = ['quebrou: ' + err.message] } const m = r.find((x) => /diz que a ferramenta de Ads fez o vídeo/.test(x)); ok(!!m, `M ${nome}: vermelho pela regra da autoria${m ? ' — ' + m.slice(0, 90) : ' (passou batido)'}`) }
+mutanteAutoria('exemplo de anúncio diz "made with Kineo Ads" (aria-label)', { [MOSAICO]: troca(ARIA_NOVO, "aria-label={`${c.title} — ${tipo}${podeFazerAnuncio(t) ? ', made with Kineo Ads' : ''}`}") })
+mutanteAutoria('exemplo de anúncio diz "Made by the ad tool" (texto do cartão)', { [MOSAICO]: injeta(COPIA_NOVO, "{podeFazerAnuncio(t) ? <i><UiLabel>Made by the ad tool</UiLabel></i> : null}") })
+mutanteAutoria('convite vira "Created with Studio Ads"', { [MOSAICO]: troca('<UiLabel>Make your ad</UiLabel>', '<UiLabel>Make your ad</UiLabel> <UiLabel>Created with Studio Ads</UiLabel>') })
+mutante('exemplo de anúncio leva ao /clips', { [LIB]: troca("export const clipeNovoAnuncio = (c: Pick<ClipeNovo, 'selo'>): boolean => c.selo === 'Ad example'", "export const clipeNovoAnuncio = (c: Pick<ClipeNovo, 'selo'>): boolean => false") })
+mutante('exemplo de anúncio sem passar pelo signup', { [MOSAICO]: troca(': viaSignup(clipeNovoDestino(c), signedIn)}', ": podeFazerAnuncio(t) ? '/ads/new' : viaSignup(clipeNovoDestino(c), signedIn)}") })
+mutante('exemplo de anúncio leva a outro lugar das Ads', { [LIB]: troca("export const CRIAR_ANUNCIO_HREF = '/ads/new'", "export const CRIAR_ANUNCIO_HREF = '/ads/v2'") })
+mutante('convite "Make your ad" some', { [MOSAICO]: troca('{podeFazerAnuncio(t) ? <MakeYourAd /> : null}', '') })
+mutante('convite "Make your ad" em todo clipe novo', { [MOSAICO]: troca('{podeFazerAnuncio(t) ? <MakeYourAd /> : null}', '<MakeYourAd />') })
+mutante('Recreate no exemplo de anúncio (em vez do convite)', { [MOSAICO]: troca("  if (t.kind === 'novo') return !!t.clip.prompt && !clipeNovoAnuncio(t.clip)", "  if (t.kind === 'novo') return !!t.clip.prompt || clipeNovoAnuncio(t.clip)") })
+mutante('exemplo de anúncio medido como clipe', { [MOSAICO]: troca("data-home-cta={podeFazerAnuncio(t) ? 'mosaic_ad' : 'mosaic_clip'}", 'data-home-cta="mosaic_clip"') })
+mutante('exemplo de anúncio rotulado como formato', { [LIB]: troca("id: 'anuncio-relogio', title: 'The gift watch', engine: null, selo: 'Ad example'", "id: 'anuncio-relogio', title: 'The gift watch', engine: null, selo: 'Trending format'") })
+mutante('etiqueta "Ad example" na tela', { [MOSAICO]: injeta(COPIA_NOVO, '<i><UiLabel>{tipo}</UiLabel></i>') })
 // KINEO-OUTFIT-MORPH-HOME-0911 — o ramo do cartão de formato
 // KINEO-CARDS-SEM-ETIQUETA-0911 — os cartões não têm mais etiqueta: os mutantes de motor injetam o texto logo antes do título, onde ela ficava
-const COPIA_NOVO = '<span className="kmz-copy"><b><UiLabel>{c.title}</UiLabel></b><Views video={clipeNovoVideo(c)} />'
 const COPIA_CLIPE = '<span className="kmz-copy"><b><UiLabel>{c.title}</UiLabel></b><Views video={c.video} />'
-const injeta = (alvo, texto) => troca(alvo, alvo.replace('<span className="kmz-copy">', `<span className="kmz-copy">${texto}`))
 mutante('etiqueta volta no clipe novo', { [MOSAICO]: injeta(COPIA_NOVO, '<i><UiLabel>{tipo}</UiLabel></i>') })
 mutante('etiqueta volta no multi-camera', { [MOSAICO]: injeta('<span className="kmz-copy"><b>{t.title}</b>', '<i>Multi-camera</i>') })
 mutante('etiqueta volta no efeito', { [MOSAICO]: injeta('<span className="kmz-copy"><b><UiLabel>{e.title}</UiLabel></b>', '<i><UiLabel>Effect</UiLabel></i>') })
