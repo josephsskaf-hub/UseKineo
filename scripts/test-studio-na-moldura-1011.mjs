@@ -31,14 +31,16 @@ const isGen = p => p['data-testid'] === 'studio-simple-generate'
 const forced = (o, v) => ({ ...o, 'lib/create/release.ts': (o['lib/create/release.ts'] ?? read('lib/create/release.ts')).replace(/CREATE_FILM_INPLACE: InternalRelease = '[a-z]+'/, `CREATE_FILM_INPLACE: InternalRelease = '${v}'`) })
 function switchChecks(o) {
   const access = aba(o).m('lib/create/access'), release = aba(o).m('lib/create/release')
-  ok(release.CREATE_FILM_INPLACE === 'internal', "o interruptor novo nasce 'internal'")
+  ok(release.CREATE_FILM_INPLACE === 'public', "KINEO-STUDIO-NA-MOLDURA-ABRE-1011: o interruptor está 'public' (aberto em 10/11)")
   ok(release.CREATE_SHELL_RELEASE === 'public', 'CREATE_SHELL_RELEASE intocado (public)')
-  ok(access.filmNaMoldura('film', HOUSE) === true && access.filmNaMoldura('film', CUSTOMER) === false && access.filmNaMoldura('film', null) === false, "padrão 'internal': só a casa vê o Studio na moldura")
+  ok(access.filmNaMoldura('film', HOUSE) === true && access.filmNaMoldura('film', CUSTOMER) === true && access.filmNaMoldura('film', null) === false, "padrão 'public': toda conta logada vê o Studio na moldura; visitante nunca")
+  const internal = aba(forced(o, 'internal')).m('lib/create/access')
+  ok(internal.filmNaMoldura('film', HOUSE) === true && internal.filmNaMoldura('film', CUSTOMER) === false && internal.filmNaMoldura('film', null) === false, "volta 'internal' forçado: só a casa")
   for (const t of ['cartoon', 'ads', 'recreate', 'x']) ok(access.filmNaMoldura(t, HOUSE) === false, `${t}: nunca troca (só a aba Film)`)
   const off = aba(forced(o, 'off')).m('lib/create/access'), pub = aba(forced(o, 'public')).m('lib/create/access')
   ok([HOUSE, CUSTOMER, null].every(e => off.filmNaMoldura('film', e) === false), "'off' forçado: ninguém")
   ok(pub.filmNaMoldura('film', CUSTOMER) === true && pub.filmNaMoldura('film', null) === false, "'public' forçado: toda conta logada, nunca visitante")
-  ok(access.filmNaMoldura('film', 'test-hacker@example.org') === false, 'e-mail parecido não é allowlist')
+  ok(internal.filmNaMoldura('film', 'test-hacker@example.org') === false, "'internal': e-mail parecido não é allowlist")
   const page = lf(o['app/create/[tab]/page.tsx'] ?? read('app/create/[tab]/page.tsx'))
   const iDecision = page.indexOf("if (decision.kind !== 'show') notFound()"), iFrame = page.indexOf('if (filmNaMoldura(params.tab, user?.email)) return <StudioNaMoldura showRecreate={decision.showRecreate} motor={motorDaCaixa(undefined)} campanha={CREATE_FILM_CAMPAIGN} />')
   ok(iDecision > 0 && iFrame > iDecision, 'a página só troca DEPOIS da porta da tela nova (404/cadastro de sempre), com o motor e a campanha do Continue')
@@ -144,33 +146,70 @@ function onChecks(o) {
   ok(t.log.events.some(([n, m]) => n === 'create_example_clicked' && m.tab === 'film') && t.log.events.some(([n]) => n === 'mrr_idea_entered'), 'exemplo: create_example_clicked + mrr_idea_entered')
 }
 
-// ─── D. Preço só no botão, da função que cobra; sem motor; nada sozinho ─────────────────────────────────────────────────
-function priceChecks(o) {
-  const cost = aba(o).m('lib/credits/engineCost'), price = aba(o).m('lib/create/filmNaMoldura')
+// ─── D. Preço: só para pagante, só quando a duração é a cobrada, só no botão; sem motor; nada sozinho ───────────────────
+// KINEO-STUDIO-NA-MOLDURA-ABRE-1011 — corpos de GET /api/credits (os campos que a rota devolve; ver app/api/credits/route.ts).
+const SESSION = 'sb-abc-auth-token=x'
+const PAID = { credits: 400, hasPaid: true, isStarter: false, isCreator: false, isStudio: true, entitlementsResolved: true, filmsDelivered: 3, trial: { phase: 'none' } }
+const STARTER = { credits: 60, hasPaid: false, isStarter: true, isCreator: false, isStudio: false, entitlementsResolved: true, filmsDelivered: 0, trial: { phase: 'none' } }
+const TRIAL = { credits: 10, hasPaid: false, isStarter: false, isCreator: false, isStudio: false, entitlementsResolved: true, filmsDelivered: 0, trial: { phase: 'active', creditsGranted: 10, msLeft: 86_400_000, creditsUsedForDisplay: 0 } }
+const FREE = { credits: 0, hasPaid: false, isStarter: false, isCreator: false, isStudio: false, entitlementsResolved: true, filmsDelivered: 1, trial: { phase: 'none' } }
+const button = html => html.match(/<button type="button" class="rc-generate"[^>]*>[\s\S]*?<\/button>/)[0]
+async function frameWith(o, opts, steps = () => {}) {
+  const t = aba(o, opts)
+  t.mount(React.createElement(t.m('components/create/StudioNaMoldura').default, { showRecreate: true, motor: 'seedance', campanha: 'create_film' }))
+  await t.settle()
+  steps(t)
+  return t
+}
+async function priceChecks(o) {
+  const cost = aba(o).m('lib/credits/engineCost'), price = aba(o).m('lib/create/filmNaMoldura'), cpt = aba(o).m('lib/growth/contaPagaNaTela')
+  const base = { motor: 'seedance', contaPaga: true, palavraPorPalavra: false, texto: 'A ship found adrift', opcoesDuracao: [15, 35, 60, 90] }
   for (const d of [15, 35, 60, 90]) {
-    ok(price.precoDoGenerate('seedance', d) === cost.creditCostForDuration('cinematic_ai', true, d) && cost.creditCostForDuration('cinematic_ai', true, d) === cost.creditCostForDuration('cinematic_ai', false, d), `${d} s: o número = creditCostForDuration (paga ou não paga, o mesmo)`)
+    ok(price.precoDoGenerate({ ...base, duracao: d }) === cost.creditCostForDuration('cinematic_ai', true, d) && cost.creditCostForDuration('cinematic_ai', true, d) === cost.creditCostForDuration('cinematic_ai', false, d), `${d} s pagante: o número = creditCostForDuration`)
+    ok(price.precoDoGenerate({ ...base, duracao: d, contaPaga: false }) === null, `${d} s conta sem prova de plano pago: sem número`)
+    ok(price.precoDoGenerate({ ...base, duracao: d, palavraPorPalavra: true }) === null, `${d} s palavra por palavra (autofit pode subir): sem número`)
   }
-  ok(['hollywood', 'h3', 'omni', 's25', 'fast', 'x'].every(mo => price.precoDoGenerate(mo, 60) === null), 'outro motor: sem número (nunca um palpite)')
+  ok(price.precoDoGenerate({ ...base, duracao: 60, texto: 'Make it a 90-second film about the Titanic' }) === null, 'duração escrita no texto ≠ escolhida: sem número (o /studio/create troca)')
+  ok(price.precoDoGenerate({ ...base, duracao: 90, texto: 'Make it a 90-second film about the Titanic' }) === cost.creditCostForDuration('cinematic_ai', true, 90), 'duração escrita = escolhida: número')
+  ok(['hollywood', 'h3', 'omni', 's25', 'fast', 'x'].every(mo => price.precoDoGenerate({ ...base, motor: mo, duracao: 60 }) === null), 'outro motor: sem número (nunca um palpite)')
+  // "Pagante" = contaPagaNaTela sobre o corpo de /api/credits — nenhuma regra nova.
+  for (const [nome, corpo] of [['PAID', PAID], ['STARTER', STARTER], ['TRIAL', TRIAL], ['FREE', FREE], ['null', null], ['vazio', {}], ['hasPaid "true"', { hasPaid: 'true' }]]) {
+    const regra = corpo && typeof corpo === 'object' ? cpt.contaPagaNaTela({ hasPaid: corpo.hasPaid === true, isStarter: corpo.isStarter === true, isCreator: corpo.isCreator === true, isStudio: corpo.isStudio === true, planoLido: false, provadoQueNaoPaga: false }) === true : false
+    ok(price.contaPagaDoSaldo(corpo) === regra && regra === (nome === 'PAID' || nome === 'STARTER'), `contaPagaDoSaldo(${nome}) = contaPagaNaTela`)
+  }
+  // Na tela: pagante vê o número no botão e só lá; os outros veem "Generate" puro, como a caixa de hoje.
   for (const d of [15, 35, 60, 90]) {
-    const t = aba(o)
-    t.mount(React.createElement(t.m('components/create/StudioNaMoldura').default, { showRecreate: true, motor: 'seedance', campanha: 'create_film' }))
-    if (d !== 60) t.click(p => p['data-studio-duration'] === d, 'duração')
-    const html = t.html()
-    const button = html.match(/<button type="button" class="rc-generate"[^>]*>[\s\S]*?<\/button>/)[0]
-    ok(button.includes(`Generate<span>✦ ${price.precoDoGenerate('seedance', d)}</span>`), `${d} s: "Generate ✦ ${price.precoDoGenerate('seedance', d)}" no botão`)
-    const rest = html.replace(button, '')
+    const t = await frameWith(o, { cookie: SESSION, credits: PAID }, t => { if (d !== 60) t.click(p => p['data-studio-duration'] === d, 'duração') })
+    const html = t.html(), b = button(html), n = cost.creditCostForDuration('cinematic_ai', true, d)
+    ok(b.includes(`Generate<span>✦ ${n}</span>`), `${d} s pagante: "Generate ✦ ${n}" no botão`)
+    const rest = html.replace(b, '')
     const text = visibleText(rest) + ' ' + [...rest.matchAll(/(?:aria-label|placeholder|title|alt)="([^"]*)"/g)].map(x => x[1]).join(' ')
     ok(!PRICE.test(text), `${d} s: preço/crédito em nenhum outro lugar (${(text.match(PRICE) || [])[0]})`)
-    ok(!ENGINE_NAMES.test(text + visibleText(button)), `${d} s: nenhum nome de motor (${((text + visibleText(button)).match(ENGINE_NAMES) || [])[0]})`)
-    ok(/disabled=""/.test(button) && html.includes('Write your idea to continue.'), `${d} s: Generate desabilitado sem ideia, com o motivo`)
-    ok(t.log.pushes.length === 0 && t.log.fetches.length === 0 && !/autofocus/i.test(html), `${d} s: nada começa sozinho (sem navegação, sem rede, sem autofoco)`)
+    ok(!ENGINE_NAMES.test(text + visibleText(b)), `${d} s: nenhum nome de motor (${((text + visibleText(b)).match(ENGINE_NAMES) || [])[0]})`)
+    ok(/disabled=""/.test(b) && html.includes('Write your idea to continue.'), `${d} s: Generate desabilitado sem ideia, com o motivo`)
+    ok(t.log.pushes.length === 0 && JSON.stringify(t.log.fetches) === JSON.stringify([['/api/credits', 'GET']]) && !/autofocus/i.test(html), `${d} s: nada começa sozinho (só a leitura de saldo de sempre, sem navegação, sem autofoco)`)
     ok((html.match(/data-create-tab=/g) || []).length === 4 && html.includes('aria-current="page" data-create-tab="film"'), `${d} s: abas no topo, Film ativa`)
     ok((html.match(/class="rc-step /g) || []).length === 3 && html.includes('<details class="rc-adjustments">') && !html.includes('<details class="rc-adjustments" open'), `${d} s: 3 passos; Details recolhido`)
     ok(html.includes('class="rc-player"') && (html.match(/data-create-example=/g) || []).length >= 3, `${d} s: exemplo grande + Film examples`)
+    const v = await frameWith(o, { cookie: SESSION, credits: PAID }, t => { if (d !== 60) t.click(p => p['data-studio-duration'] === d, 'duração'); t.type(p => p.type === 'checkbox', true, 'palavra por palavra') })
+    ok(!/✦/.test(button(v.html())), `${d} s pagante + palavra por palavra: sem número na tela`)
   }
-  // Free-film line (aviso que o Studio já tem) continua com o MESMO texto quando /api/credits prova.
-  ok(lf(read('components/create/StudioNaMoldura.tsx')).includes('{c.temFilmeGratis ? <p className="rc-next-note" data-testid="studio-free-film-line">{LINHA_DO_FILME_GRATIS}</p> : null}'), 'a linha do filme grátis é a mesma constante')
+  for (const [nome, opts] of [['teste grátis', { cookie: SESSION, credits: TRIAL }], ['conta free', { cookie: SESSION, credits: FREE }], ['leitura falhou', { cookie: SESSION, credits: null }], ['sem cookie de sessão', { credits: PAID }]]) {
+    const t = await frameWith(o, opts)
+    const html = t.html()
+    ok(/<button type="button" class="rc-generate"[^>]*>Generate<\/button>/.test(html) && !PRICE.test(visibleText(html)), `${nome}: botão "Generate" sem número, nenhum preço na tela`)
+    const linha = html.includes('data-testid="studio-free-film-line"')
+    ok(linha === (nome === 'teste grátis') && (!linha || html.includes(`>${aba(o).m('lib/growth/filmeGratisNaCaixa').LINHA_DO_FILME_GRATIS}<`)), `${nome}: linha do filme grátis só com prova, com o MESMO texto do Studio`)
+  }
+  const t = await frameWith(o, { cookie: SESSION, credits: PAID }, t => t.type(p => p.id === 'sm-idea', 'Make it a 90-second film about the Titanic', 'ideia'))
+  ok(!/✦/.test(button(t.html())), 'pagante com "90-second" escrito e 60 s escolhido: sem número na tela')
+  // Sem moldura (o /studio de sempre), com a leitura de saldo real: HTML, rede e eventos = main, para pagante, teste grátis e free.
+  for (const corpo of [PAID, TRIAL, FREE]) {
+    const run = async ov => { const t = aba(ov, { cookie: SESSION, credits: corpo }); t.mount(React.createElement(t.m('components/studio/StudioSimples').default, { filmes: [], motor: 'seedance', campanha: 'create_film', ideiaInicial: IDEA })); await t.settle(); return JSON.stringify([t.html(), t.log.fetches, t.log.events]) }
+    ok(await run(o) === await run({ ...o, ...MAIN }), `StudioSimples sem moldura com /api/credits ${corpo === PAID ? 'pagante' : corpo === TRIAL ? 'teste grátis' : 'free'}: HTML + rede + eventos = main`)
+  }
 }
+
 
 // ─── E. Celular ────────────────────────────────────────────────────────────────────────────────────────────────────────
 function mobileChecks(o) {
@@ -180,20 +219,27 @@ function mobileChecks(o) {
   ok(novo.length > 100 && !/(?<![-a-z])(min-)?width:\s*\d{3,}px/.test(novo) && novo.split('\n').slice(1).filter(Boolean).every(l => l.startsWith('.create-shell ')), 'CSS novo: só .create-shell, nenhuma largura fixa')
 }
 
-function all(o = {}) { switchChecks(o); offChecks(o); onChecks(o); priceChecks(o); mobileChecks(o) }
-all()
+async function all(o = {}) { switchChecks(o); offChecks(o); onChecks(o); await priceChecks(o); mobileChecks(o) }
+await all()
 const real = passed
 
 const src = p => read(p)
 const mutants = [
-  ['interruptor público', { 'lib/create/release.ts': src('lib/create/release.ts').replace("CREATE_FILM_INPLACE: InternalRelease = 'internal'", "CREATE_FILM_INPLACE: InternalRelease = 'public'") }],
+  ['interruptor de volta a internal', { 'lib/create/release.ts': src('lib/create/release.ts').replace("CREATE_FILM_INPLACE: InternalRelease = 'public'", "CREATE_FILM_INPLACE: InternalRelease = 'internal'") }],
+  ['interruptor desligado', { 'lib/create/release.ts': src('lib/create/release.ts').replace("CREATE_FILM_INPLACE: InternalRelease = 'public'", "CREATE_FILM_INPLACE: InternalRelease = 'off'") }],
+  ['número para quem não paga', { 'lib/create/filmNaMoldura.ts': src('lib/create/filmNaMoldura.ts').replace('if (!f.contaPaga || f.palavraPorPalavra', 'if (f.palavraPorPalavra') }],
+  ['pagante inventado (hasPaid truthy)', { 'lib/create/filmNaMoldura.ts': src('lib/create/filmNaMoldura.ts').replace('hasPaid: d.hasPaid === true', 'hasPaid: !!d.hasPaid') }],
+  ['número ignora palavra por palavra', { 'lib/create/filmNaMoldura.ts': src('lib/create/filmNaMoldura.ts').replace('if (!f.contaPaga || f.palavraPorPalavra ||', 'if (!f.contaPaga ||') }],
+  ['número ignora a duração escrita', { 'lib/create/filmNaMoldura.ts': src('lib/create/filmNaMoldura.ts').replace('if (pedida !== null && pedida !== f.duracao) return null', '') }],
+  ['moldura não recebe o pagante', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('contaPaga: c.contaPaga', 'contaPaga: false') }],
+  ['linha do filme grátis some', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('{c.temFilmeGratis ? <p', '{false ? <p') }],
   ['porta ignora a allowlist', { 'lib/create/access.ts': src('lib/create/access.ts').replace("return tab === 'film' && !!email && releaseVisible(email, release)", "return tab === 'film' && !!email") }],
   ['Cartoon também troca', { 'lib/create/access.ts': src('lib/create/access.ts').replace("return tab === 'film' && ", 'return ') }],
   ['página com outra campanha', { 'app/create/[tab]/page.tsx': src('app/create/[tab]/page.tsx').replace('campanha={CREATE_FILM_CAMPAIGN} />', 'campanha="create_film_v2" />') }],
   ['Generate da moldura não chama o gerar() do Studio', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('onClick={c.gerar}', "onClick={() => c.setDuracao(60)}") }],
   ['escrever não mede a ideia', { 'components/studio/StudioSimples.tsx': src('components/studio/StudioSimples.tsx').replace("const escrever = (v: string) => { setTexto(v); setAviso(null); if (v.trim()) registrar('mrr_idea_entered') }", 'const escrever = (v: string) => { setTexto(v); setAviso(null) }') }],
   ['moldura muda a campanha do pedido', { 'components/studio/StudioSimples.tsx': src('components/studio/StudioSimples.tsx').replace('if (moldura) {', "if (moldura) { campanha = 'moldura';") }],
-  ['preço inventado', { 'lib/create/filmNaMoldura.ts': src('lib/create/filmNaMoldura.ts').replace("creditCostForDuration('cinematic_ai', true, duracao)", '40') }],
+  ['preço inventado', { 'lib/create/filmNaMoldura.ts': src('lib/create/filmNaMoldura.ts').replace("creditCostForDuration('cinematic_ai', true, f.duracao)", '40') }],
   ['preço fora do botão', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('<small>{c.duracao} s · {c.formato} ', '<small>{c.duracao} s · {c.formato} · ✦ {preco} ') }],
   ['nome de motor na tela', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('<span>Details</span>', '<span>Details · Seedance</span>') }],
   ['Details aberto por padrão', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('<details className="rc-adjustments">', '<details className="rc-adjustments" open>') }],
@@ -207,7 +253,7 @@ let bitten = 0
 for (const [name, o] of mutants) {
   passed = 0
   let died = false
-  try { all(o) } catch (e) { died = true; if (process.env.VERBOSE) console.log(`  ${name} → ${String(e.message).split('\n')[0]}`) }
+  try { await all(o) } catch (e) { died = true; if (process.env.VERBOSE) console.log(`  ${name} → ${String(e.message).split('\n')[0]}`) }
   assert(died, `MUTANTE SOBREVIVEU: ${name}`)
   bitten++
 }

@@ -13,7 +13,7 @@ const baseSrc = p => execFileSync('git', ['show', `${BASE}:${p}`], { cwd: ROOT, 
 const link = { __esModule: true, default: ({ href, children, prefetch, ...rest }) => React.createElement('a', { ...rest, href }, children) }
 
 /** Uma "aba": dublês + hooks emulados. `overrides` troca o fonte de arquivos (main antiga ou mutantes). */
-function aba(overrides = {}, { now = 1_800_000_000_000 } = {}) {
+function aba(overrides = {}, { now = 1_800_000_000_000, cookie = '', credits = null } = {}) {
   const log = { pushes: [], events: [], fetches: [], storage: new Map() }
   const store = new Map(), effects = []
   let cur = 'root', idx = 0
@@ -35,10 +35,10 @@ function aba(overrides = {}, { now = 1_800_000_000_000 } = {}) {
   // Globais do navegador, só o que os componentes tocam.
   const g = globalThis
   g.sessionStorage = { getItem: k => log.storage.get(k) ?? null, setItem: (k, v) => log.storage.set(k, String(v)), removeItem: k => log.storage.delete(k) }
-  g.document = { cookie: '', querySelectorAll: () => [], querySelector: () => null }
+  g.document = { cookie, querySelectorAll: () => [], querySelector: () => null }
   g.window = { matchMedia: () => ({ matches: false }), requestAnimationFrame: f => f(), addEventListener: () => {}, removeEventListener: () => {} }
   g.IntersectionObserver = class { observe() {} disconnect() {} }
-  g.fetch = async (url, init) => { log.fetches.push([String(url), init?.method ?? 'GET']); return { ok: false, json: async () => null } }
+  g.fetch = async (url, init) => { log.fetches.push([String(url), init?.method ?? 'GET']); return credits && String(url) === '/api/credits' ? { ok: true, json: async () => credits } : { ok: false, json: async () => null } }
   Date.now = () => now
 
   let rootEl = null
@@ -74,8 +74,10 @@ function aba(overrides = {}, { now = 1_800_000_000_000 } = {}) {
     if (hits.length !== 1) throw new Error(`${what}: ${hits.length} elementos`)
     return hits[0]
   }
+  // KINEO-STUDIO-NA-MOLDURA-ABRE-1011 — deixa as promessas dos efeitos (fetch → setState) terminarem e redesenha.
+  async function settle() { for (let i = 0; i < 10; i++) await new Promise(r => setImmediate(r)); return render() }
   return {
-    m, log, mount, render,
+    m, log, mount, render, settle,
     html: () => renderToStaticMarkup(tree),
     one, all,
     click(pred, what) { one(pred, what).props.onClick({ preventDefault() {}, target: {}, currentTarget: {} }); return render() },

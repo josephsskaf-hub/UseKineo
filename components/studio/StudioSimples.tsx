@@ -17,6 +17,7 @@ import { MIN_DURATION_ALL_ENGINES } from '@/lib/durationByEngine'
 import { nomeDoMotorEscolhido, pedidoDoStudioSimples, type FilmeDaCaixa } from '@/lib/growth/studioSimples'
 import { EVENTO_DA_LINHA, LINHA_DO_FILME_GRATIS, filmeGratisNaCaixa } from '@/lib/growth/filmeGratisNaCaixa' // KINEO-CAIXA-GRATIS-VISIVEL-0411
 import { temCookieDeSessao } from '@/lib/growth/visitanteEscreveAntes' // KINEO-CAIXA-GRATIS-VISIVEL-0411
+import { contaPagaDoSaldo } from '@/lib/create/filmNaMoldura' // KINEO-STUDIO-NA-MOLDURA-ABRE-1011
 import { KineoBrandIcon } from '@/components/KineoBolt' // KINEO-CELULAR-A-0611
 
 const CSS = `
@@ -97,6 +98,8 @@ export interface CaixaNaMoldura {
   motor: string; texto: string; escrever: (v: string) => void; caixa: RefObject<HTMLTextAreaElement>; aviso: string | null; limiteMax: number
   duracao: number; opcoesDuracao: readonly number[]; setDuracao: (d: number) => void; formato: string; formatos: readonly string[]; setFormato: (f: string) => void
   lingua: string; setLingua: (l: string) => void; palavraPorPalavra: boolean; setPalavraPorPalavra: (v: boolean) => void; maisOpcoes: string; temFilmeGratis: boolean; gerar: () => void
+  /** KINEO-STUDIO-NA-MOLDURA-ABRE-1011 — a MESMA leitura de /api/credits que a linha do filme grátis; true só com prova de plano pago. */
+  contaPaga: boolean
 }
 
 export default function StudioSimples({ filmes, motor, campanha, ideiaInicial = '', moldura }: { filmes: ReadonlyArray<FilmeDaCaixa>; motor: string; campanha: string; ideiaInicial?: string; moldura?: (c: CaixaNaMoldura) => ReactNode }) {
@@ -111,6 +114,7 @@ export default function StudioSimples({ filmes, motor, campanha, ideiaInicial = 
   const [folha, setFolha] = useState(false)
   const [aviso, setAviso] = useState<string | null>(null)
   const [temFilmeGratis, setTemFilmeGratis] = useState(false) // KINEO-CAIXA-GRATIS-VISIVEL-0411 — só com prova do servidor; desconhecido = não mostra
+  const [contaPaga, setContaPaga] = useState(false) // KINEO-STUDIO-NA-MOLDURA-ABRE-1011 — só com prova do servidor (contaPagaNaTela); desconhecido = false
   const nomeMotor = nomeDoMotorEscolhido(motor)
   const opcoesDuracao = motor === 'seedance' ? DURACOES : DURACOES.filter((d) => d >= MIN_DURATION_ALL_ENGINES)
   const limite = useMemo(() => promptLimitState(texto, analyzePromptMaxChars(palavraPorPalavra ? 'verbatim' : 'ai')), [texto, palavraPorPalavra])
@@ -124,6 +128,7 @@ export default function StudioSimples({ filmes, motor, campanha, ideiaInicial = 
     void fetch('/api/credits', { cache: 'no-store', credentials: 'same-origin' })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
+        if (vivo && contaPagaDoSaldo(d)) setContaPaga(true) // KINEO-STUDIO-NA-MOLDURA-ABRE-1011 — mesma resposta, nenhuma chamada a mais
         if (!vivo || !filmeGratisNaCaixa(d)) return
         setTemFilmeGratis(true)
         void trackEvent(EVENTO_DA_LINHA, { engine: motor, surface: 'studio_simple' })
@@ -166,7 +171,7 @@ export default function StudioSimples({ filmes, motor, campanha, ideiaInicial = 
   // KINEO-STUDIO-NA-MOLDURA-1011 — com a moldura (só /create/film, interruptor CREATE_FILM_INPLACE), troca SÓ o desenho; sem ela, nada muda.
   if (moldura) {
     const escrever = (v: string) => { setTexto(v); setAviso(null); if (v.trim()) registrar('mrr_idea_entered') } // o mesmo onChange da caixa abaixo
-    return <>{moldura({ motor, texto, escrever, caixa, aviso, limiteMax: limite.max, duracao, opcoesDuracao, setDuracao, formato, formatos: FORMATOS, setFormato, lingua, setLingua, palavraPorPalavra, setPalavraPorPalavra, maisOpcoes, temFilmeGratis, gerar })}</>
+    return <>{moldura({ motor, texto, escrever, caixa, aviso, limiteMax: limite.max, duracao, opcoesDuracao, setDuracao, formato, formatos: FORMATOS, setFormato, lingua, setLingua, palavraPorPalavra, setPalavraPorPalavra, maisOpcoes, temFilmeGratis, gerar, contaPaga })}</>
   }
 
   return (
