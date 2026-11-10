@@ -1,5 +1,5 @@
 {
- "base": "004573b7f54373517fd0844f5de64fd4e06272e1",
+ "base": "15c3180ac3b2907d4aeae49ab743d1c7a818bbd9",
  "scope": {
   "lib/compose.ts": {
    "beforeSha256": "c51828d45f133b28b4a7bf947fe38b020bc120d79cd3e59aa8200415aa14e108",
@@ -45,6 +45,6 @@
   }
  },
  "addedSources": {
-  "lib/legendaNegacao.ts": "c287b8217a3b25875438d573cea260dd5f35f1cf88289b9baa517dd1de59c99d"
+  "lib/legendaNegacao.ts": "191bd14e3ad9fe52a274bfd7f4a51c0c2f5818b38faf2f3b179603b603959694"
  }
 }

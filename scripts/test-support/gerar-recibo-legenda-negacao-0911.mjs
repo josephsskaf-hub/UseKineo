@@ -9,7 +9,7 @@ const raiz = join(import.meta.dirname, '..', '..')
 const lf = (t) => String(t).replace(/\r\n/g, '\n')
 const sha = (t) => createHash('sha256').update(t).digest('hex')
 const git = (...a) => execFileSync('git', a, { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 })
-const BASE = '004573b7f54373517fd0844f5de64fd4e06272e1' // a origin/main em que este conserto nasceu (fixa: o recibo não muda quando a origin/main anda)
+const BASE = '15c3180ac3b2907d4aeae49ab743d1c7a818bbd9' // a origin/main em que este conserto nasceu (fixa: o recibo não muda quando a origin/main anda)
 const ESCOPO = ['lib/compose.ts', 'lib/legendaNegacao.ts'] // KINEO-LEGENDA-NEGACAO-0911 — o corte da legenda por teto de palavras (Whisper e proporcional) e o helper novo da negação
 
 const scope = {}, addedSources = {}

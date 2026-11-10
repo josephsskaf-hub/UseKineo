@@ -33,12 +33,16 @@ const limpa = (palavra: unknown): string =>
   String(palavra ?? '').toLowerCase().replace(/[’ʼ`´]/g, "'").replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')
 
 /** A palavra é uma negação na língua do filme? ("doesn't", "not", "never", "não", "nunca", "no" em espanhol, "ne"/"n'est" em francês…) */
-export function ehNegacaoDaLegenda(palavra: unknown, idioma?: unknown): boolean {
+export function ehNegacaoDaLegenda(palavra: unknown, idioma?: unknown, vizinhas?: { anterior?: unknown; seguinte?: unknown }): boolean {
   const lingua = typeof idioma === 'string' && idioma.trim() ? idioma.trim().toLowerCase().split(/[-_]/)[0] : 'en'
   const lista = NEGADORES[lingua]
   if (!lista) return false
   const p = limpa(palavra)
   if (!p) return false
+  // KINEO-LEGENDA-NEGACAO-INTEGRA-1011 — falsos positivos da revisão adversária (10/11): "Ela nada bem" (verbo nadar depois do
+  // sujeito) e "Chanel No 5" / "No. 5" (número) não são negação — a legenda dessas frases tem de sair como antes.
+  if (p === 'nada' && /^(?:ela|ele|você|voce|eu|tu|ella|él|el|usted|yo|quem|quien)$/.test(limpa(vizinhas?.anterior))) return false
+  if (p === 'no' && /^[#(]?\d/.test(String(vizinhas?.seguinte ?? '').trim())) return false
   if (lista.has(p)) return true
   if (lingua === 'en') return /n't(?:'ve)?$/.test(p) // doesn't, don't, can't, won't, isn't, couldn't've…
   if (lingua === 'fr') return /^n'\p{L}/u.test(p) // n'est, n'a, n'oublie…
@@ -80,7 +84,7 @@ export function planoDaNegacao<T>(
     viajaComASeguinte?: (item: T) => boolean
   },
 ): { prefixo: number; tamanho: number } | null {
-  const p = atual.findIndex((item) => ehNegacaoDaLegenda(o.palavra(item), o.idioma))
+  const p = atual.findIndex((item, i) => ehNegacaoDaLegenda(o.palavra(item), o.idioma, { anterior: i > 0 ? o.palavra(atual[i - 1]) : undefined, seguinte: i + 1 < atual.length ? o.palavra(atual[i + 1]) : resto.length ? o.palavra(resto[0]) : undefined })) // KINEO-LEGENDA-NEGACAO-INTEGRA-1011 — com as vizinhas
   if (p < 0 || resto.length === 0) return null
   const viaja = (item: T): boolean => o.viajaComASeguinte?.(item) === true
   let prefixo = p

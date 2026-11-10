@@ -529,6 +529,44 @@ function bateria(BASE, HOJE) {
     check(`V9 grade aleatória de ${linhasTestadas} linhas COM negação: a regra geral (${regraOk}), a pílula (${pilulaOk}), nenhuma palavra perdida fora do anti-gagueira (${palavrasOk}), ordem (${ordemOk})`, linhasTestadas === 4500 && regraOk === linhasTestadas && pilulaOk === linhasTestadas && palavrasOk === linhasTestadas && ordemOk === linhasTestadas)
     check(`V10 na mesma grade, hoje há MENOS pedaços de 1 palavra que na base (${umaHoje} × ${umaBase})`, umaHoje <= umaBase)
   }
+
+  // (N) KINEO-LEGENDA-NEGACAO-INTEGRA-1011 — a revisão adversária da 1011 (10/11): com o Whisper REAL as palavras vêm SEM pontuação e o
+  // fim de frase só é carimbado no fim do SEGMENTO; entre duas frases do mesmo segmento só há a pausa. A oração negada não pode
+  // engolir a frase seguinte ("DOESN'T MEAN YOU SHOULD FORGET ALLAH KEEP PRAYING"), e frase sem negação sai igual à base.
+  {
+    idioma('en')
+    const fraseDe = (texto) => { const ini = []; let k = 0; texto.trim().split(/\s+/).forEach((tok, i) => { ini.push(k); if (/[.!?…]["'”’)]*$/.test(tok)) k++ }); return ini }
+    // 'segmento' = palavra sem pontuação, sentenceEnd SÓ na última palavra, pausa real de 0,4 s no ponto e 0,3 s na vírgula
+    const linhaSegmento = (texto) => { const L = linhaDoTexto(texto, 'pausas'); L.forEach((w, i) => { if (i < L.length - 1) delete w.sentenceEnd }); return L }
+    const NEG = [
+      ["Being clever doesn't mean you should forget Allah. Keep praying every day.", [/^you should/, /^should forget/, /^forget allah/, /allah keep/]],
+      ['He never came back. The police searched the river.', [/back the police/]],
+      ["I don't know. Nobody does. But the letter was real.", [/know nobody/, /does but/]],
+      ['This is not a story about money. It is a story about a promise.', [/money it/, /^a story about money/]],
+    ]
+    for (const [texto, ruins] of NEG) {
+      const frase = fraseDe(texto)
+      for (const [modo, L] of [['segmento', linhaSegmento(texto)], ['pausas', linhaDoTexto(texto, 'pausas')], ['whisper', linhaDoTexto(texto, 'whisper')]]) {
+        const h = legendas(HOJE, L)
+        const idx = new Map(L.map((w, i) => [r3(w.start), i]))
+        const emenda = h.filter((c) => new Set(c.words.map((w) => frase[idx.get(r3(w.start))])).size > 1).map((c) => c.text)
+        const ruim = h.filter((c) => ruins.some((r) => r.test(chave(c.text)))).map((c) => c.text)
+        if (process.env.MOSTRA_N) console.log(`      N [${modo}] ${texto}\n        base: ${textos(legendas(BASE, L)).join(' | ')}\n        hoje: ${textos(h).join(' | ')}`)
+        check(`N1 [${modo}] "${texto}": nenhum pedaço emenda duas frases${emenda.length ? ' → ' + emenda.join(' / ') : ''}`, emenda.length === 0)
+        check(`N2 [${modo}] "${texto}": nenhum pedaço afirma o contrário${ruim.length ? ' → ' + ruim.join(' / ') : ''}`, ruim.length === 0)
+        check(`N3 [${modo}] "${texto}": todas as palavras, na ordem`, JSON.stringify(h.flatMap((c) => c.words.map((w) => w.start))) === JSON.stringify(L.map((w) => r3(w.start)).filter((s) => h.some((c) => c.words.some((w) => w.start === s)))) && h.flatMap((c) => c.words).length >= L.length - 1)
+      }
+    }
+    for (const [texto, codigo] of [['Ela nada bem todos os dias', 'pt'], ['Il a fait un pas en avant', 'fr'], ['Sem dúvida ele venceu', 'pt'], ['Chanel No 5 is famous', 'en']]) {
+      idioma(codigo)
+      for (const [modo, L] of [['segmento', linhaSegmento(texto)], ['whisper', linhaDoTexto(texto, 'whisper')], ['corpo', corpo(texto, 'whisper')]]) {
+        const b = legendas(BASE, L), h = legendas(HOJE, L)
+        if (process.env.MOSTRA_N) console.log(`      N4 [${modo}] ${texto}: base ${textos(b).join(' | ')} · hoje ${textos(h).join(' | ')}`)
+        check(`N4 [${modo}] sem negação "${texto}" sai IGUAL à base`, JSON.stringify(b) === JSON.stringify(h))
+      }
+    }
+    idioma('en')
+  }
   return falhas
 }
 
@@ -585,6 +623,10 @@ mutante('língua fora da lista cai no inglês', 'negacao', 'if (!lista) return f
 mutante('a palavra sozinha antes da negação vira pedaço (revisor, item 7)', 'negacao', 'if (prefixo === 1) prefixo = 0', 'if (prefixo === 99) prefixo = 0', ['V7', 'F11'])
 mutante('a palavra-função colada antes da negação fica para trás', 'negacao', 'while (prefixo > 0 && viaja(atual[prefixo - 1])) prefixo--', 'while (false) prefixo--', ['F13'])
 mutante('o pedaço da negação termina em palavra-função', 'negacao', 'if (tamanho < oracao.length) while (tamanho > jaTem && viaja(oracao[tamanho - 1])) tamanho--', '', ['P8'])
+
+mutante('"Ela nada bem" vira negação (KINEO-LEGENDA-NEGACAO-INTEGRA-1011)', 'negacao', "if (p === 'nada' && /^", "if (false && p === 'nada' && /^", ['N4'])
+mutante('"Chanel No 5" vira negação (KINEO-LEGENDA-NEGACAO-INTEGRA-1011)', 'negacao', "if (p === 'no' && /^[#(]?\\d/", "if (false && p === 'no' && /^[#(]?\\d/", ['N4'])
+mutante('a pausa de 0,28 s deixa de fechar o pedaço (Whisper real sem pontuação: as frases se emendariam; KINEO-LEGENDA-NEGACAO-INTEGRA-1011)', 'compose', ' || (Number.isFinite(gap) && gap >= SENTENCE_GAP_SECONDS) || ', ' || ', ['N1'])
 
 console.log(`\n${falhou === 0 ? '✅' : '❌'} ${passou} verdes, ${falhou} vermelhas`)
 process.exit(falhou === 0 ? 0 : 1)
