@@ -68,6 +68,9 @@ const sitemap = load('app/sitemap.ts').default()
 const runwayEntries = sitemap.filter(item => item.url === metadata.alternates.canonical)
 assert.equal(runwayEntries.length, 1)
 assert.equal(new Date(runwayEntries[0].lastModified).toISOString(), '2026-11-10T12:00:00.000Z')
-const withoutRunway = entries => JSON.parse(JSON.stringify(entries.filter(item => item.url !== metadata.alternates.canonical)))
+// KINEO-PAGINAS-CITAVEIS-1011 — a mudança seguinte do mapa (página do Recreate nova + data do /ai-ugc-ads e do par PT) é selada
+// por scripts/test-paginas-citaveis-1011.mjs; aqui ela sai da comparação com a base fixa, como a do Runway.
+const CITAVEIS_1011 = ['/ai-face-swap-video', '/ai-ugc-ads', '/anuncios-ugc-com-ia'].map(p => `https://www.usekineo.com${p}`)
+const withoutRunway = entries => JSON.parse(JSON.stringify(entries.filter(item => item.url !== metadata.alternates.canonical && !CITAVEIS_1011.includes(item.url))))
 assert.deepEqual(withoutRunway(sitemap), withoutRunway(before('app/sitemap.ts').default()), 'Other sitemap URLs and dates stay unchanged under identical unrelated-taxonomy fixtures')
 console.log('PASS Runway comparison, derived costs, matching FAQ, attribution, H3 rollback, every other alternative and sitemap. Offline only.')

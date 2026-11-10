@@ -50,6 +50,7 @@ import { PAGINAS_KIDS_REVIEWED_ISO, paginasKidsSitemapPaths } from '@/lib/seo/pa
 import { KIDS_CARTOON_PAGES_LIVE } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-BEBE-QUE-FALA-2010 — o interruptor das páginas (desligado = nenhuma URL)
 import { BABY_PODCAST_PAGES_LIVE, babyPagesSitemapPaths } from '@/lib/kidsCartoon/babyPodcast' // KINEO-BEBE-QUE-FALA-2010 — as páginas do bebê-podcast (interruptor próprio)
 import { carimbaPaginasCitadas0511 } from '@/lib/seo/paginasCitadas0511' // KINEO-PAGINAS-CITADAS-0511 — as 6 páginas citadas, relidas em 05/11
+import { FACE_SWAP_PATH, carimbaPaginasCitaveis1011, faceSwapNoMapa } from '@/lib/seo/paginasCitaveis1011' // KINEO-PAGINAS-CITAVEIS-1011 — página do rosto no vídeo + /ai-ugc-ads com bloco citável (10/11)
 import { trafego2310Sitemap } from '@/lib/seo/trafego2310' // KINEO-TRAFEGO-2310 — public clear templates and Cartoon, reviewed 23/10
 // KINEO-PAGINAS-IA-0111 — as 20 rotas novas de 01/11 (8 nichos, 10 do catálogo /for, 2 artigos de dinheiro). Módulo PURO, sem import.
 import { PAGINAS_IA_0111_MONEY_PATHS, PAGINAS_IA_0111_REVIEWED_ISO } from '@/lib/seo/paginasIa0111Paths'
@@ -326,6 +327,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     routes.push({ path: intentPagePath(slug), priority: 0.8, freq: 'weekly' })
   }
   routes.push({ path: '/ai-video-generator/kling-4', priority: 0.8, freq: 'weekly' })
+  if (faceSwapNoMapa()) routes.push({ path: FACE_SWAP_PATH, priority: 0.8, freq: 'weekly' }) // KINEO-PAGINAS-CITAVEIS-1011 — a porta pública do rosto no vídeo, só com troca aberta (senão a página é noindex); lastmod pelo carimbo do return
   routes.push({ path: '/ai-halloween-video', priority: 0.8, freq: 'weekly' }) // KINEO-HALLOWEEN-PAGE-2910
   const engineNoIndex = ENGINE_SLUGS.filter((slug) => !isIndexableEngineSlug(slug)).map((slug) => `/ai-video-generator/${slug}`)
   const engineGeoRevised = new Set([
@@ -435,7 +437,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: 'daily' as const,
     priority: 0.8,
   }))
-  return carimbaPaginasCitadas0511(filtrarSitemapPorLingua(trafego2310Sitemap(carimbaBingSeo1510([ // KINEO-5-LINGUAS-0311 (filtro por fora) · KINEO-BING-SEO-1510 — lastmod das páginas tocadas (ver carimbaBingSeo1510)
+  return carimbaPaginasCitaveis1011(carimbaPaginasCitadas0511(filtrarSitemapPorLingua(trafego2310Sitemap(carimbaBingSeo1510([ // KINEO-5-LINGUAS-0311 (filtro por fora) · KINEO-BING-SEO-1510 — lastmod das páginas tocadas (ver carimbaBingSeo1510)
     {
       url: `${BASE}/alternatives/runwayml`,
       lastModified: new Date('2026-11-10T12:00:00.000Z'),
@@ -556,7 +558,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'monthly' as const,
       priority: 0.8,
     },
-  ]), [...paginasKidsSitemapPaths(KIDS_CARTOON_PAGES_LIVE), ...babyPagesSitemapPaths(BABY_PODCAST_PAGES_LIVE)]))) // KINEO-PAGINAS-CITADAS-0511 (carimbo por fora) · KINEO-5-LINGUAS-0311 · KINEO-TRAFEGO-2310 — no dashboard/auth URLs; gated public Cartoon paths only
+  ]), [...paginasKidsSitemapPaths(KIDS_CARTOON_PAGES_LIVE), ...babyPagesSitemapPaths(BABY_PODCAST_PAGES_LIVE)])))) // KINEO-PAGINAS-CITAVEIS-1011 (carimbo mais por fora) · KINEO-PAGINAS-CITADAS-0511 (carimbo por fora) · KINEO-5-LINGUAS-0311 · KINEO-TRAFEGO-2310 — no dashboard/auth URLs; gated public Cartoon paths only
 }
 
 // KINEO-BING-SEO-1510 — as páginas que esta rodada mudou (título/description/alt/conteúdo, lista em lib/seo/bingSeo1510.ts)

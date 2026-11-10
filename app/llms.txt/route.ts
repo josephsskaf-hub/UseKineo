@@ -53,6 +53,7 @@ import { vsAlternativeLlmsLines } from '@/lib/seo/vsAlternatives1310' // KINEO-V
 import { vsRivaisLlmsLines } from '@/lib/seo/vsRivais0311' // KINEO-VS-RIVAIS-0311 — módulo puro, sem import
 import { GUIAS_IA_REVIEWED_ISO, guiasIaLlmsLines } from '@/lib/seo/guiasIa1610Paths' // KINEO-GUIAS-IA-1610 — módulo puro, sem import
 import { paginasUgcLlmsSection } from '@/lib/seo/paginasUgc2010' // KINEO-PAGINAS-UGC-2010 — módulo puro, sem import
+import { paginasCitaveis1011LlmsSection } from '@/lib/seo/paginasCitaveis1011' // KINEO-PAGINAS-CITAVEIS-1011 — a página do Recreate (vazio sem troca aberta)
 import { ugcNicheLabel } from '@/lib/growth/paginasUgc2010Content' // KINEO-PAGINAS-UGC-2010 — módulo puro (só import type)
 import { paginasKidsLlmsSection } from '@/lib/seo/paginasKidsCartoon2010' // KINEO-BEBE-QUE-FALA-2010 — o trecho do AI Kids Cartoon Stories (vazio com o interruptor desligado)
 import { KIDS_CARTOON_PAGES_LIVE } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-BEBE-QUE-FALA-2010
@@ -533,7 +534,7 @@ Credits are the single unit of account. What you spend depends on the engine:
 
 ${engines}
 
-${kling4PaidLlmsSection()}${engineGeoSection}## Beyond video: images, voice and HD enhancement (added 2026-08-18)
+${kling4PaidLlmsSection()}${paginasCitaveis1011LlmsSection()}${engineGeoSection}## Beyond video: images, voice and HD enhancement (added 2026-08-18)
 
 Kineo is no longer video-only. Three sibling studios share the same account and
 the same credit balance (numbers conferidos contra as rotas que COBRAM, no

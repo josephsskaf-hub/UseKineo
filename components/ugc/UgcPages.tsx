@@ -18,6 +18,8 @@ import { ADS_V2_PRESENTER_V2_APPROVED, adsV2PresenterV2Visible } from '@/lib/ads
 import { HOME_CARD_BADGE, HOME_CARD_CLIPS } from '@/lib/ui/homeThreeCards'
 import { KIT_BF_CHECKOUT_HREF } from '@/lib/ads/kitBfSale'
 import { paginasUgcFacts } from '@/lib/growth/paginasUgc2010Facts'
+import { BlocoCitavel1011 } from '@/components/seo/BlocoCitavel1011' // KINEO-PAGINAS-CITAVEIS-1011 — resposta direta + fatos + tabela de custo por anúncio + data
+import { ugcBloco } from '@/lib/seo/paginasCitaveis1011' // KINEO-PAGINAS-CITAVEIS-1011
 import { UGC_NICHES, ugcGeneratorCopy, ugcPillarCopy, ugcScriptWords, type UgcFacts, type UgcLang, type UgcQa } from '@/lib/growth/paginasUgc2010Content'
 import {
   BF_EN_PATH, BF_PT_PATH, PAGINAS_UGC_BASE, PAGINAS_UGC_CAMPAIGN, PAGINAS_UGC_MARK, PAGINAS_UGC_REVIEWED_ISO, UGC_GENERATOR_PATH,
@@ -290,6 +292,12 @@ export function UgcPillarPage({ lang }: { lang: UgcLang }) {
           <HeroMedia caption={c.videoCaption} title={c.examples[0].title} />
         </header>
       </div>
+      {/* KINEO-PAGINAS-CITAVEIS-1011 — o bloco citável logo abaixo do topo: a resposta que o ChatGPT cita, com o custo por plano e a data */}
+      <section className="kug-sec" aria-label={pt ? 'Resposta direta' : 'Direct answer'}>
+        <div className="kug-wrap">
+          <BlocoCitavel1011 bloco={ugcBloco(pt)} id={pt ? 'ugc-pt' : 'ugc'} pt={pt} heading={pt ? 'Anúncio de produto com IA a partir das suas fotos' : 'AI product ad from your photos'} />
+        </div>
+      </section>
       <section className="kug-sec" aria-labelledby="kug-summary">
         <div className="kug-wrap">
           <h2 id="kug-summary">{c.summaryHeading}</h2>

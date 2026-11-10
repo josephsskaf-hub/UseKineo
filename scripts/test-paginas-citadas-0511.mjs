@@ -91,7 +91,7 @@ function prova(mutar = {}) {
   exige(dia(saida[6]) === '2026-10-23' && dia(saida[7]) === '2026-10-23', 'mapa: nenhuma outra página muda de data')
   exige(dia(saida[8]) === '2026-12-01', 'mapa: data mais nova fica')
   const fonteMapa = (mutar[MAPA] ?? ((t) => t))(ler(MAPA))
-  exige(fonteMapa.includes('return carimbaPaginasCitadas0511(filtrarSitemapPorLingua(trafego2310Sitemap('), 'mapa: o carimbo está ligado por fora')
+  exige(/return (carimbaPaginasCitaveis1011\()?carimbaPaginasCitadas0511\(filtrarSitemapPorLingua\(trafego2310Sitemap\(/.test(fonteMapa), 'mapa: o carimbo está ligado por fora') // KINEO-PAGINAS-CITAVEIS-1011 — o carimbo de 10/11 embrulha este por fora
   return e
 }
 
@@ -118,7 +118,7 @@ const MUTANTES = [
   ['página em português com texto em inglês', LIB, (t) => t.replace("const ou = pt ? 'ou' : 'or'", "pt = false\n  const ou = 'or'"), /língua da página/],
   ['carimbo alarga para todo o mapa', LIB, (t) => t.replace('if (!alvo.has(path) && !localizedH3) return entry', ''), /nenhuma outra página/],
   ['carimbo anda para trás', LIB, (t) => t.replace('return atual >= carimbo ? entry : ', 'return '), /data mais nova fica/],
-  ['carimbo desligado do mapa', MAPA, (t) => t.replace('return carimbaPaginasCitadas0511(filtrarSitemapPorLingua(', 'return (filtrarSitemapPorLingua('), /ligado por fora/],
+  ['carimbo desligado do mapa', MAPA, (t) => t.replace('carimbaPaginasCitadas0511(filtrarSitemapPorLingua(', '(filtrarSitemapPorLingua('), /ligado por fora/],
   ['anual escrito à mão', LIB, (t) => t.replaceAll('${ANNUAL_DISCOUNT_PERCENT}%', '50%'), /desconto do anual/],
 ]
 for (const [nome, arq, muta, esperado] of MUTANTES) {
