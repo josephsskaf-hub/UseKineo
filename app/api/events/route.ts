@@ -287,6 +287,9 @@ const SERVER_ONLY_EVENTS = new Set([
   // KINEO-PAIS-SEM-GRATIS-2026-10-13 — a faixa do topo de quem nasceu fora do filme grátis (app/api/region-pass, surface=first_film).
   'region_paid_offer_shown',
   'region_paid_offer_clicked',
+  // KINEO-REGIAO-PAGA-1011 — a faixa do /pricing vindo da prévia (app/api/scene-preview/pricing-strip): mostrada e clicada.
+  'region_preview_pricing_shown',
+  'region_preview_pricing_clicked',
   // KINEO-STRIPE-ATRASO-2026-09-28 — escritos SÓ pelo webhook da Stripe. `subscription_ended` é o churn (fim de
   // assinatura) e `renewal_ignored_non_access` o pagamento de renovação descartado; forjá-los mentiria no placar.
   'subscription_ended',

@@ -10,6 +10,8 @@ import { STARTER_MONTH } from '@/lib/marketingPrice'
 // rota /api/characters aplica (characterLimitFor). Calculada aqui (servidor) porque lib/characters.ts puxa node:crypto
 // e o PricingClient é 'use client'.
 import { characterLimitFor } from '@/lib/characters'
+import PreviewPricingStrip from '@/components/PreviewPricingStrip' // KINEO-REGIAO-PAGA-1011
+import { regiaoPagaStripMount } from '@/lib/growth/regiaoPaga1011' // KINEO-REGIAO-PAGA-1011
 import type { PricingCharacterLimits } from './PricingClient'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
@@ -64,5 +66,8 @@ export default function PricingPage({ searchParams = {} }: {
     basic: characterLimitFor('basic', true),
     pro: characterLimitFor('pro', true),
   }
+  // KINEO-REGIAO-PAGA-1011 — vindo da prévia grátis (?from=scene_preview) e com o interruptor não-'off': a faixa com as cenas
+  // dela e o Starter em destaque ANTES da tabela. Interruptor 'off' ou outro `from`: exatamente o retorno de sempre.
+  if (regiaoPagaStripMount(searchParams.from)) return <><PreviewPricingStrip /><PricingClient key={handoff.key} initialBilling={handoff.initialBilling} characterLimits={characterLimits} /></>
   return <PricingClient key={handoff.key} initialBilling={handoff.initialBilling} characterLimits={characterLimits} />
 }
