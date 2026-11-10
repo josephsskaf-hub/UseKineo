@@ -1,0 +1,224 @@
+{
+  "date": "2026-11-10",
+  "beforeRef": "ca0b521d0",
+  "kind": "local actual SSR; isolated Chrome; no real API, debit or render",
+  "checks": [
+    {
+      "name": "desktop",
+      "command": "passed",
+      "width": 1280,
+      "overflow": false,
+      "photos": 2,
+      "buttonDisabled": true,
+      "base": {
+        "x": 390,
+        "y": 68,
+        "right": 1280,
+        "bottom": 600.46875,
+        "height": 532.46875
+      },
+      "panel": {
+        "x": 0,
+        "y": 68,
+        "right": 390,
+        "bottom": 900,
+        "height": 832
+      },
+      "background": "rgb(7, 9, 13)",
+      "primary": "rgb(77, 141, 255)",
+      "stage": {
+        "x": 420,
+        "y": 148.5,
+        "right": 1250,
+        "bottom": 569.96875,
+        "height": 421.46875
+      },
+      "referenceStable": true,
+      "adjustmentsOpen": true
+    },
+    {
+      "name": "mobile",
+      "command": "passed",
+      "width": 390,
+      "overflow": false,
+      "photos": 2,
+      "buttonDisabled": true,
+      "base": {
+        "x": 0,
+        "y": 58,
+        "right": 390,
+        "bottom": 398,
+        "height": 340
+      },
+      "panel": {
+        "x": 0,
+        "y": 398,
+        "right": 390,
+        "bottom": 1197.078125,
+        "height": 799.078125
+      },
+      "background": "rgb(7, 9, 13)",
+      "primary": "rgb(77, 141, 255)",
+      "stage": {
+        "x": 18,
+        "y": 130,
+        "right": 372,
+        "bottom": 350,
+        "height": 220
+      },
+      "adjustmentsOpen": true
+    },
+    {
+      "name": "narrow",
+      "command": "passed",
+      "width": 320,
+      "overflow": false,
+      "photos": 2,
+      "buttonDisabled": true,
+      "base": {
+        "x": 0,
+        "y": 58,
+        "right": 320,
+        "bottom": 398,
+        "height": 340
+      },
+      "panel": {
+        "x": 0,
+        "y": 398,
+        "right": 320,
+        "bottom": 1241.875,
+        "height": 843.875
+      },
+      "background": "rgb(7, 9, 13)",
+      "primary": "rgb(77, 141, 255)",
+      "stage": {
+        "x": 18,
+        "y": 130,
+        "right": 302,
+        "bottom": 350,
+        "height": 220
+      },
+      "adjustmentsOpen": true
+    },
+    {
+      "name": "light",
+      "command": "passed",
+      "width": 1280,
+      "overflow": false,
+      "photos": 2,
+      "buttonDisabled": true,
+      "base": {
+        "x": 390,
+        "y": 68,
+        "right": 1280,
+        "bottom": 600.46875,
+        "height": 532.46875
+      },
+      "panel": {
+        "x": 0,
+        "y": 68,
+        "right": 390,
+        "bottom": 900,
+        "height": 832
+      },
+      "background": "rgb(247, 247, 245)",
+      "primary": "rgb(10, 92, 255)",
+      "stage": {
+        "x": 420,
+        "y": 148.5,
+        "right": 1250,
+        "bottom": 569.96875,
+        "height": 421.46875
+      },
+      "referenceStable": true,
+      "adjustmentsOpen": true
+    },
+    {
+      "name": "single",
+      "command": "passed",
+      "width": 1280,
+      "overflow": false,
+      "photos": 1,
+      "buttonDisabled": true,
+      "base": {
+        "x": 390,
+        "y": 68,
+        "right": 1280,
+        "bottom": 600.46875,
+        "height": 532.46875
+      },
+      "panel": {
+        "x": 0,
+        "y": 68,
+        "right": 390,
+        "bottom": 900,
+        "height": 832
+      },
+      "background": "rgb(7, 9, 13)",
+      "primary": "rgb(77, 141, 255)",
+      "stage": {
+        "x": 420,
+        "y": 148.5,
+        "right": 1250,
+        "bottom": 569.96875,
+        "height": 421.46875
+      },
+      "referenceStable": true,
+      "adjustmentsOpen": true
+    },
+    {
+      "name": "effect",
+      "command": "passed",
+      "width": 1280,
+      "overflow": false,
+      "photos": 2,
+      "buttonDisabled": true,
+      "base": {
+        "x": 390,
+        "y": 68,
+        "right": 1280,
+        "bottom": 600.46875,
+        "height": 532.46875
+      },
+      "panel": {
+        "x": 0,
+        "y": 68,
+        "right": 390,
+        "bottom": 900,
+        "height": 832
+      },
+      "background": "rgb(7, 9, 13)",
+      "primary": "rgb(77, 141, 255)",
+      "stage": {
+        "x": 420,
+        "y": 148.5,
+        "right": 1250,
+        "bottom": 569.96875,
+        "height": 421.46875
+      },
+      "referenceStable": true,
+      "adjustmentsOpen": true
+    },
+    {
+      "name": "library",
+      "command": "passed",
+      "width": 1280,
+      "overflow": false,
+      "photos": 0,
+      "buttonDisabled": null,
+      "base": null,
+      "panel": null,
+      "background": "rgb(7, 9, 13)",
+      "primary": null,
+      "stage": null
+    },
+    {
+      "name": "compare-desktop",
+      "command": "passed"
+    },
+    {
+      "name": "compare-mobile",
+      "command": "passed"
+    }
+  ]
+}

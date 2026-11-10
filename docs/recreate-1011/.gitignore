@@ -1,0 +1,13 @@
+# Derived QA views are reproducible with preview.cjs; retain the main standalone comparisons and selected captures.
+mobile.html
+narrow.html
+light.html
+single.html
+effect.html
+compare-desktop.html
+compare-mobile.html
+light.png
+narrow.png
+single.png
+effect.png
+library.png

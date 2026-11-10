@@ -187,8 +187,8 @@ async function main() {
     ['lib/recreate/access.ts', "RECREATE_RELEASE: InternalRelease = 'internal'", "RECREATE_RELEASE: InternalRelease = 'public'"],
     ['lib/recreate/access.ts', 'RECREATE_MOTION_ENABLED = false', 'RECREATE_MOTION_ENABLED = true'],
     ['lib/recreate/generation.ts', 'if (seconds !== f.seconds)', 'if (false)'],
-    ['app/recreate/RecreateClient.tsx', '<div className="rc-generate-area">', '<div className="rc-generate-area"><p>✦ {quote?.credits}</p>'],
-    ['app/recreate/RecreateClient.tsx', '<span>Recreate</span>', '<span>MiniMax Recreate</span>'],
+    ['app/recreate/RecreateClient.tsx', '<section className="rc-step rc-generate-area"', '<p>✦ {quote?.credits}</p><section className="rc-step rc-generate-area"'],
+    ['app/recreate/RecreateClient.tsx', '<h1>Your version, step by step.</h1>', '<h1>MiniMax Recreate</h1>'],
   ]
   for (const [file, before, after] of mutants) {
     const source = read(file); assert(source.includes(before))
@@ -199,6 +199,7 @@ async function main() {
     assert.equal((await api.GET(new NextRequest('https://www.usekineo.com/api/recreate?name=outfit-morph.mp4'), { params: { name: 'outfit-morph.mp4' } })).status, 404)
   }
   assert(read('app/effects/EffectPageClient.tsx').includes('recreateEnabled ? `/recreate/'))
+  await require('../recreate-1011/test-photo-flow.cjs')()
   console.log('PASS: access on all APIs, spoofed inputs, house source server adapter, photos, consent, duration, simulation, replay, moderation/debit order, refunds, persistence, every photo-effect tariff, rendered names/prices/counts; five security/UI mutants killed.')
 }
 module.exports = { loader, render, formats, read, ROOT }
