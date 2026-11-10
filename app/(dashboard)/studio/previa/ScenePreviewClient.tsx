@@ -24,6 +24,8 @@ const btn = (primary: boolean, disabled = false): React.CSSProperties => ({
 
 // KINEO-FLUXO2-G-0411 [fundador 04/11: "recomendações"] — aPedido: conta do lado "a pedido" do teste, com o filme grátis ainda por pedir (decidido no servidor, page.tsx). 2 das 3 primeiras saíram daqui para os planos sem nunca pedir o filme: para ela o botão principal pede o filme pela mesma rota da faixa e volta à geração com o roteiro; os planos viram link. As outras contas veem a tela de sempre.
 import { voltaParaCaixa } from '@/lib/growth/ideiaDaPagina' // KINEO-PREVIA-LIMITE-FILME-0611
+import PreviewPricingStrip from '@/components/PreviewPricingStrip' // KINEO-REGIAO-PAGA-1011 (3)
+import { REGIAO_PAGA_1011_RELEASE } from '@/lib/growth/regiaoPaga1011' // KINEO-REGIAO-PAGA-1011 (3)
 
 export default function ScenePreviewClient({ initialIdea, from, aPedido = false }: { initialIdea: string; from: string; aPedido?: boolean }) {
   const language = useInterfaceLanguage()
@@ -118,6 +120,8 @@ export default function ScenePreviewClient({ initialIdea, from, aPedido = false 
             {pedido === 'falhou' ? <p role="alert" style={{ margin: 0, color: C.danger, fontSize: 14 }}>{copyPedido.failed}</p> : null}
           </div>
         ) : null}
+        {/* KINEO-REGIAO-PAGA-1011 (3) — recusada pelo limite: além da recusa, a última prévia da pessoa + o Starter (a faixa do /pricing; o servidor decide quem vê). */}
+        {!aPedido && !preview && (limite || left === 0) && REGIAO_PAGA_1011_RELEASE !== 'off' ? <PreviewPricingStrip surface="preview_limit" /> : null}
       </section>
 
       {preview ? (

@@ -17,6 +17,7 @@ import { pickInterfaceCopy } from '@/lib/ui/interfaceLanguage'
 import { REGION_FREE_CLIP_CREDITS, REGION_FREE_CLIP_HREF, REGION_FREE_CLIP_NOTICE, REGION_PAID_ONLY_NOTICE, REGION_PAID_ONLY_PLANS_HREF } from '@/lib/freeFilmPolicy'
 import { REGION_FREE_CLIP_NOTICE_FILM_LIVE, REGION_FREE_FILM_CREDITS, REGION_FREE_FILM_HREF, REGION_FREE_FILM_LIVE, REGION_FREE_FILM_NOTICE, REGION_PLANS_NOTICE_FILM_LIVE } from '@/lib/freeFilmPolicy' // KINEO-SAIDA-REGIAO-2026-10-07
 import { PREVIA_CENAS_PUBLIC, PREVIA_COPY } from '@/lib/scenePreview' // KINEO-PREVIA-CENAS-2026-10-03
+import { REGIAO_PAGA_BANNER_COPY, REGIAO_PAGA_BANNER_PREVIEW_FIRST, REGIAO_PAGA_BANNER_VARIANT } from '@/lib/growth/regiaoPaga1011' // KINEO-REGIAO-PAGA-1011 (2)
 import FreeClipNotice from '@/components/FreeClipNotice' // KINEO-AVISO-CLIPE-GRATIS-2026-10-06
 import { freeClipNoticeSurface, freeClipStillAvailable } from '@/lib/clips/freeClipNotice'
 import { REGION_FIRST_FILM_OFFER_LIVE } from '@/lib/freeFilmPolicy' // KINEO-PAIS-SEM-GRATIS-2026-10-13
@@ -54,7 +55,9 @@ export default function RegionPaidOnlyBanner({ freeClip = false, freeFilm = fals
   }
   if (surface) return <FreeClipNotice key={surface} surface={surface} />
   if (REGION_FREE_FILM_LIVE) return <RegionPaidOnlyStrip freeClip={gift} filmLive /> // KINEO-SAIDA-REGIAO-2026-10-07
-  return <RegionPaidOnlyStrip freeClip={gift} />
+  // KINEO-REGIAO-PAGA-1011 (2) — só a faixa dos planos sem clipe grátis troca a manchete, e só com o interruptor em 'public' (a casa
+  // não é conta de região: em 'internal' ninguém vê o aviso invertido). Desligado: a faixa de sempre.
+  return <RegionPaidOnlyStrip freeClip={gift} previewFirst={REGIAO_PAGA_BANNER_PREVIEW_FIRST} />
 }
 
 // KINEO-STUDIO-CLS-2026-10-13 — a reserva do lugar da faixa enquanto /api/region-pass responde. Mesma margem, moldura e
@@ -191,11 +194,15 @@ function useFreeClipGift(serverSaid: boolean): boolean {
 // KINEO-CLIPE-GRATIS-REGIAO-2026-10-05 (fundador, item 1A) — com o clipe grátis disponível (5 cr dados no cadastro), a faixa
 // vira "seu primeiro clipe é grátis" com o botão para o /clips; os planos descem para o botão secundário. Usou o clipe
 // (saldo < 5) = volta a faixa de sempre.
-function RegionPaidOnlyStrip({ freeClip, filmLive = false }: { freeClip: boolean; filmLive?: boolean }) {
+function RegionPaidOnlyStrip({ freeClip, filmLive = false, previewFirst = false }: { freeClip: boolean; filmLive?: boolean; previewFirst?: boolean }) {
   const language = useInterfaceLanguage()
   const copyHoje = pickInterfaceCopy(freeClip ? REGION_FREE_CLIP_NOTICE : REGION_PAID_ONLY_NOTICE, language)
   // KINEO-SAIDA-REGIAO-2026-10-07 — com o filme grátis de região ligado, os mesmos dois estados sem "não disponível no seu país".
   const copy = filmLive ? pickInterfaceCopy(freeClip ? REGION_FREE_CLIP_NOTICE_FILM_LIVE : REGION_PLANS_NOTICE_FILM_LIVE, language) : copyHoje
+  // KINEO-REGIAO-PAGA-1011 (2) — a prévia na manchete, o "não disponível no seu país" no subtítulo, "See plans" de botão secundário.
+  const pf = previewFirst && !freeClip && !filmLive && PREVIA_CENAS_PUBLIC
+  const head = pf ? pickInterfaceCopy(REGIAO_PAGA_BANNER_COPY, language) : copy
+  const pfMeta = pf ? { banner: REGIAO_PAGA_BANNER_VARIANT } : {}
   const plansCta = pickInterfaceCopy(REGION_PAID_ONLY_NOTICE, language).cta
   const previa = pickInterfaceCopy(PREVIA_COPY, language) // KINEO-PREVIA-CENAS-2026-10-03
   const shownRef = useRef(false)
@@ -203,8 +210,8 @@ function RegionPaidOnlyStrip({ freeClip, filmLive = false }: { freeClip: boolean
   useEffect(() => {
     if (shownRef.current) return
     shownRef.current = true
-    void trackEvent('region_paid_only_notice_shown', { version: REGION_PAID_ONLY_BANNER_VERSION, language, variant: freeClip ? 'free_clip' : 'plans' })
-  }, [language, freeClip])
+    void trackEvent('region_paid_only_notice_shown', { version: REGION_PAID_ONLY_BANNER_VERSION, language, variant: freeClip ? 'free_clip' : 'plans', ...pfMeta })
+  }, [language, freeClip]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div
@@ -227,8 +234,8 @@ function RegionPaidOnlyStrip({ freeClip, filmLive = false }: { freeClip: boolean
           fixo desta faixa (desenhada em 29/09, no app escuro) sumia nele — título, texto e "See plans" quase invisíveis
           (medido em 06/10 com o Edge sem cabeça). O botão azul com texto preto lê nos dois temas e fica como estava. */}
       <div style={{ minWidth: 220, flex: '1 1 320px' }}>
-        <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>{copy.title}</div>
-        <div style={{ marginTop: 4, fontSize: 13, lineHeight: 1.5, color: 'var(--text2)' }}>{copy.body}</div>
+        <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text)' }}>{head.title}</div>
+        <div style={{ marginTop: 4, fontSize: 13, lineHeight: 1.5, color: 'var(--text2)' }}>{head.body}</div>
       </div>
       {/* KINEO-PREVIA-CENAS-2026-10-03 — antes dos planos, a prévia grátis das cenas (o produto funcionando por centavos). */}
       {freeClip ? (
@@ -245,8 +252,8 @@ function RegionPaidOnlyStrip({ freeClip, filmLive = false }: { freeClip: boolean
         <Link
           href="/studio/previa"
           data-testid="region-paid-only-preview"
-          onClick={() => { void trackEvent('region_paid_only_preview_clicked', { version: REGION_PAID_ONLY_BANNER_VERSION, language }) }}
-          style={{ color: 'var(--text)', border: '1px solid var(--border2, var(--border))', borderRadius: 999, padding: '10px 16px', fontSize: 14, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}
+          onClick={() => { void trackEvent('region_paid_only_preview_clicked', { version: REGION_PAID_ONLY_BANNER_VERSION, language, ...pfMeta }) }}
+          style={pf ? { background: '#2997ff', color: '#000', borderRadius: 999, padding: '11px 18px', fontSize: 14, fontWeight: 800, textDecoration: 'none', whiteSpace: 'nowrap' } : { color: 'var(--text)', border: '1px solid var(--border2, var(--border))', borderRadius: 999, padding: '10px 16px', fontSize: 14, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}
         >
           {previa.bannerPreview}
         </Link>
@@ -254,8 +261,8 @@ function RegionPaidOnlyStrip({ freeClip, filmLive = false }: { freeClip: boolean
       <Link
         href={REGION_PAID_ONLY_PLANS_HREF}
         data-testid="region-paid-only-plans"
-        onClick={() => { void trackEvent('region_paid_only_notice_clicked', { version: REGION_PAID_ONLY_BANNER_VERSION, language }) }}
-        style={freeClip
+        onClick={() => { void trackEvent('region_paid_only_notice_clicked', { version: REGION_PAID_ONLY_BANNER_VERSION, language, ...pfMeta }) }}
+        style={freeClip || pf
           ? { color: 'var(--text)', border: '1px solid var(--border2, var(--border))', borderRadius: 999, padding: '10px 16px', fontSize: 14, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }
           : {
             background: '#2997ff',
