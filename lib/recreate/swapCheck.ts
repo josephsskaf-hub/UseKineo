@@ -8,15 +8,17 @@
 //   1. quadros do RESULTADO: fal `fal-ai/workflow-utilities/extract-nth-frame` (síncrono, fal.run; US$ 0,001 por segundo de
 //      computação), frame_interval 84 → quadros 0, 84 e 168 (0 s, 3,5 s e 7,0 s a 24 fps); usamos o 84 e o 168;
 //   2. quadros do VÍDEO-BASE nos MESMOS números: pré-gerados com ffmpeg na casa (lib/recreate/assets/check/<id>-1|2.jpg) — de
-//      graça e determinístico; vão ao modelo como data: URL;
-//   3. juiz de visão: o gpt-4o da casa (AI_TEXT_MODELS.writer, o mesmo da régua), saída JSON: por pessoa, "é a MESMA do quadro-
-//      base?" e "parece a foto de referência?". A DECISÃO é código (decideSwap), não confiança no modelo.
+//      graça e determinístico; vão ao modelo como data: URL. Lidos por import DINÂMICO de node:fs (importar este módulo não
+//      puxa nada de Node; o next.config.js rastreia a pasta em toda rota que liquida clipe);
+//   3. juiz de visão: o gpt-4o da casa (AI_TEXT_MODELS.writer), comparando ATRIBUTOS VISÍVEIS (cabelo, barba, tom de pele,
+//      formato do rosto, óculos) entre a pessoa do quadro A e a do quadro B — nunca identificando ninguém. Roupa e cenário
+//      são IGUAIS por construção e NÃO contam. A DECISÃO é código (decideSwap): "mesma pessoa" sem nenhum atributo do rosto
+//      igual, ou com algum diferente, é incerto — nunca estorno.
 // Regra: alguma pessoa esperada continua a do vídeo-base → falha + estorno (todas = unchanged; só uma de duas = partial: o
-// cliente pagou pelas duas). Todas trocadas → entrega. Checagem que falha (sem chave, timeout, quadro ausente, resposta
-// incompleta ou contraditória) → ENTREGA como "unverified": nunca estorna às cegas nem reprova vídeo bom.
+// cliente pagou pelas duas). Todas trocadas → entrega. Checagem que falha → ENTREGA como "unverified", com o motivo
+// normalizado (refusal | null_answer | invalid_json | timeout | frames_unavailable | base_frames_unavailable | http_error |
+// config) no evento recreate_swap_check.
 // Custo por checagem: ~US$ 0,005 de quadros + ~US$ 0,015-0,02 de visão (4 quadros "high" + 1-2 fotos). Tempo: teto de 40 s.
-import { readFile } from 'node:fs/promises'
-import path from 'node:path'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import { usdFromUsage } from '@/lib/regua95/coherenceV2'
 import { FAL_NTH_FRAME_MODEL, FAL_USD_PER_COMPUTE_SECOND, PIXEL_MODEL_RATES } from '@/lib/regua95/pixelScore'
@@ -24,11 +26,14 @@ import { RECREATE_CHECK_FRAMES, RECREATE_FORMATS, type RecreateFormat } from './
 import { RECREATE_MODEL, RECREATE_PROVIDER_ORIGIN } from './generation'
 
 export type SwapCheckResult = 'swapped' | 'unchanged' | 'partial' | 'unverified'
+export type UnverifiedReason = 'refusal' | 'null_answer' | 'invalid_json' | 'timeout' | 'frames_unavailable' | 'base_frames_unavailable' | 'http_error' | 'config'
 export type SwapPerson = { person: number; same_as_base: boolean | null; matches_photo: boolean | null; note: string }
 export interface SwapVerdict {
   result: SwapCheckResult
-  /** short machine reason: e.g. all_swapped, all_kept, 1_of_2_kept, vision_failed, frames_unavailable */
+  /** short machine reason: all_swapped, all_kept, 1_of_2_kept, vision_uncertain, vision_failed, … */
   reason: string
+  /** only when result = 'unverified': the normalized cause the CEO session reads after deploy */
+  unverified_reason: UnverifiedReason | null
   format: string | null
   persons: SwapPerson[]
   model: string | null
@@ -37,19 +42,27 @@ export interface SwapVerdict {
 }
 
 export const RECREATE_SWAP_CHECK_EVENT = 'recreate_swap_check'
-/** failure_reason written by markFailed when the result kept the base person(s). The status route maps both to 'not_swapped'. */
+/** failure_reason written when the result kept the base person(s). The status route maps both to 'not_swapped'. */
 export const RECREATE_NOT_SWAPPED = { unchanged: 'swap_unchanged', partial: 'swap_partial' } as const
 export const isRecreateNotSwappedReason = (reason: unknown) => reason === RECREATE_NOT_SWAPPED.unchanged || reason === RECREATE_NOT_SWAPPED.partial
 /** Check lock kept in clips.failure_reason while status='processing' (no new column): one actor checks; stale after 2 min. */
 export const SWAP_CHECK_LOCK_PREFIX = 'swapcheck_'
 export const SWAP_CHECK_LOCK_STALE_MS = 120_000
-/** Whole check (frames + vision) must fit the 60 s status route after persist. Over budget = unverified (delivered). */
+/** Whole check (frames + vision) must fit the 60 s status route. Over budget = unverified (delivered). */
 export const SWAP_CHECK_BUDGET_MS = 40_000
 export const SWAP_CHECK_FRAMES_TIMEOUT_MS = 18_000
 export const SWAP_CHECK_VISION_TIMEOUT_MS = 20_000
 export const SWAP_CHECK_MODEL_DEFAULT: string = AI_TEXT_MODELS.writer
+/** Facial attributes the vision judge compares. Clothing and scene are identical by construction and never count. */
+export const SWAP_FACE_ATTRIBUTES = ['hair_color', 'hair_length', 'hair_texture', 'beard', 'skin_tone', 'face_shape', 'glasses'] as const
 
-export const swapCheckLock = (now: number) => SWAP_CHECK_LOCK_PREFIX + String(Math.max(0, Math.floor(now))).padStart(13, '0')
+/** 'swapcheck_<13-digit ms>[_nonce]' — lexicographic order of the digits = time order (stale comparison in SQL). */
+export const swapCheckLock = (now: number, nonce?: string) => SWAP_CHECK_LOCK_PREFIX + String(Math.max(0, Math.floor(now))).padStart(13, '0') + (nonce ? '_' + nonce : '')
+/** Another actor holds a still-valid check lock on this row. */
+export function swapCheckBusy(failureReason: string | null | undefined, now: number): boolean {
+  const m = typeof failureReason === 'string' ? /^swapcheck_(\d{13})/.exec(failureReason) : null
+  return !!m && now - Number(m[1]) < SWAP_CHECK_LOCK_STALE_MS
+}
 
 /** Recreate row → its catalog format and reference photos, read from the fingerprint submitClip wrote (no new column). */
 export function recreateRowContext(row: { model: string; fingerprint: string }): { format: RecreateFormat; photos: string[] } | null {
@@ -66,7 +79,21 @@ export function recreateRowContext(row: { model: string; fingerprint: string }):
   }
 }
 
-const bool = (x: unknown): boolean | null => (x === true ? true : x === false ? false : null)
+const yesNo = (x: unknown): boolean | null => (x === 'yes' || x === true ? true : x === 'no' || x === false ? false : null)
+
+/**
+ * One person's answer → booleans, with the code rule on top of the model: "same person" counts only when at least one
+ * facial attribute was seen as the same and none as different; "different person" only when at least one facial attribute
+ * differs. Anything else (all unclear, only clothing/scene, contradictions) is null = uncertain.
+ */
+export function readPerson(r: Record<string, unknown> | undefined, k: number): SwapPerson {
+  const attrs = r?.base_vs_result && typeof r.base_vs_result === 'object' ? (r.base_vs_result as Record<string, unknown>) : {}
+  const same = SWAP_FACE_ATTRIBUTES.filter(a => attrs[a] === 'same').length
+  const diff = SWAP_FACE_ATTRIBUTES.filter(a => attrs[a] === 'different').length
+  const said = yesNo(r?.same_person)
+  const sameAsBase = said === true ? (same > 0 && diff === 0 ? true : null) : said === false ? (diff > 0 ? false : null) : null
+  return { person: k, same_as_base: sameAsBase, matches_photo: yesNo(r?.result_vs_photo), note: typeof r?.note === 'string' ? r.note.slice(0, 120) : '' }
+}
 
 /** The DECISION (code, not the model): any expected person still the base person → refund; all replaced → deliver. */
 export function decideSwap(parsed: unknown, slots: number): { result: SwapCheckResult; reason: string; persons: SwapPerson[] } {
@@ -74,7 +101,7 @@ export function decideSwap(parsed: unknown, slots: number): { result: SwapCheckR
   const persons: SwapPerson[] = []
   for (let k = 1; k <= slots; k++) {
     const r = raw.find(p => p && typeof p === 'object' && (p as { person?: unknown }).person === k) as Record<string, unknown> | undefined
-    persons.push({ person: k, same_as_base: bool(r?.same_as_base), matches_photo: bool(r?.matches_photo), note: typeof r?.note === 'string' ? r.note.slice(0, 120) : '' })
+    persons.push(readPerson(r, k))
   }
   if (slots < 1 || raw.length === 0) return { result: 'unverified', reason: 'vision_incomplete', persons }
   // Same as base AND like the photo is a contradiction: that person's answer is unknown, never a verdict.
@@ -89,18 +116,25 @@ export function decideSwap(parsed: unknown, slots: number): { result: SwapCheckR
 type Image = { type: 'image_url'; image_url: { url: string; detail: 'high' | 'low' } }
 /** Exported for the guardian: base frames, result frames, then one reference photo per person, in this order. */
 export function buildSwapCheckMessages(slots: number, base: [string, string], result: [string, string], photos: string[]) {
+  const attrs = SWAP_FACE_ATTRIBUTES.map(a => `"${a}": "same"|"different"|"unclear"`).join(', ')
   const system =
-    'You verify an AI face-swap delivery. A template video had its people replaced by the people in customer reference photos. ' +
-    'Sometimes the swap silently fails and the ORIGINAL person stays. Judge face identity only: ignore expression, pose, motion blur, ' +
-    'small lighting/colour shifts and clothing (clothing is kept on purpose). Hair and face shape count as identity. ' +
-    'Reply ONLY with JSON: {"persons":[{"person": 1-based index, "same_as_base": true|false|null, "matches_photo": true|false|null, "note": "max 15 words"}]}. ' +
-    'Use null only when that person is not visible enough in the RESULT frames to decide.'
-  const who = slots === 1 ? 'There is 1 person to replace.' : `There are ${slots} people to replace. Person 1 is the LEFTMOST person in the BASE frames, person ${slots} the RIGHTMOST.`
+    'You are a video quality checker comparing VISIBLE APPEARANCE in still frames. Do not identify anyone, do not name anyone and do not ' +
+    'guess who anyone is: only compare how the depicted people look. ' +
+    'A template video was edited so that each depicted person should now look like the person in a customer reference photo. Sometimes the ' +
+    'edit silently fails and the frames still show the ORIGINAL appearance. ' +
+    'IMPORTANT: clothing, accessories other than glasses, pose, background, lighting, camera and motion are IDENTICAL between template and edit ' +
+    'BY CONSTRUCTION, so they are NOT evidence that it is the same depicted person. Judge only face and head attributes: hair colour, hair ' +
+    'length, hair texture, beard, skin tone, face shape, glasses. ' +
+    `Reply ONLY with JSON: {"persons":[{"person": 1-based index, "base_vs_result": {${attrs}}, "same_person": "yes"|"no"|"uncertain", ` +
+    '"result_vs_photo": "yes"|"no"|"uncertain", "note": "max 15 words, attributes only"}]}. ' +
+    '"same_person" answers: is the person depicted in the RESULT frames visually the same depicted person as in the TEMPLATE frames? ' +
+    '"result_vs_photo" answers: does the person in the RESULT frames visually resemble that person\'s reference photo? Use "uncertain" when the face is too small or hidden.'
+  const who = slots === 1 ? 'There is 1 person to compare.' : `There are ${slots} people to compare. Person 1 is the LEFTMOST person in the TEMPLATE frames, person ${slots} the RIGHTMOST.`
   const text = [
     who,
-    'Images, in order: BASE frame A and BASE frame B (the original template, before the swap); RESULT frame A and RESULT frame B (the delivered video at the same moments);',
-    `then ${photos.length === 1 ? 'the REFERENCE PHOTO of person 1' : photos.map((_, i) => `the REFERENCE PHOTO of person ${i + 1}`).join(', ')}.`,
-    'For EACH person answer: same_as_base = is the person in the RESULT frames the same individual as in the BASE frames? matches_photo = does the RESULT person look like that person\'s reference photo?',
+    'Images, in order: TEMPLATE frame A and TEMPLATE frame B (before the edit); RESULT frame A and RESULT frame B (the edited video at the same moments);',
+    `then ${photos.map((_, i) => `the REFERENCE PHOTO for person ${i + 1}`).join(', ')}.`,
+    'For each person, first fill base_vs_result attribute by attribute (template person vs result person), then answer same_person and result_vs_photo.',
   ].join('\n')
   const img = (url: string, detail: 'high' | 'low'): Image => ({ type: 'image_url', image_url: { url, detail } })
   return [
@@ -118,18 +152,19 @@ export interface SwapCheckOpts {
   budgetMs?: number
 }
 
-async function timed<T>(ms: number, run: (signal: AbortSignal) => Promise<T>): Promise<T | null> {
+type Timed<T> = { ok: true; value: T } | { ok: false; timeout: boolean }
+async function timed<T>(ms: number, run: (signal: AbortSignal) => Promise<T>): Promise<Timed<T>> {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), ms)
-  try { return await run(ctrl.signal) } catch { return null } finally { clearTimeout(timer) }
+  try { return { ok: true, value: await run(ctrl.signal) } } catch { return { ok: false, timeout: ctrl.signal.aborted } } finally { clearTimeout(timer) }
 }
 
-/** Result frames 84 and 168 from the provider MP4 (fal, synchronous). null when unavailable. Never throws. */
-export async function extractCheckFrames(videoUrl: string, opts: SwapCheckOpts = {}): Promise<{ frames: [string, string]; usd: number } | null> {
+/** Result frames 84 and 168 from the provider MP4 (fal, synchronous). Never throws. */
+export async function extractCheckFrames(videoUrl: string, opts: SwapCheckOpts = {}): Promise<{ frames: [string, string]; usd: number } | { frames: null; why: UnverifiedReason }> {
   const key = opts.falKey ?? process.env.FAL_KEY ?? process.env.FAL_API_KEY
-  if (!key || !/^https:\/\//.test(videoUrl)) return null
+  if (!key || !/^https:\/\//.test(videoUrl)) return { frames: null, why: 'config' }
   const started = Date.now()
-  const images = await timed(SWAP_CHECK_FRAMES_TIMEOUT_MS, async signal => {
+  const got = await timed(SWAP_CHECK_FRAMES_TIMEOUT_MS, async signal => {
     const res = await (opts.fetchImpl ?? fetch)(`https://fal.run/${FAL_NTH_FRAME_MODEL}`, {
       method: 'POST', signal,
       headers: { Authorization: `Key ${key}`, 'Content-Type': 'application/json' },
@@ -139,21 +174,36 @@ export async function extractCheckFrames(videoUrl: string, opts: SwapCheckOpts =
     const data = (await res.json()) as { images?: Array<{ url?: unknown }> }
     return Array.isArray(data.images) ? data.images.map(i => (typeof i?.url === 'string' ? i.url : '')) : null
   })
-  if (!images || images.length < 3 || !images[1] || !images[2]) return null
+  if (!got.ok) return { frames: null, why: got.timeout ? 'timeout' : 'frames_unavailable' }
+  const images = got.value
+  if (!images || images.length < 3 || !images[1] || !images[2]) return { frames: null, why: 'frames_unavailable' }
   return { frames: [images[1], images[2]], usd: ((Date.now() - started) / 1000) * FAL_USD_PER_COMPUTE_SECOND }
 }
 
-/** Base frames from the repo (traced into every settling route by next.config.js). null when unreadable. */
+/** Base frames from the repo. node:fs is imported HERE (dynamic), so importing this module pulls nothing from Node. */
 export async function baseCheckFrames(format: RecreateFormat, opts: SwapCheckOpts = {}): Promise<[string, string] | null> {
   if (!format.checkFrames) return null
   try {
-    const read = opts.readFileImpl ?? ((file: string) => readFile(file))
-    const files = [1, 2].map(n => path.join(process.cwd(), 'lib/recreate/assets/check', `${format.id}-${n}.jpg`))
+    const read = opts.readFileImpl ?? (async (file: string) => (await import('node:fs/promises')).readFile(file))
+    const files = [1, 2].map(n => `${process.cwd()}/lib/recreate/assets/check/${format.id}-${n}.jpg`)
     const bytes = await Promise.all(files.map(f => read(f)))
     if (bytes.some(b => !b || b.length < 2000)) return null
     return [`data:image/jpeg;base64,${bytes[0].toString('base64')}`, `data:image/jpeg;base64,${bytes[1].toString('base64')}`]
   } catch {
     return null
+  }
+}
+
+/** OpenAI answer → parsed JSON or the normalized reason it is unusable. */
+export function readVisionAnswer(data: unknown): { parsed: unknown } | { why: UnverifiedReason } {
+  const msg = (data as { choices?: Array<{ message?: { content?: unknown; refusal?: unknown } }> })?.choices?.[0]?.message
+  if (typeof msg?.refusal === 'string' && msg.refusal.trim()) return { why: 'refusal' }
+  const content = typeof msg?.content === 'string' ? msg.content.trim() : ''
+  if (!content) return { why: 'null_answer' }
+  try {
+    return { parsed: JSON.parse(content) as unknown }
+  } catch {
+    return { why: /\b(sorry|can['’]?t|cannot|unable|not able)\b/i.test(content) ? 'refusal' : 'invalid_json' }
   }
 }
 
@@ -164,30 +214,36 @@ export async function baseCheckFrames(format: RecreateFormat, opts: SwapCheckOpt
 export async function runSwapCheck(row: { model: string; fingerprint: string }, providerVideoUrl: string, opts: SwapCheckOpts = {}): Promise<SwapVerdict> {
   const started = Date.now()
   const ctx = recreateRowContext(row)
-  const verdict = (result: SwapCheckResult, reason: string, extra: Partial<SwapVerdict> = {}): SwapVerdict => ({ result, reason, format: ctx?.format.id ?? null, persons: [], model: null, usd: 0, ms: Date.now() - started, ...extra })
-  if (!ctx) return verdict('unverified', 'row_context_unknown')
+  const verdict = (result: SwapCheckResult, reason: string, extra: Partial<SwapVerdict> = {}): SwapVerdict => ({ result, reason, unverified_reason: null, format: ctx?.format.id ?? null, persons: [], model: null, usd: 0, ms: Date.now() - started, ...extra })
+  const unverified = (why: UnverifiedReason, reason: string, extra: Partial<SwapVerdict> = {}) => verdict('unverified', reason, { ...extra, unverified_reason: why })
+  if (!ctx) return unverified('config', 'row_context_unknown')
   const work = (async (): Promise<SwapVerdict> => {
     const [base, result] = await Promise.all([baseCheckFrames(ctx.format, opts), extractCheckFrames(providerVideoUrl, opts)])
-    if (!base) return verdict('unverified', 'base_frames_unavailable', { usd: result?.usd ?? 0 })
-    if (!result) return verdict('unverified', 'result_frames_unavailable')
+    const framesUsd = result.frames ? result.usd : 0
+    if (!base) return unverified('base_frames_unavailable', 'base_frames_unavailable', { usd: framesUsd })
+    if (!result.frames) return unverified(result.why, 'result_frames_unavailable')
     const key = opts.apiKey ?? process.env.OPENAI_API_KEY
-    if (!key) return verdict('unverified', 'vision_key_missing', { usd: result.usd })
+    if (!key) return unverified('config', 'vision_key_missing', { usd: framesUsd })
     const model = opts.model ?? process.env.RECREATE_SWAP_CHECK_MODEL ?? SWAP_CHECK_MODEL_DEFAULT
-    const answer = await timed(SWAP_CHECK_VISION_TIMEOUT_MS, async signal => {
+    const got = await timed(SWAP_CHECK_VISION_TIMEOUT_MS, async signal => {
       const res = await (opts.fetchImpl ?? fetch)('https://api.openai.com/v1/chat/completions', {
         method: 'POST', signal,
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-        body: JSON.stringify({ model, temperature: 0, max_tokens: 300, response_format: { type: 'json_object' }, messages: buildSwapCheckMessages(ctx.format.photoSlots, base, result.frames, ctx.photos) }),
+        body: JSON.stringify({ model, temperature: 0, max_tokens: 600, response_format: { type: 'json_object' }, messages: buildSwapCheckMessages(ctx.format.photoSlots, base, result.frames, ctx.photos) }),
       })
       if (!res.ok) return null
-      const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
-      return { parsed: JSON.parse(data.choices?.[0]?.message?.content ?? '') as unknown, usd: usdFromUsage(data.usage, PIXEL_MODEL_RATES[model] ?? PIXEL_MODEL_RATES[AI_TEXT_MODELS.writer]) }
+      return (await res.json()) as { usage?: { prompt_tokens?: number; completion_tokens?: number } }
     })
-    if (!answer) return verdict('unverified', 'vision_failed', { model, usd: result.usd })
+    if (!got.ok) return unverified(got.timeout ? 'timeout' : 'http_error', 'vision_failed', { model, usd: framesUsd })
+    if (!got.value) return unverified('http_error', 'vision_failed', { model, usd: framesUsd })
+    const usd = Math.round((framesUsd + usdFromUsage(got.value.usage, PIXEL_MODEL_RATES[model] ?? PIXEL_MODEL_RATES[AI_TEXT_MODELS.writer])) * 1e6) / 1e6
+    const answer = readVisionAnswer(got.value)
+    if ('why' in answer) return unverified(answer.why, 'vision_unusable', { model, usd })
     const decided = decideSwap(answer.parsed, ctx.format.photoSlots)
-    return verdict(decided.result, decided.reason, { persons: decided.persons, model, usd: Math.round((result.usd + answer.usd) * 1e6) / 1e6 })
-  })().catch(() => verdict('unverified', 'check_error'))
+    const extra = { persons: decided.persons, model, usd }
+    return decided.result === 'unverified' ? unverified('null_answer', decided.reason, extra) : verdict(decided.result, decided.reason, extra)
+  })().catch(() => unverified('http_error', 'check_error'))
   let timer: ReturnType<typeof setTimeout> | undefined
-  const overBudget = new Promise<SwapVerdict>(resolve => { timer = setTimeout(() => resolve(verdict('unverified', 'check_timeout')), opts.budgetMs ?? SWAP_CHECK_BUDGET_MS) })
+  const overBudget = new Promise<SwapVerdict>(resolve => { timer = setTimeout(() => resolve(unverified('timeout', 'check_timeout')), opts.budgetMs ?? SWAP_CHECK_BUDGET_MS) })
   try { return await Promise.race([work, overBudget]) } finally { clearTimeout(timer) }
 }

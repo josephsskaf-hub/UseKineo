@@ -65,7 +65,7 @@ async function main() {
   const pairRequest = { ...request, format: 'elevador', photos: [PHOTO, PHOTO] }
   assert(generation.planRecreate(pairRequest, ctx).ok)
   for (const photos of [[], [PHOTO], [PHOTO, PHOTO, PHOTO]]) assert.equal(generation.planRecreate({ ...pairRequest, photos }, ctx).status, 400, 'server requires the exact number of catalog photo slots before debit')
-  assert.deepEqual(generation.RECREATE_PRICING, { 10: 40, 15: 60 })
+  assert.deepEqual(generation.RECREATE_PRICING, { 8: 45, 10: 40, 15: 60 }) // KINEO-RECREATE-TRAVA-1011 [fundador 10/11: "Cobra 45"]
   const future = loader({}, { 'lib/recreate/formats.ts': read('lib/recreate/formats.ts').replace("seconds: 10, type: 'swap'", "seconds: 15, type: 'swap'") })('lib/recreate/generation')
   assert.equal(future.planRecreate({ ...request, seconds: 15 }, { ...ctx, paying: true }).plan.credits, 60)
   assert.equal(future.planRecreate({ ...request, seconds: 15 }, ctx).status, 402)

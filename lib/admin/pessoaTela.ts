@@ -335,7 +335,7 @@ export async function carregarTelaPessoa(admin: SupabaseClient, chave: { id: str
   type ClipeRow = { id: string; created_at: string; engine: string | null; model: string | null; mode: string | null; seconds: number | null; credits: number | null; credits_refunded: number | null; status: string | null; video_url: string | null; prompt: string | null; failure_reason: string | null }
   const clipes: ClipePessoa[] = (ok('clips', clipesR as Resp<ClipeRow[]>) ?? []).map((c) => ({
     id: c.id, em: c.created_at, motor: [c.engine, c.mode].filter(Boolean).join(' · ') || (c.model ?? '—'), segundos: c.seconds, creditos: c.credits,
-    status: statusDoClipe(c.status, c.credits_refunded), url: c.video_url, prompt: c.prompt ? c.prompt.replace(/\s+/g, ' ').slice(0, 120) : null, erro: c.failure_reason ? c.failure_reason.slice(0, 140) : null,
+    status: statusDoClipe(c.status, c.credits_refunded), url: c.video_url, prompt: c.prompt ? c.prompt.replace(/\s+/g, ' ').slice(0, 120) : null, erro: c.failure_reason ? (c.failure_reason.startsWith('swapcheck_') ? 'em verificação (trava "não trocou" do Recreate)' : c.failure_reason.slice(0, 140)) : null, // KINEO-RECREATE-TRAVA-1011 — a reserva da checagem não é erro
     regua95: reguaPorChave.get(c.id) ?? null, // KINEO-META95-REGUA-1910
   }))
   const imagens: ImagemPessoa[] = (ok('images', imagensR as Resp<Array<{ id: string; created_at: string; model: string | null; url: string | null; upscaled_url: string | null }>>) ?? []).map((i) => ({ id: i.id, em: i.created_at, modelo: i.model, url: i.upscaled_url ?? i.url }))

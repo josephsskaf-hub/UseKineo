@@ -29,11 +29,10 @@ export const RECREATE_ASSETS = {
   'outfit-morph.png': { file: 'outfit-morph.png', contentType: 'image/png' },
   'elevador.mp4': { file: 'elevador-v1.mp4', contentType: 'video/mp4' },
   'elevador.jpg': { file: 'elevador.jpg', contentType: 'image/jpeg' },
-  // KINEO-RECREATE-TRAVA-1011 — 4 house candidates (docs/referencias/vitrine-10-0911), 716×1280, 24 fps; poster = frame at 1 s, 720 px.
+  // KINEO-RECREATE-TRAVA-1011 — house candidates (docs/referencias/vitrine-10-0911), 716×1280, 24 fps; poster = frame at 1 s, 720 px.
+  // Money fan (dinheiro) saiu por decisão do fundador em 10/11.
   'passarela.mp4': { file: 'recreate-passarela.mp4', contentType: 'video/mp4' },
   'passarela.jpg': { file: 'recreate-passarela.jpg', contentType: 'image/jpeg' },
-  'dinheiro.mp4': { file: 'recreate-dinheiro.mp4', contentType: 'video/mp4' },
-  'dinheiro.jpg': { file: 'recreate-dinheiro.jpg', contentType: 'image/jpeg' },
   'escolha-o-favorito.mp4': { file: 'recreate-favorito.mp4', contentType: 'video/mp4' },
   'escolha-o-favorito.jpg': { file: 'recreate-favorito.jpg', contentType: 'image/jpeg' },
   'duelo-de-danca.mp4': { file: 'recreate-danca.mp4', contentType: 'video/mp4' },
@@ -48,11 +47,10 @@ const swapSource = (id: string) => ({ preview: `/api/recreate/assets/${id}.mp4`,
 // with swapApproved: true, set by hand after its paid swap test. swapInTest: only the exact house allowlist sees it.
 export const RECREATE_FORMATS: readonly RecreateFormat[] = [
   { id: 'outfit-morph', title: 'Outfit Morph', ...swapSource('outfit-morph'), poster: '/api/recreate/assets/outfit-morph.png', seconds: 10, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 1, swapApproved: false, swapInTest: true, swapNote: '10/11: 0 of 4 paid swaps; provider returned the original' },
-  { id: 'elevador', title: 'Elevator', ...swapSource('elevador'), poster: '/api/recreate/assets/elevador.jpg', seconds: 10, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 2, swapApproved: false, swapInTest: true, swapNote: '10/11: man swapped 2 of 2, woman 0 of 2' },
-  { id: 'passarela', title: 'Runway walk', ...swapSource('passarela'), poster: '/api/recreate/assets/passarela.jpg', seconds: 10, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 1, swapApproved: false, swapInTest: true, swapNote: 'awaits paid swap test' },
-  { id: 'dinheiro', title: 'Money fan', ...swapSource('dinheiro'), poster: '/api/recreate/assets/dinheiro.jpg', seconds: 8, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 1, swapApproved: false, swapInTest: true, swapNote: 'aguarda preço de 8 s (decisão do fundador) + paid swap test' },
-  { id: 'escolha-o-favorito', title: 'Guess my favorite', ...swapSource('escolha-o-favorito'), poster: '/api/recreate/assets/escolha-o-favorito.jpg', seconds: 8, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 2, swapApproved: false, swapInTest: true, swapNote: 'aguarda preço de 8 s (decisão do fundador) + paid swap test' },
-  { id: 'duelo-de-danca', title: 'Dance duo', ...swapSource('duelo-de-danca'), poster: '/api/recreate/assets/duelo-de-danca.jpg', seconds: 10, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 2, swapApproved: false, swapInTest: true, swapNote: 'awaits paid swap test' },
+  { id: 'elevador', title: 'Elevator', ...swapSource('elevador'), poster: '/api/recreate/assets/elevador.jpg', seconds: 10, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 2, swapApproved: false, swapInTest: true, swapNote: '10/11: only 1 of the 2 people swaps (man 2 of 2, woman 0 of 2)' },
+  { id: 'passarela', title: 'Runway walk', ...swapSource('passarela'), poster: '/api/recreate/assets/passarela.jpg', seconds: 10, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 1, swapApproved: false, swapInTest: true, swapNote: '10/11 paid tests: 2 of 2 swaps — approval is the CEO session call' },
+  { id: 'escolha-o-favorito', title: 'Guess my favorite', ...swapSource('escolha-o-favorito'), poster: '/api/recreate/assets/escolha-o-favorito.jpg', seconds: 8, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 2, swapApproved: false, swapInTest: true, swapNote: '10/11 paid tests: 2 of 2 swaps; 8 s = 45 credits (fundador 10/11: "Cobra 45") — approval is the CEO session call' },
+  { id: 'duelo-de-danca', title: 'Dance duo', ...swapSource('duelo-de-danca'), poster: '/api/recreate/assets/duelo-de-danca.jpg', seconds: 10, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 2, swapApproved: false, swapInTest: true, swapNote: '10/11 paid test: 0 of 1 (full body, small face: does not swap)' },
   ...CLIP_EFFECTS.filter(e => e.preview?.poster).map(e => ({
     id: `effect-${e.key.replaceAll('_', '-')}`, title: e.title, preview: e.preview!.video,
     poster: e.preview!.poster!, seconds: e.seconds, type: 'effect' as const, prompt: e.template ? e.sub : e.prompt,
@@ -60,7 +58,7 @@ export const RECREATE_FORMATS: readonly RecreateFormat[] = [
   })),
 ]
 export const recreateFormat = (id: unknown) => RECREATE_FORMATS.find(f => f.id === id) ?? null
-/** KINEO-RECREATE-TRAVA-1011 — a swap is sold only at an approved tariff (RECREATE_PRICING). An 8 s source has none yet. */
+/** KINEO-RECREATE-TRAVA-1011 — a swap is sold only at an approved tariff (RECREATE_PRICING). 8 s = 45 since 10/11 ("Cobra 45"). */
 export const recreateSwapPriced = (f: RecreateFormat) => f.type !== 'swap' || recreateCreditCost(f.seconds) !== null
 export const RECREATE_UNPRICED_ERROR = 'This video is not available yet: its price for this length is still being decided. Nothing was charged.'
 export function recreateEffectCredits(f: RecreateFormat): number | null {

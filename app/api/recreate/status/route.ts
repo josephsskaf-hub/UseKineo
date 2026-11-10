@@ -21,5 +21,5 @@ export async function GET(req: NextRequest) {
   const { status, video_url, credits_refunded } = fresh
   // KINEO-RECREATE-TRAVA-1011 — the only reason the screen needs: the result came back without the customer in it.
   const reason = status === 'failed' && isRecreateNotSwappedReason(fresh.failure_reason) ? { reason: 'not_swapped' } : {}
-  return NextResponse.json({ clip: { id, status, video_url, credits_refunded, ...reason } }, { headers: RECREATE_HEADERS })
+  return NextResponse.json({ clip: { id, status, video_url: status === 'failed' ? null : video_url, credits_refunded, ...reason } }, { headers: RECREATE_HEADERS })
 }

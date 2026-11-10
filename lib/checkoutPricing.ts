@@ -8,7 +8,8 @@ import { creditCostFor, creditCostForDuration } from '@/lib/credits/engineCost'
 import { AUTOPILOT_ALLOWED_ENGINES, AUTOPILOT_PILOT_DAYS } from '@/lib/autopilot/config'
 
 // Recreate only. Founder 09/11/2026, evening: paid v1; supersedes the earlier gift and 45-credit tariff.
-export const RECREATE_PRICING = { 10: 40, 15: 60 } as const
+// KINEO-RECREATE-TRAVA-1011 [fundador 10/11 ~14h: "Cobra 45"] — Recreate de 8 s (fonte de 8 s; o Recast herda a duração) = 45.
+export const RECREATE_PRICING = { 8: 45, 10: 40, 15: 60 } as const
 export function recreateCreditCost(seconds: number): number | null {
   return Object.prototype.hasOwnProperty.call(RECREATE_PRICING, seconds) ? RECREATE_PRICING[seconds as keyof typeof RECREATE_PRICING] : null
 }

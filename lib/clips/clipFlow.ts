@@ -193,9 +193,12 @@ export async function submitClip(
   if (!VALID_CLIP_KEY.test(args.idempotencyKey)) {
     return { ok: false, status: 400, code: 'idempotency', error: 'A valid request key is required. Please try again.' }
   }
-  const checked = validateClipRequest(args.body, { userId: args.userId, supabaseUrl: deps.supabaseUrl })
+  // KINEO-RECREATE-TRAVA-1011 [fundador 10/11: "Cobra 45"] — a duração do Recreate é a da FONTE do catálogo (o Recast a herda; 8 s
+  // não é uma duração do H3 de clipe). O formato do pedido é conferido com uma duração válida do motor e a duração confiável do
+  // plano (planRecreate) volta em seguida. Sem recreatePlan: byte a byte o de antes.
+  const checked = validateClipRequest(args.recreatePlan ? { ...args.body, seconds: 10 } : args.body, { userId: args.userId, supabaseUrl: deps.supabaseUrl }) // KINEO-RECREATE-TRAVA-1011 — era: validateClipRequest(args.body, …)
   if (!checked.ok) return { ok: false, status: checked.status, code: checked.code, error: checked.error }
-  const req = checked.request
+  const req = args.recreatePlan ? { ...checked.request, seconds: Number(args.recreatePlan.body.seconds) } : checked.request // KINEO-RECREATE-TRAVA-1011 — era: checked.request
   // Recreate is a trusted argument supplied only by /api/recreate after access and catalog validation.
   // The public /api/clips route never forwards it from the request body.
   const recreate = args.recreatePlan
@@ -420,12 +423,18 @@ export interface ClipSettleDeps {
 export interface RecreateSwapSettleDeps { // KINEO-RECREATE-TRAVA-1011
   /** Esta linha é um Recreate de troca de rosto? Clipes e efeitos: false → caminho de sempre, byte a byte. */
   applies(row: ClipRow): boolean // KINEO-RECREATE-TRAVA-1011
-  /** Reserva a checagem (UPDATE condicional: um ator só, trava velha de 2 min pode ser retomada). false = outro ator checa. */
-  claim(row: ClipRow): Promise<boolean> // KINEO-RECREATE-TRAVA-1011
+  /** A linha tem reserva de checagem VÁLIDA (não vencida) de outro ator? Então este sai antes de consultar e copiar. */
+  busy(row: ClipRow, now: number): boolean // KINEO-RECREATE-TRAVA-1011
+  /** Reserva a checagem (UPDATE condicional: um ator só, reserva velha de 2 min pode ser retomada). null = outro ator checa. */
+  claim(row: ClipRow): Promise<string | null> // KINEO-RECREATE-TRAVA-1011
   /** Quadros do resultado × quadros do vídeo-base × fotos. Nunca lança; falha da checagem = 'unverified'. */
   check(row: ClipRow, providerUrl: string): Promise<{ result: 'swapped' | 'unchanged' | 'partial' | 'unverified'; reason: string }> // KINEO-RECREATE-TRAVA-1011
-  /** markDone que também solta a trava da checagem (failure_reason volta a null). */
-  markDone(id: string, videoUrl: string): Promise<boolean> // KINEO-RECREATE-TRAVA-1011
+  /** failed condicional: só se a linha ainda está processing COM a reserva deste ator (credits_refunded 0 até o estorno). */
+  markFailed(id: string, reason: string, lock: string): Promise<boolean> // KINEO-RECREATE-TRAVA-1011
+  /** Grava o valor estornado na linha já failed. */
+  setRefunded(id: string, refunded: number): Promise<void> // KINEO-RECREATE-TRAVA-1011
+  /** done condicional à reserva deste ator; solta a reserva (failure_reason volta a null). */
+  markDone(id: string, videoUrl: string, lock: string): Promise<boolean> // KINEO-RECREATE-TRAVA-1011
   /** Evento de servidor recreate_swap_check — só quem MOVEU a linha grava. */
   record(row: ClipRow, verdict: { result: string; reason: string }, outcome: { delivered: boolean; credits_refunded: number }): Promise<void> // KINEO-RECREATE-TRAVA-1011
 } // KINEO-RECREATE-TRAVA-1011
@@ -438,11 +447,9 @@ export async function settleClip(deps: ClipSettleDeps, row: ClipRow): Promise<Cl
   const remixMeta = (video: 'skipped' | 'rejected' | 'failed') => (remixStage ? { remix: faceRemixForRow(row)?.id ?? null, keyframe: remixStage === 'keyframe' ? 'failed' : 'done', video } : {}) // KINEO-ROSTO-QUADRO-CHAVE-2810 — as DUAS etapas no clip_failed
 
   // KINEO-ROSTO-QUADRO-CHAVE-2810 — `meta`: as duas etapas do remix no clip_failed (padrão pela etapa da linha; a recusa do Kling na etapa 2 passa a sua).
-  let failMoved = false // KINEO-RECREATE-TRAVA-1011 — a trava do Recreate grava o seu evento só se ESTE ator moveu a linha
   const fail = async (reason: string, providerError: string | null = null, meta: Record<string, unknown> = remixMeta(remixStage === 'keyframe' ? 'skipped' : 'failed')): Promise<ClipRow> => { // KINEO-ROSTO-QUADRO-CHAVE-2810 — + meta
     const refunded = await deps.refund(row.billing_reference)
     const moved = await deps.markFailed(row.id, reason, refunded)
-    failMoved = moved // KINEO-RECREATE-TRAVA-1011
     // KINEO-S25-FOTO-CLIPES-1610 — só quem MOVEU a linha grava (o evento e o warn): duas abas + o cron nunca repetem.
     if (moved && providerError) console.warn(`[clips] clip_failed stage=settle reason=${reason} engine=${row.engine} clip=${row.id} request=${row.fal_request_id}: ${providerError}`)
     if (moved) await deps.event('clip_failed', { ...clipTelemetry(row), reason, credits_refunded: refunded, stage: 'settle', ...(providerError ? { provider_error: providerError } : {}), ...meta }) // KINEO-ROSTO-QUADRO-CHAVE-2810 — + meta (remix/keyframe/video)
@@ -452,6 +459,7 @@ export async function settleClip(deps: ClipSettleDeps, row: ClipRow): Promise<Cl
   if (row.status === 'pending' || !row.fal_request_id) {
     return Number.isFinite(age) && age >= CLIP_PENDING_STALE_MS ? fail('submit_lost') : row
   }
+  if (deps.recreateSwap?.applies(row) && deps.recreateSwap.busy(row, deps.now())) return row // KINEO-RECREATE-TRAVA-1011 — outro ator checa: sai ANTES de consultar/baixar
 
   const state = await deps.poll(row.model, row.fal_request_id)
   // KINEO-ROSTO-QUADRO-CHAVE-2810 — ETAPA 1 do remix (quadro-chave): falhou → estorna os 10 e o motor de vídeo NUNCA é chamado;
@@ -481,6 +489,29 @@ export async function settleClip(deps: ClipSettleDeps, row: ClipRow): Promise<Cl
   } // KINEO-ROSTO-QUADRO-CHAVE-2810
   if (state.state === 'failed') return fail('provider_failed', cleanProviderError(state.error)) // KINEO-S25-FOTO-CLIPES-1610
   if (state.state === 'done') {
+    // KINEO-RECREATE-TRAVA-1011 [fundador 10/11] — Recreate: o fornecedor devolve o vídeo-base com "sucesso" quando não troca a
+    // pessoa. ANTES de copiar e de marcar pronto: um ator reserva a checagem (token); alguma pessoa esperada continua a do
+    // vídeo-base → a linha vira failed por UPDATE condicional (só quem detém a reserva) e SÓ o vencedor estorna (refund
+    // idempotente de sempre). Quem perdeu a corrida não estorna nem entrega. Checagem que falha = 'unverified' → entrega.
+    // Status repetido depois de decidido sai na 1ª linha do settleClip (done/failed): nunca checa nem estorna de novo.
+    const swap = deps.recreateSwap?.applies(row) ? deps.recreateSwap : null // KINEO-RECREATE-TRAVA-1011
+    let swapVerdict: { result: string; reason: string } | null = null // KINEO-RECREATE-TRAVA-1011
+    let swapLock: string | null = null // KINEO-RECREATE-TRAVA-1011
+    if (swap) { // KINEO-RECREATE-TRAVA-1011
+      swapLock = await swap.claim(row) // KINEO-RECREATE-TRAVA-1011
+      if (!swapLock) return row // KINEO-RECREATE-TRAVA-1011 — outro ator (aba, cron) está checando
+      swapVerdict = await swap.check(row, state.url).catch(() => ({ result: 'unverified' as const, reason: 'check_error' })) // KINEO-RECREATE-TRAVA-1011
+      if (swapVerdict.result === 'unchanged' || swapVerdict.result === 'partial') { // KINEO-RECREATE-TRAVA-1011
+        const reason = swapVerdict.result === 'partial' ? 'swap_partial' : 'swap_unchanged' // KINEO-RECREATE-TRAVA-1011
+        if (!(await swap.markFailed(row.id, reason, swapLock))) return row // KINEO-RECREATE-TRAVA-1011 — perdeu a reserva: nada
+        let refunded = await deps.refund(row.billing_reference) // KINEO-RECREATE-TRAVA-1011 — só o vencedor estorna
+        if (refunded <= 0) refunded = await deps.refund(row.billing_reference) // KINEO-RECREATE-TRAVA-1011 — 2ª tentativa (o RPC é idempotente)
+        if (refunded > 0) await swap.setRefunded(row.id, refunded) // KINEO-RECREATE-TRAVA-1011
+        await deps.event('clip_failed', { ...clipTelemetry(row), reason, credits_refunded: refunded, stage: 'settle', swap_check: swapVerdict.result }) // KINEO-RECREATE-TRAVA-1011
+        await swap.record(row, swapVerdict, { delivered: false, credits_refunded: refunded }) // KINEO-RECREATE-TRAVA-1011
+        return { ...row, status: 'failed', failure_reason: reason, credits_refunded: refunded } // KINEO-RECREATE-TRAVA-1011
+      } // KINEO-RECREATE-TRAVA-1011
+    } // KINEO-RECREATE-TRAVA-1011
     let ours: string
     try {
       ours = await deps.persist(row, state.url)
@@ -488,24 +519,9 @@ export async function settleClip(deps: ClipSettleDeps, row: ClipRow): Promise<Cl
       // Nunca marca pronto com a URL da fal. Tenta de novo no próximo poll; passou do prazo, estorna.
       return Number.isFinite(age) && age >= CLIP_EXPIRE_MS ? fail('persist_failed') : row
     }
-    // KINEO-RECREATE-TRAVA-1011 [fundador 10/11] — Recreate: o fornecedor devolve o vídeo-base com "sucesso" quando não troca a
-    // pessoa. ANTES de marcar pronto: um ator reserva a checagem; alguma pessoa esperada continua a do vídeo-base → falha + o
-    // MESMO estorno de sempre (fail → refund idempotente). Checagem que falha = 'unverified' → entrega. Status repetido depois
-    // de decidido sai na 1ª linha do settleClip (done/failed): nunca checa, estorna nem troca o veredito de novo.
-    const swap = deps.recreateSwap?.applies(row) ? deps.recreateSwap : null // KINEO-RECREATE-TRAVA-1011
-    let swapVerdict: { result: string; reason: string } | null = null // KINEO-RECREATE-TRAVA-1011
-    if (swap) { // KINEO-RECREATE-TRAVA-1011
-      if (!(await swap.claim(row))) return row // KINEO-RECREATE-TRAVA-1011 — outro ator (aba, cron) está checando
-      swapVerdict = await swap.check(row, state.url).catch(() => ({ result: 'unverified' as const, reason: 'check_error' })) // KINEO-RECREATE-TRAVA-1011
-      if (swapVerdict.result === 'unchanged' || swapVerdict.result === 'partial') { // KINEO-RECREATE-TRAVA-1011
-        const closed = await fail(swapVerdict.result === 'partial' ? 'swap_partial' : 'swap_unchanged', null, { swap_check: swapVerdict.result }) // KINEO-RECREATE-TRAVA-1011
-        if (failMoved) await swap.record(row, swapVerdict, { delivered: false, credits_refunded: closed.credits_refunded }) // KINEO-RECREATE-TRAVA-1011
-        return closed // KINEO-RECREATE-TRAVA-1011
-      } // KINEO-RECREATE-TRAVA-1011
-    } // KINEO-RECREATE-TRAVA-1011
-    const moved = await (swap ? swap.markDone(row.id, ours) : deps.markDone(row.id, ours)) // KINEO-RECREATE-TRAVA-1011 — era: deps.markDone(row.id, ours)
+    const moved = swap && swapLock ? await swap.markDone(row.id, ours, swapLock) : await deps.markDone(row.id, ours) // KINEO-RECREATE-TRAVA-1011 — era: await deps.markDone(row.id, ours)
+    if (swap && !moved) return row // KINEO-RECREATE-TRAVA-1011 — perdeu a reserva: não entrega (quem a detém decide)
     if (moved) {
-      if (swap && swapVerdict) await swap.record(row, swapVerdict, { delivered: true, credits_refunded: 0 }) // KINEO-RECREATE-TRAVA-1011
       await deps.event('clip_delivered', { ...clipTelemetry(row), age_ms: Math.max(0, age) })
       // KINEO-CLIP-EFEITOS-2026-10-05 — clipe de um efeito de 1 clique ficou pronto. Mesmo ponto e mesma condição do
       // clip_delivered (só quem MOVEU a linha para `done` grava): duas abas + o cron nunca contam o mesmo clipe duas vezes.
@@ -514,6 +530,7 @@ export async function settleClip(deps: ClipSettleDeps, row: ClipRow): Promise<Cl
       // KINEO-ROSTO-QUADRO-CHAVE-2810 — remix entregue: as DUAS etapas fecharam (mesmo ponto e condição do clip_delivered).
       const remixItem = remixStage === 'video' ? faceRemixForRow(row) : null // KINEO-ROSTO-QUADRO-CHAVE-2810
       if (remixItem) await deps.event(FACE_REMIX_EVENTS.ready, { ...faceRemixEventMetadata(remixItem, row), keyframe: 'done', video: 'delivered', age_ms: Math.max(0, age) }) // KINEO-ROSTO-QUADRO-CHAVE-2810
+      if (swap && swapVerdict) await swap.record(row, swapVerdict, { delivered: true, credits_refunded: 0 }) // KINEO-RECREATE-TRAVA-1011
     }
     return { ...row, status: 'done', video_url: ours }
   }

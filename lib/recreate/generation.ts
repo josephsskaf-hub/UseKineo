@@ -1,7 +1,7 @@
 import { ownedClipImageUrl, type ClipRequestInput } from '@/lib/clips/clipCatalog'
 import { RECREATE_MOTION_ENABLED } from './access'
 import { RECREATE_SWAP_PROMPT, RECREATE_UNPRICED_ERROR, recreateFormat, recreateSwapPriced } from './formats'
-import { RECREATE_PRICING } from '@/lib/checkoutPricing'
+import { recreateCreditCost } from '@/lib/checkoutPricing'
 export { RECREATE_PRICING } from '@/lib/checkoutPricing'
 
 // Approved 09/11: new product tariff only; no change to existing clip/effect pricing.
@@ -24,11 +24,12 @@ export function planRecreate(raw: Record<string, unknown>, ctx: { userId: string
   const bad = (error: string, status = 400): RecreatePlanResult => ({ ok: false, status, error })
   const f = recreateFormat(raw.format)
   if (!f || f.type !== 'swap') return bad('Choose a video from the Kineo catalog.')
-  if (!recreateSwapPriced(f)) return bad(RECREATE_UNPRICED_ERROR, 409) // KINEO-RECREATE-TRAVA-1011 — 8 s source: no approved tariff yet
+  if (!recreateSwapPriced(f)) return bad(RECREATE_UNPRICED_ERROR, 409) // KINEO-RECREATE-TRAVA-1011 — a source length without an approved tariff is never sold
   if (raw.mode && raw.mode !== 'swap') return bad(RECREATE_MOTION_ENABLED ? 'This mode is not ready.' : 'This mode is unavailable.')
   if (raw.consent !== true) return bad('Confirm you have permission to use these photos.')
   const seconds = Number(raw.seconds)
-  if (seconds !== 10 && seconds !== 15) return bad('Choose an available duration.')
+  const credits = recreateCreditCost(seconds) // KINEO-RECREATE-TRAVA-1011 — one source of truth: 8 → 45 ('Cobra 45', 10/11), 10 → 40, 15 → 60
+  if (credits === null) return bad('Choose an available duration.')
   if (seconds === 15 && !ctx.paying) return bad('Upgrade your plan to use this duration.', 402)
   // Recast inherits source duration; its API has no duration parameter. Never sell 15 s from a 10 s source.
   if (seconds !== f.seconds) return bad('This duration needs an approved source video of the same length.', 409)
@@ -42,7 +43,6 @@ export function planRecreate(raw: Record<string, unknown>, ctx: { userId: string
   const text = typeof raw.prompt === 'string' ? raw.prompt.trim() : ''
   if (text.length > 550) return bad('Keep the description under 550 characters.')
   const prompt = `${RECREATE_SWAP_PROMPT}${text && text !== RECREATE_SWAP_PROMPT ? ` Additional face instructions: ${text}` : ''}`
-  const credits = RECREATE_PRICING[seconds]
   return { ok: true, plan: {
     body: { engine: 'h3', seconds, aspect: null, prompt, imageUrl: photos[0] },
     model: RECREATE_MODEL, credits, falUsd: seconds * RECREATE_USD_PER_SECOND, photos,

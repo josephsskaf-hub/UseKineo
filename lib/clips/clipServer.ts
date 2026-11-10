@@ -23,7 +23,7 @@ import { decideEngineGate } from '@/lib/enginePlanGate'
 import { downloadPublicAnimateImage } from '@/lib/animate/remoteImage'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { RECREATE_MODEL } from '@/lib/recreate/generation' // KINEO-RECREATE-TRAVA-1011
-import { RECREATE_SWAP_CHECK_EVENT, SWAP_CHECK_LOCK_PREFIX, SWAP_CHECK_LOCK_STALE_MS, recreateRowContext, runSwapCheck, swapCheckLock, type SwapVerdict } from '@/lib/recreate/swapCheck' // KINEO-RECREATE-TRAVA-1011
+import { RECREATE_SWAP_CHECK_EVENT, SWAP_CHECK_LOCK_PREFIX, SWAP_CHECK_LOCK_STALE_MS, recreateRowContext, runSwapCheck, swapCheckBusy, swapCheckLock, type SwapVerdict } from '@/lib/recreate/swapCheck' // KINEO-RECREATE-TRAVA-1011
 import { alertFalExhausted, looksExhausted } from '@/lib/falAlert'
 import {
   CLIP_ENGINES,
@@ -530,25 +530,44 @@ export function settleDepsFor(admin: SupabaseClient, userId: string): ClipSettle
 export function recreateSwapDepsFor(admin: SupabaseClient, userId: string): RecreateSwapSettleDeps {
   return {
     applies: (row) => row.model === RECREATE_MODEL,
+    busy: (row, now) => swapCheckBusy(row.failure_reason, now),
     claim: async (row) => {
       const now = Date.now()
+      const lock = swapCheckLock(now, randomUUID().slice(0, 8))
       const { data, error } = await admin
         .from(CLIPS_TABLE)
-        .update({ failure_reason: swapCheckLock(now) })
+        .update({ failure_reason: lock })
         .eq('id', row.id)
         .eq('status', 'processing')
         .or(`failure_reason.is.null,and(failure_reason.like.${SWAP_CHECK_LOCK_PREFIX}*,failure_reason.lt.${swapCheckLock(now - SWAP_CHECK_LOCK_STALE_MS)})`)
         .select('id')
       if (error) console.error(`[clips] recreate swap-check claim failed clip=${row.id}:`, error.message)
-      return !error && (data ?? []).length > 0
+      return !error && (data ?? []).length > 0 ? lock : null
     },
     check: (row, url) => runSwapCheck(row, url),
-    markDone: async (id, videoUrl) => {
+    // Atômico: failed só para quem AINDA detém a reserva; o estorno vem depois, só no vencedor (clipFlow).
+    markFailed: async (id, reason, lock) => {
+      const { data, error } = await admin
+        .from(CLIPS_TABLE)
+        .update({ status: 'failed', failure_reason: reason.slice(0, 60), credits_refunded: 0, settled_at: new Date().toISOString() })
+        .eq('id', id)
+        .eq('status', 'processing')
+        .eq('failure_reason', lock)
+        .select('id')
+      if (error) console.error(`[clips] recreate markFailed failed clip=${id}:`, error.message)
+      return !error && (data ?? []).length > 0
+    },
+    setRefunded: async (id, refunded) => {
+      const { error } = await admin.from(CLIPS_TABLE).update({ credits_refunded: refunded }).eq('id', id).eq('status', 'failed').eq('credits_refunded', 0)
+      if (error) console.error(`[clips] recreate setRefunded failed clip=${id} refunded=${refunded}:`, error.message)
+    },
+    markDone: async (id, videoUrl, lock) => {
       const { data, error } = await admin
         .from(CLIPS_TABLE)
         .update({ status: 'done', video_url: videoUrl, failure_reason: null, settled_at: new Date().toISOString() })
         .eq('id', id)
         .eq('status', 'processing')
+        .eq('failure_reason', lock)
         .select('id')
       if (error) console.error(`[clips] recreate markDone failed clip=${id}:`, error.message)
       return !error && (data ?? []).length > 0
@@ -557,8 +576,9 @@ export function recreateSwapDepsFor(admin: SupabaseClient, userId: string): Recr
       const v = verdict as Partial<SwapVerdict>
       await writeServerEvent({ name: RECREATE_SWAP_CHECK_EVENT, userId, path: '/api/recreate/status', metadata: {
         format: v.format ?? recreateRowContext(row)?.format.id ?? null, clip_id: row.id, result: verdict.result, reason: verdict.reason,
+        unverified_reason: verdict.result === 'unverified' ? (v.unverified_reason ?? 'http_error') : null,
         delivered: outcome.delivered, credits: row.credits, credits_refunded: outcome.credits_refunded,
-        persons: v.persons ?? [], model: v.model ?? null, usd: v.usd ?? null, ms: v.ms ?? null, version: 'recreate_swap_check_1011',
+        persons: v.persons ?? [], model: v.model ?? null, usd: v.usd ?? null, ms: v.ms ?? null, version: 'recreate_swap_check_1011b',
       } }).catch(() => false)
     },
   }
@@ -698,9 +718,13 @@ export async function advanceActiveClipJobs(opts: { minAgeMs?: number; limit?: n
   const oldest = new Date(Date.now() - CLIP_EXPIRE_MS - 60 * 60 * 1000).toISOString() // KINEO-FILME-RAPIDO-1710 — os vencidos também fecham (estorno), como na varredura
   const { data, error } = await admin.from(CLIPS_TABLE).select(COLUMNS).in('status', ['pending', 'processing']).lte('created_at', youngest).gte('created_at', oldest).order('created_at', { ascending: true }).limit(opts.limit ?? 30) // KINEO-FILME-RAPIDO-1710
   if (error) { console.error('[clips/rapido] lookup failed:', error.message); return result } // KINEO-FILME-RAPIDO-1710
-  for (const raw of data ?? []) { // KINEO-FILME-RAPIDO-1710
+  // KINEO-RECREATE-TRAVA-1011 — o Recreate pronto pode segurar a passada ~40 s (checagem "não trocou"): vai por ÚLTIMO e no
+  // máximo 1 por passada; os outros esperam a próxima passada (a aba do cliente também liquida). Ordem dos demais: a de sempre.
+  const rows = (data ?? []).map((raw) => toRow(raw as Record<string, unknown>)) // KINEO-RECREATE-TRAVA-1011
+  const ordered = [...rows.filter((r) => r.model !== RECREATE_MODEL), ...rows.filter((r) => r.model === RECREATE_MODEL).slice(0, 1)] // KINEO-RECREATE-TRAVA-1011
+  result.waiting += rows.length - ordered.length // KINEO-RECREATE-TRAVA-1011
+  for (const row of ordered) { // KINEO-FILME-RAPIDO-1710 · KINEO-RECREATE-TRAVA-1011 — era: for (const raw of data ?? [])
     if (opts.deadlineMs && Date.now() > opts.deadlineMs) break // KINEO-FILME-RAPIDO-1710
-    const row = toRow(raw as Record<string, unknown>) // KINEO-FILME-RAPIDO-1710
     result.scanned += 1 // KINEO-FILME-RAPIDO-1710
     const after = await settleClip(settleDepsFor(admin, row.user_id), row).catch(() => row) // KINEO-FILME-RAPIDO-1710
     if (after.status === 'done') result.delivered += 1 // KINEO-FILME-RAPIDO-1710
