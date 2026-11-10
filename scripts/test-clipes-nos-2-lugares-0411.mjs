@@ -188,6 +188,21 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
       const etiqueta = />\s*(Clip|Multi-camera|Narrated film|Effect|Ad style|Trending format)\s*</.exec(html)
       if (etiqueta) e.push(`B ${lugar}: a vitrine mostra a etiqueta "${etiqueta[1]}" na tela`)
     }
+    { // KINEO-RECREATE-SO-ONDE-RECRIA-1011 [fundador 10/11: "tem que colocar só os que recriam"] — o selo Recreate aparece EXATAMENTE nos
+      // cartões cujo clique abre a criação pronta daquele vídeo: clipe com texto no link (/clips?…prompt=…), efeito e estilo de anúncio. Sem selo:
+      // multicâmera, filme narrado, clipe sem texto (por foto, de formato) e imagem. Cada tipo tem de aparecer, para a regra não passar no vazio.
+      const vistos = {}
+      for (const m of html.matchAll(/<a [^>]*data-home-cta="(mosaic_[a-z_0-9-]+)"[^>]*>[\s\S]*?<\/a>/g)) {
+        const [cartao, cta] = m
+        const href = (/href="([^"]+)"/.exec(cartao)?.[1] ?? '').replace(/&amp;/g, '&')
+        const tipo = cta.startsWith('mosaic_effect_') ? 'efeito' : cta.startsWith('mosaic_style_') ? 'estilo' : cta === 'mosaic_clip' ? (/prompt(=|%3D)/.test(href) ? 'clipe com texto' : 'clipe sem texto') : cta.replace('mosaic_', '')
+        const deve = tipo === 'efeito' || tipo === 'estilo' || tipo === 'clipe com texto'
+        const tem = cartao.includes('class="kmz-re"')
+        vistos[tipo] = (vistos[tipo] ?? 0) + 1
+        if (tem !== deve) e.push(`R ${lugar}: ${tipo} ${deve ? 'sem' : 'com'} o selo Recreate (${(/aria-label="([^"]+)"/.exec(cartao)?.[1] ?? cta).slice(0, 60)})`)
+      }
+      for (const k of ['efeito', 'clipe com texto', 'clipe sem texto', 'image', 'film', ...(opts.full ? ['estilo'] : ['motion'])]) if (!vistos[k]) e.push(`R ${lugar}: nenhum cartão "${k}" para provar a regra do selo`)
+    }
     // (C) estação
     const proibido = /pumpkin|jack-o|werewolf|witch|zombie|catrina|day of the dead|skull/i
     const semLinks = html.replace(/href="[^"]*"/g, '').replace(/data-home-cta="[^"]*"/g, '')
@@ -375,6 +390,15 @@ mutante('motor volta no multi-camera', { [MOSAICO]: injeta('<span className="kmz
 mutante('motor no aria-label do multi-camera', { [MOSAICO]: troca("aria-label={t.title + ' — multi-camera'}", "aria-label={t.title + ' — Kling 3'}") })
 mutante('motor volta no filme', { [MOSAICO]: injeta('<span className="kmz-copy"><b><UiLabel>{t.title}</UiLabel></b>', '<i>{t.badge}</i>') })
 mutante('motor volta no estilo', { [MOSAICO]: injeta('<span className="kmz-copy"><b><UiLabel>{st.title}</UiLabel></b>', "<i>{st.engine ?? ''}</i>") })
+// KINEO-RECREATE-SO-ONDE-RECRIA-1011 — o selo nos dois sentidos
+mutante('selo Recreate volta no multicâmera', { [MOSAICO]: troca("  if (t.kind === 'clip') return !!t.clip.prompt", "  if (t.kind === 'motion') return true\n  if (t.kind === 'clip') return !!t.clip.prompt") })
+mutante('selo Recreate volta no filme narrado', { [MOSAICO]: troca("  if (t.kind === 'clip') return !!t.clip.prompt", "  if (t.kind === 'film') return true\n  if (t.kind === 'clip') return !!t.clip.prompt") })
+mutante('selo Recreate some do clipe com texto', { [MOSAICO]: troca("  if (t.kind === 'clip') return !!t.clip.prompt", "  if (t.kind === 'clip') return false") })
+mutante('selo Recreate some do clipe novo com texto', { [MOSAICO]: troca("  if (t.kind === 'novo') return !!t.clip.prompt", "  if (t.kind === 'novo') return false") })
+mutante('selo Recreate no clipe de formato (abre o /clips vazio)', { [MOSAICO]: troca("  if (t.kind === 'novo') return !!t.clip.prompt", "  if (t.kind === 'novo') return true") })
+mutante('selo Recreate some do efeito', { [MOSAICO]: troca("return t.kind === 'effect' || t.kind === 'style'", "return t.kind === 'style'") })
+mutante('selo Recreate some do estilo de anúncio', { [MOSAICO]: troca("return t.kind === 'effect' || t.kind === 'style'", "return t.kind === 'effect'") })
+mutante('selo Recreate em todo cartão de vídeo (regra antiga)', { [MOSAICO]: (s) => s.replaceAll('{podeRecriar(t) ? <Recreate /> : null}', '<Recreate />') })
 mutante('arquivo faltando',{}, {}, (rel) => !rel.includes('pet-barista.mp4') && fs.existsSync(path.join(ROOT, rel)))
 mutante('pôster faltando', {}, {}, (rel) => !rel.endsWith('produto-tenis-rua.webp') && fs.existsSync(path.join(ROOT, rel)))
 mutante('"newest first" de volta', {}, { pagina: rd(PAGINA) + '\nClips, newest first.' })

@@ -215,6 +215,20 @@ const CSS = `
 // KINEO-CARDS-RECREATE-0911 — fundador 09/11 (print do Higgsfield): todo cartão de vídeo mostra "Recreate" para a pessoa já ver que
 // dá para refazer. É um selo dentro do próprio cartão (sem <a> dentro de <a>): o clique no cartão inteiro já leva ao lugar de refazer
 // (o /clips com motor e texto, a página do efeito, o Studio). Imagem não recebe: o /images ainda não aceita o texto pronto.
+// KINEO-RECREATE-SO-ONDE-RECRIA-1011 — fundador 10/11: "tem vários lugares que tá o botão Recreate… mas tem alguns que não são de Recreate.
+// Tipo quatro câmeras na onda, não dá para recriar… Acho que tem que colocar só os que recriam." A regra mora SÓ aqui: o selo aparece apenas
+// no cartão cujo clique abre a criação já pronta para fazer aquele mesmo vídeo.
+//   · sim: clipe com o texto no link (/clips?engine=…&prompt=…), clipe novo com prompt, efeito (a página aplica aquele efeito na foto da
+//     pessoa), estilo de anúncio (abre o anúncio naquele estilo);
+//   · não: multicâmera e filme narrado (abrem o Studio em branco), clipe novo sem prompt (clipe por foto e os de formato, como o outfit-morph
+//     e os 7 de 09/11: abrem o /clips vazio) e imagem.
+// Quando existir a página pública de Recreate e o cartão de formato levar a ela, o selo volta para esses cartões — aqui.
+export function podeRecriar(t: Tile): boolean {
+  if (t.kind === 'clip') return !!t.clip.prompt
+  if (t.kind === 'novo') return !!t.clip.prompt
+  return t.kind === 'effect' || t.kind === 'style'
+}
+
 function Recreate() {
   return (
     <span className="kmz-re" aria-hidden="true">
@@ -258,7 +272,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
               const card = (
                 <Link key={c.id} href={viaSignup('/clips?' + new URLSearchParams({ engine: c.engine, prompt: c.prompt }).toString(), signedIn)} className="kmz-t kmz-big" data-home-cta="mosaic_clip" aria-label={`${c.title} — clip`}>
                   <div className="kmz-md" style={focusStyle(c.poster, MOSAIC_CLIP_FOCUS[c.id] ?? c.focus)}><WallMedia src={c.video} /></div>
-                  <Recreate />
+                  {podeRecriar(t) ? <Recreate /> : null}
                 <span className="kmz-shade" aria-hidden="true" />
                   <span className="kmz-copy"><b><UiLabel>{c.title}</UiLabel></b><Views video={c.video} /></span>
                 </Link>
@@ -280,7 +294,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                     <img src={clipeNovoPoster(c)} width={540} height={960} alt="" loading="lazy" decoding="async" style={{ objectPosition: c.focus, transform: 'none' }} />
                     <WallMedia src={clipeNovoVideo(c)} />
                   </div>
-                  <Recreate />
+                  {podeRecriar(t) ? <Recreate /> : null}
                 <span className="kmz-shade" aria-hidden="true" />
                   <span className="kmz-copy"><b><UiLabel>{c.title}</UiLabel></b><Views video={clipeNovoVideo(c)} /></span>{/* KINEO-OUTFIT-MORPH-HOME-0911 */}
                 </Link>
@@ -297,7 +311,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                     </>
                   ) : <WallMedia src={t.video} />}
                 </div>
-                <Recreate />
+                {podeRecriar(t) ? <Recreate /> : null}
                 <span className="kmz-shade" aria-hidden="true" />
                 <span className="kmz-copy"><b>{t.title}</b><Views video={t.video} /></span>
               </Link>
@@ -305,7 +319,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
             if (t.kind === 'film') return (
               <Link key={t.video} href={filmHref} className="kmz-t kmz-big" data-home-cta="mosaic_film" aria-label={`${t.title} — narrated film`}>
                 <div className="kmz-md" style={focusStyle(t.poster, t.focus)}><WallMedia src={t.video} /></div>
-                <Recreate />
+                {podeRecriar(t) ? <Recreate /> : null}
                 <span className="kmz-shade" aria-hidden="true" />
                 <span className="kmz-copy"><b><UiLabel>{t.title}</UiLabel></b><Views video={t.video} /></span>
               </Link>
@@ -316,7 +330,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                 <Link key={e.key} href={effectPagePath(effectSlug(e))} className="kmz-t" data-home-cta={`mosaic_effect_${e.key}`} aria-label={`${e.title} — effect`}>
                   <div className="kmz-md" style={focusStyle(e.preview?.poster, MOSAIC_EFFECT_FOCUS[e.key] ?? '50% 45%')}>{e.preview ? <WallMedia src={`${e.preview.video}#t=1.6`} /> : null}</div>
                   {newKeys.has(e.key) ? <span className="kmz-new">⚡ NEW</span> : null}
-                  <Recreate />
+                  {podeRecriar(t) ? <Recreate /> : null}
                 <span className="kmz-shade" aria-hidden="true" />
                   <span className="kmz-copy"><b><UiLabel>{e.title}</UiLabel></b><Views video={e.preview?.video} /></span>
                 </Link>
@@ -327,7 +341,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
               return (
                 <Link key={'style-' + st.key} href={st.href} className="kmz-t" data-home-cta={`mosaic_style_${st.key}`} aria-label={`${st.title} — ad style`}>
                   <div className="kmz-md" style={focusStyle(st.poster ?? undefined, MOSAIC_STYLE_FOCUS[st.key] ?? '50% 45%')}><WallMedia src={st.video} /></div>
-                  <Recreate />
+                  {podeRecriar(t) ? <Recreate /> : null}
                 <span className="kmz-shade" aria-hidden="true" />
                   <span className="kmz-copy"><b><UiLabel>{st.title}</UiLabel></b></span>
                 </Link>
