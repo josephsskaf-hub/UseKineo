@@ -14,9 +14,10 @@ export function createShellVisible(email: string | null | undefined, release: In
 export type CreateShellDecision = { kind: 'show'; showRecreate: boolean } | { kind: 'signup'; href: string } | { kind: 'not_found' }
 
 /** A porta de /create/<aba>, pura: o servidor só lê o usuário e aplica isto. */
-export function createShellDecision(tab: string, user: { email?: string | null } | null, release: InternalRelease = CREATE_SHELL_RELEASE): CreateShellDecision {
+// KINEO-ENTRADAS-TELA-NOVA-1011 — `query` (opcional): a query de chegada volta junto no retorno do cadastro (ideia, campanha, utm). Vazia = o href de antes.
+export function createShellDecision(tab: string, user: { email?: string | null } | null, release: InternalRelease = CREATE_SHELL_RELEASE, query = ''): CreateShellDecision {
   if (!isCreateTab(tab) || release === 'off') return { kind: 'not_found' }
-  if (!user) return release === 'public' ? { kind: 'signup', href: '/signup?' + new URLSearchParams({ redirect: createTabHref(tab as CreateTab) }).toString() } : { kind: 'not_found' }
+  if (!user) return release === 'public' ? { kind: 'signup', href: '/signup?' + new URLSearchParams({ redirect: createTabHref(tab as CreateTab) + (query ? '?' + query : '') }).toString() } : { kind: 'not_found' }
   if (!createShellVisible(user.email, release)) return { kind: 'not_found' }
   // A aba Recreate só aparece para quem abre o /recreate (senão ela levaria a um 404).
   return { kind: 'show', showRecreate: recreateVisible(user.email) }

@@ -127,7 +127,11 @@ async function main(){
         assert(ad,'new main Christmas ad remains in the mosaic: '+id)
         assert(ad.includes('data-home-cta="mosaic_ad"'));assert(ad.includes('Make your ad'));assert(!ad.includes('>Recreate<'))
         const destination=ad.match(/href="([^"]+)"/)[1].replaceAll('&amp;','&')
-        assert.equal(signedIn?destination:new URL(destination,'https://fixture').searchParams.get('redirect'),'/ads/new','ad examples never become Recreate links')
+        // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — o destino é o da entrada de anúncio
+        // (lib/create/entry.ts: /create/ads com o interruptor public; /ads/new com ele em off). Nunca um link do Recreate.
+        const adsEntry=loader({})('lib/create/entry').createEntryHref('ads','/ads/new')
+        assert.equal(adsEntry,'/create/ads','the shipped entry switch is public')
+        assert.equal(signedIn?destination:new URL(destination,'https://fixture').searchParams.get('redirect'),adsEntry,'ad examples never become Recreate links')
       }
     }
   }

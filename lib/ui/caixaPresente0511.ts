@@ -16,6 +16,7 @@ import { LINHA_DO_FILME_GRATIS, filmeGratisNaCaixa } from '@/lib/growth/filmeGra
 import { KLING4_PAID_COPY, kling4PromoZeroCredits, rebaseKling4Lease } from '@/lib/kling4PaidPresentation'
 import { TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOffer' // KINEO-HOME-TOPO-0511
 import { GENERATE_IN_CLAUDE_PATH } from '@/lib/generateInClaude' // KINEO-PRESENTE-CONECTOR-0911
+import { createEntryHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — a linha do filme grátis abre a aba Film
 
 export const CAIXA_CREDITS_API = '/api/credits'
 export const CAIXA_KLING4_API = '/api/kling4-paid/availability'
@@ -92,7 +93,7 @@ export const CAIXA_CLIQUE_EVENTO = 'gift_box_entry_click'
 /** As linhas desta conta, nesta ordem. As do conector e a do afiliado existem sempre, então a caixa nunca abre vazia. */
 export function linhasDaCaixa(l: CaixaLeituras, agoraMs: number): CaixaLinha[] {
   const linhas: CaixaLinha[] = []
-  if (filmeGratisNaCaixa(l.credits)) linhas.push({ id: 'filme', titulo: LINHA_DO_FILME_GRATIS, href: '/studio' })
+  if (filmeGratisNaCaixa(l.credits)) linhas.push({ id: 'filme', titulo: LINHA_DO_FILME_GRATIS, href: createEntryHref('film', '/studio') })
   const anual = linhaDoAnual(l, agoraMs)
   if (anual) linhas.push(anual)
   if (kling4PromoZeroCredits(l.kling4, KLING4_SEGUNDOS_DA_LEITURA, agoraMs)) linhas.push({ id: 'kling4', titulo: KLING4_PAID_COPY.included, href: '/studio?engine=hollywood' })

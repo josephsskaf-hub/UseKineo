@@ -14,6 +14,9 @@ import path from 'node:path'
 import { createRequire } from 'node:module'
 
 const require = createRequire(import.meta.url)
+// KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — o filme e o "Product ads" passam pela entrada única
+// (lib/create/entry.ts): o destino é a aba da tela nova (com CREATE_ENTRY_RELEASE 'off', o /studio e o /ads/new de antes).
+const ENTRADA = require('../docs/recreate-0911/test-recreate.cjs').loader()('lib/create/entry')
 const Module = require('node:module')
 const ts = require('typescript')
 const ROOT = path.resolve(import.meta.dirname, '..')
@@ -193,13 +196,14 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
       const destino = bruto.startsWith('/signup?') ? new URLSearchParams(bruto.split('?').slice(1).join('?')).get('redirect') ?? '' : ''
       const pedido = new URLSearchParams(destino.split('?').slice(1).join('?'))
       if (VERDADE[c.id]?.[2] === 'anuncio') { // KINEO-ADS-NATAL-VITRINE-1011 — exemplo de anúncio: o MESMO destino do "Product ads" do menu do topo, via signup
-        const menu = /<Link href="([^"]+)" data-nav-item="business" className="nav-primary"><UiLabel>Product ads<\/UiLabel><\/Link>/.exec(fonteLanding)?.[1]
+        const menuAntigo = /<Link href=\{createEntryHref\('ads', '([^']+)', \{ signedIn: isSignedIn \}\)\} data-nav-item="business" className="nav-primary"><UiLabel>Product ads<\/UiLabel><\/Link>/.exec(fonteLanding)?.[1]
+        const menu = menuAntigo && ENTRADA.createEntryHref('ads', menuAntigo) // KINEO-ENTRADAS-TELA-NOVA-1011 — o destino que o menu abre hoje
         if (!menu || destino !== menu || bruto !== '/signup?' + new URLSearchParams({ redirect: menu }).toString()) e.push(`B ${lugar}: ${c.id} (exemplo de anúncio) não abre a criação de anúncio do menu "Product ads" (${menu}) via signup: ${bruto.slice(0, 80)}`)
         if (!/data-home-cta="mosaic_ad"/.test(cartao)) e.push(`B ${lugar}: ${c.id} (exemplo de anúncio) medido como outro tipo de cartão`)
       } else if (/data-home-cta="mosaic_ad"/.test(cartao) || destino.startsWith('/ads')) e.push(`B ${lugar}: ${c.id} não é exemplo de anúncio e leva às Ads: ${bruto.slice(0, 80)}`)
       else if (VERDADE[c.id]?.[2] === 'filme') { // KINEO-VITRINE-10-1011 — filme do Studio: o MESMO link dos filmes da vitrine, nunca o /clips
         const filme = /<a href="([^"]+)"[^>]*data-home-cta="mosaic_film"/.exec(html)?.[1]
-        if (!bruto.startsWith('/signup?redirect=%2Fstudio') || (filme && filme.replace(/&amp;/g, '&') !== bruto)) e.push(`B ${lugar}: ${c.id} (filme) não abre o Studio como os filmes da vitrine: ${bruto.slice(0, 80)}`)
+        if (!bruto.startsWith('/signup?redirect=' + encodeURIComponent(new URL(ENTRADA.createEntryHref('film', '/studio'), 'https://k').pathname)) || (filme && filme.replace(/&amp;/g, '&') !== bruto)) e.push(`B ${lugar}: ${c.id} (filme) não abre o Studio como os filmes da vitrine: ${bruto.slice(0, 80)}`)
       } else if (c.engine === null) { const esperado = publicRecreatePath(c.id) ?? '/clips'; if (destino !== esperado) e.push(`B ${lugar}: ${c.id} (formato) não leva ao catálogo aprovado ou fallback: ${bruto.slice(0, 80)}`) }
       else if (!destino.startsWith('/clips?') || pedido.get('engine') !== c.engine) e.push(`B ${lugar}: ${c.id} não leva ao /clips no motor: ${bruto.slice(0, 80)}`)
       if (c.prompt && pedido.get('prompt') !== c.prompt) e.push(`B ${lugar}: ${c.id} sem o texto no /clips`)

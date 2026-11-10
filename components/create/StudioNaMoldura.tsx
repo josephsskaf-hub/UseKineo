@@ -45,6 +45,7 @@ export function PassosDoStudio({ c, preco }: { c: CaixaNaMoldura; preco: number 
   </>
 }
 
-export default function StudioNaMoldura({ showRecreate, motor, campanha }: { showRecreate: boolean; motor: string; campanha: string }) {
-  return <StudioSimples filmes={[]} motor={motor} campanha={campanha} moldura={c => <CreateShell tab="film" showRecreate={showRecreate} aoEscolher={c.escrever} painel={<PassosDoStudio c={c} preco={precoDoGenerate({ motor: c.motor, duracao: c.duracao, contaPaga: c.contaPaga, palavraPorPalavra: c.palavraPorPalavra, texto: c.texto, opcoesDuracao: c.opcoesDuracao })} />} />} />
+// KINEO-ENTRADAS-TELA-NOVA-1011 — ideiaInicial: a ideia do link (?ideia=), o MESMO prop que o /studio passa à caixa (só preenche; nada começa sozinho).
+export default function StudioNaMoldura({ showRecreate, motor, campanha, ideiaInicial = '' }: { showRecreate: boolean; motor: string; campanha: string; ideiaInicial?: string }) {
+  return <StudioSimples filmes={[]} motor={motor} campanha={campanha} ideiaInicial={ideiaInicial} moldura={c => <CreateShell tab="film" showRecreate={showRecreate} aoEscolher={c.escrever} painel={<PassosDoStudio c={c} preco={precoDoGenerate({ motor: c.motor, duracao: c.duracao, contaPaga: c.contaPaga, palavraPorPalavra: c.palavraPorPalavra, texto: c.texto, opcoesDuracao: c.opcoesDuracao })} />} />} />
 }

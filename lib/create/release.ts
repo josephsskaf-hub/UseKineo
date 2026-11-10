@@ -14,3 +14,11 @@ export const CREATE_SHELL_RELEASE: InternalRelease = 'public'
 // KINEO-STUDIO-NA-MOLDURA-ABRE-1011 [fundador 10/11: "Quero todas as telas com o design que fizemos no codex"] — aberto ao público em 10/11/2026,
 // depois da conferência logada em produção (91ef32dd9). VOLTA: 'internal' fecha de novo (só a casa); 'off' tira de todos.
 export const CREATE_FILM_INPLACE: InternalRelease = 'public'
+
+// KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — as ENTRADAS de criação do site (menu do topo,
+// lateral e celular; cartões e botões da home; caixa de presente; "Go to Dashboard" do /pricing) abrem a tela nova em vez do Studio
+// antigo / /ads/new / /kids-cartoon. Quem decide cada destino é lib/create/entry.ts (createEntryHref), e só quando a tela nova recebe o
+// mesmo dado. 'public' = toda entrada elegível vai para /create/<aba> (visitante passa pelo cadastro e volta para a aba, com os parâmetros).
+// VOLTA: 'off' (ou 'internal') devolve TODAS as entradas ao destino antigo, byte a byte. Desligar CREATE_SHELL_RELEASE ou
+// CREATE_FILM_INPLACE também devolve (nenhuma entrada aponta para uma tela fechada).
+export const CREATE_ENTRY_RELEASE: InternalRelease = 'public'

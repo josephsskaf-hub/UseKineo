@@ -44,8 +44,10 @@ function switchChecks(o) {
   ok(pub.filmNaMoldura('film', CUSTOMER) === true && pub.filmNaMoldura('film', null) === false, "'public' forçado: toda conta logada, nunca visitante")
   ok(internal.filmNaMoldura('film', 'test-hacker@example.org') === false, "'internal': e-mail parecido não é allowlist")
   const page = lf(o['app/create/[tab]/page.tsx'] ?? read('app/create/[tab]/page.tsx'))
-  const iDecision = page.indexOf("if (decision.kind !== 'show') notFound()"), iFrame = page.indexOf('if (filmNaMoldura(params.tab, user?.email)) return <StudioNaMoldura showRecreate={decision.showRecreate} motor={motorDaCaixa(undefined)} campanha={CREATE_FILM_CAMPAIGN} />')
-  ok(iDecision > 0 && iFrame > iDecision, 'a página só troca DEPOIS da porta da tela nova (404/cadastro de sempre), com o motor e a campanha do Continue')
+  // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — a aba passa a ler a campanha e a ideia do link
+  // como o /studio lê (campanhaDaCaixa · ideiaDoLink); SEM intent_campaign a campanha segue a do Continue (CREATE_FILM_CAMPAIGN); motor: o padrão.
+  const iDecision = page.indexOf("if (decision.kind !== 'show') notFound()"), iCamp = page.indexOf('const campanha = searchParams.intent_campaign === undefined ? CREATE_FILM_CAMPAIGN : campanhaDaCaixa(searchParams.intent_campaign)'), iFrame = page.indexOf('if (filmNaMoldura(params.tab, user?.email)) return <><StudioIdeaArrival /><StudioNaMoldura showRecreate={decision.showRecreate} motor={motorDaCaixa(undefined)} campanha={campanha} ideiaInicial={ideiaDoLink(searchParams.ideia)} /></>')
+  ok(iDecision > 0 && iCamp > iDecision && iFrame > iCamp, 'a página só troca DEPOIS da porta da tela nova (404/cadastro de sempre), com o motor e a campanha do Continue')
   ok(page.includes('return <CreateShell tab={params.tab as CreateTab} signedIn showRecreate={decision.showRecreate} />'), 'fora do interruptor: a mesma CreateShell de hoje')
   const tabs = aba(o).m('lib/create/tabs'), caixa = aba(o).m('lib/growth/studioSimples')
   const cont = new URL(tabs.filmContinueHref(IDEA, true), 'https://x')
@@ -281,7 +283,7 @@ const mutants = [
   ['linha do filme grátis some', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('{c.temFilmeGratis ? <p', '{false ? <p') }],
   ['porta ignora a allowlist', { 'lib/create/access.ts': src('lib/create/access.ts').replace("return tab === 'film' && !!email && releaseVisible(email, release)", "return tab === 'film' && !!email") }],
   ['Cartoon também troca', { 'lib/create/access.ts': src('lib/create/access.ts').replace("return tab === 'film' && ", 'return ') }],
-  ['página com outra campanha', { 'app/create/[tab]/page.tsx': src('app/create/[tab]/page.tsx').replace('campanha={CREATE_FILM_CAMPAIGN} />', 'campanha="create_film_v2" />') }],
+  ['página com outra campanha', { 'app/create/[tab]/page.tsx': src('app/create/[tab]/page.tsx').replace('? CREATE_FILM_CAMPAIGN : campanhaDaCaixa', '? "create_film_v2" : campanhaDaCaixa') /* KINEO-ENTRADAS-TELA-NOVA-1011: a campanha padrão mora na linha const campanha */ }],
   ['Generate da moldura não chama o gerar() do Studio', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('onClick={c.gerar}', "onClick={() => c.setDuracao(60)}") }],
   ['escrever não mede a ideia', { 'components/studio/StudioSimples.tsx': src('components/studio/StudioSimples.tsx').replace("const escrever = (v: string) => { setTexto(v); setAviso(null); if (v.trim()) registrar('mrr_idea_entered') }", 'const escrever = (v: string) => { setTexto(v); setAviso(null) }') }],
   ['moldura muda a campanha do pedido', { 'components/studio/StudioSimples.tsx': src('components/studio/StudioSimples.tsx').replace('if (moldura) {', "if (moldura) { campanha = 'moldura';") }],

@@ -4,6 +4,7 @@ import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
 
 import Link from 'next/link'
 import { MORE_NAV, navItemIdFor, sidebarNavItems, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
+import { createEntryForLegacyHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"]
 import { clipsVisible } from '@/lib/clips/clipLaunch' // KINEO-CLIPES-2026-09-29 — item Clips só com o interruptor (ou conta da casa)
 import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage'
 import { AppearanceSettingsButton } from '@/components/AppearanceSettings' // KINEO-CELULAR-A-0611
@@ -264,7 +265,7 @@ function NavItem({
   // only light up when they mean something.
   return (
     <Link
-      href={href}
+      href={createEntryForLegacyHref(href)} // KINEO-ENTRADAS-TELA-NOVA-1011 — Make a film · Product ads · Cartoon abrem a tela nova (lib/create/entry.ts); a identidade (ativo, medição) segue o destino antigo
       data-nav-item={navItemIdFor(hrefPath)} // KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25 — medição nav_item_clicked
       aria-current={active ? (pathname === hrefPath ? 'page' : 'location') : undefined}
       onClick={handleClick}

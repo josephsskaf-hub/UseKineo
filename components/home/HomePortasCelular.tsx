@@ -8,6 +8,7 @@ import { UiLabel } from '@/components/InterfaceLanguage'
 import { trackEvent } from '@/lib/analytics'
 import { HOME_CARD_EVENT, homeCardClickMetadata, homeCardHref, type HomeCardId } from '@/lib/ui/homeThreeCards'
 import { homeKidsCardHref } from '@/lib/ui/homeKidsCard'
+import { createEntryForLegacyHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"]
 import { MADE_WITH_KINEO_HREF } from '@/lib/homeGaleria'
 
 const CSS = `
@@ -34,14 +35,18 @@ const PORTAS: ReadonlyArray<{ card: HomeCardId; rotulo: string; img: string }> =
   { card: 'ugc_ads', rotulo: 'UGC ads', img: '/posters/ugc-porta.webp' },
 ]
 
-export default function HomePortasCelular({ signedIn }: { signedIn: boolean }) {
+export default function HomePortasCelular({ signedIn, entradaNova = false }: { signedIn: boolean; entradaNova?: boolean }) {
   const ideia = ideiaDaPagina(usePathname()) // KINEO-CAIXA-COM-IDEIA-0611
+  // KINEO-ENTRADAS-TELA-NOVA-1011 — só na home (entradaNova): a porta Film e a caixa abrem a aba Film (visitante pelo cadastro, de volta à aba).
+  // O Cartoon (leva utm_source, que abre o desenho sem conta) e as portas de anúncio (?entry=) seguem no destino de hoje.
+  const entrada = (href: string) => (entradaNova ? createEntryForLegacyHref(href) : href)
+  const caixaHref = entradaNova ? createEntryForLegacyHref(hrefDaCaixa(ideia), { signedIn }) : hrefDaCaixa(ideia)
   return (
     <section className="kpc" aria-label="What to make" data-kineo="home-portas-celular">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="kpc-portas">
         {PORTAS.map((p, i) => (
-          <Link key={p.card} className="kpc-porta" href={homeCardHref(p.card, signedIn)} onClick={() => { void trackEvent(HOME_CARD_EVENT, { ...homeCardClickMetadata(p.card, signedIn), position: i + 1, surface: 'phone_door' }) }}>
+          <Link key={p.card} className="kpc-porta" href={entrada(homeCardHref(p.card, signedIn))} onClick={() => { void trackEvent(HOME_CARD_EVENT, { ...homeCardClickMetadata(p.card, signedIn), position: i + 1, surface: 'phone_door' }) }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <span><img src={p.img} alt="" loading="lazy" /></span><UiLabel>{p.rotulo}</UiLabel>
           </Link>
@@ -55,7 +60,7 @@ export default function HomePortasCelular({ signedIn }: { signedIn: boolean }) {
         <span><small>Made with Kineo</small><b><UiLabel>Make one like this</UiLabel></b></span>
         <Link href={MADE_WITH_KINEO_HREF}><UiLabel>View all</UiLabel> ›</Link>
       </div>
-      <Link className="kpc-caixa" href={hrefDaCaixa(ideia)} onClick={() => { void trackEvent('home_phone_box_clicked', { signed_in: signedIn, with_idea: ideia !== null }) }}>
+      <Link className="kpc-caixa" href={caixaHref} onClick={() => { void trackEvent('home_phone_box_clicked', { signed_in: signedIn, with_idea: ideia !== null }) }}>
         <em>{ideia ?? <UiLabel>What&apos;s your film about?</UiLabel>}</em><i aria-hidden="true">↑</i>
       </Link>
     </section>

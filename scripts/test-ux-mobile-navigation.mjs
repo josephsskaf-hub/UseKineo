@@ -71,11 +71,17 @@ const links = nodes(tree).filter((n) => n.type === Link)
 // KINEO-GALERIA-HOME-2710 — reancorado 27/10 (fundador: item "Made with Kineo" no menu): /made-with-kineo entra no "More" do celular, logo depois do Trending.
 // KINEO-JUNTA-TRENDING-3110 — reancorado 30/10: o Trending virou o topo do Made with Kineo (/trending redireciona), saiu do "More".
 const expected = ['/studio', '/ads/new', '/library', '/pricing', '/made-with-kineo', '/images', '/clips', '/spaces', '/kids-cartoon', '/affiliate', '/account'] // KINEO-GALERIA-HOME-2710 · KINEO-CARTOON-NO-MENU-0511
-check('all 11 approved destinations, no duplicates', () => assert.deepEqual(links.map((n) => n.props.href).sort(), expected.sort()))
+// KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — Make a film · Product ads · Cartoon passam pela entrada
+// única (lib/create/entry.ts): o destino ANTIGO segue sendo a identidade do item (medição e ativo); o link abre a tela nova (/create/<aba>).
+const ENTRY = loadPure('@/lib/create/entry')
+const entrada = (href) => ENTRY.createEntryForLegacyHref(href)
+assert.deepEqual(['/studio', '/ads/new', '/kids-cartoon'].map(entrada), ['/create/film?intent_campaign=studio_simple', '/create/ads', '/create/cartoon'])
+check('all 11 approved destinations, no duplicates', () => assert.deepEqual(links.map((n) => n.props.href).sort(), expected.map(entrada).sort()))
 for (const href of expected) {
   check('existing route ' + href, () => assert.ok(
     ['app', 'app/(dashboard)'].some((base) => fs.existsSync(path.join(root, base, href.slice(1), 'page.tsx'))),
   ))
+  if (entrada(href) !== href) check('existing route ' + entrada(href), () => assert.ok(/^\/create\/(film|cartoon|ads)(\?|$)/.test(entrada(href)) && fs.existsSync(path.join(root, 'app/create/[tab]/page.tsx'))))
 }
 check('five primary slots', () => {
   const row = nodes(tree).find((n) => n.props.className === 'kineo-mobile-row')
@@ -88,7 +94,7 @@ check('guest cannot see invite, affiliate or account', () => {
 })
 for (const [route, active] of [['/studio', true], ['/studio/create', true], ['/studio-other', false]]) {
   check('route boundary ' + route, () => {
-    const link = nodes(render(route)).find((n) => n.props.href === '/studio')
+    const link = nodes(render(route)).find((n) => n.props.href === entrada('/studio') && n.props['data-nav-item'] === 'video') // KINEO-ENTRADAS-TELA-NOVA-1011 — o ativo segue o destino antigo
     assert.equal(Boolean(link.props['aria-current']), active)
   })
 }

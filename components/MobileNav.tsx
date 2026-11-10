@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { MORE_NAV, MORE_TOOLS_NAV, CARTOON_NAV, WORKSPACE_NAV, navItemIdFor, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
+import { createEntryForLegacyHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — par do Sidebar
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { CLIPS_PUBLIC } from '@/lib/clips/clipLaunch'
 import { usePathname } from 'next/navigation'
@@ -202,7 +203,7 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
     const item = primary.find((entry) => entry.href === href)!
     const active = isActive(pathname, item.href)
     return (
-      <Link key={href} href={href} className="kineo-mobile-tab" data-nav-item={navItemIdFor(href)}
+      <Link key={href} href={createEntryForLegacyHref(href)} className="kineo-mobile-tab" data-nav-item={navItemIdFor(href)}
         aria-current={active ? (pathname === href ? 'page' : 'location') : undefined}
         data-active={active || undefined}>
         {item.icon}<span><UiLabel>{item.label}</UiLabel></span>
@@ -235,7 +236,7 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
             }}>×</button>
         </div>
         {group.links.map((item) => (
-          <Link key={item.href} href={item.href} data-nav-item={navItemIdFor(item.href)}
+          <Link key={item.href} href={createEntryForLegacyHref(item.href)} data-nav-item={navItemIdFor(item.href)}
             aria-current={isActive(pathname, item.href) ? (pathname === item.href ? 'page' : 'location') : undefined}
             onClick={() => closeDisclosures(navRef.current)}>
             <UiLabel>{item.label}</UiLabel><span aria-hidden="true">↗</span>

@@ -104,7 +104,9 @@ function destinationChecks(o = {}) {
   const adsPage = read('app/(dashboard)/ads/new/page.tsx')
   ok(ads.pathname === '/ads/new' && existsSync(join(ROOT, 'app/(dashboard)/ads/new/page.tsx')), 'Ads → /ads/new (rota existe)')
   ok([...ads.searchParams.keys()].join() === 'utm_source' && adsPage.includes("for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'])") && /\^\[A-Za-z0-9\._~-\]\{1,100\}\$/.test(adsPage) && /^[A-Za-z0-9._~-]{1,100}$/.test(ads.searchParams.get('utm_source')), 'Ads: só utm_source, que o /ads/new lê e repassa')
-  ok(m('lib/clipesNos2Lugares').CRIAR_ANUNCIO_HREF === '/ads/new' && read('app/KineoLanding.tsx').includes('href="/ads/new"'), 'Ads: o mesmo destino do menu "Product ads"')
+  // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — o menu "Product ads" passa pela entrada única
+  // (createEntryHref('ads', '/ads/new')): o destino ANTIGO do menu continua sendo o mesmo /ads/new que o "Make your ad" entrega.
+  ok(m('lib/clipesNos2Lugares').CRIAR_ANUNCIO_HREF === '/ads/new' && read('app/KineoLanding.tsx').includes("href={createEntryHref('ads', '/ads/new', { signedIn: isSignedIn })} data-nav-item=\"business\" className=\"nav-primary\"") && m('lib/create/entry').LEGACY_ENTRY_PATH.ads === m('lib/clipesNos2Lugares').CRIAR_ANUNCIO_HREF, 'Ads: o mesmo destino do menu "Product ads"')
   // O botão renderizado aponta para o builder
   for (const tab of ['film', 'cartoon', 'ads']) ok(shell.continueHref(tab, idea, true) === (tab === 'film' ? tabs.filmContinueHref(idea, true) : tab === 'cartoon' ? '/kids-cartoon' : '/ads/new?utm_source=create_ads'), `continueHref(${tab})`)
 }
@@ -185,7 +187,7 @@ function recreateChecks(o = {}) {
   ok(renderRecreate(o, { initialId: 'elevador', createTabs: loader(stubs, o)('lib/create/access').createShellVisible(CUSTOMER) }).includes('data-create-tab="film"'), "padrão 'public': a conta de fora passa a ver as abas no Recreate")
   for (const p of ['app/recreate/page.tsx', 'app/recreate/[id]/page.tsx']) ok(read(p).includes('createTabs={createShellVisible(user.email)}'), `${p}: abas só para quem vê o /create`)
   const page = read('app/create/[tab]/page.tsx')
-  ok(page.includes('robots: { index: false, follow: false }') && page.includes('createShellDecision(params.tab, user)') && page.includes('notFound()') && page.includes('redirect(decision.href)'), '/create/[tab]: noindex + porta')
+  ok(page.includes('robots: { index: false, follow: false }') && page.includes('createShellDecision(params.tab, user, undefined, query)') /* KINEO-ENTRADAS-TELA-NOVA-1011: + a query de chegada */ && page.includes('notFound()') && page.includes('redirect(decision.href)'), '/create/[tab]: noindex + porta')
   ok(!/\/create\//.test(read('app/sitemap.ts')), 'fora do sitemap')
   const legacy = read('app/(dashboard)/create/page.tsx')
   ok(legacy.includes("if (createShellVisible(user?.email)) redirect('/create/film')") && legacy.includes('<CreateClient />'), '/create: quem vê a tela nova vai a /create/film; os demais seguem na tela antiga')
