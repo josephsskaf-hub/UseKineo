@@ -23,7 +23,7 @@ import { decideEngineGate } from '@/lib/enginePlanGate'
 import { downloadPublicAnimateImage } from '@/lib/animate/remoteImage'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { RECREATE_MODEL } from '@/lib/recreate/generation' // KINEO-RECREATE-TRAVA-1011
-import { RECREATE_SWAP_CHECK_EVENT, SWAP_CHECK_LOCK_PREFIX, SWAP_CHECK_LOCK_STALE_MS, recreateRowContext, runSwapCheck, swapCheckBusy, swapCheckLock, type SwapVerdict } from '@/lib/recreate/swapCheck' // KINEO-RECREATE-TRAVA-1011
+import { RECREATE_SWAP_CHECK_EVENT, SWAP_CHECK_LOCK_PREFIX, SWAP_CHECK_LOCK_STALE_MS, recreateRowContext, runSwapCheck, swapCheckBusy, swapCheckLock, sweepSwapRefunds, SWAP_REFUND_SWEEP_REASONS, type SwapVerdict } from '@/lib/recreate/swapCheck' // KINEO-RECREATE-TRAVA-1011
 import { alertFalExhausted, looksExhausted } from '@/lib/falAlert'
 import {
   CLIP_ENGINES,
@@ -702,6 +702,16 @@ export async function sweepClipJobs(): Promise<{ scanned: number; delivered: num
       result.refunded += 1
       result.creditsReturned += after.credits_refunded
     } else result.waiting += 1
+  }
+  // KINEO-RECREATE-ABRE-1011 — Recreate reprovado pela trava cujo estorno não chegou a rodar (processo morreu entre o
+  // failed e o estorno): estorna UMA vez pela billing_reference (RPC idempotente) e grava o valor onde ainda é 0.
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+  const orphans = await admin.from(CLIPS_TABLE).select(COLUMNS).eq('status', 'failed').eq('credits_refunded', 0).in('failure_reason', [...SWAP_REFUND_SWEEP_REASONS]).gte('created_at', since).order('created_at', { ascending: true }).limit(50)
+  if (orphans.error) console.error('[clips/sweep] recreate refund lookup failed:', orphans.error.message)
+  else {
+    const swept = await sweepSwapRefunds((orphans.data ?? []).map((raw) => toRow(raw as Record<string, unknown>)), { refund: (ref) => refundRenderCredits(ref), setRefunded: (id, refunded) => recreateSwapDepsFor(admin, '').setRefunded(id, refunded) })
+    result.refunded += swept.refunded
+    result.creditsReturned += swept.creditsReturned
   }
   return result
 }

@@ -19,12 +19,18 @@ const CUSTOMER = 'customer@example.org'
 const SWAPS = ['outfit-morph', 'elevador', 'passarela', 'escolha-o-favorito', 'duelo-de-danca']
 const releaseSrc = read('lib/recreate/release.ts')
 const formatsSrc = read('lib/recreate/formats.ts')
+// KINEO-RECREATE-ABRE-1011 — o helper troca o valor ATUAL dos interruptores (desde 10/11 os dois são 'public'), então os
+// estados 'internal'/'off' seguem testados como caminho de volta.
 const release = (page, swap) => ({ 'lib/recreate/release.ts': releaseSrc
-  .replace("RECREATE_RELEASE: InternalRelease = 'internal'", `RECREATE_RELEASE: InternalRelease = '${page}'`)
-  .replace("RECREATE_SWAP_RELEASE: InternalRelease = 'internal'", `RECREATE_SWAP_RELEASE: InternalRelease = '${swap}'`) })
+  .replace(/RECREATE_RELEASE: InternalRelease = '[a-z]+'/, `RECREATE_RELEASE: InternalRelease = '${page}'`)
+  .replace(/RECREATE_SWAP_RELEASE: InternalRelease = '[a-z]+'/, `RECREATE_SWAP_RELEASE: InternalRelease = '${swap}'`) })
+const APPROVED = ['passarela', 'escolha-o-favorito']
+const UNAPPROVED = ['outfit-morph', 'elevador', 'duelo-de-danca']
+// Base sem aprovação (para provar o mecanismo de seleção formato a formato, independente do estado atual).
+const unapproveAll = (src) => src.replace(/swapApproved: true, swapInTest: false, approvedOn: '[^']*'/g, 'swapApproved: false, swapInTest: true')
 // Rede de segurança: uma fonte de duração SEM tarifa (9 s, só no teste) nunca é vendida.
 const nineSeconds = (src = formatsSrc) => src.replace("poster: '/api/recreate/assets/duelo-de-danca.jpg', seconds: 10", "poster: '/api/recreate/assets/duelo-de-danca.jpg', seconds: 9")
-const approve = (id) => ({ 'lib/recreate/formats.ts': formatsSrc.replace(new RegExp(`(\\{ id: '${id}',[^\\n]*?)swapApproved: false, swapInTest: true`), '$1swapApproved: true, swapInTest: false') })
+const approve = (id) => ({ 'lib/recreate/formats.ts': unapproveAll(formatsSrc).replace(new RegExp(`(\\{ id: '${id}',[^\\n]*?)swapApproved: false, swapInTest: true`), '$1swapApproved: true, swapInTest: false') })
 let passed = 0
 const ok = (cond, msg) => { assert(cond, msg); passed++ }
 
@@ -33,10 +39,11 @@ function catalogChecks(o = {}) {
   const L = (extra = {}) => loader({}, { ...o, ...extra })
   const m = L()
   const formats = m('lib/recreate/formats'), access = m('lib/recreate/access'), entry = m('lib/recreate/entry')
-  ok(access.RECREATE_RELEASE === 'internal' && access.RECREATE_SWAP_RELEASE === 'internal', 'os dois interruptores continuam internal')
+  ok(access.RECREATE_RELEASE === 'public' && access.RECREATE_SWAP_RELEASE === 'public', 'desde 10/11 os dois são public; só formato com swapApproved aparece ao cliente')
   for (const id of SWAPS) {
     const f = formats.recreateFormat(id)
-    ok(f && f.type === 'swap' && f.swapApproved === false && f.swapInTest === true, `${id}: troca registrada, NÃO aprovada, em teste`)
+    if (APPROVED.includes(id)) ok(f && f.type === 'swap' && f.swapApproved === true && f.swapInTest === false && f.approvedOn === '2026-11-10', `${id}: aprovado em 10/11 (teste do site)`)
+    else ok(f && f.type === 'swap' && f.swapApproved === false && f.swapInTest === true, `${id}: troca registrada, NÃO aprovada, em teste`)
     ok(Array.isArray(f.checkFrames) && f.checkFrames.length === 2, `${id}: quadros da trava declarados`)
   }
   ok(formats.recreateFormat('elevador').photoSlots === 2 && formats.recreateFormat('escolha-o-favorito').photoSlots === 2 && formats.recreateFormat('duelo-de-danca').photoSlots === 2, '3 formatos de 2 pessoas')
@@ -46,9 +53,10 @@ function catalogChecks(o = {}) {
   ok(formats.recreateSwapPriced(formats.recreateFormat('escolha-o-favorito')) && formats.recreateSwapPriced(formats.recreateFormat('passarela')), '8 s e 10 s têm tarifa')
   ok(m('lib/checkoutPricing').recreateCreditCost(8) === 45 && m('lib/checkoutPricing').recreateCreditCost(10) === 40 && m('lib/checkoutPricing').recreateCreditCost(9) === null, 'tarifa única: 8 → 45 ("Cobra 45"), 10 → 40, sem 9')
   const customerSwaps = access.visibleRecreateFormats(CUSTOMER).filter(f => f.type === 'swap')
-  ok(customerSwaps.length === 0, 'cliente não vê nenhuma troca')
-  ok(access.visibleRecreateFormats(HOUSE).filter(f => f.type === 'swap').length === SWAPS.length, 'a casa vê as 6 trocas em teste')
-  ok(entry.publicRecreatePath('outfit-morph') === null, 'nenhum link público para troca')
+  ok(customerSwaps.map(f => f.id).sort().join() === [...APPROVED].sort().join(), 'cliente vê SÓ as trocas aprovadas (passarela, escolha-o-favorito)')
+  ok(access.visibleRecreateFormats(HOUSE).filter(f => f.type === 'swap').length === SWAPS.length, 'a casa vê as 5 trocas (aprovadas + em teste)')
+  ok(UNAPPROVED.every(id => entry.publicRecreatePath(id) === null), 'nenhum link público para troca não aprovada')
+  ok(APPROVED.every(id => entry.publicRecreatePath(id) === '/recreate/' + id), 'troca aprovada ganha link público')
   // Página pública + troca interna: o público vê os efeitos e NENHUMA troca; a casa vê tudo.
   const pub = L(release('public', 'internal'))('lib/recreate/access')
   const pubFormats = pub.visibleRecreateFormats(CUSTOMER)
@@ -74,6 +82,7 @@ const noIO = () => { throw new Error('Unexpected paid or database I/O') }
 let user = null
 const sessionStub = { '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user } }) } }) }, 'server-only': {}, '@/lib/clips/clipServer': {}, '@/lib/engineLaunch': { enginePaused: () => null } }
 async function routeChecks(overrides) {
+  const swapPublic = /RECREATE_SWAP_RELEASE: InternalRelease = 'public'/.test(overrides['lib/recreate/release.ts'] ?? releaseSrc)
   const server = loader(sessionStub, overrides)('lib/recreate/server')
   const api = loader({ '@/lib/recreate/server': { ...server, recreateSubmitDeps: noIO }, '@/lib/clips/clipServer': { clipsAdmin: noIO, loadClipAccount: noIO, engineAccessFor: noIO }, '@/lib/serverEvents': { writeServerEvent: noIO }, '@/app/api/admin/_shared/mrr': { isPayingPlan: noIO } }, overrides)('app/api/recreate/route')
   const post = body => api.POST(new NextRequest('https://www.usekineo.com/api/recreate', { method: 'POST', body: JSON.stringify(body), headers: { 'content-type': 'application/json' } }))
@@ -81,7 +90,9 @@ async function routeChecks(overrides) {
   user = { id: U, email: CUSTOMER }
   ok((await post(real)).status === 404, 'cliente: POST de troca não aprovada = 404 antes de foto, moderação, débito ou fornecedor')
   ok((await post({ ...real, simulate: true })).status === 404, 'cliente: nem simula troca não aprovada')
-  ok((await post({ ...real, format: 'escolha-o-favorito' })).status === 404, 'cliente: fonte de 8 s também some')
+  for (const format of ['elevador', 'duelo-de-danca']) ok((await post({ ...real, format, photos: [PHOTO, PHOTO2] })).status === 404, `cliente: ${format} não aprovado = 404 antes de I/O`)
+  ok((await post({ format: 'escolha-o-favorito', simulate: true })).status === 404, 'cliente: Simulate só para a allowlist exata (mesmo em formato aprovado)')
+  if (!swapPublic) ok((await post({ ...real, format: 'passarela' })).status === 404, 'troca interna: cliente nem pede o aprovado')
   user = { id: U, email: HOUSE }
   const nineApi = loader({ '@/lib/recreate/server': { ...server, recreateSubmitDeps: noIO }, '@/lib/clips/clipServer': { clipsAdmin: noIO, loadClipAccount: noIO, engineAccessFor: noIO }, '@/lib/serverEvents': { writeServerEvent: noIO }, '@/app/api/admin/_shared/mrr': { isPayingPlan: noIO } }, { ...overrides, 'lib/recreate/formats.ts': nineSeconds(overrides['lib/recreate/formats.ts'] ?? formatsSrc) })('app/api/recreate/route')
   const eight = await nineApi.POST(new NextRequest('https://www.usekineo.com/api/recreate', { method: 'POST', body: JSON.stringify({ format: 'duelo-de-danca', seconds: 9, photos: [PHOTO, PHOTO2], consent: true, mode: 'swap' }), headers: { 'content-type': 'application/json' } }))
@@ -96,7 +107,8 @@ async function routeChecks(overrides) {
   const getApi = loader({ '@/lib/recreate/server': { ...server, recreateEngineAccess: () => ({ ok: true }) }, '@/lib/clips/clipServer': { clipsAdmin: () => ({}), loadClipAccount: async () => ({ balance: 100 }), engineAccessFor: () => () => ({ ok: true }) } }, overrides)('app/api/recreate/route')
   user = { id: U, email: CUSTOMER }
   const customerCatalog = (await (await getApi.GET()).json()).catalog
-  ok(customerCatalog.length > 20 && !customerCatalog.some(q => SWAPS.includes(q.id)), 'GET público: nenhuma troca no catálogo')
+  ok(customerCatalog.length > 20 && !customerCatalog.some(q => UNAPPROVED.includes(q.id)), 'GET público: nenhuma troca não aprovada no catálogo')
+  ok(swapPublic ? APPROVED.every(id => customerCatalog.some(q => q.id === id)) : !customerCatalog.some(q => SWAPS.includes(q.id)), swapPublic ? 'GET público: as trocas aprovadas' : 'GET com troca interna: nenhuma troca')
   user = { id: U, email: HOUSE }
   const houseCatalog = (await (await getApi.GET()).json()).catalog
   ok(SWAPS.every(id => houseCatalog.some(q => q.id === id)), 'GET da casa: as 6 trocas em teste')
@@ -108,23 +120,31 @@ async function routeChecks(overrides) {
   user = { id: U, email: CUSTOMER }
   await assert.rejects(idPage({ params: { id: 'outfit-morph' } }), /not-found/); passed++
   const listProps = (await pages('app/recreate/page').default()).props
-  ok(listProps.formatIds.length > 20 && !listProps.formatIds.some(id => SWAPS.includes(id)), 'página pública: cartões de troca fora')
-  ok((await idPage({ params: { id: 'effect-kiss' } })).props.formatIds.every(id => !SWAPS.includes(id)), 'página do efeito: sem troca no catálogo')
+  const hidden = swapPublic ? UNAPPROVED : SWAPS
+  ok(listProps.formatIds.length > 20 && !listProps.formatIds.some(id => hidden.includes(id)), 'página pública: cartões de troca não liberada fora')
+  ok(!swapPublic || APPROVED.every(id => listProps.formatIds.includes(id)), 'página pública: trocas aprovadas dentro')
+  ok((await idPage({ params: { id: 'effect-kiss' } })).props.formatIds.every(id => !hidden.includes(id)), 'página do efeito: sem troca não liberada no catálogo')
+  if (swapPublic) ok((await idPage({ params: { id: 'passarela' } })).props.initialId === 'passarela', 'cliente abre a troca aprovada')
+  else { await assert.rejects(idPage({ params: { id: 'passarela' } }), /not-found/); passed++ }
   user = null
   await assert.rejects(idPage({ params: { id: 'outfit-morph' } }), /not-found/); passed++ // troca não aprovada nunca convida para cadastro
-  await assert.rejects(idPage({ params: { id: 'effect-kiss' } }), /redirect:/); passed++
+  await assert.rejects(idPage({ params: { id: 'effect-kiss' } }), e => new URL(e.message.slice(9), 'https://fixture').searchParams.get('redirect') === '/recreate/effect-kiss'); passed++
+  if (swapPublic) { await assert.rejects(idPage({ params: { id: 'escolha-o-favorito' } }), e => e.message.startsWith('redirect:') && new URL(e.message.slice(9), 'https://fixture').searchParams.get('redirect') === '/recreate/escolha-o-favorito'); passed++ }
+  for (const id of UNAPPROVED) { await assert.rejects(idPage({ params: { id } }), /not-found/); passed++ }
   user = { id: U, email: HOUSE }
   ok((await idPage({ params: { id: 'passarela' } })).props.formatIds.includes('passarela'), 'casa abre o formato em teste')
   // Arquivos do vídeo-base.
   const assets = loader({ '@/lib/recreate/server': server }, overrides)('app/api/recreate/assets/[name]/route')
   const asset = name => assets.GET(new NextRequest('https://www.usekineo.com/api/recreate/assets/' + name), { params: { name } })
   user = { id: U, email: CUSTOMER }
-  ok((await asset('passarela.mp4')).status === 404, 'cliente não baixa vídeo-base de troca em teste')
+  ok((await asset('passarela.mp4')).status === (swapPublic ? 200 : 404), swapPublic ? 'cliente baixa a prévia da troca aprovada' : 'troca interna: cliente não baixa a prévia')
+  ok((await asset('outfit-morph.mp4')).status === 404 && (await asset('duelo-de-danca.jpg')).status === 404, 'cliente não baixa vídeo-base de troca em teste')
   user = { id: U, email: HOUSE }
   const got = await asset('duelo-de-danca.jpg')
   ok(got.status === 200 && got.headers.get('content-type') === 'image/jpeg', 'casa recebe o pôster novo')
 }
 await routeChecks(release('public', 'internal'))
+await routeChecks({}) // KINEO-RECREATE-ABRE-1011 — o estado real de produção (os dois public)
 
 // Arquivos novos, pôsteres, quadros da trava e o rastreio do next.config.
 const assetsDir = join(ROOT, 'lib/recreate/assets')
@@ -147,6 +167,20 @@ const assetsDir = join(ROOT, 'lib/recreate/assets')
   }
   ok(read('app/api/events/route.ts').includes("'recreate_swap_check'"), 'recreate_swap_check é evento só do servidor')
   ok(read('lib/clips/clipServer.ts').includes('recreateSwap: recreateSwapDepsFor(admin, userId)'), 'settleDepsFor liga a trava em todo caminho que entrega')
+}
+
+// KINEO-RECREATE-ABRE-1011 — (c) efeitos e /clips?effect=… levam ao /recreate para quem entra; (d) SEO não mudou.
+{
+  const access = loader()('lib/recreate/access')
+  ok(access.recreateVisible(CUSTOMER) && access.recreateVisible(null), 'app/effects/EffectPage.tsx passa recreateEnabled=true para conta logada e visitante')
+  ok(read('app/effects/EffectPage.tsx').includes('recreateEnabled={recreateVisible(user?.email)}'), 'a página de efeito lê o mesmo interruptor')
+  const nav = { 'next/navigation': { redirect: href => { throw Error('redirect:' + href) }, notFound: () => { throw Error('not-found') } } }
+  const clipsPage = (email) => loader({ ...nav, '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: email ? { id: U, email } : null } }) } }) }, '@/lib/clips/clipLaunch': { clipsVisible: () => true }, './ClipsClient': { __esModule: true, default: () => null } })('app/(dashboard)/clips/page').default
+  await assert.rejects(clipsPage(CUSTOMER)({ searchParams: { effect: 'kiss' } }), /redirect:\/recreate\/effect-kiss$/); passed++
+  const legacy = loader({ ...nav, '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: { id: U, email: CUSTOMER } } }) } }) }, '@/lib/clips/clipLaunch': { clipsVisible: () => true }, './ClipsClient': { __esModule: true, default: () => null } }, release('internal', 'internal'))('app/(dashboard)/clips/page').default
+  ok((await legacy({ searchParams: { effect: 'kiss' } })) !== undefined, 'caminho de volta: com os interruptores internal, /clips?effect=… fica no /clips')
+  for (const file of ['app/recreate/page.tsx', 'app/recreate/[id]/page.tsx']) ok(read(file).includes('robots: { index: false, follow: false }'), `(d) ${file} continua noindex`)
+  ok(!/recreate/i.test(read('app/sitemap.ts')), '(d) /recreate fora do sitemap')
 }
 
 // ─── B. Trava "não trocou" ────────────────────────────────────────────────────────────────────────────────────────────
@@ -347,6 +381,32 @@ function fakeFetch({ fal = 'ok', vision = null, message = null, hang = false } =
   const html = render('escolha-o-favorito', true, {}, 100)
   const outside = html.replace(/<button[^>]*data-recreate-generate[^>]*>[\s\S]*?<\/button>/g, '')
   ok(/data-recreate-generate[^>]*>[\s\S]*?✦ 45/.test(html) && !/✦\s*\d|45 credits/.test(outside), 'preço do 8 s só no Generate (✦ 45)')
+}
+
+// KINEO-RECREATE-ABRE-1011 — o processo morre ENTRE o failed e o estorno: a varredura de estornos devolve UMA vez.
+{
+  const flow = flowFor()
+  const sc = swapCheckMod()
+  const row = await recreateRow(flow)
+  const db = new Map([[row.id, { ...row }], ['other', { ...row, id: 'other', billing_reference: 'clips-other', status: 'failed', failure_reason: 'provider_failed', credits_refunded: 0 }]])
+  const ledger = new Set()
+  const rpc = async (ref) => { if (ledger.has(ref)) return 0; ledger.add(ref); return 40 } // idempotente pela billing_reference
+  const h = settleHarness('unchanged')
+  h.deps.recreateSwap.markFailed = async (id, reason) => { Object.assign(db.get(id), { status: 'failed', failure_reason: reason, credits_refunded: 0 }); return true }
+  h.deps.refund = async () => { throw new Error('process killed between failed and refund') }
+  await assert.rejects(flow.settleClip(h.deps, row), /process killed/); passed++
+  ok(db.get(row.id).status === 'failed' && db.get(row.id).credits_refunded === 0 && ledger.size === 0, 'morreu no meio: linha failed com 0 estornado')
+  const deps = { refund: rpc, setRefunded: async (id, amount) => { const r = db.get(id); if (r.credits_refunded === 0) r.credits_refunded = amount } }
+  const first = await sc.sweepSwapRefunds([...db.values()].map(r => ({ ...r })), deps)
+  ok(first.refunded === 1 && first.creditsReturned === 40 && db.get(row.id).credits_refunded === 40 && ledger.size === 1, 'varredura: estorna UMA vez e grava o valor')
+  ok(db.get('other').credits_refunded === 0 && !ledger.has('clips-other'), 'varredura não mexe em falha que não é da trava')
+  const second = await sc.sweepSwapRefunds([...db.values()].map(r => ({ ...r })), deps)
+  const forced = await sc.sweepSwapRefunds([{ ...db.get(row.id), credits_refunded: 0 }], deps) // mesmo relida "velha", o RPC não devolve de novo
+  ok(second.refunded === 0 && forced.refunded === 0 && ledger.size === 1 && db.get(row.id).credits_refunded === 40, 'rodar a varredura de novo não estorna de novo')
+  const src = read('lib/clips/clipServer.ts')
+  const sweep = src.slice(src.indexOf('export async function sweepClipJobs'), src.indexOf('export async function advanceActiveClipJobs'))
+  ok(sweep.includes(".eq('status', 'failed').eq('credits_refunded', 0).in('failure_reason', [...SWAP_REFUND_SWEEP_REASONS])") && sweep.includes('sweepSwapRefunds('), 'sweepClipJobs (cron refund-sweep) procura essas linhas e chama a varredura')
+  ok(read('app/api/cron/refund-sweep/route.ts').includes('await sweepClipJobs()'), 'o cron de estornos roda sweepClipJobs')
 }
 
 // Rota de status: o motivo que a tela precisa.

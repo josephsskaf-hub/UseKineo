@@ -247,3 +247,27 @@ export async function runSwapCheck(row: { model: string; fingerprint: string }, 
   const overBudget = new Promise<SwapVerdict>(resolve => { timer = setTimeout(() => resolve(unverified('timeout', 'check_timeout')), opts.budgetMs ?? SWAP_CHECK_BUDGET_MS) })
   try { return await Promise.race([work, overBudget]) } finally { clearTimeout(timer) }
 }
+
+// KINEO-RECREATE-ABRE-1011 — resíduo da revisão: a trava grava `failed` (com 0 estornado) ANTES de estornar. Se o processo morrer
+// entre os dois passos, a linha fica failed com credits_refunded=0 e a varredura comum (só pending/processing) nunca volta nela.
+// A varredura de estornos chama isto para essas linhas: o estorno é idempotente pela billing_reference (o RPC devolve > 0 só
+// uma vez), e o valor só é gravado onde ainda está 0 — rodar de novo não estorna de novo.
+export const SWAP_REFUND_SWEEP_REASONS = [RECREATE_NOT_SWAPPED.unchanged, RECREATE_NOT_SWAPPED.partial] as const
+export type SwapRefundRow = { id: string; billing_reference: string; failure_reason: string | null; credits_refunded: number; status: string }
+export async function sweepSwapRefunds(
+  rows: SwapRefundRow[],
+  deps: { refund(billingReference: string): Promise<number>; setRefunded(id: string, refunded: number): Promise<void> },
+): Promise<{ scanned: number; refunded: number; creditsReturned: number }> {
+  const out = { scanned: 0, refunded: 0, creditsReturned: 0 }
+  for (const row of rows) {
+    if (row.status !== 'failed' || row.credits_refunded !== 0 || !isRecreateNotSwappedReason(row.failure_reason)) continue
+    out.scanned += 1
+    const amount = await deps.refund(row.billing_reference)
+    if (amount > 0) {
+      await deps.setRefunded(row.id, amount)
+      out.refunded += 1
+      out.creditsReturned += amount
+    }
+  }
+  return out
+}

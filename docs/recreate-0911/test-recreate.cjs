@@ -53,8 +53,15 @@ async function main() {
   for (const release of ['off', 'internal']) for (const email of [null, 'test-hacker@example.org', 'mailinator@example.org', 'customer@example.org']) assert.equal(access.releaseVisible(email, release), false)
   assert.equal(access.recreateVisible('josephsskaf@gmail.com'), true)
   assert.equal(access.releaseVisible('josephsskaf@gmail.com', 'off'), false)
-  assert.equal(access.RECREATE_RELEASE, 'internal'); assert.equal(access.RECREATE_MOTION_ENABLED, false)
-  assert.equal(access.recreateVisible('customer@example.org'), false)
+  // KINEO-RECREATE-ABRE-1011 — desde 10/11 página e troca são 'public'; só formato com swapApproved aparece ao cliente.
+  assert.equal(access.RECREATE_RELEASE, 'public'); assert.equal(access.RECREATE_SWAP_RELEASE, 'public'); assert.equal(access.RECREATE_MOTION_ENABLED, false)
+  assert.equal(access.recreateVisible('customer@example.org'), true)
+  for (const id of ['outfit-morph', 'elevador', 'duelo-de-danca']) assert.equal(access.recreateFormatVisible(formats.recreateFormat(id), 'customer@example.org'), false, 'unapproved swap stays house-only: ' + id)
+  for (const id of ['passarela', 'escolha-o-favorito']) assert.equal(access.recreateFormatVisible(formats.recreateFormat(id), 'customer@example.org'), true, 'approved swap is public: ' + id)
+  // Caminho de volta: os dois em 'internal' fecham tudo para quem é de fora.
+  const rollbackSrc = read('lib/recreate/release.ts').replace(/RECREATE_RELEASE: InternalRelease = '[a-z]+'/, "RECREATE_RELEASE: InternalRelease = 'internal'").replace(/RECREATE_SWAP_RELEASE: InternalRelease = '[a-z]+'/, "RECREATE_SWAP_RELEASE: InternalRelease = 'internal'")
+  const rolled = loader({}, { 'lib/recreate/release.ts': rollbackSrc })('lib/recreate/access')
+  assert.equal(rolled.recreateVisible('customer@example.org'), false); assert.equal(rolled.recreateVisible('josephsskaf@gmail.com'), true)
   assert.equal(access.SERIES_RELEASE, 'internal'); assert.equal(access.seriesVisible('customer@example.org'), false)
   assert.equal(formats.recreateFormat('futebol'), null)
   assert(formats.recreateFormat('effect-kiss').photoSlots === 2)
@@ -178,8 +185,8 @@ async function main() {
   function contracts(overrides = {}) {
     const modules = loader({}, overrides)
     const a = modules('lib/recreate/access')
-    assert.equal(a.recreateVisible('customer@example.org'), false)
-    assert.equal(a.RECREATE_RELEASE, 'internal')
+    assert(!a.visibleRecreateFormats('customer@example.org').some(f => ['outfit-morph', 'elevador', 'duelo-de-danca'].includes(f.id)), 'unapproved swaps never reach customers')
+    assert.equal(a.RECREATE_RELEASE, 'public')
     assert.equal(a.releaseVisible('customer@example.org', 'off'), false)
     assert.equal(a.RECREATE_MOTION_ENABLED, false)
     const g = modules('lib/recreate/generation')
@@ -191,7 +198,8 @@ async function main() {
   }
   contracts()
   const mutants = [
-    ['lib/recreate/release.ts', "RECREATE_RELEASE: InternalRelease = 'internal'", "RECREATE_RELEASE: InternalRelease = 'public'"],
+    ['lib/recreate/formats.ts', "photoSlots: 1, swapApproved: false, swapInTest: true, swapNote: '10/11: 0 of 4", "photoSlots: 1, swapApproved: true, swapInTest: true, swapNote: '10/11: 0 of 4"],
+    ['lib/recreate/access.ts', "if (f.swapApproved === true && recreateSwapPriced(f) && releaseVisible(email, RECREATE_SWAP_RELEASE)) return true", "if (releaseVisible(email, RECREATE_SWAP_RELEASE)) return true"],
     ['lib/recreate/release.ts', 'RECREATE_MOTION_ENABLED = false', 'RECREATE_MOTION_ENABLED = true'],
     ['lib/recreate/generation.ts', 'if (seconds !== f.seconds)', 'if (false)'],
     ['app/recreate/RecreateClient.tsx', '<section className={`rc-step rc-generate-area', '<p>✦ {quote?.credits}</p><section className={`rc-step rc-generate-area'],
