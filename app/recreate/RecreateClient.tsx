@@ -8,13 +8,17 @@ import { compressPhoto, cropFace, composePairPhoto } from '@/lib/recreate/photos
 import RecreatePlayer from './RecreatePlayer'
 import './recreate.css'
 
+// KINEO-RECREATE-TRAVA-1011 — the provider returned the base video without the customer: the server refunded and failed the clip.
+const NOT_SWAPPED_MESSAGE = "We couldn't put you in this video. Nothing was charged. Try a clearer, front-facing photo or another video."
 type Social = { count: number; liked: boolean }
 type Quote = { id: string; credits: number | null; available: boolean; shortfall: number }
 type Photo = { file: File; url: string }
-type Clip = { id: string; status: string; video_url?: string | null; credits_refunded?: number }
+type Clip = { id: string; status: string; video_url?: string | null; credits_refunded?: number; reason?: string }
 
-export default function RecreateClient({ initialId, internalTools = false }: { initialId?: string; internalTools?: boolean }) {
-  const [selected, setSelected] = useState(() => RECREATE_FORMATS.find(f => f.id === initialId) ?? null)
+export default function RecreateClient({ initialId, internalTools = false, formatIds }: { initialId?: string; internalTools?: boolean; formatIds?: string[] }) {
+  // KINEO-RECREATE-TRAVA-1011 — the server pages pass the formats this account may request (unapproved swaps: house only).
+  const catalog = formatIds ? RECREATE_FORMATS.filter(f => formatIds.includes(f.id)) : RECREATE_FORMATS
+  const [selected, setSelected] = useState(() => catalog.find(f => f.id === initialId) ?? null)
   const [photos, setPhotos] = useState<(Photo | null)[]>([])
   const [prompt, setPrompt] = useState(selected?.prompt ?? '')
   const [consent, setConsent] = useState(false)
@@ -256,7 +260,7 @@ export default function RecreateClient({ initialId, internalTools = false }: { i
           {internalTools && <button className="rc-simulate" disabled={busy} onClick={() => void generate(true)}>Simulate · no generation</button>}
         </section>
         {simulation && <output className="rc-result"><strong>Simulation · no generation</strong><p>{simulation.format} · {simulation.seconds} s · {simulation.mode}</p><p>Up to {simulation.photos} photos. No upload, debit or render was made.</p></output>}
-        {clip && <div className="rc-result" aria-live="polite"><strong>{clip.status === 'done' ? 'Your version is ready' : clip.status === 'failed' ? 'Generation failed' : 'Creating your version'}</strong>{clip.status === 'done' && clip.video_url && <><RecreatePlayer src={clip.video_url} label="Your version" /><a href={clip.video_url} download>Download ↗</a></>}{clip.status === 'failed' && <p>{clip.credits_refunded ? 'Your credit refund was confirmed.' : 'Check your videos for the final billing status.'}</p>}<Link href="/clips">My videos ↗</Link></div>}
+        {clip && <div className="rc-result" aria-live="polite"><strong>{clip.status === 'done' ? 'Your version is ready' : clip.status === 'failed' ? 'Generation failed' : 'Creating your version'}</strong>{clip.status === 'done' && clip.video_url && <><RecreatePlayer src={clip.video_url} label="Your version" /><a href={clip.video_url} download>Download ↗</a></>}{clip.status === 'failed' && <p>{clip.reason === 'not_swapped' ? clip.credits_refunded ? NOT_SWAPPED_MESSAGE : "We couldn't put you in this video. Check your videos for the final billing status." : clip.credits_refunded ? 'Your credit refund was confirmed.' : 'Check your videos for the final billing status.'}</p>}<Link href="/clips">My videos ↗</Link></div>}
       </aside>}
       {selected && <section className="rc-reference" aria-label="Base video">
         <div className="rc-reference-heading"><div><h2>Base video · {selected.title}</h2><p>From the Kineo catalog</p></div><button className="rc-change" disabled={editingDisabled} onClick={showTemplates}>Change video ↗</button></div>
@@ -265,7 +269,7 @@ export default function RecreateClient({ initialId, internalTools = false }: { i
       </section>}
       <section className="rc-gallery" ref={galleryRef} aria-label="Video templates">
         <div className="rc-gallery-heading">{selected ? <><h2 tabIndex={-1}>Video templates</h2><p>Choose a different starting point.</p></> : <><span className="rc-eyebrow">RECREATE</span><h1 tabIndex={-1}>Video templates</h1><p>Choose a Kineo format. Make it yours.</p></>}</div>
-        <div className="rc-grid">{RECREATE_FORMATS.map((f, index) => <article key={f.id} className={`rc-card ${index % 4 === 1 ? 'rc-card-short' : ''} ${selected?.id === f.id ? 'rc-card-selected' : ''}`}>
+        <div className="rc-grid">{catalog.map((f, index) => <article key={f.id} className={`rc-card ${index % 4 === 1 ? 'rc-card-short' : ''} ${selected?.id === f.id ? 'rc-card-selected' : ''}`}>
           <video src={f.preview} poster={f.poster} autoPlay muted loop playsInline preload="metadata" aria-label={f.title} />
           <div className="rc-card-top"><button onClick={() => { setReport(f); setExpanded(null) }} aria-label={`Report ${f.title}`}>⋯</button><button onClick={() => { setExpanded(f); setReport(null) }} aria-label={`Expand ${f.title}`}>⤢</button></div>
           <div className="rc-card-bottom"><h3>{f.title}</h3><div><button className={social[f.id]?.liked ? 'rc-liked' : ''} disabled={!social[f.id] || socialBusy} aria-label={`Like ${f.title}`} aria-pressed={social[f.id]?.liked ?? false} onClick={() => void like(f)}>♡{social[f.id]?.count > 0 ? ` ${social[f.id].count}` : ''}</button><button disabled={editingDisabled} onClick={() => choose(f)} aria-label={`Use ${f.title}`}>{selected?.id === f.id ? 'Selected ✓' : 'Recreate ↗'}</button></div></div>

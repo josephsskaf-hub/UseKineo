@@ -1,6 +1,6 @@
 import { ownedClipImageUrl, type ClipRequestInput } from '@/lib/clips/clipCatalog'
 import { RECREATE_MOTION_ENABLED } from './access'
-import { RECREATE_SWAP_PROMPT, recreateFormat } from './formats'
+import { RECREATE_SWAP_PROMPT, RECREATE_UNPRICED_ERROR, recreateFormat, recreateSwapPriced } from './formats'
 import { RECREATE_PRICING } from '@/lib/checkoutPricing'
 export { RECREATE_PRICING } from '@/lib/checkoutPricing'
 
@@ -24,6 +24,7 @@ export function planRecreate(raw: Record<string, unknown>, ctx: { userId: string
   const bad = (error: string, status = 400): RecreatePlanResult => ({ ok: false, status, error })
   const f = recreateFormat(raw.format)
   if (!f || f.type !== 'swap') return bad('Choose a video from the Kineo catalog.')
+  if (!recreateSwapPriced(f)) return bad(RECREATE_UNPRICED_ERROR, 409) // KINEO-RECREATE-TRAVA-1011 — 8 s source: no approved tariff yet
   if (raw.mode && raw.mode !== 'swap') return bad(RECREATE_MOTION_ENABLED ? 'This mode is not ready.' : 'This mode is unavailable.')
   if (raw.consent !== true) return bad('Confirm you have permission to use these photos.')
   const seconds = Number(raw.seconds)

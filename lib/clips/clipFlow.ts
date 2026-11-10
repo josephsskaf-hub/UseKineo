@@ -412,7 +412,23 @@ export interface ClipSettleDeps {
   now(): number
   /** KINEO-ROSTO-QUADRO-CHAVE-2810 — etapa 2 do remix. Ausente (guardiões antigos, caminhos sem remix) = linha de remix espera. */
   keyframe?: ClipKeyframeDeps // KINEO-ROSTO-QUADRO-CHAVE-2810
+  /** KINEO-RECREATE-TRAVA-1011 — trava "não trocou" do Recreate (lib/recreate/swapCheck.ts). Só age onde applies(row) é true. */
+  recreateSwap?: RecreateSwapSettleDeps // KINEO-RECREATE-TRAVA-1011
 }
+
+/** KINEO-RECREATE-TRAVA-1011 — os fios da trava "não trocou" (a ORDEM mora no settleClip; o clipServer só liga). */
+export interface RecreateSwapSettleDeps { // KINEO-RECREATE-TRAVA-1011
+  /** Esta linha é um Recreate de troca de rosto? Clipes e efeitos: false → caminho de sempre, byte a byte. */
+  applies(row: ClipRow): boolean // KINEO-RECREATE-TRAVA-1011
+  /** Reserva a checagem (UPDATE condicional: um ator só, trava velha de 2 min pode ser retomada). false = outro ator checa. */
+  claim(row: ClipRow): Promise<boolean> // KINEO-RECREATE-TRAVA-1011
+  /** Quadros do resultado × quadros do vídeo-base × fotos. Nunca lança; falha da checagem = 'unverified'. */
+  check(row: ClipRow, providerUrl: string): Promise<{ result: 'swapped' | 'unchanged' | 'partial' | 'unverified'; reason: string }> // KINEO-RECREATE-TRAVA-1011
+  /** markDone que também solta a trava da checagem (failure_reason volta a null). */
+  markDone(id: string, videoUrl: string): Promise<boolean> // KINEO-RECREATE-TRAVA-1011
+  /** Evento de servidor recreate_swap_check — só quem MOVEU a linha grava. */
+  record(row: ClipRow, verdict: { result: string; reason: string }, outcome: { delivered: boolean; credits_refunded: number }): Promise<void> // KINEO-RECREATE-TRAVA-1011
+} // KINEO-RECREATE-TRAVA-1011
 
 export async function settleClip(deps: ClipSettleDeps, row: ClipRow): Promise<ClipRow> {
   if (row.status === 'done' || row.status === 'failed') return row
@@ -422,9 +438,11 @@ export async function settleClip(deps: ClipSettleDeps, row: ClipRow): Promise<Cl
   const remixMeta = (video: 'skipped' | 'rejected' | 'failed') => (remixStage ? { remix: faceRemixForRow(row)?.id ?? null, keyframe: remixStage === 'keyframe' ? 'failed' : 'done', video } : {}) // KINEO-ROSTO-QUADRO-CHAVE-2810 — as DUAS etapas no clip_failed
 
   // KINEO-ROSTO-QUADRO-CHAVE-2810 — `meta`: as duas etapas do remix no clip_failed (padrão pela etapa da linha; a recusa do Kling na etapa 2 passa a sua).
+  let failMoved = false // KINEO-RECREATE-TRAVA-1011 — a trava do Recreate grava o seu evento só se ESTE ator moveu a linha
   const fail = async (reason: string, providerError: string | null = null, meta: Record<string, unknown> = remixMeta(remixStage === 'keyframe' ? 'skipped' : 'failed')): Promise<ClipRow> => { // KINEO-ROSTO-QUADRO-CHAVE-2810 — + meta
     const refunded = await deps.refund(row.billing_reference)
     const moved = await deps.markFailed(row.id, reason, refunded)
+    failMoved = moved // KINEO-RECREATE-TRAVA-1011
     // KINEO-S25-FOTO-CLIPES-1610 — só quem MOVEU a linha grava (o evento e o warn): duas abas + o cron nunca repetem.
     if (moved && providerError) console.warn(`[clips] clip_failed stage=settle reason=${reason} engine=${row.engine} clip=${row.id} request=${row.fal_request_id}: ${providerError}`)
     if (moved) await deps.event('clip_failed', { ...clipTelemetry(row), reason, credits_refunded: refunded, stage: 'settle', ...(providerError ? { provider_error: providerError } : {}), ...meta }) // KINEO-ROSTO-QUADRO-CHAVE-2810 — + meta (remix/keyframe/video)
@@ -470,8 +488,24 @@ export async function settleClip(deps: ClipSettleDeps, row: ClipRow): Promise<Cl
       // Nunca marca pronto com a URL da fal. Tenta de novo no próximo poll; passou do prazo, estorna.
       return Number.isFinite(age) && age >= CLIP_EXPIRE_MS ? fail('persist_failed') : row
     }
-    const moved = await deps.markDone(row.id, ours)
+    // KINEO-RECREATE-TRAVA-1011 [fundador 10/11] — Recreate: o fornecedor devolve o vídeo-base com "sucesso" quando não troca a
+    // pessoa. ANTES de marcar pronto: um ator reserva a checagem; alguma pessoa esperada continua a do vídeo-base → falha + o
+    // MESMO estorno de sempre (fail → refund idempotente). Checagem que falha = 'unverified' → entrega. Status repetido depois
+    // de decidido sai na 1ª linha do settleClip (done/failed): nunca checa, estorna nem troca o veredito de novo.
+    const swap = deps.recreateSwap?.applies(row) ? deps.recreateSwap : null // KINEO-RECREATE-TRAVA-1011
+    let swapVerdict: { result: string; reason: string } | null = null // KINEO-RECREATE-TRAVA-1011
+    if (swap) { // KINEO-RECREATE-TRAVA-1011
+      if (!(await swap.claim(row))) return row // KINEO-RECREATE-TRAVA-1011 — outro ator (aba, cron) está checando
+      swapVerdict = await swap.check(row, state.url).catch(() => ({ result: 'unverified' as const, reason: 'check_error' })) // KINEO-RECREATE-TRAVA-1011
+      if (swapVerdict.result === 'unchanged' || swapVerdict.result === 'partial') { // KINEO-RECREATE-TRAVA-1011
+        const closed = await fail(swapVerdict.result === 'partial' ? 'swap_partial' : 'swap_unchanged', null, { swap_check: swapVerdict.result }) // KINEO-RECREATE-TRAVA-1011
+        if (failMoved) await swap.record(row, swapVerdict, { delivered: false, credits_refunded: closed.credits_refunded }) // KINEO-RECREATE-TRAVA-1011
+        return closed // KINEO-RECREATE-TRAVA-1011
+      } // KINEO-RECREATE-TRAVA-1011
+    } // KINEO-RECREATE-TRAVA-1011
+    const moved = await (swap ? swap.markDone(row.id, ours) : deps.markDone(row.id, ours)) // KINEO-RECREATE-TRAVA-1011 — era: deps.markDone(row.id, ours)
     if (moved) {
+      if (swap && swapVerdict) await swap.record(row, swapVerdict, { delivered: true, credits_refunded: 0 }) // KINEO-RECREATE-TRAVA-1011
       await deps.event('clip_delivered', { ...clipTelemetry(row), age_ms: Math.max(0, age) })
       // KINEO-CLIP-EFEITOS-2026-10-05 — clipe de um efeito de 1 clique ficou pronto. Mesmo ponto e mesma condição do
       // clip_delivered (só quem MOVEU a linha para `done` grava): duas abas + o cron nunca contam o mesmo clipe duas vezes.

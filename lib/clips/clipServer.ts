@@ -22,6 +22,8 @@ import { enginePaused, engineOffered, engineRetired } from '@/lib/engineLaunch' 
 import { decideEngineGate } from '@/lib/enginePlanGate'
 import { downloadPublicAnimateImage } from '@/lib/animate/remoteImage'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { RECREATE_MODEL } from '@/lib/recreate/generation' // KINEO-RECREATE-TRAVA-1011
+import { RECREATE_SWAP_CHECK_EVENT, SWAP_CHECK_LOCK_PREFIX, SWAP_CHECK_LOCK_STALE_MS, recreateRowContext, runSwapCheck, swapCheckLock, type SwapVerdict } from '@/lib/recreate/swapCheck' // KINEO-RECREATE-TRAVA-1011
 import { alertFalExhausted, looksExhausted } from '@/lib/falAlert'
 import {
   CLIP_ENGINES,
@@ -50,6 +52,7 @@ import {
   type ClipSettleDeps,
   type ClipSubmitDeps,
   type ProviderState,
+  type RecreateSwapSettleDeps, // KINEO-RECREATE-TRAVA-1011
 } from '@/lib/clips/clipFlow'
 // KINEO-CLIPE-MARCA-2026-10-06 — a marca do clipe grátis: interruptor e regra puros. A fiação (Creatomate) só é carregada
 // com o interruptor ligado (import dinâmico em persistClipVideo).
@@ -517,6 +520,47 @@ export function settleDepsFor(admin: SupabaseClient, userId: string): ClipSettle
       markVideoSubmitted: (id, videoModel, requestId) => markRemixVideoSubmitted(admin, id, videoModel, requestId), // KINEO-ROSTO-QUADRO-CHAVE-2810
       videoModel: (row) => { const item = faceRemixForRow(row); if (!item) throw new Error('remix: row is not a face remix'); return faceRemixVideoModel(item) }, // KINEO-ROSTO-QUADRO-CHAVE-2810
     }, // KINEO-ROSTO-QUADRO-CHAVE-2810
+    recreateSwap: recreateSwapDepsFor(admin, userId), // KINEO-RECREATE-TRAVA-1011 — a trava "não trocou" em TODO caminho que entrega (tela, /clips, cron, varredura)
+  }
+}
+
+// KINEO-RECREATE-TRAVA-1011 [fundador 10/11: "tem que fazer tudo funcionar agora. Sem erros"] — fios da trava "não trocou".
+// A trava da checagem mora em clips.failure_reason enquanto status='processing' (sem coluna nova): 'swapcheck_<ms>'; quem
+// não ganha o UPDATE condicional espera o próximo poll. Trava de 2 min+ (ator morreu no meio) pode ser retomada.
+export function recreateSwapDepsFor(admin: SupabaseClient, userId: string): RecreateSwapSettleDeps {
+  return {
+    applies: (row) => row.model === RECREATE_MODEL,
+    claim: async (row) => {
+      const now = Date.now()
+      const { data, error } = await admin
+        .from(CLIPS_TABLE)
+        .update({ failure_reason: swapCheckLock(now) })
+        .eq('id', row.id)
+        .eq('status', 'processing')
+        .or(`failure_reason.is.null,and(failure_reason.like.${SWAP_CHECK_LOCK_PREFIX}*,failure_reason.lt.${swapCheckLock(now - SWAP_CHECK_LOCK_STALE_MS)})`)
+        .select('id')
+      if (error) console.error(`[clips] recreate swap-check claim failed clip=${row.id}:`, error.message)
+      return !error && (data ?? []).length > 0
+    },
+    check: (row, url) => runSwapCheck(row, url),
+    markDone: async (id, videoUrl) => {
+      const { data, error } = await admin
+        .from(CLIPS_TABLE)
+        .update({ status: 'done', video_url: videoUrl, failure_reason: null, settled_at: new Date().toISOString() })
+        .eq('id', id)
+        .eq('status', 'processing')
+        .select('id')
+      if (error) console.error(`[clips] recreate markDone failed clip=${id}:`, error.message)
+      return !error && (data ?? []).length > 0
+    },
+    record: async (row, verdict, outcome) => {
+      const v = verdict as Partial<SwapVerdict>
+      await writeServerEvent({ name: RECREATE_SWAP_CHECK_EVENT, userId, path: '/api/recreate/status', metadata: {
+        format: v.format ?? recreateRowContext(row)?.format.id ?? null, clip_id: row.id, result: verdict.result, reason: verdict.reason,
+        delivered: outcome.delivered, credits: row.credits, credits_refunded: outcome.credits_refunded,
+        persons: v.persons ?? [], model: v.model ?? null, usd: v.usd ?? null, ms: v.ms ?? null, version: 'recreate_swap_check_1011',
+      } }).catch(() => false)
+    },
   }
 }
 

@@ -365,6 +365,7 @@ const SERVER_ONLY_EVENTS = new Set([
   // aceito (/api/clips), clipe pronto (settleClip, só quem move a linha) e clique no upsell (/api/clips/effect-upsell).
   'clip_effect_chosen',
   'recreate_started',
+  'recreate_swap_check', // KINEO-RECREATE-TRAVA-1011 — veredito da trava "não trocou" (settleClip, só quem move a linha)
   'clip_effect_ready',
   'clip_effect_film_upsell_clicked',
   // KINEO-AVISO-CLIPE-GRATIS-2026-10-06 — escrito SÓ por /api/clips quando o pedido que nasceu da ideia pronta do aviso "Você

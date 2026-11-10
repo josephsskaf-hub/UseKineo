@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-import { RECREATE_ASSETS } from '@/lib/recreate/formats'
+import { RECREATE_ASSETS, RECREATE_FORMATS } from '@/lib/recreate/formats'
+import { recreateFormatVisible } from '@/lib/recreate/access'
 import { recreateSession, RECREATE_HEADERS } from '@/lib/recreate/server'
 
 export const dynamic = 'force-dynamic'
@@ -9,6 +10,9 @@ export const runtime = 'nodejs'
 export async function GET(req: NextRequest, { params }: { params: { name: string } }) {
   const { user } = await recreateSession()
   if (!user || !Object.hasOwn(RECREATE_ASSETS, params.name)) return new NextResponse(null, { status: 404, headers: RECREATE_HEADERS })
+  // KINEO-RECREATE-TRAVA-1011 — a base video/poster is served only to an account that can see its format.
+  const owner = RECREATE_FORMATS.find(f => f.preview.endsWith('/' + params.name) || f.poster.endsWith('/' + params.name))
+  if (!owner || !recreateFormatVisible(owner, user.email)) return new NextResponse(null, { status: 404, headers: RECREATE_HEADERS })
   const asset = RECREATE_ASSETS[params.name as keyof typeof RECREATE_ASSETS]
   const bytes = await readFile(path.join(process.cwd(), 'lib/recreate/assets', asset.file))
   const headers = { ...RECREATE_HEADERS, 'Content-Type': asset.contentType, 'Accept-Ranges': 'bytes' }

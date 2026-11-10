@@ -18,7 +18,8 @@ async function main(){
     assert.equal(!!(await server.recreateSession()).user,mode!=='off')
     user=null;assert.equal((await server.recreateSession()).user,null,'public visibility never bypasses authentication')
     const entry=loader({},override)('lib/recreate/entry')
-    assert.equal(entry.publicRecreatePath('outfit-morph'),mode==='public'?'/recreate/outfit-morph':null)
+    assert.equal(entry.publicRecreatePath('outfit-morph'),null,'KINEO-RECREATE-TRAVA-1011: an unapproved swap never gets a public link')
+    assert.equal(entry.publicRecreatePath('effect-kiss'),mode==='public'?'/recreate/effect-kiss':null)
     assert.equal(entry.publicRecreatePath('unapproved-video'),null)
   }
   user={id:'external-user-fixture',email:'customer@example.org'}
@@ -77,13 +78,13 @@ async function main(){
   const homeStubs={'next/link':links,'@/components/InterfaceLanguage':{UiLabel:({children})=>children},'@/components/WallMedia':{__esModule:true,default:()=>null}}
   for(const mode of ['public','off']){
     const m=loader(homeStubs,{'lib/recreate/release.ts':releaseSource.replace("RECREATE_RELEASE: InternalRelease = 'internal'",`RECREATE_RELEASE: InternalRelease = '${mode}'`)})('components/home/HomeMosaic')
-    assert.equal(m.podeRecriar({kind:'novo',clip:{id:'outfit-morph',prompt:null}}),mode==='public')
+    assert.equal(m.podeRecriar({kind:'novo',clip:{id:'outfit-morph',prompt:null}}),false,'KINEO-RECREATE-TRAVA-1011: unapproved swap tile keeps its legacy destination')
     assert.equal(m.podeRecriar({kind:'novo',clip:{id:'unapproved-video',prompt:null}}),false)
     for(const signedIn of [true,false]){
       const html=renderToStaticMarkup(React.createElement(m.default,{signedIn}))
       const tag=html.match(/<a[^>]*data-clip-novo="outfit-morph"[^>]*>/)[0],href=tag.match(/href="([^"]+)"/)[1].replaceAll('&amp;','&')
       const actual=signedIn?href:new URL(href,'https://fixture').searchParams.get('redirect')
-      assert.equal(actual,mode==='public'?'/recreate/outfit-morph':'/clips')
+      assert.equal(actual,'/clips')
       for(const id of ['anuncio-skincare','anuncio-relogio','anuncio-colar','anuncio-caneca','anuncio-sueter-pet','anuncio-manta']){
         const ad=html.match(new RegExp('<a[^>]*data-clip-novo="'+id+'"[^>]*>[\\s\\S]*?</a>'))?.[0]
         assert(ad,'new main Christmas ad remains in the mosaic: '+id)

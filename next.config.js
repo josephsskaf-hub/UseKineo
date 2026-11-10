@@ -94,6 +94,11 @@ const nextConfig = {
     outputFileTracingIncludes: {
       '/api/recreate': ['./lib/recreate/assets/*'],
       '/api/recreate/assets/*': ['./lib/recreate/assets/*'],
+      // KINEO-RECREATE-TRAVA-1011 — quadros do vídeo-base da trava "não trocou": todo caminho que roda settleClip.
+      '/api/recreate/status': ['./lib/recreate/assets/check/*'],
+      '/api/clips/status': ['./lib/recreate/assets/check/*'],
+      '/api/cron/rapido-ads-clipes': ['./lib/recreate/assets/check/*'],
+      '/api/cron/refund-sweep': ['./lib/recreate/assets/check/*'],
     },
   },
   // Push #92 — Core Web Vitals: remotePatterns was an empty array, which

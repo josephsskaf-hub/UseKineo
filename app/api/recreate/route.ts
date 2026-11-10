@@ -3,12 +3,12 @@ import { clipsAdmin, engineAccessFor, loadClipAccount } from '@/lib/clips/clipSe
 import { submitClip } from '@/lib/clips/clipFlow'
 import { clipEffectByKey, resolveClipEffectRequest } from '@/lib/clips/clipEffects'
 import { isPayingPlan } from '@/app/api/admin/_shared/mrr'
-import { recreateFormat, RECREATE_FORMATS, recreateEffectCredits } from '@/lib/recreate/formats'
+import { recreateFormat, recreateEffectCredits, recreateSwapPriced, RECREATE_UNPRICED_ERROR } from '@/lib/recreate/formats'
 import { planRecreate } from '@/lib/recreate/generation'
 import { recreateCreditCost } from '@/lib/checkoutPricing'
 import { recreateEngineAccess, recreateSession, recreateSubmitDeps, RECREATE_HEADERS } from '@/lib/recreate/server'
 import { writeServerEvent } from '@/lib/serverEvents'
-import { releaseVisible } from '@/lib/recreate/access'
+import { recreateFormatVisible, releaseVisible, visibleRecreateFormats } from '@/lib/recreate/access'
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -23,7 +23,8 @@ export async function GET() {
   const account = await loadClipAccount(supabase, user)
   if (!admin || !account) return json({ error: 'Could not load your account. Please retry.' }, 503)
   const access = engineAccessFor(account)
-  return json({ catalog: RECREATE_FORMATS.map(f => {
+  // KINEO-RECREATE-TRAVA-1011 — only formats this account may request (unapproved swaps: house allowlist only).
+  return json({ catalog: visibleRecreateFormats(user.email).map(f => {
     const credits = f.type === 'swap' ? recreateCreditCost(f.seconds) : recreateEffectCredits(f)
     return { id: f.id, credits, shortfall: credits === null ? 0 : Math.max(0, credits - account.balance), available: credits !== null && (f.type === 'swap' ? recreateEngineAccess().ok : access(clipEffectByKey(f.effectKey)!.engine).ok) }
   }) })
@@ -37,6 +38,9 @@ export async function POST(req: NextRequest) {
   try { raw = await req.json() } catch { return json({ error: 'Invalid request.' }, 400) }
   const format = recreateFormat(raw.format)
   if (!format) return json({ error: 'Choose a format from the catalog.' }, 400)
+  // KINEO-RECREATE-TRAVA-1011 — an unapproved swap does not exist for this account: refused before photos, moderation, debit or provider.
+  if (!recreateFormatVisible(format, user.email)) return json({ error: 'Not found.' }, 404)
+  if (!recreateSwapPriced(format)) return json({ error: RECREATE_UNPRICED_ERROR, code: 'unpriced' }, 409)
   if (raw.mode && raw.mode !== 'swap') return json({ error: 'This mode is unavailable.' }, 400)
   // Simulation exits before profile reads, moderation, writes, debits, uploads or provider calls.
   if (raw.simulate === true) {
