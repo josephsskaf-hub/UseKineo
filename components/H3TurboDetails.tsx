@@ -21,9 +21,9 @@ const TEXT = {
   },
 }
 
-export default function H3TurboDetails({ language = 'en', reviewedOn, heading }: { language?: 'en' | 'fr' | 'de'; reviewedOn?: string; heading?: string }) {
+export default function H3TurboDetails({ language = 'en', reviewedOn, heading, dark = false }: { language?: 'en' | 'fr' | 'de'; reviewedOn?: string; heading?: string; dark?: boolean }) {
   const text = TEXT[language]
-  const muted = language === 'en' ? '#5A5F67' : '#a1a1a6'
+  const muted = dark || language !== 'en' ? '#a1a1a6' : '#5A5F67'
   const updated = reviewedOn ?? (language === 'en' ? H3_TURBO_PAGE_UPDATED : H3_TURBO_LOCALIZED_UPDATED)
   const date = reviewedOn
     ? new Intl.DateTimeFormat(language === 'en' ? 'en-US' : language, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${reviewedOn}T12:00:00Z`))
@@ -46,7 +46,7 @@ export default function H3TurboDetails({ language = 'en', reviewedOn, heading }:
         </table>
       </div>
       <p style={{ fontSize: 13, color: muted, lineHeight: 1.6 }}>{text.note(formatCheckoutMoney('usd', TIER_PRICES.starter.usd), TIER_CREDITS.starter)}</p>
-      <p style={{ fontSize: 13, color: muted }}>{text.updated} <time dateTime={updated}>{date}</time>. <a href="/models-pricing">{text.engines}</a> · <a href="/pricing">{text.plans}</a>.</p>
+      <p style={{ fontSize: 13, color: muted }}>{text.updated} <time dateTime={updated}>{date}</time>. <a href="/models-pricing" style={dark ? { color: '#2997ff' } : undefined}>{text.engines}</a> · <a href="/pricing" style={dark ? { color: '#2997ff' } : undefined}>{text.plans}</a>.</p>
     </section>
   )
 }

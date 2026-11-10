@@ -13,6 +13,9 @@ import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { buildBlankStudioSignupHref } from '@/lib/growth/publicCreationIntent'
+import { buildEngineLandingSignupHref } from '@/lib/growth/engineLandingIntent'
+import { RUNWAY_ALTERNATIVE, RUNWAY_KINEO_ENGINE, RUNWAY_KINEO_STEPS, RUNWAY_REVIEWED_ON, RUNWAY_SOURCES } from '@/lib/growth/runwayAlternativePage'
+import H3TurboDetails from '@/components/H3TurboDetails'
 import QusoDecisionSections, { QUSO_INTENT_CAMPAIGN } from './QusoDecisionSections'
 // KINEO-AEO-PAIRS-2026-08-03 — this route answers "X alternative" and /vs
 // answers "X vs Y". They target the same buyer at two different moments and
@@ -581,32 +584,8 @@ export const COMPETITORS: Record<string, Competitor> = {
       { q: 'Should I use Kapwing or Kineo?', a: `Use Kapwing when you want to edit, subtitle and collaborate on a video in the browser (and its free tier). Use Kineo when you want a complete faceless Short generated from one idea${ft(OFFER, ', with up to 3 watermarked Fast videos every 24h and no card.', '. ' + OFFER.copy.sentence)}` },
     ],
   },
-  // ROBO-SEO-2026-06-30b — RunwayML (generative AI clip model, same category
-  // pattern as the existing Pika entry above: standalone clips vs. finished Short).
-  runwayml: {
-    name: 'Runway',
-    h1: 'The Runway Alternative That Builds the Whole Faceless Short From One Idea',
-    intro:
-      `Runway (RunwayML) is a leading generative AI video model — you prompt it and it generates short, high-fidelity AI video clips, with tools for camera control, motion brushes and video-to-video effects. It is built for generating raw creative footage and VFX, not for assembling a complete narrated, captioned Short. Kineo takes one idea and produces the entire faceless YouTube Short — script, AI voice, footage, and captions — ${PRODUCT_TIME.inMedian}.`,
-    theyDo: 'Runway focuses on generating AI video clips and creative effects from a text or image prompt, aimed at filmmakers and VFX/creative work.',
-    pickThem:
-      'Pick Runway when you want to generate a striking standalone AI clip or visual effect for a larger creative or VFX project; pick Kineo when you want the whole faceless Short finished end to end.',
-    rows: [
-      { feature: 'Creates the full faceless Short from just an idea', sfa: true, them: false },
-      { feature: 'Writes the script for you', sfa: true, them: false },
-      { feature: 'Adds AI voiceover (narration)', sfa: true, them: false },
-      { feature: 'Auto-captions / subtitles', sfa: true, them: false },
-      { feature: 'Generates high-fidelity AI video clips', sfa: 'Stock + AI footage', them: true },
-      { feature: 'Built for vertical YouTube Shorts output', sfa: true, them: 'Clips only' },
-      { feature: 'Finished video in a few minutes', sfa: true, them: 'Clips, then you edit' },
-      { feature: 'Starting price', sfa: `From ${STARTER_MO}`, them: 'Paid plans' },
-    ],
-    faq: [
-      { q: 'What is the best Runway (RunwayML) alternative for faceless YouTube Shorts?', a: `Kineo is the strongest Runway alternative for full faceless Shorts, because it does not just generate a clip — it writes the script, adds the AI voice, pulls the footage, and burns in captions to deliver a finished vertical Short ${PRODUCT_TIME.inMedian}.` },
-      { q: 'Can Runway make a complete YouTube Short with voiceover and captions?', a: 'Not on its own — Runway generates AI video clips, and you would still need to add a script, narration, and captions yourself, typically in a separate editor. Kineo handles that entire pipeline automatically from a single idea.' },
-      { q: 'Is Kineo cheaper than Runway?', a: `Kineo starts at ${STARTER_MO} and turns one idea into a complete faceless Short. Runway prices change, so check their site, but the bigger difference is scope: Runway gives you AI-generated clips for creative/VFX work, Kineo gives you the whole finished Short.` },
-    ],
-  },
+  // Reviewed against current Runway documentation; other comparisons keep their existing copy.
+  runwayml: { ...RUNWAY_ALTERNATIVE },
   // ROBO-SEO-2026-07-01 — Synthesys (avatar) / D-ID (avatar API), same category
   // pattern as the existing Synthesia/HeyGen entries: avatar/talking-head vs faceless.
   // KINEO-SEO-COMPARE-2026-07-11 — reposicionada pós-AI Presenter.
@@ -867,6 +846,8 @@ export function generateMetadata({ params }: { params: { competitor: string } })
     ? 'Vidyo.ai is now Quso.ai. See Quso’s current Free, Lite, Essential and Growth prices, credits and an honest workflow comparison with Kineo.'
     : isInVideo
       ? `Looking for a free InVideo AI alternative? Compare both no-card free paths, then try Kineo’s faceless Shorts workflow. ${OFFER.copy.headline}`
+      : params.competitor === 'runwayml'
+        ? RUNWAY_ALTERNATIVE.description
       : isSynthesia
         ? 'Kineo and Synthesia compared honestly: faceless Shorts versus multilingual avatar and business-video workflows, with official Synthesia sources.'
       : `Looking for a ${c.name} alternative? Kineo turns one idea into a finished faceless YouTube Short. ${ft(OFFER, `Try up to 3 watermarked Fast videos every 24h; Starter is ${STARTER_MONTH}.`, OFFER.copy.headline)}`
@@ -1029,6 +1010,7 @@ export default function AlternativePage({ params }: { params: { competitor: stri
   const isQuso = params.competitor === 'quso'
   const isInVideo = params.competitor === 'invideo'
   const isSynthesia = params.competitor === 'synthesia'
+  const isRunway = params.competitor === 'runwayml'
   const campaign = isQuso
     ? QUSO_INTENT_CAMPAIGN
     : isInVideo
@@ -1036,7 +1018,9 @@ export default function AlternativePage({ params }: { params: { competitor: stri
       : `push22_alternative_${params.competitor}`
   const signupUrl = isQuso
     ? '#try-quso-alternative-topic'
-    : buildBlankStudioSignupHref({ campaign })
+    : isRunway
+      ? buildEngineLandingSignupHref({ engine: 'seedance', campaign })
+      : buildBlankStudioSignupHref({ campaign })
   const heroCtaUrl = isQuso ? '#try-quso-alternative-topic' : signupUrl
   // KINEO-GEO-RODADA3-2026-10-08 — InVideo e CapCut: a resposta da rodada 3 (null nos outros concorrentes).
   const r3 = isInVideo ? invideoAnswer() : params.competitor === 'capcut' ? capcutAnswer() : null
@@ -1098,7 +1082,7 @@ export default function AlternativePage({ params }: { params: { competitor: stri
               placement="hero"
               style={{ display: 'inline-block', background: '#f5f5f7', color: '#000', fontWeight: 900, padding: '15px 32px', borderRadius: 980, textDecoration: 'none', fontSize: '1.05rem' }}
             >
-              {isQuso ? 'Test one topic in Kineo →' : CARD_ENTRY_COPY.ctaLong}
+              {isQuso ? 'Test one topic in Kineo →' : isRunway ? 'Prepare a narrated film →' : CARD_ENTRY_COPY.ctaLong}
             </OrganicCtaLink>
             {isQuso && (
               <OrganicCtaLink
@@ -1112,7 +1096,7 @@ export default function AlternativePage({ params }: { params: { competitor: stri
             )}
           </div>
           <p style={{ fontSize: '0.82rem', color: '#86868b', margin: '10px 0 0' }}>
-            {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · no card · Starter <b style={{ color: '#2997ff' }}>{STARTER_MO}</b>
+            {isRunway ? 'Trial eligibility and watermark terms appear in Studio and on the plans page.' : <>{ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · no card · Starter <b style={{ color: '#2997ff' }}>{STARTER_MO}</b></>}
           </p>
         </section>
 
@@ -1129,7 +1113,7 @@ export default function AlternativePage({ params }: { params: { competitor: stri
           <h2 style={{ fontSize: '1.3rem', fontWeight: 900, textAlign: 'center', margin: '0 0 18px' }}>
             Kineo vs {c.name}
           </h2>
-          <div style={{ ...CARD, borderRadius: 16, overflow: 'hidden' }}>
+          <div style={{ ...CARD, borderRadius: 16, overflow: isRunway ? 'auto' : 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
               <thead>
                 <tr style={{ background: 'rgba(255,255,255,0.04)' }}>
@@ -1150,9 +1134,12 @@ export default function AlternativePage({ params }: { params: { competitor: stri
             </table>
           </div>
           <p style={{ fontSize: '0.74rem', color: '#6e6e73', textAlign: 'center', margin: '10px 0 0' }}>
-            Comparison reflects each tool’s core product focus as publicly described (August 2026); features and pricing may change.
+            {isRunway ? <>Checked <time dateTime={RUNWAY_REVIEWED_ON}>November 10, 2026</time>. Runway capabilities are documented by Runway; no equivalent-project price or quality benchmark was measured.</> : 'Comparison reflects each tool’s core product focus as publicly described (August 2026); features and pricing may change.'}
           </p>
+          {isRunway && <p style={{ fontSize: '0.82rem', color: '#a1a1a6', lineHeight: 1.7 }}>Official sources: {RUNWAY_SOURCES.map((source, i) => <span key={source.href}>{i > 0 && ' · '}<a href={source.href} style={{ color: '#2997ff' }}>{source.label}</a></span>)}</p>}
         </section>
+
+        {isRunway && <H3TurboDetails dark reviewedOn={RUNWAY_REVIEWED_ON} heading={`${RUNWAY_KINEO_ENGINE} cost per finished Kineo film`} />}
 
         {/* Honest "pick them" */}
         <section style={{ marginTop: 40, ...CARD, borderRadius: 16, padding: '20px 22px' }}>
@@ -1168,11 +1155,11 @@ export default function AlternativePage({ params }: { params: { competitor: stri
         <section style={{ marginTop: 40 }}>
           <h2 style={{ fontSize: '1.3rem', fontWeight: 900, textAlign: 'center', margin: '0 0 18px' }}>How Kineo works</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-            {[
+            {(isRunway ? RUNWAY_KINEO_STEPS : [
               { n: '1', t: 'Type one idea', d: 'A topic, a fact, a hook — one sentence is enough.' },
               { n: '2', t: 'AI builds the Short', d: 'Script, AI voiceover, captions and matched footage, assembled automatically.' },
               { n: '3', t: 'Download & post', d: 'A vertical 9:16 MP4 in a few minutes, ready for YouTube Shorts, TikTok and Reels.' },
-            ].map((s) => (
+            ]).map((s) => (
               <div key={s.n} style={{ ...CARD, borderRadius: 14, padding: 16 }}>
                 <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(41,151,255,0.12)', color: '#2997ff', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>{s.n}</div>
                 <div style={{ fontWeight: 800, marginBottom: 4 }}>{s.t}</div>
@@ -1197,15 +1184,15 @@ export default function AlternativePage({ params }: { params: { competitor: stri
 
         {/* Final CTA */}
         <section style={{ marginTop: 44, textAlign: 'center', ...CARD, borderRadius: 18, padding: '28px 20px' }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>{ft(OFFER, 'Make a faceless Fast video free', OFFER.copy.ctaHeading)}</h2>
-          <p style={{ color: '#86868b', margin: '8px 0 18px', fontSize: '0.95rem' }}>One idea in, a finished vertical film out. No camera, no editing.</p>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>{isRunway ? 'Prepare your narrated short film' : ft(OFFER, 'Make a faceless Fast video free', OFFER.copy.ctaHeading)}</h2>
+          <p style={{ color: '#86868b', margin: '8px 0 18px', fontSize: '0.95rem' }}>{isRunway ? 'Choose your idea or script, check the model and credit cost, then generate in Studio.' : 'One idea in, a finished vertical film out. No camera, no editing.'}</p>
           <OrganicCtaLink
             href={signupUrl}
             source={campaign}
             placement="final"
             style={{ display: 'inline-block', background: '#f5f5f7', color: '#000', fontWeight: 900, padding: '14px 30px', borderRadius: 980, textDecoration: 'none', fontSize: '1.02rem' }}
           >
-            {CARD_ENTRY_COPY.ctaLong}
+            {isRunway ? 'Prepare a narrated film →' : CARD_ENTRY_COPY.ctaLong}
           </OrganicCtaLink>
         </section>
 
@@ -1254,7 +1241,7 @@ export default function AlternativePage({ params }: { params: { competitor: stri
           ))}
         </nav>
       </div>
-      <StickyFreeShortCTA href={signupUrl} />
+      <StickyFreeShortCTA href={signupUrl} label={isRunway ? 'Review the model, duration and credits in Studio' : undefined} cta={isRunway ? 'Prepare a film' : undefined} />
       <Footer />
     </main>
   )
