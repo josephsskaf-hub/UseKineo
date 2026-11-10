@@ -43,6 +43,11 @@ const clipe = (id: string): Clipe => {
   if (!c) throw new Error(`Missing showcase clip: ${id}`)
   return c
 }
+// KINEO-TELA-NOVA-ACABAMENTO-1011 — arquivos que JÁ estão no site (nada novo, nada renderizado): a ideia do clique é o título.
+const filmeDaCasa = (asset: string, title: string): CreateExample => ({ id: asset, title, idea: title, video: `/previews/examples-hd-sep24/${asset}.mp4`, poster: `/posters/examples-hd-sep24/${asset}.webp` })
+const cardDaHome = (asset: string, title: string): CreateExample => ({ id: `home-${asset}`, title, idea: title, video: `/previews/home-card-novo-${asset}.mp4`, poster: `/posters/home-card-novo-${asset}.webp` })
+/** Mínimo de exemplos por aba: a fileira tem até 8 colunas (create.css), então 8 enchem a linha mais larga sem buraco. */
+export const CREATE_EXAMPLES_MIN = 8
 
 /** Nenhum exemplo traz texto/prompt próprio nas listas: a ideia que o clique põe no passo 1 é o TÍTULO real do vídeo. */
 export const CREATE_EXAMPLES: Readonly<Record<CreateTab, readonly CreateExample[]>> = {
@@ -52,15 +57,37 @@ export const CREATE_EXAMPLES: Readonly<Record<CreateTab, readonly CreateExample[
     { id: 'tunguska-h3', title: 'Tunguska: the fireball over Siberia', idea: 'Tunguska: the fireball over Siberia', video: '/previews/examples-hd-sep24/tunguska-h3.mp4', poster: '/posters/examples-hd-sep24/tunguska-h3.webp' },
     { id: 'lituya-h3', title: 'Lituya Bay: the tallest wave', idea: 'Lituya Bay: the tallest wave', video: '/previews/examples-hd-sep24/lituya-h3.mp4', poster: '/posters/examples-hd-sep24/lituya-h3.webp' },
     { id: 'plane-1942', title: 'The lost plane of 1942', idea: 'The lost plane of 1942', video: '/previews/examples-hd-sep24/plane-1942.mp4', poster: '/posters/examples-hd-sep24/plane-1942.webp' },
+    // KINEO-TELA-NOVA-ACABAMENTO-1011 [fundador 10/11: "completar os quadros com vídeos"] — o resto da MESMA seleção da casa
+    // (lib/ui/examplesSelectionSep24.ts: arquivos e títulos de lá, 1080×1920). O Tunguska do Omni fica fora: o tema já está acima.
+    filmeDaCasa('lighthouse-selected', "The lighthouse keeper's notebook"),
+    filmeDaCasa('train-selected', 'The night train and the red suitcase'),
+    filmeDaCasa('volcano-selected', 'The volcano watcher'),
+    filmeDaCasa('robot-collision', 'The robot rising from the harbor'),
+    filmeDaCasa('castle', 'The castle hiding inside a university building'),
   ],
   cartoon: [
     galeria(clipe('dragaozinho'), clipe('dragaozinho').title),
     galeria(clipe('boneco-de-neve'), clipe('boneco-de-neve').title),
     // O curta "Meet Leo…" do card de Cartoon da home (lib/ui/homeKidsCard.ts, render 4f6c8a40).
     { id: 'kids-cartoon-leo', title: 'Meet Leo', idea: 'Meet Leo', video: '/previews/home-card-kids-cartoon-leo.mp4', poster: '/posters/home-card-kids-cartoon-leo.webp' },
+    // KINEO-TELA-NOVA-ACABAMENTO-1011 — os desenhos 3D que já giram no card de Cartoon da home (lib/ui/homeThreeCards.ts kids_cartoon) e a
+    // raposa do quadro de entrada (lib/authVitrine.ts); pinguim e skatedog vieram do mesmo lote (KINEO-CARDS-NOVOS-2610). Os de Halloween
+    // (abóbora, lobisomem) ficam fora: lib/clipesNos2Lugares.ts FORA_DE_ESTACAO. Título = o que a cena mostra (conferido no quadro).
+    cardDaHome('baby_puppy', 'The baby and the puppy'),
+    cardDaHome('knight_kitten', 'The kitten knight'),
+    cardDaHome('fox', 'Cartoon fox among fireflies'),
+    cardDaHome('penguin', 'The penguin on the snowy hill'),
+    cardDaHome('skatedog', 'The skateboarding puppy'),
   ],
   // Os 6 'Ad example': só convidam. Ads não tem caixa de texto no passo 1, então o clique só troca o vídeo grande.
-  ads: CLIPES_NOVOS.filter(clipeNovoAnuncio).map(c => galeria(c, null)),
+  // KINEO-TELA-NOVA-ACABAMENTO-1011 — depois deles, os 3 anúncios de produto que giram no card "AI Product Ads" da home
+  // (lib/ui/homeThreeCards.ts product_ads). Também só trocam o vídeo grande.
+  ads: [
+    ...CLIPES_NOVOS.filter(clipeNovoAnuncio).map(c => galeria(c, null)),
+    { ...cardDaHome('smartwatch', 'The watch that builds itself'), idea: null },
+    { ...cardDaHome('iced_coffee', 'Iced coffee by the window'), idea: null },
+    { ...cardDaHome('headphones', 'Headphones taking shape'), idea: null },
+  ],
 }
 
 /** Film: o Studio na caixa única, já com a ideia (o mesmo caminho de hrefDaCaixa/voltaParaCaixa da home). */

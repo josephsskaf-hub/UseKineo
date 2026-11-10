@@ -226,7 +226,7 @@ async function priceChecks(o) {
 function mobileChecks(o) {
   const css = lf(read('app/recreate/recreate.css')), mine = lf(o['components/create/create.css'] ?? read('components/create/create.css'))
   ok(/@media\(max-width:640px\)\{[^\n]*\.rc-workspace\{display:flex;flex-direction:column;height:auto\}\.rc-reference\{order:0;[^\n]*\.rc-panel\{order:1;[^\n]*\.rc-gallery\{order:2;/.test(css), 'celular: exemplo, passos, grade (CSS do Recreate)')
-  const novo = mine.slice(mine.indexOf('KINEO-STUDIO-NA-MOLDURA-1011'))
+  const novo = mine.slice(mine.indexOf('KINEO-STUDIO-NA-MOLDURA-1011'), mine.indexOf('/* KINEO-TELA-NOVA-ACABAMENTO-1011')) // o bloco do acabamento tem guardião próprio (test-tela-nova-1011 H)
   ok(novo.length > 100 && !/(?<![-a-z])(min-)?width:\s*\d{3,}px/.test(novo) && novo.split('\n').slice(1).filter(Boolean).every(l => l.startsWith('.create-shell ')), 'CSS novo: só .create-shell, nenhuma largura fixa')
 }
 
@@ -268,7 +268,36 @@ async function headerChecks(o) {
   ok(rc.includes("{createTabs ? <CreateNavConta /> : <Link href=\"/clips\">My videos ↗</Link>}") && rc.includes("className={createTabs ? 'rc-nav ct-nav' : 'rc-nav'}"), 'Recreate: cabeçalho novo só junto com as abas')
 }
 
-async function all(o = {}) { switchChecks(o); offChecks(o); onChecks(o); await priceChecks(o); mobileChecks(o); await headerChecks(o) }
+// ─── G. KINEO-TELA-NOVA-ACABAMENTO-1011 [fundador 10/11: "em More Options você vai para a tela antiga… acho que está errado"] ─────────
+// O passo Details abre AQUI: duração e formato (o que o resumo "60 s · 9:16" promete) mudam na própria moldura, sem navegar; o efeito no
+// pedido é o da main (provado em C com viaFrame). O Studio antigo só por um link discreto "Advanced studio" no rodapé do passo.
+async function detailsChecks(o) {
+  const passo = html => (html.match(/<section class="rc-step [^"]*"[^>]*aria-label="Details">[\s\S]*?<\/section>/) || [''])[0]
+  const t = await frameWith(o, { cookie: SESSION, credits: PAID })
+  const s = passo(t.html())
+  const summary = (s.match(/<summary>[\s\S]*?<\/summary>/) || [''])[0]
+  ok(s !== '' && /<small>60(?:<!-- -->)? s · (?:<!-- -->)?9:16/.test(summary) && !/<a /.test(summary), 'Details: o resumo "60 s · 9:16" abre o passo aqui (sem link no resumo)')
+  const simples = lf(read('components/studio/StudioSimples.tsx'))
+  ok(simples.includes('const DURACOES = [15, 35, 60, 90] as const') && simples.includes("const FORMATOS = ['9:16', '16:9', '1:1', '4:5'] as const") && [...s.matchAll(/data-studio-duration="(\d+)"/g)].map(x => +x[1]).join() === '15,35,60,90' && [...s.matchAll(/data-studio-format="([^"]+)"/g)].map(x => x[1]).join() === '9:16,16:9,1:1,4:5', 'Details: as durações e formatos que o Studio simples aceita (DURACOES/FORMATOS)')
+  const links = [...s.matchAll(/<a [^>]*>[\s\S]*?<\/a>/g)].map(x => x[0])
+  ok(links.length === 1 && /^<a href="\/studio\?avancado=1&amp;engine=seedance&amp;intent_campaign=create_film" data-kineo="studio-advanced">Advanced studio ↗<\/a>$/.test(links[0]), `Details: um só link para o Studio antigo, "Advanced studio" (${links.join(' | ')})`)
+  ok(/<p class="ct-advanced"><a [^>]*data-kineo="studio-advanced"[^>]*>Advanced studio ↗<\/a><\/p><\/div><\/details>/.test(s), 'Details: o link fica no rodapé do passo, depois dos ajustes')
+  ok(!/More options/.test(s) && !/data-kineo="studio-simple-more"/.test(t.html()), 'Details: "More options" não existe mais na moldura')
+  // Trocar duração e formato no passo: o resumo muda e nada navega.
+  t.click(p => p['data-studio-duration'] === 35, 'duração 35')
+  t.click(p => p['data-studio-format'] === '16:9', 'formato 16:9')
+  const s2 = passo(t.html())
+  ok(/<small>35(?:<!-- -->)? s · (?:<!-- -->)?16:9/.test(s2) && /aria-pressed="true" data-studio-duration="35"/.test(s2) && /aria-pressed="true" data-studio-format="16:9"/.test(s2) && t.log.pushes.length === 0, 'Details: duração e formato escolhidos ali mesmo; o resumo acompanha; nada navega')
+  // O link leva o texto escrito ao Studio antigo (o mesmo maisOpcoes do StudioSimples, nada inventado).
+  t.type(p => p.id === 'sm-idea', IDEA, 'ideia')
+  const href = (passo(t.html()).match(/href="([^"]+)" data-kineo="studio-advanced"/) || [])[1]?.replace(/&amp;/g, '&')
+  ok(href && new URL(href, 'https://x').pathname === '/studio' && new URL(href, 'https://x').searchParams.get('avancado') === '1' && new URL(href, 'https://x').searchParams.get('prompt') === IDEA, 'Advanced studio: o destino antigo, com o texto')
+  ok(lf(read('components/studio/StudioSimples.tsx')).includes("const q = new URLSearchParams({ avancado: '1', engine: motor, intent_campaign: campanha })"), 'Advanced studio = o maisOpcoes do StudioSimples (fonte única)')
+  const css = lf(o['components/create/create.css'] ?? read('components/create/create.css'))
+  ok(/\.create-shell \.ct-advanced\{[^}]*font-size:12px/.test(css) && /\.create-shell \.ct-advanced a\{[^}]*color:var\(--rc-muted\)/.test(css) && !css.includes('.ct-more'), 'Advanced studio: discreto (12 px, cor apagada)')
+}
+
+async function all(o = {}) { switchChecks(o); offChecks(o); onChecks(o); await priceChecks(o); mobileChecks(o); await headerChecks(o); await detailsChecks(o) }
 await all()
 const real = passed
 
@@ -304,6 +333,12 @@ const mutants = [
   ['StudioSimples desligado muda', { 'components/studio/StudioSimples.tsx': src('components/studio/StudioSimples.tsx').replace("<h1>What&apos;s your film about?</h1>", '<h1>Your film?</h1>') }],
   ['gera sozinho quando há texto', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('const temTexto = c.texto.trim().length > 0', 'const temTexto = c.texto.trim().length > 0; if (temTexto) c.gerar()') }],
   ['CSS com largura fixa', { 'components/create/create.css': src('components/create/create.css').replace('.create-shell .ct-sel{width:100%;', '.create-shell .ct-sel{width:520px;') }],
+  // KINEO-TELA-NOVA-ACABAMENTO-1011
+  ['Details apontando para /studio', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('<summary>{marker(2)}<span>Details</span>', '<summary>{marker(2)}<a href={c.maisOpcoes}>Details</a>') }],
+  ['"More options" de volta no passo', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('<p className="ct-advanced"><a href={c.maisOpcoes} data-kineo="studio-advanced">Advanced studio ↗</a></p>', '<a className="ct-more" href={c.maisOpcoes} data-kineo="studio-simple-more">More options ↗</a>') }],
+  ['Advanced studio some (motor premium sem caminho)', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('<p className="ct-advanced"><a href={c.maisOpcoes} data-kineo="studio-advanced">Advanced studio ↗</a></p>', '') }],
+  ['Details sem a duração', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('<div><span className="ct-lab">Length</span>', '<div hidden><span className="ct-lab">Length</span>').replace('{c.opcoesDuracao.map(d =>', '{[].map(d =>') }],
+  ['Advanced studio em destaque', { 'components/create/create.css': src('components/create/create.css').replace('.create-shell .ct-advanced a{color:var(--rc-muted);', '.create-shell .ct-advanced a{color:var(--rc-accent);') }],
 ]
 let bitten = 0
 for (const [name, o] of mutants) {

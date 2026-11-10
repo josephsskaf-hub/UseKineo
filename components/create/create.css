@@ -28,4 +28,36 @@
 .create-shell .ct-sel{width:100%;min-height:40px;border-radius:10px;border:1px solid var(--rc-line);background:var(--rc-input);color:var(--rc-body);font-size:13px;padding:0 10px}
 .create-shell .ct-details label.ct-check{display:flex;gap:10px;align-items:center;min-height:40px;margin:0;font-size:13px;color:var(--rc-body)}
 .create-shell .ct-check input{width:18px;height:18px;flex:none}
-.create-shell .ct-more{align-self:flex-start;font-size:13px;color:var(--rc-accent)}
+/* KINEO-TELA-NOVA-ACABAMENTO-1011 [fundador 10/11: "completar os quadros com vídeos… telas pretas na esquerda e na direita"] — três acabamentos.
+   Valem para a moldura (Film · Cartoon · Ads) E para o Recreate (create.css entra nele pela barra de abas). Nenhuma regra na grade da
+   biblioteca do Recreate (.rc-library-only), nos diálogos nem no resultado.
+   (3) "Advanced studio": o destino antigo, discreto, no rodapé do passo Details (o passo em si abre aqui dentro). */
+.create-shell .ct-advanced{margin:2px 0 0;padding-top:12px;border-top:1px solid var(--rc-border);font-size:12px;line-height:1.4}
+.create-shell .ct-advanced a{color:var(--rc-muted);text-decoration:underline;text-underline-offset:3px}
+.create-shell .ct-advanced a:hover{color:var(--rc-text)}
+/* (2) O QUADRO TEM A FORMA DO VÍDEO: o palco deixa de ser uma caixa preta larga; o player vira um quadro 9:16 com a altura do palco
+   (largura = altura × 9/16, nunca mais que o palco) e o resto é o fundo claro da moldura. Nada é cortado (o vídeo segue em contain). */
+.recreate .rc-stage{container:rc-palco/size;background:transparent;border:0;border-radius:0;overflow:visible}
+.recreate .rc-stage>.rc-player{width:min(100%,calc(100cqh * 9 / 16));height:100%;margin-inline:auto;border:1px solid var(--rc-border);border-radius:18px;overflow:hidden;container:rc-quadro/inline-size}
+.recreate .rc-stage>.rc-preview-tag{left:calc(50% - min(50%,100cqh * 9 / 32) + 12px)}
+.recreate .rc-stage>.rc-duration{right:calc(50% - min(50%,100cqh * 9 / 32) + 12px)}
+@container rc-quadro (max-width:230px){.recreate .rc-stage .rc-player-controls{gap:6px;padding:20px 8px 8px}.recreate .rc-stage .rc-player-controls button>span{display:none}}
+@media(max-width:640px){.recreate .rc-stage{height:min(420px,62svh)}}
+/* (1) FILEIRA CHEIA: os exemplos ao lado do palco viram UMA fileira de colunas iguais (2 a 8, pela largura da própria fileira, ~150 px
+   no mínimo cada), rolando de lado quando há mais exemplos que colunas. Com menos exemplos que colunas, as colunas encolhem para o
+   número de exemplos (:has): a linha nunca fica com buraco. Cada aba tem ≥ 8 exemplos (CREATE_EXAMPLES_MIN em lib/create/tabs.ts). */
+.recreate .rc-workspace:not(.rc-library-only) .rc-gallery{container:rc-fileira/inline-size}
+.recreate .rc-workspace:not(.rc-library-only) .rc-grid{--rc-n:min(var(--rc-cols,2),var(--rc-max,99));columns:auto;display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - (var(--rc-n) - 1) * 12px) / var(--rc-n));gap:12px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scrollbar-width:thin;scrollbar-color:var(--rc-line) transparent;padding-bottom:6px}
+.recreate .rc-workspace:not(.rc-library-only) .rc-grid>.rc-card{margin:0;aspect-ratio:9/14;scroll-snap-align:start}
+@container rc-fileira (min-width:474px){.recreate .rc-workspace:not(.rc-library-only) .rc-grid{--rc-cols:3}}
+@container rc-fileira (min-width:636px){.recreate .rc-workspace:not(.rc-library-only) .rc-grid{--rc-cols:4}}
+@container rc-fileira (min-width:798px){.recreate .rc-workspace:not(.rc-library-only) .rc-grid{--rc-cols:5}}
+@container rc-fileira (min-width:960px){.recreate .rc-workspace:not(.rc-library-only) .rc-grid{--rc-cols:6}}
+@container rc-fileira (min-width:1122px){.recreate .rc-workspace:not(.rc-library-only) .rc-grid{--rc-cols:7}}
+@container rc-fileira (min-width:1284px){.recreate .rc-workspace:not(.rc-library-only) .rc-grid{--rc-cols:8}}
+.recreate .rc-workspace:not(.rc-library-only) .rc-grid:not(:has(>:nth-child(8))){--rc-max:7}
+.recreate .rc-workspace:not(.rc-library-only) .rc-grid:not(:has(>:nth-child(7))){--rc-max:6}
+.recreate .rc-workspace:not(.rc-library-only) .rc-grid:not(:has(>:nth-child(6))){--rc-max:5}
+.recreate .rc-workspace:not(.rc-library-only) .rc-grid:not(:has(>:nth-child(5))){--rc-max:4}
+.recreate .rc-workspace:not(.rc-library-only) .rc-grid:not(:has(>:nth-child(4))){--rc-max:3}
+.recreate .rc-workspace:not(.rc-library-only) .rc-grid:not(:has(>:nth-child(3))){--rc-max:2}

@@ -33,7 +33,10 @@ export function PassosDoStudio({ c, preco }: { c: CaixaNaMoldura; preco: number 
         <div><span className="ct-lab">Format</span><div className="ct-opts">{c.formatos.map(f => <button key={f} type="button" className="ct-opt" aria-pressed={c.formato === f} data-studio-format={f} onClick={() => c.setFormato(f)}>{f}</button>)}</div></div>
         <div><label className="ct-lab" htmlFor="sm-lingua">Narration</label><select id="sm-lingua" className="ct-sel" value={c.lingua} onChange={e => c.setLingua(e.target.value)}><option value="auto">Same as my text</option>{NARRATION_LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.native}</option>)}</select></div>
         <label className="ct-check"><input type="checkbox" checked={c.palavraPorPalavra} onChange={e => c.setPalavraPorPalavra(e.target.checked)} />Narrate my text word for word</label>
-        <a className="ct-more" href={c.maisOpcoes} data-kineo="studio-simple-more">More options ↗</a>
+        {/* KINEO-TELA-NOVA-ACABAMENTO-1011 [fundador 10/11: "em More Options você vai para a tela antiga… acho que está errado"] — os ajustes
+            ficam AQUI (duração, formato, narração, palavra por palavra). O que só o Studio antigo tem (motor, logo, foto de quem estrela, modo
+            clipe, câmera) mexe em dinheiro e em promessa de plano: não some, vira um link discreto no rodapé do passo. */}
+        <p className="ct-advanced"><a href={c.maisOpcoes} data-kineo="studio-advanced">Advanced studio ↗</a></p>
       </div>
     </details></section>
     <section className={`rc-step rc-generate-area rc-step-${states[2]}`} data-step-state={states[2]} aria-labelledby="sm-step3">

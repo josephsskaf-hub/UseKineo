@@ -128,7 +128,8 @@ function shellChecks(o = {}) {
     ok((html.match(/class="rc-step /g) || []).length === 3 && html.includes('rc-step-number'), `${tab}: três passos numerados com o CSS do Recreate`)
     ok(html.includes('class="rc-player"') && html.includes('class="rc-grid"'), `${tab}: player próprio + grade`)
     const n = tabs.CREATE_EXAMPLES[tab].length
-    ok((html.match(/data-create-example=/g) || []).length === n && n >= 3, `${tab}: ${n} exemplos na grade`)
+    // KINEO-TELA-NOVA-ACABAMENTO-1011 — a fileira tem até 8 colunas: cada aba precisa de ≥ 8 exemplos para encher a linha mais larga.
+    ok((html.match(/data-create-example=/g) || []).length === n && tabs.CREATE_EXAMPLES_MIN === 8 && n >= tabs.CREATE_EXAMPLES_MIN, `${tab}: ${n} exemplos na fileira (mínimo ${tabs.CREATE_EXAMPLES_MIN})`)
     const button = html.match(/<button type="button" class="rc-generate"[^>]*>/)[0]
     if (tab === 'ads') ok(!button.includes('disabled') && html.includes('data-create-continue="/ads/new?utm_source=create_ads"'), 'ads: "Make your ad" leva a /ads/new')
     else {
@@ -152,7 +153,21 @@ function exampleChecks(o = {}) {
     ok(existsSync(join(ROOT, 'public', e.video)) && existsSync(join(ROOT, 'public', e.poster)), `${tab}/${e.id}: vídeo e pôster em disco`)
     ok(e.video.endsWith('.mp4') && /\.(webp|jpg)$/.test(e.poster), `${tab}/${e.id}: formatos`)
   }
-  ok(tabs.CREATE_EXAMPLES.ads.map(e => e.id).join() === clipes.CLIPES_NOVOS.filter(c => c.selo === 'Ad example').map(c => c.id).join() && tabs.CREATE_EXAMPLES.ads.length === 6, 'Ads: os 6 Ad example')
+  // KINEO-TELA-NOVA-ACABAMENTO-1011 — os 6 'Ad example' primeiro, depois os 3 anúncios de produto do card da home (arquivos que já estão no ar).
+  const adEx = clipes.CLIPES_NOVOS.filter(c => c.selo === 'Ad example').map(c => c.id)
+  ok(adEx.length === 6 && tabs.CREATE_EXAMPLES.ads.slice(0, 6).map(e => e.id).join() === adEx.join(), 'Ads: os 6 Ad example primeiro')
+  const homeCards = read('lib/ui/homeThreeCards.ts')
+  ok(tabs.CREATE_EXAMPLES.ads.slice(6).every(e => /^\/previews\/home-card-novo-[a-z_]+\.mp4$/.test(e.video) && homeCards.includes(`preview('${e.video.slice('/previews/'.length, -4)}'`)), 'Ads: o resto são clipes que giram nos cards da home')
+  for (const [tab, list] of Object.entries(tabs.CREATE_EXAMPLES)) {
+    ok(new Set(list.map(e => e.id)).size === list.length && new Set(list.map(e => e.video)).size === list.length, `${tab}: nenhum exemplo repetido`)
+    if (tab !== 'ads') ok(list.every(e => e.idea === e.title), `${tab}: a ideia do clique é o título do vídeo`)
+    // Só arquivos do catálogo da casa (nada novo): vitrine/galeria, seleção de 24/09, cards da home, card de Cartoon (Leo).
+    ok(list.every(e => /^\/previews\/(galeria\/|examples-hd-sep24\/|home-card-novo-|home-card-kids-cartoon-leo\.mp4$)/.test(e.video)), `${tab}: só arquivos do catálogo da casa`)
+  }
+  const fora = clipes.FORA_DE_ESTACAO.clipes.concat(['pumpkin', 'werewolf'])
+  ok(Object.values(tabs.CREATE_EXAMPLES).flat().every(e => !fora.some(f => e.video.includes(f))), 'nenhum exemplo fora de estação (Halloween)')
+  const sel = read('lib/ui/examplesSelectionSep24.ts')
+  ok(tabs.CREATE_EXAMPLES.film.filter(e => e.video.startsWith('/previews/examples-hd-sep24/')).every(e => sel.includes(`asset: '${e.id}'`) || sel.includes(`'${e.id}'`) || sel.includes(`${e.id}.mp4`)) && tabs.CREATE_EXAMPLES.film.filter(e => e.video.startsWith('/previews/examples-hd-sep24/')).every(e => sel.includes(e.title) || read('lib/publicExamples.ts').includes(`title: '${e.title}'`)),'Film: títulos e arquivos da seleção da casa')
   ok(tabs.CREATE_EXAMPLES.ads.every(e => e.idea === null), 'Ads: exemplo não preenche nada (só troca o vídeo)')
   ok(['filme-mary-celeste', 'filme-anticitera', 'filme-porta-do-inferno'].every(id => tabs.CREATE_EXAMPLES.film.some(e => e.id === id)), 'Film: os 3 Narrated film')
   ok(['dragaozinho', 'boneco-de-neve'].every(id => tabs.CREATE_EXAMPLES.cartoon.some(e => e.id === id)), 'Cartoon: dragão e boneco de neve')
@@ -213,11 +228,42 @@ function mobileChecks() {
   const css = read('app/recreate/recreate.css'), mine = read('components/create/create.css')
   ok(/@media\(max-width:640px\)\{[^\n]*\.rc-workspace\{display:flex;flex-direction:column;height:auto\}\.rc-reference\{order:0;[^\n]*\.rc-panel\{order:1;[^\n]*\.rc-gallery\{order:2;/.test(css), 'celular: exemplo, passos, grade (CSS do Recreate)')
   ok(/\.ct-tabs\{[^}]*overflow-x:auto/.test(mine) && /\.ct-tab\{[^}]*white-space:nowrap/.test(mine), 'abas roláveis na horizontal')
-  ok(!/(?<![-a-z])(min-)?width:\s*\d{3,}px/.test(mine), 'nenhuma largura fixa grande no CSS novo')
-  ok(!/\.rc-[a-z-]+\{/.test(mine.replace(/\.create-shell \.rc-[a-z-]+|\.rc-library-only \.ct-tabs/g, '')), 'o CSS novo não redefine classe rc-* fora da tela nova')
+  ok(!/(?<![-a-z])(min-)?width:\s*\d{3,}px/.test(mine.replace(CONTAINER_QUERY, '')), 'nenhuma largura fixa grande no CSS novo')
+  ok(!/\.rc-[a-z-]+\{/.test(mine.replace(/\.create-shell \.rc-[a-z-]+|\.rc-library-only \.ct-tabs/g, '').replace(ACABAMENTO_SELECTORS, '')), 'o CSS novo não redefine classe rc-* fora da tela nova (nem fora dos 3 acabamentos)')
 }
 
-function all(o = {}) { switchChecks(o); destinationChecks(o); shellChecks(o); exampleChecks(o); recreateChecks(o); eventChecks(); mobileChecks() }
+// ─── H. KINEO-TELA-NOVA-ACABAMENTO-1011 [fundador 10/11: "completar os quadros com vídeos… telas pretas na esquerda e na direita"] ──
+// (1) fileira cheia: grade de colunas iguais (2–8) numa linha, que encolhe para o número de exemplos; (2) quadro com a forma do vídeo,
+// sem caixa preta larga. Lido do CSS real (o render de servidor não mede pixel; a captura de tela fica no relatório da obra).
+const CONTAINER_QUERY = /@container [a-z-]+ \((?:min|max)-width:\d+px\)/g
+const ACABAMENTO_SELECTORS = /\.recreate \.rc-stage(?: \.rc-player-controls(?: button>span)?|>\.rc-(?:player|preview-tag|duration))?|\.recreate \.rc-workspace:not\(\.rc-library-only\) \.rc-(?:gallery|grid)(?::not\(:has\(>:nth-child\(\d\)\)\))?(?:>\.rc-card)?/g
+function acabamentoChecks(o = {}) {
+  const css = (o['components/create/create.css'] ?? read('components/create/create.css')).replace(/\r\n/g, '\n')
+  const rule = sel => { const i = css.indexOf(sel + '{'); return i < 0 ? '' : css.slice(i + sel.length + 1, css.indexOf('}', i)) }
+  const ROW = '.recreate .rc-workspace:not(.rc-library-only) .rc-grid'
+  const row = rule(ROW)
+  ok(/display:grid/.test(row) && /grid-auto-flow:column/.test(row) && /grid-auto-columns:calc\(\(100% - \(var\(--rc-n\) - 1\) \* 12px\) \/ var\(--rc-n\)\)/.test(row) && /columns:auto/.test(row), '(1) fileira: uma linha de colunas iguais (sem as colunas soltas que deixavam buraco)')
+  ok(/--rc-n:min\(var\(--rc-cols,2\),var\(--rc-max,99\)\)/.test(row) && /overflow-x:auto/.test(row), '(1) colunas = mín(largura, nº de exemplos); excedente rola de lado')
+  const cols = [...css.matchAll(/@container rc-fileira \(min-width:(\d+)px\)\{\.recreate \.rc-workspace:not\(\.rc-library-only\) \.rc-grid\{--rc-cols:(\d)\}\}/g)].map(x => [+x[1], +x[2]])
+  ok(cols.map(c => c[1]).join() === '3,4,5,6,7,8' && cols.every(([w, n]) => w === n * 150 + (n - 1) * 12), '(1) 3 a 8 colunas de ≥150 px pela largura da própria fileira')
+  for (let k = 2; k <= 7; k++) ok(css.includes(`${ROW}:not(:has(>:nth-child(${k + 1}))){--rc-max:${k}}`), `(1) com ${k} exemplos, ${k} colunas (sem buraco)`)
+  ok(rule('.recreate .rc-workspace:not(.rc-library-only) .rc-gallery').includes('container:rc-fileira/inline-size') && /aspect-ratio:9\/14/.test(rule(ROW + '>.rc-card')), '(1) a fileira mede a si mesma; cartões iguais')
+  ok(!css.includes('.rc-library-only .rc-grid'), '(1) a grade da biblioteca do Recreate fica como estava')
+  // Colunas × larguras do relatório (1280/1440/1920 e celular), com a conta do layout: painel 390 px (350 abaixo de 1050), respiro 30/20/16.
+  const colsAt = vw => { const gal = vw <= 640 ? vw - 32 : Math.min(vw, 1800) - (vw <= 1050 ? 350 + 40 : 390 + 60); return Math.max(2, ...cols.filter(([w]) => gal >= w).map(c => c[1])) }
+  const tabs = loader(stubs, o)('lib/create/tabs')
+  for (const vw of [375, 1280, 1440, 1920]) for (const tab of ['film', 'cartoon', 'ads']) ok(tabs.CREATE_EXAMPLES[tab].length >= colsAt(vw), `(1) ${vw} px: ${tab} enche as ${colsAt(vw)} colunas`)
+  // (2) O palco não é mais caixa preta: fundo transparente, o player tem a forma 9:16 e altura do palco; etiquetas acompanham o quadro.
+  const stage = rule('.recreate .rc-stage'), player = rule('.recreate .rc-stage>.rc-player')
+  ok(/background:transparent/.test(stage) && /border:0/.test(stage) && /container:rc-palco\/size/.test(stage) && !/#0[0-9a-f]{2,5}\b|black/i.test(stage), '(2) palco sem fundo preto')
+  ok(/width:min\(100%,calc\(100cqh \* 9 \/ 16\)\)/.test(player) && /height:100%/.test(player) && /margin-inline:auto/.test(player), '(2) quadro 9:16 com a altura do palco, centrado, nunca mais largo que o palco')
+  ok(/left:calc\(50% - min\(50%,100cqh \* 9 \/ 32\) \+ 12px\)/.test(rule('.recreate .rc-stage>.rc-preview-tag')) && /right:calc\(50% - min\(50%,100cqh \* 9 \/ 32\) \+ 12px\)/.test(rule('.recreate .rc-stage>.rc-duration')), '(2) etiquetas dentro do quadro')
+  ok(/@container rc-quadro \(max-width:230px\)\{[^\n]*button>span\{display:none\}/.test(css), '(2) quadro estreito: botões só com ícone (cabem)')
+  ok(/@media\(max-width:640px\)\{\.recreate \.rc-stage\{height:min\(420px,62svh\)\}\}/.test(css), '(2) celular: quadro vertical mais alto, sem faixa')
+  ok(!/object-fit:cover/.test(player + stage), '(2) nada é cortado: o vídeo segue em contain (recreate.css)')
+}
+
+function all(o = {}) { switchChecks(o); destinationChecks(o); shellChecks(o); exampleChecks(o); recreateChecks(o); eventChecks(); mobileChecks(); acabamentoChecks(o) }
 all()
 const real = passed
 
@@ -236,6 +282,17 @@ const mutants = [
   ['exemplo inexistente', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace("'/previews/examples-hd-sep24/plane-1942.mp4'", "'/previews/examples-hd-sep24/plane-1943.mp4'") }],
   ['Recreate sempre com abas', { 'app/recreate/RecreateClient.tsx': src('app/recreate/RecreateClient.tsx').replace("formatIds, createTabs = false }", 'formatIds, createTabs = true }') }],
   ['botão sempre habilitado', { 'components/create/CreateShell.tsx': src('components/create/CreateShell.tsx').replace('disabled={!ready}', 'disabled={false}') }],
+  // KINEO-TELA-NOVA-ACABAMENTO-1011
+  ['fileira com menos itens que o mínimo (Cartoon volta aos 3)', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace(/\n\s*cardDaHome\('(baby_puppy|knight_kitten|fox|penguin|skatedog)'[^\n]*/g, '') }],
+  ['fileira com menos itens que o mínimo (Film perde a seleção da casa)', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace(/\n\s*filmeDaCasa\([^\n]*/g, '') }],
+  ['mínimo rebaixado', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace('CREATE_EXAMPLES_MIN = 8', 'CREATE_EXAMPLES_MIN = 3') }],
+  ['exemplo repetido', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace("filmeDaCasa('castle', 'The castle hiding inside a university building')", "filmeDaCasa('volcano-selected', 'The volcano watcher')") }],
+  ['exemplo de Halloween de volta', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace("cardDaHome('skatedog', 'The skateboarding puppy')", "cardDaHome('pumpkin', 'The pumpkin')") }],
+  ['fileira volta às colunas soltas', { 'components/create/create.css': src('components/create/create.css').replace('columns:auto;display:grid;grid-auto-flow:column;', '') }],
+  ['fileira sem o teto pelo nº de exemplos', { 'components/create/create.css': src('components/create/create.css').replace(':not(:has(>:nth-child(4))){--rc-max:3}', ':not(:has(>:nth-child(4))){--rc-max:99}') }],
+  ['fileira com 9 colunas na tela larga', { 'components/create/create.css': src('components/create/create.css').replace('(min-width:1284px){.recreate .rc-workspace:not(.rc-library-only) .rc-grid{--rc-cols:8}}', '(min-width:1284px){.recreate .rc-workspace:not(.rc-library-only) .rc-grid{--rc-cols:9}}') }],
+  ['quadro preto de volta', { 'components/create/create.css': src('components/create/create.css').replace('.recreate .rc-stage{container:rc-palco/size;background:transparent;', '.recreate .rc-stage{container:rc-palco/size;background:#030509;') }],
+  ['quadro largo de volta (player com a largura do palco)', { 'components/create/create.css': src('components/create/create.css').replace('width:min(100%,calc(100cqh * 9 / 16));', 'width:100%;') }],
 ]
 let bitten = 0
 for (const [name, o] of mutants) {
