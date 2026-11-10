@@ -7875,6 +7875,7 @@ async function manipularPost(req: NextRequest) {
       [...bancoProvaCriticoFlux, ...(bancoProvaFolha?.relatos ?? [])], kling4ExtraStillApprovals)
     // Start each bounded shot with its actual visual; long style/identity boilerplate follows rather than hiding the action.
     const kling4Prompts = classicScenePrompts.map((p, i) => promptDaCenaKling4(p, styleAnchor, i)) // KINEO-QUALIDADE-TODOS-MOTORES-2910 — cast/action/style survive the final provider limit. · KINEO-CENA-PEDIDO-3010 — revisor 29/10: a moldura (abertura, 9:16, "characters act naturally") comia os 512 e a ação da fala sumia; sai antes do corte, e cada cena ganha um eixo de câmera
+    if (kling4TrialCandidate) for (let i = 0; i < kling4Prompts.length; i++) kling4Prompts[i] = promptDaCenaKling4(classicScenePrompts[i], styleAnchor, i, true) // KINEO-REPETICAO-FREE15-1011 — filme grátis: o clipe pede só o plano da imagem-chave; cena com plano próprio fica sem eixo (nunca o rodízio antigo nem "subject small"). Pago: a linha acima, byte a byte
     // Final scene speech, after short-film repairs; this is the same voice/language/speed ruler signed for compose.
     const kling4Timing = { voiceovers: scenes.map(s => s.voiceover ?? ''), wordsPerSecond: narrationRate.wordsPerSecond }
     // KINEO-K4-SUJEITO-0111 — revisor 01/11 (CENA_FORA_DO_PEDIDO): "o avião C-54 que sumiu" sem avião (2 homens de terno em 5 de 8 quadros), "criança com caneta 3D"

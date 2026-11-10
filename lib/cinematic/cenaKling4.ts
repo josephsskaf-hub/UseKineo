@@ -8,7 +8,6 @@
 // Kling 2.5, vizinhos sempre diferentes), curto, logo depois do meio — só se couber nos 512; senão a cena sai sem o eixo, nunca cortada.
 import { promptCurtoDoFilmeKling4 } from '@/lib/cinematic/filmQuality'
 import { kling25ShotAxis } from '@/lib/cinematic/klingShots'
-import { CAMERA_CLAUSE_RE } from '@/lib/cinematic/sceneDescriptions' // KINEO-REPETICAO-FREE15-1011
 import type { StyleAnchor } from '@/lib/cinematic/sceneStyle'
 import { fraseUnicaDeSuperficie } from '@/lib/cinematic/superficieSemTexto'
 
@@ -59,8 +58,8 @@ export function eixoCurtoKling4(index: number): string {
 // motion" da moldura, igual em todas. O rodízio de klingShots só entra no Kling 2.5, e o eixo curto acima só no texto do
 // clipe, depois da imagem-chave, e cai quando não cabe nos 512.
 // v2 (revisão adversária 10/11): o plano é decidido para o FILME, não por índice cego —
-//  (a) cena cujo texto JÁ diz plano/câmera (CAMERA_CLAUSE_RE de sceneDescriptions + medium/full/long/establishing) fica
-//      INTOCADA; (b) a última cena nunca recebe close nem "subject small": mostra o sujeito inteiro na ação final; nenhuma
+//  (a) cena cujo texto JÁ diz plano/câmera (PLANO_DA_CENA_RE: só construção de câmera; objeto não conta) fica
+//      INTOCADA; (b) a última cena nunca recebe close nem "subject small": mostra o momento final com o sujeito reconhecível; nenhuma
 //      cena recebe "subject small" (personagem nomeado viraria figura pequena); (c) nenhuma cena recebe plano da mesma família
 //      de um que o filme já tem. 3 cenas já com plano = nada muda. Prefixo depois da trava de estilo ("Film visual medium: …. "
 //      continua a 1ª coisa do prompt); nada é cortado nem normalizado. Guardião: scripts/test-repeticao-free15-1011.mjs.
@@ -69,39 +68,35 @@ const TRAVA_DO_ESTILO_1011 = /^Film visual medium: .+?\. /
 export const PLANOS_DO_FILME_GRATIS: ReadonlyArray<readonly [string, string]> = [
   ['medio', 'Medium shot, subject centered and clearly readable, slow push-in'],
   ['close', 'Close-up on a telling detail of the action, shallow depth of field, gentle rack focus'],
-  ['inteiro', 'Full shot showing the whole subject clearly in the final action, slow pull-back'],
+  ['final', 'Clear well-lit shot of the final moment with the subject fully recognizable, slow pull-back'],
   ['lateral', 'Tracking shot gliding alongside the subject, steady lateral travelling'],
   ['baixo', 'Low-angle shot looking up at the subject, slow upward tilt'],
   ['alto', 'High-angle shot looking down over the scene, slow descending crane move'],
 ]
 const FRASE: Record<string, string> = Object.fromEntries(PLANOS_DO_FILME_GRATIS)
-/** Preferência por posição: abertura médio; meio detalhe; fecho o sujeito inteiro na ação final (nunca close). */
+/** Preferência por posição: abertura médio; meio detalhe; fecho o momento final com o sujeito reconhecível (nunca close, nunca encolhe objeto pequeno). */
 const PREFERENCIA: Record<'abertura' | 'meio' | 'fecho', ReadonlyArray<string>> = {
-  abertura: ['medio', 'lateral', 'baixo', 'inteiro', 'alto'],
-  meio: ['close', 'medio', 'lateral', 'baixo', 'alto', 'inteiro'],
-  fecho: ['inteiro', 'medio', 'lateral', 'baixo'],
+  abertura: ['medio', 'lateral', 'baixo', 'final', 'alto'],
+  meio: ['close', 'medio', 'lateral', 'baixo', 'alto', 'final'],
+  fecho: ['final', 'medio', 'lateral', 'baixo'],
 }
-/** Moldura que TODA cena carrega e fala de câmera sem ser plano: sai antes do teste (senão toda cena "já teria plano"). */
-const MOLDURA_SEM_PLANO: ReadonlyArray<RegExp> = [
-  /Opening shot: show the described subject and action immediately in the first frame, clearly readable; no unrelated establishing landscape or slow fade-in\.\s*/gi,
-  /\bsmooth camera motion\b/gi,
-  /\b(?:looking directly into|addressing|address|at) the (?:camera|viewer)\b/gi,
-]
-const PLANO_EXTRA_RE = /\b(?:medium(?:[- ]close)?\s+shot|medium\s+close-up|full\s+shot|long\s+shot|wide\s+(?:angle|view|establishing)|wide-angle|establishing\s+shot|extreme\s+close-up|two-shot|point[- ]of[- ]view|pov|low\s+angle|high\s+angle|bird'?s[- ]eye\s+view)\b/i
+// v3: só conta construção de CÂMERA — "a cast-iron pan", "in orbit", "a Zoom call", "a delivery drone", "a crane bird", "an old camera"
+// são objetos, não plano (a cena ficaria sem plano). "seen from above", "overhead", "bird's-eye", "over the shoulder" contam.
+const PLANO_DA_CENA_RE = /\b(?:extreme\s+close-up|close-up|closeup|close\s+up|macro\s+shot|detail\s+shot|medium(?:[- ]close)?\s+shot|medium\s+close-up|full\s+shot|long\s+shot|wide\s+(?:shot|angle|view|establishing)|wide-angle|establishing\s+shot|aerial\s+(?:shot|view|footage)|drone\s+(?:shot|view|footage)|overhead|bird'?s[- ]eye|top-down|seen\s+from\s+above|from\s+above|over[- ]the[- ]shoulder|tracking\s+shot|dolly\s+(?:shot|in|out|zoom)|push-in|push\s+in|pull-back|pull\s+back|pan(?:ning)?\s+shot|crane\s+shot|orbiting\s+shot|slow\s+zoom|zooms?\s+(?:in|out)|camera\s+(?:pans|tilts|orbits|zooms|tracks|follows|moves|pushes|pulls|glides|circles|rises|descends|cranes|dollies)|low[- ]angle|high[- ]angle|point[- ]of[- ]view|pov\s+shot|two-shot|handheld\s+(?:shot|camera))\b/i
 const corpoDoPrompt = (texto: string) => { const trava = TRAVA_DO_ESTILO_1011.exec(texto)?.[0] ?? ''; return { trava, corpo: texto.slice(trava.length) } }
 /** A família do plano que o texto da cena JÁ pede (null = a cena não diz plano nem câmera). */
 export function planoQueACenaJaTem(prompt: string, style?: StyleAnchor | null): string | null {
   let t = corpoDoPrompt(String(prompt ?? '')).corpo
-  if (style?.suffix) t = t.split(style.suffix).join(' ')
-  for (const re of MOLDURA_SEM_PLANO) t = t.replace(re, ' ')
-  if (!CAMERA_CLAUSE_RE.test(t) && !PLANO_EXTRA_RE.test(t)) return null
-  if (/\b(?:close-up|closeup|close\s+up|macro|detail\s+shot)\b/i.test(t)) return 'close'
-  if (/\b(?:wide|establishing|aerial|drone|overhead|long\s+shot|bird'?s[- ]eye)\b/i.test(t)) return 'aberto'
-  if (/\bmedium\b/i.test(t)) return 'medio'
-  if (/\bfull\s+shot\b/i.test(t)) return 'inteiro'
-  if (/\blow[- ]angle\b/i.test(t)) return 'baixo'
-  if (/\b(?:high[- ]angle|top-down)\b/i.test(t)) return 'alto'
-  if (/\b(?:tracking|dolly)\b/i.test(t)) return 'lateral'
+  if (style?.suffix) t = t.split(style.suffix).join(' ') // o estilo do cliente ("aerial shots") vale para todas as cenas: não é plano de uma cena
+  const m = PLANO_DA_CENA_RE.exec(t)?.[0].toLowerCase()
+  if (!m) return null
+  if (/close|macro|detail/.test(m)) return 'close'
+  if (/wide|establishing|aerial|drone|long/.test(m)) return 'aberto'
+  if (/medium/.test(m)) return 'medio'
+  if (/full/.test(m)) return 'inteiro'
+  if (/low/.test(m)) return 'baixo'
+  if (/overhead|bird|top-down|above|high/.test(m)) return 'alto'
+  if (/tracking|dolly/.test(m)) return 'lateral'
   return 'camera'
 }
 const planoGratisDe = (corpo: string) => PLANOS_DO_FILME_GRATIS.find(([, f]) => corpo.startsWith(`${f}. `)) ?? null
@@ -136,17 +131,20 @@ export function eixoCurtoDoFilmeGratis(prompt: string): string | null {
 }
 
 /** O prompt final da cena do Kling 4: sem moldura, cortado pelo adaptador de sempre e com o eixo de câmera se couber. */
-export function promptDaCenaKling4(prompt: string, style: StyleAnchor, index: number): string {
-  return promptDaCenaKling4Com(promptCurtoDoFilmeKling4, prompt, style, index)
+export function promptDaCenaKling4(prompt: string, style: StyleAnchor, index: number, gratis = false): string {
+  return promptDaCenaKling4Com(promptCurtoDoFilmeKling4, prompt, style, index, gratis)
 }
 
 /** O mesmo, com o adaptador de corte injetado (os guardiões de texto rodam o adaptador antigo/mutante por aqui). */
-export function promptDaCenaKling4Com(compactar: (p: string, s: StyleAnchor) => string, prompt: string, style: StyleAnchor, index: number): string {
-  const eixoGratis = eixoCurtoDoFilmeGratis(prompt) // KINEO-REPETICAO-FREE15-1011 — o plano do vetor do grátis sai do corpo e vira o eixo curto do clipe: imagem-chave e clipe pedem o mesmo plano
-  prompt = semEixoDoFilmeGratis(prompt) // KINEO-REPETICAO-FREE15-1011
+export function promptDaCenaKling4Com(compactar: (p: string, s: StyleAnchor) => string, prompt: string, style: StyleAnchor, index: number, gratis = false): string {
+  // KINEO-REPETICAO-FREE15-1011 — filme grátis: o clipe pede SÓ o plano que a imagem-chave pediu (cena com plano próprio: nenhum
+  // eixo; o rodízio antigo nunca entra). Pago (gratis=false): byte a byte o de antes.
+  const eixoGratis = gratis ? eixoCurtoDoFilmeGratis(prompt) : null // KINEO-REPETICAO-FREE15-1011
+  if (gratis) prompt = semEixoDoFilmeGratis(prompt) // KINEO-REPETICAO-FREE15-1011
   const curto = compactar(semMolduraParaKling4(prompt, style), style)
   const medio = /^[^.]+\. /.exec(curto)?.[0] ?? ''
-  const comEixo = `${medio}${eixoGratis ?? eixoCurtoKling4(index)}. ${curto.slice(medio.length)}` // KINEO-REPETICAO-FREE15-1011 — sem plano do grátis: o eixo de sempre
+  const eixo = gratis ? eixoGratis : eixoCurtoKling4(index) // KINEO-REPETICAO-FREE15-1011
+  const comEixo = eixo ? `${medio}${eixo}. ${curto.slice(medio.length)}` : curto // KINEO-REPETICAO-FREE15-1011
   const base = Array.from(comEixo).length <= KLING4_ORCAMENTO_DA_CAMADA ? comEixo : curto
   // KINEO-CENA-PEDIDO-3010 — defeito 3: a superfície que costuma ganhar letra (lousa, tela, página, placa) vai descrita em positivo,
   // antes da cauda "Mouth closed", só se couber nos 512 (lib/cinematic/superficieSemTexto).

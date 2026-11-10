@@ -38,7 +38,7 @@ const MAPA = { // a2738d68 (BR, Kling 4 grátis, nota 6)
     `${LOCK}A scientist in a lab, looking at a large, dark ocean map spread out on a table, pointing at the unexplored areas with a look of astonishment.${MOLDURA_MAPA}${LETRA}, 9:16 vertical framing.${ERA}${PAGINA}`,
   ],
   acoes: ['finger traces lost continents', 'shadows of unknown creatures lurking', 'pointing at the unexplored areas'],
-  esperado: ['proprio', 'medio', 'inteiro'],
+  esperado: ['proprio', 'medio', 'final'],
 }
 const MOLDURA_NL = ', faceless cinematic b-roll, focus on the described subject and its environment, no foreground human faces, photorealistic, ultra-detailed, dramatic cinematic lighting, smooth camera motion, subject clearly framed with the lower third clear for captions, no watermark, no logo, no readable text, letters, numbers, labels or signage anywhere in the frame, same photorealistic look in every scene, one consistent color grade and lighting, same lens and film grain, epic, golden_hour, broadcast, consistent color grade across all scenes, 9:16 vertical framing'
 const FICHA_NL = 'a person in their thirties with short reddish hair, freckles and a small nose, wearing a white shirt with rolled sleeves and dark trousers'
@@ -50,7 +50,7 @@ const ESTUDO = { // 211b0857 (NL, Kling 4 grátis, nota 7, pediu alta energia)
     `${LOCK}A focused individual studying late at night, surrounded by books and notes, with a determined expression, symbolizing self-improvement and ambition.${MOLDURA_NL}`,
   ],
   acoes: ['city skyline bathed in golden sunlight', 'performing an intense workout', 'studying late at night'],
-  esperado: ['medio', 'proprio', 'inteiro'],
+  esperado: ['medio', 'proprio', 'final'],
 }
 // As 4 entradas da revisão adversária (achado 1) — cada uma já diz o plano e tem de sair INTOCADA.
 const cenaNL = (desc) => `${LOCK}${desc}${MOLDURA_NL}`
@@ -62,10 +62,18 @@ const ADVERSARIAS = [
 ]
 const TRES_COM_PLANO = [cenaNL('Medium shot of a baker kneading dough at dawn.'), cenaNL('Extreme close-up of flour falling through sunlight.'), cenaNL('Wide shot of the bakery opening its doors to the street.')]
 const TRES_SEM_PLANO = [cenaNL('A young woman laces her running shoes in a dark bedroom before dawn.'), cenaNL('The young woman runs up a steep city staircase, breath steaming in the cold air.'), cenaNL('The young woman reaches the top and raises her arms as the sun rises over the city.')]
+// revisão 2: cena 2 com plano próprio — o clipe não pode receber o rodízio antigo ("Wide establishing shot, subject small")
+const REVISAO2 = [cenaNL('A woman opens an old wooden mailbox at dusk.'), cenaNL('Extreme close-up of her trembling hands holding a letter.'), cenaNL('She sits on the porch steps reading the letter as the sun sets.')]
+// falsos positivos: objeto, não câmera — a cena tem de RECEBER plano
+const OBJETOS = ['A cook flipping pancakes in a cast-iron pan.', 'A satellite drifting in orbit above the blue planet.', 'A tired man on a Zoom call at his kitchen table.', 'A delivery drone carrying a parcel over the suburbs.', 'A white crane bird wading through the misty marsh.', 'A grandfather holding an old camera in his workshop.']
+// falsos negativos: construção de câmera — conta como plano próprio
+const CAMERAS = ['The city streets seen from above at night.', 'An overhead view of the chessboard mid-game.', "A bird's-eye view of the maze garden.", 'Over the shoulder of the pilot as the runway appears.', 'A tracking shot of the runner along the beach.']
+// desfecho em objeto pequeno: o plano final não pode encolher o objeto ("full shot")
+const ANEL = [cenaNL('A nervous man walks into a candlelit restaurant.'), cenaNL('He kneels beside the table as the room falls silent.'), cenaNL('A diamond ring glinting in an open velvet box.')]
 const SESSENTA =Array.from({ length: 12 }, (_, i) => `${LOCK}Scene ${i + 1}: a lighthouse keeper climbs the stairs, smooth camera motion, 9:16 vertical framing`)
 
-const PLANO_RE = /^(Medium shot|Close-up on a telling detail|Full shot showing the whole subject|Tracking shot gliding|Low-angle shot|High-angle shot)/
-const familia = (corpo) => ({ 'Medium shot': 'medio', 'Close-up on a telling detail': 'close', 'Full shot showing the whole subject': 'inteiro', 'Tracking shot gliding': 'lateral', 'Low-angle shot': 'baixo', 'High-angle shot': 'alto' })[PLANO_RE.exec(corpo)?.[1]] ?? null
+const PLANO_RE = /^(Medium shot|Close-up on a telling detail|Clear well-lit shot of the final moment|Tracking shot gliding|Low-angle shot|High-angle shot)/
+const familia = (corpo) => ({ 'Medium shot': 'medio', 'Close-up on a telling detail': 'close', 'Clear well-lit shot of the final moment': 'final', 'Tracking shot gliding': 'lateral', 'Low-angle shot': 'baixo', 'High-angle shot': 'alto' })[PLANO_RE.exec(corpo)?.[1]] ?? null
 
 // ── A bateria: devolve as falhas (vazia = verde). Recebe o módulo de produção (ou o mutante) e as linhas da rota (ou mutantes). ──
 const linhasDaRota = (rota) => {
@@ -75,17 +83,21 @@ const linhasDaRota = (rota) => {
     aplica: ache('KINEO-REPETICAO-FREE15-1011 [aval'),
     juizK4: ache('c.submittedPrompts = [classicScenePrompts'),
     juizReserva: ache('if (kling4TrialCandidate) c.submittedPrompts.splice'),
+    k4: ache('    const kling4Prompts = classicScenePrompts.map((p, i) => promptDaCenaKling4(p, styleAnchor, i))'),
+    k4Gratis: ache('if (kling4TrialCandidate) for (let i = 0; i < kling4Prompts.length; i++) kling4Prompts[i] = promptDaCenaKling4('),
   }
 }
 const rodaAplica = (linha, candidato, prompts, m, style) => {
   const ctx = { kling4TrialCandidate: candidato, classicScenePrompts: [...prompts], eixosDoFilmeGratis: m.eixosDoFilmeGratis, styleAnchor: style }
   vm.runInNewContext(linha.split(' // ')[0], ctx); return ctx.classicScenePrompts
 }
+const rodaK4 = (L, candidato, prompts, m, style) => { const ctx = { kling4TrialCandidate: candidato, classicScenePrompts: prompts, styleAnchor: style, promptDaCenaKling4: m.promptDaCenaKling4 }; vm.runInNewContext(`${L.k4.split(' // ')[0]}\n${L.k4Gratis.split(' // ')[0]}\nthis.r = kling4Prompts`, ctx); return ctx.r }
 const rodaJuizK4 = (linha, prompts, m) => { const ctx = { c: {}, classicScenePrompts: prompts, semEixoDoFilmeGratis: m.semEixoDoFilmeGratis }; vm.runInNewContext(linha.split(' // ')[0], ctx); return ctx.c.submittedPrompts[0] }
 const rodaJuizReserva = (linha, cinematic, m) => { const ctx = { c: { submittedPrompts: ['x'] }, sceneIndex: 0, kling4TrialCandidate: true, cinematic, semEixoDoFilmeGratis: m.semEixoDoFilmeGratis }; vm.runInNewContext(linha.split(' // ')[0], ctx); return ctx.c.submittedPrompts[0] }
 
 function bateria(m, rota, log = false) {
   const falhas = []
+  const gerados = []
   const f = (c, msg) => { if (!c) falhas.push(msg); if (log) ok(c, msg) }
   const L = linhasDaRota(rota)
   f(!!L.aplica && /^\s*if \(kling4TrialCandidate\) /.test(L.aplica), 'rota: a linha do plano só roda com kling4TrialCandidate')
@@ -112,14 +124,17 @@ function bateria(m, rota, log = false) {
     f(rodaAplica(L.aplica, true, depois, m, style).every((p, i) => p === depois[i]), `${filme.nome}: reaplicar não empilha plano`)
     // Kling 4: a cena intocada sai byte a byte; a cena com plano do grátis leva ESSE plano no texto do clipe (não o rodízio antigo)
     const k4Antes = antes.map((p, i) => m.promptDaCenaKling4(p, style, i))
-    const k4Depois = depois.map((p, i) => m.promptDaCenaKling4(p, style, i))
+    let k4Depois = depois.map(() => '')
+    try { k4Depois = rodaK4(L, true, depois, m, style) } catch { /* vermelho abaixo */ }
+    gerados.push(...depois, ...k4Depois)
     filme.esperado.forEach((esp, i) => {
-      if (esp === 'proprio') f(k4Depois[i] === k4Antes[i], `${filme.nome}: Kling 4 cena ${i + 1} (plano próprio) byte a byte igual`)
+      if (esp === 'proprio') f(!m.PLANOS_DO_FILME_GRATIS.some(([, fr]) => k4Depois[i].includes(fr.split(', ')[0])) && !k4Depois[i].includes(m.eixoCurtoKling4(i)), `${filme.nome}: Kling 4 cena ${i + 1} (plano próprio): o clipe não recebe plano nenhum`)
       else {
         const curto = m.eixoCurtoDoFilmeGratis(depois[i])
         const velho = m.eixoCurtoKling4(i)
         f(!!curto && k4Depois[i].split(curto).length <= 2 && (curto === velho || !k4Depois[i].includes(velho)), `${filme.nome}: Kling 4 cena ${i + 1}: o clipe nunca pede outro plano que não o da imagem-chave (no máximo uma vez)`)
         f(k4Depois[i].includes(curto) || !k4Antes[i].includes(velho), `${filme.nome}: Kling 4 cena ${i + 1}: onde o eixo antigo cabia, o plano da imagem-chave cabe`)
+        f(!k4Depois[i].includes(velho) || curto === velho, `${filme.nome}: Kling 4 cena ${i + 1}: o rodízio antigo nunca entra no grátis`)
       }
       f(Array.from(k4Depois[i]).length <= 512 && k4Depois[i].endsWith('Mouth closed, no speaking.'), `${filme.nome}: Kling 4 cena ${i + 1} ≤ 512 com a cauda intacta`)
     })
@@ -129,6 +144,27 @@ function bateria(m, rota, log = false) {
     f(jK4 === antes.join(' ').slice(0, 240), `${filme.nome}: juiz (Kling 4) grava os 240 chars de ANTES, sem o plano`)
     try { jRes = depois.map((p) => rodaJuizReserva(L.juizReserva, p, m)) } catch { jRes = [] }
     f(Array.isArray(jRes) && jRes.every((s, i) => s === antes[i].slice(0, 240)), `${filme.nome}: juiz (reserva Seedance) grava cada cena sem o plano`)
+  }
+  // revisão 2: cena 2 com plano próprio — vetor intocado e o clipe sem eixo nenhum (nunca "subject small")
+  {
+    const st = deriveStyleAnchor(REVISAO2.join(' '), ESTUDO.explicito)
+    let v = REVISAO2, k = ['', '', '']
+    try { v = rodaAplica(L.aplica, true, REVISAO2, m, st); k = rodaK4(L, true, v, m, st) } catch { /* vermelho */ }
+    gerados.push(...v, ...k)
+    f(v[1] === REVISAO2[1], 'revisão 2: cena 2 ("Extreme close-up of her trembling hands") intocada no vetor')
+    f(!/subject small|Wide establishing|Medium shot|Close-up on a telling|Clear well-lit/i.test(k[1]) && k[1].includes('Extreme close-up of her trembling hands'), 'revisão 2: o clipe da cena 2 não recebe plano nenhum (só o da própria cena)')
+    f(k.every((x, i) => i === 1 || x.includes(m.eixoCurtoDoFilmeGratis(v[i]) ?? '\u0000')), 'revisão 2: cenas 1 e 3 levam ao clipe o plano da imagem-chave')
+  }
+  // objetos que não são câmera → recebem plano; construção de câmera → plano próprio
+  for (const frase of OBJETOS) f(m.planoQueACenaJaTem(cenaNL(frase)) === null, `objeto não é plano: "${frase.slice(0, 40)}" recebe plano`)
+  f(m.planoQueACenaJaTem(`${cenaNL('A quiet street at dawn.')}, extreme close-up`, { suffix: ', extreme close-up' }) === null, 'estilo do cliente ("extreme close-up" em todas as cenas) não é plano da cena')
+  for (const frase of CAMERAS) f(m.planoQueACenaJaTem(cenaNL(frase)) !== null, `câmera conta como plano próprio: "${frase.slice(0, 40)}"`)
+  // desfecho em objeto pequeno: o plano final não diz "full shot" nem encolhe o anel
+  {
+    let v = []
+    try { v = rodaAplica(L.aplica, true, ANEL, m, deriveStyleAnchor(ANEL.join(' '), ESTUDO.explicito)) } catch { /* vermelho */ }
+    gerados.push(...v)
+    f(v.length === 3 && familia(v[2].slice(LOCK.length)) === 'final' && !/full shot|subject small|whole subject/i.test(v[2]), 'anel: a última cena pede o momento final reconhecível, sem "full shot"')
   }
   // achado 1: as 4 entradas adversárias e "3 cenas com plano = igual"
   for (const [nome, cenas, i] of ADVERSARIAS) {
@@ -141,10 +177,21 @@ function bateria(m, rota, log = false) {
   let sem = []
   try { sem = rodaAplica(L.aplica, true, TRES_SEM_PLANO, m, deriveStyleAnchor(TRES_SEM_PLANO.join(' '), ESTUDO.explicito)) } catch { /* vermelho */ }
   const famSem = sem.map((p) => familia(p.slice(LOCK.length)))
-  f(famSem.join('|') === 'medio|close|inteiro', `3 cenas sem plano → médio | detalhe | sujeito inteiro (${famSem.join(' | ')})`)
+  f(famSem.join('|') === 'medio|close|final', `3 cenas sem plano → médio | detalhe | momento final reconhecível (${famSem.join(' | ')})`)
   let tres = []
   try { tres = rodaAplica(L.aplica, true, TRES_COM_PLANO, m, deriveStyleAnchor(TRES_COM_PLANO.join(' '), ESTUDO.explicito)) } catch { /* vermelho */ }
   f(tres.length === 3 && tres.every((p, i) => p === TRES_COM_PLANO[i]), '3 cenas que já têm plano → saída = entrada')
+  // nenhum texto gerado para o grátis (imagem-chave ou clipe) diz "subject small"
+  const pequenos = gerados.filter((x) => /subject small/i.test(String(x))).length
+  f(gerados.length > 0 && pequenos === 0, `"subject small" em ${pequenos} de ${gerados.length} textos gerados para o grátis`)
+  if (log) console.log(`   (contagem de "subject small" nos textos do grátis: ${pequenos} de ${gerados.length})`)
+  // Kling 4 PAGO: a rota com candidato=false e o promptDaCenaKling4 sem a flag saem byte a byte iguais à origin/main
+  if (mainCena) for (const [nome, v] of [['mapa', MAPA.cenas], ['disciplina', ESTUDO.cenas], ['revisão 2', REVISAO2]]) {
+    const st = deriveStyleAnchor(v.join(' '), ESTUDO.explicito)
+    let pago = []
+    try { pago = rodaK4(L, false, v, m, st) } catch { /* vermelho */ }
+    f(pago.length === v.length && pago.every((x, i) => x === mainCena.promptDaCenaKling4(v[i], st, i)), `Kling 4 pago (${nome}): texto do clipe byte a byte o da origin/main`)
+  }
   // pagos / 60 s: candidato=false → vetor igual; e o texto do clipe pago (sem plano do grátis) igual ao de antes
   let sess = []
   try { sess = rodaAplica(L.aplica, false, SESSENTA, m, null) } catch { /* vermelho */ }
@@ -152,6 +199,13 @@ function bateria(m, rota, log = false) {
   f(SESSENTA.every((p) => m.semEixoDoFilmeGratis(p) === p), 'prompt sem plano do grátis passa intocado pelo inverso (Kling 4 pago)')
   return falhas
 }
+
+let mainCena = null
+try {
+  const tmpMain = 'lib/cinematic/.main-cenaKling4-1011.ts'
+  writeFileSync(tmpMain, execFileSync('git', ['show', `origin/main:${CENA}`], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }))
+  try { mainCena = await import(pathToFileURL(resolve(tmpMain)).href) } finally { unlinkSync(tmpMain) }
+} catch { console.log('  (sem origin/main: prova do pago pulada)') }
 
 // ── 1. o código de produção ──────────────────────────────────────────────────────────────────────────────────────────────────
 console.log('── produção ──')
@@ -177,13 +231,13 @@ let base = null
 try { base = execFileSync('git', ['show', `origin/main:${ROTA}`], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }) } catch { /* sem origin/main */ }
 if (base) {
   const { deltaRepeticaoFree151011Exato } = await import('./test-support/desfaz-repeticao-free15-1011.mjs')
-  for (const f of [ROTA, CENA, 'lib/cinematic/sceneDescriptions.ts']) ok(deltaRepeticaoFree151011Exato(readFileSync(f, 'utf8'), execFileSync('git', ['show', `origin/main:${f}`], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }), f), `recibo exato: ${f} = origin/main + só esta entrega`)
+  for (const f of [ROTA, CENA]) ok(deltaRepeticaoFree151011Exato(readFileSync(f, 'utf8'), execFileSync('git', ['show', `origin/main:${f}`], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }), f), `recibo exato: ${f} = origin/main + só esta entrega`)
 } else console.log('  (sem origin/main: recibo pulado)')
 
 // ── 3. mutantes: o arquivo de produção mutado em memória; a mesma bateria tem de ficar vermelha ────────────────────────────────
 console.log('\n── mutantes ──')
-const fonteCena = readFileSync(CENA, 'utf8')
-const muta = (texto, de, para, nome) => { if (texto.split(de).length !== 2) throw new Error(`mutante "${nome}": trecho de produção ausente/ambíguo`); return texto.replace(de, () => para) }
+const fonteCena = lf(readFileSync(CENA, 'utf8'))
+const muta = (texto0, de, para, nome) => { const texto = lf(texto0); de = lf(de); para = lf(para); if (texto.split(de).length !== 2) throw new Error(`mutante "${nome}": trecho de produção ausente/ambíguo`); return texto.replace(de, () => para) }
 let n = 0
 async function mutanteDaLib(nome, de, para) {
   const tmp = `lib/cinematic/.mutante-repeticao-1011-${++n}.ts`
@@ -198,18 +252,22 @@ function mutanteDaRota(nome, de, para) {
   const r = bateria(prod, muta(rotaReal, de, para, nome))
   ok(r.length > 0, `mutante "${nome}" fica vermelho (${r.length} falha(s): ${r[0] ?? '-'})`)
 }
-await mutanteDaLib('(a) cena com plano próprio também ganha prefixo', '    if (proprio[i]) return p\r\n', '    if (planoGratisDe(corpoDoPrompt(p).corpo)) return p\r\n')
+await mutanteDaLib('(a) cena com plano próprio também ganha prefixo', '    if (proprio[i]) return p\n', '    if (planoGratisDe(corpoDoPrompt(p).corpo)) return p\n')
 await mutanteDaLib('(b) a última cena perde a regra do fecho', 'n > 1 && i === n - 1 ? PREFERENCIA.fecho', 'n > 1 && i === n - 1 ? PREFERENCIA.meio')
 await mutanteDaLib('(b) volta o "subject small"', "['medio', 'Medium shot, subject centered and clearly readable, slow push-in'],", "['medio', 'Wide establishing shot, subject small against a vast environment, slow push-in'],")
 await mutanteDaLib('(c) sem desempate de família', 'const familia = lista.find((f) => !usadas.has(f)) ?? lista[0]', 'const familia = lista[0]')
-await mutanteDaLib('moldura conta como plano ("smooth camera motion")', '  /\\bsmooth camera motion\\b/gi,\r\n', '')
+await mutanteDaLib('estilo do cliente conta como plano', "  if (style?.suffix) t = t.split(style.suffix).join(' ')", '  if (false) t = t')
 await mutanteDaLib('corte por contagem de palavras', 'return `${trava}${FRASE[familia]}. ${corpo}`', "return `${trava}${FRASE[familia]}. ${corpo.split(' ').slice(0, 60).join(' ')}`")
 await mutanteDaLib('plano antes da trava de estilo', 'return `${trava}${FRASE[familia]}. ${corpo}`', 'return `${FRASE[familia]}. ${trava}${corpo}`')
-await mutanteDaLib('Kling 4 sem tirar o plano do vetor', '  prompt = semEixoDoFilmeGratis(prompt) // KINEO-REPETICAO-FREE15-1011\r\n', '')
-await mutanteDaLib('Kling 4 com o rodízio antigo no clipe', '${eixoGratis ?? eixoCurtoKling4(index)}', '${eixoCurtoKling4(index)}')
+await mutanteDaLib('Kling 4 sem tirar o plano do vetor', '  if (gratis) prompt = semEixoDoFilmeGratis(prompt) // KINEO-REPETICAO-FREE15-1011\n', '')
+await mutanteDaLib('recoloca o eixo antigo no clipe do grátis', 'const eixo = gratis ? eixoGratis : eixoCurtoKling4(index)', 'const eixo = gratis ? (eixoGratis ?? eixoCurtoKling4(index)) : eixoCurtoKling4(index)')
+await mutanteDaLib('pago perde o eixo de sempre', 'const eixo = gratis ? eixoGratis : eixoCurtoKling4(index)', 'const eixo = eixoGratis')
+await mutanteDaLib('regex conta objeto como câmera (pan/orbit/zoom/drone/crane/camera)', 'pan(?:ning)?\\s+shot|', 'pan|orbit|zoom|drone|crane|camera|pan(?:ning)?\\s+shot|')
+await mutanteDaLib('plano final volta a ser "full shot"', "['final', 'Clear well-lit shot of the final moment with the subject fully recognizable, slow pull-back'],", "['final', 'Full shot showing the whole subject clearly in the final action, slow pull-back'],")
 mutanteDaRota('rota sem a linha do plano', linhasDaRota(rotaReal).aplica, '    if (kling4TrialCandidate) {}')
 mutanteDaRota('rota aplica em todo filme (60 s/pago)', 'if (kling4TrialCandidate) classicScenePrompts.splice', 'if (true) classicScenePrompts.splice')
 mutanteDaRota('juiz do Kling 4 lê com o plano', 'classicScenePrompts.map(semEixoDoFilmeGratis).join', 'classicScenePrompts.join')
+mutanteDaRota('rota sem a linha do clipe do grátis', linhasDaRota(rotaReal).k4Gratis, '    if (kling4TrialCandidate) {}')
 mutanteDaRota('juiz da reserva lê com o plano', 'semEixoDoFilmeGratis(cinematic).slice(0, 240)', 'cinematic.slice(0, 240)')
 
 ok(falhasProd.length === 0, `produção: bateria inteira verde (${falhasProd.length} falha(s))`)
