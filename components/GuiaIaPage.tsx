@@ -4,6 +4,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
+import GuideEngagementTracker from '@/components/GuideEngagementTracker'
 import { CITATION_ANSWER_CSS } from '@/lib/ui/citationAnswerStyles'
 import { GUIAS_IA_BASE, GUIAS_IA_REVIEWED_ISO, GUIAS_IA_PRICES_CHECKED_LABEL, guiaIaPath } from '@/lib/seo/guiasIa1610Paths'
 import { guiaIaCtaHref, type GuiaIa } from '@/lib/growth/guiasIa1610'
@@ -27,6 +28,7 @@ export default function GuiaIaPage({ guide }: { guide: GuiaIa }) {
   }
   return (
     <main className="kc-answer" data-guia-ia="KINEO-GUIAS-IA-1610">
+      <GuideEngagementTracker path={guiaIaPath(guide.slug)} />
       <style dangerouslySetInnerHTML={{ __html: CITATION_ANSWER_CSS }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faq).replace(/</g, '\\u003c') }} />
       <div className="kc-wrap">
