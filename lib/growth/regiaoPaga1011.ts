@@ -16,7 +16,7 @@
 /** Interruptor próprio. 'off' = ninguém · 'internal' = só a allowlist exata da casa (lib/recreate/access.ts →
  *  releaseVisible) · 'public' = toda conta elegível à prévia. Nasce 'internal'. */
 export type RegiaoPagaRelease = 'off' | 'internal' | 'public'
-export const REGIAO_PAGA_1011_RELEASE: RegiaoPagaRelease = 'internal'
+export const REGIAO_PAGA_1011_RELEASE: RegiaoPagaRelease = 'public' // KINEO-REGIAO-PAGA-ABRE-1011 — conferido logado pela casa em 10/11 18:56; voltar a 'internal' ou 'off' desfaz
 
 /** O `from` que a prévia já põe no link dos planos (ScenePreviewClient → `/pricing?from=scene_preview`). */
 export const REGIAO_PAGA_FROM = 'scene_preview'

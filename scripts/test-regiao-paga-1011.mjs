@@ -64,7 +64,7 @@ function suite(s) {
   try { L = load(s.lib) } catch (e) { t(false, 'lib carrega: ' + e.message); return out }
 
   // (1) interruptor
-  t(L.REGIAO_PAGA_1011_RELEASE === 'internal', "nasce 'internal'")
+  t(L.REGIAO_PAGA_1011_RELEASE === 'public', "aberto em 10/11 (KINEO-REGIAO-PAGA-ABRE-1011)")
   t(L.regiaoPagaStripMount('scene_preview', 'off') === false && L.regiaoPagaStripMount(['scene_preview'], 'off') === false, "'off' = a faixa não monta no /pricing")
   t(L.regiaoPagaStripMount('scene_preview', 'internal') === true && L.regiaoPagaStripMount('scene_preview', 'public') === true, 'ligado + from=scene_preview = monta')
   t(L.regiaoPagaStripMount(undefined, 'public') === false && L.regiaoPagaStripMount('menu', 'public') === false, 'outro from = a página de sempre')
@@ -87,6 +87,7 @@ function suite(s) {
   for (const r of RELEASES) t(L.regiaoPagaMode({ release: r, house: false, eligible: false, previaPublic: true }) === 'hide', `país com filme grátis (fora da casa) não vê nada com '${r}'`)
   t(s.layout === main('app/(dashboard)/layout.tsx'), 'layout idêntico à main: o aviso continua montado pela MESMA régua (regionPaidOnlyNoticeVisible)')
   t(L.REGIAO_PAGA_BANNER_PREVIEW_FIRST === (L.REGIAO_PAGA_1011_RELEASE === 'public'), "aviso invertido só com 'public' (a casa não é conta de região)")
+  t(s.lib.includes('regiaoPagaSwitchOpen(REGIAO_PAGA_1011_RELEASE, false)'), "aviso invertido nunca abre pela casa (com 'internal' ninguém vê) — KINEO-REGIAO-PAGA-ABRE-1011")
   t(s.banner.includes('return <RegionPaidOnlyStrip freeClip={gift} previewFirst={REGIAO_PAGA_BANNER_PREVIEW_FIRST} />') && s.banner.split('previewFirst={').length === 2, 'só a faixa dos planos de sempre recebe a inversão')
 
   // (3) caminho de conferência da casa
@@ -159,7 +160,7 @@ for (const [c, m] of suite(SRC)) ok(c, m)
 console.log('mutantes (cada um precisa derrubar ≥1 verificação)')
 const M = (file, a, b) => ({ file, a, b })
 const MUT = [
-  ['nasce público', M('lib', "REGIAO_PAGA_1011_RELEASE: RegiaoPagaRelease = 'internal'", "REGIAO_PAGA_1011_RELEASE: RegiaoPagaRelease = 'public'")],
+  ['fecha sem querer', M('lib', "REGIAO_PAGA_1011_RELEASE: RegiaoPagaRelease = 'public'", "REGIAO_PAGA_1011_RELEASE: RegiaoPagaRelease = 'off'")],
   ["'off' ignorado no /pricing", M('lib', "if (release === 'off') return false", '')],
   ['qualquer from monta', M('lib', 'return f === REGIAO_PAGA_FROM', 'return true')],
   ['cliente vira casa no public', M('lib', 'if (a.house === true) return \'qa\'', "if (a.house === true || a.release === 'public') return 'qa'")],
