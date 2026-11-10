@@ -26,6 +26,8 @@ const ok = (cond, msg) => { assert(cond, msg); passed++ }
 const lf = s => s.replace(/\r\n/g, '\n')
 const MAIN = { 'components/studio/StudioSimples.tsx': baseSrc('components/studio/StudioSimples.tsx'), 'components/create/CreateShell.tsx': baseSrc('components/create/CreateShell.tsx') }
 const isGen = p => p['data-testid'] === 'studio-simple-generate'
+const semCabecalho = html => html.replace(/<header class="rc-nav[^"]*">[\s\S]*?<\/header>/, '<header/>') // KINEO-TELA-NOVA-CABECALHO-1011
+const BADGE_FETCH = ['/api/credits', 'GET'] // a leitura de saldo do cabeçalho (NavCreditsBadge), a mesma de toda tela do app
 
 // ─── A. Interruptor ────────────────────────────────────────────────────────────────────────────────────────────────────
 const forced = (o, v) => ({ ...o, 'lib/create/release.ts': (o['lib/create/release.ts'] ?? read('lib/create/release.ts')).replace(/CREATE_FILM_INPLACE: InternalRelease = '[a-z]+'/, `CREATE_FILM_INPLACE: InternalRelease = '${v}'`) })
@@ -62,7 +64,7 @@ function offChecks(o) {
     ok(ssr(o, 'components/studio/StudioSimples', props) === ssr({ ...o, ...MAIN }, 'components/studio/StudioSimples', props), `StudioSimples sem moldura ${props.motor}/${props.campanha}: HTML = ${BASE}`)
   }
   for (const tab of ['film', 'cartoon', 'ads']) for (const showRecreate of [true, false]) {
-    ok(ssr(o, 'components/create/CreateShell', { tab, showRecreate }) === ssr({ ...o, 'components/create/CreateShell.tsx': MAIN['components/create/CreateShell.tsx'] }, 'components/create/CreateShell', { tab, showRecreate }), `CreateShell ${tab} (Recreate ${showRecreate}): HTML = ${BASE}`)
+    ok(semCabecalho(ssr(o, 'components/create/CreateShell', { tab, showRecreate })) === semCabecalho(ssr({ ...o, 'components/create/CreateShell.tsx': MAIN['components/create/CreateShell.tsx'] }, 'components/create/CreateShell', { tab, showRecreate })), `CreateShell ${tab} (Recreate ${showRecreate}): HTML = ${BASE} fora o cabeçalho`)
   }
   // Comportamento sem moldura: o mesmo pedido e os mesmos eventos da main pelo caminho de hoje.
   ok(JSON.stringify(viaMain(o, {})) === JSON.stringify(viaMain({ ...o, ...MAIN }, {})), 'StudioSimples sem moldura: pedido + eventos = main')
@@ -110,7 +112,7 @@ function onChecks(o) {
     ok(a.pushes.length === 1 && JSON.stringify(b.pushes) === JSON.stringify(a.pushes), `${tag}: mesma rota e mesma query (${b.pushes[0]})`)
     ok(new URL(b.pushes[0], 'https://x').pathname === '/studio/create', `${tag}: o Generate vai à casa de máquinas de sempre`)
     ok(JSON.stringify(b.storage) === JSON.stringify(a.storage), `${tag}: o mesmo kineo:studio:go:v1`)
-    ok(JSON.stringify(b.fetches) === JSON.stringify(a.fetches), `${tag}: as mesmas chamadas de rede (nenhuma a mais)`)
+    ok(JSON.stringify(b.fetches) === JSON.stringify([...a.fetches, BADGE_FETCH]), `${tag}: as mesmas chamadas de rede + só a leitura de saldo do cabeçalho`)
     // Eventos do Generate: campo a campo; a ÚNICA diferença permitida é page_idea_kept (a ideia não veio de outra página).
     const ga = only(a.events, GEN), gb = only(b.events, GEN)
     const strip = evs => evs.map(([n, meta]) => [n, { ...meta, page_idea_kept: undefined }])
@@ -182,12 +184,12 @@ async function priceChecks(o) {
     const t = await frameWith(o, { cookie: SESSION, credits: PAID }, t => { if (d !== 60) t.click(p => p['data-studio-duration'] === d, 'duração') })
     const html = t.html(), b = button(html), n = cost.creditCostForDuration('cinematic_ai', true, d)
     ok(b.includes(`Generate<span>✦ ${n}</span>`), `${d} s pagante: "Generate ✦ ${n}" no botão`)
-    const rest = html.replace(b, '')
+    const rest = semCabecalho(html).replace(b, '')
     const text = visibleText(rest) + ' ' + [...rest.matchAll(/(?:aria-label|placeholder|title|alt)="([^"]*)"/g)].map(x => x[1]).join(' ')
     ok(!PRICE.test(text), `${d} s: preço/crédito em nenhum outro lugar (${(text.match(PRICE) || [])[0]})`)
     ok(!ENGINE_NAMES.test(text + visibleText(b)), `${d} s: nenhum nome de motor (${((text + visibleText(b)).match(ENGINE_NAMES) || [])[0]})`)
     ok(/disabled=""/.test(b) && html.includes('Write your idea to continue.'), `${d} s: Generate desabilitado sem ideia, com o motivo`)
-    ok(t.log.pushes.length === 0 && JSON.stringify(t.log.fetches) === JSON.stringify([['/api/credits', 'GET']]) && !/autofocus/i.test(html), `${d} s: nada começa sozinho (só a leitura de saldo de sempre, sem navegação, sem autofoco)`)
+    ok(t.log.pushes.length === 0 && JSON.stringify(t.log.fetches) === JSON.stringify([['/api/credits', 'GET'], BADGE_FETCH]) && !/autofocus/i.test(html), `${d} s: nada começa sozinho (só a leitura de saldo de sempre, sem navegação, sem autofoco)`)
     ok((html.match(/data-create-tab=/g) || []).length === 4 && html.includes('aria-current="page" data-create-tab="film"'), `${d} s: abas no topo, Film ativa`)
     ok((html.match(/class="rc-step /g) || []).length === 3 && html.includes('<details class="rc-adjustments">') && !html.includes('<details class="rc-adjustments" open'), `${d} s: 3 passos; Details recolhido`)
     ok(html.includes('class="rc-player"') && (html.match(/data-create-example=/g) || []).length >= 3, `${d} s: exemplo grande + Film examples`)
@@ -197,7 +199,7 @@ async function priceChecks(o) {
   for (const [nome, opts] of [['teste grátis', { cookie: SESSION, credits: TRIAL }], ['conta free', { cookie: SESSION, credits: FREE }], ['leitura falhou', { cookie: SESSION, credits: null }], ['sem cookie de sessão', { credits: PAID }]]) {
     const t = await frameWith(o, opts)
     const html = t.html()
-    ok(/<button type="button" class="rc-generate"[^>]*>Generate<\/button>/.test(html) && !PRICE.test(visibleText(html)), `${nome}: botão "Generate" sem número, nenhum preço na tela`)
+    ok(/<button type="button" class="rc-generate"[^>]*>Generate<\/button>/.test(html) && !PRICE.test(visibleText(semCabecalho(html))), `${nome}: botão "Generate" sem número, nenhum preço na tela`)
     const linha = html.includes('data-testid="studio-free-film-line"')
     ok(linha === (nome === 'teste grátis') && (!linha || html.includes(`>${aba(o).m('lib/growth/filmeGratisNaCaixa').LINHA_DO_FILME_GRATIS}<`)), `${nome}: linha do filme grátis só com prova, com o MESMO texto do Studio`)
   }
@@ -219,12 +221,56 @@ function mobileChecks(o) {
   ok(novo.length > 100 && !/(?<![-a-z])(min-)?width:\s*\d{3,}px/.test(novo) && novo.split('\n').slice(1).filter(Boolean).every(l => l.startsWith('.create-shell ')), 'CSS novo: só .create-shell, nenhuma largura fixa')
 }
 
-async function all(o = {}) { switchChecks(o); offChecks(o); onChecks(o); await priceChecks(o); mobileChecks(o) }
+// ─── F. Cabeçalho (KINEO-TELA-NOVA-CABECALHO-1011): saldo da fonte real · Pricing · My videos, em todas as abas e no Recreate ──────────
+async function headerChecks(o) {
+  const nav = html => (html.match(/<header class="rc-nav ct-nav">[\s\S]*?<\/header>/) || [''])[0]
+  const screens = [
+    ['Film (Studio na moldura)', t => React.createElement(t.m('components/create/StudioNaMoldura').default, { showRecreate: true, motor: 'seedance', campanha: 'create_film' })],
+    ...['film', 'cartoon', 'ads'].map(tab => [`CreateShell ${tab}`, t => React.createElement(t.m('components/create/CreateShell').default, { tab })]),
+    ['Recreate com abas', t => React.createElement(t.m('app/recreate/RecreateClient').default, { initialId: 'elevador', createTabs: true })],
+  ]
+  for (const [nome, el] of screens) {
+    for (const saldo of [0, 7, 1234]) {
+      const t = aba(o, { cookie: SESSION, credits: { ...PAID, credits: saldo } })
+      t.mount(el(t)); await t.settle()
+      const h = nav(t.html()), txt = visibleText(h).replace(/\s+/g, ' ')
+      ok(h !== '' && new RegExp(`> ?${saldo} credits?<`).test(h.replace(/<!-- -->/g, '')) && t.log.fetches.some(f => f[0] === '/api/credits'), `${nome}: saldo ${saldo} = o campo credits de GET /api/credits`)
+      ok(/<a [^>]*data-create-nav="pricing"[^>]*href="\/pricing"[^>]*>Pricing</.test(h) && /<a [^>]*href="\/clips"[^>]*>My videos ↗</.test(h), `${nome}: Pricing → /pricing e My videos → /clips`)
+      ok(!/(\d+\s?%|\boff\b|hurry|ends in|last chance|\d{1,2}:\d{2}|countdown|deal|sale|free)/i.test(txt), `${nome}: sem promoção nem relógio no cabeçalho (${txt})`)
+    }
+    const falhou = aba(o, { cookie: SESSION, credits: null })
+    falhou.mount(el(falhou)); await falhou.settle()
+    ok(!/credits?</.test(nav(falhou.html())) && nav(falhou.html()).includes('>Pricing<'), `${nome}: leitura que falhou = sem saldo (nunca "0" inventado), Pricing segue`)
+  }
+  // O badge é o espelho do cabeçalho do dashboard: mesma rota, mesmo campo, evento creditsChanged e realtime de profiles.
+  const badge = lf(read('components/NavCreditsBadge.tsx'))
+  ok(badge.includes("fetch('/api/credits'") && badge.includes("typeof data.credits === 'number'") && badge.includes("'creditsChanged'") && badge.includes("table: 'profiles'"), 'saldo = GET /api/credits + creditsChanged + realtime (a fonte do TopBar)')
+  ok(lf(read('components/TopBar.tsx')).includes("fetch('/api/credits'"), 'o TopBar do dashboard lê a MESMA rota')
+  const conta = lf(o['components/create/CreateNavConta.tsx'] ?? read('components/create/CreateNavConta.tsx'))
+  ok(!/\b\d+\s*credits?\b/i.test(conta) && conta.includes('<NavCreditsBadge />'), 'nenhum número de saldo fixo no código do cabeçalho')
+  const menu = lf(read('components/MobileNav.tsx'))
+  ok(menu.includes("href: '/pricing'") && aba(o).m('components/create/CreateNavConta').CREATE_NAV_PRICING_HREF === '/pricing', 'Pricing = o destino que o menu já usa')
+  // Celular: cabeçalho numa linha (sem quebra), sem largura fixa; marca vira só o ícone e "Create" some (as abas estão logo abaixo).
+  const css = lf(o['components/create/create.css'] ?? read('components/create/create.css'))
+  const bloco = css.slice(css.indexOf('KINEO-TELA-NOVA-CABECALHO-1011'), css.indexOf('/* KINEO-STUDIO-NA-MOLDURA-1011'))
+  ok(/\.ct-nav \.ct-nav-account\{[^}]*white-space:nowrap/.test(bloco) && /\.ct-nav \.ct-nav-account\{[^}]*min-width:0/.test(bloco) && /@media\(max-width:480px\)\{[^\n]*\.ct-nav \.rc-brand span\{display:none\}/.test(bloco) && !/(?<![-a-z])(min-)?width:\s*\d{3,}px/.test(bloco), 'celular: uma linha, sem largura fixa')
+  // Recreate sem abas: cabeçalho de antes (byte a byte já provado por scripts/test-tela-nova-1011.mjs).
+  const rc = lf(read('app/recreate/RecreateClient.tsx'))
+  ok(rc.includes("{createTabs ? <CreateNavConta /> : <Link href=\"/clips\">My videos ↗</Link>}") && rc.includes("className={createTabs ? 'rc-nav ct-nav' : 'rc-nav'}"), 'Recreate: cabeçalho novo só junto com as abas')
+}
+
+async function all(o = {}) { switchChecks(o); offChecks(o); onChecks(o); await priceChecks(o); mobileChecks(o); await headerChecks(o) }
 await all()
 const real = passed
 
 const src = p => read(p)
 const mutants = [
+  ['saldo fixo no cabeçalho', { 'components/create/CreateNavConta.tsx': src('components/create/CreateNavConta.tsx').replace('<NavCreditsBadge />', '<span>400 credits</span>') }],
+  ['Pricing aponta para outro lugar', { 'components/create/CreateNavConta.tsx': src('components/create/CreateNavConta.tsx').replace("CREATE_NAV_PRICING_HREF = '/pricing'", "CREATE_NAV_PRICING_HREF = '/pricing?promo=1'") }],
+  ['Recreate sem o cabeçalho novo', { 'app/recreate/RecreateClient.tsx': src('app/recreate/RecreateClient.tsx').replace('{createTabs ? <CreateNavConta /> :', '{false ? <CreateNavConta /> :') }],
+  ['abas sem o cabeçalho novo', { 'components/create/CreateShell.tsx': src('components/create/CreateShell.tsx').replace('<CreateNavConta />', '<Link href="/clips">My videos ↗</Link>') }],
+  ['cabeçalho com promoção', { 'components/create/CreateNavConta.tsx': src('components/create/CreateNavConta.tsx').replace('>Pricing</Link>', '>Pricing · 50% off</Link>') }],
+  ['cabeçalho quebra no celular', { 'components/create/create.css': src('components/create/create.css').replace('min-width:0;white-space:nowrap}', 'min-width:0}') }],
   ['interruptor de volta a internal', { 'lib/create/release.ts': src('lib/create/release.ts').replace("CREATE_FILM_INPLACE: InternalRelease = 'public'", "CREATE_FILM_INPLACE: InternalRelease = 'internal'") }],
   ['interruptor desligado', { 'lib/create/release.ts': src('lib/create/release.ts').replace("CREATE_FILM_INPLACE: InternalRelease = 'public'", "CREATE_FILM_INPLACE: InternalRelease = 'off'") }],
   ['número para quem não paga', { 'lib/create/filmNaMoldura.ts': src('lib/create/filmNaMoldura.ts').replace('if (!f.contaPaga || f.palavraPorPalavra', 'if (f.palavraPorPalavra') }],

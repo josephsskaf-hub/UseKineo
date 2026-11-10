@@ -9,6 +9,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { KineoBrandIcon } from '@/components/KineoBolt'
 import RecreatePlayer from '@/app/recreate/RecreatePlayer'
 import CreateTabs from './CreateTabs'
+import CreateNavConta from './CreateNavConta' // KINEO-TELA-NOVA-CABECALHO-1011
 import { trackClosedEvent } from '@/lib/analytics'
 import { guardarRascunhoDoDesenho } from '@/lib/ads/rascunhoDoVisitante'
 import { CARTOON_IDEA_MAX_CHARS, CREATE_COPY, CREATE_EVENTS, CREATE_EXAMPLES, FILM_IDEA_MAX_CHARS, adsContinueHref, cartoonContinueHref, cartoonDraft, continueBlocker, filmContinueHref, type CreateExample, type CreateTab } from '@/lib/create/tabs'
@@ -64,7 +65,7 @@ export default function CreateShell({ tab, signedIn = true, showRecreate = true,
   const marker = (n: number) => <span className="rc-step-number" aria-hidden="true">{states[n - 1] === 'done' ? '✓' : n}</span>
 
   return <main className="recreate create-shell" data-create-shell={tab}>
-    <header className="rc-nav"><Link href="/" className="rc-brand"><KineoBrandIcon size={28} /><span>Kineo</span></Link><Link href="/create/film">Create</Link><Link href="/clips">My videos ↗</Link></header>
+    <header className="rc-nav ct-nav"><Link href="/" className="rc-brand"><KineoBrandIcon size={28} /><span>Kineo</span></Link><Link href="/create/film">Create</Link><CreateNavConta /></header>{/* KINEO-TELA-NOVA-CABECALHO-1011 — saldo · Pricing · My videos */}
     <div className="rc-workspace">
       <aside className="rc-panel" aria-label={copy.title}>
         <CreateTabs active={tab} showRecreate={showRecreate} />

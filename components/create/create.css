@@ -12,6 +12,12 @@
 .create-shell .ct-step-text{font-size:13px;line-height:1.6;color:var(--rc-muted);margin:11px 0 0}
 .create-shell .rc-card-bottom>div{justify-content:flex-end}
 @media(max-width:640px){.ct-tabs{margin-inline:-16px;padding-inline:16px}.create-shell .ct-idea{min-height:120px}}
+/* KINEO-TELA-NOVA-CABECALHO-1011 — cabeçalho da tela nova: saldo · Pricing · My videos à direita, numa linha só, sem rolagem lateral. */
+.ct-nav .ct-nav-account{margin-left:auto;display:flex;align-items:center;gap:22px;min-width:0;white-space:nowrap}
+.ct-nav .ct-nav-link{color:var(--rc-muted);font-size:12px}
+.ct-nav .ct-nav-link:hover{color:var(--rc-text)}
+@media(max-width:640px){.ct-nav .ct-nav-account{gap:12px}.ct-nav .ct-nav-link{font-size:12px}}
+@media(max-width:480px){.ct-nav{gap:12px}.ct-nav .rc-brand span{display:none}.ct-nav>a:nth-child(2){display:none}.ct-nav .ct-nav-account>a[style]{padding:6px 10px!important;font-size:12px!important}}
 /* KINEO-STUDIO-NA-MOLDURA-1011 — os ajustes do Studio (passo 2 "Details") e o aviso de recusa na aba Film. Mesmos tokens --rc-*. */
 .create-shell .ct-alert{margin:8px 0 0;font-size:13px;font-weight:600;line-height:1.45;color:var(--danger,#d7263d)}
 .create-shell .ct-details{display:flex;flex-direction:column;gap:14px}

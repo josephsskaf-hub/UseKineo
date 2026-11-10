@@ -7,6 +7,7 @@ import { RECREATE_FORMATS, type RecreateFormat } from '@/lib/recreate/formats'
 import { compressPhoto, cropFace, composePairPhoto } from '@/lib/recreate/photos'
 import RecreatePlayer from './RecreatePlayer'
 import CreateTabs from '@/components/create/CreateTabs' // KINEO-TELA-NOVA-1011
+import CreateNavConta from '@/components/create/CreateNavConta' // KINEO-TELA-NOVA-CABECALHO-1011 — saldo · Pricing · My videos, só com as abas
 import './recreate.css'
 
 // KINEO-RECREATE-TRAVA-1011 — the provider returned the base video without the customer: the server refunded and failed the clip.
@@ -223,7 +224,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
     galleryRef.current?.querySelector<HTMLElement>('h1, h2')?.focus({ preventScroll: true })
   }
   return <main className="recreate">
-    <header className="rc-nav"><Link href="/" className="rc-brand"><KineoBrandIcon size={28} /><span>Kineo</span></Link><Link href="/recreate" onClick={e => { if (editingDisabled) e.preventDefault() }}>Recreate</Link><Link href="/clips">My videos ↗</Link></header>
+    <header className={createTabs ? 'rc-nav ct-nav' : 'rc-nav'}><Link href="/" className="rc-brand"><KineoBrandIcon size={28} /><span>Kineo</span></Link><Link href="/recreate" onClick={e => { if (editingDisabled) e.preventDefault() }}>Recreate</Link>{createTabs ? <CreateNavConta /> : <Link href="/clips">My videos ↗</Link>}</header>
     {message && <div className="rc-notice" role="status">{message} <button onClick={() => { void loadQuotes(); void loadSocial() }}>Retry</button></div>}
     <div className={`rc-workspace ${selected ? '' : 'rc-library-only'}`}>
       {selected && <aside className="rc-panel" aria-label="Create your version">{createTabs && <CreateTabs active="recreate" />}

@@ -31,14 +31,16 @@ function aba(overrides = {}, { now = 1_800_000_000_000, cookie = '', credits = n
     trackClosedEvent: async (name, meta) => { log.events.push([name, meta]); return 'stored' },
   }
   const navigation = { useRouter: () => ({ push: u => log.pushes.push(u), replace: u => log.pushes.push(u), prefetch: () => {} }) }
-  const m = loader({ react, 'next/link': link, 'next/navigation': navigation, '@/lib/analytics': analytics }, overrides)
+  // KINEO-TELA-NOVA-CABECALHO-1011 — o saldo do cabeçalho também assina o realtime de profiles; aqui, um cliente que não tem usuário.
+  const supabaseClient = { createClient: () => ({ auth: { getUser: async () => ({ data: { user: null } }) }, channel: () => ({ on() { return this }, subscribe() { return this } }), removeChannel: () => {} }) }
+  const m = loader({ react, 'next/link': link, 'next/navigation': navigation, '@/lib/analytics': analytics, '@/lib/supabase/client': supabaseClient }, overrides)
   // Globais do navegador, só o que os componentes tocam.
   const g = globalThis
   g.sessionStorage = { getItem: k => log.storage.get(k) ?? null, setItem: (k, v) => log.storage.set(k, String(v)), removeItem: k => log.storage.delete(k) }
   g.document = { cookie, querySelectorAll: () => [], querySelector: () => null }
   g.window = { matchMedia: () => ({ matches: false }), requestAnimationFrame: f => f(), addEventListener: () => {}, removeEventListener: () => {} }
   g.IntersectionObserver = class { observe() {} disconnect() {} }
-  g.fetch = async (url, init) => { log.fetches.push([String(url), init?.method ?? 'GET']); return credits && String(url) === '/api/credits' ? { ok: true, json: async () => credits } : { ok: false, json: async () => null } }
+  g.fetch = async (url, init) => { log.fetches.push([String(url), init?.method ?? 'GET']); return credits && String(url) === '/api/credits' ? { ok: true, status: 200, json: async () => credits } : { ok: false, status: 500, json: async () => null } }
   Date.now = () => now
 
   let rootEl = null
