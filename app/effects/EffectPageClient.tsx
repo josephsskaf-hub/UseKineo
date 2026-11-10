@@ -9,6 +9,7 @@ import { effectDestination, effectPagePath, effectSlug, effectText, type EffectP
 import EffectPreview from './EffectPreview'
 import './effects.css'
 import ClipTelemetry from '@/lib/clips/ClipTelemetry'
+import { recreateEntryHref } from '@/lib/recreate/entry'
 
 export default function EffectPageClient({ effect, language, signedIn, related, measurementActor, recreateEnabled = false }: {
   effect: EffectPageCard; language: InterfaceLanguage; signedIn: boolean; related: EffectPageCard[]; measurementActor: string | null; recreateEnabled?: boolean
@@ -35,7 +36,7 @@ export default function EffectPageClient({ effect, language, signedIn, related, 
           <p className="ep-lead">{t(effect.sub)}</p>
           {!recreateEnabled && <span className="ep-engine" dir="ltr">{clipEffectEngineLabel(effect)}</span>}
           <ol className="ep-steps"><li>{t('Use this effect')}</li><li>{t('Add your photo')}</li><li>{t('Generate your clip')}</li></ol>
-          <Link className="ep-cta" href={recreateEnabled ? `/recreate/effect-${effectSlug(effect)}` : effectDestination(effect, signedIn)} prefetch={false} data-effect-use={effect.key} data-clip-action="use_effect" data-clip-effect={effect.key}>{t('Use this effect')} <span aria-hidden="true">↗</span></Link>
+          <Link className="ep-cta" href={(recreateEnabled && recreateEntryHref(`effect-${effectSlug(effect)}`, signedIn)) || effectDestination(effect, signedIn)} prefetch={false} data-effect-use={effect.key} data-clip-action="use_effect" data-clip-effect={effect.key}>{t('Use this effect')} <span aria-hidden="true">↗</span></Link>
           <p className="ep-note">{t('Your result depends on your photo.')}</p>
         </div>
         <figure className="ep-stage" data-clip-action="preview">

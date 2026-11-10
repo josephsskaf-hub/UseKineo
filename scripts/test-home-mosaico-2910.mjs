@@ -30,7 +30,8 @@ function problems(landing, mosaic) {
   // KINEO-CARDS-SEM-ETIQUETA-0911 [fundador 09/11: "Só a etiqueta"] — nenhuma etiqueta de tipo na tela; o tipo fica no aria-label de cada cartão
   if (/<i>\s*(<UiLabel>)?\s*(Clip|Multi-camera|Narrated film|Effect|Ad style|Trending format|\{tipo\})/.test(mosaic)) p.push('etiqueta de tipo visível no cartão')
   for (const a of ['— clip`}', "' — multi-camera'}", '— narrated film`}', '— effect`}', '— ad style`}', '— ${tipo}`}']) if (!mosaic.includes(a)) p.push(`tipo fora do aria-label (${a})`)
-  if (!mosaic.includes('new URLSearchParams({ engine: c.engine, prompt: c.prompt })') || !mosaic.includes('viaSignup(clipeNovoDestino(c), signedIn)')) p.push('o link perdeu o motor real')
+  // Founder 10/11: prepare public Recreate. Only an approved catalog id can replace the legacy destination.
+  if (!mosaic.includes('new URLSearchParams({ engine: c.engine, prompt: c.prompt })') || !mosaic.includes('viaSignup(publicRecreatePath(c.id) ?? clipeNovoDestino(c), signedIn)')) p.push('o link perdeu o motor real ou o fallback do interruptor')
   return p
 }
 

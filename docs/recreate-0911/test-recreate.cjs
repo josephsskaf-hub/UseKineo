@@ -53,7 +53,9 @@ async function main() {
   for (const release of ['off', 'internal']) for (const email of [null, 'test-hacker@example.org', 'mailinator@example.org', 'customer@example.org']) assert.equal(access.releaseVisible(email, release), false)
   assert.equal(access.recreateVisible('josephsskaf@gmail.com'), true)
   assert.equal(access.releaseVisible('josephsskaf@gmail.com', 'off'), false)
-  assert.equal(access.RECREATE_RELEASE, 'internal'); assert.equal(access.RECREATE_MOTION_ENABLED, false)
+  assert.equal(access.RECREATE_RELEASE, 'public'); assert.equal(access.RECREATE_MOTION_ENABLED, false)
+  assert.equal(access.recreateVisible('customer@example.org'), true)
+  assert.equal(access.SERIES_RELEASE, 'internal'); assert.equal(access.seriesVisible('customer@example.org'), false)
   assert.equal(formats.recreateFormat('futebol'), null)
   assert(formats.recreateFormat('effect-kiss').photoSlots === 2)
   const request = { format: 'outfit-morph', seconds: 10, photos: [PHOTO], consent: true, mode: 'swap' }
@@ -173,7 +175,9 @@ async function main() {
   function contracts(overrides = {}) {
     const modules = loader({}, overrides)
     const a = modules('lib/recreate/access')
-    assert.equal(a.recreateVisible('test-hacker@example.org'), false)
+    assert.equal(a.recreateVisible('customer@example.org'), true)
+    assert.equal(a.RECREATE_RELEASE, 'public')
+    assert.equal(a.releaseVisible('customer@example.org', 'off'), false)
     assert.equal(a.RECREATE_MOTION_ENABLED, false)
     const g = modules('lib/recreate/generation')
     assert.equal(g.planRecreate({ ...request, seconds: 15 }, { ...ctx, paying: true }).ok, false)
@@ -184,8 +188,8 @@ async function main() {
   }
   contracts()
   const mutants = [
-    ['lib/recreate/access.ts', "RECREATE_RELEASE: InternalRelease = 'internal'", "RECREATE_RELEASE: InternalRelease = 'public'"],
-    ['lib/recreate/access.ts', 'RECREATE_MOTION_ENABLED = false', 'RECREATE_MOTION_ENABLED = true'],
+    ['lib/recreate/release.ts', "RECREATE_RELEASE: InternalRelease = 'public'", "RECREATE_RELEASE: InternalRelease = 'internal'"],
+    ['lib/recreate/release.ts', 'RECREATE_MOTION_ENABLED = false', 'RECREATE_MOTION_ENABLED = true'],
     ['lib/recreate/generation.ts', 'if (seconds !== f.seconds)', 'if (false)'],
     ['app/recreate/RecreateClient.tsx', '<section className="rc-step rc-generate-area"', '<p>✦ {quote?.credits}</p><section className="rc-step rc-generate-area"'],
     ['app/recreate/RecreateClient.tsx', '<h1>Your version, step by step.</h1>', '<h1>MiniMax Recreate</h1>'],
@@ -198,8 +202,9 @@ async function main() {
     const api = loader(routeStubs)(entry)
     assert.equal((await api.GET(new NextRequest('https://www.usekineo.com/api/recreate?name=outfit-morph.mp4'), { params: { name: 'outfit-morph.mp4' } })).status, 404)
   }
-  assert(read('app/effects/EffectPageClient.tsx').includes('recreateEnabled ? `/recreate/'))
+  assert(read('app/effects/EffectPageClient.tsx').includes('recreateEnabled && recreateEntryHref'))
   await require('../recreate-1011/test-photo-flow.cjs')()
+  await require('../recreate-1011/test-publication.cjs')()
   console.log('PASS: access on all APIs, spoofed inputs, house source server adapter, photos, consent, duration, simulation, replay, moderation/debit order, refunds, persistence, every photo-effect tariff, rendered names/prices/counts; five security/UI mutants killed.')
 }
 module.exports = { loader, render, formats, read, ROOT }

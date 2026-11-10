@@ -29,6 +29,7 @@ async function main() {
   }
   const rls = await db.query(`select relname, relrowsecurity from pg_class where relname in ('recreate_likes','recreate_reports')`)
   assert(rls.rows.length === 2 && rls.rows.every(r => r.relrowsecurity))
+  await db.exec(read('docs/recreate-1011/PREFLIGHT-PUBLICACAO.sql'))
   await db.close()
   console.log('PASS: migration in isolated Postgres; zero-cost rows rejected, repeat paid generations allowed, request idempotency preserved, paid 40/60 rows, unique real likes, RLS and denied anon/authenticated access.')
 }

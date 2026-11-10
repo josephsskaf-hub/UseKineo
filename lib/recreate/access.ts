@@ -1,12 +1,10 @@
 import { INTERNAL_EXACT_EMAILS } from '@/lib/internalAccounts'
 
-// Founder 09/11/2026: "Sim para as 5", decision 5. No public rollout authorized.
-export type InternalRelease = 'off' | 'internal' | 'public'
-export const RECREATE_RELEASE: InternalRelease = 'internal'
-export const SERIES_RELEASE: InternalRelease = 'internal'
-export const RECREATE_MOTION_ENABLED = false
+import { RECREATE_RELEASE, SERIES_RELEASE, type InternalRelease } from './release'
+export { RECREATE_RELEASE, SERIES_RELEASE, RECREATE_MOTION_ENABLED, type InternalRelease } from './release'
 
-// Metric exclusion patterns such as test% are NOT an authorization allowlist.
+// Visibility only: recreateSession still requires an authenticated user for every API and private asset.
+// Metric exclusion patterns such as test% are NOT an authorization allowlist in internal mode.
 export function releaseVisible(email: string | null | undefined, release: InternalRelease): boolean {
   return release === 'public' || (release === 'internal' && !!email && INTERNAL_EXACT_EMAILS.includes(email.trim().toLowerCase()))
 }

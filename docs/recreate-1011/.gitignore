@@ -1,4 +1,5 @@
 # Derived QA views are reproducible with preview.cjs; retain the main standalone comparisons and selected captures.
+.commit-*.txt
 mobile.html
 narrow.html
 light.html

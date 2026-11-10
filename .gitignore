@@ -36,3 +36,6 @@ porta-v2-celular.html
 
 # KINEO-RESTAURACAO-2026-09-09 — area de trabalho do gerador do anuncio do Reddit (perfil do Edge, partes de video)
 .reddit-build/
+
+# Generated Supabase CLI cache; preserve locally, never include in reviewed publication candidates.
+/supabase/.temp/

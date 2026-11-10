@@ -1,0 +1,34 @@
+{
+  "date": "2026-11-10",
+  "state": "prepared locally; not enqueued, pushed or deployed",
+  "branch": "codex/recreate-internal-0911",
+  "integratedMain": "f59d53882be6db18a0f1f96f9915cf3587621120",
+  "internalCandidate": "2d96474241e6e8015aa3e37d6009d28f93d99f7b",
+  "queueAtPreparation": "f59d53882be6db18a0f1f96f9915cf3587621120",
+  "target": "all authenticated accounts",
+  "releaseSwitch": "lib/recreate/release.ts: RECREATE_RELEASE = public; SERIES_RELEASE = internal; Motion false",
+  "migration": {
+    "path": "supabase/migrations/20261109221645_recreate_internal.sql",
+    "sha256": "8B93C1627E642F31CDD08167502360EE0B4A2AC200A9297C483EA6C8D9E55741",
+    "agentApplied": false,
+    "productionState": "not verified",
+    "localPostgresTest": "passed, including read-only preflight queries"
+  },
+  "passed": [
+    "full TypeScript: tsc --noEmit --incremental false",
+    "node docs/recreate-0911/test-recreate.cjs (API, photo flow, costs, five mutants and publication tests)",
+    "node docs/recreate-1011/test-publication.cjs (real sessions/pages and rendered home/effect entry points with injected I/O)",
+    "node docs/recreate-0911/test-migration.cjs (isolated PGlite)",
+    "node scripts/test-home-mosaico-2910.mjs",
+    "node scripts/test-clipes-nos-2-lugares-0411.mjs (exit 0; legacy mutation harness caveat in report)",
+    "node scripts/test-enquadramento-vitrine-0911.mjs",
+    "node scripts/test-clip-efeitos-2026-10-05.mjs",
+    "node scripts/test-efeitos-novos-1310.mjs",
+    "node docs/recreate-1011/check-publication-baseline.cjs (same legacy failures in candidate and immutable main)",
+    "git diff --check"
+  ],
+  "baselineDiagnostics": "publication-baseline.json; three failures reproduced with identical exit/signature on current candidate and immutable main",
+  "visual": "PUBLICACAO-ANTES-DEPOIS.html, public-desktop.png and public-mobile.png; actual markup in isolated responsive containers, inspected locally; static posters only",
+  "notExecuted": ["production database preflight", "production migration", "full Next build and asset packaging", "all CI critical checks", "authenticated published browser flow", "real personal photo upload/moderation", "real provider request", "real debit/refund canary", "queue movement", "push", "deploy"],
+  "rolloutGates": ["CEO confirms/applies exact migration", "critical CI/build resolved and approved", "CEO verifies internal paid canary", "existing reviewed publication queue", "post-deploy validation before claiming live"]
+}

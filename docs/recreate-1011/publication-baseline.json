@@ -1,0 +1,42 @@
+{
+  "date": "2026-11-10",
+  "base": "f59d53882be6db18a0f1f96f9915cf3587621120",
+  "outcomes": [
+    {
+      "test": "test-clipes-2026-09-29.mjs",
+      "base": {
+        "exit": 1,
+        "signature": "AssertionError [ERR_ASSERTION]: US$ do Studio = TIER_PRICES.pro"
+      },
+      "candidate": {
+        "exit": 1,
+        "signature": "AssertionError [ERR_ASSERTION]: US$ do Studio = TIER_PRICES.pro"
+      },
+      "same": true
+    },
+    {
+      "test": "test-studio-series-review.mjs",
+      "base": {
+        "exit": 1,
+        "signature": "Error: semEstreia3110: app/(dashboard)/studio/StudioClient.tsx mudou fora da camada (0x)"
+      },
+      "candidate": {
+        "exit": 1,
+        "signature": "Error: semEstreia3110: app/(dashboard)/studio/StudioClient.tsx mudou fora da camada (0x)"
+      },
+      "same": true
+    },
+    {
+      "test": "test-five-improvements.mjs",
+      "base": {
+        "exit": 1,
+        "signature": "ReferenceError: require is not defined"
+      },
+      "candidate": {
+        "exit": 1,
+        "signature": "ReferenceError: require is not defined"
+      },
+      "same": true
+    }
+  ]
+}

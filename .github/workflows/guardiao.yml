@@ -24,7 +24,7 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: Typecheck bruto — qualquer erro reprova
         run: npx tsc --noEmit --incremental false
-      - name: Recreate interno — acesso, custo, efeitos, UI e concorrência SQL
+      - name: Recreate — autenticação, acesso público, custo, efeitos, UI e concorrência SQL
         run: |
           node docs/recreate-0911/test-recreate.cjs
           node docs/recreate-0911/test-migration.cjs
