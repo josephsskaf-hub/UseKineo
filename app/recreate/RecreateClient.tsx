@@ -6,6 +6,7 @@ import { KineoBrandIcon } from '@/components/KineoBolt'
 import { RECREATE_FORMATS, type RecreateFormat } from '@/lib/recreate/formats'
 import { compressPhoto, cropFace, composePairPhoto } from '@/lib/recreate/photos'
 import RecreatePlayer from './RecreatePlayer'
+import CreateTabs from '@/components/create/CreateTabs' // KINEO-TELA-NOVA-1011
 import './recreate.css'
 
 // KINEO-RECREATE-TRAVA-1011 — the provider returned the base video without the customer: the server refunded and failed the clip.
@@ -15,7 +16,7 @@ type Quote = { id: string; credits: number | null; available: boolean; shortfall
 type Photo = { file: File; url: string }
 type Clip = { id: string; status: string; video_url?: string | null; credits_refunded?: number; reason?: string }
 
-export default function RecreateClient({ initialId, internalTools = false, formatIds }: { initialId?: string; internalTools?: boolean; formatIds?: string[] }) {
+export default function RecreateClient({ initialId, internalTools = false, formatIds, createTabs = false }: { initialId?: string; internalTools?: boolean; formatIds?: string[]; createTabs?: boolean }) {
   // KINEO-RECREATE-TRAVA-1011 — the server pages pass the formats this account may request (unapproved swaps: house only).
   const catalog = formatIds ? RECREATE_FORMATS.filter(f => formatIds.includes(f.id)) : RECREATE_FORMATS
   const [selected, setSelected] = useState(() => catalog.find(f => f.id === initialId) ?? null)
@@ -225,7 +226,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
     <header className="rc-nav"><Link href="/" className="rc-brand"><KineoBrandIcon size={28} /><span>Kineo</span></Link><Link href="/recreate" onClick={e => { if (editingDisabled) e.preventDefault() }}>Recreate</Link><Link href="/clips">My videos ↗</Link></header>
     {message && <div className="rc-notice" role="status">{message} <button onClick={() => { void loadQuotes(); void loadSocial() }}>Retry</button></div>}
     <div className={`rc-workspace ${selected ? '' : 'rc-library-only'}`}>
-      {selected && <aside className="rc-panel" aria-label="Create your version">
+      {selected && <aside className="rc-panel" aria-label="Create your version">{createTabs && <CreateTabs active="recreate" />}
         <div className="rc-panel-intro"><span className="rc-eyebrow">RECREATE</span><h1>Your version, step by step.</h1><p className="rc-subtitle">The base video stays in view as you create.</p></div>
         <div className="rc-progress"><span>{states.includes('error') ? 'Check the highlighted step' : clip?.status === 'done' ? 'Your version is ready' : photosDone ? 'Your photos are ready' : 'Start with your photos'}</span><div role="progressbar" aria-label="Creation steps completed" aria-valuemin={0} aria-valuemax={3} aria-valuenow={states.filter(state => state === 'done').length}>{states.map((state, index) => <i key={index} className={`rc-progress-${state}`} />)}</div></div>
         <section className={`rc-step rc-step-${states[0]}`} data-step-state={states[0]} aria-labelledby="rc-photo-heading">
@@ -267,7 +268,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
         <div className="rc-stage"><RecreatePlayer key={selected.id} src={selected.preview} poster={selected.poster} preview label={`Base video: ${selected.title}`} /><span className="rc-preview-tag">TEMPLATE PREVIEW</span><span className="rc-duration">{selected.seconds} s</span></div>
         <p className="rc-preview-caption"><span aria-hidden="true" />{selected.type === 'swap' ? 'Swap · Change the faces. Keep the scene and motion.' : 'Photo effect · Your photos use this original preset.'}</p>
       </section>}
-      <section className="rc-gallery" ref={galleryRef} aria-label="Video templates">
+      <section className="rc-gallery" ref={galleryRef} aria-label="Video templates">{createTabs && !selected && <CreateTabs active="recreate" />}
         <div className="rc-gallery-heading">{selected ? <><h2 tabIndex={-1}>Video templates</h2><p>Choose a different starting point.</p></> : <><span className="rc-eyebrow">RECREATE</span><h1 tabIndex={-1}>Video templates</h1><p>Choose a Kineo format. Make it yours.</p></>}</div>
         <div className="rc-grid">{catalog.map((f, index) => <article key={f.id} className={`rc-card ${index % 4 === 1 ? 'rc-card-short' : ''} ${selected?.id === f.id ? 'rc-card-selected' : ''}`}>
           <video src={f.preview} poster={f.poster} autoPlay muted loop playsInline preload="metadata" aria-label={f.title} />

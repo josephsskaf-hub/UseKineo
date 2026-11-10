@@ -1,0 +1,14 @@
+/* KINEO-TELA-NOVA-1011 — só o que a moldura nova acrescenta à tela aprovada do Recreate (app/recreate/recreate.css continua valendo).
+   Tudo com prefixo ct-/create-shell: nada aqui toca classe rc-* fora da tela nova. Cores = os mesmos tokens --rc-* (tema do app). */
+.ct-tabs{display:flex;gap:4px;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;margin:0 0 18px;padding:0 calc(var(--rc-step-padding,18px) + 1px);border-bottom:1px solid var(--rc-border)}
+.ct-tabs::-webkit-scrollbar{display:none}
+.ct-tab{flex:1 0 auto;text-align:center;padding:10px 8px 12px;font-size:13px;color:var(--rc-muted);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.ct-tab:hover{color:var(--rc-text)}
+.ct-tab-active{color:var(--rc-accent);border-bottom-color:var(--rc-accent);font-weight:650}
+.rc-library-only .ct-tabs{max-width:520px;padding-inline:0}
+.create-shell .ct-idea{display:block;width:100%;min-height:150px;resize:vertical;margin:0;background:var(--rc-input);border:1px solid var(--rc-line);border-radius:10px;padding:12px;color:var(--rc-body);font-size:13px;line-height:1.7}
+.create-shell .ct-idea:focus-visible{outline:2px solid var(--rc-accent);outline-offset:2px}
+.create-shell .ct-count{display:block;text-align:right;font-size:12px;color:var(--rc-muted);margin-top:6px}
+.create-shell .ct-step-text{font-size:13px;line-height:1.6;color:var(--rc-muted);margin:11px 0 0}
+.create-shell .rc-card-bottom>div{justify-content:flex-end}
+@media(max-width:640px){.ct-tabs{margin-inline:-16px;padding-inline:16px}.create-shell .ct-idea{min-height:120px}}
