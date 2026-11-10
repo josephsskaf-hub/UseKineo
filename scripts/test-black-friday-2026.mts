@@ -80,7 +80,7 @@ ok(!co.includes('bf2026GuestNeedsAccount') && co.includes('annualOfferMetadata: 
 ok(co.includes('      promoRequested: rawPromo.length > 0 && !welcomeYieldedToPartner,\n'), 'checkout: a régua do convidado segue byte a byte (guardiões da compra sem login)')
 ok(/name === 'bf2026_checkout_started'/.test(co), 'checkout: o evento da BF tem id determinístico por sessão (sem contagem dupla)')
 
-console.log('— 3. mensal sem desconto e campo manual de cupom fechado (KINEO-CHECKOUT-FINO-0411)')
+console.log('— 3. mensal sem desconto para o convidado e campo manual de cupom fechado (KINEO-CHECKOUT-FINO-0411; os 30% do 1º mês nas 3 h exigem conta logada: KINEO-MENSAL-3H-0911)')
 for (const tier of ['starter', 'basic', 'pro', 'business', 'autopilot']) for (const isAnnual of [false, true]) {
   ok(guestSubscriptionAcceptsManualPromotions(tier, isAnnual) === subscriptionAcceptsManualPromotions(tier, isAnnual), `campo manual: convidado = logado (${tier}, ${isAnnual ? 'anual' : 'mensal'})`)
 }

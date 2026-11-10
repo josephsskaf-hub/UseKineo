@@ -64,7 +64,7 @@ check(promo.includes('return Math.round(fullAmountMinor * (100 - WELCOME20_PERCE
 const usd = (tier) => Number(pricing.match(new RegExp(`\\n  ${tier}: \\{ usd: (\\d+) \\}`))[1])
 const first = (m) => Math.round(m * (100 - pct) / 100)
 check(first(usd('basic')) === 1520 && first(usd('pro')) === 4720, `1º mês (se o interruptor religar) = $15.20 / $47.20 (basic ${usd('basic')}, pro ${usd('pro')}, ${pct}%)`) // KINEO-PRECO-MERCADO-0411
-check(/export const WELCOME20_SITE_OFFER_LIVE = false\n/.test(promo), 'mensal sem desconto: interruptor desligado (fundador 04/11)')
+check(/export const WELCOME20_SITE_OFFER_LIVE = false\n/.test(promo), 'mensal sem desconto fora da janela de 3 h: WELCOME20 desligado (fundador 04/11; os 30% das 3 h são lib/billing/monthlyFirstMonthOffer.ts, KINEO-MENSAL-3H-0911)')
 
 // (4)
 check(!landing.includes('o 1º mês não tem desconto'), 'comentário falso sobre o 1º mês morreu')

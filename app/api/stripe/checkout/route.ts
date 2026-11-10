@@ -90,6 +90,8 @@ import {
 import { buildAutopilotPilotCancelUrl } from '@/lib/growth/autopilotCheckoutReturn'
 import { buildSubscriptionCheckoutSuccessUrl } from '@/lib/growth/checkoutSuccessFlow'
 import { planSettlementAmountMinor, resolveSettlementCurrency, settlementAmountMinor } from '@/lib/settlementCurrency'
+import { formatSettlementMoney } from '@/lib/settlementCurrency' // KINEO-MENSAL-3H-0911 — o preço depois do 1º mês, na moeda da sessão
+import { formatCheckoutMoney } from '@/lib/checkoutPricing' // KINEO-MENSAL-3H-0911 — "$19", igual ao cartão do /pricing
 import { ADS_OFFER_VERSION, ADS_PASS_CREDITS, ADS_PASS_ID, ADS_PASS_USD_MINOR, ADS_PRODUCT_NAME, adsPassLive, adsPassOnSale } from '@/lib/ads/offer' // KINEO-STUDIO-ADS-2026-09-25
 import { isAdsInternalEmail } from '@/lib/ads/access' // KINEO-STUDIO-ADS-2026-09-25 (lista exata; revisão 24/09)
 import { DFY_FILMS3_FILMS, DFY_FILMS3_FILM_SECONDS, DFY_FILMS3_DELIVERY_HOURS, DFY_FILMS3_PACK_ID, DFY_FILMS3_PRICE_USD_MINOR, DFY_FILMS3_VERSION, briefMetadata, dfyFilms3Eligible } from '@/lib/dfyFilms3' // KINEO-PACOTE-3-FILMES-1610
@@ -104,6 +106,8 @@ import { KIDS_AUTOPILOT_ID, KIDS_PACK_ID } from '@/lib/kidsVenda/kidsVenda' // K
 import { annualEarlyOfferPriceMinor } from '@/lib/billing/annualEarlyOffer' // KINEO-KIT-BF-VENDA-2010 — "2 meses grátis no anual" até 21/11 (o MAIOR desconto, sem somar)
 import { BF2026_CAMPAIGN, BF2026_ENDS_AT, BF2026_EVENTS, BF2026_PROMO_SOURCE, bf2026CheckoutEligible, isBf2026PromoCode } from '@/lib/billing/blackFriday2026' // KINEO-BLACK-FRIDAY-2026 · KINEO-OFERTA-3H-0411 — o anual pelo preço de boas-vindas, para todos, de 24/11 a 01/12 (America/New_York)
 import { ANNUAL_WELCOME_APPLIED_EVENT, annualOfferSessionRecovery, resolveAnnualOffer } from '@/lib/billing/annualWelcomeOffer' // KINEO-OFERTA-3H-0411
+import { MONTHLY_FIRST_MONTH_3H_LIVE, MONTHLY_FIRST_MONTH_ENDED_NOTICE, monthlyFirstMonthDecision, monthlyFirstMonthJustEnded, monthlyFirstMonthMinor, monthlyFirstMonthSessionExpiresAt, monthlyFirstMonthStamp, monthlyFirstMonthSubmitLine, monthlyFirstMonthUsedBy, type MonthlyFirstMonthDecision } from '@/lib/billing/monthlyFirstMonthOffer' // KINEO-MENSAL-3H-0911
+import { ensureMonthlyFirstMonthCoupon } from '@/lib/billing/monthlyFirstMonthCoupon' // KINEO-MENSAL-3H-0911
 import {
   attributeAffiliateForUser,
   normalizeAffiliateClickId,
@@ -2812,6 +2816,66 @@ async function buildAndRedirect(
     }
   }
   let autoWelcome20Applied = false
+  // ═══ KINEO-MENSAL-3H-0911 [fundador 09/11: "vai para 30% nas 3 primeiras horas. É isso daí."] — 30% no 1º mês do mensal, nas 3 h da conta nova ═══
+  // Decidido AQUI, com a conta verificada: user.created_at (getUser) + 3 h — o MESMO relógio do anual — e has_paid desta conta. Nada vem do navegador.
+  // Roda DEPOIS do parceiro (o 50% dele vence) e de todo desconto já posto (nunca empilha); ANTES do WELCOME20 automático (desligado hoje), que
+  // com discountApplied não entra.
+  // Cupom 'once' (lib/billing/monthlyFirstMonthCoupon.ts, garantido pelo código no 1º uso): a 2ª fatura sai pelo preço da assinatura, cheio.
+  // NADA de `intro`/`intro_credits`: o webhook concede o TIER_CREDITS do plano no checkout.session.completed, como faz com o 1º mês do parceiro.
+  let monthlyFirstMonth: MonthlyFirstMonthDecision = monthlyFirstMonthDecision({
+    live: MONTHLY_FIRST_MONTH_3H_LIVE,
+    tier,
+    isAnnual,
+    signedIn: true,
+    accountCreatedAt: user.created_at,
+    hasPaid: (profile as { has_paid?: boolean | null }).has_paid,
+    nowMs: Date.now(),
+    wantsTrial,
+    privatePromo: privatePackPromo,
+    affiliateOfferWins: affiliateDiscountApplied || checkoutMetadata.affiliate_discount_applied === true || checkoutMetadata.affiliate_discount_failure === 'coupon_unavailable',
+    otherDiscount: discountApplied || Boolean(sessionParams.discounts?.length),
+  })
+  let monthlyFirstMonthApplied = false
+  if (monthlyFirstMonth.apply && monthlyFirstMonth.endsAtMs !== null) {
+    // Uma vez por conta: a assinatura que já levou os 30% carrega o carimbo. Leitura que falha segue (como o intro): a janela é de 3 h e has_paid já fecha quem pagou.
+    let usedBefore = false
+    try {
+      const subs = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 20 })
+      usedBefore = monthlyFirstMonthUsedBy(subs.data)
+    } catch (listErr) {
+      console.warn('[stripe/checkout] monthly 3h offer: subscription check failed, allowing:', listErr)
+    }
+    if (usedBefore) monthlyFirstMonth = { ...monthlyFirstMonth, apply: false, reason: 'used_before' }
+  }
+  if (monthlyFirstMonth.apply && monthlyFirstMonth.endsAtMs !== null) {
+    const monthlyCoupon = await ensureMonthlyFirstMonthCoupon()
+    if (monthlyCoupon) {
+      sessionParams.discounts = [{ coupon: monthlyCoupon }]
+      discountApplied = true
+      monthlyFirstMonthApplied = true
+      autoWelcome20 = false
+      const monthlyStamp = monthlyFirstMonthStamp(monthlyFirstMonth.endsAtMs)
+      Object.assign(sessionParams.metadata!, monthlyStamp)
+      Object.assign(sessionParams.subscription_data!.metadata!, monthlyStamp)
+      checkoutMetadata = { ...checkoutMetadata, ...monthlyStamp }
+      failureContext = { ...checkoutMetadata }
+      sessionParams.custom_text!.submit = {
+        message: `${monthlyFirstMonthSubmitLine(chargeCurrency === 'brl' ? formatSettlementMoney('brl', chargeAmount) : formatCheckoutMoney('usd', chargeAmount))} ${checkoutValueContext.submitMessage}`,
+      }
+      // A volta do pagamento reporta o que a Stripe cobrou hoje: o 1º mês com 30%.
+      sessionParams.success_url = buildSubscriptionCheckoutSuccessUrl({
+        adsSampleOrder: req.nextUrl.searchParams.get('ads_sample_order'),
+        appUrl, tier, currency: chargeCurrency, amount: monthlyFirstMonthMinor(chargeAmount),
+      })
+    } else {
+      monthlyFirstMonth = { ...monthlyFirstMonth, apply: false, reason: 'coupon_unavailable' }
+      checkoutMetadata.monthly_first_month_3h_failure = 'coupon_unavailable'
+      failureContext = { ...checkoutMetadata }
+    }
+  } else if (monthlyFirstMonthJustEnded(monthlyFirstMonth, Date.now()) && !discountApplied) {
+    // A janela fechou entre a tela e o clique: preço cheio, e a página da Stripe diz por quê.
+    sessionParams.custom_text!.submit = { message: `${MONTHLY_FIRST_MONTH_ENDED_NOTICE} ${checkoutValueContext.submitMessage}` }
+  }
   if (autoWelcome20 && !discountApplied && !promoBlocked && !privatePackPromo && !promisedPublicPromo) {
     const autoKind: PromisedPublicPromoKind = 'welcome_first_month_20'
     const autoResolution = await resolvePromisedPublicPromo(
@@ -2901,6 +2965,9 @@ async function buildAndRedirect(
   // pelo /resume) levaria os 50% para depois da janela. Dentro dela, quem perdeu a sessão abre outra; depois dela, compra pelo anual normal.
   const annualRecovery = annualOfferSessionRecovery(annualOffer !== null)
   if (annualRecovery) sessionParams.after_expiration = annualRecovery
+  // KINEO-MENSAL-3H-0911 — o mesmo para os 30% do 1º mês: a cópia recuperada da Stripe levaria o cupom para depois das 3 h.
+  const monthlyRecovery = annualOfferSessionRecovery(monthlyFirstMonthApplied)
+  if (monthlyRecovery) sessionParams.after_expiration = monthlyRecovery
 
   // The payment page may need its normal amount copy, but a successful
   // post-video purchase must return to the exact saved render for a clean
@@ -2950,6 +3017,14 @@ async function buildAndRedirect(
   // email still runs after Stripe expiry; this change delays that email instead
   // of killing the buyer's active payment page to manufacture an early trigger.
   sessionParams.expires_at = recurringCheckoutExpiresAt(checkoutWindow)
+  // KINEO-MENSAL-3H-0911 — a página com os 30% do 1º mês fecha no fim das 3 h (piso de 40 min do balde; a Stripe exige 30), não 24 h depois.
+  if (monthlyFirstMonthApplied && monthlyFirstMonth.endsAtMs !== null) {
+    sessionParams.expires_at = monthlyFirstMonthSessionExpiresAt({
+      defaultExpiresAtSec: sessionParams.expires_at,
+      endsAtMs: monthlyFirstMonth.endsAtMs,
+      bucketStartSec: checkoutWindow * CHECKOUT_IDEMPOTENCY_BUCKET_SECONDS,
+    })
+  }
   sessionParams.metadata!.checkout_session_window_hours =
     String(RECURRING_CHECKOUT_WINDOW_HOURS)
   sessionParams.metadata!.checkout_session_window_version =
@@ -3097,6 +3172,11 @@ async function buildAndRedirect(
         ? WELCOME20_AUTO_SOURCE
         : promisedPublicPromoVerified ? WELCOME20_REQUESTED_SOURCE : checkoutMetadata.public_promo_source ?? null,
       stripe_session_id: session.id,
+      // KINEO-MENSAL-3H-0911 — os 30% do 1º mês (3 h da conta nova): aplicado ou o motivo de não ter sido; o fim da janela desta conta.
+      monthly_first_month_3h_applied: monthlyFirstMonthApplied,
+      monthly_first_month_3h: monthlyFirstMonth.reason,
+      monthly_first_month_3h_ends_at: monthlyFirstMonth.endsAtMs !== null ? new Date(monthlyFirstMonth.endsAtMs).toISOString() : null,
+      monthly_first_month_3h_first_charge_minor: monthlyFirstMonthApplied ? monthlyFirstMonthMinor(chargeAmount) : null,
       checkout_session_window_hours: RECURRING_CHECKOUT_WINDOW_HOURS,
       checkout_session_window_version: RECURRING_CHECKOUT_WINDOW_VERSION,
     },

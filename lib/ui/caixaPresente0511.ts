@@ -11,6 +11,7 @@
 import { AFFILIATE_COMMISSION_PCT } from '@/lib/affiliateCommission'
 import { ANNUAL_WELCOME_API, ANNUAL_WELCOME_WINDOW_MS } from '@/lib/billing/annualWelcomeOffer'
 import { ANNUAL_WELCOME_DISCOUNT_PERCENT } from '@/lib/checkoutPricing'
+import { MONTHLY_FIRST_MONTH_OFFER_KIND, MONTHLY_FIRST_MONTH_PERCENT_OFF } from '@/lib/billing/monthlyFirstMonthOffer' // KINEO-MENSAL-3H-0911
 import { LINHA_DO_FILME_GRATIS, filmeGratisNaCaixa } from '@/lib/growth/filmeGratisNaCaixa'
 import { KLING4_PAID_COPY, kling4PromoZeroCredits, rebaseKling4Lease } from '@/lib/kling4PaidPresentation'
 import { TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOffer' // KINEO-HOME-TOPO-0511
@@ -47,17 +48,32 @@ function objeto(v: unknown): Record<string, unknown> | null {
   return v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : null
 }
 
-function linhaDoAnual(l: CaixaLeituras, agoraMs: number): CaixaLinha | null {
-  const a = objeto(l.annual)
-  if (!a || a.offer !== 'welcome_3h') return null
-  const { nowMs, endsAtMs } = a
+/** O que falta da janela de 3 h no corpo da rota, ou null (corpo incompleto, vencido ou maior que a janela = dado errado). */
+function faltaDaJanela(nowMs: unknown, endsAtMs: unknown): number | null {
   if (typeof nowMs !== 'number' || typeof endsAtMs !== 'number' || !Number.isFinite(nowMs) || !Number.isFinite(endsAtMs)) return null
   const faltaMs = endsAtMs - nowMs
   if (faltaMs <= 0 || faltaMs > ANNUAL_WELCOME_WINDOW_MS + FOLGA_DE_RELOGIO_MS) return null
+  return faltaMs
+}
+
+// KINEO-MENSAL-3H-0911 [fundador 09/11: "vai para 30% nas 3 primeiras horas. É isso daí."] — a MESMA linha fala das duas ofertas das 3 h quando as duas valem:
+// "50% off annual, or 30% off your first month". Só o anual: o texto de sempre. Só o mensal (a Black Friday cobre o anual): "30% off your first month".
+// Os dois prazos são o mesmo relógio (created_at + 3 h); a linha sai quando ele zera. Abre o /pricing.
+export const LINHA_DAS_DUAS_OFERTAS = `${ANNUAL_WELCOME_DISCOUNT_PERCENT}% off annual, or ${MONTHLY_FIRST_MONTH_PERCENT_OFF}% off your first month`
+export const LINHA_DO_MENSAL = `${MONTHLY_FIRST_MONTH_PERCENT_OFF}% off your first month`
+
+function linhaDoAnual(l: CaixaLeituras, agoraMs: number): CaixaLinha | null {
+  const a = objeto(l.annual)
+  if (!a) return null
+  const faltaAnual = a.offer === 'welcome_3h' ? faltaDaJanela(a.nowMs, a.endsAtMs) : null
+  const faltaMensal = a.monthlyOffer === MONTHLY_FIRST_MONTH_OFFER_KIND ? faltaDaJanela(a.nowMs, a.monthlyEndsAtMs) : null
+  if (faltaAnual === null && faltaMensal === null) return null
   // Na dúvida, a linha some: quem paga não vê oferta de conta nova, e sem a leitura da conta não dá para afirmar que não pagou.
   const c = objeto(l.credits)
   if (!c || c.entitlementsResolved !== true || c.hasPaid !== false) return null
-  return { id: 'anual', titulo: `Your ${ANNUAL_WELCOME_DISCOUNT_PERCENT}% annual offer`, href: '/pricing?billing=annual', venceEmMs: agoraMs + faltaMs }
+  if (faltaAnual !== null && faltaMensal !== null) return { id: 'anual', titulo: LINHA_DAS_DUAS_OFERTAS, href: '/pricing?billing=annual', venceEmMs: agoraMs + Math.min(faltaAnual, faltaMensal) }
+  if (faltaAnual !== null) return { id: 'anual', titulo: `Your ${ANNUAL_WELCOME_DISCOUNT_PERCENT}% annual offer`, href: '/pricing?billing=annual', venceEmMs: agoraMs + faltaAnual }
+  return { id: 'anual', titulo: LINHA_DO_MENSAL, href: '/pricing?billing=monthly', venceEmMs: agoraMs + (faltaMensal as number) }
 }
 
 // KINEO-PRESENTE-CONECTOR-0911 [fundador 09/11: "colocar o MCP, tanto do GPT quanto do Claude, na caixa de presente. Use agora"] — atalho para a página do conector

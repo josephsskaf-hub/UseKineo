@@ -52,7 +52,8 @@ import { FIRST_FILM_GUARANTEE } from '@/lib/growth/firstFilmGuarantee' // KINEO-
 import { PricingAudienceTabs, PricingTeamsBlock } from '@/components/pricing/PricingAudience' // KINEO-PLANOS-ABAS-0411
 import { audienciaDoEndereco, type PricingAudience } from '@/lib/pricingAudience' // KINEO-PLANOS-ABAS-0411
 import { Bf2026PricingBadge } from '@/components/BlackFridayBanner' // KINEO-BLACK-FRIDAY-2026
-import { AnnualOfferCountdown, useAnnualOffer } from '@/components/pricing/AnnualOfferCountdown' // KINEO-OFERTA-3H-0411
+import { AnnualOfferCountdown, useWelcomeOffers } from '@/components/pricing/AnnualOfferCountdown' // KINEO-OFERTA-3H-0411 · KINEO-MENSAL-3H-0911 (uma leitura para as duas ofertas das 3 h)
+import { MONTHLY_FIRST_MONTH_ENDED_NOTICE, MONTHLY_FIRST_MONTH_PERCENT_OFF, monthlyFirstMonthCoversTier, monthlyFirstMonthMinor } from '@/lib/billing/monthlyFirstMonthOffer' // KINEO-MENSAL-3H-0911
 import { AnnualEarlyOfferBadge } from '@/components/ads/KitBfBuyCard' // KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday (US$ 49) e o selo do anual (só quando baixa o preço)
 import { AUTOPILOT_PUBLIC } from '@/lib/autopilotPublic' // KINEO-AUTOPILOT-FORA-2026-10-09
 // KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — o cartão que mostra o que o plano compra (imagens, clipes por motor, filmes).
@@ -555,7 +556,8 @@ export default function PricingClient({ initialBilling = 'annual' }: {
   const resolvedRegion = displayRegion
   // KINEO-OFERTA-3H-0411 — com a oferta aberta para esta conta (o servidor decide), o cartão anual mostra o preço dela e risca o anual normal. Quem já assina
   // não compra por aqui (a troca de plano não aplica a oferta), então segue vendo o anual normal.
-  const annualOffer = useAnnualOffer()
+  const welcomeOffers = useWelcomeOffers()
+  const annualOffer = welcomeOffers.annual
   const annualOfferLive = annualOffer !== null && !planSwitch.subscribed
   const ofertaNoPlano = (tier: string): boolean => annualOfferLive && annualOfferCoversTier(tier) // KINEO-CREDITOS-B-0511 — os 50% não valem no Studio
   const annualMinorFor = (tier: PaidTier): number =>
@@ -642,6 +644,14 @@ export default function PricingClient({ initialBilling = 'annual' }: {
     affiliateOffer !== null && billing === 'monthly' && (tier === 'basic' || tier === 'pro') && !arrivedWithPromo && !planSwitch.subscribed
   const welcomeOnCard = (tier: string): tier is 'basic' | 'pro' =>
     affiliateOfferChecked && !affiliateOffer && PRICING_WELCOME20_ON_CARD && billing === 'monthly' && (tier === 'basic' || tier === 'pro') && !arrivedWithPromo && !planSwitch.subscribed && welcome20Allowed
+  // ═══ KINEO-MENSAL-3H-0911 [fundador 09/11: "vai para 30% nas 3 primeiras horas. É isso daí."] — o 1º mês com 30% no cartão mensal ═══
+  // Só quando o servidor disse que a janela DESTA conta está aberta (useWelcomeOffers: created_at + 3 h, nunca pagou), no mensal, Starter/Creator/Studio,
+  // para quem não assina, sem cupom na URL. O parceiro (50%) e o WELCOME20 do cartão vencem onde valem — o checkout faz igual. Ao zerar o relógio, some.
+  const monthlyOfferDeadline = welcomeOffers.monthly.deadlineMs
+  const monthlyOfferOnCard = (tier: string): boolean =>
+    monthlyOfferDeadline !== null && billing === 'monthly' && monthlyFirstMonthCoversTier(tier) && !planSwitch.subscribed && !arrivedWithPromo && !affiliateOnCard(tier) && !welcomeOnCard(tier)
+  const monthlyOfferShown = monthlyOfferOnCard('starter') || monthlyOfferOnCard('basic') || monthlyOfferOnCard('pro')
+  const monthlyOfferEndedNotice = welcomeOffers.monthly.ended && billing === 'monthly' && !planSwitch.subscribed
   // KINEO-CHECKOUT-CLAREZA-1610 — o cartão mostrou os 20% (mensal) a quem tem conta: é a pessoa vendo a oferta.
   const welcomeCardShown = welcomeOnCard('basic') || welcomeOnCard('pro')
   useEffect(() => {
@@ -1169,6 +1179,13 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         {billing === 'annual' ? <Bf2026PricingBadge /> : null}
         {/* KINEO-OFERTA-3H-0411 — uma linha discreta, com o fim que o servidor deu. A Black Friday tem o selo acima. */}
         {billing === 'annual' && annualOfferLive && annualOffer?.kind === 'welcome_3h' ? <AnnualOfferCountdown deadlineMs={annualOffer.deadlineMs} percentOff={ANNUAL_WELCOME_DISCOUNT_PERCENT} /> : null}
+        {/* KINEO-MENSAL-3H-0911 — no mensal, a mesma linha com o MESMO relógio do servidor; ao fechar a janela com a página aberta, o aviso de que acabou. */}
+        {monthlyOfferShown && monthlyOfferDeadline !== null ? <AnnualOfferCountdown deadlineMs={monthlyOfferDeadline} percentOff={MONTHLY_FIRST_MONTH_PERCENT_OFF} what={`Your ${MONTHLY_FIRST_MONTH_PERCENT_OFF}% off the first month`} testId="monthly-first-month-countdown" /> : null}
+        {monthlyOfferEndedNotice ? (
+          <p role="status" data-testid="monthly-first-month-ended" className="-mt-4 mb-7 text-center text-[13px] font-bold text-[var(--text)]">
+            {MONTHLY_FIRST_MONTH_ENDED_NOTICE}
+          </p>
+        ) : null}
         {/* KINEO-CHECKOUT-CLAREZA-1610 — a política do anual colada no seletor saiu: a frase única da garantia (que já diz os
             14 dias do anual) está na faixa de confiança do topo e sob o botão de cada cartão logo abaixo. */}
         <p className="-mt-5 mb-7 text-center text-[11.5px] font-semibold text-[var(--muted)]">
@@ -1238,6 +1255,9 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                     const savingWords = annualSavingWords(interfaceLanguage)
                     // KINEO-WELCOME20-NO-CARTAO-2026-10-09 — mensal do Creator/Studio: o 1º mês com 20%, o preço cheio riscado ao lado.
                     const welcome = (affiliateOnCard(tier) || welcomeOnCard(tier)) && displayCurrency ? welcomeFirstMonthMinor(tier as 'basic' | 'pro') : null
+                    // KINEO-MENSAL-3H-0911 — o 1º mês com 30%, calculado do preço de lista (como a Stripe calcula o cupom); o cheio riscado ao lado.
+                    const monthly3h = welcome === null && monthlyOfferOnCard(tier) && displayCurrency ? monthlyFirstMonthMinor(getTierPrice(tier, resolvedCurrency, resolvedRegion)) : null
+                    const monthly3hBrl = monthlyFirstMonthMinor(planSettlementAmountMinor(tier, 'monthly', 'brl', getTierPrice(tier, 'usd')))
                     return (
                       <PlanValueCard
                         key={p.tier}
@@ -1251,11 +1271,14 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                         credits={TIER_CREDITS[tier]}
                         // KINEO-CHECKOUT-CLAREZA-1610 — preço CHEIO por mês (mensal do caixa, ou anual ÷ 12): o cartão faz "≈ US$ X per film".
                         monthlyPriceMinor={displayCurrency ? (annual ? annualMinorFor(tier) / 12 : getTierPrice(tier, resolvedCurrency, resolvedRegion)) : null}
-                        amount={annual ? annualPrices[tier].perMonth : welcome !== null ? formatCheckoutMoney(resolvedCurrency, welcome) : p.price}
-                        was={(annual || welcome !== null) && displayCurrency ? (annual && ofertaNoPlano(tier) ? formatCheckoutMoney(resolvedCurrency, getAnnualPrice(tier, resolvedCurrency, resolvedRegion) / 12) : p.price) : undefined}
-                        per={annual ? `/month, ${displayCurrency ? annualPrices[tier].total : '—'} billed yearly` : welcome !== null ? `first month, then ${p.price}/month` : '/month'}
+                        amount={annual ? annualPrices[tier].perMonth : welcome !== null ? formatCheckoutMoney(resolvedCurrency, welcome) : monthly3h !== null ? formatCheckoutMoney(resolvedCurrency, monthly3h) : p.price}
+                        was={(annual || welcome !== null || monthly3h !== null) && displayCurrency ? (annual && ofertaNoPlano(tier) ? formatCheckoutMoney(resolvedCurrency, getAnnualPrice(tier, resolvedCurrency, resolvedRegion) / 12) : p.price) : undefined}
+                        per={annual ? `/month, ${displayCurrency ? annualPrices[tier].total : '—'} billed yearly` : welcome !== null || monthly3h !== null ? `first month, then ${p.price}/month` : '/month'}
                         note={settlementCurrency === 'brl'
-                          ? welcome !== null
+                          ? !annual && monthly3h !== null
+                            // KINEO-MENSAL-3H-0911 — em reais, o mesmo cupom de 30% sobre o mensal da tabela, depois o mensal cheio.
+                            ? `Charged in BRL: ${formatSettlementMoney('brl', monthly3hBrl)} first month, then ${formatSettlementMoney('brl', planSettlementAmountMinor(tier, 'monthly', 'brl', getTierPrice(tier, 'usd')))}/mo`
+                            : welcome !== null
                             // KINEO-WELCOME20-NO-CARTAO-2026-10-09 — em reais, o cupom vale igual: 1º mês com 20%, depois o mensal da tabela.
                             ? `Charged in BRL: ${formatSettlementMoney('brl', Math.round((planSettlementAmountMinor(tier, 'monthly', 'brl', getTierPrice(tier, 'usd')) * (100 - (affiliateOnCard(tier) ? 50 : WELCOME20_PERCENT_OFF))) / 100))} first month, then ${formatSettlementMoney('brl', planSettlementAmountMinor(tier, 'monthly', 'brl', getTierPrice(tier, 'usd')))}/mo`
                             : `${settlementNote(
@@ -1273,7 +1296,9 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                             ? affiliateOnCard(tier) && affiliateOffer
                               ? affiliateOfferCopy(interfaceLanguage, affiliateOffer.partnerName)
                               : <>Save <b>{formatCheckoutMoney(resolvedCurrency, getTierPrice(tier, resolvedCurrency, resolvedRegion) - welcome)}</b> on your first month{welcomeDeadline.label ? <> · <b>{welcomeDeadline.label}</b></> : null /* KINEO-CHECKOUT-CLAREZA-1610 */}</>
-                            : undefined}
+                            : monthly3h !== null
+                              ? <span data-testid={`monthly-first-month-${tier}`}><b>{MONTHLY_FIRST_MONTH_PERCENT_OFF}% off your first month</b> · save {formatCheckoutMoney(resolvedCurrency, getTierPrice(tier, resolvedCurrency, resolvedRegion) - monthly3h)}{/* KINEO-MENSAL-3H-0911 */}</span>
+                              : undefined}
                         extra={localMethod === 'upi' && billing === 'monthly' && !planSwitch.subscribed && !affiliateOnCard(p.tier) ? (
                           <a
                             href={`/api/dodo/checkout?tier=${p.tier}&utm_source=pricing_plan&utm_medium=local_method&utm_campaign=upi`}

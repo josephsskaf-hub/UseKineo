@@ -119,7 +119,8 @@ async function problemas(mut = {}) {
   const corpoKling = (over = {}) => K.buildKling4PromoAvailability({ policy: politica, now: T0, subscription: assinatura(), budgetAvailable: true, usedToday: 0, ...over })
   const so = (leituras, agora = T0) => R.linhasDaCaixa({ ...R.CAIXA_SEM_LEITURA, ...leituras }, agora)
   const ids = (linhas) => linhas.map((l) => l.id).join(',')
-  checa('a rota do anual segue devolvendo nowMs, offer e endsAtMs', SRC[F.rotaAnual].includes('{ nowMs, offer: offer?.kind ?? null, endsAtMs: offer?.endsAtMs ?? null }'))
+  // KINEO-MENSAL-3H-0911 — a mesma resposta ganhou monthlyOffer/monthlyEndsAtMs (os 30% do 1º mês, mesmo relógio); os três campos do anual seguem iguais.
+  checa('a rota do anual segue devolvendo nowMs, offer e endsAtMs', SRC[F.rotaAnual].includes('nowMs, offer: offer?.kind ?? null, endsAtMs: offer?.endsAtMs ?? null,\n'))
 
   // ─── Afiliado: sempre, com a constante ───────────────────────────────────────────────────────────────────────────────────────
   const soAfiliado = so({})
@@ -374,7 +375,7 @@ const MUTANTES = {
   'laço de render: estado mexido em efeito sem dependência': troca(F.comp, '  useEffect(() => () => pedidoRef.current?.abort(), [])', '  useEffect(() => { setLinhas([]) })\n  useEffect(() => () => pedidoRef.current?.abort(), [])'),
   'abre sozinho': troca(F.comp, 'const [aberta, setAberta] = useState(false)', 'const [aberta, setAberta] = useState(true)'),
   'Kling 4 para qualquer um com a oferta pública no ar': troca(F.regra, 'kling4PromoZeroCredits(l.kling4, KLING4_SEGUNDOS_DA_LEITURA, agoraMs)', '(objeto(l.kling4)?.publicOfferLive === true)'),
-  'Black Friday acende a linha das 3 h': troca(F.regra, "a.offer !== 'welcome_3h'", '!a.offer'),
+  'Black Friday acende a linha das 3 h': troca(F.regra, "a.offer === 'welcome_3h' ? faltaDaJanela", 'a.offer ? faltaDaJanela'), // KINEO-MENSAL-3H-0911 — a régua mudou de forma, o mutante é o mesmo
   'anual sem a leitura da conta': troca(F.regra, 'if (!c || c.entitlementsResolved !== true || c.hasPaid !== false) return null', ''),
   'afiliado some quando a leitura falha': troca(F.regra, "linhas.push({ id: 'afiliado',", "if (l.credits) linhas.push({ id: 'afiliado',"),
   'comissão digitada à mão': { ...troca(F.regra, '`Earn ${AFFILIATE_COMMISSION_PCT}`', "'Earn 30%'"), ...troca(F.afiliado, 'AFFILIATE_COMMISSION_RATE = 0.3', 'AFFILIATE_COMMISSION_RATE = 0.25') },

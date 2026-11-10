@@ -33,7 +33,15 @@ checa('top-up fora nos dois lugares', P.TOPUPS_LIVE === false && T.TOPUP_SALES_O
 checa('avulso fora', /FILM_PASS_LIVE = false/.test(lf('lib/offers/avulsoUnico3110.ts')) && /ONE_TIME_ITEMS_LIVE = false/.test(lf('lib/oneTimeItem.ts')))
 const rota = lf('app/api/stripe/checkout/route.ts')
 checa('link velho de avulso e top-up cai nos planos, antes de cobrar', rota.indexOf("/pricing?from=no_one_time") > 0 && rota.indexOf("/pricing?from=no_one_time") < rota.indexOf('return await buildTopupAndRedirect(req, packParam, true)'))
-checa('mensal sem desconto automático', /WELCOME20_SITE_OFFER_LIVE = false/.test(lf('lib/growth/publicPromoTruth.ts')))
+checa('mensal sem desconto automático fora da janela de 3 h (WELCOME20 desligado)', /WELCOME20_SITE_OFFER_LIVE = false/.test(lf('lib/growth/publicPromoTruth.ts')))
+// KINEO-MENSAL-3H-0911 [fundador 09/11: "vai para 30% nas 3 primeiras horas"] — o único desconto do mensal: 30% no 1º mês, só nas 3 h da conta nova que nunca pagou.
+{
+  const M = carrega('lib/billing/monthlyFirstMonthOffer.ts')
+  const conta = { live: true, tier: 'basic', isAnnual: false, signedIn: true, accountCreatedAt: '2026-11-09T00:00:00.000Z', hasPaid: false }
+  checa('mensal: 30% no 1º mês dentro das 3 h', M.monthlyFirstMonthDecision({ ...conta, nowMs: Date.parse('2026-11-09T02:59:59.000Z') }).apply === true && M.MONTHLY_FIRST_MONTH_PERCENT_OFF === 30)
+  checa('mensal: sem desconto a partir de 3:00:00', M.monthlyFirstMonthDecision({ ...conta, nowMs: Date.parse('2026-11-09T03:00:00.000Z') }).apply === false)
+  checa('mensal: sem desconto para quem já pagou', M.monthlyFirstMonthDecision({ ...conta, hasPaid: true, nowMs: Date.parse('2026-11-09T01:00:00.000Z') }).apply === false)
+}
 const clip = lf('lib/clips/clipPricing.ts')
 checa('o preço dos clipes em créditos não mudou', clip.includes('export const STUDIO_PLAN_USD_CENTS = 5490') && clip.includes('export const STUDIO_PLAN_CREDITS = 300'))
 // furos que os guardiões velhos acharam

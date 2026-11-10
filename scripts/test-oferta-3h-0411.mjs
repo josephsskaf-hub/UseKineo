@@ -69,7 +69,7 @@ function problemas(repl = {}) {
   checa('logado na janela: welcome_3h', O.resolveAnnualOffer(base)?.kind === 'welcome_3h' && O.resolveAnnualOffer(base)?.endsAtMs === T0 + 3 * H)
   checa('convidado fechado', O.resolveAnnualOffer({ ...base, signedIn: false }) === null)
   checa('pago fechado', O.resolveAnnualOffer({ ...base, hasPaid: true }) === null)
-  checa('mensal nunca', O.resolveAnnualOffer({ ...base, isAnnual: false }) === null && O.resolveAnnualOffer({ ...base, isAnnual: false, bfOpen: true }) === null)
+  checa('mensal nunca nos 50% do anual (o mensal tem os próprios 30% no 1º mês: lib/billing/monthlyFirstMonthOffer.ts)', O.resolveAnnualOffer({ ...base, isAnnual: false }) === null && O.resolveAnnualOffer({ ...base, isAnnual: false, bfOpen: true }) === null)
   for (const tier of ['business', 'autopilot', 'autopilot_lite']) checa(`${tier} fica fora`, O.resolveAnnualOffer({ ...base, tier }) === null && O.resolveAnnualOffer({ ...base, tier, bfOpen: true }) === null)
   checa('link privado fica fora', O.resolveAnnualOffer({ ...base, privatePromo: true }) === null)
   for (const t of ['starter', 'basic']) checa(`${t} entra`, O.resolveAnnualOffer({ ...base, tier: t })?.kind === 'welcome_3h')

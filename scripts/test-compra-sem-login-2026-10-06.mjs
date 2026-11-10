@@ -1613,7 +1613,8 @@ async function sLoggedUnchanged() {
     shots.push({
       status: logged.res.status,
       // Ids aleatórios (conta, Customer) e o relógio ficam de fora; todo o resto tem de ser igual.
-      params: params && { ...params, customer: 'cus_x', metadata: omit(params.metadata, OWNER_KEYS), subscription_data: { ...params.subscription_data, metadata: omit(params.subscription_data?.metadata, OWNER_KEYS) }, expires_at: 0 },
+      // KINEO-MENSAL-3H-0911 — a conta nasce agora, então leva os 30% do 1º mês nas duas fotos; o fim da janela (created_at + 3 h) é relógio e sai, o carimbo fica.
+      params: params && { ...params, customer: 'cus_x', metadata: omit(params.metadata, [...OWNER_KEYS, 'monthly_first_month_3h_ends_at']), subscription_data: { ...params.subscription_data, metadata: omit(params.subscription_data?.metadata, [...OWNER_KEYS, 'monthly_first_month_3h_ends_at']) }, expires_at: 0 },
       events: env.db.rows('events').map((e) => e.name),
       cookies: Object.keys(logged.browser.cookies).sort(),
     })
