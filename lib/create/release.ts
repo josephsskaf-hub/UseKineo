@@ -4,4 +4,6 @@
 // logada; visitante vai ao cadastro e volta para a aba. Módulo puro e seguro no cliente: a lista de e-mails NÃO mora aqui.
 import type { InternalRelease } from '@/lib/recreate/release'
 
-export const CREATE_SHELL_RELEASE: InternalRelease = 'internal'
+// KINEO-TELA-NOVA-ABRE-1011 [fundador 10/11: "Quero todas as telas com o design que fizemos no codex"] — aberto ao público em 10/11/2026,
+// depois da conferência logada em produção (e76afc095). VOLTA: 'internal' fecha de novo (só a casa); 'off' tira de todos.
+export const CREATE_SHELL_RELEASE: InternalRelease = 'public'

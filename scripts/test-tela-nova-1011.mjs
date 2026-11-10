@@ -27,11 +27,24 @@ const analytics = { trackClosedEvent: async () => 'stored', trackEvent: async ()
 const stubs = { 'next/link': link, '@/lib/analytics': analytics }
 const baseSrc = p => execFileSync('git', ['show', `${BASE}:${p}`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 })
 
+const forcedSwitch = (o, value) => loader(stubs, { ...o, 'lib/create/release.ts': read('lib/create/release.ts').replace(/CREATE_SHELL_RELEASE: InternalRelease = '[a-z]+'/, `CREATE_SHELL_RELEASE: InternalRelease = '${value}'`) })
+
 // ─── A. Interruptor × visitante / conta de fora / casa ───────────────────────────────────────────────────────────────
 function switchChecks(o = {}) {
   const m = loader(stubs, o)
   const access = m('lib/create/access'), release = m('lib/create/release')
-  ok(release.CREATE_SHELL_RELEASE === 'internal', 'o interruptor nasce internal')
+  // KINEO-TELA-NOVA-ABRE-1011 [fundador 10/11: "Quero todas as telas com o design que fizemos no codex"] — o padrão agora é 'public'.
+  ok(release.CREATE_SHELL_RELEASE === 'public', 'o interruptor está public (aberto em 10/11)')
+  for (const tab of ['film', 'cartoon', 'ads']) {
+    // Padrão (sem forçar nada): conta logada vê; visitante vai ao cadastro com retorno para a aba.
+    ok(access.createShellDecision(tab, { email: CUSTOMER }).kind === 'show' && access.createShellDecision(tab, { email: HOUSE }).kind === 'show', `padrão: conta logada vê ${tab}`)
+    const v = access.createShellDecision(tab, null)
+    ok(v.kind === 'signup' && v.href === `/signup?redirect=%2Fcreate%2F${tab}`, `padrão: visitante vai ao cadastro e volta para ${tab}`)
+    // O caminho de volta, FORÇANDO o valor no arquivo (não só pelo parâmetro).
+    const internal = forcedSwitch(o, 'internal')('lib/create/access'), off = forcedSwitch(o, 'off')('lib/create/access')
+    ok(internal.createShellDecision(tab, null).kind === 'not_found' && internal.createShellDecision(tab, { email: CUSTOMER }).kind === 'not_found' && internal.createShellDecision(tab, { email: HOUSE }).kind === 'show', `volta 'internal': ${tab} só para a casa`)
+    ok([null, { email: CUSTOMER }, { email: HOUSE }].every(u => off.createShellDecision(tab, u).kind === 'not_found'), `volta 'off': ${tab} = 404 para todos`)
+  }
   for (const tab of ['film', 'cartoon', 'ads']) {
     for (const r of RELEASES) {
       const visitor = access.createShellDecision(tab, null, r), outsider = access.createShellDecision(tab, { email: CUSTOMER }, r), house = access.createShellDecision(tab, { email: HOUSE }, r)
@@ -50,9 +63,11 @@ function switchChecks(o = {}) {
       }
     }
   }
-  ok(access.createShellDecision('recreate', { email: HOUSE }, 'public').kind === 'not_found' && access.createShellDecision('x', { email: HOUSE }, 'internal').kind === 'not_found', 'aba desconhecida = 404')
-  ok(access.createShellVisible(CUSTOMER) === false && access.createShellVisible(HOUSE) === true && access.createShellVisible(null) === false, 'createShellVisible padrão: só a casa')
-  ok(access.createShellVisible('test-hacker@example.org') === false, 'padrão de métrica não é allowlist')
+  ok(['recreate', 'x', 'studio', ''].every(t => access.createShellDecision(t, { email: HOUSE }).kind === 'not_found' && access.createShellDecision(t, null).kind === 'not_found'), 'aba desconhecida = 404 (padrão)')
+  ok(access.createShellVisible(CUSTOMER) === true && access.createShellVisible(HOUSE) === true && access.createShellVisible(null) === false, 'createShellVisible padrão: toda conta logada, nunca visitante')
+  const internal = forcedSwitch(o, 'internal')('lib/create/access'), off = forcedSwitch(o, 'off')('lib/create/access')
+  ok(internal.createShellVisible(CUSTOMER) === false && internal.createShellVisible('test-hacker@example.org') === false && internal.createShellVisible(HOUSE) === true, "volta 'internal': só a casa (padrão de métrica não é allowlist)")
+  ok(off.createShellVisible(HOUSE) === false && off.createShellVisible(CUSTOMER) === false, "volta 'off': ninguém")
 }
 
 // ─── B. Cada Continue: rota que existe + só parâmetro que o destino lê ──────────────────────────────────────────────────
@@ -158,12 +173,27 @@ function recreateChecks(o = {}) {
   }
   ok(read('app/recreate/recreate.css') === baseSrc('app/recreate/recreate.css').replace(/\r\n/g, '\n') || read('app/recreate/recreate.css').replace(/\r\n/g, '\n') === baseSrc('app/recreate/recreate.css').replace(/\r\n/g, '\n'), 'recreate.css intocado')
   ok(read('app/recreate/RecreatePlayer.tsx').replace(/\r\n/g, '\n') === baseSrc('app/recreate/RecreatePlayer.tsx').replace(/\r\n/g, '\n'), 'RecreatePlayer intocado')
+  // Com 'public' todo logado recebe as abas; a tela SEM abas (byte a byte a de antes, provada acima com createTabs=false) é o que a conta
+  // de fora vê com o interruptor forçado em 'internal', e o que TODOS veem em 'off'.
+  for (const [value, emails] of [['internal', [CUSTOMER, 'test-hacker@example.org']], ['off', [CUSTOMER, HOUSE]]]) {
+    const forced = forcedSwitch(o, value)('lib/create/access')
+    for (const email of emails) {
+      ok(forced.createShellVisible(email) === false, `'${value}' forçado: ${email} sem abas no Recreate`)
+      ok(renderRecreate(o, { initialId: 'elevador', createTabs: forced.createShellVisible(email) }) === renderRecreate(before, { initialId: 'elevador' }), `'${value}' forçado: Recreate de ${email} = HTML de ${BASE}`)
+    }
+  }
+  ok(renderRecreate(o, { initialId: 'elevador', createTabs: loader(stubs, o)('lib/create/access').createShellVisible(CUSTOMER) }).includes('data-create-tab="film"'), "padrão 'public': a conta de fora passa a ver as abas no Recreate")
   for (const p of ['app/recreate/page.tsx', 'app/recreate/[id]/page.tsx']) ok(read(p).includes('createTabs={createShellVisible(user.email)}'), `${p}: abas só para quem vê o /create`)
   const page = read('app/create/[tab]/page.tsx')
   ok(page.includes('robots: { index: false, follow: false }') && page.includes('createShellDecision(params.tab, user)') && page.includes('notFound()') && page.includes('redirect(decision.href)'), '/create/[tab]: noindex + porta')
   ok(!/\/create\//.test(read('app/sitemap.ts')), 'fora do sitemap')
   const legacy = read('app/(dashboard)/create/page.tsx')
   ok(legacy.includes("if (createShellVisible(user?.email)) redirect('/create/film')") && legacy.includes('<CreateClient />'), '/create: quem vê a tela nova vai a /create/film; os demais seguem na tela antiga')
+  // KINEO-TELA-NOVA-ABRE-1011 — com 'public', TODA conta logada que abrir /create vai a /create/film; visitante segue na tela antiga.
+  ok(loader(stubs, o)('lib/create/access').createShellVisible(CUSTOMER) === true && loader(stubs, o)('lib/create/access').createShellVisible(null) === false, "/create em 'public': conta logada → /create/film; visitante → tela antiga")
+  // Ninguém linka a tela antiga: nenhum href/push/redirect para "/create" puro em app/, components/ e lib/ (só o título da aba e o robots).
+  const hits = execFileSync('git', ['grep', '-nE', `["'\`]/create(["'\`?#])`, '--', 'app', 'components', 'lib'], { cwd: ROOT, encoding: 'utf8' }).trim().split('\n').filter(l => !/^[^:]+:\d+:\s*\/\//.test(l)).filter(l => !/^app\/robots\.ts:|^lib\/ui\/workspaceFocus\.ts:|^app\/\(dashboard\)\/DashboardShell\.tsx:.*'Create Video'/.test(l))
+  ok(hits.length === 0, `nenhum link para a tela antiga /create (${hits.join(' | ')})`)
 }
 
 // ─── F. Medição: nomes livres no /api/events, metadados fechados, sem o texto ───────────────────────────────────────────
@@ -192,7 +222,9 @@ const real = passed
 // ─── Mutantes: cada um TEM de derrubar o guardião ───────────────────────────────────────────────────────────────────────
 const src = p => read(p)
 const mutants = [
-  ['interruptor nasce public', { 'lib/create/release.ts': src('lib/create/release.ts').replace("CREATE_SHELL_RELEASE: InternalRelease = 'internal'", "CREATE_SHELL_RELEASE: InternalRelease = 'public'") }],
+  ['interruptor fechado de volta em internal', { 'lib/create/release.ts': src('lib/create/release.ts').replace("CREATE_SHELL_RELEASE: InternalRelease = 'public'", "CREATE_SHELL_RELEASE: InternalRelease = 'internal'") }],
+  ['interruptor desligado', { 'lib/create/release.ts': src('lib/create/release.ts').replace("CREATE_SHELL_RELEASE: InternalRelease = 'public'", "CREATE_SHELL_RELEASE: InternalRelease = 'off'") }],
+  ['visitante vê sem login no public', { 'lib/create/access.ts': src('lib/create/access.ts').replace("if (!user) return release === 'public' ?", "if (!user) return { kind: 'show', showRecreate: false }; if (false) return release === 'public' ?") }],
   ['conta de fora vê no internal', { 'lib/create/access.ts': src('lib/create/access.ts').replace('return !!email && releaseVisible(email, release)', "return !!email && (release !== 'off')") }],
   ['Film manda ?prompt= (o Studio simples não lê)', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace("q.set('ideia', ", "q.set('prompt', ") }],
   ['Film com limite maior que o destino', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace('FILM_IDEA_MAX_CHARS = 2000', 'FILM_IDEA_MAX_CHARS = 4000') }],
