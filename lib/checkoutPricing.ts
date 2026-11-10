@@ -796,6 +796,43 @@ export function recargaAssinanteMinFilmCredits(): number {
   return creditCostForDuration('cinematic_ai', true, 15)
 }
 
+// ═══ KINEO-REGIAO-FILME-199-1011 [fundador 10/11: "1.99 1 filme!"] — UM filme de 15 s por US$ 1,99, pagamento ÚNICO ═══
+// Só para conta 'region_paid_only' de IN/PK/NG que nunca pagou, uma vez por conta (regras em lib/growth/regiaoFilme199.ts;
+// checkout em lib/stripe/regiaoFilme199Checkout.ts; webhook Path A). PREÇO E CRÉDITOS SÓ AQUI — o checkout, o webhook e a
+// faixa do /pricing leem estas linhas. USD para todo mundo (sem moeda local: nem ?currency= muda a cobrança deste SKU).
+// Os créditos NÃO são digitados: são o custo pago do filme que o Starter faz a 15 s (Seedance 1.5 = 'cinematic_ai'),
+// creditCostForDuration('cinematic_ai', true, 15) — hoje 9. Função (e não constante) porque dezenas de guardiões carregam
+// este arquivo com engineCost stubado: nada de conta no topo do módulo.
+// POR CRÉDITO: US$ 1,99 / 9 = 0,221 — um pouco ABAIXO do Starter (US$ 9 / 40 = 0,225). Nenhum invariante deste arquivo
+// barra isso (o (1) só compara TOP-UPS com o plano); é escolha consciente do fundador: primeira compra, uma vez por conta,
+// 3 países. O invariante (9) abaixo prova a margem com a taxa de cartão INTERNACIONAL.
+export const REGIAO_FILME_199_PRICE_MINOR: Record<CheckoutCurrency, number> = { usd: 199 }
+export const REGIAO_FILME_199_QUALITY = 'cinematic_ai' as const
+export const REGIAO_FILME_199_SECONDS = 15
+export function regiaoFilme199Credits(): number {
+  return creditCostForDuration(REGIAO_FILME_199_QUALITY, true, REGIAO_FILME_199_SECONDS)
+}
+/** "$1.99" — a ÚNICA forma de o preço deste SKU chegar a um texto. */
+export function regiaoFilme199PriceLabel(): string {
+  return `$${(REGIAO_FILME_199_PRICE_MINOR.usd / 100).toFixed(2)}`
+}
+/** Stripe, cartão INTERNACIONAL (Índia/Paquistão/Nigéria pagam com cartão emitido fora dos EUA): 2,9% + 1,5% de cartão
+ *  internacional = 4,4% + US$ 0,30. Mais conservador que netAfterStripeUsd (2,9% + 0,30), que vale para os outros SKUs. */
+export const REGIAO_FILME_199_STRIPE_PERCENT = 0.044
+export const REGIAO_FILME_199_STRIPE_FIXED_USD = 0.3
+export function netAfterStripeIntlUsd(grossUsd: number): number {
+  return grossUsd * (1 - REGIAO_FILME_199_STRIPE_PERCENT) - REGIAO_FILME_199_STRIPE_FIXED_USD
+}
+/** O pior custo de fornecedor dos créditos deste SKU: o MAIOR entre (a) worstCaseCogsUsd de sempre, (b) todos os créditos
+ *  ao pior US$/crédito da casa e (c) o filme anunciado (Seedance 15 s) pela fatura real do Seedance 60 s proporcional. */
+export function regiaoFilme199WorstCogsUsd(credits: number = regiaoFilme199Credits()): number {
+  return Math.max(
+    worstCaseCogsUsd(credits),
+    credits * WORST_CASE_USD_PER_CREDIT,
+    (WORST_CASE_FILM_COSTS[REGIAO_FILME_199_QUALITY] ?? 0) * (REGIAO_FILME_199_SECONDS / 60),
+  )
+}
+
 // KINEO-PRICING-V3D-2026-07-26 — DEFECT (c). Top-ups are sold ONLY to existing
 // subscribers, so they must cost MORE per credit than the subscription they sit
 // on top of; otherwise the rational move for a Creator/Studio subscriber is to
@@ -1073,6 +1110,8 @@ export function checkPricingInvariants(): string[] {
     // ADS_PASS_CREDITS); o guardião test-ads-servidor confere a igualdade. Anuncia Kineo 1, mas prova-se contra Seedance.
     // 28/09: passe B do fundador (90 cr pelo mesmo US$19,90).
     { id: 'pack:ads_pass', usdMinor: 1990, credits: 90, advertisedQuality: 'cinematic_ai', advertisedSeconds: PACK_ADVERTISED_SECONDS.ads_pass },
+    // KINEO-REGIAO-FILME-199-1011 — o filme de 15 s por US$ 1,99 (a checagem com cartão internacional é a (9)).
+    { id: 'pack:region_film_199', usdMinor: REGIAO_FILME_199_PRICE_MINOR.usd, credits: regiaoFilme199Credits(), advertisedQuality: REGIAO_FILME_199_QUALITY, advertisedSeconds: REGIAO_FILME_199_SECONDS },
   ]
   for (const sku of packSkus) {
     const advertisedVideoCost = creditCostForDuration(sku.advertisedQuality, true, sku.advertisedSeconds)
@@ -1203,6 +1242,7 @@ export function checkPricingInvariants(): string[] {
   }
   claim(PACK_PRICE_MINOR.usd, 'pack:starter')
   claim(PACK290_PRICE_MINOR.usd, 'pack:starter290')
+  claim(REGIAO_FILME_199_PRICE_MINOR.usd, 'pack:region_film_199') // KINEO-REGIAO-FILME-199-1011 — o webhook nunca concede este SKU por valor (só por metadata.pack), mas o valor não pode colidir
   claim(TOPUP_USD_PRICES.topup40, 'topup40')
   claim(TOPUP_USD_PRICES.topup100, 'topup100')
   claim(TOPUP_USD_PRICES.topup120, 'topup120')
@@ -1284,6 +1324,18 @@ export function checkPricingInvariants(): string[] {
     const welcomeExact = (1 - ANNUAL_WELCOME_PRICES[tier].usd / (TIER_PRICES[tier].usd * 12)) * 100
     if (Math.abs(welcomeExact - ANNUAL_WELCOME_DISCOUNT_PERCENT) > 0.5 || ANNUAL_WELCOME_PRICES[tier].usd >= ANNUAL_PRICES[tier].usd) {
       problems.push(`annual_welcome:${tier} saves ${welcomeExact.toFixed(2)}% against 12 monthly payments, but the copy says ${ANNUAL_WELCOME_DISCOUNT_PERCENT}%, or it is not below the regular annual.`)
+    }
+  }
+
+  // (9) KINEO-REGIAO-FILME-199-1011 — o filme de US$ 1,99 é EXCEÇÃO DOCUMENTADA à régua "nada abaixo do Starter por
+  //     crédito" (0,221 < 0,225; primeira compra, uma vez por conta, IN/PK/NG). A margem tem checagem própria: líquido com
+  //     cartão INTERNACIONAL (4,4% + US$ 0,30) acima do pior custo dos créditos concedidos (regiaoFilme199WorstCogsUsd).
+  {
+    const credits199 = regiaoFilme199Credits()
+    const net199 = netAfterStripeIntlUsd(REGIAO_FILME_199_PRICE_MINOR.usd / 100)
+    const cogs199 = regiaoFilme199WorstCogsUsd(credits199)
+    if (net199 - cogs199 < 0) {
+      problems.push(`pack:region_film_199 is below cost with an international card (net $${net199.toFixed(2)} vs worst COGS $${cogs199.toFixed(2)}).`)
     }
   }
 

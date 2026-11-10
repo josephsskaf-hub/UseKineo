@@ -307,6 +307,13 @@ const SERVER_ONLY_EVENTS = new Set([
   'subscription_resumed',
   'subscription_billing_mode_migrated',
   'subscription_billing_mode_migrate_failed',
+  // KINEO-REGIAO-FILME-199-1011 — o filme de 15 s por US$ 1,99 (IN/PK/NG): oferta mostrada e clicada (a faixa), sessão de
+  // checkout aberta (o checkout) e pagamento concedido (o webhook). O `_paid` é também a prova de "já comprou" que a faixa e o
+  // checkout leem: forjado pelo navegador, travaria a oferta de alguém; os outros inventariam um funil que não existiu.
+  'region_film_199_shown',
+  'region_film_199_clicked',
+  'region_film_199_checkout_started',
+  'region_film_199_paid',
   // KINEO-STRIPE-ATRASO-2026-09-28 — escritos SÓ pelo webhook da Stripe. `subscription_ended` é o churn (fim de
   // assinatura) e `renewal_ignored_non_access` o pagamento de renovação descartado; forjá-los mentiria no placar.
   'subscription_ended',

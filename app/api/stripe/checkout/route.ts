@@ -103,6 +103,8 @@ import { buildKitBfAndRedirect } from '@/lib/stripe/kitBfCheckout' // KINEO-KIT-
 import { buildOneTimeItemAndRedirect } from '@/lib/stripe/oneTimeItemCheckout' // KINEO-COMPRA-AVULSA-2410
 import { buildRecargaAssinanteAndRedirect } from '@/lib/stripe/recargaAssinanteCheckout' // KINEO-RECARGA-ASSINANTE-1111 — 60 créditos por US$ 9, pagamento único, só assinante que zerou
 import { RECARGA_ASSINANTE_SKU } from '@/lib/billing/recargaAssinante' // KINEO-RECARGA-ASSINANTE-1111
+import { buildRegiaoFilme199AndRedirect } from '@/lib/stripe/regiaoFilme199Checkout' // KINEO-REGIAO-FILME-199-1011 — o filme de 15 s por US$ 1,99 (pagamento único, IN/PK/NG, uma vez por conta)
+import { REGIAO_FILME_199_SKU } from '@/lib/growth/regiaoFilme199' // KINEO-REGIAO-FILME-199-1011
 import { buildKidsVendaAndRedirect } from '@/lib/stripe/kidsVendaCheckout' // KINEO-KIDS-VENDA-2010 — piloto infantil (assinatura, price_data recorrente inline) e pack de 30 (pagamento único); preço só do servidor
 import { KIDS_AUTOPILOT_ID, KIDS_PACK_ID } from '@/lib/kidsVenda/kidsVenda' // KINEO-KIDS-VENDA-2010
 import { annualEarlyOfferPriceMinor } from '@/lib/billing/annualEarlyOffer' // KINEO-KIT-BF-VENDA-2010 — "2 meses grátis no anual" até 21/11 (o MAIOR desconto, sem somar)
@@ -4729,6 +4731,7 @@ export async function GET(req: NextRequest) {
     const packParam = req.nextUrl.searchParams.get('pack')
     if (packParam?.startsWith('one_time_')) return await buildOneTimeItemAndRedirect(req, { recordCheckoutEvent, browserSessionIdFrom, checkoutFailureReason, oneTimeIdempotencyKey }) // KINEO-COMPRA-AVULSA-2410 — unknown single-item SKUs fail closed before legacy fallbacks.
     if (packParam === RECARGA_ASSINANTE_SKU) return await buildRecargaAssinanteAndRedirect(req, { recordCheckoutEvent, browserSessionIdFrom, checkoutFailureReason, oneTimeIdempotencyKey }) // KINEO-RECARGA-ASSINANTE-1111 — ANTES de todo fallback de ?pack= (a recarga antiga fora de venda mandaria aos planos): elegibilidade, preço e créditos só do servidor
+    if (packParam === REGIAO_FILME_199_SKU) return await buildRegiaoFilme199AndRedirect(req, { recordCheckoutEvent, browserSessionIdFrom, checkoutFailureReason, oneTimeIdempotencyKey }) // KINEO-REGIAO-FILME-199-1011 — ANTES de todo fallback de ?pack= (o passe desligado mandaria aos planos; ligado, venderia o passe de US$ 4,99): elegibilidade, preço e créditos só do servidor
     if (packParam) {
       // KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — avatar packs are gone. Avatar
       // videos now use universal credits, so avatar_credits packs are unsellable.

@@ -47,7 +47,7 @@ const IMG = `${SB}/storage/v1/object/public/renders/images/u/a.jpg`
 const strip = (s) => s.replace(/^\s*\/\/.*$/gm, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
 
 console.log('0 — o que NÃO pode mudar (igual à origin/main)')
-for (const rel of ['lib/scenePreview.ts', 'app/api/scene-preview/route.ts', 'lib/freeFilmPolicy.ts', 'lib/checkoutPricing.ts', 'lib/credits/engineCost.ts', 'lib/enginePlanGate.ts', 'app/api/stripe/checkout/route.ts', 'lib/recreate/access.ts']) {
+for (const rel of ['lib/scenePreview.ts', 'app/api/scene-preview/route.ts', 'lib/freeFilmPolicy.ts', 'lib/credits/engineCost.ts', 'lib/enginePlanGate.ts', 'lib/recreate/access.ts']) {
   const m = main(rel)
   // KINEO-RECARGA-ASSINANTE-1111 — preço e checkout ganham SKUs novos (recarga do assinante): nesses dois a regra é "só
   // acréscimos" (toda linha da main continua lá, na mesma ordem); os outros seguem idênticos à main.
@@ -59,6 +59,14 @@ for (const rel of ['lib/scenePreview.ts', 'app/api/scene-preview/route.ts', 'lib
     continue
   }
   ok(m !== null && m === read(rel), `${rel} idêntico à main`)
+}
+// KINEO-REGIAO-FILME-199-1011 — lib/checkoutPricing.ts (SKU do filme de US$ 1,99 + invariante 9) e a rota de checkout (o ramo
+// ?pack=region_film_199) ganharam linhas NOVAS legítimas; o guardião delas é scripts/test-regiao-filme-199-1011.mjs. Aqui
+// continua provado o que esta entrega exige: nenhuma linha da main saiu nem mudou (só acréscimos, na mesma ordem).
+const soAcrescimos = (base, cur) => { const b = base.split('\n'), c = cur.split('\n'); let i = 0; for (const l of c) if (i < b.length && l === b[i]) i++; return i === b.length }
+for (const rel of ['lib/checkoutPricing.ts', 'app/api/stripe/checkout/route.ts']) {
+  const m = main(rel)
+  ok(m !== null && soAcrescimos(m, read(rel)), `${rel}: só acréscimos sobre a main (nenhuma linha de preço/checkout mudou)`)
 }
 ok(P.PREVIA_PER_ACCOUNT_TOTAL === 3 && P.PREVIA_PER_ACCOUNT_PER_DAY === 1 && P.PREVIA_GLOBAL_PER_DAY === 200, 'tetos da prévia: 3 por conta, 1 por dia, 200 por dia')
 ok(main('app/pricing/PricingClient.tsx') === read('app/pricing/PricingClient.tsx'), 'a tabela de preços (PricingClient) idêntica à main')

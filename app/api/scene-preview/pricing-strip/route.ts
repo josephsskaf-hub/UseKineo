@@ -8,6 +8,7 @@
 // débito, nenhum preço novo.
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import type { SupabaseClient } from '@supabase/supabase-js' // KINEO-REGIAO-FILME-199-1011
 import { createClient } from '@/lib/supabase/server'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { releaseVisible } from '@/lib/recreate/access'
@@ -26,6 +27,11 @@ import {
   regiaoPagaShow,
   regiaoPagaSurface,
 } from '@/lib/growth/regiaoPaga1011'
+// KINEO-REGIAO-FILME-199-1011 [fundador 10/11: "1.99 1 filme!"] — a oferta do filme avulso de 15 s dentro desta faixa
+// (só surface 'pricing'). Interruptor 'off' = nenhuma leitura a mais, nenhum campo a mais: a resposta de sempre.
+import { REGIAO_FILME_199_CHECKOUT_HREF, REGIAO_FILME_199_EVENTS, REGIAO_FILME_199_RELEASE, REGIAO_FILME_199_CAMPAIGN, REGIAO_FILME_199_CANCEL_PATH, regiaoFilme199Eligible, regiaoFilme199Mode, type RegiaoFilme199Mode, type RegiaoFilme199Offer, type RegiaoFilme199Profile } from '@/lib/growth/regiaoFilme199'
+import { REGIAO_FILME_199_SECONDS, regiaoFilme199Credits, regiaoFilme199PriceLabel } from '@/lib/checkoutPricing'
+import { lerProvaRegiaoFilme199 } from '@/lib/stripe/regiaoFilme199Checkout' // KINEO-REGIAO-FILME-199-TRAVA-1111 — a prova de servidor, a MESMA do checkout
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -33,6 +39,17 @@ export const fetchCache = 'force-no-store'
 
 const NO_STORE = { 'Cache-Control': 'no-store' }
 const HIDE = () => NextResponse.json({ show: false }, { headers: NO_STORE })
+
+type AdminDb = SupabaseClient
+/** KINEO-REGIAO-FILME-199-1011 — quem vê a oferta do filme avulso: país do PERFIL (signup_country → last_country), has_paid
+ *  comprovado e nenhuma compra anterior do SKU (evento de servidor). Qualquer leitura que falha = não elegível. */
+async function film199ModeFor(db: AdminDb, userId: string, house: boolean): Promise<RegiaoFilme199Mode> {
+  if (REGIAO_FILME_199_RELEASE === 'off') return 'hide'
+  const { data: row, error } = await db.from('profiles').select('trial_status, has_paid, plan, signup_country, last_country').eq('id', userId).maybeSingle()
+  const prova = await lerProvaRegiaoFilme199(db, userId) // KINEO-REGIAO-FILME-199-TRAVA-1111 — o perfil sozinho é editável pelo navegador
+  const eligible = !error && regiaoFilme199Eligible(row as RegiaoFilme199Profile | null, prova)
+  return regiaoFilme199Mode({ release: REGIAO_FILME_199_RELEASE, house, eligible })
+}
 
 export async function GET(req: NextRequest) {
   const go = req.nextUrl.searchParams.get('go') === '1'
@@ -53,6 +70,15 @@ export async function GET(req: NextRequest) {
   if (mode === 'hide') return go ? back() : HIDE()
   const qa = mode === 'qa'
 
+  // KINEO-REGIAO-FILME-199-1011 — o clique no filme avulso (offer=film199): re-decide no servidor; conferência da
+  // casa grava o clique marcado qa e volta à faixa (nunca cobra); cliente elegível segue ao checkout do SKU (que decide de novo).
+  if (go && surface === 'pricing' && req.nextUrl.searchParams.get('offer') === 'film199') {
+    const film199 = await film199ModeFor(db, user.id, house)
+    if (film199 === 'hide') return back()
+    await writeServerEvent({ name: REGIAO_FILME_199_EVENTS.clicked, userId: user.id, path: REGIAO_PAGA_STRIP_API, metadata: { campaign: REGIAO_FILME_199_CAMPAIGN, surface, qa: film199 === 'qa' } })
+    return NextResponse.redirect(new URL(film199 === 'qa' ? REGIAO_FILME_199_CANCEL_PATH : REGIAO_FILME_199_CHECKOUT_HREF, req.url), 303)
+  }
+
   if (go) {
     await writeServerEvent({ name: REGIAO_PAGA_EVENTS.clicked, userId: user.id, path: REGIAO_PAGA_STRIP_API, metadata: { campaign: REGIAO_PAGA_CAMPAIGN, tier: 'starter', surface, qa } })
     return NextResponse.redirect(new URL(REGIAO_PAGA_CHECKOUT_HREF, req.url), 303)
@@ -68,7 +94,12 @@ export async function GET(req: NextRequest) {
 
   const films = regiaoPagaFilms(STARTER_CREDITS, SEEDANCE_SHORT_FILM_CREDITS)
   await writeServerEvent({ name: REGIAO_PAGA_EVENTS.shown, userId: user.id, path: REGIAO_PAGA_STRIP_API, metadata: { campaign: REGIAO_PAGA_CAMPAIGN, scenes: scenes.length, films, surface, qa, sample } })
+  // KINEO-REGIAO-FILME-199-1011 — a oferta só entra na faixa do /pricing; preço e créditos da fonte única (lib/checkoutPricing).
+  const film199Mode: RegiaoFilme199Mode = surface === 'pricing' ? await film199ModeFor(db, user.id, house) : 'hide'
+  const film199: RegiaoFilme199Offer | null = film199Mode === 'hide' ? null : { price: regiaoFilme199PriceLabel(), credits: regiaoFilme199Credits(), seconds: REGIAO_FILME_199_SECONDS, go: `${REGIAO_PAGA_STRIP_API}?go=1&surface=pricing&offer=film199`, qa: film199Mode === 'qa', balance: typeof (profile as { video_credits?: unknown } | null)?.video_credits === 'number' ? (profile as { video_credits: number }).video_credits : null }
+  if (film199) await writeServerEvent({ name: REGIAO_FILME_199_EVENTS.shown, userId: user.id, path: REGIAO_PAGA_STRIP_API, metadata: { campaign: REGIAO_FILME_199_CAMPAIGN, surface, qa: film199.qa, credits: film199.credits, price: film199.price } })
   return NextResponse.json({
+    ...(film199 ? { film199 } : {}),
     show: true,
     qa,
     scenes,

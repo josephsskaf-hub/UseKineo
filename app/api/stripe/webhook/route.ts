@@ -53,6 +53,8 @@ import { PAUSA_POR_CARTAO_1111_MIGRA_NOVAS, PAUSA_POR_CARTAO_EVENTS, PAUSA_POR_C
 import { migrarAssinaturaParaFlexivel } from '@/lib/stripe/migrarFlexivel' // KINEO-PAUSA-POR-CARTAO-1111
 import { RECARGA_ASSINANTE_EVENTS, RECARGA_ASSINANTE_SKU } from '@/lib/billing/recargaAssinante' // KINEO-RECARGA-ASSINANTE-1111 — a recarga do assinante: Path A, créditos da fonte única
 import { RECARGA_ASSINANTE_1111, normalizeSliderCredits, sliderPriceUsdMinor } from '@/lib/credits/creditSlider' // KINEO-RECARGA-ASSINANTE-1111 — o botão e a barra: uma fonte
+import { REGIAO_FILME_199_EVENTS, REGIAO_FILME_199_SKU } from '@/lib/growth/regiaoFilme199' // KINEO-REGIAO-FILME-199-1011 — o filme de 15 s por US$ 1,99: Path A, créditos da fonte única
+import { REGIAO_FILME_199_PRICE_MINOR, regiaoFilme199Credits } from '@/lib/checkoutPricing' // KINEO-REGIAO-FILME-199-1011
 import { ADS_ACCESS_COLUMN, ADS_PASS_CREDITS, ADS_PASS_ID, adsAccessUntil } from '@/lib/ads/offer' // KINEO-STUDIO-ADS-2026-09-25 · ADS_PASS_CREDITS só no fallback sem pack_credits (28/09)
 import {
   buildCanonicalStripeCheckoutFailure,
@@ -1806,6 +1808,14 @@ export async function POST(req: NextRequest) {
             creditsToAdd = normalizeSliderCredits(metaCredits) ?? RECARGA_ASSINANTE_1111.credits // KINEO-RECARGA-ASSINANTE-1111
             if (metaCredits !== creditsToAdd || amount !== sliderPriceUsdMinor(creditsToAdd) || (session.currency ?? '').toLowerCase() !== 'usd') console.warn('[stripe webhook] recarga_assinante session differs from the source of truth (granting the source):', session.id, metaCredits, amount, session.currency) // KINEO-RECARGA-ASSINANTE-1111
           } // KINEO-RECARGA-ASSINANTE-1111
+          // KINEO-REGIAO-FILME-199-1011 — o filme de US$ 1,99 concede SEMPRE a fonte única (regiaoFilme199Credits), nunca o
+          // número da metadata nem um valor: reconhecido só por metadata.pack exata. Pela MESMA trilha do Path A (guard por
+          // sessão ANTES da concessão → UPDATE com has_paid=true → evento depois do UPDATE confirmado).
+          const isFilm199 = packMeta === REGIAO_FILME_199_SKU // KINEO-REGIAO-FILME-199-1011
+          if (isFilm199) { // KINEO-REGIAO-FILME-199-1011
+            creditsToAdd = regiaoFilme199Credits() // KINEO-REGIAO-FILME-199-1011
+            if (metaCredits !== creditsToAdd || amount !== REGIAO_FILME_199_PRICE_MINOR.usd || (session.currency ?? '').toLowerCase() !== 'usd') console.warn('[stripe webhook] region_film_199 session differs from the source of truth (granting the source):', session.id, metaCredits, amount, session.currency) // KINEO-REGIAO-FILME-199-1011
+          } // KINEO-REGIAO-FILME-199-1011
           if (creditsToAdd === 0) {
             // Legacy Payment-Link amounts (USD): $9 → 10, $19 → 25, $4.90 → 30.
             // These only fire for sessions with NO metadata.pack_credits, i.e.
@@ -1979,6 +1989,7 @@ export async function POST(req: NextRequest) {
               await alertFounderAdsPass({ session, userId, credits: creditsToAdd, until: adsUntilIso })
             }
             if (isRecargaAssinante) await writeServerEvent({ name: RECARGA_ASSINANTE_EVENTS.paid, userId, path: '/api/stripe/webhook', metadata: { stripe_session_id: session.id, credits: creditsToAdd, balance_after: next, amount_total: session.amount_total ?? null, currency: session.currency ?? null, campaign: session.metadata?.intent_campaign ?? null, version: session.metadata?.offer_version ?? null } }) // KINEO-RECARGA-ASSINANTE-1111 — DEPOIS da concessão confirmada (a retentativa não chega aqui: o guard da sessão já está gravado)
+            if (isFilm199) await writeServerEvent({ name: REGIAO_FILME_199_EVENTS.paid, userId, path: '/api/stripe/webhook', metadata: { stripe_session_id: session.id, credits: creditsToAdd, amount_total: session.amount_total ?? null, currency: session.currency ?? null, campaign: session.metadata?.intent_campaign ?? null, version: session.metadata?.offer_version ?? null } }) // KINEO-REGIAO-FILME-199-1011 — DEPOIS da concessão confirmada (a retentativa não chega aqui: o guard da sessão já está gravado); também é o "já comprou" que a faixa e o checkout leem
             if (isKitBf) await writeServerEvent({ name: KIT_BF_EVENTS.purchased, userId, path: '/api/stripe/webhook', metadata: { stripe_session_id: session.id, credits: creditsToAdd, until: kitUntilIso, amount_total: session.amount_total ?? null, currency: session.currency ?? null, kit_version: session.metadata?.kit_version ?? KIT_BF_VERSION } }) // KINEO-KIT-BF-VENDA-2010 — o evento de compra DEPOIS da concessão confirmada (a retentativa não chega aqui: o guard da sessão já está gravado)
             if (isAutopilotPilot) {
               console.log(`[stripe webhook] autopilot_pilot granted → user ${userId}, expires in ${AUTOPILOT_PILOT_DAYS}d`)
