@@ -21,6 +21,12 @@ import {
   annualWelcomeBarHidden,
   type AnnualWelcomeBarInitial,
 } from '@/lib/billing/annualWelcomeOffer'
+import { MONTHLY_FIRST_MONTH_PERCENT_OFF } from '@/lib/billing/monthlyFirstMonthOffer' // KINEO-BARRA-3H-MENSAL-1111
+import { barra3hHref, barra3hJanela, barra3hMetadata, barra3hModo } from '@/lib/billing/barra3hMensal1111' // KINEO-BARRA-3H-MENSAL-1111
+
+// KINEO-BARRA-3H-MENSAL-1111 — o que a barra anuncia (o mensal de 30% com o interruptor ligado e a oferta mensal viva; senão o anual).
+const MODO = barra3hModo()
+const MEDIDA = barra3hMetadata(MODO)
 
 const REREAD_MS = 60_000
 const SHOWN_KEY = 'kineo_annual_bar_shown'
@@ -45,10 +51,12 @@ function Bar({ initial, placement }: { initial: AnnualWelcomeBarInitial; placeme
     const read = () => {
       void fetch(ANNUAL_WELCOME_API, { cache: 'no-store' })
         .then((r) => (r.ok ? r.json() : null))
-        .then((j: { nowMs?: unknown; offer?: unknown; endsAtMs?: unknown } | null) => {
+        .then((j: { nowMs?: unknown; offer?: unknown; endsAtMs?: unknown; monthlyOffer?: unknown; monthlyEndsAtMs?: unknown } | null) => {
           if (!alive) return
-          if (!j || j.offer !== 'welcome_3h' || typeof j.nowMs !== 'number' || typeof j.endsAtMs !== 'number') { setGone(true); return }
-          deadlineRef.current = Date.now() + (j.endsAtMs - j.nowMs)
+          // KINEO-BARRA-3H-MENSAL-1111 — a janela da oferta que a barra ANUNCIA (mensal: monthlyOffer; anual: offer). Fechada = some.
+          const janela = barra3hJanela(MODO, j)
+          if (!janela) { setGone(true); return }
+          deadlineRef.current = Date.now() + (janela.endsAtMs - janela.nowMs)
         })
         .catch(() => { if (alive) setGone(true) })
     }
@@ -66,24 +74,26 @@ function Bar({ initial, placement }: { initial: AnnualWelcomeBarInitial; placeme
       if (window.sessionStorage.getItem(SHOWN_KEY) === '1') return
       window.sessionStorage.setItem(SHOWN_KEY, '1')
     } catch { /* sem storage: conta esta vez */ }
-    void trackEvent(ANNUAL_WELCOME_BAR_SHOWN_EVENT, { placement, surface: pathname })
+    void trackEvent(ANNUAL_WELCOME_BAR_SHOWN_EVENT, { placement, surface: pathname, ...MEDIDA })
   }, [visible, placement, pathname])
 
   if (!visible) return null
   return (
     <div
       role="region"
-      aria-label="Annual offer"
+      aria-label={MODO === 'monthly' ? 'First month offer' : 'Annual offer'}
       data-kineo="annual-welcome-bar"
       className="relative z-40 flex h-[30px] w-full flex-shrink-0 items-center justify-center whitespace-nowrap px-8 text-center text-[12px] font-bold tabular-nums"
       style={{ background: 'var(--indigo, #2997ff)', color: 'var(--on-accent, #04122E)' }}
     >
       <Link
-        href={ANNUAL_WELCOME_BAR_HREF}
+        href={barra3hHref(MODO, ANNUAL_WELCOME_BAR_HREF)}
         className="underline-offset-2 hover:underline"
-        onClick={() => { void trackEvent(ANNUAL_WELCOME_BAR_CLICKED_EVENT, { placement, surface: pathname }) }}
+        onClick={() => { void trackEvent(ANNUAL_WELCOME_BAR_CLICKED_EVENT, { placement, surface: pathname, ...MEDIDA }) }}
       >
-        Your {ANNUAL_WELCOME_DISCOUNT_PERCENT}% annual offer ends in {annualOfferClock(msLeft)} →
+        {MODO === 'monthly'
+          ? <>Your {MONTHLY_FIRST_MONTH_PERCENT_OFF}% off the first month ends in {annualOfferClock(msLeft)} →</>
+          : <>Your {ANNUAL_WELCOME_DISCOUNT_PERCENT}% annual offer ends in {annualOfferClock(msLeft)} →</>}
       </Link>
       <button
         type="button"

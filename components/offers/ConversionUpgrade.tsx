@@ -7,6 +7,9 @@ import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { PUBLIC_ENGINE_EXAMPLES } from '@/lib/publicExamples'
 import type { CheckoutCurrency, PriceRegion } from '@/lib/checkoutPricing'
 import { MONEY_BACK_GUARANTEE } from '@/lib/checkoutPricing' // KINEO-CHECKOUT-CLAREZA-1610 — a garantia única
+import { formatCheckoutMoney, getTierPrice } from '@/lib/checkoutPricing' // KINEO-BARRA-3H-MENSAL-1111
+import { MONTHLY_FIRST_MONTH_PERCENT_OFF, monthlyFirstMonthCoversTier, monthlyFirstMonthMinor } from '@/lib/billing/monthlyFirstMonthOffer' // KINEO-BARRA-3H-MENSAL-1111
+import { useWelcomeOffers } from '@/components/pricing/AnnualOfferCountdown' // KINEO-BARRA-3H-MENSAL-1111 — a MESMA leitura das 3 h do /pricing
 import { FILM_PASS_LIVE } from '@/lib/offers/avulsoUnico3110' // KINEO-PRECO-MERCADO-0411
 import { dfyFilms3EntryCopy, dfyFilms3EntryHref } from '@/lib/dfyFilms3' // KINEO-PACOTE-3-FILMES-1610
 import {
@@ -211,6 +214,9 @@ export default function ConversionUpgrade({ currency, region, onClose, onUpgrade
   // anual (o de antes). O anual segue a um clique, com o mesmo "save 30%". A impressão da parede grava qual aba abriu.
   const [billing, setBilling] = useState<ConversionBilling>(paredeBillingInicial())
   const observation = useOfferObservation('upgrade', 'menu', true, PAREDE_VIEW_META)
+  // KINEO-BARRA-3H-MENSAL-1111 — a conta nas 3 h vê os 30% do 1º mês já no modal (antes só apareciam na Stripe). Mesma fonte do /pricing:
+  // /api/offers/annual-welcome (created_at + 3 h, nunca pagou), lida por useWelcomeOffers. Quem cobra continua sendo o checkout.
+  const firstMonth3hOpen = useWelcomeOffers().monthly.deadlineMs !== null
   const close = useRef<HTMLButtonElement>(null)
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
@@ -256,7 +262,8 @@ export default function ConversionUpgrade({ currency, region, onClose, onUpgrade
         return <button type="button" key={tier} disabled={loading || !plan} onClick={() => onUpgrade(tier, billing)}
           style={{ ...button, display: 'block', width: '100%', textAlign: 'left', marginBottom: 10, opacity: loading ? 0.6 : 1 }}>
           <strong>{CONVERSION_NAMES[tier]} · {plan ? `${plan.price} ${plan.period}` : 'Loading price…'}</strong>
-          {plan?.annualSaving ? <span data-kineo="upgrade-annual-saving" style={{ marginLeft: 8, fontSize: 12, fontWeight: 800, color: 'var(--accent)' }}>Save {plan.annualSaving}/yr</span> : null}{/* KINEO-DECISOES-PRECO-3110 — a economia do anual em dinheiro, como InVideo/Runway/HeyGen */}
+          {plan?.annualSaving ? <span data-kineo="upgrade-annual-saving" style={{ marginLeft: 8, fontSize: 12, fontWeight: 800, color: 'var(--accent)' }}>Save {plan.annualSaving}/yr</span> : null}
+          {billing === 'monthly' && firstMonth3hOpen && currency && monthlyFirstMonthCoversTier(tier) ? <span data-kineo="upgrade-first-month-3h" style={{ display: 'block', marginTop: 4, fontSize: 12, fontWeight: 800, color: 'var(--accent)' }}>{MONTHLY_FIRST_MONTH_PERCENT_OFF}% off your first month · {formatCheckoutMoney(currency, monthlyFirstMonthMinor(getTierPrice(tier, currency, region)))} first month</span> : null /* KINEO-BARRA-3H-MENSAL-1111 */}{/* KINEO-DECISOES-PRECO-3110 — a economia do anual em dinheiro, como InVideo/Runway/HeyGen */}
           <ConversionPlanCapacity key={`${tier}_${billing}`} tier={tier} billing={billing} currency={currency} region={region} surface="upgrade" />
         </button>
       })}
