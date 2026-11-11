@@ -34,8 +34,9 @@ const src = (o, p) => lf(o[p] ?? read(p))
 // ─── A. Interruptor ──────────────────────────────────────────────────────────────────────────────────────────────────
 function switchChecks(o) {
   const c = loader(stubs, o)('lib/create/clipNaMoldura')
-  ok(c.CREATE_CLIP_INPLACE === 'internal', "A o interruptor nasce 'internal' (só a casa)")
-  ok(c.clipNaMolduraVisivel(HOUSE) && !c.clipNaMolduraVisivel(CUSTOMER) && !c.clipNaMolduraVisivel(null) && !c.clipNaMolduraVisivel(''), 'A padrão: só a casa; conta de fora e visitante não')
+  ok(c.CREATE_CLIP_INPLACE === 'public', "A o interruptor está 'public' (KINEO-CLIP-PUBLIC-1111, depois da prova logada da CEO)")
+  ok(c.clipNaMolduraVisivel(HOUSE) && c.clipNaMolduraVisivel(CUSTOMER) === loader(stubs, o)('lib/clips/clipLaunch').clipsVisible(CUSTOMER) && !c.clipNaMolduraVisivel(null) && !c.clipNaMolduraVisivel(''), 'A padrão: toda conta logada que vê o /clips; visitante não')
+  ok(c.clipNaMolduraVisivel(HOUSE, 'internal') && !c.clipNaMolduraVisivel(CUSTOMER, 'internal'), "A 'internal' (a volta): só a casa")
   ok([HOUSE, CUSTOMER, null].every(e => !c.clipNaMolduraVisivel(e, 'off')), "A 'off': ninguém")
   ok(c.clipNaMolduraVisivel(CUSTOMER, 'public') === loader(stubs, o)('lib/clips/clipLaunch').clipsVisible(CUSTOMER) && !c.clipNaMolduraVisivel(null, 'public'), "A 'public': toda conta que já vê o /clips; visitante nunca")
 }
@@ -65,7 +66,7 @@ function entryChecks(o) {
   for (const l of links) {
     const q = l.includes('?') ? l.slice(l.indexOf('?')) : ''
     ok(e.clipEntryHref(l, HOUSE) === '/create/clip' + q, `C casa: ${l} → /create/clip com a mesma query`)
-    ok(e.clipEntryHref(l, CUSTOMER) === l && e.clipEntryHref(l, null) === l && e.clipEntryHref(l, HOUSE, 'off') === l, `C conta sem a aba / visitante / off: ${l} intacto`)
+    ok(e.clipEntryHref(l, CUSTOMER, 'internal') === l && e.clipEntryHref(l, null) === l && e.clipEntryHref(l, HOUSE, 'off') === l, `C conta sem a aba ('internal') / visitante / off: ${l} intacto`)
     ok(e.clipEntryHref(l, CUSTOMER, 'public') === '/create/clip' + q && e.clipEntryHref(l, null, 'public') === l, `C 'public': conta logada vai; visitante fica (${l})`)
   }
   for (const l of ['/studio?engine=x', '/recreate/effect-hug', '/signup?redirect=%2Fclips', 'https://x.com/clips', '//x.com/clips', '/clipsx']) ok(e.clipEntryHref(l, HOUSE) === l, `C outro href intacto (${l})`)
@@ -110,7 +111,7 @@ const real = passed
 
 const s = p => read(p)
 const mutants = [
-  ['interruptor nasce public', { 'lib/create/clipNaMoldura.ts': s('lib/create/clipNaMoldura.ts').replace("CREATE_CLIP_INPLACE: InternalRelease = 'internal'", "CREATE_CLIP_INPLACE: InternalRelease = 'public'") }],
+  ['interruptor volta a internal', { 'lib/create/clipNaMoldura.ts': s('lib/create/clipNaMoldura.ts').replace("CREATE_CLIP_INPLACE: InternalRelease = 'public'", "CREATE_CLIP_INPLACE: InternalRelease = 'internal'") }],
   ['visitante vai para a tela nova', { 'lib/create/clipNaMoldura.ts': s('lib/create/clipNaMoldura.ts').replace('return !!email && release', 'return release') }],
   ['query perdida na entrada', { 'lib/create/entry.ts': s('lib/create/entry.ts').replace('return CLIP_TAB_HREF + u.search', 'return CLIP_TAB_HREF') }],
   ['/clips sem moldura muda', { [CLIENT]: s(CLIENT).replace(`<p className="sub">{t('sub')}</p>`, `<p className="sub">{t('title')}</p>`) }],

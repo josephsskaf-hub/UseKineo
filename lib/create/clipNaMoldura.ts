@@ -8,8 +8,9 @@ import { releaseVisible } from '@/lib/recreate/access'
 import { clipsVisible } from '@/lib/clips/clipLaunch'
 import { CREATE_SHELL_RELEASE } from './release'
 
-/** Nasce 'internal' (CEO 10/11): só a casa até a conferência logada. VOLTA: 'off'. */
-export const CREATE_CLIP_INPLACE: InternalRelease = 'internal'
+/** Nasceu 'internal' (CEO 10/11). KINEO-CLIP-PUBLIC-1111 [CEO 11/11: "se passar, viro o interruptor para 'public'"] — toda conta logada que já vê
+ * o /clips, depois da prova logada da CEO a 390 e 1440 px. VOLTA: 'internal' (só a casa) ou 'off' (ninguém). */
+export const CREATE_CLIP_INPLACE: InternalRelease = 'public'
 
 /** A conta (logada) abre /create/clip? Precisa ver o /clips de hoje, a casca da tela nova e este interruptor. Visitante: nunca. */
 export function clipNaMolduraVisivel(email: string | null | undefined, release: InternalRelease = CREATE_CLIP_INPLACE): boolean {
