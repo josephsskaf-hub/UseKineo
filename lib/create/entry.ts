@@ -196,3 +196,16 @@ export function createEntryForLegacyHref(legacyHref: string, signedIn: boolean, 
   const kind = u.pathname === ADS_V2_PATH ? 'ads' : (Object.keys(LEGACY_ENTRY_PATH) as CreateEntryKind[]).find(k => LEGACY_ENTRY_PATH[k] === u.pathname) // KINEO-ENTRADAS-CARTOES-1011 — + /ads/v2
   return kind ? createEntryHref(kind, legacyHref, signedIn, opts) : legacyHref
 }
+
+// ═══ KINEO-CLIP-NA-MOLDURA-1011 — acrescentado no FIM de propósito (este arquivo tem outro dono); nada acima foi tocado. ═══
+// O destino de um link de /clips para QUEM ESTÁ LOGADO e tem a aba Clip aberta (lib/create/clipNaMoldura.ts, interruptor próprio):
+// /create/clip com a MESMA query (engine, prompt, effect, remix, trend, intent_campaign, utm…), porque a aba É o ClipsClient de hoje e ele
+// lê a query do próprio endereço. Visitante, conta sem a aba, ou qualquer outro href = o href de hoje, byte a byte. Aplicado num lugar só:
+// app/(dashboard)/clips/page.tsx (todo cartão de clipe da home, o menu e qualquer link chegam lá primeiro).
+import { CLIP_TAB_HREF, LEGACY_CLIPS_PATH, clipNaMolduraVisivel } from './clipNaMoldura'
+export function clipEntryHref(legacyHref: string, email: string | null | undefined, release?: InternalRelease): string {
+  if (!clipNaMolduraVisivel(email, release)) return legacyHref
+  const u = parse(legacyHref)
+  if (!u || u.pathname !== LEGACY_CLIPS_PATH) return legacyHref
+  return CLIP_TAB_HREF + u.search
+}

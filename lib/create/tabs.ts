@@ -16,8 +16,9 @@ export const createTabHref = (tab: CreateTab): string => `/create/${tab}`
 export const RECREATE_TAB_HREF = '/recreate'
 
 /** A barra de abas, na ordem do fundador: Film · Cartoon · Ads · Recreate. */
-export const CREATE_TAB_LINKS: readonly { id: CreateTab | 'recreate'; label: string; href: string }[] = [
+export const CREATE_TAB_LINKS: readonly { id: CreateTab | 'recreate' | 'clip'; label: string; href: string }[] = [
   { id: 'film', label: 'Film', href: createTabHref('film') },
+  { id: 'clip', label: 'Clip', href: '/create/clip' }, // KINEO-CLIP-NA-MOLDURA-1011 — logo depois do Film (as duas abas que partem de uma ideia escrita); só com showClip
   { id: 'cartoon', label: 'Cartoon', href: createTabHref('cartoon') },
   { id: 'ads', label: 'Ads', href: createTabHref('ads') },
   { id: 'recreate', label: 'Recreate', href: RECREATE_TAB_HREF },

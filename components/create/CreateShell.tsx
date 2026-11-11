@@ -22,7 +22,7 @@ export function continueHref(tab: CreateTab, idea: string, signedIn: boolean): s
 
 // KINEO-STUDIO-NA-MOLDURA-1011 — `painel` (opcional) troca SÓ os passos do painel pelos do Studio real (StudioSimples); `aoEscolher` recebe a
 // ideia do exemplo. Sem eles, o HTML é byte a byte o de antes (scripts/test-studio-na-moldura-1011.mjs).
-export default function CreateShell({ tab, signedIn = true, showRecreate = true, painel, aoEscolher }: { tab: CreateTab; signedIn?: boolean; showRecreate?: boolean; painel?: ReactNode; aoEscolher?: (ideia: string) => void }) {
+export default function CreateShell({ tab, signedIn = true, showRecreate = true, showClip = false, painel, aoEscolher }: { tab: CreateTab; signedIn?: boolean; showRecreate?: boolean; /** KINEO-CLIP-NA-MOLDURA-1011 */ showClip?: boolean; painel?: ReactNode; aoEscolher?: (ideia: string) => void }) {
   const copy = CREATE_COPY[tab]
   const examples = CREATE_EXAMPLES[tab]
   const [example, setExample] = useState<CreateExample>(examples[0])
@@ -52,7 +52,7 @@ export default function CreateShell({ tab, signedIn = true, showRecreate = true,
   const marker = (n: number) => <span className="rc-step-number" aria-hidden="true">{states[n - 1] === 'done' ? '✓' : n}</span>
 
   return <main className="recreate create-shell" data-create-shell={tab}>
-    <header className="rc-nav ct-nav"><Link href="/" className="rc-brand"><KineoBrandIcon size={28} /><span>Kineo</span></Link><CreateTabs active={tab} showRecreate={showRecreate} /><CreateNavConta /></header>{/* KINEO-TELA-NOVA-CABECALHO-1011 — saldo · Pricing · My videos */}
+    <header className="rc-nav ct-nav"><Link href="/" className="rc-brand"><KineoBrandIcon size={28} /><span>Kineo</span></Link><CreateTabs active={tab} showRecreate={showRecreate} showClip={showClip} /><CreateNavConta /></header>{/* KINEO-TELA-NOVA-CABECALHO-1011 — saldo · Pricing · My videos */}
     <div className="rc-workspace">
       <aside className="rc-panel" aria-label={copy.title}>
         <div className="rc-panel-intro"><span className="rc-eyebrow">{copy.eyebrow}</span><h1>{copy.title}</h1></div>

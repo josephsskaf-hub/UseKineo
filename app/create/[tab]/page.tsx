@@ -13,6 +13,10 @@ import { ideiaDoLink } from '@/lib/growth/ideiaDaPagina' // KINEO-ENTRADAS-TELA-
 import { adsArrivalSupported, cartoonArrivalSupported, destinoDaChegada, filmParamsSupported, queryDaChegada } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 · KINEO-ENTRADAS-CARTOES-1011: ads/cartoon
 import AbaComChegada from './AbaComChegada' // KINEO-ENTRADAS-CARTOES-1011
 import StudioIdeaArrival from '@/components/StudioIdeaArrival' // KINEO-ENTRADAS-TELA-NOVA-1011
+import ClipNaMoldura from '@/components/create/ClipNaMoldura' // KINEO-CLIP-NA-MOLDURA-1011
+import { clipNaMolduraVisivel } from '@/lib/create/clipNaMoldura' // KINEO-CLIP-NA-MOLDURA-1011
+import { recreateVisible } from '@/lib/recreate/access' // KINEO-CLIP-NA-MOLDURA-1011
+import { recreateFormat } from '@/lib/recreate/formats' // KINEO-CLIP-NA-MOLDURA-1011
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: { absolute: 'Create | Kineo' }, robots: { index: false, follow: false } }
@@ -22,6 +26,17 @@ export default async function Page({ params, searchParams = {} }: { params: { ta
   // ao /studio (filmParamsSupported, a MESMA régua das entradas em lib/create/entry.ts). Qualquer outro dado (motor, prompt, série, retomada…)
   // vai ao /studio com a query intacta: nada se perde.
   const query = queryDaChegada(searchParams)
+  // KINEO-CLIP-NA-MOLDURA-1011 [fundador 10/11: "quero a tela nova"] — /create/clip É o /clips de hoje na moldura (interruptor CREATE_CLIP_INPLACE).
+  // Mesma porta do /clips: efeito que o Recreate faz vai ao Recreate; quem não tem a aba (ou visitante) volta ao /clips com a query intacta.
+  if (params.tab === 'clip') {
+    const { data: { user: u } } = await createClient().auth.getUser()
+    if (!clipNaMolduraVisivel(u?.email)) redirect('/clips' + (query ? '?' + query : ''))
+    if (recreateVisible(u?.email) && typeof searchParams.effect === 'string') {
+      const id = `effect-${searchParams.effect.replaceAll('_', '-')}`
+      if (recreateFormat(id)) redirect(`/recreate/${id}`)
+    }
+    return <ClipNaMoldura measurementActor={u?.id ?? null} showRecreate={recreateVisible(u?.email)} />
+  }
   if (params.tab === 'film' && !filmParamsSupported(searchParams, { arrival: true })) redirect(`/studio?${query}`)
   // KINEO-ENTRADAS-CARTOES-1011 [fundador 10/11: "Make my ad", "Make my UGC ad" e "Make my cartoon" abriram a tela ANTIGA] — Ads e Cartoon
   // guardam a chegada que sabem repassar (a MESMA régua da entrada: entry + atribuição); qualquer outro dado volta ao destino de hoje intacto.
@@ -36,8 +51,9 @@ export default async function Page({ params, searchParams = {} }: { params: { ta
   // KINEO-ENTRADAS-TELA-NOVA-1011 — lido como o /studio lê: ideia (ideiaDoLink) e intent_campaign (campanhaDaCaixa); sem intent_campaign, a
   // campanha de sempre da aba (create_film). StudioIdeaArrival = a mesma chegada do cadastro do /studio (?signup=1 / ?welcome=1: conversão do Ads).
   const campanha = searchParams.intent_campaign === undefined ? CREATE_FILM_CAMPAIGN : campanhaDaCaixa(searchParams.intent_campaign)
-  if (filmNaMoldura(params.tab, user?.email)) return <><StudioIdeaArrival /><StudioNaMoldura showRecreate={decision.showRecreate} motor={motorDaCaixa(undefined)} campanha={campanha} ideiaInicial={ideiaDoLink(searchParams.ideia)} /></>
+  const showClip = clipNaMolduraVisivel(user?.email) // KINEO-CLIP-NA-MOLDURA-1011 — a aba Clip só para quem a abre
+  if (filmNaMoldura(params.tab, user?.email)) return <><StudioIdeaArrival /><StudioNaMoldura showRecreate={decision.showRecreate} showClip={showClip} motor={motorDaCaixa(undefined)} campanha={campanha} ideiaInicial={ideiaDoLink(searchParams.ideia)} /></>
   const destino = params.tab === 'ads' || params.tab === 'cartoon' ? destinoDaChegada(params.tab, query) : null // KINEO-ENTRADAS-CARTOES-1011
-  if (destino && (params.tab === 'ads' || params.tab === 'cartoon')) return <><StudioIdeaArrival /><AbaComChegada tab={params.tab} showRecreate={decision.showRecreate} destino={destino} /></> // KINEO-ENTRADAS-VISITANTE-1111 — a conta nova chega com ?signup=1 (callback): a conversão e a origem do cadastro contam aqui, como no Film
-  return <CreateShell tab={params.tab as CreateTab} signedIn showRecreate={decision.showRecreate} />
+  if (destino && (params.tab === 'ads' || params.tab === 'cartoon')) return <><StudioIdeaArrival /><AbaComChegada tab={params.tab} showRecreate={decision.showRecreate} showClip={showClip} destino={destino} /></> // KINEO-ENTRADAS-VISITANTE-1111 — a conta nova chega com ?signup=1 (callback): a conversão e a origem do cadastro contam aqui, como no Film
+  return <CreateShell tab={params.tab as CreateTab} signedIn showRecreate={decision.showRecreate} showClip={showClip} />
 }

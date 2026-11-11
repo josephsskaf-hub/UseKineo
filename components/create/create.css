@@ -51,3 +51,13 @@
 .create-shell .ct-engine-locked{opacity:.8}
 .create-shell .ct-engine-note{margin:0 0 10px;font-size:12px;line-height:1.45;color:var(--rc-muted)}
 .create-shell .ct-advanced span{color:var(--rc-muted)}
+/* KINEO-CLIP-NA-MOLDURA-1011 — a aba Clip: as peças do ClipsClient na moldura. Só classes ct-* e as do próprio Clips (.stu.clips-workspace),
+   sempre debaixo de .create-shell.create-clip: nada aqui alcança o /clips de sempre. */
+.create-shell.create-clip .stu.clips-workspace{background:transparent;min-width:0}
+.create-shell.create-clip .ct-clip-box .grid.creation-grid{grid-template-columns:minmax(0,1fr);gap:12px}
+.create-shell.create-clip .ct-clip-box .creation-input{padding:16px}
+.create-shell.create-clip .ct-clip-stage{overflow-y:auto;padding-bottom:24px}
+.create-shell.create-clip .ct-clip-stage .clip-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+.create-shell.create-clip .ct-clip-gallery .fx-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));margin-bottom:16px}
+.create-shell.create-clip .ct-clip-gallery .fx-media{max-height:220px}
+@media(max-width:640px){.create-shell.create-clip .ct-clip-stage{order:3}} /* celular: a caixa primeiro, depois a fileira, depois My clips */

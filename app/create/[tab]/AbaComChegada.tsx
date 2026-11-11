@@ -13,7 +13,7 @@ import { trackClosedEvent } from '@/lib/analytics'
 import { guardarRascunhoDoDesenho } from '@/lib/ads/rascunhoDoVisitante'
 import { CARTOON_IDEA_MAX_CHARS, CREATE_COPY, CREATE_EVENTS, cartoonDraft, continueBlocker } from '@/lib/create/tabs'
 
-export default function AbaComChegada({ tab, showRecreate, destino }: { tab: 'ads' | 'cartoon'; showRecreate: boolean; destino: string }) {
+export default function AbaComChegada({ tab, showRecreate, showClip = false, destino }: { tab: 'ads' | 'cartoon'; showRecreate: boolean; showClip?: boolean; destino: string }) { // KINEO-CLIP-NA-MOLDURA-1011 — + showClip
   const [idea, setIdea] = useState('')
   const copy = CREATE_COPY[tab]
   const hasInput = copy.placeholder !== null
@@ -51,5 +51,5 @@ export default function AbaComChegada({ tab, showRecreate, destino }: { tab: 'ad
       </div>
     </section>
   </>
-  return <CreateShell tab={tab} showRecreate={showRecreate} painel={painel} aoEscolher={hasInput ? (ideia: string) => setIdea(ideia.slice(0, CARTOON_IDEA_MAX_CHARS)) : undefined} />
+  return <CreateShell tab={tab} showRecreate={showRecreate} showClip={showClip} painel={painel} aoEscolher={hasInput ? (ideia: string) => setIdea(ideia.slice(0, CARTOON_IDEA_MAX_CHARS)) : undefined} />
 }

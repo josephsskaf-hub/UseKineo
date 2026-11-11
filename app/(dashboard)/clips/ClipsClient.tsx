@@ -9,7 +9,7 @@
 // quem o interruptor deixa): escolher efeito → subir a foto (o MESMO upload/termo de direitos de sempre) → 1 clique. O
 // navegador manda só { effect, image_url }; o servidor resolve prompt/motor/duração/formato. Clipe de efeito pronto
 // ganha "Turn into a narrated film (60 s)", que passa por POST /api/clips/effect-upsell antes de abrir o Studio.
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react' // KINEO-CLIP-NA-MOLDURA-1011: + ReactNode
 import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { ProductStageStyles, useProductStage } from '@/components/ProductStage' // KINEO-CLIPS-CORES-2026-10-01
@@ -235,7 +235,10 @@ async function composePairPhoto(a: File, b: File): Promise<File> {
   return new File([blob], 'pair.jpg', { type: 'image/jpeg' })
 }
 
-export default function ClipsClient({ measurementActor = null }: { measurementActor?: string | null }) {
+/** KINEO-CLIP-NA-MOLDURA-1011 — as peças da tela de Clips que a moldura nova recebe (o MESMO JSX, os MESMOS handlers). */
+export interface PartesDoClipe { estilos: ReactNode; grade: ReactNode; tendencias: ReactNode; efeitos: ReactNode; meusClipes: ReactNode }
+
+export default function ClipsClient({ measurementActor = null, moldura, rotuloDosAjustes }: { measurementActor?: string | null; moldura?: (p: PartesDoClipe) => ReactNode; /** KINEO-CLIP-NA-MOLDURA-1011 — na moldura, o resumo do <details> chama "Details" como os outros passos */ rotuloDosAjustes?: string }) {
   const language = useInterfaceLanguage()
   const t = useCallback((key: ClipCopyKey, vars?: Record<string, string | number>) => clipCopy(language, key, vars), [language])
   useProductStage('clips') // KINEO-CLIPS-CORES-2026-10-01 — fundo e barra lateral na cor da aba, como Imagens/Espaços/Ads
@@ -785,8 +788,12 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
     </p>
   )
 
-  return (
-    <div className="stu clips-workspace kps-page">
+  // KINEO-CLIP-NA-MOLDURA-1011 [fundador 10/11: "quero a tela nova"] — as MESMAS peças desta tela, sem cópia: a moldura nova (/create/clip,
+  // components/create/ClipNaMoldura.tsx) só as reposiciona. Sem `moldura`, o HTML é byte a byte o de antes (scripts/test-clip-na-moldura-1011.mjs).
+  // KINEO-CLIP-NA-MOLDURA-1111 [regras do dono para a tela nova: "nenhum nome de motor em cartão ou botão" · "preço só no botão de gerar"] — dentro
+  // da moldura o motor só aparece aberto em Details (a escolha opcional), e o preço só no botão. Sem `moldura`, o /clips de sempre, byte a byte.
+  const semMotor = !!moldura
+  const estilos = <>
       <ClipTelemetry actor={measurementActor} surface="clips" ready={!loading && !loadFailed && engines.length > 0} />
       <ProductStageStyles />
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
@@ -855,11 +862,9 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
         @media(max-width:900px){.stu.clips-workspace .grid.creation-grid{grid-template-columns:minmax(0,1fr);gap:18px}}
       ` }} />
       <style dangerouslySetInnerHTML={{ __html: CLIPS_TELA_CSS }} />{/* KINEO-CLIPS-TELA-0511 — depois das regras de sempre, para valer por cima */}
-
-      <h1>{t('title')}</h1>
-      <p className="sub">{t('sub')}</p>
-
-      <div className={`grid creation-grid${!effect && !remix ? ' clip-livre' : ''}`}>{/* KINEO-CLIPS-TELA-0511 */}
+  </>
+  const grade = (
+  <div className={`grid creation-grid${!effect && !remix ? ' clip-livre' : ''}`}>{/* KINEO-CLIPS-TELA-0511 */}
         {remix ? ( // KINEO-ROSTO-NO-CLIPE-2810
           <>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
             <div className="card creation-input" id="clip-remix-panel" data-face-remix={remix.id}>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
@@ -881,7 +886,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
             </div>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
             <div className="rail creation-settings">{/* KINEO-ROSTO-NO-CLIPE-2810 */}
               <div className="cost" id="clip-remix-review" tabIndex={-1}>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
-                <div className="sum"><UiLabel>{remix.title}</UiLabel> · {t('madeWith', { engine: remix.engine_label })} · {remix.seconds} s</div>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+                <div className="sum"><UiLabel>{remix.title}</UiLabel>{semMotor ? null : <> · {t('madeWith', { engine: remix.engine_label })}</>} · {remix.seconds} s</div>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
                 <button type="button" disabled={busy || uploading || (!!photoUrl && !remixConsent)} className={`go ${busy || uploading || (!!photoUrl && !remixConsent) ? 'no' : 'ok'}`}
                   data-clip-action={photoUrl ? 'generate' : 'upload'} data-face-remix={remix.id}
                   onClick={() => (photoUrl ? void generateRemix() : fileRef.current?.click())}>{/* KINEO-ROSTO-NO-CLIPE-2810 — o preço mora SÓ neste botão */}
@@ -924,7 +929,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
             </div>
             <div className="rail creation-settings">
               <div className="cost" id="clip-effect-review" tabIndex={-1}>
-                <div className="sum"><UiLabel>{effect.title}</UiLabel> · {t('madeWith', { engine: effect.engine_label })} · {effect.seconds} s</div>
+                <div className="sum"><UiLabel>{effect.title}</UiLabel>{semMotor ? null : <> · {t('madeWith', { engine: effect.engine_label })}</>} · {effect.seconds} s</div>
                 <button type="button" disabled={busy || uploading} className={`go ${busy || uploading ? 'no' : 'ok'}`}
                   data-clip-action={photoUrl ? 'generate' : 'upload'} data-clip-effect={effect.key}
                   onClick={() => (photoUrl ? void generateEffect() : effect.pair ? pairRefs[pairFiles[0] ? 1 : 0].current?.click() : fileRef.current?.click())}> {/* KINEO-ABRACO-BEIJO-3110 */}
@@ -975,7 +980,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
         <div className="rail creation-settings">
           {/* KINEO-CLIPS-TELA-0511 — "gerar sem escolher motor": abre com o padrão pronto e um botão; quem quer escolher abre aqui. Sem preço. */}
           <details className="clip-more" data-kineo="clips-mais-opcoes" open={opcoesAbertas} onToggle={(e) => setMaisOpcoes(e.currentTarget.open)}>
-            <summary><strong>{clipsTelaMaisOpcoes(language)}</strong><span className="clip-more-list">{engine ? `${engine.label} · ${seconds} s · ${effectiveAspect === 'image' ? t('samePhoto') : effectiveAspect}` : '—'}</span></summary>
+            <summary><strong>{rotuloDosAjustes ?? clipsTelaMaisOpcoes(language)}</strong><span className="clip-more-list">{engine ? `${semMotor ? '' : engine.label + ' · '}${seconds} s · ${effectiveAspect === 'image' ? t('samePhoto') : effectiveAspect}` : '—'}</span></summary>
             <div className="clip-more-body">
             <div className="clip-more-engines">{/* KINEO-CLIPS-TELA-0511 */}
               <div className="lab">{t('engine')}</div>
@@ -1135,7 +1140,8 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
           )}
         </div>
       </div>
-
+  )
+  const tendencias = <>
       {/* KINEO-CLIPS-TELA-0511 — fundador 05/11: a grade de clipes prontos fica ABAIXO da caixa; clicar num cartão faz o mesmo de antes. */}
       {/* KINEO-EM-ALTA-2610 — vitrine "Em alta esta semana": clipes REAIS feitos com a mesma ideia e o mesmo motor (selo honesto). */}
       {!remix && CLIP_TRENDS_PUBLIC && engines.length > 0 && ( // KINEO-ROSTO-NO-CLIPE-2810
@@ -1154,7 +1160,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
                   <span className="fx-title"><UiLabel>{tr.title}</UiLabel></span>
                   <span className="fx-sub"><UiLabel>{tr.sub}</UiLabel></span>
                   <span className="fx-foot">
-                    <span className="tag">{target.label}</span>
+                    {semMotor ? null : <span className="tag">{target.label}</span>}
                     <span className="pr trend-go"><UiLabel>Make this →</UiLabel></span>
                   </span>
                 </button>
@@ -1170,7 +1176,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
                 <span className="fx-title"><UiLabel>{fx.title}</UiLabel></span>
                 <span className="fx-sub"><UiLabel>{fx.sub}</UiLabel></span>
                 <span className="fx-foot">
-                  <span className="tag">{fx.engine_label}</span>
+                  {semMotor ? null : <span className="tag">{fx.engine_label}</span>}
                   <span className="pr trend-go"><UiLabel>Make this →</UiLabel></span>
                 </span>
               </button>
@@ -1178,7 +1184,8 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
           </div>
         </section>
       )}
-
+  </>
+  const efeitos = <>
       {!remix && (efeitosDaVitrine.length > 0 || houseRemixes.length > 0) && ( // KINEO-ROSTO-NO-CLIPE-2810 · KINEO-DANCA-PUBLICA-3110 — + modelos da casa
         <section aria-labelledby="clip-effects-title">
           <div className="lab" id="clip-effects-title">{t('effectsTitle')}</div>
@@ -1189,7 +1196,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
                 <span className="fx-media"><video src={rx.video} poster={rx.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" /></span>{/* KINEO-DANCA-PUBLICA-3110 */}
                 <span className="fx-title"><UiLabel>{rx.title}</UiLabel></span>{/* KINEO-DANCA-PUBLICA-3110 */}
                 <span className="fx-sub"><UiLabel>{rx.id === 'friday-groove' ? 'Your photo leads a Friday-night dance class' : 'Your photo, in this scene'}</UiLabel></span>{/* KINEO-DANCA-PUBLICA-3110 */}
-                <span className="fx-foot"><span className="tag">{rx.engine_label}</span><span className="pr trend-go"><UiLabel>Put your face in it →</UiLabel></span></span>{/* KINEO-DANCA-PUBLICA-3110 */}
+                <span className="fx-foot">{semMotor ? null : <span className="tag">{rx.engine_label}</span>}<span className="pr trend-go"><UiLabel>Put your face in it →</UiLabel></span></span>{/* KINEO-DANCA-PUBLICA-3110 */}
               </button>
             ))}
             {efeitosDaVitrine.map((fx) => ( // KINEO-CLIPS-TELA-0511 — fora de estação sai da grade; o link ?effect= segue abrindo o efeito
@@ -1201,16 +1208,17 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
                 </span>
                 <span className="fx-title"><UiLabel>{fx.title}</UiLabel></span>
                 <span className="fx-sub"><UiLabel>{fx.sub}</UiLabel></span>
-                <span className="fx-foot">
+                {semMotor ? null : <span className="fx-foot">
                   <span className="tag">{fx.engine_label}</span>
-                </span>
-                {fx.preview && <span className="fx-note">{fx.preview.note}</span>}
+                </span>}
+                {fx.preview && !semMotor && <span className="fx-note">{fx.preview.note}</span>}
               </button>
             ))}
           </div>
         </section>
       )}
-
+  </>
+  const meusClipes = <>
       {/* KINEO-CLIPS-TELA-0511 — "Meus clipes" segue depois da grade, como antes; o clipe desta visita estreia colado na caixa. */}
       <div className="clip-meus">
           <div className="lab" style={{ marginTop: 18 }}>{t('myClips')}</div>
@@ -1221,7 +1229,7 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
                 {c.status === 'done' && c.video_url
                   ? <video src={c.video_url} controls playsInline preload="metadata" />
                   : <div className="clip-wait">{c.status === 'failed' ? (c.credits_refunded > 0 ? t('failedRefunded', { n: c.credits_refunded }) : t('failed')) : c.stage === 'keyframe' ? <UiLabel>Placing you in the scene…</UiLabel> : c.stage === 'video' ? <UiLabel>Filming your scene…</UiLabel> : t('inProgress')}</div>}{/* KINEO-ROSTO-QUADRO-CHAVE-2810 — as duas etapas do remix com nome */}
-                <div className="clip-meta">{c.label} · {c.seconds} s · {c.aspect === 'image' ? t('samePhoto') : c.aspect} · {c.credits} cr</div>
+                <div className="clip-meta">{semMotor ? null : <>{c.label} · </>}{c.seconds} s · {c.aspect === 'image' ? t('samePhoto') : c.aspect}{semMotor ? null : <> · {c.credits} cr</>}</div>
                 {c.effect
                   ? <div className="clip-meta" style={{ marginTop: 4 }}>{t('effectLabel')} · {effects.find((fx) => fx.key === c.effect)?.title ?? c.effect}</div>
                   : c.prompt && <div className="clip-meta" style={{ marginTop: 4 }}>{c.prompt.slice(0, 120)}</div>}
@@ -1246,6 +1254,23 @@ export default function ClipsClient({ measurementActor = null }: { measurementAc
             ))}
           </div>
       </div>
+  </>
+  if (moldura) return <>{moldura({ estilos, grade, tendencias, efeitos, meusClipes })}</>
+
+  return (
+    <div className="stu clips-workspace kps-page">
+      {estilos}
+
+      <h1>{t('title')}</h1>
+      <p className="sub">{t('sub')}</p>
+
+      {grade}
+
+      {tendencias}
+
+      {efeitos}
+
+      {meusClipes}
     </div>
   )
 }
