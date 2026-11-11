@@ -14,6 +14,7 @@ import { resolveAffiliateLinkOffer, resolveAffiliateDisplayOffer, readAffiliateO
 import { affiliateOfferCopy, affiliateOfferScopeCopy } from '@/lib/affiliateOfferCopy'
 import { filmCompleteAdmin, loadFilmCompleteIntent, filmCompleteCheckoutMetadata, type FilmCompleteIntent } from '@/lib/filmComplete/server'
 import { FILM_COMPLETE_CAMPAIGN, FILM_COMPLETE_UUID } from '@/lib/growth/filmComplete'
+import { filmCompletePaidTier } from '@/lib/growth/filmComplete' // KINEO-VERSAO-COMPLETA-STARTER-1111
 import { STUDIO50_CODE, STUDIO50_COUPON_ID, STUDIO50_DURATION, STUDIO50_PERCENT, STUDIO50_REPEATING_MONTHS, STUDIO50_TIER } from '@/lib/offers/studio50'
 import { OFFER_290_ENABLED, OFFER_290_RESGATE_ENABLED } from '@/lib/flags'
 import { offer290RescueEligibility } from '@/lib/offers/offer290Rescue' // KINEO-AVULSO-290-2CHECKOUT-0111 — a regra do resgate (a mesma da tela)
@@ -1540,8 +1541,9 @@ async function buildAndRedirect(
   let filmCompleteIntent: FilmCompleteIntent | null = null
   const filmCompleteRequested = req.nextUrl.searchParams.get('film_complete')
   if (filmCompleteRequested !== null) {
-    if (!FILM_COMPLETE_UUID.test(filmCompleteRequested) || tier !== 'basic' || billing !== 'monthly' || intro || wantsTrial || intentCampaign !== FILM_COMPLETE_CAMPAIGN) {
-      return jsonError('This saved film needs the Creator monthly checkout.', 400)
+    // KINEO-VERSAO-COMPLETA-STARTER-1111 — Starter ou Creator mensal (o preço continua do servidor; nada vem da URL além do plano).
+    if (!FILM_COMPLETE_UUID.test(filmCompleteRequested) || !filmCompletePaidTier(tier) || billing !== 'monthly' || intro || wantsTrial || intentCampaign !== FILM_COMPLETE_CAMPAIGN) {
+      return jsonError('This saved film needs the Starter or Creator monthly checkout.', 400)
     }
     try {
       const filmDb = filmCompleteAdmin()

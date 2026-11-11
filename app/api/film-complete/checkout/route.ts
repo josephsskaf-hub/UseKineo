@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createHash } from 'node:crypto'
 import { createFilmCompleteIntent, filmCompleteAdmin, loadFilmCompleteIntent } from '@/lib/filmComplete/server'
-import { FILM_COMPLETE_CAMPAIGN, FILM_COMPLETE_TARGET_SECONDS, FILM_COMPLETE_VERSION } from '@/lib/growth/filmComplete'
+import { FILM_COMPLETE_CAMPAIGN, FILM_COMPLETE_OFFER_VERSION, FILM_COMPLETE_TARGET_SECONDS, FILM_COMPLETE_VERSION, filmCompleteRequestedTier } from '@/lib/growth/filmComplete'
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -26,13 +26,15 @@ export async function GET(req: NextRequest) {
       : await createFilmCompleteIntent(db, user.id, req.nextUrl.searchParams.get('v') ?? '', req.nextUrl.searchParams.get('surface') ?? 'film_ready')
     if (!intent) return noStore(NextResponse.json({ error: 'This completed free film is unavailable in this account.' }, { status: 404 }))
     if (intent.metadata.paid_session_id) return noStore(NextResponse.redirect(new URL(`/film-complete?intent=${intent.id}`, req.url)))
+    // KINEO-VERSAO-COMPLETA-STARTER-1111 — o plano vem do interruptor (Starter); `plan=creator` é a 2ª opção. O clique grava o plano.
+    const tier = filmCompleteRequestedTier(req.nextUrl.searchParams.get('plan'))
     const hex = createHash('sha256').update(`film15-full-click:${intent.id}`).digest('hex').slice(0, 32)
     await db.from('events').insert({
       id: `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`,
       name: 'film15_full_offer_clicked', user_id: user.id, path: '/api/film-complete/checkout',
-      metadata: { version: FILM_COMPLETE_VERSION, intent_campaign: FILM_COMPLETE_CAMPAIGN, source_video_id: intent.sourceVideoId, video_id: intent.sourceVideoId, film_complete_id: intent.id, surface: intent.metadata.surface, target_seconds: FILM_COMPLETE_TARGET_SECONDS, source: 'server_checkout' },
+      metadata: { version: FILM_COMPLETE_VERSION, intent_campaign: FILM_COMPLETE_CAMPAIGN, source_video_id: intent.sourceVideoId, video_id: intent.sourceVideoId, film_complete_id: intent.id, surface: intent.metadata.surface, target_seconds: FILM_COMPLETE_TARGET_SECONDS, source: 'server_checkout', offer_tier: tier, offer_version: FILM_COMPLETE_OFFER_VERSION },
     })
-    const q = new URLSearchParams({ tier: 'basic', billing: 'monthly', intent_campaign: FILM_COMPLETE_CAMPAIGN, film_complete: intent.id })
+    const q = new URLSearchParams({ tier, billing: 'monthly', intent_campaign: FILM_COMPLETE_CAMPAIGN, film_complete: intent.id })
     return noStore(NextResponse.redirect(new URL(`/api/stripe/checkout?${q}`, req.url)))
   } catch {
     return noStore(NextResponse.json({ error: 'We could not save this film for checkout. Please try again.' }, { status: 503 }))

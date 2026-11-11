@@ -12,11 +12,18 @@ function paidSession(ctx, intent) { return { id: 'cs_live_fixture', payment_stat
 async function copyChecks(overrides) {
   const ctx = world(overrides), copy = ctx.load('lib/growth/filmCompleteCopy.ts')
   assert.equal(copy.filmCompleteCopy('pt', false).button, 'Fazer a versão completa — 35 s, sem marca')
-  assert.ok(copy.filmCompleteCopy('pt', false).billing.includes(ctx.load('lib/growth/buyCreatorOffer.ts').buyCreatorPrice(false).full), 'billing follows the existing canonical price')
+  // KINEO-VERSAO-COMPLETA-STARTER-1111 — ligado: a linha é do Starter e o Creator vira a 2ª opção; 'off' = a linha do Creator de antes.
+  const fc = ctx.load('lib/growth/filmComplete.ts'), creatorFull = ctx.load('lib/growth/buyCreatorOffer.ts').buyCreatorPrice(false).full
+  if (fc.filmCompleteOfferTier() === 'starter') {
+    assert.ok(copy.filmCompleteCopy('pt', false).billing.includes(copy.filmCompleteStarterNumbers().starter), 'billing follows the Starter canonical price')
+    assert.ok(copy.filmCompleteCopy('pt', false).more.includes(creatorFull), 'the Creator second option follows its canonical price')
+  }
+  assert.ok(copy.filmCompleteCopy('pt', false, 'off').billing.includes(creatorFull), "'off' billing follows the existing canonical Creator price")
+  assert.equal(copy.filmCompleteCopy('pt', false, 'off').more, null, "'off' has no second option")
   for (const language of ['en', 'pt', 'es', 'fr', 'de', 'it', 'nl', 'pl', 'tr', 'ru', 'uk', 'ar', 'ur', 'hi', 'id', 'vi']) {
     const value = copy.filmCompleteCopy(language, false)
     assert.ok(value.button.includes('35'), 'target duration follows shared policy: ' + language)
-    assert.ok(!/\{(?:s|full|first)\}/.test(JSON.stringify(value)))
+    assert.ok(!/\{(?:s|full|first|starter|credits|cost)\}/.test(JSON.stringify(value)))
   }
   const href = copy.filmCompleteCheckoutHref(VIDEO, 'film_ready'), parsed = new URL(href, 'https://www.usekineo.com')
   assert.equal(parsed.pathname, '/api/film-complete/checkout')
@@ -190,7 +197,7 @@ await retireChecks()
   ctx.user = { id: USER }; response = await route.GET(ctx.request(url))
   const location = new URL(response.headers.get('location'))
   assert.equal(location.pathname, '/api/stripe/checkout')
-  assert.equal(location.searchParams.get('tier'), 'basic')
+  assert.equal(location.searchParams.get('tier'), ctx.load('lib/growth/filmComplete.ts').filmCompleteOfferTier()) // KINEO-VERSAO-COMPLETA-STARTER-1111
   assert.equal(location.searchParams.get('billing'), 'monthly')
   assert.equal(location.searchParams.get('intent_campaign'), CAMPAIGN)
   assert.equal(response.headers.get('cache-control'), 'private, no-store')

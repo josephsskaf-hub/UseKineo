@@ -5,6 +5,7 @@ import type Stripe from 'stripe'
 import { isNonPayingAccount } from '@/lib/growth/filmReady60s'
 import { FILM_COMPLETE_CAMPAIGN, FILM_COMPLETE_ENGINE, FILM_COMPLETE_INTENT_EVENT, FILM_COMPLETE_TARGET_SECONDS, FILM_COMPLETE_UUID, FILM_COMPLETE_VERSION, filmCompletePaymentMetadata, type FilmCompleteState } from '@/lib/growth/filmComplete'
 import { FILM_COMPLETE_STUCK_EVENT, FILM_COMPLETE_WRITER_REJECTED_EVENT, filmCompleteAfterRejection, filmCompleteWriterRetryNote, filmCompleteWriterVerdict } from '@/lib/growth/filmComplete' // KINEO-VERSAO-COMPLETA-NUNCA-MUDA-1111
+import { FILM_COMPLETE_ENTITLED_PLANS, filmCompletePaidTier } from '@/lib/growth/filmComplete' // KINEO-VERSAO-COMPLETA-STARTER-1111
 import { COMPOSE_CLAIM_EVENT } from '@/lib/composeClaim'
 import { CINEMATIC_CLAIM_EVENT, cinematicClaimId } from '@/lib/cinematic/claim'
 import { mintUserSession } from '@/lib/mcp/studioSession'
@@ -240,7 +241,8 @@ export async function startFilmComplete(db: SupabaseClient, intent: FilmComplete
   if (status.state === 'completed' || status.state === 'processing' || status.state === 'failed') return status
   const { data: profile, error: pe } = await db.from('profiles').select('email, has_paid, plan').eq('id', intent.userId).maybeSingle()
   if (pe) throw new Error('film_complete_entitlement_unavailable')
-  if (profile?.has_paid !== true || !['basic', 'creator', 'pro', 'studio'].includes(text(profile.plan)) || !text(profile.email)) return { ...status, state: 'waiting_entitlement' }
+  // KINEO-VERSAO-COMPLETA-STARTER-1111 — o Starter (40 cr) paga o filme completo (21 cr): entra na lista que libera o início.
+  if (profile?.has_paid !== true || !FILM_COMPLETE_ENTITLED_PLANS.includes(text(profile.plan)) || !text(profile.email)) return { ...status, state: 'waiting_entitlement' }
   const leaseAt = text(intent.metadata.launch_at)
   if (leaseAt && io.now() - Date.parse(leaseAt) < 5 * 60_000) return { ...status, state: 'starting' }
   const owner = randomUUID()
@@ -343,7 +345,7 @@ export async function settleFilmComplete(db: SupabaseClient, session: Stripe.Che
   if (!metadata.film_complete_id) return
   const userId = text(session.metadata?.supabase_user_id)
   if (!FILM_COMPLETE_UUID.test(userId) || session.payment_status !== 'paid' || session.mode !== 'subscription' ||
-      !(typeof session.amount_total === 'number' && session.amount_total > 0) || session.metadata?.tier !== 'basic' ||
+      !(typeof session.amount_total === 'number' && session.amount_total > 0) || !filmCompletePaidTier(session.metadata?.tier) || // KINEO-VERSAO-COMPLETA-STARTER-1111 — Starter e Creator (sessões já abertas no Creator não quebram)
       session.metadata?.billing !== 'monthly' || session.metadata?.card_trial === '1' || session.metadata?.intro === '1' ||
       session.metadata?.intent_campaign !== FILM_COMPLETE_CAMPAIGN) return
   let intent = await loadFilmCompleteIntent(db, userId, metadata.film_complete_id)

@@ -5,6 +5,8 @@ import { trackEvent } from '@/lib/analytics'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { filmCompleteCheckoutHref, filmCompleteCopy } from '@/lib/growth/filmCompleteCopy'
 import { FILM_COMPLETE_TARGET_SECONDS, FILM_COMPLETE_VERSION } from '@/lib/growth/filmComplete'
+import { filmCompleteOfferMetadata } from '@/lib/growth/filmComplete' // KINEO-VERSAO-COMPLETA-STARTER-1111
+import { filmCompleteCreatorHref } from '@/lib/growth/filmCompleteCopy' // KINEO-VERSAO-COMPLETA-STARTER-1111
 import { WELCOME20_SITE_OFFER_LIVE } from '@/lib/growth/publicPromoTruth'
 import { useWelcome20OfferLive } from '@/lib/growth/useWelcome20Deadline'
 import { interfaceLanguageIsRtl } from '@/lib/ui/interfaceLanguage'
@@ -24,6 +26,7 @@ export default function FilmReadyFullVersionUpsell({ videoId }: { videoId: strin
       void trackEvent('film15_full_offer_viewed', {
         version: FILM_COMPLETE_VERSION, source_video_id: videoId, video_id: videoId,
         surface: 'film_ready', target_seconds: FILM_COMPLETE_TARGET_SECONDS,
+        ...filmCompleteOfferMetadata(), // KINEO-VERSAO-COMPLETA-STARTER-1111 — o plano MOSTRADO
       })
     }
     if (typeof IntersectionObserver === 'undefined') return
@@ -48,12 +51,25 @@ export default function FilmReadyFullVersionUpsell({ videoId }: { videoId: strin
         onClick={() => { void trackEvent('film15_full_offer_clicked', {
           version: FILM_COMPLETE_VERSION, source_video_id: videoId, video_id: videoId,
           surface: 'film_ready', target_seconds: FILM_COMPLETE_TARGET_SECONDS,
+          ...filmCompleteOfferMetadata(), // KINEO-VERSAO-COMPLETA-STARTER-1111
         }) }}
         className="flex w-full items-center justify-center rounded-xl px-4 py-3 text-center text-sm font-black"
         style={{ background: 'var(--accent)', color: 'var(--on-accent)', textDecoration: 'none', lineHeight: 1.45 }}>
         {copy.button}
       </a>
       <p style={{ margin: '10px 0 0', fontSize: '0.75rem', color: 'var(--muted2)', lineHeight: 1.5 }}>{copy.billing}</p>
+      {/* KINEO-VERSAO-COMPLETA-STARTER-1111 — o Creator como 2ª opção do MESMO filme guardado (o servidor lê `plan=creator`). */}
+      {copy.more ? (
+        <a href={filmCompleteCreatorHref(videoId, 'film_ready')} data-kineo="film15-full-version-creator"
+          onClick={() => { void trackEvent('film15_full_offer_clicked', {
+            version: FILM_COMPLETE_VERSION, source_video_id: videoId, video_id: videoId,
+            surface: 'film_ready', target_seconds: FILM_COMPLETE_TARGET_SECONDS,
+            ...filmCompleteOfferMetadata(), offer_tier: 'basic', choice: 'creator',
+          }) }}
+          style={{ display: 'block', margin: '6px 0 0', fontSize: '0.78rem', fontWeight: 700, color: 'var(--accent)', textDecoration: 'underline' }}>
+          {copy.more}
+        </a>
+      ) : null}
     </div>
   )
 }

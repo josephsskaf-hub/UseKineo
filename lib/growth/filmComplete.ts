@@ -50,6 +50,41 @@ export function filmCompleteWriterRetryNote(i: { attempt: number; reason: unknow
   return ` PREVIOUS DRAFT REJECTED (${why}${got !== null && min !== null ? `: ${got} of at least ${min} spoken words` : ''}). This is attempt ${i.attempt} of ${FILM_COMPLETE_WRITER_ATTEMPTS}. Write the COMPLETE ${i.seconds}-second script${min !== null ? ` with at least ${min} spoken words` : ''}, keeping the section markers (HOOK, MICRO REWARD, ESCALATION, PAYOFF) each on its own line.`
 }
 
+// ═══ KINEO-VERSAO-COMPLETA-STARTER-1111 [CEO 11/11, decisão do FUNDADOR — só publica com o sim dele] ═══════════════════
+// A "versão completa do seu filme" aponta para o STARTER (US$ 9/mês), não para o Creator (US$ 19/mês). O filme que ela
+// promete — 35 s no motor 'seedance' (cinematic_ai) — custa creditCostForDuration('cinematic_ai', true, 35) = 21 créditos;
+// o Starter dá 40 (TIER_CREDITS.starter). O Creator vira a 2ª opção ao lado ("want more films?").
+// Medido 11/11 (30 dias): 23 das 79 desistências do checkout vieram desta oferta, todas vendo US$ 19/mês; 45 viram, 10
+// clicaram, 1 pagou (e cancelou). Preço nenhum muda; não é avulso.
+// Volta: KINEO_VERSAO_COMPLETA_STARTER_1111 = 'off' → o botão volta ao Creator e a 2ª opção some. Os DOIS planos seguem
+// aceitos no checkout, no pagamento e no início do filme, para nenhuma sessão já aberta (Starter ou Creator) quebrar.
+export const KINEO_VERSAO_COMPLETA_STARTER_1111 = 'on' as 'on' | 'off'
+export const FILM_COMPLETE_OFFER_VERSION = 'versao_completa_starter_1111'
+export type FilmCompleteOfferTier = 'starter' | 'basic'
+
+/** O plano que o botão principal da oferta abre. 'on' = Starter; 'off' = Creator (o de 26/10 a 11/11). */
+export function filmCompleteOfferTier(chave: 'on' | 'off' = KINEO_VERSAO_COMPLETA_STARTER_1111): FilmCompleteOfferTier {
+  return chave === 'on' ? 'starter' : 'basic'
+}
+
+/** O plano pedido no link: `plan=creator` = a 2ª opção (Creator); qualquer outra coisa = o plano do botão principal. */
+export function filmCompleteRequestedTier(plan: unknown, chave: 'on' | 'off' = KINEO_VERSAO_COMPLETA_STARTER_1111): FilmCompleteOfferTier {
+  return plan === 'creator' ? 'basic' : filmCompleteOfferTier(chave)
+}
+
+/** Planos cujo checkout mensal compra a versão completa (checkout + pagamento). Os dois, sempre — independe do interruptor. */
+export function filmCompletePaidTier(tier: unknown): tier is FilmCompleteOfferTier {
+  return tier === 'starter' || tier === 'basic'
+}
+
+/** Planos que liberam o filme completo depois de pagar (o início lê profiles.plan). Starter entra; a lista antiga continua. */
+export const FILM_COMPLETE_ENTITLED_PLANS: readonly string[] = ['starter', 'basic', 'creator', 'pro', 'studio']
+
+/** O que as impressões e o clique gravam: o plano MOSTRADO e a versão — o corte antes/depois, nunca o relógio. */
+export function filmCompleteOfferMetadata(chave: 'on' | 'off' = KINEO_VERSAO_COMPLETA_STARTER_1111): { offer_tier: FilmCompleteOfferTier; offer_version: string } {
+  return { offer_tier: filmCompleteOfferTier(chave), offer_version: FILM_COMPLETE_OFFER_VERSION }
+}
+
 export type FilmCompleteState ='awaiting_payment' | 'waiting_entitlement' | 'starting' | 'processing' | 'completed' | 'failed' | 'unavailable'
 
 export function filmCompletePaymentMetadata(metadata: Record<string, unknown> | null | undefined): Record<string, string> {

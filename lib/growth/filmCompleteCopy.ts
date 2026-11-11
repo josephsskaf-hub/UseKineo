@@ -3,6 +3,41 @@ import { buyCreatorPrice } from '@/lib/growth/buyCreatorOffer'
 import { FILM_COMPLETE_TARGET_SECONDS } from '@/lib/growth/filmComplete'
 import { WELCOME20_SITE_OFFER_LIVE } from '@/lib/growth/publicPromoTruth'
 import { parseInterfaceLanguage, type InterfaceLanguage } from '@/lib/ui/interfaceLanguage'
+import { KINEO_VERSAO_COMPLETA_STARTER_1111, filmCompleteOfferTier } from '@/lib/growth/filmComplete' // KINEO-VERSAO-COMPLETA-STARTER-1111
+import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing' // KINEO-VERSAO-COMPLETA-STARTER-1111
+import { creditCostForDuration } from '@/lib/credits/engineCost' // KINEO-VERSAO-COMPLETA-STARTER-1111
+
+// KINEO-VERSAO-COMPLETA-STARTER-1111 — a linha do Starter e a 2ª opção (Creator), nas 16 línguas. Todo número vem das fontes:
+// {starter} = TIER_PRICES.starter · {credits} = TIER_CREDITS.starter · {cost} = creditCostForDuration('cinematic_ai', true, 35)
+// · {full} = o preço do Creator de buyCreatorPrice. A frase diz QUANTO do mês o filme usa — a verdade do pior caso.
+type StarterTemplate = { starter: string; more: string }
+const STARTER_COPY: Record<InterfaceLanguage, StarterTemplate> = {
+  en: { starter: 'Starter {starter}/month · this film uses {cost} of its {credits} monthly credits. Cancel anytime.', more: 'Want more films? Creator {full}/month' },
+  pt: { starter: 'Starter {starter}/mês · este filme usa {cost} dos {credits} créditos do mês. Cancele quando quiser.', more: 'Quer mais filmes? Creator {full}/mês' },
+  es: { starter: 'Starter {starter}/mes · esta película usa {cost} de sus {credits} créditos del mes. Cancela cuando quieras.', more: '¿Quieres más películas? Creator {full}/mes' },
+  fr: { starter: 'Starter {starter}/mois · ce film utilise {cost} de ses {credits} crédits du mois. Résiliable à tout moment.', more: 'Plus de films ? Creator {full}/mois' },
+  de: { starter: 'Starter {starter}/Monat · dieser Film nutzt {cost} der {credits} Monatscredits. Jederzeit kündbar.', more: 'Mehr Filme? Creator {full}/Monat' },
+  it: { starter: 'Starter {starter}/mese · questo film usa {cost} dei {credits} crediti del mese. Disdici quando vuoi.', more: 'Vuoi più film? Creator {full}/mese' },
+  nl: { starter: 'Starter {starter}/maand · deze film gebruikt {cost} van de {credits} maandcredits. Altijd opzegbaar.', more: 'Meer films? Creator {full}/maand' },
+  pl: { starter: 'Starter {starter}/mies. · ten film zużywa {cost} z {credits} kredytów miesięcznie. Możesz anulować w każdej chwili.', more: 'Chcesz więcej filmów? Creator {full}/mies.' },
+  tr: { starter: 'Starter {starter}/ay · bu film aylık {credits} kredinin {cost} tanesini kullanır. İstediğin zaman iptal et.', more: 'Daha fazla film mi? Creator {full}/ay' },
+  ru: { starter: 'Starter {starter}/мес · этот фильм использует {cost} из {credits} кредитов месяца. Отмена в любое время.', more: 'Нужно больше фильмов? Creator {full}/мес' },
+  uk: { starter: 'Starter {starter}/міс · цей фільм використовує {cost} з {credits} кредитів місяця. Скасування будь-коли.', more: 'Потрібно більше фільмів? Creator {full}/міс' },
+  ar: { starter: 'Starter بسعر {starter} شهريًا · يستخدم هذا الفيلم {cost} من {credits} رصيدًا شهريًا. يمكنك الإلغاء في أي وقت.', more: 'تريد أفلامًا أكثر؟ Creator بسعر {full} شهريًا' },
+  ur: { starter: 'Starter {starter}/ماہ · یہ فلم ماہانہ {credits} کریڈٹس میں سے {cost} استعمال کرتی ہے۔ جب چاہیں منسوخ کریں۔', more: 'مزید فلمیں چاہییں؟ Creator {full}/ماہ' },
+  hi: { starter: 'Starter {starter}/माह · यह फ़िल्म महीने के {credits} क्रेडिट में से {cost} इस्तेमाल करती है। कभी भी रद्द करें।', more: 'और फ़िल्में चाहिए? Creator {full}/माह' },
+  id: { starter: 'Starter {starter}/bulan · film ini memakai {cost} dari {credits} kredit bulanan. Batalkan kapan saja.', more: 'Mau lebih banyak film? Creator {full}/bulan' },
+  vi: { starter: 'Starter {starter}/tháng · phim này dùng {cost} trong {credits} tín dụng mỗi tháng. Hủy bất cứ lúc nào.', more: 'Muốn nhiều phim hơn? Creator {full}/tháng' },
+}
+
+/** KINEO-VERSAO-COMPLETA-STARTER-1111 — os números da linha do Starter, das fontes únicas (nenhum digitado). */
+export function filmCompleteStarterNumbers(): { starter: string; credits: number; cost: number } {
+  return {
+    starter: formatCheckoutMoney('usd', TIER_PRICES.starter.usd),
+    credits: TIER_CREDITS.starter,
+    cost: creditCostForDuration('cinematic_ai', true, FILM_COMPLETE_TARGET_SECONDS),
+  }
+}
 
 type Template = { title: string; body: string; button: string; monthly: string; intro: string }
 const COPY: Record<InterfaceLanguage, Template> = {
@@ -24,12 +59,25 @@ const COPY: Record<InterfaceLanguage, Template> = {
   vi: { title: 'Phiên bản đầy đủ của phim bạn', body: 'Cùng kịch bản và chủ đề, mở rộng thành {s} giây. Không watermark. Tự động bắt đầu sau khi thanh toán.', button: 'Tạo bản đầy đủ — {s} giây, không watermark', monthly: 'Creator {full}/tháng. Hủy bất cứ lúc nào.', intro: 'Creator {first} tháng đầu, sau đó {full}/tháng. Hủy bất cứ lúc nào.' },
 }
 
-export function filmCompleteCopy(language: unknown = 'en', welcomeLive = WELCOME20_SITE_OFFER_LIVE) {
-  const template = COPY[parseInterfaceLanguage(language)]
+export function filmCompleteCopy(language: unknown = 'en', welcomeLive = WELCOME20_SITE_OFFER_LIVE, chave: 'on' | 'off' = KINEO_VERSAO_COMPLETA_STARTER_1111) {
+  const lang = parseInterfaceLanguage(language)
+  const template = COPY[lang]
   const price = buyCreatorPrice(welcomeLive)
-  const vars: Record<string, string | number> = { s: FILM_COMPLETE_TARGET_SECONDS, full: price.full, first: price.firstMonth ?? price.full }
+  const starter = filmCompleteStarterNumbers()
+  const vars: Record<string, string | number> = { s: FILM_COMPLETE_TARGET_SECONDS, full: price.full, first: price.firstMonth ?? price.full, starter: starter.starter, credits: starter.credits, cost: starter.cost }
   const fill = (value: string) => value.replace(/\{(\w+)\}/g, (match, key: string) => String(vars[key] ?? match))
-  return { title: fill(template.title), body: fill(template.body), button: fill(template.button), billing: fill(price.firstMonth ? template.intro : template.monthly) }
+  const creatorBilling = fill(price.firstMonth ? template.intro : template.monthly)
+  // KINEO-VERSAO-COMPLETA-STARTER-1111 — ligado: o botão principal é o Starter e a linha diz quanto do mês o filme usa; o
+  // Creator vira a 2ª opção (`more`, com o preço CHEIO do mês — o 1º mês com desconto só vale no checkout do Creator).
+  if (filmCompleteOfferTier(chave) === 'starter') {
+    return { title: fill(template.title), body: fill(template.body), button: fill(template.button), billing: fill(STARTER_COPY[lang].starter), more: fill(STARTER_COPY[lang].more), tier: 'starter' as const }
+  }
+  return { title: fill(template.title), body: fill(template.body), button: fill(template.button), billing: creatorBilling, more: null, tier: 'basic' as const }
+}
+
+/** KINEO-VERSAO-COMPLETA-STARTER-1111 — a 2ª opção (Creator) do mesmo filme guardado: mesmo caminho, `plan=creator`. */
+export function filmCompleteCreatorHref(videoId: string, surface: 'film_ready' | 'email'): string {
+  return `/api/film-complete/checkout?${new URLSearchParams({ v: videoId, surface, plan: 'creator' }).toString()}`
 }
 
 /** The email has only the film id; its script is read from the owner's saved film on the server. */
@@ -51,12 +99,14 @@ export function filmCompleteEmail(input: { appUrl: string; videoId: string; lang
   // checkout may still apply an eligible discount, using the existing server rules.
   const copy = filmCompleteCopy(input.language, input.welcomeLive ?? false)
   const href = filmCompleteEmailHref(input.appUrl, input.videoId)
-  const text = `\n${copy.title}\n${copy.body}\n${copy.billing}\n${copy.button}: ${href}\n`
+  const creatorHref = `${input.appUrl.replace(/\/$/, '')}${filmCompleteCreatorHref(input.videoId, 'email')}` // KINEO-VERSAO-COMPLETA-STARTER-1111
+  const text = `\n${copy.title}\n${copy.body}\n${copy.billing}\n${copy.button}: ${href}\n${copy.more ? `${copy.more}: ${creatorHref}\n` : ''}`
   const html = `<div data-kineo="film15-full-email" style="border:2px solid #2997ff;border-radius:12px;padding:16px;margin:18px 0 16px;">
   <p style="margin:0 0 8px;font-weight:700;font-size:16px;color:${input.dark ? '#ffffff' : '#111111'}">${escapeHtml(copy.title)}</p>
   <p style="margin:0 0 12px;font-size:14px;color:${input.dark ? '#cbd5e1' : '#475569'}">${escapeHtml(copy.body)}</p>
   <p style="margin:0 0 14px;font-size:13px;color:${input.dark ? '#cbd5e1' : '#475569'}">${escapeHtml(copy.billing)}</p>
-  <a href="${escapeHtml(href)}" style="display:block;background:#2997ff;color:#ffffff;text-decoration:none;text-align:center;font-weight:700;font-size:14px;line-height:1.45;padding:12px 16px;border-radius:10px;">${escapeHtml(copy.button)}</a>
+  <a href="${escapeHtml(href)}" style="display:block;background:#2997ff;color:#ffffff;text-decoration:none;text-align:center;font-weight:700;font-size:14px;line-height:1.45;padding:12px 16px;border-radius:10px;">${escapeHtml(copy.button)}</a>${copy.more ? `
+  <p style="margin:10px 0 0;font-size:13px;text-align:center;"><a href="${escapeHtml(creatorHref)}" style="color:#2997ff;font-weight:700;">${escapeHtml(copy.more)}</a></p>` : ''}
 </div>`
   return { html, text }
 }
