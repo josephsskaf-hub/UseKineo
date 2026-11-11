@@ -34,10 +34,12 @@ Antes de publicar, escreva aqui: sessão · SHA · hora. Se já houver linha de 
 Imediatamente antes da publicação, faça fetch e rebase, rode `npx tsc --noEmit` e os guardiões da área e confira a reserva novamente. Depois do deploy "success", apague só a sua linha e registre em "No ar" com o SHA. A divisão de teste do Claude confere a tela publicada e lista aqui os defeitos.
 | Sessão | SHA | Começou |
 |---|---|---|
+| Codex · Citações semana · dia 6 | Reserva de início sobre `4e4772c0a`; só quadro, tela ainda sem edição | 11/11 07:07 −03:00 |
 
 ## Em obra
 | Quando começou | Sessão | O que | Arquivos principais | Branch / worktree |
 |---|---|---|---|---|
+| 11/11 07:07 −03:00 | Codex · Citações semana · dia 6 | Corrigir contradições residuais do filme padrão inglês (tabela, prazo e texto mensal) e a negativa absoluta de recarga no llms; revisão final antes da medição de 12/11. Sem oferta, motores, preço ou listas de terceiros | app/ai-video-generator/[engine]/page.tsx, lib/growth/h3TurboPage.ts, components/H3TurboDetails.tsx, app/llms.txt/route.ts e testes pertinentes | codex/citacoes-dia6-2026-11-11 · C:/kineo-wt/citacoes-dia6-2026-11-11 |
 | 11/11 00:27 −03:00 | CEO Codex | Coordenar Telas e Produto, Product Story e Citações. Revisar os SHAs locais, conciliar reservas e publicar uma entrega por vez | docs/QUADRO-DE-SESSOES.md | codex/ceo-coordenacao-1111 |
 | 11/11 00:30 −03:00 | Codex · Telas e Produto | Conferir Elevator com uma foto e o formato com duas. Primeiro diagnóstico somente leitura. Em seguida, inventariar o WIP de Clips | app/recreate/RecreateClient.tsx, docs/recreate-1011/test-photo-flow.cjs; leitura do WIP de Clips | `C:/Users/josep/.codex/worktrees/341b/kineo` |
 | 11/11 00:30 −03:00 | Codex · Product Story | Retomar a obra offline do Dia 2 e validar a correção do Dia 3: quadro real 1536×2752, falha terminal e retomada idempotente com quadro inválido | lib/ads/productStory/adapter.ts, lib/ads/productStory/preparation.ts, guardiões Product Story | `C:/Users/josep/.codex/worktrees/4081/kineo`; origem do WIP: codex/ads-product-story-day2-1011 |
