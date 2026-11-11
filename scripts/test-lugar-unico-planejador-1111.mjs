@@ -30,6 +30,12 @@ function problems(over) {
   no(P.personagemContinuo(['Luca moved in.', 'Luca heard knocks.', 'Luca found a photo.']) !== null, '(b) nome próprio contou como personagem')
   no(P.personagemContinuo(['A dog barks.', 'The sun sets.', 'The wind blows.', 'Night falls.']) !== null, '(b) uma fala só contou')
   no(P.personagemContinuo(['A girl finds a key.', 'The girl opens the door.', 'Behind it, the girl sees the sea.']) !== 'girl', '(b) a menina em 3 de 3 não contou')
+  // (e) ajuste da CEO 11/11 20:50 — gente no PLURAL não é personagem contínuo: documentário de guerra com "the men" em quase toda fala = null
+  // (senão a linha ONE PLACE entra e achata o filme, o defeito da v1); "two kids" também fica como antes, sem a linha
+  const guerra = ['In 1916 the men marched toward the Somme.', 'For days the men waited in flooded trenches.', 'At dawn the whistles blew and the men went over the top.', 'By nightfall, nineteen thousand British soldiers were dead.']
+  no(P.personagemContinuo(guerra) !== null, `(e) documentário com "the men" → ${JSON.stringify(P.personagemContinuo(guerra))}`)
+  no(P.personagemContinuo(['Two kids find a map.', 'The kids follow it into the woods.', 'The kids dig under an old oak.']) !== null, '(e) "kids" no plural contou')
+  no(P.personagemContinuo(['Two puppies wake up.', 'The puppies chase a ball.', 'The puppies fall asleep.']) !== 'puppy', '(e) bicho no plural deixou de contar')
   no(/sunny park|e\.g\./.test(P.REGRA_UM_LUGAR), '(d) a linha traz exemplo de lugar')
   // (c) as duas mensagens de cena do analyze-idea, como no código
   const an = over[AN] ?? read(AN)
@@ -52,6 +58,8 @@ let n = 1, falhas = 0
 console.log('ok  estado atual limpo (só o boneco ganha a linha do lugar único; documentários byte a byte; sem exemplo de lugar)')
 const pc = read(PC), an = read(AN)
 const MUT = [
+  ['M5 "men" volta a contar como "man"', { [PC]: pc.replace("const CABECA = '(?:stick (?:man|figure)|man|woman|", "const CABECA = '(?:stick (?:man|figure)|man|men|woman|").replace("const SINGULAR: Record<string, string> = { puppies: 'puppy', kittens: 'kitten' }", "const SINGULAR: Record<string, string> = { men: 'man', puppies: 'puppy', kittens: 'kitten' }") }],
+  ['M6 "kids" volta a contar', { [PC]: pc.replace("|kid|child|", "|kid|kids|child|") }],
   ['M1 basta uma fala', { [PC]: pc.replace('return melhor && melhor[1] >= 2 && melhor[1] * 2 >= linhas.length ? melhor[0] : null', 'return melhor ? melhor[0] : null') }],
   ['M2 a regra sempre ligada no roteiro marcado', { [AN]: an.replace("${personagemContinuo(sceneList.map((s) => s.voiceover)) ?", '${true ?') }],
   ['M3 o exemplo "sunny park" volta', { [PC]: pc.replace('names it in words at the start ("In the same <that place>, …" — the place this story needs, never a stock example)', 'names it in words (e.g. "in the same sunny park")') }],
