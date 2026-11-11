@@ -131,6 +131,7 @@ import { planejarCenasS25, montarPromptS25, ambienteComEpoca, epocaDoFilmeS25, S
 import { juizStillLigado, novoFilmeDoJuiz, julgarFotoBase, anterioresDoJuiz, resumoDoJuizStill, JUIZ_STILL_EVENTO, JUIZ_STILL_RESUMO_EVENTO } from '@/lib/hollywood/juizStill' // KINEO-JUIZ-STILL-2026-10-06
 import { ehPedidoDeStills, lerPedidoDoBanco, verificarExpectativas, pontuarCaso, custoDoCasoUsd, BANCO_PROVA_EVENTO, BANCO_PROVA_VERSAO, BANCO_PROVA_MOTIVO_ESTORNO } from '@/lib/cinematic/bancoProva' // KINEO-BANCO-PROVA-2710 [TRAVA 8.2 — vai do fundador 27/10 "aprovo banco"] — dry_run:'stills': o banco de pedidos-prova para no still
 import { modoDoCriticoDoStill, criticoNaFamiliaHollywood, novoFilmeDoCritico, criticarStill, esperarCriticos, esperaMaximaDoCritico, STILL_CRITIC_EVENTO, STILL_CRITIC_ORCAMENTO_SERIAL_MS, type RelatoCriticoStill, relatoStillNoClaim, decisaoFinalStill, type EvidenciaStillFinal } from '@/lib/cinematic/criticoStill' // KINEO-JUIZ-STILL-1410
+import { stillPodeAnimar } from '@/lib/cinematic/reprovadaNaoAnima' // KINEO-REPROVADA-NAO-ANIMA-1111
 import { elencoComFichaLiteral, trocarFichaNoPrompt, novoJuizFicha, julgarSemFolha, folhaErrada, metadadoSemFolha, relatoJuizFicha, stillsFinaisDaFolha } from '@/lib/cinematic/juizFicha' // KINEO-JUIZ-FICHA-2710 [TRAVA 8.2 — vai do fundador 27/10 "faz todos esses consertos de 1 a 6"] — itens 1 e 2: a ficha leva as palavras do cliente; still reprovado 2x em identidade não segue (texto puro sem folha)
 // KINEO-MULTIFORMATO-2026-09-02 — enquadramento pedido (9:16 · 16:9 · 1:1 · 4:5).
 import { aspectSpec, normalizeAspect } from '@/lib/aspect'
@@ -7493,9 +7494,9 @@ async function manipularPost(req: NextRequest) {
       // do laço, antes de qualquer POST de clipe. Crédito e preço do cliente inalterados. // KINEO-JUIZ-STILL-1410
       const criticoModo = modoDoCriticoDoStill(undefined, 'enforce') // KINEO-H3-LETREIRO-0611 — todo filme: imagem reprovada é refeita antes de animar; era 'enforce' só no filme curto e no pagante com personagem
       const criticoFilme = criticoModo === 'off' ? null : novoFilmeDoCritico(criticoModo, { prazo: stillDeadline, regeracoes: scenes.length + 3 }) // KINEO-H3-LETREIRO-0611
-      const criticoTarefas: Promise<{ idx: number; url: string }>[] = [] // KINEO-JUIZ-STILL-1410
+      const criticoTarefas: Promise<{ idx: number; url: string; animar?: boolean }>[] = [] // KINEO-JUIZ-STILL-1410 · KINEO-REPROVADA-NAO-ANIMA-1111: animar
       const criticoEventos: Promise<boolean>[] = [] // KINEO-JUIZ-STILL-1410
-      const criticarStillClassico = async (idx: number, url: string): Promise<{ idx: number; url: string }> => { // KINEO-JUIZ-STILL-1410
+      const criticarStillClassico = async (idx: number, url: string): Promise<{ idx: number; url: string; animar?: boolean }> => { // KINEO-JUIZ-STILL-1410 · KINEO-REPROVADA-NAO-ANIMA-1111: animar
         if (!criticoFilme) return { idx, url } // KINEO-JUIZ-STILL-1410
         const cenaC = scenes[idx] // KINEO-JUIZ-STILL-1410
         const julgado = await julgarStillDoFilme({ indice: idx, url, referencia: referenciaDaCena(qualidadeHerdada ?? qualitySnapshot, fichasDaQualidade(classicScenePrompts[idx], cenaC.voiceover ?? '')), mostra: cenaC.aiPrompt || cenaC.stockSearchQuery || cenaC.description, fala: cenaC.voiceover ?? '', prompt: classicScenePrompts[idx], seed: generationSeed }, { // KINEO-JUIZ-STILL-1410 // KINEO-QUALIDADE-TODOS-MOTORES-2910
@@ -7507,7 +7508,9 @@ async function manipularPost(req: NextRequest) {
         const rc: RelatoCriticoStill = julgado.relato // KINEO-JUIZ-STILL-1410
         console.log(`[still-critic] cena ${rc.cena} (${anchorEngine}, ${rc.modo}): ${rc.veredito}${rc.problemas.length ? ` ${rc.problemas.join('+')}` : ''}${rc.motivo ? ` — ${rc.motivo}` : ''}${rc.regerou ? ` → foto nova ${rc.regeracao_ok ? (rc.veredito_regerada ?? 'sem 2º julgamento') : 'falhou'}, segue a ${rc.escolhida}` : ''} · US$ ${rc.custo_usd.toFixed(4)} · ${rc.ms} ms`) // KINEO-JUIZ-STILL-1410
         criticoEventos.push(writeServerEvent({ name: STILL_CRITIC_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, engine: anchorEngine, path_kind: 'classico', ...rc } })) // KINEO-JUIZ-STILL-1410
-        return { idx, url: julgado.url } // KINEO-JUIZ-STILL-1410
+        const animar = stillPodeAnimar(rc) // KINEO-REPROVADA-NAO-ANIMA-1111
+        if (!animar) console.log(`[still-critic] KINEO-REPROVADA-NAO-ANIMA-1111: cena ${rc.cena} reprovada por ${rc.problemas.join('+')} — segue sem foto (texto→vídeo)`) // KINEO-REPROVADA-NAO-ANIMA-1111
+        return { idx, url: julgado.url, animar } // KINEO-JUIZ-STILL-1410 · KINEO-REPROVADA-NAO-ANIMA-1111
       } // KINEO-JUIZ-STILL-1410
       for (let start = 0; start < anchorCount && Date.now() < stillDeadline; start += STILL_POOL) {
         const batch: number[] = []
@@ -7534,7 +7537,7 @@ async function manipularPost(req: NextRequest) {
         }
       }
       if (criticoFilme) { // KINEO-JUIZ-STILL-1410 — espera o crítico só até o prazo dos stills; quem não terminou fica com a foto original
-        for (const c of await esperarCriticos(criticoTarefas, esperaMaximaDoCritico(criticoFilme, Date.now()))) sceneStills[c.idx] = c.url // KINEO-JUIZ-STILL-1410 — log_only devolve sempre a original
+        for (const c of await esperarCriticos(criticoTarefas, esperaMaximaDoCritico(criticoFilme, Date.now()))) sceneStills[c.idx] = c.animar === false ? null : c.url // KINEO-JUIZ-STILL-1410 · KINEO-REPROVADA-NAO-ANIMA-1111: reprovada por sujeito/identidade/texto não anima — log_only devolve sempre a original
         await esperarCriticos(criticoEventos, 1_500) // KINEO-JUIZ-STILL-1410 — os eventos já gravados em paralelo; teto de 1,5 s para não segurar o despacho
         if (typeof bancoProvaCriticoFlux !== 'undefined' && criticoFilme) bancoProvaCriticoFlux = criticoFilme.relatos // KINEO-BANCO-PROVA-2710 — guarda por typeof: guardiões executam este bloco isolado (sem a variável içada e sem o crítico)
       } // KINEO-JUIZ-STILL-1410
