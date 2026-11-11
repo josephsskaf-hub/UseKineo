@@ -6,6 +6,7 @@ import ExamplesGallery from './ExamplesGallery'
 import BusinessAdExamples from './BusinessAdExamples'
 import { examplesSprintVideo } from '@/lib/growth/examplesSprintIntent'
 import styles from './ExamplesGallery.module.css'
+import { MENU_CELULAR_VITRINE_CSS } from '@/lib/ui/menuCelularVitrine' // KINEO-MENU-CELULAR-VITRINE-1111
 import { EXAMPLES_SELECTION_SEP24 } from '@/lib/ui/examplesSelectionSep24'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
@@ -50,6 +51,7 @@ export default async function ExamplesPage() {
   const isLoggedIn = Boolean(user)
   return (
     <main className={styles.page}>
+      <style dangerouslySetInnerHTML={{ __html: MENU_CELULAR_VITRINE_CSS }} />{/* KINEO-MENU-CELULAR-VITRINE-1111 — menu do topo numa linha só no celular */}
       <header className={styles.pageHeader}>
         <div className={styles.headerInner}>
           <Link href="/" className={styles.brand}><KineoBrandIcon size={26} />Kineo</Link>

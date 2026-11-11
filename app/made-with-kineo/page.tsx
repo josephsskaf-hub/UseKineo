@@ -19,6 +19,7 @@ import { MENU_CARTOON_HREF, MENU_CARTOON_LABEL, MENU_CARTOON_NAV_ITEM, MENU_CONN
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy' // KINEO-GALERIA-HOME-2710
 import { MADE_WITH_KINEO_HREF, MADE_WITH_KINEO_LABEL, MADE_WITH_KINEO_NAV_ITEM } from '@/lib/homeGaleria' // KINEO-GALERIA-HOME-2710
 import styles from '../examples/ExamplesGallery.module.css' // KINEO-GALERIA-HOME-2710
+import { MENU_CELULAR_VITRINE_CSS } from '@/lib/ui/menuCelularVitrine' // KINEO-MENU-CELULAR-VITRINE-1111
 import '../trending/trending.css' // KINEO-GALERIA-HOME-2710
 import fs from 'node:fs' // KINEO-JUNTA-TRENDING-3110
 import path from 'node:path' // KINEO-JUNTA-TRENDING-3110
@@ -54,6 +55,7 @@ export default async function Page({ searchParams }: { searchParams: { page?: st
     <main className={`${styles.page} trending-page`} data-galeria-page="KINEO-GALERIA-HOME-2710">
       {/* 8 itens no topo: rótulo numa linha só, e até 1240px o menu desce para a 2ª fileira (o mesmo arranjo que o kit já usa abaixo de 1000px) */}
       <style dangerouslySetInnerHTML={{ __html: '[data-galeria-page] header nav a{white-space:nowrap}@media(max-width:1240px) and (min-width:1001px){[data-galeria-page] header>div{display:flex;flex-wrap:wrap;gap:0 20px;padding-top:17px;padding-bottom:13px}[data-galeria-page] header>div>div{margin-left:auto}[data-galeria-page] header nav{order:3;width:100%;justify-content:center;gap:24px;padding-top:16px;flex-wrap:wrap}}' }} />
+      <style dangerouslySetInnerHTML={{ __html: MENU_CELULAR_VITRINE_CSS }} />{/* KINEO-MENU-CELULAR-VITRINE-1111 — menu do topo numa linha só no celular */}
       <header className={styles.pageHeader}>
         <div className={styles.headerInner}>
           <Link href="/" className={styles.brand}><KineoBrandIcon size={26} />Kineo</Link>
