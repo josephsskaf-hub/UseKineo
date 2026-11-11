@@ -297,6 +297,16 @@ const SERVER_ONLY_EVENTS = new Set([
   'recarga_assinante_clicked',
   'recarga_assinante_checkout_started',
   'recarga_assinante_paid',
+  // KINEO-PAUSA-VOLUNTARIA-1111 — a pausa de 1 mês da tela de cancelar (app/api/billing/pausa-voluntaria): oferecida,
+  // aceita, retomada. KINEO-PAUSA-POR-CARTAO-1111 — a pausa por cartão recusado e a migração para flexível (o webhook).
+  // O `_accepted` é também a régua de "uma pausa a cada 12 meses": forjado pelo navegador, travaria a pausa de alguém.
+  'subscription_pause_offered',
+  'subscription_pause_accepted',
+  'subscription_pause_resumed',
+  'subscription_paused',
+  'subscription_resumed',
+  'subscription_billing_mode_migrated',
+  'subscription_billing_mode_migrate_failed',
   // KINEO-STRIPE-ATRASO-2026-09-28 — escritos SÓ pelo webhook da Stripe. `subscription_ended` é o churn (fim de
   // assinatura) e `renewal_ignored_non_access` o pagamento de renovação descartado; forjá-los mentiria no placar.
   'subscription_ended',

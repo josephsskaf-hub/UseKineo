@@ -24,6 +24,27 @@ import {
   type CreditsStory,
   type DowngradeDecision,
 } from '@/lib/billing/salvaCancelamento'
+import {
+  PAUSA_VOLUNTARIA_1111_RELEASE,
+  PAUSA_VOLUNTARIA_API,
+  PAUSA_VOLUNTARIA_COPY,
+  pausaDate,
+  pausaFill,
+  pausaParaMotivo,
+} from '@/lib/billing/pausaVoluntaria' // KINEO-PAUSA-VOLUNTARIA-1111 — "Pause for 1 month", só dentro deste fluxo; o servidor decide
+
+/** KINEO-PAUSA-VOLUNTARIA-1111 — o que GET /api/billing/pausa-voluntaria devolve quando há algo a mostrar. */
+export interface PausaInfo {
+  show: true
+  qa: boolean
+  possible: boolean
+  skippedCharge: string | null
+  nextCharge: string | null
+  pausedNow: boolean
+  pausedUntil: string | null
+  credits: number | null
+}
+export type PausaPhase = 'idle' | 'working' | 'paused' | 'resumed'
 
 export interface SaveInfo {
   tier: string | null
@@ -51,6 +72,20 @@ export default function CancelSaveFlow({ onClose }: { onClose: () => void }) {
   const [savedNote, setSavedNote] = useState<string | null>(null)
   const [leaving, setLeaving] = useState(false)
   const opened = useRef(false)
+  // KINEO-PAUSA-VOLUNTARIA-1111 — a pausa (null = não há o que mostrar). 'off' = nenhuma leitura.
+  const [pausa, setPausa] = useState<PausaInfo | null>(null)
+  const [pausaPhase, setPausaPhase] = useState<PausaPhase>('idle')
+  const pausaOffered = useRef(false)
+
+  useEffect(() => {
+    if (PAUSA_VOLUNTARIA_1111_RELEASE === 'off') return
+    let cancelled = false
+    fetch(PAUSA_VOLUNTARIA_API, { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!cancelled && d?.show === true) setPausa(d as PausaInfo) })
+      .catch(() => { /* sem pausa: a tela segue como antes */ })
+    return () => { cancelled = true }
+  }, [])
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -77,6 +112,11 @@ export default function CancelSaveFlow({ onClose }: { onClose: () => void }) {
   }, [onClose])
 
   function pickReason(r: CancelReason) {
+    // KINEO-PAUSA-VOLUNTARIA-1111 — a impressão da oferta é gravada no SERVIDOR, uma vez, quando o cartão aparece de fato.
+    if (pausa?.possible && pausaParaMotivo(r) && !pausaOffered.current) {
+      pausaOffered.current = true
+      void fetch(`${PAUSA_VOLUNTARIA_API}?offer=1`, { cache: 'no-store' }).catch(() => {})
+    }
     setReason(r)
     setError(null)
     void trackEvent(CANCEL_EVENTS.reasonSelected, { reason: r, tier: info?.tier ?? null, version: SALVA_CANCELAMENTO_VERSION })
@@ -140,6 +180,27 @@ export default function CancelSaveFlow({ onClose }: { onClose: () => void }) {
     setPhase('ready')
   }
 
+  // KINEO-PAUSA-VOLUNTARIA-1111 — pausar / voltar antes: o servidor re-decide; a conferência da casa não muda a Stripe.
+  async function pausaAction(action: 'pause' | 'resume') {
+    if (!pausa || pausaPhase === 'working') return
+    setPausaPhase('working')
+    setError(null)
+    try {
+      const res = await fetch(PAUSA_VOLUNTARIA_API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) })
+      const data = await res.json().catch(() => ({})) as { ok?: boolean }
+      if (res.ok && data?.ok) {
+        setPausaPhase(action === 'pause' ? 'paused' : 'resumed')
+        setSavedNote(action === 'pause'
+          ? pausaFill(PAUSA_VOLUNTARIA_COPY.done, { skipped: pausaDate(pausa.skippedCharge), next: pausaDate(pausa.nextCharge) })
+          : PAUSA_VOLUNTARIA_COPY.resumed)
+        setPhase('saved')
+        return
+      }
+    } catch { /* cai no erro abaixo */ }
+    setError(pausaFill(PAUSA_VOLUNTARIA_COPY.failed, { email: info?.supportEmail ?? 'support@usekineo.com' }))
+    setPausaPhase('idle')
+  }
+
   if (!mounted) return null
 
   return createPortal(
@@ -154,6 +215,10 @@ export default function CancelSaveFlow({ onClose }: { onClose: () => void }) {
       onPickReason={pickReason}
       onSwitch={switchToCheapest}
       onContinue={continueToCancel}
+      pausa={pausa}
+      pausaPhase={pausaPhase}
+      onPause={() => void pausaAction('pause')}
+      onResume={() => void pausaAction('resume')}
     />,
     document.body,
   )
@@ -170,10 +235,15 @@ export interface CancelSaveViewProps {
   onPickReason: (r: CancelReason) => void
   onSwitch: () => void
   onContinue: () => void
+  /** KINEO-PAUSA-VOLUNTARIA-1111 — opcionais: sem eles a tela é a de antes. */
+  pausa?: PausaInfo | null
+  pausaPhase?: PausaPhase
+  onPause?: () => void
+  onResume?: () => void
 }
 
 /** A tela, sem estado: o guardião (scripts/test-salva-cancelamento-3110.mjs) renderiza cada motivo por aqui. */
-export function CancelSaveView({ phase, info, reason, error, savedNote, leaving, onClose, onPickReason, onSwitch, onContinue }: CancelSaveViewProps) {
+export function CancelSaveView({ phase, info, reason, error, savedNote, leaving, onClose, onPickReason, onSwitch, onContinue, pausa = null, pausaPhase = 'idle', onPause, onResume }: CancelSaveViewProps) {
   const periodLabel = formatSaveDate(info?.periodEnd ?? null)
   const offer = reason ? offerForReason(reason) : null
   const starterPrice = info ? formatCheckoutMoney('usd', info.cheapest.priceUsdMinor) : null
@@ -194,6 +264,37 @@ export function CancelSaveView({ phase, info, reason, error, savedNote, leaving,
         style={{ background: BLUE, color: '#fff', cursor: phase === 'saving' ? 'wait' : 'pointer', opacity: phase === 'saving' ? 0.7 : 1 }}
       >
         {phase === 'saving' ? 'Switching…' : 'Switch to Starter instead'}
+      </button>
+    </div>
+  ) : null
+
+  // KINEO-PAUSA-VOLUNTARIA-1111 — "Pause for 1 month": só depois do motivo (sem acúmulo de créditos; ver o módulo).
+  const pausaCard = pausa && pausa.possible && !pausa.pausedNow && pausaParaMotivo(reason) && onPause ? (
+    <div className="rounded-xl p-4" style={{ background: 'rgba(255,255,255,.04)', border: pausa.qa ? '2px dashed #d93025' : '1px solid rgba(255,255,255,.12)' }} data-testid="cancel-save-pause" data-qa={pausa.qa ? '1' : undefined}>
+      {pausa.qa && <div className="text-xs font-black mb-1" style={{ color: '#d93025', textTransform: 'uppercase', letterSpacing: '.04em' }}>{PAUSA_VOLUNTARIA_COPY.qa}</div>}
+      <div className="text-sm font-black mb-1" style={{ color: 'var(--text)' }}>{PAUSA_VOLUNTARIA_COPY.title}</div>
+      <p className="text-xs mb-3" style={{ color: 'var(--muted)', lineHeight: 1.6 }}>
+        {pausaFill(PAUSA_VOLUNTARIA_COPY.body, { skipped: pausaDate(pausa.skippedCharge), next: pausaDate(pausa.nextCharge), credits: pausa.credits ?? info?.credits.balance ?? null })}
+      </p>
+      <button
+        type="button"
+        onClick={onPause}
+        disabled={pausaPhase === 'working'}
+        className="w-full rounded-xl py-2.5 text-sm font-black"
+        style={{ background: 'rgba(255,255,255,.1)', border: '1px solid rgba(255,255,255,.18)', color: 'var(--text)', cursor: pausaPhase === 'working' ? 'wait' : 'pointer' }}
+      >
+        {pausaPhase === 'working' ? PAUSA_VOLUNTARIA_COPY.pausing : PAUSA_VOLUNTARIA_COPY.cta}
+      </button>
+    </div>
+  ) : null
+  // KINEO-PAUSA-VOLUNTARIA-1111 — já pausada: voltar antes, dentro do mesmo fluxo.
+  const pausadaCard = pausa && pausa.pausedNow && onResume ? (
+    <div className="rounded-xl p-4 mb-4" style={{ background: 'rgba(41,151,255,.07)', border: '1px solid rgba(41,151,255,.3)' }} data-testid="cancel-save-paused">
+      <p className="text-xs mb-3" style={{ color: 'var(--text2)', lineHeight: 1.6 }}>
+        {pausaFill(PAUSA_VOLUNTARIA_COPY.pausedNow, { until: pausaDate(pausa.pausedUntil) })}
+      </p>
+      <button type="button" onClick={onResume} disabled={pausaPhase === 'working'} className="w-full rounded-xl py-2.5 text-sm font-black" style={{ background: BLUE, color: '#fff' }}>
+        {pausaPhase === 'working' ? '…' : PAUSA_VOLUNTARIA_COPY.resumeCta}
       </button>
     </div>
   ) : null
@@ -246,6 +347,7 @@ export function CancelSaveView({ phase, info, reason, error, savedNote, leaving,
                 : 'What made you want to cancel? One tap — it helps us fix it.'}
             </p>
 
+            {pausadaCard}
             {phase === 'loading' ? (
               <p className="text-xs mb-4" style={{ color: 'var(--muted)' }}>Loading your plan…</p>
             ) : (
@@ -315,6 +417,8 @@ export function CancelSaveView({ phase, info, reason, error, savedNote, leaving,
                 )}
               </div>
             )}
+
+            {pausaCard && <div className="mb-4">{pausaCard}</div>}
 
             {error && <p className="text-xs mb-3" style={{ color: '#f87171' }} role="alert">{error}</p>}
 
