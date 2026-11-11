@@ -56,7 +56,7 @@ import { ADS_SAMPLE_LIVE } from '@/lib/ads/sample'
 import { WELCOME20_PERCENT_OFF } from '@/lib/growth/publicPromoTruth'
 import { TRIAL_FREE_FILM_SECONDS, TRIAL_SEEDANCE15_FILMS } from '@/lib/freeTierOffer'
 import { clipsFirstFilmHref } from '@/lib/growth/homeClipsFirst'
-import { createEntryForContentHref, createEntryForLegacyHref, createEntryHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — o destino de cada entrada de criação
+import { createEntryForContentHref, createEntryForSignupHref, createEntryHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — o destino de cada entrada de criação
 import { MENU_CARTOON_HREF, MENU_CARTOON_LABEL, MENU_CARTOON_NAV_ITEM, MENU_CONNECTOR_HREF, MENU_CONNECTOR_LABEL, MENU_CONNECTOR_NAV_ITEM, HOME_GALLERY_TITLE } from '@/lib/ui/homeRemodela2010' // KINEO-HOME-REMODELA-2010
 // KINEO-VITRINE-MOEDA-2026-08-19 — LandingStarterPrice cobria SÓ o Starter, e
 // por isso a home mostrava R$24,90 (regional) ao lado de $19.90 e $39.90
@@ -1051,7 +1051,7 @@ export default function KineoLanding({
             <>
               <div className="home-business-heading" style={{ marginBottom: 6 }}>
                 <h2><UiLabel>Narrated films</UiLabel></h2>
-                <Link href={createEntryForLegacyHref(clipsFirstFilmHref(isSignedIn), isSignedIn)} className="btn btn-ghost" data-home-cta="open_studio"><UiLabel>Open Studio</UiLabel> ↗</Link>
+                <Link href={createEntryForSignupHref(clipsFirstFilmHref(isSignedIn), isSignedIn)} className="btn btn-ghost" data-home-cta="open_studio"><UiLabel>Open Studio</UiLabel> ↗</Link>
               </div>
               <p style={{ margin: '0 0 16px', color: 'var(--muted)', fontSize: 15, maxWidth: 640 }}><UiLabel>Type an idea — Kineo writes, narrates, scores and edits the whole film.</UiLabel></p>
             </>

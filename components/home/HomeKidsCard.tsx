@@ -6,7 +6,7 @@
 // Vídeo: o curta 3D de teste com nota 10 (HOME_KIDS_CARD_CLIP, render 4f6c8a40, Seedance 1.5 — selo honesto), prévia leve com pôster;
 // por baixo, o fundo ilustrado em CSS (fica sozinho se o clipe sair da lista).
 import Link from 'next/link'
-import { createEntryForLegacyHref } from '@/lib/create/entry' // KINEO-ENTRADAS-CARTOES-1011
+import { createEntryForSignupHref } from '@/lib/create/entry' // KINEO-ENTRADAS-CARTOES-1011
 import { useEffect, useRef } from 'react'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { trackEvent } from '@/lib/analytics'
@@ -25,7 +25,7 @@ export default function HomeKidsCard({ signedIn, position = HOME_KIDS_CARD_POSIT
   const language = useInterfaceLanguage()
   const [title, line, cta] = homeKidsCardCopy(language)
   return (
-    <Link href={entradaNova ? createEntryForLegacyHref(homeKidsCardHref(signedIn), signedIn) : homeKidsCardHref(signedIn) /* KINEO-ENTRADAS-CARTOES-1011 [fundador 10/11: "Make my cartoon" abriu a tela ANTIGA] — logado: /create/cartoon com a mesma query; visitante: o desenho sem conta de hoje */} className="k3c-card" data-home-card={HOME_KIDS_CARD_ID} onClick={() => { void trackEvent(HOME_CARD_EVENT, { ...homeKidsCardClickMetadata(signedIn), position }) }}>
+    <Link href={entradaNova ? createEntryForSignupHref(homeKidsCardHref(signedIn), signedIn) : homeKidsCardHref(signedIn) /* KINEO-ENTRADAS-CARTOES-1011 [fundador 10/11: "Make my cartoon" abriu a tela ANTIGA] — logado: /create/cartoon com a mesma query; visitante: o desenho sem conta de hoje */} className="k3c-card" data-home-card={HOME_KIDS_CARD_ID} onClick={() => { void trackEvent(HOME_CARD_EVENT, { ...homeKidsCardClickMetadata(signedIn), position }) }}>
       <KidsMedia />
       <span className="k3c-shade" aria-hidden="true" />
       <span className="k3c-glass" aria-hidden="true" />

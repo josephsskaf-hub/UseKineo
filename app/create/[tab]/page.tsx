@@ -38,6 +38,6 @@ export default async function Page({ params, searchParams = {} }: { params: { ta
   const campanha = searchParams.intent_campaign === undefined ? CREATE_FILM_CAMPAIGN : campanhaDaCaixa(searchParams.intent_campaign)
   if (filmNaMoldura(params.tab, user?.email)) return <><StudioIdeaArrival /><StudioNaMoldura showRecreate={decision.showRecreate} motor={motorDaCaixa(undefined)} campanha={campanha} ideiaInicial={ideiaDoLink(searchParams.ideia)} /></>
   const destino = params.tab === 'ads' || params.tab === 'cartoon' ? destinoDaChegada(params.tab, query) : null // KINEO-ENTRADAS-CARTOES-1011
-  if (destino && (params.tab === 'ads' || params.tab === 'cartoon')) return <AbaComChegada tab={params.tab} showRecreate={decision.showRecreate} destino={destino} />
+  if (destino && (params.tab === 'ads' || params.tab === 'cartoon')) return <><StudioIdeaArrival /><AbaComChegada tab={params.tab} showRecreate={decision.showRecreate} destino={destino} /></> // KINEO-ENTRADAS-VISITANTE-1111 — a conta nova chega com ?signup=1 (callback): a conversão e a origem do cadastro contam aqui, como no Film
   return <CreateShell tab={params.tab as CreateTab} signedIn showRecreate={decision.showRecreate} />
 }

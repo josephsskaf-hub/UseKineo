@@ -8,7 +8,7 @@ import { UiLabel } from '@/components/InterfaceLanguage'
 import { trackEvent } from '@/lib/analytics'
 import { HOME_CARD_EVENT, homeCardClickMetadata, homeCardHref, type HomeCardId } from '@/lib/ui/homeThreeCards'
 import { homeKidsCardHref } from '@/lib/ui/homeKidsCard'
-import { createEntryForLegacyHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"]
+import { createEntryForLegacyHref, createEntryForSignupHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"]
 import { MADE_WITH_KINEO_HREF } from '@/lib/homeGaleria'
 
 const CSS = `
@@ -40,7 +40,7 @@ export default function HomePortasCelular({ signedIn, entradaNova = false }: { s
   // KINEO-ENTRADAS-TELA-NOVA-1011 — só na home (entradaNova): a porta Film e a caixa abrem a aba Film para quem está LOGADO; o visitante segue no destino de hoje (KINEO-ENTRADAS-SO-LOGADO-1011).
   // KINEO-ENTRADAS-CARTOES-1011 [fundador 10/11: "Make my ad", "Make my UGC ad" e "Make my cartoon" abriram a tela ANTIGA] — as portas de anúncio
   // (?entry=) e o Cartoon também: logado vai à aba (/create/ads?entry=… · /create/cartoon?utm_source=…); visitante segue no de hoje (o desenho sem conta).
-  const entrada = (href: string) => (entradaNova ? createEntryForLegacyHref(href, signedIn) : href)
+  const entrada = (href: string) => (entradaNova ? createEntryForSignupHref(href, signedIn) : href)
   const caixaHref = entradaNova ? createEntryForLegacyHref(hrefDaCaixa(ideia), signedIn) : hrefDaCaixa(ideia)
   return (
     <section className="kpc" aria-label="What to make" data-kineo="home-portas-celular">

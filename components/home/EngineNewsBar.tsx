@@ -14,7 +14,7 @@ import { halloweenSkinOn } from '@/components/home/HalloweenSkin' // KINEO-FAIXA
 import { useKling4TrialNoticeVisible } from '@/components/Kling4TrialNotice' // KINEO-FAIXA-COERENTE-3110
 import { KLING4_TRIAL_NOTICE_COPY } from '@/lib/kling4TrialNotice' // KINEO-FAIXA-COERENTE-3110
 import { faixaSomeParaPlano } from '@/lib/ui/faixaPlanoMaisAlto0511' // KINEO-PRIMEIRA-TELA-0511
-import { createEntryForLegacyHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"]
+import { createEntryForSignupHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"]
 
 // KINEO-FAIXA-OFERTA-2910 — fundador 29/10: a faixa azul passa a vender a oferta (Kling 4.0 grátis 30 dias no Creator + o desconto do
 // 1º mês que o servidor já aplica). Chave nova: quem fechou a faixa do Seedance volta a ver esta uma vez.
@@ -27,7 +27,7 @@ export const ENGINE_NEWS_BAR_HREF = '/pricing?intent_campaign=home_news_bar_k4'
 // botão leva a fazer o filme, não aos planos. Sem o 1º filme, volta a oferta do Creator de sempre.
 export function engineNewsBarTrialHref(signedIn: boolean): string {
   const studio = '/studio?intent_campaign=home_news_bar_k4_trial'
-  return createEntryForLegacyHref(signedIn ? studio : `/signup?redirect=${encodeURIComponent(studio)}`, signedIn) // KINEO-ENTRADAS-TELA-NOVA-1011 — logado: a aba Film da tela nova; visitante: o de hoje (interruptor CREATE_ENTRY_RELEASE)
+  return createEntryForSignupHref(signedIn ? studio : `/signup?redirect=${encodeURIComponent(studio)}`, signedIn) // KINEO-ENTRADAS-TELA-NOVA-1011 — logado: a aba Film da tela nova; visitante: o de hoje (interruptor CREATE_ENTRY_RELEASE)
 }
 
 // KINEO-FAIXA-UNICA-2910 — fundador 29/10 ("melhora as letras… Kling 4.0 e Halloween, não gostei muito"): as 2 faixas empilhadas viraram UMA,

@@ -119,6 +119,31 @@ function moduleChecks(o = {}) {
       ok(caixa.campanhaDaCaixa(nq.intent_campaign) === caixa.campanhaDaCaixa(q.intent_campaign) && (nq.ideia ?? null) === (q.ideia ?? null), `${legacy}: mesma campanha e mesma ideia que o /studio grava`)
     }
   }
+  // KINEO-ENTRADAS-VISITANTE-1111 [CEO 11/11: "nem todos os botões estão entrando no fluxo novo"] — o VISITANTE dos cartões: o redirect do cadastro leva o
+  // destino da tela nova; o resto (caixa, /clips, /recreate, conteúdo, outros parâmetros do /signup) fica byte a byte.
+  const S = d => '/signup?redirect=' + encodeURIComponent(d)
+  for (const [antigo, novo] of [
+    ['/studio?engine=seedance&intent_campaign=home_card', '/create/film?engine=seedance&intent_campaign=home_card'],
+    ['/studio?intent_campaign=home_clips_first_film', '/create/film?intent_campaign=home_clips_first_film'],
+    ['/studio?intent_campaign=home_news_bar_k4_trial', '/create/film?intent_campaign=home_news_bar_k4_trial'],
+    ['/ads/v2?entry=product&utm_source=home_card', '/create/ads?entry=product&utm_source=home_card'],
+    ['/ads/v2?entry=ugc&utm_source=home_card', '/create/ads?entry=ugc&utm_source=home_card'],
+    ['/kids-cartoon?utm_source=home_card', '/create/cartoon?utm_source=home_card'],
+  ]) {
+    ok(entry.createEntryForSignupHref(S(antigo), false) === S(novo), `visitante: ${antigo} → o cadastro volta em ${novo}`)
+    ok(entry.createEntryForSignupHref(S(antigo), undefined) === S(antigo) && entry.createEntryForSignupHref(S(antigo), 'true') === S(antigo), `login desconhecido: ${antigo} fica`)
+    ok(entry.createEntryForSignupHref(antigo, true) === novo && entry.createEntryForSignupHref(novo, true) === novo, `logado: ${antigo} → ${novo}`)
+    ok(auth.normalizeInternalRedirect(novo) === novo, `${novo} é um redirect interno válido do cadastro`)
+    for (const r of ['off', 'internal']) ok(entry.createEntryForSignupHref(S(antigo), false, { entry: r }) === S(antigo) && entry.createEntryForSignupHref(S(antigo), false, { shell: r }) === S(antigo), `interruptor '${r}': o cadastro volta ao destino antigo (${antigo})`)
+  }
+  for (const h of [
+    S('/clips'), S('/clips?engine=x&prompt=y'), S('/recreate'), S('/recreate/passarela'), S('/images?engine=nanobanana&utm_source=made_with_kineo'), S('/spaces'), S('/pricing'),
+    S('/studio?prompt=Rome'), S('/studio?engine=hollywood&prompt=Rome'), S('/ads/v2'), S('/ads/new?style=xmas'), S('/ads/v2?entry=evil'), S('/api/stripe/checkout?plan=creator'),
+    '/signup', '/signup?utm_source=nav', '/signup?utm_source=nav-mobile', '/signup?reason=checkout&redirect=%2Fstudio', '/signup?redirect=%2Fstudio&utm_source=x',
+    '/signup?prompt=A%20ship%20found%20adrift', '/signup?redirect=%2Fstudio&redirect=%2Fads%2Fv2%3Fentry%3Dugc', '/login?redirect=%2Fstudio', '/studio?intent_campaign=home_phone_box&ideia=x',
+    '/ai-ugc-ads', '/ai-kids-cartoon-videos', '#try-kineo', 'https://evil.example/signup?redirect=%2Fstudio',
+  ]) ok(entry.createEntryForSignupHref(h, false) === h, `visitante: ${h} fica byte a byte`)
+  ok(['/studio', '/ads/new', '/kids-cartoon', '/signup?utm_source=x', '/clips'].every(h => entry.createEntryForSignupHref(h, true) === entry.createEntryForLegacyHref(h, true)), 'logado: createEntryForSignupHref = createEntryForLegacyHref')
   // Forçando no ARQUIVO (não só pelo parâmetro).
   for (const [name, v] of [['CREATE_ENTRY_RELEASE', 'off'], ['CREATE_ENTRY_RELEASE', 'internal'], ['CREATE_SHELL_RELEASE', 'internal'], ['CREATE_SHELL_RELEASE', 'off']]) {
     const e2 = loader({}, withSwitch(o, name, v))('lib/create/entry')
@@ -206,8 +231,25 @@ async function pageChecks(o = {}) {
     ['ads', { entry: 'ugc' }, '/ads/v2?entry=ugc'],
     ['cartoon', { utm_source: 'home_card' }, '/kids-cartoon?utm_source=home_card'],
   ]) {
-    const pg = await paginas(o, USER).create({ params: { tab }, searchParams: q })
-    ok(pg?.type?.name === 'AbaComChegada' && pg.props.tab === tab && pg.props.destino === destino, `/create/${tab}?${new URLSearchParams(q)} (logado): a aba com o Continue → ${pg?.props?.destino}`)
+    const raiz = await paginas(o, USER).create({ params: { tab }, searchParams: q })
+    const pg = achar(raiz, 'AbaComChegada') // KINEO-ENTRADAS-VISITANTE-1111 — dentro de um fragmento com a chegada do cadastro (StudioIdeaArrival)
+    ok(!!achar(raiz, 'StudioIdeaArrival') && pg?.type?.name === 'AbaComChegada' && pg.props.tab === tab && pg.props.destino === destino, `/create/${tab}?${new URLSearchParams(q)} (logado): a aba com o Continue → ${pg?.props?.destino}`)
+  }
+  // KINEO-ENTRADAS-VISITANTE-1111 — conta nova que veio do cartão da home (o callback põe signup=1 no destino; o e-mail, welcome=1): cai na aba,
+  // a conversão/origem do cadastro contam nela e o Continue leva a MESMA query (com a marca) ao gerador de hoje. Marca com outro valor = gerador de hoje.
+  for (const [tab, q, destino] of [
+    ['ads', { entry: 'ugc', utm_source: 'home_card', signup: '1' }, '/ads/v2?entry=ugc&utm_source=home_card&signup=1'],
+    ['ads', { entry: 'product', utm_source: 'home_card', welcome: '1' }, '/ads/v2?entry=product&utm_source=home_card&welcome=1'],
+    ['cartoon', { utm_source: 'home_card', signup: '1' }, '/kids-cartoon?utm_source=home_card&signup=1'],
+  ]) {
+    const raiz = await paginas(o, USER).create({ params: { tab }, searchParams: q })
+    const pg = achar(raiz, 'AbaComChegada')
+    ok(!!achar(raiz, 'StudioIdeaArrival') && pg?.props?.destino === destino, `/create/${tab} conta nova (${JSON.stringify(q)}): a aba, com a chegada do cadastro → ${pg?.props?.destino}`)
+  }
+  for (const [tab, q, volta] of [['ads', { entry: 'ugc', signup: '2' }, '/ads/v2?entry=ugc&signup=2'], ['cartoon', { signup: 'x' }, '/kids-cartoon?signup=x']]) {
+    let r = null
+    try { await paginas(o, USER).create({ params: { tab }, searchParams: q }) } catch (e) { r = e.redirect }
+    ok(r === volta, `/create/${tab} com marca de cadastro que não é 1 → o gerador de hoje (${r})`)
   }
   for (const [tab, q, volta] of [['ads', { entry: 'bogus' }, '/ads/v2?entry=bogus'], ['ads', { entry: 'ugc', style: 'x' }, '/ads/v2?entry=ugc&style=x'], ['cartoon', { character: 'leo' }, '/kids-cartoon?character=leo']]) {
     let r = null
@@ -268,8 +310,8 @@ const SUPERFICIES = [
   ['topo (app/KineoLanding.tsx: mega-menu, Product ads, menu do celular, Dashboard, CTA final)', (o, b, s) => viaRenderPage(o, 'app/KineoLanding.tsx', b, {}, { initialUser: s ? { id: 'fixture' } : null }), [0, null]], // KINEO-ENTRADAS-CARTOES-1011 — logado: TODA entrada de criação (era 8; + motores, AI UGC Ads, AI Cartoon Videos)
   ['menu lateral (components/Sidebar.tsx)', (o, b, s) => viaLoader(o, 'components/Sidebar.tsx', b, { userEmail: s ? 'customer@example.org' : '', isLoggedIn: s, credits: 10, plan: 'free' }), [0, 3]],
   ['menu do celular (components/MobileNav.tsx)', (o, b, s) => viaRenderPage(o, 'components/MobileNav.tsx', b, { pathname: '/library' }, { isLoggedIn: s }), [0, 3]],
-  ['cartões da home (components/home/HomeThreeCards.tsx, entradaNova)', (o, b, s) => viaRenderPage(o, 'components/home/HomeThreeCards.tsx', b, {}, { signedIn: s, kidsCard: true, ...(b ? {} : { entradaNova: true }) }), [0, null]], // KINEO-ENTRADAS-CARTOES-1011 — logado: Films + Product + UGC + Cartoon (era 1)
-  ['portas e caixa do celular (components/home/HomePortasCelular.tsx, entradaNova)', (o, b, s) => viaRenderPage(o, 'components/home/HomePortasCelular.tsx', b, {}, { signedIn: s, ...(b ? {} : { entradaNova: true }) }), [0, null]], // KINEO-ENTRADAS-CARTOES-1011 — logado: as 3 portas + Cartoon + caixa (era 2)
+  ['cartões da home (components/home/HomeThreeCards.tsx, entradaNova)', (o, b, s) => viaRenderPage(o, 'components/home/HomeThreeCards.tsx', b, {}, { signedIn: s, kidsCard: true, ...(b ? {} : { entradaNova: true }) }), [null, null]], // KINEO-ENTRADAS-CARTOES-1011 — logado: Films + Product + UGC + Cartoon (era 1)
+  ['portas e caixa do celular (components/home/HomePortasCelular.tsx, entradaNova)', (o, b, s) => viaRenderPage(o, 'components/home/HomePortasCelular.tsx', b, {}, { signedIn: s, ...(b ? {} : { entradaNova: true }) }), [null, null]], // KINEO-ENTRADAS-CARTOES-1011 — logado: as 3 portas + Cartoon + caixa (era 2)
   ['vitrine (components/home/HomeMosaic.tsx: filmes + "Ad example")', (o, b, s) => viaLoader(o, 'components/home/HomeMosaic.tsx', b, { signedIn: s }), [null, null]],
   ['páginas de SEO (HomeThreeCards sem entradaNova, como em components/seo/PaginaClara.tsx)', (o, b, s) => viaRenderPage(o, 'components/home/HomeThreeCards.tsx', b, {}, { signedIn: s, kidsCard: true }), [0, 0]],
 ]
@@ -278,7 +320,7 @@ function renderChecks(o = {}, { so = null } = {}) {
   const MAP = new Set(['/studio', '/ads/new', '/kids-cartoon', '/ads/v2']) // KINEO-ENTRADAS-CARTOES-1011 — + /ads/v2 (cartões Product/UGC)
   // KINEO-ENTRADAS-CARTOES-1011 — links de CONTEÚDO que, para quem está logado, são "fazer agora" (topo: AI UGC Ads · AI Cartoon Videos).
   const CONTEUDO = { '/ai-kids-cartoon-videos': ['cartoon', '/kids-cartoon'], '/ai-ugc-ads': ['ads', '/ads/v2?entry=ugc'] }
-  const esperado = (h, s) => { const c = CONTEUDO[inner(h).pathname]; return c ? entry.createEntryForContentHref(c[0], h, c[1], s) : entry.createEntryForLegacyHref(h, s) }
+  const esperado = (h, s) => { const c = CONTEUDO[inner(h).pathname]; return c ? entry.createEntryForContentHref(c[0], h, c[1], s) : entry.createEntryForSignupHref(h, s) } // KINEO-ENTRADAS-VISITANTE-1111 — + o embrulho do cadastro do visitante
   const criacao = h => MAP.has(inner(h).pathname) || inner(h).pathname in CONTEUDO
   const inner = h => { const u = new URL(h, 'https://k'); return u.pathname === '/signup' && u.searchParams.get('redirect') ? new URL(u.searchParams.get('redirect'), 'https://k') : u }
   for (const [nome, render, conta] of SUPERFICIES) {
@@ -287,7 +329,7 @@ function renderChecks(o = {}, { so = null } = {}) {
       const quem = signed ? 'logado' : 'visitante'
       const main = render(o, true, signed), off = render(OFF(o), false, signed), pub = render(o, false, signed)
       ok(off === main, `${nome} · ${quem}: 'off' = HTML byte a byte o da main`)
-      if (!signed) ok(pub === main, `${nome} · visitante: HTML byte a byte o da main (sem muro de cadastro novo)`)
+      if (!signed && conta[0] === 0) ok(pub === main, `${nome} · visitante: HTML byte a byte o da main (sem muro de cadastro novo)`) // KINEO-ENTRADAS-VISITANTE-1111 — as superfícies com [null] mudam SÓ o redirect do cadastro (conferido link a link abaixo)
       ok(medicao(pub) === medicao(main), `${nome} · ${quem}: medição (data-home-cta/data-nav-item/data-home-card…) idêntica`)
       const a = hrefs(main), b = hrefs(pub)
       ok(a.length === b.length, `${nome} · ${quem}: mesmo número de links`)
@@ -300,7 +342,7 @@ function renderChecks(o = {}, { so = null } = {}) {
         ok(/^\/create\/(film|cartoon|ads)$/.test(inner(b[i]).pathname), `${nome} · ${quem}: destino novo é uma aba (${b[i]})`)
       }
       const conta1 = conta[signed ? 1 : 0]
-      if (conta1 === null) ok((signed ? mudou > 0 : mudou === 0) && mudou >= a.filter(h => MAP.has(inner(h).pathname) && esperado(h, signed) !== h).length && mudou <= a.filter(h => criacao(h) && esperado(h, signed) !== h).length, `${nome} · ${quem}: todos os filmes e anúncios secos mudaram (${mudou})`)
+      if (conta1 === null) ok(mudou > 0 && mudou >= a.filter(h => MAP.has(inner(h).pathname) && esperado(h, signed) !== h).length && mudou <= a.filter(h => criacao(h) && esperado(h, signed) !== h).length, `${nome} · ${quem}: todos os filmes e anúncios secos mudaram (${mudou})`)
       else ok(mudou === conta1, `${nome} · ${quem}: ${conta1} entrada(s) mudam (vieram ${mudou})`)
       // KINEO-ENTRADAS-MOTOR-1011 — link com motor específico: logado vai à aba Film SEM o motor; visitante fica no Studio.
       for (let i = 0; i < a.length; i++) if (/^\/studio\?engine=(hollywood|h3|h3max|s25|fast)\b/.test(a[i])) ok(signed ? b[i].startsWith('/create/film') && !/[?&]engine=/.test(b[i]) : b[i] === a[i], `${nome} · ${quem}: ${a[i]} → ${b[i]}`)
@@ -332,7 +374,7 @@ function otherChecks(o = {}) {
     const kids = (ov, props) => hrefs(viaLoader(ov, 'components/home/HomeKidsCard.tsx', false, props))[0]
     const kMain = hrefs(viaLoader(o, 'components/home/HomeKidsCard.tsx', true, { signedIn: s }))[0]
     ok(kids(o, { signedIn: s }) === kMain && kids(OFF(o), { signedIn: s, entradaNova: true }) === kMain, `cartão Cartoon (${quem}): sem entradaNova ou com 'off' = main (${kMain})`)
-    ok(kids(o, { signedIn: s, entradaNova: true }) === (s ? '/create/cartoon?utm_source=home_card' : kMain), `cartão Cartoon (${quem}, home): ${kids(o, { signedIn: s, entradaNova: true })}`)
+    ok(kids(o, { signedIn: s, entradaNova: true }) === (s ? '/create/cartoon?utm_source=home_card' : '/signup?redirect=' + encodeURIComponent('/create/cartoon?utm_source=home_card')), `cartão Cartoon (${quem}, home; KINEO-ENTRADAS-VISITANTE-1111: o visitante volta do cadastro na aba): ${kids(o, { signedIn: s, entradaNova: true })}`)
     const ugc = (ov, props) => hrefs(viaLoader(ov, 'components/NavUgcAdsLink.tsx', false, { 'data-nav-item': 'more:ugc', ...props }))[0]
     const uMain = hrefs(viaLoader(o, 'components/NavUgcAdsLink.tsx', true, { 'data-nav-item': 'more:ugc' }))[0]
     ok(ugc(o, {}) === uMain && ugc(OFF(o), { signedIn: true }) === uMain && ugc(o, { signedIn: false }) === uMain, `AI UGC Ads: sem login conhecido, visitante ou 'off' = a página de conteúdo (${uMain})`)
@@ -348,7 +390,7 @@ function otherChecks(o = {}) {
   for (const s of [true, false]) {
     const pub = t.m('components/home/EngineNewsBar').engineNewsBarTrialHref(s), off = tOff.m('components/home/EngineNewsBar').engineNewsBarTrialHref(s), main = tMain.m('components/home/EngineNewsBar').engineNewsBarTrialHref(s)
     ok(off === main, `faixa "Make my film" (${s ? 'logado' : 'visitante'}): 'off' = main (${main})`)
-    ok(pub === (s ? '/create/film?intent_campaign=home_news_bar_k4_trial' : main), `faixa "Make my film" (${s ? 'logado' : 'visitante'}): ${pub}`)
+    ok(pub === (s ? '/create/film?intent_campaign=home_news_bar_k4_trial' : '/signup?redirect=' + encodeURIComponent('/create/film?intent_campaign=home_news_bar_k4_trial')), `faixa "Make my film" (${s ? 'logado' : 'visitante'}): ${pub}`)
   }
   const caixa = (ov) => loader({}, ov)('lib/ui/caixaPresente0511')
   const linha = (R) => R.linhasDaCaixa({ ...R.CAIXA_SEM_LEITURA, credits: TRIAL }, 1_800_000_000_000).find(l => l.id === 'filme')?.href
@@ -358,7 +400,8 @@ function otherChecks(o = {}) {
   const R = caixa(o)
   ok(R.linhasDaCaixa({ ...R.CAIXA_SEM_LEITURA, credits: TRIAL }, 1_800_000_000_000).every(l => l.id === 'filme' || l.href === cMain.linhasDaCaixa({ ...cMain.CAIXA_SEM_LEITURA, credits: TRIAL }, 1_800_000_000_000).find(x => x.id === l.id)?.href), 'caixa de presente: as outras linhas (Kling 4 com motor, conector, afiliado, oferta) não mudam')
   // /pricing: intocado (CEO 10/11: "DESFAÇA a linha do app/pricing/PricingClient.tsx") — igual à main byte a byte.
-  ok(lf(o['app/pricing/PricingClient.tsx'] ?? read('app/pricing/PricingClient.tsx')) === lf(mainSrc('app/pricing/PricingClient.tsx')), '/pricing: PricingClient.tsx igual à main')
+  // KINEO-ENTRADAS-VISITANTE-1111 — por CONTEÚDO, não por diff contra uma main fixa: a faxina do Google (11/11) mexeu legitimamente no /pricing. O que não pode: a entrada única nele.
+  { const pr = lf(o['app/pricing/PricingClient.tsx'] ?? read('app/pricing/PricingClient.tsx')); ok(!/KINEO-ENTRADAS-|lib\/create\/entry/.test(pr), '/pricing: PricingClient.tsx sem a entrada única (intocado por esta obra)') }
   // A tela nova: sem menu lateral, mas com volta para os vídeos e para os preços pelo cabeçalho.
   const nav = lf(o['components/create/CreateNavConta.tsx'] ?? read('components/create/CreateNavConta.tsx'))
   ok(nav.includes('href={CREATE_NAV_PRICING_HREF}') && nav.includes("CREATE_NAV_PRICING_HREF = '/pricing'") && nav.includes('href={CREATE_NAV_VIDEOS_HREF}') && nav.includes("CREATE_NAV_VIDEOS_HREF = '/library'") && /My videos/.test(nav), 'cabeçalho da tela nova: Pricing e My videos (/library, onde moram os filmes) presentes')
@@ -393,7 +436,7 @@ const src = p => read(p)
 const troca = (p, a, b) => { const s = src(p); if (!s.includes(a)) throw new Error(`mutante sem alvo em ${p}: ${a}`); return { [p]: s.replace(a, b) } }
 const MUTANTES = [
   // KINEO-ENTRADAS-CARTOES-1011 · KINEO-ENTRADAS-MOTOR-1011
-  ['o cartão Cartoon ignora a entrada', troca('components/home/HomeKidsCard.tsx', 'href={entradaNova ? createEntryForLegacyHref(homeKidsCardHref(signedIn), signedIn) : homeKidsCardHref(signedIn)', 'href={homeKidsCardHref(signedIn)'), ['X']],
+  ['o cartão Cartoon ignora a entrada', troca('components/home/HomeKidsCard.tsx', 'href={entradaNova ? createEntryForSignupHref(homeKidsCardHref(signedIn), signedIn) : homeKidsCardHref(signedIn)', 'href={homeKidsCardHref(signedIn)'), ['X']],
   ['AI UGC Ads sempre na página de conteúdo', troca('components/NavUgcAdsLink.tsx', "createEntryForContentHref('ads', menuUgcHref(language), NAV_UGC_MAKE_NOW_HREF, signedIn)", 'menuUgcHref(language)'), ['X']],
   ['o motor não sai do link', troca('lib/create/entry.ts', "if (motores.length === 1 && motores[0] !== FILM_DEFAULT_ENGINE) q.delete('engine')", ''), ['A']],
   ['o cartão UGC perde o entry', troca('lib/create/entry.ts', 'adsArrivalSupported(u.searchParams) ? `/create/ads${u.search}`', 'adsArrivalSupported(u.searchParams) ? `/create/ads`'), ['A']],
@@ -403,7 +446,7 @@ const MUTANTES = [
   ['visitante vai à tela nova no topo', troca('app/KineoLanding.tsx', 'href={createEntryHref(\'ads\', \'/ads/new\', isSignedIn)} data-nav-item="business" className="nav-primary"', 'href={createEntryHref(\'ads\', \'/ads/new\', true)} data-nav-item="business" className="nav-primary"'), ['D'], { so: ['topo'] }],
   ['a lateral manda visitante à tela nova', troca('components/Sidebar.tsx', 'signedIn={isLoggedIn} />', 'signedIn />'), ['D'], { so: ['lateral'] }],
   ['My videos volta para /clips', troca('components/create/CreateNavConta.tsx', "CREATE_NAV_VIDEOS_HREF = '/library'", "CREATE_NAV_VIDEOS_HREF = '/clips'"), ['X']],
-  ['/pricing mexido', troca('app/pricing/PricingClient.tsx', 'Go to Dashboard', 'Go to Studio'), ['X']],
+  ['/pricing mexido', troca('app/pricing/PricingClient.tsx', "'use client'", "'use client'\nimport '@/lib/create/entry'"), ['X']],
   ['a aba Film aceita prompt', troca('lib/create/entry.ts', 'const FILM_KEYS = /^(?:intent_campaign|ideia|', 'const FILM_KEYS = /^(?:prompt|intent_campaign|ideia|'), ['A']],
   ['qualquer motor vai para a aba Film', troca('lib/create/entry.ts', "if (k === 'engine') { if (v !== FILM_DEFAULT_ENGINE) return false; continue }", "if (k === 'engine') continue"), ['A', 'B']],
   ['o interruptor de entrada é ignorado', troca('lib/create/entry.ts', "if (entry !== 'public' || shell", "if (shell"), ['A']],
@@ -419,11 +462,20 @@ const MUTANTES = [
   ['a lateral volta ao Studio antigo', troca('components/Sidebar.tsx', 'href={createEntryForLegacyHref(href, signedIn)}', 'href={href}'), ['D'], { so: ['lateral', 'menus'] }],
   ['o celular mede pelo destino novo', troca('components/MobileNav.tsx', 'data-nav-item={navItemIdFor(href)}', 'data-nav-item={navItemIdFor(createEntryForLegacyHref(href, true))}'), ['D'], { so: ['celular (components'] }],
   ['o topo do celular esquece o Product ads', troca('app/KineoLanding.tsx', `<Link href={createEntryHref('ads', '/ads/new', isSignedIn)} data-nav-item="business"><UiLabel>Product ads</UiLabel></Link>`, '<Link href="/ads/new" data-nav-item="business"><UiLabel>Product ads</UiLabel></Link>'), ['D'], { so: ['menus'] }],
-  ['as páginas de SEO mudam junto', troca('components/home/HomeThreeCards.tsx', 'href={entradaNova ? createEntryForLegacyHref(homeCardHref(card, signedIn), signedIn) : homeCardHref(card, signedIn)}', 'href={createEntryForLegacyHref(homeCardHref(card, signedIn), signedIn)}'), ['D'], { so: ['SEO'] }],
-  ['a vitrine leva os filmes ao Studio antigo', troca('components/home/HomeMosaic.tsx', 'const filmHref = createEntryForLegacyHref(clipsFirstFilmHref(signedIn), signedIn)', 'const filmHref = clipsFirstFilmHref(signedIn)'), ['D'], { so: ['vitrine'] }],
+  ['as páginas de SEO mudam junto', troca('components/home/HomeThreeCards.tsx', 'href={entradaNova ? createEntryForSignupHref(homeCardHref(card, signedIn), signedIn) : homeCardHref(card, signedIn)}', 'href={createEntryForSignupHref(homeCardHref(card, signedIn), signedIn)}'), ['D'], { so: ['SEO'] }],
+  ['a vitrine leva os filmes ao Studio antigo', troca('components/home/HomeMosaic.tsx', 'const filmHref = createEntryForSignupHref(clipsFirstFilmHref(signedIn), signedIn)', 'const filmHref = clipsFirstFilmHref(signedIn)'), ['D'], { so: ['vitrine'] }],
   ['a caixa de presente leva ao Studio antigo', troca('lib/ui/caixaPresente0511.ts', "href: createEntryHref('film', '/studio', true) })", "href: '/studio' })"), ['X']],
   ['a aba Ads não repassa o entry', troca('lib/create/entry.ts', "return `${tab === 'ads' ? ADS_V2_PATH : LEGACY_ENTRY_PATH.cartoon}?${query}`", "return tab === 'ads' ? ADS_V2_PATH : `${LEGACY_ENTRY_PATH.cartoon}?${query}`"), ['B']], // KINEO-ENTRADAS-TOPO-E-HOME-1011
   ['a entrada vaza para uma lista de menu', troca('lib/ui/homeKidsCard.ts', 'export function homeKidsCardHref(', "import '@/lib/create/entry'\nexport function homeKidsCardHref("), ['X']], // KINEO-ENTRADAS-TOPO-E-HOME-1011
+  // KINEO-ENTRADAS-VISITANTE-1111
+  ['o cadastro do visitante ignora outros parâmetros', troca('lib/create/entry.ts', "if (keys.length !== 1 || keys[0] !== 'redirect') return legacyHref", ''), ['A']],
+  ['login desconhecido vira visitante', troca('lib/create/entry.ts', "if (signedIn !== false) return legacyHref // login desconhecido", "// login desconhecido"), ['A']],
+  ['a marca do cadastro aceita qualquer valor', troca('lib/create/entry.ts', "return ARRIVAL_KEYS.test(k) && v === '1'", "return ARRIVAL_KEYS.test(k)"), ['B']],
+  ['a aba Ads/Cartoon esquece a chegada do cadastro', troca('app/create/[tab]/page.tsx', 'return <><StudioIdeaArrival /><AbaComChegada', 'return <><AbaComChegada'), ['B']],
+  ['o cartão de filme do visitante fica no Studio antigo (vitrine)', troca('components/home/HomeMosaic.tsx', 'const filmHref = createEntryForSignupHref(clipsFirstFilmHref(signedIn), signedIn)', 'const filmHref = clipsFirstFilmHref(signedIn)'), ['D'], { so: ['vitrine'] }],
+  ['a faixa do visitante fica no Studio antigo', troca('components/home/EngineNewsBar.tsx', 'return createEntryForSignupHref(signedIn ? studio', 'return (signedIn ? studio'), ['X']],
+  ['as portas do celular do visitante ficam no antigo', troca('components/home/HomePortasCelular.tsx', '(entradaNova ? createEntryForSignupHref(href, signedIn) : href)', '(entradaNova ? (signedIn ? createEntryForLegacyHref(href, signedIn) : href) : href)'), ['D'], { so: ['portas'] }],
+  ['o redirect do visitante aponta para fora das abas', troca('lib/create/entry.ts', "return `/signup?redirect=${encodeURIComponent(novo)}`", "return `/signup?redirect=${encodeURIComponent(destino + '&x=1')}`"), ['A']],
   ['o "off" do topo não é o da main', troca('app/KineoLanding.tsx', "href={createEntryHref('film', '/studio?intent_campaign=nav_door', isSignedIn)}", "href={createEntryHref('film', '/studio?intent_campaign=nav_door&x=1', isSignedIn)}"), ['D'], { so: ['topo'] }],
 ]
 let mortos = 0

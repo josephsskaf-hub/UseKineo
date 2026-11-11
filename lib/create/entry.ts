@@ -83,6 +83,11 @@ export function filmParamsSupported(params: URLSearchParams | Record<string, str
   return true
 }
 
+/** KINEO-ENTRADAS-VISITANTE-1111 — a marca que o callback do cadastro põe no destino de conta nova (signup=1 · welcome=1). */
+function signupArrival(k: string, v: string): boolean {
+  return ARRIVAL_KEYS.test(k) && v === '1'
+}
+
 function paramsOk(params: URLSearchParams | Record<string, string | string[] | undefined>, allow: (k: string, v: string) => boolean): boolean {
   const entries: [string, unknown][] = params instanceof URLSearchParams ? Array.from(params.entries()) : Object.entries(params)
   const seen = new Set<string>()
@@ -96,11 +101,11 @@ function paramsOk(params: URLSearchParams | Record<string, string | string[] | u
 
 /** KINEO-ENTRADAS-CARTOES-1011 — a chegada da aba Ads é toda guardável e repassável? (entry válido + atribuição) */
 export function adsArrivalSupported(params: URLSearchParams | Record<string, string | string[] | undefined>): boolean {
-  return paramsOk(params, (k, v) => (k === 'entry' ? ADS_ENTRIES.has(v) : ATTRIBUTION_KEYS.test(k)))
+  return paramsOk(params, (k, v) => (k === 'entry' ? ADS_ENTRIES.has(v) : ATTRIBUTION_KEYS.test(k) || signupArrival(k, v)))
 }
 /** KINEO-ENTRADAS-CARTOES-1011 — a chegada da aba Cartoon é toda guardável e repassável? (só atribuição) */
 export function cartoonArrivalSupported(params: URLSearchParams | Record<string, string | string[] | undefined>): boolean {
-  return paramsOk(params, k => ATTRIBUTION_KEYS.test(k))
+  return paramsOk(params, (k, v) => ATTRIBUTION_KEYS.test(k) || signupArrival(k, v))
 }
 
 /**
@@ -151,6 +156,27 @@ export function createEntryHref(kind: CreateEntryKind, legacyHref: string, signe
 export function createEntryForContentHref(kind: CreateEntryKind, contentHref: string, makeNowHref: string, signedIn: boolean, opts: CreateEntryOpts = {}): string {
   const novo = createEntryHref(kind, makeNowHref, signedIn, opts)
   return novo !== makeNowHref && novo.startsWith(`/create/${kind}`) ? novo : contentHref
+}
+
+/**
+ * KINEO-ENTRADAS-VISITANTE-1111 [CEO 11/11, dono com print da home deslogada: "nem todos os botões estão entrando no fluxo novo"] — o VISITANTE
+ * dos cartões e portas da home hoje vai a `/signup?redirect=<destino antigo>`. Aqui o redirect passa a levar o MESMO destino da tela nova
+ * que o logado recebe (createEntryForLegacyHref): depois do cadastro a pessoa já está logada e pousa direto em /create/film|ads|cartoon.
+ * Logado: idêntico a createEntryForLegacyHref. Só muda o embrulho EXATO `/signup?redirect=<x>` (um único parâmetro); qualquer outro href —
+ * a caixa "What's your film about?" (a ideia antes do cadastro), `/signup?utm_source=…`, /clips, /recreate, páginas de conteúdo — volta intacto,
+ * assim como o redirect cujo destino a tela nova não trata (createEntryHref devolve o antigo) e qualquer interruptor fora de 'public'.
+ */
+export function createEntryForSignupHref(legacyHref: string, signedIn: boolean, opts: CreateEntryOpts = {}): string {
+  if (signedIn === true) return createEntryForLegacyHref(legacyHref, true, opts)
+  if (signedIn !== false) return legacyHref // login desconhecido (undefined, null, 'true'…): o destino de hoje, como em createEntryHref
+  const u = parse(legacyHref)
+  if (!u || u.pathname !== '/signup') return legacyHref
+  const keys = Array.from(u.searchParams.keys())
+  if (keys.length !== 1 || keys[0] !== 'redirect') return legacyHref
+  const destino = u.searchParams.get('redirect') ?? ''
+  const novo = createEntryForLegacyHref(destino, true, opts)
+  if (novo === destino || !(novo.startsWith('/create/film') || novo.startsWith('/create/ads') || novo.startsWith('/create/cartoon'))) return legacyHref
+  return `/signup?redirect=${encodeURIComponent(novo)}`
 }
 
 /** A query de chegada de /create/<aba> como string (lista = a chave repetida), para devolvê-la intacta ao /studio ou ao cadastro. */
