@@ -3,12 +3,17 @@
 // /recreate (o produto) exige login e é noindex; esta página é indexável e manda para o cadastro com volta ao /recreate e a campanha
 // seo_product_recreate (signup_utm_campaign), para medir pagante por página. Todo número sai de lib/seo/paginasCitaveis1011.ts.
 // Sem nome do fornecedor da troca. Sem "free" (o dado de 10/11: página de "grátis" trouxe 510 cadastros e 0 pagantes).
-// As prévias dos vídeos do catálogo NÃO aparecem aqui: /api/recreate/assets só serve a quem está logado.
+// /api/recreate/assets segue só para quem está logado. KINEO-VITRINE-PAGINAS-1011: os vídeos-base dos formatos APROVADOS aparecem pela
+// prévia pública que a home e o /made-with-kineo já servem (public/previews/galeria) — nenhuma rota nova, nenhum formato em teste.
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
 import { BlocoCitavel1011 } from '@/components/seo/BlocoCitavel1011'
-import { BASE, FACE_SWAP_PATH, recreateBloco, recreateFormatosCitaveis, recreateSignupHref } from '@/lib/seo/paginasCitaveis1011'
+import { BASE, CAMPANHA_RECREATE, FACE_SWAP_PATH, recreateBloco, recreateFormatosCitaveis, recreateSignupHref } from '@/lib/seo/paginasCitaveis1011'
+import { ShowcaseStrip } from '@/app/claude-connector/ShowcaseGrid' // KINEO-VITRINE-PAGINAS-1011
+import { vitrineDaPagina } from '@/lib/seo/vitrinePaginas1011' // KINEO-VITRINE-PAGINAS-1011
+
+const vitrine = vitrineDaPagina('/ai-face-swap-video') // KINEO-VITRINE-PAGINAS-1011
 
 export const dynamic = 'force-static'
 
@@ -54,6 +59,9 @@ export default function FaceSwapVideoPage() {
         <p style={{ fontSize: 13, letterSpacing: '.08em', textTransform: 'uppercase', color: '#9aa3b2', margin: '0 0 10px' }}>Kineo Recreate</p>
         <h1 style={{ fontSize: 'clamp(1.8rem,5vw,2.6rem)', lineHeight: 1.15, letterSpacing: '-.02em', margin: '0 0 8px' }}>Put your face in a video with AI</h1>
         <BlocoCitavel1011 bloco={bloco} id="recreate" />
+        {/* KINEO-VITRINE-PAGINAS-1011 — os vídeos-base dos formatos aprovados, pela MESMA prévia pública que a home já serve (a rota
+            /api/recreate/assets continua só para quem está logado). Só aparece com troca aberta: é o vídeo do catálogo, não um resultado. */}
+        {aberto && vitrine ? <ShowcaseStrip titulo={vitrine.titulo} linha={vitrine.linha} clipes={vitrine.clipes.filter((c) => formatos.some((f) => f.id === c.id))} href={href} source={CAMPANHA_RECREATE} tone="dark" /> : null}
         {aberto ? <p style={{ margin: '8px 0 40px' }}>
           <Link href={href} style={{ display: 'inline-block', background: '#3D7BFF', color: '#fff', fontWeight: 700, padding: '13px 22px', borderRadius: 12, textDecoration: 'none' }}>Put my face in a video →</Link>
         </p> : null}

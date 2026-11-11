@@ -9,6 +9,8 @@ import { GRANT_COUNTRY_CLAUSE, TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOff
 import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
 import { TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { buildEngineLandingSignupHref } from '@/lib/growth/engineLandingIntent'
+import { ShowcaseStrip } from '@/app/claude-connector/ShowcaseGrid' // KINEO-VITRINE-PAGINAS-1011
+import { vitrineDaPagina } from '@/lib/seo/vitrinePaginas1011' // KINEO-VITRINE-PAGINAS-1011
 
 // KINEO-VENDER-3-2910 — a página do Kling 4.0 é a que o ChatGPT e o Google leem. Medido 29/10: o HTML do servidor dizia
 // "Kling 4.0 is currently unavailable. You can choose Kling 3" (a disponibilidade só chegava no navegador), e os
@@ -64,8 +66,11 @@ export default function Kling4Page() {
     '@type': 'FAQPage',
     mainEntity: faq.map(({ q, a }) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
   }
+  const vitrine = vitrineDaPagina('/ai-video-generator/kling-4') // KINEO-VITRINE-PAGINAS-1011
   return <>
     <Kling4PaidEnginePage serverPaidLive={KLING4_PAID_LIVE} freeFilmIsKling4={freeFilmIsKling4} freeLine={freeFilmIsKling4 ? `Your first ${TRIAL_FREE_FILM_SECONDS}-second film is free on Kling 4.0${GRANT_COUNTRY_CLAUSE}${FREE_FILM_FITS_CLAUSE}${noCard}.` : null} />
+    {/* KINEO-VITRINE-PAGINAS-1011 — os filmes narrados da casa feitos no Kling 4.0, logo abaixo da resposta e dos preços */}
+    {vitrine && <div style={{ maxWidth: 900, margin: '-48px auto 0', padding: '0 22px 56px' }}><ShowcaseStrip titulo={vitrine.titulo} linha={vitrine.linha} clipes={vitrine.clipes} href={href} source="seo_engine_kling4" tone="site" /></div>}
     <section aria-labelledby="kling4-faq" style={{ maxWidth: 900, margin: '0 auto', padding: '0 22px 72px', color: 'var(--text)', overflowWrap: 'anywhere' }}>
       <h2 id="kling4-faq" style={{ fontSize: 28, letterSpacing: '-.02em', margin: '0 0 18px' }}>Kling 4.0 questions</h2>
       {faq.map(({ q, a }) => <div key={q} style={{ padding: '16px 0', borderTop: '1px solid var(--border)' }}>

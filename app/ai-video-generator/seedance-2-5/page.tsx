@@ -26,6 +26,8 @@ import { EngineBuyerGuide } from '@/components/PaginasMotor1610' // KINEO-PAGINA
 import { ENGINES, isIndexableEngineSlug } from '@/lib/growth/enginePageCatalog'
 import { buildEngineLandingSignupHref } from '@/lib/growth/engineLandingIntent'
 import { S25_PUBLIC, enginePaused } from '@/lib/engineLaunch'
+import { ShowcaseStrip } from '@/app/claude-connector/ShowcaseGrid' // KINEO-VITRINE-PAGINAS-1011
+import { vitrineDaPagina } from '@/lib/seo/vitrinePaginas1011' // KINEO-VITRINE-PAGINAS-1011
 import {
   PIKA_CHECKED_ON,
   PIKA_PRICING_URL,
@@ -72,6 +74,7 @@ export default function Seedance25Page() {
   const pika = s25PikaRows(facts)
   const signupHref = buildEngineLandingSignupHref({ engine: e.param, campaign: CAMPAIGN })
   const ctaLabel = geo ? geo.ctaLabel : `Make a ${e.name} video on a paid plan →`
+  const vitrine = vitrineDaPagina('/ai-video-generator/seedance-2-5') // KINEO-VITRINE-PAGINAS-1011
 
   const faqJsonLd = {
     '@context': 'https://schema.org',
@@ -131,6 +134,9 @@ export default function Seedance25Page() {
           </div>
           {geo && <p style={{ fontSize: '0.82rem', color: '#86868b', margin: '12px 0 0' }}>{`${geo.accessNote} ${geo.turnaround}.`}</p>}
         </section>
+
+        {/* KINEO-VITRINE-PAGINAS-1011 — os filmes prontos da casa feitos no Seedance 2.5, logo abaixo da resposta */}
+        {vitrine && <ShowcaseStrip titulo={vitrine.titulo} linha={vitrine.linha} clipes={vitrine.clipes} href={signupHref} source={CAMPAIGN} tone="dark" />}
 
         {/* KINEO-MOTORES-GEO-2026-10-06 — preço por vídeo, quantos por plano, usar o modelo direto (fonte oficial, datada) e o
             CTA com a campanha da página + a frase da marca. */}

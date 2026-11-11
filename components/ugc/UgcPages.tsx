@@ -24,7 +24,12 @@ import { UGC_NICHES, ugcGeneratorCopy, ugcPillarCopy, ugcScriptWords, type UgcFa
 import {
   BF_EN_PATH, BF_PT_PATH, PAGINAS_UGC_BASE, PAGINAS_UGC_CAMPAIGN, PAGINAS_UGC_MARK, PAGINAS_UGC_REVIEWED_ISO, UGC_GENERATOR_PATH,
   UGC_NICHE_SLUGS, UGC_PILLAR_PATH, UGC_PILLAR_PT_PATH, bfCtaHref, paginasUgcAlternates, ugcNichePath, type UgcNicheSlug,
+  ugcCtaHref, // KINEO-VITRINE-PAGINAS-1011
 } from '@/lib/seo/paginasUgc2010'
+import { ShowcaseStrip } from '@/app/claude-connector/ShowcaseGrid' // KINEO-VITRINE-PAGINAS-1011
+import { vitrineDaPagina } from '@/lib/seo/vitrinePaginas1011' // KINEO-VITRINE-PAGINAS-1011
+
+const vitrineUgc = vitrineDaPagina('/ai-ugc-ads') // KINEO-VITRINE-PAGINAS-1011
 
 const BASE = PAGINAS_UGC_BASE
 /** O vídeo do card "AI UGC Ads" da home (apresentador v2 R3, pedido 84a5d07f, nota 9 do fundador, 17/10): 8,9 s, mudo. */
@@ -296,6 +301,8 @@ export function UgcPillarPage({ lang }: { lang: UgcLang }) {
       <section className="kug-sec" aria-label={pt ? 'Resposta direta' : 'Direct answer'}>
         <div className="kug-wrap">
           <BlocoCitavel1011 bloco={ugcBloco(pt)} id={pt ? 'ugc-pt' : 'ugc'} pt={pt} heading={pt ? 'Anúncio de produto com IA a partir das suas fotos' : 'AI product ad from your photos'} />
+          {/* KINEO-VITRINE-PAGINAS-1011 — os anúncios prontos da casa logo abaixo da resposta (só a página em inglês: a faixa é em inglês) */}
+          {!pt && vitrineUgc ? <ShowcaseStrip titulo={vitrineUgc.titulo} linha={vitrineUgc.linha} clipes={vitrineUgc.clipes} href={ugcCtaHref(campaign, false)} source={campaign} tone="light" /> : null}
         </div>
       </section>
       <section className="kug-sec" aria-labelledby="kug-summary">

@@ -55,6 +55,8 @@ import { enginePaused, H3_TURBO_PUBLIC } from '@/lib/engineLaunch'
 import { engineAlternates, LOCALIZED_ENGINE_SLUGS, type LocalizedEngineSlug } from '@/lib/seo/enginePageLangs' // KINEO-MOTORES-16-LINGUAS-2026-09-21
 import { PaginaClaraCards, PaginaClaraTopo, PaginaClaraVitrine } from '@/components/seo/PaginaClara' // KINEO-PAGINAS-IA-CLARAS-2110 — o menu do topo, os 4 cards e a vitrine atual da home
 import { PAGINA_CLARA_CLASSE, PAGINA_CLARA_FUNDO } from '@/lib/seo/paginasIaClaras2110' // KINEO-PAGINAS-IA-CLARAS-2110
+import { ShowcaseStrip } from '@/app/claude-connector/ShowcaseGrid' // KINEO-VITRINE-PAGINAS-1011
+import { VITRINE_PAGINAS, vitrineDaPagina, type VitrinePaginaKey } from '@/lib/seo/vitrinePaginas1011' // KINEO-VITRINE-PAGINAS-1011
 const OFFER = getFreeTierOffer()
 
 export const dynamic = 'force-static'
@@ -118,6 +120,10 @@ export default async function EnginePage({ params }: { params: { engine: string 
   const campaign = `seo_engine_${params.engine}`
   const studioUrl = buildEngineLandingDestination({ engine: e.param, campaign })
   const signupUrl = buildEngineLandingSignupHref({ engine: e.param, campaign })
+  // KINEO-VITRINE-PAGINAS-1011 — a faixa segue o motor que a página VENDE: o endereço do Seedance vende o H3 Turbo enquanto
+  // H3_TURBO_PUBLIC estiver ligado (e volta ao Seedance 1.5 se desligar). Página sem acervo do próprio motor = sem faixa.
+  const vitrineKey = standardH3 ? '/ai-video-generator/seedance' : params.engine === 'seedance' ? '/ai-video-generator/seedance#seedance-1-5' : `/ai-video-generator/${params.engine}`
+  const vitrine = Object.prototype.hasOwnProperty.call(VITRINE_PAGINAS, vitrineKey) ? vitrineDaPagina(vitrineKey as VitrinePaginaKey) : null
   // EVIDÊNCIA DE PRODUÇÃO (29/08/2026): seo_engine_kineo-1 ativou 7 de 19
   // cadastros, enquanto as portas orgânicas que carregam uma ideia concreta
   // ativaram 64–76%. Kineo 1 é o único motor desta página que pode preservar
@@ -174,6 +180,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
               botão principal do hero passou a ser a compra direta do Creator (SeedanceHeroActions buyPage). */}
           {params.engine === 'seedance' && !standardH3 && <Kineo1RetiredNotice />}
           {standardH3 ? <p style={{ fontSize: '1.02rem', color: '#5A5F67', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 680 }}>{e.intro}</p> : params.engine === 'seedance' ? <CitationDirectAnswer page="seedance" /> : geo && <EngineAnswerLead geo={geo} />}
+          {vitrine && <ShowcaseStrip titulo={vitrine.titulo} linha={vitrine.linha} clipes={vitrine.clipes} href={signupUrl} source={campaign} tone="light" />}{/* KINEO-VITRINE-PAGINAS-1011 — os filmes da casa DESTE motor logo abaixo da resposta direta */}
           <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
           {!enginePaused(e.param) && <PaidEngineBudget slug={params.engine} />}
           {enginePaused(e.param) && (

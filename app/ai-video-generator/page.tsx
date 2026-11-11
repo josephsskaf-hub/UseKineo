@@ -15,6 +15,8 @@ import { enginePaused, KINEO1_PUBLIC } from '@/lib/engineLaunch'
 import { ENGINES, ENGINE_SLUGS, engineOfferName, engineOfferPath } from '@/lib/growth/enginePageCatalog'
 import { buildProductSurfaceSignupHref } from '@/lib/growth/productSurfaceIntent'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
+import { ShowcaseStrip } from '@/app/claude-connector/ShowcaseGrid' // KINEO-VITRINE-PAGINAS-1011
+import { VITRINE_MOTOR_LABEL, VITRINE_PAGINAS, vitrineDaPagina } from '@/lib/seo/vitrinePaginas1011' // KINEO-VITRINE-PAGINAS-1011
 
 export const dynamic = 'force-static'
 
@@ -51,10 +53,16 @@ export default async function EngineHubPage() {
   // KINEO-HUB-VITRINE-2026-09-21 (auditoria do Cowork): com a superfície pública de vídeo de cliente desligada,
   // getEngineRenders devolve [] e os 7 cards viravam retângulos pretos numa landing de SEO. Sem render de cliente,
   // a miniatura vem da vitrine da CASA daquele motor (mesma regra das páginas filhas, opção B do fundador).
+  const vitrine = vitrineDaPagina('/ai-video-generator') // KINEO-VITRINE-PAGINAS-1011
   const perEngine = await Promise.all(
     ENGINE_SLUGS.map(async (slug) => {
       const videos = await getEngineRenders(ENGINES[slug].qualityMode, 1)
-      const house = videos.length > 0 ? [] : getHouseEngineExamples(ENGINES[slug].qualityMode, 1)
+      // KINEO-VITRINE-PAGINAS-1011 — o card do slug kling-3 se chama "Kling 4.0" (engineOfferName) e levava um filme do Kling 3:
+      // selo errado. Agora leva o 1º filme Kling 4.0 da casa (mesmo acervo da página do Kling 4.0).
+      const k4 = VITRINE_PAGINAS['/ai-video-generator/kling-4'].clipes[0]
+      const house = videos.length > 0 ? [] : slug === 'kling-3' && engineOfferName(slug) === VITRINE_MOTOR_LABEL.kling4
+        ? [{ videoUrl: k4.src, posterUrl: k4.poster }]
+        : getHouseEngineExamples(ENGINES[slug].qualityMode, 1)
       return { slug, videos, house, pause: enginePaused(ENGINES[slug].param) }
     }),
   )
@@ -115,6 +123,9 @@ export default async function EngineHubPage() {
           </div>
         </section>
 
+        {/* KINEO-VITRINE-PAGINAS-1011 — os filmes prontos da casa logo abaixo da resposta, cada um com o selo do motor que o fez */}
+        {vitrine && <ShowcaseStrip titulo={vitrine.titulo} linha={vitrine.linha} clipes={vitrine.clipes} href={ENGINE_HUB_SIGNUP_HREF} source="seo_engine_hub" tone="dark" />}
+
         <section style={{ marginTop: 48, display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
           {perEngine.map(({ slug, videos, house, pause }) => {
             const e = ENGINES[slug]
@@ -126,7 +137,7 @@ export default async function EngineHubPage() {
               >
                 <div style={{ position: 'relative', flex: '0 0 84px', aspectRatio: '9 / 16', borderRadius: 10, overflow: 'hidden', background: '#000' }}>
                   {videos[0] ? <WallMedia src={videos[0].videoUrl} /> : house[0] ? (
-                    <video src={house[0].videoUrl} poster={house[0].posterUrl} muted playsInline preload="none" aria-label={`Kineo-owned sample made with ${e.name}`} style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <video src={house[0].videoUrl} poster={house[0].posterUrl} muted playsInline preload="none" aria-label={`Kineo-owned sample made with ${engineOfferName(slug)}`} style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : null}
                 </div>
                 <div style={{ minWidth: 0 }}>

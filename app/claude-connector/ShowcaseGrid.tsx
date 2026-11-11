@@ -12,6 +12,8 @@
 // Selo honesto: o produto/motor real do clipe, nunca preço.
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { MCP_PALETTE as C } from './palette'
+import { trackEvent } from '@/lib/analytics'
+import { vitrineSelo, type VitrineClipe } from '@/lib/seo/vitrinePaginas1011'
 
 export type ShowcaseClip = { src: string; poster: string; title: string; badge: string }
 export type ShowcaseGroup = { key: 'ugc' | 'product' | 'films'; label: string; line: string; href: string; clips: readonly ShowcaseClip[] }
@@ -113,5 +115,94 @@ export default function ShowcaseGrid() {
         </div>
       ))}
     </div>
+  )
+}
+
+// ═══ KINEO-VITRINE-PAGINAS-1011 [fundador 10/11: "filmes prontos da vitrine na página que o GPT cita. Vamos fazer esse"] ═══
+// A faixa "Made with <motor>" das páginas de pouso que vendem: o MESMO quadro 9:16, selo no canto e título abaixo da vitrine acima,
+// com a lista de cada página (lib/seo/vitrinePaginas1011.ts — motor registrado, nunca adivinhado). LEVE e SÓ NA TELA:
+//   · o HTML do servidor (e quem está sem JS) recebe só o PÔSTER — nenhum <video> nasce com src, nenhum autoplay;
+//   · o src entra quando a faixa chega perto da tela; o vídeo TOCA só enquanto a faixa está visível e PAUSA quando sai;
+//   · preload="none" sempre.
+// Clique em qualquer quadro → cadastro com a campanha da página (o mesmo href do botão principal dela), medido como organic_cta_clicked
+// com placement 'vitrine'. Tom: 'light' (páginas claras), 'dark' (páginas pretas), 'site' (cores do tema do site via var(--…)).
+type StripTone = 'light' | 'dark' | 'site'
+const STRIP_TONES: Record<StripTone, { text: string; muted: string; line: string; placeholder: string }> = {
+  light: { text: C.text, muted: C.muted, line: C.line, placeholder: C.placeholder },
+  dark: { text: '#f5f5f7', muted: '#a1a1a8', line: '#2a2a2d', placeholder: '#161618' },
+  site: { text: 'var(--text, #0E1116)', muted: 'var(--muted, #5A5F67)', line: 'var(--border, #E4E4E0)', placeholder: 'var(--card, #161618)' },
+}
+
+export function ShowcaseStrip({ titulo, linha, clipes, href, source, tone = 'light', id }: {
+  titulo: string
+  linha: string
+  clipes: readonly VitrineClipe[]
+  href: string
+  source: string
+  tone?: StripTone
+  id?: string
+}) {
+  const ref = useRef<HTMLElement | null>(null)
+  const [near, setNear] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    const perto = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) { setNear(true); perto.disconnect() }
+    }, { rootMargin: '200px 0px' })
+    const tela = new IntersectionObserver((entries) => {
+      const visivel = entries.some((e) => e.isIntersecting)
+      el.querySelectorAll('video').forEach((v) => {
+        if (visivel) { if (v.getAttribute('src')) void v.play().catch(() => { /* navegador recusou: fica o pôster */ }) } else v.pause()
+      })
+    }, { threshold: 0.25 })
+    perto.observe(el)
+    tela.observe(el)
+    return () => { perto.disconnect(); tela.disconnect() }
+  }, [])
+  // Quando o src chega, toca se a faixa já estiver na tela (o observador de tela pode ter disparado antes do src).
+  useEffect(() => {
+    const el = ref.current
+    if (!near || !el) return
+    const r = el.getBoundingClientRect()
+    if (r.top < window.innerHeight && r.bottom > 0) el.querySelectorAll('video').forEach((v) => { void v.play().catch(() => {}) })
+  }, [near])
+
+  const t = STRIP_TONES[tone]
+  const tile: CSSProperties = { position: 'relative', display: 'block', aspectRatio: '9 / 16', borderRadius: 14, overflow: 'hidden', background: t.placeholder, border: `1px solid ${t.line}`, minWidth: 0 }
+  const badge: CSSProperties = { position: 'absolute', left: 6, bottom: 6, background: C.overlay, color: C.onOverlay, borderRadius: 999, padding: '3px 7px', fontSize: 'clamp(9px, 2.4vw, 10.5px)', fontWeight: 700, whiteSpace: 'nowrap', lineHeight: 1.3, maxWidth: 'calc(100% - 12px)', overflow: 'hidden', textOverflow: 'ellipsis' }
+  const cols = clipes.length >= 6 ? 6 : clipes.length >= 4 ? clipes.length : 3
+  return (
+    <section ref={ref} id={id} aria-label={titulo} data-vitrine-paginas="1011" data-vitrine-source={source} style={{ margin: '28px auto 0', maxWidth: 980, textAlign: 'left' }}>
+      <h2 style={{ margin: '0 0 4px', fontSize: 'clamp(1.1rem, 3vw, 1.35rem)', fontWeight: 750, letterSpacing: '-0.01em', color: t.text }}>{titulo}</h2>
+      <p style={{ margin: '0 0 14px', fontSize: '0.9rem', lineHeight: 1.55, color: t.muted }}>{linha}</p>
+      <div className="kvp-strip" style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: 'clamp(8px, 1.6vw, 14px)' }}>
+        {clipes.map((c) => (
+          <figure key={c.id} style={{ margin: 0, minWidth: 0 }}>
+            <a
+              href={href}
+              style={tile}
+              aria-label={`${c.title}, made with ${vitrineSelo(c)}. Start your own`}
+              data-vitrine-motor={c.motor}
+              onClick={() => { void trackEvent('organic_cta_clicked', { source, placement: 'vitrine', destination: href.split('?')[0], clip: c.id, motor: c.motor }) }}
+            >
+              <video
+                src={near ? c.src : undefined}
+                poster={c.poster}
+                muted
+                loop
+                playsInline
+                preload="none"
+                aria-hidden="true"
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+              <span style={badge}>{vitrineSelo(c)}</span>
+            </a>
+            <figcaption style={{ margin: '6px 2px 0', color: t.text, fontSize: 'clamp(0.72rem, 2.4vw, 0.84rem)', fontWeight: 600, lineHeight: 1.3 }}>{c.title}</figcaption>
+          </figure>
+        ))}
+      </div>
+      <style>{'@media (max-width: 640px){.kvp-strip{grid-template-columns:repeat(3,minmax(0,1fr))!important}}'}</style>
+    </section>
   )
 }

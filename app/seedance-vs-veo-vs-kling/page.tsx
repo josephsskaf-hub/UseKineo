@@ -14,6 +14,9 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
 import ScriptToSeedanceBridge from '@/components/ScriptToSeedanceBridge'
+import { ShowcaseStrip } from '@/app/claude-connector/ShowcaseGrid' // KINEO-VITRINE-PAGINAS-1011
+import { vitrineDaPagina } from '@/lib/seo/vitrinePaginas1011' // KINEO-VITRINE-PAGINAS-1011
+import { buildEngineLandingSignupHref } from '@/lib/growth/engineLandingIntent' // KINEO-VITRINE-PAGINAS-1011
 import { getEngineBenchmarkStats, type EngineBenchmarkRow } from '@/lib/engineBenchmarkStats'
 import { STUDY_REVALIDATE_SECONDS } from '@/lib/studyStats'
 import { ENGINES, ENGINE_SLUGS, engineOfferName, engineOfferPath } from '@/lib/growth/enginePageCatalog'
@@ -75,6 +78,10 @@ type TableRow = EngineBenchmarkRow & {
 
 // KINEO-MOTORES-SAEM-0511 [TRAVA 8.2 — fundador 05/11 "3 sim"] — esta é a página para onde vão os 301 do Veo e do Kling 2.5. Quem chega precisa ler o que houve e o que usar.
 const RETIRED_MEASURED: Readonly<Record<string, string>> = { cinematic_veo: 'veo', cinematic_kling: 'kling' }
+// KINEO-VITRINE-PAGINAS-1011 — a faixa e o clique dela (cadastro → Studio no filme padrão, com a campanha desta página).
+const VITRINE = vitrineDaPagina('/seedance-vs-veo-vs-kling')
+const VITRINE_CAMPAIGN = 'seo_seedance_vs_veo_vs_kling'
+const VITRINE_HREF = buildEngineLandingSignupHref({ engine: 'seedance', campaign: VITRINE_CAMPAIGN })
 const RETIRED_NOTICE = 'Veo 3.1 and Kling 2.5 left Kineo’s engine list on November 5, 2026, so they cannot be picked for new films. Films already made with them keep their engine label and stay in your library. For new films: Seedance 1.5 for frequent narrated Shorts, MiniMax H3 for a character who speaks on camera, Kling 4.0 for premium directed films.'
 
 function buildRows(rows: EngineBenchmarkRow[]): TableRow[] {
@@ -215,6 +222,9 @@ export default async function SeedanceVsVeoVsKlingPage() {
         <p style={{ color: MUTED, fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>
           It measures usage and cost, not visual quality. Free to cite with a link to this page.
         </p>
+
+        {/* KINEO-VITRINE-PAGINAS-1011 — os filmes prontos da casa dos motores desta comparação, logo abaixo da resposta */}
+        {VITRINE && <ShowcaseStrip titulo={VITRINE.titulo} linha={VITRINE.linha} clipes={VITRINE.clipes} href={VITRINE_HREF} source={VITRINE_CAMPAIGN} tone="dark" />}
 
         <ScriptToSeedanceBridge from="benchmark" />
 
