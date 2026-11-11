@@ -4,6 +4,7 @@ import { reviewRequestFidelity } from '@/lib/requestFidelity' // PEDIDO-FIEL-261
 import { createClient } from '@/lib/supabase/server'
 import { openai, durationPlanFor, MICRO_KNOWLEDGE_SYSTEM_RULES, SAFE_COMPOSITION_RULES } from '@/lib/openai'
 import { regraDaDataReal } from '@/lib/dataRealDoEscritor' // KINEO-ANO-INVENTADO-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — a data real do pedido + a regra do ano em todo escritor de fala/título/legenda
+import { personagemContinuo, REGRA_UM_LUGAR } from '@/lib/cinematic/personagemContinuo' // KINEO-LUGAR-UNICO-PLANEJADOR-1111 [CEO 11/11] — um lugar só, e só quando o código acha UM personagem que atravessa as falas (o ensaio: a regra sempre ligada achatava documentário)
 import { writeServerEvent } from '@/lib/serverEvents'
 import { buildRefusalEvent } from '@/lib/stageRefusal'
 import { looksOpenAiQuotaDead } from '@/lib/openaiAlert'
@@ -800,7 +801,8 @@ For each scene return a JSON object with exactly:
 - scene_number (int)
 - caption (max 6 words, punchy fragment, no period — summarize the voiceover in 6 words)
 - highlight (the single most striking word in the caption)
-- visual_prompt (150-350 chars, cinematic 9:16 vertical, describe camera angle + lighting + subject specific to the voiceover content. PERIOD ACCURACY: if the voiceover is set in a specific era, state the year/era and use ONLY period-accurate tech/clothing/weapons, describing ONLY what existed then in positive words (never name a forbidden modern object: video models draw what is named — KINEO-EPOCA-POSITIVA-1111). REAL PEOPLE: never make a recognizable face of a named real person the focal point — show them from behind, in silhouette, at distance, or via details like a hat or hands)${estrelaNoPedido ? `\n- ${ESTRELA_REAL_PEOPLE_EXCEPTION}` : ''}
+- visual_prompt (150-350 chars, cinematic 9:16 vertical, describe camera angle + lighting + subject specific to the voiceover content. PERIOD ACCURACY: if the voiceover is set in a specific era, state the year/era and use ONLY period-accurate tech/clothing/weapons, describing ONLY what existed then in positive words (never name a forbidden modern object: video models draw what is named — KINEO-EPOCA-POSITIVA-1111). REAL PEOPLE: never make a recognizable face of a named real person the focal point — show them from behind, in silhouette, at distance, or via details like a hat or hands)${estrelaNoPedido ? `\n- ${ESTRELA_REAL_PEOPLE_EXCEPTION}` : ''}${personagemContinuo(sceneList.map((s) => s.voiceover)) ? `
+  ${REGRA_UM_LUGAR}` : ''}
 - duration_seconds (int)
 
 Also return at the top level:
@@ -917,7 +919,8 @@ For each scene return a JSON object with exactly:
 - scene_number (int)
 - caption (max 6 words, punchy fragment, no period — summarize the voiceover in 6 words)
 - highlight (the single most striking word in the caption)
-- visual_prompt (150-350 chars, cinematic 9:16 vertical, describe camera angle + lighting + subject specific to the voiceover content. PERIOD ACCURACY: if the voiceover is set in a specific era, state the year/era and use ONLY period-accurate tech/clothing/weapons, describing ONLY what existed then in positive words (never name a forbidden modern object: video models draw what is named — KINEO-EPOCA-POSITIVA-1111). REAL PEOPLE: never make a recognizable face of a named real person the focal point — show them from behind, in silhouette, at distance, or via details like a hat or hands)${estrelaNoPedido ? `\n- ${ESTRELA_REAL_PEOPLE_EXCEPTION}` : ''}
+- visual_prompt (150-350 chars, cinematic 9:16 vertical, describe camera angle + lighting + subject specific to the voiceover content. PERIOD ACCURACY: if the voiceover is set in a specific era, state the year/era and use ONLY period-accurate tech/clothing/weapons, describing ONLY what existed then in positive words (never name a forbidden modern object: video models draw what is named — KINEO-EPOCA-POSITIVA-1111). REAL PEOPLE: never make a recognizable face of a named real person the focal point — show them from behind, in silhouette, at distance, or via details like a hat or hands)${estrelaNoPedido ? `\n- ${ESTRELA_REAL_PEOPLE_EXCEPTION}` : ''}${personagemContinuo(sceneList.map((s) => s.voiceover)) ? `
+  ${REGRA_UM_LUGAR}` : ''}
 - duration_seconds (int)
 
 Also return at the top level:
