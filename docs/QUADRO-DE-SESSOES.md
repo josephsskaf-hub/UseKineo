@@ -34,15 +34,14 @@ Antes de publicar, escreva aqui: sessão · SHA · hora. Se já houver linha de 
 Imediatamente antes da publicação, faça fetch e rebase, rode `npx tsc --noEmit` e os guardiões da área e confira a reserva novamente. Depois do deploy "success", apague só a sua linha e registre em "No ar" com o SHA. A divisão de teste do Claude confere a tela publicada e lista aqui os defeitos.
 | Sessão | SHA | Começou |
 |---|---|---|
-| CEO Codex · registro do quadro | `296b435535f3e6416703b1759dcb958bd208e62c` | 11/11 00:33 -03:00 |
 
 ## Em obra
 | Quando começou | Sessão | O que | Arquivos principais | Branch / worktree |
 |---|---|---|---|---|
 | 11/11 00:27 −03:00 | CEO Codex | Coordenar Telas e Produto, Product Story e Citações. Revisar os SHAs locais, conciliar reservas e publicar uma entrega por vez | docs/QUADRO-DE-SESSOES.md | codex/ceo-coordenacao-1111 |
-| 11/11 00:30 −03:00 | Codex · Telas e Produto | Conferir Elevator com uma foto e o formato com duas. Primeiro diagnóstico somente leitura. Em seguida, inventariar o WIP de Clips | app/recreate/RecreateClient.tsx, docs/recreate-1011/test-photo-flow.cjs; leitura do WIP de Clips | worktree própria de origin/main |
-| 11/11 00:30 −03:00 | Codex · Product Story | Retomar a obra offline do Dia 2 e validar a correção do Dia 3: quadro real 1536×2752, falha terminal e retomada idempotente com quadro inválido | lib/ads/productStory/adapter.ts, lib/ads/productStory/preparation.ts, guardiões Product Story | worktree própria de origin/main; origem do WIP: codex/ads-product-story-day2-1011 |
-| 11/11 00:30 −03:00 | Codex · Citações | Conferir o mapa parcial de 15 listas e as evidências por canal: ChatGPT, Bing, Claude e Google orgânico | docs/LISTAS-DE-TERCEIROS-PARCIAL-2026-11-11.md (leitura), levantamento de citações em docs/ | worktree própria de origin/main |
+| 11/11 00:30 −03:00 | Codex · Telas e Produto | Conferir Elevator com uma foto e o formato com duas. Primeiro diagnóstico somente leitura. Em seguida, inventariar o WIP de Clips | app/recreate/RecreateClient.tsx, docs/recreate-1011/test-photo-flow.cjs; leitura do WIP de Clips | `C:/Users/josep/.codex/worktrees/341b/kineo` |
+| 11/11 00:30 −03:00 | Codex · Product Story | Retomar a obra offline do Dia 2 e validar a correção do Dia 3: quadro real 1536×2752, falha terminal e retomada idempotente com quadro inválido | lib/ads/productStory/adapter.ts, lib/ads/productStory/preparation.ts, guardiões Product Story | `C:/Users/josep/.codex/worktrees/4081/kineo`; origem do WIP: codex/ads-product-story-day2-1011 |
+| 11/11 00:30 −03:00 | Codex · Citações | Conferir o mapa parcial de 15 listas e as evidências por canal: ChatGPT, Bing, Claude e Google orgânico | docs/LISTAS-DE-TERCEIROS-PARCIAL-2026-11-11.md (leitura), levantamento de citações em docs/ | `C:/Users/josep/.codex/worktrees/23a3/kineo` |
 | 11/11 00:33 | Claude Div. 4 | Recarga de 60 créditos por US$ 9, só para assinante que zerou (aprovada pelo fundador 11/11) | lib/checkoutPricing.ts, app/api/stripe/checkout, webhook, aviso de sem crédito | worktree da Divisão 4 |
 | 10/11 ~23:30 | GPT (Codex) | Redesenho do palco e dos painéis da tela nova e do Recreate | components/create/*, app/recreate/* | publicado até a0490cd30 (23:59) |
 | 11/11 00:30 | Div. 1 Telas | Entradas da home e do topo abrindo a tela nova (fecha "Botões da home e menus do topo"); não toca components/create/* nem app/recreate/* | lib/create/entry.ts, app/KineoLanding.tsx, components/home/*, scripts/test-entradas-tela-nova-1011.mjs | claude/div-telas-4c6242 · C:/kineo/.claude/worktrees/priceless-goodall-900980 |
@@ -76,6 +75,7 @@ Imediatamente antes da publicação, faça fetch e rebase, rode `npx tsc --noEmi
 ## No ar
 | Quando | O que | SHA |
 |---|---|---|
+| 11/11 00:39 -03:00 | CEO Codex · organização das três divisões e reservas publicadas no GitHub. Deploy conferido com status success. | `1e2036999` |
 | 11/11 00:20 | Elevator com 1 foto (só o homem), sem caixa de consentimento, capa do Outfit Morph | 13b64b9a3 |
 | 10/11 22:40 | Vitrine de filmes em 9 páginas citadas | 953dd6cb7 |
 | 10/11 21:16 | Motor opcional no Details do filme | a768de35b |
