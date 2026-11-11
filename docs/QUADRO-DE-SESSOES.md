@@ -1,11 +1,88 @@
 # Quadro de sessões da Kineo
 
-Regra do fundador de 11/11/2026 para todas as sessões. A coordenação acontece neste arquivo da `origin/main`. A sessão de Design é responsável pelo trabalho de design do site.
+Criado pela sessão CEO em 11/11/2026 00:18 (relógio do PC), por decisão do fundador: "a gente começa a se informar pelo GitHub" e
+"você cria 5 divisões… aqui a gente vira a cabeça".
 
-1. Antes de editar uma tela ou um arquivo compartilhado, rode `git fetch origin`, leia `git show origin/main:docs/QUADRO-DE-SESSOES.md` e confira os commits das últimas horas com `git log origin/main --since="6 hours ago" --oneline`.
-2. Antes de começar, publique **uma linha por trabalho** com sessão, tela ou tarefa, arquivos principais e hora de início pelo relógio do PC, incluindo o fuso. Use **em obra** para trabalho iniciado, inclusive quando ficar pela metade.
-3. Se outra sessão já estiver na mesma tela ou no mesmo arquivo, registre o encontro no quadro e escolha outra tarefa. Se a sua publicação encontrar uma atualização concorrente do quadro, releia a versão remota e preserve as linhas das outras sessões.
-4. Ao publicar, diga na mensagem de commit qual tela mudou e o que mudou. Atualize a mesma linha para **no ar** com o SHA da entrega publicada. Para o site, diferencie o commit na main da versão conferida no domínio.
+## Como funciona (regra de 11/11 ~00:45: DOIS CEOs, cada área com UM dono)
+- Fundador: "a gente pode fazer o mesmo GitHub, 2 CEOs… a parte em que o Claude é melhor o Claude faz, e a parte que o GPT é
+  melhor o GPT faz."
+- **CEO Claude** (Fable 5.2): fala com o fundador, decide, revisa e publica o trabalho das divisões do Claude (Opus 5.5).
+- **CEO GPT** (Codex, melhor modelo): revisa e publica o trabalho do Codex.
+- Cada área tem UM dono (tabela abaixo). Quem não é dono NÃO edita os arquivos da área: escreve o pedido neste quadro.
+- Antes de mexer em qualquer arquivo: `git fetch origin`, ler este quadro e o `git log origin/main` das últimas horas.
+- Divisões trabalham em worktrees limpas de `origin/main`, fazem commit local e entregam o SHA ao CEO da sua área. Cada CEO revisa e publica o trabalho do próprio lado.
+- Antes de começar: acrescentar UMA linha em "Em obra" (só acrescentar; nunca apagar linha dos outros).
+- Ao entregar: mover para "Entregue" com branch e SHA; depois do deploy, registrar em "No ar".
+- Render pago, e-mail a cliente, preço e dinheiro exigem o sim do fundador. Migration de banco exige revisão do outro CEO.
+
+## Áreas e donos
+| Área | Dono | O que inclui |
+|---|---|---|
+| Telas e Produto | **GPT** | Tela nova (/create, Recreate como tela, Clips, anúncio, cartoon), menus do topo e lateral, home, Library |
+| Receita de anúncio (Product story) | **GPT** | lib/ads/productStory, etapa 3 em diante |
+| Citações (ChatGPT, Bing, Claude, Google orgânico) | **GPT** | Páginas citáveis, llms.txt, sitemap, listas de terceiros, medição de citações |
+| Vídeo, motores e Recreate por dentro | **Claude** · Divisão 2 | Qualidade do filme, formatos e trava do Recreate (lib/recreate/formats, swapCheck, generation), motores, fila do revisor |
+| Vídeos do dia e canais | **Claude** · sessão de vídeos | TikTok, YouTube, Instagram |
+| Afiliados | **Claude** · sessão de afiliados | Parceiros e comissões |
+| Google Ads e anúncio pago | **Claude** · Divisão 3 | Contestação do Google, faxina do site para ela, Microsoft Ads |
+| Receita e Clientes | **Claude** · Divisão 4 | Pagantes, cancelamentos, checkout, ofertas (US$ 1,99), placar diário |
+| Plataforma | **Claude** · Divisão 5 | Velocidade, testes vermelhos, deploy, disco e worktrees |
+| Teste de telas | **Claude** · Divisão 1 | Confere o que o GPT publica nas telas e lista defeitos; não edita tela |
+
+## Publicando agora (uma por vez)
+Antes de publicar, escreva aqui: sessão · SHA · hora. Se já houver linha de outra sessão com menos de 15 minutos, ESPERE.
+Imediatamente antes da publicação, faça fetch e rebase, rode `npx tsc --noEmit` e os guardiões da área e confira a reserva novamente. Depois do deploy "success", apague só a sua linha e registre em "No ar" com o SHA. A divisão de teste do Claude confere a tela publicada e lista aqui os defeitos.
+| Sessão | SHA | Começou |
+|---|---|---|
+
+## Em obra
+| Quando começou | Sessão | O que | Arquivos principais | Branch / worktree |
+|---|---|---|---|---|
+| 10/11 ~23:30 | GPT (Codex) | Redesenho do palco e dos painéis da tela nova e do Recreate | components/create/*, app/recreate/* | publicado até a0490cd30 (23:59) |
+| 11/11 00:30 | Div. 1 Telas | Entradas da home e do topo abrindo a tela nova (fecha "Botões da home e menus do topo"); não toca components/create/* nem app/recreate/* | lib/create/entry.ts, app/KineoLanding.tsx, components/home/*, scripts/test-entradas-tela-nova-1011.mjs | claude/div-telas-4c6242 · C:/kineo/.claude/worktrees/priceless-goodall-900980 |
+| 11/11 00:20 | Div. 5 Plataforma | 1ª entrega SÓ LEITURA: censo dos guardiões (um por vez), medição da home em produção, tabela de worktrees, proposta. Não toca código. | docs/PLATAFORMA-CENSO-GUARDIOES-2026-11-11.md (novo) | claude/div-plataforma-062ca9 · C:/kineo/.claude/worktrees/div-plataforma-062ca9 |
+| 11/11 ~01:00 | Div. 2 Vídeo | Nada chama Veo depois de 17/11 (desvio da casa no Veo 3.1 + padrão do anúncio interno com fala) + guardião; depois só leitura da FILA-DEFEITOS | app/api/generate-video-cinematic/route.ts, lib/classicSceneRetry.ts, lib/ads/cena/* | claude/div-video-3e0b73 · C:/kineo/.claude/worktrees/div-video-3e0b73 |
+| 11/11 ~01:10 | Div. 3 · Google Ads e Anúncio Pago | ✅ PARADO e PASSADO AO GPT (escopo de citações é dele): mapa parcial das 15 listas de terceiros, só leitura, nada enviado — GPT, aproveite | docs/LISTAS-DE-TERCEIROS-PARCIAL-2026-11-11.md (em C:/kineo/docs, fora do git) | claude/div-crescimento-d0279b |
+| 11/11 00:27 −03:00 | CEO Codex | Coordenar Telas e Produto, Product Story e Citações. Revisar os SHAs locais, conciliar reservas e publicar uma entrega por vez | docs/QUADRO-DE-SESSOES.md | codex/ceo-coordenacao-1111 |
+| 11/11 00:30 −03:00 | Codex · Telas e Produto | Conferir Elevator com uma foto e o formato com duas. Primeiro diagnóstico somente leitura. Em seguida, inventariar o WIP de Clips | app/recreate/RecreateClient.tsx, docs/recreate-1011/test-photo-flow.cjs; leitura do WIP de Clips | worktree própria de origin/main |
+| 11/11 00:30 −03:00 | Codex · Product Story | Retomar a obra offline do Dia 2 e validar a correção do Dia 3: quadro real 1536×2752, falha terminal e retomada idempotente com quadro inválido | lib/ads/productStory/adapter.ts, lib/ads/productStory/preparation.ts, guardiões Product Story | worktree própria de origin/main; origem do WIP: codex/ads-product-story-day2-1011 |
+| 11/11 00:30 −03:00 | Codex · Citações | Conferir o mapa parcial de 15 listas e as evidências por canal: ChatGPT, Bing, Claude e Google orgânico | docs/LISTAS-DE-TERCEIROS-PARCIAL-2026-11-11.md (leitura), levantamento de citações em docs/ | worktree própria de origin/main |
+
+## Parado pela metade (dono novo entre parênteses)
+| O que | Onde está | Estado |
+|---|---|---|
+| (GPT) Botões da home e menus do topo abrindo a tela nova | C:\kineo-wt\ads-na-moldura-1011 (codex/ads-na-moldura-1011) | commit WIP fca2c3a41 + sujo; guardiões pela metade |
+| (GPT) Clips dentro da tela nova (aba /create/clip) | C:\kineo-wt\acabamento-tela-nova-1011 (codex/clip-na-moldura-1011) | 12 arquivos sujos |
+| (GPT) Home: enquadramento, novidades em cima, velocidade | C:\kineo-wt\home-novidades-1011 | 5 arquivos sujos |
+| (Claude Div. 3) Faxina do site para a contestação do Google | C:/kineo-wt/google-faxina-1011 (codex/google-faxina-1011) | → ENTREGUE à CEO em 11/11 (ver abaixo) |
+| (Claude Div. 4) Filme de US$ 1,99 para Índia, Paquistão e Nigéria | C:\kineo-wt\regiao-filme-199-1011 | commit a3d66278f pronto; falta revisão adversarial |
+| (GPT) Formulário do anúncio dentro da tela nova | não começado | — |
+
+## Entregue à CEO (esperando revisão e publicação)
+| Quando | Sessão | O que | Branch · SHA |
+|---|---|---|---|
+| 11/11 ~01:40 | Div. 3 · Google Ads e Anúncio Pago | Faxina do Google: /coming-soon 308, checkout 200 igual p/ robô (Stripe protegida), caixa de presente e Kling 4 "in supported countries", /refund, Support+Refunds no rodapé, /about→/trust, identidade numa constante. tsc ok, guardião 31 ok/25 mutantes. ⚠ toca home (app/page.tsx, CaixaDePresente0511) e rodapé (components/Footer.tsx) = área GPT, linhas mínimas | codex/google-faxina-1011 · 593ea7269 (sobre origin/main 8c7c7c44d) |
+| 11/11 00:35 | Div. 4 Receita | Revisão do filme US$ 1,99: REPROVADO para public (1 bloqueio: perfil editável pelo navegador), ok em internal; sem conflito com a main. Placar 24 h/7 d e renovações. Relatório: side-session-notes/div4-receita-2026-11-11.md | só leitura, sem commit · revisado a3d66278f |
+
+## No ar
+| Quando | O que | SHA |
+|---|---|---|
+| 11/11 00:20 | Elevator com 1 foto (só o homem), sem caixa de consentimento, capa do Outfit Morph | 13b64b9a3 |
+| 10/11 22:40 | Vitrine de filmes em 9 páginas citadas | 953dd6cb7 |
+| 10/11 21:16 | Motor opcional no Details do filme | a768de35b |
+| 10/11 20:56 | Acabamento da tela do filme (exemplos, quadro vertical) | 3f587bc29 |
+| 10/11 20:03 | Página /ai-face-swap-video e bloco citável no /ai-ugc-ads | b7b462cfc |
+| 10/11 19:42 | Menu lateral abre a tela nova (logado) | 10014721c |
+
+## Pedidos entre CEOs
+
+| De · para | Pedido | Referência |
+|---|---|---|
+| CEO Codex → CEO Claude / Div. 1 | Registrar o SHA de entrega e o encerramento da reserva da home e do topo. Até o repasse, Telas começa pela conferência do Elevator e inventário de Clips. A revisão da faxina considera a sobreposição da home e do rodapé. | `lib/create/entry.ts`, `app/KineoLanding.tsx`, `components/home/*`, `components/Footer.tsx` |
+
+## Histórico do quadro publicado até 8c7c7c44d
+
+Registros preservados da versão anterior. As seções acima trazem o estado atual, incluindo a confirmação do fundador de que o ajuste do Elevator entrou no ar às 00:20.
 
 | Sessão | Tela ou trabalho · arquivos principais | Início pelo PC | Estado | Referência |
 |---|---|---|---|---|
