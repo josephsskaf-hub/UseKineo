@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { KineoBrandIcon } from '@/components/KineoBolt'
 import { RECREATE_FORMATS, type RecreateFormat } from '@/lib/recreate/formats'
 import { compressPhoto, cropFace, composePairPhoto } from '@/lib/recreate/photos'
-import RecreatePlayer from './RecreatePlayer'
+import RecreatePlayer, { ExampleCover } from './RecreatePlayer'
 import CreateTabs from '@/components/create/CreateTabs' // KINEO-TELA-NOVA-1011
 import CreateNavConta from '@/components/create/CreateNavConta' // KINEO-TELA-NOVA-CABECALHO-1011 — saldo · Pricing · My videos, só com as abas
 import './recreate.css'
@@ -265,14 +265,15 @@ export default function RecreateClient({ initialId, internalTools = false, forma
         {clip && <div className="rc-result" aria-live="polite"><strong>{clip.status === 'done' ? 'Your version is ready' : clip.status === 'failed' ? 'Generation failed' : 'Creating your version'}</strong>{clip.status === 'done' && clip.video_url && <><RecreatePlayer src={clip.video_url} label="Your version" /><a href={clip.video_url} download>Download ↗</a></>}{clip.status === 'failed' && <p>{clip.reason === 'not_swapped' ? clip.credits_refunded ? NOT_SWAPPED_MESSAGE : "We couldn't put you in this video. Check your videos for the final billing status." : clip.credits_refunded ? 'Your credit refund was confirmed.' : 'Check your videos for the final billing status.'}</p>}<Link href="/clips">My videos ↗</Link></div>}
       </aside>}
       {selected && <section className="rc-reference" aria-label="Base video">
-        <div className="rc-reference-heading"><div><h2>Base video · {selected.title}</h2><p>From the Kineo catalog</p></div><button className="rc-change" disabled={editingDisabled} onClick={showTemplates}>Change video ↗</button></div>
-        <div className="rc-stage"><RecreatePlayer key={selected.id} src={selected.preview} poster={selected.poster} preview label={`Base video: ${selected.title}`} /><span className="rc-preview-tag">TEMPLATE PREVIEW</span><span className="rc-duration">{selected.seconds} s</span></div>
-        <p className="rc-preview-caption"><span aria-hidden="true" />{selected.type === 'swap' ? 'Swap · Change the faces. Keep the scene and motion.' : 'Photo effect · Your photos use this original preset.'}</p>
+        <div className="rc-stage"><RecreatePlayer key={selected.id} src={selected.preview} poster={selected.poster} preview label={`Base video: ${selected.title}`}
+          stage={{ kind: 'Base video', title: selected.title,
+            detail: `${selected.type === 'swap' ? 'Face swap' : 'Photo effect'} · ${selected.seconds} s · ${selected.photoSlots} ${selected.photoSlots === 1 ? 'photo' : 'photos'}`,
+            action: !createTabs && <button className="rc-change" disabled={editingDisabled} onClick={showTemplates}>Change video ↗</button> }} /></div>
       </section>}
       <section className="rc-gallery" ref={galleryRef} aria-label="Video templates">{createTabs && !selected && <CreateTabs active="recreate" />}
         <div className="rc-gallery-heading">{selected ? <><h2 tabIndex={-1}>Video templates</h2><p>Choose a different starting point.</p></> : <><span className="rc-eyebrow">RECREATE</span><h1 tabIndex={-1}>Video templates</h1><p>Choose a Kineo format. Make it yours.</p></>}</div>
         <div className="rc-grid">{catalog.map((f, index) => <article key={f.id} className={`rc-card ${index % 4 === 1 ? 'rc-card-short' : ''} ${selected?.id === f.id ? 'rc-card-selected' : ''}`}>
-          <video src={f.preview} poster={f.poster} autoPlay muted loop playsInline preload="metadata" aria-label={f.title} />
+          <ExampleCover src={f.preview} poster={f.poster} label={`Choose ${f.title}`} disabled={editingDisabled} onSelect={() => choose(f)} />
           <div className="rc-card-top"><button onClick={() => { setReport(f); setExpanded(null) }} aria-label={`Report ${f.title}`}>⋯</button><button onClick={() => { setExpanded(f); setReport(null) }} aria-label={`Expand ${f.title}`}>⤢</button></div>
           <div className="rc-card-bottom"><h3>{f.title}</h3><div><button className={social[f.id]?.liked ? 'rc-liked' : ''} disabled={!social[f.id] || socialBusy} aria-label={`Like ${f.title}`} aria-pressed={social[f.id]?.liked ?? false} onClick={() => void like(f)}>♡{social[f.id]?.count > 0 ? ` ${social[f.id].count}` : ''}</button><button disabled={editingDisabled} onClick={() => choose(f)} aria-label={`Use ${f.title}`}>{selected?.id === f.id ? 'Selected ✓' : 'Recreate ↗'}</button></div></div>
         </article>)}</div>

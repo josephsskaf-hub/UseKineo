@@ -7,7 +7,7 @@
 import Link from 'next/link'
 import { useEffect, useState, type ReactNode } from 'react'
 import { KineoBrandIcon } from '@/components/KineoBolt'
-import RecreatePlayer from '@/app/recreate/RecreatePlayer'
+import RecreatePlayer, { ExampleCover } from '@/app/recreate/RecreatePlayer'
 import CreateTabs from './CreateTabs'
 import CreateNavConta from './CreateNavConta' // KINEO-TELA-NOVA-CABECALHO-1011
 import { trackClosedEvent } from '@/lib/analytics'
@@ -93,14 +93,13 @@ export default function CreateShell({ tab, signedIn = true, showRecreate = true,
         </>}
       </aside>
       <section className="rc-reference" aria-label={copy.stageTag.toLowerCase()}>
-        <div className="rc-reference-heading"><div><h2>{example.title}</h2><p>{tab === 'ads' ? 'An example to spark ideas' : 'An example to get you started'}</p></div></div>
-        <div className="rc-stage"><RecreatePlayer key={example.id} src={example.video} poster={example.poster} preview label={example.title} /><span className="rc-preview-tag">{copy.stageTag}</span></div>
-        <p className="rc-preview-caption"><span aria-hidden="true" />{painel ? 'Nothing starts until you press Generate.' : 'Nothing starts until you continue.'}</p>
+        <div className="rc-stage"><RecreatePlayer key={example.id} src={example.video} poster={example.poster} preview label={example.title}
+          stage={{ kind: tab === 'film' ? 'Film example' : tab === 'cartoon' ? 'Cartoon example' : 'Ad example', title: example.title }} /></div>
       </section>
       <section className="rc-gallery" aria-label={copy.galleryTitle}>
         <div className="rc-gallery-heading"><h2>{copy.galleryTitle}</h2><p>{copy.galleryHint}</p></div>
         <div className="rc-grid">{examples.map((e, index) => <article key={e.id} className={`rc-card ${index % 4 === 1 ? 'rc-card-short' : ''} ${example.id === e.id ? 'rc-card-selected' : ''}`} data-create-example={e.id}>
-          <video src={e.video} poster={e.poster} autoPlay muted loop playsInline preload="metadata" aria-label={e.title} />
+          <ExampleCover src={e.video} poster={e.poster} label={`${hasInput ? 'Choose idea' : 'Preview'}: ${e.title}`} onSelect={() => choose(e)} />
           <div className="rc-card-bottom"><h3>{e.title}</h3><div><button type="button" onClick={() => choose(e)} aria-label={`${hasInput ? 'Use the idea' : 'View'}: ${e.title}`}>{example.id === e.id ? 'Selected ✓' : copy.useLabel}</button></div></div>
         </article>)}</div>
       </section>
