@@ -157,7 +157,7 @@ function checa(over = {}) {
   if (!card) e.push('/clips sem o cartão do modelo da casa na grade de efeitos')
   else {
     if (!card.includes('data-clip-action="select_face_remix"') || !card.includes('onClick={() => chooseHouseRemix(rx.id)}')) e.push('cartão não abre o remix')
-    if (!card.includes('src={rx.video} poster={rx.poster}') || !card.includes('{rx.engine_label}')) e.push('cartão sem prévia/selo do motor')
+    if (!card.includes('src={rx.video} poster={rx.poster}') || card.includes('{rx.engine_label}')) e.push('cartão sem prévia ou com selo do motor') // KINEO-CLIPS-SEM-SELO-1111 [CEO 11/11]: o cartão sai SEM selo de motor
     if (/credits|\bcr\b|\$/.test(card)) e.push('cartão com preço (o preço mora só no botão do painel)')
   }
   const fn = ui.match(/function chooseHouseRemix\(id: string\) \{[\s\S]*?\n {2}\} \/\/ KINEO-DANCA-PUBLICA-3110/)?.[0] ?? ''

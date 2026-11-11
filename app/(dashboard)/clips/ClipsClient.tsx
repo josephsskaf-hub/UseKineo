@@ -1160,7 +1160,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
                   <span className="fx-title"><UiLabel>{tr.title}</UiLabel></span>
                   <span className="fx-sub"><UiLabel>{tr.sub}</UiLabel></span>
                   <span className="fx-foot">
-                    {semMotor ? null : <span className="tag">{target.label}</span>}
+                    {/* KINEO-CLIPS-SEM-SELO-1111 [CEO 11/11: "/clips ANTIGO: tire o selo de motor dos cartões"] — aqui havia o selo com o nome do motor (também fora da moldura) */}
                     <span className="pr trend-go"><UiLabel>Make this →</UiLabel></span>
                   </span>
                 </button>
@@ -1176,7 +1176,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
                 <span className="fx-title"><UiLabel>{fx.title}</UiLabel></span>
                 <span className="fx-sub"><UiLabel>{fx.sub}</UiLabel></span>
                 <span className="fx-foot">
-                  {semMotor ? null : <span className="tag">{fx.engine_label}</span>}
+                  {/* KINEO-CLIPS-SEM-SELO-1111 — aqui havia o selo com o nome do motor */}
                   <span className="pr trend-go"><UiLabel>Make this →</UiLabel></span>
                 </span>
               </button>
@@ -1196,7 +1196,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
                 <span className="fx-media"><video src={rx.video} poster={rx.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" /></span>{/* KINEO-DANCA-PUBLICA-3110 */}
                 <span className="fx-title"><UiLabel>{rx.title}</UiLabel></span>{/* KINEO-DANCA-PUBLICA-3110 */}
                 <span className="fx-sub"><UiLabel>{rx.id === 'friday-groove' ? 'Your photo leads a Friday-night dance class' : 'Your photo, in this scene'}</UiLabel></span>{/* KINEO-DANCA-PUBLICA-3110 */}
-                <span className="fx-foot">{semMotor ? null : <span className="tag">{rx.engine_label}</span>}<span className="pr trend-go"><UiLabel>Put your face in it →</UiLabel></span></span>{/* KINEO-DANCA-PUBLICA-3110 */}
+                <span className="fx-foot">{/* KINEO-CLIPS-SEM-SELO-1111 — sem selo de motor */}<span className="pr trend-go"><UiLabel>Put your face in it →</UiLabel></span></span>{/* KINEO-DANCA-PUBLICA-3110 */}
               </button>
             ))}
             {efeitosDaVitrine.map((fx) => ( // KINEO-CLIPS-TELA-0511 — fora de estação sai da grade; o link ?effect= segue abrindo o efeito
@@ -1208,10 +1208,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
                 </span>
                 <span className="fx-title"><UiLabel>{fx.title}</UiLabel></span>
                 <span className="fx-sub"><UiLabel>{fx.sub}</UiLabel></span>
-                {semMotor ? null : <span className="fx-foot">
-                  <span className="tag">{fx.engine_label}</span>
-                </span>}
-                {fx.preview && !semMotor && <span className="fx-note">{fx.preview.note}</span>}
+                {/* KINEO-CLIPS-SEM-SELO-1111 — o cartão do efeito sem selo de motor nem a nota "Made with … (motor)"; era o fx-foot com a tag e o fx-note */}
               </button>
             ))}
           </div>
@@ -1229,7 +1226,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
                 {c.status === 'done' && c.video_url
                   ? <video src={c.video_url} controls playsInline preload="metadata" />
                   : <div className="clip-wait">{c.status === 'failed' ? (c.credits_refunded > 0 ? t('failedRefunded', { n: c.credits_refunded }) : t('failed')) : c.stage === 'keyframe' ? <UiLabel>Placing you in the scene…</UiLabel> : c.stage === 'video' ? <UiLabel>Filming your scene…</UiLabel> : t('inProgress')}</div>}{/* KINEO-ROSTO-QUADRO-CHAVE-2810 — as duas etapas do remix com nome */}
-                <div className="clip-meta">{semMotor ? null : <>{c.label} · </>}{c.seconds} s · {c.aspect === 'image' ? t('samePhoto') : c.aspect}{semMotor ? null : <> · {c.credits} cr</>}</div>
+                <div className="clip-meta">{/* KINEO-CLIPS-SEM-SELO-1111 — sem motor no cartão de My clips */}{c.seconds} s · {c.aspect === 'image' ? t('samePhoto') : c.aspect}{semMotor ? null : <> · {c.credits} cr</>}</div>
                 {c.effect
                   ? <div className="clip-meta" style={{ marginTop: 4 }}>{t('effectLabel')} · {effects.find((fx) => fx.key === c.effect)?.title ?? c.effect}</div>
                   : c.prompt && <div className="clip-meta" style={{ marginTop: 4 }}>{c.prompt.slice(0, 120)}</div>}
