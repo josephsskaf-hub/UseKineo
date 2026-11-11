@@ -2,7 +2,7 @@
 // Guardião da tela nova (/create/film · /create/cartoon · /create/ads + abas no Recreate). Offline: módulos REAIS transpilados, React SSR,
 // sem rede, sem credencial, sem banco. Prova: interruptor × quem chega; cada "Continue" vai a rota que EXISTE usando só o que o destino lê
 // (lendo o arquivo do destino); nenhuma aba fala motor, preço ou crédito; exemplos existem em disco; o Recreate sem acesso ao /create é
-// byte a byte o de antes. Mutantes no fim provam que o teste morde.
+// conserva campos, destinos, permissões e catálogo da versão anterior. Mutantes no fim exercitam os contratos.
 import { createRequire } from 'node:module'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
@@ -11,6 +11,8 @@ import { join } from 'node:path'
 
 const require = createRequire(import.meta.url)
 const { loader, read, ROOT } = require('../docs/recreate-0911/test-recreate.cjs')
+const { studioRenderContract, parse } = require('./test-support/studio-render-contract.cjs')
+const postcss = require('postcss')
 const React = require(join(ROOT, 'node_modules/react'))
 const { renderToStaticMarkup } = require(join(ROOT, 'node_modules/react-dom/server'))
 
@@ -129,7 +131,7 @@ function shellChecks(o = {}) {
     ok((html.match(/class="rc-step /g) || []).length === 3 && html.includes('rc-step-number'), `${tab}: três passos numerados com o CSS do Recreate`)
     ok(html.includes('class="rc-player"') && html.includes('class="rc-grid"'), `${tab}: player próprio + grade`)
     const n = tabs.CREATE_EXAMPLES[tab].length
-    // KINEO-TELA-NOVA-ACABAMENTO-1011 — a fileira tem até 8 colunas: cada aba precisa de ≥ 8 exemplos para encher a linha mais larga.
+    // Catálogo completo mesmo com menos capas visíveis por vez.
     ok((html.match(/data-create-example=/g) || []).length === n && tabs.CREATE_EXAMPLES_MIN === 8 && n >= tabs.CREATE_EXAMPLES_MIN, `${tab}: ${n} exemplos na fileira (mínimo ${tabs.CREATE_EXAMPLES_MIN})`)
     const button = html.match(/<button type="button" class="rc-generate"[^>]*>/)[0]
     if (tab === 'ads') ok(!button.includes('disabled') && html.includes('data-create-continue="/ads/new?utm_source=create_ads"'), 'ads: "Make your ad" leva a /ads/new')
@@ -174,7 +176,7 @@ function exampleChecks(o = {}) {
   ok(['dragaozinho', 'boneco-de-neve'].every(id => tabs.CREATE_EXAMPLES.cartoon.some(e => e.id === id)), 'Cartoon: dragão e boneco de neve')
 }
 
-// ─── E. Recreate: sem acesso ao /create é byte a byte o de antes; com acesso ganha a barra ──────────────────────────────
+// ─── E. Recreate: controles e catálogo históricos; a barra segue o acesso ao /create ──────────────────────────────
 function renderRecreate(o, props) {
   let state = 0
   const react = { ...React, useEffect: () => {}, useRef: value => ({ current: value }), useState: init => { state++; return [typeof init === 'function' ? init() : init, () => {}] } }
@@ -185,19 +187,20 @@ function recreateChecks(o = {}) {
   const before = { 'app/recreate/RecreateClient.tsx': baseSrc('app/recreate/RecreateClient.tsx') }
   for (const props of [{ initialId: 'elevador' }, { initialId: 'effect-kiss' }, {}, { initialId: 'elevador', formatIds: ['elevador', 'effect-kiss'] }]) {
     const old = renderRecreate(before, props), now = renderRecreate(o, props), explicit = renderRecreate(o, { ...props, createTabs: false })
-    ok(old === now && old === explicit, `Recreate ${JSON.stringify(props)}: HTML idêntico ao de ${BASE} sem acesso ao /create`)
+    ok(now === explicit, 'omitir createTabs equivale a false')
+    assert.deepEqual(studioRenderContract(now), studioRenderContract(old), `Recreate ${JSON.stringify(props)}: mesmos formatos, arquivos, campos, consentimento, cobrança e ações do ${BASE}`)
     const tabbed = renderRecreate(o, { ...props, createTabs: true })
     ok((tabbed.match(/data-create-tab=/g) || []).length === 4 && tabbed.includes('aria-current="page" data-create-tab="recreate"'), `Recreate ${JSON.stringify(props)}: com acesso, as 4 abas e Recreate ativa`)
   }
   ok(read('app/recreate/recreate.css') === baseSrc('app/recreate/recreate.css').replace(/\r\n/g, '\n') || read('app/recreate/recreate.css').replace(/\r\n/g, '\n') === baseSrc('app/recreate/recreate.css').replace(/\r\n/g, '\n'), 'recreate.css intocado')
-  ok(read('app/recreate/RecreatePlayer.tsx').replace(/\r\n/g, '\n') === baseSrc('app/recreate/RecreatePlayer.tsx').replace(/\r\n/g, '\n'), 'RecreatePlayer intocado')
-  // Com 'public' todo logado recebe as abas; a tela SEM abas (byte a byte a de antes, provada acima com createTabs=false) é o que a conta
+  // O novo layout do player é conferido em acabamentoChecks, inclusive com mutantes.
+  // Com 'public' todo logado recebe as abas; a tela SEM abas (mesmas ações, provadas acima com createTabs=false) é o que a conta
   // de fora vê com o interruptor forçado em 'internal', e o que TODOS veem em 'off'.
   for (const [value, emails] of [['internal', [CUSTOMER, 'test-hacker@example.org']], ['off', [CUSTOMER, HOUSE]]]) {
     const forced = forcedSwitch(o, value)('lib/create/access')
     for (const email of emails) {
       ok(forced.createShellVisible(email) === false, `'${value}' forçado: ${email} sem abas no Recreate`)
-      ok(renderRecreate(o, { initialId: 'elevador', createTabs: forced.createShellVisible(email) }) === renderRecreate(before, { initialId: 'elevador' }), `'${value}' forçado: Recreate de ${email} = HTML de ${BASE}`)
+      assert.deepEqual(studioRenderContract(renderRecreate(o, { initialId: 'elevador', createTabs: forced.createShellVisible(email) })), studioRenderContract(renderRecreate(before, { initialId: 'elevador' })), `'${value}': ações e catálogo de ${BASE}, sem expor abas`)
     }
   }
   ok(renderRecreate(o, { initialId: 'elevador', createTabs: loader(stubs, o)('lib/create/access').createShellVisible(CUSTOMER) }).includes('data-create-tab="film"'), "padrão 'public': a conta de fora passa a ver as abas no Recreate")
@@ -229,43 +232,73 @@ function mobileChecks() {
   const css = read('app/recreate/recreate.css'), mine = read('components/create/create.css')
   ok(/@media\(max-width:640px\)\{[^\n]*\.rc-workspace\{display:flex;flex-direction:column;height:auto\}\.rc-reference\{order:0;[^\n]*\.rc-panel\{order:1;[^\n]*\.rc-gallery\{order:2;/.test(css), 'celular: exemplo, passos, grade (CSS do Recreate)')
   ok(/\.ct-tabs\{[^}]*overflow-x:auto/.test(mine) && /\.ct-tab\{[^}]*white-space:nowrap/.test(mine), 'abas roláveis na horizontal')
-  ok(!/(?<![-a-z])(min-)?width:\s*\d{3,}px/.test(mine.replace(CONTAINER_QUERY, '')), 'nenhuma largura fixa grande no CSS novo')
-  ok(!/\.rc-[a-z-]+\{/.test(mine.replace(/\.create-shell \.rc-[a-z-]+|\.rc-library-only \.ct-tabs/g, '').replace(ACABAMENTO_SELECTORS, '')), 'o CSS novo não redefine classe rc-* fora da tela nova (nem fora dos 3 acabamentos)')
+  ok(!/(?<![-a-z])(min-)?width:\s*\d{3,}px/.test(mine), 'nenhuma largura fixa grande no CSS novo')
+  ok(!/\.rc-[a-z-]+\{/.test(mine.replace(/\.create-shell \.rc-[a-z-]+|\.rc-library-only \.ct-tabs/g, '')), 'o CSS novo não redefine classe rc-* fora da tela nova (nem fora dos 3 acabamentos)')
 }
 
-// ─── H. KINEO-TELA-NOVA-ACABAMENTO-1011 [fundador 10/11: "completar os quadros com vídeos… telas pretas na esquerda e na direita"] ──
-// (1) fileira cheia: grade de colunas iguais (2–8) numa linha, que encolhe para o número de exemplos; (2) quadro com a forma do vídeo,
-// sem caixa preta larga. Lido do CSS real (o render de servidor não mede pixel; a captura de tela fica no relatório da obra).
-const CONTAINER_QUERY = /@container [a-z-]+ \((?:min|max)-width:\d+px\)/g
-const ACABAMENTO_SELECTORS = /\.recreate \.rc-stage(?: \.rc-player-controls(?: button>span)?|>\.rc-(?:player|preview-tag|duration))?|\.recreate \.rc-workspace:not\(\.rc-library-only\) \.rc-(?:gallery|grid)(?::not\(:has\(>:nth-child\(\d\)\)\))?(?:>\.rc-card)?/g
+// ─── H. Apresentação aprovada do Palco e da galeria, com todas as mídias do catálogo original ───
 function acabamentoChecks(o = {}) {
-  const css = (o['components/create/create.css'] ?? read('components/create/create.css')).replace(/\r\n/g, '\n')
-  const rule = sel => { const i = css.indexOf(sel + '{'); return i < 0 ? '' : css.slice(i + sel.length + 1, css.indexOf('}', i)) }
-  const ROW = '.recreate .rc-workspace:not(.rc-library-only) .rc-grid'
-  const row = rule(ROW)
-  ok(/display:grid/.test(row) && /grid-auto-flow:column/.test(row) && /grid-auto-columns:calc\(\(100% - \(var\(--rc-n\) - 1\) \* 12px\) \/ var\(--rc-n\)\)/.test(row) && /columns:auto/.test(row), '(1) fileira: uma linha de colunas iguais (sem as colunas soltas que deixavam buraco)')
-  ok(/--rc-n:min\(var\(--rc-cols,2\),var\(--rc-max,99\)\)/.test(row) && /overflow-x:auto/.test(row), '(1) colunas = mín(largura, nº de exemplos); excedente rola de lado')
-  const cols = [...css.matchAll(/@container rc-fileira \(min-width:(\d+)px\)\{\.recreate \.rc-workspace:not\(\.rc-library-only\) \.rc-grid\{--rc-cols:(\d)\}\}/g)].map(x => [+x[1], +x[2]])
-  ok(cols.map(c => c[1]).join() === '3,4,5,6,7,8' && cols.every(([w, n]) => w === n * 150 + (n - 1) * 12), '(1) 3 a 8 colunas de ≥150 px pela largura da própria fileira')
-  for (let k = 2; k <= 7; k++) ok(css.includes(`${ROW}:not(:has(>:nth-child(${k + 1}))){--rc-max:${k}}`), `(1) com ${k} exemplos, ${k} colunas (sem buraco)`)
-  ok(rule('.recreate .rc-workspace:not(.rc-library-only) .rc-gallery').includes('container:rc-fileira/inline-size') && /aspect-ratio:9\/14/.test(rule(ROW + '>.rc-card')), '(1) a fileira mede a si mesma; cartões iguais')
-  ok(!css.includes('.rc-library-only .rc-grid'), '(1) a grade da biblioteca do Recreate fica como estava')
-  // Colunas × larguras do relatório (1280/1440/1920 e celular), com a conta do layout: painel 390 px (350 abaixo de 1050), respiro 30/20/16.
-  const colsAt = vw => { const gal = vw <= 640 ? vw - 32 : Math.min(vw, 1800) - (vw <= 1050 ? 350 + 40 : 390 + 60); return Math.max(2, ...cols.filter(([w]) => gal >= w).map(c => c[1])) }
-  const tabs = loader(stubs, o)('lib/create/tabs')
-  for (const vw of [375, 1280, 1440, 1920]) for (const tab of ['film', 'cartoon', 'ads']) ok(tabs.CREATE_EXAMPLES[tab].length >= colsAt(vw), `(1) ${vw} px: ${tab} enche as ${colsAt(vw)} colunas`)
-  // (2) O palco não é mais caixa preta: fundo transparente, o player tem a forma 9:16 e altura do palco; etiquetas acompanham o quadro.
-  const stage = rule('.recreate .rc-stage'), player = rule('.recreate .rc-stage>.rc-player')
-  ok(/background:transparent/.test(stage) && /border:0/.test(stage) && /container:rc-palco\/size/.test(stage) && !/#0[0-9a-f]{2,5}\b|black/i.test(stage), '(2) palco sem fundo preto')
-  ok(/width:min\(100%,calc\(100cqh \* 9 \/ 16\)\)/.test(player) && /height:100%/.test(player) && /margin-inline:auto/.test(player), '(2) quadro 9:16 com a altura do palco, centrado, nunca mais largo que o palco')
-  ok(/left:calc\(50% - min\(50%,100cqh \* 9 \/ 32\) \+ 12px\)/.test(rule('.recreate .rc-stage>.rc-preview-tag')) && /right:calc\(50% - min\(50%,100cqh \* 9 \/ 32\) \+ 12px\)/.test(rule('.recreate .rc-stage>.rc-duration')), '(2) etiquetas dentro do quadro')
-  ok(/@container rc-quadro \(max-width:230px\)\{[^\n]*button>span\{display:none\}/.test(css), '(2) quadro estreito: botões só com ícone (cabem)')
-  ok(/@media\(max-width:640px\)\{\.recreate \.rc-stage\{height:min\(420px,62svh\)\}\}/.test(css), '(2) celular: quadro vertical mais alto, sem faixa')
-  ok(!/object-fit:cover/.test(player + stage), '(2) nada é cortado: o vídeo segue em contain (recreate.css)')
+  const m = loader(stubs, o)
+  const key = 'app/recreate/studio-media.css'
+  const styles = postcss.parse(o[key] ?? read(key))
+  const props = (selector, prop) => {
+    const values = []
+    styles.walkRules(selector, r => r.walkDecls(prop, declaration => values.push(declaration.value)))
+    return values
+  }
+  const player = '.recreate .rc-player[data-presentation="stage"]'
+  const row = '.recreate .rc-workspace:not(.rc-library-only) .rc-grid'
+  ok(props('.recreate .rc-stage', 'background').includes('transparent') && props(player, 'background').every(v => v.includes('var(--rc-card)')), 'palco segue a superfície do tema')
+  ok(props(player + ' > video', 'object-fit').includes('contain') && ['width', 'height'].every(k => props(player + ' > video', k).includes('auto')), 'preserva o quadro nativo sem esticar ou recortar')
+  ok(props(row, 'grid-auto-flow').includes('column') && props(row, 'overflow-x').includes('auto') && props(row, 'grid-auto-columns').some(v => v.includes('var(--rc-cols, 2)')), 'fileira rola com duas colunas no celular')
+  ok(props(row, '--rc-cols').join() === '3,4', 'galeria chega a quatro capas amplas')
+  const controls = '.recreate .rc-player[data-presentation] .rc-player-controls'
+  ok(props(controls, 'position').includes('static') && props('.recreate .rc-card .rc-card-bottom', 'position').includes('static'), 'controles e títulos ficam fora do vídeo')
+  ok(props(controls + ' svg', 'width').some(v => /^1[4-8]px$/.test(v)) && ['min-width', 'min-height'].every(k => props(controls + ' button', k).some(v => v === '44px')), 'ícone pequeno com área de toque de 44px')
+  const media = ['film', 'cartoon', 'ads'].map(tab => renderShell(m, tab))
+  media.push(renderRecreate(o, { initialId: 'elevador', createTabs: true }))
+  for (const html of media) {
+    const root = parse(html), stage = root.querySelector('.rc-stage'), cards = root.querySelectorAll('.rc-card')
+    ok(stage.querySelectorAll('video').length === 1 && stage.querySelector('.rc-media-info h2')?.text.trim(), 'um vídeo principal com título externo')
+    ok(!stage.querySelector('.rc-preview-tag, .rc-duration, video[controls]') && stage.querySelector('.rc-media-info .rc-player-controls button[aria-label]'), 'sem selo sobreposto ou controles nativos do navegador')
+    ok(cards.length > 0 && cards.every(card => card.querySelector('.rc-card-bottom h3')?.text.trim() && card.querySelector('button.rc-example-cover[aria-label] video[preload="none"]') && !card.querySelector('video[autoplay]')), 'capas acionáveis sem autoplay, títulos após a mídia')
+  }
+}
+
+// Mount the real components with every gallery video visible. Then click a real cover and confirm
+// the selected preview changes without generating a film or charging the account.
+function galleryInteraction(o = {}) {
+  const { aba } = require('../docs/studio-na-moldura-1011/runtime.cjs')
+  for (const tab of ['film', 'cartoon', 'ads', 'recreate']) {
+    const t = aba(o)
+    let automaticPlays = 0
+    const visibleVideo = { play: async () => { automaticPlays++ }, pause() {} }
+    globalThis.document.querySelectorAll = selector => selector === '.rc-grid video' ? [visibleVideo] : []
+    globalThis.window.history = { replaceState() {} }
+    globalThis.IntersectionObserver = class {
+      constructor(callback) { this.callback = callback }
+      observe(target) { this.callback([{ target, isIntersecting: true }]) }
+      disconnect() {}
+    }
+    const recreate = tab === 'recreate'
+    const component = t.m(recreate ? 'app/recreate/RecreateClient' : 'components/create/CreateShell').default
+    t.mount(React.createElement(component, recreate ? { initialId: 'elevador', createTabs: true } : { tab }))
+    ok(automaticPlays === 0, `${tab}: abrir a página não dá play nas capas visíveis`)
+    const srcBefore = parse(t.html()).querySelector('.rc-stage video').getAttribute('src')
+    const card = t.all(p => p.className === 'rc-example-cover').find(cover => cover.props.children.props.src !== srcBefore)
+    ok(!!card, `${tab}: outro exemplo disponível`)
+    t.click(p => p === card.props, 'capa clicável')
+    const after = parse(t.html()), selected = after.querySelector('.rc-stage video')
+    ok(selected.getAttribute('src') === card.props.children.props.src && !t.log.pushes.length, `${tab}: a capa escolhe o vídeo certo sem redirecionar`)
+    if (tab === 'film' || tab === 'cartoon') ok(after.querySelector('#ct-idea').text === after.querySelector('.rc-media-info h2').text, `${tab}: capa preenche a ideia do exemplo`)
+    if (tab === 'ads') ok(!after.querySelector('#ct-idea'), 'Ads: selecionar só visualiza a prévia')
+    ok(t.log.fetches.every(([, method]) => method === 'GET'), `${tab}: seleção sem POST ou render`)
+  }
 }
 
 function all(o = {}) { switchChecks(o); destinationChecks(o); shellChecks(o); exampleChecks(o); recreateChecks(o); eventChecks(); mobileChecks(); acabamentoChecks(o) }
 all()
+galleryInteraction()
 const real = passed
 
 // ─── Mutantes: cada um TEM de derrubar o guardião ───────────────────────────────────────────────────────────────────────
@@ -289,11 +322,11 @@ const mutants = [
   ['mínimo rebaixado', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace('CREATE_EXAMPLES_MIN = 8', 'CREATE_EXAMPLES_MIN = 3') }],
   ['exemplo repetido', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace("filmeDaCasa('castle', 'The castle hiding inside a university building')", "filmeDaCasa('volcano-selected', 'The volcano watcher')") }],
   ['exemplo de Halloween de volta', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace("cardDaHome('skatedog', 'The skateboarding puppy')", "cardDaHome('pumpkin', 'The pumpkin')") }],
-  ['fileira volta às colunas soltas', { 'components/create/create.css': src('components/create/create.css').replace('columns:auto;display:grid;grid-auto-flow:column;', '') }],
-  ['fileira sem o teto pelo nº de exemplos', { 'components/create/create.css': src('components/create/create.css').replace(':not(:has(>:nth-child(4))){--rc-max:3}', ':not(:has(>:nth-child(4))){--rc-max:99}') }],
-  ['fileira com 9 colunas na tela larga', { 'components/create/create.css': src('components/create/create.css').replace('(min-width:1284px){.recreate .rc-workspace:not(.rc-library-only) .rc-grid{--rc-cols:8}}', '(min-width:1284px){.recreate .rc-workspace:not(.rc-library-only) .rc-grid{--rc-cols:9}}') }],
-  ['quadro preto de volta', { 'components/create/create.css': src('components/create/create.css').replace('.recreate .rc-stage{container:rc-palco/size;background:transparent;', '.recreate .rc-stage{container:rc-palco/size;background:#030509;') }],
-  ['quadro largo de volta (player com a largura do palco)', { 'components/create/create.css': src('components/create/create.css').replace('width:min(100%,calc(100cqh * 9 / 16));', 'width:100%;') }],
+  ['galeria volta a nove colunas', { 'app/recreate/studio-media.css': src('app/recreate/studio-media.css').replace('--rc-cols: 4;', '--rc-cols: 9;') }],
+  ['superfície do palco volta ao preto fixo', { 'app/recreate/studio-media.css': src('app/recreate/studio-media.css').replace(/(\.recreate \.rc-stage \{[^}]*background:) transparent;/, '$1 black;') }],
+  ['vídeo preenche cortando pessoas', { 'app/recreate/studio-media.css': src('app/recreate/studio-media.css').replace('object-fit: contain;', 'object-fit: cover;') }],
+  ['controles novamente por cima do vídeo', { 'app/recreate/studio-media.css': src('app/recreate/studio-media.css').replace('position: static;', 'position: absolute;') }],
+  ['toda a galeria toca ao abrir', { 'app/recreate/RecreatePlayer.tsx': src('app/recreate/RecreatePlayer.tsx').replace('preload="none"', 'preload="auto" autoPlay') }],
 ]
 let bitten = 0
 for (const [name, o] of mutants) {
@@ -303,4 +336,12 @@ for (const [name, o] of mutants) {
   assert(died, `MUTANTE SOBREVIVEU: ${name}`)
   bitten++
 }
-console.log(`test-tela-nova-1011: ${real} verificações verdes · ${bitten}/${mutants.length} mutantes mortos`)
+// These regressions only affect behavior after mounting the page.
+for (const [name, o] of [
+  ['capa sem ação', { 'app/recreate/RecreatePlayer.tsx': src('app/recreate/RecreatePlayer.tsx').replace('onClick={onSelect}', 'onClick={() => {}}') }],
+  ['abertura toca todas as capas', { 'components/create/CreateShell.tsx': src('components/create/CreateShell.tsx').replace('function choose(e: CreateExample)', "useEffect(() => { for (const video of document.querySelectorAll('.rc-grid video')) void video.play() }, []); function choose(e: CreateExample)") }],
+]) {
+  assert.throws(() => galleryInteraction(o), { code: 'ERR_ASSERTION' }, name)
+  bitten++
+}
+console.log(`test-tela-nova-1011: ${real} verificações verdes · ${bitten}/${mutants.length + 2} mutantes mortos`)

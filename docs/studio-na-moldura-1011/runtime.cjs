@@ -37,7 +37,7 @@ function aba(overrides = {}, { now = 1_800_000_000_000, cookie = '', credits = n
   // Globais do navegador, só o que os componentes tocam.
   const g = globalThis
   g.sessionStorage = { getItem: k => log.storage.get(k) ?? null, setItem: (k, v) => log.storage.set(k, String(v)), removeItem: k => log.storage.delete(k) }
-  g.document = { cookie, querySelectorAll: () => [], querySelector: () => null }
+  g.document = { cookie, querySelectorAll: () => [], querySelector: () => null, fullscreenEnabled: false, addEventListener() {}, removeEventListener() {} }
   g.window = { matchMedia: () => ({ matches: false }), requestAnimationFrame: f => f(), addEventListener: () => {}, removeEventListener: () => {} }
   g.IntersectionObserver = class { observe() {} disconnect() {} }
   g.fetch = async (url, init) => { log.fetches.push([String(url), init?.method ?? 'GET']); return credits && String(url) === '/api/credits' ? { ok: true, status: 200, json: async () => credits } : me && String(url) === '/api/me/credits' ? { ok: true, status: 200, json: async () => me } : k4 && String(url) === '/api/kling4-paid/availability' ? { ok: true, status: 200, json: async () => k4 } : { ok: false, status: 500, json: async () => null } }

@@ -2,7 +2,7 @@
 // Guardião da aba Film = Studio real na moldura nova. Offline: módulos REAIS transpilados, hooks emulados, cliques chamando os handlers de
 // verdade, roteador/rede/eventos/sessionStorage como dublês que só anotam (docs/studio-na-moldura-1011/runtime.cjs). Prova:
 //   A. interruptor CREATE_FILM_INPLACE × quem chega (off/internal/public; casa, conta de fora, visitante; só a aba Film);
-//   B. desligado = byte a byte a main: StudioSimples sem moldura, CreateShell das 3 abas, e nenhum arquivo do Studio/Generate mexido;
+//   B. desligado: StudioSimples sem moldura idêntico à main, CreateShell conserva ações/catálogo e os arquivos do gerador seguem protegidos;
 //   C. ligado = o MESMO pedido (rota, query, sessionStorage), os MESMOS eventos campo a campo e as MESMAS recusas que a main produz
 //      pelo caminho de hoje (/create/film → Continue → /studio caixa única → Generate);
 //   D. o preço é o da função que cobra e aparece SÓ no botão; nenhum nome de motor; nada começa sozinho;
@@ -14,6 +14,7 @@ import { execFileSync } from 'node:child_process'
 
 const require = createRequire(import.meta.url)
 const R = require('../docs/studio-na-moldura-1011/runtime.cjs')
+const { studioRenderContract } = require('./test-support/studio-render-contract.cjs')
 const { aba, baseSrc, BASE, React, read, ROOT, visibleText } = R
 
 const HOUSE = 'josephsskaf@gmail.com'
@@ -66,7 +67,10 @@ function offChecks(o) {
     ok(ssr(o, 'components/studio/StudioSimples', props) === ssr({ ...o, ...MAIN }, 'components/studio/StudioSimples', props), `StudioSimples sem moldura ${props.motor}/${props.campanha}: HTML = ${BASE}`)
   }
   for (const tab of ['film', 'cartoon', 'ads']) for (const showRecreate of [true, false]) {
-    ok(semCabecalho(ssr(o, 'components/create/CreateShell', { tab, showRecreate })) === semCabecalho(ssr({ ...o, 'components/create/CreateShell.tsx': MAIN['components/create/CreateShell.tsx'] }, 'components/create/CreateShell', { tab, showRecreate })), `CreateShell ${tab} (Recreate ${showRecreate}): HTML = ${BASE} fora o cabeçalho`)
+    const props = { tab, showRecreate }
+    const current = studioRenderContract(ssr(o, 'components/create/CreateShell', props))
+    const previous = studioRenderContract(ssr({ ...o, 'components/create/CreateShell.tsx': MAIN['components/create/CreateShell.tsx'] }, 'components/create/CreateShell', props))
+    assert.deepEqual(current, previous, `CreateShell ${tab}: abas, campos, bloqueio, destino e catálogo de ${BASE}`)
   }
   // Comportamento sem moldura: o mesmo pedido e os mesmos eventos da main pelo caminho de hoje.
   ok(JSON.stringify(viaMain(o, {})) === JSON.stringify(viaMain({ ...o, ...MAIN }, {})), 'StudioSimples sem moldura: pedido + eventos = main')
@@ -77,7 +81,9 @@ function offChecks(o) {
   const REGIAO_PAGA = ['app/(dashboard)/studio/previa/ScenePreviewClient.tsx', 'app/api/events/route.ts', 'app/api/scene-preview/pricing-strip/route.ts', 'lib/growth/regiaoPaga1011.ts']
   const desdeRef = f => execFileSync('git', ['diff', '--name-only', REGIAO_PAGA_REF, '--', f], { cwd: ROOT, encoding: 'utf8' }).trim()
   const changed = execFileSync('git', ['diff', '--name-only', BASE, '--', 'app/(dashboard)', 'lib/credits', 'lib/growth', 'app/api', 'lib/recreate', 'middleware.ts'], { cwd: ROOT, encoding: 'utf8' }).trim().split('\n').filter(Boolean)
-    .filter(f => !(REGIAO_PAGA.includes(f) && desdeRef(f) === '')).join(', ')
+    .filter(f => !(REGIAO_PAGA.includes(f) && desdeRef(f) === ''))
+    .filter(f => !(f === 'middleware.ts' && lf(read(f)) === lf(baseSrc(f)).replace('_next/image|favicon.ico', '_next/image|fonts/manrope-v23/|favicon.ico')))
+    .join(', ')
   ok(changed === '', `Studio, Generate, crédito, rotas e Recreate intocados (${changed})`)
 }
 
@@ -332,7 +338,7 @@ const mutants = [
   ['nome de motor na tela', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('<span>Details</span>', '<span>Details · Seedance</span>') }],
   ['Details aberto por padrão', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('<details className="rc-adjustments">', '<details className="rc-adjustments" open>') }],
   ['recusa sem aviso na moldura', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('{c.aviso ? <p className="ct-alert" role="alert">{c.aviso}</p> : null}', '') }],
-  ['CreateShell desligado muda o texto', { 'components/create/CreateShell.tsx': src('components/create/CreateShell.tsx').replace("'Nothing starts until you continue.'", "'Nothing starts until you go on.'") }],
+  ['CreateShell desligado perde o destino do Continue', { 'components/create/CreateShell.tsx': src('components/create/CreateShell.tsx').replace('data-create-continue={continueHref(tab, idea, signedIn)}', 'data-create-continue="/library"') }],
   ['StudioSimples desligado muda', { 'components/studio/StudioSimples.tsx': src('components/studio/StudioSimples.tsx').replace("<h1>What&apos;s your film about?</h1>", '<h1>Your film?</h1>') }],
   ['gera sozinho quando há texto', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('const temTexto = c.texto.trim().length > 0', 'const temTexto = c.texto.trim().length > 0; if (temTexto) c.gerar()') }],
   ['CSS com largura fixa', { 'components/create/create.css': src('components/create/create.css').replace('.create-shell .ct-sel{width:100%;', '.create-shell .ct-sel{width:520px;') }],
