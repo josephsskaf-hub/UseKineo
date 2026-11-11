@@ -64,6 +64,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { PARKED_EVENT, PARKED_MESSAGE, PARKED_VERSION, decidirEstacionamento, pedidoEstacionavel } from '@/lib/filaQuedaFal' // KINEO-FILA-QUEDA-FAL-2810 — fal sem saldo/capacidade: o filme é estacionado, não perdido
 import { anexarFixDaRecusa } from '@/lib/recusaBotao' // KINEO-RECUSA-BOTAO-3110 — a recusa vira botão (lib pura, a mesma que o cliente lê)
+import { estornoPorSaldo } from '@/lib/cinematic/resfriamentoSaldo' // KINEO-RESFRIAMENTO-SALDO-1111
 import { alertarFundadorFalSemSaldo } from '@/lib/filaQuedaFalServer' // KINEO-FILA-QUEDA-FAL-2810 — alarme horário do fundador (fora do finalizador: ele tem guardião próprio)
 // KINEO-SALVAGE-2026-08-17 — fingerprint da retomada + status-check das cenas
 // guardadas (mesmo padrão do cinematic-clip-status).
@@ -2904,7 +2905,8 @@ async function manipularPost(req: NextRequest) {
         return metadata.status === 'released' &&
           typeof metadata.authority === 'string' && /^[a-f0-9]{64}$/i.test(metadata.authority) &&
           typeof metadata.resolution_reason === 'string' &&
-          /^provider_.*_refunded$/.test(metadata.resolution_reason)
+          /^provider_.*_refunded$/.test(metadata.resolution_reason) &&
+          !estornoPorSaldo(metadata.resolution_reason) // KINEO-RESFRIAMENTO-SALDO-1111 — a fal sem saldo é da casa, não da pessoa
       }).length
       if (recentRefundedFailures >= 2) {
         return NextResponse.json(

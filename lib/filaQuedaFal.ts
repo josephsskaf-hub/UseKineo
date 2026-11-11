@@ -50,8 +50,9 @@ export const FOUNDER_ALERT_RECHARGE = 'recarregue em fal.ai → Usage & billing 
 export const PARKABLE_REASONS: ReadonlySet<string> = new Set(['balance_quota', 'rate_limit'])
 
 /** A frase que a pessoa lê. Dinheiro dito com exatidão: estornado agora, cobrado só quando começar. */
+// KINEO-RESFRIAMENTO-SALDO-1111 — era "paused for a few minutes": na queda de 08/11 foram 5h27. A frase não promete prazo de volta.
 export const PARKED_MESSAGE =
-  "Our video engine is paused for a few minutes. Your film is saved and will start automatically — you'll get an email when it's ready. Nothing was charged: your credits are back in your account and are only used when it starts. If it can't start within 24 hours, we'll email you and nothing is charged."
+  "Our video engine is paused right now. Your film is saved and will start automatically — you'll get an email when it's ready. Nothing was charged: your credits are back in your account and are only used when it starts. If it can't start within 24 hours, we'll email you and nothing is charged."
 /** Fragmentos desta frase que o cron de resgate reconhece como "não é defeito" (NAO_E_BUG). */
 export const PARKED_MESSAGE_FRAGMENTS = ['Your film is saved', 'engine is paused'] as const
 

@@ -205,7 +205,8 @@ check('4.1 o filtro do resfriamento continua sendo provider_*_refunded', Boolean
 const RE_COOLDOWN = /^provider_.*_refunded$/
 check('4.2 empty_plan_rejected_refunded NAO conta para o resfriamento', !RE_COOLDOWN.test('empty_plan_rejected_refunded'))
 check('4.3 provider_rejected_refunded CONTINUA contando', RE_COOLDOWN.test('provider_rejected_refunded'))
-check('4.4 provider_balance_rejected_refunded CONTINUA contando', RE_COOLDOWN.test('provider_balance_rejected_refunded'))
+// KINEO-RESFRIAMENTO-SALDO-1111: a recusa por saldo da fal (da casa) deixou de contar — a rota a exclui com estornoPorSaldo depois do regex.
+check('4.4 provider_balance_rejected_refunded NAO conta (fal sem saldo é da casa)', RE_COOLDOWN.test('provider_balance_rejected_refunded') && /!estornoPorSaldo(metadata.resolution_reason)/.test(route))
 // O sufixo _refunded e posto por releaseBirthClaim; provar que a regra segue viva.
 check('4.5 releaseBirthClaim ainda sufixa _refunded no debito confirmado',
   /releaseReason = `\$\{reason\}_refunded`/.test(route))

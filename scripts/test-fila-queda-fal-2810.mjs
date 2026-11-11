@@ -122,7 +122,7 @@ function checa(over = {}) {
   if (L.FOUNDER_ALERT_GAP_MS !== H) e.push('FOUNDER_ALERT_GAP_MS ≠ 1 h')
 
   // (F) frase do cliente e resgate honesto
-  if (!/paused for a few minutes/.test(L.PARKED_MESSAGE) || !/saved/.test(L.PARKED_MESSAGE) || !/email/.test(L.PARKED_MESSAGE) || !/24 hours/.test(L.PARKED_MESSAGE)) e.push('PARKED_MESSAGE perdeu pausa/salvo/e-mail/24 h')
+  if (!/engine is paused/.test(L.PARKED_MESSAGE) || /few minutes|shortly|soon/i.test(L.PARKED_MESSAGE) /* KINEO-RESFRIAMENTO-SALDO-1111: sem prometer prazo */ || !/saved/.test(L.PARKED_MESSAGE) || !/email/.test(L.PARKED_MESSAGE) || !/24 hours/.test(L.PARKED_MESSAGE)) e.push('PARKED_MESSAGE perdeu pausa/salvo/e-mail/24 h')
   if (/credits are held/.test(L.PARKED_MESSAGE) || !/back in your account/.test(L.PARKED_MESSAGE)) e.push('PARKED_MESSAGE mente sobre o dinheiro (o crédito volta no estacionamento e é debitado na retomada)')
   for (const f of L.PARKED_MESSAGE_FRAGMENTS) if (!L.PARKED_MESSAGE.includes(f)) e.push('fragmento NAO_E_BUG fora da frase: ' + f)
   if (!L.recusaDeFornecedor({ reason_histogram: { balance_quota: 3 } }) || !L.recusaDeFornecedor({ reason_histogram: { rate_limit: 1, ok: 2 } }) || !L.recusaDeFornecedor({ balance_exhausted: true })) e.push('recusaDeFornecedor não vê saldo/capacidade')
