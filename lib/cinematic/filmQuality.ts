@@ -89,6 +89,18 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
   if (cast) action = action.replace(cast[0], '').replace(/^[,.\s]+/, '')
   action = action.replace(/The same main character appears in this scene, consistent design:[\s\S]*/i, '').trim()
   for (const direction of originalTextDirections) action = action.replace(direction, '').trim()
+  // KINEO-PLANO-COM-ACAO-1111 [CEO 11/11, reprise dos 6 filmes] — o argentinossauro (e9418905, 6,5) saiu com os planos 2 e 3 IGUAIS e sem ação:
+  // o planejador tinha escrito o gancho ("a measuring tape alongside it showing 35 meters, emphasizing its enormous size"), mas o espaço do
+  // plano foi para (1) a ordem do protagonista ("The only person in this shot is the same main character (the dinosaur, …); any other person
+  // described below is replaced by this same character.") — que repete a ficha, já dita em "Identity:"/"Visible:" — e (2) o look do meio
+  // repetido ("stylized 3D animated film look, …, not photorealistic."). E no vizinho o sujeito obrigatório ("Main subject clearly visible in
+  // frame: a new palace.") virava a 1ª frase e a ação de verdade caía no corte. Agora: com ficha no plano, a ordem do protagonista sai; o look
+  // do meio sai da ação; o sujeito obrigatório vai DEPOIS da 1ª frase de ação.
+  const lookDoMeio = /^Film visual medium: (.+?)\. /.exec(prompt)?.[1]
+  if (lookDoMeio) action = action.split(`${lookDoMeio}.`).join(' ').replace(/\s{2,}/g, ' ').trim()
+  if (identity || cast) action = action.replace(/The only person in this shot is the same main character \((?:[^()]|\((?:[^()]|\([^()]*\))*\))*\); any other person described below is replaced by this same character\.\s*/gu, '').trim()
+  const sujeitoNaFrente = /^(Main subject clearly visible in frame: [^.]+\.)\s+([^.]+[.!?])/u.exec(action)
+  if (sujeitoNaFrente && !/^(?:Main subject|Visible|Identity|Named character)/u.test(sujeitoNaFrente[2])) action = `${sujeitoNaFrente[2]} ${sujeitoNaFrente[1]}${action.slice(sujeitoNaFrente[0].length)}`
   // KINEO-QUALIDADE-TODOS-MOTORES-2910 — a long inherited costume must not displace the person/object action.
   const visible = (totalBudget: number) => cast?.[1].split('; ').map((person, _, people) => {
     const relation = /holding the (?:glowing )?teddy bear|beside the bicycle|with the hat/i.exec(person)?.[0]
