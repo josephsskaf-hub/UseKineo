@@ -523,7 +523,7 @@ export default function SpacesClient() {
 
       {error ? <div role="alert" style={{ ...box, borderColor: 'rgba(217,48,37,.45)', color: C.danger, fontSize: 14 }}>{error}</div> : null}
       </div>
-        <ProductStage name={t('title')} desc={t('sub')} meta={`${NANO_CREDITS} cr · Nano Banana Pro`} items={stageItems.length ? stageItems : HOUSE_SPACES} labels={{ before: t('before'), after: t('after') }} />
+        <ProductStage name={t('title')} desc={t('sub')} meta={`${NANO_CREDITS} cr · Nano Banana Pro`} items={stageItems.length ? stageItems : HOUSE_SPACES} labels={{ before: t('before'), after: t('after') }} semSelo />{/* KINEO-VITRINE-SEM-SELO-1111 — sem "Made with <motor>" na vitrine nem no resultado */}
       </div>
       <ProductRow title="Made on Kineo" sub="Real empty floors, finished by Kineo Spaces." items={HOUSE_SPACES.map((x) => ({ title: x.title, image: x.after! }))} />
     </div>

@@ -644,7 +644,7 @@ export default function ImagesClient() {
           )}
 </div>
 </div>
-        {mostraVitrine && <ProductStage name={ui('Made on Kineo')} desc="Real images from our engines — every one started as a sentence." items={HOUSE_IMAGES} wide />}
+        {mostraVitrine && <ProductStage name={ui('Made on Kineo')} desc="Real images from our engines — every one started as a sentence." items={HOUSE_IMAGES} wide semSelo />}{/* KINEO-VITRINE-SEM-SELO-1111 — sem "Made with Nano Banana Pro" na vitrine */}
 </div>
       {mostraVitrine && <ProductRow title="Images made by Kineo" items={HOUSE_ROW} />}
       {/* KINEO-IMAGES-TELA-0511 — fora do painel: o painel tem backdrop-filter, que prenderia o popup. */}

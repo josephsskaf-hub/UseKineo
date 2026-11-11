@@ -121,7 +121,7 @@ export function ProductStageStyles() {
 }
 
 /** O palco: o exemplo da casa grande no meio, nome e custo do lado, miniaturas para trocar. */
-export function ProductStage({ name, desc, meta, items, wide = false, labels, extra }: {
+export function ProductStage({ name, desc, meta, items, wide = false, labels, extra, semSelo = false }: {
   name: string
   desc?: string
   meta?: string
@@ -130,6 +130,8 @@ export function ProductStage({ name, desc, meta, items, wide = false, labels, ex
   wide?: boolean
   labels?: { before: string; after: string }
   extra?: ReactNode
+  /** KINEO-VITRINE-SEM-SELO-1111 [CEO 11/11, ronda: regra do dono "nenhum nome de motor em cartão ou botão"] — sem o selo "Made with <motor>" na peça (Images e Spaces). O `badge` segue no dado. */
+  semSelo?: boolean
 }) {
   const [i, setI] = useState(0)
   const v = items[Math.min(i, items.length - 1)]
@@ -161,7 +163,7 @@ export function ProductStage({ name, desc, meta, items, wide = false, labels, ex
                 )}
               </>
             )}
-            <span className="kps-badge"><UiLabel>Made with</UiLabel> {v.badge}</span>
+            {semSelo ? null : <span className="kps-badge"><UiLabel>Made with</UiLabel> {v.badge}</span>}
           </div>
         )}
         {items.length > 1 && (
