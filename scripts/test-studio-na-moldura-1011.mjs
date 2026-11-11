@@ -182,7 +182,11 @@ async function priceChecks(o) {
   }
   ok(price.precoDoGenerate({ ...base, duracao: 60, texto: 'Make it a 90-second film about the Titanic' }) === null, 'duração escrita no texto ≠ escolhida: sem número (o /studio/create troca)')
   ok(price.precoDoGenerate({ ...base, duracao: 90, texto: 'Make it a 90-second film about the Titanic' }) === cost.creditCostForDuration('cinematic_ai', true, 90), 'duração escrita = escolhida: número')
-  ok(['hollywood', 'h3', 'omni', 's25', 'fast', 'x'].every(mo => price.precoDoGenerate({ ...base, motor: mo, duracao: 60 }) === null), 'outro motor: sem número (nunca um palpite)')
+  // KINEO-MOTOR-OPCIONAL-1011 — motor ESCOLHIDO no passo Details: o número é o da função que cobra para a quality dele; fora da lista
+  // da caixa (aposentado, Kineo 1, inventado) segue sem número; Kling 4.0 sem a leitura do Studio (kling4) também (nunca um palpite).
+  ok(['omni', 'fast', 'x', 'veo', 'kling'].every(mo => price.precoDoGenerate({ ...base, motor: mo, duracao: 60 }) === null), 'motor fora da lista: sem número (nunca um palpite)')
+  ok(['h3', 'h3max', 's25'].every(mo => price.precoDoGenerate({ ...base, motor: mo, duracao: 60 }) === cost.creditCostForDuration(`cinematic_${mo}`, true, 60)), 'motor escolhido: o número = creditCostForDuration da quality dele')
+  ok(price.precoDoGenerate({ ...base, motor: 'hollywood', duracao: 60 }) === null, 'Kling 4.0 sem a leitura de disponibilidade: sem número')
   // "Pagante" = contaPagaNaTela sobre o corpo de /api/credits — nenhuma regra nova.
   for (const [nome, corpo] of [['PAID', PAID], ['STARTER', STARTER], ['TRIAL', TRIAL], ['FREE', FREE], ['null', null], ['vazio', {}], ['hasPaid "true"', { hasPaid: 'true' }]]) {
     const regra = corpo && typeof corpo === 'object' ? cpt.contaPagaNaTela({ hasPaid: corpo.hasPaid === true, isStarter: corpo.isStarter === true, isCreator: corpo.isCreator === true, isStudio: corpo.isStudio === true, planoLido: false, provadoQueNaoPaga: false }) === true : false
@@ -281,7 +285,7 @@ async function detailsChecks(o) {
   ok(simples.includes('const DURACOES = [15, 35, 60, 90] as const') && simples.includes("const FORMATOS = ['9:16', '16:9', '1:1', '4:5'] as const") && [...s.matchAll(/data-studio-duration="(\d+)"/g)].map(x => +x[1]).join() === '15,35,60,90' && [...s.matchAll(/data-studio-format="([^"]+)"/g)].map(x => x[1]).join() === '9:16,16:9,1:1,4:5', 'Details: as durações e formatos que o Studio simples aceita (DURACOES/FORMATOS)')
   const links = [...s.matchAll(/<a [^>]*>[\s\S]*?<\/a>/g)].map(x => x[0])
   ok(links.length === 1 && /^<a href="\/studio\?avancado=1&amp;engine=seedance&amp;intent_campaign=create_film" data-kineo="studio-advanced">Advanced studio ↗<\/a>$/.test(links[0]), `Details: um só link para o Studio antigo, "Advanced studio" (${links.join(' | ')})`)
-  ok(/<p class="ct-advanced"><a [^>]*data-kineo="studio-advanced"[^>]*>Advanced studio ↗<\/a><\/p><\/div><\/details>/.test(s), 'Details: o link fica no rodapé do passo, depois dos ajustes')
+  ok(/<p class="ct-advanced"><a [^>]*data-kineo="studio-advanced"[^>]*>Advanced studio ↗<\/a><span> · logo, camera, star of the film<\/span><\/p><\/div><\/details>/.test(s) /* KINEO-MOTOR-OPCIONAL-1011: o motor saiu da lista do Advanced */, 'Details: o link fica no rodapé do passo, depois dos ajustes')
   ok(!/More options/.test(s) && !/data-kineo="studio-simple-more"/.test(t.html()), 'Details: "More options" não existe mais na moldura')
   // Trocar duração e formato no passo: o resumo muda e nada navega.
   t.click(p => p['data-studio-duration'] === 35, 'duração 35')
@@ -335,8 +339,8 @@ const mutants = [
   ['CSS com largura fixa', { 'components/create/create.css': src('components/create/create.css').replace('.create-shell .ct-sel{width:100%;', '.create-shell .ct-sel{width:520px;') }],
   // KINEO-TELA-NOVA-ACABAMENTO-1011
   ['Details apontando para /studio', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('<summary>{marker(2)}<span>Details</span>', '<summary>{marker(2)}<a href={c.maisOpcoes}>Details</a>') }],
-  ['"More options" de volta no passo', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('<p className="ct-advanced"><a href={c.maisOpcoes} data-kineo="studio-advanced">Advanced studio ↗</a></p>', '<a className="ct-more" href={c.maisOpcoes} data-kineo="studio-simple-more">More options ↗</a>') }],
-  ['Advanced studio some (motor premium sem caminho)', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('<p className="ct-advanced"><a href={c.maisOpcoes} data-kineo="studio-advanced">Advanced studio ↗</a></p>', '') }],
+  ['"More options" de volta no passo', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('<p className="ct-advanced"><a href={c.maisOpcoes} data-kineo="studio-advanced">Advanced studio ↗</a><span> · logo, camera, star of the film</span></p>', '<a className="ct-more" href={c.maisOpcoes} data-kineo="studio-simple-more">More options ↗</a>') }],
+  ['Advanced studio some (logo/estrela sem caminho)', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('<p className="ct-advanced"><a href={c.maisOpcoes} data-kineo="studio-advanced">Advanced studio ↗</a><span> · logo, camera, star of the film</span></p>', '') }],
   ['Details sem a duração', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('<div><span className="ct-lab">Length</span>', '<div hidden><span className="ct-lab">Length</span>').replace('{c.opcoesDuracao.map(d =>', '{[].map(d =>') }],
   ['Advanced studio em destaque', { 'components/create/create.css': src('components/create/create.css').replace('.create-shell .ct-advanced a{color:var(--rc-muted);', '.create-shell .ct-advanced a{color:var(--rc-accent);') }],
 ]

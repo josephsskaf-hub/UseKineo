@@ -10,6 +10,9 @@ import CreateShell from './CreateShell'
 import { NARRATION_LANGUAGES } from '@/lib/textLanguage'
 import { LINHA_DO_FILME_GRATIS } from '@/lib/growth/filmeGratisNaCaixa'
 import { precoDoGenerate } from '@/lib/create/filmNaMoldura'
+import { MOTOR_PADRAO, ROTULO_PADRAO, kling4AoVivo } from '@/lib/create/motorOpcional' // KINEO-MOTOR-OPCIONAL-1011
+import { KLING4_PAID_COPY } from '@/lib/kling4PaidPresentation' // KINEO-MOTOR-OPCIONAL-1011 — o mesmo aviso de limites do Studio antigo
+import { engineDisplayName } from '@/lib/enginePlanGate' // KINEO-MOTOR-OPCIONAL-1011 — o nome que a recusa do servidor usa
 
 export function PassosDoStudio({ c, preco }: { c: CaixaNaMoldura; preco: number | null }) {
   const temTexto = c.texto.trim().length > 0
@@ -31,12 +34,31 @@ export function PassosDoStudio({ c, preco }: { c: CaixaNaMoldura; preco: number 
       <div className="rc-detail-body ct-details">
         <div><span className="ct-lab">Length</span><div className="ct-opts">{c.opcoesDuracao.map(d => <button key={d} type="button" className="ct-opt" aria-pressed={c.duracao === d} data-studio-duration={d} onClick={() => c.setDuracao(d)}>{d} s</button>)}</div></div>
         <div><span className="ct-lab">Format</span><div className="ct-opts">{c.formatos.map(f => <button key={f} type="button" className="ct-opt" aria-pressed={c.formato === f} data-studio-format={f} onClick={() => c.setFormato(f)}>{f}</button>)}</div></div>
+        {/* KINEO-MOTOR-OPCIONAL-1011 [fundador 10/11: "se a pessoa quiser escolher, ela tem que ter essa opção… se ela quiser um motor melhor"] —
+            linha OPCIONAL e FECHADA: sem abrir, o filme sai no padrão, sem nome de motor. Abrir lê as flags da conta (o mesmo /api/me/credits do
+            Studio antigo) e lista SÓ os motores que a conta pode usar hoje (lib/create/motorOpcional.ts, a régua do picker do Studio). Trancado
+            leva aos planos e nunca vira o motor do pedido. Preço: nenhum aqui; o número segue SÓ no botão Generate (precoDoGenerate). */}
+        <details className="ct-engine" data-create-engine="" onToggle={e => { if (e.currentTarget.open) c.abrirMotores() }}>
+          <summary><span className="ct-lab">Engine</span><b data-engine-chosen={c.motor}>{c.motor === MOTOR_PADRAO ? ROTULO_PADRAO : engineDisplayName(c.motor)}</b><small>Optional <span aria-hidden="true">▾</span></small></summary>
+          {c.motoresEstado === 'lendo' ? <p className="ct-engine-note" role="status">Checking which engines your account can use…</p> : null}
+          {c.motores ? <div className="ct-engine-list" role="group" aria-label="Engine">
+            <button type="button" className="ct-engine-opt" aria-pressed={c.motor === MOTOR_PADRAO} data-studio-engine={MOTOR_PADRAO} onClick={() => c.escolherMotor(MOTOR_PADRAO)}>{ROTULO_PADRAO}<small>Recommended</small></button>
+            {c.motores.map(o => o.estado === 'livre'
+              ? <button key={o.key} type="button" className="ct-engine-opt" aria-pressed={c.motor === o.key} data-studio-engine={o.key} onClick={() => c.escolherMotor(o.key)}>{o.nome}</button>
+              : o.estado === 'trancado'
+                ? <a key={o.key} className="ct-engine-opt ct-engine-locked" href={o.href} data-studio-engine-locked={o.key}>{o.nome}<small>{o.aviso}</small></a>
+                : <button key={o.key} type="button" className="ct-engine-opt" disabled aria-disabled="true" data-studio-engine-paused={o.key}>{o.nome}<small>{o.aviso}</small></button>)}
+          </div> : null}
+          {c.motoresEstado === 'falhou' ? <p className="ct-engine-note" role="status">Could not check the other engines right now. Standard is ready.</p> : null}
+          {c.motor === 'hollywood' && kling4AoVivo(c.kling4) ? <p className="ct-engine-note" data-kling4-film-limits="">{KLING4_PAID_COPY.limits}</p> : null}
+          {c.motores ? <p className="ct-engine-note">The cost of your choice shows on the Generate button.</p> : null}
+        </details>
         <div><label className="ct-lab" htmlFor="sm-lingua">Narration</label><select id="sm-lingua" className="ct-sel" value={c.lingua} onChange={e => c.setLingua(e.target.value)}><option value="auto">Same as my text</option>{NARRATION_LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.native}</option>)}</select></div>
         <label className="ct-check"><input type="checkbox" checked={c.palavraPorPalavra} onChange={e => c.setPalavraPorPalavra(e.target.checked)} />Narrate my text word for word</label>
         {/* KINEO-TELA-NOVA-ACABAMENTO-1011 [fundador 10/11: "em More Options você vai para a tela antiga… acho que está errado"] — os ajustes
-            ficam AQUI (duração, formato, narração, palavra por palavra). O que só o Studio antigo tem (motor, logo, foto de quem estrela, modo
-            clipe, câmera) mexe em dinheiro e em promessa de plano: não some, vira um link discreto no rodapé do passo. */}
-        <p className="ct-advanced"><a href={c.maisOpcoes} data-kineo="studio-advanced">Advanced studio ↗</a></p>
+            ficam AQUI (duração, formato, narração, palavra por palavra e, desde KINEO-MOTOR-OPCIONAL-1011, o motor). O que só o Studio antigo
+            tem (logo, foto de quem estrela, câmera, modo clipe, Avatar) não some: link discreto no rodapé do passo. */}
+        <p className="ct-advanced"><a href={c.maisOpcoes} data-kineo="studio-advanced">Advanced studio ↗</a><span> · logo, camera, star of the film</span></p>
       </div>
     </details></section>
     <section className={`rc-step rc-generate-area rc-step-${states[2]}`} data-step-state={states[2]} aria-labelledby="sm-step3">
@@ -50,5 +72,5 @@ export function PassosDoStudio({ c, preco }: { c: CaixaNaMoldura; preco: number 
 
 // KINEO-ENTRADAS-TELA-NOVA-1011 — ideiaInicial: a ideia do link (?ideia=), o MESMO prop que o /studio passa à caixa (só preenche; nada começa sozinho).
 export default function StudioNaMoldura({ showRecreate, motor, campanha, ideiaInicial = '' }: { showRecreate: boolean; motor: string; campanha: string; ideiaInicial?: string }) {
-  return <StudioSimples filmes={[]} motor={motor} campanha={campanha} ideiaInicial={ideiaInicial} moldura={c => <CreateShell tab="film" showRecreate={showRecreate} aoEscolher={c.escrever} painel={<PassosDoStudio c={c} preco={precoDoGenerate({ motor: c.motor, duracao: c.duracao, contaPaga: c.contaPaga, palavraPorPalavra: c.palavraPorPalavra, texto: c.texto, opcoesDuracao: c.opcoesDuracao })} />} />} />
+  return <StudioSimples filmes={[]} motor={motor} campanha={campanha} ideiaInicial={ideiaInicial} moldura={c => <CreateShell tab="film" showRecreate={showRecreate} aoEscolher={c.escrever} painel={<PassosDoStudio c={c} preco={precoDoGenerate({ motor: c.motor, duracao: c.duracao, contaPaga: c.contaPaga, palavraPorPalavra: c.palavraPorPalavra, texto: c.texto, opcoesDuracao: c.opcoesDuracao, kling4: c.kling4 })} />} />} />
 }

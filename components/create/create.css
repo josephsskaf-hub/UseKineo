@@ -61,3 +61,19 @@
 .recreate .rc-workspace:not(.rc-library-only) .rc-grid:not(:has(>:nth-child(5))){--rc-max:4}
 .recreate .rc-workspace:not(.rc-library-only) .rc-grid:not(:has(>:nth-child(4))){--rc-max:3}
 .recreate .rc-workspace:not(.rc-library-only) .rc-grid:not(:has(>:nth-child(3))){--rc-max:2}
+/* KINEO-MOTOR-OPCIONAL-1011 [fundador 10/11: "se a pessoa quiser escolher, ela tem que ter essa opção"] — a linha OPCIONAL do motor no passo
+   Details: fechada por padrão (mostra "Standard"); aberta, a lista do que a conta pode usar. Sem preço aqui (o número fica no Generate). */
+.create-shell .ct-engine{border:1px solid var(--rc-line);border-radius:10px;background:var(--rc-input);padding:0 12px}
+.create-shell .ct-engine>summary{display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer;list-style:none}
+.create-shell .ct-engine>summary::-webkit-details-marker{display:none}
+.create-shell .ct-engine>summary .ct-lab{margin:0}
+.create-shell .ct-engine>summary b{font-size:13px;font-weight:650;color:var(--rc-body)}
+.create-shell .ct-engine>summary small{margin-left:auto;font-size:12px;color:var(--rc-muted)}
+.create-shell .ct-engine-list{display:flex;flex-direction:column;gap:6px;padding:0 0 10px}
+.create-shell .ct-engine-opt{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;min-height:40px;padding:8px 10px;border-radius:10px;border:1px solid var(--rc-line);background:var(--rc-card);color:var(--rc-body);font-size:13px;font-weight:650;text-align:left;text-decoration:none}
+.create-shell .ct-engine-opt small{font-size:11px;font-weight:500;color:var(--rc-muted)}
+.create-shell .ct-engine-opt[aria-pressed="true"]{border-color:var(--rc-accent);color:var(--rc-accent);background:var(--rc-soft)}
+.create-shell .ct-engine-opt:disabled{opacity:.55;cursor:not-allowed}
+.create-shell .ct-engine-locked{opacity:.8}
+.create-shell .ct-engine-note{margin:0 0 10px;font-size:12px;line-height:1.45;color:var(--rc-muted)}
+.create-shell .ct-advanced span{color:var(--rc-muted)}

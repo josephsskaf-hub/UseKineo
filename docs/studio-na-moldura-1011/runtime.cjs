@@ -13,7 +13,7 @@ const baseSrc = p => execFileSync('git', ['show', `${BASE}:${p}`], { cwd: ROOT, 
 const link = { __esModule: true, default: ({ href, children, prefetch, ...rest }) => React.createElement('a', { ...rest, href }, children) }
 
 /** Uma "aba": dublês + hooks emulados. `overrides` troca o fonte de arquivos (main antiga ou mutantes). */
-function aba(overrides = {}, { now = 1_800_000_000_000, cookie = '', credits = null } = {}) {
+function aba(overrides = {}, { now = 1_800_000_000_000, cookie = '', credits = null, me = null, k4 = null } = {}) { // KINEO-MOTOR-OPCIONAL-1011: me = corpo de GET /api/me/credits
   const log = { pushes: [], events: [], fetches: [], storage: new Map() }
   const store = new Map(), effects = []
   let cur = 'root', idx = 0
@@ -40,7 +40,7 @@ function aba(overrides = {}, { now = 1_800_000_000_000, cookie = '', credits = n
   g.document = { cookie, querySelectorAll: () => [], querySelector: () => null }
   g.window = { matchMedia: () => ({ matches: false }), requestAnimationFrame: f => f(), addEventListener: () => {}, removeEventListener: () => {} }
   g.IntersectionObserver = class { observe() {} disconnect() {} }
-  g.fetch = async (url, init) => { log.fetches.push([String(url), init?.method ?? 'GET']); return credits && String(url) === '/api/credits' ? { ok: true, status: 200, json: async () => credits } : { ok: false, status: 500, json: async () => null } }
+  g.fetch = async (url, init) => { log.fetches.push([String(url), init?.method ?? 'GET']); return credits && String(url) === '/api/credits' ? { ok: true, status: 200, json: async () => credits } : me && String(url) === '/api/me/credits' ? { ok: true, status: 200, json: async () => me } : k4 && String(url) === '/api/kling4-paid/availability' ? { ok: true, status: 200, json: async () => k4 } : { ok: false, status: 500, json: async () => null } }
   Date.now = () => now
 
   let rootEl = null

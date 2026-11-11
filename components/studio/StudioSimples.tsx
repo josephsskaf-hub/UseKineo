@@ -18,6 +18,8 @@ import { nomeDoMotorEscolhido, pedidoDoStudioSimples, type FilmeDaCaixa } from '
 import { EVENTO_DA_LINHA, LINHA_DO_FILME_GRATIS, filmeGratisNaCaixa } from '@/lib/growth/filmeGratisNaCaixa' // KINEO-CAIXA-GRATIS-VISIVEL-0411
 import { temCookieDeSessao } from '@/lib/growth/visitanteEscreveAntes' // KINEO-CAIXA-GRATIS-VISIVEL-0411
 import { contaPagaDoSaldo } from '@/lib/create/filmNaMoldura' // KINEO-STUDIO-NA-MOLDURA-ABRE-1011
+import { duracoesDoMotor, flagsDoCorpo, kling4AoVivo, motoresOpcionais, type FlagsDoSeletor, type OpcaoDeMotor } from '@/lib/create/motorOpcional' // KINEO-MOTOR-OPCIONAL-1011
+import { rebaseKling4Lease } from '@/lib/kling4PaidPresentation' // KINEO-MOTOR-OPCIONAL-1011 — a mesma leitura do Kling 4.0 que o Studio antigo faz
 import { KineoBrandIcon } from '@/components/KineoBolt' // KINEO-CELULAR-A-0611
 
 const CSS = `
@@ -100,9 +102,13 @@ export interface CaixaNaMoldura {
   lingua: string; setLingua: (l: string) => void; palavraPorPalavra: boolean; setPalavraPorPalavra: (v: boolean) => void; maisOpcoes: string; temFilmeGratis: boolean; gerar: () => void
   /** KINEO-STUDIO-NA-MOLDURA-ABRE-1011 — a MESMA leitura de /api/credits que a linha do filme grátis; true só com prova de plano pago. */
   contaPaga: boolean
+  /** KINEO-MOTOR-OPCIONAL-1011 — a escolha OPCIONAL de motor (só na moldura). null = ainda não aberta / lendo; [] com estado 'falhou' = só o padrão. */
+  motores: OpcaoDeMotor[] | null; motoresEstado: 'fechado' | 'lendo' | 'pronto' | 'falhou'; abrirMotores: () => void; escolherMotor: (k: string) => void
+  /** KINEO-MOTOR-OPCIONAL-1011 — a leitura do Kling 4.0 pago (GET /api/kling4-paid/availability), feita junto com as flags; null = não lida. */
+  kling4: unknown
 }
 
-export default function StudioSimples({ filmes, motor, campanha, ideiaInicial = '', moldura }: { filmes: ReadonlyArray<FilmeDaCaixa>; motor: string; campanha: string; ideiaInicial?: string; moldura?: (c: CaixaNaMoldura) => ReactNode }) {
+export default function StudioSimples({ filmes, motor: motorDoLink, campanha, ideiaInicial = '', moldura }: { filmes: ReadonlyArray<FilmeDaCaixa>; motor: string; campanha: string; ideiaInicial?: string; moldura?: (c: CaixaNaMoldura) => ReactNode }) {
   const router = useRouter()
   const registrar = useMrrStudioFunnel()
   const caixa = useRef<HTMLTextAreaElement>(null)
@@ -115,11 +121,20 @@ export default function StudioSimples({ filmes, motor, campanha, ideiaInicial = 
   const [aviso, setAviso] = useState<string | null>(null)
   const [temFilmeGratis, setTemFilmeGratis] = useState(false) // KINEO-CAIXA-GRATIS-VISIVEL-0411 — só com prova do servidor; desconhecido = não mostra
   const [contaPaga, setContaPaga] = useState(false) // KINEO-STUDIO-NA-MOLDURA-ABRE-1011 — só com prova do servidor (contaPagaNaTela); desconhecido = false
+  // KINEO-MOTOR-OPCIONAL-1011 [fundador 10/11: "se a pessoa quiser escolher, ela tem que ter essa opção"] — SÓ na moldura: o motor escolhido no
+  // passo Details (padrão = o do link). Sem moldura, o motor é o do link, como sempre. As flags do seletor (o MESMO /api/me/credits do Studio
+  // antigo) só são lidas quando a pessoa abre a linha do motor: nada a mais na rede para quem não quer escolher.
+  const [escolhido, setEscolhido] = useState(motorDoLink)
+  const [filmsDelivered, setFilmsDelivered] = useState<number | null>(null)
+  const [flags, setFlags] = useState<FlagsDoSeletor | null>(null)
+  const [motoresEstado, setMotoresEstado] = useState<'fechado' | 'lendo' | 'pronto' | 'falhou'>('fechado')
+  const [kling4, setKling4] = useState<unknown>(null)
+  const motor = moldura ? escolhido : motorDoLink
   const nomeMotor = nomeDoMotorEscolhido(motor)
-  const opcoesDuracao = motor === 'seedance' ? DURACOES : DURACOES.filter((d) => d >= MIN_DURATION_ALL_ENGINES)
+  const opcoesDuracao = moldura ? duracoesDoMotor(motor, kling4AoVivo(kling4)) : motor === 'seedance' ? DURACOES : DURACOES.filter((d) => d >= MIN_DURATION_ALL_ENGINES) // KINEO-MOTOR-OPCIONAL-1011: na moldura, a tabela do servidor
   const limite = useMemo(() => promptLimitState(texto, analyzePromptMaxChars(palavraPorPalavra ? 'verbatim' : 'ai')), [texto, palavraPorPalavra])
 
-  useEffect(() => { void trackEvent('studio_simple_viewed', { engine: motor, campaign: campanha }) }, [motor, campanha])
+  useEffect(() => { void trackEvent('studio_simple_viewed', { engine: motorDoLink, campaign: campanha }) }, [motorDoLink, campanha]) // KINEO-MOTOR-OPCIONAL-1011: o motor do link (trocar no passo não recarrega nada)
 
   // KINEO-CAIXA-GRATIS-VISIVEL-0411 — sem cookie de sessão nem pergunta: visitante não vê a linha e não gera 401.
   useEffect(() => {
@@ -129,13 +144,14 @@ export default function StudioSimples({ filmes, motor, campanha, ideiaInicial = 
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (vivo && contaPagaDoSaldo(d)) setContaPaga(true) // KINEO-STUDIO-NA-MOLDURA-ABRE-1011 — mesma resposta, nenhuma chamada a mais
+        if (vivo && typeof d?.filmsDelivered === 'number') setFilmsDelivered(d.filmsDelivered) // KINEO-MOTOR-OPCIONAL-1011 — o muro do 1º filme, da mesma resposta
         if (!vivo || !filmeGratisNaCaixa(d)) return
         setTemFilmeGratis(true)
-        void trackEvent(EVENTO_DA_LINHA, { engine: motor, surface: 'studio_simple' })
+        void trackEvent(EVENTO_DA_LINHA, { engine: motorDoLink, surface: 'studio_simple' })
       })
       .catch(() => { /* leitura que falhou = não mostra */ })
     return () => { vivo = false }
-  }, [motor])
+  }, [motorDoLink])
 
   useEffect(() => {
     if (!folha) return
@@ -171,7 +187,30 @@ export default function StudioSimples({ filmes, motor, campanha, ideiaInicial = 
   // KINEO-STUDIO-NA-MOLDURA-1011 — com a moldura (só /create/film, interruptor CREATE_FILM_INPLACE), troca SÓ o desenho; sem ela, nada muda.
   if (moldura) {
     const escrever = (v: string) => { setTexto(v); setAviso(null); if (v.trim()) registrar('mrr_idea_entered') } // o mesmo onChange da caixa abaixo
-    return <>{moldura({ motor, texto, escrever, caixa, aviso, limiteMax: limite.max, duracao, opcoesDuracao, setDuracao, formato, formatos: FORMATOS, setFormato, lingua, setLingua, palavraPorPalavra, setPalavraPorPalavra, maisOpcoes, temFilmeGratis, gerar, contaPaga })}</>
+    // KINEO-MOTOR-OPCIONAL-1011 — abrir a linha lê as flags uma vez; falhou = só o padrão (falha fechada, como o picker do Studio).
+    const abrirMotores = () => {
+      if (motoresEstado !== 'fechado') return
+      setMotoresEstado('lendo')
+      void fetch('/api/me/credits', { cache: 'no-store', credentials: 'same-origin' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => { const f = flagsDoCorpo(d, filmsDelivered); setFlags(f); setMotoresEstado(f ? 'pronto' : 'falhou') })
+        .catch(() => setMotoresEstado('falhou'))
+      void fetch('/api/kling4-paid/availability', { cache: 'no-store', credentials: 'same-origin' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => setKling4(rebaseKling4Lease(d, Date.now())))
+        .catch(() => setKling4(null))
+    }
+    const motores = motoresEstado === 'pronto' && flags ? motoresOpcionais(flags) : motoresEstado === 'falhou' ? [] : null
+    // Só escolhe o que a régua deixa livre (o padrão sempre); trancado e pausado nunca viram o motor do pedido.
+    const escolherMotor = (k: string) => {
+      const livre = k === motorDoLink || (motores ?? []).some((o) => o.key === k && o.estado === 'livre')
+      if (!livre) return
+      setEscolhido(k)
+      const opcoes = duracoesDoMotor(k, kling4AoVivo(kling4))
+      if (!opcoes.includes(duracao)) setDuracao(opcoes.find((d) => d >= duracao) ?? opcoes[opcoes.length - 1])
+      void trackEvent('create_engine_chosen', { engine: k, from: motor })
+    }
+    return <>{moldura({ motor, texto, escrever, caixa, aviso, limiteMax: limite.max, duracao, opcoesDuracao, setDuracao, formato, formatos: FORMATOS, setFormato, lingua, setLingua, palavraPorPalavra, setPalavraPorPalavra, maisOpcoes, temFilmeGratis, gerar, contaPaga, motores, motoresEstado, abrirMotores, escolherMotor, kling4 })}</>
   }
 
   return (

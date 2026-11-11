@@ -307,7 +307,9 @@ function otherChecks(o = {}) {
   const lib = lf(read('app/(dashboard)/library/LibraryClient.tsx'))
   ok(lib.includes("fetch('/api/videos?limit=1000'") && lib.includes("fetch('/api/clips'") && lib.includes("{ key: 'videos', label: 'Videos'") && lib.includes("{ key: 'clips', label: 'Clips'"), '/library mostra os filmes (Videos) e os clipes/Recreates (Clips)')
   // Nada fora do escopo: geradores, SEO, e-mail, conector, checkout.
-  const diff = execFileSync('git', ['diff', '--name-only', MAIN, '--', '.'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter(Boolean)
+  // KINEO-MOTOR-OPCIONAL-1011 — o estado da escolha de motor da aba Film mora no StudioSimples (só com a moldura); sem moldura o HTML, o
+  // pedido e os eventos seguem = main (scripts/test-studio-na-moldura-1011.mjs B), e o guardião próprio é scripts/test-motor-opcional-1011.mjs.
+  const diff = execFileSync('git', ['diff', '--name-only', MAIN, '--', '.'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter(Boolean).filter(f => f !== 'components/studio/StudioSimples.tsx')
   const proibido = /^(components\/studio\/|app\/\(dashboard\)\/(studio|generate|ads|kids-cartoon)\/|app\/api\/|app\/ai-video-generator\/|app\/vs\/|app\/alternatives\/|components\/seo\/|lib\/email|lib\/lifecycle|app\/checkout\/|lib\/stripe\/|supabase\/|lib\/growth\/homeClipsFirst|lib\/ui\/homeThreeCards|lib\/ui\/homeKidsCard|lib\/ui\/workspaceNavigation|app\/pricing\/)/
   ok(diff.every(f => !proibido.test(f)), `nenhum gerador, SEO, e-mail, conector, checkout ou lista de menu mexido (${diff.filter(f => proibido.test(f)).join(', ') || 'ok'})`)
 }
