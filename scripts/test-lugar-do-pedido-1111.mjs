@@ -46,7 +46,10 @@ function problems(over) {
   const el = P.elencoComPessoaDoPedido(pessoa, [{ nome: 'the woman', tipo: 'humano', origem: 'deterministica', canonica: R.sorteada }])
   const prompts = R.prompts.map((x) => P.comLugarDoPedido(P.comLuzDoPedido(J.trocarFichaNoPrompt(x.split(`consistent design: ${R.derivada}.`).join(`consistent design: ${ficha}.`), el.trocas), P.luzDoPedido(R.original)), P.lugarDoPedido(R.original)))
   const mp = T.buildKling4TrialInput(prompts.map((x, i) => K.promptDaCenaKling4(x, style, i, true)), [null, null, null], { voiceovers: R.falas, wordsPerSecond: R.wps }).input.multi_prompt
-  no(!mp[0].prompt.includes('Place: a stylish Johannesburg coffee shop.') || !mp[2].prompt.includes('Place: a stylish Johannesburg coffee shop.'), `(c) o lugar não chegou aos planos 1 e 3 → ${mp[0].prompt.slice(0, 120)}`)
+  no(!mp[0].prompt.includes('Place: a stylish Johannesburg coffee shop.'), `(c) o lugar não chegou ao plano 1 → ${mp[0].prompt.slice(0, 120)}`)
+  // KINEO-LUGAR-CEDE-A-ACAO-1111 [CEO 11/11: "o lugar cede à ação quando os dois não cabem"] — no plano 3, com o lugar, a ação era cortada no meio
+  // da oração ("…as her expression,") e o payoff sumia: o lugar sai desse plano (fica no 1, onde a ação cai em vírgula) e o payoff volta inteiro.
+  no(mp[2].prompt.includes('Place:') || !/as her expression transforms from anticipation to joy/.test(mp[2].prompt), `(c) plano 3: o lugar tomou o payoff → ${mp[2].prompt.slice(-200)}`)
   for (const [i, m] of mp.entries()) {
     no(!/long neat black braids/.test(m.prompt) || !/cream blouse and elegant black trousers/.test(m.prompt), `(c) plano ${i + 1}: o lugar tomou o lugar da roupa`)
     no(Array.from(m.prompt).length > 512 || !m.prompt.endsWith(' Mouth closed, no speaking.'), `(c) plano ${i + 1}: tamanho ou cauda`)
@@ -73,9 +76,11 @@ const ped = read(PED), fq = read(FQ), rota = read(ROTA)
 const MUT = [
   ['M1 dois lugares valem', { [PED]: ped.replace('if (nomes.size !== 1) return null', 'if (nomes.size === 0) return null') }],
   ['M2 o compactador ignora o lugar', { [FQ]: fq.replace('const lugarPedido = /Setting as the customer asked: ([^.]+)\\./.exec(prompt)?.[1]?.trim()', 'const lugarPedido = undefined as string | undefined') }],
-  ['M3 o lugar não cede à roupa', { [FQ]: fq.replace("const pre = lugarPedido && !cabeAFicha(prefix) ? prefix.replace(/Place: [^.]+\\. /, '') : prefix", 'const pre = prefix') }],
+  ['M3 o lugar não cede à roupa', { [FQ]: fq.replace('const pre = lugarPedido && (!cabeAFicha(prefix) || !acaoInteiraComLugar) ?', 'const pre = lugarPedido && !acaoInteiraComLugar ?') }],
   ['M4 a época sem época volta', { [FQ]: fq.replace("period && !/historical era being narrated/i.test(period) ?", 'period ?') }],
   ['M6 a frase longa da época fica na ação', { [FQ]: fq.replace("action = action.replace(/,?\\s*(?:period piece set strictly in [^:]+)?:\\s*every person", "action = action.replace(/NUNCA(?:period piece set strictly in [^:]+)?:\\s*every person") }],
+  ['M7 o lugar não cede à ação', { [FQ]: fq.replace('const pre = lugarPedido && (!cabeAFicha(prefix) || !acaoInteiraComLugar) ?', 'const pre = lugarPedido && !cabeAFicha(prefix) ?') }],
+  ['M8 o lugar sai de todo plano', { [FQ]: fq.replace('return Math.max(Array.from(porFrase).length, Array.from(porOracao).length) >= limite * 0.6', 'return false') }],
   ['M5 a rota clássica sem o lugar', { [ROTA]: rota.replace('classicScenePrompts[i] = comLugarDoPedido(classicScenePrompts[i], lugarPedido)', 'classicScenePrompts[i] = classicScenePrompts[i]') }],
 ]
 for (const [nome, over] of MUT) {

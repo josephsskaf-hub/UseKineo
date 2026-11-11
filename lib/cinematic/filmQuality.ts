@@ -63,6 +63,19 @@ export function cortaEmFronteira(texto: string, limite: number): string {
   return Array.from(melhor).length >= limite * 0.6 ? melhor : cabe.replace(/\s+\S*$/u, '').replace(/(?:\s+(?:the|a|an|of|to|into|onto|in|on|at|by|for|from|with|without|and|or|but|as|while|that|which|who|through|over|under|across|toward|towards|behind|near|upon|after|before|her|his|their|its|is|are|was|were))+$/iu, '').replace(/[\s,;:—-]+$/u, '')
 }
 
+/** KINEO-LUGAR-CEDE-A-ACAO-1111 — o texto cabe no limite, ou o corte cai em fronteira de frase/oração (a mesma régua de cortaEmFronteira: ≥ 60 % do limite). */
+export function caiEmOracao(texto: string, limite: number): boolean {
+  const cps = Array.from(texto)
+  if (cps.length <= limite) return true
+  const cabe = cps.slice(0, limite).join('')
+  const frase = cabe.lastIndexOf('. ')
+  const porFrase = frase >= 0 ? cabe.slice(0, frase + 1) : ''
+  const partes = cabe.split(/,\s*/)
+  partes.pop()
+  const porOracao = partes.join(', ').replace(/[\s,;:—-]+$/u, '')
+  return Math.max(Array.from(porFrase).length, Array.from(porOracao).length) >= limite * 0.6
+}
+
 // KINEO-QUALIDADE-TODOS-MOTORES-2910 — leave room for Kling's keyframe directive inside its 512-code-point limit.
 export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): string {
   const medium = { photoreal: 'Photoreal film', animated3d: '3D animated film', anime: 'Anime film', illustration: 'Illustrated film', noir: 'Black and white noir film' }[style.look]
@@ -183,7 +196,12 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
       coreBudget += 14
       // KINEO-LUGAR-DO-PEDIDO-1111 — cabelo e roupa antes do cenário (o dono): se a ficha inteira não cabe com o lugar na frente, o lugar sai
       const cabeAFicha = (pre: string) => coreBudget - Array.from(pre + whoLabel).length - 50 >= Array.from(identity[1]).length
-      const pre = lugarPedido && !cabeAFicha(prefix) ? prefix.replace(/Place: [^.]+\. /, '') : prefix
+      // KINEO-LUGAR-CEDE-A-ACAO-1111 [CEO 11/11: "o lugar cede à ação quando os dois não cabem"] — e cede também à AÇÃO: no plano 3 do 657ad797 o
+      // "Place:" ficava e a ação era cortada no meio da oração ("…following a woman's face as her expression,"), sumindo o payoff ("transforms
+      // from anticipation to joy"). O lugar só sai quando, com ele, o corte da ação cairia no meio da oração; corte em frase ou vírgula fica.
+      const fichaComLugar = who(Math.max(0, Math.min(identityBudget, coreBudget - Array.from(prefix + whoLabel).length - 50)))
+      const acaoInteiraComLugar = caiEmOracao(action, Math.max(0, coreBudget - Array.from(prefix + fichaComLugar).length))
+      const pre = lugarPedido && (!cabeAFicha(prefix) || !acaoInteiraComLugar) ? prefix.replace(/Place: [^.]+\. /, '') : prefix
       const ficha = who(Math.max(0, Math.min(identityBudget, coreBudget - Array.from(pre + whoLabel).length - 50)))
       core = pre + ficha + cortaEmFronteira(action, Math.max(0, coreBudget - Array.from(pre + ficha).length))
     } else core = prefix + firstAction + ' ' + who(reducedIdentity) + action.slice(firstAction.length)
