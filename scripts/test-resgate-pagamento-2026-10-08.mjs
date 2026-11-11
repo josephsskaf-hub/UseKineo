@@ -291,7 +291,7 @@ const ESPERADOS = [
   ['u_optout', 'cs_optout', 'optout'],
   ['u_expirada', 'cs_expirada', 'sem_pagina_viva'],
   ['u_ja', 'cs_ja', 'ja_recebeu'],
-  ['u_sup', 'cs_sup', 'suprimido_24h'],
+  ['u_sup', 'cs_sup', 'suprimido_4h'], // KINEO-QUENTE-SEM-INANICAO-1111 — a carta quente passou para a janela de 4 h
 ]
 check(`2.19 quem cai fora ganha UMA linha com o motivo (gravadas: ${skipRows.map((g) => g.metadata?.reason).join(', ')})`,
   skipRows.length === ESPERADOS.length && ESPERADOS.every(([uid, sid, why]) => skipRows.some((g) =>

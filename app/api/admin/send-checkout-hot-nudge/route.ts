@@ -76,6 +76,7 @@ import { readAll } from '@/lib/supabase/readAll'
 //   3. O envio grava a versão da carta e a decisão da oferta (EMAIL_VERSION, welcome20_offered, welcome20_reason).
 // O QUE NÃO MUDOU, de propósito: a janela de 30 min–6 h, o carimbo de uma carta por pessoa NA VIDA (guardião
 // test-hot-nudge-janela-campanhas), as exclusões, a supressão de 24 h, o teto de 30 e o cron com confirm=SEND.
+// (KINEO-QUENTE-SEM-INANICAO-1111, 11/11: a supressão desta carta passou para 4 h — ver o passo 3 do GET.)
 //
 // MODOS (GET):
 //   (sem params)           → DRY RUN: quem receberia, e quem caiu fora e por quê. Não grava nada.
@@ -99,7 +100,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
-import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
+import { HOT_LEAD_SUPPRESSION_HOURS, loadLifecycleSuppression } from '@/lib/lifecycle/suppression' // KINEO-QUENTE-SEM-INANICAO-1111 — a janela curta do send-recovery
 import { pickMomentumTopic } from '@/lib/momentumTopic'
 import { WELCOME20_PERCENT_OFF, WELCOME20_PROMOTION_CODE, publicPromoVerificationFailure } from '@/lib/growth/publicPromoTruth'
 import { guestWelcomePromoShapeOk } from '@/lib/growth/guestCheckout'
@@ -343,7 +344,7 @@ export type MotivoDePulo =
   | 'bloqueado'
   | 'outra_campanha_7d'
   | 'ja_recebeu'
-  | 'suprimido_24h'
+  | 'suprimido_4h' // KINEO-QUENTE-SEM-INANICAO-1111 — era 'suprimido_24h'
   | 'supressao_degradada'
   | 'sem_pagina_viva'
   // KINEO-ABANDONO-RAPIDO-1610 — a conferência no envio e a reserva por chave primária.
@@ -792,10 +793,19 @@ export async function GET(req: NextRequest) {
       })
     }
 
-    // ── 3. supressão de 24h (falha FECHADA) ─────────────────────────────────
-    const sup = await loadLifecycleSuppression(admin, candidatos.map((c) => c.id))
+    // ── 3. supressão (falha FECHADA) ───────────────────────────────────────
+    // KINEO-QUENTE-SEM-INANICAO-1111 [CEO/fundador 11/11, "pode fazer as coisas que você achar certas"] — a MESMA exceção que
+    // o cron/send-recovery ganhou em 13/08 (KINEO-RECOVERY-STARVATION, lib/lifecycle/suppression.ts): janela de 4 h, não 24 h.
+    // MEDIDO (produção, 30 dias até 11/11): 50 pessoas puladas por 'suprimido_24h' × 27 que receberam esta carta; 0 das 50
+    // pagou. O caso que abriu: hutanu.nela1 recebeu "seu vídeo está pronto" às 07:29, abriu o Creator às 07:31; a carta
+    // rodou às 08:06 e foi pulada — a janela desta carta (30 min–6 h) fecha ANTES de a supressão de 24 h acabar, então a
+    // própria atividade que leva a pessoa a comprar (o filme pronto) calava, para sempre, a carta de quem tentou pagar.
+    // POR QUE 4 h É SEGURO AQUI (a condição do bloco de 13/08): o carimbo desta carta é VITALÍCIO (1 carta rápida por
+    // pessoa NA VIDA — mais estrito que "uma por abertura de pagamento"), então a janela curta não cria repetição; pagante
+    // (has_paid ou qualquer payment_success, inclusive o assinante parado) continua fora, e o envio relê tudo segundos antes.
+    const sup = await loadLifecycleSuppression(admin, candidatos.map((c) => c.id), HOT_LEAD_SUPPRESSION_HOURS)
     for (const c of candidatos) {
-      if (sup.isSuppressed(c.id)) pulos.push(pulo(c.id, sup.degraded ? 'supressao_degradada' : 'suprimido_24h'))
+      if (sup.isSuppressed(c.id)) pulos.push(pulo(c.id, sup.degraded ? 'supressao_degradada' : 'suprimido_4h'))
     }
     const naoSuprimidos = candidatos
       .filter((c) => !sup.isSuppressed(c.id))
