@@ -24,7 +24,7 @@
 /** Interruptor próprio. 'off' = a main (nada muda, nenhuma leitura a mais) · 'internal' = SÓ a lista exata da casa vê, em
  *  modo conferência, e NINGUÉM compra · 'public' = assinante elegível vê e compra. Nasce 'internal'. */
 export type RecargaAssinanteRelease = 'off' | 'internal' | 'public'
-export const RECARGA_ASSINANTE_1111_RELEASE: RecargaAssinanteRelease = 'internal'
+export const RECARGA_ASSINANTE_1111_RELEASE: RecargaAssinanteRelease = 'public' // KINEO-RECARGA-ASSINANTE-PUBLICA-1111 — a CEO, depois da prova em tela da casa (régua: 30 dias ou 10 assinantes vendo; 0 compras com 10 vistos = rever o valor)
 
 /** O SKU: ?pack= do checkout, metadata.pack da sessão (→ payment_success.metadata.pack) e checkout_*.metadata.sku. */
 export const RECARGA_ASSINANTE_SKU = 'recarga_assinante_1111' as const

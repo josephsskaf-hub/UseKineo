@@ -74,7 +74,7 @@ function loader(S, stubs = {}, env = {}) {
 const HOUSE = 'josephsskaf@gmail.com'
 const USER = { id: '22222222-2222-4222-8222-222222222222', email: 'buyer@example.com' }
 const SUB = { plan: 'basic', stripe_subscription_id: 'sub_123', video_credits: 1, email: 'buyer@example.com', stripe_customer_id: 'cus_1' }
-const REL = (s, v) => ({ ...s, lib: s.lib.replace("RECARGA_ASSINANTE_1111_RELEASE: RecargaAssinanteRelease = 'internal'", `RECARGA_ASSINANTE_1111_RELEASE: RecargaAssinanteRelease = '${v}'`) })
+const REL = (s, v) => ({ ...s, lib: s.lib.replace(/RECARGA_ASSINANTE_1111_RELEASE: RecargaAssinanteRelease = '(off|internal|public)'/, `RECARGA_ASSINANTE_1111_RELEASE: RecargaAssinanteRelease = '${v}'`) })
 
 function fakeDb(profile, calls, { profileErr = false } = {}) {
   return {
@@ -173,7 +173,8 @@ async function suite(S) {
   t(SUBR({ ...SUB, video_credits: 900 }) === true && SUBR({ ...SUB, plan: 'basic_trial' }) === false && SUBR({ ...SUB, stripe_subscription_id: null }) === false && SUBR({ ...SUB, plan: 'free' }) === false, 'B9 barra: assinante pago (mesmo com saldo) sim; cortesia, sem assinatura e grátis não')
 
   // ── C. interruptor e modos ──
-  t(/RECARGA_ASSINANTE_1111_RELEASE: RecargaAssinanteRelease = 'internal'/.test(S.lib), "C1 nasce 'internal'")
+  t(/RECARGA_ASSINANTE_1111_RELEASE: RecargaAssinanteRelease = 'public'/.test(S.lib), "C1 aberta ao público (KINEO-RECARGA-ASSINANTE-PUBLICA-1111, depois da prova em tela)")
+  const INT = REL(S, 'internal')
   t(L.recargaAssinanteMode({ release: 'off', house: true, eligible: true }) === 'hide', "C2 'off' esconde de todos, a casa incluída")
   t(L.recargaAssinanteMode({ release: 'internal', house: false, eligible: true }) === 'hide', "C3 'internal': cliente elegível não vê")
   t(L.recargaAssinanteMode({ release: 'internal', house: true, eligible: false }) === 'qa', "C4 'internal': a casa vê em conferência")
@@ -203,7 +204,7 @@ async function suite(S) {
     t(calls.stripe.length === 0 && res.kind === 'redirect' && !res.location.includes('stripe'), `D7 ${label}: recusa sem sessão da Stripe`)
   }
   {
-    const { res, calls } = await runCheckout(S)
+    const { res, calls } = await runCheckout(INT)
     t(calls.stripe.length === 0 && calls.auth === 0 && calls.dbReads.length === 0 && res.kind === 'redirect', "D8 'internal' com a URL na mão: ninguém compra, nem login nem leitura")
     const off = await runCheckout(REL(S, 'off'))
     t(off.calls.stripe.length === 0 && off.calls.auth === 0 && off.calls.dbReads.length === 0, "D9 'off': nada acontece")
@@ -265,11 +266,11 @@ async function suite(S) {
     t(slGo.res.location.includes('pack=recarga_assinante_1111') && slGo.res.location.includes('credits=700'), 'F4d clique na barra leva a quantidade ao checkout do SKU')
     const slBad = await runRoute(P, { profile: { ...SUB, video_credits: 40 }, url: 'https://www.usekineo.com/api/billing/recarga-assinante?go=1&surface=x&credits=12345&back=%2Fstudio' })
     t(!slBad.res.location.includes('checkout'), 'F4e quantidade inválida volta, nunca outro pacote')
-    const intCustomer = await runRoute(S)
+    const intCustomer = await runRoute(INT)
     t(intCustomer.res.body.show === false, "F5 'internal': cliente elegível não vê")
-    const intHouse = await runRoute(S, { user: { id: USER.id, email: HOUSE }, profile: { ...SUB, video_credits: 500 } })
+    const intHouse = await runRoute(INT, { user: { id: USER.id, email: HOUSE }, profile: { ...SUB, video_credits: 500 } })
     t(intHouse.res.body.show === true && intHouse.res.body.qa === true, "F6 'internal': a casa vê marcada como conferência")
-    const qaGo = await runRoute(S, { user: { id: USER.id, email: HOUSE }, url: 'https://www.usekineo.com/api/billing/recarga-assinante?go=1&surface=x&back=%2Fstudio' })
+    const qaGo = await runRoute(INT, { user: { id: USER.id, email: HOUSE }, url: 'https://www.usekineo.com/api/billing/recarga-assinante?go=1&surface=x&back=%2Fstudio' })
     t(qaGo.res.kind === 'redirect' && qaGo.res.location.includes('/studio?recarga=qa') && !qaGo.res.location.includes('/api/stripe/checkout'), 'F7 clique da conferência volta sem ir ao checkout')
     const realGo = await runRoute(P, { url: 'https://www.usekineo.com/api/billing/recarga-assinante?go=1&surface=x&back=%2Fstudio%3Fprompt%3Dhi' })
     t(realGo.res.location.includes('/api/stripe/checkout?pack=recarga_assinante_1111') && realGo.calls.serverEvents.some((e) => e.name === 'recarga_assinante_clicked'), 'F8 clique real: evento de clique e checkout do SKU')
