@@ -16,6 +16,7 @@ import { promptComRoteiro } from '@/lib/meta95/ideiaNoEscritor'
 import { readKling4PaidAvailability } from '@/lib/kling4PromoServer' // KINEO-VERSAO-COMPLETA-K4-2910
 import { kling4PaidFalExtrasMilliUsd } from '@/lib/kling4PaidPricing' // KINEO-VERSAO-COMPLETA-K4-2910
 import { filmQualityFromBirth, filmQualityWriterDirection, readFilmQualitySnapshot, type FilmQualitySnapshot } from '@/lib/filmComplete/qualityInheritance' // KINEO-QUALIDADE-TODOS-MOTORES-2910
+import { creditCostForDuration } from '@/lib/credits/engineCost' // KINEO-RESERVA-FILME-COMPLETO-1111
 
 type Meta = Record<string, unknown>
 export interface FilmCompleteIntent {
@@ -204,6 +205,37 @@ export interface FilmCompleteIo {
   kling4Free?: (db: SupabaseClient, userId: string) => Promise<boolean>
   /** KINEO-VERSAO-COMPLETA-NUNCA-MUDA-1111 — avisa a casa (alertFounderOnce). Ausente = só o evento de servidor. Nunca lança. */
   alert?: (input: { key: string; subject: string; text: string }) => Promise<void>
+  /** KINEO-RESERVA-FILME-COMPLETO-1111 — debita o filme pela CHAVE DA PRÓPRIA ROTA (idempotente por chave). Ausente = sem reserva. */
+  reserve?: (db: SupabaseClient, input: { userId: string; billingReference: string; cost: number }) => Promise<FilmCompleteReserve>
+  /** KINEO-RESERVA-FILME-COMPLETO-1111 — devolve a reserva pela mesma chave (idempotente: só o 1º estorno devolve). Ausente = nada. */
+  release?: (billingReference: string) => Promise<number>
+}
+
+// ═══ KINEO-RESERVA-FILME-COMPLETO-1111 [CEO 11/11] ═════════════════════════════════════════════════════════════════════
+// Quem pagou a versão completa recebe o filme mesmo se gastar créditos entre pagar e o filme começar. Antes: o filme debitava
+// só dentro de /api/generate-video-cinematic, até ~1 min depois do pagamento (escritor + sessão); com o Starter (40 cr) e o
+// filme de 21 cr, 20 cr gastos nesse meio deixavam 402 → 'waiting_entitlement' e o filme não saía (só avisava a casa).
+// Agora o filme é debitado NO PAGAMENTO, pela mesma chave que a rota usa (`cinematic-${cinematicClaimId(user, geração)}`):
+//   · o RPC debit_video_credits_service é idempotente por chave → o débito da rota vira replay e não cobra de novo;
+//   · a rota já pula o portão de saldo quando a geração tem débito vivo (geracaoJaDebitada, KINEO-RECONEXAO-MESMO-FILME-2026-10-13);
+//   · filme que falha depois do despacho: a rota/varredura estornam pela MESMA chave (a reserva volta pelo caminho de sempre);
+//   · falha ANTES do despacho (escritor, prompt, recusa 4xx): este módulo estorna (refund_render_credits, idempotente);
+//   · a varredura de abandono não toca reserva sem claim do filme (refund.ts: sem claim irmão = `continue`, fail closed).
+// Kling 4.0 da promo custa 0: sem reserva. O motor reservado fica gravado no pedido, para o início não trocar para um motor de 0 cr.
+export type FilmCompleteReserve = 'reserved' | 'insufficient' | 'unavailable'
+export const FILM_COMPLETE_RESERVE_CREDITS = creditCostForDuration('cinematic_ai', true, FILM_COMPLETE_TARGET_SECONDS)
+export function filmCompleteBillingReference(userId: string, generationId: string): string {
+  return `cinematic-${cinematicClaimId(userId, generationId)}`
+}
+async function reservaDoFilme(db: SupabaseClient, intent: FilmCompleteIntent, io: FilmCompleteIo): Promise<FilmCompleteReserve | 'not_wired'> {
+  if (!io.reserve) return 'not_wired'
+  try {
+    return await io.reserve(db, { userId: intent.userId, billingReference: filmCompleteBillingReference(intent.userId, intent.generationId), cost: FILM_COMPLETE_RESERVE_CREDITS })
+  } catch { return 'unavailable' }
+}
+async function devolverReserva(intent: FilmCompleteIntent, io: FilmCompleteIo): Promise<void> {
+  if (!io.release) return
+  try { await io.release(filmCompleteBillingReference(intent.userId, intent.generationId)) } catch { /* a varredura de sempre segue como rede */ }
 }
 // KINEO-VERSAO-COMPLETA-K4-2910 — a versão completa sai em Kling 4.0 quando o servidor confirma a promo do assinante (0 crédito).
 // Medido 29/10: o 1º comprador vindo do filme grátis em Kling 4.0 recebeu a versão completa em Seedance, pagou 35 cr e viu o estilo
@@ -211,6 +243,15 @@ export interface FilmCompleteIo {
 export const FILM_COMPLETE_KLING4_ENGINE = 'hollywood' as const
 export const FILM_COMPLETE_KLING4_SECONDS = 30
 const REAL_IO: FilmCompleteIo = { now: () => Date.now(), mint: mintUserSession, fetch: (...args) => fetch(...args),
+  // KINEO-RESERVA-FILME-COMPLETO-1111 — o mesmo ponto único de débito (variante de serviço) e o mesmo estorno da casa.
+  // Carregados só na hora, como o alerta: o débito e o estorno não entram no caminho de quem só lê o pedido.
+  reserve: async (db, { userId, billingReference, cost }) => {
+    const { debitVideoCredits } = await import('@/lib/credits/debit')
+    const { data, error } = await debitVideoCredits(db, { userId, renderId: billingReference, cost, service: true })
+    if (!error && typeof data === 'number') return 'reserved'
+    return /balance|credit|insufficient/i.test(error?.message ?? '') ? 'insufficient' : 'unavailable'
+  },
+  release: async (billingReference) => { const { refundRenderCredits } = await import('@/lib/credits/refund'); return refundRenderCredits(billingReference) },
   kling4Free: async (db, userId) => { try { const a = await readKling4PaidAvailability(db, { userId, seconds: FILM_COMPLETE_KLING4_SECONDS, falExtrasMilliUsd: kling4PaidFalExtrasMilliUsd(FILM_COMPLETE_KLING4_SECONDS) }); return a.paidLive && a.promoAvailable } catch { return false } },
   // KINEO-VERSAO-COMPLETA-NUNCA-MUDA-1111 — a mesma via dos pedidos pagos (lib/founderAlert.ts → notifyFounder: Resend + webhook),
   // carregada só na hora (o módulo do alerta não entra no caminho de quem não falhou). Uma vez por pedido + estado + motivo.
@@ -275,6 +316,14 @@ export async function startFilmComplete(db: SupabaseClient, intent: FilmComplete
     const useKling4 = savedEngine ? savedEngine === FILM_COMPLETE_KLING4_ENGINE : !dispatchPrompt && io.kling4Free ? await io.kling4Free(db, intent.userId) : false
     const engine = useKling4 ? FILM_COMPLETE_KLING4_ENGINE : FILM_COMPLETE_ENGINE
     const seconds = useKling4 ? FILM_COMPLETE_KLING4_SECONDS : FILM_COMPLETE_TARGET_SECONDS
+    // KINEO-RESERVA-FILME-COMPLETO-1111 — Kling 4.0 da promo é 0 cr: uma reserva que tenha ficado sem o motor gravado volta (nunca cobra o que não roda).
+    if (useKling4 && text(next.credits_reserve) === 'reserved') { await devolverReserva(intent, io); next.credits_reserve = 'released'; await update({ state: 'starting' }) }
+    // KINEO-RESERVA-FILME-COMPLETO-1111 — o filme pago (Seedance, 21 cr) fica debitado ANTES do escritor: o que a pessoa gastar
+    // daqui até o despacho não tira mais o filme dela. Já reservado no pagamento = replay sem cobrança. Kling 4.0 da promo: 0 cr.
+    if (!useKling4) {
+      const reserva = await reservaDoFilme(db, intent, io)
+      if (reserva !== 'not_wired' && next.credits_reserve !== reserva && next.credits_reserve !== 'reserved') { next.credits_reserve = reserva; await update({ state: 'starting' }) }
+    }
     if (!dispatchPrompt) {
       // The normal cinematic AI writer runs BEFORE its fingerprint. Freeze its expanded screenplay first,
       // otherwise a retry could rewrite the text and conflict with the same generation's original claim.
@@ -301,11 +350,12 @@ export async function startFilmComplete(db: SupabaseClient, intent: FilmComplete
           const hex = createHash('sha256').update(`${FILM_COMPLETE_WRITER_REJECTED_EVENT}:${intent.id}:${after.attempts}`).digest('hex').slice(0, 32)
           await db.from('events').insert({ id: `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`, name: FILM_COMPLETE_WRITER_REJECTED_EVENT, user_id: intent.userId, path: '/api/film-complete/start', metadata: { version: FILM_COMPLETE_VERSION, film_complete_id: intent.id, reason: verdict.reason, ...detail } })
         } catch { /* rastro */ }
+        if (after.state === 'failed') await devolverReserva(intent, io) // KINEO-RESERVA-FILME-COMPLETO-1111 — nada foi despachado: a reserva volta
         if (after.state === 'failed') await avisarPedidoPreso(db, intent, io, 'failed', `writer_${verdict.reason}`, detail)
         return { ...status, state: after.state }
       }
       dispatchPrompt = promptComRoteiro(intent.prompt, script)
-      if (dispatchPrompt.length > 12000) { await update({ state: 'failed' }); await avisarPedidoPreso(db, intent, io, 'failed', 'prompt_too_long', { length: dispatchPrompt.length }); return { ...status, state: 'failed' } } // KINEO-VERSAO-COMPLETA-NUNCA-MUDA-1111
+      if (dispatchPrompt.length > 12000) { await update({ state: 'failed' }); await devolverReserva(intent, io) /* KINEO-RESERVA-FILME-COMPLETO-1111 */; await avisarPedidoPreso(db, intent, io, 'failed', 'prompt_too_long', { length: dispatchPrompt.length }); return { ...status, state: 'failed' } } // KINEO-VERSAO-COMPLETA-NUNCA-MUDA-1111
       // Persist and confirm the exact bytes before any paid scene can start. Every later launch reuses them.
       next.dispatch_prompt = dispatchPrompt
       next.dispatch_script_mode = 'verbatim'
@@ -328,6 +378,7 @@ export async function startFilmComplete(db: SupabaseClient, intent: FilmComplete
     const state = response.ok ? 'processing' : response.status === 402 ? 'waiting_entitlement' : response.status >= 400 && response.status < 500 && result.pending !== true ? 'failed' : 'starting'
     await update({ state, http_status: response.status, ...(response.status === 402 ? { launch_at: null } : {}) })
     // KINEO-VERSAO-COMPLETA-NUNCA-MUDA-1111 — nunca mudo: recusa do render e saldo abaixo do custo avisam a casa (1 vez por motivo).
+    if (state === 'failed') await devolverReserva(intent, io) // KINEO-RESERVA-FILME-COMPLETO-1111 — recusa da rota: a reserva volta (estorno idempotente; se a rota já estornou, devolve 0)
     if (state === 'failed') await avisarPedidoPreso(db, intent, io, 'failed', `cinematic_http_${response.status}`, { reason_from_route: text(result.reason) || null })
     if (state === 'waiting_entitlement') await avisarPedidoPreso(db, intent, io, 'waiting_entitlement', 'saldo_insuficiente', { http_status: response.status })
     return { ...status, state }
@@ -340,7 +391,7 @@ export async function startFilmComplete(db: SupabaseClient, intent: FilmComplete
 }
 
 /** Called only AFTER the existing subscription entitlement grant. A free/trial/unpaid Session cannot arm a render. */
-export async function settleFilmComplete(db: SupabaseClient, session: Stripe.Checkout.Session, origin: string, paidAt: number): Promise<void> {
+export async function settleFilmComplete(db: SupabaseClient, session: Stripe.Checkout.Session, origin: string, paidAt: number, io: FilmCompleteIo = REAL_IO): Promise<void> {
   const metadata = filmCompletePaymentMetadata(session.metadata)
   if (!metadata.film_complete_id) return
   const userId = text(session.metadata?.supabase_user_id)
@@ -359,8 +410,22 @@ export async function settleFilmComplete(db: SupabaseClient, session: Stripe.Che
     intent = await loadFilmCompleteIntent(db, userId, intent.id)
     if (!intent || text(intent.metadata.paid_session_id) !== session.id) return
   }
-  const paidIntent = intent
-  const task = async () => { await startFilmComplete(db, paidIntent, origin) }
+  // KINEO-RESERVA-FILME-COMPLETO-1111 — o filme é debitado AQUI, no mesmo instante em que o plano foi concedido (o webhook só chama
+  // esta função depois da concessão), antes de a pessoa voltar à tela. O motor reservado fica gravado: o início não troca para o
+  // Kling 4.0 de 0 cr com o filme já pago em Seedance. Falhou a reserva: o início tenta de novo antes do escritor.
+  let paidIntent = intent
+  const engineSalvo = text(intent.metadata.dispatch_engine)
+  const kling4 = engineSalvo ? engineSalvo === FILM_COMPLETE_KLING4_ENGINE : !text(intent.metadata.dispatch_prompt) && io.kling4Free ? await io.kling4Free(db, userId) : false
+  if (!kling4 && text(intent.metadata.credits_reserve) !== 'reserved') {
+    const reserva = await reservaDoFilme(db, intent, io)
+    if (reserva !== 'not_wired') {
+      const metadata = { ...intent.metadata, credits_reserve: reserva, ...(reserva === 'reserved' ? { dispatch_engine: FILM_COMPLETE_ENGINE, credits_reserved_at: new Date(paidAt).toISOString() } : {}) }
+      const { data: saved } = await db.from('events').update({ metadata }).eq('id', intent.id).eq('user_id', userId).eq('name', FILM_COMPLETE_INTENT_EVENT)
+        .eq('metadata->>paid_session_id', session.id).select('id').maybeSingle()
+      if (saved?.id === intent.id) paidIntent = { ...intent, metadata }
+    }
+  }
+  const task = async () => { await startFilmComplete(db, paidIntent, origin, io) }
   if (!depoisDaResposta('film-complete-start', task)) await task()
 }
 
