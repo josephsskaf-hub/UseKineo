@@ -26,7 +26,9 @@ export interface RecreateFormat {
 export const RECREATE_SWAP_PROMPT = 'Face swap only. Replace only the face with the face from the reference photo. Keep the original clothing, body, scene, lighting, camera, movement, cuts and audio unchanged.'
 export const RECREATE_ASSETS = {
   'outfit-morph.mp4': { file: 'outfit-morph-v6.mp4', contentType: 'video/mp4' },
-  'outfit-morph.png': { file: 'outfit-morph.png', contentType: 'image/png' },
+  // KINEO-RECREATE-CARTAO-BRANCO-1011 — era um PNG de 1,96 MB (768×1376) servido com no-store: o cartão ficava branco até ele chegar. Agora o
+  // quadro de 1 s do próprio vídeo, 720 px, JPEG (~100 KB), como os outros pôsteres da casa. Guardião: scripts/test-recreate-poster-1011.mjs.
+  'outfit-morph.jpg': { file: 'outfit-morph.jpg', contentType: 'image/jpeg' },
   'elevador.mp4': { file: 'elevador-v1.mp4', contentType: 'video/mp4' },
   'elevador.jpg': { file: 'elevador.jpg', contentType: 'image/jpeg' },
   // KINEO-RECREATE-TRAVA-1011 — house candidates (docs/referencias/vitrine-10-0911), 716×1280, 24 fps; poster = frame at 1 s, 720 px.
@@ -46,7 +48,7 @@ const swapSource = (id: string) => ({ preview: `/api/recreate/assets/${id}.mp4`,
 // KINEO-RECREATE-TRAVA-1011 [fundador 10/11: "tem que fazer tudo funcionar agora. Sem erros"] — a swap format reaches customers ONLY
 // with swapApproved: true, set by hand after its paid swap test. swapInTest: only the exact house allowlist sees it.
 export const RECREATE_FORMATS: readonly RecreateFormat[] = [
-  { id: 'outfit-morph', title: 'Outfit Morph', ...swapSource('outfit-morph'), poster: '/api/recreate/assets/outfit-morph.png', seconds: 10, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 1, swapApproved: false, swapInTest: true, swapNote: '10/11: 0 of 4 paid swaps; provider returned the original' },
+  { id: 'outfit-morph', title: 'Outfit Morph', ...swapSource('outfit-morph'), poster: '/api/recreate/assets/outfit-morph.jpg', seconds: 10, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 1, swapApproved: false, swapInTest: true, swapNote: '10/11: 0 of 4 paid swaps; provider returned the original' },
   { id: 'elevador', title: 'Elevator', ...swapSource('elevador'), poster: '/api/recreate/assets/elevador.jpg', seconds: 10, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 2, swapApproved: false, swapInTest: true, swapNote: '10/11: only 1 of the 2 people swaps (man 2 of 2, woman 0 of 2)' },
   { id: 'passarela', title: 'Runway walk', ...swapSource('passarela'), poster: '/api/recreate/assets/passarela.jpg', seconds: 10, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 1, swapApproved: true, swapInTest: false, approvedOn: '2026-11-10', swapNote: '10/11 paid tests: 2 of 2 swaps; site test: clip 2bccfb65 delivered (40 credits)' },
   { id: 'escolha-o-favorito', title: 'Guess my favorite', ...swapSource('escolha-o-favorito'), poster: '/api/recreate/assets/escolha-o-favorito.jpg', seconds: 8, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 2, swapApproved: true, swapInTest: false, approvedOn: '2026-11-10', swapNote: '10/11 paid tests: 2 of 2 swaps; site test: clip 8e485eef delivered, check swapped 2/2; 8 s = 45 credits (fundador 10/11: "Cobra 45")' },
