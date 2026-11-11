@@ -24,7 +24,7 @@ const seloCerto = (s) => s.engineUsedDoFilmePadrao(claim()) === 'h3_max_turbo'
   && s.engineUsedDoFilmePadrao(claim({ quality: 'cinematic_h3' })) === null
   && s.engineUsedDoFilmePadrao(null) === null
 ok(seloCerto(selo), 'o modelo do claim decide: Turbo grava h3_max_turbo; Seedance, filme grátis, Kling 4 e outro motor não')
-const mutante = await carrega(fonteSelo.replace("claim.falModels.includes(H3_TURBO_FAL_MODEL) ? 'h3_max_turbo' : null", "'h3_max_turbo'"))
+const mutante = await carrega(fonteSelo.replace("claim.falModels.includes(H3_TURBO_FAL_MODEL) || claim.falModels.includes(H3_TURBO_T2V_FAL_MODEL) /* KINEO-SEEDANCE-SAI-1111 */ ? 'h3_max_turbo' : null", "'h3_max_turbo'")) // KINEO-SEEDANCE-SAI-1111: a linha ganhou o t2v
 ok(!seloCerto(mutante), 'mutante: selo sem olhar o modelo fica vermelho')
 const mutante2 = await carrega(fonteSelo.replace('if (claim.response?.kling4_paid || claim.response?.kling4_trial) return null', ''))
 ok(!seloCerto(mutante2), 'mutante: Kling 4 ganhando o selo do Turbo fica vermelho')
@@ -43,11 +43,11 @@ ok(Rx.includes("e === 'h3_max_turbo') return 'seedance'") && Rx.includes(`e === 
 // ── o interruptor e o que não muda ──────────────────────────────────────────────────────────────────────────
 const E = lf('lib/engineLaunch.ts'), R = lf('app/api/generate-video-cinematic/route.ts')
 ok(E.includes('export const H3_TURBO_PUBLIC = true as boolean'), 'aberto para todos')
-const escolha = 'const i2vDoFilmePadrao = h3TurboNoFilmePadrao(user.email) && !desenhoInfantil.ativo ? H3_TURBO_I2V_MODEL : SEEDANCE_I2V_MODEL'
+const escolha = 'const i2vDoFilmePadrao = H3_TURBO_I2V_MODEL // KINEO-SEEDANCE-SAI-1111' // KINEO-SEEDANCE-SAI-1111: o Seedance 1.5 sai da fal em 11/11 — o desenho infantil também vai ao H3 Turbo
 const guarda = (t) => t.includes(escolha)
-ok(guarda(R), 'KINEO-RESERVA-H3-0611: filme grátis fora do Kling 4 vai de H3; desenho infantil fica no Seedance')
-ok(!guarda(R.replace(' && !desenhoInfantil.ativo ? H3_TURBO_I2V_MODEL', ' ? H3_TURBO_I2V_MODEL')), 'mutante: desenho infantil no Turbo fica vermelho')
-ok(R.includes(": model === SEEDANCE_MODEL ? i2vDoFilmePadrao /* KINEO-H3-TURBO-0511 */ : model === VEO_MODEL ? VEO_I2V_MODEL : model, model]"), 'a reserva de texto segue sendo o modelo de antes')
+ok(guarda(R), 'KINEO-SEEDANCE-SAI-1111: filme grátis fora do Kling 4 e desenho infantil vão de H3 Turbo (o Seedance 1.5 sai da fal)')
+ok(!guarda(R.replace('const i2vDoFilmePadrao = H3_TURBO_I2V_MODEL //', 'const i2vDoFilmePadrao = !desenhoInfantil.ativo ? H3_TURBO_I2V_MODEL : SEEDANCE_I2V_MODEL //')), 'mutante: desenho infantil de volta ao Seedance fica vermelho')
+ok(R.includes(": model === SEEDANCE_MODEL ? i2vDoFilmePadrao /* KINEO-H3-TURBO-0511 */ : model === VEO_MODEL ? VEO_I2V_MODEL : model, t2vVivo]") && R.includes('const t2vVivo = model === SEEDANCE_MODEL ? H3_TURBO_T2V_MODEL : model'), 'KINEO-SEEDANCE-SAI-1111: a 2ª tentativa de texto vai ao H3 Turbo t2v')
 ok(lf('lib/engineLabel.ts').includes("cinematic_ai: 'Seedance 1.5'"), 'quality_mode cinematic_ai segue com o selo antigo: é o que protege os filmes de antes')
 ok(lf('lib/freeFilmEngine.ts').includes("KLING4_TRIAL_LIVE ? 'Kling 4.0 / Seedance 1.5' : 'Seedance 1.5'"), 'o nome do filme grátis não muda')
 ok(lf('lib/ui/refinementCopy.json').includes('so this one was made with Seedance 1.5'), 'o aviso da reserva do filme grátis não muda: o motor ali é mesmo o Seedance')

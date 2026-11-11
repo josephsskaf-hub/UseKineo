@@ -1,4 +1,4 @@
-import { SEEDANCE_MODEL, SEEDANCE_I2V_MODEL } from '@/lib/classicSceneRetry'
+import { H3_TURBO_I2V_MODEL, H3_TURBO_T2V_MODEL } from '@/lib/classicSceneRetry' // KINEO-SEEDANCE-SAI-1111 — era SEEDANCE_MODEL, SEEDANCE_I2V_MODEL (o Seedance 1.5 sai da fal em 11/11)
 import { seedanceSecondsForFreeKlingScene } from '@/lib/cinematic/refazerGratis2810'
 import { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim'
 import type { CenaRefazivel, ClaimParaRefazer } from '@/lib/freeRedo/core'
@@ -74,10 +74,10 @@ export function cenasKling4ParaRefazer(claim: ClaimParaRefazer, source: unknown,
     const clipUrl = valid.length === 1 ? valid[0] : null
     if (!clipUrl || trocadas?.[i] && trocadas[i] !== clipUrl) continue
     const still = https(p.still_url) ? p.still_url : null
-    out.push({ index: i, model: still ? SEEDANCE_I2V_MODEL : SEEDANCE_MODEL,
+    out.push({ index: i, model: still ? H3_TURBO_I2V_MODEL : H3_TURBO_T2V_MODEL, // KINEO-SEEDANCE-SAI-1111
       seconds: seedanceSecondsForFreeKlingScene(duration), text: String(p.text || p.description || '').slice(0, 280), clipUrl,
-      input: { prompt: p.prompt, duration: String(seedanceSecondsForFreeKlingScene(duration)), resolution: '720p', aspect_ratio: '9:16', generate_audio: false,
-        ...(still ? { image_url: still } : {}) },
+      input: { prompt: p.prompt, duration: seedanceSecondsForFreeKlingScene(duration), resolution: '768P', prompt_expansion_mode: 'disabled', // KINEO-SEEDANCE-SAI-1111 — corpo do H3 Max Turbo
+        ...(still ? { image_url: still } : { aspect_ratio: '9:16' }) },
       interval: { start, duration, originalUrl: original, originalSeconds: 15 }, previewStart: clipUrl === original ? start : 0,
     })
   }

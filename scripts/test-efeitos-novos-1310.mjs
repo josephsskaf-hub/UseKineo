@@ -346,7 +346,12 @@ ok(mediaP.length === 0, '(2) prévias: existem, leves, mudas, faststart, 720×12
 let BASE = null
 try { BASE = loadClips(gitShow) } catch (err) { console.log('    (base do git ilegível: ' + (err instanceof Error ? err.message : String(err)) + ')') }
 const baseSnap = BASE ? await oldEffectsSnapshot(BASE) : null
-ok(!!baseSnap && baseSnap === await oldEffectsSnapshot(REAL), `(5) os 9 efeitos de antes idênticos ao commit-base ${BASE_SHA} (catálogo, preço, pedido, payload da fal, linha)`)
+// KINEO-SEEDANCE-SAI-1111 — a fal remove o Seedance 1.5 em 11/11: os efeitos do trilho 'seedance' (bring_to_life, restore_old_photo) passam a
+// chamar o H3 Max Turbo i2v. Só o ENDEREÇO e o CORPO enviados à fal mudam (e o model da linha); catálogo, preço, pedido e débito seguem iguais à base.
+const realSnap = await oldEffectsSnapshot(REAL)
+const semEnderecoDoSeedance = (snap) => { const o = JSON.parse(snap); for (const k of Object.keys(o)) { if (o[k] && o[k].effect && o[k].effect.engine === 'seedance') { o[k].fal = null; if (o[k].row) o[k].row.model = null } } return JSON.stringify(o) }
+const viaH3 = Object.values(JSON.parse(realSnap)).filter((x) => x && x.effect && x.effect.engine === 'seedance')
+ok(!!baseSnap && semEnderecoDoSeedance(baseSnap) === semEnderecoDoSeedance(realSnap) && viaH3.length === 2 && viaH3.every((x) => x.fal[0] === 'minimax/h3-max-turbo/image-to-video' && x.row.model === x.fal[0] && x.fal[1].resolution === '768P' && !('generate_audio' in x.fal[1])), `(5) os 9 efeitos de antes idênticos ao commit-base ${BASE_SHA} (catálogo, preço, pedido, linha); os 2 do Seedance 1.5 agora no H3 Turbo i2v`)
 
 const routeP = routeProblems(read('app/api/clips/route.ts'))
 ok(routeP.length === 0, '(4b) rota: o clipe livre não copia effect/model/input do navegador' + (routeP.length ? ' → ' + routeP.join(' | ') : ''))

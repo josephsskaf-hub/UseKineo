@@ -12,7 +12,10 @@ import {
 // O H3 só anda a partir de uma imagem: com as 3 cenas com imagem aprovada, vai H3; faltando alguma, o filme inteiro segue no Seedance de texto, sem misturar motor.
 // RESERVA-INICIO
 export const RESERVA_H3_MODEL = 'minimax/h3-max-turbo/image-to-video'
-export const RESERVA_SEEDANCE_MODEL = 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
+// KINEO-SEEDANCE-SAI-1111 — a reserva de TEXTO (falta quadro numa das 3 cenas) era o Seedance 1.5, que a fal remove em 11/11: agora é o H3 Max Turbo t2v.
+// O nome da constante fica (o marcador do claim continua 'seedance15_fallback' — mudar o fio quebraria filme em andamento).
+export const RESERVA_SEEDANCE_MODEL = 'minimax/h3-max-turbo/text-to-video' // KINEO-SEEDANCE-SAI-1111 — era 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
+export const RESERVA_SEEDANCE_15_ANTIGO = 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video' // KINEO-SEEDANCE-SAI-1111 — só para aceitar claim antigo
 export type ReservaShot = { prompt?: unknown; duration?: unknown; image_url?: unknown }
 const temImagemDaReserva = (s: ReservaShot | null | undefined) => typeof s?.image_url === 'string' && /^https:\/\//.test(s.image_url)
 export function modeloDaReservaDoTeste(shots: readonly ReservaShot[]): string {
@@ -21,7 +24,7 @@ export function modeloDaReservaDoTeste(shots: readonly ReservaShot[]): string {
 /** O corpo enviado à fal, na forma que cada motor pede. */
 export function entradaDaReserva(shot: ReservaShot, model: string): Record<string, unknown> {
   if (model === RESERVA_H3_MODEL) return { prompt: String(shot.prompt), image_url: String(shot.image_url), duration: Number(shot.duration), resolution: '768P', prompt_expansion_mode: 'disabled' }
-  return { prompt: String(shot.prompt), duration: String(shot.duration), resolution: '720p', aspect_ratio: '9:16', generate_audio: false }
+  return { prompt: String(shot.prompt), duration: Number(shot.duration), resolution: '768P', aspect_ratio: '9:16', prompt_expansion_mode: 'disabled' } // KINEO-SEEDANCE-SAI-1111 — corpo do H3 Turbo t2v; era o do Seedance (duration texto, 720p, generate_audio)
 }
 // RESERVA-FIM
 
@@ -297,7 +300,7 @@ function validResponseBinding(claim: CinematicClaim): boolean {
       if (marker.fallback_finalized !== true || marker.fallback_budget_reserved !== true ||
         !Array.isArray(marker.original_request_ids) || marker.original_request_ids.length !== Number(marker.seconds) / 15 ||
         claim.falModels.length !== Number(marker.seconds) / 5 ||
-        claim.falModels.some(model => model !== 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video')) return false
+        claim.falModels.some(model => model !== RESERVA_SEEDANCE_15_ANTIGO && model !== RESERVA_SEEDANCE_MODEL /* KINEO-SEEDANCE-SAI-1111 */)) return false
     } else return false
   }
   if (cinematicValueHash(claim.response) !== claim.responseHash) return false

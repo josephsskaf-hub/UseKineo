@@ -43,7 +43,7 @@ import { duracoesCurtasVisible } from '@/lib/engineLaunch' // [TRAVA 8.2 — vai
 import { estrelaVisible } from '@/lib/engineLaunch' // KINEO-ESTRELA-DO-FILME-2026-09-29
 import { h3maxVisible } from '@/lib/engineLaunch' // KINEO-H3MAX-2026-10-13
 import { h3TurboNoFilmePadrao } from '@/lib/engineLaunch' // KINEO-H3-TURBO-0511
-import { H3_TURBO_I2V_MODEL } from '@/lib/classicSceneRetry' // KINEO-H3-TURBO-0511
+import { H3_TURBO_I2V_MODEL, H3_TURBO_T2V_MODEL } from '@/lib/classicSceneRetry' // KINEO-H3-TURBO-0511 · KINEO-SEEDANCE-SAI-1111: H3_TURBO_T2V_MODEL
 import { decideEstrelaRequest, estrelaPedida, estrelaSobretaxa, estrelaFingerprintSuffix, formatoComEstrela, fichaDaEstrela, planoDaEstrela, promptRetratoEstrela, relatoDaEstrela, motorDaEstrela, ESTRELA_VERSION } from '@/lib/estrelaDoFilme' // KINEO-ESTRELA-DO-FILME-2026-09-29
 import { assinarFotosDaEstrela, gerarStillsDaEstrela, ESTRELA_STILL_USD } from '@/lib/estrelaServer' // KINEO-ESTRELA-DO-FILME-2026-09-29
 import { mentionsContemporaryFigure } from '@/lib/hollywood/router' // KINEO-ESTRELA-DO-FILME-2026-09-29 — celebridade atual nomeada + estrela = recusa
@@ -816,6 +816,19 @@ function buildFalInput(
   // faceless brand carries over; the shared seed keeps retries stable. Only sent
   // for this model → every other (existing) call stays byte-identical.
   // KINEO-H3-TURBO-0511 — schema lido em 05/11: prompt, image_url, duration número até 15, resolution 768P, prompt_expansion_mode. O formato vem do quadro. O som nativo do clipe é zerado na montagem clássica (volume 0%).
+  // KINEO-SEEDANCE-SAI-1111 — schema lido em 11/11 (fal.ai/models/minimax/h3-max-turbo/text-to-video/api): prompt, duration número 0,92–15,
+  // resolution 480P|768P|1080P, aspect_ratio 21:9|16:9|4:3|1:1|3:4|9:16 (4:5 não existe → 3:4, o mais próximo), prompt_expansion_mode, seed.
+  // Sem negative_prompt e sem áudio pedido (o som do clipe é zerado na montagem clássica, como no i2v).
+  if (model === H3_TURBO_T2V_MODEL) {
+    return {
+      prompt,
+      aspect_ratio: frame.falAspectRatio === '4:5' ? '3:4' : frame.falAspectRatio,
+      duration: Math.max(2, Math.min(15, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10))),
+      resolution: '768P',
+      prompt_expansion_mode: 'disabled',
+      ...(typeof seed === 'number' ? { seed } : {}),
+    }
+  }
   if (model === H3_TURBO_I2V_MODEL) {
     return {
       image_url: imageUrl,
@@ -7406,7 +7419,7 @@ async function manipularPost(req: NextRequest) {
     // KINEO-ANCORA-3-MOTORES-2026-09-16: Kling 2.5 (validado 16/09), Seedance 1.5 e Veo 3.1; Sora fica em t2v (sem i2v conferido).
     const anchorEngine: 'kling' | 'veo' | 'seedance' | null = wantsKling ? 'kling' : wantsVeo ? 'veo' : wantsSora ? null : 'seedance'
     // KINEO-H3-TURBO-ABRE-0511 · KINEO-RESERVA-H3-0611 [TRAVA 8.2 — fundador 06/11: "pode trocar"] — o filme grátis que não sai no Kling 4 também vai de H3; só o desenho infantil continua no Seedance.
-    const i2vDoFilmePadrao = h3TurboNoFilmePadrao(user.email) && !desenhoInfantil.ativo ? H3_TURBO_I2V_MODEL : SEEDANCE_I2V_MODEL // KINEO-H3-TURBO-0511
+    const i2vDoFilmePadrao = H3_TURBO_I2V_MODEL // KINEO-SEEDANCE-SAI-1111 — era: h3TurboNoFilmePadrao(user.email) && !desenhoInfantil.ativo ? H3_TURBO_I2V_MODEL : SEEDANCE_I2V_MODEL (o Seedance 1.5 i2v sai da fal em 11/11)
     const anchorI2vModel = anchorEngine === 'kling' ? KLING_I2V_MODEL : anchorEngine === 'veo' ? VEO_I2V_MODEL : i2vDoFilmePadrao // KINEO-H3-TURBO-0511 — era SEEDANCE_I2V_MODEL
     const anchorActive = anchorEngine !== null && CINEMATIC_ANCHOR_ENABLED
     if (kling4TrialCandidate) classicScenePrompts.splice(0, classicScenePrompts.length, ...eixosDoFilmeGratis(classicScenePrompts, styleAnchor)) // KINEO-REPETICAO-FREE15-1011 [aval permanente do fundador 01/11 (laço do revisor)] — filme grátis de 15 s (Kling 4 e reserva Seedance 1.5): cena sem plano próprio ganha um plano que o filme ainda não tem (a última mostra o sujeito inteiro na ação final); cena que já diz plano fica intocada; nada cortado. Pagos e 35/60/90: kling4TrialCandidate é false, vetor byte a byte
@@ -7567,9 +7580,10 @@ async function manipularPost(req: NextRequest) {
       // multiplicando. Agora o dono e um so (falQueue, que respeita
       // retry-after), e a ordem dos modelos e i2v -> t2v como TENTATIVA DE
       // OUTRO MODELO, nunca retry escondido.
+      const t2vVivo = model === SEEDANCE_MODEL ? H3_TURBO_T2V_MODEL : model // KINEO-SEEDANCE-SAI-1111 — o t2v do Seedance 1.5 sai da fal em 11/11
       const modelos = imageUrl
-        ? [model === KLING_MODEL ? KLING_I2V_MODEL : model === SEEDANCE_MODEL ? i2vDoFilmePadrao /* KINEO-H3-TURBO-0511 */ : model === VEO_MODEL ? VEO_I2V_MODEL : model, model] // KINEO-ANCORA-3-MOTORES: i2v primeiro, t2v como outro modelo
-        : [model]
+        ? [model === KLING_MODEL ? KLING_I2V_MODEL : model === SEEDANCE_MODEL ? i2vDoFilmePadrao /* KINEO-H3-TURBO-0511 */ : model === VEO_MODEL ? VEO_I2V_MODEL : model, t2vVivo] // KINEO-ANCORA-3-MOTORES: i2v primeiro, t2v como outro modelo
+        : [t2vVivo] // KINEO-SEEDANCE-SAI-1111 — era: [model]
       const safeVisualPrompt = buildContextualSafeVisualPrompt(
         sanitizeRealPeople(scene.aiPrompt || scene.stockSearchQuery || scene.description),
         { ...classicVisualPolicy, character: sanitizeRealPeople(storyCharacter || ''), eraSuffix, opening: sceneIndex === 0 },

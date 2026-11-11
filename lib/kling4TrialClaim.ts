@@ -46,6 +46,7 @@ export function kling4TrialReplacement(value: unknown, generationId: string): Re
       !r.fal_request_ids.every(id => id === null || typeof id === 'string' && id.length > 0 && id.length <= 512) ||
       !Array.isArray(r.fal_models) || r.fal_models.length !== r.fal_request_ids.length ||
       !r.fal_models.every(model => model === 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video' ||
-        model === 'fal-ai/bytedance/seedance/v1.5/pro/image-to-video' || model === 'minimax/h3-max-turbo/image-to-video' /* KINEO-RESERVA-H3-0611 */)) return null
+        model === 'fal-ai/bytedance/seedance/v1.5/pro/image-to-video' || model === 'minimax/h3-max-turbo/image-to-video' /* KINEO-RESERVA-H3-0611 */ ||
+        model === 'minimax/h3-max-turbo/text-to-video' /* KINEO-SEEDANCE-SAI-1111 */)) return null
   return r
 }

@@ -16,7 +16,7 @@ checa('endereço que não é https: Seedance', R.modeloDaReservaDoTeste([{ ...im
 const h3 = R.entradaDaReserva(img(1), R.RESERVA_H3_MODEL)
 checa('corpo do H3', h3.image_url === 'https://x/1.jpg' && h3.duration === 7 && h3.resolution === '768P' && h3.prompt_expansion_mode === 'disabled' && !('generate_audio' in h3))
 const sd = R.entradaDaReserva(img(1), R.RESERVA_SEEDANCE_MODEL)
-checa('corpo do Seedance sem imagem e igual ao de antes', !('image_url' in sd) && sd.resolution === '720p' && sd.generate_audio === false && sd.duration === '7')
+checa('KINEO-SEEDANCE-SAI-1111: reserva sem imagem = corpo do H3 Turbo t2v', R.RESERVA_SEEDANCE_MODEL === 'minimax/h3-max-turbo/text-to-video' && !('image_url' in sd) && sd.resolution === '768P' && !('generate_audio' in sd) && sd.duration === 7 && sd.aspect_ratio === '9:16' && sd.prompt_expansion_mode === 'disabled')
 const mut = await carrega(fonte.replace('shots.every(temImagemDaReserva)', 'shots.some(temImagemDaReserva)'))
 checa('mutante (aceita filme com cena sem imagem) é pego', mut.modeloDaReservaDoTeste([img(1), { prompt: 'p', duration: 7 }, img(3)]) === mut.RESERVA_H3_MODEL)
 const envio = ler('lib/kling4TrialFallback.ts'), claim = ler('lib/cinematic/claim.ts'), rota = ler('app/api/generate-video-cinematic/route.ts'), selo = ler('lib/engineLabel.ts'), status = ler('app/api/compose/status/[renderId]/route.ts'), clip = ler('app/api/cinematic-clip-status/route.ts')

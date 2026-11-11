@@ -22,7 +22,7 @@
 //
 // LIB PURA (só node:crypto + constantes de lib/classicSceneRetry): o guardião scripts/test-meta95-refazer-1910.mjs a executa.
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
-import { CLASSIC, CLASSIC_I2V, SEEDANCE_MODEL, SEEDANCE_I2V_MODEL, KLING_MODEL, KLING_I2V_MODEL, VEO_MODEL, VEO_I2V_MODEL, H3_TURBO_I2V_MODEL } from '@/lib/classicSceneRetry'
+import { CLASSIC, CLASSIC_I2V, SEEDANCE_MODEL, SEEDANCE_I2V_MODEL, KLING_MODEL, KLING_I2V_MODEL, VEO_MODEL, VEO_I2V_MODEL, H3_TURBO_I2V_MODEL, H3_TURBO_T2V_MODEL } from '@/lib/classicSceneRetry' // KINEO-SEEDANCE-SAI-1111: H3_TURBO_T2V_MODEL
 import { cenasKling4ParaRefazer, emendarCenaKling4 } from '@/lib/freeRedo/kling4Scene'
 import { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim'
 import { FREE_REDO_FILM_PATH, FREE_REDO_FILM_QUALITIES, filmQualityCovered } from '@/lib/freeRedo/public'
@@ -53,12 +53,24 @@ export const FILM_ORDER_EVENT = 'free_redo_film_order'
 export const CAP_SLOT_EVENT = 'free_redo_cap_slot'
 export { FREE_REDO_FILM_PATH, FREE_REDO_FILM_QUALITIES, filmQualityCovered }
 
+// KINEO-SEEDANCE-SAI-1111 — a fal remove o Seedance 1.5 em 11/11/2026: a cena assinada num endereço dele é refeita no H3 Max Turbo (t2v ou i2v,
+// mesma foto, mesmo texto, segundos inteiros 2–15). Qualquer outro motor: a cena assinada exata, como sempre.
+export function cenaNoMotorVivo(model: string, raw: Record<string, unknown>): { model: string; input: Record<string, unknown> } {
+  if (model !== SEEDANCE_MODEL && model !== SEEDANCE_I2V_MODEL) return { model, input: raw }
+  const segundos = Math.max(2, Math.min(15, Math.round(Number(raw.duration) || 5)))
+  const base = { prompt: String(raw.prompt ?? ''), duration: segundos, resolution: '768P', prompt_expansion_mode: 'disabled', ...(typeof raw.seed === 'number' ? { seed: raw.seed } : {}) }
+  if (model === SEEDANCE_I2V_MODEL) return { model: H3_TURBO_I2V_MODEL, input: { ...base, image_url: raw.image_url } }
+  const ar = typeof raw.aspect_ratio === 'string' && ['21:9', '16:9', '4:3', '1:1', '3:4', '9:16'].includes(raw.aspect_ratio) ? raw.aspect_ratio : raw.aspect_ratio === '4:5' ? '3:4' : '9:16'
+  return { model: H3_TURBO_T2V_MODEL, input: { ...base, aspect_ratio: ar } }
+}
+
 /** US$ por segundo de clipe (estimativa para o evento; docs/PRECOS-MOTORES-V4.md). */
 export const FREE_REDO_USD_PER_SECOND: Record<string, number> = {
   [SEEDANCE_MODEL]: 0.026, [SEEDANCE_I2V_MODEL]: 0.026,
   [KLING_MODEL]: 0.07, [KLING_I2V_MODEL]: 0.07,
   [VEO_MODEL]: 0.15, [VEO_I2V_MODEL]: 0.15,
   [H3_TURBO_I2V_MODEL]: 0.04, // KINEO-H3-TURBO-0511 — preço cheio da fal a partir de 16/11; US$ 0,028 até 15/11
+  [H3_TURBO_T2V_MODEL]: 0.04, // KINEO-SEEDANCE-SAI-1111 — mesmo preço do i2v (768p)
 }
 export const FREE_REDO_TITLE_SUFFIX = ' · v2'
 /** O pedido de variação que entra no fim do prompt assinado (o resto do prompt fica byte a byte). */
@@ -310,7 +322,8 @@ export function cenasDoFilme(claim: ClaimParaRefazer | null | undefined, userId:
     const raw = inputs[i]
     if (!entradaAssinadaValida(model, raw)) continue
     const dur = Number((raw as Record<string, unknown>).duration)
-    out.push({ index: i, model, seconds: Number.isFinite(dur) && dur > 0 ? dur : null, text: textoDaCena(response, i), clipUrl, input: raw as Record<string, unknown> })
+    const vivo = cenaNoMotorVivo(model, raw as Record<string, unknown>) // KINEO-SEEDANCE-SAI-1111
+    out.push({ index: i, model: vivo.model, seconds: Number.isFinite(dur) && dur > 0 ? dur : null, text: textoDaCena(response, i), clipUrl, input: vivo.input }) // KINEO-SEEDANCE-SAI-1111 — era: model, input: raw
   }
   return out
 }

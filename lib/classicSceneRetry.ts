@@ -21,8 +21,10 @@ export const KLING_I2V_MODEL = 'fal-ai/kling-video/v2.5-turbo/pro/image-to-video
 export const VEO_MODEL = 'fal-ai/veo3.1/fast'
 export const VEO_I2V_MODEL = 'fal-ai/veo3.1/fast/image-to-video'
 export const H3_TURBO_I2V_MODEL = 'minimax/h3-max-turbo/image-to-video' // KINEO-H3-TURBO-0511
+// KINEO-SEEDANCE-SAI-1111 — a fal remove o Seedance 1.5 em 11/11/2026: o texto→vídeo do filme clássico, da reserva do grátis e do clipe passa ao H3 Max Turbo.
+export const H3_TURBO_T2V_MODEL = 'minimax/h3-max-turbo/text-to-video' // KINEO-SEEDANCE-SAI-1111
 export const CLASSIC_I2V: ReadonlySet<string> = new Set<string>([SEEDANCE_I2V_MODEL, KLING_I2V_MODEL, VEO_I2V_MODEL, H3_TURBO_I2V_MODEL])
-export const CLASSIC: ReadonlySet<string> = new Set<string>([SEEDANCE_MODEL, KLING_MODEL, VEO_MODEL, ...CLASSIC_I2V])
+export const CLASSIC: ReadonlySet<string> = new Set<string>([SEEDANCE_MODEL, KLING_MODEL, VEO_MODEL, H3_TURBO_T2V_MODEL /* KINEO-SEEDANCE-SAI-1111 */, ...CLASSIC_I2V])
 
 // A janela em que um marcador 'submitting' ainda pode ter dono vivo — o MESMO número do compose, do /api/compose/active
 // e da própria retomada. A retomada tem maxDuration 60 e prazos internos (OpenAI 20 s, POST clássico 25 s): um

@@ -93,13 +93,16 @@ await check('legacy signed text-bearing prop is made blank before the single rep
   const sent = h.calls.scenes[0].input
   assert.match(sent.prompt, /woman in a red coat holds a phone screen filled with abstract/)
   assert.doesNotMatch(sent.prompt, /displaying a dramatic message/)
-  assert.equal(sent.image_url, h.inputs[1].image_url); assert.equal(sent.duration, h.inputs[1].duration)
+  assert.equal(sent.image_url, h.inputs[1].image_url); assert.equal(sent.duration, Number(h.inputs[1].duration)) // KINEO-SEEDANCE-SAI-1111: a cena Seedance é refeita no H3 Turbo (duração número)
 })
 function assertSignedInput(h) {
-  assert.equal(h.calls.scenes[0].model, h.claim.falModels[1])
+  const vivo = h.core.cenaNoMotorVivo(h.claim.falModels[1], h.inputs[1]) // KINEO-SEEDANCE-SAI-1111 — cena Seedance 1.5 refeita no H3 Turbo, com a foto e o texto assinados
+  assert.equal(h.calls.scenes[0].model, vivo.model)
+  assert.equal(vivo.model, 'minimax/h3-max-turbo/image-to-video')
   const { prompt, ...sent } = h.calls.scenes[0].input
-  const { prompt: originalPrompt, ...original } = h.inputs[1]
+  const { prompt: originalPrompt, ...original } = vivo.input
   assert.deepEqual(sent, original)
+  assert.equal(originalPrompt, h.inputs[1].prompt)
   assert.match(prompt, /^Repair this shot:/)
   assert.ok(prompt.includes(originalPrompt))
   assert.equal(h.calls.scenes.length, 1)

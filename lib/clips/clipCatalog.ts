@@ -84,8 +84,8 @@ export const CLIP_ENGINES: Record<ClipEngineKey, ClipEngineSpec> = {
   seedance: {
     key: 'seedance',
     label: 'Seedance 1.5',
-    t2vModel: 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video',
-    i2vModel: 'fal-ai/bytedance/seedance/v1.5/pro/image-to-video',
+    t2vModel: 'minimax/h3-max-turbo/text-to-video', // KINEO-SEEDANCE-SAI-1111 — o Seedance 1.5 sai da fal em 11/11; era 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
+    i2vModel: 'minimax/h3-max-turbo/image-to-video', // KINEO-SEEDANCE-SAI-1111 — era 'fal-ai/bytedance/seedance/v1.5/pro/image-to-video'
     falSeconds: range(4, 12),
     t2vAspects: ['9:16', '16:9', '1:1'],
     i2vAspects: 'image',
@@ -330,7 +330,7 @@ export function buildClipFalInput(req: ClipRequest): Record<string, unknown> {
     case 'kling':
       return { prompt, ...image, duration: String(s), ...(req.mode === 't2v' && aspect ? { aspect_ratio: aspect } : {}) }
     case 'seedance':
-      return { prompt, ...image, duration: String(s), resolution: '720p', generate_audio: false, aspect_ratio: aspect ?? 'auto' }
+      return { prompt, ...image, duration: s, resolution: '768P', prompt_expansion_mode: 'disabled', ...(req.mode === 't2v' && aspect ? { aspect_ratio: aspect } : {}) } // KINEO-SEEDANCE-SAI-1111 — corpo do H3 Max Turbo (o i2v segue o quadro da foto); era o do Seedance 1.5
     case 'veo':
       return { prompt, ...image, duration: `${s}s`, resolution: '1080p', generate_audio: false, aspect_ratio: aspect ?? 'auto' }
     case 'h3':

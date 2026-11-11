@@ -36,7 +36,7 @@ export const runtime = 'nodejs'
 export const maxDuration = 60
 export const fetchCache = 'force-no-store'
 
-const SEEDANCE_MODEL = process.env.KINEO_SEEDANCE_SLUG || 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
+const SEEDANCE_MODEL = 'minimax/h3-max-turbo/text-to-video' // KINEO-SEEDANCE-SAI-1111 — o Seedance 1.5 sai da fal em 11/11; era process.env.KINEO_SEEDANCE_SLUG || 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
 
 type Aspect = '9:16' | '16:9' | '1:1'
 function coerceAspect(v: unknown): Aspect {
@@ -90,10 +90,10 @@ export async function POST(req: NextRequest) {
 
   const input: Record<string, unknown> = {
     prompt: finalPrompt,
-    aspect_ratio: aspect,
-    resolution: process.env.KINEO_SEEDANCE_RESOLUTION || '720p',
-    duration: String(seconds),
-    generate_audio: false,
+    aspect_ratio: aspect, // KINEO-SEEDANCE-SAI-1111: corpo do H3 Max Turbo t2v (9:16 | 16:9 | 1:1 existem no schema)
+    resolution: '768P',
+    duration: seconds,
+    prompt_expansion_mode: 'disabled',
   }
 
   let requestId: string

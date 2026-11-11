@@ -12,7 +12,7 @@ ok(S.includes("const H3_TURBO_I2V_MODEL = '" + M + "'") && S.includes('  H3_TURB
 ok(C.includes('VEO_I2V_MODEL, H3_TURBO_I2V_MODEL])'), 'a retomada de cena conhece o modelo')
 const ramo = R.slice(R.indexOf('if (model === H3_TURBO_I2V_MODEL) {'), R.indexOf('if (model === SEEDANCE_I2V_MODEL) {'))
 ok(ramo.includes("resolution: '768P'") && ramo.includes("prompt_expansion_mode: 'disabled'") && ramo.includes('image_url: imageUrl') && !ramo.includes('generate_audio'), 'a entrada segue o esquema da fal')
-ok(R.includes('const i2vDoFilmePadrao = h3TurboNoFilmePadrao(user.email) && '), 'a escolha lê o interruptor pelo e-mail da conta')
+ok(R.includes('const i2vDoFilmePadrao = H3_TURBO_I2V_MODEL // KINEO-SEEDANCE-SAI-1111'), 'KINEO-SEEDANCE-SAI-1111: a escolha é o H3 Turbo para todos (o Seedance 1.5 i2v sai da fal em 11/11)')
 ok(R.includes('model === SEEDANCE_MODEL ? i2vDoFilmePadrao'), 'o envio por cena usa a escolha; a reserva de texto segue sendo o modelo de antes')
 ok(lf('lib/compose.ts').includes("{ volume: '0%' }"), 'a montagem clássica zera o som nativo do clipe')
 console.log('\n' + pass + ' ok, ' + fail + ' falha(s)')

@@ -216,7 +216,8 @@ for (const engine of cat.CLIP_ENGINE_ORDER) {
 }
 ok(falOk, 'custo fal conferido em 05/10 = CLIP_COSTS (Kling 3, Kling 2.5, Seedance 1.5, Veo, H3); aproximados documentados')
 const falIn = (engine) => JSON.stringify(cat.buildClipFalInput({ engine, mode: 't2v', model: 'x', seconds: 5, aspect: '9:16', prompt: 'p', imageUrl: null }))
-ok(falIn('seedance').includes('"720p"') && falIn('veo').includes('"1080p"') && falIn('h3').includes('"768P"') && falIn('s25').includes('"480p"')
+// KINEO-SEEDANCE-SAI-1111: o clipe "Seedance 1.5" agora roda no H3 Turbo 768P; a linha da tabela de mercado (texto público) troca no 2º commit, junto com o nome.
+ok(falIn('seedance').includes('"768P"') && falIn('veo').includes('"1080p"') && falIn('h3').includes('"768P"') && falIn('s25').includes('"480p"')
   && mk.ENGINE_MARKET.seedance.resolution === '720p' && mk.ENGINE_MARKET.veo.resolution === '1080p' && mk.ENGINE_MARKET.h3.resolution === '768p' && mk.ENGINE_MARKET.s25.resolution === '480p',
   'a resolução comparada é a que o clipe pede à fal')
 ok(!/^import (?!type)/m.test(MK_SRC), 'clipPriceVsMarket é puro (só import type)')

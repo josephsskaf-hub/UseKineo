@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto'
 import { entradaSemConviteDeLetreiro } from '@/lib/semConviteDeLetreiro' // KINEO-H3-LETREIRO-0611
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { RESERVA_H3_MODEL, entradaDaReserva, loadVerifiedCinematicClaim, modeloDaReservaDoTeste, startKling4TrialFallback, switchKling4TrialToSeedanceFallback, type CinematicClaim } from '@/lib/cinematic/claim'
+import { RESERVA_H3_MODEL, RESERVA_SEEDANCE_MODEL, entradaDaReserva, loadVerifiedCinematicClaim, modeloDaReservaDoTeste, startKling4TrialFallback, switchKling4TrialToSeedanceFallback, type CinematicClaim } from '@/lib/cinematic/claim'
 
-export const KLING4_TRIAL_FALLBACK_MODEL = 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
+export const KLING4_TRIAL_FALLBACK_MODEL = RESERVA_SEEDANCE_MODEL // KINEO-SEEDANCE-SAI-1111 — H3 Max Turbo t2v; era 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
 export type Kling4FallbackInput = { prompt: string; duration: number; resolution: '720p'; aspect_ratio: '9:16'; generate_audio: false }
 export type Kling4FallbackResult = { ok: boolean; claim: CinematicClaim; pending: boolean; ambiguous: boolean; noAccepted: boolean }
 export class Kling4FallbackSubmitError extends Error {
@@ -18,7 +18,7 @@ export async function submitKling4TrialSeedanceFallback(input: Kling4FallbackInp
   try {
     response = await fetch(`https://queue.fal.run/${KLING4_TRIAL_FALLBACK_MODEL}`, {
       method: 'POST', headers: { Authorization: `Key ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...input, duration: String(input.duration) }),
+      body: JSON.stringify(entradaSemConviteDeLetreiro(KLING4_TRIAL_FALLBACK_MODEL, entradaDaReserva({ prompt: input.prompt, duration: input.duration }, KLING4_TRIAL_FALLBACK_MODEL))), // KINEO-SEEDANCE-SAI-1111 — o corpo do H3 Turbo t2v (o mesmo que o claim grava); era { ...input, duration: String(input.duration) }
       cache: 'no-store', signal: AbortSignal.timeout(10_000),
     })
   } catch { throw new Kling4FallbackSubmitError(true) }

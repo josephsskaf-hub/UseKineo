@@ -12,7 +12,7 @@ export function kling4PaidReplacement(value: unknown, generationId: string): Rec
   if (!Array.isArray(marker.original_request_ids) || marker.original_request_ids.length !== Number(marker.seconds) / 15 ||
     !marker.original_request_ids.every(validId) || !Array.isArray(r.fal_request_ids) || r.fal_request_ids.length !== count ||
     !r.fal_request_ids.every(validId) || !Array.isArray(r.fal_models) || r.fal_models.length !== count ||
-    !r.fal_models.every(model => model === 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video')) return null
+    !r.fal_models.every(model => model === 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video' || model === 'minimax/h3-max-turbo/text-to-video' /* KINEO-SEEDANCE-SAI-1111 */)) return null
   for (const key of ['scenes', 'scene_captions', 'scene_narrations', 'scene_seconds', 'scene_engines', 'scene_dialogues']) {
     if (!Array.isArray(r[key]) || (r[key] as unknown[]).length !== count) return null
   }
