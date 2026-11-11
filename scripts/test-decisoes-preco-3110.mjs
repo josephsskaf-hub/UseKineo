@@ -181,7 +181,9 @@ async function problems(replacements = {}) {
   // KINEO-PRECOS-ECONOMIA-0911 [fundador 09/11: "Sim para as 5" — decisão 1] — a mesma conta (12 × mensal − o anual que o cartão cobra), agora por mês E por ano;
   // a conta mora em lib/annualSavingCopy.ts (guardião próprio: scripts/test-precos-economia-0911.mjs).
   if (!src(PRICING).includes('const annualSaving = annualSavingMinor(getTierPrice(tier, resolvedCurrency, resolvedRegion), annualMinorFor(tier))') || !src(PRICING).includes('<b>{formatCheckoutMoney(resolvedCurrency, annualSaving.perYearMinor)}{savingWords.year}</b>') || !readFileSync(resolve(root, 'lib/annualSavingCopy.ts'), 'utf8').includes('const perYearMinor = monthlyMinor * 12 - annualMinor')) p.push('/pricing: o cartão perdeu o "Save $X a year" da conta real')
-  if (!src(UPGRADE).includes("useState<ConversionBilling>('annual')") || !src(UPGRADE).includes('Save {plan.annualSaving}/yr')) p.push('parede: anual não pré-selecionado ou sem "Save $X/yr"')
+  // KINEO-PAREDE-MENSAL-1111 [decisão do fundador] — a aba inicial da parede passou a ser do interruptor (lib/offers/paredeMensal1111.ts;
+  // 'off' = anual, o de 31/10). O que esta decisão de 31/10 exige continua: o anual a um clique, com "save 30%" e o "Save $X/yr".
+  if (!src(UPGRADE).includes('useState<ConversionBilling>(paredeBillingInicial())') || !src(UPGRADE).includes('Save {plan.annualSaving}/yr') || !src(UPGRADE).includes('`Annual · save ${ANNUAL_DISCOUNT_PERCENT}%`')) p.push('parede: aba inicial fora do interruptor KINEO-PAREDE-MENSAL-1111, anual fora da escolha ou sem "Save $X/yr"')
   return p
 }
 

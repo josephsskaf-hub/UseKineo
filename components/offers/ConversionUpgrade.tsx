@@ -30,12 +30,16 @@ import {
   copyDoFilmePrimeiro, decidirFilmePrimeiro, type FilmeGratisVariante,
 } from '@/lib/growth/paywallFilmePrimeiro'
 import { FilmsLikeThisNote, FilmsMadeProof } from '@/components/checkout/ValorNoCheckout' // KINEO-VALOR-NO-CHECKOUT-3110 — o filme dela em "≈ N more films like this" + a prova social real
+import { paredeBillingInicial, paredeViewMetadata } from '@/lib/offers/paredeMensal1111' // KINEO-PAREDE-MENSAL-1111
+
+/** KINEO-PAREDE-MENSAL-1111 — constante de módulo (referência estável para o efeito da impressão). */
+const PAREDE_VIEW_META: Record<string, string> = paredeViewMetadata()
 
 const SAMPLE: { videoPath: string; arenaPosterPath?: string } | undefined = PUBLIC_ENGINE_EXAMPLES.find(v => v.engine === 'cinematic_ai' && 'arenaPosterPath' in v)
 const panel = { border: '1px solid var(--border)', borderRadius: 14, padding: 16, background: 'var(--card2)' }
 const button = { border: '1px solid var(--border2)', borderRadius: 10, padding: '12px 16px', fontWeight: 750, cursor: 'pointer', color: 'var(--text)', background: 'var(--card)' } as const
 
-export function useOfferObservation(surface: ConversionSurface, offer: string, enabled = true) {
+export function useOfferObservation(surface: ConversionSurface, offer: string, enabled = true, extra: Record<string, string> | null = null) {
   const root = useRef<HTMLDivElement>(null)
   const viewed = useRef(false)
   const acted = useRef(false)
@@ -44,12 +48,12 @@ export function useOfferObservation(surface: ConversionSurface, offer: string, e
     const observer = new IntersectionObserver(entries => {
       if (viewed.current || !entries.some(e => e.isIntersecting)) return
       viewed.current = true
-      void trackEvent('conversion_offer_viewed', conversionMetadata(surface, offer))
+      void trackEvent('conversion_offer_viewed', { ...conversionMetadata(surface, offer), ...(extra ?? {}) }) // KINEO-PAREDE-MENSAL-1111: `extra` só na parede
       observer.disconnect()
     }, { threshold: 0.1 })
     observer.observe(root.current)
     return () => observer.disconnect()
-  }, [enabled, surface, offer])
+  }, [enabled, surface, offer, extra])
   function gesture(choice: string) {
     if (acted.current) return
     acted.current = true
@@ -203,8 +207,10 @@ export default function ConversionUpgrade({ currency, region, onClose, onUpgrade
   const passMovedOrPending = lead === 'region_pass' || regionPending
   const regionPass = passMovedOrPending ? null : regionPassProp
   const onFilmPass = passMovedOrPending ? null : onFilmPassProp
-  const [billing, setBilling] = useState<ConversionBilling>('annual')
-  const observation = useOfferObservation('upgrade', 'menu')
+  // KINEO-PAREDE-MENSAL-1111 — a aba que abre selecionada vem do interruptor (lib/offers/paredeMensal1111.ts): 'on' = mensal, 'off' =
+  // anual (o de antes). O anual segue a um clique, com o mesmo "save 30%". A impressão da parede grava qual aba abriu.
+  const [billing, setBilling] = useState<ConversionBilling>(paredeBillingInicial())
+  const observation = useOfferObservation('upgrade', 'menu', true, PAREDE_VIEW_META)
   const close = useRef<HTMLButtonElement>(null)
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
