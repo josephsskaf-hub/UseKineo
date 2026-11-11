@@ -270,6 +270,9 @@ const SERVER_ONLY_EVENTS = new Set([
   // KINEO-TRAVA-K4-GRATIS-1111 — o desvio do Kling 4 grátis para o motor barato (motivo: plus/relay/digital/gmail_repetido/
   // sem_prova), gravado pela rota do filme. Forjado pelo navegador, inventaria uma fazenda que não existiu.
   'kling4_trial_diverted',
+  // KINEO-TETO-K4-GRATIS-1111 — o desvio do Kling 4 grátis pelo teto (retomada do robô da fila, 2º envio em 24 h por conta ou
+  // aparelho, leitura falhou), gravado pela rota do filme. Forjado pelo navegador, inventaria tentativas que não existiram.
+  'kling4_trial_capped',
   // KINEO-E4-SAIDA-B-2026-09-29 — escritos SÓ pelo servidor: a recusa do Kineo 1 grátis (lib/kineo1Gate.ts, na
   // generate-video-fast) e a cota semanal nova (recarga em lib/freeWeeklyFilmGrant.ts; admissão no cinematic). O carimbo
   // da recarga É a janela de 7 dias: se o navegador pudesse cunhá-lo, travaria a cota de alguém; as três são o custo medido.
