@@ -122,10 +122,10 @@ function unidades(S) {
   out.push(['dois "anos depois" no mesmo filme: a 2ª nasce na variante (outro plano), sem precisar da troca', a.abstrata === 'anos_depois' && b.abstrata === 'anos_depois' && !b.trocou && b.nucleo.startsWith('Close-up detail of the same') && a.plano !== b.plano])
   out.push(['número de quarto/voo/preço não vira ano', JSON.stringify(S.anosDoTexto('Room 1408 was haunted. The ticket cost $1500. Flight 1549 landed in 2009.').map((x) => x.ano)) === '[2009]'])
   out.push(['lugar: "Mount Tambora in Indonesia" → "Mount Tambora, Indonesia" (o mês não é lugar)', S.lugaresDoTexto('In April 1815, Mount Tambora in Indonesia exploded')[0] === 'Mount Tambora, Indonesia'])
-  out.push(['época: 79 AD', S.epocaDoFilmeS25('In 79 AD, Mount Vesuvius buried Pompeii under ash.') === 'Mount Vesuvius, 79 AD: period clothing, vehicles, tools and buildings only, no modern items.'])
+  out.push(['época: 79 AD', S.epocaDoFilmeS25('In 79 AD, Mount Vesuvius buried Pompeii under ash.') === 'Mount Vesuvius, 79 AD: period clothing, vehicles, tools and buildings only, everything exactly as it looked then.'])
   out.push(['roteiro sem ano nem era: nenhuma trava de época inventada', S.epocaDoFilmeS25('A boy finds a strange key in his grandmother\'s attic.') === ''])
   out.push(['ano recente: sem "no modern items"', S.epocaDoFilmeS25('In 2011, a tsunami hit the coast.') === '2011: clothing, vehicles, tools and buildings exactly as they were in 2011.'])
-  out.push(['âncora de ambiente: environmentSheet + época do filme', S.ambienteComEpoca('A foggy London street in December 1952, with dim gas lamps.', 'London, 1952: period clothing, vehicles, tools and buildings only, no modern items.') === 'A foggy London street in December 1952, with dim gas lamps. London, 1952: period clothing, vehicles, tools and buildings only, no modern items'])
+  out.push(['âncora de ambiente: environmentSheet + época do filme', S.ambienteComEpoca('A foggy London street in December 1952, with dim gas lamps.', 'London, 1952: period clothing, vehicles, tools and buildings only, everything exactly as it looked then.') === 'A foggy London street in December 1952, with dim gas lamps. London, 1952: period clothing, vehicles, tools and buildings only, everything exactly as it looked then'])
   return out
 }
 

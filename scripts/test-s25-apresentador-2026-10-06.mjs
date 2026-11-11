@@ -51,9 +51,9 @@ const FICHA_T = 'A middle-aged historian, Caucasian, with short brown hair, wear
 const AMBIENTE_T = 'A dimly lit historical study room filled with ancient books, a wooden desk, and a large globe in the corner. The atmosphere is scholarly and contemplative.'
 const FALA1_T = 'In April 1815, Mount Tambora in Indonesia exploded with a roar heard two thousand kilometers away.'
 // o que o ensaio devolveu como prompt da cena 1 (até onde o relato cortou em "…") e como ambiente_ancora (idem)
-const ENSAIO_CENA1_T = 'A middle-aged historian, Caucasian, with short brown hair, wearing a dark green wool coat and a white shirt, stands against a backdrop of antique bookshelves, looking directly into the camera. Mount Tambora, Indonesia, 1815: period clothing, vehicles, tools and buildings only, no modern items. Camera upright, level horizon.'
+const ENSAIO_CENA1_T = 'A middle-aged historian, Caucasian, with short brown hair, wearing a dark green wool coat and a white shirt, stands against a backdrop of antique bookshelves, looking directly into the camera. Mount Tambora, Indonesia, 1815: period clothing, vehicles, tools and buildings only, everything exactly as it looked then. Camera upright, level horizon.'
 const ENSAIO_AMBIENTE_T = 'A dimly lit historical study room filled with ancient books, a wooden desk, and a large globe in the corner. The atmosphere is scholarly and contemplative. Mount Tambora, Indonesia, 1815: period cloth'
-const EPOCA_T = 'Mount Tambora, Indonesia, 1815: period clothing, vehicles, tools and buildings only, no modern items.'
+const EPOCA_T = 'Mount Tambora, Indonesia, 1815: period clothing, vehicles, tools and buildings only, everything exactly as it looked then.'
 // a direção (resto) no padrão da casa — o ensaio cortou em "…" (o núcleo e a ficha acima são os reais)
 const RESTO = 'Subtle handheld camera movement, natural imperfect lighting, light film grain, 9:16 vertical framing Cinematography (match exactly): shot on 35mm, teal-orange grade, soft golden backlight, shallow depth of field, light film grain. No readable text anywhere in the scene: no phone or computer screens, no signs, no billboards, no labels, no subtitles, no watermarks. If a phone appears, its screen is off or blurred.'
 const semPonto = (t) => t.replace(/\.$/, '')
@@ -199,13 +199,13 @@ async function verificacoes(over = {}) {
   v('Tambora: cena de diálogo com o apresentador continua intocada (null)', () => { const r = plano(S, [...TAMBORA.slice(0, 2), { type: 'dialogue', voiceover: null, prompt: `${semPonto(FICHA_T)}, looking directly into the camera, says the line.` }], FICHA_T, 'en', ROTEIRO_T); return r.cenas[2] === null && r.relato.cenas_s25 === 2 })
 
   // ── (C) âncora de ambiente ──
-  v('ambiente Tambora: o escritório sem lugar da história vira a época/lugar do filme', () => S.ambienteComEpoca(AMBIENTE_T, S.epocaDoFilmeS25(ROTEIRO_T)) === 'Mount Tambora, Indonesia, 1815: period clothing, vehicles, tools and buildings only, no modern items')
-  v('ambiente Londres (rua da história): environmentSheet + época, como antes', () => S.ambienteComEpoca('A foggy London street in December 1952, with dim gas lamps casting a yellow glow and thick smog blanketing the city.', 'London, 1952: period clothing, vehicles, tools and buildings only, no modern items.') === 'A foggy London street in December 1952, with dim gas lamps casting a yellow glow and thick smog blanketing the city. London, 1952: period clothing, vehicles, tools and buildings only, no modern items')
-  v('ambiente biblioteca QUE É o lugar da história (Alexandria): fica', () => S.ambienteComEpoca('The great library of Alexandria, towering shelves of papyrus scrolls lit by oil lamps.', 'Alexandria, Egypt, 48 BC: period clothing, vehicles, tools and buildings only, no modern items.').startsWith('The great library of Alexandria'))
-  v('ambiente com 1 sinal fraco só ("radio studio" da história): fica', () => S.ambienteComEpoca('A 1930s radio studio with vintage microphones and heavy curtains.', 'New Jersey, 1938: period clothing, vehicles, tools and buildings only, no modern items.').startsWith('A 1930s radio studio'))
+  v('ambiente Tambora: o escritório sem lugar da história vira a época/lugar do filme', () => S.ambienteComEpoca(AMBIENTE_T, S.epocaDoFilmeS25(ROTEIRO_T)) === 'Mount Tambora, Indonesia, 1815: period clothing, vehicles, tools and buildings only, everything exactly as it looked then')
+  v('ambiente Londres (rua da história): environmentSheet + época, como antes', () => S.ambienteComEpoca('A foggy London street in December 1952, with dim gas lamps casting a yellow glow and thick smog blanketing the city.', 'London, 1952: period clothing, vehicles, tools and buildings only, everything exactly as it looked then.') === 'A foggy London street in December 1952, with dim gas lamps casting a yellow glow and thick smog blanketing the city. London, 1952: period clothing, vehicles, tools and buildings only, everything exactly as it looked then')
+  v('ambiente biblioteca QUE É o lugar da história (Alexandria): fica', () => S.ambienteComEpoca('The great library of Alexandria, towering shelves of papyrus scrolls lit by oil lamps.', 'Alexandria, Egypt, 48 BC: period clothing, vehicles, tools and buildings only, everything exactly as it looked then.').startsWith('The great library of Alexandria'))
+  v('ambiente com 1 sinal fraco só ("radio studio" da história): fica', () => S.ambienteComEpoca('A 1930s radio studio with vintage microphones and heavy curtains.', 'New Jersey, 1938: period clothing, vehicles, tools and buildings only, everything exactly as it looked then.').startsWith('A 1930s radio studio'))
   v('ambiente sem época (roteiro sem ano): a environmentSheet volta intacta', () => S.ambienteComEpoca('A dimly lit study room filled with ancient books.', '') === 'A dimly lit study room filled with ancient books.')
-  v('ambiente Boston (sem environmentSheet): continua vazio', () => S.ambienteComEpoca('', 'Boston, 1919: period clothing, vehicles, tools and buildings only, no modern items.') === '')
-  v('ambiente: escritório + época sem lugar → a própria época como cenário', () => S.ambienteComEpoca('A cozy library with leather armchairs.', '1815: period clothing, vehicles, tools and buildings only, no modern items.') === '1815: period clothing, vehicles, tools and buildings only, no modern items')
+  v('ambiente Boston (sem environmentSheet): continua vazio', () => S.ambienteComEpoca('', 'Boston, 1919: period clothing, vehicles, tools and buildings only, everything exactly as it looked then.') === '')
+  v('ambiente: escritório + época sem lugar → a própria época como cenário', () => S.ambienteComEpoca('A cozy library with leather armchairs.', '1815: period clothing, vehicles, tools and buildings only, everything exactly as it looked then.') === '1815: period clothing, vehicles, tools and buildings only, everything exactly as it looked then')
   v('lugarDaEpoca: "Mount Tambora, Indonesia, 1815: …" → "Mount Tambora, Indonesia"; sem lugar → null', () => S.lugarDaEpoca(EPOCA_T) === 'Mount Tambora, Indonesia' && S.lugarDaEpoca('London, 1952: x.') === 'London' && S.lugarDaEpoca('1815: x.') === null && S.lugarDaEpoca('The decades after 1919: x.') === null)
 
   // ── (D) relato ──
@@ -299,7 +299,7 @@ async function verificacoes(over = {}) {
     const seco = await ensaio({ family: 's25', plan: planT(), prompt: ROTEIRO_T, hollywoodLanguage: 'en', alignShotsToSpeech: async () => null, scrubInventedSetting: (t) => ({ text: t, removed: [] }), planejarCenasS25: S.planejarCenasS25, ambienteComEpoca: S.ambienteComEpoca, epocaDoFilmeS25: S.epocaDoFilmeS25, montarPromptS25: S.montarPromptS25, garantirAcaoCentral: F.garantirAcaoCentral, silenciarFalaNoPrompt: F.silenciarFalaNoPrompt, eraSuffix: '' })
     const p1 = String(seco?.prompts?.[0]?.prompt ?? '')
     v('ensaio de $0 (fatia real da rota) Tambora: cena 1 abre com o vulcão, sem historiador nem olhar para a lente', () => p1.startsWith('Wide shot of Mount Tambora in Indonesia erupting') && !/historian|bookshel/i.test(p1) && !OLHAR_LENTE_RE.test(p1))
-    v('ensaio de $0 Tambora: ambiente_ancora = a época/lugar, não o escritório', () => seco?.ambiente_ancora === 'Mount Tambora, Indonesia, 1815: period clothing, vehicles, tools and buildings only, no modern items')
+    v('ensaio de $0 Tambora: ambiente_ancora = a época/lugar, não o escritório', () => seco?.ambiente_ancora === 'Mount Tambora, Indonesia, 1815: period clothing, vehicles, tools and buildings only, everything exactly as it looked then')
     v('ensaio de $0 Tambora: o relato espalhado traz papel_apresentador=historian e apresentador_fora=1', () => seco?.papel_apresentador === 'historian' && seco?.apresentador_fora === 1 && Array.isArray(seco?.cenas) && seco.cenas[0].apresentador === 'fora')
   }
   if (pre) {
@@ -330,7 +330,7 @@ async function verificacoes(over = {}) {
   }
   if (anc) {
     const ctx = (family) => ({ family, plan: planT(), prompt: ROTEIRO_T, hollywoodLanguage: 'en', ambienteComEpoca: S.ambienteComEpoca, epocaDoFilmeS25: S.epocaDoFilmeS25 })
-    v('âncora de ambiente (expressão real da rota) S25 Tambora: a época/lugar', () => anc(ctx('s25')).environmentSheet === 'Mount Tambora, Indonesia, 1815: period clothing, vehicles, tools and buildings only, no modern items')
+    v('âncora de ambiente (expressão real da rota) S25 Tambora: a época/lugar', () => anc(ctx('s25')).environmentSheet === 'Mount Tambora, Indonesia, 1815: period clothing, vehicles, tools and buildings only, everything exactly as it looked then')
     v('âncora de ambiente (expressão real da rota) H3/Omni: a environmentSheet do GPT, byte a byte', () => anc(ctx('h3')).environmentSheet === AMBIENTE_T && anc(ctx('omni')).environmentSheet === AMBIENTE_T)
   }
   return V

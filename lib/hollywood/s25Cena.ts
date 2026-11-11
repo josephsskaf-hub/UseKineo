@@ -201,7 +201,7 @@ export function fraseDeEpoca(e: Omit<EpocaCena, 'frase'>): string {
   const recente = e.ano !== null && e.sufixo === '' && !e.decada && e.depoisDe === null && e.ano >= 1980
   const frase = recente
     ? `${onde}${quando}: clothing, vehicles, tools and buildings exactly as they were in ${quando}.`
-    : `${onde}${quando}: period clothing, vehicles, tools and buildings only, no modern items.`
+    : `${onde}${quando}: period clothing, vehicles, tools and buildings only, everything exactly as it looked then.` /* KINEO-EPOCA-TEXTO-1111 — era "no modern items": o motor desenha o que é nomeado */
   return frase.charAt(0).toUpperCase() + frase.slice(1)
 }
 
