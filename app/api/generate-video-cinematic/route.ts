@@ -5784,7 +5784,8 @@ async function manipularPost(req: NextRequest) {
           origemDoElenco: origemNasCenas, // KINEO-ORIGEM-DO-ELENCO-0311 — estrada hollywood: cena com gente sem ficha também diz a origem
           elencoSemantico: conferenciaElenco, // KINEO-SO-GENTE-NA-FICHA-0411 — a camada de época também não insere quem a leitura não leu como personagem
           elenco: personagemElenco.elenco, preservarElenco: !!qualidadeHerdada })
-        plan.scenes.forEach((scene, i) => { const comSuperficie = comSuperficieSemTexto(quality.prompts[i]); scene.prompt = comSuperficie.length <= 2500 ? comSuperficie : quality.prompts[i] }) // KINEO-EMBALAGEM-SEM-LETRA-0411 — a estrada hollywood também descreve em positivo a superfície que ganha letra (o Kling 4 já tinha; agora Kling 3, H3, Omni e S25)
+        const luzHollywood = qualidadeHerdada ? null : luzDoPedido(pedidoDoCliente) // KINEO-UNIVERSAL-HOLLYWOOD-1111 [CEO 11/11, tabela de cobertura] — a luz do pedido e o relógio de ponteiros também na estrada hollywood (Kling 4 pago, H3, H3 Max, S25): antes só a clássica os tinha
+        plan.scenes.forEach((scene, i) => { const base = relogioComPonteiros(quality.prompts[i]); const comSuperficie = comLuzDoPedido(comSuperficieSemTexto(base), luzHollywood); const comLuz = comLuzDoPedido(base, luzHollywood); scene.prompt = comSuperficie.length <= 2500 ? comSuperficie : comLuz.length <= 2500 ? comLuz : base }) // KINEO-UNIVERSAL-HOLLYWOOD-1111 — passou de 2500: sai primeiro a frase da superfície; a luz e o relógio ficam // KINEO-EMBALAGEM-SEM-LETRA-0411 — a estrada hollywood também descreve em positivo a superfície que ganha letra (o Kling 4 já tinha; agora Kling 3, H3, Omni e S25)
         plan.styleSheet = styleAnchor.lookPhrase + styleAnchor.suffix
         plan.stylized = isStylizedLook(styleAnchor)
         if (qualidadeHerdada) {
