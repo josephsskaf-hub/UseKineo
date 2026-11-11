@@ -64,7 +64,9 @@ check('9. o timer do orcamento e limpo (nao vaza no serverless)', /finally \{\n\
 check('10. o escritor recebe o id do filme e o tema real (topicFinal)', /\{ id: shareVideoId, title: null, topic: topicFinal \}/.test(status))
 
 // O bloco entra DEPOIS do download, e o resto do e-mail nao mexeu.
-const iDownload = status.indexOf('⬇ Download Your Short')
+// KINEO-EMAIL-FILME-NA-PAGINA-1111 — o botão passou a vir de lib/growth/emailFilmePronto.ts (${filmeBotao.label}): ligado é
+// "▶ Watch your film" + a linha "or download the file" com o MP4; desligado, o "⬇ Download Your Short" de antes. A ordem segue a mesma.
+const iDownload = status.indexOf('${filmeBotao.label}') > 0 ? status.indexOf('${filmeBotao.label}') : status.indexOf('⬇ Download Your Short')
 const iShare = status.indexOf('${shareHtml}')
 const iPack = status.indexOf('${packHtml}')
 const iReview = status.indexOf('KINEO-REVIEW-NO-EMAIL-2026-08-24')
