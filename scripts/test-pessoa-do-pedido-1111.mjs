@@ -108,9 +108,18 @@ function ficha657(P, S, K, over) {
     no(!/long neat black braids/.test(m.prompt) || !/cream blouse/.test(m.prompt) || !/black trousers/.test(m.prompt), `(g) plano ${i + 1}: tranças ou roupa fora da ficha → ${m.prompt.slice(0, 300)}`)
     no(/wavy hair|dark blue jacket|grey t-shirt/.test(m.prompt), `(g) plano ${i + 1}: o elenco sorteado voltou`)
     no(Array.from(m.prompt).length > 512 || !m.prompt.endsWith(" Mouth closed, no speaking."), `(g) plano ${i + 1}: passou de 512 ou perdeu a cauda`)
-    no(!/natural features of South African people/.test(m.prompt), `(g) plano ${i + 1}: perdeu a marca de origem que o juiz lê`)
+    // degrau 4: a origem já está na ficha ("South African woman"); os juízes leem a marca no prompt cheio da cena, que continua com ela
+    no(!/South African woman/.test(m.prompt) || !/natural features of South African people/.test(prompts[i]), `(g) plano ${i + 1}: perdeu a origem`)
+    no(/\s(?:the|a|an|of|to|into|in|with|and|as),?\s+no readable text/i.test(m.prompt), `(j) plano ${i + 1}: o corte da ação terminou em palavra solta → ${m.prompt.slice(-160)}`)
   }
+  no(!mp[1].prompt.includes("Every screen glows with soft abstract light and colour.") || /writing out of focus/.test(mp[1].prompt), `(k) plano 2 (celular): a tela sem texto caiu do plano → ${mp[1].prompt.slice(-200)}`)
   no(P.pessoaDoPedido("A woman, 30 years old, wearing a red coat, walks home.") !== "a woman, 30 years old, wearing a red coat", "(h) a ação entrou na lista da roupa")
+  // o corte por palavra (sem frase nem vírgula para cortar) não termina em artigo/preposição
+  const FQ = loader(over)("lib/cinematic/filmQuality.ts")
+  for (const lim of [88, 92, 96, 100, 104]) {
+    const corte = FQ.cortaEmFronteira("A close-up shot of a woman's eyes in a quiet café as she slowly gazes into the distance through the tall window at the street", lim)
+    no(/\s(?:the|a|an|of|to|into|in|at|with|and|as|through)$/i.test(corte), `(j) corte a ${lim}: terminou em palavra solta → …${corte.slice(-40)}`)
+  }
   return p
 }
 
@@ -129,6 +138,9 @@ const MUT = [
   ["M9 o elenco de 15 s não recebe a pessoa", { "app/api/generate-video-cinematic/route.ts": rt.replace("const pessoa15 = elencoComPessoaDoPedido(pessoaPedida, elencoDoAjuste)", "const pessoa15 = elencoComPessoaDoPedido(null, elencoDoAjuste)") }],
   ["M10 a ficha da história fica com a derivada curta", { "lib/cinematic/pessoaDoPedido.ts": pp.replace("return papel && new RegExp(", "return false && new RegExp(") }],
   ["M5 a ficha do plano volta a ir até o fim da linha e ao corte no caractere", { "lib/cinematic/filmQuality.ts": read("lib/cinematic/filmQuality.ts").replace("${cortaEmFronteira(identity[1], budget).replace(/[.,;\\s]+$/, '')}", "${take(identity[1], budget)}").replace("consistent design: ([^\\n]+?)(?:\\.(?=\\s|$)|$)/i", "consistent design: ([^\\n]+)/i") }],
+  ["M12 a tela sem texto volta a depender de sobra", { "lib/cinematic/filmQuality.ts": read("lib/cinematic/filmQuality.ts").replace("const textProtection = textProtectionBase && superficie && !textProtectionBase.includes(superficie)", "const textProtection = false") }],
+  ["M14 a origem volta repetida no plano", { "lib/cinematic/filmQuality.ts": read("lib/cinematic/filmQuality.ts").replace("const origemNaFicha = !!identity && !cast", "const origemNaFicha = false && !cast") }],
+  ["M15 o corte por palavra volta a terminar em artigo", { "lib/cinematic/filmQuality.ts": read("lib/cinematic/filmQuality.ts").replace(".replace(/(?:\\s+(?:the|a|an|of|to|into|onto|in|on|at|by|for|from|with|without|and|or|but|as|while|that|which|who|through|over|under|across|toward|towards|behind|near|upon|after|before|her|his|their|its|is|are|was|were))+$/iu, '')", "") }],
   ["M4 a pessoa nua vira ficha", { "lib/cinematic/pessoaDoPedido.ts": pp.replace("if (nua && aceitos.length === 0) continue", "if (false) continue") }],
 ]
 for (const [nome, over] of MUT) {

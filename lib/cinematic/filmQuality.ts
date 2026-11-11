@@ -6,6 +6,7 @@ import { elencoComFichaLiteral, canonicaComDesenhoFixo, semDescricaoConcorrente 
 import { aplicarContrato, montarContrato } from '@/lib/cinematic/sceneTruth'
 import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
 import { applyStyleAnchor, NO_READABLE_TEXT_SUFFIX, textSafetySuffix, type StyleAnchor } from '@/lib/cinematic/sceneStyle'
+import { fraseUnicaDeSuperficie } from '@/lib/cinematic/superficieSemTexto' // KINEO-PESSOA-DO-PEDIDO-1111 (degrau 4)
 import type { FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
 import { conferirFichaLiteral, type LeituraDaFicha } from '@/lib/cinematic/elencoSemantico' // KINEO-PROTAGONISTA-SEEDANCE-0111
 import type { FilmQualitySnapshot } from '@/lib/filmComplete/qualityInheritance'
@@ -58,7 +59,8 @@ export function cortaEmFronteira(texto: string, limite: number): string {
   while (partes.length > 1 && /^(?:no|not|never|without)\b/i.test(partes[partes.length - 1].trim())) partes.pop()
   const porOracao = partes.join(', ').replace(/[\s,;:—-]+$/u, '')
   const melhor = Array.from(porOracao).length > Array.from(porFrase).length ? porOracao : porFrase
-  return Array.from(melhor).length >= limite * 0.6 ? melhor : cabe.replace(/\s+\S*$/u, '')
+  // KINEO-PESSOA-DO-PEDIDO-1111 (degrau 4) — o corte por palavra não termina em artigo/preposição/conjunção ("… as she gazes into the")
+  return Array.from(melhor).length >= limite * 0.6 ? melhor : cabe.replace(/\s+\S*$/u, '').replace(/(?:\s+(?:the|a|an|of|to|into|onto|in|on|at|by|for|from|with|without|and|or|but|as|while|that|which|who|through|over|under|across|toward|towards|behind|near|upon|after|before|her|his|their|its|is|are|was|were))+$/iu, '').replace(/[\s,;:—-]+$/u, '')
 }
 
 // KINEO-QUALIDADE-TODOS-MOTORES-2910 — leave room for Kling's keyframe directive inside its 512-code-point limit.
@@ -117,12 +119,26 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
   // KINEO-PESSOA-DO-PEDIDO-1111 — o look repetido ("photorealistic, ultra-detailed.", já dito no meio) virava a "1ª frase da ação" no
   // corte e tomava o lugar da ação de verdade e da ficha. Sai da frente da ação.
   action = action.replace(/^(?:photorealistic, ultra-detailed\.\s*)+/i, '').trim()
-  const origemCurta = origensDaCena.length === 1 ? `Everyone shown has the natural features of ${origensDaCena[0]} people. ` : origensDaCena.length > 1 ? `People: ${origensDaCena.slice(0, 2).join(', ')}. ` : '' // KINEO-ORIGEM-DO-ELENCO-0311 — duas origens: sem a marca (o juiz só pergunta com uma)
+  // KINEO-PESSOA-DO-PEDIDO-1111 (degrau 4) — a ficha do cliente que já diz a origem ("a … South African woman") dispensa a linha repetida
+  // no plano do Kling 4 (66 caracteres para a luz e a tela). Os juízes leem a marca nos prompts cheios das cenas (free15GateServer
+  // promptsDoClaim0311 = kling4_trial.scene_plan), que continuam com ela.
+  const origemNaFicha = !!identity && !cast && origensDaCena.length === 1 && identity[1].includes(origensDaCena[0])
+  const origemCurta = origemNaFicha ? '' : origensDaCena.length === 1 ? `Everyone shown has the natural features of ${origensDaCena[0]} people. ` : origensDaCena.length > 1 ? `People: ${origensDaCena.slice(0, 2).join(', ')}. ` : '' // KINEO-ORIGEM-DO-ELENCO-0311 — duas origens: sem a marca (o juiz só pergunta com uma)
+  // KINEO-PESSOA-DO-PEDIDO-1111 (degrau 4) — a frase positiva da superfície ("Every screen glows with soft abstract light and colour.")
+  // entrava só se sobrasse espaço (cenaKling4) e caiu com a ficha inteira: na prova, a tela do celular mostrou linhas de texto. Ela passa
+  // a ser parte da proteção reservada (abaixo), como "no readable text".
+  const superficie = fraseUnicaDeSuperficie(prompt)
+  if (superficie) action = action.split(superficie).join('').replace(/\s{2,}/g, ' ').trim()
   const prefix = `${medium}. ${period ? take(period, 60) + '. ' : ''}${origemCurta}`
   let core = prefix + who(identityBudget) + action
   const fullTextProtection = originalTextDirections.length ? ' ' + originalTextDirections.join(' ') : ''
-  const textProtection = fullTextProtection && Array.from(core + fullTextProtection).length <= 410
+  const textProtectionBase = fullTextProtection && Array.from(core + fullTextProtection).length <= 410
     ? fullTextProtection : compactTextProtection
+  // KINEO-PESSOA-DO-PEDIDO-1111 (degrau 4) — com a frase positiva da superfície, as negativas que ela substitui (", writing out of focus
+  // and unreadable", ", phone screen off or blurred") saem: dizem a mesma coisa em negação e tomavam o lugar da roupa da ficha.
+  const textProtection = textProtectionBase && superficie && !textProtectionBase.includes(superficie)
+    ? `${textProtectionBase.replace(', writing out of focus and unreadable', '').replace(', phone screen off or blurred', '').replace(/[\s,.]+$/, '')}. ${superficie}`
+    : textProtectionBase
   let coreBudget = 410 - Array.from(textProtection).length // KINEO-PESSOA-DO-PEDIDO-1111: let — a ficha do cliente sem elenco ganha +14 (abaixo)
   if (textProtection && Array.from(core).length > coreBudget) {
     // Restore safety without displacing the action that the old 410-char core
@@ -134,12 +150,12 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
     // Action comes before the shortened costume on overflow; even a relation
     // clause that exceeds its nominal share cannot cut away the action's object.
     // KINEO-PESSOA-DO-PEDIDO-1111 — sem elenco ("Identity:" = a pessoa que o cliente descreveu), a ficha vem inteira ANTES da ação (o dono:
-    // cabelo e roupa antes do cenário; 657ad797 perdeu a roupa) e a ação é que cai em fronteira, com piso de 60 caracteres.
+    // cabelo e roupa antes do cenário; 657ad797 perdeu a roupa) e a ação é que cai em fronteira, com piso de 50 caracteres.
     if (identity && !cast) {
       // o teto seguro do plano: 512 − a referência mais longa do montador ("Scene 5: text-directed shot, no new keyframe for this scene. ",
       // 61) − a cauda da boca (27) = 424 de núcleo + proteção; o 410 de sempre deixava 14 sem uso, e aqui eles vão para a ficha.
       coreBudget += 14
-      const ficha = who(Math.max(0, Math.min(identityBudget, coreBudget - Array.from(prefix + whoLabel).length - 60)))
+      const ficha = who(Math.max(0, Math.min(identityBudget, coreBudget - Array.from(prefix + whoLabel).length - 50)))
       core = prefix + ficha + cortaEmFronteira(action, Math.max(0, coreBudget - Array.from(prefix + ficha).length))
     } else core = prefix + firstAction + ' ' + who(reducedIdentity) + action.slice(firstAction.length)
   }
