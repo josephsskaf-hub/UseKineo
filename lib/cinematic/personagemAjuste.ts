@@ -101,6 +101,8 @@ export function elencoDoRoteiro(script: string): FichaDePersonagem[] {
     if (elenco.length >= PERSONAGEM_MAX_PERSONAGENS) { const i = elenco.map((e) => e.protagonista).lastIndexOf(false); if (i < 0) continue; elenco.splice(i, 1) } // KINEO-JUIZ-REFAZ-2810 — teto: sai o último coadjuvante; só protagonistas = nada entra
     elenco.push(ficha) // KINEO-JUIZ-REFAZ-2810
   } // KINEO-JUIZ-REFAZ-2810
+  const SEM_CORPO_1111 = /^(?:the\s+)?(?:god|yahweh|jehovah|allah|lord|almighty|holy spirit|holy ghost|creator|elohim|adonai|hashem|divine|godhead)$/iu // KINEO-NOME-SEM-CORPO-1111 — espelho de lib/cinematic/nomeSemCorpo.ts (sem import: os guardiões carregam este arquivo com módulos fixos)
+  elenco.splice(0, elenco.length, ...elenco.filter((f) => !SEM_CORPO_1111.test(String(f.nome ?? '').trim().replace(/[.,;:!?'’"]+$/u, '')))) // KINEO-NOME-SEM-CORPO-1111 — divindade/conceito (God, Yahweh, Allah…) não vira ficha de personagem (2120f018: "God … a living creature" virou pessoa de costas)
   return elenco // KINEO-JUIZ-REFAZ-2810
 }
 

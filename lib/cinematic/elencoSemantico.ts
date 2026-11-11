@@ -632,6 +632,8 @@ export function aplicarElencoSemantico(base: ReadonlyArray<FichaDePersonagem>, s
     nomeProprio: !!p.name,
     aceita: [...new Set([p.species_text ?? '', p.kind === 'human' && p.species === 'human' ? '' : p.species ?? '', p.role ?? '', p.role_text ?? ''].flatMap(palavrasDe))],
   }))
+  const SEM_CORPO_1111 = /^(?:the\s+)?(?:god|yahweh|jehovah|allah|lord|almighty|holy spirit|holy ghost|creator|elohim|adonai|hashem|divine|godhead)$/iu // KINEO-NOME-SEM-CORPO-1111 — espelho de lib/cinematic/nomeSemCorpo.ts (sem import: os guardiões carregam este arquivo com módulos fixos)
+  if (elenco.some((f) => SEM_CORPO_1111.test(String(f.nome ?? '').trim().replace(/[.,;:!?'’"]+$/u, '')))) { const resto = elenco.filter((f) => !SEM_CORPO_1111.test(String(f.nome ?? '').trim().replace(/[.,;:!?'’"]+$/u, ''))); if (!resto.length) return null; elenco.splice(0, elenco.length, ...resto) } // KINEO-NOME-SEM-CORPO-1111 — divindade/conceito não vira ficha; sem mais ninguém, o elenco determinístico de sempre
   return {
     elenco,
     nomes: todos.map((p) => p.name ?? `the ${p.role}`),

@@ -1,0 +1,35 @@
+{
+ "marca": "KINEO-NOME-SEM-CORPO-1111",
+ "scope": {
+  "lib/cinematic/personagemAjuste.ts": {
+   "beforeSha256": "1b1b8af6620d38347ac2b8e53d825bab21d9289142b6533f6436e51552e41240",
+   "afterSha256": "c6d7d4223b2ee3039c5412541dc282b80013d204438dbaa5be08d6424d8cd286",
+   "hunks": [
+    {
+     "before": "  return elenco // KINEO-JUIZ-REFAZ-2810\n",
+     "after": "  const SEM_CORPO_1111 = /^(?:the\\s+)?(?:god|yahweh|jehovah|allah|lord|almighty|holy spirit|holy ghost|creator|elohim|adonai|hashem|divine|godhead)$/iu // KINEO-NOME-SEM-CORPO-1111 — espelho de lib/cinematic/nomeSemCorpo.ts (sem import: os guardiões carregam este arquivo com módulos fixos)\n  elenco.splice(0, elenco.length, ...elenco.filter((f) => !SEM_CORPO_1111.test(String(f.nome ?? '').trim().replace(/[.,;:!?'’\"]+$/u, '')))) // KINEO-NOME-SEM-CORPO-1111 — divindade/conceito (God, Yahweh, Allah…) não vira ficha de personagem (2120f018: \"God … a living creature\" virou pessoa de costas)\n  return elenco // KINEO-JUIZ-REFAZ-2810\n"
+    }
+   ]
+  },
+  "lib/cinematic/elencoEpoca.ts": {
+   "beforeSha256": "dbda2a6b78983011d8aae9a9f2650f4e37dfdecfa790e6bdb99f290510ce2333",
+   "afterSha256": "7e43f2aa3b9a590e526367132c35504de6ee1e714d3ae0c0c282efd1bcee6fd2",
+   "hunks": [
+    {
+     "before": "  const usados = new Set<string>() // KINEO-ELENCO-EPOCA-2710\n",
+     "after": "  const SEM_CORPO_1111 = /^(?:the\\s+)?(?:god|yahweh|jehovah|allah|lord|almighty|holy spirit|holy ghost|creator|elohim|adonai|hashem|divine|godhead)$/iu // KINEO-NOME-SEM-CORPO-1111 — espelho de lib/cinematic/nomeSemCorpo.ts (sem import: os guardiões carregam este arquivo com módulos fixos)\n  lista.splice(0, lista.length, ...lista.filter((c) => !SEM_CORPO_1111.test(String(c.nome ?? '').trim().replace(/[.,;:!?'’\"]+$/u, '')))) // KINEO-NOME-SEM-CORPO-1111 — divindade/conceito não vira personagem nomeado\n  const usados = new Set<string>() // KINEO-ELENCO-EPOCA-2710\n"
+    }
+   ]
+  },
+  "lib/cinematic/elencoSemantico.ts": {
+   "beforeSha256": "21e5930a3ac3dd0941d08d43c08d714850b3d9dc494a3b57792b4450211f2e3f",
+   "afterSha256": "e9587ab27354583d76af9da7ce1cde59ab6441430dfa86cf1fa3ea53b81118db",
+   "hunks": [
+    {
+     "before": "  return {\n",
+     "after": "  const SEM_CORPO_1111 = /^(?:the\\s+)?(?:god|yahweh|jehovah|allah|lord|almighty|holy spirit|holy ghost|creator|elohim|adonai|hashem|divine|godhead)$/iu // KINEO-NOME-SEM-CORPO-1111 — espelho de lib/cinematic/nomeSemCorpo.ts (sem import: os guardiões carregam este arquivo com módulos fixos)\n  if (elenco.some((f) => SEM_CORPO_1111.test(String(f.nome ?? '').trim().replace(/[.,;:!?'’\"]+$/u, '')))) { const resto = elenco.filter((f) => !SEM_CORPO_1111.test(String(f.nome ?? '').trim().replace(/[.,;:!?'’\"]+$/u, ''))); if (!resto.length) return null; elenco.splice(0, elenco.length, ...resto) } // KINEO-NOME-SEM-CORPO-1111 — divindade/conceito não vira ficha; sem mais ninguém, o elenco determinístico de sempre\n  return {\n"
+    }
+   ]
+  }
+ }
+}
