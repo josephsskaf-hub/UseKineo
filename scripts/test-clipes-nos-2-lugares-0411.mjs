@@ -108,7 +108,7 @@ const ATRIBUI_AS_ADS = /\b(made|created|generated|built|produced)\s+(with|by|in|
 const NOMES_DE_MOTOR = /\b(Kling|Seedance|MiniMax|H3|Veo|Omni|Hailuo|Wan|Sora|Runway|Pika|Kineo 1)\b/i
 // KINEO-CARDS-SEM-MOTOR-0911 [fundador 09/11: "quero que você tire os nomes dos motores, porque eu não vejo em outros sites"] — nenhum cartão
 // da vitrine mostra motor (texto visível nem aria-label). A regra vira: o motor GRAVADO no dado é o real (VERDADE) e o link abre nele.
-const { CLIP_ENGINES } = require(path.join(ROOT, 'lib/clips/clipCatalog.ts'))
+const { CLIP_ENGINES, clipShowcaseLabel } = require(path.join(ROOT, 'lib/clips/clipCatalog.ts')) // KINEO-ROTULO-CLIPE-H3-1111: clipShowcaseLabel
 // Founder 10/11: prepare public Recreate; preserve legacy destinations outside the approved catalog.
 const { publicRecreatePath } = require(path.join(ROOT, 'lib/recreate/entry.ts'))
 const escapa = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -186,7 +186,7 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
       if (/Clip<\/span> ·|Clip · /.test(cartao)) e.push(`B ${lugar}: ${c.id} mostra "Clip · motor"`)
       const achado = motorNoTexto.exec(cartao.replace(/href="[^"]*"/g, ''))
       if (achado) e.push(`B ${lugar}: ${c.id} mostra o motor "${achado[0]}"`)
-      if (c.engine !== null && CLIP_ENGINES[c.engine]?.label !== VERDADE[c.id]?.[3]) e.push(`B ${lugar}: ${c.id}: o motor gravado (${c.engine}) não é o da tabela`)
+      if (c.engine !== null && clipShowcaseLabel(c.engine) !== VERDADE[c.id]?.[3]) e.push(`B ${lugar}: ${c.id}: o motor gravado (${c.engine}) não é o da tabela`)
       // KINEO-ADS-NATAL-VITRINE-1011 [fundador 10/11: "como anúncios… em vez de Recreate, a pessoa vai fazer o anúncio dela"] — só o exemplo de
       // anúncio pode falar em anúncio (o tipo no aria-label e o convite "Make your ad"); nenhum cartão diz que a ferramenta de Ads fez o vídeo.
       if (VERDADE[c.id]?.[2] !== 'anuncio' && /\bAd\b|Ads\b/.test(cartao.replace(/href="[^"]*"/, ''))) e.push(`B ${lugar}: ${c.id} fala em anúncio`)

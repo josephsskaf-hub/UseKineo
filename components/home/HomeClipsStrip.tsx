@@ -15,7 +15,7 @@ import { clipsFirstEffectCards } from '@/components/home/ClipsFirstHome'
 import type { ClipEffectKey } from '@/lib/clips/clipEffects'
 import { CLIP_TRENDS } from '@/lib/clips/clipTrends' // KINEO-HOME-GATO-CARRO-2610
 import { GALERIA_EXCLUDED, GALERIA_NEW_CLIPS, viaSignup } from '@/lib/homeGaleria' // KINEO-HOME-CLIPES-NOVOS-2810
-import { CLIP_ENGINES } from '@/lib/clips/clipCatalog' // KINEO-HOME-CLIPES-NOVOS-2810
+import { clipShowcaseLabel } from '@/lib/clips/clipCatalog' // KINEO-HOME-CLIPES-NOVOS-2810 · KINEO-ROTULO-CLIPE-H3-1111: o selo do vídeo é o motor que o fez
 import { faceRemixHref, hasFaceRemix } from '@/lib/clips/faceRemix' // KINEO-ROSTO-NO-CLIPE-2810
 
 // KINEO-HOME-CLIPES-NOVOS-2810 — [TRAVA 8.2 — pedido do fundador 27/10 "colocar os clipes novos na parte inicial"]. A faixa passa a
@@ -114,10 +114,10 @@ export default function HomeClipsStrip({ signedIn }: { signedIn: boolean }) {
         <div className="kcs-grid">
           {HOME_NEW_CLIPS.map((c) => { // KINEO-HOME-CLIPES-NOVOS-2810 · KINEO-ROSTO-NO-CLIPE-2810
             const card = ( // KINEO-ROSTO-NO-CLIPE-2810
-            <Link key={c.id} href={viaSignup('/clips?' + new URLSearchParams({ engine: c.engine, prompt: c.prompt }).toString(), signedIn)} className="kcs-card" data-clip-new={c.id} data-home-cta="clip_new" aria-label={`${c.title} — ${CLIP_ENGINES[c.engine].label}`}>{/* KINEO-HOME-CLIPES-NOVOS-2810 */}
+            <Link key={c.id} href={viaSignup('/clips?' + new URLSearchParams({ engine: c.engine, prompt: c.prompt }).toString(), signedIn)} className="kcs-card" data-clip-new={c.id} data-home-cta="clip_new" aria-label={`${c.title} — ${clipShowcaseLabel(c.engine)}`}>{/* KINEO-HOME-CLIPES-NOVOS-2810 */}
               <div className="kcs-md" style={mediaStyle(c.poster, c.focus)}><WallMedia src={c.video} /></div>{/* KINEO-HOME-CLIPES-NOVOS-2810 · KINEO-HOME-FOCO-2810 — o vídeo 9:16 no cartão mais baixo: o foco do clipe (lib/homeGaleria.ts) mantém cabeça e assunto dentro */}
               <span className="kcs-shade" aria-hidden="true" />{/* KINEO-HOME-CLIPES-NOVOS-2810 */}
-              <span className="kcs-copy"><i>{CLIP_ENGINES[c.engine].label}</i><b><UiLabel>{c.title}</UiLabel></b></span>{/* KINEO-HOME-CLIPES-NOVOS-2810 */}
+              <span className="kcs-copy"><i>{clipShowcaseLabel(c.engine)}</i><b><UiLabel>{c.title}</UiLabel></b></span>{/* KINEO-HOME-CLIPES-NOVOS-2810 */}
             </Link> // KINEO-HOME-CLIPES-NOVOS-2810
             ) // KINEO-ROSTO-NO-CLIPE-2810
             // KINEO-ROSTO-NO-CLIPE-2810 — clipe de pessoa: o cartão e o botão "Put your face in it" (/clips?remix=<id>) lado a lado; sem preço no cartão.

@@ -83,7 +83,7 @@ export const CLIP_ENGINES: Record<ClipEngineKey, ClipEngineSpec> = {
   },
   seedance: {
     key: 'seedance',
-    label: 'Seedance 1.5',
+    label: 'MiniMax H3 Turbo', // KINEO-ROTULO-CLIPE-H3-1111 [CEO 11/11: "rótulo honesto"] — a chave segue 'seedance', mas desde ead4a920a o clipe roda no MiniMax H3 Max Turbo; era 'Seedance 1.5'
     t2vModel: 'minimax/h3-max-turbo/text-to-video', // KINEO-SEEDANCE-SAI-1111 — o Seedance 1.5 sai da fal em 11/11; era 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
     i2vModel: 'minimax/h3-max-turbo/image-to-video', // KINEO-SEEDANCE-SAI-1111 — era 'fal-ai/bytedance/seedance/v1.5/pro/image-to-video'
     falSeconds: range(4, 12),
@@ -131,6 +131,21 @@ export const CLIP_ENGINES: Record<ClipEngineKey, ClipEngineSpec> = {
     t2vAspects: ['9:16', '16:9', '1:1'],
     i2vAspects: 'image',
   },
+}
+
+/**
+ * KINEO-ROTULO-CLIPE-H3-1111 [CEO 11/11: "rótulo honesto"] — o trilho 'seedance' rodou no Seedance 1.5 até 11/11 (ead4a920a) e hoje roda no
+ * MiniMax H3 Max Turbo. CLIP_ENGINES[...].label diz o motor de um clipe NOVO; um vídeo já feito diz o motor que o FEZ.
+ */
+export const CLIP_SEEDANCE_LEGACY_LABEL = 'Seedance 1.5'
+/** Selo de um clipe já gravado (linha da tabela clips), pelo endereço da fal que o fez. */
+export function clipLabelForModel(engine: ClipEngineKey, model: string | null | undefined): string {
+  if (engine === 'seedance' && typeof model === 'string' && model.includes('bytedance/seedance/v1.5')) return CLIP_SEEDANCE_LEGACY_LABEL
+  return CLIP_ENGINES[engine].label
+}
+/** Selo dos vídeos curados da vitrine e da galeria: os do trilho 'seedance' foram todos feitos antes de 11/11, no Seedance 1.5. */
+export function clipShowcaseLabel(engine: ClipEngineKey): string {
+  return engine === 'seedance' ? CLIP_SEEDANCE_LEGACY_LABEL : CLIP_ENGINES[engine].label
 }
 
 export function isClipEngineKey(value: unknown): value is ClipEngineKey {

@@ -349,15 +349,15 @@ const baseSnap = BASE ? await oldEffectsSnapshot(BASE) : null
 // KINEO-SEEDANCE-SAI-1111 — a fal remove o Seedance 1.5 em 11/11: os efeitos do trilho 'seedance' (bring_to_life, restore_old_photo) passam a
 // chamar o H3 Max Turbo i2v. Só o ENDEREÇO e o CORPO enviados à fal mudam (e o model da linha); catálogo, preço, pedido e débito seguem iguais à base.
 const realSnap = await oldEffectsSnapshot(REAL)
-const semEnderecoDoSeedance = (snap) => { const o = JSON.parse(snap); for (const k of Object.keys(o)) { if (o[k] && o[k].effect && o[k].effect.engine === 'seedance') { o[k].fal = null; if (o[k].row) o[k].row.model = null } } return JSON.stringify(o) }
+const semEnderecoDoSeedance = (snap) => { const o = JSON.parse(snap); for (const k of Object.keys(o)) { if (o[k] && o[k].effect && o[k].effect.engine === 'seedance') { o[k].fal = null; if (o[k].row) o[k].row.model = null; if (o[k].card) o[k].card.engine_label = null /* KINEO-ROTULO-CLIPE-H3-1111 — o selo segue o motor real */ } } return JSON.stringify(o) }
 const viaH3 = Object.values(JSON.parse(realSnap)).filter((x) => x && x.effect && x.effect.engine === 'seedance')
-ok(!!baseSnap && semEnderecoDoSeedance(baseSnap) === semEnderecoDoSeedance(realSnap) && viaH3.length === 2 && viaH3.every((x) => x.fal[0] === 'minimax/h3-max-turbo/image-to-video' && x.row.model === x.fal[0] && x.fal[1].resolution === '768P' && !('generate_audio' in x.fal[1])), `(5) os 9 efeitos de antes idênticos ao commit-base ${BASE_SHA} (catálogo, preço, pedido, linha); os 2 do Seedance 1.5 agora no H3 Turbo i2v`)
+ok(!!baseSnap && semEnderecoDoSeedance(baseSnap) === semEnderecoDoSeedance(realSnap) && viaH3.length === 2 && viaH3.every((x) => x.fal[0] === 'minimax/h3-max-turbo/image-to-video' && x.row.model === x.fal[0] && x.fal[1].resolution === '768P' && !('generate_audio' in x.fal[1]) && (!x.card || x.card.engine_label === 'MiniMax H3 Turbo')), `(5) os 9 efeitos de antes idênticos ao commit-base ${BASE_SHA} (catálogo, preço, pedido, linha); os 2 do Seedance 1.5 agora no H3 Turbo i2v`)
 
 const routeP = routeProblems(read('app/api/clips/route.ts'))
 ok(routeP.length === 0, '(4b) rota: o clipe livre não copia effect/model/input do navegador' + (routeP.length ? ' → ' + routeP.join(' | ') : ''))
 
 const server = read('lib/clips/clipServer.ts')
-ok(server.includes('label: effect?.template?.label ?? CLIP_ENGINES[row.engine]?.label ?? row.engine,') && server.includes('const url = data?.video?.url ?? data?.output?.video?.url ?? null'), '(4c) "Meus clipes" com o selo real; o poll lê data.video.url (saída dos dois endpoints)')
+ok(server.includes('label: effect?.template?.label ?? (CLIP_ENGINES[row.engine] ? clipLabelForModel(row.engine, row.model) : row.engine),') /* KINEO-ROTULO-CLIPE-H3-1111 */ && server.includes('const url = data?.video?.url ?? data?.output?.video?.url ?? null'), '(4c) "Meus clipes" com o selo real; o poll lê data.video.url (saída dos dois endpoints)')
 const client = read('app/(dashboard)/clips/ClipsClient.tsx')
 ok(client.includes('<span className="tag">{fx.engine_label}</span>') && client.includes("t('madeWith', { engine: effect.engine_label })"), '(6a) /clips mostra o engine_label do servidor (selo do modelo real)')
 const page = read('app/effects/EffectPageClient.tsx')

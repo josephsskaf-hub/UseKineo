@@ -29,6 +29,7 @@ import {
   CLIP_ENGINES,
   CLIP_ENGINE_ORDER,
   aspectsFor,
+  clipLabelForModel, // KINEO-ROTULO-CLIPE-H3-1111
   clipEngineAccess,
   modesFor,
   offeredSecondsFor,
@@ -247,7 +248,7 @@ export function toPublicClip(row: ClipRow): PublicClip {
     stage: faceRemixStageForRow(row), // KINEO-ROSTO-QUADRO-CHAVE-2810
     id: row.id,
     engine: row.engine,
-    label: effect?.template?.label ?? CLIP_ENGINES[row.engine]?.label ?? row.engine, // KINEO-EFEITOS-NOVOS-2026-10-13 — selo do modelo real
+    label: effect?.template?.label ?? (CLIP_ENGINES[row.engine] ? clipLabelForModel(row.engine, row.model) : row.engine), // KINEO-EFEITOS-NOVOS-2026-10-13 — selo do modelo real · KINEO-ROTULO-CLIPE-H3-1111: clipe antigo do trilho seedance = Seedance 1.5
     with_image: row.mode === 'image',
     seconds: row.seconds,
     aspect: row.aspect,

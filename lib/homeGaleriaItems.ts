@@ -12,7 +12,7 @@ import { enginePaused, engineOffered } from '@/lib/engineLaunch'
 import { CLIP_TRENDS, CLIP_TRENDS_PUBLIC } from '@/lib/clips/clipTrends'
 import { publicEffectPages } from '@/lib/clips/clipEffectPages'
 import { clipEffectEngineLabel } from '@/lib/clips/clipEffects'
-import { CLIP_ENGINES } from '@/lib/clips/clipCatalog'
+import { CLIP_ENGINES, clipShowcaseLabel } from '@/lib/clips/clipCatalog' // KINEO-ROTULO-CLIPE-H3-1111: clipShowcaseLabel
 import { CLIPS_PUBLIC } from '@/lib/clips/clipLaunch'
 import { faceRemixHref, hasFaceRemix } from '@/lib/clips/faceRemix' // KINEO-ROSTO-NO-CLIPE-2810
 import { HOME_GALLERY_DIR, HOME_GALLERY_IMAGES } from '@/components/home/HomeImageGallery'
@@ -37,14 +37,14 @@ import {
 function clipItems(signedIn: boolean): GaleriaItem[] {
   if (!CLIPS_PUBLIC) return []
   const fresh: GaleriaItem[] = GALERIA_NEW_CLIPS.map((c) => ({
-    id: c.id, kind: 'clip', title: c.title, engine: CLIP_ENGINES[c.engine].label, video: c.video, poster: c.poster,
+    id: c.id, kind: 'clip', title: c.title, engine: clipShowcaseLabel(c.engine), video: c.video, poster: c.poster, // KINEO-ROTULO-CLIPE-H3-1111
     href: galeriaClipPromptHref(c.engine, c.prompt, signedIn),
     ...(hasFaceRemix(c.id) ? { faceHref: faceRemixHref(c.id, signedIn) } : {}), // KINEO-ROSTO-NO-CLIPE-2810 — clipe de pessoa: botão "Put your face in it"
   }))
   const trends: GaleriaItem[] = CLIP_TRENDS_PUBLIC
     ? GALERIA_TREND_KEYS.flatMap((key) => {
         const t = CLIP_TRENDS.find((x) => x.key === key)
-        const engine = t ? CLIP_ENGINES[t.engine as keyof typeof CLIP_ENGINES]?.label : null
+        const engine = t && t.engine in CLIP_ENGINES ? clipShowcaseLabel(t.engine as keyof typeof CLIP_ENGINES) : null // KINEO-ROTULO-CLIPE-H3-1111
         return t && engine ? [{ id: t.key, kind: 'clip' as const, title: t.title, engine, video: t.preview.video, poster: t.preview.poster, href: galeriaClipTrendHref(t.key, signedIn) }] : []
       })
     : []
@@ -56,7 +56,7 @@ function clipItems(signedIn: boolean): GaleriaItem[] {
       : []
   })
   const text: GaleriaItem[] = GALERIA_TEXT_CLIPS.map((c) => ({
-    id: c.id, kind: 'clip', title: c.title, engine: CLIP_ENGINES[c.engine].label, video: c.video, poster: c.poster,
+    id: c.id, kind: 'clip', title: c.title, engine: clipShowcaseLabel(c.engine), video: c.video, poster: c.poster, // KINEO-ROTULO-CLIPE-H3-1111
     href: galeriaClipPromptHref(c.engine, c.prompt, signedIn), ...(c.focus ? { focus: c.focus } : {}),
   }))
   // Os novos primeiro; depois a vitrine, os efeitos e os clipes de texto, alternando para o feed não ficar em blocos.
