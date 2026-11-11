@@ -311,7 +311,13 @@ function otherChecks(o = {}) {
   // pedido e os eventos seguem = main (scripts/test-studio-na-moldura-1011.mjs B), e o guardião próprio é scripts/test-motor-opcional-1011.mjs.
   const diff = execFileSync('git', ['diff', '--name-only', MAIN, '--', '.'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter(Boolean).filter(f => f !== 'components/studio/StudioSimples.tsx')
   const proibido = /^(components\/studio\/|app\/\(dashboard\)\/(studio|generate|ads|kids-cartoon)\/|app\/api\/|app\/ai-video-generator\/|app\/vs\/|app\/alternatives\/|components\/seo\/|lib\/email|lib\/lifecycle|app\/checkout\/|lib\/stripe\/|supabase\/|lib\/growth\/homeClipsFirst|lib\/ui\/homeThreeCards|lib\/ui\/homeKidsCard|lib\/ui\/workspaceNavigation|app\/pricing\/)/
-  ok(diff.every(f => !proibido.test(f)), `nenhum gerador, SEO, e-mail, conector, checkout ou lista de menu mexido (${diff.filter(f => proibido.test(f)).join(', ') || 'ok'})`)
+  // These five pages landed separately on main. Only their exact published contents are allowed.
+  const reviewedSeo = new Set(['app/ai-video-generator/[engine]/page.tsx', 'app/ai-video-generator/kling-4/page.tsx',
+    'app/ai-video-generator/page.tsx', 'app/ai-video-generator/seedance-2-5/page.tsx', 'components/seo/BlocoCitavel1011.tsx'])
+  const changedSinceSeo = new Set(execFileSync('git', ['diff', '--name-only', '953dd6cb72f3f0607ca877f9ac62c383d38dd62b', '--', '.'],
+    { cwd: ROOT, encoding: 'utf8' }).trim().split('\n'))
+  const unexpected = diff.filter(f => proibido.test(f) && (!reviewedSeo.has(f) || changedSinceSeo.has(f)))
+  ok(unexpected.length === 0, `nenhum gerador, SEO, e-mail, conector, checkout ou lista de menu mexido (${unexpected.join(', ') || 'ok'})`)
 }
 
 async function rodar(o = {}, partes = ['A', 'B', 'C', 'D', 'X'], opts = {}) {
