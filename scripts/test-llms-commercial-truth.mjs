@@ -10,8 +10,9 @@ class FixedDate extends Date {
   constructor(...args) { super(...(args.length ? args : [now])) }
   static now() { return now }
 }
-async function verify(reverseTrialEnabled) {
+async function verify(reverseTrialEnabled, refillRelease) {
   const load = createOfflineLoader({
+    mocks: refillRelease ? { '@/lib/billing/recargaAssinante': { RECARGA_ASSINANTE_1111_RELEASE: refillRelease } } : {},
     env: { NODE_ENV: 'production', KINEO_REVERSE_TRIAL_ENABLED: String(reverseTrialEnabled) },
     globals: { Response, Date: FixedDate },
   })
@@ -30,6 +31,14 @@ async function verify(reverseTrialEnabled) {
   assert.equal(response.headers.get('x-robots-tag'), 'all')
   assert.equal(route.dynamic, 'force-static')
   assert.equal(route.fetchCache, 'force-no-store')
+  const publicRefill = (refillRelease ?? load('lib/billing/recargaAssinante.ts').RECARGA_ASSINANTE_1111_RELEASE) === 'public'
+  assert.doesNotMatch(body, /there are no one-time credit packs/)
+  if (publicRefill) {
+    assert.match(body, /Eligible paid subscribers can purchase additional credits through the subscriber refill flow/)
+    assert.match(body, /2026-11-11: Eligible paid subscribers/)
+  } else {
+    assert.doesNotMatch(body, /subscriber refill flow/)
+  }
 
   function section(text, heading) {
     const start = text.indexOf(heading)
@@ -81,7 +90,7 @@ async function verify(reverseTrialEnabled) {
   }
 
   // Optional delivery check: compare old/new route responses using the SAME canonical
-  // dependencies and fixed clock. Only the approved currency/history edits normalize.
+  // dependencies and fixed clock. Normalize only the approved currency/history/refill copy.
   const baseline = process.argv[2]
   if (baseline) {
     assert.match(baseline, /^[a-f0-9]{40}$/, 'Baseline must be a full reviewed commit SHA')
@@ -100,11 +109,16 @@ async function verify(reverseTrialEnabled) {
     expected = expected.replace(/^- 2026-08-19\/20 \(superseded on 2026-09-08, see above\):[\s\S]*?(?=^- 2026-08-18:)/m, '')
     expected = expected.replace('- 2026-09-09 (evening — supersedes the two entries below):', '- 2026-09-09 (evening):')
     expected = expected.replace('film of 60 s), every engine unlocked, no card required. The $1 trial is retired.', 'film of 60 s), every engine unlocked, no card required.')
-    assert.ok(body === expected, 'No response change outside the approved currency/history lines')
+    const refillCopy = 'Eligible paid subscribers can purchase additional credits through the subscriber refill flow.'
+    expected = expected.replace('Credits come with the plan:\n  there are no one-time credit packs.', `Credits come with the plan.\n  Standard plan credits are shared across creations.${publicRefill ? ` ${refillCopy}` : ''}`)
+    expected = expected.replace(/^(- 2026-11-04: Kineo updated its plans and stopped selling one-time passes and credit top-ups\. Existing subscribers keep the price and credits they signed up with\.)$/m, `$1${publicRefill ? `\n- 2026-11-11: ${refillCopy} Eligibility is checked in the app.` : ''}`)
+    assert.ok(body === expected, 'No response change outside the approved currency/history/refill lines')
   }
-  console.log(`PASS: reverse trial ${reverseTrialEnabled ? 'ON' : 'OFF'}; real GET, headers, canonical offer, BRL exception, retired history and existing guide links; no network or DB`)
+  console.log(`PASS: reverse trial ${reverseTrialEnabled ? 'ON' : 'OFF'}, subscriber refill ${refillRelease ?? 'actual release'}; real GET, headers, canonical offer, BRL exception, history and guide links; no network or DB`)
   if (baseline) console.log('PASS: fixed-clock baseline comparison; all other response content and destinations unchanged')
 }
 
 await verify(true)
 await verify(false)
+await verify(true, 'off')
+await verify(true, 'internal')
