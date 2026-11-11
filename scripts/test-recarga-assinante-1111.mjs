@@ -1,7 +1,9 @@
 // KINEO-RECARGA-ASSINANTE-1111 [fundador 11/11: "Aprovado pode fazer" — 60 créditos por US$ 9, só para assinante que zerou]
 // Guardião offline da recarga do assinante. Prova:
-//   A. preço e créditos numa fonte única (RECARGA_ASSINANTE_1111 = 900 / 60), mais cara por crédito que o crédito mais barato
-//      dos planos, líquido (cartão internacional) acima do pior custo — e os invariantes da casa sem problema novo;
+//   A. preço e créditos numa fonte única (lib/credits/creditSlider.ts: o botão RECARGA_ASSINANTE_1111 = 900 / 60 é o 1º degrau
+//      da barra); a escada nova (60 → 9 · 350 → 52 · 700 → 102 · 2.000 → 270 · 3.700 → 500), dólar inteiro, passo 10, e em
+//      TODOS os degraus: mais cara por crédito que o crédito mais barato dos planos e líquido (cartão internacional) acima
+//      do pior custo;
 //   B. elegibilidade: só plano pago da escada (sem _trial: cortesia/teste fora), com assinatura da Stripe, saldo abaixo do
 //      filme mais barato; leitura estranha = não;
 //   C. interruptor: nasce 'internal'; 'off' = nenhuma leitura, nenhum evento; 'internal' = só a casa, em conferência, ninguém
@@ -33,6 +35,8 @@ const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail+
 const FILES = {
   lib: 'lib/billing/recargaAssinante.ts',
   cp: 'lib/checkoutPricing.ts',
+  slider: 'lib/credits/creditSlider.ts',
+  modal: 'components/CreditsTopupModal.tsx',
   checkout: 'lib/stripe/recargaAssinanteCheckout.ts',
   route: 'app/api/billing/recarga-assinante/route.ts',
   checkoutRoute: 'app/api/stripe/checkout/route.ts',
@@ -133,19 +137,27 @@ async function suite(S) {
   const load = loader(S)
   const L = load(FILES.lib)
   const CP = load(FILES.cp)
+  const SL = load(FILES.slider)
 
-  // ── A. fonte única e margem ──
-  t(CP.RECARGA_ASSINANTE_1111.usdMinor === 900 && CP.RECARGA_ASSINANTE_1111.credits === 60, 'A1 fonte única: 900 centavos e 60 créditos')
-  t(CP.recargaAssinantePriceLabel() === '$9', 'A2 rótulo do preço vem da fonte ($9)')
+  // ── A. fonte única, escada e margem em TODOS os degraus ──
+  t(SL.RECARGA_ASSINANTE_1111.usdMinor === 900 && SL.RECARGA_ASSINANTE_1111.credits === 60, 'A1 fonte única: o botão = 900 centavos e 60 créditos')
+  t(SL.usdWholeLabel(SL.RECARGA_ASSINANTE_1111.usdMinor) === '$9', 'A2 rótulo do preço vem da fonte ($9)')
+  t(SL.CREDIT_SLIDER_MIN === SL.RECARGA_ASSINANTE_1111.credits && SL.sliderPriceUsdMinor(SL.CREDIT_SLIDER_MIN) === SL.RECARGA_ASSINANTE_1111.usdMinor, 'A3 o 1º degrau da barra é EXATAMENTE o botão (60 = US$ 9)')
+  const tabela = { 60: 900, 350: 5200, 2000: 27000, 3700: 50000 }
+  t(Object.entries(tabela).every(([c, v]) => SL.sliderPriceUsdMinor(Number(c)) === v) && SL.sliderPriceUsdMinor(700) >= 10000 && SL.sliderPriceUsdMinor(700) <= 10200, 'A4 conferência do fundador: 60 → 9 · 350 → 52 · 700 → 100–102 · 2.000 → 270 · 3.700 → 500')
+  t(SL.CREDIT_SLIDER_MAX === 3700 && SL.CREDIT_SLIDER_STEP === 10 && [50, 55, 3710, 0, null, '1e3', 65].every((x) => SL.sliderPriceUsdMinor(x) === null), 'A5 faixa 60–3.700 de 10 em 10; fora disso não há preço')
+  const degraus = []
+  for (let c = SL.CREDIT_SLIDER_MIN; c <= SL.CREDIT_SLIDER_MAX; c += SL.CREDIT_SLIDER_STEP) degraus.push(c)
+  t(degraus.every((c) => SL.sliderPriceUsdMinor(c) % 100 === 0), 'A6 todo preço em dólar inteiro (sem o ",90")')
+  t(degraus.every((c, i) => i === 0 || SL.sliderPriceUsdMinor(c) >= SL.sliderPriceUsdMinor(degraus[i - 1])), 'A7 mais créditos nunca custam menos')
   const tiers = Object.keys(CP.TIER_PRICES)
-  const cheapest = Math.min(...tiers.map((k) => CP.TIER_PRICES[k].usd / CP.TIER_CREDITS[k]))
-  t(CP.RECARGA_ASSINANTE_1111.usdMinor / CP.RECARGA_ASSINANTE_1111.credits > cheapest, `A3 0,15/crédito acima do crédito mais barato dos planos (${(cheapest / 100).toFixed(4)})`)
-  const net = CP.netAfterStripeIntlCardUsd(9)
-  const cogs = Math.max(CP.worstCaseCogsUsd(60), 60 * CP.WORST_CASE_USD_PER_CREDIT)
-  t(net - cogs > 0, `A4 líquido com cartão internacional ($${net.toFixed(2)}) acima do pior custo ($${cogs.toFixed(2)})`)
-  const problems = CP.checkPricingInvariants()
-  t(!problems.some((p) => p.includes('recarga')), 'A5 invariantes: nenhum problema da recarga')
-  t(CP.recargaAssinanteMinFilmCredits() === 9, 'A6 filme mais barato = Seedance 1.5 de 15 s (9 créditos)')
+  const cheapest = Math.min(...tiers.map((k) => CP.TIER_PRICES[k].usd / CP.TIER_CREDITS[k])) / 100
+  const pior = Math.min(...degraus.map((c) => SL.sliderPriceUsdMinor(c) / 100 / c))
+  t(pior > cheapest, `A8 nenhum degrau abaixo do crédito mais barato dos planos (pior ${pior.toFixed(4)} > plano ${cheapest.toFixed(4)})`)
+  const margem = degraus.map((c) => SL.netAfterStripeIntlCardUsd(SL.sliderPriceUsdMinor(c) / 100) - Math.max(CP.worstCaseCogsUsd(c), c * CP.WORST_CASE_USD_PER_CREDIT))
+  t(margem.every((m) => m > 0), `A9 líquido com cartão internacional acima do pior custo em todos os ${degraus.length} degraus (menor sobra $${Math.min(...margem).toFixed(2)})`)
+  t(CP.recargaAssinanteMinFilmCredits() === 9, 'A10 filme mais barato = Seedance 1.5 de 15 s (9 créditos)')
+  t(!/RECARGA_ASSINANTE_1111|creditSlider/.test(S.cp.replace(/\/\/.*$/gm, '')), 'A11 lib/checkoutPricing.ts não ganha import novo (dezenas de guardiões o carregam com lista fixa)')
 
   // ── B. elegibilidade ──
   const E = (row) => L.recargaAssinanteEligible(row, 9)
@@ -157,6 +169,8 @@ async function suite(S) {
   t(E({ ...SUB, video_credits: 9 }) === false && E({ ...SUB, video_credits: 50 }) === false, 'B6 saldo que paga o filme mais barato: não')
   t(E({ ...SUB, video_credits: 8 }) === true && E({ ...SUB, video_credits: 0 }) === true, 'B7 saldo 0–8: elegível')
   t(E({ ...SUB, video_credits: null }) === false && E({ ...SUB, video_credits: '1' }) === false && E(null) === false, 'B8 leitura nula/estranha: não')
+  const SUBR = (row) => L.recargaAssinanteSubscriber(row)
+  t(SUBR({ ...SUB, video_credits: 900 }) === true && SUBR({ ...SUB, plan: 'basic_trial' }) === false && SUBR({ ...SUB, stripe_subscription_id: null }) === false && SUBR({ ...SUB, plan: 'free' }) === false, 'B9 barra: assinante pago (mesmo com saldo) sim; cortesia, sem assinatura e grátis não')
 
   // ── C. interruptor e modos ──
   t(/RECARGA_ASSINANTE_1111_RELEASE: RecargaAssinanteRelease = 'internal'/.test(S.lib), "C1 nasce 'internal'")
@@ -195,6 +209,23 @@ async function suite(S) {
     t(off.calls.stripe.length === 0 && off.calls.auth === 0 && off.calls.dbReads.length === 0, "D9 'off': nada acontece")
   }
   {
+    const u = (q) => `https://www.usekineo.com/api/stripe/checkout?pack=recarga_assinante_1111&${q}&back=%2Fstudio`
+    const rich = { ...SUB, video_credits: 500 }
+    const ok350 = await runCheckout(P, { profile: rich, url: u('credits=350') })
+    const s350 = ok350.calls.stripe[0]?.params
+    t(ok350.calls.stripe.length === 1 && s350?.line_items?.[0]?.price_data?.unit_amount === 5200 && s350?.metadata?.pack_credits === '350' && s350?.metadata?.recarga_kind === 'slider', 'D11 barra: assinante com saldo compra 350 por US$ 52 (preço recalculado no servidor)')
+    const bad = await runCheckout(P, { profile: rich, url: u('credits=355') })
+    const over = await runCheckout(P, { profile: rich, url: u('credits=3710') })
+    t(bad.calls.stripe.length === 0 && over.calls.stripe.length === 0 && bad.res.location.includes('checkout_error'), 'D12 barra: quantidade fora do passo ou do teto não abre sessão (erro visível)')
+    const nonSub = await runCheckout(P, { profile: { ...SUB, plan: 'free', stripe_subscription_id: null }, url: u('credits=350') })
+    const trial = await runCheckout(P, { profile: { ...SUB, plan: 'pro_trial' }, url: u('credits=350') })
+    t(nonSub.calls.stripe.length === 0 && trial.calls.stripe.length === 0, 'D13 barra: não assinante e cortesia não compram')
+    const max = await runCheckout(P, { profile: rich, url: u('credits=3700') })
+    t(max.calls.stripe[0]?.params?.line_items?.[0]?.price_data?.unit_amount === 50000, 'D14 barra: o teto 3.700 = US$ 500')
+    const btnRich = await runCheckout(P, { profile: rich, url: 'https://www.usekineo.com/api/stripe/checkout?pack=recarga_assinante_1111&back=%2Fstudio' })
+    t(btnRich.calls.stripe.length === 0, 'D15 botão (sem quantidade) com saldo que paga: recusa')
+  }
+  {
     const { res, calls } = await runCheckout(P, { url: 'https://www.usekineo.com/api/stripe/checkout?pack=recarga_assinante_1111&currency=brl&back=https%3A%2F%2Fevil.example' })
     t(calls.stripe[0]?.params?.line_items?.[0]?.price_data?.currency === 'usd' && calls.stripe[0]?.params?.cancel_url === 'https://www.usekineo.com/studio', 'D10 ?currency não muda a moeda; volta externa vira /studio')
     void res
@@ -205,13 +236,13 @@ async function suite(S) {
   const iOneTime = W.indexOf('if (isOneTimeItemSession(session))')
   const iPathA = W.indexOf("if (session.mode === 'payment') {", iOneTime)
   const iDetect = W.indexOf('const isRecargaAssinante = packMeta === RECARGA_ASSINANTE_SKU')
-  const iGrant = W.indexOf('creditsToAdd = RECARGA_ASSINANTE_1111.credits')
+  const iGrant = W.indexOf('creditsToAdd = normalizeSliderCredits(metaCredits) ?? RECARGA_ASSINANTE_1111.credits')
   const iLegacy = W.indexOf('if (creditsToAdd === 0) {', iDetect)
   const iGuard = W.indexOf(".insert({ id: checkoutFulfillmentGuard })", iDetect)
   const iUpdate = W.indexOf('const profileUpdate: Record<string, unknown> = { video_credits: next, has_paid: true }', iDetect)
   const iPaid = W.indexOf('if (isRecargaAssinante) await writeServerEvent({ name: RECARGA_ASSINANTE_EVENTS.paid')
   t(iOneTime > 0 && iPathA > iOneTime && iDetect > iPathA, 'E1 one_time_ad (900) sai pelo isOneTimeItemSession ANTES do Path A')
-  t(iDetect > 0 && iGrant > iDetect && iLegacy > iGrant, 'E2 SKU por metadata.pack exata; créditos da fonte ANTES do fallback por valor')
+  t(iDetect > 0 && iGrant > iDetect && iLegacy > iGrant, 'E2 SKU por metadata.pack exata; créditos = degrau válido da escada (senão o botão) ANTES do fallback por valor')
   t(!/amount === 900[^\n]*RECARGA|RECARGA[^\n]*amount === 900/.test(W) && !/isRecargaAssinante\s*=[^\n]*amount/.test(W), 'E3 nenhum reconhecimento da recarga pelo valor')
   t(iGuard > iGrant && iUpdate > iGuard, 'E4 guard por sessão gravado ANTES do UPDATE do saldo (replay não concede de novo)')
   t(iPaid > iUpdate, 'E5 evento de pago DEPOIS da concessão')
@@ -226,7 +257,14 @@ async function suite(S) {
     const nonSub = await runRoute(P, { profile: { ...SUB, plan: 'free', stripe_subscription_id: null } })
     t(nonSub.res.body.show === false && nonSub.calls.serverEvents.length === 0, 'F3 não assinante não vê')
     const rich = await runRoute(P, { profile: { ...SUB, video_credits: 40 } })
-    t(rich.res.body.show === false, 'F4 assinante com saldo que paga não vê')
+    t(rich.res.body.show === true && rich.res.body.button === false, 'F4 assinante com saldo que paga não vê o botão de 60 (só a barra)')
+    t(pub.res.body.button === true, 'F4b assinante que zerou vê o botão')
+    const richGo = await runRoute(P, { profile: { ...SUB, video_credits: 40 }, url: 'https://www.usekineo.com/api/billing/recarga-assinante?go=1&surface=x&back=%2Fstudio' })
+    t(richGo.res.location.endsWith('/studio') && !richGo.res.location.includes('checkout'), 'F4c clique no botão por quem tem saldo: volta, sem checkout')
+    const slGo = await runRoute(P, { profile: { ...SUB, video_credits: 40 }, url: 'https://www.usekineo.com/api/billing/recarga-assinante?go=1&surface=x&credits=700&back=%2Fstudio' })
+    t(slGo.res.location.includes('pack=recarga_assinante_1111') && slGo.res.location.includes('credits=700'), 'F4d clique na barra leva a quantidade ao checkout do SKU')
+    const slBad = await runRoute(P, { profile: { ...SUB, video_credits: 40 }, url: 'https://www.usekineo.com/api/billing/recarga-assinante?go=1&surface=x&credits=12345&back=%2Fstudio' })
+    t(!slBad.res.location.includes('checkout'), 'F4e quantidade inválida volta, nunca outro pacote')
     const intCustomer = await runRoute(S)
     t(intCustomer.res.body.show === false, "F5 'internal': cliente elegível não vê")
     const intHouse = await runRoute(S, { user: { id: USER.id, email: HOUSE }, profile: { ...SUB, video_credits: 500 } })
@@ -246,6 +284,9 @@ async function suite(S) {
   t(/data-kineo="subscriber-upgrade-switch"[^\n]*style=\{recarga \? secondary : primary\}/.test(S.nudge), 'G3 troca de plano vira secundário quando há recarga')
   t(!/\$\s?9\b|\b60 credits\b|\b900\b/.test(N.replace(/fontWeight: 900/g, '')), 'G4 nenhum preço/crédito digitado no aviso')
   t(/recarga !== null/.test(S.nudge.split('const visible =')[1]?.split('\n')[0] ?? ''), 'G5 o Studio (sem degrau) vê a recarga')
+  t(/\{recarga\.button && \(/.test(S.nudge) && /data-kineo="recarga-assinante-more"/.test(S.nudge) && /RECARGA_ASSINANTE_COPY\.more/.test(S.nudge), 'G5b botão de 60 só para quem zerou; "Need more? Choose your amount" abre a barra')
+  t(/if \(TOPUPS_LIVE \|\| props\.recarga\) return <CreditsTopupModalVenda/.test(S.modal) && /window\.location\.href = `\$\{recarga\.go\}&credits=\$\{amount\}&back=/.test(S.modal), 'G5c a barra é o MESMO pop-up, e com a recarga manda só a quantidade à rota da recarga')
+  t(/const priceMinor = sliderPriceUsdMinor\(amount\)/.test(S.modal) && !/\$\d/.test(S.modal.replace(/\$\{/g, '')), 'G5d o pop-up mostra o preço da função que cobra; nenhum preço digitado')
   t(!/never expire|don't expire|do not expire/i.test(S.lib + S.nudge), 'G6 nenhum "créditos não expiram" (a renovação apaga comprado abaixo de uma cota)')
   t(/isSubscriber && SUBSCRIBER_UPGRADE_ENABLED && RECARGA_ASSINANTE_1111_RELEASE !== 'off'\s*\n\s*\? <>Add \{purchaseFit\.shortfall\} more credits to finish it\.<\/>/.test(S.generate), 'G7 modal do /studio/create: assinante não lê "first highlighted option below"')
   t(/idea=\{prompt\}/.test(S.studio), 'G8 cockpit do Studio passa a ideia da caixa')
@@ -270,16 +311,25 @@ const MUTANTS = [
   ['conta de fora em conferência', 'lib', "if (a.house === true) return 'qa'", "if (a.house === true || a.eligible) return 'qa'"],
   ['volta mantém autoanalyze', 'lib', "const BACK_DROP = ['autoanalyze', ", "const BACK_DROP = ["],
   ['volta aceita qualquer página', 'lib', 'if (!okPath) return withIdea(fallback, idea)', ''],
-  ['preço mais barato que o Studio', 'cp', 'export const RECARGA_ASSINANTE_1111 = { usdMinor: 900, credits: 60 } as const', 'export const RECARGA_ASSINANTE_1111 = { usdMinor: 500, credits: 60 } as const'],
+  ['botão mais barato que o Studio', 'slider', 'export const RECARGA_ASSINANTE_1111 = { usdMinor: 900, credits: 60 } as const', 'export const RECARGA_ASSINANTE_1111 = { usdMinor: 700, credits: 60 } as const'],
+  ['piso da escada abaixo do plano', 'slider', 'const RATE_FLOOR = 0.135', 'const RATE_FLOOR = 0.12'],
+  ['escada com ,90', 'slider', '  return dollars * 100\n', '  return dollars * 100 - 10\n'],
+  ['teto antigo', 'slider', 'export const CREDIT_SLIDER_MAX = 3700', 'export const CREDIT_SLIDER_MAX = 2000'],
+  ['barra aceita fora do passo', 'slider', '  if (n % CREDIT_SLIDER_STEP !== 0) return null\n', ''],
+  ['barra sem exigir assinatura', 'checkout', ': recargaAssinanteSubscriber(profile)', ': true'],
+  ['botão sem exigir zerado', 'checkout', "kind === 'button' ? recargaAssinanteEligible(profile, recargaAssinanteMinFilmCredits())", "kind === 'button' ? recargaAssinanteSubscriber(profile)"],
+  ['barra com preço digitado', 'checkout', "const unitAmount = kind === 'button' ? RECARGA_ASSINANTE_1111.usdMinor : sliderPriceUsdMinor(credits)", "const unitAmount = kind === 'button' ? RECARGA_ASSINANTE_1111.usdMinor : (credits ?? 0) * 15"],
+  ['rota: botão para quem tem saldo', 'route', 'const button = qa || zeroed', 'const button = true'],
+  ['aviso: botão sempre', 'nudge', '{recarga.button && (', '{(\n'],
   ['checkout sem trava do interruptor', 'checkout', "if (RECARGA_ASSINANTE_1111_RELEASE !== 'public') return refused()", ''],
   ['checkout sem elegibilidade', 'checkout', 'if (!recargaAssinanteCheckoutAllowed(RECARGA_ASSINANTE_1111_RELEASE, eligible)) return refused()', ''],
   ['checkout em moeda local', 'checkout', "price_data: { currency: 'usd',", "price_data: { currency: (req.nextUrl.searchParams.get('currency') ?? 'usd') as 'usd',"],
   ['checkout sem validade', 'checkout', 'expires_at: Math.floor(Date.now() / 1000) + RECARGA_ASSINANTE_SESSION_TTL_SECONDS,', ''],
   ['checkout créditos digitados', 'checkout', 'pack_credits: String(credits),', "pack_credits: '61',"],
   ['webhook pelo valor', 'webhook', 'const isRecargaAssinante = packMeta === RECARGA_ASSINANTE_SKU', 'const isRecargaAssinante = amount === 900'],
-  ['webhook concede a metadata', 'webhook', 'creditsToAdd = RECARGA_ASSINANTE_1111.credits // KINEO', 'creditsToAdd = metaCredits // KINEO'],
+  ['webhook concede a metadata crua', 'webhook', 'creditsToAdd = normalizeSliderCredits(metaCredits) ?? RECARGA_ASSINANTE_1111.credits // KINEO', 'creditsToAdd = metaCredits // KINEO'],
   ['webhook evento antes da concessão', 'webhook', 'if (isRecargaAssinante) await writeServerEvent({ name: RECARGA_ASSINANTE_EVENTS.paid', 'if (false) await writeServerEvent({ name: RECARGA_ASSINANTE_EVENTS.paid'],
-  ['rota mostra a quem tem saldo', 'route', "const eligible = !error && recargaAssinanteEligible(row as RecargaAssinanteProfile | null, recargaAssinanteMinFilmCredits())", 'const eligible = !error'],
+  ['rota mostra a não assinante', 'route', 'const subscriber = recargaAssinanteSubscriber(p)', 'const subscriber = true'],
   ['rota lê em off', 'route', "if (RECARGA_ASSINANTE_1111_RELEASE === 'off') return go ? goBack() : HIDE()", ''],
   ['conferência vai ao checkout', 'route', "if (qa) return NextResponse.redirect(new URL(recargaAssinanteWithParam(back, 'recarga', 'qa'), req.url), 303)", ''],
   ['aviso lê em off', 'nudge', "if (RECARGA_ASSINANTE_1111_RELEASE === 'off') return\n    let alive = true\n    void fetch(", "let alive = true\n    void fetch("],

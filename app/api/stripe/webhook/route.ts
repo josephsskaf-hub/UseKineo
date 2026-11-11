@@ -50,7 +50,7 @@ import { isKidsAutopilotSession, isKidsPackSession, isKidsSubscription } from '@
 import { fulfillKidsAutopilot, fulfillKidsPack, kidsInvoicePaid, kidsSubscriptionDeleted, kidsSubscriptionUpdated } from '@/lib/kidsVenda/webhook' // KINEO-KIDS-VENDA-2010 — pedido do piloto/pack (nenhum crédito concedido; o cron financia filme a filme), ciclo novo, pausa, cancela
 import { KIT_BF_CREDITS, KIT_BF_EVENTS, KIT_BF_PACK_ID, KIT_BF_VERSION, kitBfAccessUntilIso } from '@/lib/ads/kitBfSale' // KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday: créditos + Studio Ads até 31/12, pelo MESMO Path A (guard → concessão → libera + 500)
 import { RECARGA_ASSINANTE_EVENTS, RECARGA_ASSINANTE_SKU } from '@/lib/billing/recargaAssinante' // KINEO-RECARGA-ASSINANTE-1111 — a recarga do assinante: Path A, créditos da fonte única
-import { RECARGA_ASSINANTE_1111 } from '@/lib/checkoutPricing' // KINEO-RECARGA-ASSINANTE-1111
+import { RECARGA_ASSINANTE_1111, normalizeSliderCredits, sliderPriceUsdMinor } from '@/lib/credits/creditSlider' // KINEO-RECARGA-ASSINANTE-1111 — o botão e a barra: uma fonte
 import { ADS_ACCESS_COLUMN, ADS_PASS_CREDITS, ADS_PASS_ID, adsAccessUntil } from '@/lib/ads/offer' // KINEO-STUDIO-ADS-2026-09-25 · ADS_PASS_CREDITS só no fallback sem pack_credits (28/09)
 import {
   buildCanonicalStripeCheckoutFailure,
@@ -1795,13 +1795,14 @@ export async function POST(req: NextRequest) {
           }
 
           let creditsToAdd = metaCredits > 0 ? metaCredits : 0
-          // KINEO-RECARGA-ASSINANTE-1111 — a recarga do assinante concede SEMPRE a fonte única (RECARGA_ASSINANTE_1111.credits),
-          // nunca o número da metadata nem um valor: reconhecida só por metadata.pack exata (900 é também o Starter mensal e o
-          // one_time_ad). Pela MESMA trilha do Path A (guard por sessão ANTES → UPDATE → evento depois do UPDATE confirmado).
+          // KINEO-RECARGA-ASSINANTE-1111 — a recarga do assinante (o botão de 60 e a barra de 60 a 3.700) concede pela FONTE ÚNICA
+          // (lib/credits/creditSlider.ts): a quantidade gravada pelo servidor na sessão, só se for um degrau válido da escada;
+          // fora disso, o botão (RECARGA_ASSINANTE_1111.credits). Reconhecida só por metadata.pack exata, nunca pelo valor (900 é
+          // também o Starter mensal e o one_time_ad). Pela MESMA trilha do Path A (guard por sessão ANTES → UPDATE → evento depois).
           const isRecargaAssinante = packMeta === RECARGA_ASSINANTE_SKU // KINEO-RECARGA-ASSINANTE-1111
           if (isRecargaAssinante) { // KINEO-RECARGA-ASSINANTE-1111
-            creditsToAdd = RECARGA_ASSINANTE_1111.credits // KINEO-RECARGA-ASSINANTE-1111
-            if (metaCredits !== creditsToAdd || amount !== RECARGA_ASSINANTE_1111.usdMinor || (session.currency ?? '').toLowerCase() !== 'usd') console.warn('[stripe webhook] recarga_assinante session differs from the source of truth (granting the source):', session.id, metaCredits, amount, session.currency) // KINEO-RECARGA-ASSINANTE-1111
+            creditsToAdd = normalizeSliderCredits(metaCredits) ?? RECARGA_ASSINANTE_1111.credits // KINEO-RECARGA-ASSINANTE-1111
+            if (metaCredits !== creditsToAdd || amount !== sliderPriceUsdMinor(creditsToAdd) || (session.currency ?? '').toLowerCase() !== 'usd') console.warn('[stripe webhook] recarga_assinante session differs from the source of truth (granting the source):', session.id, metaCredits, amount, session.currency) // KINEO-RECARGA-ASSINANTE-1111
           } // KINEO-RECARGA-ASSINANTE-1111
           if (creditsToAdd === 0) {
             // Legacy Payment-Link amounts (USD): $9 → 10, $19 → 25, $4.90 → 30.

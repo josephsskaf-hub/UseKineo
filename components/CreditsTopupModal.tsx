@@ -31,10 +31,17 @@ import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import {
   CREDIT_SLIDER_DEFAULT, CREDIT_SLIDER_MAX, CREDIT_SLIDER_MIN, CREDIT_SLIDER_PACK_ID, CREDIT_SLIDER_STEP, sliderPriceUsdMinor,
 } from '@/lib/credits/creditSlider'
+import { RECARGA_ASSINANTE_COPY } from '@/lib/billing/recargaAssinante' // KINEO-RECARGA-ASSINANTE-1111
+
+/** KINEO-RECARGA-ASSINANTE-1111 [fundador 11/11: "eu aprovo a escada de 9 dólares até 500 dólares… só para assinantes"] — a
+ *  barra aberta a partir do aviso de sem crédito do assinante (components/billing/SubscriberUpgradeNudge.tsx). Com `recarga`,
+ *  este pop-up vende pela rota da recarga (o servidor re-decide quem compra e recalcula o preço; a quantidade é a única coisa
+ *  que sai daqui) — os top-ups antigos (TOPUPS_LIVE, ?pack=credits_custom) continuam fora de venda. Sem `recarga`, nada muda. */
+export type CreditsTopupRecarga = { go: string; back: string; qa: boolean }
 
 /** KINEO-PRECO-MERCADO-0411 — sem top-up à venda, quem fica sem crédito vê o caminho que existe: subir de plano ou esperar a renovação. */
-export default function CreditsTopupModal(props: { onClose: () => void; surface: string }) {
-  if (TOPUPS_LIVE) return <CreditsTopupModalVenda {...props} />
+export default function CreditsTopupModal(props: { onClose: () => void; surface: string; recarga?: CreditsTopupRecarga | null }) {
+  if (TOPUPS_LIVE || props.recarga) return <CreditsTopupModalVenda {...props} /> // KINEO-RECARGA-ASSINANTE-1111 — a barra do assinante
   return (
     <div role="dialog" aria-modal="true" data-credits-out-plans onClick={props.onClose} style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.55)' }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 400, padding: 24, borderRadius: 16, background: 'var(--surface, #fff)', color: 'var(--text)', border: '1px solid var(--border)' }}>
@@ -50,12 +57,15 @@ export default function CreditsTopupModal(props: { onClose: () => void; surface:
 function CreditsTopupModalVenda({
   onClose,
   surface,
+  recarga = null,
 }: {
   onClose: () => void
   /** telemetry surface, e.g. 'sidebar_chip' | 'images_402' | 'audio_402' */
   surface: string
+  recarga?: CreditsTopupRecarga | null
 }) {
   const checkout = useCheckoutLaunch(`credits_topup_modal_${surface}`)
+  const [recargaGoing, setRecargaGoing] = useState(false) // KINEO-RECARGA-ASSINANTE-1111
   const [currency, setCurrency] = useState<CheckoutCurrency | null>(null)
   const [credits, setCredits] = useState<number | null>(null)
   const [amount, setAmount] = useState<number>(CREDIT_SLIDER_DEFAULT)
@@ -175,13 +185,27 @@ function CreditsTopupModalVenda({
                 }}
               />
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', color: 'var(--muted)' }}>
-                <span>{CREDIT_SLIDER_MIN}</span><span>500</span><span>1,000</span><span>{CREDIT_SLIDER_MAX.toLocaleString('en-US')}</span>
+                {/* KINEO-RECARGA-ASSINANTE-1111 — marcas da faixa da fonte única (a escada nova vai de 60 a 3.700). */}
+                <span>{CREDIT_SLIDER_MIN}</span><span>{Math.round(CREDIT_SLIDER_MAX / 3 / 100) * 100}</span><span>{Math.round((CREDIT_SLIDER_MAX * 2) / 3 / 100) * 100}</span><span>{CREDIT_SLIDER_MAX.toLocaleString('en-US')}</span>
               </div>
               <CreditMinutesSummary credits={amount} live />
+              {recarga?.qa && (
+                <p data-kineo="recarga-assinante-qa" style={{ margin: '12px 0 0', color: '#d93025', fontSize: '0.7rem', fontWeight: 900, letterSpacing: '.04em', textTransform: 'uppercase', textAlign: 'center' }}>
+                  {RECARGA_ASSINANTE_COPY.qa}
+                </p>
+              )}
               <button
                 type="button"
-                disabled={checkout.pending !== null}
+                data-kineo={recarga ? 'recarga-assinante-slider-cta' : undefined}
+                disabled={checkout.pending !== null || recargaGoing}
                 onClick={() => {
+                  // KINEO-RECARGA-ASSINANTE-1111 — pela rota da recarga: grava o clique no servidor e leva ao checkout (ou, na
+                  // conferência da casa, volta sem cobrar). Só a quantidade e a volta saem daqui.
+                  if (recarga) {
+                    setRecargaGoing(true)
+                    window.location.href = `${recarga.go}&credits=${amount}&back=${encodeURIComponent(recarga.back)}`
+                    return
+                  }
                   checkout.launch(CREDIT_SLIDER_PACK_ID, `/api/stripe/checkout?pack=${CREDIT_SLIDER_PACK_ID}&credits=${amount}`, {
                     pack: CREDIT_SLIDER_PACK_ID,
                     credits: amount,
@@ -194,7 +218,7 @@ function CreditsTopupModalVenda({
                   cursor: checkout.pending ? 'not-allowed' : 'pointer', opacity: checkout.pending ? 0.6 : 1,
                 }}
               >
-                {checkout.pending === CREDIT_SLIDER_PACK_ID ? 'Loading…' : `Buy ${amount.toLocaleString('en-US')} credits — ${price}`}
+                {checkout.pending === CREDIT_SLIDER_PACK_ID || recargaGoing ? 'Loading…' : `Buy ${amount.toLocaleString('en-US')} credits — ${price}`}
               </button>
             </div>
           )

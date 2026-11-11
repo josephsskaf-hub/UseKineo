@@ -18,7 +18,8 @@ import { createPortal } from 'react-dom'
 import CreditsTopupModal from '@/components/CreditsTopupModal'
 import { useUiCopy } from '@/components/InterfaceLanguage'
 import { trackEvent } from '@/lib/analytics'
-import { RECARGA_ASSINANTE_1111, TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing' // RECARGA_ASSINANTE_1111: KINEO-RECARGA-ASSINANTE-1111
+import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+import { RECARGA_ASSINANTE_1111 } from '@/lib/credits/creditSlider' // KINEO-RECARGA-ASSINANTE-1111 — o botão e a barra: uma fonte
 import { PLANS } from '@/lib/pricing'
 import { canPurchaseCreditTopup } from '@/lib/growth/topupEligibility'
 import { PLAN_SWITCH_EMPTY, fetchPlanSwitchState, planSwitchErrorText, switchPlan, type PlanSwitchState } from '@/lib/growth/planSwitch'
@@ -71,7 +72,7 @@ export default function SubscriberUpgradeNudge({
    *  impressão (subscriber_out_of_credits_offer_shown) sem adivinhar se o assinante tinha degrau ou recarga. */
   onShown?: ((info: { kind: 'switch' | 'topup_only' | 'recarga'; from: string | null; to: string | null; topup: boolean }) => void) | null
   /** KINEO-RECARGA-PAGANTE-0111 — avisa quem montou o clique (switch | topup | plans | recarga), antes da confirmação. */
-  onChoice?: ((choice: 'switch' | 'topup' | 'plans' | 'recarga') => void) | null
+  onChoice?: ((choice: 'switch' | 'topup' | 'plans' | 'recarga' | 'recarga_more') => void) | null
   /** KINEO-RECARGA-ASSINANTE-1111 — a ideia que a tela tem na caixa: volta na URL (?prompt=) depois de pagar a recarga. */
   idea?: string | null
 }) {
@@ -101,7 +102,7 @@ export default function SubscriberUpgradeNudge({
       .then((r) => (r.ok ? r.json() : null))
       .then((d: unknown) => {
         const o = d as Partial<RecargaAssinanteOffer> | null
-        if (alive && o && o.show === true && typeof o.go === 'string' && typeof o.price === 'string' && typeof o.credits === 'number') setRecarga(o as RecargaAssinanteOffer)
+        if (alive && o && o.show === true && typeof o.go === 'string' && typeof o.price === 'string' && typeof o.credits === 'number' && typeof o.button === 'boolean') setRecarga(o as RecargaAssinanteOffer)
       })
       .catch(() => { /* sem oferta: o aviso segue como antes */ })
     return () => { alive = false }
@@ -177,7 +178,7 @@ export default function SubscriberUpgradeNudge({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, offerKey])
 
-  function track(choice: 'switch' | 'topup' | 'plans' | 'recarga') {
+  function track(choice: 'switch' | 'topup' | 'plans' | 'recarga' | 'recarga_more') {
     try {
       void trackEvent(SUBSCRIBER_UPGRADE_CLICKED_EVENT, {
         version: SUBSCRIBER_UPGRADE_VERSION,
@@ -235,7 +236,11 @@ export default function SubscriberUpgradeNudge({
     display: 'block', width: '100%', marginTop: 8, padding: '9px 12px', borderRadius: 10, background: 'transparent',
     border: `1px solid ${c.outline}`, color: c.text, fontSize: '0.84rem', fontWeight: 800, textAlign: 'center', cursor: 'pointer',
   }
-  const topupModal = topupOpen ? <CreditsTopupModal surface={`subscriber_upgrade_${surface}`} onClose={() => setTopupOpen(false)} /> : null
+  // KINEO-RECARGA-ASSINANTE-1111 — com a oferta da recarga, o MESMO pop-up abre como a barra do assinante (60 a 3.700).
+  const recargaModal = recarga && typeof window !== 'undefined'
+    ? { go: recarga.go, qa: recarga.qa, back: recargaAssinanteBack(`${window.location.pathname}${window.location.search}`, idea) }
+    : null
+  const topupModal = topupOpen ? <CreditsTopupModal surface={`subscriber_upgrade_${surface}`} onClose={() => setTopupOpen(false)} recarga={recargaModal} /> : null
 
   return (
     <div
@@ -268,12 +273,20 @@ export default function SubscriberUpgradeNudge({
                   {RECARGA_ASSINANTE_COPY.qa}
                 </span>
               )}
-              <button type="button" data-kineo="recarga-assinante-cta" data-qa={recarga.qa ? '1' : undefined} disabled={recargaGoing} onClick={onRecarga} style={{ ...primary, textAlign: 'center', ...(recarga.qa ? { outline: '2px dashed #d93025', outlineOffset: 2 } : {}) }}>
-                {recargaAssinanteFill(RECARGA_ASSINANTE_COPY.cta, { price: recarga.price, credits: recarga.credits })}
+              {recarga.button && (
+                <>
+                  <button type="button" data-kineo="recarga-assinante-cta" data-qa={recarga.qa ? '1' : undefined} disabled={recargaGoing} onClick={onRecarga} style={{ ...primary, textAlign: 'center', ...(recarga.qa ? { outline: '2px dashed #d93025', outlineOffset: 2 } : {}) }}>
+                    {recargaAssinanteFill(RECARGA_ASSINANTE_COPY.cta, { price: recarga.price, credits: recarga.credits })}
+                  </button>
+                  <span style={{ display: 'block', marginTop: 6, color: c.muted, fontSize: '0.74rem', fontWeight: 600, lineHeight: 1.4 }}>
+                    {RECARGA_ASSINANTE_COPY.terms}
+                  </span>
+                </>
+              )}
+              {/* KINEO-RECARGA-ASSINANTE-1111 — a barra (60 a 3.700 créditos, US$ 9 a US$ 500), aberta só daqui nesta versão. */}
+              <button type="button" data-kineo="recarga-assinante-more" onClick={() => { track('recarga_more'); setTopupOpen(true) }} style={{ display: 'block', marginTop: 6, padding: 0, border: 'none', background: 'transparent', color: c.link, fontSize: '0.78rem', fontWeight: 800, textAlign: 'left', cursor: 'pointer' }}>
+                {RECARGA_ASSINANTE_COPY.more}
               </button>
-              <span style={{ display: 'block', marginTop: 6, color: c.muted, fontSize: '0.74rem', fontWeight: 600, lineHeight: 1.4 }}>
-                {RECARGA_ASSINANTE_COPY.terms}
-              </span>
             </>
           )}
           {offer.kind === 'switch' && (

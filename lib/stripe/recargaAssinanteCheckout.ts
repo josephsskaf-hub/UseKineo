@@ -6,9 +6,12 @@
 // (CREDIT_TOPUPS, canPurchaseCreditTopup = fora de venda) — religá-la religaria os SKUs antigos, o que não foi pedido.
 //
 // O QUE ESTE ARQUIVO DECIDE NO SERVIDOR (nada vem do navegador além da volta, que é saneada):
-//   · o valor e os créditos = RECARGA_ASSINANTE_1111 (lib/checkoutPricing.ts); moeda USD SEMPRE (nem IP nem ?currency=);
-//   · quem compra = recargaAssinanteCheckoutAllowed(interruptor, recargaAssinanteEligible(perfil, filme mais barato)) —
-//     perfil lido pela chave de serviço (plano pago sem _trial, assinatura da Stripe, saldo abaixo do filme mais barato);
+//   · o valor e os créditos = lib/credits/creditSlider.ts: SEM ?credits = o botão (RECARGA_ASSINANTE_1111, 60 por US$ 9);
+//     COM ?credits=N = a barra (normalizeSliderCredits + sliderPriceUsdMinor, 60–3.700 de 10 em 10, US$ 9 a US$ 500) — a
+//     quantidade é a única coisa que vem do navegador, o preço é recalculado aqui; moeda USD SEMPRE (nem IP nem ?currency=);
+//   · quem compra = recargaAssinanteCheckoutAllowed(interruptor, …) — perfil lido pela chave de serviço: o botão exige o
+//     assinante pago SEM saldo para o filme mais barato (recargaAssinanteEligible); a barra, o assinante pago
+//     (recargaAssinanteSubscriber; decisão do fundador 11/11 "só para assinantes", sem exigir zerado);
 //   · quem não pode (inclusive com a URL na mão, com o interruptor em 'internal' ou 'off') volta para onde estava, SEM
 //     sessão da Stripe e sem evento de falha (não é falha: é recusa);
 //   · a sessão vence em 30 min (o mínimo da Stripe): duas sessões abertas e pagas viram duas recargas pagas — nunca crédito
@@ -19,7 +22,8 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { stripe } from '@/lib/stripe'
 import { writeServerEvent } from '@/lib/serverEvents'
-import { RECARGA_ASSINANTE_1111, recargaAssinanteMinFilmCredits } from '@/lib/checkoutPricing'
+import { recargaAssinanteMinFilmCredits } from '@/lib/checkoutPricing'
+import { CREDIT_SLIDER_MAX, CREDIT_SLIDER_MIN, RECARGA_ASSINANTE_1111, normalizeSliderCredits, sliderPriceUsdMinor } from '@/lib/credits/creditSlider'
 import {
   RECARGA_ASSINANTE_CAMPAIGN,
   RECARGA_ASSINANTE_EVENTS,
@@ -29,6 +33,7 @@ import {
   recargaAssinanteBack,
   recargaAssinanteCheckoutAllowed,
   recargaAssinanteEligible,
+  recargaAssinanteSubscriber,
   recargaAssinanteWithParam,
   type RecargaAssinanteProfile,
 } from '@/lib/billing/recargaAssinante'
@@ -54,14 +59,18 @@ export async function buildRecargaAssinanteAndRedirect(req: NextRequest, deps: R
   if (RECARGA_ASSINANTE_1111_RELEASE !== 'public') return refused()
 
   const browserSessionId = deps.browserSessionIdFrom(req)
-  const unitAmount = RECARGA_ASSINANTE_1111.usdMinor
-  const credits = RECARGA_ASSINANTE_1111.credits
-  const skuContext: Record<string, unknown> = { sku: RECARGA_ASSINANTE_SKU, mode: 'payment', currency: 'usd', unit_amount: unitAmount, settlement_currency: 'usd', charge_amount: unitAmount, pack_credits: credits, intent_campaign: RECARGA_ASSINANTE_CAMPAIGN, version: RECARGA_ASSINANTE_VERSION }
+  // Sem ?credits = o botão; com ?credits = a barra. Quantidade inválida = de volta com erro visível, nunca outro pacote.
+  const rawCredits = req.nextUrl.searchParams.get('credits')
+  const kind: 'button' | 'slider' = rawCredits === null ? 'button' : 'slider'
+  const credits = kind === 'button' ? RECARGA_ASSINANTE_1111.credits : normalizeSliderCredits(rawCredits)
+  const unitAmount = kind === 'button' ? RECARGA_ASSINANTE_1111.usdMinor : sliderPriceUsdMinor(credits)
+  const skuContext: Record<string, unknown> = { sku: RECARGA_ASSINANTE_SKU, kind, mode: 'payment', currency: 'usd', unit_amount: unitAmount, settlement_currency: 'usd', charge_amount: unitAmount, pack_credits: credits, intent_campaign: RECARGA_ASSINANTE_CAMPAIGN, version: RECARGA_ASSINANTE_VERSION }
   let failureUserId: string | null = null
   async function redirectError(msg: string) {
     await deps.recordCheckoutEvent('checkout_failed', failureUserId, { ...skuContext, stage: 'redirect', reason: deps.checkoutFailureReason(msg) }, browserSessionId)
     return NextResponse.redirect(`${appUrl}${recargaAssinanteWithParam(back, 'checkout_error', encodeURIComponent(msg))}`)
   }
+  if (credits === null || unitAmount === null) return redirectError(`Choose between ${CREDIT_SLIDER_MIN} and ${CREDIT_SLIDER_MAX.toLocaleString('en-US')} credits.`)
   if (!process.env.STRIPE_SECRET_KEY) return redirectError('Payment service is not configured. Please contact support.')
 
   const supabase = createClient()
@@ -81,7 +90,8 @@ export async function buildRecargaAssinanteAndRedirect(req: NextRequest, deps: R
   if (!svcUrl || !svcKey) return refused()
   const db = createAdminClient(svcUrl, svcKey, { auth: { persistSession: false, autoRefreshToken: false } })
   const { data: row, error: rowErr } = await db.from('profiles').select('email, stripe_customer_id, stripe_subscription_id, plan, video_credits').eq('id', user.id).maybeSingle()
-  const eligible = !rowErr && recargaAssinanteEligible(row as RecargaAssinanteProfile | null, recargaAssinanteMinFilmCredits())
+  const profile = rowErr ? null : (row as RecargaAssinanteProfile | null)
+  const eligible = kind === 'button' ? recargaAssinanteEligible(profile, recargaAssinanteMinFilmCredits()) : recargaAssinanteSubscriber(profile)
   if (!recargaAssinanteCheckoutAllowed(RECARGA_ASSINANTE_1111_RELEASE, eligible)) return refused()
 
   const p = row as { email?: string | null; stripe_customer_id?: string | null } & RecargaAssinanteProfile
@@ -101,6 +111,7 @@ export async function buildRecargaAssinanteAndRedirect(req: NextRequest, deps: R
       // metadata.pack é o que o webhook lê; pack_credits = o que a pessoa viu (o webhook concede pela fonte única).
       pack: RECARGA_ASSINANTE_SKU,
       pack_credits: String(credits),
+      recarga_kind: kind,
       intent_campaign: RECARGA_ASSINANTE_CAMPAIGN,
       offer_version: RECARGA_ASSINANTE_VERSION,
     },
@@ -126,6 +137,6 @@ export async function buildRecargaAssinanteAndRedirect(req: NextRequest, deps: R
     }
   }
   await deps.recordCheckoutEvent('checkout_started', user.id, { ...skuContext, stripe_session_id: session.id }, browserSessionId)
-  await writeServerEvent({ name: RECARGA_ASSINANTE_EVENTS.checkoutStarted, userId: user.id, path: '/api/stripe/checkout', metadata: { stripe_session_id: session.id, campaign: RECARGA_ASSINANTE_CAMPAIGN, credits, unit_amount: unitAmount, currency: 'usd', plan: skuContext.plan ?? null, balance: skuContext.balance ?? null, version: RECARGA_ASSINANTE_VERSION } })
+  await writeServerEvent({ name: RECARGA_ASSINANTE_EVENTS.checkoutStarted, userId: user.id, path: '/api/stripe/checkout', metadata: { stripe_session_id: session.id, campaign: RECARGA_ASSINANTE_CAMPAIGN, kind, credits, unit_amount: unitAmount, currency: 'usd', plan: skuContext.plan ?? null, balance: skuContext.balance ?? null, version: RECARGA_ASSINANTE_VERSION } })
   return NextResponse.redirect(session.url!)
 }

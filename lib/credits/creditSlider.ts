@@ -2,29 +2,34 @@
 // "vai com mínimo 50, escada aprovada, pode liberar" (23/09, exceção registrada ao congelamento de oferta até 09/10;
 // doc: docs/DECISAO-BARRA-DE-CREDITOS-2026-09-23.md). No lugar de 4 blocos fixos, uma barra: a pessoa arrasta, vê o
 // preço e compra. O caso que abriu a conversa: 23/09 21:20Z, vindo do ChatGPT, comprou 30 créditos por $5,90 no pop-up.
+// KINEO-PRECO-V8-A-2026-09-28 subiu o piso para 0,189; KINEO-PRECO-MERCADO-0411 tirou a barra de venda (TOPUPS_LIVE).
 //
-// ESCADA (aprovada): US$ 0,199 por crédito até 100; cai em linha reta até US$ 0,149 em 1.000; fica em 0,149 até 2.000.
-// Preço = dólares inteiros arredondados − US$ 0,10 (etiqueta ",90" da casa). O piso 0,149 fica ACIMA do plano mais barato
-// por crédito (Creator/Studio ≈ 0,133): assinar continua sendo o melhor negócio — invariante (1) de lib/checkoutPricing,
-// conferido pelo guardião scripts/test-barra-de-creditos-2026-09-23.mjs em TODOS os degraus.
+// ═══ KINEO-RECARGA-ASSINANTE-1111 [fundador 11/11: "Aprovado pode fazer" — 60 créditos por US$ 9 · "eu aprovo a escada de
+// 9 dólares até 500 dólares… só para assinantes"] — A ESCADA NOVA, que troca a de 23/09 e a de 28/09 ═══
+// ÂNCORA = o botão do aviso de sem crédito: 60 créditos por US$ 9 (US$ 0,150 por crédito). É o PRIMEIRO degrau da barra e
+// a MESMA constante do botão: trocar a oferta é UMA linha (RECARGA_ASSINANTE_1111). Daí a escada desce em linha reta até
+// US$ 0,135 por crédito em 2.000 créditos e fica em 0,135 até o teto de 3.700 créditos = US$ 500. Preço em dólar inteiro
+// (sem o ",90" antigo), passo de 10. Conferência do fundador: 60 → 9 · 350 → 52 · 700 → 102 · 2.000 → 270 · 3.700 → 500.
+// O piso 0,135 fica ACIMA do crédito mais barato dos planos (Studio US$ 59 / 470 = 0,1255): assinar continua sendo o
+// melhor negócio — o guardião scripts/test-barra-de-creditos-2026-09-23.mjs confere em TODOS os degraus, junto com a
+// margem com cartão internacional (netAfterStripeIntlCardUsd abaixo).
 //
-// Fonte única: a barra (UI), a rota da Stripe e o guardião leem daqui. O cliente só manda a QUANTIDADE; o preço é sempre
-// recalculado no servidor. Nada aqui chama rede.
-//
-// KINEO-PRECO-V8-A-2026-09-28 — "barra de crédito mais cara" (fundador, junto com o vai da escada 12,90/29,90/54,90): o
-// piso sobe de 0,149 para 0,189. Com o Studio novo a US$0,183/cr, o piso antigo vendia crédito avulso mais barato que
-// assinar a partir de ~390 créditos. O topo (0,199 até 100) não mudou: 50 = US$9,90 e 100 = US$19,90 continuam iguais;
-// 300 = US$58,90 (era 55,90) · 500 = US$96,90 (era 87,90) · 1.000 = US$188,90 (era 148,90) · 2.000 = US$377,90 (era 297,90).
-export const CREDIT_SLIDER_PACK_ID = 'credits_custom'
-export const CREDIT_SLIDER_MIN = 50
-export const CREDIT_SLIDER_MAX = 2000
-export const CREDIT_SLIDER_STEP = 10
-export const CREDIT_SLIDER_DEFAULT = 300
+// Fonte única: a barra (UI), o botão, a rota da Stripe, o webhook e os guardiões leem daqui. O cliente só manda a
+// QUANTIDADE; o preço é sempre recalculado no servidor. MÓDULO PURO (sem import): dezenas de guardiões o carregam sozinho.
 
-const RATE_TOP = 0.199
-const RATE_FLOOR = 0.189
-const TAPER_FROM = 100
-const TAPER_TO = 1000
+/** O botão do assinante que zerou e o primeiro degrau da barra — UMA constante. */
+export const RECARGA_ASSINANTE_1111 = { usdMinor: 900, credits: 60 } as const
+
+export const CREDIT_SLIDER_PACK_ID = 'credits_custom'
+export const CREDIT_SLIDER_MIN = RECARGA_ASSINANTE_1111.credits
+export const CREDIT_SLIDER_MAX = 3700
+export const CREDIT_SLIDER_STEP = 10
+export const CREDIT_SLIDER_DEFAULT = 350
+
+const RATE_TOP = RECARGA_ASSINANTE_1111.usdMinor / 100 / RECARGA_ASSINANTE_1111.credits // 0,150
+const RATE_FLOOR = 0.135
+const TAPER_FROM = RECARGA_ASSINANTE_1111.credits
+const TAPER_TO = 2000
 
 /** Quantidade válida (inteira, dentro da faixa, múltipla do passo) ou null. */
 export function normalizeSliderCredits(raw: unknown): number | null {
@@ -42,10 +47,22 @@ export function sliderRatePerCredit(credits: number): number {
   return RATE_TOP - ((credits - TAPER_FROM) * (RATE_TOP - RATE_FLOOR)) / (TAPER_TO - TAPER_FROM)
 }
 
-/** Preço em centavos de dólar (terminando em ,90), ou null se a quantidade não é válida. */
+/** Preço em centavos de dólar (dólar inteiro), ou null se a quantidade não é válida. O primeiro degrau é EXATAMENTE a
+ *  âncora do botão (RECARGA_ASSINANTE_1111.usdMinor). */
 export function sliderPriceUsdMinor(credits: unknown): number | null {
   const n = normalizeSliderCredits(credits)
   if (n === null) return null
   const dollars = Math.max(1, Math.round(n * sliderRatePerCredit(n)))
-  return dollars * 100 - 10
+  return dollars * 100
+}
+
+/** "$9" / "$52" — preço em dólar inteiro (centavos só se um dia houver). A ÚNICA forma de um preço desta escada virar texto. */
+export function usdWholeLabel(minor: number): string {
+  const usd = minor / 100
+  return Number.isInteger(usd) ? `$${usd.toLocaleString('en-US')}` : `$${usd.toFixed(2)}`
+}
+
+/** Stripe com cartão INTERNACIONAL (2,9% + 1,5% + US$ 0,30): o pior caso de taxa para a prova de margem dos guardiões. */
+export function netAfterStripeIntlCardUsd(grossUsd: number): number {
+  return grossUsd * (1 - 0.044) - 0.3
 }

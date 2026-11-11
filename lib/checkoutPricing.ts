@@ -784,32 +784,16 @@ export function packPriceLabel(currency: CheckoutCurrency = 'usd'): string {
 }
 
 // ═══ KINEO-RECARGA-ASSINANTE-1111 [fundador 11/11: "Aprovado pode fazer" — 60 créditos por US$ 9, só para assinante que zerou] ═══
-// UMA recarga, pagamento único, USD para todos, só para assinante pago (starter/basic/pro) cujo saldo não paga o filme mais
-// barato. Regras de quem compra em lib/billing/recargaAssinante.ts; checkout em lib/stripe/recargaAssinanteCheckout.ts;
-// concessão no webhook (Path A, guard por sessão). PREÇO E CRÉDITOS SÓ AQUI, numa constante: trocar a oferta é UMA linha.
-// NÃO é a recarga antiga (topup40/topup120/…, TOPUPS_LIVE, canPurchaseCreditTopup): aquelas continuam fora de venda.
-// POR CRÉDITO: US$ 9 / 60 = 0,15 — acima do crédito mais barato dos planos (Studio US$ 59 / 470 = 0,1255): o invariante (10)
-// barra a recarga que ficar mais barata que algum plano. 900 é também o Starter mensal e o one_time_ad: o webhook reconhece
-// este SKU SÓ por metadata.pack exata, nunca pelo valor (o guardião prova).
-export const RECARGA_ASSINANTE_1111 = { usdMinor: 900, credits: 60 } as const
-export const RECARGA_ASSINANTE_PRICE_MINOR: Record<CheckoutCurrency, number> = { usd: RECARGA_ASSINANTE_1111.usdMinor }
-export function recargaAssinanteCredits(): number {
-  return RECARGA_ASSINANTE_1111.credits
-}
+// O PREÇO E OS CRÉDITOS da recarga (o botão e a barra) moram em lib/credits/creditSlider.ts (RECARGA_ASSINANTE_1111 e a
+// escada) — módulo puro, porque dezenas de guardiões carregam ESTE arquivo com uma lista fixa de imports (um import novo
+// aqui os quebraria). A margem e o "mais caro por crédito que o plano mais barato" são provados em TODOS os degraus por
+// scripts/test-barra-de-creditos-2026-09-23.mjs e scripts/test-recarga-assinante-1111.mjs. Aqui fica só o que depende do
+// custo dos motores:
 /** O filme mais barato que um assinante consegue fazer: Seedance 1.5 de 15 s ('cinematic_ai', conta paga) — hoje 9 créditos
- *  (o mesmo SEEDANCE_SHORT_FILM_CREDITS de lib/marketingPrice.ts). Saldo abaixo disto = "não consegue gerar" = vê a recarga.
+ *  (o mesmo SEEDANCE_SHORT_FILM_CREDITS de lib/marketingPrice.ts). Saldo abaixo disto = "não consegue gerar" = vê o botão.
  *  Função (e não constante) porque dezenas de guardiões carregam este arquivo com engineCost stubado. */
 export function recargaAssinanteMinFilmCredits(): number {
   return creditCostForDuration('cinematic_ai', true, 15)
-}
-/** "$9" — a ÚNICA forma de o preço desta recarga chegar a um texto (sem centavos quando é redondo). */
-export function recargaAssinantePriceLabel(): string {
-  const usd = RECARGA_ASSINANTE_1111.usdMinor / 100
-  return Number.isInteger(usd) ? `$${usd}` : `$${usd.toFixed(2)}`
-}
-/** Stripe com cartão INTERNACIONAL (2,9% + 1,5% + US$ 0,30): o pior caso de taxa para a margem do invariante (10). */
-export function netAfterStripeIntlCardUsd(grossUsd: number): number {
-  return grossUsd * (1 - 0.044) - 0.3
 }
 
 // KINEO-PRICING-V3D-2026-07-26 — DEFECT (c). Top-ups are sold ONLY to existing
@@ -1224,7 +1208,6 @@ export function checkPricingInvariants(): string[] {
   claim(TOPUP_USD_PRICES.topup120, 'topup120')
   claim(TOPUP_USD_PRICES.topup300, 'topup300')
   claim(AUTOPILOT_PILOT_PRICES.usd, 'pilot:autopilot')
-  claim(RECARGA_ASSINANTE_PRICE_MINOR.usd, 'recarga:assinante_1111') // KINEO-RECARGA-ASSINANTE-1111 — concedida só por metadata.pack (nunca pelo valor); o valor fica no mapa para a próxima colisão aparecer aqui
   for (const id of BULK_PACK_IDS) claim(BULK_PACKS[id].usdMinor, `bulk:${id}`)
   // Os anuais são mode:'subscription' HOJE e não alcançam o Path A do webhook.
   // Entram assim mesmo: o dia em que alguém os transformar em pagamento único,
@@ -1302,22 +1285,6 @@ export function checkPricingInvariants(): string[] {
     if (Math.abs(welcomeExact - ANNUAL_WELCOME_DISCOUNT_PERCENT) > 0.5 || ANNUAL_WELCOME_PRICES[tier].usd >= ANNUAL_PRICES[tier].usd) {
       problems.push(`annual_welcome:${tier} saves ${welcomeExact.toFixed(2)}% against 12 monthly payments, but the copy says ${ANNUAL_WELCOME_DISCOUNT_PERCENT}%, or it is not below the regular annual.`)
     }
-  }
-
-  // (10) KINEO-RECARGA-ASSINANTE-1111 — a recarga do assinante tem de (a) custar MAIS por crédito que o crédito MAIS BARATO
-  //      dos planos (hoje o Studio, 0,1255; senão o racional do Studio seria recarregar em vez de assinar) e (b) deixar
-  //      líquido, com cartão internacional, acima do pior custo de fornecedor dos créditos que concede. Decisão do
-  //      fundador (11/11): o Starter (0,225/crédito) também compra a 0,15 — só quem já paga o Starter e zerou.
-  {
-    const r = RECARGA_ASSINANTE_1111
-    const perCredit = r.usdMinor / r.credits
-    const cheapest = Math.min(...(Object.keys(TIER_PRICES) as CheckoutTier[]).map((tier) => TIER_PRICES[tier].usd / TIER_CREDITS[tier]))
-    if (!(perCredit > cheapest)) {
-      problems.push(`recarga:assinante_1111 costs ${perCredit.toFixed(2)}¢/credit, not above the cheapest plan credit (${cheapest.toFixed(2)}¢).`)
-    }
-    const net = netAfterStripeIntlCardUsd(r.usdMinor / 100)
-    const cogs = Math.max(worstCaseCogsUsd(r.credits), r.credits * WORST_CASE_USD_PER_CREDIT)
-    if (net - cogs < 0) problems.push(`recarga:assinante_1111 is below cost (net $${net.toFixed(2)} vs worst COGS $${cogs.toFixed(2)}).`)
   }
 
   return problems

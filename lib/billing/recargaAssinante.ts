@@ -11,7 +11,8 @@
 // Studio, no topo da escada, não vê NADA.
 //
 // ONDE MORA CADA COISA (fonte única):
-//   · preço e créditos .... lib/checkoutPricing.ts (RECARGA_ASSINANTE_1111 — uma constante);
+//   · preço e créditos .... lib/credits/creditSlider.ts (RECARGA_ASSINANTE_1111 — o botão — e a escada da barra, que começa
+//                           EXATAMENTE nele: 60 créditos = US$ 9 … 3.700 = US$ 500);
 //   · quem pode ........... ESTE módulo (recargaAssinanteEligible), lido pela rota da oferta E pelo checkout;
 //   · oferta e clique ..... app/api/billing/recarga-assinante/route.ts (eventos de servidor shown/clicked);
 //   · cobrança ............ lib/stripe/recargaAssinanteCheckout.ts (?pack=recarga_assinante_1111);
@@ -61,15 +62,26 @@ export interface RecargaAssinanteProfile {
  *     gerar nada. Leitura nula ou estranha = não elegível.
  */
 export function recargaAssinanteEligible(row: RecargaAssinanteProfile | null | undefined, minFilmCredits: number): boolean {
-  if (!row) return false
-  const plan = typeof row.plan === 'string' ? row.plan.trim().toLowerCase() : ''
-  if (!RECARGA_ASSINANTE_PLANS.includes(plan)) return false
-  if (typeof row.stripe_subscription_id !== 'string' || !row.stripe_subscription_id.trim()) return false
-  const balance = row.video_credits
+  if (!recargaAssinanteSubscriber(row)) return false
+  const balance = row!.video_credits
   if (typeof balance !== 'number' || !Number.isFinite(balance)) return false
   if (!Number.isFinite(minFilmCredits) || minFilmCredits <= 0) return false
   return balance < minFilmCredits
 }
+
+/**
+ * KINEO-RECARGA-ASSINANTE-1111 (barra, fundador 11/11 "só para assinantes") — quem pode comprar uma QUANTIDADE da barra:
+ * o mesmo assinante pago (plano da escada sem _trial + assinatura da Stripe), sem exigir saldo zerado. Nesta primeira versão
+ * a barra só é alcançável a partir do aviso de sem crédito.
+ */
+export function recargaAssinanteSubscriber(row: RecargaAssinanteProfile | null | undefined): boolean {
+  if (!row) return false
+  const plan = typeof row.plan === 'string' ? row.plan.trim().toLowerCase() : ''
+  if (!RECARGA_ASSINANTE_PLANS.includes(plan)) return false
+  if (typeof row.stripe_subscription_id !== 'string' || !row.stripe_subscription_id.trim()) return false
+  return true
+}
+
 
 /**
  * Quem vê a oferta: 'real' = assinante elegível com o interruptor em 'public' · 'qa' = SÓ a lista exata da casa (house =
@@ -119,7 +131,9 @@ export function recargaAssinanteWithParam(path: string, key: string, value: stri
 }
 
 /** O que a rota da oferta manda ao navegador (só exibição; o checkout re-decide tudo no servidor). */
-export interface RecargaAssinanteOffer { show: true; qa: boolean; price: string; credits: number; go: string }
+/** `button` = o botão de 60 (só quem não paga o filme mais barato); a barra ("Need more?") vale para todo assinante que
+ *  chegou ao aviso. */
+export interface RecargaAssinanteOffer { show: true; qa: boolean; price: string; credits: number; go: string; button: boolean }
 
 // ── textos (inglês, como o resto do aviso; o useUiCopy traduz o que tiver chave). {price}/{credits} da fonte única. ──
 // A VERDADE, sem prometer o que o produto não cumpre: NÃO dizemos "os créditos não expiram". Pela regra de renovação
@@ -130,6 +144,7 @@ export const RECARGA_ASSINANTE_COPY = {
   cta: 'Add {credits} credits — {price}',
   terms: 'One-time payment. Your plan stays the same.',
   qa: 'House check — this button never charges',
+  more: 'Need more? Choose your amount',
   paidWaiting: 'Payment received — adding your {credits} credits…',
   paidDone: 'Done — {credits} credits added. Your idea is still here.',
   paidLate: 'Payment received. Your credits can take a minute to appear — refresh in a moment.',
