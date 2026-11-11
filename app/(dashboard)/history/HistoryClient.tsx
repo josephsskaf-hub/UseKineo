@@ -28,6 +28,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { trackCheckoutClick } from '@/lib/trackClick'
 import { trackClosedEvent, trackEvent } from '@/lib/analytics'
+import { EMAIL_FILME_LANDED_EVENT, EMAIL_FILME_UTM_SOURCE, EMAIL_FILME_VERSION } from '@/lib/growth/emailFilmePronto' // KINEO-EMAIL-FILME-NA-PAGINA-1111
 import { downloadVideoFile } from '@/lib/videoDownload'
 import { engineLabelFor } from '@/lib/engineLabel' // KINEO-CARD-COM-MOTOR-2026-09-16
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
@@ -383,6 +384,29 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
   // user expects when clicking a card), and a proper blob download that works
   // from My Videos any time — not just once on the result page.
   const [lightbox, setLightbox] = useState<string | null>(null)
+  // KINEO-EMAIL-FILME-NA-PAGINA-1111 — /history?v=<id> (o botão do e-mail "filme pronto", via /api/email/filme-pronto)
+  // abre aquele filme no player, tocando, e mede o degrau "viu" do e-mail. Só id da PRÓPRIA lista (a leitura é da conta);
+  // id de outro ou filme não pronto: a lista abre como sempre. O ?v= sai da barra para não reabrir num recarregar.
+  useEffect(() => {
+    let params: URLSearchParams
+    try { params = new URLSearchParams(window.location.search) } catch { return }
+    const id = params.get('v')
+    if (!id) return
+    const film = initialVideos.find((x) => x.id === id)
+    const opened = Boolean(film && film.status === 'completed' && film.video_url)
+    if (opened) {
+      setLightbox(id)
+      try { document.getElementById(`v-${id}`)?.scrollIntoView({ block: 'center' }) } catch { /* sem rolagem: o player já abriu */ }
+    }
+    if (params.get('utm_source') === EMAIL_FILME_UTM_SOURCE) {
+      void trackEvent(EMAIL_FILME_LANDED_EVENT, { video_id: id, found: Boolean(film), opened, status: film?.status ?? null, version: EMAIL_FILME_VERSION })
+    }
+    try {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('v')
+      window.history.replaceState(window.history.state, '', url.toString())
+    } catch { /* barra intacta: recarregar só reabre o mesmo filme */ }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps -- uma vez, na chegada
   // sprint-ui #9 (29-30/08) — busca por titulo/tema. O fundador tem 327 videos
   // e achar um era rolagem infinita; cliente com 20+ sofre igual. Client-side.
   const [query, setQuery] = useState('')

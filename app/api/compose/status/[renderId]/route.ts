@@ -39,6 +39,7 @@ import { getRenderIntent } from '@/lib/credits/renderIntent'
 import { videoReadyFooter } from '@/lib/lifecycle/videoReadyFooter'
 import { film60UpsellEligible } from '@/lib/growth/filmReady60s'
 import { filmCompleteEmail } from '@/lib/growth/filmCompleteCopy'
+import { emailFilmeBotao, EMAIL_FILME_VERSION } from '@/lib/growth/emailFilmePronto' // KINEO-EMAIL-FILME-NA-PAGINA-1111
 import { FILM_COMPLETE_VERSION } from '@/lib/growth/filmComplete'
 import { COMPOSE_CLAIM_EVENT } from '@/lib/composeClaim'
 import { narrationLanguage, resolveNarrationLanguage } from '@/lib/textLanguage' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29
@@ -1398,13 +1399,16 @@ export async function GET(
             // Renderizador COMPARTILHADO com o cron (lib/publishPackEmail.ts).
             // `null` => '' — o e-mail de hoje, byte a byte.
             const packHtml = packEmailHtml(pack, { theme: 'dark' })
+            // KINEO-EMAIL-FILME-NA-PAGINA-1111 — o botão leva à página do filme (conta o clique, o filme abre tocando);
+            // o MP4 direto vira a linha "or download the file". Interruptor desligado ou sem id: o botão de antes, byte a byte.
+            const filmeBotao = emailFilmeBotao({ appUrl: process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.usekineo.com', videoId: shareVideoId, rawUrl: safeVideoUrl })
             const html = `
               <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#161618;color:#fff;padding:32px;border-radius:16px;">
                 <h1 style="color:#2997ff;font-size:24px;margin:0 0 8px">Your Short is ready! ⚡</h1>
                 <p style="color:#94a3b8;margin:0 0 24px">Your AI-generated YouTube Short about "<strong style="color:#fff">${safeTopic}</strong>" is ready to download.</p>
-                <a href="${safeVideoUrl}" style="display:inline-block;background:${film15Offer ? 'transparent' : '#2997ff'};color:${film15Offer ? '#b9dcff' : '#fff'};border:${film15Offer ? '1px solid #475569' : 'none'};text-decoration:none;padding:14px 28px;border-radius:10px;font-weight:700;font-size:15px;">
-                  ⬇ Download Your Short
-                </a>
+                <a href="${filmeBotao.href}" style="display:inline-block;background:${film15Offer ? 'transparent' : '#2997ff'};color:${film15Offer ? '#b9dcff' : '#fff'};border:${film15Offer ? '1px solid #475569' : 'none'};text-decoration:none;padding:14px 28px;border-radius:10px;font-weight:700;font-size:15px;">
+                  ${filmeBotao.label}
+                </a>${filmeBotao.secondaryHtml}
                 ${film15Offer?.html ?? ''}
                 ${readyFooter.html}
                 ${shareHtml}
@@ -1452,6 +1456,9 @@ export async function GET(
                       metadata: {
                         render_id: renderId,
                         film15_full_offer: Boolean(film15Offer),
+                        // KINEO-EMAIL-FILME-NA-PAGINA-1111 — o carimbo do deploy: este e-mail levou o botão da página do filme?
+                        film_page_link: filmeBotao.paginaDoFilme,
+                        film_page_version: filmeBotao.paginaDoFilme ? EMAIL_FILME_VERSION : null,
                         film15_offer_version: film15Offer ? FILM_COMPLETE_VERSION : null,
                         source_video_id: film15Offer ? shareVideoId : null,
                         footer: readyFooter.kind,

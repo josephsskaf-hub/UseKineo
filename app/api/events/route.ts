@@ -20,6 +20,8 @@ import { businessAdsStamp } from '@/lib/growth/businessAdsAttribution'
 export const dynamic = 'force-dynamic'
 
 const SERVER_ONLY_EVENTS = new Set([
+  // KINEO-EMAIL-FILME-NA-PAGINA-1111 — o clique no botão do e-mail "filme pronto" é contado pela rota /api/email/filme-pronto.
+  'video_ready_email_clicked',
   // KINEO-CARTAO-RECUSADO-0111 — carimbos de dedupe do laço do cartão recusado (um carimbo forjado calaria o aviso de
   // cobrança daquela fatura), a medição dos envios e a recuperação: fatos do webhook/cron, nunca do navegador.
   'renewal_payment_failed_email_sent',
