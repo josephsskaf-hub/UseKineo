@@ -34,12 +34,11 @@ Antes de publicar, escreva aqui: sessão · SHA · hora. Se já houver linha de 
 Imediatamente antes da publicação, faça fetch e rebase, rode `npx tsc --noEmit` e os guardiões da área e confira a reserva novamente. Depois do deploy "success", apague só a sua linha e registre em "No ar" com o SHA. A divisão de teste do Claude confere a tela publicada e lista aqui os defeitos.
 | Sessão | SHA | Começou |
 |---|---|---|
-| Codex · Citações semana · dia 6 | Reserva de início sobre `4e4772c0a`; só quadro, tela ainda sem edição | 11/11 07:07 −03:00 |
+| Codex · Citações semana · dia 6 | `d4fa21395ec932111f69534787b0d39eaa715b03` (inclui H3 `85586c9ee`); base e resultado verdes, aguardando READY | 11/11 07:17 −03:00 |
 
 ## Em obra
 | Quando começou | Sessão | O que | Arquivos principais | Branch / worktree |
 |---|---|---|---|---|
-| 11/11 07:07 −03:00 | Codex · Citações semana · dia 6 | Corrigir contradições residuais do filme padrão inglês (tabela, prazo e texto mensal) e a negativa absoluta de recarga no llms; revisão final antes da medição de 12/11. Sem oferta, motores, preço ou listas de terceiros | app/ai-video-generator/[engine]/page.tsx, lib/growth/h3TurboPage.ts, components/H3TurboDetails.tsx, app/llms.txt/route.ts e testes pertinentes | codex/citacoes-dia6-2026-11-11 · C:/kineo-wt/citacoes-dia6-2026-11-11 |
 | 11/11 00:27 −03:00 | CEO Codex | Coordenar Telas e Produto, Product Story e Citações. Revisar os SHAs locais, conciliar reservas e publicar uma entrega por vez | docs/QUADRO-DE-SESSOES.md | codex/ceo-coordenacao-1111 |
 | 11/11 00:30 −03:00 | Codex · Telas e Produto | Conferir Elevator com uma foto e o formato com duas. Primeiro diagnóstico somente leitura. Em seguida, inventariar o WIP de Clips | app/recreate/RecreateClient.tsx, docs/recreate-1011/test-photo-flow.cjs; leitura do WIP de Clips | `C:/Users/josep/.codex/worktrees/341b/kineo` |
 | 11/11 00:30 −03:00 | Codex · Product Story | Retomar a obra offline do Dia 2 e validar a correção do Dia 3: quadro real 1536×2752, falha terminal e retomada idempotente com quadro inválido | lib/ads/productStory/adapter.ts, lib/ads/productStory/preparation.ts, guardiões Product Story | `C:/Users/josep/.codex/worktrees/4081/kineo`; origem do WIP: codex/ads-product-story-day2-1011 |
@@ -63,6 +62,7 @@ Imediatamente antes da publicação, faça fetch e rebase, rode `npx tsc --noEmi
 ## Entregue à CEO (esperando revisão e publicação)
 | Quando | Sessão | O que | Branch · SHA |
 |---|---|---|---|
+| 11/11 07:17 −03:00 | Codex · Citações semana · dia 6 | Filme padrão inglês: linha corrente H3, prazo variável, texto mensal e data 11/11; llms descreve recarga só com release público. Rebase sobre `c9ebe9309`, typecheck base/resultado e bateria offline verdes. Publicação e verificação final nesta missão, sem oferta ou motor alterado | codex/citacoes-dia6-2026-11-11 · `d4fa21395ec932111f69534787b0d39eaa715b03` |
 | 11/11 ~02:00 | Div. 2 Vídeo | Nada chama o Veo depois de 17/11: cinto no envio à fal (recusa sem POST), casa recebe o mesmo 410 no filme, anúncio interno com fala vai para kling3, refação grátis de cena Veo recusada; guardião test-veo-desligado-1711 (15 ok, 14 mutantes). tsc limpo | claude/div-video-3e0b73 · fdad1fd5a |
 | 11/11 ~01:40 | Div. 3 · Google Ads e Anúncio Pago | Faxina do Google: /coming-soon 308, checkout 200 igual p/ robô (Stripe protegida), caixa de presente e Kling 4 "in supported countries", /refund, Support+Refunds no rodapé, /about→/trust, identidade numa constante. tsc ok, guardião 31 ok/25 mutantes. ⚠ toca home (app/page.tsx, CaixaDePresente0511) e rodapé (components/Footer.tsx) = área GPT, linhas mínimas | codex/google-faxina-1011 · 593ea7269 (sobre origin/main 8c7c7c44d) |
 | 11/11 00:35 | Div. 4 Receita | Revisão do filme US$ 1,99: REPROVADO para public (1 bloqueio: perfil editável pelo navegador), ok em internal; sem conflito com a main. Placar 24 h/7 d e renovações. Relatório: side-session-notes/div4-receita-2026-11-11.md | só leitura, sem commit · revisado a3d66278f |
