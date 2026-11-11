@@ -249,6 +249,7 @@ import {
 import { closingSceneVariation, deriveStoryCharacter, deriveExplicitCharacter, deriveStyleAnchor, textSafetySuffix, NO_TEXT_OBJECT_DIRECTION } from '@/lib/cinematic/sceneStyle'
 import { buildClassicVisualPrompt, classicVisualNegativePrompt, isStylizedLook, scrubInventedSetting, visualDescriptionDirection, type VisualPromptPolicy } from '@/lib/cinematic/visualPromptPolicy'
 import { ancoraDoLugar, ancorarLugarNoPrompt, comVocabularioDoLugar, lugarPrincipal, pedidoDeTourNarrado, promptTemOLugar } from '@/lib/cinematic/monumentoReal' // KINEO-MONUMENTO-2026-10-13
+import { pedidoDeFilmeDoPlano, ehPrimeiroFilme } from '@/lib/cinematic/planoNoPrimeiroFilme' // KINEO-PLANO-PRIMEIRO-FILME-1111
 import { precisaTraducao, traduzirAssunto, vocabularioDoAssunto } from '@/lib/cinematic/assuntoTraduzido' // KINEO-META95-ASSUNTO-1910 [TRAVA 8.2 — vai do fundador 19/10 "Vai pra meta do 95"] (linha própria)
 import { filtrarFalaSemBuraco } from '@/lib/cinematic/falaSemBuraco' // KINEO-META95-ASSUNTO-1910 (linha própria)
 import { aplicarRomanceAdulto, decidirRomanceAdulto, negativoRomanceAdulto, textoParaModeracao, ROMANCE_ADULT_SUFFIX, ROMANCE_ADULTO_VERSAO } from '@/lib/cinematic/romanceGuard' // KINEO-ROMANCE-ADULTO-2026-10-13
@@ -1299,6 +1300,17 @@ async function geracaoJaDebitada(userId: string, generationId: string): Promise<
     return data.user_id === userId && !data.refunded_at // KINEO-RECONEXAO-MESMO-FILME-2026-10-13
   } catch { return false } // KINEO-RECONEXAO-MESMO-FILME-2026-10-13
 } // KINEO-RECONEXAO-MESMO-FILME-2026-10-13
+// KINEO-PLANO-PRIMEIRO-FILME-1111 — quantos filmes a conta já recebeu (o mesmo critério do Kling 4 grátis: videos sem 'failed'). Erro de leitura → null →
+// a recusa de sempre (nunca adivinha "1º filme"). Só é chamada quando o pedido é um plano de câmera (raro).
+async function filmesEntreguesDaConta(userId: string): Promise<number | null> { // KINEO-PLANO-PRIMEIRO-FILME-1111
+  try { // KINEO-PLANO-PRIMEIRO-FILME-1111
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY // KINEO-PLANO-PRIMEIRO-FILME-1111
+    if (!url || !key) return null // KINEO-PLANO-PRIMEIRO-FILME-1111
+    const db = createAdminClient(url, key, { auth: { persistSession: false } }) // KINEO-PLANO-PRIMEIRO-FILME-1111
+    const { count, error } = await db.from('videos').select('id', { count: 'exact', head: true }).eq('user_id', userId).neq('status', 'failed') // KINEO-PLANO-PRIMEIRO-FILME-1111
+    return error || typeof count !== 'number' ? null : count // KINEO-PLANO-PRIMEIRO-FILME-1111
+  } catch { return null } // KINEO-PLANO-PRIMEIRO-FILME-1111
+} // KINEO-PLANO-PRIMEIRO-FILME-1111
 type UnsettledHold = { held: number; newestAgeMs: number | null }
 async function creditsHeldByUnsettledRender(userId: string): Promise<UnsettledHold> {
   try {
@@ -1635,8 +1647,9 @@ async function manipularPost(req: NextRequest) {
     // "The story of <lugar>, told as a narrated cinematic tour", e o modo vira IA (a narradora nunca lê o plano). [KINEO-MONUMENTO-2026-10-13]
     // Plano SEM lugar real segue recusado como antes. `lugarDoPedido` também ancora o lugar nos prompts das cenas, abaixo. [KINEO-MONUMENTO-2026-10-13]
     const lugarDoPedido = lugarPrincipal(prompt) // KINEO-MONUMENTO-2026-10-13
+    const contaSemFilmeNoPlano = detectShotSpec(prompt).isShotSpec && ehPrimeiroFilme(await filmesEntreguesDaConta(user.id)) // KINEO-PLANO-PRIMEIRO-FILME-1111 — uma leitura só, e só quando o pedido é plano de câmera
     if (lugarDoPedido && detectShotSpec(prompt).isShotSpec) { // KINEO-MONUMENTO-2026-10-13
-      if (body.script_mode !== 'ai') return NextResponse.json(briefRequiresReview(body.language), { status: 422 }) // PEDIDO-FIEL-2610 — no silent conversion of a literal script into an AI tour.
+      if (body.script_mode !== 'ai' && !contaSemFilmeNoPlano) return NextResponse.json(briefRequiresReview(body.language), { status: 422 }) // PEDIDO-FIEL-2610 — no silent conversion of a literal script into an AI tour. · KINEO-PLANO-PRIMEIRO-FILME-1111: no 1º filme, nunca recusa (vira o tour narrado no modo IA)
       const planoOriginal = detectShotSpec(prompt) // KINEO-MONUMENTO-2026-10-13
       prompt = pedidoDeTourNarrado(prompt, lugarDoPedido) // KINEO-MONUMENTO-2026-10-13
       body.script_mode = 'ai' // KINEO-MONUMENTO-2026-10-13
@@ -1649,7 +1662,12 @@ async function manipularPost(req: NextRequest) {
     // qualquer débito, com a saída certa na mensagem.
     {
       const shot = detectShotSpec(prompt)
-      if (shot.isShotSpec) {
+      const planoEmContaSemFilme = shot.isShotSpec && contaSemFilmeNoPlano // KINEO-PLANO-PRIMEIRO-FILME-1111
+      if (planoEmContaSemFilme) { // KINEO-PLANO-PRIMEIRO-FILME-1111 — regra do dono: o 1º filme nunca recusa. O plano vira filme narrado no modo IA; a narradora não lê o plano.
+        void writeServerEvent({ name: 'shot_spec_first_film_admitted', userId: user.id, path: '/api/generate-video-cinematic', metadata: { reason: shot.reason, keys: shot.keys, seconds: shot.seconds, prompt_length: prompt.length, script_mode_before: body.script_mode ?? null, charged: false } }) // KINEO-PLANO-PRIMEIRO-FILME-1111
+        prompt = pedidoDeFilmeDoPlano(prompt) // KINEO-PLANO-PRIMEIRO-FILME-1111
+        body.script_mode = 'ai' // KINEO-PLANO-PRIMEIRO-FILME-1111
+      } else if (shot.isShotSpec) { // KINEO-PLANO-PRIMEIRO-FILME-1111 — conta que já tem filme: a recusa de sempre
         await writeServerEvent({ name: 'shot_spec_detected', userId: user.id, path: '/api/generate-video-cinematic', metadata: { reason: shot.reason, keys: shot.keys, seconds: shot.seconds, prompt_length: prompt.length } })
         return NextResponse.json({
           error: `This looks like a shot plan (${shot.keys.slice(0, 4).join(', ')}), not a story to narrate. Kineo would read it out loud over the footage. Use "Just this clip (no narration)" in Studio to render exactly this shot (${shot.seconds} s), or write the story you want narrated.`,
