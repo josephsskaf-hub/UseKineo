@@ -1,9 +1,11 @@
 // KINEO-H3-LETREIRO-0611 — [TRAVA 8.2 — fundador 06/11: "pode tomar a decisão sozinho"]
 // Recibo exato: desfaz só os trechos desta entrega, para os guardiões históricos lerem o arquivo como era. Trecho ausente ou repetido reprova. Nunca usar em lib/app.
 import { readFileSync } from 'node:fs'
+import { semFichaDoPedido0911 } from './desfaz-ficha-do-pedido-0911.mjs' // KINEO-FICHA-DO-PEDIDO-0911 — a camada mais nova (09/11, laço do revisor) sai primeiro
 const ESCOPO = JSON.parse(readFileSync(new URL('./desfaz-h3-letreiro-0611-fontes.json', import.meta.url), 'utf8'))
 const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 export function semH3Letreiro0611(source, file) {
+  source = semFichaDoPedido0911(source, file) // KINEO-FICHA-DO-PEDIDO-0911 — a camada de cima sai antes
   const hunks = ESCOPO[rel(file)]
   if (typeof source !== 'string' || !hunks) return source
   const crlf = source.includes('\r\n')
