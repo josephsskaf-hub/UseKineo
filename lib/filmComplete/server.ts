@@ -4,6 +4,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type Stripe from 'stripe'
 import { isNonPayingAccount } from '@/lib/growth/filmReady60s'
 import { FILM_COMPLETE_CAMPAIGN, FILM_COMPLETE_ENGINE, FILM_COMPLETE_INTENT_EVENT, FILM_COMPLETE_TARGET_SECONDS, FILM_COMPLETE_UUID, FILM_COMPLETE_VERSION, filmCompletePaymentMetadata, type FilmCompleteState } from '@/lib/growth/filmComplete'
+import { FILM_COMPLETE_STUCK_EVENT, FILM_COMPLETE_WRITER_REJECTED_EVENT, filmCompleteAfterRejection, filmCompleteWriterRetryNote, filmCompleteWriterVerdict } from '@/lib/growth/filmComplete' // KINEO-VERSAO-COMPLETA-NUNCA-MUDA-1111
 import { COMPOSE_CLAIM_EVENT } from '@/lib/composeClaim'
 import { CINEMATIC_CLAIM_EVENT, cinematicClaimId } from '@/lib/cinematic/claim'
 import { mintUserSession } from '@/lib/mcp/studioSession'
@@ -200,6 +201,8 @@ export interface FilmCompleteIo {
   fetch: typeof fetch
   /** KINEO-VERSAO-COMPLETA-K4-2910 — true só com a promo do Kling 4.0 confirmada no servidor para este usuário. Ausente = Seedance. */
   kling4Free?: (db: SupabaseClient, userId: string) => Promise<boolean>
+  /** KINEO-VERSAO-COMPLETA-NUNCA-MUDA-1111 — avisa a casa (alertFounderOnce). Ausente = só o evento de servidor. Nunca lança. */
+  alert?: (input: { key: string; subject: string; text: string }) => Promise<void>
 }
 // KINEO-VERSAO-COMPLETA-K4-2910 — a versão completa sai em Kling 4.0 quando o servidor confirma a promo do assinante (0 crédito).
 // Medido 29/10: o 1º comprador vindo do filme grátis em Kling 4.0 recebeu a versão completa em Seedance, pagou 35 cr e viu o estilo
@@ -207,7 +210,28 @@ export interface FilmCompleteIo {
 export const FILM_COMPLETE_KLING4_ENGINE = 'hollywood' as const
 export const FILM_COMPLETE_KLING4_SECONDS = 30
 const REAL_IO: FilmCompleteIo = { now: () => Date.now(), mint: mintUserSession, fetch: (...args) => fetch(...args),
-  kling4Free: async (db, userId) => { try { const a = await readKling4PaidAvailability(db, { userId, seconds: FILM_COMPLETE_KLING4_SECONDS, falExtrasMilliUsd: kling4PaidFalExtrasMilliUsd(FILM_COMPLETE_KLING4_SECONDS) }); return a.paidLive && a.promoAvailable } catch { return false } } }
+  kling4Free: async (db, userId) => { try { const a = await readKling4PaidAvailability(db, { userId, seconds: FILM_COMPLETE_KLING4_SECONDS, falExtrasMilliUsd: kling4PaidFalExtrasMilliUsd(FILM_COMPLETE_KLING4_SECONDS) }); return a.paidLive && a.promoAvailable } catch { return false } },
+  // KINEO-VERSAO-COMPLETA-NUNCA-MUDA-1111 — a mesma via dos pedidos pagos (lib/founderAlert.ts → notifyFounder: Resend + webhook),
+  // carregada só na hora (o módulo do alerta não entra no caminho de quem não falhou). Uma vez por pedido + estado + motivo.
+  alert: async ({ key, subject, text }) => { try { const { alertFounderOnce } = await import('@/lib/founderAlert'); await alertFounderOnce({ kind: 'film_complete_stuck', stripeSessionId: key, subject, text, path: '/api/film-complete/start' }) } catch { /* nunca lança */ } } }
+
+/** KINEO-VERSAO-COMPLETA-NUNCA-MUDA-1111 — pedido PAGO que falhou ou travou por saldo: evento de servidor com o motivo exato (id
+ *  determinístico: um por pedido + estado + motivo) e aviso à casa. Nunca lança — o estado do pedido já foi gravado antes. */
+async function avisarPedidoPreso(db: SupabaseClient, intent: FilmCompleteIntent, io: FilmCompleteIo, state: 'failed' | 'waiting_entitlement', reason: string, detail: Meta = {}): Promise<void> {
+  const key = `${text(intent.metadata.paid_session_id) || intent.id}:${state}:${reason}`
+  try {
+    const hex = createHash('sha256').update(`${FILM_COMPLETE_STUCK_EVENT}:${intent.id}:${state}:${reason}`).digest('hex').slice(0, 32)
+    await db.from('events').insert({
+      id: `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`,
+      name: FILM_COMPLETE_STUCK_EVENT, user_id: intent.userId, path: '/api/film-complete/start',
+      metadata: { version: FILM_COMPLETE_VERSION, film_complete_id: intent.id, source_video_id: intent.sourceVideoId, generation_id: intent.generationId, state, reason, ...detail },
+    })
+  } catch { /* o evento é rastro; o aviso abaixo sai mesmo assim */ }
+  if (!io.alert) return
+  const subject = state === 'failed' ? '🚨 Kineo: filme completo PAGO falhou — a pessoa não recebeu' : '⚠️ Kineo: filme completo PAGO parado por saldo'
+  const body = `Pedido ${intent.id} (usuário ${intent.userId}, filme de origem ${intent.sourceVideoId}).\nEstado: ${state} · motivo: ${reason}\n${Object.entries(detail).map(([k, v]) => `${k}: ${String(v)}`).join('\n')}\n\nA pessoa pagou pela versão completa. Ver film15_full_intent e film_complete_stuck no banco.`
+  try { await io.alert({ key, subject, text: body }) } catch { /* nunca lança */ }
+}
 
 /** A leased launch, plus the cinematic route's existing signed claim, reuse ONE deterministic generation on every retry. */
 export async function startFilmComplete(db: SupabaseClient, intent: FilmCompleteIntent, origin: string, io: FilmCompleteIo = REAL_IO): Promise<Record<string, unknown>> {
@@ -253,21 +277,33 @@ export async function startFilmComplete(db: SupabaseClient, intent: FilmComplete
       // The normal cinematic AI writer runs BEFORE its fingerprint. Freeze its expanded screenplay first,
       // otherwise a retry could rewrite the text and conflict with the same generation's original claim.
       const context = `${intent.prompt}\n${filmQualityWriterDirection(sourceQuality)}`.replace(/[[\]]/g, ' ').replace(/\s+/g, ' ').trim() // KINEO-QUALIDADE-TODOS-MOTORES-2910 — keep source style and cast in the existing writer call
+      // KINEO-VERSAO-COMPLETA-NUNCA-MUDA-1111 — da 2ª escrita em diante, a recusa anterior e o tamanho exigido vão junto.
+      const priorRejections = typeof intent.metadata.writer_rejections === 'number' ? intent.metadata.writer_rejections : 0
+      const retryNote = filmCompleteWriterRetryNote({ attempt: priorRejections + 1, reason: intent.metadata.writer_last_reason, seconds, minWords: intent.metadata.writer_min_words, words: intent.metadata.writer_last_words })
       const writer = await io.fetch(`${origin}/api/generate-script`, {
         method: 'POST', headers: { 'content-type': 'application/json', cookie: minted.session.cookie }, cache: 'no-store',
-        body: JSON.stringify({ topic: `Expand the same story into a ${seconds}-second film. Preserve its topic, characters, setting, language and ending. Develop the same events. Original story and direction: [${context}]`, language: intent.language, targetSeconds: seconds, engine, forceAuthoring: true }), // KINEO-VERSAO-COMPLETA-K4-2910
+        body: JSON.stringify({ topic: `Expand the same story into a ${seconds}-second film. Preserve its topic, characters, setting, language and ending. Develop the same events.${retryNote} Original story and direction: [${context}]`, language: intent.language, targetSeconds: seconds, engine, forceAuthoring: true }), // KINEO-VERSAO-COMPLETA-K4-2910
         signal: AbortSignal.timeout(60_000),
       })
       const written = await writer.json().catch(() => ({})) as Meta
       const script = text(written.script)
       const parsed = parseUserScript(script)
-      if (!writer.ok || written.stillShort === true || !parsed.hasMarkers || !parsed.segments.length || Number(written.targetSeconds) !== seconds) {
-        const state = writer.status >= 500 || writer.status === 429 ? 'starting' : 'failed'
-        await update({ state, launch_at: null, writer_http_status: writer.status })
-        return { ...status, state }
+      const verdict = filmCompleteWriterVerdict({ httpOk: writer.ok, status: writer.status, stillShort: written.stillShort, hasMarkers: parsed.hasMarkers, segments: parsed.segments.length, targetSeconds: written.targetSeconds, expectedSeconds: seconds })
+      if (!verdict.ok) {
+        if (verdict.transient) { await update({ state: 'starting', launch_at: null, writer_http_status: writer.status }); return { ...status, state: 'starting' } }
+        // KINEO-VERSAO-COMPLETA-NUNCA-MUDA-1111 — recusa da régua conta tentativa: 'starting' (a fila escreve de novo) até a 3ª.
+        const after = filmCompleteAfterRejection(intent.metadata.writer_rejections)
+        const detail = { attempt: after.attempts, writer_http_status: writer.status, words: typeof written.words === 'number' ? written.words : null, min_words: typeof written.minWords === 'number' ? written.minWords : null, target_seconds: Number(written.targetSeconds) || null }
+        await update({ state: after.state, launch_at: null, writer_http_status: writer.status, writer_rejections: after.attempts, writer_last_reason: verdict.reason, writer_last_words: detail.words, writer_min_words: detail.min_words })
+        try {
+          const hex = createHash('sha256').update(`${FILM_COMPLETE_WRITER_REJECTED_EVENT}:${intent.id}:${after.attempts}`).digest('hex').slice(0, 32)
+          await db.from('events').insert({ id: `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`, name: FILM_COMPLETE_WRITER_REJECTED_EVENT, user_id: intent.userId, path: '/api/film-complete/start', metadata: { version: FILM_COMPLETE_VERSION, film_complete_id: intent.id, reason: verdict.reason, ...detail } })
+        } catch { /* rastro */ }
+        if (after.state === 'failed') await avisarPedidoPreso(db, intent, io, 'failed', `writer_${verdict.reason}`, detail)
+        return { ...status, state: after.state }
       }
       dispatchPrompt = promptComRoteiro(intent.prompt, script)
-      if (dispatchPrompt.length > 12000) { await update({ state: 'failed' }); return { ...status, state: 'failed' } }
+      if (dispatchPrompt.length > 12000) { await update({ state: 'failed' }); await avisarPedidoPreso(db, intent, io, 'failed', 'prompt_too_long', { length: dispatchPrompt.length }); return { ...status, state: 'failed' } } // KINEO-VERSAO-COMPLETA-NUNCA-MUDA-1111
       // Persist and confirm the exact bytes before any paid scene can start. Every later launch reuses them.
       next.dispatch_prompt = dispatchPrompt
       next.dispatch_script_mode = 'verbatim'
@@ -289,6 +325,9 @@ export async function startFilmComplete(db: SupabaseClient, intent: FilmComplete
     }
     const state = response.ok ? 'processing' : response.status === 402 ? 'waiting_entitlement' : response.status >= 400 && response.status < 500 && result.pending !== true ? 'failed' : 'starting'
     await update({ state, http_status: response.status, ...(response.status === 402 ? { launch_at: null } : {}) })
+    // KINEO-VERSAO-COMPLETA-NUNCA-MUDA-1111 — nunca mudo: recusa do render e saldo abaixo do custo avisam a casa (1 vez por motivo).
+    if (state === 'failed') await avisarPedidoPreso(db, intent, io, 'failed', `cinematic_http_${response.status}`, { reason_from_route: text(result.reason) || null })
+    if (state === 'waiting_entitlement') await avisarPedidoPreso(db, intent, io, 'waiting_entitlement', 'saldo_insuficiente', { http_status: response.status })
     return { ...status, state }
   } catch {
     // A timeout can have submitted scenes: never generate another id or assert failure/refund.

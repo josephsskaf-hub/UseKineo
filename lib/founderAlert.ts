@@ -36,7 +36,8 @@ export const FOUNDER_ALERT_TIMEOUT_MS = 3000
 // KINEO-CUPOM-CONVIDADO-2026-10-07 — 'guest_welcome_promo_reused': compra sem login com o desconto de boas-vindas num
 // e-mail cuja conta já tinha pago (risco aceito; o grant segue igual e o aviso só mede).
 // KINEO-PACOTE-3-FILMES-1610 — 'dfy_films3_order': o pacote "3 filmes feitos por nós" (US$ 19) foi pago.
-export type FounderAlertKind = 'dfy_order' | 'ads_pass' | 'dfy_brief' | 'guest_conflict' | 'guest_welcome_promo_reused' | 'dfy_films3_order'
+// KINEO-VERSAO-COMPLETA-NUNCA-MUDA-1111 — 'film_complete_stuck': a versão completa PAGA falhou ou parou por saldo (lib/filmComplete/server.ts).
+export type FounderAlertKind = 'dfy_order' | 'ads_pass' | 'dfy_brief' | 'guest_conflict' | 'guest_welcome_promo_reused' | 'dfy_films3_order' | 'film_complete_stuck'
 export type FounderAlertOutcome = 'sent' | 'failed' | 'timeout' | 'duplicate' | 'error'
 
 /** Origem pública do site: a mesma URL que a página /business-video-ads declara (fonte única, sem domínio redigitado). */
