@@ -6,7 +6,7 @@
 // antes de escolher motivo, e leva direto à tela de cancelar do portal (POST /api/stripe/portal { flow: 'cancel' }).
 // Renderiza em document.body: o cartão da conta tem backdrop-filter, que prenderia um overlay fixed dentro dele.
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { trackEvent } from '@/lib/analytics'
 import { formatCheckoutMoney } from '@/lib/checkoutPricing'
@@ -62,6 +62,16 @@ export type Phase = 'loading' | 'ready' | 'saving' | 'saved'
 
 const CARD_BG = 'rgba(11,17,32,0.97)'
 const BLUE = '#2997ff'
+/** KINEO-BEFORE-YOU-GO-TEMA-1111 — o cartão é SEMPRE escuro, então ele define a PRÓPRIA paleta de texto e não herda a do
+ *  tema da página. Antes, no tema claro (html data-theme="light"), var(--text) virava rgb(14,17,22) sobre o fundo escuro:
+ *  título, motivos não escolhidos, saldo e "Keep my plan" quase ilegíveis — no ar desde 31/10 na tela da conta (prova em
+ *  tela da CEO, 11/11 06:20). As variáveis valem só dentro do cartão. */
+export const CANCEL_SAVE_PALETTE = {
+  '--text': '#f5f7fb',
+  '--text2': '#d5dbe6',
+  '--muted': '#a7afbd',
+  '--muted2': '#8b94a3',
+} as const
 
 export default function CancelSaveFlow({ onClose }: { onClose: () => void }) {
   const [mounted, setMounted] = useState(false)
@@ -323,7 +333,8 @@ export function CancelSaveView({ phase, info, reason, error, savedNote, leaving,
     >
       <div
         className="rounded-2xl p-6"
-        style={{ background: CARD_BG, border: '1px solid rgba(255,255,255,.1)', width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto' }}
+        style={{ ...(CANCEL_SAVE_PALETTE as unknown as CSSProperties), background: CARD_BG, color: CANCEL_SAVE_PALETTE['--text'], border: '1px solid rgba(255,255,255,.1)', width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto' }}
+        data-kineo-palette="cancel-save-dark"
       >
         <div className="flex items-start justify-between gap-3 mb-1">
           <h2 id="cancel-save-title" className="font-black text-lg" style={{ color: 'var(--text)' }}>

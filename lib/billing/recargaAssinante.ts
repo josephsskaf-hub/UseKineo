@@ -150,6 +150,8 @@ export const RECARGA_ASSINANTE_COPY = {
   paidWaiting: 'Payment received — adding your {credits} credits…',
   paidDone: 'Done — {credits} credits added. Your idea is still here.',
   paidLate: 'Payment received. Your credits can take a minute to appear — refresh in a moment.',
+  // KINEO-BARRA-SEM-MOTOR-1111 — a barra conta em filmes curtos (o filme mais barato, recargaAssinanteMinFilmCredits), sem motor.
+  films: '≈ {films} short films of 15 seconds',
 } as const
 
 export function recargaAssinanteFill(text: string, v: { price?: string; credits?: number }): string {

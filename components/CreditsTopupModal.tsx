@@ -25,6 +25,7 @@ import CreditMinutesSummary from '@/components/CreditMinutesSummary'
 import { useEffect, useState } from 'react'
 import {
   formatCheckoutMoney,
+  recargaAssinanteMinFilmCredits,
   type CheckoutCurrency,
 } from '@/lib/checkoutPricing'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
@@ -188,7 +189,15 @@ function CreditsTopupModalVenda({
                 {/* KINEO-RECARGA-ASSINANTE-1111 — marcas da faixa da fonte única (a escada nova vai de 60 a 3.700). */}
                 <span>{CREDIT_SLIDER_MIN}</span><span>{Math.round(CREDIT_SLIDER_MAX / 3 / 100) * 100}</span><span>{Math.round((CREDIT_SLIDER_MAX * 2) / 3 / 100) * 100}</span><span>{CREDIT_SLIDER_MAX.toLocaleString('en-US')}</span>
               </div>
-              <CreditMinutesSummary credits={amount} live />
+              {/* KINEO-BARRA-SEM-MOTOR-1111 — na barra do assinante, a conta em FILMES, sem nome de motor (regra do fundador:
+                  nada de nome de motor em cartão/botão). O resumo por motor segue onde já estava (top-up antigo). */}
+              {recarga ? (
+                <p data-kineo="recarga-filmes" aria-live="polite" style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, background: 'var(--accent-soft)', color: 'var(--text)', fontSize: 13, fontWeight: 700 }}>
+                  {RECARGA_ASSINANTE_COPY.films.split('{films}').join(String(Math.floor(amount / recargaAssinanteMinFilmCredits())))}
+                </p>
+              ) : (
+                <CreditMinutesSummary credits={amount} live />
+              )}
               {recarga?.qa && (
                 <p data-kineo="recarga-assinante-qa" style={{ margin: '12px 0 0', color: '#d93025', fontSize: '0.7rem', fontWeight: 900, letterSpacing: '.04em', textTransform: 'uppercase', textAlign: 'center' }}>
                   {RECARGA_ASSINANTE_COPY.qa}
