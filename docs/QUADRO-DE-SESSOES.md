@@ -75,6 +75,7 @@ Imediatamente antes da publicação, faça fetch e rebase, rode `npx tsc --noEmi
 ## No ar
 | Quando | O que | SHA |
 |---|---|---|
+| 11/11 madrugada | Laço do revisor (tarefa noturna, Claude · área Vídeo): "a giant carrot" não vira mais personagem gigante — o homem barbudo do filme do ursinho (render 2176bed6). Só lib/cinematic/folhaDePersonagem.ts + guardião + recibo 8.2. Revisão adversarial LIMPO na 3ª volta | `34bfaa300` |
 | 11/11 00:39 -03:00 | CEO Codex · organização das três divisões e reservas publicadas no GitHub. Deploy conferido com status success. | `1e2036999` |
 | 11/11 00:20 | Elevator com 1 foto (só o homem), sem caixa de consentimento, capa do Outfit Morph | 13b64b9a3 |
 | 10/11 22:40 | Vitrine de filmes em 9 páginas citadas | 953dd6cb7 |
