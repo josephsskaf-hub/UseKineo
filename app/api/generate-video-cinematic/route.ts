@@ -985,17 +985,23 @@ const ERA_WORD_RE =
 const RESOLUCAO_NO_PEDIDO_RE = /\b(?:resolution|resolução|resolucao|resolución|resolucion|res)\s*[:=]?\s*\d{3,4}(?:\s*(?:[×✕*xX]|by|por)\s*\d{3,4})?|\b\d{3,4}\s*(?:[×✕*xX]|by|por)\s*\d{3,4}\b|\b\d{3,4}\s*(?:p|px|pixels?|fps|hz)\b/gi // KINEO-ROMANCE-ADULTO-2026-10-13
 
 // KINEO-ELENCO-ATE-O-FIM-0511 — "ancient hieroglyphics" (comparação) num filme de geladeira inteligente virava "period piece, absolutely no modern objects". Objeto de hoje na história: palavra de era sozinha não trava a época; ano escrito continua travando.
+// KINEO-EPOCA-POSITIVA-1111 — ano antigo com era escrita (79 AD, 44 BC, 79 d.C., 44 a.C., 79 г. н.э.): o ERA_YEAR_RE só pega 1000–1939.
+const ERA_ANTIGA_RE = /\b(\d{1,4})\s?(AD|A\.D\.|CE|BC|B\.C\.|BCE|d\.\s?C\.|a\.\s?C\.)(?![\p{L}])|(?<![\p{L}\p{N}])(\d{1,4})\s?(?:год\s?|г\.\s?)?(до\s?н\.\s?э\.|н\.\s?э\.)/iu
 const OBJETO_DE_HOJE_RE = /\b(?:smart[\s-]?(?:fridge|phone|home|tv|watch|vacuum|speaker|device)s?|smartphones?|iphones?|wi-?fi|laptops?|robot vacuums?|auto-update|software update)\b/i
 function eraLockSuffix(context: string): string {
   const ctx = (context || '').slice(0, 4000).replace(RESOLUCAO_NO_PEDIDO_RE, ' ') // KINEO-ROMANCE-ADULTO-2026-10-13 — era (context || '').slice(0, 4000)
   const yearMatch = ctx.match(ERA_YEAR_RE)
-  if (!yearMatch && (!ERA_WORD_RE.test(ctx) || OBJETO_DE_HOJE_RE.test(ctx))) return '' // KINEO-ELENCO-ATE-O-FIM-0511
-  const era = yearMatch ? `the year ${yearMatch[0]}` : 'the historical era being narrated'
+  const antigo = ctx.match(ERA_ANTIGA_RE) // KINEO-EPOCA-POSITIVA-1111 — "79 AD" sozinho também liga a trava
+  if (!yearMatch && !antigo && (!ERA_WORD_RE.test(ctx) || OBJETO_DE_HOJE_RE.test(ctx))) return '' // KINEO-ELENCO-ATE-O-FIM-0511 · KINEO-EPOCA-POSITIVA-1111: + !antigo
+  // KINEO-EPOCA-POSITIVA-1111 [CEO 11/11, ordem do dono: "Kling 7,5–8"] — a lista "no tanks, no cars, no trucks…" ia no prompt POSITIVO da imagem-chave
+  // (FLUX) e do clipe (Kling 4, H3, S25: nenhum tem campo negativo) e CONVIDAVA o objeto: as duas Pompeias de 11/11 saíram com carro
+  // moderno (6db4c2ca, 4 de 8 quadros) e TANQUES de guerra (4306e307, 3 de 8) — as imagens-chave já nasceram assim. A mesma lição do
+  // "no phone" que desenhava o celular e do tanque de melaço de Boston. Agora a época vai em POSITIVO, sem nomear objeto de hoje, e o
+  // ano antigo ("79 AD", "44 a.C.") vira o ano da trava em vez de "the historical era being narrated".
+  const era = yearMatch ? `the year ${yearMatch[0]}` : antigo ? `the year ${antigo[1] ?? antigo[3]} ${/^(?:b|a\.?\s?c|до)/i.test(antigo[2] ?? antigo[4] ?? '') ? 'BC' : 'AD'}` : 'the historical era being narrated' // KINEO-EPOCA-POSITIVA-1111
   return (
-    `, period piece set strictly in ${era}, only historically accurate clothing, weapons, ` +
-    `vehicles and architecture from that exact time, absolutely no modern objects, no tanks, ` +
-    `no cars, no trucks, no modern military vehicles, no modern weapons, no modern uniforms, ` +
-    `no power lines, no asphalt, no plastic`
+    `, period piece set strictly in ${era}: every person, building, street, vehicle and object belongs to that exact time — ` +
+    `period clothing, period architecture and period transport only, as it really looked then` // KINEO-EPOCA-POSITIVA-1111 — era: "…absolutely no modern objects, no tanks, no cars, no trucks, …"
   )
 }
 
