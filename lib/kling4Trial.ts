@@ -25,6 +25,32 @@ export function approvedKling4TrialStills(
   })
 }
 
+// KINEO-K4-PLANO-DA-SECAO-1111 — teto de 512 code points por plano (esquema KlingV4Shot da fal). O corte cai em FRONTEIRA DE FRASE e nunca no meio de uma
+// proibição; a cauda protegida " Mouth closed, no speaking." vai inteira ou não vai (a lição do "menino da bolha" de 27/08: proibição
+// decapitada vira pedido — "Mout" de "Mouth closed", "color g").
+export const KLING4_TETO_DO_PLANO = 512
+const CAUDA_DA_BOCA = ' Mouth closed, no speaking.'
+export function cabeNoTetoDoPlano(texto: string, teto = KLING4_TETO_DO_PLANO): string {
+  const cp = (s: string) => Array.from(s).length
+  if (cp(texto) <= teto) return texto
+  const temCauda = texto.endsWith(CAUDA_DA_BOCA)
+  const corpo = temCauda ? texto.slice(0, -CAUDA_DA_BOCA.length) : texto
+  const orcamento = teto - (temCauda ? cp(CAUDA_DA_BOCA) : 0)
+  const caberia = Array.from(corpo).slice(0, orcamento).join('')
+  // 1º: a última frase inteira que cabe; 2º: a última oração (vírgula) que não comece por proibição; nunca o meio da palavra
+  const fimDeFrase = Math.max(caberia.lastIndexOf('. '), caberia.lastIndexOf('! '), caberia.lastIndexOf('? '), caberia.endsWith('.') ? caberia.length - 1 : -1)
+  let base: string
+  if (fimDeFrase >= Math.floor(orcamento * 0.5)) base = caberia.slice(0, fimDeFrase + 1)
+  else {
+    const partes = caberia.split(/,\s*/)
+    partes.pop() // a última oração pode estar cortada no meio
+    while (partes.length > 1 && /^(?:no|not|never|without)\b/i.test(partes[partes.length - 1].trim())) partes.pop()
+    base = partes.join(', ').replace(/[\s,;:—-]+$/u, '') + '.'
+  }
+  const final = base + (temCauda ? CAUDA_DA_BOCA : '')
+  return cp(final) <= teto ? final : Array.from(base).slice(0, teto).join('').replace(/\s+\S*$/u, '')
+}
+
 export type Kling4TrialTiming = { voiceovers: readonly string[]; wordsPerSecond: number }
 
 /** Speech-weighted allocation on the provider's integer clock. Clamp short shots, then apportion the remainder. */
@@ -77,7 +103,7 @@ export function buildKling4TrialInput(
       } else reference = `Scene ${i + 1}: text-directed shot, no new keyframe for this scene. `
     }
     // KlingV4Shot.prompt has maxLength=512; count Unicode code points as the schema does.
-    const bounded = Array.from(reference + prompt).slice(0, 512).join('')
+    const bounded = cabeNoTetoDoPlano(reference + prompt) // KINEO-K4-PLANO-DA-SECAO-1111 — era: Array.from(reference + prompt).slice(0, 512).join('') (cortava no meio da palavra e da proibição: "color g", "signage Mout")
     return { prompt: bounded, duration: seconds[i] }
   })
   return {

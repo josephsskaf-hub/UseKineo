@@ -46,7 +46,7 @@ function problems(over) {
     const out = K.promptDaCenaKling4(PLANO3, style, 2, gratis)
     no(Array.from(out).length > 512, `Pompeia (${gratis ? 'grátis' : 'pago'}): passou de 512 (${Array.from(out).length})`)
     no(!/terrified spectators flee/.test(out), `Pompeia (${gratis ? 'grátis' : 'pago'}): a ação foi cortada → ${out.slice(0, 260)}`)
-    no(!/Visible: Fiery/.test(out) || !/seen from behind/.test(out), `Pompeia (${gratis ? 'grátis' : 'pago'}): a ficha ou o "de costas" sumiram`)
+    no(!/Visible(?:, seen from behind)?: Fiery/.test(out) || !/seen from behind/.test(out), /* KINEO-K4-PLANO-DA-SECAO-1111: o "de costas" foi para o rótulo */ `Pompeia (${gratis ? 'grátis' : 'pago'}): a ficha ou o "de costas" sumiram`)
     no(/face not readable\.\s+A close-up/.test(out) && out.indexOf('face not readable') < out.indexOf('Visible:'), 'Pompeia: a cauda da ficha voltou para a ação')
     const rosto = K.promptDaCenaKling4(COM_ROSTO, style, 2, gratis)
     no(/seen from behind/.test(rosto), 'com rosto: ganhou "de costas" que o pedido não tem')
@@ -61,8 +61,8 @@ let n = 1, falhas = 0
 console.log('ok  estado atual limpo (Pompeia plano 3: a ação inteira cabe nos 512)')
 const fq = read('lib/cinematic/filmQuality.ts')
 const MUT = [
-  ['M1 regex volta a parar antes da cauda', { 'lib/cinematic/filmQuality.ts': fq.replace('— clearly visible in frame(, seen from behind or in profile, face not readable)?\.?/i', '— clearly visible in frame/i') }],
-  ['M2 a ficha perde o "de costas"', { 'lib/cinematic/filmQuality.ts': fq.replace("${deCostas ? ', seen from behind' : ''}. ` : identity ? `Identity:", '. ` : identity ? `Identity:') }],
+  ['M1 regex volta a parar antes da cauda', { 'lib/cinematic/filmQuality.ts': fq.replace('— clearly visible in frame(, seen from behind or in profile, face not readable)?\\.?/i', '— clearly visible in frame/i') /* KINEO-K4-PLANO-DA-SECAO-1111: \\. — a fonte agora tem o ponto escapado */ }],
+  ['M2 a ficha perde o "de costas"', { 'lib/cinematic/filmQuality.ts': fq.replace("`Visible${deCostas ? ', seen from behind' : ''}: ${visible(budget)}. `", '`Visible: ${visible(budget)}. `') }], // KINEO-K4-PLANO-DA-SECAO-1111
 ]
 for (const [nome, over] of MUT) {
   if (Object.values(over)[0] === fq) { console.log(`FALHA ${nome}: não aplicou`); falhas++; continue }

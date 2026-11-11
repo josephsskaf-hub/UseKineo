@@ -45,6 +45,22 @@ export function travarEstiloCompactoDoFilme(prompt: string, style: StyleAnchor):
   return prompt.startsWith(`Style: ${medium}. `) ? prompt : `Style: ${medium}. ${prompt}`
 }
 
+// KINEO-K4-PLANO-DA-SECAO-1111 — corta em fronteira: a última frase (". ") ou oração (", ") que cabe; o pedaço final que começa por
+// proibição ("no …", "never …") sai inteiro em vez de ficar decapitado. Sem fronteira útil (raro): o corte antigo, sem a palavra partida.
+export function cortaEmFronteira(texto: string, limite: number): string {
+  const cps = Array.from(texto)
+  if (cps.length <= limite) return texto
+  const cabe = cps.slice(0, limite).join('')
+  const frase = cabe.lastIndexOf('. ')
+  const porFrase = frase >= 0 ? cabe.slice(0, frase + 1) : ''
+  const partes = cabe.split(/,\s*/)
+  partes.pop()
+  while (partes.length > 1 && /^(?:no|not|never|without)\b/i.test(partes[partes.length - 1].trim())) partes.pop()
+  const porOracao = partes.join(', ').replace(/[\s,;:—-]+$/u, '')
+  const melhor = Array.from(porOracao).length > Array.from(porFrase).length ? porOracao : porFrase
+  return Array.from(melhor).length >= limite * 0.6 ? melhor : cabe.replace(/\s+\S*$/u, '')
+}
+
 // KINEO-QUALIDADE-TODOS-MOTORES-2910 — leave room for Kling's keyframe directive inside its 512-code-point limit.
 export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): string {
   const medium = { photoreal: 'Photoreal film', animated3d: '3D animated film', anime: 'Anime film', illustration: 'Illustrated film', noir: 'Black and white noir film' }[style.look]
@@ -52,10 +68,12 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
   // KINEO-K4-ACAO-INTEIRA-1111 — a cláusula do elenco termina em ", seen from behind or in profile, face not readable. " no filme sem rosto
   // (lib/cinematic/elencoEpoca.ts CLAUSULA_ELENCO). O regex parava antes: o resto ficava na AÇÃO, e o resgate de espaço abaixo tomava
   // esse resto por "a ação" — a ação de verdade era cortada no teto (Pompeia 11/11, plano 3: "crumbling stones falling fr…").
-  const cast = /(?:Named )?Characters? in this shot: (.+?) — clearly visible in frame(, seen from behind or in profile, face not readable)?.?/i.exec(prompt)
+  const cast = /(?:Named )?Characters? in this shot: (.+?) — clearly visible in frame(, seen from behind or in profile, face not readable)?\.?/i.exec(prompt) // KINEO-K4-PLANO-DA-SECAO-1111: era ".?" (qualquer caractere) — o ponto escapado
   const deCostas = !!cast?.[2] // KINEO-K4-ACAO-INTEIRA-1111
   const identity = /The same main character appears in this scene, consistent design: ([^\n]+)/i.exec(prompt)
-  const period = /Period setting: [^.]+/i.exec(prompt)?.[0]
+  // KINEO-K4-PLANO-DA-SECAO-1111 — a época em positivo (KINEO-EPOCA-POSITIVA-1111, "period piece set strictly in the year 79 AD") também
+  // entra curta na frente; antes só "Period setting:" contava e a época sumia do plano do Kling 4.
+  const period = /Period setting: [^.]+|period piece set strictly in [^:.,]+/i.exec(prompt)?.[0]
   const objectSafety = textSafetySuffix(prompt).replace(/^,\s*/, '')
   const noReadableText = NO_READABLE_TEXT_SUFFIX.replace(/^,\s*/, '')
   const originalTextDirections = [
@@ -75,7 +93,7 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
     const description = take(person.replace(relation, '').trim(), Math.max(0, budget - relation.length - 2)).replace(/\s+\S*$/, '').replace(/[,; ]+$/, '')
     return `${description}, ${relation}`
   }).join('; ')
-  const who = (budget: number) => cast ? `Visible: ${visible(budget)}${deCostas ? ', seen from behind' : ''}. ` : identity ? `Identity: ${take(identity[1], budget)}. ` : '' // KINEO-K4-ACAO-INTEIRA-1111: o "de costas" curto, junto da ficha
+  const who = (budget: number) => cast ? `Visible${deCostas ? ', seen from behind' : ''}: ${visible(budget)}. ` : identity ? `Identity: ${take(identity[1], budget)}. ` : '' // KINEO-K4-ACAO-INTEIRA-1111: o "de costas" curto, junto da ficha
   const identityBudget = cast ? 178 : 140
   // KINEO-QUALIDADE-REGRESSOES-2910 — identity compaction removes the old tail.
   // Reserve space for text protection already present, just as for closed mouths;
@@ -104,13 +122,15 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
     // retained: trim verbose costume first, keeping the subject and relation.
     const firstAction = /^[\s\S]*?[.!?](?:\s|$)/.exec(action)?.[0] ?? action
     const actionBudget = Math.min(Array.from(firstAction).length, 150)
-    const whoLabel = cast ? `Visible: ${deCostas ? ', seen from behind' : ''}. ` : identity ? 'Identity: . ' : '' // KINEO-K4-ACAO-INTEIRA-1111: o orçamento conta o "de costas"
+    const whoLabel = cast ? `Visible${deCostas ? ', seen from behind' : ''}: . ` : identity ? 'Identity: . ' : '' // KINEO-K4-ACAO-INTEIRA-1111: o orçamento conta o "de costas"
     const reducedIdentity = Math.max(0, Math.min(identityBudget, coreBudget - Array.from(prefix + whoLabel).length - actionBudget))
     // Action comes before the shortened costume on overflow; even a relation
     // clause that exceeds its nominal share cannot cut away the action's object.
     core = prefix + firstAction + ' ' + who(reducedIdentity) + action.slice(firstAction.length)
   }
-  return `${take(core, coreBudget)}${textProtection} Mouth closed, no speaking.`
+  // KINEO-K4-PLANO-DA-SECAO-1111 — o corte do núcleo cai em FRONTEIRA (frase ou oração), nunca no meio da palavra: era take(core,
+  // coreBudget), que deixava "consistent color g" e decapitava proibição (a lição do "menino da bolha", 27/08).
+  return `${cortaEmFronteira(core, coreBudget)}${textProtection} Mouth closed, no speaking.`
 }
 
 // KINEO-QUALIDADE-TODOS-MOTORES-2910 — retain complete tail sentences, including "Mouth closed, no speaking".

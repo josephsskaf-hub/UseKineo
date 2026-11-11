@@ -43,7 +43,7 @@ async function problems(S) {
   no(JSON.stringify(q.grupos) !== '[[0],[1,2],[3]]', `Pompeia: grupos errados ${JSON.stringify(q.grupos)}`)
   no(q.prompts.length !== 4 || q.falas.join(' ') !== FALAS.join(' '), 'Pompeia: os planos não cobrem a fala inteira, na ordem')
   no(q.prompts[0] !== PROMPTS[0] || q.prompts[3] !== PROMPTS[2], 'Pompeia: cena que não foi fundida mudou de prompt')
-  no(!q.prompts[1].startsWith('Shot focus: Везувий извергается, столб пепла взмывает в небо. ') || !q.prompts[2].startsWith('Shot focus: Огненные снаряды летят, поражая арену. '), `Pompeia: a pista da seção não vai na frente (${q.prompts[2].slice(0, 70)})`)
+  no(!q.prompts[1].includes('Shot focus: Везувий извергается, столб пепла взмывает в небо. ') || !q.prompts[2].includes('Shot focus: Огненные снаряды летят, поражая арену. ') || q.prompts[2].includes(PROMPTS[1]), `Pompeia: a pista/ação da seção não está no plano, ou a metade repete a cena inteira (${q.prompts[2].slice(0, 90)})`) // KINEO-K4-PLANO-DA-SECAO-1111: a metade nasce da SUA seção (promptDaSecao)
   no(q.stills.join('|') !== 'https://x/s1.jpg|https://x/s2.jpg||https://x/s3.jpg', `Pompeia: imagens-chave fora do lugar (${q.stills.join('|')})`)
   const input = K.buildKling4TrialInput(q.prompts, q.stills, { voiceovers: q.falas, wordsPerSecond: 2.09 })
   const d = input.input.multi_prompt.map((m) => m.duration)
@@ -78,7 +78,7 @@ console.log('ok  estado atual limpo (Pompeia: 4+7+4 → 4 planos)')
 const MUT = [
   ['M1 interruptor volta a desligado', 'lib', (s) => s.replace("export const KLING4_PLANO_POR_SECAO: ModoPlanoPorSecao = 'public'", "export const KLING4_PLANO_POR_SECAO: ModoPlanoPorSecao = 'off'")],
   ['M2 2ª metade herda a imagem', 'lib', (s) => s.replace('stills.push(pos === 0 ? (a.stills[i] ?? null) : null)', 'stills.push(a.stills[i] ?? null)')],
-  ['M3 sem pista na frente', 'lib', (s) => s.replace('`Shot focus: ${pista(a.secoes[j])}. ${a.prompts[i]}`', 'a.prompts[i]')],
+  ['M3 metade sem a sua seção', 'lib', (s) => s.replace('prompts.push(g.length === 1 ? a.prompts[i] : promptDaSecao(a.prompts[i], a.secoes[j]))', 'prompts.push(a.prompts[i])')], // KINEO-K4-PLANO-DA-SECAO-1111
   ['M4 aceita fala que não bate', 'lib', (s) => s.replace('      if (!alvo.includes(junto)) return null\n', '').replace('    if (!grupo.length || !(junto === alvo || (i === 0 && alvo.endsWith(` ${junto}`)))) return null\n', '')],
   ['M5 sem teto de 5 planos', 'lib', (s) => s.replace('if (total > KLING4_MAX_PLANOS) return null', '')],
   ['M6 envio pago com os 3 planos', 'route', (s) => s.replace('return submitKling4TrialVideo(kling4PorSecao({', 'return submitKling4TrialVideo(({')],
