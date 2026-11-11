@@ -69,7 +69,7 @@ async function main() {
   const ctx = { userId: U, supabaseUrl: URL, paying: false }
   const plan = generation.planRecreate(request, ctx)
   assert(plan.ok); assert.equal(plan.plan.credits, 40); assert.equal(plan.plan.input.resolution, '768P')
-  const pairRequest = { ...request, format: 'elevador', photos: [PHOTO, PHOTO] }
+  const pairRequest = { ...request, format: 'duelo-de-danca', photos: [PHOTO, PHOTO] } // KINEO-RECREATE-ELEVADOR-1011: o Elevator virou 1 foto; o par de 10 s é a Dança
   assert(generation.planRecreate(pairRequest, ctx).ok)
   for (const photos of [[], [PHOTO], [PHOTO, PHOTO, PHOTO]]) assert.equal(generation.planRecreate({ ...pairRequest, photos }, ctx).status, 400, 'server requires the exact number of catalog photo slots before debit')
   assert.deepEqual(generation.RECREATE_PRICING, { 8: 45, 10: 40, 15: 60 }) // KINEO-RECREATE-TRAVA-1011 [fundador 10/11: "Cobra 45"]

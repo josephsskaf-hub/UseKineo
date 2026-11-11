@@ -184,7 +184,11 @@ function renderRecreate(o, props) {
   return renderToStaticMarkup(React.createElement(m('app/recreate/RecreateClient').default, props))
 }
 function recreateChecks(o = {}) {
-  const before = { 'app/recreate/RecreateClient.tsx': baseSrc('app/recreate/RecreateClient.tsx') }
+  // KINEO-RECREATE-ELEVADOR-1011 [fundador 10/11: "não quero esse termo de agree" · "só precisa ter a opção de um homem"] — a referência é o
+  // RecreateClient de BASE com EXATAMENTE a camada do Elevator/consentimento aplicada (scripts/test-support/camada-recreate-elevador-1011.json:
+  // texto de BASE -> texto de hoje; trecho que não casa = erro). O contrato (campos, cobrança, ações) continua comparado; outra diferença = vermelho.
+  const camadaElevador = src => JSON.parse(read('scripts/test-support/camada-recreate-elevador-1011.json')).reduce((s, [a, b]) => { if (!s.includes(a)) throw new Error('camada ELEVADOR: trecho de BASE ausente: ' + a.slice(0, 60)); return s.replace(a, () => b) }, src.split(String.fromCharCode(13)).join(''))
+  const before = { 'app/recreate/RecreateClient.tsx': camadaElevador(baseSrc('app/recreate/RecreateClient.tsx')) }
   for (const props of [{ initialId: 'elevador' }, { initialId: 'effect-kiss' }, {}, { initialId: 'elevador', formatIds: ['elevador', 'effect-kiss'] }]) {
     const old = renderRecreate(before, props), now = renderRecreate(o, props), explicit = renderRecreate(o, { ...props, createTabs: false })
     ok(now === explicit, 'omitir createTabs equivale a false')

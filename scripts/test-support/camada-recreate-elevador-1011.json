@@ -1,0 +1,18 @@
+[
+ [
+  "  const [consent, setConsent] = useState(false)",
+  "  // KINEO-RECREATE-ELEVADOR-1011 [fundador 10/11: \"não quero esse termo de agree\"] — no checkbox: pressing Generate with the notice below is the confirmation.\n  const [consent] = useState(true)"
+ ],
+ [
+  " setConsent(false);",
+  ""
+ ],
+ [
+  "          <label className=\"rc-consent\"><input type=\"checkbox\" checked={consent} disabled={editingDisabled} onChange={e => setConsent(e.target.checked)} />Use a photo of yourself or of someone who agreed to it.</label>",
+  "          <p className=\"rc-consent\">Only upload photos you have the right to use.</p>"
+ ],
+ [
+  "<p className=\"rc-muted\">{selected.photoSlots > 1 ? 'One photo for each person in the video.' : 'Add a clear photo of your face.'}</p>",
+  "<p className=\"rc-muted\">{selected.photoSlots > 1 ? 'One photo for each person in the video.' : selected.swapSubject ? `Add a clear photo of your face. Only ${selected.swapSubject} in the video is replaced.` : 'Add a clear photo of your face.'}</p>"
+ ]
+]

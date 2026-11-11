@@ -23,7 +23,8 @@ export default function RecreateClient({ initialId, internalTools = false, forma
   const [selected, setSelected] = useState(() => catalog.find(f => f.id === initialId) ?? null)
   const [photos, setPhotos] = useState<(Photo | null)[]>([])
   const [prompt, setPrompt] = useState(selected?.prompt ?? '')
-  const [consent, setConsent] = useState(false)
+  // KINEO-RECREATE-ELEVADOR-1011 [fundador 10/11: "não quero esse termo de agree"] — no checkbox: pressing Generate with the notice below is the confirmation.
+  const [consent] = useState(true)
   const [quotes, setQuotes] = useState<Quote[]>([])
   const [social, setSocial] = useState<Record<string, Social>>({})
   const [message, setMessage] = useState('')
@@ -88,7 +89,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
   function choose(f: RecreateFormat) {
     if (busy || photoLock.current || (clip && ['pending', 'processing'].includes(clip.status))) return
     if (f.id === selected?.id) return
-    setSelected(f); setPrompt(f.prompt); setPhotos([]); setConsent(false); setClip(null); setSimulation(null); setMessage(''); requestKey.current = null
+    setSelected(f); setPrompt(f.prompt); setPhotos([]); setClip(null); setSimulation(null); setMessage(''); requestKey.current = null
     setPhotoErrors([]); setDragging(null); setDetailsOpen(false); setCreateError(false)
     for (const photo of photos) if (photo) URL.revokeObjectURL(photo.url)
     window.history.replaceState(null, '', `/recreate/${f.id}`)
@@ -224,7 +225,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
         <div className="rc-progress"><span>{states.includes('error') ? 'Check the highlighted step' : clip?.status === 'done' ? 'Your version is ready' : photosDone ? 'Your photos are ready' : 'Start with your photos'}</span><div role="progressbar" aria-label="Creation steps completed" aria-valuemin={0} aria-valuemax={3} aria-valuenow={states.filter(state => state === 'done').length}>{states.map((state, index) => <i key={index} className={`rc-progress-${state}`} />)}</div></div>
         <section className={`rc-step rc-step-${states[0]}`} data-step-state={states[0]} aria-labelledby="rc-photo-heading">
           <div className="rc-step-heading">{marker(1)}<h2 id="rc-photo-heading">{selected.photoSlots > 1 ? 'Your photos' : 'Your photo'}</h2><span className="rc-step-status">{photosDone && photos[0] && <img src={photos[0].url} alt="" />}{stateLabel(states[0])}</span></div>
-          <p className="rc-muted">{selected.photoSlots > 1 ? 'One photo for each person in the video.' : 'Add a clear photo of your face.'}</p>
+          <p className="rc-muted">{selected.photoSlots > 1 ? 'One photo for each person in the video.' : selected.swapSubject ? `Add a clear photo of your face. Only ${selected.swapSubject} in the video is replaced.` : 'Add a clear photo of your face.'}</p>
           <div className={`rc-photos ${selected.photoSlots === 1 ? 'rc-photos-single' : ''}`} aria-busy={photoBusy}>
             {Array.from({ length: selected.photoSlots }, (_, index) => {
               const photo = photos[index]
@@ -242,7 +243,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
           </div>
           <input ref={fileRef} hidden type="file" accept="image/jpeg,image/png,image/webp" aria-label="Choose a reference photo" onChange={e => { void addPhoto(e.target.files?.[0], photoSlot.current); e.target.value = '' }} />
           <p className="rc-photo-guide">{selected.type === 'swap' ? 'Check the face crop after adding each photo.' : 'One clear face per photo.'}<br />Drop a JPG, PNG or WebP · Up to 8 MB</p>
-          <label className="rc-consent"><input type="checkbox" checked={consent} disabled={editingDisabled} onChange={e => setConsent(e.target.checked)} />Use a photo of yourself or of someone who agreed to it.</label>
+          <p className="rc-consent">Only upload photos you have the right to use.</p>
         </section>
         <section className={`rc-step rc-step-${states[1]}`} data-step-state={states[1]} aria-label="Adjustments"><details className="rc-adjustments" key={selected.id} open={detailsOpen} onToggle={e => setDetailsOpen(e.currentTarget.open)}>
           <summary>{marker(2)}<span>{selected.type === 'effect' ? 'Effect preset' : 'Face instructions'}</span><small>{stateLabel(states[1])} · {selected.type === 'effect' ? 'Preset' : 'Optional'} <span aria-hidden="true">＋</span></small></summary>

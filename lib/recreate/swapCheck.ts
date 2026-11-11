@@ -115,7 +115,7 @@ export function decideSwap(parsed: unknown, slots: number): { result: SwapCheckR
 
 type Image = { type: 'image_url'; image_url: { url: string; detail: 'high' | 'low' } }
 /** Exported for the guardian: base frames, result frames, then one reference photo per person, in this order. */
-export function buildSwapCheckMessages(slots: number, base: [string, string], result: [string, string], photos: string[]) {
+export function buildSwapCheckMessages(slots: number, base: [string, string], result: [string, string], photos: string[], subject?: string) {
   const attrs = SWAP_FACE_ATTRIBUTES.map(a => `"${a}": "same"|"different"|"unclear"`).join(', ')
   const system =
     'You are a video quality checker comparing VISIBLE APPEARANCE in still frames. Do not identify anyone, do not name anyone and do not ' +
@@ -129,7 +129,8 @@ export function buildSwapCheckMessages(slots: number, base: [string, string], re
     '"result_vs_photo": "yes"|"no"|"uncertain", "note": "max 15 words, attributes only"}]}. ' +
     '"same_person" answers: is the person depicted in the RESULT frames visually the same depicted person as in the TEMPLATE frames? ' +
     '"result_vs_photo" answers: does the person in the RESULT frames visually resemble that person\'s reference photo? Use "uncertain" when the face is too small or hidden.'
-  const who = slots === 1 ? 'There is 1 person to compare.' : `There are ${slots} people to compare. Person 1 is the LEFTMOST person in the TEMPLATE frames, person ${slots} the RIGHTMOST.`
+  // KINEO-RECREATE-ELEVADOR-1011 — a format that replaces one person of several: compare ONLY that person, ignore the others.
+  const who = slots === 1 && subject ? `There is 1 person to compare: ${subject} in the TEMPLATE frames. Other people in the frames were NOT meant to change: ignore them completely.` : slots === 1 ? 'There is 1 person to compare.' : `There are ${slots} people to compare. Person 1 is the LEFTMOST person in the TEMPLATE frames, person ${slots} the RIGHTMOST.`
   const text = [
     who,
     'Images, in order: TEMPLATE frame A and TEMPLATE frame B (before the edit); RESULT frame A and RESULT frame B (the edited video at the same moments);',
@@ -229,7 +230,7 @@ export async function runSwapCheck(row: { model: string; fingerprint: string }, 
       const res = await (opts.fetchImpl ?? fetch)('https://api.openai.com/v1/chat/completions', {
         method: 'POST', signal,
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-        body: JSON.stringify({ model, temperature: 0, max_tokens: 600, response_format: { type: 'json_object' }, messages: buildSwapCheckMessages(ctx.format.photoSlots, base, result.frames, ctx.photos) }),
+        body: JSON.stringify({ model, temperature: 0, max_tokens: 600, response_format: { type: 'json_object' }, messages: buildSwapCheckMessages(ctx.format.photoSlots, base, result.frames, ctx.photos, ctx.format.swapSubject) }),
       })
       if (!res.ok) return null
       return (await res.json()) as { usage?: { prompt_tokens?: number; completion_tokens?: number } }

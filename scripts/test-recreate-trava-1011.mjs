@@ -46,7 +46,8 @@ function catalogChecks(o = {}) {
     else ok(f && f.type === 'swap' && f.swapApproved === false && f.swapInTest === true, `${id}: troca registrada, NÃO aprovada, em teste`)
     ok(Array.isArray(f.checkFrames) && f.checkFrames.length === 2, `${id}: quadros da trava declarados`)
   }
-  ok(formats.recreateFormat('elevador').photoSlots === 2 && formats.recreateFormat('escolha-o-favorito').photoSlots === 2 && formats.recreateFormat('duelo-de-danca').photoSlots === 2, '3 formatos de 2 pessoas')
+  // KINEO-RECREATE-ELEVADOR-1011 [fundador 10/11: "é só para trocar a foto só do homem"] — o Elevator passa a 1 foto e troca só o homem.
+  ok(formats.recreateFormat('elevador').photoSlots === 1 && formats.recreateFormat('elevador').swapSubject === 'the man' && formats.recreateFormat('escolha-o-favorito').photoSlots === 2 && formats.recreateFormat('duelo-de-danca').photoSlots === 2, '2 formatos de 2 pessoas; o Elevator troca só o homem (1 foto)')
   ok(formats.recreateFormat('passarela').photoSlots === 1 && formats.recreateFormat('outfit-morph').photoSlots === 1, 'passarela e outfit-morph: 1 pessoa')
   ok(formats.recreateFormat('dinheiro') === null && !Object.keys(formats.RECREATE_ASSETS).some(k => k.startsWith('dinheiro')), 'Money fan (dinheiro) saiu (fundador 10/11)')
   ok(formats.recreateFormat('escolha-o-favorito').seconds === 8, 'fonte de 8 s registrada com 8 s')
@@ -302,7 +303,7 @@ function fakeFetch({ fal = 'ok', vision = null, message = null, hang = false } =
   const sc = swapCheckMod()
   const flow = flowFor()
   const single = await recreateRow(flow, 'passarela')
-  const pair = await recreateRow(flow, 'elevador', [PHOTO, PHOTO2])
+  const pair = await recreateRow(flow, 'duelo-de-danca', [PHOTO, PHOTO2]) /* KINEO-RECREATE-ELEVADOR-1011: o par de 10 s agora é a Dança */
   ok(sc.recreateRowContext(single).format.id === 'passarela' && sc.recreateRowContext(pair).photos.join() === [PHOTO, PHOTO2].join(), 'linha → formato e fotos pela impressão digital do pedido')
   ok(sc.recreateRowContext({ ...single, model: 'other' }) === null && sc.recreateRowContext({ ...single, fingerprint: 'x' }) === null, 'linha estranha: sem contexto')
   ok(!/^import [^\n]*from 'node:/m.test(read('lib/recreate/swapCheck.ts')) && read('lib/recreate/swapCheck.ts').includes("await import('node:fs/promises')"), 'swapCheck não importa nada de Node no topo (fs só dinâmico)')

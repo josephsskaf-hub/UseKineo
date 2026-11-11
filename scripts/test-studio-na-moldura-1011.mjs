@@ -11,6 +11,9 @@
 import { createRequire } from 'node:module'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
+import * as elevCrypto from 'node:crypto'
+import * as elevFs from 'node:fs'
+import * as elevPath from 'node:path'
 
 const require = createRequire(import.meta.url)
 const R = require('../docs/studio-na-moldura-1011/runtime.cjs')
@@ -77,11 +80,16 @@ function offChecks(o) {
   // KINEO-REGIAO-PAGA-1011 [CEO 10/11, publicado em fb3235afb] — a faixa da prévia recusada mexeu, de propósito, nestes 4 arquivos protegidos.
   // A referência deles passa a ser o arquivo COMO ESTÁ na origin/main fb3235afb (byte a byte); qualquer outra mudança neles, ou em
   // qualquer outro arquivo protegido desde o BASE, segue vermelha.
+  const RECREATE_ELEVADOR = JSON.parse(elevFs.readFileSync(elevPath.join(ROOT, 'scripts/test-support/camada-recreate-elevador-arquivos-1011.json'), 'utf8'))
   const REGIAO_PAGA_REF = 'fb3235afb'
   const REGIAO_PAGA = ['app/(dashboard)/studio/previa/ScenePreviewClient.tsx', 'app/api/events/route.ts', 'app/api/scene-preview/pricing-strip/route.ts', 'lib/growth/regiaoPaga1011.ts']
   const desdeRef = f => execFileSync('git', ['diff', '--name-only', REGIAO_PAGA_REF, '--', f], { cwd: ROOT, encoding: 'utf8' }).trim()
   const changed = execFileSync('git', ['diff', '--name-only', BASE, '--', 'app/(dashboard)', 'lib/credits', 'lib/growth', 'app/api', 'lib/recreate', 'middleware.ts'], { cwd: ROOT, encoding: 'utf8' }).trim().split('\n').filter(Boolean)
     .filter(f => !(REGIAO_PAGA.includes(f) && desdeRef(f) === ''))
+    // KINEO-RECREATE-ELEVADOR-1011 + KINEO-RECREATE-CARTAO-BRANCO-1011 [fundador 10/11: "só precisa ter a opção de um homem" · "Por que tá branco?"] —
+    // estes arquivos do Recreate mudaram de propósito. Cada um só passa com o conteúdo EXATO revisado (sha256, texto sem CR) gravado em
+    // scripts/test-support/camada-recreate-elevador-arquivos-1011.json; 'removed' = o arquivo tem de não existir. Outra mudança = vermelho.
+    .filter(f => { const want = RECREATE_ELEVADOR[f]; if (!want) return true; const abs = elevPath.join(ROOT, f); if (want === 'removed') return elevFs.existsSync(abs); if (!elevFs.existsSync(abs)) return true; const raw = elevFs.readFileSync(abs); const body = /.(ts|tsx|mjs|cjs|json|css)$/.test(f) ? Buffer.from(raw.toString('utf8').split(String.fromCharCode(13)).join('')) : raw; return elevCrypto.createHash('sha256').update(body).digest('hex') !== want })
     .filter(f => !(f === 'middleware.ts' && lf(read(f)) === lf(baseSrc(f)).replace('_next/image|favicon.ico', '_next/image|fonts/manrope-v23/|favicon.ico')))
     .join(', ')
   ok(changed === '', `Studio, Generate, crédito, rotas e Recreate intocados (${changed})`)

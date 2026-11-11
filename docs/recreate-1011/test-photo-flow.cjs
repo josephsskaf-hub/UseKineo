@@ -49,7 +49,7 @@ function harness(id, balance = 40) {
     await tick(); await tick()
     assert(prevented, 'drop cannot navigate away to the dropped file')
   }
-  return { states, calls, button, generate, add, replace, drop, find, fetch, render, consent: () => find(n => n.type === 'input' && n.props.type === 'checkbox').props.onChange({ target: { checked: true } }) }
+  return { states, calls, button, generate, add, replace, drop, find, fetch, render, consent: () => { assert(!all(render()).some(n => n.type === 'input' && n.props.type === 'checkbox'), 'KINEO-RECREATE-ELEVADOR-1011: no consent checkbox; the notice line replaces it') } }
 }
 async function main() {
   const oldFetch = global.fetch, oldWindow = global.window
@@ -68,23 +68,23 @@ async function main() {
     assert.deepEqual(pair.calls.uploads, ['pair.jpg']); assert.equal(pair.calls.requests[0].format, 'effect-kiss')
     assert(!Object.hasOwn(pair.calls.requests[0], 'credits'), 'browser never supplies the debit amount')
 
-    const swap = harness('elevador'); global.fetch = swap.fetch
+    const swap = harness('duelo-de-danca'); global.fetch = swap.fetch
     await swap.add(1, 'right.jpg'); await swap.add(0, 'left.jpg'); swap.consent(); swap.render()
     await swap.generate().props.onClick(); await tick(); await tick()
     assert.deepEqual(swap.calls.crops, ['right.jpg', 'left.jpg'])
     assert.deepEqual(swap.calls.uploads, ['left.jpg', 'right.jpg'])
     assert.deepEqual(swap.calls.requests[0].photos.map(s => s.split('/').pop()), ['left.jpg', 'right.jpg'])
 
-    const changed = harness('elevador'); await changed.add(0, 'left.jpg')
+    const changed = harness('duelo-de-danca'); await changed.add(0, 'left.jpg')
     changed.button('Use Outfit Morph').props.onClick(); changed.render()
-    assert.equal(changed.states[0].id, 'outfit-morph'); assert.deepEqual(changed.states[1], []); assert.equal(changed.states[3], false)
+    assert.equal(changed.states[0].id, 'outfit-morph'); assert.deepEqual(changed.states[1], []); assert.equal(changed.states[3], true) /* KINEO-RECREATE-ELEVADOR-1011: no checkbox to reset */
 
     const poor = harness('outfit-morph', 0); global.fetch = poor.fetch
     await poor.add(0, 'self.jpg'); poor.consent(); poor.render(); assert(poor.generate().props.disabled)
     await poor.generate().props.onClick(); await tick()
     assert.deepEqual(poor.calls.uploads, []); assert.deepEqual(poor.calls.requests, [])
     assert.match(poor.states[6], /40 more credits/)
-    const dropped = harness('elevador'); global.fetch = dropped.fetch
+    const dropped = harness('duelo-de-danca'); global.fetch = dropped.fetch
     await dropped.drop(0, 'application/pdf')
     assert.equal(dropped.find(n => n.props?.['data-step-state']).props['data-step-state'], 'error')
     assert(dropped.generate().props.disabled); assert.deepEqual(dropped.calls.uploads, [])

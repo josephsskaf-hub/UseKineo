@@ -1,6 +1,6 @@
 import { ownedClipImageUrl, type ClipRequestInput } from '@/lib/clips/clipCatalog'
 import { RECREATE_MOTION_ENABLED } from './access'
-import { RECREATE_SWAP_PROMPT, RECREATE_UNPRICED_ERROR, recreateFormat, recreateSwapPriced } from './formats'
+import { RECREATE_UNPRICED_ERROR, recreateFormat, recreateSwapPriced, recreateSwapPromptFor } from './formats'
 import { recreateCreditCost } from '@/lib/checkoutPricing'
 export { RECREATE_PRICING } from '@/lib/checkoutPricing'
 
@@ -42,7 +42,8 @@ export function planRecreate(raw: Record<string, unknown>, ctx: { userId: string
   }
   const text = typeof raw.prompt === 'string' ? raw.prompt.trim() : ''
   if (text.length > 550) return bad('Keep the description under 550 characters.')
-  const prompt = `${RECREATE_SWAP_PROMPT}${text && text !== RECREATE_SWAP_PROMPT ? ` Additional face instructions: ${text}` : ''}`
+  const base = recreateSwapPromptFor(f.swapSubject) // KINEO-RECREATE-ELEVADOR-1011 — a format may replace only one of the people in the video
+  const prompt = `${base}${text && text !== base && text !== f.prompt ? ` Additional face instructions: ${text}` : ''}`
   return { ok: true, plan: {
     body: { engine: 'h3', seconds, aspect: null, prompt, imageUrl: photos[0] },
     model: RECREATE_MODEL, credits, falUsd: seconds * RECREATE_USD_PER_SECOND, photos,
