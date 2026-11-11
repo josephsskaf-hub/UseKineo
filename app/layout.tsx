@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
-import { Manrope, Noto_Sans_Devanagari } from 'next/font/google'
+import { Noto_Sans_Devanagari } from 'next/font/google'
 import StructuredData from '@/components/StructuredData'
 import SourceCapture from '@/components/SourceCapture'
 // KINEO-FLUXO-NOVO-2026-09-25 — ouvinte único do nav_item_clicked (lê só data-nav-*; ver lib/navTelemetry.ts).
@@ -23,6 +23,7 @@ import ClarityTag from '@/components/ClarityTag'
 // KINEO-CONSENTIMENTO-1610 — Google Ads, TikTok e Clarity só montam pelo portão de consentimento (lib/consent.ts).
 import ConsentManager from '@/components/ConsentManager'
 import { clarityProjectId, KINEO_CLARITY_PROJECT_ID } from '@/lib/clarityTag'
+import './manrope.css'
 import './globals.css'
 import './appearance.css'
 
@@ -37,14 +38,6 @@ const OFFER = getFreeTierOffer()
 // KINEO-CLARITY-ID-2026-10-12 — sem env, vale o projeto "Kineo" (ID público em lib/clarityTag.ts).
 const CLARITY_ID = clarityProjectId(process.env.NEXT_PUBLIC_CLARITY_ID || KINEO_CLARITY_PROJECT_ID)
 
-// Founder-approved direction B, 2026-09-07. One variable family, self-hosted
-// by Next. No Google request from a visitor; swap retains readable fallback.
-// Legacy CSS tokens are aliases in globals.css, not extra font downloads.
-const manrope = Manrope({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-manrope',
-})
 // Script coverage for the explicitly selected Hindi UI. No font request to Google
 // from visitors and no eager preload for English/Spanish visits.
 const devanagari = Noto_Sans_Devanagari({
@@ -219,8 +212,9 @@ export default function RootLayout({
     </>
   )
   return (
-    <html lang="en" data-theme="light" suppressHydrationWarning className={`${manrope.variable} ${devanagari.variable}`}>
+    <html lang="en" data-theme="light" suppressHydrationWarning className={devanagari.variable}>
       <head>
+        <link rel="preload" as="font" type="font/woff2" href="/fonts/manrope-v23/latin.woff2" crossOrigin="anonymous" />
         <script id="kineo-appearance-boot" dangerouslySetInnerHTML={{ __html: APPEARANCE_BOOT }} />
         <link
           rel="alternate"

@@ -5,10 +5,8 @@
    .neon-card, .btn-neon, .neon-text — used by the rebuilt hero. */
 /* Push #92 — Core Web Vitals: the Google Fonts @import that used to live here
    forced CSS download → parse → discover googleapis → discover gstatic →
-   font bytes before any text could paint. Fonts are now self-hosted via
-   next/font/google in app/layout.tsx, which injects --font-manrope.
-   Legacy font tokens below resolve to the same self-hosted family.
-   See the font-family declarations below that resolve through those vars. */
+   font bytes before any text could paint. The shared Manrope face is now
+   served locally by app/manrope.css and has the same family name across builds. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -26,9 +24,9 @@ html[data-theme='light'] { color-scheme: light; }
 /* Manrope remains the Latin face. Devanagari is a self-hosted glyph fallback,
    activated only for an explicit Hindi interface preference. */
 html[lang='hi'] {
-  --font-sans: var(--font-manrope), var(--font-devanagari), Arial, sans-serif;
-  --font-inter: var(--font-manrope), var(--font-devanagari);
-  --font-space-grotesk: var(--font-manrope), var(--font-devanagari);
+  --font-sans: var(--font-manrope), var(--font-devanagari, "Noto Sans Devanagari"), Arial, sans-serif;
+  --font-inter: var(--font-manrope), var(--font-devanagari, "Noto Sans Devanagari");
+  --font-space-grotesk: var(--font-manrope), var(--font-devanagari, "Noto Sans Devanagari");
 }
 html[lang='hi'] :is(h1,h2,h3,button,label,summary) { letter-spacing: normal; }
 
@@ -98,7 +96,8 @@ html[lang='hi'] :is(h1,h2,h3,button,label,summary) { letter-spacing: normal; }
   /* Approved Manrope system. Keep old tokens as compatibility aliases so
      existing Studio, nav, modal and library consumers use the SAME family.
      Monospace/code and rendered-video font choices are deliberately separate. */
-  --font-sans: var(--font-manrope), Arial, sans-serif;
+  --font-manrope: 'Manrope';
+  --font-sans: var(--font-manrope, 'Manrope'), Arial, sans-serif;
   --font-inter: var(--font-manrope);
   --font-space-grotesk: var(--font-manrope);
   --font-display: var(--font-sans);
