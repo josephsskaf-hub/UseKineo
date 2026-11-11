@@ -55,10 +55,20 @@ export function promptDaSecao(promptDaCena: string, secao: SecaoDoRoteiro): stri
   const meio = /^[^.]{2,60}\./.exec(p)?.[0] ?? ''
   const lugar = /Setting: [^.]*?(?:\([^)]*\))?\./.exec(p)?.[0] ?? ''
   const epoca = /period piece set strictly in [^:.,]+/.exec(p)?.[0] ?? ''
+  // KINEO-METADE-COM-FICHA-1111 [CEO 11/11, reprise dos 6 filmes] — a metade de uma cena fundida perdia QUEM está na cena e QUANDO: o
+  // vizinho (f2e8cffc) refeito com o código no ar saía "Photoreal film. Shot focus: moving boxes hallway. This shot shows only this moment:
+  // Luca si trasferì…" — sem a ficha do Luca, sem 1998, sem a origem; o motor sorteia roupa e rosto nessa metade. Agora a metade leva, como
+  // estão no plano compactado da cena: a luz ("Light: …"), a época ("Period setting: …"), a origem ("Everyone shown … people.") e a ficha
+  // ("Visible: …" / "Identity: …"); a AÇÃO continua só a da sua seção.
+  const luz = /Light: [^.]+\./.exec(p)?.[0] ?? ''
+  const periodo = /Period setting: [^.]+\./.exec(p)?.[0] ?? ''
+  const origem = /Everyone shown has the natural features of [^.]+ people\.|People: [^.]+\./.exec(p)?.[0] ?? ''
+  // a ficha acaba no ponto dela ou onde o corte da cena a encostou na proteção ("…origin: an Italian man, no readable text")
+  const quem = (/(?:Visible(?:, seen from behind)?|Identity): .+?(?:\.(?=\s)|(?=,?\s*no readable text))/.exec(p)?.[0] ?? '').replace(/[\s,;]+$/u, '').replace(/([^.])$/u, '$1.')
   const i = p.search(/,?\s*no readable text/)
   const cauda = i >= 0 ? p.slice(i).replace(/^,\s*/, ' ') : (p.endsWith('Mouth closed, no speaking.') ? ' Mouth closed, no speaking.' : '')
   const fala = norm(secao.voiceover).replace(/[\s.!?…]+$/u, '')
-  return norm(`${meio} ${lugar} Shot focus: ${pista(secao)}. This shot shows only this moment: ${fala}.${epoca ? ` The scene is a ${epoca}.` : ''}${cauda}`)
+  return norm(`${meio} ${luz} ${periodo} ${origem} ${quem} ${lugar} Shot focus: ${pista(secao)}. This shot shows only this moment: ${fala}.${epoca ? ` The scene is a ${epoca}.` : ''}${cauda}`)
 }
 const pista = (x: SecaoDoRoteiro) => {
   const p = norm(x.pexelsQuery)
