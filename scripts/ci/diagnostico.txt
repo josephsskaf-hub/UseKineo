@@ -78,3 +78,9 @@ node scripts/test-cinematic-terminal-proof-2026-09-11.mjs
 node scripts/test-cinematic-poll-diagnostic-2026-09-11.mjs
 node scripts/test-cartoon-tracao.mjs --mutants
 node scripts/test-gpt-v31-facts-2026-09-24.mjs --mutant  # MUTANTE-DEVE-FALHAR
+
+# Desceu do portão em 11/11 (1ª execução no GitHub, run 42988377003): docs/recreate-1011/test-publication.cjs:133-134 ainda espera
+# o visitante em /ads/new; o commit 6e6afd0c5 (KINEO-ENTRADAS-VISITANTE-1111) passou o visitante para /create/ads de propósito.
+# Não é defeito do produto: a intenção da asserção (exemplo de anúncio nunca vira link do Recreate) continua valendo.
+# Conserto (dono da tela): esperar /create/ads também para o visitante; verde 5 vezes → volta ao portão.
+node docs/recreate-0911/test-recreate.cjs

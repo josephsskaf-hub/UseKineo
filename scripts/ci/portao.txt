@@ -3,9 +3,6 @@
 # Regra: entra aqui só teste que passou 5 vezes seguidas na main; teste que ficar vermelho sem defeito real sai no MESMO dia
 # para scripts/ci/diagnostico.txt. Teste novo nasce no diagnóstico. Um comando por linha.
 
-# ── Recreate: autenticação, acesso público e custo
-node docs/recreate-0911/test-recreate.cjs
-
 # ── Compra avulsa: pagamento único, webhook e volta do checkout
 node scripts/test-compra-avulsa-2410.mjs --mutants
 node scripts/test-compra-avulsa-webhook-2410.mjs --mutants
