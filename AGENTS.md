@@ -8,6 +8,8 @@ Este arquivo manda. Se algum outro documento contradizer o que está aqui, este 
 
 ## 1. ANTES DE AGIR — checklist obrigatório
 
+Antes de editar uma tela ou um arquivo compartilhado, siga o [quadro de sessões](docs/QUADRO-DE-SESSOES.md) na `origin/main`. Rode `git fetch origin`, leia o quadro e o histórico recente e publique a linha de início. Se outra sessão ocupa a tela, registre o encontro e escolha outra tarefa. Trabalho parcial fica **em obra**. Ao publicar, descreva a tela e a mudança no commit e marque a linha **no ar** com o SHA.
+
 1. Confirme o repositório: `C:\Users\josep\OneDrive\Área de Trabalho\Usekineo`, branch `main`, remoto único `origin` = `https://github.com/josephsskaf-hub/UseKineo.git`.
 2. Leia este arquivo inteiro.
 3. Leia `docs/PROJECT_STATE.md` (estado real) e `docs/OPEN_QUESTIONS.md` (o que ainda não se sabe).

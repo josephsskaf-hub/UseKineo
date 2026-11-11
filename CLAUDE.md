@@ -1,5 +1,7 @@
 # CLAUDE.md — Regras Permanentes para todas as sessões
 
+Antes de editar telas ou arquivos compartilhados, rode `git fetch origin` e siga o [quadro de sessões](docs/QUADRO-DE-SESSOES.md) da `origin/main` para consultar o histórico recente, publicar a linha de início, evitar sobreposição e registrar a entrega com o SHA.
+
 # ══════════════════════════════════════════════════════════════════════════
 # 💲 PREÇO V8-A (fundador 28/09/2026 noite, "Preço A"): Starter US$12,90 · Creator US$29,90 ·
 #   Studio US$54,90 (60/150/300 cr; anual 10×; R$64,90/149,90/274,90); barra de créditos com piso
