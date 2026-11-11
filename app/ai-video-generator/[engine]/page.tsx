@@ -291,7 +291,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
             {[
               { n: '1', t: 'Type one idea', d: 'A topic, a fact, a hook — one sentence. No prompt engineering, no scene list.' },
               { n: '2', t: `${e.name} renders the scenes`, d: 'Kineo writes the hook-first script, splits it into scenes and prompts the engine for each one, then adds the AI voiceover and captions.' },
-              { n: '3', t: 'Download & post', d: geo ? geo.howStep3 : 'A vertical 9:16 MP4 in a few minutes, ready for YouTube Shorts, TikTok and Reels.' },
+              { n: '3', t: 'Download & post', d: standardH3 ? 'Review the narration, captions and scene continuity of the delivered vertical MP4 before posting. Completion time varies.' : geo ? geo.howStep3 : 'A vertical 9:16 MP4 in a few minutes, ready for YouTube Shorts, TikTok and Reels.' },
             ].map((s) => (
               <div key={s.n} style={{ ...CARD, borderRadius: 14, padding: 16 }}>
                 <div style={{ width: 30, height: 30, borderRadius: 8, background: '#E8EFFF', color: '#0A5CFF', fontWeight: 750, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>{s.n}</div>
@@ -318,7 +318,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
               </thead>
               <tbody>
                 {ENGINE_SLUGS.map((slug, i) => {
-                  const o = ENGINES[slug]
+                  const o = standardH3 && slug === 'seedance' ? e : ENGINES[slug]
                   const here = slug === params.engine
                   return (
                     <tr key={slug} style={{ borderTop: '1px solid rgba(14,17,22,0.08)', background: here ? '#E8EFFF' : i % 2 ? 'transparent' : 'rgba(14,17,22,0.025)' }}>
@@ -339,7 +339,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
             </table>
           </div>
           <p style={{ fontSize: '0.74rem', color: '#5A5F67', textAlign: 'center', margin: '10px 0 0' }}>
-            {geo ? geo.costsNote : <>Credit costs read from Kineo&rsquo;s single pricing source (August 2026). Engines and costs may change.</>}
+            {standardH3 ? 'Credit costs read from Kineo’s current pricing source. Other creations share the same balance; review the selected engine and duration in Studio.' : geo ? geo.costsNote : <>Credit costs read from Kineo&rsquo;s single pricing source (August 2026). Engines and costs may change.</>}
           </p>
         </section>
 
