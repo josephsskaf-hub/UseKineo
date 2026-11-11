@@ -73,7 +73,7 @@ function problems(over) {
   no(P.pessoaDoPedido("A woman, 30 years old, wearing a red coat, walks home.") !== "a woman, 30 years old, wearing a red coat", "(d) pessoa nua com idade e roupa")
   // a rota
   const rota = over["app/api/generate-video-cinematic/route.ts"] ?? read("app/api/generate-video-cinematic/route.ts")
-  no(!rota.includes('const pessoaPedida = pessoaDoPedido(body.original_idea)'), "(e) a rota não lê a pessoa do pedido original")
+  no(!rota.includes('const pessoaPedida = pessoaDoPedido(pedidoDoCliente)') /* KINEO-PEDIDO-DO-CLIENTE-1111 */, "(e) a rota não lê a pessoa do pedido original")
   no(!rota.includes('formatoComEstrela(formatoComPessoaDoPedido(decidirFormato(prompt, tagFacelessPresente), pessoaPedida)'), "(e) o formato não usa a pessoa do pedido")
   no(!rota.includes('storyMode ? fichaDaPessoa(deriveStoryCharacter(prompt), pessoaPedida) : null'), "(e) a ficha da história não usa a pessoa do pedido")
   no(!rota.includes('?? fichaDaPessoa(deriveExplicitCharacter(prompt), pessoaPedida) ??'), "(e) a ficha do hollywood não usa a pessoa do pedido")

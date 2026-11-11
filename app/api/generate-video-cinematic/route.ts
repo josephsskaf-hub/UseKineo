@@ -1632,7 +1632,9 @@ async function manipularPost(req: NextRequest) {
     // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-ESTRELA-DO-FILME-2026-09-29 — com a estrela o filme MOSTRA a pessoa:
     // documentary_faceless vira character_story (pessoa muda em cena). Pedido de estrela recusado mais abaixo volta antes de [KINEO-ESTRELA-DO-FILME-2026-09-29]
     // qualquer trabalho; sem `estrela` no corpo, formatoComEstrela devolve a decisão de sempre (o mesmo objeto). [KINEO-ESTRELA-DO-FILME-2026-09-29]
-    const pessoaPedida = pessoaDoPedido(body.original_idea) // KINEO-PESSOA-DO-PEDIDO-1111 — a pessoa sem nome do pedido original (24564d97: "a young blonde woman … pastel pink outfit" virou silhueta morena)
+    // KINEO-PEDIDO-DO-CLIENTE-1111 [CEO 11/11, tabela de cobertura] — pessoa e luz liam SÓ body.original_idea, que só o /generate manda: ideia solta escrita no servidor (ideiaNoEscritor), conector e roteiro colado chegavam sem ele e os dois consertos ficavam desligados em qualquer motor. Agora: a ideia de onde o roteiro nasceu quando ela vem; senão, o texto que o cliente mandou (intake, antes do escritor), menos pedido de continuação de série.
+    const pedidoDoCliente = typeof body.original_idea === 'string' && body.original_idea.trim() ? body.original_idea : isSeriesContinuationPrompt(intake.text) ? null : intake.text // KINEO-PEDIDO-DO-CLIENTE-1111
+    const pessoaPedida = pessoaDoPedido(pedidoDoCliente) // KINEO-PESSOA-DO-PEDIDO-1111 — a pessoa sem nome do pedido original (24564d97: "a young blonde woman … pastel pink outfit" virou silhueta morena)
     const formatoVisual = formatoComEstrela(formatoComPessoaDoPedido(decidirFormato(prompt, tagFacelessPresente), pessoaPedida), estrelaPedida((body as { estrela?: unknown }).estrela)) // KINEO-ESTRELA-DO-FILME-2026-09-29
     // KINEO-ROMANCE-ADULTO-2026-10-13 — pedido romântico (lib/cinematic/romanceGuard; só o texto do CLIENTE): mostra as duas pessoas
     // KINEO-ROMANCE-ADULTO-2026-10-13 — (character_story, nunca o faceless que apagava "man/woman"); a tag [faceless] e o apresentador pedido vencem.
@@ -7343,7 +7345,7 @@ async function manipularPost(req: NextRequest) {
 
     if (seedanceShortFilm) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = sanitizarObjetos15(classicScenePrompts[i], seedanceShortFilm) // KINEO-FILME15-PERFEITO-2610 — final visual vector, before still/clip; narration stays intact
     for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comSuperficieSemTexto(classicScenePrompts[i]) // KINEO-CENA-PEDIDO-3010 — revisor 29/10: lousa/tela/página/placa saíam com letra inventada; a superfície vai descrita em positivo (o motor não tem negativo)
-    { const luzPedida = qualidadeHerdada ? null : luzDoPedido(body.original_idea); if (luzPedida) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comLuzDoPedido(classicScenePrompts[i], luzPedida) } // KINEO-LUZ-DO-PEDIDO-1111 — a luz que o cliente pediu (só a luz, nunca a frase de ação) chega a toda cena (still e clipe); 657ad797: pedido de sol pelas janelas, prova saiu à noite
+    { const luzPedida = qualidadeHerdada ? null : luzDoPedido(pedidoDoCliente); if (luzPedida) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comLuzDoPedido(classicScenePrompts[i], luzPedida) } // KINEO-LUZ-DO-PEDIDO-1111 — a luz que o cliente pediu (só a luz, nunca a frase de ação) chega a toda cena (still e clipe); 657ad797: pedido de sol pelas janelas, prova saiu à noite
     for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = relogioComPonteiros(classicScenePrompts[i]) // KINEO-RELOGIO-PONTEIROS-1111 — vizinho f2e8cffc: "clock showing 02:46" saiu ~8:40 (a proteção de texto proíbe números); o relógio vira de ponteiros apontando para a hora, mostrador sem dígitos
 
     // ═══ KINEO-DRYRUN-CLASSICO-2026-09-12 — O VALIDADOR DE $0 COBRE OS CLÁSSICOS ═══
