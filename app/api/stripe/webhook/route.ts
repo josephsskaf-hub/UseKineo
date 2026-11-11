@@ -49,6 +49,8 @@ import { writeServerEvent } from '@/lib/serverEvents'
 import { isKidsAutopilotSession, isKidsPackSession, isKidsSubscription } from '@/lib/kidsVenda/kidsVenda' // KINEO-KIDS-VENDA-2010 — reconhecimento SÓ pela metadata (nunca pelo valor: 4900 é também o Kit BF e o bulk30)
 import { fulfillKidsAutopilot, fulfillKidsPack, kidsInvoicePaid, kidsSubscriptionDeleted, kidsSubscriptionUpdated } from '@/lib/kidsVenda/webhook' // KINEO-KIDS-VENDA-2010 — pedido do piloto/pack (nenhum crédito concedido; o cron financia filme a filme), ciclo novo, pausa, cancela
 import { KIT_BF_CREDITS, KIT_BF_EVENTS, KIT_BF_PACK_ID, KIT_BF_VERSION, kitBfAccessUntilIso } from '@/lib/ads/kitBfSale' // KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday: créditos + Studio Ads até 31/12, pelo MESMO Path A (guard → concessão → libera + 500)
+import { PAUSA_POR_CARTAO_1111_MIGRA_NOVAS, PAUSA_POR_CARTAO_EVENTS, PAUSA_POR_CARTAO_VERSION, migrarNovaParaFlexivel, motivoDaPausa, renovacaoPausadaEspera } from '@/lib/billing/pausaPorCartao' // KINEO-PAUSA-POR-CARTAO-1111 — cartão recusado pausa (não cancela) e volta sozinho quando pago
+import { migrarAssinaturaParaFlexivel } from '@/lib/stripe/migrarFlexivel' // KINEO-PAUSA-POR-CARTAO-1111
 import { RECARGA_ASSINANTE_EVENTS, RECARGA_ASSINANTE_SKU } from '@/lib/billing/recargaAssinante' // KINEO-RECARGA-ASSINANTE-1111 — a recarga do assinante: Path A, créditos da fonte única
 import { RECARGA_ASSINANTE_1111, normalizeSliderCredits, sliderPriceUsdMinor } from '@/lib/credits/creditSlider' // KINEO-RECARGA-ASSINANTE-1111 — o botão e a barra: uma fonte
 import { ADS_ACCESS_COLUMN, ADS_PASS_CREDITS, ADS_PASS_ID, adsAccessUntil } from '@/lib/ads/offer' // KINEO-STUDIO-ADS-2026-09-25 · ADS_PASS_CREDITS só no fallback sem pack_credits (28/09)
@@ -2912,6 +2914,14 @@ export async function POST(req: NextRequest) {
         // a do mês seguinte ainda falha: a assinatura segue past_due e o portão active/trialing jogava o pagamento fora
         // (pagou e não recebeu). past_due mantém o acesso pela regra única (lib/billing/subscriptionAccess.ts);
         // unpaid/canceled/incomplete_expired/paused seguem ignorados — e agora o descarte deixa rastro no banco.
+        // KINEO-PAUSA-POR-CARTAO-1111 — EXCEÇÃO: `paused`. Na pausa por cartão recusado, pagar a fatura que causou a pausa é
+        // justamente o que faz a Stripe RETOMAR a assinatura — em outro evento, sem ordem garantida. Relida ainda pausada,
+        // a renovação era descartada (pagou e ficou sem plano e sem créditos). Agora a Stripe reenvia depois; retomada, a
+        // renovação de sempre (guard, renewalBalance, plano) segue. Nunca concede a quem continua pausado.
+        if (renovacaoPausadaEspera(subscription.status)) { // KINEO-PAUSA-POR-CARTAO-1111
+          console.warn('[stripe webhook] renewal paid while subscription still paused — asking Stripe to retry after resume:', invoice.id, subscriptionId, motivoDaPausa(subscription)) // KINEO-PAUSA-POR-CARTAO-1111
+          throw new RetryableEntitlementError(`Renewal invoice paid while subscription is paused (${subscriptionId}); retry after resume`) // KINEO-PAUSA-POR-CARTAO-1111
+        } // KINEO-PAUSA-POR-CARTAO-1111
         if (!stripeSubscriptionKeepsAccess(subscription.status)) {
           // Stripe events can arrive out of order. A historical paid invoice
           // must not reactivate/refill a subscription whose live state is now
@@ -3512,6 +3522,34 @@ export async function POST(req: NextRequest) {
             console.warn('[stripe webhook] stale payment_failed ignored for superseded subscription:', customerId, failedSubscriptionId)
           }
         }
+        break
+      }
+
+      // ═══ KINEO-PAUSA-POR-CARTAO-1111 — pausa e retomada (o acesso é decidido pelo customer.subscription.updated, que a Stripe
+      // manda junto); aqui só o REGISTRO, com o porquê. A criação migra a assinatura nova para flexível (pré-requisito da
+      // pausa) com o interruptor PAUSA_POR_CARTAO_1111_MIGRA_NOVAS em 'on'; 'off' = nada acontece. Nunca lança.
+      case 'customer.subscription.paused':
+      case 'customer.subscription.resumed': {
+        const sub = event.data.object as Stripe.Subscription
+        const userId = sub.metadata?.supabase_user_id ?? null
+        await writeServerEvent({
+          name: event.type === 'customer.subscription.paused' ? PAUSA_POR_CARTAO_EVENTS.paused : PAUSA_POR_CARTAO_EVENTS.resumed,
+          userId,
+          path: '/api/stripe/webhook',
+          metadata: { subscription_ref: sub.id, status: sub.status, reason: motivoDaPausa(sub), tier: sub.metadata?.tier ?? null, stripe_event_id: event.id, version: PAUSA_POR_CARTAO_VERSION },
+        })
+        break
+      }
+      case 'customer.subscription.created': {
+        const sub = event.data.object as Stripe.Subscription & { billing_mode?: unknown }
+        if (!migrarNovaParaFlexivel(PAUSA_POR_CARTAO_1111_MIGRA_NOVAS, sub.billing_mode)) break
+        const migracao = await migrarAssinaturaParaFlexivel(sub.id, process.env.STRIPE_SECRET_KEY)
+        await writeServerEvent({
+          name: migracao.ok ? PAUSA_POR_CARTAO_EVENTS.migrated : PAUSA_POR_CARTAO_EVENTS.migrateFailed,
+          userId: sub.metadata?.supabase_user_id ?? null,
+          path: '/api/stripe/webhook',
+          metadata: { subscription_ref: sub.id, ...(migracao.ok ? {} : { http_status: migracao.status, code: migracao.code }), version: PAUSA_POR_CARTAO_VERSION },
+        })
         break
       }
 
