@@ -228,7 +228,11 @@ export default function AudioClient() {
             )}
           </div>
 <div className="rail creation-settings">
-          <div style={{ position: 'relative' }}>
+          {/* KINEO-AUDIO-DETAILS-1111 [CEO 11/11, regra do dono para toda tela: motor = escolha opcional e FECHADA dentro de "Details"; preço só
+              no botão de gerar] — o motor e a voz moram num <details> fechado; o resumo fechado diz só a voz e o tamanho do texto. */}
+          <details className="card aud-details" data-kineo="audio-details">
+          <summary style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, listStyle: 'none' }}><span className="lab" style={{ marginBottom: 0 }}><span className="n">2</span><UiLabel>Details</UiLabel></span><span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--txt2,#9aa0a6)' }}>{voice ? `${voice} · ` : ''}{text.trim().length}<UiLabel> chars</UiLabel> <span aria-hidden="true">▾</span></span></summary>
+          <div style={{ position: 'relative', marginTop: 12 }}>
             <button type="button" className="mdlbtn" onClick={() => setPickerOpen((o) => !o)}>
               <span className="lab" style={{ marginBottom: 0 }}><span className="n">2</span><UiLabel>Engine</UiLabel></span>
               <span className="mdlname" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -256,8 +260,8 @@ export default function AudioClient() {
           </div>
 
           {eng.voices.length > 0 && (
-            <div className="card">
-              <div className="lab"><span className="n">3</span><UiLabel>Voice</UiLabel></div>
+            <div style={{ marginTop: 12 }}>
+              <div className="lab"><UiLabel>Voice</UiLabel></div>
               <div className="row">
                 {eng.voices.map((v) => (
                   <button key={v.id} type="button" className={`pill${voice === v.id ? ' on' : ''}`} onClick={() => setVoice(v.id)}>
@@ -268,13 +272,13 @@ export default function AudioClient() {
             </div>
           )}
 
+          </details>
+
           <div className="cost">
-            <div className="sum">{eng.name}{voice ? ` · ${voice}` : ''} · {text.trim().length}<UiLabel> chars</UiLabel></div>
-            <div className="val"><span><UiLabel>Cost</UiLabel></span><b>{credits} cr</b></div>
             <button type="button" onClick={generate} disabled={!text.trim() || busy} className={`go ${text.trim() && !busy ? 'ok' : 'no'}`}>
-              <UiLabel>{busy ? 'Creating…' : text.trim() ? 'Generate audio →' : 'Type your script first'}</UiLabel>
+              {busy ? <UiLabel>Creating…</UiLabel> : text.trim() ? <><UiLabel>Generate audio</UiLabel> · {credits} cr →</> : <UiLabel>Type your script first</UiLabel>}{/* KINEO-AUDIO-DETAILS-1111 — o custo mora só aqui */}
             </button>
-            <div className="gnote">{eng.perK}<UiLabel> cr per 1000 characters · MP3 download included.</UiLabel></div>
+            <div className="gnote"><UiLabel>MP3 download included.</UiLabel></div>
           </div>
         </div>
 <div className="creation-results">
@@ -287,7 +291,7 @@ export default function AudioClient() {
                   surface="audio"
                   kind="audio"
                   kicker="Your audio is being made"
-                  title={`${premiere.engine}${premiere.voice ? ` · ${premiere.voice}` : ''} is voicing it`}
+                  title={premiere.voice ? `${premiere.voice} is voicing it` : 'Voicing your script'} /* KINEO-AUDIO-DETAILS-1111 — sem nome de motor */
                   items={[{ key: 'audio', label: 'Your audio', status: 'working' }]}
                   now={{ label: 'Voicing', text: premiere.text.length > 140 ? `${premiere.text.slice(0, 140).trimEnd()}…` : premiere.text }}
                   notify={false}
@@ -299,7 +303,7 @@ export default function AudioClient() {
                   kind="audio"
                   url={premiere.url}
                   title={premiere.text.length > 110 ? `${premiere.text.slice(0, 110).trimEnd()}…` : premiere.text}
-                  meta={`Ready · ${premiere.engine}${premiere.voice ? ` · ${premiere.voice}` : ''}`}
+                  meta={`Ready${premiere.voice ? ` · ${premiere.voice}` : ''}`} /* KINEO-AUDIO-DETAILS-1111 */
                   onDownload={() => { void download(premiere.url!, premiereIdx >= 0 ? premiereIdx : 0, 'premiere') }}
                   next={{
                     label: 'Make it a film',
@@ -348,7 +352,7 @@ export default function AudioClient() {
                     <audio controls preload="none" src={it.url} style={{ flex: '1 1 260px', height: 36 }} />
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 11.5, color: 'var(--txt2,#9aa0a6)' }}>
-                        {AUDIO_ENGINES.find((e) => e.key === it.model)?.name ?? it.model}{it.voice ? ` · ${it.voice}` : ''}
+                        {it.voice ?? ''}{/* KINEO-AUDIO-DETAILS-1111 — sem nome de motor no cartão */}
                       </span>
                       <button type="button" className="pill" onClick={() => download(it.url, i)}><UiLabel>⬇ Download</UiLabel></button>
                       {it.text && <a className="pill" style={{ textDecoration: 'none' }} href={`/studio?prompt=${encodeURIComponent(it.text.slice(0, 500))}`}><UiLabel>🎬 Use in Studio</UiLabel></a>}
