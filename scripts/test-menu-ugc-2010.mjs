@@ -100,7 +100,9 @@ function compProblems(src) {
   if (!src.includes("import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'")) probs.push('não lê a língua do provedor')
   if (!src.includes("import { menuUgcHref } from '@/lib/ui/menuUgc2010'")) probs.push('destino fora da lib')
   if (!src.includes('const language = useInterfaceLanguage()')) probs.push('língua não lida')
-  if (!src.includes('<Link href={menuUgcHref(language)} className={className} data-nav-item={navItem}><UiLabel>AI UGC Ads</UiLabel></Link>')) probs.push('link do item fora do padrão (destino pela língua, classe de quem chama, data-nav-item, rótulo autoral)')
+  // KINEO-ENTRADAS-CARTOES-1011 [fundador 10/11: "clico em AI UGC Ads, vai para a página antiga"] — o destino pela língua continua sendo o de quem
+  // não está logado; logado (signedIn, só quem sabe o login passa) vai à aba Ads pela entrada única (lib/create/entry.ts createEntryForContentHref).
+  if (!src.includes("<Link href={createEntryForContentHref('ads', menuUgcHref(language), NAV_UGC_MAKE_NOW_HREF, signedIn)} className={className} data-nav-item={navItem}><UiLabel>AI UGC Ads</UiLabel></Link>") || !src.includes("signedIn = false }")) probs.push('link do item fora do padrão (destino pela língua, classe de quem chama, data-nav-item, rótulo autoral)')
   if ((src.match(/<Link /g) || []).length !== 1) probs.push('mais de um link')
   const code = src.replace(/\/\/.*$/gm, '')
   if (/\$\s?\d|\bcredits?\b|\bcr\b|free|grátis/i.test(code)) probs.push('preço/oferta no item do menu')

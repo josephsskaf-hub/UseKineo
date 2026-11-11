@@ -48,11 +48,16 @@ const FILM_CASES = [
   ['/studio?intent_campaign=home_phone_box&ideia=The%20island%20nobody%20visits', 'film', '/create/film?intent_campaign=home_phone_box&ideia=The+island+nobody+visits'],
   ['/studio?intent_campaign=home_news_bar_k4_trial', 'film', '/create/film?intent_campaign=home_news_bar_k4_trial'],
   ['/studio?ideia=Rome&utm_source=x&gclid=1&ref=a', 'film', '/create/film?ideia=Rome&utm_source=x&gclid=1&ref=a&intent_campaign=studio_simple'],
-  // ficam no Studio antigo: motor específico, texto do ChatGPT/galeria, roteiro, série, retomada, autostart, conector, "More options"
-  ['/studio?engine=hollywood&intent_campaign=nav_mega', 'film', null],
-  ['/studio?engine=h3max&intent_campaign=nav_mega', 'film', null],
-  ['/studio?engine=s25&intent_campaign=nav_mega', 'film', null],
-  ['/studio?engine=fast&intent_campaign=final_chip', 'film', null],
+  // KINEO-ENTRADAS-MOTOR-1011 [CEO 10/11: "logado vai para /create/film sem o motor"] — motor específico SAI do link (4º campo = sem motor)
+  ['/studio?engine=hollywood&intent_campaign=nav_mega', 'film', '/create/film?intent_campaign=nav_mega', 'sem motor'],
+  ['/studio?engine=h3max&intent_campaign=nav_mega', 'film', '/create/film?intent_campaign=nav_mega', 'sem motor'],
+  ['/studio?engine=s25&intent_campaign=nav_mega', 'film', '/create/film?intent_campaign=nav_mega', 'sem motor'],
+  ['/studio?engine=h3&intent_campaign=nav_mega', 'film', '/create/film?intent_campaign=nav_mega', 'sem motor'],
+  ['/studio?engine=fast&intent_campaign=final_chip', 'film', '/create/film?intent_campaign=final_chip', 'sem motor'],
+  ['/studio?engine=hollywood', 'film', '/create/film?intent_campaign=studio_simple', 'sem motor'],
+  // ficam no Studio antigo: texto do ChatGPT/galeria, roteiro, série, retomada, autostart, conector, "More options", motor repetido
+  ['/studio?engine=hollywood&engine=h3', 'film', null],
+  ['/studio?engine=hollywood&prompt=Rome', 'film', null],
   ['/studio?prompt=Rome&script_mode=ai&intent_campaign=gallery', 'film', null],
   ['/studio?prompt=Rome&intent_campaign=gallery', 'film', null],
   ['/studio?avancado=1&engine=seedance&intent_campaign=studio_simple', 'film', null],
@@ -69,12 +74,22 @@ const FILM_CASES = [
   ['https://evil.example/studio', 'film', null],
   ['//evil.example/studio', 'film', null],
   ['/kids-cartoon', 'cartoon', '/create/cartoon'],
-  ['/kids-cartoon?utm_source=home_card', 'cartoon', null],
+  ['/kids-cartoon?utm_source=home_card', 'cartoon', '/create/cartoon?utm_source=home_card'], // KINEO-ENTRADAS-CARTOES-1011
+  ['/kids-cartoon?utm_source=home_card&intent_campaign=x&gclid=1', 'cartoon', '/create/cartoon?utm_source=home_card&intent_campaign=x&gclid=1'],
+  ['/kids-cartoon?utm_source=a&utm_source=b', 'cartoon', null],
   ['/kids-cartoon?character=leo', 'cartoon', null],
   ['/ads/new', 'ads', '/create/ads'],
   ['/ads/new?utm_source=studio_door', 'ads', null],
   ['/ads/new?style=xmas', 'ads', null],
-  ['/ads/v2?entry=product&utm_source=home_card', 'ads', null],
+  ['/ads/v2?entry=product&utm_source=home_card', 'ads', '/create/ads?entry=product&utm_source=home_card'], // KINEO-ENTRADAS-CARTOES-1011
+  ['/ads/v2?entry=ugc&utm_source=home_card', 'ads', '/create/ads?entry=ugc&utm_source=home_card'],
+  ['/ads/v2?entry=ugc', 'ads', '/create/ads?entry=ugc'],
+  ['/ads/v2?entry=evil&utm_source=home_card', 'ads', null],
+  ['/ads/v2?entry=product&order=11111111-2222-3333-4444-555555555555', 'ads', null],
+  ['/ads/v2?bf_template=x&bf_lang=en', 'ads', null],
+  ['/ads/v2?mode=full', 'ads', null],
+  ['/ads/v2', 'ads', null],
+  ['/ads/v2?entry=product', 'film', null], ['/ads/v2?entry=product', 'cartoon', null],
   ['/ads/new', 'film', null], ['/studio', 'ads', null], ['/kids-cartoon', 'film', null],
 ]
 function moduleChecks(o = {}) {
@@ -83,7 +98,7 @@ function moduleChecks(o = {}) {
   const src = lf(o['lib/create/release.ts'] ?? read('lib/create/release.ts'))
   ok(release.CREATE_ENTRY_RELEASE === 'public', "o interruptor CREATE_ENTRY_RELEASE está 'public'")
   ok(src.includes('"1 sim, todas as telas vão pro modelo novo"') && /VOLTA: 'off'[^\n]*devolve TODAS as entradas ao destino antigo/.test(src), 'o interruptor traz a frase do fundador e a volta')
-  for (const [legacy, kind, novo] of FILM_CASES) {
+  for (const [legacy, kind, novo, semMotor] of FILM_CASES) {
     const got = entry.createEntryHref(kind, legacy, true)
     ok(got === (novo ?? legacy), `logado: ${kind} ${legacy} → ${novo ?? 'fica'} (veio ${got})`)
     // Visitante (ou login desconhecido): SEMPRE o destino de hoje, byte a byte — sem muro de cadastro novo.
@@ -98,6 +113,7 @@ function moduleChecks(o = {}) {
     // O que vai para a aba Film é exatamente o que a caixa do /studio trata (usarCaixaUnica) — nada que o Studio completo trataria.
     if (novo && kind === 'film') {
       const q = Object.fromEntries(new URL(legacy, 'https://k').searchParams)
+      if (semMotor) { ok(q.engine && q.engine !== 'seedance' && !new URL(novo, 'https://k').searchParams.has('engine'), `${legacy}: o motor saiu do link`); delete q.engine }
       ok(caixa.usarCaixaUnica(q) && caixa.motorDaCaixa(q.engine) === caixa.motorDaCaixa(undefined), `${legacy}: no /studio abriria a MESMA caixa, com o MESMO motor`)
       const nq = Object.fromEntries(new URL(novo, 'https://k').searchParams)
       ok(caixa.campanhaDaCaixa(nq.intent_campaign) === caixa.campanhaDaCaixa(q.intent_campaign) && (nq.ideia ?? null) === (q.ideia ?? null), `${legacy}: mesma campanha e mesma ideia que o /studio grava`)
@@ -123,7 +139,7 @@ function paginas(o, user) {
   const nav = { redirect: u => { throw { redirect: u } }, notFound: () => { throw { notFound: true } }, useRouter: () => ({}), usePathname: () => '/', useSearchParams: () => new URLSearchParams() }
   const stubs = {
     'next/navigation': nav, 'next/link': link, '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user } }) } }) },
-    '@/components/StudioIdeaArrival': Marca('StudioIdeaArrival'), '@/components/create/StudioNaMoldura': Marca('StudioNaMoldura'), '@/components/create/CreateShell': Marca('CreateShell'),
+    '@/components/StudioIdeaArrival': Marca('StudioIdeaArrival'), '@/components/create/StudioNaMoldura': Marca('StudioNaMoldura'), '@/components/create/CreateShell': Marca('CreateShell'), './AbaComChegada': Marca('AbaComChegada'), // KINEO-ENTRADAS-TOPO-E-HOME-1011
     '@/components/studio/StudioSimples': Marca('StudioSimples'), './StudioClient': Marca('StudioClient'),
     '@/lib/engineWall': { getHouseEngineExamples: () => [] }, '@/lib/publicExamples': { ENGINE_PAGE_LEAD: [], FOUNDER_SHOWCASE: [] }, '@/lib/growth/filmesDaPorta0511': { filmesDaPorta0511: () => [] },
   }
@@ -133,13 +149,14 @@ function paginas(o, user) {
 const filhos = el => React.Children.toArray(el?.props?.children ?? []).concat(el && typeof el.type === 'function' ? [el] : [])
 const achar = (el, name) => filhos(el).find(c => c.type?.name === name)
 const sp = href => Object.fromEntries(new URL(href, 'https://k').searchParams)
+const semEngine = q => { const { engine, ...resto } = q; return resto } // KINEO-ENTRADAS-MOTOR-1011
 async function pageChecks(o = {}) {
   const entry = loader({}, o)('lib/create/entry')
   const USER = { id: 'u', email: 'customer@example.org' }
   const filmEntries = FILM_CASES.filter(([, k, n]) => k === 'film' && n)
-  for (const [legacy, , novo] of filmEntries) {
+  for (const [legacy, , novo, semMotor] of filmEntries) {
     const P = paginas(o, USER)
-    const st = P.studio({ searchParams: sp(legacy) })
+    const st = P.studio({ searchParams: semMotor ? semEngine(sp(legacy)) : sp(legacy) }) // KINEO-ENTRADAS-MOTOR-1011 — sem motor: compara com o /studio sem o motor (o que a aba faz)
     const cr = await P.create({ params: { tab: 'film' }, searchParams: sp(novo) })
     const a = achar(st, 'StudioSimples')?.props, b = achar(cr, 'StudioNaMoldura')?.props
     ok(a && b, `${novo}: as duas páginas montam a caixa`)
@@ -178,7 +195,26 @@ async function pageChecks(o = {}) {
   let rl = null
   try { await paginas(o, USER).create({ params: { tab: 'film' }, searchParams: { ideia: ['a', 'b'] } }) } catch (e) { rl = e.redirect }
   ok(rl === '/studio?ideia=a&ideia=b', 'lista na query: volta ao /studio com os dois valores')
+  // KINEO-ENTRADAS-MOTOR-1011 — a entrada tira o motor; a PÁGINA continua mandando ao /studio quem chega com outro motor pela URL.
+  { let rm = null; try { await paginas(o, USER).create({ params: { tab: 'film' }, searchParams: { engine: 'hollywood', intent_campaign: 'x' } }) } catch (e) { rm = e.redirect } ; ok(rm === '/studio?engine=hollywood&intent_campaign=x', '/create/film?engine=hollywood (pela URL) → /studio com o motor') }
   ok(entry.filmParamsSupported({ ideia: 'x', signup: '1' }, { arrival: true }) && !entry.filmParamsSupported({ ideia: 'x', signup: '1' }), 'signup/welcome: só a página aceita (uma entrada nunca os manda)')
+  // KINEO-ENTRADAS-TOPO-E-HOME-1011 [fundador 10/11: "Make my ad", "Make my UGC ad", "Make my cartoon" e "AI UGC Ads" abriam a tela ANTIGA] — as abas
+  // Ads e Cartoon executadas: a chegada (entry + atribuição) é guardada e o "Continue" leva o MESMO dado ao gerador de hoje (o entry chega ao /ads/v2).
+  for (const [tab, q, destino] of [
+    ['ads', { entry: 'ugc', utm_source: 'home_card' }, '/ads/v2?entry=ugc&utm_source=home_card'],
+    ['ads', { entry: 'product', utm_source: 'home_card' }, '/ads/v2?entry=product&utm_source=home_card'],
+    ['ads', { entry: 'ugc' }, '/ads/v2?entry=ugc'],
+    ['cartoon', { utm_source: 'home_card' }, '/kids-cartoon?utm_source=home_card'],
+  ]) {
+    const pg = await paginas(o, USER).create({ params: { tab }, searchParams: q })
+    ok(pg?.type?.name === 'AbaComChegada' && pg.props.tab === tab && pg.props.destino === destino, `/create/${tab}?${new URLSearchParams(q)} (logado): a aba com o Continue → ${pg?.props?.destino}`)
+  }
+  for (const [tab, q, volta] of [['ads', { entry: 'bogus' }, '/ads/v2?entry=bogus'], ['ads', { entry: 'ugc', style: 'x' }, '/ads/v2?entry=ugc&style=x'], ['cartoon', { character: 'leo' }, '/kids-cartoon?character=leo']]) {
+    let r = null
+    try { await paginas(o, USER).create({ params: { tab }, searchParams: q }) } catch (e) { r = e.redirect }
+    ok(r === volta, `/create/${tab} com dado que a aba não repassa → o gerador de hoje com a query intacta (${r})`)
+  }
+  for (const tab of ['ads', 'cartoon']) { const seco = await paginas(o, USER).create({ params: { tab }, searchParams: {} }); ok(seco?.type?.name === 'CreateShell', `/create/${tab} seco: a CreateShell de sempre`) }
 }
 
 // ─── C. O mesmo pedido e os mesmos eventos ─────────────────────────────────────────────────────────────────────────────
@@ -187,10 +223,10 @@ const MOUNT = ['studio_simple_viewed', 'mrr_studio_viewed']
 const only = (evs, names) => evs.filter(([n]) => names.includes(n))
 async function eventChecks(o = {}) {
   const entry = loader({}, o)('lib/create/entry')
-  for (const [legacy] of FILM_CASES.filter(([, k, n]) => k === 'film' && n)) {
+  for (const [legacy, , , semMotor] of FILM_CASES.filter(([, k, n]) => k === 'film' && n)) {
     const novo = entry.createEntryHref('film', legacy, true)
     const P = paginas(o, { id: 'u', email: 'customer@example.org' })
-    const a = achar(P.studio({ searchParams: sp(legacy) }), 'StudioSimples').props
+    const a = achar(P.studio({ searchParams: semMotor ? semEngine(sp(legacy)) : sp(legacy) }), 'StudioSimples').props
     const b = achar(await P.create({ params: { tab: 'film' }, searchParams: sp(novo) }), 'StudioNaMoldura').props
     // Uma aba de cada vez: os dublês de navegador (sessionStorage, document) são globais.
     const ta = aba(o)
@@ -229,17 +265,21 @@ function viaLoader(o, file, before, props) {
 }
 // [nome, render(o, before, signed), quantos hrefs mudam (visitante, logado)]
 const SUPERFICIES = [
-  ['topo (app/KineoLanding.tsx: mega-menu, Product ads, menu do celular, Dashboard, CTA final)', (o, b, s) => viaRenderPage(o, 'app/KineoLanding.tsx', b, {}, { initialUser: s ? { id: 'fixture' } : null }), [0, 8]],
+  ['topo (app/KineoLanding.tsx: mega-menu, Product ads, menu do celular, Dashboard, CTA final)', (o, b, s) => viaRenderPage(o, 'app/KineoLanding.tsx', b, {}, { initialUser: s ? { id: 'fixture' } : null }), [0, null]], // KINEO-ENTRADAS-CARTOES-1011 — logado: TODA entrada de criação (era 8; + motores, AI UGC Ads, AI Cartoon Videos)
   ['menu lateral (components/Sidebar.tsx)', (o, b, s) => viaLoader(o, 'components/Sidebar.tsx', b, { userEmail: s ? 'customer@example.org' : '', isLoggedIn: s, credits: 10, plan: 'free' }), [0, 3]],
   ['menu do celular (components/MobileNav.tsx)', (o, b, s) => viaRenderPage(o, 'components/MobileNav.tsx', b, { pathname: '/library' }, { isLoggedIn: s }), [0, 3]],
-  ['cartões da home (components/home/HomeThreeCards.tsx, entradaNova)', (o, b, s) => viaRenderPage(o, 'components/home/HomeThreeCards.tsx', b, {}, { signedIn: s, kidsCard: true, ...(b ? {} : { entradaNova: true }) }), [0, 1]],
-  ['portas e caixa do celular (components/home/HomePortasCelular.tsx, entradaNova)', (o, b, s) => viaRenderPage(o, 'components/home/HomePortasCelular.tsx', b, {}, { signedIn: s, ...(b ? {} : { entradaNova: true }) }), [0, 2]],
+  ['cartões da home (components/home/HomeThreeCards.tsx, entradaNova)', (o, b, s) => viaRenderPage(o, 'components/home/HomeThreeCards.tsx', b, {}, { signedIn: s, kidsCard: true, ...(b ? {} : { entradaNova: true }) }), [0, null]], // KINEO-ENTRADAS-CARTOES-1011 — logado: Films + Product + UGC + Cartoon (era 1)
+  ['portas e caixa do celular (components/home/HomePortasCelular.tsx, entradaNova)', (o, b, s) => viaRenderPage(o, 'components/home/HomePortasCelular.tsx', b, {}, { signedIn: s, ...(b ? {} : { entradaNova: true }) }), [0, null]], // KINEO-ENTRADAS-CARTOES-1011 — logado: as 3 portas + Cartoon + caixa (era 2)
   ['vitrine (components/home/HomeMosaic.tsx: filmes + "Ad example")', (o, b, s) => viaLoader(o, 'components/home/HomeMosaic.tsx', b, { signedIn: s }), [null, null]],
   ['páginas de SEO (HomeThreeCards sem entradaNova, como em components/seo/PaginaClara.tsx)', (o, b, s) => viaRenderPage(o, 'components/home/HomeThreeCards.tsx', b, {}, { signedIn: s, kidsCard: true }), [0, 0]],
 ]
 function renderChecks(o = {}, { so = null } = {}) {
   const entry = loader({}, o)('lib/create/entry')
-  const MAP = new Set(['/studio', '/ads/new', '/kids-cartoon'])
+  const MAP = new Set(['/studio', '/ads/new', '/kids-cartoon', '/ads/v2']) // KINEO-ENTRADAS-CARTOES-1011 — + /ads/v2 (cartões Product/UGC)
+  // KINEO-ENTRADAS-CARTOES-1011 — links de CONTEÚDO que, para quem está logado, são "fazer agora" (topo: AI UGC Ads · AI Cartoon Videos).
+  const CONTEUDO = { '/ai-kids-cartoon-videos': ['cartoon', '/kids-cartoon'], '/ai-ugc-ads': ['ads', '/ads/v2?entry=ugc'] }
+  const esperado = (h, s) => { const c = CONTEUDO[inner(h).pathname]; return c ? entry.createEntryForContentHref(c[0], h, c[1], s) : entry.createEntryForLegacyHref(h, s) }
+  const criacao = h => MAP.has(inner(h).pathname) || inner(h).pathname in CONTEUDO
   const inner = h => { const u = new URL(h, 'https://k'); return u.pathname === '/signup' && u.searchParams.get('redirect') ? new URL(u.searchParams.get('redirect'), 'https://k') : u }
   for (const [nome, render, conta] of SUPERFICIES) {
     if (so && !so.some(x => nome.includes(x))) continue
@@ -255,15 +295,15 @@ function renderChecks(o = {}, { so = null } = {}) {
       for (let i = 0; i < a.length; i++) {
         if (a[i] === b[i]) continue
         mudou++
-        ok(MAP.has(inner(a[i]).pathname), `${nome} · ${quem}: só entrada de criação muda (${a[i]})`)
-        ok(b[i] === entry.createEntryForLegacyHref(a[i], signed), `${nome} · ${quem}: ${a[i]} → ${b[i]} = a entrada única`)
+        ok(criacao(a[i]), `${nome} · ${quem}: só entrada de criação muda (${a[i]})`)
+        ok(b[i] === esperado(a[i], signed) || (inner(a[i]).pathname in CONTEUDO && b[i] === a[i]), `${nome} · ${quem}: ${a[i]} → ${b[i]} = a entrada única`)
         ok(/^\/create\/(film|cartoon|ads)$/.test(inner(b[i]).pathname), `${nome} · ${quem}: destino novo é uma aba (${b[i]})`)
       }
-      const esperado = conta[signed ? 1 : 0]
-      if (esperado === null) ok((signed ? mudou > 0 : mudou === 0) && mudou === a.filter(h => MAP.has(inner(h).pathname) && entry.createEntryForLegacyHref(h, signed) !== h).length, `${nome} · ${quem}: todos os filmes e anúncios secos mudaram (${mudou})`)
-      else ok(mudou === esperado, `${nome} · ${quem}: ${esperado} entrada(s) mudam (vieram ${mudou})`)
-      // O que FICA no antigo (motor específico, cartão de anúncio com formato, desenho com utm) continua lá.
-      ok(a.filter(h => /^\/studio\?engine=(hollywood|h3|h3max|s25|fast)/.test(h)).every(h => b.includes(h)), `${nome} · ${quem}: links com motor específico ficam no Studio`)
+      const conta1 = conta[signed ? 1 : 0]
+      if (conta1 === null) ok((signed ? mudou > 0 : mudou === 0) && mudou >= a.filter(h => MAP.has(inner(h).pathname) && esperado(h, signed) !== h).length && mudou <= a.filter(h => criacao(h) && esperado(h, signed) !== h).length, `${nome} · ${quem}: todos os filmes e anúncios secos mudaram (${mudou})`)
+      else ok(mudou === conta1, `${nome} · ${quem}: ${conta1} entrada(s) mudam (vieram ${mudou})`)
+      // KINEO-ENTRADAS-MOTOR-1011 — link com motor específico: logado vai à aba Film SEM o motor; visitante fica no Studio.
+      for (let i = 0; i < a.length; i++) if (/^\/studio\?engine=(hollywood|h3|h3max|s25|fast)\b/.test(a[i])) ok(signed ? b[i].startsWith('/create/film') && !/[?&]engine=/.test(b[i]) : b[i] === a[i], `${nome} · ${quem}: ${a[i]} → ${b[i]}`)
     }
   }
   // Os três menus coerentes (logado: o MESMO href; visitante: a mesma aba no fim).
@@ -286,6 +326,24 @@ function renderChecks(o = {}, { so = null } = {}) {
 
 // Fora do que renderiza: faixa da home, caixa de presente, /pricing, e o cabeçalho da tela nova.
 function otherChecks(o = {}) {
+  // KINEO-ENTRADAS-CARTOES-1011 [fundador 10/11] — "Make my cartoon" (cartão da home), "AI UGC Ads" do topo: renderizados de verdade.
+  for (const s of [true, false]) {
+    const quem = s ? 'logado' : 'visitante'
+    const kids = (ov, props) => hrefs(viaLoader(ov, 'components/home/HomeKidsCard.tsx', false, props))[0]
+    const kMain = hrefs(viaLoader(o, 'components/home/HomeKidsCard.tsx', true, { signedIn: s }))[0]
+    ok(kids(o, { signedIn: s }) === kMain && kids(OFF(o), { signedIn: s, entradaNova: true }) === kMain, `cartão Cartoon (${quem}): sem entradaNova ou com 'off' = main (${kMain})`)
+    ok(kids(o, { signedIn: s, entradaNova: true }) === (s ? '/create/cartoon?utm_source=home_card' : kMain), `cartão Cartoon (${quem}, home): ${kids(o, { signedIn: s, entradaNova: true })}`)
+    const ugc = (ov, props) => hrefs(viaLoader(ov, 'components/NavUgcAdsLink.tsx', false, { 'data-nav-item': 'more:ugc', ...props }))[0]
+    const uMain = hrefs(viaLoader(o, 'components/NavUgcAdsLink.tsx', true, { 'data-nav-item': 'more:ugc' }))[0]
+    ok(ugc(o, {}) === uMain && ugc(OFF(o), { signedIn: true }) === uMain && ugc(o, { signedIn: false }) === uMain, `AI UGC Ads: sem login conhecido, visitante ou 'off' = a página de conteúdo (${uMain})`)
+    if (s) ok(ugc(o, { signedIn: true }) === '/create/ads?entry=ugc', `AI UGC Ads (logado): ${ugc(o, { signedIn: true })}`)
+  }
+  const e = loader({}, o)('lib/create/entry')
+  ok(e.createEntryForContentHref('cartoon', '/ai-kids-cartoon-videos', '/kids-cartoon', true) === '/create/cartoon' && e.createEntryForContentHref('cartoon', '/ai-kids-cartoon-videos', '/kids-cartoon', false) === '/ai-kids-cartoon-videos' && e.createEntryForContentHref('cartoon', '/ai-kids-cartoon-videos', '/kids-cartoon', true, { entry: 'off' }) === '/ai-kids-cartoon-videos', 'AI Cartoon Videos: logado → aba; visitante e off → conteúdo')
+  for (const f of ['app/examples/page.tsx', 'app/made-with-kineo/page.tsx']) {
+    const src = lf(o[f] ?? read(f))
+    ok(!/href="\/(studio|ads\/new)"/.test(src) && src.includes("createEntryForContentHref('cartoon', MENU_CARTOON_HREF, '/kids-cartoon',") && /<NavUgcAdsLink data-nav-item="more:ugc" signedIn=\{/.test(src), `${f}: o topo passa pela entrada única (Make a film · Product ads · AI UGC Ads · AI Cartoon Videos · Open Studio)`)
+  }
   const t = aba(o), tOff = aba(OFF(o)), tMain = aba({ ...o, 'components/home/EngineNewsBar.tsx': mainSrc('components/home/EngineNewsBar.tsx') })
   for (const s of [true, false]) {
     const pub = t.m('components/home/EngineNewsBar').engineNewsBarTrialHref(s), off = tOff.m('components/home/EngineNewsBar').engineNewsBarTrialHref(s), main = tMain.m('components/home/EngineNewsBar').engineNewsBarTrialHref(s)
@@ -307,17 +365,16 @@ function otherChecks(o = {}) {
   const lib = lf(read('app/(dashboard)/library/LibraryClient.tsx'))
   ok(lib.includes("fetch('/api/videos?limit=1000'") && lib.includes("fetch('/api/clips'") && lib.includes("{ key: 'videos', label: 'Videos'") && lib.includes("{ key: 'clips', label: 'Clips'"), '/library mostra os filmes (Videos) e os clipes/Recreates (Clips)')
   // Nada fora do escopo: geradores, SEO, e-mail, conector, checkout.
-  // KINEO-MOTOR-OPCIONAL-1011 — o estado da escolha de motor da aba Film mora no StudioSimples (só com a moldura); sem moldura o HTML, o
-  // pedido e os eventos seguem = main (scripts/test-studio-na-moldura-1011.mjs B), e o guardião próprio é scripts/test-motor-opcional-1011.mjs.
-  const diff = execFileSync('git', ['diff', '--name-only', MAIN, '--', '.'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter(Boolean).filter(f => f !== 'components/studio/StudioSimples.tsx')
+  // KINEO-ENTRADAS-TOPO-E-HOME-1011 [CEO 10/11: "a checagem final… compara a árvore inteira com a main e falha em qualquer branch futura"] — a
+  // checagem não depende mais de "diff da árvore contra uma main": olha o CONTEÚDO. A entrada única só existe onde há a marca da obra
+  // (KINEO-ENTRADAS-*) ou o import de lib/create/entry; nenhum gerador, página de SEO, e-mail, conector, checkout ou lista de menu pode ter
+  // nenhum dos dois. Obra alheia nesses arquivos (outra branch, outra sessão) não acusa nada; a entrada vazando para lá acusa.
   const proibido = /^(components\/studio\/|app\/\(dashboard\)\/(studio|generate|ads|kids-cartoon)\/|app\/api\/|app\/ai-video-generator\/|app\/vs\/|app\/alternatives\/|components\/seo\/|lib\/email|lib\/lifecycle|app\/checkout\/|lib\/stripe\/|supabase\/|lib\/growth\/homeClipsFirst|lib\/ui\/homeThreeCards|lib\/ui\/homeKidsCard|lib\/ui\/workspaceNavigation|app\/pricing\/)/
-  // These five pages landed separately on main. Only their exact published contents are allowed.
-  const reviewedSeo = new Set(['app/ai-video-generator/[engine]/page.tsx', 'app/ai-video-generator/kling-4/page.tsx',
-    'app/ai-video-generator/page.tsx', 'app/ai-video-generator/seedance-2-5/page.tsx', 'components/seo/BlocoCitavel1011.tsx'])
-  const changedSinceSeo = new Set(execFileSync('git', ['diff', '--name-only', '953dd6cb72f3f0607ca877f9ac62c383d38dd62b', '--', '.'],
-    { cwd: ROOT, encoding: 'utf8' }).trim().split('\n'))
-  const unexpected = diff.filter(f => proibido.test(f) && (!reviewedSeo.has(f) || changedSinceSeo.has(f)))
-  ok(unexpected.length === 0, `nenhum gerador, SEO, e-mail, conector, checkout ou lista de menu mexido (${unexpected.join(', ') || 'ok'})`)
+  const arquivos = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '--', '*.ts', '*.tsx', '*.js', '*.mjs', '*.sql'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 1e8 }).split('\n').map(s => s.trim()).filter(f => f && proibido.test(f))
+  const temEntrada = s => /KINEO-ENTRADAS-|['"]@\/lib\/create\/entry['"]|['"](?:\.\.\/)+(?:lib\/)?create\/entry['"]/.test(s)
+  const vazou = arquivos.filter(f => { try { return temEntrada(o[f] ?? read(f)) } catch { return false } })
+  ok(arquivos.length > 100, `checagem de escopo enxerga os arquivos protegidos (${arquivos.length})`)
+  ok(vazou.length === 0, `nenhum gerador, SEO, e-mail, conector, checkout ou lista de menu carrega a entrada (${vazou.join(', ') || 'ok'})`)
 }
 
 async function rodar(o = {}, partes = ['A', 'B', 'C', 'D', 'X'], opts = {}) {
@@ -335,13 +392,20 @@ const verdes = passed
 const src = p => read(p)
 const troca = (p, a, b) => { const s = src(p); if (!s.includes(a)) throw new Error(`mutante sem alvo em ${p}: ${a}`); return { [p]: s.replace(a, b) } }
 const MUTANTES = [
+  // KINEO-ENTRADAS-CARTOES-1011 · KINEO-ENTRADAS-MOTOR-1011
+  ['o cartão Cartoon ignora a entrada', troca('components/home/HomeKidsCard.tsx', 'href={entradaNova ? createEntryForLegacyHref(homeKidsCardHref(signedIn), signedIn) : homeKidsCardHref(signedIn)', 'href={homeKidsCardHref(signedIn)'), ['X']],
+  ['AI UGC Ads sempre na página de conteúdo', troca('components/NavUgcAdsLink.tsx', "createEntryForContentHref('ads', menuUgcHref(language), NAV_UGC_MAKE_NOW_HREF, signedIn)", 'menuUgcHref(language)'), ['X']],
+  ['o motor não sai do link', troca('lib/create/entry.ts', "if (motores.length === 1 && motores[0] !== FILM_DEFAULT_ENGINE) q.delete('engine')", ''), ['A']],
+  ['o cartão UGC perde o entry', troca('lib/create/entry.ts', 'adsArrivalSupported(u.searchParams) ? `/create/ads${u.search}`', 'adsArrivalSupported(u.searchParams) ? `/create/ads`'), ['A']],
+  ['entry inválido passa', troca('lib/create/entry.ts', "k === 'entry' ? ADS_ENTRIES.has(v) :", "k === 'entry' ? true :"), ['A']],
+  ['o visitante do AI Cartoon vai à aba', troca('lib/create/entry.ts', 'const novo = createEntryHref(kind, makeNowHref, signedIn, opts)', 'const novo = createEntryHref(kind, makeNowHref, true, opts)'), ['X']],
   ['visitante vai ao cadastro (muro novo)', troca('lib/create/entry.ts', "if (signedIn !== true) return legacyHref", "if (signedIn !== true) return '/signup?' + new URLSearchParams({ redirect: legacyHref })"), ['A']],
   ['visitante vai à tela nova no topo', troca('app/KineoLanding.tsx', 'href={createEntryHref(\'ads\', \'/ads/new\', isSignedIn)} data-nav-item="business" className="nav-primary"', 'href={createEntryHref(\'ads\', \'/ads/new\', true)} data-nav-item="business" className="nav-primary"'), ['D'], { so: ['topo'] }],
   ['a lateral manda visitante à tela nova', troca('components/Sidebar.tsx', 'signedIn={isLoggedIn} />', 'signedIn />'), ['D'], { so: ['lateral'] }],
   ['My videos volta para /clips', troca('components/create/CreateNavConta.tsx', "CREATE_NAV_VIDEOS_HREF = '/library'", "CREATE_NAV_VIDEOS_HREF = '/clips'"), ['X']],
   ['/pricing mexido', troca('app/pricing/PricingClient.tsx', 'Go to Dashboard', 'Go to Studio'), ['X']],
   ['a aba Film aceita prompt', troca('lib/create/entry.ts', 'const FILM_KEYS = /^(?:intent_campaign|ideia|', 'const FILM_KEYS = /^(?:prompt|intent_campaign|ideia|'), ['A']],
-  ['qualquer motor vai para a aba Film', troca('lib/create/entry.ts', "if (k === 'engine') { if (v !== FILM_DEFAULT_ENGINE) return false; continue }", "if (k === 'engine') continue"), ['A']],
+  ['qualquer motor vai para a aba Film', troca('lib/create/entry.ts', "if (k === 'engine') { if (v !== FILM_DEFAULT_ENGINE) return false; continue }", "if (k === 'engine') continue"), ['A', 'B']],
   ['o interruptor de entrada é ignorado', troca('lib/create/entry.ts', "if (entry !== 'public' || shell", "if (shell"), ['A']],
   ['Film ignora o CREATE_FILM_INPLACE', troca('lib/create/entry.ts', " || (kind === 'film' && film !== 'public')", ''), ['A']],
   ['entrada seca sem a campanha do /studio', troca('lib/create/entry.ts', "if (!q.has('intent_campaign')) q.append('intent_campaign', STUDIO_BOX_DEFAULT_CAMPAIGN)", ''), ['A']],
@@ -358,6 +422,8 @@ const MUTANTES = [
   ['as páginas de SEO mudam junto', troca('components/home/HomeThreeCards.tsx', 'href={entradaNova ? createEntryForLegacyHref(homeCardHref(card, signedIn), signedIn) : homeCardHref(card, signedIn)}', 'href={createEntryForLegacyHref(homeCardHref(card, signedIn), signedIn)}'), ['D'], { so: ['SEO'] }],
   ['a vitrine leva os filmes ao Studio antigo', troca('components/home/HomeMosaic.tsx', 'const filmHref = createEntryForLegacyHref(clipsFirstFilmHref(signedIn), signedIn)', 'const filmHref = clipsFirstFilmHref(signedIn)'), ['D'], { so: ['vitrine'] }],
   ['a caixa de presente leva ao Studio antigo', troca('lib/ui/caixaPresente0511.ts', "href: createEntryHref('film', '/studio', true) })", "href: '/studio' })"), ['X']],
+  ['a aba Ads não repassa o entry', troca('lib/create/entry.ts', "return `${tab === 'ads' ? ADS_V2_PATH : LEGACY_ENTRY_PATH.cartoon}?${query}`", "return tab === 'ads' ? ADS_V2_PATH : `${LEGACY_ENTRY_PATH.cartoon}?${query}`"), ['B']], // KINEO-ENTRADAS-TOPO-E-HOME-1011
+  ['a entrada vaza para uma lista de menu', troca('lib/ui/homeKidsCard.ts', 'export function homeKidsCardHref(', "import '@/lib/create/entry'\nexport function homeKidsCardHref("), ['X']], // KINEO-ENTRADAS-TOPO-E-HOME-1011
   ['o "off" do topo não é o da main', troca('app/KineoLanding.tsx', "href={createEntryHref('film', '/studio?intent_campaign=nav_door', isSignedIn)}", "href={createEntryHref('film', '/studio?intent_campaign=nav_door&x=1', isSignedIn)}"), ['D'], { so: ['topo'] }],
 ]
 let mortos = 0

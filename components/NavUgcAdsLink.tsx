@@ -8,8 +8,14 @@
 import Link from 'next/link'
 import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { menuUgcHref } from '@/lib/ui/menuUgc2010'
+import { createEntryForContentHref } from '@/lib/create/entry' // KINEO-ENTRADAS-CARTOES-1011
 
-export default function NavUgcAdsLink({ className, 'data-nav-item': navItem }: { className?: string; 'data-nav-item': 'more:ugc' }) {
+// KINEO-ENTRADAS-CARTOES-1011 [fundador 10/11: "clico em AI UGC Ads, vai para a página antiga"] — `signedIn` (só quem sabe o login passa; padrão
+// false = o de hoje): LOGADO vai fazer o anúncio UGC na aba Ads da tela nova (/create/ads?entry=ugc, a mesma entrada do cartão UGC da home);
+// visitante segue na página de conteúdo. Interruptores fora de 'public' = a página de conteúdo, byte a byte (lib/create/entry.ts).
+export const NAV_UGC_MAKE_NOW_HREF = '/ads/v2?entry=ugc'
+
+export default function NavUgcAdsLink({ className, 'data-nav-item': navItem, signedIn = false }: { className?: string; 'data-nav-item': 'more:ugc'; signedIn?: boolean }) {
   const language = useInterfaceLanguage()
-  return <Link href={menuUgcHref(language)} className={className} data-nav-item={navItem}><UiLabel>AI UGC Ads</UiLabel></Link>
+  return <Link href={createEntryForContentHref('ads', menuUgcHref(language), NAV_UGC_MAKE_NOW_HREF, signedIn)} className={className} data-nav-item={navItem}><UiLabel>AI UGC Ads</UiLabel></Link>
 }

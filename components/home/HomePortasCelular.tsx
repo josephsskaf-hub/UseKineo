@@ -38,7 +38,8 @@ const PORTAS: ReadonlyArray<{ card: HomeCardId; rotulo: string; img: string }> =
 export default function HomePortasCelular({ signedIn, entradaNova = false }: { signedIn: boolean; entradaNova?: boolean }) {
   const ideia = ideiaDaPagina(usePathname()) // KINEO-CAIXA-COM-IDEIA-0611
   // KINEO-ENTRADAS-TELA-NOVA-1011 — só na home (entradaNova): a porta Film e a caixa abrem a aba Film para quem está LOGADO; o visitante segue no destino de hoje (KINEO-ENTRADAS-SO-LOGADO-1011).
-  // O Cartoon (leva utm_source, que abre o desenho sem conta) e as portas de anúncio (?entry=) seguem no destino de hoje.
+  // KINEO-ENTRADAS-CARTOES-1011 [fundador 10/11: "Make my ad", "Make my UGC ad" e "Make my cartoon" abriram a tela ANTIGA] — as portas de anúncio
+  // (?entry=) e o Cartoon também: logado vai à aba (/create/ads?entry=… · /create/cartoon?utm_source=…); visitante segue no de hoje (o desenho sem conta).
   const entrada = (href: string) => (entradaNova ? createEntryForLegacyHref(href, signedIn) : href)
   const caixaHref = entradaNova ? createEntryForLegacyHref(hrefDaCaixa(ideia), signedIn) : hrefDaCaixa(ideia)
   return (
@@ -51,7 +52,7 @@ export default function HomePortasCelular({ signedIn, entradaNova = false }: { s
             <span><img src={p.img} alt="" loading="lazy" /></span><UiLabel>{p.rotulo}</UiLabel>
           </Link>
         ))}
-        <Link className="kpc-porta" href={homeKidsCardHref(signedIn)} onClick={() => { void trackEvent(HOME_CARD_EVENT, { card: 'kids_cartoon', position: 4, surface: 'phone_door' }) }}>
+        <Link className="kpc-porta" href={entrada(homeKidsCardHref(signedIn))} onClick={() => { void trackEvent(HOME_CARD_EVENT, { card: 'kids_cartoon', position: 4, surface: 'phone_door' }) }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <span><img src="/kids-cartoon/leo.webp" alt="" loading="lazy" /></span><UiLabel>Cartoon</UiLabel>
         </Link>

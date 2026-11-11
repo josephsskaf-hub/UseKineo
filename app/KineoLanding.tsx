@@ -56,7 +56,7 @@ import { ADS_SAMPLE_LIVE } from '@/lib/ads/sample'
 import { WELCOME20_PERCENT_OFF } from '@/lib/growth/publicPromoTruth'
 import { TRIAL_FREE_FILM_SECONDS, TRIAL_SEEDANCE15_FILMS } from '@/lib/freeTierOffer'
 import { clipsFirstFilmHref } from '@/lib/growth/homeClipsFirst'
-import { createEntryForLegacyHref, createEntryHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — o destino de cada entrada de criação
+import { createEntryForContentHref, createEntryForLegacyHref, createEntryHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — o destino de cada entrada de criação
 import { MENU_CARTOON_HREF, MENU_CARTOON_LABEL, MENU_CARTOON_NAV_ITEM, MENU_CONNECTOR_HREF, MENU_CONNECTOR_LABEL, MENU_CONNECTOR_NAV_ITEM, HOME_GALLERY_TITLE } from '@/lib/ui/homeRemodela2010' // KINEO-HOME-REMODELA-2010
 // KINEO-VITRINE-MOEDA-2026-08-19 — LandingStarterPrice cobria SÓ o Starter, e
 // por isso a home mostrava R$24,90 (regional) ao lado de $19.90 e $39.90
@@ -941,27 +941,27 @@ export default function KineoLanding({
                   {/* KINEO-MENU-VIDEO-LIMPO-2026-10-09 — fundador ("2 sim"): sem letra, sem selo; Kineo 1 saiu (fora da entrada desde
                       29/09, o menu ainda dizia "fastest"). O filme do 2.5 continua indo aos planos (só roda em plano pago). */}
                   {/* KINEO-H3-TURBO-ABRE-0511 — o filme padrão com o nome do motor real; a chave segue 'seedance'. Prévia = clipe real do H3 Max Turbo (Adeus 2026, render 05/11). */}
-                  <NavEngineItem href="/studio?engine=seedance&intent_campaign=nav_mega" name="MiniMax H3 Turbo" desc="Fast, everyday narrated films" preview="/previews/galeria/adeus-2026.mp4" thumb="/posters/galeria/adeus-2026.webp" />
+                  <NavEngineItem href={createEntryHref('film', '/studio?engine=seedance&intent_campaign=nav_mega', isSignedIn)} name="MiniMax H3 Turbo" desc="Fast, everyday narrated films" preview="/previews/galeria/adeus-2026.mp4" thumb="/posters/galeria/adeus-2026.webp" />
                   {/* KINEO-VEO-CARD-HONESTO-2026-09-29 — 1080p pelo mesmo preço desde 16/08; o chip
                       STUDIO só volta se o gate religar na fonte (lib/enginePlanGate.ts). */}
                   {/* KINEO-OMNI-FORA-2026-10-12 — o item do Omni Flash saiu do mega-menu (motor fora da oferta,
                       lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS). Os filmes dele seguem na vitrine. */}
                   {/* KINEO-H3MAX-2026-10-13 — o MiniMax H3 Max entra no lugar que era do Omni (interruptor H3MAX_PUBLIC; desligado, só a casa vê). Sem preview nem miniatura: ainda não há render dele na vitrine (selo honesto). */}
-                  {h3maxVisible(initialEmail) && !enginePaused('h3max') && <NavEngineItem href="/studio?engine=h3max&intent_campaign=nav_mega" name="MiniMax H3 Max" desc="MiniMax’s sharpest film engine" chip={H3MAX_PUBLIC ? 'NEW' : 'INTERNAL'} thumb="/nav-thumbs/h3max.webp" />} {/* KINEO-H3MAX-2026-10-13 · KINEO-MENU-THUMB-H3MAX-0511: quadro do filme real do H3 Max (15cff0dc, 13/10) */}
+                  {h3maxVisible(initialEmail) && !enginePaused('h3max') && <NavEngineItem href={createEntryHref('film', '/studio?engine=h3max&intent_campaign=nav_mega', isSignedIn)} name="MiniMax H3 Max" desc="MiniMax’s sharpest film engine" chip={H3MAX_PUBLIC ? 'NEW' : 'INTERNAL'} thumb="/nav-thumbs/h3max.webp" />} {/* KINEO-H3MAX-2026-10-13 · KINEO-MENU-THUMB-H3MAX-0511: quadro do filme real do H3 Max (15cff0dc, 13/10) */}
                   {/* KINEO-S25-LAUNCH-2026-09-01 — Seedance 2.5: so a casa ve ate o
                       canario passar (s25Visible); S25_PUBLIC=true abre pra todos.
                       Sem preview de proposito (selo honesto: clipe so deste motor).
                       KINEO-S25-ABRE-2026-10-06 — publico: selo "NEW · paid plans" (traduzido) e o clique vai aos planos.
                       A home nao sabe quem paga (o visitante, na maioria, nem entrou) e o 2.5 so roda em plano pago. */}
                   {s25Visible(initialEmail) && (
-                    <NavEngineItem href={S25_PUBLIC ? s25UpgradeHref('nav') : '/studio?engine=s25&intent_campaign=nav_mega'} name="Seedance 2.5" desc="ByteDance’s newest model" chip={S25_PUBLIC ? undefined : 'INTERNAL'} thumb="/nav-thumbs/s25.webp" />
+                    <NavEngineItem href={S25_PUBLIC ? s25UpgradeHref('nav') : createEntryHref('film', '/studio?engine=s25&intent_campaign=nav_mega', isSignedIn)} name="Seedance 2.5" desc="ByteDance’s newest model" chip={S25_PUBLIC ? undefined : 'INTERNAL'} thumb="/nav-thumbs/s25.webp" />
                   )}
-                  <NavEngineItem href="/studio?engine=hollywood&intent_campaign=nav_mega" name="Kling 4.0" desc="Premium directed film scenes" preview="/previews/studio-kling4-werewolf-kid.mp4" thumb="/nav-thumbs/kling4.webp" />
+                  <NavEngineItem href={createEntryHref('film', '/studio?engine=hollywood&intent_campaign=nav_mega', isSignedIn)} name="Kling 4.0" desc="Premium directed film scenes" preview="/previews/studio-kling4-werewolf-kid.mp4" thumb="/nav-thumbs/kling4.webp" />
                   {/* KINEO-H3-2026-08-19 — sem `preview` de proposito: o clipe
                       da vitrine tem de ser deste motor, e o primeiro render de
                       validacao ainda nao rodou. Emprestar clipe de outro motor
                       quebraria o selo honesto, que e regra da casa. */}
-                  {!enginePaused('h3') && <NavEngineItem href="/studio?engine=h3&intent_campaign=nav_mega" name="MiniMax H3" desc="Natural people and faces" thumb="/nav-thumbs/h3.webp" />}
+                  {!enginePaused('h3') && <NavEngineItem href={createEntryHref('film', '/studio?engine=h3&intent_campaign=nav_mega', isSignedIn)} name="MiniMax H3" desc="Natural people and faces" thumb="/nav-thumbs/h3.webp" />}
                 </span>
                 <span className="nm-col">
                   <span className="nm-h"><UiLabel>Create</UiLabel></span>
@@ -977,12 +977,12 @@ export default function KineoLanding({
             {/* KINEO-NAV-TOPO-ADS-2026-09-30 — /ads/new leva quem está logado ao montador e o visitante à porta pública /ads.
                 KINEO-DUAS-PORTAS-2026-10-13 — vira a 2ª porta do topo, "Product ads", com o mesmo peso do "Make a film". */}
             <Link href={createEntryHref('ads', '/ads/new', isSignedIn)} data-nav-item="business" className="nav-primary"><UiLabel>Product ads</UiLabel></Link>
-            <NavUgcAdsLink data-nav-item="more:ugc" />{/* KINEO-MENU-UGC-2010 — fundador 20/10 ("o 2 no menu no topo, sim"): "AI UGC Ads" logo depois de "Product ads", leva à pilar /ai-ugc-ads (PT → /anuncios-ugc-com-ia); nada saiu nem mudou de ordem */}
+            <NavUgcAdsLink data-nav-item="more:ugc" signedIn={isSignedIn} />{/* KINEO-MENU-UGC-2010 — fundador 20/10 ("o 2 no menu no topo, sim"): "AI UGC Ads" logo depois de "Product ads", leva à pilar /ai-ugc-ads (PT → /anuncios-ugc-com-ia); nada saiu nem mudou de ordem */}
             {/* KINEO-GALERIA-HOME-2710 — [TRAVA 8.2 — pedido do fundador 27/10 "uma seção no início onde a gente mostra todos os nossos clips, imagens, tudo junto"]: item "Made with Kineo" (nome exato dele) logo depois dos itens de filme e de anúncio; nada saiu nem mudou de ordem */}
             <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>{MADE_WITH_KINEO_LABEL}</Link>{/* KINEO-GALERIA-HOME-2710 */}
             {/* KINEO-HOME-REMODELA-2010 — fundador 20/10: "esses vão ser os quatro principais, e ao lado vai ser o MCP do Claude e do GPT… more tools a gente vai cancelar". */}
             {/* KINEO-HOME-REMODELA-2010 — 4º principal: os desenhos 3D para crianças; ao lado, o conector (Claude e ChatGPT). O "More tools" saiu: Images, Clips, Spaces e Examples seguem no rodapé e pela URL. */}
-            <Link href={MENU_CARTOON_HREF} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>{/* KINEO-HOME-REMODELA-2010 */}
+            <Link href={createEntryForContentHref('cartoon', MENU_CARTOON_HREF, '/kids-cartoon', isSignedIn)} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>{/* KINEO-HOME-REMODELA-2010 */}
             <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM} className="nav-connector">{MENU_CONNECTOR_LABEL}</Link>{/* KINEO-HOME-REMODELA-2010 */}
             {/* KINEO-JUNTA-TRENDING-3110 — o item saiu do topo: o Trending virou o topo da página Made with Kineo (fundador 30/10). Histórico: KINEO-TRENDING-2026-10-13 — fundador 13/10: "🔥 Trending now" no topo (vídeos reais feitos na Kineo, cada um com "Make mine"). Item
                 novo logo antes de Pricing; nada saiu nem encolheu. Pares: menu do celular abaixo, /examples, /trending, Sidebar/MobileNav. */}
@@ -1009,9 +1009,9 @@ export default function KineoLanding({
                   rótulo "More tools", tudo o que saiu do topo (Imagem com os motores primeiro, Clips, Spaces, MCP, Examples). */}
               <Link href={createEntryHref('film', '/studio', isSignedIn)} data-nav-item="video"><UiLabel>Make a film</UiLabel></Link>
               <Link href={createEntryHref('ads', '/ads/new', isSignedIn)} data-nav-item="business"><UiLabel>Product ads</UiLabel></Link>
-              <NavUgcAdsLink data-nav-item="more:ugc" />{/* KINEO-MENU-UGC-2010 — par do topo no celular */}
+              <NavUgcAdsLink data-nav-item="more:ugc" signedIn={isSignedIn} />{/* KINEO-MENU-UGC-2010 — par do topo no celular */}
               <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>{MADE_WITH_KINEO_LABEL}</Link>{/* KINEO-GALERIA-HOME-2710 — par do topo no celular */}
-              <Link href={MENU_CARTOON_HREF} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>{/* KINEO-HOME-REMODELA-2010 — par do topo */}
+              <Link href={createEntryForContentHref('cartoon', MENU_CARTOON_HREF, '/kids-cartoon', isSignedIn)} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>{/* KINEO-HOME-REMODELA-2010 — par do topo */}
               <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM}>{MENU_CONNECTOR_LABEL}</Link>{/* KINEO-HOME-REMODELA-2010 — par do topo */}
               <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
               <InterfaceLanguageSelect emMenu />{/* KINEO-HOME-TOPO-0511 — par do topo no celular */}
@@ -1451,9 +1451,9 @@ export default function KineoLanding({
                   motores clicaveis + Start free. O href antigo #try-kineo
                   apontava para o composer, que nao existe mais. */}
               <div className="fchips">
-                {showKineo1 && <Link href="/studio?engine=fast&intent_campaign=final_chip">Kineo 1</Link>}
-                <Link href="/studio?engine=seedance&intent_campaign=final_chip">MiniMax H3 Turbo</Link>
-                <Link href="/studio?engine=hollywood&intent_campaign=final_chip">Kling 4.0</Link>
+                {showKineo1 && <Link href={createEntryHref('film', '/studio?engine=fast&intent_campaign=final_chip', isSignedIn)}>Kineo 1</Link>}
+                <Link href={createEntryHref('film', '/studio?engine=seedance&intent_campaign=final_chip', isSignedIn)}>MiniMax H3 Turbo</Link>
+                <Link href={createEntryHref('film', '/studio?engine=hollywood&intent_campaign=final_chip', isSignedIn)}>Kling 4.0</Link>
               </div>
               {/* KINEO-SEM-PORTEIRO-2026-09-02 b — o CTA final da home escapou
                   da primeira varredura porque não usa o atributo href com o caminho literal:

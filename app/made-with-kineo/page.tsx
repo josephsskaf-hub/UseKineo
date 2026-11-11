@@ -14,6 +14,7 @@ import { KineoBrandIcon } from '@/components/KineoBolt' // KINEO-GALERIA-HOME-27
 import { AppearanceSettingsButton } from '@/components/AppearanceSettings' // KINEO-GALERIA-HOME-2710
 import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage' // KINEO-GALERIA-HOME-2710
 import NavUgcAdsLink from '@/components/NavUgcAdsLink' // KINEO-GALERIA-HOME-2710
+import { createEntryForContentHref, createEntryHref } from '@/lib/create/entry' // KINEO-ENTRADAS-CARTOES-1011 [fundador 10/11: "todos os menus da parte de cima do site estão indo ainda para os links antigos"] — logado: as abas da tela nova; visitante: o de hoje
 import { MENU_CARTOON_HREF, MENU_CARTOON_LABEL, MENU_CARTOON_NAV_ITEM, MENU_CONNECTOR_HREF, MENU_CONNECTOR_LABEL, MENU_CONNECTOR_NAV_ITEM } from '@/lib/ui/homeRemodela2010' // KINEO-GALERIA-HOME-2710
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy' // KINEO-GALERIA-HOME-2710
 import { MADE_WITH_KINEO_HREF, MADE_WITH_KINEO_LABEL, MADE_WITH_KINEO_NAV_ITEM } from '@/lib/homeGaleria' // KINEO-GALERIA-HOME-2710
@@ -58,11 +59,11 @@ export default async function Page({ searchParams }: { searchParams: { page?: st
           <Link href="/" className={styles.brand}><KineoBrandIcon size={26} />Kineo</Link>
           <nav className={styles.nav} aria-label="Main navigation" data-nav-surface="top" data-nav-area="public">
             {/* par do topo da home (app/KineoLanding.tsx): "Made with Kineo" logo depois dos itens de filme e de anúncio */}
-            <Link href="/studio" className={styles.navPrimary} data-nav-item="video"><UiLabel>Make a film</UiLabel></Link>
-            <Link href="/ads/new" className={styles.navPrimary} data-nav-item="business"><UiLabel>Product ads</UiLabel></Link>
-            <NavUgcAdsLink data-nav-item="more:ugc" />
+            <Link href={createEntryHref('film', '/studio', signedIn)} className={styles.navPrimary} data-nav-item="video"><UiLabel>Make a film</UiLabel></Link>
+            <Link href={createEntryHref('ads', '/ads/new', signedIn)} className={styles.navPrimary} data-nav-item="business"><UiLabel>Product ads</UiLabel></Link>
+            <NavUgcAdsLink data-nav-item="more:ugc" signedIn={signedIn} />
             <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM} aria-current="page">{MADE_WITH_KINEO_LABEL}</Link>
-            <Link href={MENU_CARTOON_HREF} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>
+            <Link href={createEntryForContentHref('cartoon', MENU_CARTOON_HREF, '/kids-cartoon', signedIn)} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>
             <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM}>{MENU_CONNECTOR_LABEL}</Link>
             <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
           </nav>
@@ -70,7 +71,7 @@ export default async function Page({ searchParams }: { searchParams: { page?: st
             <InterfaceLanguageSelect />
             <AppearanceSettingsButton compact />
             {signedIn
-              ? <Link href="/studio" className={styles.navCta}><UiLabel>Open Studio</UiLabel></Link>
+              ? <Link href={createEntryHref('film', '/studio', signedIn)} className={styles.navCta}><UiLabel>Open Studio</UiLabel></Link>
               : <Link href="/signup?utm_source=made_with_kineo" className={styles.navCta}><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>}
           </div>
         </div>
@@ -101,7 +102,7 @@ export default async function Page({ searchParams }: { searchParams: { page?: st
                     <h3><Link href={showcasePath('en', film.slug)}>{film.title} ↗</Link></h3>
                     <p className="tr-sub">{copy.topic}: {film.theme}</p>
                     <p className="tr-caption">{showcaseProductionLine(film, 'en')}</p>
-                    <Link className="tr-cta" href={showcaseCreateHref('en')}>{copy.cta} ↗</Link>
+                    <Link className="tr-cta" href={createEntryForContentHref('film', showcaseCreateHref('en'), '/studio?utm_source=made_with_kineo&utm_medium=showcase&utm_campaign=vitrine_filmes_2610', signedIn) /* KINEO-ENTRADAS-CARTOES-1011 — logado: a aba Film (o link de cadastro mandava quem já tem conta ao cadastro) */}>{copy.cta} ↗</Link>
                   </div>
                 </article>
               ))}

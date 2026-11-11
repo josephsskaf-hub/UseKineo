@@ -6,6 +6,7 @@
 // Vídeo: o curta 3D de teste com nota 10 (HOME_KIDS_CARD_CLIP, render 4f6c8a40, Seedance 1.5 — selo honesto), prévia leve com pôster;
 // por baixo, o fundo ilustrado em CSS (fica sozinho se o clipe sair da lista).
 import Link from 'next/link'
+import { createEntryForLegacyHref } from '@/lib/create/entry' // KINEO-ENTRADAS-CARTOES-1011
 import { useEffect, useRef } from 'react'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { trackEvent } from '@/lib/analytics'
@@ -20,11 +21,11 @@ function KidsMedia() {
   return <HomeCardCycleMedia card="kids_cartoon" language={language} playlist={HOME_CARD_TRAILERS_0411.kids_cartoon} /> // KINEO-CARDS-TRAILER-0411 — o card de Cartoon mostra só o trailer
 }
 
-export default function HomeKidsCard({ signedIn, position = HOME_KIDS_CARD_POSITION }: { signedIn: boolean; position?: number }) { // KINEO-PAGINAS-IA-CLARAS-2110 — a faixa passa a posição real; usos antigos continuam em 4.
+export default function HomeKidsCard({ signedIn, position = HOME_KIDS_CARD_POSITION, entradaNova = false }: { signedIn: boolean; position?: number; entradaNova?: boolean }) { // KINEO-ENTRADAS-CARTOES-1011 — + entradaNova (só a home passa true, como no HomeThreeCards) // KINEO-PAGINAS-IA-CLARAS-2110 — a faixa passa a posição real; usos antigos continuam em 4.
   const language = useInterfaceLanguage()
   const [title, line, cta] = homeKidsCardCopy(language)
   return (
-    <Link href={homeKidsCardHref(signedIn)} className="k3c-card" data-home-card={HOME_KIDS_CARD_ID} onClick={() => { void trackEvent(HOME_CARD_EVENT, { ...homeKidsCardClickMetadata(signedIn), position }) }}>
+    <Link href={entradaNova ? createEntryForLegacyHref(homeKidsCardHref(signedIn), signedIn) : homeKidsCardHref(signedIn) /* KINEO-ENTRADAS-CARTOES-1011 [fundador 10/11: "Make my cartoon" abriu a tela ANTIGA] — logado: /create/cartoon com a mesma query; visitante: o desenho sem conta de hoje */} className="k3c-card" data-home-card={HOME_KIDS_CARD_ID} onClick={() => { void trackEvent(HOME_CARD_EVENT, { ...homeKidsCardClickMetadata(signedIn), position }) }}>
       <KidsMedia />
       <span className="k3c-shade" aria-hidden="true" />
       <span className="k3c-glass" aria-hidden="true" />

@@ -18,6 +18,7 @@ import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
 import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage'
 import NavUgcAdsLink from '@/components/NavUgcAdsLink' // KINEO-MENU-UGC-2010 — o item "AI UGC Ads" do menu do topo (par da home)
+import { createEntryForContentHref, createEntryHref } from '@/lib/create/entry' // KINEO-ENTRADAS-CARTOES-1011 [fundador 10/11: "todos os menus da parte de cima do site estão indo ainda para os links antigos"] — logado: as abas da tela nova; visitante: o de hoje
 import { MADE_WITH_KINEO_HREF, MADE_WITH_KINEO_LABEL, MADE_WITH_KINEO_NAV_ITEM } from '@/lib/homeGaleria' // KINEO-GALERIA-HOME-2710
 import { MENU_CARTOON_HREF, MENU_CARTOON_LABEL, MENU_CARTOON_NAV_ITEM, MENU_CONNECTOR_HREF, MENU_CONNECTOR_LABEL, MENU_CONNECTOR_NAV_ITEM } from '@/lib/ui/homeRemodela2010' // KINEO-HOME-REMODELA-2010
 
@@ -55,11 +56,11 @@ export default async function ExamplesPage() {
           <nav className={styles.nav} aria-label="Main navigation" data-nav-surface="top" data-nav-area="public">
             {/* KINEO-DUAS-PORTAS-2026-10-13 — par do topo da home: as 2 portas primeiro (filme narrado · anúncio de produto);
                 Imagem segue à vista (fundador: "pode deixar Imagem no topo"); o resto mora no "More tools" da home. */}
-            <Link href="/studio" className={styles.navPrimary} data-nav-item="video"><UiLabel>Make a film</UiLabel></Link>
-            <Link href="/ads/new" className={styles.navPrimary} data-nav-item="business"><UiLabel>Product ads</UiLabel></Link>
-            <NavUgcAdsLink data-nav-item="more:ugc" />{/* KINEO-MENU-UGC-2010 — par do topo da home: logo depois de "Product ads" */}
+            <Link href={createEntryHref('film', '/studio', isLoggedIn)} className={styles.navPrimary} data-nav-item="video"><UiLabel>Make a film</UiLabel></Link>
+            <Link href={createEntryHref('ads', '/ads/new', isLoggedIn)} className={styles.navPrimary} data-nav-item="business"><UiLabel>Product ads</UiLabel></Link>
+            <NavUgcAdsLink data-nav-item="more:ugc" signedIn={isLoggedIn} />{/* KINEO-MENU-UGC-2010 — par do topo da home: logo depois de "Product ads" */}
             <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>{MADE_WITH_KINEO_LABEL}</Link>{/* KINEO-GALERIA-HOME-2710 — par do topo da home */}
-            <Link href={MENU_CARTOON_HREF} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>{/* KINEO-HOME-REMODELA-2010 — par do topo da home: os 4 principais + o conector; Images sai do topo (segue no rodapé) */}
+            <Link href={createEntryForContentHref('cartoon', MENU_CARTOON_HREF, '/kids-cartoon', isLoggedIn)} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>{/* KINEO-HOME-REMODELA-2010 — par do topo da home: os 4 principais + o conector; Images sai do topo (segue no rodapé) */}
             <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM}>{MENU_CONNECTOR_LABEL}</Link>{/* KINEO-HOME-REMODELA-2010 */}
             <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
           </nav>
@@ -68,7 +69,7 @@ export default async function ExamplesPage() {
             <AppearanceSettingsButton compact />
             {isLoggedIn ? (
               <Link
-                href="/studio"
+                href={createEntryHref('film', '/studio', isLoggedIn)}
                 className={styles.navCta}
               >
                 <UiLabel>Open Studio</UiLabel>
@@ -128,7 +129,7 @@ export default async function ExamplesPage() {
           </div>
           {/* Open the public editor directly; auth is requested when needed. */}
           <OrganicCtaLink
-            href="/studio?utm_source=examples&utm_medium=proof&utm_campaign=push31"
+            href={createEntryHref('film', '/studio?utm_source=examples&utm_medium=proof&utm_campaign=push31', isLoggedIn)}
             source="examples_index"
             placement="footer_band"
             className={styles.navCta}

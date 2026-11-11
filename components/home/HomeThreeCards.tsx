@@ -123,7 +123,7 @@ export default function HomeThreeCards({ signedIn, kidsCard = false, entradaNova
         <div className="k3c-head"><p className="k3c-kicker"><UiLabel>Choose what to make</UiLabel></p><Link className="k3c-more" href={language === 'pt' ? UGC_PILLAR_PT_PATH : UGC_PILLAR_PATH} data-home-ugc-guide="1"><UiLabel>How AI UGC ads work</UiLabel> →</Link></div>{/* KINEO-PAGINAS-UGC-2010 */}
         <div className="k3c-grid" data-k3c-cols={kidsCard ? '4' : undefined}>{/* KINEO-BEBE-QUE-FALA-2010 — undefined = o atributo nem é emitido (home de hoje); era: <div className="k3c-grid"> */}
           {cardOrder.map((card, index) => card === 'kids_cartoon' ? ( // KINEO-PAGINAS-IA-CLARAS-2110 — ordem DOM e teclado seguem a ordem visual; chaves estáveis.
-            <HomeKidsCard key={card} signedIn={signedIn} position={index + 1} /> // KINEO-PAGINAS-IA-CLARAS-2110
+            <HomeKidsCard key={card} signedIn={signedIn} position={index + 1} entradaNova={entradaNova} /> // KINEO-PAGINAS-IA-CLARAS-2110
           ) : (
             <Link key={card} href={entradaNova ? createEntryForLegacyHref(homeCardHref(card, signedIn), signedIn) : homeCardHref(card, signedIn)} className="k3c-card" data-home-card={card} onClick={() => track(card, index + 1)}>
               {kidsCard && card === 'product_ads' ? <HomeProductAdsReel language={language} /> : <CardMedia card={card} language={language} />}{/* KINEO-BEBE-QUE-FALA-2010 — modo 4 cards: o reel Lume + 3 trios no card de produto; era: <CardMedia card={card} language={language} /> */}
