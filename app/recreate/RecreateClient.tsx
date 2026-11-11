@@ -224,11 +224,16 @@ export default function RecreateClient({ initialId, internalTools = false, forma
     galleryRef.current?.querySelector<HTMLElement>('h1, h2')?.focus({ preventScroll: true })
   }
   return <main className="recreate">
-    <header className={createTabs ? 'rc-nav ct-nav' : 'rc-nav'}><Link href="/" className="rc-brand"><KineoBrandIcon size={28} /><span>Kineo</span></Link><Link href="/recreate" onClick={e => { if (editingDisabled) e.preventDefault() }}>Recreate</Link>{createTabs ? <CreateNavConta /> : <Link href="/clips">My videos ↗</Link>}</header>
+    <header className={createTabs ? 'rc-nav ct-nav' : 'rc-nav'}><Link href="/" className="rc-brand"><KineoBrandIcon size={28} /><span>Kineo</span></Link>{createTabs ? <CreateTabs active="recreate" /> : <Link href="/recreate" onClick={e => { if (editingDisabled) e.preventDefault() }}>Recreate</Link>}{createTabs ? <CreateNavConta /> : <Link href="/clips">My videos ↗</Link>}</header>
     {message && <div className="rc-notice" role="status">{message} <button onClick={() => { void loadQuotes(); void loadSocial() }}>Retry</button></div>}
     <div className={`rc-workspace ${selected ? '' : 'rc-library-only'}`}>
-      {selected && <aside className="rc-panel" aria-label="Create your version">{createTabs && <CreateTabs active="recreate" />}
-        <div className="rc-panel-intro"><span className="rc-eyebrow">RECREATE</span><h1>Your version, step by step.</h1><p className="rc-subtitle">The base video stays in view as you create.</p></div>
+      {selected && <aside className="rc-panel" aria-label="Create your version">
+        <div className="rc-panel-intro"><span className="rc-eyebrow">Recreate</span>{createTabs ? <h1>Your version</h1> : <h1>Your version, step by step.</h1>}</div>
+        {createTabs && <div className="ct-base-choice">
+          <img src={selected.poster} alt="" width={44} height={50} />
+          <div><small>Base video</small><strong>{selected.title}</strong></div>
+          <button type="button" onClick={showTemplates} disabled={editingDisabled} aria-label="Change base video">Change ↗</button>
+        </div>}
         <div className="rc-progress"><span>{states.includes('error') ? 'Check the highlighted step' : clip?.status === 'done' ? 'Your version is ready' : photosDone ? 'Your photos are ready' : 'Start with your photos'}</span><div role="progressbar" aria-label="Creation steps completed" aria-valuemin={0} aria-valuemax={3} aria-valuenow={states.filter(state => state === 'done').length}>{states.map((state, index) => <i key={index} className={`rc-progress-${state}`} />)}</div></div>
         <section className={`rc-step rc-step-${states[0]}`} data-step-state={states[0]} aria-labelledby="rc-photo-heading">
           <div className="rc-step-heading">{marker(1)}<h2 id="rc-photo-heading">{selected.photoSlots > 1 ? 'Your photos' : 'Your photo'}</h2><span className="rc-step-status">{photosDone && photos[0] && <img src={photos[0].url} alt="" />}{stateLabel(states[0])}</span></div>
@@ -236,11 +241,12 @@ export default function RecreateClient({ initialId, internalTools = false, forma
           <div className={`rc-photos ${selected.photoSlots === 1 ? 'rc-photos-single' : ''}`} aria-busy={photoBusy}>
             {Array.from({ length: selected.photoSlots }, (_, index) => {
               const photo = photos[index]
-              const label = selected.photoSlots > 1 ? `person ${index + 1}` : 'your photo'
+              const side = index === 0 ? 'Left' : 'Right'
+              const label = selected.photoSlots > 1 ? `${side} person` : 'Add your photo'
               return <div className="rc-photo-slot" key={index}>
                 <button className={`rc-upload ${photo ? 'rc-upload-filled' : ''} ${dragging === index ? 'rc-upload-dragging' : ''}`} disabled={editingDisabled} onClick={() => pickPhoto(index)} onDragOver={e => { e.preventDefault(); if (!editingDisabled) { e.dataTransfer.dropEffect = 'copy'; setDragging(index) } }} onDragLeave={() => setDragging(null)} onDrop={e => { e.preventDefault(); setDragging(null); if (!editingDisabled) void addPhoto(e.dataTransfer.files[0], index) }} aria-invalid={!!photoErrors[index]} aria-describedby={photoErrors[index] ? `rc-photo-error-${index}` : undefined} aria-label={photo ? `Change photo ${index + 1}` : selected.photoSlots > 1 ? `Add photo of person ${index + 1}` : 'Add your photo'}>
                   {photo ? <img src={photo.url} alt={`Prepared photo ${index + 1}`} /> : <><span className="rc-upload-plus" aria-hidden="true">+</span><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M12 18v-5a5 5 0 0 1 5-5h3m8 0h3a5 5 0 0 1 5 5v5M12 30v5a5 5 0 0 0 5 5h3m8 0h3a5 5 0 0 0 5-5v-5" /><circle cx="24" cy="21" r="7" /><path d="M15 34c1-7 17-7 18 0" /></svg></>}
-                  <span className="rc-upload-label"><strong>{photoBusy && photoSlot.current === index ? 'Preparing…' : photo ? 'Change photo' : `Add ${label}`}</strong><small>{selected.photoSlots === 2 ? index === 0 ? 'Left in the video' : 'Right in the video' : 'Clear face · good light'}</small></span>
+                  <span className="rc-upload-label"><strong>{photoBusy && photoSlot.current === index ? 'Preparing…' : photo ? 'Change photo' : label}</strong><small>{photo && selected.photoSlots === 2 ? `${side} in the video` : 'Choose photo'}</small></span>
                 </button>
                 {photo && <button className="rc-remove-photo" disabled={editingDisabled} aria-label={`Remove photo ${index + 1}`} onClick={() => removePhoto(index)}>×</button>}
                 {photoErrors[index] && <p className="rc-photo-error" id={`rc-photo-error-${index}`} role="alert">{photoErrors[index]}</p>}
@@ -248,7 +254,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
             })}
           </div>
           <input ref={fileRef} hidden type="file" accept="image/jpeg,image/png,image/webp" aria-label="Choose a reference photo" onChange={e => { void addPhoto(e.target.files?.[0], photoSlot.current); e.target.value = '' }} />
-          <p className="rc-photo-guide">{selected.type === 'swap' ? 'Check the face crop after adding each photo.' : 'One clear face per photo.'}<br />Drop a photo or choose a file.<br />JPG, PNG or WebP · up to 8 MB</p>
+          <p className="rc-photo-guide">{selected.type === 'swap' ? 'Check the face crop after adding each photo.' : 'One clear face per photo.'}<br />Drop a JPG, PNG or WebP · Up to 8 MB</p>
           <label className="rc-consent"><input type="checkbox" checked={consent} disabled={editingDisabled} onChange={e => setConsent(e.target.checked)} />Use a photo of yourself or of someone who agreed to it.</label>
         </section>
         <section className={`rc-step rc-step-${states[1]}`} data-step-state={states[1]} aria-label="Adjustments"><details className="rc-adjustments" key={selected.id} open={detailsOpen} onToggle={e => setDetailsOpen(e.currentTarget.open)}>
@@ -257,8 +263,10 @@ export default function RecreateClient({ initialId, internalTools = false, forma
         </details></section>
         <section className={`rc-step rc-generate-area rc-step-${states[2]}`} data-step-state={states[2]} aria-labelledby="rc-create-heading">
           <div className="rc-step-heading">{marker(3)}<h2 id="rc-create-heading">Create your version</h2><span className="rc-step-status">{stateLabel(states[2])}</span></div>
-          <button className="rc-generate" data-recreate-generate aria-describedby="rc-generate-reason" disabled={editingDisabled || !quote?.available || quote.credits === null || quote.shortfall > 0 || !photosDone} onClick={() => void generate(false)}>{busy ? 'Preparing…' : active ? 'Creating…' : 'Generate'}{quote?.credits !== null && quote?.credits !== undefined && <span>✦ {quote.credits}</span>}</button>
-          <p className="rc-next-note" id="rc-generate-reason" role="status">{blocker}{quote?.available && quote.shortfall > 0 && <> <Link href="/pricing">See plans ↗</Link></>}</p>
+          <div className="ct-action-dock">
+            <button className="rc-generate" data-recreate-generate aria-describedby="rc-generate-reason" disabled={editingDisabled || !quote?.available || quote.credits === null || quote.shortfall > 0 || !photosDone} onClick={() => void generate(false)}>{busy ? 'Preparing…' : active ? 'Creating…' : 'Generate'}{quote?.credits !== null && quote?.credits !== undefined && <span>✦ {quote.credits}</span>}</button>
+            <p className="rc-next-note" id="rc-generate-reason" role="status">{blocker}{quote?.available && quote.shortfall > 0 && <> <Link href="/pricing">See plans ↗</Link></>}</p>
+          </div>
           {internalTools && <button className="rc-simulate" disabled={busy} onClick={() => void generate(true)}>Simulate · no generation</button>}
         </section>
         {simulation && <output className="rc-result"><strong>Simulation · no generation</strong><p>{simulation.format} · {simulation.seconds} s · {simulation.mode}</p><p>Up to {simulation.photos} photos. No upload, debit or render was made.</p></output>}
@@ -270,7 +278,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
             detail: `${selected.type === 'swap' ? 'Face swap' : 'Photo effect'} · ${selected.seconds} s · ${selected.photoSlots} ${selected.photoSlots === 1 ? 'photo' : 'photos'}`,
             action: !createTabs && <button className="rc-change" disabled={editingDisabled} onClick={showTemplates}>Change video ↗</button> }} /></div>
       </section>}
-      <section className="rc-gallery" ref={galleryRef} aria-label="Video templates">{createTabs && !selected && <CreateTabs active="recreate" />}
+      <section className="rc-gallery" ref={galleryRef} aria-label="Video templates">
         <div className="rc-gallery-heading">{selected ? <><h2 tabIndex={-1}>Video templates</h2><p>Choose a different starting point.</p></> : <><span className="rc-eyebrow">RECREATE</span><h1 tabIndex={-1}>Video templates</h1><p>Choose a Kineo format. Make it yours.</p></>}</div>
         <div className="rc-grid">{catalog.map((f, index) => <article key={f.id} className={`rc-card ${index % 4 === 1 ? 'rc-card-short' : ''} ${selected?.id === f.id ? 'rc-card-selected' : ''}`}>
           <ExampleCover src={f.preview} poster={f.poster} label={`Choose ${f.title}`} disabled={editingDisabled} onSelect={() => choose(f)} />

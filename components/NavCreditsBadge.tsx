@@ -15,7 +15,7 @@ import { createClient } from '@/lib/supabase/client'
 import { trackEvent } from '@/lib/analytics'
 import { isCreditsReadFailure, READ_FAILED_EVENT } from '@/lib/creditsReadFailure'
 
-export default function NavCreditsBadge() {
+export default function NavCreditsBadge({ labelOnly = false }: { labelOnly?: boolean } = {}) {
   const [credits, setCredits] = useState<number | null>(null)
 
   useEffect(() => {
@@ -84,6 +84,7 @@ export default function NavCreditsBadge() {
     }
   }, [])
 
+  if (labelOnly) return credits === null ? <>Credits</> : <span><KineoBolt /> {credits} credit{credits === 1 ? '' : 's'}</span>
   if (credits === null) return null
 
   const isZero = credits <= 0

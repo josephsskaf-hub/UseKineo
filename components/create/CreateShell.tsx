@@ -65,11 +65,10 @@ export default function CreateShell({ tab, signedIn = true, showRecreate = true,
   const marker = (n: number) => <span className="rc-step-number" aria-hidden="true">{states[n - 1] === 'done' ? '✓' : n}</span>
 
   return <main className="recreate create-shell" data-create-shell={tab}>
-    <header className="rc-nav ct-nav"><Link href="/" className="rc-brand"><KineoBrandIcon size={28} /><span>Kineo</span></Link><Link href="/create/film">Create</Link><CreateNavConta /></header>{/* KINEO-TELA-NOVA-CABECALHO-1011 — saldo · Pricing · My videos */}
+    <header className="rc-nav ct-nav"><Link href="/" className="rc-brand"><KineoBrandIcon size={28} /><span>Kineo</span></Link><CreateTabs active={tab} showRecreate={showRecreate} /><CreateNavConta /></header>{/* KINEO-TELA-NOVA-CABECALHO-1011 — saldo · Pricing · My videos */}
     <div className="rc-workspace">
       <aside className="rc-panel" aria-label={copy.title}>
-        <CreateTabs active={tab} showRecreate={showRecreate} />
-        <div className="rc-panel-intro"><span className="rc-eyebrow">{copy.eyebrow}</span><h1>{copy.title}</h1><p className="rc-subtitle">{copy.subtitle}</p></div>
+        <div className="rc-panel-intro"><span className="rc-eyebrow">{copy.eyebrow}</span><h1>{copy.title}</h1></div>
         {painel ?? <>
         <div className="rc-progress"><span>{ready ? 'Ready to continue' : 'Start with your idea'}</span><div role="progressbar" aria-label="Steps completed" aria-valuemin={0} aria-valuemax={3} aria-valuenow={states.filter(s => s === 'done').length}>{states.map((s, i) => <i key={i} className={`rc-progress-${s}`} />)}</div></div>
         <section className={`rc-step rc-step-${states[0]}`} data-step-state={states[0]} aria-labelledby="ct-step1">
@@ -87,8 +86,10 @@ export default function CreateShell({ tab, signedIn = true, showRecreate = true,
         </details></section>
         <section className={`rc-step rc-generate-area rc-step-${states[2]}`} data-step-state={states[2]} aria-labelledby="ct-step3">
           <div className="rc-step-heading">{marker(3)}<h2 id="ct-step3">{copy.step3}</h2><span className="rc-step-status">{stateLabel(states[2])}</span></div>
-          <button type="button" className="rc-generate" data-create-continue={continueHref(tab, idea, signedIn)} aria-describedby="ct-continue-reason" disabled={!ready} onClick={go}>{copy.button} <span aria-hidden="true">→</span></button>
-          <p className="rc-next-note" id="ct-continue-reason" role="status">{blocker ?? copy.note}</p>
+          <div className="ct-action-dock">
+            <button type="button" className="rc-generate" data-create-continue={continueHref(tab, idea, signedIn)} aria-describedby="ct-continue-reason" disabled={!ready} onClick={go}>{copy.button} <span aria-hidden="true">→</span></button>
+            <p className="rc-next-note" id="ct-continue-reason" role="status">{blocker ?? copy.note}</p>
+          </div>
         </section>
         </>}
       </aside>

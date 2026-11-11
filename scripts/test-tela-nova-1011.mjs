@@ -119,7 +119,8 @@ function shellChecks(o = {}) {
   const tabs = m('lib/create/tabs')
   for (const tab of ['film', 'cartoon', 'ads']) {
     const html = renderShell(m, tab)
-    const text = visibleText(html) + ' ' + [...html.matchAll(/(?:aria-label|placeholder|title)="([^"]*)"/g)].map(x => x[1]).join(' ')
+    const workspace = html.slice(html.indexOf('</header>') + '</header>'.length)
+    const text = visibleText(workspace) + ' ' + [...workspace.matchAll(/(?:aria-label|placeholder|title)="([^"]*)"/g)].map(x => x[1]).join(' ')
     ok(!ENGINE_NAMES.test(text), `${tab}: nenhum nome de motor (${(text.match(ENGINE_NAMES) || [])[0]})`)
     ok(!PRICE_WORDS.test(text), `${tab}: nenhum preço, crédito, ilimitado, urgência ou "made with" (${(text.match(PRICE_WORDS) || [])[0]})`)
     const tabLinks = [...html.matchAll(/data-create-tab="([a-z]+)"/g)].map(x => x[1])
@@ -139,7 +140,7 @@ function shellChecks(o = {}) {
     }
   }
   const film = renderShell(m, 'film')
-  ok(film.includes('<h1>Your idea. A world in motion.</h1>'), 'Film: título da tela parada')
+  ok(film.includes('<h1>Create a film</h1>'), 'Film: título da tela parada')
   ok(!renderShell(m, 'film', { showRecreate: false }).includes('data-create-tab="recreate"'), 'sem acesso ao Recreate, a aba Recreate some')
   ok(!/autoFocus|autofocus/.test(film) && !/fetch\(/.test(read('components/create/CreateShell.tsx')), 'nada começa sozinho: sem fetch, sem autofoco')
   ok(tabs.continueBlocker('film', 'https://x.com/a') !== null && tabs.continueBlocker('film', 'idea') === null && tabs.continueBlocker('cartoon', '  ') !== null && tabs.continueBlocker('ads', '') === null, 'motivos do botão')
@@ -277,7 +278,7 @@ const mutants = [
   ['Film manda ?prompt= (o Studio simples não lê)', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace("q.set('ideia', ", "q.set('prompt', ") }],
   ['Film com limite maior que o destino', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace('FILM_IDEA_MAX_CHARS = 2000', 'FILM_IDEA_MAX_CHARS = 4000') }],
   ['Cartoon com parâmetro inventado', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace('return viaSignup(KIDS_CARTOON_TEMPLATE_PATH, signedIn)', "return viaSignup(KIDS_CARTOON_TEMPLATE_PATH + '?idea=x', signedIn)") }],
-  ['nome de motor na copy', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace("subtitle: 'Start with a story. Make it your own.'", "subtitle: 'Start with a story. Made by Kling.'") }],
+  ['nome de motor na copy', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace("title: 'Create a film'", "title: 'Create a film with Kling'") }],
   ['preço na copy', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace("note: 'Nothing starts until you confirm on the next screen.'", "note: 'From 40 credits.'") }],
   ['exemplo inexistente', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace("'/previews/examples-hd-sep24/plane-1942.mp4'", "'/previews/examples-hd-sep24/plane-1943.mp4'") }],
   ['Recreate sempre com abas', { 'app/recreate/RecreateClient.tsx': src('app/recreate/RecreateClient.tsx').replace("formatIds, createTabs = false }", 'formatIds, createTabs = true }') }],

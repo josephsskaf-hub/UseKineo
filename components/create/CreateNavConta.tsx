@@ -11,14 +11,24 @@
 import Link from 'next/link'
 import NavCreditsBadge from '@/components/NavCreditsBadge'
 import './create.css'
+import './studio-panel.css'
 
 export const CREATE_NAV_PRICING_HREF = '/pricing'
 export const CREATE_NAV_VIDEOS_HREF = '/library' // KINEO-ENTRADAS-SO-LOGADO-1011
 
 export default function CreateNavConta() {
   return <div className="ct-nav-account" data-create-nav-account="">
-    <NavCreditsBadge />
-    <Link href={CREATE_NAV_PRICING_HREF} className="ct-nav-link" data-create-nav="pricing">Pricing</Link>
+    <details className="ct-credit-menu" onKeyDown={event => {
+      if (event.key === 'Escape') {
+        event.currentTarget.open = false
+        event.currentTarget.querySelector('summary')?.focus()
+      }
+    }} onBlur={event => {
+      if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false
+    }}>
+      <summary title="Credits and pricing"><NavCreditsBadge labelOnly /><span aria-hidden="true">⌄</span></summary>
+      <Link href={CREATE_NAV_PRICING_HREF} className="ct-nav-link" data-create-nav="pricing">Pricing</Link>
+    </details>
     <Link href={CREATE_NAV_VIDEOS_HREF} className="ct-nav-link" data-create-nav="videos">My videos ↗</Link>
   </div>
 }

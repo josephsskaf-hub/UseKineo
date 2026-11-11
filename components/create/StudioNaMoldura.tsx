@@ -63,8 +63,10 @@ export function PassosDoStudio({ c, preco }: { c: CaixaNaMoldura; preco: number 
     </details></section>
     <section className={`rc-step rc-generate-area rc-step-${states[2]}`} data-step-state={states[2]} aria-labelledby="sm-step3">
       <div className="rc-step-heading">{marker(3)}<h2 id="sm-step3">Create</h2><span className="rc-step-status">{stateLabel(states[2])}</span></div>
-      <button type="button" className="rc-generate" data-testid="studio-simple-generate" aria-describedby="sm-generate-reason" disabled={!temTexto} onClick={c.gerar}>Generate{preco !== null && <span>✦ {preco}</span>}</button>
-      <p className="rc-next-note" id="sm-generate-reason" role="status">{temTexto ? 'Nothing starts until you press Generate.' : 'Write your idea to continue.'}</p>
+      <div className="ct-action-dock">
+        <button type="button" className="rc-generate" data-testid="studio-simple-generate" aria-describedby="sm-generate-reason" disabled={!temTexto} onClick={c.gerar}>Generate{preco !== null && <span>✦ {preco}</span>}</button>
+        <p className="rc-next-note" id="sm-generate-reason" role="status">{temTexto ? 'Nothing starts until you press Generate.' : 'Write your idea to continue.'}</p>
+      </div>
       {c.temFilmeGratis ? <p className="rc-next-note" data-testid="studio-free-film-line">{LINHA_DO_FILME_GRATIS}</p> : null}
     </section>
   </>

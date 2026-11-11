@@ -249,6 +249,7 @@ async function headerChecks(o) {
       const h = nav(t.html()), txt = visibleText(h).replace(/\s+/g, ' ')
       ok(h !== '' && new RegExp(`> ?${saldo} credits?<`).test(h.replace(/<!-- -->/g, '')) && t.log.fetches.some(f => f[0] === '/api/credits'), `${nome}: saldo ${saldo} = o campo credits de GET /api/credits`)
       ok(/<a [^>]*data-create-nav="pricing"[^>]*href="\/pricing"[^>]*>Pricing</.test(h) && /<a [^>]*href="\/library"[^>]*>My videos ↗</.test(h) && aba(o).m('components/create/CreateNavConta').CREATE_NAV_VIDEOS_HREF === '/library', `${nome}: Pricing → /pricing e My videos → /library`) // KINEO-ENTRADAS-SO-LOGADO-1011 — era /clips (só clipes); os filmes da aba Film moram na /library
+      ok(/<details class="ct-credit-menu"[\s\S]+<summary[\s\S]+<\/summary>[\s\S]+data-create-nav="pricing"[\s\S]+<\/details>/.test(h), `${nome}: saldo abre Pricing no próprio menu`)
       ok(!/(\d+\s?%|\boff\b|hurry|ends in|last chance|\d{1,2}:\d{2}|countdown|deal|sale|free)/i.test(txt), `${nome}: sem promoção nem relógio no cabeçalho (${txt})`)
     }
     const falhou = aba(o, { cookie: SESSION, credits: null })
@@ -260,13 +261,11 @@ async function headerChecks(o) {
   ok(badge.includes("fetch('/api/credits'") && badge.includes("typeof data.credits === 'number'") && badge.includes("'creditsChanged'") && badge.includes("table: 'profiles'"), 'saldo = GET /api/credits + creditsChanged + realtime (a fonte do TopBar)')
   ok(lf(read('components/TopBar.tsx')).includes("fetch('/api/credits'"), 'o TopBar do dashboard lê a MESMA rota')
   const conta = lf(o['components/create/CreateNavConta.tsx'] ?? read('components/create/CreateNavConta.tsx'))
-  ok(!/\b\d+\s*credits?\b/i.test(conta) && conta.includes('<NavCreditsBadge />'), 'nenhum número de saldo fixo no código do cabeçalho')
+  ok(!/\b\d+\s*credits?\b/i.test(conta) && conta.includes('<NavCreditsBadge labelOnly />'), 'nenhum número de saldo fixo no código do cabeçalho')
   const menu = lf(read('components/MobileNav.tsx'))
   ok(menu.includes("href: '/pricing'") && aba(o).m('components/create/CreateNavConta').CREATE_NAV_PRICING_HREF === '/pricing', 'Pricing = o destino que o menu já usa')
-  // Celular: cabeçalho numa linha (sem quebra), sem largura fixa; marca vira só o ícone e "Create" some (as abas estão logo abaixo).
-  const css = lf(o['components/create/create.css'] ?? read('components/create/create.css'))
-  const bloco = css.slice(css.indexOf('KINEO-TELA-NOVA-CABECALHO-1011'), css.indexOf('/* KINEO-STUDIO-NA-MOLDURA-1011'))
-  ok(/\.ct-nav \.ct-nav-account\{[^}]*white-space:nowrap/.test(bloco) && /\.ct-nav \.ct-nav-account\{[^}]*min-width:0/.test(bloco) && /@media\(max-width:480px\)\{[^\n]*\.ct-nav \.rc-brand span\{display:none\}/.test(bloco) && !/(?<![-a-z])(min-)?width:\s*\d{3,}px/.test(bloco), 'celular: uma linha, sem largura fixa')
+  const panelCss = lf(o['components/create/studio-panel.css'] ?? read('components/create/studio-panel.css'))
+  ok(panelCss.includes('flex-wrap: wrap') && panelCss.includes('order: 3; flex-basis: 100%'), 'celular: saldo e marca em cima, abas na segunda linha')
   // Recreate sem abas: cabeçalho de antes (byte a byte já provado por scripts/test-tela-nova-1011.mjs).
   const rc = lf(read('app/recreate/RecreateClient.tsx'))
   ok(rc.includes("{createTabs ? <CreateNavConta /> : <Link href=\"/clips\">My videos ↗</Link>}") && rc.includes("className={createTabs ? 'rc-nav ct-nav' : 'rc-nav'}"), 'Recreate: cabeçalho novo só junto com as abas')
@@ -307,13 +306,13 @@ const real = passed
 
 const src = p => read(p)
 const mutants = [
-  ['saldo fixo no cabeçalho', { 'components/create/CreateNavConta.tsx': src('components/create/CreateNavConta.tsx').replace('<NavCreditsBadge />', '<span>400 credits</span>') }],
+  ['saldo fixo no cabeçalho', { 'components/create/CreateNavConta.tsx': src('components/create/CreateNavConta.tsx').replace('<NavCreditsBadge labelOnly />', '<span>400 credits</span>') }],
   ['Pricing aponta para outro lugar', { 'components/create/CreateNavConta.tsx': src('components/create/CreateNavConta.tsx').replace("CREATE_NAV_PRICING_HREF = '/pricing'", "CREATE_NAV_PRICING_HREF = '/pricing?promo=1'") }],
   ['Recreate sem o cabeçalho novo', { 'app/recreate/RecreateClient.tsx': src('app/recreate/RecreateClient.tsx').replace('{createTabs ? <CreateNavConta /> :', '{false ? <CreateNavConta /> :') }],
   ['abas sem o cabeçalho novo', { 'components/create/CreateShell.tsx': src('components/create/CreateShell.tsx').replace('<CreateNavConta />', '<Link href="/clips">My videos ↗</Link>') }],
   ['My videos volta para /clips (só clipes)', { 'components/create/CreateNavConta.tsx': src('components/create/CreateNavConta.tsx').replace("CREATE_NAV_VIDEOS_HREF = '/library'", "CREATE_NAV_VIDEOS_HREF = '/clips'") }], // KINEO-ENTRADAS-SO-LOGADO-1011
   ['cabeçalho com promoção', { 'components/create/CreateNavConta.tsx': src('components/create/CreateNavConta.tsx').replace('>Pricing</Link>', '>Pricing · 50% off</Link>') }],
-  ['cabeçalho quebra no celular', { 'components/create/create.css': src('components/create/create.css').replace('min-width:0;white-space:nowrap}', 'min-width:0}') }],
+  ['cabeçalho quebra no celular', { 'components/create/studio-panel.css': src('components/create/studio-panel.css').replace('flex-wrap: wrap', 'flex-wrap: nowrap') }],
   ['interruptor de volta a internal', { 'lib/create/release.ts': src('lib/create/release.ts').replace("CREATE_FILM_INPLACE: InternalRelease = 'public'", "CREATE_FILM_INPLACE: InternalRelease = 'internal'") }],
   ['interruptor desligado', { 'lib/create/release.ts': src('lib/create/release.ts').replace("CREATE_FILM_INPLACE: InternalRelease = 'public'", "CREATE_FILM_INPLACE: InternalRelease = 'off'") }],
   ['número para quem não paga', { 'lib/create/filmNaMoldura.ts': src('lib/create/filmNaMoldura.ts').replace('if (!f.contaPaga || f.palavraPorPalavra', 'if (f.palavraPorPalavra') }],

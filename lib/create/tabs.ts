@@ -121,28 +121,28 @@ export function continueBlocker(tab: CreateTab, idea: string): string | null {
 
 /** Texto de cada aba (inglês; sem motor, sem preço, sem urgência). */
 export const CREATE_COPY: Readonly<Record<CreateTab, {
-  eyebrow: string; title: string; subtitle: string
+  eyebrow: string; title: string
   step1: string; step1Hint: string; placeholder: string | null
   step2: string; step2Text: string
   step3: string; button: string; note: string
   stageTag: string; galleryTitle: string; galleryHint: string; useLabel: string
 }>> = {
   film: {
-    eyebrow: 'FILM', title: 'Your idea. A world in motion.', subtitle: 'Start with a story. Make it your own.',
+    eyebrow: 'Film', title: 'Create a film',
     step1: 'Your idea', step1Hint: 'What story would you like to tell?', placeholder: 'A ship found adrift with dinner still on the table…',
     step2: 'Details', step2Text: 'You choose length, voice and format on the next screen.',
     step3: 'Create', button: 'Continue', note: 'Nothing starts until you press Generate on the next screen.',
     stageTag: 'FILM EXAMPLE', galleryTitle: 'Film examples', galleryHint: 'Choose an idea. Nothing starts automatically.', useLabel: 'Use idea ↗',
   },
   cartoon: {
-    eyebrow: 'CARTOON', title: 'Your story. A cartoon to watch.', subtitle: 'Start with a story idea. Pick the hero next.',
+    eyebrow: 'Cartoon', title: 'Create a cartoon',
     step1: 'Story idea', step1Hint: 'What happens in your cartoon?', placeholder: 'A little dragon who is afraid of fire…',
     step2: 'Character', step2Text: 'You pick the character, language and length on the next screen.',
     step3: 'Create', button: 'Continue', note: 'Cartoons are made with a paid plan. The next screen shows your options.',
     stageTag: 'CARTOON EXAMPLE', galleryTitle: 'Cartoon examples', galleryHint: 'Choose an idea. Nothing starts automatically.', useLabel: 'Use idea ↗',
   },
   ads: {
-    eyebrow: 'ADS', title: 'Your product. An ad that moves.', subtitle: 'Start with your product. Choose the look next.',
+    eyebrow: 'Ads', title: 'Make your ad',
     step1: 'Your product', step1Hint: 'On the next screen you send a photo or a link of your product.', placeholder: null,
     step2: 'Style', step2Text: 'You choose the format and the scene on the next screen.',
     step3: 'Make your ad', button: 'Make your ad', note: 'Nothing starts until you confirm on the next screen.',
