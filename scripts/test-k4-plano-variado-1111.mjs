@@ -86,7 +86,7 @@ function problems(over) {
   const desligado = Q.planosPorSecao({ prompts: c2, stills: [null, null, null], falas: R2.plan.map((x) => x.text), secoes: secoes2 })
   no(!desligado || !/This shot shows only this moment: This manifestation is God, not all of God\./.test(desligado.prompts[1]), '(e) desligado, a metade mudou')
   const rota = over[ROTA] ?? read(ROTA)
-  no(!rota.includes('return kling4PlanoVariado ? { ...r, prompts: planosComEscalaVariada(r.prompts, r.approvedStills).prompts } : r') || !rota.includes('secoes: parsedScript.segments, objetoConcreto: kling4PlanoVariado })') || !rota.includes('kling4_plano_variado: KLING4_PLANO_VARIADO_VERSAO') || !rota.includes('planoVariadoLigado(KLING4_PLANO_VARIADO, isInternalEmail(user.email))'), '(f) a rota não liga a alavanca 2')
+  no(!rota.includes('return kling4PlanoVariado ? { ...r2, prompts: planosComEscalaVariada(r2.prompts, r2.approvedStills).prompts } : r2') || !rota.includes('secoes: parsedScript.segments, objetoConcreto: kling4PlanoVariado })') || !rota.includes('kling4_plano_variado: KLING4_PLANO_VARIADO_VERSAO') || !rota.includes('planoVariadoLigado(KLING4_PLANO_VARIADO, isInternalEmail(user.email))'), '(f) a rota não liga a alavanca 2')
   return p
 }
 const atual = problems({})
@@ -102,7 +102,7 @@ const MUT = [
   ['M5 sem o teto de 512', { [V]: v.replace('if (Array.from(troca).length <= KLING4_TETO_DO_PLANO) {', 'if (true) {') }],
   ['M6 a cauda ("Mouth closed") conta como rosto', { [V]: v.replace("    .replace(/,?\\s*no readable text[^]*$/u, (m) => ' '.repeat(m.length))\n    .replace(/Mouth closed, no speaking\\.\\s*$/u, (m) => ' '.repeat(m.length))", '') }],
   ['M7 a chave volta a desligado', { [V]: v.replace("export const KLING4_PLANO_VARIADO: ModoPlanoVariado = 'public'", "export const KLING4_PLANO_VARIADO: ModoPlanoVariado = 'off'") }],
-  ['M8 a rota não aplica a escala', { [ROTA]: rota.replace('return kling4PlanoVariado ? { ...r, prompts: planosComEscalaVariada(r.prompts, r.approvedStills).prompts } : r', 'return r') }],
+  ['M8 a rota não aplica a escala', { [ROTA]: rota.replace('return kling4PlanoVariado ? { ...r2, prompts: planosComEscalaVariada(r2.prompts, r2.approvedStills).prompts } : r2', 'return r2') }],
 ]
 for (const [nome, over] of MUT) {
   const [k, val] = Object.entries(over)[0]

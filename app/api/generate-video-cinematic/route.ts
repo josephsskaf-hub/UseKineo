@@ -9,6 +9,7 @@ import { decidirQualidadeDoFilme, prepararQualidadeDoFilme, travarEstiloDoFilme,
 import { promptDaCenaKling4 } from '@/lib/cinematic/cenaKling4' // KINEO-CENA-PEDIDO-3010
 import { eixosDoFilmeGratis, semEixoDoFilmeGratis } from '@/lib/cinematic/cenaKling4' // KINEO-REPETICAO-FREE15-1011 (linha própria)
 import { comSuperficieSemTexto } from '@/lib/cinematic/superficieSemTexto' // KINEO-CENA-PEDIDO-3010
+import { comSuperficieNoPlano } from '@/lib/cinematic/superficieSemTexto' // KINEO-BALAO-SEM-LETRA-1111
 import { TRIAL_PEDIDO_REFUSAL, TRIAL_PEDIDO_STATUS } from '@/lib/trialPedido' // KINEO-TRIAL-A-PEDIDO-0411
 import { escritaLatina, conferenciaDaLeitura, elencoConferido, CONFERENCIA_ELENCO_VERSAO, EVENTO_CONFERENCIA_ELENCO } from '@/lib/cinematic/conferenciaDoElenco' // KINEO-SO-GENTE-NA-FICHA-0411
 import { ancoraHerdadaDaCena } from '@/lib/cinematic/filmQualityReference' // KINEO-QUALIDADE-TODOS-MOTORES-2910
@@ -7968,7 +7969,8 @@ async function manipularPost(req: NextRequest) {
         ? planosPorSecao({ prompts: a.prompts, stills: a.approvedStills, falas: a.timing.voiceovers, secoes: parsedScript.segments, objetoConcreto: kling4PlanoVariado }) // KINEO-K4-PLANO-POR-SECAO-1111 · KINEO-K4-PLANO-VARIADO-1111
         : null // KINEO-K4-PLANO-POR-SECAO-1111
       const r = q ? { prompts: q.prompts, approvedStills: q.stills, timing: { voiceovers: q.falas, wordsPerSecond: a.timing.wordsPerSecond }, planos: q.grupos } : { ...a, planos: null } // KINEO-K4-PLANO-POR-SECAO-1111
-      return kling4PlanoVariado ? { ...r, prompts: planosComEscalaVariada(r.prompts, r.approvedStills).prompts } : r // KINEO-K4-PLANO-VARIADO-1111 — escala diferente de plano a plano (nunca dois closes seguidos); plano com imagem-chave fica como está
+      const r2 = { ...r, prompts: r.prompts.map((p) => comSuperficieNoPlano(p)) } // KINEO-BALAO-SEM-LETRA-1111 [CEO 11/11] — a metade da cena fundida nasce da pista da seção depois da proteção de superfície: balão/página/tela dela ganha a frase sem letra aqui
+      return kling4PlanoVariado ? { ...r2, prompts: planosComEscalaVariada(r2.prompts, r2.approvedStills).prompts } : r2 // KINEO-K4-PLANO-VARIADO-1111 — escala diferente de plano a plano (nunca dois closes seguidos); plano com imagem-chave fica como está
     } // KINEO-K4-PLANO-POR-SECAO-1111
     const kling4EnvioDoFilme = () => kling4PorSecao({ prompts: kling4Prompts, approvedStills: kling4ApprovedStills, timing: kling4Timing }) // KINEO-K4-PLANO-POR-SECAO-1111 — a MESMA entrada para o juiz do plano e o claim
     let kling4Trial: Kling4TrialResult | null = null
