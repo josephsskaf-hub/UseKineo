@@ -34,6 +34,7 @@ Antes de publicar, escreva aqui: sessão · SHA · hora. Se já houver linha de 
 Imediatamente antes da publicação, faça fetch e rebase, rode `npx tsc --noEmit` e os guardiões da área e confira a reserva novamente. Depois do deploy "success", apague só a sua linha e registre em "No ar" com o SHA. A divisão de teste do Claude confere a tela publicada e lista aqui os defeitos.
 | Sessão | SHA | Começou |
 |---|---|---|
+| CEO Codex · registro do quadro | `296b435535f3e6416703b1759dcb958bd208e62c` | 11/11 00:33 -03:00 |
 
 ## Em obra
 | Quando começou | Sessão | O que | Arquivos principais | Branch / worktree |
