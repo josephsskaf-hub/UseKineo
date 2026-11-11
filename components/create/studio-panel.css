@@ -65,7 +65,7 @@
 }
 .recreate .rc-panel {
   --rc-step-padding: 0px;
-  margin: 18px 0 18px 16px;
+  margin: 0;
   padding: clamp(16px, 1.6vw, 26px);
   border: 1px solid var(--rc-border);
   border-radius: 20px;
@@ -158,7 +158,7 @@
   .recreate .ct-nav .ct-nav-link, .ct-credit-menu summary { font-size: 13px; }
 }
 @media (max-width: 640px) {
-  .recreate .rc-panel { margin: 0 14px; padding: 18px; }
+  .recreate .rc-panel { padding: 18px; }
   .recreate .rc-panel h1 { font-size: 26px; }
   .recreate .rc-panel .rc-upload { min-height: 110px; }
   .recreate:has(.ct-action-dock) { padding-bottom: calc(112px + env(safe-area-inset-bottom)); }

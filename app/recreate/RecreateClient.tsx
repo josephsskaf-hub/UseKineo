@@ -68,19 +68,6 @@ export default function RecreateClient({ initialId, internalTools = false, forma
   }
   useEffect(() => { void loadQuotes(); void loadSocial() }, [])
   useEffect(() => {
-    const videos = Array.from(document.querySelectorAll<HTMLVideoElement>('.rc-grid video'))
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const observer = new IntersectionObserver(entries => {
-      for (const entry of entries) {
-        const video = entry.target as HTMLVideoElement
-        if (entry.isIntersecting && !reduced) void video.play().catch(() => {})
-        else video.pause()
-      }
-    })
-    for (const video of videos) observer.observe(video)
-    return () => observer.disconnect()
-  }, [])
-  useEffect(() => {
     const dialog = dialogRef.current
     if (expanded || report) { if (dialog && !dialog.open) dialog.showModal() }
     else dialog?.close()

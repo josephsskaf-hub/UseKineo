@@ -33,19 +33,6 @@ export default function CreateShell({ tab, signedIn = true, showRecreate = true,
   const hasInput = copy.placeholder !== null
 
   useEffect(() => { void trackClosedEvent(CREATE_EVENTS.tabViewed, { tab }) }, [tab])
-  useEffect(() => {
-    const videos = Array.from(document.querySelectorAll<HTMLVideoElement>('.rc-grid video'))
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const observer = new IntersectionObserver(entries => {
-      for (const entry of entries) {
-        const video = entry.target as HTMLVideoElement
-        if (entry.isIntersecting && !reduced) void video.play().catch(() => {})
-        else video.pause()
-      }
-    })
-    for (const video of videos) observer.observe(video)
-    return () => observer.disconnect()
-  }, [])
 
   function choose(e: CreateExample) {
     setExample(e)
