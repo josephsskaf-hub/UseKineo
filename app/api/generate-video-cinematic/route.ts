@@ -12,6 +12,8 @@ import { comSuperficieSemTexto } from '@/lib/cinematic/superficieSemTexto' // KI
 import { comSuperficieNoPlano } from '@/lib/cinematic/superficieSemTexto' // KINEO-BALAO-SEM-LETRA-1111
 import { semMarcoAnacronico } from '@/lib/cinematic/marcoAnacronico' // KINEO-MARCO-ANACRONICO-1111
 import { lugarDasCenas, comLugarDoFilme } from '@/lib/cinematic/pessoaDoPedido' // KINEO-LUGAR-UNICO-1111
+import { KLING4_PLANO_FINAL, KLING4_PLANO_FINAL_VERSAO, planoFinalLigado, planoFinalEmMovimento } from '@/lib/kling4PlanoFinal' // KINEO-K4-PLANO-FINAL-1111
+import { escalaDoPlano } from '@/lib/kling4PlanoVariado' // KINEO-K4-PLANO-FINAL-1111
 import { TRIAL_PEDIDO_REFUSAL, TRIAL_PEDIDO_STATUS } from '@/lib/trialPedido' // KINEO-TRIAL-A-PEDIDO-0411
 import { escritaLatina, conferenciaDaLeitura, elencoConferido, CONFERENCIA_ELENCO_VERSAO, EVENTO_CONFERENCIA_ELENCO } from '@/lib/cinematic/conferenciaDoElenco' // KINEO-SO-GENTE-NA-FICHA-0411
 import { ancoraHerdadaDaCena } from '@/lib/cinematic/filmQualityReference' // KINEO-QUALIDADE-TODOS-MOTORES-2910
@@ -7968,6 +7970,7 @@ async function manipularPost(req: NextRequest) {
     // KLING4_PLANO_POR_SECAO ('internal' = só a casa). Lido na hora do envio (depois do sujeito e da fala encaixada): o que vai à fal, o
     // juiz do plano e o claim leem a MESMA entrada. Sem seções provadas pelo texto → null → os 3 planos de sempre, byte a byte.
     const kling4PlanoPorSecao = planoPorSecaoLigado(KLING4_PLANO_POR_SECAO, isInternalEmail(user.email)) // KINEO-K4-PLANO-POR-SECAO-1111
+    const kling4PlanoFinal = planoFinalLigado(KLING4_PLANO_FINAL, isInternalEmail(user.email)) // KINEO-K4-PLANO-FINAL-1111 — 'internal' até a nota da prova paga
     const kling4PlanoVariado = planoVariadoLigado(KLING4_PLANO_VARIADO, isInternalEmail(user.email)) // KINEO-K4-PLANO-VARIADO-1111 [CEO 11/11, alavanca 2] — 'internal' até a nota da prova paga
     const kling4PorSecao = (a: { prompts: string[]; approvedStills: (string | null)[]; timing: typeof kling4Timing }): { prompts: string[]; approvedStills: (string | null)[]; timing: typeof kling4Timing; planos: number[][] | null } => { // KINEO-K4-PLANO-POR-SECAO-1111
       const q = kling4PlanoPorSecao && verbatim && parsedScript.segments.length > scenes.length // KINEO-K4-PLANO-POR-SECAO-1111 — só quando o roteiro tem mais seções que cenas
@@ -7975,7 +7978,13 @@ async function manipularPost(req: NextRequest) {
         : null // KINEO-K4-PLANO-POR-SECAO-1111
       const r = q ? { prompts: q.prompts, approvedStills: q.stills, timing: { voiceovers: q.falas, wordsPerSecond: a.timing.wordsPerSecond }, planos: q.grupos } : { ...a, planos: null } // KINEO-K4-PLANO-POR-SECAO-1111
       const r2 = { ...r, prompts: r.prompts.map((p) => comSuperficieNoPlano(p)) } // KINEO-BALAO-SEM-LETRA-1111 [CEO 11/11] — a metade da cena fundida nasce da pista da seção depois da proteção de superfície: balão/página/tela dela ganha a frase sem letra aqui
-      return kling4PlanoVariado ? { ...r2, prompts: planosComEscalaVariada(r2.prompts, r2.approvedStills).prompts } : r2 // KINEO-K4-PLANO-VARIADO-1111 — escala diferente de plano a plano (nunca dois closes seguidos); plano com imagem-chave fica como está
+      const r3 = kling4PlanoVariado ? { ...r2, prompts: planosComEscalaVariada(r2.prompts, r2.approvedStills).prompts } : r2 // KINEO-K4-PLANO-VARIADO-1111 — escala diferente de plano a plano (nunca dois closes seguidos); plano com imagem-chave fica como está
+      // KINEO-K4-PLANO-FINAL-1111 [CEO 11/11, alavanca 1, atrás de KLING4_PLANO_FINAL] — o último plano em movimento: o momento acontece e se completa na tela,
+      // sem oração que só descreve nem câmera parada, e não termina num close (salvo com imagem-chave)
+      if (!kling4PlanoFinal || !r3.prompts.length) return r3
+      const ultimo = r3.prompts.length - 1
+      const escalaAnterior = ultimo > 0 ? (escalaDoPlano(r3.prompts[ultimo - 1])?.escala ?? null) : null
+      return { ...r3, prompts: r3.prompts.map((p, i) => i === ultimo ? planoFinalEmMovimento(p, { comImagemChave: Boolean(r3.approvedStills[ultimo]), escalaAnterior }) : p) }
     } // KINEO-K4-PLANO-POR-SECAO-1111
     const kling4EnvioDoFilme = () => kling4PorSecao({ prompts: kling4Prompts, approvedStills: kling4ApprovedStills, timing: kling4Timing }) // KINEO-K4-PLANO-POR-SECAO-1111 — a MESMA entrada para o juiz do plano e o claim
     let kling4Trial: Kling4TrialResult | null = null
@@ -8310,7 +8319,8 @@ async function manipularPost(req: NextRequest) {
           scene_captions: [''], scene_prompts: [classicScenePrompts.join(' ')],
           scene_fal_inputs: [(() => { const e = kling4EnvioDoFilme(); return buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input })()], // KINEO-K4-PLANO-POR-SECAO-1111 — o que foi à fal
           ...(kling4EnvioDoFilme().planos ? { kling4_planos: { versao: KLING4_PLANO_POR_SECAO_VERSAO, secoes_por_cena: kling4EnvioDoFilme().planos } } : {}), // KINEO-K4-PLANO-POR-SECAO-1111 — para medir
-          ...(kling4PlanoVariado ? { kling4_plano_variado: KLING4_PLANO_VARIADO_VERSAO } : {}), // KINEO-K4-PLANO-VARIADO-1111 — para medir a nota antes/depois
+          ...(kling4PlanoVariado ? { kling4_plano_variado: KLING4_PLANO_VARIADO_VERSAO } : {}),
+          ...(kling4PlanoFinal ? { kling4_plano_final: KLING4_PLANO_FINAL_VERSAO } : {}), // KINEO-K4-PLANO-FINAL-1111 — para medir // KINEO-K4-PLANO-VARIADO-1111 — para medir a nota antes/depois
           clip_seconds: [15], clip_word_starts: [0],
         })
       }
