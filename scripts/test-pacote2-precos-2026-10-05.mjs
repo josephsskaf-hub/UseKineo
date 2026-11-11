@@ -113,7 +113,8 @@ function bateria(over = {}) {
 
   // /pricing abre no anual; promos mensais seguem no mensal
   const PA = load('lib/growth/pricingPlanChoiceAttribution.ts')
-  t('/pricing abre no ANUAL por padrão', PA.pricingBillingHandoff({}).initialBilling === 'annual')
+  // KINEO-PRICING-MENSAL-1111 [decisão do fundador] — sem parâmetro, a aba é do interruptor ('off' = anual, o deste pacote).
+  t('/pricing sem parâmetro segue o interruptor (off = ANUAL)', PA.pricingBillingHandoff({}).initialBilling === PA.pricingDefaultBilling() && PA.pricingDefaultBilling('off') === 'annual')
   t('?billing=monthly e promos mensais (FIRST50/COMEBACK50) abrem no mensal', PA.pricingBillingHandoff({ billing: 'monthly' }).initialBilling === 'monthly' && PA.pricingBillingHandoff({ promo: 'first50' }).initialBilling === 'monthly' && PA.pricingBillingHandoff({ promo: 'COMEBACK50' }).initialBilling === 'monthly')
   f.total = n
   return f

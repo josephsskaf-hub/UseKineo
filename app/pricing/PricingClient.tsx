@@ -137,6 +137,7 @@ import {
   sanitizePricingIntentCampaign,
   type PricingPlanChoiceBilling,
 } from '@/lib/growth/pricingPlanChoiceAttribution'
+import { PRICING_MENSAL_VERSION } from '@/lib/growth/pricingPlanChoiceAttribution' // KINEO-PRICING-MENSAL-1111 — a impressão grava a aba que abriu
 import {
   buildPricingTierHandoffAttribution,
   pricingTierCardId,
@@ -685,7 +686,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
     if (params.get('preview') === 'valor') setValueCards(true) // KINEO-PRECOS-CARTAO-VALOR-2026-10-09
     const tema = params.get('tema') // KINEO-PRECOS-REFINO-2026-10-09
     if (isPlanValuePalette(tema)) setValuePalette(tema)
-    void trackEvent('pricing_view', { ...(intentCampaign ? { source: intentCampaign } : {}), ...(MRR_CONVERSION_ENABLED ? conversionMetadata('pricing') : {}) })
+    void trackEvent('pricing_view', { ...(intentCampaign ? { source: intentCampaign } : {}), ...(MRR_CONVERSION_ENABLED ? conversionMetadata('pricing') : {}), billing_default: initialBilling, billing_default_version: PRICING_MENSAL_VERSION }) // KINEO-PRICING-MENSAL-1111
   }, [])
 
   // KINEO-PRICING-TIER-HANDOFF-2026-08-31 — warm recovery links already name

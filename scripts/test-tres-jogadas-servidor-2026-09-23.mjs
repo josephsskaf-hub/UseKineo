@@ -274,10 +274,11 @@ const ppc = rd('lib/growth/pricingPlanChoiceAttribution.ts')
 const P = roda(ppc)
 // KINEO-ANUAL-40OFF-2026-10-05 — re-ancorado: o fundador (Pacote 2) quer o anual pré-selecionado; o motivo de 23/09
 // (crédito por fatura, 1×/ano) morreu com a recarga mensal de 24/09. Promos mensais e ?billing explícito seguem mandando.
-checa("padrão sem parâmetro é 'annual' (fundador 05/10; era 'monthly' em 23/09)", P.pricingBillingHandoff({}).initialBilling === 'annual')
+// KINEO-PRICING-MENSAL-1111 [decisão do fundador] — o padrão sem parâmetro passou a ser do interruptor ('off' = anual de 05/10).
+checa("padrão sem parâmetro segue o interruptor KINEO_PRICING_MENSAL_1111 ('off' = 'annual')", P.pricingBillingHandoff({}).initialBilling === P.pricingDefaultBilling() && P.pricingDefaultBilling('off') === 'annual')
 checa("?billing=annual explícito continua abrindo no anual", P.pricingBillingHandoff({ billing: 'annual' }).initialBilling === 'annual')
 checa("promo mensal vence o pedido de anual", P.pricingBillingHandoff({ billing: 'annual', promo: 'COMEBACK50' }).initialBilling === 'monthly')
-checa("no código: `requestedBilling ?? 'annual'` e nenhum `?? 'monthly'`", ppc.includes("requestedBilling ?? 'annual'") && !ppc.includes("?? 'monthly'"))
+checa("no código: `requestedBilling ?? pricingDefaultBilling()` e nenhum `?? 'monthly'` digitado", ppc.includes("requestedBilling ?? pricingDefaultBilling()") && !ppc.includes("?? 'monthly'"))
 checa('o motivo está no arquivo (anual concede por fatura 1×/ano; 0 vendas anuais)', /KINEO-PADRAO-MENSAL-2026-09-23/.test(ppc) && /0 vendas/.test(ppc) && /por FATURA/.test(ppc))
 
 // ── S4: fatos que a IA lê ────────────────────────────────────────────────────

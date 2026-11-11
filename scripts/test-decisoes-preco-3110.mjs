@@ -166,7 +166,8 @@ async function problems(replacements = {}) {
   try { await fulfill.fulfillOneTimeItem(admin, { ...session, id: 'cs_test_2', amount_total: 100 }); p.push('webhook: valor adulterado concedeu') } catch { /* recusa: certo */ }
 
   // ── 4. Anual pré-selecionado + "Save $X" ───────────────────────────────────────────────────────────────────────
-  if (handoff.pricingBillingHandoff({}).initialBilling !== 'annual') p.push('4 SIM: /pricing não abre no anual')
+  // KINEO-PRICING-MENSAL-1111 [decisão do fundador] — a aba sem parâmetro é do interruptor do /pricing ('off' = o anual do "4 SIM").
+  if (handoff.pricingBillingHandoff({}).initialBilling !== handoff.pricingDefaultBilling() || handoff.pricingDefaultBilling('off') !== 'annual') p.push('4 SIM: /pricing fora do interruptor KINEO_PRICING_MENSAL_1111 (off = anual)')
   if (handoff.pricingBillingHandoff({ billing: 'monthly' }).initialBilling !== 'monthly') p.push('?billing=monthly explícito deixou de abrir no mensal')
   if (!src(PRICING).includes("export default function PricingClient({ initialBilling = 'annual' }")) p.push('PricingClient não nasce no anual')
   const esperado = { starter: 900 * 12 - 7600, basic: 1900 * 12 - 16000, pro: 5900 * 12 - 49600 } // KINEO-OFERTA-3H-0411
@@ -216,7 +217,7 @@ const MUTANTES = [
   ['SQL sem recibo único', muta(SQL, 'on conflict (stripe_session_id) do nothing;', ';')],
   ['webhook sem o desvio do avulso', muta(WEBHOOK, 'if (isOneTimeItemSession(session)) {', 'if (false) {')],
   ['Save $X conta 11 meses', muta(MRR, 'getTierPrice(tier, currency, region) * 12 - getAnnualPrice(tier, currency, region)', 'getTierPrice(tier, currency, region) * 11 - getAnnualPrice(tier, currency, region)')],
-  ['/pricing abre no mensal', muta(HANDOFF, "requestedBilling ?? 'annual'", "requestedBilling ?? 'monthly'")],
+  ['/pricing ignora o interruptor', muta(HANDOFF, 'requestedBilling ?? pricingDefaultBilling()', "requestedBilling ?? 'annual'")],
   ['parede sem Save $X/yr', muta(UPGRADE, 'Save {plan.annualSaving}/yr', 'Save more')],
 ]
 for (const [nome, repl] of MUTANTES) {

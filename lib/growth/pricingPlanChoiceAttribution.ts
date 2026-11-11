@@ -12,6 +12,22 @@ export const PRICING_PLAN_CHOICE_TIERS = [
 export type PricingPlanChoiceTier = (typeof PRICING_PLAN_CHOICE_TIERS)[number]
 export type PricingPlanChoiceBilling = 'monthly' | 'annual'
 
+// ═══ KINEO-PRICING-MENSAL-1111 [CEO 11/11, decisão do FUNDADOR — só publica com o sim dele] ═══════════════════════════
+// O /pricing sem parâmetro passa a abrir no MENSAL. Interruptor PRÓPRIO (a parede de crédito tem o dela,
+// lib/offers/paredeMensal1111.ts): dá para voltar um sem o outro. Nenhum preço muda; o anual segue a um clique com o
+// "save" de sempre; `?billing=annual` explícito continua abrindo no anual; FIRST50/COMEBACK50 continuam no mensal.
+// Por quê (medido 11/11): 0 anuais no checkout em 60 dias (12 de 12 vendas mensais); dos 17 que abriram o pagamento vindo
+// do /pricing e não pagaram, 11 estavam no anual cobrado de uma vez (US$ 54 a US$ 460); os 2 pagantes do /pricing, mensal.
+// Volta: KINEO_PRICING_MENSAL_1111 = 'off' → abre no anual como antes. A impressão (pricing_view) grava billing_default +
+// billing_default_version: o corte antes/depois é esse campo, nunca o relógio (docs/queries/PRICING-MENSAL-2026-11-11.sql).
+export const KINEO_PRICING_MENSAL_1111 = 'on' as 'on' | 'off'
+export const PRICING_MENSAL_VERSION = 'pricing_mensal_1111'
+
+/** A aba do /pricing quando a URL não pede nenhuma. 'on' = mensal; 'off' = anual (o de 05/10 a 11/11). */
+export function pricingDefaultBilling(chave: 'on' | 'off' = KINEO_PRICING_MENSAL_1111): PricingPlanChoiceBilling {
+  return chave === 'on' ? 'monthly' : 'annual'
+}
+
 /** Presentation only. Coupon validity and eligibility remain server-owned. */
 export function pricingBillingHandoff(input: { billing?: unknown; promo?: unknown }): {
   initialBilling: PricingPlanChoiceBilling
@@ -32,8 +48,9 @@ export function pricingBillingHandoff(input: { billing?: unknown; promo?: unknow
   // 23/09 morreu: desde 24/09 o anual recebe crédito MÊS A MÊS (cron annual-credit-refill), e agora ele é 40% off.
   // KINEO-ANUAL-30-2026-10-08 — o desconto do anual caiu para 30% (fundador); a página continua abrindo no anual.
   // As promos mensais (FIRST50/COMEBACK50) e `?billing=monthly` explícito continuam abrindo no mensal.
+  // KINEO-PRICING-MENSAL-1111 — sem parâmetro, a aba vem do interruptor (acima): 'on' = mensal.
   return {
-    initialBilling: monthlyPromo ? 'monthly' : requestedBilling ?? 'annual',
+    initialBilling: monthlyPromo ? 'monthly' : requestedBilling ?? pricingDefaultBilling(),
     // A different billing handoff resets the page; unrelated query changes do not
     // overwrite a buyer's subsequent manual choice.
     key: `${requestedBilling ?? 'default'}:${monthlyPromo}`,
