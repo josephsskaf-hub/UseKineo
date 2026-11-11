@@ -169,6 +169,9 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
   // entra no plano, e a época de verdade corta em fronteira: o filme 2120f018 (11/11 17:00) saiu "…the historical era being narrat."
   const periodoUtil = period && !/historical era being narrated/i.test(period) ? cortaEmFronteira(period, 60).replace(/[.,;\s]+$/, '') : ''
   const prefix = `${medium}. ${periodoUtil ? periodoUtil + '. ' : ''}${lugarPedido ? `Place: ${cortaEmFronteira(lugarPedido, 70).replace(/[.,;\s]+$/, '')}. ` : ''}${luzPedida ? `Light: ${cortaEmFronteira(luzPedida, 90).replace(/[.,;\s]+$/, '')}. ` : ''}${origemCurta}` // KINEO-LUZ-DO-PEDIDO-1111
+  // KINEO-PONTUACAO-SOLTA-1111 [CEO 11/11, ensaio da alavanca 2] — o que se tira da ação (época, superfície, lugar, luz) deixava pontuação órfã
+  // no fim ("…flickering candlelight. , . no readable text" no plano 1 do 2120f018): a ação termina na sua última frase.
+  action = action.replace(/([.!?])(?:\s*[,;:.])+\s*$/u, '$1')
   let core = prefix + who(identityBudget) + action
   const fullTextProtection = originalTextDirections.length ? ' ' + originalTextDirections.join(' ') : ''
   const textProtectionBase = fullTextProtection && Array.from(core + fullTextProtection).length <= 410

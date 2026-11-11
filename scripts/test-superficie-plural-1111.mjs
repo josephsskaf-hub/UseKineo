@@ -48,6 +48,8 @@ function problems(over) {
   const semDeus = R.plan[0].prompt.replace(/The only person in this shot is the same main character \((?:[^()]|\([^()]*\))*\); any other person described below is replaced by this same character\.\s*/g, '').replace(/\s*The same main character appears in this scene, consistent design: God, exactly as the author wrote:[^\n]*?natural light\./g, '')
   const plano2 = K.promptDaCenaKling4(U.comSuperficieSemTexto(semDeus), S.deriveStyleAnchor('photorealistic documentary', ', mysterious, cinematic_dark, documentary, consistent color grade across all scenes'), 0, true)
   no(!/illuminated by a warm, flickering candlelight/.test(plano2), `(b) a ação do pergaminho foi cortada → ${plano2.slice(0, 240)}`)
+  // KINEO-PONTUACAO-SOLTA-1111 — o que se tira da ação deixava ", ." órfão antes da proteção ("…candlelight. , . no readable text")
+  no(/[.!?]\s*[,;:.]/.test(plano2.split(' no readable text')[0]), `(b) pontuação solta no fim da ação → ${plano2.slice(0, 200)}`)
   no(U.fraseUnicaDeSuperficie('Two old phones on a table, their screens lit.') !== 'Every screen glows with soft abstract light and colour.', '(c) plural de tela não casou')
   no(U.fraseUnicaDeSuperficie('Neon signs above the street at night.') !== 'Every sign is a plain block of colour.', '(c) plural de placa não casou')
   const nada = 'A man walks along the beach at dawn.'
@@ -59,11 +61,12 @@ const atual = problems({})
 assert.deepEqual(atual, [], `violações:\n  ${atual.join('\n  ')}`)
 let n = 1, falhas = 0
 console.log('ok  estado atual limpo (o pergaminho no plural ganha a página sem letra; o pedido de texto vira marcas ilegíveis)')
-const sup = read(SUP)
+const sup = read(SUP), fq = read('lib/cinematic/filmQuality.ts')
 const MUT = [
   ['M1 o plural volta a escapar', { [SUP]: sup.replace('(?:scrolls?|parchments?|', '(?:scroll|parchment|') }],
   ['M2 o pedido de texto fica', { [SUP]: sup.replace('const semPedido = semTextoPedidoNaSuperficie(prompt)', 'const semPedido = prompt') }],
   ['M4 a frase sem letra volta a ser longa', { [SUP]: sup.replace('faint marks too small to read`)', 'faint marks and symbols too small and soft to read`)') }],
+  ['M5 a pontuação solta volta', { 'lib/cinematic/filmQuality.ts': fq.replace("  action = action.replace(/([.!?])(?:\\s*[,;:.])+\\s*$/u, '$1')\n", '') }],
   ['M3 "letters" vira superfície', { [SUP]: sup.replace('|page|pages|letter|', '|page|pages|letters?|') }],
 ]
 for (const [nome, over] of MUT) {
