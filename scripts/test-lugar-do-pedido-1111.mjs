@@ -54,6 +54,10 @@ function problems(over) {
   const semEpoca = 'Film visual medium: photorealistic, ultra-detailed. A glowing orb of light rises over the dark sea, waves crashing on the rocks below, period piece set strictly in the historical era being narrated: every person, building, street, vehicle and object belongs to that exact time, no readable text, letters, numbers, labels or signage anywhere in the frame'
   const k1 = K.promptDaCenaKling4(semEpoca, style, 0, true)
   no(/historical era|being narrat/.test(k1), `(d) a época sem época entrou no plano → ${k1.slice(0, 160)}`)
+  // a frase longa da época, como a rota escreve (eraLockSuffix), sai INTEIRA da ação (2120f018 refeito: sobrava ": every person, building, street…")
+  const longa = 'Film visual medium: photorealistic, ultra-detailed. A wide shot of a star-filled night sky, with constellations twinkling brightly, capturing the vastness of creation\'s beauty., period piece set strictly in the historical era being narrated: every person, building, street, vehicle and object belongs to that exact time — period clothing, period architecture and period transport only, as it really looked then, no readable text, letters, numbers, labels or signage anywhere in the frame'
+  const k3 = K.promptDaCenaKling4(longa, style, 0, true)
+  no(/every person, building|period clothing|as it really looked then/.test(k3), `(d) sobrou a frase longa da época → ${k3.slice(0, 220)}`)
   const comEpoca = semEpoca.replace('the historical era being narrated', 'the year 79 AD')
   const k2 = K.promptDaCenaKling4(comEpoca, style, 0, true)
   no(!/period piece set strictly in the year 79 AD\./.test(k2), `(d) a época de verdade não ficou inteira → ${k2.slice(0, 160)}`)
@@ -71,6 +75,7 @@ const MUT = [
   ['M2 o compactador ignora o lugar', { [FQ]: fq.replace('const lugarPedido = /Setting as the customer asked: ([^.]+)\\./.exec(prompt)?.[1]?.trim()', 'const lugarPedido = undefined as string | undefined') }],
   ['M3 o lugar não cede à roupa', { [FQ]: fq.replace("const pre = lugarPedido && !cabeAFicha(prefix) ? prefix.replace(/Place: [^.]+\\. /, '') : prefix", 'const pre = prefix') }],
   ['M4 a época sem época volta', { [FQ]: fq.replace("period && !/historical era being narrated/i.test(period) ?", 'period ?') }],
+  ['M6 a frase longa da época fica na ação', { [FQ]: fq.replace("action = action.replace(/,?\\s*(?:period piece set strictly in [^:]+)?:\\s*every person", "action = action.replace(/NUNCA(?:period piece set strictly in [^:]+)?:\\s*every person") }],
   ['M5 a rota clássica sem o lugar', { [ROTA]: rota.replace('classicScenePrompts[i] = comLugarDoPedido(classicScenePrompts[i], lugarPedido)', 'classicScenePrompts[i] = classicScenePrompts[i]') }],
 ]
 for (const [nome, over] of MUT) {
