@@ -41,6 +41,7 @@ export function buildFree15CanonicalCaptions(input: { script: string; audioSecon
     const style = Object.fromEntries(STYLE_KEYS.filter(key => sample && sample[key] !== undefined).map(key => [key, sample![key]]))
     // No invented word-level karaoke: a proportional block is one visible line.
     return buildCaptionElements({ text: block.text, time, duration: r3(end - time), highlight: block.highlight })
-      .map(element => ({ ...element, ...style }))
+      // KINEO-LEGENDA-PALAVRA-LONGA-1111 — o font_size copiado do estilo vira TETO: o ajuste à maior palavra (buildCaptionElements) não volta a ser desfeito
+      .map(element => ({ ...element, ...style, ...(Number(style.font_size) > 0 && Number(element.font_size) > 0 ? { font_size: Math.min(Number(style.font_size), Number(element.font_size)) } : {}) }))
   })
 }

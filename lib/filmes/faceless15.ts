@@ -31,6 +31,7 @@
 //        fim do filme, a 14 % fixos, com os fades de sempre de lib/compose (0,8 / 1,2 s, provados em produção no F0);
 //        sem ducking. Riser/whoosh/pop ficam como estavam.
 import { buildCaptionElements, buildCaptionsFromWhisperWords, sentenceStartTimes, type WhisperWord } from '@/lib/compose'
+import { fonteDaLegendaQueCabe } from '@/lib/compose' // KINEO-LEGENDA-PALAVRA-LONGA-1111
 import { pickHighlightWord } from '@/lib/openai'
 import { withHookFirstFrame, GANCHO_1Q_TRACK, type HookFirstFrameResult } from '@/lib/hookFirstFrame'
 import { numeroPresoAPalavraRtl } from '@/lib/textLanguage' // KINEO-LEGENDA-NUMERO-RTL-0111
@@ -60,6 +61,15 @@ export const FACELESS15_ASPECT = '9:16'
 export const FACELESS15_LEGENDA_Y = '72%'
 export const FACELESS15_LEGENDA_FONTE = 64
 export const FACELESS15_LEGENDA_FONTE_GANCHO = 80
+// KINEO-LEGENDA-PALAVRA-LONGA-1111 [CEO 11/11, filme 4572756e] — "HINÜBERGEKOMMENDEN" (18 letras, alemão) saiu cortada na tela: a F1 vestia
+// todo bloco com a fonte fixa (64; gancho 80) por cima da fonte que o compose já tinha ajustado à maior palavra (KINEO-LEGENDA-LARGURA-3010).
+// A fonte fixa vira TETO: a maior palavra do bloco decide, pela mesma conta do compose, sem as marcas de cor do karaokê. O filme grátis é
+// 9:16 (1080 de largura); num quadro mais largo a conta só sai mais folgada.
+export const FACELESS15_QUADRO_LARGURA = 1080
+export function fonteQueCabeFaceless15(texto: unknown, tamanho: number, larguraCaixa: unknown): number {
+  const limpo = String(texto ?? '').replace(/\[\/?color[^\]]*\]/giu, '')
+  return fonteDaLegendaQueCabe(limpo, tamanho, FACELESS15_QUADRO_LARGURA, typeof larguraCaixa === 'string' && larguraCaixa.trim() ? larguraCaixa : '78%')
+}
 export const FACELESS15_LEGENDA_PALAVRAS = 5
 /** A legenda entra 120 ms ANTES da palavra (Opus: 100–200 ms). */
 export const FACELESS15_LEGENDA_ANTECIPACAO_S = 0.12
@@ -329,7 +339,7 @@ export function aplicarF1Faceless15(els: ReadonlyArray<El>, quadro: QuadroFacele
   const vestir = (e: El, gancho: boolean, amarelo: boolean): El => ({
     ...e,
     y: FACELESS15_LEGENDA_Y,
-    font_size: gancho ? FACELESS15_LEGENDA_FONTE_GANCHO : FACELESS15_LEGENDA_FONTE,
+    font_size: fonteQueCabeFaceless15(e.text, gancho ? FACELESS15_LEGENDA_FONTE_GANCHO : FACELESS15_LEGENDA_FONTE, e.width), // KINEO-LEGENDA-PALAVRA-LONGA-1111 — era a fonte fixa
     fill_color: amarelo ? FACELESS15_AMARELO : '#ffffff',
   })
   let novas: El[] = []
