@@ -129,6 +129,7 @@ import { sceneNarrationsForPlan } from '@/lib/cinematic/speechContract'
 import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
 import { decidirFormato, permiteApresentador, TAG_FACELESS, proibidosPorModo, type VisualMode } from '@/lib/cinematic/visualMode'
 import { formatoComPessoaDoPedido, pessoaDoPedido, fichaDaPessoa, elencoComPessoaDoPedido, luzDoPedido, comLuzDoPedido } from '@/lib/cinematic/pessoaDoPedido' // KINEO-PESSOA-DO-PEDIDO-1111
+import { relogioComPonteiros } from '@/lib/cinematic/relogioComPonteiros' // KINEO-RELOGIO-PONTEIROS-1111
 import { garantirAcaoCentral, silenciarFalaNoPrompt, apararComFolga, removerDatasInventadas } from '@/lib/hollywood/fidelidade'
 import { planejarCenasS25, montarPromptS25, ambienteComEpoca, epocaDoFilmeS25, S25_CENA_EVENTO } from '@/lib/hollywood/s25Cena' // KINEO-S25-NOTA95-2026-10-06
 import { juizStillLigado, novoFilmeDoJuiz, julgarFotoBase, anterioresDoJuiz, resumoDoJuizStill, JUIZ_STILL_EVENTO, JUIZ_STILL_RESUMO_EVENTO } from '@/lib/hollywood/juizStill' // KINEO-JUIZ-STILL-2026-10-06
@@ -7343,6 +7344,7 @@ async function manipularPost(req: NextRequest) {
     if (seedanceShortFilm) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = sanitizarObjetos15(classicScenePrompts[i], seedanceShortFilm) // KINEO-FILME15-PERFEITO-2610 — final visual vector, before still/clip; narration stays intact
     for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comSuperficieSemTexto(classicScenePrompts[i]) // KINEO-CENA-PEDIDO-3010 — revisor 29/10: lousa/tela/página/placa saíam com letra inventada; a superfície vai descrita em positivo (o motor não tem negativo)
     { const luzPedida = qualidadeHerdada ? null : luzDoPedido(body.original_idea); if (luzPedida) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comLuzDoPedido(classicScenePrompts[i], luzPedida) } // KINEO-LUZ-DO-PEDIDO-1111 — a luz que o cliente pediu (só a luz, nunca a frase de ação) chega a toda cena (still e clipe); 657ad797: pedido de sol pelas janelas, prova saiu à noite
+    for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = relogioComPonteiros(classicScenePrompts[i]) // KINEO-RELOGIO-PONTEIROS-1111 — vizinho f2e8cffc: "clock showing 02:46" saiu ~8:40 (a proteção de texto proíbe números); o relógio vira de ponteiros apontando para a hora, mostrador sem dígitos
 
     // ═══ KINEO-DRYRUN-CLASSICO-2026-09-12 — O VALIDADOR DE $0 COBRE OS CLÁSSICOS ═══
     // Até 11/09 `dry_run: true` só parava a família Kling 3/H3/Omni (bloco
