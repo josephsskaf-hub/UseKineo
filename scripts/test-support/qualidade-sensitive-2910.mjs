@@ -53,7 +53,8 @@ export function policyFromRoute(route, { prompt, mode = 'documentary_faceless', 
   const vp = loadSensitivePure('lib/cinematic/visualPromptPolicy.ts')
   const fit = loadSensitivePure('lib/engineFit.ts')
   const declarations = ['storyMode', 'storyCharacter', 'classicVisualMode', 'classicVisualPolicy'].map(name => declaration(route, name)).join('\n')
-  const globals = { ...ss, ...vp, ...fit, prompt, formatoVisual: { modo: mode }, styleAnchor: style ?? ss.deriveStyleAnchor(prompt), qualidadeHerdada: inherited, tagFacelessPresente: tagFaceless, aspectRequested: '9:16' }
+  const pessoa = loadSensitivePure('lib/cinematic/pessoaDoPedido.ts') // KINEO-PESSOA-DO-PEDIDO-1111 — a declaração de storyCharacter chama fichaDaPessoa(…, pessoaPedida); sem pedido original, pessoaPedida = null (a ficha do roteiro, como antes)
+  const globals = { ...ss, ...vp, ...fit, fichaDaPessoa: pessoa.fichaDaPessoa, pessoaPedida: null, prompt, formatoVisual: { modo: mode }, styleAnchor: style ?? ss.deriveStyleAnchor(prompt), qualidadeHerdada: inherited, tagFacelessPresente: tagFaceless, aspectRequested: '9:16' }
   return new Function(...Object.keys(globals), compile(`${declarations}\nreturn { storyMode, storyCharacter, policy: classicVisualPolicy }`))(...Object.values(globals))
 }
 

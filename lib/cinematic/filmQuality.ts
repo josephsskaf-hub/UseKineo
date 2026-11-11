@@ -96,7 +96,9 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
     return `${description}, ${relation}`
   }).join('; ')
   const who = (budget: number) => cast ? `Visible${deCostas ? ', seen from behind' : ''}: ${visible(budget)}. ` : identity ? `Identity: ${cortaEmFronteira(identity[1], budget).replace(/[.,;\s]+$/, '')}. ` : '' // KINEO-PESSOA-DO-PEDIDO-1111: corte em fronteira, era take(identity[1], budget) // KINEO-K4-ACAO-INTEIRA-1111: o "de costas" curto, junto da ficha
-  const identityBudget = cast ? 178 : 140
+  // KINEO-PESSOA-DO-PEDIDO-1111 — 657ad797: a ficha do cliente (pele, olhos, tranças, blusa creme, calça preta, ~170 caracteres) caía no
+  // corte de 140 e a roupa sumia; o dono quer cabelo e roupa antes do cenário. A ficha sem elenco vai até 220 (era 140).
+  const identityBudget = cast ? 178 : 220
   // KINEO-QUALIDADE-REGRESSOES-2910 — identity compaction removes the old tail.
   // Reserve space for text protection already present, just as for closed mouths;
   // otherwise a previously protected ticket can lose its direction at the provider.
@@ -112,13 +114,16 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
   // KINEO-ORIGEM-DO-ELENCO-0311 — o corte de 140-178 caracteres da ficha jogava a linha da origem fora: ela vai curta, na frente, com a marca que os juízes leem. Sem marca: byte a byte.
   const origensDaCena = [...new Set([...prompt.matchAll(/natural features of ([^.;,]+?) people/g)].map((m) => m[1]))] // KINEO-ORIGEM-DO-ELENCO-0311
   if (origensDaCena.length > 0) action = action.replace(/(?:The main person, if one is shown in this shot, is|The [a-z' -]+ in this shot (?:is|are)) [^.]+?natural features of [^.]+? people\.\s*/g, '').trim() // KINEO-ORIGEM-DO-ELENCO-0311
+  // KINEO-PESSOA-DO-PEDIDO-1111 — o look repetido ("photorealistic, ultra-detailed.", já dito no meio) virava a "1ª frase da ação" no
+  // corte e tomava o lugar da ação de verdade e da ficha. Sai da frente da ação.
+  action = action.replace(/^(?:photorealistic, ultra-detailed\.\s*)+/i, '').trim()
   const origemCurta = origensDaCena.length === 1 ? `Everyone shown has the natural features of ${origensDaCena[0]} people. ` : origensDaCena.length > 1 ? `People: ${origensDaCena.slice(0, 2).join(', ')}. ` : '' // KINEO-ORIGEM-DO-ELENCO-0311 — duas origens: sem a marca (o juiz só pergunta com uma)
   const prefix = `${medium}. ${period ? take(period, 60) + '. ' : ''}${origemCurta}`
   let core = prefix + who(identityBudget) + action
   const fullTextProtection = originalTextDirections.length ? ' ' + originalTextDirections.join(' ') : ''
   const textProtection = fullTextProtection && Array.from(core + fullTextProtection).length <= 410
     ? fullTextProtection : compactTextProtection
-  const coreBudget = 410 - Array.from(textProtection).length
+  let coreBudget = 410 - Array.from(textProtection).length // KINEO-PESSOA-DO-PEDIDO-1111: let — a ficha do cliente sem elenco ganha +14 (abaixo)
   if (textProtection && Array.from(core).length > coreBudget) {
     // Restore safety without displacing the action that the old 410-char core
     // retained: trim verbose costume first, keeping the subject and relation.
@@ -128,7 +133,15 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
     const reducedIdentity = Math.max(0, Math.min(identityBudget, coreBudget - Array.from(prefix + whoLabel).length - actionBudget))
     // Action comes before the shortened costume on overflow; even a relation
     // clause that exceeds its nominal share cannot cut away the action's object.
-    core = prefix + firstAction + ' ' + who(reducedIdentity) + action.slice(firstAction.length)
+    // KINEO-PESSOA-DO-PEDIDO-1111 — sem elenco ("Identity:" = a pessoa que o cliente descreveu), a ficha vem inteira ANTES da ação (o dono:
+    // cabelo e roupa antes do cenário; 657ad797 perdeu a roupa) e a ação é que cai em fronteira, com piso de 60 caracteres.
+    if (identity && !cast) {
+      // o teto seguro do plano: 512 − a referência mais longa do montador ("Scene 5: text-directed shot, no new keyframe for this scene. ",
+      // 61) − a cauda da boca (27) = 424 de núcleo + proteção; o 410 de sempre deixava 14 sem uso, e aqui eles vão para a ficha.
+      coreBudget += 14
+      const ficha = who(Math.max(0, Math.min(identityBudget, coreBudget - Array.from(prefix + whoLabel).length - 60)))
+      core = prefix + ficha + cortaEmFronteira(action, Math.max(0, coreBudget - Array.from(prefix + ficha).length))
+    } else core = prefix + firstAction + ' ' + who(reducedIdentity) + action.slice(firstAction.length)
   }
   // KINEO-K4-PLANO-DA-SECAO-1111 — o corte do núcleo cai em FRONTEIRA (frase ou oração), nunca no meio da palavra: era take(core,
   // coreBudget), que deixava "consistent color g" e decapitava proibição (a lição do "menino da bolha", 27/08).

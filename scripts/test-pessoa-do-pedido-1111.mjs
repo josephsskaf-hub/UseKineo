@@ -50,7 +50,7 @@ function problems(over) {
   const depois = P.formatoComPessoaDoPedido(antes, pessoa)
   no(depois.modo !== "character_story" || depois.apresentadorPedido, `(b) formato com a pessoa: ${depois.modo}`)
   const style = S.deriveStyleAnchor("photorealistic documentary")
-  const cena = VP.buildClassicVisualPrompt(CENA1, { mode: depois.modo, style, character: S.deriveStoryCharacter(ROTEIRO) ?? pessoa, aspect: "9:16" })
+  const cena = VP.buildClassicVisualPrompt(CENA1, { mode: depois.modo, style, character: P.fichaDaPessoa(S.deriveStoryCharacter(ROTEIRO), pessoa), aspect: "9:16" })
   no(!/blonde/.test(cena) || !/pastel pink outfit/.test(cena) || !/25 years old/.test(cena), `(c) a cena 1 não leva a moça descrita → ${cena.slice(0, 220)}`)
   no(/silhouette|faceless|no foreground human faces/i.test(cena), "(c) a cena 1 ainda apaga a pessoa (silhueta/faceless)")
   const plano = K.promptDaCenaKling4(cena, style, 0, true)
@@ -58,7 +58,7 @@ function problems(over) {
   no(!plano.endsWith(" Mouth closed, no speaking."), "(c) o plano perdeu a cauda da boca")
   // a ficha do plano termina no ponto dela: antes levava o sufixo e o corte de 140 deixava "no readable text, letters, numbers, l."
   const ficha = /Identity: ([^]*?)\. /.exec(plano)?.[1] ?? ''
-  no(!ficha.startsWith(PESSOA) || /no readable text|vertical framing/.test(ficha) || /numbers, l\./.test(plano), `(c) a ficha do plano levou o sufixo ou foi cortada no meio → ${plano.slice(0, 260)}`)
+  no(!ficha.startsWith(PESSOA) || /no readable text|vertical framing/.test(ficha) || /numbers, l\.|vertical framing|subject framed/.test(plano) || (plano.match(/no readable text/g) ?? []).length > 1, `(c) a ficha do plano levou o sufixo ou foi cortada no meio → ${plano.slice(0, 260)}`)
   // controles
   const tag = V.decidirFormato(ROTEIRO, true)
   no(P.formatoComPessoaDoPedido(tag, pessoa) !== tag, "(d) tag [faceless] mudou")
@@ -75,8 +75,42 @@ function problems(over) {
   const rota = over["app/api/generate-video-cinematic/route.ts"] ?? read("app/api/generate-video-cinematic/route.ts")
   no(!rota.includes('const pessoaPedida = pessoaDoPedido(body.original_idea)'), "(e) a rota não lê a pessoa do pedido original")
   no(!rota.includes('formatoComEstrela(formatoComPessoaDoPedido(decidirFormato(prompt, tagFacelessPresente), pessoaPedida)'), "(e) o formato não usa a pessoa do pedido")
-  no(!rota.includes('storyMode ? deriveStoryCharacter(prompt) ?? pessoaPedida : null'), "(e) a ficha da história não usa a pessoa do pedido")
-  no(!rota.includes('?? deriveExplicitCharacter(prompt) ?? pessoaPedida ??'), "(e) a ficha do hollywood não usa a pessoa do pedido")
+  no(!rota.includes('storyMode ? fichaDaPessoa(deriveStoryCharacter(prompt), pessoaPedida) : null'), "(e) a ficha da história não usa a pessoa do pedido")
+  no(!rota.includes('?? fichaDaPessoa(deriveExplicitCharacter(prompt), pessoaPedida) ??'), "(e) a ficha do hollywood não usa a pessoa do pedido")
+  no(!rota.includes('const pessoaNoElenco = elencoComPessoaDoPedido(pessoaPedida, personagemElenco.elenco)'), "(e) o elenco do filme não recebe a pessoa do pedido")
+  no(!rota.includes('const pessoa15 = elencoComPessoaDoPedido(pessoaPedida, elencoDoAjuste)'), "(e) o elenco do filme de 15 s não recebe a pessoa do pedido")
+  p.push(...ficha657(P, S, K, over))
+  return p
+}
+
+// ── KINEO-PESSOA-DO-PEDIDO-1111 (2) — o filme 657ad797 (11/11 11:57, Kling 4 grátis, nota 6,5): o pedido descrevia "a beautiful 26-year-old
+// South African woman with warm brown skin, expressive dark brown eyes and long neat black braids … She wears a cream blouse and elegant black
+// trousers"; o plano levou só "…, with warm brown skin" (a 1ª oração) e o elenco sorteou "wavy hair … dark blue jacket over a grey t-shirt" —
+// que foi o que saiu. Prova com o pedido e os 3 prompts REAIS do despacho, refeitos com o código de hoje (ensaio de US$ 0, sem rede).
+const R657 = JSON.parse(readFileSync(join(root, "scripts/test-support/pedido-657ad797-1111.json"), "utf8"))
+const PESSOA657 = "a beautiful 26-year-old South African woman, with warm brown skin, expressive dark brown eyes and long neat black braids, wearing a cream blouse and elegant black trousers"
+function ficha657(P, S, K, over) {
+  const p = []
+  const no = (bad, msg) => { if (bad) p.push(msg) }
+  let T, J
+  try { const load = loader(over); T = load("lib/kling4Trial.ts"); J = load("lib/cinematic/juizFicha.ts") } catch (e) { return [`fonte não carrega: ${e.message}`] }
+  const pessoa = P.pessoaDoPedido(R657.original)
+  no(pessoa !== PESSOA657, `(f) 657ad797: a pessoa do pedido não veio inteira → ${JSON.stringify(pessoa)}`)
+  no(P.fichaDaPessoa(R657.derivada, pessoa) !== pessoa, "(f) a ficha da história ficou com a 1ª oração do roteiro")
+  no(P.fichaDaPessoa("Mara, the guard", pessoa) !== "Mara, the guard" || P.fichaDaPessoa("an old fisherman", pessoa) !== "an old fisherman", "(f) a pessoa do pedido tomou a ficha de um nome próprio ou de outro papel")
+  const el = P.elencoComPessoaDoPedido(pessoa, [{ nome: "the woman", tipo: "humano", origem: "deterministica", canonica: R657.sorteada }, { nome: "the man", tipo: "humano", origem: "deterministica", canonica: "the man, x" }])
+  no(el.trocas.length !== 1 || el.elenco[0].origem !== "autor" || !el.elenco[0].canonica.includes("long neat black braids") || el.elenco[1].canonica !== "the man, x", `(f) o elenco sorteado não virou a pessoa do pedido → ${JSON.stringify(el.elenco.map((f) => f.canonica))}`)
+  const style = S.deriveStyleAnchor("photorealistic documentary")
+  const ficha = P.fichaDaPessoa(R657.derivada, pessoa)
+  const prompts = R657.prompts.map((x) => J.trocarFichaNoPrompt(x.split(`consistent design: ${R657.derivada}.`).join(`consistent design: ${ficha}.`), el.trocas))
+  const mp = T.buildKling4TrialInput(prompts.map((x, i) => K.promptDaCenaKling4(x, style, i, true)), [null, null, null], { voiceovers: R657.falas, wordsPerSecond: R657.wps }).input.multi_prompt
+  for (const [i, m] of mp.entries()) {
+    no(!/long neat black braids/.test(m.prompt) || !/cream blouse/.test(m.prompt) || !/black trousers/.test(m.prompt), `(g) plano ${i + 1}: tranças ou roupa fora da ficha → ${m.prompt.slice(0, 300)}`)
+    no(/wavy hair|dark blue jacket|grey t-shirt/.test(m.prompt), `(g) plano ${i + 1}: o elenco sorteado voltou`)
+    no(Array.from(m.prompt).length > 512 || !m.prompt.endsWith(" Mouth closed, no speaking."), `(g) plano ${i + 1}: passou de 512 ou perdeu a cauda`)
+    no(!/natural features of South African people/.test(m.prompt), `(g) plano ${i + 1}: perdeu a marca de origem que o juiz lê`)
+  }
+  no(P.pessoaDoPedido("A woman, 30 years old, wearing a red coat, walks home.") !== "a woman, 30 years old, wearing a red coat", "(h) a ação entrou na lista da roupa")
   return p
 }
 
@@ -87,8 +121,13 @@ console.log("ok  estado atual limpo (a moça do pedido chega à cena e ao plano 
 const pp = read("lib/cinematic/pessoaDoPedido.ts"), rt = read("app/api/generate-video-cinematic/route.ts")
 const MUT = [
   ["M1 o formato ignora a pessoa", { "lib/cinematic/pessoaDoPedido.ts": pp.replace("if (!pessoa || decisao.modo", "if (true || decisao.modo") }],
-  ["M2 a ficha para na cabeça", { "lib/cinematic/pessoaDoPedido.ts": pp.replace("if (IDADE_RE.test(p)) { aceitos.push(p); continue }", "if (IDADE_RE.test(p)) break") }],
-  ["M3 a rota volta à ficha só do roteiro", { "app/api/generate-video-cinematic/route.ts": rt.replace("storyMode ? deriveStoryCharacter(prompt) ?? pessoaPedida : null", "storyMode ? deriveStoryCharacter(prompt) : null") }],
+  ["M2 a ficha para na cabeça", { "lib/cinematic/pessoaDoPedido.ts": pp.replace("if (IDADE_RE.test(p)) { aceitos.push(p); lista = ''; continue }", "if (IDADE_RE.test(p)) break") }],
+  ["M3 a rota volta à ficha só do roteiro", { "app/api/generate-video-cinematic/route.ts": rt.replace("storyMode ? fichaDaPessoa(deriveStoryCharacter(prompt), pessoaPedida) : null", "storyMode ? deriveStoryCharacter(prompt) : null") }],
+  ["M6 a lista de traços para na 1ª vírgula", { "lib/cinematic/pessoaDoPedido.ts": pp.replace("if (elo) lista = ELO_DE_LISTA_RE.exec(p)?.[0].toLowerCase() ?? ''", "if (elo) lista = ''") }],
+  ["M7 a frase seguinte (a roupa) não é lida", { "lib/cinematic/pessoaDoPedido.ts": pp.replace("const s = FRASE_SEGUINTE_RE.exec(f.replace(/[.;!?]+$/u, ''))", "const s = null") }],
+  ["M8 o compactador volta a pôr a ação antes e a cortar a ficha", { "lib/cinematic/filmQuality.ts": read("lib/cinematic/filmQuality.ts").replace("    if (identity && !cast) {", "    if (false) {") }],
+  ["M9 o elenco de 15 s não recebe a pessoa", { "app/api/generate-video-cinematic/route.ts": rt.replace("const pessoa15 = elencoComPessoaDoPedido(pessoaPedida, elencoDoAjuste)", "const pessoa15 = elencoComPessoaDoPedido(null, elencoDoAjuste)") }],
+  ["M10 a ficha da história fica com a derivada curta", { "lib/cinematic/pessoaDoPedido.ts": pp.replace("return papel && new RegExp(", "return false && new RegExp(") }],
   ["M5 a ficha do plano volta a ir até o fim da linha e ao corte no caractere", { "lib/cinematic/filmQuality.ts": read("lib/cinematic/filmQuality.ts").replace("${cortaEmFronteira(identity[1], budget).replace(/[.,;\\s]+$/, '')}", "${take(identity[1], budget)}").replace("consistent design: ([^\\n]+?)(?:\\.(?=\\s|$)|$)/i", "consistent design: ([^\\n]+)/i") }],
   ["M4 a pessoa nua vira ficha", { "lib/cinematic/pessoaDoPedido.ts": pp.replace("if (nua && aceitos.length === 0) continue", "if (false) continue") }],
 ]
