@@ -70,7 +70,9 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
   // esse resto por "a ação" — a ação de verdade era cortada no teto (Pompeia 11/11, plano 3: "crumbling stones falling fr…").
   const cast = /(?:Named )?Characters? in this shot: (.+?) — clearly visible in frame(, seen from behind or in profile, face not readable)?\.?/i.exec(prompt) // KINEO-K4-PLANO-DA-SECAO-1111: era ".?" (qualquer caractere) — o ponto escapado
   const deCostas = !!cast?.[2] // KINEO-K4-ACAO-INTEIRA-1111
-  const identity = /The same main character appears in this scene, consistent design: ([^\n]+)/i.exec(prompt)
+  // KINEO-PESSOA-DO-PEDIDO-1111 — a ficha termina no PONTO: "([^\n]+)" levava o sufixo inteiro do prompt clássico (moldura, "no readable
+  // text…") para dentro da ficha, e o corte de 140 deixava "Identity: a young blonde woman … no readable text, letters, numbers, l."
+  const identity = /The same main character appears in this scene, consistent design: ([^\n]+?)(?:\.(?=\s|$)|$)/i.exec(prompt)
   // KINEO-K4-PLANO-DA-SECAO-1111 — a época em positivo (KINEO-EPOCA-POSITIVA-1111, "period piece set strictly in the year 79 AD") também
   // entra curta na frente; antes só "Period setting:" contava e a época sumia do plano do Kling 4.
   const period = /Period setting: [^.]+|period piece set strictly in [^:.,]+/i.exec(prompt)?.[0]
@@ -93,7 +95,7 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
     const description = take(person.replace(relation, '').trim(), Math.max(0, budget - relation.length - 2)).replace(/\s+\S*$/, '').replace(/[,; ]+$/, '')
     return `${description}, ${relation}`
   }).join('; ')
-  const who = (budget: number) => cast ? `Visible${deCostas ? ', seen from behind' : ''}: ${visible(budget)}. ` : identity ? `Identity: ${take(identity[1], budget)}. ` : '' // KINEO-K4-ACAO-INTEIRA-1111: o "de costas" curto, junto da ficha
+  const who = (budget: number) => cast ? `Visible${deCostas ? ', seen from behind' : ''}: ${visible(budget)}. ` : identity ? `Identity: ${cortaEmFronteira(identity[1], budget).replace(/[.,;\s]+$/, '')}. ` : '' // KINEO-PESSOA-DO-PEDIDO-1111: corte em fronteira, era take(identity[1], budget) // KINEO-K4-ACAO-INTEIRA-1111: o "de costas" curto, junto da ficha
   const identityBudget = cast ? 178 : 140
   // KINEO-QUALIDADE-REGRESSOES-2910 — identity compaction removes the old tail.
   // Reserve space for text protection already present, just as for closed mouths;

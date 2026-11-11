@@ -128,6 +128,7 @@ import { looksLikeBrief } from '@/lib/scriptParser'
 import { sceneNarrationsForPlan } from '@/lib/cinematic/speechContract'
 import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
 import { decidirFormato, permiteApresentador, TAG_FACELESS, proibidosPorModo, type VisualMode } from '@/lib/cinematic/visualMode'
+import { formatoComPessoaDoPedido, pessoaDoPedido } from '@/lib/cinematic/pessoaDoPedido' // KINEO-PESSOA-DO-PEDIDO-1111
 import { garantirAcaoCentral, silenciarFalaNoPrompt, apararComFolga, removerDatasInventadas } from '@/lib/hollywood/fidelidade'
 import { planejarCenasS25, montarPromptS25, ambienteComEpoca, epocaDoFilmeS25, S25_CENA_EVENTO } from '@/lib/hollywood/s25Cena' // KINEO-S25-NOTA95-2026-10-06
 import { juizStillLigado, novoFilmeDoJuiz, julgarFotoBase, anterioresDoJuiz, resumoDoJuizStill, JUIZ_STILL_EVENTO, JUIZ_STILL_RESUMO_EVENTO } from '@/lib/hollywood/juizStill' // KINEO-JUIZ-STILL-2026-10-06
@@ -1630,7 +1631,8 @@ async function manipularPost(req: NextRequest) {
     // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-ESTRELA-DO-FILME-2026-09-29 — com a estrela o filme MOSTRA a pessoa:
     // documentary_faceless vira character_story (pessoa muda em cena). Pedido de estrela recusado mais abaixo volta antes de [KINEO-ESTRELA-DO-FILME-2026-09-29]
     // qualquer trabalho; sem `estrela` no corpo, formatoComEstrela devolve a decisão de sempre (o mesmo objeto). [KINEO-ESTRELA-DO-FILME-2026-09-29]
-    const formatoVisual = formatoComEstrela(decidirFormato(prompt, tagFacelessPresente), estrelaPedida((body as { estrela?: unknown }).estrela)) // KINEO-ESTRELA-DO-FILME-2026-09-29
+    const pessoaPedida = pessoaDoPedido(body.original_idea) // KINEO-PESSOA-DO-PEDIDO-1111 — a pessoa sem nome do pedido original (24564d97: "a young blonde woman … pastel pink outfit" virou silhueta morena)
+    const formatoVisual = formatoComEstrela(formatoComPessoaDoPedido(decidirFormato(prompt, tagFacelessPresente), pessoaPedida), estrelaPedida((body as { estrela?: unknown }).estrela)) // KINEO-ESTRELA-DO-FILME-2026-09-29
     // KINEO-ROMANCE-ADULTO-2026-10-13 — pedido romântico (lib/cinematic/romanceGuard; só o texto do CLIENTE): mostra as duas pessoas
     // KINEO-ROMANCE-ADULTO-2026-10-13 — (character_story, nunca o faceless que apagava "man/woman"); a tag [faceless] e o apresentador pedido vencem.
     const romanceAdulto = decidirRomanceAdulto(prompt) // KINEO-ROMANCE-ADULTO-2026-10-13
@@ -3905,7 +3907,7 @@ async function manipularPost(req: NextRequest) {
     if (desenhoInfantil.ativo) Object.assign(styleAnchor, desenhoInfantil.estilo) // KINEO-BEBE-QUE-FALA-2010 — desenho infantil: o look 3D fixo (vence o texto) e, por ser desenhado, a estrada vira character_story
     if (qualidadeHerdada?.style) Object.assign(styleAnchor, qualidadeHerdada.style) // KINEO-QUALIDADE-TODOS-MOTORES-2910
     const storyMode = isStylizedLook(styleAnchor) || formatoVisual.modo === 'character_story' || classifyEngineFit(prompt).verdict === 'stock_cannot_tell'
-    const storyCharacter = qualidadeHerdada ? qualidadeHerdada.characterSheet : storyMode ? deriveStoryCharacter(prompt) : null // KINEO-QUALIDADE-TODOS-MOTORES-2910
+    const storyCharacter = qualidadeHerdada ? qualidadeHerdada.characterSheet : storyMode ? deriveStoryCharacter(prompt) ?? pessoaPedida : null // KINEO-QUALIDADE-TODOS-MOTORES-2910 // KINEO-PESSOA-DO-PEDIDO-1111 — sem personagem no roteiro, a pessoa do pedido
     const classicVisualMode: VisualMode = tagFacelessPresente ? 'documentary_faceless'
       : formatoVisual.modo === 'presenter' ? 'presenter'
         : storyMode ? 'character_story' : 'documentary_faceless'
@@ -4582,7 +4584,7 @@ async function manipularPost(req: NextRequest) {
 
       // KINEO-FICHA-DO-PEDIDO-2026-09-15 — ensaio do Omni no deploy 0833bdd2: a ficha ia só na 1ª chamada e o plano final
       // vinha de um REPLAN (coerência/duração) sem ela → "25 years old, Hispanic descent". Uma constante, todas as chamadas.
-      const fichaDoPedidoTexto = qualidadeHerdada ? qualidadeHerdada.characterSheet : fichaDoProtagonista(personagemElenco.elenco) ?? deriveExplicitCharacter(prompt) ?? (estrelaAtiva ? fichaDaEstrela(prompt, null) : null) // KINEO-QUALIDADE-TODOS-MOTORES-2910 // KINEO-ESTRELA-DO-FILME-2026-09-29: sem ficha do autor, a da estrela (figurino + continuidade) vai ao planejador
+      const fichaDoPedidoTexto = qualidadeHerdada ? qualidadeHerdada.characterSheet : fichaDoProtagonista(personagemElenco.elenco) ?? deriveExplicitCharacter(prompt) ?? pessoaPedida ?? (estrelaAtiva ? fichaDaEstrela(prompt, null) : null) // KINEO-QUALIDADE-TODOS-MOTORES-2910 // KINEO-ESTRELA-DO-FILME-2026-09-29: sem ficha do autor, a da estrela (figurino + continuidade) vai ao planejador
       let plan: HollywoodPlan
       try {
         plan = await planHollywoodScenes({
