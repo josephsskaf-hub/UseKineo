@@ -22,6 +22,8 @@ import { LLMS_TXT_PATH } from '@/lib/gptHandoff'
 import ClarityTag from '@/components/ClarityTag'
 // KINEO-CONSENTIMENTO-1610 — Google Ads, TikTok e Clarity só montam pelo portão de consentimento (lib/consent.ts).
 import ConsentManager from '@/components/ConsentManager'
+import { withMicrosoftUet } from '@/components/MicrosoftUetTag' // KINEO-MS-UET-1111 — tag UET da Microsoft Ads, pelo mesmo portão de consentimento
+import { msUetTagId } from '@/lib/growth/microsoftUet'
 import { clarityProjectId, KINEO_CLARITY_PROJECT_ID } from '@/lib/clarityTag'
 import './manrope.css'
 import './globals.css'
@@ -37,6 +39,8 @@ const OFFER = getFreeTierOffer()
 // Variável NEXT_PUBLIC_: é embutida no build — pôr o ID na Vercel exige um novo deploy para valer.
 // KINEO-CLARITY-ID-2026-10-12 — sem env, vale o projeto "Kineo" (ID público em lib/clarityTag.ts).
 const CLARITY_ID = clarityProjectId(process.env.NEXT_PUBLIC_CLARITY_ID || KINEO_CLARITY_PROJECT_ID)
+// KINEO-MS-UET-1111 — sem NEXT_PUBLIC_MS_UET_TAG_ID válido = null = o pacote de marketing é o MESMO de antes (lib/growth/microsoftUet.ts).
+const MS_UET_TAG_ID = msUetTagId(process.env.NEXT_PUBLIC_MS_UET_TAG_ID)
 
 // Script coverage for the explicitly selected Hindi UI. No font request to Google
 // from visitors and no eager preload for English/Spanish visits.
@@ -261,7 +265,7 @@ export default function RootLayout({
       {/* [KINEO-TRIAL-SWAP-2026-08-07] — FreeTierOfferProvider envolve TODO o
           conteúdo: é o único caminho pelo qual client components leem a oferta
           do free tier (a env da flag não existe no browser). */}
-      <body><StructuredData /><InterfaceLanguageProvider><AppearanceProvider><FreeTierOfferProvider offer={OFFER}><SourceCapture /><NavClickTelemetry /><CheckoutResumeBanner /><AutopilotPilotResumeBanner /><CheckoutStalledCta />{children}</FreeTierOfferProvider><ConsentManager marketing={marketingTags} clarity={CLARITY_ID ? <ClarityTag projectId={CLARITY_ID} /> : null} /></AppearanceProvider></InterfaceLanguageProvider><Analytics /></body>
+      <body><StructuredData /><InterfaceLanguageProvider><AppearanceProvider><FreeTierOfferProvider offer={OFFER}><SourceCapture /><NavClickTelemetry /><CheckoutResumeBanner /><AutopilotPilotResumeBanner /><CheckoutStalledCta />{children}</FreeTierOfferProvider><ConsentManager marketing={withMicrosoftUet(marketingTags, MS_UET_TAG_ID)} clarity={CLARITY_ID ? <ClarityTag projectId={CLARITY_ID} /> : null} /></AppearanceProvider></InterfaceLanguageProvider><Analytics /></body>
     </html>
   )
 }

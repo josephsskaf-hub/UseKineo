@@ -202,7 +202,8 @@ export default function PrivacyPage() {
                 </li>
                 <li>
                   <strong>Marketing and analytics</strong> (only with your permission where the law requires it):
-                  Google Ads (conversion measurement), TikTok Pixel (ad measurement) and Microsoft Clarity (session
+                  Google Ads (conversion measurement), Microsoft Advertising (conversion measurement, only while we run
+                  Bing ads), TikTok Pixel (ad measurement) and Microsoft Clarity (session
                   recordings and heatmaps; never on sign-in, password or billing pages, and email and password fields
                   are masked).
                 </li>

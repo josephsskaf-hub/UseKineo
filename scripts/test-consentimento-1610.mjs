@@ -148,7 +148,8 @@ function problems(rep = {}) {
     if (fora.includes(marca)) p.push(`B3 ${marca} aparece fora do bloco controlado`)
   }
   if ((layout.match(/\bmarketingTags\b/g) ?? []).length !== 2) p.push('B4 marketingTags usado fora do ConsentManager')
-  if (!layout.includes('<ConsentManager marketing={marketingTags} clarity={CLARITY_ID ? <ClarityTag projectId={CLARITY_ID} /> : null} />')) p.push('B5 ConsentManager não recebe os pixels e o Clarity')
+  // KINEO-MS-UET-1111 — a tag UET da Microsoft entra pelo MESMO pacote (withMicrosoftUet devolve marketingTags intacto sem ID).
+  if (!layout.includes('<ConsentManager marketing={withMicrosoftUet(marketingTags, MS_UET_TAG_ID)} clarity={CLARITY_ID ? <ClarityTag projectId={CLARITY_ID} /> : null} />')) p.push('B5 ConsentManager não recebe os pixels e o Clarity')
   if ((layout.match(/<ClarityTag /g) ?? []).length !== 1) p.push('B5 Clarity montado mais de uma vez')
   if ((layout.match(/<ConsentManager /g) ?? []).length !== 1) p.push('B5 ConsentManager montado ≠ 1 vez')
   const cmAt = layout.indexOf('<ConsentManager ')

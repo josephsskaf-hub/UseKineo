@@ -3,7 +3,11 @@ import { CHECKOUT_SESSION_PATTERN, type VerifiedCheckoutPurchase } from './verif
 export type CheckoutPixelTargets = {
   gtag?: (...args: unknown[]) => void
   ttq?: { track: (...args: unknown[]) => void }
+  uetq?: { push: (...args: unknown[]) => void } // KINEO-MS-UET-1111 — fila da tag UET (só existe com a tag carregada)
 }
+
+/** KINEO-MS-UET-1111 — a ação do evento que a meta "assinou" da Microsoft Ads casa (Custom event, Action = este texto). */
+export const MS_UET_SUBSCRIPTION_EVENT = 'kineo_subscribed'
 type PixelStorage = Pick<Storage, 'getItem' | 'setItem'>
 const dispatched = new Set<string>()
 
@@ -39,4 +43,9 @@ export function dispatchCheckoutPurchasePixels(
     value: purchase.value, currency: purchase.currency, content_type: 'product',
     content_name: purchase.mode === 'subscription' ? 'Kineo subscription' : 'Kineo one-time purchase',
   }, { event_id: purchase.sessionId }) : undefined)
+  // KINEO-MS-UET-1111 — Microsoft Ads: só ASSINATURA paga (avulso não é "assinou"), formato novo do UET
+  // (help.ads.microsoft.com 56956). A UET não tem id de transação: a trava por sessão acima é o que impede contar duas vezes.
+  send('microsoft', purchase.mode === 'subscription' && typeof targets.uetq?.push === 'function' ? () => targets.uetq!.push('event', MS_UET_SUBSCRIPTION_EVENT, {
+    event_category: 'checkout', event_label: 'subscription', revenue_value: purchase.value, currency: purchase.currency,
+  }) : undefined)
 }
