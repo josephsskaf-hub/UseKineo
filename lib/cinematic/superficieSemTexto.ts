@@ -43,7 +43,7 @@ export function comSuperficieSemTexto(prompt: string): string {
 // marcas ilegíveis no mesmo lugar. Quem pede letra de propósito (aspas, "says", logo, marca) passa por comSuperficieDoPedido, que nem chama isto.
 const PEDIDO_DE_TEXTO_RE = /\b(revealing|showing|covered (?:in|with)|filled with|bearing|displaying|with)\s+((?:intricate|ancient|old|handwritten|faded|tiny|elegant|glowing|mysterious|cryptic|sacred|golden|ornate)\s+){0,3}(?:text|texts|writing|writings|words|script|scripture|scriptures|verses?|inscriptions?|calligraphy|handwriting)(?:\s+and\s+(?:symbols|drawings|illustrations|diagrams))?/giu
 export function semTextoPedidoNaSuperficie(prompt: string): string {
-  return String(prompt ?? '').replace(PEDIDO_DE_TEXTO_RE, (_m, verbo: string) => `${verbo} faint marks and symbols too small and soft to read`)
+  return String(prompt ?? '').replace(PEDIDO_DE_TEXTO_RE, (_m, verbo: string) => `${verbo} faint marks too small to read`) // KINEO-PERGAMINHO-CURTO-1111 [CEO 11/11]: era "faint marks and symbols too small and soft to read" — longa demais, cortava a ação do plano do Kling 4 ("illuminated by a warm")
 }
 
 /** As frases das superfícies numa frase só ("The board is… Every screen…."); '' = nenhuma. */

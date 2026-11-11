@@ -40,9 +40,14 @@ function problems(over) {
   try { const load = loader(over); U = load(SUP); K = load('lib/cinematic/cenaKling4.ts'); S = load('lib/cinematic/sceneStyle.ts') } catch (e) { return [`fonte não carrega: ${e.message}`] }
   const cena = U.comSuperficieSemTexto(R.plan[0].prompt)
   no(!/Every page shows only aged texture and faint decorative lines\./.test(cena), '(a) a cena do pergaminho não ganhou a frase da página')
-  no(/revealing intricate text and symbols/.test(cena) || !/revealing faint marks and symbols too small and soft to read/.test(cena), `(a) o pedido de texto ficou → ${cena.slice(0, 260)}`)
+  no(/revealing intricate text and symbols/.test(cena) || !/revealing faint marks too small to read/.test(cena), `(a) o pedido de texto ficou → ${cena.slice(0, 260)}`)
   const plano = K.promptDaCenaKling4(cena, S.deriveStyleAnchor('photorealistic documentary', ', mysterious, cinematic_dark, documentary, consistent color grade across all scenes'), 0, true)
   no(!/Every page shows only aged texture/.test(plano) || /intricate text/.test(plano), `(b) plano do Kling 4 → ${plano}`)
+  // KINEO-PERGAMINHO-CURTO-1111 [CEO 11/11] — a frase sem letra cabe sem cortar a ação: o plano do pergaminho (sem os blocos de "God", como a rota
+  // despacha desde 53f35bdc1) termina a luz inteira, "illuminated by a warm, flickering candlelight" (era cortado em "by a warm").
+  const semDeus = R.plan[0].prompt.replace(/The only person in this shot is the same main character \((?:[^()]|\([^()]*\))*\); any other person described below is replaced by this same character\.\s*/g, '').replace(/\s*The same main character appears in this scene, consistent design: God, exactly as the author wrote:[^\n]*?natural light\./g, '')
+  const plano2 = K.promptDaCenaKling4(U.comSuperficieSemTexto(semDeus), S.deriveStyleAnchor('photorealistic documentary', ', mysterious, cinematic_dark, documentary, consistent color grade across all scenes'), 0, true)
+  no(!/illuminated by a warm, flickering candlelight/.test(plano2), `(b) a ação do pergaminho foi cortada → ${plano2.slice(0, 240)}`)
   no(U.fraseUnicaDeSuperficie('Two old phones on a table, their screens lit.') !== 'Every screen glows with soft abstract light and colour.', '(c) plural de tela não casou')
   no(U.fraseUnicaDeSuperficie('Neon signs above the street at night.') !== 'Every sign is a plain block of colour.', '(c) plural de placa não casou')
   const nada = 'A man walks along the beach at dawn.'
@@ -58,6 +63,7 @@ const sup = read(SUP)
 const MUT = [
   ['M1 o plural volta a escapar', { [SUP]: sup.replace('(?:scrolls?|parchments?|', '(?:scroll|parchment|') }],
   ['M2 o pedido de texto fica', { [SUP]: sup.replace('const semPedido = semTextoPedidoNaSuperficie(prompt)', 'const semPedido = prompt') }],
+  ['M4 a frase sem letra volta a ser longa', { [SUP]: sup.replace('faint marks too small to read`)', 'faint marks and symbols too small and soft to read`)') }],
   ['M3 "letters" vira superfície', { [SUP]: sup.replace('|page|pages|letter|', '|page|pages|letters?|') }],
 ]
 for (const [nome, over] of MUT) {
