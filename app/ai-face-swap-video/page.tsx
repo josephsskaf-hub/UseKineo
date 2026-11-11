@@ -55,9 +55,20 @@ export default function FaceSwapVideoPage() {
   }
   return (
     <div style={{ background: '#050506', minHeight: '100vh', color: '#f5f5f7' }}>
-      <main style={{ maxWidth: 900, margin: '0 auto', padding: '56px 16px 64px', overflowWrap: 'anywhere' }}>
+      {/* KINEO-FACE-SWAP-CABECALHO-1111 [dono 11/11: "verificar as que tiverem ruim você conserta de uma vez"] — a página abria sem logo, sem menu
+          e sem botão na 1ª dobra (parecia quebrada). Cabeçalho das páginas de conteúdo (marca + Made with Kineo + Pricing) e o botão logo
+          abaixo do título: visitante → cadastro → /recreate (o MESMO href da página, recreateSignupHref). */}
+      <nav aria-label="Main navigation" style={{ maxWidth: 900, margin: '0 auto', padding: '0 16px', display: 'flex', alignItems: 'center', gap: 20, minHeight: 68, fontSize: 14 }}>
+        <Link href="/" style={{ fontWeight: 800, fontSize: 21, letterSpacing: '-.03em', textDecoration: 'none', color: '#f5f5f7', marginRight: 'auto' }}>Kineo</Link>
+        <Link href="/made-with-kineo" style={{ color: '#9aa3b2', textDecoration: 'none', fontWeight: 600 }}>Made with Kineo</Link>
+        <Link href="/pricing" style={{ color: '#9aa3b2', textDecoration: 'none', fontWeight: 600 }}>Pricing</Link>
+      </nav>
+      <main style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px 64px', overflowWrap: 'anywhere' }}>
         <p style={{ fontSize: 13, letterSpacing: '.08em', textTransform: 'uppercase', color: '#9aa3b2', margin: '0 0 10px' }}>Kineo Recreate</p>
         <h1 style={{ fontSize: 'clamp(1.8rem,5vw,2.6rem)', lineHeight: 1.15, letterSpacing: '-.02em', margin: '0 0 8px' }}>Put your face in a video with AI</h1>
+        {aberto ? <p style={{ margin: '12px 0 24px' }}>{/* KINEO-FACE-SWAP-CABECALHO-1111 — o botão na 1ª dobra */}
+          <Link href={href} style={{ display: 'inline-block', background: '#3D7BFF', color: '#fff', fontWeight: 700, padding: '13px 22px', borderRadius: 12, textDecoration: 'none' }}>Put my face in a video →</Link>
+        </p> : null}
         <BlocoCitavel1011 bloco={bloco} id="recreate" />
         {/* KINEO-VITRINE-PAGINAS-1011 — os vídeos-base dos formatos aprovados, pela MESMA prévia pública que a home já serve (a rota
             /api/recreate/assets continua só para quem está logado). Só aparece com troca aberta: é o vídeo do catálogo, não um resultado. */}
