@@ -82,7 +82,7 @@ function problems(over) {
   const viz = VV.planosComEscalaVariada(['Photoreal film. A medium shot of a man at his desk' + cauda, 'Photoreal film. Main subject of this shot: a river at dawn, shown in motion' + cauda, 'Photoreal film. A wide shot of the whole city at night' + cauda], [null, null, null])
   no(viz.escalas[1] === 'aberto' || viz.prompts[2] !== 'Photoreal film. A wide shot of the whole city at night' + cauda, `(g) vizinho: ${JSON.stringify(viz.escalas)}`)
   // (e) chave e o pedido de sempre
-  no(VV.KLING4_PLANO_VARIADO !== 'internal' || VV.planoVariadoLigado('internal', false) || !VV.planoVariadoLigado('internal', true), '(e) a chave não é internal')
+  no(VV.KLING4_PLANO_VARIADO !== 'public' || VV.planoVariadoLigado('internal', false) || !VV.planoVariadoLigado('internal', true) || !VV.planoVariadoLigado('public', false) || VV.planoVariadoLigado('off', true), '(e) a chave não está public (aberta pela CEO em 11/11 depois da prova paga = 8,0), ou a regra da chave mudou')
   const desligado = Q.planosPorSecao({ prompts: c2, stills: [null, null, null], falas: R2.plan.map((x) => x.text), secoes: secoes2 })
   no(!desligado || !/This shot shows only this moment: This manifestation is God, not all of God\./.test(desligado.prompts[1]), '(e) desligado, a metade mudou')
   const rota = over[ROTA] ?? read(ROTA)
@@ -92,7 +92,7 @@ function problems(over) {
 const atual = problems({})
 assert.deepEqual(atual, [], `violações:\n  ${atual.join('\n  ')}`)
 let n = 1, falhas = 0
-console.log('ok  estado atual limpo (objeto da seção nas metades, escala diferente de plano a plano, imagem-chave intocada, chave internal)')
+console.log('ok  estado atual limpo (objeto da seção nas metades, escala diferente de plano a plano, imagem-chave intocada, chave public)')
 const v = read(V), qp = read(QP), rota = read(ROTA)
 const MUT = [
   ['M1 saindo do close, a mão vai ao aberto', { [V]: v.replace("return ['medio', 'aberto', 'detalhe']", "return ORDEM") }],
@@ -101,7 +101,7 @@ const MUT = [
   ['M4 a metade volta à fala abstrata', { [QP]: qp.replace('const acao = opcoes.objetoConcreto && norm(secao.pexelsQuery) ?', 'const acao = false ?') }],
   ['M5 sem o teto de 512', { [V]: v.replace('if (Array.from(troca).length <= KLING4_TETO_DO_PLANO) {', 'if (true) {') }],
   ['M6 a cauda ("Mouth closed") conta como rosto', { [V]: v.replace("    .replace(/,?\\s*no readable text[^]*$/u, (m) => ' '.repeat(m.length))\n    .replace(/Mouth closed, no speaking\\.\\s*$/u, (m) => ' '.repeat(m.length))", '') }],
-  ['M7 a chave abre ao público', { [V]: v.replace("export const KLING4_PLANO_VARIADO: ModoPlanoVariado = 'internal'", "export const KLING4_PLANO_VARIADO: ModoPlanoVariado = 'public'") }],
+  ['M7 a chave volta a desligado', { [V]: v.replace("export const KLING4_PLANO_VARIADO: ModoPlanoVariado = 'public'", "export const KLING4_PLANO_VARIADO: ModoPlanoVariado = 'off'") }],
   ['M8 a rota não aplica a escala', { [ROTA]: rota.replace('return kling4PlanoVariado ? { ...r, prompts: planosComEscalaVariada(r.prompts, r.approvedStills).prompts } : r', 'return r') }],
 ]
 for (const [nome, over] of MUT) {

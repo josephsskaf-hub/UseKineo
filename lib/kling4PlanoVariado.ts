@@ -11,7 +11,7 @@
 
 /** off = ninguém · internal = só contas da casa (isInternalEmail) · public = todo filme grátis do Kling 4. */
 export type ModoPlanoVariado = 'off' | 'internal' | 'public'
-export const KLING4_PLANO_VARIADO: ModoPlanoVariado = 'internal' // só a casa até a nota da prova paga (CEO 11/11: "só abro ao público depois da nota")
+export const KLING4_PLANO_VARIADO: ModoPlanoVariado = 'public' // KINEO-K4-PLANO-VARIADO-PUBLICO-1111 [CEO 11/11, régua escrita antes: nota ≥ 8,0 abre] — prova paga do 2120f018 (US$ 2,36): 7,0 (original) → 7,5 (1ª prova) → 8,0 com o plano variado; era 'internal'
 export const KLING4_PLANO_VARIADO_VERSAO = 'plano_variado_1111_v1'
 export const KLING4_TETO_DO_PLANO = 512
 
