@@ -22,6 +22,7 @@ import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage
 import { FOOTER_PRESENTATION_CSS } from '@/lib/ui/footerPresentation'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
 import FooterBusinessLink from '@/components/FooterBusinessLink'
+import AdvertiserIdentity from '@/components/AdvertiserIdentity' // KINEO-GOOGLE-FAXINA-1011 — quem opera a Kineo (lib/legal/advertiser.ts)
 // PROVA-SOCIAL-REAL-2026-07-02 — client badge with real DB counts; self-hides
 // when the numbers are low or the stats API fails, so the footer stays honest.
 import LiveStatsBadge from '@/components/LiveStatsBadge'
@@ -368,10 +369,24 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
           <span aria-hidden style={{ opacity: 0.4 }}>
             ·
           </span>
+          {/* KINEO-GOOGLE-FAXINA-1011 — Support e Refunds no rodapé público (o revisor do Google Ads procura os dois). */}
+          <Link href="/support" style={linkStyle}><UiLabel>
+            Support
+          </UiLabel></Link>
+          <span aria-hidden style={{ opacity: 0.4 }}>
+            ·
+          </span>
+          <Link href="/refund" style={linkStyle}><UiLabel>
+            Refunds
+          </UiLabel></Link>
+          <span aria-hidden style={{ opacity: 0.4 }}>
+            ·
+          </span>
           <a href="mailto:support@usekineo.com" style={linkStyle}><UiLabel>
             Contact
           </UiLabel></a>
         </div>
+        <AdvertiserIdentity style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--muted)' }} />
       </div>
       <style dangerouslySetInnerHTML={{ __html: FOOTER_PRESENTATION_CSS }} />
     </footer>

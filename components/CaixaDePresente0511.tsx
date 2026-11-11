@@ -31,7 +31,9 @@ function RelogioDoAnual({ venceEmMs, aoVencer }: { venceEmMs: number; aoVencer: 
 }
 
 // KINEO-HOME-TOPO-0511 — visitante (a home deslogada): as linhas saem de linhasDoVisitante, sem nenhuma leitura; sem conta, /api/credits só devolveria 401.
-export default function CaixaDePresente0511({ visitante = false, filmeGratisNoPais = false }: { visitante?: boolean; filmeGratisNoPais?: boolean }) {
+// KINEO-GOOGLE-FAXINA-1011 — `filmeGratisNoPais` não é mais lido (a linha do filme é igual para todo país, com a cláusula
+// "in supported countries"). A prop fica aceita só para não mexer em app/KineoLanding.tsx (outro agente); pode sair junto.
+export default function CaixaDePresente0511({ visitante = false }: { visitante?: boolean; filmeGratisNoPais?: boolean }) {
   const [aberta, setAberta] = useState(false)
   const [lendo, setLendo] = useState(false)
   const [linhas, setLinhas] = useState<CaixaLinha[]>([])
@@ -51,7 +53,7 @@ export default function CaixaDePresente0511({ visitante = false, filmeGratisNoPa
   const abrir = () => {
     if (visitante) {
       setAberta(true)
-      setLinhas(linhasDoVisitante(filmeGratisNoPais))
+      setLinhas(linhasDoVisitante())
       return
     }
     pedidoRef.current?.abort()

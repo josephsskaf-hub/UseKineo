@@ -4,6 +4,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
+import AdvertiserIdentity from '@/components/AdvertiserIdentity' // KINEO-GOOGLE-FAXINA-1011
 import { HANDOFF_TTL_DAYS } from '@/lib/gptHandoff'
 // KINEO-CONSENTIMENTO-1610 — o botão da seção de cookies abre o mesmo painel do banner e do rodapé.
 import { PrivacyChoicesLink } from '@/components/ConsentManager'
@@ -238,6 +239,8 @@ export default function PrivacyPage() {
             </a>
             .
           </Section>
+          {/* KINEO-GOOGLE-FAXINA-1011 — quem opera a Kineo, cidade e país (lib/legal/advertiser.ts). */}
+          <AdvertiserIdentity style={{ margin: 0, fontSize: '0.92rem', color: '#CBD5E1' }} />
         </div>
       </main>
       <Footer />

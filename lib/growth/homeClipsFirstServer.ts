@@ -12,6 +12,7 @@ import {
   assignHomeVariant,
   effectiveHomeClipsFirstMode,
   homePreviewVariant,
+  isBotUserAgent,
   normalizeHomeVisitorId,
   type HomeAssignment,
   type HomeClipsFirstMode,
@@ -84,8 +85,9 @@ export function homeVariantStamp(userId: string | null, email?: string | null): 
     return {
       home_ab: HOME_VARIANT_EVENT_VERSION,
       home_visitor_id: visitorId,
-      home_variant: now.reason === 'bot' ? null : now.variant,
-      home_variant_visitor: asVisitor && asVisitor.reason !== 'bot' ? asVisitor.variant : null,
+      // Só medição (KINEO-GOOGLE-FAXINA-1011): robô vê a mesma home, mas o carimbo de funil dele fica vazio, como antes.
+      home_variant: isBotUserAgent(userAgent) ? null : now.variant,
+      home_variant_visitor: asVisitor && !isBotUserAgent(userAgent) ? asVisitor.variant : null,
     }
   } catch {
     return {}

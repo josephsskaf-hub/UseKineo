@@ -23,8 +23,9 @@
 //              URL com kc=1 por JS no clique — não há link na página para o robô seguir. Gente com navegador antigo
 //              (sem Sec-Fetch) paga um clique a mais; nenhuma sessão Stripe é criada sem clique;
 //   · recusa — UA de robô CONHECIDO (affiliateBotReason de lib/affiliateDestinations.ts, o mesmo detector do /a/[code],
-//              KINEO-AFILIADO-DESTINO-1610; UA vazio NÃO entra: proxy corporativo apaga UA) sem as DUAS provas: 403 com a
-//              mesma página — quem se enganou de classe ainda passa clicando no botão.
+//              KINEO-AFILIADO-DESTINO-1610; UA vazio NÃO entra: proxy corporativo apaga UA) sem as DUAS provas: a mesma
+//              página — quem se enganou de classe ainda passa clicando no botão. (Era 403 até KINEO-GOOGLE-FAXINA-1011;
+//              hoje 200 e o mesmo HTML do humano sem prova, para não haver status por user-agent.)
 // Conta logada (cookie sb-…-auth-token) não passa por nada disto: o caminho de hoje, byte a byte.
 // O portão grava dois eventos pelo sink do navegador (só quando o JS roda): checkout_gate_viewed e
 // checkout_gate_continued — a prova, depois do deploy, de quantas pessoas reais o portão segurou.
@@ -156,6 +157,17 @@ export const CHECKOUT_GATE_HEADERS: Readonly<Record<string, string>> = {
   'x-kineo-checkout-gate': CHECKOUT_ROBOT_GATE_VERSION,
 }
 
-export function checkoutGateStatus(decision: CheckoutGateDecision): number {
-  return decision.action === 'refuse_bot' ? 403 : 200
+// KINEO-GOOGLE-FAXINA-1011 [auditoria de cloaking 10/11, achado 7] — o robô conhecido recebia 403 e o navegador sem
+// prova de clique recebia 200 com a MESMA página: era a única diferença de status por user-agent no site. Agora os dois
+// recebem 200 e o MESMO HTML (a página não carrega o nome do robô). A proteção da Stripe NÃO muda: a decisão continua
+// 'refuse_bot' — robô conhecido só passa com as DUAS provas de clique (kc=1 E Sec-Fetch-User ?1), e esta página não
+// cria sessão de pagamento (o botão só navega com kc=1 por JS no clique). A classe do visitante segue medida pelo
+// /api/events (is_bot, lib/requestIdentity.ts), não pela página.
+export function checkoutGateStatus(_decision: CheckoutGateDecision): number {
+  return 200
+}
+
+/** O motivo que vai para a página (telemetria do JS): igual para robô e gente — o HTML não pode variar por user-agent. */
+export function checkoutGatePageReason(decision: CheckoutGateDecision): string {
+  return decision.action === 'pass' ? decision.reason : 'no_click_proof'
 }

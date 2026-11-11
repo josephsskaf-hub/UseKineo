@@ -10,7 +10,7 @@
 //      mesma campanha em 10 s continuam duas pessoas; campanha nomeada só. O carregador lê a navegação dos IPs (5ª leitura).
 //   B. lib/growth/checkoutRobotGate.ts — o portão: robô (UA de Chrome, sem cookie, sem prova de clique) recebe a página e
 //      NÃO chega à rota; clique pelo lançador (kc=1) e clique nativo (Sec-Fetch-User ?1) passam; conta logada passa sem
-//      prova; robô conhecido = 403 (e passa se clicar de verdade); UA vazio = página, nunca 403; pré-carregamento segue para
+//      prova; robô conhecido = a MESMA página com 200 (era 403 até KINEO-GOOGLE-FAXINA-1011; passa se clicar de verdade); UA vazio = página; pré-carregamento segue para
 //      o 204 da rota; POST e outros caminhos intocados. A página não tem link para o checkout nem reflete o pedido; o JS
 //      dela, executado num DOM falso, grava viewed/continued e navega com kc=1 — e essa URL passa no portão.
 //   C. middleware.ts — o portão está ligado ANTES do updateSession (auth) e só no caminho exato.
@@ -269,7 +269,9 @@ async function provaPortao(overrides = {}) {
   if (pedido(gate, { cookies: ['sb-cqqukkvjjrguayiyjvhh-auth-token.0', 'sb-cqqukkvjjrguayiyjvhh-auth-token.1'] }).action !== 'pass') p.push('B3 cookie de login em pedaços não passa')
   if (pedido(gate, { cookies: ['sb-cqqukkvjjrguayiyjvhh-auth-token-code-verifier', 'kineo_event_session_id'] }).action !== 'gate') p.push('B3 code-verifier/cookie de evento foi tratado como login')
   const gbot = pedido(gate, { headers: { 'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' } })
-  if (gbot.action !== 'refuse_bot' || gate.checkoutGateStatus(gbot) !== 403) p.push(`B4 Googlebot: ${JSON.stringify(gbot)} (esperado 403)`)
+  // KINEO-GOOGLE-FAXINA-1011 — robô conhecido continua RECUSADO (não cria sessão), mas com o MESMO status e o MESMO HTML do humano sem prova.
+  if (gbot.action !== 'refuse_bot' || gate.checkoutGateStatus(gbot) !== gate.checkoutGateStatus(robo) || gate.checkoutGateStatus(gbot) !== 200) p.push(`B4 Googlebot: ${JSON.stringify(gbot)} (esperado recusa com 200, igual ao navegador)`)
+  if (gate.checkoutGateHtml(gate.checkoutGatePageReason(gbot)) !== gate.checkoutGateHtml(gate.checkoutGatePageReason(robo))) p.push('B4 a página do robô difere da do navegador sem prova')
   const gsafe = pedido(gate, { headers: { 'user-agent': `${CHROME} Google-Safety` } })
   if (gsafe.action !== 'refuse_bot') p.push(`B4 Google-Safety disfarçado: ${JSON.stringify(gsafe)}`)
   if (pedido(gate, { url: '/api/stripe/checkout?tier=basic&kc=1', headers: { 'user-agent': 'Googlebot/2.1', 'sec-fetch-user': '?1' } }).action !== 'pass') p.push('B4 quem o detector errou não passa nem clicando (kc=1 + ?1)')
@@ -371,7 +373,7 @@ async function provaMiddleware(overrides = {}) {
   const logado = await mw.middleware(req('/api/stripe/checkout?tier=basic', { cookies: { 'sb-cqqukkvjjrguayiyjvhh-auth-token': 'x' } }))
   if (!logado.passou) p.push('C3 a conta logada não chega à rota')
   const bot = await mw.middleware(req('/api/stripe/checkout?tier=basic', { headers: { 'user-agent': 'Googlebot/2.1', host: 'www.usekineo.com' } }))
-  if (bot.status !== 403 || bot.passou) p.push(`C4 robô conhecido: status ${bot.status}`)
+  if (bot.status !== robo.status || bot.status !== 200 || bot.passou || String(bot.body) !== String(robo.body)) p.push(`C4 robô conhecido: status ${bot.status} (esperado o MESMO 200 e o MESMO HTML do navegador sem prova, sem chegar à rota)`)
   if (bot.headers.get('x-robots-tag') !== 'noindex, nofollow') p.push('C4 resposta do portão sem x-robots-tag')
   const head = await mw.middleware(req('/api/stripe/checkout?tier=basic', { method: 'HEAD' }))
   if (head.passou || head.body !== null) p.push('C5 HEAD sem prova passou ou levou corpo')
@@ -437,6 +439,9 @@ const MUTANTES = [
   ['M14 a página escreve o link do checkout', provaPortao, troca(GATE, '<p style="margin-top:18px;font-size:.85rem">or <a href="/pricing">see all plans</a></p>', '<p style="margin-top:18px;font-size:.85rem">or <a href="/api/stripe/checkout?tier=basic&kc=1">continue</a></p>')],
   ['M15 o JS da página navega sem a marca', provaPortao, troca(GATE, "    location.href=location.pathname+q+${JSON.stringify(`${CHECKOUT_CLICK_PARAM}=${CHECKOUT_CLICK_VALUE}`)};", "    location.href=location.pathname+location.search;")],
   ['M16 middleware sem o portão', provaMiddleware, troca(MW, "  if (request.nextUrl.pathname === '/api/stripe/checkout') {\n    const gate", "  if (request.nextUrl.pathname === '/api/stripe/checkout/__off') {\n    const gate")],
+  ['M18 robô volta a levar 403', provaPortao, troca(GATE, '  return 200\n}', "  return _decision.action === 'refuse_bot' ? 403 : 200\n}")],
+  ['M19 página do robô carrega o nome dele', provaPortao, troca(GATE, "  return decision.action === 'pass' ? decision.reason : 'no_click_proof'", '  return decision.reason')],
+  ['M20 middleware volta a pôr o motivo cru na página', provaMiddleware, troca(MW, 'checkoutGateHtml(checkoutGatePageReason(gate))', 'checkoutGateHtml(gate.reason)')],
   ['M17 lançador navega sem a marca', provaLancador, troca(LAUNCH, '        url = withCheckoutClickMark(url)\n', '')],
 ]
 for (const [label, prova, mutar] of MUTANTES) {

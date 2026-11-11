@@ -59,18 +59,18 @@ function problemas(mut = {}) {
     && direita.indexOf('<CaixaDePresente0511') < direita.indexOf('nav-login')
     && direita.indexOf('<CaixaDePresente0511') < direita.indexOf('<NavCreditsBadge'))
   checa('nada do presente dentro do .nav-cta', !direita.slice(direita.indexOf('className="nav-cta"')).includes('CaixaDePresente0511'))
-  checa('a home lê o país com a régua que concede o crédito', fonte(F.pagina).includes("freeFilmInCountry={filmeGratisPermitido(headers().get('x-vercel-ip-country'))}"))
+  // KINEO-GOOGLE-FAXINA-1011 — a caixa do visitante é IGUAL para todo país (com a cláusula); a home não lê mais o país do IP.
+  checa('a home NÃO lê o país do IP', !fonte(F.pagina).includes("headers().get('x-vercel-ip-country')") && !fonte(F.pagina).includes('freeFilmInCountry='))
   checa('sem o dado do país, a caixa não promete', home.includes('freeFilmInCountry = false'))
   const R = load(F.regra)
   const { filmeGratisPermitido } = load('lib/freeFilmPolicy.ts')
   const { TRIAL_FREE_FILM_SECONDS } = load('lib/freeTierOffer.ts')
   const ids = (l) => l.map((x) => x.id).join()
-  const comFilme = R.linhasDoVisitante(true)
-  const semFilme = R.linhasDoVisitante(false)
-  checa('visitante de país com grátis: filme, conector e afiliado', ids(comFilme) === 'filme,claude,chatgpt,afiliado') // KINEO-PRESENTE-CONECTOR-0911
-  checa('visitante de país sem grátis: só o conector e o afiliado', ids(semFilme) === 'claude,chatgpt,afiliado')
-  checa('país fora da lista não recebe a promessa', filmeGratisPermitido('IN') === false && ids(R.linhasDoVisitante(filmeGratisPermitido('IN'))) === 'claude,chatgpt,afiliado')
-  checa('país da lista recebe', filmeGratisPermitido('US') === true && ids(R.linhasDoVisitante(filmeGratisPermitido('US'))) === 'filme,claude,chatgpt,afiliado')
+  const comFilme = R.linhasDoVisitante()
+  const { FREE_FILM_COUNTRY_CLAUSE } = load('lib/freeFilmPolicy.ts')
+  checa('visitante (qualquer país): filme, conector e afiliado', ids(comFilme) === 'filme,claude,chatgpt,afiliado') // KINEO-PRESENTE-CONECTOR-0911
+  checa('a linha não depende do argumento antigo (país)', ids(R.linhasDoVisitante(false)) === ids(R.linhasDoVisitante(true)) && R.linhasDoVisitante(false)[0].titulo === R.linhasDoVisitante(true)[0].titulo)
+  checa('a linha leva a cláusula do país, enquanto a régua de país valer', filmeGratisPermitido('IN') === false && FREE_FILM_COUNTRY_CLAUSE === ' in supported countries' && comFilme[0]?.titulo === 'Your first film is free in supported countries')
   checa('a linha do filme diz a duração que cobra', comFilme[0]?.detalhe === `${TRIAL_FREE_FILM_SECONDS} s, no card`)
   checa('a linha do filme abre o cadastro no modal', comFilme[0]?.href.startsWith('/signup') && comFilme[0]?.modal === 'signup' && fonte(F.caixa).includes('data-auth-modal={linha.modal}'))
   const texto = comFilme.flatMap((l) => [l.titulo, l.detalhe ?? '']).join(' ')
@@ -117,8 +117,9 @@ const MUTANTES = {
   'o presente some da home': troca(F.home, '<CaixaDePresente0511 visitante={!initialUser} filmeGratisNoPais={freeFilmInCountry} />', ''),
   'o presente entra no .nav-cta e some no celular': troca(F.home, '<div className="nav-cta"><NavCreditsBadge />', '<div className="nav-cta"><CaixaDePresente0511 /><NavCreditsBadge />'),
   'visitante tratado como conta': troca(F.home, 'visitante={!initialUser}', 'visitante={false}'),
-  'filme grátis para qualquer país': troca(F.regra, 'if (filmeGratisNoPais) linhas.push', 'linhas.push'),
-  'a home promete sem ler o país': troca(F.pagina, "filmeGratisPermitido(headers().get('x-vercel-ip-country'))", 'true'),
+  'a linha perde a cláusula do país': troca(F.regra, 'Your first film is free${FREE_FILM_COUNTRY_CLAUSE}`', 'Your first film is free`'),
+  'a linha volta a depender do país': troca(F.regra, "  const linhas: CaixaLinha[] = [{ id: 'filme',", "  const linhas: CaixaLinha[] = arguments[0] === false ? [] : [{ id: 'filme',"),
+  'a home volta a ler o país': troca(F.pagina, '        initialUser={user ? { id: user.id } : null}\n', "        initialUser={user ? { id: user.id } : null}\n        freeFilmInCountry={filmeGratisPermitido(headers().get('x-vercel-ip-country'))}\n"),
   'visitante vê oferta do anual': troca(F.regra, 'return [...linhas, ...linhasDaCaixa(CAIXA_SEM_LEITURA, 0)]', "return [...linhas, { id: 'anual', titulo: 'Your annual offer', href: '/pricing' }, ...linhasDaCaixa(CAIXA_SEM_LEITURA, 0)]"),
   'visitante vai à rede': troca(F.caixa, 'if (visitante) {', 'if (false) {'),
   'a porta com 11 filmes': troca(F.porta, "  'a09706da-a79f-4029-b213-69f43d6a2775', // a Ilha de Páscoa\n", ''),

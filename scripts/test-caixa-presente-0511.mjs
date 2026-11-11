@@ -356,7 +356,7 @@ async function problemas(mut = {}) {
   for (const [nome, leituras] of Object.entries({ 'conta em teste': { credits: creditsTeste }, 'conta que pagou': { credits: { ...creditsTeste, hasPaid: true } }, 'país sem grátis': { credits: corpoCredits(regiao) }, 'tudo cheio': lidas })) {
     checa(`conector: ${nome} vê as duas linhas, antes do afiliado`, ids(R.linhasDaCaixa({ ...R.CAIXA_SEM_LEITURA, ...leituras }, T0)).endsWith('claude,chatgpt,afiliado'))
   }
-  checa('conector: o visitante também vê (a página é pública)', ids(R.linhasDoVisitante(false)) === 'claude,chatgpt,afiliado' && ids(R.linhasDoVisitante(true)) === 'filme,claude,chatgpt,afiliado')
+  checa('conector: o visitante também vê (a página é pública)', ids(R.linhasDoVisitante()) === 'filme,claude,chatgpt,afiliado') // KINEO-GOOGLE-FAXINA-1011 — a linha do filme é igual para todo país
   const dic = JSON.parse(fonte(F.traducao))
   for (const lingua of ['es', 'pt', 'fr', 'de']) {
     const faltam = conector(soAfiliado).flatMap((l) => [l.titulo, l.detalhe, l.acao]).filter((s) => typeof dic[lingua]?.[s] !== 'string' || !dic[lingua][s].trim())

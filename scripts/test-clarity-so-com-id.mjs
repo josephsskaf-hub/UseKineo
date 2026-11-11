@@ -28,7 +28,7 @@ const MASKED = [
   'app/(auth)/reset-password/page.tsx',
   'components/AuthModal.tsx',
   'app/ai-shorts-for-agencies/AgencyBriefClient.tsx',
-  'app/coming-soon/page.tsx',
+  // 'app/coming-soon/page.tsx' saiu: a página foi apagada (KINEO-GOOGLE-FAXINA-1011, /coming-soon → 308 para a home).
   'app/(dashboard)/ads/team/TeamClient.tsx',
 ]
 const SRC = Object.fromEntries([LIB, TAG, LAYOUT, ...MASKED].map((rel) => [rel, read(rel)]))

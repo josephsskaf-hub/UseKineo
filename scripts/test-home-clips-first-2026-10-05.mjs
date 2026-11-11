@@ -125,8 +125,10 @@ function problems(Mx) {
     for (const mode of ['ab50', 'all', 'off']) {
       for (const ua of BOTS) {
         for (const id of ids.slice(0, 40)) {
+          // KINEO-GOOGLE-FAXINA-1011 — robô vê a MESMA variante que gente com o mesmo id (sem cloaking); só não gera evento.
           const a = Mx.assignHomeVariant({ mode, userId: id, visitorId: id, userAgent: ua })
-          if (a.variant !== 'control' || a.expose) { p.push(`robô viu a variante/gerou evento (${mode}): ${ua.slice(0, 40) || '(UA vazio)'}`); break }
+          const gente = Mx.assignHomeVariant({ mode, userId: id, visitorId: id, userAgent: HUMAN })
+          if (a.variant !== gente.variant || a.expose) { p.push(`robô viu home diferente de gente/gerou evento (${mode}): ${ua.slice(0, 40) || '(UA vazio)'}`); break }
         }
       }
     }
@@ -160,7 +162,7 @@ function problems(Mx) {
     if (!Mx.shouldMintHomeVisitorCookie({ ...base, mode: 'ab50', existing: 'lixo' })) p.push('cookie adulterado não é substituído')
     if (Mx.shouldMintHomeVisitorCookie({ ...base, mode: 'ab50', pathname: '/pricing' })) p.push('cria cookie fora da home')
     if (Mx.shouldMintHomeVisitorCookie({ ...base, mode: 'ab50', method: 'POST' })) p.push('cria cookie em POST')
-    if (Mx.shouldMintHomeVisitorCookie({ ...base, mode: 'ab50', userAgent: BOTS[0] })) p.push('robô ganha cookie')
+    if (!Mx.shouldMintHomeVisitorCookie({ ...base, mode: 'ab50', userAgent: BOTS[0] })) p.push('robô não ganha cookie (1ª visita do robô cairia sempre na home atual — KINEO-GOOGLE-FAXINA-1011)')
   } catch (e) { p.push('cookie lançou: ' + e.message) }
   // (6) trava dos clipes
   try {
@@ -304,7 +306,10 @@ ok(filmIds.length === 3 && filmIds.every((id) => exists(`public/previews/ex-${id
 // ── (11) mutantes
 const mutants = [
   ['off ignorado', (s) => s.replace("if (mode !== 'ab50' && mode !== 'all') {\n    return { variant: 'control'", "if (false) {\n    return { variant: 'control'")],
-  ['robô sorteado', (s) => s.replace('if (isBotUserAgent(input.userAgent)) {\n    return', 'if (false) {\n    return')],
+  // KINEO-GOOGLE-FAXINA-1011 — os mutantes agora provam o contrário do de 05/10: robô com home própria = vermelho.
+  ['robô volta a ver só a home atual', (s) => s.replace("const variant: HomeVariant = homeBucket(assignmentId) < HOME_CLIPS_FIRST_SHARE ? 'clips_first' : 'control'", "const variant: HomeVariant = robo ? 'control' : homeBucket(assignmentId) < HOME_CLIPS_FIRST_SHARE ? 'clips_first' : 'control'")],
+  ['robô gera evento', (s) => s.split('expose: !robo }').join('expose: true }')],
+  ['robô sem cookie', (s) => s.replace("  if (input.pathname !== '/' || input.method.toUpperCase() !== 'GET') return false\n  return", "  if (input.pathname !== '/' || input.method.toUpperCase() !== 'GET') return false\n  if (isBotUserAgent(input.userAgent)) return false\n  return")],
   ['fatia 90%', (s) => s.replace('HOME_CLIPS_FIRST_SHARE = 5_000', 'HOME_CLIPS_FIRST_SHARE = 9_000')],
   ['hash aleatório', (s) => s.replace('return h >>> 0', 'return (Math.random() * 4294967296) >>> 0')],
   ['balde pelo bit baixo do FNV, sem finalizador', (s) => s.replace('h ^= h >>> 16\n  h = Math.imul(h, 0x85ebca6b)\n  h ^= h >>> 13\n  h = Math.imul(h, 0xc2b2ae35)\n  h ^= h >>> 16\n', '').replace('% HOME_BUCKETS', '% 2 * 5000')],

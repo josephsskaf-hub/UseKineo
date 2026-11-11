@@ -9,6 +9,7 @@ import TrustActions from './TrustActions'
 // (lib/ads/team.ts). E o Studio Ads já tem link privado de aprovação do cliente (lib/ads/v2PostDelivery.ts), então a
 // negação de "client approval portal" também saiu. Fica o que segue verdadeiro: nada de white-label nem de SSO.
 import { BUSINESS_SEATS } from '@/lib/ads/team'
+import { ADVERTISER_LOCATION, ADVERTISER_OPERATOR, ADVERTISER_SUPPORT_EMAIL } from '@/lib/legal/advertiser' // KINEO-GOOGLE-FAXINA-1011
 
 const BASE = 'https://www.usekineo.com'
 const CANONICAL = `${BASE}/trust`
@@ -38,8 +39,10 @@ const FACTS = [
   {
     eyebrow: 'Operator',
     title: 'A real founder, reachable directly',
-    body: 'Kineo is an independent software product built and operated by Joseph Skaf. Product and account questions go to support@usekineo.com — not an anonymous ticket marketplace.',
-    link: { href: 'mailto:support@usekineo.com?subject=Question%20about%20Kineo', label: 'Email support@usekineo.com' },
+    // KINEO-GOOGLE-FAXINA-1011 — nome, cidade e e-mail vêm da fonte única (lib/legal/advertiser.ts), iguais ao perfil de
+    // pagamentos do Google Ads. O /about faz 308 para cá.
+    body: `Kineo is an independent software product built and operated by ${ADVERTISER_OPERATOR} (${ADVERTISER_LOCATION}). Product and account questions go to ${ADVERTISER_SUPPORT_EMAIL} — not an anonymous ticket marketplace.`,
+    link: { href: `mailto:${ADVERTISER_SUPPORT_EMAIL}?subject=Question%20about%20Kineo`, label: `Email ${ADVERTISER_SUPPORT_EMAIL}` },
   },
   {
     eyebrow: 'Payments',
@@ -111,7 +114,7 @@ export default function TrustPage() {
         '@type': 'Organization',
         name: 'Kineo',
         url: BASE,
-        founder: { '@type': 'Person', name: 'Joseph Skaf' },
+        founder: { '@type': 'Person', name: ADVERTISER_OPERATOR },
         email: 'support@usekineo.com',
       },
     },
@@ -169,7 +172,7 @@ export default function TrustPage() {
             <div style={{ display: 'grid', gap: 11, marginTop: 18 }}>
               {[
                 ['Canonical site', 'www.usekineo.com'],
-                ['Founder', 'Joseph Skaf'],
+                ['Founder', ADVERTISER_OPERATOR],
                 ['Support', 'support@usekineo.com'],
                 ['Payments', 'Stripe-hosted checkout'],
                 ['Customer videos', 'Private by default'],

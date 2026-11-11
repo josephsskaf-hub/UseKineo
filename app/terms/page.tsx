@@ -4,6 +4,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
+import AdvertiserIdentity from '@/components/AdvertiserIdentity' // KINEO-GOOGLE-FAXINA-1011
 import { ANNUAL_REFUND_POLICY } from '@/lib/checkoutPricing' // KINEO-ANUAL-40OFF-2026-10-05
 
 export const metadata: Metadata = {
@@ -137,8 +138,14 @@ export default function TermsPage() {
             >
               support@usekineo.com
             </a>
+            . Refund requests: see the{' '}
+            <Link href="/refund" style={{ color: '#2997ff', textDecoration: 'none' }}>
+              refund policy
+            </Link>
             .
           </Section>
+          {/* KINEO-GOOGLE-FAXINA-1011 — quem opera a Kineo, cidade e país (lib/legal/advertiser.ts). */}
+          <AdvertiserIdentity style={{ margin: 0, fontSize: '0.92rem', color: '#CBD5E1' }} />
         </div>
       </main>
       <Footer />

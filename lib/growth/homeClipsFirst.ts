@@ -10,6 +10,8 @@
 //   'ab50' → metade das PESSOAS vê clips_first; robô sempre vê control (a página que o Google indexa continua a atual).
 //   'all'  → toda pessoa vê clips_first; robô continua em control até o fundador decidir que a variante VIRA a home
 //            indexada (aí a regra do robô sai junto com o FAQ/metadata portados — ver relatório de 05/10).
+//   KINEO-GOOGLE-FAXINA-1011: a regra do robô SAIU (as duas linhas acima são histórico). Robô e gente caem na mesma regra;
+//   o user-agent só decide se a exposição é contada.
 //
 // A ATRIBUIÇÃO: hash DETERMINÍSTICO (FNV-1a 32 + finalizador murmur3) de `${HOME_AB_SALT}:${id}` → balde 0..9999;
 // balde < 5000 = clips_first. id = user_id quando logado; senão o cookie first-party httpOnly `kineo_vid` (180 dias,
@@ -107,13 +109,13 @@ export interface HomeAssignment {
   /** O id usado no hash (user_id ou kineo_vid). */
   assignmentId: string | null
   mode: HomeClipsFirstMode
-  reason: 'off' | 'bot' | 'no_id' | 'ab50' | 'all'
-  /** Grava home_variant_exposed? (só pessoa de verdade, com o interruptor ligado). */
+  reason: 'off' | 'no_id' | 'ab50' | 'all'
+  /** Grava home_variant_exposed? (só pessoa de verdade, com o interruptor ligado). Robô vê a mesma variante, só não conta. */
   expose: boolean
 }
 
 /**
- * A regra inteira. Ordem: off → robô → all → ab50 por user_id (logado) → ab50 por kineo_vid → sem id = control.
+ * A regra inteira. Ordem: off → all → ab50 por user_id (logado) → ab50 por kineo_vid → sem id = control. Igual para robô e gente.
  * 'all' também carrega o id (quando há) para o evento ligar a pessoa ao funil.
  */
 export function assignHomeVariant(input: HomeAssignmentInput): HomeAssignment {
@@ -121,22 +123,23 @@ export function assignHomeVariant(input: HomeAssignmentInput): HomeAssignment {
   if (mode !== 'ab50' && mode !== 'all') {
     return { variant: 'control', assignment: null, assignmentId: null, mode: 'off', reason: 'off', expose: false }
   }
-  if (isBotUserAgent(input.userAgent)) {
-    return { variant: 'control', assignment: null, assignmentId: null, mode, reason: 'bot', expose: false }
-  }
+  // KINEO-GOOGLE-FAXINA-1011 [auditoria de cloaking 10/11] — robô NÃO tem mais home própria: entra na MESMA regra que
+  // gente (o Google aceita A/B desde que o Googlebot seja tratado como qualquer visitante). O user-agent só decide a
+  // MEDIÇÃO: robô não grava home_variant_exposed.
+  const robo = isBotUserAgent(input.userAgent)
   const userId = normalizeHomeVisitorId(input.userId)
   const visitorId = normalizeHomeVisitorId(input.visitorId)
   const assignment: HomeAssignmentKind | null = userId ? 'user' : visitorId ? 'visitor' : null
   const assignmentId = userId ?? visitorId
   if (mode === 'all') {
-    return { variant: 'clips_first', assignment, assignmentId, mode, reason: 'all', expose: true }
+    return { variant: 'clips_first', assignment, assignmentId, mode, reason: 'all', expose: !robo }
   }
   if (!assignmentId) {
     // Cookie bloqueado/ausente: sem id estável não há sorteio honesto — home atual, sem evento.
     return { variant: 'control', assignment: null, assignmentId: null, mode, reason: 'no_id', expose: false }
   }
   const variant: HomeVariant = homeBucket(assignmentId) < HOME_CLIPS_FIRST_SHARE ? 'clips_first' : 'control'
-  return { variant, assignment, assignmentId, mode, reason: 'ab50', expose: true }
+  return { variant, assignment, assignmentId, mode, reason: 'ab50', expose: !robo }
 }
 
 /**
@@ -155,8 +158,9 @@ export function effectiveHomeClipsFirstMode(
 }
 
 /**
- * O middleware cria o `kineo_vid`? Só na HOME ('/'), só GET, só com o interruptor ligado, só para gente (robô não ganha
- * cookie) e só se ainda não existe um válido. Com 'off' nada muda — nem cookie.
+ * O middleware cria o `kineo_vid`? Só na HOME ('/'), só GET, só com o interruptor ligado e só se ainda não existe um
+ * válido. Com 'off' nada muda — nem cookie. KINEO-GOOGLE-FAXINA-1011: robô ganha cookie como gente (sem isso a 1ª visita
+ * do robô caía sempre na home atual e a de gente era sorteada — diferença por user-agent).
  */
 export function shouldMintHomeVisitorCookie(input: {
   mode?: HomeClipsFirstMode
@@ -168,7 +172,6 @@ export function shouldMintHomeVisitorCookie(input: {
   const mode = input.mode ?? HOME_CLIPS_FIRST
   if (mode !== 'ab50' && mode !== 'all') return false
   if (input.pathname !== '/' || input.method.toUpperCase() !== 'GET') return false
-  if (isBotUserAgent(input.userAgent)) return false
   return normalizeHomeVisitorId(input.existing) === null
 }
 

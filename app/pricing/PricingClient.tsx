@@ -24,6 +24,7 @@ import { PLAN_SWITCH_EMPTY, fetchPlanSwitchState, planSwitchConfirmText, planSwi
 import { confirmAndSwitchBusiness, type PlanSwitchTier } from '@/lib/growth/planSwitch' // KINEO-TROCA-BUSINESS-2026-10-10
 import { S25_PUBLIC, AVATAR_PUBLIC } from '@/lib/engineLaunch' // KINEO-AVATAR-FORA-2026-09-28
 import Link from 'next/link'
+import AdvertiserIdentity from '@/components/AdvertiserIdentity' // KINEO-GOOGLE-FAXINA-1011 — quem opera a Kineo (lib/legal/advertiser.ts)
 import React, { useEffect, useRef, useState } from 'react'
 import { trackCheckoutClick } from '@/lib/trackClick'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
@@ -2220,8 +2221,14 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
           <span aria-hidden className="text-[11.5px] text-[var(--muted)] opacity-40">·</span>
           <Link href="/privacy" className="text-[11.5px] font-medium text-[var(--muted)] hover:text-[var(--text)]">Privacy Policy</Link>
           <span aria-hidden className="text-[11.5px] text-[var(--muted)] opacity-40">·</span>
+          {/* KINEO-GOOGLE-FAXINA-1011 — Support e Refunds também no rodapé do /pricing (ele não usa o Footer global). */}
+          <Link href="/support" className="text-[11.5px] font-medium text-[var(--muted)] hover:text-[var(--text)]">Support</Link>
+          <span aria-hidden className="text-[11.5px] text-[var(--muted)] opacity-40">·</span>
+          <Link href="/refund" className="text-[11.5px] font-medium text-[var(--muted)] hover:text-[var(--text)]">Refunds</Link>
+          <span aria-hidden className="text-[11.5px] text-[var(--muted)] opacity-40">·</span>
           <a href="mailto:support@usekineo.com" className="text-[11.5px] font-medium text-[var(--muted)] hover:text-[var(--text)]">Contact</a>
         </div>
+        <AdvertiserIdentity className="px-4 pb-6 text-center text-[11.5px] text-[var(--muted)]" />
       </footer>
     </div>
   )

@@ -9,6 +9,7 @@ import {
 import {
   CHECKOUT_GATE_HEADERS,
   checkoutGateHtml,
+  checkoutGatePageReason,
   checkoutGateStatus,
   decideCheckoutGate,
 } from '@/lib/growth/checkoutRobotGate' // KINEO-CHECKOUT-ROBO-1510
@@ -77,8 +78,9 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
 
   // KINEO-CHECKOUT-ROBO-1510 — sessão da Stripe só nasce de clique de gente. Compra sem conta (sem cookie de login)
   // em GET /api/stripe/checkout sem prova de clique (Sec-Fetch-User ?1 ou kc=1 do lançador) recebe a página leve
-  // "Continue to secure checkout" em vez de criar a sessão; UA de robô conhecido recebe 403 com a mesma página. Conta
-  // logada, POST e qualquer outro caminho seguem como antes. Regra e porquê: lib/growth/checkoutRobotGate.ts.
+  // "Continue to secure checkout" em vez de criar a sessão; UA de robô conhecido recebe a MESMA página com o MESMO 200
+  // (KINEO-GOOGLE-FAXINA-1011: era 403) e continua sem sessão da Stripe. Conta logada, POST e qualquer outro caminho
+  // seguem como antes. Regra e porquê: lib/growth/checkoutRobotGate.ts.
   if (request.nextUrl.pathname === '/api/stripe/checkout') {
     const gate = decideCheckoutGate({
       method: request.method,
@@ -88,7 +90,7 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
       cookieNames: request.cookies.getAll().map((c) => c.name),
     })
     if (gate.action !== 'pass') {
-      return new NextResponse(request.method.toUpperCase() === 'HEAD' ? null : checkoutGateHtml(gate.reason), {
+      return new NextResponse(request.method.toUpperCase() === 'HEAD' ? null : checkoutGateHtml(checkoutGatePageReason(gate)), {
         status: checkoutGateStatus(gate),
         headers: CHECKOUT_GATE_HEADERS,
       })

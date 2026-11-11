@@ -143,6 +143,11 @@ const nextConfig = {
         permanent: true,
       },
       { source: '/auth.html', destination: '/login', permanent: true },
+      // KINEO-GOOGLE-FAXINA-1011 — a página "em breve" (relíquia do portão NEXT_PUBLIC_COMING_SOON, removido em 18/06) foi
+      // apagada: o produto já vende, e página "em construção" é motivo de reprovação no Google Ads. 308 para a home.
+      { source: '/coming-soon', destination: '/', permanent: true },
+      // KINEO-GOOGLE-FAXINA-1011 — /about dava 404. Quem opera a Kineo, contato e reembolso já estão no /trust.
+      { source: '/about', destination: '/trust', permanent: true },
       // KINEO-LINKS-BIO-2910 — links curtos da bio (fundador 29/10: rastrear sem 'nome feio'). 302 para poder trocar o destino;
       // a home grava utm_source/utm_medium no cadastro (signup_utm_source), como já faz com o ChatGPT.
       { source: '/ig', destination: '/?utm_source=instagram&utm_medium=bio', permanent: false },

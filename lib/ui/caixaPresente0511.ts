@@ -15,6 +15,7 @@ import { MONTHLY_FIRST_MONTH_OFFER_KIND, MONTHLY_FIRST_MONTH_PERCENT_OFF } from 
 import { LINHA_DO_FILME_GRATIS, filmeGratisNaCaixa } from '@/lib/growth/filmeGratisNaCaixa'
 import { KLING4_PAID_COPY, kling4PromoZeroCredits, rebaseKling4Lease } from '@/lib/kling4PaidPresentation'
 import { TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOffer' // KINEO-HOME-TOPO-0511
+import { FREE_FILM_COUNTRY_CLAUSE } from '@/lib/freeFilmPolicy' // KINEO-GOOGLE-FAXINA-1011
 import { GENERATE_IN_CLAUDE_PATH } from '@/lib/generateInClaude' // KINEO-PRESENTE-CONECTOR-0911
 import { createEntryHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — a linha do filme grátis abre a aba Film
 
@@ -104,11 +105,15 @@ export function linhasDaCaixa(l: CaixaLeituras, agoraMs: number): CaixaLinha[] {
 
 // KINEO-HOME-TOPO-0511 [fundador 05/11: "cadê o presentinho?"] — quem não tem conta não tem saldo, plano nem relógio para ler: nenhuma pergunta à rede, nenhum preço, nenhuma promoção (regra sem-card-de-promo-0411).
 // Só o que vale para qualquer visitante: o filme grátis, se o país dele recebe (a mesma régua que concede o crédito no cadastro), e o programa de afiliados.
-export const LINHA_GRATIS_DO_VISITANTE = 'Your first film is free'
+// KINEO-GOOGLE-FAXINA-1011 [auditoria de cloaking 10/11, achado 8] — a linha aparecia ou sumia conforme o país do IP
+// (x-vercel-ip-country): conteúdo diferente por localização. Agora é a MESMA para todo visitante, com a cláusula que o
+// resto do site já usa (FREE_FILM_COUNTRY_CLAUSE, derivada da política: some sozinha se a política virar 'todos').
+// Quem concede o crédito continua sendo o cadastro (lib/reverseTrial.ts), com a lista de países de sempre.
+export const LINHA_GRATIS_DO_VISITANTE = `Your first film is free${FREE_FILM_COUNTRY_CLAUSE}`
 
-export function linhasDoVisitante(filmeGratisNoPais: boolean): CaixaLinha[] {
-  const linhas: CaixaLinha[] = []
-  if (filmeGratisNoPais) linhas.push({ id: 'filme', titulo: LINHA_GRATIS_DO_VISITANTE, detalhe: `${TRIAL_FREE_FILM_SECONDS} s, no card`, href: '/signup?utm_source=gift_box', modal: 'signup' })
+/** As linhas do visitante: iguais para todo país (o país do IP não entra mais aqui). */
+export function linhasDoVisitante(): CaixaLinha[] {
+  const linhas: CaixaLinha[] = [{ id: 'filme', titulo: LINHA_GRATIS_DO_VISITANTE, detalhe: `${TRIAL_FREE_FILM_SECONDS} s, no card`, href: '/signup?utm_source=gift_box', modal: 'signup' }]
   return [...linhas, ...linhasDaCaixa(CAIXA_SEM_LEITURA, 0)] // sem leitura nenhuma, sobram as linhas do conector e a do afiliado
 }
 

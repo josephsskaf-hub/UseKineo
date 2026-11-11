@@ -22,7 +22,8 @@ const promoUntil = new Date(Date.parse(KLING4_PROMO_SIGNUP_CUTOFF) - 1).toLocale
 const starterPrice = formatCheckoutMoney('usd', TIER_PRICES.starter.usd)
 const noCard = CARD_ENTRY_ONLY ? '' : ', no credit card'
 
-const title = freeFilmIsKling4 ? 'Kling 4.0 free when your story fits 15 s | Kineo' : 'Try Kling 4.0 — AI films and ads | Kineo' // KINEO-K4-NARRACAO-CABE-0111
+// KINEO-GOOGLE-FAXINA-1011 — o título dizia "free" sem a cláusula de país (a descrição já a tinha): agora os dois dizem.
+const title = freeFilmIsKling4 ? `Kling 4.0 free${GRANT_COUNTRY_CLAUSE} when your story fits 15 s | Kineo` : 'Try Kling 4.0 — AI films and ads | Kineo' // KINEO-K4-NARRACAO-CABE-0111
 const description = freeFilmIsKling4
   ? `Your first ${TRIAL_FREE_FILM_SECONDS}-second film is free on Kling 4.0${GRANT_COUNTRY_CLAUSE}${FREE_FILM_FITS_CLAUSE}${noCard}. Kineo directs the scenes and adds narration, captions and music.`
   : 'Create Kling 4.0 films and ads in Kineo with your narration, captions and music.'
