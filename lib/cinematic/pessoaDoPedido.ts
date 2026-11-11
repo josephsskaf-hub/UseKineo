@@ -161,15 +161,18 @@ export function formatoComPessoaDoPedido(decisao: DecisaoFormato, pessoa: string
 // the boy finds the wooden box." nas 4 cenas = REPETICAO). Agora, só o que é LUZ:
 //   (a) frase cujo ASSUNTO é a luz — o sujeito é luz/sol/iluminação ("Natural sunlight enters through large glass windows", "Soft warm light
 //       fills the room", "Lighting: golden hour") — vai inteira (3 a 20 palavras);
-//   (b) senão, a expressão de luz de dentro de uma frase de ação, sozinha: "at sunset", "at night", "under neon lights", "in the morning
-//       sunlight", "soft natural daylight" (em "Use soft natural daylight, realistic skin texture…") — nunca a frase com sujeito e verbo;
+//   (b) senão, a expressão de luz de uma frase de DIREÇÃO de filmagem (começa com Use / Shot / Filmed / Lit / Lighting / Style / Look:
+//       "soft natural daylight" em "Use soft natural daylight, realistic skin texture…"); em frase de AÇÃO ("At sunset, the boy finds the
+//       box", "the boy goes to school, and at night finds the box") = nada — ela só conta para o conflito (c);
 //   (c) duas luzes de tipos diferentes no pedido (dia numa frase, noite em outra) = null: a casa não escolhe.
 // Palavra de luz em enredo sem expressão de luz ("The neon sign says OPEN", "He drove all night") = nada. Inglês. Proibição ("No text …") nunca.
 export const MARCA_LUZ_DO_PEDIDO = 'KINEO-LUZ-DO-PEDIDO-1111'
 const ADJ_DE_LUZ = '(?:soft|warm|cool|natural|bright|golden|gentle|diffused|harsh|hazy|morning|afternoon|evening|late|early|pale|moody|cinematic|clear|dappled|low)'
 /** (a) o sujeito da frase é a luz. */
 const SUJEITO_LUZ_RE = new RegExp(`^(?:lighting\\s*:|light\\s*:|(?:the\\s+|a\\s+)?(?:${ADJ_DE_LUZ}[\\s,]+){0,3}(?:sunlight|daylight|sunshine|moonlight|candlelight|lamplight|window light|light|lighting|glow|sun|neon lights?)\\s+(?:enters?|enter|fills?|floods?|pours?|streams?|falls?|shines?|comes?|bathes?|washes?|spills?|filters?|glows?|is|are|should|must)\\b)`, 'iu')
-/** (b) a expressão de luz dentro de uma frase de ação. */
+/** (b) frase de direção de filmagem (não de ação): só nela a expressão de luz vale. */
+const DIRECAO_DE_FILMAGEM_RE = /^(?:use|using|shot|shoot|filmed|film|lit|lighting|style|look|mood|atmosphere)(?![\p{L}])/iu
+/** (b) a expressão de luz dentro de uma frase. */
 const EXPRESSAO_LUZ_RE = new RegExp(`(?<![\\p{L}])(?:(?:at|during|by|under|in)\\s+(?:the\\s+)?(?:${ADJ_DE_LUZ}\\s+){0,2}(?:sunset|sunrise|dawn|dusk|twilight|midday|noon|night|nighttime|golden hour|moonlight|sunlight|daylight|candlelight|neon lights?|street ?lights?)|(?:${ADJ_DE_LUZ}\\s+){1,3}(?:daylight|sunlight|window light))(?![\\p{L}])`, 'iu')
 const CLASSE_LUZ: ReadonlyArray<[RegExp, 'dia' | 'tarde' | 'noite']> = [
   [/(?<![\p{L}])(?:night|nighttime|moonlight|moonlit|candlelight|candlelit|neon|street ?lights?|lamplight|midnight)(?![\p{L}])/iu, 'noite'],
@@ -186,16 +189,21 @@ export function luzDoPedido(ideiaOriginal: unknown): string | null {
   const pedido = textoDoPedidoOriginal(ideiaOriginal)
   if (!pedido) return null
   const achadas: string[] = []
+  const daAcao: string[] = []
   for (const f of pedido.split(/(?<=[.!?\n])/u)) {
     const t = f.trim().replace(/[.!?]+$/u, '').trim()
     if (!t || /^(?:no|not|never|without|don't|do not)\b/iu.test(t)) continue
     const n = t.split(/\s+/u).length
     if (SUJEITO_LUZ_RE.test(t) && n >= 2 && n <= 20 && !/(?<![\p{L}])(?:text|subtitles?|captions?|logos?)(?![\p{L}])/iu.test(t)) { achadas.push(t); continue }
     const e = EXPRESSAO_LUZ_RE.exec(t)
-    if (e) achadas.push(e[0].toLowerCase())
+    // KINEO-LUZ-DO-PEDIDO-1111 (revisão da CEO) — a expressão de luz só vale em frase de DIREÇÃO de filmagem ("Use soft natural daylight,
+    // realistic skin texture…"); dentro de frase de AÇÃO ("At sunset, the boy finds the box", "…and at night finds the box") ela não entra
+    // (o planejador já põe a hora na cena certa; a luz global escureceria as outras) — mas conta para o conflito de luzes.
+    if (e && DIRECAO_DE_FILMAGEM_RE.test(t)) achadas.push(e[0].toLowerCase())
+    else if (e) daAcao.push(e[0].toLowerCase())
   }
   if (!achadas.length) return null
-  const classes = new Set(achadas.map(classeDaLuz).filter(Boolean))
+  const classes = new Set([...achadas, ...daAcao].map(classeDaLuz).filter(Boolean))
   if (classes.size > 1) return null // dia numa frase, noite em outra: a casa não escolhe
   return achadas[0]
 }

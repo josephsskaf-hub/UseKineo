@@ -55,7 +55,10 @@ function problems(over) {
   no(P.luzDoPedido('A quiet harbor scene. Lighting: golden hour.') !== 'Lighting: golden hour', '(a) "Lighting: golden hour" não veio')
   no(P.luzDoPedido('Create a UGC video. Use soft natural daylight, realistic skin texture and minimal cuts.') !== 'soft natural daylight', `(b) "Use soft natural daylight, …" → ${JSON.stringify(P.luzDoPedido('Create a UGC video. Use soft natural daylight, realistic skin texture and minimal cuts.'))}`)
   // (b) frases de enredo
-  no(P.luzDoPedido('At sunset, the boy finds the wooden box.') !== 'at sunset', `(b) "At sunset, the boy finds…" → ${JSON.stringify(P.luzDoPedido('At sunset, the boy finds the wooden box.'))} (só a oração de luz)`)
+  // revisão da CEO: expressão de luz em frase de AÇÃO não entra (o planejador já põe a hora na cena certa); só em frase de direção
+  no(P.luzDoPedido('At sunset, the boy finds the wooden box.') !== null, `(b) "At sunset, the boy finds…" virou luz global → ${JSON.stringify(P.luzDoPedido('At sunset, the boy finds the wooden box.'))}`)
+  no(P.luzDoPedido('the boy goes to school, and at night finds the box.') !== null, `(b) "…and at night finds the box" virou luz global (a escola sairia de noite) → ${JSON.stringify(P.luzDoPedido('the boy goes to school, and at night finds the box.'))}`)
+  no(P.luzDoPedido('Use soft natural daylight. At night, the boy finds the box.') !== null, `(c) direção de dia + ação à noite escolheu uma → ${JSON.stringify(P.luzDoPedido('Use soft natural daylight. At night, the boy finds the box.'))}`)
   no(P.luzDoPedido('The neon sign says OPEN. A man waits by the door.') !== null, `(b) "The neon sign says OPEN" virou luz → ${JSON.stringify(P.luzDoPedido('The neon sign says OPEN. A man waits by the door.'))}`)
   no(P.luzDoPedido('He drove all night to reach the coast.') !== null, `(b) "He drove all night" virou luz → ${JSON.stringify(P.luzDoPedido('He drove all night to reach the coast.'))}`)
   no(P.luzDoPedido('No text, no subtitles, no logo at night.') !== null || P.luzDoPedido('The history of the Roman Empire.') !== null, '(b) proibição ou pedido sem luz virou luz')
@@ -77,11 +80,11 @@ function problems(over) {
   }
   // (e) a história com "at night" no meio da ação
   const luzH = P.luzDoPedido(HISTORIA)
-  no(luzH !== 'at night', `(e) história: a luz devia ser só "at night" → ${JSON.stringify(luzH)}`)
+  no(luzH !== null, `(e) história: "at night" numa frase de ação não é luz global → ${JSON.stringify(luzH)}`)
   const cenasH = CENAS.map((c) => P.comLuzDoPedido(c, luzH))
   const mpH = T.buildKling4TrialInput(cenasH.map((x, i) => K.promptDaCenaKling4(x, style, i, true)), [null, null, null], { voiceovers: ['A girl walks home at night.', 'She finds a glowing fox.', 'It leads her to a hidden lake.'], wordsPerSecond: 2.45 }).input.multi_prompt
   for (const [i, m] of mpH.entries()) {
-    no(!m.prompt.includes('Light: at night.'), `(e) cena ${i + 1}: sem "Light: at night." → ${m.prompt.slice(0, 120)}`)
+    no(/Light: /.test(m.prompt), `(e) cena ${i + 1}: ganhou luz global de uma frase de ação → ${m.prompt.slice(0, 120)}`)
     no(/walks home|finds a glowing fox|follows it/i.test(m.prompt.replace(/Light: at night\./, '')) && i !== 0, `(e) cena ${i + 1}: a frase de ação do pedido entrou como luz`)
   }
   no(cenasH.some((c) => /girl walks home at night through the old forest/i.test(c)), '(e) a frase de ação do pedido foi colada nas cenas')
@@ -94,14 +97,16 @@ function problems(over) {
 const atual = problems({})
 assert.deepEqual(atual, [], `violações:\n  ${atual.join('\n  ')}`)
 let n = 1, falhas = 0
-console.log('ok  estado atual limpo (só a luz: frase de luz inteira, expressão de luz da frase de ação, nada em enredo/dia→noite)')
+console.log('ok  estado atual limpo (só a luz: frase de luz inteira; expressão de luz só em direção de filmagem; nada em ação, enredo ou dia→noite)')
 const ped = read(PED), fq = read(FQ), rota = read(ROTA)
 const MUT = [
-  ['M1 volta a colar a frase que contém a palavra de luz', { [PED]: ped.replace('if (e) achadas.push(e[0].toLowerCase())', 'if (e) achadas.push(t)') }],
+  ['M1 volta a colar a frase que contém a palavra de luz', { [PED]: ped.replace('if (e && DIRECAO_DE_FILMAGEM_RE.test(t)) achadas.push(e[0].toLowerCase())', 'if (e && DIRECAO_DE_FILMAGEM_RE.test(t)) achadas.push(t)') }],
   ['M2 qualquer frase com palavra de luz vale como assunto', { [PED]: ped.replace('if (SUJEITO_LUZ_RE.test(t) && n >= 2', 'if ((SUJEITO_LUZ_RE.test(t) || /neon|night|sunset/i.test(t)) && n >= 2') }],
   ['M3 dia→noite escolhe a primeira', { [PED]: ped.replace('if (classes.size > 1) return null', 'if (false) return null') }],
   ['M4 a frase de luz não é mais lida', { [PED]: ped.replace('if (SUJEITO_LUZ_RE.test(t) && n >= 2', 'if (false && n >= 2') }],
   ['M5 o compactador ignora a luz', { [FQ]: fq.replace('const luzPedida = /Lighting as the customer asked: ([^.]+)\\./.exec(prompt)?.[1]?.trim()', 'const luzPedida = undefined as string | undefined') }],
+  ['M7 a expressão de luz volta a valer em frase de ação', { [PED]: ped.replace('if (e && DIRECAO_DE_FILMAGEM_RE.test(t)) achadas.push', 'if (e) achadas.push') }],
+  ['M8 o conflito ignora a luz das frases de ação', { [PED]: ped.replace('[...achadas, ...daAcao]', '[...achadas]') }],
   ['M6 a rota não põe a luz', { [ROTA]: rota.replace('classicScenePrompts[i] = comLuzDoPedido(classicScenePrompts[i], luzPedida)', 'classicScenePrompts[i] = classicScenePrompts[i]') }],
 ]
 for (const [nome, over] of MUT) {
