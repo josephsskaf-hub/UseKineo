@@ -75,7 +75,7 @@ console.log('ok  estado atual limpo (lugar do pedido nos planos, cedendo à roup
 const ped = read(PED), fq = read(FQ), rota = read(ROTA)
 const MUT = [
   ['M1 dois lugares valem', { [PED]: ped.replace('if (nomes.size !== 1) return null', 'if (nomes.size === 0) return null') }],
-  ['M2 o compactador ignora o lugar', { [FQ]: fq.replace('const lugarPedido = /Setting as the customer asked: ([^.]+)\\./.exec(prompt)?.[1]?.trim()', 'const lugarPedido = undefined as string | undefined') }],
+  ['M2 o compactador ignora o lugar', { [FQ]: fq.replace('const lugarPedido = /(?:Setting as the customer asked|Setting of this film): ([^.]+)\\./.exec(prompt)?.[1]?.trim()', 'const lugarPedido = undefined as string | undefined') }],
   ['M3 o lugar não cede à roupa', { [FQ]: fq.replace('const pre = lugarPedido && (!cabeAFicha(prefix) || !acaoInteiraComLugar) ?', 'const pre = lugarPedido && !acaoInteiraComLugar ?') }],
   ['M4 a época sem época volta', { [FQ]: fq.replace("period && !/historical era being narrated/i.test(period) ?", 'period ?') }],
   ['M6 a frase longa da época fica na ação', { [FQ]: fq.replace("action = action.replace(/,?\\s*(?:period piece set strictly in [^:]+)?:\\s*every person", "action = action.replace(/NUNCA(?:period piece set strictly in [^:]+)?:\\s*every person") }],

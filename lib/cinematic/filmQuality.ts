@@ -163,8 +163,9 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
   const superficie = fraseUnicaDeSuperficie(prompt)
   if (superficie) action = action.split(superficie).join('').replace(/\s{2,}/g, ' ').trim()
   // KINEO-LUGAR-DO-PEDIDO-1111 — o lugar que o cliente pediu (a rota o põe em toda cena: "Setting as the customer asked: …") vai curto, na frente
-  const lugarPedido = /Setting as the customer asked: ([^.]+)\./.exec(prompt)?.[1]?.trim()
-  if (lugarPedido) action = action.replace(/\s*Setting as the customer asked: [^.]+\./g, '').trim()
+  // KINEO-LUGAR-UNICO-1111 [CEO 11/11] — e o lugar do FILME (sem lugar no pedido, o único que as cenas citam) com o seu rótulo próprio
+  const lugarPedido = /(?:Setting as the customer asked|Setting of this film): ([^.]+)\./.exec(prompt)?.[1]?.trim()
+  if (lugarPedido) action = action.replace(/\s*(?:Setting as the customer asked|Setting of this film): [^.]+\./g, '').trim()
   // KINEO-LUGAR-DO-PEDIDO-1111 — a época sem época ("…the historical era being narrated", quando o pedido tem cara de época mas não tem ano) não
   // entra no plano, e a época de verdade corta em fronteira: o filme 2120f018 (11/11 17:00) saiu "…the historical era being narrat."
   const periodoUtil = period && !/historical era being narrated/i.test(period) ? cortaEmFronteira(period, 60).replace(/[.,;\s]+$/, '') : ''

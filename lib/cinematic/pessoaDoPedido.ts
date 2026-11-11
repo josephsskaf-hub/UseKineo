@@ -239,6 +239,28 @@ export function lugarDoPedido(ideiaOriginal: unknown): string | null {
   return lugar.split(/\s+/u).length <= 7 ? lugar : null
 }
 
+/** KINEO-LUGAR-UNICO-1111 [CEO 11/11, vigia do filme 4eb0c0c9: floresta → biblioteca → parque sem motivo] — quando o pedido não cita lugar,
+ *  o lugar do FILME: se as cenas (a ação de cada uma) citam UM tipo de lugar só e alguma cena não cita nenhum, esse lugar vale para todas
+ *  (a cena sem lugar deixava a imagem-chave inventar o seu). Nenhum lugar, dois tipos de lugar, ou toda cena já com o seu: null. */
+export function lugarDasCenas(acoes: readonly unknown[]): string | null {
+  const textos = acoes.map((a) => String(a ?? '').split(/(?<=[.!?\n])/u).filter((f) => !/^\s*(?:no|not|never|without|don't|do not)\b/iu.test(f)).join(' '))
+  const porCena = textos.map((t) => new Set([...t.matchAll(LUGAR_SO_RE)].map((m) => m[0].toLowerCase().replace('coffeehouse', 'coffee shop').replace('cafe', 'café'))))
+  const nomes = new Set(porCena.flatMap((s) => [...s]))
+  if (nomes.size !== 1 || porCena.every((s) => s.size > 0)) return null
+  for (const t of textos) {
+    const m = new RegExp(LUGAR_RE.source, 'iu').exec(t)
+    if (m) { const lugar = m[1].trim(); return lugar.split(/\s+/u).length <= 7 ? lugar : null }
+  }
+  return null
+}
+
+/** KINEO-LUGAR-UNICO-1111 [CEO 11/11] — o lugar do FILME tem rótulo próprio: "as the customer asked" seria falso quando o cliente não pediu lugar. */
+export const MARCA_LUGAR_DO_FILME = 'Setting of this film:'
+export function comLugarDoFilme(prompt: string, lugar: string | null): string {
+  if (!lugar || prompt.includes(MARCA_LUGAR_DO_FILME) || prompt.includes(MARCA_LUGAR_NO_PROMPT)) return prompt
+  return `${prompt.replace(/\s+$/u, '')} ${MARCA_LUGAR_DO_FILME} ${lugar.replace(/[.\s]+$/u, '')}.`
+}
+
 /** O prompt da cena com o lugar do pedido no fim. Sem lugar, ou já com ele: o mesmo prompt. */
 export function comLugarDoPedido(prompt: string, lugar: string | null): string {
   if (!lugar || prompt.includes(MARCA_LUGAR_NO_PROMPT)) return prompt

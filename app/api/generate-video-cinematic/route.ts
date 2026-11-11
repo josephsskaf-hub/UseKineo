@@ -10,6 +10,7 @@ import { promptDaCenaKling4 } from '@/lib/cinematic/cenaKling4' // KINEO-CENA-PE
 import { eixosDoFilmeGratis, semEixoDoFilmeGratis } from '@/lib/cinematic/cenaKling4' // KINEO-REPETICAO-FREE15-1011 (linha própria)
 import { comSuperficieSemTexto } from '@/lib/cinematic/superficieSemTexto' // KINEO-CENA-PEDIDO-3010
 import { comSuperficieNoPlano } from '@/lib/cinematic/superficieSemTexto' // KINEO-BALAO-SEM-LETRA-1111
+import { lugarDasCenas, comLugarDoFilme } from '@/lib/cinematic/pessoaDoPedido' // KINEO-LUGAR-UNICO-1111
 import { TRIAL_PEDIDO_REFUSAL, TRIAL_PEDIDO_STATUS } from '@/lib/trialPedido' // KINEO-TRIAL-A-PEDIDO-0411
 import { escritaLatina, conferenciaDaLeitura, elencoConferido, CONFERENCIA_ELENCO_VERSAO, EVENTO_CONFERENCIA_ELENCO } from '@/lib/cinematic/conferenciaDoElenco' // KINEO-SO-GENTE-NA-FICHA-0411
 import { ancoraHerdadaDaCena } from '@/lib/cinematic/filmQualityReference' // KINEO-QUALIDADE-TODOS-MOTORES-2910
@@ -7350,7 +7351,8 @@ async function manipularPost(req: NextRequest) {
     if (seedanceShortFilm) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = sanitizarObjetos15(classicScenePrompts[i], seedanceShortFilm) // KINEO-FILME15-PERFEITO-2610 — final visual vector, before still/clip; narration stays intact
     for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comSuperficieSemTexto(classicScenePrompts[i]) // KINEO-CENA-PEDIDO-3010 — revisor 29/10: lousa/tela/página/placa saíam com letra inventada; a superfície vai descrita em positivo (o motor não tem negativo)
     { const luzPedida = qualidadeHerdada ? null : luzDoPedido(pedidoDoCliente); if (luzPedida) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comLuzDoPedido(classicScenePrompts[i], luzPedida) } // KINEO-LUZ-DO-PEDIDO-1111 — a luz que o cliente pediu (só a luz, nunca a frase de ação) chega a toda cena (still e clipe); 657ad797: pedido de sol pelas janelas, prova saiu à noite
-    { const lugarPedido = qualidadeHerdada ? null : lugarDoPedidoDoCliente(pedidoDoCliente); if (lugarPedido) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comLugarDoPedido(classicScenePrompts[i], lugarPedido) } // KINEO-LUGAR-DO-PEDIDO-1111 [CEO 11/11, reprise dos 6 filmes] — o lugar que o cliente pediu (só quando o pedido cita UM lugar) chega a toda cena; 657ad797: "a stylish Johannesburg coffee shop" virou "a café"
+    { const lugarPedido = qualidadeHerdada ? null : lugarDoPedidoDoCliente(pedidoDoCliente); if (lugarPedido) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comLugarDoPedido(classicScenePrompts[i], lugarPedido)
+      const lugarFilme = qualidadeHerdada || lugarPedido ? null : lugarDasCenas(scenes.map((s) => s.description)); if (lugarFilme) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comLugarDoFilme(classicScenePrompts[i], lugarFilme) } // KINEO-LUGAR-DO-PEDIDO-1111 [CEO 11/11, reprise dos 6 filmes] — o lugar que o cliente pediu (só quando o pedido cita UM lugar) chega a toda cena; 657ad797: "a stylish Johannesburg coffee shop" virou "a café"
     for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = relogioComPonteiros(classicScenePrompts[i]) // KINEO-RELOGIO-PONTEIROS-1111 — vizinho f2e8cffc: "clock showing 02:46" saiu ~8:40 (a proteção de texto proíbe números); o relógio vira de ponteiros apontando para a hora, mostrador sem dígitos
 
     // ═══ KINEO-DRYRUN-CLASSICO-2026-09-12 — O VALIDADOR DE $0 COBRE OS CLÁSSICOS ═══
