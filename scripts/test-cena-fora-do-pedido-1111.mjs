@@ -8,6 +8,8 @@
 // VOLTA 2 (revisão adversarial 11/11 reprovou a 1ª: a regra "só é o ser se seguido de verbo da lista" derrubava gigante-personagem de verdade).
 // Lógica invertida: o padrão é o da BASE (giant = o ser); só é adjetivo colado a uma coisa óbvia (lista fechada). Critério de aceite, todo aqui:
 // as entradas da revisora (itens 1–8, os 2 filmes de 15 s e o "lonely giant") IDÊNTICAS à base; o ursinho curado; zero mudança sem "giant".
+// VOLTA 3: a vírgula só vale antes de cor/adjetivo ("The giant, cake in hand" é o ser) e a coisa que também é verbo saiu da lista ("The giant eggs him on").
+// LIMITE DECLARADO (não coberto, de propósito): "The giant, golden carrot in hand, runs." perde a ficha — mesma forma de "a giant, glowing carrot".
 // A BASE é o arquivo de produção com o recibo desfeito (scripts/test-support/desfaz-cena-fora-do-pedido-1111-fontes.json) — vale antes e depois
 // de publicar. Base e mutantes são cópias temporárias importadas do mesmo diretório. Sem rede, sem banco, sem fornecedor.
 import { readFileSync, writeFileSync, unlinkSync } from 'node:fs'
@@ -76,6 +78,10 @@ const REVISORA = [
   'The giant inside the castle sleeps.', 'the giant above the clouds watches the town', 'The giant behind Jack raises a club.', 'The giant quickly hides.', 'The giant only wants a friend.', 'The giant he feared was gentle.', 'The giant cannot fit through the door.', "The giant doesn't see Jack.", "The giant isn't angry.", // 4
   'A lonely giant looks for a friend in the mountains.', // 6
   'The giant bends down and picks up the boy.', 'The giant picks up the cow and smiles.', // 7
+  // volta 3, item 1: vírgula colada à coisa — o gigante é o ser
+  'The giant, cake in hand, laughs.', 'The giant, pumpkin under his arm, walks home.', 'The giant, apple in his mouth, grins.', 'The giant, bean in hand, frowns at Jack.', 'The giant, tree in hand, swings at the knight.', 'The giant, carrot in hand, smiles.',
+  // volta 3, item 2: a coisa que também é verbo — o gigante é o ser
+  'The giant eggs him on.', 'The giant seeds the clouds.', 'The giant balloons in size.', 'The giant cakes his face with mud.', 'The giant beans Jack with a rock.', 'The giant leafs through a book.', 'The giant flowers late in life.', 'The giant trees the cat.', 'The giant puddles the yard.', 'The giant mushrooms in size.', 'The giant sandwiches Jack between two rocks.', 'The giant snowballs down the hill.', 'The giant cheeses off the king.', 'The giant candies the apples.', 'The giant peaches on Jack.',
   'David faces the giant Goliath.', 'The giant Goliath laughs at David.', 'Andre the Giant enters the ring.', // 8
   'A giant walks across the valley and the ground shakes.', 'Jack climbs the beanstalk and meets a giant in the castle.', 'The giant, angry and hungry, roared at the village.', 'Deep in the hills lives the giant who guards the bridge.',
   'A friendly giant named Tom lifts the house.', 'Nobody in the village had ever seen the giant.', 'Every night a giant sleeps under the old bridge.', 'The giant eats a carrot.', 'A giant holds a giant carrot.', 'The giant and the pumpkin farmer.',
@@ -94,8 +100,8 @@ const SEM_GIGANTE = [ // textos sem a palavra "giant": zero mudança
 const COISA = [ // prova de adjetivo: "giant" colado a uma coisa da lista (com cor/adjetivo da lista no meio) nunca dá o ser
   'A drone shot of a garden where a giant carrot is dramatically uprooted from the ground.', 'colorful butterflies that emerge from the giant carrot',
   'A giant, glowing carrot rises from the soil.', 'A giant and juicy carrot sits on the table.', 'A giant carved pumpkin glows on the porch.', 'The giant orange carrots fill the cart.',
-  'The camera reveals a giant-sized pumpkin in the field.', 'A giant mushroom glows in the dark forest.', 'A GIANT CARROT appears in the garden.', 'the giant pumpkins of the county fair',
-  'A huge giant carrot rolls down the hill.', 'A giant birthday cake waits in the kitchen.', 'A giant beanstalk grows overnight.',
+  'The camera reveals a giant-sized pumpkin in the field.', 'A giant cupcake glows in the dark forest.', 'A GIANT CARROT appears in the garden.', 'the giant pumpkins of the county fair',
+  'A huge giant carrot rolls down the hill.', 'A giant birthday cupcake waits in the kitchen.', 'A giant beanstalk grows overnight.',
 ]
 
 const nomes = (e) => e.map((f) => f.nome)
@@ -157,7 +163,9 @@ await comCopia(base, async (modBase) => {
     ['M2 o olhar à frente vale para qualquer ser (sem o lookbehind de giant)', muta('(?!(?<=\\bgiant)(?:-sized?)?', '(?!(?:-sized?)?'), /^sem giant/],
     ['M3 qualquer palavra depois de giant é coisa (a regra larga)', muta("const COISA_GIGANTE = 'carrot|", "const COISA_GIGANTE = '[a-z]+|carrot|"), /^revisora|^filme de 15 s/],
     ['M4 qualquer palavra no meio (giant … carrot)', muta("const COR_OU_ADJETIVO_DA_COISA = 'orange|", "const COR_OU_ADJETIVO_DA_COISA = '[a-z]+|orange|"), /^revisora: "(?:The giant eats a carrot|A giant holds a giant carrot)/],
-    ['M5 sem a vírgula/cor no meio (giant, glowing carrot)', muta('(?:,?\\s+(?:and\\s+)?(?:${COR_OU_ADJETIVO_DA_COISA}))*,?\\s+', '\\s+'), /^coisa: "A giant, glowing carrot/],
+    ['M5 sem a vírgula/cor no meio (giant, glowing carrot)', muta('(?:,?\\s+(?:and\\s+)?(?:${COR_OU_ADJETIVO_DA_COISA}))*\\s+', '\\s+'), /^coisa: "A giant, glowing carrot/],
+    ['M6 a vírgula volta a valer colada à coisa (o furo da volta 2)', muta('(?:${COR_OU_ADJETIVO_DA_COISA}))*\\s+(?:${COISA_GIGANTE})', '(?:${COR_OU_ADJETIVO_DA_COISA}))*,?\\s+(?:${COISA_GIGANTE})'), /^revisora: "The giant, (?:pumpkin|apple|carrot)/],
+    ['M7 a coisa-verbo volta à lista (cake, egg, tree…)', muta("const COISA_GIGANTE = 'carrot|", "const COISA_GIGANTE = 'egg|seed|balloon|cake|bean|leaf|flower|tree|puddle|mushroom|carrot|"), /^revisora: "The giant (?:eggs|seeds|balloons|cakes|beans|trees)/],
   ]
   for (const [nome, fonte, esperado] of MUTANTES) await comCopia(fonte, async (mod) => { const f = bateria(mod.elencoDeterministico, B); ok(f.some((x) => esperado.test(x)), `${nome}: vermelho (${f.length} falha(s))`) })
 })
