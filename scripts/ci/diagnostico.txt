@@ -1,0 +1,80 @@
+# PLATAFORMA-PORTAO-1111 — Diagnóstico: AVISA, não bloqueia. Tudo o que estava no job antigo do Guardião e não entrou no portão.
+# Medido em 11/11 numa cópia limpa da origin/main: a maioria já estava vermelha (congela arquivo / desfaz camada / import novo
+# sem stub / pede PGlite). Consertado e verde 5 vezes seguidas → pode subir para scripts/ci/portao.txt.
+node docs/recreate-0911/test-migration.cjs
+node scripts/test-cards-giro-2410.mjs --mutants
+node scripts/test-cards-giro-undo-2410.mjs
+node scripts/test-leva-integration-2410.mjs
+node scripts/test-leva-rebase-2610.mjs
+node scripts/test-visual-ingles-2610.mjs
+node scripts/test-ads-amostra-anuncio-2410.mjs
+node scripts/test-ads-amostra-data-2410.mjs
+node scripts/test-support/ads-escolha-sample-media-2410.mjs
+node scripts/test-support/ads-amostra-race-2410.mjs
+node scripts/test-support/ads-amostra-upgrade-retry-2410.mjs
+node scripts/test-support/ads-amostra-entry-2410.mjs
+node scripts/test-ads-amostra-undo-2410.mjs
+node scripts/test-apresentadores-2410.mjs
+node scripts/test-apresentadores-admin-2410.mjs
+node scripts/test-apresentadores-voice-2410.mjs
+node scripts/test-apresentadores-legacy-voice-2410.mjs
+node scripts/test-apresentadores-undo-2410.mjs
+node scripts/test-compra-avulsa-delivery-2410.mjs --mutants
+node scripts/test-compra-avulsa-ui-2410.mjs --mutants
+node scripts/test-compra-avulsa-sql-2410.mjs --mutants
+node scripts/test-compra-avulsa-undo-2410.mjs
+node scripts/test-idiomas-2410.mjs
+node scripts/test-language-segmentation-2410.mjs
+node scripts/test-ads-formatos-escolha-2410.mjs
+node scripts/test-idiomas-formatos-undo-2410.mjs
+node scripts/test-ads-escolha-publico-2410.mjs
+node scripts/test-ads-escolha-2310.mjs
+node scripts/test-ads-render-fix-2310.mjs
+node scripts/test-trafego-pages-2310.mjs
+node scripts/test-trafego-index-2310.mjs
+node scripts/test-trafego-health-2310.mjs --mutants
+node scripts/test-trafego-undo-2310.mjs
+node scripts/test-admin-leve-2310.mjs --mutants
+node scripts/test-admin-leve-undo-2310.mjs
+node scripts/test-roteiro-curto-sem-falha-2210.mjs --mutants
+node scripts/test-roteiro-curto-undo-2210.mjs
+node scripts/test-admin-truncamento-2026-10.mjs
+node docs/video-fiel-2610/juiz-offline.mjs
+node docs/video-fiel-2610/cenas-test.mjs
+node docs/video-fiel-2610/test-admin-quality.mjs
+node scripts/test-meta95-regua-1910.mjs
+node scripts/test-meta95-ugc-1910.mjs
+node docs/video-fiel-2610/test-legacy-layer.mjs
+node docs/free15-quality-v2/caption-test.mjs
+node docs/free15-quality-v2/caption-legacy-test.mjs
+node scripts/test-filme15-legenda-canonica-2610.mjs
+node scripts/test-filme15-perfeito-undo-2610.mjs
+node docs/compra-clareza-2610/test-recurring-plan-value.mjs
+node docs/compra-clareza-2610/test-own-idea-start.mjs
+node docs/compra-clareza-2610/test-result-script-review.mjs
+node docs/compra-clareza-2610/test-legacy-layer.mjs
+node scripts/test-afiliados-acordam.mjs
+node scripts/test-coerencia-kineo1-2026-09-16.mjs
+node scripts/test-juiz-still-2026-10-06.mjs
+node scripts/test-momentum-topic.mjs
+node scripts/test-stalled-frescor-2026-09-05.mjs
+node scripts/test-gpt-v31-facts-2026-09-24.mjs
+node scripts/test-seedance-hero-plans-2026-09-28.mjs
+node scripts/test-motores-geo-2026-10-06.mjs
+node scripts/test-ads-aeo-2026-09-24.mjs
+node scripts/test-five-improvements.mjs
+node scripts/test-locale-readiness.mjs
+node scripts/test-app-blue-layout.mjs
+node scripts/test-home-curation.mjs
+node scripts/test-home-blue-layout.mjs
+node scripts/test-showcase-premium.mjs
+node scripts/test-cinematic-timeline-2026-09-11.mjs
+node scripts/test-cinematic-speech-2026-09-11.mjs
+node scripts/test-music-direction-2026-09-11.mjs
+node scripts/test-visual-contract-2026-09-11.mjs
+node scripts/test-quality-route-integration-2026-09-11.mjs
+node scripts/test-quality-failure-ui-2026-09-11.mjs
+node scripts/test-cinematic-terminal-proof-2026-09-11.mjs
+node scripts/test-cinematic-poll-diagnostic-2026-09-11.mjs
+node scripts/test-cartoon-tracao.mjs --mutants
+node scripts/test-gpt-v31-facts-2026-09-24.mjs --mutant  # MUTANTE-DEVE-FALHAR

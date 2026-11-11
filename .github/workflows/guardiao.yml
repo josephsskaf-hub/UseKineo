@@ -1,18 +1,29 @@
-# Critical, reviewed tests block delivery. Legacy diagnostics remain manual.
+# PLATAFORMA-PORTAO-1111 — os testes saem do PC do fundador e rodam aqui.
+# Dois jobs:
+#   · "Portão de entrega" — tipos (tsc) + os guardiões confiáveis de dinheiro, cobrança, login e entrega do vídeo
+#     (lista em scripts/ci/portao.txt). Roda em TODO push de qualquer branch e em todo PR. NÃO para no primeiro
+#     vermelho: roda a lista inteira e mostra a tabela no resumo da execução. Ainda NÃO segura o deploy da Vercel
+#     (isso só depois de 5 verdes seguidos na main — docs/PLATAFORMA-PUBLICAR-EM-DOIS-TEMPOS-2026-11-11.md).
+#   · "Diagnóstico — avisa, não bloqueia" — o resto do Guardião antigo (scripts/ci/diagnostico.txt). Roda no push
+#     da main e à mão; vermelho aqui é aviso, não trava nada.
+# Regra: teste novo nasce no diagnóstico; sobe ao portão só depois de 5 verdes seguidos na main; teste do portão que
+# ficar vermelho sem defeito real desce no mesmo dia. Nenhum segredo de produção é passado; tudo offline.
 name: Guardião
 on:
   push:
-    branches: [main, 'codex/**']
+    branches: ['**']
   pull_request:
-    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: guardiao-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 jobs:
-  critical:
-    name: TypeScript e contratos críticos
+  portao:
+    name: Portão de entrega
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -22,214 +33,32 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
-      - name: Typecheck bruto — qualquer erro reprova
+      - name: Tipos — npx tsc --noEmit
         run: npx tsc --noEmit --incremental false
-      - name: Recreate — autenticação, acesso público, custo, efeitos, UI e concorrência SQL
-        run: |
-          node docs/recreate-0911/test-recreate.cjs
-          node docs/recreate-0911/test-migration.cjs
-      # KINEO-CARDS-GIRO-2410 — actual ended/playing/fade controller, SSR, local assets, mutants and exact undo; offline.
-      - name: Cards da home — giro, enquadramento, mutantes e desfaz
-        run: |
-          node scripts/test-cards-giro-2410.mjs --mutants
-          node scripts/test-cards-giro-undo-2410.mjs
-      - name: Leva integrada — hashes, camadas e inventário atual
-        run: node scripts/test-leva-integration-2410.mjs
-      - name: Leva na main atual — fontes preservadas e inventário completo
-        run: node scripts/test-leva-rebase-2610.mjs
-      - name: Campos visuais em inglês — regra e desfaz
-        run: node scripts/test-visual-ingles-2610.mjs
-      # KINEO-AMOSTRA-ANUNCIO-2410 — real personal sample, media, UI, conversion and byte-exact source restoration, all offline.
-      - name: Amostra com apresentadora — custo, compra e desfaz
-        run: |
-          node scripts/test-ads-amostra-anuncio-2410.mjs
-          node scripts/test-ads-amostra-data-2410.mjs
-          node scripts/test-support/ads-escolha-sample-media-2410.mjs
-          node scripts/test-support/ads-amostra-race-2410.mjs
-          node scripts/test-support/ads-amostra-upgrade-retry-2410.mjs
-          node scripts/test-support/ads-amostra-entry-2410.mjs
-          node scripts/test-ads-amostra-undo-2410.mjs
-      - name: Amostra — Postgres isolado e mutantes SQL
-        run: |
-          npm install --prefix "$RUNNER_TEMP/kineo-sample-sql" --ignore-scripts --no-audit --no-fund --package-lock=false @electric-sql/pglite@0.5.11
-          node scripts/test-support/ads-amostra-data-sql-2410.cjs "$RUNNER_TEMP/kineo-sample-sql/node_modules/@electric-sql/pglite" supabase/migrations/20261024175246_ads_escolha_sample.sql --mutants
-      # KINEO-APRESENTADORES-2410 — approved-only catalogs, real synthesis dispatch, local founder review and exact undo.
-      - name: Apresentadores — aprovação, voz e desfaz exato
-        run: |
-          node scripts/test-apresentadores-2410.mjs
-          node scripts/test-apresentadores-admin-2410.mjs
-          node scripts/test-apresentadores-voice-2410.mjs
-          node scripts/test-apresentadores-legacy-voice-2410.mjs
-          node scripts/test-apresentadores-undo-2410.mjs
-      # KINEO-COMPRA-AVULSA-2410 — real checkout/webhook/SQL, offline mutants and exact undo.
-      - name: Compra avulsa — pagamento único, concessão atômica e desfaz # KINEO-COMPRA-AVULSA-2410
-        run: | # KINEO-COMPRA-AVULSA-2410
-          node scripts/test-compra-avulsa-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410
-          node scripts/test-compra-avulsa-webhook-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410
-          node scripts/test-compra-avulsa-return-2410.mjs # KINEO-COMPRA-AVULSA-2410
-          node scripts/test-compra-avulsa-delivery-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410
-          node scripts/test-compra-avulsa-ui-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410
-          node scripts/test-compra-avulsa-sql-2410.mjs --mutants # KINEO-COMPRA-AVULSA-2410
-          node scripts/test-compra-avulsa-undo-2410.mjs # KINEO-COMPRA-AVULSA-2410
-      # KINEO-IDIOMAS-FORMATOS-2410 — actual shared language/voice, Unicode captions and chosen-shot builders; offline mutants + exact undo.
-      - name: Idiomas e formatos — voz, escrita, tomadas e desfaz
-        run: |
-          node scripts/test-idiomas-2410.mjs
-          node scripts/test-language-segmentation-2410.mjs
-          node scripts/test-ads-formatos-escolha-2410.mjs
-          node scripts/test-idiomas-formatos-undo-2410.mjs
-      # KINEO-ADS-ESCOLHA-PUBLICO-2410 — actual public route, bounded photo effects, executable mutants and exact undo.
-      - name: Studio Ads público — escolha, custo, qualidade e desfaz exato
-        run: |
-          node scripts/test-ads-escolha-publico-2410.mjs
-          node scripts/test-ads-escolha-2310.mjs
-          node scripts/test-ads-render-fix-2310.mjs
-      # KINEO-TRAFEGO-2310 — six entry pages, public index and DB-independent alarm.
-      - name: Tráfego — conteúdo citável, sitemap, alarme e desfaz exato
-        run: |
-          node scripts/test-trafego-pages-2310.mjs
-          node scripts/test-trafego-index-2310.mjs
-          node scripts/test-trafego-health-2310.mjs --mutants
-          node scripts/test-trafego-undo-2310.mjs
-      # KINEO-ADMIN-LEVE-2310 — real modules, disk mutants and exact source undo; no network.
-      - name: Admin leve — aba visível, cache privado e desfaz exato
-        run: |
-          node scripts/test-admin-leve-2310.mjs --mutants
-          node scripts/test-admin-leve-undo-2310.mjs
-      # KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — real callers, C1 and exact undo of disk mutants, offline.
-      - name: Roteiro curto — revisão neutra, links e admin
-        run: | # KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
-          node scripts/test-roteiro-curto-sem-falha-2210.mjs --mutants
-          node scripts/test-roteiro-curto-undo-2210.mjs
-      - name: Admin — paginação, tripwire e dedupe após 1000 linhas
-        run: node scripts/test-admin-truncamento-2026-10.mjs
-      - name: Vídeo fiel — pedido, cenas, juiz, canário e evidência no admin
-        run: | # VIDEO-FIEL-2610: current product sources, offline, no credentials or provider calls.
-          node docs/video-fiel-2610/juiz-offline.mjs
-          node docs/video-fiel-2610/cenas-test.mjs
-          node docs/video-fiel-2610/pedido-test.mjs
-          node docs/video-fiel-2610/pedido-mcp-test.mjs
-          node docs/video-fiel-2610/canario-offline.mjs
-          node docs/video-fiel-2610/test-admin-quality.mjs
-          node scripts/test-meta95-regua-1910.mjs
-          node scripts/test-meta95-ugc-1910.mjs
-          node docs/video-fiel-2610/test-legacy-layer.mjs
-      - name: Legendas do primeiro filme — evidência medida e histórico exato
-        run: | # CAPTION-CANONICO-2610: actual raw ASR evidence; no providers or credentials.
-          node docs/free15-quality-v2/caption-test.mjs
-          node docs/free15-quality-v2/caption-legacy-test.mjs
-      - name: Portão do filme grátis de 15 s — reparo único, mutantes e desfaz exato
-        run: | # KINEO-FILME15-PERFEITO-2610: no env, network or paid renders.
-          node scripts/test-filme15-perfeito-2610.mjs
-          node scripts/test-filme15-gate-integration-2610.mjs
-          node scripts/test-filme15-portao-fonte-2610.mjs
-          node scripts/test-filme15-duracao-2610.mjs
-          node scripts/test-filme15-legenda-inteira-2610.mjs
-          node scripts/test-filme15-legenda-canonica-2610.mjs
-          node scripts/test-filme15-numero-unidade-2610.mjs
-          node scripts/test-filme15-cena-visivel-2610.mjs
-          node scripts/test-filme15-objetos-2610.mjs
-          node scripts/test-filme15-perfeito-undo-2610.mjs
-      - name: Compra — capacidade real, ideia própria e revisão sem gerar
-        run: | # COMPRA-CLAREZA-2610 — offline, sem credenciais ou render pago.
-          node docs/compra-clareza-2610/test-recurring-plan-value.mjs
-          node docs/compra-clareza-2610/test-own-idea-start.mjs
-          node docs/compra-clareza-2610/test-result-script-review.mjs
-          node docs/compra-clareza-2610/test-legacy-layer.mjs
-      - name: Admin — contratos dos sete guardiões de campanhas e coerência
-        run: |
-          node scripts/test-afiliados-acordam.mjs
-          node scripts/test-coerencia-kineo1-2026-09-16.mjs
-          node scripts/test-juiz-still-2026-10-06.mjs
-          node scripts/test-carta-da-recusa.mjs
-          node scripts/test-momentum-topic.mjs
-          node scripts/test-stalled-frescor-2026-09-05.mjs
-          node scripts/test-hot-nudge-janela-campanhas.mjs
-      - name: GPT-5H — oferta operada, migração Sora e fatos públicos
-        run: |
-          for item in a b c; do
-            node "scripts/test-gpt-5h-${item}-2026-09-24.mjs"
-            if node "scripts/test-gpt-5h-${item}-2026-09-24.mjs" --mutant; then
-              echo "Mutante sobreviveu: ${item}"
-              exit 1
-            fi
-          done
-      - name: Fatos GPT — cobertura do trial, duração gratuita e orçamento de palavras
-        # GPT-V31-FATOS: real estimator, current grant and recurring cap; no network.
-        run: |
-          node scripts/test-gpt-v31-facts-2026-09-24.mjs
-          if node scripts/test-gpt-v31-facts-2026-09-24.mjs --mutant; then
-            echo "Mutante de cobertura do trial sobreviveu"
-            exit 1
-          fi
-      - name: Segurança de publicação e autoria
-        run: node scripts/test-sharing-safety.mjs
-      - name: Citações — destino pago e limite real do trial
-        # Shared purchase guidance: canonical prices, maintenance and no fake attribution.
-        run: node scripts/test-paid-video-citation-guidance-2026-09-28.mjs
-      - name: Seedance EN — planos no hero e cadastro com intenção preservada
-        run: node scripts/test-seedance-hero-plans-2026-09-28.mjs
-      - name: Motores citáveis — preço da fonte, motor pausado fora do índice, robots/sitemap/llms e CTA com campanha
-        # KINEO-MOTORES-GEO-2026-10-06: executa página, layout, sitemap, robots e llms.txt reais, offline, com 22 mutantes.
-        run: node scripts/test-motores-geo-2026-10-06.mjs
-      - name: Ads citáveis — produto atual, classic e gate público
-        run: node scripts/test-ads-aeo-2026-09-24.mjs
-      - name: Navegação, biblioteca e idioma
-        run: node scripts/test-five-improvements.mjs
-      - name: Studio — entrada direta e retomada sem formulário antigo
-        run: node scripts/test-studio-entry-transition.mjs
-      - name: Idiomas, galeria e CSS SSR
-        run: node scripts/test-locale-readiness.mjs
-      - name: Menu, Studio, Biblioteca e planos aprovados
-        run: node scripts/test-app-blue-layout.mjs
-      - name: Curadoria aprovada da home — seletores e assets locais
-        run: node scripts/test-home-curation.mjs
-      - name: Home azul — layout, indicação e entrada no checkout
-        run: |
-          node scripts/test-home-blue-layout.mjs
-          node scripts/test-home-referral-bridge.mjs
-          node scripts/test-home-pricing-checkout.mjs
-      - name: Vitrine premium — filtros, movimento, posters e SSR em três idiomas
-        run: node scripts/test-showcase-premium.mjs
-      - name: Duração cinematográfica — roteiro, cenas e composição
-        run: node scripts/test-cinematic-timeline-2026-09-11.mjs
-      - name: Uma fonte de fala — narração, áudio nativo e legendas
-        run: node scripts/test-cinematic-speech-2026-09-11.mjs
-      - name: Música coerente com a emoção e fallback sem contraste
-        run: node scripts/test-music-direction-2026-09-11.mjs
-      - name: Coerência visual e abertura no caminho executado
-        run: node scripts/test-visual-contract-2026-09-11.mjs
-      - name: Rejeição de qualidade — HMAC, ledger e concorrência
-        run: node scripts/test-quality-rejection-2026-09-11.mjs
-      - name: Integração real das saídas e limites da composição
-        run: node scripts/test-quality-route-integration-2026-09-11.mjs
-      - name: Saída de qualidade em três idiomas — sem retry cego
-        run: node scripts/test-quality-failure-ui-2026-09-11.mjs
-      - name: Geração encerrada não reaparece como render ativo
-        run: node scripts/test-active-quality-rejection-2026-09-11.mjs
-      - name: Jobs pagos — prova terminal assinada antes de finalizar
-        run: node scripts/test-cinematic-terminal-proof-2026-09-11.mjs
-      - name: Polling — bloqueio de conta não significa job encerrado
-        run: node scripts/test-cinematic-poll-diagnostic-2026-09-11.mjs
-      - name: Recuperação de cena — mutex anterior ao POST pago
-        run: node scripts/test-scene-retry-mutex-2026-09-11.mjs
-      # KINEO-CARTOON-TRACAO-2210 — fixture-only campaign/pages, killed disk mutants and exact restoration.
-      - name: Cartoon — campanha protegida e oferta citável
-        run: node scripts/test-cartoon-tracao.mjs --mutants
-  legacy:
-    name: Diagnóstico legado — manual, não certifica entrega
-    if: github.event_name == 'workflow_dispatch'
+      - name: Guardiões do portão — dinheiro, cobrança, login e entrega
+        if: success() || failure()
+        run: bash scripts/ci/rodar-lista.sh scripts/ci/portao.txt
+
+  diagnostico:
+    name: Diagnóstico — avisa, não bloqueia
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     continue-on-error: true
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      # Keep the legacy diagnostic separate: its failures need individual triage.
-      # No production secrets are passed, and it is not run on every push.
-      - name: Inventário de testes legados
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Guardiões em diagnóstico
+        continue-on-error: true
+        run: bash scripts/ci/rodar-lista.sh scripts/ci/diagnostico.txt
+      - name: Amostra — Postgres isolado e mutantes SQL
+        continue-on-error: true
         run: |
-          count=$(find scripts -maxdepth 1 -name 'test-*.mjs' | wc -l)
-          echo "Existem $count arquivos de teste. Rodar somente baterias revisadas, offline." >> "$GITHUB_STEP_SUMMARY"
+          npm install --prefix "$RUNNER_TEMP/kineo-sample-sql" --ignore-scripts --no-audit --no-fund --package-lock=false @electric-sql/pglite@0.5.11
+          node scripts/test-support/ads-amostra-data-sql-2410.cjs "$RUNNER_TEMP/kineo-sample-sql/node_modules/@electric-sql/pglite" supabase/migrations/20261024175246_ads_escolha_sample.sql --mutants

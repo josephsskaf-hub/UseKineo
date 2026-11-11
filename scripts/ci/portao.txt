@@ -1,0 +1,93 @@
+# PLATAFORMA-PORTAO-1111 — Portão de entrega: só testes que (a) passaram na origin/main em 11/11, (b) não "congelam" arquivo
+# (sem desfaz-camada, hash de fonte ou "mudou fora da camada") e (c) protegem dinheiro, cobrança, login ou entrega do vídeo.
+# Regra: entra aqui só teste que passou 5 vezes seguidas na main; teste que ficar vermelho sem defeito real sai no MESMO dia
+# para scripts/ci/diagnostico.txt. Teste novo nasce no diagnóstico. Um comando por linha.
+
+# ── Recreate: autenticação, acesso público e custo
+node docs/recreate-0911/test-recreate.cjs
+
+# ── Compra avulsa: pagamento único, webhook e volta do checkout
+node scripts/test-compra-avulsa-2410.mjs --mutants
+node scripts/test-compra-avulsa-webhook-2410.mjs --mutants
+node scripts/test-compra-avulsa-return-2410.mjs
+
+# ── Crédito: débito só no servidor, reserva, estorno, crédito preso
+node scripts/test-debito-so-servidor-0411.mjs
+node scripts/test-hold-em-lotes-2026-10-09.mjs
+node scripts/test-credits-held-waitroom.mjs
+node scripts/test-credito-preso.mjs
+node scripts/test-credito-em-minutos-2026-09-25.mjs
+node scripts/test-estorno-indevido-2026-09-29.mjs
+node scripts/test-quality-rejection-2026-09-11.mjs
+node scripts/test-scene-retry-mutex-2026-09-11.mjs
+
+# ── Checkout e cobrança
+node scripts/test-checkout-intent.mjs
+node scripts/test-checkout-entry-surface.mjs
+node scripts/test-checkout-fallback-truth.mjs
+node scripts/test-checkout-payment-guidance.mjs
+node scripts/test-checkout-profile-read.mjs
+node scripts/test-checkout-recovery.mjs
+node scripts/test-checkout-robo-1510.mjs
+node scripts/test-checkout-session-window.mjs
+node scripts/test-checkout-setup-failure-return.mjs
+node scripts/test-checkout-success-entitlement.mjs
+node scripts/test-checkout-value-context.mjs
+node scripts/test-checkout-visual-proof.mjs
+node scripts/test-checkout-cancel-deliver-first.mjs
+node scripts/test-checkout-cancel-objection-visibility.mjs
+node scripts/test-checkout-resume-delivery-guard.mjs
+node scripts/test-checkout-resume-human-view.mjs
+node scripts/test-checkout-resume-own-film.mjs
+node scripts/test-checkout-resume-unavailable.mjs
+node scripts/test-erro-de-checkout-visivel-2026-09-09.mjs
+node scripts/test-agency-checkout-return.mjs
+node scripts/test-autopilot-checkout-return.mjs
+node scripts/test-autopilot-checkout-success.mjs
+node scripts/test-bulk-checkout-truth.mjs
+node scripts/test-home-pricing-checkout.mjs
+node scripts/test-home-referral-bridge.mjs
+node scripts/test-aviso-renovacao-recusada-2026-09-18.mjs
+node scripts/test-carta-da-recusa.mjs
+node scripts/test-hot-nudge-janela-campanhas.mjs
+node scripts/test-comprador-sequestrado-2026-09-18.mjs
+node scripts/test-empresas-pagamento-tardio-2026-09-24.mjs
+node scripts/test-affiliate-ledger.mjs
+node scripts/test-animate-paywall.mjs
+node scripts/test-ads-porta-plano-2026-09-27.mjs
+node scripts/test-clean-export-trial-door.mjs
+node scripts/test-clean-film-trial-door.mjs
+node scripts/test-paid-video-citation-guidance-2026-09-28.mjs
+node scripts/test-gpt-5h-a-2026-09-24.mjs
+node scripts/test-gpt-5h-a-2026-09-24.mjs --mutant  # MUTANTE-DEVE-FALHAR
+node scripts/test-gpt-5h-b-2026-09-24.mjs
+node scripts/test-gpt-5h-b-2026-09-24.mjs --mutant  # MUTANTE-DEVE-FALHAR
+node scripts/test-gpt-5h-c-2026-09-24.mjs
+node scripts/test-gpt-5h-c-2026-09-24.mjs --mutant  # MUTANTE-DEVE-FALHAR
+
+# ── Login e conta
+node scripts/test-checkout-auth-session-bridge.mjs
+node scripts/test-checkout-oauth-failure-handoff.mjs
+node scripts/test-checkout-password-recovery.mjs
+node scripts/test-checkout-signup-resolution.mjs
+node scripts/test-escreve-antes-do-login-0411.mjs
+node scripts/test-sharing-safety.mjs
+node scripts/test-studio-entry-transition.mjs
+
+# ── Entrega do vídeo
+node scripts/test-active-quality-rejection-2026-09-11.mjs
+node scripts/test-delivery-refinement.mjs
+node scripts/test-entrega-noite-2026-09-09.mjs
+node scripts/test-entrega-noite-r5-2026-09-09.mjs
+node scripts/test-entrega-noite-r6-2026-09-09.mjs
+node scripts/test-filme15-perfeito-2610.mjs
+node scripts/test-filme15-gate-integration-2610.mjs
+node scripts/test-filme15-portao-fonte-2610.mjs
+node scripts/test-filme15-duracao-2610.mjs
+node scripts/test-filme15-legenda-inteira-2610.mjs
+node scripts/test-filme15-numero-unidade-2610.mjs
+node scripts/test-filme15-cena-visivel-2610.mjs
+node scripts/test-filme15-objetos-2610.mjs
+node docs/video-fiel-2610/pedido-test.mjs
+node docs/video-fiel-2610/pedido-mcp-test.mjs
+node docs/video-fiel-2610/canario-offline.mjs
