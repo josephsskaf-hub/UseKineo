@@ -153,3 +153,56 @@ export function formatoComPessoaDoPedido(decisao: DecisaoFormato, pessoa: string
   if (!pessoa || decisao.modo !== 'documentary_faceless' || !/^padrao:/u.test(decisao.motivo)) return decisao
   return { modo: 'character_story', motivo: `o pedido original descreve a pessoa ("${pessoa}"): pessoa muda, narrador por cima`, apresentadorPedido: false }
 }
+
+// ═══ KINEO-LUZ-DO-PEDIDO-1111 [CEO 11/11, prova paga do 657ad797 = 8,0; 1ª versão devolvida] — A LUZ QUE O CLIENTE PEDIU ═══
+// A prova paga do 657ad797 saiu num café à noite com luminárias; o pedido dizia "Natural sunlight enters through large glass windows." O
+// planejador de cenas escreveu "a dimly lit café" e nada levava a luz do cliente ao plano.
+// A 1ª versão colava a 1ª frase que CONTINHA palavra de luz em toda cena — num pedido de história isso injeta AÇÃO em toda cena ("At sunset,
+// the boy finds the wooden box." nas 4 cenas = REPETICAO). Agora, só o que é LUZ:
+//   (a) frase cujo ASSUNTO é a luz — o sujeito é luz/sol/iluminação ("Natural sunlight enters through large glass windows", "Soft warm light
+//       fills the room", "Lighting: golden hour") — vai inteira (3 a 20 palavras);
+//   (b) senão, a expressão de luz de dentro de uma frase de ação, sozinha: "at sunset", "at night", "under neon lights", "in the morning
+//       sunlight", "soft natural daylight" (em "Use soft natural daylight, realistic skin texture…") — nunca a frase com sujeito e verbo;
+//   (c) duas luzes de tipos diferentes no pedido (dia numa frase, noite em outra) = null: a casa não escolhe.
+// Palavra de luz em enredo sem expressão de luz ("The neon sign says OPEN", "He drove all night") = nada. Inglês. Proibição ("No text …") nunca.
+export const MARCA_LUZ_DO_PEDIDO = 'KINEO-LUZ-DO-PEDIDO-1111'
+const ADJ_DE_LUZ = '(?:soft|warm|cool|natural|bright|golden|gentle|diffused|harsh|hazy|morning|afternoon|evening|late|early|pale|moody|cinematic|clear|dappled|low)'
+/** (a) o sujeito da frase é a luz. */
+const SUJEITO_LUZ_RE = new RegExp(`^(?:lighting\\s*:|light\\s*:|(?:the\\s+|a\\s+)?(?:${ADJ_DE_LUZ}[\\s,]+){0,3}(?:sunlight|daylight|sunshine|moonlight|candlelight|lamplight|window light|light|lighting|glow|sun|neon lights?)\\s+(?:enters?|enter|fills?|floods?|pours?|streams?|falls?|shines?|comes?|bathes?|washes?|spills?|filters?|glows?|is|are|should|must)\\b)`, 'iu')
+/** (b) a expressão de luz dentro de uma frase de ação. */
+const EXPRESSAO_LUZ_RE = new RegExp(`(?<![\\p{L}])(?:(?:at|during|by|under|in)\\s+(?:the\\s+)?(?:${ADJ_DE_LUZ}\\s+){0,2}(?:sunset|sunrise|dawn|dusk|twilight|midday|noon|night|nighttime|golden hour|moonlight|sunlight|daylight|candlelight|neon lights?|street ?lights?)|(?:${ADJ_DE_LUZ}\\s+){1,3}(?:daylight|sunlight|window light))(?![\\p{L}])`, 'iu')
+const CLASSE_LUZ: ReadonlyArray<[RegExp, 'dia' | 'tarde' | 'noite']> = [
+  [/(?<![\p{L}])(?:night|nighttime|moonlight|moonlit|candlelight|candlelit|neon|street ?lights?|lamplight|midnight)(?![\p{L}])/iu, 'noite'],
+  [/(?<![\p{L}])(?:sunset|dusk|twilight|golden hour)(?![\p{L}])/iu, 'tarde'],
+  [/(?<![\p{L}])(?:sunlight|daylight|sunshine|sun|sunrise|dawn|morning|midday|noon|window light)(?![\p{L}])/iu, 'dia'],
+]
+const classeDaLuz = (t: string) => CLASSE_LUZ.find(([re]) => re.test(t))?.[1] ?? null
+/** Luz de DIA: "dimly lit" no plano da cena contradiz e sai. */
+const LUZ_DE_DIA_RE = /(?<![\p{L}])(?:sunlight|sunlit|sunshine|daylight|natural light|sunrise|window light|bright light|midday|noon|morning)(?![\p{L}])/iu
+export const MARCA_LUZ_NO_PROMPT = 'Lighting as the customer asked:'
+
+/** A luz do pedido original: a frase cujo assunto é a luz, ou só a expressão de luz da frase de ação. null = não há, ou há duas luzes diferentes. */
+export function luzDoPedido(ideiaOriginal: unknown): string | null {
+  const pedido = textoDoPedidoOriginal(ideiaOriginal)
+  if (!pedido) return null
+  const achadas: string[] = []
+  for (const f of pedido.split(/(?<=[.!?\n])/u)) {
+    const t = f.trim().replace(/[.!?]+$/u, '').trim()
+    if (!t || /^(?:no|not|never|without|don't|do not)\b/iu.test(t)) continue
+    const n = t.split(/\s+/u).length
+    if (SUJEITO_LUZ_RE.test(t) && n >= 2 && n <= 20 && !/(?<![\p{L}])(?:text|subtitles?|captions?|logos?)(?![\p{L}])/iu.test(t)) { achadas.push(t); continue }
+    const e = EXPRESSAO_LUZ_RE.exec(t)
+    if (e) achadas.push(e[0].toLowerCase())
+  }
+  if (!achadas.length) return null
+  const classes = new Set(achadas.map(classeDaLuz).filter(Boolean))
+  if (classes.size > 1) return null // dia numa frase, noite em outra: a casa não escolhe
+  return achadas[0]
+}
+
+/** O prompt da cena com a luz do pedido no fim (e sem "dimly lit" quando a luz pedida é de dia). Sem luz: o mesmo prompt. */
+export function comLuzDoPedido(prompt: string, luz: string | null): string {
+  if (!luz || prompt.includes(MARCA_LUZ_NO_PROMPT)) return prompt
+  const p = LUZ_DE_DIA_RE.test(luz) ? prompt.replace(/(?<![\p{L}])dimly[ -]lit\s+/giu, '').replace(/(?<![\p{L}])dim(?=\s+(?:light|café|cafe|room|bar|interior))\s+/giu, 'soft ') : prompt
+  return `${p.replace(/\s+$/u, '')} ${MARCA_LUZ_NO_PROMPT} ${luz.replace(/[.\s]+$/u, '')}.`
+}

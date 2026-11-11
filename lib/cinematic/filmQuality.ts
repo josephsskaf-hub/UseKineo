@@ -127,9 +127,13 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
   // KINEO-PESSOA-DO-PEDIDO-1111 (degrau 4) — a frase positiva da superfície ("Every screen glows with soft abstract light and colour.")
   // entrava só se sobrasse espaço (cenaKling4) e caiu com a ficha inteira: na prova, a tela do celular mostrou linhas de texto. Ela passa
   // a ser parte da proteção reservada (abaixo), como "no readable text".
+  // KINEO-LUZ-DO-PEDIDO-1111 — a luz que o cliente pediu (a rota a põe em toda cena: "Lighting as the customer asked: …") vai curta, na frente,
+  // junto do meio; a prova paga do 657ad797 saiu de noite com luminárias num pedido de sol pelas janelas.
+  const luzPedida = /Lighting as the customer asked: ([^.]+)\./.exec(prompt)?.[1]?.trim()
+  if (luzPedida) action = action.replace(/\s*Lighting as the customer asked: [^.]+\./g, '').trim()
   const superficie = fraseUnicaDeSuperficie(prompt)
   if (superficie) action = action.split(superficie).join('').replace(/\s{2,}/g, ' ').trim()
-  const prefix = `${medium}. ${period ? take(period, 60) + '. ' : ''}${origemCurta}`
+  const prefix = `${medium}. ${period ? take(period, 60) + '. ' : ''}${luzPedida ? `Light: ${cortaEmFronteira(luzPedida, 90).replace(/[.,;\s]+$/, '')}. ` : ''}${origemCurta}` // KINEO-LUZ-DO-PEDIDO-1111
   let core = prefix + who(identityBudget) + action
   const fullTextProtection = originalTextDirections.length ? ' ' + originalTextDirections.join(' ') : ''
   const textProtectionBase = fullTextProtection && Array.from(core + fullTextProtection).length <= 410
