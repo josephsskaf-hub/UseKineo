@@ -145,7 +145,13 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
   if (luzPedida) action = action.replace(/\s*Lighting as the customer asked: [^.]+\./g, '').trim()
   const superficie = fraseUnicaDeSuperficie(prompt)
   if (superficie) action = action.split(superficie).join('').replace(/\s{2,}/g, ' ').trim()
-  const prefix = `${medium}. ${period ? take(period, 60) + '. ' : ''}${luzPedida ? `Light: ${cortaEmFronteira(luzPedida, 90).replace(/[.,;\s]+$/, '')}. ` : ''}${origemCurta}` // KINEO-LUZ-DO-PEDIDO-1111
+  // KINEO-LUGAR-DO-PEDIDO-1111 — o lugar que o cliente pediu (a rota o põe em toda cena: "Setting as the customer asked: …") vai curto, na frente
+  const lugarPedido = /Setting as the customer asked: ([^.]+)\./.exec(prompt)?.[1]?.trim()
+  if (lugarPedido) action = action.replace(/\s*Setting as the customer asked: [^.]+\./g, '').trim()
+  // KINEO-LUGAR-DO-PEDIDO-1111 — a época sem época ("…the historical era being narrated", quando o pedido tem cara de época mas não tem ano) não
+  // entra no plano, e a época de verdade corta em fronteira: o filme 2120f018 (11/11 17:00) saiu "…the historical era being narrat."
+  const periodoUtil = period && !/historical era being narrated/i.test(period) ? cortaEmFronteira(period, 60).replace(/[.,;\s]+$/, '') : ''
+  const prefix = `${medium}. ${periodoUtil ? periodoUtil + '. ' : ''}${lugarPedido ? `Place: ${cortaEmFronteira(lugarPedido, 70).replace(/[.,;\s]+$/, '')}. ` : ''}${luzPedida ? `Light: ${cortaEmFronteira(luzPedida, 90).replace(/[.,;\s]+$/, '')}. ` : ''}${origemCurta}` // KINEO-LUZ-DO-PEDIDO-1111
   let core = prefix + who(identityBudget) + action
   const fullTextProtection = originalTextDirections.length ? ' ' + originalTextDirections.join(' ') : ''
   const textProtectionBase = fullTextProtection && Array.from(core + fullTextProtection).length <= 410
@@ -171,8 +177,11 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
       // o teto seguro do plano: 512 − a referência mais longa do montador ("Scene 5: text-directed shot, no new keyframe for this scene. ",
       // 61) − a cauda da boca (27) = 424 de núcleo + proteção; o 410 de sempre deixava 14 sem uso, e aqui eles vão para a ficha.
       coreBudget += 14
-      const ficha = who(Math.max(0, Math.min(identityBudget, coreBudget - Array.from(prefix + whoLabel).length - 50)))
-      core = prefix + ficha + cortaEmFronteira(action, Math.max(0, coreBudget - Array.from(prefix + ficha).length))
+      // KINEO-LUGAR-DO-PEDIDO-1111 — cabelo e roupa antes do cenário (o dono): se a ficha inteira não cabe com o lugar na frente, o lugar sai
+      const cabeAFicha = (pre: string) => coreBudget - Array.from(pre + whoLabel).length - 50 >= Array.from(identity[1]).length
+      const pre = lugarPedido && !cabeAFicha(prefix) ? prefix.replace(/Place: [^.]+\. /, '') : prefix
+      const ficha = who(Math.max(0, Math.min(identityBudget, coreBudget - Array.from(pre + whoLabel).length - 50)))
+      core = pre + ficha + cortaEmFronteira(action, Math.max(0, coreBudget - Array.from(pre + ficha).length))
     } else core = prefix + firstAction + ' ' + who(reducedIdentity) + action.slice(firstAction.length)
   }
   // KINEO-K4-PLANO-DA-SECAO-1111 — o corte do núcleo cai em FRONTEIRA (frase ou oração), nunca no meio da palavra: era take(core,

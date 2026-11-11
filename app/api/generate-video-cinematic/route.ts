@@ -128,7 +128,7 @@ import { looksLikeBrief } from '@/lib/scriptParser'
 import { sceneNarrationsForPlan } from '@/lib/cinematic/speechContract'
 import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
 import { decidirFormato, permiteApresentador, TAG_FACELESS, proibidosPorModo, type VisualMode } from '@/lib/cinematic/visualMode'
-import { formatoComPessoaDoPedido, pessoaDoPedido, fichaDaPessoa, elencoComPessoaDoPedido, luzDoPedido, comLuzDoPedido } from '@/lib/cinematic/pessoaDoPedido' // KINEO-PESSOA-DO-PEDIDO-1111
+import { formatoComPessoaDoPedido, pessoaDoPedido, fichaDaPessoa, elencoComPessoaDoPedido, luzDoPedido, comLuzDoPedido, lugarDoPedido as lugarDoPedidoDoCliente, comLugarDoPedido } from '@/lib/cinematic/pessoaDoPedido' // KINEO-PESSOA-DO-PEDIDO-1111
 import { relogioComPonteiros } from '@/lib/cinematic/relogioComPonteiros' // KINEO-RELOGIO-PONTEIROS-1111
 import { garantirAcaoCentral, silenciarFalaNoPrompt, apararComFolga, removerDatasInventadas } from '@/lib/hollywood/fidelidade'
 import { planejarCenasS25, montarPromptS25, ambienteComEpoca, epocaDoFilmeS25, S25_CENA_EVENTO } from '@/lib/hollywood/s25Cena' // KINEO-S25-NOTA95-2026-10-06
@@ -5785,7 +5785,8 @@ async function manipularPost(req: NextRequest) {
           elencoSemantico: conferenciaElenco, // KINEO-SO-GENTE-NA-FICHA-0411 — a camada de época também não insere quem a leitura não leu como personagem
           elenco: personagemElenco.elenco, preservarElenco: !!qualidadeHerdada })
         const luzHollywood = qualidadeHerdada ? null : luzDoPedido(pedidoDoCliente) // KINEO-UNIVERSAL-HOLLYWOOD-1111 [CEO 11/11, tabela de cobertura] — a luz do pedido e o relógio de ponteiros também na estrada hollywood (Kling 4 pago, H3, H3 Max, S25): antes só a clássica os tinha
-        plan.scenes.forEach((scene, i) => { const base = relogioComPonteiros(quality.prompts[i]); const comSuperficie = comLuzDoPedido(comSuperficieSemTexto(base), luzHollywood); const comLuz = comLuzDoPedido(base, luzHollywood); scene.prompt = comSuperficie.length <= 2500 ? comSuperficie : comLuz.length <= 2500 ? comLuz : base }) // KINEO-UNIVERSAL-HOLLYWOOD-1111 — passou de 2500: sai primeiro a frase da superfície; a luz e o relógio ficam // KINEO-EMBALAGEM-SEM-LETRA-0411 — a estrada hollywood também descreve em positivo a superfície que ganha letra (o Kling 4 já tinha; agora Kling 3, H3, Omni e S25)
+        const lugarHollywood = qualidadeHerdada ? null : lugarDoPedidoDoCliente(pedidoDoCliente) // KINEO-LUGAR-DO-PEDIDO-1111 — o lugar do pedido também na estrada hollywood
+        plan.scenes.forEach((scene, i) => { const base = comLugarDoPedido(relogioComPonteiros(quality.prompts[i]), lugarHollywood); const comSuperficie = comLuzDoPedido(comSuperficieSemTexto(base), luzHollywood); const comLuz = comLuzDoPedido(base, luzHollywood); scene.prompt = comSuperficie.length <= 2500 ? comSuperficie : comLuz.length <= 2500 ? comLuz : base }) // KINEO-UNIVERSAL-HOLLYWOOD-1111 — passou de 2500: sai primeiro a frase da superfície; a luz e o relógio ficam // KINEO-EMBALAGEM-SEM-LETRA-0411 — a estrada hollywood também descreve em positivo a superfície que ganha letra (o Kling 4 já tinha; agora Kling 3, H3, Omni e S25)
         plan.styleSheet = styleAnchor.lookPhrase + styleAnchor.suffix
         plan.stylized = isStylizedLook(styleAnchor)
         if (qualidadeHerdada) {
@@ -7347,6 +7348,7 @@ async function manipularPost(req: NextRequest) {
     if (seedanceShortFilm) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = sanitizarObjetos15(classicScenePrompts[i], seedanceShortFilm) // KINEO-FILME15-PERFEITO-2610 — final visual vector, before still/clip; narration stays intact
     for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comSuperficieSemTexto(classicScenePrompts[i]) // KINEO-CENA-PEDIDO-3010 — revisor 29/10: lousa/tela/página/placa saíam com letra inventada; a superfície vai descrita em positivo (o motor não tem negativo)
     { const luzPedida = qualidadeHerdada ? null : luzDoPedido(pedidoDoCliente); if (luzPedida) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comLuzDoPedido(classicScenePrompts[i], luzPedida) } // KINEO-LUZ-DO-PEDIDO-1111 — a luz que o cliente pediu (só a luz, nunca a frase de ação) chega a toda cena (still e clipe); 657ad797: pedido de sol pelas janelas, prova saiu à noite
+    { const lugarPedido = qualidadeHerdada ? null : lugarDoPedidoDoCliente(pedidoDoCliente); if (lugarPedido) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comLugarDoPedido(classicScenePrompts[i], lugarPedido) } // KINEO-LUGAR-DO-PEDIDO-1111 [CEO 11/11, reprise dos 6 filmes] — o lugar que o cliente pediu (só quando o pedido cita UM lugar) chega a toda cena; 657ad797: "a stylish Johannesburg coffee shop" virou "a café"
     for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = relogioComPonteiros(classicScenePrompts[i]) // KINEO-RELOGIO-PONTEIROS-1111 — vizinho f2e8cffc: "clock showing 02:46" saiu ~8:40 (a proteção de texto proíbe números); o relógio vira de ponteiros apontando para a hora, mostrador sem dígitos
 
     // ═══ KINEO-DRYRUN-CLASSICO-2026-09-12 — O VALIDADOR DE $0 COBRE OS CLÁSSICOS ═══

@@ -214,3 +214,33 @@ export function comLuzDoPedido(prompt: string, luz: string | null): string {
   const p = LUZ_DE_DIA_RE.test(luz) ? prompt.replace(/(?<![\p{L}])dimly[ -]lit\s+/giu, '').replace(/(?<![\p{L}])dim(?=\s+(?:light|café|cafe|room|bar|interior))\s+/giu, 'soft ') : prompt
   return `${p.replace(/\s+$/u, '')} ${MARCA_LUZ_NO_PROMPT} ${luz.replace(/[.\s]+$/u, '')}.`
 }
+
+// ═══ KINEO-LUGAR-DO-PEDIDO-1111 [CEO 11/11, reprise dos 6 filmes] — O LUGAR QUE O CLIENTE PEDIU ═══
+// O 657ad797 pedia "sits alone at a stylish Johannesburg coffee shop"; os planos diziam só "in a café" (e na 1ª prova, um café escuro
+// qualquer). Aqui: o lugar do pedido — preposição + até 4 palavras + substantivo de LUGAR ("at a stylish Johannesburg coffee shop") — vira
+// "Setting as the customer asked: a stylish Johannesburg coffee shop." no fim de toda cena. Só quando o pedido cita UM lugar só: com dois ou
+// mais (a história anda: "goes to school, then to the beach"), nada — o planejador põe cada lugar na cena certa, e um lugar global estragaria
+// as outras. Inglês. Pedido sem lugar = null = o prompt de sempre.
+const LUGAR_NOME = '(?:coffee shop|coffeehouse|café|cafe|restaurant|bar|pub|bakery|kitchen|bedroom|living room|bathroom|office|classroom|school|library|museum|hospital|church|temple|mosque|forest|jungle|beach|park|street|alley|market|marketplace|zoo|harbor|harbour|port|station|train station|airport|apartment|house|mansion|garden|farm|desert|mountain|lake|river|castle|palace|studio|gym|hotel|lobby|stadium|arena|warehouse|factory|laboratory|lab|village|city square|square|bridge|rooftop|basement|attic|cave|island|ship|boat|train|bus|car|subway|metro|mall|shop|store|boutique|salon|spa|clinic|courtroom|prison|cemetery|field|meadow|valley|canyon|volcano|glacier)'
+const LUGAR_RE = new RegExp(`(?<![\\p{L}])(?:at|in|inside|on|into|through|across|near|outside)\\s+((?:an?|the)\\s+(?:[\\p{L}'’-]+\\s+){0,4}?${LUGAR_NOME})(?![\\p{L}])`, 'giu')
+const LUGAR_SO_RE = new RegExp(`(?<![\\p{L}])${LUGAR_NOME}(?![\\p{L}])`, 'giu')
+export const MARCA_LUGAR_NO_PROMPT = 'Setting as the customer asked:'
+
+/** O lugar do pedido original ("a stylish Johannesburg coffee shop"), quando o pedido cita UM lugar só. null = nenhum, ou mais de um. */
+export function lugarDoPedido(ideiaOriginal: unknown): string | null {
+  const pedido = textoDoPedidoOriginal(ideiaOriginal)
+  if (!pedido) return null
+  const semProibicao = pedido.split(/(?<=[.!?\n])/u).filter((f) => !/^\s*(?:no|not|never|without|don't|do not)\b/iu.test(f)).join(' ')
+  const nomes = new Set([...semProibicao.matchAll(LUGAR_SO_RE)].map((m) => m[0].toLowerCase().replace('coffeehouse', 'coffee shop').replace('cafe', 'café')))
+  if (nomes.size !== 1) return null // nenhum lugar, ou a história passa por mais de um
+  const m = new RegExp(LUGAR_RE.source, 'iu').exec(semProibicao)
+  if (!m) return null
+  const lugar = m[1].trim().replace(/^the\s+/iu, 'the ')
+  return lugar.split(/\s+/u).length <= 7 ? lugar : null
+}
+
+/** O prompt da cena com o lugar do pedido no fim. Sem lugar, ou já com ele: o mesmo prompt. */
+export function comLugarDoPedido(prompt: string, lugar: string | null): string {
+  if (!lugar || prompt.includes(MARCA_LUGAR_NO_PROMPT)) return prompt
+  return `${prompt.replace(/\s+$/u, '')} ${MARCA_LUGAR_NO_PROMPT} ${lugar.replace(/[.\s]+$/u, '')}.`
+}

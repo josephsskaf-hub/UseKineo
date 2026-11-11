@@ -32,7 +32,7 @@ function loader(over = {}) {
 // e as funções reais: (a) a cena ganha a luz e o relógio vira ponteiros; (b) passou de 2500: sai a frase da superfície, a luz e o relógio
 // ficam; (c) qualidade herdada = sem luz; (d) sem luz no pedido = a cena de sempre. Mutantes no fim.
 const ROTA = 'app/api/generate-video-cinematic/route.ts'
-const linhas = (rota) => { const L = rota.split('\n'); const i = L.findIndex((l) => l.startsWith('        const luzHollywood = ')); return i < 0 ? null : [L[i], L[i + 1]].map((l) => l.replace(/\s*\/\/ KINEO-UNIVERSAL-HOLLYWOOD-1111.*$/, '')).join('\n') }
+const linhas = (rota) => { const L = rota.split('\n'); const i = L.findIndex((l) => l.startsWith('        const luzHollywood = ')); return i < 0 ? null : L.slice(i, i + 3).map((l) => l.replace(/\s*\/\/ KINEO-(?:UNIVERSAL-HOLLYWOOD|LUGAR-DO-PEDIDO)-1111.*$/, '')).join('\n') } // KINEO-LUGAR-DO-PEDIDO-1111: + a linha do lugar
 function problems(over) {
   const p = []
   const no = (bad, msg) => { if (bad) p.push(msg) }
@@ -43,7 +43,7 @@ function problems(over) {
   if (!codigo) return ['a rota não tem a luz do pedido na estrada hollywood']
   const rodar = (prompts, pedido, herdada = null) => {
     const plan = { scenes: prompts.map(() => ({ prompt: '' })) }
-    new Function('plan', 'quality', 'qualidadeHerdada', 'pedidoDoCliente', 'luzDoPedido', 'comLuzDoPedido', 'relogioComPonteiros', 'comSuperficieSemTexto', codigo)(plan, { prompts }, herdada, pedido, P.luzDoPedido, P.comLuzDoPedido, Rl.relogioComPonteiros, Su.comSuperficieSemTexto)
+    new Function('plan', 'quality', 'qualidadeHerdada', 'pedidoDoCliente', 'luzDoPedido', 'comLuzDoPedido', 'relogioComPonteiros', 'comSuperficieSemTexto', 'lugarDoPedidoDoCliente', 'comLugarDoPedido', codigo)(plan, { prompts }, herdada, pedido, P.luzDoPedido, P.comLuzDoPedido, Rl.relogioComPonteiros, Su.comSuperficieSemTexto, P.lugarDoPedido, P.comLugarDoPedido)
     return plan.scenes.map((s) => s.prompt)
   }
   const PED = 'A quiet apartment in Milan. Natural sunlight enters through large glass windows.'
@@ -67,7 +67,7 @@ console.log('ok  estado atual limpo (estrada hollywood: luz do pedido e relógio
 const rota = read(ROTA)
 const MUT = [
   ['M1 a hollywood sem a luz', { [ROTA]: rota.replace('const comSuperficie = comLuzDoPedido(comSuperficieSemTexto(base), luzHollywood)', 'const comSuperficie = comSuperficieSemTexto(base)') }],
-  ['M2 a hollywood sem o relógio', { [ROTA]: rota.replace('const base = relogioComPonteiros(quality.prompts[i])', 'const base = quality.prompts[i]') }],
+  ['M2 a hollywood sem o relógio', { [ROTA]: rota.replace('const base = comLugarDoPedido(relogioComPonteiros(quality.prompts[i]), lugarHollywood)', 'const base = comLugarDoPedido(quality.prompts[i], lugarHollywood)') }],
   ['M3 no teto a luz cai junto', { [ROTA]: rota.replace(': comLuz.length <= 2500 ? comLuz : base })', ': base })') }],
 ]
 for (const [nome, over] of MUT) {
