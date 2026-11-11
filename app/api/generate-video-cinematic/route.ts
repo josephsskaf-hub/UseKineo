@@ -33,6 +33,7 @@ import { claimKling4PaidSlot, finishKling4PaidSlot } from '@/lib/kling4PaidQueue
 import { ensureKling4PromoBudgetToday } from '@/lib/kling4PromoCarry'
 import { creditCostFor, creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 import { isInternalEmail } from '@/lib/internalAccounts'
+import { KLING4_PLANO_POR_SECAO, KLING4_PLANO_POR_SECAO_VERSAO, planoPorSecaoLigado, planosPorSecao } from '@/lib/kling4QuatroPlanos' // KINEO-K4-PLANO-POR-SECAO-1111
 import { S25_PUBLIC, enginePaused, engineRetired, engineRetiredForHouse, engineOffered, ENGINE_RETIRED_EVENT, ENGINE_RETIRED_REASON } from '@/lib/engineLaunch' // KINEO-VEO-DESLIGA-1711: engineRetiredForHouse
 import { seedance15sVisible } from '@/lib/engineLaunch' // KINEO-SEEDANCE-15S-2026-09-29
 import { S25_PAID_ONLY_EVENT, S25_PAID_ONLY_MESSAGE, S25_PAID_ONLY_REASON, s25UpgradeHref } from '@/lib/engineLaunch' // KINEO-S25-ABRE-2026-10-06
@@ -7936,6 +7937,17 @@ async function manipularPost(req: NextRequest) {
       if (r.relato.corrigido) { for (let i = 0; i < kling4Prompts.length; i++) kling4Prompts[i] = r.prompts[i]; for (let i = 0; i < kling4ApprovedStills.length; i++) kling4ApprovedStills[i] = r.stills[i] ?? null; console.log(`[cinematic] KINEO-K4-SUJEITO: "${r.relato.sujeito}" (pedido: ${r.relato.fonte_do_pedido}) entrou na cena ${r.relato.cena}${r.relato.keyframe_removido ? ' (imagem-chave do meio retirada)' : ''}`) }
       else if (r.relato.motivo_sem_sujeito && r.relato.fonte_do_pedido) console.log(`[cinematic] KINEO-K4-SUJEITO: nada injetado (${r.relato.motivo_sem_sujeito})`)
     }
+    // KINEO-K4-PLANO-POR-SECAO-1111 — o pedido ao Kling 4 grátis com UM plano por seção do roteiro (lib/kling4QuatroPlanos.ts), atrás do interruptor
+    // KLING4_PLANO_POR_SECAO ('internal' = só a casa). Lido na hora do envio (depois do sujeito e da fala encaixada): o que vai à fal, o
+    // juiz do plano e o claim leem a MESMA entrada. Sem seções provadas pelo texto → null → os 3 planos de sempre, byte a byte.
+    const kling4PlanoPorSecao = planoPorSecaoLigado(KLING4_PLANO_POR_SECAO, isInternalEmail(user.email)) // KINEO-K4-PLANO-POR-SECAO-1111
+    const kling4PorSecao = (a: { prompts: string[]; approvedStills: (string | null)[]; timing: typeof kling4Timing }): { prompts: string[]; approvedStills: (string | null)[]; timing: typeof kling4Timing; planos: number[][] | null } => { // KINEO-K4-PLANO-POR-SECAO-1111
+      const q = kling4PlanoPorSecao && verbatim && parsedScript.segments.length > scenes.length // KINEO-K4-PLANO-POR-SECAO-1111 — só quando o roteiro tem mais seções que cenas
+        ? planosPorSecao({ prompts: a.prompts, stills: a.approvedStills, falas: a.timing.voiceovers, secoes: parsedScript.segments }) // KINEO-K4-PLANO-POR-SECAO-1111
+        : null // KINEO-K4-PLANO-POR-SECAO-1111
+      return q ? { prompts: q.prompts, approvedStills: q.stills, timing: { voiceovers: q.falas, wordsPerSecond: a.timing.wordsPerSecond }, planos: q.grupos } : { ...a, planos: null } // KINEO-K4-PLANO-POR-SECAO-1111
+    } // KINEO-K4-PLANO-POR-SECAO-1111
+    const kling4EnvioDoFilme = () => kling4PorSecao({ prompts: kling4Prompts, approvedStills: kling4ApprovedStills, timing: kling4Timing }) // KINEO-K4-PLANO-POR-SECAO-1111 — a MESMA entrada para o juiz do plano e o claim
     let kling4Trial: Kling4TrialResult | null = null
     // KINEO-K4-SEMPRE-0511 [TRAVA 8.2 — fundador 05/11 "vai"] — Kling 4 para todo filme grátis, sempre em 15 s. Dentro deste bloco, medirFalaDoKling4Trial mede e, se precisar, encaixa:
     // sem medida, uma nova tentativa; fala longa, encurta e mede de novo, antes do POST pago. Só o que a voz confirmou troca a fala; falhou, o texto fica inteiro e o filme vai à reserva, como antes.
@@ -7963,9 +7975,9 @@ async function manipularPost(req: NextRequest) {
     if (kling4TrialCandidate && scenes.length === 3 && scenes.every(s => [6, 7, 8].includes(s.clipSeconds ?? 6)) && kling4Fala?.cabe) { // KINEO-K4-NARRACAO-CABE-0111: + fala medida ≤ 15,5 s
       kling4Trial = await orchestrateKling4Trial({
         reserve: () => reserveKling4Trial(cinematicAdmin, { jobId: generationId, userId: user.id, country: paisDoRequest(req.headers) }),
-        submit: async () => { await aplicarSujeitoNoKling4(); return submitKling4TrialVideo({ // KINEO-K4-SUJEITO-0111 v5 — o sujeito entra depois da reserva aprovada, antes do POST pago
+        submit: async () => { await aplicarSujeitoNoKling4(); return submitKling4TrialVideo(kling4PorSecao({ // KINEO-K4-SUJEITO-0111 v5 — o sujeito entra depois da reserva aprovada, antes do POST pago · KINEO-K4-PLANO-POR-SECAO-1111: kling4PorSecao
           prompts: kling4Prompts, approvedStills: kling4ApprovedStills, timing: kling4Timing,
-        }, { apiKey: process.env.FAL_KEY ?? '', onPost: () => { kling4Posts++; ctxDespacho().totalPosts++ } }) },
+        }), { apiKey: process.env.FAL_KEY ?? '', onPost: () => { kling4Posts++; ctxDespacho().totalPosts++ } }) },
       })
     } else if (kling4TrialCandidate) {
       kling4Trial = { engineUsed: 'seedance15_fallback', costUsd: 0, reason: kling4Fala && !kling4Fala.cabe ? kling4Fala.reason : 'fallback_plan_unavailable' } // KINEO-K4-NARRACAO-CABE-0111
@@ -7987,7 +7999,7 @@ async function manipularPost(req: NextRequest) {
         status: null, ambiguous: true, accepted: false })
       ctxDespacho().outcomes[0].attempt_count++
     }
-    iniciarJuizDoPlano({ ...planoDoEnvio({ kling4Candidato: kling4TrialCandidate, kling4Input: () => (kling4Trial?.job ? buildKling4TrialInput(kling4Prompts, kling4ApprovedStills, kling4Timing).input : null), falas: scenes.map((s) => s.voiceover ?? ''), inputs: classicSceneInputs }), engine: kling4Trial?.job ? 'kling4' : wantsKling ? 'kling' : wantsVeo ? 'veo' : wantsSora ? 'sora' : 'seedance', pedido: prompt, verbatim, seconds: duration }, { aoDecidir: registrarJuizPlano }) // KINEO-JUIZ-PLANO-0111 — DEPOIS do 1º POST, nunca antes: Kling 4 grátis = multi_prompt de buildKling4TrialInput (compactado e cortado em 512); fallback/clássico = o prompt de cada input enviado (cena sem input não foi à fal e fica fora); corre em paralelo, sem esperar
+    iniciarJuizDoPlano({ ...planoDoEnvio({ kling4Candidato: kling4TrialCandidate, kling4Input: () => (kling4Trial?.job ? (() => { const e = kling4EnvioDoFilme(); return buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input })() /* KINEO-K4-PLANO-POR-SECAO-1111 */ : null), falas: scenes.map((s) => s.voiceover ?? ''), inputs: classicSceneInputs }), engine: kling4Trial?.job ? 'kling4' : wantsKling ? 'kling' : wantsVeo ? 'veo' : wantsSora ? 'sora' : 'seedance', pedido: prompt, verbatim, seconds: duration }, { aoDecidir: registrarJuizPlano }) // KINEO-JUIZ-PLANO-0111 — DEPOIS do 1º POST, nunca antes: Kling 4 grátis = multi_prompt de buildKling4TrialInput (compactado e cortado em 512); fallback/clássico = o prompt de cada input enviado (cena sem input não foi à fal e fica fora); corre em paralelo, sem esperar
     const falRequestIds = submittedScenes.ids
     const usedModels = submittedScenes.models
     let validIds = falRequestIds.filter((id): id is string => id !== null)
@@ -8265,7 +8277,8 @@ async function manipularPost(req: NextRequest) {
         Object.assign(response, {
           fal_model: kling4Trial.job.model, scenes: [scenes.map(s => s.description).join(' ')],
           scene_captions: [''], scene_prompts: [classicScenePrompts.join(' ')],
-          scene_fal_inputs: [buildKling4TrialInput(kling4Prompts, kling4ApprovedStills, kling4Timing).input],
+          scene_fal_inputs: [(() => { const e = kling4EnvioDoFilme(); return buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input })()], // KINEO-K4-PLANO-POR-SECAO-1111 — o que foi à fal
+          ...(kling4EnvioDoFilme().planos ? { kling4_planos: { versao: KLING4_PLANO_POR_SECAO_VERSAO, secoes_por_cena: kling4EnvioDoFilme().planos } } : {}), // KINEO-K4-PLANO-POR-SECAO-1111 — para medir
           clip_seconds: [15], clip_word_starts: [0],
         })
       }
