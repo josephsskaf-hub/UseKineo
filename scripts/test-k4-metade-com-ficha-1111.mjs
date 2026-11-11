@@ -51,6 +51,10 @@ function problems(over) {
     no(Array.from(t).length > 512 || !t.endsWith(' Mouth closed, no speaking.'), `${nome}: passou de 512 ou perdeu a cauda`)
   }
   no(!/moving boxes hallway/.test(a) || /security camera/.test(a), 'metade 1: não é a ação da seção 1')
+  // a ficha que o corte da cena ENCOSTOU na proteção, sem ponto final (o plano compactado real do vizinho às 11/11 manhã)
+  const encostada = 'Photoreal film. Period setting: 1998 (1990s). Everyone shown has the natural features of Italian people. Visible, seen from behind: Luca, a man in his thirties with short hair, narrow face and sharp eyes, wearing period-accurate 1990s clothing, origin: an Italian man, no readable text, letters, numbers, labels or signage Mouth closed, no speaking.'
+  const meia = Q.promptDaSecao(encostada, secoes[1])
+  no(!/Visible, seen from behind: Luca, a man in his thirties/.test(meia), `metade com a ficha encostada na proteção: sem a ficha → ${meia.slice(0, 200)}`)
   no(!/security camera footage night/.test(b) || /moving boxes/.test(b), 'metade 2: não é a ação da seção 2')
   return p
 }
