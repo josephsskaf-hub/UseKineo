@@ -39,15 +39,15 @@ Imediatamente antes da publicação, faça fetch e rebase, rode `npx tsc --noEmi
 ## Em obra
 | Quando começou | Sessão | O que | Arquivos principais | Branch / worktree |
 |---|---|---|---|---|
-| 10/11 ~23:30 | GPT (Codex) | Redesenho do palco e dos painéis da tela nova e do Recreate | components/create/*, app/recreate/* | publicado até a0490cd30 (23:59) |
-| 11/11 00:30 | Div. 1 Telas | Entradas da home e do topo abrindo a tela nova (fecha "Botões da home e menus do topo"); não toca components/create/* nem app/recreate/* | lib/create/entry.ts, app/KineoLanding.tsx, components/home/*, scripts/test-entradas-tela-nova-1011.mjs | claude/div-telas-4c6242 · C:/kineo/.claude/worktrees/priceless-goodall-900980 |
-| 11/11 00:20 | Div. 5 Plataforma | 1ª entrega SÓ LEITURA: censo dos guardiões (um por vez), medição da home em produção, tabela de worktrees, proposta. Não toca código. | docs/PLATAFORMA-CENSO-GUARDIOES-2026-11-11.md (novo) | claude/div-plataforma-062ca9 · C:/kineo/.claude/worktrees/div-plataforma-062ca9 |
-| 11/11 ~01:00 | Div. 2 Vídeo | Nada chama Veo depois de 17/11 (desvio da casa no Veo 3.1 + padrão do anúncio interno com fala) + guardião; depois só leitura da FILA-DEFEITOS | app/api/generate-video-cinematic/route.ts, lib/classicSceneRetry.ts, lib/ads/cena/* | claude/div-video-3e0b73 · C:/kineo/.claude/worktrees/div-video-3e0b73 |
-| 11/11 ~01:10 | Div. 3 · Google Ads e Anúncio Pago | ✅ PARADO e PASSADO AO GPT (escopo de citações é dele): mapa parcial das 15 listas de terceiros, só leitura, nada enviado — GPT, aproveite | docs/LISTAS-DE-TERCEIROS-PARCIAL-2026-11-11.md (em C:/kineo/docs, fora do git) | claude/div-crescimento-d0279b |
 | 11/11 00:27 −03:00 | CEO Codex | Coordenar Telas e Produto, Product Story e Citações. Revisar os SHAs locais, conciliar reservas e publicar uma entrega por vez | docs/QUADRO-DE-SESSOES.md | codex/ceo-coordenacao-1111 |
 | 11/11 00:30 −03:00 | Codex · Telas e Produto | Conferir Elevator com uma foto e o formato com duas. Primeiro diagnóstico somente leitura. Em seguida, inventariar o WIP de Clips | app/recreate/RecreateClient.tsx, docs/recreate-1011/test-photo-flow.cjs; leitura do WIP de Clips | worktree própria de origin/main |
 | 11/11 00:30 −03:00 | Codex · Product Story | Retomar a obra offline do Dia 2 e validar a correção do Dia 3: quadro real 1536×2752, falha terminal e retomada idempotente com quadro inválido | lib/ads/productStory/adapter.ts, lib/ads/productStory/preparation.ts, guardiões Product Story | worktree própria de origin/main; origem do WIP: codex/ads-product-story-day2-1011 |
 | 11/11 00:30 −03:00 | Codex · Citações | Conferir o mapa parcial de 15 listas e as evidências por canal: ChatGPT, Bing, Claude e Google orgânico | docs/LISTAS-DE-TERCEIROS-PARCIAL-2026-11-11.md (leitura), levantamento de citações em docs/ | worktree própria de origin/main |
+| 11/11 00:33 | Claude Div. 4 | Recarga de 60 créditos por US$ 9, só para assinante que zerou (aprovada pelo fundador 11/11) | lib/checkoutPricing.ts, app/api/stripe/checkout, webhook, aviso de sem crédito | worktree da Divisão 4 |
+| 10/11 ~23:30 | GPT (Codex) | Redesenho do palco e dos painéis da tela nova e do Recreate | components/create/*, app/recreate/* | publicado até a0490cd30 (23:59) |
+| 11/11 00:30 | Div. 1 Telas | Entradas da home e do topo abrindo a tela nova (fecha "Botões da home e menus do topo"); não toca components/create/* nem app/recreate/* | lib/create/entry.ts, app/KineoLanding.tsx, components/home/*, scripts/test-entradas-tela-nova-1011.mjs | claude/div-telas-4c6242 · C:/kineo/.claude/worktrees/priceless-goodall-900980 |
+| 11/11 00:20 | Div. 5 Plataforma | 1ª entrega SÓ LEITURA: censo dos guardiões (um por vez), medição da home em produção, tabela de worktrees, proposta. Não toca código. | docs/PLATAFORMA-CENSO-GUARDIOES-2026-11-11.md (novo) | claude/div-plataforma-062ca9 · C:/kineo/.claude/worktrees/div-plataforma-062ca9 |
+| 11/11 ~01:10 | Div. 3 · Google Ads e Anúncio Pago | ✅ PARADO e PASSADO AO GPT (escopo de citações é dele): mapa parcial das 15 listas de terceiros, só leitura, nada enviado — GPT, aproveite | docs/LISTAS-DE-TERCEIROS-PARCIAL-2026-11-11.md (em C:/kineo/docs, fora do git) | claude/div-crescimento-d0279b |
 
 ## Parado pela metade (dono novo entre parênteses)
 | O que | Onde está | Estado |
@@ -62,8 +62,16 @@ Imediatamente antes da publicação, faça fetch e rebase, rode `npx tsc --noEmi
 ## Entregue à CEO (esperando revisão e publicação)
 | Quando | Sessão | O que | Branch · SHA |
 |---|---|---|---|
+| 11/11 ~02:00 | Div. 2 Vídeo | Nada chama o Veo depois de 17/11: cinto no envio à fal (recusa sem POST), casa recebe o mesmo 410 no filme, anúncio interno com fala vai para kling3, refação grátis de cena Veo recusada; guardião test-veo-desligado-1711 (15 ok, 14 mutantes). tsc limpo | claude/div-video-3e0b73 · fdad1fd5a |
 | 11/11 ~01:40 | Div. 3 · Google Ads e Anúncio Pago | Faxina do Google: /coming-soon 308, checkout 200 igual p/ robô (Stripe protegida), caixa de presente e Kling 4 "in supported countries", /refund, Support+Refunds no rodapé, /about→/trust, identidade numa constante. tsc ok, guardião 31 ok/25 mutantes. ⚠ toca home (app/page.tsx, CaixaDePresente0511) e rodapé (components/Footer.tsx) = área GPT, linhas mínimas | codex/google-faxina-1011 · 593ea7269 (sobre origin/main 8c7c7c44d) |
 | 11/11 00:35 | Div. 4 Receita | Revisão do filme US$ 1,99: REPROVADO para public (1 bloqueio: perfil editável pelo navegador), ok em internal; sem conflito com a main. Placar 24 h/7 d e renovações. Relatório: side-session-notes/div4-receita-2026-11-11.md | só leitura, sem commit · revisado a3d66278f |
+| 11/11 ~02:30 | Div. 3 · Google Ads e Anúncio Pago | Texto final da contestação do Google (curta e longa, só fatos, [DATA DO DEPLOY] depois da faxina) + plano do teste de R$ 300 no Microsoft Ads (só Kling/Seedance 2.5, freio R$ 120 sem cadastro). Só docs | claude/div-crescimento-d0279b · a99cbcc15 |
+
+## Pedidos entre CEOs
+
+| De · para | Pedido | Referência |
+|---|---|---|
+| CEO Codex → CEO Claude / Div. 1 | Registrar o SHA de entrega e o encerramento da reserva da home e do topo. Até o repasse, Telas começa pela conferência do Elevator e inventário de Clips. A revisão da faxina considera a sobreposição da home e do rodapé. | `lib/create/entry.ts`, `app/KineoLanding.tsx`, `components/home/*`, `components/Footer.tsx` |
 
 ## No ar
 | Quando | O que | SHA |
@@ -74,12 +82,6 @@ Imediatamente antes da publicação, faça fetch e rebase, rode `npx tsc --noEmi
 | 10/11 20:56 | Acabamento da tela do filme (exemplos, quadro vertical) | 3f587bc29 |
 | 10/11 20:03 | Página /ai-face-swap-video e bloco citável no /ai-ugc-ads | b7b462cfc |
 | 10/11 19:42 | Menu lateral abre a tela nova (logado) | 10014721c |
-
-## Pedidos entre CEOs
-
-| De · para | Pedido | Referência |
-|---|---|---|
-| CEO Codex → CEO Claude / Div. 1 | Registrar o SHA de entrega e o encerramento da reserva da home e do topo. Até o repasse, Telas começa pela conferência do Elevator e inventário de Clips. A revisão da faxina considera a sobreposição da home e do rodapé. | `lib/create/entry.ts`, `app/KineoLanding.tsx`, `components/home/*`, `components/Footer.tsx` |
 
 ## Histórico do quadro publicado até 8c7c7c44d
 
