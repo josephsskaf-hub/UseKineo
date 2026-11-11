@@ -44,6 +44,7 @@ const IDENTIDADE = {
   'lib/cinematic/claim.ts': 1, // RESERVA_SEEDANCE_15_ANTIGO: aceitar claim antigo
   'lib/kling4TrialClaim.ts': 2, 'lib/kling4PaidClaim.ts': 1, // validadores aceitam claim antigo
   'lib/clips/clipPriceVsMarket.ts': 1, 'lib/growth/enginePageCatalog.ts': 1, // texto/página
+  'lib/clips/clipCatalog.ts': 1, // KINEO-ROTULO-CLIPE-H3-1111 — clipLabelForModel: reconhecer o clipe ANTIGO pelo endereço gravado (selo honesto), nunca enviar
   'lib/fastAiClips.ts': 1, 'lib/fastAiHook.ts': 1, // Kineo 1, fora da oferta; falha cai para banco de imagens
 }
 function scan(S) {
