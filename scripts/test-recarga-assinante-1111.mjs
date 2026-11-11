@@ -283,12 +283,15 @@ async function suite(S) {
   t(/data-kineo="recarga-assinante-cta"[^\n]*style=\{\{ \.\.\.primary/.test(S.nudge), 'G2 recarga = botão principal')
   t(/data-kineo="subscriber-upgrade-switch"[^\n]*style=\{recarga \? secondary : primary\}/.test(S.nudge), 'G3 troca de plano vira secundário quando há recarga')
   t(!/\$\s?9\b|\b60 credits\b|\b900\b/.test(N.replace(/fontWeight: 900/g, '')), 'G4 nenhum preço/crédito digitado no aviso')
-  t(/recarga !== null/.test(S.nudge.split('const visible =')[1]?.split('\n')[0] ?? ''), 'G5 o Studio (sem degrau) vê a recarga')
+  t(/recarga !== null/.test(S.nudge.split('const mostrar =')[1]?.split('\n')[0] ?? '') && /if \(!mostrar\) return null/.test(S.nudge), 'G5 o Studio (sem degrau) vê a recarga')
+  t(!/location\.(href|assign|replace)/.test(S.nudge) && /<a href=\{recargaHref \?\? recarga\.go\}/.test(S.nudge), 'G5e o botão é um link (o aviso nunca navega sozinho)')
   t(/\{recarga\.button && \(/.test(S.nudge) && /data-kineo="recarga-assinante-more"/.test(S.nudge) && /RECARGA_ASSINANTE_COPY\.more/.test(S.nudge), 'G5b botão de 60 só para quem zerou; "Need more? Choose your amount" abre a barra')
   t(/if \(TOPUPS_LIVE \|\| props\.recarga\) return <CreditsTopupModalVenda/.test(S.modal) && /window\.location\.href = `\$\{recarga\.go\}&credits=\$\{amount\}&back=/.test(S.modal), 'G5c a barra é o MESMO pop-up, e com a recarga manda só a quantidade à rota da recarga')
   t(/const priceMinor = sliderPriceUsdMinor\(amount\)/.test(S.modal) && !/\$\d/.test(S.modal.replace(/\$\{/g, '')), 'G5d o pop-up mostra o preço da função que cobra; nenhum preço digitado')
   t(!/never expire|don't expire|do not expire/i.test(S.lib + S.nudge), 'G6 nenhum "créditos não expiram" (a renovação apaga comprado abaixo de uma cota)')
-  t(/isSubscriber && SUBSCRIBER_UPGRADE_ENABLED && RECARGA_ASSINANTE_1111_RELEASE !== 'off'\s*\n\s*\? <>Add \{purchaseFit\.shortfall\} more credits to finish it\.<\/>/.test(S.generate), 'G7 modal do /studio/create: assinante não lê "first highlighted option below"')
+  // G7 — o GenerateClient fica IGUAL à main: guardiões antigos exigem o hash exato dele (camadas de desfazer). A frase errada
+  // do modal ("the first highlighted option below…") é conserto de tela, com camada própria, para quem cuida da tela.
+  t(!/KINEO-RECARGA-ASSINANTE-1111/.test(S.generate), 'G7 o GenerateClient não é tocado por esta entrega (os guardiões antigos dependem do hash dele)')
   t(/idea=\{prompt\}/.test(S.studio), 'G8 cockpit do Studio passa a ideia da caixa')
 
   // ── H. eventos de servidor ──
@@ -336,7 +339,6 @@ const MUTANTS = [
   ['aviso: troca continua principal', 'nudge', 'style={recarga ? secondary : primary}', 'style={primary}'],
   ['aviso: preço digitado', 'nudge', '{recargaAssinanteFill(RECARGA_ASSINANTE_COPY.cta, { price: recarga.price, credits: recarga.credits })}', 'Add 60 credits — $9'],
   ['texto promete não expirar', 'lib', "terms: 'One-time payment. Your plan stays the same.',", "terms: 'One-time payment. Credits never expire.',"],
-  ['modal mantém o texto errado', 'generate', '? <>Add {purchaseFit.shortfall} more credits to finish it.</>', '? <>Add {purchaseFit.shortfall} more — the first highlighted option below covers the full request.</>'],
   ['evento cunhável pelo navegador', 'events', "  'recarga_assinante_paid',\n", ''],
 ]
 for (const [name, key, from, to] of MUTANTS) {

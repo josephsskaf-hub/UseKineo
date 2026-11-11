@@ -49,6 +49,15 @@ const strip = (s) => s.replace(/^\s*\/\/.*$/gm, '').replace(/\{\/\*[\s\S]*?\*\/\
 console.log('0 — o que NÃO pode mudar (igual à origin/main)')
 for (const rel of ['lib/scenePreview.ts', 'app/api/scene-preview/route.ts', 'lib/freeFilmPolicy.ts', 'lib/checkoutPricing.ts', 'lib/credits/engineCost.ts', 'lib/enginePlanGate.ts', 'app/api/stripe/checkout/route.ts', 'lib/recreate/access.ts']) {
   const m = main(rel)
+  // KINEO-RECARGA-ASSINANTE-1111 — preço e checkout ganham SKUs novos (recarga do assinante): nesses dois a regra é "só
+  // acréscimos" (toda linha da main continua lá, na mesma ordem); os outros seguem idênticos à main.
+  if (rel === 'lib/checkoutPricing.ts' || rel === 'app/api/stripe/checkout/route.ts') {
+    const cur = read(rel).split('\n')
+    let k = 0
+    const soAcrescimos = m !== null && m.split('\n').every((line) => { while (k < cur.length && cur[k] !== line) k++; if (k >= cur.length) return false; k++; return true })
+    ok(soAcrescimos, `${rel}: só acréscimos em relação à main`)
+    continue
+  }
   ok(m !== null && m === read(rel), `${rel} idêntico à main`)
 }
 ok(P.PREVIA_PER_ACCOUNT_TOTAL === 3 && P.PREVIA_PER_ACCOUNT_PER_DAY === 1 && P.PREVIA_GLOBAL_PER_DAY === 200, 'tetos da prévia: 3 por conta, 1 por dia, 200 por dia')

@@ -260,7 +260,9 @@ const money = (minor) => checkout.formatCheckoutMoney('usd', minor)
     ok(m7.pass && m7.pass.coverage === offer.adsCoverageLine(offer.ADS_PASS_CREDITS) && h7.includes('Enough for 2 new ads (Photo motion or Commercial), 1 Cinema, or about 30 classic ads of 35 s.'), '7a2 passe B: o bloco do /pricing diz o que os 90 créditos pagam, calculado')
   }
   ok(dfyOffer.DFY_TIERS.express.priceMinor === 3500 && dfyOffer.DFY_TIERS.pro.priceMinor === 7500 && dfyOffer.DFY_TIERS.express.hours === 48 && dfyOffer.DFY_TIERS.pro.hours === 72, '7b Express 3500/48 h · Pro 7500/72 h')
-  ok(slider.CREDIT_SLIDER_MIN === 50 && slider.CREDIT_SLIDER_MAX === 2000 && slider.sliderPriceUsdMinor(50) === 990 && slider.sliderPriceUsdMinor(2000) === 37790, '7c barra 50..2000, 50 = 990, 2000 = 37790 (piso 0,189 desde a V8-A de 28/09; era 29790)')
+  // KINEO-RECARGA-ASSINANTE-1111 [fundador 11/11: "eu aprovo a escada de 9 dólares até 500 dólares… só para assinantes"] — a
+  // escada de 28/09 (50..2000, 50 = 990, 2000 = 37790) foi trocada: 60..3700, 60 = 900 (o botão do aviso), 2000 = 27000, 3700 = 50000.
+  ok(slider.CREDIT_SLIDER_MIN === 60 && slider.CREDIT_SLIDER_MAX === 3700 && slider.sliderPriceUsdMinor(60) === 900 && slider.sliderPriceUsdMinor(2000) === 27000 && slider.sliderPriceUsdMinor(3700) === 50000, '7c barra 60..3700, 60 = 900, 2000 = 27000, 3700 = 50000 (escada do assinante de 11/11)')
   // KINEO-PRECO-V8-A-2026-09-28 — reancorado com motivo: escada 13/30/55 do fundador (28/09).
   // KINEO-PRECO-MERCADO-0411
   ok(checkout.TIER_PRICES.starter.usd === 900 && checkout.TIER_PRICES.basic.usd === 1900 && checkout.TIER_PRICES.pro.usd === 5900, '7d planos 900/1900/5900 (fundador 04/11)')

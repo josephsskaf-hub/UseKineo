@@ -151,7 +151,8 @@ export default function SubscriberUpgradeNudge({
     pricesMinor: { starter: TIER_PRICES.starter.usd, basic: TIER_PRICES.basic.usd, pro: TIER_PRICES.pro.usd },
     topupAllowed: canPurchaseCreditTopup(plan),
   })
-  const visible = offer.kind === 'switch' || (offer.kind === 'topup_only' && topup) || recarga !== null || recargaPaid !== null // KINEO-RECARGA-ASSINANTE-1111 — o Studio (topo da escada) passa a ver a recarga
+  const visible = offer.kind === 'switch' || (offer.kind === 'topup_only' && topup)
+  const mostrar = visible || recarga !== null || recargaPaid !== null // KINEO-RECARGA-ASSINANTE-1111 — o Studio (topo da escada) passa a ver a recarga
   const topupHere = recarga === null && topup && (offer.kind === 'topup_only' || (offer.kind === 'switch' && offer.topup)) // KINEO-RECARGA-ASSINANTE-1111 — com a recarga nova, o botão da antiga some
   const shownKind: 'switch' | 'topup_only' | 'recarga' = recarga !== null ? 'recarga' : offer.kind === 'switch' ? 'switch' : 'topup_only' // KINEO-RECARGA-ASSINANTE-1111
   const fromTier = offer.kind === 'none' ? null : offer.from
@@ -159,7 +160,7 @@ export default function SubscriberUpgradeNudge({
   const offerKey = `${offer.kind}:${fromTier ?? ''}>${toTier ?? ''}:${recarga ? 'recarga' : ''}`
 
   useEffect(() => {
-    if (!visible || shownRef.current) return
+    if (!mostrar || shownRef.current) return
     shownRef.current = true
     try {
       void trackEvent(SUBSCRIBER_UPGRADE_SHOWN_EVENT, {
@@ -176,7 +177,7 @@ export default function SubscriberUpgradeNudge({
     } catch { /* telemetria nunca derruba a parede */ }
     try { onShown?.({ kind: shownKind, from: fromTier, to: toTier, topup: topupHere }) } catch { /* idem */ } // KINEO-RECARGA-PAGANTE-0111 · KINEO-RECARGA-ASSINANTE-1111 — 'recarga' quando a recarga nova pinta
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, offerKey])
+  }, [mostrar, offerKey])
 
   function track(choice: 'switch' | 'topup' | 'plans' | 'recarga' | 'recarga_more') {
     try {
@@ -213,17 +214,12 @@ export default function SubscriberUpgradeNudge({
     setError(planSwitchErrorText(result.error))
   }
 
-  // KINEO-RECARGA-ASSINANTE-1111 — o clique vai à rota da oferta, que re-decide no servidor e leva ao checkout (ou, na
-  // conferência da casa, volta sem cobrar). A volta é o endereço de agora, com a ideia, sem os parâmetros que disparam render.
-  function onRecarga() {
-    if (!recarga || recargaGoing || typeof window === 'undefined') return
-    track('recarga')
-    setRecargaGoing(true)
-    const back = recargaAssinanteBack(`${window.location.pathname}${window.location.search}`, idea)
-    window.location.href = `${recarga.go}&back=${encodeURIComponent(back)}`
-  }
+  // KINEO-RECARGA-ASSINANTE-1111 — o clique é um LINK para a rota da oferta, que re-decide no servidor e leva ao checkout (ou,
+  // na conferência da casa, volta sem cobrar). A volta é o endereço de agora, com a ideia, sem os parâmetros que disparam render.
+  const recargaBack = recarga && typeof window !== 'undefined' ? recargaAssinanteBack(`${window.location.pathname}${window.location.search}`, idea) : null
+  const recargaHref = recarga ? `${recarga.go}${recargaBack ? `&back=${encodeURIComponent(recargaBack)}` : ''}` : null
 
-  if (!visible) return null
+  if (!mostrar) return null
   const c = TONES[tone]
   const name = offer.kind === 'switch' ? PLANS[offer.to].name : ''
   const price = offer.kind === 'switch' ? formatCheckoutMoney('usd', offer.priceMinor) : ''
@@ -237,9 +233,7 @@ export default function SubscriberUpgradeNudge({
     border: `1px solid ${c.outline}`, color: c.text, fontSize: '0.84rem', fontWeight: 800, textAlign: 'center', cursor: 'pointer',
   }
   // KINEO-RECARGA-ASSINANTE-1111 — com a oferta da recarga, o MESMO pop-up abre como a barra do assinante (60 a 3.700).
-  const recargaModal = recarga && typeof window !== 'undefined'
-    ? { go: recarga.go, qa: recarga.qa, back: recargaAssinanteBack(`${window.location.pathname}${window.location.search}`, idea) }
-    : null
+  const recargaModal = recarga && recargaBack ? { go: recarga.go, qa: recarga.qa, back: recargaBack } : null
   const topupModal = topupOpen ? <CreditsTopupModal surface={`subscriber_upgrade_${surface}`} onClose={() => setTopupOpen(false)} recarga={recargaModal} /> : null
 
   return (
@@ -275,15 +269,15 @@ export default function SubscriberUpgradeNudge({
               )}
               {recarga.button && (
                 <>
-                  <button type="button" data-kineo="recarga-assinante-cta" data-qa={recarga.qa ? '1' : undefined} disabled={recargaGoing} onClick={onRecarga} style={{ ...primary, textAlign: 'center', ...(recarga.qa ? { outline: '2px dashed #d93025', outlineOffset: 2 } : {}) }}>
+                  <a href={recargaHref ?? recarga.go} data-kineo="recarga-assinante-cta" data-qa={recarga.qa ? '1' : undefined} aria-disabled={recargaGoing || undefined} onClick={() => { track('recarga'); setRecargaGoing(true) }} style={{ ...primary, textAlign: 'center', textDecoration: 'none', ...(recarga.qa ? { outline: '2px dashed #d93025', outlineOffset: 2 } : {}) }}>
                     {recargaAssinanteFill(RECARGA_ASSINANTE_COPY.cta, { price: recarga.price, credits: recarga.credits })}
-                  </button>
+                  </a>
                   <span style={{ display: 'block', marginTop: 6, color: c.muted, fontSize: '0.74rem', fontWeight: 600, lineHeight: 1.4 }}>
                     {RECARGA_ASSINANTE_COPY.terms}
                   </span>
                 </>
               )}
-              {/* KINEO-RECARGA-ASSINANTE-1111 — a barra (60 a 3.700 créditos, US$ 9 a US$ 500), aberta só daqui nesta versão. */}
+              {/* KINEO-RECARGA-ASSINANTE-1111 — a barra de créditos do assinante (faixa e preço da fonte única), aberta só daqui nesta versão. */}
               <button type="button" data-kineo="recarga-assinante-more" onClick={() => { track('recarga_more'); setTopupOpen(true) }} style={{ display: 'block', marginTop: 6, padding: 0, border: 'none', background: 'transparent', color: c.link, fontSize: '0.78rem', fontWeight: 800, textAlign: 'left', cursor: 'pointer' }}>
                 {RECARGA_ASSINANTE_COPY.more}
               </button>

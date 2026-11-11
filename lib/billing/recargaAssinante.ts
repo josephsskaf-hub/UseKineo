@@ -105,8 +105,10 @@ export function recargaAssinanteCheckoutAllowed(release: RecargaAssinanteRelease
  * A volta depois de pagar (ou desistir): o MESMO endereço em que a pessoa estava, com a ideia (?prompt=) preservada e SEM os
  * parâmetros que disparariam um render sozinho (autoanalyze/studio/create_intent/resume) nem restos de checkout. Só caminhos
  * do próprio site, das telas que geram; qualquer outra coisa vira '/studio'. Teto de tamanho para a URL da Stripe.
+ * A tela nova entra como '/create/' (com a barra): só as abas /create/<aba>; o /create puro é a tela antiga, que ninguém
+ * linka (guardião scripts/test-tela-nova-1011.mjs) — quem vier dali volta ao /studio.
  */
-export const RECARGA_ASSINANTE_BACK_PREFIXES: readonly string[] = ['/studio', '/create', '/generate']
+export const RECARGA_ASSINANTE_BACK_PREFIXES: readonly string[] = ['/studio', '/create/', '/generate']
 const BACK_DROP = ['autoanalyze', 'studio', 'create_intent', 'resume', 'session_id', 'success', 'checkout_error', 'recarga', 'pack', 'topup']
 export function recargaAssinanteBack(raw: unknown, idea?: unknown): string {
   const fallback = '/studio'
@@ -114,7 +116,7 @@ export function recargaAssinanteBack(raw: unknown, idea?: unknown): string {
   let u: URL
   try { u = new URL(raw, 'https://kineo.invalid') } catch { return withIdea(fallback, idea) }
   if (u.origin !== 'https://kineo.invalid') return withIdea(fallback, idea)
-  const okPath = RECARGA_ASSINANTE_BACK_PREFIXES.some((p) => u.pathname === p || u.pathname.startsWith(p + '/'))
+  const okPath = RECARGA_ASSINANTE_BACK_PREFIXES.some((p) => (p.endsWith('/') ? u.pathname.startsWith(p) && u.pathname.length > p.length : u.pathname === p || u.pathname.startsWith(p + '/')))
   if (!okPath) return withIdea(fallback, idea)
   for (const k of BACK_DROP) u.searchParams.delete(k)
   return withIdea(`${u.pathname}${u.searchParams.toString() ? `?${u.searchParams.toString()}` : ''}`, idea)

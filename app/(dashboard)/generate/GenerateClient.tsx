@@ -279,7 +279,6 @@ import {
 import { canPurchaseCreditTopup } from '@/lib/growth/topupEligibility'
 import TopupUnavailableNote from '@/components/TopupUnavailableNote'
 import SubscriberUpgradeNudge, { SUBSCRIBER_UPGRADE_ENABLED } from '@/components/billing/SubscriberUpgradeNudge' // KINEO-ASSINANTE-SOBE-2026-10-06
-import { RECARGA_ASSINANTE_1111_RELEASE } from '@/lib/billing/recargaAssinante' // KINEO-RECARGA-ASSINANTE-1111 — o texto do modal para o assinante
 import MrrEpisodeValue from '@/components/growth/MrrEpisodeValue'
 import MrrShareFooter from '@/components/growth/MrrShareFooter'
 import FilmReadyExits from '@/components/FilmReadyExits' // KINEO-FLUXO-NOVO-2026-09-25 — as 3 saídas do filme pronto
@@ -23594,12 +23593,7 @@ function UpgradeModal({
               This video needs {purchaseFit.requiredCredits} credits. You have {purchaseFit.balance}.
             </strong>
             <span style={{ display: 'block', color: '#a7f3d0', fontSize: '0.76rem', lineHeight: 1.4, marginTop: 2 }}>
-              {/* KINEO-RECARGA-ASSINANTE-1111 — para o assinante as linhas de plano abaixo somem (a troca e a recarga moram no
-                  aviso logo abaixo): "the first highlighted option below covers the full request" apontava para linhas que
-                  não existem para ele. */}
-              {isSubscriber && SUBSCRIBER_UPGRADE_ENABLED && RECARGA_ASSINANTE_1111_RELEASE !== 'off'
-                ? <>Add {purchaseFit.shortfall} more credits to finish it.</>
-                : <>Add {purchaseFit.shortfall} more — the first highlighted option below covers the full request.</>}
+              Add {purchaseFit.shortfall} more — the first highlighted option below covers the full request.
             </span>
           </div>
         )}
