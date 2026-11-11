@@ -191,7 +191,12 @@ export const NO_TEXT_OBJECT_DIRECTION =
   'foreign letters. Show such things as texture or light instead — aged paper out of focus, glowing seabed terrain without ' +
   'labels, the glow of a screen on a face, a hand over a blurred page — and never describe words, numbers or captions inside the frame. ' +
   'When the narration states a name, a date or a fact, show the place, the person or the era it belongs to — never an object that ' +
-  'mentions, reads, displays or commemorates it.'
+  'mentions, reads, displays or commemorates it. ' +
+  // KINEO-ESCRITOR-SEM-LEITURA-1111 [CEO 11/11, item 4] — o filme do El Niño pediu "weather station showing a high temperature reading",
+  // "thermometer reading significantly above average" e "overlay graphics": a regra não falava de aparelho com valor nem de gráfico por cima.
+  'Never ask a device to show a value: no reading, measurement, number, percentage, temperature, speed, score, time or calendar day ' +
+  'on a thermometer, gauge, dial, meter, scale, clock, speedometer, calendar or weather station — show the device as a physical object ' +
+  'with its face out of focus, or show the real thing it measures. Never add overlay graphics, infographics, data overlays, lists or on-screen labels.'
 
 /** Objetos que carregam texto: o motor vai escrever letras, e vai errar. */
 const TEXT_BEARING_RE =
