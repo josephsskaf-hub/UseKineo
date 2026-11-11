@@ -34,7 +34,6 @@ Antes de publicar, escreva aqui: sessão · SHA · hora. Se já houver linha de 
 Imediatamente antes da publicação, faça fetch e rebase, rode `npx tsc --noEmit` e os guardiões da área e confira a reserva novamente. Depois do deploy "success", apague só a sua linha e registre em "No ar" com o SHA. A divisão de teste do Claude confere a tela publicada e lista aqui os defeitos.
 | Sessão | SHA | Começou |
 |---|---|---|
-| Codex · Citações semana · dia 6 | `d4fa21395ec932111f69534787b0d39eaa715b03` (inclui H3 `85586c9ee`); base e resultado verdes, aguardando READY | 11/11 07:17 −03:00 |
 
 ## Em obra
 | Quando começou | Sessão | O que | Arquivos principais | Branch / worktree |
@@ -62,7 +61,6 @@ Imediatamente antes da publicação, faça fetch e rebase, rode `npx tsc --noEmi
 ## Entregue à CEO (esperando revisão e publicação)
 | Quando | Sessão | O que | Branch · SHA |
 |---|---|---|---|
-| 11/11 07:17 −03:00 | Codex · Citações semana · dia 6 | Filme padrão inglês: linha corrente H3, prazo variável, texto mensal e data 11/11; llms descreve recarga só com release público. Rebase sobre `c9ebe9309`, typecheck base/resultado e bateria offline verdes. Publicação e verificação final nesta missão, sem oferta ou motor alterado | codex/citacoes-dia6-2026-11-11 · `d4fa21395ec932111f69534787b0d39eaa715b03` |
 | 11/11 ~02:00 | Div. 2 Vídeo | Nada chama o Veo depois de 17/11: cinto no envio à fal (recusa sem POST), casa recebe o mesmo 410 no filme, anúncio interno com fala vai para kling3, refação grátis de cena Veo recusada; guardião test-veo-desligado-1711 (15 ok, 14 mutantes). tsc limpo | claude/div-video-3e0b73 · fdad1fd5a |
 | 11/11 ~01:40 | Div. 3 · Google Ads e Anúncio Pago | Faxina do Google: /coming-soon 308, checkout 200 igual p/ robô (Stripe protegida), caixa de presente e Kling 4 "in supported countries", /refund, Support+Refunds no rodapé, /about→/trust, identidade numa constante. tsc ok, guardião 31 ok/25 mutantes. ⚠ toca home (app/page.tsx, CaixaDePresente0511) e rodapé (components/Footer.tsx) = área GPT, linhas mínimas | codex/google-faxina-1011 · 593ea7269 (sobre origin/main 8c7c7c44d) |
 | 11/11 00:35 | Div. 4 Receita | Revisão do filme US$ 1,99: REPROVADO para public (1 bloqueio: perfil editável pelo navegador), ok em internal; sem conflito com a main. Placar 24 h/7 d e renovações. Relatório: side-session-notes/div4-receita-2026-11-11.md | só leitura, sem commit · revisado a3d66278f |
@@ -77,6 +75,7 @@ Imediatamente antes da publicação, faça fetch e rebase, rode `npx tsc --noEmi
 ## No ar
 | Quando | O que | SHA |
 |---|---|---|
+| 11/11 07:26 −03:00 | Codex · Citações semana · dia 6. Filme padrão inglês corrige linha corrente H3, prazo, texto mensal e data; llms acompanha a recarga pública de assinantes sem mudar a oferta. READY dpl_8fkwQsrRsffQdpcTFRZntM7a3MRY, HTTP e Chrome desktop/mobile conferidos. Typecheck base/resultado e testes pertinentes verdes. Reserva encerrada; amanhã só medição final da missão, não ocupa arquivos de produto. | `e351ced17a3b2ffa3be123703d2cf32ddfdad5f3` (H3 `85586c9ee`, llms `d4fa21395`) |
 | 11/11 madrugada | Laço do revisor (tarefa noturna, Claude · área Vídeo): "a giant carrot" não vira mais personagem gigante — o homem barbudo do filme do ursinho (render 2176bed6). Só lib/cinematic/folhaDePersonagem.ts + guardião + recibo 8.2. Revisão adversarial LIMPO na 3ª volta | `34bfaa300` |
 | 11/11 00:39 -03:00 | CEO Codex · organização das três divisões e reservas publicadas no GitHub. Deploy conferido com status success. | `1e2036999` |
 | 11/11 00:20 | Elevator com 1 foto (só o homem), sem caixa de consentimento, capa do Outfit Morph | 13b64b9a3 |
