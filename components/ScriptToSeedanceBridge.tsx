@@ -73,7 +73,7 @@ export default function ScriptToSeedanceBridge({ from, compact = false, proof }:
 
   return (
     <section
-      aria-label="Render your script on Seedance 1.5"
+      aria-label="Render your script on MiniMax H3 Turbo"
       data-bridge={version}
       style={{
         margin: compact ? '22px 0 0' : '28px 0 0',
@@ -97,29 +97,29 @@ export default function ScriptToSeedanceBridge({ from, compact = false, proof }:
           <figcaption style={{ color: 'var(--kpl-muted, #a1a1a6)', fontSize: 11, lineHeight: 1.4, marginTop: 6 }}>Existing Seedance preview · {proof.title}</figcaption>
         </figure>
         <div style={{ flex: '1 1 220px', minWidth: 0 }}>
-          <p style={{ margin: '0 0 6px', color: 'var(--kpl-accent, #2997ff)', fontSize: 12, fontWeight: 800 }}>GENERATED SCENES · SEEDANCE 1.5</p>
+          <p style={{ margin: '0 0 6px', color: 'var(--kpl-accent, #2997ff)', fontSize: 12, fontWeight: 800 }}>GENERATED SCENES · MINIMAX H3 TURBO</p>{/* KINEO-COMPRA-SEM-SEEDANCE-1111 — a fal tirou o Seedance 1.5 em 11/11; a prévia antiga segue dizendo "Existing Seedance preview" (selo honesto) */}
           <h2 style={{ fontSize: '1.2rem', lineHeight: 1.3, margin: '0 0 8px', color: 'var(--kpl-text, #f5f5f7)' }}>Make your next story with generated scenes.</h2>
           <p style={{ margin: '0 0 8px', color: 'var(--kpl-text, #f5f5f7)', lineHeight: 1.6 }}><strong>Starter {starter} USD/month</strong> · {TIER_CREDITS.starter} credits per billing month.</p>
-          <p style={{ margin: '0 0 8px', color: 'var(--kpl-muted, #a1a1a6)', fontSize: '.92rem', lineHeight: 1.6 }}>A {BRIDGE_FILM_SECONDS}-second film costs {shortCost} credits; a 60-second film costs {minuteCost}. The plan covers {films} films of {BRIDGE_FILM_SECONDS} s if you spend its whole balance on this engine and duration. Other creations share that balance.</p>
+          <p style={{ margin: '0 0 8px', color: 'var(--kpl-muted, #a1a1a6)', fontSize: '.92rem', lineHeight: 1.6 }}>A {BRIDGE_FILM_SECONDS}-second film costs {shortCost} credits; a 60-second film costs {minuteCost}. The plan covers {films} {films === 1 ? 'film' : 'films'} of {BRIDGE_FILM_SECONDS} s if you spend its whole balance on this engine and duration. Other creations share that balance.</p>
           <p style={{ margin: '0 0 14px', color: 'var(--kpl-muted, #a1a1a6)', fontSize: '.85rem', lineHeight: 1.5 }}>New accounts{GRANT_COUNTRY_CLAUSE} can try one {FREE_FILM_LABEL}, watermarked. The {TRIAL_CREDITS_SHOWN}-credit trial {TRIAL_CREDITS_SHOWN >= shortCost ? 'also covers the 35-second reference' : 'does not cover the longer 35-second reference above'}. Choose a paid plan for clean downloads and recurring production; trying a film first is optional. Review the prepared script and settings before generating.</p>
-          <Link href={href} onClick={onClick} style={{ display: 'inline-block', background: 'var(--kpl-accent, #2997ff)', color: 'var(--kpl-on-accent, #001b33)', fontWeight: 900, padding: '12px 20px', borderRadius: 980, textDecoration: 'none', fontSize: '.95rem' }}>See Seedance films & plans →</Link>
+          <Link href={href} onClick={onClick} style={{ display: 'inline-block', background: 'var(--kpl-accent, #2997ff)', color: 'var(--kpl-on-accent, #001b33)', fontWeight: 900, padding: '12px 20px', borderRadius: 980, textDecoration: 'none', fontSize: '.95rem' }}>See MiniMax H3 Turbo films & plans →</Link>
         </div>
       </div> : <>
       <p style={{ margin: '0 0 6px', color: 'var(--kpl-accent, #2997ff)', fontSize: 12, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
         Have a script from ChatGPT?
       </p>
       <h2 style={{ fontSize: compact ? '1.08rem' : '1.2rem', fontWeight: 900, lineHeight: 1.3, margin: '0 0 8px', color: 'var(--kpl-text, #f5f5f7)' }}>
-        Paste it into Seedance 1.5 — the engine people publish with.
+        Paste it into MiniMax H3 Turbo — the engine people publish with.
       </h2>
       <p style={{ margin: '0 0 14px', color: 'var(--kpl-muted, #a1a1a6)', fontSize: '0.92rem', lineHeight: 1.6 }}>
-        From {starter}/month = {films} films of {BRIDGE_FILM_SECONDS} s. New accounts start with one {FREE_FILM_LABEL}, watermarked.
+        From {starter}/month = {films} {films === 1 ? 'film' : 'films'} of {BRIDGE_FILM_SECONDS} s. New accounts start with one {FREE_FILM_LABEL}, watermarked.
       </p>
       <Link
         href={href}
         onClick={onClick}
         style={{ display: 'inline-block', background: 'var(--kpl-accent, #2997ff)', color: '#fff', fontWeight: 900, padding: '12px 24px', borderRadius: 980, textDecoration: 'none', fontSize: '0.95rem' }}
       >
-        Render my script on Seedance →
+        Render my script on MiniMax H3 Turbo →
       </Link>
       </>}
     </section>
