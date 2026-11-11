@@ -12,6 +12,7 @@ import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+import { semSemPersonagemInventado1111 } from './test-support/desfaz-sem-personagem-inventado-1111.mjs' // KINEO-SEM-PERSONAGEM-INVENTADO-1111
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -191,7 +192,8 @@ for (const [nome, texto, lang, roteiro, min, max] of [['ee22bac0 Onoda es', ONOD
 // ── C — controles: idênticos à base, byte a byte ───────────────────────────────────────────────
 console.log('C — controles idênticos à base (prompt, chamadas, roteiro, rastro)')
 const igualABase = async (nome, args) => {
-  const [a, b] = [await postar(args), await postar({ ...args, routeSrc: BASE_ROUTE })]
+  const hoje = args.routeSrc ?? lf(semSemPersonagemInventado1111(fs.readFileSync(path.join(ROOT, ROUTE), 'utf8'), ROUTE)) // KINEO-SEM-PERSONAGEM-INVENTADO-1111 — a camada mais nova do escritor (11/11) sai antes da comparação com a base
+  const [a, b] = [await postar({ ...args, routeSrc: hoje }), await postar({ ...args, routeSrc: BASE_ROUTE })]
   const dif = []
   if (a.status !== b.status) dif.push('status')
   if (a.script !== b.script) dif.push('script')

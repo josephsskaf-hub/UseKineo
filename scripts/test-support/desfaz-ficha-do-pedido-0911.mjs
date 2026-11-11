@@ -6,6 +6,7 @@
 // Trecho ausente ou repetido lança. Nunca usar em lib/app.
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
+import { semSemPersonagemInventado1111 } from './desfaz-sem-personagem-inventado-1111.mjs' // KINEO-SEM-PERSONAGEM-INVENTADO-1111 — a camada mais nova do escritor (11/11) sai primeiro
 
 export const FICHA_DO_PEDIDO_0911 = JSON.parse(readFileSync(new URL('./desfaz-ficha-do-pedido-0911-fontes.json', import.meta.url), 'utf8'))
 const MARCA = 'KINEO-FICHA-DO-PEDIDO-0911'
@@ -15,6 +16,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 
 /** O texto de hoje sem esta entrega (os trechos do recibo, um a um) — ou o mesmo texto, se ele não traz esta entrega. */
 export function semFichaDoPedido0911(source, file) {
+  source = semSemPersonagemInventado1111(source, file) // KINEO-SEM-PERSONAGEM-INVENTADO-1111
   const entry = FICHA_DO_PEDIDO_0911.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source
   let t = lf(source)

@@ -1,0 +1,26 @@
+{
+ "marca": "KINEO-SEM-PERSONAGEM-INVENTADO-1111",
+ "scope": {
+  "app/api/generate-script/route.ts": {
+   "beforeSha256": "5a3528c208ad2733f4926b1ac4224a7866857c0c71c9ae141b63df46c9ff9fc9",
+   "afterSha256": "68663cfd00411f529fe3a6d527230fad523197774c26c4ed4fc6a584b6c2a0ff",
+   "hunks": [
+    {
+     "before": "never invent facts, dates, statistics or quotes the text does not contain.",
+     "after": "never invent facts, dates, statistics or quotes the text does not contain. If the text says who is in the film (one woman at a café, a boy and his dog), those are the ONLY people: never add a partner, lover, stranger, friend, rival or anyone else who arrives, appears or is revealed — the PAYOFF comes from what those people do, see or feel (KINEO-SEM-PERSONAGEM-INVENTADO-1111)."
+    },
+    {
+     "before": "import { regraDaDataReal } from '@/lib/dataRealDoEscritor' // KINEO-ANO-INVENTADO-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — a data real do pedido + a regra do ano: o escritor nunca inventa \"2023\"\n",
+     "after": "import { regraDaDataReal } from '@/lib/dataRealDoEscritor' // KINEO-ANO-INVENTADO-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — a data real do pedido + a regra do ano: o escritor nunca inventa \"2023\"\nimport { pessoaInventadaNoRoteiro } from '@/lib/pessoaInventadaNoRoteiro' // KINEO-SEM-PERSONAGEM-INVENTADO-1111 — mede o personagem que o roteiro trouxe e o pedido não tem\n"
+    },
+    {
+     "before": "script_head: script.slice(0, 200), ",
+     "after": "script_head: script.slice(0, 200), pessoa_inventada: pessoaInventadaNoRoteiro(topic, script), "
+    }
+   ]
+  }
+ },
+ "addedSources": {
+  "lib/pessoaInventadaNoRoteiro.ts": "04ca71378f552199359e9c86ff34e8415da6dfbb142655f379aa8c160799042e"
+ }
+}
