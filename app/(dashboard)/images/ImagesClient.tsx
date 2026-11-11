@@ -457,7 +457,7 @@ export default function ImagesClient() {
           </div>
 
 <details className="ace-more" data-kineo="images-mais-opcoes">
-  <summary><strong><UiLabel>Settings</UiLabel></strong><span className="ace-more-list">{eng.name} · {SIZES.find((s) => s.key === size)?.label}{sendRefs ? ` · 📷 ${readyRefs.length}` : ''}</span></summary>
+  <summary><strong><UiLabel>Details</UiLabel></strong><span className="ace-more-list">{SIZES.find((s) => s.key === size)?.label}{/* KINEO-IMAGES-DETAILS-1111 [regra do dono: motor só dentro de Details] — era: {eng.name} · … e o rótulo "Settings" */}{sendRefs ? ` · 📷 ${readyRefs.length}` : ''}</span></summary>
   <div className="ace-open-body">
       <fieldset className="image-engine-picker">
         <legend className="lab"><UiLabel>Engine</UiLabel></legend>
@@ -547,7 +547,7 @@ export default function ImagesClient() {
               surface="image"
               kind="image"
               kicker="Your image is being made"
-              title={`${premiere.engine} is painting it`}
+              title="Kineo is painting it" /* KINEO-IMAGES-DETAILS-1111 — sem nome de motor */
               items={[{ key: 'image', label: 'Your image', status: 'working' }]}
               ratio={PREMIERE_RATIO[premiere.size]}
               now={{ label: 'Painting', text: premiere.prompt.slice(0, 280) }}
@@ -560,7 +560,7 @@ export default function ImagesClient() {
               kind="image"
               url={premiereItem?.upscaled ?? premiere.url}
               title={premiere.prompt.slice(0, 110)}
-              meta={`Ready · ${premiere.engine}`}
+              meta="Ready" /* KINEO-IMAGES-DETAILS-1111 */
               onDownload={() => { void downloadImage(premiereItem?.upscaled ?? premiere.url!, premiereIdx >= 0 ? premiereIdx : 0, 'premiere') }}
               next={premiereItem?.id ? {
                 label: 'Bring it to life',
