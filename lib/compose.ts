@@ -33,6 +33,7 @@ import {
   synthesizeWithElevenLabs,
   ELEVENLABS_DEFAULT_VOICE_ID,
 } from '@/lib/narration/elevenlabs'
+import { semAspasNaLegenda } from '@/lib/legendaSemAspas' // KINEO-LEGENDA-SEM-ASPAS-1111
 
 const CREATOMATE_BASE = 'https://api.creatomate.com/v1'
 // KINEO-ONE-WATERMARK-2026-08-07 — ONE brand element on a free render, and it
@@ -1932,6 +1933,11 @@ export function buildCaptionElements({
   // exatamente como antes (uma linha, ênfase por linha inteira).
   karaokeWords?: CaptionChunkWord[]
 }): CreatomateElement[] {
+  // KINEO-LEGENDA-SEM-ASPAS-1111 [CEO 11/11] — a legenda não mostra as aspas de abertura/fecho do roteiro (« » “ ” „ "): 24564d97 saiu
+  // com "«¿PERO CÓMO NO HABÍA" e "COLOR Y TOP.»". Só a legenda: a fala e o roteiro não passam por aqui.
+  text = semAspasNaLegenda(text)
+  if (highlight) highlight = semAspasNaLegenda(highlight)
+  if (Array.isArray(karaokeWords)) karaokeWords = karaokeWords.map((w) => ({ ...w, word: semAspasNaLegenda(w.word) })).filter((w) => w.word !== '')
   // Push #292 — OpusClip/InVideo quality upgrade:
   //   - UPPERCASE text: standard across all professional Shorts tools
   //   - Font 52→70: larger captions are more readable on mobile

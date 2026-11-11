@@ -29,6 +29,7 @@ import ts from 'typescript'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { semLegendaNegacao0911 } from './test-support/desfaz-legenda-negacao-0911.mjs'
+import { semLegendaSemAspas1111 } from './test-support/desfaz-legenda-sem-aspas-1111.mjs' // KINEO-LEGENDA-SEM-ASPAS-1111 — a camada mais nova de lib/compose.ts sai antes
 
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const nativeRequire = createRequire(import.meta.url)
@@ -69,7 +70,7 @@ function carregar({ compose, negacao } = {}) {
 }
 
 const FONTE_HOJE = fs.readFileSync(ARQ_COMPOSE, 'utf8').replace(/\r\n/g, '\n')
-const FONTE_BASE = semLegendaNegacao0911(FONTE_HOJE, 'lib/compose.ts').replace(/\r\n/g, '\n')
+const FONTE_BASE = semLegendaNegacao0911(semLegendaSemAspas1111(FONTE_HOJE, 'lib/compose.ts'), 'lib/compose.ts').replace(/\r\n/g, '\n')
 const FONTE_NEGACAO = fs.readFileSync(ARQ_NEGACAO, 'utf8').replace(/\r\n/g, '\n')
 const TETO = 4 // CAPTION_WORDS_PER_CHUNK de lib/compose.ts (conferido em estática abaixo)
 

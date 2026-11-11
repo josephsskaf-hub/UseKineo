@@ -1,0 +1,19 @@
+{
+ "marca": "KINEO-LEGENDA-SEM-ASPAS-1111",
+ "scope": {
+  "lib/compose.ts": {
+   "beforeSha256": "21d59d0cdf41a3bf90e1c1e843921df6a6ed7499657c9a89aa3cfb8753c47b59",
+   "afterSha256": "a334400d4f34aab97f18e4984546afccac8a18fc604df234e098380a1262c382",
+   "hunks": [
+    {
+     "before": "} from '@/lib/narration/elevenlabs'\n",
+     "after": "} from '@/lib/narration/elevenlabs'\nimport { semAspasNaLegenda } from '@/lib/legendaSemAspas' // KINEO-LEGENDA-SEM-ASPAS-1111\n"
+    },
+    {
+     "before": "}): CreatomateElement[] {\n  // Push #292 — OpusClip/InVideo quality upgrade:",
+     "after": "}): CreatomateElement[] {\n  // KINEO-LEGENDA-SEM-ASPAS-1111 [CEO 11/11] — a legenda não mostra as aspas de abertura/fecho do roteiro (« » “ ” „ \"): 24564d97 saiu\n  // com \"«¿PERO CÓMO NO HABÍA\" e \"COLOR Y TOP.»\". Só a legenda: a fala e o roteiro não passam por aqui.\n  text = semAspasNaLegenda(text)\n  if (highlight) highlight = semAspasNaLegenda(highlight)\n  if (Array.isArray(karaokeWords)) karaokeWords = karaokeWords.map((w) => ({ ...w, word: semAspasNaLegenda(w.word) })).filter((w) => w.word !== '')\n  // Push #292 — OpusClip/InVideo quality upgrade:"
+    }
+   ]
+  }
+ }
+}
