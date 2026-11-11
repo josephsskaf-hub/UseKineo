@@ -22,6 +22,7 @@ import { reserveKling4Trial, recordKling4TrialFilm } from '@/lib/kling4TrialBudg
 import { medirFalaDoKling4Trial as medirFalaK4Crua } from '@/lib/kling4TrialScript' // KINEO-K4-SEMPRE-0511 [TRAVA 8.2 — fundador 05/11 "vai"]
 import { encaixarFalaNoKling4, type EncaixeK4 } from '@/lib/kling4TrialEncaixe' // KINEO-K4-SEMPRE-0511
 import { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim'
+import { kling4GratisPassaNaTrava } from '@/lib/kling4GratisTravaServer' // KINEO-TRAVA-K4-GRATIS-1111
 import { medirFalaDoKling4Trial, type FalaK4 } from '@/lib/kling4TrialScript' // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "2 c"]
 import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy'
 import { kling4PaidCredits, kling4PaidFalExtrasMilliUsd, kling4PaidBudget } from '@/lib/kling4PaidPricing'
@@ -3827,6 +3828,7 @@ async function manipularPost(req: NextRequest) {
         kling4TrialCandidate = kling4TrialEligible({ paid: isPaidUser, admitted: true, shortFilm: seedanceShortFilm,
           priorFilms: films.error ? null : films.count, priorDebits: debits.error ? null : debits.count })
       } catch { /* Unproven first film keeps Seedance, with no paid Kling request. */ }
+      if (kling4TrialCandidate) kling4TrialCandidate = await kling4GratisPassaNaTrava(cinematicAdmin, { userId: user.id, email: user.email }) // KINEO-TRAVA-K4-GRATIS-1111 — "+", relay, aparelho repetido ou caixa repetida: o MESMO filme grátis, no motor barato (lib/kling4GratisTrava.ts)
       if (kling4TrialCandidate) aspectRequested = '9:16'
     }
 

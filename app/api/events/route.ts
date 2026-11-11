@@ -267,6 +267,9 @@ const SERVER_ONLY_EVENTS = new Set([
   // saída B recusa o filme grátis por país (nome = TRIAL_REGION_EXCLUDED_EVENT em lib/freeFilmPolicy.ts). É a prova
   // pós-deploy (= 0 com a política 'todos') e a contagem de excluídos: se o navegador pudesse cunhá-lo, as duas mentiriam.
   'trial_region_excluded',
+  // KINEO-TRAVA-K4-GRATIS-1111 — o desvio do Kling 4 grátis para o motor barato (motivo: plus/relay/digital/gmail_repetido/
+  // sem_prova), gravado pela rota do filme. Forjado pelo navegador, inventaria uma fazenda que não existiu.
+  'kling4_trial_diverted',
   // KINEO-E4-SAIDA-B-2026-09-29 — escritos SÓ pelo servidor: a recusa do Kineo 1 grátis (lib/kineo1Gate.ts, na
   // generate-video-fast) e a cota semanal nova (recarga em lib/freeWeeklyFilmGrant.ts; admissão no cinematic). O carimbo
   // da recarga É a janela de 7 dias: se o navegador pudesse cunhá-lo, travaria a cota de alguém; as três são o custo medido.
