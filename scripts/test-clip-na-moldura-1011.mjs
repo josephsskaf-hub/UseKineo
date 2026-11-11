@@ -100,7 +100,9 @@ function frameChecks(o) {
   // KINEO-CLIPS-SEM-SELO-1111 [CEO 11/11: "/clips ANTIGO: tire o selo de motor dos cartões"] — os cartões (tendência, estação, efeito, "Put
   // your face in it", My clips) perdem o selo de motor também FORA da moldura; o único .tag que sobra é o "photo only" dentro de Details.
   ok(cc.includes('const semMotor = !!moldura') && conta('<span className="tag">') === 1 && !/engine_label\}<\/span>|target\.label\}<\/span>|className="fx-note"/.test(cc)
-    && cc.includes("${semMotor ? '' : engine.label + ' · '}${seconds} s") && conta("{semMotor ? null : <> · {t('madeWith'") === 2
+    // KINEO-CLIPS-RESUMO-SEM-MOTOR-1111 [CEO 11/11, ronda] — o resumo fechado e o "made with" da revisão perdem o motor em TODA tela (não só na moldura).
+    && cc.includes('<span className="clip-more-list">') && cc.includes("{engine ? `${seconds} s · ") && !cc.includes("engine.label + ' · '}${seconds} s")
+    && conta("t('madeWith', { engine: remix.engine_label })") === 0 && conta("t('madeWith', { engine: effect.engine_label })") === 0
     && cc.includes("<div className=\"clip-meta\">{/* KINEO-CLIPS-SEM-SELO-1111 — sem motor no cartão de My clips */}{c.seconds} s · {c.aspect === 'image' ? t('samePhoto') : c.aspect}{semMotor ? null : <> · {c.credits} cr</>}</div>"),
     'D na moldura: nenhum motor em cartão, resumo de Details, revisão ou My clips; créditos só no botão')
   const nav = src(o, 'components/create/ClipNaMoldura.tsx')
@@ -122,7 +124,9 @@ const mutants = [
   ['Details aberto por padrão', { [CLIENT]: s(CLIENT).replace('open={opcoesAbertas}', 'open={moldura ? true : opcoesAbertas}') }],
   ['/create/clip sem porta', { 'app/create/[tab]/page.tsx': s('app/create/[tab]/page.tsx').replace("if (!clipNaMolduraVisivel(u?.email)) redirect('/clips' + (query ? '?' + query : ''))", '') }],
   ['selo de motor volta no cartão de tendência', { [CLIENT]: s(CLIENT).replace('<span className="pr trend-go"><UiLabel>Make this →</UiLabel></span>', '<span className="tag">{target.label}</span><span className="pr trend-go"><UiLabel>Make this →</UiLabel></span>') }], // KINEO-CLIP-NA-MOLDURA-1111 · KINEO-CLIPS-SEM-SELO-1111
-  ['motor volta no resumo de Details', { [CLIENT]: s(CLIENT).replace("${semMotor ? '' : engine.label + ' · '}", "${engine.label + ' · '}") }], // KINEO-CLIP-NA-MOLDURA-1111
+  ['motor volta no resumo de Details', { [CLIENT]: s(CLIENT).replace("{engine ? `${seconds} s · ", "{engine ? `${engine.label} · ${seconds} s · ") }], // KINEO-CLIP-NA-MOLDURA-1111 · KINEO-CLIPS-RESUMO-SEM-MOTOR-1111
+  ['made with <motor> volta na revisão do efeito', { [CLIENT]: s(CLIENT).replace('<UiLabel>{effect.title}</UiLabel> · {effect.seconds} s', "<UiLabel>{effect.title}</UiLabel> · {t('madeWith', { engine: effect.engine_label })} · {effect.seconds} s") }], // KINEO-CLIPS-RESUMO-SEM-MOTOR-1111
+  ['made with <motor> volta na revisão do remix', { [CLIENT]: s(CLIENT).replace('<UiLabel>{remix.title}</UiLabel> · {remix.seconds} s', "<UiLabel>{remix.title}</UiLabel> · {t('madeWith', { engine: remix.engine_label })} · {remix.seconds} s") }], // KINEO-CLIPS-RESUMO-SEM-MOTOR-1111
   ['créditos voltam em My clips', { [CLIENT]: s(CLIENT).replace('{semMotor ? null : <> · {c.credits} cr</>}', ' · {c.credits} cr') }], // KINEO-CLIP-NA-MOLDURA-1111
   ['aba Clip para todos', { 'components/create/CreateTabs.tsx': s('components/create/CreateTabs.tsx').replace("&& (showClip || t.id !== 'clip')", '') }],
   ['/clips desvia antes da porta do Recreate', { 'app/(dashboard)/clips/page.tsx': s('app/(dashboard)/clips/page.tsx').replace('  if (recreateVisible(user?.email) && typeof searchParams?.effect', "  if (clipEntryHref('/clips', user?.email) !== '/clips') redirect('/create/clip')\n  if (recreateVisible(user?.email) && typeof searchParams?.effect") }],

@@ -359,7 +359,8 @@ ok(routeP.length === 0, '(4b) rota: o clipe livre não copia effect/model/input 
 const server = read('lib/clips/clipServer.ts')
 ok(server.includes('label: effect?.template?.label ?? (CLIP_ENGINES[row.engine] ? clipLabelForModel(row.engine, row.model) : row.engine),') /* KINEO-ROTULO-CLIPE-H3-1111 */ && server.includes('const url = data?.video?.url ?? data?.output?.video?.url ?? null'), '(4c) "Meus clipes" com o selo real; o poll lê data.video.url (saída dos dois endpoints)')
 const client = read('app/(dashboard)/clips/ClipsClient.tsx')
-ok(!client.includes('<span className="tag">{fx.engine_label}</span>') && client.includes("t('madeWith', { engine: effect.engine_label })"), '(6a) /clips: o engine_label do servidor fica na revisão do efeito, não no cartão (KINEO-CLIPS-SEM-SELO-1111)')
+// KINEO-CLIPS-RESUMO-SEM-MOTOR-1111 [CEO 11/11, ronda] — nem no cartão nem na revisão do efeito: o motor só aparece dentro do Details aberto.
+ok(!client.includes('<span className="tag">{fx.engine_label}</span>') && !client.includes("t('madeWith', { engine: effect.engine_label })"), '(6a) /clips: o engine_label do servidor não aparece no cartão nem na revisão do efeito (KINEO-CLIPS-SEM-SELO-1111 · KINEO-CLIPS-RESUMO-SEM-MOTOR-1111)')
 const page = read('app/effects/EffectPageClient.tsx')
 ok(page.includes('{clipEffectEngineLabel(effect)}') && page.includes('{clipEffectEngineLabel(item)}') && !page.includes('CLIP_ENGINES['), '(6b) páginas de efeito com o selo real (nada de CLIP_ENGINES[engine] direto)')
 const home = read('components/home/ClipsFirstHome.tsx')

@@ -792,6 +792,8 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
   // components/create/ClipNaMoldura.tsx) só as reposiciona. Sem `moldura`, o HTML é byte a byte o de antes (scripts/test-clip-na-moldura-1011.mjs).
   // KINEO-CLIP-NA-MOLDURA-1111 [regras do dono para a tela nova: "nenhum nome de motor em cartão ou botão" · "preço só no botão de gerar"] — dentro
   // da moldura o motor só aparece aberto em Details (a escolha opcional), e o preço só no botão. Sem `moldura`, o /clips de sempre, byte a byte.
+  // KINEO-CLIPS-RESUMO-SEM-MOTOR-1111 [CEO 11/11, ronda] — o resumo fechado "More options" e o "made with <motor>" do efeito/remix saem sem motor
+  // TAMBÉM fora da moldura (o /clips de sempre); o motor segue visível dentro do Details aberto.
   const semMotor = !!moldura
   const estilos = <>
       <ClipTelemetry actor={measurementActor} surface="clips" ready={!loading && !loadFailed && engines.length > 0} />
@@ -886,7 +888,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
             </div>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
             <div className="rail creation-settings">{/* KINEO-ROSTO-NO-CLIPE-2810 */}
               <div className="cost" id="clip-remix-review" tabIndex={-1}>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
-                <div className="sum"><UiLabel>{remix.title}</UiLabel>{semMotor ? null : <> · {t('madeWith', { engine: remix.engine_label })}</>} · {remix.seconds} s</div>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+                <div className="sum"><UiLabel>{remix.title}</UiLabel> · {remix.seconds} s</div>{/* KINEO-ROSTO-NO-CLIPE-2810 · KINEO-CLIPS-RESUMO-SEM-MOTOR-1111 — sem "made with <motor>" */}
                 <button type="button" disabled={busy || uploading || (!!photoUrl && !remixConsent)} className={`go ${busy || uploading || (!!photoUrl && !remixConsent) ? 'no' : 'ok'}`}
                   data-clip-action={photoUrl ? 'generate' : 'upload'} data-face-remix={remix.id}
                   onClick={() => (photoUrl ? void generateRemix() : fileRef.current?.click())}>{/* KINEO-ROSTO-NO-CLIPE-2810 — o preço mora SÓ neste botão */}
@@ -929,7 +931,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
             </div>
             <div className="rail creation-settings">
               <div className="cost" id="clip-effect-review" tabIndex={-1}>
-                <div className="sum"><UiLabel>{effect.title}</UiLabel>{semMotor ? null : <> · {t('madeWith', { engine: effect.engine_label })}</>} · {effect.seconds} s</div>
+                <div className="sum"><UiLabel>{effect.title}</UiLabel> · {effect.seconds} s</div>{/* KINEO-CLIPS-RESUMO-SEM-MOTOR-1111 — sem "made with <motor>" */}
                 <button type="button" disabled={busy || uploading} className={`go ${busy || uploading ? 'no' : 'ok'}`}
                   data-clip-action={photoUrl ? 'generate' : 'upload'} data-clip-effect={effect.key}
                   onClick={() => (photoUrl ? void generateEffect() : effect.pair ? pairRefs[pairFiles[0] ? 1 : 0].current?.click() : fileRef.current?.click())}> {/* KINEO-ABRACO-BEIJO-3110 */}
@@ -980,7 +982,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
         <div className="rail creation-settings">
           {/* KINEO-CLIPS-TELA-0511 — "gerar sem escolher motor": abre com o padrão pronto e um botão; quem quer escolher abre aqui. Sem preço. */}
           <details className="clip-more" data-kineo="clips-mais-opcoes" open={opcoesAbertas} onToggle={(e) => setMaisOpcoes(e.currentTarget.open)}>
-            <summary><strong>{rotuloDosAjustes ?? clipsTelaMaisOpcoes(language)}</strong><span className="clip-more-list">{engine ? `${semMotor ? '' : engine.label + ' · '}${seconds} s · ${effectiveAspect === 'image' ? t('samePhoto') : effectiveAspect}` : '—'}</span></summary>
+            <summary><strong>{rotuloDosAjustes ?? clipsTelaMaisOpcoes(language)}</strong><span className="clip-more-list">{/* KINEO-CLIPS-RESUMO-SEM-MOTOR-1111 — o resumo FECHADO não diz o motor; ele aparece só com o Details aberto */}{engine ? `${seconds} s · ${effectiveAspect === 'image' ? t('samePhoto') : effectiveAspect}` : '—'}</span></summary>
             <div className="clip-more-body">
             <div className="clip-more-engines">{/* KINEO-CLIPS-TELA-0511 */}
               <div className="lab">{t('engine')}</div>
