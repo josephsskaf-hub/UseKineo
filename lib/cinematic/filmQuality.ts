@@ -49,7 +49,11 @@ export function travarEstiloCompactoDoFilme(prompt: string, style: StyleAnchor):
 export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): string {
   const medium = { photoreal: 'Photoreal film', animated3d: '3D animated film', anime: 'Anime film', illustration: 'Illustrated film', noir: 'Black and white noir film' }[style.look]
   const take = (s: string, limit: number) => Array.from(s).slice(0, limit).join('')
-  const cast = /(?:Named )?Characters? in this shot: (.+?) — clearly visible in frame/i.exec(prompt)
+  // KINEO-K4-ACAO-INTEIRA-1111 — a cláusula do elenco termina em ", seen from behind or in profile, face not readable. " no filme sem rosto
+  // (lib/cinematic/elencoEpoca.ts CLAUSULA_ELENCO). O regex parava antes: o resto ficava na AÇÃO, e o resgate de espaço abaixo tomava
+  // esse resto por "a ação" — a ação de verdade era cortada no teto (Pompeia 11/11, plano 3: "crumbling stones falling fr…").
+  const cast = /(?:Named )?Characters? in this shot: (.+?) — clearly visible in frame(, seen from behind or in profile, face not readable)?.?/i.exec(prompt)
+  const deCostas = !!cast?.[2] // KINEO-K4-ACAO-INTEIRA-1111
   const identity = /The same main character appears in this scene, consistent design: ([^\n]+)/i.exec(prompt)
   const period = /Period setting: [^.]+/i.exec(prompt)?.[0]
   const objectSafety = textSafetySuffix(prompt).replace(/^,\s*/, '')
@@ -71,7 +75,7 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
     const description = take(person.replace(relation, '').trim(), Math.max(0, budget - relation.length - 2)).replace(/\s+\S*$/, '').replace(/[,; ]+$/, '')
     return `${description}, ${relation}`
   }).join('; ')
-  const who = (budget: number) => cast ? `Visible: ${visible(budget)}. ` : identity ? `Identity: ${take(identity[1], budget)}. ` : ''
+  const who = (budget: number) => cast ? `Visible: ${visible(budget)}${deCostas ? ', seen from behind' : ''}. ` : identity ? `Identity: ${take(identity[1], budget)}. ` : '' // KINEO-K4-ACAO-INTEIRA-1111: o "de costas" curto, junto da ficha
   const identityBudget = cast ? 178 : 140
   // KINEO-QUALIDADE-REGRESSOES-2910 — identity compaction removes the old tail.
   // Reserve space for text protection already present, just as for closed mouths;
@@ -100,7 +104,7 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
     // retained: trim verbose costume first, keeping the subject and relation.
     const firstAction = /^[\s\S]*?[.!?](?:\s|$)/.exec(action)?.[0] ?? action
     const actionBudget = Math.min(Array.from(firstAction).length, 150)
-    const whoLabel = cast ? 'Visible: . ' : identity ? 'Identity: . ' : ''
+    const whoLabel = cast ? `Visible: ${deCostas ? ', seen from behind' : ''}. ` : identity ? 'Identity: . ' : '' // KINEO-K4-ACAO-INTEIRA-1111: o orçamento conta o "de costas"
     const reducedIdentity = Math.max(0, Math.min(identityBudget, coreBudget - Array.from(prefix + whoLabel).length - actionBudget))
     // Action comes before the shortened costume on overflow; even a relation
     // clause that exceeds its nominal share cannot cut away the action's object.
