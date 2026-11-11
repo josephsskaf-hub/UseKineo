@@ -91,6 +91,10 @@ export function buildKling4TrialInput(
 
 export type Kling4TrialJob = { requestId: string; model: string; submittedAt: string }
 class Kling4TrialPreflightError extends Error {}
+/** KINEO-K4-DEVOLUCAO-1111 — a fal RECUSOU o envio com 4xx (sem saldo, validação, limite): nada foi enfileirado, nada cobrado. */
+export class Kling4TrialRefusedError extends Error {
+  constructor(readonly status: number) { super(`kling4_http_${status}`) }
+}
 type NetworkDeps = { apiKey: string; fetchImpl?: typeof fetch; now?: () => number; onPost?: () => void }
 
 /** Exactly one POST. No status GET, rendering wait or provider retry. */
@@ -105,7 +109,7 @@ export async function submitKling4TrialVideo(
     method: 'POST', headers: { Authorization: `Key ${deps.apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(input), signal: AbortSignal.timeout(10_000), cache: 'no-store',
   })
-  if (!response.ok) throw new Error(`kling4_http_${response.status}`)
+  if (!response.ok) throw response.status >= 400 && response.status < 500 ? new Kling4TrialRefusedError(response.status) : new Error(`kling4_http_${response.status}`) // KINEO-K4-DEVOLUCAO-1111 — 5xx/timeout seguem ambíguos (a fal pode ter aceitado)
   const receipt = await response.json() as { request_id?: unknown }
   const requestId = typeof receipt.request_id === 'string' ? receipt.request_id.trim() : ''
   if (!requestId) throw new Error('kling4_missing_id')
@@ -145,16 +149,21 @@ export type Kling4TrialResult = {
 
 /** Reserve first. A submit refusal selects Seedance without repeating Kling. */
 export async function orchestrateKling4Trial(deps: {
-  reserve: () => Promise<{ allowed: boolean; reason?: string }>
+  reserve: () => Promise<{ allowed: boolean; reason?: string; release?: () => Promise<unknown> }>
   submit: () => Promise<Kling4TrialJob>
 }): Promise<Kling4TrialResult> {
-  let reservation: { allowed: boolean; reason?: string }
+  let reservation: { allowed: boolean; reason?: string; release?: () => Promise<unknown> }
   try { reservation = await deps.reserve() }
   catch { return { engineUsed: 'seedance15_fallback', costUsd: 0, reason: 'reservation_unavailable' } }
   if (!reservation.allowed) return {
     engineUsed: reservation.reason === 'cap' ? 'seedance15_cap' : 'seedance15_fallback', costUsd: 0, reason: reservation.reason,
   }
   try { return { engineUsed: 'kling4', costUsd: KLING4_TRIAL_COST_USD, job: await deps.submit() } }
-  catch (error) { return { engineUsed: 'seedance15_fallback', costUsd: error instanceof Kling4TrialPreflightError ? 0 : KLING4_TRIAL_COST_USD,
+  catch (error) {
+    if (error instanceof Kling4TrialRefusedError) { // KINEO-K4-DEVOLUCAO-1111 — recusa explícita: nada cobrado → a reserva volta ao dia; o filme sai no motor barato
+      try { await reservation.release?.() } catch { /* devolução é melhor esforço: falhar só deixa a reserva presa, como antes */ }
+      return { engineUsed: 'seedance15_fallback', costUsd: 0, reason: 'provider_refused' }
+    }
+    return { engineUsed: 'seedance15_fallback', costUsd: error instanceof Kling4TrialPreflightError ? 0 : KLING4_TRIAL_COST_USD,
     reason: error instanceof Kling4TrialPreflightError ? 'provider_not_submitted' : 'provider_submit_failed' } }
 }
