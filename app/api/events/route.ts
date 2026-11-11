@@ -290,6 +290,13 @@ const SERVER_ONLY_EVENTS = new Set([
   // KINEO-REGIAO-PAGA-1011 — a faixa do /pricing vindo da prévia (app/api/scene-preview/pricing-strip): mostrada e clicada.
   'region_preview_pricing_shown',
   'region_preview_pricing_clicked',
+  // KINEO-RECARGA-ASSINANTE-1111 — a recarga do assinante que zerou: oferta mostrada e clicada (app/api/billing/
+  // recarga-assinante), checkout aberto (o checkout) e pagamento concedido (o webhook). Forjados pelo navegador,
+  // inventariam um funil que não existiu.
+  'recarga_assinante_shown',
+  'recarga_assinante_clicked',
+  'recarga_assinante_checkout_started',
+  'recarga_assinante_paid',
   // KINEO-STRIPE-ATRASO-2026-09-28 — escritos SÓ pelo webhook da Stripe. `subscription_ended` é o churn (fim de
   // assinatura) e `renewal_ignored_non_access` o pagamento de renovação descartado; forjá-los mentiria no placar.
   'subscription_ended',

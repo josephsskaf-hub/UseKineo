@@ -101,6 +101,8 @@ import { ADS_ACCESS_COLUMN } from '@/lib/ads/offer'
 import { KIT_BF_PACK_ID } from '@/lib/ads/kitBfSale' // KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday (US$ 49, pagamento único)
 import { buildKitBfAndRedirect } from '@/lib/stripe/kitBfCheckout' // KINEO-KIT-BF-VENDA-2010
 import { buildOneTimeItemAndRedirect } from '@/lib/stripe/oneTimeItemCheckout' // KINEO-COMPRA-AVULSA-2410
+import { buildRecargaAssinanteAndRedirect } from '@/lib/stripe/recargaAssinanteCheckout' // KINEO-RECARGA-ASSINANTE-1111 — 60 créditos por US$ 9, pagamento único, só assinante que zerou
+import { RECARGA_ASSINANTE_SKU } from '@/lib/billing/recargaAssinante' // KINEO-RECARGA-ASSINANTE-1111
 import { buildKidsVendaAndRedirect } from '@/lib/stripe/kidsVendaCheckout' // KINEO-KIDS-VENDA-2010 — piloto infantil (assinatura, price_data recorrente inline) e pack de 30 (pagamento único); preço só do servidor
 import { KIDS_AUTOPILOT_ID, KIDS_PACK_ID } from '@/lib/kidsVenda/kidsVenda' // KINEO-KIDS-VENDA-2010
 import { annualEarlyOfferPriceMinor } from '@/lib/billing/annualEarlyOffer' // KINEO-KIT-BF-VENDA-2010 — "2 meses grátis no anual" até 21/11 (o MAIOR desconto, sem somar)
@@ -4726,6 +4728,7 @@ export async function GET(req: NextRequest) {
     // #473 — Starter Pack one-time checkout: /api/stripe/checkout?pack=starter
     const packParam = req.nextUrl.searchParams.get('pack')
     if (packParam?.startsWith('one_time_')) return await buildOneTimeItemAndRedirect(req, { recordCheckoutEvent, browserSessionIdFrom, checkoutFailureReason, oneTimeIdempotencyKey }) // KINEO-COMPRA-AVULSA-2410 — unknown single-item SKUs fail closed before legacy fallbacks.
+    if (packParam === RECARGA_ASSINANTE_SKU) return await buildRecargaAssinanteAndRedirect(req, { recordCheckoutEvent, browserSessionIdFrom, checkoutFailureReason, oneTimeIdempotencyKey }) // KINEO-RECARGA-ASSINANTE-1111 — ANTES de todo fallback de ?pack= (a recarga antiga fora de venda mandaria aos planos): elegibilidade, preço e créditos só do servidor
     if (packParam) {
       // KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — avatar packs are gone. Avatar
       // videos now use universal credits, so avatar_credits packs are unsellable.

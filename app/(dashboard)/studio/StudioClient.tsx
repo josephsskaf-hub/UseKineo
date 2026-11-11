@@ -1581,6 +1581,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
             {subscriberOutOfCreditsVisible({ paid: contaPaga, balance, cost, mode: scriptMode }) && (
               <SubscriberUpgradeNudge
                 surface={SUBSCRIBER_OUT_OF_CREDITS_STUDIO_SURFACE}
+                idea={prompt} // KINEO-RECARGA-ASSINANTE-1111 — a ideia da caixa volta na URL depois de pagar a recarga
                 topup
                 onDone={(b) => { if (typeof b === 'number') setBalance(b) }}
                 onShown={(i) => { void trackEvent(SUBSCRIBER_OUT_OF_CREDITS_SHOWN_EVENT, { surface: SUBSCRIBER_OUT_OF_CREDITS_STUDIO_SURFACE, version: SUBSCRIBER_OUT_OF_CREDITS_VERSION, kind: i.kind, from: i.from, to: i.to, topup: i.topup, balance, cost, engine, duration }) }}

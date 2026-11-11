@@ -49,6 +49,8 @@ import { writeServerEvent } from '@/lib/serverEvents'
 import { isKidsAutopilotSession, isKidsPackSession, isKidsSubscription } from '@/lib/kidsVenda/kidsVenda' // KINEO-KIDS-VENDA-2010 — reconhecimento SÓ pela metadata (nunca pelo valor: 4900 é também o Kit BF e o bulk30)
 import { fulfillKidsAutopilot, fulfillKidsPack, kidsInvoicePaid, kidsSubscriptionDeleted, kidsSubscriptionUpdated } from '@/lib/kidsVenda/webhook' // KINEO-KIDS-VENDA-2010 — pedido do piloto/pack (nenhum crédito concedido; o cron financia filme a filme), ciclo novo, pausa, cancela
 import { KIT_BF_CREDITS, KIT_BF_EVENTS, KIT_BF_PACK_ID, KIT_BF_VERSION, kitBfAccessUntilIso } from '@/lib/ads/kitBfSale' // KINEO-KIT-BF-VENDA-2010 — o Kit Black Friday: créditos + Studio Ads até 31/12, pelo MESMO Path A (guard → concessão → libera + 500)
+import { RECARGA_ASSINANTE_EVENTS, RECARGA_ASSINANTE_SKU } from '@/lib/billing/recargaAssinante' // KINEO-RECARGA-ASSINANTE-1111 — a recarga do assinante: Path A, créditos da fonte única
+import { RECARGA_ASSINANTE_1111 } from '@/lib/checkoutPricing' // KINEO-RECARGA-ASSINANTE-1111
 import { ADS_ACCESS_COLUMN, ADS_PASS_CREDITS, ADS_PASS_ID, adsAccessUntil } from '@/lib/ads/offer' // KINEO-STUDIO-ADS-2026-09-25 · ADS_PASS_CREDITS só no fallback sem pack_credits (28/09)
 import {
   buildCanonicalStripeCheckoutFailure,
@@ -1793,6 +1795,14 @@ export async function POST(req: NextRequest) {
           }
 
           let creditsToAdd = metaCredits > 0 ? metaCredits : 0
+          // KINEO-RECARGA-ASSINANTE-1111 — a recarga do assinante concede SEMPRE a fonte única (RECARGA_ASSINANTE_1111.credits),
+          // nunca o número da metadata nem um valor: reconhecida só por metadata.pack exata (900 é também o Starter mensal e o
+          // one_time_ad). Pela MESMA trilha do Path A (guard por sessão ANTES → UPDATE → evento depois do UPDATE confirmado).
+          const isRecargaAssinante = packMeta === RECARGA_ASSINANTE_SKU // KINEO-RECARGA-ASSINANTE-1111
+          if (isRecargaAssinante) { // KINEO-RECARGA-ASSINANTE-1111
+            creditsToAdd = RECARGA_ASSINANTE_1111.credits // KINEO-RECARGA-ASSINANTE-1111
+            if (metaCredits !== creditsToAdd || amount !== RECARGA_ASSINANTE_1111.usdMinor || (session.currency ?? '').toLowerCase() !== 'usd') console.warn('[stripe webhook] recarga_assinante session differs from the source of truth (granting the source):', session.id, metaCredits, amount, session.currency) // KINEO-RECARGA-ASSINANTE-1111
+          } // KINEO-RECARGA-ASSINANTE-1111
           if (creditsToAdd === 0) {
             // Legacy Payment-Link amounts (USD): $9 → 10, $19 → 25, $4.90 → 30.
             // These only fire for sessions with NO metadata.pack_credits, i.e.
@@ -1965,6 +1975,7 @@ export async function POST(req: NextRequest) {
               // Depois da concessão confirmada; 1×/sessão, teto de 3 s, nunca lança (lib/founderAlert.ts).
               await alertFounderAdsPass({ session, userId, credits: creditsToAdd, until: adsUntilIso })
             }
+            if (isRecargaAssinante) await writeServerEvent({ name: RECARGA_ASSINANTE_EVENTS.paid, userId, path: '/api/stripe/webhook', metadata: { stripe_session_id: session.id, credits: creditsToAdd, balance_after: next, amount_total: session.amount_total ?? null, currency: session.currency ?? null, campaign: session.metadata?.intent_campaign ?? null, version: session.metadata?.offer_version ?? null } }) // KINEO-RECARGA-ASSINANTE-1111 — DEPOIS da concessão confirmada (a retentativa não chega aqui: o guard da sessão já está gravado)
             if (isKitBf) await writeServerEvent({ name: KIT_BF_EVENTS.purchased, userId, path: '/api/stripe/webhook', metadata: { stripe_session_id: session.id, credits: creditsToAdd, until: kitUntilIso, amount_total: session.amount_total ?? null, currency: session.currency ?? null, kit_version: session.metadata?.kit_version ?? KIT_BF_VERSION } }) // KINEO-KIT-BF-VENDA-2010 — o evento de compra DEPOIS da concessão confirmada (a retentativa não chega aqui: o guard da sessão já está gravado)
             if (isAutopilotPilot) {
               console.log(`[stripe webhook] autopilot_pilot granted → user ${userId}, expires in ${AUTOPILOT_PILOT_DAYS}d`)

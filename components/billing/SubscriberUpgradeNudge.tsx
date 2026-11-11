@@ -18,7 +18,7 @@ import { createPortal } from 'react-dom'
 import CreditsTopupModal from '@/components/CreditsTopupModal'
 import { useUiCopy } from '@/components/InterfaceLanguage'
 import { trackEvent } from '@/lib/analytics'
-import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+import { RECARGA_ASSINANTE_1111, TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing' // RECARGA_ASSINANTE_1111: KINEO-RECARGA-ASSINANTE-1111
 import { PLANS } from '@/lib/pricing'
 import { canPurchaseCreditTopup } from '@/lib/growth/topupEligibility'
 import { PLAN_SWITCH_EMPTY, fetchPlanSwitchState, planSwitchErrorText, switchPlan, type PlanSwitchState } from '@/lib/growth/planSwitch'
@@ -32,6 +32,14 @@ import {
   planFromSwitchState,
   subscriberUpgradeOffer,
 } from '@/lib/billing/subscriberUpgrade'
+import {
+  RECARGA_ASSINANTE_1111_RELEASE,
+  RECARGA_ASSINANTE_API,
+  RECARGA_ASSINANTE_COPY,
+  recargaAssinanteBack,
+  recargaAssinanteFill,
+  type RecargaAssinanteOffer,
+} from '@/lib/billing/recargaAssinante' // KINEO-RECARGA-ASSINANTE-1111 — a recarga do assinante que zerou: o SERVIDOR decide quem vê (GET /api/billing/recarga-assinante)
 
 export { SUBSCRIBER_UPGRADE_ENABLED } from '@/lib/billing/subscriberUpgrade'
 
@@ -50,6 +58,7 @@ export default function SubscriberUpgradeNudge({
   onDone = null,
   onShown = null,
   onChoice = null,
+  idea = null,
 }: {
   /** Onde a parede mora, para a telemetria: 'generate_upgrade_modal' | 'studio_clip_402' … */
   surface: string
@@ -60,9 +69,11 @@ export default function SubscriberUpgradeNudge({
   onDone?: ((balance: number | null) => void) | null
   /** KINEO-RECARGA-PAGANTE-0111 — avisa quem montou que o empurrão PINTOU (1x por montagem): a parede mede a própria
    *  impressão (subscriber_out_of_credits_offer_shown) sem adivinhar se o assinante tinha degrau ou recarga. */
-  onShown?: ((info: { kind: 'switch' | 'topup_only'; from: string | null; to: string | null; topup: boolean }) => void) | null
-  /** KINEO-RECARGA-PAGANTE-0111 — avisa quem montou o clique (switch | topup | plans), antes da confirmação. */
-  onChoice?: ((choice: 'switch' | 'topup' | 'plans') => void) | null
+  onShown?: ((info: { kind: 'switch' | 'topup_only' | 'recarga'; from: string | null; to: string | null; topup: boolean }) => void) | null
+  /** KINEO-RECARGA-PAGANTE-0111 — avisa quem montou o clique (switch | topup | plans | recarga), antes da confirmação. */
+  onChoice?: ((choice: 'switch' | 'topup' | 'plans' | 'recarga') => void) | null
+  /** KINEO-RECARGA-ASSINANTE-1111 — a ideia que a tela tem na caixa: volta na URL (?prompt=) depois de pagar a recarga. */
+  idea?: string | null
 }) {
   const ui = useUiCopy()
   const [state, setState] = useState<PlanSwitchState | null>(null)
@@ -71,11 +82,64 @@ export default function SubscriberUpgradeNudge({
   const [error, setError] = useState<string | null>(null)
   const [topupOpen, setTopupOpen] = useState(false)
   const shownRef = useRef(false)
+  // KINEO-RECARGA-ASSINANTE-1111 — a oferta da recarga (null = não há; o servidor decide) e a volta depois de pagar.
+  const [recarga, setRecarga] = useState<RecargaAssinanteOffer | null>(null)
+  const [recargaPaid, setRecargaPaid] = useState<'waiting' | 'done' | 'late' | null>(null)
+  const [recargaGoing, setRecargaGoing] = useState(false)
 
   useEffect(() => {
     let alive = true
     void fetchPlanSwitchState().then((s) => { if (alive) setState(s) })
     return () => { alive = false }
+  }, [])
+
+  // KINEO-RECARGA-ASSINANTE-1111 — interruptor 'off' = nenhuma leitura a mais (o comportamento da main).
+  useEffect(() => {
+    if (RECARGA_ASSINANTE_1111_RELEASE === 'off') return
+    let alive = true
+    void fetch(`${RECARGA_ASSINANTE_API}?surface=${encodeURIComponent(surface)}`, { cache: 'no-store', credentials: 'same-origin' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: unknown) => {
+        const o = d as Partial<RecargaAssinanteOffer> | null
+        if (alive && o && o.show === true && typeof o.go === 'string' && typeof o.price === 'string' && typeof o.credits === 'number') setRecarga(o as RecargaAssinanteOffer)
+      })
+      .catch(() => { /* sem oferta: o aviso segue como antes */ })
+    return () => { alive = false }
+  }, [surface])
+
+  // KINEO-RECARGA-ASSINANTE-1111 — voltou da Stripe (?recarga=paid&session_id=): espera o webhook creditar (até ~30 s),
+  // avisa a tela pelo onDone/creditsChanged e diz a verdade se demorar. Nada é cobrado aqui.
+  useEffect(() => {
+    if (RECARGA_ASSINANTE_1111_RELEASE === 'off' || typeof window === 'undefined') return
+    const sp = new URLSearchParams(window.location.search)
+    if (sp.get('recarga') !== 'paid' || !sp.get('session_id')) return
+    setRecargaPaid('waiting')
+    let alive = true
+    let first: number | null = null
+    let tries = 0
+    const tick = async () => {
+      tries++
+      try {
+        const r = await fetch('/api/credits', { cache: 'no-store', credentials: 'same-origin' })
+        const d = r.ok ? ((await r.json()) as { credits?: unknown }) : null
+        const c = typeof d?.credits === 'number' ? d.credits : null
+        if (c !== null && first === null) first = c
+        if (c !== null && first !== null && c > first) {
+          if (!alive) return
+          setRecargaPaid('done')
+          setRecarga(null)
+          try { window.dispatchEvent(new Event('creditsChanged')) } catch { /* ignore */ }
+          try { onDone?.(c) } catch { /* ignore */ }
+          return
+        }
+      } catch { /* tenta de novo */ }
+      if (!alive) return
+      if (tries >= 12) { setRecargaPaid('late'); return }
+      setTimeout(() => { void tick() }, 2500)
+    }
+    void tick()
+    return () => { alive = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const current = state ?? PLAN_SWITCH_EMPTY
@@ -86,11 +150,12 @@ export default function SubscriberUpgradeNudge({
     pricesMinor: { starter: TIER_PRICES.starter.usd, basic: TIER_PRICES.basic.usd, pro: TIER_PRICES.pro.usd },
     topupAllowed: canPurchaseCreditTopup(plan),
   })
-  const visible = offer.kind === 'switch' || (offer.kind === 'topup_only' && topup)
-  const topupHere = topup && (offer.kind === 'topup_only' || (offer.kind === 'switch' && offer.topup))
+  const visible = offer.kind === 'switch' || (offer.kind === 'topup_only' && topup) || recarga !== null || recargaPaid !== null // KINEO-RECARGA-ASSINANTE-1111 — o Studio (topo da escada) passa a ver a recarga
+  const topupHere = recarga === null && topup && (offer.kind === 'topup_only' || (offer.kind === 'switch' && offer.topup)) // KINEO-RECARGA-ASSINANTE-1111 — com a recarga nova, o botão da antiga some
+  const shownKind: 'switch' | 'topup_only' | 'recarga' = recarga !== null ? 'recarga' : offer.kind === 'switch' ? 'switch' : 'topup_only' // KINEO-RECARGA-ASSINANTE-1111
   const fromTier = offer.kind === 'none' ? null : offer.from
   const toTier = offer.kind === 'switch' ? offer.to : null
-  const offerKey = `${offer.kind}:${fromTier ?? ''}>${toTier ?? ''}`
+  const offerKey = `${offer.kind}:${fromTier ?? ''}>${toTier ?? ''}:${recarga ? 'recarga' : ''}`
 
   useEffect(() => {
     if (!visible || shownRef.current) return
@@ -105,13 +170,14 @@ export default function SubscriberUpgradeNudge({
         credits_today: offer.kind === 'switch' ? offer.creditsToday : 0,
         price_minor: offer.kind === 'switch' ? offer.priceMinor : null,
         topup: topupHere,
+        recarga: recarga !== null, // KINEO-RECARGA-ASSINANTE-1111
       })
     } catch { /* telemetria nunca derruba a parede */ }
-    try { onShown?.({ kind: offer.kind, from: fromTier, to: toTier, topup: topupHere }) } catch { /* idem */ } // KINEO-RECARGA-PAGANTE-0111 — `visible` já estreitou para switch | topup_only
+    try { onShown?.({ kind: shownKind, from: fromTier, to: toTier, topup: topupHere }) } catch { /* idem */ } // KINEO-RECARGA-PAGANTE-0111 · KINEO-RECARGA-ASSINANTE-1111 — 'recarga' quando a recarga nova pinta
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, offerKey])
 
-  function track(choice: 'switch' | 'topup' | 'plans') {
+  function track(choice: 'switch' | 'topup' | 'plans' | 'recarga') {
     try {
       void trackEvent(SUBSCRIBER_UPGRADE_CLICKED_EVENT, {
         version: SUBSCRIBER_UPGRADE_VERSION,
@@ -146,6 +212,16 @@ export default function SubscriberUpgradeNudge({
     setError(planSwitchErrorText(result.error))
   }
 
+  // KINEO-RECARGA-ASSINANTE-1111 — o clique vai à rota da oferta, que re-decide no servidor e leva ao checkout (ou, na
+  // conferência da casa, volta sem cobrar). A volta é o endereço de agora, com a ideia, sem os parâmetros que disparam render.
+  function onRecarga() {
+    if (!recarga || recargaGoing || typeof window === 'undefined') return
+    track('recarga')
+    setRecargaGoing(true)
+    const back = recargaAssinanteBack(`${window.location.pathname}${window.location.search}`, idea)
+    window.location.href = `${recarga.go}&back=${encodeURIComponent(back)}`
+  }
+
   if (!visible) return null
   const c = TONES[tone]
   const name = offer.kind === 'switch' ? PLANS[offer.to].name : ''
@@ -168,7 +244,11 @@ export default function SubscriberUpgradeNudge({
       data-kind={offer.kind}
       style={{ margin: '12px 0', padding: '12px 13px', borderRadius: 12, background: c.card, border: `1px solid ${c.border}`, textAlign: 'left' }}
     >
-      {offer.kind === 'switch' && phase === 'done' ? (
+      {recargaPaid !== null ? (
+        <p role="status" data-kineo="recarga-assinante-paid" style={{ margin: 0, color: c.text, fontSize: '0.88rem', fontWeight: 800, lineHeight: 1.45 }}>
+          {recargaAssinanteFill(recargaPaid === 'waiting' ? RECARGA_ASSINANTE_COPY.paidWaiting : recargaPaid === 'done' ? RECARGA_ASSINANTE_COPY.paidDone : RECARGA_ASSINANTE_COPY.paidLate, { credits: recarga?.credits ?? RECARGA_ASSINANTE_1111.credits })}
+        </p>
+      ) : offer.kind === 'switch' && phase === 'done' ? (
         <>
           <p role="status" style={{ margin: 0, color: c.text, fontSize: '0.88rem', fontWeight: 800, lineHeight: 1.45 }}>
             {fillCopy(ui(COPY.done), { plan: name, credits: balance ?? '—' })}
@@ -181,9 +261,24 @@ export default function SubscriberUpgradeNudge({
         </>
       ) : (
         <>
+          {recarga && (
+            <>
+              {recarga.qa && (
+                <span data-kineo="recarga-assinante-qa" style={{ display: 'block', marginBottom: 6, color: '#d93025', fontSize: '0.7rem', fontWeight: 900, letterSpacing: '.04em', textTransform: 'uppercase' }}>
+                  {RECARGA_ASSINANTE_COPY.qa}
+                </span>
+              )}
+              <button type="button" data-kineo="recarga-assinante-cta" data-qa={recarga.qa ? '1' : undefined} disabled={recargaGoing} onClick={onRecarga} style={{ ...primary, textAlign: 'center', ...(recarga.qa ? { outline: '2px dashed #d93025', outlineOffset: 2 } : {}) }}>
+                {recargaAssinanteFill(RECARGA_ASSINANTE_COPY.cta, { price: recarga.price, credits: recarga.credits })}
+              </button>
+              <span style={{ display: 'block', marginTop: 6, color: c.muted, fontSize: '0.74rem', fontWeight: 600, lineHeight: 1.4 }}>
+                {RECARGA_ASSINANTE_COPY.terms}
+              </span>
+            </>
+          )}
           {offer.kind === 'switch' && (
             <>
-              <button type="button" data-kineo="subscriber-upgrade-switch" disabled={phase === 'switching'} onClick={() => void onSwitch()} style={primary}>
+              <button type="button" data-kineo="subscriber-upgrade-switch" disabled={phase === 'switching'} onClick={() => void onSwitch()} style={recarga ? secondary : primary}>
                 {phase === 'switching' ? ui(COPY.switching) : fillCopy(ui(COPY.switchCta), { plan: name, credits: offer.creditsToday })}
               </button>
               <span style={{ display: 'block', marginTop: 6, color: c.muted, fontSize: '0.74rem', fontWeight: 600, lineHeight: 1.4 }}>
