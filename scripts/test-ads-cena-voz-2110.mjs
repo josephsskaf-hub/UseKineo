@@ -33,7 +33,7 @@ async function defaultsProof(over = {}) {
   const load = loader(over, { '../v2Server': server }), I = load(F.internal), P = load(F.plan), A = load(F.adapt)
   assert.equal(P.cenaInput(customer).voice_mode, 'narrated')
   assert.throws(() => P.cenaInput({ ...customer, voice_mode: 'auto' }), /cena_bad_voice_mode/)
-  assert.equal(A.cenaResolveRoute('narrated'), 'kling3'); assert.equal(A.cenaResolveRoute('talking'), 'veo31')
+  assert.equal(A.cenaResolveRoute('narrated'), 'kling3'); assert.equal(A.cenaResolveRoute('talking'), 'kling3'); assert.equal(A.cenaResolveRoute('talking', 'veo31'), 'kling3') // KINEO-VEO-DESLIGA-1711
   for (const scenario of [{}, { voice_mode: 'talking' }, { rota: 'veo31' }, { rota: 'seedance2', voice_mode: 'narrated' }]) {
     const counters = { json: 0, moderate: 0, db: 0, start: 0 }, inserted = [], deps = internalDeps(counters, inserted)
     const response = await I.internalCenaFor({ id: 'owner', email: 'josephsskaf@gmail.com' }, { ...customer, ...scenario, dry_run: true }, deps)

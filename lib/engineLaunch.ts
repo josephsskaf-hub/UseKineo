@@ -73,6 +73,14 @@ export function engineRetired(engine: string | null | undefined): EngineRetireme
   const k = typeof engine === 'string' ? engine.toLowerCase() : ''
   return Object.prototype.hasOwnProperty.call(ENGINE_RETIREMENT, k) ? ENGINE_RETIREMENT[k] : null
 }
+// KINEO-VEO-DESLIGA-1711 — a fal desliga o Veo 3.1 em 17/11/2026 (lib/veoDesligado.ts): aqui a conta da casa também recebe o
+// mesmo 410 dos clientes. Não há mais o que provar num motor que o fornecedor apaga; o Kling 2.5 segue vivo e segue passando.
+export const RETIRED_EVEN_FOR_HOUSE_KEYS: readonly string[] = ['veo']
+/** O motor aposentado recusa também a conta da casa (validador de $0, bateria)? */
+export function engineRetiredForHouse(engine: string | null | undefined): boolean {
+  const k = typeof engine === 'string' ? engine.toLowerCase() : ''
+  return engineRetired(k) !== null && RETIRED_EVEN_FOR_HOUSE_KEYS.includes(k)
+}
 /** Evento de servidor e motivo de fio da recusa do motor aposentado. */
 export const ENGINE_RETIRED_EVENT = 'engine_retired_refused'
 export const ENGINE_RETIRED_REASON = 'engine_retired'

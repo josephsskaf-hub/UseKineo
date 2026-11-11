@@ -40,6 +40,7 @@ import {
   type FreeRedoStatus,
 } from '@/lib/freeRedo/core'
 import { reservarVagaDoDia } from '@/lib/freeRedo/cap'
+import { veoDesligado } from '@/lib/veoDesligado' // KINEO-VEO-DESLIGA-1711
 import { SCENE_REDO_FUNNEL_EVENTS, FREE_REDO_FIRST_FILM_TOTAL, saldoGratis, versaoNovaGanhaRefacao } from '@/lib/cinematic/refazerGratis2810' // KINEO-REFAZER-GRATIS-2810 — 2 refações grátis no PRIMEIRO filme (o elo assinado da versão nova), saldo na resposta, scene_redo_free_used
 import { espelhoSceneRedo } from '@/lib/cinematic/refazerCena' // KINEO-REFAZER-CENA-2710 [TRAVA 8.2 — vai do fundador 27/10 "refazer essa cena liberado"] — scene_redo_* espelham os free_redo_* (controle de qualidade diário)
 
@@ -263,6 +264,8 @@ export async function iniciarRefacaoFilme(d: FreeRedoFilmDeps, a: { userId: stri
   const { video, source, quality, cenas, chain } = c.ctx // KINEO-REFAZER-GRATIS-2810 — chain
   const cena = cenas.find((x) => x.index === sceneIndex)
   if (!cena) return r(400, { ok: false, motivo: 'cena_invalida', scenes: cenasPublicas(cenas) })
+  // KINEO-VEO-DESLIGA-1711 — cena de filme Veo 3.1 depois de 17/11: a fal desligou o endereço. Recusa antes de qualquer gravação, vaga do dia ou POST.
+  if (veoDesligado(cena.model, d.now())) return r(409, { ok: false, motivo: 'motor_desligado', estado: 'unavailable' })
 
   const lido = await lerPedido(d, a.userId, videoId)
   if (lido === 'erro') return r(503, { ok: false, motivo: 'banco_indisponivel' })

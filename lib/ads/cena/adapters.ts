@@ -124,8 +124,11 @@ export function isCenaRoute(value: unknown): value is CenaRoute {
 }
 
 export function isCenaVoiceMode(value: unknown): value is CenaVoiceMode { return value === 'narrated' || value === 'talking' }
+// KINEO-VEO-DESLIGA-1711 — a fal desliga o Veo 3.1 em 17/11/2026 (lib/veoDesligado.ts). Pedido NOVO nunca resolve para 'veo31':
+// sem rota (ou com a 'veo31' que a tela interna ainda manda como padrão da fala) vai para a rota dos clientes, Kling 3
+// (o newPaidCenaRoute ainda sobe para Kling 4 quando ele está no ar). Pedido salvo com 'veo31' não passa por aqui.
 export function cenaResolveRoute(voiceMode: CenaVoiceMode, route?: unknown): CenaRoute {
-  if (route === undefined) return voiceMode === 'talking' ? 'veo31' : 'kling3'
+  if (route === undefined || route === 'veo31') return 'kling3'
   if (!isCenaRoute(route)) throw new Error('cena_bad_route')
   return route
 }

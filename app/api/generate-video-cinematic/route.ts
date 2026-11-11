@@ -32,7 +32,7 @@ import { claimKling4PaidSlot, finishKling4PaidSlot } from '@/lib/kling4PaidQueue
 import { ensureKling4PromoBudgetToday } from '@/lib/kling4PromoCarry'
 import { creditCostFor, creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 import { isInternalEmail } from '@/lib/internalAccounts'
-import { S25_PUBLIC, enginePaused, engineRetired, engineOffered, ENGINE_RETIRED_EVENT, ENGINE_RETIRED_REASON } from '@/lib/engineLaunch'
+import { S25_PUBLIC, enginePaused, engineRetired, engineRetiredForHouse, engineOffered, ENGINE_RETIRED_EVENT, ENGINE_RETIRED_REASON } from '@/lib/engineLaunch' // KINEO-VEO-DESLIGA-1711: engineRetiredForHouse
 import { seedance15sVisible } from '@/lib/engineLaunch' // KINEO-SEEDANCE-15S-2026-09-29
 import { S25_PAID_ONLY_EVENT, S25_PAID_ONLY_MESSAGE, S25_PAID_ONLY_REASON, s25UpgradeHref } from '@/lib/engineLaunch' // KINEO-S25-ABRE-2026-10-06
 import { s25AccessFor } from '@/lib/s25Access' // KINEO-S25-ABRE-2026-10-06 — o 2.5 só para quem paga (isPayingPlan), recusa antes do débito
@@ -1781,7 +1781,7 @@ async function manipularPost(req: NextRequest) {
     // reserva/débito e de qualquer POST, com a alternativa e charged:false. Filme já em andamento não passa por este portão (polling e compose são outras rotas). A conta da casa segue passando: é como a bateria e os validadores de $0 provam os motores.
     {
       const aposentado = engineRetired(body.engine)
-      if (aposentado && !isDryRunAccount(user.email)) {
+      if (aposentado && (!isDryRunAccount(user.email) || engineRetiredForHouse(body.engine))) { // KINEO-VEO-DESLIGA-1711: o Veo recusa a casa também
         void writeServerEvent({ name: ENGINE_RETIRED_EVENT, userId: user.id, path: '/api/generate-video-cinematic', metadata: { engine: body.engine, alternative: aposentado.alternative.key, charged: false, since: aposentado.since } })
         return NextResponse.json({ error: aposentado.message, reason: ENGINE_RETIRED_REASON, engine: body.engine, alternative: aposentado.alternative, retryable: false, charged: false, refunded: false }, { status: 410 })
       }

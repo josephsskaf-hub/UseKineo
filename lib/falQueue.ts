@@ -1,5 +1,6 @@
 import { FAL_SUBMIT_RATE_LIMIT, rateLimitWaitMs, sleep } from '@/lib/rateLimit'
 import { entradaSemConviteDeLetreiro } from '@/lib/semConviteDeLetreiro' // KINEO-H3-LETREIRO-0611
+import { veoDesligado } from '@/lib/veoDesligado' // KINEO-VEO-DESLIGA-1711
 
 /**
  * A paid Fal queue submission must be sent exactly once. The SDK may retry
@@ -45,6 +46,10 @@ export async function submitFalQueueOnce(
   input: Record<string, unknown>,
   onPost?: () => void,
 ): Promise<string> {
+  // KINEO-VEO-DESLIGA-1711 — endereço do Veo depois de 17/11: recusa LOCAL e explícita (sem POST, nada enfileirado, nada cobrado).
+  if (veoDesligado(model, Date.now())) {
+    throw new FalQueueSubmitError(`veo_fal_desligado: ${model} was shut down by the provider on 2026-11-17`, { ambiguous: false, status: 410 })
+  }
   const key = process.env.FAL_KEY
   if (!key) {
     throw new FalQueueSubmitError('FAL_KEY is not configured', { ambiguous: false })
