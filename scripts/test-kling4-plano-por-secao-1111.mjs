@@ -78,7 +78,7 @@ console.log('ok  estado atual limpo (Pompeia: 4+7+4 → 4 planos)')
 const MUT = [
   ['M1 interruptor volta a desligado', 'lib', (s) => s.replace("export const KLING4_PLANO_POR_SECAO: ModoPlanoPorSecao = 'public'", "export const KLING4_PLANO_POR_SECAO: ModoPlanoPorSecao = 'off'")],
   ['M2 2ª metade herda a imagem', 'lib', (s) => s.replace('stills.push(pos === 0 ? (a.stills[i] ?? null) : null)', 'stills.push(a.stills[i] ?? null)')],
-  ['M3 metade sem a sua seção', 'lib', (s) => s.replace('prompts.push(g.length === 1 ? a.prompts[i] : promptDaSecao(a.prompts[i], secao))' /* KINEO-SECAO-COM-FALA-REESCRITA-1111: a seção pode vir com a fala real */, 'prompts.push(a.prompts[i])')], // KINEO-K4-PLANO-DA-SECAO-1111
+  ['M3 metade sem a sua seção', 'lib', (s) => s.replace('prompts.push(g.length === 1 ? a.prompts[i] : promptDaSecao(a.prompts[i], secao, { objetoConcreto: a.objetoConcreto === true }))' /* KINEO-SECAO-COM-FALA-REESCRITA-1111: a seção pode vir com a fala real */, 'prompts.push(a.prompts[i])')], // KINEO-K4-PLANO-DA-SECAO-1111
   ['M4 aceita fala que não bate', 'lib', (s) => s.replace('      if (!alvo.includes(junto)) return null\n', '').replace('    if (!grupo.length || !(junto === alvo || (i === 0 && alvo.endsWith(` ${junto}`)))) return null\n', '')],
   ['M5 sem teto de 5 planos', 'lib', (s) => s.replace('if (total > KLING4_MAX_PLANOS) return null', '')],
   ['M6 envio pago com os 3 planos', 'route', (s) => s.replace('return submitKling4TrialVideo(kling4PorSecao({', 'return submitKling4TrialVideo(({')],

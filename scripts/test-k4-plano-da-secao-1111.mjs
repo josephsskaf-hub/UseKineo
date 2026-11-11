@@ -83,7 +83,7 @@ let n = 1, falhas = 0
 console.log('ok  estado atual limpo (4 planos: cada um com a ação da sua seção; corte em fronteira de frase)')
 const qp = read('lib/kling4QuatroPlanos.ts'), kt = read('lib/kling4Trial.ts')
 const MUT = [
-  ['M1 metade volta a levar a cena inteira', { 'lib/kling4QuatroPlanos.ts': qp.replace('prompts.push(g.length === 1 ? a.prompts[i] : promptDaSecao(a.prompts[i], secao))' /* KINEO-SECAO-COM-FALA-REESCRITA-1111: a seção pode vir com a fala real */, 'prompts.push(g.length === 1 ? a.prompts[i] : `Shot focus: ${pista(a.secoes[j])}. ${a.prompts[i]}`)') }],
+  ['M1 metade volta a levar a cena inteira', { 'lib/kling4QuatroPlanos.ts': qp.replace('prompts.push(g.length === 1 ? a.prompts[i] : promptDaSecao(a.prompts[i], secao, { objetoConcreto: a.objetoConcreto === true }))' /* KINEO-SECAO-COM-FALA-REESCRITA-1111: a seção pode vir com a fala real */, 'prompts.push(g.length === 1 ? a.prompts[i] : `Shot focus: ${pista(a.secoes[j])}. ${a.prompts[i]}`)') }],
   ['M2 corte volta ao code point 512', { 'lib/kling4Trial.ts': kt.replace('const bounded = cabeNoTetoDoPlano(reference + prompt)', "const bounded = Array.from(reference + prompt).slice(0, 512).join('')") }],
   ['M3 cortador ignora a cauda', { 'lib/kling4Trial.ts': kt.replace('const temCauda = texto.endsWith(CAUDA_DA_BOCA)', 'const temCauda = false') }],
 ]
