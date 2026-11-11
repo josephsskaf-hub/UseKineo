@@ -10,6 +10,9 @@ import { narrationWordCount } from '@/lib/textLanguage'
 
 /** Onde a fala encurtada mira (a medição aceita até 15,5 s): deixa folga para a voz real. */
 export const K4_ALVO_DO_ENCAIXE_SEGUNDOS = 14.6
+/** KINEO-K4-ENCAIXE-MOTIVO-1111 — os pontos em que o encaixe desiste (evento kling4_encaixe_falhou). */
+export type MotivoDoEncaixe = 'sem_medida' | 'prazo' | 'alvo_pequeno' | 'encurtar_sem_texto' | 'encurtado_reprovado' | 'remedida_falhou' | 'curto_demais' | 'rodadas_esgotadas' | 'erro'
+export const ENCAIXE_FALHOU_EVENTO = 'kling4_encaixe_falhou'
 /** Abaixo disso o filme de 15 s ficaria com fala curta demais: não adota. */
 export const K4_PISO_DO_ENCAIXE_SEGUNDOS = 10
 export const K4_RODADAS_DO_ENCAIXE = 3 // o modelo erra a contagem por poucas palavras (7 textos reais, 05/11): quem decide é a voz medida, rodada a rodada
@@ -85,6 +88,8 @@ export async function encaixarFalaNoKling4(a: {
   encurtar?: (falas: readonly string[], alvo: number) => Promise<string[] | null>
   agora?: () => number
   prazoMs?: number
+  /** KINEO-K4-ENCAIXE-MOTIVO-1111 — por que o encaixe desistiu (o filme vai à reserva); sem isto a falha só existia no console. */
+  aoFalhar?: (motivo: MotivoDoEncaixe, detalhe?: Record<string, unknown>) => void
 }): Promise<EncaixeK4 | null> {
   const agora = a.agora ?? Date.now
   const inicio = agora()
@@ -92,19 +97,21 @@ export async function encaixarFalaNoKling4(a: {
   const encurtar = a.encurtar ?? ((falas, alvo) => encurtarFalas(falas, alvo, a.language))
   const conta = (l: readonly string[]) => l.reduce((n, f) => n + narrationWordCount(f, a.language), 0)
   try {
-    if (a.fala.seconds === null) return null
+    const falha = (motivo: MotivoDoEncaixe, detalhe?: Record<string, unknown>): null => { try { a.aoFalhar?.(motivo, detalhe) } catch { /* o relato nunca derruba o filme */ } return null } // KINEO-K4-ENCAIXE-MOTIVO-1111
+    if (a.fala.seconds === null) return falha('sem_medida')
     let atuais = [...a.falas]
     let segundos = a.fala.seconds
     for (let rodada = 1; rodada <= K4_RODADAS_DO_ENCAIXE; rodada++) {
-      if (agora() - inicio >= prazo) return null
+      if (agora() - inicio >= prazo) return falha('prazo', { rodada }) // KINEO-K4-ENCAIXE-MOTIVO-1111
       const alvo = alvoDoEncaixe(conta(atuais), segundos)
-      if (alvo < atuais.length * MIN_PALAVRAS_POR_CENA) return null
+      if (alvo < atuais.length * MIN_PALAVRAS_POR_CENA) return falha('alvo_pequeno', { rodada, alvo, segundos }) // KINEO-K4-ENCAIXE-MOTIVO-1111
       const novas = await encurtar(atuais, alvo)
-      if (!novas || !encaixeServe(atuais, novas, a.language)) return null
+      if (!novas) return falha('encurtar_sem_texto', { rodada, alvo }) // KINEO-K4-ENCAIXE-MOTIVO-1111
+      if (!encaixeServe(atuais, novas, a.language)) return falha('encurtado_reprovado', { rodada, alvo, palavras: conta(novas) }) // KINEO-K4-ENCAIXE-MOTIVO-1111
       const medida = await a.medir(novas.join(' '))
-      if (medida.seconds === null) return null
+      if (medida.seconds === null) return falha('remedida_falhou', { rodada }) // KINEO-K4-ENCAIXE-MOTIVO-1111
       if (medida.cabe) {
-        if (medida.seconds < K4_PISO_DO_ENCAIXE_SEGUNDOS) return null
+        if (medida.seconds < K4_PISO_DO_ENCAIXE_SEGUNDOS) return falha('curto_demais', { rodada, segundos: medida.seconds }) // KINEO-K4-ENCAIXE-MOTIVO-1111
         return {
           falas: novas, fala: medida,
           rastro: { de: { palavras: conta(a.falas), segundos: a.fala.seconds }, para: { palavras: conta(novas), segundos: medida.seconds }, rodadas: rodada },
@@ -113,9 +120,10 @@ export async function encaixarFalaNoKling4(a: {
       atuais = novas
       segundos = medida.seconds
     }
-    return null
+    return falha('rodadas_esgotadas', { segundos }) // KINEO-K4-ENCAIXE-MOTIVO-1111
   } catch (e) {
     console.warn('[kling4-trial] KINEO-K4-SEMPRE-0511 encurtar falhou (→ reserva):', e instanceof Error ? e.message : String(e))
+    try { a.aoFalhar?.('erro', { mensagem: (e instanceof Error ? e.message : String(e)).slice(0, 200) }) } catch { /* nunca derruba */ } // KINEO-K4-ENCAIXE-MOTIVO-1111
     return null
   }
 }

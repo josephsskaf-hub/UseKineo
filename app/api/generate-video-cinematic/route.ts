@@ -20,7 +20,7 @@ import { KLING4_TRIAL_LIVE, kling4TrialEligible } from '@/lib/kling4TrialPolicy'
 import { submitKling4TrialVideo, orchestrateKling4Trial, buildKling4TrialInput, kling4TrialSceneDurations, approvedKling4TrialStills, type Kling4TrialResult } from '@/lib/kling4Trial'
 import { reserveKling4Trial, recordKling4TrialFilm } from '@/lib/kling4TrialBudget'
 import { medirFalaDoKling4Trial as medirFalaK4Crua } from '@/lib/kling4TrialScript' // KINEO-K4-SEMPRE-0511 [TRAVA 8.2 — fundador 05/11 "vai"]
-import { encaixarFalaNoKling4, type EncaixeK4 } from '@/lib/kling4TrialEncaixe' // KINEO-K4-SEMPRE-0511
+import { encaixarFalaNoKling4, ENCAIXE_FALHOU_EVENTO, type EncaixeK4 } from '@/lib/kling4TrialEncaixe' // KINEO-K4-SEMPRE-0511 · KINEO-K4-ENCAIXE-MOTIVO-1111: ENCAIXE_FALHOU_EVENTO
 import { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim'
 import { kling4GratisPassaNaTrava } from '@/lib/kling4GratisTravaServer' // KINEO-TRAVA-K4-GRATIS-1111
 import { medirFalaDoKling4Trial, type FalaK4 } from '@/lib/kling4TrialScript' // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "2 c"]
@@ -7956,7 +7956,8 @@ async function manipularPost(req: NextRequest) {
       let fala = await medirFalaK4Crua(a)
       if (fala.seconds === null) fala = await medirFalaK4Crua({ ...a, prazoMs: 15_000 })
       if (fala.reason !== 'narration_over_kling4_15s') return fala
-      const encaixe = await encaixarFalaNoKling4({ falas: kling4Timing.voiceovers, fala, language: a.language, medir: (texto) => medirFalaK4Crua({ ...a, voiceoverScript: texto }) })
+      const encaixe = await encaixarFalaNoKling4({ falas: kling4Timing.voiceovers, fala, language: a.language, medir: (texto) => medirFalaK4Crua({ ...a, voiceoverScript: texto }),
+        aoFalhar: (motivo, detalhe) => { void writeServerEvent({ name: ENCAIXE_FALHOU_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, motivo, ...detalhe, segundos_antes: fala.seconds, language: a.language, palavras_antes: kling4Timing.voiceovers.join(' ').split(/s+/).filter(Boolean).length } }) } }) // KINEO-K4-ENCAIXE-MOTIVO-1111 — o motivo de ir à reserva fica no banco
       if (!encaixe) return fala
       kling4Encaixe.r = encaixe
       scenes.forEach((s, i) => { s.voiceover = encaixe.falas[i]; kling4Timing.voiceovers[i] = encaixe.falas[i] })
