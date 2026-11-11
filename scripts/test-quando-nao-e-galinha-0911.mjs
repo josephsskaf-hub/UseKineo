@@ -11,6 +11,7 @@ import { execFileSync } from 'node:child_process'
 import { join } from 'node:path'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semQuandoNaoEGalinha0911, deltaQuandoNaoEGalinha0911Exato, QUANDO_NAO_E_GALINHA_0911 } from './test-support/desfaz-quando-nao-e-galinha-0911.mjs'
+import { semEspecieNaoEGente1111 } from './test-support/desfaz-especie-nao-e-gente-1111.mjs' // KINEO-ESPECIE-NAO-E-GENTE-1111
 
 let ok = 0
 let falhas = 0
@@ -172,7 +173,7 @@ const base = carregaBase()
 
 // ── D. recibo exato da TRAVA 8.2 ────────────────────────────────────────────────────────────────────────────────────────
 {
-  const hoje = readFileSync(join(raiz, EPOCA), 'utf8')
+  const hoje = semEspecieNaoEGente1111(readFileSync(join(raiz, EPOCA), 'utf8'), EPOCA) // KINEO-ESPECIE-NAO-E-GENTE-1111 — a camada mais nova (11/11) sai antes do recibo
   checa('D recibo: desfazer devolve a base exata', semQuandoNaoEGalinha0911(hoje, EPOCA).replace(/\r\n/g, '\n') === BASE_FONTE.replace(/\r\n/g, '\n'))
   checa('D recibo: o arquivo de hoje é exatamente base + esta entrega', deltaQuandoNaoEGalinha0911Exato(hoje, BASE_FONTE, EPOCA))
   checa('D recibo: edição a mais reprova', !deltaQuandoNaoEGalinha0911Exato(hoje.replace('KINEO-QUANDO-NAO-E-GALINHA-0911', 'KINEO-QUANDO-NAO-E-GALINHA-0911 x'), BASE_FONTE, EPOCA))

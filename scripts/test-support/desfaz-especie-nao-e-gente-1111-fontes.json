@@ -1,0 +1,19 @@
+{
+ "marca": "KINEO-ESPECIE-NAO-E-GENTE-1111",
+ "scope": {
+  "lib/cinematic/elencoEpoca.ts": {
+   "beforeSha256": "afa2188471b891d03e6fdbe24aa5a74d1d98518233ae4d309d7278e816df4be8",
+   "afterSha256": "dbda2a6b78983011d8aae9a9f2650f4e37dfdecfa790e6bdb99f290510ce2333",
+   "hunks": [
+    {
+     "before": "/** Os personagens NOMEADOS do texto em inglês (até 3; o protagonista é quem mais age). Texto sem nome que age → []. */ // KINEO-ELENCO-EPOCA-2710\n",
+     "after": "/** KINEO-ESPECIE-NAO-E-GENTE-1111 — nome de gênero científico (uma palavra, maiúscula, sufixo de taxonomia): Argentinosaurus, Velociraptor, Triceratops, Megalodon, Deinotherium, Australopithecus, Archaeopteryx, Patagotitan. Sufixo curto de nome de gente (‑don de Gordon, ‑ops) não conta. */\nexport function nomeDeEspecie(nome: string): boolean {\n  return /^\\p{Lu}\\p{Ll}{2,}(?:saurus|sauros|raptor|ceratops|odon|therium|pithecus|mimus|titan|venator|suchus|pteryx|nychus|dactylus|rhynchus|cephale|lophus)$/u.test(String(nome ?? '').trim())\n}\n\n/** Os personagens NOMEADOS do texto em inglês (até 3; o protagonista é quem mais age). Texto sem nome que age → []. */ // KINEO-ELENCO-EPOCA-2710\n"
+    },
+    {
+     "before": "  const usados = new Set<string>() // KINEO-ELENCO-EPOCA-2710\n",
+     "after": "  lista.splice(0, lista.length, ...lista.filter((c) => !nomeDeEspecie(c.nome))) // KINEO-ESPECIE-NAO-E-GENTE-1111 [CEO 11/11, reprise dos 6 filmes] — argentinossauro (e9418905): \"Argentinosaurus was 35 meters long\" virou \"Argentinosaurus, a person in their thirties with curly black hair… brown coat\" no plano 1. Nome de gênero científico (‑saurus, ‑raptor, ‑ceratops, ‑odon…) é o BICHO, nunca gente; a criatura já está no elenco\n  const usados = new Set<string>() // KINEO-ELENCO-EPOCA-2710\n"
+    }
+   ]
+  }
+ }
+}

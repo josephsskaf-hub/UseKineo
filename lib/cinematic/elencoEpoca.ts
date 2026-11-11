@@ -416,11 +416,17 @@ function tipoDe(nome: string, aposto: string | null, frases: string, titulos: st
   return { tipo: 'humano', especie: null } // KINEO-ELENCO-EPOCA-2710
 } // KINEO-ELENCO-EPOCA-2710
 
+/** KINEO-ESPECIE-NAO-E-GENTE-1111 — nome de gênero científico (uma palavra, maiúscula, sufixo de taxonomia): Argentinosaurus, Velociraptor, Triceratops, Megalodon, Deinotherium, Australopithecus, Archaeopteryx, Patagotitan. Sufixo curto de nome de gente (‑don de Gordon, ‑ops) não conta. */
+export function nomeDeEspecie(nome: string): boolean {
+  return /^\p{Lu}\p{Ll}{2,}(?:saurus|sauros|raptor|ceratops|odon|therium|pithecus|mimus|titan|venator|suchus|pteryx|nychus|dactylus|rhynchus|cephale|lophus)$/u.test(String(nome ?? '').trim())
+}
+
 /** Os personagens NOMEADOS do texto em inglês (até 3; o protagonista é quem mais age). Texto sem nome que age → []. */ // KINEO-ELENCO-EPOCA-2710
 export function personagensNomeados(textoIngles: string, epoca: Epoca | null = null, infantil = false): PersonagemNomeado[] { // KINEO-ELENCO-EPOCA-2710
   const texto = limpa(sanitizeRealPeople(semRotulosDeSecao(String(textoIngles ?? '').replace(/\[[^\]]*\]/g, ' ')))).slice(0, 8000) // KINEO-ELENCO-MARCADOR-2910
   if (!texto) return [] // KINEO-ELENCO-EPOCA-2710
   const lista = candidatos(texto).filter((c) => !nomeSoCitado(texto, c.nome, VERBO_RE)).sort((a, b) => (b.atua + b.forte) - (a.atua + a.forte) || b.total - a.total || a.primeira - b.primeira).slice(0, ELENCO_EPOCA_MAX_PERSONAGENS) // KINEO-ELENCO-EPOCA-2710 // KINEO-CITADO-NAO-AGE-0311 — "A mystery woman filmed Kennedy's assassination": o citado não entra; a protagonista sem nome entra pelo caminho de sempre
+  lista.splice(0, lista.length, ...lista.filter((c) => !nomeDeEspecie(c.nome))) // KINEO-ESPECIE-NAO-E-GENTE-1111 [CEO 11/11, reprise dos 6 filmes] — argentinossauro (e9418905): "Argentinosaurus was 35 meters long" virou "Argentinosaurus, a person in their thirties with curly black hair… brown coat" no plano 1. Nome de gênero científico (‑saurus, ‑raptor, ‑ceratops, ‑odon…) é o BICHO, nunca gente; a criatura já está no elenco
   const usados = new Set<string>() // KINEO-ELENCO-EPOCA-2710
   const personificados = nomesPersonificados(texto) // KINEO-SERES-PERSONIFICADOS-3010
   const saida = lista.flatMap((c): PersonagemNomeado[] => { // KINEO-ELENCO-EPOCA-2710 · KINEO-JUIZ-REFAZ-2810 — flatMap: a coisa de cenário sai sem deixar buraco; o protagonista é decidido depois
