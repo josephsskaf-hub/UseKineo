@@ -76,7 +76,7 @@ check('utm_source "google" sobrevive ao saneamento do cadastro', acq.sanitizeAcq
 check('"google" não é rótulo de superfície interna', acq.internalSurfaceLabel('google') === null)
 const analytics = ler('lib/analytics.ts')
 check('kineo_src captura source, medium e campaign', analytics.includes("const SRC_FIELDS = ['utm_source', 'utm_medium', 'utm_campaign'] as const"))
-check('todo evento da aba leva utm_term e gclid', analytics.includes("const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'gclid', 'ref'] as const"))
+check('todo evento da aba leva utm_term e gclid', analytics.includes("const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'gclid', 'msclkid', 'ref'] as const"))
 check('SourceCapture grava o cookie do clique pago em todo pouso', ler('components/SourceCapture.tsx').includes('paidClickCookieWrite(window.location.search, Date.now()'))
 check('SourceCapture está no layout raiz', /<SourceCapture\s*\/>/.test(ler('app/layout.tsx')))
 

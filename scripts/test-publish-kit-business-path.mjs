@@ -117,7 +117,7 @@ ok(!eventSink.includes("'publish_kit_business_creator_clicked',"), 'browser sink
 ok(!eventSink.includes("'publish_kit_business_path_clicked',"), 'browser sink does not misclassify the click as server authority')
 
 const analytics = read('lib/analytics.ts')
-ok(analytics.includes("const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'gclid', 'ref'] as const"), 'shared analytics may add only its declared attribution fields')
+ok(analytics.includes("const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'gclid', 'msclkid', 'ref'] as const"), 'shared analytics may add only its declared attribution fields')
 // The approved persistence refactor passes merged metadata to persistBrowserEvent.
 // Execute the real merge expression, proving caller fields win over stored UTMs.
 const analyticsAst = ts.createSourceFile('analytics.ts', analytics, 99, true)

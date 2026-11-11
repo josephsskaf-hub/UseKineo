@@ -21,7 +21,10 @@ import {
 // sessionStorage so they survive the whole funnel (landing → signup → generate
 // → checkout → success), even after the OAuth/login hop. Every tracked event
 // then carries them for internal funnel attribution back to the Google Ads click.
-const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'gclid', 'ref'] as const
+// KINEO-MSCLKID-EVENTOS-1111 — msclkid (Microsoft Ads/Bing) entra junto com o gclid: sem ele, um clique pago do Bing
+// cujo anúncio venha sem utm chega só com referrer bing.com e se confunde com a busca orgânica do Bing (leitura de
+// 11/11). Guardião: scripts/test-msclkid-eventos-1111.mjs.
+const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'gclid', 'msclkid', 'ref'] as const
 const EVENT_SESSION_KEY = EVENT_SESSION_COOKIE
 
 function syncSessionCookie(name: string, sessionId: string, maxAgeSeconds?: number): void {
