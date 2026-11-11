@@ -11,7 +11,7 @@
 
 /** off = ninguém · internal = só contas da casa (isInternalEmail) · public = todo filme grátis do Kling 4. */
 export type ModoPlanoPorSecao = 'off' | 'internal' | 'public'
-export const KLING4_PLANO_POR_SECAO: ModoPlanoPorSecao = 'internal'
+export const KLING4_PLANO_POR_SECAO: ModoPlanoPorSecao = 'public' // KINEO-K4-PLANO-POR-SECAO-PUBLICO-1111 [dono 11/11: "começa pelo teste do Kling com 4 cenas"] — teste pago da CEO no Pompeia (4 planos, 15 s, US$ 2,36): cada seção com o seu plano, o desabamento da arena aparece, nenhum plano repetido; era 'internal'
 export const KLING4_PLANO_POR_SECAO_VERSAO = 'plano_por_secao_1111_v1'
 /** O Kling 4 aceita até 5 planos de ≥ 3 s em 15 s (lib/kling4Trial.ts kling4TrialSceneDurations). */
 export const KLING4_MAX_PLANOS = 5

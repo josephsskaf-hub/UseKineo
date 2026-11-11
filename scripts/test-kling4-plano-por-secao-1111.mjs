@@ -35,7 +35,7 @@ async function problems(S) {
   const no = (bad, msg) => { if (bad) p.push(msg) }
   let Q
   try { Q = await import(await mod(S.lib)) } catch (e) { return [`lib não executa: ${e.message}`] }
-  no(Q.KLING4_PLANO_POR_SECAO !== 'internal', 'interruptor: não nasce internal')
+  no(Q.KLING4_PLANO_POR_SECAO !== 'public', 'interruptor: não está public (aberto pela CEO em 11/11 depois do teste pago)')
   no(Q.planoPorSecaoLigado('internal', true) !== true || Q.planoPorSecaoLigado('internal', false) !== false || Q.planoPorSecaoLigado('off', true) !== false || Q.planoPorSecaoLigado('public', false) !== true, 'interruptor: regra errada')
 
   const q = Q.planosPorSecao({ prompts: PROMPTS, stills: STILLS, falas: FALAS, secoes: SECOES })
@@ -76,7 +76,7 @@ assert.deepEqual(atual, [], `violações:\n  ${atual.join('\n  ')}`)
 let n = 1, falhas = 0
 console.log('ok  estado atual limpo (Pompeia: 4+7+4 → 4 planos)')
 const MUT = [
-  ['M1 interruptor nasce público', 'lib', (s) => s.replace("export const KLING4_PLANO_POR_SECAO: ModoPlanoPorSecao = 'internal'", "export const KLING4_PLANO_POR_SECAO: ModoPlanoPorSecao = 'public'")],
+  ['M1 interruptor volta a desligado', 'lib', (s) => s.replace("export const KLING4_PLANO_POR_SECAO: ModoPlanoPorSecao = 'public'", "export const KLING4_PLANO_POR_SECAO: ModoPlanoPorSecao = 'off'")],
   ['M2 2ª metade herda a imagem', 'lib', (s) => s.replace('stills.push(pos === 0 ? (a.stills[i] ?? null) : null)', 'stills.push(a.stills[i] ?? null)')],
   ['M3 sem pista na frente', 'lib', (s) => s.replace('`Shot focus: ${pista(a.secoes[j])}. ${a.prompts[i]}`', 'a.prompts[i]')],
   ['M4 aceita fala que não bate', 'lib', (s) => s.replace('      if (!alvo.includes(junto)) return null\n', '').replace('    if (!grupo.length || !(junto === alvo || (i === 0 && alvo.endsWith(` ${junto}`)))) return null\n', '')],
