@@ -111,7 +111,7 @@ async function provaTag(ov = {}) {
 
   // layout: um ponto de montagem, dentro do portão
   const lay = src(ov, LAYOUT)
-  if (!/^const MS_UET_TAG_ID = msUetTagId\(process\.env\.NEXT_PUBLIC_MS_UET_TAG_ID\)$/m.test(lay)) p.push('1 o layout não lê NEXT_PUBLIC_MS_UET_TAG_ID pela régua msUetTagId')
+  if (!/^const MS_UET_TAG_ID = msUetTagId\(process\.env\.NEXT_PUBLIC_MS_UET_TAG_ID \|\| KINEO_MS_UET_TAG_ID\)/m.test(lay)) p.push('1 o layout não lê NEXT_PUBLIC_MS_UET_TAG_ID pela régua msUetTagId')
   if ((lay.match(/withMicrosoftUet\(/g) ?? []).length !== 1 || !/<ConsentManager marketing=\{withMicrosoftUet\(marketingTags, MS_UET_TAG_ID\)\} clarity=/.test(lay)) {
     p.push('2 a tag não entra só pela prop marketing do ConsentManager (portão de consentimento)')
   }
@@ -216,7 +216,7 @@ const MUTANTES = [
   ['M3 sem o sinal de consentimento', provaTag, troca(LIB, "    `window.uetq=window.uetq||[];window.uetq.push('consent','update',{'ad_storage':'granted'});`,\n", '')],
   ['M4 sem SPA', provaTag, troca(LIB, ',enableAutoSpaTracking:true', '')],
   ['M5 layout tira a tag do portão', provaTag, troca(LAYOUT, 'marketing={withMicrosoftUet(marketingTags, MS_UET_TAG_ID)}', 'marketing={marketingTags}')],
-  ['M6 layout lê a env sem a régua', provaTag, troca(LAYOUT, 'const MS_UET_TAG_ID = msUetTagId(process.env.NEXT_PUBLIC_MS_UET_TAG_ID)', "const MS_UET_TAG_ID = process.env.NEXT_PUBLIC_MS_UET_TAG_ID || null")],
+  ['M6 layout lê a env sem a régua', provaTag, troca(LAYOUT, 'const MS_UET_TAG_ID = msUetTagId(process.env.NEXT_PUBLIC_MS_UET_TAG_ID || KINEO_MS_UET_TAG_ID)', "const MS_UET_TAG_ID = process.env.NEXT_PUBLIC_MS_UET_TAG_ID || null")],
   ['M7 tag duplicada no pacote', provaTag, troca(COMP, '      <MicrosoftUetTag tagId={tagId} />\n', '      <MicrosoftUetTag tagId={tagId} />\n      <MicrosoftUetTag tagId={tagId} />\n')],
   ['M8 id do Script muda', provaTag, troca(COMP, '<Script id="ms-uet" strategy="afterInteractive">', '<Script id="ms-uet" strategy="lazyOnload">')],
   ['M14 Privacidade esquece a Microsoft', provaTag, troca('app/privacy/page.tsx', 'Microsoft Advertising (conversion measurement, only while we run', 'Bing (only while we run')],

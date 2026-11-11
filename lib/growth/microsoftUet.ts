@@ -12,6 +12,10 @@
 //      lido em 11/11/2026). Quem recusa depois: o ConsentManager recarrega a página e a tag não volta.
 //   3. Variável NEXT_PUBLIC_ = embutida no build: pôr o ID na Vercel exige um novo deploy para valer.
 
+/** KINEO-MS-UET-ID-1111 [fundador 11/11: "Quero investir 250 na semana no Bing agora"] — a etiqueta UET "Kineo site" da conta Kineo (G145L7KC) na Microsoft Ads,
+ *  lida no painel em 11/11. É um número público (vai no HTML de todo visitante), como o ID do Clarity: sem a variável na Vercel, vale este. */
+export const KINEO_MS_UET_TAG_ID = '343277512'
+
 /** O ID da tag UET ("ti" no snippet oficial) é numérico. */
 export const MS_UET_TAG_ID_PATTERN = /^\d{4,12}$/
 
