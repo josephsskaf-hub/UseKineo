@@ -17475,7 +17475,10 @@ export default function GenerateClient({
                 progress={displayProgress}
                 footnote={(mode === 'fast' || mode === 'creator')
                   ? "Typically ready in ~3 min. Keeping this tab open is fastest — if you close it, we finish the film and email you the link."
-                  : "Typically ready in ~3 min. You can close this tab — we'll email you the link when your premiere is ready."}
+                  /* KINEO-ESPERA-HONESTA-1111 — o filme leva 7,3 min (p50) e 10,1 min (p90) no Kling 4 grátis (14 dias, 11/11) e o texto
+                     prometia "~3 min" e convidava a fechar: 13 de 22 que saíram foram embora nos 2 primeiros minutos, e de quem saiu só
+                     2 de 25 viram o filme (de quem ficou, 37 de 49). Tempo honesto + o filme toca AQUI; o e-mail vira plano B. */
+                  : "Usually ready in 5–10 minutes. Stay on this page and your film plays right here the moment it's done — if you need to leave, we'll email you the link."}
               />
 
 
