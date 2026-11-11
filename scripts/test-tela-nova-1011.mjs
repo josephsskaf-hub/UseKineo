@@ -214,8 +214,9 @@ function recreateChecks(o = {}) {
   ok(!/\/create\//.test(read('app/sitemap.ts')), 'fora do sitemap')
   const legacy = read('app/(dashboard)/create/page.tsx')
   ok(legacy.includes("if (createShellVisible(user?.email)) redirect('/create/film')") && legacy.includes('<CreateClient />'), '/create: quem vê a tela nova vai a /create/film; os demais seguem na tela antiga')
-  // KINEO-TELA-NOVA-ABRE-1011 — com 'public', TODA conta logada que abrir /create vai a /create/film; visitante segue na tela antiga.
-  ok(loader(stubs, o)('lib/create/access').createShellVisible(CUSTOMER) === true && loader(stubs, o)('lib/create/access').createShellVisible(null) === false, "/create em 'public': conta logada → /create/film; visitante → tela antiga")
+  // KINEO-TELA-NOVA-ABRE-1011 — com 'public', TODA conta logada que abrir /create vai a /create/film.
+  // KINEO-CREATE-VISITANTE-1111 — o visitante não segue mais na tela antiga: vai ao cadastro (scripts/test-create-visitante-1111.mjs).
+  ok(loader(stubs, o)('lib/create/access').createShellVisible(CUSTOMER) === true && loader(stubs, o)('lib/create/access').createShellVisible(null) === false, "/create em 'public': conta logada → /create/film; visitante → cadastro (createShellDecision)")
   // Ninguém linka a tela antiga: nenhum href/push/redirect para "/create" puro em app/, components/ e lib/ (só o título da aba e o robots).
   const hits = execFileSync('git', ['grep', '-nE', `["'\`]/create(["'\`?#])`, '--', 'app', 'components', 'lib'], { cwd: ROOT, encoding: 'utf8' }).trim().split('\n').filter(l => !/^[^:]+:\d+:\s*\/\//.test(l)).filter(l => !/^app\/robots\.ts:|^lib\/ui\/workspaceFocus\.ts:|^app\/\(dashboard\)\/DashboardShell\.tsx:.*'Create Video'/.test(l))
   ok(hits.length === 0, `nenhum link para a tela antiga /create (${hits.join(' | ')})`)

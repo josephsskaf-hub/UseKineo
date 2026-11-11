@@ -2,7 +2,7 @@ import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import CreateClient from './CreateClient'
 import { createClient } from '@/lib/supabase/server'
-import { createShellVisible } from '@/lib/create/access'
+import { createShellDecision, createShellVisible } from '@/lib/create/access'
 
 // sprint-ui #11 (2026-08-30) — titulo de aba proprio. Sem isto, a aba
 // mostrava o title SEO da landing ('Kineo — AI YouTube Shorts Generator
@@ -14,6 +14,11 @@ export default async function CreatePage() {
   // KINEO-TELA-NOVA-1011 — quem vê a tela nova (CREATE_SHELL_RELEASE) vai a /create/film; os demais seguem nesta tela, como sempre.
   const { data: { user } } = await createClient().auth.getUser()
   if (createShellVisible(user?.email)) redirect('/create/film')
+  // KINEO-CREATE-VISITANTE-1111 [CEO 11/11, ronda: "visitante cai na tela antiga"] — visitante não vê mais "Generate a Short in one click": vai ao cadastro com /create/film de destino (a mesma porta das abas, createShellDecision). A tela antiga fica para conta logada fora do interruptor.
+  if (!user) {
+    const porta = createShellDecision('film', null)
+    if (porta.kind === 'signup') redirect(porta.href)
+  }
   return (
     <Suspense fallback={null}>
       <CreateClient />
