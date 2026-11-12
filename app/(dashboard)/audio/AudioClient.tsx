@@ -10,7 +10,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { PremiereResult, PremiereStage, usePremiereBeacon } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110
 import { trackEvent } from '@/lib/analytics'
-import CreditsTopupModal from '@/components/CreditsTopupModal' // KINEO-TOPUP-POPUP-2026-08-18
+import { TopupOuRecargaModal } from '@/components/billing/BuyCreditsEntry' // KINEO-RECARGA-TELAS-1211 — assinante sem saldo: a barra da recarga
 // sprint-assinaturas #13 — o 402 so abre o popup de recarga para quem PODE
 // comprar recarga (Creator/Studio, regra do checkout); trial/free/starter
 // veem os 3 planos com "N audio clips/mo" em vez de um pack que o checkout recusa.
@@ -203,7 +203,7 @@ export default function AudioClient() {
                 ))}
               </div>
             )}
-            {showTopup && <CreditsTopupModal surface="audio_402" onClose={() => setShowTopup(false)} />}
+            {showTopup && <TopupOuRecargaModal surface="audio_402" onClose={() => setShowTopup(false)} />}
             {showPlans && (
               <OutOfCreditsPlansModal
                 product="audio"

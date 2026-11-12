@@ -96,7 +96,7 @@ const MUTANTES = [
   ['painel sem Buy credits', muta(SIDEBAR, "onBuyCredits={recargaChip ? () => {", "onBuyCredits={false ? () => {")],
   ['texto pequeno', muta(ENTRY, "fontSize: 13, fontWeight: 700, textDecoration: 'underline'", "fontSize: 10, fontWeight: 700, textDecoration: 'underline'")],
   ['desenho sem Buy credits', muta(KIDS, '{!semPlano && !visitante && costLine.enough !== false ? <BuyCreditsLink', '{false ? <BuyCreditsLink')],
-  ['volta do desenho perdida', muta(LIB, ", '/kids-cartoon'] // KINEO-ASSINANTE-COMPRA-SEMPRE-1211", '] // KINEO-ASSINANTE-COMPRA-SEMPRE-1211')],
+  ['volta do desenho perdida', muta(LIB, ", '/kids-cartoon', '/images'", ", '/images'")],
 ]
 let killed = 0
 for (const [nome, src] of MUTANTES) {

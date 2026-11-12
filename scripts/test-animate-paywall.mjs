@@ -103,7 +103,7 @@ ok(m.ANIMATE_PAYWALL_PRICING_HREF.startsWith('/pricing?') && m.ANIMATE_PAYWALL_P
 
 console.log('AnimateClient: liga os fios')
 const client = read('app/(dashboard)/animate/AnimateClient.tsx')
-ok(client.includes("import CreditsTopupModal from '@/components/CreditsTopupModal'") && client.includes('surface="animate_402"'), 'popup de recarga com surface animate_402 (mesmo padrao de images/audio)')
+ok(client.includes("import { TopupOuRecargaModal } from '@/components/billing/BuyCreditsEntry'") && client.includes('surface="animate_402"'), 'popup de recarga com surface animate_402 (mesmo padrao de images/audio; KINEO-RECARGA-TELAS-1211: passa pela recarga do assinante)')
 ok(client.includes("import { ANIMATE_COST } from '@/lib/animate/cost'") && !client.includes("from '@/lib/animate/service'"), 'cliente importa o custo de cost.ts, nunca de service.ts (node:crypto)')
 // KINEO-REANCORA-ANIMATE-2026-09-07 — a regra casava com a FORMA exata
 // `{ANIMATE_COST} credits · {duration}s`. A linha ganhou `<UiLabel>` por dentro

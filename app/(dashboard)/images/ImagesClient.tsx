@@ -8,7 +8,7 @@ import { UiLabel, useUiCopy } from '@/components/InterfaceLanguage'
 import { useEffect, useRef, useState } from 'react'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { PremiereResult, PremiereStage, usePremiereBeacon } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110
-import CreditsTopupModal from '@/components/CreditsTopupModal' // KINEO-TOPUP-POPUP-2026-08-18
+import { TopupOuRecargaModal } from '@/components/billing/BuyCreditsEntry' // KINEO-RECARGA-TELAS-1211 — assinante sem saldo: a barra da recarga
 // sprint-assinaturas #13 — o 402 so abre o popup de recarga para quem PODE
 // comprar recarga (Creator/Studio, regra do checkout); trial/free/starter
 // veem os 3 planos com "N images/mo" em vez de um pack que o checkout recusa.
@@ -648,7 +648,7 @@ export default function ImagesClient() {
 </div>
       {mostraVitrine && <ProductRow title="Images made by Kineo" items={HOUSE_ROW} />}
       {/* KINEO-IMAGES-TELA-0511 — fora do painel: o painel tem backdrop-filter, que prenderia o popup. */}
-      {showTopup && <CreditsTopupModal surface="images_402" onClose={() => setShowTopup(false)} />}
+      {showTopup && <TopupOuRecargaModal surface="images_402" onClose={() => setShowTopup(false)} />}
       {showPlans && (
         <OutOfCreditsPlansModal
           product="images"

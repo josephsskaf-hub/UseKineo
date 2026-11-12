@@ -41,6 +41,29 @@ export function BuyCreditsModal({ offer, surface, idea = null, onClose }: { offe
   return typeof document !== 'undefined' ? createPortal(modal, document.body) : modal
 }
 
+/** KINEO-RECARGA-TELAS-1211 — o pop-up de "sem crédito" das telas de criação: o servidor diz se é assinante pago → a barra da recarga;
+ *  senão (ou leitura que falhou) → o pop-up de sempre ("Pick a bigger plan"). Enquanto lê, nada é pintado (sem piscar de uma tela para
+ *  a outra). Troca de UMA linha em cada tela; quem não assina vê exatamente o de antes. */
+export function TopupOuRecargaModal({ surface, onClose, idea = null }: { surface: string; onClose: () => void; idea?: string | null }) {
+  const [estado, setEstado] = useState<'lendo' | 'nada' | RecargaAssinanteOffer>(RECARGA_ASSINANTE_1111_RELEASE === 'off' ? 'nada' : 'lendo')
+  useEffect(() => {
+    if (RECARGA_ASSINANTE_1111_RELEASE === 'off') return
+    let alive = true
+    void fetch(`${RECARGA_ASSINANTE_API}?surface=${encodeURIComponent(surface)}`, { cache: 'no-store', credentials: 'same-origin' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: unknown) => {
+        const o = d as Partial<RecargaAssinanteOffer> | null
+        if (!alive) return
+        setEstado(o && o.show === true && typeof o.go === 'string' && typeof o.qa === 'boolean' ? (o as RecargaAssinanteOffer) : 'nada')
+      })
+      .catch(() => { if (alive) setEstado('nada') })
+    return () => { alive = false }
+  }, [surface])
+  if (estado === 'lendo') return null
+  if (estado === 'nada') return <CreditsTopupModal surface={surface} onClose={onClose} />
+  return <BuyCreditsModal offer={estado} surface={surface} idea={idea} onClose={onClose} />
+}
+
 /** O link discreto "Buy credits" (≥ 12 px) para pôr junto da linha de custo das telas de criação. */
 export default function BuyCreditsLink({ surface, idea = null, style, onOpen }: { surface: string; idea?: string | null; style?: CSSProperties; onOpen?: () => void }) {
   const offer = useRecargaEntrada(surface)

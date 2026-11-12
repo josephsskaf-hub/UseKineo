@@ -119,7 +119,7 @@ function problemas() {
   if (logica(fonte) !== logica(naBase)) p.push('F1 a lógica de gerar, baixar, editar ou ampliar mudou')
   if (!fonte.includes("useState<ImgModelKey>('dev')")) p.push('F2 o motor padrão mudou')
   if (!fonte.includes("useState<ImgSize>('portrait_16_9')")) p.push('F3 o formato padrão mudou')
-  if (!fonte.includes('unitCost={unitCost}') || !fonte.includes('<CreditsTopupModal surface="images_402"')) p.push('F4 a parede de crédito sumiu')
+  if (!fonte.includes('unitCost={unitCost}') || !fonte.includes('<TopupOuRecargaModal surface="images_402"') /* KINEO-RECARGA-TELAS-1211 */) p.push('F4 a parede de crédito sumiu')
 
   // G) nada de efeito novo (04/11: um laço de render congelou outra tela sem nenhum teste pegar)
   const ef = efeitos(fonte)

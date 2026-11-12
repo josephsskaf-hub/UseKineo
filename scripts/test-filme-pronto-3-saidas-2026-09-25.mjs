@@ -138,6 +138,7 @@ function renderiza(src, props, topupAberto) {
     'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'Fragment' },
     'next/link': { __esModule: true, default: Link },
     '@/components/CreditsTopupModal': { __esModule: true, default: Modal },
+    '@/components/billing/BuyCreditsEntry': { __esModule: true, TopupOuRecargaModal: Modal }, // KINEO-RECARGA-TELAS-1211 — a mesma barra; a escolha recarga × pop-up tem guardião próprio
     '@/components/video/SceneRedoPanel': { __esModule: true, default: function SceneRedoPanel() { return null } }, // KINEO-REFAZER-CENA-2710 — o painel "Redo this scene — free" mora FORA do grupo das 3 saídas (o guardião próprio: scripts/test-refazer-cena-2710.mjs)
     'react-dom': { createPortal: (el) => el }, // KINEO-FLUXO-NOVO-2026-09-25 — o modal vai por portal (revisão: transform prendia o fixed)
     '@/lib/analytics': { trackEvent: (name, meta) => { eventos.push({ name, meta }); return Promise.resolve(true) } },

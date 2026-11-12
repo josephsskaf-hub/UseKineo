@@ -54,9 +54,9 @@ chk('e nesse caso oferece pacote, não troca de plano',
 
 console.log('\nD) As outras superfícies de crédito seguem de pé')
 chk('CreditsTopupModal montado no /images (402)',
-  ler('app/(dashboard)/images/ImagesClient.tsx').includes('<CreditsTopupModal surface="images_402"'))
+  ler('app/(dashboard)/images/ImagesClient.tsx').includes('<TopupOuRecargaModal surface="images_402"')) // KINEO-RECARGA-TELAS-1211
 chk('CreditsTopupModal montado no /audio (402)',
-  ler('app/(dashboard)/audio/AudioClient.tsx').includes('<CreditsTopupModal surface="audio_402"'))
+  ler('app/(dashboard)/audio/AudioClient.tsx').includes('<TopupOuRecargaModal surface="audio_402"')) // KINEO-RECARGA-TELAS-1211
 chk('chip "+" da sidebar abre o topup',
   ler('components/Sidebar.tsx').includes('<CreditsTopupModal surface="sidebar_chip"'))
 chk('banner de saldo baixo segue só para NÃO-assinante (por desenho)',

@@ -7,7 +7,7 @@
 // e film_ready_exit_clicked por saída. A barra de créditos é a MESMA de sempre (CreditsTopupModal), não uma cópia.
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import CreditsTopupModal from '@/components/CreditsTopupModal'
+import { TopupOuRecargaModal } from '@/components/billing/BuyCreditsEntry' // KINEO-RECARGA-TELAS-1211 — assinante sem saldo: a barra da recarga
 import { createPortal } from 'react-dom'
 import { trackEvent } from '@/lib/analytics'
 import SceneRedoPanel from '@/components/video/SceneRedoPanel' // KINEO-REFAZER-CENA-2710 [TRAVA 8.2 — vai do fundador 27/10 "refazer essa cena liberado"] — "Redo this scene — free" na tela do filme pronto (fora do grupo das 3 saídas)
@@ -118,8 +118,8 @@ export default function FilmReadyExits({ videoId, plan }: { videoId: string | nu
     {/* Portal no <body>: o cartão do filme pronto tem transform (animação fadeUp com fill both), que prende o
         position:fixed do modal dentro do cartão (revisão adversarial de 25/09). */}
     {topupOpen && (typeof document !== 'undefined'
-      ? createPortal(<CreditsTopupModal surface={FILM_READY_TOPUP_SURFACE} onClose={() => setTopupOpen(false)} />, document.body)
-      : <CreditsTopupModal surface={FILM_READY_TOPUP_SURFACE} onClose={() => setTopupOpen(false)} />)}
+      ? createPortal(<TopupOuRecargaModal surface={FILM_READY_TOPUP_SURFACE} onClose={() => setTopupOpen(false)} />, document.body)
+      : <TopupOuRecargaModal surface={FILM_READY_TOPUP_SURFACE} onClose={() => setTopupOpen(false)} />)}
     </>
   )
 }

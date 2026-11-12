@@ -13,7 +13,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as R
 import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { ProductStageStyles, useProductStage } from '@/components/ProductStage' // KINEO-CLIPS-CORES-2026-10-01
-import CreditsTopupModal from '@/components/CreditsTopupModal'
+import { TopupOuRecargaModal } from '@/components/billing/BuyCreditsEntry' // KINEO-RECARGA-TELAS-1211 — assinante sem saldo: a barra da recarga
 import ControlIcon from '@/components/ControlIcon'
 import { outOfCreditsDestination } from '@/lib/credits/outOfCreditsPlans'
 import { clipCopy, type ClipCopyKey } from '@/lib/clips/clipCopy'
@@ -1076,7 +1076,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
           </div>
         </div>
         </>)}
-        {showTopup && <CreditsTopupModal surface="clips_402" onClose={() => setShowTopup(false)} />}
+        {showTopup && <TopupOuRecargaModal surface="clips_402" onClose={() => setShowTopup(false)} />}
 
         <div className="creation-results" style={{ gridColumn: '1 / -1' }}>
           {loadFailed && (

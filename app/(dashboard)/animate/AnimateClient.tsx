@@ -13,7 +13,7 @@ import { trackEvent } from '@/lib/analytics'
 // KINEO-STUDIO-KIT-2026-08-17 — Animate veste o design system aprovado do /studio.
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 // sprint-assinaturas #12 — a parede do "zerou o saldo". Ver lib/animate/paywall.ts.
-import CreditsTopupModal from '@/components/CreditsTopupModal'
+import { TopupOuRecargaModal } from '@/components/billing/BuyCreditsEntry' // KINEO-RECARGA-TELAS-1211 — assinante sem saldo: a barra da recarga
 import { ANIMATE_COST } from '@/lib/animate/cost'
 import {
   ANIMATE_PAYWALL_PRICING_HREF,
@@ -812,7 +812,7 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
           )}
         </div>
       </div>
-      {showTopup && <CreditsTopupModal surface="animate_402" onClose={() => setShowTopup(false)} />}
+      {showTopup && <TopupOuRecargaModal surface="animate_402" onClose={() => setShowTopup(false)} />}
     </div>
   )
 }
