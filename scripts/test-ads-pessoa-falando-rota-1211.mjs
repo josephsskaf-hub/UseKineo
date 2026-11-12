@@ -49,11 +49,11 @@ function mundo(over = {}) {
 const FOTO = 'https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/x/produto.jpg'
 const APROVADOS = [
   { apresentador: 'sofia', formato: 'car_selfie', produto: 'Halo insulated tumbler, matte sage-green steel with a clear lid', frase: 'Ice stays from 7 am to the evening, fits the car cup holder.',
-    roteiro: { fala: 'Okay so this cup has been in my car all day and look, the ice from seven this morning is still here, it fits my cup holder and it never sweats.', gestos: [{ palavra: 'look', gesto: 'tilts the cup toward the camera' }] } },
+    roteiro: { fala: 'This cup rode in my car all day, and look, the ice from seven this morning is still here, and it fits my cup holder.', gestos: [{ palavra: 'look', gesto: 'tilts the cup toward the camera' }] } },
   { apresentador: 'amara', formato: 'get_ready', produto: 'Veil tinted SPF moisturizer, cream tube', frase: 'A tinted SPF that replaces foundation; one pump covers the face.',
-    roteiro: { fala: 'This is my whole base now, one pump of this tinted SPF and I am done, it evens everything out, it feels like nothing on my skin and I skip foundation.', gestos: [{ palavra: 'pump', gesto: 'squeezes the tube onto her fingers' }] } },
+    roteiro: { fala: 'This is my whole base now. One pump of this tinted SPF and I am done, it evens everything out, no foundation.', gestos: [{ palavra: 'pump', gesto: 'squeezes the tube onto her fingers' }] } },
   { apresentador: 'rahul', formato: 'street_interview', produto: 'Orra Buds wireless earbuds, matte white case', frase: 'Earbuds for $40 that block out city noise, battery lasts all day.',
-    roteiro: { fala: 'Honestly these are the earbuds I use every day on the train, they block out the city noise and the battery lasts all day, and they were forty dollars.', gestos: [{ palavra: 'these', gesto: 'holds the case up to the camera' }] } },
+    roteiro: { fala: 'These are my train earbuds every day, they block the city noise, the battery lasts all day, and they were forty dollars.', gestos: [{ palavra: 'these', gesto: 'holds the case up to the camera' }] } },
 ]
 
 async function bateria(over = {}) {
@@ -76,7 +76,8 @@ async function bateria(over = {}) {
       if (b.foto_chave?.endpoint !== 'fal-ai/nano-banana-pro/edit') throw new Error('foto-chave fora do endpoint aprovado')
       if (b.video?.endpoint !== 'bytedance/seedance-2.0/image-to-video') throw new Error('vídeo fora do endpoint aprovado')
       if (!String(JSON.stringify(b.video.input)).includes(a.roteiro.fala.slice(0, 40))) throw new Error('a fala inteira não vai ao vídeo')
-      if (b.credits_status !== 'PENDENTE_DECISAO_DO_DONO') throw new Error('o preço pendente não aparece')
+      if (b.credits !== 55 || b.credits_status !== 'decided') throw new Error('o preço do dono (55) não aparece')
+      if (b.video?.input?.duration !== '10') throw new Error('o lançamento é só 10 s')
       if (c.redes !== 0) throw new Error('dry-run tocou a rede')
       if (!c.eventos.some((e) => e.name === 'ads_pf_dry_run')) throw new Error('sem evento do dry-run')
     }
@@ -91,9 +92,15 @@ async function bateria(over = {}) {
       if (r.status !== 400) throw new Error('aceitou ' + JSON.stringify(ruim).slice(0, 60))
     }
   })
-  await check('(C) pedido pago com preço pendente = 409, nada cobrado', async () => {
+  await check('(C) pedido pago com a execução ainda não ligada = 501, nada cobrado', async () => {
     const c = mundo(over); const r = await c.post({ ...APROVADOS[0], foto_do_produto: FOTO })
-    if (r.status !== 409 || r.body.charged !== false || r.body.reason !== 'price_pending') throw new Error('status ' + r.status + ' ' + r.body.reason)
+    if (r.status !== 501 || r.body.charged !== false || r.body.reason !== 'pipeline_not_wired') throw new Error('status ' + r.status + ' ' + r.body.reason)
+  })
+  await check('(C) fala de 12 s (> 25 palavras) volta para encurtar, nada cobrado', async () => {
+    const c = mundo(over)
+    const longa = { fala: 'Okay so this cup has been in my car all day and look, the ice from seven this morning is still here, it fits my cup holder and never sweats.', gestos: [{ palavra: 'look', gesto: 'tilts the cup' }] }
+    const r = await c.post({ ...APROVADOS[0], roteiro: longa, foto_do_produto: FOTO, dry_run: true })
+    if (r.status !== 400 || r.body.error !== 'only_10_second_ads_for_now_max_25_words') throw new Error('status ' + r.status + ' ' + r.body.error)
   })
   await check('(D) reserva e estorno', async () => {
     const c = mundo(over); const P = c.plat
@@ -102,8 +109,9 @@ async function bateria(over = {}) {
       debitar: async ({ chave, creditos }) => { if (razao.has(chave)) return 'reserved'; if (saldo < creditos) return 'insufficient'; saldo -= creditos; razao.set(chave, { creditos, estornado: false }); return 'reserved' },
       estornar: async (chave) => { const r = razao.get(chave); if (!r || r.estornado) return 0; r.estornado = true; saldo += r.creditos; return r.creditos },
     }
-    if (await P.reservarPessoaFalando(io, { userId: 'u', pedidoId: 'p1' }) !== 'price_pending') throw new Error('reservou sem preço')
+    if (await P.reservarPessoaFalando(io, { userId: 'u', pedidoId: 'p0', creditos: null }) !== 'price_pending') throw new Error('reservou sem preço')
     if (saldo !== 100) throw new Error('debitou sem preço')
+    if (P.ADS_PESSOA_FALANDO_CREDITS !== 55) throw new Error('o preço do dono é 55')
     if (await P.reservarPessoaFalando(io, { userId: 'u', pedidoId: 'p1', creditos: 40 }) !== 'reserved') throw new Error('não reservou')
     await P.reservarPessoaFalando(io, { userId: 'u', pedidoId: 'p1', creditos: 40 })
     if (saldo !== 60) throw new Error('cobrou 2 vezes: saldo ' + saldo)
@@ -123,7 +131,8 @@ if (real.length) { console.error('FALHA\n' + real.join('\n')); process.exit(1) }
 const plat = lf(`${PF}/plataforma.ts`)
 const mutantes = [
   ['portão aberto para todos', { [`${PF}/plataforma.ts`]: plat.replace('return pessoaFalandoLigado(modo, contaDaCasa)', 'return true') }],
-  ['pedido pago sem checar o preço', { [ROTA]: fonteRota.replace('if (ADS_PESSOA_FALANDO_CREDITS === null) {', 'if (false) {') }],
+  ['pedido pago vai adiante (sem recusa honesta)', { [ROTA]: fonteRota.replace("return json({ error: 'This ad format is being finished. Nothing was charged.', reason: 'pipeline_not_wired', charged: false }, 501)", "return json({ ok: true, charged: true }, 200)") }],
+  ['abre o de 12 s sem preço', { [`${PF}/plataforma.ts`]: plat.replace("= ['10']", "= ['10', '12']") }],
   ['reserva sem preço decidido', { [`${PF}/plataforma.ts`]: plat.replace("if (creditos === null || !Number.isInteger(creditos) || creditos <= 0) return 'price_pending'", "if (creditos === null) return io.debitar({ userId: i.userId, chave: chaveDeCobranca(i.pedidoId), creditos: 1 })") }],
   ['foto http aceita', { [`${PF}/plataforma.ts`]: plat.replace('const URL_HTTPS = /^https:', 'const URL_HTTPS = /^https?:') }],
   ['dry-run sem roteiro chama o escritor', { [`${PF}/plataforma.ts`]: plat.replace("if (dryRun && !roteiro) return { ok: false, erro: 'dry_run_needs_the_script' }", '') }],

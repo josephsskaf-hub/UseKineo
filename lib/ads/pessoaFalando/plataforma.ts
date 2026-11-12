@@ -2,17 +2,22 @@
 // Módulo PURO (sem rede, sem banco): a rota (app/api/ads/pessoa-falando/route.ts) e o guardião usam as MESMAS regras.
 //
 // · Acesso: atrás de KINEO_ADS_PESSOA_FALANDO ('internal' hoje). Conta de fora recebe 404 honesto; a casa (isAdsInternalEmail) passa.
-// · Créditos: UMA constante, ADS_PESSOA_FALANDO_CREDITS — PENDENTE_DECISAO_DO_DONO. Enquanto for null, o pedido PAGO é recusado ANTES de
-//   qualquer débito ou chamada à fal (409 price_pending, charged:false). O dry-run de US$ 0 funciona sem preço.
+// · Créditos: UMA constante, ADS_PESSOA_FALANDO_CREDITS — 55, decidido pelo dono em 12/11 (só o anúncio de 10 s). Se voltar a null, o
+//   pedido PAGO é recusado ANTES de qualquer débito ou chamada à fal (409 price_pending, charged:false). O dry-run de US$ 0 não depende do preço.
 // · Reserva: o padrão do filme completo (KINEO-RESERVA-FILME-COMPLETO-1111) — débito pelo ponto único (debit_video_credits_service,
 //   idempotente por chave) ANTES da 1ª chamada paga, numa chave por pedido (`adspf-<pedido>`); estorno integral pela mesma chave em
 //   qualquer falha (refund_render_credits, idempotente: só o 1º estorno devolve).
 // · Eventos: um por passo da spec, com o pedido e o custo do passo.
 import { KINEO_ADS_PESSOA_FALANDO, pessoaFalandoLigado, apresentador, formato, type ApresentadorId, type FormatoId, type ModoPessoaFalando } from './formatos'
 import type { Roteiro } from './roteiro'
+import { duracaoDaFala } from './prompts'
 
-/** PENDENTE_DECISAO_DO_DONO — créditos por anúncio pessoa falando (10–12 s). null = o pedido pago não abre. Margem: docs/ADS-20-NO-MOLDE-HALO-2026-11-11.md. */
-export const ADS_PESSOA_FALANDO_CREDITS: number | null = null
+/** Créditos por anúncio pessoa falando de 10 s. DECIDIDO PELO DONO em 12/11/2026: respondeu "B" à foto docs/decisoes-1211/preco-anuncio-falado-ABC.png
+ *  (55 créditos; a conta da foto é a do anúncio de 10 s, custo de fornecedor ≈ US$ 3,30). null = o pedido pago não abre. */
+export const ADS_PESSOA_FALANDO_CREDITS: number | null = 55
+/** No lançamento, SÓ 10 s (fala de até 25 palavras — duracaoDaFala da Div. 2). O de 12 s fica fora até o dono decidir o preço dele
+ *  (decisão da CEO 12/11 na ausência dele, a recomendada). Fala maior volta ao cliente para encurtar; nada é cobrado. */
+export const ADS_PESSOA_FALANDO_SEGUNDOS_ABERTOS: readonly ('10' | '12')[] = ['10']
 
 export const ADS_PF_EVENTOS = {
   dryRun: 'ads_pf_dry_run',
@@ -65,6 +70,8 @@ export function lerPedido(body: unknown): { ok: true; pedido: PedidoPessoaFaland
     }
     roteiro = { fala: r.fala.trim(), gestos: gestos.map((g) => ({ palavra: String((g as Record<string, unknown>).palavra), gesto: String((g as Record<string, unknown>).gesto) })) }
   }
+  // KINEO-ADS-PESSOA-FALANDO-PLATAFORMA-1211 — só a duração com preço decidido (hoje 10 s = até 25 palavras).
+  if (roteiro && !ADS_PESSOA_FALANDO_SEGUNDOS_ABERTOS.includes(duracaoDaFala(roteiro.fala))) return { ok: false, erro: 'only_10_second_ads_for_now_max_25_words' }
   const dryRun = b.dry_run === true
   if (dryRun && !roteiro) return { ok: false, erro: 'dry_run_needs_the_script' } // o dry-run não chama o escritor (nem a OpenAI): o roteiro vem no pedido
   const roupa = typeof b.roupa === 'string' && b.roupa.trim() ? b.roupa.trim().slice(0, 200) : undefined
