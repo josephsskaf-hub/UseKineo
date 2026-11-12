@@ -22,6 +22,7 @@ function mundo(over = {}) {
     '@/lib/ads/access': { isAdsInternalEmail: () => ctx.casa },
     '@/lib/serverEvents': { writeServerEvent: async (e) => { ctx.eventos.push(e); return true } },
     '@/lib/userFootage': { footageAdminClient: () => ({}) },
+    '@/lib/ads/v2Shots': { submitShotOnce: async () => { ctx.redes++; return { kind: 'rejected' } }, pollFalJob: async () => { ctx.redes++; return { state: 'failed', url: null } } },
   }
   function load(rel) {
     if (cache.has(rel)) return cache.get(rel).exports
@@ -87,7 +88,7 @@ async function bateria(over = {}) {
   })
   await check('(B) dry-run sem roteiro = 400 (não chama o escritor)', async () => {
     const c = mundo(over); const { roteiro, ...sem } = APROVADOS[0]
-    const r = await c.post({ ...sem, foto_do_produto: FOTO, dry_run: true }); if (r.status !== 400) throw new Error('status ' + r.status)
+    const r = await c.post({ ...sem, foto_do_produto: FOTO, dry_run: true }); if (r.status !== 400 || r.body.error !== 'dry_run_needs_the_script') throw new Error('status ' + r.status + ' ' + r.body.error)
   })
   await check('(B) entrada ruim = 400', async () => {
     for (const ruim of [{ ...APROVADOS[0], apresentador: 'jade' }, { ...APROVADOS[0], formato: 'nope' }, { ...APROVADOS[0], foto_do_produto: 'http://x.example/a.jpg' }]) {
@@ -95,9 +96,10 @@ async function bateria(over = {}) {
       if (r.status !== 400) throw new Error('aceitou ' + JSON.stringify(ruim).slice(0, 60))
     }
   })
-  await check('(C) pedido pago com a execução ainda não ligada = 501, nada cobrado', async () => {
+  await check('(C) pedido do vídeo sem pedidoId/foto = 400, nada cobrado, nada à fal', async () => {
     const c = mundo(over); const r = await c.post({ ...APROVADOS[0], foto_do_produto: FOTO })
-    if (r.status !== 501 || r.body.charged !== false || r.body.reason !== 'pipeline_not_wired') throw new Error('status ' + r.status + ' ' + r.body.reason)
+    if (r.status !== 400 || r.body.charged !== false) throw new Error('status ' + r.status + ' ' + r.body.reason)
+    if (c.redes !== 0) throw new Error('tocou a rede')
   })
   await check('(C) fala de 12 s (> 25 palavras) volta para encurtar, nada cobrado', async () => {
     const c = mundo(over)
@@ -142,7 +144,7 @@ if (real.length) { console.error('FALHA\n' + real.join('\n')); process.exit(1) }
 const plat = lf(`${PF}/plataforma.ts`)
 const mutantes = [
   ['portão aberto para todos', { [`${PF}/plataforma.ts`]: plat.replace('return pessoaFalandoLigado(modo, contaDaCasa)', 'return true') }],
-  ['pedido pago vai adiante (sem recusa honesta)', { [ROTA]: fonteRota.replace("return json({ error: 'This ad format is being finished. Nothing was charged.', reason: 'pipeline_not_wired', charged: false }, 501)", "return json({ ok: true, charged: true }, 200)") }],
+  ['vídeo sem pedidoId vai adiante', { [ROTA]: fonteRota.replace("if (!PEDIDO_ID.test(pedidoId)) return json({ error: 'missing_order_id', reason: 'bad_request', charged: false }, 400)", "if (!PEDIDO_ID.test(pedidoId)) return json({ ok: true, charged: true }, 200)") }],
   ['abre o de 12 s sem preço', { [`${PF}/plataforma.ts`]: plat.replace("= ['10']", "= ['10', '12']") }],
   ['reserva sem preço decidido', { [`${PF}/plataforma.ts`]: plat.replace("if (creditos === null || !Number.isInteger(creditos) || creditos <= 0) return 'price_pending'", "if (creditos === null) return io.debitar({ userId: i.userId, chave: chaveDeCobranca(i.pedidoId), creditos: 1 })") }],
   ['foto http aceita', { [`${PF}/plataforma.ts`]: plat.replace('const URL_HTTPS = /^https:', 'const URL_HTTPS = /^https?:') }],

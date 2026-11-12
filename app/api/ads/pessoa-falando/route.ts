@@ -4,6 +4,10 @@ import { isAdsInternalEmail } from '@/lib/ads/access'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { pessoaFalandoDryRun } from '@/lib/ads/pessoaFalando/dryRun'
 import { ADS_PESSOA_FALANDO_CREDITS, ADS_PF_EVENTOS, lerPedido, pessoaFalandoAcesso } from '@/lib/ads/pessoaFalando/plataforma'
+import { PEDIDO_ID } from '@/lib/ads/pessoaFalando/fotosChave'
+import { iniciarVideo } from '@/lib/ads/pessoaFalando/video'
+import { videoIoReal } from '@/lib/ads/pessoaFalando/videoServer'
+export const maxDuration = 60
 
 // KINEO-ADS-PESSOA-FALANDO-PLATAFORMA-1211 — o anúncio "pessoa falando" (spec §3), em rota PRÓPRIA (o /api/ads/v2 é grande e está no ar:
 // um formato novo dentro dele arriscaria os pedidos de hoje). Atrás de KINEO_ADS_PESSOA_FALANDO ('internal'): conta de fora recebe 404 —
@@ -31,7 +35,8 @@ export async function POST(req: NextRequest) {
   // Fora do interruptor: 404, igual a uma rota que não existe (nada é lido do corpo antes disto).
   if (!pessoaFalandoAcesso(isAdsInternalEmail(user.email))) return json({ error: 'Not found.' }, 404)
 
-  const lido = lerPedido(await req.json().catch(() => null))
+  const corpo = await req.json().catch(() => null)
+  const lido = lerPedido(corpo)
   if (!lido.ok) return json({ error: lido.erro, reason: 'bad_request', charged: false }, 400)
   const { pedido } = lido
 
@@ -48,5 +53,11 @@ export async function POST(req: NextRequest) {
   if (ADS_PESSOA_FALANDO_CREDITS === null) {
     return json({ error: 'The price of this ad format is not decided yet. Nothing was charged.', reason: 'price_pending', charged: false }, 409)
   }
-  return json({ error: 'This ad format is being finished. Nothing was charged.', reason: 'pipeline_not_wired', charged: false }, 501)
+  // KINEO-ADS-PESSOA-FALANDO-VIDEO-1211 — o vídeo NÃO cobra de novo (já está nos 55 das fotos): manda o pedido à fal SEM esperar e devolve o
+  // acompanhamento. Precisa do pedidoId das fotos, da foto-chave escolhida (deste pedido) e do roteiro.
+  const pedidoId = corpo && typeof (corpo as Record<string, unknown>).pedidoId === 'string' ? String((corpo as Record<string, unknown>).pedidoId) : ''
+  if (!PEDIDO_ID.test(pedidoId)) return json({ error: 'missing_order_id', reason: 'bad_request', charged: false }, 400)
+  if (!pedido.fotoChave || !pedido.roteiro) return json({ error: 'missing_photo_or_script', reason: 'bad_request', charged: false }, 400)
+  const r = await iniciarVideo(videoIoReal(user.id, '/api/ads/pessoa-falando'), { userId: user.id, pedidoId, fotoChave: pedido.fotoChave, roteiro: pedido.roteiro, entrada: pedido.entrada })
+  return json(r.body, r.status)
 }
