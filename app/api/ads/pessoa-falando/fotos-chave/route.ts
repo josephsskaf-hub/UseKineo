@@ -62,6 +62,14 @@ function ioReal(userId: string): FotosIo {
       } catch { return null }
     },
     evento: async (name, metadata) => { await writeServerEvent({ name, userId, path: '/api/ads/pessoa-falando/fotos-chave', metadata }) },
+    fotos: async ({ pedidoId }) => {
+      const { data } = await admin.from('events').select('metadata').eq('user_id', userId).eq('name', ADS_PF_EVENTOS.fotos)
+        .eq('metadata->>pedido_id', pedidoId).order('created_at', { ascending: false }).limit(1).maybeSingle()
+      const lista = (data?.metadata as { fotos?: unknown } | undefined)?.fotos
+      if (Array.isArray(lista) && lista.length >= 2) return lista.map(String)
+      // pedidos de antes deste campo: o caminho é fixo (renders/<user>/adspf-<pedido>-fotoN.jpg)
+      return [1, 2].map((n) => admin.storage.from(BUCKET).getPublicUrl(`${userId}/adspf-${pedidoId}-foto${n}.jpg`).data?.publicUrl ?? '').filter(Boolean)
+    },
     estado: async ({ pedidoId }) => {
       const { data, error } = await admin.from('events').select('name').eq('user_id', userId)
         .in('name', [ADS_PF_EVENTOS.reservado, ADS_PF_EVENTOS.fotos, ADS_PF_EVENTOS.estornado]).eq('metadata->>pedido_id', pedidoId).limit(10)

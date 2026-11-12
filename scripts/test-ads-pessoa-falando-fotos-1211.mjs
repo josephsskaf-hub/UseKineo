@@ -35,6 +35,7 @@ function io(opts = {}) {
     guardar: async ({ idx }) => (opts.copiaFalha && idx === 1 ? null : `https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/u/adspf-p-foto${idx + 1}.jpg`),
     evento: async (name, metadata) => { s.eventos.push({ name, metadata }) },
     estado: async ({ pedidoId }) => s.estados.get(pedidoId) ?? 'novo',
+    fotos: async () => ['https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/u/adspf-p-foto1.jpg', 'https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/u/adspf-p-foto2.jpg'],
   } }
 }
 
@@ -71,7 +72,12 @@ async function bateria(over = {}) {
     if (r.status !== 502 || s.saldo !== 100) throw new Error('status ' + r.status + ' saldo ' + s.saldo)
   })
   await check('duplo clique e pedido estornado param antes de cobrar', async () => {
-    for (const est of ['em_andamento', 'estornado', 'entregue']) {
+    { // replay do pedido já pago: as MESMAS fotos, 200, sem cobrar e sem fal
+      const { s, io: x } = io({ estados: new Map([[P, 'entregue']]) })
+      const r = await F.gerarFotosChave(x, { userId: 'u', pedidoId: P, entrada: ENTRADA })
+      if (r.status !== 200 || r.body.charged !== false || r.body.fotos.length !== 2 || s.fal !== 0 || s.saldo !== 100) throw new Error('replay ' + r.status)
+    }
+    for (const est of ['em_andamento', 'estornado']) {
       const { s, io: x } = io({ estados: new Map([[P, est]]) })
       const r = await F.gerarFotosChave(x, { userId: 'u', pedidoId: P, entrada: ENTRADA })
       if (r.status !== 409 || s.fal !== 0 || s.saldo !== 100) throw new Error(est + ' status ' + r.status)

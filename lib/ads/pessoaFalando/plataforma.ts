@@ -44,6 +44,16 @@ export function chaveDeCobranca(pedidoId: string): string {
 
 const URL_HTTPS = /^https:\/\/[^\s"'<>]{8,600}$/
 
+/** A roupa casual de cada formato (UGC). Nunca a do retrato do apresentador. */
+export const ROUPA_DO_FORMATO: Readonly<Record<FormatoId, string>> = {
+  car_selfie: 'a casual knit sweater',
+  get_ready: 'a soft white bathrobe',
+  street_interview: 'a casual hoodie',
+  at_my_desk: 'a casual crewneck sweater',
+  kitchen_counter: 'a casual cotton t-shirt',
+  unboxing_home: 'a casual cotton t-shirt',
+}
+
 export interface PedidoPessoaFalando {
   dryRun: boolean
   /** A foto-chave que a pessoa escolheu (PedidoDeVideo.fotoChave). null nos passos de antes. */
@@ -82,7 +92,9 @@ export function lerPedido(body: unknown): { ok: true; pedido: PedidoPessoaFaland
   const dryRun = b.dry_run === true
   const fotoChave = typeof b.fotoChave === 'string' && URL_HTTPS.test(b.fotoChave.trim()) ? b.fotoChave.trim() : null
   if (dryRun && !roteiro) return { ok: false, erro: 'dry_run_needs_the_script' } // o dry-run não chama o escritor (nem a OpenAI): o roteiro vem no pedido
-  const roupa = typeof b.roupa === 'string' && b.roupa.trim() ? b.roupa.trim().slice(0, 200) : undefined
+  // KINEO-ADS-PESSOA-FALANDO-ROUPA-1211 (canário da CEO 12/11: o Kenji saiu de blazer na cozinha) — sem roupa informada, a roupa vem do FORMATO,
+  // sempre casual de UGC; sem isto o prompt mandava manter a roupa do retrato.
+  const roupa = typeof b.roupa === 'string' && b.roupa.trim() ? b.roupa.trim().slice(0, 200) : ROUPA_DO_FORMATO[formatoId as FormatoId]
   return { ok: true, pedido: { dryRun, roteiro, fotoChave, entrada: { apresentadorId: apresentadorId as ApresentadorId, formatoId: formatoId as FormatoId, produto, fotoDoProduto: foto, frase, ...(roupa ? { roupa } : {}) } } }
 }
 
