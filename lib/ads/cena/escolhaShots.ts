@@ -70,11 +70,25 @@ const UNBOX_STORY: Story = { opening: 'rests their own connected hands on a CLOS
 ] }
 export function escolhaStory(category: CenaCategory, format: CenaEscolhaFormat = 'product'): Story { return format === 'product_in_hand' ? HAND_STORY : format === 'unboxing' ? UNBOX_STORY : CATEGORY_STORIES[category] }
 export function escolhaShotPreview(category: CenaCategory, format: CenaEscolhaFormat = 'product') { return escolhaStory(category, format).shots.map((s, i) => ({ id: ['wide', 'medium', 'close'][i], seconds: 5, pt: s.pt, en: s.en })) }
+/** KINEO-ESCOLHA-FALA-1111 — a narração em 3 falas de FRASES INTEIRAS (cada plano fala a sua frase; o corte por palavras cortava "Dewly daily face | cream hydrates…"). Menos de 3 frases = null (fica a divisão de sempre). */
+export function escolhaFalasPorFrase(narration: string): [string, string, string] | null {
+  const frases = String(narration ?? '').replace(/\s+/gu, ' ').trim().split(/(?<=[.!?…。！？])\s+/u).filter(Boolean)
+  if (frases.length < 3) return null
+  const n = (t: string) => t.split(' ').length
+  let melhor: [string, string, string] | null = null, pior = Infinity
+  for (let i = 1; i < frases.length - 1; i++) for (let j = i + 1; j < frases.length; j++) {
+    const g: [string, string, string] = [frases.slice(0, i).join(' '), frases.slice(i, j).join(' '), frases.slice(j).join(' ')]
+    const m = Math.max(...g.map(n))
+    if (m < pior) { pior = m; melhor = g }
+  }
+  return melhor
+}
 /** The chosen still carries identity/scene detail. Essential continuity, sound and product constraints remain in every sent shot. */
 export function escolhaShotPrompts(category: CenaCategory, format: CenaEscolhaFormat, speech?: readonly [string, string, string], language = 'en'): [string, string, string] {
   const lock = 'Chosen still: same ONE adult, outfit, scene and whole real product, label unchanged. Own attached hands, five fingers. No invented branding/text/split screen. Product in frame.' // KINEO-ADS-MARCA-QUADRO-2410 — fundador 24/10 (perfume 9,5): o frasco saía do quadro quando ela esticava o braço
   return escolhaStory(category, format).shots.map((s, i) => {
-    const sound = speech ? speech[i] ? `${i === 2 ? 'Same person off-camera' : 'Person on camera'} says ONLY in ${language}: ${speech[i]}` : 'No speech, lips closed.' : 'Lips closed; ambient action sounds only, no speech/music.'
+    // KINEO-ESCOLHA-FALA-1111 [CEO 11/11, pedido 3e293478] — a fala vai ENTRE ASPAS e sempre na boca de quem está na câmera (o 3º plano dizia "off-camera" e o motor fez narração)
+    const sound = speech ? speech[i] ? `Person on camera says ONLY in ${language}: "${speech[i]}"` : 'No speech, lips closed.' : 'Lips closed; ambient action sounds only, no speech/music.'
     const tail = i === 2 ? ' Label faces camera, no reveal turn. Whole label above56%; live movement to15s; no card.' : '' // KINEO-ADS-MARCA-QUADRO-2410 — a marca aparece já de frente, sem girar o produto para revelar
     const prompt = `${lock} Absolute${i * 5}–${(i + 1) * 5}s: ${s.action}${tail} ${sound}`
     if (prompt.length > 500) throw new Error('escolha_shot_prompt_exceeds_500')

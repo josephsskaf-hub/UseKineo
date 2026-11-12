@@ -13,8 +13,11 @@ export class Kling4PromoBudgetWait extends Error {
 }
 export const KLING4_AD_CREDITS = Math.max(35, Math.ceil((15 * 157 + KLING4_AD_FAL_EXTRAS_MILLIUSD + KLING4_AD_OTHER_EXTRAS_MILLIUSD) / (133 * 0.6)))
 
-export function newPaidCenaRoute(route: 'kling3' | 'kling4' | 'seedance2' | 'veo31', sample: boolean, live = KLING4_PAID_LIVE) {
+export function newPaidCenaRoute(route: 'kling3' | 'kling4' | 'seedance2' | 'veo31', sample: boolean, live = KLING4_PAID_LIVE, voiceMode?: 'narrated' | 'talking') {
   if (sample) return live ? 'kling4' as const : 'kling3' as const
+  // KINEO-ESCOLHA-FALA-1111 [CEO 11/11, pedido 3e293478] — pessoa que FALA nunca vai ao Kling 4: a fal não tem campo de áudio nem de fala nele, e o
+  // anúncio saiu com narração por cima de uma boca fechada. Fica no Kling 3, que tem generate_audio e fala EN/ZH documentada.
+  if (voiceMode === 'talking' && (route === 'kling3' || route === 'kling4')) return 'kling3' as const
   return route === 'kling3' || route === 'kling4' ? live ? 'kling4' as const : 'kling3' as const : route
 }
 

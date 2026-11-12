@@ -31,7 +31,7 @@ export const CENA_ROUTES: Readonly<Record<CenaRoute, CenaRouteInfo>> = {
     pricing: 'https://fal.ai/models/kling/v4/image-to-video',
     secondsPerRequest: 15, requestsFor15Seconds: 1,
     videoUsdPerSecond: 0.157, silentVideoUsdPerSecond: 0.157,
-    nativeAudio: true, nativeSpeechLanguages: ['en', 'zh'],
+    nativeAudio: true, nativeSpeechLanguages: [], // KINEO-ESCOLHA-FALA-1111 — a fal (kling/v4/image-to-video/llms.txt, lido 11/11) não tem campo de áudio nem de fala: o 'talking' é recusado aqui e vai ao Kling 3
     notes: ['Kling 4.0, 720p. The image determines framing. Native audio is muted in narrated exports.',
       'Public rate supplied by the founder on 2026-10-28; actual invoice and native speech quality require a canary.'],
   },

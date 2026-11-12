@@ -65,7 +65,7 @@ export async function internalCenaEscolhaFor(user: AdsV2Caller, body: unknown, d
       // A browser cannot substitute an unapproved reference URL for the selected library presenter.
       const input = cenaInput({ ...body, ...(!internal || sampleMode ? { voice_mode: 'narrated' } : {}), actorUrl: `https://www.usekineo.com${presenter.portrait}` })
       const requestedRoute = cenaResolveRoute(input.voice_mode!, internal && !sampleMode ? body.rota : 'kling3')
-      const route = newPaidCenaRoute(requestedRoute, sampleMode)
+      const route = newPaidCenaRoute(requestedRoute, sampleMode, undefined, input.voice_mode) // KINEO-ESCOLHA-FALA-1111 — talking fica no Kling 3
       cenaAssertVoiceRoute(route, input.voice_mode!, input.language)
       // Sample reservation precedes ALL paid effects, including text planning/moderation, not merely the photos.
       let sampleOrder: string | null = null

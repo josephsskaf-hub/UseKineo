@@ -10,7 +10,7 @@ import { ajusteScriptPrompt, naturalAjusteScript } from './ajustePlan'
 import { fitAjusteScript, writeAjusteScript, ajusteRespaldoIssues } from './ajusteRespaldo'
 import { addAjusteQuality } from './ajusteQuality'
 import { CENA_ESCOLHA_MARK, escolhaPresenter, escolhaScenario } from './escolhaCatalog'
-import { escolhaFormat, escolhaStory, escolhaShotPrompts } from './escolhaShots'
+import { escolhaFormat, escolhaStory, escolhaShotPrompts, escolhaFalasPorFrase } from './escolhaShots' // KINEO-ESCOLHA-FALA-1111: + escolhaFalasPorFrase
 import { narrationWordCount, narrationTokens, narrationSentences, joinNarrationTokens } from '@/lib/textLanguage'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import type { EscolhaCaptionGrounding } from './escolhaCaptionLayout'
@@ -157,7 +157,11 @@ function prompts(plan: CenaEscolhaPlan): void {
     const count = Math.ceil((units.length - at) / (3 - take))
     takes[take] = joinNarrationTokens(units.slice(at, at + count), plan.input.language); at += count
   }
-  plan.escolha.shotPrompts = escolhaShotPrompts(plan.category, formatId, mode === 'talking' ? takes as [string, string, string] : undefined, plan.input.language)
+  // KINEO-ESCOLHA-FALA-1111 — no 'talking', cada plano fala FRASES INTEIRAS; se elas não couberem no teto do plano, fica a divisão por palavras de sempre
+  const frases = mode === 'talking' ? escolhaFalasPorFrase(plan.script.narration) : null
+  let porFrase: [string, string, string] | null = null
+  if (frases) try { porFrase = escolhaShotPrompts(plan.category, formatId, frases, plan.input.language) } catch { porFrase = null }
+  plan.escolha.shotPrompts = porFrase ?? escolhaShotPrompts(plan.category, formatId, mode === 'talking' ? takes as [string, string, string] : undefined, plan.input.language)
   if (sample) plan.escolha.shotPrompts = plan.escolha.shotPrompts.map((p, i) => p.replace(/Absolute\d+–\d+s/u, `Absolute${edges[i]}–${edges[i + 1]}s`).replace('live movement to15s', 'live movement to8s').replace('Lips closed; ambient action sounds only, no speech/music.', 'Lips closed; silent, no speech, sound or music.')) as [string, string, string] // KINEO-AMOSTRA-ANUNCIO-2410
   plan.videoPrompt = `${base} Exactly three sequential full-screen moving takes in the SAME scene: ${story.shots.map((shot, i) => `${edges[i]}–${edges[i + 1]}s ${shot.action}`).join(' ')} Same identity, wardrobe, lighting and product throughout; no quadrants, collage, frozen photograph, packshot or end card. Final overlays${end - 2}–${end}s sit above the live close-up. ${sample ? 'Silent video: lips closed, no speech, sound or music; narration and music are added separately.' : voice}` // KINEO-AMOSTRA-ANUNCIO-2410
   const parts = [plan.script.hook, plan.script.use, plan.script.benefit, plan.script.cta].filter(Boolean)
