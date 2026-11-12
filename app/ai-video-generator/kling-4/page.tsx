@@ -47,8 +47,9 @@ const costRows = COST_PLANS.map(([tier, name]) => {
     name,
     `US$${usd}`,
     String(bal),
-    ([15, 30, 60] as const).map((s) => `${Math.floor(bal / credits(s))} × ${s} s`).join(', '),
-    `About US$${(credits(60) * usd / bal).toFixed(2)}`,
+    // KINEO-CITACOES-FLUXO-D00-AJUSTE [CEO 12/11] — plano que não cobre o filme não mostra "0 ×" nem um custo que ninguém paga (o Starter lia "US$33.75").
+    ([15, 30, 60] as const).filter((s) => bal >= credits(s)).map((s) => `${Math.floor(bal / credits(s))} × ${s} s`).join(' or ') || `Not covered: a Kling 4.0 film starts at ${credits(15)} credits`,
+    bal >= credits(60) ? `About US$${(credits(60) * usd / bal).toFixed(2)}` : '—',
   ]
 })
 const faq: Array<{ q: string; a: string }> = [
