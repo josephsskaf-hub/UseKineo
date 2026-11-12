@@ -93,6 +93,7 @@ import { ADS_MODELS } from '@/lib/ads/models'
 import { formatCheckoutMoney, getTierPrice } from '@/lib/checkoutPricing'
 import SubscriberUpgradeNudge from '@/components/billing/SubscriberUpgradeNudge' // KINEO-ASSINANTE-SOBE-2026-10-06 — clipe sem crédito: o assinante sobe de plano ou recarrega
 import Month2AnnualOffer from '@/components/billing/Month2AnnualOffer' // KINEO-ANUAL-2o-MES-2026-10-08 — aviso dispensável do anual (30%) para quem está no 2º mês
+import { STUDIO_PREFILL_DONE_KEY, STUDIO_PREFILL_EVENT, STUDIO_PREFILL_GENERATED_EVENT, STUDIO_PREENCHIDO_VERSION, chegadaSemIdeia } from '@/lib/growth/studioPreenchido1211' // KINEO-STUDIO-PREENCHIDO-1211 — o Studio chega com a ideia da página de entrada
 import { FILM60_ARRIVED_EVENT, FILM60_HANDOFF_KEY, FILM60_VERSION, readFilm60Handoff } from '@/lib/growth/filmReady60sHandoff' // KINEO-VERSAO-60S-2026-10-13 — a volta da versão de 60 s
 import { CHATGPT_LINK_MESSAGE, ORIGINAL_IDEA_SESSION_KEY, isStandaloneHttpUrl, originalIdeaFromArrival, usableOriginalIdea } from '@/lib/scriptInput' // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
 import { PremiereStage, PremiereResult, usePremiereBeacon } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110 — a espera do clipe vira a estreia
@@ -599,6 +600,45 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
       prompt_words: filled && handoff ? handoff.prompt.split(/\s+/).filter(Boolean).length : 0,
     })
   }, [searchSignature])
+
+  // KINEO-STUDIO-PREENCHIDO-1211 — a 1ª chegada da conta nova ao Studio SEM ideia na URL recebe, escrita na caixa e editável, a
+  // ideia-exemplo da página por onde ela entrou (o servidor acha a página e decide: conta ≤ 24 h, nenhum filme pronto). SÓ PREENCHE:
+  // nada gera, nada analisa, nada debita — o botão com o preço continua sendo o consentimento. Caixa já escrita nunca é trocada.
+  // Uma vez por aparelho (STUDIO_PREFILL_DONE_KEY). A impressão grava a página, se já tinha ideia e se preencheu; o clique em
+  // gerar com a ideia da página grava STUDIO_PREFILL_GENERATED_EVENT (editada ou não).
+  const pagePrefillRef = useRef<{ page: string | null; idea: string } | null>(null)
+  const pagePrefillAskedRef = useRef(false)
+  useEffect(() => {
+    if (pagePrefillAskedRef.current) return
+    pagePrefillAskedRef.current = true
+    const sp = new URLSearchParams(searchSignature)
+    const hadIdea = !chegadaSemIdeia(sp)
+    try { if (localStorage.getItem(STUDIO_PREFILL_DONE_KEY)) return } catch { /* sem storage: segue, o servidor ainda decide */ }
+    void fetch('/api/me/entry-prefill', { cache: 'no-store', credentials: 'same-origin' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { page?: unknown; idea?: unknown; language?: unknown } | null) => {
+        const page = typeof d?.page === 'string' ? d.page : null
+        const idea = typeof d?.idea === 'string' && d.idea.trim() ? d.idea.trim() : null
+        if (!page && !idea) return // conta fora da janela (ou leitura que falhou): o Studio fica como sempre, sem medir
+        const lang = narrationLanguage(d?.language)
+        const preencher = !hadIdea && idea !== null && !(promptRef.current?.value ?? '').trim()
+        if (preencher && idea) {
+          setPrompt(idea)
+          if (lang && !sp.get('language')) setLanguage(lang)
+          pagePrefillRef.current = { page, idea }
+        }
+        try { localStorage.setItem(STUDIO_PREFILL_DONE_KEY, '1') } catch { /* sem storage */ }
+        void trackEvent(STUDIO_PREFILL_EVENT, { version: STUDIO_PREENCHIDO_VERSION, page, had_idea: hadIdea, prefilled: preencher, language: preencher ? lang : null })
+      })
+      .catch(() => { /* sem ideia: o Studio abre vazio, como antes */ })
+  }, [searchSignature])
+  /** O clique em gerar com a ideia que veio da página (uma vez; editada ou não). Chamado nos dois botões, fora do generate(). */
+  const marcarPrefillGerado = () => {
+    const pf = pagePrefillRef.current
+    if (!pf || !prompt.trim() || isStandaloneHttpUrl(prompt)) return
+    pagePrefillRef.current = null
+    void trackEvent(STUDIO_PREFILL_GENERATED_EVENT, { version: STUDIO_PREENCHIDO_VERSION, page: pf.page, edited: prompt.trim() !== pf.idea })
+  }
 
   // KINEO-S25-ABRE-2026-10-06 — ?engine=s25 (página do motor, handoff do GPT, link de quem já assina): o efeito de URL acima
   // nunca escolhe o 2.5 sozinho. Aqui ele é escolhido SÓ quando o servidor confirmou que a conta paga (s25Liberado); quem não
@@ -1209,7 +1249,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
             {MRR_NEAR_IDEA_ENABLED && scriptMode !== 'clip' && !linkOnlyInput && ( // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
               <StudioNearIdeaAction prompt={prompt} cost={cost} balance={balance} overLimit={limit.over}
                 bareStarter={isBareStarter(prompt)} engineName={eng.name} seconds={duration}
-                onGenerate={() => { recordMrr('mrr_generate_clicked'); generate() }} />
+                onGenerate={() => { recordMrr('mrr_generate_clicked'); marcarPrefillGerado(); generate() }} />
             )}
             <div className="row" style={{ marginTop: 10 }}>
               <button type="button" className={`pill${scriptMode === 'ai' ? ' on' : ''}`} onClick={() => setScriptMode('ai')}><UiLabel>✨ Let AI structure it</UiLabel></button>
@@ -1590,7 +1630,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
             )}
             {/* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — links cannot dispatch from the final review button either. */}
             <button type="button" onClick={generate} disabled={!prompt.trim() || limit.over || linkOnlyInput || engine === 'hollywood' && kling4Availability?.paidLive && (aspect !== '9:16' || estrelaLigada)} className={`go ${prompt.trim() && !limit.over && !linkOnlyInput ? 'ok' : 'no'}`}
-              onClickCapture={() => { if (scriptMode !== 'clip') recordMrr('mrr_generate_clicked') }}>
+              onClickCapture={() => { if (scriptMode !== 'clip') recordMrr('mrr_generate_clicked'); marcarPrefillGerado() }}>
               {/* KINEO-PRECO-VISIVEL-2026-09-02 — o custo entra NO BOTÃO, o
                   padrão da Higgsfield ("the exact cost is shown on the Generate
                   button before you confirm") e da Hailuo (número colado no botão,

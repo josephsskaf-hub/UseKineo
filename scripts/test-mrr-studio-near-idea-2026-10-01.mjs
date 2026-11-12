@@ -37,7 +37,7 @@ function integration(s) {
   assert.ok(textarea>0 && action>textarea && action<modes, 'CTA immediately follows idea')
   assert.ok(s.includes("MRR_NEAR_IDEA_ENABLED && scriptMode !== 'clip'"), 'switch and clip isolation')
   assert.ok(s.includes('prompt={prompt} cost={cost} balance={balance} overLimit={limit.over}'), 'uses live final cost and guards')
-  assert.ok(s.includes("onGenerate={() => { recordMrr('mrr_generate_clicked'); generate() }}"), 'same guarded generation handler')
+  assert.ok(s.includes("onGenerate={() => { recordMrr('mrr_generate_clicked'); marcarPrefillGerado(); generate() }}"), 'same guarded generation handler (KINEO-STUDIO-PREENCHIDO-1211: + medida do clique com a ideia da página, só telemetria)')
   assert.ok(s.includes("if (e.currentTarget.value.trim() && !isStandaloneHttpUrl(e.currentTarget.value)) recordMrr('mrr_idea_entered')"), 'only explicit typing/paste records idea')
   assert.ok(s.includes('<div id="studio-generation-review"'), 'original review remains')
 }
