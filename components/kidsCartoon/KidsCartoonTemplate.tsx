@@ -21,6 +21,7 @@ import { NARRATION_LANGUAGES, type NarrationLanguage } from '@/lib/textLanguage'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { trackEvent } from '@/lib/analytics'
+import SubscriberUpgradeNudge from '@/components/billing/SubscriberUpgradeNudge' // KINEO-RECARGA-DESENHO-1211 — o aviso do assinante sem saldo (recarga/troca), o MESMO do Studio
 import { PremiereResult, PremiereStage, usePremiereBeacon, type PremiereItem } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110
 import { creditCostForDuration } from '@/lib/credits/engineCost'
 import { STUDIO_KIT_CSS } from '@/components/studioKit' // KINEO-CARTOON-TELA-0411 — a mesma pilha de estilos do /ads/v2
@@ -153,6 +154,7 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
   const [semPlano, setSemPlano] = useState(false) // KINEO-CARTOON-SO-PLANO-0411 — o servidor disse que esta conta não tem plano: o botão vira "See plans"
   const [error, setError] = useState<string | null>(null)
   const [needPlans, setNeedPlans] = useState(false)
+  const [recargaPintou, setRecargaPintou] = useState(false) // KINEO-RECARGA-DESENHO-1211 — o aviso do assinante pintou: o link de planos sai do lugar
   const [script, setScript] = useState('')
   const [caption, setCaption] = useState('')
   const [copied, setCopied] = useState(false)
@@ -574,14 +576,24 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
                 <p className="kkc-cost" data-enough={String(costLine.enough)}><i aria-hidden="true" />{costLine.text}</p>
                 {costLine.enough === false ? (
                   <div className="kkc-actions">
-                    <Link className="kkc-go kkc-big" href={KIDS_PLANS_PATH} onClick={() => { void trackEvent('kids_cartoon_plans_clicked', { credits: cost, balance, duration }) }}>{t.plans} <span aria-hidden="true">→</span></Link>
+                    {recargaPintou ? null : <Link className="kkc-go kkc-big" href={KIDS_PLANS_PATH} onClick={() => { void trackEvent('kids_cartoon_plans_clicked', { credits: cost, balance, duration }) }}>{t.plans} <span aria-hidden="true">→</span></Link>}
                     {shorterFits ? <button type="button" className="kkc-ghost" onClick={() => { setDuration(15); void write(15) }}>{t.shorter} · {kidsDurationChip(ui, 15, shortCost).split(' · ').slice(1).join(' · ')}</button> : null}
                   </div>
                 ) : (
                   <div><button type="button" className="kkc-go kkc-big" onClick={make} disabled={!script.trim() || Boolean(editedRefusal)}>{t.make} <span aria-hidden="true">→</span></button></div>
                 )}
                 {error ? <p className="kkc-err" role="alert">{error}</p> : null}
-                {stage === 'failed' && needPlans ? <p className="kkc-note"><Link className="kkc-ghost" href={KIDS_PLANS_PATH}>{t.plans}</Link></p> : null}
+                {stage === 'failed' && needPlans && !recargaPintou ? <p className="kkc-note"><Link className="kkc-ghost" href={KIDS_PLANS_PATH}>{t.plans}</Link></p> : null}
+                {/* KINEO-RECARGA-DESENHO-1211 — assinante (o servidor do desenho disse que TEM plano) sem saldo para este desenho, antes do
+                    clique (custo > saldo) ou depois do 402: o MESMO aviso do Studio (recarga de 60 por US$ 9 / troca de plano). Quem decide se
+                    pinta é o servidor (GET /api/billing/recarga-assinante: plano pago + Stripe + saldo abaixo do filme mais barato); se não
+                    pintar, o link de planos de sempre fica. Quem não assina segue na porta de planos. Nada começa sozinho. */}
+                {!semPlano && !visitante && (costLine.enough === false || (stage === 'failed' && needPlans)) ? (
+                  <SubscriberUpgradeNudge surface="kids_cartoon_sem_saldo" topup idea={idea.trim() || null}
+                    onShown={() => setRecargaPintou(true)}
+                    onChoice={() => guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration })}
+                    onDone={(b) => { if (typeof b === 'number') setBalance(b); else readBalance() }} />
+                ) : null}
               </div>
             </section>
           )}

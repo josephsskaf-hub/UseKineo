@@ -28,6 +28,7 @@ function carregador({ mocks = {}, mutar = {} } = {}) {
   const carrega = (nome, pai = ROOT) => {
     if (Object.hasOwn(mocks, nome)) return mocks[nome]
     if (nome === 'react') return React
+    if (nome === '@/components/billing/SubscriberUpgradeNudge') return { __esModule: true, default: () => null } // KINEO-RECARGA-DESENHO-1211 — o aviso do assinante (react-dom/portal) tem guardião próprio; aqui só a tela do desenho
     if (nome === 'next/link') return { __esModule: true, default: ({ children, href, className }) => React.createElement('a', { href, className }, children) }
     let f = nome.startsWith('@/') ? path.join(ROOT, nome.slice(2)) : nome.startsWith('.') ? path.resolve(pai, nome) : ['app/', 'lib/', 'components/'].some((p) => nome.startsWith(p)) ? path.join(ROOT, nome) : null
     if (!f) throw new Error('import inesperado: ' + nome)
