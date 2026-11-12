@@ -53,8 +53,10 @@ function comVirgulas(texto: string): string {
 export function pessoaDaIdeia(ideia: string): string | null {
   const texto = textoDoPedidoOriginal(ideia)
   if (!texto) return null
+  const direta = pessoaDoPedido(texto) // a leitura de sempre vence: a ficha da rota (pessoaPedida) e a dos planos ficam com as MESMAS palavras
+  if (direta) return direta
   const lida = pessoaDoPedido(comVirgulas(texto))
-  if (!lida) return pessoaDoPedido(texto)
+  if (!lida) return null
   // verbatim: sem as vírgulas que só esta leitura pôs, quando é assim que o cliente escreveu
   const semVirgulasPostas = lida.replace(/, (?=in (?:her|his|their) |with |wearing |dressed in )/giu, ' ')
   return semVirgulas(texto).toLowerCase().includes(semVirgulasPostas.toLowerCase()) ? semVirgulasPostas : lida

@@ -1,0 +1,20 @@
+{
+ "base": "0f72d6c750d4b758a5b397e30175a764fb8dd863",
+ "scope": {
+  "lib/cinematic/elencoEpoca.ts": {
+   "beforeSha256": "51ded79b803bf10e2f1084b8c221903ea8694b3d1f7cbda0f24dba68ec0c730b",
+   "afterSha256": "7b2da26ed8d79e237858ea5713d4834265e45c4df145943e1b1f0bee06b88e69",
+   "hunks": [
+    {
+     "before": "export function protagonistaSemNome(textoIngles: string, epoca: Epoca | null = null, infantil = false): PersonagemNomeado | null { // KINEO-ELENCO-EPOCA-2710\n  const texto = limpa(String(textoIngles ?? '').replace(/\\[[^\\]]*\\]/g, ' ')).slice(0, 8000) // KINEO-ELENCO-EPOCA-2710\n  const m = SEM_NOME_RE.exec(texto) // KINEO-ELENCO-EPOCA-2710",
+     "after": "// KINEO-IDEIA-FICHA-ASSUNTO-1211 (A) — filme pago \"Jonathan\" (12/11, Kling 4): \"older than the first photograph of a person\" virou \"the person, a\n// person in their thirties with short reddish hair…\" de costas no plano 2. O papel sem nome era o 1º \"artigo + substantivo de gente\" do texto, em\n// QUALQUER posição. Regra (estrutura da frase, sem lista de entidades): o papel só vira elenco se ao menos UMA menção dele (artigo + até 3\n// adjetivos + o mesmo substantivo) NÃO estiver regida por preposição de referência/comparação (of, than, like, unlike, as, from, about, for, per,\n// versus). \"photograph of a person\", \"older than a man\", \"like a child\" são termo de comparação, nunca alguém em cena; \"A tired commuter waits\",\n// \"Meet a man who…\", \"the stranger smiled\" seguem atores. \"by/with/to/in\" ficam de fora de propósito (agente da passiva e companhia costumam ser\n// gente de verdade). Atrás de ELENCO_PROVA_DE_GENTE (lib/cinematic/provaDeGente): desligado = byte a byte o de antes.\nconst REGENCIA_DE_REFERENCIA_RE = /(?:^|[^\\p{L}])(?:of|than|like|unlike|as|from|about|for|per|versus|vs\\.?)\\s+$/iu // KINEO-IDEIA-FICHA-ASSUNTO-1211\n/** KINEO-IDEIA-FICHA-ASSUNTO-1211 (A) — o papel sem nome tem ao menos uma menção fora de regência de referência/comparação? */\nexport function papelSemNomeAge(texto: string, nucleo: string): boolean { // KINEO-IDEIA-FICHA-ASSUNTO-1211\n  const re = new RegExp(String.raw`\\b(?:a|an|the|one)\\s+(?:(?!(?:a|an|the|one|of|than|like|unlike|as|from|about|for|per|versus|vs|to|in|on|at|by|with|and|or)\\s)[\\p{Ll}-]+\\s+){0,3}?${escapaRe(nucleo)}\\b`, 'giu') // KINEO-IDEIA-FICHA-ASSUNTO-1211\n  for (const m of String(texto ?? '').matchAll(re)) if (!REGENCIA_DE_REFERENCIA_RE.test(texto.slice(Math.max(0, (m.index ?? 0) - 12), m.index ?? 0))) return true // KINEO-IDEIA-FICHA-ASSUNTO-1211\n  return false // KINEO-IDEIA-FICHA-ASSUNTO-1211\n} // KINEO-IDEIA-FICHA-ASSUNTO-1211\nexport function protagonistaSemNome(textoIngles: string, epoca: Epoca | null = null, infantil = false, provaDeGente = false): PersonagemNomeado | null { // KINEO-ELENCO-EPOCA-2710 · KINEO-IDEIA-FICHA-ASSUNTO-1211: provaDeGente\n  const texto = limpa(String(textoIngles ?? '').replace(/\\[[^\\]]*\\]/g, ' ')).slice(0, 8000) // KINEO-ELENCO-EPOCA-2710\n  const m = provaDeGente ? [...texto.matchAll(new RegExp(SEM_NOME_RE.source, 'gi'))].find((x) => papelSemNomeAge(texto, limpa(x[1]).split(' ').pop() ?? '')) ?? null : SEM_NOME_RE.exec(texto) // KINEO-ELENCO-EPOCA-2710 · KINEO-IDEIA-FICHA-ASSUNTO-1211 (A) — ligado: o 1º papel que AGE em alguma menção"
+    },
+    {
+     "before": "      const semNome = protagonistaSemNome(texto, epoca, infantil) // KINEO-ELENCO-EPOCA-2710",
+     "after": "      const semNome = args.provaDeGente === true ? protagonistaSemNome(texto, epoca, infantil, true) : protagonistaSemNome(texto, epoca, infantil) // KINEO-ELENCO-EPOCA-2710 · KINEO-IDEIA-FICHA-ASSUNTO-1211 (A) — \"photograph of a person\" não é elenco"
+    }
+   ]
+  }
+ },
+ "addedSources": {}
+}

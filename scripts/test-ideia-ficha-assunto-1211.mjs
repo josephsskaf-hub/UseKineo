@@ -100,7 +100,7 @@ ok(IDEIA_NA_FICHA === 'internal' && ELENCO_PROVA_DE_GENTE === 'internal', `padr�
 ok(ideiaNaFichaLigada('internal', false) === false && ideiaNaFichaLigada('internal', true) === true && ideiaNaFichaLigada('all', false) === true, 'ideiaNaFichaLigada: internal só a casa')
 const rota = readFileSync('app/api/generate-video-cinematic/route.ts', 'utf8')
 ok(/const ideiaNaFicha = ideiaNaFichaLigada\(IDEIA_NA_FICHA, isInternalEmail\(user\.email\)\) \? fichaDaIdeia\(pedidoDoCliente, prompt\) : null/.test(rota), 'rota: a ficha da ideia só nasce na conta da casa')
-ok(/const pessoaPedida = ideiaNaFicha\?\.pessoa \?\? pessoaDoPedido\(pedidoDoCliente\)/.test(rota), 'rota: desligado, pessoaPedida é a de antes')
+ok(/const pessoaPedida = pessoaDoPedido\(pedidoDoCliente\) \?\? ideiaNaFicha\?\.pessoa \?\? null/.test(rota), 'rota: desligado, pessoaPedida é a de antes')
 ok((rota.match(/if \(ideiaNaFicha && !qualidadeHerdada\)/g) ?? []).length === 2, 'rota: aplicada nas DUAS estradas (hollywood e clássica), nunca na qualidade herdada')
 ok(rota.indexOf('comIdeiaNaCena(scene.prompt, ideiaNaFicha') > rota.indexOf('const aplicarQualidadeHollywood') && rota.indexOf('comIdeiaNaCena(classicScenePrompts[i], ideiaNaFicha') < rota.indexOf('KINEO-DRYRUN-CLASSICO-2026-09-12 — O VALIDADOR'), 'rota: antes do dry-run, do still e do clipe')
 const fq = readFileSync('lib/cinematic/filmQuality.ts', 'utf8'), ee = readFileSync('lib/cinematic/elencoEpoca.ts', 'utf8')
