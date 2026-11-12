@@ -20,6 +20,10 @@ import type { AnnualWelcomeBarInitial } from '@/lib/billing/annualWelcomeOffer' 
 import Creator30OfferModal from '@/components/Creator30OfferModal'
 import WelcomeOfferModal from '@/components/WelcomeOfferModal' // KINEO-WELCOME20-2026-08-25
 import { usePathname } from 'next/navigation'
+import CreateMolduraTopo from '@/components/create/CreateMolduraTopo' // KINEO-LIBRARY-MOLDURA-NOVA-1211
+import { usaMolduraNova } from '@/lib/create/molduraNova' // KINEO-LIBRARY-MOLDURA-NOVA-1211
+import { recreateVisible } from '@/lib/recreate/access' // KINEO-LIBRARY-MOLDURA-NOVA-1211 — as mesmas abas da tela nova
+import { clipNaMolduraVisivel } from '@/lib/create/clipNaMoldura' // KINEO-LIBRARY-MOLDURA-NOVA-1211
 
 interface DashboardShellProps {
   children: React.ReactNode
@@ -86,6 +90,21 @@ export default function DashboardShell({
 
   // Admin has its own navigation in both route trees. Do not nest the customer sidebar.
   if (pathname === '/admin' || pathname.startsWith('/admin/')) return <>{children}</>
+
+  // KINEO-LIBRARY-MOLDURA-NOVA-1211 [fundador 12/11: "a Library está voltando no fluxo antigo… o menu da esquerda não é um menu novo"] — o
+  // "My videos ↗" da tela nova leva à /library: ela passa a abrir na MOLDURA NOVA (o cabeçalho da tela nova, sem a lateral nem a barra de baixo
+  // antigas), como /create. As ofertas que a casca velha mostra seguem aqui (barra das 3 h, Black Friday, modais de boas-vindas). Opção B da
+  // foto div1-library-decisao-ABC.png; as outras telas logadas seguem na casca de sempre até a decisão do dono.
+  if (usaMolduraNova(pathname)) return (
+    <div data-dashboard-moldura="nova" style={{ background: 'var(--bg)', minHeight: '100svh' }}>
+      <CreateMolduraTopo showRecreate={recreateVisible(userEmail)} showClip={clipNaMolduraVisivel(userEmail)} />
+      <AnnualWelcomeBar initial={annualWelcomeBar} placement="app" />
+      <BlackFridayBanner placement="app" />
+      {isLoggedIn && <Creator30OfferModal />}
+      {isLoggedIn && <WelcomeOfferModal surface="dashboard" />}
+      <main className="pb-10">{children}</main>
+    </div>
+  )
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg)' }}>

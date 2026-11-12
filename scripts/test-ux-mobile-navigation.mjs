@@ -156,13 +156,21 @@ check('outside pointer listener cleaned up', () => {
   delete globalThis.document
   delete globalThis.Node
 })
-for (const [route, title] of Object.entries({ '/studio': 'Studio', '/images': 'Images', '/audio': 'Audio', '/library': 'Library', '/studio/create': 'Studio', '/pricing': 'Pricing', '/history': 'My Videos' })) {
+// KINEO-LIBRARY-MOLDURA-NOVA-1211 [fundador 12/11: "a Library volta no fluxo antigo"] — a /library saiu desta lista: ela abre na moldura da tela nova
+// (sem o topo antigo e sem a lateral); a checagem logo abaixo trava isso. As outras telas seguem na casca de sempre.
+for (const [route, title] of Object.entries({ '/studio': 'Studio', '/images': 'Images', '/audio': 'Audio', '/studio/create': 'Studio', '/pricing': 'Pricing', '/history': 'My Videos' })) {
   check('real shell caller title ' + route, () => {
     pathname = route
     const shell = Shell({ children: null, userEmail: '', isPro: false, generationsUsed: 0, isLoggedIn: false })
     assert.equal(nodes(shell).find((n) => n.type === TopBar).props.title, title)
   })
 }
+check('/library opens in the new frame: no old top bar, no sidebar', () => { // KINEO-LIBRARY-MOLDURA-NOVA-1211
+  pathname = '/library'
+  const shell = Shell({ children: null, userEmail: '', isPro: false, generationsUsed: 0, isLoggedIn: false })
+  assert.equal(nodes(shell).filter((n) => n.type === TopBar).length, 0)
+  assert.ok(nodes(shell).some((n) => n.props && n.props['data-dashboard-moldura'] === 'nova'))
+})
 check('SSR outputs links and controls without network', () => {
   const html = renderToStaticMarkup(render())
   assert.ok(html.includes('href="/pricing"'))

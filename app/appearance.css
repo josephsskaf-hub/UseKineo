@@ -226,7 +226,7 @@ html .pricing-blue [data-kineo=credit-minutes]{background:var(--card2)!important
 .refine-details{font-size:12px;margin-top:14px;color:var(--muted)}.refine-details summary{cursor:pointer;min-height:32px}
 .library-organization,.library-format-filter{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 16px}
 .library-organization button,.library-organization select,.library-format-filter button,.library-favorite{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:8px 12px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font:inherit;font-size:13px;cursor:pointer}
-.library-organization small{font-size:11px;color:var(--muted)}
+.library-organization small{font-size:12px;color:var(--muted)} /* KINEO-LIBRARY-MOLDURA-NOVA-1211 — era 11 px (nenhum texto abaixo de 12 px) */
 .library-organization [aria-pressed=true],.library-format-filter [aria-pressed=true],.library-favorite[aria-pressed=true]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 .library-organized-card{position:relative}.library-favorite{position:absolute;inset:42px 8px auto auto;z-index:4;padding:9px;box-shadow:0 2px 8px #0002}.library-page .library-asset-section .library-favorite{top:12px}.library-favorite[aria-pressed=true] svg{fill:currentColor}
 .adv2 .adv2-live-preview p{font-size:12px;color:var(--muted)}
