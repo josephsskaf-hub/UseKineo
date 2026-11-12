@@ -10,6 +10,7 @@ import { promptDaCenaKling4 } from '@/lib/cinematic/cenaKling4' // KINEO-CENA-PE
 import { eixosDoFilmeGratis, semEixoDoFilmeGratis } from '@/lib/cinematic/cenaKling4' // KINEO-REPETICAO-FREE15-1011 (linha própria)
 import { comSuperficieSemTexto } from '@/lib/cinematic/superficieSemTexto' // KINEO-CENA-PEDIDO-3010
 import { comSuperficieNoPlano } from '@/lib/cinematic/superficieSemTexto' // KINEO-BALAO-SEM-LETRA-1111
+import { semMarcoAnacronico } from '@/lib/cinematic/marcoAnacronico' // KINEO-MARCO-ANACRONICO-1111
 import { lugarDasCenas, comLugarDoFilme } from '@/lib/cinematic/pessoaDoPedido' // KINEO-LUGAR-UNICO-1111
 import { TRIAL_PEDIDO_REFUSAL, TRIAL_PEDIDO_STATUS } from '@/lib/trialPedido' // KINEO-TRIAL-A-PEDIDO-0411
 import { escritaLatina, conferenciaDaLeitura, elencoConferido, CONFERENCIA_ELENCO_VERSAO, EVENTO_CONFERENCIA_ELENCO } from '@/lib/cinematic/conferenciaDoElenco' // KINEO-SO-GENTE-NA-FICHA-0411
@@ -5790,6 +5791,7 @@ async function manipularPost(req: NextRequest) {
         const luzHollywood = qualidadeHerdada ? null : luzDoPedido(pedidoDoCliente) // KINEO-UNIVERSAL-HOLLYWOOD-1111 [CEO 11/11, tabela de cobertura] — a luz do pedido e o relógio de ponteiros também na estrada hollywood (Kling 4 pago, H3, H3 Max, S25): antes só a clássica os tinha
         const lugarHollywood = qualidadeHerdada ? null : lugarDoPedidoDoCliente(pedidoDoCliente) // KINEO-LUGAR-DO-PEDIDO-1111 — o lugar do pedido também na estrada hollywood
         plan.scenes.forEach((scene, i) => { const base = comLugarDoPedido(relogioComPonteiros(quality.prompts[i]), lugarHollywood); const comSuperficie = comLuzDoPedido(comSuperficieSemTexto(base), luzHollywood); const comLuz = comLuzDoPedido(base, luzHollywood); scene.prompt = comSuperficie.length <= 2500 ? comSuperficie : comLuz.length <= 2500 ? comLuz : base }) // KINEO-UNIVERSAL-HOLLYWOOD-1111 — passou de 2500: sai primeiro a frase da superfície; a luz e o relógio ficam // KINEO-EMBALAGEM-SEM-LETRA-0411 — a estrada hollywood também descreve em positivo a superfície que ganha letra (o Kling 4 já tinha; agora Kling 3, H3, Omni e S25)
+        plan.scenes.forEach((scene) => { scene.prompt = semMarcoAnacronico(scene.prompt) }) // KINEO-MARCO-ANACRONICO-1111 — o mesmo na estrada hollywood (Kling 4 pago, H3, H3 Max, S25)
         plan.styleSheet = styleAnchor.lookPhrase + styleAnchor.suffix
         plan.stylized = isStylizedLook(styleAnchor)
         if (qualidadeHerdada) {
@@ -7350,6 +7352,7 @@ async function manipularPost(req: NextRequest) {
 
     if (seedanceShortFilm) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = sanitizarObjetos15(classicScenePrompts[i], seedanceShortFilm) // KINEO-FILME15-PERFEITO-2610 — final visual vector, before still/clip; narration stays intact
     for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comSuperficieSemTexto(classicScenePrompts[i]) // KINEO-CENA-PEDIDO-3010 — revisor 29/10: lousa/tela/página/placa saíam com letra inventada; a superfície vai descrita em positivo (o motor não tem negativo)
+    for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = semMarcoAnacronico(classicScenePrompts[i]) // KINEO-MARCO-ANACRONICO-1111 [CEO 11/11 noite, Mona Lisa 1911] — marco construído depois da época ("its iconic glass pyramid" de 1989 numa cena de 1913) vira o que estava ali; antes das imagens-chave
     { const luzPedida = qualidadeHerdada ? null : luzDoPedido(pedidoDoCliente); if (luzPedida) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comLuzDoPedido(classicScenePrompts[i], luzPedida) } // KINEO-LUZ-DO-PEDIDO-1111 — a luz que o cliente pediu (só a luz, nunca a frase de ação) chega a toda cena (still e clipe); 657ad797: pedido de sol pelas janelas, prova saiu à noite
     { const lugarPedido = qualidadeHerdada ? null : lugarDoPedidoDoCliente(pedidoDoCliente); if (lugarPedido) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comLugarDoPedido(classicScenePrompts[i], lugarPedido)
       const lugarFilme = qualidadeHerdada || lugarPedido ? null : lugarDasCenas(scenes.map((s) => s.description)); if (lugarFilme) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comLugarDoFilme(classicScenePrompts[i], lugarFilme) } // KINEO-LUGAR-DO-PEDIDO-1111 [CEO 11/11, reprise dos 6 filmes] — o lugar que o cliente pediu (só quando o pedido cita UM lugar) chega a toda cena; 657ad797: "a stylish Johannesburg coffee shop" virou "a café"
