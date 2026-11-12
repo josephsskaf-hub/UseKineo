@@ -106,7 +106,7 @@ function verificar(fontes = {}) {
     checa(!/[$€£]\s*\d|R\$|\/mo\b/.test(h), 'sem preço no menu')
     checa(!/\/library|storage|projects/i.test(h), 'biblioteca e armazenamento viraram só "My videos"')
   }
-  checa(!/canPurchaseCreditTopup|onBuyCredits|CreditsTopupModal/.test(pn), 'o painel não conhece top-up')
+  checa(!/canPurchaseCreditTopup|CreditsTopupModal/.test(pn), 'o painel não conhece top-up (KINEO-ASSINANTE-COMPRA-SEMPRE-1211: o "Buy credits" do assinante só chama a barra lateral, onBuyCredits)')
 
   // ── 4. crédito, plano, Upgrade ──
   checa(/<b class="kmc-credits-n">34<\/b><span class="kmc-credits-of">\/ 150<\/span>/.test(creator) && /kmc-bar/.test(corpo(creator)), 'Creator: número, grant e barra')
@@ -162,7 +162,7 @@ function verificar(fontes = {}) {
   checa(/plan=\{accountPlan\}/.test(sb) && /setAccountPlan\(typeof data\?\.plan === 'string'/.test(sb), 'plano cru de /api/credits, não o achatado de /api/me/plan')
   checa(/const topupEligible = canPurchaseCreditTopup\(plan\)/.test(sb), 'o chip segue decidindo pelo estado antigo')
   checa(/creditsReadFailed=\{creditsReadFailed\}/.test(sb), 'falha de leitura chega ao menu')
-  checa(!/onBuyCredits|storage=|api\/storage-usage/.test(sb), 'a barra lateral não carrega mais o medidor')
+  checa(!/storage=|api\/storage-usage/.test(sb), 'a barra lateral não carrega mais o medidor')
   checa(/onSignOut=\{handleSignOut\}\n\s*signingOut=\{signingOut\}/.test(sb) && /onNavigate=\{onClose\}/.test(sb), 'saída e fechamento da gaveta seguem ligados')
   checa(/aria-haspopup="dialog"/.test(sb) && /onClick=\{isLoggedIn \? \(\) => setSettingsOpen\(\(v\) => !v\) : undefined\}/.test(sb), 'a linha do usuário abre o menu e a engrenagem diz que abre diálogo')
   const shell = fonte('app/(dashboard)/DashboardShell.tsx')

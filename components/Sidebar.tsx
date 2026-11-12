@@ -15,6 +15,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import AuthModal from '@/components/AuthModal'
 import { FreeTierCopy, useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import CreditsTopupModal from '@/components/CreditsTopupModal' // KINEO-TOPUP-POPUP-2026-08-18
+import { BUY_CREDITS_LABEL, BUY_CREDITS_OPENED_EVENT, BuyCreditsModal, useRecargaEntrada } from '@/components/billing/BuyCreditsEntry' // KINEO-ASSINANTE-COMPRA-SEMPRE-1211 — o chip abre a barra para o assinante pago, com qualquer saldo
 import AccountPanel from '@/components/AccountPanel' // KINEO-ACCOUNT-PANEL-2026-08-19
 import { GRANT_COUNTRY_CLAUSE, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer' // KINEO-ADS-PRODUTO-PRIMEIRO-0411 — fora da lista de países a conta nasce com 0 crédito (lib/freeFilmPolicy.ts): o aviso do visitante leva a cláusula, como as outras frases públicas do grant
 import { trackEvent } from '@/lib/analytics'
@@ -360,6 +361,7 @@ export default function Sidebar({
   const [showAuthModal, setShowAuthModal] = useState(false)
   // KINEO-TOPUP-POPUP-2026-08-18 — popup de recarga sem troca de plano
   const [showTopup, setShowTopup] = useState(false)
+  const [topupSurface, setTopupSurface] = useState<'sidebar_chip' | 'account_panel'>('sidebar_chip') // KINEO-ASSINANTE-COMPRA-SEMPRE-1211 — de onde a barra foi aberta
   const [isPro, setIsPro] = useState(initialIsPro)
   const [userEmail, setUserEmail] = useState(initialEmail)
   const [displayName, setDisplayName] = useState('')
@@ -468,10 +470,12 @@ export default function Sidebar({
   }, [isLoggedIn])
 
   const topupEligible = canPurchaseCreditTopup(plan)
+  // KINEO-ASSINANTE-COMPRA-SEMPRE-1211 — o servidor diz se esta conta é assinante pago (qualquer saldo): o chip vira "Buy credits" e abre a barra.
+  const recargaChip = useRecargaEntrada('sidebar_chip', Boolean(isLoggedIn) && planResolved)
 
   useEffect(() => {
     const chip = creditChipRef.current
-    if (!chip || !planResolved || topupEligible) return
+    if (!chip || !planResolved || topupEligible || recargaChip) return
     if (typeof IntersectionObserver === 'undefined') return
     if (!isTopupEligibilityMeasurementHost(window.location.hostname)) return
     if (wasTopupEventRecorded('topup_eligibility_handoff_viewed')) return
@@ -486,10 +490,16 @@ export default function Sidebar({
 
     observer.observe(chip)
     return () => observer.disconnect()
-  }, [planResolved, topupEligible])
+  }, [planResolved, topupEligible, recargaChip])
 
   const handleCreditChipClick = () => {
     if (!planResolved) return
+    if (recargaChip) { // KINEO-ASSINANTE-COMPRA-SEMPRE-1211
+      void trackEvent(BUY_CREDITS_OPENED_EVENT, { surface: 'sidebar_chip', balance: typeof credits === 'number' ? credits : null })
+      setTopupSurface('sidebar_chip')
+      setShowTopup(true)
+      return
+    }
     if (topupEligible) {
       setShowTopup(true)
       return
@@ -683,8 +693,8 @@ export default function Sidebar({
               type="button"
               onClick={handleCreditChipClick}
               disabled={!planResolved}
-              aria-label={topupEligible ? 'Add credits' : 'See plans'}
-              data-topup-eligibility={planResolved ? (topupEligible ? 'eligible' : 'ineligible') : 'loading'}
+              aria-label={recargaChip ? BUY_CREDITS_LABEL : topupEligible ? 'Add credits' : 'See plans'}
+              data-topup-eligibility={planResolved ? (recargaChip ? 'recarga' : topupEligible ? 'eligible' : 'ineligible') : 'loading'}
               className="flex items-center justify-between rounded-xl px-4 py-3 transition-all"
               style={{
                 width: '100%', textAlign: 'left', cursor: planResolved ? 'pointer' : 'wait',
@@ -734,10 +744,12 @@ export default function Sidebar({
                         </span>
                       )}
                     </div>
-                    <div style={{ fontSize: '0.6rem', color: 'var(--muted)', marginTop: 1 }}>
+                    <div style={{ fontSize: recargaChip && !creditsReadFailed ? 12 : '0.6rem', fontWeight: recargaChip && !creditsReadFailed ? 700 : undefined, color: recargaChip && !creditsReadFailed ? '#2997ff' : 'var(--muted)', marginTop: 1 }}>
                       {creditsReadFailed
                         ? READ_FAILED_HINT
-                        : topupEligible
+                        : recargaChip
+                          ? BUY_CREDITS_LABEL
+                          : topupEligible
                           ? (creditsZero ? 'Buy more with +' : 'Top up anytime')
                           : 'See plans'}
                     </div>
@@ -796,6 +808,7 @@ export default function Sidebar({
               onSignOut={handleSignOut}
               signingOut={signingOut}
               onNavigate={onClose}
+              onBuyCredits={recargaChip ? () => { void trackEvent(BUY_CREDITS_OPENED_EVENT, { surface: 'account_panel', balance: typeof credits === 'number' ? credits : null }); setTopupSurface('account_panel'); setShowTopup(true) } : null} // KINEO-ASSINANTE-COMPRA-SEMPRE-1211
             />
           )}
 
@@ -889,7 +902,9 @@ export default function Sidebar({
         </div>
       </aside>
 
-      {showTopup && <CreditsTopupModal surface="sidebar_chip" onClose={() => setShowTopup(false)} />}
+      {showTopup && (recargaChip /* KINEO-ASSINANTE-COMPRA-SEMPRE-1211 — a barra do assinante */
+        ? <BuyCreditsModal offer={recargaChip} surface={topupSurface} onClose={() => setShowTopup(false)} />
+        : <CreditsTopupModal surface="sidebar_chip" onClose={() => setShowTopup(false)} />)}
       {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} defaultTab="signup" />}
     </>
   )

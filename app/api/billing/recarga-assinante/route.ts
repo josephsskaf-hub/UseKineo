@@ -65,8 +65,10 @@ export async function GET(req: NextRequest) {
   if (mode === 'hide') return go ? goBack() : HIDE()
   const qa = mode === 'qa'
   // O botão de 60 só para quem não paga o filme mais barato; a conferência da casa vê o botão sempre (é para conferir a tela).
-  const button = qa || zeroed
-  const meta = { campaign: RECARGA_ASSINANTE_CAMPAIGN, surface, qa, button, plan: typeof p?.plan === 'string' ? p.plan : null, balance: typeof p?.video_credits === 'number' ? p.video_credits : null }
+  // KINEO-ASSINANTE-COMPRA-SEMPRE-1211 [dono 12/11: "não importa se ele fica com 0 ou 1 ou 3 de saldo, quero TODOS que são sub podendo comprar"]
+  // — o botão de 60 vale para todo assinante pago (antes: só quem zerou). `zeroed` segue na medida.
+  const button = qa || subscriber
+  const meta = { campaign: RECARGA_ASSINANTE_CAMPAIGN, surface, qa, button, zeroed, plan: typeof p?.plan === 'string' ? p.plan : null, balance: typeof p?.video_credits === 'number' ? p.video_credits : null }
 
   if (go) {
     const rawCredits = req.nextUrl.searchParams.get('credits')

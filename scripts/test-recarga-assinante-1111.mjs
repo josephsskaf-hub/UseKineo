@@ -199,7 +199,7 @@ async function suite(S) {
     t(s0?.success_url?.includes('/studio?prompt=my+idea&recarga=paid&session_id={CHECKOUT_SESSION_ID}') && !s0?.success_url?.includes('autoanalyze'), 'D5 volta para onde estava, com a ideia, sem autoanalyze')
     t(calls.serverEvents.some((e) => e.name === 'recarga_assinante_checkout_started' && e.userId === USER.id), 'D6 evento de servidor do checkout aberto')
   }
-  for (const [label, profile] of [['não assinante', { ...SUB, plan: 'free', stripe_subscription_id: null }], ['cortesia (basic_trial)', { ...SUB, plan: 'basic_trial' }], ['saldo que paga (9)', { ...SUB, video_credits: 9 }]]) {
+  for (const [label, profile] of [['não assinante', { ...SUB, plan: 'free', stripe_subscription_id: null }], ['cortesia (basic_trial)', { ...SUB, plan: 'basic_trial' }]]) { // KINEO-ASSINANTE-COMPRA-SEMPRE-1211: 'saldo que paga' saiu da lista de recusa (dono 12/11: qualquer saldo)
     const { res, calls } = await runCheckout(P, { profile })
     t(calls.stripe.length === 0 && res.kind === 'redirect' && !res.location.includes('stripe'), `D7 ${label}: recusa sem sessão da Stripe`)
   }
@@ -224,7 +224,8 @@ async function suite(S) {
     const max = await runCheckout(P, { profile: rich, url: u('credits=3700') })
     t(max.calls.stripe[0]?.params?.line_items?.[0]?.price_data?.unit_amount === 50000, 'D14 barra: o teto 3.700 = US$ 500')
     const btnRich = await runCheckout(P, { profile: rich, url: 'https://www.usekineo.com/api/stripe/checkout?pack=recarga_assinante_1111&back=%2Fstudio' })
-    t(btnRich.calls.stripe.length === 0, 'D15 botão (sem quantidade) com saldo que paga: recusa')
+    t(btnRich.calls.stripe.length === 1 && btnRich.calls.stripe[0]?.params?.line_items?.[0]?.price_data?.unit_amount === 900, 'D15 botão (sem quantidade) com saldo que paga: abre o checkout de 60 por US$ 9 (KINEO-ASSINANTE-COMPRA-SEMPRE-1211)')
+    for (const saldo of [0, 1, 3, 200]) { const r = await runCheckout(P, { profile: { ...SUB, video_credits: saldo } }); t(r.calls.stripe.length === 1, `D16 assinante com saldo ${saldo} compra o botão`) } // KINEO-ASSINANTE-COMPRA-SEMPRE-1211
   }
   {
     const { res, calls } = await runCheckout(P, { url: 'https://www.usekineo.com/api/stripe/checkout?pack=recarga_assinante_1111&currency=brl&back=https%3A%2F%2Fevil.example' })
@@ -258,10 +259,10 @@ async function suite(S) {
     const nonSub = await runRoute(P, { profile: { ...SUB, plan: 'free', stripe_subscription_id: null } })
     t(nonSub.res.body.show === false && nonSub.calls.serverEvents.length === 0, 'F3 não assinante não vê')
     const rich = await runRoute(P, { profile: { ...SUB, video_credits: 40 } })
-    t(rich.res.body.show === true && rich.res.body.button === false, 'F4 assinante com saldo que paga não vê o botão de 60 (só a barra)')
+    t(rich.res.body.show === true && rich.res.body.button === true, 'F4 assinante com saldo que paga TAMBÉM vê o botão de 60 (KINEO-ASSINANTE-COMPRA-SEMPRE-1211, dono 12/11: qualquer saldo)')
     t(pub.res.body.button === true, 'F4b assinante que zerou vê o botão')
     const richGo = await runRoute(P, { profile: { ...SUB, video_credits: 40 }, url: 'https://www.usekineo.com/api/billing/recarga-assinante?go=1&surface=x&back=%2Fstudio' })
-    t(richGo.res.location.endsWith('/studio') && !richGo.res.location.includes('checkout'), 'F4c clique no botão por quem tem saldo: volta, sem checkout')
+    t(richGo.res.location.includes('/api/stripe/checkout?pack='), 'F4c clique no botão por quem tem saldo: vai ao checkout (KINEO-ASSINANTE-COMPRA-SEMPRE-1211)')
     const slGo = await runRoute(P, { profile: { ...SUB, video_credits: 40 }, url: 'https://www.usekineo.com/api/billing/recarga-assinante?go=1&surface=x&credits=700&back=%2Fstudio' })
     t(slGo.res.location.includes('pack=recarga_assinante_1111') && slGo.res.location.includes('credits=700'), 'F4d clique na barra leva a quantidade ao checkout do SKU')
     const slBad = await runRoute(P, { profile: { ...SUB, video_credits: 40 }, url: 'https://www.usekineo.com/api/billing/recarga-assinante?go=1&surface=x&credits=12345&back=%2Fstudio' })
@@ -320,10 +321,10 @@ const MUTANTS = [
   ['escada com ,90', 'slider', '  return dollars * 100\n', '  return dollars * 100 - 10\n'],
   ['teto antigo', 'slider', 'export const CREDIT_SLIDER_MAX = 3700', 'export const CREDIT_SLIDER_MAX = 2000'],
   ['barra aceita fora do passo', 'slider', '  if (n % CREDIT_SLIDER_STEP !== 0) return null\n', ''],
-  ['barra sem exigir assinatura', 'checkout', ': recargaAssinanteSubscriber(profile)', ': true'],
-  ['botão sem exigir zerado', 'checkout', "kind === 'button' ? recargaAssinanteEligible(profile, recargaAssinanteMinFilmCredits())", "kind === 'button' ? recargaAssinanteSubscriber(profile)"],
+  ['barra sem exigir assinatura', 'checkout', 'const eligible = recargaAssinanteSubscriber(profile)', 'const eligible = true'],
+  ['checkout: botão volta a exigir zerado', 'checkout', 'const eligible = recargaAssinanteSubscriber(profile)', "const eligible = kind === 'button' ? false : recargaAssinanteSubscriber(profile)"],
   ['barra com preço digitado', 'checkout', "const unitAmount = kind === 'button' ? RECARGA_ASSINANTE_1111.usdMinor : sliderPriceUsdMinor(credits)", "const unitAmount = kind === 'button' ? RECARGA_ASSINANTE_1111.usdMinor : (credits ?? 0) * 15"],
-  ['rota: botão para quem tem saldo', 'route', 'const button = qa || zeroed', 'const button = true'],
+  ['rota: botão volta a exigir zerado', 'route', 'const button = qa || subscriber', 'const button = qa || zeroed'],
   ['aviso: botão sempre', 'nudge', '{recarga.button && (', '{(\n'],
   ['checkout sem trava do interruptor', 'checkout', "if (RECARGA_ASSINANTE_1111_RELEASE !== 'public') return refused()", ''],
   ['checkout sem elegibilidade', 'checkout', 'if (!recargaAssinanteCheckoutAllowed(RECARGA_ASSINANTE_1111_RELEASE, eligible)) return refused()', ''],

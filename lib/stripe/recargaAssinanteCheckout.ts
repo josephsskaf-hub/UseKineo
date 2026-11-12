@@ -22,7 +22,6 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { stripe } from '@/lib/stripe'
 import { writeServerEvent } from '@/lib/serverEvents'
-import { recargaAssinanteMinFilmCredits } from '@/lib/checkoutPricing'
 import { CREDIT_SLIDER_MAX, CREDIT_SLIDER_MIN, RECARGA_ASSINANTE_1111, normalizeSliderCredits, sliderPriceUsdMinor } from '@/lib/credits/creditSlider'
 import {
   RECARGA_ASSINANTE_CAMPAIGN,
@@ -32,7 +31,6 @@ import {
   RECARGA_ASSINANTE_VERSION,
   recargaAssinanteBack,
   recargaAssinanteCheckoutAllowed,
-  recargaAssinanteEligible,
   recargaAssinanteSubscriber,
   recargaAssinanteWithParam,
   type RecargaAssinanteProfile,
@@ -91,7 +89,7 @@ export async function buildRecargaAssinanteAndRedirect(req: NextRequest, deps: R
   const db = createAdminClient(svcUrl, svcKey, { auth: { persistSession: false, autoRefreshToken: false } })
   const { data: row, error: rowErr } = await db.from('profiles').select('email, stripe_customer_id, stripe_subscription_id, plan, video_credits').eq('id', user.id).maybeSingle()
   const profile = rowErr ? null : (row as RecargaAssinanteProfile | null)
-  const eligible = kind === 'button' ? recargaAssinanteEligible(profile, recargaAssinanteMinFilmCredits()) : recargaAssinanteSubscriber(profile)
+  const eligible = recargaAssinanteSubscriber(profile) // KINEO-ASSINANTE-COMPRA-SEMPRE-1211 [dono 12/11: "TODOS que são sub podendo comprar"] — botão e barra: todo assinante pago, com qualquer saldo (antes o botão exigia saldo zerado)
   if (!recargaAssinanteCheckoutAllowed(RECARGA_ASSINANTE_1111_RELEASE, eligible)) return refused()
 
   const p = row as { email?: string | null; stripe_customer_id?: string | null } & RecargaAssinanteProfile

@@ -81,8 +81,8 @@ function RowIcon({ d }: { d: string }) {
 
 export default function AccountPanel({
   email, displayName, plan, credits, creditsReadFailed = false,
-  onClose, onSignOut, onNavigate, signingOut = false,
-}: AccountPanelProps) {
+  onClose, onSignOut, onNavigate, signingOut = false, onBuyCredits = null,
+}: AccountPanelProps & { /** KINEO-ASSINANTE-COMPRA-SEMPRE-1211 — o servidor disse que é assinante pago: "Buy credits" abre a barra (quem abre é a barra lateral). */ onBuyCredits?: (() => void) | null }) {
   const t = useUiCopy()
   const language = useInterfaceLanguage()
   const [sub, setSub] = useState<MySubscription | null>(null)
@@ -177,6 +177,12 @@ export default function AccountPanel({
           )}
         </div>
 
+        {onBuyCredits ? ( /* KINEO-ASSINANTE-COMPRA-SEMPRE-1211 — assinante pago, qualquer saldo: a barra de créditos */
+          <button type="button" data-kineo="buy-credits-account" onClick={() => { onClose(); onBuyCredits() }} className="kmc-row kmc-row-accent" style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 0, font: 'inherit', cursor: 'pointer' }}>
+            <RowIcon d="M12 5v14M5 12h14" />
+            <span>{t('Buy credits')}</span>
+          </button>
+        ) : null}
         {accountPlanCanUpgrade(planKey) && (
           <Link href="/pricing" onClick={go} className="kmc-row kmc-row-accent">
             <RowIcon d="M12 19V5M6 11l6-6 6 6" />

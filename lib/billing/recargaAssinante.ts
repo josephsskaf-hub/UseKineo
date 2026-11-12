@@ -108,7 +108,7 @@ export function recargaAssinanteCheckoutAllowed(release: RecargaAssinanteRelease
  * A tela nova entra como '/create/' (com a barra): só as abas /create/<aba>; o /create puro é a tela antiga, que ninguém
  * linka (guardião scripts/test-tela-nova-1011.mjs) — quem vier dali volta ao /studio.
  */
-export const RECARGA_ASSINANTE_BACK_PREFIXES: readonly string[] = ['/studio', '/create/', '/generate']
+export const RECARGA_ASSINANTE_BACK_PREFIXES: readonly string[] = ['/studio', '/create/', '/generate', '/kids-cartoon'] // KINEO-ASSINANTE-COMPRA-SEMPRE-1211 — o desenho volta para o desenho
 const BACK_DROP = ['autoanalyze', 'studio', 'create_intent', 'resume', 'session_id', 'success', 'checkout_error', 'recarga', 'pack', 'topup']
 export function recargaAssinanteBack(raw: unknown, idea?: unknown): string {
   const fallback = '/studio'

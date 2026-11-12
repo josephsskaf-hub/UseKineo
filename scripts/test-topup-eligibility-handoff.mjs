@@ -106,7 +106,7 @@ check(
   chipCopy.includes("topupEligible ? (creditsZero ? 'Buy more with +' : 'Top up anytime') : 'See plans'"),
   'chip copy states the real next step (topupEligible/creditsZero governam as 3 frases)',
 )
-check(sidebar.includes('{showTopup && <CreditsTopupModal'), 'existing top-up modal remains mounted only after an eligible click')
+check(sidebar.includes('{showTopup && (recargaChip') && sidebar.includes(': <CreditsTopupModal surface="sidebar_chip" onClose={() => setShowTopup(false)} />)}'), 'existing top-up modal remains mounted only after an eligible click (KINEO-ASSINANTE-COMPRA-SEMPRE-1211: o assinante abre a barra da recarga)')
 
 // KINEO-MENU-CONTA-0411 — o cartão de créditos do painel virou uma linha do menu compacto, e o top-up saiu de venda em
 // 04/11. O que este bloco protege continua o mesmo: o painel não promete recarga que não existe, e quem precisa de mais
@@ -114,7 +114,7 @@ check(sidebar.includes('{showTopup && <CreditsTopupModal'), 'existing top-up mod
 const account = read('components/AccountPanel.tsx')
 const accountRender = account.slice(account.indexOf('return portal('), account.indexOf('const MENU_CSS'))
 check(!account.includes('canPurchaseCreditTopup'), 'account panel has no top-up branch of its own')
-check(!account.includes('onBuyCredits') && !sidebar.includes('onBuyCredits'), 'account panel has no buy-credits callback')
+check(sidebar.includes('onBuyCredits={recargaChip ? () => {') && !sidebar.includes('onBuyCredits={() =>'), 'account panel buy-credits callback only for the server-confirmed subscriber (KINEO-ASSINANTE-COMPRA-SEMPRE-1211, dono 12/11)')
 check(!/Buy more credits|one-time pack|Top up/i.test(accountRender), 'account panel does not offer an unavailable top-up')
 check(!/topup/i.test(accountRender), 'account panel links nowhere near a top-up SKU')
 check(accountRender.includes('href="/pricing"'), 'account path to more credits links to pricing')

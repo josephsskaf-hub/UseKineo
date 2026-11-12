@@ -21,6 +21,7 @@ import { NARRATION_LANGUAGES, type NarrationLanguage } from '@/lib/textLanguage'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { trackEvent } from '@/lib/analytics'
+import BuyCreditsLink from '@/components/billing/BuyCreditsEntry' // KINEO-ASSINANTE-COMPRA-SEMPRE-1211 — "Buy credits" para o assinante com qualquer saldo
 import SubscriberUpgradeNudge from '@/components/billing/SubscriberUpgradeNudge' // KINEO-RECARGA-DESENHO-1211 — o aviso do assinante sem saldo (recarga/troca), o MESMO do Studio
 import { PremiereResult, PremiereStage, usePremiereBeacon, type PremiereItem } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110
 import { creditCostForDuration } from '@/lib/credits/engineCost'
@@ -574,6 +575,7 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
               <label className="kkc-toggle" data-kids-captions="1"><input type="checkbox" checked={captions} onChange={(e) => setCaptions(e.target.checked)} /><span><b>{t.captionsToggle}</b><small>{t.captionsHint}</small></span></label>
               <div className="kkc-buy" data-kids-cost="1">
                 <p className="kkc-cost" data-enough={String(costLine.enough)}><i aria-hidden="true" />{costLine.text}</p>
+                {!semPlano && !visitante && costLine.enough !== false ? <BuyCreditsLink surface="kids_cartoon" idea={idea.trim() || null} onOpen={() => guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration })} /> : null /* KINEO-ASSINANTE-COMPRA-SEMPRE-1211 — com saldo que paga: o link discreto; sem saldo, o aviso abaixo */}
                 {costLine.enough === false ? (
                   <div className="kkc-actions">
                     {recargaPintou ? null : <Link className="kkc-go kkc-big" href={KIDS_PLANS_PATH} onClick={() => { void trackEvent('kids_cartoon_plans_clicked', { credits: cost, balance, duration }) }}>{t.plans} <span aria-hidden="true">→</span></Link>}
