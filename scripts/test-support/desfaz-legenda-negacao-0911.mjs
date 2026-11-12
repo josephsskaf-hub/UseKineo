@@ -8,6 +8,7 @@ import { createHash } from 'node:crypto'
 import { semLegendaSemAspas1111 } from './desfaz-legenda-sem-aspas-1111.mjs' // KINEO-LEGENDA-SEM-ASPAS-1111 — camada mais nova do compose (11/11) sai primeiro
 import { semSemPersonagemInventado1111 } from './desfaz-sem-personagem-inventado-1111.mjs' // KINEO-SEM-PERSONAGEM-INVENTADO-1111 — camada mais nova do escritor (11/11) sai primeiro
 import { semNomeSemCorpo1111 } from './desfaz-nome-sem-corpo-1111.mjs' // KINEO-NOME-SEM-CORPO-1111 — camada mais nova (11/11) sai primeiro
+import { semNomeNaoCruzaPonto1111 } from './desfaz-nome-nao-cruza-ponto-1111.mjs' // KINEO-NOME-NAO-CRUZA-PONTO-1111
 import { semEspecieNaoEGente1111 } from './desfaz-especie-nao-e-gente-1111.mjs' // KINEO-ESPECIE-NAO-E-GENTE-1111 — camada mais nova do elencoEpoca (11/11) sai primeiro
 
 export const LEGENDA_NEGACAO_0911 = JSON.parse(readFileSync(new URL('./desfaz-legenda-negacao-0911-fontes.json', import.meta.url), 'utf8'))
@@ -17,7 +18,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semLegendaNegacao0911(source, file) {
-  source = semEspecieNaoEGente1111(semNomeSemCorpo1111(semSemPersonagemInventado1111(semLegendaSemAspas1111(source, file), file), file), file) // + KINEO-NOME-SEM-CORPO-1111 (antes da espécie) // + KINEO-ESPECIE-NAO-E-GENTE-1111 // KINEO-LEGENDA-SEM-ASPAS-1111 + KINEO-SEM-PERSONAGEM-INVENTADO-1111 — as camadas mais novas (11/11) saem antes, em toda cadeia
+  source = semEspecieNaoEGente1111(semNomeSemCorpo1111(semNomeNaoCruzaPonto1111(semSemPersonagemInventado1111(semLegendaSemAspas1111(source, file), file), file), file), file) /* + KINEO-NOME-NAO-CRUZA-PONTO-1111 (antes do nome-sem-corpo) */ // + KINEO-NOME-SEM-CORPO-1111 (antes da espécie) // + KINEO-ESPECIE-NAO-E-GENTE-1111 // KINEO-LEGENDA-SEM-ASPAS-1111 + KINEO-SEM-PERSONAGEM-INVENTADO-1111 — as camadas mais novas (11/11) saem antes, em toda cadeia
   const entry = LEGENDA_NEGACAO_0911.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source
   const text = lf(source)

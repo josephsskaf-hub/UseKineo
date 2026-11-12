@@ -12,6 +12,7 @@ import { join } from 'node:path'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 import { semQuandoNaoEGalinha0911, deltaQuandoNaoEGalinha0911Exato, QUANDO_NAO_E_GALINHA_0911 } from './test-support/desfaz-quando-nao-e-galinha-0911.mjs'
 import { semNomeSemCorpo1111 } from './test-support/desfaz-nome-sem-corpo-1111.mjs' // KINEO-NOME-SEM-CORPO-1111
+import { semNomeNaoCruzaPonto1111 } from './test-support/desfaz-nome-nao-cruza-ponto-1111.mjs' // KINEO-NOME-NAO-CRUZA-PONTO-1111
 import { semEspecieNaoEGente1111 } from './test-support/desfaz-especie-nao-e-gente-1111.mjs' // KINEO-ESPECIE-NAO-E-GENTE-1111
 
 let ok = 0
@@ -129,6 +130,10 @@ function prova(ep, base) {
   }
   for (const [texto, nome, rotulo] of IGUAIS_A_BASE) {
     const a = sai(ep, texto, nome), b = sai(base, texto, nome)
+    // KINEO-NOME-NAO-CRUZA-PONTO-1111 — na base, um nome de até 4 letras antes de ponto ("…named Tom. Tom swam") era lido como título ("Tom. Tom") e o
+    // bicho SUMIA do elenco ("(ausente)"); agora ele entra como entraria "Rusty" no mesmo texto. Só essa diferença é aceita: base ausente, nome curto seguido de
+    // ". <nome>", e o mesmo tipo que "Rusty" teria.
+    if (a !== b && b === '(ausente)' && nome.length <= 4 && texto.includes(`${nome}. ${nome}`) && a.split(':')[0] === sai(ep, texto.split(nome).join('Rusty'), 'Rusty').split(':')[0]) continue // o Tom sai do MESMO tipo que um nome longo no mesmo texto (o comportamento de sempre para Rusty/Bella)
     if (a !== b) erros.push(`B ${rotulo}: "${a.slice(0, 50)}" ≠ base "${b.slice(0, 50)}"`)
   }
   return erros
@@ -174,7 +179,7 @@ const base = carregaBase()
 
 // ── D. recibo exato da TRAVA 8.2 ────────────────────────────────────────────────────────────────────────────────────────
 {
-  const hoje = semEspecieNaoEGente1111(semNomeSemCorpo1111(readFileSync(join(raiz, EPOCA), 'utf8'), EPOCA), EPOCA) // KINEO-ESPECIE-NAO-E-GENTE-1111 — a camada mais nova (11/11) sai antes do recibo
+  const hoje = semEspecieNaoEGente1111(semNomeSemCorpo1111(semNomeNaoCruzaPonto1111(readFileSync(join(raiz, EPOCA), 'utf8'), EPOCA), EPOCA), EPOCA) // KINEO-ESPECIE-NAO-E-GENTE-1111 — a camada mais nova (11/11) sai antes do recibo
   checa('D recibo: desfazer devolve a base exata', semQuandoNaoEGalinha0911(hoje, EPOCA).replace(/\r\n/g, '\n') === BASE_FONTE.replace(/\r\n/g, '\n'))
   checa('D recibo: o arquivo de hoje é exatamente base + esta entrega', deltaQuandoNaoEGalinha0911Exato(hoje, BASE_FONTE, EPOCA))
   checa('D recibo: edição a mais reprova', !deltaQuandoNaoEGalinha0911Exato(hoje.replace('KINEO-QUANDO-NAO-E-GALINHA-0911', 'KINEO-QUANDO-NAO-E-GALINHA-0911 x'), BASE_FONTE, EPOCA))

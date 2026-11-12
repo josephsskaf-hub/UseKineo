@@ -187,7 +187,11 @@ const VERBO_RE = /^(?:is|was|are|were|has|had|does|did|can|could|will|would|says
 const LUGAR_ANTES_RE = /\b(?:in|at|from|near|into|across|through|toward|towards|around|outside|inside|within|via|along|beyond|beneath|under|above|behind|over)\s+(?:the\s+|a\s+|an\s+)?$/i // KINEO-ELENCO-EPOCA-2710
 const NOMEADO_ANTES_RE = /\b(?:named|called|known\s+as|nicknamed|chamad[oa]|llamad[oa]|nombrad[oa]|appelé[e]?|chiamat[oa]|numit[ăa]?)\s+$/i // KINEO-ELENCO-EPOCA-2710
 const PALAVRA_NOME = String.raw`\p{Lu}[\p{Ll}'’]{1,}(?:-\p{Lu}?[\p{Ll}]+)?` // KINEO-ELENCO-EPOCA-2710
-const NOME_RUN_RE = new RegExp(String.raw`(?<![\p{L}\p{N}'’])((?:\p{Lu}[\p{Ll}]{0,3}\. )?${PALAVRA_NOME}(?:(?: (?:${[...PARTICULAS].join('|')}))? ${PALAVRA_NOME}){0,2})(?![\p{L}\p{N}])`, 'gu') // KINEO-ELENCO-EPOCA-2710
+// KINEO-NOME-NAO-CRUZA-PONTO-1111 [CEO 11/11, vigia do filme do Leo, o único pagante do dia] — o prefixo "Dr. "/"St. " aceitava QUALQUER palavra de até 4 letras
+// com ponto: "…said Leo. Playing was so much fun" virou o personagem "Leo. Playing", com OUTRA cara (menino de 9 anos, cabelo preto, suéter roxo), que entrou como
+// "Named character in this shot" nas cenas 1 e 5 e trocou o Leo no fim. Agora o prefixo é só título de verdade ou inicial ("J. ").
+const TITULO_COM_PONTO_1111 = String.raw`(?:\p{Lu}|Dr|Mr|Mrs|Ms|Mx|St|Sr|Jr|Prof|Gen|Col|Capt|Cpt|Lt|Sgt|Rev|Fr|Mme|Mlle|Sra|Srta)\. `
+const NOME_RUN_RE = new RegExp(String.raw`(?<![\p{L}\p{N}'’])((?:${TITULO_COM_PONTO_1111})?${PALAVRA_NOME}(?:(?: (?:${[...PARTICULAS].join('|')}))? ${PALAVRA_NOME}){0,2})(?![\p{L}\p{N}])`, 'gu') // KINEO-ELENCO-EPOCA-2710
 
 const limpa = (s: string) => String(s ?? '').replace(/\s+/g, ' ').trim() // KINEO-ELENCO-EPOCA-2710
 for (const palavra of PALAVRAS_DE_SECAO) NAO_NOME.add(palavra) // KINEO-ELENCO-MARCADOR-2910 — inclui rótulos soltos, em qualquer caixa.

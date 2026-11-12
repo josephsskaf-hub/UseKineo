@@ -1,0 +1,16 @@
+{
+  "marker": "KINEO-NOME-NAO-CRUZA-PONTO-1111",
+  "scope": {
+    "lib/cinematic/elencoEpoca.ts": {
+      "beforeSha256": "7e43f2aa3b9a590e526367132c35504de6ee1e714d3ae0c0c282efd1bcee6fd2",
+      "afterSha256": "ada566905ee33a78bb70445a810c648dfa25d6f9dbd2a8f3c056ead1017ad899",
+      "hunks": [
+        {
+          "before": "const NOME_RUN_RE = new RegExp(String.raw`(?<![\\p{L}\\p{N}'’])((?:\\p{Lu}[\\p{Ll}]{0,3}\\. )?${PALAVRA_NOME}(?:(?: (?:${[...PARTICULAS].join('|')}))? ${PALAVRA_NOME}){0,2})(?![\\p{L}\\p{N}])`, 'gu') // KINEO-ELENCO-EPOCA-2710",
+          "after": "// KINEO-NOME-NAO-CRUZA-PONTO-1111 [CEO 11/11, vigia do filme do Leo, o único pagante do dia] — o prefixo \"Dr. \"/\"St. \" aceitava QUALQUER palavra de até 4 letras\n// com ponto: \"…said Leo. Playing was so much fun\" virou o personagem \"Leo. Playing\", com OUTRA cara (menino de 9 anos, cabelo preto, suéter roxo), que entrou como\n// \"Named character in this shot\" nas cenas 1 e 5 e trocou o Leo no fim. Agora o prefixo é só título de verdade ou inicial (\"J. \").\nconst TITULO_COM_PONTO_1111 = String.raw`(?:\\p{Lu}|Dr|Mr|Mrs|Ms|Mx|St|Sr|Jr|Prof|Gen|Col|Capt|Cpt|Lt|Sgt|Rev|Fr|Mme|Mlle|Sra|Srta)\\. `\nconst NOME_RUN_RE = new RegExp(String.raw`(?<![\\p{L}\\p{N}'’])((?:${TITULO_COM_PONTO_1111})?${PALAVRA_NOME}(?:(?: (?:${[...PARTICULAS].join('|')}))? ${PALAVRA_NOME}){0,2})(?![\\p{L}\\p{N}])`, 'gu') // KINEO-ELENCO-EPOCA-2710"
+        }
+      ]
+    }
+  },
+  "addedSources": {}
+}
