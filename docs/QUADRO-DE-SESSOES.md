@@ -34,12 +34,10 @@ Antes de publicar, escreva aqui: sessão · SHA · hora. Se já houver linha de 
 Imediatamente antes da publicação, faça fetch e rebase, rode `npx tsc --noEmit` e os guardiões da área e confira a reserva novamente. Depois do deploy "success", apague só a sua linha e registre em "No ar" com o SHA. A divisão de teste do Claude confere a tela publicada e lista aqui os defeitos.
 | Sessão | SHA | Começou |
 |---|---|---|
-| Codex · otimizar GPT · descoberta Runway | ec47d9adee3f21921907c0618022ed3b1ac2f71a | 2026-11-12T13:15:58Z |
 
 ## Em obra
 | Quando começou | Sessão | O que | Arquivos principais | Branch / worktree |
 |---|---|---|---|---|
-| 12/11 (retomada das 10h BRT) | Codex · otimizar GPT · missão 09–16/11 | Leitura de 48h concluída; ligar somente a comparação Runway já revisada ao llms. Não altera guias, páginas, oferta, motores ou a pesquisa de listas da outra sessão | app/llms.txt/route.ts | codex/citacoes-descoberta-runway-20261112 · C:/kineo-wt/citacoes-descoberta-runway-20261112 |
 | 11/11 00:27 −03:00 | CEO Codex | Coordenar Telas e Produto, Product Story e Citações. Revisar os SHAs locais, conciliar reservas e publicar uma entrega por vez | docs/QUADRO-DE-SESSOES.md | codex/ceo-coordenacao-1111 |
 | 11/11 00:30 −03:00 | Codex · Telas e Produto | Conferir Elevator com uma foto e o formato com duas. Primeiro diagnóstico somente leitura. Em seguida, inventariar o WIP de Clips | app/recreate/RecreateClient.tsx, docs/recreate-1011/test-photo-flow.cjs; leitura do WIP de Clips | `C:/Users/josep/.codex/worktrees/341b/kineo` |
 | 11/11 00:30 −03:00 | Codex · Product Story | Retomar a obra offline do Dia 2 e validar a correção do Dia 3: quadro real 1536×2752, falha terminal e retomada idempotente com quadro inválido | lib/ads/productStory/adapter.ts, lib/ads/productStory/preparation.ts, guardiões Product Story | `C:/Users/josep/.codex/worktrees/4081/kineo`; origem do WIP: codex/ads-product-story-day2-1011 |
@@ -77,6 +75,7 @@ Imediatamente antes da publicação, faça fetch e rebase, rode `npx tsc --noEmi
 ## No ar
 | Quando | O que | SHA |
 |---|---|---|
+| 12/11 10:16 −03:00 | Codex · otimizar GPT · descoberta: llms liga diretamente a comparação Runway já revisada. Uma linha; demais bytes/cabeçalhos idênticos em teste offline. Typecheck e guardiões llms/Runway verdes. READY dpl_3mFPMqCZwQP6cY86Wqqo4cKHKaxq; HTTP 200 no llms e destino, canonical e dois links ao Studio conferidos. Guias e demais páginas não alterados. Reserva encerrada. | Código ec47d9adee3f21921907c0618022ed3b1ac2f71a; lote 441338d1a7715e2d7b59bec12a93cdc2c6a25726 |
 | 11/11 07:26 −03:00 | Codex · Citações semana · dia 6. Filme padrão inglês corrige linha corrente H3, prazo, texto mensal e data; llms acompanha a recarga pública de assinantes sem mudar a oferta. READY dpl_8fkwQsrRsffQdpcTFRZntM7a3MRY, HTTP e Chrome desktop/mobile conferidos. Typecheck base/resultado e testes pertinentes verdes. Reserva encerrada; amanhã só medição final da missão, não ocupa arquivos de produto. | `e351ced17a3b2ffa3be123703d2cf32ddfdad5f3` (H3 `85586c9ee`, llms `d4fa21395`) |
 | 11/11 madrugada | Laço do revisor (tarefa noturna, Claude · área Vídeo): "a giant carrot" não vira mais personagem gigante — o homem barbudo do filme do ursinho (render 2176bed6). Só lib/cinematic/folhaDePersonagem.ts + guardião + recibo 8.2. Revisão adversarial LIMPO na 3ª volta | `34bfaa300` |
 | 11/11 00:39 -03:00 | CEO Codex · organização das três divisões e reservas publicadas no GitHub. Deploy conferido com status success. | `1e2036999` |
