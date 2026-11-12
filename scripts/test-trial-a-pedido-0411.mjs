@@ -22,7 +22,8 @@ checa('A mutante: todo mundo no mesmo lado seria percebido', ids.filter((id) => 
 const ini = Date.parse(m.TRIAL_PEDIDO_INICIO_UTC), fim = Date.parse(m.TRIAL_PEDIDO_FIM_UTC)
 checa('B dura 30 dias', fim - ini === 30 * 86400000)
 checa('B antes e depois do teste: fechado', !m.testeAberto(ini - 1) && !m.testeAberto(fim))
-checa('B durante: aberto', m.testeAberto(ini) && m.testeAberto(fim - 1))
+checa('B durante, com o interruptor ligado: aberto', m.testeAberto(ini, true) && m.testeAberto(fim - 1, true))
+checa('B KINEO-TRIAL-A-PEDIDO-ENCERRADO-1211: o dono encerrou em 12/11 — interruptor desligado, sorteio fechado dentro da janela', m.TRIAL_PEDIDO_LIVE === false && !m.testeAberto(ini) && !m.testeAberto(fim - 1))
 checa('B interruptor desligado fecha', !m.testeAberto(ini, false))
 
 // C. faixa

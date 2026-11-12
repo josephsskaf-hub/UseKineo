@@ -12,7 +12,11 @@
 //   · KINEO-FLUXO2-G-0411: o desenho do lado "a pedido" mudou em 04/11, antes de haver resultado. Medir em separado (docs/DECISAO-TRIAL-A-PEDIDO-PREVIA-2026-11-04.md).
 //
 // Módulo puro: sem env, sem banco. Guardião: scripts/test-trial-a-pedido-0411.mjs.
-export const TRIAL_PEDIDO_LIVE: boolean = true
+// KINEO-TRIAL-A-PEDIDO-ENCERRADO-1211 [dono 12/11 ~12:20, vendo a foto A/B/C com o placar de 8 dias: "podemos encerrar, seguir com sua sugestão"]
+// — o sorteio parou: toda conta nova volta a nascer com o filme grátis. Placar 04/11→12/11: crédito na hora 44 contas / 26 filmes (59%) /
+// 7 idas ao pagamento / 1 pago · a pedido 40 contas / 16 filmes (40%) / 2 idas / 0 pago. Quem já nasceu 'on_request' e ainda não pediu
+// continua com a faixa e o botão (a faixa e /api/trial/claim não leem este interruptor). Para reabrir: true (a janela vai até 04/12).
+export const TRIAL_PEDIDO_LIVE: boolean = false
 export const TRIAL_PEDIDO_INICIO_UTC = '2026-11-04T17:00:00.000Z'
 export const TRIAL_PEDIDO_FIM_UTC = '2026-12-04T17:00:00.000Z'
 export const TRIAL_PEDIDO_STATUS = 'on_request'
