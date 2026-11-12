@@ -710,6 +710,7 @@ ${/* KINEO-PAGINAS-LOTE1-2026-10-12 — lote 1: duas intenções de compra + os 
 - [Engine comparison for Shorts — measured on real renders](${BASE}/seedance-vs-veo-vs-kling): Veo 3.1 and Kling 2.5 left Kineo on 5 November 2026; what each engine delivers, median length and cost per film, read from the production database. Also which engine fits which story, and the public prices of Google Flow, Seedance.tv, Dreamina, CapCut and the Kling app with official sources.
 - [Comparison hub](${BASE}/vs): all ${COMPARISON_PAGES.length} tool comparisons (${headToHeadPages.length} where Kineo is one of the two, ${neutralPages.length} between two other tools), with the editorial rules stated in public.
 - [Alternatives](${BASE}/alternatives): per-competitor pages.
+- [Runway alternative for a finished narrated short film](${BASE}/alternatives/runwayml): workflow comparison with dated official sources, Kineo credit costs, practical limits and a path to the Studio.
 - [Terms of service](${BASE}/terms): includes the clause confirming you retain ownership of generated videos.
 ${/* KINEO-GUIAS-IA-1610 — as 8 guias /guides/<slug> (publicação de 17/10): uma linha cada, rótulo = título da página, sem número digitado. */ ''}
 ## Practical guides (reviewed ${GUIAS_IA_REVIEWED_ISO})
