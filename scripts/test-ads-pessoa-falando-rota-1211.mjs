@@ -40,6 +40,7 @@ function mundo(over = {}) {
     return mod.exports
   }
   ctx.rota = load(ROTA)
+  ctx.load = load
   ctx.plat = load(`${PF}/plataforma.ts`)
   ctx.post = async (body) => ctx.rota.POST({ json: async () => { ctx.corpoLido++; return body } })
   return ctx
@@ -118,6 +119,17 @@ async function bateria(over = {}) {
     if (await P.estornarPessoaFalando(io, 'p1') !== 40 || saldo !== 100) throw new Error('estorno não integral')
     if (await P.estornarPessoaFalando(io, 'p1') !== 0 || saldo !== 100) throw new Error('estornou 2 vezes')
     if (P.chaveDeCobranca('p1') !== 'adspf-p1') throw new Error('chave mudou')
+  })
+  await check('(E) roteiro e fotos-chave: 404 fora; fotos-chave ainda não cobra', async () => {
+    const c = mundo(over); c.casa = false
+    for (const r of ['app/api/ads/pessoa-falando/roteiro/route.ts', 'app/api/ads/pessoa-falando/fotos-chave/route.ts']) {
+      const res = await c.load(r).POST({ json: async () => { c.corpoLido++; return {} } })
+      if (res.status !== 404) throw new Error(r + ' fora = ' + res.status)
+    }
+    const d = mundo(over)
+    const f = await d.load('app/api/ads/pessoa-falando/fotos-chave/route.ts').POST({ json: async () => ({}) })
+    if (f.status !== 501 || f.body.charged !== false) throw new Error('fotos-chave ' + f.status)
+    if (d.redes !== 0) throw new Error('fotos-chave tocou a rede')
   })
   return p
 }

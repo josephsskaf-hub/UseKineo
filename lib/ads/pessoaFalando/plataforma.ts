@@ -11,10 +11,11 @@
 import { KINEO_ADS_PESSOA_FALANDO, pessoaFalandoLigado, apresentador, formato, type ApresentadorId, type FormatoId, type ModoPessoaFalando } from './formatos'
 import type { Roteiro } from './roteiro'
 import { duracaoDaFala } from './prompts'
+import { ADS_PESSOA_FALANDO_CREDITS } from './telaContrato'
 
-/** Créditos por anúncio pessoa falando de 10 s. DECIDIDO PELO DONO em 12/11/2026: respondeu "B" à foto docs/decisoes-1211/preco-anuncio-falado-ABC.png
- *  (55 créditos; a conta da foto é a do anúncio de 10 s, custo de fornecedor ≈ US$ 3,30). null = o pedido pago não abre. */
-export const ADS_PESSOA_FALANDO_CREDITS: number | null = 55
+// O NÚMERO mora no contrato da tela (lib/ads/pessoaFalando/telaContrato.ts, Div. 1): 55 créditos, decidido pelo dono em 12/11 (respondeu "B"
+// à foto docs/decisoes-1211/preco-anuncio-falado-ABC.png). Aqui só se reexporta — nunca dois números.
+export { ADS_PESSOA_FALANDO_CREDITS } from './telaContrato'
 /** No lançamento, SÓ 10 s (fala de até 25 palavras — duracaoDaFala da Div. 2). O de 12 s fica fora até o dono decidir o preço dele
  *  (decisão da CEO 12/11 na ausência dele, a recomendada). Fala maior volta ao cliente para encurtar; nada é cobrado. */
 export const ADS_PESSOA_FALANDO_SEGUNDOS_ABERTOS: readonly ('10' | '12')[] = ['10']
@@ -45,6 +46,8 @@ const URL_HTTPS = /^https:\/\/[^\s"'<>]{8,600}$/
 
 export interface PedidoPessoaFalando {
   dryRun: boolean
+  /** A foto-chave que a pessoa escolheu (PedidoDeVideo.fotoChave). null nos passos de antes. */
+  fotoChave: string | null
   entrada: { apresentadorId: ApresentadorId; formatoId: FormatoId; produto: string; fotoDoProduto: string; frase: string; roupa?: string }
   roteiro: Roteiro | null
 }
@@ -53,11 +56,15 @@ export interface PedidoPessoaFalando {
 export function lerPedido(body: unknown): { ok: true; pedido: PedidoPessoaFalando } | { ok: false; erro: string } {
   if (!body || typeof body !== 'object' || Array.isArray(body)) return { ok: false, erro: 'body_must_be_an_object' }
   const b = body as Record<string, unknown>
-  if (!apresentador(b.apresentador)) return { ok: false, erro: 'unknown_presenter' }
-  if (!formato(b.formato)) return { ok: false, erro: 'unknown_format' }
+  // KINEO-ADS-PESSOA-FALANDO-PLATAFORMA-1211 — os nomes do contrato da tela (telaContrato.ts: apresentadorId, formatoId, fotoDoProduto, fotoChave)
+  const apresentadorId = b.apresentadorId ?? b.apresentador
+  const formatoId = b.formatoId ?? b.formato
+  if (!apresentador(apresentadorId)) return { ok: false, erro: 'unknown_presenter' }
+  if (!formato(formatoId)) return { ok: false, erro: 'unknown_format' }
   const produto = typeof b.produto === 'string' ? b.produto.trim() : ''
   const frase = typeof b.frase === 'string' ? b.frase.trim() : ''
-  const foto = typeof b.foto_do_produto === 'string' ? b.foto_do_produto.trim() : ''
+  const fotoBruta = b.fotoDoProduto ?? b.foto_do_produto
+  const foto = typeof fotoBruta === 'string' ? fotoBruta.trim() : ''
   if (produto.length < 3 || produto.length > 200) return { ok: false, erro: 'product_3_to_200_chars' }
   if (frase.length < 3 || frase.length > 300) return { ok: false, erro: 'claim_3_to_300_chars' }
   if (!URL_HTTPS.test(foto)) return { ok: false, erro: 'product_photo_must_be_https_url' }
@@ -73,9 +80,10 @@ export function lerPedido(body: unknown): { ok: true; pedido: PedidoPessoaFaland
   // KINEO-ADS-PESSOA-FALANDO-PLATAFORMA-1211 — só a duração com preço decidido (hoje 10 s = até 25 palavras).
   if (roteiro && !ADS_PESSOA_FALANDO_SEGUNDOS_ABERTOS.includes(duracaoDaFala(roteiro.fala))) return { ok: false, erro: 'only_10_second_ads_for_now_max_25_words' }
   const dryRun = b.dry_run === true
+  const fotoChave = typeof b.fotoChave === 'string' && URL_HTTPS.test(b.fotoChave.trim()) ? b.fotoChave.trim() : null
   if (dryRun && !roteiro) return { ok: false, erro: 'dry_run_needs_the_script' } // o dry-run não chama o escritor (nem a OpenAI): o roteiro vem no pedido
   const roupa = typeof b.roupa === 'string' && b.roupa.trim() ? b.roupa.trim().slice(0, 200) : undefined
-  return { ok: true, pedido: { dryRun, roteiro, entrada: { apresentadorId: b.apresentador as ApresentadorId, formatoId: b.formato as FormatoId, produto, fotoDoProduto: foto, frase, ...(roupa ? { roupa } : {}) } } }
+  return { ok: true, pedido: { dryRun, roteiro, fotoChave, entrada: { apresentadorId: apresentadorId as ApresentadorId, formatoId: formatoId as FormatoId, produto, fotoDoProduto: foto, frase, ...(roupa ? { roupa } : {}) } } }
 }
 
 export type Reserva = 'reserved' | 'insufficient' | 'unavailable'
