@@ -453,9 +453,23 @@ export function personagensNomeados(textoIngles: string, epoca: Epoca | null = n
 
 const SEM_NOME_RE = new RegExp(String.raw`\b(?:a|an|the|one)\s+((?:(?:sad|happy|young|little|tiny|small|big|old|elderly|teenage|brave|clever|lonely|curious|shy|kind|poor|rich|tall|short|scared|sleepy|tired|exhausted|weary|nervous|quiet|lost|late|lone|lonely|middle-aged|cheerful|grumpy|mysterious|friendly|wise|night-shift|night)\s+){0,3}(?:${PESSOAS}))\b`, 'i') // KINEO-ELENCO-EPOCA-2710
 /** Protagonista SEM nome ("a tired commuter", "a young man"): o 1º papel humano do texto em inglês. */ // KINEO-ELENCO-EPOCA-2710
-export function protagonistaSemNome(textoIngles: string, epoca: Epoca | null = null, infantil = false): PersonagemNomeado | null { // KINEO-ELENCO-EPOCA-2710
+// KINEO-IDEIA-FICHA-ASSUNTO-1211 (A) — filme pago "Jonathan" (12/11, Kling 4): "older than the first photograph of a person" virou "the person, a
+// person in their thirties with short reddish hair…" de costas no plano 2. O papel sem nome era o 1º "artigo + substantivo de gente" do texto, em
+// QUALQUER posição. Regra (estrutura da frase, sem lista de entidades): o papel só vira elenco se ao menos UMA menção dele (artigo + até 3
+// adjetivos + o mesmo substantivo) NÃO estiver regida por preposição de referência/comparação (of, than, like, unlike, as, from, about, for, per,
+// versus). "photograph of a person", "older than a man", "like a child" são termo de comparação, nunca alguém em cena; "A tired commuter waits",
+// "Meet a man who…", "the stranger smiled" seguem atores. "by/with/to/in" ficam de fora de propósito (agente da passiva e companhia costumam ser
+// gente de verdade). Atrás de ELENCO_PROVA_DE_GENTE (lib/cinematic/provaDeGente): desligado = byte a byte o de antes.
+const REGENCIA_DE_REFERENCIA_RE = /(?:^|[^\p{L}])(?:of|than|like|unlike|as|from|about|for|per|versus|vs\.?)\s+$/iu // KINEO-IDEIA-FICHA-ASSUNTO-1211
+/** KINEO-IDEIA-FICHA-ASSUNTO-1211 (A) — o papel sem nome tem ao menos uma menção fora de regência de referência/comparação? */
+export function papelSemNomeAge(texto: string, nucleo: string): boolean { // KINEO-IDEIA-FICHA-ASSUNTO-1211
+  const re = new RegExp(String.raw`\b(?:a|an|the|one)\s+(?:(?!(?:a|an|the|one|of|than|like|unlike|as|from|about|for|per|versus|vs|to|in|on|at|by|with|and|or)\s)[\p{Ll}-]+\s+){0,3}?${escapaRe(nucleo)}\b`, 'giu') // KINEO-IDEIA-FICHA-ASSUNTO-1211
+  for (const m of String(texto ?? '').matchAll(re)) if (!REGENCIA_DE_REFERENCIA_RE.test(texto.slice(Math.max(0, (m.index ?? 0) - 12), m.index ?? 0))) return true // KINEO-IDEIA-FICHA-ASSUNTO-1211
+  return false // KINEO-IDEIA-FICHA-ASSUNTO-1211
+} // KINEO-IDEIA-FICHA-ASSUNTO-1211
+export function protagonistaSemNome(textoIngles: string, epoca: Epoca | null = null, infantil = false, provaDeGente = false): PersonagemNomeado | null { // KINEO-ELENCO-EPOCA-2710 · KINEO-IDEIA-FICHA-ASSUNTO-1211: provaDeGente
   const texto = limpa(String(textoIngles ?? '').replace(/\[[^\]]*\]/g, ' ')).slice(0, 8000) // KINEO-ELENCO-EPOCA-2710
-  const m = SEM_NOME_RE.exec(texto) // KINEO-ELENCO-EPOCA-2710
+  const m = provaDeGente ? [...texto.matchAll(new RegExp(SEM_NOME_RE.source, 'gi'))].find((x) => papelSemNomeAge(texto, limpa(x[1]).split(' ').pop() ?? '')) ?? null : SEM_NOME_RE.exec(texto) // KINEO-ELENCO-EPOCA-2710 · KINEO-IDEIA-FICHA-ASSUNTO-1211 (A) — ligado: o 1º papel que AGE em alguma menção
   if (!m) return null // KINEO-ELENCO-EPOCA-2710
   const papel = limpa(m[1]) // KINEO-ELENCO-EPOCA-2710
   const nucleo = papel.split(' ').pop() ?? papel // KINEO-ELENCO-EPOCA-2710
@@ -591,7 +605,7 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
     }
     let fichaNasCenasComGente: number[] = [] // KINEO-PROTAGONISTA-DOC-0311
     if (elenco.length === 0) { // KINEO-ELENCO-EPOCA-2710
-      const semNome = protagonistaSemNome(texto, epoca, infantil) // KINEO-ELENCO-EPOCA-2710
+      const semNome = args.provaDeGente === true ? protagonistaSemNome(texto, epoca, infantil, true) : protagonistaSemNome(texto, epoca, infantil) // KINEO-ELENCO-EPOCA-2710 · KINEO-IDEIA-FICHA-ASSUNTO-1211 (A) — "photograph of a person" não é elenco
       // só quando NENHUM prompt mostra gente: o passageiro do último trem sumiu porque as 3 cenas eram plataforma, relógio e trilho // KINEO-ELENCO-EPOCA-2710
       const comGente = prompts.map((p) => GENTE_NO_PROMPT_RE.test(p.replace(/no (?:foreground )?(?:human )?faces?/gi, '').replace(/No people, no human figures and no faces anywhere in this shot\./g, '').replace(/talking head|foreground human face/gi, ''))) // KINEO-PROTAGONISTA-DOC-0311
       if (semNome && !comGente.some(Boolean)) elenco = [semNome]

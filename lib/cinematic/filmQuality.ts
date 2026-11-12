@@ -8,6 +8,7 @@ import { aplicarContrato, montarContrato } from '@/lib/cinematic/sceneTruth'
 import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
 import { applyStyleAnchor, NO_READABLE_TEXT_SUFFIX, textSafetySuffix, type StyleAnchor } from '@/lib/cinematic/sceneStyle'
 import { fraseUnicaDeSuperficie } from '@/lib/cinematic/superficieSemTexto' // KINEO-PESSOA-DO-PEDIDO-1111 (degrau 4)
+import { FRASE_PRODUTO_MARCA, EMBALAGEM_COR_LISA, EMBALAGEM_DO_PRODUTO } from '@/lib/cinematic/ideiaNaFicha' // KINEO-IDEIA-FICHA-ASSUNTO-1211 (C)
 import type { FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
 import { conferirFichaLiteral, type LeituraDaFicha } from '@/lib/cinematic/elencoSemantico' // KINEO-PROTAGONISTA-SEEDANCE-0111
 import type { FilmQualitySnapshot } from '@/lib/filmComplete/qualityInheritance'
@@ -161,7 +162,12 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
   // junto do meio; a prova paga do 657ad797 saiu de noite com luminárias num pedido de sol pelas janelas.
   const luzPedida = /Lighting as the customer asked: ([^.]+)\./.exec(prompt)?.[1]?.trim()
   if (luzPedida) action = action.replace(/\s*Lighting as the customer asked: [^.]+\./g, '').trim()
-  const superficie = fraseUnicaDeSuperficie(prompt)
+  // KINEO-IDEIA-FICHA-ASSUNTO-1211 (C) — o produto que a ideia descreveu (lib/cinematic/ideiaNaFicha: "The product shown is always this same one: …")
+  // vai curto na frente, como o lugar; e, com ele, a frase da embalagem não pede cor lisa (a garrafa de vidro saía laranja/mostarda). Sem a
+  // marca no prompt (interruptor desligado): byte a byte o de antes.
+  const produtoDaIdeia = new RegExp(`${FRASE_PRODUTO_MARCA} (.+?)\\.(?=\\s|$)`).exec(prompt)?.[1]?.trim()
+  if (produtoDaIdeia) action = action.replace(new RegExp(`\\s*${FRASE_PRODUTO_MARCA} .+?\\.(?=\\s|$)`), '').trim()
+  const superficie = produtoDaIdeia ? fraseUnicaDeSuperficie(prompt).split(EMBALAGEM_COR_LISA).join(EMBALAGEM_DO_PRODUTO) : fraseUnicaDeSuperficie(prompt) // KINEO-IDEIA-FICHA-ASSUNTO-1211 (C)
   if (superficie) action = action.split(superficie).join('').replace(/\s{2,}/g, ' ').trim()
   // KINEO-LUGAR-DO-PEDIDO-1111 — o lugar que o cliente pediu (a rota o põe em toda cena: "Setting as the customer asked: …") vai curto, na frente
   // KINEO-LUGAR-UNICO-1111 [CEO 11/11] — e o lugar do FILME (sem lugar no pedido, o único que as cenas citam) com o seu rótulo próprio
@@ -170,7 +176,7 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
   // KINEO-LUGAR-DO-PEDIDO-1111 — a época sem época ("…the historical era being narrated", quando o pedido tem cara de época mas não tem ano) não
   // entra no plano, e a época de verdade corta em fronteira: o filme 2120f018 (11/11 17:00) saiu "…the historical era being narrat."
   const periodoUtil = period && !/historical era being narrated/i.test(period) ? cortaEmFronteira(period, 60).replace(/[.,;\s]+$/, '') : ''
-  const prefix = `${medium}. ${periodoUtil ? periodoUtil + '. ' : ''}${lugarPedido ? `Place: ${cortaEmFronteira(lugarPedido, 70).replace(/[.,;\s]+$/, '')}. ` : ''}${luzPedida ? `Light: ${cortaEmFronteira(luzPedida, 90).replace(/[.,;\s]+$/, '')}. ` : ''}${origemCurta}` // KINEO-LUZ-DO-PEDIDO-1111
+  const prefix = `${medium}. ${periodoUtil ? periodoUtil + '. ' : ''}${lugarPedido && !produtoDaIdeia /* KINEO-IDEIA-FICHA-ASSUNTO-1211 (C): com o produto da ideia, o lugar cede (pessoa, produto e ação primeiro; o lugar já está na imagem-chave) */ ? `Place: ${cortaEmFronteira(lugarPedido, 70).replace(/[.,;\s]+$/, '')}. ` : ''}${luzPedida ? `Light: ${cortaEmFronteira(luzPedida, 90).replace(/[.,;\s]+$/, '')}. ` : ''}${produtoDaIdeia ? `Product: ${cortaEmFronteira(produtoDaIdeia, 100).replace(/[.,;\s]+$/, '')}. ` : '' /* KINEO-IDEIA-FICHA-ASSUNTO-1211 (C) */}${origemCurta}` // KINEO-LUZ-DO-PEDIDO-1111
   // KINEO-PONTUACAO-SOLTA-1111 [CEO 11/11, ensaio da alavanca 2] — o que se tira da ação (época, superfície, lugar, luz) deixava pontuação órfã
   // no fim ("…flickering candlelight. , . no readable text" no plano 1 do 2120f018): a ação termina na sua última frase.
   action = action.replace(/([.!?])(?:\s*[,;:.])+\s*$/u, '$1')
@@ -303,7 +309,7 @@ export function prepararQualidadeDoFilme(args: {
       if (!p.includes(ficha.canonica)) p += CLAUSULA_FICHA(canonicaComDesenhoFixo(ficha))
     }
     // KINEO-SUJEITO-DA-FALA-3010 — o assunto que a fala nomeia (Vênus) entra na cena que não o mostra; gente do elenco fica com a ficha
-    if (args.modo !== 'presenter') p = comSujeitoDaFala(p, args.falas[i] ?? '', [...elenco.map(f => f.nome), ...cast.relato.elenco.map(e => e.nome)])
+    if (args.modo !== 'presenter') p = args.provaDeGente === true ? comSujeitoDaFala(p, args.falas[i] ?? '', [...elenco.map(f => f.nome), ...cast.relato.elenco.map(e => e.nome)], true) : comSujeitoDaFala(p, args.falas[i] ?? '', [...elenco.map(f => f.nome), ...cast.relato.elenco.map(e => e.nome)]) // KINEO-IDEIA-FICHA-ASSUNTO-1211 (B) — ligado: o nome de referência ("from Africa") não vira o assunto do plano
     // KINEO-DESFECHO-3010 — a ÚLTIMA cena mostra o último acontecimento da fala (a festa do pijama), nunca volta ao começo
     if (args.modo !== 'presenter' && i === cast.prompts.length - 1) p = comDesfechoDaFala(p, args.falas[i] ?? '')
     p = comUniformeSemMarca(p, args.contextoOriginal) // KINEO-SEM-MARCA-3010
@@ -336,7 +342,13 @@ const PREPOSICAO_INICIAL_0411 = new Set(['On', 'In', 'At', 'From', 'To', 'Near',
 const DATA_0411 = new Set('january february march april may june july august september october november december monday tuesday wednesday thursday friday saturday sunday janeiro fevereiro marco abril maio junho julho agosto setembro outubro novembro dezembro segunda terca quarta quinta sexta sabado domingo enero febrero marzo mayo junio julio septiembre octubre noviembre diciembre lunes martes miercoles jueves viernes janvier fevrier avril juin juillet aout septembre octobre novembre decembre lundi mardi mercredi jeudi vendredi samedi dimanche gennaio febbraio aprile maggio giugno luglio settembre ottobre dicembre lunedi martedi mercoledi giovedi venerdi sabato domenica januar februar marz juni juli oktober dezember montag dienstag mittwoch donnerstag freitag samstag sonntag jan feb mar apr jun jul aug sep sept oct nov dec fev abr mai ago set out dez ene dic gen sun'.split(' ')) // abreviações de mês; "sun" também é o astro: "the Sun" não disputa com Venus
 const ALEMAO_0411 = /\b(?:und|nicht|ist|sind|einer?|einem|einen|eine|dem|auf|mit)\b/i // em alemão todo substantivo tem maiúscula: maiúscula não prova nome próprio ("Wagen and Motor")
 /** O único nome próprio limpo e isolado que a fala cita no meio da frase ("On Venus,", "is Venus!"); na dúvida, nenhum. Nunca dois. */
-export function sujeitosDaFala(fala: string): string[] {
+// KINEO-IDEIA-FICHA-ASSUNTO-1211 (B) — filme pago "Jonathan" (12/11, Kling 4): "Jonathan lives on a tiny island, nearly 2,000 kilometres from
+// Africa." virou "Africa clearly visible as the subject of this shot." e o plano saiu um mapa da África, sem penhasco nem mar. O nome regido por
+// preposição de REFERÊNCIA (distância, comparação, origem: "from X", "away from X", "older than X", "bigger than X", "like X", "via X") é ponto de
+// referência, não o assunto do plano: não entra, e por ter sido citado também não deixa outro nome sair sozinho (o assunto e a etiqueta da
+// própria cena vencem). Regra pela palavra anterior, sem lista de lugares. Atrás de ELENCO_PROVA_DE_GENTE (o mesmo interruptor que chega aqui).
+const REFERENCIA_NAO_SUJEITO_1211 = new Set(['from', 'than', 'like', 'unlike', 'via', 'beyond', 'versus', 'vs']) // KINEO-IDEIA-FICHA-ASSUNTO-1211
+export function sujeitosDaFala(fala: string, referenciaNaoESujeito = false): string[] { // KINEO-IDEIA-FICHA-ASSUNTO-1211: referenciaNaoESujeito
   const t = String(fala ?? '')
   if (/\b(?:he|she|his|her|him|hers)\b/i.test(t) || ALEMAO_0411.test(t)) return []
   const out = new Set<string>(), citadas = new Set<string>()
@@ -349,6 +361,7 @@ export function sujeitosDaFala(fala: string): string[] {
     citadas.add(m[0])
     if (!/^\p{Lu}\p{Ll}{2,}$/u.test(m[0])) continue
     const anterior = antes.split(/\s+/).pop()!.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')
+    if (referenciaNaoESujeito && REFERENCIA_NAO_SUJEITO_1211.has(anterior.toLowerCase())) continue // KINEO-IDEIA-FICHA-ASSUNTO-1211 (B) — "from Africa" é referência
     // artigo antes ("the Roman") e maiúscula antes, por espaço, hífen ou vírgula ("World War", "Sexta-feira Santa", "Dallas, Texas"); preposição que abre a frase ("On Venus") é a única exceção.
     if (ARTIGO_ANTES_0411.test(anterior) || (/^\p{Lu}/u.test(anterior) && !PREPOSICAO_INICIAL_0411.has(anterior))) continue
     // depois: fim, pontuação ou artigo. Palavra minúscula ("Roman army"), maiúscula ("Northwest Flight"), número ("Flight 2501"), hífen ("Sexta-feira"), & ("Achados & Variedades") e vírgula + nome ("Dallas, Texas") não contam.
@@ -381,9 +394,9 @@ export function comDesfechoDaFala(prompt: string, fala: string): string {
   return `Final moment of the story, clearly shown: ${desfecho}. ${prompt}`
 }
 /** A cena que não mostra o assunto nomeado pela fala ganha "<assunto> clearly visible as the subject of this shot." na frente. */
-export function comSujeitoDaFala(prompt: string, fala: string, ignorar: ReadonlyArray<string>): string {
+export function comSujeitoDaFala(prompt: string, fala: string, ignorar: ReadonlyArray<string>, referenciaNaoESujeito = false): string { // KINEO-IDEIA-FICHA-ASSUNTO-1211: referenciaNaoESujeito
   const ign = new Set(ignorar.flatMap((n) => String(n).split(/\s+/)).map((w) => w.toLowerCase()))
-  const sujeitos = sujeitosDaFala(fala).filter((s) => !ign.has(s.toLowerCase()))
+  const sujeitos = (referenciaNaoESujeito ? sujeitosDaFala(fala, true) : sujeitosDaFala(fala)).filter((s) => !ign.has(s.toLowerCase())) // KINEO-IDEIA-FICHA-ASSUNTO-1211 (B)
   const faltando = sujeitos.filter((s) => !new RegExp(`\\b${s}\\b`, 'i').test(prompt))
   // a cena já mostra um dos assuntos ("A close-up of Venus" com fala "…orbit the Sun"): fica como está
   return faltando.length && faltando.length === sujeitos.length ?`${faltando.join(' and ')} clearly visible as the subject of this shot. ${prompt}` : prompt
