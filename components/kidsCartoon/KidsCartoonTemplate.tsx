@@ -213,6 +213,16 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // KINEO-PORTA-DESENHO-VISTA-1211 — a porta "só com plano" ganha IMPRESSÃO (antes só existia o clique, kids_cartoon_plans_clicked):
+  // uma vez por montagem, quando o servidor disse que a conta não tem plano. Só telemetria; a tela não muda.
+  const portaVista = useRef(false)
+  useEffect(() => {
+    if (!semPlano || visitante || portaVista.current) return
+    portaVista.current = true
+    void trackEvent('kids_cartoon_plan_door_shown', { duration, free_film: filmeGratis })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [semPlano, visitante])
+
   function save(r: KidsRender | null) {
     try { if (r) localStorage.setItem(RENDER_KEY, JSON.stringify(r)); else localStorage.removeItem(RENDER_KEY) } catch { /* sem armazenamento */ }
   }
