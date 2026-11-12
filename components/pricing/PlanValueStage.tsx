@@ -235,11 +235,11 @@ export function PlanValueCard(props: PlanValueCardProps) {
             <span className="pv-n">{value.credits}</span> credits a month
           </span>
         </div>
-        {/* KINEO-CARTAO-DUAS-CONTAS-0511 — o que o plano faz, em filmes: a conta padrão em destaque e a do Kling 4.0 logo abaixo. */}
+        {/* KINEO-CARTAO-DUAS-CONTAS-0511 — o que o plano faz, em filmes: a conta padrão em destaque e a do filme premium (Kling 4.0) logo abaixo. KINEO-CARTAO-SEM-MOTOR-1111 [fundador 11/11]: o cartão diz "premium film", sem nome de motor; o nome segue nas perguntas frequentes e em "credits by engine". */}
         <div className="pv-films" data-kineo="plano-filmes">
           <p className="pv-films-main"><span className="pv-films-n">{filmes.padrao60}</span> {plural(filmes.padrao60, 'standard film', 'standard films')} <span className="pv-dim">· 60 s</span></p>
           {filmes.kling15 >= 1 ? (
-            <p className="pv-films-or">or {filmes.kling60 >= 1 ? <><b>{filmes.kling60}</b> Kling 4.0 {plural(filmes.kling60, 'film', 'films')} · 60 s <span className="pv-dim">(or <b>{filmes.kling15}</b> of 15 s)</span></> : <><b>{filmes.kling15}</b> Kling 4.0 {plural(filmes.kling15, 'film', 'films')} · 15 s</>}</p>
+            <p className="pv-films-or">or {filmes.kling60 >= 1 ? <><b>{filmes.kling60}</b> premium {plural(filmes.kling60, 'film', 'films')} · 60 s <span className="pv-dim">(or <b>{filmes.kling15}</b> of 15 s)</span></> : <><b>{filmes.kling15}</b> premium {plural(filmes.kling15, 'film', 'films')} · 15 s</>}</p>
           ) : null}
         </div>
         <ul className="pv-lines">
