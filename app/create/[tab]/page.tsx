@@ -9,7 +9,7 @@ import { CREATE_FILM_CAMPAIGN, type CreateTab } from '@/lib/create/tabs'
 import CreateShell from '@/components/create/CreateShell'
 import PessoaFalandoPainel from '@/components/ads/PessoaFalandoPainel' // KINEO-ADS-PESSOA-FALANDO-TELA-1211
 import { KINEO_ADS_PESSOA_FALANDO, pessoaFalandoLigado } from '@/lib/ads/pessoaFalando/formatos' // KINEO-ADS-PESSOA-FALANDO-TELA-1211
-import { isInternalEmail } from '@/lib/internalAccounts' // KINEO-ADS-PESSOA-FALANDO-TELA-1211
+import { isAdsInternalEmail } from '@/lib/ads/access' // KINEO-PF-COBRA-NAS-FOTOS-1211 [CEO 12/11 15:15] — a MESMA lista das rotas (isInternalEmail deixava ver a tela e levar 404)
 import StudioNaMoldura from '@/components/create/StudioNaMoldura' // KINEO-STUDIO-NA-MOLDURA-1011
 import { campanhaDaCaixa, motorDaCaixa } from '@/lib/growth/studioSimples' // KINEO-STUDIO-NA-MOLDURA-1011 · KINEO-ENTRADAS-TELA-NOVA-1011: campanhaDaCaixa
 import { ideiaDoLink } from '@/lib/growth/ideiaDaPagina' // KINEO-ENTRADAS-TELA-NOVA-1011
@@ -48,7 +48,7 @@ export default async function Page({ params, searchParams = {} }: { params: { ta
   // caminho de sempre (o mesmo redirect de antes). A tela é o painel; o servidor é da Div. 5 (lib/ads/pessoaFalando/telaContrato.ts).
   if (params.tab === 'ads' && searchParams.formato === 'pessoa_falando') {
     const { data: { user: quem } } = await createClient().auth.getUser()
-    if (quem && pessoaFalandoLigado(KINEO_ADS_PESSOA_FALANDO, isInternalEmail(quem.email))) return <CreateShell tab="ads" signedIn showRecreate={recreateVisible(quem.email)} showClip={clipNaMolduraVisivel(quem.email)} painel={<PessoaFalandoPainel />} />
+    if (quem && pessoaFalandoLigado(KINEO_ADS_PESSOA_FALANDO, isAdsInternalEmail(quem.email))) return <CreateShell tab="ads" signedIn showRecreate={recreateVisible(quem.email)} showClip={clipNaMolduraVisivel(quem.email)} painel={<PessoaFalandoPainel />} />
   }
   if (query && params.tab === 'ads' && !adsArrivalSupported(searchParams)) redirect(`/ads/v2?${query}`)
   if (query && params.tab === 'cartoon' && !cartoonArrivalSupported(searchParams)) redirect(`/kids-cartoon?${query}`)

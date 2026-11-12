@@ -19,8 +19,11 @@ export const ORDEM_DOS_FORMATOS: readonly FormatoId[] = ['car_selfie', 'get_read
 
 /** O retrato servido pelo próprio site (o caminho da URL de produção). */
 export function retratoLocal(url: string): string { try { return new URL(url).pathname } catch { return url } }
-/** O texto do botão final: o preço só aqui. Sem número decidido = sem número (e o botão não pede). */
-export function rotuloDoBotao(creditos: number | null): string { return creditos && creditos > 0 ? `Make my video · ${creditos} credits` : 'Make my video · price coming soon' }
+/** KINEO-PF-COBRA-NAS-FOTOS-1211 [CEO 12/11 15:15] — o preço mora no botão das 2 fotos (a 1ª chamada paga; cobre as fotos E o vídeo). Sem número decidido = sem número (e não pede). */
+export function rotuloDasFotos(creditos: number | null): string { return creditos && creditos > 0 ? `Show me 2 photos · ${creditos} credits` : 'Show me 2 photos · price coming soon' }
+export const INCLUI_O_VIDEO = 'Includes your video'
+/** O passo final não cobra de novo: o vídeo já está no que as fotos cobraram. */
+export const ROTULO_FINAL = 'Make my video · included'
 
 const CSS = `
 .pf{display:grid;gap:14px}
@@ -111,20 +114,23 @@ export default function PessoaFalandoPainel({ creditosPadrao = ADS_PESSOA_FALAND
     } catch { setErro('The script could not be written right now. Nothing was charged. Try again.') } finally { setOcupado(null) }
   }
   async function verFotos() {
-    if (!roteiroVale || !falaCabe) return
+    if (!roteiroVale || !falaCabe || !creditos) return
     setOcupado('fotos'); setErro(null); setEscolhida(null)
+    // KINEO-PF-COBRA-NAS-FOTOS-1211 [CEO 12/11 15:15] — o saldo é lido NESTE clique (o que cobra), antes de pedir: não cobre → não pede e mostra a saída de sempre.
+    const lido = await fetch('/api/credits', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).then(d => (typeof d?.credits === 'number' ? d.credits as number : null)).catch(() => null)
+    setSaldo(lido)
+    if (saldoCobre(lido, creditos) === false) { setOcupado(null); return }
     try {
-      void fetch('/api/credits', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).then(d => setSaldo(typeof d?.credits === 'number' ? d.credits : null)).catch(() => setSaldo(null))
       const r = await chamar<RespostaFotos>(PESSOA_FALANDO_API.fotos, entrada)
       setFotos(r.fotos)
       if (typeof r.creditos === 'number') setCreditos(r.creditos)
     } catch { setErro('The two photos could not be made right now. Nothing was charged. Try again.') } finally { setOcupado(null) }
   }
   async function fazerVideo() {
-    if (!roteiroVale || !roteiro || !escolhida || !creditos || !falaCabe || cobre === false) return
+    if (!roteiroVale || !roteiro || !escolhida || !falaCabe) return
     setOcupado('video'); setErro(null)
     try { setPedido(await chamar<RespostaPedido>(PESSOA_FALANDO_API.video, { ...entrada, fotoChave: escolhida, roteiro })) }
-    catch { setErro('Your video could not start. Nothing was charged. Try again.') } finally { setOcupado(null) }
+    catch { setErro('Your video could not start. It is already paid for with your photos: try again, you will not be charged twice.') } finally { setOcupado(null) }
   }
 
   if (pedido) return <div className="pf"><style dangerouslySetInnerHTML={{ __html: CSS }} />
@@ -172,18 +178,18 @@ export default function PessoaFalandoPainel({ creditosPadrao = ADS_PESSOA_FALAND
     <section className="pf-step" data-pf-passo="6"><h2><span className="pf-n">6</span>Pick the shot</h2>
       {!fotos ? <>
         <p className="pf-hint">Two photos of {apresentadorId ? APRESENTADORES[apresentadorId].nome : 'the presenter'} with your product. Pick one; the video starts from it.</p>
-        <button type="button" className="pf-btn2" disabled={!roteiroVale || !falaCabe || ocupado !== null} onClick={verFotos}>{ocupado === 'fotos' ? 'Making the photos…' : 'Show me 2 photos'}</button>
+        <button type="button" className="pf-btn" disabled={!roteiroVale || !falaCabe || !creditos || ocupado !== null} onClick={verFotos} data-pf-botao-fotos="">{ocupado === 'fotos' ? 'Making the photos…' : <>{rotuloDasFotos(creditos)}<small style={{ display: 'block', fontSize: 12, fontWeight: 600, opacity: .85 }}>{INCLUI_O_VIDEO}</small></>}</button>
+        {cobre === false ? <div style={{ marginTop: 10 }} data-pf-sem-saldo=""><SubscriberUpgradeNudge surface="ads_pessoa_falando_sem_saldo" topup onShown={() => setAvisoDoAssinante(true)} />
+          {/* Quem não assina (o aviso acima não pinta): a mesma saída do Cartoon, "See plans" — sem texto novo de preço. */}
+          {!avisoDoAssinante ? <><p className="pf-why">Not enough credits for this video yet.</p><a className="pf-btn2" style={{ display: 'grid', placeItems: 'center', marginTop: 6 }} href="/pricing" data-pf-ver-planos="">See plans</a></> : null}
+        </div> : null}
       </> : <>
         <div className="pf-fotos">{fotos.map((u, i) => <button key={u} type="button" className="pf-opt" aria-pressed={escolhida === u} onClick={() => setEscolhida(u)}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={u} alt={`Photo ${i + 1}`} />Photo {i + 1}
         </button>)}</div>
-        <button type="button" className="pf-btn" style={{ marginTop: 12 }} disabled={!escolhida || !creditos || !falaCabe || cobre === false || ocupado !== null} onClick={fazerVideo} data-pf-botao="">{ocupado === 'video' ? 'Starting…' : rotuloDoBotao(creditos)}</button>
+        <button type="button" className="pf-btn" style={{ marginTop: 12 }} disabled={!escolhida || !falaCabe || ocupado !== null} onClick={fazerVideo} data-pf-botao="">{ocupado === 'video' ? 'Starting…' : ROTULO_FINAL}</button>
         {!escolhida ? <p className="pf-why">Pick one of the two photos.</p> : null}
-        {cobre === false ? <div style={{ marginTop: 10 }} data-pf-sem-saldo=""><SubscriberUpgradeNudge surface="ads_pessoa_falando_sem_saldo" topup onShown={() => setAvisoDoAssinante(true)} />
-          {/* Quem não assina (o aviso acima não pinta): a mesma saída do Cartoon, "See plans" — sem texto novo de preço. */}
-          {!avisoDoAssinante ? <><p className="pf-why">Not enough credits for this video yet.</p><a className="pf-btn2" style={{ display: 'grid', placeItems: 'center', marginTop: 6 }} href="/pricing" data-pf-ver-planos="">See plans</a></> : null}
-        </div> : null}
       </>}
       {erro ? <p className="pf-err" role="alert">{erro}</p> : null}
     </section>

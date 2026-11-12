@@ -8,9 +8,10 @@ import type { Roteiro } from './roteiro'
 export const PESSOA_FALANDO_API = {
   /** POST EntradaDaTela → RespostaRoteiro. O escritor (escreverRoteiro): `roteiro` aprovado, ou `rascunho` para a pessoa ajustar. */
   roteiro: '/api/ads/pessoa-falando/roteiro',
-  /** POST EntradaDaTela → RespostaFotos. As 2 fotos-chave (a pessoa escolhe 1). */
+  /** POST EntradaDaTela → RespostaFotos. As 2 fotos-chave (a pessoa escolhe 1). KINEO-PF-COBRA-NAS-FOTOS-1211 [CEO 12/11 15:15]: É AQUI que os créditos são cobrados (a 1ª chamada paga;
+   *  o valor cobre as fotos E o vídeo). Falhou → o servidor estorna e a tela diz "nada foi cobrado". */
   fotos: '/api/ads/pessoa-falando/fotos-chave',
-  /** POST PedidoDeVideo → RespostaPedido. O único passo que cobra os créditos do botão. */
+  /** POST PedidoDeVideo → RespostaPedido. KINEO-PF-COBRA-NAS-FOTOS-1211 [CEO 12/11 15:15]: NÃO cobra de novo — o vídeo já está incluído no que as fotos cobraram. */
   video: '/api/ads/pessoa-falando',
 } as const
 
