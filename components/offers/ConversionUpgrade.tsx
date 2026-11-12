@@ -74,7 +74,7 @@ export function ConversionPlanCapacity({ tier, billing, currency, region, surfac
   return <div ref={observation.root} data-conversion-plan={`${tier}_${billing}`} style={{ marginTop: 10 }}>
     <span style={{ display: 'block', fontSize: 14, fontWeight: 700 }}>{plan.capacity}</span>
     <span style={{ display: 'block', fontSize: 12, lineHeight: 1.5, color: 'var(--muted)', marginTop: 6 }}>{plan.renewal}</span>
-    {surface === 'pricing' && <span style={{ display: 'block', fontSize: 11, color: 'var(--muted)', marginTop: 5 }}>MiniMax H3 Turbo · formats are alternatives, without extras.</span>}
+    {surface === 'pricing' && <span style={{ display: 'block', fontSize: 11, color: 'var(--muted)', marginTop: 5 }}>Standard films · formats are alternatives, without extras.</span>}
   </div>
 }
 
