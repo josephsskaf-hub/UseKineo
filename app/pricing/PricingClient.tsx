@@ -1190,9 +1190,12 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         ) : null}
         {/* KINEO-CHECKOUT-CLAREZA-1610 — a política do anual colada no seletor saiu: a frase única da garantia (que já diz os
             14 dias do anual) está na faixa de confiança do topo e sob o botão de cada cartão logo abaixo. */}
-        <p className="-mt-5 mb-7 text-center text-[11.5px] font-semibold text-[var(--muted)]">
+        {/* KINEO-PRECO-NO-TOPO-1111 [CEO 11/11, tarefa 5 do fundador "design mais bonito"] — com os cartões novos, o aviso de moeda desce para baixo deles (antes ficava entre o seletor e o 1º cartão, empurrando o preço para fora da tela do celular) */}
+        {valueCards ? null : (
+        <p className="-mt-5 mb-7 text-center text-[12px] font-semibold text-[var(--muted)]">
           {CHECKOUT_CURRENCY_DISCLOSURE}
         </p>
+        )}
         {welcomeEndedNotice ? (
           <p role="status" data-testid="welcome20-ended-notice" className="-mt-4 mb-7 text-center text-[13px] font-bold text-[var(--text)]">
             {WELCOME20_DEADLINE_ENDED_NOTICE}{/* KINEO-CHECKOUT-CLAREZA-1610 */}
@@ -1323,6 +1326,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                   })}
                 </div>
               </section>
+              <p className="mt-5 mb-2 text-center text-[12px] font-semibold text-[var(--muted)]" data-testid="pricing-currency-note">{CHECKOUT_CURRENCY_DISCLOSURE}</p>{/* KINEO-PRECO-NO-TOPO-1111 [CEO 11/11, tarefa 5 do fundador "design mais bonito"] */}
             </>
           )
         })() : (

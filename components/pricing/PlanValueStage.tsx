@@ -73,6 +73,12 @@ export const PLAN_VALUE_STAGE_CSS = `
 .pv-head{padding:18px 16px 4px}
 .pv-title{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
 .pv-name{font-size:19px;font-weight:700;line-height:1.1}
+/* KINEO-PRECO-NO-TOPO-1111 [CEO 11/11, tarefa 5 do fundador "design mais bonito"] — no celular o preço sobe para o lado do nome (antes vinha depois da lista); o bloco de preço de baixo some só lá, para não repetir. No computador nada muda. */
+.pv-toprice{display:none;margin-left:auto;text-align:right;line-height:1}
+.pv-toprice .pv-was{font-size:14px;margin-right:6px}
+.pv-toprice-n{font-size:26px;font-weight:800;letter-spacing:-.02em;white-space:nowrap}
+.pv-toprice-n .pv-cur{top:-.5em}
+.pv-toper{display:none;margin:4px 0 0;font-size:13px;font-weight:500;color:var(--pv-muted);text-align:right}
 .pv-chip{border-radius:999px;padding:3px 9px;font-size:11.5px;font-weight:600;line-height:1.3;background:var(--pv-chip-bg);color:var(--pv-chip-text)}
 .pv-chip.pv-deal{background:var(--pv-cta-pop-bg);color:var(--pv-cta-pop-text)}
 .pv-tag{margin:6px 0 0;font-size:14px;font-weight:500;line-height:1.4;color:var(--pv-muted)}
@@ -128,7 +134,8 @@ export const PLAN_VALUE_STAGE_CSS = `
 .pv-stage[data-palette=porcelana] .pv-inc svg{color:var(--pv-text)}
 .pv-foot{margin:auto 10px 6px;padding-top:14px;font-size:12px;color:var(--pv-faint);text-align:center}
 @media (max-width:900px){.pv-grid{grid-template-columns:1fr;gap:20px}
-  .pv-card[data-popular=true]{order:-1}
+  /* KINEO-PRECO-NO-TOPO-1111 [CEO 11/11, tarefa 5 do fundador "design mais bonito"] — a ordem do celular passa a ser a do computador (Starter · Creator · Studio): o Starter de US$ 9 aparece sem rolar. Antes: .pv-card[data-popular=true]{order:-1} (o Creator primeiro e o Starter a ~1,7 tela). O selo "Most popular" segue no Creator. */
+  .pv-toprice{display:block}.pv-toper{display:block}.pv-buy .pv-price{display:none}.pv-head{padding-top:16px}.pv-buy{padding-top:6px}
   .pv-stage[data-palette=cobalto],.pv-stage[data-palette=ambar],.pv-stage[data-palette=tinta]{padding:18px 12px;border-radius:22px}}
 @media (prefers-reduced-motion:reduce){.pv-cta{transition:none}.pv-cta:hover{transform:none}}
 `
@@ -226,7 +233,10 @@ export function PlanValueCard(props: PlanValueCardProps) {
           <span className="pv-name">{props.name}</span>
           {props.popular ? <span className="pv-chip">Most popular</span> : null}
           {props.deal ? <span className="pv-chip pv-deal">{props.deal}</span> : null}
+          {/* KINEO-PRECO-NO-TOPO-1111 [CEO 11/11, tarefa 5 do fundador "design mais bonito"] — o mesmo preço do bloco de baixo (mesmas props), ao lado do nome no celular */}
+          <span className="pv-toprice" data-kineo="preco-no-topo">{props.was ? <span className="pv-was">{props.was}</span> : null}<span className="pv-toprice-n">{preco ? <><span className="pv-cur">{preco.simbolo}</span>{preco.valor}</> : props.amount}</span></span>
         </div>
+        <p className="pv-toper">{props.per}</p>
         <p className="pv-tag">{PLAN_VALUE_TAGLINES[props.tier]}</p>
         <hr className="pv-rule" />
         <div className="pv-credits">
