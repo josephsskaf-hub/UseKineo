@@ -11,7 +11,7 @@
 import { PEDIDOS_DE_APRESENTADOR, NEGACAO_DE_APRESENTADOR, type DecisaoFormato } from '@/lib/cinematic/visualMode'
 
 export type ModoFormatoDaIdeia = 'internal' | 'all'
-export const FORMATO_DA_IDEIA: ModoFormatoDaIdeia = 'internal' // só a casa até os 2 filmes pagos de prova
+export const FORMATO_DA_IDEIA: ModoFormatoDaIdeia = 'all' // KINEO-INTERRUPTORES-ALL-1211 [CEO 12/11 19:15]: provado no filme Lumo (formato com apresentador); ligado para todos
 export const FORMATO_DA_IDEIA_VERSAO = 'formato_da_ideia_1211_v1'
 
 export function formatoDaIdeiaLigado(modo: ModoFormatoDaIdeia, contaDaCasa: boolean): boolean {

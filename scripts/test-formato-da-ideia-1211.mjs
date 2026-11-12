@@ -46,7 +46,7 @@ ok(formatoComFalaDaIdeia(pres, FICAM.negado_pt, false) === pres, 'quem já é pr
 for (const t of [null, undefined, '', FICAM.porta]) ok(JSON.stringify(formatoComFalaDaIdeia({ ...base }, t, false)) === JSON.stringify(base), `ideia sem pedido (${String(t).slice(0, 20)}): decisão idêntica`)
 
 console.log('── interruptor e rota ──')
-ok(FORMATO_DA_IDEIA === 'internal', `padrão 'internal' (é '${FORMATO_DA_IDEIA}')`)
+ok(FORMATO_DA_IDEIA === 'all', `padrão 'all' desde 12/11 19:15 (KINEO-INTERRUPTORES-ALL-1211) (é '${FORMATO_DA_IDEIA}')`)
 ok(!formatoDaIdeiaLigado('internal', false) && formatoDaIdeiaLigado('internal', true) && formatoDaIdeiaLigado('all', false), 'internal = só a casa; all = todos')
 const rota = readFileSync('app/api/generate-video-cinematic/route.ts', 'utf8').replace(/\r\n/g, '\n')
 const iDec = rota.indexOf('const formatoVisual = formatoComEstrela(formatoComPessoaDoPedido(decidirFormato(prompt, tagFacelessPresente), pessoaPedida)')

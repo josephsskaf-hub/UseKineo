@@ -68,7 +68,7 @@ const r = elencoComOrigem(el, filme, { nucleoVence: true })
 ok(/origin: a South African man/.test(r.elenco[1].canonica) && /origin: a South African woman/.test(r.elenco[0].canonica), '(2) elencoComOrigem: cada um com a SUA pessoa (nada copiado de um para o outro)')
 
 console.log('── (3) interruptor e rota ──')
-ok(ELENCO_PROVA_DE_GENTE === 'internal', `(3) padrão 'internal' (é '${ELENCO_PROVA_DE_GENTE}')`)
+ok(ELENCO_PROVA_DE_GENTE === 'all', `(3) padrão 'all' desde 12/11 19:15 (KINEO-INTERRUPTORES-ALL-1211) (é '${ELENCO_PROVA_DE_GENTE}')`)
 ok(!provaDeGenteLigada('internal', false) && provaDeGenteLigada('internal', true) && provaDeGenteLigada('all', false), '(3) internal = só a casa; all = todos')
 ok(generoDoNomeDaFolha === generoDoNome, '(3) a tabela injetada na folha é a da camada de época')
 const rota = readFileSync('app/api/generate-video-cinematic/route.ts', 'utf8').replace(/\r\n/g, '\n')

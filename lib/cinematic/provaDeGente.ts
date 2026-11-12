@@ -12,7 +12,7 @@
 // Guardião: scripts/test-elenco-prova-de-gente-1211.mjs.
 
 export type ModoProvaDeGente = 'internal' | 'all'
-export const ELENCO_PROVA_DE_GENTE: ModoProvaDeGente = 'internal' // só a casa até os 2 filmes pagos de prova
+export const ELENCO_PROVA_DE_GENTE: ModoProvaDeGente = 'all' // KINEO-INTERRUPTORES-ALL-1211 [CEO 12/11 19:15]: 2 filmes pagos de prova refeitos (Lumo e Jonathan) saíram certos; ligado para todos
 export const ELENCO_PROVA_DE_GENTE_VERSAO = 'prova_de_gente_1211_v1'
 
 export function provaDeGenteLigada(modo: ModoProvaDeGente, contaDaCasa: boolean): boolean {

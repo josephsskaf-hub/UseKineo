@@ -25,7 +25,7 @@ import { pessoaDoPedido, papelDaPessoa } from '@/lib/cinematic/pessoaDoPedido'
 import { textoDoPedidoOriginal } from '@/lib/cinematic/fichaDoPedido'
 
 export type ModoIdeiaNaFicha = 'internal' | 'all'
-export const IDEIA_NA_FICHA: ModoIdeiaNaFicha = 'internal' // só a casa até os 2 filmes pagos de prova
+export const IDEIA_NA_FICHA: ModoIdeiaNaFicha = 'all' // KINEO-INTERRUPTORES-ALL-1211 [CEO 12/11 19:15]: provado no filme Lumo (ruiva, suéter mostarda e garrafa de vidro em todos os planos); ligado para todos
 export const IDEIA_NA_FICHA_VERSAO = 'ideia_na_ficha_1211_v1'
 export const IDEIA_NA_FICHA_TETO_PROMPT = 2500
 

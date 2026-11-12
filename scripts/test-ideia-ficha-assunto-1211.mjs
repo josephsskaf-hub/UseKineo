@@ -96,7 +96,7 @@ ok(comIdeiaNaCena(PLANOS_LUMO[0], F, { semPessoa: true }).includes('The product 
 ok(PLANOS_LUMO.every((p) => comIdeiaNaCena(p, null) === p), 'C sem ficha: byte a byte')
 
 console.log('── interruptores e rota: cliente byte a byte ──')
-ok(IDEIA_NA_FICHA === 'internal' && ELENCO_PROVA_DE_GENTE === 'internal', `padrões 'internal' (IDEIA_NA_FICHA=${IDEIA_NA_FICHA}, ELENCO_PROVA_DE_GENTE=${ELENCO_PROVA_DE_GENTE})`)
+ok(IDEIA_NA_FICHA === 'all' && ELENCO_PROVA_DE_GENTE === 'all', `padrões 'all' desde 12/11 19:15 (KINEO-INTERRUPTORES-ALL-1211) (IDEIA_NA_FICHA=${IDEIA_NA_FICHA}, ELENCO_PROVA_DE_GENTE=${ELENCO_PROVA_DE_GENTE})`)
 ok(ideiaNaFichaLigada('internal', false) === false && ideiaNaFichaLigada('internal', true) === true && ideiaNaFichaLigada('all', false) === true, 'ideiaNaFichaLigada: internal só a casa')
 const rota = readFileSync('app/api/generate-video-cinematic/route.ts', 'utf8')
 ok(/const ideiaNaFicha = ideiaNaFichaLigada\(IDEIA_NA_FICHA, isInternalEmail\(user\.email\)\) \? fichaDaIdeia\(pedidoDoCliente, prompt\) : null/.test(rota), 'rota: a ficha da ideia só nasce na conta da casa')
