@@ -2,6 +2,7 @@
 // KINEO-CELULAR-A-0611 [fundador 06/11: "Modelo A, fundo escuro"]: abaixo do carrossel, as 4 portas, o título da galeria e a caixa flutuante.
 // Só abaixo de 768 px; imagens com lazy não são baixadas no computador. Os destinos são os mesmos dos cartões da home.
 import Link from 'next/link'
+import { useEffect, useRef, useState } from 'react' // KINEO-CAIXA-SAI-DA-FRENTE-1111
 import { usePathname } from 'next/navigation'
 import { hrefDaCaixa, ideiaDaPagina } from '@/lib/growth/ideiaDaPagina' // KINEO-CAIXA-COM-IDEIA-0611
 import { UiLabel } from '@/components/InterfaceLanguage'
@@ -24,10 +25,38 @@ const CSS = `
 .kpc-tit b{display:block;font-size:20px;font-weight:800;letter-spacing:-.01em;color:var(--txt)}
 .kpc-tit a{flex:none;font-size:13px;font-weight:600;color:var(--muted);min-height:44px;display:flex;align-items:flex-end}
 .kpc-caixa{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:40;display:flex;align-items:center;gap:10px;min-height:56px;padding:6px 6px 6px 18px;border-radius:999px;background:var(--card);border:1px solid var(--line2);box-shadow:0 10px 28px rgba(0,0,0,.45);font-size:15px;font-weight:600;color:var(--muted)}
+.kpc-caixa{transition:transform .28s ease,opacity .28s ease} /* KINEO-CAIXA-SAI-DA-FRENTE-1111 [CEO 11/11, tarefa 2: a caixa fixa tampava o nome do cartão no celular] — desce para fora da tela enquanto a pessoa rola para baixo (lendo os cartões) e volta quando ela rola para cima */
+.kpc-caixa.kpc-caixa-fora{transform:translateY(calc(100% + 24px + env(safe-area-inset-bottom,0px)));opacity:0;pointer-events:none}
 .kpc-caixa em{flex:1;min-width:0;font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kpc-caixa i{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:20px;font-weight:800;background:var(--indigo);color:var(--on-accent,#04122E)}
 }
+@media (prefers-reduced-motion:reduce){.kpc-caixa{transition:none}}
 `
+
+/** KINEO-CAIXA-SAI-DA-FRENTE-1111 — fora da frente rolando para baixo (depois do 1º cartão); de volta rolando para cima ou perto do topo (parada ela NÃO volta: a pessoa está lendo o cartão). */
+export function caixaForaDaFrente(antes: number, agora: number, foraAgora: boolean): boolean {
+  if (agora < 160) return false
+  if (agora > antes + 4) return true
+  if (agora < antes - 4) return false
+  return foraAgora
+}
+
+function useCaixaFora(): boolean {
+  const [fora, setFora] = useState(false)
+  const ultimo = useRef(0)
+  useEffect(() => {
+    const rolou = () => {
+      const y = window.scrollY
+      const antes = ultimo.current // lido AQUI: dentro do setFora o React roda depois, com o ultimo já trocado
+      ultimo.current = y
+      setFora((f) => caixaForaDaFrente(antes, y, f))
+    }
+    ultimo.current = window.scrollY
+    window.addEventListener('scroll', rolou, { passive: true })
+    return () => window.removeEventListener('scroll', rolou)
+  }, [])
+  return fora
+}
 
 const PORTAS: ReadonlyArray<{ card: HomeCardId; rotulo: string; img: string }> = [
   { card: 'films', rotulo: 'Film', img: '/posters/hero-seedance.webp' },
@@ -41,6 +70,7 @@ export default function HomePortasCelular({ signedIn, entradaNova = false }: { s
   // KINEO-ENTRADAS-CARTOES-1011 [fundador 10/11: "Make my ad", "Make my UGC ad" e "Make my cartoon" abriram a tela ANTIGA] — as portas de anúncio
   // (?entry=) e o Cartoon também: logado vai à aba (/create/ads?entry=… · /create/cartoon?utm_source=…); visitante segue no de hoje (o desenho sem conta).
   const entrada = (href: string) => (entradaNova ? createEntryForSignupHref(href, signedIn) : href)
+  const caixaFora = useCaixaFora() // KINEO-CAIXA-SAI-DA-FRENTE-1111
   const caixaHref = entradaNova ? createEntryForLegacyHref(hrefDaCaixa(ideia), signedIn) : hrefDaCaixa(ideia)
   return (
     <section className="kpc" aria-label="What to make" data-kineo="home-portas-celular">
@@ -61,7 +91,7 @@ export default function HomePortasCelular({ signedIn, entradaNova = false }: { s
         <span><small>Made with Kineo</small><b><UiLabel>Make one like this</UiLabel></b></span>
         <Link href={MADE_WITH_KINEO_HREF}><UiLabel>View all</UiLabel> ›</Link>
       </div>
-      <Link className="kpc-caixa" href={caixaHref} onClick={() => { void trackEvent('home_phone_box_clicked', { signed_in: signedIn, with_idea: ideia !== null }) }}>
+      <Link className={caixaFora ? 'kpc-caixa kpc-caixa-fora' : 'kpc-caixa'} aria-hidden={caixaFora || undefined} tabIndex={caixaFora ? -1 : undefined} href={caixaHref} onClick={() => { void trackEvent('home_phone_box_clicked', { signed_in: signedIn, with_idea: ideia !== null }) }}>
         <em>{ideia ?? <UiLabel>What&apos;s your film about?</UiLabel>}</em><i aria-hidden="true">↑</i>
       </Link>
     </section>

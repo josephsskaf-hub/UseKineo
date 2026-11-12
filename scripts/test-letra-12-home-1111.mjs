@@ -58,7 +58,7 @@ all()
 const real = passed
 const s = p => read(p)
 const mutants = [
-  ['etiqueta "Recreate" volta a 10 px no celular', { 'components/home/HomeMosaic.tsx': s('components/home/HomeMosaic.tsx').replace('padding:3px 8px 3px 6px;font-size:12px', 'padding:3px 8px 3px 6px;font-size:10px') }],
+  ['etiqueta do mosaico volta a 10 px', { 'components/home/HomeMosaic.tsx': s('components/home/HomeMosaic.tsx').replace('color:#fff;font-size:12px;font-weight:700;line-height:1', 'color:#fff;font-size:10px;font-weight:700;line-height:1') }], // KINEO-ETIQUETA-UNICA-1111 — a etiqueta virou uma só (.kmz-chip)
   ['plano volta a 11 px', { 'app/KineoLanding.tsx': s('app/KineoLanding.tsx').replace('.klp .plan .pt{font-size:12px', '.klp .plan .pt{font-size:11px') }],
   ['rodapé volta a fontSize: 11', { 'components/Footer.tsx': s('components/Footer.tsx').replace("<span style={{ display: 'block', fontSize: 12 }}>", "<span style={{ display: 'block', fontSize: 11 }}>") }],
   ['meio-pixel escondido (11.5px)', { 'app/KineoLanding.tsx': s('app/KineoLanding.tsx').replace('.klp .pl-badge{font-weight:600;font-size:12px', '.klp .pl-badge{font-weight:600;font-size:11.5px') }],

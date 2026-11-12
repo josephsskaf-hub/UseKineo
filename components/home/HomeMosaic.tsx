@@ -46,6 +46,26 @@ export function effectCardHref(e: Pick<ClipEffect, 'key'>, signedIn: boolean): s
   return recreate ? viaSignup(recreate, signedIn) : effectPagePath(effectSlug(e))
 }
 
+// KINEO-ETIQUETA-UNICA-1111 [CEO 11/11, tarefa 2: "todo cartão da home com nome" — batom, pote de creme, capa amarela, cabana com aurora
+// não tinham]: o nome curto de cada foto da vitrine (o que está na foto, sem marca e sem motor). A curadoria (quais fotos) não muda.
+export const MOSAIC_IMAGE_TITLE: Readonly<Record<string, string>> = {
+  'puddle.webp': 'Puddle jump', 'ad-01.webp': 'Amber perfume on stone', 'ad-02.webp': 'Sneaker over a splash', 'clock-blue.webp': 'Blue alarm clock',
+  'ad-03.webp': 'Skincare jar on marble', 'lighthouse.webp': 'Lighthouse in a storm', 'sneaker-white.webp': 'White running sneaker',
+  'ad-04.webp': 'Coffee bag and espresso', 'raincoat.webp': 'Yellow raincoat on the cliffs', 'ad-05.webp': 'Smartwatch at golden hour',
+  'coffee.webp': 'Cozy coffee shop', 'perfume-splash.webp': 'Perfume in a splash', 'apple.webp': 'Red apple by the window',
+  'ad-06.webp': 'Red lipstick on satin', 'boutique.webp': 'Sneaker boutique', 'ad-07.webp': 'Cream headphones', 'astronaut.webp': 'Astronaut in sunflowers',
+  'ad-08.webp': 'Drink can on ice', 'cube.webp': 'Puzzle cube', 'ad-09.webp': 'Leather tote bag', 'coworking.webp': 'Coworking office',
+  'ad-10.webp': 'Tortoiseshell sunglasses', 'clock-brass.webp': 'Brass alarm clock', 'toycar.webp': 'Red toy car',
+  'pumpkin.webp': 'Jack-o’-lantern', 'perfume-snow.webp': 'Perfume in the snow', 'cabin.webp': 'Cabin under the aurora',
+  'dog-sweater.webp': 'Dog in a Christmas sweater', 'camper.webp': 'Camper van at sunset', 'mug-rain.webp': 'Mug on a rainy sill',
+  'roses.webp': 'White roses', 'alley.webp': 'Lantern alley in the rain', 'jelly.webp': 'Red jelly dessert', 'boot-stream.webp': 'Boot in a stream',
+  'matcha.webp': 'Iced matcha latte', 'canoe.webp': 'Canoe on a misty lake',
+}
+/** O nome curto da foto; foto nova sem nome na lista cai no começo da descrição (nunca cartão mudo). */
+export function mosaicImageTitle(file: string, alt = ''): string {
+  return MOSAIC_IMAGE_TITLE[file] ?? alt.replace(/^(An?|The) /, '').split(/ (?:on|in|with|by|at|under|over) /)[0]
+}
+
 /** Pasta das imagens novas da vitrine (a pasta /home-images/ continua sendo SÓ a da galeria antiga, guardião test-home-limpa-1410). */
 export const HOME_MOSAIC_DIR = '/home-mosaic/'
 
@@ -208,18 +228,19 @@ const CSS = `
 .klp .kmz-copy b{font-size:13px;line-height:1.2;font-weight:650;color:#fff;text-wrap:balance}
 .klp .kmz-big .kmz-copy{left:16px;bottom:14px}
 .klp .kmz-big .kmz-copy b{font-size:clamp(16px,1.3vw,20px)}
-.klp .kmz-new{position:absolute;top:8px;left:8px;z-index:2;background:#ff3b6b;color:#fff;font-size:12px;font-weight:800;letter-spacing:.06em;padding:2px 7px;border-radius:999px}
-.klp .kmz-re{position:absolute;top:8px;right:8px;z-index:3;display:inline-flex;align-items:center;gap:5px;padding:4px 10px 4px 8px;border-radius:999px;background:rgba(8,14,24,.62);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:12px;font-weight:700;letter-spacing:.01em;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:background .2s ease,color .2s ease}
-.klp .kmz-re svg{width:12px;height:12px;flex:none}
-.klp .kmz-t:hover .kmz-re,.klp .kmz-t:focus-visible .kmz-re{background:#fff;color:#0b1119;border-color:#fff}
+/* KINEO-ETIQUETA-UNICA-1111 [CEO 11/11, tarefa 2 do fundador "design mais bonito"] — UM desenho de etiqueta para NEW, Recreate, Make your ad e Put your face in it (antes eram 4: rosa, vidro escuro, branco grande e branco pequeno), todas numa fileira que quebra linha em vez de sobrepor; no cartão com "Put your face in it" a fileira desce para baixo dela */
+.klp .kmz-chips{position:absolute;top:8px;left:8px;right:8px;z-index:3;display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px;pointer-events:none}
+.klp .kmz-chip{display:inline-flex;align-items:center;gap:5px;min-height:28px;padding:4px 11px 4px 9px;border-radius:999px;background:rgba(8,14,24,.66);border:1px solid rgba(255,255,255,.24);color:#fff;font-size:12px;font-weight:700;line-height:1;letter-spacing:.01em;white-space:nowrap;text-decoration:none;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:background .2s ease,color .2s ease,border-color .2s ease}
+.klp .kmz-chip svg{width:12px;height:12px;flex:none}
+.klp .kmz-cell .kmz-t .kmz-chips{top:44px}
+.klp .kmz-t:hover .kmz-chip,.klp .kmz-t:focus-visible .kmz-chip,.klp a.kmz-chip:hover,.klp a.kmz-chip:focus-visible{background:#fff;color:#0b1119;border-color:#fff}
 .klp .kmz-views{display:inline-flex;align-items:center;gap:4px;margin-top:2px;font-size:12px;font-weight:650;color:rgba(255,255,255,.88)}
 .klp .kmz-views svg{width:13px;height:13px;flex:none}
 .klp .kmz-cell{position:relative;min-width:0}
 .klp .kmz-cell>.kmz-t{height:100%}
-.klp .kmz-face{position:absolute;top:10px;left:10px;z-index:4;display:inline-flex;align-items:center;min-height:30px;padding:6px 12px;border-radius:999px;background:#fff;color:#0b1119;font-size:12px;font-weight:700;text-decoration:none}
-.klp .kmz-face:hover{background:#eaf3ff}
+.klp .kmz-face{position:absolute;top:8px;left:8px;z-index:4}
 @media(max-width:1099px){.klp .kmz-grid{grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:clamp(100px,15vw,150px)}}
-@media(max-width:700px){.klp .kmz-re{top:6px;right:6px;padding:3px 8px 3px 6px;font-size:12px}.klp .kmz-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:27vw;gap:8px}.klp .kmz-t{grid-row:span 2;border-radius:11px}.klp .kmz-big{grid-column:span 1;grid-row:span 3}.klp .kmz-wide{grid-column:span 2;grid-row:span 2}.klp .kmz-cell{grid-row:span 3}.klp .kmz-copy b,.klp .kmz-big .kmz-copy b{font-size:12px}.klp .kmz-face{top:6px;left:6px;min-height:24px;padding:4px 9px;font-size:12px}}
+@media(max-width:700px){.klp .kmz-chips{top:6px;left:6px;right:6px;gap:4px}.klp .kmz-chip{min-height:26px;gap:4px;padding:4px 7px 4px 6px;letter-spacing:0}.klp .kmz-cell .kmz-t .kmz-chips{top:38px}.klp .kmz-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:27vw;gap:8px}.klp .kmz-t{grid-row:span 2;border-radius:11px}.klp .kmz-big{grid-column:span 1;grid-row:span 3}.klp .kmz-wide{grid-column:span 2;grid-row:span 2}.klp .kmz-cell{grid-row:span 3}.klp .kmz-copy b,.klp .kmz-big .kmz-copy b{font-size:12px}.klp .kmz-face{top:6px;left:6px}}
 @media(prefers-reduced-motion:reduce){.klp .kmz-t img{transition:none}.klp .kmz-t:hover img{transform:none}}
 `
 
@@ -252,7 +273,7 @@ export function podeFazerAnuncio(t: Tile): boolean {
 
 function Recreate() {
   return (
-    <span className="kmz-re" aria-hidden="true">
+    <span className="kmz-chip kmz-re" aria-hidden="true">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" /><path d="M13.5 2.5v3h-3" /></svg>
       <UiLabel>Recreate</UiLabel>
     </span>
@@ -262,9 +283,21 @@ function Recreate() {
 /** KINEO-ADS-NATAL-VITRINE-1011 — o convite do exemplo de anúncio, no lugar do "Recreate" (mesmo desenho; o clique é o do cartão inteiro). */
 function MakeYourAd() {
   return (
-    <span className="kmz-re kmz-mkad" aria-hidden="true">
+    <span className="kmz-chip kmz-re kmz-mkad" aria-hidden="true">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v10" /><path d="M3 8h10" /></svg>
       <UiLabel>Make your ad</UiLabel>
+    </span>
+  )
+}
+
+// KINEO-ETIQUETA-UNICA-1111 [CEO 11/11, tarefa 2] — as etiquetas do cartão numa fileira só (um desenho, quebra linha, nunca sobrepõe).
+function Chips({ novo = false, recreate = false, ad = false }: { novo?: boolean; recreate?: boolean; ad?: boolean }) {
+  if (!novo && !recreate && !ad) return null
+  return (
+    <span className="kmz-chips">
+      {novo ? <span className="kmz-chip kmz-new">⚡ NEW</span> : null}
+      {recreate ? <Recreate /> : null}
+      {ad ? <MakeYourAd /> : null}
     </span>
   )
 }
@@ -303,14 +336,14 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
               const card = (
                 <Link key={c.id} href={viaSignup('/clips?' + new URLSearchParams({ engine: c.engine, prompt: c.prompt }).toString(), signedIn)} className="kmz-t kmz-big" data-home-cta="mosaic_clip" aria-label={`${c.title} — clip`}>
                   <div className="kmz-md" style={focusStyle(c.poster, MOSAIC_CLIP_FOCUS[c.id] ?? c.focus)}><WallMedia src={c.video} /></div>
-                  {podeRecriar(t) ? <Recreate /> : null}
+                  <Chips recreate={podeRecriar(t)} />
                 <span className="kmz-shade" aria-hidden="true" />
                   <span className="kmz-copy"><b><UiLabel>{c.title}</UiLabel></b><Views video={c.video} /></span>
                 </Link>
               )
               return hasFaceRemix(c.id) ? (
                 <div key={c.id} className="kmz-cell kmz-big">
-                  <Link href={faceRemixHref(c.id, signedIn)} className="kmz-face" data-home-cta="face_remix" aria-label={`Put your face in it — ${c.title}`}><UiLabel>Put your face in it</UiLabel></Link>
+                  <Link href={faceRemixHref(c.id, signedIn)} className="kmz-chip kmz-face" data-home-cta="face_remix" aria-label={`Put your face in it — ${c.title}`}><UiLabel>Put your face in it</UiLabel></Link>
                   {card}
                 </div>
               ) : card
@@ -325,8 +358,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                     <img src={clipeNovoPoster(c)} width={540} height={960} alt="" loading="lazy" decoding="async" style={{ objectPosition: c.focus, transform: 'none' }} />
                     <WallMedia src={clipeNovoVideo(c)} />
                   </div>
-                  {podeRecriar(t) ? <Recreate /> : null}
-                  {podeFazerAnuncio(t) ? <MakeYourAd /> : null}{/* KINEO-ADS-NATAL-VITRINE-1011 */}
+                  <Chips recreate={podeRecriar(t)} ad={podeFazerAnuncio(t)} />{/* KINEO-ADS-NATAL-VITRINE-1011 · KINEO-ETIQUETA-UNICA-1111 */}
                 <span className="kmz-shade" aria-hidden="true" />
                   <span className="kmz-copy"><b><UiLabel>{c.title}</UiLabel></b><Views video={clipeNovoVideo(c)} /></span>{/* KINEO-OUTFIT-MORPH-HOME-0911 */}
                 </Link>
@@ -343,7 +375,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                     </>
                   ) : <WallMedia src={t.video} />}
                 </div>
-                {podeRecriar(t) ? <Recreate /> : null}
+                <Chips recreate={podeRecriar(t)} />
                 <span className="kmz-shade" aria-hidden="true" />
                 <span className="kmz-copy"><b>{t.title}</b><Views video={t.video} /></span>
               </Link>
@@ -351,7 +383,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
             if (t.kind === 'film') return (
               <Link key={t.video} href={filmHref} className="kmz-t kmz-big" data-home-cta="mosaic_film" aria-label={`${t.title} — narrated film`}>
                 <div className="kmz-md" style={focusStyle(t.poster, t.focus)}><WallMedia src={t.video} /></div>
-                {podeRecriar(t) ? <Recreate /> : null}
+                <Chips recreate={podeRecriar(t)} />
                 <span className="kmz-shade" aria-hidden="true" />
                 <span className="kmz-copy"><b><UiLabel>{t.title}</UiLabel></b><Views video={t.video} /></span>
               </Link>
@@ -361,8 +393,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
               return (
                 <Link key={e.key} href={effectCardHref(e, signedIn)} className="kmz-t" data-home-cta={`mosaic_effect_${e.key}`} aria-label={`${e.title} — effect`}>
                   <div className="kmz-md" style={focusStyle(e.preview?.poster, MOSAIC_EFFECT_FOCUS[e.key] ?? '50% 45%')}>{e.preview ? <WallMedia src={`${e.preview.video}#t=1.6`} /> : null}</div>
-                  {newKeys.has(e.key) ? <span className="kmz-new">⚡ NEW</span> : null}
-                  {podeRecriar(t) ? <Recreate /> : null}
+                  <Chips novo={newKeys.has(e.key)} recreate={podeRecriar(t)} />{/* KINEO-ETIQUETA-UNICA-1111 */}
                 <span className="kmz-shade" aria-hidden="true" />
                   <span className="kmz-copy"><b><UiLabel>{e.title}</UiLabel></b><Views video={e.preview?.video} /></span>
                 </Link>
@@ -373,7 +404,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
               return (
                 <Link key={'style-' + st.key} href={st.href} className="kmz-t" data-home-cta={`mosaic_style_${st.key}`} aria-label={`${st.title} — ad style`}>
                   <div className="kmz-md" style={focusStyle(st.poster ?? undefined, MOSAIC_STYLE_FOCUS[st.key] ?? '50% 45%')}><WallMedia src={st.video} /></div>
-                  {podeRecriar(t) ? <Recreate /> : null}
+                  <Chips recreate={podeRecriar(t)} />
                 <span className="kmz-shade" aria-hidden="true" />
                   <span className="kmz-copy"><b><UiLabel>{st.title}</UiLabel></b></span>
                 </Link>
@@ -384,6 +415,8 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
               <Link key={img.file} href="/images" className={`kmz-t ${img.w > img.h ? 'kmz-wide' : HOME_GALLERY_BIG.has(img.file) ? 'kmz-big' : ''}`} data-home-cta="mosaic_image" aria-label={`${img.alt}. Open Kineo Images`}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={`${img.dir}${img.file}`} width={img.w} height={img.h} alt={img.alt} loading="lazy" decoding="async" style={MOSAIC_IMAGE_FOCUS[img.file] ? { objectPosition: MOSAIC_IMAGE_FOCUS[img.file] } : undefined} />{/* KINEO-ENQUADRAMENTO-0911 */}
+                <span className="kmz-shade" aria-hidden="true" />
+                <span className="kmz-copy"><b>{mosaicImageTitle(img.file, img.alt)}</b></span>{/* KINEO-ETIQUETA-UNICA-1111 — toda foto com nome, como os vídeos */}
               </Link>
             )
           })}
