@@ -7,6 +7,9 @@ import { createClient } from '@/lib/supabase/server'
 import { createShellDecision, filmNaMoldura } from '@/lib/create/access'
 import { CREATE_FILM_CAMPAIGN, type CreateTab } from '@/lib/create/tabs'
 import CreateShell from '@/components/create/CreateShell'
+import PessoaFalandoPainel from '@/components/ads/PessoaFalandoPainel' // KINEO-ADS-PESSOA-FALANDO-TELA-1211
+import { KINEO_ADS_PESSOA_FALANDO, pessoaFalandoLigado } from '@/lib/ads/pessoaFalando/formatos' // KINEO-ADS-PESSOA-FALANDO-TELA-1211
+import { isInternalEmail } from '@/lib/internalAccounts' // KINEO-ADS-PESSOA-FALANDO-TELA-1211
 import StudioNaMoldura from '@/components/create/StudioNaMoldura' // KINEO-STUDIO-NA-MOLDURA-1011
 import { campanhaDaCaixa, motorDaCaixa } from '@/lib/growth/studioSimples' // KINEO-STUDIO-NA-MOLDURA-1011 · KINEO-ENTRADAS-TELA-NOVA-1011: campanhaDaCaixa
 import { ideiaDoLink } from '@/lib/growth/ideiaDaPagina' // KINEO-ENTRADAS-TELA-NOVA-1011
@@ -40,6 +43,13 @@ export default async function Page({ params, searchParams = {} }: { params: { ta
   if (params.tab === 'film' && !filmParamsSupported(searchParams, { arrival: true })) redirect(`/studio?${query}`)
   // KINEO-ENTRADAS-CARTOES-1011 [fundador 10/11: "Make my ad", "Make my UGC ad" e "Make my cartoon" abriram a tela ANTIGA] — Ads e Cartoon
   // guardam a chegada que sabem repassar (a MESMA régua da entrada: entry + atribuição); qualquer outro dado volta ao destino de hoje intacto.
+  // KINEO-ADS-PESSOA-FALANDO-TELA-1211 [dono 12/11: "não adianta ter os vídeos e o cara não conseguir fazer"] — o anúncio com a pessoa FALANDO, na aba Ads
+  // da moldura nova: /create/ads?formato=pessoa_falando. Só para quem o interruptor deixa (hoje 'internal' = conta da casa); os outros seguem o
+  // caminho de sempre (o mesmo redirect de antes). A tela é o painel; o servidor é da Div. 5 (lib/ads/pessoaFalando/telaContrato.ts).
+  if (params.tab === 'ads' && searchParams.formato === 'pessoa_falando') {
+    const { data: { user: quem } } = await createClient().auth.getUser()
+    if (quem && pessoaFalandoLigado(KINEO_ADS_PESSOA_FALANDO, isInternalEmail(quem.email))) return <CreateShell tab="ads" signedIn showRecreate={recreateVisible(quem.email)} showClip={clipNaMolduraVisivel(quem.email)} painel={<PessoaFalandoPainel />} />
+  }
   if (query && params.tab === 'ads' && !adsArrivalSupported(searchParams)) redirect(`/ads/v2?${query}`)
   if (query && params.tab === 'cartoon' && !cartoonArrivalSupported(searchParams)) redirect(`/kids-cartoon?${query}`)
   const supabase = createClient()
