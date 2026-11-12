@@ -269,7 +269,22 @@ function nomesDoRoteiro(script: string): string[] {
  * primeiro; senão (ou além), o protagonista sem nome ("a sad Indian boy"). A ficha do autor (deriveExplicitCharacter) vira a
  * canônica do protagonista. Roteiro sem personagem → [].
  */
-export function elencoDeterministico(script: string): FichaDePersonagem[] {
+// KINEO-ELENCO-PROVA-DE-GENTE-1211 — espelho de elencoEpoca.nomeDeEspecie (sem import: os guardiões carregam este arquivo com módulos fixos)
+const NOME_DE_ESPECIE_1211 = /^\p{Lu}\p{Ll}{2,}(?:saurus|sauros|raptor|ceratops|odon|therium|pithecus|mimus|titan|venator|suchus|pteryx|nychus|dactylus|rhynchus|cephale|lophus)$/u
+/** KINEO-ELENCO-PROVA-DE-GENTE-1211 — o nome caiu no "humano por padrão": há prova de gente perto dele? Papel de pessoa colado ao nome,
+ *  ou pronome/papel com gênero na frase do nome ou na seguinte ("Luca moved in. After three days he…"). Sem prova = fora do elenco. */
+function temProvaDeGente(semTags: string, nome: string, generoDoNome?: (nome: string) => 'man' | 'woman' | null): boolean {
+  if (PESSOA_RE.test(janelasDoNome(semTags, nome))) return true
+  if (new RegExp(`(?<![\\p{L}])(?:dr|mr|mrs|ms|miss|sir|madam|lady|lord|professor|prof|uncle|aunt|grandma|grandpa|sr|sra|dona|seu|señor|señora|signor|signora|herr|frau)\\.?\\s+${escapaRe(nome)}(?![\\p{L}\\p{N}])`, 'iu').test(semTags)) return true // título colado ao nome ("Dr. Smith")
+  const fs = semTags.split(/(?<=[.!?…])\s+|\n+/)
+  const re = new RegExp(`(?<![\\p{L}\\p{N}])${escapaRe(nome)}(?![\\p{L}\\p{N}])`, 'iu')
+  const perto = fs.flatMap((f, i) => (re.test(f) ? [f, fs[i + 1] ?? ''] : [])).join(' ')
+  // a folha lê o pedido na língua ORIGINAL (a camada elencoEpoca lê a tradução): pronome pessoal de 3ª pessoa das línguas do catálogo também prova gente
+  return generoDe(perto) !== null || PRONOME_DE_GENTE_1211.test(perto) || (!!generoDoNome && generoDoNome(nome) !== null) // + o primeiro nome da tabela fixa (Amna, Gabriel…: elencoEpoca.generoDoNome, por injeção — este arquivo não importa a camada de época)
+}
+const PRONOME_DE_GENTE_1211 = /(?<![\p{L}\p{N}])(?:ele|ela|dele|dela|él|ella|lui|lei|egli|ella|er|ihm|ihn|il|elle|он|она|его|её|ему|ей|його|її|він|вона|ona)(?![\p{L}\p{N}])/iu // KINEO-ELENCO-PROVA-DE-GENTE-1211 — pt, es, it, de, fr, ru, uk, pl/cs; ambíguo só AUMENTA a prova (fica no elenco, como hoje)
+export type ProvaDeGenteDaFolha = boolean | { generoDoNome?: (nome: string) => 'man' | 'woman' | null } // KINEO-ELENCO-PROVA-DE-GENTE-1211
+export function elencoDeterministico(script: string, provaDeGente: ProvaDeGenteDaFolha = false): FichaDePersonagem[] { // KINEO-ELENCO-PROVA-DE-GENTE-1211: provaDeGente (falso = byte a byte o de antes)
   const bruto = limpa(semRotulosDeSecao(String(script ?? ''))).slice(0, 8000) // KINEO-ELENCO-MARCADOR-2910 — limpa antes de perder as quebras que delimitam seções.
   if (!bruto) return []
   // as janelas e as frases leem o texto SEM as tags [Pexels: …] (a tag "cartoon boy shock" colada ao "Ravan:" fazia o Ravan virar menino);
@@ -283,7 +298,11 @@ export function elencoDeterministico(script: string): FichaDePersonagem[] {
     if (nomeSoCitado(semTags, nome, VERBO_RE)) continue // KINEO-CITADO-NAO-AGE-0311 — "A mystery woman filmed Kennedy's assassination": Kennedy é citado; a protagonista sem nome entra logo abaixo
     // KINEO-SERES-PERSONIFICADOS-3010 — "Broccoli opens his eyes": a ficha é o brócolis com rosto, nunca um homem de cabelo cacheado
     if (personificados.has(nome.toLowerCase())) { elenco.push({ nome, nucleo: nome, tipo: 'criatura', canonica: descricaoDoSerPersonificado(nome, nome), origem: 'deterministica', protagonista: elenco.length === 0, genero: null }); continue }
-    const { tipo, especie } = tipoDoNome(bruto, nome)
+    if (provaDeGente && NOME_DE_ESPECIE_1211.test(nome)) continue // KINEO-ELENCO-PROVA-DE-GENTE-1211 — gênero científico é o bicho, nunca ficha de gente
+    // KINEO-ELENCO-PROVA-DE-GENTE-1211 — "giant tortoise", "giant squid": "giant" colado a outra palavra que não é verbo é ADJETIVO, não o ser
+    // "giant" (a ficha dele é rosto, mãos e roupa de pano). O verbo continua sendo o ser ("The giant eggs him on", a regra do gigante de 11/11).
+    const { tipo, especie } = tipoDoNome(provaDeGente ? bruto.replace(/\bgiants?\s+([a-z]{3,})\b/gi, (m, w: string) => (VERBO_RE.test(w.toLowerCase()) ? m : w)) : bruto, nome)
+    if (provaDeGente && tipo === 'humano' && !temProvaDeGente(semTags, nome, typeof provaDeGente === 'object' ? provaDeGente.generoDoNome : undefined)) continue // KINEO-ELENCO-PROVA-DE-GENTE-1211 — sem prova de gente, nada de cabelo/rosto/roupa inventados
     const semTagsGenero = semHerDeCoisa(semTags, semTags) // KINEO-PRONOME-DO-OBJETO-1212 — o "her" do quadro não vira gênero do Peruggia
     const contexto = `${janelasDoNome(semTagsGenero, nome)} | ${frasesCom(semTagsGenero, nome).join(' ')}`
     const canonica = canonicaDeterministica(nome, tipo, especie, contexto, usados)
@@ -294,7 +313,10 @@ export function elencoDeterministico(script: string): FichaDePersonagem[] {
     if (m) {
       const papel = limpa(m[1])
       const nucleo = papel.split(' ').pop()!.toLowerCase()
-      const jaTem = elenco.some((e) => baixa(e.canonica).includes(nucleo) || e.nucleo.toLowerCase() === nucleo)
+      // KINEO-ELENCO-PROVA-DE-GENTE-1211 — "Argentinosaurus was 35 meters long — a huge giant": com um nome de gênero científico no texto, "giant"
+      // é o tamanho DESSE bicho, não um gigante de rosto, mãos e roupa de pano (o ser que a ficha de "giant" desenha)
+      const giganteDoBicho = provaDeGente && nucleo === 'giant' && nomesDoRoteiro(bruto).concat(semTags.match(/\p{Lu}\p{Ll}{2,}/gu) ?? []).some((n) => NOME_DE_ESPECIE_1211.test(n))
+      const jaTem = giganteDoBicho || elenco.some((e) => baixa(e.canonica).includes(nucleo) || e.nucleo.toLowerCase() === nucleo) // KINEO-ELENCO-PROVA-DE-GENTE-1211: giganteDoBicho
       if (!jaTem) {
         const tipo: TipoDePersonagem = CRIATURA_RE.test(nucleo) ? 'criatura' : ANIMAL_RE.test(nucleo) ? 'animal' : 'humano'
         const contexto = `${papel} | ${frasesCom(semTags, nucleo).join(' ')}`

@@ -426,7 +426,7 @@ export function nomeDeEspecie(nome: string): boolean {
 }
 
 /** Os personagens NOMEADOS do texto em inglês (até 3; o protagonista é quem mais age). Texto sem nome que age → []. */ // KINEO-ELENCO-EPOCA-2710
-export function personagensNomeados(textoIngles: string, epoca: Epoca | null = null, infantil = false): PersonagemNomeado[] { // KINEO-ELENCO-EPOCA-2710
+export function personagensNomeados(textoIngles: string, epoca: Epoca | null = null, infantil = false, provaDeGente = false): PersonagemNomeado[] { // KINEO-ELENCO-EPOCA-2710 · KINEO-ELENCO-PROVA-DE-GENTE-1211: provaDeGente
   const texto = limpa(sanitizeRealPeople(semRotulosDeSecao(String(textoIngles ?? '').replace(/\[[^\]]*\]/g, ' ')))).slice(0, 8000) // KINEO-ELENCO-MARCADOR-2910
   if (!texto) return [] // KINEO-ELENCO-EPOCA-2710
   const lista = candidatos(texto).filter((c) => !nomeSoCitado(texto, c.nome, VERBO_RE)).sort((a, b) => (b.atua + b.forte) - (a.atua + a.forte) || b.total - a.total || a.primeira - b.primeira).slice(0, ELENCO_EPOCA_MAX_PERSONAGENS) // KINEO-ELENCO-EPOCA-2710 // KINEO-CITADO-NAO-AGE-0311 — "A mystery woman filmed Kennedy's assassination": o citado não entra; a protagonista sem nome entra pelo caminho de sempre
@@ -445,6 +445,7 @@ export function personagensNomeados(textoIngles: string, epoca: Epoca | null = n
     const { tipo, especie } = tipoDe(c.nome, c.aposto, frases, c.titulos) // KINEO-ELENCO-EPOCA-2710
     if (!infantil && tipo === 'criatura' && especie !== null && COISA_DE_CENARIO_RE.test(especie)) return [] // KINEO-JUIZ-REFAZ-2810 — fora do conto infantil, estrela/nuvem/pedra é cenário, não "named character"
     const d = descrever(c.nome, tipo, especie, c.aposto ?? '', frases, c.titulos, epoca, usados, infantil, povoDaHistoria(texto)) // KINEO-ELENCO-EPOCA-2710 · KINEO-REVISOR-RESTO-3010
+    if (provaDeGente && tipo === 'humano' && c.titulos.length === 0 && !c.aposto && d.genero === null) return [] // KINEO-ELENCO-PROVA-DE-GENTE-1211 — caiu no "humano por padrão" sem título, sem papel colado e sem gênero no nome ou nas frases: não há prova de gente (Houston, Fiery, Argentinosaurus viravam "a person in their thirties"); fica fora do elenco, a cena segue com o nome
     return [{ nome: c.nome, nomeado: true, tipo, genero: d.genero, descricao: d.descricao, protagonista: false, ocorrencias: c.total, posicoes: c.posicoes.sort((x, y) => x - y) }] // KINEO-ELENCO-EPOCA-2710 · KINEO-JUIZ-REFAZ-2810 — protagonista decidido abaixo
   }) // KINEO-ELENCO-EPOCA-2710
   return saida.map((p, i) => ({ ...p, protagonista: i === 0 })) // KINEO-JUIZ-REFAZ-2810 — quem mais age entre os que FICARAM é o protagonista (era `i === 0` do mapa, antes do filtro)
@@ -553,6 +554,8 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
   tagFaceless: boolean // KINEO-ELENCO-EPOCA-2710
   /** O template /kids-cartoon está ativo no pedido: conto infantil sem precisar de pista no texto. */ // KINEO-ELENCO-EPOCA-2710
   kidsCartoon?: boolean // KINEO-ELENCO-EPOCA-2710
+  /** KINEO-ELENCO-PROVA-DE-GENTE-1211 — nome sem prova de gente fica fora do elenco (lib/cinematic/provaDeGente); ausente = byte a byte o de antes. */
+  provaDeGente?: boolean // KINEO-ELENCO-PROVA-DE-GENTE-1211
   /** KINEO-PROTAGONISTA-SEEDANCE-0111 — o elenco semântico aplicado na rota (nomes lidos como personagem + o protagonista); null/ausente = comportamento de sempre. */
   elencoSemantico?: { nomes: ReadonlyArray<string>; protagonista: string } | null
   /** KINEO-ORIGEM-DO-ELENCO-0311 — de onde é quem está em cena (lib/cinematic/origemDoElenco, por injeção: esta camada segue sem rede); null/ausente = byte a byte o de antes. */
@@ -577,7 +580,7 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
   else if (texto === null) relato.motivo_sem_elenco = 'sem_traducao' // KINEO-ELENCO-EPOCA-2710
   else { // KINEO-ELENCO-EPOCA-2710
     const faceless = args.modo === 'documentary_faceless' // KINEO-ELENCO-EPOCA-2710
-    let elenco = personagensNomeados(texto, epoca, infantil) // KINEO-ELENCO-EPOCA-2710
+    let elenco = personagensNomeados(texto, epoca, infantil, args.provaDeGente === true) // KINEO-ELENCO-EPOCA-2710 · KINEO-ELENCO-PROVA-DE-GENTE-1211
     // KINEO-PROTAGONISTA-SEEDANCE-0111 — com o elenco semântico aplicado (protagonista nomeado lido pelo sentido): nome que ele NÃO leu como personagem (lugar, empresa, "Lena is gone") não entra
     // KINEO-PROTAGONISTA-SEEDANCE-0111 — em cena, e o protagonista desta camada passa a ser o mesmo (o Skoczuś deixava de ser coadjuvante aqui). Sem elenco semântico: igual, byte a byte.
     if (args.elencoSemantico) { const sem = args.elencoSemantico; elenco = elenco.filter((p) => !p.nomeado || sem.nomes.some((n) => mesmoPersonagem(n, p.nome))); for (const p of elenco) if (p.nomeado) p.protagonista = mesmoPersonagem(sem.protagonista, p.nome) } // KINEO-PROTAGONISTA-SEEDANCE-0111

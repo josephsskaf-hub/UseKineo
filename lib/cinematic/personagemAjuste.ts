@@ -78,8 +78,8 @@ function frasesDoNome(script: string, nome: string): string {
  * Nome da tabela → a iconografia tradicional (tipo 'criatura', origem 'mitica'); nome fora da tabela num contexto mítico →
  * "como a lenda o mostra", sem cabelo/rosto/roupa inventados. Ficha do autor ('autor') nunca é trocada.
  */
-export function elencoDoRoteiro(script: string): FichaDePersonagem[] {
-  const elenco: FichaDePersonagem[] = elencoDeterministico(script).map((f): FichaDePersonagem => { // KINEO-JUIZ-REFAZ-2810 — tipado: o laço abaixo acrescenta fichas
+export function elencoDoRoteiro(script: string, provaDeGente: Parameters<typeof elencoDeterministico>[1] = false): FichaDePersonagem[] { // KINEO-ELENCO-PROVA-DE-GENTE-1211: provaDeGente
+  const elenco: FichaDePersonagem[] = elencoDeterministico(script, provaDeGente).map((f): FichaDePersonagem => { // KINEO-JUIZ-REFAZ-2810 — tipado: o laço abaixo acrescenta fichas
     if (f.origem === 'autor' || f.nome.toLowerCase().startsWith('the ')) return f
     const conhecida = figuraConhecida(f.nome) ?? figuraFielNoTexto(script, f.nome) // KINEO-JUIZ-REFAZ-2810 — nome composto no texto ("the Ghost Rider appears" chega aqui como "Ghost" ou "Rider": o extrator da folha só lê uma palavra)
     if (conhecida) return { ...f, tipo: 'criatura', canonica: `${f.nome}, ${conhecida.descricao}`, origem: 'mitica' as FichaDePersonagem['origem'], genero: conhecida.genero }

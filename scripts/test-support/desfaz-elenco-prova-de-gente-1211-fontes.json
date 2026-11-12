@@ -1,0 +1,28 @@
+{
+ "base": "d29e07428b632ec9a515bcbf673899e03aa88f9c",
+ "scope": {
+  "lib/cinematic/elencoEpoca.ts": {
+   "beforeSha256": "ada566905ee33a78bb70445a810c648dfa25d6f9dbd2a8f3c056ead1017ad899",
+   "afterSha256": "51ded79b803bf10e2f1084b8c221903ea8694b3d1f7cbda0f24dba68ec0c730b",
+   "hunks": [
+    {
+     "before": "/** Os personagens NOMEADOS do texto em inglês (até 3; o protagonista é quem mais age). Texto sem nome que age → []. */ // KINEO-ELENCO-EPOCA-2710\nexport function personagensNomeados(textoIngles: string, epoca: Epoca | null = null, infantil = false): PersonagemNomeado[] { // KINEO-ELENCO-EPOCA-2710",
+     "after": "/** Os personagens NOMEADOS do texto em inglês (até 3; o protagonista é quem mais age). Texto sem nome que age → []. */ // KINEO-ELENCO-EPOCA-2710\nexport function personagensNomeados(textoIngles: string, epoca: Epoca | null = null, infantil = false, provaDeGente = false): PersonagemNomeado[] { // KINEO-ELENCO-EPOCA-2710 · KINEO-ELENCO-PROVA-DE-GENTE-1211: provaDeGente"
+    },
+    {
+     "before": "    const d = descrever(c.nome, tipo, especie, c.aposto ?? '', frases, c.titulos, epoca, usados, infantil, povoDaHistoria(texto)) // KINEO-ELENCO-EPOCA-2710 · KINEO-REVISOR-RESTO-3010",
+     "after": "    const d = descrever(c.nome, tipo, especie, c.aposto ?? '', frases, c.titulos, epoca, usados, infantil, povoDaHistoria(texto)) // KINEO-ELENCO-EPOCA-2710 · KINEO-REVISOR-RESTO-3010\n    if (provaDeGente && tipo === 'humano' && c.titulos.length === 0 && !c.aposto && d.genero === null) return [] // KINEO-ELENCO-PROVA-DE-GENTE-1211 — caiu no \"humano por padrão\" sem título, sem papel colado e sem gênero no nome ou nas frases: não há prova de gente (Houston, Fiery, Argentinosaurus viravam \"a person in their thirties\"); fica fora do elenco, a cena segue com o nome"
+    },
+    {
+     "before": "  kidsCartoon?: boolean // KINEO-ELENCO-EPOCA-2710",
+     "after": "  kidsCartoon?: boolean // KINEO-ELENCO-EPOCA-2710\n  /** KINEO-ELENCO-PROVA-DE-GENTE-1211 — nome sem prova de gente fica fora do elenco (lib/cinematic/provaDeGente); ausente = byte a byte o de antes. */\n  provaDeGente?: boolean // KINEO-ELENCO-PROVA-DE-GENTE-1211"
+    },
+    {
+     "before": "    const faceless = args.modo === 'documentary_faceless' // KINEO-ELENCO-EPOCA-2710\n    let elenco = personagensNomeados(texto, epoca, infantil) // KINEO-ELENCO-EPOCA-2710",
+     "after": "    const faceless = args.modo === 'documentary_faceless' // KINEO-ELENCO-EPOCA-2710\n    let elenco = personagensNomeados(texto, epoca, infantil, args.provaDeGente === true) // KINEO-ELENCO-EPOCA-2710 · KINEO-ELENCO-PROVA-DE-GENTE-1211"
+    }
+   ]
+  }
+ },
+ "addedSources": {}
+}

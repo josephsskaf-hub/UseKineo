@@ -1,6 +1,7 @@
 // KINEO-QUALIDADE-TODOS-MOTORES-2910 — one engine-independent film contract, no provider calls.
 import { aplicarElencoEEpoca, type ModoVisualDoElenco } from '@/lib/cinematic/elencoEpoca'
 import { mesmoPersonagem } from '@/lib/cinematic/elencoEpoca' // KINEO-CITADO-NAO-AGE-0311
+import { generoDoNome } from '@/lib/cinematic/elencoEpoca' // KINEO-ELENCO-PROVA-DE-GENTE-1211 — a tabela de primeiros nomes vai à folha por injeção
 import { elencoDoRoteiro, cenasDoElenco, CLAUSULA_FICHA } from '@/lib/cinematic/personagemAjuste'
 import { elencoComFichaLiteral, canonicaComDesenhoFixo, semDescricaoConcorrente } from '@/lib/cinematic/juizFicha' // KINEO-CONSISTENCIA-SER-3010
 import { aplicarContrato, montarContrato } from '@/lib/cinematic/sceneTruth'
@@ -264,10 +265,12 @@ export function prepararQualidadeDoFilme(args: {
   elencoSemantico?: { nomes: ReadonlyArray<string>; protagonista: string; leitura?: ReadonlyArray<LeituraDaFicha> } | null
   /** KINEO-ORIGEM-DO-ELENCO-0311 — repassado à camada elencoEpoca (aplicarElencoEEpoca); ausente = byte a byte o de antes. */
   origemDoElenco?: Parameters<typeof aplicarElencoEEpoca>[0]['origemDoElenco']
+  /** KINEO-ELENCO-PROVA-DE-GENTE-1211 — repassado a elencoDoRoteiro e à camada elencoEpoca; ausente = byte a byte o de antes. */
+  provaDeGente?: boolean
 }) {
   const elenco = args.tagFaceless ? [] : args.preservarElenco
     ? [...(args.elenco ?? [])]
-    : (() => { const base = args.elenco ?? elencoDoRoteiro(args.contextoOriginal); return conferirFichaLiteral(elencoComFichaLiteral(args.contextoOriginal, base), base, args.elencoSemantico).elenco })() // KINEO-PROTAGONISTA-SEEDANCE-0111 — a ficha semântica não é apagada por "night Pip"; sem elenco semântico = o juiz
+    : (() => { const base = args.elenco ?? elencoDoRoteiro(args.contextoOriginal, args.provaDeGente === true ? { generoDoNome } : false) /* KINEO-ELENCO-PROVA-DE-GENTE-1211 */; return conferirFichaLiteral(elencoComFichaLiteral(args.contextoOriginal, base), base, args.elencoSemantico).elenco })() // KINEO-PROTAGONISTA-SEEDANCE-0111 — a ficha semântica não é apagada por "night Pip"; sem elenco semântico = o juiz
   const contracted = args.prompts.map((prompt, indice) => args.aplicarContrato === false ? prompt
     : aplicarContrato(montarContrato({ indice, falaFinal: args.falas[indice] ?? '', promptFinal: prompt, palavraInteira: true })).promptCorrigido)
   // Only genuinely identical adjacent shots get a new axis; never change speech or scene duration.

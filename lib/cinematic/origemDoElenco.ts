@@ -268,14 +268,20 @@ export function origemDaPessoa(f: Pick<FichaDePersonagem, 'nome' | 'nucleo' | 't
 
 // ═══ 4. A FICHA E A CENA ═══════════════════════════════════════════════════════════════════════════════════════════════
 /** "a Japanese man", "a Nigerian girl", "an Irish person": o gênero vem da ficha; criança nunca vira "man". */
-function quemE(f: Pick<FichaDePersonagem, 'nome' | 'canonica' | 'genero'>, origem: string): string {
+function quemE(f: Pick<FichaDePersonagem, 'nome' | 'canonica' | 'genero'>, origem: string, opcoes?: OpcoesDaOrigem): string {
   const desc = String(f.canonica ?? '').split('; ')[0]
+  // KINEO-ELENCO-PROVA-DE-GENTE-1211 — a pessoa que a PRÓPRIA ficha descreve vence o gênero guardado ao lado (657ad797: "the man, a man in their
+  // early thirties…; origin: a South African woman" — o gênero da ficha veio dos pronomes da história, que eram da mulher). Só sem substantivo na ficha o gênero decide.
+  const daFicha = /\b(?:woman|lady)\b/i.test(desc) ? 'woman' : /\bman\b/i.test(desc) ? 'man' : null
+  if (opcoes?.nucleoVence && daFicha) f = { ...f, genero: daFicha } // KINEO-ELENCO-PROVA-DE-GENTE-1211
   const quem = /\bgirl\b/i.test(desc) ? 'girl' : /\bboy\b/i.test(desc) ? 'boy' : /\b(?:child|kid|toddler|baby)\b/i.test(desc) ? 'child'
     : f.genero === 'woman' ? 'woman' : f.genero === 'man' ? 'man' : /\bwoman\b/i.test(desc) ? 'woman' : /\bman\b/i.test(desc) ? 'man' : 'person'
   return `${artigo(origem)} ${origem} ${quem}`
 }
-export function linhaDeOrigem(f: Pick<FichaDePersonagem, 'nome' | 'canonica' | 'genero'>, origem: string): string {
-  return `origin: ${quemE(f, origem)}, ${FRASE_ORIGEM(origem)}`
+/** KINEO-ELENCO-PROVA-DE-GENTE-1211 — nucleoVence: a linha de origem diz a pessoa que a ficha descreve; ausente = byte a byte o de antes. */
+export interface OpcoesDaOrigem { nucleoVence?: boolean }
+export function linhaDeOrigem(f: Pick<FichaDePersonagem, 'nome' | 'canonica' | 'genero'>, origem: string, opcoes?: OpcoesDaOrigem): string {
+  return `origin: ${quemE(f, origem, opcoes)}, ${FRASE_ORIGEM(origem)}`
 }
 /** A aparência sorteada/escrita por máquina que brigaria com a origem sai; o que o cliente escreveu (citado no texto dele) fica. Vale para todo povo. */
 export function semAparenciaInventada(canonica: string, textoDoCliente: string): string {
@@ -288,17 +294,17 @@ export function semAparenciaInventada(canonica: string, textoDoCliente: string):
     .replace(/,?\s*\bfreckles\b(?! and)/gi, (m) => (fica('freckles') ? m : ''))
 }
 /** A ficha com a origem: uma linha depois da descrição, idempotente pela marca. Sem origem, ser não humano ou ficha mítica: a mesma ficha. */
-export function fichaComOrigem(f: FichaDePersonagem, origem: string | null, textoDoCliente = ''): FichaDePersonagem {
+export function fichaComOrigem(f: FichaDePersonagem, origem: string | null, textoDoCliente = '', opcoes?: OpcoesDaOrigem): FichaDePersonagem { // KINEO-ELENCO-PROVA-DE-GENTE-1211: opcoes
   if (!origem || f.tipo !== 'humano' || (f.origem as string) === 'mitica' || String(f.canonica ?? '').includes(MARCA_NA_FICHA)) return f
   const [desc, ...resto] = semAparenciaInventada(f.canonica, textoDoCliente).split('; ')
-  return { ...f, canonica: [desc, linhaDeOrigem(f, origem), ...resto].join('; ') }
+  return { ...f, canonica: [desc, linhaDeOrigem(f, origem, opcoes), ...resto].join('; ') }
 }
 
 /** O elenco inteiro com a origem (cada personagem a sua). `trocas` alimenta trocarFichaNoPrompt/trocasDaFicha: mesmos pares da trava do estilo. */
-export function elencoComOrigem(elenco: ReadonlyArray<FichaDePersonagem>, filme: OrigemDoFilme): { elenco: FichaDePersonagem[]; trocas: Array<[string, string]>; decisoes: Array<{ nome: string } & DecisaoDaOrigem> } {
+export function elencoComOrigem(elenco: ReadonlyArray<FichaDePersonagem>, filme: OrigemDoFilme, opcoes?: OpcoesDaOrigem): { elenco: FichaDePersonagem[]; trocas: Array<[string, string]>; decisoes: Array<{ nome: string } & DecisaoDaOrigem> } { // KINEO-ELENCO-PROVA-DE-GENTE-1211: opcoes
   const humanos = elenco.filter((f) => f.tipo === 'humano' && (f.origem as string) !== 'mitica').length
   const decisoes = elenco.map((f) => ({ nome: f.nome, ...origemDaPessoa(f, filme, humanos) }))
-  const novo = elenco.map((f, i) => fichaComOrigem(f, decisoes[i].origem, filme.texto))
+  const novo = elenco.map((f, i) => fichaComOrigem(f, decisoes[i].origem, filme.texto, opcoes)) // KINEO-ELENCO-PROVA-DE-GENTE-1211
   return { elenco: novo, trocas: novo.flatMap((f, i): Array<[string, string]> => (f.canonica !== elenco[i].canonica ? [[elenco[i].canonica, f.canonica]] : [])), decisoes }
 }
 
@@ -318,7 +324,7 @@ export interface OrigemParaCenas {
   /** O figurino da época sem a lista ocidental (fedora, trench coat), quando a cena carrega uma origem. */
   roupaDaEpoca: (rotulo: string) => string
 }
-export function origemParaCenas(filme: OrigemDoFilme | null | undefined): OrigemParaCenas | null {
+export function origemParaCenas(filme: OrigemDoFilme | null | undefined, opcoes?: OpcoesDaOrigem): OrigemParaCenas | null { // KINEO-ELENCO-PROVA-DE-GENTE-1211: opcoes
   if (!filme) return null
   return {
     descricao: (p, povoDaTabela) => {
@@ -327,7 +333,7 @@ export function origemParaCenas(filme: OrigemDoFilme | null | undefined): Origem
       if (!d.origem) return null
       let base = semAparenciaInventada(p.descricao, filme.texto)
       if (povoDaTabela && normaliza(povoDaTabela) !== normaliza(d.origem)) base = base.replace(new RegExp(`\\b(?:a|an) ${escapaRe(povoDaTabela)} (\\S)`), (_m, letra: string) => `${artigo(letra)} ${letra}`)
-      return `${base}, ${linhaDeOrigem(f, d.origem)}`
+      return `${base}, ${linhaDeOrigem(f, d.origem, opcoes)}` // KINEO-ELENCO-PROVA-DE-GENTE-1211: opcoes
     },
     frase: (prompt) => {
       if (String(prompt ?? '').includes(MARCA_NA_FICHA)) return ''
