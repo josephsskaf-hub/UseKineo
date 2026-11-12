@@ -157,6 +157,7 @@ import { looksLikeInstruction } from '@/lib/momentumTopic'
 import { checkAiRenderDailyCap, AI_RENDER_CAP_MESSAGE } from '@/lib/aiRenderCircuitBreaker'
 import { parseUserScript } from '@/lib/scriptParser'
 import { temMarcaDeBusca, REGRA_DA_PISTA } from '@/lib/cinematic/pistaNaoManda' // KINEO-PISTA-NAO-MANDA-0411
+import { anotarCena, planoParaOEvento, type CenaGravada } from '@/lib/cinematic/planoGravado' // KINEO-PISTA-COM-FALA-1211 — o plano que foi ao motor, no dispatch_result
 import { reviewRequestFidelity, briefRequiresReview, sceneDescriptionReviewMessage } from '@/lib/requestFidelity' // PEDIDO-FIEL-2610
 // KINEO-NARRACAO-ENCHE-2026-08-22 — a aritmética que impede um roteiro curto
 // demais de virar um filme com imagem muda. Ver o cabeçalho do módulo para a
@@ -438,6 +439,8 @@ interface DispatchContext {
   refundConfirmed: boolean | null
   /** KINEO-STORY-MODE-2026-09-09 — o prompt EXATO submetido por cena (cortado em 240), para nunca mais adivinhar o que foi ao fornecedor. */
   submittedPrompts: string[]
+  /** KINEO-PISTA-COM-FALA-1211 — por cena: o prompt FINAL enviado (≤ 700), a pista visual e o modelo (lib/cinematic/planoGravado). */
+  planoDasCenas: (CenaGravada | null)[] // KINEO-PISTA-COM-FALA-1211
   /** KINEO-VIGIA-CENARIO-2026-09-11 — lugar/época fora da história removidos por cena (vazio = nada inventado). */
   cenarioRemovido: string[]
   assuntoTraduzido?: { precisou: boolean; ok: boolean; ms: number | null; nomes: string[]; filtro_pulado: boolean } | null // KINEO-META95-ASSUNTO-1910 — o pedido traduzido que o filtro anti-invenção leu (null = não precisou)
@@ -455,6 +458,7 @@ function novoContextoDeDespacho(): DispatchContext {
     userId: null, generationId: null, claimId: null, billingReference: null,
     engine: null, quality: null, claimAction: 'unknown', refundConfirmed: null,
     registrado: false, submittedPrompts: [], cenarioRemovido: [], ultimaRecusa: null,
+    planoDasCenas: [], // KINEO-PISTA-COM-FALA-1211
   }
 }
 // AsyncLocalStorage e a ferramenta certa aqui: da localidade de requisicao
@@ -534,6 +538,7 @@ async function finalizarDespacho(ctx: DispatchContext, res: Response): Promise<v
         balance_exhausted: ctx.balanceExhausted,
         scenes: ctx.outcomes.map(safeLogFields),
         submitted_prompts: ctx.submittedPrompts.map((x) => (typeof x === 'string' ? x.slice(0, 240) : null)),
+        scene_plan: planoParaOEvento(ctx.planoDasCenas), // KINEO-PISTA-COM-FALA-1211 — o prompt FINAL de cada cena (≤ 700), a pista e o modelo; null = nada foi enviado
         setting_scrubbed: ctx.cenarioRemovido.map((x) => x.slice(0, 160)),
         subject_translation: ctx.assuntoTraduzido ?? null, // KINEO-META95-ASSUNTO-1910 — medição: precisou? deu certo? o filtro foi pulado por falta de tradução?
         monument: ctx.monumento ?? null, // KINEO-MONUMENTO-2026-10-13
@@ -5935,6 +5940,7 @@ async function manipularPost(req: NextRequest) {
             : kling4PaidPosted[i] ? failedScene({ scene_index: i, model: chunk.model, status: null, ambiguous: true }) : notAttemptedScene(i, chunk.model))
           c.attempts = chunks.map((chunk, i) => kling4PaidPosted[i] ? [{ model: chunk.model, status: ids[i] ? 200 : null, ambiguous: !ids[i], accepted: !!ids[i] }] : [])
           c.submittedPrompts = chunks.map((chunk, i) => kling4PaidPosted[i] ? chunk.prompts.join(' ').slice(0, 240) : '')
+          chunks.forEach((chunk, i) => { if (kling4PaidPosted[i]) anotarCena(c.planoDasCenas, { i, engine: chunk.model, hint: null, prompt: chunk.prompts.join(' | ') }) }) // KINEO-PISTA-COM-FALA-1211 — o pago vai em blocos de planos: um registro por POST
           c.claimAction = 'published'
         }
         return publishCinematicResponse(response, ids, models)
@@ -6411,6 +6417,7 @@ async function manipularPost(req: NextRequest) {
                 hEngines.push('host')
                 hSubmittedPrompts.push(submittedPrompt)
                 ctxDespacho().submittedPrompts[hs.index - 1] = submittedPrompt.slice(0, 240) // KINEO-JUIZ-VE-A-CENA-1-2026-09-22: hs.index é 1-based; o juiz lê 0-based (scene_index)
+                anotarCena(ctxDespacho().planoDasCenas, { i: hs.index - 1, engine: HOST_PRESENTER_MODEL, hint: null, prompt: submittedPrompt }) // KINEO-PISTA-COM-FALA-1211
                 break
               }
               throw e
@@ -6707,6 +6714,7 @@ async function manipularPost(req: NextRequest) {
               hEngines.push(sceneEngine)
               hSubmittedPrompts.push(submittedPrompt)
               ctxDespacho().submittedPrompts[hs.index - 1] = submittedPrompt.slice(0, 240) // KINEO-JUIZ-VE-A-CENA-1-2026-09-22: hs.index é 1-based; o juiz lê 0-based (scene_index)
+              anotarCena(ctxDespacho().planoDasCenas, { i: hs.index - 1, engine: sceneModel, hint: null, prompt: submittedPrompt }) // KINEO-PISTA-COM-FALA-1211
               break
             }
             throw e
@@ -6720,6 +6728,7 @@ async function manipularPost(req: NextRequest) {
         hEngines.push(sceneEngine)
         hSubmittedPrompts.push(submittedPrompt)
         ctxDespacho().submittedPrompts[hs.index - 1] = submittedPrompt.slice(0, 240) // KINEO-JUIZ-VE-A-CENA-1-2026-09-22: hs.index é 1-based; o juiz lê 0-based (scene_index)
+        anotarCena(ctxDespacho().planoDasCenas, { i: hs.index - 1, engine: sceneModel, hint: null, prompt: submittedPrompt }) // KINEO-PISTA-COM-FALA-1211
         // KINEO-S25-FALA-SEM-VOZ-R5-2026-09-14 (Board, R4 §2) — uma fala
         // obrigatória retida já condena o filme: nenhuma cena seguinte pode
         // completá-lo. Parar aqui evita POSTs pagos que só virariam custo nosso.
@@ -7679,6 +7688,7 @@ async function manipularPost(req: NextRequest) {
         if (wantsVeo) c.submittedPrompts.splice(sceneIndex, 1, veoStripShotAxis(cinematic).slice(0, 240))
         if (kling4TrialCandidate) c.submittedPrompts.splice(sceneIndex, 1, semEixoDoFilmeGratis(cinematic).slice(0, 240)) // KINEO-REPETICAO-FREE15-1011 — a reserva Seedance do grátis: o juiz lê a cena SEM o plano, como no Kling 2.5 e no Veo
         c.attempts[sceneIndex] = despachoCena.attempts
+        { const enviado = classicSceneInputs[sceneIndex]?.prompt; anotarCena(c.planoDasCenas, { i: sceneIndex, engine: despachoCena.outcome?.model ?? modelos[0], hint: scene.stockSearchQuery || scene.description, prompt: typeof enviado === 'string' ? enviado : cinematic }) } // KINEO-PISTA-COM-FALA-1211 — o prompt que a fal recebeu (o da tentativa que valeu), não o cortado em 240
         c.totalPosts += despachoCena.posts
         if (despachoCena.outcome.reason_class === 'balance_quota') c.balanceExhausted = true
       }
@@ -8032,6 +8042,11 @@ async function manipularPost(req: NextRequest) {
       c.engine = kling4Trial.job.model
       c.planned = 1
       c.outcomes = [acceptedScene(0, kling4Trial.job.model)]
+      try { // KINEO-PISTA-COM-FALA-1211 — o multi_prompt EXATO que foi à fal (o mesmo montador do POST), plano a plano; a pista é a da cena de mesmo índice
+        const e = kling4EnvioDoFilme()
+        const tiros = buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input.multi_prompt as { prompt?: unknown }[]
+        tiros.forEach((t, i) => anotarCena(c.planoDasCenas, { i, engine: kling4Trial.job?.model ?? null, hint: scenes[i]?.description ?? null, prompt: t?.prompt }))
+      } catch { /* telemetria nunca derruba o filme */ }
       c.attempts = [[{ model: kling4Trial.job.model, status: 200, ambiguous: false, accepted: true }]]
       c.submittedPrompts = [classicScenePrompts.map(semEixoDoFilmeGratis).join(' ').slice(0, 240)] // KINEO-REPETICAO-FREE15-1011 — o juiz lê sem o plano do grátis (sem plano = o texto de antes)
     } else if (kling4Posts && ctxDespacho().attempts[0]) {
