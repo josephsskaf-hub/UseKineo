@@ -21,6 +21,7 @@ function mundo(over = {}) {
     '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: ctx.user } }) } }) },
     '@/lib/ads/access': { isAdsInternalEmail: () => ctx.casa },
     '@/lib/serverEvents': { writeServerEvent: async (e) => { ctx.eventos.push(e); return true } },
+    '@/lib/userFootage': { footageAdminClient: () => ({}) },
   }
   function load(rel) {
     if (cache.has(rel)) return cache.get(rel).exports
@@ -29,6 +30,7 @@ function mundo(over = {}) {
     const js = ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
     const req = (id) => {
       if (stubs[id]) return stubs[id]
+      if (id.startsWith('node:')) return require(id)
       const alvo = id.startsWith('@/') ? id.slice(2) : id.startsWith('.') ? path.posix.join(path.posix.dirname(rel), id) : null
       if (!alvo) throw new Error('import inesperado: ' + id + ' em ' + rel)
       const file = [alvo + '.ts', alvo + '.tsx', alvo].find((p) => fs.existsSync(p))
@@ -120,16 +122,13 @@ async function bateria(over = {}) {
     if (await P.estornarPessoaFalando(io, 'p1') !== 0 || saldo !== 100) throw new Error('estornou 2 vezes')
     if (P.chaveDeCobranca('p1') !== 'adspf-p1') throw new Error('chave mudou')
   })
-  await check('(E) roteiro e fotos-chave: 404 fora; fotos-chave ainda não cobra', async () => {
+  await check('(E) roteiro e fotos-chave: 404 fora, sem ler o corpo', async () => {
     const c = mundo(over); c.casa = false
     for (const r of ['app/api/ads/pessoa-falando/roteiro/route.ts', 'app/api/ads/pessoa-falando/fotos-chave/route.ts']) {
       const res = await c.load(r).POST({ json: async () => { c.corpoLido++; return {} } })
       if (res.status !== 404) throw new Error(r + ' fora = ' + res.status)
     }
-    const d = mundo(over)
-    const f = await d.load('app/api/ads/pessoa-falando/fotos-chave/route.ts').POST({ json: async () => ({}) })
-    if (f.status !== 501 || f.body.charged !== false) throw new Error('fotos-chave ' + f.status)
-    if (d.redes !== 0) throw new Error('fotos-chave tocou a rede')
+    if (c.corpoLido !== 0) throw new Error('leu o corpo antes do portão')
   })
   return p
 }
