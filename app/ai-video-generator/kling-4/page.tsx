@@ -7,7 +7,7 @@ import { KLING4_PAID_CREDITS } from '@/lib/kling4PaidPricing'
 import { FREE_FILM_IS_KLING4, FREE_FILM_FITS_CLAUSE } from '@/lib/freeFilmEngine' // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "vai 16"] — selo honesto: Kling 4.0 grátis só quando a história cabe em 15 s
 import { GRANT_COUNTRY_CLAUSE, TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOffer'
 import { CARD_ENTRY_ONLY } from '@/lib/entryPolicy'
-import { TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+import { TIER_PRICES, TIER_CREDITS, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { buildEngineLandingSignupHref } from '@/lib/growth/engineLandingIntent'
 import { ShowcaseStrip } from '@/app/claude-connector/ShowcaseGrid' // KINEO-VITRINE-PAGINAS-1011
 import { vitrineDaPagina } from '@/lib/seo/vitrinePaginas1011' // KINEO-VITRINE-PAGINAS-1011
@@ -36,6 +36,21 @@ export const metadata: Metadata = {
 }
 
 const credits = (s: 15 | 30 | 60) => KLING4_PAID_CREDITS[s]
+// KINEO-CITACOES-FLUXO-D00 — tabela citável "custo por filme Kling 4.0", datada. Tudo sai do código: TIER_PRICES/TIER_CREDITS (o que cobra) e KLING4_PAID_CREDITS (a régua do motor). Nada digitado.
+const COST_TABLE_UPDATED_ISO = '2026-11-12'
+const COST_TABLE_UPDATED = 'November 12, 2026'
+const COST_PLANS = [['starter', 'Starter'], ['basic', 'Creator'], ['pro', 'Studio']] as const
+const costRows = COST_PLANS.map(([tier, name]) => {
+  const usd = TIER_PRICES[tier].usd / 100
+  const bal = TIER_CREDITS[tier]
+  return [
+    name,
+    `US$${usd}`,
+    String(bal),
+    ([15, 30, 60] as const).map((s) => `${Math.floor(bal / credits(s))} × ${s} s`).join(', '),
+    `About US$${(credits(60) * usd / bal).toFixed(2)}`,
+  ]
+})
 const faq: Array<{ q: string; a: string }> = [
   {
     q: 'Is Kling 4.0 free?',
@@ -72,7 +87,18 @@ export default function Kling4Page() {
     <Kling4PaidEnginePage serverPaidLive={KLING4_PAID_LIVE} freeFilmIsKling4={freeFilmIsKling4} freeLine={freeFilmIsKling4 ? `Your first ${TRIAL_FREE_FILM_SECONDS}-second film is free on Kling 4.0${GRANT_COUNTRY_CLAUSE}${FREE_FILM_FITS_CLAUSE}${noCard}.` : null} />
     {/* KINEO-VITRINE-PAGINAS-1011 — os filmes narrados da casa feitos no Kling 4.0, logo abaixo da resposta e dos preços */}
     {vitrine && <div style={{ maxWidth: 900, margin: '-48px auto 0', padding: '0 22px 56px' }}><ShowcaseStrip titulo={vitrine.titulo} linha={vitrine.linha} clipes={vitrine.clipes} href={href} source="seo_engine_kling4" tone="site" /></div>}
-    <section aria-labelledby="kling4-faq" style={{ maxWidth: 900, margin: '0 auto', padding: '0 22px 72px', color: 'var(--text)', overflowWrap: 'anywhere' }}>
+    <section aria-labelledby="kling4-cost" data-kling4-cost-table style={{ maxWidth: 900, margin: '0 auto', padding: '0 22px 40px', color: 'var(--text)', overflowWrap: 'anywhere' }}>
+      <h2 id="kling4-cost" style={{ fontSize: 28, letterSpacing: '-.02em', margin: '0 0 12px' }}>Kling 4.0 cost per film on Kineo</h2>
+      <p style={{ margin: '0 0 14px', lineHeight: 1.6, color: 'var(--muted2)' }}>A Kling 4.0 film uses {credits(15)} credits at 15 seconds, {credits(30)} at 30 and {credits(60)} at 60. The table shows what one month of each plan covers.</p>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 14, lineHeight: 1.55 }}>
+          <thead><tr>{['Plan', 'Price per month', 'Credits per month', 'Kling 4.0 films those credits cover', 'Cost of a 60 s film at that plan'].map((h) => <th key={h} scope="col" style={{ textAlign: 'left', padding: '10px 12px', border: '1px solid var(--border)' }}>{h}</th>)}</tr></thead>
+          <tbody>{costRows.map((r) => <tr key={r[0]}>{r.map((c, i) => <td key={i} style={{ padding: '10px 12px', border: '1px solid var(--border)', fontWeight: i === 0 ? 600 : 400 }}>{c}</td>)}</tr>)}</tbody>
+        </table>
+      </div>
+      <p style={{ margin: '12px 0 0', fontSize: 14, lineHeight: 1.6, color: 'var(--muted2)' }}>The credit cost is shown before you generate. Amounts in US$ are the reference price; see <Link href="/pricing" style={{ textDecoration: 'underline' }}>current prices and trial terms</Link>. Updated: <time dateTime={COST_TABLE_UPDATED_ISO}>{COST_TABLE_UPDATED}</time>.</p>
+    </section>
+    <section aria-labelledby="kling4-faq"style={{ maxWidth: 900, margin: '0 auto', padding: '0 22px 72px', color: 'var(--text)', overflowWrap: 'anywhere' }}>
       <h2 id="kling4-faq" style={{ fontSize: 28, letterSpacing: '-.02em', margin: '0 0 18px' }}>Kling 4.0 questions</h2>
       {faq.map(({ q, a }) => <div key={q} style={{ padding: '16px 0', borderTop: '1px solid var(--border)' }}>
         <h3 style={{ fontSize: 17, margin: '0 0 6px' }}>{q}</h3>
