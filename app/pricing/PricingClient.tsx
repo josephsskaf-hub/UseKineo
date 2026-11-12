@@ -1079,7 +1079,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
       {/* ───────── Pricing ───────── */}
       <section className="relative z-10 mx-auto max-w-5xl px-4 pt-12 pb-16 sm:px-6 sm:pt-16">
         <div className="pricing-intro mb-10 text-center">
-          <div className="mb-2 text-[11px] font-extrabold uppercase tracking-[.16em] text-[var(--accent)]">
+          <div className="mb-2 text-[12px] font-extrabold uppercase tracking-[.16em] text-[var(--accent)]">
             Pricing
           </div>
           <h1 className="text-balance text-4xl font-black tracking-tight sm:text-5xl text-[var(--text)]">
@@ -1171,7 +1171,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
               }`}
             >
               Annual
-              <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-black text-[var(--accent)]">
+              <span className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[12px] font-black text-[var(--accent)]">
                 {annualOfferLive ? <>Up to {ANNUAL_WELCOME_DISCOUNT_PERCENT}%</> : <>Save {ANNUAL_DISCOUNT_PERCENT}%</>}
               </span>
             </button>
@@ -1366,16 +1366,16 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                     (Best Value) era azul solido. Trocados; emoji fora (nenhum
                     selo da landing tem emoji). */}
                 {requestedTier === p.tier ? (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--indigo)] px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-[var(--on-accent)] shadow-[0_6px_20px_-6px_rgba(41,151,255,.85)]">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--indigo)] px-3 py-1 text-[12px] font-black uppercase tracking-[.12em] text-[var(--on-accent)] shadow-[0_6px_20px_-6px_rgba(41,151,255,.85)]">
                     Your choice
                   </div>
                 ) : p.popular ? (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--indigo)] px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-[var(--on-accent)] shadow-[0_6px_20px_-6px_rgba(41,151,255,.85)]">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--indigo)] px-3 py-1 text-[12px] font-black uppercase tracking-[.12em] text-[var(--on-accent)] shadow-[0_6px_20px_-6px_rgba(41,151,255,.85)]">
                     Most Popular
                   </div>
                 ) : p.highlight ? (
                   <div
-                    className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[.12em]"
+                    className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[12px] font-black uppercase tracking-[.12em]"
                     style={{
                       background: 'var(--accent-soft)',
                       border: '1px solid var(--border2)',
@@ -1405,7 +1405,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                 {/* KINEO-MOEDA-LOCAL-2026-09-09 — o preço fica em dólar para todo mundo;
                     quem vai pagar em reais vê, e só ele, o valor exato da cobrança. */}
                 {settlementCurrency === 'brl' ? (
-                  <div className="mt-1 text-[11.5px] font-medium text-[var(--muted)]" data-testid="settlement-note">
+                  <div className="mt-1 text-[12px] font-medium text-[var(--muted)]" data-testid="settlement-note">
                     {settlementNote(
                       planSettlementAmountMinor(
                         p.tier as PaidTier,
@@ -1444,7 +1444,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                     só parou de disputar atenção no instante da decisão. */}
                 {isPaid && !MRR_CONVERSION_ENABLED && <CreditMinutesSummary credits={TIER_CREDITS[p.tier as PaidTier]} />}
                 {isPaid && <ConversionPlanCapacity key={`${p.tier}_${billing}`} tier={p.tier as PaidTier} billing={billing} currency={displayCurrency} region={resolvedRegion} surface="pricing" />}
-                {isPaid && <p className="plan-credit-summary" style={MRR_CONVERSION_ENABLED ? { fontSize: 11, color: 'var(--muted)' } : undefined}>{TIER_CREDITS[p.tier as PaidTier]} credits / month</p>}
+                {isPaid && <p className="plan-credit-summary" style={MRR_CONVERSION_ENABLED ? { fontSize: 12, color: 'var(--muted)' } : undefined}>{TIER_CREDITS[p.tier as PaidTier]} credits / month</p>}
                 {'videosPerMonth' in p && p.videosPerMonth ? (
                   <div className="mt-5 text-[17px] font-black tracking-tight text-[var(--accent)]">
                     {p.videosPerMonth}
@@ -1490,7 +1490,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                   return (
                     <details className="plan-detail-breakdown">
                       <summary>What can I create with these credits?</summary>
-                      <div className="mb-1 text-[10px] font-black uppercase tracking-[.14em] text-[var(--muted2)]">
+                      <div className="mb-1 text-[12px] font-black uppercase tracking-[.14em] text-[var(--muted2)]">
                         Your {cr} credits every month =
                       </div>
                       <div className="flex flex-col gap-[3px]">
@@ -1500,29 +1500,29 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                           return (
                             <span
                               key={r.name}
-                              className="flex items-baseline justify-between text-[11.5px] font-semibold"
+                              className="flex items-baseline justify-between text-[12px] font-semibold"
                               style={{ color: locked ? 'var(--muted2)' : 'var(--text2)' }}
                             >
                               <span><KineoBoltText>{r.ic}</KineoBoltText> {r.name}</span>
                               {locked ? (
-                                <span className="text-[9.5px] font-black uppercase" style={{ color: 'var(--pricing-warning)' }}>{tierFor(r.cost)} plan</span>
+                                <span className="text-[12px] font-black uppercase" style={{ color: 'var(--pricing-warning)' }}>{tierFor(r.cost)} plan</span>
                               ) : (
                                 <b style={{ color: 'var(--accent)' }}>{n}×</b>
                               )}
                             </span>
                           )
                         })}
-                        <span className="flex items-baseline justify-between text-[11.5px] font-semibold text-[var(--text2)]">
+                        <span className="flex items-baseline justify-between text-[12px] font-semibold text-[var(--text2)]">
                           <span>🎨 AI images · 6 engines</span><b style={{ color: 'var(--accent)' }}>up to {cr}</b>
                         </span>
-                        <span className="flex items-baseline justify-between text-[11.5px] font-semibold text-[var(--text2)]">
+                        <span className="flex items-baseline justify-between text-[12px] font-semibold text-[var(--text2)]">
                           <span>🎙 AI voiceovers · 4 voices</span><b style={{ color: 'var(--accent)' }}>{Math.floor(cr / 2)}×</b>
                         </span>
-                        <span className="flex items-baseline justify-between text-[11.5px] font-semibold text-[var(--text2)]">
+                        <span className="flex items-baseline justify-between text-[12px] font-semibold text-[var(--text2)]">
                           <span>✨ HD Enhance{p.tier === 'pro' ? ' (+2 free)' : ''}</span><b style={{ color: 'var(--accent)' }}>{Math.floor(cr / 10)}×</b>
                         </span>
                       </div>
-                      <div className="mt-2 flex flex-col gap-[2px] text-[10.5px] text-[var(--muted)]">
+                      <div className="mt-2 flex flex-col gap-[2px] text-[12px] text-[var(--muted)]">
                         <span>✓ 1080×1920 Full HD master on every film</span>
                         <span>✓ Script, voiceover, karaoke captions &amp; soundtrack included</span>
                         <span>✓ <UiLabel>{kling4Availability?.paidLive ? KLING4_PAID_COPY.directed : 'Characters that speak your lines with lip sync (Kling 3)'}</UiLabel></span>
@@ -1534,13 +1534,13 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                   )
                 })()}
                 {isPaid && (
-                  <p className="mb-2 text-[10.5px] text-[var(--muted2)]">
+                  <p className="mb-2 text-[12px] text-[var(--muted2)]">
                     Mix &amp; match — one credit pool covers everything
                   </p>
                 )}
                 {/* KINEO-PRICING-V5-2026-08-17 — storage é entitlement visível */}
                 {'storageLine' in p && p.storageLine ? (
-                  <p className="mb-6 text-[11.5px] font-bold uppercase tracking-[.08em] text-[var(--muted)]">
+                  <p className="mb-6 text-[12px] font-bold uppercase tracking-[.08em] text-[var(--muted)]">
                     🗂 {p.storageLine}
                   </p>
                 ) : null}
@@ -1611,13 +1611,13 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                   </button>
                 )}
                 {isPaid && (
-                  <p className="mt-2 text-center text-[11px] font-semibold text-[var(--muted)]">
+                  <p className="mt-2 text-center text-[12px] font-semibold text-[var(--muted)]">
                     {CHECKOUT_PAYMENT_GUIDANCE_COMPACT}
                   </p>
                 )}
                 {/* Marker: KINEO-CHECKOUT-TRUST-2026-07-05 — trust cues at the buy button (billed by Kineo after Stripe name fix) */}
                 {isPaid && (
-                  <p className="mt-1.5 text-center text-[11.5px] font-semibold leading-relaxed text-[var(--muted)]">
+                  <p className="mt-1.5 text-center text-[12px] font-semibold leading-relaxed text-[var(--muted)]">
                     {billing === 'monthly' && (p.tier === 'starter' || p.tier === 'basic') && displayCurrency
                       && hasIntroOffer(p.tier as 'starter' | 'basic', resolvedCurrency, resolvedRegion)
                       ? `First month ${entryPriceLabel(p.tier as 'starter' | 'basic')} · cancel anytime`
@@ -1750,7 +1750,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
               aria-hidden="true"
             />
             <div className="min-w-0 text-left">
-              <p className="text-[11px] font-black uppercase tracking-[0.08em] text-[var(--accent)]">Your latest film</p>
+              <p className="text-[12px] font-black uppercase tracking-[0.08em] text-[var(--accent)]">Your latest film</p>
               <p className="truncate text-[14px] font-bold text-[var(--text)]">{latestFilm.title}</p>
               <p className="text-[12px] font-semibold text-[var(--muted)]">Your next films come out clean, without the watermark, in 1080p. {MONEY_BACK_GUARANTEE}</p>{/* KINEO-CHECKOUT-CLAREZA-1610 */}
               <FilmsLikeThisNote qualityMode={latestFilm.quality} seconds={latestFilm.seconds} />{/* KINEO-VALOR-NO-CHECKOUT-3110 */}
@@ -1768,7 +1768,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         {/* KINEO-PRECOS-REFINO-2026-10-09 — com o cartão novo, cada plano já diz o que o crédito compra, motor por motor. */}
         {valueCards ? null : (
         <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-[var(--border)] bg-[var(--card)] px-5 py-4">
-          <p className="mb-2.5 text-center text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--accent)]">What one credit buys</p>
+          <p className="mb-2.5 text-center text-[12px] font-extrabold uppercase tracking-[.14em] text-[var(--accent)]">What one credit buys</p>
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-[12.5px] font-semibold text-[var(--muted)]">
             <span>🎬 Film (MiniMax H3 Turbo) — <b className="text-[var(--text)]">{creditsPerReferenceVideo('cinematic_ai')} cr</b></span>
             <span>🎥 MiniMax H3 — <b className="text-[var(--text)]">{creditsPerReferenceVideo('cinematic_h3')} cr</b></span>
@@ -1874,7 +1874,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
           <>
             <div id="autopilot-lite" className="mx-auto mt-14 max-w-5xl scroll-mt-24">
               <div className="mb-4 text-center">
-                <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">
+                <div className="text-[12px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">
                   Or let your series run itself
                 </div>
                 <h2 className="mt-2 text-[1.7rem] font-black tracking-tight text-[var(--text)]">
@@ -1885,7 +1885,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                 className="relative overflow-hidden rounded-2xl border p-6 sm:p-8"
                 style={{ borderColor: 'var(--border2)', background: 'linear-gradient(135deg, rgba(41,151,255,0.05) 0%, var(--card) 55%)' }}
               >
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--indigo)] px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-[var(--on-accent)]">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--indigo)] px-3 py-1 text-[12px] font-black uppercase tracking-[.12em] text-[var(--on-accent)]">
                   Weekly · done for you
                 </div>
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:items-center">
@@ -1944,7 +1944,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
 
             <div id="autopilot" className="mx-auto mt-14 max-w-5xl scroll-mt-24">
               <div className="mb-4 text-center">
-                <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">
+                <div className="text-[12px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">
                   Or don&apos;t make videos at all
                 </div>
                 <h2 className="mt-2 text-[1.7rem] font-black tracking-tight text-[var(--text)]">
@@ -1959,7 +1959,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                   background: 'linear-gradient(135deg, var(--accent-soft) 0%, var(--card) 75%)',
                 }}
               >
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-[var(--on-accent)] shadow-[0_4px_18px_rgba(41,151,255,.45)] bg-[var(--indigo)]">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[12px] font-black uppercase tracking-[.12em] text-[var(--on-accent)] shadow-[0_4px_18px_rgba(41,151,255,.45)] bg-[var(--indigo)]">
                   Done for you
                 </div>
 
@@ -2045,7 +2045,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                 >
                   <div className="grid grid-cols-1 gap-5 md:grid-cols-[1fr_auto] md:items-center">
                     <div>
-                      <div className="text-[11px] font-extrabold uppercase tracking-[.12em] text-[var(--accent)]">
+                      <div className="text-[12px] font-extrabold uppercase tracking-[.12em] text-[var(--accent)]">
                         Not ready for {displayCurrency ? formatCheckoutMoney(resolvedCurrency, AUTOPILOT_PRICES[resolvedCurrency]) : 'the monthly'}/month?
                       </div>
                       <h3 className="mt-1.5 text-[1.15rem] font-black tracking-tight text-[var(--text)]">
@@ -2076,7 +2076,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                           ? 'Opening secure checkout…'
                           : `Start the ${AUTOPILOT_PILOT_DAYS}-day pilot →`}
                       </button>
-                      <p className="mt-2 text-center text-[11.5px] font-semibold text-[var(--muted)]">
+                      <p className="mt-2 text-center text-[12px] font-semibold text-[var(--muted)]">
                         🔒 Stripe · one-time · no auto-renew
                       </p>
                     </div>
@@ -2144,7 +2144,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
 
         <div className="mt-16">
           <div className="mb-6 text-center">
-            <div className="mb-2 text-[11px] font-extrabold uppercase tracking-[.16em] text-[var(--accent)]">
+            <div className="mb-2 text-[12px] font-extrabold uppercase tracking-[.16em] text-[var(--accent)]">
               FAQ
             </div>
             <h2 className="text-balance text-2xl font-black tracking-tight sm:text-3xl text-[var(--text)]">
@@ -2218,22 +2218,22 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
               Kineo
             </span>
           </div>
-          <p className="text-[11.5px] text-[var(--muted)]">© 2026 Kineo</p>
+          <p className="text-[12px] text-[var(--muted)]">© 2026 Kineo</p>
         </div>
         {/* Push #116 — legal + contact strip. */}
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-3 gap-y-1 px-4 pb-6 sm:px-6">
-          <Link href="/terms" className="text-[11.5px] font-medium text-[var(--muted)] hover:text-[var(--text)]">Terms of Service</Link>
-          <span aria-hidden className="text-[11.5px] text-[var(--muted)] opacity-40">·</span>
-          <Link href="/privacy" className="text-[11.5px] font-medium text-[var(--muted)] hover:text-[var(--text)]">Privacy Policy</Link>
-          <span aria-hidden className="text-[11.5px] text-[var(--muted)] opacity-40">·</span>
+          <Link href="/terms" className="text-[12px] font-medium text-[var(--muted)] hover:text-[var(--text)]">Terms of Service</Link>
+          <span aria-hidden className="text-[12px] text-[var(--muted)] opacity-40">·</span>
+          <Link href="/privacy" className="text-[12px] font-medium text-[var(--muted)] hover:text-[var(--text)]">Privacy Policy</Link>
+          <span aria-hidden className="text-[12px] text-[var(--muted)] opacity-40">·</span>
           {/* KINEO-GOOGLE-FAXINA-1011 — Support e Refunds também no rodapé do /pricing (ele não usa o Footer global). */}
-          <Link href="/support" className="text-[11.5px] font-medium text-[var(--muted)] hover:text-[var(--text)]">Support</Link>
-          <span aria-hidden className="text-[11.5px] text-[var(--muted)] opacity-40">·</span>
-          <Link href="/refund" className="text-[11.5px] font-medium text-[var(--muted)] hover:text-[var(--text)]">Refunds</Link>
-          <span aria-hidden className="text-[11.5px] text-[var(--muted)] opacity-40">·</span>
-          <a href="mailto:support@usekineo.com" className="text-[11.5px] font-medium text-[var(--muted)] hover:text-[var(--text)]">Contact</a>
+          <Link href="/support" className="text-[12px] font-medium text-[var(--muted)] hover:text-[var(--text)]">Support</Link>
+          <span aria-hidden className="text-[12px] text-[var(--muted)] opacity-40">·</span>
+          <Link href="/refund" className="text-[12px] font-medium text-[var(--muted)] hover:text-[var(--text)]">Refunds</Link>
+          <span aria-hidden className="text-[12px] text-[var(--muted)] opacity-40">·</span>
+          <a href="mailto:support@usekineo.com" className="text-[12px] font-medium text-[var(--muted)] hover:text-[var(--text)]">Contact</a>
         </div>
-        <AdvertiserIdentity className="px-4 pb-6 text-center text-[11.5px] text-[var(--muted)]" />
+        <AdvertiserIdentity className="px-4 pb-6 text-center text-[12px] text-[var(--muted)]" />
       </footer>
     </div>
   )

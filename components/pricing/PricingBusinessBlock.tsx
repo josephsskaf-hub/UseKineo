@@ -29,7 +29,7 @@ const UGC_LINE = businessUgcComparisonLine({ planPriceMinor: BUSINESS_PRICE_USD_
 const CSS = `
 .kb-biz{margin:56px auto 0;max-width:64rem;scroll-margin-top:6rem}
 .kb-biz-card{display:grid;grid-template-columns:1.1fr .9fr;gap:28px;align-items:center;border:1px solid var(--border2);background:var(--card);border-radius:22px;padding:30px 32px}
-.kb-biz-eyebrow{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.kb-biz-eyebrow{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .kb-biz h2{margin:8px 0 0;font-size:clamp(1.5rem,3vw,2rem);font-weight:750;line-height:1.15;color:var(--text)}
 .kb-biz-promise{margin:10px 0 0;font-size:15px;font-weight:650;color:var(--accent)}
 .kb-biz-list{margin:18px 0 0;padding:0;list-style:none;display:grid;gap:8px}

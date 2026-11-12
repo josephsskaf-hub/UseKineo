@@ -52,12 +52,12 @@ function Cell({ value, showSeconds, perSecond = false }: { value: PriceCell | nu
   return (
     <td className="px-3 py-2.5 text-center">
       <div className="font-black text-[var(--text)]">{value.credits} cr</div>
-      <div className="text-[11.5px] text-[var(--muted)]">
+      <div className="text-[12px] text-[var(--muted)]">
         ≈ {usd(value.usdCents)}
         {showSeconds ? <> · {value.seconds} s</> : null}
       </div>
       {perSecond ? (
-        <div className="text-[11px] text-[var(--muted)]">≈ ${(value.usdCents / 100 / value.seconds).toFixed(3)}/s</div>
+        <div className="text-[12px] text-[var(--muted)]">≈ ${(value.usdCents / 100 / value.seconds).toFixed(3)}/s</div>
       ) : null}
     </td>
   )
@@ -68,7 +68,7 @@ export function TwoProductsPricingView({ model }: { model: TwoProductsModel }) {
   return (
     <section id={TWO_PRODUCTS_SECTION_ID} aria-labelledby={`${TWO_PRODUCTS_SECTION_ID}-title`} className="mx-auto mt-14 max-w-4xl scroll-mt-24" data-kineo="two-products-pricing">
       <div className="text-center">
-        <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">Two ways to create</div>
+        <div className="text-[12px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">Two ways to create</div>
         <h2 id={`${TWO_PRODUCTS_SECTION_ID}-title`} className="mt-2 text-[1.7rem] font-black tracking-tight text-[var(--text)]">
           Clips and narrated films, one credit balance
         </h2>
@@ -87,7 +87,7 @@ export function TwoProductsPricingView({ model }: { model: TwoProductsModel }) {
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[420px] text-[13px]">
             <thead>
-              <tr className="border-b border-[var(--border)] text-[11.5px] uppercase tracking-wide text-[var(--muted)]">
+              <tr className="border-b border-[var(--border)] text-[12px] uppercase tracking-wide text-[var(--muted)]">
                 <th className="px-3 py-2 text-left font-extrabold">Engine</th>
                 {TWO_PRODUCTS_CLIP_TARGETS.map((target) => (
                   <th key={target} className="px-3 py-2 text-center font-extrabold">~{target} s clip</th>
@@ -114,7 +114,7 @@ export function TwoProductsPricingView({ model }: { model: TwoProductsModel }) {
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[520px] text-[13px]">
             <thead>
-              <tr className="border-b border-[var(--border)] text-[11.5px] uppercase tracking-wide text-[var(--muted)]">
+              <tr className="border-b border-[var(--border)] text-[12px] uppercase tracking-wide text-[var(--muted)]">
                 <th className="px-3 py-2 text-left font-extrabold">Engine</th>
                 {TWO_PRODUCTS_FILM_SECONDS.map((seconds) => (
                   <th key={seconds} className="px-3 py-2 text-center font-extrabold">{seconds} s film</th>
@@ -159,7 +159,7 @@ export function TwoProductsPricingView({ model }: { model: TwoProductsModel }) {
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-[11.5px] text-[var(--muted)]">Counts are rounded down. Mix clips and films freely — they share the same credits.</p>
+        <p className="mt-3 text-[12px] text-[var(--muted)]">Counts are rounded down. Mix clips and films freely — they share the same credits.</p>
       </div>
     </section>
   )

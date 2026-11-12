@@ -73,7 +73,7 @@ export function PricingCreditsBlockView({
       aria-labelledby={`${PRICING_CREDITS_BLOCK_ID}-title`}
       className="mx-auto mt-14 max-w-3xl scroll-mt-24 text-center"
     >
-      <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">{PRICING_ONE_TIME_LABEL}</div>
+      <div className="text-[12px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">{PRICING_ONE_TIME_LABEL}</div>
       <h2 id={`${PRICING_CREDITS_BLOCK_ID}-title`} className="mt-2 text-[1.7rem] font-black tracking-tight text-[var(--text)]">
         One-time credits
       </h2>

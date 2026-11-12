@@ -126,7 +126,8 @@ const pr = rd('app/pricing/PricingClient.tsx')
 // KINEO-ANUAL-40OFF-2026-10-05 — o anual ganhou o "≈" na frente (é o anual ÷ 12); a fonte do número é a mesma.
 checa('/pricing: o preço grande segue em dólar (p.price / annualPrices) — nada mudou no número', /\? `≈ \$\{annualPrices\[p\.tier as PaidTier\]\.perMonth\}`\n\s+: p\.price\}/.test(pr))
 // 25/09: o merge visual do GPT trocou a cor fixa #86868b por var(--muted) (tema claro/escuro); a condição é o contrato, a classe não.
-checa('/pricing: a linha "Charged in BRL" só aparece quando o /api/geo diz brl', /\{settlementCurrency === 'brl' \? \(\n\s+<div className="mt-1 text-\[11\.5px\] font-medium text-\[(#86868b|var\(--muted\))\]" data-testid="settlement-note">/.test(pr))
+// KINEO-PRICING-LETRA-12-1211 — a linha "Charged in BRL" subiu de 11,5 px para 12 px (nenhum texto do /pricing abaixo de 12 px); a regra (só com /api/geo = brl) não muda.
+checa('/pricing: a linha "Charged in BRL" só aparece quando o /api/geo diz brl', /\{settlementCurrency === 'brl' \? \(\n\s+<div className="mt-1 text-\[12px\] font-medium text-\[(#86868b|var\(--muted\))\]" data-testid="settlement-note">/.test(pr))
 checa('/pricing: a linha usa a TABELA (planSettlementAmountMinor) — mensal e anual', /planSettlementAmountMinor\(\n\s+p\.tier as PaidTier,\n\s+billing === 'annual' \? 'annual' : 'monthly',\n\s+'brl',/.test(pr))
 checa('/pricing: estado nasce em usd (americano nunca vê a linha, nem por um frame)', /useState<SettlementCurrency>\('usd'\)/.test(pr))
 const cc = rd('app/checkout/cancelled/page.tsx')

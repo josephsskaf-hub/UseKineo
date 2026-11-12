@@ -61,7 +61,7 @@ export function PricingAdsBlockView({
       className="mx-auto mt-14 max-w-5xl scroll-mt-24"
     >
       <div className="mb-4 text-center">
-        <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">{PRICING_ONE_TIME_LABEL}</div>
+        <div className="text-[12px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">{PRICING_ONE_TIME_LABEL}</div>
         <h2 id={`${PRICING_ADS_BLOCK_ID}-title`} className="mt-2 text-[1.7rem] font-black tracking-tight text-[var(--text)]">
           Ads for your business
         </h2>
@@ -70,7 +70,7 @@ export function PricingAdsBlockView({
       <div className="grid gap-4 md:grid-cols-2">
         {pass && (
           <div data-kineo="pricing-ads-pass" className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6">
-            <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">Make it yourself</div>
+            <div className="text-[12px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">Make it yourself</div>
             <h3 className="mt-1 text-xl font-black text-[var(--text)]">{pass.name}</h3>
             <p className="mt-1 text-sm text-[var(--muted)]">{pass.headline}</p>
             <p className="mt-3 text-[var(--text)]">
@@ -94,7 +94,7 @@ export function PricingAdsBlockView({
         )}
         {dfy.length > 0 && (
           <div data-kineo="pricing-ads-dfy" className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6">
-            <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">We make it for you</div>
+            <div className="text-[12px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">We make it for you</div>
             <h3 className="mt-1 text-xl font-black text-[var(--text)]">{dfy.map((t) => t.name).join(' or ')}</h3>
             <p className="mt-1 text-sm text-[var(--muted)]">A human editor makes the ad from your brief.</p>
             <ul className="mt-3 space-y-3">

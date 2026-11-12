@@ -79,7 +79,7 @@ export const PLAN_VALUE_STAGE_CSS = `
 .pv-toprice-n{font-size:26px;font-weight:800;letter-spacing:-.02em;white-space:nowrap}
 .pv-toprice-n .pv-cur{top:-.5em}
 .pv-toper{display:none;margin:4px 0 0;font-size:13px;font-weight:500;color:var(--pv-muted);text-align:right}
-.pv-chip{border-radius:999px;padding:3px 9px;font-size:11.5px;font-weight:600;line-height:1.3;background:var(--pv-chip-bg);color:var(--pv-chip-text)}
+.pv-chip{border-radius:999px;padding:3px 9px;font-size:12px;font-weight:600;line-height:1.3;background:var(--pv-chip-bg);color:var(--pv-chip-text)}
 .pv-chip.pv-deal{background:var(--pv-cta-pop-bg);color:var(--pv-cta-pop-text)}
 .pv-tag{margin:6px 0 0;font-size:14px;font-weight:500;line-height:1.4;color:var(--pv-muted)}
 .pv-films{margin:14px 0 0;padding:14px 14px 13px;border-radius:12px;background:var(--pv-chip-bg);color:var(--pv-text)}
@@ -113,15 +113,15 @@ export const PLAN_VALUE_STAGE_CSS = `
 .pv-save{margin:10px 0 0;text-align:center;font-size:13.5px;font-weight:500;color:var(--pv-muted)}
 .pv-save b{color:var(--pv-text);font-weight:700}
 .pv-perfilm{margin:6px 0 0;font-size:13px;font-weight:600;color:var(--pv-text)}
-.pv-guarantee{margin:6px 0 0;text-align:center;font-size:11.5px;line-height:1.45;color:var(--pv-muted)}
+.pv-guarantee{margin:6px 0 0;text-align:center;font-size:12px;line-height:1.45;color:var(--pv-muted)}
 .pv-extra{margin-top:8px}
 .pv-sec{margin:14px 0 0;padding-top:12px;border-top:1px solid var(--pv-line)}
 .pv-more{margin:14px 16px 0;border-top:1px solid var(--pv-line)}
 .pv-more>summary{padding:12px 0 0;font-size:13.5px;font-weight:600;color:var(--pv-muted);cursor:pointer}
 .pv-more>summary:focus-visible{outline:2px solid var(--pv-accent);outline-offset:3px}
-.pv-label{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--pv-muted)}
+.pv-label{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--pv-muted)}
 .pv-table{width:100%;margin-top:6px;border-collapse:collapse;font-size:13.5px}
-.pv-table th{padding:4px 0 6px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--pv-faint);text-align:right;white-space:nowrap}
+.pv-table th{padding:4px 0 6px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--pv-faint);text-align:right;white-space:nowrap}
 .pv-table th:first-child,.pv-table td:first-child{text-align:left}
 .pv-table td{padding:5px 0;font-weight:500;text-align:right;white-space:nowrap}
 .pv-table td+td,.pv-table th+th{padding-left:14px}
