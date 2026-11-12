@@ -32,7 +32,8 @@ const PROIBIDO_NO_CARTAO = /\b(kling|seedance|veo|h3|minimax|pixverse|nano ?bana
 function confereLista(L, base = 'public') {
   const p = []
   const itens = L.ADS_EXEMPLOS
-  if (!Array.isArray(itens) || itens.length < 6) p.push('a lista tem de começar com os 6 anúncios de Natal')
+  if (!Array.isArray(itens) || itens.length < 9) p.push('a lista tem os 9 aprovados pelo dono (3 falados + 6 de Natal)')
+  if ((itens ?? []).slice(0, 3).map((i) => i.key).join(',') !== 'halo-car-selfie,veil-grwm,orra-street-interview') p.push('os 3 anúncios falados vêm PRIMEIRO')
   const keys = new Set()
   for (const it of itens ?? []) {
     if (keys.has(it.key)) p.push('chave repetida: ' + it.key)
@@ -40,6 +41,10 @@ function confereLista(L, base = 'public') {
     if (!/^[a-z0-9-]+$/.test(it.key)) p.push('chave com caractere estranho: ' + it.key)
     if (PROIBIDO_NO_CARTAO.test(it.title) || PROIBIDO_NO_CARTAO.test(it.format)) p.push(`cartão com motor ou preço: ${it.key} (${it.title} / ${it.format})`)
     if (!Number.isInteger(it.seconds) || it.seconds < 5 || it.seconds > 60) p.push('duração fora de 5–60 s: ' + it.key)
+    // REGRA DO DONO (11/11): só anúncio aprovado por ele com o olho — a data é obrigatória e real
+    const d = String(it.aprovadoPeloDono ?? '')
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || Number.isNaN(Date.parse(d + 'T00:00:00Z')) || d < '2026-11-01' || Date.parse(d) > Date.now() + 86_400_000) p.push('sem a aprovação do dono (aprovadoPeloDono AAAA-MM-DD): ' + it.key)
+    if (/dewly|keel|jade/i.test(it.key + ' ' + it.title)) p.push('piloto reprovado ou apresentadora fora da vitrine: ' + it.key)
     if (it.preview !== `/ads-exemplos/${it.key}.mp4` || it.poster !== `/ads-exemplos/${it.key}.webp` || it.full !== `/ads-exemplos/${it.key}-completo.mp4`) p.push('caminhos fora do padrão: ' + it.key)
     const capa = base + it.poster, previa = base + it.preview, inteiro = base + it.full
     for (const f of [capa, previa, inteiro]) if (!fs.existsSync(f)) p.push('arquivo ausente: ' + f)
@@ -84,7 +89,8 @@ function conferePagina(P) {
   if (!P.includes('<AdsExemplosGrid />')) p.push('a seção usa o componente da lista')
   // honestidade: os de Natal foram feitos pela casa fora do Studio Ads — a página não pode dizer que a ferramenta os fez
   const trecho = iEx >= 0 ? P.slice(iEx, P.indexOf('</section>', iEx)) : ''
-  if (/made (with|by|in) Studio Ads|Studio Ads made/i.test(trecho)) p.push('a seção diz que o Studio Ads fez os exemplos')
+  if (/made (with|by|in) (Studio Ads|Product ads)|Studio Ads made|one[- ]click|in one click/i.test(trecho)) p.push('a seção diz que a ferramenta fez os exemplos (foram feitos à mão pela casa)')
+  if (!trecho.includes('Made by the Kineo team')) p.push('a seção diz quem fez: a equipe da Kineo')
   return p
 }
 
@@ -94,9 +100,13 @@ if (falhas.length) { console.error('FALHA\n' + falhas.join('\n')); process.exit(
 
 // ── mutantes ─────────────────────────────────────────────────────────────────────────────────────────────────
 const mutantes = [
-  ['motor no cartão', () => confereLista(carrega(lf(LISTA).replace("'UGC review', 15)", "'Kling 4 UGC', 15)")))],
+  ['motor no cartão', () => confereLista(carrega(lf(LISTA).replace("'UGC review', 15, '2026-11-10')", "'Kling 4 UGC', 15, '2026-11-10')")))],
+  ['item sem a aprovação do dono', () => confereLista(carrega(lf(LISTA).replace("'Lifestyle', 12, '2026-11-10')", "'Lifestyle', 12, '')")))],
+  ['piloto reprovado na lista', () => confereLista(carrega(lf(LISTA).replace("  exemplo('caneca',", "  exemplo('dewly-pilot', 'Dewly cream', 'UGC review', 15, '2026-11-11'),\n  exemplo('caneca',")))],
+  ['falados fora da frente', () => confereLista(carrega(lf(LISTA).replace("  exemplo('halo-car-selfie',", "  exemplo('caneca-x', 'X', 'Lifestyle', 12, '2026-11-10'),\n  exemplo('halo-car-selfie',")))],
+  ['"one click" na seção', () => conferePagina(P.replace('Tap one to watch it with sound.', 'Made in one click. Tap one to watch it with sound.'))],
   ['preço no cartão', () => confereLista(carrega(lf(LISTA).replace("'The gift watch'", "'The gift watch — $9'")))],
-  ['item sem arquivos', () => confereLista(carrega(lf(LISTA).replace("  exemplo('caneca',", "  exemplo('nao-existe', 'X', 'UGC review', 15),\n  exemplo('caneca',")))],
+  ['item sem arquivos', () => confereLista(carrega(lf(LISTA).replace("  exemplo('caneca',", "  exemplo('nao-existe', 'X', 'UGC review', 15, '2026-11-10'),\n  exemplo('caneca',")))],
   ['prévia baixando na abertura', () => confereComponente(C.replaceAll('preload="none"', 'preload="metadata"'))],
   ['prévia com som', () => confereComponente(C.replace('src={item.preview} poster={item.poster} muted loop', 'src={item.preview} poster={item.poster} loop'))],
   ['texto de 11 px', () => confereComponente(C.replace('.kex-secs{font-size:12px', '.kex-secs{font-size:11px'))],

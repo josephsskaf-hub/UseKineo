@@ -227,11 +227,11 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
         </section>
 
         {/* KINEO-ADS-EXEMPLOS-1111 — o anúncio PRONTO primeiro (é o que os líderes mostram), o efeito solto depois. Uma linha nova em
-            lib/ads/adsExemplos.ts = um anúncio novo aqui. Os de Natal foram feitos pela casa fora do Studio Ads: o texto não diz que a ferramenta os fez. */}
+            lib/ads/adsExemplos.ts = um anúncio novo aqui. Todos foram feitos à mão pela casa, fora do Studio Ads (os de Natal e os 3 falados): o texto não diz que a ferramenta os fez nem "em um clique". */}
         {ADS_EXEMPLOS_LIVE ? (
           <section className="ads-sec" aria-labelledby="ads-examples" data-kineo="ads-door-examples">
             <h2 id="ads-examples">Ads made with Kineo</h2>
-            <p className="ads-lede">Finished vertical ads for Reels, TikTok and Shorts. Tap one to watch it with sound — yours starts from your own product photo.</p>
+            <p className="ads-lede">Made by the Kineo team with the same AI models you get in Kineo. Products and brands are fictional. Tap one to watch it with sound.</p>
             <AdsExemplosGrid />
           </section>
         ) : null}
