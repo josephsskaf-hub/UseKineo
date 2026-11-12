@@ -43,6 +43,8 @@ import { ADS_ESCOLHA_SAMPLE_PHOTOS, ADS_ESCOLHA_SAMPLE_SECONDS } from '@/lib/ads
 // KINEO-ESTILOS-PRODUTO-2026-10-09 — a faixa dos estilos de produto (prévias feitas pelo próprio efeito).
 import { ADS_V2_STYLES, ADS_V2_STYLES_PUBLIC } from '@/lib/ads/v2Styles'
 import { AdsStyleStrip } from '@/components/ads/AdsStyles'
+import { AdsExemplosGrid } from '@/components/ads/AdsExemplos' // KINEO-ADS-EXEMPLOS-1111
+import { ADS_EXEMPLOS_LIVE } from '@/lib/ads/adsExemplos' // KINEO-ADS-EXEMPLOS-1111
 // KINEO-COPY-CONTRADICOES-1510 — a pessoa de IA do anúncio v2 existe (lib/ads/v2Presenter.ts, só 9:16, lib/ads/v2Formats.ts);
 // a porta passa a dizer isso em "Included" em vez de só listar "Presenter or avatar" em "Not included yet".
 import { ADS_V2_PRESENTER_PUBLIC } from '@/lib/ads/v2Presenter'
@@ -223,6 +225,16 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
             ))}
           </ol>
         </section>
+
+        {/* KINEO-ADS-EXEMPLOS-1111 — o anúncio PRONTO primeiro (é o que os líderes mostram), o efeito solto depois. Uma linha nova em
+            lib/ads/adsExemplos.ts = um anúncio novo aqui. Os de Natal foram feitos pela casa fora do Studio Ads: o texto não diz que a ferramenta os fez. */}
+        {ADS_EXEMPLOS_LIVE ? (
+          <section className="ads-sec" aria-labelledby="ads-examples" data-kineo="ads-door-examples">
+            <h2 id="ads-examples">Ads made with Kineo</h2>
+            <p className="ads-lede">Finished vertical ads for Reels, TikTok and Shorts. Tap one to watch it with sound — yours starts from your own product photo.</p>
+            <AdsExemplosGrid />
+          </section>
+        ) : null}
 
         {/* KINEO-ESTILOS-PRODUTO-2026-10-09 — os estilos de produto, com a prévia feita pelo próprio efeito. */}
         {ADS_V2_STYLES_PUBLIC ? (
