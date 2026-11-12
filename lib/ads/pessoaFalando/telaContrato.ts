@@ -34,8 +34,24 @@ export function saldoCobre(saldo: number | null, creditos: number | null): boole
 
 export interface EntradaDaTela { fotoDoProduto: string; produto: string; frase: string; apresentadorId: ApresentadorId; formatoId: FormatoId }
 export interface RespostaRoteiro { roteiro: Roteiro | null; rascunho: Roteiro | null; motivos?: string[] }
-export interface RespostaFotos { fotos: [string, string]; creditos?: number | null }
-export interface PedidoDeVideo extends EntradaDaTela { fotoChave: string; roteiro: Roteiro }
+// KINEO-PF-PEDIDO-UNICO-1211 [CEO 12/11 15:30: evita cobrança dupla] — UM pedidoId (uuid) por pedido, gerado pela tela na 1ª ida às fotos e mandado em TODA tentativa: o servidor só protege contra cobrança
+// dupla dentro do mesmo pedido. A resposta das fotos devolve o pedidoId, e o passo do vídeo o manda de volta (é por ele que o vídeo sabe que já foi pago).
+export interface PedidoDeFotos extends EntradaDaTela { pedidoId: string }
+export interface RespostaFotos { fotos: [string, string]; creditos?: number | null; pedidoId?: string }
+export interface PedidoDeVideo extends EntradaDaTela { fotoChave: string; roteiro: Roteiro; pedidoId: string }
+export const PEDIDO_ID_FORMATO = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u
+/** O pedidoId deste pedido: o que já existe, ou um novo (uma vez só). `ref` é síncrono: dois cliques seguidos veem o MESMO id. */
+export function pedidoUnico(ref: { current: string | null }, gerar: () => string = novoPedidoId): string {
+  if (!ref.current) ref.current = gerar()
+  return ref.current
+}
+export function novoPedidoId(): string {
+  const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto
+  if (c?.randomUUID) return c.randomUUID()
+  const h = Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16))
+  h[12] = '4'; h[16] = '89ab'[Math.floor(Math.random() * 4)]
+  return `${h.slice(0, 8).join('')}-${h.slice(8, 12).join('')}-${h.slice(12, 16).join('')}-${h.slice(16, 20).join('')}-${h.slice(20).join('')}`
+}
 export interface RespostaPedido { pedidoId: string; acompanhar?: string }
 
 export const FRASE_MAX = 140

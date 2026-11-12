@@ -6,10 +6,10 @@
 // 5 o roteiro (a fala palavra por palavra com os gestos, editável; `rascunho` abre a fala para ajustar) · 6 uma de 2 fotos-chave → botão
 // com o preço → vídeo. Sem nome de motor; preço SÓ no botão final; nada começa sozinho (cada chamada nasce de um botão); letra ≥ 12 px;
 // cabe em 375 px. As chamadas: lib/ads/pessoaFalando/telaContrato.ts (o servidor é da Div. 5).
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { APRESENTADORES, FORMATOS, type ApresentadorId, type FormatoId } from '@/lib/ads/pessoaFalando/formatos'
 import type { Roteiro } from '@/lib/ads/pessoaFalando/roteiro'
-import { ADS_PESSOA_FALANDO_CREDITS, FALA_MAX, FALA_MAX_PALAVRAS, FRASE_MAX, PESSOA_FALANDO_API, PRODUTO_MAX, faltaNaEntrada, palavrasDaFala, saldoCobre, type EntradaDaTela, type RespostaFotos, type RespostaPedido, type RespostaRoteiro } from '@/lib/ads/pessoaFalando/telaContrato'
+import { ADS_PESSOA_FALANDO_CREDITS, FALA_MAX, FALA_MAX_PALAVRAS, FRASE_MAX, PESSOA_FALANDO_API, PRODUTO_MAX, faltaNaEntrada, palavrasDaFala, pedidoUnico, saldoCobre, type EntradaDaTela, type RespostaFotos, type RespostaPedido, type RespostaRoteiro } from '@/lib/ads/pessoaFalando/telaContrato'
 import SubscriberUpgradeNudge from '@/components/billing/SubscriberUpgradeNudge' // KINEO-ADS-PESSOA-FALANDO-PRECO-1211 — sem saldo: a saída de sempre (troca de plano ou recarga), sem texto novo de preço
 
 /** Os 3 clipes aprovados pelo dono (public/ads-exemplos), nos formatos em que foram feitos. */
@@ -86,6 +86,9 @@ export default function PessoaFalandoPainel({ creditosPadrao = ADS_PESSOA_FALAND
   const [erro, setErro] = useState<string | null>(null)
   const [pedido, setPedido] = useState<RespostaPedido | null>(null)
   const [saldo, setSaldo] = useState<number | null>(null) // lido no clique das fotos (nada carrega sozinho)
+  // KINEO-PF-PEDIDO-UNICO-1211 [CEO 12/11 15:30: evita cobrança dupla] — o id do pedido (ref: síncrono, dois cliques = um pedido) e o pedido JÁ PAGO que a resposta das fotos devolveu.
+  const pedidoRef = useRef<string | null>(null)
+  const [pedidoPago, setPedidoPago] = useState<string | null>(null)
   const [avisoDoAssinante, setAvisoDoAssinante] = useState(false) // o aviso de sempre pintou? (troca de plano ou recarga, só para assinante)
 
   const entrada: Partial<EntradaDaTela> = { fotoDoProduto: fotoDoProduto.trim(), produto: produto.trim(), frase: frase.trim(), apresentadorId: apresentadorId ?? undefined, formatoId: formatoId ?? undefined }
@@ -114,22 +117,24 @@ export default function PessoaFalandoPainel({ creditosPadrao = ADS_PESSOA_FALAND
     } catch { setErro('The script could not be written right now. Nothing was charged. Try again.') } finally { setOcupado(null) }
   }
   async function verFotos() {
-    if (!roteiroVale || !falaCabe || !creditos) return
+    if (!roteiroVale || !falaCabe || !creditos || ocupado !== null) return
+    const pedidoId = pedidoUnico(pedidoRef) // KINEO-PF-PEDIDO-UNICO-1211 — o MESMO id em toda tentativa deste pedido
     setOcupado('fotos'); setErro(null); setEscolhida(null)
     // KINEO-PF-COBRA-NAS-FOTOS-1211 [CEO 12/11 15:15] — o saldo é lido NESTE clique (o que cobra), antes de pedir: não cobre → não pede e mostra a saída de sempre.
     const lido = await fetch('/api/credits', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).then(d => (typeof d?.credits === 'number' ? d.credits as number : null)).catch(() => null)
     setSaldo(lido)
-    if (saldoCobre(lido, creditos) === false) { setOcupado(null); return }
+    if (!pedidoPago && saldoCobre(lido, creditos) === false) { setOcupado(null); return } // já pago: não depende de saldo
     try {
-      const r = await chamar<RespostaFotos>(PESSOA_FALANDO_API.fotos, entrada)
+      const r = await chamar<RespostaFotos>(PESSOA_FALANDO_API.fotos, { ...entrada, pedidoId })
       setFotos(r.fotos)
+      setPedidoPago(r.pedidoId ?? pedidoId)
       if (typeof r.creditos === 'number') setCreditos(r.creditos)
     } catch { setErro('The two photos could not be made right now. Nothing was charged. Try again.') } finally { setOcupado(null) }
   }
   async function fazerVideo() {
-    if (!roteiroVale || !roteiro || !escolhida || !falaCabe) return
+    if (!roteiroVale || !roteiro || !escolhida || !falaCabe || !pedidoPago) return
     setOcupado('video'); setErro(null)
-    try { setPedido(await chamar<RespostaPedido>(PESSOA_FALANDO_API.video, { ...entrada, fotoChave: escolhida, roteiro })) }
+    try { setPedido(await chamar<RespostaPedido>(PESSOA_FALANDO_API.video, { ...entrada, fotoChave: escolhida, roteiro, pedidoId: pedidoPago })) }
     catch { setErro('Your video could not start. It is already paid for with your photos: try again, you will not be charged twice.') } finally { setOcupado(null) }
   }
 
@@ -171,6 +176,7 @@ export default function PessoaFalandoPainel({ creditosPadrao = ADS_PESSOA_FALAND
         {foiRascunho ? <p className="pf-note" data-pf-rascunho="">This is a draft: read it and adjust the line before the photos.</p> : null}
         <p className="pf-fala" aria-label="Script with gestures">{marcarGestos(roteiro!)}</p>
         <textarea aria-label="Edit the line" maxLength={FALA_MAX} value={roteiro!.fala} onChange={e => setRoteiro({ ...roteiro!, fala: e.target.value })} />
+        {pedidoPago ? <p className="pf-note" data-pf-ja-pago="">Already paid for this ad. If you change the script now, it is the same order: no new charge.</p> : null}
         <p className={falaCabe ? 'pf-why' : 'pf-err'} data-pf-palavras={palavras}>{palavras} / {FALA_MAX_PALAVRAS} words · {falaCabe ? 'fits the 10-second ad' : 'shorten the line to fit 10 seconds'}</p>
         <button type="button" className="pf-ex" onClick={escrever} disabled={ocupado !== null}>Write it again</button>
       </>}
@@ -178,7 +184,7 @@ export default function PessoaFalandoPainel({ creditosPadrao = ADS_PESSOA_FALAND
     <section className="pf-step" data-pf-passo="6"><h2><span className="pf-n">6</span>Pick the shot</h2>
       {!fotos ? <>
         <p className="pf-hint">Two photos of {apresentadorId ? APRESENTADORES[apresentadorId].nome : 'the presenter'} with your product. Pick one; the video starts from it.</p>
-        <button type="button" className="pf-btn" disabled={!roteiroVale || !falaCabe || !creditos || ocupado !== null} onClick={verFotos} data-pf-botao-fotos="">{ocupado === 'fotos' ? 'Making the photos…' : <>{rotuloDasFotos(creditos)}<small style={{ display: 'block', fontSize: 12, fontWeight: 600, opacity: .85 }}>{INCLUI_O_VIDEO}</small></>}</button>
+        <button type="button" className="pf-btn" disabled={!roteiroVale || !falaCabe || !creditos || ocupado !== null} onClick={verFotos} data-pf-botao-fotos="">{ocupado === 'fotos' ? 'Making the photos…' : <>{pedidoPago ? 'Show me 2 photos · already paid' : rotuloDasFotos(creditos)}<small style={{ display: 'block', fontSize: 12, fontWeight: 600, opacity: .85 }}>{INCLUI_O_VIDEO}</small></>}</button>
         {cobre === false ? <div style={{ marginTop: 10 }} data-pf-sem-saldo=""><SubscriberUpgradeNudge surface="ads_pessoa_falando_sem_saldo" topup onShown={() => setAvisoDoAssinante(true)} />
           {/* Quem não assina (o aviso acima não pinta): a mesma saída do Cartoon, "See plans" — sem texto novo de preço. */}
           {!avisoDoAssinante ? <><p className="pf-why">Not enough credits for this video yet.</p><a className="pf-btn2" style={{ display: 'grid', placeItems: 'center', marginTop: 6 }} href="/pricing" data-pf-ver-planos="">See plans</a></> : null}
@@ -188,7 +194,7 @@ export default function PessoaFalandoPainel({ creditosPadrao = ADS_PESSOA_FALAND
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={u} alt={`Photo ${i + 1}`} />Photo {i + 1}
         </button>)}</div>
-        <button type="button" className="pf-btn" style={{ marginTop: 12 }} disabled={!escolhida || !falaCabe || ocupado !== null} onClick={fazerVideo} data-pf-botao="">{ocupado === 'video' ? 'Starting…' : ROTULO_FINAL}</button>
+        <button type="button" className="pf-btn" style={{ marginTop: 12 }} disabled={!escolhida || !falaCabe || !pedidoPago || ocupado !== null} onClick={fazerVideo} data-pf-botao="">{ocupado === 'video' ? 'Starting…' : ROTULO_FINAL}</button>
         {!escolhida ? <p className="pf-why">Pick one of the two photos.</p> : null}
       </>}
       {erro ? <p className="pf-err" role="alert">{erro}</p> : null}

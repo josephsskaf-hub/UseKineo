@@ -35,9 +35,9 @@ function all(o = {}) {
   ok(C.FALA_MAX_PALAVRAS === 25 && C.palavrasDaFala('a b  c\n d') === 4, 'régua dos 10 s: 25 palavras')
   ok(C.saldoCobre(40, 55) === false && C.saldoCobre(55, 55) === true && C.saldoCobre(null, 55) === null, 'saldo: o Starter (40) não cobre; leitura que falha não vira 0')
   const p = src(PAINEL)
-  ok(p.includes('disabled={!escolhida || !falaCabe || ocupado !== null} onClick={fazerVideo}') && p.includes('if (!roteiroVale || !roteiro || !escolhida || !falaCabe) return'),'o passo final não cobra de novo (sem checagem de preço/saldo)')
+  ok(p.includes('disabled={!escolhida || !falaCabe || !pedidoPago || ocupado !== null} onClick={fazerVideo}') && p.includes('if (!roteiroVale || !roteiro || !escolhida || !falaCabe || !pedidoPago) return') && !/saldoCobre|creditos/.test(p.slice(p.indexOf('async function fazerVideo'), p.indexOf('async function fazerVideo') + 500)), 'o passo final não cobra de novo (sem checagem de preço/saldo)')
   const vf = p.slice(p.indexOf('async function verFotos'), p.indexOf('async function fazerVideo'))
-  ok(vf.indexOf("fetch('/api/credits'") > 0 && vf.indexOf("fetch('/api/credits'") < vf.indexOf('PESSOA_FALANDO_API.fotos') && vf.includes('if (saldoCobre(lido, creditos) === false) { setOcupado(null); return }'),'o saldo é lido NO clique das fotos e, sem saldo, as fotos não são pedidas')
+  ok(vf.indexOf("fetch('/api/credits'") > 0 && vf.indexOf("fetch('/api/credits'") < vf.indexOf('PESSOA_FALANDO_API.fotos') && vf.includes('if (!pedidoPago && saldoCobre(lido, creditos) === false) { setOcupado(null); return }'),'o saldo é lido NO clique das fotos e, sem saldo, as fotos não são pedidas')
   ok(p.indexOf('data-pf-sem-saldo') > p.indexOf('data-pf-botao-fotos') && p.indexOf('data-pf-sem-saldo') < p.indexOf('className="pf-fotos"'), 'a saída de plano/recarga fica junto do botão das fotos')
   ok(/Nothing was charged/.test(vf) && !/Nothing was charged/.test(p.slice(p.indexOf('async function fazerVideo'), p.indexOf('async function fazerVideo') + 600)), 'fotos falharam = nada cobrado; vídeo falhou = não cobra de novo (sem prometer o que não é verdade)')
   ok(/cobre === false \? <div[^>]*data-pf-sem-saldo=""><SubscriberUpgradeNudge surface="ads_pessoa_falando_sem_saldo" topup onShown=\{\(\) => setAvisoDoAssinante\(true\)\} \/>/.test(p), 'sem saldo, assinante: a saída de sempre (troca de plano ou recarga)')
@@ -74,6 +74,20 @@ function all(o = {}) {
   ok(i > 0 && i < pg.indexOf("redirect(`/ads/v2?${query}`)"), 'a porta vem antes do redirect de sempre')
   ok(pg.includes('pessoaFalandoLigado(KINEO_ADS_PESSOA_FALANDO, isAdsInternalEmail(quem.email))') && pg.includes("import { isAdsInternalEmail } from '@/lib/ads/access'"),'só conta da casa — a MESMA lista das rotas (isAdsInternalEmail)')
   ok(/painel=\{<PessoaFalandoPainel \/>\}/.test(pg), 'o painel dentro da moldura nova (CreateShell)')
+  // 8) KINEO-PF-PEDIDO-UNICO-1211 — dois cliques = UM pedido: o mesmo pedidoId em toda tentativa; o vídeo manda de volta o que as fotos devolveram.
+  const ref = { current: null }
+  let gerados = 0
+  const gera = () => { gerados++; return C.novoPedidoId() }
+  const id1 = C.pedidoUnico(ref, gera), id2 = C.pedidoUnico(ref, gera)
+  ok(id1 === id2 && gerados === 1, 'dois cliques seguidos = um pedidoId só')
+  ok(C.PEDIDO_ID_FORMATO.test(id1) && C.PEDIDO_ID_FORMATO.test(C.novoPedidoId()), 'o id é um uuid (o formato que a rota aceita)')
+  const vf2 = p.slice(p.indexOf('async function verFotos'), p.indexOf('async function fazerVideo'))
+  ok(vf2.includes('const pedidoId = pedidoUnico(pedidoRef)') && vf2.includes('chamar<RespostaFotos>(PESSOA_FALANDO_API.fotos, { ...entrada, pedidoId })') && vf2.includes('setPedidoPago(r.pedidoId ?? pedidoId)'), 'as fotos levam o pedidoId e guardam o que voltou')
+  ok(vf2.indexOf('pedidoUnico(pedidoRef)') < vf2.indexOf("setOcupado('fotos')"), 'o id nasce antes de qualquer espera (o 2º clique já vê o mesmo)')
+  ok(p.includes('const pedidoRef = useRef<string | null>(null)'), 'o id mora num ref (síncrono), não num estado')
+  ok(p.includes('roteiro, pedidoId: pedidoPago }))') && p.includes('disabled={!escolhida || !falaCabe || !pedidoPago || ocupado !== null} onClick={fazerVideo}'), 'o vídeo só sai com o pedido pago, e manda o pedidoId dele')
+  ok(p.includes('data-pf-ja-pago') && p.includes("pedidoPago ? 'Show me 2 photos · already paid'"), 'depois de pagar: a tela diz que mudar o roteiro não cobra de novo, e o botão não mostra preço outra vez')
+  ok(!/escrever[^}]*pedidoRef\.current = null/.test(p) && !p.includes('pedidoRef.current = null'), 'reescrever o roteiro não abre pedido novo')
 }
 
 all()
@@ -84,15 +98,19 @@ const mutants = [
   ['botão das fotos pede sem preço', PAINEL, r(PAINEL).replace('disabled={!roteiroVale || !falaCabe || !creditos || ocupado !== null} onClick={verFotos}', 'disabled={!roteiroVale || !falaCabe || ocupado !== null} onClick={verFotos}')],
   ['final volta a mostrar preço', PAINEL, r(PAINEL).replace("export const ROTULO_FINAL = 'Make my video · included'", "export const ROTULO_FINAL = 'Make my video · 55 credits'")],
   ['tela usa a lista errada (vê e leva 404)', PAGINA, r(PAGINA).replace('isAdsInternalEmail(quem.email)', 'isInternalEmail(quem.email)')],
-  ['roteiro escreve sozinho', PAINEL, r(PAINEL).replace("import { useMemo, useState } from 'react'", "import { useEffect, useMemo, useState } from 'react'")],
+  ['roteiro escreve sozinho', PAINEL, r(PAINEL).replace("import { useMemo, useRef, useState } from 'react'", "import { useEffect, useMemo, useRef, useState } from 'react'")],
   ['nome de motor na tela', PAINEL, r(PAINEL).replace("'Write the script'", "'Write the script with Seedance'")],
   ['letra de 11 px', PAINEL, r(PAINEL).replace('.pf-hint{margin:0 0 8px;font-size:12px', '.pf-hint{margin:0 0 8px;font-size:11px')],
   ['porta aberta para todos', PAGINA, r(PAGINA).replace('pessoaFalandoLigado(KINEO_ADS_PESSOA_FALANDO, isAdsInternalEmail(quem.email))', 'true')],
   ['preço volta a pendente', CONTRATO, r(CONTRATO).replace('export const ADS_PESSOA_FALANDO_CREDITS: number | null = 55', 'export const ADS_PESSOA_FALANDO_CREDITS: number | null = null')],
   ['fala de 12 s passa', CONTRATO, r(CONTRATO).replace('export const FALA_MAX_PALAVRAS = 25', 'export const FALA_MAX_PALAVRAS = 32')],
-  ['sem saldo ainda pede as fotos', PAINEL, r(PAINEL).replace('if (saldoCobre(lido, creditos) === false) { setOcupado(null); return }', '')],
+  ['sem saldo ainda pede as fotos', PAINEL, r(PAINEL).replace('if (!pedidoPago && saldoCobre(lido, creditos) === false) { setOcupado(null); return }', '')],
   ['sem saldo sem saída', PAINEL, r(PAINEL).replace('<SubscriberUpgradeNudge surface="ads_pessoa_falando_sem_saldo" topup onShown={() => setAvisoDoAssinante(true)} />', '<span />')],
   ['quem não assina fica sem saída', PAINEL, r(PAINEL).replace('data-pf-ver-planos="">See plans</a>', 'data-pf-ver-planos=""></a>')],
+  ['dois cliques = dois pedidos', CONTRATO, r(CONTRATO).replace('  if (!ref.current) ref.current = gerar()', '  ref.current = gerar()')],
+  ['fotos sem pedidoId (cobra a cada clique)', PAINEL, r(PAINEL).replace('chamar<RespostaFotos>(PESSOA_FALANDO_API.fotos, { ...entrada, pedidoId })', 'chamar<RespostaFotos>(PESSOA_FALANDO_API.fotos, entrada)')],
+  ['vídeo sem o pedido pago', PAINEL, r(PAINEL).replace('roteiro, pedidoId: pedidoPago }))', 'roteiro }))')],
+  ['id em estado (corrida no duplo clique)', PAINEL, r(PAINEL).replace('const pedidoRef = useRef<string | null>(null)', 'const [pedidoRefX] = useState<string | null>(null); const pedidoRef = { current: pedidoRefX }')],
   ['foto http aceita', CONTRATO, r(CONTRATO).replace('/^https:\\/\\/\\S+$/u', '/^https?:\\/\\/\\S+$/u')],
   ['rascunho não abre a fala', PAINEL, r(PAINEL).replace('setFoiRascunho(!r.roteiro && Boolean(r.rascunho))', 'setFoiRascunho(false)')],
 ]
