@@ -39,7 +39,7 @@ function problems(over) {
   const limpos = S.escolhaMotivosParaCliente(REAIS)
   no(JSON.stringify(limpos) !== JSON.stringify([REAIS[0], REAIS[3]]), `(a) → ${JSON.stringify(limpos)}`)
   const st = over[ST] ?? read(ST)
-  no(!st.includes('reasons: escolhaMotivosParaCliente(j.verdict?.reasons ?? [])'), '(b) a lista do cliente não passa pelo filtro')
+  no(!st.includes('reasons: escolhaMotivosParaCliente(s.reasons)'), '(b) a lista do cliente não passa pelo filtro') // KINEO-ESCOLHA-ORDEM-ANATOMIA-1211: o filtro roda DEPOIS da ordenação
   no(!st.includes("reasons.push(`anatomy:unassessed:${unknown.join(',')}`)"), '(b) o registro do admin perdeu o código')
   return p
 }
@@ -49,7 +49,7 @@ let n = 1, falhas = 0
 console.log('ok  estado atual limpo (a legenda das fotos sem código interno; o admin com tudo)')
 const st = read(ST)
 const MUT = [
-  ['M1 o cliente volta a ver os códigos', { [ST]: st.replace('reasons: escolhaMotivosParaCliente(j.verdict?.reasons ?? [])', 'reasons: j.verdict?.reasons ?? []') }],
+  ['M1 o cliente volta a ver os códigos', { [ST]: st.replace('.map(s => ({ ...s, reasons: escolhaMotivosParaCliente(s.reasons) }))', '') }],
   ['M2 o filtro não tira nada', { [ST]: st.replace("!/^anatomy:/u.test(r.trim())", 'true') }],
 ]
 for (const [nome, over] of MUT) {
