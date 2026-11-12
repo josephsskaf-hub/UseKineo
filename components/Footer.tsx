@@ -270,7 +270,7 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
             <h2
               style={{
                 margin: '0 0 10px',
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: 700,
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
@@ -304,7 +304,7 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
                     )}
                     {link.sublist && (
                       <div className="footer-sublist" style={{ margin: '4px 0 0 12px' }}>
-                        <span style={{ display: 'block', fontSize: 11 }}><UiLabel>{link.sublist.title}</UiLabel></span>
+                        <span style={{ display: 'block', fontSize: 12 }}><UiLabel>{link.sublist.title}</UiLabel></span>
                         <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                           {link.sublist.links.map((item) => (
                             <li key={item.href} style={{ marginBottom: 7 }}>

@@ -49,7 +49,7 @@ export default function HomeNewEffects({ signedIn = false }: { signedIn?: boolea
                 aria-label={effect.title}
                 style={{ display: 'block', width: '100%', aspectRatio: '9 / 16', objectFit: 'cover', maxWidth: '100%' }}
               />
-              <span style={{ position: 'absolute', top: 10, left: 10, background: '#ff3b6b', color: '#fff', fontSize: 11, fontWeight: 800, letterSpacing: '.06em', padding: '3px 8px', borderRadius: 999 }}>NEW</span>
+              <span style={{ position: 'absolute', top: 10, left: 10, background: '#ff3b6b', color: '#fff', fontSize: 12, fontWeight: 800, letterSpacing: '.06em', padding: '3px 8px', borderRadius: 999 }}>NEW</span>
               <span style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '28px 12px 12px', background: 'linear-gradient(180deg, transparent, rgba(0,0,0,.78))', color: '#fff', fontWeight: 700, fontSize: 14, lineHeight: 1.25 }}>
                 <UiLabel>{effect.title}</UiLabel>
               </span>

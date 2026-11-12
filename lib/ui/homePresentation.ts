@@ -41,14 +41,14 @@ export const HOME_PRESENTATION_CSS = `
  .klp .nav-right > .btn { padding:10px 12px !important; font-size:12px !important; white-space:nowrap; }
  /* Dashboard remains in the mobile menu; keep language and balance visible. */
  .klp .nav-cta .nav-dashboard { display:none; }
- .klp .nav-cta > a:not(.nav-dashboard) { padding:8px !important; font-size:11px !important; }
+ .klp .nav-cta > a:not(.nav-dashboard) { padding:8px !important; font-size:12px !important; }
  .klp .nav-in { gap:8px; }
  .klp .qa summary { padding:18px 2px; }
  .klp .qa summary h3 { font-size:14px; }
  .klp .tcard { padding:20px; }
 }
 @media(max-width:400px) { .klp .nav-in { padding-inline:12px; } }
-@media(max-width:350px) { .klp .nav-right > .btn { padding:8px !important; font-size:11px !important; } .klp .nav-right .kineo-interface-language { max-width:80px !important; } }
+@media(max-width:350px) { .klp .nav-right > .btn { padding:8px !important; font-size:12px !important; } .klp .nav-right .kineo-interface-language { max-width:80px !important; } }
 
 /* Approved 24 Sep: original blue actions and the new Explore lightning mark. */
 .klp .wrap,.klp .ew-wrap { max-width:1680px; }
@@ -56,7 +56,7 @@ export const HOME_PRESENTATION_CSS = `
 .klp .logo .mk { background:none; border:0; box-shadow:none; color:var(--blue); font-size:30px; line-height:1; }
 .klp .home-intro { position:relative; z-index:1; margin-bottom:26px; }
 .klp .home-title { max-width:780px; font-size:clamp(28px,3.1vw,46px); line-height:1.17; }
-.klp .home-eyebrow { color:var(--blue); font-size:11px; letter-spacing:.16em; text-transform:uppercase; margin-bottom:10px; }
+.klp .home-eyebrow { color:var(--blue); font-size:12px; letter-spacing:.16em; text-transform:uppercase; margin-bottom:10px; }
 .klp .btn-blue,.klp .nav-right .btn-w { background:var(--blue); color:#071525; border-color:var(--blue); box-shadow:0 6px 22px -12px rgba(41,151,255,.55); }
 .klp .btn-blue:hover,.klp .nav-right .btn-w:hover { background:#63b3ff; border-color:#63b3ff; box-shadow:0 8px 24px -12px rgba(41,151,255,.6); }
 .klp .btn-blue { border-radius:12px; font-size:14px; padding:13px 22px; flex-shrink:0; }

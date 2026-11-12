@@ -52,7 +52,7 @@ const CSS = `
 .klp .khg-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
 .klp .khg-head h3{margin:0;font-size:clamp(18px,1.6vw,22px);font-weight:600;letter-spacing:-.02em;color:var(--txt)}
 .klp .khg-head p{margin:4px 0 0;color:var(--muted);font-size:14px;line-height:1.45}
-.klp .khg-tag{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.klp .khg-tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .klp .khg-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));grid-auto-rows:clamp(104px,10.2vw,160px);grid-auto-flow:row dense;gap:12px}
 .klp .khg-item{position:relative;display:block;min-width:0;grid-row:span 2;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#101821;text-decoration:none}
 .klp .khg-item.khg-wide{grid-row:span 2;grid-column:span 2}

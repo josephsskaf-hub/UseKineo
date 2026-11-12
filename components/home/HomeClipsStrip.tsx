@@ -71,20 +71,20 @@ const CSS = `
 .klp .kcs-md video{object-position:var(--kcs-focus,50% 50%)}
 .klp .kcs-shade{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,transparent 42%,rgba(3,9,18,.85) 100%)}
 .klp .kcs-copy{position:absolute;left:16px;right:16px;bottom:12px;z-index:2;display:flex;flex-direction:column;align-items:flex-start;gap:4px}
-.klp .kcs-copy i{font-style:normal;font-size:8px;font-weight:650;letter-spacing:.8px;text-transform:uppercase;color:#c8ddf1}
+.klp .kcs-copy i{font-style:normal;font-size:12px;font-weight:650;letter-spacing:.8px;text-transform:uppercase;color:#c8ddf1}
 .klp .kcs-copy b{font-size:15px;line-height:1.2;font-weight:600;letter-spacing:-.2px;color:#fff;text-wrap:balance}
 .klp .kcs-card:first-child .kcs-copy{left:20px;bottom:20px;gap:6px}
 .klp .kcs-card:first-child .kcs-copy b{font-size:clamp(22px,1.8vw,28px);line-height:1.15}
-.klp .kcs-card:first-child .kcs-copy i{font-size:9px;letter-spacing:1.2px}
+.klp .kcs-card:first-child .kcs-copy i{font-size:12px;letter-spacing:1.2px}
 @media(max-width:800px){.klp .kcs-grid{height:auto;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.klp .kcs-card{height:clamp(240px,48vw,355px)}}
-@media(max-width:700px){.klp .kcs{padding-top:16px}.klp .kcs-sub{font-size:14px;margin-bottom:12px}.klp .kcs-copy{left:10px;right:10px;bottom:10px}.klp .kcs-copy b,.klp .kcs-card:first-child .kcs-copy b{font-size:13px;line-height:1.25}.klp .kcs-copy i,.klp .kcs-card:first-child .kcs-copy i{font-size:7px;letter-spacing:.3px}.klp .kcs-card:first-child .kcs-copy{left:10px;bottom:10px}}
+@media(max-width:700px){.klp .kcs{padding-top:16px}.klp .kcs-sub{font-size:14px;margin-bottom:12px}.klp .kcs-copy{left:10px;right:10px;bottom:10px}.klp .kcs-copy b,.klp .kcs-card:first-child .kcs-copy b{font-size:13px;line-height:1.25}.klp .kcs-copy i,.klp .kcs-card:first-child .kcs-copy i{font-size:12px;letter-spacing:.3px}.klp .kcs-card:first-child .kcs-copy{left:10px;bottom:10px}}
 @media(max-width:800px){.klp .kcs-grid{grid-auto-rows:auto}} /* KINEO-HOME-REMODELA-2010 */
 @media(max-width:560px){.klp .kcs-grid{gap:12px}.klp .kcs-card{height:clamp(200px,58vw,290px);border-radius:12px}} /* KINEO-HOME-REMODELA-2010 — 8 cartões: um pouco mais baixos no celular */
 .klp .kcs-cell{position:relative;min-width:0} /* KINEO-ROSTO-NO-CLIPE-2810 */
 @media(min-width:801px){.klp .kcs-cell>.kcs-card{height:100%}} /* KINEO-ROSTO-NO-CLIPE-2810 */
 .klp .kcs-face{position:absolute;top:12px;left:12px;z-index:4;display:inline-flex;align-items:center;min-height:34px;padding:7px 14px;border-radius:999px;background:#fff;color:#0b1119;font-size:13px;font-weight:700;line-height:1.1;text-decoration:none;box-shadow:0 2px 10px rgba(0,0,0,.28)} /* KINEO-ROSTO-NO-CLIPE-2810 */
 .klp .kcs-face:hover{background:#eaf3ff}.klp .kcs-face:focus-visible{outline:2px solid var(--home-action,#0A5CFF);outline-offset:3px} /* KINEO-ROSTO-NO-CLIPE-2810 */
-@media(max-width:700px){.klp .kcs-face{top:8px;left:8px;min-height:28px;padding:5px 10px;font-size:11px}} /* KINEO-ROSTO-NO-CLIPE-2810 */
+@media(max-width:700px){.klp .kcs-face{top:8px;left:8px;min-height:28px;padding:5px 10px;font-size:12px}} /* KINEO-ROSTO-NO-CLIPE-2810 */
 `
 
 function mediaStyle(poster: string | undefined, focus: string | undefined): CSSProperties | undefined {

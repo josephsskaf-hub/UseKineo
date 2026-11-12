@@ -114,7 +114,7 @@ export const HOME_KIDS_CARD_CSS = `
 .k3c-grid[data-k3c-cols="4"] .k3c-body{padding:16px}
 .k3c-grid[data-k3c-cols="4"] .k3c-title{font-size:clamp(1.1rem,1.35vw,1.4rem)}
 .k3c-grid[data-k3c-cols="4"] .k3c-sub{font-size:13.5px}
-.k3c-grid[data-k3c-cols="4"] .k3c-badge{font-size:9.5px;left:12px;top:12px}
+.k3c-grid[data-k3c-cols="4"] .k3c-badge{font-size:12px;left:12px;top:12px}
 .klp .k3c-grid[data-k3c-cols="4"] .k3c-cta{padding:10px 14px;font-size:13px}
 }
 .k3c-card[data-home-card="kids_cartoon"] .k3c-media video{object-position:50% 28%}

@@ -208,18 +208,18 @@ const CSS = `
 .klp .kmz-copy b{font-size:13px;line-height:1.2;font-weight:650;color:#fff;text-wrap:balance}
 .klp .kmz-big .kmz-copy{left:16px;bottom:14px}
 .klp .kmz-big .kmz-copy b{font-size:clamp(16px,1.3vw,20px)}
-.klp .kmz-new{position:absolute;top:8px;left:8px;z-index:2;background:#ff3b6b;color:#fff;font-size:10px;font-weight:800;letter-spacing:.06em;padding:2px 7px;border-radius:999px}
-.klp .kmz-re{position:absolute;top:8px;right:8px;z-index:3;display:inline-flex;align-items:center;gap:5px;padding:4px 10px 4px 8px;border-radius:999px;background:rgba(8,14,24,.62);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:11px;font-weight:700;letter-spacing:.01em;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:background .2s ease,color .2s ease}
+.klp .kmz-new{position:absolute;top:8px;left:8px;z-index:2;background:#ff3b6b;color:#fff;font-size:12px;font-weight:800;letter-spacing:.06em;padding:2px 7px;border-radius:999px}
+.klp .kmz-re{position:absolute;top:8px;right:8px;z-index:3;display:inline-flex;align-items:center;gap:5px;padding:4px 10px 4px 8px;border-radius:999px;background:rgba(8,14,24,.62);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:12px;font-weight:700;letter-spacing:.01em;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);transition:background .2s ease,color .2s ease}
 .klp .kmz-re svg{width:12px;height:12px;flex:none}
 .klp .kmz-t:hover .kmz-re,.klp .kmz-t:focus-visible .kmz-re{background:#fff;color:#0b1119;border-color:#fff}
-.klp .kmz-views{display:inline-flex;align-items:center;gap:4px;margin-top:2px;font-size:11px;font-weight:650;color:rgba(255,255,255,.88)}
+.klp .kmz-views{display:inline-flex;align-items:center;gap:4px;margin-top:2px;font-size:12px;font-weight:650;color:rgba(255,255,255,.88)}
 .klp .kmz-views svg{width:13px;height:13px;flex:none}
 .klp .kmz-cell{position:relative;min-width:0}
 .klp .kmz-cell>.kmz-t{height:100%}
 .klp .kmz-face{position:absolute;top:10px;left:10px;z-index:4;display:inline-flex;align-items:center;min-height:30px;padding:6px 12px;border-radius:999px;background:#fff;color:#0b1119;font-size:12px;font-weight:700;text-decoration:none}
 .klp .kmz-face:hover{background:#eaf3ff}
 @media(max-width:1099px){.klp .kmz-grid{grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:clamp(100px,15vw,150px)}}
-@media(max-width:700px){.klp .kmz-re{top:6px;right:6px;padding:3px 8px 3px 6px;font-size:10px}.klp .kmz-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:27vw;gap:8px}.klp .kmz-t{grid-row:span 2;border-radius:11px}.klp .kmz-big{grid-column:span 1;grid-row:span 3}.klp .kmz-wide{grid-column:span 2;grid-row:span 2}.klp .kmz-cell{grid-row:span 3}.klp .kmz-copy b,.klp .kmz-big .kmz-copy b{font-size:12px}.klp .kmz-face{top:6px;left:6px;min-height:24px;padding:4px 9px;font-size:10px}}
+@media(max-width:700px){.klp .kmz-re{top:6px;right:6px;padding:3px 8px 3px 6px;font-size:12px}.klp .kmz-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:27vw;gap:8px}.klp .kmz-t{grid-row:span 2;border-radius:11px}.klp .kmz-big{grid-column:span 1;grid-row:span 3}.klp .kmz-wide{grid-column:span 2;grid-row:span 2}.klp .kmz-cell{grid-row:span 3}.klp .kmz-copy b,.klp .kmz-big .kmz-copy b{font-size:12px}.klp .kmz-face{top:6px;left:6px;min-height:24px;padding:4px 9px;font-size:12px}}
 @media(prefers-reduced-motion:reduce){.klp .kmz-t img{transition:none}.klp .kmz-t:hover img{transform:none}}
 `
 

@@ -53,7 +53,7 @@ export const HOME_TWO_DOORS_CSS = `
 .k2d-trios .k2d-phones{opacity:0;transition:opacity .7s ease}
 .k2d-trios .k2d-phones[data-on]{opacity:1}
 .k2d-reel video[data-on]{opacity:1}
-.k2d-badge{position:absolute;left:10px;top:10px;z-index:2;font-size:11px;font-weight:800;letter-spacing:.08em;padding:5px 8px;border-radius:7px;background:rgba(7,9,13,.72);color:#fff;border:1px solid rgba(255,255,255,.18)}
+.k2d-badge{position:absolute;left:10px;top:10px;z-index:2;font-size:12px;font-weight:800;letter-spacing:.08em;padding:5px 8px;border-radius:7px;background:rgba(7,9,13,.72);color:#fff;border:1px solid rgba(255,255,255,.18)}
 .k2d-text{display:flex;flex-direction:column;gap:6px;padding:0 6px;flex:1}
 .k2d-eyebrow{font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--home-action,#0A5CFF)}
 .k2d-title{margin:0;font-size:clamp(1.25rem,2.1vw,1.7rem);line-height:1.12;letter-spacing:-.02em;font-weight:780;color:var(--txt)}

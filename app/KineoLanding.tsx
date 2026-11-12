@@ -191,7 +191,7 @@ html{scroll-behavior:smooth}
 /* Dia 14 (13/08): estado ativo da nav — o RevealOnScroll poe .nav-on no link
    da secao visivel (hoje so #pricing tem ancora na nav). */
 .klp .nav-links a{position:relative;transition:color var(--dur-fast) ease}
-.klp .nav-links a .badge{height:15px;font-size:8.5px;padding:0 5px;margin-left:5px;vertical-align:2px;animation:none}
+.klp .nav-links a .badge{height:18px;font-size:12px;padding:0 5px;margin-left:5px;vertical-align:2px;animation:none}
 .klp .nd{position:relative;display:inline-flex}
 /* KINEO-NAV-HOVER-2026-08-17 (fundador: "o sub menu desaparece antes de eu
    clicar") — dois defeitos: (1) o dropdown abria deslocado 4px pra baixo,
@@ -202,7 +202,7 @@ html{scroll-behavior:smooth}
    fechamento ganha 0.25s de tolerancia (delay so na SAIDA; abrir segue
    imediato). */
 .klp .nd::after{content:'';position:absolute;left:-14px;right:-14px;top:100%;height:16px}
-.klp .nd-car{font-size:8px;margin-left:5px;opacity:.6;vertical-align:1px}
+.klp .nd-car{font-size:12px;margin-left:5px;opacity:.6;vertical-align:1px}
 .klp .nd-menu{position:absolute;top:100%;left:50%;transform:translate(-50%,10px);padding-top:12px;opacity:0;pointer-events:none;transition:opacity var(--dur-fast) ease .25s,transform var(--dur-fast) var(--ease-swift) .25s,visibility 0s linear .45s;visibility:hidden;z-index:60}
 .klp .nd:hover .nd-menu,.klp .nd:focus-within .nd-menu{opacity:1;pointer-events:auto;visibility:visible;transform:translate(-50%,0);transition-delay:0s,0s,0s}
 .klp .nd-menu{display:flex}
@@ -222,12 +222,12 @@ html{scroll-behavior:smooth}
 .klp .nd-mega .nm-col{display:flex;flex-direction:column;position:relative;z-index:1;min-width:235px;margin-top:12px;padding:8px 5px 8px}
 .klp .nd-mega .nm-col+.nm-col{border-left:1px solid var(--line)}
 .klp .nd-mega .nm-h-next{margin-top:8px;padding-top:13px;border-top:1px solid var(--line)}
-.klp .nd-mega .nm-h{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt2);font-weight:700;padding:6px 15px 7px;margin:0 5px}
+.klp .nd-mega .nm-h{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt2);font-weight:700;padding:6px 15px 7px;margin:0 5px}
 .klp .nd-mega .nm-col a{margin:0 5px;line-height:1.25;display:flex;align-items:center;gap:11px}
 .klp .nm-th{flex-shrink:0;width:40px;height:40px;border-radius:10px;overflow:hidden;background:#111;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}.klp .nm-th img{width:100%;height:100%;object-fit:cover;display:block}
 .klp .nm-ic{flex-shrink:0;width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);font-weight:800;font-size:14px;color:#e8eaee;letter-spacing:-.02em}
 .klp .nm-tx{display:flex;flex-direction:column;align-items:flex-start;min-width:0}
-.klp .nd-mega .nm-col a i{display:block;font-style:normal;font-size:11.5px;color:var(--txt2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:210px}
+.klp .nd-mega .nm-col a i{display:block;font-style:normal;font-size:12px;color:var(--txt2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:210px}
 .klp .nd-mega .nm-col a b{font-weight:600}
 /* KINEO-NAV-MEGA-PREVIEW-2026-08-17 — mini-clipe flutuando a direita do menu
    no hover do motor (preview de 8s ja existente; preload none = zero custo
@@ -236,7 +236,7 @@ html{scroll-behavior:smooth}
 .klp .nd-mega .nvp video{width:100%;height:100%;object-fit:cover;display:block}
 .klp .nd-mega .nm-col a:hover .nvp{opacity:1}
 /* Chip de tier (STUDIO) — ensina a hierarquia sem uma palavra. */
-.klp .nm-chip{display:inline-block;margin-left:7px;font-style:normal;font-size:9px;font-weight:800;letter-spacing:.1em;padding:2px 7px;border-radius:99px;background:rgba(41,151,255,.16);color:#7cc0ff;vertical-align:1px}
+.klp .nm-chip{display:inline-block;margin-left:7px;font-style:normal;font-size:12px;font-weight:800;letter-spacing:.1em;padding:2px 7px;border-radius:99px;background:rgba(41,151,255,.16);color:#7cc0ff;vertical-align:1px}
 .klp .nd-menu a:hover{background:rgba(255,255,255,.06);color:#fff}
 /* KINEO-NAV-4-ITENS-2026-09-25 (decisao do fundador 24/09: topo com 4 itens) —
    Create video e o unico mega-menu e ganha a 3a coluna "More tools" (Imagem,
@@ -262,7 +262,7 @@ html:not([data-theme=dark]) .klp .nav-links>select.kineo-idioma-menu{color:#0E11
 .klp select.kineo-idioma-menu:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
 .klp select.kineo-idioma-menu option{color:var(--txt);background:var(--card)}
 .klp .nav-right .nav-mobile-menu select.kineo-idioma-menu{width:100%!important;max-width:none!important;min-height:44px;padding:10px 20px 10px 4px!important;font-size:15px!important;font-weight:500;color:var(--txt)!important;background-color:transparent!important;background-position:right 4px center;border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;flex:none} /* KINEO-HOME-TOPO-0511 — vence o tema do seletor em .nav-right; a mesma linha dos itens do menu compacto */
-.klp .nav-mobile-menu .nav-mobile-kicker{padding:18px 4px 6px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);font-weight:700}
+.klp .nav-mobile-menu .nav-mobile-kicker{padding:18px 4px 6px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2);font-weight:700}
 .klp .nav-mobile-menu a.nav-mobile-more{font-size:14px;color:var(--muted)}
 
 .klp .nav-links a.nav-on{color:var(--txt)}
@@ -308,7 +308,7 @@ html:not([data-theme=dark]) .klp .nav-links>select.kineo-idioma-menu{color:#0E11
 .klp .composer .cbtn:hover{transform:translateY(-1px)}
 .klp .composer-head{display:flex;align-items:center;justify-content:space-between;gap:14px}
 .klp .composer-head label{font-size:15px;font-weight:700;color:var(--txt)}
-.klp .composer-head span{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--r-pill);background:rgba(41,151,255,.13);border:1px solid rgba(41,151,255,.28);color:var(--blue);font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.klp .composer-head span{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--r-pill);background:rgba(41,151,255,.13);border:1px solid rgba(41,151,255,.28);color:var(--blue);font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
 .klp .composer-proof{font-size:12px;line-height:1.45;color:var(--muted2);text-align:right}
 .klp section{padding:34px 0}
 /* Sticky nav is 62px — keep in-page anchor targets from landing underneath it. */
@@ -352,7 +352,7 @@ html:not([data-theme=dark]) .klp .nav-links>select.kineo-idioma-menu{color:#0E11
 .klp .tile:hover .tic{border-color:rgba(41,151,255,.6);box-shadow:0 0 14px rgba(41,151,255,.35)}
 .klp .tile h3{font-size:1.02rem;font-weight:650;letter-spacing:-.01em;color:var(--txt);font-family:var(--font-display),var(--font-inter),sans-serif}
 .klp .tile p{font-size:12.5px;color:var(--muted2);line-height:1.4}
-.klp .tile .tb{font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:var(--r-pill);background:rgba(41,151,255,.13);border:1px solid rgba(41,151,255,.32);color:var(--blue)}
+.klp .tile .tb{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:var(--r-pill);background:rgba(41,151,255,.13);border:1px solid rgba(41,151,255,.32);color:var(--blue)}
 .klp .tile.hot{background:linear-gradient(135deg,#0b2a52 0%,#123a6e 45%,var(--card) 100%);border-color:rgba(41,151,255,.5)}
 .klp .tile.hot:hover{background:linear-gradient(135deg,#0d3160 0%,#164382 45%,var(--card2) 100%)}
 @media(max-width:1000px){.klp .ftr-row{grid-template-columns:repeat(2,1fr)}.klp .bento{grid-template-columns:1fr 1fr;grid-auto-rows:minmax(128px,auto)}.klp .bento .promo{grid-column:span 2;grid-row:span 1;min-height:0;padding:24px 22px}}
@@ -383,12 +383,12 @@ html:not([data-theme=dark]) .klp .nav-links>select.kineo-idioma-menu{color:#0E11
 .klp .sv2 i:nth-child(3){width:56%}
 .klp .sv3{background:url('/videos/example-sentinel.webp') center/cover}
 .klp .sv3::after{content:'';position:absolute;inset:0;background:rgba(0,0,0,.25)}
-.klp .sv3 b{position:relative;z-index:1;width:26px;height:26px;border-radius:var(--r-pill);background:rgba(41,151,255,.9);display:grid;place-items:center;color:#fff;font-size:10px}
+.klp .sv3 b{position:relative;z-index:1;width:26px;height:26px;border-radius:var(--r-pill);background:rgba(41,151,255,.9);display:grid;place-items:center;color:#fff;font-size:12px}
 .klp .fnote{max-width:640px;margin:0 auto;text-align:center}
 .klp .fnote p{font-size:1.08rem;line-height:1.7;color:var(--txt2)}
 .klp .fnote .sig{margin-top:14px;font-size:13px;color:var(--muted2)}
 .klp .fnote .sig b{color:var(--txt);font-weight:650}
-.klp .sec-eyebrow{display:block;margin-bottom:14px;font-size:11.5px;font-weight:750;letter-spacing:.14em;text-transform:uppercase;color:var(--blue)}
+.klp .sec-eyebrow{display:block;margin-bottom:14px;font-size:12px;font-weight:750;letter-spacing:.14em;text-transform:uppercase;color:var(--blue)}
 .klp .sec-h h2{font-size:clamp(2.05rem,4.4vw,3.05rem);font-weight:600;letter-spacing:-.026em;line-height:1.08;text-wrap:balance;font-family:var(--font-display),var(--font-inter),'Inter',sans-serif}
 .klp .sec-h p{margin-top:18px;color:var(--muted);font-size:1.12rem;line-height:1.55;text-wrap:balance}
 .klp .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
@@ -402,7 +402,7 @@ html:not([data-theme=dark]) .klp .nav-links>select.kineo-idioma-menu{color:#0E11
 /* "Step 1/2/3" era texto cinza solto de 14px, do mesmo peso do corpo — nao
    marcava sequencia nenhuma. Virou um selo numerado, que e o que a palavra
    "step" promete. Mesmo texto. */
-.klp .step .n{display:inline-flex;align-items:center;height:26px;padding:0 11px;border-radius:var(--r-pill);font-size:11px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);background:rgba(41,151,255,.11);border:1px solid rgba(41,151,255,.26)}
+.klp .step .n{display:inline-flex;align-items:center;height:26px;padding:0 11px;border-radius:var(--r-pill);font-size:12px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);background:rgba(41,151,255,.11);border:1px solid rgba(41,151,255,.26)}
 .klp .step h3{margin-top:18px;font-size:1.28rem;font-weight:600;letter-spacing:-.018em;line-height:1.22;font-family:var(--font-display),var(--font-inter),'Inter',sans-serif}
 .klp .step p{margin-top:11px;color:var(--muted);font-size:.99rem;line-height:1.62}
 .klp .vcard{aspect-ratio:9/16;border-radius:var(--r-md);background:radial-gradient(120% 80% at 50% 0%,var(--s3),var(--s0) 72%);border:1px solid var(--line);position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:15px;box-shadow:var(--sh-card);transition:transform var(--dur-base) var(--ease-swift),border-color var(--dur-base) ease,box-shadow var(--dur-base) ease}
@@ -435,13 +435,13 @@ html:not([data-theme=dark]) .klp .nav-links>select.kineo-idioma-menu{color:#0E11
 .klp .plan.pop{background:linear-gradient(180deg,var(--s3) 0%,var(--card2) 100%);border-color:rgba(41,151,255,.55);box-shadow:0 0 0 1px rgba(41,151,255,.25),var(--sh-card-h)}
 .klp .plan.pop:hover,.klp .plan.pop:focus-visible,.klp .plan.pop:focus-within{border-color:var(--blue);box-shadow:0 0 0 1.5px var(--blue),0 12px 34px rgba(41,151,255,.16)}
 .klp .plan{position:relative}
-.klp .plan .pt{font-size:11px;font-weight:750;letter-spacing:.07em;text-transform:uppercase;color:var(--muted2)}
+.klp .plan .pt{font-size:12px;font-weight:750;letter-spacing:.07em;text-transform:uppercase;color:var(--muted2)}
 /* O card "Most popular" so tinha um cinza levemente mais claro para se
    distinguir — na pratica, nada. O proprio rotulo que ja estava la vira uma
    fita flutuante na borda de cima, que e como um plano recomendado se anuncia.
    Mesmo texto, so reposicionado. */
 .klp .plan.pop{padding-top:40px}
-.klp .plan.pop .pt{position:absolute;top:-12px;left:50%;transform:translateX(-50%);white-space:nowrap;color:#fff;background:var(--blue);border-radius:var(--r-pill);padding:6px 15px;font-size:10.5px;letter-spacing:.1em;box-shadow:0 6px 20px -6px rgba(41,151,255,.85)}
+.klp .plan.pop .pt{position:absolute;top:-12px;left:50%;transform:translateX(-50%);white-space:nowrap;color:#fff;background:var(--blue);border-radius:var(--r-pill);padding:6px 15px;font-size:12px;letter-spacing:.1em;box-shadow:0 6px 20px -6px rgba(41,151,255,.85)}
 .klp .plan .nm{margin-top:12px;font-size:1.34rem;font-weight:600;letter-spacing:-.014em;font-family:var(--font-display),var(--font-inter),'Inter',sans-serif}
 .klp .plan.pop .nm{margin-top:0}
 .klp .plan .pr{margin-top:8px;font-size:2.75rem;font-weight:600;letter-spacing:-.03em;line-height:1;font-family:var(--font-display),var(--font-inter),'Inter',sans-serif}
@@ -454,7 +454,7 @@ html:not([data-theme=dark]) .klp .nav-links>select.kineo-idioma-menu{color:#0E11
 .klp .plan ul{list-style:none;margin:24px 0 26px;padding-top:22px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:13px}
 .klp .plan li{display:flex;gap:11px;font-size:14.5px;line-height:1.5;color:var(--muted)}
 .klp .plan li b{color:var(--txt);font-weight:650}
-.klp .plan li .ck{color:var(--blue);flex:none;display:grid;place-items:center;width:19px;height:19px;margin-top:1px;border-radius:var(--r-pill);background:rgba(41,151,255,.13);font-size:11px;font-weight:800}
+.klp .plan li .ck{color:var(--blue);flex:none;display:grid;place-items:center;width:19px;height:19px;margin-top:1px;border-radius:var(--r-pill);background:rgba(41,151,255,.13);font-size:12px;font-weight:800}
 .klp .plan .btn{justify-content:center;margin-top:auto;width:100%}
 .klp .home-pricing-checkout-error{margin:9px 4px 0;color:#ff8b8b;font-size:12px;font-weight:700;line-height:1.45;text-align:center}
 .klp .snote{margin:26px auto 0;max-width:600px;text-align:center;font-size:14.5px;line-height:1.6;color:var(--muted)}
@@ -486,7 +486,7 @@ html:not([data-theme=dark]) .klp .nav-links>select.kineo-idioma-menu{color:#0E11
 .klp .tcard .tlink{margin-top:auto;padding-top:16px;color:var(--blue);font-size:.87rem;font-weight:650;display:inline-flex;align-items:center;gap:5px;transition:gap var(--dur-fast) ease}
 .klp .tcard:hover .tlink{gap:9px}
 @keyframes badgeIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
-.klp .badge{animation:badgeIn .4s var(--ease-out-expo) .3s both;display:inline-flex;align-items:center;height:19px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--blue);background:rgba(41,151,255,.13);border:1px solid rgba(41,151,255,.32);padding:0 7px;border-radius:var(--r-pill)}
+.klp .badge{animation:badgeIn .4s var(--ease-out-expo) .3s both;display:inline-flex;align-items:center;height:22px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--blue);background:rgba(41,151,255,.13);border:1px solid rgba(41,151,255,.32);padding:0 7px;border-radius:var(--r-pill)}
 .klp .pricing-more{margin-top:20px;text-align:center;font-size:12.5px;color:var(--muted2)}
 .klp .final h2{letter-spacing:-.03em;text-wrap:balance;font-weight:640}
 .klp .final p{max-width:520px;margin-left:auto;margin-right:auto;text-wrap:balance}
@@ -662,7 +662,7 @@ html:not([data-theme=dark]) .klp .nav-links>select.kineo-idioma-menu{color:#0E11
 .klp .hero-ftr{position:relative;z-index:1;margin-top:clamp(14px,2.2vh,30px);display:flex;gap:14px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:8px}
 .klp .hero-ftr::-webkit-scrollbar{display:none}
 .klp .hero-ftr .ftr{flex:1 0 clamp(280px,calc((100vw - 106px)/4),560px);scroll-snap-align:start}
-@media(max-width:700px){.klp .hero-ftr{display:grid;grid-template-columns:1fr 1fr;gap:10px;overflow:visible}.klp .hero-ftr .ftr{flex:none;width:100%}.klp .hero-ftr .ftr h3{font-size:12px}.klp .hero-ftr .ftr p{font-size:11px}}
+@media(max-width:700px){.klp .hero-ftr{display:grid;grid-template-columns:1fr 1fr;gap:10px;overflow:visible}.klp .hero-ftr .ftr{flex:none;width:100%}.klp .hero-ftr .ftr h3{font-size:12px}.klp .hero-ftr .ftr p{font-size:12px}}
 .klp .hero-ftr::after{content:'';position:absolute;left:50%;bottom:-70px;transform:translateX(-50%);width:min(900px,90%);height:260px;background:radial-gradient(ellipse at 50% 100%,rgba(41,151,255,.10),transparent 70%);pointer-events:none;z-index:0}
 .klp .ec-ftr .ftr-media{display:block;aspect-ratio:500/280}
 .klp .ec-ftr .ftr-media video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .28s cubic-bezier(.4,0,.2,1)}/*KINEO-CARD-SHARP-2026-08-19: 0.65s de blend entre dois frames diferentes lia como 'sem brilho/borrado' (fundador); 0.28s = corte com respiro*/
@@ -673,7 +673,7 @@ html:not([data-theme=dark]) .klp .nav-links>select.kineo-idioma-menu{color:#0E11
 .klp .ec-ftr.ec-natural .ftr-media video,.klp .ec-ftr.ec-natural .ec-poster{object-fit:cover;object-position:50% 23%;transition:none}
 .klp .hero-line{position:relative;z-index:1;text-align:center;font-size:14.5px;font-weight:600;color:var(--txt);margin:2px auto 0;max-width:72ch}
 .klp .hero-line span{color:var(--muted2);font-weight:550}
-@media(max-width:700px){.klp .hero-line{font-size:12.5px}.klp .ec-go{opacity:1;transform:none;font-size:11px;padding:6px 11px}}
+@media(max-width:700px){.klp .hero-line{font-size:12.5px}.klp .ec-go{opacity:1;transform:none;font-size:12px;padding:6px 11px}}
 .klp .tr-wrap{position:relative}
 .klp .tr-wrap::after{content:'';position:absolute;top:0;bottom:6px;right:0;width:70px;background:linear-gradient(90deg,transparent,var(--s0));pointer-events:none;z-index:2}
 .klp .tr-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:38px;height:38px;border-radius:var(--r-pill);border:1px solid var(--line);background:rgba(17,17,21,.9);color:#fff;font-size:20px;line-height:1;display:grid;place-items:center;cursor:pointer;transition:border-color var(--dur-fast) ease,background var(--dur-fast) ease}
@@ -685,7 +685,7 @@ html:not([data-theme=dark]) .klp .nav-links>select.kineo-idioma-menu{color:#0E11
 .klp .fnote{max-width:820px;margin-left:auto;margin-right:auto}
 
 .klp .ec-poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.klp .ec-chip{position:absolute;top:10px;left:10px;z-index:2;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.25);border-radius:var(--r-pill);padding:4px 10px;backdrop-filter:blur(6px)}
+.klp .ec-chip{position:absolute;top:10px;left:10px;z-index:2;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.25);border-radius:var(--r-pill);padding:4px 10px;backdrop-filter:blur(6px)}
 .klp .ec-dots{position:absolute;top:14px;right:12px;z-index:2;display:flex;gap:4px}
 .klp .ec-dots i{position:relative;overflow:hidden;width:14px;height:2.5px;border-radius:var(--r-pill);background:rgba(255,255,255,.3)}
 .klp .ec-dots i.on::after{content:'';position:absolute;inset:0;background:#fff;transform-origin:left;animation:ecFill 8s linear forwards}
@@ -693,7 +693,7 @@ html:not([data-theme=dark]) .klp .nav-links>select.kineo-idioma-menu{color:#0E11
 .klp .ec-go{position:absolute;right:10px;bottom:10px;z-index:2;font-size:12px;font-weight:700;color:#000;background:#fff;border-radius:var(--r-pill);padding:7px 14px;opacity:0;transform:translateY(4px);transition:opacity var(--dur-fast) ease,transform var(--dur-fast) var(--ease-swift)}
 .klp .ec-ftr:hover .ec-go,.klp .ec-ftr:focus-visible .ec-go{opacity:1;transform:none}
 .klp .proofline{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:14px;padding-bottom:10px;font-size:12px;color:var(--muted2)}
-.klp .pl-badge{font-weight:600;font-size:11.5px;border:1px solid var(--line);border-radius:var(--r-pill);padding:4px 10px;color:var(--muted2);text-decoration:none}
+.klp .pl-badge{font-weight:600;font-size:12px;border:1px solid var(--line);border-radius:var(--r-pill);padding:4px 10px;color:var(--muted2);text-decoration:none}
 a.pl-badge:hover{color:var(--txt);border-color:rgba(41,151,255,.5)}
 .klp .tr-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .klp .tr-all{font-size:13.5px;font-weight:650}
@@ -701,9 +701,9 @@ a.pl-badge:hover{color:var(--txt);border-color:rgba(41,151,255,.5)}
 .klp .tr-row::-webkit-scrollbar{display:none}
 .klp .tr-card{position:relative;flex:0 0 clamp(150px,13vw,200px);aspect-ratio:9/16;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--line);background:linear-gradient(100deg,rgba(255,255,255,.035) 40%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.035) 60%) var(--card2);background-size:200% 100%;animation:ewsh 1.6s linear infinite;scroll-snap-align:start;transition:transform var(--dur-base) var(--ease-swift),border-color var(--dur-fast) ease}
 .klp .tr-card:hover{transform:translateY(-3px);border-color:rgba(41,151,255,.5)}
-.klp .tr-badge{position:absolute;top:8px;left:8px;z-index:2;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.22);border-radius:var(--r-xs);padding:3px 7px;backdrop-filter:blur(4px)}
-.klp .tr-title{position:absolute;inset-inline:0;bottom:0;z-index:2;padding:26px 10px 10px;font-size:11.5px;font-weight:650;line-height:1.3;color:#fff;background:linear-gradient(0deg,rgba(0,0,0,.85),transparent)}
-.klp .tcredits{margin-top:6px;font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--blue);text-transform:uppercase}
+.klp .tr-badge{position:absolute;top:8px;left:8px;z-index:2;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.22);border-radius:var(--r-xs);padding:3px 7px;backdrop-filter:blur(4px)}
+.klp .tr-title{position:absolute;inset-inline:0;bottom:0;z-index:2;padding:26px 10px 10px;font-size:12px;font-weight:650;line-height:1.3;color:#fff;background:linear-gradient(0deg,rgba(0,0,0,.85),transparent)}
+.klp .tcredits{margin-top:6px;font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--blue);text-transform:uppercase}
 .klp .bento .promo{overflow:hidden}
 .klp .pstack{position:absolute;right:-14px;bottom:-20px;display:flex;gap:8px;transform:rotate(-8deg);opacity:.9}
 .klp .pstack img{width:74px;aspect-ratio:9/14;object-fit:cover;border-radius:var(--r-xs);border:1px solid rgba(255,255,255,.18);box-shadow:0 10px 26px rgba(0,0,0,.45)}
@@ -1080,7 +1080,7 @@ export default function KineoLanding({
         >
           <div className="wrap">
             <div className="hero-center">
-              <span style={{ display: 'inline-flex', color: '#7cc0ff', background: 'rgba(41,151,255,.10)', border: '1px solid rgba(41,151,255,.28)', borderRadius: 999, padding: '7px 12px', fontSize: 11, fontWeight: 850, letterSpacing: '.08em', textTransform: 'uppercase' }}>
+              <span style={{ display: 'inline-flex', color: '#7cc0ff', background: 'rgba(41,151,255,.10)', border: '1px solid rgba(41,151,255,.28)', borderRadius: 999, padding: '7px 12px', fontSize: 12, fontWeight: 850, letterSpacing: '.08em', textTransform: 'uppercase' }}>
                 {referralBridge.eyebrow}
               </span>
               <h2 id="referral-quick-start-heading" style={{ margin: '14px auto 0', maxWidth: 760, color: 'var(--txt)', fontSize: 'clamp(1.75rem, 4vw, 2.65rem)', lineHeight: 1.08, letterSpacing: '-.025em' }}>
