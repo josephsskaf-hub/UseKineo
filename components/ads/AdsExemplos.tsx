@@ -17,7 +17,7 @@ const CSS = `
 .kex-media img,.kex-media video{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover}
 .kex-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;background:rgba(0,0,0,.55);display:grid;place-items:center;pointer-events:none}
 .kex-play::before{content:'';margin-left:4px;border-style:solid;border-width:9px 0 9px 14px;border-color:transparent transparent transparent #fff}
-.kex-format{justify-self:start;font-size:12px;font-weight:700;line-height:1;padding:5px 8px;border-radius:999px;background:var(--accent-soft,rgba(41,151,255,.12));color:var(--accent)}
+.kex-format{justify-self:start;font-size:12px;font-weight:700;line-height:1.3;padding:3px 8px;border-radius:8px;background:var(--accent-soft,rgba(41,151,255,.12));color:var(--accent)}
 .kex-title{font-size:14px;font-weight:700;line-height:1.3}
 .kex-secs{font-size:12px;color:var(--muted)}
 .kex-dialog{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.78)}
