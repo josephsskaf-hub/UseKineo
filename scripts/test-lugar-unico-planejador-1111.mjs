@@ -30,6 +30,13 @@ function problems(over) {
   no(P.personagemContinuo(['Luca moved in.', 'Luca heard knocks.', 'Luca found a photo.']) !== null, '(b) nome próprio contou como personagem')
   no(P.personagemContinuo(['A dog barks.', 'The sun sets.', 'The wind blows.', 'Night falls.']) !== null, '(b) uma fala só contou')
   no(P.personagemContinuo(['A girl finds a key.', 'The girl opens the door.', 'Behind it, the girl sees the sea.']) !== 'girl', '(b) a menina em 3 de 3 não contou')
+  // KINEO-LUGAR-UNICO-NOME-1211 — o protagonista com NOME próprio conta: o Leo (falas reais do /kids-cartoon de 11/11) = "Leo"; o Vesuvius (só "erupts") não;
+  // biografia com ANO não (a linha do lugar único achataria o documentário); "She"/"The" de começo de frase nunca viram nome
+  const LEO = ['Leo was playing hide and seek with his favorite letters in the sunny garden. Leo covered his eyes, counting, one, two, three!', 'The letter A giggled and hid behind a tall tree. Leo looked around, smiling.', '"Where could A be?" asked Leo, pretending not to see. Suddenly, from behind the tree, A peeked out, saying "Ah!"', 'Leo clapped his hands and laughed. "I found you, A!" Leo cheered.', 'Next, B was up to hide, and it chose a fluffy cloud in the bright sky. Leo squinted up, seeing a little blue bump.']
+  no(P.personagemContinuo(LEO) !== 'Leo', `(f) o Leo → ${JSON.stringify(P.personagemContinuo(LEO))}`)
+  const BIO = (ano) => [`${ano}Orville stood on the windy dunes.`, 'Orville watched the gulls glide.', 'His brother Wilbur smiled at Orville.', 'Orville climbed into the fragile glider.']
+  no(P.personagemContinuo(BIO('')) !== 'Orville' || P.personagemContinuo(BIO('In 1903, ')) !== null, `(f) biografia: sem ano ${JSON.stringify(P.personagemContinuo(BIO('')))}, com ano ${JSON.stringify(P.personagemContinuo(BIO('In 1903, ')))}`)
+  no(P.personagemContinuo(['She opens the door.', 'She looks around the room.', 'She smiles at the window.']) !== null, '(f) "She" virou nome')
   // (e) ajuste da CEO 11/11 20:50 — gente no PLURAL não é personagem contínuo: documentário de guerra com "the men" em quase toda fala = null
   // (senão a linha ONE PLACE entra e achata o filme, o defeito da v1); "two kids" também fica como antes, sem a linha
   const guerra = ['In 1916 the men marched toward the Somme.', 'For days the men waited in flooded trenches.', 'At dawn the whistles blew and the men went over the top.', 'By nightfall, nineteen thousand British soldiers were dead.']
@@ -60,7 +67,10 @@ const pc = read(PC), an = read(AN)
 const MUT = [
   ['M5 "men" volta a contar como "man"', { [PC]: pc.replace("const CABECA = '(?:stick (?:man|figure)|man|woman|", "const CABECA = '(?:stick (?:man|figure)|man|men|woman|").replace("const SINGULAR: Record<string, string> = { puppies: 'puppy', kittens: 'kitten' }", "const SINGULAR: Record<string, string> = { men: 'man', puppies: 'puppy', kittens: 'kitten' }") }],
   ['M6 "kids" volta a contar', { [PC]: pc.replace("|kid|child|", "|kid|kids|child|") }],
-  ['M1 basta uma fala', { [PC]: pc.replace('return melhor && melhor[1] >= 2 && melhor[1] * 2 >= linhas.length ? melhor[0] : null', 'return melhor ? melhor[0] : null') }],
+  ['M7 nome próprio não conta', { [PC]: pc.replace('  return nomeContinuo(linhas)\n', '  return null\n') }],
+  ['M8 biografia com ano conta', { [PC]: pc.replace('  if (ANO_RE.test(tudo)) return null\n', '') }],
+  ['M9 nome sem exigir coisa de gente (o Vesuvius entra)', { [PC]: pc.replace('    if (!age.test(tudo)) continue\n', '') }],
+  ['M1 basta uma fala', { [PC]: pc.replace('if (melhor && melhor[1] >= 2 && melhor[1] * 2 >= linhas.length) return melhor[0]', 'if (melhor) return melhor[0]') }],
   ['M2 a regra sempre ligada no roteiro marcado', { [AN]: an.replace("${personagemContinuo(sceneList.map((s) => s.voiceover)) ?", '${true ?') }],
   ['M3 o exemplo "sunny park" volta', { [PC]: pc.replace('names it in words at the start ("In the same <that place>, …" — the place this story needs, never a stock example)', 'names it in words (e.g. "in the same sunny park")') }],
   ['M4 o roteiro colado sem a linha', { [AN]: (() => { const i = an.lastIndexOf("${personagemContinuo(sceneList.map((s) => s.voiceover)) ?"); const j = an.indexOf(": ''}", i) + 5; return an.slice(0, i) + an.slice(j) })() }],
