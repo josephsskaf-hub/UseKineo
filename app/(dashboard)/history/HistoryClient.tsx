@@ -115,7 +115,7 @@ function chipStyle(cor: string, ativo: boolean, cursor: string = 'pointer') {
     background: ativo ? 'var(--accent-soft)' : 'var(--card2)',
     border: `1px solid ${ativo ? cor + '8c' : 'var(--border)'}`,
     boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.07)',
-    color: 'var(--text2)', fontSize: '0.66rem', fontWeight: 700, letterSpacing: '0.01em',
+    color: 'var(--text2)', fontSize: '12px', fontWeight: 700, letterSpacing: '0.01em',
     lineHeight: 1.1, cursor, textDecoration: 'none', whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis',
   }
 }
@@ -1204,7 +1204,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
         {!embedded && <header className="mb-7">
           <div
             className="font-black uppercase tracking-[.18em] mb-2 flex items-center gap-2"
-            style={{ fontSize: '0.65rem', color: '#2997ff' }}
+            style={{ fontSize: '12px', color: '#2997ff' }}
           >
             <span style={{ display: 'inline-block', width: 18, height: 1, background: '#2997ff', verticalAlign: 'middle' }} /><UiLabel>
             My Videos
@@ -1284,7 +1284,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
         <div>
           <div
             className="font-black uppercase tracking-[.18em] mb-2 flex items-center gap-2"
-            style={{ fontSize: '0.65rem', color: '#2997ff' }}
+            style={{ fontSize: '12px', color: '#2997ff' }}
           >
             <span style={{ display: 'inline-block', width: 18, height: 1, background: '#2997ff', verticalAlign: 'middle' }} /><UiLabel>
             My Videos
@@ -1302,7 +1302,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
         </div>
         <Link
           href="/studio"
-          className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-black text-white flex-shrink-0"
+          className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-[12px] font-black text-white flex-shrink-0"
           style={{ background: '#2997ff', textDecoration: 'none', boxShadow: '0 4px 18px rgba(41,151,255,.35)' }}
         ><UiLabel>
           ⚡ New Video
@@ -1338,7 +1338,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
           <div style={{ minWidth: 0 }}>
             <div
               className="font-black uppercase tracking-[.16em] mb-1.5"
-              style={{ fontSize: '0.62rem', color: '#5cb3ff' }}
+              style={{ fontSize: '12px', color: '#5cb3ff' }}
             >
               {milestoneMode === 'episode_primary'
                 ? 'First Short complete · build momentum'
@@ -1357,21 +1357,21 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                   ? 'Turn it into episode 2'
                   : 'Create the next episode'}
             </h2>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--muted2)', margin: 0, maxWidth: 620 }}>
+            <p className="text-[12px] leading-relaxed" style={{ color: 'var(--muted2)', margin: 0, maxWidth: 620 }}>
               {subscriptionIsPrimary
                 ? `Starter includes ${TIER_CREDITS.starter} credits each month and clean exports for new videos. ${STARTER_PRICE_USD}/month. Cancel anytime.`
                 : 'Continue from your latest Short with a fresh hook, new facts and a new payoff. Review the brief and settings before rendering.'}
             </p>
             {milestoneMode === 'episode_primary' ? (
-              <p className="text-xs leading-relaxed mt-2" style={{ color: 'var(--muted)', marginBottom: 0 }}><UiLabel>
+              <p className="text-[12px] leading-relaxed mt-2" style={{ color: 'var(--muted)', marginBottom: 0 }}><UiLabel>
                 Prefer clean exports now? Starter includes </UiLabel>{TIER_CREDITS.starter}<UiLabel> credits each month for </UiLabel>{STARTER_PRICE_USD}<UiLabel>/month. Cancel anytime.
               </UiLabel></p>
             ) : subscriptionIsPrimary ? (
-              <p className="text-xs leading-relaxed mt-2" style={{ color: 'var(--muted)', marginBottom: 0 }}><UiLabel>
+              <p className="text-[12px] leading-relaxed mt-2" style={{ color: 'var(--muted)', marginBottom: 0 }}><UiLabel>
                 Your existing files stay available. Starter applies to new exports after checkout.
               </UiLabel></p>
             ) : cleanExportLocked === true ? (
-              <p className="text-xs leading-relaxed mt-2" style={{ color: '#5cb3ff', marginBottom: 0 }}>
+              <p className="text-[12px] leading-relaxed mt-2" style={{ color: '#5cb3ff', marginBottom: 0 }}>
                 <FreeTierCopy legacy="Fast includes up to 3 watermarked previews per 24 hours. Download and share them free; Starter unlocks clean watermark-free exports." on="Free accounts include 1 watermarked Fast video per month. Download and share it free; Starter unlocks clean watermark-free exports." />
               </p>
             ) : null}
@@ -1427,7 +1427,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
               </button>
             )}
             {showSubscriptionOffer && checkout.error && (
-              <p role="alert" className="text-xs font-semibold" style={{ color: '#ff6b6b' }}>
+              <p role="alert" className="text-[12px] font-semibold" style={{ color: '#ff6b6b' }}>
                 {checkout.error}
               </p>
             )}
@@ -1483,7 +1483,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
             >
               {s.val}
             </span>
-            <span style={{ fontSize: '0.67rem', color: 'var(--muted)', marginTop: 2 }}>{s.label}</span>
+            <span style={{ fontSize: '12px', color: 'var(--muted)', marginTop: 2 }}>{s.label}</span>
           </div>
         ))}
       </div>}
@@ -1586,7 +1586,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                     </span>
                     <span
                       style={{
-                        fontSize: '0.68rem',
+                        fontSize: '12px',
                         fontWeight: 700,
                         color: isProcessing ? '#5cb3ff' : '#f87171',
                         lineHeight: 1.35,
@@ -1602,7 +1602,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                 <div style={{ padding: '7px 8px 8px' }}>
                   <p
                     style={{
-                      fontSize: '0.7rem',
+                      fontSize: '12px',
                       fontWeight: 700,
                       color: 'var(--text)',
                       lineHeight: 1.3,
@@ -1617,7 +1617,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                   </p>
 
                   {isProcessing ? (
-                    <span style={{ fontSize: '0.6rem', color: 'var(--muted)' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--muted)' }}>
                       {formatStarted(video.created_at, displayTime)}
                     </span>
                   ) : (
@@ -1632,7 +1632,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                         background: 'rgba(239,68,68,0.12)',
                         border: '1px solid rgba(239,68,68,0.32)',
                         color: '#f87171',
-                        fontSize: '0.62rem',
+                        fontSize: '12px',
                         fontWeight: 800,
                         textDecoration: 'none',
                       }}
@@ -1684,7 +1684,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                       }}
                     >
                       <span style={{ fontSize: '1.5rem' }}>⚠️</span>
-                      <span style={{ fontSize: '0.75rem', color: '#f87171', fontWeight: 700, textAlign: 'center' }}><UiLabel>
+                      <span style={{ fontSize: '12px', color: '#f87171', fontWeight: 700, textAlign: 'center' }}><UiLabel>
                         Video unavailable
                       </UiLabel></span>
                       <a
@@ -1692,7 +1692,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                         target="_blank"
                         rel="noopener noreferrer"
                         download
-                        style={{ fontSize: '0.7rem', color: '#2997ff', textDecoration: 'underline' }}
+                        style={{ fontSize: '12px', color: '#2997ff', textDecoration: 'underline' }}
                       ><UiLabel>
                         ⬇ Download
                       </UiLabel></a>
@@ -1723,7 +1723,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                             top: 8,
                             right: 8,
                             zIndex: 2,
-                            fontSize: '0.55rem',
+                            fontSize: '12px',
                             fontWeight: 800,
                             letterSpacing: '0.06em',
                             padding: '2px 7px',
@@ -1778,12 +1778,12 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                     ~10 % maior. O arquivo entregue é sempre o master 1080×1920 do Creatomate (KINEO-SEEDANCE-720-MARGEM); o enquadramento vem da
                     plataforma gravada (Shorts/TikTok/Reels = 9:16). */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 8px', alignItems: 'center', marginBottom: 6 }}>
-                  <span style={{ fontSize: '0.58rem', color: 'var(--muted)', whiteSpace: 'nowrap' }}>{formatDate(video.created_at, displayTime)}</span>
+                  <span style={{ fontSize: '12px', color: 'var(--muted)', whiteSpace: 'nowrap' }}>{formatDate(video.created_at, displayTime)}</span>
                   <span style={{ display: 'flex', gap: 4, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.56rem', fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--muted2)', letterSpacing: '0.03em' }}>1080p</span>
-                    <span style={{ fontSize: '0.56rem', fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--muted2)', letterSpacing: '0.03em' }}>{/(shorts|tiktok|reels)/i.test(video.platform ?? '') ? '9:16' : /(youtube|landscape)/i.test(video.platform ?? '') ? '16:9' : '9:16'}</span>
+                    <span style={{ fontSize: '12px', fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--muted2)', letterSpacing: '0.03em' }}>1080p</span>
+                    <span style={{ fontSize: '12px', fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--muted2)', letterSpacing: '0.03em' }}>{/(shorts|tiktok|reels)/i.test(video.platform ?? '') ? '9:16' : /(youtube|landscape)/i.test(video.platform ?? '') ? '16:9' : '9:16'}</span>
                     {typeof video.duration === 'number' && video.duration > 0 && (
-                      <span style={{ fontSize: '0.56rem', fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--muted2)', letterSpacing: '0.03em', fontVariantNumeric: 'tabular-nums' }}>{Math.round(video.duration)}s</span>
+                      <span style={{ fontSize: '12px', fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--muted2)', letterSpacing: '0.03em', fontVariantNumeric: 'tabular-nums' }}>{Math.round(video.duration)}s</span>
                     )}
                   </span>
                   {video.quality_mode && (
@@ -1791,7 +1791,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                       style={{
                         gridColumn: '1 / -1',
                         justifySelf: 'start',
-                        fontSize: '0.62rem',
+                        fontSize: '12px',
                         fontWeight: 800,
                         padding: '2px 7px',
                         borderRadius: 5,
@@ -1829,7 +1829,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                       background: 'var(--indigo)',
                       border: '1px solid var(--indigo)',
                       boxShadow: 'var(--sh-cta)',
-                      color: 'var(--on-accent)', fontSize: '0.76rem', fontWeight: 800, letterSpacing: '0.01em',
+                      color: 'var(--on-accent)', fontSize: '12px', fontWeight: 800, letterSpacing: '0.01em',
                       cursor: downloadingId === video.id ? 'wait' : 'pointer',
                     }}
                   >
@@ -1986,7 +1986,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                     background: 'rgba(41,151,255,0.12)',
                     border: '1px solid rgba(41,151,255,0.32)',
                     color: '#5cb3ff',
-                    fontSize: '0.62rem',
+                    fontSize: '12px',
                     fontWeight: 800,
                     textDecoration: 'none',
                   }}
@@ -1995,14 +1995,14 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                 </UiLabel></Link>
 
                 {isWatermarkedFastAsset(video) && (
-                  <p style={{ margin: '5px 0 0', color: 'var(--muted2)', fontSize: '0.54rem', textAlign: 'center', lineHeight: 1.25 }}><UiLabel>
+                  <p style={{ margin: '5px 0 0', color: 'var(--muted2)', fontSize: '12px', textAlign: 'center', lineHeight: 1.25 }}><UiLabel>
                     Free MP4 includes the Kineo watermark
                   </UiLabel></p>
                 )}
 
                 {/* Push #421 — summary fetch error */}
                 {summaryErrors[video.id] && !isExpanded && (
-                  <p style={{ marginTop: 6, fontSize: '0.6rem', color: '#f87171', lineHeight: 1.4 }}>
+                  <p style={{ marginTop: 6, fontSize: '12px', color: '#f87171', lineHeight: 1.4 }}>
                     {summaryErrors[video.id]}
                   </p>
                 )}
@@ -2019,7 +2019,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                   const section = (key: string, label: string, text: string) => (
                     <div style={{ marginBottom: 8 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
-                        <span style={{ fontSize: '0.55rem', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#2997ff' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#2997ff' }}>
                           {label}
                         </span>
                         <button
@@ -2030,7 +2030,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                             background: copiedKey === key ? 'rgba(41,151,255,0.15)' : 'rgba(255,255,255,0.05)',
                             border: `1px solid ${copiedKey === key ? 'rgba(41,151,255,0.4)' : 'rgba(255,255,255,0.1)'}`,
                             color: copiedKey === key ? '#4ADE80' : 'var(--muted)',
-                            fontSize: '0.55rem',
+                            fontSize: '12px',
                             fontWeight: 700,
                             cursor: 'pointer',
                           }}
@@ -2040,7 +2040,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                       </div>
                       <p
                         style={{
-                          fontSize: '0.66rem',
+                          fontSize: '12px',
                           color: 'var(--text)',
                           lineHeight: 1.45,
                           whiteSpace: 'pre-wrap',
@@ -2077,7 +2077,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                             ? '#2997ff'
                             : '#2997ff',
                           color: '#fff',
-                          fontSize: '0.62rem',
+                          fontSize: '12px',
                           fontWeight: 800,
                           cursor: 'pointer',
                         }}
@@ -2120,14 +2120,14 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
           <div style={{ minWidth: 0 }}>
             <div
               className="font-black uppercase tracking-[.16em] mb-1.5"
-              style={{ fontSize: '0.62rem', color: '#c4b5fd' }}
+              style={{ fontSize: '12px', color: '#c4b5fd' }}
             ><UiLabel>
               Free distribution · latest Short
             </UiLabel></div>
             <h2 className="font-black tracking-tight mb-1.5" style={{ color: 'var(--text)', fontSize: '1.05rem' }}><UiLabel>
               Send it to one person for feedback
             </UiLabel></h2>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--muted2)', margin: 0, maxWidth: 620 }}><UiLabel>
+            <p className="text-[12px] leading-relaxed" style={{ color: 'var(--muted2)', margin: 0, maxWidth: 620 }}><UiLabel>
               Copy a public watch page for your finished video. Your friend can watch it without logging in, then use “Make one like this” if the idea inspires them.
             </UiLabel></p>
           </div>
@@ -2189,16 +2189,16 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
           }}
         >
           <div style={{ minWidth: 0 }}>
-            <div className="font-black uppercase tracking-[.16em] mb-1.5" style={{ fontSize: '0.62rem', color: '#5cb3ff' }}>
+            <div className="font-black uppercase tracking-[.16em] mb-1.5" style={{ fontSize: '12px', color: '#5cb3ff' }}>
               {historyReferralCopy.eyebrow}
             </div>
             <h2 className="font-black tracking-tight mb-1.5" style={{ color: 'var(--text)', fontSize: '1.05rem' }}>
               {historyReferralCopy.headline}
             </h2>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--muted2)', margin: 0, maxWidth: 680 }}>
+            <p className="text-[12px] leading-relaxed" style={{ color: 'var(--muted2)', margin: 0, maxWidth: 680 }}>
               {historyReferralCopy.description}
             </p>
-            <p className="text-xs leading-relaxed mt-2" style={{ color: '#8ecbff', marginBottom: 0, maxWidth: 680 }}>
+            <p className="text-[12px] leading-relaxed mt-2" style={{ color: '#8ecbff', marginBottom: 0, maxWidth: 680 }}>
               🔒 {historyReferralCopy.privacyNote}
             </p>
           </div>
@@ -2241,13 +2241,13 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
             border: '1px solid rgba(41,151,255,.24)',
           }}
         >
-          <div className="font-black uppercase tracking-[.16em] mb-1.5" style={{ fontSize: '0.62rem', color: '#7cc0ff' }}><UiLabel>
+          <div className="font-black uppercase tracking-[.16em] mb-1.5" style={{ fontSize: '12px', color: '#7cc0ff' }}><UiLabel>
             Private by default
           </UiLabel></div>
           <h2 className="font-black tracking-tight mb-1.5" style={{ color: 'var(--text)', fontSize: '1.05rem' }}><UiLabel>
             Public watch links are temporarily paused
           </UiLabel></h2>
-          <p className="text-xs leading-relaxed" style={{ color: 'var(--muted2)', margin: 0, maxWidth: 680 }}><UiLabel>
+          <p className="text-[12px] leading-relaxed" style={{ color: 'var(--muted2)', margin: 0, maxWidth: 680 }}><UiLabel>
             Your video stays in your account. Download the MP4 if you want to send it directly; Kineo will not publish a public page without an explicit visibility choice.
           </UiLabel></p>
         </section>
@@ -2286,7 +2286,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                 <button
                   onClick={() => handleStarterCheckout('history_lightbox')}
                   disabled={checkout.pending !== null}
-                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, width: '100%', padding: '10px 12px', borderRadius: 8, cursor: checkout.pending ? 'wait' : 'pointer', opacity: checkout.pending ? 0.7 : 1, background: 'transparent', border: '1px solid var(--border)', color: 'var(--text)', fontWeight: 500, fontSize: '0.8rem' }}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, width: '100%', padding: '10px 12px', borderRadius: 8, cursor: checkout.pending ? 'wait' : 'pointer', opacity: checkout.pending ? 0.7 : 1, background: 'transparent', border: '1px solid var(--border)', color: 'var(--text)', fontWeight: 500, fontSize: '12px' }}
                 >
                   {checkout.pending === 'history_lightbox' ? (
                     <span><UiLabel>Loading…</UiLabel></span>
@@ -2296,13 +2296,13 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
                       {/* KINEO-PRICING-V6-2026-08-19 — "then $X/month" insinuava
                           um preço de entrada diferente do de renovação. Não há
                           intro em nenhum plano: é o MESMO valor todo mês. */}
-                      <span style={{ fontSize: '0.65rem', fontWeight: 700, opacity: 0.9 }}><UiLabel>For new videos · </UiLabel>{STARTER_PRICE_USD}<UiLabel>/month · cancel anytime</UiLabel></span>
+                      <span style={{ fontSize: '12px', fontWeight: 700, opacity: 0.9 }}><UiLabel>For new videos · </UiLabel>{STARTER_PRICE_USD}<UiLabel>/month · cancel anytime</UiLabel></span>
                     </>
                   )}
                 </button>
               )}
               {isWatermarkedFastAsset(v) && cleanExportLocked === true && checkout.error && (
-                <p role="alert" style={{ color: 'var(--danger)', fontSize: '0.75rem', fontWeight: 600, textAlign: 'center', margin: 0 }}>
+                <p role="alert" style={{ color: 'var(--danger)', fontSize: '12px', fontWeight: 600, textAlign: 'center', margin: 0 }}>
                   {checkout.error}
                 </p>
               )}
@@ -2327,7 +2327,7 @@ export default function MyVideosClient({ videos: initialVideos, snapshotTime, lo
             border: '1px solid rgba(41,151,255,.35)',
             boxShadow: '0 12px 40px rgba(0,0,0,.55)',
             color: '#f5f5f7',
-            fontSize: '0.85rem',
+            fontSize: '12px',
             fontWeight: 700,
             backdropFilter: 'blur(10px)',
             animation: 'ktoast-in 250ms cubic-bezier(.16,1,.3,1) both',

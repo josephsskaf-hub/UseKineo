@@ -91,22 +91,22 @@ export default function FreeRedoFilmButton({ videoId, qualityMode, createdAt }: 
   const chip = {
     gridColumn: '1 / -1', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 38,
     padding: '0 8px', borderRadius: 10, background: 'var(--card2)', border: '1px solid #a78bfa8c',
-    color: 'var(--text2)', fontSize: '0.66rem', fontWeight: 700, cursor: ocupado ? 'wait' : 'pointer',
+    color: 'var(--text2)', fontSize: '12px', fontWeight: 700, cursor: ocupado ? 'wait' : 'pointer',
   } as const
 
   if (estado === 'used') { // KINEO-REFAZER-CENA-2710 — a vez acabou (2 tentativas gastas): dizer, em vez de sumir
-    return <div style={{ gridColumn: '1 / -1', fontSize: '0.68rem', color: 'var(--text2)', lineHeight: 1.35 }} role="status">{t.used}</div> // KINEO-REFAZER-CENA-2710
+    return <div style={{ gridColumn: '1 / -1', fontSize: '12px', color: 'var(--text2)', lineHeight: 1.35 }} role="status">{t.used}</div> // KINEO-REFAZER-CENA-2710
   } // KINEO-REFAZER-CENA-2710
   if (estado === 'done') {
     return (
-      <div style={{ gridColumn: '1 / -1', fontSize: '0.68rem', color: 'var(--text2)', lineHeight: 1.35 }} role="status">
+      <div style={{ gridColumn: '1 / -1', fontSize: '12px', color: 'var(--text2)', lineHeight: 1.35 }} role="status">
         <b style={{ color: '#34d399' }}>{t.done}</b> · {t.used}{novaUrl ? <> · <a href={novaUrl} target="_blank" rel="noreferrer" style={{ color: '#a78bfa' }}>{t.open}</a></> : null}{/* KINEO-REFAZER-CENA-2710 — "Free redo used" ao lado */}
         <div style={{ opacity: 0.8 }}>{t.previous}</div>
       </div>
     )
   }
   if (estado === 'working') {
-    return <div style={{ gridColumn: '1 / -1', fontSize: '0.68rem', color: 'var(--text2)', lineHeight: 1.35 }} role="status">{t.working}</div>
+    return <div style={{ gridColumn: '1 / -1', fontSize: '12px', color: 'var(--text2)', lineHeight: 1.35 }} role="status">{t.working}</div>
   }
 
   return (
@@ -117,11 +117,11 @@ export default function FreeRedoFilmButton({ videoId, qualityMode, createdAt }: 
         </button>
       ) : (
         <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 8, background: 'var(--card2)', display: 'grid', gap: 6 }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text)' }}>{t.pick}</div>
-          <div style={{ fontSize: '0.64rem', color: 'var(--text2)', lineHeight: 1.35 }}>{t.hint}</div>
+          <div style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text)' }}>{t.pick}</div>
+          <div style={{ fontSize: '12px', color: 'var(--text2)', lineHeight: 1.35 }}>{t.hint}</div>
           <div style={{ display: 'grid', gap: 4, maxHeight: 220, overflowY: 'auto' }}>
             {(cenas ?? []).map((c) => (
-              <label key={c.index} style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.64rem', color: 'var(--text2)', cursor: 'pointer' }}>
+              <label key={c.index} style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: '12px', color: 'var(--text2)', cursor: 'pointer' }}>
                 <input type="radio" name={`free-redo-${videoId}`} checked={escolhida === c.index} onChange={() => setEscolhida(c.index)} />
                 <video src={c.clip_url} muted playsInline preload="metadata" style={{ width: 36, height: 64, objectFit: 'cover', borderRadius: 4, flex: '0 0 auto' }} />
                 <span style={{ minWidth: 0 }}><b>{freeRedoFill(t.scene, c.number)}</b>{c.text ? ` — ${c.text}` : ''}</span>
@@ -134,7 +134,7 @@ export default function FreeRedoFilmButton({ videoId, qualityMode, createdAt }: 
           </div>
         </div>
       )}
-      {nota ? <p style={{ margin: 0, fontSize: '0.64rem', color: 'var(--text2)' }} role="status">{nota}</p> : null}
+      {nota ? <p style={{ margin: 0, fontSize: '12px', color: 'var(--text2)' }} role="status">{nota}</p> : null}
     </div>
   )
 }
