@@ -567,7 +567,14 @@ Target total duration: ${alvoDoPlano} seconds.${instrucaoDoFilmeCurto(alvoDoPlan
   const genre = typeof data.genre === 'string' && data.genre.trim() ? data.genre.trim().toLowerCase().slice(0, 24) : 'other'
   console.log(`[hollywood-planner] KINEO-UNIVERSAL direção: genre=${genre} hostFits=${hostFits} stylized=${stylized}`)
 
-  const fichaDoModelo = sanitizeRealPeople(typeof data.characterSheet === 'string' ? data.characterSheet : '')
+  // KINEO-NOME-SEM-CORPO-HOLLYWOOD-1211 [CEO 12/11 madrugada] — divindade ou conceito (God, Yahweh, Allah…) nunca vira a ficha de personagem do hollywood:
+  // o 2120f018 da clássica mostrou o que acontece ("God" virou um homem de costas). A ficha do elenco já tem esse filtro (personagemAjuste/elencoSemantico);
+  // aqui é a ficha PRÓPRIA do planejador, que só entra quando o elenco vem vazio. Ficha que começa por um desses nomes = ficha vazia (o filme segue sem
+  // trava de personagem, como um documentário). Regex local, espelho de lib/cinematic/nomeSemCorpo.ts (sem import novo).
+  const SEM_CORPO_FICHA_1211 = /^\s*(?:the\s+)?(?:god|yahweh|jehovah|allah|lord|almighty|holy spirit|holy ghost|creator|elohim|adonai|hashem|divine|godhead)(?![\p{L}])/iu
+  const TITULO_DE_GENTE_1211 = /^\s*Lord\s+(?!God\b|Jesus\b|Almighty\b)[A-Z][a-z]/ // "Lord Byron", "Lord Nelson": título de gente, não divindade (sem flag i: a maiúscula conta)
+  const fichaCruaDoModelo = sanitizeRealPeople(typeof data.characterSheet === 'string' ? data.characterSheet : '')
+  const fichaDoModelo = SEM_CORPO_FICHA_1211.test(fichaCruaDoModelo) && !TITULO_DE_GENTE_1211.test(fichaCruaDoModelo) ? '' : fichaCruaDoModelo
   // KINEO-FICHA-DO-PEDIDO-2026-09-15 — as palavras do pedido vencem a ficha inventada.
   const characterSheet = args.characterHint ? sanitizeRealPeople(fichaDoPedido(fichaDoModelo, args.characterHint)) : fichaDoModelo
   if (characterSheet !== fichaDoModelo) console.log(`[hollywood-planner] KINEO-FICHA-DO-PEDIDO: ficha do pedido em vez da do modelo ("${fichaDoModelo.slice(0, 60)}…" → "${characterSheet.slice(0, 60)}…")`)
