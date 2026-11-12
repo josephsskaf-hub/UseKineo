@@ -167,9 +167,19 @@ const MASC_RE = /\b(?:boy|man|king|prince|father|dad|grandfather|brother|son|her
 const CRIANCA_RE = /\b(?:boy|girl|kid|child|baby|toddler|little|young|teen|teenager|student)\b/i
 const VELHO_RE = /\b(?:old|elderly|grandmother|grandfather|grandma|grandpa|veteran|senior)\b/i
 
+// KINEO-PRONOME-DO-OBJETO-1212 — "Peruggia tried selling her in Florence": o "her" é o QUADRO. Quando o roteiro tem uma coisa que o inglês chama de
+// "her" (quadro, navio, estátua…), o "her" OBJETO (seguido de preposição, pontuação ou fim) deixa de contar como gênero do personagem; o possessivo
+// ("raised her sword") e o "she" continuam contando. Sem essa coisa no roteiro, nada muda. E o ofício composto diz o gênero ("an Italian handyman").
+const COISA_ELA_RE = /\b(?:painting|paintings|portrait|canvas|masterpiece|artwork|picture|statue|sculpture|ship|boat|yacht|vessel|schooner|steamer|liner|car|plane|locomotive|guitar|violin|mona lisa|gioconda)\b/i
+const HER_OBJETO_RE = /\bher(?=\s*(?:[.,;:!?…]|$|\s(?:in|into|to|at|on|off|out|away|back|again|across|past|through|from|for|with|over|under|down|up|around|home|abroad|safely)\b))/gi
+/** O texto sem o "her" objeto quando o roteiro tem uma coisa que o inglês chama de "her"; senão, o mesmo texto. */
+export function semHerDeCoisa(texto: string, roteiro: string): string {
+  return COISA_ELA_RE.test(roteiro) ? texto.replace(HER_OBJETO_RE, 'it') : texto
+}
+
 function generoDe(texto: string): 'man' | 'woman' | null {
-  const f = (texto.match(/\b(?:she|her|hers|herself|girl|woman|sister|daughter|mother|queen|princess)\b/gi) ?? []).length
-  const m = (texto.match(/\b(?:he|him|his|himself|boy|man|brother|son|father|king|prince)\b/gi) ?? []).length
+  const f = (texto.match(/\b(?:she|her|hers|herself|girl|woman|sister|daughter|mother|queen|princess|policewoman|businesswoman|noblewoman|chairwoman|saleswoman|horsewoman|craftswoman)\b/gi) ?? []).length // KINEO-PRONOME-DO-OBJETO-1212 (ofícios)
+  const m = (texto.match(/\b(?:he|him|his|himself|boy|man|brother|son|father|king|prince|handyman|fisherman|policeman|businessman|craftsman|workman|nobleman|chairman|salesman|fireman|postman|watchman|gentleman|horseman|clergyman|statesman|woodsman|seaman)\b/gi) ?? []).length // KINEO-PRONOME-DO-OBJETO-1212 (ofícios)
   return f > m ? 'woman' : m > f ? 'man' : null
 }
 
@@ -274,9 +284,10 @@ export function elencoDeterministico(script: string): FichaDePersonagem[] {
     // KINEO-SERES-PERSONIFICADOS-3010 — "Broccoli opens his eyes": a ficha é o brócolis com rosto, nunca um homem de cabelo cacheado
     if (personificados.has(nome.toLowerCase())) { elenco.push({ nome, nucleo: nome, tipo: 'criatura', canonica: descricaoDoSerPersonificado(nome, nome), origem: 'deterministica', protagonista: elenco.length === 0, genero: null }); continue }
     const { tipo, especie } = tipoDoNome(bruto, nome)
-    const contexto = `${janelasDoNome(semTags, nome)} | ${frasesCom(semTags, nome).join(' ')}`
+    const semTagsGenero = semHerDeCoisa(semTags, semTags) // KINEO-PRONOME-DO-OBJETO-1212 — o "her" do quadro não vira gênero do Peruggia
+    const contexto = `${janelasDoNome(semTagsGenero, nome)} | ${frasesCom(semTagsGenero, nome).join(' ')}`
     const canonica = canonicaDeterministica(nome, tipo, especie, contexto, usados)
-    elenco.push({ nome, nucleo: nome, tipo, canonica, origem: 'deterministica', protagonista: elenco.length === 0, genero: tipo === 'humano' ? generoDe(janelasDoNome(semTags, nome)) ?? generoDe(contexto) : null })
+    elenco.push({ nome, nucleo: nome, tipo, canonica, origem: 'deterministica', protagonista: elenco.length === 0, genero: tipo === 'humano' ? generoDe(janelasDoNome(semTagsGenero, nome)) ?? generoDe(contexto) : null })
   }
   if (elenco.length < PERSONAGEM_MAX_PERSONAGENS) {
     const m = SEM_NOME_RE.exec(semTags)
