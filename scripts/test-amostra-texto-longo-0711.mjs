@@ -32,12 +32,13 @@ import fs from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { createEscolhaWorld } from './test-ads-escolha-2310.mjs'
 import { semEscolhaFala1111 } from './test-support/desfaz-escolha-fala-1111.mjs' // KINEO-ESCOLHA-FALA-1111
+import { semSkincareEmbalagem1111 } from './test-support/desfaz-skincare-embalagem-1111.mjs' // KINEO-SKINCARE-EMBALAGEM-1111
 import { semAmostraTextoLongo0711, deltaAmostraTextoLongo0711Exato, AMOSTRA_TEXTO_LONGO_0711 } from './test-support/desfaz-amostra-texto-longo-0711.mjs'
 
 const PLAN = 'lib/ads/cena/escolhaPlan.ts'
 const BASE = 'ea24830ca23df4ffd106b6d046d6f6dae8485b9f' // origin/main em que este conserto nasceu
 const lf = (t) => String(t).replace(/\r\n/g, '\n')
-const FONTE_HOJE = lf(semEscolhaFala1111(fs.readFileSync(PLAN, 'utf8'), PLAN)) // KINEO-ESCOLHA-FALA-1111 — a camada mais nova sai antes do recibo
+const FONTE_HOJE = lf(semEscolhaFala1111(semSkincareEmbalagem1111(fs.readFileSync(PLAN, 'utf8'), PLAN), PLAN)) // KINEO-ESCOLHA-FALA-1111 — a camada mais nova sai antes do recibo
 const FONTE_BASE = lf(execFileSync('git', ['show', `${BASE}:${PLAN}`], { encoding: 'utf8', maxBuffer: 64 << 20 }))
 const FOTO = 'https://offline.example/footage/produto.png'
 const palavras = (s) => s.trim() ? s.trim().split(/\s+/u).length : 0

@@ -68,7 +68,34 @@ const UNBOX_STORY: Story = { opening: 'rests their own connected hands on a CLOS
   { pt: 'Retira o produto real', en: 'Lifts out the real product', action: 'MEDIUM: lifts the actual product from that same box and turns its real front toward camera, recognizable face visible; no new accessories.' },
   { pt: 'Close do produto revelado', en: 'Revealed product close-up', action: 'CLOSE: gently turns the whole actual product in their own hands, original label clear; opened shipping box stays below it.' },
 ] }
-export function escolhaStory(category: CenaCategory, format: CenaEscolhaFormat = 'product'): Story { return format === 'product_in_hand' ? HAND_STORY : format === 'unboxing' ? UNBOX_STORY : CATEGORY_STORIES[category] }
+// KINEO-SKINCARE-EMBALAGEM-1111 [SPEC-ADS-PESSOA-FALANDO §6] — skincare só sabia "pote" (bater na tampa, desenroscar, pegar com o dedo): sérum de
+// conta-gotas, bisnaga e frasco de pump recebiam a ação de um pote. A embalagem sai do texto do produto; sem pista = pote (o de sempre, byte a byte).
+export type EmbalagemSkincare = 'jar' | 'serum' | 'tube' | 'pump'
+export function embalagemSkincare(texto: unknown): EmbalagemSkincare {
+  const t = String(texto ?? '').toLowerCase()
+  if (/\b(?:serums?|s[ée]runs?|droppers?|conta-?gotas|drops?)\b/u.test(t)) return 'serum'
+  if (/\b(?:pumps?|pump bottles?|bomba|v[áa]lvula)\b/u.test(t)) return 'pump'
+  if (/\b(?:tubes?|bisnagas?|squeeze|tubos?)\b/u.test(t)) return 'tube'
+  return 'jar'
+}
+const SKIN_POR_EMBALAGEM: Record<Exclude<EmbalagemSkincare, 'jar'>, Story> = {
+  serum: { opening: 'holds the real dropper bottle CLOSED, original dropper cap fully on, label facing camera; no liquid outside the bottle', shots: [
+    { pt: 'Mostra o frasco do sérum', en: 'Shows the serum bottle', action: 'WIDE full body: holds the real dropper bottle CLOSED near the face, label toward camera, and smiles.' },
+    { pt: 'Pinga uma gota nos dedos', en: 'One drop onto the fingertips', action: 'MEDIUM: unscrews the original dropper, lets ONE drop fall onto their own fingertips; no liquid before opening.' },
+    { pt: 'Aplica no rosto', en: 'Pats it onto the cheek', action: 'CLOSE: gently pats that drop onto their own cheek, open real bottle and unchanged label in view.' },
+  ] },
+  tube: { opening: 'holds the real squeeze tube CLOSED, original cap on, label facing camera; no product outside the tube', shots: [
+    { pt: 'Mostra a bisnaga', en: 'Shows the tube', action: 'WIDE full body: holds the real tube CLOSED, label toward camera, and smiles.' },
+    { pt: 'Aperta um pouco nos dedos', en: 'Squeezes a little onto fingertips', action: 'MEDIUM: flips the original cap open and squeezes a small amount onto their own fingertips; nothing before opening.' },
+    { pt: 'Espalha no rosto', en: 'Spreads it on the cheek', action: 'CLOSE: spreads that amount onto their own cheek in one gentle stroke, the open real tube and unchanged label in view.' },
+  ] },
+  pump: { opening: 'holds the real pump bottle upright with the original pump head on, label facing camera; no product outside the bottle', shots: [
+    { pt: 'Mostra o frasco', en: 'Shows the pump bottle', action: 'WIDE full body: holds the real pump bottle upright, label toward camera, and smiles.' },
+    { pt: 'Um pump na mão', en: 'One pump into the palm', action: 'MEDIUM: presses the original pump ONCE into their own palm; nothing before the press.' },
+    { pt: 'Espalha no rosto', en: 'Spreads it on the cheek', action: 'CLOSE: spreads it onto their own cheek in one gentle stroke, the real bottle and unchanged label in view.' },
+  ] },
+}
+export function escolhaStory(category: CenaCategory, format: CenaEscolhaFormat = 'product', embalagem: EmbalagemSkincare = 'jar'): Story { return format === 'product_in_hand' ? HAND_STORY : format === 'unboxing' ? UNBOX_STORY : category === 'skincare' && embalagem !== 'jar' ? SKIN_POR_EMBALAGEM[embalagem] : CATEGORY_STORIES[category] }
 export function escolhaShotPreview(category: CenaCategory, format: CenaEscolhaFormat = 'product') { return escolhaStory(category, format).shots.map((s, i) => ({ id: ['wide', 'medium', 'close'][i], seconds: 5, pt: s.pt, en: s.en })) }
 /** KINEO-ESCOLHA-FALA-1111 — a narração em 3 falas de FRASES INTEIRAS (cada plano fala a sua frase; o corte por palavras cortava "Dewly daily face | cream hydrates…"). Menos de 3 frases = null (fica a divisão de sempre). */
 export function escolhaFalasPorFrase(narration: string): [string, string, string] | null {
@@ -84,9 +111,9 @@ export function escolhaFalasPorFrase(narration: string): [string, string, string
   return melhor
 }
 /** The chosen still carries identity/scene detail. Essential continuity, sound and product constraints remain in every sent shot. */
-export function escolhaShotPrompts(category: CenaCategory, format: CenaEscolhaFormat, speech?: readonly [string, string, string], language = 'en'): [string, string, string] {
+export function escolhaShotPrompts(category: CenaCategory, format: CenaEscolhaFormat, speech?: readonly [string, string, string], language = 'en', embalagem: EmbalagemSkincare = 'jar'): [string, string, string] { // KINEO-SKINCARE-EMBALAGEM-1111: + embalagem
   const lock = 'Chosen still: same ONE adult, outfit, scene and whole real product, label unchanged. Own attached hands, five fingers. No invented branding/text/split screen. Product in frame.' // KINEO-ADS-MARCA-QUADRO-2410 — fundador 24/10 (perfume 9,5): o frasco saía do quadro quando ela esticava o braço
-  return escolhaStory(category, format).shots.map((s, i) => {
+  return escolhaStory(category, format, embalagem).shots.map((s, i) => {
     // KINEO-ESCOLHA-FALA-1111 [CEO 11/11, pedido 3e293478] — a fala vai ENTRE ASPAS e sempre na boca de quem está na câmera (o 3º plano dizia "off-camera" e o motor fez narração)
     const sound = speech ? speech[i] ? `Person on camera says ONLY in ${language}: "${speech[i]}"` : 'No speech, lips closed.' : 'Lips closed; ambient action sounds only, no speech/music.'
     const tail = i === 2 ? ' Label faces camera, no reveal turn. Whole label above56%; live movement to15s; no card.' : '' // KINEO-ADS-MARCA-QUADRO-2410 — a marca aparece já de frente, sem girar o produto para revelar
