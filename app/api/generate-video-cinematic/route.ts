@@ -136,6 +136,7 @@ import { looksLikeBrief } from '@/lib/scriptParser'
 import { sceneNarrationsForPlan } from '@/lib/cinematic/speechContract'
 import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
 import { decidirFormato, permiteApresentador, TAG_FACELESS, proibidosPorModo, type VisualMode } from '@/lib/cinematic/visualMode'
+import { FORMATO_DA_IDEIA, formatoDaIdeiaLigado, formatoComFalaDaIdeia } from '@/lib/cinematic/formatoDaIdeia' // KINEO-FORMATO-DA-IDEIA-1211
 import { formatoComPessoaDoPedido, pessoaDoPedido, fichaDaPessoa, elencoComPessoaDoPedido, luzDoPedido, comLuzDoPedido, lugarDoPedido as lugarDoPedidoDoCliente, comLugarDoPedido } from '@/lib/cinematic/pessoaDoPedido' // KINEO-PESSOA-DO-PEDIDO-1111
 import { relogioComPonteiros } from '@/lib/cinematic/relogioComPonteiros' // KINEO-RELOGIO-PONTEIROS-1111
 import { garantirAcaoCentral, silenciarFalaNoPrompt, apararComFolga, removerDatasInventadas } from '@/lib/hollywood/fidelidade'
@@ -1649,6 +1650,7 @@ async function manipularPost(req: NextRequest) {
     const pedidoDoCliente = typeof body.original_idea === 'string' && body.original_idea.trim() ? body.original_idea : isSeriesContinuationPrompt(intake.text) ? null : intake.text // KINEO-PEDIDO-DO-CLIENTE-1111
     const pessoaPedida = pessoaDoPedido(pedidoDoCliente) // KINEO-PESSOA-DO-PEDIDO-1111 — a pessoa sem nome do pedido original (24564d97: "a young blonde woman … pastel pink outfit" virou silhueta morena)
     const formatoVisual = formatoComEstrela(formatoComPessoaDoPedido(decidirFormato(prompt, tagFacelessPresente), pessoaPedida), estrelaPedida((body as { estrela?: unknown }).estrela)) // KINEO-ESTRELA-DO-FILME-2026-09-29
+    if (formatoDaIdeiaLigado(FORMATO_DA_IDEIA, isInternalEmail(user.email))) Object.assign(formatoVisual, formatoComFalaDaIdeia({ ...formatoVisual }, pedidoDoCliente, tagFacelessPresente)) // KINEO-FORMATO-DA-IDEIA-1211 — o pedido explícito de pessoa falando para a câmera ("UGC", "speaks to the camera") escrito na ideia original vale para o formato; 'internal' até os 2 filmes pagos de prova (lib/cinematic/formatoDaIdeia)
     // KINEO-ROMANCE-ADULTO-2026-10-13 — pedido romântico (lib/cinematic/romanceGuard; só o texto do CLIENTE): mostra as duas pessoas
     // KINEO-ROMANCE-ADULTO-2026-10-13 — (character_story, nunca o faceless que apagava "man/woman"); a tag [faceless] e o apresentador pedido vencem.
     const romanceAdulto = decidirRomanceAdulto(prompt) // KINEO-ROMANCE-ADULTO-2026-10-13
