@@ -37,7 +37,9 @@ function problemas(mut = {}) {
   const direita = home.slice(iDireita, iCompacto)
   const compacto = home.slice(iCompacto, iFimCompacto)
   checa('o menu do topo tem o seletor', menu.includes('<InterfaceLanguageSelect emMenu />'))
-  checa('o seletor vem depois de Pricing', menu.indexOf('data-nav-item="pricing"') > 0 && menu.indexOf('<InterfaceLanguageSelect emMenu />') > menu.indexOf('data-nav-item="pricing"'))
+  // KINEO-MENU-4-MAIS-1211 [CEO 12/11, opção C — escolha final do fundador] — Pricing saiu do meio do topo para a direita, ao lado do Log in: o seletor passa a fechar a fileira (depois do último item, Claude & ChatGPT). Antes: "o seletor vem depois de Pricing".
+  checa('o seletor fecha a fileira do topo (depois de Claude & ChatGPT)', menu.indexOf('data-nav-item={MENU_CONNECTOR_NAV_ITEM}') > 0 && menu.indexOf('<InterfaceLanguageSelect emMenu />') > menu.indexOf('data-nav-item={MENU_CONNECTOR_NAV_ITEM}'))
+  checa('Pricing à direita, antes do Log in', direita.indexOf('data-nav-item="pricing"') > 0 && direita.indexOf('data-nav-item="pricing"') < direita.indexOf('data-nav-item="login"'))
   checa('à direita não sobra seletor', !direita.includes('InterfaceLanguageSelect'))
   checa('o menu compacto tem o seletor, depois de Pricing', compacto.includes('<InterfaceLanguageSelect emMenu />') && compacto.indexOf('<InterfaceLanguageSelect emMenu />') > compacto.indexOf('data-nav-item="pricing"'))
   const css = (seletor) => { const i = home.indexOf(seletor + '{'); return i < 0 ? '' : home.slice(i + seletor.length + 1, home.indexOf('}', i)) }

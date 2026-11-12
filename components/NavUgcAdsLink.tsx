@@ -15,7 +15,8 @@ import { createEntryForContentHref } from '@/lib/create/entry' // KINEO-ENTRADAS
 // visitante segue na página de conteúdo. Interruptores fora de 'public' = a página de conteúdo, byte a byte (lib/create/entry.ts).
 export const NAV_UGC_MAKE_NOW_HREF = '/ads/v2?entry=ugc'
 
-export default function NavUgcAdsLink({ className, 'data-nav-item': navItem, signedIn = false }: { className?: string; 'data-nav-item': 'more:ugc'; signedIn?: boolean }) {
+// KINEO-NOMES-DE-PRODUTO-1211 — `label` opcional: o cabeçalho da home passa o nome curto aprovado ("UGC Ads"); /examples e /trending seguem com "AI UGC Ads" até entrarem na mesma fonte.
+export default function NavUgcAdsLink({ className, 'data-nav-item': navItem, signedIn = false, label = 'AI UGC Ads' }: { className?: string; 'data-nav-item': 'more:ugc'; signedIn?: boolean; label?: string }) {
   const language = useInterfaceLanguage()
-  return <Link href={createEntryForContentHref('ads', menuUgcHref(language), NAV_UGC_MAKE_NOW_HREF, signedIn)} className={className} data-nav-item={navItem}><UiLabel>AI UGC Ads</UiLabel></Link>
+  return <Link href={createEntryForContentHref('ads', menuUgcHref(language), NAV_UGC_MAKE_NOW_HREF, signedIn)} className={className} data-nav-item={navItem}><UiLabel>{label}</UiLabel></Link>
 }
