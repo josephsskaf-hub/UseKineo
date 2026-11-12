@@ -38,6 +38,7 @@ Imediatamente antes da publicação, faça fetch e rebase, rode `npx tsc --noEmi
 ## Em obra
 | Quando começou | Sessão | O que | Arquivos principais | Branch / worktree |
 |---|---|---|---|---|
+| 12/11 (retomada das 10h BRT) | Codex · otimizar GPT · missão 09–16/11 | Leitura de 48h concluída; ligar somente a comparação Runway já revisada ao llms. Não altera guias, páginas, oferta, motores ou a pesquisa de listas da outra sessão | app/llms.txt/route.ts | codex/citacoes-descoberta-runway-20261112 · C:/kineo-wt/citacoes-descoberta-runway-20261112 |
 | 11/11 00:27 −03:00 | CEO Codex | Coordenar Telas e Produto, Product Story e Citações. Revisar os SHAs locais, conciliar reservas e publicar uma entrega por vez | docs/QUADRO-DE-SESSOES.md | codex/ceo-coordenacao-1111 |
 | 11/11 00:30 −03:00 | Codex · Telas e Produto | Conferir Elevator com uma foto e o formato com duas. Primeiro diagnóstico somente leitura. Em seguida, inventariar o WIP de Clips | app/recreate/RecreateClient.tsx, docs/recreate-1011/test-photo-flow.cjs; leitura do WIP de Clips | `C:/Users/josep/.codex/worktrees/341b/kineo` |
 | 11/11 00:30 −03:00 | Codex · Product Story | Retomar a obra offline do Dia 2 e validar a correção do Dia 3: quadro real 1536×2752, falha terminal e retomada idempotente com quadro inválido | lib/ads/productStory/adapter.ts, lib/ads/productStory/preparation.ts, guardiões Product Story | `C:/Users/josep/.codex/worktrees/4081/kineo`; origem do WIP: codex/ads-product-story-day2-1011 |
