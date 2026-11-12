@@ -679,13 +679,13 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
                 modal não tem a URL dele sem mais uma chamada, e um clipe
                 premium aqui mostra exatamente o que ela perde. */}
             <video src="/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4" autoPlay muted loop playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-            <span style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,.72)', padding: '3px 8px', borderRadius: 4, fontSize: 9, fontWeight: 900, letterSpacing: '0.1em', color: '#fff' }}>VEO 3.1</span>
+            {/* KINEO-FIM-TRIAL-SEM-MOTOR-1211 — saiu o selo "VEO 3.1" do clipe (sem nome de motor, regra do fundador 11/11). */}
             <span style={{ position: 'absolute', bottom: 8, left: 8, right: 8, fontSize: 11, fontWeight: 600, color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,.9)' }}>Made with the engines your trial unlocked</span>
           </div>
           <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text)' }}>What changed on your account:</div>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
             <tbody>
-              <tr><td style={{ padding: '8px 4px', borderBottom: '1px solid var(--border)', color: 'var(--muted2)' }}>AI engines (MiniMax H3 Turbo, Kling…)</td><td style={{ padding: '8px 4px', borderBottom: '1px solid var(--border)', textAlign: 'right', fontWeight: 800, color: 'var(--danger)' }}>locked</td></tr>
+              <tr><td style={{ padding: '8px 4px', borderBottom: '1px solid var(--border)', color: 'var(--muted2)' }}>AI engines</td><td style={{ padding: '8px 4px', borderBottom: '1px solid var(--border)', textAlign: 'right', fontWeight: 800, color: 'var(--danger)' }}>locked</td></tr>
               <tr><td style={{ padding: '8px 4px', borderBottom: '1px solid var(--border)', color: 'var(--muted2)' }}>Clean download</td><td style={{ padding: '8px 4px', borderBottom: '1px solid var(--border)', textAlign: 'right', fontWeight: 800, color: 'var(--danger)' }}>watermarked</td></tr>
               <tr><td style={{ padding: '8px 4px', borderBottom: '1px solid var(--border)', color: 'var(--text2)' }}>Your finished videos</td><td style={{ padding: '8px 4px', borderBottom: '1px solid var(--border)', textAlign: 'right', fontWeight: 800, color: 'var(--success)' }}>still yours</td></tr>
               {/* Saldo REAL da mesma fonte do badge do topo — "0 credits" era
