@@ -42,7 +42,7 @@ function problems(over) {
   const ini = 'const visualUserMsg = `'
   const a1 = an.indexOf(ini), b1 = an.indexOf('`\n\n      try {', a1), a2 = an.indexOf(ini, b1), b2 = an.indexOf('`\n\n        try {', a2)
   if (a1 < 0 || b1 < 0 || a2 < 0 || b2 < 0) return [...p, '(c) não achei as duas mensagens de cena do analyze-idea']
-  const msg = (tpl, falas, pc) => new Function('sceneList', 'estrelaNoPedido', 'ESTRELA_REAL_PEOPLE_EXCEPTION', 'personagemContinuo', 'REGRA_UM_LUGAR', 'return `' + tpl + '`')(falas.map((t, i) => ({ scene_number: i + 1, typeLabel: 'SCENE', duration_seconds: 4, voiceover: t })), false, '', pc, P.REGRA_UM_LUGAR)
+  const msg = (tpl, falas, pc) => new Function('sceneList', 'estrelaNoPedido', 'ESTRELA_REAL_PEOPLE_EXCEPTION', 'personagemContinuo', 'REGRA_UM_LUGAR', 'ultimoPlanoLigado', 'REGRA_ULTIMO_PLANO', 'return `' + tpl + '`')(falas.map((t, i) => ({ scene_number: i + 1, typeLabel: 'SCENE', duration_seconds: 4, voiceover: t })), false, '', pc, P.REGRA_UM_LUGAR, false, '') /* KINEO-ULTIMO-PLANO-ACONTECE-1111: a linha do último plano, desligada */
   for (const [nome, tpl] of [['roteiro marcado', an.slice(a1 + ini.length, b1)], ['roteiro colado', an.slice(a2 + ini.length, b2)]]) {
     no(!msg(tpl, BONECO, P.personagemContinuo).includes(P.REGRA_UM_LUGAR), `(c) ${nome}: o boneco não ganhou a linha`)
     // a mensagem de antes = a mesma mensagem sem a expressão da linha (o texto anterior a KINEO-LUGAR-UNICO-PLANEJADOR-1111)

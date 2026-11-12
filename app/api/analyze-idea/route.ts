@@ -4,6 +4,8 @@ import { reviewRequestFidelity } from '@/lib/requestFidelity' // PEDIDO-FIEL-261
 import { createClient } from '@/lib/supabase/server'
 import { openai, durationPlanFor, MICRO_KNOWLEDGE_SYSTEM_RULES, SAFE_COMPOSITION_RULES } from '@/lib/openai'
 import { regraDaDataReal } from '@/lib/dataRealDoEscritor' // KINEO-ANO-INVENTADO-0211 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — a data real do pedido + a regra do ano em todo escritor de fala/título/legenda
+import { ultimoPlanoAconteceLigado, ULTIMO_PLANO_ACONTECE, REGRA_ULTIMO_PLANO, ultimoPlanoComAcontecimento } from '@/lib/cinematic/ultimoPlanoAcontece' // KINEO-ULTIMO-PLANO-ACONTECE-1111 [CEO 11/11, alavanca 1, 'internal'] — o último visual_prompt é um acontecimento
+import { isInternalEmail } from '@/lib/internalAccounts' // KINEO-ULTIMO-PLANO-ACONTECE-1111
 import { personagemContinuo, REGRA_UM_LUGAR } from '@/lib/cinematic/personagemContinuo' // KINEO-LUGAR-UNICO-PLANEJADOR-1111 [CEO 11/11] — um lugar só, e só quando o código acha UM personagem que atravessa as falas (o ensaio: a regra sempre ligada achatava documentário)
 import { writeServerEvent } from '@/lib/serverEvents'
 import { buildRefusalEvent } from '@/lib/stageRefusal'
@@ -641,6 +643,9 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return await recusarAnalise(401, { error: 'You must be signed in.' }, null)
     }
+    const ultimoPlanoLigado = ultimoPlanoAconteceLigado(ULTIMO_PLANO_ACONTECE, isInternalEmail(user.email)) // KINEO-ULTIMO-PLANO-ACONTECE-1111 — só a casa até a prova paga
+    // KINEO-ULTIMO-PLANO-ACONTECE-1111 — se o último plano voltar sem acontecimento, o planejador refaz SÓ ele, uma vez (o código decide; falha = o de antes)
+    const pedirUltimoPlano = async (mensagem: string): Promise<string> => { const c = await openai.chat.completions.create({ model: 'gpt-4o-mini', messages: [{ role: 'system', content: 'You are a cinematic video director. Return valid JSON only — no markdown, no code blocks.' }, { role: 'user', content: mensagem }], temperature: 0.4, max_tokens: 400, response_format: { type: 'json_object' } }, { timeout: 12000, maxRetries: 0 }); return c.choices[0]?.message?.content?.trim() ?? '' }
 
     let body: { prompt?: string; duration?: number; language?: string; scriptMode?: string; estrela?: unknown } // KINEO-ESTRELA-DO-FILME-2026-09-29: + estrela (marca booleana)
     let bodyCru: unknown = null
@@ -802,7 +807,8 @@ For each scene return a JSON object with exactly:
 - caption (max 6 words, punchy fragment, no period — summarize the voiceover in 6 words)
 - highlight (the single most striking word in the caption)
 - visual_prompt (150-350 chars, cinematic 9:16 vertical, describe camera angle + lighting + subject specific to the voiceover content. PERIOD ACCURACY: if the voiceover is set in a specific era, state the year/era and use ONLY period-accurate tech/clothing/weapons, describing ONLY what existed then in positive words (never name a forbidden modern object: video models draw what is named — KINEO-EPOCA-POSITIVA-1111). REAL PEOPLE: never make a recognizable face of a named real person the focal point — show them from behind, in silhouette, at distance, or via details like a hat or hands)${estrelaNoPedido ? `\n- ${ESTRELA_REAL_PEOPLE_EXCEPTION}` : ''}${personagemContinuo(sceneList.map((s) => s.voiceover)) ? `
-  ${REGRA_UM_LUGAR}` : ''}
+  ${REGRA_UM_LUGAR}` : ''}${ultimoPlanoLigado ? `
+  ${REGRA_ULTIMO_PLANO}` : ''}
 - duration_seconds (int)
 
 Also return at the top level:
@@ -854,6 +860,7 @@ Return valid JSON only: { "viral_title": "...", "youtube_title": "...", "youtube
         const viral_title = asString(data.viral_title, hookText.slice(0, 80))
         const niche = asString(data.niche, fallbackV.niche)
         const tone = asString(data.tone, fallbackV.tone)
+        if (ultimoPlanoLigado) { const r = await ultimoPlanoComAcontecimento(scenes, pedirUltimoPlano, (v) => clampToProviderLimit(withCamera(v))); if (r.trocou) console.log('[analyze-idea] KINEO-ULTIMO-PLANO-ACONTECE-1111: último plano refeito como acontecimento') } // KINEO-ULTIMO-PLANO-ACONTECE-1111
         const voiceover_script = scenes.map(s => s.voiceover).join(' ')
         const youtube_title = asString(data.youtube_title, viral_title).slice(0, 120)
         const youtube_description = asString(data.youtube_description, fallbackV.youtube_description).slice(0, 600)
@@ -920,7 +927,8 @@ For each scene return a JSON object with exactly:
 - caption (max 6 words, punchy fragment, no period — summarize the voiceover in 6 words)
 - highlight (the single most striking word in the caption)
 - visual_prompt (150-350 chars, cinematic 9:16 vertical, describe camera angle + lighting + subject specific to the voiceover content. PERIOD ACCURACY: if the voiceover is set in a specific era, state the year/era and use ONLY period-accurate tech/clothing/weapons, describing ONLY what existed then in positive words (never name a forbidden modern object: video models draw what is named — KINEO-EPOCA-POSITIVA-1111). REAL PEOPLE: never make a recognizable face of a named real person the focal point — show them from behind, in silhouette, at distance, or via details like a hat or hands)${estrelaNoPedido ? `\n- ${ESTRELA_REAL_PEOPLE_EXCEPTION}` : ''}${personagemContinuo(sceneList.map((s) => s.voiceover)) ? `
-  ${REGRA_UM_LUGAR}` : ''}
+  ${REGRA_UM_LUGAR}` : ''}${ultimoPlanoLigado ? `
+  ${REGRA_ULTIMO_PLANO}` : ''}
 - duration_seconds (int)
 
 Also return at the top level:
@@ -971,6 +979,7 @@ Return valid JSON only: { "viral_title": "...", "youtube_title": "...", "youtube
           const viral_title = asString(data.viral_title, hookText.slice(0, 80))
           const niche = asString(data.niche, fallbackV.niche)
           const tone = asString(data.tone, fallbackV.tone)
+          if (ultimoPlanoLigado) { const r = await ultimoPlanoComAcontecimento(scenes, pedirUltimoPlano, (v) => clampToProviderLimit(withCamera(v))); if (r.trocou) console.log('[analyze-idea] KINEO-ULTIMO-PLANO-ACONTECE-1111: último plano refeito como acontecimento') } // KINEO-ULTIMO-PLANO-ACONTECE-1111
           const voiceover_script = scenes.map(s => s.voiceover).join(' ')
           const youtube_title = asString(data.youtube_title, viral_title).slice(0, 120)
           const youtube_description = asString(data.youtube_description, fallbackV.youtube_description).slice(0, 600)
