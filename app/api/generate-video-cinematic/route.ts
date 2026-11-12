@@ -39,6 +39,7 @@ import { claimKling4PaidSlot, finishKling4PaidSlot } from '@/lib/kling4PaidQueue
 import { ensureKling4PromoBudgetToday } from '@/lib/kling4PromoCarry'
 import { creditCostFor, creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 import { isInternalEmail } from '@/lib/internalAccounts'
+import { comPeloFacialDoTexto } from '@/lib/cinematic/peloFacialDoTexto' // KINEO-PELO-FACIAL-DO-TEXTO-1211
 import { KLING4_PLANO_POR_SECAO, KLING4_PLANO_POR_SECAO_VERSAO, planoPorSecaoLigado, planosPorSecao } from '@/lib/kling4QuatroPlanos' // KINEO-K4-PLANO-POR-SECAO-1111
 import { KLING4_PLANO_VARIADO, KLING4_PLANO_VARIADO_VERSAO, planoVariadoLigado, planosComEscalaVariada } from '@/lib/kling4PlanoVariado' // KINEO-K4-PLANO-VARIADO-1111
 import { S25_PUBLIC, enginePaused, engineRetired, engineRetiredForHouse, engineOffered, ENGINE_RETIRED_EVENT, ENGINE_RETIRED_REASON } from '@/lib/engineLaunch' // KINEO-VEO-DESLIGA-1711: engineRetiredForHouse
@@ -3950,7 +3951,7 @@ async function manipularPost(req: NextRequest) {
     const baseConferida = elencoConferido(elencoBaseDoPedido, conferenciaElenco) // KINEO-SO-GENTE-NA-FICHA-0411
     if (pedidoSemantico) void writeServerEvent({ name: EVENTO_CONFERENCIA_ELENCO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { version: CONFERENCIA_ELENCO_VERSAO, generation_id: generationId, engine: body.engine, estrada: hollywoodPath ? 'hollywood' : 'classica', status: pedidoSemantico.status, ms: pedidoSemantico.ms, conferiu: !!conferenciaElenco, lidos: conferenciaElenco?.nomes ?? null, removidos: baseConferida.removidos } }) // KINEO-SO-GENTE-NA-FICHA-0411
     if (pedidoSemantico) { const relatoSemantico = relatoDoElencoSemantico(pedidoSemantico, elencoSemantico); console.log(`[personagem] gen=${generationId} KINEO-PROTAGONISTA-SEEDANCE: status=${relatoSemantico.status} tentativas=${relatoSemantico.tentativas} ${relatoSemantico.ms} ms aplicado=${relatoSemantico.aplicado} elenco=${relatoSemantico.elenco.map((e) => `${e.nome}(${e.tipo}/${e.origem}${e.protagonista ? '/P' : ''})`).join(', ') || '-'} novas=${relatoSemantico.novas.join('+') || '-'}`) } // KINEO-PROTAGONISTA-SEEDANCE-0111
-    const elencoDoPedido: FichaDePersonagem[] = elencoSemantico ? elencoSemantico.elenco : baseConferida.elenco // KINEO-PROTAGONISTA-SEEDANCE-0111 // KINEO-SO-GENTE-NA-FICHA-0411
+    const elencoDoPedido: FichaDePersonagem[] = comPeloFacialDoTexto(elencoSemantico ? elencoSemantico.elenco : baseConferida.elenco, `${typeof body.original_idea === 'string' ? body.original_idea : ''} ${prompt}`) // KINEO-PROTAGONISTA-SEEDANCE-0111 // KINEO-SO-GENTE-NA-FICHA-0411 · KINEO-PELO-FACIAL-DO-TEXTO-1211 — barba/bigode/barbeado que o pedido ou o roteiro citam entram na ficha ANTES da folha
     const personagemElenco: { elenco: FichaDePersonagem[]; casting: string; ms: number } = qualidadeHerdada
       ? { elenco: qualidadeHerdada.characters, casting: 'herdado', ms: 0 }
       : personagem.ativo ? qualidadeFilme.gerarFolha ? await elencoComCastingAjuste(prompt, elencoDoPedido) // KINEO-PROTAGONISTA-SEEDANCE-0111 — era elencoDoRoteiro(prompt)
