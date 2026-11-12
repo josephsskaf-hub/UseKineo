@@ -30,7 +30,7 @@ function loader(over = {}) {
 // Prova (Node puro, US$ 0): com as entradas dos 3 anúncios que a CEO rodou à mão em 11/11 (Halo/Sofia/carro, Orra/Rahul/rua, Veil/Amara/GRWM), o dry-run
 // devolve os 3 JSON equivalentes: (a) foto-chave no nano-banana-pro/edit com [retrato, produto], 2 opções, 1K, jpeg, 9:16, boca fechada; (b) vídeo no
 // bytedance/seedance-2.0/image-to-video (NÃO reference-to-video), 720p, 9:16, generate_audio, a fala INTEIRA entre aspas e um "On "<palavra>"" por
-// gesto; (c) a régua do roteiro em código (22–30 palavras, clichê, número inventado, gesto sem palavra); (d) o juiz da fala: o Halo saiu "…and
+// gesto; (c) a régua do roteiro em código (22–31 palavras — a Veil aprovada, com 31, passa; clichê, número inventado, gesto sem palavra); (d) o juiz da fala: o Halo saiu "…and
 // honestly, honestly, I'm buying two." e REPROVA; Orra e Veil saíram limpos e PASSAM; (e) a trava 'internal'. Mutantes no fim.
 const P = 'lib/ads/pessoaFalando/prompts.ts', R = 'lib/ads/pessoaFalando/roteiro.ts', J = 'lib/ads/pessoaFalando/juizFala.ts', D = 'lib/ads/pessoaFalando/dryRun.ts', F = 'lib/ads/pessoaFalando/formatos.ts'
 const FOTO = 'https://example.com/produto.jpg'
@@ -42,8 +42,8 @@ const CASOS = [
     r: { fala: "Wait, what's in my ears? These. Orra Buds. They were forty bucks, they block out this whole street, and the battery lasts my entire week.", gestos: [{ palavra: 'These', gesto: 'lifts the open case toward the lens' }, { palavra: 'street', gesto: 'glances at the busy street behind him' }] },
     ouvido: "Wait, what's in my ears? These. Orra Buds. They were forty bucks, they block out this whole street, and the battery lasts my entire week.", pedido: 10, clipe: 10.04, inicio: 0.21, aprova: true },
   { nome: 'Veil', e: { apresentadorId: 'amara', formatoId: 'get_ready', produto: 'Veil tinted SPF moisturizer, cream tube', frase: 'A tinted SPF that replaces foundation; one pump covers the face.', fotoDoProduto: FOTO },
-    r: { fala: "Get ready with me, but I'm only using one thing today. This tinted SPF. One pump, blend it in, and I'm done. No foundation, and my skin looks like this.", gestos: [{ palavra: 'pump', gesto: 'presses one pump onto her fingertips' }, { palavra: 'blend', gesto: 'blends it across her cheek' }] },
-    ouvido: "Get ready with me, but I'm only using one thing today. This tinted SPF. One pump, blend it in, and I'm done. No foundation, and my skin looks like this.", pedido: 12, clipe: 11.96, inicio: 0.4, aprova: true },
+    r: { fala: "Get ready with me, but I'm only using one thing today. This tinted SPF. One pump, blend it in, and I'm done. No foundation, and my skin still looks like this.", gestos: [{ palavra: 'pump', gesto: 'presses one pump onto her fingertips' }, { palavra: 'blend', gesto: 'blends it across her cheek' }] },
+    ouvido: "Get ready with me, but I'm only using one thing today. This tinted SPF. One pump, blend it in, and I'm done. No foundation, and my skin still looks like this.", pedido: 12, clipe: 11.96, inicio: 0.4, aprova: true },
 ]
 function problems(over) {
   const p = []
@@ -66,6 +66,7 @@ function problems(over) {
   const base = CASOS[1]
   const ruins = [
     ['curta', { ...base.r, fala: 'These earbuds are great. Forty bucks. Buy them.' }],
+    ['longa (34)', { ...base.r, fala: "Wait, what's in my ears? These. Orra Buds. They were forty bucks, they block out this whole street, and the battery lasts my entire week, every single day of it, even on long flights." }],
     ['clichê', { ...base.r, fala: "Wait, what's in my ears? These. Orra Buds are a total game-changer, forty bucks, they block out this whole street, and last a week." }],
     ['número inventado', { ...base.r, fala: "Wait, what's in my ears? These. Orra Buds. They were forty bucks, they block out this whole street, and the battery lasts ninety hours straight." }],
     ['gesto sem palavra', { ...base.r, gestos: [{ palavra: 'pocket', gesto: 'pats the pocket' }, { palavra: 'These', gesto: 'lifts the case' }] }],
