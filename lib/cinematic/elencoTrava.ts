@@ -190,7 +190,10 @@ export function fichaRala(f: Pick<FichaDePersonagem, 'tipo' | 'canonica' | 'nome
   return !(f.tipo === 'humano' ? ANCORA_HUMANA_RE : ANCORA_ANIMAL_RE).test(desc)
 }
 
-export interface AncorasDeAparencia { idade: string; cabelo: string; pele: string; roupa: string; pelagem: string; porte: string }
+// KINEO-PELO-FACIAL-1211 [CEO 12/11 madrugada, Mona Lisa 1911: o Peruggia saiu de barba cheia numa cena e de bigode na outra, com a MESMA folha] — a
+// leitura da folha não perguntava o pelo facial; sem ele no texto, cada imagem-chave sorteava. Agora a mesma chamada de visão (custo zero a mais) devolve
+// "facial_hair", e a ficha de toda cena diz "clean-shaven" ou "thick dark moustache" igual.
+export interface AncorasDeAparencia { idade: string; cabelo: string; pele: string; roupa: string; pelagem: string; porte: string; barba?: string }
 /** Nome próprio, comparação com gente real, marca ou franquia: o campo inteiro sai (nunca inventa uma pessoa conhecida). */
 const PROIBIDO_NA_ANCORA_RE = /\b(?:like|looks|resembl\w*|celebrit\w*|famous|actor|actress|singer|star|model|influencer|disney|pixar|marvel|dc|barbie|lego|brand|logo)\b/i
 const campo = (v: unknown): string => {
@@ -205,13 +208,14 @@ export function lerAncoras(raw: string): AncorasDeAparencia | null {
   let j: Record<string, unknown>
   try { j = JSON.parse(String(raw ?? '')) as Record<string, unknown> } catch { return null }
   if (!j || typeof j !== 'object') return null
-  const a: AncorasDeAparencia = { idade: campo(j.age_range), cabelo: campo(j.hair), pele: campo(j.skin_tone), roupa: campo(j.clothing), pelagem: campo(j.coat), porte: campo(j.size) }
+  const semPelo = typeof j.facial_hair === 'string' && /^(?:none|no(?:ne)?\s+facial\s+hair|no|clean[- ]?shaven|beardless)\b/i.test(limpa(j.facial_hair)) // KINEO-PELO-FACIAL-1211 — "none" vira "clean-shaven" (dizer que NÃO tem também trava)
+  const a: AncorasDeAparencia = { idade: campo(j.age_range), cabelo: campo(j.hair), pele: campo(j.skin_tone), roupa: campo(j.clothing), pelagem: campo(j.coat), porte: campo(j.size), barba: semPelo ? 'clean-shaven' : campo(j.facial_hair) }
   return Object.values(a).some(Boolean) ? a : null
 }
 /** A frase das âncoras (só o que a imagem mostrou). */
 export function fraseDasAncoras(tipo: FichaDePersonagem['tipo'], a: AncorasDeAparencia): string {
   const partes = tipo === 'humano'
-    ? [a.idade, a.cabelo, a.pele ? `${a.pele.replace(/\s*skin$/, '')} skin` : '', a.roupa ? `wearing ${a.roupa.replace(/^wearing\s+/, '')}` : '']
+    ? [a.idade, a.cabelo, a.barba ? (a.barba === 'clean-shaven' ? 'clean-shaven' : `facial hair: ${a.barba}`) : '', a.pele ? `${a.pele.replace(/\s*skin$/, '')} skin` : '', a.roupa ? `wearing ${a.roupa.replace(/^wearing\s+/, '')}` : ''] // KINEO-PELO-FACIAL-1211
     : [a.porte, a.pelagem ? `${a.pelagem.replace(/\s*(?:fur|coat)$/, '')} coat` : '']
   const p = partes.filter(Boolean)
   return p.length ? `${MARCA_ANCORAS} ${p.join(', ')}` : ''
@@ -229,7 +233,7 @@ export function fichaComAncoras(f: FichaDePersonagem, a: AncorasDeAparencia | nu
 export function mensagensDasAncoras(f: Pick<FichaDePersonagem, 'tipo' | 'canonica'>, url: string): Array<{ role: 'system' | 'user'; content: unknown }> {
   const quem = f.tipo === 'humano' ? 'person' : 'animal'
   return [
-    { role: 'system', content: `You describe a character reference image so that later shots can keep the SAME ${quem}. Return JSON only: {"age_range": "", "hair": "", "skin_tone": "", "clothing": "", "coat": "", "size": ""}. Plain visual words, at most 8 words per field, empty string when not visible or not applicable (a person has no coat field; an animal has no hair, skin_tone or clothing). Never name, identify or compare to any real or famous person, character, brand or franchise.` },
+    { role: 'system', content: `You describe a character reference image so that later shots can keep the SAME ${quem}. Return JSON only: {"age_range": "", "hair": "", "facial_hair": "", "skin_tone": "", "clothing": "", "coat": "", "size": ""}. For a person, facial_hair is "none" or what is visible (e.g. "thick dark moustache", "short full beard"). Plain visual words, at most 8 words per field, empty string when not visible or not applicable (a person has no coat field; an animal has no hair, skin_tone or clothing). Never name, identify or compare to any real or famous person, character, brand or franchise.` },
     { role: 'user', content: [{ type: 'text', text: `Character as written: ${limpa(f.canonica).slice(0, 300)}` }, { type: 'image_url', image_url: { url, detail: 'low' } }] },
   ]
 }
