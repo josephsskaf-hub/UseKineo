@@ -15,10 +15,21 @@ export const PESSOA_FALANDO_API = {
 } as const
 
 /**
- * Créditos do vídeo com pessoa falando — PENDENTE (decisão de preço do dono). null = a tela mostra o botão sem número e não deixa pedir.
- * Quando o dono decidir, a Div. 5 troca este número (ou o servidor manda `creditos` na resposta das fotos, que vale por cima).
+ * Créditos do vídeo com pessoa falando. KINEO-ADS-PESSOA-FALANDO-PRECO-1211 [dono 12/11, opção B da foto docs/decisoes-1211/preco-anuncio-falado-ABC.png]:
+ * 55 créditos, SÓ o anúncio de 10 s (sem seletor de 12 s). null = a tela mostra o botão sem número e não deixa pedir. A resposta das fotos
+ * (`creditos`) vale por cima, se o servidor mandar.
  */
-export const ADS_PESSOA_FALANDO_CREDITS: number | null = null
+export const ADS_PESSOA_FALANDO_CREDITS: number | null = 55
+
+/** O lançamento é só o anúncio de 10 s: a fala cabe em 25 palavras (lib/ads/pessoaFalando/prompts.ts duracaoDaFala: ≤ 25 palavras = 10 s). */
+export const FALA_MAX_PALAVRAS = 25
+export function palavrasDaFala(fala: string): number { return String(fala ?? '').trim().split(/\s+/u).filter(Boolean).length }
+
+/** O saldo cobre o vídeo? null = leitura falhou (a tela não inventa "0": deixa o servidor decidir no pedido). */
+export function saldoCobre(saldo: number | null, creditos: number | null): boolean | null {
+  if (saldo === null || creditos === null) return null
+  return saldo >= creditos
+}
 
 export interface EntradaDaTela { fotoDoProduto: string; produto: string; frase: string; apresentadorId: ApresentadorId; formatoId: FormatoId }
 export interface RespostaRoteiro { roteiro: Roteiro | null; rascunho: Roteiro | null; motivos?: string[] }

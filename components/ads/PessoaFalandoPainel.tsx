@@ -9,7 +9,8 @@
 import { useMemo, useState } from 'react'
 import { APRESENTADORES, FORMATOS, type ApresentadorId, type FormatoId } from '@/lib/ads/pessoaFalando/formatos'
 import type { Roteiro } from '@/lib/ads/pessoaFalando/roteiro'
-import { ADS_PESSOA_FALANDO_CREDITS, FALA_MAX, FRASE_MAX, PESSOA_FALANDO_API, PRODUTO_MAX, faltaNaEntrada, type EntradaDaTela, type RespostaFotos, type RespostaPedido, type RespostaRoteiro } from '@/lib/ads/pessoaFalando/telaContrato'
+import { ADS_PESSOA_FALANDO_CREDITS, FALA_MAX, FALA_MAX_PALAVRAS, FRASE_MAX, PESSOA_FALANDO_API, PRODUTO_MAX, faltaNaEntrada, palavrasDaFala, saldoCobre, type EntradaDaTela, type RespostaFotos, type RespostaPedido, type RespostaRoteiro } from '@/lib/ads/pessoaFalando/telaContrato'
+import SubscriberUpgradeNudge from '@/components/billing/SubscriberUpgradeNudge' // KINEO-ADS-PESSOA-FALANDO-PRECO-1211 — sem saldo: a saída de sempre (troca de plano ou recarga), sem texto novo de preço
 
 /** Os 3 clipes aprovados pelo dono (public/ads-exemplos), nos formatos em que foram feitos. */
 export const EXEMPLO_DO_FORMATO: Partial<Record<FormatoId, string>> = { car_selfie: 'halo-car-selfie', get_ready: 'veil-grwm', street_interview: 'orra-street-interview' }
@@ -81,6 +82,8 @@ export default function PessoaFalandoPainel({ creditosPadrao = ADS_PESSOA_FALAND
   const [ocupado, setOcupado] = useState<'roteiro' | 'fotos' | 'video' | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [pedido, setPedido] = useState<RespostaPedido | null>(null)
+  const [saldo, setSaldo] = useState<number | null>(null) // lido no clique das fotos (nada carrega sozinho)
+  const [avisoDoAssinante, setAvisoDoAssinante] = useState(false) // o aviso de sempre pintou? (troca de plano ou recarga, só para assinante)
 
   const entrada: Partial<EntradaDaTela> = { fotoDoProduto: fotoDoProduto.trim(), produto: produto.trim(), frase: frase.trim(), apresentadorId: apresentadorId ?? undefined, formatoId: formatoId ?? undefined }
   const falta = faltaNaEntrada(entrada)
@@ -88,6 +91,9 @@ export default function PessoaFalandoPainel({ creditosPadrao = ADS_PESSOA_FALAND
   const chave = useMemo(() => JSON.stringify(entrada), [fotoDoProduto, produto, frase, apresentadorId, formatoId]) // eslint-disable-line react-hooks/exhaustive-deps
   const [chaveDoRoteiro, setChaveDoRoteiro] = useState<string | null>(null)
   const roteiroVale = roteiro && chaveDoRoteiro === chave
+  const palavras = roteiro ? palavrasDaFala(roteiro.fala) : 0
+  const falaCabe = palavras > 0 && palavras <= FALA_MAX_PALAVRAS // só o anúncio de 10 s (dono 12/11)
+  const cobre = saldoCobre(saldo, creditos)
 
   async function chamar<T>(url: string, corpo: unknown): Promise<T> {
     const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(corpo) })
@@ -105,16 +111,17 @@ export default function PessoaFalandoPainel({ creditosPadrao = ADS_PESSOA_FALAND
     } catch { setErro('The script could not be written right now. Nothing was charged. Try again.') } finally { setOcupado(null) }
   }
   async function verFotos() {
-    if (!roteiroVale || !roteiro?.fala.trim()) return
+    if (!roteiroVale || !falaCabe) return
     setOcupado('fotos'); setErro(null); setEscolhida(null)
     try {
+      void fetch('/api/credits', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).then(d => setSaldo(typeof d?.credits === 'number' ? d.credits : null)).catch(() => setSaldo(null))
       const r = await chamar<RespostaFotos>(PESSOA_FALANDO_API.fotos, entrada)
       setFotos(r.fotos)
       if (typeof r.creditos === 'number') setCreditos(r.creditos)
     } catch { setErro('The two photos could not be made right now. Nothing was charged. Try again.') } finally { setOcupado(null) }
   }
   async function fazerVideo() {
-    if (!roteiroVale || !roteiro || !escolhida || !creditos) return
+    if (!roteiroVale || !roteiro || !escolhida || !creditos || !falaCabe || cobre === false) return
     setOcupado('video'); setErro(null)
     try { setPedido(await chamar<RespostaPedido>(PESSOA_FALANDO_API.video, { ...entrada, fotoChave: escolhida, roteiro })) }
     catch { setErro('Your video could not start. Nothing was charged. Try again.') } finally { setOcupado(null) }
@@ -158,20 +165,25 @@ export default function PessoaFalandoPainel({ creditosPadrao = ADS_PESSOA_FALAND
         {foiRascunho ? <p className="pf-note" data-pf-rascunho="">This is a draft: read it and adjust the line before the photos.</p> : null}
         <p className="pf-fala" aria-label="Script with gestures">{marcarGestos(roteiro!)}</p>
         <textarea aria-label="Edit the line" maxLength={FALA_MAX} value={roteiro!.fala} onChange={e => setRoteiro({ ...roteiro!, fala: e.target.value })} />
+        <p className={falaCabe ? 'pf-why' : 'pf-err'} data-pf-palavras={palavras}>{palavras} / {FALA_MAX_PALAVRAS} words · {falaCabe ? 'fits the 10-second ad' : 'shorten the line to fit 10 seconds'}</p>
         <button type="button" className="pf-ex" onClick={escrever} disabled={ocupado !== null}>Write it again</button>
       </>}
     </section>
     <section className="pf-step" data-pf-passo="6"><h2><span className="pf-n">6</span>Pick the shot</h2>
       {!fotos ? <>
         <p className="pf-hint">Two photos of {apresentadorId ? APRESENTADORES[apresentadorId].nome : 'the presenter'} with your product. Pick one; the video starts from it.</p>
-        <button type="button" className="pf-btn2" disabled={!roteiroVale || !roteiro?.fala.trim() || ocupado !== null} onClick={verFotos}>{ocupado === 'fotos' ? 'Making the photos…' : 'Show me 2 photos'}</button>
+        <button type="button" className="pf-btn2" disabled={!roteiroVale || !falaCabe || ocupado !== null} onClick={verFotos}>{ocupado === 'fotos' ? 'Making the photos…' : 'Show me 2 photos'}</button>
       </> : <>
         <div className="pf-fotos">{fotos.map((u, i) => <button key={u} type="button" className="pf-opt" aria-pressed={escolhida === u} onClick={() => setEscolhida(u)}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={u} alt={`Photo ${i + 1}`} />Photo {i + 1}
         </button>)}</div>
-        <button type="button" className="pf-btn" style={{ marginTop: 12 }} disabled={!escolhida || !creditos || ocupado !== null} onClick={fazerVideo} data-pf-botao="">{ocupado === 'video' ? 'Starting…' : rotuloDoBotao(creditos)}</button>
+        <button type="button" className="pf-btn" style={{ marginTop: 12 }} disabled={!escolhida || !creditos || !falaCabe || cobre === false || ocupado !== null} onClick={fazerVideo} data-pf-botao="">{ocupado === 'video' ? 'Starting…' : rotuloDoBotao(creditos)}</button>
         {!escolhida ? <p className="pf-why">Pick one of the two photos.</p> : null}
+        {cobre === false ? <div style={{ marginTop: 10 }} data-pf-sem-saldo=""><SubscriberUpgradeNudge surface="ads_pessoa_falando_sem_saldo" topup onShown={() => setAvisoDoAssinante(true)} />
+          {/* Quem não assina (o aviso acima não pinta): a mesma saída do Cartoon, "See plans" — sem texto novo de preço. */}
+          {!avisoDoAssinante ? <><p className="pf-why">Not enough credits for this video yet.</p><a className="pf-btn2" style={{ display: 'grid', placeItems: 'center', marginTop: 6 }} href="/pricing" data-pf-ver-planos="">See plans</a></> : null}
+        </div> : null}
       </>}
       {erro ? <p className="pf-err" role="alert">{erro}</p> : null}
     </section>

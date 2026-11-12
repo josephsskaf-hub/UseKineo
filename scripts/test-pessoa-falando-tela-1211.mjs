@@ -19,7 +19,7 @@ const text = h => h.replace(/<style[\s\S]*?<\/style>/g, '').replace(/<[^>]+>/g, 
 
 function all(o = {}) {
   const src = p => (o[p] ?? read(p)).replace(/\r\n/g, '\n')
-  const load = loader({}, o)
+  const load = loader({ '@/components/billing/SubscriberUpgradeNudge': { __esModule: true, default: () => null } }, o)
   const P = load(PAINEL.replace(/\.tsx$/, ''))
   const C = load(CONTRATO.replace(/\.ts$/, ''))
   // 1) Quem fala e onde: os 4 sem Jade, os 6 formatos, os 3 clipes aprovados como exemplo.
@@ -29,9 +29,17 @@ function all(o = {}) {
   ok(JSON.stringify(Object.values(P.EXEMPLO_DO_FORMATO).sort()) === '["halo-car-selfie","orra-street-interview","veil-grwm"]', 'os 3 clipes aprovados pelo dono, e só eles')
   // 2) Preço só no botão final, com o número da constante; sem número = sem pedido.
   ok(P.rotuloDoBotao(null) === 'Make my video · price coming soon' && P.rotuloDoBotao(120) === 'Make my video · 120 credits', 'botão: o número da constante (ou "coming soon")')
-  ok(C.ADS_PESSOA_FALANDO_CREDITS === null || typeof C.ADS_PESSOA_FALANDO_CREDITS === 'number', 'constante de créditos lida')
+  ok(C.ADS_PESSOA_FALANDO_CREDITS === 55 && P.rotuloDoBotao(C.ADS_PESSOA_FALANDO_CREDITS) === 'Make my video · 55 credits', 'preço do dono (12/11, opção B): 55 créditos no botão')
+  // KINEO-ADS-PESSOA-FALANDO-PRECO-1211 — só o anúncio de 10 s: a fala cabe em 25 palavras (a régua do servidor); sem seletor de 12 s.
+  ok(C.FALA_MAX_PALAVRAS === 25 && C.palavrasDaFala('a b  c\n d') === 4, 'régua dos 10 s: 25 palavras')
+  ok(C.saldoCobre(40, 55) === false && C.saldoCobre(55, 55) === true && C.saldoCobre(null, 55) === null, 'saldo: o Starter (40) não cobre; leitura que falha não vira 0')
   const p = src(PAINEL)
-  ok(/disabled=\{!escolhida \|\| !creditos \|\| ocupado !== null\}/.test(p), 'sem foto escolhida ou sem preço decidido, o botão final não pede')
+  ok(/disabled=\{!escolhida \|\| !creditos \|\| !falaCabe \|\| cobre === false \|\| ocupado !== null\}/.test(p), 'o botão final não pede sem foto, sem preço, com fala longa ou sem saldo')
+  ok(/cobre === false \? <div[^>]*data-pf-sem-saldo=""><SubscriberUpgradeNudge surface="ads_pessoa_falando_sem_saldo" topup onShown=\{\(\) => setAvisoDoAssinante\(true\)\} \/>/.test(p), 'sem saldo, assinante: a saída de sempre (troca de plano ou recarga)')
+  ok(/\{!avisoDoAssinante \? <>[^\n]*href="\/pricing" data-pf-ver-planos="">See plans<\/a>/.test(p), 'sem saldo, sem plano: "See plans" (a mesma saída do Cartoon), nunca botão morto sem saída')
+  ok(!/\d+\s*credits|\$\d/.test((p.match(/data-pf-sem-saldo[\s\S]*?<\/div> : null\}/) || [''])[0]), 'a saída sem saldo não traz texto novo de preço')
+  ok(!/\b12[- ]?s(econds?)?\b|'12'/i.test(p.replace(/^\s*\/\/.*$/gm, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '')), 'sem seletor de 12 s')
+  ok(/disabled=\{!roteiroVale \|\| !falaCabe \|\| ocupado !== null\} onClick=\{verFotos\}/.test(p), 'fala acima de 25 palavras não pede as fotos')
   // 3) O que a tela manda: nada vai ao servidor faltando dado.
   ok(C.faltaNaEntrada({}) !== null && C.faltaNaEntrada({ fotoDoProduto: 'http://x', produto: 'a', frase: 'b', apresentadorId: 'sofia', formatoId: 'car_selfie' }) !== null, 'foto só por https')
   ok(C.faltaNaEntrada({ fotoDoProduto: 'https://x/y.jpg', produto: 'Mug', frase: 'Hot 12 h', apresentadorId: 'sofia', formatoId: 'car_selfie' }) === null, 'entrada completa passa')
@@ -65,11 +73,16 @@ const real = passed
 const r = p => read(p)
 const mutants = [
   ['Jade volta', PAINEL, r(PAINEL).replace("['sofia', 'amara', 'rahul', 'kenji']", "['sofia', 'amara', 'rahul', 'kenji', 'jade']")],
-  ['botão pede sem preço', PAINEL, r(PAINEL).replace('disabled={!escolhida || !creditos || ocupado !== null}', 'disabled={!escolhida || ocupado !== null}')],
+  ['botão pede sem preço', PAINEL, r(PAINEL).replace('disabled={!escolhida || !creditos || !falaCabe || cobre === false || ocupado !== null}', 'disabled={!escolhida || !falaCabe || cobre === false || ocupado !== null}')],
   ['roteiro escreve sozinho', PAINEL, r(PAINEL).replace("import { useMemo, useState } from 'react'", "import { useEffect, useMemo, useState } from 'react'")],
   ['nome de motor na tela', PAINEL, r(PAINEL).replace("'Write the script'", "'Write the script with Seedance'")],
   ['letra de 11 px', PAINEL, r(PAINEL).replace('.pf-hint{margin:0 0 8px;font-size:12px', '.pf-hint{margin:0 0 8px;font-size:11px')],
   ['porta aberta para todos', PAGINA, r(PAGINA).replace('pessoaFalandoLigado(KINEO_ADS_PESSOA_FALANDO, isInternalEmail(quem.email))', 'true')],
+  ['preço volta a pendente', CONTRATO, r(CONTRATO).replace('export const ADS_PESSOA_FALANDO_CREDITS: number | null = 55', 'export const ADS_PESSOA_FALANDO_CREDITS: number | null = null')],
+  ['fala de 12 s passa', CONTRATO, r(CONTRATO).replace('export const FALA_MAX_PALAVRAS = 25', 'export const FALA_MAX_PALAVRAS = 32')],
+  ['sem saldo ainda pede', PAINEL, r(PAINEL).replace('disabled={!escolhida || !creditos || !falaCabe || cobre === false || ocupado !== null}', 'disabled={!escolhida || !creditos || !falaCabe || ocupado !== null}')],
+  ['sem saldo sem saída', PAINEL, r(PAINEL).replace('<SubscriberUpgradeNudge surface="ads_pessoa_falando_sem_saldo" topup onShown={() => setAvisoDoAssinante(true)} />', '<span />')],
+  ['quem não assina fica sem saída', PAINEL, r(PAINEL).replace('data-pf-ver-planos="">See plans</a>', 'data-pf-ver-planos=""></a>')],
   ['foto http aceita', CONTRATO, r(CONTRATO).replace('/^https:\\/\\/\\S+$/u', '/^https?:\\/\\/\\S+$/u')],
   ['rascunho não abre a fala', PAINEL, r(PAINEL).replace('setFoiRascunho(!r.roteiro && Boolean(r.rascunho))', 'setFoiRascunho(false)')],
 ]
