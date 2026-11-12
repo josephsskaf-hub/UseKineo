@@ -55,6 +55,8 @@ function problems(over) {
   const nada = 'A man walks along the beach at dawn.'
   no(U.comSuperficieSemTexto(nada) !== nada, '(c) cena sem superfície mudou')
   no(U.fraseUnicaDeSuperficie('A quiet street, no legible words, no letters, no numbers.') !== '', '(c) "letters" da proteção virou superfície')
+  // KINEO-SUPERFICIE-NEGADA-1111 — a negação ("no letters") já sai antes da regra; "letters" em positivo (as letras do conto infantil) também não é página
+  no(U.fraseUnicaDeSuperficie('Colorful cartoon letters float around the happy child in the garden.') !== '', '(c) "letters" em positivo virou superfície')
   return p
 }
 const atual = problems({})

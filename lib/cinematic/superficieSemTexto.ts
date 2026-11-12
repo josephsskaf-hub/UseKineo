@@ -29,6 +29,10 @@ export function comSuperficieDoPedido(prompt: string, pedido: string): string {
 export function frasesDeSuperficie(prompt: string): string[] {
   // A proteção negativa que já vem no prompt ("no phone or computer screens… If a phone appears…") não é uma superfície da cena.
   const p = String(prompt ?? '').replace(/No readable text[^.]*\.(?:\s*If a phone appears[^.]*\.)?/gi, ' ').replace(/no readable text, letters, numbers, labels or signage[^,.]*/gi, ' ').replace(/(?:phone )?screen (?:is )?off or blurred/gi, ' ')
+    // KINEO-SUPERFICIE-NEGADA-1111 [CEO 11/11 noite, filme da Mona Lisa 1911, H3 Max, 6,5] — a trava de época escreve "absolutely no present-day smartphones…
+    // no LED screens", e a superfície NEGADA contava como presente: toda cena de época ganhava "Every screen glows with soft abstract light and colour."
+    // e o motor desenhou a tela brilhando (em cima do baú, na moldura do avental). O que vem depois de "no / without / never" até a vírgula não está na cena.
+    .replace(/\b(?:absolutely\s+)?(?:no|without|never)\b[^,;.]*/giu, ' ')
   return SUPERFICIES.filter((s) => s.re.test(p)).map((s) => s.frase)
 }
 
