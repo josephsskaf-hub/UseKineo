@@ -54,6 +54,11 @@ function previews(plan: CenaPlan, round: 1 | 2 = 1): EscolhaStill[] {
     id: round === 1 ? `still-${index + 1}` : `still-r2-${index + 1}`, attempt: round, index, kind: 'image', seconds: 0, keepSeconds: 0, status: 'new',
   }})
 }
+/** KINEO-ESCOLHA-LEGENDA-LIMPA-1111 [SPEC-ADS-PESSOA-FALANDO §6] — a legenda das 4 fotos mostrava o código interno do juiz ("anatomy·unassessed·no_reversed_knees").
+ *  Na tela vão só as frases para gente; os códigos (anatomy:…) ficam no registro de qualidade do admin. */
+export function escolhaMotivosParaCliente(reasons: readonly string[]): string[] {
+  return reasons.filter((r) => typeof r === 'string' && !/^anatomy:/u.test(r.trim()))
+}
 function verdict(raw: unknown) {
   try {
     const r = typeof raw === 'string' ? JSON.parse(raw) : raw
@@ -169,7 +174,7 @@ export function escolhaView(stored: unknown) {
   for (const note of [...(p.cena.plan.quality_notes ?? []), ...(p.escolhaFlow.quality_notes ?? []), ...(p.cena.quality_notes ?? [])]) addAjusteQuality(review, note)
   const promoDoPedido = (p as { kling4Promo?: { free?: unknown; reason?: unknown } }).kling4Promo // KINEO-FLUXO2-B-0411 — a tela diz incluído ou créditos a partir do que este pedido reservou
   return { ...(typeof promoDoPedido?.free === 'boolean' ? { kling4_promo: { free: promoDoPedido.free, reason: String(promoDoPedido.reason ?? '') } } : {}), sample, engine_used: p.cena.route, seconds: escolhaSeconds(p.cena.plan), stage: p.escolhaFlow.stage, photo_round: escolhaPhotoRound(p.escolhaFlow), max_photo_rounds: maxRounds, can_regenerate: ['choose', 'failed'].includes(p.escolhaFlow.stage) && escolhaPhotoRound(p.escolhaFlow) < maxRounds, selected_still_id: p.escolhaFlow.selectedStillId ?? null, presenter_id: p.cena.plan.escolha!.presenterId, scenario_id: p.cena.plan.escolha!.scenarioId, format_id: p.cena.plan.input.formato ?? 'product', category: p.cena.plan.category, // KINEO-AMOSTRA-ANUNCIO-2410
-    stills: p.escolhaFlow.stills.filter(j => j.status === 'done' && j.url).map(j => ({ id: j.id, url: j.url!, score: j.verdict?.score ?? 0, reasons: j.verdict?.reasons ?? [] })).sort((a, b) => anatomyIssues(a.reasons) - anatomyIssues(b.reasons) || b.score - a.score || a.id.localeCompare(b.id)),
+    stills: p.escolhaFlow.stills.filter(j => j.status === 'done' && j.url).map(j => ({ id: j.id, url: j.url!, score: j.verdict?.score ?? 0, reasons: escolhaMotivosParaCliente(j.verdict?.reasons ?? []) })).sort((a, b) => anatomyIssues(a.reasons) - anatomyIssues(b.reasons) || b.score - a.score || a.id.localeCompare(b.id)),
     narration_used: p.cena.plan.script.narration, quality_notes: review.quality_notes ?? [], ...(p.escolhaFlow.reason ? { reason: p.escolhaFlow.reason, reason_detail: p.escolhaFlow.quality_notes?.at(-1)?.message ?? `The image provider could not produce ${sample ? 'two' : 'four'} usable preview URLs. No video was started or charged.` } : {}) } // KINEO-AMOSTRA-ANUNCIO-2410
 }
 function anatomyIssues(reasons: string[]): number { return reasons.filter(r => /^anatomy:.*:false$/u.test(r) || r.startsWith('Selected face or outfit differs')).length }
