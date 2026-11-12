@@ -94,12 +94,13 @@ const VERDADE = {
   // KINEO-ADS-NATAL-VITRINE-1011 [fundador 10/11: "Pode colocar todos na página inicial como anúncios… Em vez de Recreate, a pessoa vai fazer o
   // anúncio dela"] — 6 anúncios de Natal feitos À MÃO em 10/11 (Nano Banana Pro + Kling 4.0 multi_prompt), FORA do produto de Ads: sem linha em
   // `clips` nem em `ads_v2_orders`. Modo 'anuncio': sem motor, sem texto, selo 'Ad example', o cartão convida ("Make your ad") e leva ao /ads/new.
-  'anuncio-skincare': ['manual:ads-natal-1011/ad1-ugc-skincare.mp4', null, 'anuncio', 'Ad example'],
   'anuncio-relogio': ['manual:ads-natal-1011/ad2-relogio.mp4', null, 'anuncio', 'Ad example'],
   'anuncio-colar': ['manual:ads-natal-1011/ad3-colar.mp4', null, 'anuncio', 'Ad example'],
-  'anuncio-caneca': ['manual:ads-natal-1011/ad4-caneca.mp4', null, 'anuncio', 'Ad example'],
   'anuncio-sueter-pet': ['manual:ads-natal-1011/ad5-pet.mp4', null, 'anuncio', 'Ad example'],
-  'anuncio-manta': ['manual:ads-natal-1011/ad6-manta.mp4', null, 'anuncio', 'Ad example'],
+  // KINEO-ADS-FALADOS-1111 — os 3 anúncios falados aprovados pelo dono em 11/11 (feitos à mão; mesmo caminho dos 6 de Natal)
+  'anuncio-halo-car-selfie': ['manual:ads-ugc-falado-1111/halo-sofia-seedance2.mp4', null, 'anuncio', 'Ad example'],
+  'anuncio-veil-grwm': ['manual:ads-ugc-falado-1111/veil-amara-seedance2.mp4', null, 'anuncio', 'Ad example'],
+  'anuncio-orra-street-interview': ['manual:ads-ugc-falado-1111/orra-rahul-seedance2.mp4', null, 'anuncio', 'Ad example'],
 }
 // KINEO-ADS-NATAL-VITRINE-1011 — o que NENHUM cartão pode dizer nem insinuar (nem no texto, nem no aria-label): que o vídeo foi feito pela
 // ferramenta de Ads. Os exemplos de anúncio foram feitos à mão; o convite "Make your ad" chama a pessoa, não atribui a autoria.

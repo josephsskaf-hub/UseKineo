@@ -96,12 +96,22 @@ export const CLIPES_NOVOS: readonly ClipeNovo[] = [
   // image-to-video com `multi_prompt` (três tomadas), À MÃO, FORA do produto de Ads; nenhuma linha em `clips` nem em `ads_v2_orders`.
   // Por isso: sem motor no cartão, clipId = 'manual:<arquivo de origem>' (docs/referencias/ads-natal-1011/), e nada diz que a ferramenta de
   // Ads os fez — o cartão só CONVIDA ("Make your ad") e leva à criação de anúncio. Prévia = o melhor trecho contínuo ≤ 8 s, cruzando 1 corte.
-  { id: 'anuncio-skincare', title: 'Skincare gift review', engine: null, selo: 'Ad example', clipId: 'manual:ads-natal-1011/ad1-ugc-skincare.mp4', focus: '50% 25%', pessoa: true, prompt: null }, // KINEO-ADS-NATAL-VITRINE-1011 — prévia 6,0–14,0 s: conta-gotas em close → ela com a caixa
+  // KINEO-ADS-FALADOS-1111 — ENTRAM NO LUGAR de 3 dos 6 de Natal (skincare, caneca e manta saem da home e do /made-with-kineo; continuam na
+  // seção da /ads e os arquivos ficam): com 35 clipes a vitrine passava do teto de 14 MB e a mistura do dia fazia bloco de 3 clipes novos e 10
+  // células vazias na grade (medido pelo guardião). Trocar 3 por 3 mantém a contagem (32), o peso e a grade de hoje. Quais saem é curadoria:
+  // a CEO/dono podem trocar a escolha (ficaram relógio, colar e o suéter de pet — produto e bicho, para variar das pessoas falando).
+  // KINEO-ADS-FALADOS-1111 [dono 11/11: "Gostei muito do vídeo Halo… esse tipo de ads é o que vão mais usar no futuro e viralizar"; Amara e Rahul:
+  // "Os 2 entram"; regra: "só com coisas muito top coloca na página principal as melhores e na página Made with Kineo também"] — 3 anúncios
+  // FALADOS (a pessoa fala para a câmera). VERDADE: feitos À MÃO pela CEO em 11/11 no playground do fornecedor (foto-chave do Nano Banana Pro
+  // + Seedance 2.0 com fala nativa), FORA do produto de Ads; nenhuma linha em `clips` nem em `ads_v2_orders`. Produtos e marcas fictícios
+  // (Halo, Veil, Orra). Mesmo caminho dos 6 de Natal: selo 'Ad example', sem motor, convite "Make your ad". Prévia = os 8 s iniciais do
+  // anúncio (540×960, sem som), a partir do mesmo inteiro de public/ads-exemplos/ (a /ads mostra os mesmos 3).
+  { id: 'anuncio-halo-car-selfie', title: 'Halo cup, filmed in the car', engine: null, selo: 'Ad example', clipId: 'manual:ads-ugc-falado-1111/halo-sofia-seedance2.mp4', focus: '50% 22%', pessoa: true, prompt: null }, // KINEO-ADS-FALADOS-1111
+  { id: 'anuncio-veil-grwm', title: 'Veil sunscreen, get ready with me', engine: null, selo: 'Ad example', clipId: 'manual:ads-ugc-falado-1111/veil-amara-seedance2.mp4', focus: '50% 20%', pessoa: true, prompt: null }, // KINEO-ADS-FALADOS-1111
+  { id: 'anuncio-orra-street-interview', title: 'Orra earbuds, asked on the street', engine: null, selo: 'Ad example', clipId: 'manual:ads-ugc-falado-1111/orra-rahul-seedance2.mp4', focus: '50% 22%', pessoa: true, prompt: null }, // KINEO-ADS-FALADOS-1111
   { id: 'anuncio-relogio', title: 'The gift watch', engine: null, selo: 'Ad example', clipId: 'manual:ads-natal-1011/ad2-relogio.mp4', focus: '50% 50%', pessoa: false, prompt: null }, // KINEO-ADS-NATAL-VITRINE-1011 — prévia 4,2–12,0 s: órbita da caixa → a mão fecha no pulso
   { id: 'anuncio-colar', title: 'Gold necklace gift', engine: null, selo: 'Ad example', clipId: 'manual:ads-natal-1011/ad3-colar.mp4', focus: '50% 50%', pessoa: false, prompt: null }, // KINEO-ADS-NATAL-VITRINE-1011 — prévia 4,2–12,0 s: órbita da caixa de veludo → no pescoço
-  { id: 'anuncio-caneca', title: 'Hot chocolate mug', engine: null, selo: 'Ad example', clipId: 'manual:ads-natal-1011/ad4-caneca.mp4', focus: '50% 33%', pessoa: true, prompt: null }, // KINEO-ADS-NATAL-VITRINE-1011 — prévia 4,2–12,0 s: chocolate despejado em macro → ela brinda
   { id: 'anuncio-sueter-pet', title: 'Christmas dog sweater', engine: null, selo: 'Ad example', clipId: 'manual:ads-natal-1011/ad5-pet.mp4', focus: '50% 38%', pessoa: true, prompt: null }, // KINEO-ADS-NATAL-VITRINE-1011 — prévia 6,5–14,5 s: o corgi corre até a lente → o abraço
-  { id: 'anuncio-manta', title: 'The warmest gift', engine: null, selo: 'Ad example', clipId: 'manual:ads-natal-1011/ad6-manta.mp4', focus: '50% 34%', pessoa: true, prompt: null }, // KINEO-ADS-NATAL-VITRINE-1011 — prévia 7,0–15,0 s: abre a caixa → enrolado na manta
 ]
 
 export const clipeNovoVideo = (c: Pick<ClipeNovo, 'id'>): string => `/previews/galeria/${c.id}.mp4`
