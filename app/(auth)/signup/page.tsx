@@ -512,7 +512,7 @@ export default function SignupPage() {
         <div className="w-full flex flex-col" style={{ background: 'var(--card)' }}>
             {!inModal && <Link
               href="/"
-              className="inline-block text-xs font-bold mb-4"
+              className="inline-block text-[12px] font-bold -mt-2 mb-2 py-2" /* KINEO-AUTH-LETRA-12-1211 [CEO 12/11, entrada no celular: a raiz do site é 14 px, então text-xs = 10,5 px; o link tinha 14 px de altura] */
               style={{
                 color: 'var(--muted)',
                 textDecoration: 'none',
@@ -639,7 +639,7 @@ export default function SignupPage() {
                 {isCheckoutResume && trialPromise && !bulkCheckoutContext && (
                   <div
                     data-testid="cold-trial-promise-chip"
-                    className="inline-flex items-center rounded-full px-3 py-1.5 mb-2 text-xs font-black"
+                    className="inline-flex items-center rounded-full px-3 py-1.5 mb-2 text-[12px] font-black"
                     style={{
                       color: 'var(--on-accent)',
                       background: 'var(--indigo)',
@@ -652,7 +652,7 @@ export default function SignupPage() {
 
                 {isCheckoutResume && checkoutChoice && !bulkCheckoutContext && (
                   <div
-                    className="inline-flex items-center rounded-full px-3 py-1.5 mb-5 text-xs font-black"
+                    className="inline-flex items-center rounded-full px-3 py-1.5 mb-5 text-[12px] font-black"
                     style={{
                       color: 'var(--accent)',
                       background: 'var(--accent-soft)',
@@ -678,7 +678,7 @@ export default function SignupPage() {
                     }}
                   >
                     <div
-                      className="text-[10px] font-black uppercase tracking-[.12em] mb-1.5"
+                      className="text-[12px] font-black uppercase tracking-[.12em] mb-1.5"
                       style={{ color: 'var(--accent)' }}
                     >
                       {savedProductDestination.eyebrow}
@@ -690,7 +690,7 @@ export default function SignupPage() {
                     >
                       {savedProductDestination.destinationLabel}
                     </h2>
-                    <p className="text-xs leading-relaxed m-0" style={{ color: 'var(--muted)' }}>
+                    <p className="text-[12px] leading-relaxed m-0" style={{ color: 'var(--muted)' }}>
                       {savedProductDestination.description}
                     </p>
                   </section>
@@ -723,7 +723,7 @@ export default function SignupPage() {
                     style={{ background: 'var(--border2)' }}
                   />
                   <span
-                    className="text-xs font-semibold uppercase tracking-wider"
+                    className="text-[12px] font-semibold uppercase tracking-wider"
                     style={{ color: 'var(--muted)' }}
                   >
                     or sign up with email
@@ -738,7 +738,7 @@ export default function SignupPage() {
                   <div>
                     <label
                       htmlFor="signup-email"
-                      className="block text-xs font-bold mb-2 uppercase tracking-wider"
+                      className="block text-[12px] font-bold mb-2 uppercase tracking-wider"
                       style={{ color: 'var(--muted2)' }}
                     >
                       Email
@@ -774,7 +774,7 @@ export default function SignupPage() {
                   <div>
                     <label
                       htmlFor="signup-password"
-                      className="block text-xs font-bold mb-2 uppercase tracking-wider"
+                      className="block text-[12px] font-bold mb-2 uppercase tracking-wider"
                       style={{ color: 'var(--muted2)' }}
                     >
                       Password
@@ -871,7 +871,7 @@ export default function SignupPage() {
                         </div>
                         {strength.label && (
                           <p
-                            className="text-xs mt-1.5 font-semibold"
+                            className="text-[12px] mt-1.5 font-semibold"
                             style={{ color: strength.color }}
                           >
                             {strength.label}
@@ -930,12 +930,12 @@ export default function SignupPage() {
                         {trialPromise && (
                           <div
                             data-testid="cold-trial-promise-oauth"
-                            style={{ display: 'inline-block', margin: '0 0 10px', padding: '6px 12px', borderRadius: 999, fontSize: '0.78rem', fontWeight: 900, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--border2)' }}
+                            style={{ display: 'inline-block', margin: '0 0 10px', padding: '6px 12px', borderRadius: 999, fontSize: '12px', fontWeight: 900, color: 'var(--accent)', background: 'var(--accent-soft)', border: '1px solid var(--border2)' }}
                           >
                             {trialPromise.chip}
                           </div>
                         )}
-                        <div style={{ fontSize: '0.85rem', color: 'var(--muted)', lineHeight: 1.5 }}>
+                        <div style={{ fontSize: '12px', color: 'var(--muted)', lineHeight: 1.5 }}>
                           {bulkCheckoutContext
                             ? `Your ${bulkCheckoutContext.videos}-video pack is saved. One tap takes you back to its one-time checkout.`
                             : checkoutChoice?.continuity ?? 'One tap and we\'ll bring you straight back to secure checkout.'}
@@ -975,7 +975,7 @@ export default function SignupPage() {
                   {/* KINEO-CHECKOUT-RESUME-2026-07-07 — keep pending checkout alive */}
                   <Link
                     href={loginHref}
-                    className="font-semibold transition-colors"
+                    className="inline-block -my-2 py-2 font-semibold transition-colors"
                     style={{ color: 'var(--accent)' }}
                   >
                     Sign in

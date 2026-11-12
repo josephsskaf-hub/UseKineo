@@ -168,7 +168,7 @@ export default function LoginPage() {
         <div className="w-full flex flex-col" style={{ background: 'var(--card)' }}>
             {!inModal && <Link
               href="/"
-              className="inline-block text-xs font-bold mb-4"
+              className="inline-block text-[12px] font-bold -mt-2 mb-2 py-2" /* KINEO-AUTH-LETRA-12-1211 [CEO 12/11, entrada no celular: a raiz do site é 14 px, então text-xs = 10,5 px; o link tinha 14 px de altura] */
               style={{
                 color: 'var(--muted)',
                 textDecoration: 'none',
@@ -258,7 +258,7 @@ export default function LoginPage() {
             <div className="flex items-center gap-3 my-5">
               <div className="flex-1 h-px" style={{ background: 'var(--border2)' }} />
               <span
-                className="text-xs font-semibold uppercase tracking-wider"
+                className="text-[12px] font-semibold uppercase tracking-wider"
                 style={{ color: 'var(--muted)' }}
               >
                 or continue with email
@@ -270,7 +270,7 @@ export default function LoginPage() {
               <div>
                 <label
                   htmlFor="login-email"
-                  className="block text-xs font-bold mb-2 uppercase tracking-wider"
+                  className="block text-[12px] font-bold mb-2 uppercase tracking-wider"
                   style={{ color: 'var(--muted2)' }}
                 >
                   Email
@@ -307,14 +307,14 @@ export default function LoginPage() {
                 <div className="flex items-center justify-between mb-2">
                   <label
                     htmlFor="login-password"
-                    className="block text-xs font-bold uppercase tracking-wider"
+                    className="block text-[12px] font-bold uppercase tracking-wider"
                     style={{ color: 'var(--muted2)' }}
                   >
                     Password
                   </label>
                   <Link
                     href={forgotPasswordHref}
-                    className="text-xs font-semibold"
+                    className="inline-block -my-2 py-2 text-[12px] font-semibold"
                     style={{
                       color: 'var(--accent)',
                       textDecoration: 'none',
@@ -432,7 +432,7 @@ export default function LoginPage() {
                   redirect into signup so new buyers also resume the purchase. */}
               <Link
                 href={`/signup${authSearch}`}
-                className="font-semibold transition-colors"
+                className="inline-block -my-2 py-2 font-semibold transition-colors"
                 style={{ color: 'var(--accent)' }}
               >
                 Sign up
