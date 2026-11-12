@@ -82,7 +82,6 @@ import {
   planFitRetrySearchParams,
   type VerifiedPlanFitCheckoutContext,
 } from '@/lib/growth/planFitCheckout'
-import { engineName } from '@/lib/growth/planFit'
 import { buildAgencyCheckoutCancelUrl } from '@/lib/growth/agencyCheckoutReturn'
 import {
   BULK_CHECKOUT_TRUTH_VERSION,
@@ -2009,7 +2008,7 @@ async function buildAndRedirect(
             name: isAnnual ? `${plan.name} (Annual)` : plan.name,
             description: withCheckoutPaymentGuidance(
               planFitContext?.plan_fit_selected_tier_matches === '1'
-                ? `${checkoutValueContext.lineItemDescription ?? plan.description} · Covers your ${planFitContext.plan_fit_monthly_videos} ${engineName(planFitContext.plan_fit_planned_engine)} video${planFitContext.plan_fit_monthly_videos === '1' ? '' : 's'}/month plan`
+                ? `${checkoutValueContext.lineItemDescription ?? plan.description} · Covers your ${planFitContext.plan_fit_monthly_videos} video${planFitContext.plan_fit_monthly_videos === '1' ? '' : 's'}/month plan`
                 : checkoutValueContext.lineItemDescription ?? annualLineItemDescription({ billing, tier, credits: plan.credits, kling4Paid: KLING4_PAID_LIVE }) ?? plan.description, // KINEO-VALOR-NO-CHECKOUT-3110
             ),
             // Stripe's hosted Checkout shows this beside the line item. Use a
