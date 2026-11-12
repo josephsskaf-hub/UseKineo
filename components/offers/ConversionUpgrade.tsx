@@ -102,7 +102,7 @@ export function ConversionProof() {
       style={{ width: '100%', maxHeight: 200, borderRadius: 12, background: '#111' }} />
     <figcaption style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
       {film && !failed && film.title ? <strong style={{ display: 'block', fontSize: 13, color: 'var(--text)' }}>{film.title}</strong> : null}
-      {film && !failed ? 'Your completed film — keep creating with your own ideas.' : 'A short excerpt from a Kineo founder film · Seedance 1.5. Your purchase creates your own film or clips.'}
+      {film && !failed ? 'Your completed film — keep creating with your own ideas.' : 'A short excerpt from a Kineo founder film. Your purchase creates your own film or clips.'}
       {film && !failed ? <FilmsLikeThisNote qualityMode={film.quality_mode} seconds={film.duration} /> : null}
     </figcaption>
   </figure>
@@ -120,7 +120,7 @@ function ConversionPassCardVenda({ surface, onBuy, disabled = false }: { surface
     <p style={{ margin: '0 0 5px', fontSize: 12, color: 'var(--accent)', fontWeight: 800 }}>START WITH ONE FILM · NO SUBSCRIPTION</p>
     <strong style={{ fontSize: 23 }}>{offer.price} once</strong>
     <p style={{ margin: '8px 0', lineHeight: 1.5 }}>{offer.capacity}, made from your own idea.</p>
-    <p style={{ fontSize: 12, color: 'var(--muted)' }}>MiniMax H3 Turbo. Choose films or clips from the same allowance; other engines, durations and extras use it differently. No renewal.</p>
+    <p style={{ fontSize: 12, color: 'var(--muted)' }}>Counted in standard films. Choose films or clips from the same allowance; other engines, durations and extras use it differently. No renewal.</p>
     <button type="button" disabled={disabled} style={{ ...button, width: '100%', background: 'var(--accent)', color: 'var(--on-accent)', opacity: disabled ? 0.6 : 1 }} onClick={() => { observation.gesture('pass'); onBuy() }}>
       {disabled ? 'Opening checkout…' : `Make my own · ${offer.price} once`}
     </button>
@@ -267,7 +267,7 @@ export default function ConversionUpgrade({ currency, region, onClose, onUpgrade
           <ConversionPlanCapacity key={`${tier}_${billing}`} tier={tier} billing={billing} currency={currency} region={region} surface="upgrade" />
         </button>
       })}
-      <p style={{ color: 'var(--muted)', fontSize: 12, lineHeight: 1.5 }}>Capacity uses MiniMax H3 Turbo, with the entire allowance used for one format, without extras. Films and clips are alternatives, not added together.</p>
+      <p style={{ color: 'var(--muted)', fontSize: 12, lineHeight: 1.5 }}>Capacity counts standard films, with the entire allowance used for one format, without extras. Films and clips are alternatives, not added together.</p>
       <FilmsMadeProof surface="upgrade" />{/* KINEO-VALOR-NO-CHECKOUT-3110 — a prova social real, colada nos botões de pagar (muda abaixo do piso) */}
       {/* KINEO-CHECKOUT-CLAREZA-1610 — a garantia única (a mesma do /pricing), sob os botões de pagar, nos dois modos. */}
       <p data-testid="upgrade-guarantee" style={{ color: 'var(--muted)', fontSize: 12 }}>{MONEY_BACK_GUARANTEE} Cancel anytime. <a href="/terms">Terms</a></p>
