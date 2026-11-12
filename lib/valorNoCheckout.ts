@@ -67,10 +67,11 @@ export function filmsLikeThisLine(value: FilmsLikeThis | null): string | null {
   return [head, ...rest.map((t) => `${t.films} on ${t.name}`)].join(' · ')
 }
 
-/** "Seedance 1.5 · 35 s · 21 credits each" — a conta à vista, embaixo da linha. */
+/** "35-second film · 21 credits each" — a conta à vista, embaixo da linha. KINEO-PAREDE-BOTAO-SEM-MOTOR-1211: sem o nome do motor (regra do
+ *  fundador 11/11); o motor continua decidindo a conta (engineLabel segue no objeto e ainda barra filme sem base honesta). */
 export function filmsLikeThisMath(value: FilmsLikeThis | null): string | null {
   if (!value) return null
-  return `${value.engineLabel} · ${value.seconds} s · ${value.creditsEach} credits each`
+  return `${value.seconds}-second film · ${value.creditsEach} credits each`
 }
 
 // ─── 2. "Which plan fits me?" ─────────────────────────────────────────────────────────────────────────────────────────────

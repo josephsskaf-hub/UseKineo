@@ -23331,8 +23331,8 @@ function UpgradeModal({
   // The existing free/trial action is preserved; only the purchase dialog changes.
   if (MRR_CONVERSION_ENABLED && notPaidProven && !isSubscriber) {
     const freeLabel = firstFilmFree ? 'Make my first film free' : trialSeedance15
-      ? `Make my included ${trialSeedance15.seconds}-second Seedance film`
-      : trialKineo1 ? `Make my included ${trialKineo1.seconds}-second Kineo 1 film` : null
+      ? `Make my included ${trialSeedance15.seconds}-second film` // KINEO-PAREDE-BOTAO-SEM-MOTOR-1211 — sem nome de motor (regra do fundador 11/11)
+      : trialKineo1 ? `Make my included ${trialKineo1.seconds}-second film` : null
     return <ConversionUpgrade currency={currency} region={region} onClose={onClose} onUpgrade={onUpgrade}
       onFilmPass={isSubscriber ? null : onFilmPass} loading={loading} error={checkoutError}
       freeAction={freeLabel && onFirstFilmFree ? { label: freeLabel, onClick: onFirstFilmFree } : null}

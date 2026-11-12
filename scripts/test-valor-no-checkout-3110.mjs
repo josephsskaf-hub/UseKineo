@@ -68,7 +68,7 @@ function problems(replacements = {}) {
   const films35 = Math.floor(cp.TIER_CREDITS.starter / ec.creditCostForDuration('cinematic_ai', true, 35))
   const want35 = `≈ ${films35} more ${films35 === 1 ? 'film' : 'films'} like this a month on Starter` // KINEO-PRECO-MERCADO-0411 — 40 cr pagam 1 filme de 35 s
   if (!line35 || !line35.startsWith(want35) || !line35.includes(' on Creator') || !line35.includes(' on Studio')) p.push(`linha "films like this": ${line35}`)
-  if (lib.filmsLikeThisMath(sd35) !== `Seedance 1.5 · 35 s · ${ec.creditCostForDuration('cinematic_ai', true, 35)} credits each`) p.push(`conta à vista: ${lib.filmsLikeThisMath(sd35)}`)
+  if (lib.filmsLikeThisMath(sd35) !== `35-second film · ${ec.creditCostForDuration('cinematic_ai', true, 35)} credits each`) /* KINEO-PAREDE-BOTAO-SEM-MOTOR-1211 — sem nome de motor */ p.push(`conta à vista: ${lib.filmsLikeThisMath(sd35)}`)
 
   // 2. plan finder — todas as combinações
   let combos = 0
