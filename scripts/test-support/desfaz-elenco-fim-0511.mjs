@@ -5,6 +5,7 @@ import { semReservaH30611 } from './desfaz-reserva-h3-0611.mjs' // KINEO-RESERVA
 import { semRepeticaoFree151011 } from './desfaz-repeticao-free15-1011.mjs' // KINEO-REPETICAO-FREE15-1011
 import { semCenaForaDoPedido1111 } from './desfaz-cena-fora-do-pedido-1111.mjs' // KINEO-CENA-FORA-DO-PEDIDO-1111
 import { readFileSync } from 'node:fs'
+import { semEmailParadoSemMotor1211 } from './desfaz-email-parado-sem-motor-1211.mjs' // KINEO-EMAIL-PARADO-SEM-MOTOR-1211 — a camada mais nova (11/11 noite) sai primeiro
 import { semH3Turbo0511 } from './desfaz-h3-turbo-0511.mjs' // KINEO-H3-TURBO-0511 — a camada mais nova sai primeiro
 import { semFimNaoVolta0611 } from './desfaz-fim-nao-volta-0611.mjs' // KINEO-FIM-NAO-VOLTA-0611 — a camada mais nova (06/11, laço do revisor) sai primeiro
 import { semLegendaNegacao0911 } from './desfaz-legenda-negacao-0911.mjs' // KINEO-LEGENDA-NEGACAO-0911 — a camada mais nova (09/11, laço do revisor) sai primeiro
@@ -14,6 +15,7 @@ import { semQuandoNaoEGalinha0911 } from './desfaz-quando-nao-e-galinha-0911.mjs
 const ESCOPO = JSON.parse(readFileSync(new URL('./desfaz-elenco-fim-0511-fontes.json', import.meta.url), 'utf8'))
 const MARCA = 'KINEO-ELENCO-ATE-O-FIM-0511'
 export function semElencoFim0511(source, file) {
+  source = semEmailParadoSemMotor1211(source, file) // KINEO-EMAIL-PARADO-SEM-MOTOR-1211
   source = semLegendaNegacao0911(source, file) // KINEO-LEGENDA-NEGACAO-0911
   source = semCenaForaDoPedido1111(source, file) // KINEO-CENA-FORA-DO-PEDIDO-1111 — a camada mais nova (11/11, laço do revisor) sai primeiro
   source = semRepeticaoFree151011(source, file) // KINEO-REPETICAO-FREE15-1011 — a camada mais nova (10/11, laço do revisor) sai primeiro

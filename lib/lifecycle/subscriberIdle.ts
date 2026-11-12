@@ -85,8 +85,8 @@ export function buildEmail(t: IdleTarget): { subject: string; text: string; html
   const plan = PLAN_LABEL[t.plan] ?? 'Kineo'
   const films = filmsFor(t.credits)
   const filmsLine = films.seedance >= 1
-    ? `That's ${films.seedance} full AI film${films.seedance === 1 ? '' : 's'} on Seedance, or ${films.short} short 15-second ones.`
-    : `That's ${films.short} short 15-second Seedance film${films.short === 1 ? '' : 's'}.`
+    ? `That's ${films.seedance} full AI film${films.seedance === 1 ? '' : 's'}, or ${films.short} short 15-second ones.` // KINEO-EMAIL-PARADO-SEM-MOTOR-1211 — sem nome de motor; a conta é a mesma
+    : `That's ${films.short} short 15-second film${films.short === 1 ? '' : 's'}.`
   const idleLine = t.daysIdle == null
     ? `you haven't made a video yet`
     : `your last video was ${t.daysIdle} days ago`
