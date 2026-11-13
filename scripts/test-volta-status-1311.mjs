@@ -43,7 +43,7 @@ const T0 = Date.UTC(2026, 10, 13, 16, 40)
 const iso = (ms) => new Date(ms).toISOString()
 const pg = (ms) => new Date(ms).toISOString().replace('T', ' ').replace('Z', '+00') // formato "2026-11-13 16:40:00.000+00"
 
-function battery(src) {
+async function battery(src) {
   const p = []
   const ok = (c, m) => { if (!c) p.push(m) }
   let L
@@ -100,7 +100,16 @@ function battery(src) {
   ok(r.includes('regua,') && r.includes('spam: total.complained, devolvidos: total.bounced, descadastros, visitas: visitou.size, semEstado: total.sem_estado'), 'a régua vai na resposta com os números certos')
   ok(r.includes(".eq('metadata->>utm_campaign', VOLTA_1211_CAMPAIGN)"), 'visitas pela utm da carta')
   ok(r.includes('saiu >= (porPessoa.get(uid)?.stampMs ?? Infinity)'), 'descadastro só conta depois da carta')
-  // 5. o envio guarda o id
+  // 5. KINEO-VOLTA-STATUS-ERRO-1311 — a 1ª recusa do Resend aparece: código HTTP e o name do erro, nada mais
+  const corpo = (o) => ({ json: async () => o })
+  ok((await L.nomeDoErroResend(corpo({ statusCode: 401, message: 'This API key is restricted to only send emails.', name: 'restricted_api_key' }))) === 'restricted_api_key', 'name do erro do Resend lido')
+  ok((await L.nomeDoErroResend(corpo({ name: 'Bearer re_abc123 <x>' }))) === null && (await L.nomeDoErroResend(corpo(null))) === null, 'name que não é identificador simples vira null (sem texto livre)')
+  ok((await L.nomeDoErroResend({ json: async () => { throw new Error('html') } })) === null, 'corpo que não é JSON não derruba')
+  ok(r.includes('const falhou = async (r: Response) => { falhasResend++; if (!primeiraFalha) primeiraFalha = { http: r.status, erro: await nomeDoErroResend(r) } }'), 'guarda só a 1ª falha: código e name')
+  ok(r.includes('} else await falhou(r)') && r.includes('if (!r.ok) { await falhou(r); break }'), 'as duas leituras (por id e lista) registram a falha')
+  ok(r.includes('falhas_resend: falhasResend, primeira_falha: primeiraFalha }'), 'a falha vai em leitura.primeira_falha')
+  ok(!/message|statusText|resendKey\s*[,}]|Authorization[^\n]*primeira/.test(r.slice(r.indexOf('return NextResponse.json({\n      campanha'), r.indexOf('  } catch (e) {'))), 'nada de mensagem, corpo ou chave na resposta')
+  // 6. o envio guarda o id
   const e = src[ENVIO]
   ok(e.includes("resend_id: resendId } })") && e.includes("const resendId = typeof corpo?.id === 'string' && corpo.id ? corpo.id : null"), 'o envio guarda o id do Resend no carimbo')
   ok(e.includes("(await res.json().catch(() => null))"), 'resposta sem corpo não derruba o carimbo')
@@ -109,7 +118,7 @@ function battery(src) {
 }
 
 let failed = 0
-const base = battery(SRC)
+const base = await battery(SRC)
 console.log(base.length === 0 ? 'PASS volta-status: lê o Resend, conta por estado, régua, nenhum endereço, só leitura' : 'FAIL\n  ' + base.join('\n  '))
 if (base.length) failed++
 const muta = (rel, from, to) => {
@@ -133,13 +142,17 @@ const MUTANTES = [
   ['endereço na resposta', muta(ROTA, '      descadastros,\n      visitas_pela_carta', '      descadastros,\n      emails: enviados.map((e) => e.email),\n      visitas_pela_carta')],
   ['régua sem spam', muta(ROTA, 'spam: total.complained, devolvidos: total.bounced, descadastros,', 'spam: 0, devolvidos: total.bounced, descadastros,')],
   ['descadastro antigo conta', muta(ROTA, 'saiu >= (porPessoa.get(uid)?.stampMs ?? Infinity)', 'saiu > 0')],
+  ['falha sem código', muta(ROTA, 'primeiraFalha = { http: r.status, erro: await nomeDoErroResend(r) }', 'primeiraFalha = { http: 0, erro: await nomeDoErroResend(r) }')],
+  ['falha da lista some', muta(ROTA, 'if (!r.ok) { await falhou(r); break }', 'if (!r.ok) { falhasResend++; break }')],
+  ['falha fora da resposta', muta(ROTA, ', primeira_falha: primeiraFalha }', ' }')],
+  ['texto livre do provedor', muta(LIB, "return /^[a-z][a-z0-9_]{0,63}$/.test(n) ? n : null", 'return n || null')],
   ['envio não guarda o id', muta(ENVIO, 'resend_id: resendId } })', '} })')],
   ['envio sem etiqueta', muta(ENVIO, ", tags: [{ name: 'campaign', value: VOLTA_1211_CAMPAIGN }]", '')],
 ]
 let killed = 0
 for (const [nome, src] of MUTANTES) {
   let p
-  try { p = battery(src) } catch (e) { p = [`lançou: ${e.message}`] }
+  try { p = await battery(src) } catch (e) { p = [`lançou: ${e.message}`] }
   if (p.length > 0) killed++
   else { failed++; console.log(`SOBREVIVEU mutante: ${nome}`) }
 }

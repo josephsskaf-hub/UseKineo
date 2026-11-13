@@ -11,7 +11,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { readAll } from '@/lib/supabase/readAll'
 import { VOLTA_1211_CAMPAIGN, VOLTA_1211_SENT } from '@/lib/growth/volta1211'
 import {
-  VOLTA_LISTA_MAX_PAGINAS, casarPelaLista, contarEstados, listaPassouDoInicio, normalizarEstado, voltaRegua,
+  VOLTA_LISTA_MAX_PAGINAS, casarPelaLista, contarEstados, listaPassouDoInicio, nomeDoErroResend, normalizarEstado, voltaRegua,
   type ResendListado, type VoltaEnviado, type VoltaEstado,
 } from '@/lib/growth/volta1211Status'
 
@@ -83,11 +83,15 @@ export async function GET() {
     const enviados: VoltaEnviado[] = ids.map((uid) => ({ email: email.get(uid) ?? '', stampMs: porPessoa.get(uid)!.stampMs, resendId: porPessoa.get(uid)!.resendId }))
     const estados: VoltaEstado[] = enviados.map(() => 'sem_estado')
     let porId = 0, pelaLista = 0, falhasResend = 0, paginas = 0
+    // KINEO-VOLTA-STATUS-ERRO-1311 — a 1ª recusa do Resend: só o código HTTP e o `name` do erro (ex.: 401 restricted_api_key =
+    // chave "Sending access", que só envia). Nada do corpo além do name, nada da chave.
+    let primeiraFalha: { http: number; erro: string | null } | null = null
+    const falhou = async (r: Response) => { falhasResend++; if (!primeiraFalha) primeiraFalha = { http: r.status, erro: await nomeDoErroResend(r) } }
     for (let i = 0; i < enviados.length; i++) {
       const rid = enviados[i].resendId
       if (!rid) continue
       const r = await resendGet(`/emails/${encodeURIComponent(rid)}`)
-      if (r.ok) { estados[i] = normalizarEstado(((await r.json()) as { last_event?: unknown }).last_event); porId++ } else falhasResend++
+      if (r.ok) { estados[i] = normalizarEstado(((await r.json()) as { last_event?: unknown }).last_event); porId++ } else await falhou(r)
       await dormir(PAUSA_MS)
     }
     const semId = enviados.some((e) => !e.resendId && e.email)
@@ -100,7 +104,7 @@ export async function GET() {
         if (paginas >= VOLTA_LISTA_MAX_PAGINAS) { listaCortada = true; break }
         const r = await resendGet(`/emails?limit=100${after ? `&after=${encodeURIComponent(after)}` : ''}`)
         paginas++
-        if (!r.ok) { falhasResend++; break }
+        if (!r.ok) { await falhou(r); break }
         const corpo = (await r.json()) as { has_more?: boolean; data?: Array<Record<string, unknown>> }
         const pagina: ResendListado[] = (corpo.data ?? []).map((d) => ({
           id: String(d.id ?? ''), to: Array.isArray(d.to) ? d.to.map(String) : typeof d.to === 'string' ? [d.to] : [],
@@ -135,7 +139,7 @@ export async function GET() {
       visitas_pela_carta: visitou.size,
       por_dia: porDia,
       regua,
-      leitura: { por_id: porId, pela_lista: pelaLista, sem_estado: total.sem_estado, paginas_da_lista: paginas, lista_cortada: listaCortada, falhas_resend: falhasResend },
+      leitura: { por_id: porId, pela_lista: pelaLista, sem_estado: total.sem_estado, paginas_da_lista: paginas, lista_cortada: listaCortada, falhas_resend: falhasResend, primeira_falha: primeiraFalha },
     })
   } catch (e) {
     console.error('[volta-1211-status] failed:', e instanceof Error ? e.message : String(e))

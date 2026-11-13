@@ -100,3 +100,15 @@ export function voltaRegua(m: { enviados: number; spam: number; devolvidos: numb
   if (olhar.length) return { veredito: 'OLHAR', motivos: olhar }
   return { veredito: 'segue', motivos: [] }
 }
+
+/** KINEO-VOLTA-STATUS-ERRO-1311 — o `name` do erro que o Resend devolve ({ statusCode, message, name }), só quando é um identificador
+ *  simples (ex.: restricted_api_key, validation_error). Qualquer outra coisa vira null: a rota nunca carrega texto livre do provedor. */
+export async function nomeDoErroResend(r: { json: () => Promise<unknown> }): Promise<string | null> {
+  try {
+    const corpo = (await r.json()) as { name?: unknown } | null
+    const n = corpo && typeof corpo.name === 'string' ? corpo.name : ''
+    return /^[a-z][a-z0-9_]{0,63}$/.test(n) ? n : null
+  } catch {
+    return null
+  }
+}
