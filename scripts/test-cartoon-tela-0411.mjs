@@ -8,12 +8,15 @@ import fs from 'node:fs'
 import path from 'node:path'
 import vm from 'node:vm'
 import { createRequire } from 'node:module'
-import ts from 'typescript'
+import assert from 'node:assert/strict'
 
-const require = createRequire(import.meta.url)
+const args = process.argv.slice(2)
+assert(args.length === 0 || args.length === 2 && args[0] === '--root', 'Use --root <repository>')
+const ROOT = path.resolve(args[1] || process.cwd())
+const require = createRequire(path.join(ROOT, 'package.json'))
+const ts = require('typescript')
 const React = require('react')
 const { renderToStaticMarkup } = require('react-dom/server')
-const ROOT = process.cwd()
 const lf = (t) => t.replace(/\r\n/g, '\n')
 const ler = (f) => lf(fs.readFileSync(path.join(ROOT, f), 'utf8'))
 let ok = 0, falhas = 0
@@ -183,6 +186,64 @@ const semEstilo = (h) => h.replace(/<style[\s\S]*?<\/style>/g, '')
 const PEDIDO_CANAL = { id: 'o1', kind: 'autopilot', status: 'active', character: 'leo', language: 'en', theme: 'bedtime', total: 30, delivered: 1, inFlight: 0, cycleEnd: null, nextRunAt: '2026-11-06T12:00:00Z', createdAt: '2026-11-01', videos: [{ runId: 'r1', seq: 1, title: 'Leo and the mitten', caption: 'c', hashtags: [], videoId: 'v', videoUrl: 'https://offline.invalid/v.mp4', posterUrl: null, deliveredAt: null }] }
 const PEDIDO_PACK = { ...PEDIDO_CANAL, id: 'o2', kind: 'pack' }
 const ST = (orders) => ({ ready: true, open: true, sample: { eligible: orders.length === 0 }, orders })
+
+// WATCH adds an optional public starter to the same page. Execute its real server branches instead of freezing JSX spelling.
+async function provaDaPagina(mutar = {}) {
+  const erros = [], exige = (condicao, mensagem) => { if (!condicao) erros.push(mensagem) }
+  function KidsCartoonTemplate() { return null }
+  function KidsVendaPanel() { return null }
+  const publico = carregador({ mutar })('lib/clipesNos2Lugares.ts').CLIPES_NOVOS
+  const desenho = publico.find(c => c.id === 'raposa-lanterna' && c.produto === 'cartoon')
+  const textoInicial = (desenho.prompt || desenho.title).trim().slice(0, 300)
+  async function abrir(usuario, query) {
+    const pagina = carregador({ mutar, mocks: {
+      'next/navigation': { redirect, notFound() { throw new Error('NEXT_NOT_FOUND') } },
+      '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: usuario } }) } }) },
+      '@/lib/internalAccounts': { isInternalEmail: () => false },
+      '@/components/kidsCartoon/KidsCartoonTemplate': { __esModule: true, default: KidsCartoonTemplate },
+      '@/components/kidsCartoon/KidsVendaPanel': { __esModule: true, default: KidsVendaPanel },
+    } })(PG).default
+    try { return { tela: await pagina({ searchParams: query }) } } catch (e) { if (e instanceof Redirecionou) return { para: e.para }; throw e }
+  }
+  for (const [usuario, nome] of [[null, 'visitante'], [CLIENTE, 'com conta']]) {
+    const semIdeia = (await abrir(usuario, { utm_source: 'home_card' })).tela
+    exige(semIdeia?.type === KidsCartoonTemplate && semIdeia.props.ideiaInicial === '', nome + ': a entrada sem exemplo continua na mesma tela, vazia')
+    const tela = (await abrir(usuario, { utm_source: 'home_card', example: desenho.id })).tela
+    exige(tela?.type === KidsCartoonTemplate, nome + ': o cartão abre o formulário de verdade')
+    if (usuario) exige(tela?.props.episodios?.type === KidsVendaPanel && tela.props.visitante !== true, 'com conta: os episódios continuam dentro da página')
+    else exige(tela?.props.visitante === true && tela.props.episodios == null, 'visitante: sem painel de episódios')
+    exige(tela?.props.ideiaInicial === textoInicial, nome + ': ideia pública canônica chega ao formulário')
+    if (tela?.type === KidsCartoonTemplate) {
+      const html = semEstilo(desenharTela({ props: tela.props, mutar }))
+      const textarea = html.match(/<textarea\b[^>]*>[\s\S]*?<\/textarea>/)?.[0] || ''
+      exige(textarea.includes('>' + textoInicial + '</textarea>'), nome + ': ideia pública aparece na caixa editável')
+    }
+    for (const example of ['desconhecido', 'carta-do-front', [desenho.id, desenho.id]]) {
+      const invalida = (await abrir(usuario, { utm_source: 'home_card', example })).tela
+      exige(invalida?.type === KidsCartoonTemplate && invalida.props.ideiaInicial === '', nome + ': exemplo desconhecido, de outro produto ou repetido não preenche a caixa')
+    }
+  }
+  for (const query of [{}, { utm_source: 'google' }]) exige((await abrir(null, query)).para === '/login?redirect=%2Fkids-cartoon', 'visitante fora da entrada pública conserva login e retorno')
+
+  // Execute only the existing draft-restoration block: no effect, credit read, timer or request is mounted.
+  const tpl = mutar[TPL] ? mutar[TPL](ler(TPL)) : ler(TPL)
+  const ast = ts.createSourceFile(TPL, tpl, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+  let restaura
+  function visitar(n) { if (ts.isIfStatement(n) && n.expression.getText() === '!visitante' && n.thenStatement.getText().includes('lerRascunhoDoDesenho()')) restaura = n; ts.forEachChild(n, visitar) }
+  visitar(ast)
+  exige(Boolean(restaura), 'o rascunho existente continua sendo restaurado depois da ideia pública')
+  if (restaura) for (const visitante of [false, true]) {
+    let idea = textoInicial
+    const codigo = ts.transpileModule(restaura.getText(), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText
+    vm.runInNewContext(codigo, {
+      ...carregador({ mutar })('lib/kidsCartoon/kidsCartoon.ts'), visitante, ideiaInicial: textoInicial,
+      lerRascunhoDoDesenho: () => ({ idea: 'Minha história já editada' }),
+      setIdea(v) { idea = v }, setCharacter() {}, setLanguage() {}, setIdeaId() {}, setDuration() {},
+    }, { timeout: 5000 })
+    exige(idea === (visitante ? textoInicial : 'Minha história já editada'), 'o rascunho do cadastro preserva o texto editado; o visitante ainda não o consome')
+  }
+  return erros
+}
 const SEM_PRECO = /US\$|\$\s?\d|\/month|\bonce\b|Pack of 30|Channel on autopilot|\d+\s*credits?/i
 
 function provaDaTela(mutar = {}) {
@@ -244,8 +305,8 @@ console.log('2. a tela do desenho')
 {
   const erros = provaDaTela()
   checa(`a tela de verdade (${erros.join('; ') || 'ok'})`, erros.length === 0)
-  const pg = ler(PG)
-  checa('a página: visitante sem painel, com conta os episódios dentro da página', pg.includes('return <KidsCartoonTemplate visitante />') && pg.includes('<KidsCartoonTemplate episodios={<KidsVendaPanel />} />'))
+  const pagina = await provaDaPagina()
+  checa(`a página: visitante sem painel, episódios com conta e ideia pública sem perder rascunho (${pagina.join('; ') || 'ok'})`, pagina.length === 0)
   const pai = ler(PAINEL)
   checa('o painel não importa mais o caminho de compra', !/kidsCheckoutHref|kidsVendaCardText|kids_checkout_click/.test(pai))
   const gr = ler(GRATIS)
@@ -294,6 +355,25 @@ for (const [nome, arq, muta, prova, esperado] of MUTANTES) {
   try { r = await prova({ [arq]: muta }) } catch (e) { r = ['estourou: ' + e.message] }
   if (process.env.VER_MUTANTES) console.log('    ', nome, '=>', JSON.stringify(r).slice(0, 260))
   checa(`mutante "${nome}" fica vermelho`, mudou && r.some((m) => esperado.test(m)))
+}
+
+// New page guard mutants must fail semantically. A parser/import/runtime error is never proof of a regression caught.
+const MUTANTES_DA_PAGINA = [
+  ['visitante recebe os episódios', PG, t => t.replace('<KidsCartoonTemplate visitante ideiaInicial=', '<KidsCartoonTemplate visitante episodios={<KidsVendaPanel />} ideiaInicial='), /visitante: sem painel/],
+  ['conta perde os episódios', PG, t => t.replace(' episodios={<KidsVendaPanel />} />', ' />'), /com conta: os episódios/],
+  ['ideia pública não chega ao visitante', PG, t => t.replace("visitante ideiaInicial={watchExampleIdea(searchParams?.example, 'cartoon')}", 'visitante'), /visitante: ideia pública canônica/],
+  ['caixa ignora a ideia recebida', TPL, t => t.replace('const [idea, setIdea] = useState(ideiaInicial)', "const [idea, setIdea] = useState('')"), /ideia pública aparece na caixa editável/],
+  ['ideia pública apaga o rascunho do cadastro', TPL, t => t.replace('setIdea(r.idea)', 'setIdea(ideiaInicial)'), /rascunho do cadastro preserva o texto editado/],
+]
+for (const [nome, arquivo, muda, esperado] of MUTANTES_DA_PAGINA) {
+  const original = ler(arquivo)
+  assert.notEqual(muda(original), original, 'Mutante não aplicou: ' + nome)
+  let falhou
+  try {
+    const erros = await provaDaPagina({ [arquivo]: muda })
+    assert.equal(erros.length, 0, '[pagina-cartoon] ' + erros.join('; '))
+  } catch (e) { falhou = e }
+  checa(`mutante novo "${nome}" fica vermelho pela guarda da página`, falhou instanceof assert.AssertionError && falhou.message.startsWith('[pagina-cartoon]') && esperado.test(falhou.message))
 }
 
 console.log(`\n${ok} ok, ${falhas} falha(s)`)

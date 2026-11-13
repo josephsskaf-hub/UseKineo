@@ -1,0 +1,17 @@
+KINEO-HOME-CLIPES-NOVOS-2810 — faixa de Clipes da home
+file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-rosto-no-clipe-2810.mjs:18
+    if (parts.length !== 2) throw new Error('semRostoNoClipe2810: ' + rel + ' mudou fora da camada (' + (parts.length - 1) + 'x)')
+                                  ^
+
+Error: semRostoNoClipe2810: components/home/HomeClipsStrip.tsx mudou fora da camada (0x)
+    at semRostoNoClipe2810 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-rosto-no-clipe-2810.mjs:18:35)
+    at file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-rosto-cards-2810.mjs:43:40
+    at Array.reduce (<anonymous>)
+    at semRostoCards2810 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-rosto-cards-2810.mjs:43:18)
+    at rd (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-home-clipes-novos-2810.mjs:25:24)
+    at file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-home-clipes-novos-2810.mjs:82:19
+    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)
+    at async node:internal/modules/esm/loader:643:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.18.0

@@ -1,0 +1,101 @@
+{
+  "date": "2026-11-13T22:36:38.998Z",
+  "comparison": "Root production sources exactly equal isolated production build and raw-typecheck sources",
+  "files": [
+    {
+      "file": "app/(dashboard)/ads/v2/AdsV2Escolha.tsx",
+      "sha256": "2fda68873c28f101d5ccf3c3448c77358810ec67040d87654696fda58c6422f8",
+      "sameAsFinalBuild": true
+    },
+    {
+      "file": "app/(dashboard)/kids-cartoon/page.tsx",
+      "sha256": "cccb5333195465506de10fc09f64ae1214434f617e674c89311082b4f0432317",
+      "sameAsFinalBuild": true
+    },
+    {
+      "file": "app/(dashboard)/studio/StudioClient.tsx",
+      "sha256": "5dcf4f62c3011398188508456597ecd5841fb629bc2ce4176680c9db7576439b",
+      "sameAsFinalBuild": true
+    },
+    {
+      "file": "app/(dashboard)/studio/page.tsx",
+      "sha256": "056d9f4559ef5264da5c3ee0d9a6c5d0df3f5a6d0bb554e1f82eb1fb3cd430d1",
+      "sameAsFinalBuild": true
+    },
+    {
+      "file": "app/KineoLanding.tsx",
+      "sha256": "3cefd1f4e63e37a4929dc727bae37d37240730188f2f787482815de9c0bd0c8b",
+      "sameAsFinalBuild": true
+    },
+    {
+      "file": "app/page.tsx",
+      "sha256": "48af5fcd7995f82f5bc51ad9988fe143df3eeff4b65b640953dc7f22fdb48e3e",
+      "sameAsFinalBuild": true
+    },
+    {
+      "file": "app/watch-preview/page.tsx",
+      "sha256": "229af61a2e0534cff650a0f35cc5ab41c786afc005cf1cb28c34883beb298162",
+      "sameAsFinalBuild": true
+    },
+    {
+      "file": "components/LandingViewTracker.tsx",
+      "sha256": "802d914fc2e3b81ee19cf8106c70646440854917ff60bf0d80c52fdd9799ed9d",
+      "sameAsFinalBuild": true
+    },
+    {
+      "file": "components/home/WatchMedia.tsx",
+      "sha256": "c96d129b212409af584f04283a90074e8db1b6a12f84d2eb4fffc3abaf241b1f",
+      "sameAsFinalBuild": true
+    },
+    {
+      "file": "components/home/WatchPreviewAudit.tsx",
+      "sha256": "06b3c79bad0218f18662c8fd8dfae3ce647d98a97496c41c32000fcf794154b6",
+      "sameAsFinalBuild": true
+    },
+    {
+      "file": "components/home/WatchVisitorHome.tsx",
+      "sha256": "341cbdf2cc17e92010f59ead55ee36627bbed57d60e9495b823ae8a3fb76b677",
+      "sameAsFinalBuild": true
+    },
+    {
+      "file": "components/kidsCartoon/KidsCartoonTemplate.tsx",
+      "sha256": "e8d15f1fde508e3ce5defbd0e6c1cd9609b340c02ab710986fef242313132a17",
+      "sameAsFinalBuild": true
+    },
+    {
+      "file": "components/seo/TrafficCitation2310.tsx",
+      "sha256": "d8c6054467a730f759120038dd3f14414a49938ec965a2ce2cfccef886d61172",
+      "sameAsFinalBuild": true
+    },
+    {
+      "file": "lib/clipesNos2Lugares.ts",
+      "sha256": "79d70e0d878f1f510d1d8be739b111433900685b223426d6e3541232b629ac7b",
+      "sameAsFinalBuild": true
+    },
+    {
+      "file": "lib/growth/studioSimples.ts",
+      "sha256": "d1de66252cbb4ad80ced421c4327bbe29c0af93e1b5be64e5295509ba0cef216",
+      "sameAsFinalBuild": true
+    },
+    {
+      "file": "lib/home/watchEntry.ts",
+      "sha256": "64b86883f7681050b33719e1b6b6110386598a3eb6bacb0d15475f13f6398df2",
+      "sameAsFinalBuild": true
+    },
+    {
+      "file": "lib/home/watchMedia.ts",
+      "sha256": "eb6abdf3117c5280ac3831e054cad2114bfcd70ee90eaab154d24907b361c7db",
+      "sameAsFinalBuild": true
+    },
+    {
+      "file": "lib/home/watchRelease.ts",
+      "sha256": "a1553036bbeecf697de60eedab6c4ab05066118193c844129af4f855aa5637fd",
+      "sameAsFinalBuild": true
+    },
+    {
+      "file": "lib/home/watchTelemetry.ts",
+      "sha256": "5799fcb6b8005bbe319365e0b6df1faa7346152a60ba71d8b212e127dd3a99e9",
+      "sameAsFinalBuild": true
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+1-2 · a régua executada (e o que não muda)
+  ok  régua real: limpa
+3 · as saídas de autenticação usam a régua
+  ok  callback importa a régua
+  ok  callback (Google/Apple e confirmação de e-mail) passa o destino não-checkout pela régua
+  ok  a régua roda ANTES do evento e do redirect (destination_path diz a verdade)
+  ok  o redirect usa o destino já trocado
+  ok  auth_callback_completed grava idea_to_studio
+  ok  cadastro com confirmação automática sai pela régua
+  ok  a tela de cadastro segue calculando o destino antigo (provas de trabalho salvo / recuperação de senha)
+  ok  o OAuth leva o destino antigo; quem troca é o callback (uma régua, um lugar)
+  ok  login por senha sai pela régua
+4 · o Studio recebe o que a casa de máquinas fazia na chegada do cadastro
+  ok  /studio monta StudioIdeaArrival
+  ok  conversão de cadastro do Ads/TikTok (?signup=1) dispara no Studio
+  ok  catch-all de origem (signup_country/utm) roda na chegada do cadastro
+  ok  prova por evento: studio_idea_arrived_v1 com has_prompt
+  ok  a chegada não analisa, não navega, não gera
+5 · o StudioClient já põe ?prompt= na caixa (contrato que a régua usa)
+  ok  StudioClient lê ?prompt= para a caixa
+  ok  o clique em Gerar do Studio continua indo para a casa de máquinas (o consentimento)
+6 · mutantes (cada um tem que ser pego)
+  ok  mutante pego: create_intent atravessa
+  ok  mutante pego: checkout first_win vira Studio
+  ok  mutante pego: retomada de render vira Studio
+  ok  mutante pego: sem ideia também vira Studio
+  ok  mutante pego: interruptor ignorado
+  ok  mutante pego: signup some (conversão do Ads)
+  ok  mutante pego: qualquer chave atravessa
+  ok  mutante pego: rota externa (//host) aceita
+
+25 ok, 0 fail

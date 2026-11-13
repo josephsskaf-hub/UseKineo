@@ -1,0 +1,15 @@
+  ok  cartão de filme da home vai direto
+  ok  porta de filme da home vai direto
+  ok  barra da home vai direto
+  ok  botão do filme da home vai direto
+  ok  cartão de anúncio também vai direto (KINEO-CARDS-ANTES-DO-LOGIN-0411)
+  ok  anúncio pago segue pelo cadastro
+  ok  Studio sem campanha da home segue pelo cadastro
+  ok  pedido com texto segue pelo cadastro
+  ok  outra página não desvia
+  ok  endereço externo não passa
+  ok  sem destino não desvia
+  ok  mutante: aceitar qualquer parâmetro seria percebido
+  ok  o desvio só vale sem sessão e em GET
+
+13 ok, 0 falha(s)

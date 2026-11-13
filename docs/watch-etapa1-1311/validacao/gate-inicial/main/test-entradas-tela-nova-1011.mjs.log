@@ -1,0 +1,18 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: /create/ads?entry=ugc&utm_source=home_card (logado): a aba com o Continue → undefined
+    at ok (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-entradas-tela-nova-1011.mjs:31:29)
+    at pageChecks (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-entradas-tela-nova-1011.mjs:236:5)
+    at async rodar (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-entradas-tela-nova-1011.mjs:425:29)
+    at async file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-entradas-tela-nova-1011.mjs:431:1 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.18.0

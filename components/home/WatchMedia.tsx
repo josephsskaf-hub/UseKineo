@@ -12,22 +12,29 @@ export type WatchMediaProps = {
   src: string
   poster?: string
   focus?: string
+  paused?: boolean
   /** Leave false inside a product Link. Enable only outside a link. */
   showPlayButton?: boolean
 }
 
-export default function WatchMedia({ src, poster, focus = '50% 50%', showPlayButton = false }: WatchMediaProps) {
+export default function WatchMedia({ src, poster, focus = '50% 50%', paused = false, showPlayButton = false }: WatchMediaProps) {
   const boxRef = useRef<HTMLDivElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const controllerRef = useRef<WatchMediaController | null>(null)
+  const pausedRef = useRef(paused)
   const [playback, setPlayback] = useState<WatchPlaybackState>({ playing: false, canPlay: false })
   const resolvedPoster = watchPosterSrc(src, poster)
+
+  useEffect(() => {
+    pausedRef.current = paused
+    controllerRef.current?.setPaused(paused)
+  }, [paused])
 
   useEffect(() => {
     const box = boxRef.current
     const video = videoRef.current
     if (!box || !video) return
-    const controller = createWatchMediaController(box, video, src, setPlayback)
+    const controller = createWatchMediaController(box, video, src, setPlayback, pausedRef.current)
     controllerRef.current = controller
     return () => {
       controllerRef.current = null

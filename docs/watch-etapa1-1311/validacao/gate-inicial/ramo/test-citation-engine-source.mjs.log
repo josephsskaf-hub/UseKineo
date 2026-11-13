@@ -1,0 +1,1 @@
+PASS: actual engine links and analytics payload preserve source/campaign/redirect for every declared engine, external UTM and OAuth cookie return; wrong seo baseline reproduced. No network or database.

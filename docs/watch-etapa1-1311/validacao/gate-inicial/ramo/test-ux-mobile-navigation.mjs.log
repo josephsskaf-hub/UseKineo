@@ -1,0 +1,38 @@
+OK all 11 approved destinations, no duplicates
+OK existing route /studio
+OK existing route /create/film?intent_campaign=studio_simple
+OK existing route /ads/new
+OK existing route /create/ads
+OK existing route /library
+OK existing route /pricing
+OK existing route /made-with-kineo
+OK existing route /images
+OK existing route /clips
+OK existing route /spaces
+OK existing route /kids-cartoon
+OK existing route /create/cartoon
+OK existing route /recreate
+OK existing route /affiliate
+OK existing route /account
+OK five primary slots
+OK guest cannot see invite, affiliate or account
+OK route boundary /studio
+OK route boundary /studio/create
+OK route boundary /studio-other
+OK tools active on child route
+OK native disclosures and named navigation
+OK opening another group closes the first
+OK Escape closes and restores focus
+OK Tab inside stays open; Tab outside closes
+OK sheet link closes before client navigation
+OK route/auth change closes sheets, no generation invoked
+OK outside pointer listener cleaned up
+OK real shell caller title /studio
+OK real shell caller title /images
+OK real shell caller title /audio
+OK real shell caller title /studio/create
+OK real shell caller title /pricing
+OK real shell caller title /history
+OK /library opens in the new frame: no old top bar, no sidebar
+OK SSR outputs links and controls without network
+37 contract checks passed. Browser/visual approval remains pending.

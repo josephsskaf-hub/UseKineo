@@ -1,0 +1,25 @@
+
+(A–F) a vitrine de hoje e dos próximos 400 dias
+  ok   118 mídias da vitrine, 118 linhas no registro, 0 erro(s)
+  ok   a vitrine tem 118 mídias (≥ 100: a lista não encolheu por engano)
+  ok   o registro explica como entra mídia nova
+  ok   lib/clipesNos2Lugares.ts manda usar scripts/enquadra.mjs
+  ok   components/home/HomeMosaic.tsx manda usar scripts/enquadra.mjs
+
+(M) mutantes — cada um tem de ficar vermelho
+  ok   mutante "muda o focus do leão no código" fica vermelho
+  ok   mutante "volta a foto da poça para o centro" fica vermelho
+  ok   mutante "clipe novo entra sem conferência" fica vermelho
+  ok   mutante "foto nova entra sem conferência" fica vermelho
+  ok   mutante "estilo de anúncio muda de focus" fica vermelho
+  ok   mutante "efeito muda de focus" fica vermelho
+  ok   mutante "clipe do topo muda de focus" fica vermelho
+  ok   mutante "registro com só 6 quadros" fica vermelho
+  ok   mutante "registro sem a janela grande de um clipe novo" fica vermelho
+  ok   mutante "a prévia do leão trocou de bytes" fica vermelho
+  ok   mutante "o pôster do cachorro barista trocou" fica vermelho
+  ok   mutante "linha órfã no registro" fica vermelho
+  ok   mutante "a grade do computador vira 5 colunas" fica vermelho
+  ok   mutante "a fileira da home muda de altura" fica vermelho
+
+19 ok, 0 falha(s)

@@ -1,0 +1,25 @@
+FAIL seedance: título ≤ 60 (62)
+FAIL seedance: crédito da description = creditCostForDuration (60 s)
+FAIL seedance: a meta própria do catálogo é a que vai ao ar
+FAIL text-to-video (oferta ligada): description 120–160 (175)
+FAIL roundup: render: (0 , navigation_1.usePathname) is not a function
+FAIL text-to-video: render: (0 , navigation_1.usePathname) is not a function
+FAIL seedance: render: (0 , navigation_1.usePathname) is not a function
+FAIL B5: plano de entrada = TIER_PRICES/TIER_CREDITS
+FAIL B7: desfaz: semPaginasIa0111: app/sitemap.ts mudou fora da camada (0x)
+FAIL árvore real: 9 falha(s)
+FAIL mutante "título da home longo" não aplicado: mutante não aplicável em lib/seo/bingSeo1510.ts: âncora ausente — 'Kineo AI — Faceless YouTube Shorts: Veo 3.1, Kling, Seedanc
+PASS mutante "description do monetize curta" deixa vermelho (monetize: description renderizada 120–160 (16))
+FAIL mutante "meta do Seedance some (volta a padrão de 248)" não aplicado: mutante não aplicável em lib/growth/enginePageCatalog.ts: âncora ausente —     metaDescription: `Seedance 1.5 in Kineo:
+PASS mutante "alt vazio volta no Trending" deixa vermelho (components/TrendingRow.tsx:44: <img> com alt descritivo (achado: alt vazio))
+PASS mutante "FAQ visível perde a pergunta do Bing" deixa vermelho (monetize: pergunta do JSON-LD visível — Does YouTube pay for AI-generated videos?)
+PASS mutante "preço digitado no módulo" deixa vermelho (B5: lib/seo/bingSeo1510.ts sem preço digitado ("On Kineo a finished 60-second Short costs )
+PASS mutante "description do text-to-video longa demais com a oferta ligada" deixa vermelho (text-to-video (oferta ligada): description 120–160 (192))
+PASS mutante "fonte não oficial e sem data" deixa vermelho (B4: fonte oficial https — http://revid.example/pricing)
+PASS mutante ""consistent host" volta ao Where Kineo fits" deixa vermelho (monetize: nenhuma promessa de apresentador/host fixo na página)
+PASS mutante "cron ignora o token (envia em ensaio)" deixa vermelho (B6: sem ?confirm=SEND não envia nem grava (ensaio))
+PASS mutante "cron não compara lastmod" deixa vermelho (B6: com retrato = só o lastmod que mudou)
+PASS mutante "retrato marca como enviado o que não coube" deixa vermelho (B6: o que foi enviado avança no retrato)
+PASS mutante "cron sem ?confirm=SEND no vercel.json" deixa vermelho (B6: vercel.json agenda o cron COM ?confirm=SEND (senão é ensaio eterno))
+PASS mutante "sitemap não carimba as páginas tocadas" deixa vermelho (B6: sitemap carimba /faceless-youtube-shorts-generator com lastmod ≥ 2026-10-15T12:00:00.0)
+12/14 mutantes mortos

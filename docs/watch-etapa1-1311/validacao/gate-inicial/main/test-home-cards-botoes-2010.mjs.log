@@ -1,0 +1,17 @@
+file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-cards-rosto-2810.mjs:18
+    if (parts.length !== 2) throw new Error('semCardsRosto2810: ' + rel + ' mudou fora da camada (' + (parts.length - 1) + 'x)')
+                                  ^
+
+Error: semCardsRosto2810: lib/ui/homeThreeCards.ts mudou fora da camada (0x)
+    at semCardsRosto2810 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-cards-rosto-2810.mjs:18:35)
+    at file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-rosto-cards-2810.mjs:43:40
+    at Array.reduce (<anonymous>)
+    at semRostoCards2810 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-rosto-cards-2810.mjs:43:18)
+    at desde (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-consertos-2710.mjs:28:10)
+    at semConsertos2710 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-consertos-2710.mjs:42:48)
+    at semAfiliado50_2610 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-afiliado50-2610.mjs:781:10)
+    at affiliateRaw (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-home-cards-botoes-2010.mjs:25:60)
+    at rd (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-home-cards-botoes-2010.mjs:26:40)
+    at file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-home-cards-botoes-2010.mjs:43:22
+
+Node.js v24.18.0

@@ -1,0 +1,20 @@
+{
+  "date": "2026-11-13T22:30:57.660Z",
+  "paused": {
+    "button": "true",
+    "sources": 0
+  },
+  "afterScroll": {
+    "bodyScroll": 633,
+    "sources": 0
+  },
+  "resumed": {
+    "button": "false",
+    "videos": [
+      {
+        "paused": false,
+        "src": "/previews/galeria/carta-do-front.mp4"
+      }
+    ]
+  }
+}

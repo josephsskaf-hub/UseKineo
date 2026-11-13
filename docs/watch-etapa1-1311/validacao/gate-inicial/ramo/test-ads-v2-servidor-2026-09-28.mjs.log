@@ -1,0 +1,14 @@
+file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-ads-escolha-publico-2410.mjs:26
+  if (hash !== known.afterHash) throw new Error('desfaz-ads-escolha-publico-2410: fonte divergente ' + path)
+                                      ^
+
+Error: desfaz-ads-escolha-publico-2410: fonte divergente lib/ads/v2Billing.ts
+    at semAdsEscolhaPublico2410 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-ads-escolha-publico-2410.mjs:26:39)
+    at rd (C:\Users\josep\.codex\worktrees\341b\kineo\scripts\test-ads-v2-servidor-2026-09-28.mjs:22:36)
+    at load (C:\Users\josep\.codex\worktrees\341b\kineo\scripts\test-ads-v2-servidor-2026-09-28.mjs:53:35)
+    at <anonymous> (C:\Users\josep\.codex\worktrees\341b\kineo\scripts\test-ads-v2-servidor-2026-09-28.mjs:158:68)
+    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)
+    at async node:internal/modules/esm/loader:643:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.18.0

@@ -1,0 +1,17 @@
+file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-estreia-3110.mjs:26
+    if (parts.length !== 2) throw new Error('semEstreia3110: ' + rel + ' mudou fora da camada (' + (parts.length - 1) + 'x)')
+                                  ^
+
+Error: semEstreia3110: app/(dashboard)/ads/v2/AdsV2Client.tsx mudou fora da camada (0x)
+    at semEstreia3110 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-estreia-3110.mjs:26:35)
+    at file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-rosto-cards-2810.mjs:43:40
+    at Array.reduce (<anonymous>)
+    at semRostoCards2810 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-rosto-cards-2810.mjs:43:18)
+    at semPosterioresAoSelo2710 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/leva-rebase-2610.mjs:107:10)
+    at semMainSobreLeva2610 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/leva-rebase-2610.mjs:114:61)
+    at semLevaIntegration2410 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/leva-integration-2410.mjs:87:10)
+    at semApresentadores2410 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-apresentadores-2410.mjs:10:10)
+    at semUgcAjustes2010 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-ugc-ajustes-2010.mjs:42:11)
+    at semFilmesF1F3Publico2010 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-filmes-f1f3-publico-2010.mjs:40:11)
+
+Node.js v24.18.0

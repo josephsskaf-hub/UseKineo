@@ -1,0 +1,31 @@
+KINEO-MENU-UGC-2010
+
+L. destino pela língua
+  ok   L1 lib EXECUTADA: pt → /anuncios-ugc-com-ia; as outras 15 línguas e língua ausente → /ai-ugc-ads (ok)
+  ok   L2 as rotas vêm de lib/seo/paginasUgc2010.ts e as 2 páginas existem (ok)
+  ok   L3 a lib só importa as rotas (pura)
+
+C. componente
+  ok   C1 cliente, língua do provedor, rótulo autoral, data-nav-item repassado, sem preço (ok)
+
+T. 16 línguas
+  ok   T1 "AI UGC Ads" traduzido nas 16 línguas da interface (ok)
+
+H/P. menus: o item logo depois de "Product ads", o menu antigo inteiro e na mesma ordem
+file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-h3-turbo-0511.mjs:19
+    if (t.split(h.depois).length !== 2) throw new Error('desfaz-h3-turbo-0511: trecho ausente ou repetido em ' + file)
+                                              ^
+
+Error: desfaz-h3-turbo-0511: trecho ausente ou repetido em app/KineoLanding.tsx
+    at semH3Turbo0511 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-h3-turbo-0511.mjs:19:47)
+    at semElencoFim0511 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-elenco-fim-0511.mjs:27:12)
+    at semMotoresSaem0511 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-motores-saem-0511.mjs:16:12)
+    at semK4Sempre0511 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-k4-sempre-0511.mjs:16:12)
+    at desde (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-consertos-2710.mjs:25:10)
+    at semConsertos2710 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-consertos-2710.mjs:42:48)
+    at semAfiliado50_2610 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-afiliado50-2610.mjs:781:10)
+    at affiliateRaw (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-menu-ugc-2010.mjs:38:60)
+    at rd (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-menu-ugc-2010.mjs:39:24)
+    at file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-menu-ugc-2010.mjs:217:198
+
+Node.js v24.18.0

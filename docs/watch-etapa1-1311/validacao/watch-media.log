@@ -7,4 +7,6 @@
   ok 7 document visibility unloads and restores only eligible media
   ok 8 autoplay rejection can retry silently without bypassing intersection
   ok 9 cleanup removes listeners and a stale play cannot clear the next owner source
-Watch media: 9 lifecycle scenarios, 24 approved assets, 132 contracts passed. No browser, API, render or production scripts.
+  ok 10 explicit pause persists across viewport/visibility and cannot override reduced motion or Save-Data
+  ok 11 a pending play promise cannot resurrect an explicitly paused preview
+Watch media: 11 lifecycle scenarios, 24 approved assets, 152 contracts passed. No browser, API, render or production scripts.

@@ -1,0 +1,35 @@
+
+TESTE faixa continue-de-onde-parou
+
+  ok   resume_strip_seen e emitido exatamente 1x
+  ok   resume_strip_clicked e emitido exatamente 1x
+  ok   usa IntersectionObserver de verdade
+  ok   so conta como visto com metade da faixa na tela
+  ok   seen so dispara uma vez (guardado por ref)
+  ok   tem fallback quando IntersectionObserver nao existe
+  ok   observer e desconectado (sem vazamento)
+  ok   IntersectionObserver dentro de try/catch
+  ok   adaptador de revisao preserva o escritor canonico
+  ok   a fonte nova existe no tipo de lib/seriesContinuation
+  ok   um unico botao de acao na faixa
+  ok   sem titulo legivel a faixa nao existe
+  ok   extractShortTitle devolve string vazia quando nao sabe
+  ok   a leitura do banco esta dentro de try/catch
+  ok   page.tsx importa extractShortTitle
+  ok   page.tsx passa resume para KineoLanding
+  ok   page.tsx le o ultimo video completado
+  ok   KineoLanding importa ResumeStrip 1x
+  ok   KineoLanding recebe resume com default null na assinatura real
+  ok   props do Codex intactas (nao pisei na pista dele)
+  ok   faixa so renderiza quando resume existe
+  ok   faixa fica ACIMA da barra de progresso
+  ok   faixa nao fala de preco/plano/upgrade/checkout
+  ok   faixa nao usa localStorage/sessionStorage
+  ok   nao encostei no EngineCycleCard
+  ok   nao encostei em lib/engineWall.ts
+  ok   fixture16/09 preserva os cards de motor originais
+  ok   home atual monta a galeria aprovada de filmes
+  ok   inventario atual da galeria permanece o aprovado na main
+
+  RESULTADO: 29/29 verificacoes passaram.
+

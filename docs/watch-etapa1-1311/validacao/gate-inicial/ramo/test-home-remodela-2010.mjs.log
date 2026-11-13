@@ -1,0 +1,17 @@
+file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-h3-turbo-0511.mjs:19
+    if (t.split(h.depois).length !== 2) throw new Error('desfaz-h3-turbo-0511: trecho ausente ou repetido em ' + file)
+                                              ^
+
+Error: desfaz-h3-turbo-0511: trecho ausente ou repetido em app/KineoLanding.tsx
+    at semH3Turbo0511 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-h3-turbo-0511.mjs:19:47)
+    at semElencoFim0511 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-elenco-fim-0511.mjs:27:12)
+    at semMotoresSaem0511 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-motores-saem-0511.mjs:16:12)
+    at semK4Sempre0511 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-k4-sempre-0511.mjs:16:12)
+    at semFilmeGratisComeca0211 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-filme-gratis-comeca-0211.mjs:17:12)
+    at file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-rosto-cards-2810.mjs:43:40
+    at Array.reduce (<anonymous>)
+    at semRostoCards2810 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-rosto-cards-2810.mjs:43:18)
+    at rd (C:\Users\josep\.codex\worktrees\341b\kineo\scripts\test-home-remodela-2010.mjs:41:84)
+    at <anonymous> (C:\Users\josep\.codex\worktrees\341b\kineo\scripts\test-home-remodela-2010.mjs:246:25)
+
+Node.js v24.18.0

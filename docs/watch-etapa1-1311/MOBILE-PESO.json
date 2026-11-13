@@ -1,9 +1,9 @@
 {
-  "bytes": "1067120",
+  "bytes": "1067584",
   "frozen": "false",
   "mode": "production",
-  "origin": "http://127.0.0.1:3022",
-  "report": "Preview review · first-screen transfer1,067,120 bytes transferred · 1,046,420 encoded body bytes · 70 requests · production build.Recording until first scroll. Resource Timing includes navigation and all reported resources. Cross-origin entries with an unavailable size: 1.Video requests: /previews/galeria/carta-do-front.mp4Unreported external sizes: https://r.wdfl.co/rw.js (script)For a cold measurement, open a fresh origin before scrolling. This report does not initiate generation or send telemetry.",
+  "origin": "http://127.0.0.1:3023",
+  "report": "Preview review · first-screen transfer1,067,584 bytes transferred · 1,046,884 encoded body bytes · 70 requests · production build.Recording until first scroll. Resource Timing includes navigation and all reported resources. Cross-origin entries with an unavailable size: 1.Video requests: /previews/galeria/carta-do-front.mp4Unreported external sizes: https://r.wdfl.co/rw.js (script)For a cold measurement, open a fresh origin before scrolling. This report does not initiate generation or send telemetry.",
   "unknown": "1",
   "videos": [
     {
@@ -19,6 +19,6 @@
     "width": 390,
     "windowScroll": 0
   },
-  "measuredAt": "2026-11-13T22:10:20.821Z",
+  "measuredAt": "2026-11-13T22:29:56.551Z",
   "cache": "First navigation to this local production-build origin; cross-origin cache not controlled."
 }

@@ -1,0 +1,4 @@
+88 verdes, 3 vermelhos
+  ✗ lib/ads/v2Tiers.ts é puro (nenhum import/require)
+  ✗ E9 cada motor do catálogo (v2Tiers) tem builder; texto não tem (routeShot null nunca chega aqui)
+  ✗ G5 plano: kind/source/status/engine nos enums; unique(order_id, idx, attempt)

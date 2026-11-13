@@ -1,0 +1,17 @@
+file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-ads-bola-2110.mjs:68
+  if (tiradas !== esperadas) throw new Error(`desfaz-ads-bola-2110: ${rel} tem ${tiradas} acréscimo(s) marcado(s), esperava ${esperadas}`)
+                                   ^
+
+Error: desfaz-ads-bola-2110: lib/ads/v2Simple.ts tem 107 acréscimo(s) marcado(s), esperava 106
+    at semAdsBola2110 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-ads-bola-2110.mjs:68:36)
+    at semLegendaBengali2010 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-legenda-bengali-2010.mjs:14:11)
+    at semAvatarEstorno2010 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-avatar-estorno-2010.mjs:10:11)
+    at semMeta95PersonagemAjuste2010 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-meta95-personagem-ajuste-2010.mjs:44:11)
+    at semDesenhoSom2110 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-desenho-som-2110.mjs:121:11)
+    at semAdsNota92110 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-ads-nota9-2110.mjs:39:11)
+    at semDesenhoNota9_2110 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-desenho-nota9-2110.mjs:64:11)
+    at semHomeCardsClaros2010 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-home-cards-claros-2010.mjs:46:11)
+    at semBebeQueFala2010 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-bebe-que-fala-2010.mjs:100:11)
+    at semMenuUgc2010 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-menu-ugc-2010.mjs:50:11)
+
+Node.js v24.18.0

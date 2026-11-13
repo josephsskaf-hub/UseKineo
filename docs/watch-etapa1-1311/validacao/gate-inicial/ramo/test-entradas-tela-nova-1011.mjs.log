@@ -1,0 +1,17 @@
+<anonymous_script>:14
+    return { id, title: video.title, engine: video.engine, badge: 'AI FILM', // KINEO-SELO-OMNI-2026-10-13
+                              ^
+
+TypeError: Cannot read properties of undefined (reading 'title')
+    at eval (eval at load (C:\Users\josep\.codex\worktrees\341b\kineo\docs\recreate-0911\test-recreate.cjs:27:5), <anonymous>:14:31)
+    at Array.map (<anonymous>)
+    at eval (eval at load (C:\Users\josep\.codex\worktrees\341b\kineo\docs\recreate-0911\test-recreate.cjs:27:5), <anonymous>:11:30)
+    at load (C:\Users\josep\.codex\worktrees\341b\kineo\docs\recreate-0911\test-recreate.cjs:27:64)
+    at req (C:\Users\josep\.codex\worktrees\341b\kineo\docs\recreate-0911\test-recreate.cjs:22:40)
+    at eval (eval at load (C:\Users\josep\.codex\worktrees\341b\kineo\docs\recreate-0911\test-recreate.cjs:27:5), <anonymous>:6:34)
+    at load (C:\Users\josep\.codex\worktrees\341b\kineo\docs\recreate-0911\test-recreate.cjs:27:64)
+    at req (C:\Users\josep\.codex\worktrees\341b\kineo\docs\recreate-0911\test-recreate.cjs:21:41)
+    at eval (eval at load (C:\Users\josep\.codex\worktrees\341b\kineo\docs\recreate-0911\test-recreate.cjs:27:5), <anonymous>:18:29)
+    at load (C:\Users\josep\.codex\worktrees\341b\kineo\docs\recreate-0911\test-recreate.cjs:27:64)
+
+Node.js v24.18.0

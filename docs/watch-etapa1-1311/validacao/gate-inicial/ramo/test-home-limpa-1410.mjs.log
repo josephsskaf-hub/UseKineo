@@ -1,0 +1,25 @@
+KINEO-HOME-LIMPA-1410
+  ok   (1) fonte: 3 blocos fora, galeria dentro de More tools, modal de login intacto (ok)
+  ok   (3) componente: só a pasta /home-images/, sem URL externa (ok)
+  ok   (2)(3) arquivos: 24 imagens locais, WebP ≤ 150 KB, dimensões batem, procedência da casa (ok)
+  ok   (1)(4)(5) render da home signedIn=false clipsFirst=false: blocos fora, More tools antes da prova, menu igual, login em modal (ok)
+  ok   (1)(4)(5) render da home signedIn=false clipsFirst=true: blocos fora, More tools antes da prova, menu igual, login em modal (ok)
+  ok   (1)(4)(5) render da home signedIn=true clipsFirst=false: blocos fora, More tools antes da prova, menu igual, login em modal (ok)
+  ok   (1)(4)(5) render da home signedIn=true clipsFirst=true: blocos fora, More tools antes da prova, menu igual, login em modal (ok)
+  ok   (2)(3) render da galeria: 10–15 <img> da pasta permitida, lazy, com width/height, todas para /images, selo honesto (ok)
+  ok   (M) M1 banner Business volta à home → vermelho [banner Business (AgencyVolumeBridge) voltou]
+  ok   (M) M2 bloco "full toolkit" volta → vermelho [bloco "full toolkit" voltou]
+  ok   (M) M3 seção de empresas volta (fonte) → vermelho [seção de empresas voltou]
+  ok   (M) M3b seção de empresas volta (render) → vermelho [render ainda mostra "Videos for your business."; render ainda mostra "home-business-showcase"]
+  ok   (M) M4 imagem de fora da pasta permitida → vermelho [imagem fora da pasta permitida: https://example.com/x.webp]
+  ok   (M) M5 galeria com 19 imagens → vermelho [galeria com 19 imagens (precisa 20–30); coworking.webp: procedência sem imagem na galeria; clock-brass.webp: procedência sem imagem na galeria; toycar.webp: procedência sem imagem na galeria; ad-09.webp: procedência sem imagem na galeria; ad-10.webp: procedência sem imagem na galeria]
+  ok   (M) M6 arquivo acima de 150 KB → vermelho [apple.webp: 204800 B > 150 KB]
+  ok   (M) M7 item do menu do topo some → vermelho [menu do topo mudou: ["video","business","more:cartoon","more:recreate","more:menu","more:made-with-kineo","more:mcp","x","login","video","business","more:made-with-kineo","more:cartoon","more:recreate","more:mcp","pricing","login"]]
+  ok   (M) M8 Log in perde o modal → vermelho [menu sem Log in com data-auth-modal]
+  ok   (M) M9 foto da galeria leva a outro lugar → vermelho [nem toda imagem leva a /images]
+  ok   (M) M10 imagem sem procedência da casa → vermelho [galeria com 14 imagens (precisa 20–30); cliente.webp: sem procedência da casa registrada; cliente.webp: arquivo ausente em public/home-images; ad-06.webp: arquivo na pasta sem uso na galeria; ad-07.webp: arquivo na pasta sem uso na galeria; ad-08.webp: arquivo na pasta sem uso na galeria; ad-09.webp: arquivo na pasta sem uso na galeria; ad-10.webp: arquivo na pasta sem uso na galeria; astronaut.webp: arquivo na pasta sem uso na galeria; boutique.webp: arquivo na pasta sem uso na galeria; clock-brass.webp: arquivo na pasta sem uso na galeria; coworking.webp: arquivo na pasta sem uso na galeria; cube.webp: arquivo na pasta sem uso na galeria; toycar.webp: arquivo na pasta sem uso na galeria; boutique.webp: procedência sem imagem na galeria; astronaut.webp: procedência sem imagem na galeria; coworking.webp: procedência sem imagem na galeria; clock-brass.webp: procedência sem imagem na galeria; cube.webp: procedência sem imagem na galeria; toycar.webp: procedência sem imagem na galeria; ad-06.webp: procedência sem imagem na galeria; ad-07.webp: procedência sem imagem na galeria; ad-08.webp: procedência sem imagem na galeria; ad-09.webp: procedência sem imagem na galeria; ad-10.webp: procedência sem imagem na galeria]
+  ok   (M) M11 galeria passa a alegar cliente → vermelho [galeria fala em cliente (alegação falsa)]
+  ok   (M) M12 galeria sai de More tools (fonte) → vermelho [galeria fora da seção Images made by Kineo]
+  ok   (M) M13 modal de login desmontado (fonte) → vermelho [modal de login desmontado]
+
+22 verificações ok, 0 falhas

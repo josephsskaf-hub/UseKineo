@@ -1,0 +1,15 @@
+1) componente
+file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-paginas-ia-claras-2110.mjs:43
+  if (texto.replace(/\r\n/g, '\n') !== novo) throw new Error(`desfaz ${MARCA_PAGINAS_IA_CLARAS_2110} em ${r}: fonte divergente`)
+                                                   ^
+
+Error: desfaz KINEO-PAGINAS-IA-CLARAS-2110 em components/ScriptToSeedanceBridge.tsx: fonte divergente
+    at semPaginasIaClaras2110 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-paginas-ia-claras-2110.mjs:43:52)
+    at semBingSeo1510 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-bing-seo-1510.mjs:23:9)
+    at read (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-paginas-citadas-ponte-2026-09-23.mjs:35:21)
+    at file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-paginas-citadas-ponte-2026-09-23.mjs:42:36
+    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)
+    at async node:internal/modules/esm/loader:643:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.18.0

@@ -1,0 +1,6 @@
+1/2 · 71 testes no ramo (codex/watch-etapa1-1311)…
+2/2 · 27 vermelhos no ramo; rodando esses na origin/main…
+já vermelhos na main: 25 · vermelhos NOVOS: 2
+  ✗ test-cartoon-tela-0411.mjs  (log: C:/Users/josep/.codex/visualizations/2026/11/11/01a1c8aa-274e-7ae1-9449-35016a88218b/m6-gate-logs/ramo/test-cartoon-tela-0411.mjs.log)
+  ✗ test-faq-schema-so-onde-visivel.mjs  (log: C:/Users/josep/.codex/visualizations/2026/11/11/01a1c8aa-274e-7ae1-9449-35016a88218b/m6-gate-logs/ramo/test-faq-schema-so-onde-visivel.mjs.log)
+Reancore sem afrouxar (o teste diz o que protege) ou conserte o código. Entrega com vermelho novo volta.

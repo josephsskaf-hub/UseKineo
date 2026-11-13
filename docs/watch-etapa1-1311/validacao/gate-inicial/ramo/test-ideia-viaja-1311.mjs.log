@@ -1,0 +1,7 @@
+ok  estado atual (cabeça de 200 com espaço casa; curta exige o mesmo texto; film_idea_status tela/recuperada/ausente/roteiro; rota no lugar)
+ok  M1 tamanho pelo trim (o defeito): vermelho ((1) cabeça de 200 terminada em espaço não casou (o trim a fazia "curta"))
+ok  M2 origem trocada: vermelho ((2) ideia recuperada: tela)
+ok  M3 sinal de roteiro desligado: vermelho ((2) a tela mandou o próprio roteiro como ideia e o sinal não acendeu)
+ok  M4 rota sem o evento: vermelho ((2) a rota não grava film_idea_status)
+ok  M5 origem lida depois da recuperação: vermelho ((2) a origem "tela" não é lida antes da recuperação)
+6 ok · 0 falha(s)

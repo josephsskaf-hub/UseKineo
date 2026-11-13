@@ -1,0 +1,19 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: critical CI cannot ignore failure
+    at ok (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-five-improvements.mjs:10:25)
+    at file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-five-improvements.mjs:99:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)
+    at async node:internal/modules/esm/loader:643:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.18.0

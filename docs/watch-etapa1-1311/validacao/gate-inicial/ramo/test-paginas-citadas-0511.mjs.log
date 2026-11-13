@@ -1,0 +1,19 @@
+1. planos, tela e mapa
+  ok  tudo confere (ok)
+2. o que não pode mudar
+  ok  nenhum preço ou crédito escrito à mão
+  ok  a camada não toca em cobrança, motor nem checkout
+  ok  as respostas de 23/10 seguem vindo da camada antiga
+3. mutantes
+  ok  mutante "filme a mais do que o saldo paga" fica vermelho
+  ok  mutante "preço escrito à mão" fica vermelho
+  ok  mutante "custo do filme de 60 s errado" fica vermelho
+  ok  mutante "data parada em 23/10" fica vermelho
+  ok  mutante "tabela fora da tela" fica vermelho
+  ok  mutante "página em português com texto em inglês" fica vermelho
+  ok  mutante "carimbo alarga para todo o mapa" fica vermelho
+  ok  mutante "carimbo anda para trás" fica vermelho
+  ok  mutante "carimbo desligado do mapa" fica vermelho
+  ok  mutante "anual escrito à mão" fica vermelho
+
+14 ok, 0 falha(s)

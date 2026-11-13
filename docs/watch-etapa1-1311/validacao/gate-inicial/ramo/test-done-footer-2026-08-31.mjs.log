@@ -1,0 +1,36 @@
+
+1) O ramo morto morreu
+  ok  o ternario do rodape nao termina mais em null
+  ok  o ramo novo existe no arquivo
+  ok  o UpsellSection segue intacto (pista do Codex)
+  ok  o NextActionSection segue intacto
+  ok  o "Start over" dos outros phases segue intacto
+
+2) O rodape oferece o proximo episodio com o tema pronto
+  ok  fonte done_footer no union
+  ok  CTA "Build next episode"
+  ok  usa o handler que ja existe, sem duplicar mecanica
+  ok  segunda saida: comecar algo novo
+  ok  a segunda saida usa handleReset
+  ok  promete o que entrega
+
+3) Nao invade a pista do Codex: e bloco de CRIACAO, nao de oferta
+  ok  sem preco no bloco
+  ok  sem plano/tier no bloco
+  ok  sem upgrade no bloco
+  ok  sem checkout no bloco
+
+4) Da para medir
+  ok  emite series_continue_clicked via handleContinueSeries
+  ok  a segunda saida tambem e medida
+  ok  o evento carrega o video
+
+5) O comentario guarda o porque (o numero que mandou fazer)
+  ok  registra 177/129
+  ok  registra a RETRATACAO da medicao contaminada
+  ok  usa a regua honesta de 38%, nao 100%
+  ok  deixa a regra escrita para a proxima sessao
+  ok  registra a mediana de 19 minutos
+  ok  registra quem caia no null
+
+24 ok · 0 falhas

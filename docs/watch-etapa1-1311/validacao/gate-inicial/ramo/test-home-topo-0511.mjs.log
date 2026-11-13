@@ -1,0 +1,21 @@
+ok  a fonte real passa em tudo
+ok  mutante vermelho (1): o seletor volta para a direita → à direita não sobra seletor
+ok  mutante vermelho (2): o seletor sai do menu do topo → o menu do topo tem o seletor
+ok  mutante vermelho (1): o seletor sai do menu compacto → o menu compacto tem o seletor, depois de Pricing
+ok  mutante vermelho (2): Log in menor que Get started → Log in e Get started: mesma altura
+ok  mutante vermelho (1): o seletor perde o foco do teclado → o seletor segue visível no foco do teclado
+ok  mutante vermelho (1): o presente some da home → o presente fica fora do .nav-cta, antes de Log in e dos créditos
+ok  mutante vermelho (1): o presente entra no .nav-cta e some no celular → nada do presente dentro do .nav-cta
+ok  mutante vermelho (1): visitante tratado como conta → o presente fica fora do .nav-cta, antes de Log in e dos créditos
+ok  mutante vermelho (1): a linha perde a cláusula do país → a linha leva a cláusula do país, enquanto a régua de país valer
+ok  mutante vermelho (1): a linha volta a depender do país → a linha não depende do argumento antigo (país)
+ok  mutante vermelho (1): a home volta a ler o país → a home NÃO lê o país do IP
+ok  mutante vermelho (2): visitante vê oferta do anual → visitante (qualquer país): filme, conector e afiliado
+ok  mutante vermelho (1): visitante vai à rede → visitante: abrir não vai à rede
+ok  mutante vermelho (1): a porta com 11 filmes → 12 filmes: 4 x 3 e 2 x 6, sem cartão sobrando
+ok  mutante vermelho (1): filme repetido → nenhum filme repetido
+ok  mutante vermelho (1): a página volta para os 5 de antes → a página usa a lista
+ok  mutante vermelho (1): o cartão ignora a ideia → o cartão parte da ideia, sem ela do título
+ok  mutante vermelho (1): pôster que não existe → todo cartão tem pôster de verdade, em arquivo pequeno
+
+ok  18 mutantes vermelhos, fonte real verde

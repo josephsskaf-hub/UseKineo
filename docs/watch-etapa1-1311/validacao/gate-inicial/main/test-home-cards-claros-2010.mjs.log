@@ -1,0 +1,18 @@
+A. o véu de baixo e o enquadramento, calculados do CSS real
+file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-cards-giro-2410.mjs:24
+    throw Error('desfaz-cards-giro-2410: fonte divergente ' + relative)
+          ^
+
+Error: desfaz-cards-giro-2410: fonte divergente components/home/HomeThreeCards.tsx
+    at semCardsGiro2410 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-cards-giro-2410.mjs:24:11)
+    at semIdiomasFormatos2410 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-idiomas-formatos-2410.mjs:65:10)
+    at semAdsEscolhaPublico2410 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-ads-escolha-publico-2410.mjs:20:10)
+    at semAdsEscolha2310 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-ads-escolha-2310.mjs:35:11)
+    at semAdsCenaTexto2310 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-ads-cena-texto-2310.mjs:18:11)
+    at semAdminLeve2310 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-admin-leve-2310.mjs:202:12)
+    at semPaginasIaClaras2110 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-paginas-ia-claras-2110.mjs:36:11)
+    at semAdsCena952110 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-ads-cena-95-2110.mjs:25:11)
+    at semKidsVenda2010 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-kids-venda-2010.mjs:55:11)
+    at rd (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-home-cards-claros-2010.mjs:41:22)
+
+Node.js v24.18.0

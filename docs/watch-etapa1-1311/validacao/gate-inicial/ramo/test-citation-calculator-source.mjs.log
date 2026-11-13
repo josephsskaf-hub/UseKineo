@@ -1,0 +1,1 @@
+PASS: calculator CTA, actual capture + signup payload, ChatGPT referrer/UTM, Google, direct, prior campaign, OAuth-cookie return; wrong seo baseline reproduced. No network or DB.

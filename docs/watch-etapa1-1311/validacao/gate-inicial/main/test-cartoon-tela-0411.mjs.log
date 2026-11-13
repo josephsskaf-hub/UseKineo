@@ -1,0 +1,39 @@
+1. o menu e os links
+  ok  a página de verdade decide certo em todos os caminhos (ok)
+  ok  barra lateral, celular e topo levam a /ads/new, que redireciona a /ads/v2
+  ok  AI UGC Ads continua levando à página de UGC
+  ok  com a entrada ligada, cabeçalho novo e sem as abas (o que o print 278 mostra)
+  ok  ?mode= continua sendo lido pela tela
+2. a tela do desenho
+  ok  a tela de verdade (ok)
+  ok  a página: visitante sem painel, com conta os episódios dentro da página
+  ok  o painel não importa mais o caminho de compra
+  ok  o episódio grátis pergunta ao servidor e só aparece para quem pode
+  ok  rotas de compra, webhook e entrega seguem de pé
+  ok  as 53 regras copiadas seguem iguais à origem (ok)
+  ok  nenhuma regra da tela usa :has()
+  ok  os textos da tela: en, pt, es; o resto em inglês
+3. mutantes
+  ok  mutante "a página volta a mandar a entrada crua" fica vermelho
+  ok  mutante "o padrão vira ugc" fica vermelho
+  ok  mutante "link ?mode=batch perde a tela de antes" fica vermelho
+  ok  mutante "pedido salvo perde a tela de antes" fica vermelho
+  ok  mutante "visitante recebe a entrada padrão" fica vermelho
+  ok  mutante "login perde a volta" fica vermelho
+  ok  mutante "evento conta o menu como cartão" fica vermelho
+  ok  mutante "quadro de planos de volta no painel" fica vermelho
+  ok  mutante "painel vazio aparece para quem não comprou" fica vermelho
+  ok  mutante "quem comprou perde o canal" fica vermelho
+  ok  mutante "preço de volta na duração" fica vermelho
+  ok  mutante "dois botões principais" fica vermelho
+  ok  mutante "mais opções aberto" fica vermelho
+  ok  mutante "prévia sem o rótulo" fica vermelho
+  ok  mutante "prévia parada no Leo" fica vermelho
+  ok  mutante "prévia antes do formulário" fica vermelho
+  ok  mutante "personagem depois da ideia" fica vermelho
+  ok  mutante "personagem sem retrato" fica vermelho
+  ok  mutante "custo some do botão final" fica vermelho
+  ok  mutante "o episódio grátis volta à tela" fica vermelho
+  ok  mutante "um <main> dentro do outro" fica vermelho
+
+34 ok, 0 falha(s)

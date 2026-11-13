@@ -1,0 +1,32 @@
+── pedido na ideia ──
+  ok    vira presenter: caneta ("to the camera")
+  ok    vira presenter: fruteira ("ugc")
+  ok    vira presenter: host ("a host")
+  ok    fica como está: negado_pt
+  ok    fica como está: negado_en
+  ok    fica como está: italiano
+  ok    fica como está: porta
+  ok    fica como está: pompeia
+  ok    fica como está: documentario
+  ok    fica como está: cafe
+  ok    fica como está: sem_avatar
+  ok    sem ideia: null
+── decisão ──
+  ok    base: o roteiro sozinho não pede fala (documentary_faceless)
+  ok    caneta: documentary_faceless → presenter (a ideia original pede pessoa falando para a câmera ("to the camera") — antes: pa…)
+  ok    tag [faceless] vence a ideia
+  ok    quem já é presenter fica (mesmo objeto)
+  ok    ideia sem pedido (null): decisão idêntica
+  ok    ideia sem pedido (undefined): decisão idêntica
+  ok    ideia sem pedido (): decisão idêntica
+  ok    ideia sem pedido (The door nobody has ): decisão idêntica
+── interruptor e rota ──
+  ok    padrão 'all' desde 12/11 19:15 (KINEO-INTERRUPTORES-ALL-1211) (é 'all')
+  ok    internal = só a casa; all = todos
+  ok    a rota aplica logo depois da decisão de formato, pela conta da casa, com o pedido do cliente (pedidoDoCliente) e a tag
+  ok    um único ponto de aplicação na rota
+── mutante ──
+  ok    mutante aplicado (sem a negação na oração)
+  ok    mutante: "não mostrar apresentador ou pessoa falando para a câmera" viraria presenter (vermelho)
+
+26 ok · 0 falha(s)

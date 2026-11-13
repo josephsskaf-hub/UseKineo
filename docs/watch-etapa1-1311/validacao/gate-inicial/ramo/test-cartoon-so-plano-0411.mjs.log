@@ -1,0 +1,62 @@
+1. o interruptor
+  ok  linha simples, com comentário logo acima
+2. quem pode
+  ok  2. quem pode (ok)
+3. a rota do filme
+  ok  3. a rota do filme (ok)
+4. história e amostra
+  ok  4. história e amostra (ok)
+5. a tela
+  ok  5. a tela (ok)
+6. o preço
+  ok  6. o preço (ok)
+7. os textos públicos
+  ok  7. os textos públicos (ok)
+8. o filme grátis
+  ok  8. o filme grátis (ok)
+9. o pedido na fila
+  ok  9. o pedido na fila (ok)
+10. o diff da rota do filme só acrescenta o bloco
+  ok  nada removido, 4 linhas novas, todas marcadas (4 novas, 0 removidas)
+  ok  sem as linhas marcadas, nada na rota fala de plano do desenho
+  ok  sem kids_cartoon, o dry_run e todo pedido comum saem do bloco por um null
+11. o que não pode mudar
+  ok  app/api/stripe/webhook/route.ts não lê as regras novas
+  ok  lib/stripe/kidsVendaCheckout.ts não lê as regras novas
+  ok  lib/kidsVenda/webhook.ts não lê as regras novas
+  ok  lib/kidsVenda/cron.ts não lê as regras novas
+  ok  lib/credits/engineCost.ts não lê as regras novas
+  ok  lib/checkoutPricing.ts não lê as regras novas
+  ok  app/(dashboard)/generate/GenerateClient.tsx não lê as regras novas
+  ok  o /generate mostra a frase do servidor na 402 com upsell
+12. mutantes
+  ok  mutante "conta free com crédito passa" fica vermelho
+  ok  mutante "*_trial conta como plano" fica vermelho
+  ok  mutante "has_paid em vez do plano: qualquer conta com leitura" fica vermelho
+  ok  mutante "cortesia vencida abre" fica vermelho
+  ok  mutante "cortesia ativa fechada" fica vermelho
+  ok  mutante "erro da cortesia libera" fica vermelho
+  ok  mutante "pedido em andamento deixa de entregar" fica vermelho
+  ok  mutante "a história do cron deixa de passar" fica vermelho
+  ok  mutante "quem comprou perde o acesso" fica vermelho
+  ok  mutante "pedido cancelado abre" fica vermelho
+  ok  mutante "padrão test% abre como casa" fica vermelho
+  ok  mutante "conta da casa recusada" fica vermelho
+  ok  mutante "pedido comum passa a ler o banco" fica vermelho
+  ok  mutante "leitura que falha libera" fica vermelho
+  ok  mutante "história sem a guarda" fica vermelho
+  ok  mutante "amostra aceita de novo" fica vermelho
+  ok  mutante "interruptor do grátis ligado" fica vermelho
+  ok  mutante "botão do grátis de volta" fica vermelho
+  ok  mutante "sem plano começa a história" fica vermelho
+  ok  mutante "visitante vai direto aos planos" fica vermelho
+  ok  mutante "See plans sem guardar o rascunho" fica vermelho
+  ok  mutante "promessa de volta na página" fica vermelho
+  ok  mutante ""currently unavailable" de volta" fica vermelho
+  ok  mutante "seis personagens de volta" fica vermelho
+  ok  mutante "e-mail de lançamento promete de novo" fica vermelho
+  ok  mutante "o cron para o que está na fila" fica vermelho
+  ok  mutante "a rota do filme sem o bloco" fica vermelho
+  ok  mutante "o bloco depois do escritor" fica vermelho
+
+48 ok, 0 falha(s)

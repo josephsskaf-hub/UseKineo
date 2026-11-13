@@ -12,9 +12,11 @@ Abra `COMPARACAO.html`: HTML autocontido, CSS e 29 capturas incorporados, sem se
 
 **TESTADO LOCALMENTE:** Film, Cartoon, Product Ads e UGC Ads abrem suas telas públicas existentes com a ideia do exemplo preenchida. Nenhum Generate foi acionado. ID público viaja em `example`; texto de cliente não é acrescentado às URLs. Rascunho ou ideia explícita existente prevalecem sobre o exemplo. Recreate/efeitos mantêm o caminho atual; a reformulação do feed é a Etapa 3.
 
+**TESTADO LOCALMENTE:** controle persistente de pausa/retomada fora dos cartões. Pausar remove todos os `src`; rolar não reinicia; retomar volta a tocar apenas a mídia elegível (`PAUSA-NAVEGADOR.json`). Movimento reduzido e economia de dados continuam prevalecendo.
+
 ## Peso e mídia
 
-**TESTADO LOCALMENTE — 13/11/2026, build de produção, primeira navegação na origem local nova `127.0.0.1:3022`, viewport nativo 390×844:** **1.067.120 bytes de transferência disponíveis no Resource Timing**, 1.046.420 bytes de corpo codificado e 70 requisições antes de rolar (`MOBILE-PESO.json`). Somente `carta-do-front.mp4` tinha `src` e tocava. O cache de terceiros não foi controlado.
+**TESTADO LOCALMENTE — 13/11/2026, build de produção, primeira navegação na origem local nova `127.0.0.1:3023`, viewport nativo 390×844:** **1.067.584 bytes de transferência disponíveis no Resource Timing**, 1.046.884 bytes de corpo codificado e 70 requisições antes de rolar (`MOBILE-PESO.json`). Somente `carta-do-front.mp4` tinha `src` e tocava. O cache de terceiros não foi controlado.
 
 **QUESTÃO PENDENTE:** `https://r.wdfl.co/rw.js` não expõe seu tamanho ao Resource Timing. Portanto o número não é o total integral de rede e não comprova sozinho o alvo completo de 4 MB. Confirmar numa captura de rede em celular real na prévia publicada.
 
@@ -24,7 +26,7 @@ Abra `COMPARACAO.html`: HTML autocontido, CSS e 29 capturas incorporados, sem se
 
 - **TESTADO LOCALMENTE:** sem rolagem lateral, `scrollWidth === innerWidth` em 390 e 1920; textos dispostos da home com mínimo de 12 px; menu móvel abre e fecha. Capturas em `prints/`.
 - **TESTADO LOCALMENTE:** SSR da home autenticada e da home com interruptor desligado preservado; 17 mutantes do guardião WATCH rejeitados, incluindo perda de conteúdo citado, ID, ordem, navegação e isolamento de usuário logado.
-- **TESTADO LOCALMENTE:** entrada, 345 verificações e 6/6 mutantes; mídia, 132 contratos, 9 cenários e hashes dos 24 arquivos. Logs em `validacao/`.
+- **TESTADO LOCALMENTE:** entrada, 345 verificações e 6/6 mutantes; mídia, 152 contratos, 11 cenários e hashes dos 24 arquivos. Logs em `validacao/`.
 - **QUESTÃO PENDENTE:** não houve sessão autenticada real no navegador. As fotos `logged-*` são fixtures SSR identificadas, sem API ou saldo real. CEO/Div. 1 precisam conferir uma sessão real na prévia antes da troca de `/`.
 - **QUESTÃO PENDENTE:** a abertura do HTML comparativo no navegador foi recusada por falha técnica da revisão automática de autorização (`Bad Request`); as fotografias das telas reais e a montagem autocontida foram produzidas. O arquivo deve ser aberto manualmente para a revisão visual conjunta.
 - **FATO CONFIRMADO:** o build usa as opções já existentes `ignoreBuildErrors`/lint ignorado. Os tipos de rotas que ele gera exibiram 15 erros em fontes alheias à missão, iguais à base; o log completo foi preservado em `validacao/tsc-gerado-pelo-build.log`. O typecheck bruto é registrado separadamente depois da remoção apenas de `.next/types` gerado localmente, conforme a distinção do AGENTS §6.3. Isso não corrige nem oculta a dívida de tipos gerados.

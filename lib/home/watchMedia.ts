@@ -44,7 +44,7 @@ export function watchPosterSrc(src: string, poster?: string): string | undefined
 }
 
 export type WatchPlaybackState = { playing: boolean; canPlay: boolean }
-export type WatchMediaController = { requestPlay: () => void; destroy: () => void }
+export type WatchMediaController = { requestPlay: () => void; setPaused: (paused: boolean) => void; destroy: () => void }
 type NetworkPolicy = EventTarget & { saveData?: boolean; effectiveType?: string }
 const mediaOwners = new WeakMap<HTMLVideoElement, object>()
 
@@ -58,6 +58,7 @@ export function createWatchMediaController(
   video: HTMLVideoElement,
   src: string,
   onState: (state: WatchPlaybackState) => void = () => {},
+  initialPaused = false,
 ): WatchMediaController {
   const pageDocument = document
   const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -69,6 +70,7 @@ export function createWatchMediaController(
   let destroyed = false
   let sequence = 0
   let playing = false
+  let manuallyPaused = initialPaused
 
   video.preload = 'none'
   video.muted = true
@@ -76,7 +78,7 @@ export function createWatchMediaController(
   video.loop = true
   video.playsInline = true
 
-  const allowed = () => visible && !pageDocument.hidden && !motion.matches
+  const allowed = () => visible && !manuallyPaused && !pageDocument.hidden && !motion.matches
     && !connection?.saveData && !(connection?.effectiveType ?? '').includes('2g')
   const notify = (playing: boolean, canPlay: boolean) => {
     if (!destroyed && mediaOwners.get(video) === owner) onState({ playing, canPlay })
@@ -161,6 +163,11 @@ export function createWatchMediaController(
 
   return {
     requestPlay,
+    setPaused(paused) {
+      if (destroyed) return
+      manuallyPaused = paused
+      sync()
+    },
     destroy() {
       if (destroyed) return
       destroyed = true

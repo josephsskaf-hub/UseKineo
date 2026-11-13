@@ -1,0 +1,14 @@
+file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-stranded-ready-footer.mjs:22
+  new Function('require', 'module', 'exports', out)((id) => { if (id in mocks) return mocks[id]; throw new Error(`${p}: unexpected import ${id}`) }, m, m.exports)
+                                                                                                       ^
+
+Error: lib/credits/engineCost.ts: unexpected import @/lib/kling4PaidPolicy
+    at file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-stranded-ready-footer.mjs:22:104
+    at eval (eval at loadTs (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-stranded-ready-footer.mjs:22:3), <anonymous>:19:28)
+    at loadTs (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-stranded-ready-footer.mjs:22:52)
+    at file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-stranded-ready-footer.mjs:25:16
+    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)
+    at async node:internal/modules/esm/loader:643:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.18.0

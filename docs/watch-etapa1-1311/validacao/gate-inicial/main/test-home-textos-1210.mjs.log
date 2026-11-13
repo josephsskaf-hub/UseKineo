@@ -1,0 +1,14 @@
+file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-h3-turbo-0511.mjs:19
+    if (t.split(h.depois).length !== 2) throw new Error('desfaz-h3-turbo-0511: trecho ausente ou repetido em ' + file)
+                                              ^
+
+Error: desfaz-h3-turbo-0511: trecho ausente ou repetido em app/KineoLanding.tsx
+    at semH3Turbo0511 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-h3-turbo-0511.mjs:19:47)
+    at semClareza1610 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-checkout-clareza-1610.mjs:239:9)
+    at rd (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-home-textos-1210.mjs:19:19)
+    at file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-home-textos-1210.mjs:23:17
+    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)
+    at async node:internal/modules/esm/loader:643:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.18.0

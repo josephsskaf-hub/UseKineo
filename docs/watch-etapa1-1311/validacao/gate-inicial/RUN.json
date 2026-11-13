@@ -1,0 +1,19 @@
+{
+  "recordedAt": "2026-11-13T22:39:53.972Z",
+  "branchCommit": "84c08a460e1e865352c70363014c13b7a679b3b6",
+  "mainCommit": "057769963ea70279f061e00f5c8d12307a009a1d",
+  "parallel": 2,
+  "timeoutSeconds": 300,
+  "exit": 1,
+  "total": 71,
+  "green": 44,
+  "red": 27,
+  "alreadyRedOnMain": 25,
+  "newRed": [
+    "test-cartoon-tela-0411.mjs",
+    "test-faq-schema-so-onde-visivel.mjs"
+  ],
+  "timeoutBoth": [
+    "test-clipes-nos-2-lugares-0411.mjs"
+  ]
+}

@@ -1,0 +1,17 @@
+file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-estreia-3110.mjs:26
+    if (parts.length !== 2) throw new Error('semEstreia3110: ' + rel + ' mudou fora da camada (' + (parts.length - 1) + 'x)')
+                                  ^
+
+Error: semEstreia3110: app/(dashboard)/ads/v2/AdsV2Client.tsx mudou fora da camada (0x)
+    at semEstreia3110 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-estreia-3110.mjs:26:35)
+    at file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-rosto-cards-2810.mjs:43:40
+    at Array.reduce (<anonymous>)
+    at semRostoCards2810 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-rosto-cards-2810.mjs:43:18)
+    at semPosterioresAoSelo2710 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/leva-rebase-2610.mjs:107:10)
+    at semMainSobreLeva2610 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/leva-rebase-2610.mjs:114:61)
+    at semLevaIntegration2410 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/leva-integration-2410.mjs:87:10)
+    at semCompraAvulsa2410 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-compra-avulsa-2410.mjs:9:10)
+    at semKitBfVenda2010 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-kit-bf-venda-2010.mjs:42:11)
+    at semApresentadorOlhos1910 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-apresentador-olhos-1910.mjs:66:11)
+
+Node.js v24.18.0

@@ -1,0 +1,22 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: nenhum outro arquivo de app/ renderiza FaqStructuredData (achados: app/watch-preview/page.tsx)
+
+1 !== 0
+
+    at equal (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-faq-schema-so-onde-visivel.mjs:28:53)
+    at file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-faq-schema-so-onde-visivel.mjs:87:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)
+    at async node:internal/modules/esm/loader:643:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 1,
+  expected: 0,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.18.0

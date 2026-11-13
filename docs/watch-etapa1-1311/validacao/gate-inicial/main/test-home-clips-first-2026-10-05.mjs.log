@@ -1,0 +1,32 @@
+TESTE home clips-first (A/B) — 05/10
+  ok  (0a) lib/growth/homeClipsFirst.ts é puro (zero import)
+  ok  (0b) HOME_CLIPS_FIRST é 'off' | 'ab50' | 'all' (agora: 'off')
+  ok  (0c) interruptor é const em código (não env)
+  ok  (6b) servidor trava POR PESSOA com a regra do /clips (clipsVisible + clipEffectsVisible(isInternalEmail))
+  ok  (6c) home e rota de exposição passam o e-mail para a trava
+  ok  (6d) com a home ligada: casa sorteada; visitante de fora sorteado (efeitos públicos)
+  ok  (6e) clipEffectsVisible: fora só vê com o interruptor público
+       (dependência: CLIP_EFFECTS_PUBLIC=true · CLIPS_PUBLIC=true — com efeitos fechados só a casa vê a variante)
+  ok  (1–7) atribuição, 50/50, off/all/robô, precedência, cookie, trava e links
+       (amostra: 49.52% de 10.000 UUIDs em clips_first)
+  ok  (8a) troca da home em UM ponto do app/page.tsx (um sorteio, um booleano para a KineoLanding)
+  ok  (8b) a variante só aparece com homeChoice.variant === clips_first
+  ok  (8c) o sinal de exposição só monta com expose (nunca com off/robô/prévia)
+  ok  (8d) a chamada da home segue com as mesmas props + o booleano clipsFirst (e o sinal nulo ao lado)
+  FAIL (8e) FAQPage nas duas variantes: a variante é a mesma home, com as 13 perguntas visíveis
+file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-h3-turbo-0511.mjs:19
+    if (t.split(h.depois).length !== 2) throw new Error('desfaz-h3-turbo-0511: trecho ausente ou repetido em ' + file)
+                                              ^
+
+Error: desfaz-h3-turbo-0511: trecho ausente ou repetido em app/KineoLanding.tsx
+    at semH3Turbo0511 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-h3-turbo-0511.mjs:19:47)
+    at semElencoFim0511 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-elenco-fim-0511.mjs:27:12)
+    at semMotoresSaem0511 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-motores-saem-0511.mjs:16:12)
+    at semK4Sempre0511 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-k4-sempre-0511.mjs:16:12)
+    at semHome3Cards1910 (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-support/desfaz-home-3-cards-1910.mjs:81:11)
+    at file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-home-clips-first-2026-10-05.mjs:238:17
+    at ModuleJob.run (node:internal/modules/esm/module_job:439:25)
+    at async node:internal/modules/esm/loader:643:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.18.0

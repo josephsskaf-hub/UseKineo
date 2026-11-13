@@ -1,0 +1,15 @@
+  ok mutante: FAQ global volta
+  ok mutante: outro consumidor indexável
+  ok mutante: home duplica FAQ
+  ok mutante: prévia troca o schema por outro módulo
+  ok mutante: prévia troca a Landing por outra tela
+  ok mutante: Landing passa a emitir schema
+  ok mutante: FAQ fica oculto
+  ok mutante: FAQ fica só no ramo antigo
+  ok mutante: prévia sem conteúdo visível
+  ok mutante: prévia duplica FAQ visitante
+  ok mutante: prévia duplica FAQ logado
+  ok mutante: prévia indexável
+  ok mutante: pergunta sai do texto visível
+  ok mutante: resposta diverge do schema
+faq-schema-so-onde-visivel: 45 verificações passaram; 14 mutantes rejeitados pela regra exata; 0 falhas.

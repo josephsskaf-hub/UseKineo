@@ -1,0 +1,31 @@
+  ok  quem só chegou vê a caixa
+  ok  com prompt, segue para o Studio completo
+  ok  com topic, segue para o Studio completo
+  ok  com avancado, segue para o Studio completo
+  ok  com resume, segue para o Studio completo
+  ok  com generationId, segue para o Studio completo
+  ok  com session_id, segue para o Studio completo
+  ok  com series_parent, segue para o Studio completo
+  ok  com mode, segue para o Studio completo
+  ok  com welcome, segue para o Studio completo
+  ok  com return, segue para o Studio completo
+  ok  motor sem escolha é o padrão
+  ok  motor escolhido no link é mantido
+  ok  sem escolha diz Auto; escolhido diz o nome
+  ok  campanha estranha não passa
+  ok  o pedido vai para a mesma porta
+  ok  o pedido tem os mesmos campos do Studio completo
+  ok  padrões ficam fora da URL
+  ok  escolhas viajam
+  ok  o Studio completo monta os mesmos campos (se mudar lá, este guardião avisa)
+  ok  grava o token que o /studio/create lê
+  ok  o funil do Studio segue medido
+  ok  o texto recusado não navega
+  ok  Studio completo a 1 clique
+  ok  nenhum preço na tela
+  ok  a página escolhe pela regra
+  ok  visitante não recebe oferta na cara
+  ok  o desvio da home está ligado
+  ok  mutante: caixa para todos perderia o texto do ChatGPT
+
+29 ok, 0 falha(s)

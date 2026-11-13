@@ -1,0 +1,9 @@
+1) constantes do contrato
+2) payload a partir de atributos
+3) trava de duplicata
+4) ouvinte único no documento
+5) componente, layout e fonte única
+6) o sink aceita o evento do navegador
+7) contrato de atributos com o Codex
+   contrato: 57 atributo(s) literal(is) conferido(s), 31 dinâmico(s) — 0 é o esperado até o lote do menu do Codex
+nav_item_clicked: 66 ok, 0 falha(s)

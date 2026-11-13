@@ -5,6 +5,14 @@
 Browserslist: browsers data (caniuse-lite) is 6 months old. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (101kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (231kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+Browserslist: browsers data (caniuse-lite) is 6 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
  ✓ Compiled successfully
    Skipping validation of types
    Collecting page data ...
@@ -21,8 +29,8 @@ Browserslist: browsers data (caniuse-lite) is 6 months old. Please run:
    Collecting build traces ...
 
 Route (app)                                               Size     First Load JS
-┌ ƒ /                                                     415 B           454 kB
-├ ○ /_not-found                                           209 B          88.2 kB
+┌ ƒ /                                                     414 B           454 kB
+├ ○ /_not-found                                           212 B          88.3 kB
 ├ ƒ /.well-known/oauth-authorization-server               0 B                0 B
 ├ ƒ /.well-known/oauth-protected-resource                 0 B                0 B
 ├ ƒ /.well-known/oauth-protected-resource/api/mcp/studio  0 B                0 B
@@ -30,29 +38,29 @@ Route (app)                                               Size     First Load JS
 ├ ƒ /a/[code]                                             0 B                0 B
 ├ ƒ /account                                              13.2 kB         354 kB
 ├ ƒ /admin                                                189 B           106 kB
-├ ƒ /admin/ads                                            1.07 kB        89.1 kB
+├ ƒ /admin/ads                                            1.07 kB        89.2 kB
 ├ ƒ /admin/affiliates                                     8.1 kB          103 kB
 ├ ƒ /admin/ceo                                            179 B           106 kB
-├ ƒ /admin/clientes                                       223 B          95.1 kB
-├ ƒ /admin/coerencia                                      3.81 kB        98.7 kB
+├ ƒ /admin/clientes                                       224 B          95.1 kB
+├ ƒ /admin/coerencia                                      3.8 kB         98.7 kB
 ├ ƒ /admin/demo                                           6.93 kB          95 kB
 ├ ƒ /admin/funnel                                         14.7 kB         110 kB
-├ ƒ /admin/leads                                          3.84 kB        98.7 kB
-├ ƒ /admin/metrics                                        3.17 kB          98 kB
+├ ƒ /admin/leads                                          3.84 kB        98.8 kB
+├ ƒ /admin/metrics                                        3.17 kB        98.1 kB
 ├ ƒ /admin/mrr-reactivation                               1.95 kB          90 kB
-├ ƒ /admin/overview                                       223 B          95.1 kB
+├ ƒ /admin/overview                                       224 B          95.1 kB
 ├ ƒ /admin/partners                                       2.43 kB        97.3 kB
-├ ƒ /admin/paying                                         223 B          95.1 kB
+├ ƒ /admin/paying                                         224 B          95.1 kB
 ├ ƒ /admin/pedidos                                        1.03 kB        95.9 kB
-├ ƒ /admin/people                                         7.61 kB         102 kB
-├ ƒ /admin/people/[id]                                    223 B          95.1 kB
-├ ƒ /admin/supplier-health                                223 B          95.1 kB
-├ ƒ /admin/trial-abuse                                    223 B          95.1 kB
-├ ƒ /admin/trial-cohort                                   223 B          95.1 kB
-├ ƒ /admin/trial-roi                                      223 B          95.1 kB
+├ ƒ /admin/people                                         7.61 kB         103 kB
+├ ƒ /admin/people/[id]                                    224 B          95.1 kB
+├ ƒ /admin/supplier-health                                224 B          95.1 kB
+├ ƒ /admin/trial-abuse                                    224 B          95.1 kB
+├ ƒ /admin/trial-cohort                                   224 B          95.1 kB
+├ ƒ /admin/trial-roi                                      224 B          95.1 kB
 ├ ƒ /admin/users                                          4.51 kB        99.4 kB
 ├ ƒ /ads                                                  7.81 kB         319 kB
-├ ● /ads/for/[segment]                                    594 B          93.7 kB
+├ ● /ads/for/[segment]                                    594 B          93.8 kB
 ├   ├ /ads/for/restaurants
 ├   ├ /ads/for/dentists-and-clinics
 ├   ├ /ads/for/real-estate
@@ -60,32 +68,32 @@ Route (app)                                               Size     First Load JS
 ├ ƒ /ads/new                                              42.8 kB         177 kB
 ├ ƒ /ads/producao                                         15.1 kB         270 kB
 ├ ƒ /ads/team                                             2.83 kB         258 kB
-├ ƒ /ads/team/join                                        1.47 kB        89.5 kB
-├ ƒ /ads/v2                                               2.71 kB         695 kB
+├ ƒ /ads/team/join                                        1.47 kB        89.6 kB
+├ ƒ /ads/v2                                               2.72 kB         695 kB
 ├ ƒ /affiliate                                            12.4 kB         111 kB
 ├ ○ /agencies                                             5.31 kB         312 kB
 ├ ƒ /agency-production-scope.txt                          0 B                0 B
 ├ ○ /ai-avatar                                            5.58 kB         292 kB
 ├ ○ /ai-baby-podcast-videos                               2.46 kB         365 kB
-├ ○ /ai-black-friday-video-ads                            280 B           363 kB
+├ ○ /ai-black-friday-video-ads                            279 B           363 kB
 ├ ○ /ai-face-swap-video                                   2.14 kB         288 kB
 ├ ƒ /ai-faceless-video-generator                          0 B                0 B
 ├ ○ /ai-halloween-video                                   2.25 kB         283 kB
 ├ ○ /ai-image-generator                                   2.25 kB         283 kB
-├ ○ /ai-kids-cartoon-videos                               1.7 kB          380 kB
-├ ○ /ai-robot-video-generator                             209 B          88.2 kB
-├ ○ /ai-short-film-generator                              169 B           297 kB
-├ ○ /ai-shorts-for-agencies                               9.41 kB         290 kB
-├ ○ /ai-shorts-generator-no-watermark                     168 B           297 kB
+├ ○ /ai-kids-cartoon-videos                               1.69 kB         380 kB
+├ ○ /ai-robot-video-generator                             212 B          88.3 kB
+├ ○ /ai-short-film-generator                              170 B           298 kB
+├ ○ /ai-shorts-for-agencies                               9.42 kB         290 kB
+├ ○ /ai-shorts-generator-no-watermark                     169 B           298 kB
 ├ ○ /ai-shorts-series                                     2.25 kB         283 kB
-├ ○ /ai-shorts-without-filming                            158 B           288 kB
-├ ○ /ai-ugc-ads                                           280 B           363 kB
-├ ● /ai-ugc-ads/for/[niche]                               280 B           363 kB
+├ ○ /ai-shorts-without-filming                            160 B           288 kB
+├ ○ /ai-ugc-ads                                           279 B           363 kB
+├ ● /ai-ugc-ads/for/[niche]                               279 B           363 kB
 ├   ├ /ai-ugc-ads/for/beauty-skincare
 ├   ├ /ai-ugc-ads/for/perfume
 ├   ├ /ai-ugc-ads/for/supplements
 ├   └ [+9 more paths]
-├ ○ /ai-ugc-video-generator                               280 B           363 kB
+├ ○ /ai-ugc-video-generator                               279 B           363 kB
 ├ ○ /ai-video-generator                                   2.93 kB         289 kB
 ├ ● /ai-video-generator/[engine]                          6.91 kB         351 kB
 ├   ├ /ai-video-generator/seedance
@@ -97,35 +105,35 @@ Route (app)                                               Size     First Load JS
 ├   ├ /ai-video-generator/seedance/de
 ├   ├ /ai-video-generator/seedance/it
 ├   └ [+10 more paths]
-├ ○ /ai-video-generator/chatgpt-script-to-finished-short  667 B           104 kB
-├ ○ /ai-video-generator/complete-60-second-shorts-cost    667 B           104 kB
-├ ○ /ai-video-generator/faceless-shorts-under-30          677 B           104 kB
+├ ○ /ai-video-generator/chatgpt-script-to-finished-short  672 B           104 kB
+├ ○ /ai-video-generator/complete-60-second-shorts-cost    672 B           104 kB
+├ ○ /ai-video-generator/faceless-shorts-under-30          679 B           104 kB
 ├ ○ /ai-video-generator/for                               2.25 kB         283 kB
-├ ● /ai-video-generator/for/[slug]                        187 B           332 kB
+├ ● /ai-video-generator/for/[slug]                        190 B           332 kB
 ├   ├ /ai-video-generator/for/faceless-youtube-channels
 ├   ├ /ai-video-generator/for/youtube-shorts-creators
 ├   ├ /ai-video-generator/for/tiktok
 ├   └ [+126 more paths]
-├ ○ /ai-video-generator/free-faceless-tiktok-tools        677 B           104 kB
-├ ○ /ai-video-generator/free-script-to-faceless-video     677 B           104 kB
-├ ○ /ai-video-generator/free-youtube-shorts               677 B           104 kB
-├ ○ /ai-video-generator/horror-story-60-seconds           677 B           104 kB
-├ ○ /ai-video-generator/kling-4                           5.4 kB          292 kB
+├ ○ /ai-video-generator/free-faceless-tiktok-tools        679 B           104 kB
+├ ○ /ai-video-generator/free-script-to-faceless-video     679 B           104 kB
+├ ○ /ai-video-generator/free-youtube-shorts               679 B           104 kB
+├ ○ /ai-video-generator/horror-story-60-seconds           679 B           104 kB
+├ ○ /ai-video-generator/kling-4                           5.39 kB         292 kB
 ├ ○ /ai-video-generator/seedance-2-5                      2.43 kB         289 kB
 ├ ○ /ai-video-index                                       2.25 kB         283 kB
 ├ ○ /ai-video-upscaler                                    2.25 kB         283 kB
 ├ ○ /ai-video-with-talking-characters                     2.52 kB         283 kB
 ├ ○ /ai-voice-generator                                   2.25 kB         283 kB
-├ ○ /alternatives                                         277 B           332 kB
-├ ● /alternatives/[competitor]                            276 B           332 kB
+├ ○ /alternatives                                         279 B           332 kB
+├ ● /alternatives/[competitor]                            278 B           332 kB
 ├   ├ /alternatives/opusclip
 ├   ├ /alternatives/invideo
 ├   ├ /alternatives/submagic
 ├   └ [+26 more paths]
 ├ ƒ /animate                                              13.7 kB         297 kB
-├ ○ /anuncios-black-friday-com-ia                         280 B           363 kB
-├ ○ /anuncios-black-friday-con-ia                         653 B          99.2 kB
-├ ○ /anuncios-ugc-com-ia                                  280 B           363 kB
+├ ○ /anuncios-black-friday-com-ia                         279 B           363 kB
+├ ○ /anuncios-black-friday-con-ia                         656 B          99.3 kB
+├ ○ /anuncios-ugc-com-ia                                  279 B           363 kB
 ├ ƒ /api/ad-script                                        0 B                0 B
 ├ ƒ /api/admin/ads                                        0 B                0 B
 ├ ƒ /api/admin/ads-cena                                   0 B                0 B
@@ -485,8 +493,8 @@ Route (app)                                               Size     First Load JS
 ├ ƒ /api/youtube/disconnect                               0 B                0 B
 ├ ƒ /api/youtube/status                                   0 B                0 B
 ├ ƒ /api/youtube/upload                                   0 B                0 B
-├ ○ /approve                                              5.45 kB         117 kB
-├ ○ /arena                                                223 B          95.1 kB
+├ ○ /approve                                              5.44 kB         117 kB
+├ ○ /arena                                                224 B          95.1 kB
 ├ ƒ /audio                                                4.83 kB         287 kB
 ├ ƒ /auth/callback                                        0 B                0 B
 ├ ƒ /auth/guest-link                                      0 B                0 B
@@ -494,75 +502,75 @@ Route (app)                                               Size     First Load JS
 ├ ƒ /autopilot                                            11 kB           114 kB
 ├ ƒ /avatar                                               16.4 kB         354 kB
 ├ ƒ /baby-podcast                                         5.27 kB         356 kB
-├ ○ /best-ai-shorts-generators                            903 B           318 kB
-├ ƒ /black-friday                                         3.77 kB         287 kB
+├ ○ /best-ai-shorts-generators                            904 B           318 kB
+├ ƒ /black-friday                                         3.77 kB         288 kB
 ├ ○ /brainrot-video-generator                             2.53 kB         287 kB
 ├ ○ /business                                             197 B           126 kB
-├ ○ /business-pilot-review                                5.89 kB         287 kB
+├ ○ /business-pilot-review                                5.88 kB         287 kB
 ├ ○ /business-video-ads                                   4.91 kB         172 kB
-├ ƒ /business-video-ads/brief                             3.25 kB          95 kB
+├ ƒ /business-video-ads/brief                             3.25 kB        95.1 kB
 ├ ƒ /business-video-content-plan                          9.63 kB         291 kB
 ├ ○ /can-you-monetize-ai-videos                           3.37 kB         104 kB
-├ ƒ /channel                                              4.68 kB        99.5 kB
+├ ƒ /channel                                              4.68 kB        99.6 kB
 ├ ○ /chatgpt                                              2.63 kB         338 kB
-├ ○ /chatgpt-to-youtube-shorts                            2.89 kB         287 kB
+├ ○ /chatgpt-to-youtube-shorts                            2.9 kB          287 kB
 ├ ○ /cheapest-ai-shorts-maker                             10.8 kB         301 kB
-├ ○ /checkout/cancelled                                   11.3 kB         154 kB
-├ ○ /checkout/guest                                       2.73 kB        97.6 kB
-├ ○ /checkout/item                                        2.17 kB        90.2 kB
+├ ○ /checkout/cancelled                                   11.3 kB         155 kB
+├ ○ /checkout/guest                                       2.74 kB        97.6 kB
+├ ○ /checkout/item                                        2.18 kB        90.3 kB
 ├ ○ /checkout/success                                     11.4 kB         140 kB
-├ ○ /claude-connector                                     3.44 kB         296 kB
-├ ○ /client-video-brief-generator                         9.19 kB         290 kB
+├ ○ /claude-connector                                     3.43 kB         296 kB
+├ ○ /client-video-brief-generator                         9.18 kB         290 kB
 ├ ƒ /clips                                                9.65 kB         331 kB
-├ ƒ /comment-to-video                                     5.26 kB         286 kB
-├ ○ /compare/heygen-alternative                           209 B          88.2 kB
-├ ○ /compare/invideo-alternative                          209 B          88.2 kB
-├ ƒ /conferencia-receita                                  1.22 kB         284 kB
-├ ○ /contact                                              209 B          88.2 kB
-├ ƒ /create                                               9.42 kB         175 kB
+├ ƒ /comment-to-video                                     5.25 kB         286 kB
+├ ○ /compare/heygen-alternative                           212 B          88.3 kB
+├ ○ /compare/invideo-alternative                          212 B          88.3 kB
+├ ƒ /conferencia-receita                                  1.22 kB         285 kB
+├ ○ /contact                                              212 B          88.3 kB
+├ ƒ /create                                               9.41 kB         175 kB
 ├ ƒ /create/[tab]                                         21.8 kB         782 kB
-├ ƒ /dashboard                                            210 B          88.2 kB
-├ ○ /desenho-infantil-3d-com-ia                           1.7 kB          380 kB
+├ ƒ /dashboard                                            212 B          88.3 kB
+├ ○ /desenho-infantil-3d-com-ia                           1.69 kB         380 kB
 ├ ƒ /done-for-you                                         1.32 kB        89.4 kB
-├ ƒ /effects/[slug]                                       168 B           286 kB
-├ ƒ /effects/[slug]/[lang]                                168 B           286 kB
-├ ƒ /es/made-with-kineo                                   594 B          95.4 kB
-├ ƒ /es/made-with-kineo/[slug]                            594 B          95.4 kB
+├ ƒ /effects/[slug]                                       169 B           286 kB
+├ ƒ /effects/[slug]/[lang]                                170 B           286 kB
+├ ƒ /es/made-with-kineo                                   594 B          95.5 kB
+├ ƒ /es/made-with-kineo/[slug]                            594 B          95.5 kB
 ├ ƒ /examples                                             4.12 kB         336 kB
 ├ ● /examples/[slug]                                      2.74 kB         101 kB
 ├   ├ /examples/turkmenistan-door-to-hell
 ├   ├ /examples/north-sentinel-island
 ├   ├ /examples/japan-autonomous-ai
 ├   └ [+3 more paths]
-├ ƒ /examples/design                                      1.09 kB         273 kB
-├ ○ /faceless-channel-ideas                               157 B           288 kB
+├ ƒ /examples/design                                      1.08 kB         273 kB
+├ ○ /faceless-channel-ideas                               159 B           288 kB
 ├ ƒ /faceless-video-generator                             4.98 kB         290 kB
 ├ ○ /faceless-youtube-shorts-generator                    2.52 kB         283 kB
-├ ○ /facts                                                209 B          88.2 kB
+├ ○ /facts                                                212 B          88.3 kB
 ├ ○ /film-60                                              4.06 kB         102 kB
-├ ○ /film-complete                                        11 kB           274 kB
+├ ○ /film-complete                                        11 kB           275 kB
 ├ ○ /forgot-password                                      4.33 kB         172 kB
-├ ○ /founding                                             209 B          88.2 kB
+├ ○ /founding                                             212 B          88.3 kB
 ├ ƒ /free                                                 0 B                0 B
 ├ ○ /free-ai-shorts                                       311 B           346 kB
-├ ƒ /free-ai-shorts-generator                             3.89 kB         356 kB
+├ ƒ /free-ai-shorts-generator                             3.9 kB          356 kB
 ├ ● /free-ai-shorts/[niche]                               311 B           346 kB
 ├   ├ /free-ai-shorts/money
 ├   ├ /free-ai-shorts/faith
 ├   ├ /free-ai-shorts/mystery
 ├   └ [+42 more paths]
-├ ƒ /free-hook-generator                                  7.59 kB         294 kB
-├ ƒ /free-script-generator                                7.73 kB         306 kB
+├ ƒ /free-hook-generator                                  7.6 kB          294 kB
+├ ƒ /free-script-generator                                7.73 kB         307 kB
 ├ ● /free-shorts-generator/[lang]                         2.92 kB         305 kB
 ├   ├ /free-shorts-generator/fr
 ├   ├ /free-shorts-generator/de
 ├   ├ /free-shorts-generator/it
 ├   └ [+10 more paths]
-├ ƒ /from-saashub                                         4.59 kB         108 kB
+├ ƒ /from-saashub                                         4.6 kB          108 kB
 ├ ƒ /from-youtube                                         4.64 kB         108 kB
-├ ○ /generador-de-shorts-gratis                           2.83 kB         305 kB
-├ ○ /generador-de-videos-de-terror                        169 B           297 kB
-├ ƒ /generate                                             209 B          88.2 kB
+├ ○ /generador-de-shorts-gratis                           2.84 kB         305 kB
+├ ○ /generador-de-videos-de-terror                        169 B           298 kB
+├ ƒ /generate                                             212 B          88.3 kB
 ├ ○ /gerador-de-shorts-gratis                             1.54 kB         353 kB
 ├ ƒ /go/[token]                                           3.98 kB         276 kB
 ├ ● /guides/[slug]                                        2.02 kB         101 kB
@@ -570,49 +578,49 @@ Route (app)                                               Size     First Load JS
 ├   ├ /guides/ai-dropshipping-video-ads
 ├   ├ /guides/ai-personal-care-product-ads
 ├   └ [+5 more paths]
-├ ƒ /history                                              1.08 kB         329 kB
-├ ○ /how-much-do-instagram-reels-pay                      656 B           103 kB
-├ ○ /how-much-do-youtube-shorts-pay                       199 B           106 kB
-├ ○ /how-much-does-tiktok-pay                             656 B           103 kB
+├ ƒ /history                                              1.09 kB         329 kB
+├ ○ /how-much-do-instagram-reels-pay                      655 B           103 kB
+├ ○ /how-much-do-youtube-shorts-pay                       198 B           106 kB
+├ ○ /how-much-does-tiktok-pay                             655 B           103 kB
 ├ ○ /how-to-start-a-faceless-youtube-channel              2.53 kB         287 kB
 ├ ○ /icon.png                                             0 B                0 B
-├ ƒ /images                                               15.3 kB         297 kB
-├ ƒ /kids-cartoon                                         3.11 kB         354 kB
+├ ƒ /images                                               15.3 kB         298 kB
+├ ƒ /kids-cartoon                                         3.12 kB         354 kB
 ├ ○ /kineo-in-claude                                      10.5 kB         291 kB
-├ ○ /kineo-vs-higgsfield                                  223 B          95.1 kB
+├ ○ /kineo-vs-higgsfield                                  224 B          95.1 kB
 ├ ○ /kineo-vs-kineo-studio                                2.25 kB         283 kB
 ├ ƒ /library                                              12.4 kB         340 kB
 ├ ○ /llms.txt                                             0 B                0 B
 ├ ○ /login                                                6.24 kB         345 kB
 ├ ƒ /made-with-kineo                                      8.97 kB         383 kB
-├ ƒ /made-with-kineo/[slug]                               594 B          95.4 kB
+├ ƒ /made-with-kineo/[slug]                               594 B          95.5 kB
 ├ ƒ /made-with-kineo/manage                               3.47 kB         265 kB
 ├ ƒ /made-with-kineo/sitemap.xml                          0 B                0 B
 ├ ƒ /make                                                 0 B                0 B
-├ ○ /make-money-clipping-with-ai                          1.34 kB        93.1 kB
+├ ○ /make-money-clipping-with-ai                          1.35 kB        93.2 kB
 ├ ○ /manifest.webmanifest                                 0 B                0 B
-├ ○ /models-pricing                                       223 B          95.1 kB
-├ ƒ /my-videos                                            7.1 kB          119 kB
+├ ○ /models-pricing                                       224 B          95.1 kB
+├ ƒ /my-videos                                            7.11 kB         119 kB
 ├ ○ /niche-picker                                         5.78 kB         104 kB
 ├ ƒ /og-card.png                                          0 B                0 B
 ├ ƒ /og-image.png                                         0 B                0 B
-├ ○ /omni-flash-vs-sora                                   210 B          88.2 kB
+├ ○ /omni-flash-vs-sora                                   213 B          88.3 kB
 ├ ○ /partners                                             3.1 kB          284 kB
 ├ ○ /ph                                                   3.32 kB         284 kB
 ├ ƒ /pricing                                              48.4 kB         485 kB
 ├ ○ /privacy                                              2.21 kB         283 kB
-├ ○ /product-to-video-script                              5.82 kB         287 kB
-├ ƒ /pt/made-with-kineo                                   594 B          95.4 kB
-├ ƒ /pt/made-with-kineo/[slug]                            594 B          95.4 kB
+├ ○ /product-to-video-script                              5.81 kB         287 kB
+├ ƒ /pt/made-with-kineo                                   594 B          95.5 kB
+├ ƒ /pt/made-with-kineo/[slug]                            594 B          95.5 kB
 ├ ○ /real-estate-video-maker                              2.25 kB         283 kB
 ├ ƒ /recreate                                             2.3 kB          203 kB
-├ ƒ /recreate/[id]                                        224 B           201 kB
+├ ƒ /recreate/[id]                                        225 B           201 kB
 ├ ○ /reddit-story-video-generator                         2.53 kB         287 kB
-├ ƒ /referral                                             1.3 kB         89.3 kB
+├ ƒ /referral                                             1.3 kB         89.4 kB
 ├ ○ /refund                                               2.25 kB         283 kB
-├ ○ /reset-password                                       4.92 kB         172 kB
-├ ○ /reviews                                              210 B          88.2 kB
-├ ƒ /revive/[handle]                                      210 B          88.2 kB
+├ ○ /reset-password                                       4.91 kB         172 kB
+├ ○ /reviews                                              212 B          88.3 kB
+├ ƒ /revive/[handle]                                      212 B          88.3 kB
 ├ ○ /robots.txt                                           0 B                0 B
 ├ ƒ /s/[channel]                                          0 B                0 B
 ├ ○ /scripts                                              2.65 kB         305 kB
@@ -628,34 +636,34 @@ Route (app)                                               Size     First Load JS
 ├ ƒ /shopify/open                                         0 B                0 B
 ├ ○ /short-form-video-vendor-evaluation.csv               0 B                0 B
 ├ ƒ /shorts-ideas.xml                                     0 B                0 B
-├ ○ /shorts-money-calculator                              181 B           102 kB
+├ ○ /shorts-money-calculator                              185 B           103 kB
 ├ ○ /showcase                                             11.7 kB         300 kB
 ├ ○ /signup                                               13.5 kB         359 kB
 ├ ○ /sitemap.xml                                          0 B                0 B
 ├ ○ /sora-alternative                                     179 B          95.6 kB
 ├ ƒ /spaces                                               31.7 kB         302 kB
-├ ○ /start                                                209 B          88.2 kB
+├ ○ /start                                                212 B          88.3 kB
 ├ ○ /state-of-ai-shorts-2026                              2.66 kB         330 kB
 ├ ƒ /studio                                               81.6 kB         494 kB
 ├ ƒ /studio/create                                        191 kB          633 kB
-├ ƒ /studio/previa                                        5.91 kB         271 kB
-├ ○ /support                                              210 B          88.2 kB
-├ ƒ /templates                                            2.6 kB         90.6 kB
+├ ƒ /studio/previa                                        5.92 kB         272 kB
+├ ○ /support                                              212 B          88.3 kB
+├ ƒ /templates                                            2.6 kB         90.7 kB
 ├ ○ /terms                                                2.25 kB         283 kB
 ├ ○ /text-to-video-shorts                                 5.51 kB         348 kB
 ├ ƒ /thumbnail-generator                                  7.16 kB         270 kB
 ├ ○ /tiktok-creator-rewards-length-checker                6.2 kB          296 kB
-├ ○ /tiktok-creator-rewards-videos                        223 B          95.1 kB
-├ ○ /tiktok-vs-youtube-shorts-monetization                2.46 kB        94.2 kB
+├ ○ /tiktok-creator-rewards-videos                        225 B          95.1 kB
+├ ○ /tiktok-vs-youtube-shorts-monetization                2.46 kB        94.3 kB
 ├ ○ /tools                                                2.21 kB         283 kB
 ├ ƒ /tools/editor                                         9.1 kB          271 kB
-├ ○ /trending                                             209 B          88.2 kB
+├ ○ /trending                                             212 B          88.3 kB
 ├ ○ /trust                                                3.47 kB         284 kB
-├ ƒ /unsubscribe                                          223 B          95.1 kB
-├ ƒ /v/[id]                                               3.17 kB         104 kB
+├ ƒ /unsubscribe                                          225 B          95.1 kB
+├ ƒ /v/[id]                                               3.18 kB         104 kB
 ├ ƒ /v/[id]/opengraph-image                               0 B                0 B
-├ ƒ /v2                                                   3.37 kB        98.2 kB
-├ ƒ /video                                                8.02 kB        99.6 kB
+├ ƒ /v2                                                   3.37 kB        98.3 kB
+├ ƒ /video                                                8.01 kB        99.6 kB
 ├ ƒ /video-sitemap.xml                                    0 B                0 B
 ├ ○ /videos-bebe-podcast-ia                               2.46 kB         365 kB
 ├ ƒ /viral-now                                            3.94 kB         128 kB
@@ -666,39 +674,39 @@ Route (app)                                               Size     First Load JS
 ├   ├ /vs/opus-clip-vs-submagic
 ├   ├ /vs/captions-vs-submagic
 ├   └ [+89 more paths]
-├ ○ /vs/arcads-alternative                                437 B          88.5 kB
-├ ○ /vs/autoshorts-alternative                            1.58 kB         115 kB
-├ ○ /vs/capcut-alternatives-no-editing-shorts             1.58 kB         115 kB
-├ ○ /vs/crayo-alternative                                 1.58 kB         115 kB
-├ ○ /vs/creatify-alternative                              437 B          88.5 kB
-├ ○ /vs/dreamina-alternatives-narrated-shorts             1.58 kB         115 kB
-├ ○ /vs/faceless-video-alternative                        1.58 kB         115 kB
-├ ○ /vs/fliki-alternative                                 1.58 kB         115 kB
-├ ○ /vs/google-flow-alternatives-finished-shorts          1.58 kB         115 kB
-├ ○ /vs/invideo-alternatives-faceless-shorts              667 B           104 kB
-├ ○ /vs/opus-clip-alternatives-original-shorts            1.58 kB         115 kB
-├ ○ /vs/pictory-alternatives-cinematic-shorts             1.58 kB         115 kB
-├ ○ /vs/revid-alternative                                 1.58 kB         115 kB
-├ ○ /vs/synthesia-alternatives-faceless-videos            1.58 kB         115 kB
-├ ○ /vs/topview-alternative                               437 B          88.5 kB
-├ ○ /vs/zebracat-alternative                              1.58 kB         115 kB
-├ ○ /vs/zeely-alternative                                 437 B          88.5 kB
+├ ○ /vs/arcads-alternative                                438 B          88.5 kB
+├ ○ /vs/autoshorts-alternative                            1.59 kB         115 kB
+├ ○ /vs/capcut-alternatives-no-editing-shorts             1.59 kB         115 kB
+├ ○ /vs/crayo-alternative                                 1.59 kB         115 kB
+├ ○ /vs/creatify-alternative                              438 B          88.5 kB
+├ ○ /vs/dreamina-alternatives-narrated-shorts             1.59 kB         115 kB
+├ ○ /vs/faceless-video-alternative                        1.59 kB         115 kB
+├ ○ /vs/fliki-alternative                                 1.59 kB         115 kB
+├ ○ /vs/google-flow-alternatives-finished-shorts          1.59 kB         115 kB
+├ ○ /vs/invideo-alternatives-faceless-shorts              672 B           104 kB
+├ ○ /vs/opus-clip-alternatives-original-shorts            1.59 kB         115 kB
+├ ○ /vs/pictory-alternatives-cinematic-shorts             1.59 kB         115 kB
+├ ○ /vs/revid-alternative                                 1.59 kB         115 kB
+├ ○ /vs/synthesia-alternatives-faceless-videos            1.59 kB         115 kB
+├ ○ /vs/topview-alternative                               438 B          88.5 kB
+├ ○ /vs/zebracat-alternative                              1.59 kB         115 kB
+├ ○ /vs/zeely-alternative                                 438 B          88.5 kB
 ├ ƒ /wall                                                 2.86 kB         101 kB
 ├ ƒ /watch-preview                                        1.47 kB         455 kB
 ├ ○ /when-does-youtube-pay-you                            187 B           332 kB
-├ ○ /widget                                               832 B          88.9 kB
-├ ƒ /widget/embed                                         210 B          88.2 kB
+├ ○ /widget                                               833 B          88.9 kB
+├ ƒ /widget/embed                                         212 B          88.3 kB
 ├ ○ /youtube-automation                                   2.53 kB         287 kB
-├ ○ /youtube-automation-case-study                        653 B          99.2 kB
+├ ○ /youtube-automation-case-study                        656 B          99.3 kB
 ├ ○ /youtube-shorts-from-topic                            6.25 kB         296 kB
-├ ○ /youtube-shorts-revenue-sharing-explained             187 B           332 kB
-├ ○ /youtube-shorts-rpm-by-niche                          189 B           106 kB
-├ ○ /youtube-shorts-script-timer                          9.55 kB         301 kB
+├ ○ /youtube-shorts-revenue-sharing-explained             188 B           332 kB
+├ ○ /youtube-shorts-rpm-by-niche                          194 B           106 kB
+├ ○ /youtube-shorts-script-timer                          9.54 kB         301 kB
 └ ○ /youtube-shorts-title-generator                       6.14 kB         287 kB
-+ First Load JS shared by all                             88 kB
-  ├ chunks/1d21227e-2ae1d53150ff7631.js                   53.6 kB
-  ├ chunks/354-9eff527cfdb6271e.js                        31.7 kB
-  └ other shared chunks (total)                           2.74 kB
++ First Load JS shared by all                             88.1 kB
+  ├ chunks/3988-921594db13fd0515.js                       31.7 kB
+  ├ chunks/aba3b86c-8f85b3a2c06b71f4.js                   53.6 kB
+  └ other shared chunks (total)                           2.75 kB
 
 
 ƒ Middleware                                              95.5 kB

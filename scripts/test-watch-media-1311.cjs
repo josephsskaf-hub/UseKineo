@@ -212,7 +212,7 @@ function boot(options = {}) {
   const box = {}
   const video = options.video || new Video()
   const states = []
-  const controller = helper.createWatchMediaController(box, video, options.src || approved[0].original, state => states.push(state))
+  const controller = helper.createWatchMediaController(box, video, options.src || approved[0].original, state => states.push(state), !!options.paused)
   return { doc, motion, connection, observers, observer: observers[0], box, video, states, controller, helper }
 }
 const flush = () => new Promise(resolve => setImmediate(resolve))
@@ -332,6 +332,50 @@ async function scenario(name, run) { await run(); scenarios++; process.stdout.wr
     eq(video.playCalls, calls)
   })
 
+  await scenario('10 explicit pause persists across viewport/visibility and cannot override reduced motion or Save-Data', async () => {
+    const e = boot()
+    e.observer.emit(1); await flush()
+    e.controller.setPaused(true)
+    eq(e.video.getAttribute('src'), null)
+    ok(e.video.paused && !e.states.at(-1).canPlay)
+    const attempts = e.video.playCalls
+    e.observer.emit(0, false); e.observer.emit(1)
+    e.doc.hidden = true; e.doc.emit('visibilitychange')
+    e.doc.hidden = false; e.doc.emit('visibilitychange')
+    e.motion.emit('change'); e.connection.emit('change')
+    e.controller.requestPlay()
+    eq(e.video.getAttribute('src'), null)
+    eq(e.video.playCalls, attempts)
+    e.connection.saveData = true; e.connection.emit('change')
+    e.controller.setPaused(false)
+    eq(e.video.getAttribute('src'), null)
+    e.connection.saveData = false; e.connection.emit('change'); await flush()
+    ok(e.states.at(-1).playing)
+    e.controller.setPaused(true)
+    e.controller.destroy()
+    const next = e.helper.createWatchMediaController({}, e.video, approved[1].original, () => {}, true)
+    e.observers[1].emit(1)
+    eq(e.video.getAttribute('src'), null, 'paused prop survives a source/controller replacement')
+    e.motion.matches = true; e.motion.emit('change')
+    next.setPaused(false)
+    eq(e.video.getAttribute('src'), null, 'resume never overrides reduced motion')
+    e.motion.matches = false; e.motion.emit('change'); await flush()
+    eq(e.video.getAttribute('src'), approved[1].light)
+    next.destroy()
+  })
+  await scenario('11 a pending play promise cannot resurrect an explicitly paused preview', async () => {
+    let settle
+    const video = new Video()
+    video.playImpl = () => new Promise(resolve => { settle = resolve })
+    const e = boot({ video })
+    e.observer.emit(1)
+    e.controller.setPaused(true)
+    settle(); await flush()
+    eq(video.getAttribute('src'), null)
+    ok(video.paused && !e.states.at(-1).playing)
+    e.controller.destroy()
+  })
+
   const helper = load({})
   eq(Object.keys(helper.WATCH_PREVIEW_MAP).length, 24)
   for (const item of approved) {
@@ -361,5 +405,56 @@ async function scenario(name, run) { await run(); scenarios++; process.stdout.wr
   ok(!initial.includes('<button'), 'safe default inside product Links')
   const withButton = renderToStaticMarkup(React.createElement(component, { src: '/previews/galeria/selfie-confete.mp4', showPlayButton: true }))
   ok(withButton.includes('<button') && withButton.includes('disabled=""') && withButton.includes('min-height:44px'))
+
+  // Exercise the actual home button/state and forwarding. Routing is covered by
+  // the separate 17-mutant home guard; its unrelated children are explicit stubs.
+  const hookValues = [], MediaStub = () => null
+  let hookIndex = 0
+  const reactHooks = { ...React, useState(initial) {
+    const index = hookIndex++
+    if (!(index in hookValues)) hookValues[index] = typeof initial === 'function' ? initial() : initial
+    return [hookValues[index], update => { hookValues[index] = typeof update === 'function' ? update(hookValues[index]) : update }]
+  } }
+  const Link = ({ children, ...props }) => React.createElement('a', props, children)
+  const featured = poster.CLIPES_NOVOS.filter(item => item.produto === 'film').slice(0, 2).map(item => ({ ...item, videoUrl: poster.clipeNovoVideo(item), posterUrl: poster.clipeNovoPoster(item) }))
+  const Home = evaluate(compile(read('components/home/WatchVisitorHome.tsx'), 'WatchVisitorHome.tsx'), {
+    react: reactHooks, 'react/jsx-runtime': dependency('react/jsx-runtime'),
+    'next/link': { __esModule: true, default: Link },
+    '@/components/InterfaceLanguage': { UiLabel: ({ children }) => children, InterfaceLanguageSelect: () => null },
+    '@/lib/clipesNos2Lugares': poster,
+    '@/lib/home/watchEntry': { watchClipHref: item => '/project/' + item.id, watchClipLabel: () => 'Use idea', WATCH_FEATURED_FILMS: featured, watchFilmExampleHref: id => '/film/' + id },
+    './WatchMedia': { __esModule: true, default: MediaStub },
+    '@/lib/analytics': { trackEvent: () => { throw Error('Pause must not record a conversion event') } },
+    '@/lib/home/watchTelemetry': { watchViewportMetadata: () => ({}) },
+  }).default
+  const renderHome = () => { hookIndex = 0; return Home({ preview: true }) }
+  const walk = (node, visit, parents = []) => {
+    if (Array.isArray(node)) return node.forEach(child => walk(child, visit, parents))
+    if (!node || typeof node !== 'object' || !node.props) return
+    visit(node, parents)
+    walk(node.props.children, visit, [...parents, node])
+  }
+  const inspectHome = tree => {
+    const media = [], controls = []
+    walk(tree, (node, parents) => {
+      if (node.type === MediaStub) media.push(node)
+      if (node.type === 'button' && /^(Pause|Play) previews$/.test(node.props['aria-label'] || '')) controls.push({ node, parents })
+    })
+    return { media, controls }
+  }
+  let home = inspectHome(renderHome())
+  eq(home.controls.length, 1, 'one persistent global pause control')
+  ok(home.media.length > 0 && home.media.every(node => node.props.paused === false))
+  eq(home.controls[0].node.props['aria-pressed'], false)
+  ok(!home.controls[0].parents.some(node => node.type === Link), 'pause is outside product links')
+  home.controls[0].node.props.onClick()
+  home = inspectHome(renderHome())
+  eq(home.controls[0].node.props['aria-label'], 'Play previews')
+  eq(home.controls[0].node.props['aria-pressed'], true)
+  ok(home.media.every(node => node.props.paused === true), 'pause reaches all cards and curated films')
+  home.controls[0].node.props.onClick()
+  home = inspectHome(renderHome())
+  eq(home.controls[0].node.props['aria-label'], 'Pause previews')
+  ok(home.media.every(node => node.props.paused === false))
   console.log('Watch media: ' + scenarios + ' lifecycle scenarios, 24 approved assets, ' + checks + ' contracts passed. No browser, API, render or production scripts.')
 })().catch(error => { console.error(error); process.exitCode = 1 })
