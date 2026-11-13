@@ -105,7 +105,7 @@ function provaLista(folha, epoca) {
 // ── E. as duas estradas e o clipe usam ─────────────────────────────────────────────────────────────────────────────────
 {
   const rota = fs.readFileSync('app/api/generate-video-cinematic/route.ts', 'utf8').replace(/\r\n/g, '\n')
-  checa('E a leitura roda fora do character_story e na estrada hollywood', /const conferirElenco = !qualidadeHerdada && !estrelaFicha && !desenhoInfantil\.ativo && !tagFacelessPresente && classicVisualMode !== 'presenter' && escritaLatina\(prompt\)/.test(rota) && rota.includes('usarElencoSemantico || conferirElenco ? await pedirElencoSemantico(prompt)'))
+  checa('E a leitura roda fora do character_story e na estrada hollywood', /const conferirElenco = !qualidadeHerdada && !estrelaFicha && !desenhoInfantil\.ativo && !tagFacelessPresente && classicVisualMode !== 'presenter' && escritaLatina\(prompt\)/.test(rota) && (rota.includes('usarElencoSemantico || conferirElenco ? await pedirElencoSemantico(prompt)') || rota.includes('usarElencoSemantico || conferirElenco ? ((sinais1311?.elencoBruto as Awaited<ReturnType<typeof pedirElencoSemantico>> | null | undefined) ?? await pedirElencoSemantico(prompt))'))) // KINEO-PROTAGONISTA-1311 — a mesma leitura; quando o filme já a fez antes do modo (regra do protagonista), ela é reaproveitada
   checa('E a ficha do pedido usa o elenco conferido', rota.includes('elencoSemantico ? elencoSemantico.elenco : baseConferida.elenco'))
   checa('E hollywood: a camada de época recebe a conferência', rota.includes('elencoSemantico: conferenciaElenco, // KINEO-SO-GENTE-NA-FICHA-0411'))
   checa('E clássica: a camada de época recebe a conferência', rota.includes('leitura: elencoSemantico.leitura } : conferenciaElenco'))

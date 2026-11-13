@@ -50,7 +50,7 @@ function provas(m) {
 const base = provas(carrega())
 checa(`todas as provas verdes${base.length ? ': ' + base.join(' · ') : ''}`, base.length === 0)
 const rota = lf(fs.readFileSync('app/api/generate-video-cinematic/route.ts', 'utf8'))
-const iAlinha = rota.indexOf("console.warn('[fala-x-imagem] falhou, planos originais seguem:'"), iClassico = rota.indexOf("estrada: 'classica' })"), iLugar = rota.indexOf('if (lugarDoPedido) for (let i = 0; i < scenes.length; i++) scenes[i].aiPrompt = ancorarLugarNoPrompt')
+const iAlinha = rota.indexOf("console.warn('[fala-x-imagem] falhou, planos originais seguem:'"), iClassico = Math.max(rota.indexOf("estrada: 'classica' })"), rota.indexOf("estrada: 'classica' }, leituraPronta1311())")) /* KINEO-PROTAGONISTA-1311 — a mesma chamada, com a leitura do sujeito reaproveitada */, iLugar = rota.indexOf('if (lugarDoPedido) for (let i = 0; i < scenes.length; i++) scenes[i].aiPrompt = ancorarLugarNoPrompt')
 checa('C estrada clássica: depois do supervisor fala×imagem e antes do prompt final', iAlinha > 0 && iClassico > iAlinha && iLugar > iClassico)
 const iAlinhaH = rota.indexOf("console.warn('[fala-x-imagem] hollywood falhou, planos originais seguem:'"), iH = rota.indexOf("estrada: 'hollywood' })"), iEstrela = rota.indexOf('KINEO-ESTRELA-DO-FILME-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 \'vai pra todas as 4\'] — a ESTRELA na estrada hollywood')
 checa('C estrada hollywood: depois do supervisor e antes da estrela/POST', iAlinhaH > 0 && iH > iAlinhaH && iEstrela > iH)
