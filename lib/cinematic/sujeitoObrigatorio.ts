@@ -645,6 +645,11 @@ export function comSujeitoNaCena(prompt: string, frase: string, index: number, o
 }
 // KINEO-SUJEITO-APARENCIA-1311 (b) — o plano já tem ficha de personagem (a ficha diz quem é e como é): o sujeito não vai a todo plano.
 export const FICHA_NO_PLANO_RE = /(?:Identity|Visible(?:, seen from behind)?): |same main character|consistent design:/i
+// Revisão da CEO 13/11 — a peça (b) vale só para sujeito VIVO (bicho ou pessoa), que é o caso provado (gato ninja 7f92fe17). Em 14 dias, o
+// sujeito já aparecia em algum plano em 48 de 141 filmes do Kling 4, e 35 deles eram objeto ou veículo ("a river", "an island with dense
+// vegetation", "a ship"): pôr "Main subject clearly visible in frame: a river." em TODO plano desses filmes não foi medido (pode trocar cena
+// fora do pedido por repetição). Objeto e veículo seguem a regra de sempre (sujeito em pelo menos 1 cena) até um ensaio com filme renderizado.
+export const TIPOS_EM_TODO_PLANO_1311: ReadonlySet<string> = new Set(['criatura', 'pessoa'])
 
 export interface RelatoSujeitoK4 {
   versao: typeof SUJEITO_K4_VERSAO
@@ -694,6 +699,7 @@ export function exigirSujeitoNoKling4(args: {
     // texto fixo de estilo, depois da ação); nenhuma imagem-chave sai (elas já mostram o sujeito). Sujeito ausente de todos os planos (o avião
     // C-54) segue a correção de sempre, abaixo: uma cena, e a imagem dela sai.
     if (args.todosOsPlanos && !prompts.some((q) => FICHA_NO_PLANO_RE.test(q))) {
+      if (!TIPOS_EM_TODO_PLANO_1311.has(s.tipo)) return { prompts, stills, relato } // revisão da CEO 13/11 — só sujeito vivo (ver a constante)
       const marcados: number[] = []
       prompts.forEach((q, i) => { if (q.includes(s.frase)) return; prompts[i] = comSujeitoNaCena(q, s.frase, i); marcados.push(i + 1) })
       if (marcados.length) { relato.corrigido = true; relato.cena = marcados[0]; relato.planos_com_sujeito = marcados }
