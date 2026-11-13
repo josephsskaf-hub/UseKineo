@@ -107,8 +107,9 @@ async function battery(src) {
   ok((await L.nomeDoErroResend({ json: async () => { throw new Error('html') } })) === null, 'corpo que não é JSON não derruba')
   ok(r.includes('const falhou = async (r: Response) => { falhasResend++; if (!primeiraFalha) primeiraFalha = { http: r.status, erro: await nomeDoErroResend(r) } }'), 'guarda só a 1ª falha: código e name')
   ok(r.includes('} else await falhou(r)') && r.includes('if (!r.ok) { await falhou(r); break }'), 'as duas leituras (por id e lista) registram a falha')
-  ok(r.includes('falhas_resend: falhasResend, primeira_falha: primeiraFalha }'), 'a falha vai em leitura.primeira_falha')
+  ok(r.includes('falhas_resend: falhasResend, primeira_falha: primeiraFalha, chave }'), 'a falha vai em leitura.primeira_falha')
   ok(!/message|statusText|resendKey\s*[,}]|Authorization[^\n]*primeira/.test(r.slice(r.indexOf('return NextResponse.json({\n      campanha'), r.indexOf('  } catch (e) {'))), 'nada de mensagem, corpo ou chave na resposta')
+  ok(r.includes('const resendKey = process.env.RESEND_READ_API_KEY || process.env.RESEND_API_KEY') && r.includes('primeira_falha: primeiraFalha, chave }'), 'chave de leitura própria, e a resposta diz qual chave usou')
   // 6. o envio guarda o id
   const e = src[ENVIO]
   ok(e.includes("resend_id: resendId } })") && e.includes("const resendId = typeof corpo?.id === 'string' && corpo.id ? corpo.id : null"), 'o envio guarda o id do Resend no carimbo')
@@ -144,8 +145,9 @@ const MUTANTES = [
   ['descadastro antigo conta', muta(ROTA, 'saiu >= (porPessoa.get(uid)?.stampMs ?? Infinity)', 'saiu > 0')],
   ['falha sem código', muta(ROTA, 'primeiraFalha = { http: r.status, erro: await nomeDoErroResend(r) }', 'primeiraFalha = { http: 0, erro: await nomeDoErroResend(r) }')],
   ['falha da lista some', muta(ROTA, 'if (!r.ok) { await falhou(r); break }', 'if (!r.ok) { falhasResend++; break }')],
-  ['falha fora da resposta', muta(ROTA, ', primeira_falha: primeiraFalha }', ' }')],
+  ['falha fora da resposta', muta(ROTA, ', primeira_falha: primeiraFalha, chave }', ', chave }')],
   ['texto livre do provedor', muta(LIB, "return /^[a-z][a-z0-9_]{0,63}$/.test(n) ? n : null", 'return n || null')],
+  ['só a chave de envio', muta(ROTA, 'const resendKey = process.env.RESEND_READ_API_KEY || process.env.RESEND_API_KEY', 'const resendKey = process.env.RESEND_API_KEY')],
   ['envio não guarda o id', muta(ENVIO, 'resend_id: resendId } })', '} })')],
   ['envio sem etiqueta', muta(ENVIO, ", tags: [{ name: 'campaign', value: VOLTA_1211_CAMPAIGN }]", '')],
 ]

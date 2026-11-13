@@ -34,9 +34,12 @@ export async function GET() {
     if (!user || !ADMIN_EMAILS.has((user.email ?? '').trim().toLowerCase())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
     const svc = process.env.SUPABASE_SERVICE_ROLE_KEY
-    const resendKey = process.env.RESEND_API_KEY
+    // Chave de LEITURA própria (Full access no Resend), para a chave de envio continuar "Sending access". Sem ela, tenta a de envio —
+    // que o Resend recusa com 401 restricted_api_key (fica visível em leitura.primeira_falha e em leitura.chave).
+    const resendKey = process.env.RESEND_READ_API_KEY || process.env.RESEND_API_KEY
+    const chave = process.env.RESEND_READ_API_KEY ? 'leitura' : 'envio'
     if (!url || !svc) return NextResponse.json({ error: 'Supabase env missing' }, { status: 503 })
-    if (!resendKey) return NextResponse.json({ error: 'RESEND_API_KEY missing' }, { status: 503 })
+    if (!resendKey) return NextResponse.json({ error: 'RESEND_READ_API_KEY / RESEND_API_KEY missing' }, { status: 503 })
     const admin = createAdminClient(url, svc, { auth: { persistSession: false, autoRefreshToken: false } })
     const resendGet = (path: string) => fetch(`${RESEND}${path}`, {
       headers: { Authorization: `Bearer ${resendKey}`, 'User-Agent': 'kineo-admin-volta-status/1.0' }, cache: 'no-store',
@@ -139,7 +142,7 @@ export async function GET() {
       visitas_pela_carta: visitou.size,
       por_dia: porDia,
       regua,
-      leitura: { por_id: porId, pela_lista: pelaLista, sem_estado: total.sem_estado, paginas_da_lista: paginas, lista_cortada: listaCortada, falhas_resend: falhasResend, primeira_falha: primeiraFalha },
+      leitura: { por_id: porId, pela_lista: pelaLista, sem_estado: total.sem_estado, paginas_da_lista: paginas, lista_cortada: listaCortada, falhas_resend: falhasResend, primeira_falha: primeiraFalha, chave },
     })
   } catch (e) {
     console.error('[volta-1211-status] failed:', e instanceof Error ? e.message : String(e))
