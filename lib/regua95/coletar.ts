@@ -24,6 +24,8 @@ import {
 import { PIXEL_SCORE_EVENT, PIXEL_SCORE_VERSION, extractFramesFal, judgeFrames, type PixelContext } from '@/lib/regua95/pixelScore'
 import { contextoDoAnuncio, produtoDoVideo, resolverIdeia, type ScriptWrittenLido } from '@/lib/regua95/contexto'
 import { UGC_SCORE_EVENT, UGC_SCORE_VERSION, extractUgcFramesFal, judgeUgcFrames, planUgcFrames, type UgcContext } from '@/lib/regua95/ugcJudge' // KINEO-META95-UGC-1910
+// KINEO-NOTA-AUTO-1311 — nota automática do filme (régua do revisor), atrás do interruptor NOTA_AUTO_MODE ('off' | 'observe' | 'painel', nasce 'off').
+import { julgarEGravarNotaAuto, lerModoNotaAuto, notaAutoPendente, notasAutoFeitas, type NotaAutoAlvo } from '@/lib/regua95/notaRevisor'
 
 /** KINEO-META95-REGUA-AJUSTE-1910 — janela padrão do coletor (7 dias) e a política de nova tentativa de quem falhou. */
 export const REGUA95_JANELA_HORAS = 168
@@ -47,10 +49,12 @@ export type EntregaRegua = {
   pixel: PixelContext
   /** KINEO-META95-UGC-1910 — juiz de UGC/apresentador (olhos no gancho, sorriso de dentes, mão, duplicação, rótulo); só UGC */
   ugc: UgcContext | null
+  /** KINEO-NOTA-AUTO-1311 — pedido, roteiro e motor real (videos.engine_used) para a nota automática; só filmes */
+  notaAuto?: NotaAutoAlvo | null
 }
 
 type EventRow = { created_at: string; session_id: string | null; user_id: string | null; metadata: Record<string, unknown> | null }
-type VideoRow = { id: string; user_id: string; created_at: string; quality_mode: string | null; video_url: string | null; duration: number | null; render_id: string | null; topic: string | null }
+type VideoRow = { id: string; user_id: string; created_at: string; quality_mode: string | null; video_url: string | null; duration: number | null; render_id: string | null; topic: string | null; engine_used?: string | null; script?: string | null; prompt?: string | null }
 
 const chunks = <T,>(xs: T[], n = 100): T[][] => {
   const out: T[][] = []
@@ -74,7 +78,7 @@ export async function listarEntregasRegua(
   const ev = (name: string) => admin.from('events').select('created_at, session_id, user_id, metadata').eq('name', name)
 
   const [vidsR, clipsR, avatarR] = await Promise.all([
-    admin.from('videos').select('id, user_id, created_at, quality_mode, video_url, duration, render_id, topic').eq('status', 'completed').gte('created_at', since).order('created_at', { ascending: false }).limit(limit),
+    admin.from('videos').select('id, user_id, created_at, quality_mode, video_url, duration, render_id, topic, engine_used, script, prompt').eq('status', 'completed').gte('created_at', since).order('created_at', { ascending: false }).limit(limit),
     admin.from('clips').select('id, user_id, created_at, engine, seconds, prompt, video_url, status').eq('status', 'done').gte('created_at', since).order('created_at', { ascending: false }).limit(limit),
     readAll(() => ev('avatar_submission_claim').gte('created_at', since), { route, table: 'events' }),
   ])
@@ -138,6 +142,8 @@ export async function listarEntregasRegua(
         // KINEO-JUIZ-PERGUNTAS-0311 [TRAVA 8.2 — fundador 03/11: "vamos pegar todos esses defeitos que já são conhecidos e arrumar todos, universalizar"]
         // o prompt de cada cena (o que foi à fal) dá a época, as cenas sem gente e o estilo; o juiz pergunta e a nota ganha os tetos novos.
         promptByScene: evd?.scenes.map((s) => s.prompt) ?? null, perguntasHonestas: true },
+      // KINEO-NOTA-AUTO-1311 — o pedido do cliente (topic/prompt), o roteiro narrado (script, senão a fala do claim) e o motor real.
+      notaAuto: { pedido: v.topic || v.prompt || ideia.idea || '', roteiro: (v.script || narration || '').trim() || null, motor: v.engine_used ?? v.quality_mode },
     })
   }
 
@@ -211,7 +217,7 @@ export async function notasExistentes(admin: SupabaseClient, keys: string[], rea
   return done
 }
 
-export type ResultadoRegua = { key: string; product: ProdutoRegua; engine: string; coerencia: number | null; pixel: number | null; ugc?: number | null; usd: number; erro?: string; frame_via?: string | null }
+export type ResultadoRegua = { key: string; product: ProdutoRegua; engine: string; coerencia: number | null; pixel: number | null; ugc?: number | null; nota_auto?: number | null /* KINEO-NOTA-AUTO-1311 */; usd: number; erro?: string; frame_via?: string | null }
 
 /**
  * KINEO-META95-REGUA-AJUSTE-1910 — UMA linha de log por giro, com as contagens, mesmo quando não há nada a julgar. Antes a rota
@@ -225,7 +231,7 @@ export function resumoRegua95(r: { candidatas: number; pendentes: number; julgad
     candidatas: r.candidatas,
     pendentes: r.pendentes,
     por_produto: r.porProduto ?? {},
-    julgadas: r.julgadas.map((j) => ({ k: j.key.slice(0, 8), p: j.product, c: j.coerencia, px: j.pixel, ...(j.ugc != null ? { ugc: j.ugc } : {}) /* KINEO-META95-UGC-1910 */, via: j.frame_via ?? null, usd: Math.round(j.usd * 1e4) / 1e4, ...(j.erro ? { erro: j.erro } : {}) })),
+    julgadas: r.julgadas.map((j) => ({ k: j.key.slice(0, 8), p: j.product, c: j.coerencia, px: j.pixel, ...(j.ugc != null ? { ugc: j.ugc } : {}) /* KINEO-META95-UGC-1910 */, ...(j.nota_auto != null ? { na: j.nota_auto } : {}) /* KINEO-NOTA-AUTO-1311 */, via: j.frame_via ?? null, usd: Math.round(j.usd * 1e4) / 1e4, ...(j.erro ? { erro: j.erro } : {}) })),
     ms,
   })
 }
@@ -239,7 +245,11 @@ export async function julgarPendentesRegua(
   const route = opts.route ?? '/api/cron/regua-95'
   const entregas = await listarEntregasRegua(admin, { hours: opts.hours, limit: opts.limit, route }, readAll)
   const done = await notasExistentes(admin, entregas.map((e) => e.key), readAll, route)
-  const pendentes = entregas.filter((e) => !done.has(`${PIXEL_SCORE_EVENT}:${e.key}`) || (e.coherence && !done.has(`${COHERENCE_V2_EVENT}:${e.key}`)) || (e.ugc && !done.has(`${UGC_SCORE_EVENT}:${e.key}`)) /* KINEO-META95-UGC-1910 */)
+  // KINEO-NOTA-AUTO-1311 — com o interruptor em 'off' (padrão) nada muda: nenhuma leitura a mais, nenhuma entrega a mais na fila.
+  const modoNotaAuto = lerModoNotaAuto()
+  const notaAutoFeita = modoNotaAuto === 'off' ? new Set<string>() : await notasAutoFeitas(admin, entregas.filter((e) => e.notaAuto).map((e) => e.key), readAll, route)
+  const querNotaAuto = (e: EntregaRegua) => notaAutoPendente(modoNotaAuto, e, notaAutoFeita)
+  const pendentes = entregas.filter((e) => !done.has(`${PIXEL_SCORE_EVENT}:${e.key}`) || (e.coherence && !done.has(`${COHERENCE_V2_EVENT}:${e.key}`)) || (e.ugc && !done.has(`${UGC_SCORE_EVENT}:${e.key}`)) /* KINEO-META95-UGC-1910 */ || querNotaAuto(e) /* KINEO-NOTA-AUTO-1311 */)
   const maxJudge = Math.max(0, Math.min(12, opts.maxJudge ?? 4))
   const lote = pendentes.slice(0, maxJudge)
   const deploySha = process.env.VERCEL_GIT_COMMIT_SHA ?? 'local'
@@ -303,6 +313,14 @@ export async function julgarPendentesRegua(
             r.erro = [r.erro, falha].filter(Boolean).join(' · ')
             await gravar(UGC_SCORE_EVENT, { version: UGC_SCORE_VERSION, score: null, falha, frame_via: exU?.via ?? null, frame_count: exU?.frames.length ?? 0, ...base, video_url: e.video_url })
           }
+        }
+        // KINEO-NOTA-AUTO-1311 — a nota automática (régua do revisor): grava pelo SEU ponto de escrita (evento nota_auto e, em 'painel',
+        // film_review_notes fonte 'auto' sem nunca tocar a nota do revisor). Só filmes, só com o interruptor ligado.
+        if (querNotaAuto(e)) {
+          const n = await julgarEGravarNotaAuto(admin, { modo: modoNotaAuto, entrega: e, base, route, fetchImpl: opts.fetchImpl })
+          r.nota_auto = n.nota
+          r.usd += n.usd
+          if (n.erro) r.erro = [r.erro, n.erro].filter(Boolean).join(' · ')
         }
       } catch (err) {
         r.erro = err instanceof Error ? err.message.slice(0, 160) : 'erro'
