@@ -76,14 +76,14 @@ export function partesParaAnthropic(content: ParteVisao[]): Array<Record<string,
   })
 }
 
-const usdDe = (modelo: string, entrada: number, saida: number) => {
-  const t = TARIFAS_VISAO[modelo] ?? TARIFAS_VISAO[CLAUDE_NO_GATEWAY.opus]
+const usdDe = (modelo: string, entrada: number, saida: number, tarifa?: { inPerM: number; outPerM: number }) => {
+  const t = tarifa ?? TARIFAS_VISAO[modelo] ?? TARIFAS_VISAO[CLAUDE_NO_GATEWAY.opus]
   return (Math.max(0, entrada) * t.inPerM + Math.max(0, saida) * t.outPerM) / 1e6
 }
 
 export async function chamarVisaoJson(
   c: ChamadaVisao,
-  opts: { provedor?: ProvedorVisao; modelo?: string; fetchImpl?: typeof fetch; apiKey?: string; tokenGateway?: string | null; timeoutMs?: number },
+  opts: { provedor?: ProvedorVisao; modelo?: string; fetchImpl?: typeof fetch; apiKey?: string; tokenGateway?: string | null; timeoutMs?: number; tarifa?: { inPerM: number; outPerM: number } },
 ): Promise<{ json: unknown; usd: number; modelo: string; provedor: ProvedorVisao } | null> {
   const lido = lerProvedorNotaAuto()
   const provedor = opts.provedor ?? lido.provedor
@@ -99,7 +99,8 @@ export async function chamarVisaoJson(
         method: 'POST',
         signal: ctrl.signal,
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-        body: JSON.stringify({ model: modelo, temperature: 0, max_tokens: c.maxTokens ?? 3000, response_format: { type: 'json_object' }, messages: [{ role: 'system', content: c.system }, { role: 'user', content: c.content }] }),
+        // modelos de raciocínio (gpt-5.x, gpt-6.x, o*) não aceitam temperature nem max_tokens: usam max_completion_tokens
+        body: JSON.stringify({ model: modelo, ...(/^(gpt-5|gpt-6|od)/.test(modelo) ? { max_completion_tokens: Math.max(c.maxTokens ?? 3000, 16000) } : { temperature: 0, max_tokens: c.maxTokens ?? 3000 }), response_format: { type: 'json_object' }, messages: [{ role: 'system', content: c.system }, { role: 'user', content: c.content }] }),
       })
       if (!res.ok) return null
       const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
@@ -109,7 +110,7 @@ export async function chamarVisaoJson(
       } catch {
         return null
       }
-      return { json, usd: usdDe(modelo, data.usage?.prompt_tokens ?? 0, data.usage?.completion_tokens ?? 0), modelo, provedor }
+      return { json, usd: usdDe(modelo, data.usage?.prompt_tokens ?? 0, data.usage?.completion_tokens ?? 0, opts.tarifa), modelo, provedor }
     }
     const token = opts.tokenGateway ?? tokenDoGateway(null)?.token
     if (!token) return null
@@ -126,7 +127,7 @@ export async function chamarVisaoJson(
     const texto = (data.content ?? []).filter((b) => b?.type === 'text').map((b) => b.text ?? '').join('\n')
     const json = jsonDoTexto(texto)
     if (json === null) return null
-    return { json, usd: usdDe(modelo, data.usage?.input_tokens ?? 0, data.usage?.output_tokens ?? 0), modelo, provedor }
+    return { json, usd: usdDe(modelo, data.usage?.input_tokens ?? 0, data.usage?.output_tokens ?? 0, opts.tarifa), modelo, provedor }
   } catch {
     return null
   } finally {

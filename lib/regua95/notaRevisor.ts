@@ -54,7 +54,7 @@ export const CATEGORIAS_REVISOR = [
 export type CategoriaRevisor = (typeof CATEGORIAS_REVISOR)[number]
 
 /** O que cada categoria quer dizer — a definição do revisor, em inglês para o modelo (SKILL.md passo 3). */
-const DEFINICAO: Record<CategoriaRevisor, string> = {
+export const DEFINICAO_REVISOR: Record<CategoriaRevisor, string> = {
   PERSONAGEM_TROCOU: 'the same character/person changes identity between frames (different face, age, gender, hair, species or outfit for the one who should be the same)',
   PESSOA_FALTANDO: 'a person/character the request or narration is about never appears, or appears only as an unrecognisable silhouette',
   PRODUTO_FALTANDO: 'the product/object the request is about never appears on screen',
@@ -154,7 +154,7 @@ export function notaDosDefeitos(defeitos: ReadonlyArray<Pick<DefeitoAuto, 'categ
 export function buildNotaAutoMessages(e: NotaAutoEntrada, detail: NotaAutoDetail = NOTA_AUTO_DETAIL_DEFAULT) {
   const n = e.quadros.length
   const tempos = e.quadros.map((q, i) => `#${i}${q.t == null ? '' : ` @${q.t.toFixed(1)}s`}`).join(', ')
-  const cats = CATEGORIAS_REVISOR.map((c) => `- ${c}: ${DEFINICAO[c]}`).join('\n')
+  const cats = CATEGORIAS_REVISOR.map((c) => `- ${c}: ${DEFINICAO_REVISOR[c]}`).join('\n')
   const system = [
     'You review short AI-generated videos for a video product, exactly like a strict human reviewer who decides whether the customer would proudly post the video.',
     'You receive the customer request, the narration (when there is one), and frames sampled evenly from the FINAL video, in order.',
