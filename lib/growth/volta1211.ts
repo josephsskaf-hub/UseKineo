@@ -38,6 +38,12 @@ export const VOLTA_1211_REGION_EVENTS = ['trial_region_excluded', 'region_paid_o
 export type VoltaSegmento = 'c_baixou' | 'a_filme_parado' | 'd_pais_pago' | 'b_sem_filme'
 export type VoltaLingua = 'en' | 'pt' | 'es'
 export const VOLTA_1211_ORDEM: readonly VoltaSegmento[] = ['c_baixou', 'a_filme_parado', 'd_pais_pago', 'b_sem_filme']
+/** ORDEM TRAVADA (CEO 13/11): o envio só alcança os segmentos desta lista. Dia 1 = só c (quem baixou o filme). a, d e b entram
+ *  aqui num commit da CEO, depois da medição de 24 h do lote anterior. O ensaio continua mostrando os quatro. */
+export const VOLTA_1211_SEGMENTOS_LIBERADOS: readonly VoltaSegmento[] = ['c_baixou']
+export function voltaSegmentoLiberado(seg: VoltaSegmento): boolean {
+  return VOLTA_1211_SEGMENTOS_LIBERADOS.includes(seg)
+}
 
 const PT = new Set(['BR', 'PT', 'AO', 'MZ', 'CV'])
 const ES = new Set(['ES', 'MX', 'AR', 'CO', 'CL', 'PE', 'VE', 'EC', 'UY', 'PY', 'BO', 'GT', 'DO', 'CR', 'PA', 'HN', 'SV', 'NI', 'CU', 'PR'])

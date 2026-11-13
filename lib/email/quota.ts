@@ -66,13 +66,22 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 export type EmailPriority = 'revenue' | 'product' | 'growth'
 
 /**
- * Teto diário do provedor. Plano free do Resend = 100/dia. Env para poder
- * subir no MESMO minuto em que o fundador pagar o plano, sem deploy — se o
- * número tivesse de vir num commit, a compra dele ficaria refém de uma sprint.
+ * KINEO-VOLTA-1211 — O TETO DIÁRIO DO RESEND MORA AQUI, E SÓ AQUI (CEO 13/11: "nada de teto solto em dois arquivos").
+ * Todo remetente lê `dailyCap()`; ninguém escreve número de teto em outro arquivo.
+ *   · 'free' (hoje): 100 por dia e 3.000 por mês (resend.com/pricing, conferido pela CEO em 13/11).
+ *   · 'pro'  (US$ 20/mês, aprovado pelo dono 13/11 16:16, pagamento é dele): 50.000 por mês, sem teto por dia. 1.600/dia =
+ *     50.000 ÷ 31, para nunca estourar o mês. A CEO vira RESEND_PLANO para 'pro' num commit quando o pagamento estiver confirmado.
+ * A env KINEO_EMAIL_DAILY_CAP continua valendo, mas SÓ PARA BAIXO (freio de emergência sem deploy): um valor maior que o do plano
+ * é ignorado, porque mandar acima do plano é 429 do Resend e e-mail de produto (vídeo pronto) perdido.
  */
+export type ResendPlano = 'free' | 'pro'
+export const RESEND_TETO_DIARIO: Readonly<Record<ResendPlano, number>> = { free: 100, pro: 1600 }
+export const RESEND_PLANO = 'free' as ResendPlano
+
 export function dailyCap(): number {
+  const doPlano = RESEND_TETO_DIARIO[RESEND_PLANO]
   const raw = Number(process.env.KINEO_EMAIL_DAILY_CAP)
-  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 100
+  return Number.isFinite(raw) && raw > 0 ? Math.min(Math.floor(raw), doPlano) : doPlano
 }
 
 /**
@@ -95,6 +104,11 @@ function yieldThreshold(priority: EmailPriority): number {
   if (priority === 'growth') return envRatio('KINEO_EMAIL_YIELD_GROWTH', YIELD_AT.growth)
   if (priority === 'product') return envRatio('KINEO_EMAIL_YIELD_PRODUCT', YIELD_AT.product)
   return 1
+}
+
+/** Teto do dia para uma prioridade (o mesmo limiar em que ela cede a vaga). Campanha lê isto, não multiplica dailyCap() por conta própria. */
+export function capForPriority(priority: EmailPriority): number {
+  return Math.floor(dailyCap() * yieldThreshold(priority))
 }
 
 function adminClient(): SupabaseClient | null {

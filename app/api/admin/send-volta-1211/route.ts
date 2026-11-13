@@ -6,6 +6,7 @@
 //   ?confirm=SEND&limit=N   → envia os próximos N (padrão 20, teto 50) — SÓ com VOLTA_1211_SEND_LIVE = true. Hoje é false:
 //                             a rota responde 423 e não chega perto do Resend.
 //   ?segment=c_baixou|…     → limita a corrida a um segmento (ondas por segmento).
+// ORDEM TRAVADA: o envio só alcança VOLTA_1211_SEGMENTOS_LIBERADOS (hoje só c_baixou); a, d e b entram por commit da CEO.
 // DEDUPE: (1) supressão da casa com janela de 7 dias (168 h, FALHA FECHADA) — ninguém recebe 2 e-mails nossos em 7 dias;
 //         (2) esta carta uma vez na vida (carimbo OU reserva); (3) um endereço = uma carta (duas contas com o mesmo e-mail).
 // Leituras paginadas (readAll) e filtros por pessoa em fatias de 200 ids (a armadilha das 1.000 linhas do PostgREST).
@@ -18,13 +19,13 @@ import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emai
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { registrarCorrida, corridaAbortada, type CorridaDeCampanha } from '@/lib/lifecycle/campaignRun'
-import { dailyCap, recordResendResponse } from '@/lib/email/quota'
+import { capForPriority, dailyCap, recordResendResponse } from '@/lib/email/quota'
 import { winbackIsFilm, winbackProfileOk } from '@/lib/growth/winbackFilm60s'
 import { ideiaDaPagina } from '@/lib/growth/studioPreenchido1211'
 import {
   VOLTA_1211_BATCH_DEFAULT, VOLTA_1211_BATCH_MAX, VOLTA_1211_CAMPAIGN, VOLTA_1211_CLAIM, VOLTA_1211_DOWNLOAD_EVENTS,
   VOLTA_1211_FROM, VOLTA_1211_IDLE_DAYS, VOLTA_1211_ORDEM, VOLTA_1211_REGION_EVENTS, VOLTA_1211_REPLY_TO, VOLTA_1211_SEND_LIVE,
-  VOLTA_1211_SENT, VOLTA_1211_SUPPRESSION_HOURS, voltaCarta, voltaClaimId, voltaLingua, voltaLink, voltaSegmento, voltaTitulo,
+  VOLTA_1211_SENT, VOLTA_1211_SUPPRESSION_HOURS, VOLTA_1211_SEGMENTOS_LIBERADOS, voltaCarta, voltaClaimId, voltaLingua, voltaLink, voltaSegmento, voltaSegmentoLiberado, voltaTitulo,
   type VoltaLingua, type VoltaSegmento,
 } from '@/lib/growth/volta1211'
 
@@ -73,7 +74,7 @@ export async function GET(req: NextRequest) {
       .from('profiles')
       .select('id, email, plan, has_paid, email_opted_out, signup_country, last_country, created_at')
       .order('created_at', { ascending: true }), { route: ROUTE, table: 'profiles' })
-    const fora: Record<string, number> = { perfil_recusado: 0, interno: 0, alias_repetido: 0, pagou: 0, ativo_7d: 0, ja_recebeu: 0, outro_segmento: 0 }
+    const fora: Record<string, number> = { perfil_recusado: 0, interno: 0, alias_repetido: 0, pagou: 0, ativo_7d: 0, ja_recebeu: 0, outro_segmento: 0, nao_liberado: 0 }
     const vivos: Array<{ id: string; email: string; country: unknown; createdAt: string }> = []
     const vistos = new Set<string>()
     for (const p of perfis ?? []) {
@@ -128,6 +129,8 @@ export async function GET(req: NextRequest) {
       })
       if ('fora' in r) { fora[r.fora] = (fora[r.fora] ?? 0) + 1; continue }
       if (soSeg && r.seg !== soSeg) { fora.outro_segmento++; continue }
+      // Ordem travada: o ENVIO só alcança os segmentos liberados (dia 1 = só c). O ensaio mostra todos.
+      if (confirm && !voltaSegmentoLiberado(r.seg)) { fora.nao_liberado++; continue }
       const f = ultimoFilme.get(v.id)
       candidatos.push({ id: v.id, email: v.email, seg: r.seg, lingua: voltaLingua(v.country), videoId: f?.id ?? null, film: f ? voltaTitulo(f.title, f.topic) : null, recencia: f?.at ?? v.createdAt })
     }
@@ -163,7 +166,7 @@ export async function GET(req: NextRequest) {
     // Cota do dia (leitura pura). Campanha 'growth' cede a vaga em 60% do teto diário (lib/email/quota).
     const inicioDoDia = new Date(new Date().setUTCHours(0, 0, 0, 0)).toISOString()
     const cota = await admin.from('email_send_log').select('id', { count: 'exact', head: true }).eq('ok', true).gte('sent_at', inicioDoDia)
-    const tetoGrowth = Math.floor(dailyCap() * 0.6)
+    const tetoGrowth = capForPriority('growth')
     const usadosHoje = cota.error || cota.count === null ? null : cota.count
     const vagas = usadosHoje === null ? 0 : Math.max(0, tetoGrowth - usadosHoje)
 
@@ -178,7 +181,7 @@ export async function GET(req: NextRequest) {
       await registrarCorrida(admin, { ...base, no_lote: Math.min(batch.length, vagas), enviados: 0, falhas: 0, pulados: 0 })
       const exemplos = VOLTA_1211_ORDEM.map((s) => batch.find((e) => e.seg === s) ?? elegiveis.find((e) => e.seg === s)).filter((x): x is Alvo => !!x)
       return NextResponse.json({
-        mode: 'DRY_RUN', send_live: VOLTA_1211_SEND_LIVE, segmento: soSeg ?? 'todos',
+        mode: 'DRY_RUN', send_live: VOLTA_1211_SEND_LIVE, segmentos_liberados: VOLTA_1211_SEGMENTOS_LIBERADOS, segmento: soSeg ?? 'todos',
         elegiveis: elegiveis.length, por_segmento: porSegmento,
         por_lingua: elegiveis.reduce<Record<string, number>>((acc, e) => { acc[e.lingua] = (acc[e.lingua] ?? 0) + 1; return acc }, {}),
         suprimidos_7d: sup.suppressedCount, supressao_degradada: degradada, fora,

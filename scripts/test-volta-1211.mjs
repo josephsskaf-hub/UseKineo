@@ -15,7 +15,8 @@ const LIB = 'lib/growth/volta1211.ts'
 const ROTA = 'app/api/admin/send-volta-1211/route.ts'
 const EVT = 'lib/lifecycle/emailEvents.ts'
 const SRV = 'app/api/events/route.ts'
-const SRC = Object.fromEntries([LIB, ROTA, EVT, SRV].map((p) => [p, rd(p)]))
+const QUOTA = 'lib/email/quota.ts'
+const SRC = Object.fromEntries([LIB, ROTA, EVT, SRV, QUOTA].map((p) => [p, rd(p)]))
 
 function carregar(fontes) {
   const cache = new Map()
@@ -103,9 +104,20 @@ function battery(src) {
   ok(r.includes('if (recebeu.has(v.id)) { fora.ja_recebeu++; continue }') && r.includes('VOLTA_1211_SENT, VOLTA_1211_CLAIM'), 'esta carta uma vez na vida')
   ok(r.includes('if (vistos.has(email)) { fora.alias_repetido++; continue }'), 'um endereço, uma carta')
   ok(r.includes('if (pagou.has(v.id)) { fora.pagou++; continue }') && r.includes('winbackProfileOk(p)'), 'pagante, opt-out e e-mail inválido fora')
-  ok(r.includes("priority: 'growth'") && r.includes('Math.floor(dailyCap() * 0.6)'), 'growth: cede a vaga do teto do Resend')
+  ok(r.includes("priority: 'growth'") && r.includes("const tetoGrowth = capForPriority('growth')") && !/dailyCap() * 0.d/.test(r), 'growth: a vaga vem do teto único (capForPriority), sem multiplicar solto')
   ok(r.includes('headers: unsubscribeHeaders(a.id)'), 'List-Unsubscribe no envio')
   ok(L.VOLTA_1211_BATCH_MAX <= 50, 'lote máximo 50')
+  // 7. ordem travada: o envio só alcança c no dia 1
+  ok(JSON.stringify(L.VOLTA_1211_SEGMENTOS_LIBERADOS) === JSON.stringify(['c_baixou']), 'dia 1: só o segmento c liberado')
+  ok(L.voltaSegmentoLiberado('c_baixou') && !L.voltaSegmentoLiberado('a_filme_parado') && !L.voltaSegmentoLiberado('b_sem_filme') && !L.voltaSegmentoLiberado('d_pais_pago'), 'a, d e b trancados')
+  ok(r.includes('if (confirm && !voltaSegmentoLiberado(r.seg)) { fora.nao_liberado++; continue }'), 'o envio pula segmento não liberado')
+  // 8. o teto do Resend mora num lugar só
+  const qq = src[QUOTA]
+  ok(/export const RESEND_TETO_DIARIO: Readonly<Record<ResendPlano, number>> = { free: 100, pro: 1600 }/.test(qq), 'teto: free 100, pro 1600 (50.000 ÷ 31)')
+  ok(qq.includes("export const RESEND_PLANO = 'free' as ResendPlano"), 'hoje é o plano free')
+  ok(qq.includes('Math.min(Math.floor(raw), doPlano) : doPlano'), 'a env só baixa o teto, nunca sobe acima do plano')
+  ok(!/KINEO_EMAIL_DAILY_CAP|RESEND_TETO_DIARIO/.test(r), 'a rota não tem teto próprio')
+  ok(qq.includes('return Math.floor(dailyCap() * yieldThreshold(priority))'), 'capForPriority usa o mesmo limiar da cota')
   ok(src[EVT].includes("'volta_1211_emailed',"), 'o carimbo entra na supressão da casa')
   ok(src[SRV].includes("'volta_1211_emailed',") && src[SRV].includes("'volta_1211_claimed',"), 'o navegador não forja o carimbo')
   return p
@@ -140,6 +152,11 @@ const MUTANTES = [
   ['rota reenvia a mesma carta', muta(ROTA, 'if (recebeu.has(v.id)) { fora.ja_recebeu++; continue }', '')],
   ['rota envia com supressão cega', muta(ROTA, 'if (degradada || usadosHoje === null) {', 'if (usadosHoje === null) {')],
   ['carimbo fora da supressão', muta(EVT, "  'volta_1211_emailed',\n", '')],
+  ['c, a, d e b liberados juntos', muta(LIB, "VOLTA_1211_SEGMENTOS_LIBERADOS: readonly VoltaSegmento[] = ['c_baixou']", "VOLTA_1211_SEGMENTOS_LIBERADOS: readonly VoltaSegmento[] = ['c_baixou', 'a_filme_parado', 'd_pais_pago', 'b_sem_filme']")],
+  ['rota ignora a ordem', muta(ROTA, 'if (confirm && !voltaSegmentoLiberado(r.seg)) { fora.nao_liberado++; continue }', '')],
+  ['plano pro ligado sem pagamento', muta(QUOTA, "RESEND_PLANO = 'free' as ResendPlano", "RESEND_PLANO = 'pro' as ResendPlano")],
+  ['env sobe o teto', muta(QUOTA, 'Math.min(Math.floor(raw), doPlano) : doPlano', 'Math.floor(raw) : doPlano')],
+  ['teto solto na rota', muta(ROTA, "const tetoGrowth = capForPriority('growth')", 'const tetoGrowth = Math.floor(dailyCap() * 0.6)')],
   ['carimbo forjável', muta(SRV, "  'volta_1211_claimed',\n", '')],
 ]
 let killed = 0
