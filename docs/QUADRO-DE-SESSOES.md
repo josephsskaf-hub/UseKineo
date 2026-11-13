@@ -34,12 +34,10 @@ Antes de publicar, escreva aqui: sessão · SHA · hora. Se já houver linha de 
 Imediatamente antes da publicação, faça fetch e rebase, rode `npx tsc --noEmit` e os guardiões da área e confira a reserva novamente. Depois do deploy "success", apague só a sua linha e registre em "No ar" com o SHA. A divisão de teste do Claude confere a tela publicada e lista aqui os defeitos.
 | Sessão | SHA | Começou |
 |---|---|---|
-| Codex · otimizar GPT · medição body v2 | f9b5d764c4abfe2017ea78452dc626377a8fbce9 | 2026-11-13T13:23:03Z |
 
 ## Em obra
 | Quando começou | Sessão | O que | Arquivos principais | Branch / worktree |
 |---|---|---|---|---|
-| 13/11 (retomada das 10h BRT) | Codex · otimizar GPT · missão 09–16/11 | Corrigir medição de rolagem independente no body, reproduzida offline na base; versão nova separa v1. Sem mudança visual, conteúdo ou coleta externa; não ocupa o mapa de listas | lib/seo/guideEngagement.ts, guardiões e contrato da medição | codex/citacoes-medicao-body-20261113 · C:/kineo-wt/citacoes-medicao-body-20261113 |
 | 11/11 00:27 −03:00 | CEO Codex | Coordenar Telas e Produto, Product Story e Citações. Revisar os SHAs locais, conciliar reservas e publicar uma entrega por vez | docs/QUADRO-DE-SESSOES.md | codex/ceo-coordenacao-1111 |
 | 11/11 00:30 −03:00 | Codex · Telas e Produto | Conferir Elevator com uma foto e o formato com duas. Primeiro diagnóstico somente leitura. Em seguida, inventariar o WIP de Clips | app/recreate/RecreateClient.tsx, docs/recreate-1011/test-photo-flow.cjs; leitura do WIP de Clips | `C:/Users/josep/.codex/worktrees/341b/kineo` |
 | 11/11 00:30 −03:00 | Codex · Product Story | Retomar a obra offline do Dia 2 e validar a correção do Dia 3: quadro real 1536×2752, falha terminal e retomada idempotente com quadro inválido | lib/ads/productStory/adapter.ts, lib/ads/productStory/preparation.ts, guardiões Product Story | `C:/Users/josep/.codex/worktrees/4081/kineo`; origem do WIP: codex/ads-product-story-day2-1011 |
@@ -77,6 +75,7 @@ Imediatamente antes da publicação, faça fetch e rebase, rode `npx tsc --noEmi
 ## No ar
 | Quando | O que | SHA |
 |---|---|---|
+| 13/11 10:23 −03:00 | Codex · otimizar GPT · medição body v2: corrige marcos de rolagem quando body rola e window.scrollY fica zero; não muda texto/layout. Base reproduziu falha; guardiões novos/anteriores, mutantes e tsc verdes; oito SSR/metadata idênticos. READY dpl_88Ef17ujhwRtQmBKKFtxUsKdmxbT, HTTP 8/8 e bundle guides_20261113_v2 conferidos. Ingestão real ainda desconhecida; v1 histórica separada. Reserva encerrada. | Código f9b5d764c4abfe2017ea78452dc626377a8fbce9; lote b01a4ca12498321bfa57a86c401b2382aaaa9bfc |
 | 12/11 10:16 −03:00 | Codex · otimizar GPT · descoberta: llms liga diretamente a comparação Runway já revisada. Uma linha; demais bytes/cabeçalhos idênticos em teste offline. Typecheck e guardiões llms/Runway verdes. READY dpl_3mFPMqCZwQP6cY86Wqqo4cKHKaxq; HTTP 200 no llms e destino, canonical e dois links ao Studio conferidos. Guias e demais páginas não alterados. Reserva encerrada. | Código ec47d9adee3f21921907c0618022ed3b1ac2f71a; lote 441338d1a7715e2d7b59bec12a93cdc2c6a25726 |
 | 11/11 07:26 −03:00 | Codex · Citações semana · dia 6. Filme padrão inglês corrige linha corrente H3, prazo, texto mensal e data; llms acompanha a recarga pública de assinantes sem mudar a oferta. READY dpl_8fkwQsrRsffQdpcTFRZntM7a3MRY, HTTP e Chrome desktop/mobile conferidos. Typecheck base/resultado e testes pertinentes verdes. Reserva encerrada; amanhã só medição final da missão, não ocupa arquivos de produto. | `e351ced17a3b2ffa3be123703d2cf32ddfdad5f3` (H3 `85586c9ee`, llms `d4fa21395`) |
 | 11/11 madrugada | Laço do revisor (tarefa noturna, Claude · área Vídeo): "a giant carrot" não vira mais personagem gigante — o homem barbudo do filme do ursinho (render 2176bed6). Só lib/cinematic/folhaDePersonagem.ts + guardião + recibo 8.2. Revisão adversarial LIMPO na 3ª volta | `34bfaa300` |
