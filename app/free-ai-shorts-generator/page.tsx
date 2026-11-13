@@ -24,6 +24,7 @@ import { enginePaused } from '@/lib/engineLaunch'
 import { headers } from 'next/headers' // KINEO-POUSO-AFILIADO-CELULAR-1311
 import { filmeGratisPermitido, paisDoRequest } from '@/lib/freeFilmPolicy' // KINEO-POUSO-AFILIADO-CELULAR-1311
 import { TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOffer' // KINEO-POUSO-AFILIADO-CELULAR-1311
+import { REGIAO_PAGA_BANNER_COPY } from '@/lib/growth/regiaoPaga1011' // KINEO-POUSO-AFILIADO-CELULAR-1311 (revisão da CEO)
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -104,11 +105,14 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
   // formulário só muda de lugar para o afiliado. País sem filme grátis (Índia, Paquistão…) não recebe promessa de filme.
   const partnerCountry = partnerContext ? paisDoRequest(headers()) : null
   const partnerFreeFilm = partnerContext ? filmeGratisPermitido(partnerCountry) : false
-  const partnerOfferLine = partnerContext
-    ? partnerFreeFilm
-      ? `Your first ${TRIAL_FREE_FILM_SECONDS}-second film is free, watermarked, no card.`
-      : 'Type your idea and see your first scene free before you choose a plan.'
-    : null
+  const partnerOfferLine = partnerContext && partnerFreeFilm ? `Your first ${TRIAL_FREE_FILM_SECONDS}-second film is free, watermarked, no card.` : null
+  // Revisão da CEO 13/11 — país SEM filme grátis: o bloco inteiro diz o que a pessoa recebe de verdade (roteiro + cenas em
+  // imagens, /studio/previa), com as palavras já aprovadas do aviso de região (REGIAO_PAGA_BANNER_COPY). O texto padrão do
+  // bloco ("free first test… judge the scripted, voiced, captioned video yourself", "Try the free video workflow") promete
+  // um vídeo que esse país não recebe, e "first scene" não é o que a prévia entrega (são 3–4 imagens e o roteiro).
+  const partnerContextShown = partnerContext && !partnerFreeFilm
+    ? { ...partnerContext, heading: REGIAO_PAGA_BANNER_COPY.en.title, body: REGIAO_PAGA_BANNER_COPY.en.body, action: 'Start with my idea' }
+    : partnerContext
   const formCopy = {
     label: 'What should your free AI Short be about?',
     placeholder: 'Type one topic or paste your script',
@@ -126,7 +130,7 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
     label: 'What should your AI Short be about?',
     submit: 'Start with my idea',
     examplesLabel: 'Short ideas',
-    note: 'Your idea stays attached through signup. You see your first scene free before you choose a plan.',
+    note: 'Your idea stays attached through signup. Kineo writes the script and shows your scenes as images — free.',
   }
   const topicForm = (
     <TopicGeneratorForm
@@ -174,7 +178,7 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
       <PaginaClaraTopo />{/* KINEO-PAGINAS-IA-CLARAS-2110 */}
       <div style={{ maxWidth: 880, margin: '0 auto', padding: '64px 20px 88px' }}>
         <AffiliateLandingContext
-          context={partnerContext}
+          context={partnerContextShown}
           targetId={FORM_ID}
           country={partnerCountry}
           offerLine={partnerOfferLine}
