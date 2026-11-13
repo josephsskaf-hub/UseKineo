@@ -61,18 +61,9 @@ const React = require('react')
 // ─── a verdade de cada clipe (tabela `clips`, conferida em 05/11): clipe, motor, modo ─────────────────────────────────────────
 const VERDADE = {
   'pet-barista': ['fal:01a1ae37-2f30-7d63-ab53-52234e4ed8c8', 'h3', 'foto', 'MiniMax H3'], // KINEO-CLIPES-E-CARDS-0511
-  'virada-natal': ['fal:01a1ae37-2ed6-7493-acb9-3b42c05aae15', 'h3', 'foto', 'MiniMax H3'], // KINEO-CLIPES-E-CARDS-0511
   'adeus-2026': ['fal:01a1ae37-3613-75f0-9c89-7722df1bcb94', 'h3', 'foto', 'MiniMax H3'], // KINEO-CLIPES-E-CARDS-0511
-  'bebe-danca': ['fal:01a1ae37-3003-76e1-8031-e5613d253e39', 'h3', 'foto', 'MiniMax H3'], // KINEO-CLIPES-E-CARDS-0511
-  'glow-up': ['fal:01a1ae37-7f7f-7d42-a0d3-18662c36f1f1', 'h3', 'foto', 'MiniMax H3'], // KINEO-CLIPES-E-CARDS-0511
-  'ugc-homem-cafe': ['fal:01a1ae37-7de0-7b91-8927-ac13fd481ed5', 'h3', 'foto', 'MiniMax H3'], // KINEO-CLIPES-E-CARDS-0511
-  'ugc-idosa-creme': ['fal:01a1ae37-8225-7641-855d-7b77d62f0a06', 'h3', 'foto', 'MiniMax H3'], // KINEO-CLIPES-E-CARDS-0511
   'ugc-indiano-fone': ['fal:01a1ae37-80fa-7e73-861a-ab40bb2e13c3', 'h3', 'foto', 'MiniMax H3'], // KINEO-CLIPES-E-CARDS-0511
-  'produto-tenis-rua': ['fal:01a1ae37-d069-7270-93f7-f0332a0e4d7c', 'h3', 'foto', 'MiniMax H3'], // KINEO-CLIPES-E-CARDS-0511
   'produto-perfume-marmore': ['fal:01a1ae37-ca14-7463-8c1b-6bc50ab14e8b', 'h3', 'foto', 'MiniMax H3'], // KINEO-CLIPES-E-CARDS-0511
-  'produto-burger-mesa': ['fal:01a1ae37-cdde-74c1-acd8-a8dc4054634e', 'h3', 'foto', 'MiniMax H3'], // KINEO-CLIPES-E-CARDS-0511
-  'flying-burger': ['b248db19-c3fb-4b08-878c-1d10d3b9af7b', 'seedance', 'texto', 'Seedance 1.5'],
-  'spinning-headphones': ['6e6b1249-69c9-4036-b2b3-36e5c157dda1', 'seedance', 'texto', 'Seedance 1.5'],
   'perfume-splash': ['c9d321e0-0fe4-44b7-871b-2407a55bec91', 'hollywood', 'texto', 'Kling 3'],
   'iced-coffee-pour': ['a3576c28-47ba-4c19-a141-b5e8e196c9dd', 'seedance', 'texto', 'Seedance 1.5'],
   // KINEO-OUTFIT-MORPH-HOME-0911 [fundador 09/11] — feito com Kling 4.0 (kling/v4/image-to-video na fal, 2 pedidos unidos), que NÃO é motor
@@ -87,7 +78,6 @@ const VERDADE = {
   'passarela': ['fal:0ab1d89b/HbvScocR9LQY-FT8vl-CA', null, 'foto', 'Trending format'],
   'escolha-o-favorito': ['fal:0ab1d9f9/EnyKpFmu87NtPpo-kfujT', null, 'foto', 'Trending format'],
   'dinheiro': ['fal:0ab1d9f0/7vfzrcsW7He9IOli4H5Lk', null, 'foto', 'Trending format'],
-  'duelo-de-danca': ['fal:0ab1d9f3/iLdN6Py4oNvS6P4yUAQlQ', null, 'foto', 'Trending format'],
   'kit-skincare': ['fal:0ab1da00/tKyNDXU7RAxwcmy_kF-BU', null, 'foto', 'Trending format'],
   'dragaozinho': ['fal:0ab1da07/LBX9mJqp4LXh5eUkA37kb', null, 'foto', 'Trending format'],
   'boneco-de-neve': ['fal:0ab1da01/aYq5oKWE2FXdjYSbpJnH0', null, 'foto', 'Trending format'],
@@ -101,6 +91,17 @@ const VERDADE = {
   'anuncio-halo-car-selfie': ['manual:ads-ugc-falado-1111/halo-sofia-seedance2.mp4', null, 'anuncio', 'Ad example'],
   'anuncio-veil-grwm': ['manual:ads-ugc-falado-1111/veil-amara-seedance2.mp4', null, 'anuncio', 'Ad example'],
   'anuncio-orra-street-interview': ['manual:ads-ugc-falado-1111/orra-rahul-seedance2.mp4', null, 'anuncio', 'Ad example'],
+  // KINEO-HOME-10-CLIPES-1311 — os 10 clipes de 13/11 (foto do gpt-image-2 + MiniMax H3 Max Turbo no playground do fornecedor, à mão; sem linha em `clips`).
+  'selfie-confete': ['fal:0ab243cd/JALaJedKJJ9qv3LUnIT9q', null, 'foto', 'Trending format'],
+  'sueter-aconchegante': ['fal:0ab243d6/KYKynkoZ7STmsmJk22KmJ', null, 'foto', 'Trending format'],
+  'balao-confete': ['fal:0ab243db/cTaoyq8jeE7w-8FhDIrkg', null, 'foto', 'Trending format'],
+  'danca-corredor': ['fal:0ab243de/ZJvxYoyYoIlJ4YYtZ9iF_', null, 'foto', 'Trending format'],
+  'raposa-lanterna': ['fal:0ab243e9/K6Di-jR20cAFJ9kNryP_I', null, 'foto', 'Trending format'],
+  'ultimo-trem': ['fal:0ab243eb/xGoShgcRyDZ-qxRS91A-D', null, 'foto', 'Trending format'],
+  'carta-do-front': ['fal:0ab243ee/kKxVjZOJ6jvO6GB5i2m2e', null, 'foto', 'Trending format'],
+  'anuncio-tenis-pedestal': ['fal:0ab243e1/KXAGTs7aSc0LLyjlsg_jF', null, 'anuncio', 'Ad example'],
+  'anuncio-creme-selfie': ['fal:0ab24414/Q22EH_dnQykRmRdKNM5Am', null, 'anuncio', 'Ad example'],
+  'anuncio-burger-camera-lenta': ['fal:0ab243f1/jcIHlvocwL6UrZndIR3Oa', null, 'anuncio', 'Ad example'],
 }
 // KINEO-ADS-NATAL-VITRINE-1011 — o que NENHUM cartão pode dizer nem insinuar (nem no texto, nem no aria-label): que o vídeo foi feito pela
 // ferramenta de Ads. Os exemplos de anúncio foram feitos à mão; o convite "Make your ad" chama a pessoa, não atribui a autoria.
@@ -393,14 +394,18 @@ const SEM_FECHAR = (s) => troca('const ordem = fechaOFim(ordem0, alto,', 'const 
 // KINEO-ADS-NATAL-VITRINE-1011 — com 32 clipes o fim da grade de hoje fecha mesmo sem as duas proteções juntas, e este mutante passaria batido.
 // As proteções continuam no código para a lista que encolher: ele passa a ser provado na lista de 26 clipes de 10/11 (a de quando era vermelho
 // na lista inteira), olhando só a grade e a mistura (G e D). Primeiro a lista de 26 tem de ficar verde nelas.
-const LISTA_N = (n) => (s) => troca('export const clipeNovoVideo', `export const CLIPES_NOVOS = _TODOS_1011.slice(0, ${n}); export const clipeNovoVideo`)(troca('export const CLIPES_NOVOS: readonly ClipeNovo[] = [', 'const _TODOS_1011: readonly ClipeNovo[] = [')(s))
+// KINEO-HOME-10-CLIPES-1311 — a lista viva trocou 10 clipes em 13/11 (6 deles entre os 16 primeiros). As provas de grade abaixo nasceram sobre as
+// listas de 09/11 (16) e 10/11 (26): elas passam a usar essas listas CONGELADAS (scripts/test-support/clipes-novos-historico-1011.txt, as 26
+// primeiras entradas da main de 12/11, na ordem), e não mais um corte da lista de hoje. A lista viva segue provada inteira em (A–F).
+const HISTORICO_1011 = fs.readFileSync(path.join(ROOT, 'scripts/test-support/clipes-novos-historico-1011.txt'), 'utf8').split(/\r?\n/).filter((l) => l.trim())
+const LISTA_N = (n) => (s) => troca('export const clipeNovoVideo', `export const CLIPES_NOVOS: readonly ClipeNovo[] = [\n${HISTORICO_1011.slice(0, n).join('\n')}\n]; export const clipeNovoVideo`)(troca('export const CLIPES_NOVOS: readonly ClipeNovo[] = [', 'const _TODOS_1011: readonly ClipeNovo[] = [')(s))
 const gradeN = (n, novasTrocas) => { const t = { ...novasTrocas, [LIB]: (s) => LISTA_N(n)(novasTrocas[LIB] ? novasTrocas[LIB](s) : s) }; let r; try { r = checa(carrega(t)) } catch (err) { r = ['G quebrou: ' + err.message] } return r.filter((x) => /^[DG] /.test(x)) }
 { const r = gradeN(26, {}); for (const m of r) console.log('     →', m); ok(r.length === 0, `lista de 26 clipes (10/11): grade e mistura verdes${r.length ? ': ' + r.length + ' erro(s)' : ''}`) }
 { const r = gradeN(26, { [MOSAICO]: (s) => SEM_FECHAR(troca("(i) => i.w > i.h, 8)", "() => false, 8)")(s)) }); ok(r.length > 0, `M imagem larga no fim abre buraco (lista de 26): vermelho${r.length ? ' — ' + String(r[0]).slice(0, 90) : ' (passou batido)'}`) }
 // KINEO-VITRINE-10-1011 — com 26 clipes (teto de 4 grandes) o fim da grade de hoje fecha sem precisar do fechaOFim nem da busca para trás, e
 // estes 3 mutantes passariam batido. As duas proteções continuam no código para a lista que encolher de novo: são provadas na lista de 16
 // clipes de 09/11 (a mesma de quando nasceram), olhando só a grade e a mistura (G e D). Primeiro a lista de 16 tem de ficar verde nelas.
-const LISTA_16 = (s) => troca('export const clipeNovoVideo', 'export const CLIPES_NOVOS = _TODOS_1011.slice(0, 16); export const clipeNovoVideo')(troca('export const CLIPES_NOVOS: readonly ClipeNovo[] = [', 'const _TODOS_1011: readonly ClipeNovo[] = [')(s))
+const LISTA_16 = LISTA_N(16) // KINEO-HOME-10-CLIPES-1311 — a lista de 16 de 09/11, congelada
 const grade16 = (novasTrocas) => { const t = { ...novasTrocas, [LIB]: (s) => LISTA_16(novasTrocas[LIB] ? novasTrocas[LIB](s) : s) }; let r; try { r = checa(carrega(t)) } catch (err) { r = ['G quebrou: ' + err.message] } return r.filter((x) => /^[DG] /.test(x)) }
 { const r = grade16({}); for (const m of r) console.log('     →', m); ok(r.length === 0, `lista de 16 clipes (09/11): grade e mistura verdes${r.length ? ': ' + r.length + ' erro(s)' : ''}`) }
 const mutante16 = (nome, novasTrocas) => { const r = grade16(novasTrocas); ok(r.length > 0, `M ${nome} (lista de 16): vermelho${r.length ? ' — ' + String(r[0]).slice(0, 90) : ' (passou batido)'}`) }
