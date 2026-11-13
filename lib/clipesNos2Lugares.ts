@@ -144,7 +144,15 @@ export const CLIPES_FORA_DA_VITRINE_1311: readonly ClipeNovo[] = [
  *  2 no celular), no lugar da antiga fileira de seis paisagens (onda, águia, rua, arraia, montanha, cavalo: "paisagem sem gente nem produto sai").
  *  São ids de CLIPES_NOVOS, na ordem em que aparecem. Clipe novo aprovado entra NA FRENTE desta lista e o último sai dela (ele continua na grade
  *  de baixo e no /made-with-kineo). Sempre 6, para fechar duas linhas inteiras. Na home, quem está aqui não se repete na grade. */
-export const CLIPES_NO_TOPO: readonly string[] = ['selfie-confete', 'anuncio-creme-selfie', 'anuncio-burger-camera-lenta', 'raposa-lanterna', 'carta-do-front', 'sueter-aconchegante'] // KINEO-HOME-TOPO-5X6-1311 — só clipe que cabe em pé na janela 5:6 (o balão é corpo inteiro com braços para cima: fica na grade)
+// KINEO-HOME-ESTRATEGIA-A-1311 [dono 13/11 de madrugada: "A" às 3 estratégias de cards do GPT, com o ajuste da CEO] — "Your next story": a 1ª linha é filme · desenho ·
+// Recreate (carta do front, raposa, selfie) e a 2ª é anúncio · anúncio UGC · Recreate (hambúrguer, creme, suéter). Os mesmos 6 clipes aprovados;
+// muda só a ordem. Motivo: nos últimos 14 dias filme teve 105 cliques e desenho 73, contra 33 de anúncio (docs/home-1311/CLIQUES-POR-CARTAO-1311.md).
+export const CLIPES_NO_TOPO: readonly string[] = ['carta-do-front', 'raposa-lanterna', 'selfie-confete', 'anuncio-burger-camera-lenta', 'anuncio-creme-selfie', 'sueter-aconchegante'] // KINEO-HOME-TOPO-5X6-1311 — só clipe que cabe em pé na janela 5:6 (o balão é corpo inteiro com braços para cima: fica na grade)
+/** KINEO-HOME-ESTRATEGIA-A-1311 — o convite dos cartões que não têm "Recreate" nem "Make your ad": a pessoa faz o DELA no produto daquele tipo de trabalho.
+ *  Nada no cartão diz que ESTE vídeo saiu do produto (não saiu: foi feito à mão, ver 13/11 acima); o mesmo critério do "Make your ad" de 10/11.
+ *  Vale na home e no /made-with-kineo. Quando a classificação por produto do GPT entrar (campo `produto`), ela substitui este mapa. */
+export const CLIPE_CONVITE: Readonly<Record<string, 'film' | 'cartoon'>> = { 'carta-do-front': 'film', 'raposa-lanterna': 'cartoon' }
+export const clipeNovoConvite = (c: Pick<ClipeNovo, 'id'>): 'film' | 'cartoon' | null => CLIPE_CONVITE[c.id] ?? null
 
 export const clipeNovoVideo = (c: Pick<ClipeNovo, 'id'>): string => `/previews/galeria/${c.id}.mp4`
 export const clipeNovoPoster = (c: Pick<ClipeNovo, 'id'>): string => `/posters/galeria/${c.id}.webp`

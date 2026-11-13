@@ -113,6 +113,8 @@ const NOMES_DE_MOTOR = /\b(Kling|Seedance|MiniMax|H3|Veo|Omni|Hailuo|Wan|Sora|Ru
 const { CLIP_ENGINES, clipShowcaseLabel } = require(path.join(ROOT, 'lib/clips/clipCatalog.ts')) // KINEO-ROTULO-CLIPE-H3-1111: clipShowcaseLabel
 // Founder 10/11: prepare public Recreate; preserve legacy destinations outside the approved catalog.
 const { publicRecreatePath } = require(path.join(ROOT, 'lib/recreate/entry.ts'))
+const { MENU_CARTOON_HREF } = require(path.join(ROOT, 'lib/ui/homeRemodela2010.ts')) // KINEO-HOME-ESTRATEGIA-A-1311
+const CONVITE_APROVADO = { 'carta-do-front': 'film', 'raposa-lanterna': 'cartoon' } // KINEO-HOME-ESTRATEGIA-A-1311 — a verdade do guardião: só estes dois (dono 13/11, estratégia A); a tela não decide sozinha
 const escapa = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const motorNoTexto = new RegExp(`${NOMES_DE_MOTOR.source}|${Object.values(CLIP_ENGINES).map((m) => escapa(m.label)).join('|')}`, 'i')
 const INICIO = Date.parse('2026-11-05T12:00:00Z')
@@ -206,8 +208,20 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
       else if (VERDADE[c.id]?.[2] === 'filme') { // KINEO-VITRINE-10-1011 — filme do Studio: o MESMO link dos filmes da vitrine, nunca o /clips
         const filme = /<a href="([^"]+)"[^>]*data-home-cta="mosaic_film"/.exec(html)?.[1]
         if (!bruto.startsWith('/signup?redirect=' + encodeURIComponent(new URL(ENTRADA.createEntryHref('film', '/studio', false), 'https://k').pathname)) || (filme && filme.replace(/&amp;/g, '&') !== bruto)) e.push(`B ${lugar}: ${c.id} (filme) não abre o Studio como os filmes da vitrine: ${bruto.slice(0, 80)}`)
+      } else if (lib.clipeNovoConvite(c) === 'film') { // KINEO-HOME-ESTRATEGIA-A-1311 — convite de filme: o MESMO link dos filmes da vitrine, medido como filme, com o convite na tela
+        const filmes = [...html.matchAll(/<a href="([^"]+)"[^>]*data-home-cta="mosaic_film"[^>]*>/g)].filter((m) => !m[0].includes('data-clip-novo')).map((m) => m[1].replace(/&amp;/g, '&'))
+        if (!(filmes.length ? filmes[0] === bruto : /redirect=%2F(create%2Ffilm|studio)/.test(bruto))) e.push(`B ${lugar}: ${c.id} (convite de filme) não abre o Studio como os filmes da vitrine: ${bruto.slice(0, 80)}`)
+        if (!/data-home-cta="mosaic_film"/.test(cartao)) e.push(`B ${lugar}: ${c.id} (convite de filme) medido como outro tipo de cartão`)
+        if (!/data-convite="film"[^>]*>[\s\S]*?Make a film/.test(cartao)) e.push(`B ${lugar}: ${c.id} sem o convite "Make a film"`)
+      } else if (lib.clipeNovoConvite(c) === 'cartoon') { // KINEO-HOME-ESTRATEGIA-A-1311 — convite de desenho: o MESMO destino do item Cartoon do menu do topo
+        if (bruto !== ENTRADA.createEntryForContentHref('cartoon', MENU_CARTOON_HREF, '/kids-cartoon', false)) e.push(`B ${lugar}: ${c.id} (convite de desenho) não leva ao Cartoon do menu: ${bruto.slice(0, 80)}`)
+        if (!/data-home-cta="mosaic_cartoon"/.test(cartao)) e.push(`B ${lugar}: ${c.id} (convite de desenho) medido como outro tipo de cartão`)
+        if (!/data-convite="cartoon"[^>]*>[\s\S]*?Make a cartoon/.test(cartao)) e.push(`B ${lugar}: ${c.id} sem o convite "Make a cartoon"`)
       } else if (c.engine === null) { const esperado = publicRecreatePath(c.id) ?? '/clips'; if (destino !== esperado) e.push(`B ${lugar}: ${c.id} (formato) não leva ao catálogo aprovado ou fallback: ${bruto.slice(0, 80)}`) }
       else if (!destino.startsWith('/clips?') || pedido.get('engine') !== c.engine) e.push(`B ${lugar}: ${c.id} não leva ao /clips no motor: ${bruto.slice(0, 80)}`)
+      // KINEO-HOME-ESTRATEGIA-A-1311 — o convite só aparece em quem está no mapa, e nunca junto do Recreate ou do Make your ad
+      if ((lib.clipeNovoConvite(c) ?? null) !== (CONVITE_APROVADO[c.id] ?? null) || (!CONVITE_APROVADO[c.id] && /data-convite=/.test(cartao))) e.push(`B ${lugar}: ${c.id} mostra convite de filme ou desenho sem estar no mapa aprovado (ou perdeu o que tinha)`)
+      if (lib.clipeNovoConvite(c) && (VERDADE[c.id]?.[2] === 'anuncio' || publicRecreatePath(c.id))) e.push(`B ${lugar}: ${c.id} tem convite e também é anúncio ou modelo de Recreate`)
       if (c.prompt && pedido.get('prompt') !== c.prompt) e.push(`B ${lugar}: ${c.id} sem o texto no /clips`)
       if (!c.prompt && pedido.has('prompt')) e.push(`B ${lugar}: ${c.id} preenche texto que não tem`)
       if (!cartao.includes(`src="${lib.clipeNovoPoster(c)}"`)) e.push(`B ${lugar}: ${c.id} sem pôster`)
@@ -434,7 +448,14 @@ mutante('exemplo de anúncio leva a outro lugar das Ads', { [LIB]: troca("export
 mutante('convite "Make your ad" some', { [MOSAICO]: troca('{podeFazerAnuncio(t) ? <MakeYourAd /> : null}', '') })
 mutante('convite "Make your ad" em todo clipe novo', { [MOSAICO]: troca('{podeFazerAnuncio(t) ? <MakeYourAd /> : null}', '<MakeYourAd />') })
 mutante('Recreate no exemplo de anúncio (em vez do convite)', { [MOSAICO]: troca("  if (t.kind === 'novo') return !!t.clip.prompt && !clipeNovoAnuncio(t.clip)", "  if (t.kind === 'novo') return !!t.clip.prompt || clipeNovoAnuncio(t.clip)") })
-mutante('exemplo de anúncio medido como clipe', { [MOSAICO]: troca("data-home-cta={podeFazerAnuncio(t) ? 'mosaic_ad' : 'mosaic_clip'}", 'data-home-cta="mosaic_clip"') })
+mutante('exemplo de anúncio medido como clipe', { [MOSAICO]: troca("data-home-cta={podeFazerAnuncio(t) ? 'mosaic_ad' : convite === 'film' ? 'mosaic_film' : convite === 'cartoon' ? 'mosaic_cartoon' : 'mosaic_clip'}", 'data-home-cta="mosaic_clip"') })
+// KINEO-HOME-ESTRATEGIA-A-1311 — o convite de filme e de desenho: destino, medida e botão
+const mutanteConvite = (nome, novasTrocas, frase) => { let r; try { r = checa(carrega(novasTrocas)) } catch (err) { r = ['quebrou: ' + err.message] } const m = r.find((x) => x.includes(frase)); ok(!!m, `M ${nome}: vermelho pela regra do convite${m ? ' — ' + m.slice(0, 90) : ' (passou batido: ' + String(r[0] ?? 'nada').slice(0, 60) + ')'}`) }
+mutanteConvite('convite de desenho leva ao /clips vazio', { [MOSAICO]: troca("href={convite === 'cartoon' ? createEntryForContentHref('cartoon', MENU_CARTOON_HREF, '/kids-cartoon', signedIn)", "href={convite === 'cartoon' ? viaSignup('/clips', signedIn)") }, '(convite de desenho) não leva ao Cartoon do menu')
+mutanteConvite('convite de filme leva ao /clips vazio', { [MOSAICO]: troca(": convite === 'film' || clipeNovoAbreStudio(c) ? filmHref", ': clipeNovoAbreStudio(c) ? filmHref') }, '(convite de filme) não abre o Studio')
+mutanteConvite('convite some da tela', { [MOSAICO]: troca('      {convite ? <MakeYours tipo={convite} /> : null}\n', '') }, 'sem o convite "Make a')
+mutanteConvite('convite em todo clipe novo', { [LIB]: troca("=> CLIPE_CONVITE[c.id] ?? null", "=> CLIPE_CONVITE[c.id] ?? 'film'") }, 'sem estar no mapa aprovado')
+mutanteConvite('convite medido como clipe', { [MOSAICO]: troca(": convite === 'film' ? 'mosaic_film' : convite === 'cartoon' ? 'mosaic_cartoon' : 'mosaic_clip'}", ": 'mosaic_clip'}") }, 'medido como outro tipo de cartão')
 mutante('exemplo de anúncio rotulado como formato', { [LIB]: troca("id: 'anuncio-relogio', title: 'The gift watch', engine: null, selo: 'Ad example'", "id: 'anuncio-relogio', title: 'The gift watch', engine: null, selo: 'Trending format'") })
 mutante('etiqueta "Ad example" na tela', { [MOSAICO]: injeta(COPIA_NOVO, '<i><UiLabel>{tipo}</UiLabel></i>') })
 // KINEO-OUTFIT-MORPH-HOME-0911 — o ramo do cartão de formato

@@ -96,7 +96,7 @@ const mutants = [
   ['foto volta sem nome', { [MOSAIC]: s(MOSAIC).replace('<span className="kmz-copy"><b>{mosaicImageTitle(img.file, img.alt)}</b></span>', '') }],
   ['nome some de uma foto e a reserva também', { [MOSAIC]: s(MOSAIC).replace("'canoe.webp': 'Canoe on a misty lake',", '').replace("return MOSAIC_IMAGE_TITLE[file] ?? alt.replace", "return MOSAIC_IMAGE_TITLE[file] ?? ''.replace") }],
   ['NEW volta ao desenho rosa solto', { [MOSAIC]: s(MOSAIC).replace('<Chips novo={newKeys.has(e.key)} recreate={podeRecriar(t)} />', '{newKeys.has(e.key) ? <span className="kmz-new">⚡ NEW</span> : null}<Chips recreate={podeRecriar(t)} />') }],
-  ['Recreate fora da fileira', { [MOSAIC]: s(MOSAIC).replace('<Chips recreate={podeRecriar(t)} ad={podeFazerAnuncio(t)} />', '{podeRecriar(t) ? <Recreate /> : null}<Chips ad={podeFazerAnuncio(t)} />') }],
+  ['Recreate fora da fileira', { [MOSAIC]: s(MOSAIC).replace('<Chips recreate={podeRecriar(t)} ad={podeFazerAnuncio(t)} convite={convite} />', '{podeRecriar(t) ? <Recreate /> : null}<Chips ad={podeFazerAnuncio(t)} convite={convite} />') }],
   ['"Put your face in it" com desenho próprio', { [MOSAIC]: s(MOSAIC).replace('className="kmz-chip kmz-face"', 'className="kmz-face"') }],
   ['fileira não quebra linha (sobrepõe)', { [MOSAIC]: s(MOSAIC).replace('display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px', 'display:flex;flex-wrap:nowrap;align-items:flex-start;gap:6px') }],
   ['no celular a fileira fica por baixo do "Put your face in it"', { [MOSAIC]: s(MOSAIC).replace('.klp .kmz-cell .kmz-t .kmz-chips{top:38px}', '.klp .kmz-cell .kmz-t .kmz-chips{top:6px}') }],

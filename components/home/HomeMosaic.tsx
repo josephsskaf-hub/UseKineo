@@ -26,11 +26,12 @@ import type { ClipEffect } from '@/lib/clips/clipEffects'
 import { publicEffectPages, effectPagePath, effectSlug } from '@/lib/clips/clipEffectPages'
 import { HOME_GALLERY_BIG, HOME_GALLERY_DIR, HOME_GALLERY_IMAGES, type HomeGalleryImage } from '@/components/home/HomeImageGallery'
 import { clipsFirstFilmHref } from '@/lib/growth/homeClipsFirst'
-import { createEntryForSignupHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"]
+import { createEntryForSignupHref, createEntryForContentHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"]
 import { cardStatFor, compactCount } from '@/lib/home/cardSocialStats' // KINEO-CARDS-VIEWS-0911
 import { seasonalEffectKeys } from '@/lib/clips/clipSeason' // KINEO-VITRINE-ESTACAO-3110
 import { publicRecreatePath } from '@/lib/recreate/entry'
-import { CLIPES_NOVOS, CLIPES_NO_TOPO, FORA_DE_ESTACAO, afastaVizinhos, fechaOFim, semLargoNoFim, clipeNovoAbreStudio, clipeNovoAnuncio, clipeNovoDestino, clipeNovoPoster, clipeNovoVideo, clipesNovosDoDia, diaDaVitrine, embaralhaDoDia, intercala, type ClipeNovo } from '@/lib/clipesNos2Lugares' // KINEO-CLIPES-NOS-2-LUGARES-0411
+import { MENU_CARTOON_HREF } from '@/lib/ui/homeRemodela2010' // KINEO-HOME-ESTRATEGIA-A-1311
+import { CLIPES_NOVOS, CLIPES_NO_TOPO, FORA_DE_ESTACAO, afastaVizinhos, fechaOFim, semLargoNoFim, clipeNovoAbreStudio, clipeNovoAnuncio, clipeNovoConvite, clipeNovoDestino, clipeNovoPoster, clipeNovoVideo, clipesNovosDoDia, diaDaVitrine, embaralhaDoDia, intercala, type ClipeNovo } from '@/lib/clipesNos2Lugares' // KINEO-CLIPES-NOS-2-LUGARES-0411
 
 /** Interruptor da vitrine contínua (false = a home volta às faixas separadas de antes, intactas no KineoLanding). */
 export const HOME_MOSAIC_LIVE = true
@@ -293,14 +294,25 @@ function MakeYourAd() {
   )
 }
 
+/** KINEO-HOME-ESTRATEGIA-A-1311 — o convite do cartão de filme e de desenho (mesmo desenho do "Make your ad"; o clique é o do cartão inteiro). */
+function MakeYours({ tipo }: { tipo: 'film' | 'cartoon' }) {
+  return (
+    <span className="kmz-chip kmz-re kmz-mkad" data-convite={tipo} aria-hidden="true">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v10" /><path d="M3 8h10" /></svg>
+      <UiLabel>{tipo === 'film' ? 'Make a film' : 'Make a cartoon'}</UiLabel>
+    </span>
+  )
+}
+
 // KINEO-ETIQUETA-UNICA-1111 [CEO 11/11, tarefa 2] — as etiquetas do cartão numa fileira só (um desenho, quebra linha, nunca sobrepõe).
-function Chips({ novo = false, recreate = false, ad = false }: { novo?: boolean; recreate?: boolean; ad?: boolean }) {
-  if (!novo && !recreate && !ad) return null
+function Chips({ novo = false, recreate = false, ad = false, convite = null }: { novo?: boolean; recreate?: boolean; ad?: boolean; convite?: 'film' | 'cartoon' | null }) {
+  if (!novo && !recreate && !ad && !convite) return null
   return (
     <span className="kmz-chips">
       {novo ? <span className="kmz-chip kmz-new">⚡ NEW</span> : null}
       {recreate ? <Recreate /> : null}
       {ad ? <MakeYourAd /> : null}
+      {convite ? <MakeYours tipo={convite} /> : null}
     </span>
   )
 }
@@ -357,15 +369,16 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
             if (t.kind === 'novo') { // KINEO-CLIPES-NOS-2-LUGARES-0411 — selo = o motor real; o pôster é <img loading="lazy">: os 15 não somam nada ao 1º carregamento, e o vídeo só nasce na tela (WallMedia)
               const c = t.clip
               if (!topo && !full && NO_TOPO.has(c.id)) return null // KINEO-HOME-TOPO-CLIPES-1311 — já abre a home no topo; no /made-with-kineo (full) segue na grade
+              const convite = podeRecriar(t) || podeFazerAnuncio(t) ? null : clipeNovoConvite(c) // KINEO-HOME-ESTRATEGIA-A-1311 — só quem não tem Recreate nem Make your ad
               const tipo = c.selo ?? 'Clip' // KINEO-CARDS-SEM-MOTOR-0911 — o TIPO (Clip / Trending format), nunca o motor; o motor real segue no dado e no link · KINEO-CARDS-SEM-ETIQUETA-0911 — o tipo vive só no aria-label
               return ( // KINEO-ADS-NATAL-VITRINE-1011 — exemplo de anúncio: clipeNovoDestino dá /ads/new (via viaSignup), medido à parte como mosaic_ad
-                <Link key={'novo-' + c.id} href={clipeNovoAbreStudio(c) ? filmHref /* KINEO-VITRINE-10-1011 — filme do Studio: o link dos filmes */ : createEntryForSignupHref(viaSignup(publicRecreatePath(c.id) ?? clipeNovoDestino(c), signedIn), signedIn) /* KINEO-ENTRADAS-TELA-NOVA-1011 — logado: só /ads/new seco vira /create/ads */} className={`kmz-t${t.grande ? ' kmz-big' : ''}`} data-home-cta={podeFazerAnuncio(t) ? 'mosaic_ad' : 'mosaic_clip'} data-clip-novo={c.id} aria-label={`${c.title} — ${tipo}`}>
+                <Link key={'novo-' + c.id} href={convite === 'cartoon' ? createEntryForContentHref('cartoon', MENU_CARTOON_HREF, '/kids-cartoon', signedIn) /* KINEO-HOME-ESTRATEGIA-A-1311 — o mesmo destino do item Cartoon do menu do topo */ : convite === 'film' || clipeNovoAbreStudio(c) ? filmHref /* KINEO-VITRINE-10-1011 — filme do Studio: o link dos filmes */ : createEntryForSignupHref(viaSignup(publicRecreatePath(c.id) ?? clipeNovoDestino(c), signedIn), signedIn) /* KINEO-ENTRADAS-TELA-NOVA-1011 — logado: só /ads/new seco vira /create/ads */} className={`kmz-t${t.grande ? ' kmz-big' : ''}`} data-home-cta={podeFazerAnuncio(t) ? 'mosaic_ad' : convite === 'film' ? 'mosaic_film' : convite === 'cartoon' ? 'mosaic_cartoon' : 'mosaic_clip'} data-clip-novo={c.id} aria-label={`${c.title} — ${tipo}`}>
                   <div className="kmz-md" style={focusStyle(undefined, c.focus)}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={clipeNovoPoster(c)} width={540} height={960} alt="" loading="lazy" decoding="async" style={{ objectPosition: c.focus, transform: 'none' }} />
                     <WallMedia src={clipeNovoVideo(c)} />
                   </div>
-                  <Chips recreate={podeRecriar(t)} ad={podeFazerAnuncio(t)} />{/* KINEO-ADS-NATAL-VITRINE-1011 · KINEO-ETIQUETA-UNICA-1111 */}
+                  <Chips recreate={podeRecriar(t)} ad={podeFazerAnuncio(t)} convite={convite} />{/* KINEO-ADS-NATAL-VITRINE-1011 · KINEO-ETIQUETA-UNICA-1111 · KINEO-HOME-ESTRATEGIA-A-1311 */}
                 <span className="kmz-shade" aria-hidden="true" />
                   <span className="kmz-copy"><b><UiLabel>{c.title}</UiLabel></b><Views video={clipeNovoVideo(c)} /></span>{/* KINEO-OUTFIT-MORPH-HOME-0911 */}
                 </Link>
