@@ -34,6 +34,10 @@ const CAMPAIGN = 'push60_free_ai_shorts_generator'
 const FORM_ID = 'free-ai-shorts-generator-form'
 const FEATURED_EXAMPLE = PUBLIC_EXAMPLES[1]
 const PUBLICATION_DATE = '2026-07-23T00:00:00.000Z'
+// KINEO-PREVIA-AFILIADO-1311 [CEO 13/11] — a prévia do bloco do parceiro troca o corte de agosto (example-sentinel, imagem de banco) por um
+// filme narrado que JÁ está na home e é o que o filme de hoje entrega (filme-mary-celeste da galeria, Kling 4.0, 09/11), em versão leve:
+// 360×640, sem áudio, 6,5 s, 234 KB (public/previews/afiliado/mary-celeste-360.mp4; pôster webp de 16 KB).
+const PARTNER_PREVIEW = { poster: '/posters/afiliado/mary-celeste-360.webp', video: '/previews/afiliado/mary-celeste-360.mp4', alt: 'The ghost ship Mary Celeste, a narrated Short made with Kineo' }
 
 const FEATURES = [
   {
@@ -182,7 +186,7 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
           targetId={FORM_ID}
           country={partnerCountry}
           offerLine={partnerOfferLine}
-          preview={partnerContext ? { poster: FEATURED_EXAMPLE.posterPath, video: FEATURED_EXAMPLE.videoPath, alt: FEATURED_EXAMPLE.title } : null}
+          preview={partnerContext ? PARTNER_PREVIEW : null}
         />
         {partnerContext && <div style={{ margin: '0 0 30px' }}>{topicForm}</div>}
         <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 750, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#0A5CFF', border: '1px solid rgba(10,92,255,0.35)', background: '#E8EFFF', borderRadius: 999, padding: '6px 12px' }}>
