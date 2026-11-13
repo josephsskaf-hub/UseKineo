@@ -209,11 +209,15 @@ export async function GET(req: NextRequest) {
         const res = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ from: VOLTA_1211_FROM, to: [a.email], reply_to: VOLTA_1211_REPLY_TO, subject: m.subject, text: m.text, html: m.html, headers: unsubscribeHeaders(a.id) }),
+          body: JSON.stringify({ from: VOLTA_1211_FROM, to: [a.email], reply_to: VOLTA_1211_REPLY_TO, subject: m.subject, text: m.text, html: m.html, headers: unsubscribeHeaders(a.id), tags: [{ name: 'campaign', value: VOLTA_1211_CAMPAIGN }] }),
         })
         await recordResendResponse({ kind: VOLTA_1211_CAMPAIGN, priority: 'growth', userId: a.id, res, admin })
         if (!res.ok) { falhas++; continue }
-        await admin.from('events').insert({ user_id: a.id, name: VOLTA_1211_SENT, path: ROUTE, metadata: { campaign: VOLTA_1211_CAMPAIGN, seg: a.seg, lingua: a.lingua, had_film: !!a.videoId } })
+        // KINEO-VOLTA-STATUS-1311 — o id que o Resend devolve ({ id }) vai no carimbo: /api/admin/volta-1211-status consulta o estado
+        // (entregue, devolvido, spam) por ele. Os 50 primeiros (13/11 16:40) nasceram sem id e são achados pela lista do Resend.
+        const corpo = (await res.json().catch(() => null)) as { id?: unknown } | null
+        const resendId = typeof corpo?.id === 'string' && corpo.id ? corpo.id : null
+        await admin.from('events').insert({ user_id: a.id, name: VOLTA_1211_SENT, path: ROUTE, metadata: { campaign: VOLTA_1211_CAMPAIGN, seg: a.seg, lingua: a.lingua, had_film: !!a.videoId, resend_id: resendId } })
         enviados++
         await new Promise((r) => setTimeout(r, 600))
       } catch { falhas++ }
