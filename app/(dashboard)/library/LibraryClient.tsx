@@ -1,6 +1,7 @@
 'use client'
 import { FavoriteButton, LibraryOrganization, organizeAssets, useLibraryOrganization } from '@/components/LibraryOrganization'
 import ControlIcon from '@/components/ControlIcon'
+import { comPrimeiroQuadro } from '@/lib/videoPrimeiroQuadro' // KINEO-VIDEO-COM-PRIMEIRO-QUADRO-1311
 
 // KINEO-LIBRARY-2026-08-17 — a estante do usuario (fundador: "a pessoa clicar
 // e ver os projetos que ela tem: videos, imagens, audios"). Padrao InVideo
@@ -134,7 +135,7 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
         <div className="library-asset-section"><h2><UiLabel>{titulo}</UiLabel></h2><div className="library-collection">
           {lista.map((c) => (
             <div key={c.id} className="card library-organized-card" style={{ padding: 8 }}>
-              <video src={c.video_url ?? undefined} controls playsInline preload="metadata" style={{ width: '100%', borderRadius: 10, display: 'block', background: '#000' }} />
+              <video src={comPrimeiroQuadro(c.video_url)} controls playsInline preload="metadata" style={{ width: '100%', borderRadius: 10, display: 'block', background: '#000' }} />
               <p className="library-asset-model">{c.label} · {c.seconds} s</p>
               <div className="row library-asset-actions" style={{ marginTop: 8 }}>
                 <button type="button" className="pill" onClick={() => dl(c.video_url!, `kineo-clip-${c.id.slice(0, 6)}.mp4`)}><ControlIcon name="download" /> <UiLabel>Download</UiLabel></button>

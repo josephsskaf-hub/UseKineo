@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import './studio-media.css'
+import { comPrimeiroQuadro } from '@/lib/videoPrimeiroQuadro' // KINEO-VIDEO-COM-PRIMEIRO-QUADRO-1311
 
 interface PlayerProps {
   src: string
@@ -58,7 +59,7 @@ export default function RecreatePlayer({ src, poster, label, preview = false, st
     } catch { setError('Could not expand the preview.') }
   }
   return <div className="rc-player" data-presentation={stage ? 'stage' : 'inline'} ref={frame}>
-    <video ref={video} src={src} poster={poster} muted={muted} loop={preview} playsInline preload="metadata" aria-label={label}
+    <video ref={video} src={poster ? src : comPrimeiroQuadro(src)} poster={poster} muted={muted} loop={preview} playsInline preload="metadata" aria-label={label}
       onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)}
       onVolumeChange={() => setMuted(video.current?.muted ?? true)} />
     <div className="rc-media-info">
