@@ -38,7 +38,7 @@ export default function TrustActions() {
         {CARD_ENTRY_COPY.ctaShort}
       </Link>
       <Link
-        href="/examples"
+        href="/made-with-kineo"
         onClick={() => record('examples')}
         style={{ color: '#fff', border: '1px solid rgba(255,255,255,.16)', borderRadius: 999, padding: '13px 20px', fontSize: 14, fontWeight: 800, textDecoration: 'none' }}
       >

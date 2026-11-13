@@ -118,7 +118,7 @@ export default function AiVoiceGeneratorPage() {
         <p style={{ color: '#86868b', fontSize: 13 }}>
           Related: <Link href="/ai-image-generator" style={{ color: '#2997ff' }}>AI Images</Link> ·{' '}
           <Link href="/ai-video-upscaler" style={{ color: '#2997ff' }}>Video Upscaler</Link> ·{' '}
-          <Link href="/examples" style={{ color: '#2997ff' }}>Examples</Link> ·{' '}
+          <Link href="/made-with-kineo" style={{ color: '#2997ff' }}>Examples</Link> ·{' '}
           {/* KINEO-GUIAS-IA-1610 — as guias de voz que esta página leva */}
           {guiasIaLinksFrom('/ai-voice-generator').map((g) => <span key={g.href}><Link href={g.href} style={{ color: '#2997ff' }}>{g.label}</Link> ·{' '}</span>)}
           <Link href="/pricing" style={{ color: '#2997ff' }}>Pricing</Link>

@@ -155,7 +155,7 @@ export default async function EngineHubPage() {
         <CitationAnswerLinks />
 
         <nav style={{ marginTop: 44, textAlign: 'center', fontSize: '0.85rem', color: '#6e6e73', lineHeight: 2 }}>
-          <Link href="/examples" style={{ color: '#86868b', textDecoration: 'none' }}>Real examples</Link>
+          <Link href="/made-with-kineo" style={{ color: '#86868b', textDecoration: 'none' }}>Real examples</Link>
           {' · '}
           <Link href="/pricing" style={{ color: '#86868b', textDecoration: 'none' }}>Pricing</Link>
           {' · '}

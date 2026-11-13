@@ -492,7 +492,7 @@ export default async function ScriptVerticalPage({ params }: { params: { vertica
             Free hook generator
           </Link>
           <span style={{ color: '#374151' }}> · </span>
-          <Link href="/examples" style={{ color: BLUE, textDecoration: 'none' }}>
+          <Link href="/made-with-kineo" style={{ color: BLUE, textDecoration: 'none' }}>
             Example Shorts
           </Link>
           <span style={{ color: '#374151' }}> · </span>

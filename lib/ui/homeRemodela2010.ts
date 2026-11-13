@@ -38,7 +38,7 @@ export const MENU_CONNECTOR_LABEL = 'Claude & ChatGPT'
 export const MENU_CONNECTOR_NAV_ITEM = 'more:mcp'
 
 /** A ordem do topo público (rótulos autorais), da esquerda para a direita; Log in / Dashboard ficam à direita. */
-export const TOP_MENU_ORDER = ['Make a film', 'Product ads', 'AI UGC Ads', MENU_CARTOON_LABEL, MENU_CONNECTOR_LABEL, '🔥 Trending', 'Pricing'] as const
+export const TOP_MENU_ORDER = ['Films', 'Product Ads', 'UGC Ads', 'Cartoons', RECREATE_MENU_LABEL, MENU_CONNECTOR_LABEL, 'Pricing'] as const
 
 /** Título da galeria da home (era "Images made with Kineo", dentro de "More tools"). */
 export const HOME_GALLERY_TITLE = 'Images made by Kineo'

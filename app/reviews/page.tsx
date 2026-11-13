@@ -95,7 +95,7 @@ export default function ReviewsPage() {
         finished 9:16 Shorts from a typed idea — script, AI voiceover, footage, captions — and on
         MiniMax H3 characters on screen speak the scripted line with
         lip sync, alternating with a narrator inside one film. That claim is checkable in minutes:{' '}
-        <a href={`${BASE}/examples`} style={{ color: '#2997ff' }}>watch real output</a> or{' '}
+        <a href={`${BASE}/made-with-kineo`} style={{ color: '#2997ff' }}>watch real output</a> or{' '}
         <a href={`${BASE}/free`} style={{ color: '#2997ff' }}>generate one free, no card</a>.
       </p>
 

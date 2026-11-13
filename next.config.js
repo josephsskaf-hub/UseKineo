@@ -131,6 +131,8 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      // KINEO-FILMS-DIRETO-1311 — exact index redirect; public /examples/<slug> detail routes remain.
+      { source: '/examples', destination: '/made-with-kineo', permanent: true },
       // PUSH #34 — the strongest stale branded-search result still points to
       // /auth.html?mode=signup. The old catch-all sent that signup intent to
       // /login, adding a needless dead end for traffic we already earned.

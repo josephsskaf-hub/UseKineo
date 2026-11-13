@@ -54,7 +54,7 @@ const FACTS = [
     eyebrow: 'Customer work',
     title: 'Your library is private by default',
     body: 'A completed customer video is not added to Kineo’s public galleries, public video sitemap or related-video rails. Public examples are a separate founder-approved set.',
-    link: { href: '/examples', label: 'See the separate public examples' },
+    link: { href: '/made-with-kineo', label: 'See the separate public examples' },
   },
   {
     eyebrow: 'Commercial use',

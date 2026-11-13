@@ -529,7 +529,7 @@ export default async function PublicVideoPage({ params }: { params: { id: string
               </li>
             )}
             <li>
-              <Link href="/examples" style={{ color: BLUE, textDecoration: 'none' }}>
+              <Link href="/made-with-kineo" style={{ color: BLUE, textDecoration: 'none' }}>
                 See more example Shorts made with Kineo
               </Link>
             </li>

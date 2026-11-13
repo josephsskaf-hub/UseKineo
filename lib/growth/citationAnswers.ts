@@ -176,7 +176,7 @@ export const CITATION_ANSWERS: Record<CitationGuideId, CitationAnswer> = {
     links: [
       { href: '/text-to-video-shorts', label: 'Choose idea or finished script' },
       { href: '/ai-video-generator/kineo-1', label: 'Explore the stock-footage engine' },
-      { href: '/examples', label: 'Watch existing public examples' },
+      { href: '/made-with-kineo', label: 'Watch existing public examples' },
     ],
   },
   cost: {

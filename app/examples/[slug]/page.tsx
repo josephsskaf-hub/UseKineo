@@ -68,7 +68,7 @@ export default function ExampleWatchPage({ params }: { params: { slug: string } 
       <header className="border-b border-white/10">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
           <Link href="/" className="font-display text-lg font-black tracking-tight">Kineo</Link>
-          <Link href="/examples" className="text-sm font-bold text-white/65 transition hover:text-white">All examples</Link>
+          <Link href="/made-with-kineo" className="text-sm font-bold text-white/65 transition hover:text-white">All examples</Link>
         </div>
       </header>
 

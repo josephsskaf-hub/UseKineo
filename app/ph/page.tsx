@@ -154,7 +154,7 @@ export default function PhPage() {
           <p style={{ margin: '0 0 18px', color: 'rgba(255,255,255,.6)', fontSize: 14 }}>Each one started as one paragraph of text. The badge is the engine that actually rendered it.</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
             {FOUNDER_SHOWCASE.slice(0, 12).map((v) => (
-              <Link key={v.id} href="/examples" style={{ position: 'relative', display: 'block', aspectRatio: '9 / 16', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,.1)', background: '#111' }}>
+              <Link key={v.id} href="/made-with-kineo" style={{ position: 'relative', display: 'block', aspectRatio: '9 / 16', borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(255,255,255,.1)', background: '#111' }}>
                 {/* KINEO-PH-MARCA-2026-09-09 — pôster CORTADO. Os arquivos de
                     `public/posters/ex-<id>.webp` foram tirados dos masters antes
                     do corte e trazem `usekineo.com/free` no topo; esta página

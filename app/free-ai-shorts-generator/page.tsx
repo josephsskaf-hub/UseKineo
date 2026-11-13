@@ -190,7 +190,7 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
         {/* KINEO-PAGINAS-IA-CLARAS-2110 — o exemplo e os 3 vídeos velhos saíram; a âncora #example fica na vitrine atual (a mesma da /claude-connector). */}
         <PaginaClaraVitrine id="example" eyebrow="Real Kineo output" nota="These previews demonstrate the output format, not views or revenue performance." align="left" />
         <p style={{ ...p, marginTop: 10, fontSize: 13, textAlign: 'center' }}>
-          <a href="/examples" style={{ color: '#0A5CFF', textDecoration: 'none', fontWeight: 700 }}>See all real examples →</a>
+          <a href="/made-with-kineo" style={{ color: '#0A5CFF', textDecoration: 'none', fontWeight: 700 }}>See all real examples →</a>
         </p>
         {/* AQUISICAO T9 (14/08) — exit-intent na porta que mais recebe SEO:
             quem vai embora sem agir leva a oferta de CADASTRO (variant free),

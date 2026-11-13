@@ -124,7 +124,7 @@ export default function AiImageGeneratorPage() {
         <p style={{ color: '#86868b', fontSize: 13 }}>
           Related: <Link href="/ai-voice-generator" style={{ color: '#2997ff' }}>AI Voices</Link> ·{' '}
           <Link href="/ai-video-upscaler" style={{ color: '#2997ff' }}>Video Upscaler</Link> ·{' '}
-          <Link href="/examples" style={{ color: '#2997ff' }}>Examples</Link> ·{' '}
+          <Link href="/made-with-kineo" style={{ color: '#2997ff' }}>Examples</Link> ·{' '}
           <Link href="/pricing" style={{ color: '#2997ff' }}>Pricing</Link>
         </p>
       </main>

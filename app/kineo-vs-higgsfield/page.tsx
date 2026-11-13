@@ -182,7 +182,7 @@ export default function VsHiggsfieldPage() {
         Tables are easy to write, so don&apos;t trust ours either — watch the films:{' '}
         <Link href="/ai-robot-video-generator" style={{ color: '#2997ff' }}>a giant-robot battle with the exact 150-word script that generated it</Link>,{' '}
         <Link href="/arena" style={{ color: '#2997ff' }}>the same pipeline across the engines</Link>, or{' '}
-        <Link href="/examples" style={{ color: '#2997ff' }}>real user renders</Link> with honest engine badges.
+        <Link href="/made-with-kineo" style={{ color: '#2997ff' }}>real user renders</Link> with honest engine badges.
       </p>
 
       <div style={{ margin: '30px 0 0', padding: '20px 22px', borderRadius: 14, background: 'rgba(41,151,255,.08)', border: '1px solid rgba(41,151,255,.3)', textAlign: 'center' }}>

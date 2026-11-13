@@ -442,7 +442,7 @@ export default async function WallOfProofPage({
           <h2 style={{ fontSize: '1.05rem', fontWeight: 800, margin: '0 0 10px' }}>More from Kineo</h2>
           <ul style={{ color: MUTED, fontSize: '0.9rem', lineHeight: 1.9, margin: 0, paddingLeft: 20 }}>
             <li>
-              <Link href="/examples" style={{ color: BLUE, textDecoration: 'none' }}>
+              <Link href="/made-with-kineo" style={{ color: BLUE, textDecoration: 'none' }}>
                 Example Shorts made with Kineo
               </Link>
             </li>

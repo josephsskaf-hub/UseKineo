@@ -246,7 +246,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
         <PaginaClaraVitrine />{/* KINEO-PAGINAS-IA-CLARAS-2110 — a vitrine atual (a mesma da /claude-connector) no lugar das galerias velhas deste motor */}
         {standardH3 ? <H3TurboDetails /> : params.engine === 'seedance' ? <CitationDetails page="seedance" /> : null}
         <p style={{ textAlign: 'center', margin: '16px 0 0', fontSize: '0.85rem' }}>
-          <Link href="/examples" style={{ color: '#0A5CFF', textDecoration: 'none', fontWeight: 700 }}>See the 20 best across every engine →</Link>
+          <Link href="/made-with-kineo" style={{ color: '#0A5CFF', textDecoration: 'none', fontWeight: 700 }}>See the 20 best across every engine →</Link>
         </p>
 
         {/* Ficha técnica */}
@@ -390,7 +390,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
             ))}
           </div>
           <div>
-            <Link href="/examples" style={{ color: '#5A5F67', textDecoration: 'none' }}>Real examples</Link>
+            <Link href="/made-with-kineo" style={{ color: '#5A5F67', textDecoration: 'none' }}>Real examples</Link>
             {' · '}
             <Link href="/pricing" style={{ color: '#5A5F67', textDecoration: 'none' }}>Pricing</Link>
             {' · '}

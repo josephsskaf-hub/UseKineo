@@ -350,7 +350,7 @@ export function getHouseEngineExamples(engine: string, limit = 6): WallVideo[] {
     out.push({
       id: x.id, title: x.title, engine: x.engine, badge: ENGINE_BADGES[x.engine] ?? 'AI',
       videoUrl: x.arenaPreviewPath ?? x.videoPath, previewUrl: x.arenaPreviewPath ?? undefined,
-      posterUrl: x.arenaPosterPath ?? x.posterPath, href: '/examples', publicSource: 'founder_owned_engine_example',
+      posterUrl: x.arenaPosterPath ?? x.posterPath, href: '/made-with-kineo', publicSource: 'founder_owned_engine_example',
     })
     if (out.length >= limit) break
   }

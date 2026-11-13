@@ -142,7 +142,7 @@ export default async function ScriptsHubPage() {
               />
             </div>
             <p style={{ margin: '16px 0 0', fontSize: '0.86rem' }}>
-              <Link href="/examples" style={{ color: '#CBD5E1', textDecoration: 'none' }}>
+              <Link href="/made-with-kineo" style={{ color: '#CBD5E1', textDecoration: 'none' }}>
                 Watch Kineo-owned examples instead →
               </Link>
             </p>
@@ -406,7 +406,7 @@ export default async function ScriptsHubPage() {
         <nav style={{ marginTop: 36, fontSize: '0.85rem', lineHeight: 2 }}>
           <span style={{ color: MUTED }}>More from Kineo: </span>
           {[
-            ['/examples', 'Example Shorts'],
+            ['/made-with-kineo', 'Example Shorts'],
             ['/free-script-generator', 'Free script generator'],
             ['/free-hook-generator', 'Free hook generator'],
             ['/youtube-shorts-from-topic', 'Topic to Short'],

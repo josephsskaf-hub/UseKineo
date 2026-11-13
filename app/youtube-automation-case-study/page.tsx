@@ -91,7 +91,7 @@ export default function CaseStudyPage() {
         <div className="mx-auto flex max-w-4xl items-center justify-between px-5 py-5">
           <Link href="/" className="font-display text-lg font-black tracking-tight">Kineo</Link>
           <nav className="flex items-center gap-4 text-sm font-bold text-white/70">
-            <Link href="/examples" className="transition hover:text-white">Examples</Link>
+            <Link href="/made-with-kineo" className="transition hover:text-white">Examples</Link>
             <Link href="/pricing" className="transition hover:text-white">Pricing</Link>
             <Link
               href="/signup?utm_source=case_study&utm_medium=proof&utm_campaign=live_channel"

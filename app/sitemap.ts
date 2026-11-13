@@ -200,7 +200,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/faceless-video-generator', priority: 0.9, freq: 'weekly' },
     { path: '/free-ai-shorts', priority: 0.8, freq: 'weekly' },
     { path: '/alternatives', priority: 0.8, freq: 'weekly' },
-    { path: '/examples', priority: 0.8, freq: 'weekly' },
     // AEO/GEO — citable fact sheet for AI answer engines (linked in public/llms.txt).
     { path: '/facts', priority: 0.7, freq: 'weekly' },
     // KINEO-ACQ5-2026-07-24 (PUSH #87) — English acquisition surfaces:

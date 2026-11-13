@@ -106,7 +106,7 @@ export default function KineoHouseGallery({ items, surface = 'page' }: { items: 
       <div className="mwk-more">{/* KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810 — só a fileira de links no fim; nenhum botão revela cartão escondido */}
             <Link href="/clips" data-galeria-link="clips"><UiLabel>Open Clips</UiLabel> ↗</Link>
             <Link href="/images" data-galeria-link="images"><UiLabel>Open Images</UiLabel> ↗</Link>
-            <Link href="/examples" data-galeria-link="examples"><UiLabel>All films</UiLabel> ↗</Link>
+            <Link href="/made-with-kineo" data-galeria-link="examples"><UiLabel>All films</UiLabel> ↗</Link>
       </div>
     </div>
   )

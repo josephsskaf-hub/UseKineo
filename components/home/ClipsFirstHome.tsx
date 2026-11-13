@@ -17,6 +17,7 @@
 //   convite welcome20, faixa "continue de onde parou") — o A/B compara a PRIMEIRA TELA, não a oferta.
 // · Mobile-first: 2 colunas de efeito no celular, botão de foto em largura cheia, nenhuma rolagem lateral.
 import Link from 'next/link'
+import { NOMES_DE_PRODUTO } from '@/lib/ui/nomesDeProduto'
 import { KineoBrandIcon } from '@/components/KineoBolt'
 import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage'
 import NavCreditsBadge from '@/components/NavCreditsBadge'
@@ -183,8 +184,8 @@ export default function ClipsFirstHome({
             </Link>
             <div className="nl" data-nav-surface="top" data-nav-area="public">
               <Link href={signedIn ? '/clips' : clipUploadEntryHref(false)} data-nav-item="more:clips"><UiLabel>Clips</UiLabel></Link>
-              <Link href={clipsFirstFilmHref(signedIn)} data-nav-item="video"><UiLabel>Narrated films</UiLabel></Link>
-              <Link href="/examples" data-nav-item="examples"><UiLabel>Examples</UiLabel></Link>
+              <Link href={clipsFirstFilmHref(signedIn)} data-nav-item="video"><UiLabel>{NOMES_DE_PRODUTO.film.curto}</UiLabel></Link>
+              <Link href="/made-with-kineo" data-nav-item="more:made"><UiLabel>Made with Kineo</UiLabel></Link>
               <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
             </div>
             <div className="nr">

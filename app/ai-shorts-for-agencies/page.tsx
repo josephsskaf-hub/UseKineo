@@ -135,7 +135,7 @@ export default function AiShortsForAgenciesPage() {
             <KineoBolt /> Kineo
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <Link href="/examples" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>Examples</Link>
+            <Link href="/made-with-kineo" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>Examples</Link>
             {/* KINEO-CTA-LOGADO-2026-09-01 — o botão sabia só "Sign in";
                 logado agora vê "Open Studio →" (ver AgencyHeaderCta). */}
             <AgencyHeaderCta />
@@ -159,7 +159,7 @@ export default function AiShortsForAgenciesPage() {
               <a href="#agency-pack-heading" style={{ color: 'var(--on-accent)', background: 'var(--accent)', borderRadius: 999, padding: '13px 20px', fontSize: 14, fontWeight: 900, textDecoration: 'none' }}>
                 See one-time packs ↓
               </a>
-              <Link href="/examples" style={{ color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 999, padding: '13px 20px', fontSize: 14, fontWeight: 800, textDecoration: 'none' }}>
+              <Link href="/made-with-kineo" style={{ color: 'var(--text)', border: '1px solid var(--border)', borderRadius: 999, padding: '13px 20px', fontSize: 14, fontWeight: 800, textDecoration: 'none' }}>
                 Watch real outputs
               </Link>
               <Link href="/business-video-content-plan" style={{ color: 'var(--accent)', border: '1px solid var(--border)', background: 'var(--card2)', borderRadius: 999, padding: '13px 20px', fontSize: 14, fontWeight: 850, textDecoration: 'none' }}>

@@ -35,6 +35,7 @@ import { AVATAR_PUBLIC } from '@/lib/engineLaunch' // KINEO-AVATAR-FORA-2026-09-
 // link de negócios, então a sublista nasce DERIVADA de ADS_SEGMENTS (adsSegmentPath +
 // shortName) — nunca uma lista digitada; segmento novo na fonte entra aqui sozinho.
 import { ADS_SEGMENTS, adsSegmentPath } from '@/lib/growth/adsSegments'
+import { INDEXABLE_ENGINE_SLUGS, engineOfferName, engineOfferPath } from '@/lib/growth/enginePageCatalog'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -51,6 +52,12 @@ const ADS_SEGMENT_SUBLIST: { title: string; links: { href: string; label: string
 }
 
 // Internal navigation grouped for crawl depth + human wayfinding.
+// KINEO-FILMS-DIRETO-1311 — engines leave the product menu, while their published guides stay one link away for readers and crawlers.
+const ENGINE_GUIDE_SUBLIST = {
+  title: 'AI video engine guides',
+  links: INDEXABLE_ENGINE_SLUGS.map(slug => ({ href: engineOfferPath(slug), label: engineOfferName(slug) })),
+}
+
 const navGroups: { title: string; links: { href: string; label: string; costCalculator?: boolean; sublist?: typeof ADS_SEGMENT_SUBLIST }[] }[] = [
   {
     title: 'Product',
@@ -88,10 +95,11 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       // (26 paginas publicas linkando; nenhuma pagina nasce orfa).
       ...(SHOWCASE_PUBLIC ? [{ href: '/showcase', label: 'Showcase' }] : []),
       { href: '/images', label: 'AI image generator — 6 engines' },
+      { href: '/made-with-kineo', label: 'Made with Kineo' },
       { href: '/recreate', label: 'Recreate — put yourself in the clip' }, // KINEO-MENU-RECREATE-1211 — par do topo da home: a grade de todos os modelos
       { href: '/clips', label: 'AI clips — photo or text to clip' }, // KINEO-HOME-REMODELA-2010 — saíram do topo com o "More tools" (fundador 20/10): seguem a 1 clique no rodapé
       { href: '/spaces', label: 'Spaces — empty space in, finished space out' }, // KINEO-HOME-REMODELA-2010
-      { href: '/examples', label: 'Examples — real renders, every engine' }, // KINEO-HOME-REMODELA-2010
+      { href: '/ai-video-generator', label: 'AI video engine guides', sublist: ENGINE_GUIDE_SUBLIST }, // KINEO-HOME-REMODELA-2010
       { href: '/audio', label: 'AI voice generator (text to speech)' },
       { href: '/ai-video-upscaler', label: 'AI video upscaler & enhancer' },
       // KINEO-AVATAR-FORA-2026-09-28 — o link sai com o Avatar fora do catálogo (fundador 27/09: "avatar sai por hora");

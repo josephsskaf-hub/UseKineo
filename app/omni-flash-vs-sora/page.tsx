@@ -34,6 +34,6 @@ export default function OmniVsSoraPage() {
     <h2 style={{ fontSize: 22 }}>A finished video, not just a replacement API</h2>
     <p style={{ color: '#c7c7cc' }}>Kineo Studio combines script, scenes, narration, captions and music. Review your text and settings before generating. It does not migrate a Sora project or guarantee the same result from another model.</p>
     <p style={{ color: '#c7c7cc' }}>The no-card trial has {TRIAL_CREDITS_SHOWN} credits — enough for one {FREE_FILM_LABEL}. It is not free access to every generative engine; longer Seedance films, Kling and Veo require a paid plan and sufficient credits.</p>
-    <p><a href="/sora-alternative" style={{ color: '#71b8ff' }}>Read the Sora migration guide →</a> · <a href="/examples" style={{ color: '#71b8ff' }}>Browse published video examples →</a></p>
+    <p><a href="/sora-alternative" style={{ color: '#71b8ff' }}>Read the Sora migration guide →</a> · <a href="/made-with-kineo" style={{ color: '#71b8ff' }}>Browse published video examples →</a></p>
   </main>
 }

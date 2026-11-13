@@ -44,7 +44,7 @@ export default function NotFound() {
       <p style={{ position: 'relative', marginTop: 22, fontSize: 12.5, color: '#86868b' }}>
         Or jump to: <Link href="/images" style={{ color: '#2997ff' }}>Images</Link> ·{' '}
         <Link href="/audio" style={{ color: '#2997ff' }}>Audio</Link> ·{' '}
-        <Link href="/examples" style={{ color: '#2997ff' }}>Examples</Link> ·{' '}
+        <Link href="/made-with-kineo" style={{ color: '#2997ff' }}>Examples</Link> ·{' '}
         <Link href="/pricing" style={{ color: '#2997ff' }}>Pricing</Link>
       </p>
     </div>

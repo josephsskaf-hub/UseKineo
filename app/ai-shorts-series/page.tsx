@@ -165,7 +165,7 @@ export default function AiShortsSeriesPage() {
             Kineo
           </Link>
           <div style={{ display: 'flex', gap: 18 }}>
-            <Link href="/examples" style={{ color: MUTED, textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+            <Link href="/made-with-kineo" style={{ color: MUTED, textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
               Examples
             </Link>
             <Link href="/pricing" style={{ color: MUTED, textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>

@@ -124,7 +124,7 @@ export default async function Page({ searchParams }: { searchParams: { page?: st
 
         <footer className="tr-footer">
           <span>{copy.consent}</span>
-          <Link href="/examples">{copy.examples} ↗</Link>
+          <Link href="/made-with-kineo">{copy.examples} ↗</Link>
         </footer>
       </div>
     </main>

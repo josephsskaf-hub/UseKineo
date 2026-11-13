@@ -6,9 +6,7 @@ import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
 // Self-contained, styles scoped under .klp so they don't leak into the rest of the app.
 // Marker: KINEO-LANDING-V3-2026-06-30
 import { clipsVisible } from '@/lib/clips/clipLaunch'
-import { s25Visible, S25_PUBLIC, VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY, PAUSED_ENGINES_COPY, enginePaused, avatarVisible, kineo1Visible } from '@/lib/engineLaunch'
-import { S25_PAID_BADGE, s25UpgradeHref } from '@/lib/engineLaunch' // KINEO-S25-ABRE-2026-10-06
-import { H3MAX_PUBLIC, h3maxVisible } from '@/lib/engineLaunch' // KINEO-H3MAX-2026-10-13
+import { VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY, PAUSED_ENGINES_COPY, avatarVisible, kineo1Visible } from '@/lib/engineLaunch'
 import EngineNewsBar from '@/components/home/EngineNewsBar' // KINEO-FAIXA-S25-2026-10-09
 import { enginePlanBadge } from '@/lib/enginePlanGate'
 import Link from 'next/link'
@@ -98,8 +96,6 @@ const usdPrice = (cents: number) => (cents / 100).toFixed(2)
 // linha do trial, nao na etiqueta de preco do motor.
 const creditLabel = (quality: Parameters<typeof creditCostFor>[0]) =>
   `${creditCostFor(quality, true)} credits / video`
-// KINEO-NAV-MEGA-PREVIEW-2026-08-17 — item de motor com mini-clipe no hover.
-import NavEngineItem from '@/components/NavEngineItem'
 import NavUgcAdsLink from '@/components/NavUgcAdsLink' // KINEO-MENU-UGC-2010 — o item "AI UGC Ads" do menu do topo (destino pela língua)
 import { MADE_WITH_KINEO_HREF, MADE_WITH_KINEO_LABEL, MADE_WITH_KINEO_NAV_ITEM } from '@/lib/homeGaleria' // KINEO-GALERIA-HOME-2710 — item "Made with Kineo" do topo
 import WelcomeOfferModal from '@/components/WelcomeOfferModal' // KINEO-WELCOME20-2026-08-25
@@ -934,50 +930,8 @@ export default function KineoLanding({
                 mega-menu: começar o filme no Studio + os motores, intocados) e "Product ads" (/ads/new) — + "More tools" +
                 Pricing + Log in. Dos 12 pagantes, 11 compraram filme narrado; empresa compra anúncio. Clips, Images, Spaces e
                 MCP foram para "More tools" (1 clique para abrir, 1 para entrar: tudo segue a ≤ 2 cliques); nenhuma rota saiu. */}
-            <PublicNavDropdown item="video" label={NOMES_DE_PRODUTO.film.curto}>{/* KINEO-NOMES-DE-PRODUTO-1211 — era "Make a film" */}
-              <span className="nd-menu nd-mega">
-                <span className="nm-col">
-                  <Link href={createEntryHref('film', '/studio?intent_campaign=nav_door', isSignedIn)} data-nav-item="video"><span className="nm-tx"><b><UiLabel>Start a narrated film</UiLabel></b><i><UiLabel>One idea in, a finished film out</UiLabel></i></span></Link>
-                  <span className="nm-h nm-h-next"><UiLabel>Narrated films</UiLabel></span>
-                  {/* KINEO-MENU-ICONES-2026-08-17 (fundador, ref. Higgsfield):
-                      SEM preco no menu (atrito antes da hora — preco mora na
-                      pagina) + caixinha com monograma/glifo de cada produto. */}
-                  {/* KINEO-MENU-VIDEO-LIMPO-2026-10-09 — fundador ("2 sim"): sem letra, sem selo; Kineo 1 saiu (fora da entrada desde
-                      29/09, o menu ainda dizia "fastest"). O filme do 2.5 continua indo aos planos (só roda em plano pago). */}
-                  {/* KINEO-H3-TURBO-ABRE-0511 — o filme padrão com o nome do motor real; a chave segue 'seedance'. Prévia = clipe real do H3 Max Turbo (Adeus 2026, render 05/11). */}
-                  <NavEngineItem href={createEntryHref('film', '/studio?engine=seedance&intent_campaign=nav_mega', isSignedIn)} name="MiniMax H3 Turbo" desc="Fast, everyday narrated films" preview="/previews/galeria/adeus-2026.mp4" thumb="/posters/galeria/adeus-2026.webp" />
-                  {/* KINEO-VEO-CARD-HONESTO-2026-09-29 — 1080p pelo mesmo preço desde 16/08; o chip
-                      STUDIO só volta se o gate religar na fonte (lib/enginePlanGate.ts). */}
-                  {/* KINEO-OMNI-FORA-2026-10-12 — o item do Omni Flash saiu do mega-menu (motor fora da oferta,
-                      lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS). Os filmes dele seguem na vitrine. */}
-                  {/* KINEO-H3MAX-2026-10-13 — o MiniMax H3 Max entra no lugar que era do Omni (interruptor H3MAX_PUBLIC; desligado, só a casa vê). Sem preview nem miniatura: ainda não há render dele na vitrine (selo honesto). */}
-                  {h3maxVisible(initialEmail) && !enginePaused('h3max') && <NavEngineItem href={createEntryHref('film', '/studio?engine=h3max&intent_campaign=nav_mega', isSignedIn)} name="MiniMax H3 Max" desc="MiniMax’s sharpest film engine" chip={H3MAX_PUBLIC ? 'NEW' : 'INTERNAL'} thumb="/nav-thumbs/h3max.webp" />} {/* KINEO-H3MAX-2026-10-13 · KINEO-MENU-THUMB-H3MAX-0511: quadro do filme real do H3 Max (15cff0dc, 13/10) */}
-                  {/* KINEO-S25-LAUNCH-2026-09-01 — Seedance 2.5: so a casa ve ate o
-                      canario passar (s25Visible); S25_PUBLIC=true abre pra todos.
-                      Sem preview de proposito (selo honesto: clipe so deste motor).
-                      KINEO-S25-ABRE-2026-10-06 — publico: selo "NEW · paid plans" (traduzido) e o clique vai aos planos.
-                      A home nao sabe quem paga (o visitante, na maioria, nem entrou) e o 2.5 so roda em plano pago. */}
-                  {s25Visible(initialEmail) && (
-                    <NavEngineItem href={S25_PUBLIC ? s25UpgradeHref('nav') : createEntryHref('film', '/studio?engine=s25&intent_campaign=nav_mega', isSignedIn)} name="Seedance 2.5" desc="ByteDance’s newest model" chip={S25_PUBLIC ? undefined : 'INTERNAL'} thumb="/nav-thumbs/s25.webp" />
-                  )}
-                  <NavEngineItem href={createEntryHref('film', '/studio?engine=hollywood&intent_campaign=nav_mega', isSignedIn)} name="Kling 4.0" desc="Premium directed film scenes" preview="/previews/studio-kling4-werewolf-kid.mp4" thumb="/nav-thumbs/kling4.webp" />
-                  {/* KINEO-H3-2026-08-19 — sem `preview` de proposito: o clipe
-                      da vitrine tem de ser deste motor, e o primeiro render de
-                      validacao ainda nao rodou. Emprestar clipe de outro motor
-                      quebraria o selo honesto, que e regra da casa. */}
-                  {!enginePaused('h3') && <NavEngineItem href={createEntryHref('film', '/studio?engine=h3&intent_campaign=nav_mega', isSignedIn)} name="MiniMax H3" desc="Natural people and faces" thumb="/nav-thumbs/h3.webp" />}
-                </span>
-                <span className="nm-col">
-                  <span className="nm-h"><UiLabel>Create</UiLabel></span>
-                  <Link href={createEntryHref('film', '/studio', isSignedIn)}><span className="nm-tx"><b><UiLabel>Studio</UiLabel></b><i><UiLabel>Every control, one screen</UiLabel></i></span></Link>
-                  {/* KINEO-CLIPES-2026-09-29 — par do Sidebar/MobileNav: clipe avulso de 5–15 s. KINEO-HOME-CLIPES-EM-CIMA-2026-10-05:
-                      o Clips subiu para o grupo próprio no topo da 1ª coluna ("Photo to clip" / "Text to clip"). */}
-                  <Link href="/examples" data-nav-item="examples"><span className="nm-tx"><b><UiLabel>Examples</UiLabel></b><i><UiLabel>Real renders, every engine</UiLabel></i></span></Link>
-                </span>
-                {/* KINEO-MENU-VIDEO-LIMPO-2026-10-09 — a coluna "More tools" saiu (Audio 0 uso em 30 dias, Animate repete o Clips,
-                    Thumbnails 0 uso, Avatar fora do catálogo). As páginas seguem no ar. */}
-              </span>
-            </PublicNavDropdown>
+            {/* KINEO-FILMS-DIRETO-1311 — the approved Films entry opens the existing film flow; visitor and login routing stay centralized. */}
+            <Link href={createEntryHref('film', '/studio?intent_campaign=nav_door', isSignedIn)} data-nav-item="video" className="nav-primary"><UiLabel>{NOMES_DE_PRODUTO.film.curto}</UiLabel></Link>
             {/* KINEO-NAV-TOPO-ADS-2026-09-30 — /ads/new leva quem está logado ao montador e o visitante à porta pública /ads.
                 KINEO-DUAS-PORTAS-2026-10-13 — vira a 2ª porta do topo, "Product ads", com o mesmo peso do "Make a film". */}
             <Link href={createEntryHref('ads', '/ads/new', isSignedIn)} data-nav-item="business" className="nav-primary"><UiLabel>{NOMES_DE_PRODUTO.product_ads.curto}</UiLabel></Link>
@@ -1192,7 +1146,7 @@ export default function KineoLanding({
                     ? 'Kineo-owned examples'
                     : 'Trending now'}
               </span>
-              <Link href="/examples" className="link tr-all"><UiLabel>Explore all →</UiLabel></Link>
+              <Link href="/made-with-kineo" className="link tr-all"><UiLabel>Explore all →</UiLabel></Link>
             </div>
             <TrendingRow videos={trending} />
           </div>

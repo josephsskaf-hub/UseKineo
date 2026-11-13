@@ -53,7 +53,7 @@ export default async function ExamplesDesign({ searchParams }: { searchParams: {
     </div>
     <header className={styles.pageHeader}><div className={styles.headerInner}>
       <Link href="/" className={styles.brand}><KineoBrandIcon size={26} />Kineo</Link>
-      <nav className={styles.nav} aria-label="Main navigation"><Link href="/examples" aria-current="page">Explore</Link><Link href="/pricing">Pricing</Link><Link href="/studio" className={styles.navCta}>Open Studio</Link></nav>
+      <nav className={styles.nav} aria-label="Main navigation"><Link href="/made-with-kineo" aria-current="page">Explore</Link><Link href="/pricing">Pricing</Link><Link href="/studio" className={styles.navCta}>Open Studio</Link></nav>
     </div></header>
     <section className={styles.content}>
       <div className={styles.intro}><div><h1>Watch what Kineo actually makes.</h1><p>Explore selected previews from films made with Kineo. Find a style, watch it, and start with your own idea.</p></div></div>

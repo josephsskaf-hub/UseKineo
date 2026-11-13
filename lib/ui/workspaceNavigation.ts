@@ -1,3 +1,4 @@
+import { NOMES_DE_PRODUTO } from './nomesDeProduto'
 /** One navigation model; legacy history URLs remain valid project detail links. */
 // KINEO-NAV-4-ITENS-2026-09-25 — decisao do fundador (24/09): o app mostra 4 portas
 // (Studio, Biblioteca, Anuncios, Precos) e o resto vai para "More". 14 dias: video
@@ -8,7 +9,7 @@
 // Pricing. Imagem, Clipes e Espaços descem para MORE_TOOLS_NAV (grupo "More tools", sempre à vista na lateral e 1º item
 // do "More" no celular): nenhuma rota saiu, tudo segue a ≤ 2 cliques.
 export const WORKSPACE_NAV = [
-  { href: '/studio', label: 'Make a film', icon: 'generate' },
+  { href: '/studio', label: NOMES_DE_PRODUTO.film.curto, icon: 'generate' },
   { href: '/ads/new', label: 'Product ads', icon: 'ads' },
   // KINEO-GALERIA-HOME-2710 — fundador 27/10: "Made with Kineo" (galeria de clipes, imagens e filmes) logo depois das 2 portas,
   // par do topo do site. No celular abre o "More" logo depois do 🔥 Trending (a barra segue com as 5 vagas de sempre).

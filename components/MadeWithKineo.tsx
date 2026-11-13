@@ -55,12 +55,12 @@ export async function MadeWithKineoGallery({ locale, page = 1 }: { locale: Showc
     {films.length ? <section aria-label={copy.title} className={styles.grid}>{films.map(film => <article className={styles.card} key={film.slug}>
       <div className={styles.media}><video src={film.playbackUrl} poster={film.posterUrl ?? film.thumbnailUrl} controls playsInline preload="none" aria-label={film.title} /></div>
       <div className={styles.cardBody}><h2><Link href={showcasePath(locale, film.slug)}>{film.title} ↗</Link></h2><p className={styles.theme}><span>{copy.topic}: </span>{film.theme}</p><Facts film={film} locale={locale} /><Link className={styles.cardCta} href={showcaseCreateHref(locale)}>{copy.cta} ↗</Link></div>
-    </article>)}</section> : <section className={styles.empty}><span aria-hidden="true">↗</span><h2>{copy.empty}</h2><p>{copy.emptyDetail}</p><Link href="/examples">{copy.examples} ↗</Link></section>}
+    </article>)}</section> : <section className={styles.empty}><span aria-hidden="true">↗</span><h2>{copy.empty}</h2><p>{copy.emptyDetail}</p><Link href="/made-with-kineo">{copy.examples} ↗</Link></section>}
     <nav className={styles.pagination} aria-label="Pagination">
       {page > 1 ? <Link href={`${showcasePath(locale)}?page=${page - 1}`}>← {copy.previous}</Link> : null}
       {hasNext ? <Link href={`${showcasePath(locale)}?page=${page + 1}`}>{copy.next} →</Link> : null}
     </nav>
-    <footer className={styles.footer}><p>{copy.consent}</p><Link href="/examples">{copy.examples} ↗</Link></footer>
+    <footer className={styles.footer}><p>{copy.consent}</p><Link href="/made-with-kineo">{copy.examples} ↗</Link></footer>
   </main>
 }
 export async function MadeWithKineoFilm({ locale, slug }: { locale: ShowcaseLocale; slug: string }) {

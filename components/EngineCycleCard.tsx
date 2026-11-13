@@ -43,7 +43,7 @@ const META: Record<string, { name: string; desc: string; href: string }> = {
   cinematic_ai: { name: 'Seedance 1.5', desc: 'The workhorse AI video engine', href: '/studio?engine=seedance&intent_campaign=hero_engine' },
   presenter: { name: 'Avatar', desc: 'Talking video from one photo', href: '/avatar?intent_campaign=hero_engine' },
   fast: { name: 'Kineo 1', desc: 'Kineo’s own engine — 3–7 min', href: '/studio?engine=fast&intent_campaign=hero_engine' },
-  static_example: { name: 'Kineo sample', desc: 'Kineo-owned finished-video preview', href: '/examples' },
+  static_example: { name: 'Kineo sample', desc: 'Kineo-owned finished-video preview', href: '/made-with-kineo' },
 }
 
 const srcOf = (v: WallVideo) => heroFrame(v).src

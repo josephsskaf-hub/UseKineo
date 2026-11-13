@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { NOMES_DE_PRODUTO } from '@/lib/ui/nomesDeProduto'
 import { MORE_NAV, MORE_TOOLS_NAV, CARTOON_NAV, RECREATE_NAV, WORKSPACE_NAV, navItemIdFor, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
 import { createEntryForLegacyHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — par do Sidebar
 import { UiLabel } from '@/components/InterfaceLanguage'
@@ -24,7 +25,7 @@ const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolea
         <path d="M16.5 10.5 21.5 7v10l-5-3.5" />
       </svg>
     ),
-    label: 'Make a film', // KINEO-DUAS-PORTAS-2026-10-13 — porta 1 (par do Sidebar e do topo do site)
+    label: NOMES_DE_PRODUTO.film.curto, // KINEO-DUAS-PORTAS-2026-10-13 — porta 1 (par do Sidebar e do topo do site)
     exact: false,
   },
   {
