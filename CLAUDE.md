@@ -1,405 +1,92 @@
-# CLAUDE.md — Regras Permanentes para todas as sessões
+# CLAUDE.md: regras da Kineo que valem hoje
 
-Antes de editar telas ou arquivos compartilhados, rode `git fetch origin` e siga o [quadro de sessões](docs/QUADRO-DE-SESSOES.md) da `origin/main` para consultar o histórico recente, publicar a linha de início, evitar sobreposição e registrar a entrega com o SHA.
+Enxugado em 13/11/2026. Substitui o CLAUDE.md local e o da main. Onde o AGENTS.md (27/07) disser outra coisa (pasta do OneDrive, quadro na origin/main, rascunho sempre), vale este arquivo. História: `docs/arquivo/CLAUDE-historico-ate-1311.md`.
 
-# ══════════════════════════════════════════════════════════════════════════
-# 💲 PREÇO V8-A (fundador 28/09/2026 noite, "Preço A"): Starter US$12,90 · Creator US$29,90 ·
-#   Studio US$54,90 (60/150/300 cr; anual 10×; R$64,90/149,90/274,90); barra de créditos com piso
-#   0,189/cr. O congelamento "até 09/10" abaixo ACABOU. Quem já assinava mantém preço e créditos.
-#   Doc: docs/DECISAO-PRECOS-V8-2026-09-28.md. Guardião: scripts/test-preco-v8-A-2026-09-28.mjs.
-# ══════════════════════════════════════════════════════════════════════════
-# 🔁 RESTAURAÇÃO 09/09/2026 (noite) — LER ANTES DE QUALQUER OFERTA/PREÇO
-# ══════════════════════════════════════════════════════════════════════════
-# · A Versão B (porta de $1, 08/09) e os preços V6/V7 MORRERAM em 09/09 à noite
-#   por ordem do fundador ("voltar na minha melhor fase"). Vigente: trial GRÁTIS
-#   de 30 créditos (1 Seedance 60 s + 1 Kineo 1 60 s), todo motor aberto, sem
-#   cartão; preços V5 $9,90/$19,90/$39,90 com 60/150/300; anual 10×.
-#   ⚠ 16/09 (fundador, manhã): TRIAL DE CADASTRO NOVO = 10 CRÉDITOS (2 Kineo 1;
-#   Seedance não cabe). Quem já tinha 30 mantém (trialCapFor lê
-#   trial_credits_granted). Primeiro-filme-premium (lib/primeiroFilme) PAUSADO.
-#   Doc: TRIAL-10-R1 em docs/coordination/motores/CLAUDE.md e PEDIDOS.
-# · Interruptores: lib/entryPolicy CARD_ENTRY_ONLY=false · lib/reverseTrial
-#   TRIAL_CREDIT_CAP=10 (era 30 até 16/09) · lib/checkoutPricing CARD_TRIAL_LIVE=false ·
-#   lib/growth/cleanFilmTrialDoor TRIAL_DOOR_LIVE=false · lib/enginePlanGate
-#   ENGINE_GATE_SINCE='2099'. Guardião: scripts/test-restauracao-2026-09-09.mjs.
-# · PREÇO E OFERTA CONGELADOS ATÉ 09/10/2026. Nada de $1, intro, pack novo,
-#   trial pago. Métrica única: pagantes novos por semana. Doc:
-#   docs/DECISAO-RESTAURACAO-2026-09-09.md.
-# · MOEDA LOCAL (09/09 noite, docs/DECISAO-MOEDA-LOCAL-2026-09-09.md): a conta
-#   Stripe é BRASILEIRA — cartão BR só paga em REAIS; desde 19/08 (USD no mundo
-#   todo) NENHUM brasileiro conseguia pagar. Modelo: dólar em todo card; a sessão
-#   nasce na moeda do país (lib/settlementCurrency.ts, decidido no servidor:
-#   ?currency= da casa → recusa anterior de cartão BR → IP BR → pt-BR → USD).
-#   Tabela fixa BRL R$ 49,90/99,90/199,90 (anual 10×), câmbio da casa 5,0 revisto
-#   dia 9 de cada mês. CheckoutCurrency segue 'usd' (exibição); NÃO reabrir
-#   multi-moeda nas telas. Pix não faz assinatura (só pagamento único).
-#   Guardião: scripts/test-moeda-local-2026-09-09.mjs.
+## Quem é você
+- Divisão: commit local na própria branch e SHA em "Entregue à CEO". Não roda enfileirar nem !RODAR-AGORA, não faz push, não chama a fal paga, não envia e-mail, não toca na árvore de outra divisão.
+- CEO Claude (Fable 5.2): fala com o dono, decide, revisa e publica o lado Claude.
+- Sessão de vídeos e de afiliados: segue as skills e a seção de vídeo.
+- Modelos: divisões e tarefas programadas em Opus 5.5. Fable fora da CEO só no conserto e na revisão de vídeos.
 
-# ══════════════════════════════════════════════════════════════════════════
-# 🔴 09/09/2026 00:00 UTC — PREÇOS V7 (fundador 08/09 20h): Starter $14/60cr ·
-#   Creator $29/150cr · Studio $59/300cr · anual 10×. A porta de $1 diz
-#   "depois $29/mês" (literal espelhado em lib/entryPolicy, guardado por
-#   scripts/test-preco-v7-2026-09-09.mjs contra a fonte única). Quem já assinava
-#   paga o preço antigo e renova com o grant antigo (renewalCreditsFor).
-#   Doc: docs/DECISAO-PLANOS-V7-2026-09-09.md. Marco do placar = 09/09 00:00 UTC.
-#   ⚠ As linhas abaixo sobre $9/$19/$29 e $7/$15/$29 são HISTÓRIA.
-# 🔴 08/09/2026 01:20 — VERSÃO B (ordem do fundador): ACABOU O TRIAL GRÁTIS.
-#   Conta nova = 0 créditos + trial_status=card_required. Única entrada: $1 por
-#   7 dias no Creator (80cr), depois $15/mês. Sem Kineo 1 grátis. Starter $7 e
-#   Studio $29 seguem compra direta. Interruptor: lib/entryPolicy.ts
-#   CARD_ENTRY_ONLY. Doc: docs/DECISAO-VERSAO-B-ENTRADA-1-DOLAR-2026-09-08.md
-#   ⚠ A tabela "PRICING V5" mais abaixo neste arquivo está MORTA (19/08):
-#   preço real = Starter $7/40cr · Creator $15/90cr · Studio $29/180cr.
-# ══════════════════════════════════════════════════════════════════════════
-# ══════════════════════════════════════════════════════════════════════════
-# 🧠 LER PRIMEIRO — docs/MEMORIA-SESSAO-CEO-2026-09-02.md (02/09)
-# ══════════════════════════════════════════════════════════════════════════
-# · SEM SPRINT AUTOMÁTICA: o fundador desligou as tarefas programadas em 02/09
-#   (Fable a 79% do limite, reinicia 07/09). Trabalho é PONTUAL, uma ação por
-#   vez. Tarefa mecânica (teste/commit/publicar/painel) roda em Opus/Sonnet;
-#   Fable só para análise densa e código difícil.
-# · CRÉDITO NÃO É ISCA: winback-25 deu 25cr a 95 pessoas (2.375 créditos) e
-#   teve ZERO cliques em 24h. A isca é o FILME PRONTO sobre o tema que a
-#   pessoa já fez; o crédito vem no clique, não antes. 264 ainda elegíveis.
-# · CHECKOUT DE CONTA SEM VÍDEO = DEFEITO, NÃO DESEJO: 3 dos 4 checkouts de
-#   02/09 eram contas com 0 vídeos e modal trial_ended com 1h de vida e 25cr
-#   intactos. Contar separado de checkout de quem já entregou vídeo.
-# · UMA RÉGUA POR VOZ, NUNCA UMA SÓ: clássico (Seedance 1.5/Kineo 1/Veo/Kling
-#   2.5) = tts-1-hd a 3,1 pal/s (35s=100-115 · 60s=175-195 · 90s=265-290);
-#   hollywood (Kling 3/H3/Omni/S25) = voz própria a 2,3 pal/s. Padronizar os
-#   dois no mesmo número QUEBRA um dos lados.
-# · O PRIMEIRO VÍDEO É O PRODUTO: 14d/174 pessoas — os 4 pagantes vieram da
-#   PRÓPRIA IDEIA (manual). Auto-start = 40% dos primeiros vídeos e 0 pagantes.
-#   Kineo 1 + Seedance 1.5 são os motores de 100% das primeiras impressões.
-# · KINEO 1 usa PIXABAY (Pexels desligado no #351). Melhorias de 02/09:
-#   letterbox 6%, fade de abertura, grade +1 degrau, penalidade de baixa
-#   resolução no ranking, corte até 4,5s. NÃO usar color_filter/playback_rate/
-#   vinheta radial sem render de validação — propriedades nunca exercitadas.
-# · MOBILE: projeto com pasta local só roda no desktop. Do celular, só via
-#   Despacho (Configurações → Cowork), com este PC ligado.
-# · O QUE SÓ EXISTE NO CHAT SOME: decisão nova vira arquivo em docs/ no mesmo
-#   dia (bug do Cowork em 02/09 matou o shell de uma sessão inteira).
+## Projeto
+- Marca Kineo. Produção: www.usekineo.com (shortsforgeai é legado, com redirect). Repo josephsskaf-hub/UseKineo, branch main.
+- Pasta `C:\kineo` (desde 03/09). O caminho do OneDrive está morto.
+- Decisão nova vira arquivo em `docs/` no mesmo dia.
+- Preço, trial e nome de motor se leem no código, nunca de memória. Fonte única de preço: `lib/checkoutPricing.ts`.
 
-# ⚡⚡ MODELO DE TRABALHO (fundador 25/08 — "gravar isso"):
-# O FUNDADOR É CONSELHO, EU SOU O CEO-EXECUTOR. Ele direciona, percebe,
-# provoca; eu verifico o que é melhor, executo 100% e entrego PRONTO para
-# ele analisar e testar. Autorização permanente para: e-mails (respostas
-# sempre em rascunho), banco, código+commit+bat, Chrome dele, renders de
-# validação (sempre dry-run $0 ANTES), concessão de créditos prometidos.
-# Não perguntar "posso?"; entregar feito com o raciocínio junto e a próxima
-# jogada. Exceções que continuam dele: apagar dados permanentemente, dinheiro
-# saindo (compras/planos novos), e decisões de preço público.
+## Quem decide
+- Dono é conselho, CEO executa (25/08). Não perguntar "posso?". Entregar feito, com o raciocínio.
+- Autorização permanente da CEO: banco, código e commit, Chrome dele, crédito prometido, render de validação (dry-run antes), e-mail de rotina aprovada.
+- Esperam o sim do dono (lista única): dinheiro saindo, preço público, apagar dado, e-mail a cliente fora de rotina aprovada, vídeo novo na vitrine, render ou gasto de US$ 5 ou mais, qualidade de vídeo que vai ao site. Abaixo de US$ 5 a CEO aprova e conta depois (09/11).
+- Decisão vai com foto, números ao lado e A, B e C, com a recomendada marcada (12/11). Na ausência dele, segue a recomendada, sem furar a lista.
+- Duas janelas de decisão por dia: ao acordar e antes de dormir. Tudo junto.
 
-# ⛔⛔ REGRA FIXA — LINK DE REVIEW É SÓ O TAAFT (descoberto 25/08):
-# producthunt.com/products/kineo NÃO É NOSSO — é outro produto homônimo
-# (kineo.studio, "article to video", BYOK WaveSpeed). TODA campanha de review
-# de 19/08 e 24/08 mandou clientes para lá: as reviews do Rick e do Victor
-# foram escritas na página de um CONCORRENTE e não aparecem em lugar nenhum.
-# Nós NÃO temos página no Product Hunt. Link certo, único, para qualquer
-# pedido de review: https://theresanaiforthat.com/ai/kineo/ (nossa página,
-# 5 notas média 3.0, dona = conta do fundador). Victor foi pago (100cr,
-# admin_credits_granted 25/08) e avisado do erro com o link certo no
-# rascunho. Pendência: listing do TAAFT está DESATUALIZADO (fala trial de
-# 40cr e "from $9.90/mo" — hoje é 50cr e $7) — fundador edita no dashboard.
+## Como a empresa trabalha (opção A, 13/11)
+Modelo em `docs/FLUXO-DE-TRABALHO-KINEO-1311.md` (este e os scripts abaixo só existem em worktree da origin/main).
+- Pronto é: (a) tipos limpos; (b) `bash scripts/ci/novos-vermelhos.sh '<área>'` sem vermelho novo (pede árvore limpa e commit feito); (c) foto em 1920 px e em 390 px; (d) tela logada conferida logada; (e) conferido no ar. Faltou um item, volta.
+- Reversível (tela, texto, botão, ordem de cartão) sobe depois da revisão.
+- Quadro: só o caminho absoluto `C:\kineo\docs\QUADRO-DE-SESSOES.md`. A cópia `docs/QUADRO-DE-SESSOES.md` da worktree é velha: não ler nem editar. Nunca commit nem push do quadro.
+- Antes de mexer: `git fetch origin`, ler o quadro e o `git log origin/main` recente. Pôr uma linha em "Em obra". Entregar em "Entregue à CEO" com branch e SHA. Só acrescentar, nunca apagar linha dos outros.
+- Cada área tem um dono. GPT (Codex): telas, menu, home, Library, Product story, citações. Claude: Div. 2 vídeo e motores, Div. 3 anúncio pago, Div. 4 receita e clientes, Div. 5 plataforma, Div. 6 nota automática, Div. 1 testa telas e não edita, mais vídeos do dia e afiliados. Quem não é dono escreve o pedido no quadro ("Pedidos ao GPT").
+- Só o CEO de cada lado publica. Migration pede revisão do outro CEO.
+- Ao encerrar a missão, um aviso no celular: "Sessão terminada · sessão · resultado · próximo passo". Pausa e progresso não disparam. Sem PushNotification, gravar "aviso móvel pendente" com o texto em "Entregue à CEO".
 
-# 🔒 CONCLUSÃO JÁ FECHADA — NÃO REABRIR (fundador 19/08, estudo repetido
-# várias vezes): O VAZAMENTO DO CHECKOUT É PREÇO. As pessoas chegam na
-# página de pagamento, ACHAM CARO e não compram. NÃO é erro de cartão, NÃO é
-# recusa de emissor, NÃO é trilho de pagamento (UPI/Pix/e-mandate do RBI).
-# Já foi investigado mais de uma vez e deu a mesma coisa todas as vezes.
-#   ⛔ NÃO gastar sessão re-investigando "será que o pagamento está quebrado?"
-#   ✅ Toda hipótese de conversão parte de PREÇO/OFERTA/PERCEPÇÃO DE VALOR.
-# ⚠ CORRIGIDO EM 07/09: esta cegueira ACABOU. A tabela `events` TEM
-# `checkout_payment_failed` (metadata `stripe_checkout_failure_v1`), com
-# motivo, bandeira, país, se é renovação e se foi recusa de rede. Não é mais
-# verdade que "a verdade sobre recusa só existe no painel da Stripe" — ela
-# existe aqui. `metadata.customer_country` continua null e continua não
-# provando nada; use `card_country` do evento novo.
-# ⛔ MAS: o evento novo NÃO reabre a conclusão de preço acima. A conclusão de
-# preço segue FECHADA — ela foi construída sobre 44 pessoas, repetidas vezes.
-# ⚠ AJUSTE DE 07/09 04:38 (fechamento do ciclo de aquisição): até 07/09 era
-# verdade que o evento só falava de quem JÁ ERA CLIENTE. Não é mais. Em
-# 07/09 05:35 UTC entrou a PRIMEIRA recusa de COMPRA INICIAL da história:
-# $23,20 (Studio com welcome20), Visa PRÉ-PAGO dos EUA, `card_restricted`,
-# `declined_by_network`, risco normal, pessoa vinda do TAAFT. São 3 recusas
-# no total (2 renovações + esta). UMA linha não derruba um estudo de 44 —
-# não reabra o preço por causa dela — mas NÃO escreva mais que "toda recusa
-# é de renovação". Se a coluna `initial` crescer, aí é dado novo.
-# ✅ FECHADO EM 07/09 (SHA 8f7c1084 · ciclo de pagamentos #1). A causa NÃO era
-# um bug solto: em `mode:'subscription'` a Stripe cria o PaymentIntent a partir
-# da FATURA, então `session.metadata` (onde mora o nosso `supabase_user_id`)
-# NUNCA chega ao intent; e o único plano B era `profiles.stripe_customer_id`,
-# coluna escrita só quando um pagamento DÁ CERTO. Resultado: a casa só sabia
-# nomear quem JÁ TINHA PAGADO — e o primeiro comprador recusado, que é o único
-# que ainda pode virar assinante, era anônimo por construção.
-# Agora existe uma escada de 5 degraus (metadata do intent → assinatura da
-# fatura → sessão de checkout → customer_id → e-mail do customer) e o evento
-# carrega `identity_source`, `owner_resolved`, `stripe_session_id`, `tier` e
-# `ip_country`. ⚠️ `identity_source='customer_email'` é INFERÊNCIA, não fato:
-# nenhuma carta sai só com ele. O corte antes/depois é `metadata ?
-# 'identity_source'`, NUNCA o relógio. Consultas em
-# docs/queries/RECUSA-COM-NOME-2026-09-07.sql; carta em
-# /api/admin/send-card-declined (dry-run por padrão, só compra INICIAL).
-# Números que sustentam a conclusão (funil 7d, medido 19/08): 247 cadastros →
-# 135 fizeram vídeo → 44 chegaram ao checkout → 0 assinaram, e os 44 tentaram
-# 2+ VEZES. Quem volta duas vezes quer comprar; travou no valor.
-# ⚡⚡ SYNC 17-18/08 (sessão CEO — segunda de 8 produtos) — LER ANTES DE QUALQUER COISA:
-# - PRICING V5 (fundador aprovou): Starter $9.90/60cr · Creator $19.90/140cr ·
-#   Studio $39.90/320cr · Autopilot $299/400cr. SEM 1º MÊS COM DESCONTO em
-#   NENHUM plano (INTRO_PRICES = preço cheio → hasIntroOffer() false; NÃO
-#   reintroduzir "first month" em copy). Trial grátis = 50cr. O $4.90 MORREU.
-#   Página de preços fala em FILMES ("≈ 7 engine films/mo"), não em créditos.
-# - PRODUTOS NOVOS EM PROD: /images (6 motores fal: schnell 1cr/dev 2/seedream 3/
-#   grok 3/recraft 4/nanobanana 5 + upscale ESRGAN 1cr) · /audio (TTS: minimax 2cr/1k
-#   OBRIGATÓRIO output_format:'url', eleven 2, dia 1, kokoro 1 — param é `prompt`!) ·
-#   /library (abas Videos/Images/Audio) · ✨HD Enhance (fal-ai/topaz/upscale/video,
-#   Proteus, upscale_factor 1 = tier $0.02/s; fator 2 = $0.08/s NÃO usar; 10cr,
-#   Studio ganha 2 grátis/mês via videos.enhanced_at) · /ai-video-upscaler (SEO).
-# - STORAGE: tabelas images/audios (RLS select own) + bucket renders (limite
-#   ELEVADO a 250MB via SQL) paths images//audio//enhanced/. TODA mídia gerada
-#   DEVE persistir no nosso bucket (URL do fal expira!). Enhance tem SELF-HEAL:
-#   GET re-copia URLs fal→bucket. Popup da conta = painel 950×430 (medida do
-#   fundador) com Library+storage. Limites por plano: free 10/14d, starter
-#   100/90d, creator 500/forever, studio ∞ (gate de enforcement ainda NÃO existe).
-# - CURADORIA/VITRINE (fundador): NATUREZA — raios/chuva/mar/aventura; FOGO FORA.
-#   Maracaibo (4b12925e) slot 1 do Kling 3 + reel de entrada (mulher+tempestade
-#   0.2-4.7 e avalanche 16.6-19.9 = 4b12925e-avalanche.mp4). Previews agora
-#   crf19-20@1400px CORTADOS DOS MASTERS ENHANCED quando existirem (não mais
-#   640px!). components/AuthReel.tsx = reel único de login+signup (avança
-#   onEnded, NUNCA timer fixo — clipes têm durações diferentes).
-# - LOGIN E SIGNUP = split-screen (vitrine esq., form 440px dir.) — mexeu num,
-#   mexe no outro (AuthReel compartilhado).
-# - ✅ CONTRATO-HOLLYWOOD EXECUTADO (18/08 manhã, commit c33a737): C1 verbatim
-#   = roteiro redistribuído EM CÓDIGO cena a cena (GPT só dirige câmera, nunca
-#   escreve fala); C2 piso 95% do alvo + FAILFAST 60→90% + secondsOf/secondsFor
-#   honram segundos exatos (o molde 5|10/8/teto-10 encolhia 51s→44.8s!) + teto
-#   de apara 60→64s (Rewards exige >60); C3 variedade com dentes (divergência
-#   determinística em código, "best effort" morreu); C4 watermark = design do
-#   fundador (FORCE_WATERMARK_EMAILS, Push #434 — decisão dele manter/tirar).
-#   ⚠ espelhos: secondsOf (app/api/compose/route.ts) ≡ secondsFor (lib/
-#   compose.ts) — mexeu num, mexe no outro. FALTA: validação com re-render do
-#   Boiling River (fundador roda; aprovado só se ≥61s + narração fiel + zero
-#   cena repetida/borrada). QA por pixel (Laplacian/luma) ficou pra V2 —
-#   exige ffmpeg no server; claim assinado não guarda prompt p/ re-render.
-# - PENDÊNCIAS: [18/08 noite] preço do Kling 3 — filme agora sai 64-73s ≈
-#   $11-12 de fal em 150cr (margem 35-45%); fundador decide AMANHÃ entre manter
-#   150cr / 180cr / preço-por-segundo no V4 (recomendação da sessão CEO: manter
-#   agora, embutir por-segundo no /generate V4 — NÃO mexer antes da decisão) ·
-#   gate de storage (V2) · assinantes antigos $24.90 recebem 140cr
-#   (decidir grandfather 150) · Starter regional $4.99 (fundador pode querer
-#   subir) · pack one-time $2.90/$4.90 do Offer290Banner (decisão pendente) ·
-#   score viral aleatório (74 vs 81 mesma prompt) · Channels/série com memória
-#   (tese aprovada, não construída) · MiniMax-H3 candidato nº1 a motor novo.
-# ⚡ SYNC 15/08 (sessão CEO) — LEIAM ANTES DE MEXER NA HOME/EXAMPLES:
-# - HOME VIROU VITRINE DE MOTORES (sem composer! decisão do fundador): 4 cards
-#   500x280 full-bleed (Seedance 1.5/Kling 2.5/Veo 3.1/Kling 3) com 4 clipes
-#   curados cada, girando sozinhos em crossfade — componente EngineCycleCard
-#   (double-buffer, NÃO simplificar) + lib/engineWall.ts (CURATED/PREVIEWS/
-#   EXCLUDED são curadoria manual do fundador — NÃO tocar sem ordem dele)
-# - Clipes leves em public/previews/{id}.mp4 (8s 640px crop 500:280) e posters
-#   em public/posters — regenerar via ffmpeg se trocar curadoria
-# - NOMES REAIS dos motores no site: Veo 3.1, Kling 2.5, Kling 3 (ex-Hollywood),
-#   Seedance 1.5, Kineo 1 (ex-Fast), Avatar (ex-AI Presenter) — manter em TODOS os pares
-# - /examples = grade fixa dos 20 melhores (EXAMPLES_BEST) · Trending na home
-#   tem filtro anti-prompt · nav tem dropdowns Image/Video (CSS puro)
-# - Página inteira full-width (.wrap sem max-width) · seções compactas (34px)
-# - Placar 15/08: 14 eventos checkout (recorde; antes 2-4/dia) — vitrine converte
-# - PRÓXIMO: fundador vai refazer /generate com seletor 720/1080p + 15/45/60s +
-#   motores novos — LER docs/PLANO-GENERATION-V4.md e docs/PRECOS-MOTORES-V4.md
-#   antes de qualquer mudança em generate/engineCost/analyze-idea
+## Código e publicação
+- Worktree em `C:\kineo-wt\<nome>`, de `origin/main`, em branch própria `codex/<nome>` (não destacada). A árvore de `C:\kineo` está suja e velha: não usar para push, não descartar sem ordem do dono.
+- Publicar (só CEO), em 4 passos: (1) commit, árvore limpa; (2) rebase sobre `origin/main` e sobre `entrega-atual`; (3) `bash scripts/enfileirar.sh`; (4) em comando separado, conferir `git rev-parse entrega-atual` igual ao meu SHA e rodar `scripts/!RODAR-AGORA.bat <meu SHA> <SHA da main>`. Nunca encadear 3 e 4. Enfileirar abortou: parar e olhar `git log origin/main..entrega-atual`.
+- Antes de publicar, reservar em "Publicando agora" do quadro (sessão, SHA, hora). Reserva alheia com menos de 15 min: esperar. Depois do deploy, apagar a própria linha e registrar em "No ar".
+- Cada push na main publica o site inteiro. Uma entrega por vez.
+- "No ar" só com prova: `curl -s https://api.github.com/repos/josephsskaf-hub/UseKineo/commits/<sha>/statuses`, item Vercel em success. Nunca `gh`. Sem deploy em 5 min, redisparar pela Vercel.
+- Tela logada: abrir logado em até 2 min depois de publicar. Travou, reverter primeiro e investigar depois.
+- Depois de publicada, remover a worktree (desfazer a junção de node_modules antes).
+- Pares: Sidebar com MobileNav; login com signup (AuthReel). Clipe novo entra em 3 lugares: home e Made with Kineo (lista CLIPES_NOVOS) e página do produto.
+- Toda mídia gerada fica no nosso bucket. A URL da fal expira.
+- Causa de falha de render: `events.metadata->>'error'` de `generation_stage_error` e `cinematic_dispatch_result`.
+- Armadilhas da fal: Enhance com `upscale_factor` 1 (o 2 custa 4 vezes mais); voz MiniMax pede `output_format:'url'` e o campo é `prompt`.
 
-# ⚠⚠ REGRA FIXA — SPRINTS ENTREGAM MUDANÇA QUE O FUNDADOR VÊ (fundador 17/08):
-# "às vezes vejo o sprint rodando 10x/dia e não vejo mudanças como as de hoje."
-# TODA sessão de sprint deve entregar PELO MENOS UMA mudança visível de produto
-# no padrão do dia 17/08 — exemplos do que CONTA: produto novo na cara do
-# cliente (Images/Audio/Library/Enhance), tela redesenhada (login split-screen,
-# mega-menu com ícones sem preço, popup 950×430), vitrine melhor (previews HD,
-# curadoria), pricing/copy que vende melhor, feature roubada com critério do
-# Higgsfield/InVideo. O que NÃO conta como entrega única: refactor invisível,
-# micro-SEO, fix de log, doc — isso é acompanhamento, não prato principal.
-# Teste antes de encerrar o sprint: "se o fundador abrir o site agora, ele VÊ
-# a diferença e sorri?" Se a resposta for não, o sprint não terminou.
-# Receita que funcionou hoje: (1) olhar um concorrente com print/tela real,
-# (2) escolher o que é fácil E visível, (3) implementar com selo honesto,
-# (4) push no mesmo dia. Ambição na medida: mudanças grandes em stage
-# (studio-v4) pra aprovação; polish direto na main.
+## Nunca
+- `git branch -f entrega-atual`. Rodar bat antigo (1-PUSH, N-PUSH, 53/73-PUSH). Reaplicar migration já registrada.
+- Débito de crédito fora de `debitVideoCredits` (lib/credits/debit.ts), ou com userId que não venha de auth.getUser ou CRON_SECRET. Promover na Vercel deploy anterior a 9f5834a16.
+- Preço como texto literal em tela. Ler ou expor `.env.local`.
+- Apagar texto que o ChatGPT cita ("faceless", tabelas). Renomear rótulo pode.
+- Prometer o que o produto não executa sozinho (24/08). Selo honesto: o motor mostrado é o motor real.
+- Dar crédito direto no banco. É em /admin/people, botão "+ créditos", com motivo.
 
-# ⚡ SYNC 24/08 — DAR CRÉDITO AGORA TEM BOTÃO (#297), E A REGRA QUE VEIO JUNTO:
-# ⛔ NUNCA prometer a um cliente algo que o produto não sabe executar sozinho.
-# O caso: em 19/08 foram oferecidos 100 créditos por uma review. Rick
-# (gapozweb) deixou a ÚNICA review pública que a Kineo tem, cobrou DUAS vezes,
-# e em 22/08 mandou um e-mail chamado "Feeling forgotten". A causa não foi
-# desleixo — NÃO HAVIA COMO DAR O CRÉDITO: nenhuma rota, nenhum botão em todo
-# o /api/admin. "Faço na mão depois" é onde promessa morre.
-# ✅ AGORA: /admin/people → botão "+ créditos" na linha da pessoa. Motivo é
-#    OBRIGATÓRIO e toda concessão vira evento `admin_credits_granted`
-#    (quem/quanto/por quê). Teto 1.000 por vez. Use SEMPRE por aí — não abra
-#    o banco à mão, senão o rastro se perde.
-# 📊 O painel também passou a medir O QUE FOI ENTREGUE (#295), não só o gasto:
-#    coluna "Got back" ao lado de "Spent on". ATENÇÃO ao ponto cego antigo:
-#    /animate, /images e /audio NÃO criam linha em `videos` — quem usa esses
-#    produtos parecia "gastou 40 e não fez nada" e na verdade RECEBEU (medido:
-#    1.801 entregas de animação para 14 pessoas que o painel mostrava como 0).
-# 📮 SLA DE RESPOSTA (a lição maior do dia): 5 clientes reais escreveram em
-#    30 dias e 4 ficaram SEM RESPOSTA — todos eram respostas a campanhas do
-#    próprio fundador. Pedir favor e sumir converte cliente neutro em cliente
-#    ressentido. Toda campanha nova exige varrer as respostas em ≤48h.
-# 🔍 FUNIL 7d (medido 24/08): 247 cadastros → 115 sem nenhum vídeo, dos quais
-#    103 NUNCA gastaram um crédito. O gargalo da ativação não é render
-#    quebrado nem preço — é gente que chega e não aperta o botão.
+## Render e dinheiro
+- Dry-run antes de todo render pago (24/08): `dry_run:true` com `script_mode:'verbatim'` em `/api/generate-video-cinematic`, só contas do fundador. PASS = mudo de até 6 s e duração de 95% do alvo ou mais. Só gasta com PASS.
+- Antes do 1º render pago de um formato novo: ver como o líder faz, ler o schema do fornecedor e escrever a régua (10/11).
+- Quem já assinava mantém preço e créditos a cada mudança de preço.
 
-# App versão atual: v3.0 ✅ (Phase 1 B-roll Intelligence COMPLETE)
-# v3.0 DONE — Phase 1: B-roll Intelligence System fully connected
-# #346: generate-video-fast now reads brollQueries from BrollPlan → exact Pexels queries per scene
-# New files: lib/broll/*, app/api/generate-broll-plan, app/api/regenerate-scene, components/video/VisualDirector, components/video/SceneCard
+## Clientes e e-mail (só CEO e sessões de cliente)
+- Rotina aprovada (resposta a cliente, parceiro ou afiliado; lote aprovado; frio B2B até 15 por dia útil): envia e avisa para quem foi e o assunto (02/11). Fora disso, rascunho na thread certa e o sim do dono.
+- Não sai: promessa que o produto não cumpre, preço ou desconto não decidido, frio acima do teto, 2º e-mail em janela de não reenviar.
+- Remetente (29/09): comercial com quem já respondeu ou já é cliente sai de joseph@usekineo.com (From e Reply-To). Frio de prospecção sai do josephsskaf@gmail.com, nunca do domínio. Atendimento em hello@ ou support@usekineo.com. Conversa começada no Gmail pessoal continua lá, sem reenviar nem migrar. support@shortsforgeai.com nunca é remetente comercial novo.
+- Antes de cada e-mail: conferir conta, From, Reply-To, destinatário e histórico. Sem o remetente certo, avisar. Nunca trocar em silêncio.
+- Link de review é só o TAAFT: https://theresanaiforthat.com/ai/kineo/. O do Product Hunt é outro produto.
+- Campanha nova: varrer as respostas em até 48 h. Conferir o histórico antes de ofertar.
 
-## ✅ Status da v2.5 (confirmado em 27/05/2026)
-- AUTO-STRUCTURE: qualquer prompt manual agora passa por /api/generate-script antes de analyze-idea (#310)
-- Fast-path ativa 100% das vezes — usuário nunca precisa saber de HOOK/MICRO REWARD (#310)
-- Viral Now: 3 cards trending diários em /viral-now + dashboard, 1 click = gera vídeo
-- Viral script fast-path: voiceovers parsed EM CÓDIGO — GPT só gera visual layer (#307)
-- Marcadores todos em inglês: HOOK, MICRO REWARD, ESCALATION, PAYOFF (#306)
-- Dashboard viral cards: cores por vertical (billionaire=amber, mystery=purple, country=blue) (#305)
-- Nav: "My Videos" substituído por "🔥 Viral Now" em sidebar, mobile nav, e top menu (#302-303)
-- Commits chave desta versão:
-  - #319: My Videos v2 — /history page rewritten to query `videos` table; 9:16 video grid cards with click-to-play, download, expandable description; title extracted from HOOK line in topic field
-  - #320: My Videos: thumbnail support + HomePageClient footer fix — thumbnail_url as background on play button; dark overlay; play icon z-indexed; fixed footer /my-videos → /history link
-  - #310: AUTO-STRUCTURE — /api/generate-script transforma qualquer tópico em script estruturado antes de analyze-idea; fast-path sempre ativa; usuário digita tema livre
-  - #309: Fix: restore all truncated route files (cron + viral-now + scenes + analyze-idea)
-  - #307: VIRAL FAST-PATH — parseViralScriptSections() em código; voiceovers NUNCA reescritos pelo GPT
-  - #306: Marcadores em inglês: MICRO REWARD/ESCALATION/RHYTHM
-  - #305: analyze-idea detecta scripts virais → cores por vertical no dashboard
-  - #301–303: Viral Now — tabela Supabase, API route, cards no dashboard, nav
+## Conclusões fechadas
+- Não reinvestigar "o pagamento está quebrado?" (19/08). O evento `checkout_payment_failed` não reabre isso. `customer_country` não prova nada: usar `card_country`. Nenhuma carta de recusa sai só com `identity_source='customer_email'`. Carta só em compra inicial, com dry-run.
+- Foco de conversão em novembro: nota do filme grátis (8 ou mais) e o fluxo. Preço baixo em país emergente já foi testado 3 vezes e não vendeu.
+- Stripe é conta brasileira: cartão BR paga em reais e a sessão nasce na moeda do país, no servidor. Não reabrir multi-moeda nas telas. Pix não faz assinatura.
+- Crédito não é isca. A isca é o filme pronto sobre o tema da pessoa. O crédito vem no clique, não antes.
+- Checkout sem vídeo: em país emergente é defeito; em país rico é desejo, e o botão de compra nunca se esconde antes do 1º filme. Cortar sempre por país e contar separado de quem já entregou vídeo.
 
-## Arquitetura do pipeline de geração (v2.5)
-1. Usuário digita qualquer coisa → GenerateClient chama /api/generate-script se não houver marcadores
-2. generate-script (GPT-4o-mini, temp 0.7) → script estruturado com HOOK/MICRO REWARD/ESCALATION/PAYOFF
-3. Script estruturado → `analyze-idea` → `parseViralScriptSections()` detecta marcadores → voiceovers verbatim → GPT só gera visual_prompt + caption
-4. `scenes` → busca B-roll específico no Pexels com os termos derivados do voiceover real
-5. Vídeo com conteúdo específico garantido — sem menina aleatória, sem narração genérica
+## Como responder ao dono (só CEO)
+- Fecho de toda resposta, nesta ordem (27/08), mesmo quando ela parece completa: "✅ O QUE VOCÊ PRECISA FAZER" (só o que depende dele, numerado, verbo no início, uma linha cada, com arquivo, botão ou comando, nada de "revisar" genérico; se nada, "Nada.") e "📋 O QUE ACONTECEU" (o que mudou, o que muda para o cliente, o que ficou aberto; curto).
+- Antes do fecho, o bloco "Não dá / dá melhor" (04-05/10). Dizer na cara quando a ideia dele perde dinheiro. Trazer sem esperar pergunta o que o mercado faz e nós não, e confrontar a estratégia quando receita ou concorrente apontar outro caminho.
+- Toda entrega traz o porquê (16/08) e a próxima jogada de crescimento, não óbvia: o quê, como e por quê, tirada dos dados do dia (24/08).
+- Sessão de obra entrega uma mudança que o dono vê (17/08). Não conta: refactor invisível, micro-SEO, conserto de log, doc.
+- Prazo em dias não existe (12/11): dizer o que falta, o que trava e a hora de hoje.
 
-## ⚠️ REGRA CRÍTICA: ao modificar componentes, sempre buscar os pares
-- Sidebar.tsx → verificar MobileNav.tsx e HomePageClient.tsx (nav do top menu público)
-- Viral Now cards → verificar DashboardClient.tsx E ViralNowClient.tsx (ambos renderizam cards)
-- viral-now/route.ts (FALLBACK_TOPICS) → verificar cron/refresh-viral-now/route.ts (TOPIC_POOL)
+## Scripts de vídeo (só CEO e sessão de vídeos)
+- O bloco de código traz só o script (24/08). A config vem fora, em uma linha: usekineo.com/studio, motor e custo, duração, personagem, modo de script, avisos. Nunca script solto.
+- Script nosso ou dele: "Use my script as is". Ideia de uma linha: "Let AI structure".
+- Script vem com o pacote de publicação da rede, com usekineo.com no texto. Ângulo: "isso foi feito por IA a partir de N palavras". Cada rede (YouTube, TikTok, Instagram) recebe o seu tipo de vídeo: grade de 12/11 nas skills. Fixar comentário só existe no YouTube.
+- Duração é norte, não camisa de força (02/09). Passar do alvo é bom, ficar abaixo é defeito. Nunca amputar o filme no fim.
 
-## ⚠️ REGRA CRÍTICA — InVideo
-**SEMPRE usar modo AUTOPILOT. NUNCA usar Agent One Pro.**
-- Agent One Pro consome créditos demais e esgota a conta
-- Autopilot usa 1–4 créditos por vídeo e gera automaticamente
-- Se não tiver opção de Autopilot visível, perguntar ao usuário antes de prosseguir
-- Se os créditos estiverem zerados, parar e avisar o usuário imediatamente
-
-## Configuração dos vídeos InVideo
-- **Somente 1 legenda/subtitle** por vídeo (não múltiplas)
-- **Último segundo do vídeo:** incluir call to action com o site → **shortsforgeai.com**
-- Formato: YouTube Shorts (9:16, vertical)
-- Duração: ~35 segundos
-- Estilo: dark, cinematic, fast-paced
-- Idioma: Inglês
-- Escolher sempre os temas com maior potencial viral (baseado nos Shorts que já performaram bem)
-
-## ⚠ REGRA FIXA — DURAÇÃO 60s+ (fundador 18/08, TikTok Creator Rewards)
-**Todo vídeo da casa (vitrine + canais do fundador) mira 60 segundos ou mais**
-— o programa de Rewards do TikTok só monetiza vídeo >1min. Na prática: duração
-60s no Studio + script de ~150-165 palavras (narração/2.3wps); o overshoot
-TIKTOK-61 do planner já garante que o corte final passa de 60s. Script menor
-que isso = pedir pro fundador confirmar antes.
-
-## ⚠ REGRA FIXA — DRY-RUN ANTES DE TODO RENDER PAGO (fundador 24/08)
-"Não posso gastar mais 7 dólares a cada teste." Todo script de Kling 3/H3
-passa PRIMEIRO pelo validador de $0: POST /api/generate-video-cinematic com
-`dry_run:true` + `script_mode:'verbatim'` (só contas do fundador). Devolve o
-plano cena a cena (segundos, palavras, texto falado) com veredito PASS/FAIL
-(mudo ≤6s e duração ≥95% do alvo) e estorna sozinho. Só se gasta crédito com
-PASS na mão. Regra-irmã: ~150-165 palavras para 60s (79-85s de plano é a
-faixa dos filmes bons: Mandel 68s, Pompeia 78s, Cyclops 75s).
-
-## ⚠ REGRA FIXA — script SEMPRE vem com título + descrição + usekineo (fundador 25/08)
-Toda entrega de script vem SEGUIDA, na mesma resposta, de: título YT, descrição
-YT, legenda TikTok e comentário fixado — com **usekineo.com nos lugares
-apropriados** (descrição = link + "made with usekineo.com"; fixado = CTA de
-funil; TikTok = menção em texto). O vídeo é conteúdo E anúncio: nunca sai
-script sem o pacote de publicação que converte espectador em cliente.
-
-## ⚠ REGRA FIXA — formato de entrega de script (fundador 24/08)
-**O bloco de código contém SÓ o script** — nada de config dentro, senão o
-fundador copia as configurações junto para a caixa de texto do Studio.
-A config vem FORA do bloco, logo embaixo, em uma linha compacta:
-⚙ Config: usekineo.com/studio · motor (custo) · duração · script mode · avisos.
-
-## ⚠ REGRA FIXA — REMETENTE POR TIPO DE CONVERSA (fundador 29/09; detalhe em docs/DECISIONS.md)
-Comercial/parceria NOVA sai de joseph@usekineo.com (From e Reply-To); atendimento
-em hello@ / support@usekineo.com; conversa já começada no Gmail pessoal continua
-na mesma thread (sem reenviar nem migrar); support@shortsforgeai.com nunca é
-remetente comercial novo. Antes de cada rascunho: conferir conta, From, Reply-To,
-destinatário e histórico. Sem joseph@usekineo.com disponível = AVISAR o bloqueio,
-nunca trocar de remetente em silêncio. Não autoriza envio, alias, SMTP nem
-encaminhamento — rascunho sempre; o fundador envia.
-
-
-## ⚠ REGRA FIXA — respostas de e-mail vão para o RASCUNHO (fundador 24/08)
-Toda resposta que eu preparar para um cliente/parceiro vai DIRETO para os
-rascunhos do Gmail dele, na thread certa (create_draft com replyToMessageId).
-Nunca só mostrar o texto no chat — o fundador revisa e aperta Enviar.
-
-## ⚠ REGRA FIXA — toda entrega vem com a PRÓXIMA JOGADA (fundador 24/08)
-"Você precisa ser minhas ideias novas." Toda entrega termina com jogada(s)
-de crescimento não-óbvias: o quê, como e por quê, tiradas dos dados do dia.
-Exemplos do padrão: pedido de review no pico da alegria (pós-"clips ready"),
-relatório de concorrente virando página /vs, prazo de mercado (morte do Sora
-24/09) virando pauta de imprensa.
-
-## ⚠ REGRA FIXA — scripts de vídeo (fundador 15/08)
-**Sempre que o fundador pedir uma script de vídeo, entregar JUNTO as configurações de geração** — motor, duração, character, "Use my script as is" vs "Let AI structure", e custo em créditos. Nunca mandar script solta.
-- Script escrita por mim/por ele → sempre "Use my script as is" (narração verbatim)
-- Ideia solta de 1 linha → "Let AI structure my text"
-
-## Workflow de vídeos diários
-1. Verificar no YouTube Studio quais Shorts tiveram mais views/engajamento
-2. Escolher 5 temas similares aos que viralizaram
-3. Criar vídeos no InVideo com **Autopilot** (YouTube Shorts, 9:16, ~35s)
-4. Configurar: 1 legenda + shortsforgeai.com no último segundo
-5. Usuário baixa e sobe no YouTube
-
-## ⚠⚠ REGRA FIXA — PROVOCAR O FUNDADOR, DOA O QUANTO DOER (fundador 04-05/10)
-"Olha, Joseph, isso que você está fazendo não está no caminho certo. Vai nesse caminho que você vai ganhar mais
-dinheiro." Origem: na noite de 04/10 descobrimos que os concorrentes (Higgsfield, Kling) faturam milhões com CLIPES de
-5–10 s e efeitos de 1 clique, enquanto a Kineo passou semanas no filme narrado de 60 s — e ninguém tinha dito isso a ele.
-Em UMA conversa o plano mudou (Clipes = produto 1, filme = produto 2, anual 40%, passe avulso). Daí em diante:
-- Em toda análise, trazer SEM ESPERAR PERGUNTA o que o mercado/concorrente faz que nós não fazemos, e confrontar a
-  estratégia quando dado de receita ou de concorrente apontar outro caminho.
-- TODA discussão termina com um bloco "Não dá / dá melhor": o que não pode ser feito (e por quê), o que pode ser feito
-  de um jeito melhor, diferente, ou que ganha mais dinheiro. Vem ANTES das listas ✅ / 📋.
-- Dizer na cara quando a ideia do fundador perde dinheiro (ex.: clipe abaixo do custo da fal para igualar o Higgsfield).
-
-## ⚠ REGRA FIXA — pensar junto, não só executar (fundador 16/08)
-**Toda entrega vem com o raciocínio estratégico junto** — o "porquê" de produto/marca/receita, não só o "o quê". O fundador quer as sacadas explicitadas pra pensar e progredir junto.
-
-### Log de sacadas (princípios que já viraram decisão)
-- **"Studio", não "Generate"**: formulário → sala de direção. Cliente que se sente diretor paga mais. E o nome da página fala a língua do tier premium (Studio) — upsell vira geografia, não venda.
-- **Motor = câmera; nós = diretor** (40/60): o modelo terceiro decide ~40% do resultado; prompt de cena, âncoras, seed, negative, voz, legendas e ritmo são nossos. Investir nos 60%.
-- **Fixo onde precisa ser instantâneo, IA onde precisa ser fresco, IA pesada só onde gera dinheiro** (arquitetura de custo/latência das sugestões).
-- **Piso de qualidade é engenharia, não compra**: DNA cinematográfico, image-first, quality gate com re-render. Nada de infra nova.
-- **Selo honesto é ativo de marca**: badge do motor = motor real, sempre. Vitrine mente → produto morre.
-- **Mais motores = upside quase puro** (pay-per-use, zero fixo), COM piso de qualidade curado e hierarquia na escolha (senão vira paralisia).
-- **Upgrade grátis existe**: fal cobra igual 720/1080 no Veo Fast — sempre checar o schema do fornecedor antes de assumir custo.
-
-## Informações do projeto
-- **Marca (UI):** Kineo / Kineo AI — nome exibido no site
-- **Produto/domínio (produção):** shortsforgeai.com (NÃO mudou — env, CTA nos vídeos e Stripe ainda usam esse domínio)
-- Canal: Money Facts / Finanças em inglês
-- App (deploy Vercel): https://shortsforgeai.vercel.app
-- **Repo GitHub:** josephsskaf-hub/UseKineo (branch main)
-- Pasta local: C:\Users\josep\OneDrive\Área de Trabalho\Usekineo
-- Email: josephsskaf@gmail.com
-- Push para GitHub: criar .bat e rodar via computer use
-- **REGRA FIXA (fundador 15/08): a cada rodada de trabalho pronta pra subir, criar um N-PUSH.bat NOVO** (numero sequencial em scripts/, formato: `@echo off` + `call "%~dp01-PUSH.bat"`, CRLF) e avisar o fundador do numero — assim ele sempre sabe qual e o mais recente
-
-## Rodar localmente (dev)
-1. `npm install` (só na primeira vez / quando o package.json mudar)
-2. `npm run dev` → http://localhost:3000
-3. Requer `.env.local` na raiz com chaves reais (Supabase, Stripe, OpenAI, Pexels,
-   Creatomate, Runway, Resend). O `.env.local` NÃO vem no repo — copiar de
-   `.env.local.example` e preencher. Sem as chaves a landing carrega, mas
-   login/checkout/geração de vídeo não funcionam.
+## Princípios
+- Motor é câmera, nós somos o diretor: investir em cena, voz, legenda e ritmo.
+- Piso de qualidade é engenharia, não compra.
+- Fixo onde precisa ser instantâneo, IA onde precisa ser fresco, IA pesada só onde gera dinheiro.
+- Checar o schema do fornecedor antes de assumir custo.

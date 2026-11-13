@@ -2,7 +2,7 @@
 
 **Pedido do dono (13/11, antes de dormir):** "não esquece de fazer o melhor fluxo de trabalho da nossa empresa aqui no Claude e no GPT, quero o melhor modelo pra poder crescer a empresa que seja mais rápido."
 
-**Estado:** PROPOSTA da CEO Claude. Só vale depois do sim do dono. O que já está ligado está marcado como **LIGADO**.
+**Estado:** APROVADO. O dono escolheu a opção A em 13/11 07:36 ("Vou no A"). O que já está ligado está marcado como **LIGADO**; o resto da seção 4 espera só as ações dele.
 Foto de decisão (local): `C:/kineo/docs/decisoes-1311/fluxo-de-trabalho-ABC.jpg`.
 
 ## 1. Onde o tempo se perde hoje (medido na madrugada de 13/11)
