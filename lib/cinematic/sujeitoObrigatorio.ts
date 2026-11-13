@@ -83,6 +83,8 @@ export interface OpcoesSemanticas {
   prazoTotalMs?: number
   model?: string
   apiKey?: string
+  /** KINEO-PROTAGONISTA-1311 (item 4) — a leitura do sujeito já feita neste filme (antes da decisão do modo): mesmo texto = devolve ela, sem 2ª chamada. */
+  leituraPronta?: { texto: string; resultado: ResultadoSemantico<LeituraDoSujeito> }
 }
 export type ResultadoSemantico<T> =
   | { ok: true; valor: T; ms: number; model: string; tentativas: number }
@@ -429,6 +431,8 @@ function validarAncora(leitura: LeituraDoSujeito, pedido: string, descarta: (mot
 /** A chamada semântica sobre o PEDIDO ORIGINAL (nunca o roteiro). Falha = { ok: false } e nada é injetado. */
 export async function lerSujeitoDoPedido(pedido: string, opts: OpcoesSemanticas = {}): Promise<ResultadoSemantico<LeituraDoSujeito>> {
   const texto = String(pedido ?? '').replace(/\s+/g, ' ').trim().slice(0, 600)
+  // KINEO-PROTAGONISTA-1311 (item 4) — a leitura deste mesmo texto já foi feita neste filme: ela mesma, sem perguntar de novo
+  if (opts.leituraPronta && String(opts.leituraPronta.texto ?? '').replace(/\s+/g, ' ').trim().slice(0, 600) === texto) return opts.leituraPronta.resultado
   return perguntaSemantica(
     { system: SYSTEM_SUJEITO_0111, user: `Video request:\n${texto}`, nome: 'sujeito_do_pedido', schema: SCHEMA_SUJEITO as unknown as Record<string, unknown>, maxTokens: 320, exemplos: EXEMPLOS_SUJEITO_0111, ler: (o) => lerLeituraDoSujeito(o, texto) },
     { timeoutMs: 4_000, tentativasExtras: 1, prazoTotalMs: 8_500, ...opts },
