@@ -1970,6 +1970,13 @@ async function manipularPost(req: NextRequest) {
     // cá (viviam logo antes da trava de narração, ~900 linhas abaixo), porque
     // o degrau abaixo precisa dos dois ANTES do custo. A trava lá embaixo
     // continua lendo estas mesmas variáveis.
+    // KINEO-RECONEXAO-MESMO-PEDIDO-1311 [dono 13/11 ~20:10: "quero saber porque todo cliente que falha… e já ter uma solução"; caso de 13/11 23:03Z, conta nova da
+    // França] — a impressão digital do pedido (claimFingerprint, lá embaixo) é o que a PESSOA pediu, nunca o roteiro que o servidor escreve com a IA
+    // aqui embaixo: esse texto muda a cada chamada. A tela reenvia o MESMO pedido quando a 1ª resposta demora ("Reconnecting to the same
+    // submission…"); com o roteiro novo na impressão, a reconexão virava 409 "generation id belongs to a different cinematic request" e a
+    // pessoa via a tela de falha enquanto o 1º envio terminava bem (200, Kling 4, 10 s depois). Com o pedido da pessoa, a reconexão cai em
+    // 'pending' → "already being submitted" → a tela espera e recebe o resultado do 1º envio.
+    const promptDoPedido = prompt
     const ideiaNoEscritor = await escreverIdeiaNoServidor({ prompt, scriptMode: body.script_mode, engine: typeof body.engine === 'string' ? body.engine : null, seconds: duration, language: narrationLanguage.language, escritor: async (corpo) => { const r = await escritorMarcadoDoGenerateScript(new NextRequest(new URL('/api/generate-script', req.url), { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...corpo, ...(typeof body.vertical === 'string' && body.vertical.trim() ? { vertical: body.vertical } : {}) }) /* KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "vai 16"] — o vertical do pedido: a voz prevista dá o teto da faixa do Kling 4 grátis */ })); return { status: r.status, json: await r.json().catch(() => null) } }, registrar: (name, metadata) => writeServerEvent({ name, userId: user.id, path: '/api/generate-video-cinematic', metadata: { ...metadata, generation_id: generationId, dry_run: body.dry_run === true } }) }) // KINEO-META95-IDEIA-1910 — ideia solta (o caminho verbatim=false, 0 filmes ≥ 95 em 7 dias) → roteiro marcado do generate-script no tamanho do filme e na régua do motor; dali em diante a fala é verbatim (o filtro anti-invenção do caminho clássico só roda com verbatim=false); qualquer tropeço = o caminho de antes, com o motivo em idea_written_on_server
     if (ideiaNoEscritor.usar) prompt = ideiaNoEscritor.prompt // KINEO-META95-IDEIA-1910
     const parsedScript = parseUserScript(prompt)
@@ -2864,7 +2871,7 @@ async function manipularPost(req: NextRequest) {
           ? 'veo'
           : 'seedance'
     const claimFingerprint = cinematicRequestFingerprint({
-      prompt,
+      prompt: promptDoPedido, // KINEO-RECONEXAO-MESMO-PEDIDO-1311 — o pedido da pessoa, não o roteiro reescrito (muda a cada chamada)
       duration,
       engine: claimEngine,
       language: narrationLanguageCode(body.language) ?? 'en', // KINEO-IDIOMAS-15
