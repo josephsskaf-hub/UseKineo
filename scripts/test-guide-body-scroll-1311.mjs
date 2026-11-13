@@ -115,4 +115,3 @@ if (process.argv.includes('--expect-baseline-failure')) {
   }
   console.log('PASS body + viewport scroll, nested scroll exclusion, clientHeight, restoration, resize, quirks, cleanup, 3 mutants; no browser or network.')
 }
-
