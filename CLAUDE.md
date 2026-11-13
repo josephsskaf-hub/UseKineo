@@ -6,6 +6,7 @@ Enxugado em 13/11/2026. Substitui o CLAUDE.md local e o da main. Onde o AGENTS.m
 - Divisão: commit local na própria branch e SHA em "Entregue à CEO". Não roda enfileirar nem !RODAR-AGORA, não faz push, não chama a fal paga, não envia e-mail, não toca na árvore de outra divisão.
 - CEO Claude (Fable 5.2): fala com o dono, decide, revisa e publica o lado Claude.
 - Sessão de vídeos e de afiliados: segue as skills e a seção de vídeo.
+- Rotina de conserto do revisor (tarefa `kineo-conserto-defeitos`): publica sozinha quando a revisão adversarial sai LIMPA, seguindo o próprio roteiro. É a única exceção a "só o CEO publica" (dono 02/11 e 13/11).
 - Modelos: divisões e tarefas programadas em Opus 5.5. Fable fora da CEO só no conserto e na revisão de vídeos.
 
 ## Projeto
@@ -29,6 +30,7 @@ Modelo em `docs/FLUXO-DE-TRABALHO-KINEO-1311.md` (este e os scripts abaixo só e
 - Antes de mexer: `git fetch origin`, ler o quadro e o `git log origin/main` recente. Pôr uma linha em "Em obra". Entregar em "Entregue à CEO" com branch e SHA. Só acrescentar, nunca apagar linha dos outros.
 - Cada área tem um dono. GPT (Codex): telas, menu, home, Library, Product story, citações. Claude: Div. 2 vídeo e motores, Div. 3 anúncio pago, Div. 4 receita e clientes, Div. 5 plataforma, Div. 6 nota automática, Div. 1 testa telas e não edita, mais vídeos do dia e afiliados. Quem não é dono escreve o pedido no quadro ("Pedidos ao GPT").
 - Só o CEO de cada lado publica. Migration pede revisão do outro CEO.
+- Revisor em todo vídeo (dono 13/11: "assim que o vídeo for feito ele já revisa, nos dá a nota e já arruma pro próximo cliente"). O revisor roda de 30 em 30 min sobre filme, clipe, Recreate, anúncio e desenho de cliente e grava a nota no /admin. Defeito grave ou repetido dispara o conserto na hora, até 3 por dia; o resto vai para a rodada das 00h45. Fila em `C:\kineo\docs\revisao-videos\FILA-DEFEITOS.md`: quem conserta um defeito o põe em "EM ANDAMENTO" antes de começar. A nota automática no servidor (Div. 6) só liga com 85% de acerto nos filmes ruins e até 10% de alarme falso.
 - Ao encerrar a missão, um aviso no celular: "Sessão terminada · sessão · resultado · próximo passo". Pausa e progresso não disparam. Sem PushNotification, gravar "aviso móvel pendente" com o texto em "Entregue à CEO".
 
 ## Código e publicação
