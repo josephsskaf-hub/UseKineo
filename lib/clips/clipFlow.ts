@@ -154,7 +154,10 @@ export function falErrorDetail(body: unknown): string {
       const loc = Array.isArray(it.loc) ? it.loc.filter((x) => typeof x === 'string' || typeof x === 'number').join('.') : ''
       const msg = typeof it.msg === 'string' ? it.msg : typeof it.message === 'string' ? it.message : ''
       const type = typeof it.type === 'string' ? ` (${it.type})` : ''
-      return `${loc ? loc + ': ' : ''}${msg}${type}`.trim()
+      // KINEO-RECREATE-SEU-VIDEO-1311 [CEO 13/11: "o livro das falhas"] — content_policy_violation traz `categories`; 'model_moderated' = a
+      // recusa veio da moderação do PRÓPRIO modelo (ByteDance), não do filtro da fal (docs.fal.ai/model-apis/errors). Sem categories: o de antes.
+      const cats = Array.isArray(it.categories) ? it.categories.filter((x) => typeof x === 'string').slice(0, 8).join(',') : ''
+      return `${loc ? loc + ': ' : ''}${msg}${type}${cats ? ` [${cats}]` : ''}`.trim() // KINEO-RECREATE-SEU-VIDEO-1311 — era: …${msg}${type}`
     }).filter(Boolean).join('; ')
   }
   if (d && typeof d === 'object') return falErrorDetail(d)

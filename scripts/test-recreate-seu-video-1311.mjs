@@ -317,6 +317,15 @@ for (const [nome, arq, , fn] of MUTANTES_T) {
   checa(`mutante "${nome}" fica vermelho (${mudou ? e.length + ' erro(s)' : 'NÃO APLICOU'})`, mudou && e.length > 0)
 }
 
+// (L) livro das falhas (CEO 13/11, recusa 422 do clip 124e9227): a mensagem crua da fal fica legível, com as categorias quando vierem
+{
+  const cf = createOfflineLoader({ globals: tGlobals })('lib/clips/clipFlow.ts')
+  const item = { loc: ['body', 'image_urls', 0], msg: 'The images or videos provided may contain likenesses of real people or other private information that cannot be processed.', type: 'content_policy_violation' }
+  const sem = cf.falErrorDetail({ detail: [item] }), com = cf.falErrorDetail({ detail: [{ ...item, categories: ['model_moderated'] }] })
+  checa('L sem categories: o texto de antes (byte a byte)', sem === 'body.image_urls.0: The images or videos provided may contain likenesses of real people or other private information that cannot be processed. (content_policy_violation)')
+  checa('L com categories: grava quem recusou (model_moderated = o filtro do próprio modelo)', com === sem + ' [model_moderated]' && (cf.cleanProviderError('fal 422 ' + com) ?? '').includes('[model_moderated]'))
+}
+
 // (M) mutantes
 const MUTANTES = [
   ['task no padrão (sem "reference" explícito)', (s) => s.replace("return { prompt: a.prompt, task: 'reference', image_urls", 'return { prompt: a.prompt, image_urls')],
