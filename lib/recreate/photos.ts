@@ -51,14 +51,27 @@ export async function cropFace(file: File): Promise<File | null> { // KINEO-ROST
     const bitmap = await createImageBitmap(file) // KINEO-ROSTO-QUADRO-CHAVE-2810
     const W = bitmap.width, H = bitmap.height // KINEO-ROSTO-QUADRO-CHAVE-2810
     let side = Math.round(Math.min(W, H * 0.55)), cx = W / 2, cy = Math.round(H * 0.04) + side / 2 // KINEO-ROSTO-QUADRO-CHAVE-2810 — heurística de selfie
+    let achouRosto = false // KINEO-RECREATE-FOTO-INTEIRA-1311
     const FD = (window as unknown as { FaceDetector?: new (o: { fastMode?: boolean; maxDetectedFaces?: number }) => { detect(i: ImageBitmap): Promise<Array<{ boundingBox: { x: number; y: number; width: number; height: number } }>> } }).FaceDetector // KINEO-ROSTO-QUADRO-CHAVE-2810
     if (FD) { // KINEO-ROSTO-QUADRO-CHAVE-2810
       try { // KINEO-ROSTO-QUADRO-CHAVE-2810
         const faces = await new FD({ fastMode: true, maxDetectedFaces: 1 }).detect(bitmap) // KINEO-ROSTO-QUADRO-CHAVE-2810
         const f = faces?.[0]?.boundingBox // KINEO-ROSTO-QUADRO-CHAVE-2810
-        if (f && f.width > 24 && f.height > 24) { side = Math.round(Math.max(f.width, f.height) * 1.9); cx = f.x + f.width / 2; cy = f.y + f.height / 2 + f.height * 0.12 } // KINEO-ROSTO-QUADRO-CHAVE-2810 — 1,9× cobre cabelo e barba
+        if (f && f.width > 24 && f.height > 24) { side = Math.round(Math.max(f.width, f.height) * 1.9); cx = f.x + f.width / 2; cy = f.y + f.height / 2 + f.height * 0.12; achouRosto = true } // KINEO-ROSTO-QUADRO-CHAVE-2810 — 1,9× cobre cabelo e barba
       } catch {} // KINEO-ROSTO-QUADRO-CHAVE-2810 — detector indisponível/negado: fica a heurística
     } // KINEO-ROSTO-QUADRO-CHAVE-2810
+    // KINEO-RECREATE-FOTO-INTEIRA-1311 [dono 13/11 05:35, print do iPhone: "ainda quebrado a foto" — a foto preparada mostrava só cabelo e testa] — o iPhone e a
+    // maioria dos navegadores NÃO têm o detector de rosto (FaceDetector). A heurística antiga recortava um quadrado do TOPO da foto (55% da
+    // altura a partir de 4%), que corta o rosto em print de tela, foto deitada ou rosto fora do topo, e o motor recebia meio rosto. Sem rosto
+    // achado, a foto vai INTEIRA (só reduzida a 1024 px no lado maior): o motor acha o rosto sozinho e a pessoa vê exatamente o que enviou.
+    if (!achouRosto) {
+      const k = Math.min(1, 1024 / Math.max(W, H))
+      const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(W * k)); c.height = Math.max(1, Math.round(H * k))
+      const g = c.getContext('2d'); if (!g) return null
+      g.drawImage(bitmap, 0, 0, W, H, 0, 0, c.width, c.height)
+      const inteira: Blob | null = await new Promise((resolve) => c.toBlob(resolve, 'image/jpeg', 0.92))
+      return inteira ? new File([inteira], 'face.jpg', { type: 'image/jpeg' }) : null
+    }
     side = Math.max(64, Math.min(side, W, H)) // KINEO-ROSTO-QUADRO-CHAVE-2810
     const x = Math.round(Math.min(Math.max(0, cx - side / 2), W - side)), y = Math.round(Math.min(Math.max(0, cy - side / 2), H - side)) // KINEO-ROSTO-QUADRO-CHAVE-2810
     const out = Math.min(768, side) // KINEO-ROSTO-QUADRO-CHAVE-2810
