@@ -21,7 +21,10 @@ status as (
   select distinct on (metadata->>'generation_id') metadata->>'generation_id' as g, metadata->>'origem' as origem,
          (metadata->>'ideia_e_o_roteiro')::boolean as ideia_e_o_roteiro
   from events where name = 'film_idea_status' and created_at > now() - interval '15 days'
-  order by metadata->>'generation_id', created_at desc
+  -- Revisão da CEO 13/11: vale o PRIMEIRO registro do filme que não é do robô da fila. A rota grava um registro por envio (um filme tem
+  -- vários) e a retomada (servico = true) reenvia a cópia estacionada, que já leva a ideia recuperada no campo da tela: lida por último,
+  -- a 'recuperada' sairia como 'tela'.
+  order by metadata->>'generation_id', (coalesce(metadata->>'servico', 'false') = 'true'), created_at asc
 ),
 render as (
   select metadata->>'generation_id' as g, metadata->>'render_id' as render_id
