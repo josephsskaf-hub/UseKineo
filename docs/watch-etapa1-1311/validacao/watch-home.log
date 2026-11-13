@@ -1,0 +1,19 @@
+KINEO-WATCH-HOME-1311 — SSR offline, sem rede/banco/geração
+  ok mutante: WATCH alcança logado
+  ok mutante: resposta citável retirada
+  ok mutante: tabelas citáveis retiradas
+  ok mutante: FAQ perde pergunta
+  ok mutante: id do clique retirado
+  ok mutante: id do card retirado
+  ok mutante: id de filme curado retirado
+  ok mutante: layout do clique retirado
+  ok mutante: coorte mobile quebrada
+  ok mutante: ordem do topo invertida
+  ok mutante: navegação móvel perde Films
+  ok mutante: card manual promete Recreate
+  ok mutante: fotos voltam a cortar
+  ok mutante: fonte 11 reaparece
+  ok mutante: noindex desligado
+  ok mutante: prévia listada no sitemap
+  ok mutante: parede recebe função de geração
+PASS: paridade de render/SSR, SEO, 32 cards, 6 no topo, navegação, 17 mutantes rejeitados pela regra esperada.

@@ -13,6 +13,7 @@
 import { useEffect } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { acquisitionSource, sanitizeAcquisitionReferrer } from '@/lib/acquisitionSource'
+import { watchViewportMetadata } from '@/lib/home/watchTelemetry'
 
 type Props = {
   signedIn: boolean
@@ -40,6 +41,7 @@ export default function LandingViewTracker({ signedIn, variant = 'kineo_landing_
           referrer_host: referrerHost,
           signed_in: signedIn,
           variant,
+          ...(variant==='watch'?watchViewportMetadata(window.innerWidth):{}),
         }, '/')
       }
     } catch {

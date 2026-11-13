@@ -36,6 +36,7 @@ import HomeFeaturedFilms from '@/components/HomeFeaturedFilms'
 import HomeNewEffects from '@/components/home/HomeNewEffects' // KINEO-HOME-NOVOS-EFEITOS-2910
 import HalloweenSkin from '@/components/home/HalloweenSkin' // KINEO-HALLOWEEN-SKIN-2910
 import HomeRecreateStrip from '@/components/home/HomeRecreateStrip'
+import WatchVisitorHome from '@/components/home/WatchVisitorHome'
 import HomeMosaic, { HOME_MOSAIC_LIVE } from '@/components/home/HomeMosaic' // KINEO-HOME-MOSAICO-2910
 import TrendingRow from '@/components/TrendingRow'
 // KINEO-PROMO-CARDS-2026-09-30 — fileira de cards grandes logo abaixo do menu (Kineo for Claude + Clips).
@@ -126,6 +127,8 @@ type Props = {
   showWelcomeGoalRouter?: boolean
   // KINEO-HOME-CLIPES-EM-CIMA-2026-10-05 — braço clips_first do A/B: a MESMA home, com Clipes no topo (menu e página)
   // e os filmes narrados logo embaixo. Desligado = a home de sempre, byte a byte no que o visitante vê.
+  watchPreview?: boolean
+  watchVisitor?: boolean
   clipsFirst?: boolean
 }
 
@@ -822,6 +825,8 @@ export default function KineoLanding({
   trending = [],
   resume = null,
   clipsFirst = false,
+  watchVisitor = false,
+  watchPreview = false,
 }: Props & { engineWall?: WallVideo[]; trending?: WallVideo[] }) {
   const isSignedIn = Boolean(initialUser)
   const referralBridge = !isSignedIn && initialAcquisitionSource
@@ -874,7 +879,7 @@ export default function KineoLanding({
           fio. O replace so remove blocos completos, nao toca em url() nem em
           seletores. */}
       <style dangerouslySetInnerHTML={{ __html: (KLP_CSS + HOME_PRESENTATION_CSS + KINEO_LANDING_THEME_CSS).replace(/\/\*[\s\S]*?\*\//g, '') }} />
-      <LandingViewTracker signedIn={Boolean(initialUser)} />
+      {!watchPreview && <LandingViewTracker signedIn={Boolean(initialUser)} variant={watchVisitor && !isSignedIn ? 'watch' : undefined} />}
       <RevealOnScroll />
       {/* KINEO-WELCOME20-2026-08-25 (fundador: "pra todo mundo que entrar no
           site") — convite com nome, 20% no 1º mês de Creator/Studio, 5s após
@@ -886,6 +891,7 @@ export default function KineoLanding({
       <SignupConversionTracker />
       {/* KINEO-PH-WELCOME-2026-08-04 — só renderiza com utm/ref do Product
           Hunt (launch ter 04/08); invisível para o resto do tráfego. */}
+      {watchVisitor && !isSignedIn ? <WatchVisitorHome preview={watchPreview} /> : <>
       <PhWelcomeBanner />
       {/* KINEO-FAIXA-S25-2026-10-09 — o motor novo na manchete, como 7 dos 14 concorrentes fazem (fecha e não volta). */}
       <HalloweenSkin />{/* KINEO-HALLOWEEN-SKIN-2910 — faixa + morcegos discretos até 1º/11 (prévia: ?halloween=preview) */}
@@ -1031,7 +1037,7 @@ export default function KineoLanding({
         </div>
       </header>
 
-      {HOME_MOSAIC_LIVE ? <div id="samples"><HomeMosaic signedIn={isSignedIn} afterTop={<HomeRecreateStrip signedIn={isSignedIn} />} /></div> : <HomeNewEffects signedIn={isSignedIn} />}<div className="wrap"><CitationDirectAnswer page="home" /></div>{/* KINEO-HOME-MOSAICO-2910 — fundador 29/10 "uma coisa grande com tudo, sem separações": clipes, filmes, efeitos e imagens numa grade só · KINEO-HOME-NOVOS-EFEITOS-2910 — fundador 29/10: os 4 efeitos mais novos logo abaixo dos filmes */}
+      {HOME_MOSAIC_LIVE ? <div id="samples"><HomeMosaic signedIn={isSignedIn} afterTop={<HomeRecreateStrip signedIn={isSignedIn} />} /></div> : <HomeNewEffects signedIn={isSignedIn} />}</>}<div className="wrap"><CitationDirectAnswer page="home" /></div>{/* KINEO-HOME-MOSAICO-2910 — fundador 29/10 "uma coisa grande com tudo, sem separações": clipes, filmes, efeitos e imagens numa grade só · KINEO-HOME-NOVOS-EFEITOS-2910 — fundador 29/10: os 4 efeitos mais novos logo abaixo dos filmes */}
 
       {/* The post-signup route intentionally lands on this engine showroom.
           The router comes AFTER the founder-curated four-video hero, so it

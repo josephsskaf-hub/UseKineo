@@ -1,0 +1,71 @@
+{
+  "date": "2026-11-13T21:32:53.825Z",
+  "checks": [
+    {
+      "id": "carta-do-front",
+      "fields": [
+        {
+          "label": "Your idea",
+          "placeholder": "One idea is enough. A finished film comes out: voiced, scored and captioned.",
+          "value": "The letter from the front"
+        }
+      ],
+      "headings": [
+        "What's your film about?"
+      ],
+      "url": "/studio?intent_campaign=home_card&example=carta-do-front"
+    },
+    {
+      "id": "raposa-lanterna",
+      "fields": [
+        {
+          "label": "Story idea",
+          "placeholder": "e.g. learns to say sorry to a friend",
+          "value": "Fox and the lantern"
+        }
+      ],
+      "headings": [
+        "AI Cartoon Videos"
+      ],
+      "url": "/kids-cartoon?utm_source=home_card&example=raposa-lanterna"
+    },
+    {
+      "id": "anuncio-burger-camera-lenta",
+      "fields": [
+        {
+          "label": null,
+          "placeholder": "Product name and what you want to communicate.",
+          "value": "Your burger, slow motion"
+        },
+        {
+          "label": null,
+          "placeholder": null,
+          "value": ""
+        }
+      ],
+      "headings": [
+        "AI Product Ads"
+      ],
+      "url": "/ads/v2?entry=product&utm_source=home_card&example=anuncio-burger-camera-lenta"
+    },
+    {
+      "id": "anuncio-creme-selfie",
+      "fields": [
+        {
+          "label": null,
+          "placeholder": "Product name and what you want to communicate.",
+          "value": "Honest face cream review"
+        },
+        {
+          "label": null,
+          "placeholder": null,
+          "value": ""
+        }
+      ],
+      "headings": [
+        "AI UGC Ads"
+      ],
+      "url": "/ads/v2?entry=ugc&utm_source=home_card&example=anuncio-creme-selfie"
+    }
+  ]
+}

@@ -4,7 +4,7 @@ import { linguaDoRoteiro } from '@/lib/linguaDoRoteiro' // KINEO-ROTEIRO-NA-LING
 export interface FilmeDaCaixa { id: string; title: string; engine: string; poster: string; /** KINEO-HOME-TOPO-0511 — o texto que o cartão põe na caixa; sem ele, o título. */ ideia?: string }
 
 /** Parâmetros de quem só chegou. Qualquer outro (texto do ChatGPT, retomada, episódio, volta do pagamento) segue para o Studio completo, que sabe tratá-lo. */
-const SO_CHEGOU = /^(?:engine|intent_campaign|ideia|utm_[a-z]+|ref|gclid|msclkid|fbclid|ttclid)$/ // KINEO-CAIXA-COM-IDEIA-0611 — ideia: só preenche a caixa
+const SO_CHEGOU = /^(?:engine|intent_campaign|ideia|example|utm_[a-z]+|ref|gclid|msclkid|fbclid|ttclid)$/ // WATCH: example is a public catalogue id, resolved without starting work.
 
 export function usarCaixaUnica(params: Record<string, string | string[] | undefined>): boolean {
   return Object.keys(params).every((k) => SO_CHEGOU.test(k))

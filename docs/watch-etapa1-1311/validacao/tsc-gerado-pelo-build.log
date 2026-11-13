@@ -1,0 +1,45 @@
+.next/types/app/api/admin/send-affiliate-wakeup-1usd/route.ts(8,13): error TS2344: Type 'OmitWithTag<typeof import("C:/Users/josep/.codex/worktrees/341b/kineo/app/api/admin/send-affiliate-wakeup-1usd/route"), "GET" | "HEAD" | "POST" | "PATCH" | "DELETE" | "revalidate" | "config" | ... 8 more ... | "OPTIONS", "">' does not satisfy the constraint '{ [x: string]: never; }'.
+  Property 'formatCommissionRate' is incompatible with index signature.
+    Type '(rate: number) => string' is not assignable to type 'never'.
+.next/types/app/api/admin/send-card-declined/route.ts(8,13): error TS2344: Type 'OmitWithTag<typeof import("C:/Users/josep/.codex/worktrees/341b/kineo/app/api/admin/send-card-declined/route"), "GET" | "HEAD" | "POST" | "PATCH" | "DELETE" | "revalidate" | "config" | ... 8 more ... | "OPTIONS", "">' does not satisfy the constraint '{ [x: string]: never; }'.
+  Property 'recusaMereceCarta' is incompatible with index signature.
+    Type '(stage: string | null | undefined) => boolean' is not assignable to type 'never'.
+.next/types/app/api/admin/send-card-entry-d1/route.ts(8,13): error TS2344: Type 'OmitWithTag<typeof import("C:/Users/josep/.codex/worktrees/341b/kineo/app/api/admin/send-card-entry-d1/route"), "GET" | "HEAD" | "POST" | "PATCH" | "DELETE" | "revalidate" | "config" | ... 8 more ... | "OPTIONS", "">' does not satisfy the constraint '{ [x: string]: never; }'.
+  Property 'isCardEntryD1Eligible' is incompatible with index signature.
+    Type '(p: { trial_status?: string | null | undefined; has_paid?: boolean | null | undefined; plan?: string | null | undefined; video_credits?: number | null | undefined; created_at?: string | null | undefined; email_opted_out?: boolean | ... 1 more ... | undefined; }, now?: number) => boolean' is not assignable to type 'never'.
+.next/types/app/api/admin/send-checkout-hot-nudge/route.ts(8,13): error TS2344: Type 'OmitWithTag<typeof import("C:/Users/josep/.codex/worktrees/341b/kineo/app/api/admin/send-checkout-hot-nudge/route"), "GET" | "HEAD" | "POST" | "PATCH" | "DELETE" | "revalidate" | "config" | ... 8 more ... | "OPTIONS", "">' does not satisfy the constraint '{ [x: string]: never; }'.
+  Property 'idDaCartaRapida' is incompatible with index signature.
+    Type '(userId: string) => string' is not assignable to type 'never'.
+.next/types/app/api/admin/send-checkout-recovery/route.ts(8,13): error TS2344: Type 'OmitWithTag<typeof import("C:/Users/josep/.codex/worktrees/341b/kineo/app/api/admin/send-checkout-recovery/route"), "GET" | "HEAD" | "POST" | "PATCH" | "DELETE" | "revalidate" | "config" | ... 8 more ... | "OPTIONS", "">' does not satisfy the constraint '{ [x: string]: never; }'.
+  Property 'escolherPortaDeVolta' is incompatible with index signature.
+    Type '(recovery: { url?: string | null | undefined; expires_at?: number | null | undefined; } | null | undefined, agoraMs: number) => string | null' is not assignable to type 'never'.
+.next/types/app/api/admin/send-renewal-declined/route.ts(8,13): error TS2344: Type 'OmitWithTag<typeof import("C:/Users/josep/.codex/worktrees/341b/kineo/app/api/admin/send-renewal-declined/route"), "GET" | "HEAD" | "POST" | "PATCH" | "DELETE" | "revalidate" | "config" | ... 8 more ... | "OPTIONS", "">' does not satisfy the constraint '{ [x: string]: never; }'.
+  Property 'assunto' is incompatible with index signature.
+    Type '(plano: string) => string' is not assignable to type 'never'.
+.next/types/app/api/admin/send-second-try-1usd/route.ts(8,13): error TS2344: Type 'OmitWithTag<typeof import("C:/Users/josep/.codex/worktrees/341b/kineo/app/api/admin/send-second-try-1usd/route"), "GET" | "HEAD" | "POST" | "PATCH" | "DELETE" | "revalidate" | "config" | ... 8 more ... | "OPTIONS", "">' does not satisfy the constraint '{ [x: string]: never; }'.
+  Property 'intentAgeReport' is incompatible with index signature.
+    Type '(batch: { lastCheckoutAt: string | null; }[], now?: Date) => { median: number | null; within_48h: number; within_7d: number; older_than_30d: number; unknown: number; }' is not assignable to type 'never'.
+.next/types/app/api/admin/send-weekly-quota/route.ts(8,13): error TS2344: Type 'OmitWithTag<typeof import("C:/Users/josep/.codex/worktrees/341b/kineo/app/api/admin/send-weekly-quota/route"), "GET" | "HEAD" | "POST" | "PATCH" | "DELETE" | "revalidate" | "config" | "runtime" | ... 7 more ... | "OPTIONS", "">' does not satisfy the constraint '{ [x: string]: never; }'.
+  Property 'CAMPAIGN' is incompatible with index signature.
+    Type '"weekly_quota_sep17"' is not assignable to type 'never'.
+.next/types/app/api/cron/rescue-vendor-assets/route.ts(8,13): error TS2344: Type 'OmitWithTag<typeof import("C:/Users/josep/.codex/worktrees/341b/kineo/app/api/cron/rescue-vendor-assets/route"), "GET" | "HEAD" | "POST" | "PATCH" | "DELETE" | "revalidate" | "config" | ... 8 more ... | "OPTIONS", "">' does not satisfy the constraint '{ [x: string]: never; }'.
+  Property 'isVendorHostedUrl' is incompatible with index signature.
+    Type '(url: string | null | undefined, ownStorageOrigin: string) => boolean' is not assignable to type 'never'.
+.next/types/app/api/cron/resume-parked-renders/route.ts(8,13): error TS2344: Type 'OmitWithTag<typeof import("C:/Users/josep/.codex/worktrees/341b/kineo/app/api/cron/resume-parked-renders/route"), "GET" | "HEAD" | "POST" | "PATCH" | "DELETE" | "revalidate" | "config" | ... 8 more ... | "OPTIONS", "">' does not satisfy the constraint '{ [x: string]: never; }'.
+  Property 'idDoFechamento' is incompatible with index signature.
+    Type '(genId: string) => string' is not assignable to type 'never'.
+.next/types/app/api/render-recovery/route.ts(8,13): error TS2344: Type 'OmitWithTag<typeof import("C:/Users/josep/.codex/worktrees/341b/kineo/app/api/render-recovery/route"), "GET" | "HEAD" | "POST" | "PATCH" | "DELETE" | "revalidate" | "config" | "runtime" | ... 7 more ... | "OPTIONS", "">' does not satisfy the constraint '{ [x: string]: never; }'.
+  Property 'sanitizeFastComposePayload' is incompatible with index signature.
+    Type '(generationId: string, raw: unknown) => Record<string, unknown> | null' is not assignable to type 'never'.
+.next/types/app/api/video/visibility/route.ts(8,13): error TS2344: Type 'OmitWithTag<typeof import("C:/Users/josep/.codex/worktrees/341b/kineo/app/api/video/visibility/route"), "GET" | "HEAD" | "POST" | "PATCH" | "DELETE" | "revalidate" | "config" | "runtime" | ... 7 more ... | "OPTIONS", "">' does not satisfy the constraint '{ [x: string]: never; }'.
+  Property 'VISIBILITY_SOURCES' is incompatible with index signature.
+    Type 'readonly ["done_screen", "my_videos", "publish_earn"]' is not assignable to type 'never'.
+.next/types/app/api/videos/route.ts(33,7): error TS2344: Type '{ __tag__: "GET"; __param_position__: "first"; __param_type__: Request | undefined; }' does not satisfy the constraint 'ParamCheck<Request | NextRequest>'.
+  Types of property '__param_type__' are incompatible.
+    Type 'Request | undefined' is not assignable to type 'Request | NextRequest'.
+      Type 'undefined' is not assignable to type 'Request | NextRequest'.
+.next/types/app/pricing/page.ts(28,29): error TS2344: Type '{ searchParams?: Record<string, string | string[] | undefined> | undefined; } | undefined' does not satisfy the constraint 'PageProps'.
+  Type 'undefined' is not assignable to type 'PageProps'.
+.next/types/app/s/[channel]/route.ts(8,13): error TS2344: Type 'OmitWithTag<typeof import("C:/Users/josep/.codex/worktrees/341b/kineo/app/s/[channel]/route"), "GET" | "HEAD" | "POST" | "PATCH" | "DELETE" | "revalidate" | "config" | "runtime" | "PUT" | ... 6 more ... | "OPTIONS", "">' does not satisfy the constraint '{ [x: string]: never; }'.
+  Property 'socialLinkDestination' is incompatible with index signature.
+    Type '(channel: string, origin: string, campaign?: string | null | undefined) => string' is not assignable to type 'never'.

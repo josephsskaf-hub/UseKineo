@@ -24,6 +24,8 @@ interface ClipeNovoBase {
   title: string
   /** Produto cuja tela mostra este exemplo; não altera o motor, selo nem destino. */
   produto: 'film' | 'cartoon' | 'ads' | 'clip'
+  /** WATCH entry curation only. The real Ads form/server still chooses the available format and eligibility. */
+  adsEntry?: 'product' | 'ugc'
   /** Linha da tabela `clips` de onde o clipe saiu. */
   clipId: string
   /** Que faixa do vídeo 9:16 a janela do cartão mostra (object-position), medida quadro a quadro. */
@@ -98,9 +100,9 @@ export const CLIPES_NOVOS: readonly ClipeNovo[] = [
   // + Seedance 2.0 com fala nativa), FORA do produto de Ads; nenhuma linha em `clips` nem em `ads_v2_orders`. Produtos e marcas fictícios
   // (Halo, Veil, Orra). Mesmo caminho dos 6 de Natal: selo 'Ad example', sem motor, convite "Make your ad". Prévia = os 8 s iniciais do
   // anúncio (540×960, sem som), a partir do mesmo inteiro de public/ads-exemplos/ (a /ads mostra os mesmos 3).
-  { id: 'anuncio-halo-car-selfie', title: 'Halo cup, filmed in the car', engine: null, produto: 'ads', selo: 'Ad example', clipId: 'manual:ads-ugc-falado-1111/halo-sofia-seedance2.mp4', focus: '50% 22%', pessoa: true, prompt: null }, // KINEO-ADS-FALADOS-1111
-  { id: 'anuncio-veil-grwm', title: 'Veil sunscreen, get ready with me', engine: null, produto: 'ads', selo: 'Ad example', clipId: 'manual:ads-ugc-falado-1111/veil-amara-seedance2.mp4', focus: '50% 20%', pessoa: true, prompt: null }, // KINEO-ADS-FALADOS-1111
-  { id: 'anuncio-orra-street-interview', title: 'Orra earbuds, asked on the street', engine: null, produto: 'ads', selo: 'Ad example', clipId: 'manual:ads-ugc-falado-1111/orra-rahul-seedance2.mp4', focus: '50% 22%', pessoa: true, prompt: null }, // KINEO-ADS-FALADOS-1111
+  { id: 'anuncio-halo-car-selfie', title: 'Halo cup, filmed in the car', engine: null, produto: 'ads', selo: 'Ad example', clipId: 'manual:ads-ugc-falado-1111/halo-sofia-seedance2.mp4', focus: '50% 22%', pessoa: true, prompt: null, adsEntry: 'ugc' }, // KINEO-ADS-FALADOS-1111
+  { id: 'anuncio-veil-grwm', title: 'Veil sunscreen, get ready with me', engine: null, produto: 'ads', selo: 'Ad example', clipId: 'manual:ads-ugc-falado-1111/veil-amara-seedance2.mp4', focus: '50% 20%', pessoa: true, prompt: null, adsEntry: 'ugc' }, // KINEO-ADS-FALADOS-1111
+  { id: 'anuncio-orra-street-interview', title: 'Orra earbuds, asked on the street', engine: null, produto: 'ads', selo: 'Ad example', clipId: 'manual:ads-ugc-falado-1111/orra-rahul-seedance2.mp4', focus: '50% 22%', pessoa: true, prompt: null, adsEntry: 'ugc' }, // KINEO-ADS-FALADOS-1111
   { id: 'anuncio-relogio', title: 'The gift watch', engine: null, produto: 'ads', selo: 'Ad example', clipId: 'manual:ads-natal-1011/ad2-relogio.mp4', focus: '50% 50%', pessoa: false, prompt: null }, // KINEO-ADS-NATAL-VITRINE-1011 — prévia 4,2–12,0 s: órbita da caixa → a mão fecha no pulso
   { id: 'anuncio-colar', title: 'Gold necklace gift', engine: null, produto: 'ads', selo: 'Ad example', clipId: 'manual:ads-natal-1011/ad3-colar.mp4', focus: '50% 50%', pessoa: false, prompt: null }, // KINEO-ADS-NATAL-VITRINE-1011 — prévia 4,2–12,0 s: órbita da caixa de veludo → no pescoço
   { id: 'anuncio-sueter-pet', title: 'Christmas dog sweater', engine: null, produto: 'ads', selo: 'Ad example', clipId: 'manual:ads-natal-1011/ad5-pet.mp4', focus: '50% 38%', pessoa: true, prompt: null }, // KINEO-ADS-NATAL-VITRINE-1011 — prévia 6,5–14,5 s: o corgi corre até a lente → o abraço
@@ -120,7 +122,7 @@ export const CLIPES_NOVOS: readonly ClipeNovo[] = [
   { id: 'ultimo-trem', title: 'The last train', engine: null, produto: 'film', selo: 'Trending format', clipId: 'fal:0ab243eb/xGoShgcRyDZ-qxRS91A-D', focus: '50% 52%', pessoa: false, prompt: null }, // KINEO-HOME-10-CLIPES-1311
   { id: 'carta-do-front', title: 'The letter from the front', engine: null, produto: 'film', selo: 'Trending format', clipId: 'fal:0ab243ee/kKxVjZOJ6jvO6GB5i2m2e', focus: '50% 50%', pessoa: true, prompt: null }, // KINEO-HOME-10-CLIPES-1311
   { id: 'anuncio-tenis-pedestal', title: 'The sneaker drop', engine: null, produto: 'ads', selo: 'Ad example', clipId: 'fal:0ab243e1/KXAGTs7aSc0LLyjlsg_jF', focus: '50% 72%', pessoa: false, prompt: null }, // KINEO-HOME-10-CLIPES-1311
-  { id: 'anuncio-creme-selfie', title: 'Honest face cream review', engine: null, produto: 'ads', selo: 'Ad example', clipId: 'fal:0ab24414/Q22EH_dnQykRmRdKNM5Am', focus: '50% 14%', pessoa: true, prompt: null }, // KINEO-HOME-10-CLIPES-1311
+  { id: 'anuncio-creme-selfie', title: 'Honest face cream review', engine: null, produto: 'ads', selo: 'Ad example', clipId: 'fal:0ab24414/Q22EH_dnQykRmRdKNM5Am', focus: '50% 14%', pessoa: true, prompt: null, adsEntry: 'ugc' }, // KINEO-HOME-10-CLIPES-1311
   { id: 'anuncio-burger-camera-lenta', title: 'Your burger, slow motion', engine: null, produto: 'ads', selo: 'Ad example', clipId: 'fal:0ab243f1/jcIHlvocwL6UrZndIR3Oa', focus: '50% 72%', pessoa: false, prompt: null }, // KINEO-HOME-10-CLIPES-1311
 ]
 

@@ -69,6 +69,7 @@ import {
   TRIAL_FIRST_DELIVERY_VERSION,
 } from '@/lib/growth/trialBalanceBridge'
 import { trackEvent } from '@/lib/analytics'
+import { watchExampleText } from '@/lib/home/watchEntry'
 import { SURPRISE_IDEAS } from '@/lib/surpriseIdeas'
 import { analyzePromptMaxChars } from '@/lib/analyzeLimits'
 import { CLIP_ASPECTS } from '@/lib/analyzeLimits' // VARREDURA-LIMITES-2026-09-23
@@ -523,6 +524,7 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
     if (e && ENGINES.some((x) => x.key === e) && (e !== 's25') && (e !== 'h3max' || h3maxOk) && !ENGINES.find((x) => x.key === e)?.paused) setEngine(e as EngineKey) // KINEO-MOTOR-EM-MANUTENCAO: ?engine= pausado cai no padrão · KINEO-H3MAX-2026-10-13: H3 Max escondido também
     const p = sp.get('prompt')
     if (p) setPrompt(p)
+    else if (sp.getAll('example').length === 1) setPrompt(current => watchExampleText(current, sp.get('example'), 'film'))
     // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — save only the original arrival text; a later pasted link never replaces it.
     const arrivedIdea = originalIdeaFromArrival(sp)
     try {

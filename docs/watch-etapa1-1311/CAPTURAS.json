@@ -1,0 +1,237 @@
+{
+  "date": "2026-11-13",
+  "images": [
+    {
+      "file": "prints/antes-390.jpg",
+      "viewport": 390,
+      "width": 390,
+      "height": 844,
+      "bytes": 59064,
+      "sha256": "36c86bceeb8f1409fdd208803b3730dc644d5d8d622bfb2361ae22910885fc35"
+    },
+    {
+      "file": "prints/depois-390.jpg",
+      "viewport": 390,
+      "width": 390,
+      "height": 844,
+      "bytes": 42097,
+      "sha256": "648c124078e81461cf6e770df5aa461e47707046c088346e2006df1b06f3ea30"
+    },
+    {
+      "file": "prints/antes-1920.jpg",
+      "viewport": 1920,
+      "width": 1920,
+      "height": 1080,
+      "bytes": 225619,
+      "sha256": "f5b72117303f5811468621101f70ed704158119bd5649d32978247c71422a6b2"
+    },
+    {
+      "file": "prints/depois-1920.jpg",
+      "viewport": 1920,
+      "width": 1920,
+      "height": 1080,
+      "bytes": 168630,
+      "sha256": "d7c377a515335d1b9d7cacb2668fc5037ffb48fd71f6cc3bf9ca37ae5c3e555f"
+    },
+    {
+      "file": "prints/antes-carta-do-front-390.jpg",
+      "viewport": 390,
+      "width": 390,
+      "height": 844,
+      "bytes": 51499,
+      "sha256": "39597c2adcf6ab1a566f368656b1130626f622d9ff9f1ad43a61f510029570cc"
+    },
+    {
+      "file": "prints/entrada-carta-do-front-390.jpg",
+      "viewport": 390,
+      "width": 390,
+      "height": 844,
+      "bytes": 48438,
+      "sha256": "8b1d5dff8a6b1bb7019690970987f61eeb42a5f9c79876f50393ac56494b3ddd"
+    },
+    {
+      "file": "prints/antes-carta-do-front-1920.jpg",
+      "viewport": 1920,
+      "width": 1920,
+      "height": 1080,
+      "bytes": 146173,
+      "sha256": "2a20947c9e49c3494d3e11560db9d83a220bde49eba4b83fc85e36fe76e87e7a"
+    },
+    {
+      "file": "prints/entrada-carta-do-front-1920.jpg",
+      "viewport": 1920,
+      "width": 1920,
+      "height": 1080,
+      "bytes": 144179,
+      "sha256": "dbab5735697b6a7d15313d8a994d9748fe67cbe81205e7d20aba5eae95b6d458"
+    },
+    {
+      "file": "prints/antes-raposa-lanterna-390.jpg",
+      "viewport": 390,
+      "width": 390,
+      "height": 844,
+      "bytes": 41732,
+      "sha256": "d04d0e9d5ce000f684e9be64358e6c6e710b30f00d9ef06a4614d45efeecb28e"
+    },
+    {
+      "file": "prints/entrada-raposa-lanterna-390.jpg",
+      "viewport": 390,
+      "width": 390,
+      "height": 844,
+      "bytes": 40260,
+      "sha256": "d16fc499094045ebe35d74415b7efc30450d9e67d59f3f59763cbd61bca3149a"
+    },
+    {
+      "file": "prints/antes-raposa-lanterna-1920.jpg",
+      "viewport": 1920,
+      "width": 1920,
+      "height": 1080,
+      "bytes": 144888,
+      "sha256": "de5902a98832b480f4c6f3b9e28cb7bd2ef8bf166fcf53cfcaea867f805d7607"
+    },
+    {
+      "file": "prints/entrada-raposa-lanterna-1920.jpg",
+      "viewport": 1920,
+      "width": 1920,
+      "height": 1080,
+      "bytes": 161634,
+      "sha256": "1e0a3ff4bc89a299732f4e5a3578990b6a148c7cfaa124b999219e2b1a6cd557"
+    },
+    {
+      "file": "prints/antes-anuncio-burger-camera-lenta-390.jpg",
+      "viewport": 390,
+      "width": 390,
+      "height": 844,
+      "bytes": 15160,
+      "sha256": "b29146e2ea678c5c4ded7ccf2b4c892aa2f4c7fa78038793bd4a25443ac19583"
+    },
+    {
+      "file": "prints/entrada-anuncio-burger-camera-lenta-390.jpg",
+      "viewport": 390,
+      "width": 390,
+      "height": 844,
+      "bytes": 17161,
+      "sha256": "aa953bc33b240ed8069b9e28ce4e153238f482d9985cb59dedc2f2499a00e994"
+    },
+    {
+      "file": "prints/antes-anuncio-burger-camera-lenta-1920.jpg",
+      "viewport": 1920,
+      "width": 1920,
+      "height": 1080,
+      "bytes": 49599,
+      "sha256": "14d01b8dbc8f7684a36ce3a8e248364924484d56ea48f91f52bf94d539474735"
+    },
+    {
+      "file": "prints/entrada-anuncio-burger-camera-lenta-1920.jpg",
+      "viewport": 1920,
+      "width": 1920,
+      "height": 1080,
+      "bytes": 53575,
+      "sha256": "734cbd2fa2d45954808096a307a24950b65f94bac8d05262ce2b5acfe96cfa3f"
+    },
+    {
+      "file": "prints/antes-anuncio-creme-selfie-390.jpg",
+      "viewport": 390,
+      "width": 390,
+      "height": 844,
+      "bytes": 15950,
+      "sha256": "aa4fbb9702cc8c1f365d35496fd54b39faf390e9f63aec11c37197cd5bf57182"
+    },
+    {
+      "file": "prints/entrada-anuncio-creme-selfie-390.jpg",
+      "viewport": 390,
+      "width": 390,
+      "height": 844,
+      "bytes": 17433,
+      "sha256": "b8a49b24fae22eaade1cfe5ca9eff987926018b47f9142da3a3a31ed2881260b"
+    },
+    {
+      "file": "prints/antes-anuncio-creme-selfie-1920.jpg",
+      "viewport": 1920,
+      "width": 1920,
+      "height": 1080,
+      "bytes": 54323,
+      "sha256": "1d1335d3f2eb14133494c84f9fbf1ad091b0624428147892d116a3a03365acac"
+    },
+    {
+      "file": "prints/entrada-anuncio-creme-selfie-1920.jpg",
+      "viewport": 1920,
+      "width": 1920,
+      "height": 1080,
+      "bytes": 54313,
+      "sha256": "d2285373999d0be38490ea0730219ea421a037ed68688251e4ebd0ff59d3427e"
+    },
+    {
+      "file": "prints/citation-before-390.jpg",
+      "viewport": 390,
+      "width": 390,
+      "height": 844,
+      "bytes": 47761,
+      "sha256": "c2e985c84c8c83e5565b2306b6c290a2575b34f31b5180a36cb76efa9b756144"
+    },
+    {
+      "file": "prints/citation-after-390.jpg",
+      "viewport": 390,
+      "width": 390,
+      "height": 844,
+      "bytes": 44623,
+      "sha256": "f4753c83b44cc8afbc064305de33b3dd8e85bc313665a5285bcca714b1a3cf92"
+    },
+    {
+      "file": "prints/citation-before-1920.jpg",
+      "viewport": 1920,
+      "width": 1920,
+      "height": 1080,
+      "bytes": 163540,
+      "sha256": "9ee286183c6fd539c1a6bbb6ac80171f0fcd2e2b67bfa724aaa8e08fb39b6457"
+    },
+    {
+      "file": "prints/citation-after-1920.jpg",
+      "viewport": 1920,
+      "width": 1920,
+      "height": 1080,
+      "bytes": 163432,
+      "sha256": "ea2a921c13c9336e27bbc05d6d844efd08c35eb98364c53d1a506ff10da95afd"
+    },
+    {
+      "file": "prints/logged-before-390.jpg",
+      "viewport": 390,
+      "width": 390,
+      "height": 844,
+      "bytes": 51598,
+      "sha256": "fb2b17f621a850f63c69742f192027a91cf253e629a1b8489c9b41472947e3e3"
+    },
+    {
+      "file": "prints/logged-after-390.jpg",
+      "viewport": 390,
+      "width": 390,
+      "height": 844,
+      "bytes": 51680,
+      "sha256": "9b5dd720e2dd6b4a0b77b6c5743d2f714092c8dc11ea7947fbbd599ac546c7a5"
+    },
+    {
+      "file": "prints/logged-before-1920.jpg",
+      "viewport": 1920,
+      "width": 1920,
+      "height": 1080,
+      "bytes": 127715,
+      "sha256": "ada7232d732fd51d7859b55cf4dc27b4de520a696496c3ca8a0b8deeaf710c88"
+    },
+    {
+      "file": "prints/logged-after-1920.jpg",
+      "viewport": 1920,
+      "width": 1920,
+      "height": 1080,
+      "bytes": 127778,
+      "sha256": "e2ca9cec814abb3123089454adc294d0eb52e900ac87bcc285caa894caec43f9"
+    },
+    {
+      "file": "prints/depois-390-primeira-visita.jpg",
+      "viewport": 390,
+      "width": 390,
+      "height": 844,
+      "bytes": 43258,
+      "sha256": "2e0cb5950771b344ffbac3d00ca94d87e202fec00a4715cad4db7fabbff691c8"
+    }
+  ]
+}

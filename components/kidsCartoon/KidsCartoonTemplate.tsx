@@ -140,14 +140,14 @@ export const KIDS_TEMPLATE_CSS = `
 .kkc-video{max-width:300px;margin:0 auto}.kkc-edit{min-height:280px!important}.kkc-ghost{width:100%;justify-content:center}}
 `
 
-export default function KidsCartoonTemplate({ visitante = false, episodios = null }: { /* KINEO-CARDS-ANTES-DO-LOGIN-0411 */ visitante?: boolean; /* KINEO-CARTOON-TELA-0411 — os episódios de quem já tem pedido, entre o cabeçalho e o formulário */ episodios?: ReactNode }) {
+export default function KidsCartoonTemplate({ visitante = false, episodios = null, ideiaInicial = '' }: { /* KINEO-CARDS-ANTES-DO-LOGIN-0411 */ visitante?: boolean; ideiaInicial?: string; /* KINEO-CARTOON-TELA-0411 — os episódios de quem já tem pedido, entre o cabeçalho e o formulário */ episodios?: ReactNode }) {
   const ui = useInterfaceLanguage()
   const t = kidsTemplateCopy(ui)
   const tela = kidsTelaCopy(ui) // KINEO-CARTOON-TELA-0411
   useProductStage('ads') // KINEO-CARTOON-TELA-0411 — o mesmo fundo e a mesma barra lateral da tela de anúncios
   const ideaLang: 'en' | 'pt' | 'es' = ui === 'pt' || ui === 'es' ? ui : 'en' // KINEO-IDIOMAS-FORMATOS-2410 — idioma editorial da interface separado da narração
   const [character, setCharacter] = useState<KidsCharacterId>('leo')
-  const [idea, setIdea] = useState('')
+  const [idea, setIdea] = useState(ideiaInicial) // WATCH: public seed only; restored visitor draft below retains priority.
   const [ideaId, setIdeaId] = useState<KidsIdeaId | null>(null)
   const [language, setLanguage] = useState<KidsCartoonLanguage>(isKidsCartoonLanguage(ui) ? ui : 'en')
   const [duration, setDuration] = useState<KidsCartoonDuration>(KIDS_CARTOON_DEFAULT_DURATION)

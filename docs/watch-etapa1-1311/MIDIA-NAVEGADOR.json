@@ -1,0 +1,19 @@
+{
+  "measuredAt": "2026-11-13T22:10:56.402Z",
+  "before": {
+    "bodyScroll": 0,
+    "videos": [
+      "/previews/galeria/carta-do-front.mp4"
+    ],
+    "windowScroll": 0
+  },
+  "after": {
+    "bodyScroll": 633,
+    "frozen": "true",
+    "videos": [
+      "/previews/galeria/raposa-lanterna.mp4",
+      "/previews/galeria/selfie-confete.mp4"
+    ],
+    "windowScroll": 0
+  }
+}

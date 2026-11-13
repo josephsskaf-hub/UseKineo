@@ -233,8 +233,54 @@ const page = read('app/page.tsx')
 ok((page.match(/resolveHomeVariant\(/g) || []).length === 1 && !/<ClipsFirstHome\b/.test(page) && (page.match(/clipsFirst=\{clipsFirst\}/g) || []).length === 1, '(8a) troca da home em UM ponto do app/page.tsx (um sorteio, um booleano para a KineoLanding)')
 ok(/const clipsFirst = homeChoice\.variant === 'clips_first'\n/.test(page), '(8b) a variante só aparece com homeChoice.variant === clips_first')
 ok(/const homeExposure = homeChoice\.expose \? \(/.test(page), '(8c) o sinal de exposição só monta com expose (nunca com off/robô/prévia)')
-ok(/<KineoLanding\n        initialUser=\{user \? \{ id: user\.id \} : null\}\n        engineWall=\{engineWall\}\n        trending=\{trending\}\n        initialEmail=\{email\}\n        initialIsPro=\{isPro\}\n        resume=\{resume\}\n        initialAcquisitionSource=\{initialAcquisitionSource\}\n        showWelcomeGoalRouter=\{showWelcomeGoalRouter\}\n        clipsFirst=\{clipsFirst\}\n      \/>\n      \{homeExposure\}\n/.test(page), '(8d) a chamada da home segue com as mesmas props + o booleano clipsFirst (e o sinal nulo ao lado)')
-ok(/\n      <FaqStructuredData \/>\n      <KineoLanding\n/.test(page) && !/if \(homeChoice\.variant === 'clips_first'\) \{/.test(page), '(8e) FAQPage nas duas variantes: a variante é a mesma home, com as 13 perguntas visíveis')
+// KINEO-WATCH-HOME-1311 — o interruptor WATCH é independente do sorteio antigo.
+// Em vez de fixar espaços/adjacência, lê a chamada TSX e mantém TODOS os argumentos,
+// o sinal ao lado e o FAQ nas duas variantes. O render/paridade dos ramos é provado
+// por test-watch-home-1311.mjs; este guarda continua responsável pelo A/B original.
+function homeMountProblems(source) {
+  const errors = []
+  const ast = ts.createSourceFile('app/page.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+  const calls = [], faqs = []
+  const walk = (node) => {
+    if (ts.isJsxSelfClosingElement(node)) {
+      if (node.tagName.getText(ast) === 'KineoLanding') calls.push(node)
+      if (node.tagName.getText(ast) === 'FaqStructuredData') faqs.push(node)
+    }
+    ts.forEachChild(node, walk)
+  }
+  walk(ast)
+  if (calls.length !== 1) errors.push('uma chamada KineoLanding')
+  if (calls.length === 1) {
+    const expected = {
+      initialUser: 'user?{id:user.id}:null', engineWall: 'engineWall', trending: 'trending',
+      initialEmail: 'email', initialIsPro: 'isPro', resume: 'resume',
+      initialAcquisitionSource: 'initialAcquisitionSource', showWelcomeGoalRouter: 'showWelcomeGoalRouter',
+      clipsFirst: 'clipsFirst', watchVisitor: 'WATCH_HOME_ENABLED&&!user',
+    }
+    const props = calls[0].attributes.properties
+    if (props.length !== Object.keys(expected).length || props.some(p => !ts.isJsxAttribute(p))) errors.push('mesmo conjunto de props da home')
+    for (const [name, expression] of Object.entries(expected)) {
+      const found = props.filter(p => ts.isJsxAttribute(p) && p.name.getText(ast) === name)
+      if (found.length !== 1 || !found[0].initializer || !ts.isJsxExpression(found[0].initializer) || found[0].initializer.expression?.getText(ast).replace(/\s+/g, '') !== expression) errors.push(`prop preservada: ${name}`)
+    }
+    if (!/^\s*\{homeExposure\}/.test(source.slice(calls[0].end))) errors.push('sinal homeExposure ao lado')
+  }
+  if (faqs.length !== 1 || (calls.length === 1 && faqs[0].pos > calls[0].pos) || /if \(homeChoice\.variant === 'clips_first'\) \{/.test(source)) errors.push('FAQPage único antes da home nas duas variantes')
+  return errors
+}
+const mountProblems = homeMountProblems(page)
+ok(mountProblems.filter(p => !p.startsWith('FAQPage')).length === 0, '(8d) mesma chamada da home: props preservadas, WATCH só visitante e sinal ao lado')
+ok(!mountProblems.some(p => p.startsWith('FAQPage')), '(8e) FAQPage único nas duas variantes; AnnualWelcomeBar pode ficar entre o schema e a home')
+const mountMutants = [
+  ['resume perde o valor do servidor', s => s.replace('resume={resume}', 'resume={null}'), 'prop preservada: resume'],
+  ['WATCH passa a valer para logado', s => s.replace('watchVisitor={WATCH_HOME_ENABLED && !user}', 'watchVisitor={WATCH_HOME_ENABLED}'), 'prop preservada: watchVisitor'],
+  ['sinal de exposição removido', s => s.replace('{homeExposure}', '{null}'), 'sinal homeExposure ao lado'],
+  ['FAQ removido', s => s.replace('<FaqStructuredData />', ''), 'FAQPage único antes da home nas duas variantes'],
+]
+for (const [name, mutate, expected] of mountMutants) {
+  const changed = mutate(page)
+  ok(changed !== page && homeMountProblems(changed).includes(expected), `(8m) mutante de montagem pego: ${name}`)
+}
 const landing = semHome3Cards1910(read('app/KineoLanding.tsx'), 'app/KineoLanding.tsx') // reancorado KINEO-HOME-3-CARDS-1910 — a home SEM os 3 cards (atrás do interruptor) = as 2 portas de sempre, em memória
 const wall = read('lib/engineWall.ts')
 ok(!/ClipsFirst|homeClipsFirst|home_variant/.test(wall) && !/resolveHomeVariant|assignHomeVariant|homeClipsFirstServer|HOME_CLIPS_FIRST|home_variant/.test(landing) && /\n  clipsFirst = false,\n/.test(landing), '(8f) lib/engineWall.ts não sabe da variante; a KineoLanding só recebe o booleano (padrão false), sem sorteio próprio')

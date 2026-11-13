@@ -1,0 +1,12 @@
+[
+  {
+    "route": "sitemap.xml",
+    "status": 200,
+    "watchPreviewPresent": false
+  },
+  {
+    "route": "llms.txt",
+    "status": 200,
+    "watchPreviewPresent": false
+  }
+]

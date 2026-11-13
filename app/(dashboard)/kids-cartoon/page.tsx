@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { KIDS_CARTOON_LIVE, KIDS_CARTOON_TEMPLATE_PATH, kidsCartoonOn } from '@/lib/kidsCartoon/kidsCartoon'
 import KidsCartoonTemplate from '@/components/kidsCartoon/KidsCartoonTemplate'
+import { watchExampleIdea } from '@/lib/home/watchEntry'
 import { desenhoAbreSemConta } from '@/lib/growth/visitanteEscreveAntes' // KINEO-CARDS-ANTES-DO-LOGIN-0411
 import KidsVendaPanel from '@/components/kidsCartoon/KidsVendaPanel' // KINEO-KIDS-VENDA-2010 — meus episódios; o servidor decide se aparece (KIDS_SALES_LIVE ou casa) // KINEO-CARTOON-TELA-0411 — sem o quadro de planos
 
@@ -17,8 +18,8 @@ export default async function KidsCartoonPage({ searchParams }: { searchParams?:
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   // KINEO-CARDS-ANTES-DO-LOGIN-0411 — sem conta, vindo do cartão da home: a tela de verdade, sem o painel de venda; o login vem ao escrever a história.
-  if (!user && KIDS_CARTOON_LIVE && desenhoAbreSemConta(searchParams?.utm_source)) return <KidsCartoonTemplate visitante />
+  if (!user && KIDS_CARTOON_LIVE && desenhoAbreSemConta(searchParams?.utm_source)) return <KidsCartoonTemplate visitante ideiaInicial={watchExampleIdea(searchParams?.example, 'cartoon')} />
   if (!user) redirect(`/login?redirect=${encodeURIComponent(KIDS_CARTOON_TEMPLATE_PATH)}`)
   if (!kidsCartoonOn(KIDS_CARTOON_LIVE, isInternalEmail(user.email))) notFound()
-  return <KidsCartoonTemplate episodios={<KidsVendaPanel />} /> // KINEO-KIDS-VENDA-2010 · KINEO-CARTOON-TELA-0411 — era: o painel acima do template, com o quadro de planos; agora só os episódios de quem já tem pedido, dentro da página
+  return <KidsCartoonTemplate ideiaInicial={watchExampleIdea(searchParams?.example, 'cartoon')} episodios={<KidsVendaPanel />} /> // KINEO-KIDS-VENDA-2010 · KINEO-CARTOON-TELA-0411
 }

@@ -1,3 +1,4 @@
+import { WATCH_HOME_ENABLED } from '@/lib/home/watchRelease'
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
@@ -190,7 +191,7 @@ export default async function HomePage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(BRAND_JSON_LD) }}
       />
       <FaqStructuredData />
-      <AnnualWelcomeBar initial={annualWelcomeBar} placement="home" />
+      {(!WATCH_HOME_ENABLED || Boolean(user)) && <AnnualWelcomeBar initial={annualWelcomeBar} placement="home" />}
       <KineoLanding
         initialUser={user ? { id: user.id } : null}
         engineWall={engineWall}
@@ -201,6 +202,7 @@ export default async function HomePage({
         initialAcquisitionSource={initialAcquisitionSource}
         showWelcomeGoalRouter={showWelcomeGoalRouter}
         clipsFirst={clipsFirst}
+        watchVisitor={WATCH_HOME_ENABLED && !user}
       />
       {homeExposure}
     </>

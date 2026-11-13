@@ -13,7 +13,7 @@ const STYLE = `
 .kc2310 p{font-size:14px;line-height:1.6;color:#4D535C;margin:0}
 .kc2310 .kc2310-updated{font-size:12px;margin-top:16px}.kc2310 a{color:#0A5CFF;text-decoration:underline}
 .kc2310 a:focus-visible{outline:2px solid #0A5CFF;outline-offset:3px}
-@media(max-width:600px){.kc2310 table,.kc2310 caption,.kc2310 tbody,.kc2310 tr,.kc2310 td{display:block;width:100%;box-sizing:border-box}.kc2310 thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}.kc2310 tr{border:1px solid #E4E4E0;border-radius:14px;overflow:hidden;margin-bottom:12px}.kc2310 td{border:0;border-bottom:1px solid #E4E4E0;padding:10px 14px}.kc2310 td:last-child{border-bottom:0}.kc2310 td::before{content:attr(data-label);display:block;font-size:11px;font-weight:650;color:#5A5F67;margin-bottom:3px}.kc2310 td:first-child{background:#EEF3FF}.kc2310{margin:28px 0}}
+@media(max-width:600px){.kc2310 table,.kc2310 caption,.kc2310 tbody,.kc2310 tr,.kc2310 td{display:block;width:100%;box-sizing:border-box}.kc2310 thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}.kc2310 tr{border:1px solid #E4E4E0;border-radius:14px;overflow:hidden;margin-bottom:12px}.kc2310 td{border:0;border-bottom:1px solid #E4E4E0;padding:10px 14px}.kc2310 td:last-child{border-bottom:0}.kc2310 td::before{content:attr(data-label);display:block;font-size:12px;font-weight:650;color:#5A5F67;margin-bottom:3px}.kc2310 td:first-child{background:#EEF3FF}.kc2310{margin:28px 0}}
 `
 
 export function CitationDirectAnswer({ page }: { page: TrafficCitationPage }) {

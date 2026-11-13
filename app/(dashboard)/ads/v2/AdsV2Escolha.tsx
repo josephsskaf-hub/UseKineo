@@ -17,6 +17,7 @@ import OneTimeItemOffer from '@/components/OneTimeItemOffer' // KINEO-COMPRA-AVU
 import { ONE_TIME_ITEMS_LIVE } from '@/lib/oneTimeItem' // KINEO-COMPRA-AVULSA-2410
 import { cadastroComVolta } from '@/lib/growth/visitanteEscreveAntes' // KINEO-CARDS-ANTES-DO-LOGIN-0411
 import { guardarRascunhoDoAnuncio, lerRascunhoDoAnuncio } from '@/lib/ads/rascunhoDoVisitante' // KINEO-CARDS-ANTES-DO-LOGIN-0411
+import { watchExampleText } from '@/lib/home/watchEntry'
 import { trackEvent } from '@/lib/analytics' // KINEO-CARDS-ANTES-DO-LOGIN-0411
 import { adsV2RefusalFor, type AdsRefusalNext } from '@/lib/ads/eligibilityPure' // KINEO-ADS-SIMPLES-2810 — toda recusa de /api/ads/v2/* vira frase com próximo passo (lib pura)
 import { bfCampaignFromQuery, bfDraftStorageKey, bfTemplate, bfTemplateReady, type BfCampaign } from '@/lib/ads/bfCampaign'
@@ -120,11 +121,14 @@ export default function AdsV2Escolha({ moldura = false, onAskStartOver, guest = 
     if (wanted) { setOrderId(wanted); setLinkedOrder(true); setResumeOnly(true); setStage('rendering'); if (!restored) setForm(f => ({ ...f, presenter_id: '' })) } // KINEO-ADS-PRODUTO-PRIMEIRO-0411 — pedido aberto por link: a pessoa é a do pedido (status), nunca o padrão
     if (!wanted && !restored) {
       try {
-        const campaign = bfCampaignFromQuery(new URLSearchParams(window.location.search))
+        const arrival = new URLSearchParams(window.location.search)
+        const campaign = bfCampaignFromQuery(arrival)
         if (campaign) {
           const template = bfTemplate(campaign.lang, campaign.id)
           setBfCampaign(campaign)
           setForm(f => ({ ...f, frase: template.frase, oferta: '', beneficios: '', cta: template.cta, language: campaign.lang, formato: 'product' }))
+        } else if (arrival.getAll('example').length === 1) {
+          setForm(f => ({ ...f, frase: watchExampleText(f.frase, arrival.get('example'), 'ads') }))
         }
       } catch { /* A template needs a valid local query; it never starts work. */ }
     }
