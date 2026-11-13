@@ -42,6 +42,7 @@ import { creditCostFor, creditCostForDuration, type Quality } from '@/lib/credit
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { comPeloFacialDoTexto } from '@/lib/cinematic/peloFacialDoTexto' // KINEO-PELO-FACIAL-DO-TEXTO-1211
 import { KLING4_PLANO_POR_SECAO, KLING4_PLANO_POR_SECAO_VERSAO, planoPorSecaoLigado, planosPorSecao } from '@/lib/kling4QuatroPlanos' // KINEO-K4-PLANO-POR-SECAO-1111
+import { comSujeitoNasMetades } from '@/lib/kling4QuatroPlanos' // KINEO-SUJEITO-APARENCIA-1311 (b)
 import { KLING4_PLANO_VARIADO, KLING4_PLANO_VARIADO_VERSAO, planoVariadoLigado, planosComEscalaVariada } from '@/lib/kling4PlanoVariado' // KINEO-K4-PLANO-VARIADO-1111
 import { S25_PUBLIC, enginePaused, engineRetired, engineRetiredForHouse, engineOffered, ENGINE_RETIRED_EVENT, ENGINE_RETIRED_REASON } from '@/lib/engineLaunch' // KINEO-VEO-DESLIGA-1711: engineRetiredForHouse
 import { seedance15sVisible } from '@/lib/engineLaunch' // KINEO-SEEDANCE-15S-2026-09-29
@@ -8009,8 +8010,9 @@ async function manipularPost(req: NextRequest) {
     const kling4PlanoVariado = planoVariadoLigado(KLING4_PLANO_VARIADO, isInternalEmail(user.email)) // KINEO-K4-PLANO-VARIADO-1111 [CEO 11/11, alavanca 2] — 'internal' até a nota da prova paga
     const kling4PorSecao = (a: { prompts: string[]; approvedStills: (string | null)[]; timing: typeof kling4Timing }): { prompts: string[]; approvedStills: (string | null)[]; timing: typeof kling4Timing; planos: number[][] | null } => { // KINEO-K4-PLANO-POR-SECAO-1111
       const q = kling4PlanoPorSecao && verbatim && parsedScript.segments.length > scenes.length // KINEO-K4-PLANO-POR-SECAO-1111 — só quando o roteiro tem mais seções que cenas
-        ? planosPorSecao({ prompts: a.prompts, stills: a.approvedStills, falas: a.timing.voiceovers, secoes: parsedScript.segments, objetoConcreto: kling4PlanoVariado, sujeito: sujeitoAparenciaLigada() && kling4Sujeito.r?.relato.planos_com_sujeito?.length ? kling4Sujeito.r.relato.sujeito : null }) // KINEO-K4-PLANO-POR-SECAO-1111 · KINEO-K4-PLANO-VARIADO-1111
+        ? planosPorSecao({ prompts: a.prompts, stills: a.approvedStills, falas: a.timing.voiceovers, secoes: parsedScript.segments, objetoConcreto: kling4PlanoVariado }) // KINEO-K4-PLANO-POR-SECAO-1111 · KINEO-K4-PLANO-VARIADO-1111
         : null // KINEO-K4-PLANO-POR-SECAO-1111
+      if (q && sujeitoAparenciaLigada() && kling4Sujeito.r?.relato.planos_com_sujeito?.length) q.prompts.splice(0, q.prompts.length, ...comSujeitoNasMetades(q.prompts, q.grupos, kling4Sujeito.r.relato.sujeito)) // KINEO-SUJEITO-APARENCIA-1311 (b) — o sujeito completo que foi a todo plano vai também a cada metade de cena
       const r = q ? { prompts: q.prompts, approvedStills: q.stills, timing: { voiceovers: q.falas, wordsPerSecond: a.timing.wordsPerSecond, pelaVoz: a.timing.pelaVoz ?? null }, planos: q.grupos } : { ...a, planos: null } // KINEO-K4-PLANO-POR-SECAO-1111
       const r2 = { ...r, prompts: r.prompts.map((p) => comSuperficieNoPlano(p)) } // KINEO-BALAO-SEM-LETRA-1111 [CEO 11/11] — a metade da cena fundida nasce da pista da seção depois da proteção de superfície: balão/página/tela dela ganha a frase sem letra aqui
       const r3 = kling4PlanoVariado ? { ...r2, prompts: planosComEscalaVariada(r2.prompts, r2.approvedStills).prompts } : r2 // KINEO-K4-PLANO-VARIADO-1111 — escala diferente de plano a plano (nunca dois closes seguidos); plano com imagem-chave fica como está

@@ -686,17 +686,20 @@ export function exigirSujeitoNoKling4(args: {
   const s = avaliado.sujeito
   const relato: RelatoSujeitoK4 = { versao: SUJEITO_K4_VERSAO, sujeito: s?.frase ?? null, tipo: s?.tipo ?? null, origem: s?.origem ?? null, motivo_sem_sujeito: avaliado.motivo, fonte_do_pedido: args.pedido.fonte, motivo_do_pedido: args.pedido.motivo, leitura: relatoDaLeitura(args.leitura), ja_presente: false, corrigido: false, cena: null, keyframe_removido: false }
   if (!s || prompts.length === 0) return { prompts, stills, relato }
-  // KINEO-SUJEITO-APARENCIA-1311 (b) — sem ficha de personagem (a ficha já leva quem é), o sujeito completo (espécie, cor, lugar) vai a todo
-  // plano que ainda não traz a frase, pela MESMA inserção de hoje (comSujeitoNaCena: logo depois do meio; para caber nos 464, sai primeiro o
-  // eixo e depois o FIM do corpo — nos planos do Kling 4 o fim é o texto fixo de estilo, depois da ação); nenhuma imagem-chave sai.
-  if (args.todosOsPlanos && !prompts.some((q) => FICHA_NO_PLANO_RE.test(q))) {
-    const marcados: number[] = []
-    prompts.forEach((q, i) => { if (q.includes(s.frase)) return; prompts[i] = comSujeitoNaCena(q, s.frase, i); marcados.push(i + 1) })
-    relato.ja_presente = prompts.some((q) => promptMostraOSujeito(q, s))
-    if (marcados.length) { relato.corrigido = true; relato.cena = marcados[0]; relato.planos_com_sujeito = marcados }
+  if (prompts.some((q) => promptMostraOSujeito(q, s))) {
+    relato.ja_presente = true
+    // KINEO-SUJEITO-APARENCIA-1311 (b) — o sujeito já aparece em algum plano (o gato ninja), mas sem ficha de personagem nada mantém a cor e o
+    // lugar nos outros: a frase completa (espécie, cor, lugar) vai a todo plano que ainda não a traz, pela MESMA inserção de hoje
+    // (comSujeitoNaCena: logo depois do meio; para caber nos 464 sai primeiro o eixo e depois o FIM do corpo — nos planos do Kling 4 o fim é o
+    // texto fixo de estilo, depois da ação); nenhuma imagem-chave sai (elas já mostram o sujeito). Sujeito ausente de todos os planos (o avião
+    // C-54) segue a correção de sempre, abaixo: uma cena, e a imagem dela sai.
+    if (args.todosOsPlanos && !prompts.some((q) => FICHA_NO_PLANO_RE.test(q))) {
+      const marcados: number[] = []
+      prompts.forEach((q, i) => { if (q.includes(s.frase)) return; prompts[i] = comSujeitoNaCena(q, s.frase, i); marcados.push(i + 1) })
+      if (marcados.length) { relato.corrigido = true; relato.cena = marcados[0]; relato.planos_com_sujeito = marcados }
+    }
     return { prompts, stills, relato }
   }
-  if (prompts.some((q) => promptMostraOSujeito(q, s))) { relato.ja_presente = true; return { prompts, stills, relato } }
   const n = prompts.length
   const pelaFala = prompts.map((_, i) => i).filter((i) => falaCita(args.falas[i] ?? '', s))
   const ordem = [...pelaFala, n - 1, ...prompts.map((_, i) => i)].filter((i, k, a) => a.indexOf(i) === k)

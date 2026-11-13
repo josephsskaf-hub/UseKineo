@@ -54,15 +54,23 @@ async function problemas(mut = {}) {
   const comFicha = PLANOS.map((q, i) => i === 0 ? q.replace('Photoreal film. ', 'Photoreal film. Identity: Rex, a ginger cat. ') : q)
   const rf = S.exigirSujeitoNoKling4({ pedido, leitura, falas: ['a', 'b', 'c'], prompts: comFicha, stills, todosOsPlanos: ligado })
   if (rf.prompts.some((q, i) => q !== comFicha[i])) p.push('(2) com ficha, o sujeito foi a todo plano (a ficha manda)')
+  // sujeito ausente de TODOS os planos (o avião C-54 do guardião antigo): a correção de sempre — uma cena, e a imagem dela sai
+  const semGato = PLANOS.map((q) => q.replace(/\b(?:cat|orange cat)\b/g, 'fox'))
+  const ra = S.exigirSujeitoNoKling4({ pedido, leitura, falas: ['a', 'b', 'c'], prompts: semGato, stills, todosOsPlanos: ligado })
+  if (ra.relato.planos_com_sujeito || ra.prompts.filter((q, i) => q !== semGato[i]).length !== 1 || ra.stills.filter((x) => x === null).length !== 1) p.push('(2) sujeito ausente de todos os planos não seguiu a correção de sempre (uma cena, imagem sai)')
   const r0 = S.exigirSujeitoNoKling4({ pedido, leitura, falas: ['a', 'b', 'c'], prompts: PLANOS, stills })
   if (r0.prompts.some((q, i) => q !== PLANOS[i]) || r0.relato.ja_presente !== true) p.push('(2) sem todosOsPlanos, mudou o comportamento de sempre')
   // (3) a metade de cena
-  const metade = Q.promptDaSecao(PLANOS[1], { voiceover: 'Двигается так тихо и ловко.', pexelsQuery: 'cat stealthy movement' }, { objetoConcreto: true, sujeito: frase })
-  if (!metade.includes(`Main subject clearly visible in frame: ${frase}.`)) p.push('(3) a metade de cena não leva o sujeito')
-  if (Q.promptDaSecao(PLANOS[1], { voiceover: 'x', pexelsQuery: 'cat stealthy movement' }, { objetoConcreto: true }).includes('Main subject clearly visible')) p.push('(3) sem sujeito, a metade mudou')
+  const meta = ['Photoreal film. Main subject of this shot: cat jumping rooftop, shown in motion.', 'Photoreal film. Main subject of this shot: cat stealthy movement, shown in motion.']
+  const planos4 = [r.prompts[0], ...meta, r.prompts[2]]
+  const grupos = [[0], [1, 2], [3]]
+  const comMetades = Q.comSujeitoNasMetades(planos4, grupos, frase)
+  if (!comMetades[1].includes(`Main subject clearly visible in frame: ${frase}.`) || !comMetades[2].includes(`Main subject clearly visible in frame: ${frase}.`)) p.push('(3) a metade de cena não leva o sujeito')
+  if (comMetades[0] !== planos4[0] || comMetades[3] !== planos4[3]) p.push('(3) plano que não é metade mudou')
+  if (JSON.stringify(Q.comSujeitoNasMetades(planos4, grupos, null)) !== JSON.stringify(planos4)) p.push('(3) sem sujeito, as metades mudaram')
   // (4) a rota e as duas perguntas
   const rota = mut[ROTA] ? mut[ROTA](ler(ROTA)) : ler(ROTA)
-  if (!rota.includes('sujeito: sujeitoAparenciaLigada() && kling4Sujeito.r?.relato.planos_com_sujeito?.length ? kling4Sujeito.r.relato.sujeito : null')) p.push('(4) a rota não passa o sujeito às metades')
+  if (!rota.includes('if (q && sujeitoAparenciaLigada() && kling4Sujeito.r?.relato.planos_com_sujeito?.length) q.prompts.splice(0, q.prompts.length, ...comSujeitoNasMetades(q.prompts, q.grupos, kling4Sujeito.r.relato.sujeito))')) p.push('(4) a rota não passa o sujeito às metades')
   const chamadas = []
   const fetchImpl = async (_u, init) => { const b = JSON.parse(init.body); chamadas.push(b.response_format.json_schema.name); return resposta(b.response_format.json_schema.name === 'aparencia_do_sujeito' ? APARENCIA : LEITURA) }
   const k = await S.sujeitoNoKling4({ pedido, falas: ['a', 'b', 'c'], prompts: PLANOS, stills }, { fetchImpl, apiKey: 'k' })
@@ -90,8 +98,8 @@ const MUTANTES = [
   ["M1 interruptor 'off'", { [SUJ]: troca("SUJEITO_APARENCIA_1311: ModoSujeitoAparencia = 'all'", "SUJEITO_APARENCIA_1311: ModoSujeitoAparencia = 'off'") }],
   ['M2 âncora da aparência desligada', { [SUJ]: troca('if (citadas.length === 0 || !citadas.every((w) => p.includes(norma(w)))) return { appearance: null }', '') }],
   ['M3 ficha ignorada', { [SUJ]: troca('if (args.todosOsPlanos && !prompts.some((q) => FICHA_NO_PLANO_RE.test(q))) {', 'if (args.todosOsPlanos) {') }],
-  ['M4 metade sem o sujeito', { [QP]: troca('${quem} ${sujeitoDaCena} ${lugar}', '${quem} ${lugar}') }],
-  ['M5 rota sem o sujeito', { [ROTA]: troca('sujeito: sujeitoAparenciaLigada() && kling4Sujeito.r?.relato.planos_com_sujeito?.length ? kling4Sujeito.r.relato.sujeito : null', 'sujeito: null') }],
+  ['M4 metade sem o sujeito', { [QP]: troca('if (g.length < 2 || k >= saida.length || saida[k].includes(f)) continue', 'continue') }],
+  ['M5 rota sem o sujeito', { [ROTA]: troca('q.prompts.splice(0, q.prompts.length, ...comSujeitoNasMetades(q.prompts, q.grupos, kling4Sujeito.r.relato.sujeito))', 'void 0') }],
   ['M6 frase sem a aparência', { [SUJ]: troca('frase: fraseComAparencia(frase, l.appearance), tipo:', 'frase, tipo:') }],
 ]
 for (const [nome, mut] of MUTANTES) {
