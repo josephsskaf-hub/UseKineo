@@ -645,6 +645,36 @@ export function comSujeitoNaCena(prompt: string, frase: string, index: number, o
 }
 // KINEO-SUJEITO-APARENCIA-1311 (b) — o plano já tem ficha de personagem (a ficha diz quem é e como é): o sujeito não vai a todo plano.
 export const FICHA_NO_PLANO_RE = /(?:Identity|Visible(?:, seen from behind)?): |same main character|consistent design:/i
+// KINEO-SUJEITO-TODO-PLANO-CORTE-1311 [CEO 13/11: "para caber nos 464, sai primeiro o texto fixo de estilo e só depois o eixo de câmera"] — na peça
+// (b) a frase vai a TODO plano; comSujeitoNaCena (feita para UM plano) tira primeiro o EIXO de câmera, e em todo plano isso apagava a variedade
+// de enquadramento do KINEO-REPETICAO-FREE15-1011 (simulação nos filmes salvos: o rio perdia "Wide establishing shot" e "Extreme close-up").
+// Aqui a ordem é: (1) a lista fixa de estilo depois da última frase da ação ("photorealistic, ultra-detailed, dramatic cinematic lighting, …"),
+// item a item, do fim para o começo; (2) só então o eixo; (3) só então o corte do corpo de comSujeitoNaCena. A proteção do fim (no readable
+// text / Mouth closed) nunca sai.
+export function comSujeitoEmTodoPlano(prompt: string, frase: string, index: number, orcamento = KLING4_ORCAMENTO_DA_CAMADA): string {
+  const clausula = `${MARCA_SUJEITO_NA_CENA} ${frase}. `
+  const medio = /^[^.]+\. /.exec(prompt)?.[0] ?? ''
+  const resto = prompt.slice(medio.length)
+  const m = TAIL_RE.exec(resto)
+  const cauda = m ? resto.slice(m.index) : ''
+  let corpo = m ? resto.slice(0, m.index) : resto
+  const junta = () => `${medio}${clausula}${corpo}${cauda}`
+  if (len(junta()) <= orcamento) return junta()
+  // (1) a lista de estilo: o que vem depois da última frase terminada da ação, sem ponto final dentro
+  const fimDaAcao = corpo.lastIndexOf('. ')
+  const acao = fimDaAcao >= 0 ? corpo.slice(0, fimDaAcao + 1) : ''
+  let estilo = fimDaAcao >= 0 ? corpo.slice(fimDaAcao + 1) : ''
+  if (acao && !estilo.includes('.')) {
+    const itens = estilo.split(',')
+    while (itens.length && len(`${medio}${clausula}${acao}${itens.join(',')}${cauda}`) > orcamento) itens.pop()
+    estilo = itens.join(',').replace(/[\s,]+$/u, '')
+    corpo = `${acao}${estilo}`
+    if (len(junta()) <= orcamento) return junta()
+  }
+  // (2) o eixo; (3) o corte do corpo, como em comSujeitoNaCena
+  const semEixo = `${medio}${corpo.replace(`${eixoCurtoKling4(index)}. `, '')}${cauda}`
+  return comSujeitoNaCena(semEixo, frase, index, orcamento)
+}
 // Revisão da CEO 13/11 — a peça (b) vale só para sujeito VIVO (bicho ou pessoa), que é o caso provado (gato ninja 7f92fe17). Em 14 dias, o
 // sujeito já aparecia em algum plano em 48 de 141 filmes do Kling 4, e 35 deles eram objeto ou veículo ("a river", "an island with dense
 // vegetation", "a ship"): pôr "Main subject clearly visible in frame: a river." em TODO plano desses filmes não foi medido (pode trocar cena
@@ -701,7 +731,7 @@ export function exigirSujeitoNoKling4(args: {
     if (args.todosOsPlanos && !prompts.some((q) => FICHA_NO_PLANO_RE.test(q))) {
       if (!TIPOS_EM_TODO_PLANO_1311.has(s.tipo)) return { prompts, stills, relato } // revisão da CEO 13/11 — só sujeito vivo (ver a constante)
       const marcados: number[] = []
-      prompts.forEach((q, i) => { if (q.includes(s.frase)) return; prompts[i] = comSujeitoNaCena(q, s.frase, i); marcados.push(i + 1) })
+      prompts.forEach((q, i) => { if (q.includes(s.frase)) return; prompts[i] = comSujeitoEmTodoPlano(q, s.frase, i); marcados.push(i + 1) }) // KINEO-SUJEITO-TODO-PLANO-CORTE-1311 — estilo sai antes do eixo
       if (marcados.length) { relato.corrigido = true; relato.cena = marcados[0]; relato.planos_com_sujeito = marcados }
     }
     return { prompts, stills, relato }
