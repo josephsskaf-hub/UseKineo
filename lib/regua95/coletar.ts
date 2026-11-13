@@ -26,6 +26,7 @@ import { contextoDoAnuncio, produtoDoVideo, resolverIdeia, type ScriptWrittenLid
 import { UGC_SCORE_EVENT, UGC_SCORE_VERSION, extractUgcFramesFal, judgeUgcFrames, planUgcFrames, type UgcContext } from '@/lib/regua95/ugcJudge' // KINEO-META95-UGC-1910
 // KINEO-NOTA-AUTO-1311 — nota automática do filme (régua do revisor), atrás do interruptor NOTA_AUTO_MODE ('off' | 'observe' | 'painel', nasce 'off').
 import { julgarEGravarNotaAuto, lerModoNotaAuto, notaAutoPendente, notasAutoFeitas, type NotaAutoAlvo } from '@/lib/regua95/notaRevisor'
+import { planoDoNascimento } from '@/lib/regua95/notaPorCena'
 
 /** KINEO-META95-REGUA-AJUSTE-1910 — janela padrão do coletor (7 dias) e a política de nova tentativa de quem falhou. */
 export const REGUA95_JANELA_HORAS = 168
@@ -143,7 +144,9 @@ export async function listarEntregasRegua(
         // o prompt de cada cena (o que foi à fal) dá a época, as cenas sem gente e o estilo; o juiz pergunta e a nota ganha os tetos novos.
         promptByScene: evd?.scenes.map((s) => s.prompt) ?? null, perguntasHonestas: true },
       // KINEO-NOTA-AUTO-1311 — o pedido do cliente (topic/prompt), o roteiro narrado (script, senão a fala do claim) e o motor real.
-      notaAuto: { pedido: v.topic || v.prompt || ideia.idea || '', roteiro: (v.script || narration || '').trim() || null, motor: v.engine_used ?? v.quality_mode },
+      notaAuto: { pedido: v.topic || v.prompt || ideia.idea || '', roteiro: (v.script || narration || '').trim() || null, motor: v.engine_used ?? v.quality_mode,
+        // KINEO-NOTA-AUTO-V2-1311 — o plano de cenas do nascimento (fala, segundos e elenco de cada cena) para o juiz por cena
+        plano: planoDoNascimento((birth?.metadata?.response ?? null) as Record<string, unknown> | null, v.duration) },
     })
   }
 

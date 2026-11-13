@@ -18,6 +18,9 @@ import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { usdFromUsage } from '@/lib/regua95/coherenceV2'
 import { FAL_NTH_FRAME_MODEL, FAL_USD_PER_COMPUTE_SECOND, PIXEL_FPS_ASSUMED, pickEvenly } from '@/lib/regua95/pixelScore'
+import { NOTA_AUTO_RATES, NOTA_CENA_VERSION, extrairQuadrosPorTempoFal, julgarNotaCena, limparPedido, type NotaAutoDetail, type PlanoFilme } from '@/lib/regua95/notaPorCena'
+// limparPedido, NOTA_AUTO_RATES e NotaAutoDetail moram em notaPorCena.ts desde a 2ª tentativa (sem import circular); seguem exportados daqui.
+export { NOTA_AUTO_RATES, limparPedido, type NotaAutoDetail }
 
 export const NOTA_AUTO_EVENT = 'nota_auto'
 export const NOTA_AUTO_VERSION = 'nota_auto_v1'
@@ -104,7 +107,6 @@ export type NotaAutoEntrada = {
   motor: string | null
   segundos?: number | null
 }
-export type NotaAutoDetail = 'low' | 'high' | 'auto'
 export type NotaAutoResultado = {
   version: typeof NOTA_AUTO_VERSION
   nota: number
@@ -119,12 +121,6 @@ export type NotaAutoResultado = {
   ms: number
 }
 
-/** US$ por milhão de tokens (entrada/saída) dos modelos de visão do registro. */
-export const NOTA_AUTO_RATES: Record<string, { inPerM: number; outPerM: number }> = {
-  [AI_TEXT_MODELS.writer]: { inPerM: 2.5, outPerM: 10 },
-  [AI_TEXT_MODELS.research]: { inPerM: 0.4, outPerM: 1.6 },
-  [AI_TEXT_MODELS.vision]: { inPerM: 0.15, outPerM: 0.6 },
-}
 /**
  * Modelo padrão. NOTA_AUTO_MODEL troca sem deploy de código. ENSAIO DE 13/11 (scripts/calibra-nota-auto-1311.mts, 40 filmes já
  * avaliados pelo revisor): NENHUM modelo passou. gpt-4o high pegou 85% dos ruins, mas deu alarme falso em 61% dos bons; gpt-4.1-mini
@@ -154,16 +150,6 @@ export function notaDosDefeitos(defeitos: ReadonlyArray<Pick<DefeitoAuto, 'categ
   return Math.max(REGUA_NOTA_AUTO.piso, Math.min(10, arred05(nota)))
 }
 
-/** Tira do pedido os marcadores do nosso roteirista ([Pexels: …], HOOK:, MICRO REWARD 1:, [Idea: …]) — sobra o que o cliente quer. */
-export function limparPedido(s: string): string {
-  return String(s ?? '')
-    .replace(/\[(?:Pexels|Pixabay|B-?roll|Visual)[^\]]*\]/gi, ' ')
-    .replace(/^\s*(?:HOOK|MICRO REWARD\s*\d*|ESCALATION|PAYOFF|RHYTHM|CTA)\s*(?:\([^)]*\))?\s*:\s*/gim, '')
-    .replace(/[ \t]+/g, ' ')
-    .replace(/\n{2,}/g, '\n')
-    .trim()
-    .slice(0, 1800)
-}
 
 export function buildNotaAutoMessages(e: NotaAutoEntrada, detail: NotaAutoDetail = NOTA_AUTO_DETAIL_DEFAULT) {
   const n = e.quadros.length
@@ -326,7 +312,7 @@ export function decidirEscritaPainel(modo: NotaAutoMode, existente: { fonte: str
 }
 
 /** A linha que vai para film_review_notes (mesmas colunas que o revisor preenche + motor e fonte). */
-export function linhaDoPainel(r: NotaAutoResultado, x: { link: string; quando: string; quem: string | null; motor: string | null; produto: string; ordem?: number | null }) {
+export function linhaDoPainel(r: { nota: number; defeitos: ReadonlyArray<{ categoria: string }>; resumo: string }, x: { link: string; quando: string; quem: string | null; motor: string | null; produto: string; ordem?: number | null }) {
   return {
     link: x.link,
     quando: x.quando,
@@ -351,7 +337,12 @@ export const NOTA_AUTO_MAX_FALHAS = 3
 export const NOTA_AUTO_ESPERA_FALHA_MS = 60 * 60_000
 
 /** O que o cron precisa saber de um filme para dar a nota (preenchido só para produto 'filme' em listarEntregasRegua). */
-export type NotaAutoAlvo = { pedido: string; roteiro: string | null; motor: string | null }
+export type NotaAutoAlvo = { pedido: string; roteiro: string | null; motor: string | null; plano?: PlanoFilme | null }
+/**
+ * A versão que o cron grava e lê hoje: a 2ª tentativa, juiz POR CENA (notaPorCena.ts). O juiz de nota geral (v1, acima)
+ * NÃO PASSOU no ensaio e fica só como registro: o cron não o chama mais. Filme sem plano de cenas = falha registrada, sem nota.
+ */
+export const NOTA_AUTO_VERSAO_DO_CRON = NOTA_CENA_VERSION
 type EntregaNotaAuto = { key: string; user_id: string; delivered_at: string; video_url: string; seconds: number | null; product: string; notaAuto?: NotaAutoAlvo | null }
 
 /** Chaves que NÃO entram agora: nota de verdade = feito; falha = espera 1 h e tenta de novo até 3 vezes. */
@@ -363,7 +354,7 @@ export async function notasAutoFeitas(admin: SupabaseClient, keys: string[], rea
     const part = unicas.slice(i, i + 100)
     const r = await readAll(() => admin.from('events').select('created_at, session_id, metadata').eq('name', NOTA_AUTO_EVENT).in('session_id', part), { route, table: 'events' })
     for (const ev of (r.data ?? []) as Array<{ created_at: string; session_id: string | null; metadata: Record<string, unknown> | null }>) {
-      if (!ev.session_id || ev.metadata?.version !== NOTA_AUTO_VERSION) continue
+      if (!ev.session_id || ev.metadata?.version !== NOTA_AUTO_VERSAO_DO_CRON) continue
       if (typeof ev.metadata?.score === 'number') { feitas.add(ev.session_id); continue }
       const f = falhas.get(ev.session_id) ?? { n: 0, ultima: 0 }
       f.n += 1
@@ -415,11 +406,14 @@ export async function julgarEGravarNotaAuto(
   }
   if (x.modo === 'off' || !alvo) return { nota: null, usd: 0, painel: 'pular' }
   try {
-    const ex = await extrairQuadrosNotaAutoFal(e.video_url, e.seconds, { fetchImpl: x.fetchImpl })
-    const r = ex ? await julgarNotaAuto({ quadros: ex.quadros, pedido: alvo.pedido, roteiro: alvo.roteiro, produto: e.product, motor: alvo.motor, segundos: e.seconds }, { fetchImpl: x.fetchImpl, usdQuadros: ex.usd }) : null
+    const plano = alvo.plano && alvo.plano.momentos.length ? alvo.plano : null
+    const ex = plano ? await extrairQuadrosPorTempoFal(e.video_url, plano, { fetchImpl: x.fetchImpl }) : null
+    const julgado = plano && ex ? await julgarNotaCena({ plano, quadros: ex.quadros, pedido: alvo.pedido, produto: e.product, motor: alvo.motor }, { fetchImpl: x.fetchImpl, usdQuadros: ex.usd }) : null
+    // o JSON cru do modelo não vai para o evento (as respostas normalizadas e os defeitos com evidência já estão lá)
+    const r = julgado ? (({ bruto: _bruto, ...resto }) => resto)(julgado) : null
     if (!r) {
-      const falha = ex ? 'nota_auto_visao_sem_resposta' : 'nota_auto_quadros_indisponiveis'
-      await gravarEvento({ version: NOTA_AUTO_VERSION, score: null, falha, modo: x.modo, frame_count: ex?.quadros.length ?? 0, ...x.base, video_url: e.video_url })
+      const falha = !plano ? 'nota_auto_sem_plano_de_cenas' : ex ? 'nota_auto_visao_sem_resposta' : 'nota_auto_quadros_indisponiveis'
+      await gravarEvento({ version: NOTA_AUTO_VERSAO_DO_CRON, score: null, falha, modo: x.modo, frame_count: ex?.quadros.length ?? 0, ...x.base, video_url: e.video_url })
       return { nota: null, usd: ex?.usd ?? 0, painel: 'pular', erro: [erro, falha].filter(Boolean).join(' · ') }
     }
     let painel: string = 'pular'
