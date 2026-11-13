@@ -107,6 +107,7 @@ function battery(src) {
   ok(r.includes("priority: 'growth'") && r.includes("const tetoGrowth = capForPriority('growth')") && !/dailyCap() * 0.d/.test(r), 'growth: a vaga vem do teto único (capForPriority), sem multiplicar solto')
   ok(r.includes('headers: unsubscribeHeaders(a.id)'), 'List-Unsubscribe no envio')
   ok(L.VOLTA_1211_BATCH_MAX <= 50, 'lote máximo 50')
+  ok(L.VOLTA_1211_REPLY_TO === 'support@usekineo.com' && r.includes('reply_to: VOLTA_1211_REPLY_TO'), 'resposta cai na caixa varrida (support@)')
   // 7. ordem travada: o envio só alcança c no dia 1
   ok(JSON.stringify(L.VOLTA_1211_SEGMENTOS_LIBERADOS) === JSON.stringify(['c_baixou']), 'dia 1: só o segmento c liberado')
   ok(L.voltaSegmentoLiberado('c_baixou') && !L.voltaSegmentoLiberado('a_filme_parado') && !L.voltaSegmentoLiberado('b_sem_filme') && !L.voltaSegmentoLiberado('d_pais_pago'), 'a, d e b trancados')
@@ -157,6 +158,7 @@ const MUTANTES = [
   ['plano pro ligado sem pagamento', muta(QUOTA, "RESEND_PLANO = 'free' as ResendPlano", "RESEND_PLANO = 'pro' as ResendPlano")],
   ['env sobe o teto', muta(QUOTA, 'Math.min(Math.floor(raw), doPlano) : doPlano', 'Math.floor(raw) : doPlano')],
   ['teto solto na rota', muta(ROTA, "const tetoGrowth = capForPriority('growth')", 'const tetoGrowth = Math.floor(dailyCap() * 0.6)')],
+  ['resposta para caixa cega', muta(LIB, "VOLTA_1211_REPLY_TO = 'support@usekineo.com'", "VOLTA_1211_REPLY_TO = 'hello@usekineo.com'")],
   ['carimbo forjável', muta(SRV, "  'volta_1211_claimed',\n", '')],
 ]
 let killed = 0

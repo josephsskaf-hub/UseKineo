@@ -31,7 +31,9 @@ export const VOLTA_1211_IDLE_DAYS = 7
 export const VOLTA_1211_BATCH_DEFAULT = 20
 export const VOLTA_1211_BATCH_MAX = 50
 export const VOLTA_1211_FROM = 'Kineo Team <hello@usekineo.com>' as const
-export const VOLTA_1211_REPLY_TO = 'hello@usekineo.com' as const
+/** Resposta cai na caixa que a casa VARRE: o Workspace support@usekineo.com (Chrome conta 1, mail.google.com/mail/u/1). hello@ não tem
+ *  caixa confirmada (comentário de send-feature-announce) — resposta de cliente para lá some, e a regra das 48 h fica cega. */
+export const VOLTA_1211_REPLY_TO = 'support@usekineo.com' as const
 export const VOLTA_1211_DOWNLOAD_EVENTS = ['video_downloaded', 'video_download_clicked'] as const
 export const VOLTA_1211_REGION_EVENTS = ['trial_region_excluded', 'region_paid_only_notice_shown'] as const
 
