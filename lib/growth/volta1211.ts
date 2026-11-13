@@ -117,7 +117,7 @@ function carta(seg: VoltaSegmento, l: VoltaLingua, film: string | null, idea: st
       subject: f ? (baixou ? `E o próximo depois de ${f}?` : `Seu filme ${f} continua aqui`) : (baixou ? 'E o próximo filme?' : 'Seu filme continua aqui'),
       lines: [
         baixou ? `Você baixou ${f ?? 'o seu filme'} na Kineo.` : `O filme que você fez na Kineo${f ? `, ${f},` : ''} está guardado na sua biblioteca.`,
-        baixou ? 'O próximo episódio sobre o mesmo tema começa com uma frase — o seu filme está na página, pronto para assistir de novo.' : 'Assista de novo, baixe, ou faça o próximo sobre o mesmo tema.',
+        baixou ? 'O próximo episódio sobre o mesmo tema começa com uma frase. O seu filme está na página, pronto para assistir de novo.' : 'Assista de novo, baixe, ou faça o próximo sobre o mesmo tema.',
       ],
       button: 'Abrir meu filme',
     }
@@ -125,7 +125,7 @@ function carta(seg: VoltaSegmento, l: VoltaLingua, film: string | null, idea: st
       subject: f ? (baixou ? `¿Y el siguiente después de ${f}?` : `Tu video ${f} sigue aquí`) : (baixou ? '¿Y el siguiente video?' : 'Tu video sigue aquí'),
       lines: [
         baixou ? `Descargaste ${f ?? 'tu video'} en Kineo.` : `El video que hiciste en Kineo${f ? `, ${f},` : ''} está guardado en tu biblioteca.`,
-        baixou ? 'El próximo episodio sobre el mismo tema empieza con una frase — tu video está en la página, listo para verlo otra vez.' : 'Míralo otra vez, descárgalo o haz el siguiente sobre el mismo tema.',
+        baixou ? 'El próximo episodio sobre el mismo tema empieza con una frase. Tu video está en la página, listo para verlo otra vez.' : 'Míralo otra vez, descárgalo o haz el siguiente sobre el mismo tema.',
       ],
       button: 'Abrir mi video',
     }
@@ -133,7 +133,7 @@ function carta(seg: VoltaSegmento, l: VoltaLingua, film: string | null, idea: st
       subject: f ? (baixou ? `Ready for the next one after ${f}?` : `Your film ${f} is still here`) : (baixou ? 'Ready for your next film?' : 'Your film is still here'),
       lines: [
         baixou ? `You downloaded ${f ?? 'your film'} on Kineo.` : `The film you made on Kineo${f ? `, ${f},` : ''} is saved in your library.`,
-        baixou ? 'The next episode on the same topic starts with one sentence — your film is on the page, ready to watch again.' : 'Watch it again, download it, or make the next one on the same topic.',
+        baixou ? 'The next episode on the same topic starts with one sentence. Your film is on the page, ready to watch again.' : 'Watch it again, download it, or make the next one on the same topic.',
       ],
       button: 'Open my film',
     }
@@ -145,7 +145,7 @@ function carta(seg: VoltaSegmento, l: VoltaLingua, film: string | null, idea: st
     lines: [
       'Você criou sua conta na Kineo, mas ainda não fez nenhum filme.',
       'Escreva uma frase: a Kineo escreve o roteiro, escolhe as cenas e narra.',
-      ...(temIdeia ? [`Deixamos uma ideia na caixa para começar: ${temIdeia} — troque pelo que quiser.`] : []),
+      ...(temIdeia ? [`Deixamos uma ideia na caixa para começar: ${temIdeia}. Troque pelo que quiser.`] : []),
     ],
     button: 'Fazer meu primeiro filme',
   }
@@ -154,7 +154,7 @@ function carta(seg: VoltaSegmento, l: VoltaLingua, film: string | null, idea: st
     lines: [
       'Creaste tu cuenta en Kineo, pero todavía no hiciste ningún video.',
       'Escribe una frase: Kineo escribe el guion, elige las escenas y lo narra.',
-      ...(temIdeia ? [`Dejamos una idea en la caja para empezar: ${temIdeia} — cámbiala por lo que quieras.`] : []),
+      ...(temIdeia ? [`Dejamos una idea en la caja para empezar: ${temIdeia}. Cámbiala por lo que quieras.`] : []),
     ],
     button: 'Hacer mi primer video',
   }
@@ -163,7 +163,7 @@ function carta(seg: VoltaSegmento, l: VoltaLingua, film: string | null, idea: st
     lines: [
       'You created a Kineo account but haven’t made a film yet.',
       'Type one sentence: Kineo writes the script, picks the scenes and narrates it.',
-      ...(temIdeia ? [`We left an idea in the box to start: ${temIdeia} — change it to anything.`] : []),
+      ...(temIdeia ? [`We left an idea in the box to start: ${temIdeia}. Change it to anything.`] : []),
     ],
     button: 'Make my first film',
   }
