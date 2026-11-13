@@ -335,6 +335,18 @@ export default function TikTokVsYouTubeShortsPage() {
           Keep reading
         </h2>
         <ul style={{ color: MUTED, lineHeight: 1.9, fontSize: '0.95rem', paddingLeft: 20, margin: '0 0 40px' }}>
+          <li>{/* KINEO-CITACOES-DINHEIRO-1311 */}
+            <a href="/how-much-does-tiktok-pay" style={{ color: ACCENT, textDecoration: 'none' }}>
+              How much does TikTok pay?
+            </a>{' '}
+            : the Creator Rewards rules, checked on the official TikTok pages.
+          </li>
+          <li>
+            <a href="/how-much-do-instagram-reels-pay" style={{ color: ACCENT, textDecoration: 'none' }}>
+              How much do Instagram Reels pay?
+            </a>{' '}
+            : what Meta pays today, with the official source for each program.
+          </li>
           <li>
             <a href="/how-much-do-youtube-shorts-pay" style={{ color: ACCENT, textDecoration: 'none' }}>
               How much do YouTube Shorts pay?

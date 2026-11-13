@@ -216,6 +216,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // KINEO-SEO-SPRINT-2026-07-25 — high-demand money/monetization + roundup cluster.
     { path: '/best-ai-shorts-generators', priority: 0.9, freq: 'weekly' },
     { path: '/how-much-do-youtube-shorts-pay', priority: 0.9, freq: 'weekly' },
+    // KINEO-CITACOES-DINHEIRO-1311 [dono 13/11: "faz alguma task em citações, quero aumentar o número de pessoas no site"] — irmãs da página que o Bing mais traz (89 visitas em 7 dias)
+    { path: '/how-much-does-tiktok-pay', priority: 0.9, freq: 'weekly' },
+    { path: '/how-much-do-instagram-reels-pay', priority: 0.9, freq: 'weekly' },
     { path: '/youtube-shorts-rpm-by-niche', priority: 0.9, freq: 'weekly' },
     { path: '/shorts-money-calculator', priority: 0.8, freq: 'weekly' },
     { path: '/can-you-monetize-ai-videos', priority: 0.8, freq: 'weekly' },
