@@ -6,6 +6,7 @@
 // cadeia) a tira primeiro. Nunca usar em lib/app.
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
+import { semEscritorCondensa1311 } from './desfaz-escritor-condensa-1311.mjs' // KINEO-ESCRITOR-CONDENSA-1311 — a camada mais nova (13/11) sai primeiro
 
 export const SEM_PERSONAGEM_INVENTADO_1111 = JSON.parse(readFileSync(new URL('./desfaz-sem-personagem-inventado-1111-fontes.json', import.meta.url), 'utf8'))
 const lf = (t) => String(t).replace(/\r\n/g, '\n')
@@ -14,6 +15,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/').replace(/^.*?(app\/|lib\/
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semSemPersonagemInventado1111(source, file) {
+  source = semEscritorCondensa1311(source, file) // KINEO-ESCRITOR-CONDENSA-1311
   const entry = SEM_PERSONAGEM_INVENTADO_1111.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source
   const text = lf(source)

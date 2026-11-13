@@ -1,0 +1,30 @@
+{
+ "marca": "KINEO-ESCRITOR-CONDENSA-1311",
+ "scope": {
+  "app/api/generate-script/route.ts": {
+   "beforeSha256": "68663cfd00411f529fe3a6d527230fad523197774c26c4ed4fc6a584b6c2a0ff",
+   "afterSha256": "4620be52899db965fc99c61e214e407ad8ec050aefb95448fb20ec60c29ced86",
+   "hunks": [
+    {
+     "before": "import { finalFracoDoRoteiro, problemaDoFinal, finalTemRespostaConcreta, fimSemResposta, orcamentoDoJuizDoFinal, cabeReescritaDoFinal, FINAL_RESPOSTA_VERSAO, type FinalFraco } from '@/lib/cinematic/finalResposta' // KINEO-FINAL-RESPOSTA-0111 — a última frase do PAYOFF é a revelação concreta do gancho (v5: detector estreito — pergunta/eco do HOOK — + juiz semântico curto que só cobra resposta de gancho que a deve; falha segura)\n\n",
+     "after": "import { finalFracoDoRoteiro, problemaDoFinal, finalTemRespostaConcreta, fimSemResposta, orcamentoDoJuizDoFinal, cabeReescritaDoFinal, FINAL_RESPOSTA_VERSAO, type FinalFraco } from '@/lib/cinematic/finalResposta' // KINEO-FINAL-RESPOSTA-0111 — a última frase do PAYOFF é a revelação concreta do gancho (v5: detector estreito — pergunta/eco do HOOK — + juiz semântico curto que só cobra resposta de gancho que a deve; falha segura)\nimport { ESCRITOR_CONDENSA_EVENT, prazoDaTerceiraTentativa, temaCondensado, tentaCondensar } from '@/lib/escritorCondensa' // KINEO-ESCRITOR-CONDENSA-1311 — a 3ª tentativa \"condensar\" antes da recusa no filme curto\n\n"
+    },
+    {
+     "before": "    let conteudoBarrado = false // KINEO-MOTOR-15S-1510 — a moderação barrou: recusa com a frase dela, sem nova chamada\n    if (looksLikeModelRefusal(script)) {\n",
+     "after": "    let conteudoBarrado = false // KINEO-MOTOR-15S-1510 — a moderação barrou: recusa com a frase dela, sem nova chamada\n    let moderacaoAprovou: boolean | null = null // KINEO-ESCRITOR-CONDENSA-1311 — a 3ª tentativa reaproveita a moderação da 2ª (null = não rodou)\n    if (looksLikeModelRefusal(script)) {\n"
+    },
+    {
+     "before": "        const moderacao = await moderateContent({ surface: 'script', stage: 'input', userId: user.id, text: topic }) // KINEO-PRIMEIRO-FILME-2026-10-13\n        if (!moderacao.ok) { // KINEO-PRIMEIRO-FILME-2026-10-13 — conteúdo proibido (ou moderação fora do ar): respeita a recusa\n",
+     "after": "        const moderacao = await moderateContent({ surface: 'script', stage: 'input', userId: user.id, text: topic }) // KINEO-PRIMEIRO-FILME-2026-10-13\n        moderacaoAprovou = moderacao.ok // KINEO-ESCRITOR-CONDENSA-1311\n        if (!moderacao.ok) { // KINEO-PRIMEIRO-FILME-2026-10-13 — conteúdo proibido (ou moderação fora do ar): respeita a recusa\n"
+    },
+    {
+     "before": "      } // KINEO-PRIMEIRO-FILME-2026-10-13\n      if (historiaAceita === null) { // KINEO-PRIMEIRO-FILME-2026-10-13\n",
+     "after": "      } // KINEO-PRIMEIRO-FILME-2026-10-13\n      // KINEO-ESCRITOR-CONDENSA-1311 [dono 13/11; caso 13/11 22:59Z, briefing de 447 palavras recusado 2× e aceito 2 min depois como \"Condense this\n      // whole story…\"] — filme curto, moderação aprovando, tempo no maxDuration: a 3ª tentativa leva o texto embrulhado no MESMO \"condensar\" do\n      // caminho do servidor (lib/escritorCondensa.ts). Só então a recusa (\"declined the topic\") — que passa a ser recusa de verdade.\n      if (historiaAceita === null && tentaCondensar({ conteudoBarrado, filmeCurto, topic })) {\n        const t0 = Date.now()\n        const prazo = prazoDaTerceiraTentativa(Date.now() - inicioDaRota, OPENAI_SCRIPT_TIMEOUT_MS)\n        const rastroCondensa = (outcome: 'ok' | 'failed' | 'skipped', reason: string) => writeServerEvent({ name: ESCRITOR_CONDENSA_EVENT, userId: user.id, path: '/api/generate-script', metadata: { outcome, reason, topic_words: scriptWordCount(topic), target_seconds: alvoSegundos, ms: Date.now() - t0 } })\n        if (prazo === null) {\n          await rastroCondensa('skipped', 'no_time_left')\n        } else {\n          const aprovado = moderacaoAprovou ?? (await moderateContent({ surface: 'script', stage: 'input', userId: user.id, text: topic })).ok\n          if (!aprovado) {\n            await rastroCondensa('skipped', 'moderation_not_ok')\n          } else {\n            try {\n              const condensado = await openai.chat.completions.create({ model: 'gpt-4o', temperature: 0.7, max_tokens: tokensDoRoteiro, messages: [{ role: 'system', content: PROMPT_DO_ROTEIRO }, { role: 'user', content: 'Write a viral YouTube Short script about this topic:\\n\\n' + temaCondensado({ topic, seconds: alvoSegundos, engine: typeof body.engine === 'string' ? body.engine : null, language }) }] }, { timeout: prazo, maxRetries: 0 })\n              const texto = condensado.choices[0]?.message?.content?.trim() ?? ''\n              if (texto && !looksLikeModelRefusal(texto)) historiaAceita = texto\n              await rastroCondensa(historiaAceita ? 'ok' : 'failed', historiaAceita ? 'condensed_accepted' : texto ? 'declined_again' : 'empty_completion')\n            } catch (erro) {\n              await rastroCondensa('failed', erro instanceof Error ? 'error_' + erro.name : 'error')\n            }\n          }\n        }\n      }\n      if (historiaAceita === null) { // KINEO-PRIMEIRO-FILME-2026-10-13\n"
+    }
+   ]
+  }
+ },
+ "addedSources": {
+  "lib/escritorCondensa.ts": "db8ad3a2c874efd33f00bfa12ecb1ca84ea35482184cdbe4837b2f2951eb4b46"
+ }
+}
