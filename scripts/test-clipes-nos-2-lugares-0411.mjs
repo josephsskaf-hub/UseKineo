@@ -240,7 +240,7 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
         const convite = /class="kmz-re kmz-mkad"[^>]*>[\s\S]*?Make your ad/.test(cartao)
         if (convite !== (tipo === 'ad')) e.push(`R ${lugar}: ${tipo} ${tipo === 'ad' ? 'sem' : 'com'} o convite "Make your ad" (${(/aria-label="([^"]+)"/.exec(cartao)?.[1] ?? cta).slice(0, 60)})`)
       }
-      for (const k of ['efeito', 'clipe com texto', 'clipe sem texto', 'ad', 'image', 'film', ...(opts.full ? ['estilo'] : ['motion'])]) if (!vistos[k]) e.push(`R ${lugar}: nenhum cartão "${k}" para provar a regra do selo`)
+      for (const k of ['efeito', 'clipe com texto', 'clipe sem texto', 'ad', 'image', 'film', ...(opts.full ? ['estilo'] : [] /* KINEO-HOME-TOPO-CLIPES-1311 — a home não tem mais cartão "motion": o topo são clipes novos */)]) if (!vistos[k]) e.push(`R ${lugar}: nenhum cartão "${k}" para provar a regra do selo`)
     }
     // (C) estação
     const proibido = /pumpkin|jack-o|werewolf|witch|zombie|catrina|day of the dead|skull/i

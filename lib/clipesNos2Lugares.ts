@@ -139,6 +139,13 @@ export const CLIPES_FORA_DA_VITRINE_1311: readonly ClipeNovo[] = [
   { id: 'duelo-de-danca', title: 'Parking lot dance-off', engine: null, selo: 'Trending format', clipId: 'fal:0ab1d9f3/iLdN6Py4oNvS6P4yUAQlQ', focus: '50% 66%', pessoa: true, prompt: null }, // KINEO-VITRINE-10-1011
 ]
 
+/** KINEO-HOME-TOPO-CLIPES-1311 [dono 13/11, vendo a home sem mudança na 1ª tela: "ainda não foi"; e depois: "deixa eles na parte de cima sempre como regra, e
+ *  maiores também, que são coisas mais legais"] — REGRA: os clipes novos aprovados ABREM a home, em cartão grande (3 por linha no computador,
+ *  2 no celular), no lugar da antiga fileira de seis paisagens (onda, águia, rua, arraia, montanha, cavalo: "paisagem sem gente nem produto sai").
+ *  São ids de CLIPES_NOVOS, na ordem em que aparecem. Clipe novo aprovado entra NA FRENTE desta lista e o último sai dela (ele continua na grade
+ *  de baixo e no /made-with-kineo). Sempre 6, para fechar duas linhas inteiras. Na home, quem está aqui não se repete na grade. */
+export const CLIPES_NO_TOPO: readonly string[] = ['selfie-confete', 'anuncio-creme-selfie', 'anuncio-burger-camera-lenta', 'raposa-lanterna', 'carta-do-front', 'balao-confete']
+
 export const clipeNovoVideo = (c: Pick<ClipeNovo, 'id'>): string => `/previews/galeria/${c.id}.mp4`
 export const clipeNovoPoster = (c: Pick<ClipeNovo, 'id'>): string => `/posters/galeria/${c.id}.webp`
 

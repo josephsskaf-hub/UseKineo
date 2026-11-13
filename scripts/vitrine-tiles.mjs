@@ -73,7 +73,7 @@ export function midiasDaVitrine(mods, { desde = Date.UTC(2026, 10, 9), dias = 40
       for (const t of M.homeMosaicTiles(now, { full, styles: full ? st : [] })) {
         if (t.kind === 'clip') add({ kind: 'clip', label: t.clip.id, media: t.clip.video, poster: t.clip.poster, focus: M.MOSAIC_CLIP_FOCUS[t.clip.id] ?? t.clip.focus ?? '50% 50%' }, 'big', where)
         else if (t.kind === 'film') add({ kind: 'film', label: asset(t.video), media: t.video, poster: t.poster ?? null, focus: t.focus ?? '50% 50%' }, 'big', where)
-        else if (t.kind === 'motion') add({ kind: 'motion', label: asset(t.video), media: t.video, poster: t.poster, focus: t.focus }, 'motion', where)
+        else if (t.kind === 'motion') add({ kind: 'motion', label: asset(t.video), media: t.video, poster: t.poster, focus: t.focus }, 'big' /* KINEO-HOME-TOPO-CLIPES-1311 — o topo é cartão grande */, where)
         else if (t.kind === 'effect') add({ kind: 'effect', label: t.effect.key, media: t.effect.preview?.video, poster: t.effect.preview?.poster ?? null, focus: M.MOSAIC_EFFECT_FOCUS[t.effect.key] ?? '50% 45%' }, 'small', where)
         else if (t.kind === 'style') add({ kind: 'style', label: t.style.key, media: t.style.video, poster: t.style.poster ?? null, focus: M.MOSAIC_STYLE_FOCUS?.[t.style.key] ?? '50% 45%' }, 'small', where)
         else if (t.kind === 'novo') add({ kind: 'novo', label: t.clip.id, media: C.clipeNovoVideo(t.clip), poster: C.clipeNovoPoster(t.clip), focus: t.clip.focus }, t.grande ? 'big' : 'small', where)

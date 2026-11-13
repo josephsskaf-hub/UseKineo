@@ -31,7 +31,7 @@ const CSS_PINOS = [
   ['components/home/HomeMosaic.tsx', '.klp .kmz-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:27vw;gap:8px}.klp .kmz-t{grid-row:span 2;border-radius:11px}.klp .kmz-big{grid-column:span 1;grid-row:span 3}.klp .kmz-wide{grid-column:span 2;grid-row:span 2}'],
   ['app/appearance.css', ':root{--k2f:max(300px,calc((100vh - 244px)/2))!important}'],
   ['app/appearance.css', '.klp #samples .kmz-grid{grid-auto-rows:calc((var(--k2f) - 24px)/3)!important}'],
-  ['app/appearance.css', '[data-home-cta="mosaic_motion"]{display:block!important;grid-column:span 1!important;grid-row:span 3!important}'],
+  ['app/appearance.css', 'KINEO-HOME-TOPO-CLIPES-1311 — a fileira de seis cartões estreitos (mosaic_motion) saiu'], // KINEO-HOME-TOPO-CLIPES-1311 — o topo usa o cartão grande (.kmz-big), já medido em JANELAS
   ['app/KineoLanding.tsx', '.klp .wrap{max-width:none;margin:0 auto;padding:0 32px}'],
 ]
 
@@ -88,7 +88,7 @@ const mutantes = [
   ['foto nova entra sem conferência', { trocas: { 'components/home/HomeMosaic.tsx': (s) => s.replace("  { file: 'canoe.webp',", "  { file: 'nova.webp', w: 640, h: 1138, alt: 'x' },\n  { file: 'canoe.webp',") } }, /A .*nova\.webp/],
   ['estilo de anúncio muda de focus', { trocas: { 'components/home/HomeMosaic.tsx': (s) => s.replace("graffiti_ad: '50% 62%'", "graffiti_ad: '50% 45%'") } }, /B .*graffiti_ad/],
   ['efeito muda de focus', { trocas: { 'components/home/HomeMosaic.tsx': (s) => s.replace("kiss: '50% 22%'", "kiss: '50% 45%'") } }, /B .*kiss/],
-  ['multicâmera muda de focus', { trocas: { 'components/home/HomeMosaic.tsx': (s) => s.replace("poster: '/posters/motion-horse-0611.webp', focus: '50% 32%'", "poster: '/posters/motion-horse-0611.webp', focus: '50% 50%'") } }, /B .*motion-horse/],
+  ['clipe do topo muda de focus', { trocas: { 'lib/clipesNos2Lugares.ts': (s) => s.replace("{ id: 'selfie-confete', title: 'Selfie with the crowd', engine: null, selo: 'Trending format', clipId: 'fal:0ab243cd/JALaJedKJJ9qv3LUnIT9q', focus: '50% 33%'", "{ id: 'selfie-confete', title: 'Selfie with the crowd', engine: null, selo: 'Trending format', clipId: 'fal:0ab243cd/JALaJedKJJ9qv3LUnIT9q', focus: '50% 50%'") } }, /B .*selfie-confete/], // KINEO-HOME-TOPO-CLIPES-1311 — era a multicâmera (motion-horse), que saiu da home
   ['registro com só 6 quadros', { trocas: { 'lib/vitrineEnquadramento.ts': (s) => s.replace(/('\/previews\/galeria\/lion\.mp4': \{[^}]*frames: )\d+/, '$16') } }, /E .*lion\.mp4: só 6/],
   ['registro sem a janela grande de um clipe novo', { trocas: { 'lib/vitrineEnquadramento.ts': (s) => s.replace(/('\/previews\/galeria\/pet-barista\.mp4': \{[^}]*shapes: )\[[^\]]*\]/, "$1['small']") } }, /C .*pet-barista/],
   ['a prévia do leão trocou de bytes', { ler: (rel) => { const b = lerPublico(rel); return rel.endsWith('galeria/lion.mp4') && b ? Buffer.concat([b, Buffer.from([0])]) : b } }, /D .*lion.*arquivo mudou/],

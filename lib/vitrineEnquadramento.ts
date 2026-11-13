@@ -67,12 +67,6 @@ export const ENQUADRAMENTO: Readonly<Record<string, Enquadrado>> = {
   '/previews/home-clean-sep24/tunguska-globe.mp4': { focus: '50% 44%', shapes: ['big'], frames: 10, date: '2026-11-09', media: '4732635:97deac07d955', poster: '52068:a7091fca618f' },
   '/previews/home-clean-sep24/volcano-scene.mp4': { focus: '50% 48%', shapes: ['big'], frames: 10, date: '2026-11-09', media: '11644775:06304dacc4a3', poster: '533338:95859285b1a2', note: 'foco 50% 35% → 50% 48%' },
   // ── motion ──
-  '/previews/motion-eagle-0611.mp4': { focus: '50% 25%', shapes: ['motion'], frames: 10, date: '2026-11-09', media: '1180813:0d6af3fa67a5', poster: '58902:c42226153bf5', note: 'foco 50% 50% → 50% 25%' },
-  '/previews/motion-horse-0611.mp4': { focus: '50% 32%', shapes: ['motion'], frames: 10, date: '2026-11-09', media: '1348903:b73c97691617', poster: '32904:459922718534', note: 'foco 50% 50% → 50% 32%' },
-  '/previews/motion-manta-0611.mp4': { focus: '50% 35%', shapes: ['motion'], frames: 10, date: '2026-11-09', media: '1352099:534c24431755', poster: '49998:abc2bb322865', note: 'foco 50% 50% → 50% 35%' },
-  '/previews/motion-neve-0611.mp4': { focus: '50% 50%', shapes: ['motion'], frames: 10, date: '2026-11-09', media: '1313571:34f1539d13ec', poster: '12076:24901140da0f' },
-  '/previews/motion-rua-0611.mp4': { focus: '50% 75%', shapes: ['motion'], frames: 10, date: '2026-11-09', media: '1388876:301ca6e9f474', poster: '27250:2fcec17cc3a6' },
-  '/previews/motion-surf-0611.mp4': { focus: '50% 55%', shapes: ['motion'], frames: 10, date: '2026-11-09', media: '1652956:284844d4ba80', poster: '16860:757b95408c0c' },
   // ── novo ──
   '/previews/galeria/adeus-2026.mp4': { focus: '50% 36%', shapes: ['big', 'small'], frames: 10, date: '2026-11-09', media: '454814:ab534c748027', poster: '40020:4a3cad6d9ba2', note: 'foco 50% 45% → 50% 36%' },
   '/previews/galeria/iced-coffee-pour.mp4': { focus: '50% 35%', shapes: ['big', 'small'], frames: 10, date: '2026-11-09', media: '377478:477aed050b1d', poster: '23364:3f0230071c8f' },

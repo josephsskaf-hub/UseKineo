@@ -30,7 +30,7 @@ import { createEntryForSignupHref } from '@/lib/create/entry' // KINEO-ENTRADAS-
 import { cardStatFor, compactCount } from '@/lib/home/cardSocialStats' // KINEO-CARDS-VIEWS-0911
 import { seasonalEffectKeys } from '@/lib/clips/clipSeason' // KINEO-VITRINE-ESTACAO-3110
 import { publicRecreatePath } from '@/lib/recreate/entry'
-import { FORA_DE_ESTACAO, afastaVizinhos, fechaOFim, semLargoNoFim, clipeNovoAbreStudio, clipeNovoAnuncio, clipeNovoDestino, clipeNovoPoster, clipeNovoVideo, clipesNovosDoDia, diaDaVitrine, embaralhaDoDia, intercala, type ClipeNovo } from '@/lib/clipesNos2Lugares' // KINEO-CLIPES-NOS-2-LUGARES-0411
+import { CLIPES_NOVOS, CLIPES_NO_TOPO, FORA_DE_ESTACAO, afastaVizinhos, fechaOFim, semLargoNoFim, clipeNovoAbreStudio, clipeNovoAnuncio, clipeNovoDestino, clipeNovoPoster, clipeNovoVideo, clipesNovosDoDia, diaDaVitrine, embaralhaDoDia, intercala, type ClipeNovo } from '@/lib/clipesNos2Lugares' // KINEO-CLIPES-NOS-2-LUGARES-0411
 
 /** Interruptor da vitrine contínua (false = a home volta às faixas separadas de antes, intactas no KineoLanding). */
 export const HOME_MOSAIC_LIVE = true
@@ -106,7 +106,7 @@ type MosaicImage = HomeGalleryImage & { dir: string }
 /** KINEO-MWK-MOSAICO-3110 — um estilo de anúncio no mosaico da página Made with Kineo (dados do antigo bloco do /trending). */
 export interface MosaicStyle { key: string; title: string; engine: string | null; video: string; poster: string | null; href: string }
 
-type MotionTile = { kind: 'motion'; title: string; video: string; poster: string; focus: string; desktopOnly?: true; desktopVideo?: string }
+type MotionTile = { kind: 'motion'; title: string; video: string; poster: string; focus: string; desktopOnly?: true; desktopVideo?: string; /** KINEO-HOME-TOPO-CLIPES-1311 — o clipe da lista compartilhada que este cartão do topo mostra */ clip?: ClipeNovo }
 
 type Tile =
   | { kind: 'clip'; clip: (typeof HOME_NEW_CLIPS)[number] }
@@ -120,14 +120,13 @@ type Tile =
 // KINEO-CLIPES-NOS-2-LUGARES-0411 — efeitos que a data já passou saem da vitrine (lista em lib/clipesNos2Lugares.ts).
 // KINEO-HOME-DOIS-EIXOS-0611 — uma fileira de seis clipes no desktop; abaixo de 1100px,
 // os três clipes originais mantêm mídia e ordem. Alternar terra, água, rua, neve e ar.
-export const HOME_MOTION_TILES: readonly MotionTile[] = [ // KINEO-ENQUADRAMENTO-0911 — águia 25%, arraia 35%, cavalo 32%: asa, ponta e orelhas saíam do quadro
-  { kind: 'motion', title: 'Four cameras, one wave', video: '/previews/motion-surf-0611.mp4', poster: '/posters/motion-surf-0611.webp', focus: '50% 55%' },
-  { kind: 'motion', title: 'An eagle soars over the cliffs', video: '/previews/motion-eagle-0611.mp4', poster: '/posters/motion-eagle-0611.webp', focus: '50% 25%', desktopOnly: true },
-  { kind: 'motion', title: 'Camera pulls back', video: '/previews/motion-rua-0611.mp4', poster: '/posters/motion-rua-0611.webp', focus: '50% 75%' },
-  { kind: 'motion', title: 'A manta ray glides underwater', video: '/previews/motion-manta-0611.mp4', poster: '/posters/motion-manta-0611.webp', focus: '50% 35%', desktopOnly: true },
-  { kind: 'motion', title: 'One rider, one mountain', video: '/previews/motion-neve-0611.mp4', poster: '/posters/motion-neve-0611.webp', focus: '50% 50%' },
-  { kind: 'motion', title: 'A horse runs along the coast', video: '/previews/motion-horse-0611.mp4', poster: '/posters/motion-horse-0611.webp', focus: '50% 32%', desktopOnly: true },
-]
+// KINEO-HOME-TOPO-CLIPES-1311 — a fileira de cima passa a ser os clipes novos (CLIPES_NO_TOPO), em cartão grande. As seis paisagens de 06/11 saem da home; os
+// arquivos public/previews/motion-*-0611.mp4 ficam no disco.
+export const HOME_MOTION_TILES: readonly MotionTile[] = CLIPES_NO_TOPO.flatMap((id): MotionTile[] => {
+  const clip = CLIPES_NOVOS.find((c) => c.id === id)
+  return clip ? [{ kind: 'motion', title: clip.title, video: clipeNovoVideo(clip), poster: clipeNovoPoster(clip), focus: clip.focus, clip }] : []
+})
+const NO_TOPO = new Set(HOME_MOTION_TILES.map((t) => t.clip?.id))
 
 const efeitosDaVitrine = () => publicEffectPages().filter((e) => !FORA_DE_ESTACAO.efeitos.includes(e.key))
 
@@ -350,6 +349,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
             }
             if (t.kind === 'novo') { // KINEO-CLIPES-NOS-2-LUGARES-0411 — selo = o motor real; o pôster é <img loading="lazy">: os 15 não somam nada ao 1º carregamento, e o vídeo só nasce na tela (WallMedia)
               const c = t.clip
+              if (!full && NO_TOPO.has(c.id)) return null // KINEO-HOME-TOPO-CLIPES-1311 — já abre a home no topo; no /made-with-kineo (full) segue na grade
               const tipo = c.selo ?? 'Clip' // KINEO-CARDS-SEM-MOTOR-0911 — o TIPO (Clip / Trending format), nunca o motor; o motor real segue no dado e no link · KINEO-CARDS-SEM-ETIQUETA-0911 — o tipo vive só no aria-label
               return ( // KINEO-ADS-NATAL-VITRINE-1011 — exemplo de anúncio: clipeNovoDestino dá /ads/new (via viaSignup), medido à parte como mosaic_ad
                 <Link key={'novo-' + c.id} href={clipeNovoAbreStudio(c) ? filmHref /* KINEO-VITRINE-10-1011 — filme do Studio: o link dos filmes */ : createEntryForSignupHref(viaSignup(publicRecreatePath(c.id) ?? clipeNovoDestino(c), signedIn), signedIn) /* KINEO-ENTRADAS-TELA-NOVA-1011 — logado: só /ads/new seco vira /create/ads */} className={`kmz-t${t.grande ? ' kmz-big' : ''}`} data-home-cta={podeFazerAnuncio(t) ? 'mosaic_ad' : 'mosaic_clip'} data-clip-novo={c.id} aria-label={`${c.title} — ${tipo}`}>
@@ -361,6 +361,22 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                   <Chips recreate={podeRecriar(t)} ad={podeFazerAnuncio(t)} />{/* KINEO-ADS-NATAL-VITRINE-1011 · KINEO-ETIQUETA-UNICA-1111 */}
                 <span className="kmz-shade" aria-hidden="true" />
                   <span className="kmz-copy"><b><UiLabel>{c.title}</UiLabel></b><Views video={clipeNovoVideo(c)} /></span>{/* KINEO-OUTFIT-MORPH-HOME-0911 */}
+                </Link>
+              )
+            }
+            if (t.kind === 'motion' && t.clip) { // KINEO-HOME-TOPO-CLIPES-1311 — cartão do topo = o cartão de clipe novo, grande
+              const c = t.clip
+              const nt: Tile = { kind: 'novo', clip: c, grande: true }
+              return (
+                <Link key={'topo-' + c.id} href={clipeNovoAbreStudio(c) ? filmHref : createEntryForSignupHref(viaSignup(publicRecreatePath(c.id) ?? clipeNovoDestino(c), signedIn), signedIn)} className="kmz-t kmz-big kmz-topo" data-home-cta={podeFazerAnuncio(nt) ? 'mosaic_ad' : 'mosaic_clip'} data-clip-novo={c.id} data-home-topo="1" aria-label={`${c.title} — ${c.selo ?? 'Clip'}`}>
+                  <div className="kmz-md" style={focusStyle(undefined, c.focus)}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={clipeNovoPoster(c)} width={540} height={960} alt="" loading="lazy" decoding="async" style={{ objectPosition: c.focus, transform: 'none' }} />
+                    <WallMedia src={clipeNovoVideo(c)} />
+                  </div>
+                  <Chips recreate={podeRecriar(nt)} ad={podeFazerAnuncio(nt)} />
+                  <span className="kmz-shade" aria-hidden="true" />
+                  <span className="kmz-copy"><b><UiLabel>{c.title}</UiLabel></b><Views video={clipeNovoVideo(c)} /></span>
                 </Link>
               )
             }
