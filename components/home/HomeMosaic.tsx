@@ -217,6 +217,10 @@ const CSS = `
 .klp .kmz-t:hover{border-color:var(--blue,#2f7cff)}
 .klp .kmz-t:focus-visible{outline:2px solid var(--home-action,#0A5CFF);outline-offset:3px}
 .klp .kmz-big{grid-column:span 2;grid-row:span 4}
+.klp .kmz-topo-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:12px}
+.klp .kmz-topo-grid>.kmz-t{grid-column:auto;grid-row:auto;aspect-ratio:5/6}
+@media(max-width:1099px){.klp .kmz-topo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:699px){.klp .kmz-topo-grid{gap:8px;margin-bottom:8px}}
 .klp .kmz-wide{grid-column:span 2}
 .klp .kmz-md{position:absolute;inset:0;background-color:#101821;background-repeat:no-repeat;background-size:cover;background-position:var(--kmz-focus,50% 50%)}
 .klp .kmz-md video{object-position:var(--kmz-focus,50% 50%)}
@@ -328,8 +332,11 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
     <section className="kmz" aria-label="Made with Kineo" data-home-section="mosaic">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="wrap">
-        <div className="kmz-grid">
-          {tiles.map((t) => {
+        {/* KINEO-HOME-TOPO-5X6-1311 [dono 13/11 03:56, vendo o topo deitado: "urgente, os cards estão cortados. Já criei uma regra pra isso não acontecer"] — os clipes
+            novos do topo ficam EM PÉ, na janela 5:6 da regra de enquadramento, fora da grade de linhas fixas (3 por linha no computador, 2 no celular),
+            e são desenhados pelo MESMO cartão de clipe novo da grade (uma fonte só: mesmo destino, mesmo convite, mesma medição). */}
+        {(() => {
+          const cartao = (t: Tile, topo = false) => {
             if (t.kind === 'clip') {
               const c = t.clip
               const card = (
@@ -349,7 +356,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
             }
             if (t.kind === 'novo') { // KINEO-CLIPES-NOS-2-LUGARES-0411 — selo = o motor real; o pôster é <img loading="lazy">: os 15 não somam nada ao 1º carregamento, e o vídeo só nasce na tela (WallMedia)
               const c = t.clip
-              if (!full && NO_TOPO.has(c.id)) return null // KINEO-HOME-TOPO-CLIPES-1311 — já abre a home no topo; no /made-with-kineo (full) segue na grade
+              if (!topo && !full && NO_TOPO.has(c.id)) return null // KINEO-HOME-TOPO-CLIPES-1311 — já abre a home no topo; no /made-with-kineo (full) segue na grade
               const tipo = c.selo ?? 'Clip' // KINEO-CARDS-SEM-MOTOR-0911 — o TIPO (Clip / Trending format), nunca o motor; o motor real segue no dado e no link · KINEO-CARDS-SEM-ETIQUETA-0911 — o tipo vive só no aria-label
               return ( // KINEO-ADS-NATAL-VITRINE-1011 — exemplo de anúncio: clipeNovoDestino dá /ads/new (via viaSignup), medido à parte como mosaic_ad
                 <Link key={'novo-' + c.id} href={clipeNovoAbreStudio(c) ? filmHref /* KINEO-VITRINE-10-1011 — filme do Studio: o link dos filmes */ : createEntryForSignupHref(viaSignup(publicRecreatePath(c.id) ?? clipeNovoDestino(c), signedIn), signedIn) /* KINEO-ENTRADAS-TELA-NOVA-1011 — logado: só /ads/new seco vira /create/ads */} className={`kmz-t${t.grande ? ' kmz-big' : ''}`} data-home-cta={podeFazerAnuncio(t) ? 'mosaic_ad' : 'mosaic_clip'} data-clip-novo={c.id} aria-label={`${c.title} — ${tipo}`}>
@@ -364,22 +371,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                 </Link>
               )
             }
-            if (t.kind === 'motion' && t.clip) { // KINEO-HOME-TOPO-CLIPES-1311 — cartão do topo = o cartão de clipe novo, grande
-              const c = t.clip
-              const nt: Tile = { kind: 'novo', clip: c, grande: true }
-              return (
-                <Link key={'topo-' + c.id} href={clipeNovoAbreStudio(c) ? filmHref : createEntryForSignupHref(viaSignup(publicRecreatePath(c.id) ?? clipeNovoDestino(c), signedIn), signedIn)} className="kmz-t kmz-big kmz-topo" data-home-cta={podeFazerAnuncio(nt) ? 'mosaic_ad' : 'mosaic_clip'} data-clip-novo={c.id} data-home-topo="1" aria-label={`${c.title} — ${c.selo ?? 'Clip'}`}>
-                  <div className="kmz-md" style={focusStyle(undefined, c.focus)}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={clipeNovoPoster(c)} width={540} height={960} alt="" loading="lazy" decoding="async" style={{ objectPosition: c.focus, transform: 'none' }} />
-                    <WallMedia src={clipeNovoVideo(c)} />
-                  </div>
-                  <Chips recreate={podeRecriar(nt)} ad={podeFazerAnuncio(nt)} />
-                  <span className="kmz-shade" aria-hidden="true" />
-                  <span className="kmz-copy"><b><UiLabel>{c.title}</UiLabel></b><Views video={clipeNovoVideo(c)} /></span>
-                </Link>
-              )
-            }
+            if (t.kind === 'motion' && t.clip) return null // KINEO-HOME-TOPO-CLIPES-1311 · KINEO-HOME-TOPO-5X6-1311 — o topo é desenhado acima da grade (kmz-topo-grid)
             if (t.kind === 'motion') return (
               <Link key={t.video} href={filmHref} className="kmz-t kmz-big" data-home-cta="mosaic_motion"
                 style={t.desktopOnly ? { display: 'none' } : undefined} aria-label={t.title + ' — multi-camera'}>
@@ -435,8 +427,15 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
                 <span className="kmz-copy"><b>{mosaicImageTitle(img.file, img.alt)}</b></span>{/* KINEO-ETIQUETA-UNICA-1111 — toda foto com nome, como os vídeos */}
               </Link>
             )
-          })}
-        </div>
+          }
+          const doTopo = tiles.flatMap((t): Tile[] => (t.kind === 'motion' && t.clip ? [{ kind: 'novo', clip: t.clip, grande: true }] : []))
+          return (
+            <>
+              {doTopo.length ? <div className="kmz-topo-grid" data-home-topo-grid="1">{doTopo.map((t) => cartao(t, true))}</div> : null}
+              <div className="kmz-grid">{tiles.map((t) => cartao(t))}</div>
+            </>
+          )
+        })()}
       </div>
     </section>
   )

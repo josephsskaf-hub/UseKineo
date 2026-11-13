@@ -37,8 +37,8 @@ assert.equal(topo.length, 6, 'o topo tem 6 clipes (duas linhas inteiras de 3)')
 assert.equal(new Set(topo).size, 6, 'sem clipe repetido no topo')
 const lista = lib.slice(lib.indexOf('export const CLIPES_NOVOS'), lib.indexOf('export const CLIPES_FORA_DA_VITRINE_1311'))
 for (const id of topo) assert.ok(lista.includes("{ id: '" + id + "',"), id + ' do topo está na lista viva (CLIPES_NOVOS)')
-assert.ok(mosaic.includes('CLIPES_NO_TOPO.flatMap((id): MotionTile[] =>') && mosaic.includes('className="kmz-t kmz-big kmz-topo"'), 'o topo sai da lista e é cartão grande')
-assert.ok(mosaic.includes('if (!full && NO_TOPO.has(c.id)) return null'), 'na home, quem abre o topo não se repete na grade')
+assert.ok(mosaic.includes('CLIPES_NO_TOPO.flatMap((id): MotionTile[] =>') && mosaic.includes('<div className="kmz-topo-grid" data-home-topo-grid="1">{doTopo.map((t) => cartao(t, true))}</div>') && mosaic.includes('.klp .kmz-topo-grid>.kmz-t{grid-column:auto;grid-row:auto;aspect-ratio:5/6}'), 'o topo sai da lista, usa o cartão de clipe novo e fica em pé na janela 5:6 (KINEO-HOME-TOPO-5X6-1311)')
+assert.ok(mosaic.includes('if (!topo && !full && NO_TOPO.has(c.id)) return null'), 'na home, quem abre o topo não se repete na grade')
 assert.ok(!/video: '\/previews\/motion-\w+-0611\.mp4'/.test(mosaic), 'as seis paisagens de 06/11 saíram da home')
 
 function checkMp4(file, limit) {
