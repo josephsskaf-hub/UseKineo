@@ -27,8 +27,8 @@ const CSS = `
 .rcp-card:after{content:'';position:absolute;inset:45% 0 0;background:linear-gradient(transparent,rgba(3,5,9,.9));pointer-events:none}
 .rcp-copy{position:absolute;z-index:1;left:12px;right:12px;bottom:12px;display:flex;flex-direction:column;gap:8px}
 .rcp-copy b{font-size:15px;font-weight:650;line-height:1.3}
-.rcp-pill{align-self:flex-start;font-size:12px;font-weight:650;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.24)}
-.rcp-play{position:absolute;z-index:2;top:10px;right:10px;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.28);background:rgba(3,5,9,.6);color:#fff;font-size:14px;display:grid;place-items:center;cursor:pointer;padding:0}
+.rcp-pill{align-self:flex-start;display:inline-flex;align-items:center;justify-content:center;min-height:44px;font-size:15px;font-weight:800;padding:10px 18px;border-radius:999px;background:#fff;color:#101318;border:1px solid #fff;box-shadow:0 3px 0 #cbd0d8}
+.rcp-play{position:absolute;z-index:2;top:10px;right:10px;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.28);background:rgba(3,5,9,.6);color:#fff;font-size:14px;display:grid;place-items:center;cursor:pointer;padding:0}
 .rcp-foot{margin-top:28px;font-size:14px;color:#9aa3b2}
 .rcp-foot a{color:#7FA6FF}
 @media(max-width:640px){.rcp-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.rcp-nav{gap:12px}.rcp-nav .rcp-hide-sm{display:none}.rcp-copy b{font-size:14px}}

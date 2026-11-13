@@ -35,6 +35,7 @@ import HomeImageGallery from '@/components/home/HomeImageGallery' // KINEO-HOME-
 import HomeFeaturedFilms from '@/components/HomeFeaturedFilms'
 import HomeNewEffects from '@/components/home/HomeNewEffects' // KINEO-HOME-NOVOS-EFEITOS-2910
 import HalloweenSkin from '@/components/home/HalloweenSkin' // KINEO-HALLOWEEN-SKIN-2910
+import HomeRecreateStrip from '@/components/home/HomeRecreateStrip'
 import HomeMosaic, { HOME_MOSAIC_LIVE } from '@/components/home/HomeMosaic' // KINEO-HOME-MOSAICO-2910
 import TrendingRow from '@/components/TrendingRow'
 // KINEO-PROMO-CARDS-2026-09-30 — fileira de cards grandes logo abaixo do menu (Kineo for Claude + Clips).
@@ -1030,7 +1031,7 @@ export default function KineoLanding({
         </div>
       </header>
 
-      {HOME_MOSAIC_LIVE ? <div id="samples"><HomeMosaic signedIn={isSignedIn} /></div> : <HomeNewEffects signedIn={isSignedIn} />}<div className="wrap"><CitationDirectAnswer page="home" /></div>{/* KINEO-HOME-MOSAICO-2910 — fundador 29/10 "uma coisa grande com tudo, sem separações": clipes, filmes, efeitos e imagens numa grade só · KINEO-HOME-NOVOS-EFEITOS-2910 — fundador 29/10: os 4 efeitos mais novos logo abaixo dos filmes */}
+      {HOME_MOSAIC_LIVE ? <div id="samples"><HomeMosaic signedIn={isSignedIn} afterTop={<HomeRecreateStrip signedIn={isSignedIn} />} /></div> : <HomeNewEffects signedIn={isSignedIn} />}<div className="wrap"><CitationDirectAnswer page="home" /></div>{/* KINEO-HOME-MOSAICO-2910 — fundador 29/10 "uma coisa grande com tudo, sem separações": clipes, filmes, efeitos e imagens numa grade só · KINEO-HOME-NOVOS-EFEITOS-2910 — fundador 29/10: os 4 efeitos mais novos logo abaixo dos filmes */}
 
       {/* The post-signup route intentionally lands on this engine showroom.
           The router comes AFTER the founder-curated four-video hero, so it

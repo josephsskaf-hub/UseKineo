@@ -1,0 +1,33 @@
+// LOCAL ONLY — removed before delivery; actual components with guest fixture props, no production session.
+import { notFound } from 'next/navigation'
+import AdsV2Client from '@/app/(dashboard)/ads/v2/AdsV2Client'
+import { AdsPresenterAllProvider } from '@/components/ads/AdsPresenterPicker'
+import CreateShell from '@/components/create/CreateShell'
+import HomeRecreateStrip from '@/components/home/HomeRecreateStrip'
+import RecreateCatalogPublic from '@/app/recreate/RecreateCatalogPublic'
+import { publicRecreateCatalog } from '@/lib/recreate/catalogPublic'
+import EstrategiasHome from '@/docs/home-1311/estrategias/EstrategiasHome'
+import KineoLanding from '@/app/KineoLanding'
+import { FOOTER_PRESENTATION_CSS as BEFORE_FOOTER_CSS } from './BeforeFooterCss'
+import BeforeCreateShell from './BeforeCreateShell'
+import BeforeRecreate from './BeforeRecreate'
+
+export default function Preview({ searchParams = {} }: { searchParams?: { screen?: string; estrategia?: string } }) {
+  if (process.env.NODE_ENV !== 'development') notFound()
+  // Fixture container only: the app's existing body scroller otherwise limits fullPage captures to one viewport.
+  return <><style dangerouslySetInnerHTML={{ __html: 'html,body{height:auto!important;overflow:visible!important}' }} /><script dangerouslySetInnerHTML={{__html:"document.documentElement.dataset.theme='light'"}} /><PreviewContent searchParams={searchParams} /></>
+}
+function PreviewContent({ searchParams }: { searchParams: { screen?: string; estrategia?: string } }) {
+  const screen = searchParams.screen ?? 'ads'
+  if (searchParams.estrategia) return <EstrategiasHome strategy={searchParams.estrategia} />
+  if (screen === 'home-before') return <><KineoLanding initialUser={null} /><style dangerouslySetInnerHTML={{ __html: BEFORE_FOOTER_CSS }} /></>
+  if (screen === 'home') return <KineoLanding initialUser={null} />
+  if (screen === 'cartoon') return <CreateShell tab="cartoon" />
+  if (screen === 'cartoon-before') return <BeforeCreateShell tab="cartoon" />
+  if (screen === 'ads-before') return <BeforeCreateShell tab="ads" />
+  if (screen === 'film') return <CreateShell tab="film" />
+  if (screen === 'recreate') return <RecreateCatalogPublic items={publicRecreateCatalog()} />
+  if (screen === 'recreate-before') return <BeforeRecreate items={publicRecreateCatalog()} />
+  if (screen === 'home-strip') return <div className="klp"><HomeRecreateStrip signedIn={false} /></div>
+  return <AdsPresenterAllProvider all={false}><AdsV2Client showClip moldura={screen !== 'ads-before'} guest initialBalance={null} workspace={null} classicCredits={null} variations={false} producao={false} sample business={null} sampleProbe={false} entry="product" escolhaInternal={false} escolhaSample escolhaSampleAvailable advancedModes={false} escolhaTestControls={false} escolhaOwnerKey="visitante" /></AdsPresenterAllProvider>
+}

@@ -15,7 +15,7 @@
 // multicâmera) entra com o quadro conferido: node scripts/enquadra.mjs <id> → olhar a folha → focus aqui → linha em lib/vitrineEnquadramento.ts.
 // O guardião scripts/test-enquadramento-vitrine-0911.mjs fica vermelho sem a linha, com focus diferente ou com arquivo trocado.
 import Link from 'next/link'
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import WallMedia from '@/components/WallMedia'
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { HOME_NEW_CLIPS } from '@/components/home/HomeClipsStrip'
@@ -336,7 +336,7 @@ function focusStyle(poster: string | undefined, focus: string | undefined): CSSP
   return Object.keys(style).length ? (style as CSSProperties) : undefined
 }
 
-export default function HomeMosaic({ signedIn, full = false, styles = [] }: { signedIn: boolean; full?: boolean; styles?: readonly MosaicStyle[] }) {
+export default function HomeMosaic({ signedIn, full = false, styles = [], afterTop }: { signedIn: boolean; full?: boolean; styles?: readonly MosaicStyle[]; afterTop?: ReactNode }) {
   const tiles = homeMosaicTiles(Date.now(), { full, styles })
   const newKeys = mosaicNewEffectKeys()
   const filmHref = createEntryForSignupHref(clipsFirstFilmHref(signedIn), signedIn) // KINEO-ENTRADAS-TELA-NOVA-1011 — logado: a aba Film da tela nova (mesma campanha); visitante: o de hoje
@@ -445,6 +445,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [] }: { si
           return (
             <>
               {doTopo.length ? <div className="kmz-topo-grid" data-home-topo-grid="1">{doTopo.map((t) => cartao(t, true))}</div> : null}
+              {afterTop}
               <div className="kmz-grid">{tiles.map((t) => cartao(t))}</div>
             </>
           )

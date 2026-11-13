@@ -8,6 +8,7 @@
 // Cores só de ../claude-connector/palette (fonte única das páginas de conector). Sem logo de terceiros: nomes em texto.
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import Link from 'next/link'
+import { CONNECTOR_MODEL_LABEL } from '@/lib/ui/homeRemodela2010'
 import { trackEvent } from '@/lib/analytics'
 import { CLAUDE_ADD_CONNECTOR_URL, CLAUDE_CONNECT_EVENTS, CLAUDE_NEW_CHAT_URL, isMobileClient } from '@/lib/claudeConnect'
 import { CHATGPT_NEW_CHAT_URL, vemDoChatgpt } from '@/lib/seo/paginasIaClaras2110'
@@ -197,6 +198,7 @@ export default function GenerateInClaude({ serverUrl, cards, credits, tools, scr
           </div>
 
           <section style={{ textAlign: 'center', maxWidth: 900, margin: '0 auto', padding: '34px 0 0' }}>
+            {tab === 'claude' && <p style={{ color: C.body, fontSize: 14, fontWeight: 750, margin: '0 0 14px' }}>Kineo for {CONNECTOR_MODEL_LABEL}</p>}
             <h1 style={{ fontSize: 'clamp(2.1rem, 6.6vw, 4.4rem)', fontWeight: 800, lineHeight: 1.02, letterSpacing: '-0.03em', margin: 0, textTransform: 'uppercase', textWrap: 'balance' }}>
               {heroTitle(tab)}
             </h1>

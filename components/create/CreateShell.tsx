@@ -84,11 +84,11 @@ export default function CreateShell({ tab, signedIn = true, showRecreate = true,
         <div className="rc-stage"><RecreatePlayer key={example.id} src={example.video} poster={example.poster} preview label={example.title}
           stage={{ kind: tab === 'film' ? 'Film example' : tab === 'cartoon' ? 'Cartoon example' : 'Ad example', title: example.title }} /></div>
       </section>
-      <section className="rc-gallery" aria-label={copy.galleryTitle}>
+      <section className="rc-gallery" aria-label={copy.galleryTitle} data-product-gallery={tab}>
         <div className="rc-gallery-heading"><h2>{copy.galleryTitle}</h2><p>{copy.galleryHint}</p></div>
         <div className="rc-grid">{examples.map((e, index) => <article key={e.id} className={`rc-card ${index % 4 === 1 ? 'rc-card-short' : ''} ${example.id === e.id ? 'rc-card-selected' : ''}`} data-create-example={e.id}>
           <ExampleCover src={e.video} poster={e.poster} label={`${hasInput ? 'Choose idea' : 'Preview'}: ${e.title}`} onSelect={() => choose(e)} />
-          <div className="rc-card-bottom"><h3>{e.title}</h3><div><button type="button" onClick={() => choose(e)} aria-label={`${hasInput ? 'Use the idea' : 'View'}: ${e.title}`}>{example.id === e.id ? 'Selected ✓' : copy.useLabel}</button></div></div>
+          <div className="rc-card-bottom"><h3>{e.title}</h3><div><button className="rc-template-action" type="button" onClick={() => choose(e)} aria-label={`${hasInput ? 'Use the idea' : 'View'}: ${e.title}`}>{example.id === e.id ? 'Selected ✓' : copy.useLabel}</button></div></div>
         </article>)}</div>
       </section>
     </div>

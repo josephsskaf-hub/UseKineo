@@ -7,13 +7,14 @@ import { createClient } from '@/lib/supabase/server'
 import { createShellDecision, filmNaMoldura } from '@/lib/create/access'
 import { CREATE_FILM_CAMPAIGN, type CreateTab } from '@/lib/create/tabs'
 import CreateShell from '@/components/create/CreateShell'
+import AdsV2Workspace from '@/app/(dashboard)/ads/v2/AdsV2Workspace'
 import PessoaFalandoPainel from '@/components/ads/PessoaFalandoPainel' // KINEO-ADS-PESSOA-FALANDO-TELA-1211
 import { KINEO_ADS_PESSOA_FALANDO, pessoaFalandoLigado } from '@/lib/ads/pessoaFalando/formatos' // KINEO-ADS-PESSOA-FALANDO-TELA-1211
 import { isAdsInternalEmail } from '@/lib/ads/access' // KINEO-PF-COBRA-NAS-FOTOS-1211 [CEO 12/11 15:15] — a MESMA lista das rotas (isInternalEmail deixava ver a tela e levar 404)
 import StudioNaMoldura from '@/components/create/StudioNaMoldura' // KINEO-STUDIO-NA-MOLDURA-1011
 import { campanhaDaCaixa, motorDaCaixa } from '@/lib/growth/studioSimples' // KINEO-STUDIO-NA-MOLDURA-1011 · KINEO-ENTRADAS-TELA-NOVA-1011: campanhaDaCaixa
 import { ideiaDoLink } from '@/lib/growth/ideiaDaPagina' // KINEO-ENTRADAS-TELA-NOVA-1011
-import { adsArrivalSupported, cartoonArrivalSupported, destinoDaChegada, filmParamsSupported, queryDaChegada } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 · KINEO-ENTRADAS-CARTOES-1011: ads/cartoon
+import { cartoonArrivalSupported, destinoDaChegada, filmParamsSupported, queryDaChegada } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 · KINEO-ENTRADAS-CARTOES-1011: ads/cartoon
 import AbaComChegada from './AbaComChegada' // KINEO-ENTRADAS-CARTOES-1011
 import StudioIdeaArrival from '@/components/StudioIdeaArrival' // KINEO-ENTRADAS-TELA-NOVA-1011
 import ClipNaMoldura from '@/components/create/ClipNaMoldura' // KINEO-CLIP-NA-MOLDURA-1011
@@ -50,13 +51,14 @@ export default async function Page({ params, searchParams = {} }: { params: { ta
     const { data: { user: quem } } = await createClient().auth.getUser()
     if (quem && pessoaFalandoLigado(KINEO_ADS_PESSOA_FALANDO, isAdsInternalEmail(quem.email))) return <CreateShell tab="ads" signedIn showRecreate={recreateVisible(quem.email)} showClip={clipNaMolduraVisivel(quem.email)} painel={<PessoaFalandoPainel />} />
   }
-  if (query && params.tab === 'ads' && !adsArrivalSupported(searchParams)) redirect(`/ads/v2?${query}`)
+
   if (query && params.tab === 'cartoon' && !cartoonArrivalSupported(searchParams)) redirect(`/kids-cartoon?${query}`)
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const decision = createShellDecision(params.tab, user, undefined, query) // KINEO-ENTRADAS-TELA-NOVA-1011 — o visitante volta para a aba COM a query
   if (decision.kind === 'signup') redirect(decision.href)
   if (decision.kind !== 'show') notFound()
+  if (params.tab === 'ads') return <><StudioIdeaArrival /><AdsV2Workspace searchParams={searchParams} moldura /></>
   // KINEO-STUDIO-NA-MOLDURA-1011 — o Studio real na moldura (interruptor CREATE_FILM_INPLACE). A campanha é a MESMA que o "Continue" leva.
   // KINEO-ENTRADAS-TELA-NOVA-1011 — lido como o /studio lê: ideia (ideiaDoLink) e intent_campaign (campanhaDaCaixa); sem intent_campaign, a
   // campanha de sempre da aba (create_film). StudioIdeaArrival = a mesma chegada do cadastro do /studio (?signup=1 / ?welcome=1: conversão do Ads).

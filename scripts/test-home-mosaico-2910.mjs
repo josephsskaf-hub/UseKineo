@@ -17,7 +17,7 @@ function problems(landing, mosaic) {
   const p = []
   if (!/export const HOME_MOSAIC_LIVE = true/.test(mosaic)) p.push('interruptor desligado')
   if (!landing.includes("import HomeMosaic, { HOME_MOSAIC_LIVE } from '@/components/home/HomeMosaic'")) p.push('import ausente')
-  if (!landing.includes('<HomeMosaic signedIn={isSignedIn} />')) p.push('vitrine não montada')
+  if (!/<HomeMosaic signedIn=\{isSignedIn\}(?:\s|\/)/.test(landing)) p.push('vitrine não montada')
   if (!landing.includes('{!HOME_MOSAIC_LIVE && showClips && <HomeClipsStrip')) p.push('faixa de clipes antiga não fica atrás do interruptor')
   if (!landing.includes('{!HOME_MOSAIC_LIVE && trending.length >= 6')) p.push('"Made with Kineo — every engine" não sai')
   if (!landing.includes('{!HOME_MOSAIC_LIVE && <section className="home-more-tools"')) p.push('galeria antiga não fica atrás do interruptor')

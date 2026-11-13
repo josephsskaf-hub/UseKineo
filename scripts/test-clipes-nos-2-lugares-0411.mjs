@@ -165,7 +165,7 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
   // (WallMedia, preload none, provado em E); nada disso entra no 1º carregamento. O teto de 600 KB por prévia continua o mesmo.
   if (bytes > 14 * 1024 * 1024) e.push(`A ${(bytes / 1048576).toFixed(1)} MB de mídia nova (> 14)`)
   // (B) nos dois lugares, de verdade
-  if (!fonteLanding.includes('<HomeMosaic signedIn={isSignedIn} />')) e.push('B a home não monta a vitrine')
+  if (!/<HomeMosaic signedIn=\{isSignedIn\}(?:\s|\/)/.test(fonteLanding)) e.push('B a home não monta a vitrine')
   if (!fontePagina.includes('<HomeMosaic signedIn={signedIn} full styles={adStyles} />')) e.push('B o /made-with-kineo não monta a vitrine')
   const lugares = { home: {}, galeria: { full: true, styles: estilos(17) }, 'galeria com 3 estilos': { full: true, styles: estilos(3) } } // 17 = os estilos de anúncio com vídeo hoje
   for (const [lugar, opts] of Object.entries(lugares)) {
@@ -200,14 +200,15 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
       const destino = bruto.startsWith('/signup?') ? new URLSearchParams(bruto.split('?').slice(1).join('?')).get('redirect') ?? '' : ''
       const pedido = new URLSearchParams(destino.split('?').slice(1).join('?'))
       if (VERDADE[c.id]?.[2] === 'anuncio') { // KINEO-ADS-NATAL-VITRINE-1011 — exemplo de anúncio: o MESMO destino do "Product ads" do menu do topo, via signup
-        const menuAntigo = /<Link href=\{createEntryHref\('ads', '([^']+)', isSignedIn\)\} data-nav-item="business" className="nav-primary"><UiLabel>Product ads<\/UiLabel><\/Link>/.exec(fonteLanding)?.[1]
-        const menu = menuAntigo && ENTRADA.createEntryHref('ads', menuAntigo, false) // KINEO-ENTRADAS-TELA-NOVA-1011 — o destino que o menu abre hoje
+        const menuAntigo = /<Link href=\{createEntryHref\('ads', '([^']+)', isSignedIn\)\} data-nav-item="business" className="nav-primary"><UiLabel>(?:Product ads|\{NOMES_DE_PRODUTO\.product_ads\.curto\})<\/UiLabel><\/Link>/.exec(fonteLanding)?.[1]
+        const menuEntrada = menuAntigo && ENTRADA.createEntryHref('ads', menuAntigo, true)
+        const menu = menuEntrada && (menuEntrada.startsWith('/signup?') ? new URLSearchParams(menuEntrada.split('?').slice(1).join('?')).get('redirect') : menuEntrada) // KINEO-ENTRADAS-TELA-NOVA-1011 — o destino que o menu abre hoje
         if (!menu || destino !== menu || bruto !== '/signup?' + new URLSearchParams({ redirect: menu }).toString()) e.push(`B ${lugar}: ${c.id} (exemplo de anúncio) não abre a criação de anúncio do menu "Product ads" (${menu}) via signup: ${bruto.slice(0, 80)}`)
         if (!/data-home-cta="mosaic_ad"/.test(cartao)) e.push(`B ${lugar}: ${c.id} (exemplo de anúncio) medido como outro tipo de cartão`)
       } else if (/data-home-cta="mosaic_ad"/.test(cartao) || destino.startsWith('/ads')) e.push(`B ${lugar}: ${c.id} não é exemplo de anúncio e leva às Ads: ${bruto.slice(0, 80)}`)
       else if (VERDADE[c.id]?.[2] === 'filme') { // KINEO-VITRINE-10-1011 — filme do Studio: o MESMO link dos filmes da vitrine, nunca o /clips
         const filme = /<a href="([^"]+)"[^>]*data-home-cta="mosaic_film"/.exec(html)?.[1]
-        if (!bruto.startsWith('/signup?redirect=' + encodeURIComponent(new URL(ENTRADA.createEntryHref('film', '/studio', false), 'https://k').pathname)) || (filme && filme.replace(/&amp;/g, '&') !== bruto)) e.push(`B ${lugar}: ${c.id} (filme) não abre o Studio como os filmes da vitrine: ${bruto.slice(0, 80)}`)
+        if (new URL(destino, 'https://k').pathname !== '/create/film' || (filme && filme.replace(/&amp;/g, '&') !== bruto)) e.push(`B ${lugar}: ${c.id} (filme) não abre o Studio como os filmes da vitrine: ${bruto.slice(0, 80)}`)
       } else if (lib.clipeNovoConvite(c) === 'film') { // KINEO-HOME-ESTRATEGIA-A-1311 — convite de filme: o MESMO link dos filmes da vitrine, medido como filme, com o convite na tela
         const filmes = [...html.matchAll(/<a href="([^"]+)"[^>]*data-home-cta="mosaic_film"[^>]*>/g)].filter((m) => !m[0].includes('data-clip-novo')).map((m) => m[1].replace(/&amp;/g, '&'))
         if (!(filmes.length ? filmes[0] === bruto : /redirect=%2F(create%2Ffilm|studio)/.test(bruto))) e.push(`B ${lugar}: ${c.id} (convite de filme) não abre o Studio como os filmes da vitrine: ${bruto.slice(0, 80)}`)
@@ -246,12 +247,12 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
         const formato = destino.startsWith('/recreate/') && publicRecreatePath(destino.slice('/recreate/'.length)) === destino
         const tipo = cta.startsWith('mosaic_effect_') ? 'efeito' : cta.startsWith('mosaic_style_') ? 'estilo' : cta === 'mosaic_clip' ? (formato ? 'formato Recreate' : /prompt(=|%3D)/.test(href) ? 'clipe com texto' : 'clipe sem texto') : cta.replace('mosaic_', '')
         const deve = tipo === 'efeito' || tipo === 'estilo' || tipo === 'clipe com texto' || tipo === 'formato Recreate'
-        const tem = cartao.includes('class="kmz-re"')
+        const tem = /class="[^\"]*\bkmz-re\b[^\"]*"/.test(cartao) && !/class="[^\"]*\bkmz-mkad\b[^\"]*"/.test(cartao)
         vistos[tipo] = (vistos[tipo] ?? 0) + 1
         if (tem !== deve) e.push(`R ${lugar}: ${tipo} ${deve ? 'sem' : 'com'} o selo Recreate (${(/aria-label="([^"]+)"/.exec(cartao)?.[1] ?? cta).slice(0, 60)})`)
         // KINEO-ADS-NATAL-VITRINE-1011 [fundador 10/11: "Em vez de Recreate, a pessoa vai fazer o anúncio dela"] — o convite "Make your ad" é um caso
         // à parte e explícito: EXATAMENTE nos exemplos de anúncio (cta mosaic_ad), nunca junto do Recreate, nunca em outro cartão.
-        const convite = /class="kmz-re kmz-mkad"[^>]*>[\s\S]*?Make your ad/.test(cartao)
+        const convite = /class="(?=[^\"]*\bkmz-re\b)(?=[^\"]*\bkmz-mkad\b)[^\"]*"[^>]*>[\s\S]*?Make your ad/.test(cartao)
         if (convite !== (tipo === 'ad')) e.push(`R ${lugar}: ${tipo} ${tipo === 'ad' ? 'sem' : 'com'} o convite "Make your ad" (${(/aria-label="([^"]+)"/.exec(cartao)?.[1] ?? cta).slice(0, 60)})`)
       }
       for (const k of ['efeito', 'clipe com texto', 'clipe sem texto', 'ad', 'image', 'film', ...(opts.full ? ['estilo'] : [] /* KINEO-HOME-TOPO-CLIPES-1311 — a home não tem mais cartão "motion": o topo são clipes novos */)]) if (!vistos[k]) e.push(`R ${lugar}: nenhum cartão "${k}" para provar a regra do selo`)
@@ -374,7 +375,7 @@ ok(rd(LIB).split('\n').every((l) => !/^import\b/.test(l)), 'lista compartilhada 
 
 const mutante = (nome, novasTrocas, fontes = {}, existe) => {
   let r
-  try { r = checa(carrega(novasTrocas), fontes, existe) } catch (err) { r = ['quebrou: ' + err.message] }
+  try { r = checa(carrega(novasTrocas), fontes, existe) } catch (err) { if (String(err.message).includes('mutante sem alvo')) { ok(false, nome + ': âncora do mutante desatualizada'); return } r = ['quebrou: ' + err.message] }
   ok(r.length > 0, `M ${nome}: vermelho${r.length ? ' — ' + String(r[0]).slice(0, 90) : ' (passou batido)'}`)
 }
 const COPIA_NOVO = '<span className="kmz-copy"><b><UiLabel>{c.title}</UiLabel></b><Views video={clipeNovoVideo(c)} />' // KINEO-ADS-NATAL-VITRINE-1011 — subiu para antes dos mutantes do anúncio
@@ -395,11 +396,11 @@ mutante('ordem não determinística na mesma data', { [LIB]: troca('return ((t ^
 mutante('mesma ordem em duas datas', { [LIB]: troca('let s = semente(`${dia}|${sal}`)', 'let s = semente(sal)') })
 mutante('ordem muda com a hora', { [LIB]: troca('return new Date(now).toISOString().slice(0, 10)', 'return new Date(now).toISOString().slice(0, 16)') })
 mutante('selo errado', { [LIB]: troca("{ id: 'perfume-splash', title: 'Perfume splash', engine: 'hollywood'", "{ id: 'perfume-splash', title: 'Perfume splash', engine: 'seedance'") })
-mutante('texto de foto no /clips', { [LIB]: troca("focus: '50% 12%', pessoa: true, prompt: null", "focus: '50% 12%', pessoa: true, prompt: 'Keep the same woman, same face, same yellow jacket and same blank white cup, one continuous shot with no cuts, walking across the crosswalk.'") })
+mutante('texto de foto no /clips', { [LIB]: troca("focus: '50% 33%', pessoa: true, prompt: null", "focus: '50% 33%', pessoa: true, prompt: 'Keep the same woman, same face, same yellow jacket and same blank white cup, one continuous shot with no cuts, walking across the crosswalk.'") })
 mutante('clipes em bloco no topo', { [LIB]: troca('const passo = Math.max(1, Math.floor(base.length / extras.length))', 'return [...extras, ...base]\n  const passo = 1'), [MOSAICO]: troca("const semBloco = afastaVizinhos(out, (t) => t.kind === 'novo', mesmoTamanho, 2)", 'const semBloco = out') })
-mutante('a moça colada nela mesma', { [MOSAICO]: troca("return afastaVizinhos(semBloco, (t) => t.kind === 'novo' && t.clip.pessoa,", 'return afastaVizinhos(semBloco, () => false,') })
+mutante('a moça colada nela mesma', { [MOSAICO]: troca("const ordem0 = afastaVizinhos(semBloco, (t) => t.kind === 'novo' && t.clip.pessoa,", 'const ordem0 = afastaVizinhos(semBloco, () => false,') })
 mutante('3 clipes novos seguidos', { [MOSAICO]: troca("const semBloco = afastaVizinhos(out, (t) => t.kind === 'novo', mesmoTamanho, 2)", 'const semBloco = out') })
-mutante('imagem grande sai da 1ª fileira', { [MOSAICO]: troca('...imagensDaVitrine.filter((i) => HOME_GALLERY_BIG.has(i.file)), ...embaralhaDoDia(imagensDaVitrine.filter((i) => !HOME_GALLERY_BIG.has(i.file)), dia,', '...embaralhaDoDia(imagensDaVitrine, dia,') })
+mutante('imagem grande sai da 1ª fileira', { [MOSAICO]: (s) => troca('imagensDaVitrine.filter((i) => !HOME_GALLERY_BIG.has(i.file))', 'imagensDaVitrine')(troca('...imagensDaVitrine.filter((i) => HOME_GALLERY_BIG.has(i.file)), ', '')(s)) })
 mutante('cartão grande demais abre buraco', { [LIB]: troca('const nGrandes = Math.min(4, Math.ceil(lista.length / 4))', 'const nGrandes = Math.ceil(lista.length / 2)') }) // KINEO-VITRINE-10-1011 — alvo novo: a conta ganhou o teto
 mutante('sem o teto de 4 grandes (26 clipes, grandes sobrando no fim)', { [LIB]: troca('const nGrandes = Math.min(4, Math.ceil(lista.length / 4))', 'const nGrandes = Math.ceil(lista.length / 4)') }) // KINEO-VITRINE-10-1011
 // KINEO-OUTFIT-MORPH-HOME-0911 — desde o 16º clipe o fim da grade tem DUAS proteções (imagem larga fora da cauda + fechaOFim). Sem a 2ª, o
@@ -429,9 +430,9 @@ mutante16('pessoa colada no fim, sem busca para trás', { [LIB]: troca('for (con
 mutante('pôster baixa antes da hora', { [MOSAICO]: troca('alt="" loading="lazy" decoding="async" style={{ objectPosition', 'alt="" decoding="async" style={{ objectPosition') })
 mutante('vídeo direto no cartão', { [MOSAICO]: troca('<WallMedia src={clipeNovoVideo(c)} />', '<video src={clipeNovoVideo(c)} autoPlay muted loop playsInline />') }, { mosaico: rd(MOSAICO).replace('<WallMedia src={clipeNovoVideo(c)} />', '') })
 mutante('cartão chama de anúncio', { [MOSAICO]: troca("const tipo = c.selo ?? 'Clip'", "const tipo = c.selo ?? 'Ad'") }) // KINEO-CARDS-SEM-MOTOR-0911 — alvo novo: o selo agora é o tipo
-mutante('cartão leva às Ads', { [MOSAICO]: troca(': viaSignup(publicRecreatePath(c.id) ?? clipeNovoDestino(c), signedIn)}', ": viaSignup('/ads/new', signedIn)}") }) // KINEO-RECREATE-PUBLICO-PREPARO-1011
+mutante('cartão leva às Ads', { [MOSAICO]: troca('publicRecreatePath(c.id) ?? clipeNovoDestino(c)', "'/ads/new'") }) // KINEO-RECREATE-PUBLICO-PREPARO-1011
 mutante('filme do Studio leva ao /clips', { [LIB]: troca("export const clipeNovoAbreStudio = (c: Pick<ClipeNovo, 'selo'>): boolean => c.selo === 'Narrated film'", "export const clipeNovoAbreStudio = (c: Pick<ClipeNovo, 'selo'>): boolean => false") }) // KINEO-VITRINE-10-1011
-mutante('clipe de foto rotulado como filme', { [LIB]: troca("id: 'kit-skincare', title: 'Holiday skincare gift set', engine: null, selo: 'Trending format'", "id: 'kit-skincare', title: 'Holiday skincare gift set', engine: null, selo: 'Narrated film'") }) // KINEO-VITRINE-10-1011
+mutante('clipe de foto rotulado como filme', { [LIB]: troca("id: 'kit-skincare', title: 'Holiday skincare gift set', engine: null, produto: 'clip', selo: 'Trending format'", "id: 'kit-skincare', title: 'Holiday skincare gift set', engine: null, produto: 'clip', selo: 'Narrated film'") }) // KINEO-VITRINE-10-1011
 mutante('anúncio de skincare leva às Ads', { [LIB]: troca("if (c.engine === null) return '/clips'", "if (c.engine === null) return '/ads/new'") }) // KINEO-VITRINE-10-1011
 // KINEO-ADS-NATAL-VITRINE-1011 [fundador 10/11: "Pode colocar todos na página inicial como anúncios… Em vez de Recreate, a pessoa vai fazer o
 // anúncio dela"] — o link às Ads agora é permitido SÓ no exemplo de anúncio; a AUTORIA continua proibida. Cada lado tem o seu mutante.
@@ -443,11 +444,11 @@ mutanteAutoria('exemplo de anúncio diz "made with Kineo Ads" (aria-label)', { [
 mutanteAutoria('exemplo de anúncio diz "Made by the ad tool" (texto do cartão)', { [MOSAICO]: injeta(COPIA_NOVO, "{podeFazerAnuncio(t) ? <i><UiLabel>Made by the ad tool</UiLabel></i> : null}") })
 mutanteAutoria('convite vira "Created with Studio Ads"', { [MOSAICO]: troca('<UiLabel>Make your ad</UiLabel>', '<UiLabel>Make your ad</UiLabel> <UiLabel>Created with Studio Ads</UiLabel>') })
 mutante('exemplo de anúncio leva ao /clips', { [LIB]: troca("export const clipeNovoAnuncio = (c: Pick<ClipeNovo, 'selo'>): boolean => c.selo === 'Ad example'", "export const clipeNovoAnuncio = (c: Pick<ClipeNovo, 'selo'>): boolean => false") })
-mutante('exemplo de anúncio sem passar pelo signup', { [MOSAICO]: troca(': viaSignup(clipeNovoDestino(c), signedIn)}', ": podeFazerAnuncio(t) ? '/ads/new' : viaSignup(clipeNovoDestino(c), signedIn)}") })
+mutante('exemplo de anúncio sem passar pelo signup', { [MOSAICO]: troca('createEntryForSignupHref(viaSignup(publicRecreatePath(c.id) ?? clipeNovoDestino(c), signedIn), signedIn)', "podeFazerAnuncio(t) ? '/ads/new' : createEntryForSignupHref(viaSignup(publicRecreatePath(c.id) ?? clipeNovoDestino(c), signedIn), signedIn)") })
 mutante('exemplo de anúncio leva a outro lugar das Ads', { [LIB]: troca("export const CRIAR_ANUNCIO_HREF = '/ads/new'", "export const CRIAR_ANUNCIO_HREF = '/ads/v2'") })
-mutante('convite "Make your ad" some', { [MOSAICO]: troca('{podeFazerAnuncio(t) ? <MakeYourAd /> : null}', '') })
-mutante('convite "Make your ad" em todo clipe novo', { [MOSAICO]: troca('{podeFazerAnuncio(t) ? <MakeYourAd /> : null}', '<MakeYourAd />') })
-mutante('Recreate no exemplo de anúncio (em vez do convite)', { [MOSAICO]: troca("  if (t.kind === 'novo') return !!t.clip.prompt && !clipeNovoAnuncio(t.clip)", "  if (t.kind === 'novo') return !!t.clip.prompt || clipeNovoAnuncio(t.clip)") })
+mutante('convite "Make your ad" some', { [MOSAICO]: troca('<Chips recreate={podeRecriar(t)} ad={podeFazerAnuncio(t)} convite={convite} />', '') })
+mutante('convite "Make your ad" em todo clipe novo', { [MOSAICO]: troca('<Chips recreate={podeRecriar(t)} ad={podeFazerAnuncio(t)} convite={convite} />', '<Chips recreate={podeRecriar(t)} ad convite={convite} />') })
+mutante('Recreate no exemplo de anúncio (em vez do convite)', { [MOSAICO]: troca("  if (t.kind === 'novo') return !clipeNovoAnuncio(t.clip) && (!!publicRecreatePath(t.clip.id) || !!t.clip.prompt)", "  if (t.kind === 'novo') return !!t.clip.prompt || clipeNovoAnuncio(t.clip)") })
 mutante('exemplo de anúncio medido como clipe', { [MOSAICO]: troca("data-home-cta={podeFazerAnuncio(t) ? 'mosaic_ad' : convite === 'film' ? 'mosaic_film' : convite === 'cartoon' ? 'mosaic_cartoon' : 'mosaic_clip'}", 'data-home-cta="mosaic_clip"') })
 // KINEO-HOME-ESTRATEGIA-A-1311 — o convite de filme e de desenho: destino, medida e botão
 const mutanteConvite = (nome, novasTrocas, frase) => { let r; try { r = checa(carrega(novasTrocas)) } catch (err) { r = ['quebrou: ' + err.message] } const m = r.find((x) => x.includes(frase)); ok(!!m, `M ${nome}: vermelho pela regra do convite${m ? ' — ' + m.slice(0, 90) : ' (passou batido: ' + String(r[0] ?? 'nada').slice(0, 60) + ')'}`) }
@@ -456,39 +457,39 @@ mutanteConvite('convite de filme leva ao /clips vazio', { [MOSAICO]: troca(": co
 mutanteConvite('convite some da tela', { [MOSAICO]: troca('      {convite ? <MakeYours tipo={convite} /> : null}\n', '') }, 'sem o convite "Make a')
 mutanteConvite('convite em todo clipe novo', { [LIB]: troca("=> CLIPE_CONVITE[c.id] ?? null", "=> CLIPE_CONVITE[c.id] ?? 'film'") }, 'sem estar no mapa aprovado')
 mutanteConvite('convite medido como clipe', { [MOSAICO]: troca(": convite === 'film' ? 'mosaic_film' : convite === 'cartoon' ? 'mosaic_cartoon' : 'mosaic_clip'}", ": 'mosaic_clip'}") }, 'medido como outro tipo de cartão')
-mutante('exemplo de anúncio rotulado como formato', { [LIB]: troca("id: 'anuncio-relogio', title: 'The gift watch', engine: null, selo: 'Ad example'", "id: 'anuncio-relogio', title: 'The gift watch', engine: null, selo: 'Trending format'") })
+mutante('exemplo de anúncio rotulado como formato', { [LIB]: troca("id: 'anuncio-relogio', title: 'The gift watch', engine: null, produto: 'ads', selo: 'Ad example'", "id: 'anuncio-relogio', title: 'The gift watch', engine: null, produto: 'ads', selo: 'Trending format'") })
 mutante('etiqueta "Ad example" na tela', { [MOSAICO]: injeta(COPIA_NOVO, '<i><UiLabel>{tipo}</UiLabel></i>') })
 // KINEO-OUTFIT-MORPH-HOME-0911 — o ramo do cartão de formato
 // KINEO-CARDS-SEM-ETIQUETA-0911 — os cartões não têm mais etiqueta: os mutantes de motor injetam o texto logo antes do título, onde ela ficava
 const COPIA_CLIPE = '<span className="kmz-copy"><b><UiLabel>{c.title}</UiLabel></b><Views video={c.video} />'
 mutante('etiqueta volta no clipe novo', { [MOSAICO]: injeta(COPIA_NOVO, '<i><UiLabel>{tipo}</UiLabel></i>') })
-mutante('etiqueta volta no multi-camera', { [MOSAICO]: injeta('<span className="kmz-copy"><b>{t.title}</b>', '<i>Multi-camera</i>') })
+mutante('etiqueta volta no multi-camera', { [MOSAICO]: injeta(COPIA_NOVO, '{topo ? <i>Multi-camera</i> : null}') })
 mutante('etiqueta volta no efeito', { [MOSAICO]: injeta('<span className="kmz-copy"><b><UiLabel>{e.title}</UiLabel></b>', '<i><UiLabel>Effect</UiLabel></i>') })
 mutante('tipo sai do aria-label', { [MOSAICO]: troca('aria-label={`${c.title} — ${tipo}`}', 'aria-label={c.title}') })
 mutante('formato mostra motor', { [MOSAICO]: injeta(COPIA_NOVO, "<i>{c.selo ? 'Kling 4.0' : ''}</i>") })
 mutante('formato perde o selo', { [MOSAICO]: troca("const tipo = c.selo ?? 'Clip'", "const tipo = 'Clip'") })
 mutante('formato leva ao /clips com motor', { [LIB]: troca("if (c.engine === null) return '/clips'", "if (c.engine === null) return '/clips?engine=hollywood'") })
-mutante('formato rotulado com motor errado', { [LIB]: troca("id: 'outfit-morph', title: 'Outfit morph', engine: null, selo: 'Trending format'", "id: 'outfit-morph', title: 'Outfit morph', engine: 'hollywood', selo: undefined") })
+mutante('formato rotulado com motor errado', { [LIB]: troca("id: 'outfit-morph', title: 'Outfit morph', engine: null, produto: 'clip', selo: 'Trending format'", "id: 'outfit-morph', title: 'Outfit morph', engine: 'hollywood', produto: 'clip', selo: undefined") })
 mutante('formato no aria-label com motor', { [MOSAICO]: troca('aria-label={`${c.title} — ${tipo}`}', 'aria-label={`${c.title} — ${tipo}${c.selo ? \' · Kling 4.0\' : \'\'}`}') })
 // KINEO-CARDS-SEM-MOTOR-0911 — o motor não volta por nenhum tipo de cartão, nem pelo aria-label; e o dado segue honesto
 mutante('motor volta no clipe novo', { [MOSAICO]: (s) => "import { CLIP_ENGINES as CE } from '@/lib/clips/clipCatalog'\n" + injeta(COPIA_NOVO, "<i>{c.engine ? CE[c.engine].label : ''}</i>")(s) })
 mutante('motor no aria-label do clipe novo', { [MOSAICO]: (s) => "import { CLIP_ENGINES as CE } from '@/lib/clips/clipCatalog'\n" + troca('aria-label={`${c.title} — ${tipo}`}', 'aria-label={`${c.title} — ${c.engine ? CE[c.engine].label : tipo}`}')(s) })
 mutante('motor volta no clipe grande', { [MOSAICO]: (s) => "import { CLIP_ENGINES as CE } from '@/lib/clips/clipCatalog'\n" + injeta(COPIA_CLIPE, '<i>{CE[c.engine].label}</i>')(s) })
-mutante('motor volta no multi-camera', { [MOSAICO]: injeta('<span className="kmz-copy"><b>{t.title}</b>', '<i>Kling 3</i>') })
-mutante('motor no aria-label do multi-camera', { [MOSAICO]: troca("aria-label={t.title + ' — multi-camera'}", "aria-label={t.title + ' — Kling 3'}") })
+mutante('motor volta no clipe do topo', { [MOSAICO]: injeta(COPIA_NOVO, '{topo ? <i>Kling 3</i> : null}') })
+mutante('motor no aria-label do topo', { [MOSAICO]: troca('aria-label={`${c.title} — ${tipo}`}', 'aria-label={topo ? `${c.title} — Kling 3` : `${c.title} — ${tipo}`}') })
 mutante('motor volta no filme', { [MOSAICO]: injeta('<span className="kmz-copy"><b><UiLabel>{t.title}</UiLabel></b>', '<i>{t.badge}</i>') })
 mutante('motor volta no estilo', { [MOSAICO]: injeta('<span className="kmz-copy"><b><UiLabel>{st.title}</UiLabel></b>', "<i>{st.engine ?? ''}</i>") })
 // KINEO-RECREATE-SO-ONDE-RECRIA-1011 — o selo nos dois sentidos
-mutante('selo Recreate volta no multicâmera', { [MOSAICO]: troca("  if (t.kind === 'clip') return !!t.clip.prompt", "  if (t.kind === 'motion') return true\n  if (t.kind === 'clip') return !!t.clip.prompt") })
+mutante('Recreate no topo sem modelo aprovado', { [MOSAICO]: troca("  if (t.kind === 'clip') return !!t.clip.prompt", "  if (t.kind === 'novo' && CLIPES_NO_TOPO.includes(t.clip.id)) return true\n  if (t.kind === 'clip') return !!t.clip.prompt") })
 mutante('selo Recreate volta no filme narrado', { [MOSAICO]: troca("  if (t.kind === 'clip') return !!t.clip.prompt", "  if (t.kind === 'film') return true\n  if (t.kind === 'clip') return !!t.clip.prompt") })
 mutante('selo Recreate some do clipe com texto', { [MOSAICO]: troca("  if (t.kind === 'clip') return !!t.clip.prompt", "  if (t.kind === 'clip') return false") })
-mutante('selo Recreate some do clipe novo com texto', { [MOSAICO]: troca("  if (t.kind === 'novo') return !!publicRecreatePath(t.clip.id) || !!t.clip.prompt", "  if (t.kind === 'novo') return false") })
-mutante('selo Recreate no formato fora do catálogo', { [MOSAICO]: troca("  if (t.kind === 'novo') return !!publicRecreatePath(t.clip.id) || !!t.clip.prompt", "  if (t.kind === 'novo') return true") })
+mutante('selo Recreate some do clipe novo com texto', { [MOSAICO]: troca("  if (t.kind === 'novo') return !clipeNovoAnuncio(t.clip) && (!!publicRecreatePath(t.clip.id) || !!t.clip.prompt)", "  if (t.kind === 'novo') return false") })
+mutante('selo Recreate no formato fora do catálogo', { [MOSAICO]: troca("  if (t.kind === 'novo') return !clipeNovoAnuncio(t.clip) && (!!publicRecreatePath(t.clip.id) || !!t.clip.prompt)", "  if (t.kind === 'novo') return true") })
 mutante('selo Recreate some do efeito', { [MOSAICO]: troca("return t.kind === 'effect' || t.kind === 'style'", "return t.kind === 'style'") })
 mutante('selo Recreate some do estilo de anúncio', { [MOSAICO]: troca("return t.kind === 'effect' || t.kind === 'style'", "return t.kind === 'effect'") })
-mutante('selo Recreate em todo cartão de vídeo (regra antiga)', { [MOSAICO]: (s) => s.replaceAll('{podeRecriar(t) ? <Recreate /> : null}', '<Recreate />') })
+mutante('selo Recreate em todo cartão de vídeo (regra antiga)', { [MOSAICO]: (s) => s.replaceAll('recreate={podeRecriar(t)}', 'recreate') })
 mutante('arquivo faltando',{}, {}, (rel) => !rel.includes('pet-barista.mp4') && fs.existsSync(path.join(ROOT, rel)))
-mutante('pôster faltando', {}, {}, (rel) => !rel.endsWith('produto-tenis-rua.webp') && fs.existsSync(path.join(ROOT, rel)))
+mutante('pôster faltando', {}, {}, (rel) => !rel.endsWith('selfie-confete.webp') && fs.existsSync(path.join(ROOT, rel)))
 mutante('"newest first" de volta', {}, { pagina: rd(PAGINA) + '\nClips, newest first.' })
 
 // ─── KINEO-EFEITO-DIRETO-1011 [fundador 10/11: "Tá caindo nessa página aqui, que era anterior, acho que deveria não cair mais"] ──────────

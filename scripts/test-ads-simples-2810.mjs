@@ -20,7 +20,7 @@ import { semAdsSimples2810, ARQUIVOS, BASE } from './test-support/desfaz-ads-sim
 const lf = (s) => s.replace(/\r\n/g, '\n')
 const rd = (p) => lf(readFileSync(p, 'utf8'))
 const F = {
-  pure: 'lib/ads/eligibilityPure.ts', server: 'lib/ads/eligibility.ts', page: 'app/(dashboard)/ads/v2/page.tsx', client: 'app/(dashboard)/ads/v2/AdsV2Client.tsx',
+  pure: 'lib/ads/eligibilityPure.ts', server: 'lib/ads/eligibility.ts', page: 'app/(dashboard)/ads/v2/AdsV2Workspace.tsx', client: 'app/(dashboard)/ads/v2/AdsV2Client.tsx',
   simple: 'app/(dashboard)/ads/v2/AdsV2Simple.tsx', escolha: 'app/(dashboard)/ads/v2/AdsV2Escolha.tsx', cards: 'components/home/HomeThreeCards.tsx',
   ugc: 'components/ugc/UgcCtaLink.tsx', door: 'app/ads/page.tsx', novo: 'app/(dashboard)/ads/new/page.tsx', policy: 'lib/ads/cena/escolhaSamplePolicy.ts',
   sampleServer: 'lib/ads/cena/escolhaSampleServer.ts', internal: 'lib/ads/cena/internalEscolha.ts', cenaRoute: 'app/api/ads/v2/cena/route.ts',

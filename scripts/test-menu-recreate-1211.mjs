@@ -51,7 +51,7 @@ function checks(o = {}) {
 
   // (1) Topo da home no computador: Recreate logo depois de Cartoons e antes do More.
   const landing = src('app/KineoLanding.tsx')
-  const deskStart = landing.indexOf('<PublicNavDropdown item="video"')
+  const deskStart = landing.indexOf("<Link href={createEntryHref('film',")
   const deskEnd = landing.indexOf('<div className="nav-right">', deskStart)
   ok(deskStart > 0 && deskEnd > deskStart, 'achou o topo do computador')
   const desk = landing.slice(deskStart, deskEnd)
@@ -144,7 +144,7 @@ const mutants = {
   'Recreate vai para dentro do More': { 'app/KineoLanding.tsx': L.replace('<span className="nd-menu nd-more">', '<span className="nd-menu nd-more"><Link href={RECREATE_MENU_HREF} data-nav-item={RECREATE_MENU_NAV_ITEM}>{RECREATE_MENU_LABEL}</Link>') },
   'troca em teste aparece na grade': { 'lib/recreate/catalogPublic.ts': read('lib/recreate/catalogPublic.ts').replace('.filter(f => publicRecreatePath(f.id) !== null)', '') },
   'preço no cartão': { 'app/recreate/RecreateCatalogPublic.tsx': read('app/recreate/RecreateCatalogPublic.tsx').replace('Recreate ↗</span>', 'Recreate ↗ 40 credits</span>') },
-  'texto de 10 px': { 'app/recreate/RecreateCatalogPublic.tsx': read('app/recreate/RecreateCatalogPublic.tsx').replace('.rcp-pill{align-self:flex-start;font-size:12px', '.rcp-pill{align-self:flex-start;font-size:10px') },
+  'texto de 10 px': { 'app/recreate/RecreateCatalogPublic.tsx': read('app/recreate/RecreateCatalogPublic.tsx').replace('font-size:15px', 'font-size:10px') },
   'vídeo toca sozinho': { 'app/recreate/RecreateCatalogPublic.tsx': read('app/recreate/RecreateCatalogPublic.tsx').replace('muted loop playsInline', 'muted loop autoPlay playsInline') },
   'lateral sem Recreate': { 'lib/ui/workspaceNavigation.ts': read('lib/ui/workspaceNavigation.ts').replace('CARTOON_NAV, RECREATE_NAV, ...last', 'CARTOON_NAV, ...last') },
   'visitante volta a ir direto ao cadastro': { 'app/recreate/page.tsx': read('app/recreate/page.tsx').replace('<RecreateCatalogPublic items={publicRecreateCatalog()} />', "redirect('/signup?')") },

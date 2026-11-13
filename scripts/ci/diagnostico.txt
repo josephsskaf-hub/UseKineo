@@ -84,3 +84,7 @@ node scripts/test-gpt-v31-facts-2026-09-24.mjs --mutant  # MUTANTE-DEVE-FALHAR
 # Não é defeito do produto: a intenção da asserção (exemplo de anúncio nunca vira link do Recreate) continua valendo.
 # Conserto (dono da tela): esperar /create/ads também para o visitante; verde 5 vezes → volta ao portão.
 node docs/recreate-0911/test-recreate.cjs
+
+# TELAS-1311 — contratos offline novos começam no diagnóstico, conforme PLATAFORMA-PORTAO-1111.
+node scripts/test-ads-moldura-1311.cjs
+node scripts/test-ads-options-1311.cjs

@@ -28,6 +28,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, 
 import Link from 'next/link'
 import BusinessVisualReferences from '@/components/BusinessVisualReferences'
 import { UiLabel, useInterfaceLanguage } from '@/components/InterfaceLanguage'
+import AdsMoldura from '@/components/create/AdsMoldura'
 import { AdsV2SimpleSession, readVideoForAd, videoFramesForAd } from './AdsV2Simple'
 import { AdsAfterSampleOffer } from './AdsV2Simple' // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12 — a oferta do Business depois da amostra
 import { AdsV2BatchSession } from './AdsV2Batch' // KINEO-ADS-LOTE-1310 — ?mode=batch: vários anúncios em fila de uma vez
@@ -516,7 +517,7 @@ type AdsV2WorkspaceProp = { role: 'owner' | 'member'; ownerLabel: string | null;
 // KINEO-HOME-3-CARDS-1910 — sessão do modo simples, que abre no formato do card e, na amostra, manda a entrada ao /plan. null/ausente = a tela de sempre.
 // KINEO-ADS-SIMPLES-2810 — escolhaSampleAvailable: a amostra grátis ainda aberta para ESTA pessoa (régua única, page.tsx); advancedModes: ?mode=full, ?mode=batch, as abas
 // KINEO-ADS-SIMPLES-2810 — e os atalhos para eles só para a casa (fundador 28/10: um caminho só para o cliente). Sem a prop = o cliente vê só o modo simples (Escolha).
-export default function AdsV2Client({ guest = false, initialBalance, classicCredits = null, variations = false, producao = false, sample = false, workspace = null, business = null, entry = null, sampleProbe = false, escolhaInternal = false, escolhaOwnerKey = '', escolhaTestControls = false, escolhaSample = false, escolhaSampleAvailable = false, advancedModes = false }: { /* KINEO-CARDS-ANTES-DO-LOGIN-0411 */ guest?: boolean; initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean; workspace?: AdsV2WorkspaceProp; business?: AdsBusinessOffer | null; entry?: 'product' | 'ugc' | null; sampleProbe?: boolean; escolhaInternal?: boolean; escolhaOwnerKey?: string; escolhaTestControls?: boolean; escolhaSample?: boolean; escolhaSampleAvailable?: boolean; advancedModes?: boolean }) { // KINEO-ADS-ESCOLHA-PUBLICO-2410 — the server preserves the Studio Ads access/paywall gate. // KINEO-ADS-SIMPLES-2810 — + escolhaSampleAvailable, advancedModes
+export default function AdsV2Client({ showRecreate = true, showClip = false, moldura = false, guest = false, initialBalance, classicCredits = null, variations = false, producao = false, sample = false, workspace = null, business = null, entry = null, sampleProbe = false, escolhaInternal = false, escolhaOwnerKey = '', escolhaTestControls = false, escolhaSample = false, escolhaSampleAvailable = false, advancedModes = false }: { /* KINEO-CARDS-ANTES-DO-LOGIN-0411 */ showRecreate?: boolean; showClip?: boolean; moldura?: boolean; guest?: boolean; initialBalance: number | null; classicCredits?: number | null; variations?: boolean; producao?: boolean; sample?: boolean; workspace?: AdsV2WorkspaceProp; business?: AdsBusinessOffer | null; entry?: 'product' | 'ugc' | null; sampleProbe?: boolean; escolhaInternal?: boolean; escolhaOwnerKey?: string; escolhaTestControls?: boolean; escolhaSample?: boolean; escolhaSampleAvailable?: boolean; advancedModes?: boolean }) { // KINEO-ADS-ESCOLHA-PUBLICO-2410 — the server preserves the Studio Ads access/paywall gate. // KINEO-ADS-SIMPLES-2810 — + escolhaSampleAvailable, advancedModes
   const [sampleGone, setSampleGone] = useState(false) // KINEO-BUSINESS-POS-AMOSTRA-2026-10-12
   const [session, setSession] = useState(0)
   const [groupId, setGroupId] = useState<string | null>(null)
@@ -636,7 +637,7 @@ export default function AdsV2Client({ guest = false, initialBalance, classicCred
     if (typeof window !== 'undefined') window.scrollTo({ top: 0 })
   }
 
-  return (
+  const content = (
     <div className="stu adsw adv2 kps-page adv2q">{/* KINEO-ADS-QUADRO-STUDIO-1510 — .adv2q: o visual do Studio de filmes */}
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
       <style dangerouslySetInnerHTML={{ __html: ADS_WIZARD_THEME_CSS + ADS_V2_CSS + ADS_V2_VARIATIONS_CSS }} />
@@ -652,7 +653,7 @@ export default function AdsV2Client({ guest = false, initialBalance, classicCred
       <header className="adsw-header adv2-head">
         <div>
           <h1>{n9Head ? n9Head.title : shell.title}</h1>{/* KINEO-ADS-NOTA9-2110 — era: <h1>{shell.title}</h1> */}
-          <p className="sub">{n9Head ? n9Head.sub : mode === 'full' ? shell.sub : shell.subSimple}</p>{/* KINEO-ADS-NOTA9-2110 */}
+          <p className="sub">{moldura ? <UiLabel>Add your product photo or link. Choose a photo before generating your video.</UiLabel> : n9Head ? n9Head.sub : mode === 'full' ? shell.sub : shell.subSimple}</p>{/* KINEO-ADS-NOTA9-2110 */}
           {/* KINEO-ADS-FLUXO-2026-10-13 — as abas do topo: Um anúncio (simples) · Lote (?mode=batch) · Produção (?mode=full). */}
           {mode && !n9Head && advancedModes ? <AdsFlowTabs active={adsV2FlowTabFor(mode)} copy={adsV2FlowCopy(mode === 'full' ? 'en' : lang)} /> : null}{/* KINEO-ADS-NOTA9-2110 — na tela foco as abas moram no "Avançado" */}{/* KINEO-ADS-SIMPLES-2810 — abas Lote/Produção só para a casa */}
           {/* KINEO-ADS-V2-VIRADA-2026-09-29 — o assistente antigo continua existindo como opção clássica (discreto, <a> sem prefetch). */}
@@ -708,8 +709,8 @@ export default function AdsV2Client({ guest = false, initialBalance, classicCred
       ) : null}
       {groupId || !groupChecked ? null : (
       // KINEO-ABAS-PALCO-2026-10-01 — o formato do Studio: o montador é o quadro de engenharia; o palco mostra anúncios da casa.
-      <div className="kps-grid">
-      <div className="kps-panel">
+      <div className={moldura ? "kps-grid rc-workspace" : "kps-grid"}>
+      <div className={moldura ? "kps-panel rc-panel" : "kps-panel"}>
       {/* KINEO-ADS-MARCAS-1510 — "Marca: X ▾" no topo do formulário (a caixa do motor do "Make a film"): escolher a marca preenche o kit do anúncio novo. */}
       {marcasOn && marcas.state.status === 'ready' ? <AdsBrandSwitcher lang={lang} state={marcas.state} selected={marcas.selected} onSelect={marcas.select} onNew={() => setBrandDlg({ brand: null })} onEdit={(b) => setBrandDlg({ brand: b })} /> : null}{/* KINEO-ADS-MARCAS-1510 */}
       {/* KINEO-ADS-SEM-PRECO-0411 — sem preço na tela de trabalho. */}
@@ -735,6 +736,7 @@ export default function AdsV2Client({ guest = false, initialBalance, classicCred
         <AdsV2BatchSession key={session} balance={balance} onBalance={refreshBalance} sample={sample} business={business} brandId={marcasOn ? marcas.selectedId : null} />/* KINEO-ADS-MARCAS-1510 — o lote inteiro sai na marca escolhida */
       ) : mode === 'simple' ? (
         <AdsV2SimpleSession
+          moldura={moldura}
           key={`${session}:${entry ?? ''}`} /* KINEO-ADS-QUALIDADE-2110 — outra entrada da home (?entry=ugc|product) = um pedido NOVO (remonta); era: key={session} */
           guest={guest} /* KINEO-CARDS-ANTES-DO-LOGIN-0411 */
           resume={session === 0}
@@ -761,7 +763,7 @@ export default function AdsV2Client({ guest = false, initialBalance, classicCred
         />
       ) : null}
       </div>
-        {mode === 'simple' ? <div ref={setPreviewSlot} className="adv2s-slot" /> : null}
+        {mode === 'simple' ? <div ref={setPreviewSlot} className={moldura ? "adv2s-slot rc-reference" : "adv2s-slot"} /> : null}
         {vaiPraTelaNova || (mode === 'simple' && simplePreview) ? null : <ProductStage name={shell.title} desc={mode === 'full' ? shell.sub : shell.subSimple} items={ADS_HOUSE_STAGE} wide />}
       </div>
       )}
@@ -775,6 +777,7 @@ export default function AdsV2Client({ guest = false, initialBalance, classicCred
       )}
     </div>
   )
+  return moldura ? <AdsMoldura showRecreate={showRecreate} showClip={showClip}>{content}</AdsMoldura> : content
 }
 
 // ─── a sessão: todo dado do anúncio mora aqui ────────────────────────────────────────────────

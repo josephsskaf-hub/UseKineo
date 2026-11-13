@@ -60,7 +60,7 @@ const ordem = (s, ...marcas) => {
 }
 
 const F = {
-  page: 'app/(dashboard)/ads/v2/page.tsx',
+  page: 'app/(dashboard)/ads/v2/AdsV2Workspace.tsx',
   client: 'app/(dashboard)/ads/v2/AdsV2Client.tsx',
   screen: 'lib/ads/v2Screen.ts',
   orders: 'app/api/ads/v2/orders/route.ts',
@@ -83,7 +83,7 @@ check('R2 sem acesso ao Studio Ads (adsGate ≠ ok) → /ads?from=v2, com rastro
 })
 check('R3 sem o v2 (adsV2Visible com o e-mail VERIFICADO do auth) → /ads/new, conferido UMA vez só (depois do acesso)', /if \(!adsV2Visible\(user\.email\)\) redirect\('\/ads\/new'\)/.test(page) && (page.match(/adsV2Visible\(/g) || []).length === 1)
 check('R4 ordem das portas: login → acesso ao Ads → v2 → desenho da tela', ordem(page, 'if (!user) redirect(', "if (gate !== 'ok')", 'if (!adsV2Visible(user.email))', '<AdsV2Client'))
-check('R5 página dinâmica e saldo que falha vira null (nunca 0)', /export const dynamic = 'force-dynamic'/.test(page) && /balance = !prof\.error && prof\.data && Number\.isFinite\(n\) \? n : null/.test(page) && /\} catch \{\n    balance = null\n  \}/.test(page) && !/balance = 0\b/.test(page))
+check('R5 página dinâmica e saldo que falha vira null (nunca 0)', /export const dynamic = 'force-dynamic'/.test(rd('app/(dashboard)/ads/v2/page.tsx')) && /balance = !prof\.error && prof\.data && Number\.isFinite\(n\) \? n : null/.test(page) && /\} catch \{\n    balance = null\n  \}/.test(page) && !/balance = 0\b/.test(page))
 
 // ── I. fronteira servidor/cliente ───────────────────────────────────────────────────────────────
 const importsClient = [...rd(F.client).matchAll(/^import[\s\S]*?from '([^']+)'/gm)].map((m) => m[1])
@@ -120,7 +120,7 @@ const importsClient = [...rd(F.client).matchAll(/^import[\s\S]*?from '([^']+)'/g
 // componente de navegador, só react e libs puras) e '@/lib/ads/v2Flow' (lib PURA, só import type) — provado em scripts/test-ads-fluxo-1310.mjs.
 // reancorado KINEO-ADS-QUADRO-STUDIO-1510 — + './AdsV2Quadro' (o CSS do quadro curto e do fundo do Studio; componente de navegador que só
 // importa a lib pura v2Styles — provado em scripts/test-ads-quadro-studio-1510.mjs). Nenhum módulo de servidor entrou no cliente.
-const PERMITIDOS = ['./AdsV2Quadro', '@/components/ads/AdsFlow', '@/lib/ads/v2Flow','@/lib/ads/v2Scene', './AdsV2SceneField', './AdsV2Batch', '@/components/ads/AdsPresenterPicker', '@/lib/ads/v2PresenterLibrary', '@/lib/ads/v2AiLabel', '@/lib/ads/afterSample', '@/lib/ads/v2Presenter', '@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', '@/components/ProductStage', './AdsV2Variations','@/components/AdsPlanChanges', 'react', 'next/link', '@/components/studioKit', '../new/adsWizardTheme', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2ShotLists', '@/lib/ads/v2Screen',
+const PERMITIDOS = ['@/components/create/AdsMoldura', './AdsV2Quadro', '@/components/ads/AdsFlow', '@/lib/ads/v2Flow','@/lib/ads/v2Scene', './AdsV2SceneField', './AdsV2Batch', '@/components/ads/AdsPresenterPicker', '@/lib/ads/v2PresenterLibrary', '@/lib/ads/v2AiLabel', '@/lib/ads/afterSample', '@/lib/ads/v2Presenter', '@/lib/ads/v2Styles', '@/components/ads/AdsStyles', '@/lib/ads/sample', '@/components/ProductStage', './AdsV2Variations','@/components/AdsPlanChanges', 'react', 'next/link', '@/components/studioKit', '../new/adsWizardTheme', '@/lib/videoDownload', '@/lib/ads/uploadFootage', '@/lib/ads/endCard', '@/lib/ads/v2Tiers', '@/lib/ads/v2ShotLists', '@/lib/ads/v2Screen',
   '@/components/BusinessVisualReferences', '@/components/InterfaceLanguage', './AdsV2Simple', '@/lib/ads/v2Simple', '@/lib/ui/interfaceLanguage']
 PERMITIDOS.push('@/lib/ads/v2FreeRedo', '@/lib/ads/v2PresenterHolds') // reancorado KINEO-ADS-REFACAO-ATOR-1410 — 2 libs PURAS (só import type; provadas puras em scripts/test-ads-refacao-ator-1410.mjs)
 PERMITIDOS.push('./AdsV2AfterDelivery') // reancorado KINEO-ADS-POS-ENTREGA-1510 — o painel depois da entrega ('use client'; só importa módulos de navegador/puros — provado em scripts/test-ads-pos-entrega-1510.mjs F1)

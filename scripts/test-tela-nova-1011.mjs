@@ -7,12 +7,14 @@ import { createRequire } from 'node:module'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, resolve, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const require = createRequire(import.meta.url)
-const { loader, read, ROOT } = require('../docs/recreate-0911/test-recreate.cjs')
-const { studioRenderContract, parse } = require('./test-support/studio-render-contract.cjs')
-const postcss = require('postcss')
+const TARGET_ROOT = resolve(process.env.KINEO_TEST_ROOT ?? join(dirname(fileURLToPath(import.meta.url)), '..'))
+const { loader, read, ROOT } = require(join(TARGET_ROOT, 'docs/recreate-0911/test-recreate.cjs'))
+const { studioRenderContract, parse } = require(join(ROOT, 'scripts/test-support/studio-render-contract.cjs'))
+const postcss = require(join(ROOT, 'node_modules/postcss'))
 const React = require(join(ROOT, 'node_modules/react'))
 const { renderToStaticMarkup } = require(join(ROOT, 'node_modules/react-dom/server'))
 
@@ -122,7 +124,10 @@ function shellChecks(o = {}) {
   for (const tab of ['film', 'cartoon', 'ads']) {
     const html = renderShell(m, tab)
     const workspace = html.slice(html.indexOf('</header>') + '</header>'.length)
-    const text = visibleText(workspace) + ' ' + [...workspace.matchAll(/(?:aria-label|placeholder|title)="([^"]*)"/g)].map(x => x[1]).join(' ')
+    // Only the approved gallery heading is exempt from the historical 'made with' copy ban.
+    if (tab === 'cartoon') ok(workspace.includes('<h2>Made with Kineo cartoons</h2>'), 'Cartoon: approved gallery heading')
+    const approvedGalleryWorkspace = tab === 'cartoon' ? workspace.replace('<h2>Made with Kineo cartoons</h2>', '').replace('aria-label="Made with Kineo cartoons"', '') : workspace
+    const text = visibleText(approvedGalleryWorkspace) + ' ' + [...approvedGalleryWorkspace.matchAll(/(?:aria-label|placeholder|title)="([^"]*)"/g)].map(x => x[1]).join(' ')
     ok(!ENGINE_NAMES.test(text), `${tab}: nenhum nome de motor (${(text.match(ENGINE_NAMES) || [])[0]})`)
     ok(!PRICE_WORDS.test(text), `${tab}: nenhum preço, crédito, ilimitado, urgência ou "made with" (${(text.match(PRICE_WORDS) || [])[0]})`)
     const tabLinks = [...html.matchAll(/data-create-tab="([a-z]+)"/g)].map(x => x[1])
@@ -132,7 +137,10 @@ function shellChecks(o = {}) {
     ok(html.includes('class="rc-player"') && html.includes('class="rc-grid"'), `${tab}: player próprio + grade`)
     const n = tabs.CREATE_EXAMPLES[tab].length
     // Catálogo completo mesmo com menos capas visíveis por vez.
-    ok((html.match(/data-create-example=/g) || []).length === n && tabs.CREATE_EXAMPLES_MIN === 8 && n >= tabs.CREATE_EXAMPLES_MIN, `${tab}: ${n} exemplos na fileira (mínimo ${tabs.CREATE_EXAMPLES_MIN})`)
+    const canonical = loader(stubs)('lib/clipesNos2Lugares').CLIPES_NOVOS.filter(c => c.produto === tab)
+    const shown = [...html.matchAll(/data-create-example="([^"]+)"/g)].map(x => x[1])
+    assert.deepEqual(shown, canonical.map(c => c.id), `${tab}: every canonical product example appears once, in source order`); passed++
+    ok(n === canonical.length && parse(html).querySelectorAll('.rc-card-bottom button.rc-template-action').length === n, `${tab}: every approved example has its primary action`)
     const button = html.match(/<button type="button" class="rc-generate"[^>]*>/)[0]
     if (tab === 'ads') ok(!button.includes('disabled') && html.includes('data-create-continue="/ads/new?utm_source=create_ads"'), 'ads: "Make your ad" leva a /ads/new')
     else {
@@ -152,28 +160,26 @@ function shellChecks(o = {}) {
 function exampleChecks(o = {}) {
   const m = loader(stubs, o)
   const tabs = m('lib/create/tabs'), clipes = m('lib/clipesNos2Lugares')
-  for (const [tab, list] of Object.entries(tabs.CREATE_EXAMPLES)) for (const e of list) {
-    ok(existsSync(join(ROOT, 'public', e.video)) && existsSync(join(ROOT, 'public', e.poster)), `${tab}/${e.id}: vídeo e pôster em disco`)
-    ok(e.video.endsWith('.mp4') && /\.(webp|jpg)$/.test(e.poster), `${tab}/${e.id}: formatos`)
+  const canonical = loader(stubs)('lib/clipesNos2Lugares')
+  // The same live list serves home and product galleries. No old parallel array and no filler minimum.
+  for (const tab of ['film', 'cartoon', 'ads']) {
+    const expected = canonical.CLIPES_NOVOS.filter(c => c.produto === tab).map(c => ({ id: c.id, title: c.title, idea: tab === 'ads' ? null : c.title, video: canonical.clipeNovoVideo(c), poster: canonical.clipeNovoPoster(c) }))
+    assert.deepEqual(tabs.CREATE_EXAMPLES[tab], expected, tab + ': exact canonical product media, copy and order'); passed++
   }
-  // KINEO-TELA-NOVA-ACABAMENTO-1011 — os 6 'Ad example' primeiro, depois os 3 anúncios de produto do card da home (arquivos que já estão no ar).
-  const adEx = clipes.CLIPES_NOVOS.filter(c => c.selo === 'Ad example').map(c => c.id)
-  ok(adEx.length === 6 && tabs.CREATE_EXAMPLES.ads.slice(0, 6).map(e => e.id).join() === adEx.join(), 'Ads: os 6 Ad example primeiro')
-  const homeCards = read('lib/ui/homeThreeCards.ts')
-  ok(tabs.CREATE_EXAMPLES.ads.slice(6).every(e => /^\/previews\/home-card-novo-[a-z_]+\.mp4$/.test(e.video) && homeCards.includes(`preview('${e.video.slice('/previews/'.length, -4)}'`)), 'Ads: o resto são clipes que giram nos cards da home')
+  ok(clipes.CLIPES_NOVOS.every(c => clipes.clipeNovoAnuncio(c) === (c.produto === 'ads')), 'Ad example label and Ads product agree')
+  const required = { film: ['filme-mary-celeste', 'filme-anticitera', 'filme-porta-do-inferno', 'ultimo-trem', 'carta-do-front'], cartoon: ['dragaozinho', 'boneco-de-neve', 'raposa-lanterna'], ads: ['anuncio-halo-car-selfie', 'anuncio-veil-grwm', 'anuncio-orra-street-interview', 'anuncio-relogio', 'anuncio-colar', 'anuncio-sueter-pet', 'anuncio-tenis-pedestal', 'anuncio-creme-selfie', 'anuncio-burger-camera-lenta'] }
+  for (const [tab, ids] of Object.entries(required)) ok(ids.every(id => tabs.CREATE_EXAMPLES[tab].some(e => e.id === id) && clipes.CLIPES_NOVOS.some(c => c.id === id && c.produto === tab)), tab + ': approved 13/11 examples retain the right product')
   for (const [tab, list] of Object.entries(tabs.CREATE_EXAMPLES)) {
-    ok(new Set(list.map(e => e.id)).size === list.length && new Set(list.map(e => e.video)).size === list.length, `${tab}: nenhum exemplo repetido`)
-    if (tab !== 'ads') ok(list.every(e => e.idea === e.title), `${tab}: a ideia do clique é o título do vídeo`)
-    // Só arquivos do catálogo da casa (nada novo): vitrine/galeria, seleção de 24/09, cards da home, card de Cartoon (Leo).
-    ok(list.every(e => /^\/previews\/(galeria\/|examples-hd-sep24\/|home-card-novo-|home-card-kids-cartoon-leo\.mp4$)/.test(e.video)), `${tab}: só arquivos do catálogo da casa`)
+    ok(new Set(list.map(e => e.id)).size === list.length && new Set(list.map(e => e.video)).size === list.length, tab + ': no duplicated example')
+    for (const e of list) {
+      ok(existsSync(join(ROOT, 'public', e.video)) && existsSync(join(ROOT, 'public', e.poster)), tab + '/' + e.id + ': video and poster exist')
+      ok(e.video.endsWith('.mp4') && /\.(webp|jpg)$/.test(e.poster), tab + '/' + e.id + ': expected media formats')
+      ok(/^\/previews\/galeria\/[^/]+\.mp4$/.test(e.video) && /^\/posters\/galeria\/[^/]+\.webp$/.test(e.poster), tab + '/' + e.id + ': canonical house gallery origin')
+    }
   }
   const fora = clipes.FORA_DE_ESTACAO.clipes.concat(['pumpkin', 'werewolf'])
-  ok(Object.values(tabs.CREATE_EXAMPLES).flat().every(e => !fora.some(f => e.video.includes(f))), 'nenhum exemplo fora de estação (Halloween)')
-  const sel = read('lib/ui/examplesSelectionSep24.ts')
-  ok(tabs.CREATE_EXAMPLES.film.filter(e => e.video.startsWith('/previews/examples-hd-sep24/')).every(e => sel.includes(`asset: '${e.id}'`) || sel.includes(`'${e.id}'`) || sel.includes(`${e.id}.mp4`)) && tabs.CREATE_EXAMPLES.film.filter(e => e.video.startsWith('/previews/examples-hd-sep24/')).every(e => sel.includes(e.title) || read('lib/publicExamples.ts').includes(`title: '${e.title}'`)),'Film: títulos e arquivos da seleção da casa')
-  ok(tabs.CREATE_EXAMPLES.ads.every(e => e.idea === null), 'Ads: exemplo não preenche nada (só troca o vídeo)')
-  ok(['filme-mary-celeste', 'filme-anticitera', 'filme-porta-do-inferno'].every(id => tabs.CREATE_EXAMPLES.film.some(e => e.id === id)), 'Film: os 3 Narrated film')
-  ok(['dragaozinho', 'boneco-de-neve'].every(id => tabs.CREATE_EXAMPLES.cartoon.some(e => e.id === id)), 'Cartoon: dragão e boneco de neve')
+  ok(Object.values(tabs.CREATE_EXAMPLES).flat().every(e => !fora.some(f => e.video.includes(f))), 'no out-of-season example')
+  ok(tabs.CREATE_EXAMPLES.ads.every(e => e.idea === null), 'Ads previews do not fabricate customer product data')
 }
 
 // ─── E. Recreate: controles e catálogo históricos; a barra segue o acesso ao /create ──────────────────────────────
@@ -196,7 +202,16 @@ function recreateChecks(o = {}) {
     const tabbed = renderRecreate(o, { ...props, createTabs: true })
     ok((tabbed.match(/data-create-tab=/g) || []).length === 4 && tabbed.includes('aria-current="page" data-create-tab="recreate"'), `Recreate ${JSON.stringify(props)}: com acesso, as 4 abas e Recreate ativa`)
   }
-  ok(read('app/recreate/recreate.css') === baseSrc('app/recreate/recreate.css').replace(/\r\n/g, '\n') || read('app/recreate/recreate.css').replace(/\r\n/g, '\n') === baseSrc('app/recreate/recreate.css').replace(/\r\n/g, '\n'), 'recreate.css intocado')
+  const css = (o['app/recreate/recreate.css'] ?? read('app/recreate/recreate.css')).replace(/\r\n/g, '\n')
+  const marker = '/* Mission 2: the primary template action is distinct from social controls. */'
+  const pieces = css.split(marker)
+  ok(pieces.length === 2 && pieces[0].trimEnd() === baseSrc('app/recreate/recreate.css').replace(/\r\n/g, '\n').trimEnd(), 'legacy CSS unchanged before approved primary-action layer')
+  const actionCss = postcss.parse(pieces[1]), permitted = new Set(['.recreate .rc-gallery .rc-card .rc-card-bottom button.rc-template-action', '.recreate .rc-gallery .rc-card .rc-card-bottom button.rc-template-action:focus-visible', '.recreate .rc-gallery .rc-card .rc-card-bottom button.rc-template-action:disabled'])
+  actionCss.walkAtRules(() => ok(false, 'primary-action layer cannot introduce global at-rules'))
+  actionCss.walkRules(rule => ok(permitted.has(rule.selector), 'primary-action CSS is scoped to its button'))
+  const primary = actionCss.nodes.find(rule => rule.type === 'rule' && rule.selector === '.recreate .rc-gallery .rc-card .rc-card-bottom button.rc-template-action')
+  const declarations = Object.fromEntries((primary?.nodes ?? []).filter(n => n.type === 'decl').map(n => [n.prop, n.value]))
+  ok(declarations['min-height'] === '44px' && declarations['font-size'] === '15px' && declarations.background === '#fff', 'white primary action has approved text and touch dimensions')
   // O novo layout do player é conferido em acabamentoChecks, inclusive com mutantes.
   // Com 'public' todo logado recebe as abas; a tela SEM abas (mesmas ações, provadas acima com createTabs=false) é o que a conta
   // de fora vê com o interruptor forçado em 'internal', e o que TODOS veem em 'off'.
@@ -218,7 +233,9 @@ function recreateChecks(o = {}) {
   // KINEO-CREATE-VISITANTE-1111 — o visitante não segue mais na tela antiga: vai ao cadastro (scripts/test-create-visitante-1111.mjs).
   ok(loader(stubs, o)('lib/create/access').createShellVisible(CUSTOMER) === true && loader(stubs, o)('lib/create/access').createShellVisible(null) === false, "/create em 'public': conta logada → /create/film; visitante → cadastro (createShellDecision)")
   // Ninguém linka a tela antiga: nenhum href/push/redirect para "/create" puro em app/, components/ e lib/ (só o título da aba e o robots).
-  const hits = execFileSync('git', ['grep', '-nE', `["'\`]/create(["'\`?#])`, '--', 'app', 'components', 'lib'], { cwd: ROOT, encoding: 'utf8' }).trim().split('\n').filter(l => !/^[^:]+:\d+:\s*\/\//.test(l)).filter(l => !/^app\/robots\.ts:|^lib\/ui\/workspaceFocus\.ts:|^app\/\(dashboard\)\/DashboardShell\.tsx:.*'Create Video'/.test(l))
+  let grepOutput = ''
+  try { grepOutput = execFileSync('git', ['grep', '-nE', `["'\`]/create(["'\`?#])`, '--', 'app', 'components', 'lib'], { cwd: ROOT, encoding: 'utf8' }) } catch (error) { if (error.status !== 1) throw error }
+  const hits = grepOutput.trim().split('\n').filter(Boolean).filter(l => !/^[^:]+:\d+:\s*\/\//.test(l)).filter(l => !/^app\/robots\.ts:|^lib\/ui\/workspaceFocus\.ts:|^app\/\(dashboard\)\/DashboardShell\.tsx:.*'Create Video'/.test(l))
   ok(hits.length === 0, `nenhum link para a tela antiga /create (${hits.join(' | ')})`)
 }
 
@@ -238,7 +255,7 @@ function mobileChecks() {
   ok(/@media\(max-width:640px\)\{[^\n]*\.rc-workspace\{display:flex;flex-direction:column;height:auto\}\.rc-reference\{order:0;[^\n]*\.rc-panel\{order:1;[^\n]*\.rc-gallery\{order:2;/.test(css), 'celular: exemplo, passos, grade (CSS do Recreate)')
   ok(/\.ct-tabs\{[^}]*overflow-x:auto/.test(mine) && /\.ct-tab\{[^}]*white-space:nowrap/.test(mine), 'abas roláveis na horizontal')
   ok(!/(?<![-a-z])(min-)?width:\s*\d{3,}px/.test(mine), 'nenhuma largura fixa grande no CSS novo')
-  ok(!/\.rc-[a-z-]+\{/.test(mine.replace(/\.create-shell \.rc-[a-z-]+|\.rc-library-only \.ct-tabs/g, '')), 'o CSS novo não redefine classe rc-* fora da tela nova (nem fora dos 3 acabamentos)')
+  ok(!/\.rc-[a-z-]+\{/.test(mine.replace(/\.create-shell[^,{]*|\.rc-library-only \.ct-tabs/g, '')), 'o CSS novo não redefine classe rc-* fora da tela nova (nem fora dos 3 acabamentos)')
 }
 
 // ─── H. Apresentação aprovada do Palco e da galeria, com todas as mídias do catálogo original ───
@@ -273,7 +290,7 @@ function acabamentoChecks(o = {}) {
 // Mount the real components with every gallery video visible. Then click a real cover and confirm
 // the selected preview changes without generating a film or charging the account.
 function galleryInteraction(o = {}) {
-  const { aba } = require('../docs/studio-na-moldura-1011/runtime.cjs')
+  const { aba } = require(join(ROOT, 'docs/studio-na-moldura-1011/runtime.cjs'))
   for (const tab of ['film', 'cartoon', 'ads', 'recreate']) {
     const t = aba(o)
     let automaticPlays = 0
@@ -309,35 +326,38 @@ const real = passed
 // ─── Mutantes: cada um TEM de derrubar o guardião ───────────────────────────────────────────────────────────────────────
 const src = p => read(p)
 const mutants = [
-  ['interruptor fechado de volta em internal', { 'lib/create/release.ts': src('lib/create/release.ts').replace("CREATE_SHELL_RELEASE: InternalRelease = 'public'", "CREATE_SHELL_RELEASE: InternalRelease = 'internal'") }],
-  ['interruptor desligado', { 'lib/create/release.ts': src('lib/create/release.ts').replace("CREATE_SHELL_RELEASE: InternalRelease = 'public'", "CREATE_SHELL_RELEASE: InternalRelease = 'off'") }],
-  ['visitante vê sem login no public', { 'lib/create/access.ts': src('lib/create/access.ts').replace("if (!user) return release === 'public' ?", "if (!user) return { kind: 'show', showRecreate: false }; if (false) return release === 'public' ?") }],
-  ['conta de fora vê no internal', { 'lib/create/access.ts': src('lib/create/access.ts').replace('return !!email && releaseVisible(email, release)', "return !!email && (release !== 'off')") }],
-  ['Film manda ?prompt= (o Studio simples não lê)', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace("q.set('ideia', ", "q.set('prompt', ") }],
-  ['Film com limite maior que o destino', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace('FILM_IDEA_MAX_CHARS = 2000', 'FILM_IDEA_MAX_CHARS = 4000') }],
-  ['Cartoon com parâmetro inventado', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace('return viaSignup(KIDS_CARTOON_TEMPLATE_PATH, signedIn)', "return viaSignup(KIDS_CARTOON_TEMPLATE_PATH + '?idea=x', signedIn)") }],
-  ['nome de motor na copy', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace("title: 'Create a film'", "title: 'Create a film with Kling'") }],
-  ['preço na copy', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace("note: 'Nothing starts until you confirm on the next screen.'", "note: 'From 40 credits.'") }],
-  ['exemplo inexistente', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace("'/previews/examples-hd-sep24/plane-1942.mp4'", "'/previews/examples-hd-sep24/plane-1943.mp4'") }],
-  ['Recreate sempre com abas', { 'app/recreate/RecreateClient.tsx': src('app/recreate/RecreateClient.tsx').replace("formatIds, createTabs = false }", 'formatIds, createTabs = true }') }],
-  ['botão sempre habilitado', { 'components/create/CreateShell.tsx': src('components/create/CreateShell.tsx').replace('disabled={!ready}', 'disabled={false}') }],
+  ['interruptor fechado de volta em internal', { 'lib/create/release.ts': src('lib/create/release.ts').replace("CREATE_SHELL_RELEASE: InternalRelease = 'public'", "CREATE_SHELL_RELEASE: InternalRelease = 'internal'") }, switchChecks],
+  ['interruptor desligado', { 'lib/create/release.ts': src('lib/create/release.ts').replace("CREATE_SHELL_RELEASE: InternalRelease = 'public'", "CREATE_SHELL_RELEASE: InternalRelease = 'off'") }, switchChecks],
+  ['visitante vê sem login no public', { 'lib/create/access.ts': src('lib/create/access.ts').replace("if (!user) return release === 'public' ?", "if (!user) return { kind: 'show', showRecreate: false }; if (false) return release === 'public' ?") }, switchChecks],
+  ['conta de fora vê no internal', { 'lib/create/access.ts': src('lib/create/access.ts').replace('return !!email && releaseVisible(email, release)', "return !!email && (release !== 'off')") }, switchChecks],
+  ['Film manda ?prompt= (o Studio simples não lê)', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace("q.set('ideia', ", "q.set('prompt', ") }, destinationChecks],
+  ['Film com limite maior que o destino', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace('FILM_IDEA_MAX_CHARS = 2000', 'FILM_IDEA_MAX_CHARS = 4000') }, destinationChecks],
+  ['Cartoon com parâmetro inventado', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace('return viaSignup(KIDS_CARTOON_TEMPLATE_PATH, signedIn)', "return viaSignup(KIDS_CARTOON_TEMPLATE_PATH + '?idea=x', signedIn)") }, destinationChecks],
+  ['nome de motor na copy', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace("title: 'Create a film'", "title: 'Create a film with Kling'") }, shellChecks],
+  ['preço na copy', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace("note: 'Nothing starts until you confirm on the next screen.'", "note: 'From 40 credits.'") }, shellChecks],
+  ['missing media', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace('video: clipeNovoVideo(c)', "video: '/previews/galeria/fixture-missing.mp4'") }, exampleChecks],
+  ['Recreate sempre com abas', { 'app/recreate/RecreateClient.tsx': src('app/recreate/RecreateClient.tsx').replace("formatIds, createTabs = false }", 'formatIds, createTabs = true }') }, recreateChecks],
+  ['botão sempre habilitado', { 'components/create/CreateShell.tsx': src('components/create/CreateShell.tsx').replace('disabled={!ready}', 'disabled={false}') }, shellChecks],
   // KINEO-TELA-NOVA-ACABAMENTO-1011
-  ['fileira com menos itens que o mínimo (Cartoon volta aos 3)', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace(/\n\s*cardDaHome\('(baby_puppy|knight_kitten|fox|penguin|skatedog)'[^\n]*/g, '') }],
-  ['fileira com menos itens que o mínimo (Film perde a seleção da casa)', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace(/\n\s*filmeDaCasa\([^\n]*/g, '') }],
-  ['mínimo rebaixado', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace('CREATE_EXAMPLES_MIN = 8', 'CREATE_EXAMPLES_MIN = 3') }],
-  ['exemplo repetido', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace("filmeDaCasa('castle', 'The castle hiding inside a university building')", "filmeDaCasa('volcano-selected', 'The volcano watcher')") }],
-  ['exemplo de Halloween de volta', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace("cardDaHome('skatedog', 'The skateboarding puppy')", "cardDaHome('pumpkin', 'The pumpkin')") }],
-  ['galeria volta a nove colunas', { 'app/recreate/studio-media.css': src('app/recreate/studio-media.css').replace('--rc-cols: 4;', '--rc-cols: 9;') }],
-  ['superfície do palco volta ao preto fixo', { 'app/recreate/studio-media.css': src('app/recreate/studio-media.css').replace(/(\.recreate \.rc-stage \{[^}]*background:) transparent;/, '$1 black;') }],
-  ['vídeo preenche cortando pessoas', { 'app/recreate/studio-media.css': src('app/recreate/studio-media.css').replace('object-fit: contain;', 'object-fit: cover;') }],
-  ['controles novamente por cima do vídeo', { 'app/recreate/studio-media.css': src('app/recreate/studio-media.css').replace('position: static;', 'position: absolute;') }],
-  ['toda a galeria toca ao abrir', { 'app/recreate/RecreatePlayer.tsx': src('app/recreate/RecreatePlayer.tsx').replace('preload="none"', 'preload="auto" autoPlay') }],
+  ['Cartoon loses approved fox', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace("c.produto === 'cartoon'", "c.produto === 'cartoon' && c.id !== 'raposa-lanterna'") }, exampleChecks],
+  ['Film loses the newest letter', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace("c.produto === 'film'", "c.produto === 'film' && c.id !== 'carta-do-front'") }, exampleChecks],
+  ['Cartoon receives film type', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace("cartoon: CLIPES_NOVOS.filter(c => c.produto === 'cartoon')", "cartoon: CLIPES_NOVOS.filter(c => c.produto === 'film')") }, exampleChecks],
+  ['parallel media origin', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace('video: clipeNovoVideo(c)', "video: '/previews/galeria/selfie-confete.mp4'") }, exampleChecks],
+  ['duplicated first film', { 'lib/create/tabs.ts': src('lib/create/tabs.ts').replace("film: CLIPES_NOVOS.filter(c => c.produto === 'film').map(c => galeria(c, c.title))", "film: CLIPES_NOVOS.filter(c => c.produto === 'film').map((c, i, list) => galeria(i === 1 ? list[0] : c, i === 1 ? list[0].title : c.title))") }, exampleChecks],
+  ['canonical fox mislabeled as film', { 'lib/clipesNos2Lugares.ts': src('lib/clipesNos2Lugares.ts').replace("id: 'raposa-lanterna', title: 'Fox and the lantern', engine: null, produto: 'cartoon'", "id: 'raposa-lanterna', title: 'Fox and the lantern', engine: null, produto: 'film'") }, exampleChecks],
+  ['out-of-season origin', { 'lib/clipesNos2Lugares.ts': src('lib/clipesNos2Lugares.ts').replace('`/previews/galeria/${c.id}.mp4`', '`/previews/galeria/werewolf.mp4`') }, exampleChecks],
+  ['galeria volta a nove colunas', { 'app/recreate/studio-media.css': src('app/recreate/studio-media.css').replace('--rc-cols: 4;', '--rc-cols: 9;') }, acabamentoChecks],
+  ['superfície do palco volta ao preto fixo', { 'app/recreate/studio-media.css': src('app/recreate/studio-media.css').replace(/(\.recreate \.rc-stage \{[^}]*background:) transparent;/, '$1 black;') }, acabamentoChecks],
+  ['vídeo preenche cortando pessoas', { 'app/recreate/studio-media.css': src('app/recreate/studio-media.css').replace('object-fit: contain;', 'object-fit: cover;') }, acabamentoChecks],
+  ['controles novamente por cima do vídeo', { 'app/recreate/studio-media.css': src('app/recreate/studio-media.css').replace('position: static;', 'position: absolute;') }, acabamentoChecks],
+  ['toda a galeria toca ao abrir', { 'app/recreate/RecreatePlayer.tsx': src('app/recreate/RecreatePlayer.tsx').replace('preload="none"', 'preload="auto" autoPlay') }, acabamentoChecks],
 ]
 let bitten = 0
-for (const [name, o] of mutants) {
+for (const [name, o, verify = all] of mutants) {
+  for (const [file, mutated] of Object.entries(o)) assert.notEqual(mutated, src(file), 'NO-OP MUTANT: ' + name + ' (' + file + ')')
   passed = 0
   let died = false
-  try { all(o) } catch (e) { died = true; if (process.env.VERBOSE) console.log(`  ${name} → ${String(e.message).split('\n')[0]}`) }
+  try { verify(o) } catch (e) { if (e.code !== 'ERR_ASSERTION') throw e; died = true; if (process.env.VERBOSE) console.log(`  ${name} → ${String(e.message).split('\n')[0]}`) }
   assert(died, `MUTANTE SOBREVIVEU: ${name}`)
   bitten++
 }
@@ -346,6 +366,7 @@ for (const [name, o] of [
   ['capa sem ação', { 'app/recreate/RecreatePlayer.tsx': src('app/recreate/RecreatePlayer.tsx').replace('onClick={onSelect}', 'onClick={() => {}}') }],
   ['abertura toca todas as capas', { 'components/create/CreateShell.tsx': src('components/create/CreateShell.tsx').replace('function choose(e: CreateExample)', "useEffect(() => { for (const video of document.querySelectorAll('.rc-grid video')) void video.play() }, []); function choose(e: CreateExample)") }],
 ]) {
+  for (const [file, mutated] of Object.entries(o)) assert.notEqual(mutated, src(file), 'NO-OP MUTANT: ' + name)
   assert.throws(() => galleryInteraction(o), { code: 'ERR_ASSERTION' }, name)
   bitten++
 }

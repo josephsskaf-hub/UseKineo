@@ -1,0 +1,436 @@
+diff --git a/app/(dashboard)/library/LibraryClient.tsx b/app/(dashboard)/library/LibraryClient.tsx
+index 631440686..2023cf49a 100644
+--- a/app/(dashboard)/library/LibraryClient.tsx
++++ b/app/(dashboard)/library/LibraryClient.tsx
+@@ -31,13 +31,13 @@ type Aud = { id: string; url: string; model?: string; voice?: string | null; tex
+ // KINEO-CLIPES-2026-09-29 — clipe avulso do /clips (tabela `clips`, MP4 no nosso bucket). Só os prontos aparecem aqui.
+ type Clp = { id: string; label: string; seconds: number; status: string; video_url: string | null }
+ 
+-export default function LibraryClient({ videoCollection }: { videoCollection?: ReactNode } = {}) {
++export default function LibraryClient({ videoCollection, initialTab }: { videoCollection?: ReactNode; initialTab?: 'clips' } = {}) {
+   const unifiedGallery = videoCollection != null
+   const t = useUiCopy()
+   const [recentVideo, setRecentVideo] = useState<RecentLibraryProject | null>(null)
+   // sprint-retencao #15 — `library_video_card` tinha clique e zero impressao.
+   const { registrarPorta } = useSeriesDoorSeen()
+-  const [tab, setTab] = useState<Tab>(unifiedGallery ? 'videos' : 'all')
++  const [tab, setTab] = useState<Tab>(initialTab ?? (unifiedGallery ? 'videos' : 'all'))
+   const [vids, setVids] = useState<Vid[]>([])
+   const [imgs, setImgs] = useState<Img[]>([])
+   const [auds, setAuds] = useState<Aud[]>([])
+@@ -243,7 +243,7 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
+           </div></div>
+         )
+       })()}
+-      {tab === 'clips' && loaded && clps.length === 0 && <p className="sub"><UiLabel>No clips yet.</UiLabel> <Link href="/clips"><UiLabel>Make a clip</UiLabel> →</Link></p>}
++      {tab === 'clips' && loaded && clps.length === 0 && <p className="sub"><UiLabel>No clips yet.</UiLabel> <Link href="/recreate"><UiLabel>Recreate</UiLabel> →</Link></p>}
+       {tab === 'clips' && clps.length > 0 && ( /* KINEO-LIBRARY-TUDO-3110 — os clipes saem do fim da aba Vídeos (ficavam depois de 300 filmes) para a aba deles */
+         <div className="library-asset-section"><h2><UiLabel>Clips</UiLabel></h2><div className="library-collection">
+           {clps.map((c) => (
+@@ -252,7 +252,7 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
+               <p className="library-asset-model">{c.label} · {c.seconds} s</p>
+               <div className="row library-asset-actions" style={{ marginTop: 8 }}>
+                 <button type="button" className="pill" onClick={() => dl(c.video_url!, `kineo-clip-${c.id.slice(0, 6)}.mp4`)}><ControlIcon name="download" /> <UiLabel>Download</UiLabel></button>
+-                <Link className="pill" style={{ textDecoration: 'none' }} href="/clips"><UiLabel>Clips</UiLabel> ↗</Link>
++                <Link className="pill" style={{ textDecoration: 'none' }} href="/recreate"><UiLabel>Recreate</UiLabel> ↗</Link>
+               </div>
+             </div>
+           ))}
+diff --git a/app/(dashboard)/library/page.tsx b/app/(dashboard)/library/page.tsx
+index a4f5fb179..e0dc872fc 100644
+--- a/app/(dashboard)/library/page.tsx
++++ b/app/(dashboard)/library/page.tsx
+@@ -6,6 +6,6 @@ import MrrReactivationReturn from '@/components/growth/MrrReactivationReturn'
+ 
+ export const metadata = { title: 'Library — Kineo' }
+ 
+-export default function LibraryPage() {
+-  return <LibraryClient videoCollection={<><MrrReactivationReturn /><div id="mrr-library-films"><VideoCollection embedded /></div></>} />
++export default function LibraryPage({ searchParams }: { searchParams?: Record<string, string | string[] | undefined> }) {
++  return <LibraryClient initialTab={searchParams?.tab === 'clips' ? 'clips' : undefined} videoCollection={<><MrrReactivationReturn /><div id="mrr-library-films"><VideoCollection embedded /></div></>} />
+ }
+diff --git a/app/recreate/RecreateClient.tsx b/app/recreate/RecreateClient.tsx
+index f4941a178..e23795624 100644
+--- a/app/recreate/RecreateClient.tsx
++++ b/app/recreate/RecreateClient.tsx
+@@ -212,7 +212,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
+     galleryRef.current?.querySelector<HTMLElement>('h1, h2')?.focus({ preventScroll: true })
+   }
+   return <main className="recreate">
+-    <header className={createTabs ? 'rc-nav ct-nav' : 'rc-nav'}><Link href="/" className="rc-brand"><KineoBrandIcon size={28} /><span>Kineo</span></Link>{createTabs ? <CreateTabs active="recreate" /> : <Link href="/recreate" onClick={e => { if (editingDisabled) e.preventDefault() }}>Recreate</Link>}{createTabs ? <CreateNavConta /> : <Link href="/clips">My videos ↗</Link>}</header>
++    <header className={createTabs ? 'rc-nav ct-nav' : 'rc-nav'}><Link href="/" className="rc-brand"><KineoBrandIcon size={28} /><span>Kineo</span></Link>{createTabs ? <CreateTabs active="recreate" /> : <Link href="/recreate" onClick={e => { if (editingDisabled) e.preventDefault() }}>Recreate</Link>}{createTabs ? <CreateNavConta /> : <Link href="/library?tab=clips">My videos ↗</Link>}</header>
+     {message && <div className="rc-notice" role="status">{message} <button onClick={() => { void loadQuotes(); void loadSocial() }}>Retry</button></div>}
+     <div className={`rc-workspace ${selected ? '' : 'rc-library-only'}`}>
+       {selected && <aside className="rc-panel" aria-label="Create your version">
+@@ -258,7 +258,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
+           {internalTools && <button className="rc-simulate" disabled={busy} onClick={() => void generate(true)}>Simulate · no generation</button>}
+         </section>
+         {simulation && <output className="rc-result"><strong>Simulation · no generation</strong><p>{simulation.format} · {simulation.seconds} s · {simulation.mode}</p><p>Up to {simulation.photos} photos. No upload, debit or render was made.</p></output>}
+-        {clip && <div className="rc-result" aria-live="polite"><strong>{clip.status === 'done' ? 'Your version is ready' : clip.status === 'failed' ? 'Generation failed' : 'Creating your version'}</strong>{clip.status === 'done' && clip.video_url && <><RecreatePlayer src={clip.video_url} label="Your version" /><a href={clip.video_url} download>Download ↗</a></>}{clip.status === 'failed' && <p>{clip.reason === 'not_swapped' ? clip.credits_refunded ? NOT_SWAPPED_MESSAGE : "We couldn't put you in this video. Check your videos for the final billing status." : clip.credits_refunded ? 'Your credit refund was confirmed.' : 'Check your videos for the final billing status.'}</p>}<Link href="/clips">My videos ↗</Link></div>}
++        {clip && <div className="rc-result" aria-live="polite"><strong>{clip.status === 'done' ? 'Your version is ready' : clip.status === 'failed' ? 'Generation failed' : 'Creating your version'}</strong>{clip.status === 'done' && clip.video_url && <><RecreatePlayer src={clip.video_url} label="Your version" /><a href={clip.video_url} download>Download ↗</a></>}{clip.status === 'failed' && <p>{clip.reason === 'not_swapped' ? clip.credits_refunded ? NOT_SWAPPED_MESSAGE : "We couldn't put you in this video. Check your videos for the final billing status." : clip.credits_refunded ? 'Your credit refund was confirmed.' : 'Check your videos for the final billing status.'}</p>}<Link href="/library?tab=clips">My videos ↗</Link></div>}
+       </aside>}
+       {selected && <section className="rc-reference" aria-label="Base video">
+         <div className="rc-stage"><RecreatePlayer key={selected.id} src={selected.preview} poster={selected.poster} preview label={`Base video: ${selected.title}`}
+diff --git a/components/Footer.tsx b/components/Footer.tsx
+index 864583c1b..ad75d9a6f 100644
+--- a/components/Footer.tsx
++++ b/components/Footer.tsx
+@@ -89,7 +89,6 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
+       ...(SHOWCASE_PUBLIC ? [{ href: '/showcase', label: 'Showcase' }] : []),
+       { href: '/images', label: 'AI image generator — 6 engines' },
+       { href: '/recreate', label: 'Recreate — put yourself in the clip' }, // KINEO-MENU-RECREATE-1211 — par do topo da home: a grade de todos os modelos
+-      { href: '/clips', label: 'AI clips — photo or text to clip' }, // KINEO-HOME-REMODELA-2010 — saíram do topo com o "More tools" (fundador 20/10): seguem a 1 clique no rodapé
+       { href: '/spaces', label: 'Spaces — empty space in, finished space out' }, // KINEO-HOME-REMODELA-2010
+       { href: '/examples', label: 'Examples — real renders, every engine' }, // KINEO-HOME-REMODELA-2010
+       { href: '/audio', label: 'AI voice generator (text to speech)' },
+diff --git a/components/KineoHouseGallery.tsx b/components/KineoHouseGallery.tsx
+index 411a500e9..f6a32d6a8 100644
+--- a/components/KineoHouseGallery.tsx
++++ b/components/KineoHouseGallery.tsx
+@@ -104,7 +104,7 @@ export default function KineoHouseGallery({ items, surface = 'page' }: { items:
+         ))}
+       </div>
+       <div className="mwk-more">{/* KINEO-GALERIA-HOME-2710 · KINEO-GALERIA-CHEIA-2810 — só a fileira de links no fim; nenhum botão revela cartão escondido */}
+-            <Link href="/clips" data-galeria-link="clips"><UiLabel>Open Clips</UiLabel> ↗</Link>
++            <Link href="/recreate" data-galeria-link="clips"><UiLabel>Recreate</UiLabel> ↗</Link>
+             <Link href="/images" data-galeria-link="images"><UiLabel>Open Images</UiLabel> ↗</Link>
+             <Link href="/examples" data-galeria-link="examples"><UiLabel>All films</UiLabel> ↗</Link>
+       </div>
+diff --git a/components/MobileNav.tsx b/components/MobileNav.tsx
+index 5a48ec15c..bfaabdbb6 100644
+--- a/components/MobileNav.tsx
++++ b/components/MobileNav.tsx
+@@ -4,7 +4,6 @@ import Link from 'next/link'
+ import { MORE_NAV, MORE_TOOLS_NAV, CARTOON_NAV, RECREATE_NAV, WORKSPACE_NAV, navItemIdFor, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
+ import { createEntryForLegacyHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — par do Sidebar
+ import { UiLabel } from '@/components/InterfaceLanguage'
+-import { CLIPS_PUBLIC } from '@/lib/clips/clipLaunch'
+ import { usePathname } from 'next/navigation'
+ import { useEffect, useRef } from 'react'
+ 
+@@ -64,18 +63,6 @@ const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolea
+     label: 'Spaces',
+     exact: false,
+   },
+-  // KINEO-CLIPES-2026-09-29 — par do Sidebar: Clipes no mobile, logo depois de Images.
+-  {
+-    href: '/clips',
+-    icon: (
+-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+-        <rect x="3" y="9" width="18" height="11" rx="2.5" />
+-        <path d="m3.5 9 16-4.5.8 3M8 7.6l2 2.9M13 6.2l2 2.9" />
+-      </svg>
+-    ),
+-    label: 'Clips',
+-    exact: false,
+-  },
+   // KINEO-AUDIO-2026-08-17 — par do Sidebar: Kineo Audio no mobile.
+   {
+     href: '/audio',
+@@ -159,7 +146,7 @@ const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolea
+ const MADE_WITH_KINEO_LINK = WORKSPACE_NAV.find(item => item.href === '/made-with-kineo') // KINEO-GALERIA-HOME-2710 — par da lateral, no "More"
+ const MORE_LINKS = [
+   ...(MADE_WITH_KINEO_LINK ? [{ href: MADE_WITH_KINEO_LINK.href, label: MADE_WITH_KINEO_LINK.label, signedIn: false }] : []), // KINEO-GALERIA-HOME-2710
+-  ...MORE_TOOLS_NAV.filter(item => item.href !== '/clips' || CLIPS_PUBLIC).map(item => ({ href: item.href, label: item.label, signedIn: false })),
++  ...MORE_TOOLS_NAV.map(item => ({ href: item.href, label: item.label, signedIn: false })),
+   { href: CARTOON_NAV.href, label: CARTOON_NAV.label, signedIn: false }, // KINEO-CARTOON-NO-MENU-0511 — par da lateral
+   { href: RECREATE_NAV.href, label: RECREATE_NAV.label, signedIn: false }, // KINEO-MENU-RECREATE-1211 — par da lateral e do topo da home
+   ...MORE_NAV.map(item => ({ ...item, signedIn: false })),
+diff --git a/components/Sidebar.tsx b/components/Sidebar.tsx
+index 50a842f9d..37f255a4d 100644
+--- a/components/Sidebar.tsx
++++ b/components/Sidebar.tsx
+@@ -5,7 +5,6 @@ import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
+ import Link from 'next/link'
+ import { MORE_NAV, navItemIdFor, sidebarNavItems, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
+ import { createEntryForLegacyHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"]
+-import { clipsVisible } from '@/lib/clips/clipLaunch' // KINEO-CLIPES-2026-09-29 — item Clips só com o interruptor (ou conta da casa)
+ import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage'
+ import { AppearanceSettingsButton } from '@/components/AppearanceSettings' // KINEO-CELULAR-A-0611
+ import { usePathname, useRouter } from 'next/navigation'
+@@ -673,7 +672,7 @@ export default function Sidebar({
+               "More tools" SEMPRE ABERTO (Imagem, Clipes, Espaços — 1 clique, como antes). Par: MobileNav.tsx e o topo do site. */}
+           {/* KINEO-MENU-LATERAL-3110 — fundador 30/10: sem o grupo "More tools"; uma lista só de Make a film até Clips, Spaces sai da
+               lateral (a página segue no ar e no topo do site) e Library + Pricing descem para o fim (são de conta/configuração). */}
+-          {sidebarNavItems(clipsVisible(userEmail)).map(item => <NavItem key={item.href} {...item} icon={NAV_ICONS[item.icon]} exact={false} pathname={pathname} onClick={onClose} signedIn={isLoggedIn} />)}
++          {sidebarNavItems(false).map(item => <NavItem key={item.href} {...item} icon={NAV_ICONS[item.icon]} exact={false} pathname={pathname} onClick={onClose} signedIn={isLoggedIn} />)}
+           {/* KINEO-MENU-ENXUTO-2026-10-09 — o "More" saiu (fundador, "1 sim"): Animate/Audio/Autopilot/Channel Builder fora do menu;
+               Invite & Earn + Affiliate viraram um item só, "Earn 30%" (o programa de afiliados; 30% para quem entra desde 14/10 — KINEO-AFILIADO-30-NOVOS-2026-10-13). */}
+           {isLoggedIn && (
+diff --git a/components/create/CreateTabs.tsx b/components/create/CreateTabs.tsx
+index e40a04c9c..8b3906f5e 100644
+--- a/components/create/CreateTabs.tsx
++++ b/components/create/CreateTabs.tsx
+@@ -5,7 +5,8 @@ import './create.css' // KINEO-ABAS-ESTILO-1011 — a barra também entra na tel
+ import { CREATE_TAB_LINKS, type CreateTab } from '@/lib/create/tabs'
+ 
+ export default function CreateTabs({ active, showRecreate = true, showClip = false }: { active: CreateTab | 'recreate' | 'clip' | null /* KINEO-LIBRARY-MOLDURA-NOVA-1211 — null = nenhuma aba marcada (a Library) */; showRecreate?: boolean; /** KINEO-CLIP-NA-MOLDURA-1011 — a aba Clip (interruptor CREATE_CLIP_INPLACE); sem ela, a barra de antes */ showClip?: boolean }) {
+-  const links = CREATE_TAB_LINKS.filter(t => (showRecreate || t.id !== 'recreate') && (showClip || t.id !== 'clip'))
++  // KINEO-CLIP-RETIRADO-1311 — the founder retired the separate Clip door; old callers may still pass showClip.
++  const links = CREATE_TAB_LINKS.filter(t => t.id !== 'clip' && (showRecreate || t.id !== 'recreate'))
+   return <nav className="ct-tabs" aria-label="Create">
+     {links.map(t => <Link key={t.id} href={t.href} className={t.id === active ? 'ct-tab ct-tab-active' : 'ct-tab'} aria-current={t.id === active ? 'page' : undefined} data-create-tab={t.id}>{t.label}</Link>)}
+   </nav>
+diff --git a/components/home/ClipsFirstHome.tsx b/components/home/ClipsFirstHome.tsx
+index 28310fb84..de7052046 100644
+--- a/components/home/ClipsFirstHome.tsx
++++ b/components/home/ClipsFirstHome.tsx
+@@ -182,7 +182,7 @@ export default function ClipsFirstHome({
+               Kineo
+             </Link>
+             <div className="nl" data-nav-surface="top" data-nav-area="public">
+-              <Link href={signedIn ? '/clips' : clipUploadEntryHref(false)} data-nav-item="more:clips"><UiLabel>Clips</UiLabel></Link>
++              <Link href="/recreate" data-nav-item="more:recreate"><UiLabel>Recreate</UiLabel></Link>
+               <Link href={clipsFirstFilmHref(signedIn)} data-nav-item="video"><UiLabel>Narrated films</UiLabel></Link>
+               <Link href="/examples" data-nav-item="examples"><UiLabel>Examples</UiLabel></Link>
+               <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
+diff --git a/components/home/HomeClipsStrip.tsx b/components/home/HomeClipsStrip.tsx
+index 456141c7d..f11c6656e 100644
+--- a/components/home/HomeClipsStrip.tsx
++++ b/components/home/HomeClipsStrip.tsx
+@@ -99,7 +99,7 @@ export default function HomeClipsStrip({ signedIn }: { signedIn: boolean }) {
+   const all = clipsFirstEffectCards(signedIn).filter((c) => c.effect.preview)
+   // Cartão de um efeito fora do catálogo (ou sem prévia) simplesmente não entra — nunca um quadro vazio.
+   const cards = HOME_CLIP_KEYS.map((key) => all.find((c) => c.effect.key === key)).filter((c): c is (typeof all)[number] => Boolean(c))
+-  const clipsHref = signedIn ? '/clips' : `/signup?redirect=${encodeURIComponent('/clips')}`
++  const clipsHref = viaSignup('/recreate', signedIn) // KINEO-CLIP-RETIRADO-1311
+   const textClips = HOME_TEXT_CLIPS.filter((c) => !HOME_TEXT_CLIPS_FORA.includes(c.id)) // KINEO-HOME-GATO-CARRO-2610 — 8 cartões (2 fileiras de 4)
+   const trends = HOME_TREND_CLIP_KEYS.map((k) => CLIP_TRENDS.find((t) => t.key === k)).filter((t): t is (typeof CLIP_TRENDS)[number] => Boolean(t)) // KINEO-HOME-GATO-CARRO-2610
+   return (
+@@ -108,7 +108,7 @@ export default function HomeClipsStrip({ signedIn }: { signedIn: boolean }) {
+       <div className="wrap">
+         <div className="home-business-heading">
+           <h2 id="home-clips-heading"><UiLabel>Clips</UiLabel></h2>
+-          <Link href={clipsHref} className="btn btn-ghost" data-home-cta="open_clips"><UiLabel>Open Clips</UiLabel> ↗</Link>
++          <Link href={clipsHref} className="btn btn-ghost" data-home-cta="open_clips"><UiLabel>Recreate</UiLabel> ↗</Link>
+         </div>
+         <p className="kcs-sub"><UiLabel>Short clips from a photo or one line — ready in about a minute.</UiLabel></p>
+         <div className="kcs-grid">
+@@ -129,7 +129,7 @@ export default function HomeClipsStrip({ signedIn }: { signedIn: boolean }) {
+             ) : card // KINEO-ROSTO-NO-CLIPE-2810
+           })}{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+           {HOME_NEW_CLIPS.length === 0 && trends.map((tr) => { // KINEO-HOME-GATO-CARRO-2610 · KINEO-HOME-CLIPES-NOVOS-2810 — a faixa antiga só volta se a lista nova sumir (nunca grade vazia)
+-            const dest = `/clips?trend=${tr.key}` // KINEO-HOME-GATO-CARRO-2610
++            const dest = '/recreate' // KINEO-CLIP-RETIRADO-1311 — choose an approved template.
+             const href = signedIn ? dest : `/signup?redirect=${encodeURIComponent(dest)}` // KINEO-HOME-GATO-CARRO-2610
+             return ( // KINEO-HOME-GATO-CARRO-2610
+               <Link key={tr.key} href={href} className="kcs-card" data-clip-trend={tr.key} data-home-cta="clip_trend" aria-label={`${tr.title} — Kling 3`}>{/* KINEO-HOME-GATO-CARRO-2610 */}
+diff --git a/components/home/HomeNewEffects.tsx b/components/home/HomeNewEffects.tsx
+index f82e0d519..f66333ad2 100644
+--- a/components/home/HomeNewEffects.tsx
++++ b/components/home/HomeNewEffects.tsx
+@@ -25,7 +25,7 @@ export default function HomeNewEffects({ signedIn = false }: { signedIn?: boolea
+       <div className="wrap">
+         <div className="home-business-heading" style={{ marginBottom: 6 }}>
+           <h2 id="home-new-effects"><UiLabel>New effects</UiLabel></h2>
+-          <Link href="/clips" className="btn btn-ghost" data-home-cta="new_effects_all"><UiLabel>See all effects</UiLabel> ↗</Link>
++          <Link href="/recreate" className="btn btn-ghost" data-home-cta="new_effects_all"><UiLabel>See all effects</UiLabel> ↗</Link>
+         </div>
+         <p style={{ margin: '0 0 16px', color: 'var(--muted)', fontSize: 15, maxWidth: 640 }}>
+           <UiLabel>Upload one photo, pick an effect, get your clip in about a minute.</UiLabel>
+diff --git a/components/studio/StudioSimples.tsx b/components/studio/StudioSimples.tsx
+index 1170a0b05..4cd639da3 100644
+--- a/components/studio/StudioSimples.tsx
++++ b/components/studio/StudioSimples.tsx
+@@ -91,7 +91,7 @@ const PRODUTOS: ReadonlyArray<{ rotulo: string; href: string | null; img: string
+   { rotulo: 'Film', href: null, img: '/posters/hero-seedance.webp' },
+   { rotulo: 'Ad', href: '/ads/new?utm_source=studio_door', img: '/home-images/perfume-splash.webp' },
+   { rotulo: 'Cartoon', href: '/kids-cartoon', img: '/kids-cartoon/leo.webp' },
+-  { rotulo: 'Clip', href: '/clips', img: '/posters/galeria/knight-cat.webp' },
++  { rotulo: 'Recreate', href: '/recreate', img: '/posters/galeria/knight-cat.webp' },
+ ]
+ 
+ // KINEO-STUDIO-NA-MOLDURA-1011 [fundador 10/11: "Quero todas as telas com o design que fizemos no codex"] — o que a moldura nova recebe:
+diff --git a/lib/clipesNos2Lugares.ts b/lib/clipesNos2Lugares.ts
+index 3fb0a04a7..d9ed3ebd8 100644
+--- a/lib/clipesNos2Lugares.ts
++++ b/lib/clipesNos2Lugares.ts
+@@ -161,10 +163,7 @@ export const CRIAR_ANUNCIO_HREF = '/ads/new'
+ /** Para onde o cartão leva (o chamador passa por viaSignup, como todo clipe da vitrine). Nada é gerado sem o clique em Gerar. */
+ export function clipeNovoDestino(c: Pick<ClipeNovo, 'engine' | 'prompt' | 'selo'>): string {
+   if (clipeNovoAnuncio(c)) return CRIAR_ANUNCIO_HREF // KINEO-ADS-NATAL-VITRINE-1011 — só o exemplo de anúncio leva à criação de anúncio
+-  if (c.engine === null) return '/clips' // KINEO-OUTFIT-MORPH-HOME-0911 — formato sem motor do /clips: nem motor, nem texto
+-  const q = new URLSearchParams({ engine: c.engine })
+-  if (c.prompt) q.set('prompt', c.prompt)
+-  return '/clips?' + q.toString()
++  return '/recreate' // KINEO-CLIP-RETIRADO-1311 — choose an approved template; this navigation never generates a clip.
+ }
+ 
+ /** Fora da vitrine (home e /made-with-kineo) porque a data passou. Nenhum arquivo foi apagado e as páginas próprias seguem no ar
+diff --git a/lib/homeGaleria.ts b/lib/homeGaleria.ts
+index c32c1ff79..0b55464a4 100644
+--- a/lib/homeGaleria.ts
++++ b/lib/homeGaleria.ts
+@@ -199,7 +199,9 @@ const UTM = 'made_with_kineo'
+ const qs = (o: Record<string, string>) => new URLSearchParams(o).toString()
+ /** Visitante passa pelo cadastro e volta para a ferramenta preenchida (mesmo formato do /trending e das páginas de efeito). */
+ export function viaSignup(target: string, signedIn: boolean): string {
+-  return signedIn ? target : '/signup?' + qs({ redirect: target })
++  // KINEO-CLIP-RETIRADO-1311 — showcase cards open Recreate; preserve result detail links and every other product.
++  const destination = /^\/(?:clips|create\/clip)(?:[?#]|$)/.test(target) ? '/recreate' : target
++  return signedIn ? destination : '/signup?' + qs({ redirect: destination })
+ }
+ /** Clipe por texto → /clips com motor e ideia (?engine= já existia; ?prompt= entra com esta galeria e só preenche). */
+ export function galeriaClipPromptHref(engine: string, prompt: string, signedIn: boolean): string {
+diff --git a/lib/ui/promoCards.ts b/lib/ui/promoCards.ts
+index 5d920e280..0d0ea38e7 100644
+--- a/lib/ui/promoCards.ts
++++ b/lib/ui/promoCards.ts
+@@ -89,9 +89,9 @@ export const PROMO_CARDS: readonly PromoCard[] = [
+   },
+   {
+     id: 'clips',
+-    href: '/clips',
+-    title: 'CLIPS',
+-    subtitle: 'One scene, 5 to 15 seconds — from text or a photo',
++    href: '/recreate',
++    title: 'RECREATE',
++    subtitle: 'Choose a video template',
+     // Clipes reais da casa, Seedance 1.5, 5 s (conta do fundador): tempestade no mar (29/09), rio de geleira e
+     // surfista (30/09). Natureza, sem fogo (curadoria do fundador).
+     art: {
+diff --git a/lib/ui/workspaceNavigation.ts b/lib/ui/workspaceNavigation.ts
+index ab1dc2cd2..71944a542 100644
+--- a/lib/ui/workspaceNavigation.ts
++++ b/lib/ui/workspaceNavigation.ts
+@@ -24,8 +24,7 @@ export const WORKSPACE_NAV = [
+ export const MORE_TOOLS_NAV = [
+   // KINEO-MENU-4-VIDEO-IMAGEM-2026-09-25 — Imagem (fundador 25/09); espelha na lateral e no mobile.
+   { href: '/images', label: 'Images', icon: 'images' },
+-  // KINEO-CLIPES-2026-09-29 — Clipes (5–15 s, uma cena, sem narração) ao lado de Imagem; par no MobileNav e no mega-menu.
+-  { href: '/clips', label: 'Clips', icon: 'clips' },
++  // KINEO-CLIP-RETIRADO-1311 — Recreate is the single door; the clip engine and result detail routes remain intact.
+   // KINEO-ESPACOS-LANCAMENTO-2026-09-30 — Espaços (espaço vazio → pronto, vídeo antes → depois); par no MobileNav e no mega-menu.
+   { href: '/spaces', label: 'Spaces', icon: 'spaces' },
+ ] as const
+@@ -40,7 +39,7 @@ export const CARTOON_NAV = { href: '/kids-cartoon', label: 'Cartoon', icon: 'car
+ export const RECREATE_NAV = { href: '/recreate', label: 'Recreate', icon: 'recreate' } as const
+ export function sidebarNavItems(clipsOn: boolean): readonly { href: string; label: string; icon: string }[] {
+   const doors = WORKSPACE_NAV.filter(item => !SIDEBAR_LAST.has(item.href))
+-  const tools = MORE_TOOLS_NAV.filter(item => item.href !== '/spaces' && (item.href !== '/clips' || clipsOn))
++  const tools = MORE_TOOLS_NAV.filter(item => item.href !== '/spaces')
+   const last = WORKSPACE_NAV.filter(item => SIDEBAR_LAST.has(item.href))
+   return [...doors, ...tools, CARTOON_NAV, RECREATE_NAV, ...last] // KINEO-MENU-RECREATE-1211
+ }
+diff --git a/next.config.js b/next.config.js
+index da5f0a2c2..8353bfa56 100644
+--- a/next.config.js
++++ b/next.config.js
+@@ -131,6 +131,9 @@ const nextConfig = {
+   },
+   async redirects() {
+     return [
++      // KINEO-CLIP-RETIRADO-1311 — exact entry paths only; /clips/:id and all clip APIs remain available.
++      { source: '/clips', destination: '/recreate', permanent: true },
++      { source: '/create/clip', destination: '/recreate', permanent: true },
+       // PUSH #34 — the strongest stale branded-search result still points to
+       // /auth.html?mode=signup. The old catch-all sent that signup intent to
+       // /login, adding a needless dead end for traffic we already earned.
+diff --git a/scripts/test-clipes-nos-2-lugares-0411.mjs b/scripts/test-clipes-nos-2-lugares-0411.mjs
+index c8bd2bc1a..7135b70b1 100644
+--- a/scripts/test-clipes-nos-2-lugares-0411.mjs
++++ b/scripts/test-clipes-nos-2-lugares-0411.mjs
+@@ -206,9 +206,7 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
+       else if (VERDADE[c.id]?.[2] === 'filme') { // KINEO-VITRINE-10-1011 — filme do Studio: o MESMO link dos filmes da vitrine, nunca o /clips
+         const filme = /<a href="([^"]+)"[^>]*data-home-cta="mosaic_film"/.exec(html)?.[1]
+         if (!bruto.startsWith('/signup?redirect=' + encodeURIComponent(new URL(ENTRADA.createEntryHref('film', '/studio', false), 'https://k').pathname)) || (filme && filme.replace(/&amp;/g, '&') !== bruto)) e.push(`B ${lugar}: ${c.id} (filme) não abre o Studio como os filmes da vitrine: ${bruto.slice(0, 80)}`)
+-      } else if (c.engine === null) { const esperado = publicRecreatePath(c.id) ?? '/clips'; if (destino !== esperado) e.push(`B ${lugar}: ${c.id} (formato) não leva ao catálogo aprovado ou fallback: ${bruto.slice(0, 80)}`) }
+-      else if (!destino.startsWith('/clips?') || pedido.get('engine') !== c.engine) e.push(`B ${lugar}: ${c.id} não leva ao /clips no motor: ${bruto.slice(0, 80)}`)
+-      if (c.prompt && pedido.get('prompt') !== c.prompt) e.push(`B ${lugar}: ${c.id} sem o texto no /clips`)
++      } else { const esperado = publicRecreatePath(c.id) ?? '/recreate'; if (destino !== esperado) e.push(`B ${lugar}: ${c.id} não leva ao catálogo aprovado ou à grade Recreate: ${bruto.slice(0, 80)}`) }
+       if (!c.prompt && pedido.has('prompt')) e.push(`B ${lugar}: ${c.id} preenche texto que não tem`)
+       if (!cartao.includes(`src="${lib.clipeNovoPoster(c)}"`)) e.push(`B ${lugar}: ${c.id} sem pôster`)
+       if (!cartao.includes(`--kmz-focus:${c.focus}`)) e.push(`B ${lugar}: ${c.id} sem foco na janela`)
+@@ -418,7 +416,7 @@ mutante('cartão chama de anúncio', { [MOSAICO]: troca("const tipo = c.selo ??
+ mutante('cartão leva às Ads', { [MOSAICO]: troca(': viaSignup(publicRecreatePath(c.id) ?? clipeNovoDestino(c), signedIn)}', ": viaSignup('/ads/new', signedIn)}") }) // KINEO-RECREATE-PUBLICO-PREPARO-1011
+ mutante('filme do Studio leva ao /clips', { [LIB]: troca("export const clipeNovoAbreStudio = (c: Pick<ClipeNovo, 'selo'>): boolean => c.selo === 'Narrated film'", "export const clipeNovoAbreStudio = (c: Pick<ClipeNovo, 'selo'>): boolean => false") }) // KINEO-VITRINE-10-1011
+ mutante('clipe de foto rotulado como filme', { [LIB]: troca("id: 'kit-skincare', title: 'Holiday skincare gift set', engine: null, selo: 'Trending format'", "id: 'kit-skincare', title: 'Holiday skincare gift set', engine: null, selo: 'Narrated film'") }) // KINEO-VITRINE-10-1011
+-mutante('anúncio de skincare leva às Ads', { [LIB]: troca("if (c.engine === null) return '/clips'", "if (c.engine === null) return '/ads/new'") }) // KINEO-VITRINE-10-1011
++mutante('formato de skincare leva às Ads', { [LIB]: troca("return '/recreate' // KINEO-CLIP-RETIRADO-1311", "return '/ads/new' // KINEO-CLIP-RETIRADO-1311") })
+ // KINEO-ADS-NATAL-VITRINE-1011 [fundador 10/11: "Pode colocar todos na página inicial como anúncios… Em vez de Recreate, a pessoa vai fazer o
+ // anúncio dela"] — o link às Ads agora é permitido SÓ no exemplo de anúncio; a AUTORIA continua proibida. Cada lado tem o seu mutante.
+ const ARIA_NOVO = 'aria-label={`${c.title} — ${tipo}`}'
+@@ -446,7 +444,7 @@ mutante('etiqueta volta no efeito', { [MOSAICO]: injeta('<span className="kmz-co
+ mutante('tipo sai do aria-label', { [MOSAICO]: troca('aria-label={`${c.title} — ${tipo}`}', 'aria-label={c.title}') })
+ mutante('formato mostra motor', { [MOSAICO]: injeta(COPIA_NOVO, "<i>{c.selo ? 'Kling 4.0' : ''}</i>") })
+ mutante('formato perde o selo', { [MOSAICO]: troca("const tipo = c.selo ?? 'Clip'", "const tipo = 'Clip'") })
+-mutante('formato leva ao /clips com motor', { [LIB]: troca("if (c.engine === null) return '/clips'", "if (c.engine === null) return '/clips?engine=hollywood'") })
++mutante('formato sai da grade Recreate', { [LIB]: troca("return '/recreate' // KINEO-CLIP-RETIRADO-1311", "return '/images' // KINEO-CLIP-RETIRADO-1311") })
+ mutante('formato rotulado com motor errado', { [LIB]: troca("id: 'outfit-morph', title: 'Outfit morph', engine: null, selo: 'Trending format'", "id: 'outfit-morph', title: 'Outfit morph', engine: 'hollywood', selo: undefined") })
+ mutante('formato no aria-label com motor', { [MOSAICO]: troca('aria-label={`${c.title} — ${tipo}`}', 'aria-label={`${c.title} — ${tipo}${c.selo ? \' · Kling 4.0\' : \'\'}`}') })
+ // KINEO-CARDS-SEM-MOTOR-0911 — o motor não volta por nenhum tipo de cartão, nem pelo aria-label; e o dado segue honesto
+diff --git a/scripts/test-clip-retirado-1311.mjs b/scripts/test-clip-retirado-1311.mjs
+new file mode 100644
+--- /dev/null
++++ b/scripts/test-clip-retirado-1311.mjs
+@@ -0,0 +1,70 @@
++// Offline navigation contract: retiring Clip must not retire its APIs or result detail URLs.
++import assert from 'node:assert/strict'
++import fs from 'node:fs'
++import path from 'node:path'
++import { createRequire } from 'node:module'
++
++const require = createRequire(import.meta.url)
++const ts = require('typescript')
++const React = require('react')
++const { renderToStaticMarkup } = require('react-dom/server')
++const root = path.resolve(import.meta.dirname, '..')
++const read = file => fs.readFileSync(path.join(root, file), 'utf8')
++const cache = new Map()
++const link = ({ href, children, ...props }) => React.createElement('a', { ...props, href }, children)
++const stubs = {
++  'next/link': { __esModule: true, default: link },
++  'app/(dashboard)/library/LibraryClient': { __esModule: true, default: () => null },
++  'components/library/VideoCollection': { __esModule: true, default: () => null },
++  'components/growth/MrrReactivationReturn': { __esModule: true, default: () => null },
++}
++function load(file) {
++  if (stubs[file]) return stubs[file]
++  if (file.endsWith('.css')) return {}
++  const filename = /\.[cm]?[jt]sx?$/.test(file) ? file : ['.ts', '.tsx'].map(ext => file + ext).find(f => fs.existsSync(path.join(root, f)))
++  assert(filename, `Missing module: ${file}`)
++  if (cache.has(filename)) return cache.get(filename).exports
++  const mod = { exports: {} }; cache.set(filename, mod)
++  const localRequire = name => {
++    if (stubs[name]) return stubs[name]
++    if (name.startsWith('@/')) return load(name.slice(2))
++    if (name.startsWith('.')) return load(path.posix.normalize(path.posix.join(path.posix.dirname(filename), name)))
++    return require(name)
++  }
++  const js = ts.transpileModule(read(filename), { fileName: filename, compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true } }).outputText
++  new Function('require', 'module', 'exports', js)(localRequire, mod, mod.exports)
++  return mod.exports
++}
++
++const redirects = await require('../next.config.js').redirects()
++for (const source of ['/clips', '/create/clip']) {
++  const rules = redirects.filter(rule => rule.source === source)
++  assert.equal(rules.length, 1)
++  assert.deepEqual(rules[0], { source, destination: '/recreate', permanent: true })
++}
++assert(!redirects.some(rule => /\/(?:clips|create\/clip)\//.test(rule.source)), 'No wildcard/detail redirect may retire clip results')
++const nav = load('lib/ui/workspaceNavigation')
++for (const on of [false, true]) {
++  const items = nav.sidebarNavItems(on)
++  assert(!items.some(item => item.href === '/clips' || item.href === '/create/clip'))
++  assert.equal(items.filter(item => item.href === '/recreate').length, 1)
++}
++const Tabs = load('components/create/CreateTabs').default
++for (const showClip of [false, true]) {
++  const html = renderToStaticMarkup(React.createElement(Tabs, { active: 'ads', showRecreate: true, showClip }))
++  assert(!html.includes('data-create-tab="clip"'))
++  assert(html.includes('href="/recreate"'))
++}
++const gallery = load('lib/homeGaleria')
++for (const href of ['/clips', '/clips?engine=hollywood&prompt=Example', '/create/clip?remix=example']) {
++  assert.equal(gallery.viaSignup(href, true), '/recreate')
++  assert.equal(new URLSearchParams(gallery.viaSignup(href, false).split('?')[1]).get('redirect'), '/recreate')
++}
++for (const href of ['/clips/result-id', '/api/clips', '/studio?ideia=Example', '/ads/new']) assert.equal(gallery.viaSignup(href, true), href)
++const clips = load('lib/clipesNos2Lugares')
++for (const clip of clips.CLIPES_NOVOS) assert.equal(clips.clipeNovoDestino(clip), clips.clipeNovoAnuncio(clip) ? '/ads/new' : '/recreate')
++const Library = load('app/(dashboard)/library/page').default
++assert.equal(Library({ searchParams: { tab: 'clips' } }).props.initialTab, 'clips')
++for (const tab of ['invalid', ['clips']]) assert.equal(Library({ searchParams: { tab } }).props.initialTab, undefined)
++assert.equal((read('app/recreate/RecreateClient.tsx').match(/href="\/library\?tab=clips"/g) ?? []).length, 2)
++console.log('Clip retirement: redirects, desktop/mobile navigation, gallery, detail URLs and My videos filter passed (offline).')

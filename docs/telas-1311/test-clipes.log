@@ -1,0 +1,83 @@
+  ok   (A–F) lista, os 2 lugares, estação, ordem do dia e carga
+  ok   lista compartilhada é módulo puro, sem import
+  ok   M clipe falta na home: vermelho — B home (dia 0): clipes ≠ lista (31 de 32)
+  ok   M clipe falta na galeria: vermelho — B galeria (dia 0): clipes ≠ lista (31 de 32)
+  ok   M uma lista por lugar: vermelho — B home (dia 0): clipes ≠ lista (0 de 32)
+  ok   M abóbora de volta: vermelho — C home: "jack-o" no HTML
+  ok   M lobisomem de volta: vermelho — C home: "Werewolf" no HTML
+  ok   M bruxa de volta: vermelho — C galeria: "Witch" no HTML
+  ok   M Catrina de volta: vermelho — C home: "Day of the Dead" no HTML
+  ok   M Turn to dust de volta: vermelho — C galeria: dust_away (abóboras na cena) na vitrine
+  ok   M 3D figurine de volta: vermelho — C galeria: figurine_3d (abóboras na cena) na vitrine
+  ok   M Natal some junto: vermelho — C home: Natal sumiu (snow_globe)
+  ok   M ordem não determinística na mesma data: vermelho — D home: a ordem muda dentro do mesmo dia
+  ok   M mesma ordem em duas datas: vermelho — D home: mesma ordem em dois dias seguidos (dia 1)
+  ok   M ordem muda com a hora: vermelho — D home: a ordem muda dentro do mesmo dia
+  ok   M selo errado: vermelho — A perfume-splash: motor seedance, a tabela diz hollywood
+  ok   M texto de foto no /clips: vermelho — A selfie-confete: clipe de foto preenchendo texto de movimento
+  ok   M clipes em bloco no topo: vermelho — D home: 8 clipes novos nos 15 primeiros cartões: virou bloco no topo (dia 0)
+  ok   M a moça colada nela mesma: vermelho — D home: a mesma pessoa colada em si mesma (dia 0)
+  ok   M 3 clipes novos seguidos: vermelho — D home: 3 clipes novos em bloco (dia 0)
+  ok   M imagem grande sai da 1ª fileira: vermelho — E home: a 1ª fileira mudou de desenho, e com ela os vídeos que nascem na 1ª tela (dia 0)
+  ok   M cartão grande demais abre buraco: vermelho — D galeria: 3 clipes novos em bloco (dia 0)
+  ok   M sem o teto de 4 grandes (26 clipes, grandes sobrando no fim): vermelho — G home: 16 células vazias na grade (dia 0); antes do pedido eram 6
+  ok   lista de 26 clipes (10/11): grade e mistura verdes
+  ok   M imagem larga no fim abre buraco (lista de 26): vermelho — G home: 16 células vazias na grade (dia 29); antes do pedido eram 6
+  ok   lista de 16 clipes (09/11): grade e mistura verdes
+  ok   M o fim da grade não fecha (16 clipes, degrau vazio) (lista de 16): vermelho — G home: 12 células vazias na grade (dia 1); antes do pedido eram 6
+  ok   M fechaOFim aceita arrumação que piora (lista de 16): vermelho — G home: 12 células vazias na grade (dia 1); antes do pedido eram 6
+  ok   M pessoa colada no fim, sem busca para trás (lista de 16): vermelho — D home: a mesma pessoa colada em si mesma (dia 51)
+  ok   M pôster baixa antes da hora: vermelho — E home: pôster não é preguiçoso
+  ok   M vídeo direto no cartão: vermelho — E home: vídeo no HTML antes de aparecer na tela
+  ok   M cartão chama de anúncio: vermelho — B home: pet-barista sem o tipo "Clip" no aria-label
+  ok   M cartão leva às Ads: vermelho — B home: pet-barista não leva ao /clips no motor: /signup?redirect=%2Fcreate%2Fads
+  ok   M filme do Studio leva ao /clips: vermelho — B home: filme-mary-celeste (filme) não abre o Studio como os filmes da vitrine: /signup?re
+  ok   M clipe de foto rotulado como filme: vermelho — A kit-skincare: selo de formato só existe (e é obrigatório) quando não há motor do /clips,
+  ok   M anúncio de skincare leva às Ads: vermelho — B home: outfit-morph (formato) não leva ao catálogo aprovado ou fallback: /signup?redirect
+  ok   M exemplo de anúncio diz "made with Kineo Ads" (aria-label): vermelho pela regra da autoria — B home: anuncio-halo-car-selfie diz que a ferramenta de Ads fez o vídeo ("made with Kineo
+  ok   M exemplo de anúncio diz "Made by the ad tool" (texto do cartão): vermelho pela regra da autoria — B home: anuncio-halo-car-selfie diz que a ferramenta de Ads fez o vídeo ("Made by the ad t
+  ok   M convite vira "Created with Studio Ads": vermelho pela regra da autoria — B home: anuncio-halo-car-selfie diz que a ferramenta de Ads fez o vídeo ("Created with Stu
+  ok   M exemplo de anúncio leva ao /clips: vermelho — B home: anuncio-halo-car-selfie (exemplo de anúncio) não abre a criação de anúncio do menu
+  ok   M exemplo de anúncio sem passar pelo signup: vermelho — B home: anuncio-halo-car-selfie (exemplo de anúncio) não abre a criação de anúncio do menu
+  ok   M exemplo de anúncio leva a outro lugar das Ads: vermelho — B home: anuncio-halo-car-selfie (exemplo de anúncio) não abre a criação de anúncio do menu
+  ok   M convite "Make your ad" some: vermelho — R home: ad sem o convite "Make your ad" (Honest face cream review — Ad example)
+  ok   M convite "Make your ad" em todo clipe novo: vermelho — R home: clipe sem texto com o convite "Make your ad" (Selfie with the crowd — Trending for
+  ok   M Recreate no exemplo de anúncio (em vez do convite): vermelho — R home: formato Recreate sem o selo Recreate (Pick your favorite — Trending format)
+  ok   M exemplo de anúncio medido como clipe: vermelho — B home: anuncio-halo-car-selfie (exemplo de anúncio) medido como outro tipo de cartão
+  ok   M exemplo de anúncio rotulado como formato: vermelho — A anuncio-relogio: selo de formato só existe (e é obrigatório) quando não há motor do /cli
+  ok   M etiqueta "Ad example" na tela: vermelho — B home: pet-barista mostra a etiqueta "Clip" na tela
+  ok   M etiqueta volta no clipe novo: vermelho — B home: pet-barista mostra a etiqueta "Clip" na tela
+  ok   M etiqueta volta no multi-camera: vermelho — B home: a vitrine mostra a etiqueta "Multi-camera" na tela
+  ok   M etiqueta volta no efeito: vermelho — B home: a vitrine mostra a etiqueta "Effect" na tela
+  ok   M tipo sai do aria-label: vermelho — B home: pet-barista sem o tipo "Clip" no aria-label
+  ok   M formato mostra motor: vermelho — B home: outfit-morph mostra o motor "Kling"
+  ok   M formato perde o selo: vermelho — B home: outfit-morph sem o tipo "Trending format" no aria-label
+  ok   M formato leva ao /clips com motor: vermelho — B home: outfit-morph (formato) não leva ao catálogo aprovado ou fallback: /signup?redirect
+  ok   M formato rotulado com motor errado: vermelho — A outfit-morph: motor hollywood, a tabela diz null
+  ok   M formato no aria-label com motor: vermelho — B home: outfit-morph sem o tipo "Trending format" no aria-label
+  ok   M motor volta no clipe novo: vermelho — B home: pet-barista mostra o motor "MiniMax"
+  ok   M motor no aria-label do clipe novo: vermelho — B home: pet-barista sem o tipo "Clip" no aria-label
+  ok   M motor volta no clipe grande: vermelho — B home: a vitrine mostra o motor "Kling" (…-shade" aria-hidden="true"></span><span class="
+  ok   M motor volta no clipe do topo: vermelho — B home: selfie-confete mostra o motor "Kling"
+  ok   M motor no aria-label do topo: vermelho — B home: selfie-confete sem o tipo "Trending format" no aria-label
+  ok   M motor volta no filme: vermelho — B home: a vitrine mostra o motor "MINIMAX" (…-shade" aria-hidden="true"></span><span class
+  ok   M motor volta no estilo: vermelho — B galeria: a vitrine mostra o motor "Seedance" (…-shade" aria-hidden="true"></span><span c
+  ok   M Recreate no topo sem modelo aprovado: vermelho — R home: clipe sem texto com o selo Recreate (Selfie with the crowd — Trending format)
+  ok   M selo Recreate volta no filme narrado: vermelho — R home: film com o selo Recreate (Lituya Bay: the tallest wave — narrated film)
+  ok   M selo Recreate some do clipe com texto: vermelho — R home: clipe com texto sem o selo Recreate (Pebbles that build a castle — clip)
+  ok   M selo Recreate some do clipe novo com texto: vermelho — R home: clipe com texto sem o selo Recreate (Perfume splash — Clip)
+  ok   M selo Recreate no formato fora do catálogo: vermelho — R home: clipe sem texto com o selo Recreate (Selfie with the crowd — Trending format)
+  ok   M selo Recreate some do efeito: vermelho — R home: efeito sem o selo Recreate (Christmas cartoon of you — effect)
+  ok   M selo Recreate some do estilo de anúncio: vermelho — R galeria: estilo sem o selo Recreate (Estilo 1 — ad style)
+  ok   M selo Recreate em todo cartão de vídeo (regra antiga): vermelho — R home: clipe sem texto com o selo Recreate (Selfie with the crowd — Trending format)
+  ok   M arquivo faltando: vermelho — A arquivo ausente: public/previews/galeria/pet-barista.mp4
+  ok   M pôster faltando: vermelho — A arquivo ausente: public/posters/galeria/selfie-confete.webp
+  ok   M "newest first" de volta: vermelho — F a página ainda promete "newest first"
+  ok   (X) cartão de efeito direto ao Recreate (visitante via cadastro), página do efeito com o interruptor fechado e fora do catálogo
+  ok   M cartão de efeito volta à página antiga: vermelho — X Recreate público, vitrine da home, visitante: santa_cartoon leva a /effects/santa-cartoo
+  ok   M faixa "New effects" volta à página antiga: vermelho — X Recreate público, faixa "New effects", visitante: kiss leva a /effects/kiss (devia /sign
+  ok   M visitante pula o cadastro: vermelho — X Recreate público, vitrine da home, visitante: santa_cartoon leva a /recreate/effect-sant
+  ok   M ignora o interruptor do Recreate: vermelho — X Recreate público: efeito fora do catálogo leva a /signup?redirect=%2Frecreate%2Feffect-f
+  ok   M sem caminho de volta (interruptor fechado vai ao /clips): vermelho — X Recreate público: efeito fora do catálogo leva a /clips
+  ok   M medição do efeito muda no cartão: vermelho — X Recreate público, vitrine da home, visitante: nenhum cartão de efeito medido como mosaic
+82 ok, 0 falha(s)

@@ -281,7 +281,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
         <div className="rc-grid">{catalog.map((f, index) => <article key={f.id} className={`rc-card ${index % 4 === 1 ? 'rc-card-short' : ''} ${selected?.id === f.id ? 'rc-card-selected' : ''}`}>
           <ExampleCover src={f.preview} poster={f.poster} label={`Choose ${f.title}`} disabled={editingDisabled} onSelect={() => choose(f)} />
           <div className="rc-card-top"><button onClick={() => { setReport(f); setExpanded(null) }} aria-label={`Report ${f.title}`}>⋯</button><button onClick={() => { setExpanded(f); setReport(null) }} aria-label={`Expand ${f.title}`}>⤢</button></div>
-          <div className="rc-card-bottom"><h3>{f.title}</h3><div><button className={social[f.id]?.liked ? 'rc-liked' : ''} disabled={!social[f.id] || socialBusy} aria-label={`Like ${f.title}`} aria-pressed={social[f.id]?.liked ?? false} onClick={() => void like(f)}>♡{social[f.id]?.count > 0 ? ` ${social[f.id].count}` : ''}</button><button disabled={editingDisabled} onClick={() => choose(f)} aria-label={`Use ${f.title}`}>{selected?.id === f.id ? 'Selected ✓' : 'Recreate ↗'}</button></div></div>
+          <div className="rc-card-bottom"><h3>{f.title}</h3><div><button className={social[f.id]?.liked ? 'rc-liked' : ''} disabled={!social[f.id] || socialBusy} aria-label={`Like ${f.title}`} aria-pressed={social[f.id]?.liked ?? false} onClick={() => void like(f)}>♡{social[f.id]?.count > 0 ? ` ${social[f.id].count}` : ''}</button><button className="rc-template-action" disabled={editingDisabled} onClick={() => choose(f)} aria-label={`Use ${f.title}`}>{selected?.id === f.id ? 'Selected ✓' : 'Recreate ↗'}</button></div></div>
         </article>)}</div>
       </section>
     </div>
