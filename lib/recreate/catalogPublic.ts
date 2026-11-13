@@ -6,7 +6,7 @@
 // interruptor da troca público). Troca em teste NUNCA aparece. Sem preço e sem nome de motor: o preço só aparece no botão dentro do fluxo.
 // Mídia: /api/recreate/assets exige login, então o vídeo-base das trocas aprovadas vem da MESMA prévia pública que a home e o
 // /made-with-kineo já servem (public/previews/galeria/<id>.mp4 + public/posters/galeria/<id>.webp). Efeitos usam a prévia pública deles.
-import { RECREATE_FORMATS, type RecreateFormat } from './formats'
+import { RECREATE_FORMATS, recreateNewestFirst, type RecreateFormat } from './formats'
 import { publicRecreatePath, recreateEntryHref } from './entry'
 
 export type RecreateCatalogItem = { id: string; title: string; href: string; video: string; poster: string; kind: 'swap' | 'effect'; people: number }
@@ -17,9 +17,11 @@ export function recreatePublicMedia(f: RecreateFormat): { video: string; poster:
   return { video: f.preview, poster: f.poster }
 }
 
-/** KINEO-MENU-RECREATE-1211 — todos os modelos que um visitante pode recriar hoje, na ordem do catálogo (trocas aprovadas primeiro). */
+/** KINEO-MENU-RECREATE-1211 — todos os modelos que um visitante pode recriar hoje. KINEO-RECREATE-ORDEM-1311 [dono 13/11: "Todo recreate que
+ *  a gente comprar ou fizer tem que vir na lista por ordem na página dos templates"]: do mais novo para o mais antigo (campo `desde`); no
+ *  mesmo dia, a ordem do catálogo. Guardião: scripts/test-recreate-ordem-1311.mjs. */
 export function publicRecreateCatalog(): RecreateCatalogItem[] {
-  return RECREATE_FORMATS.filter(f => publicRecreatePath(f.id) !== null).map(f => ({
+  return recreateNewestFirst(RECREATE_FORMATS.filter(f => publicRecreatePath(f.id) !== null)).map(f => ({
     id: f.id,
     title: f.title,
     href: recreateEntryHref(f.id, false)!,

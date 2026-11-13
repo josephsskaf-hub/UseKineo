@@ -19,6 +19,10 @@ export interface RecreateFormat {
   approvedOn?: string
   /** Swap only: short note on the test state. */
   swapNote?: string
+  /** KINEO-RECREATE-ORDEM-1311 — day the model entered the Recreate catalog (YYYY-MM-DD), taken from git history (first commit that added
+   *  it here), never guessed. The catalog is listed newest first. Required: a new model without it does not compile (swap) or turns the
+   *  guardian red (effect missing from RECREATE_EFFECT_DESDE). */
+  desde: string
   /** KINEO-RECREATE-ELEVADOR-1011 — swap only: the base video shows more people than photoSlots; only this person is replaced
    *  (and checked). Example: 'the man'. Absent = every person in the video is replaced. */
   swapSubject?: string
@@ -61,22 +65,44 @@ const swapSource = (id: string) => ({ preview: `/api/recreate/assets/${id}.mp4`,
 
 // KINEO-RECREATE-TRAVA-1011 [fundador 10/11: "tem que fazer tudo funcionar agora. Sem erros"] — a swap format reaches customers ONLY
 // with swapApproved: true, set by hand after its paid swap test. swapInTest: only the exact house allowlist sees it.
-export const RECREATE_FORMATS: readonly RecreateFormat[] = [
-  { id: 'outfit-morph', title: 'Outfit Morph', ...swapSource('outfit-morph'), poster: '/api/recreate/assets/outfit-morph.jpg', seconds: 10, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 1, swapApproved: false, swapInTest: true, swapNote: '10/11: 0 of 4 paid swaps; provider returned the original' },
-  { id: 'elevador', title: 'Elevator', ...swapSource('elevador'), poster: '/api/recreate/assets/elevador.jpg', seconds: 10, type: 'swap', prompt: recreateSwapPromptFor('the man'), photoSlots: 1, swapSubject: 'the man', swapApproved: false, swapInTest: true, swapNote: '10/11: with 2 photos the man swapped 2 of 2 and the woman 0 of 3; founder 10/11 night: one photo, only the man is replaced. Paid test with 1 photo pending' },
-  { id: 'passarela', title: 'Runway walk', ...swapSource('passarela'), poster: '/api/recreate/assets/passarela.jpg', seconds: 10, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 1, swapApproved: true, swapInTest: false, approvedOn: '2026-11-10', swapNote: '10/11 paid tests: 2 of 2 swaps; site test: clip 2bccfb65 delivered (40 credits)' },
-  { id: 'escolha-o-favorito', title: 'Guess my favorite', ...swapSource('escolha-o-favorito'), poster: '/api/recreate/assets/escolha-o-favorito.jpg', seconds: 8, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 2, swapApproved: true, swapInTest: false, approvedOn: '2026-11-10', swapNote: '10/11 paid tests: 2 of 2 swaps; site test: clip 8e485eef delivered, check swapped 2/2; 8 s = 45 credits (fundador 10/11: "Cobra 45")' },
-  { id: 'duelo-de-danca', title: 'Dance duo', ...swapSource('duelo-de-danca'), poster: '/api/recreate/assets/duelo-de-danca.jpg', seconds: 10, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 2, swapApproved: false, swapInTest: true, swapNote: '10/11 paid test: 0 of 1 (full body, small face: does not swap)' },
+// KINEO-RECREATE-ORDEM-1311 [dono 13/11: "Todo recreate que a gente comprar ou fizer tem que vir na lista por ordem na página dos
+// templates"] — the day each effect entered the Recreate catalog, by git history: the catalog was born on 09/11 (20d959ae5, which already
+// listed every effect with a preview poster) and every poster below is older (05/10 to 30/10), so all effects entered on 09/11. A new
+// effect enters on the day its poster lands in lib/clips/clipEffects.ts — add it here in the same commit, or the guardian turns red.
+// Guardian: scripts/test-recreate-ordem-1311.mjs.
+export const RECREATE_EFFECT_DESDE: Readonly<Record<string, string>> = {
+  bring_to_life: '2026-11-09', product_360: '2026-11-09', zoom_out_earth: '2026-11-09', cinematic_slowmo: '2026-11-09',
+  restore_old_photo: '2026-11-09', color_burst: '2026-11-09', storm_behind: '2026-11-09', melt: '2026-11-09', secret_cake: '2026-11-09',
+  wings: '2026-11-09', dollar_rain: '2026-11-09', muscle_surge: '2026-11-09', witch: '2026-11-09', zombie: '2026-11-09',
+  dust_away: '2026-11-09', figurine_3d: '2026-11-09', snow_globe: '2026-11-09', santa_cartoon: '2026-11-09', giant_product: '2026-11-09',
+  pet_xmas_angel: '2026-11-09', pet_xmas_tree: '2026-11-09', pet_lion: '2026-11-09', pet_bee: '2026-11-09', catrina: '2026-11-09',
+  catrina_pet: '2026-11-09', werewolf: '2026-11-09', hug: '2026-11-09', kiss: '2026-11-09',
+}
+
+/** KINEO-RECREATE-ORDEM-1311 — newest first by `desde`; same day keeps the order of the list below (stable, by index). */
+export function recreateNewestFirst<T extends { desde: string }>(list: readonly T[]): T[] {
+  return list.map((f, i) => ({ f, i })).sort((a, b) => (a.f.desde < b.f.desde ? 1 : a.f.desde > b.f.desde ? -1 : a.i - b.i)).map(x => x.f)
+}
+
+// Written in the order models were added; RECREATE_FORMATS (and so the public grid, the signed-in grid and /ai-face-swap-video) lists
+// them newest first.
+const RECREATE_CATALOG: readonly RecreateFormat[] = [
+  { id: 'outfit-morph', title: 'Outfit Morph', desde: '2026-11-09', ...swapSource('outfit-morph'), poster: '/api/recreate/assets/outfit-morph.jpg', seconds: 10, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 1, swapApproved: false, swapInTest: true, swapNote: '10/11: 0 of 4 paid swaps; provider returned the original' },
+  { id: 'elevador', title: 'Elevator', desde: '2026-11-09', ...swapSource('elevador'), poster: '/api/recreate/assets/elevador.jpg', seconds: 10, type: 'swap', prompt: recreateSwapPromptFor('the man'), photoSlots: 1, swapSubject: 'the man', swapApproved: false, swapInTest: true, swapNote: '10/11: with 2 photos the man swapped 2 of 2 and the woman 0 of 3; founder 10/11 night: one photo, only the man is replaced. Paid test with 1 photo pending' },
+  { id: 'passarela', title: 'Runway walk', desde: '2026-11-10', ...swapSource('passarela'), poster: '/api/recreate/assets/passarela.jpg', seconds: 10, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 1, swapApproved: true, swapInTest: false, approvedOn: '2026-11-10', swapNote: '10/11 paid tests: 2 of 2 swaps; site test: clip 2bccfb65 delivered (40 credits)' },
+  { id: 'escolha-o-favorito', title: 'Guess my favorite', desde: '2026-11-10', ...swapSource('escolha-o-favorito'), poster: '/api/recreate/assets/escolha-o-favorito.jpg', seconds: 8, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 2, swapApproved: true, swapInTest: false, approvedOn: '2026-11-10', swapNote: '10/11 paid tests: 2 of 2 swaps; site test: clip 8e485eef delivered, check swapped 2/2; 8 s = 45 credits (fundador 10/11: "Cobra 45")' },
+  { id: 'duelo-de-danca', title: 'Dance duo', desde: '2026-11-10', ...swapSource('duelo-de-danca'), poster: '/api/recreate/assets/duelo-de-danca.jpg', seconds: 10, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 2, swapApproved: false, swapInTest: true, swapNote: '10/11 paid test: 0 of 1 (full body, small face: does not swap)' },
   // KINEO-RECREATE-HOME-1311 [dono 13/11: "não tem o botão recreate" no cartão do topo; teste pago aprovado pelo dono, teto US$ 7]
-  { id: 'sueter-aconchegante', title: 'Cozy sweater flip', ...swapSource('sueter-aconchegante'), poster: '/api/recreate/assets/sueter-aconchegante.jpg', seconds: 8, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 1, swapApproved: true, swapInTest: false, approvedOn: '2026-11-13', swapNote: '13/11 paid test: 1 of 1 swap (invented face, 6 fps sheet: the photo face in all 48 frames, also looking down); sweater, tree, chair and gestures unchanged; output 768×1024 (3:4) from the 2:3 base' },
+  { id: 'sueter-aconchegante', title: 'Cozy sweater flip', desde: '2026-11-13', ...swapSource('sueter-aconchegante'), poster: '/api/recreate/assets/sueter-aconchegante.jpg', seconds: 8, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 1, swapApproved: true, swapInTest: false, approvedOn: '2026-11-13', swapNote: '13/11 paid test: 1 of 1 swap (invented face, 6 fps sheet: the photo face in all 48 frames, also looking down); sweater, tree, chair and gestures unchanged; output 768×1024 (3:4) from the 2:3 base' },
   // Casal em selfie: troca SÓ o homem (uma foto), como o Elevator.
-  { id: 'selfie-confete', title: 'Selfie with the crowd', ...swapSource('selfie-confete'), poster: '/api/recreate/assets/selfie-confete.jpg', seconds: 8, type: 'swap', prompt: recreateSwapPromptFor('the man'), photoSlots: 1, swapSubject: 'the man', swapApproved: true, swapInTest: false, approvedOn: '2026-11-13', swapNote: '13/11 paid test: the man swapped 1 of 1 (invented face, 6 fps sheet: the photo face in all 48 frames, also in profile with the fist up); the woman unchanged in all 48 frames (base × result sheet); output 768×1024 (3:4) from the 2:3 base' },
+  { id: 'selfie-confete', title: 'Selfie with the crowd', desde: '2026-11-13', ...swapSource('selfie-confete'), poster: '/api/recreate/assets/selfie-confete.jpg', seconds: 8, type: 'swap', prompt: recreateSwapPromptFor('the man'), photoSlots: 1, swapSubject: 'the man', swapApproved: true, swapInTest: false, approvedOn: '2026-11-13', swapNote: '13/11 paid test: the man swapped 1 of 1 (invented face, 6 fps sheet: the photo face in all 48 frames, also in profile with the fist up); the woman unchanged in all 48 frames (base × result sheet); output 768×1024 (3:4) from the 2:3 base' },
   ...CLIP_EFFECTS.filter(e => e.preview?.poster).map(e => ({
     id: `effect-${e.key.replaceAll('_', '-')}`, title: e.title, preview: e.preview!.video,
-    poster: e.preview!.poster!, seconds: e.seconds, type: 'effect' as const, prompt: e.template ? e.sub : e.prompt,
+    poster: e.preview!.poster!, desde: RECREATE_EFFECT_DESDE[e.key] ?? '', seconds: e.seconds, type: 'effect' as const, prompt: e.template ? e.sub : e.prompt,
     photoSlots: e.pair ? 2 : 1, effectKey: e.key,
   })),
 ]
+export const RECREATE_FORMATS: readonly RecreateFormat[] = recreateNewestFirst(RECREATE_CATALOG)
 export const recreateFormat = (id: unknown) => RECREATE_FORMATS.find(f => f.id === id) ?? null
 /** KINEO-RECREATE-TRAVA-1011 — a swap is sold only at an approved tariff (RECREATE_PRICING). 8 s = 45 since 10/11 ("Cobra 45"). */
 export const recreateSwapPriced = (f: RecreateFormat) => f.type !== 'swap' || recreateCreditCost(f.seconds) !== null
