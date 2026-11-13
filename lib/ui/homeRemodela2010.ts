@@ -24,6 +24,13 @@ export const MENU_CARTOON_LABEL = 'AI Cartoon Videos'
 /** Id do item no nav_item_clicked (lib/navTelemetry aceita "more:<id>" sem mexer no enum do contrato). */
 export const MENU_CARTOON_NAV_ITEM = 'more:cartoon'
 
+/** KINEO-MENU-RECREATE-1211 [fundador 12/11: "Falha muito grave, não tem o Recreate no menu inicial"] — item de 1º nível logo depois de
+ *  Cartoons, levando à grade de todos os modelos que dá para recriar (/recreate: visitante vê a grade pública, logado vê o catálogo dele).
+ *  "Recreate" é nome de produto: não passa pela tradução (como "Claude & ChatGPT"). */
+export const RECREATE_MENU_HREF = '/recreate'
+export const RECREATE_MENU_LABEL = 'Recreate'
+export const RECREATE_MENU_NAV_ITEM = 'more:recreate'
+
 /** Item do conector, "ao lado" dos 4 principais: a página do MCP (Claude e ChatGPT usam o mesmo servidor /api/mcp). */
 export const MENU_CONNECTOR_HREF = '/kineo-in-claude' // KINEO-MENU-CLAUDE-0911 — fundador 09/11: "também quero isso: generate in Claude, with Kineo AI"; a página nova liga de volta para /claude-connector (documentação do conector do diretório)
 /** Nomes de produto: não passam pela tradução. Selo honesto: "Claude & ChatGPT" = funciona nos dois, sem "official"/"partner". */

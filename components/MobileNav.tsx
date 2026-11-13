@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { MORE_NAV, MORE_TOOLS_NAV, CARTOON_NAV, WORKSPACE_NAV, navItemIdFor, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
+import { MORE_NAV, MORE_TOOLS_NAV, CARTOON_NAV, RECREATE_NAV, WORKSPACE_NAV, navItemIdFor, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
 import { createEntryForLegacyHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — par do Sidebar
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { CLIPS_PUBLIC } from '@/lib/clips/clipLaunch'
@@ -161,6 +161,7 @@ const MORE_LINKS = [
   ...(MADE_WITH_KINEO_LINK ? [{ href: MADE_WITH_KINEO_LINK.href, label: MADE_WITH_KINEO_LINK.label, signedIn: false }] : []), // KINEO-GALERIA-HOME-2710
   ...MORE_TOOLS_NAV.filter(item => item.href !== '/clips' || CLIPS_PUBLIC).map(item => ({ href: item.href, label: item.label, signedIn: false })),
   { href: CARTOON_NAV.href, label: CARTOON_NAV.label, signedIn: false }, // KINEO-CARTOON-NO-MENU-0511 — par da lateral
+  { href: RECREATE_NAV.href, label: RECREATE_NAV.label, signedIn: false }, // KINEO-MENU-RECREATE-1211 — par da lateral e do topo da home
   ...MORE_NAV.map(item => ({ ...item, signedIn: false })),
   // KINEO-MENU-ENXUTO-2026-10-09 — par da lateral: Invite & Earn + Affiliate viram "Earn 30%" (era 40% até 13/10).
   { href: '/affiliate', label: 'Earn 30%', signedIn: true }, // KINEO-AFILIADO-30-NOVOS-2026-10-13: taxa de quem entra agora

@@ -88,6 +88,7 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       // (26 paginas publicas linkando; nenhuma pagina nasce orfa).
       ...(SHOWCASE_PUBLIC ? [{ href: '/showcase', label: 'Showcase' }] : []),
       { href: '/images', label: 'AI image generator — 6 engines' },
+      { href: '/recreate', label: 'Recreate — put yourself in the clip' }, // KINEO-MENU-RECREATE-1211 — par do topo da home: a grade de todos os modelos
       { href: '/clips', label: 'AI clips — photo or text to clip' }, // KINEO-HOME-REMODELA-2010 — saíram do topo com o "More tools" (fundador 20/10): seguem a 1 clique no rodapé
       { href: '/spaces', label: 'Spaces — empty space in, finished space out' }, // KINEO-HOME-REMODELA-2010
       { href: '/examples', label: 'Examples — real renders, every engine' }, // KINEO-HOME-REMODELA-2010

@@ -156,6 +156,15 @@ const NAV_ICONS: Record<string, JSX.Element> = {
       <path d="M17.5 5.5c1 1 1.6 2.3 1.6 3.7M20 3.5c1.6 1.6 2.5 3.6 2.5 5.7" />
     </svg>
   ),
+  // KINEO-MENU-RECREATE-1211 — Recreate: quadro de vídeo com um rosto e a seta de "refazer"; mesma grade 17px / stroke 1.7 / currentColor.
+  recreate: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="3.5" width="13" height="17" rx="2.5" />
+      <circle cx="9.5" cy="10" r="2.3" />
+      <path d="M6 16.5c.8-1.7 2-2.5 3.5-2.5s2.7.8 3.5 2.5" />
+      <path d="M19 8.5a4 4 0 0 1 0 7M19 15.5l-1.5-.2M19 15.5l.3-1.5" />
+    </svg>
+  ),
   animate: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="3" y="4.5" width="13" height="15" rx="2.5" />

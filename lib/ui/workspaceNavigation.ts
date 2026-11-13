@@ -35,11 +35,14 @@ export const MORE_TOOLS_NAV = [
 const SIDEBAR_LAST = new Set(['/library', '/pricing'])
 // KINEO-CARTOON-NO-MENU-0511 — fundador 05/11 ("1 sim"): quem compra precisa achar o Cartoon; entra logo depois de Clips na lateral e no "More" do celular.
 export const CARTOON_NAV = { href: '/kids-cartoon', label: 'Cartoon', icon: 'cartoon' } as const
+// KINEO-MENU-RECREATE-1211 [fundador 12/11: "não tem o Recreate no menu"] — par do topo da home: Recreate logo depois do Cartoon na lateral
+// e no "More" do celular; leva ao catálogo de todos os modelos que a conta pode recriar (/recreate).
+export const RECREATE_NAV = { href: '/recreate', label: 'Recreate', icon: 'recreate' } as const
 export function sidebarNavItems(clipsOn: boolean): readonly { href: string; label: string; icon: string }[] {
   const doors = WORKSPACE_NAV.filter(item => !SIDEBAR_LAST.has(item.href))
   const tools = MORE_TOOLS_NAV.filter(item => item.href !== '/spaces' && (item.href !== '/clips' || clipsOn))
   const last = WORKSPACE_NAV.filter(item => SIDEBAR_LAST.has(item.href))
-  return [...doors, ...tools, CARTOON_NAV, ...last]
+  return [...doors, ...tools, CARTOON_NAV, RECREATE_NAV, ...last] // KINEO-MENU-RECREATE-1211
 }
 /** Public "More" links shared by Sidebar and MobileNav; each shell appends its signed-in account links. */
 // KINEO-MENU-ENXUTO-2026-10-09 — fundador ("1 sim"): Animate (o Clips faz), Audio (0 uso em 30 dias), Autopilot (0

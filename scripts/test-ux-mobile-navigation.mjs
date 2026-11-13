@@ -70,7 +70,7 @@ const links = nodes(tree).filter((n) => n.type === Link)
 // Founder 09/10 menu-enxuto + 13/10 duas-portas/trending: removed menu items retain their direct routes.
 // KINEO-GALERIA-HOME-2710 — reancorado 27/10 (fundador: item "Made with Kineo" no menu): /made-with-kineo entra no "More" do celular, logo depois do Trending.
 // KINEO-JUNTA-TRENDING-3110 — reancorado 30/10: o Trending virou o topo do Made with Kineo (/trending redireciona), saiu do "More".
-const expected = ['/studio', '/ads/new', '/library', '/pricing', '/made-with-kineo', '/images', '/clips', '/spaces', '/kids-cartoon', '/affiliate', '/account'] // KINEO-GALERIA-HOME-2710 · KINEO-CARTOON-NO-MENU-0511
+const expected = ['/studio', '/ads/new', '/library', '/pricing', '/made-with-kineo', '/images', '/clips', '/spaces', '/kids-cartoon', '/recreate', '/affiliate', '/account'] // KINEO-GALERIA-HOME-2710 · KINEO-CARTOON-NO-MENU-0511 · KINEO-MENU-RECREATE-1211 — reancorado 12/11: Recreate depois do Cartoon
 // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — Make a film · Product ads · Cartoon passam pela entrada
 // única (lib/create/entry.ts): o destino ANTIGO segue sendo a identidade do item (medição e ativo); o link abre a tela nova (/create/<aba>).
 const ENTRY = loadPure('@/lib/create/entry')

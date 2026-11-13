@@ -59,6 +59,7 @@ import { clipsFirstFilmHref } from '@/lib/growth/homeClipsFirst'
 import { createEntryForContentHref, createEntryForSignupHref, createEntryHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — o destino de cada entrada de criação
 import { NOMES_DE_PRODUTO } from '@/lib/ui/nomesDeProduto' // KINEO-NOMES-DE-PRODUTO-1211 — um nome por produto (tabela aprovada pelo fundador 11/11)
 import { MENU_CARTOON_HREF, MENU_CARTOON_LABEL, MENU_CARTOON_NAV_ITEM, MENU_CONNECTOR_HREF, MENU_CONNECTOR_LABEL, MENU_CONNECTOR_NAV_ITEM, HOME_GALLERY_TITLE } from '@/lib/ui/homeRemodela2010' // KINEO-HOME-REMODELA-2010
+import { RECREATE_MENU_HREF, RECREATE_MENU_LABEL, RECREATE_MENU_NAV_ITEM } from '@/lib/ui/homeRemodela2010' // KINEO-MENU-RECREATE-1211
 // KINEO-VITRINE-MOEDA-2026-08-19 — LandingStarterPrice cobria SÓ o Starter, e
 // por isso a home mostrava R$24,90 (regional) ao lado de $19.90 e $39.90
 // (chumbados). Agora os TRÊS planos falam a moeda do visitante.
@@ -985,6 +986,7 @@ export default function KineoLanding({
             {/* KINEO-HOME-REMODELA-2010 — fundador 20/10: "esses vão ser os quatro principais, e ao lado vai ser o MCP do Claude e do GPT… more tools a gente vai cancelar". */}
             {/* KINEO-HOME-REMODELA-2010 — 4º principal: os desenhos 3D para crianças; ao lado, o conector (Claude e ChatGPT). O "More tools" saiu: Images, Clips, Spaces e Examples seguem no rodapé e pela URL. */}
             <Link href={createEntryForContentHref('cartoon', MENU_CARTOON_HREF, '/kids-cartoon', isSignedIn)} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{NOMES_DE_PRODUTO.cartoon.curto}</UiLabel></Link>{/* KINEO-HOME-REMODELA-2010 */}
+            <Link href={RECREATE_MENU_HREF} data-nav-item={RECREATE_MENU_NAV_ITEM}>{RECREATE_MENU_LABEL}</Link>{/* KINEO-MENU-RECREATE-1211 — topo: 1º nível logo depois de Cartoons, fora do More; leva à grade de todos os modelos que dá para recriar */}
             {/* KINEO-MENU-4-MAIS-1211 [CEO 12/11, tarefa 4 do fundador "design mais bonito"; opção C da imagem div1-t4-decisao-ABC.png — a escolha final é do fundador] — no computador: os 4 produtos, "More" só com Made with Kineo (6 pessoas em 30 dias), Claude & ChatGPT segue visível (ordem de 20/10; Higgsfield e InVideo mostram MCP no topo) e Pricing vai para a direita, ao lado do Log in (2º item mais clicado: 28 pessoas). O menu do celular não muda de lugar. */}
             <PublicNavDropdown item="more:menu" label="More">
               <span className="nd-menu nd-more">
@@ -1020,6 +1022,7 @@ export default function KineoLanding({
               <NavUgcAdsLink data-nav-item="more:ugc" signedIn={isSignedIn} label={NOMES_DE_PRODUTO.ugc_ads.curto} />{/* KINEO-MENU-UGC-2010 — par do topo no celular */}
               <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>{MADE_WITH_KINEO_LABEL}</Link>{/* KINEO-GALERIA-HOME-2710 — par do topo no celular */}
               <Link href={createEntryForContentHref('cartoon', MENU_CARTOON_HREF, '/kids-cartoon', isSignedIn)} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{NOMES_DE_PRODUTO.cartoon.curto}</UiLabel></Link>{/* KINEO-HOME-REMODELA-2010 — par do topo */}
+              <Link href={RECREATE_MENU_HREF} data-nav-item={RECREATE_MENU_NAV_ITEM}>{RECREATE_MENU_LABEL}</Link>{/* KINEO-MENU-RECREATE-1211 — par do topo no celular */}
               <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM}>{MENU_CONNECTOR_LABEL}</Link>{/* KINEO-HOME-REMODELA-2010 — par do topo */}
               <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
               <InterfaceLanguageSelect emMenu />{/* KINEO-HOME-TOPO-0511 — par do topo no celular */}
