@@ -127,6 +127,24 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
     </UiLabel></button>
   )
 
+  // KINEO-LIBRARY-RECREATE-NA-FRENTE-1311 [dono 13/11 05:30, testando o Recreate pelo celular: "o meu vídeo não apareceu em lugar nenhum… Não estão em library. Isso é
+  // gravíssimo"] — Recreate e clipe são linhas da tabela `clips` e só apareciam na aba "Clips"; "My videos" abre a aba "Videos", que lê só a
+  // tabela `videos`. Agora os prontos mais novos aparecem TAMBÉM no topo da aba que abre, com o atalho para ver todos.
+  const estanteDeClipes = (lista: Clp[], titulo: string) => (
+        <div className="library-asset-section"><h2><UiLabel>{titulo}</UiLabel></h2><div className="library-collection">
+          {lista.map((c) => (
+            <div key={c.id} className="card library-organized-card" style={{ padding: 8 }}>
+              <video src={c.video_url ?? undefined} controls playsInline preload="metadata" style={{ width: '100%', borderRadius: 10, display: 'block', background: '#000' }} />
+              <p className="library-asset-model">{c.label} · {c.seconds} s</p>
+              <div className="row library-asset-actions" style={{ marginTop: 8 }}>
+                <button type="button" className="pill" onClick={() => dl(c.video_url!, `kineo-clip-${c.id.slice(0, 6)}.mp4`)}><ControlIcon name="download" /> <UiLabel>Download</UiLabel></button>
+                <Link className="pill" style={{ textDecoration: 'none' }} href="/clips"><UiLabel>Clips</UiLabel> ↗</Link>
+              </div>
+            </div>
+          ))}
+        </div></div>
+  )
+  const clipesNaFrente = clps.slice(0, 6)
   return (
     <div className="stu library-page">
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
@@ -221,6 +239,12 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
 
       </div>
 
+      {(tab === 'videos' || tab === 'all') && loaded && clipesNaFrente.length > 0 && ( /* KINEO-LIBRARY-RECREATE-NA-FRENTE-1311 — na aba que abre, na galeria nova (videos) e na antiga (all) */
+        <div data-library-recreate-na-frente="1">
+          {estanteDeClipes(clipesNaFrente, 'Recreate and clips')}
+          {clps.length > clipesNaFrente.length && <p className="sub" style={{ marginTop: 8 }}><button type="button" className="pill" onClick={() => { setTab('clips'); setQ('') }}><UiLabel>See all</UiLabel> ({clps.length})</button></p>}
+        </div>
+      )}
       {unifiedGallery && tab === 'videos' && videoCollection}
       {tab === 'ads' && (() => { /* KINEO-LIBRARY-TUDO-3110 — aba Anúncios: os vídeos do /ads (platform 'Studio Ads'), mais novos primeiro */
         const ads = vids.filter(isAdVideo).filter((v) => !!(v.enhanced_url || v.video_url))
@@ -244,20 +268,7 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
         )
       })()}
       {tab === 'clips' && loaded && clps.length === 0 && <p className="sub"><UiLabel>No clips yet.</UiLabel> <Link href="/clips"><UiLabel>Make a clip</UiLabel> →</Link></p>}
-      {tab === 'clips' && clps.length > 0 && ( /* KINEO-LIBRARY-TUDO-3110 — os clipes saem do fim da aba Vídeos (ficavam depois de 300 filmes) para a aba deles */
-        <div className="library-asset-section"><h2><UiLabel>Clips</UiLabel></h2><div className="library-collection">
-          {clps.map((c) => (
-            <div key={c.id} className="card library-organized-card" style={{ padding: 8 }}>
-              <video src={c.video_url ?? undefined} controls playsInline preload="metadata" style={{ width: '100%', borderRadius: 10, display: 'block', background: '#000' }} />
-              <p className="library-asset-model">{c.label} · {c.seconds} s</p>
-              <div className="row library-asset-actions" style={{ marginTop: 8 }}>
-                <button type="button" className="pill" onClick={() => dl(c.video_url!, `kineo-clip-${c.id.slice(0, 6)}.mp4`)}><ControlIcon name="download" /> <UiLabel>Download</UiLabel></button>
-                <Link className="pill" style={{ textDecoration: 'none' }} href="/clips"><UiLabel>Clips</UiLabel> ↗</Link>
-              </div>
-            </div>
-          ))}
-        </div></div>
-      )}
+      {tab === 'clips' && clps.length > 0 && estanteDeClipes(clps, 'Clips')}{/* KINEO-LIBRARY-TUDO-3110 · KINEO-LIBRARY-RECREATE-NA-FRENTE-1311 */}
       {!(unifiedGallery && tab === 'videos') && tab !== 'ads' && tab !== 'clips' && <LibraryOrganization state={organization} />}
 
       {!(unifiedGallery && tab === 'videos') && !loaded && (
