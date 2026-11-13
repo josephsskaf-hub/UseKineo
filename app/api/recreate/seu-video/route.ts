@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
         const balance = result.balance ?? (await loadClipAccount(supabase, user))?.balance
         if (balance !== undefined && plan.credits > balance) return json({ error: `You need ${plan.credits - balance} more credits.`, code: 'credits', shortfall: plan.credits - balance, plans: '/pricing' }, result.status)
       }
-      const motor = recusaDoMotor(result.code, result.clip?.credits_refunded ?? 0)
+      const motor = recusaDoMotor(result.code)
       if (motor) return json({ error: motor, code: 'engine_refused' }, result.status)
       return json({ error: result.code === 'idempotency_conflict' ? 'This request is already reserved. Check your videos before trying again.' : 'Could not start this video. Check your photos, plan and balance, then retry.', code: result.code }, result.status)
     }

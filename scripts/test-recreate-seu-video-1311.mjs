@@ -98,8 +98,9 @@ async function provas(m) {
   if (m.SEEDANCE25_MODEL !== 'bytedance/seedance-2.5/reference-to-video') erros.push('E modelo errado')
   if (m.SEU_VIDEO_RELEASE !== 'internal') erros.push('E o interruptor não está em só-a-casa')
   // recusa do motor
-  if (!/refused/.test(m.recusaDoMotor('provider_rejected', 40) ?? '') || !/40 credits were refunded/.test(m.recusaDoMotor('provider_failed', 40) ?? '')) erros.push('E recusa do motor sem a frase ou sem o estorno')
-  if (m.recusaDoMotor('credits', 0) !== null || m.recusaDoMotor('swap_unchanged', 40) !== null) erros.push('E recusa do motor pegou outro código')
+  const FRASE = 'The engine did not accept this photo. Nothing was charged. Try another photo.' // a frase da CEO, 13/11
+  if (m.recusaDoMotor('provider_rejected') !== FRASE || m.recusaDoMotor('provider_failed') !== FRASE) erros.push('E recusa do motor sem a frase da CEO')
+  if (m.recusaDoMotor('credits') !== null || m.recusaDoMotor('swap_unchanged') !== null || m.recusaDoMotor('submit_ambiguous') !== null) erros.push('E recusa do motor pegou outro código')
   return erros
 }
 
@@ -119,7 +120,18 @@ checa('F a conferência não chama motor nem cobra', !/submitClip|queue\.fal|fal
 checa('F 15 s só com plano pago (402 antes de cobrar)', gera.includes("if (v.gerados > 10 && !isPayingPlan(account.plan)) return refuse('plan'") && gera.indexOf("refuse('plan'") < iSub)
 checa('F fotos só da própria conta', gera.includes('ownedClipImageUrl(value, user.id, supabaseUrl)'))
 checa('F o envio usa URL assinada no bucket público, na pasta do cliente', envia.includes('createSignedUploadUrl(path)') && envia.includes('${SEU_VIDEO_PASTA}/${user.id}/${randomUUID()}'))
-checa('F status devolve a recusa do motor só no Seedance 2.5', status.includes("fresh.model === SEEDANCE25_MODEL ? recusaDoMotor(fresh.failure_reason, credits_refunded ?? 0)"))
+checa('F status devolve a recusa do motor só no Seedance 2.5', status.includes('fresh.model === SEEDANCE25_MODEL ? recusaDoMotor(fresh.failure_reason)'))
+// essencial da CEO (13/11): conta de fora = 404 · vídeo fora do limite não debita · recusa estorna · preço 40/60 (este último em C)
+const acesso = createOfflineLoader()('lib/recreate/access.ts'), casa = createOfflineLoader()('lib/internalAccounts.ts').INTERNAL_EXACT_EMAILS
+const relSeu = carrega().SEU_VIDEO_RELEASE
+checa('ESSENCIAL conta de fora não vê (404) e a da casa vê', acesso.releaseVisible('cliente.qualquer@example.com', relSeu) === false && acesso.releaseVisible(casa[0], relSeu) === true)
+const iFora = gera.indexOf('if (!v.ok) return refuse(v.code, v.error, 422)')
+checa('ESSENCIAL vídeo fora do limite sai antes do submitClip (nada debitado)', iFora > iLe && iFora < iSub && gera.indexOf("if (v.creditos === null) return refuse('duration'") < iSub)
+const fluxo = r('lib/clips/clipFlow.ts')
+const iClose = fluxo.indexOf('const closeWithRefund = async (reason: string'), iRef = fluxo.indexOf('const refunded = await deps.refund(row.billing_reference)', iClose)
+checa('ESSENCIAL recusa no envio estorna (provider_rejected → closeWithRefund → deps.refund)', iClose > 0 && iRef > iClose && iRef - iClose < 200 && fluxo.includes("return closeWithRefund(sent.ambiguous ? 'submit_ambiguous' : 'provider_rejected'"))
+const iFail = fluxo.indexOf('const fail = async (reason: string'), iRef2 = fluxo.indexOf('const refunded = await deps.refund(row.billing_reference)', iFail)
+checa('ESSENCIAL recusa no fim estorna (provider_failed → fail → deps.refund)', iFail > 0 && iRef2 > iFail && iRef2 - iFail < 400 && fluxo.includes("if (state.state === 'failed') return fail('provider_failed'"))
 checa('F eventos só do servidor', eventos.includes("'recreate_seu_video_started'") && eventos.includes("'recreate_seu_video_refused'"))
 checa('F a trava "não trocou" segue só no Recast', r('lib/recreate/swapCheck.ts').includes('if (row.model !== RECREATE_MODEL) return null'))
 
@@ -135,6 +147,7 @@ const MUTANTES = [
   ['prompt sem conferir cada foto', (s) => s.replace('for (let i = 1; i <= fotos; i++) if (!t.includes(`@Image${i}`)) return', 'for (let i = 1; i <= 0; i++) if (!t.includes(`@Image${i}`)) return')],
   ['caminho de qualquer cliente', (s) => s.replace('`^${SEU_VIDEO_PASTA}/${userId}/[0-9a-f-]{36}', '`^${SEU_VIDEO_PASTA}/[0-9a-f-]{36}/[0-9a-f-]{36}')],
   ['com som e 720p', (s) => s.replace("resolution: '480p', duration: String(a.gerados), aspect_ratio: a.proporcao, generate_audio: false", "resolution: '720p', duration: String(a.gerados), aspect_ratio: a.proporcao, generate_audio: true")],
+  ['recusa com outra frase', (s) => s.replace("'The engine did not accept this photo. Nothing was charged. Try another photo.'", "'The engine refused this.'")],
   ['aberto ao público', (s) => s.replace("export const SEU_VIDEO_RELEASE: InternalRelease = 'internal'", "export const SEU_VIDEO_RELEASE: InternalRelease = 'public'")],
 ]
 const src = lf(fs.readFileSync(ARQ, 'utf8'))

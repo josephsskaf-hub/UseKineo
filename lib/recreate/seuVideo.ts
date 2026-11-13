@@ -129,12 +129,12 @@ export function caminhoDoCliente(path: unknown, userId: string): string | null {
 }
 /**
  * Recusa do motor (no envio: provider_rejected; no fim: provider_failed): o Seedance 2.5 recusa com 422 alguns rostos reais e cenas
- * sensíveis. O estorno é o de sempre (submitClip/settleClip); aqui só a frase clara. null = não é recusa do motor.
+ * sensíveis. O estorno é o de sempre (submitClip/settleClip: closeWithRefund e fail chamam deps.refund); aqui só a frase da tela, a da
+ * CEO de 13/11, palavra por palavra. null = não é recusa do motor.
  */
-export function recusaDoMotor(code: string | null | undefined, creditosDevolvidos: number): string | null {
-  if (code !== 'provider_rejected' && code !== 'provider_failed') return null
-  const volta = creditosDevolvidos > 0 ? `Your ${creditosDevolvidos} credits were refunded.` : 'You were not charged.'
-  return `The engine refused this video or these photos (it blocks some real faces and sensitive scenes). Try another photo or video. ${volta}`
+export const FRASE_RECUSA_DO_MOTOR = 'The engine did not accept this photo. Nothing was charged. Try another photo.'
+export function recusaDoMotor(code: string | null | undefined): string | null {
+  return code === 'provider_rejected' || code === 'provider_failed' ? FRASE_RECUSA_DO_MOTOR : null
 }
 /** A entrada exata da fal (o formato dos 2 testes aprovados de 13/11). */
 export function entradaSeedance25(a: { prompt: string; fotos: string[]; videoUrl: string; gerados: number; proporcao: string }) {
