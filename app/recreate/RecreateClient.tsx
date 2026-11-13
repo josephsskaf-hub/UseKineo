@@ -9,6 +9,8 @@ import RecreatePlayer, { ExampleCover } from './RecreatePlayer'
 import CreateTabs from '@/components/create/CreateTabs' // KINEO-TELA-NOVA-1011
 import CreateNavConta from '@/components/create/CreateNavConta' // KINEO-TELA-NOVA-CABECALHO-1011 — saldo · Pricing · My videos, só com as abas
 import './recreate.css'
+import { downloadVideoFile } from '@/lib/videoDownload' // KINEO-DOWNLOAD-NOSSO-1311
+import { downloadHref } from '@/lib/downloadNosso'
 
 // KINEO-RECREATE-TRAVA-1011 — the provider returned the base video without the customer: the server refunded and failed the clip.
 const NOT_SWAPPED_MESSAGE = "We couldn't put you in this video. Nothing was charged. Try a clearer, front-facing photo or another video."
@@ -49,6 +51,14 @@ export default function RecreateClient({ initialId, internalTools = false, forma
   const photoTask = useRef(0)
   const photosRef = useRef(photos)
   photosRef.current = photos
+  // KINEO-DOWNLOAD-NOSSO-1311 [dono 13/11 ~20:10: "a URL ainda tá parecendo Supabase lá em cima"] — Download BAIXA com o nome da Kineo pelo
+  // baixador da casa (conta video_download_clicked / video_downloaded, surface 'recreate'); o href é a rota do nosso domínio (/api/download).
+  const downloadName = `kineo-recreate-${selected?.id ?? 'video'}.mp4`
+  function onDownload(event: { preventDefault: () => void }) {
+    if (!clip?.video_url) return
+    event.preventDefault()
+    void downloadVideoFile({ url: clip.video_url, filename: downloadName, exportType: 'current_asset', surface: 'recreate', videoId: clip.id, extra: { format: selected?.id ?? null } })
+  }
   useEffect(() => () => { photoTask.current++; for (const photo of photosRef.current) if (photo) URL.revokeObjectURL(photo.url) }, [])
 
   async function loadQuotes() {
@@ -259,7 +269,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
                 conseguindo também"] — o vídeo ficava pronto no fim do painel, atrás deste botão fixo. Pronto = o botão vira o aviso e leva ao vídeo. */}
             {clip?.status === 'done' && clip.video_url ? <>
               <button className="rc-generate" data-recreate-ready onClick={() => document.querySelector('.rc-result')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>Your version is ready · Watch ↓</button>
-              <p className="rc-next-note" role="status"><a href={clip.video_url} download>Download ↗</a> · <Link href="/library">My videos ↗</Link> · <button type="button" className="rc-outro" onClick={() => { setClip(null); requestKey.current = null }}>Make another</button></p>
+              <p className="rc-next-note" role="status"><a href={downloadHref(clip.video_url, downloadName, 'recreate')} onClick={onDownload}>Download ↓</a> · <Link href="/library">My videos ↗</Link> · <button type="button" className="rc-outro" onClick={() => { setClip(null); requestKey.current = null }}>Make another</button></p>
             </> : <>
             <button className="rc-generate" data-recreate-generate aria-describedby="rc-generate-reason" disabled={editingDisabled || !quote?.available || quote.credits === null || quote.shortfall > 0 || !photosDone} onClick={() => void generate(false)}>{busy ? 'Preparing…' : active ? 'Creating…' : 'Generate'}{quote?.credits !== null && quote?.credits !== undefined && <span>✦ {quote.credits}</span>}</button>
             <p className="rc-next-note" id="rc-generate-reason" role="status">{blocker}{quote?.available && quote.shortfall > 0 && <> <Link href="/pricing">See plans ↗</Link></>}</p>
@@ -268,7 +278,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
           {internalTools && <button className="rc-simulate" disabled={busy} onClick={() => void generate(true)}>Simulate · no generation</button>}
         </section>
         {simulation && <output className="rc-result"><strong>Simulation · no generation</strong><p>{simulation.format} · {simulation.seconds} s · {simulation.mode}</p><p>Up to {simulation.photos} photos. No upload, debit or render was made.</p></output>}
-        {clip && <div className="rc-result" aria-live="polite"><strong>{clip.status === 'done' ? 'Your version is ready' : clip.status === 'failed' ? 'Generation failed' : 'Creating your version'}</strong>{clip.status === 'done' && clip.video_url && <><RecreatePlayer src={clip.video_url} label="Your version" /><a href={clip.video_url} download>Download ↗</a></>}{clip.status === 'failed' && <p>{clip.reason === 'not_swapped' ? clip.credits_refunded ? NOT_SWAPPED_MESSAGE : "We couldn't put you in this video. Check your videos for the final billing status." : clip.credits_refunded ? 'Your credit refund was confirmed.' : 'Check your videos for the final billing status.'}</p>}<Link href="/library">My videos ↗</Link></div>}
+        {clip && <div className="rc-result" aria-live="polite"><strong>{clip.status === 'done' ? 'Your version is ready' : clip.status === 'failed' ? 'Generation failed' : 'Creating your version'}</strong>{clip.status === 'done' && clip.video_url && <><RecreatePlayer src={clip.video_url} label="Your version" /><a href={downloadHref(clip.video_url, downloadName, 'recreate')} onClick={onDownload}>Download ↓</a></>}{clip.status === 'failed' && <p>{clip.reason === 'not_swapped' ? clip.credits_refunded ? NOT_SWAPPED_MESSAGE : "We couldn't put you in this video. Check your videos for the final billing status." : clip.credits_refunded ? 'Your credit refund was confirmed.' : 'Check your videos for the final billing status.'}</p>}<Link href="/library">My videos ↗</Link></div>}
       </aside>}
       {selected && <section className="rc-reference" aria-label="Base video">
         <div className="rc-stage"><RecreatePlayer key={selected.id} src={selected.preview} poster={selected.poster} preview label={`Base video: ${selected.title}`}

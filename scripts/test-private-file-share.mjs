@@ -76,6 +76,12 @@ function loadDownloadModule(onTrack = () => {}) {
         vm.runInNewContext(code, { ...sandbox, exports })
         return exports
       }
+      if (id === '@/lib/downloadNosso') { // KINEO-DOWNLOAD-NOSSO-1311 — módulo puro do link de baixar pelo nosso domínio
+        const exports = {}
+        const code = ts.transpileModule(read('lib/downloadNosso.ts'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText
+        vm.runInNewContext(code, { exports, URL: globalThis.URL, URLSearchParams })
+        return exports
+      }
       throw new Error(`unmocked import ${id}`)
     },
     console,

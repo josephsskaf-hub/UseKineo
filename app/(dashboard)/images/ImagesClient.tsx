@@ -22,6 +22,7 @@ import MobileCreationShortcut from '@/components/MobileCreationShortcut'
 import { ProductRow, ProductStage, ProductStageStyles, useProductStage, type StageItem } from '@/components/ProductStage' // KINEO-ABAS-PALCO-2026-10-01
 import { IMG_ENGINES, type ImgModelKey } from '@/lib/imageModels'
 import { IMAGES_TELA_CSS, rotuloDoBotaoImagem } from '@/lib/images/telaImagens' // KINEO-IMAGES-TELA-0511
+import { downloadHref } from '@/lib/downloadNosso' // KINEO-DOWNLOAD-NOSSO-1311 — baixar pelo nosso domínio, nunca o endereço do Supabase
 
 type ImgSize = 'square_hd' | 'portrait_16_9' | 'landscape_16_9'
 
@@ -266,7 +267,7 @@ export default function ImagesClient() {
       a.remove()
       setTimeout(() => URL.revokeObjectURL(a.href), 5000)
     } catch {
-      window.open(url, '_blank', 'noopener')
+      window.open(downloadHref(url, `kineo-image-${items.length - idx}.png`, 'images'), '_blank', 'noopener')
     }
   }
 

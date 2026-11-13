@@ -16,6 +16,7 @@ import { TopupOuRecargaModal } from '@/components/billing/BuyCreditsEntry' // KI
 // veem os 3 planos com "N audio clips/mo" em vez de um pack que o checkout recusa.
 import OutOfCreditsPlansModal from '@/components/OutOfCreditsPlansModal'
 import { outOfCreditsDestination } from '@/lib/credits/outOfCreditsPlans'
+import { downloadHref } from '@/lib/downloadNosso' // KINEO-DOWNLOAD-NOSSO-1311 — baixar pelo nosso domínio, nunca o endereço do Supabase
 
 type AudioModelKey = 'eleven' | 'minimax' | 'dia' | 'kokoro'
 
@@ -166,7 +167,7 @@ export default function AudioClient() {
       a.remove()
       setTimeout(() => URL.revokeObjectURL(a.href), 5000)
     } catch {
-      window.open(url, '_blank', 'noopener')
+      window.open(downloadHref(url, `kineo-audio-${items.length - idx}.mp3`, 'audio'), '_blank', 'noopener')
     }
   }
 

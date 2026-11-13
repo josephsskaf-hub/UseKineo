@@ -19,6 +19,7 @@ import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { trackEvent } from '@/lib/analytics'
 import { buildStudioSeriesReviewHref } from '@/lib/navigation/studioSeriesReview'
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
+import { downloadHref } from '@/lib/downloadNosso' // KINEO-DOWNLOAD-NOSSO-1311 — baixar pelo nosso domínio, nunca o endereço do Supabase
 
 type Tab = 'all' | 'videos' | 'ads' | 'clips' | 'images' | 'audio' // KINEO-LIBRARY-TUDO-3110 — anúncios e clipes ganham aba própria
 
@@ -69,7 +70,7 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
       a.click()
       a.remove()
       setTimeout(() => URL.revokeObjectURL(a.href), 5000)
-    } catch { window.open(url, '_blank', 'noopener') }
+    } catch { window.open(downloadHref(url, filename, 'library'), '_blank', 'noopener') }
   }
 
   const loadAll = useCallback(() => {

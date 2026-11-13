@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { comPrimeiroQuadro } from '@/lib/videoPrimeiroQuadro' // KINEO-VIDEO-COM-PRIMEIRO-QUADRO-1311
+import { downloadHref } from '@/lib/downloadNosso' // KINEO-DOWNLOAD-NOSSO-1311 — baixar pelo nosso domínio, nunca o endereço do Supabase
 
 type Clipe = { id: string; seconds: number; status: string; video_url: string | null }
 
@@ -30,7 +31,7 @@ export default function RecreateShelf() {
         {clipes.map((c) => (
           <div key={c.id} style={{ border: '1px solid var(--border, #d9dde5)', borderRadius: 14, padding: 8, background: 'var(--card, #fff)' }}>
             <video src={comPrimeiroQuadro(c.video_url)} controls playsInline preload="metadata" style={{ width: '100%', borderRadius: 10, display: 'block', background: '#000' }} />
-            <a href={c.video_url ?? undefined} download style={{ display: 'inline-block', marginTop: 8, fontSize: 14, fontWeight: 600, color: 'var(--text, #111)', textDecoration: 'underline' }}>Download ↓</a>
+            <a href={c.video_url ? downloadHref(c.video_url, 'kineo-clip.mp4', 'library') : undefined} style={{ display: 'inline-block', marginTop: 8, fontSize: 14, fontWeight: 600, color: 'var(--text, #111)', textDecoration: 'underline' }}>Download ↓</a>
           </div>
         ))}
       </div>

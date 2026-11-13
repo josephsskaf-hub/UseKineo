@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { drawEndCard, loadLogoImage, toPngFile } from '@/lib/ads/endCard'
 import { uploadFootage } from '@/lib/ads/uploadFootage'
+import { downloadHref } from '@/lib/downloadNosso' // KINEO-DOWNLOAD-NOSSO-1311 — baixar pelo nosso domínio, nunca o endereço do Supabase
 import { adsV2PosEntregaCopy, fillPosEntrega, type AdsV2PosEntregaCopy } from '@/lib/ads/v2PostDeliveryCopy'
 import { ADS_V2_APPROVAL_DAYS, ADS_V2_EDIT_OVERLAY_MAX_CHARS } from '@/lib/ads/v2PostDelivery'
 import { INTERFACE_LANGUAGE_OPTIONS, type InterfaceLanguage } from '@/lib/ui/interfaceLanguage'
@@ -450,7 +451,7 @@ export default function AdsV2AfterDelivery({ orderId, lang }: { orderId: string;
                 {v.status === 'delivered' && v.video_url ? <video src={v.video_url} controls playsInline preload="metadata" /> : null}
                 {v.status === 'rendering' ? <span className="pe-small" role="status">{c.rendering}</span> : null}
                 {v.status === 'failed' ? <span className="pe-small">{c.failed}</span> : null}
-                {v.status === 'delivered' && v.video_url ? <a className="adsw-link" href={v.video_url} download>{c.download}</a> : null}
+                {v.status === 'delivered' && v.video_url ? <a className="adsw-link" href={downloadHref(v.video_url, `kineo-ad-${v.format ?? 'video'}.mp4`, 'ads')}>{c.download}</a> : null}
               </div>
             ))}
           </div>

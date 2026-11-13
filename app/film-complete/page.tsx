@@ -9,6 +9,7 @@ import { filmCompleteOfferTier } from '@/lib/growth/filmComplete' // KINEO-VERSA
 import { WELCOME20_SITE_OFFER_LIVE } from '@/lib/growth/publicPromoTruth'
 import { useWelcome20OfferLive } from '@/lib/growth/useWelcome20Deadline'
 import { interfaceLanguageIsRtl } from '@/lib/ui/interfaceLanguage'
+import { downloadHref } from '@/lib/downloadNosso' // KINEO-DOWNLOAD-NOSSO-1311 — baixar pelo nosso domínio, nunca o endereço do Supabase
 
 type State = 'awaiting_payment' | 'waiting_entitlement' | 'starting' | 'processing' | 'completed' | 'failed' | 'unavailable'
 type Status = { state: State; intentId: string; sourceVideoId?: string; sourceVideoUrl?: string; videoId?: string; videoUrl?: string }
@@ -147,11 +148,11 @@ function FilmCompleteContent() {
       {body ? <p style={{ margin: '14px 0 20px', color: 'var(--muted2)', fontSize: 15, lineHeight: 1.6 }}>{body}</p> : null}
       {state === 'completed' && videoUrl ? <>
         <video controls playsInline preload="metadata" src={videoUrl} style={{ display: 'block', width: '100%', maxHeight: 480, borderRadius: 12, background: '#000', marginBottom: 16 }} />
-        <a href={videoUrl} download="kineo-full-film-35s.mp4" style={buttonStyle}>{copy.download}</a>
+        <a href={downloadHref(videoUrl, 'kineo-full-film-35s.mp4', 'film_complete')} download="kineo-full-film-35s.mp4" style={buttonStyle}>{copy.download}</a>
       </> : null}
       {saved ? <>
         {sourceUrl ? <video controls playsInline preload="none" src={sourceUrl} style={{ display: 'block', width: '100%', maxHeight: 340, borderRadius: 12, background: '#000', marginBottom: 16 }} /> : null}
-        <a href={sourceUrl ?? '/history'} download={sourceUrl ? 'kineo-free-film.mp4' : undefined} style={buttonStyle}>{sourceUrl ? copy.source : copy.films}</a>
+        <a href={sourceUrl ? downloadHref(sourceUrl, 'kineo-free-film.mp4', 'film_complete') : '/history'} download={sourceUrl ? 'kineo-free-film.mp4' : undefined} style={buttonStyle}>{sourceUrl ? copy.source : copy.films}</a>
         <p lang={language} dir={interfaceLanguageIsRtl(language) ? 'rtl' : 'ltr'} style={{ margin: '18px 0 8px', color: 'var(--muted2)', fontSize: 13, lineHeight: 1.5 }}>{offer.billing}</p>
         <a href={`/api/film-complete/checkout?intent=${encodeURIComponent(intentId!)}`} style={{ display: 'block', padding: '10px 0', color: 'var(--accent)', fontWeight: 750, fontSize: 14 }}>{copy.resume.replace('{plan}', filmCompleteOfferTier() === 'starter' ? 'Starter' : 'Creator') /* KINEO-VERSAO-COMPLETA-STARTER-1111 — o plano que o retorno abre */} →</a>
       </> : null}

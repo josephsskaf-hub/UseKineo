@@ -13,6 +13,7 @@ import {
 } from '@/lib/growth/downloadUpsell'
 // KINEO-AVULSO-GARANTIA-2810 — "refazemos ou devolvemos" sob os botões de compra (fonte única, pt/es onde a tela localiza).
 import { firstFilmGuarantee } from '@/lib/growth/firstFilmGuarantee'
+import { downloadHref } from '@/lib/downloadNosso' // KINEO-DOWNLOAD-NOSSO-1311 — baixar pelo nosso domínio, nunca o endereço do Supabase
 
 // Uma impressão por filme+superfície por carregamento de página (remontar o nó não conta de novo).
 const viewedKeys = new Set<string>()
@@ -186,7 +187,7 @@ export function MakeItHdButton({ videoId, surface }: { videoId: string; surface:
 
   if (state === 'done' && hdUrl) {
     return (
-      <a href={hdUrl} target="_blank" rel="noreferrer" download data-make-it-hd="done" style={base}>
+      <a href={downloadHref(hdUrl, 'kineo-video-hd.mp4', 'hd')} target="_blank" rel="noreferrer" download data-make-it-hd="done" style={base}>
         ⬇ Download HD
       </a>
     )

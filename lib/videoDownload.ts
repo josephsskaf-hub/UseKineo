@@ -88,8 +88,9 @@
 
 import { trackEvent } from '@/lib/analytics'
 import { anunciarVideoEntregue } from '@/lib/postVideoSignal'
+import { caminhoDoArquivo, downloadHref } from '@/lib/downloadNosso'
 
-export type DownloadSurface = 'done_screen' | 'history' | 'my_videos' | 'ads' | 'clips' | 'spaces' | 'animate' | 'avatar' | 'studio_clip' | 'cartoon' | 'podcast' // KINEO-DOWNLOAD-CLIPE-3010 — o Clipe baixava por fora e nunca emitia video_downloaded · KINEO-ESTREIA-3110 — as telas que ganharam a estreia baixam pelo mesmo helper
+export type DownloadSurface = 'done_screen' | 'history' | 'my_videos' | 'ads' | 'clips' | 'spaces' | 'animate' | 'avatar' | 'studio_clip' | 'cartoon' | 'podcast' | 'recreate' // KINEO-DOWNLOAD-CLIPE-3010 — o Clipe baixava por fora e nunca emitia video_downloaded · KINEO-ESTREIA-3110 — as telas que ganharam a estreia baixam pelo mesmo helper
 
 /**
  * Desfecho do download. Só `blob` conta como `video_downloaded` — é o único em
@@ -266,10 +267,13 @@ function hideManualDownloadLink(token?: number): void {
  *    não assinadas: não existe token de assinatura para invalidar. Anexado por
  *    texto, para não re-serializar uma query que um dia pode ter assinatura.
  */
-function safeDownloadHref(url: string, filename: string): string | null {
+function safeDownloadHref(url: string, filename: string, surface?: string): string | null {
   try {
     const u = new URL(url)
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return null
+    // KINEO-DOWNLOAD-NOSSO-1311 [dono 13/11: "a URL ainda tá parecendo Supabase"] — arquivo NOSSO vira link do nosso domínio
+    // (/api/download confere o dono e responde attachment com o nome): nem o link nem a aba mostram o Supabase.
+    if (caminhoDoArquivo(url)) return downloadHref(url, filename, surface)
     if (/(^|\.)supabase\.co$/i.test(u.hostname) && !u.searchParams.has('download')) {
       const param = 'download=' + encodeURIComponent(filename)
       u.search = u.search ? `${u.search}&${param}` : `?${param}`
@@ -320,7 +324,7 @@ function showManualDownloadLink(
   try {
     if (typeof document === 'undefined' || !document.body) return false
 
-    const href = trigger === 'unavailable' ? null : safeDownloadHref(url, filename)
+    const href = trigger === 'unavailable' ? null : safeDownloadHref(url, filename, typeof base.surface === 'string' ? base.surface : undefined)
     if (trigger !== 'unavailable' && !href) return false
 
     // Reaproveita o nó do MESMO download em vez de recriá-lo: a transição
@@ -403,7 +407,7 @@ function showManualDownloadLink(
       // `download` é inerte cross-origin. No Supabase o `?download=` força o
       // attachment e o arquivo SALVA; fora dele o navegador vai abrir um
       // player, e o botão não pode prometer o que não entrega.
-      link.textContent = isSupabaseHost(url)
+      link.textContent = isSupabaseHost(url) || !!caminhoDoArquivo(url)
         ? 'Tap here to save your video'
         : 'Tap here to open your video'
       link.style.cssText = [
@@ -925,7 +929,8 @@ async function runDownload(
   // `video_downloaded`: abrir uma aba não prova que o arquivo chegou, e esse
   // evento decide quem os e-mails de resgate deixam de procurar.
   try {
-    const win = window.open(url, '_blank', 'noopener,noreferrer')
+    // KINEO-DOWNLOAD-NOSSO-1311 — arquivo nosso abre pela rota (attachment: baixa, sem player e sem o endereço do Supabase).
+    const win = window.open(caminhoDoArquivo(url) ? downloadHref(url, filename, opts.surface) : url, '_blank', 'noopener,noreferrer')
     if (win) {
       // A aba abriu de verdade: o arquivo ESTÁ na tela da pessoa. Deixar o
       // painel dizendo "your download didn't start" seria uma frase falsa em
