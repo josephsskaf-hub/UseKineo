@@ -43,7 +43,7 @@ export function limparPedido(s: string): string {
     .slice(0, 1800)
 }
 
-/** Teto de quadros por filme (custo): 12 quadros a 432 px ≈ US$ 0,03 por filme no gpt-4o, detail high. */
+/** Teto de quadros por filme (custo). Ensaio (quadros de 432 px): ~US$ 0,02 por filme no gpt-4o. EM PRODUÇÃO (quadros da fal, maiores): medido US$ 0,07–0,09 por filme no gpt-4o, 45–57 s (13/11, 2 primeiros filmes). */
 export const NOTA_CENA_QUADROS = 12
 export const NOTA_CENA_JANELAS_CLIPE_UNICO = 4
 
@@ -122,7 +122,27 @@ export function planoDoNascimento(response: Record<string, unknown> | null | und
   const pesos = cs.length === n && cs.every((x) => Number.isFinite(x) && x > 0) ? cs : Array.from({ length: n }, () => 1)
   const soma = pesos.reduce((a, b) => a + b, 0)
   const momentos: MomentoPlano[] = []
-  if (n === 1) {
+  // KINEO-NOTA-AUTO-V3-1311 — Kling 4 (teste grátis e pago) roda o filme num clipe só, mas o nascimento guarda o plano por cena
+  // em kling4_trial/kling4_paid.scene_plan (fala, início e duração de cada plano). Com ele, cada plano vira um momento de verdade.
+  const k4 = [response.kling4_trial, response.kling4_paid]
+    .map((x) => (x && typeof x === 'object' ? arr((x as Record<string, unknown>).scene_plan) : []))
+    .find((x) => x.length >= 2)
+  if (n === 1 && k4) {
+    const planos = k4.map((x) => (x && typeof x === 'object' ? (x as Record<string, unknown>) : {}))
+    const fimTotal = Math.max(...planos.map((p) => Number(p.start_seconds) + Number(p.duration_seconds)).filter((x) => Number.isFinite(x) && x > 0), 0)
+    if (fimTotal > 0) {
+      planos.forEach((p, i) => {
+        const ini = Number(p.start_seconds) || 0
+        const d = Number(p.duration_seconds) || 0
+        const texto = str(p.text).trim()
+        const nomes = elencoPers.filter((nome) => citaNome(`${str(p.prompt)} ${texto}`, nome))
+        momentos.push({ m: i + 1, cena: i + 1, inicio: r2((dur * ini) / fimTotal), fim: r2((dur * (ini + d)) / fimTotal), fala: texto, nomes })
+      })
+    }
+  }
+  if (momentos.length) {
+    // já veio do plano por cena do Kling 4
+  } else if (n === 1) {
     // clipe único: 4 janelas; a fala se reparte pelas palavras, em tempo uniforme
     const palavras = (evd.scenes[0].spoken || evd.narration).split(/\s+/).filter(Boolean)
     const k = NOTA_CENA_JANELAS_CLIPE_UNICO

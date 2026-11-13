@@ -38,10 +38,13 @@ export const TARIFAS_VISAO: Record<string, { inPerM: number; outPerM: number }> 
   [CLAUDE_NO_GATEWAY.opus]: { inPerM: 4, outPerM: 20 },
 }
 
-export function lerProvedorNotaAuto(env: Record<string, string | undefined> = process.env): { provedor: ProvedorVisao; modelo: string } {
+export function lerProvedorNotaAuto(env: Record<string, string | undefined> = process.env): { provedor: ProvedorVisao; modelo: string; tarifa?: { inPerM: number; outPerM: number } } {
   const provedor: ProvedorVisao = String(env.NOTA_AUTO_PROVEDOR ?? '').trim().toLowerCase() === 'gateway' ? 'gateway' : 'openai'
   const modelo = String(env.NOTA_AUTO_MODEL ?? '').trim() || (provedor === 'gateway' ? CLAUDE_NO_GATEWAY.opus : AI_TEXT_MODELS.writer)
-  return { provedor, modelo }
+  // NOTA_AUTO_TARIFA="2/10" (US$ por milhão de tokens, entrada/saída) para um modelo fora de TARIFAS_VISAO; sem ela, a tabela
+  const m = /^\s*([\d.]+)\s*\/\s*([\d.]+)\s*$/.exec(String(env.NOTA_AUTO_TARIFA ?? ''))
+  const tarifa = m && Number(m[1]) > 0 && Number(m[2]) > 0 ? { inPerM: Number(m[1]), outPerM: Number(m[2]) } : undefined
+  return { provedor, modelo, ...(tarifa ? { tarifa } : {}) }
 }
 
 /** O token do gateway para ESTA requisição: chave explícita > cabeçalho OIDC da Vercel > OIDC do ambiente local. */

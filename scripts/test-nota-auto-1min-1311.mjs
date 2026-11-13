@@ -85,7 +85,7 @@ async function provas(P, F) {
   checa('G5 filme pronto → plano de cenas do nascimento + pedido + motor', e && e.key === 'v1' && e.notaAuto.plano?.momentos.length === 3 && e.notaAuto.pedido === 'a fox in the snow' && e.notaAuto.motor === 'kling4' && /fox walks/.test(e.notaAuto.roteiro))
   checa('G5 clipe ou vídeo não pronto = null', (await F.entregaDoFilme(bancoFalso({ video: { ...VID, quality_mode: 'clip' } }), 'v1')) === null && (await F.entregaDoFilme(bancoFalso({ video: { ...VID, status: 'processing' } }), 'v1')) === null)
   // G6
-  const fila = await F.filmesSemNotaAuto(bancoFalso({ recentes: [{ id: 'a', quality_mode: 'cinematic' }, { id: 'b', quality_mode: 'clip' }, { id: 'c', quality_mode: 'fast' }], feitos: [{ name: 'nota_auto', created_at: new Date().toISOString(), session_id: 'c', metadata: { version: 'nota_auto_v2_cena', score: 7 } }] }), readAll, { route: '/x' })
+  const fila = await F.filmesSemNotaAuto(bancoFalso({ recentes: [{ id: 'a', quality_mode: 'cinematic' }, { id: 'b', quality_mode: 'clip' }, { id: 'c', quality_mode: 'fast' }], feitos: [{ name: 'nota_auto', created_at: new Date().toISOString(), session_id: 'c', metadata: { version: 'nota_auto_v3_regua19', score: 7 } }] }), readAll, { route: '/x' })
   checa('G6 fila: só filmes, sem os já feitos', JSON.stringify(fila) === '["a"]')
   return falhas
 }

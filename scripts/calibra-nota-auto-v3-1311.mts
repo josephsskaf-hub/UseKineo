@@ -19,6 +19,8 @@ import { defeitosDaDescricao, julgarDoisPassos, normalizarPasso1, normalizarPass
 const TETO_TOTAL_USD = 6
 const MODELOS: Record<string, { id: string; tarifa: { inPerM: number; outPerM: number }; reserva: number }> = {
   '6.1-sol': { id: 'gpt-6.1-sol', tarifa: { inPerM: 2, outPerM: 10 }, reserva: 0.12 },
+  // '6.1-sol-b' = o MESMO modelo com o juiz consertado (marca da casa, época, comparação entre cenas; 13/11 noite) — cache próprio
+  '6.1-sol-b': { id: 'gpt-6.1-sol', tarifa: { inPerM: 2, outPerM: 10 }, reserva: 0.12 },
   '5.5': { id: 'gpt-5.5', tarifa: { inPerM: 5, outPerM: 30 }, reserva: 0.3 },
   '4o': { id: 'gpt-4o', tarifa: { inPerM: 2.5, outPerM: 10 }, reserva: 0.05 },
 }
@@ -145,7 +147,7 @@ const pct = (a: number, b: number) => (b ? `${a}/${b} = ${Math.round((100 * a) /
 function relatorio() {
   const { ajuste, prova } = carregar()
   const out = ['| Metade | Juiz | Filmes | Acerto nos ruins (<7) | Alarme falso (≥7,5 → <7) | Erro médio | Custo/filme | s/filme | Veredito |', '|---|---|---|---|---|---|---|---|---|']
-  const fontes: Array<[string, (c: Caso) => Guardado | null]> = [...Object.keys(MODELOS).map((k): [string, (c: Caso) => Guardado | null] => [`OpenAI ${MODELOS[k].id}`, (c: Caso) => lerResp(k)[c.link] ?? null]), ...Object.keys(MODELOS).map((k): [string, (c: Caso) => Guardado | null] => [`dois passos ${MODELOS[k].id}`, (c: Caso) => lerResp(`2p-${k}`)[c.link] ?? null])]
+  const fontes: Array<[string, (c: Caso) => Guardado | null]> = [...Object.keys(MODELOS).map((k): [string, (c: Caso) => Guardado | null] => [`OpenAI ${MODELOS[k].id}${k.endsWith('-b') ? ' (consertado)' : ''}`, (c: Caso) => lerResp(k)[c.link] ?? null]), ...Object.keys(MODELOS).map((k): [string, (c: Caso) => Guardado | null] => [`dois passos ${MODELOS[k].id}`, (c: Caso) => lerResp(`2p-${k}`)[c.link] ?? null])]
   for (const fam of ['haiku', 'sonnet', 'opus']) {
     fontes.push([`Claude ${fam} (subagente)`, (c: Caso) => {
       const arq = path.join(V3, 'casos', c.video.id.slice(0, 8), `resposta-${fam}.json`)

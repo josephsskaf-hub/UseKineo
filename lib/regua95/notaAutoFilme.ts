@@ -13,9 +13,24 @@ import type { readAll as ReadAllRows } from '../supabase/readAll'
 import { evidenceFromBirth } from '@/lib/regua95/coherenceV2'
 import { produtoDoVideo } from '@/lib/regua95/contexto'
 import { planoDoNascimento } from '@/lib/regua95/notaPorCena'
+import { JUIZ19_VERSION, alvoDeDuracao, julgar19 } from '@/lib/regua95/juizRegua19'
+import { lerProvedorNotaAuto } from '@/lib/regua95/visaoProvedor'
 import {
-  julgarEGravarNotaAuto, lerModoNotaAuto, notaAutoPendente, notasAutoFeitas, type EntregaNotaAuto, type NotaAutoMode,
+  julgarEGravarNotaAuto, lerModoNotaAuto, notaAutoPendente, notasAutoFeitas, type EntregaNotaAuto, type JuizNotaAuto, type NotaAutoMode,
 } from '@/lib/regua95/notaRevisor'
+
+/**
+ * O juiz da produção desde 13/11 noite: a RÉGUA INTEIRA do revisor (juizRegua19.ts), com os consertos da marca da casa, da
+ * época e da comparação entre cenas. No ensaio (prova de 56 filmes) foi o melhor: 77% dos ruins, 36% de alarme com gpt-6.1-sol
+ * — ainda abaixo da régua do dono (≥ 85% / ≤ 10%), por isso só na sombra. Modelo e provedor: NOTA_AUTO_PROVEDOR / NOTA_AUTO_MODEL
+ * (+ NOTA_AUTO_TARIFA "entrada/saída" em US$ por milhão, para o custo do evento sair certo em modelo fora da tabela).
+ */
+export const NOTA_AUTO_VERSAO_FILME = JUIZ19_VERSION
+export const juizV3ReguaInteira: JuizNotaAuto = async (a) =>
+  julgar19(
+    { plano: a.plano, quadros: a.quadros, pedido: a.alvo.pedido, roteiro: a.alvo.roteiro, produto: a.entrega.product, motor: a.alvo.motor, segundos: a.entrega.seconds ?? a.plano.segundos, segundosPedidos: a.alvo.segundosPedidos ?? null, linguaEscolhida: a.alvo.lingua ?? null },
+    { fetchImpl: a.fetchImpl, tokenGateway: a.tokenGateway, usdQuadros: a.usdQuadros, tarifa: lerProvedorNotaAuto().tarifa },
+  )
 
 /** Janela da rede de segurança (o disparo na hora cobre o caso normal; isto cobre função morta, deploy, fal fora). */
 export const NOTA_AUTO_CRON_HORAS = 3
@@ -53,6 +68,8 @@ export async function entregaDoFilme(admin: SupabaseClient, videoId: string): Pr
       roteiro: (v.script || evd?.narration || '').trim() || null,
       motor: v.engine_used ?? v.quality_mode,
       plano: planoDoNascimento(response, v.duration),
+      segundosPedidos: alvoDeDuracao(response),
+      lingua: typeof response?.language === 'string' ? response.language : null,
     },
   }
 }
@@ -67,9 +84,9 @@ export async function notaAutoDoFilme(
     if (modo === 'off') return { videoId: x.videoId, feito: false, motivo: 'off' }
     const e = await entregaDoFilme(admin, x.videoId)
     if (!e) return { videoId: x.videoId, feito: false, motivo: 'nao_e_filme_pronto' }
-    const feitas = await notasAutoFeitas(admin, [e.key], x.readAll, x.route, x.agora)
+    const feitas = await notasAutoFeitas(admin, [e.key], x.readAll, x.route, x.agora, NOTA_AUTO_VERSAO_FILME)
     if (!notaAutoPendente(modo, e, feitas, x.agora)) return { videoId: x.videoId, feito: false, motivo: 'ja_feito_ou_fora_da_janela' }
-    const r = await julgarEGravarNotaAuto(admin, { modo, entrega: e, base: { product: 'filme', video_id: e.key, engine: e.notaAuto?.motor ?? null }, route: x.route, fetchImpl: x.fetchImpl, tokenGateway: x.tokenGateway })
+    const r = await julgarEGravarNotaAuto(admin, { modo, entrega: e, base: { product: 'filme', video_id: e.key, engine: e.notaAuto?.motor ?? null }, route: x.route, fetchImpl: x.fetchImpl, tokenGateway: x.tokenGateway, juiz: juizV3ReguaInteira, versao: NOTA_AUTO_VERSAO_FILME })
     return { videoId: x.videoId, feito: true, ...r }
   } catch (err) {
     return { videoId: x.videoId, feito: false, motivo: 'erro', erro: err instanceof Error ? err.message.slice(0, 160) : 'erro' }
@@ -83,6 +100,6 @@ export async function filmesSemNotaAuto(admin: SupabaseClient, readAll: typeof R
   const { data } = await admin.from('videos').select('id, quality_mode, created_at').eq('status', 'completed').gte('created_at', desde).order('created_at', { ascending: true }).limit(200)
   const filmes = ((data ?? []) as Array<{ id: string; quality_mode: string | null }>).filter((v) => produtoDoVideo(v.quality_mode) === 'filme').map((v) => v.id)
   if (!filmes.length) return []
-  const feitas = await notasAutoFeitas(admin, filmes, readAll, x.route, agora)
+  const feitas = await notasAutoFeitas(admin, filmes, readAll, x.route, agora, NOTA_AUTO_VERSAO_FILME)
   return filmes.filter((id) => !feitas.has(id))
 }

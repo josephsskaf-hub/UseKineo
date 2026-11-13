@@ -18,7 +18,7 @@ import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { usdFromUsage } from '@/lib/regua95/coherenceV2'
 import { FAL_NTH_FRAME_MODEL, FAL_USD_PER_COMPUTE_SECOND, PIXEL_FPS_ASSUMED, pickEvenly } from '@/lib/regua95/pixelScore'
-import { NOTA_AUTO_RATES, NOTA_CENA_VERSION, extrairQuadrosPorTempoFal, julgarNotaCena, limparPedido, type NotaAutoDetail, type PlanoFilme } from '@/lib/regua95/notaPorCena'
+import { NOTA_AUTO_RATES, NOTA_CENA_VERSION, extrairQuadrosPorTempoFal, julgarNotaCena, limparPedido, type NotaAutoDetail, type PlanoFilme, type QuadroCena } from '@/lib/regua95/notaPorCena'
 // limparPedido, NOTA_AUTO_RATES e NotaAutoDetail moram em notaPorCena.ts desde a 2ª tentativa (sem import circular); seguem exportados daqui.
 export { NOTA_AUTO_RATES, limparPedido, type NotaAutoDetail }
 
@@ -350,7 +350,13 @@ export const NOTA_AUTO_BAIXA_EVENT = 'nota_auto_baixa'
 export const NOTA_AUTO_CORTE_BAIXA = 7
 
 /** O que o juiz precisa saber de um filme. */
-export type NotaAutoAlvo = { pedido: string; roteiro: string | null; motor: string | null; plano?: PlanoFilme | null }
+export type NotaAutoAlvo = { pedido: string; roteiro: string | null; motor: string | null; plano?: PlanoFilme | null; segundosPedidos?: number | null; lingua?: string | null }
+/** O que um juiz devolve para ser gravado (v2 por cena ou v3 régua inteira). */
+export type ResultadoJuizNotaAuto = { version: string; nota: number; defeitos: ReadonlyArray<{ categoria: string; evidencia: string; m?: number; quadros?: number[]; gravidade?: string }>; resumo: string; model: string; provedor?: string; usd: number; [k: string]: unknown }
+/** Um juiz plugável: recebe o plano, os quadros e o alvo; devolve a nota e os defeitos (o JSON cru do modelo vem em `bruto`, que não é gravado). */
+export type JuizNotaAuto = (a: { alvo: NotaAutoAlvo; plano: PlanoFilme; quadros: QuadroCena[]; entrega: EntregaNotaAuto; usdQuadros: number; fetchImpl?: typeof fetch; tokenGateway?: string | null }) => Promise<(ResultadoJuizNotaAuto & { bruto?: unknown }) | null>
+/** O juiz padrão desta função (v2 por cena). A produção passa o v3 (lib/regua95/notaAutoFilme.ts). */
+export const juizV2PorCena: JuizNotaAuto = async (a) => julgarNotaCena({ plano: a.plano, quadros: a.quadros, pedido: a.alvo.pedido, produto: a.entrega.product, motor: a.alvo.motor }, { fetchImpl: a.fetchImpl, usdQuadros: a.usdQuadros, tokenGateway: a.tokenGateway })
 /**
  * A versão que se grava e se lê hoje: a 2ª tentativa, juiz POR CENA (notaPorCena.ts). O juiz de nota geral (v1, acima)
  * NÃO PASSOU no ensaio e fica só como registro: ninguém o chama. Filme sem plano de cenas = falha registrada, sem nota.
@@ -359,7 +365,7 @@ export const NOTA_AUTO_VERSAO_DO_CRON = NOTA_CENA_VERSION
 export type EntregaNotaAuto = { key: string; user_id: string; delivered_at: string; video_url: string; seconds: number | null; product: string; notaAuto?: NotaAutoAlvo | null }
 
 /** Chaves que NÃO entram agora: nota de verdade = feito; julgando há < 5 min = em andamento; falha = espera 1 h, até 3 vezes. */
-export async function notasAutoFeitas(admin: SupabaseClient, keys: string[], readAll: typeof ReadAllRows, route = '/api/cron/nota-auto', agora: number = Date.now()): Promise<Set<string>> {
+export async function notasAutoFeitas(admin: SupabaseClient, keys: string[], readAll: typeof ReadAllRows, route = '/api/cron/nota-auto', agora: number = Date.now(), versao: string = NOTA_AUTO_VERSAO_DO_CRON): Promise<Set<string>> {
   const feitas = new Set<string>()
   const falhas = new Map<string, { n: number; ultima: number }>()
   const unicas = Array.from(new Set(keys))
@@ -367,7 +373,7 @@ export async function notasAutoFeitas(admin: SupabaseClient, keys: string[], rea
     const part = unicas.slice(i, i + 100)
     const r = await readAll(() => admin.from('events').select('name, created_at, session_id, metadata').in('name', [NOTA_AUTO_EVENT, NOTA_AUTO_INICIO_EVENT]).in('session_id', part), { route, table: 'events' })
     for (const ev of (r.data ?? []) as Array<{ name?: string; created_at: string; session_id: string | null; metadata: Record<string, unknown> | null }>) {
-      if (!ev.session_id || ev.metadata?.version !== NOTA_AUTO_VERSAO_DO_CRON) continue
+      if (!ev.session_id || ev.metadata?.version !== versao) continue
       if (ev.name === NOTA_AUTO_INICIO_EVENT) {
         if (agora - (Date.parse(ev.created_at) || 0) < NOTA_AUTO_JULGANDO_MS) feitas.add(ev.session_id)
         continue
@@ -413,7 +419,7 @@ async function ordemDoCliente(admin: SupabaseClient, userId: string, ate: string
  */
 export async function julgarEGravarNotaAuto(
   admin: SupabaseClient,
-  x: { modo: NotaAutoMode; entrega: EntregaNotaAuto; base: Record<string, unknown>; route: string; fetchImpl?: typeof fetch; tokenGateway?: string | null },
+  x: { modo: NotaAutoMode; entrega: EntregaNotaAuto; base: Record<string, unknown>; route: string; fetchImpl?: typeof fetch; tokenGateway?: string | null; juiz?: JuizNotaAuto; versao?: string },
 ): Promise<{ nota: number | null; usd: number; painel: string; erro?: string }> {
   const e = x.entrega
   const alvo = e.notaAuto
@@ -424,15 +430,17 @@ export async function julgarEGravarNotaAuto(
   }
   if (x.modo === 'off' || !alvo) return { nota: null, usd: 0, painel: 'pular' }
   try {
-    await gravar(NOTA_AUTO_INICIO_EVENT, { version: NOTA_AUTO_VERSAO_DO_CRON, modo: x.modo, ...x.base })
+    const versao = x.versao ?? NOTA_AUTO_VERSAO_DO_CRON
+    const juiz = x.juiz ?? juizV2PorCena
+    await gravar(NOTA_AUTO_INICIO_EVENT, { version: versao, modo: x.modo, ...x.base })
     const plano = alvo.plano && alvo.plano.momentos.length ? alvo.plano : null
     const ex = plano ? await extrairQuadrosPorTempoFal(e.video_url, plano, { fetchImpl: x.fetchImpl }) : null
-    const julgado = plano && ex ? await julgarNotaCena({ plano, quadros: ex.quadros, pedido: alvo.pedido, produto: e.product, motor: alvo.motor }, { fetchImpl: x.fetchImpl, usdQuadros: ex.usd, tokenGateway: x.tokenGateway }) : null
+    const julgado = plano && ex ? await juiz({ alvo, plano, quadros: ex.quadros, entrega: e, usdQuadros: ex.usd, fetchImpl: x.fetchImpl, tokenGateway: x.tokenGateway }) : null
     // o JSON cru do modelo não vai para o evento (as respostas normalizadas e os defeitos com evidência já estão lá)
     const r = julgado ? (({ bruto: _bruto, ...resto }) => resto)(julgado) : null
     if (!r) {
       const falha = !plano ? 'nota_auto_sem_plano_de_cenas' : ex ? 'nota_auto_visao_sem_resposta' : 'nota_auto_quadros_indisponiveis'
-      await gravar(NOTA_AUTO_EVENT, { version: NOTA_AUTO_VERSAO_DO_CRON, score: null, falha, modo: x.modo, frame_count: ex?.quadros.length ?? 0, ...x.base, video_url: e.video_url })
+      await gravar(NOTA_AUTO_EVENT, { version: versao, score: null, falha, modo: x.modo, frame_count: ex?.quadros.length ?? 0, ...x.base, video_url: e.video_url })
       return { nota: null, usd: ex?.usd ?? 0, painel: 'pular', erro: [erro, falha].filter(Boolean).join(' · ') }
     }
     let painel: string = 'pular'
@@ -465,7 +473,7 @@ export async function julgarEGravarNotaAuto(
       // FRENTE 3 — o conserto não espera o revisor do PC: vídeo, nota, defeitos e a evidência de cada um
       await gravar(NOTA_AUTO_BAIXA_EVENT, {
         version: r.version, model: r.model, provedor: r.provedor, modo: x.modo, nota: r.nota, ...x.base, video_id: e.key, video_url: e.video_url,
-        motor: alvo.motor, pedido: alvo.pedido.slice(0, 600), resumo: r.resumo, defeitos: r.defeitos.map((d) => ({ categoria: d.categoria, momento: d.m, evidencia: d.evidencia })),
+        motor: alvo.motor, pedido: alvo.pedido.slice(0, 600), resumo: r.resumo, defeitos: r.defeitos.map((d) => ({ categoria: d.categoria, momento: d.m ?? null, quadros: d.quadros ?? null, evidencia: d.evidencia })),
         validado: false, // o juiz ainda não passou na régua do dono (≥ 85% / ≤ 10%): quem conserta deve conferir antes de agir
       })
     }
