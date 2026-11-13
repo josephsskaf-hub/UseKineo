@@ -1,5 +1,5 @@
 // KINEO-GUIAS-MEDICAO-1011: fixed observation cohort; no content, layout or offer changes.
-export const GUIDE_MEASUREMENT_VERSION = 'guides_20261110_v1'
+export const GUIDE_MEASUREMENT_VERSION = 'guides_20261113_v2'
 export const MEASURED_GUIDE_PATHS: readonly string[] = [
   '/guides/ai-product-video-accuracy', '/guides/ai-dropshipping-video-ads',
   '/guides/ai-personal-care-product-ads', '/guides/ai-clothing-brand-video',
@@ -51,14 +51,23 @@ export function attachGuideEngagement(root: HTMLElement, path: string, emit: Emi
   }
   const checkDepth = () => {
     if (!foreground()) return
-    const scrollHeight = (doc.scrollingElement || doc.documentElement).scrollHeight
-    const maxScroll = scrollHeight - win.innerHeight
+    const scrollingElement = doc.scrollingElement || doc.documentElement
+    const body = doc.body
+    // Global mobile CSS can make body an independent scroll container while
+    // scrollingElement stays html and window.scrollY remains zero.
+    const bodyOverflow = body && win.getComputedStyle(body).overflowY
+    const metrics = body && body !== scrollingElement && body.clientHeight > 0
+      && body.scrollHeight > body.clientHeight && (bodyOverflow === 'auto' || bodyOverflow === 'scroll')
+      ? { scrollHeight: body.scrollHeight, viewportHeight: body.clientHeight, top: body.scrollTop, scrollRoot: 'body' }
+      : { scrollHeight: scrollingElement.scrollHeight, viewportHeight: win.innerHeight, top: win.scrollY, scrollRoot: 'document' }
+    const { scrollHeight, viewportHeight, top, scrollRoot } = metrics
+    const maxScroll = scrollHeight - viewportHeight
     if (maxScroll <= 0) return // a non-scrollable page is not four scroll events
-    const percent = (win.scrollY + 2 >= maxScroll) ? 100 : Math.max(0, win.scrollY / maxScroll * 100)
+    const percent = (top + 2 >= maxScroll) ? 100 : Math.max(0, top / maxScroll * 100)
     for (const depth of DEPTHS) {
       if (percent < depth || state.depths.has(depth)) continue
       state.depths.add(depth)
-      send('guide_scroll_depth', { depth_percent: depth, scroll_height: scrollHeight, viewport_height: win.innerHeight })
+      send('guide_scroll_depth', { depth_percent: depth, scroll_height: scrollHeight, viewport_height: viewportHeight, scroll_root: scrollRoot })
     }
   }
   const flush = (reason: string) => {
@@ -68,6 +77,11 @@ export function attachGuideEngagement(root: HTMLElement, path: string, emit: Emi
     send('guide_visible_time', { reason }) // cumulative: aggregate MAX, never SUM
   }
   const onScroll = () => { sample(); startView(); checkDepth() }
+  const onElementScroll = (event: Event) => {
+    // Element scroll does not bubble. Capture only page roots; horizontal
+    // tables and other nested scrollers must not become article depth.
+    if (event.target === doc.body || event.target === doc.documentElement) onScroll()
+  }
   const onVisibility = () => {
     sample(); startView(); checkDepth()
     if (!foreground()) flush('hidden_or_blurred')
@@ -83,6 +97,7 @@ export function attachGuideEngagement(root: HTMLElement, path: string, emit: Emi
   }
   sample(); startView(); checkDepth()
   win.addEventListener('scroll', onScroll, { passive: true })
+  doc.addEventListener('scroll', onElementScroll, { capture: true, passive: true })
   win.addEventListener('resize', onScroll)
   win.addEventListener('focus', onVisibility)
   win.addEventListener('blur', onVisibility)
@@ -100,6 +115,7 @@ export function attachGuideEngagement(root: HTMLElement, path: string, emit: Emi
     sample(); state.active = false; flush('unmount')
     win.clearInterval(timer)
     win.removeEventListener('scroll', onScroll)
+    doc.removeEventListener('scroll', onElementScroll, true)
     win.removeEventListener('resize', onScroll)
     win.removeEventListener('focus', onVisibility)
     win.removeEventListener('blur', onVisibility)

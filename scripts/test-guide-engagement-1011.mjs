@@ -79,7 +79,8 @@ function prove(text) {
   const mismatch = world(c); mismatch.win.location.pathname = '/pricing'; mismatch.attach()()
   assert.equal(mismatch.events.length, 0)
   for (const e of [...w.events, ...h.events]) {
-    assert.equal(e.meta.measurement_version, 'guides_20261110_v1')
+    // 13/11: independent body scrolling fixed under a new version; v1 stays historical.
+    assert.equal(e.meta.measurement_version, 'guides_20261113_v2')
     assert.ok(e.meta.visit_id && e.page.startsWith('/guides/'))
     assert.ok(!Object.hasOwn(e.meta, 'utm_source') && !Object.hasOwn(e.meta, 'href') && !Object.hasOwn(e.meta, 'text'))
   }
