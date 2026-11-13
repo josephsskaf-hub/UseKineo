@@ -16,7 +16,6 @@ import { planoDoNascimento } from '@/lib/regua95/notaPorCena'
 import { JUIZ19_VERSION, alvoDeDuracao, julgar19 } from '@/lib/regua95/juizRegua19'
 import { lerProvedorNotaAuto } from '@/lib/regua95/visaoProvedor'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
-import { quadrosDoJuizPequenos } from '@/lib/regua95/quadroPequeno'
 import {
   NOTA_AUTO_EVENT, julgarEGravarNotaAuto, lerModoNotaAuto, notaAutoPendente, notasAutoFeitas, type EntregaNotaAuto, type JuizNotaAuto, type NotaAutoMode,
 } from '@/lib/regua95/notaRevisor'
@@ -35,10 +34,11 @@ export function modeloDoJuizDoFilme(env: Record<string, string | undefined> = pr
   return lerProvedorNotaAuto(env).provedor === 'openai' ? AI_TEXT_MODELS.filmJudge : undefined
 }
 export const juizV3ReguaInteira: JuizNotaAuto = async (a) => {
-  // KINEO-NOTA-AUTO-CUSTO-1311 — quadros em 432 px, como no ensaio (em produção a fal entrega no tamanho do vídeo: 5× o custo)
-  const { quadros } = await quadrosDoJuizPequenos(a.quadros, { fetchImpl: a.fetchImpl })
+  // KINEO-NOTA-AUTO-CUSTO-1311 — quadros no TAMANHO DO VÍDEO (como a fal entrega). Decisão da CEO 13/11 noite: o quadro grande
+  // custa ~5× o de 432 px do ensaio, mas viu no Milo a troca de desenho e o resgate que faltava (432 px não viu). O custo fica
+  // contido pelo teto diário (NOTA_AUTO_TETO_DIA_USD, US$ 2).
   return julgar19(
-    { plano: a.plano, quadros, pedido: a.alvo.pedido, roteiro: a.alvo.roteiro, produto: a.entrega.product, motor: a.alvo.motor, segundos: a.entrega.seconds ?? a.plano.segundos, segundosPedidos: a.alvo.segundosPedidos ?? null, linguaEscolhida: a.alvo.lingua ?? null },
+    { plano: a.plano, quadros: a.quadros, pedido: a.alvo.pedido, roteiro: a.alvo.roteiro, produto: a.entrega.product, motor: a.alvo.motor, segundos: a.entrega.seconds ?? a.plano.segundos, segundosPedidos: a.alvo.segundosPedidos ?? null, linguaEscolhida: a.alvo.lingua ?? null },
     { fetchImpl: a.fetchImpl, tokenGateway: a.tokenGateway, usdQuadros: a.usdQuadros, tarifa: lerProvedorNotaAuto().tarifa, model: modeloDoJuizDoFilme() },
   )
 }
