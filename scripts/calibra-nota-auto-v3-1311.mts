@@ -175,7 +175,9 @@ function relatorio() {
 // Produção: fal extract-nth-frame a 1 quadro/s, no tamanho do vídeo, e o quadro do segundo mais perto de cada instante; plano com
 // videos.duration (entregaDoFilme). A chave da fal não está no .env.local: o mesmo quadro sai do ffmpeg local, no tamanho nativo e em
 // JPEG de alta qualidade (a fal usa quality 80). O custo da fal fica FORA desta conta (produção soma ~US$ 0,04 pela estimativa do tempo).
-const TETO_GRANDE_USD = 3 // CEO 13/11 noite: teto desta rodada, aprovado por ela
+// CEO 13/11 noite: US$ 3 para os 28 do subconjunto (gastou 1,84) + US$ 2 para os outros 28 ('resto') — livro-caixa único da rodada
+const TETO_GRANDE_USD = 3
+const TETO_GRANDE_RESTO_USD = 1.84 + 2
 function entradaGrande(c: Caso, segundos: number): Entrada19 & { arquivosT: number[] } {
   const plano = planoDoNascimento(c.plan, segundos)!
   const tempos = temposDosQuadros(plano)
@@ -184,15 +186,16 @@ function entradaGrande(c: Caso, segundos: number): Entrada19 & { arquivosT: numb
   plano.momentos.forEach((m, mi) => tempos[mi].forEach((t) => { quadros.push({ url: '', t, m: m.m }); arquivosT.push(Math.round(t)) }))
   return { plano, quadros, arquivosT, pedido: pedidoDe(c), roteiro: c.video.script, produto: 'filme', motor: c.video.engine_used ?? c.video.quality_mode, segundos, segundosPedidos: alvoDeDuracao(c.plan), linguaEscolhida: typeof c.plan.language === 'string' ? c.plan.language : null }
 }
-async function julgarGrande(k = '6.1-sol-g') {
+async function julgarGrande(k = '6.1-sol-g', resto = false) {
+  const teto = resto ? TETO_GRANDE_RESTO_USD : TETO_GRANDE_USD
   const env = lerEnv('C:/kineo/.env.local')
   const LIVRO_G = path.join(V3, 'livro-grande.json')
   const livro = fs.existsSync(LIVRO_G) ? JSON.parse(fs.readFileSync(LIVRO_G, 'utf8')) : { gasto: 0, chamadas: 0 }
   const resp = lerResp(k)
   const sub = new Set(JSON.parse(fs.readFileSync(path.join(V3, 'subconjunto-28.json'), 'utf8')) as string[])
-  for (const c of carregar().prova.filter((x) => sub.has(x.video.id.slice(0, 8)))) {
+  for (const c of carregar().prova.filter((x) => sub.has(x.video.id.slice(0, 8)) !== resto)) {
     if (resp[c.link] !== undefined) continue
-    if (livro.gasto + 0.15 > TETO_GRANDE_USD) { console.log(`TETO DA RODADA: US$ ${livro.gasto.toFixed(3)} — parei`); break }
+    if (livro.gasto + 0.15 > teto) { console.log(`TETO DA RODADA: US$ ${livro.gasto.toFixed(3)} — parei`); break }
     const mp4 = path.join(WORK, 'mp4', `${c.video.id}.mp4`)
     if (!fs.existsSync(mp4)) { console.log(`· ${c.video.id.slice(0, 8)} sem mp4 local`); continue }
     const real = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', mp4]).toString().trim())
@@ -218,7 +221,7 @@ async function julgarGrande(k = '6.1-sol-g') {
 }
 
 async function main() {
-  if (acao === 'julgar-grande') return julgarGrande()
+  if (acao === 'julgar-grande') return julgarGrande('6.1-sol-g', process.argv[4] === 'resto')
   if (acao === 'julgar') await julgar(process.argv[4] === 'ajuste' || process.argv[4] === 'ajuste29' ? 'ajuste' : 'prova', process.argv[5] ?? '6.1-sol', process.argv[4] === 'prova28' ? -1 : process.argv[4] === 'ajuste29' ? -2 : Number(process.argv[6]) > 0 ? Number(process.argv[6]) : Infinity)
   else if (acao === 'casos') casos(process.argv[4] === 'ajuste' ? 'ajuste' : 'prova')
   else relatorio()
