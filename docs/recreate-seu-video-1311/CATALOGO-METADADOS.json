@@ -1,0 +1,370 @@
+{
+  "classification": "FATO CONFIRMADO / TESTADO LOCALMENTE",
+  "data": "2026-11-13T23:37:02.136Z",
+  "method": "Offline fs.open + FileHandle.read inclusive byte ranges injected into lerMetaDoVideo; no ffmpeg, API, provider, network or render.",
+  "root": "C:/Users/josep/.codex/worktrees/341b/kineo",
+  "sourcepath": "lib/recreate/seuVideoCatalog.ts",
+  "rootSha": "f928d5b48ac85d7e9272ae17dc8ce45fa3f2d99e",
+  "catalogSha256": "056e71e60f104c264f40269e5394d2893eea79c1940d435b92b78afabacc30f7",
+  "helper": {
+    "sourcepath": "lib/recreate/seuVideo.ts",
+    "sourceSha": "f928d5b48ac85d7e9272ae17dc8ce45fa3f2d99e",
+    "sourceSha256": "1b7ba91870ac84f3ab3a28e5294e3ee36708b4732b6b5c8f7cc043e3f746c279",
+    "version": "recreate_seu_video_1311_v1",
+    "limits": {
+      "minSegundos": 2,
+      "maxSegundos": 15,
+      "minFps": 24,
+      "maxFps": 60,
+      "maxBytes": 104857600,
+      "maxFotos": 3,
+      "maxPrompt": 900
+    },
+    "note": "validarVideo permits +0.25s and +/-0.5fps; strictLimits separately records exact public 2-15s /24-60fps /100MiB limits."
+  },
+  "summary": {
+    "count": 8,
+    "helperAccepted": 8,
+    "strictAccepted": 8,
+    "rejected": [],
+    "outsideStrictLimits": []
+  },
+  "entries": [
+    {
+      "id": "selfie-confete",
+      "title": "Selfie with the crowd",
+      "sourcepath": "/previews/galeria/selfie-confete.mp4",
+      "filePath": "C:/Users/josep/.codex/worktrees/341b/kineo/public/previews/galeria/selfie-confete.mp4",
+      "contentType": "video/mp4",
+      "data": "2026-11-13T23:37:02.136Z",
+      "bytes": 578837,
+      "meta": {
+        "segundos": 6.583333333333333,
+        "fps": 24,
+        "largura": 540,
+        "altura": 960
+      },
+      "result": {
+        "ok": true
+      },
+      "strictLimits": {
+        "ok": true,
+        "duration": true,
+        "fps": true,
+        "bytes": true
+      },
+      "chunkReads": [
+        {
+          "start": 0,
+          "end": 15,
+          "bytes": 16
+        },
+        {
+          "start": 32,
+          "end": 47,
+          "bytes": 16
+        },
+        {
+          "start": 32,
+          "end": 2738,
+          "bytes": 2707
+        }
+      ],
+      "totalBytesRead": 2739
+    },
+    {
+      "id": "sueter-aconchegante",
+      "title": "Cozy sweater flip",
+      "sourcepath": "/previews/galeria/sueter-aconchegante.mp4",
+      "filePath": "C:/Users/josep/.codex/worktrees/341b/kineo/public/previews/galeria/sueter-aconchegante.mp4",
+      "contentType": "video/mp4",
+      "data": "2026-11-13T23:37:02.136Z",
+      "bytes": 445477,
+      "meta": {
+        "segundos": 6.583333333333333,
+        "fps": 24,
+        "largura": 540,
+        "altura": 960
+      },
+      "result": {
+        "ok": true
+      },
+      "strictLimits": {
+        "ok": true,
+        "duration": true,
+        "fps": true,
+        "bytes": true
+      },
+      "chunkReads": [
+        {
+          "start": 0,
+          "end": 15,
+          "bytes": 16
+        },
+        {
+          "start": 32,
+          "end": 47,
+          "bytes": 16
+        },
+        {
+          "start": 32,
+          "end": 2706,
+          "bytes": 2675
+        }
+      ],
+      "totalBytesRead": 2707
+    },
+    {
+      "id": "passarela",
+      "title": "Fashion catwalk",
+      "sourcepath": "/previews/galeria/passarela.mp4",
+      "filePath": "C:/Users/josep/.codex/worktrees/341b/kineo/public/previews/galeria/passarela.mp4",
+      "contentType": "video/mp4",
+      "data": "2026-11-13T23:37:02.136Z",
+      "bytes": 505901,
+      "meta": {
+        "segundos": 10.041666666666666,
+        "fps": 24,
+        "largura": 537,
+        "altura": 960
+      },
+      "result": {
+        "ok": true
+      },
+      "strictLimits": {
+        "ok": true,
+        "duration": true,
+        "fps": true,
+        "bytes": true
+      },
+      "chunkReads": [
+        {
+          "start": 0,
+          "end": 15,
+          "bytes": 16
+        },
+        {
+          "start": 32,
+          "end": 47,
+          "bytes": 16
+        },
+        {
+          "start": 32,
+          "end": 3746,
+          "bytes": 3715
+        }
+      ],
+      "totalBytesRead": 3747
+    },
+    {
+      "id": "escolha-o-favorito",
+      "title": "Pick your favorite",
+      "sourcepath": "/previews/galeria/escolha-o-favorito.mp4",
+      "filePath": "C:/Users/josep/.codex/worktrees/341b/kineo/public/previews/galeria/escolha-o-favorito.mp4",
+      "contentType": "video/mp4",
+      "data": "2026-11-13T23:37:02.136Z",
+      "bytes": 359141,
+      "meta": {
+        "segundos": 7.583333333333333,
+        "fps": 24,
+        "largura": 537,
+        "altura": 960
+      },
+      "result": {
+        "ok": true
+      },
+      "strictLimits": {
+        "ok": true,
+        "duration": true,
+        "fps": true,
+        "bytes": true
+      },
+      "chunkReads": [
+        {
+          "start": 0,
+          "end": 15,
+          "bytes": 16
+        },
+        {
+          "start": 32,
+          "end": 47,
+          "bytes": 16
+        },
+        {
+          "start": 32,
+          "end": 3022,
+          "bytes": 2991
+        }
+      ],
+      "totalBytesRead": 3023
+    },
+    {
+      "id": "duelo-de-danca",
+      "title": "Parking lot dance-off",
+      "sourcepath": "/previews/galeria/duelo-de-danca.mp4",
+      "filePath": "C:/Users/josep/.codex/worktrees/341b/kineo/public/previews/galeria/duelo-de-danca.mp4",
+      "contentType": "video/mp4",
+      "data": "2026-11-13T23:37:02.136Z",
+      "bytes": 509371,
+      "meta": {
+        "segundos": 10.041666666666666,
+        "fps": 24,
+        "largura": 537,
+        "altura": 960
+      },
+      "result": {
+        "ok": true
+      },
+      "strictLimits": {
+        "ok": true,
+        "duration": true,
+        "fps": true,
+        "bytes": true
+      },
+      "chunkReads": [
+        {
+          "start": 0,
+          "end": 15,
+          "bytes": 16
+        },
+        {
+          "start": 32,
+          "end": 47,
+          "bytes": 16
+        },
+        {
+          "start": 32,
+          "end": 3730,
+          "bytes": 3699
+        }
+      ],
+      "totalBytesRead": 3731
+    },
+    {
+      "id": "outfit-morph",
+      "title": "Outfit morph",
+      "sourcepath": "/previews/galeria/outfit-morph.mp4",
+      "filePath": "C:/Users/josep/.codex/worktrees/341b/kineo/public/previews/galeria/outfit-morph.mp4",
+      "contentType": "video/mp4",
+      "data": "2026-11-13T23:37:02.136Z",
+      "bytes": 522099,
+      "meta": {
+        "segundos": 9.916666666666666,
+        "fps": 24,
+        "largura": 537,
+        "altura": 960
+      },
+      "result": {
+        "ok": true
+      },
+      "strictLimits": {
+        "ok": true,
+        "duration": true,
+        "fps": true,
+        "bytes": true
+      },
+      "chunkReads": [
+        {
+          "start": 0,
+          "end": 15,
+          "bytes": 16
+        },
+        {
+          "start": 32,
+          "end": 47,
+          "bytes": 16
+        },
+        {
+          "start": 32,
+          "end": 2614,
+          "bytes": 2583
+        }
+      ],
+      "totalBytesRead": 2615
+    },
+    {
+      "id": "danca-corredor",
+      "title": "Dance in the hallway",
+      "sourcepath": "/previews/galeria/danca-corredor.mp4",
+      "filePath": "C:/Users/josep/.codex/worktrees/341b/kineo/public/previews/galeria/danca-corredor.mp4",
+      "contentType": "video/mp4",
+      "data": "2026-11-13T23:37:02.136Z",
+      "bytes": 386336,
+      "meta": {
+        "segundos": 6.583333333333333,
+        "fps": 24,
+        "largura": 540,
+        "altura": 960
+      },
+      "result": {
+        "ok": true
+      },
+      "strictLimits": {
+        "ok": true,
+        "duration": true,
+        "fps": true,
+        "bytes": true
+      },
+      "chunkReads": [
+        {
+          "start": 0,
+          "end": 15,
+          "bytes": 16
+        },
+        {
+          "start": 32,
+          "end": 47,
+          "bytes": 16
+        },
+        {
+          "start": 32,
+          "end": 2698,
+          "bytes": 2667
+        }
+      ],
+      "totalBytesRead": 2699
+    },
+    {
+      "id": "friday-groove",
+      "title": "Friday Groove",
+      "sourcepath": "/previews/galeria/friday-groove.mp4",
+      "filePath": "C:/Users/josep/.codex/worktrees/341b/kineo/public/previews/galeria/friday-groove.mp4",
+      "contentType": "video/mp4",
+      "data": "2026-11-13T23:37:02.136Z",
+      "bytes": 942583,
+      "meta": {
+        "segundos": 5.041666666666667,
+        "fps": 24,
+        "largura": 540,
+        "altura": 960
+      },
+      "result": {
+        "ok": true
+      },
+      "strictLimits": {
+        "ok": true,
+        "duration": true,
+        "fps": true,
+        "bytes": true
+      },
+      "chunkReads": [
+        {
+          "start": 0,
+          "end": 15,
+          "bytes": 16
+        },
+        {
+          "start": 32,
+          "end": 47,
+          "bytes": 16
+        },
+        {
+          "start": 32,
+          "end": 2294,
+          "bytes": 2263
+        }
+      ],
+      "totalBytesRead": 2295
+    }
+  ]
+}

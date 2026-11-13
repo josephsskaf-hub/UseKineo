@@ -1,0 +1,9 @@
+  ok mutant: default credits hardcoded
+  ok mutant: cost confirmation ignored
+  ok mutant: automatic constructor endpoint
+  ok mutant: idempotency key replaced on each POST
+  ok mutant: same-key dedupe removed
+  ok mutant: changed key payload allowed
+  ok mutant: refund inferred from failure
+  ok mutant: photo permission removed
+PASS seuVideoClient: 80 checks and 8 mutants; injected I/O only.

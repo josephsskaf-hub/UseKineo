@@ -1,0 +1,24 @@
+{
+  "date": "2026-11-13T23:31:08.093Z",
+  "mode": "local development build; no real sign-up completed",
+  "before": {
+    "disabled": false,
+    "generate": "Generate✦ 40 credits",
+    "photos": 1,
+    "prompt": "Recreate @Video1 exactly: the same choreography, movements, timing, framing, camera and scene. The main person in @Video1 is the person from @Image1, with the same face. Everyone else stays in place. Keep the warm light. No logos or readable text.",
+    "reference": "danca-corredor.mp4",
+    "url": "http://localhost:3031/recreate-preview"
+  },
+  "authUrlContainsOnlyOpaqueDraft": true,
+  "returnInNewTab": {
+    "generate": "Generate✦ 40 credits",
+    "message": [
+      "Your video, photos and instruction are back. Review them, then press Generate. Nothing starts on return."
+    ],
+    "photos": 1,
+    "prompt": "Recreate @Video1 exactly: the same choreography, movements, timing, framing, camera and scene. The main person in @Video1 is the person from @Image1, with the same face. Everyone else stays in place. Keep the warm light. No logos or readable text.",
+    "reference": "danca-corredor.mp4",
+    "url": "/recreate-preview"
+  },
+  "renderStarted": false
+}

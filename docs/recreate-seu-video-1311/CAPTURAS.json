@@ -1,0 +1,132 @@
+{
+  "date": "2026-11-13",
+  "capture": "Native full-viewport browser screenshots; no scaling, stitching or image editing",
+  "images": [
+    {
+      "file": "prints/antes-390.jpg",
+      "width": 390,
+      "height": 844,
+      "bytes": 65648,
+      "sha256": "d74dcdaba9cf45c23c27f2589ced293e8e5a854a9add43b9d11a1cb7c561535c"
+    },
+    {
+      "file": "prints/depois-390.jpg",
+      "width": 390,
+      "height": 844,
+      "bytes": 49323,
+      "sha256": "395c1359fa9ce53e1ea80bca12145b5b58da0fcc4fde07f54c03001f49f67dd5"
+    },
+    {
+      "file": "prints/antes-1920.jpg",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 254910,
+      "sha256": "a6557d0984d56d49cfd68363d34af46d1bf9946d04adf1fac88124ca43861839"
+    },
+    {
+      "file": "prints/depois-1920.jpg",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 135076,
+      "sha256": "a6db73ce915d5ab03d2c9011ced48183f311f72dccda97949d0699f78695198e"
+    },
+    {
+      "file": "prints/editor-390.jpg",
+      "width": 390,
+      "height": 844,
+      "bytes": 51371,
+      "sha256": "6fe7f171595aac3343b3dbe9df12f5de6031a8c0d56ed5899e8baf1681707771"
+    },
+    {
+      "file": "prints/catalogo-390.jpg",
+      "width": 390,
+      "height": 844,
+      "bytes": 56059,
+      "sha256": "cb443097cc9590a00185315cef74a1252eafabdf6872b041899863016d6a2593"
+    },
+    {
+      "file": "prints/editor-1920.jpg",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 136692,
+      "sha256": "f44ce2f4b84cd412fca73517d1bd32b1b4aed411a20ed05f4fd8ed2d14d3d037"
+    },
+    {
+      "file": "prints/catalogo-1920.jpg",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 143081,
+      "sha256": "57936e5ba0b7485aa9d1f5ab1d33f75a1f76201f88a5973517b120383b8e5cbe"
+    },
+    {
+      "file": "prints/formulario-preenchido-390.jpg",
+      "width": 390,
+      "height": 844,
+      "bytes": 38332,
+      "sha256": "e00eb0c39acdedf10d7db4673533e1c821de762e36037c87f7ba4b1269541c43"
+    },
+    {
+      "file": "prints/retorno-nova-aba-390.jpg",
+      "width": 390,
+      "height": 844,
+      "bytes": 45439,
+      "sha256": "3b22e445e46597ab5d99bf1f038d8e09442a843d86d065a1513d59ca0ad4ef76"
+    },
+    {
+      "file": "prints/fixture-pending-390.jpg",
+      "width": 390,
+      "height": 844,
+      "bytes": 35279,
+      "sha256": "1e7228396f2cde6000558698f1ddf399f76abd2875e097c243a15b7b1f6f8e70"
+    },
+    {
+      "file": "prints/fixture-done-placeholder-390.jpg",
+      "width": 390,
+      "height": 844,
+      "bytes": 50483,
+      "sha256": "dd9a95621519225cc7742ae9b2c1bfb6e31192fa52a345d038e853f968c18d14"
+    },
+    {
+      "file": "prints/fixture-pending-1920.jpg",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 59546,
+      "sha256": "3460f2cb0ca00d463d1f4b7f32d06ecb7fd93627fb6e197a840cc5ac3e48e77c"
+    },
+    {
+      "file": "prints/fixture-done-placeholder-1920.jpg",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 92967,
+      "sha256": "b6102dfea7c37eba887f1f68afbed5d97d5bfd626a31c3a6500ff78cfdbf04a0"
+    },
+    {
+      "file": "prints/fixture-failed-refund-0-390.jpg",
+      "width": 390,
+      "height": 844,
+      "bytes": 22097,
+      "sha256": "c6159f7c85a09529e82496bc4c68112a595a041c27ea6e997545e5dc70af37f3"
+    },
+    {
+      "file": "prints/fixture-failed-refund-40-390.jpg",
+      "width": 390,
+      "height": 844,
+      "bytes": 41349,
+      "sha256": "f4ba9c224034a1b8ae7bfeb7bab1a7b2f40048bb36c81fc3ecda8c45f4f7e408"
+    },
+    {
+      "file": "prints/fixture-failed-refund-0-1920.jpg",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 66551,
+      "sha256": "cd7e76e7239ef47ec73d3afeddabab775e6298b76d02714ff18dd63130df7ac6"
+    },
+    {
+      "file": "prints/fixture-failed-refund-40-1920.jpg",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 62014,
+      "sha256": "14791614d28347b37ff5b56b14323f057c50a6748167d4b6b6c807cd490eb91c"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+MUTANT REJECTED [idempotent] restore consumes early
+MUTANT REJECTED [ttl] TTL ignored
+MUTANT REJECTED [validation] WebM accepted
+MUTANT REJECTED [quota] quota reported as success
+MUTANT REJECTED [namespace] cross-tab implicit pointer trusted
+MUTANT REJECTED [validation] unknown server data accepted
+MUTANT REJECTED [validation] catalog allowlist bypassed
+MUTANT REJECTED [identity] idempotency key lost on return
+SeuVideoDraft: 67 offline assertions; 8/8 targeted mutants rejected; no browser/network/render

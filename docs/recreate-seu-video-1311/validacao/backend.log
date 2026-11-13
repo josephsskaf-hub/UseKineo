@@ -1,0 +1,25 @@
+  ok  A–E todas as provas verdes
+  ok  F as 3 rotas abrem só pela sessão do "seu vídeo" (interruptor da casa)
+  ok  F a sessão soma o interruptor próprio ao do Recreate
+  ok  F o pedido relê o vídeo no servidor ANTES do submitClip
+  ok  F nenhum débito fora do submitClip
+  ok  F a conferência não chama motor nem cobra
+  ok  F 15 s só com plano pago (402 antes de cobrar)
+  ok  F fotos só da própria conta
+  ok  F o envio usa URL assinada no bucket público, na pasta do cliente
+  ok  F status devolve a recusa do motor só no Seedance 2.5
+  ok  F eventos só do servidor
+  ok  F a trava "não trocou" segue só no Recast
+  ok  mutante "sem a régua de fps" fica vermelho (2 erro(s))
+  ok  mutante "sem o teto de 15 s" fica vermelho (2 erro(s))
+  ok  mutante "pega a 1ª trilha (áudio)" fica vermelho (1 erro(s))
+  ok  mutante "mdhd v1 lido como v0" fica vermelho (2 erro(s))
+  ok  mutante "duração gerada sem o piso de 4" fica vermelho (1 erro(s))
+  ok  mutante "tudo na tarifa de 10 s" fica vermelho (1 erro(s))
+  ok  mutante "custo fal só do gerado" fica vermelho (1 erro(s))
+  ok  mutante "prompt sem conferir cada foto" fica vermelho (1 erro(s))
+  ok  mutante "caminho de qualquer cliente" fica vermelho (1 erro(s))
+  ok  mutante "com som e 720p" fica vermelho (1 erro(s))
+  ok  mutante "aberto ao público" fica vermelho (1 erro(s))
+
+23 ok, 0 falha(s)

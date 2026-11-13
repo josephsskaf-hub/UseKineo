@@ -1,0 +1,182 @@
+[
+  {
+    "name": "fixture-pending-390",
+    "w": 390,
+    "h": 844,
+    "viewport": {
+      "height": 844,
+      "scrollWidth": 390,
+      "width": 390
+    }
+  },
+  {
+    "name": "fixture-failed-refund-0-390",
+    "w": 390,
+    "h": 844,
+    "viewport": {
+      "height": 844,
+      "scrollWidth": 375,
+      "width": 390
+    }
+  },
+  {
+    "name": "fixture-failed-refund-40-390",
+    "w": 390,
+    "h": 844,
+    "viewport": {
+      "height": 844,
+      "scrollWidth": 375,
+      "width": 390
+    }
+  },
+  {
+    "name": "fixture-done-placeholder-390",
+    "w": 390,
+    "h": 844,
+    "viewport": {
+      "height": 844,
+      "scrollWidth": 375,
+      "width": 390
+    }
+  },
+  {
+    "name": "fixture-pending-1920",
+    "w": 1920,
+    "h": 1080,
+    "viewport": {
+      "height": 1080,
+      "scrollWidth": 1905,
+      "width": 1920
+    }
+  },
+  {
+    "name": "fixture-failed-refund-0-1920",
+    "w": 1920,
+    "h": 1080,
+    "viewport": {
+      "height": 1080,
+      "scrollWidth": 1905,
+      "width": 1920
+    }
+  },
+  {
+    "name": "fixture-failed-refund-40-1920",
+    "w": 1920,
+    "h": 1080,
+    "viewport": {
+      "height": 1080,
+      "scrollWidth": 1905,
+      "width": 1920
+    }
+  },
+  {
+    "name": "fixture-done-placeholder-1920",
+    "w": 1920,
+    "h": 1080,
+    "viewport": {
+      "height": 1080,
+      "scrollWidth": 1905,
+      "width": 1920
+    }
+  },
+  {
+    "name": "depois-390",
+    "w": 390,
+    "h": 844,
+    "viewport": {
+      "height": 844,
+      "scrollWidth": 390,
+      "width": 390
+    }
+  },
+  {
+    "name": "editor-390",
+    "w": 390,
+    "h": 844,
+    "viewport": {
+      "height": 844,
+      "scrollWidth": 390,
+      "width": 390
+    }
+  },
+  {
+    "name": "antes-1920",
+    "w": 1920,
+    "h": 1080,
+    "viewport": {
+      "height": 1080,
+      "scrollWidth": 1916,
+      "width": 1920
+    }
+  },
+  {
+    "name": "depois-1920",
+    "w": 1920,
+    "h": 1080,
+    "viewport": {
+      "height": 1080,
+      "scrollWidth": 1916,
+      "width": 1920
+    }
+  },
+  {
+    "name": "editor-1920",
+    "w": 1920,
+    "h": 1080,
+    "viewport": {
+      "height": 1080,
+      "scrollWidth": 1920,
+      "width": 1920
+    }
+  },
+  {
+    "name": "catalogo-1920",
+    "w": 1920,
+    "h": 1080,
+    "viewport": {
+      "height": 1080,
+      "scrollWidth": 1916,
+      "width": 1920
+    }
+  },
+  {
+    "name": "antes-390",
+    "w": 390,
+    "h": 844,
+    "viewport": {
+      "height": 844,
+      "scrollWidth": 390,
+      "width": 390
+    }
+  },
+  {
+    "name": "catalogo-390",
+    "w": 390,
+    "h": 844,
+    "viewport": {
+      "height": 844,
+      "scrollWidth": 390,
+      "width": 390
+    }
+  },
+  {
+    "name": "fixture-done-placeholder-1920",
+    "w": 1920,
+    "h": 1080,
+    "viewport": {
+      "height": 1080,
+      "scrollWidth": 1905,
+      "width": 1920
+    }
+  },
+  {
+    "name": "fixture-done-placeholder-390",
+    "w": 390,
+    "h": 844,
+    "viewport": {
+      "height": 844,
+      "scrollWidth": 375,
+      "width": 390
+    }
+  }
+]
