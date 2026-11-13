@@ -97,3 +97,18 @@ select metadata->>'code', metadata->>'stage', count(*) from events where name = 
 - Custo: Creatomate, cerca de 1 crédito por clipe de 8 s em 480p (largura × altura × fps × segundos / 1e8). Nada na fal.
 - Suposição a conferir na prova paga da CEO: que o elemento `audio` do Creatomate aceita um MP4 como fonte (ele usa só o som).
   - Se não aceitar, o render falha e o clipe sai mudo, sem prejuízo ao cliente.
+
+## Entrega C (catálogo no motor novo): o que entrou
+
+- Outfit Morph, Elevator e Dance duo vão ao Seedance 2.5:
+  - task `reference`, 480p, sem som gerado;
+  - o vídeo-base da casa sobe ao bucket como hoje e entra em `video_urls`;
+  - o prompt vem do código. No Elevator, SÓ o homem vira a pessoa da foto.
+- Preço: o de hoje do catálogo, 10 s = 40 créditos. Custo fal: cerca de US$ 2,65 por pedido, somando 10 s enviados e 10 s gerados.
+- O que não muda:
+  - os 3 continuam só da casa (`swapApproved: false`) até a prova paga da CEO;
+  - Passarela, Favorito, Suéter e Selfie seguem no Recast;
+  - a trava "não trocou" é do Recast e não roda nos 3.
+- Interruptor: `CATALOGO_SEEDANCE25_LIGADO` em `lib/recreate/seuVideo.ts`. Com `false`, os 3 voltam ao Recast, byte a byte.
+- `scripts/test-recreate-trava-1011.mjs`: o par de 2 pessoas da prova da trava passou da Dança para o Favorito, que segue no Recast.
+  - A prova é a mesma: 375 verificações verdes, fora o bloco A ("redirect kiss"), que já está vermelho na main.

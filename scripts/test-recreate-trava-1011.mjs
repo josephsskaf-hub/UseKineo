@@ -257,7 +257,7 @@ function settleHarness(verdict, opts = {}) {
     ok(lost.status === 'processing' && !h.calls.includes('refund') && !h.calls.some(c => c.startsWith('record:') || c === 'event:clip_delivered' || c.startsWith('event:clip_failed')), `${v}: quem perdeu a reserva não estorna nem entrega`)
   }
   // partial (2 pessoas, 1 trocou) → estorna.
-  const pair = await recreateRow(flow, 'duelo-de-danca', [PHOTO, PHOTO2])
+  const pair = await recreateRow(flow, 'escolha-o-favorito', [PHOTO, PHOTO2]) /* KINEO-RECREATE-SEU-VIDEO-1311 Entrega C: a Dança foi ao Seedance 2.5; o par do Recast é o Favorito (8 s) */
   h = settleHarness('partial')
   const partial = await flow.settleClip(h.deps, pair)
   ok(partial.status === 'failed' && partial.failure_reason === 'swap_partial' && h.calls.filter(c => c === 'refund').length === 1, 'partial: falha + estorno (pagou pelas duas)')
@@ -314,7 +314,7 @@ function fakeFetch({ fal = 'ok', vision = null, message = null, hang = false } =
   const sc = swapCheckMod()
   const flow = flowFor()
   const single = await recreateRow(flow, 'passarela')
-  const pair = await recreateRow(flow, 'duelo-de-danca', [PHOTO, PHOTO2]) /* KINEO-RECREATE-ELEVADOR-1011: o par de 10 s agora é a Dança */
+  const pair = await recreateRow(flow, 'escolha-o-favorito', [PHOTO, PHOTO2]) /* KINEO-RECREATE-SEU-VIDEO-1311 Entrega C: a Dança foi ao Seedance 2.5; o par do Recast é o Favorito (8 s) */ /* KINEO-RECREATE-ELEVADOR-1011: o par de 10 s agora é a Dança */
   ok(sc.recreateRowContext(single).format.id === 'passarela' && sc.recreateRowContext(pair).photos.join() === [PHOTO, PHOTO2].join(), 'linha → formato e fotos pela impressão digital do pedido')
   ok(sc.recreateRowContext({ ...single, model: 'other' }) === null && sc.recreateRowContext({ ...single, fingerprint: 'x' }) === null, 'linha estranha: sem contexto')
   ok(!/^import [^\n]*from 'node:/m.test(read('lib/recreate/swapCheck.ts')) && read('lib/recreate/swapCheck.ts').includes("await import('node:fs/promises')"), 'swapCheck não importa nada de Node no topo (fs só dinâmico)')
@@ -448,7 +448,7 @@ for (const [file, before, after, check] of mutants) {
 // Mutantes do fluxo e da decisão: cada um tem de quebrar ao menos um cenário de dinheiro.
 async function flowScenariosHold(o) {
   const flow = flowFor(o)
-  const row = await recreateRow(flow), pair = await recreateRow(flow, 'duelo-de-danca', [PHOTO, PHOTO2])
+  const row = await recreateRow(flow), pair = await recreateRow(flow, 'escolha-o-favorito', [PHOTO, PHOTO2]) // KINEO-RECREATE-SEU-VIDEO-1311 Entrega C: a Dança foi ao Seedance 2.5; o par do Recast é o Favorito
   let h = settleHarness('unchanged'); const u = await flow.settleClip(h.deps, row)
   const uOk = u.status === 'failed' && h.calls.filter(c => c === 'refund').length === 1 && h.calls.findIndex(c => c.startsWith('swapMarkFailed')) < h.calls.indexOf('refund')
   h = settleHarness('partial'); const p = await flow.settleClip(h.deps, pair)

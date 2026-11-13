@@ -201,6 +201,50 @@ for (const [nome, arq, fn] of MUTANTES_B) {
   checa(`mutante "${nome}" fica vermelho (${mudou ? e.length + ' erro(s)' : 'NÃO APLICOU'})`, mudou && e.length > 0)
 }
 
+// (C) Entrega C: Outfit Morph, Elevator e Dance duo no Seedance 2.5 (planRecreate de verdade); os aprovados seguem no Recast
+const PHOTO = `${SUPA}/storage/v1/object/public/avatars/${U}/a.jpg`, PHOTO2 = `${SUPA}/storage/v1/object/public/avatars/${U}/b.jpg`
+const GEN = 'lib/recreate/generation.ts'
+const planoDe = (mutarSeu = null, mutarGen = null) => createOfflineLoader({ source: (rel, text) => (mutarSeu && rel === ARQ ? mutarSeu(text) : mutarGen && rel === GEN ? mutarGen(text) : text) })(GEN)
+function provasC(g) {
+  const erros = []
+  const plano = (format, photos) => g.planRecreate({ format, seconds: format === 'escolha-o-favorito' ? 8 : 10, photos, consent: true, mode: 'swap' }, { userId: U, supabaseUrl: SUPA, paying: false })
+  for (const [id, fotos] of [['outfit-morph', [PHOTO]], ['elevador', [PHOTO]], ['duelo-de-danca', [PHOTO, PHOTO2]]]) {
+    const r = plano(id, fotos)
+    if (!r.ok) { erros.push(`C ${id} recusado: ${r.error}`); continue }
+    const p = r.plan
+    if (p.model !== 'bytedance/seedance-2.5/reference-to-video' || p.credits !== 40 || p.input.task !== 'reference' || p.input.resolution !== '480p' || p.input.duration !== '10' || p.input.generate_audio !== false) erros.push(`C ${id} não foi ao Seedance 2.5 com o preço de hoje: ${p.model} ${p.credits} ${JSON.stringify(p.input).slice(0, 120)}`)
+    if (!String(p.input.video_urls?.[0] ?? '').endsWith(`/api/recreate/assets/${id}.mp4`)) erros.push(`C ${id} sem o vídeo-base da casa em video_urls`)
+    for (let i = 1; i <= fotos.length; i++) if (!p.input.prompt.includes(`@Image${i}`)) erros.push(`C ${id} prompt sem @Image${i}`)
+    if (Math.abs(p.falUsd - 20 * 0.1323) > 0.001) erros.push(`C ${id} custo fal ${p.falUsd}`)
+  }
+  const el = plano('elevador', [PHOTO])
+  if (el.ok && (!el.plan.input.prompt.startsWith('Recreate @Video1') || !el.plan.input.prompt.includes('The man in @Video1 is the person from @Image1') || !/every other person/.test(el.plan.input.prompt))) erros.push('C Elevator não troca SÓ o homem: ' + el.plan.input.prompt)
+  for (const [id, fotos] of [['passarela', [PHOTO]], ['escolha-o-favorito', [PHOTO, PHOTO2]]]) {
+    const r = plano(id, fotos)
+    if (!r.ok || r.plan.model !== 'minimax/h3-max/recast') erros.push(`C ${id} (aprovado no Recast) mudou de motor`)
+  }
+  return erros
+}
+const cBase = provasC(planoDe())
+checa(`C os 3 formatos reprovados no Seedance 2.5, os aprovados no Recast${cBase.length ? ': ' + cBase.join(' · ') : ''}`, cBase.length === 0)
+const desligado = planoDe((s) => s.replace('export const CATALOGO_SEEDANCE25_LIGADO = true', 'export const CATALOGO_SEEDANCE25_LIGADO = false')).planRecreate({ format: 'elevador', seconds: 10, photos: [PHOTO], consent: true, mode: 'swap' }, { userId: U, supabaseUrl: SUPA, paying: false })
+checa('C interruptor desligado = os 3 voltam ao Recast', desligado.ok && desligado.plan.model === 'minimax/h3-max/recast')
+const recSrv = r('lib/recreate/server.ts')
+checa('C o envio troca video_urls pelo vídeo-base da casa no bucket (só nos 3)', recSrv.includes('const seedance = model === SEEDANCE25_MODEL && catalogoNoSeedance25(format.id)') && recSrv.includes('seedance ? { ...input, video_urls: [data.publicUrl] } : { ...input, video_url: data.publicUrl }'))
+checa('C os 3 continuam só da casa (swapApproved false)', ['outfit-morph', 'elevador', 'duelo-de-danca'].every((id) => new RegExp(`id: '${id}'[^\\n]*swapApproved: false`).test(r('lib/recreate/formats.ts'))))
+const MUTANTES_C = [
+  ['C sem a Dança', ARQ, (s) => s.replace("new Set(['outfit-morph', 'elevador', 'duelo-de-danca'])", "new Set(['outfit-morph', 'elevador'])")],
+  ['C Elevator troca todo mundo', ARQ, (s) => s.replace('if (!swapSubject) return promptPadrao(fotos)', 'return promptPadrao(fotos)')],
+  ['C todo o catálogo no motor novo', ARQ, (s) => s.replace('ligado && typeof formatId === \'string\' && CATALOGO_NO_SEEDANCE25.has(formatId)', 'ligado && typeof formatId === \'string\'')],
+  ['C motor novo com preço de custo', GEN, (s) => s.replace('model: SEEDANCE25_MODEL, credits, falUsd', 'model: SEEDANCE25_MODEL, credits: credits + 20, falUsd')],
+]
+for (const [nome, arq, fn] of MUTANTES_C) {
+  const fonte = lf(fs.readFileSync(arq, 'utf8')), mudou = fn(fonte) !== fonte
+  let e = ['(mutante não aplicou)']
+  if (mudou) { try { e = provasC(arq === ARQ ? planoDe(fn) : planoDe(null, fn)) } catch (x) { e = ['lançou: ' + x.message] } }
+  checa(`mutante "${nome}" fica vermelho (${mudou ? e.length + ' erro(s)' : 'NÃO APLICOU'})`, mudou && e.length > 0)
+}
+
 // (M) mutantes
 const MUTANTES = [
   ['sem a régua de fps', (s) => s.replace('if (meta.fps < L.minFps - 0.5 || meta.fps > L.maxFps + 0.5) return', 'if (false) return')],

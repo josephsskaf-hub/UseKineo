@@ -157,6 +157,21 @@ export function somOriginalDaLinha(row: { model: string | null; fingerprint: str
     return null
   }
 }
+// ── Entrega C (CEO 13/11): os 3 formatos do catálogo que o motor antigo (Recast) reprovou passam ao Seedance 2.5 ────────────────────
+// Outfit Morph (0 de 4 trocas), Elevator (a mulher 0 de 3) e Dance duo (rosto pequeno, 0 de 1). Mesmo preço do catálogo (8/10/15 s da
+// tabela de hoje), o vídeo-base da casa sobe ao bucket como hoje, 480p, sem som gerado. Eles continuam só da casa (swapApproved false)
+// até a prova paga da CEO; a trava "não trocou" (swapCheck) é do Recast e não roda neles.
+/** ⚠ Interruptor: false = os 3 voltam ao Recast, byte a byte o de antes. */
+export const CATALOGO_SEEDANCE25_LIGADO = true
+export const CATALOGO_NO_SEEDANCE25: ReadonlySet<string> = new Set(['outfit-morph', 'elevador', 'duelo-de-danca'])
+export const catalogoNoSeedance25 = (formatId: unknown, ligado: boolean = CATALOGO_SEEDANCE25_LIGADO) => ligado && typeof formatId === 'string' && CATALOGO_NO_SEEDANCE25.has(formatId)
+/** O prompt do catálogo no motor novo: as pessoas do vídeo da casa viram as das fotos; com swapSubject, só aquela pessoa muda. */
+export function promptDoCatalogo(fotos: number, swapSubject?: string): string {
+  if (!swapSubject) return promptPadrao(fotos)
+  const quem = String(swapSubject).replace(/[^\p{L}\p{N} ,'-]/gu, '').trim()
+  const Quem = quem.charAt(0).toUpperCase() + quem.slice(1)
+  return `Recreate @Video1 exactly: the same choreography, movements, timing, framing, camera and scene. ${Quem} in @Video1 is the person from @Image1, with the same face. Everyone else, including every other person, and everything else stays exactly as in @Video1. No logos, no watermark, no readable text.`
+}
 /** A entrada exata da fal (o formato dos 2 testes aprovados de 13/11). */
 export function entradaSeedance25(a: { prompt: string; fotos: string[]; videoUrl: string; gerados: number; proporcao: string }) {
   return { prompt: a.prompt, task: 'reference', image_urls: a.fotos, video_urls: [a.videoUrl], resolution: '480p', duration: String(a.gerados), aspect_ratio: a.proporcao, generate_audio: false }

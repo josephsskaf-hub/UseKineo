@@ -2,6 +2,7 @@ import { ownedClipImageUrl, type ClipRequestInput } from '@/lib/clips/clipCatalo
 import { RECREATE_MOTION_ENABLED } from './access'
 import { RECREATE_UNPRICED_ERROR, recreateFormat, recreateSwapPriced, recreateSwapPromptFor } from './formats'
 import { recreateCreditCost } from '@/lib/checkoutPricing'
+import { catalogoNoSeedance25, custoFalDoSeuVideo, entradaSeedance25, promptDoCatalogo, SEEDANCE25_MODEL } from './seuVideo' // KINEO-RECREATE-SEU-VIDEO-1311 Entrega C
 export { RECREATE_PRICING } from '@/lib/checkoutPricing'
 
 // Approved 09/11: new product tariff only; no change to existing clip/effect pricing.
@@ -44,6 +45,16 @@ export function planRecreate(raw: Record<string, unknown>, ctx: { userId: string
   if (text.length > 550) return bad('Keep the description under 550 characters.')
   const base = recreateSwapPromptFor(f.swapSubject) // KINEO-RECREATE-ELEVADOR-1011 — a format may replace only one of the people in the video
   const prompt = `${base}${text && text !== base && text !== f.prompt ? ` Additional face instructions: ${text}` : ''}`
+  // KINEO-RECREATE-SEU-VIDEO-1311 Entrega C — Outfit Morph, Elevator e Dance duo vão ao Seedance 2.5 (interruptor CATALOGO_SEEDANCE25_LIGADO).
+  // O vídeo-base da casa entra em video_urls no envio (lib/recreate/server.ts recreateSubmitDeps), como o video_url do Recast hoje.
+  if (catalogoNoSeedance25(f.id)) {
+    const sp = `${promptDoCatalogo(f.photoSlots, f.swapSubject)}${text && text !== base && text !== f.prompt ? ` Additional face instructions: ${text}` : ''}`
+    return { ok: true, plan: {
+      body: { engine: 'h3', seconds, aspect: null, prompt: sp, imageUrl: photos[0] },
+      model: SEEDANCE25_MODEL, credits, falUsd: custoFalDoSeuVideo(seconds, seconds), photos,
+      input: entradaSeedance25({ prompt: sp, fotos: photos, videoUrl: RECREATE_PROVIDER_ORIGIN + f.preview, gerados: seconds, proporcao: '9:16' }),
+    } }
+  }
   return { ok: true, plan: {
     body: { engine: 'h3', seconds, aspect: null, prompt, imageUrl: photos[0] },
     model: RECREATE_MODEL, credits, falUsd: seconds * RECREATE_USD_PER_SECOND, photos,
