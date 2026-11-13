@@ -1,0 +1,7 @@
+MUTANT REJECTED [route] account before idea
+MUTANT REJECTED [allowlist] unknown identity accepted
+MUTANT REJECTED [draft] draft erased by seed
+MUTANT REJECTED [film] film seed missing
+MUTANT REJECTED [cartoon] Cartoon remains blank
+MUTANT REJECTED [ads] Ads remains blank
+WATCH entry: 345 offline assertions; 6/6 targeted mutants rejected; no account/API/render started

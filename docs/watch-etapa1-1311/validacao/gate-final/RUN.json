@@ -1,0 +1,13 @@
+{
+  "recordedAt": "2026-11-13T22:43:48.537Z",
+  "branchCommit": "000ad3c68c752e6c9df7a2ddc417530ae1bf5927",
+  "treeClean": true,
+  "parallel": 2,
+  "timeoutSeconds": 600,
+  "exit": 0,
+  "total": 10,
+  "green": 10,
+  "newRed": 0,
+  "mainRerun": false,
+  "reason": "All selected tests passed on the committed branch; actual novos-vermelhos.sh returned0."
+}

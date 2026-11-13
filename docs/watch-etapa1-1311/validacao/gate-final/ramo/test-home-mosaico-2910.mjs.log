@@ -1,0 +1,21 @@
+  ok   (1)(2)(4) montagem, contagens e cartões
+  ok   (2) imagens: 24 da galeria + 12 novas
+  ok   (3) imagens novas em public/home-mosaic/ e ≤ 150 KB
+  ok   (3) pasta da galeria antiga sem arquivo novo
+  ok   M interruptor off: vermelho
+  ok   M trending volta: vermelho
+  ok   M 4 filmes: vermelho
+  ok   M 4 efeitos: vermelho
+  ok   M motor volta no selo do clipe: vermelho
+  ok   M motor volta no filme: vermelho
+  ok   M etiqueta volta no clipe: vermelho
+  ok   M etiqueta volta no estilo: vermelho
+  ok   M tipo sai do aria-label do filme: vermelho
+  ok   M link do clipe perde o motor: vermelho
+  ok   M efeito volta à página antiga: vermelho
+  ok   M efeito sem cadastro: vermelho
+  ok   M efeito sem a volta do interruptor: vermelho
+  ok   M efeito ignora o interruptor: vermelho
+  ok   M medição do efeito muda: vermelho
+  ok   M 2 respostas diretas: vermelho
+20 ok, 0 falha(s)

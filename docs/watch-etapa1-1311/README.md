@@ -31,7 +31,7 @@ Abra `COMPARACAO.html`: HTML autocontido, CSS e 29 capturas incorporados, sem se
 - **QUESTÃO PENDENTE:** a abertura do HTML comparativo no navegador foi recusada por falha técnica da revisão automática de autorização (`Bad Request`); as fotografias das telas reais e a montagem autocontida foram produzidas. O arquivo deve ser aberto manualmente para a revisão visual conjunta.
 - **FATO CONFIRMADO:** o build usa as opções já existentes `ignoreBuildErrors`/lint ignorado. Os tipos de rotas que ele gera exibiram 15 erros em fontes alheias à missão, iguais à base; o log completo foi preservado em `validacao/tsc-gerado-pelo-build.log`. O typecheck bruto é registrado separadamente depois da remoção apenas de `.next/types` gerado localmente, conforme a distinção do AGENTS §6.3. Isso não corrige nem oculta a dívida de tipos gerados.
 
-O gate comparativo e o SHA de entrega ficam em `VALIDACAO.md` após o commit e a execução com árvore limpa. Nenhum guardião antigo é removido. O guardião clips-first foi reancorado para reconhecer a mesma montagem antiga protegida pelo interruptor, com quatro mutantes; seu helper H3 já falhava na base.
+O gate final passou com dez testes verdes e nenhum vermelho novo, em árvore limpa e commitada. O gate amplo inicial, as duas reancoragens e todos os limites ficam em `VALIDACAO.md`. Nenhum guardião antigo é removido. O guardião clips-first foi reancorado para reconhecer a mesma montagem antiga protegida pelo interruptor, com quatro mutantes; seu helper H3 já falhava na base.
 
 ## Medição pela CEO
 

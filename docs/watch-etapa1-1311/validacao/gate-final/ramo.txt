@@ -1,0 +1,10 @@
+test-cartoon-tela-0411.mjs 0
+test-enquadramento-vitrine-0911.mjs 0
+test-faq-schema-so-onde-visivel.mjs 0
+test-home-mosaico-2910.mjs 0
+test-home-pricing-checkout.mjs 0
+test-menu-4-mais-1211.mjs 0
+test-public-nav-disclosure.mjs 0
+test-watch-entry-1311.mjs 0
+test-watch-home-1311.mjs 0
+test-watch-media-1311.cjs 0
