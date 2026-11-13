@@ -16,7 +16,7 @@ import { planoDoNascimento, temposDosQuadros, type QuadroCena } from '@/lib/regu
 import { buildJuiz19, defeitosDoCodigo, julgar19, normalizar19, nota19, type Defeito19, type Entrada19 } from '@/lib/regua95/juizRegua19'
 import { defeitosDaDescricao, julgarDoisPassos, normalizarPasso1, normalizarPasso2 } from '@/lib/regua95/juizDoisPassos'
 
-const TETO_TOTAL_USD = 6
+const TETO_TOTAL_USD = 7 // CEO 13/11 17:50: teto subiu de US$ 6 para 7 só para medir o juiz consertado (6.1-sol-b) na prova inteira
 const MODELOS: Record<string, { id: string; tarifa: { inPerM: number; outPerM: number }; reserva: number }> = {
   '6.1-sol': { id: 'gpt-6.1-sol', tarifa: { inPerM: 2, outPerM: 10 }, reserva: 0.12 },
   // '6.1-sol-b' = o MESMO modelo com o juiz consertado (marca da casa, época, comparação entre cenas; 13/11 noite) — cache próprio

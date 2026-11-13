@@ -36,8 +36,13 @@ export function pedeEpoca(texto: string): boolean {
   return /\b(1[0-9]{3}|20[0-2][0-9])s?\b|\b\d{1,2}(st|nd|rd|th)[- ]century\b|\bs[ée]culo\b|\bcentury\b|\b(bc|bce|a\.?c\.?|d\.?c\.?)\b|\b(ancient|antig[ao]s?|medieval|middle ages|idade m[ée]dia|renaissance|renascimento|victorian|vitorian[ao]|colonial|prehistoric|pr[ée]-?hist[óo]ri|stone age|bronze age|iron age|viking|roman empire|imp[ée]rio romano|romanos?|romans?|greek|gregos?|egypt|egito|pharaoh|fara[óo]|samurai|shogun|feudal|world war|guerra mundial|ww[12i]+|cold war|guerra fria|wild west|velho oeste|cowboys?|pioneers?|1920s|roaring twenties|ming|qing|aztec|asteca|maya|inca|biblical|b[íi]blic[ao]|jesus|moses|mois[ée]s|dinosaurs?|dinossauros?|future|futur[ao]|futuristic|futurista|retro|r[ée]tro|vintage|old days|antigamente)\b/i.test(texto)
 }
 
-/** A nossa marca no canto (usekineo.com, usekineo.com/free) — nunca é defeito nem prova de época. */
-const MARCA_DA_CASA = /usekineo|kineo\.com|kineo\b|our (water)?mark|watermark|marca d[’']?[áa]gua|website (text|url|address)|texto de site|url (in|no|na) (the )?(corner|canto)|endere[çc]o de site/i
+/** A nossa marca no canto (usekineo.com, usekineo.com/free): evidência que fala dela nunca é defeito (menos troca de personagem/estilo). */
+const MARCA_DA_CASA = /kineo/i
+/**
+ * Palavras genéricas de marca/site ("watermark", "website text", "url no canto"): só descartam EPOCA_ERRADA. Marca d'água de BANCO DE
+ * IMAGEM que o motor inventa (Shutterstock, Getty, um @ de terceiro) é defeito de verdade e continua contando (revisão da CEO, 13/11 17:58).
+ */
+const MARCA_GENERICA = /our (water)?mark|watermark|marca d[’']?[áa]gua|website (text|url|address)|texto de site|url (in|no|na) (the )?(corner|canto)|endere[çc]o de site/i
 
 export type Defeito19 = { categoria: Categoria19; gravidade: 'grave' | 'leve'; quadros: number[]; evidencia: string; origem: 'visao' | 'codigo' }
 export type Entrada19 = {
@@ -139,6 +144,7 @@ export function normalizar19(json: unknown, e: Pick<Entrada19, 'plano' | 'quadro
     if (quadros.length < minimo || ev.split(/\s+/).length < 3) { descartados++; continue }
     // a nossa marca no canto nunca é defeito (conserto 1)
     if (MARCA_DA_CASA.test(ev) && categoria !== 'PERSONAGEM_TROCOU' && categoria !== 'ESTILO_MUDOU') { descartados++; continue }
+    if (MARCA_GENERICA.test(ev) && categoria === 'EPOCA_ERRADA') { descartados++; continue }
     if (categoria === 'PERSONAGEM_TROCOU' || categoria === 'ESTILO_MUDOU') {
       // tem de cruzar cenas: quadros de ≥ 2 momentos diferentes
       const momentos = new Set(quadros.map((i) => e.quadros[i].m))

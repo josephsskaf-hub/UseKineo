@@ -33,6 +33,8 @@ export const TARIFAS_VISAO: Record<string, { inPerM: number; outPerM: number }> 
   [AI_TEXT_MODELS.writer]: { inPerM: 2.5, outPerM: 10 },
   [AI_TEXT_MODELS.research]: { inPerM: 0.4, outPerM: 1.6 },
   [AI_TEXT_MODELS.vision]: { inPerM: 0.15, outPerM: 0.6 },
+  // gpt-6.1-sol: US$ 2,00 entrada / US$ 10,00 saída por milhão — página oficial developers.openai.com/api/docs/pricing, lida em 13/11/2026
+  [AI_TEXT_MODELS.filmJudge]: { inPerM: 2, outPerM: 10 },
   [CLAUDE_NO_GATEWAY.haiku]: { inPerM: 0.1, outPerM: 0.5 },
   [CLAUDE_NO_GATEWAY.sonnet]: { inPerM: 2, outPerM: 10 },
   [CLAUDE_NO_GATEWAY.opus]: { inPerM: 4, outPerM: 20 },
@@ -103,7 +105,7 @@ export async function chamarVisaoJson(
         signal: ctrl.signal,
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
         // modelos de raciocínio (gpt-5.x, gpt-6.x, o*) não aceitam temperature nem max_tokens: usam max_completion_tokens
-        body: JSON.stringify({ model: modelo, ...(/^(gpt-5|gpt-6|od)/.test(modelo) ? { max_completion_tokens: Math.max(c.maxTokens ?? 3000, 16000) } : { temperature: 0, max_tokens: c.maxTokens ?? 3000 }), response_format: { type: 'json_object' }, messages: [{ role: 'system', content: c.system }, { role: 'user', content: c.content }] }),
+        body: JSON.stringify({ model: modelo, ...(/^(gpt-5|gpt-6|o\d)/.test(modelo) ? { max_completion_tokens: Math.max(c.maxTokens ?? 3000, 16000) } : { temperature: 0, max_tokens: c.maxTokens ?? 3000 }), response_format: { type: 'json_object' }, messages: [{ role: 'system', content: c.system }, { role: 'user', content: c.content }] }),
       })
       if (!res.ok) return null
       const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }

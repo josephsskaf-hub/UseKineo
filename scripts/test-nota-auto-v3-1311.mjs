@@ -41,8 +41,10 @@ async function provas(J) {
   const ep = J.normalizar19({ defects: [def('EPOCA_ERRADA', [0, 1], 'cartoon environment, not realistic at all')] }, SEM_NOME)
   checa('V1 EPOCA_ERRADA descartada quando a história não tem época', ep.defeitos.length === 0 && ep.descartados === 1)
   // V2
-  const marca = J.normalizar19({ defects: [def('TEXTO_INVENTADO', [2], 'small text usekineo.com/free in the corner'), def('EPOCA_ERRADA', [0, 2, 4], 'Modern website text visible in every frame'), def('MARCA_DE_TERCEIRO', [3], 'watermark at the bottom right corner')] }, { ...SEM_NOME, pedido: 'a samurai in feudal Japan' })
-  checa('V2 a marca da casa nunca vira defeito', marca.defeitos.length === 0 && marca.descartados === 3)
+  const marca = J.normalizar19({ defects: [def('TEXTO_INVENTADO', [2], 'small text usekineo.com/free in the corner'), def('MARCA_DE_TERCEIRO', [1], 'Kineo logo at the bottom right'), def('EPOCA_ERRADA', [0, 2, 4], 'Modern website text visible in every frame')] }, { ...SEM_NOME, pedido: 'a samurai in feudal Japan' })
+  checa('V2 a marca da casa nunca vira defeito; texto genérico de site não vira época', marca.defeitos.length === 0 && marca.descartados === 3)
+  const banco = J.normalizar19({ defects: [def('MARCA_DE_TERCEIRO', [3], 'Shutterstock watermark across the frame'), def('TEXTO_INVENTADO', [2], 'gibberish website url printed on the sign')] }, SEM_NOME)
+  checa('V2 marca d\'água de banco de imagem e texto de site fora da época CONTINUAM defeito', banco.defeitos.length === 2)
   // V3
   const estilo = J.normalizar19({ defects: [def('ESTILO_MUDOU', [0, 5], 'photorealistic cat in frame 0, flat cartoon cat in frame 5')] }, SEM_NOME)
   checa('V3 ESTILO_MUDOU entre cenas conta e é central (8 − 2 = 6)', estilo.defeitos.length === 1 && J.nota19(estilo.defeitos) === 6)
@@ -69,6 +71,8 @@ function provasDaProducao() {
   const falhas = []
   const checa = (n, c) => { if (!c) falhas.push(n) }
   checa('V6 produção usa o juiz v3 e a versão dele', /juiz: juizV3ReguaInteira, versao: NOTA_AUTO_VERSAO_FILME/.test(FILME) && /export const NOTA_AUTO_VERSAO_FILME = JUIZ19_VERSION/.test(FILME) && (FILME.match(/NOTA_AUTO_VERSAO_FILME\)/g) ?? []).length === 2)
+  checa('V6 sem NOTA_AUTO_MODEL, na OpenAI, o juiz do filme usa o modelo medido do registro (AI_TEXT_MODELS.filmJudge)', FILME.includes("return lerProvedorNotaAuto(env).provedor === 'openai' ? AI_TEXT_MODELS.filmJudge : undefined") && /model: modeloDoJuizDoFilme\(\)/.test(FILME))
+  checa('V7 modelos de raciocínio (o1, o3, gpt-5/6) mandam max_completion_tokens', /\^\(gpt-5\|gpt-6\|o\\d\)/.test(fs.readFileSync('lib/regua95/visaoProvedor.ts', 'utf8')))
   checa('V6 alvo de duração e língua vêm do nascimento', /segundosPedidos: alvoDeDuracao\(response\)/.test(FILME) && /lingua: typeof response\?\.language === 'string'/.test(FILME))
   const t = P.lerProvedorNotaAuto({ NOTA_AUTO_TARIFA: ' 2 / 10 ' })
   checa('V7 NOTA_AUTO_TARIFA lida do ambiente; inválida = tabela', t.tarifa?.inPerM === 2 && t.tarifa?.outPerM === 10 && P.lerProvedorNotaAuto({ NOTA_AUTO_TARIFA: 'caro' }).tarifa === undefined)
@@ -84,6 +88,8 @@ linha(pr.length === 0, `produção (V6–V7)${pr.length ? ' — falharam: ' + pr
 
 const MUTANTES = [
   ['M1 marca da casa não filtrada', (s) => s.replace("if (MARCA_DA_CASA.test(ev) && categoria !== 'PERSONAGEM_TROCOU' && categoria !== 'ESTILO_MUDOU') { descartados++; continue }", '')],
+  ['M8 palavra genérica descarta qualquer categoria', (s) => s.replace("if (MARCA_GENERICA.test(ev) && categoria === 'EPOCA_ERRADA')", 'if (MARCA_GENERICA.test(ev))')],
+  ['M9 marca da casa só descarta época', (s) => s.replace("if (MARCA_DA_CASA.test(ev) && categoria !== 'PERSONAGEM_TROCOU' && categoria !== 'ESTILO_MUDOU')", "if (MARCA_DA_CASA.test(ev) && categoria === 'EPOCA_ERRADA')")],
   ['M2 época oferecida sempre', (s) => s.replace("...(pedeEpoca(textoDaHistoria(e)) ? (['EPOCA_ERRADA'] as const) : [])", "'EPOCA_ERRADA'")],
   ['M3 troca dentro da mesma cena aceita', (s) => s.replace('if (momentos.size < 2) { descartados++; continue }', '')],
   ['M4 autofit ignorado', (s) => s.replace("if (af === true || (af && typeof af === 'object')) return null", '')],

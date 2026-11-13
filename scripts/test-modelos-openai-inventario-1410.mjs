@@ -87,6 +87,8 @@ const REGISTRO_ESPERADO = {
   'AI_TEXT_MODELS.adsRetry': 'gpt-4o',
   'AI_TEXT_MODELS.research': 'gpt-4.1-mini',
   'AI_TEXT_MODELS.utility': 'gpt-4o-mini',
+  // KINEO-NOTA-AUTO-V3-1311 — papel NOVO (13/11), não troca nenhum dos de 14/10: o juiz da nota automática do filme
+  'AI_TEXT_MODELS.filmJudge': 'gpt-6.1-sol',
   'AI_SPEECH_MODELS.tts': 'tts-1-hd',
   'AI_SPEECH_MODELS.ttsLegacy': 'tts-1',
   AI_TRANSCRIPTION_MODEL: 'whisper-1',

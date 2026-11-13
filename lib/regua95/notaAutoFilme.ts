@@ -15,6 +15,7 @@ import { produtoDoVideo } from '@/lib/regua95/contexto'
 import { planoDoNascimento } from '@/lib/regua95/notaPorCena'
 import { JUIZ19_VERSION, alvoDeDuracao, julgar19 } from '@/lib/regua95/juizRegua19'
 import { lerProvedorNotaAuto } from '@/lib/regua95/visaoProvedor'
+import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import {
   julgarEGravarNotaAuto, lerModoNotaAuto, notaAutoPendente, notasAutoFeitas, type EntregaNotaAuto, type JuizNotaAuto, type NotaAutoMode,
 } from '@/lib/regua95/notaRevisor'
@@ -26,10 +27,16 @@ import {
  * (+ NOTA_AUTO_TARIFA "entrada/saída" em US$ por milhão, para o custo do evento sair certo em modelo fora da tabela).
  */
 export const NOTA_AUTO_VERSAO_FILME = JUIZ19_VERSION
+/** O modelo do juiz do filme: NOTA_AUTO_MODEL se existir; senão, na OpenAI, o MEDIDO no ensaio (AI_TEXT_MODELS.filmJudge); no gateway, o padrão dele. */
+export function modeloDoJuizDoFilme(env: Record<string, string | undefined> = process.env): string | undefined {
+  const explicito = String(env.NOTA_AUTO_MODEL ?? '').trim()
+  if (explicito) return explicito
+  return lerProvedorNotaAuto(env).provedor === 'openai' ? AI_TEXT_MODELS.filmJudge : undefined
+}
 export const juizV3ReguaInteira: JuizNotaAuto = async (a) =>
   julgar19(
     { plano: a.plano, quadros: a.quadros, pedido: a.alvo.pedido, roteiro: a.alvo.roteiro, produto: a.entrega.product, motor: a.alvo.motor, segundos: a.entrega.seconds ?? a.plano.segundos, segundosPedidos: a.alvo.segundosPedidos ?? null, linguaEscolhida: a.alvo.lingua ?? null },
-    { fetchImpl: a.fetchImpl, tokenGateway: a.tokenGateway, usdQuadros: a.usdQuadros, tarifa: lerProvedorNotaAuto().tarifa },
+    { fetchImpl: a.fetchImpl, tokenGateway: a.tokenGateway, usdQuadros: a.usdQuadros, tarifa: lerProvedorNotaAuto().tarifa, model: modeloDoJuizDoFilme() },
   )
 
 /** Janela da rede de segurança (o disparo na hora cobre o caso normal; isto cobre função morta, deploy, fal fora). */
