@@ -95,7 +95,7 @@ export function falaDividida(fala: string, secoes: readonly SecaoDoRoteiro[]): s
 // era "A wide shot captures the bustling ancient Roman amphitheater…" de novo, só com outro "Shot focus"): funcionou por sorte. Agora
 // cada plano de cena fundida nasce da SUA seção: o meio ("Photoreal film."), o lugar ("Setting: …") e a época do prompt da cena, a
 // pista e a fala da seção como ação, e a mesma proteção de texto/boca do fim do prompt. Nenhuma ação de outra seção entra.
-export function promptDaSecao(promptDaCena: string, secao: SecaoDoRoteiro, opcoes: { objetoConcreto?: boolean } = {}): string {
+export function promptDaSecao(promptDaCena: string, secao: SecaoDoRoteiro, opcoes: { objetoConcreto?: boolean; sujeito?: string | null } = {}): string {
   const p = norm(promptDaCena)
   const meio = /^[^.]{2,60}\./.exec(p)?.[0] ?? ''
   const lugar = /Setting: [^.]*?(?:\([^)]*\))?\./.exec(p)?.[0] ?? ''
@@ -110,13 +110,17 @@ export function promptDaSecao(promptDaCena: string, secao: SecaoDoRoteiro, opcoe
   const origem = /Everyone shown has the natural features of [^.]+ people\.|People: [^.]+\./.exec(p)?.[0] ?? ''
   // a ficha acaba no ponto dela ou onde o corte da cena a encostou na proteção ("…origin: an Italian man, no readable text")
   const quem = (/(?:Visible(?:, seen from behind)?|Identity): .+?(?:\.(?=\s)|(?=,?\s*no readable text))/.exec(p)?.[0] ?? '').replace(/[\s,;]+$/u, '').replace(/([^.])$/u, '$1.')
+  // KINEO-SUJEITO-APARENCIA-1311 (b) [gato ninja 7f92fe17: as metades saíam "cat jumping rooftop", sem a cor e fora do telhado] — o sujeito
+  // completo do pedido (o mesmo que foi a todo plano: "a ninja cat running on rooftops (ginger)") vai a cada metade, junto com a ficha.
+  const frase = norm(opcoes.sujeito ?? '').replace(/[.\s]+$/u, '')
+  const sujeitoDaCena = frase ? `Main subject clearly visible in frame: ${frase}.` : ''
   const i = p.search(/,?\s*no readable text/)
   const cauda = i >= 0 ? p.slice(i).replace(/^,\s*/, ' ') : (p.endsWith('Mouth closed, no speaking.') ? ' Mouth closed, no speaking.' : '')
   const fala = norm(secao.voiceover).replace(/[\s.!?…]+$/u, '')
   // KINEO-K4-PLANO-VARIADO-1111 [alavanca 2, atrás de KLING4_PLANO_VARIADO] — a ação da metade é o OBJETO concreto da seção (a pista), não a fala abstrata
   // ("This shot shows only this moment: This manifestation is God, not all of God." no 2120f018). Sem pista, fica a fala, como antes.
   const acao = opcoes.objetoConcreto && norm(secao.pexelsQuery) ? `Main subject of this shot: ${pista(secao)}, shown in motion.` : `Shot focus: ${pista(secao)}. This shot shows only this moment: ${fala}.`
-  return norm(`${meio} ${luz} ${periodo} ${origem} ${quem} ${lugar} ${acao}${epoca ? ` The scene is a ${epoca}.` : ''}${cauda}`)
+  return norm(`${meio} ${luz} ${periodo} ${origem} ${quem} ${sujeitoDaCena} ${lugar} ${acao}${epoca ? ` The scene is a ${epoca}.` : ''}${cauda}`)
 }
 const pista = (x: SecaoDoRoteiro) => {
   const p = norm(x.pexelsQuery)
@@ -125,7 +129,7 @@ const pista = (x: SecaoDoRoteiro) => {
 
 /** Os planos do Kling 4 por seção. null = nada a dividir ou não dá para provar → o envio de sempre (3 planos). */
 export function planosPorSecao(a: {
-  prompts: readonly string[]; stills: readonly (string | null)[]; falas: readonly string[]; secoes: readonly SecaoDoRoteiro[]; objetoConcreto?: boolean
+  prompts: readonly string[]; stills: readonly (string | null)[]; falas: readonly string[]; secoes: readonly SecaoDoRoteiro[]; objetoConcreto?: boolean; sujeito?: string | null
 }): { prompts: string[]; stills: (string | null)[]; falas: string[]; grupos: number[][] } | null {
   if (a.prompts.length !== a.falas.length) return null
   const exatos = secoesDasCenas(a.secoes, a.falas)
@@ -142,7 +146,7 @@ export function planosPorSecao(a: {
     const reais = !exatos && g.length > 1 ? falaDividida(a.falas[i], g.map((j) => a.secoes[j])) : null
     g.forEach((j, pos) => {
       const secao = reais ? { pexelsQuery: a.secoes[j].pexelsQuery, voiceover: reais[pos] } : a.secoes[j]
-      prompts.push(g.length === 1 ? a.prompts[i] : promptDaSecao(a.prompts[i], secao, { objetoConcreto: a.objetoConcreto === true })) // KINEO-K4-PLANO-DA-SECAO-1111 · KINEO-K4-PLANO-VARIADO-1111 — era: `Shot focus: ${pista(a.secoes[j])}. ${a.prompts[i]}` (a ação da cena inteira em cada metade)
+      prompts.push(g.length === 1 ? a.prompts[i] : promptDaSecao(a.prompts[i], secao, { objetoConcreto: a.objetoConcreto === true, sujeito: a.sujeito ?? null })) // KINEO-K4-PLANO-DA-SECAO-1111 · KINEO-K4-PLANO-VARIADO-1111 — era: `Shot focus: ${pista(a.secoes[j])}. ${a.prompts[i]}` (a ação da cena inteira em cada metade)
       stills.push(pos === 0 ? (a.stills[i] ?? null) : null)
       const fala = g.length === 1 && !exatos ? norm(a.falas[i]) : norm(secao.voiceover)
       falas.push(i === 0 && pos === 0 && prefixo ? `${prefixo} ${fala}` : fala)

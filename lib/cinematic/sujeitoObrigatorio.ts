@@ -55,6 +55,22 @@ import { AI_TEXT_MODELS } from '@/lib/aiModels'
 
 export const SUJEITO_K4_VERSAO = 'k4_sujeito_0111_v8_semantico' as const
 
+// ═══ KINEO-SUJEITO-APARENCIA-1311 [CEO 13/11, gato ninja 7f92fe17: "a cor, a espécie e o lugar que o cliente escreveu têm de chegar a TODOS os
+// planos, com ou sem nome próprio"] — "рыжий кот ниндзя бежит по крышам" foi lido como "a ninja cat running on rooftops": o leitor perdeu o
+// "рыжий" (ruivo) e, como o gato já aparecia num plano, nada foi injetado; os planos 2 e 3 (metades de cena) saíram "cat jumping rooftop",
+// sem cor e na rua. Duas peças, atrás de SUJEITO_APARENCIA_1311 ('off' = byte a byte o de hoje):
+//   (a) uma pergunta SEPARADA e pequena (lerAparenciaDoSujeito), feita DEPOIS do sujeito decidido, devolve só a cor/pelagem/marca/pele/
+//       roupa/material que o PEDIDO escreve para aquele sujeito, em inglês. O leitor do sujeito NÃO muda: no ensaio A/B de 13/11, pôr o
+//       campo dentro dele mexeu na decisão do sujeito em 5 pedidos estáveis (vampiro, menino do mapa, Voynich, baobá, "bunker being").
+//       A frase injetada vira "<visual> (<aparência>)" quando a aparência ainda não está nela.
+//   (b) sem ficha de personagem em nenhum plano, o sujeito completo vai a TODO plano do Kling 4 que ainda não o traz (sem cortar a ação:
+//       plano que não cabe fica como está), e lib/kling4QuatroPlanos leva a mesma linha a cada metade de cena.
+// Ensaio: scripts/ensaio-sujeito-aparencia-1311.mjs (pedidos reais). Guardião: scripts/test-sujeito-aparencia-1311.mjs.
+export type ModoSujeitoAparencia = 'off' | 'all'
+export const SUJEITO_APARENCIA_1311: ModoSujeitoAparencia = 'all'
+export const sujeitoAparenciaLigada = (modo: ModoSujeitoAparencia = SUJEITO_APARENCIA_1311): boolean => modo === 'all'
+export const MARCA_SUJEITO_NA_CENA = 'Main subject clearly visible in frame:'
+
 // ─── A chamada semântica (compartilhada com o juiz do fim, lib/cinematic/finalResposta.ts) ──────────────────────────────────────
 export const MODELO_SEMANTICO_0111 = AI_TEXT_MODELS.scenePlannerLight // gpt-4o-mini (registro único: lib/aiModels.ts)
 export interface OpcoesSemanticas {
@@ -149,6 +165,9 @@ export interface LeituraDoSujeito {
   request_language: string
   /** Por que o sujeito ficou null depois da validação (null = válido). */
   descartado: string | null
+  /** KINEO-SUJEITO-APARENCIA-1311 — a cor/pelagem/marca/roupa/material que o PEDIDO escreve para o sujeito, em inglês minúsculo, lida por uma
+   *  pergunta SEPARADA (lerAparenciaDoSujeito) depois do sujeito decidido; ausente/null = o pedido não escreve nenhuma ou o interruptor está off. */
+  appearance?: string | null
 }
 
 const KINDS: ReadonlyArray<KindDoSujeito> = ['object', 'vehicle', 'creature', 'person_generic', 'none']
@@ -210,6 +229,66 @@ export const SYSTEM_SUJEITO_0111 = [
   'has_human: true when the subject is or includes a person of any age. mention_words: the exact word or words copied from the request, in its own language and spelling, that name the subject (empty when kind is "none"). word_use: how those words are used in THIS request — "literal"; "name_or_title" only when they name a person, a work (film, series, book, song, game), a sports team, a company, a brand or a weather phenomenon (the proper name of a ship, flight or other vehicle, and the title of the requested story itself, are "literal"); "figurative"; "verb"; or "none" when kind is "none". request_language: ISO 639-1 code.',
   'Reply with JSON only.',
 ].join('\n')
+
+// ═══ KINEO-SUJEITO-APARENCIA-1311 (a) — a pergunta da APARÊNCIA, separada do leitor do sujeito ═══════════════════════════════════
+// Recebe o pedido e o sujeito JÁ decidido; devolve as palavras do pedido que descrevem a aparência DESSE sujeito (request_words, copiadas na
+// língua do pedido — âncora anti-invenção conferida no código) e a tradução (appearance). Sem palavra do pedido = null, sempre.
+export const SYSTEM_APARENCIA_1311 = [
+  'You read a video request (any language) and the main subject already chosen from it.',
+  'request_words: the exact words copied from the request, in its own language and spelling, that state the colour, coat, fur, markings, skin, clothing or material of THAT subject. Empty when the request writes none for it, or when such words describe something else (the background, the place, the style or look of the video, another object or character).',
+  'appearance: those words in natural plain English for that thing (an animal coat uses the usual word, e.g. a ginger cat, a chestnut horse), lowercase, at most 8 words, no names. Null when request_words is empty. Never infer, guess or add a colour from your own knowledge.',
+  'Reply with JSON only.',
+].join('\n')
+const SCHEMA_APARENCIA_1311 = {
+  type: 'object', additionalProperties: false,
+  required: ['request_words', 'appearance'],
+  properties: { request_words: { type: 'array', items: { type: 'string' } }, appearance: { type: ['string', 'null'] } },
+} as const
+const exAp = (pedido: string, sujeito: string, o: { request_words: string[]; appearance: string | null }) => ({ user: `Video request:\n${pedido}\nMain subject: ${sujeito}`, assistant: JSON.stringify(o) })
+// nenhum vem do ensaio nem dos filmes do caso
+export const EXEMPLOS_APARENCIA_1311: ReadonlyArray<{ user: string; assistant: string }> = [
+  exAp('un perro blanco con manchas negras corre por la playa', 'a dog running on a beach', { request_words: ['blanco', 'manchas negras'], appearance: 'white with black spots' }),
+  exAp('сонная серая сова сидит на заснеженной ветке', 'a sleepy owl on a snowy branch', { request_words: ['серая'], appearance: 'gray' }),
+  exAp('um cavalo alazão galopando na praia, estilo aquarela azul', 'a horse galloping on a beach', { request_words: ['alazão'], appearance: 'chestnut' }),
+  exAp('a knight in rusty silver armor guarding a bridge', 'a knight guarding a bridge', { request_words: ['rusty silver armor'], appearance: 'rusty silver armor' }),
+  exAp('the Brazilian flag flying over the Amazon', 'a green and yellow Brazilian flag over a rainforest', { request_words: [], appearance: null }),
+  exAp('a robot walking through a neon pink city at night', 'a robot walking through a city at night', { request_words: [], appearance: null }),
+  exAp('why do flamingos stand on one leg', 'a flamingo standing on one leg', { request_words: [], appearance: null }),
+]
+/** A aparência que o modelo escreveu, validada: inglês minúsculo (letras latinas, espaço, vírgula, hífen), 1 a 8 palavras, sem nome. */
+export function aparenciaValida(v: unknown): string | null {
+  const t = typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().replace(/[.\s]+$/, '') : ''
+  if (!t || t.toLowerCase() === 'null' || t.toLowerCase() === 'none') return null
+  if (!/^[a-z][a-z\s,'-]*$/.test(t) || t.split(/\s+/).length > 8) return null
+  return t
+}
+/** A resposta da pergunta da aparência, conferida: toda palavra citada está no pedido (sem acento, sem caixa); sem citação = null. */
+export function lerAparencia(bruto: unknown, pedido: string): { appearance: string | null } | null {
+  if (!bruto || typeof bruto !== 'object') return null
+  const o = bruto as Record<string, unknown>
+  if (!Array.isArray(o.request_words) || o.request_words.some((w) => typeof w !== 'string')) return null
+  if (o.appearance !== null && typeof o.appearance !== 'string') return null
+  const citadas = (o.request_words as string[]).map((w) => w.trim()).filter(Boolean)
+  const norma = (t: string) => ` ${String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()} `
+  const p = norma(pedido)
+  if (citadas.length === 0 || !citadas.every((w) => p.includes(norma(w)))) return { appearance: null }
+  return { appearance: aparenciaValida(o.appearance) }
+}
+/** A pergunta (rede, gpt-4o-mini, ~1 s). Falha = { ok: false } e nada muda. */
+export async function lerAparenciaDoSujeito(pedido: string, sujeito: string, opts: OpcoesSemanticas = {}): Promise<ResultadoSemantico<{ appearance: string | null }>> {
+  const texto = String(pedido ?? '').replace(/\s+/g, ' ').trim().slice(0, 600)
+  return perguntaSemantica(
+    { system: SYSTEM_APARENCIA_1311, user: `Video request:\n${texto}\nMain subject: ${String(sujeito ?? '').slice(0, 120)}`, nome: 'aparencia_do_sujeito', schema: SCHEMA_APARENCIA_1311 as unknown as Record<string, unknown>, maxTokens: 80, exemplos: EXEMPLOS_APARENCIA_1311, ler: (o) => lerAparencia(o, texto) },
+    { timeoutMs: 4_000, tentativasExtras: 0, ...opts },
+  )
+}
+/** A frase do sujeito com a aparência do pedido: "a ninja cat running on rooftops (ginger)"; aparência já toda na frase = a mesma frase. */
+export function fraseComAparencia(frase: string, aparencia: string | null | undefined): string {
+  const a = aparenciaValida(aparencia)
+  if (!a) return frase
+  const palavras = a.split(/[\s,]+/).filter((w) => w.length >= 3 && !['with', 'and', 'the'].includes(w))
+  return palavras.length && palavras.every((w) => new RegExp(`(?<![a-z])${w}(?![a-z])`, 'i').test(frase)) ? frase : `${frase} (${a})`
+}
 
 const semAcento = (t: string) => String(t ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 const SUJEITO_VALIDO_RE = /^[\p{Script=Latin}\p{N}][\p{Script=Latin}\p{N}\s'’,.-]*$/u
@@ -480,7 +559,8 @@ export function avaliarSujeito(args: { leitura: ResultadoSemantico<LeituraDoSuje
   const chaves = chavesDoSujeito(frase, l.head_noun)
   const tokens = [...frase.matchAll(/(?<![\p{L}\p{N}-])\p{Lu}{1,3}-\d{1,4}\p{Lu}?(?![\p{L}\p{N}])/gu)].map((m) => m[0])
   if (chaves.length === 0 && tokens.length === 0) return { sujeito: null, motivo: 'sem_chave_de_presenca' }
-  return { sujeito: { frase, tipo: ehGente ? 'pessoa' : TIPO_DO_KIND[l.kind], chaves, tokens, mencoes: l.mention_words, origem: 'pedido' }, motivo: null }
+  // KINEO-SUJEITO-APARENCIA-1311 (a) — a frase injetada leva a aparência que o pedido escreveu; as chaves de presença seguem as da frase visual
+  return { sujeito: { frase: fraseComAparencia(frase, l.appearance), tipo: ehGente ? 'pessoa' : TIPO_DO_KIND[l.kind], chaves, tokens, mencoes: l.mention_words, origem: 'pedido' }, motivo: null }
 }
 
 /** A leitura semântica vira o sujeito (null = nada a injetar; o motivo está em avaliarSujeito). */
@@ -563,6 +643,8 @@ export function comSujeitoNaCena(prompt: string, frase: string, index: number, o
   resto = `${curto}${curto ? '.' : ''}${cauda}`
   return corta(junta(), orcamento)
 }
+// KINEO-SUJEITO-APARENCIA-1311 (b) — o plano já tem ficha de personagem (a ficha diz quem é e como é): o sujeito não vai a todo plano.
+export const FICHA_NO_PLANO_RE = /(?:Identity|Visible(?:, seen from behind)?): |same main character|consistent design:/i
 
 export interface RelatoSujeitoK4 {
   versao: typeof SUJEITO_K4_VERSAO
@@ -581,6 +663,8 @@ export interface RelatoSujeitoK4 {
   /** Cena corrigida, 1-based (null = nada corrigido). */
   cena: number | null
   keyframe_removido: boolean
+  /** KINEO-SUJEITO-APARENCIA-1311 (b) — os planos (1-based) que ganharam o sujeito completo. */
+  planos_com_sujeito?: number[]
 }
 
 function relatoDaLeitura(r: ResultadoSemantico<LeituraDoSujeito> | null): RelatoSujeitoK4['leitura'] {
@@ -593,6 +677,8 @@ function relatoDaLeitura(r: ResultadoSemantico<LeituraDoSujeito> | null): Relato
 /** A checagem antes do POST pago do Kling 4: o sujeito do PEDIDO ORIGINAL em pelo menos 1 cena do multi_prompt — corrige, nunca bloqueia. */
 export function exigirSujeitoNoKling4(args: {
   pedido: PedidoDoSujeito; leitura: ResultadoSemantico<LeituraDoSujeito> | null; falas: ReadonlyArray<string>; prompts: ReadonlyArray<string>; stills?: ReadonlyArray<string | null>; pessoaPermitida?: boolean
+  /** KINEO-SUJEITO-APARENCIA-1311 (b) — sem ficha em nenhum plano, o sujeito completo vai a TODO plano (só o Kling 4 passa true). */
+  todosOsPlanos?: boolean
 }): { prompts: string[]; stills: (string | null)[]; relato: RelatoSujeitoK4 } {
   const prompts = [...args.prompts]
   const stills = [...(args.stills ?? [])]
@@ -600,6 +686,16 @@ export function exigirSujeitoNoKling4(args: {
   const s = avaliado.sujeito
   const relato: RelatoSujeitoK4 = { versao: SUJEITO_K4_VERSAO, sujeito: s?.frase ?? null, tipo: s?.tipo ?? null, origem: s?.origem ?? null, motivo_sem_sujeito: avaliado.motivo, fonte_do_pedido: args.pedido.fonte, motivo_do_pedido: args.pedido.motivo, leitura: relatoDaLeitura(args.leitura), ja_presente: false, corrigido: false, cena: null, keyframe_removido: false }
   if (!s || prompts.length === 0) return { prompts, stills, relato }
+  // KINEO-SUJEITO-APARENCIA-1311 (b) — sem ficha de personagem (a ficha já leva quem é), o sujeito completo (espécie, cor, lugar) vai a todo
+  // plano que ainda não traz a frase, pela MESMA inserção de hoje (comSujeitoNaCena: logo depois do meio; para caber nos 464, sai primeiro o
+  // eixo e depois o FIM do corpo — nos planos do Kling 4 o fim é o texto fixo de estilo, depois da ação); nenhuma imagem-chave sai.
+  if (args.todosOsPlanos && !prompts.some((q) => FICHA_NO_PLANO_RE.test(q))) {
+    const marcados: number[] = []
+    prompts.forEach((q, i) => { if (q.includes(s.frase)) return; prompts[i] = comSujeitoNaCena(q, s.frase, i); marcados.push(i + 1) })
+    relato.ja_presente = prompts.some((q) => promptMostraOSujeito(q, s))
+    if (marcados.length) { relato.corrigido = true; relato.cena = marcados[0]; relato.planos_com_sujeito = marcados }
+    return { prompts, stills, relato }
+  }
   if (prompts.some((q) => promptMostraOSujeito(q, s))) { relato.ja_presente = true; return { prompts, stills, relato } }
   const n = prompts.length
   const pelaFala = prompts.map((_, i) => i).filter((i) => falaCita(args.falas[i] ?? '', s))
@@ -622,7 +718,13 @@ export async function sujeitoNoKling4(args: {
 }, opts: OpcoesSemanticas = {}): Promise<{ prompts: string[]; stills: (string | null)[]; relato: RelatoSujeitoK4 }> {
   try {
     const leitura = args.pedido.pedido ? await lerSujeitoDoPedido(args.pedido.pedido, opts) : null
-    return exigirSujeitoNoKling4({ ...args, leitura })
+    // KINEO-SUJEITO-APARENCIA-1311 (a) — com o sujeito decidido e válido, a pergunta separada da aparência; falha = sem aparência (nada muda)
+    const ligado = sujeitoAparenciaLigada()
+    if (ligado && leitura?.ok && leitura.valor.subject_visual && !leitura.valor.descartado && args.pedido.pedido) {
+      const ap = await lerAparenciaDoSujeito(args.pedido.pedido, leitura.valor.subject_visual, opts)
+      if (ap.ok) leitura.valor.appearance = ap.valor.appearance
+    }
+    return exigirSujeitoNoKling4({ ...args, leitura, todosOsPlanos: ligado })
   } catch (e) {
     const relato: RelatoSujeitoK4 = { versao: SUJEITO_K4_VERSAO, sujeito: null, tipo: null, origem: null, motivo_sem_sujeito: `erro_inesperado:${e instanceof Error ? e.name : 'desconhecido'}`, fonte_do_pedido: args.pedido.fonte, motivo_do_pedido: args.pedido.motivo, leitura: null, ja_presente: false, corrigido: false, cena: null, keyframe_removido: false }
     return { prompts: [...args.prompts], stills: [...(args.stills ?? [])], relato }
