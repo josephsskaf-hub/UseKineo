@@ -236,7 +236,7 @@ export const SYSTEM_SUJEITO_0111 = [
 export const SYSTEM_APARENCIA_1311 = [
   'You read a video request (any language) and the main subject already chosen from it.',
   'request_words: the exact words copied from the request, in its own language and spelling, that state the colour, coat, fur, markings, skin, clothing or material of THAT subject. Empty when the request writes none for it, or when such words describe something else (the background, the place, the style or look of the video, another object or character).',
-  'appearance: those words in natural plain English for that thing (an animal coat uses the usual word, e.g. a ginger cat, a chestnut horse), lowercase, at most 8 words, no names. Null when request_words is empty. Never infer, guess or add a colour from your own knowledge.',
+  'appearance: those words in natural plain English for that thing (an animal coat uses the usual word, e.g. a tabby rabbit, a bay horse), lowercase, at most 8 words, no names. Null when request_words is empty. Never infer, guess or add a colour from your own knowledge.',
   'Reply with JSON only.',
 ].join('\n')
 const SCHEMA_APARENCIA_1311 = {

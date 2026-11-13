@@ -54,6 +54,17 @@ async function problemas(mut = {}) {
   const comFicha = PLANOS.map((q, i) => i === 0 ? q.replace('Photoreal film. ', 'Photoreal film. Identity: Rex, a ginger cat. ') : q)
   const rf = S.exigirSujeitoNoKling4({ pedido, leitura, falas: ['a', 'b', 'c'], prompts: comFicha, stills, todosOsPlanos: ligado })
   if (rf.prompts.some((q, i) => q !== comFicha[i])) p.push('(2) com ficha, o sujeito foi a todo plano (a ficha manda)')
+  // limite da CEO (755ea6077, TIPOS_EM_TODO_PLANO_1311): só sujeito VIVO ganha a frase em todo plano; objeto e veículo já presentes num plano
+  // seguem a regra de sempre (nada muda). Medido por ela: 35 de 48 filmes com o sujeito já num plano eram objeto/veículo ("a river", "a ship").
+  for (const [kind, sujeito, pedidoTxt] of [['object', 'a river', 'a river that flows backwards'], ['vehicle', 'a ship', 'a ship that vanished at sea']]) {
+    const lt = { ...LEITURA, reasoning: 'literal', subject: sujeito, head_noun: sujeito.split(' ').pop(), subject_visual_no_people: sujeito, kind, mention_words: [sujeito.split(' ').pop()], request_language: 'en' }
+    const lo = { ok: true, valor: S.lerLeituraDoSujeito(lt, pedidoTxt), ms: 1, model: 'x', tentativas: 1 }
+    const planosObj = [`Scene 1: Photoreal film. Wide shot of ${sujeito} under a grey sky.`, 'Scene 2: Photoreal film. A fisherman watches from the shore.', 'Scene 3: Photoreal film. Fog rolls in at dusk.']
+    const ro = S.exigirSujeitoNoKling4({ pedido: { pedido: pedidoTxt, fonte: 'ideia_original', motivo: 'ideia_original' }, leitura: lo, falas: ['a', 'b', 'c'], prompts: planosObj, stills, todosOsPlanos: ligado })
+    if (!lo.valor || lo.valor.descartado) p.push(`(2) leitura de ${kind} descartada no próprio guardião (${lo.valor?.descartado})`)
+    else if (ro.prompts.some((q, i) => q !== planosObj[i]) || ro.relato.planos_com_sujeito || ro.relato.ja_presente !== true) p.push(`(2) ${kind} ("${sujeito}") já num plano ganhou a frase em todo plano (o limite da CEO é só sujeito vivo)`)
+  }
+  if (!S.TIPOS_EM_TODO_PLANO_1311.has('criatura') || !S.TIPOS_EM_TODO_PLANO_1311.has('pessoa') || S.TIPOS_EM_TODO_PLANO_1311.has('objeto') || S.TIPOS_EM_TODO_PLANO_1311.has('veiculo')) p.push('(2) TIPOS_EM_TODO_PLANO_1311 mudou (criatura e pessoa, só)')
   // sujeito ausente de TODOS os planos (o avião C-54 do guardião antigo): a correção de sempre — uma cena, e a imagem dela sai
   const semGato = PLANOS.map((q) => q.replace(/\b(?:cat|orange cat)\b/g, 'fox'))
   const ra = S.exigirSujeitoNoKling4({ pedido, leitura, falas: ['a', 'b', 'c'], prompts: semGato, stills, todosOsPlanos: ligado })
@@ -100,6 +111,8 @@ const MUTANTES = [
   ['M3 ficha ignorada', { [SUJ]: troca('if (args.todosOsPlanos && !prompts.some((q) => FICHA_NO_PLANO_RE.test(q))) {', 'if (args.todosOsPlanos) {') }],
   ['M4 metade sem o sujeito', { [QP]: troca('if (g.length < 2 || k >= saida.length || saida[k].includes(f)) continue', 'continue') }],
   ['M5 rota sem o sujeito', { [ROTA]: troca('q.prompts.splice(0, q.prompts.length, ...comSujeitoNasMetades(q.prompts, q.grupos, kling4Sujeito.r.relato.sujeito))', 'void 0') }],
+  ['M7 limite do sujeito vivo removido', { [SUJ]: troca('if (!TIPOS_EM_TODO_PLANO_1311.has(s.tipo)) return { prompts, stills, relato }', '') }],
+  ['M8 objeto entra na lista de todo plano', { [SUJ]: troca("new Set(['criatura', 'pessoa'])", "new Set(['criatura', 'pessoa', 'objeto'])") }],
   ['M6 frase sem a aparência', { [SUJ]: troca('frase: fraseComAparencia(frase, l.appearance), tipo:', 'frase, tipo:') }],
 ]
 for (const [nome, mut] of MUTANTES) {
