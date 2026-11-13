@@ -14,6 +14,7 @@
 // Módulo PURO (sem imports): o guardião executa em sandbox. Toda função é
 // determinística — mesmo roteiro, mesmo resultado, para o retry ficar estável.
 
+import { ESTILO_CIRILICO_1311, regrasDeLinguaLigadas } from '@/lib/cinematic/aparenciaDoPedido1311' // KINEO-APARENCIA-DO-PEDIDO-1311
 export type StyleLook = 'photoreal' | 'animated3d' | 'anime' | 'illustration' | 'noir'
 
 export interface StyleAnchor {
@@ -72,6 +73,8 @@ export const DRAWN_LOOK_PATTERNS: ReadonlyArray<RegExp> = [
   /(कार्टून|एनिमेशन|एनीमेशन|एनिमेटेड)/, // hi
   /(?<![\p{L}])(kartun|animasi)(?![\p{L}])/iu, // id
   /(hoạt hình|phim hoạt hình)/i, // vi
+  // KINEO-APARENCIA-DO-PEDIDO-1311 — "стиль пиксар" (leonardodevenshi59, 13/11): o filme saiu fotorreal e o gato virou desenho só no fim. Com 'off': fora.
+  ...(regrasDeLinguaLigadas() ? [ESTILO_CIRILICO_1311] : []),
 ]
 // ═══ KINEO-ROMANCE-ADULTO-2026-10-13 — menção NEGADA não pede o look ═══
 // d.hein.0 (13/10, Seedance 1.5, romance de adultos): "no logo animation" casou `animation` e o filme inteiro saiu [KINEO-ROMANCE-ADULTO-2026-10-13]

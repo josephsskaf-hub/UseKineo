@@ -9,6 +9,7 @@ import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
 import { applyStyleAnchor, NO_READABLE_TEXT_SUFFIX, textSafetySuffix, type StyleAnchor } from '@/lib/cinematic/sceneStyle'
 import { fraseUnicaDeSuperficie } from '@/lib/cinematic/superficieSemTexto' // KINEO-PESSOA-DO-PEDIDO-1111 (degrau 4)
 import { FRASE_PRODUTO_MARCA, EMBALAGEM_COR_LISA, EMBALAGEM_DO_PRODUTO } from '@/lib/cinematic/ideiaNaFicha' // KINEO-IDEIA-FICHA-ASSUNTO-1211 (C)
+import { marcaDeEstilo, regrasDeLinguaLigadas } from '@/lib/cinematic/aparenciaDoPedido1311' // KINEO-APARENCIA-DO-PEDIDO-1311
 import type { FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
 import { conferirFichaLiteral, type LeituraDaFicha } from '@/lib/cinematic/elencoSemantico' // KINEO-PROTAGONISTA-SEEDANCE-0111
 import type { FilmQualitySnapshot } from '@/lib/filmComplete/qualityInheritance'
@@ -355,6 +356,7 @@ export function sujeitosDaFala(fala: string, referenciaNaoESujeito = false): str
   for (const m of t.matchAll(/(?<![\p{L}\p{N}'’])\p{Lu}[\p{L}\p{N}'’]+/gu)) {
     const crua = t.slice(0, m.index ?? 0), antes = crua.trimEnd(), depois = t.slice((m.index ?? 0) + m[0].length), resto = depois.trimStart()
     if (NAO_SUJEITO.has(m[0]) || DATA_0411.has(m[0].normalize('NFD').replace(/\p{M}/gu, '').toLowerCase())) continue
+    if (regrasDeLinguaLigadas() && marcaDeEstilo(m[0])) continue // KINEO-APARENCIA-DO-PEDIDO-1311 — "В стиле Пиксар" fala do look: "Пиксар clearly visible as the subject of this shot" saía no plano 4 (7f92fe17)
     // antes: só letra, número ou vírgula. Início de frase depois de ponto, emoji, aspas, travessão, hífen ou quebra de linha não conta.
     if (!/[\p{L}\p{N},;]$/u.test(antes) || crua.slice(antes.length).includes('\n')) continue
     // Conta ANTES dos filtros, inclusive o que eles descartam: "In 1912, the Titanic sank near Newfoundland" tem dois nomes, e o coadjuvante não pode sair sozinho como assunto.

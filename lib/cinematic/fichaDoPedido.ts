@@ -44,7 +44,7 @@
 // personagem sem nome próprio.
 // Guardião: scripts/test-ficha-do-pedido-0911.mjs (o pedido e o roteiro REAIS da Mara + controles + os casos do revisor + mutantes).
 import type { FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
-import { canonicaLiteral, figuraConhecidaJuiz, type ElencoLiteral } from '@/lib/cinematic/juizFicha'
+import { canonicaLiteral, figuraConhecidaJuiz, literalDaCanonica, type ElencoLiteral } from '@/lib/cinematic/juizFicha'
 import { figuraConhecida } from '@/lib/cinematic/personagemAjuste'
 import { especieDePessoa } from '@/lib/cinematic/elencoSemantico'
 
@@ -201,19 +201,51 @@ export function apostoDoPedido(pedido: string, ficha: Pick<FichaDePersonagem, 'n
   return null
 }
 
+// ═══ KINEO-APARENCIA-DO-PEDIDO-1311 (peça 4) — "a tiny adorable fluffy orange kitten named Milo" ═══════════════════════════════════════
+// O pedido do Milo (982a6aeb) descreve o bicho ANTES do nome, ligado por "named/called" — não é aposto, e a ficha ficava com a frase do
+// nosso roteiro. Mesma régua do aposto, tudo ou nada: o trecho entre o artigo e "named/called <Nome>", dentro de uma frase, tem de ser
+// DESCRIÇÃO (trechoDescreve: para bicho/criatura, com a espécie da ficha). Sem isso, nada muda. Liga com elencoComFichaDoPedido(…, { aparencia1311 }).
+const nomeadoRe = (nome: string) => new RegExp(`(?<![\\p{L}\\p{N}])(an?|the)\\s+([^.,;:!?()\\n"“”]{2,160}?)\\s+(?:named|called)\\s+${escapaRe(nome)}(?![\\p{L}\\p{N}-])`, 'giu')
+/** As palavras do cliente sobre ESTE personagem na forma "<artigo> <descrição> named/called <Nome>"; null = o pedido não o descreve assim. */
+export function nomeadoNoPedido(pedido: string, ficha: Pick<FichaDePersonagem, 'nome' | 'nucleo' | 'tipo'>, outros: ReadonlyArray<string> = []): string | null {
+  const nome = String(ficha.nome ?? '').trim()
+  if (!pedido || !nomeProprio(nome)) return null
+  for (const m of pedido.matchAll(nomeadoRe(nome))) {
+    const trecho = m[2].replace(/\s+/g, ' ').trim()
+    // bicho/criatura cujo núcleo é o próprio nome (o extrator determinístico dá nucleo "Milo"): a espécie é o substantivo que fecha o trecho
+    // ("… orange kitten named Milo"), nunca palavra de gente — "a tall man named Milo" não vira ficha de um gato.
+    const cabeca = trecho.split(' ').pop() ?? ''
+    const nucleoPeloTrecho = ficha.tipo !== 'humano' && String(ficha.nucleo ?? '').trim().toLowerCase() === nome.toLowerCase() && !especieDePessoa(cabeca)
+    if (nucleoPeloTrecho && (/(?:man|men|woman|women)$/iu.test(cabeca) || trechoDescreve(trecho, m[1], { ...ficha, tipo: 'humano' }))) continue // "old fisherman", "tall man": gente ("tiger", "hamster" passam)
+    if (!trechoDescreve(trecho, m[1], nucleoPeloTrecho ? { ...ficha, nucleo: cabeca } : ficha)) continue
+    if (outros.some((o) => o && o !== nome && nomeProprio(o) && palavraRe(o).test(trecho))) continue
+    return trecho
+  }
+  return null
+}
+/** A frase "exactly as the author wrote" da ficha não aparece no pedido (quem a escreveu foi o roteiro, não o cliente)? */
+export function fraseForaDoPedido(canonica: string, pedido: string): boolean {
+  const frase = literalDaCanonica(canonica)
+  const norma = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
+  return !!frase && !!pedido && !norma(pedido).includes(norma(frase))
+}
+
 /**
  * O elenco com as palavras do PEDIDO ORIGINAL onde o roteiro despachado as perdeu. Mesma forma de saída de elencoComFichaLiteral (juiz):
  * `trocas` = [canônica de antes, canônica literal], para os prompts de cena já escritos. Ficha do autor (a literal nasce do autor), figura
  * conhecida/mítica e personagem sem nome próprio ficam como estão; sem pedido original, o elenco inteiro fica. Nunca mexe no objeto recebido.
  */
-export function elencoComFichaDoPedido(ideiaOriginal: unknown, elenco: ReadonlyArray<FichaDePersonagem>): ElencoLiteral {
+export function elencoComFichaDoPedido(ideiaOriginal: unknown, elenco: ReadonlyArray<FichaDePersonagem>, opcoes: { aparencia1311?: boolean } = {}): ElencoLiteral {
   const pedido = textoDoPedidoOriginal(ideiaOriginal)
   const literais: string[] = []
   const trocas: Array<[string, string]> = []
   const nomes = elenco.map((f) => f.nome)
   const saida = elenco.map((f) => {
-    if (!pedido || f.origem === 'autor' || (f.origem as string) === 'mitica' || figuraConhecidaJuiz(f.nome) || figuraConhecida(f.nome)) return { ...f }
-    const aposto = apostoDoPedido(pedido, f, nomes)
+    // KINEO-APARENCIA-DO-PEDIDO-1311 — com a peça 4 ligada, a ficha de "autor" cuja frase NÃO está no pedido foi escrita pelo NOSSO roteiro
+    // (Milo, 982a6aeb: "duckling hugs Milo") e cede para as palavras do cliente; a frase que está no pedido é do cliente e fica.
+    const autorDoRoteiro = !!opcoes.aparencia1311 && f.origem === 'autor' && fraseForaDoPedido(f.canonica, pedido)
+    if (!pedido || (f.origem === 'autor' && !autorDoRoteiro) || (f.origem as string) === 'mitica' || figuraConhecidaJuiz(f.nome) || figuraConhecida(f.nome)) return { ...f }
+    const aposto = apostoDoPedido(pedido, f, nomes) ?? (opcoes.aparencia1311 ? nomeadoNoPedido(pedido, f, nomes) : null)
     if (!aposto) return { ...f }
     const canonica = canonicaLiteral(f, aposto, null, null)
     literais.push(f.nome)
