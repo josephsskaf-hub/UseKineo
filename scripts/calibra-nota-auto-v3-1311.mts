@@ -81,8 +81,10 @@ async function julgar(metade: 'ajuste' | 'prova', k: string, soN: number) {
   const resp = lerResp(k)
   let feitos = 0
   // 'prova28' = o subconjunto da prova usado também pelos subagentes Claude (casos intercalados por faixa de nota)
-  const sub = soN < 0 ? new Set(JSON.parse(fs.readFileSync(path.join(V3, 'subconjunto-28.json'), 'utf8')) as string[]) : null
-  for (const c of carregar()[metade].filter((x) => !sub || sub.has(x.video.id.slice(0, 8))).slice(0, soN < 0 ? Infinity : soN)) {
+  const sub = soN === -1 ? new Set(JSON.parse(fs.readFileSync(path.join(V3, 'subconjunto-28.json'), 'utf8')) as string[]) : null
+  // 'ajuste29' (soN = -2) = metade da metade de ajuste, intercalada (mantém as faixas de nota): o teto de US$ 7 não cobre as 57
+  const lista = soN === -2 ? carregar().ajuste.filter((_, i) => i % 2 === 0) : carregar()[metade].filter((x) => !sub || sub.has(x.video.id.slice(0, 8))).slice(0, soN < 0 ? Infinity : soN)
+  for (const c of lista) {
     if (resp[c.link] !== undefined) continue
     if (gastoV2 + livro.gasto + m.reserva > TETO_TOTAL_USD) { console.log(`TETO: v2 US$ ${gastoV2.toFixed(3)} + v3 US$ ${livro.gasto.toFixed(3)} — parei`); break }
     const e = entrada(c)
@@ -169,7 +171,7 @@ function relatorio() {
 }
 
 async function main() {
-  if (acao === 'julgar') await julgar(process.argv[4] === 'ajuste' ? 'ajuste' : 'prova', process.argv[5] ?? '6.1-sol', process.argv[4] === 'prova28' ? -1 : Number(process.argv[6]) > 0 ? Number(process.argv[6]) : Infinity)
+  if (acao === 'julgar') await julgar(process.argv[4] === 'ajuste' || process.argv[4] === 'ajuste29' ? 'ajuste' : 'prova', process.argv[5] ?? '6.1-sol', process.argv[4] === 'prova28' ? -1 : process.argv[4] === 'ajuste29' ? -2 : Number(process.argv[6]) > 0 ? Number(process.argv[6]) : Infinity)
   else if (acao === 'casos') casos(process.argv[4] === 'ajuste' ? 'ajuste' : 'prova')
   else relatorio()
 }
