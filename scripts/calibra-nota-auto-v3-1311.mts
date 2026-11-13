@@ -12,8 +12,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
+import { execFileSync } from 'node:child_process'
 import { planoDoNascimento, temposDosQuadros, type QuadroCena } from '@/lib/regua95/notaPorCena'
-import { buildJuiz19, defeitosDoCodigo, julgar19, normalizar19, nota19, type Defeito19, type Entrada19 } from '@/lib/regua95/juizRegua19'
+import { alvoDeDuracao, buildJuiz19, defeitosDoCodigo, julgar19, normalizar19, nota19, type Defeito19, type Entrada19 } from '@/lib/regua95/juizRegua19'
 import { defeitosDaDescricao, julgarDoisPassos, normalizarPasso1, normalizarPasso2 } from '@/lib/regua95/juizDoisPassos'
 
 const TETO_TOTAL_USD = 7 // CEO 13/11 17:50: teto subiu de US$ 6 para 7 só para medir o juiz consertado (6.1-sol-b) na prova inteira
@@ -66,7 +67,7 @@ function entrada(c: Caso, comArquivo = false): (Entrada19 & { arquivos: string[]
   return { plano, quadros, arquivos, pedido: pedidoDe(c), roteiro: c.video.script, produto: 'filme', motor: c.video.engine_used ?? c.video.quality_mode, segundos: seg, segundosPedidos: Number(c.plan.requested_duration) || Number(c.plan.duration) || null, linguaEscolhida: typeof c.plan.language === 'string' ? c.plan.language : null }
 }
 
-type Guardado = { bruto: unknown; usd: number; ms: number; model: string }
+type Guardado = { bruto: unknown; usd: number; ms: number; model: string; grande?: boolean; segundos?: number }
 const respArq = (k: string) => path.join(V3, `respostas-${k}.json`)
 const lerResp = (k: string): Record<string, Guardado | null> => (fs.existsSync(respArq(k)) ? JSON.parse(fs.readFileSync(respArq(k), 'utf8')) : {})
 
@@ -129,7 +130,7 @@ function medir(casos: Caso[], respostaDe: (c: Caso) => Guardado | null) {
   let n = 0, mae = 0, ruins = 0, pegos = 0, bons = 0, alarmes = 0, usd = 0, ms = 0, comMs = 0
   for (const c of casos) {
     const g = respostaDe(c)
-    const e = g ? entrada(c, true) : null
+    const e = g ? (g.grande ? entradaGrande(c, g.segundos ?? 15) : entrada(c, true)) : null
     if (!g || !e) continue
     let todos: Defeito19[]
     const b = g.bruto as { passo1?: unknown; passo2?: unknown }
@@ -170,7 +171,54 @@ function relatorio() {
   console.log(out.join('\n'))
 }
 
+// ── QUADRO GRANDE (decisão da CEO 13/11 noite): os quadros como a PRODUÇÃO os extrai ──
+// Produção: fal extract-nth-frame a 1 quadro/s, no tamanho do vídeo, e o quadro do segundo mais perto de cada instante; plano com
+// videos.duration (entregaDoFilme). A chave da fal não está no .env.local: o mesmo quadro sai do ffmpeg local, no tamanho nativo e em
+// JPEG de alta qualidade (a fal usa quality 80). O custo da fal fica FORA desta conta (produção soma ~US$ 0,04 pela estimativa do tempo).
+const TETO_GRANDE_USD = 3 // CEO 13/11 noite: teto desta rodada, aprovado por ela
+function entradaGrande(c: Caso, segundos: number): Entrada19 & { arquivosT: number[] } {
+  const plano = planoDoNascimento(c.plan, segundos)!
+  const tempos = temposDosQuadros(plano)
+  const quadros: QuadroCena[] = []
+  const arquivosT: number[] = []
+  plano.momentos.forEach((m, mi) => tempos[mi].forEach((t) => { quadros.push({ url: '', t, m: m.m }); arquivosT.push(Math.round(t)) }))
+  return { plano, quadros, arquivosT, pedido: pedidoDe(c), roteiro: c.video.script, produto: 'filme', motor: c.video.engine_used ?? c.video.quality_mode, segundos, segundosPedidos: alvoDeDuracao(c.plan), linguaEscolhida: typeof c.plan.language === 'string' ? c.plan.language : null }
+}
+async function julgarGrande(k = '6.1-sol-g') {
+  const env = lerEnv('C:/kineo/.env.local')
+  const LIVRO_G = path.join(V3, 'livro-grande.json')
+  const livro = fs.existsSync(LIVRO_G) ? JSON.parse(fs.readFileSync(LIVRO_G, 'utf8')) : { gasto: 0, chamadas: 0 }
+  const resp = lerResp(k)
+  const sub = new Set(JSON.parse(fs.readFileSync(path.join(V3, 'subconjunto-28.json'), 'utf8')) as string[])
+  for (const c of carregar().prova.filter((x) => sub.has(x.video.id.slice(0, 8)))) {
+    if (resp[c.link] !== undefined) continue
+    if (livro.gasto + 0.15 > TETO_GRANDE_USD) { console.log(`TETO DA RODADA: US$ ${livro.gasto.toFixed(3)} — parei`); break }
+    const mp4 = path.join(WORK, 'mp4', `${c.video.id}.mp4`)
+    if (!fs.existsSync(mp4)) { console.log(`· ${c.video.id.slice(0, 8)} sem mp4 local`); continue }
+    const real = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', mp4]).toString().trim())
+    const segundos = Number(c.video.duration) > 0 ? Number(c.video.duration) : real
+    const e = entradaGrande(c, segundos)
+    const dir = path.join(V3, 'quadros-grande', c.video.id.slice(0, 8))
+    fs.mkdirSync(dir, { recursive: true })
+    e.quadros = e.quadros.map((q, i) => {
+      const s = Math.max(0, Math.min(e.arquivosT[i], Math.floor(real - 0.05)))
+      const arq = path.join(dir, `s${String(s).padStart(3, '0')}.jpg`)
+      if (!fs.existsSync(arq)) execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', String(s), '-i', mp4, '-frames:v', '1', '-q:v', '3', arq])
+      return { ...q, url: `data:image/jpeg;base64,${fs.readFileSync(arq).toString('base64')}` }
+    })
+    const r = await julgar19(e, { provedor: 'openai', model: MODELOS['6.1-sol'].id, apiKey: env.OPENAI_API_KEY, tarifa: MODELOS['6.1-sol'].tarifa })
+    if (!r) { console.log(`· ${c.video.id.slice(0, 8)} sem resposta`); continue }
+    livro.gasto = Math.round((livro.gasto + r.usd) * 1e6) / 1e6
+    livro.chamadas++
+    resp[c.link] = { bruto: r.bruto, usd: r.usd, ms: r.ms, model: r.model, grande: true, segundos }
+    fs.writeFileSync(LIVRO_G, JSON.stringify(livro, null, 1))
+    fs.writeFileSync(respArq(k), JSON.stringify(resp))
+    console.log(`grande ${c.video.id.slice(0, 8)} rev ${c.nota.toFixed(1)} juiz ${r.nota.toFixed(1)} · ${(r.ms / 1000).toFixed(0)} s · US$ ${r.usd.toFixed(4)} · rodada ${livro.gasto.toFixed(3)}`)
+  }
+}
+
 async function main() {
+  if (acao === 'julgar-grande') return julgarGrande()
   if (acao === 'julgar') await julgar(process.argv[4] === 'ajuste' || process.argv[4] === 'ajuste29' ? 'ajuste' : 'prova', process.argv[5] ?? '6.1-sol', process.argv[4] === 'prova28' ? -1 : process.argv[4] === 'ajuste29' ? -2 : Number(process.argv[6]) > 0 ? Number(process.argv[6]) : Infinity)
   else if (acao === 'casos') casos(process.argv[4] === 'ajuste' ? 'ajuste' : 'prova')
   else relatorio()
