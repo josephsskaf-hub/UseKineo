@@ -154,7 +154,7 @@ checa('a régua que torna a cláusula necessária segue valendo', fp.FREE_FILM_P
 const MUTANTES = [
   ['pessoa de volta antes do produto', (t) => t.replace('<section className="ace-card" data-kineo="ads-produto">', '<fieldset><input name="ace-person" /></fieldset><section className="ace-card" data-kineo="ads-produto">'), /produto antes da pessoa/],
   ['URL da foto de volta', (t) => t.replace('<label className="ace-field ace-full" data-kineo="ads-categoria">', `<label className="ace-field ace-full">{t('Ou URL HTTPS da foto', 'Or the photo HTTPS URL')}<input /></label><label className="ace-field ace-full" data-kineo="ads-categoria">`), /URL da foto/],
-  ['mais opções aberto', (t) => t.replace('data-kineo="ads-mais-opcoes" open={!!bfCampaign}', 'data-kineo="ads-mais-opcoes" open'), /fechado por padrão/],
+  ['mais opções aberto', (t) => t.replace('data-kineo="ads-mais-opcoes" open={moldura || !!bfCampaign}', 'data-kineo="ads-mais-opcoes" open'), /fechado por padrão/],
   ['crédito de volta no controle', (t) => t.replace("t('Versão completa · 15 s', 'Full version · 15 s')", "t(`Versão completa · 15 s · ${COMPLETE_CREDITS} créditos`, `Full version · 15 s · ${COMPLETE_CREDITS} credits`)"), /crédito no controle/],
   ['cartão de marca de volta', (t) => t.replace('<section className="ace-top" data-kineo="ads-topo">', `<section className="ace-top" data-kineo="ads-topo"><span>{t('Studio Ads · você escolhe', 'Studio Ads · your choice')}</span>`), /cartão de marca/],
   ['pessoa sem padrão', (t) => t.replace('rota: \'\', presenter_id: PESSOA_PADRAO, category', 'rota: \'\', presenter_id: \'\', category').replace('person ? <img className="ace-stage-portrait"', 'false ? <img className="ace-stage-portrait"'), /prévia/],

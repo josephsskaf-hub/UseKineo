@@ -19,7 +19,7 @@ const ler = (f) => lf(fs.readFileSync(path.join(ROOT, f), 'utf8'))
 let ok = 0, falhas = 0
 const checa = (n, c) => { if (c) { ok++; console.log('  ok  ' + n) } else { falhas++; console.log('  FALHA ' + n) } }
 
-const V2 = 'app/(dashboard)/ads/v2/page.tsx', NOVO = 'app/(dashboard)/ads/new/page.tsx', MENU = 'lib/ads/entradaDoMenu.ts'
+const V2 = 'app/(dashboard)/ads/v2/page.tsx', V2W = 'app/(dashboard)/ads/v2/AdsV2Workspace.tsx' /* KINEO-ADS-MOLDURA-1311 — a regra da página mora aqui */, NOVO = 'app/(dashboard)/ads/new/page.tsx', MENU = 'lib/ads/entradaDoMenu.ts'
 const TPL = 'components/kidsCartoon/KidsCartoonTemplate.tsx', PAINEL = 'components/kidsCartoon/KidsVendaPanel.tsx', GRATIS = 'components/kidsCartoon/KidsEpisodioGratis.tsx', PG = 'app/(dashboard)/kids-cartoon/page.tsx', CSS = 'lib/kidsCartoon/telaCartoon.ts'
 
 /** Carrega .ts/.tsx de verdade, com dublês para o que precisa de rede. */
@@ -89,7 +89,8 @@ async function abrirV2(usuario, q, op = {}, mutar = {}) {
   eventos = []
   const pag = carregador({ mocks: dublesDoAnuncio(usuario, op), mutar })(V2).default
   try {
-    const el = await pag({ searchParams: q })
+    let el = await pag({ searchParams: q })
+    if (el?.type?.name === 'AdsV2Workspace') el = await el.type(el.props) // KINEO-ADS-MOLDURA-1311 — a página entrega o Workspace; a prova roda os dois, como o servidor
     const achar = (n) => { if (!n || typeof n !== 'object') return null; if (n.type?.name === 'AdsV2Client') return n.props; const f = n.props?.children; for (const c of Array.isArray(f) ? f : [f]) { const a = achar(c); if (a) return a } return null }
     return { cliente: achar(el) }
   } catch (e) { if (e instanceof Redirecionou) return { para: e.para }; throw e }
@@ -263,13 +264,13 @@ console.log('2. a tela do desenho')
 console.log('3. mutantes')
 const MUTANTES = [
   // menu
-  ['a página volta a mandar a entrada crua', V2, (t) => t.replace('entry={entryDaTela} escolhaInternal', 'entry={entry} escolhaInternal'), provaDoMenu, /tela nova/],
+  ['a página volta a mandar a entrada crua', V2W, (t) => t.replace('entry={entryDaTela} escolhaInternal', 'entry={entry} escolhaInternal'), provaDoMenu, /tela nova/],
   ['o padrão vira ugc', MENU, (t) => t.replace("? null : 'product'", "? null : 'ugc'"), provaDoMenu, /tela nova/],
   ['link ?mode=batch perde a tela de antes', MENU, (t) => t.replace("['mode', 'order'", "['order'"), provaDoMenu, /link explícito/],
   ['pedido salvo perde a tela de antes', MENU, (t) => t.replace("'mode', 'order', 'group'", "'mode', 'group'"), provaDoMenu, /link explícito/],
-  ['visitante recebe a entrada padrão', V2, (t) => t.replace("anuncioAbreSemConta(entry, Array.isArray(rawOrigem)", "anuncioAbreSemConta(entradaDaTela(entry, searchParams), Array.isArray(rawOrigem)"), provaDoMenu, /visitante sem entrada/],
-  ['login perde a volta', V2, (t) => t.replace('redirect(`/login?redirect=${encodeURIComponent(loginTarget)}`)', "redirect('/login')"), provaDoMenu, /login com volta/],
-  ['evento conta o menu como cartão', V2, (t) => t.replace("resume: personalResume, ...(entry ? { entry } : {})", "resume: personalResume, ...(entryDaTela ? { entry: entryDaTela } : {})"), provaDoMenu, /não conta o menu/],
+  ['visitante recebe a entrada padrão', V2W, (t) => t.replace("anuncioAbreSemConta(entry, Array.isArray(rawOrigem)", "anuncioAbreSemConta(entradaDaTela(entry, searchParams), Array.isArray(rawOrigem)"), provaDoMenu, /visitante sem entrada/],
+  ['login perde a volta', V2W, (t) => t.replace('redirect(`/login?redirect=${encodeURIComponent(loginTarget)}`)', "redirect('/login')"), provaDoMenu, /login com volta/],
+  ['evento conta o menu como cartão', V2W, (t) => t.replace("resume: personalResume, ...(entry ? { entry } : {})", "resume: personalResume, ...(entryDaTela ? { entry: entryDaTela } : {})"), provaDoMenu, /não conta o menu/],
   // tela
   ['quadro de planos de volta no painel', PAINEL, (t) => t.replace('if (liveOrders.length === 0 && !msg) return null', '').replace('{msg ? <p', '<section id="plans" data-kids-venda="plans"><a data-kineo="kids-cta-pack" href="/api/stripe/checkout?pack=kids_pack">Buy the pack — US$49</a></section>{msg ? <p'), provaDaTela, /painel não mostra nada|sem oferta/],
   ['painel vazio aparece para quem não comprou', PAINEL, (t) => t.replace('if (liveOrders.length === 0 && !msg) return null', ''), provaDaTela, /painel não mostra nada/],

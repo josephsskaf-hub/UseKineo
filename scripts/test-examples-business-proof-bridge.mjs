@@ -66,8 +66,9 @@ ok(page.includes('Open Studio →'), 'signed-in creator CTA remains intact')
 ok(page.indexOf('Bring your own topic.') < page.indexOf('<ExamplesBusinessProofBridge />'), 'creator action stays before the business bridge')
 ok(page.indexOf('</figure>') < page.indexOf('<ExamplesBusinessProofBridge />'), 'subscriber proof remains before the bridge')
 
-ok(agency.includes('<Link href="/examples"'), 'agency page still sends buyers to the proof index')
-ok(agency.indexOf('Watch real outputs') > agency.indexOf('<Link href="/examples"'), 'agency proof CTA is still live')
+ok(agency.includes('<Link href="/made-with-kineo"') && !agency.includes('<Link href="/examples"'), 'agency page still sends buyers to the proof index') // KINEO-FILMS-DIRETO-1311 — a prova hoje é a Made with Kineo
+ok(/\{ source: '\/examples', destination: '\/made-with-kineo', permanent: true \}/.test(read('next.config.js')), 'old /examples address redirects to the proof index')
+ok(agency.indexOf('Watch real outputs') > agency.indexOf('<Link href="/made-with-kineo"'), 'agency proof CTA is still live')
 
 ok(component.startsWith("'use client'"), 'telemetry is isolated in a Client Component')
 ok(component.includes('useRef<HTMLElement | null>(null)'), 'component observes its own rendered card')

@@ -35,7 +35,9 @@ const topoComputador = nav.slice(0, nav.indexOf('id="mobile-nav-menu"'))
 check('top menu order: Product Ads · Cartoons · Claude & ChatGPT · Pricing (à direita), sem Images/Spaces no topo', (() => { const i = ['href="' + ADS_TOP + '"', 'href="/ai-kids-cartoon-videos"', 'href="/kineo-in-claude"', 'href="/pricing"'].map((h) => topoComputador.indexOf(h)); if (desktop.includes('href="/pricing"') || !desktop.includes('href="/kineo-in-claude"')) return false; return i.every((x) => x >= 0) && i.every((x, k) => k === 0 || x > i[k - 1]) && !desktop.includes('href="/images') && !desktop.includes('href="/spaces"') })()) // KINEO-HOME-REMODELA-2010
 check('/ads/new sends visitors to the public door, never /login', /redirect\(visitante \? adsV2Href\(searchParams\) : adsPublicHref\(searchParams\)\)/.test(read('app/(dashboard)/ads/new/page.tsx')))
 check('shared footer opens the creator', linked(footer))
-check('existing pricing and studio destinations survive', nav.includes('href="/pricing"') && nav.includes('href="' + FILM_TOP + '"') && nav.includes('href="/studio?engine=hollywood&amp;intent_campaign=nav_mega"'))
+check('existing pricing and studio destinations survive', nav.includes('href="/pricing"') && nav.includes('href="' + FILM_TOP + '"'))
+// KINEO-FILMS-DIRETO-1311 [dono 13/11: "não precisa abrir essa mini tela… eles nem querem saber qual motor… o filme pode ir direto para o filme"] — nenhum motor no menu; os guias de motor seguem a um clique, no rodapé
+check('no engine in the top menu; engine guides stay in the footer', !nav.includes('intent_campaign=nav_mega') && !/engine=(seedance|hollywood|h3|h3max|s25)/.test(nav) && footer.includes('href="/ai-video-generator"'))
 for (const lang of ['es','hi','pt','fr','de','it','nl','pl','tr','ru','uk','ar','ur','id','vi']) {
   const file = lang==='es'?'lib/ui/interfaceLabels.ts':lang==='hi'?'lib/ui/interfaceHindi.ts':`lib/ui/interface/${lang}.ts`
   check(lang+' translates the top-menu label "Ads"', /'Ads': '[^']+'/.test(read(file)))

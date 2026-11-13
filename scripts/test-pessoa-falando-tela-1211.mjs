@@ -71,7 +71,8 @@ function all(o = {}) {
   // 7) A porta: só na aba Ads com ?formato=pessoa_falando, só para quem o interruptor deixa, ANTES do redirect para o /ads/v2.
   const pg = src(PAGINA)
   const i = pg.indexOf("searchParams.formato === 'pessoa_falando'")
-  ok(i > 0 && i < pg.indexOf("redirect(`/ads/v2?${query}`)"), 'a porta vem antes do redirect de sempre')
+  const sempre = pg.indexOf("if (params.tab === 'ads') return <><StudioIdeaArrival /><AdsV2Workspace searchParams={searchParams} moldura /></>") // KINEO-ADS-MOLDURA-1311 — o destino de sempre da aba virou o formulário na moldura
+  ok(i > 0 && sempre > 0 && i < sempre, 'a porta vem antes do destino de sempre da aba Ads')
   ok(pg.includes('pessoaFalandoLigado(KINEO_ADS_PESSOA_FALANDO, isAdsInternalEmail(quem.email))') && pg.includes("import { isAdsInternalEmail } from '@/lib/ads/access'"),'só conta da casa — a MESMA lista das rotas (isAdsInternalEmail)')
   ok(/painel=\{<PessoaFalandoPainel \/>\}/.test(pg), 'o painel dentro da moldura nova (CreateShell)')
   // 8) KINEO-PF-PEDIDO-UNICO-1211 — dois cliques = UM pedido: o mesmo pedidoId em toda tentativa; o vídeo manda de volta o que as fotos devolveram.

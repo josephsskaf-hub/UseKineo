@@ -29,7 +29,8 @@ function all(o = {}) {
   const direita = l.slice(l.indexOf('<div className="nav-right">'), l.indexOf('id="mobile-nav-menu"'))
   const cel = l.slice(l.indexOf('id="mobile-nav-menu"'), l.indexOf('id="mobile-nav-menu"') + 4000)
   ok(topo.length > 500 && direita.length > 100, 'blocos do cabeçalho achados')
-  ok(topo.includes('<PublicNavDropdown item="video" label={NOMES_DE_PRODUTO.film.curto}>'), 'topo: Films (fonte única)')
+  ok(topo.includes("<Link href={createEntryHref('film', '/studio?intent_campaign=nav_door', isSignedIn)} data-nav-item=\"video\" className=\"nav-primary\"><UiLabel>{NOMES_DE_PRODUTO.film.curto}</UiLabel></Link>"), 'topo: Films (fonte única)')
+  ok(!topo.includes('<PublicNavDropdown item="video"') && !topo.includes('NavEngineItem') && !topo.includes('nav_mega'), 'topo: Films abre direto, sem submenu e sem motor (KINEO-FILMS-DIRETO-1311)')
   ok(topo.includes('<UiLabel>{NOMES_DE_PRODUTO.product_ads.curto}</UiLabel>') && topo.includes('label={NOMES_DE_PRODUTO.ugc_ads.curto}') && topo.includes('<UiLabel>{NOMES_DE_PRODUTO.cartoon.curto}</UiLabel>'), 'topo: Product Ads, UGC Ads e Cartoons (fonte única)')
   ok(!/<UiLabel>(?:Make a film|Product ads|AI UGC Ads|AI Cartoon Videos)<\/UiLabel>|label="Make a film"/.test(topo + cel), 'nenhum nome antigo escrito à mão no cabeçalho')
   const more = topo.match(/<PublicNavDropdown item="more:menu" label="More">([\s\S]*?)<\/PublicNavDropdown>/)
@@ -57,7 +58,7 @@ const real = passed
 const r = p => read(p)
 const mutants = [
   ['Claude & ChatGPT vai para o More (opção B)', LAND, r(LAND).replace(/(\n\s*<Link href=\{MENU_CONNECTOR_HREF\} data-nav-item=\{MENU_CONNECTOR_NAV_ITEM\} className="nav-connector">[^\n]*)\n/, '\n').replace('                <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>', '                <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM}>x</Link>\n                <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>')],
-  ['nome antigo volta à mão', LAND, r(LAND).replace('label={NOMES_DE_PRODUTO.film.curto}', 'label="Make a film"')],
+  ['nome antigo volta à mão', LAND, r(LAND).replace('data-nav-item="video" className="nav-primary"><UiLabel>{NOMES_DE_PRODUTO.film.curto}</UiLabel>', 'data-nav-item="video" className="nav-primary"><UiLabel>Make a film</UiLabel>')], // KINEO-FILMS-DIRETO-1311 — alvo novo: Films é um link direto
   ['Pricing some da direita', LAND, r(LAND).replace('<Link className="nav-login nav-pricing" href="/pricing" data-nav-item="pricing">', '<Link className="nav-login nav-pricing" href="/planos" data-nav-item="pricing">')],
   ['tabela muda', NOMES, r(NOMES).replace("cartoon: { curto: 'Cartoons', longo: 'AI Cartoons' }", "cartoon: { curto: 'Cartoon', longo: 'AI Cartoon Videos' }")],
   ['tradução em português some', COPY, r(COPY).replace('"Films": "Filmes",', '')],
