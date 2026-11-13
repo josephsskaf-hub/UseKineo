@@ -44,3 +44,13 @@ Para cada proposta: o líder copiado e o endereço da tela copiada, o que foi ma
 ## Regras do dono que continuam valendo
 
 Cartão e botão sem nome de motor e sem preço. Nenhum texto menor que 12 px. Geração nunca começa sozinha. Clipe novo abre a primeira tela. Selo honesto: só diz "Recreate" quem é modelo de troca aprovado. Texto que o ChatGPT cita não some. Sem cartão de promoção.
+
+## Atualização do dono (13/11 ~08:05): "Mas eu gosto da alternativa A (Higgsfield)"
+
+A cara da **A · Frame** está aprovada como gosto: fundo escuro, vídeo em destaque, jeito Higgsfield. Ela é a referência a bater.
+
+O que muda nesta missão:
+- As três propostas novas nascem **todas com a cara da A** (escura, vídeo grande, pouco texto). Não gastar esforço com pele creme ou azul.
+- A diferença entre elas continua sendo de **estrutura**, nos cinco pontos acima. São três jeitos diferentes de organizar um site com a cara da A.
+- A foto de decisão mostra quatro colunas: a A · Frame de hoje e as três novas, para o dono comparar com o que ele já gosta.
+- Pode e deve olhar o Higgsfield de novo, tela por tela (home, criação, galeria, resultado), e dizer o que foi copiado de cada uma.
