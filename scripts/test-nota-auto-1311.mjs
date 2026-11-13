@@ -8,12 +8,13 @@
 //       a nota solta do modelo ("score") é ignorada;
 //   N4  o prompt lista as 19 categorias, pede evidência por quadro, NÃO pede nota, e usa só modelos do registro (lib/aiModels.ts);
 //   N5  julgarNotaAuto: custo pelo uso real; HTTP != 200 ou JSON quebrado = null (nunca lança);
-//   N6  interruptor NOTA_AUTO_MODE nasce 'off'; valor desconhecido = 'off';
+//   N6  interruptor NOTA_AUTO_MODE: off · sombra · on; NASCE 'sombra' (ordem da CEO 13/11 16:42); desconhecido = 'sombra', nunca 'on';
 //   N7  a nota do REVISOR manda: linha com fonte != 'auto' (inclusive nula) nunca é sobrescrita;
 //   N8  ponta a ponta com banco falso, JÁ NO JUIZ POR CENA (2ª tentativa, notaPorCena.ts — o cron não chama mais o juiz v1):
 //       observe só grava o evento; painel grava fonte 'auto' + motor; update só com .eq('fonte','auto'); conta da casa fora do
 //       painel; quadro indisponível = evento de falha (score null); filme sem plano de cenas = falha, sem nota;
-//   N9  ligação no coletor: só filmes, só com o interruptor ligado, janela de 6 h; o coletor continua só com o insert de events;
+//   N9  fila: só ligado, só filme, janela de 6 h, uma vez; marcador "julgando" < 5 min segura; nota < 7 = evento nota_auto_baixa;
+//       caminhos: disparo na hora (compose/status, só insert novo, depois da resposta) + cron de 1 min; o coletor da régua NÃO julga mais;
 //   M   mutantes: cada regra quebrada fica vermelha, e cada mutante prova que aplicou.
 // Rodar: node scripts/test-nota-auto-1311.mjs
 import fs from 'node:fs'
@@ -131,51 +132,63 @@ async function provas(N) {
   checa('N5 HTTP != 200 = null', (await N.julgarNotaAuto(ent, { apiKey: 'k', fetchImpl: falsoFetch({ visaoOk: false }) })) === null)
   checa('N5 JSON quebrado = null', (await N.julgarNotaAuto(ent, { apiKey: 'k', fetchImpl: falsoFetch({ visao: 'não é json' }) })) === null)
   // N6
-  checa('N6 interruptor nasce off', N.lerModoNotaAuto({}) === 'off' && N.lerModoNotaAuto({ NOTA_AUTO_MODE: 'on' }) === 'off' && N.lerModoNotaAuto({ NOTA_AUTO_MODE: ' OBSERVE ' }) === 'observe' && N.lerModoNotaAuto({ NOTA_AUTO_MODE: 'painel' }) === 'painel')
+  checa('N6 interruptor nasce sombra; off desliga; on/painel = on; o resto = sombra', N.lerModoNotaAuto({}) === 'sombra' && N.lerModoNotaAuto({ NOTA_AUTO_MODE: ' OFF ' }) === 'off' && N.lerModoNotaAuto({ NOTA_AUTO_MODE: 'on' }) === 'on' && N.lerModoNotaAuto({ NOTA_AUTO_MODE: 'painel' }) === 'on' && N.lerModoNotaAuto({ NOTA_AUTO_MODE: 'observe' }) === 'sombra' && N.lerModoNotaAuto({ NOTA_AUTO_MODE: 'liga' }) === 'sombra')
   // N7
-  checa('N7 a nota do revisor manda', N.decidirEscritaPainel('painel', { fonte: 'revisor' }) === 'pular' && N.decidirEscritaPainel('painel', { fonte: null }) === 'pular' && N.decidirEscritaPainel('painel', { fonte: 'auto' }) === 'atualizar' && N.decidirEscritaPainel('painel', null) === 'inserir' && N.decidirEscritaPainel('observe', null) === 'pular' && N.decidirEscritaPainel('off', null) === 'pular')
+  checa('N7 a nota do revisor manda', N.decidirEscritaPainel('on', { fonte: 'revisor' }) === 'pular' && N.decidirEscritaPainel('on', { fonte: null }) === 'pular' && N.decidirEscritaPainel('on', { fonte: 'auto' }) === 'atualizar' && N.decidirEscritaPainel('on', null) === 'inserir' && N.decidirEscritaPainel('sombra', null) === 'pular' && N.decidirEscritaPainel('off', null) === 'pular')
   // N8
   const vis = VISAO_CENA
   const base = { product: 'filme', video_id: 'vid-1' }
   {
     const B = falsoBanco()
-    const r = await N.julgarEGravarNotaAuto(B.admin, { modo: 'observe', entrega: ENTREGA, base, route: '/x', fetchImpl: falsoFetch({ visao: vis }) })
-    const ev = B.ops.filter((o) => o.table === 'events' && o.op === 'insert')
-    checa('N8 observe: só o evento nota_auto, nada no painel', r.nota === NOTA_V2 && ev.length === 1 && ev[0].payload.name === 'nota_auto' && ev[0].payload.metadata.score === NOTA_V2 && ev[0].payload.metadata.version === 'nota_auto_v2_cena' && !('bruto' in ev[0].payload.metadata) && !B.ops.some((o) => o.table === 'film_review_notes'))
+    const r = await N.julgarEGravarNotaAuto(B.admin, { modo: 'sombra', entrega: ENTREGA, base, route: '/x', fetchImpl: falsoFetch({ visao: vis }) })
+    const ev = B.ops.filter((o) => o.table === 'events' && o.op === 'insert' && o.payload.name === 'nota_auto')
+    const nomes = B.ops.filter((o) => o.table === 'events' && o.op === 'insert').map((o) => o.payload.name).join()
+    checa('N8 sombra: marcador + evento nota_auto, nada no painel', nomes === 'nota_auto_inicio,nota_auto' && r.nota === NOTA_V2 && ev.length === 1 && ev[0].payload.name === 'nota_auto' && ev[0].payload.metadata.score === NOTA_V2 && ev[0].payload.metadata.version === 'nota_auto_v2_cena' && !('bruto' in ev[0].payload.metadata) && !B.ops.some((o) => o.table === 'film_review_notes'))
   }
   {
     const B = falsoBanco({ existente: null })
-    const r = await N.julgarEGravarNotaAuto(B.admin, { modo: 'painel', entrega: ENTREGA, base, route: '/x', fetchImpl: falsoFetch({ visao: vis }) })
+    const r = await N.julgarEGravarNotaAuto(B.admin, { modo: 'on', entrega: ENTREGA, base, route: '/x', fetchImpl: falsoFetch({ visao: vis }) })
     const ins = B.ops.find((o) => o.table === 'film_review_notes' && o.op === 'insert')
     checa('N8 painel sem linha: insere fonte auto, motor real, quem antes do @', r.painel === 'inserir' && ins?.payload.fonte === 'auto' && ins?.payload.motor === 'kling4' && ins?.payload.quem === 'cliente' && ins?.payload.nota === NOTA_V2 && JSON.stringify(ins?.payload.defeitos) === '["CENA_FORA_DO_PEDIDO"]' && ins?.payload.ordem === 4)
   }
   {
     const B = falsoBanco({ existente: { fonte: 'revisor' } })
-    const r = await N.julgarEGravarNotaAuto(B.admin, { modo: 'painel', entrega: ENTREGA, base, route: '/x', fetchImpl: falsoFetch({ visao: vis }) })
+    const r = await N.julgarEGravarNotaAuto(B.admin, { modo: 'on', entrega: ENTREGA, base, route: '/x', fetchImpl: falsoFetch({ visao: vis }) })
     checa('N8 painel com nota do revisor: não toca', r.painel === 'pular_nota_do_revisor' && !B.ops.some((o) => o.table === 'film_review_notes' && (o.op === 'insert' || o.op === 'update')))
   }
   {
     const B = falsoBanco({ existente: { fonte: 'auto' } })
-    const r = await N.julgarEGravarNotaAuto(B.admin, { modo: 'painel', entrega: ENTREGA, base, route: '/x', fetchImpl: falsoFetch({ visao: vis }) })
+    const r = await N.julgarEGravarNotaAuto(B.admin, { modo: 'on', entrega: ENTREGA, base, route: '/x', fetchImpl: falsoFetch({ visao: vis }) })
     const up = B.ops.find((o) => o.table === 'film_review_notes' && o.op === 'update')
     checa('N8 painel com nota auto: atualiza só onde fonte = auto', r.painel === 'atualizar' && !!up && up.filtros.some((f) => f[0] === 'eq' && f[1] === 'fonte' && f[2] === 'auto') && up.filtros.some((f) => f[1] === 'link'))
   }
   {
     const B = falsoBanco({ email: 'josephsskaf@gmail.com' })
-    const r = await N.julgarEGravarNotaAuto(B.admin, { modo: 'painel', entrega: ENTREGA, base, route: '/x', fetchImpl: falsoFetch({ visao: vis }) })
+    const r = await N.julgarEGravarNotaAuto(B.admin, { modo: 'on', entrega: ENTREGA, base, route: '/x', fetchImpl: falsoFetch({ visao: vis }) })
     checa('N8 conta da casa fora do painel', r.painel === 'pular_conta_interna' && !B.ops.some((o) => o.table === 'film_review_notes'))
   }
   {
     const B = falsoBanco()
-    const r = await N.julgarEGravarNotaAuto(B.admin, { modo: 'painel', entrega: ENTREGA, base, route: '/x', fetchImpl: falsoFetch({ falOk: false }) })
-    const ev = B.ops.find((o) => o.table === 'events' && o.op === 'insert')
+    const r = await N.julgarEGravarNotaAuto(B.admin, { modo: 'on', entrega: ENTREGA, base, route: '/x', fetchImpl: falsoFetch({ falOk: false }) })
+    const ev = B.ops.find((o) => o.table === 'events' && o.op === 'insert' && o.payload.name === 'nota_auto')
     checa('N8 sem quadros: evento de falha com score null, nada no painel', r.nota === null && ev?.payload.metadata.score === null && ev?.payload.metadata.falha === 'nota_auto_quadros_indisponiveis' && !B.ops.some((o) => o.table === 'film_review_notes'))
   }
   {
     const B = falsoBanco()
-    const r = await N.julgarEGravarNotaAuto(B.admin, { modo: 'observe', entrega: { ...ENTREGA, notaAuto: { ...ENTREGA.notaAuto, plano: null } }, base, route: '/x', fetchImpl: falsoFetch({ visao: vis }) })
-    const ev = B.ops.find((o) => o.table === 'events' && o.op === 'insert')
+    const r = await N.julgarEGravarNotaAuto(B.admin, { modo: 'sombra', entrega: { ...ENTREGA, notaAuto: { ...ENTREGA.notaAuto, plano: null } }, base, route: '/x', fetchImpl: falsoFetch({ visao: vis }) })
+    const ev = B.ops.find((o) => o.table === 'events' && o.op === 'insert' && o.payload.name === 'nota_auto')
     checa('N8 sem plano de cenas: falha registrada, sem nota (o juiz v1 não volta)', r.nota === null && ev?.payload.metadata.falha === 'nota_auto_sem_plano_de_cenas' && ev?.payload.metadata.score === null)
+  }
+  {
+    // nota < 7 → evento nota_auto_baixa com vídeo, nota, defeitos e evidência (frente 3); validado:false até o juiz passar na régua
+    const B = falsoBanco()
+    const ruim = { momentos: [1, 2, 3].map((m) => MOMENTO(m, 'nao', 'a city street with cars, no snow')), resumo: 'ruim' }
+    const r = await N.julgarEGravarNotaAuto(B.admin, { modo: 'sombra', entrega: ENTREGA, base, route: '/x', fetchImpl: falsoFetch({ visao: ruim }) })
+    const b = B.ops.find((o) => o.table === 'events' && o.op === 'insert' && o.payload.name === 'nota_auto_baixa')
+    checa('N8 nota < 7 = nota_auto_baixa com defeitos e evidência', r.nota < 7 && b?.payload.metadata.nota === r.nota && b?.payload.metadata.video_url === ENTREGA.video_url && b?.payload.metadata.defeitos.length === 3 && b?.payload.metadata.defeitos.every((d) => d.evidencia && d.categoria === 'CENA_FORA_DO_PEDIDO') && b?.payload.metadata.validado === false)
+    const B2 = falsoBanco()
+    await N.julgarEGravarNotaAuto(B2.admin, { modo: 'sombra', entrega: ENTREGA, base, route: '/x', fetchImpl: falsoFetch({ visao: vis }) })
+    checa('N8 nota ≥ 7 não gera nota_auto_baixa', !B2.ops.some((o) => o.payload?.name === 'nota_auto_baixa'))
   }
   {
     const B = falsoBanco()
@@ -185,25 +198,29 @@ async function provas(N) {
   // N9
   const agora = Date.now()
   const novo = { key: 'a', delivered_at: new Date(agora - 3600_000).toISOString(), notaAuto: ENTREGA.notaAuto }
-  checa('N9 pendente: só ligado, só filme, só 6 h, só uma vez', N.notaAutoPendente('observe', novo, new Set(), agora) && !N.notaAutoPendente('off', novo, new Set(), agora) && !N.notaAutoPendente('painel', { ...novo, notaAuto: null }, new Set(), agora) && !N.notaAutoPendente('painel', { ...novo, delivered_at: new Date(agora - 7 * 3600_000).toISOString() }, new Set(), agora) && !N.notaAutoPendente('painel', novo, new Set(['a']), agora))
-  const feitas = await N.notasAutoFeitas({ from: () => null }, ['ok', 'falhou-agora', 'velha', 'desistiu'], async () => ({ data: [
+  checa('N9 pendente: só ligado, só filme, só 6 h, só uma vez', N.notaAutoPendente('sombra', novo, new Set(), agora) && !N.notaAutoPendente('off', novo, new Set(), agora) && !N.notaAutoPendente('on', { ...novo, notaAuto: null }, new Set(), agora) && !N.notaAutoPendente('on', { ...novo, delivered_at: new Date(agora - 7 * 3600_000).toISOString() }, new Set(), agora) && !N.notaAutoPendente('on', novo, new Set(['a']), agora))
+  const feitas = await N.notasAutoFeitas({ from: () => null }, ['ok', 'falhou-agora', 'velha', 'desistiu', 'julgando', 'parado'], async () => ({ data: [
+    { name: 'nota_auto_inicio', created_at: new Date(agora - 60_000).toISOString(), session_id: 'julgando', metadata: { version: N.NOTA_AUTO_VERSAO_DO_CRON } },
+    { name: 'nota_auto_inicio', created_at: new Date(agora - 10 * 60_000).toISOString(), session_id: 'parado', metadata: { version: N.NOTA_AUTO_VERSAO_DO_CRON } },
     { created_at: new Date(agora - 60_000).toISOString(), session_id: 'ok', metadata: { version: N.NOTA_AUTO_VERSAO_DO_CRON, score: 7 } },
     { created_at: new Date(agora - 60_000).toISOString(), session_id: 'falhou-agora', metadata: { version: N.NOTA_AUTO_VERSAO_DO_CRON, score: null } },
     { created_at: new Date(agora - 60_000).toISOString(), session_id: 'velha', metadata: { version: 'nota_auto_v0', score: 7 } },
     ...[1, 2, 3].map(() => ({ created_at: new Date(agora - 5 * 3600_000).toISOString(), session_id: 'desistiu', metadata: { version: N.NOTA_AUTO_VERSAO_DO_CRON, score: null } })),
   ], error: null }), '/x', agora)
-  checa('N9 feitas: nota = feito; falha espera 1 h; 3 falhas = desiste; outra versão = de novo', feitas.has('ok') && feitas.has('falhou-agora') && feitas.has('desistiu') && !feitas.has('velha'))
+  checa('N9 feitas: nota = feito; julgando < 5 min segura; parado > 5 min volta; falha espera 1 h; 3 falhas = desiste; outra versão = de novo', feitas.has('ok') && feitas.has('falhou-agora') && feitas.has('desistiu') && !feitas.has('velha') && feitas.has('julgando') && !feitas.has('parado'))
   return falhas
 }
 
 function provasDoColetor() {
   const falhas = []
   const checa = (nome, cond) => { if (!cond) falhas.push(nome) }
-  checa('N9 coletor importa o juiz e lê o interruptor', /from '@\/lib\/regua95\/notaRevisor'/.test(COLETAR) && /const modoNotaAuto = lerModoNotaAuto\(\)/.test(COLETAR))
-  checa('N9 off não lê nada a mais', /modoNotaAuto === 'off' \? new Set<string>\(\) : await notasAutoFeitas\(/.test(COLETAR))
-  checa('N9 entra na fila por querNotaAuto', /\|\| querNotaAuto\(e\) \/\* KINEO-NOTA-AUTO-1311 \*\/\)/.test(COLETAR) && /if \(querNotaAuto\(e\)\) \{\n\s*const n = await julgarEGravarNotaAuto\(admin, \{ modo: modoNotaAuto, entrega: e, base, route, fetchImpl: opts\.fetchImpl \}\)/.test(COLETAR))
-  checa('N9 notaAuto só no push dos filmes, com o motor real', (COLETAR.match(/notaAuto: \{/g) ?? []).length === 1 && /notaAuto: \{ pedido: v\.topic \|\| v\.prompt \|\| ideia\.idea \|\| '', roteiro: \(v\.script \|\| narration \|\| ''\)\.trim\(\) \|\| null, motor: v\.engine_used \?\? v\.quality_mode,\n[^\n]*\n\s*plano: planoDoNascimento\(\(birth\?\.metadata\?\.response \?\? null\) as Record<string, unknown> \| null, v\.duration\) \},/.test(COLETAR) && /select\('id, user_id, created_at, quality_mode, video_url, duration, render_id, topic, engine_used, script, prompt'\)/.test(COLETAR))
-  checa('N9 o coletor continua só com o insert de events', (COLETAR.match(/\.(insert|update|upsert|delete|rpc)\(/g) ?? []).join() === '.insert(' && !/from('film_review_notes')/.test(COLETAR))
+  const CRON = lf(fs.readFileSync('app/api/cron/nota-auto/route.ts', 'utf8'))
+  const STATUS = lf(fs.readFileSync('app/api/compose/status/[renderId]/route.ts', 'utf8'))
+  const VERCEL = JSON.parse(fs.readFileSync('vercel.json', 'utf8'))
+  checa('N9 o coletor da régua não julga mais a nota (um caminho só: disparo + cron)', !/notaRevisor|notaAuto/.test(COLETAR))
+  checa('N9 cron de 1 em 1 minuto no vercel.json', (VERCEL.crons ?? []).some((c) => c.path === '/api/cron/nota-auto' && c.schedule === '* * * * *'))
+  checa('N9 cron: segredo do cron, off sai antes do banco, no máximo NOTA_AUTO_CRON_MAX por giro', CRON.includes('process.env.CRON_SECRET') && CRON.includes("req.headers.get('authorization') === ") &&CRON.indexOf("if (modo === 'off') return") > 0 && CRON.indexOf("if (modo === 'off') return") < CRON.indexOf('createAdminClient(url') && CRON.includes('faltam.slice(0, NOTA_AUTO_CRON_MAX)'))
+  checa('N9 disparo na hora: só insert NOVO de filme, interruptor ligado, depois da resposta', /if \(result\.ok && !result\.duplicate && result\.id && produtoDoVideo\(quality\) === 'filme' && lerModoNotaAuto\(\) !== 'off'\) \{[\s\S]{0,400}depoisDaResposta\('nota-auto', async \(\) => \{[\s\S]{0,500}notaAutoDoFilme\(/.test(STATUS))
   return falhas
 }
 
@@ -213,14 +230,16 @@ const linha = (bom, nome) => { if (bom) { ok++; console.log('  ok  ' + nome) } e
 const real = await provas(carregar(null))
 linha(real.length === 0, `código real: todas as provas N1–N9 verdes${real.length ? ' — falharam: ' + real.join(' | ') : ''}`)
 const col = provasDoColetor()
-linha(col.length === 0, `coletor ligado atrás do interruptor${col.length ? ' — falharam: ' + col.join(' | ') : ''}`)
+linha(col.length === 0, `caminhos da nota (disparo na hora + cron de 1 min; coletor fora)${col.length ? ' — falharam: ' + col.join(' | ') : ''}`)
 
 const MUTANTES = [
   ['M1 painel ignora a fonte (sobrescreve o revisor)', (s) => s.replace("return existente.fonte === NOTA_AUTO_FONTE ? 'atualizar' : 'pular'", "return 'atualizar'")],
-  ['M2 interruptor nasce ligado', (s) => s.replace("return v === 'observe' || v === 'painel' ? v : 'off'", "return v === 'observe' || v === 'painel' ? v : 'painel'")],
+  ['M2 interruptor nasce no painel', (s) => s.replace("  if (v === 'on' || v === 'painel') return 'on'\n  return 'sombra'", "  if (v === 'on' || v === 'painel') return 'on'\n  return 'on'")],
   ['M3 defeito sem quadro conta', (s) => s.replace('if (quadros.length < minimo) { descartados++; continue }', 'if (false) { descartados++; continue }')],
   ['M4 confia na nota solta do modelo', (s) => s.replace('nota: notaDosDefeitos(defeitos),', 'nota: Number((parsed as { score?: number }).score ?? 8),')],
-  ['M5 update sem o filtro da fonte', (s) => s.replace(".eq('link', e.video_url).eq('fonte', NOTA_AUTO_FONTE)", ".eq('link', e.video_url)")],
+  ['M5 update sem o filtro da fonte', (s) => s.replace(".eq('link', link).eq('fonte', NOTA_AUTO_FONTE)", ".eq('link', link)")],
+  ['M9 nota baixa sem evento para o conserto', (s) => s.replace('if (r.nota < NOTA_AUTO_CORTE_BAIXA) {', 'if (false) {')],
+  ['M10 marcador "julgando" ignorado (julgamento duplo)', (s) => s.replace('if (agora - (Date.parse(ev.created_at) || 0) < NOTA_AUTO_JULGANDO_MS) feitas.add(ev.session_id)', '')],
   ['M6 categoria do revisor some', (s) => s.replace("  'OLHOS_FECHADOS_OU_MORTOS',\n", '')],
   ['M7 grave central pesa como grave comum', (s) => s.replace('nota -= CATEGORIAS_CENTRAIS.has(cat) ? REGUA_NOTA_AUTO.graveCentral : REGUA_NOTA_AUTO.grave', 'nota -= REGUA_NOTA_AUTO.grave')],
   ['M8 conta da casa entra no painel', (s) => s.replace('else if (isInternalEmail(email)) painel', 'else if (false) painel')],

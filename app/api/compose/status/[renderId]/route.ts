@@ -43,6 +43,11 @@ import { emailFilmeBotao, EMAIL_FILME_VERSION } from '@/lib/growth/emailFilmePro
 import { FILM_COMPLETE_VERSION } from '@/lib/growth/filmComplete'
 import { COMPOSE_CLAIM_EVENT } from '@/lib/composeClaim'
 import { narrationLanguage, resolveNarrationLanguage } from '@/lib/textLanguage' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-PONTAS-15S-IDIOMA-2026-09-29
+import { produtoDoVideo } from '@/lib/regua95/contexto' // KINEO-NOTA-AUTO-1MIN-1311
+import { notaAutoDoFilme } from '@/lib/regua95/notaAutoFilme' // KINEO-NOTA-AUTO-1MIN-1311
+import { lerModoNotaAuto } from '@/lib/regua95/notaRevisor' // KINEO-NOTA-AUTO-1MIN-1311
+import { tokenDoGateway } from '@/lib/regua95/visaoProvedor' // KINEO-NOTA-AUTO-1MIN-1311
+import { readAll } from '@/lib/supabase/readAll' // KINEO-NOTA-AUTO-1MIN-1311
 import { escolherTemaDoFilme, limparPreviaDoRoteiro } from '@/lib/pedidoCerto' // KINEO-PEDIDO-CERTO-2710 [TRAVA 8.2 — vai do fundador 27/10 "faz todos esses consertos de 1 a 6"]
 import {
   loadPrepaidAvatarClaimForRender,
@@ -1180,6 +1185,18 @@ export async function GET(
             ], // KINEO-PEDIDO-CERTO-2710
           })
           if (result.id) persistedVideoId = result.id
+          // KINEO-NOTA-AUTO-1MIN-1311 — nota automática do filme no minuto em que ele fica pronto: só no insert NOVO (não no
+          // re-poll do mesmo render), depois da resposta ao cliente. Sem waitUntil não agenda — o cron de 1 minuto pega.
+          if (result.ok && !result.duplicate && result.id && produtoDoVideo(quality) === 'filme' && lerModoNotaAuto() !== 'off') {
+            const idDaNota = String(result.id)
+            const tokenDaNota = tokenDoGateway(req)?.token ?? null
+            depoisDaResposta('nota-auto', async () => {
+              const u = process.env.NEXT_PUBLIC_SUPABASE_URL, k = process.env.SUPABASE_SERVICE_ROLE_KEY
+              if (!u || !k) return
+              const r = await notaAutoDoFilme(createAdminClient(u, k, { auth: { persistSession: false, autoRefreshToken: false } }), { videoId: idDaNota, route: '/api/compose/status', readAll, tokenGateway: tokenDaNota })
+              console.log('[nota-auto] na hora', JSON.stringify({ v: idDaNota.slice(0, 8), feito: r.feito, nota: r.nota ?? null, motivo: r.motivo ?? null, erro: r.erro ?? null }))
+            })
+          }
           if (result.topic) topicFinal = result.topic // KINEO-PEDIDO-CERTO-2710 — e-mail, pacote e push dizem o mesmo tema que a linha de videos gravou
           console.log('[history] persist result:', JSON.stringify(result))
           // KINEO-FILME-RAPIDO-1710 — a medida do ARQUIVO vem da cópia: com a entrega adiada, o evento sai depois dela (o

@@ -153,6 +153,10 @@
       "schedule": "7,17,27,37,47,57 * * * *"
     },
     {
+      "path": "/api/cron/nota-auto",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/admin/demo-render",
       "schedule": "*/5 * * * *"
     },

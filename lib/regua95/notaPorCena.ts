@@ -18,7 +18,8 @@
 //     marca como ilegível.
 // Sem exemplo concreto de filme no prompt (regra da casa 11/11). Falha aberta: erro = null, nunca exceção.
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
-import { evidenceFromBirth, usdFromUsage } from '@/lib/regua95/coherenceV2'
+import { evidenceFromBirth } from '@/lib/regua95/coherenceV2'
+import { chamarVisaoJson, type ParteVisao, type ProvedorVisao } from '@/lib/regua95/visaoProvedor'
 import { FAL_NTH_FRAME_MODEL, FAL_USD_PER_COMPUTE_SECOND, PIXEL_FPS_ASSUMED } from '@/lib/regua95/pixelScore'
 
 export const NOTA_CENA_VERSION = 'nota_auto_v2_cena'
@@ -365,54 +366,33 @@ export type NotaCenaResultado = {
 /** Uma leitura do juiz por cena. Falha aberta: null. */
 export async function julgarNotaCena(
   e: NotaCenaEntrada,
-  opts?: { fetchImpl?: typeof fetch; apiKey?: string; model?: string; detail?: NotaAutoDetail; timeoutMs?: number; usdQuadros?: number; regua?: ReguaNotaCena },
-): Promise<(NotaCenaResultado & { bruto: unknown }) | null> {
+  opts?: { fetchImpl?: typeof fetch; apiKey?: string; model?: string; provedor?: ProvedorVisao; tokenGateway?: string | null; detail?: NotaAutoDetail; timeoutMs?: number; usdQuadros?: number; regua?: ReguaNotaCena },
+): Promise<(NotaCenaResultado & { bruto: unknown; provedor: ProvedorVisao }) | null> {
   const started = Date.now()
   if (!e.quadros.length || !e.plano.momentos.length) return null
-  const key = opts?.apiKey ?? process.env.OPENAI_API_KEY
-  if (!key) return null
-  const model = opts?.model ?? process.env.NOTA_AUTO_MODEL ?? AI_TEXT_MODELS.writer
   const detail = opts?.detail ?? 'high'
-  const doFetch = opts?.fetchImpl ?? fetch
-  const ctrl = new AbortController()
-  const timer = setTimeout(() => ctrl.abort(), opts?.timeoutMs ?? 150_000)
-  try {
-    const res = await doFetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      signal: ctrl.signal,
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model, temperature: 0, max_tokens: 3000, response_format: { type: 'json_object' }, messages: buildNotaCenaMessages(e, detail) }),
-    })
-    if (!res.ok) return null
-    const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
-    let parsed: unknown
-    try {
-      parsed = JSON.parse(data.choices?.[0]?.message?.content ?? '')
-    } catch {
-      return null
-    }
-    const { respostas, resumo } = normalizarRespostas(parsed, e.plano)
-    if (!respostas.length) return null
-    const { defeitos, contagem } = defeitosDasRespostas(respostas, e.plano, e.pedido)
-    const usd = usdFromUsage(data.usage, NOTA_AUTO_RATES[model] ?? NOTA_AUTO_RATES[AI_TEXT_MODELS.writer]) + (opts?.usdQuadros ?? 0)
-    return {
-      version: NOTA_CENA_VERSION,
-      nota: notaDasRespostas(contagem, opts?.regua),
-      defeitos,
-      contagem,
-      respostas,
-      resumo,
-      model,
-      detail,
-      frames: e.quadros.length,
-      usd: Math.round(usd * 1e6) / 1e6,
-      ms: Date.now() - started,
-      bruto: parsed,
-    }
-  } catch {
-    return null
-  } finally {
-    clearTimeout(timer)
+  const [sys, user] = buildNotaCenaMessages(e, detail) as [{ role: 'system'; content: string }, { role: 'user'; content: ParteVisao[] }]
+  // KINEO-NOTA-AUTO-1MIN-1311 — a chamada passa pela interface única (visaoProvedor.ts): OpenAI ou Claude pelo gateway
+  const r = await chamarVisaoJson({ system: sys.content, content: user.content, maxTokens: 3000 }, { provedor: opts?.provedor, modelo: opts?.model, fetchImpl: opts?.fetchImpl, apiKey: opts?.apiKey, tokenGateway: opts?.tokenGateway, timeoutMs: opts?.timeoutMs })
+  if (!r) return null
+  const { respostas, resumo } = normalizarRespostas(r.json, e.plano)
+  if (!respostas.length) return null
+  const { defeitos, contagem } = defeitosDasRespostas(respostas, e.plano, e.pedido)
+  const usd = r.usd + (opts?.usdQuadros ?? 0)
+  return {
+    version: NOTA_CENA_VERSION,
+    nota: notaDasRespostas(contagem, opts?.regua),
+    defeitos,
+    contagem,
+    respostas,
+    resumo,
+    model: r.modelo,
+    provedor: r.provedor,
+    detail,
+    frames: e.quadros.length,
+    usd: Math.round(usd * 1e6) / 1e6,
+    ms: Date.now() - started,
+    bruto: r.json,
   }
 }
 

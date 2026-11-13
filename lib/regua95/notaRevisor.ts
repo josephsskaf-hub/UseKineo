@@ -294,25 +294,34 @@ export async function extrairQuadrosNotaAutoFal(
 
 // ── O interruptor e a regra de escrita no painel ──
 
-export type NotaAutoMode = 'off' | 'observe' | 'painel'
-/** NOTA_AUTO_MODE: nasce 'off'. Qualquer valor desconhecido = 'off' (nunca liga por engano). */
+/**
+ * NOTA_AUTO_MODE (ordem da CEO, 13/11 16:42): 'off' · 'sombra' (julga e grava SÓ o evento nota_auto, que o painel não mostra,
+ * para comparar com o revisor) · 'on' (também grava a linha de film_review_notes com fonte 'auto' — aparece no painel).
+ * NASCE 'sombra': sem a variável, mede. Nomes antigos: 'observe' = 'sombra', 'painel' = 'on'. Valor desconhecido = 'sombra'
+ * (nunca liga o painel por engano).
+ */
+export type NotaAutoMode = 'off' | 'sombra' | 'on'
 export function lerModoNotaAuto(env: Record<string, string | undefined> = process.env): NotaAutoMode {
   const v = String(env.NOTA_AUTO_MODE ?? '').trim().toLowerCase()
-  return v === 'observe' || v === 'painel' ? v : 'off'
+  if (v === 'off') return 'off'
+  if (v === 'on' || v === 'painel') return 'on'
+  return 'sombra'
 }
 
 /**
  * O que fazer com a linha de film_review_notes do mesmo link. A NOTA DO REVISOR MANDA: linha existente com fonte diferente de
- * 'auto' (inclusive nula — as linhas antigas do revisor) nunca é tocada. Só no modo 'painel'.
+ * 'auto' (inclusive nula — as linhas antigas do revisor) nunca é tocada; a nota automática daquele filme fica no evento nota_auto
+ * (as duas ficam guardadas). Só no modo 'on'.
  */
 export function decidirEscritaPainel(modo: NotaAutoMode, existente: { fonte: string | null } | null): 'inserir' | 'atualizar' | 'pular' {
-  if (modo !== 'painel') return 'pular'
+  if (modo !== 'on') return 'pular'
   if (!existente) return 'inserir'
   return existente.fonte === NOTA_AUTO_FONTE ? 'atualizar' : 'pular'
 }
 
-/** A linha que vai para film_review_notes (mesmas colunas que o revisor preenche + motor e fonte). */
-export function linhaDoPainel(r: { nota: number; defeitos: ReadonlyArray<{ categoria: string }>; resumo: string }, x: { link: string; quando: string; quem: string | null; motor: string | null; produto: string; ordem?: number | null }) {
+/** A linha que vai para film_review_notes (mesmas colunas que o revisor preenche + motor e fonte; versão e modelo no começo do resumo). */
+export function linhaDoPainel(r: { nota: number; defeitos: ReadonlyArray<{ categoria: string }>; resumo: string; version?: string; model?: string }, x: { link: string; quando: string; quem: string | null; motor: string | null; produto: string; ordem?: number | null }) {
+  const selo = r.version || r.model ? `[auto ${[r.version, r.model].filter(Boolean).join(' ')}] ` : ''
   return {
     link: x.link,
     quando: x.quando,
@@ -322,39 +331,47 @@ export function linhaDoPainel(r: { nota: number; defeitos: ReadonlyArray<{ categ
     ordem: x.ordem ?? null,
     nota: r.nota,
     defeitos: Array.from(new Set(r.defeitos.map((d) => d.categoria))),
-    resumo: r.resumo || null,
+    resumo: `${selo}${r.resumo || ''}`.trim() || null,
     fonte: NOTA_AUTO_FONTE,
   }
 }
 
-// ── No cron (lib/regua95/coletar.ts): quem falta julgar, julgar e gravar ──
-// O coletor só escreve em `events` pelos 3 juízes antigos (guardiões R1/U7); a nota automática tem o SEU ponto de escrita aqui:
-// o evento nota_auto (observe e painel) e, só no modo 'painel', a linha de film_review_notes com fonte 'auto'.
+// ── Quem falta julgar, julgar e gravar (chamado pelo disparo na hora e pelo cron de 1 minuto: lib/regua95/notaAutoFilme.ts) ──
 
 /** Só filmes entregues nas últimas 6 h entram: ligar o interruptor não compra a nota da semana inteira de uma vez. */
 export const NOTA_AUTO_JANELA_HORAS = 6
 export const NOTA_AUTO_MAX_FALHAS = 3
 export const NOTA_AUTO_ESPERA_FALHA_MS = 60 * 60_000
+/** Marcador "julgando agora" (evento nota_auto_inicio): enquanto ele tem menos de 5 min, ninguém mais julga o mesmo filme. */
+export const NOTA_AUTO_INICIO_EVENT = 'nota_auto_inicio'
+export const NOTA_AUTO_JULGANDO_MS = 5 * 60_000
+/** Nota automática abaixo de 7 → este evento de servidor, para a rotina de conserto (ordem da CEO, frente 3). */
+export const NOTA_AUTO_BAIXA_EVENT = 'nota_auto_baixa'
+export const NOTA_AUTO_CORTE_BAIXA = 7
 
-/** O que o cron precisa saber de um filme para dar a nota (preenchido só para produto 'filme' em listarEntregasRegua). */
+/** O que o juiz precisa saber de um filme. */
 export type NotaAutoAlvo = { pedido: string; roteiro: string | null; motor: string | null; plano?: PlanoFilme | null }
 /**
- * A versão que o cron grava e lê hoje: a 2ª tentativa, juiz POR CENA (notaPorCena.ts). O juiz de nota geral (v1, acima)
- * NÃO PASSOU no ensaio e fica só como registro: o cron não o chama mais. Filme sem plano de cenas = falha registrada, sem nota.
+ * A versão que se grava e se lê hoje: a 2ª tentativa, juiz POR CENA (notaPorCena.ts). O juiz de nota geral (v1, acima)
+ * NÃO PASSOU no ensaio e fica só como registro: ninguém o chama. Filme sem plano de cenas = falha registrada, sem nota.
  */
 export const NOTA_AUTO_VERSAO_DO_CRON = NOTA_CENA_VERSION
-type EntregaNotaAuto = { key: string; user_id: string; delivered_at: string; video_url: string; seconds: number | null; product: string; notaAuto?: NotaAutoAlvo | null }
+export type EntregaNotaAuto = { key: string; user_id: string; delivered_at: string; video_url: string; seconds: number | null; product: string; notaAuto?: NotaAutoAlvo | null }
 
-/** Chaves que NÃO entram agora: nota de verdade = feito; falha = espera 1 h e tenta de novo até 3 vezes. */
-export async function notasAutoFeitas(admin: SupabaseClient, keys: string[], readAll: typeof ReadAllRows, route = '/api/cron/regua-95', agora: number = Date.now()): Promise<Set<string>> {
+/** Chaves que NÃO entram agora: nota de verdade = feito; julgando há < 5 min = em andamento; falha = espera 1 h, até 3 vezes. */
+export async function notasAutoFeitas(admin: SupabaseClient, keys: string[], readAll: typeof ReadAllRows, route = '/api/cron/nota-auto', agora: number = Date.now()): Promise<Set<string>> {
   const feitas = new Set<string>()
   const falhas = new Map<string, { n: number; ultima: number }>()
   const unicas = Array.from(new Set(keys))
   for (let i = 0; i < unicas.length; i += 100) {
     const part = unicas.slice(i, i + 100)
-    const r = await readAll(() => admin.from('events').select('created_at, session_id, metadata').eq('name', NOTA_AUTO_EVENT).in('session_id', part), { route, table: 'events' })
-    for (const ev of (r.data ?? []) as Array<{ created_at: string; session_id: string | null; metadata: Record<string, unknown> | null }>) {
+    const r = await readAll(() => admin.from('events').select('name, created_at, session_id, metadata').in('name', [NOTA_AUTO_EVENT, NOTA_AUTO_INICIO_EVENT]).in('session_id', part), { route, table: 'events' })
+    for (const ev of (r.data ?? []) as Array<{ name?: string; created_at: string; session_id: string | null; metadata: Record<string, unknown> | null }>) {
       if (!ev.session_id || ev.metadata?.version !== NOTA_AUTO_VERSAO_DO_CRON) continue
+      if (ev.name === NOTA_AUTO_INICIO_EVENT) {
+        if (agora - (Date.parse(ev.created_at) || 0) < NOTA_AUTO_JULGANDO_MS) feitas.add(ev.session_id)
+        continue
+      }
       if (typeof ev.metadata?.score === 'number') { feitas.add(ev.session_id); continue }
       const f = falhas.get(ev.session_id) ?? { n: 0, ultima: 0 }
       f.n += 1
@@ -389,56 +406,69 @@ async function ordemDoCliente(admin: SupabaseClient, userId: string, ate: string
 }
 
 /**
- * Julga UM filme e grava. Nunca lança. Grava SEMPRE o evento nota_auto (com a nota, ou score null + falha para a retentativa);
- * no modo 'painel', grava também a linha de film_review_notes — SEM NUNCA sobrescrever linha cuja fonte não seja 'auto'
+ * Julga UM filme e grava. Nunca lança. Antes de julgar grava o marcador nota_auto_inicio; no fim grava SEMPRE o evento
+ * nota_auto (com a nota, ou score null + falha para a retentativa). Nota < 7 → também nota_auto_baixa (para o conserto).
+ * No modo 'on', grava a linha de film_review_notes — SEM NUNCA sobrescrever linha cuja fonte não seja 'auto'
  * (decidirEscritaPainel + o filtro .eq('fonte', 'auto') no update, para a corrida com o revisor). Contas da casa ficam fora do painel.
  */
 export async function julgarEGravarNotaAuto(
   admin: SupabaseClient,
-  x: { modo: NotaAutoMode; entrega: EntregaNotaAuto; base: Record<string, unknown>; route: string; fetchImpl?: typeof fetch },
+  x: { modo: NotaAutoMode; entrega: EntregaNotaAuto; base: Record<string, unknown>; route: string; fetchImpl?: typeof fetch; tokenGateway?: string | null },
 ): Promise<{ nota: number | null; usd: number; painel: string; erro?: string }> {
   const e = x.entrega
   const alvo = e.notaAuto
   let erro: string | undefined
-  const gravarEvento = async (metadata: Record<string, unknown>) => {
-    const { error } = await admin.from('events').insert({ name: NOTA_AUTO_EVENT, user_id: e.user_id, session_id: e.key, path: x.route, metadata })
-    if (error) erro = [erro, `insert_${NOTA_AUTO_EVENT}: ${String(error.message).slice(0, 120)}`].filter(Boolean).join(' · ')
+  const gravar = async (name: string, metadata: Record<string, unknown>) => {
+    const { error } = await admin.from('events').insert({ name, user_id: e.user_id, session_id: e.key, path: x.route, metadata })
+    if (error) erro = [erro, `insert_${name}: ${String(error.message).slice(0, 120)}`].filter(Boolean).join(' · ')
   }
   if (x.modo === 'off' || !alvo) return { nota: null, usd: 0, painel: 'pular' }
   try {
+    await gravar(NOTA_AUTO_INICIO_EVENT, { version: NOTA_AUTO_VERSAO_DO_CRON, modo: x.modo, ...x.base })
     const plano = alvo.plano && alvo.plano.momentos.length ? alvo.plano : null
     const ex = plano ? await extrairQuadrosPorTempoFal(e.video_url, plano, { fetchImpl: x.fetchImpl }) : null
-    const julgado = plano && ex ? await julgarNotaCena({ plano, quadros: ex.quadros, pedido: alvo.pedido, produto: e.product, motor: alvo.motor }, { fetchImpl: x.fetchImpl, usdQuadros: ex.usd }) : null
+    const julgado = plano && ex ? await julgarNotaCena({ plano, quadros: ex.quadros, pedido: alvo.pedido, produto: e.product, motor: alvo.motor }, { fetchImpl: x.fetchImpl, usdQuadros: ex.usd, tokenGateway: x.tokenGateway }) : null
     // o JSON cru do modelo não vai para o evento (as respostas normalizadas e os defeitos com evidência já estão lá)
     const r = julgado ? (({ bruto: _bruto, ...resto }) => resto)(julgado) : null
     if (!r) {
       const falha = !plano ? 'nota_auto_sem_plano_de_cenas' : ex ? 'nota_auto_visao_sem_resposta' : 'nota_auto_quadros_indisponiveis'
-      await gravarEvento({ version: NOTA_AUTO_VERSAO_DO_CRON, score: null, falha, modo: x.modo, frame_count: ex?.quadros.length ?? 0, ...x.base, video_url: e.video_url })
+      await gravar(NOTA_AUTO_EVENT, { version: NOTA_AUTO_VERSAO_DO_CRON, score: null, falha, modo: x.modo, frame_count: ex?.quadros.length ?? 0, ...x.base, video_url: e.video_url })
       return { nota: null, usd: ex?.usd ?? 0, painel: 'pular', erro: [erro, falha].filter(Boolean).join(' · ') }
     }
     let painel: string = 'pular'
-    if (x.modo === 'painel') {
+    if (x.modo === 'on') {
       const u = await admin.auth.admin.getUserById(e.user_id).catch(() => null)
       const email = u?.data?.user?.email ?? null
       if (!email) painel = 'pular_sem_email'
       else if (isInternalEmail(email)) painel = 'pular_conta_interna'
       else {
-        const lida = await admin.from('film_review_notes').select('fonte').eq('link', e.video_url).maybeSingle()
+        // o link do painel é o link FINAL do vídeo (o disparo na hora pode ter julgado ainda pelo link do fornecedor)
+        const atual = await admin.from('videos').select('video_url').eq('id', e.key).maybeSingle()
+        const link = (atual.data as { video_url?: string | null } | null)?.video_url || e.video_url
+        const lida = await admin.from('film_review_notes').select('fonte').eq('link', link).maybeSingle()
         if (lida.error) painel = 'pular_leitura_falhou'
         else {
           const decisao = decidirEscritaPainel(x.modo, (lida.data as { fonte: string | null } | null) ?? null)
           painel = decisao === 'pular' ? 'pular_nota_do_revisor' : decisao
           if (decisao !== 'pular') {
-            const linha = linhaDoPainel(r, { link: e.video_url, quando: e.delivered_at, quem: email.split('@')[0], motor: alvo.motor, produto: e.product, ordem: await ordemDoCliente(admin, e.user_id, e.delivered_at) })
+            const linha = linhaDoPainel(r, { link, quando: e.delivered_at, quem: email.split('@')[0], motor: alvo.motor, produto: e.product, ordem: await ordemDoCliente(admin, e.user_id, e.delivered_at) })
             const w = decisao === 'inserir'
               ? await admin.from('film_review_notes').insert(linha)
-              : await admin.from('film_review_notes').update({ ...linha, updated_at: new Date().toISOString() }).eq('link', e.video_url).eq('fonte', NOTA_AUTO_FONTE)
+              : await admin.from('film_review_notes').update({ ...linha, updated_at: new Date().toISOString() }).eq('link', link).eq('fonte', NOTA_AUTO_FONTE)
             if (w.error) { painel = `${decisao}_falhou`; erro = `painel: ${String(w.error.message).slice(0, 120)}` }
           }
         }
       }
     }
-    await gravarEvento({ ...r, score: r.nota, modo: x.modo, painel, ...x.base, video_url: e.video_url, pedido: alvo.pedido.slice(0, 600) })
+    await gravar(NOTA_AUTO_EVENT, { ...r, score: r.nota, modo: x.modo, painel, ...x.base, video_url: e.video_url, pedido: alvo.pedido.slice(0, 600) })
+    if (r.nota < NOTA_AUTO_CORTE_BAIXA) {
+      // FRENTE 3 — o conserto não espera o revisor do PC: vídeo, nota, defeitos e a evidência de cada um
+      await gravar(NOTA_AUTO_BAIXA_EVENT, {
+        version: r.version, model: r.model, provedor: r.provedor, modo: x.modo, nota: r.nota, ...x.base, video_id: e.key, video_url: e.video_url,
+        motor: alvo.motor, pedido: alvo.pedido.slice(0, 600), resumo: r.resumo, defeitos: r.defeitos.map((d) => ({ categoria: d.categoria, momento: d.m, evidencia: d.evidencia })),
+        validado: false, // o juiz ainda não passou na régua do dono (≥ 85% / ≤ 10%): quem conserta deve conferir antes de agir
+      })
+    }
     return { nota: r.nota, usd: r.usd, painel, ...(erro ? { erro } : {}) }
   } catch (err) {
     return { nota: null, usd: 0, painel: 'pular', erro: err instanceof Error ? err.message.slice(0, 160) : 'erro' }
