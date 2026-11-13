@@ -175,3 +175,12 @@
   .recreate .ct-action-dock .rc-generate { min-height: 44px; margin: 0; }
   .recreate .ct-action-dock .rc-next-note { margin: 4px 0 0; min-height: 0; text-align: center; }
 }
+
+/* KINEO-RECREATE-FOTO-ENQUADRADA-1311 [dono 13/11 05:20, com print do celular: "tem esse erro que a foto não tá enquadrada"] — a foto preparada
+   aparecia cortada (só o cabelo) porque a caixa é larga e baixa e a imagem usava "cover". Agora a caixa preenchida fica mais alta e a foto
+   aparece INTEIRA (contain), centralizada, com o rótulo "Change photo" por cima do rodapé como antes. */
+.recreate .rc-panel .rc-upload.rc-upload-filled { min-height: 236px; }
+.recreate .rc-panel .rc-upload.rc-upload-filled > img { object-fit: contain; object-position: 50% 50%; }
+@media (max-width: 640px) {
+  .recreate .rc-panel .rc-upload.rc-upload-filled { min-height: 220px; }
+}
