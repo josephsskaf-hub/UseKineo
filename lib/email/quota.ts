@@ -76,7 +76,9 @@ export type EmailPriority = 'revenue' | 'product' | 'growth'
  */
 export type ResendPlano = 'free' | 'pro'
 export const RESEND_TETO_DIARIO: Readonly<Record<ResendPlano, number>> = { free: 100, pro: 1600 }
-export const RESEND_PLANO = 'free' as ResendPlano
+// LIGADO EM 13/11/2026 16:40 pela CEO: o dono mostrou o painel do Resend às 16:25 (conta Pro, US$ 20 pagos todo mês desde junho de 2026).
+// O código vinha se limitando a 100 por dia como se o plano fosse o grátis. Voltar a 'free' só se o plano for cancelado.
+export const RESEND_PLANO = 'pro' as ResendPlano
 
 export function dailyCap(): number {
   const doPlano = RESEND_TETO_DIARIO[RESEND_PLANO]

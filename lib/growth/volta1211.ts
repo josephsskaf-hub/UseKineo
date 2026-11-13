@@ -23,7 +23,9 @@ export const VOLTA_1211_CAMPAIGN = 'volta_1211' as const
 export const VOLTA_1211_SENT = 'volta_1211_emailed' as const
 export const VOLTA_1211_CLAIM = 'volta_1211_claimed' as const
 /** O interruptor do envio. false = a rota só ensaia (nenhum fetch ao Resend existe nesse caminho). */
-export const VOLTA_1211_SEND_LIVE = false as boolean
+// LIGADO EM 13/11/2026 16:40 pela CEO. O dono disse sim às 16:16 ("começar pelas que baixaram um filme"). Ensaio em produção às 16:33:
+// 446 elegíveis no segmento c, supressão íntegra, carta e link da página do filme conferidos. Só o segmento c está liberado (abaixo).
+export const VOLTA_1211_SEND_LIVE = true as boolean
 /** Ninguém recebe 2 e-mails nossos em 7 dias (ordem da CEO). */
 export const VOLTA_1211_SUPPRESSION_HOURS = 168
 /** Parado = sem atividade nenhuma há 7+ dias. */

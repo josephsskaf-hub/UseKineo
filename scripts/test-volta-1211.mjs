@@ -95,7 +95,7 @@ function battery(src) {
   ok(L.voltaPararOnda({ enviados: 200, spam: 0, bounces: 2, descadastros: 1, cliques: 6 }) === null, 'onda limpa segue')
   // 6. a rota
   const r = src[ROTA]
-  ok(L.VOLTA_1211_SEND_LIVE === false, 'o envio nasce trancado')
+  ok(L.VOLTA_1211_SEND_LIVE === true, 'envio ligado pela CEO em 13/11 16:40 (dono: sim 16:16; ensaio em produção com 446 elegíveis e supressão íntegra)')
   ok(r.includes("if (confirm && !VOLTA_1211_SEND_LIVE) {") && r.indexOf('if (confirm && !VOLTA_1211_SEND_LIVE)') < r.indexOf('createAdminClient(url'), 'trancado responde antes de abrir o banco')
   ok(r.includes("req.nextUrl.searchParams.get('confirm') === 'SEND'"), 'só a string exata SEND arma')
   ok(r.indexOf("if (!confirm) {") > 0 && r.indexOf("if (!confirm) {") < r.indexOf("fetch('https://api.resend.com/emails'"), 'o ensaio devolve antes de qualquer fetch ao Resend')
@@ -115,7 +115,7 @@ function battery(src) {
   // 8. o teto do Resend mora num lugar só
   const qq = src[QUOTA]
   ok(/export const RESEND_TETO_DIARIO: Readonly<Record<ResendPlano, number>> = { free: 100, pro: 1600 }/.test(qq), 'teto: free 100, pro 1600 (50.000 ÷ 31)')
-  ok(qq.includes("export const RESEND_PLANO = 'free' as ResendPlano"), 'hoje é o plano free')
+  ok(qq.includes("export const RESEND_PLANO = 'pro' as ResendPlano"), 'plano Pro (painel do Resend mostrado pelo dono em 13/11 16:25: Pro pago todo mês)')
   ok(qq.includes('Math.min(Math.floor(raw), doPlano) : doPlano'), 'a env só baixa o teto, nunca sobe acima do plano')
   ok(!/KINEO_EMAIL_DAILY_CAP|RESEND_TETO_DIARIO/.test(r), 'a rota não tem teto próprio')
   ok(qq.includes('return Math.floor(dailyCap() * yieldThreshold(priority))'), 'capForPriority usa o mesmo limiar da cota')
@@ -126,14 +126,14 @@ function battery(src) {
 
 let failed = 0
 const base = battery(SRC)
-console.log(base.length === 0 ? 'PASS volta 1211: 4 segmentos, filme como isca, sem preço, 7 dias de supressão, envio trancado' : 'FAIL\n  ' + base.join('\n  '))
+console.log(base.length === 0 ? 'PASS volta 1211: 4 segmentos, filme como isca, sem preço, 7 dias de supressão, envio ligado só para o segmento c' : 'FAIL\n  ' + base.join('\n  '))
 if (base.length) failed++
 const muta = (rel, from, to) => {
   if (!SRC[rel].includes(from)) throw new Error(`mutante sem âncora em ${rel}: ${from.slice(0, 70)}`)
   return { ...SRC, [rel]: SRC[rel].replace(from, to) }
 }
 const MUTANTES = [
-  ['envio destrancado', muta(LIB, 'VOLTA_1211_SEND_LIVE = false as boolean', 'VOLTA_1211_SEND_LIVE = true as boolean')],
+  ['interruptor do envio muda sem passar pelo guardião', muta(LIB, 'VOLTA_1211_SEND_LIVE = true as boolean', 'VOLTA_1211_SEND_LIVE = false as boolean')],
   ['supressão de 24 h', muta(LIB, 'VOLTA_1211_SUPPRESSION_HOURS = 168', 'VOLTA_1211_SUPPRESSION_HOURS = 24')],
   ['pagante recebe', muta(LIB, "  if (f.paid) return { fora: 'pagante' }\n", '')],
   ['opt-out recebe', muta(LIB, "  if (f.optedOut) return { fora: 'opt_out' }\n", '')],
@@ -155,7 +155,7 @@ const MUTANTES = [
   ['carimbo fora da supressão', muta(EVT, "  'volta_1211_emailed',\n", '')],
   ['c, a, d e b liberados juntos', muta(LIB, "VOLTA_1211_SEGMENTOS_LIBERADOS: readonly VoltaSegmento[] = ['c_baixou']", "VOLTA_1211_SEGMENTOS_LIBERADOS: readonly VoltaSegmento[] = ['c_baixou', 'a_filme_parado', 'd_pais_pago', 'b_sem_filme']")],
   ['rota ignora a ordem', muta(ROTA, 'if (confirm && !voltaSegmentoLiberado(r.seg)) { fora.nao_liberado++; continue }', '')],
-  ['plano pro ligado sem pagamento', muta(QUOTA, "RESEND_PLANO = 'free' as ResendPlano", "RESEND_PLANO = 'pro' as ResendPlano")],
+  ['plano do Resend muda sem passar pelo guardião', muta(QUOTA, "RESEND_PLANO = 'pro' as ResendPlano", "RESEND_PLANO = 'free' as ResendPlano")],
   ['env sobe o teto', muta(QUOTA, 'Math.min(Math.floor(raw), doPlano) : doPlano', 'Math.floor(raw) : doPlano')],
   ['teto solto na rota', muta(ROTA, "const tetoGrowth = capForPriority('growth')", 'const tetoGrowth = Math.floor(dailyCap() * 0.6)')],
   ['resposta para caixa cega', muta(LIB, "VOLTA_1211_REPLY_TO = 'support@usekineo.com'", "VOLTA_1211_REPLY_TO = 'hello@usekineo.com'")],
