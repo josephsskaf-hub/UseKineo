@@ -430,6 +430,7 @@ export async function julgarEGravarNotaAuto(
   }
   if (x.modo === 'off' || !alvo) return { nota: null, usd: 0, painel: 'pular' }
   try {
+    const t0 = Date.now()
     const versao = x.versao ?? NOTA_AUTO_VERSAO_DO_CRON
     const juiz = x.juiz ?? juizV2PorCena
     await gravar(NOTA_AUTO_INICIO_EVENT, { version: versao, modo: x.modo, ...x.base })
@@ -468,7 +469,9 @@ export async function julgarEGravarNotaAuto(
         }
       }
     }
-    await gravar(NOTA_AUTO_EVENT, { ...r, score: r.nota, modo: x.modo, painel, ...x.base, video_url: e.video_url, pedido: alvo.pedido.slice(0, 600) })
+    // KINEO-NOTA-AUTO-CUSTO-1311 — custo separado (modelo × extração dos quadros) e o tempo total, do marcador à nota
+    const usdQuadros = Math.round((ex?.usd ?? 0) * 1e6) / 1e6
+    await gravar(NOTA_AUTO_EVENT, { ...r, score: r.nota, modo: x.modo, painel, ...x.base, video_url: e.video_url, pedido: alvo.pedido.slice(0, 600), usd_quadros: usdQuadros, usd_modelo: Math.round((r.usd - usdQuadros) * 1e6) / 1e6, ms_total: Date.now() - t0 })
     if (r.nota < NOTA_AUTO_CORTE_BAIXA) {
       // FRENTE 3 — o conserto não espera o revisor do PC: vídeo, nota, defeitos e a evidência de cada um
       await gravar(NOTA_AUTO_BAIXA_EVENT, {

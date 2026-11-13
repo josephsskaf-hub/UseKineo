@@ -13,7 +13,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
+// jpeg-js (redução dos quadros do juiz, KINEO-NOTA-AUTO-CUSTO-1311) é JavaScript puro: entra de verdade, sem rede
+const JPEG = createRequire(import.meta.url)('jpeg-js')
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
@@ -23,7 +26,7 @@ const FILME = 'lib/regua95/notaAutoFilme.ts'
 const SONDA = lf(fs.readFileSync('app/api/admin/nota-auto-sonda/route.ts', 'utf8'))
 const fontes = { [PROV]: lf(fs.readFileSync(PROV, 'utf8')), [FILME]: lf(fs.readFileSync(FILME, 'utf8')) }
 const globals = { setTimeout: () => 0, clearTimeout() {}, AbortController }
-const carregar = (arq, mut) => createOfflineLoader({ globals, env: {}, source: mut ? (rel, text) => (rel.replace(/\\/g, '/').endsWith(mut.arq) ? mut.f(lf(text)) : text) : null })(arq)
+const carregar = (arq, mut) => createOfflineLoader({ globals, env: {}, mocks: { 'jpeg-js': JPEG }, source: mut ? (rel, text) => (rel.replace(/\\/g, '/').endsWith(mut.arq) ? mut.f(lf(text)) : text) : null })(arq)
 
 function fetchGateway({ texto = '```json\n{"momentos":[{"m":1}],"resumo":"x"}\n```', status = 200, stop = 'end_turn', chamadas = [] } = {}) {
   return async (url, init) => {

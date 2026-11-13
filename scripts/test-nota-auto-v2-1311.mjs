@@ -112,7 +112,7 @@ async function provas(N) {
   const ch = []
   const ex = await N.extrairQuadrosPorTempoFal('https://x/v.mp4', p3, { falKey: 'f', fetchImpl: falsoFetch({ chamadas: ch }) })
   const tempos3 = N.temposDosQuadros(p3).flat()
-  checa('P7 fal: o quadro mais perto de cada instante (a cada 0,5 s)', ex && ex.quadros.length === tempos3.length && ex.quadros.every((q, i) => q.url === `https://fal.media/q${Math.round(tempos3[i] * 2)}.jpg`) && ch[0]?.body.frame_interval === 12)
+  checa('P7 fal: o quadro mais perto de cada instante (1 por segundo)', ex && ex.quadros.length === tempos3.length && ex.quadros.every((q, i) => q.url === `https://fal.media/q${Math.round(tempos3[i])}.jpg`) && ch[0]?.body.frame_interval === 24)
   checa('P7 fal fora = null', (await N.extrairQuadrosPorTempoFal('https://x/v.mp4', p3, { falKey: 'f', fetchImpl: falsoFetch({ falOk: false }) })) === null)
   return falhas
 }

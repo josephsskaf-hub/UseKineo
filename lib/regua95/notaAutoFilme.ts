@@ -16,8 +16,9 @@ import { planoDoNascimento } from '@/lib/regua95/notaPorCena'
 import { JUIZ19_VERSION, alvoDeDuracao, julgar19 } from '@/lib/regua95/juizRegua19'
 import { lerProvedorNotaAuto } from '@/lib/regua95/visaoProvedor'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
+import { quadrosDoJuizPequenos } from '@/lib/regua95/quadroPequeno'
 import {
-  julgarEGravarNotaAuto, lerModoNotaAuto, notaAutoPendente, notasAutoFeitas, type EntregaNotaAuto, type JuizNotaAuto, type NotaAutoMode,
+  NOTA_AUTO_EVENT, julgarEGravarNotaAuto, lerModoNotaAuto, notaAutoPendente, notasAutoFeitas, type EntregaNotaAuto, type JuizNotaAuto, type NotaAutoMode,
 } from '@/lib/regua95/notaRevisor'
 
 /**
@@ -33,11 +34,14 @@ export function modeloDoJuizDoFilme(env: Record<string, string | undefined> = pr
   if (explicito) return explicito
   return lerProvedorNotaAuto(env).provedor === 'openai' ? AI_TEXT_MODELS.filmJudge : undefined
 }
-export const juizV3ReguaInteira: JuizNotaAuto = async (a) =>
-  julgar19(
-    { plano: a.plano, quadros: a.quadros, pedido: a.alvo.pedido, roteiro: a.alvo.roteiro, produto: a.entrega.product, motor: a.alvo.motor, segundos: a.entrega.seconds ?? a.plano.segundos, segundosPedidos: a.alvo.segundosPedidos ?? null, linguaEscolhida: a.alvo.lingua ?? null },
+export const juizV3ReguaInteira: JuizNotaAuto = async (a) => {
+  // KINEO-NOTA-AUTO-CUSTO-1311 — quadros em 432 px, como no ensaio (em produção a fal entrega no tamanho do vídeo: 5× o custo)
+  const { quadros } = await quadrosDoJuizPequenos(a.quadros, { fetchImpl: a.fetchImpl })
+  return julgar19(
+    { plano: a.plano, quadros, pedido: a.alvo.pedido, roteiro: a.alvo.roteiro, produto: a.entrega.product, motor: a.alvo.motor, segundos: a.entrega.seconds ?? a.plano.segundos, segundosPedidos: a.alvo.segundosPedidos ?? null, linguaEscolhida: a.alvo.lingua ?? null },
     { fetchImpl: a.fetchImpl, tokenGateway: a.tokenGateway, usdQuadros: a.usdQuadros, tarifa: lerProvedorNotaAuto().tarifa, model: modeloDoJuizDoFilme() },
   )
+}
 
 /** Janela da rede de segurança (o disparo na hora cobre o caso normal; isto cobre função morta, deploy, fal fora). */
 export const NOTA_AUTO_CRON_HORAS = 3
@@ -81,6 +85,25 @@ export async function entregaDoFilme(admin: SupabaseClient, videoId: string): Pr
   }
 }
 
+// ── Teto diário de gasto do juiz (ordem da CEO, 13/11 noite) ──
+/** US$ por dia (horário de Brasília). Estourou: não julga mais até o dia seguinte e grava UM evento nota_auto_teto no dia. */
+export const NOTA_AUTO_TETO_DIA_USD = 2
+export const NOTA_AUTO_TETO_EVENT = 'nota_auto_teto'
+export function tetoDoDiaUsd(env: Record<string, string | undefined> = process.env): number {
+  const n = Number(env.NOTA_AUTO_TETO_DIA_USD)
+  return Number.isFinite(n) && n > 0 ? n : NOTA_AUTO_TETO_DIA_USD
+}
+/** 00:00 de hoje em Brasília (UTC−3, sem horário de verão desde 2019), em ISO UTC. */
+export function inicioDoDiaBrasilia(agora: number = Date.now()): string {
+  const d = new Date(agora - 3 * 3600_000)
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 3, 0, 0)).toISOString()
+}
+/** Quanto o juiz já gastou hoje: soma do `usd` dos eventos nota_auto desde 00:00 de Brasília. */
+export async function gastoDoDia(admin: SupabaseClient, readAll: typeof ReadAllRows, route: string, agora: number = Date.now()): Promise<number> {
+  const r = await readAll(() => admin.from('events').select('metadata').eq('name', NOTA_AUTO_EVENT).gte('created_at', inicioDoDiaBrasilia(agora)), { route, table: 'events' })
+  return ((r.data ?? []) as Array<{ metadata: Record<string, unknown> | null }>).reduce((s, e) => s + (Number(e.metadata?.usd) || 0), 0)
+}
+
 /** Julga um filme se ele ainda precisa de nota. Nunca lança. */
 export async function notaAutoDoFilme(
   admin: SupabaseClient,
@@ -93,6 +116,16 @@ export async function notaAutoDoFilme(
     if (!e) return { videoId: x.videoId, feito: false, motivo: 'nao_e_filme_pronto' }
     const feitas = await notasAutoFeitas(admin, [e.key], x.readAll, x.route, x.agora, NOTA_AUTO_VERSAO_FILME)
     if (!notaAutoPendente(modo, e, feitas, x.agora)) return { videoId: x.videoId, feito: false, motivo: 'ja_feito_ou_fora_da_janela' }
+    // teto diário: estourou, não julga mais hoje e deixa UM evento de teto no dia
+    const teto = tetoDoDiaUsd()
+    const gasto = await gastoDoDia(admin, x.readAll, x.route, x.agora)
+    if (gasto >= teto) {
+      const ja = await admin.from('events').select('id').eq('name', NOTA_AUTO_TETO_EVENT).gte('created_at', inicioDoDiaBrasilia(x.agora)).limit(1)
+      if (!((ja.data ?? []) as unknown[]).length) {
+        await admin.from('events').insert({ name: NOTA_AUTO_TETO_EVENT, user_id: e.user_id, session_id: e.key, path: x.route, metadata: { version: NOTA_AUTO_VERSAO_FILME, gasto_usd: Math.round(gasto * 1e4) / 1e4, teto_usd: teto, dia_desde: inicioDoDiaBrasilia(x.agora), video_id: e.key } })
+      }
+      return { videoId: x.videoId, feito: false, motivo: 'teto_diario' }
+    }
     const r = await julgarEGravarNotaAuto(admin, { modo, entrega: e, base: { product: 'filme', video_id: e.key, engine: e.notaAuto?.motor ?? null }, route: x.route, fetchImpl: x.fetchImpl, tokenGateway: x.tokenGateway, juiz: juizV3ReguaInteira, versao: NOTA_AUTO_VERSAO_FILME })
     return { videoId: x.videoId, feito: true, ...r }
   } catch (err) {

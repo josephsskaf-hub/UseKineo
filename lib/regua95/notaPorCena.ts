@@ -428,8 +428,10 @@ export async function extrairQuadrosPorTempoFal(
   const key = opts?.falKey ?? process.env.FAL_KEY ?? process.env.FAL_API_KEY
   if (!key || !videoUrl || !plano.momentos.length) return null
   const doFetch = opts?.fetchImpl ?? fetch
-  const passo = Math.max(1, Math.round(PIXEL_FPS_ASSUMED / 2))
-  const max = Math.min(200, Math.ceil(plano.segundos * 2) + 2)
+  // 1 quadro por segundo (era a cada 0,5 s): metade dos quadros para a fal gerar e subir; o mais perto de cada instante
+  // fica a ≤ 0,5 s dele (os momentos têm 3 s ou mais). KINEO-NOTA-AUTO-CUSTO-1311
+  const passo = Math.max(1, PIXEL_FPS_ASSUMED)
+  const max = Math.min(120, Math.ceil(plano.segundos) + 2)
   const started = Date.now()
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), opts?.timeoutMs ?? 90_000)
