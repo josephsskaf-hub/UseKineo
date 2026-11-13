@@ -7,6 +7,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import MyVideosClient, { type VideoRow } from './MyVideosClient'
+import RecreateShelf from '@/components/library/RecreateShelf' // KINEO-CAMINHOS-DO-VIDEO-1311
 
 // sprint-ui #11 (2026-08-30) — titulo de aba proprio. Sem isto, a aba
 // mostrava o title SEO da landing ('Kineo — AI YouTube Shorts Generator
@@ -120,5 +121,5 @@ export default async function MyVideosPage() {
 
   // KINEO-SPRINT-UI4-2026-08-29 — se ate o select estreito falhou, avisar a
   // tela: lista vazia por ERRO nao pode vestir a roupa de "No videos yet".
-  return <MyVideosClient videos={videos} loadError={Boolean(query.error)} />
+  return <><RecreateShelf /><MyVideosClient videos={videos} loadError={Boolean(query.error)} /></> // KINEO-CAMINHOS-DO-VIDEO-1311
 }

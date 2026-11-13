@@ -197,6 +197,9 @@ export default function RecreateClient({ initialId, internalTools = false, forma
   }
   const quote = selected ? quotes.find(q => q.id === selected.id) : null
   const active = !!clip && ['pending', 'processing'].includes(clip.status)
+  // KINEO-CAMINHOS-DO-VIDEO-1311 — no celular o resultado nascia no fim do painel, atrás do botão fixo: quando fica pronto (ou falha), a tela rola até ele.
+  const fimDoClipe = clip && ['done', 'failed'].includes(clip.status) ? clip.status : null
+  useEffect(() => { if (fimDoClipe) document.querySelector('.rc-result')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }, [fimDoClipe])
   const photoCount = photos.filter(Boolean).length
   const photosReady = !!selected && photoCount === selected.photoSlots
   const editingDisabled = busy || photoBusy || active
@@ -212,7 +215,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
     galleryRef.current?.querySelector<HTMLElement>('h1, h2')?.focus({ preventScroll: true })
   }
   return <main className="recreate">
-    <header className={createTabs ? 'rc-nav ct-nav' : 'rc-nav'}><Link href="/" className="rc-brand"><KineoBrandIcon size={28} /><span>Kineo</span></Link>{createTabs ? <CreateTabs active="recreate" /> : <Link href="/recreate" onClick={e => { if (editingDisabled) e.preventDefault() }}>Recreate</Link>}{createTabs ? <CreateNavConta /> : <Link href="/clips">My videos ↗</Link>}</header>
+    <header className={createTabs ? 'rc-nav ct-nav' : 'rc-nav'}><Link href="/" className="rc-brand"><KineoBrandIcon size={28} /><span>Kineo</span></Link>{createTabs ? <CreateTabs active="recreate" /> : <Link href="/recreate" onClick={e => { if (editingDisabled) e.preventDefault() }}>Recreate</Link>}{createTabs ? <CreateNavConta /> : <Link href="/library">My videos ↗</Link>}</header>
     {message && <div className="rc-notice" role="status">{message} <button onClick={() => { void loadQuotes(); void loadSocial() }}>Retry</button></div>}
     <div className={`rc-workspace ${selected ? '' : 'rc-library-only'}`}>
       {selected && <aside className="rc-panel" aria-label="Create your version">
@@ -258,7 +261,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
           {internalTools && <button className="rc-simulate" disabled={busy} onClick={() => void generate(true)}>Simulate · no generation</button>}
         </section>
         {simulation && <output className="rc-result"><strong>Simulation · no generation</strong><p>{simulation.format} · {simulation.seconds} s · {simulation.mode}</p><p>Up to {simulation.photos} photos. No upload, debit or render was made.</p></output>}
-        {clip && <div className="rc-result" aria-live="polite"><strong>{clip.status === 'done' ? 'Your version is ready' : clip.status === 'failed' ? 'Generation failed' : 'Creating your version'}</strong>{clip.status === 'done' && clip.video_url && <><RecreatePlayer src={clip.video_url} label="Your version" /><a href={clip.video_url} download>Download ↗</a></>}{clip.status === 'failed' && <p>{clip.reason === 'not_swapped' ? clip.credits_refunded ? NOT_SWAPPED_MESSAGE : "We couldn't put you in this video. Check your videos for the final billing status." : clip.credits_refunded ? 'Your credit refund was confirmed.' : 'Check your videos for the final billing status.'}</p>}<Link href="/clips">My videos ↗</Link></div>}
+        {clip && <div className="rc-result" aria-live="polite"><strong>{clip.status === 'done' ? 'Your version is ready' : clip.status === 'failed' ? 'Generation failed' : 'Creating your version'}</strong>{clip.status === 'done' && clip.video_url && <><RecreatePlayer src={clip.video_url} label="Your version" /><a href={clip.video_url} download>Download ↗</a></>}{clip.status === 'failed' && <p>{clip.reason === 'not_swapped' ? clip.credits_refunded ? NOT_SWAPPED_MESSAGE : "We couldn't put you in this video. Check your videos for the final billing status." : clip.credits_refunded ? 'Your credit refund was confirmed.' : 'Check your videos for the final billing status.'}</p>}<Link href="/library">My videos ↗</Link></div>}
       </aside>}
       {selected && <section className="rc-reference" aria-label="Base video">
         <div className="rc-stage"><RecreatePlayer key={selected.id} src={selected.preview} poster={selected.poster} preview label={`Base video: ${selected.title}`}
