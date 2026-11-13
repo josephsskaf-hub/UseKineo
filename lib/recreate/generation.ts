@@ -12,7 +12,7 @@ export const RECREATE_PROVIDER_ORIGIN = 'https://www.usekineo.com'
 /** Trusted server-only argument to submitClip. Never copied from a browser body. */
 export interface RecreatePlan {
   body: ClipRequestInput
-  model: typeof RECREATE_MODEL
+  model: string // KINEO-RECREATE-SEU-VIDEO-1311 — era: typeof RECREATE_MODEL (o seu vídeo usa o Seedance 2.5; a trava "não trocou" segue só no RECREATE_MODEL)
   credits: number
   falUsd: number
   photos: string[]

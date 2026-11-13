@@ -3,6 +3,7 @@ import { recreateSession, RECREATE_HEADERS } from '@/lib/recreate/server'
 import { clipsAdmin, loadClip, settleDepsFor } from '@/lib/clips/clipServer'
 import { settleClip } from '@/lib/clips/clipFlow'
 import { isRecreateNotSwappedReason } from '@/lib/recreate/swapCheck'
+import { recusaDoMotor, SEEDANCE25_MODEL } from '@/lib/recreate/seuVideo' // KINEO-RECREATE-SEU-VIDEO-1311
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -21,5 +22,8 @@ export async function GET(req: NextRequest) {
   const { status, video_url, credits_refunded } = fresh
   // KINEO-RECREATE-TRAVA-1011 — the only reason the screen needs: the result came back without the customer in it.
   const reason = status === 'failed' && isRecreateNotSwappedReason(fresh.failure_reason) ? { reason: 'not_swapped' } : {}
-  return NextResponse.json({ clip: { id, status, video_url: status === 'failed' ? null : video_url, credits_refunded, ...reason } }, { headers: RECREATE_HEADERS })
+  // KINEO-RECREATE-SEU-VIDEO-1311 — o Seedance 2.5 recusou (rosto real, cena sensível): a frase clara; o estorno já foi feito no settleClip.
+  const motor = status === 'failed' && fresh.model === SEEDANCE25_MODEL ? recusaDoMotor(fresh.failure_reason, credits_refunded ?? 0) : null
+  const seuVideo = motor ? { reason: 'engine_refused', message: motor } : {} // KINEO-RECREATE-SEU-VIDEO-1311
+  return NextResponse.json({ clip: { id, status, video_url: status === 'failed' ? null : video_url, credits_refunded, ...reason, ...seuVideo } }, { headers: RECREATE_HEADERS })
 }
