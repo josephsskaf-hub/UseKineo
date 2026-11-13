@@ -108,7 +108,7 @@ let ok = 2, falhas = 0
 const troca = (de, para) => (t) => { const n = t.replace(de, para); return n }
 const MUTANTES = [
   ["M1 interruptor 'off'", { [ESTILO]: troca("KINEO_APARENCIA_DO_PEDIDO_1311: ModoAparencia1311 = 'all'", "KINEO_APARENCIA_DO_PEDIDO_1311: ModoAparencia1311 = 'off'") }],
-  ['M2 começo ignorado', { [ESC]: troca('return cabeca.length < CABECA_GRAVADA_CHARS ? texto === cabeca : texto.startsWith(cabeca)', 'return true') }],
+  ['M2 começo ignorado', { [ESC]: troca("return String(e.metadata?.script_head ?? '').length < CABECA_GRAVADA_CHARS ? texto === cabeca : texto.startsWith(cabeca)", 'return true') }],
   ['M3 "named" desligado', { [FICHA]: troca('?? (opcoes.aparencia1311 ? nomeadoNoPedido(pedido, f, nomes) : null)', '') }],
   ['M4 ficha do roteiro não cede', { [FICHA]: troca("(f.origem === 'autor' && !autorDoRoteiro)", "f.origem === 'autor'") }],
   ['M5 cirílico fora do look', { [ESTILO]: troca('...(regrasDeLinguaLigadas() ? [ESTILO_CIRILICO_1311] : []),', '') }],

@@ -22,11 +22,38 @@ export function ideiaDoRoteiroEscrito(roteiroDespachado: unknown, eventos: Reado
       if (typeof e.metadata?.original_idea !== 'string' || !e.metadata.original_idea.trim()) return false
       const cabeca = norma(e.metadata?.script_head)
       if (cabeca.length < CABECA_MIN_CHARS) return false
-      // cabeça gravada inteira (< 200: o roteiro todo) = o roteiro despachado inteiro; com 200, o começo dele
-      return cabeca.length < CABECA_GRAVADA_CHARS ? texto === cabeca : texto.startsWith(cabeca)
+      // cabeça gravada inteira (< 200: o roteiro todo) = o roteiro despachado inteiro; com 200, o começo dele.
+      // KINEO-IDEIA-VIAJA-1311 — o tamanho que decide é o GRAVADO (cru): a cabeça de 200 que termina em espaço ("…MICRO REWARD ") perdia 1
+      // caractere no trim, virava "roteiro curto" e exigia o texto inteiro igual — 7 dos 12 filmes grátis de 7 dias não casavam por isso.
+      return String(e.metadata?.script_head ?? '').length < CABECA_GRAVADA_CHARS ? texto === cabeca : texto.startsWith(cabeca)
     })
     .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0]
   return casado ? String(casado.metadata!.original_idea).slice(0, IDEIA_DO_ROTEIRO_MAX_CHARS) : null
+}
+
+// ── KINEO-IDEIA-VIAJA-1311 — a medida: de onde veio a ideia de CADA filme ────────────────────────────────────────────────────────────
+export const FILM_IDEA_STATUS_EVENT = 'film_idea_status'
+export const FILM_IDEA_STATUS_VERSAO = 'ideia_viaja_1311_v1'
+export type OrigemDaIdeia = 'tela' | 'recuperada' | 'ausente'
+/**
+ * O registro de um filme: `origem` = a tela mandou a ideia / o servidor a recuperou / não há ideia (roteiro colado, conector, escritor sem
+ * evento…); `ideia_e_o_roteiro` = a tela mandou o próprio roteiro como ideia (defeito de tela: não é a ideia de onde ele nasceu). PURA.
+ */
+export function statusDaIdeiaDoFilme(a: { daTela: unknown; final: unknown; roteiro: unknown; generationId?: unknown; dryRun?: boolean; servico?: boolean }) {
+  const tela = typeof a.daTela === 'string' && a.daTela.trim() ? a.daTela : null
+  const final = typeof a.final === 'string' && a.final.trim() ? a.final : null
+  const origem: OrigemDaIdeia = tela ? 'tela' : final ? 'recuperada' : 'ausente'
+  const roteiro = norma(a.roteiro)
+  return {
+    version: FILM_IDEA_STATUS_VERSAO,
+    origem,
+    chars: final ? final.length : 0,
+    ideia_e_o_roteiro: !!tela && !!roteiro && norma(tela) === roteiro,
+    roteiro_chars: roteiro.length,
+    generation_id: typeof a.generationId === 'string' ? a.generationId : null,
+    dry_run: a.dryRun === true,
+    servico: a.servico === true,
+  }
 }
 
 // ── a leitura no banco (rota do filme): os script_written da pessoa na janela; nunca lança, falha = null (nada muda) ───────────────────

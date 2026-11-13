@@ -308,7 +308,7 @@ import { sujeitoEmTodosOsMotores, SUJEITO_TODOS_EVENTO } from '@/lib/cinematic/s
 import { ehIdeiaSolta } from '@/lib/meta95/ideiaNoEscritor' // KINEO-K4-SUJEITO-0111 — ideia solta que chegou crua = o pedido original
 import { pedirElencoSemantico, aplicarElencoSemantico, relatoDoElencoSemantico, fichaLiteralConferida, aceitaPapelDasCenas } from '@/lib/cinematic/elencoSemantico' // KINEO-PROTAGONISTA-SEEDANCE-0111 — o elenco lido pelo sentido (protagonista nomeado), falha segura = o determinístico
 import { aparenciaLigada, KINEO_APARENCIA_DO_PEDIDO_1311, APARENCIA_1311_VERSAO } from '@/lib/cinematic/aparenciaDoPedido1311' // KINEO-APARENCIA-DO-PEDIDO-1311
-import { recuperarIdeiaDoEscritor } from '@/lib/cinematic/ideiaDoEscritor1311' // KINEO-APARENCIA-DO-PEDIDO-1311
+import { recuperarIdeiaDoEscritor, statusDaIdeiaDoFilme, FILM_IDEA_STATUS_EVENT } from '@/lib/cinematic/ideiaDoEscritor1311' // KINEO-APARENCIA-DO-PEDIDO-1311 · KINEO-IDEIA-VIAJA-1311
 import { elencoComFichaDoPedido } from '@/lib/cinematic/fichaDoPedido' // KINEO-FICHA-DO-PEDIDO-0911 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — o que o cliente escreveu sobre o personagem no PEDIDO ORIGINAL chega à ficha quando o roteiro automático resumiu o texto
 import { pedirOrigemDoElenco, montarOrigemDoFilme, origemLigadaNoFilme, elencoComOrigem, origemParaCenas, sheetComOrigem, relatoDaOrigem, EVENTO_ORIGEM_DO_ELENCO } from '@/lib/cinematic/origemDoElenco' // KINEO-ORIGEM-DO-ELENCO-0311 [TRAVA 8.2 — fundador 03/11: "Conserta a etnia agora, universal de todas as etnias"] — de onde é quem está em cena, provado pelas palavras do texto, em todos os motores
 import { visualMostraAlguem, visualMostraPessoa } from '@/lib/cinematic/personagemAjuste' // KINEO-PROTAGONISTA-SEEDANCE-0111 — o detector de gente no visual do 15 s (rodada 15) e o de pessoa (rodada 16: protagonista bicho não apaga a pessoa)
@@ -1614,14 +1614,19 @@ async function manipularPost(req: NextRequest) {
     } catch {
       return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 })
     }
-    // KINEO-APARENCIA-DO-PEDIDO-1311 (peça 1) [CEO 13/11] — a tela não mandou a ideia, mas o roteiro despachado é EXATAMENTE o que o nosso escritor
-    // escreveu dela (mesmo hash no script_written da pessoa, até 6 h): a ideia volta, como a tela mandaria. 22 de 37 filmes grátis do Kling 4 em
-    // 7 dias chegavam sem ela (Milo, 982a6aeb: "fluffy orange kitten" virou gato cinza). Antes da cópia estacionada, para a retomada levar a mesma.
+    // KINEO-APARENCIA-DO-PEDIDO-1311 (peça 1) [CEO 13/11] — a tela não mandou a ideia, mas o roteiro despachado começa com o que o nosso escritor
+    // gravou dela (script_head do script_written da pessoa, até 6 h; lib/cinematic/ideiaDoEscritor1311): a ideia volta, como a tela mandaria.
+    // Antes da cópia estacionada, para a retomada levar a mesma.
     const aparencia1311 = aparenciaLigada(KINEO_APARENCIA_DO_PEDIDO_1311, isInternalEmail(user.email)) // KINEO-APARENCIA-DO-PEDIDO-1311
+    // KINEO-IDEIA-VIAJA-1311 [CEO 13/11: "de cada 10 filmes grátis novos, quantos nascem com a ideia do cliente"] — até aqui ninguém gravava se a
+    // ideia CHEGOU: o fonte_do_pedido 'ideia_solta' do sujeito também sai quando a ideia chegou e é longa (Milo). A origem fica no evento
+    // film_idea_status de todo filme (tela / recuperada / ausente), com o sinal de defeito da tela "a ideia é o próprio roteiro".
+    const ideiaDaTela1311 = typeof body.original_idea === 'string' && body.original_idea.trim() ? body.original_idea : null // KINEO-IDEIA-VIAJA-1311
     if (aparencia1311 && !(typeof body.original_idea === 'string' && body.original_idea.trim())) { // KINEO-APARENCIA-DO-PEDIDO-1311
       const ideiaDoEscritor = await recuperarIdeiaDoEscritor(user.id, body.prompt) // KINEO-APARENCIA-DO-PEDIDO-1311 — nunca lança; sem par exato = null
       if (ideiaDoEscritor) { body.original_idea = ideiaDoEscritor; void writeServerEvent({ name: 'original_idea_recovered', userId: user.id, path: '/api/generate-video-cinematic', metadata: { version: APARENCIA_1311_VERSAO, chars: ideiaDoEscritor.length, generation_id: typeof body.generationId === 'string' ? body.generationId : null } }) } // KINEO-APARENCIA-DO-PEDIDO-1311
     } // KINEO-APARENCIA-DO-PEDIDO-1311
+    void writeServerEvent({ name: FILM_IDEA_STATUS_EVENT, userId: user.id, path: '/api/generate-video-cinematic', metadata: statusDaIdeiaDoFilme({ daTela: ideiaDaTela1311, final: body.original_idea, roteiro: body.prompt, generationId: body.generationId, dryRun: body.dry_run === true, servico: isServiceJob }) }) // KINEO-IDEIA-VIAJA-1311
     const pedidoEstacionado = pedidoEstacionavel(body) // KINEO-FILA-QUEDA-FAL-2810 — a cópia fechada do pedido, ANTES de a rota mexer no body (script_mode do monumento etc.); null = não estaciona
 
     // KINEO-FACELESS-2026-08-25 — tag [faceless] no script = filme SEM avatar:
