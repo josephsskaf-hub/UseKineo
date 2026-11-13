@@ -28,6 +28,8 @@ import {
   type ClipOwnerProfile,
   type FreeClipBrandDeps,
   type FreeClipMarkReason,
+  audioClipPath, // KINEO-RECREATE-SEU-VIDEO-1311
+  type ClipAudioTrack, // KINEO-RECREATE-SEU-VIDEO-1311
 } from '@/lib/clips/freeClipWatermark'
 
 const DOWNLOAD_TIMEOUT_MS = 45_000
@@ -55,6 +57,8 @@ export async function persistFreeClipWithMark(ctx: {
   table: string
   cleanToken: string
   expireMs: number
+  /** KINEO-RECREATE-SEU-VIDEO-1311 — o som original do Recreate "com o seu vídeo" (null/ausente = byte a byte o de antes). */
+  audio?: ClipAudioTrack | null
 }): Promise<string | null> {
   const { admin, row, bucket, table } = ctx
   const event = async (name: string, metadata: Record<string, unknown>) => {
@@ -84,8 +88,9 @@ export async function persistFreeClipWithMark(ctx: {
       if (decision.reason === 'profile_unreadable') {
         await event('clip_watermark_failed', { clip_id: row.id, engine: row.engine, seconds: row.seconds, stage: 'profile', error: error?.message?.slice(0, 160) ?? null, delivered: 'clean' })
       }
-      return null
-    }
+      if (!ctx.audio) return null // KINEO-RECREATE-SEU-VIDEO-1311 — era: return null (sem marca, mas com o som original: a montagem só do som)
+      reason = 'audio' // KINEO-RECREATE-SEU-VIDEO-1311
+    } else // KINEO-RECREATE-SEU-VIDEO-1311
     reason = decision.reason
   }
 
@@ -138,7 +143,7 @@ export async function persistFreeClipWithMark(ctx: {
       if (st.status === 'failed' || st.status === 'cancelled') return { status: 'failed', error: st.error }
       return { status: 'pending' }
     },
-    copyBranded: async (url) => upload(brandedClipPath(row.user_id, row.id), await downloadBytes(url)),
+    copyBranded: async (url, why) => upload(why === 'audio' ? audioClipPath(row.user_id, row.id) : brandedClipPath(row.user_id, row.id), await downloadBytes(url)), // KINEO-RECREATE-SEU-VIDEO-1311 — era: brandedClipPath sempre
     event: (name, metadata) => event(name, metadata),
   }
 
@@ -148,5 +153,6 @@ export async function persistFreeClipWithMark(ctx: {
     reason,
     ageMs: Date.now() - Date.parse(row.created_at),
     expireMs: ctx.expireMs,
+    audio: ctx.audio ?? null, // KINEO-RECREATE-SEU-VIDEO-1311
   })
 }

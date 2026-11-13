@@ -135,6 +135,72 @@ checa('ESSENCIAL recusa no fim estorna (provider_failed → fail → deps.refund
 checa('F eventos só do servidor', eventos.includes("'recreate_seu_video_started'") && eventos.includes("'recreate_seu_video_refused'"))
 checa('F a trava "não trocou" segue só no Recast', r('lib/recreate/swapCheck.ts').includes('if (row.model !== RECREATE_MODEL) return null'))
 
+// (B) Entrega B: o som ORIGINAL volta pela montagem da casa (Creatomate da marca dos clipes), EXECUTANDO brandFreeClip com deps simuladas
+const MARCA = 'lib/clips/freeClipWatermark.ts'
+const carregaMarca = (mutar = null) => createOfflineLoader({ source: (rel, text) => (mutar && rel === MARCA ? mutar(text) : text) })(MARCA)
+const SUPA = 'https://x.supabase.co', U = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee', ID = '12345678-1234-4234-8234-123456789abc'
+const ORIGINAL = `${SUPA}/storage/v1/object/public/renders/recreate-uploads/${U}/${ID}.mp4`
+const MP4_REAL = fs.readFileSync('lib/recreate/assets/recreate-favorito.mp4')
+async function provasB(m, mm) {
+  const erros = []
+  const fp = (url, model = m.SEEDANCE25_MODEL) => JSON.stringify(['pedido', model, m.entradaSeedance25({ prompt: 'p @Video1 @Image1', fotos: ['f'], videoUrl: url, gerados: 8, proporcao: '9:16' })])
+  const linha = (over = {}) => ({ model: m.SEEDANCE25_MODEL, fingerprint: fp(ORIGINAL), user_id: U, seconds: 8, ...over })
+  const som = m.somOriginalDaLinha(linha(), SUPA)
+  if (!som || som.url !== ORIGINAL || som.seconds !== 8) erros.push('B o som original não foi achado: ' + JSON.stringify(som))
+  if (m.somOriginalDaLinha(linha({ user_id: 'ffffffff-bbbb-4ccc-8ddd-eeeeeeeeeeee' }), SUPA) !== null) erros.push('B pegou o vídeo de outro dono')
+  if (m.somOriginalDaLinha(linha({ fingerprint: fp('https://evil.example/a.mp4') }), SUPA) !== null) erros.push('B pegou URL de fora do bucket')
+  if (m.somOriginalDaLinha(linha({ model: 'minimax/h3-max/recast', fingerprint: fp(ORIGINAL, 'minimax/h3-max/recast') }), SUPA) !== null) erros.push('B mexeu no Recreate de catálogo')
+  if (m.somOriginalDaLinha(linha(), SUPA, false) !== null) erros.push('B o interruptor desligado não desliga')
+  if (m.somOriginalDaLinha(linha({ fingerprint: '{quebrado' }), SUPA) !== null) erros.push('B impressão quebrada não deu null')
+  // a fonte do Creatomate
+  const info = { width: 720, height: 1280, fps: 24, durationSeconds: 8.041 }
+  const antes = mm.buildFreeClipWatermarkSource('https://c/clean.mp4', info)
+  if (antes.elements.length !== 2 || antes.elements.some((e) => e.type === 'audio')) erros.push('B a marca sem som mudou')
+  const soSom = mm.buildFreeClipWatermarkSource('https://c/clean.mp4', info, { text: false, audio: { url: ORIGINAL, seconds: 8 } })
+  const a = soSom.elements.find((e) => e.type === 'audio')
+  if (soSom.elements.some((e) => e.type === 'text') || !a || a.source !== ORIGINAL || a.duration !== 8.041 || a.time !== 0) erros.push('B montagem só do som errada: ' + JSON.stringify(soSom.elements))
+  const comMarca = mm.buildFreeClipWatermarkSource('https://c/clean.mp4', info, { audio: { url: ORIGINAL, seconds: 8 } })
+  if (!comMarca.elements.some((e) => e.type === 'text') || !comMarca.elements.some((e) => e.type === 'audio')) erros.push('B quem não paga perdeu a marca ou o som')
+  if (!mm.parseBrandMarker(mm.brandMarker({ phase: 'rendering', reason: 'audio', startedAt: 1763000000000, renderId: 'render-12345678' }))) erros.push('B a trava não lê o motivo audio')
+  if (mm.isBrandedClipUrl(`${SUPA}/storage/v1/object/public/clips/clips/${U}/${ID}${mm.AUDIO_CLIP_SUFFIX}`)) erros.push('B o arquivo com som seria trocado pelo limpo (mudo) de quem paga')
+  // a máquina de estados de verdade: 1ª passada pede o render; 2ª copia para o caminho do som
+  const pedidos = [], copias = []
+  let video_url = null
+  const deps = {
+    now: () => 1763000000000, claim: async (mk) => { video_url = mk; return 'claimed' }, swap: async (de, para) => { if (video_url !== de) return false; video_url = para; return true },
+    download: async () => new Uint8Array(MP4_REAL), uploadClean: async () => 'https://c/clean.mp4', cleanUrl: () => 'https://c/clean.mp4',
+    submit: async (src) => { pedidos.push(src); return 'render-12345678' }, poll: async () => ({ status: 'succeeded', url: 'https://creatomate/out.mp4' }),
+    copyBranded: async (url, why) => { copias.push(why); return why === 'audio' ? 'https://nosso/som.mp4' : 'https://nosso/marca.mp4' }, event: async () => {},
+  }
+  const row = { id: ID, engine: 'h3', seconds: 8, video_url: null }
+  try { await mm.brandFreeClip(deps, { row, providerUrl: 'https://fal/out.mp4', reason: 'audio', ageMs: 1000, expireMs: 7200000, audio: { url: ORIGINAL, seconds: 8 } }); erros.push('B a 1ª passada não esperou o render') } catch (x) { if (!/rendering/.test(String(x?.message ?? x))) erros.push('B 1ª passada: ' + (x?.message ?? x)) }
+  const src = pedidos[0]
+  if (!src || src.elements.some((e) => e.type === 'text') || !src.elements.some((e) => e.type === 'audio' && e.source === ORIGINAL)) erros.push('B o render pedido não é só o som original: ' + JSON.stringify(src?.elements?.map((e) => e.type)))
+  const fim = await mm.brandFreeClip(deps, { row: { ...row, video_url }, providerUrl: 'https://fal/out.mp4', reason: null, ageMs: 2000, expireMs: 7200000, audio: { url: ORIGINAL, seconds: 8 } }).catch((x) => 'lançou ' + x?.message)
+  if (fim !== 'https://nosso/som.mp4' || copias[0] !== 'audio') erros.push(`B a 2ª passada não entregou o arquivo com som (${fim}, ${copias})`)
+  return erros
+}
+const bBase = await provasB(carrega(), carregaMarca())
+checa(`B som original pela montagem: provas verdes${bBase.length ? ': ' + bBase.join(' · ') : ''}`, bBase.length === 0)
+const servMarca = r('lib/clips/freeClipWatermarkServer.ts'), clipSrv = r('lib/clips/clipServer.ts')
+checa('B quem paga recebe a montagem só do som; sem som, o caminho de sempre', servMarca.includes("if (!ctx.audio) return null // KINEO-RECREATE-SEU-VIDEO-1311") && servMarca.includes("reason = 'audio'") && servMarca.includes('audio: ctx.audio ?? null'))
+checa('B o persist do clipe passa o som e entra na montagem por ele', clipSrv.includes("const audio = somOriginalDaLinha(row, process.env.NEXT_PUBLIC_SUPABASE_URL ?? '')") && clipSrv.includes('isFreeClipMarkTestKey(row.idempotency_key)) {') && clipSrv.includes('expireMs: CLIP_EXPIRE_MS, audio,'))
+checa('B nada de som gerado (a fal segue com generate_audio false)', carrega().entradaSeedance25({ prompt: '', fotos: [], videoUrl: '', gerados: 4, proporcao: '9:16' }).generate_audio === false)
+const MUTANTES_B = [
+  ['B som de qualquer dono', ARQ, (s) => s.replace('return u.startsWith(dono) &&', 'return u.includes(`/${SEU_VIDEO_PASTA}/`) &&')],
+  ['B som sem o corte na duração', MARCA, (s) => s.replace("...(dur ? { duration: Math.round(dur * 1000) / 1000 } : {}), source: opts.audio.url", 'source: opts.audio.url')],
+  ['B só som mas com a marca', MARCA, (s) => s.replace("const elements = opts.text === false ? base.elements.filter((e) => e.type !== 'text') : base.elements", 'const elements = base.elements')],
+  ['B render sem o som', MARCA, (s) => s.replace("buildFreeClipWatermarkSource(clean, info, { text: reason !== 'audio', audio: args.audio ?? null })", 'buildFreeClipWatermarkSource(clean, info)')],
+  ['B som vai para o caminho da marca', MARCA, (s) => s.replace('const url = await deps.copyBranded(state.url, marker.reason)', 'const url = await deps.copyBranded(state.url)')],
+  ['B trava sem o motivo audio', MARCA, (s) => s.replace('(free|courtesy|forced|audio)', '(free|courtesy|forced)')],
+]
+for (const [nome, arq, fn] of MUTANTES_B) {
+  const fonte = lf(fs.readFileSync(arq, 'utf8')), mudou = fn(fonte) !== fonte
+  let e = ['(mutante não aplicou)']
+  if (mudou) { try { e = await provasB(arq === ARQ ? carrega(fn) : carrega(), arq === MARCA ? carregaMarca(fn) : carregaMarca()) } catch (x) { e = ['lançou: ' + x.message] } }
+  checa(`mutante "${nome}" fica vermelho (${mudou ? e.length + ' erro(s)' : 'NÃO APLICOU'})`, mudou && e.length > 0)
+}
+
 // (M) mutantes
 const MUTANTES = [
   ['sem a régua de fps', (s) => s.replace('if (meta.fps < L.minFps - 0.5 || meta.fps > L.maxFps + 0.5) return', 'if (false) return')],

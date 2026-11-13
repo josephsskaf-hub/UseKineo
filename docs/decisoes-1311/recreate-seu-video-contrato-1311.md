@@ -80,3 +80,20 @@ select metadata->>'code', metadata->>'stage', count(*) from events where name = 
    - O dry-run desta rota não existe: ela relê o vídeo e só cobra no `submitClip`.
    - Uma prova sem cobrança é a rota `check`.
 3. Abrir ao público, trocando `SEU_VIDEO_RELEASE` para `'public'`, depois de 3 provas aprovadas pela CEO.
+
+## Entrega B (som original): o que entrou
+
+- O vídeo pronto passa pela montagem Creatomate da casa (a mesma que põe a marca nos clipes grátis), com o som do vídeo ORIGINAL do cliente.
+  - O som é cortado na duração do clipe.
+  - Nada de som gerado e nada de ffmpeg no servidor.
+- Quem paga recebe só o som, em `clips/<dono>/<id>.som.mp4`.
+- Quem não paga recebe marca e som (`.kineo.mp4`).
+  - Se a pessoa assinar depois, a lista de clipes troca o arquivo pelo limpo, que é MUDO. Esse caso fica aberto.
+- Se a montagem falhar ou passar de 3 min, o clipe sai mudo, como na Entrega A. Ele nunca fica preso nem vira estorno.
+- O que liga e desliga:
+  - `SEU_VIDEO_SOM_ORIGINAL` em `lib/recreate/seuVideo.ts`, que vale `false` para voltar à Entrega A;
+  - o interruptor da marca, `FREE_CLIP_WATERMARK_LIVE`: desligado, nada da montagem roda.
+- A tela pode tirar o aviso "sem som nesta versão" quando a CEO publicar a Entrega B.
+- Custo: Creatomate, cerca de 1 crédito por clipe de 8 s em 480p (largura × altura × fps × segundos / 1e8). Nada na fal.
+- Suposição a conferir na prova paga da CEO: que o elemento `audio` do Creatomate aceita um MP4 como fonte (ele usa só o som).
+  - Se não aceitar, o render falha e o clipe sai mudo, sem prejuízo ao cliente.

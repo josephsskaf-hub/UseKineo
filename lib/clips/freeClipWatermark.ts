@@ -121,7 +121,7 @@ export function clipOwnerPays(row: ClipOwnerProfile): boolean {
   return true
 }
 
-export type FreeClipMarkReason = 'free' | 'courtesy' | 'forced'
+export type FreeClipMarkReason = 'free' | 'courtesy' | 'forced' | 'audio' // KINEO-RECREATE-SEU-VIDEO-1311 — era: 'free' | 'courtesy' | 'forced'. 'audio' = a mesma montagem SEM o texto da marca, só para devolver o som ORIGINAL ao Recreate "com o seu vídeo" (o Seedance 2.5 sai mudo); quem não paga recebe marca E som (o motivo segue 'free'/'courtesy')
 export type FreeClipWatermarkDecision =
   | { brand: true; reason: FreeClipMarkReason }
   | { brand: false; reason: 'switch_off' | 'paying' | 'profile_unreadable' }
@@ -146,6 +146,13 @@ export function freeClipWatermarkDecision(args: {
 
 // ─── Caminhos no bucket ──────────────────────────────────────────────────────
 export const BRANDED_CLIP_SUFFIX = '.kineo.mp4'
+/** KINEO-RECREATE-SEU-VIDEO-1311 — o arquivo SÓ com o som original (sem marca): outro sufixo, para isBrandedClipUrl não o trocar pelo limpo (mudo). */
+export const AUDIO_CLIP_SUFFIX = '.som.mp4'
+export function audioClipPath(userId: string, clipId: string): string {
+  return `clips/${userId}/${clipId}${AUDIO_CLIP_SUFFIX}`
+}
+/** KINEO-RECREATE-SEU-VIDEO-1311 — o som que entra na montagem: a URL do vídeo original (nosso bucket) e os segundos do clipe. */
+export interface ClipAudioTrack { url: string; seconds: number }
 
 /** O arquivo COM marca: é a URL que a pessoa recebe. */
 export function brandedClipPath(userId: string, clipId: string): string {
@@ -178,7 +185,7 @@ export function brandMarker(m: BrandMarker): string {
 
 export function parseBrandMarker(value: unknown): BrandMarker | null {
   if (typeof value !== 'string' || !value.startsWith(MARKER_PREFIX)) return null
-  const m = /^(starting|rendering):(free|courtesy|forced):(\d{10,16}):([A-Za-z0-9-]{8,80}|-)$/.exec(value.slice(MARKER_PREFIX.length))
+  const m = /^(starting|rendering):(free|courtesy|forced|audio):(\d{10,16}):([A-Za-z0-9-]{8,80}|-)$/.exec(value.slice(MARKER_PREFIX.length)) // KINEO-RECREATE-SEU-VIDEO-1311 — + audio
   if (!m) return null
   const renderId = m[4] === '-' ? null : m[4]
   if (m[1] === 'rendering' && !renderId) return null
@@ -273,9 +280,17 @@ export function creatomateCreditsEstimate(info: ClipVideoInfo): number | null {
  * O RenderScript: o clipe limpo no tamanho e fps do próprio arquivo (nada recortado, nada reescalado) + o texto da marca.
  * Sem `duration`: o Creatomate mede o vídeo, e o texto (sem duração) vai até o fim. Mesmo dialeto da marca dos filmes.
  */
-export function buildFreeClipWatermarkSource(cleanUrl: string, info: ClipVideoInfo): Record<string, unknown> {
+export function buildFreeClipWatermarkSource(cleanUrl: string, info: ClipVideoInfo, opts: { text?: boolean; audio?: ClipAudioTrack | null } = {}): Record<string, unknown> { // KINEO-RECREATE-SEU-VIDEO-1311 — era: (cleanUrl, info)
   const S = FREE_CLIP_WATERMARK_STYLE
   const L = freeClipWatermarkLayout(info)
+  // KINEO-RECREATE-SEU-VIDEO-1311 — sem opts: byte a byte o de antes. Com áudio: o som do vídeo ORIGINAL do cliente na trilha 3, cortado na
+  // duração do clipe (o original pode ser meio segundo mais longo: sem o corte, o Creatomate esticaria o filme). Sem texto: só o som.
+  if (opts.audio || opts.text === false) {
+    const base = buildFreeClipWatermarkSource(cleanUrl, info) as { elements: Array<Record<string, unknown>> } & Record<string, unknown>
+    const dur = typeof info.durationSeconds === 'number' && info.durationSeconds > 0 ? info.durationSeconds : opts.audio?.seconds ?? null
+    const elements = opts.text === false ? base.elements.filter((e) => e.type !== 'text') : base.elements
+    return { ...base, elements: opts.audio ? [...elements, { type: 'audio', track: 3, time: 0, ...(dur ? { duration: Math.round(dur * 1000) / 1000 } : {}), source: opts.audio.url, volume: '100%' }] : elements }
+  }
   return {
     output_format: 'mp4',
     width: info.width,
@@ -419,7 +434,7 @@ export interface FreeClipBrandDeps {
   submit(source: Record<string, unknown>): Promise<string>
   poll(renderId: string): Promise<BrandRenderState>
   /** copia o MP4 com marca para o nosso bucket (a URL do Creatomate expira) e devolve a URL pública NOSSA. */
-  copyBranded(url: string): Promise<string>
+  copyBranded(url: string, reason?: FreeClipMarkReason): Promise<string> // KINEO-RECREATE-SEU-VIDEO-1311 — + reason ('audio' = outro caminho)
   event(name: FreeClipWatermarkEventName, metadata: Record<string, unknown>): Promise<void>
 }
 
@@ -439,7 +454,7 @@ const shortError = (error: unknown) => (error instanceof Error ? error.message :
  */
 export async function brandFreeClip(
   deps: FreeClipBrandDeps,
-  args: { row: FreeClipBrandRow; providerUrl: string; reason: FreeClipMarkReason | null; ageMs: number; expireMs: number },
+  args: { row: FreeClipBrandRow; providerUrl: string; reason: FreeClipMarkReason | null; ageMs: number; expireMs: number; audio?: ClipAudioTrack | null }, // KINEO-RECREATE-SEU-VIDEO-1311 — + audio
 ): Promise<string | null> {
   const { row } = args
   const base = { clip_id: row.id, engine: row.engine, seconds: row.seconds }
@@ -467,7 +482,7 @@ export async function brandFreeClip(
     if (!info) return deliverClean(clean, 'probe', null, { reason })
     let renderId: string
     try {
-      renderId = await deps.submit(buildFreeClipWatermarkSource(clean, info))
+      renderId = await deps.submit(args.audio || reason === 'audio' ? buildFreeClipWatermarkSource(clean, info, { text: reason !== 'audio', audio: args.audio ?? null }) : buildFreeClipWatermarkSource(clean, info)) // KINEO-RECREATE-SEU-VIDEO-1311 — era: buildFreeClipWatermarkSource(clean, info)
     } catch (error) {
       return deliverClean(clean, 'submit', error, { reason })
     }
@@ -522,7 +537,7 @@ export async function brandFreeClip(
   }
   if (state?.status === 'succeeded') {
     try {
-      const url = await deps.copyBranded(state.url)
+      const url = await deps.copyBranded(state.url, marker.reason) // KINEO-RECREATE-SEU-VIDEO-1311 — era: deps.copyBranded(state.url)
       await deps.event(FREE_CLIP_WATERMARK_EVENTS.applied, { ...base, reason: marker.reason, render_id: marker.renderId, elapsed_ms: Math.max(0, elapsed) })
       return url
     } catch (error) {

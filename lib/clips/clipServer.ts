@@ -23,6 +23,7 @@ import { decideEngineGate } from '@/lib/enginePlanGate'
 import { downloadPublicAnimateImage } from '@/lib/animate/remoteImage'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { RECREATE_MODEL } from '@/lib/recreate/generation' // KINEO-RECREATE-TRAVA-1011
+import { somOriginalDaLinha } from '@/lib/recreate/seuVideo' // KINEO-RECREATE-SEU-VIDEO-1311
 import { RECREATE_SWAP_CHECK_EVENT, SWAP_CHECK_LOCK_PREFIX, SWAP_CHECK_LOCK_STALE_MS, recreateRowContext, runSwapCheck, swapCheckBusy, swapCheckLock, sweepSwapRefunds, SWAP_REFUND_SWEEP_REASONS, type SwapVerdict } from '@/lib/recreate/swapCheck' // KINEO-RECREATE-TRAVA-1011
 import { alertFalExhausted, looksExhausted } from '@/lib/falAlert'
 import {
@@ -396,10 +397,14 @@ async function persistClipVideo(admin: SupabaseClient, row: ClipRow, providerUrl
   // null = este clipe não leva marca (pagou, perfil ilegível, perto do prazo): caminho de sempre, logo abaixo.
   // KINEO-MARCA-TESTE-INTERNO-2026-10-06 — a única exceção com o interruptor desligado: o clipe de PROVA (chave de teste). Quem
   // decide se ele leva a marca é o servidor da marca, pelo e-mail do dono (só conta da casa); conta de fora sai limpa.
+  // KINEO-RECREATE-SEU-VIDEO-1311 — o Recreate "com o seu vídeo" (Seedance 2.5, sai mudo) passa pela MESMA montagem para receber o som
+  // original do vídeo do cliente; com marca (quem não paga) ou só o som (quem paga). Fora dele, audio = null e nada muda. Dentro do
+  // interruptor da marca de propósito: desligado, nada da montagem roda (nem o import), e o clipe sai mudo como na Entrega A.
+  const audio = somOriginalDaLinha(row, process.env.NEXT_PUBLIC_SUPABASE_URL ?? '') // KINEO-RECREATE-SEU-VIDEO-1311
   if (FREE_CLIP_WATERMARK_LIVE || isFreeClipMarkTestKey(row.idempotency_key)) {
     const { persistFreeClipWithMark } = await import('@/lib/clips/freeClipWatermarkServer')
     const marked = await persistFreeClipWithMark({
-      admin, row, providerUrl, bucket: CLIPS_BUCKET, table: CLIPS_TABLE, cleanToken: clipCleanToken(row.id), expireMs: CLIP_EXPIRE_MS,
+      admin, row, providerUrl, bucket: CLIPS_BUCKET, table: CLIPS_TABLE, cleanToken: clipCleanToken(row.id), expireMs: CLIP_EXPIRE_MS, audio, // KINEO-RECREATE-SEU-VIDEO-1311 — + audio
     })
     if (marked !== null) return marked
   }

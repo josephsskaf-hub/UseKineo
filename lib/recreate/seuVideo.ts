@@ -136,6 +136,27 @@ export const FRASE_RECUSA_DO_MOTOR = 'The engine did not accept this photo. Noth
 export function recusaDoMotor(code: string | null | undefined): string | null {
   return code === 'provider_rejected' || code === 'provider_failed' ? FRASE_RECUSA_DO_MOTOR : null
 }
+// ── Entrega B (CEO 13/11): o som ORIGINAL do vídeo do cliente volta pela montagem da casa (Creatomate, a mesma da marca dos clipes) ──────
+// Nada de som gerado e nada de ffmpeg no servidor. Falhou a montagem = o clipe sai mudo (como na Entrega A), nunca fica preso.
+/** ⚠ Interruptor: false = o clipe sai mudo, byte a byte a Entrega A. */
+export const SEU_VIDEO_SOM_ORIGINAL = true
+/**
+ * O som que entra na montagem: a URL do vídeo original, lida da impressão do pedido (submitClip grava [pedido, modelo, entrada da fal]).
+ * Só o Seedance 2.5 e só o arquivo do PRÓPRIO dono no nosso bucket (recreate-uploads/<dono>/<uuid>.mp4|mov). Fora disso: null. Pura.
+ */
+export function somOriginalDaLinha(row: { model: string | null; fingerprint: string | null; user_id: string; seconds: number }, supabaseUrl: string, ligado: boolean = SEU_VIDEO_SOM_ORIGINAL): { url: string; seconds: number } | null {
+  if (!ligado || row.model !== SEEDANCE25_MODEL || !row.fingerprint || !supabaseUrl) return null
+  try {
+    const p = JSON.parse(row.fingerprint) as unknown
+    if (!Array.isArray(p) || p[1] !== SEEDANCE25_MODEL || !p[2] || typeof p[2] !== 'object') return null
+    const url = (p[2] as { video_urls?: unknown }).video_urls
+    const u = Array.isArray(url) && typeof url[0] === 'string' ? url[0] : ''
+    const dono = `${supabaseUrl.replace(/\/+$/, '')}/storage/v1/object/public/renders/${SEU_VIDEO_PASTA}/${row.user_id}/`
+    return u.startsWith(dono) && /^[0-9a-f-]{36}\.(?:mp4|mov)$/.test(u.slice(dono.length)) ? { url: u, seconds: row.seconds } : null
+  } catch {
+    return null
+  }
+}
 /** A entrada exata da fal (o formato dos 2 testes aprovados de 13/11). */
 export function entradaSeedance25(a: { prompt: string; fotos: string[]; videoUrl: string; gerados: number; proporcao: string }) {
   return { prompt: a.prompt, task: 'reference', image_urls: a.fotos, video_urls: [a.videoUrl], resolution: '480p', duration: String(a.gerados), aspect_ratio: a.proporcao, generate_audio: false }
