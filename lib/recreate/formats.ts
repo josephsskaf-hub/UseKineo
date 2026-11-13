@@ -46,6 +46,13 @@ export const RECREATE_ASSETS = {
   'escolha-o-favorito.jpg': { file: 'recreate-favorito.jpg', contentType: 'image/jpeg' },
   'duelo-de-danca.mp4': { file: 'recreate-danca.mp4', contentType: 'video/mp4' },
   'duelo-de-danca.jpg': { file: 'recreate-danca.jpg', contentType: 'image/jpeg' },
+  // KINEO-RECREATE-HOME-1311 — clipes novos da home (docs/home-1311/clipes, 768×1152, 6,6 s, sem som). Base = o clipe em câmera lenta
+  // suave até 8,0 s (0,81×, quadros interpolados por movimento, sem corte), porque o recast sai com a duração da base e só 8/10/15 s
+  // têm tarifa. Pôster = quadro de 1 s, 720 px. O id do formato é o mesmo da vitrine: o cartão ganha o botão Recreate sozinho.
+  'sueter-aconchegante.mp4': { file: 'recreate-sueter.mp4', contentType: 'video/mp4' },
+  'sueter-aconchegante.jpg': { file: 'recreate-sueter.jpg', contentType: 'image/jpeg' },
+  'selfie-confete.mp4': { file: 'recreate-selfie.mp4', contentType: 'video/mp4' },
+  'selfie-confete.jpg': { file: 'recreate-selfie.jpg', contentType: 'image/jpeg' },
 } as const
 
 /** KINEO-RECREATE-TRAVA-1011 — frames 84 and 168 (3.5 s and 7.0 s at 24 fps) of base and result feed the "not swapped" check. */
@@ -60,6 +67,10 @@ export const RECREATE_FORMATS: readonly RecreateFormat[] = [
   { id: 'passarela', title: 'Runway walk', ...swapSource('passarela'), poster: '/api/recreate/assets/passarela.jpg', seconds: 10, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 1, swapApproved: true, swapInTest: false, approvedOn: '2026-11-10', swapNote: '10/11 paid tests: 2 of 2 swaps; site test: clip 2bccfb65 delivered (40 credits)' },
   { id: 'escolha-o-favorito', title: 'Guess my favorite', ...swapSource('escolha-o-favorito'), poster: '/api/recreate/assets/escolha-o-favorito.jpg', seconds: 8, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 2, swapApproved: true, swapInTest: false, approvedOn: '2026-11-10', swapNote: '10/11 paid tests: 2 of 2 swaps; site test: clip 8e485eef delivered, check swapped 2/2; 8 s = 45 credits (fundador 10/11: "Cobra 45")' },
   { id: 'duelo-de-danca', title: 'Dance duo', ...swapSource('duelo-de-danca'), poster: '/api/recreate/assets/duelo-de-danca.jpg', seconds: 10, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 2, swapApproved: false, swapInTest: true, swapNote: '10/11 paid test: 0 of 1 (full body, small face: does not swap)' },
+  // KINEO-RECREATE-HOME-1311 [dono 13/11: "não tem o botão recreate" no cartão do topo; teste pago aprovado pelo dono, teto US$ 7]
+  { id: 'sueter-aconchegante', title: 'Cozy sweater flip', ...swapSource('sueter-aconchegante'), poster: '/api/recreate/assets/sueter-aconchegante.jpg', seconds: 8, type: 'swap', prompt: RECREATE_SWAP_PROMPT, photoSlots: 1, swapApproved: true, swapInTest: false, approvedOn: '2026-11-13', swapNote: '13/11 paid test: 1 of 1 swap (invented face, 6 fps sheet: the photo face in all 48 frames, also looking down); sweater, tree, chair and gestures unchanged; output 768×1024 (3:4) from the 2:3 base' },
+  // Casal em selfie: troca SÓ o homem (uma foto), como o Elevator.
+  { id: 'selfie-confete', title: 'Selfie with the crowd', ...swapSource('selfie-confete'), poster: '/api/recreate/assets/selfie-confete.jpg', seconds: 8, type: 'swap', prompt: recreateSwapPromptFor('the man'), photoSlots: 1, swapSubject: 'the man', swapApproved: true, swapInTest: false, approvedOn: '2026-11-13', swapNote: '13/11 paid test: the man swapped 1 of 1 (invented face, 6 fps sheet: the photo face in all 48 frames, also in profile with the fist up); the woman unchanged in all 48 frames (base × result sheet); output 768×1024 (3:4) from the 2:3 base' },
   ...CLIP_EFFECTS.filter(e => e.preview?.poster).map(e => ({
     id: `effect-${e.key.replaceAll('_', '-')}`, title: e.title, preview: e.preview!.video,
     poster: e.preview!.poster!, seconds: e.seconds, type: 'effect' as const, prompt: e.template ? e.sub : e.prompt,

@@ -16,7 +16,7 @@ const PHOTO = `${SUPA}/storage/v1/object/public/avatars/${U}/face.jpg`
 const PHOTO2 = `${SUPA}/storage/v1/object/public/avatars/${U}/face2.jpg`
 const HOUSE = 'josephsskaf@gmail.com'
 const CUSTOMER = 'customer@example.org'
-const SWAPS = ['outfit-morph', 'elevador', 'passarela', 'escolha-o-favorito', 'duelo-de-danca']
+const SWAPS = ['outfit-morph', 'elevador', 'passarela', 'escolha-o-favorito', 'duelo-de-danca', 'sueter-aconchegante', 'selfie-confete']
 const releaseSrc = read('lib/recreate/release.ts')
 const formatsSrc = read('lib/recreate/formats.ts')
 // KINEO-RECREATE-ABRE-1011 — o helper troca o valor ATUAL dos interruptores (desde 10/11 os dois são 'public'), então os
@@ -24,7 +24,9 @@ const formatsSrc = read('lib/recreate/formats.ts')
 const release = (page, swap) => ({ 'lib/recreate/release.ts': releaseSrc
   .replace(/RECREATE_RELEASE: InternalRelease = '[a-z]+'/, `RECREATE_RELEASE: InternalRelease = '${page}'`)
   .replace(/RECREATE_SWAP_RELEASE: InternalRelease = '[a-z]+'/, `RECREATE_SWAP_RELEASE: InternalRelease = '${swap}'`) })
-const APPROVED = ['passarela', 'escolha-o-favorito']
+const APPROVED = ['passarela', 'escolha-o-favorito', 'sueter-aconchegante', 'selfie-confete']
+// KINEO-RECREATE-HOME-1311 — os 2 clipes da home aprovados no teste pago de 13/11 (folhas a 6 quadros/s).
+const APPROVED_ON = { passarela: '2026-11-10', 'escolha-o-favorito': '2026-11-10', 'sueter-aconchegante': '2026-11-13', 'selfie-confete': '2026-11-13' }
 const UNAPPROVED = ['outfit-morph', 'elevador', 'duelo-de-danca']
 // Base sem aprovação (para provar o mecanismo de seleção formato a formato, independente do estado atual).
 const unapproveAll = (src) => src.replace(/swapApproved: true, swapInTest: false, approvedOn: '[^']*'/g, 'swapApproved: false, swapInTest: true')
@@ -42,10 +44,19 @@ function catalogChecks(o = {}) {
   ok(access.RECREATE_RELEASE === 'public' && access.RECREATE_SWAP_RELEASE === 'public', 'desde 10/11 os dois são public; só formato com swapApproved aparece ao cliente')
   for (const id of SWAPS) {
     const f = formats.recreateFormat(id)
-    if (APPROVED.includes(id)) ok(f && f.type === 'swap' && f.swapApproved === true && f.swapInTest === false && f.approvedOn === '2026-11-10', `${id}: aprovado em 10/11 (teste do site)`)
+    if (APPROVED.includes(id)) ok(f && f.type === 'swap' && f.swapApproved === true && f.swapInTest === false && f.approvedOn === APPROVED_ON[id], `${id}: aprovado em ${APPROVED_ON[id]} (teste pago)`)
     else ok(f && f.type === 'swap' && f.swapApproved === false && f.swapInTest === true, `${id}: troca registrada, NÃO aprovada, em teste`)
     ok(Array.isArray(f.checkFrames) && f.checkFrames.length === 2, `${id}: quadros da trava declarados`)
   }
+  // KINEO-RECREATE-HOME-1311 — clipes da home: base de 8 s (tarifa 45), 1 foto; na selfie troca SÓ o homem (a moça fica); ativos e quadros da trava em disco.
+  { const su = formats.recreateFormat('sueter-aconchegante'), se = formats.recreateFormat('selfie-confete')
+    ok(su.seconds === 8 && se.seconds === 8 && formats.recreateSwapPriced(su) && formats.recreateSwapPriced(se), 'clipes da home: base de 8 s, com tarifa')
+    ok(su.photoSlots === 1 && !su.swapSubject && su.prompt === formats.RECREATE_SWAP_PROMPT, 'suéter: 1 pessoa, prompt de sempre')
+    ok(se.photoSlots === 1 && se.swapSubject === 'the man' && se.prompt === formats.recreateSwapPromptFor('the man'), 'selfie: troca só o homem (1 foto)')
+    for (const f of [su, se]) {
+      for (const k of [f.preview, f.poster].map(u => u.slice('/api/recreate/assets/'.length))) ok(formats.RECREATE_ASSETS[k] && existsSync(join(ROOT, 'lib/recreate/assets', formats.RECREATE_ASSETS[k].file)), `${f.id}: ativo ${k} em disco`)
+      for (const n of [1, 2]) ok(existsSync(join(ROOT, `lib/recreate/assets/check/${f.id}-${n}.jpg`)), `${f.id}: quadro ${n} da trava em disco`)
+    } }
   // KINEO-RECREATE-ELEVADOR-1011 [fundador 10/11: "é só para trocar a foto só do homem"] — o Elevator passa a 1 foto e troca só o homem.
   ok(formats.recreateFormat('elevador').photoSlots === 1 && formats.recreateFormat('elevador').swapSubject === 'the man' && formats.recreateFormat('escolha-o-favorito').photoSlots === 2 && formats.recreateFormat('duelo-de-danca').photoSlots === 2, '2 formatos de 2 pessoas; o Elevator troca só o homem (1 foto)')
   ok(formats.recreateFormat('passarela').photoSlots === 1 && formats.recreateFormat('outfit-morph').photoSlots === 1, 'passarela e outfit-morph: 1 pessoa')
@@ -54,8 +65,8 @@ function catalogChecks(o = {}) {
   ok(formats.recreateSwapPriced(formats.recreateFormat('escolha-o-favorito')) && formats.recreateSwapPriced(formats.recreateFormat('passarela')), '8 s e 10 s têm tarifa')
   ok(m('lib/checkoutPricing').recreateCreditCost(8) === 45 && m('lib/checkoutPricing').recreateCreditCost(10) === 40 && m('lib/checkoutPricing').recreateCreditCost(9) === null, 'tarifa única: 8 → 45 ("Cobra 45"), 10 → 40, sem 9')
   const customerSwaps = access.visibleRecreateFormats(CUSTOMER).filter(f => f.type === 'swap')
-  ok(customerSwaps.map(f => f.id).sort().join() === [...APPROVED].sort().join(), 'cliente vê SÓ as trocas aprovadas (passarela, escolha-o-favorito)')
-  ok(access.visibleRecreateFormats(HOUSE).filter(f => f.type === 'swap').length === SWAPS.length, 'a casa vê as 5 trocas (aprovadas + em teste)')
+  ok(customerSwaps.map(f => f.id).sort().join() === [...APPROVED].sort().join(), 'cliente vê SÓ as trocas aprovadas (passarela, escolha-o-favorito, sueter-aconchegante, selfie-confete)')
+  ok(access.visibleRecreateFormats(HOUSE).filter(f => f.type === 'swap').length === SWAPS.length, 'a casa vê as 7 trocas (aprovadas + em teste)')
   ok(UNAPPROVED.every(id => entry.publicRecreatePath(id) === null), 'nenhum link público para troca não aprovada')
   ok(APPROVED.every(id => entry.publicRecreatePath(id) === '/recreate/' + id), 'troca aprovada ganha link público')
   // Página pública + troca interna: o público vê os efeitos e NENHUMA troca; a casa vê tudo.
@@ -112,7 +123,7 @@ async function routeChecks(overrides) {
   ok(swapPublic ? APPROVED.every(id => customerCatalog.some(q => q.id === id)) : !customerCatalog.some(q => SWAPS.includes(q.id)), swapPublic ? 'GET público: as trocas aprovadas' : 'GET com troca interna: nenhuma troca')
   user = { id: U, email: HOUSE }
   const houseCatalog = (await (await getApi.GET()).json()).catalog
-  ok(SWAPS.every(id => houseCatalog.some(q => q.id === id)), 'GET da casa: as 6 trocas em teste')
+  ok(SWAPS.every(id => houseCatalog.some(q => q.id === id)), 'GET da casa: todas as trocas (aprovadas + em teste)')
   ok(houseCatalog.find(q => q.id === 'escolha-o-favorito').credits === 45 && houseCatalog.find(q => q.id === 'passarela').credits === 40, 'GET da casa: 8 s = 45, 10 s = 40')
   // Páginas.
   const nav = { 'next/navigation': { redirect: href => { throw Error('redirect:' + href) }, notFound: () => { throw Error('not-found') } } }
