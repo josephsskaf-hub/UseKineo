@@ -112,3 +112,20 @@ select metadata->>'code', metadata->>'stage', count(*) from events where name = 
 - Interruptor: `CATALOGO_SEEDANCE25_LIGADO` em `lib/recreate/seuVideo.ts`. Com `false`, os 3 voltam ao Recast, byte a byte.
 - `scripts/test-recreate-trava-1011.mjs`: o par de 2 pessoas da prova da trava passou da Dança para o Favorito, que segue no Recast.
   - A prova é a mesma: 375 verificações verdes, fora o bloco A ("redirect kiss"), que já está vermelho na main.
+
+## Teste com rosto real (CEO 13/11) e o que mudou no código
+
+O teste da CEO deu dois resultados:
+- Pelo JSON da API, com `task: "reference"` e o recorte de rosto que o site já guarda, o motor aceitou o rosto real e TROCOU a pessoa. Custou US$ 1,61, com 7 s de vídeo e 3 min 36 s de espera.
+- Pelo formulário do playground, sem o campo task e com a foto inteira, o motor gerou sem erro mas NÃO trocou a pessoa.
+
+O que mudou no código:
+1. **`task: "reference"` sempre explícito** (`entradaSeedance25`). O guardião tem um mutante que tira o campo e fica vermelho.
+2. **A foto pode ser o recorte de rosto** (`avatars/<conta>/face-….jpg`), aceito por `ownedClipImageUrl`. Não precisa de foto de corpo inteiro.
+3. **A trava "não trocou" roda no Seedance**, no "seu vídeo" e nos 3 formatos do catálogo:
+   - `usaTravaNaoTrocou` liga a trava ao liquidar e na passada do cron, com 1 checagem por passada.
+   - `swapRowContext` lê a linha: no "seu vídeo", os quadros-base vêm do PRÓPRIO vídeo do cliente, a 35% e 70% da duração. O número do quadro sai do fps real de cada vídeo, lido por Range.
+   - O juiz é avisado de que o motor REDESENHA a cena: roupa e cenário não contam.
+   - A decisão e o estorno são os mesmos do Recast: `unchanged` ou `partial` viram falha e estorno; `unverified` entrega.
+   - Custo extra por clipe: a extração de quadros do original, cerca de US$ 0,005.
+4. **O prompt padrão pede "same framing and camera as @Video1"**. O evento `recreate_seu_video_started` (versão v2) grava `motor_redesenha_cena`, `prompt_pede_enquadramento` e `trava_nao_trocou`.

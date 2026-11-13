@@ -24,6 +24,7 @@ import { downloadPublicAnimateImage } from '@/lib/animate/remoteImage'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { RECREATE_MODEL } from '@/lib/recreate/generation' // KINEO-RECREATE-TRAVA-1011
 import { somOriginalDaLinha } from '@/lib/recreate/seuVideo' // KINEO-RECREATE-SEU-VIDEO-1311
+import { usaTravaNaoTrocou } from '@/lib/recreate/swapCheck' // KINEO-RECREATE-SEU-VIDEO-1311
 import { RECREATE_SWAP_CHECK_EVENT, SWAP_CHECK_LOCK_PREFIX, SWAP_CHECK_LOCK_STALE_MS, recreateRowContext, runSwapCheck, swapCheckBusy, swapCheckLock, sweepSwapRefunds, SWAP_REFUND_SWEEP_REASONS, type SwapVerdict } from '@/lib/recreate/swapCheck' // KINEO-RECREATE-TRAVA-1011
 import { alertFalExhausted, looksExhausted } from '@/lib/falAlert'
 import {
@@ -535,7 +536,7 @@ export function settleDepsFor(admin: SupabaseClient, userId: string): ClipSettle
 // não ganha o UPDATE condicional espera o próximo poll. Trava de 2 min+ (ator morreu no meio) pode ser retomada.
 export function recreateSwapDepsFor(admin: SupabaseClient, userId: string): RecreateSwapSettleDeps {
   return {
-    applies: (row) => row.model === RECREATE_MODEL,
+    applies: (row) => usaTravaNaoTrocou(row.model), // KINEO-RECREATE-SEU-VIDEO-1311 — era: row.model === RECREATE_MODEL (CEO 13/11: o Seedance 2.5 também gera sem trocar e sem erro)
     busy: (row, now) => swapCheckBusy(row.failure_reason, now),
     claim: async (row) => {
       const now = Date.now()
@@ -737,7 +738,7 @@ export async function advanceActiveClipJobs(opts: { minAgeMs?: number; limit?: n
   // KINEO-RECREATE-TRAVA-1011 — o Recreate pronto pode segurar a passada ~40 s (checagem "não trocou"): vai por ÚLTIMO e no
   // máximo 1 por passada; os outros esperam a próxima passada (a aba do cliente também liquida). Ordem dos demais: a de sempre.
   const rows = (data ?? []).map((raw) => toRow(raw as Record<string, unknown>)) // KINEO-RECREATE-TRAVA-1011
-  const ordered = [...rows.filter((r) => r.model !== RECREATE_MODEL), ...rows.filter((r) => r.model === RECREATE_MODEL).slice(0, 1)] // KINEO-RECREATE-TRAVA-1011
+  const ordered = [...rows.filter((r) => !usaTravaNaoTrocou(r.model)), ...rows.filter((r) => usaTravaNaoTrocou(r.model)).slice(0, 1)] // KINEO-RECREATE-TRAVA-1011 · KINEO-RECREATE-SEU-VIDEO-1311 — era: r.model !== / === RECREATE_MODEL
   result.waiting += rows.length - ordered.length // KINEO-RECREATE-TRAVA-1011
   for (const row of ordered) { // KINEO-FILME-RAPIDO-1710 · KINEO-RECREATE-TRAVA-1011 — era: for (const raw of data ?? [])
     if (opts.deadlineMs && Date.now() > opts.deadlineMs) break // KINEO-FILME-RAPIDO-1710

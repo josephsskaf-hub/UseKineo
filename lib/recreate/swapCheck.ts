@@ -24,6 +24,7 @@ import { usdFromUsage } from '@/lib/regua95/coherenceV2'
 import { FAL_NTH_FRAME_MODEL, FAL_USD_PER_COMPUTE_SECOND, PIXEL_MODEL_RATES } from '@/lib/regua95/pixelScore'
 import { RECREATE_CHECK_FRAMES, RECREATE_FORMATS, type RecreateFormat } from './formats'
 import { RECREATE_MODEL, RECREATE_PROVIDER_ORIGIN } from './generation'
+import { catalogoNoSeedance25, metaPorUrl, SEEDANCE25_MODEL, SEU_VIDEO_PASTA } from './seuVideo' // KINEO-RECREATE-SEU-VIDEO-1311
 
 export type SwapCheckResult = 'swapped' | 'unchanged' | 'partial' | 'unverified'
 export type UnverifiedReason = 'refusal' | 'null_answer' | 'invalid_json' | 'timeout' | 'frames_unavailable' | 'base_frames_unavailable' | 'http_error' | 'config'
@@ -115,9 +116,9 @@ export function decideSwap(parsed: unknown, slots: number): { result: SwapCheckR
 
 type Image = { type: 'image_url'; image_url: { url: string; detail: 'high' | 'low' } }
 /** Exported for the guardian: base frames, result frames, then one reference photo per person, in this order. */
-export function buildSwapCheckMessages(slots: number, base: [string, string], result: [string, string], photos: string[], subject?: string) {
+export function buildSwapCheckMessages(slots: number, base: [string, string], result: [string, string], photos: string[], subject?: string, redrawn = false) { // KINEO-RECREATE-SEU-VIDEO-1311 — + redrawn
   const attrs = SWAP_FACE_ATTRIBUTES.map(a => `"${a}": "same"|"different"|"unclear"`).join(', ')
-  const system =
+  let system = // KINEO-RECREATE-SEU-VIDEO-1311 — era: const system =
     'You are a video quality checker comparing VISIBLE APPEARANCE in still frames. Do not identify anyone, do not name anyone and do not ' +
     'guess who anyone is: only compare how the depicted people look. ' +
     'A template video was edited so that each depicted person should now look like the person in a customer reference photo. Sometimes the ' +
@@ -129,8 +130,11 @@ export function buildSwapCheckMessages(slots: number, base: [string, string], re
     '"result_vs_photo": "yes"|"no"|"uncertain", "note": "max 15 words, attributes only"}]}. ' +
     '"same_person" answers: is the person depicted in the RESULT frames visually the same depicted person as in the TEMPLATE frames? ' +
     '"result_vs_photo" answers: does the person in the RESULT frames visually resemble that person\'s reference photo? Use "uncertain" when the face is too small or hidden.'
+  // KINEO-RECREATE-SEU-VIDEO-1311 — o Seedance 2.5 REDESENHA a cena (corredor e enquadramento mudam): roupa e cenário deixam de ser iguais
+  // "por construção"; continuam sem contar. Sem redrawn, o texto é byte a byte o de antes.
+  if (redrawn) system = system.replace(/IMPORTANT: clothing[^]*?BY CONSTRUCTION, so they are NOT evidence that it is the same depicted person\./, 'IMPORTANT: this edit REDRAWS the whole scene, so clothing, background, lighting, framing, camera and pose may differ between template and edit; they are NOT evidence either way.')
   // KINEO-RECREATE-ELEVADOR-1011 — a format that replaces one person of several: compare ONLY that person, ignore the others.
-  const who = slots === 1 && subject ? `There is 1 person to compare: ${subject} in the TEMPLATE frames. Other people in the frames were NOT meant to change: ignore them completely.` : slots === 1 ? 'There is 1 person to compare.' : `There are ${slots} people to compare. Person 1 is the LEFTMOST person in the TEMPLATE frames, person ${slots} the RIGHTMOST.`
+  const who =slots === 1 && subject ? `There is 1 person to compare: ${subject} in the TEMPLATE frames. Other people in the frames were NOT meant to change: ignore them completely.` : slots === 1 ? 'There is 1 person to compare.' : `There are ${slots} people to compare. Person 1 is the LEFTMOST person in the TEMPLATE frames, person ${slots} the RIGHTMOST.`
   const text = [
     who,
     'Images, in order: TEMPLATE frame A and TEMPLATE frame B (before the edit); RESULT frame A and RESULT frame B (the edited video at the same moments);',
@@ -161,7 +165,7 @@ async function timed<T>(ms: number, run: (signal: AbortSignal) => Promise<T>): P
 }
 
 /** Result frames 84 and 168 from the provider MP4 (fal, synchronous). Never throws. */
-export async function extractCheckFrames(videoUrl: string, opts: SwapCheckOpts = {}): Promise<{ frames: [string, string]; usd: number } | { frames: null; why: UnverifiedReason }> {
+export async function extractCheckFrames(videoUrl: string, opts: SwapCheckOpts = {}, interval: number = RECREATE_CHECK_FRAMES[0]): Promise<{ frames: [string, string]; usd: number } | { frames: null; why: UnverifiedReason }> { // KINEO-RECREATE-SEU-VIDEO-1311 — + interval (o Seedance e o vídeo do cliente não são 24 fps fixos)
   const key = opts.falKey ?? process.env.FAL_KEY ?? process.env.FAL_API_KEY
   if (!key || !/^https:\/\//.test(videoUrl)) return { frames: null, why: 'config' }
   const started = Date.now()
@@ -169,7 +173,7 @@ export async function extractCheckFrames(videoUrl: string, opts: SwapCheckOpts =
     const res = await (opts.fetchImpl ?? fetch)(`https://fal.run/${FAL_NTH_FRAME_MODEL}`, {
       method: 'POST', signal,
       headers: { Authorization: `Key ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ video_url: videoUrl, frame_interval: RECREATE_CHECK_FRAMES[0], max_frames: 3, output_format: 'jpg', quality: 85 }),
+      body: JSON.stringify({ video_url: videoUrl, frame_interval: interval, max_frames: 3, output_format: 'jpg', quality: 85 }), // KINEO-RECREATE-SEU-VIDEO-1311 — era: frame_interval: RECREATE_CHECK_FRAMES[0]
     })
     if (!res.ok) return null
     const data = (await res.json()) as { images?: Array<{ url?: unknown }> }
@@ -212,15 +216,61 @@ export function readVisionAnswer(data: unknown): { parsed: unknown } | { why: Un
  * The whole check for one delivered Recreate clip. NEVER throws and never exceeds the budget: any failure is 'unverified'
  * (the caller delivers). Only 'unchanged' and 'partial' make the caller fail + refund.
  */
+// ═══ KINEO-RECREATE-SEU-VIDEO-1311 [CEO 13/11: "o motor pode gerar sem trocar e sem dar erro… a trava 'não trocou' tem de rodar também
+// neste caminho, com estorno"] — a mesma trava no Seedance 2.5: o Recreate "com o seu vídeo" e os 3 formatos do catálogo da Entrega C.
+// Diferenças: (1) o Seedance REDESENHA a cena, então o juiz é avisado de que roupa e cenário mudam e não contam (redrawn); (2) no "seu
+// vídeo" os quadros-base vêm do PRÓPRIO vídeo do cliente (mesmo extrator da fal), a 35% e 70% da duração; (3) o número do quadro sai do
+// fps real de cada vídeo (lido do cabeçalho por Range). A decisão (decideSwap) e o estorno (clipFlow) são os mesmos.
+export const usaTravaNaoTrocou = (model: unknown): boolean => model === RECREATE_MODEL || model === SEEDANCE25_MODEL
+export const SEU_VIDEO_SUJEITO_CHECAGEM = 'the main person (the largest and most central person)'
+export type SwapRowContext = { formatId: string; format: RecreateFormat | null; photos: string[]; slots: number; subject?: string; baseVideoUrl: string | null; redrawn: boolean }
+/** Linha → o que a trava precisa (Recast como antes; Seedance: catálogo da Entrega C ou o vídeo do cliente no nosso bucket). */
+export function swapRowContext(row: { model: string; fingerprint: string }): SwapRowContext | null {
+  const recast = recreateRowContext(row)
+  if (recast) return { formatId: recast.format.id, format: recast.format, photos: recast.photos, slots: recast.format.photoSlots, subject: recast.format.swapSubject, baseVideoUrl: null, redrawn: false }
+  if (row.model !== SEEDANCE25_MODEL) return null
+  try {
+    const parsed: unknown = JSON.parse(row.fingerprint)
+    if (!Array.isArray(parsed) || parsed[1] !== SEEDANCE25_MODEL || !parsed[2] || typeof parsed[2] !== 'object') return null
+    const input = parsed[2] as Record<string, unknown>
+    const video = Array.isArray(input.video_urls) && typeof input.video_urls[0] === 'string' ? input.video_urls[0] : ''
+    const photos = Array.isArray(input.image_urls) ? input.image_urls.filter((u): u is string => typeof u === 'string' && /^https:\/\//.test(u)) : []
+    if (photos.length < 1 || photos.length > 3) return null
+    const format = RECREATE_FORMATS.find(f => f.type === 'swap' && catalogoNoSeedance25(f.id) && RECREATE_PROVIDER_ORIGIN + f.preview === video) ?? null
+    if (format) return photos.length === format.photoSlots ? { formatId: format.id, format, photos, slots: format.photoSlots, subject: format.swapSubject, baseVideoUrl: null, redrawn: true } : null
+    if (!new RegExp(`^https://[^/]+/storage/v1/object/public/renders/${SEU_VIDEO_PASTA}/[0-9a-f-]{36}/[0-9a-f-]{36}\\.(?:mp4|mov)$`).test(video)) return null
+    return { formatId: 'seu-video', format: null, photos, slots: photos.length, subject: photos.length === 1 ? SEU_VIDEO_SUJEITO_CHECAGEM : undefined, baseVideoUrl: video, redrawn: true }
+  } catch {
+    return null
+  }
+}
+/** O intervalo do extrator (quadros 0, n e 2n) para cair em `segundos` no fps real do vídeo. */
+export const intervaloPara = (segundos: number, fps: number | null | undefined) => Math.max(1, Math.round(segundos * (typeof fps === 'number' && fps > 0 ? fps : 24)))
+type QuadrosBase = [string, string] | Awaited<ReturnType<typeof extractCheckFrames>> | null
+
 export async function runSwapCheck(row: { model: string; fingerprint: string }, providerVideoUrl: string, opts: SwapCheckOpts = {}): Promise<SwapVerdict> {
   const started = Date.now()
-  const ctx = recreateRowContext(row)
-  const verdict = (result: SwapCheckResult, reason: string, extra: Partial<SwapVerdict> = {}): SwapVerdict => ({ result, reason, unverified_reason: null, format: ctx?.format.id ?? null, persons: [], model: null, usd: 0, ms: Date.now() - started, ...extra })
+  const ctx = swapRowContext(row) // KINEO-RECREATE-SEU-VIDEO-1311 — era: recreateRowContext(row)
+  const verdict = (result: SwapCheckResult, reason: string, extra: Partial<SwapVerdict> = {}): SwapVerdict => ({ result, reason, unverified_reason: null, format: ctx?.formatId ?? null, persons: [], model: null, usd: 0, ms: Date.now() - started, ...extra })
   const unverified = (why: UnverifiedReason, reason: string, extra: Partial<SwapVerdict> = {}) => verdict('unverified', reason, { ...extra, unverified_reason: why })
   if (!ctx) return unverified('config', 'row_context_unknown')
   const work = (async (): Promise<SwapVerdict> => {
-    const [base, result] = await Promise.all([baseCheckFrames(ctx.format, opts), extractCheckFrames(providerVideoUrl, opts)])
-    const framesUsd = result.frames ? result.usd : 0
+    let baseRaw: QuadrosBase
+    let result: Awaited<ReturnType<typeof extractCheckFrames>>
+    if (!ctx.redrawn) {
+      [baseRaw, result] = await Promise.all([baseCheckFrames(ctx.format as RecreateFormat, opts), extractCheckFrames(providerVideoUrl, opts)])
+    } else { // KINEO-RECREATE-SEU-VIDEO-1311 — Seedance: o momento de cada quadro pelo fps real; no "seu vídeo", os quadros-base do próprio original
+      const f = opts.fetchImpl ?? fetch
+      const [mb, mr] = await Promise.all([ctx.baseVideoUrl ? metaPorUrl(ctx.baseVideoUrl, f) : Promise.resolve(null), metaPorUrl(providerVideoUrl, f)])
+      const t = ctx.baseVideoUrl ? (mb ? mb.segundos * 0.35 : 0) : RECREATE_CHECK_FRAMES[0] / 24
+      ;[baseRaw, result] = await Promise.all([
+        ctx.baseVideoUrl ? (mb && t > 0 ? extractCheckFrames(ctx.baseVideoUrl, opts, intervaloPara(t, mb.fps)) : Promise.resolve(null)) : baseCheckFrames(ctx.format as RecreateFormat, opts),
+        extractCheckFrames(providerVideoUrl, opts, intervaloPara(t > 0 ? t : RECREATE_CHECK_FRAMES[0] / 24, mr?.fps)),
+      ])
+    }
+    const base = !baseRaw ? null : Array.isArray(baseRaw) ? baseRaw : baseRaw.frames
+    const baseUsd = baseRaw && !Array.isArray(baseRaw) && baseRaw.frames ? baseRaw.usd : 0
+    const framesUsd = (result.frames ? result.usd : 0) + baseUsd // KINEO-RECREATE-SEU-VIDEO-1311 — era: result.frames ? result.usd : 0
     if (!base) return unverified('base_frames_unavailable', 'base_frames_unavailable', { usd: framesUsd })
     if (!result.frames) return unverified(result.why, 'result_frames_unavailable')
     const key = opts.apiKey ?? process.env.OPENAI_API_KEY
@@ -230,7 +280,7 @@ export async function runSwapCheck(row: { model: string; fingerprint: string }, 
       const res = await (opts.fetchImpl ?? fetch)('https://api.openai.com/v1/chat/completions', {
         method: 'POST', signal,
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-        body: JSON.stringify({ model, temperature: 0, max_tokens: 600, response_format: { type: 'json_object' }, messages: buildSwapCheckMessages(ctx.format.photoSlots, base, result.frames, ctx.photos, ctx.format.swapSubject) }),
+        body: JSON.stringify({ model, temperature: 0, max_tokens: 600, response_format: { type: 'json_object' }, messages: buildSwapCheckMessages(ctx.slots, base, result.frames, ctx.photos, ctx.subject, ctx.redrawn) }), // KINEO-RECREATE-SEU-VIDEO-1311 — era: (ctx.format.photoSlots, …, ctx.format.swapSubject)
       })
       if (!res.ok) return null
       return (await res.json()) as { usage?: { prompt_tokens?: number; completion_tokens?: number } }
@@ -240,7 +290,7 @@ export async function runSwapCheck(row: { model: string; fingerprint: string }, 
     const usd = Math.round((framesUsd + usdFromUsage(got.value.usage, PIXEL_MODEL_RATES[model] ?? PIXEL_MODEL_RATES[AI_TEXT_MODELS.writer])) * 1e6) / 1e6
     const answer = readVisionAnswer(got.value)
     if ('why' in answer) return unverified(answer.why, 'vision_unusable', { model, usd })
-    const decided = decideSwap(answer.parsed, ctx.format.photoSlots)
+    const decided = decideSwap(answer.parsed, ctx.slots) // KINEO-RECREATE-SEU-VIDEO-1311 — era: ctx.format.photoSlots
     const extra = { persons: decided.persons, model, usd }
     return decided.result === 'unverified' ? unverified('null_answer', decided.reason, extra) : verdict(decided.result, decided.reason, extra)
   })().catch(() => unverified('http_error', 'check_error'))

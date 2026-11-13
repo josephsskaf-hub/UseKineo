@@ -362,7 +362,7 @@ function fakeFetch({ fal = 'ok', vision = null, message = null, hang = false } =
   ok((fn.match(/\.eq\('failure_reason', lock\)/g) ?? []).length === 2, 'markFailed e markDone da trava só para quem detém a reserva')
   ok(/credits_refunded: 0/.test(fn) && /\.eq\('credits_refunded', 0\)/.test(fn), 'failed nasce com 0 e o estorno do vencedor é gravado depois')
   ok(/unverified_reason:/.test(fn), 'evento grava o motivo normalizado')
-  ok(src.includes("...rows.filter((r) => r.model === RECREATE_MODEL).slice(0, 1)]"), 'cron: Recreate por último, 1 por passada')
+  ok(src.includes("...rows.filter((r) => r.model === RECREATE_MODEL).slice(0, 1)]") || src.includes("...rows.filter((r) => usaTravaNaoTrocou(r.model)).slice(0, 1)]") /* KINEO-RECREATE-SEU-VIDEO-1311 — a mesma fila, agora Recast + Seedance */, 'cron: Recreate por último, 1 por passada')
   ok(read('lib/admin/pessoaTela.ts').includes("c.failure_reason.startsWith('swapcheck_') ? 'em verificação"), 'painel: reserva aparece como "em verificação"')
 }
 

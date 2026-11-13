@@ -78,6 +78,7 @@ async function provas(m) {
   const p2 = m.promptPadrao(2)
   if (!p2.includes('@Video1') || !p2.includes('@Image1') || !p2.includes('@Image2') || p2.includes('@Image3')) erros.push('D prompt pronto de 2 fotos: ' + p2)
   if (!/choreography/.test(p2) || !/No logos/.test(p2)) erros.push('D prompt pronto sem coreografia ou sem a proibição de marca')
+  if (!p2.includes('same framing and camera as @Video1')) erros.push('D prompt pronto sem o enquadramento e a câmera do @Video1 (CEO 13/11: o motor redesenha a cena)')
   const pPos = m.promptPadrao(1, ['on the left <script>'])
   if (!pPos.includes('The person on the left script in @Video1') || pPos.includes('<')) erros.push('D posição não entrou limpa: ' + pPos)
   if (!m.validarPrompt(p2, 2).ok) erros.push('D o prompt pronto não passa na própria validação')
@@ -133,7 +134,7 @@ checa('ESSENCIAL recusa no envio estorna (provider_rejected → closeWithRefund 
 const iFail = fluxo.indexOf('const fail = async (reason: string'), iRef2 = fluxo.indexOf('const refunded = await deps.refund(row.billing_reference)', iFail)
 checa('ESSENCIAL recusa no fim estorna (provider_failed → fail → deps.refund)', iFail > 0 && iRef2 > iFail && iRef2 - iFail < 400 && fluxo.includes("if (state.state === 'failed') return fail('provider_failed'"))
 checa('F eventos só do servidor', eventos.includes("'recreate_seu_video_started'") && eventos.includes("'recreate_seu_video_refused'"))
-checa('F a trava "não trocou" segue só no Recast', r('lib/recreate/swapCheck.ts').includes('if (row.model !== RECREATE_MODEL) return null'))
+checa('F o contexto do Recast (recreateRowContext) segue só no Recast; o Seedance tem o seu (swapRowContext, seção T)', r('lib/recreate/swapCheck.ts').includes('if (row.model !== RECREATE_MODEL) return null'))
 
 // (B) Entrega B: o som ORIGINAL volta pela montagem da casa (Creatomate da marca dos clipes), EXECUTANDO brandFreeClip com deps simuladas
 const MARCA = 'lib/clips/freeClipWatermark.ts'
@@ -245,8 +246,81 @@ for (const [nome, arq, fn] of MUTANTES_C) {
   checa(`mutante "${nome}" fica vermelho (${mudou ? e.length + ' erro(s)' : 'NÃO APLICOU'})`, mudou && e.length > 0)
 }
 
+// (T) CEO 13/11 (teste com rosto real): task "reference" sempre explícito; a foto pode ser o recorte de rosto; a trava "não trocou" roda
+// no Seedance (o motor pode gerar sem trocar e sem erro), com estorno; o prompt pede o enquadramento e a câmera do @Video1.
+const SC = 'lib/recreate/swapCheck.ts'
+const tGlobals = { setTimeout, clearTimeout, AbortController }
+const carregaSC = (mutSC = null, mutSeu = null) => createOfflineLoader({ globals: tGlobals, source: (rel, text) => (mutSC && rel === SC ? mutSC(text) : mutSeu && rel === ARQ ? mutSeu(text) : text) })(SC)
+const cat = createOfflineLoader()('lib/clips/clipCatalog.ts')
+checa('T a foto pode ser o recorte de rosto que o Recreate já guarda (avatars/<conta>/face-….jpg)', cat.ownedClipImageUrl(`${SUPA}/storage/v1/object/public/avatars/${U}/face-1763050000000.jpg`, U, SUPA) !== null)
+async function provasT(sc, m) {
+  const erros = []
+  const fotos = [PHOTO]
+  const linhaSeu = { model: m.SEEDANCE25_MODEL, fingerprint: JSON.stringify(['pedido', m.SEEDANCE25_MODEL, m.entradaSeedance25({ prompt: m.promptPadrao(1), fotos, videoUrl: ORIGINAL, gerados: 8, proporcao: '9:16' })]) }
+  if (!sc.usaTravaNaoTrocou(m.SEEDANCE25_MODEL) || !sc.usaTravaNaoTrocou('minimax/h3-max/recast') || sc.usaTravaNaoTrocou('fal-ai/kling-video')) erros.push('T a trava não vale para o Seedance (ou vale para outro motor)')
+  const ctx = sc.swapRowContext(linhaSeu)
+  if (!ctx || ctx.formatId !== 'seu-video' || ctx.baseVideoUrl !== ORIGINAL || !ctx.redrawn || ctx.slots !== 1 || !/main person/.test(ctx.subject ?? '')) erros.push('T contexto do "seu vídeo": ' + JSON.stringify(ctx))
+  const el = planoDe().planRecreate({ format: 'elevador', seconds: 10, photos: [PHOTO], consent: true, mode: 'swap' }, { userId: U, supabaseUrl: SUPA, paying: false })
+  const ctxEl = el.ok ? sc.swapRowContext({ model: el.plan.model, fingerprint: JSON.stringify(['pedido', el.plan.model, el.plan.input]) }) : null
+  if (!ctxEl || ctxEl.formatId !== 'elevador' || ctxEl.subject !== 'the man' || !ctxEl.redrawn || ctxEl.baseVideoUrl !== null) erros.push('T contexto do catálogo no Seedance: ' + JSON.stringify(ctxEl))
+  const pa = planoDe().planRecreate({ format: 'passarela', seconds: 10, photos: [PHOTO], consent: true, mode: 'swap' }, { userId: U, supabaseUrl: SUPA, paying: false })
+  const ctxPa = pa.ok ? sc.swapRowContext({ model: pa.plan.model, fingerprint: JSON.stringify(['pedido', pa.plan.model, pa.plan.input]) }) : null
+  if (!ctxPa || ctxPa.redrawn || ctxPa.formatId !== 'passarela') erros.push('T o Recast mudou de contexto')
+  if (sc.swapRowContext({ model: m.SEEDANCE25_MODEL, fingerprint: JSON.stringify(['p', m.SEEDANCE25_MODEL, { video_urls: ['https://evil.example/v.mp4'], image_urls: fotos }]) }) !== null) erros.push('T aceitou vídeo-base de fora do bucket')
+  // o juiz: sem redrawn, o texto de sempre; com redrawn, avisa que a cena foi redesenhada
+  const sys = (r) => sc.buildSwapCheckMessages(1, ['a', 'b'], ['c', 'd'], fotos, undefined, r)[0].content
+  if (!/IDENTICAL[^.]*BY CONSTRUCTION/.test(sys(false)) || !/REDRAWS the whole scene/.test(sys(true)) || /BY CONSTRUCTION/.test(sys(true))) erros.push('T o juiz não sabe que o Seedance redesenha a cena')
+  // a checagem inteira, de verdade, com a fal e a visão simuladas: o vídeo do cliente (7,5 s a 30 fps) e o resultado (o mesmo cabeçalho)
+  const run = async (mesmaPessoa) => {
+    const falCalls = [], visao = []
+    const fetchImpl = async (url, init = {}) => {
+      if (init.method === 'HEAD') return { ok: true, status: 200, headers: { get: () => String(FIM.length) } }
+      if (init.headers?.Range) { const [a, b] = init.headers.Range.slice(6).split('-').map(Number); return { ok: true, status: 206, arrayBuffer: async () => FIM.buffer.slice(FIM.byteOffset + a, FIM.byteOffset + b + 1) } }
+      if (String(url).startsWith('https://fal.run/')) { const body = JSON.parse(init.body); falCalls.push(body); return { ok: true, json: async () => ({ images: [{ url: 'x' }, { url: body.video_url + '#1' }, { url: body.video_url + '#2' }] }) } }
+      if (String(url).startsWith('https://api.openai.com/')) {
+        const body = JSON.parse(init.body); visao.push(body)
+        const attrs = Object.fromEntries(sc.SWAP_FACE_ATTRIBUTES.map((a) => [a, mesmaPessoa ? 'same' : 'different']))
+        return { ok: true, json: async () => ({ choices: [{ message: { content: JSON.stringify({ persons: [{ person: 1, base_vs_result: attrs, same_person: mesmaPessoa ? 'yes' : 'no', result_vs_photo: mesmaPessoa ? 'no' : 'yes', note: '' }] }) } }], usage: { prompt_tokens: 1000, completion_tokens: 100 } }) }
+      }
+      throw new Error('rede inesperada: ' + url)
+    }
+    const v = await sc.runSwapCheck(linhaSeu, 'https://fal.media/out.mp4', { fetchImpl, falKey: 'k', apiKey: 'k', model: 'gpt-4o', budgetMs: 5000 })
+    return { v, falCalls, visao }
+  }
+  const nao = await run(true)
+  if (nao.v.result !== 'unchanged') erros.push(`T não trocou e a trava não pegou: ${nao.v.result}/${nao.v.reason}/${nao.v.unverified_reason}`)
+  const base = nao.falCalls.find((c) => c.video_url === ORIGINAL), res = nao.falCalls.find((c) => c.video_url === 'https://fal.media/out.mp4')
+  if (!base || !res || base.frame_interval !== 79 || res.frame_interval !== 79) erros.push('T os quadros não saem do próprio vídeo do cliente a 35% e 70% no fps real: ' + JSON.stringify(nao.falCalls.map((c) => [c.video_url.slice(-12), c.frame_interval])))
+  const imgs = nao.visao[0]?.messages?.[1]?.content?.filter((c) => c.type === 'image_url').map((c) => c.image_url.url) ?? []
+  if (imgs[0] !== ORIGINAL + '#1' || imgs[2] !== 'https://fal.media/out.mp4#1' || imgs[4] !== PHOTO) erros.push('T o juiz não recebeu original, resultado e foto na ordem: ' + JSON.stringify(imgs))
+  if (nao.v.format !== 'seu-video') erros.push('T o evento da trava não diz que é o "seu vídeo"')
+  const sim = await run(false)
+  if (sim.v.result !== 'swapped') erros.push(`T trocou e a trava não entregou: ${sim.v.result}/${sim.v.reason}`)
+  return erros
+}
+const tBase = await provasT(carregaSC(), carrega())
+checa(`T trava "não trocou" no Seedance, foto de rosto, task explícito: provas verdes${tBase.length ? ': ' + tBase.join(' · ') : ''}`, tBase.length === 0)
+checa('T o liquidar liga a trava no Seedance (applies) e a passada do cron também', clipSrv.includes('applies: (row) => usaTravaNaoTrocou(row.model)') && clipSrv.includes('rows.filter((r) => !usaTravaNaoTrocou(r.model))'))
+checa('T o estorno do "não trocou" é o do clipFlow (swap.markFailed → deps.refund)', fluxo.includes('if (!(await swap.markFailed(row.id, reason, swapLock))) return row') && /swap\.markFailed[\s\S]{0,400}deps\.refund\(row\.billing_reference\)/.test(fluxo))
+checa('T o prompt padrão pede o enquadramento e a câmera do @Video1, e o evento registra', carrega().promptPadrao(1).includes('same framing and camera as @Video1') && carrega().promptDoCatalogo(1, 'the man').includes('same framing and camera as @Video1') && gera.includes('motor_redesenha_cena: true') && gera.includes("prompt_pede_enquadramento: pr.prompt.includes('same framing and camera as @Video1')"))
+const MUTANTES_T = [
+  ['T trava só no Recast', SC, null, (s) => s.replace('export const usaTravaNaoTrocou = (model: unknown): boolean => model === RECREATE_MODEL || model === SEEDANCE25_MODEL', 'export const usaTravaNaoTrocou = (model: unknown): boolean => model === RECREATE_MODEL')],
+  ['T sem contexto do Seedance', SC, null, (s) => s.replace('if (row.model !== SEEDANCE25_MODEL) return null', 'return null')],
+  ['T juiz acha que a cena é igual', SC, null, (s) => s.replace('if (redrawn) system = system.replace(', 'if (false) system = system.replace(')],
+  ['T quadro fixo 84 (ignora o fps)', SC, null, (s) => s.replace('export const intervaloPara = (segundos: number, fps: number | null | undefined) => Math.max(1, Math.round(segundos * (typeof fps === \'number\' && fps > 0 ? fps : 24)))', 'export const intervaloPara = (segundos: number, fps: number | null | undefined) => 84')],
+  ['T base do catálogo no "seu vídeo"', SC, null, (s) => s.replace("ctx.baseVideoUrl ? (mb && t > 0 ? extractCheckFrames(ctx.baseVideoUrl, opts, intervaloPara(t, mb.fps)) : Promise.resolve(null)) : baseCheckFrames", 'false ? null : baseCheckFrames')],
+]
+for (const [nome, arq, , fn] of MUTANTES_T) {
+  const fonte = lf(fs.readFileSync(arq, 'utf8')), mudou = fn(fonte) !== fonte
+  let e = ['(mutante não aplicou)']
+  if (mudou) { try { e = await provasT(carregaSC(fn), carrega()) } catch (x) { e = ['lançou: ' + x.message] } }
+  checa(`mutante "${nome}" fica vermelho (${mudou ? e.length + ' erro(s)' : 'NÃO APLICOU'})`, mudou && e.length > 0)
+}
+
 // (M) mutantes
 const MUTANTES = [
+  ['task no padrão (sem "reference" explícito)', (s) => s.replace("return { prompt: a.prompt, task: 'reference', image_urls", 'return { prompt: a.prompt, image_urls')],
+  ['prompt sem o enquadramento do @Video1', (s) => s.replaceAll('with the same framing and camera as @Video1 and the same scene', 'and the same scene')],
   ['sem a régua de fps', (s) => s.replace('if (meta.fps < L.minFps - 0.5 || meta.fps > L.maxFps + 0.5) return', 'if (false) return')],
   ['sem o teto de 15 s', (s) => s.replace('meta.segundos > L.maxSegundos + 0.25', 'false')],
   ['pega a 1ª trilha (áudio)', (s) => s.replace("if (!mdia || !hdlr || tipo(moov, hdlr.ini + 8) !== 'vide') continue", 'if (!mdia || !hdlr) continue')],

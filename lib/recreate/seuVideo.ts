@@ -10,7 +10,7 @@ import { recreateCreditCost } from '@/lib/checkoutPricing'
 import type { InternalRelease } from './release'
 
 export const SEU_VIDEO_RELEASE: InternalRelease = 'internal'
-export const SEU_VIDEO_VERSAO = 'recreate_seu_video_1311_v1'
+export const SEU_VIDEO_VERSAO = 'recreate_seu_video_1311_v2' // v2: trava "não trocou" no Seedance + enquadramento no prompt (CEO 13/11)
 export const SEEDANCE25_MODEL = 'bytedance/seedance-2.5/reference-to-video'
 /** fal, 480p: soma os segundos ENVIADOS e os GERADOS (conta da sessão Research de 13/11). */
 export const SEEDANCE25_USD_POR_SEGUNDO_480P = 0.1323
@@ -80,6 +80,23 @@ export async function lerMetaDoVideo(ler: Ler, bytes: number): Promise<MetaDoVid
   }
 }
 
+/** O cabeçalho de um vídeo por URL (HEAD + Range; fetch injetado). Nunca lança: erro = null. Usado pela trava "não trocou" no Seedance. */
+export async function metaPorUrl(url: string, f: typeof fetch): Promise<MetaDoVideo | null> {
+  try {
+    const head = await f(url, { method: 'HEAD', cache: 'no-store' })
+    const bytes = head.ok ? Number(head.headers.get('content-length') ?? 0) : 0
+    if (!bytes) return null
+    return await lerMetaDoVideo(async (ini, fim) => {
+      const r = await f(url, { headers: { Range: `bytes=${ini}-${fim}` }, cache: 'no-store' })
+      if (r.status !== 206 && r.status !== 200) throw new Error(`range ${r.status}`)
+      const b = new Uint8Array(await r.arrayBuffer())
+      return r.status === 200 ? b.subarray(ini, fim + 1) : b
+    }, bytes)
+  } catch {
+    return null
+  }
+}
+
 // ── validação, duração gerada, preço ───────────────────────────────────────────────────────────────────────────────────────────────
 export type RecusaDoVideo = { ok: false; code: 'format' | 'duration' | 'fps' | 'size'; error: string }
 export function validarVideo(meta: MetaDoVideo | null, bytes: number, contentType: string): { ok: true } | RecusaDoVideo {
@@ -110,7 +127,7 @@ export function promptPadrao(fotos: number, posicoes: ReadonlyArray<string> = []
     const pos = String(posicoes[i] ?? '').replace(/[^\p{L}\p{N} ,'-]/gu, '').trim().slice(0, 60)
     return `${pos ? `The person ${pos} in @Video1` : PAPEIS[i]} is the person from @Image${i + 1}, with the same face.`
   }).join(' ')
-  return `Recreate @Video1 exactly: the same choreography, movements, timing, framing, camera and scene. ${quem} Everyone else and everything else stays as in @Video1. No logos, no watermark, no readable text.`
+  return `Recreate @Video1 exactly: the same choreography, movements and timing, with the same framing and camera as @Video1 and the same scene. ${quem} Everyone else and everything else stays as in @Video1. No logos, no watermark, no readable text.`
 }
 /** O prompt editado: até 900 caracteres, cita @Video1 e TODA foto enviada; fora disso, a recusa (nada cobrado). */
 export function validarPrompt(prompt: unknown, fotos: number): { ok: true; prompt: string } | { ok: false; error: string } {
@@ -160,7 +177,7 @@ export function somOriginalDaLinha(row: { model: string | null; fingerprint: str
 // ── Entrega C (CEO 13/11): os 3 formatos do catálogo que o motor antigo (Recast) reprovou passam ao Seedance 2.5 ────────────────────
 // Outfit Morph (0 de 4 trocas), Elevator (a mulher 0 de 3) e Dance duo (rosto pequeno, 0 de 1). Mesmo preço do catálogo (8/10/15 s da
 // tabela de hoje), o vídeo-base da casa sobe ao bucket como hoje, 480p, sem som gerado. Eles continuam só da casa (swapApproved false)
-// até a prova paga da CEO; a trava "não trocou" (swapCheck) é do Recast e não roda neles.
+// até a prova paga da CEO; a trava "não trocou" (swapCheck) roda neles também (swapRowContext, redesenho avisado ao juiz).
 /** ⚠ Interruptor: false = os 3 voltam ao Recast, byte a byte o de antes. */
 export const CATALOGO_SEEDANCE25_LIGADO = true
 export const CATALOGO_NO_SEEDANCE25: ReadonlySet<string> = new Set(['outfit-morph', 'elevador', 'duelo-de-danca'])
@@ -170,7 +187,7 @@ export function promptDoCatalogo(fotos: number, swapSubject?: string): string {
   if (!swapSubject) return promptPadrao(fotos)
   const quem = String(swapSubject).replace(/[^\p{L}\p{N} ,'-]/gu, '').trim()
   const Quem = quem.charAt(0).toUpperCase() + quem.slice(1)
-  return `Recreate @Video1 exactly: the same choreography, movements, timing, framing, camera and scene. ${Quem} in @Video1 is the person from @Image1, with the same face. Everyone else, including every other person, and everything else stays exactly as in @Video1. No logos, no watermark, no readable text.`
+  return `Recreate @Video1 exactly: the same choreography, movements and timing, with the same framing and camera as @Video1 and the same scene. ${Quem} in @Video1 is the person from @Image1, with the same face. Everyone else, including every other person, and everything else stays exactly as in @Video1. No logos, no watermark, no readable text.`
 }
 /** A entrada exata da fal (o formato dos 2 testes aprovados de 13/11). */
 export function entradaSeedance25(a: { prompt: string; fotos: string[]; videoUrl: string; gerados: number; proporcao: string }) {
