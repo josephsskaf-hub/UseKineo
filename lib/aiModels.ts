@@ -39,7 +39,8 @@ export const AI_TEXT_MODELS = {
   /**
    * KINEO-NOTA-AUTO-V3-1311 — juiz da NOTA AUTOMÁTICA do filme (lib/regua95/juizRegua19.ts, na sombra). Escolhido pelo ensaio de
    * 13/11 (prova de 56 filmes do revisor, nunca usados em ajuste): o melhor par acerto/alarme entre gpt-4o, gpt-4.1-mini, gpt-6.1-sol e
-   * Claude Haiku/Sonnet/Opus. Ainda abaixo da régua do dono (≥ 85% dos ruins, ≤ 10% de alarme): só mede. NOTA_AUTO_MODEL troca sem deploy.
+   * Claude Haiku/Sonnet/Opus. Ainda abaixo da régua do dono (≥ 85% dos ruins, ≤ 10% de alarme): só mede. NOTA_AUTO_MODEL troca o modelo, mas na Vercel
+   * variável nova ou alterada só vale a partir do PRÓXIMO deploy (não é troca "sem deploy").
    */
   filmJudge: 'gpt-6.1-sol',
 } as const

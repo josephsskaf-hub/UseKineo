@@ -122,7 +122,7 @@ export type NotaAutoResultado = {
 }
 
 /**
- * Modelo padrão. NOTA_AUTO_MODEL troca sem deploy de código. ENSAIO DE 13/11 (scripts/calibra-nota-auto-1311.mts, 40 filmes já
+ * Modelo padrão. NOTA_AUTO_MODEL troca o modelo sem mudar código (na Vercel, só a partir do próximo deploy). ENSAIO DE 13/11 (scripts/calibra-nota-auto-1311.mts, 40 filmes já
  * avaliados pelo revisor): NENHUM modelo passou. gpt-4o high pegou 85% dos ruins, mas deu alarme falso em 61% dos bons; gpt-4.1-mini
  * high ficou em 60% / 33%. Por isso o interruptor NOTA_AUTO_MODE fica 'off'. Não ligar 'painel' sem um ensaio novo que passe
  * (≥ 85% nos ruins e ≤ 10% de alarme).
