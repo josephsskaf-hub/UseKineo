@@ -1,33 +1,33 @@
-// KINEO-APARENCIA-DO-PEDIDO-1311 (peça 1) — só servidor (node:crypto). O porquê e o alcance: lib/cinematic/aparenciaDoPedido1311.ts.
-import { createHash } from 'node:crypto'
+// KINEO-APARENCIA-DO-PEDIDO-1311 (peça 1) — só servidor. O porquê e o alcance: lib/cinematic/aparenciaDoPedido1311.ts.
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 
-// ── 1. a ideia do roteiro que o nosso escritor escreveu ─────────────────────────────────────────────────────────────────────────────
-/** O hash do roteiro como a tela o despacha (sgData.script.trim()): quebras de linha normalizadas, sem espaço nas pontas. */
-export function shaDoRoteiro(texto: unknown): string {
-  return createHash('sha256').update(String(texto ?? '').replace(/\r\n?/g, '\n').trim()).digest('hex')
-}
 export const IDEIA_DO_ROTEIRO_JANELA_MS = 6 * 3600_000
 export const IDEIA_DO_ROTEIRO_MAX_CHARS = 600 // o mesmo corte da tela (GenerateClient: ideia.slice(0, 600))
-export interface ScriptWrittenEvento { created_at: string; metadata: { original_idea?: unknown; script_sha256?: unknown } | null }
+export const CABECA_GRAVADA_CHARS = 200 // o /api/generate-script grava script_head = script.slice(0, 200)
+export const CABECA_MIN_CHARS = 40 // começo curto demais não prova nada
+export interface ScriptWrittenEvento { created_at: string; metadata: { original_idea?: unknown; script_head?: unknown } | null }
+const norma = (t: unknown) => String(t ?? '').replace(/\r\n?/g, '\n').trim()
 /**
- * A ideia de onde o roteiro despachado nasceu, ou null. Só o par exato: o `script_written` mais recente da janela com o mesmo hash.
- * Roteiro editado, condensado, colado ou escrito por outro lugar não casa — e fica como estava.
+ * A ideia de onde o roteiro despachado nasceu, ou null. O `script_written` mais recente da janela cujo começo gravado é, inteiro, o começo
+ * do roteiro despachado: roteiro de até 200 caracteres = o MESMO texto; maior = os 200 primeiros iguais. Roteiro reescrito desde o começo,
+ * colado ou de outro lugar não casa — e fica como estava.
  */
 export function ideiaDoRoteiroEscrito(roteiroDespachado: unknown, eventos: ReadonlyArray<ScriptWrittenEvento>, agoraMs: number): string | null {
-  const texto = String(roteiroDespachado ?? '').trim()
-  if (!texto) return null
-  const alvo = shaDoRoteiro(texto)
+  const texto = norma(roteiroDespachado)
+  if (texto.length < CABECA_MIN_CHARS) return null
   const casado = [...(eventos ?? [])]
     .filter((e) => {
       const t = Date.parse(String(e?.created_at ?? ''))
-      return Number.isFinite(t) && t <= agoraMs + 60_000 && t >= agoraMs - IDEIA_DO_ROTEIRO_JANELA_MS && e.metadata?.script_sha256 === alvo
-        && typeof e.metadata?.original_idea === 'string' && !!(e.metadata.original_idea as string).trim()
+      if (!Number.isFinite(t) || t > agoraMs + 60_000 || t < agoraMs - IDEIA_DO_ROTEIRO_JANELA_MS) return false
+      if (typeof e.metadata?.original_idea !== 'string' || !e.metadata.original_idea.trim()) return false
+      const cabeca = norma(e.metadata?.script_head)
+      if (cabeca.length < CABECA_MIN_CHARS) return false
+      // cabeça gravada inteira (< 200: o roteiro todo) = o roteiro despachado inteiro; com 200, o começo dele
+      return cabeca.length < CABECA_GRAVADA_CHARS ? texto === cabeca : texto.startsWith(cabeca)
     })
     .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0]
   return casado ? String(casado.metadata!.original_idea).slice(0, IDEIA_DO_ROTEIRO_MAX_CHARS) : null
 }
-
 
 // ── a leitura no banco (rota do filme): os script_written da pessoa na janela; nunca lança, falha = null (nada muda) ───────────────────
 type LeitorDeEventos = { from: (t: string) => any }

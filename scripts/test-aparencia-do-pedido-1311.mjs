@@ -4,15 +4,14 @@
 //       escritor); a ficha ficou `Milo, exactly as the author wrote: "duckling hugs Milo"` e o gato saiu cinza.
 //   (b) 7f92fe17 / gato ninja: "стиль пиксар" não pedia desenho (filme fotorreal) e "В стиле Пиксар" virou "Пиксар clearly visible as the
 //       subject of this shot" no plano 4.
-// Trava: (1) a ideia volta só pelo par EXATO (hash do roteiro no script_written, até 6 h); roteiro editado, evento sem hash ou fora da
-// janela = nada; (2) a ficha do Milo leva as palavras do cliente ("tiny adorable fluffy orange kitten"); a frase de autor que ESTÁ no pedido
+// Trava: (1) a ideia volta só quando o começo gravado do script_written (script_head, 200 caracteres) é, inteiro, o começo do roteiro
+// despachado (até 6 h; roteiro curto = o mesmo texto); reescrito no começo, outro roteiro, cabeça curta ou fora da janela = nada; (2) a ficha do Milo leva as palavras do cliente ("tiny adorable fluffy orange kitten"); a frase de autor que ESTÁ no pedido
 // fica; gente ("a tall man named Milo") não vira ficha de bicho; (3) "стиль пиксар" pede o look desenhado, e o inglês segue igual;
 // (4) "Пиксар"/"Pixar" nunca é o assunto do plano, e "Venus" continua sendo; (5) a fiação: rota recupera ANTES da cópia estacionada, as
-// duas leituras da ficha passam o interruptor, o /api/generate-script grava o hash; (6) 'off' = byte a byte o de antes.
-// Mutantes: interruptor 'off' · hash ignorado · "named" desligado · ficha do roteiro não cede · cirílico fora · marca vira assunto ·
-// rota sem recuperação · escritor sem hash.
+// duas leituras da ficha passam o interruptor; (6) 'off' = byte a byte o de antes. O interruptor mora em lib/cinematic/sceneStyle.ts.
+// Mutantes: interruptor 'off' · começo ignorado · "named" desligado · ficha do roteiro não cede · cirílico fora · marca vira assunto ·
+// rota sem recuperação.
 import { readFileSync } from 'node:fs'
-import { createHash } from 'node:crypto'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const MOD = 'lib/cinematic/aparenciaDoPedido1311.ts'
@@ -21,7 +20,6 @@ const FICHA = 'lib/cinematic/fichaDoPedido.ts'
 const ESTILO = 'lib/cinematic/sceneStyle.ts'
 const QUAL = 'lib/cinematic/filmQuality.ts'
 const ROTA = 'app/api/generate-video-cinematic/route.ts'
-const ESCRITOR = 'app/api/generate-script/route.ts'
 const ler = (f) => readFileSync(f, 'utf8')
 
 // (a) Milo — textos reais (videos.topic e script_written.original_idea de 13/11 07:45 UTC)
@@ -34,7 +32,6 @@ const GATO_ROTEIRO = 'HOOK (0-2s): [Pexels: cat rooftop silhouette] Рыжий �
 const GATO_FALA_4 = 'В стиле Пиксар, этот кот — супер ниндзя.'
 const GATO_PLANO_4 = 'Photoreal film. In a vibrant, animated style, the cat performs an epic leap, embodying the essence of a superhero ninja in action.'
 
-const sha = (t) => createHash('sha256').update(String(t).replace(/\r\n?/g, '\n').trim()).digest('hex')
 const AGORA = Date.parse('2026-11-13T07:45:38Z')
 
 function problemas(mut = {}) {
@@ -45,13 +42,18 @@ function problemas(mut = {}) {
   if (A.KINEO_APARENCIA_DO_PEDIDO_1311 !== 'all' || !ligado) p.push(`(0) interruptor = ${A.KINEO_APARENCIA_DO_PEDIDO_1311}, esperado 'all' para o cliente de fora`)
   if (A.aparenciaLigada('off', true) || A.aparenciaLigada('internal', false) || !A.aparenciaLigada('internal', true)) p.push("(0) 'off'/'internal' mudaram de sentido")
 
-  // (1) a ideia volta só pelo par exato
-  const ev = (texto, minutos, extra = {}) => ({ created_at: new Date(AGORA - minutos * 60_000).toISOString(), metadata: { original_idea: MILO_IDEIA, script_sha256: sha(texto), ...extra } })
-  if (E.shaDoRoteiro(MILO_ROTEIRO + '  \r\n') !== sha(MILO_ROTEIRO)) p.push('(1) o hash não normaliza quebra de linha e pontas')
+  // (1) a ideia volta só pelo começo gravado, inteiro (o evento como o /api/generate-script grava: script_head = script.slice(0, 200);
+  // o roteiro real do Milo tem 290 caracteres)
+  const ev = (texto, minutos, extra = {}) => ({ created_at: new Date(AGORA - minutos * 60_000).toISOString(), metadata: { original_idea: MILO_IDEIA, script_head: texto.slice(0, 200), ...extra } })
   const volta = E.ideiaDoRoteiroEscrito(MILO_ROTEIRO, [ev(MILO_ROTEIRO, 1)], AGORA)
-  if (volta !== MILO_IDEIA.slice(0, 600)) p.push('(1) Milo: o par exato não devolveu a ideia (600 caracteres, como a tela)')
-  if (E.ideiaDoRoteiroEscrito(MILO_ROTEIRO.replace('Milo dives', 'Milo leaps'), [ev(MILO_ROTEIRO, 1)], AGORA) !== null) p.push('(1) roteiro editado devolveu a ideia')
-  if (E.ideiaDoRoteiroEscrito(MILO_ROTEIRO, [{ created_at: new Date(AGORA - 60_000).toISOString(), metadata: { original_idea: MILO_IDEIA } }], AGORA) !== null) p.push('(1) evento sem hash (antigo) devolveu a ideia')
+  if (volta !== MILO_IDEIA.slice(0, 600)) p.push('(1) Milo: o começo do roteiro não devolveu a ideia (600 caracteres, como a tela)')
+  if (E.ideiaDoRoteiroEscrito(MILO_ROTEIRO + '  \r\n', [ev(MILO_ROTEIRO, 1)], AGORA) !== MILO_IDEIA.slice(0, 600)) p.push('(1) espaço/quebra de linha nas pontas impediu o par')
+  if (E.ideiaDoRoteiroEscrito(MILO_ROTEIRO.replace('A tiny kitten', 'A small kitten'), [ev(MILO_ROTEIRO, 1)], AGORA) !== null) p.push('(1) roteiro reescrito no começo devolveu a ideia')
+  if (E.ideiaDoRoteiroEscrito('Milo, the brave kitten, saves a duckling in the rain today.', [ev(MILO_ROTEIRO, 1)], AGORA) !== null) p.push('(1) outro roteiro devolveu a ideia')
+  const curto = 'HOOK: A tiny orange kitten saves a duckling in the rain.'
+  if (E.ideiaDoRoteiroEscrito(curto, [ev(curto, 1)], AGORA) !== MILO_IDEIA.slice(0, 600)) p.push('(1) roteiro curto (< 200) idêntico não casou')
+  if (E.ideiaDoRoteiroEscrito(curto + ' Then they become friends.', [ev(curto, 1)], AGORA) !== null) p.push('(1) roteiro curto com frase a mais casou (tem de ser o mesmo texto)')
+  if (E.ideiaDoRoteiroEscrito(MILO_ROTEIRO, [{ created_at: new Date(AGORA - 60_000).toISOString(), metadata: { original_idea: MILO_IDEIA, script_head: 'HOOK (0-2s):' } }], AGORA) !== null) p.push('(1) cabeça curta demais casou')
   if (E.ideiaDoRoteiroEscrito(MILO_ROTEIRO, [ev(MILO_ROTEIRO, 7 * 60)], AGORA) !== null) p.push('(1) evento fora da janela de 6 h devolveu a ideia')
   const doisPares = E.ideiaDoRoteiroEscrito(MILO_ROTEIRO, [ev(MILO_ROTEIRO, 30, { original_idea: 'velha' }), ev(MILO_ROTEIRO, 2)], AGORA)
   if (doisPares !== MILO_IDEIA.slice(0, 600)) p.push('(1) com dois pares, não ficou o mais recente')
@@ -84,18 +86,16 @@ function problemas(mut = {}) {
   if (iRec < 0 || iEst < 0 || iRec > iEst) p.push('(5) a rota não recupera a ideia antes da cópia estacionada')
   if (!/if \(ideiaDoEscritor\) \{ body\.original_idea = ideiaDoEscritor;/.test(rota)) p.push('(5) a ideia recuperada não vira body.original_idea')
   if ((rota.match(/elencoComFichaDoPedido\(body\.original_idea, [A-Za-z.]+, \{ aparencia1311 \}\)/g) ?? []).length !== 2) p.push('(5) as duas leituras da ficha não passam o interruptor')
-  const escritor = mut[ESCRITOR] ? mut[ESCRITOR](ler(ESCRITOR)) : ler(ESCRITOR)
-  if (!/script_sha256: shaDoRoteiro\(script\)/.test(escritor)) p.push('(5) o /api/generate-script não grava o hash do roteiro')
   return p
 }
 
 const atual = problemas()
 if (atual.length) { console.log('FALHA estado atual:\n  ' + atual.join('\n  ')); process.exit(1) }
-console.log('ok  estado atual (Milo: a ideia volta pelo par exato e a ficha diz "orange kitten"; gato ninja: look desenhado e "Пиксар" fora do assunto; controles; fiação)')
+console.log('ok  estado atual (Milo: a ideia volta pelo começo do roteiro e a ficha diz "orange kitten"; gato ninja: look desenhado e "Пиксар" fora do assunto; controles; fiação)')
 
 // 'off' = byte a byte o de antes, nas peças puras
 {
-  const off = createOfflineLoader({ source: (rel, t) => (rel.replace(/\\/g, '/') === MOD ? t.replace("KINEO_APARENCIA_DO_PEDIDO_1311: ModoAparencia1311 = 'all'", "KINEO_APARENCIA_DO_PEDIDO_1311: ModoAparencia1311 = 'off'") : t) })
+  const off = createOfflineLoader({ source: (rel, t) => (rel.replace(/\\/g, '/') === ESTILO ? t.replace("KINEO_APARENCIA_DO_PEDIDO_1311: ModoAparencia1311 = 'all'", "KINEO_APARENCIA_DO_PEDIDO_1311: ModoAparencia1311 = 'off'") : t) })
   const S = off(ESTILO), Q = off(QUAL), T = off('lib/cinematic/elencoTrava.ts')
   const fora = []
   if (S.deriveStyleAnchor(T.textoDoLook(GATO_ROTEIRO, GATO_IDEIA)).look !== 'photoreal') fora.push('look')
@@ -107,14 +107,13 @@ console.log('ok  estado atual (Milo: a ideia volta pelo par exato e a ficha diz 
 let ok = 2, falhas = 0
 const troca = (de, para) => (t) => { const n = t.replace(de, para); return n }
 const MUTANTES = [
-  ["M1 interruptor 'off'", { [MOD]: troca("KINEO_APARENCIA_DO_PEDIDO_1311: ModoAparencia1311 = 'all'", "KINEO_APARENCIA_DO_PEDIDO_1311: ModoAparencia1311 = 'off'") }],
-  ['M2 hash ignorado', { [ESC]: troca('&& e.metadata?.script_sha256 === alvo', '') }],
+  ["M1 interruptor 'off'", { [ESTILO]: troca("KINEO_APARENCIA_DO_PEDIDO_1311: ModoAparencia1311 = 'all'", "KINEO_APARENCIA_DO_PEDIDO_1311: ModoAparencia1311 = 'off'") }],
+  ['M2 começo ignorado', { [ESC]: troca('return cabeca.length < CABECA_GRAVADA_CHARS ? texto === cabeca : texto.startsWith(cabeca)', 'return true') }],
   ['M3 "named" desligado', { [FICHA]: troca('?? (opcoes.aparencia1311 ? nomeadoNoPedido(pedido, f, nomes) : null)', '') }],
   ['M4 ficha do roteiro não cede', { [FICHA]: troca("(f.origem === 'autor' && !autorDoRoteiro)", "f.origem === 'autor'") }],
   ['M5 cirílico fora do look', { [ESTILO]: troca('...(regrasDeLinguaLigadas() ? [ESTILO_CIRILICO_1311] : []),', '') }],
   ['M6 marca de estilo vira assunto', { [QUAL]: troca('if (regrasDeLinguaLigadas() && marcaDeEstilo(m[0])) continue', '') }],
   ['M7 rota sem recuperação', { [ROTA]: troca('if (ideiaDoEscritor) { body.original_idea = ideiaDoEscritor;', 'if (ideiaDoEscritor) {') }],
-  ['M8 escritor sem hash', { [ESCRITOR]: troca('script_sha256: shaDoRoteiro(script)', 'script_sha: null') }],
 ]
 for (const [nome, mut] of MUTANTES) {
   const alvo = Object.entries(mut).every(([arq, fn]) => fn(ler(arq)) !== ler(arq))

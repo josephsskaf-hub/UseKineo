@@ -6,10 +6,9 @@ import { elencoDoRoteiro, cenasDoElenco, CLAUSULA_FICHA } from '@/lib/cinematic/
 import { elencoComFichaLiteral, canonicaComDesenhoFixo, semDescricaoConcorrente } from '@/lib/cinematic/juizFicha' // KINEO-CONSISTENCIA-SER-3010
 import { aplicarContrato, montarContrato } from '@/lib/cinematic/sceneTruth'
 import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
-import { applyStyleAnchor, NO_READABLE_TEXT_SUFFIX, textSafetySuffix, type StyleAnchor } from '@/lib/cinematic/sceneStyle'
+import { applyStyleAnchor, NO_READABLE_TEXT_SUFFIX, textSafetySuffix, type StyleAnchor, marcaDeEstilo, regrasDeLinguaLigadas } from '@/lib/cinematic/sceneStyle'
 import { fraseUnicaDeSuperficie } from '@/lib/cinematic/superficieSemTexto' // KINEO-PESSOA-DO-PEDIDO-1111 (degrau 4)
 import { FRASE_PRODUTO_MARCA, EMBALAGEM_COR_LISA, EMBALAGEM_DO_PRODUTO } from '@/lib/cinematic/ideiaNaFicha' // KINEO-IDEIA-FICHA-ASSUNTO-1211 (C)
-import { marcaDeEstilo, regrasDeLinguaLigadas } from '@/lib/cinematic/aparenciaDoPedido1311' // KINEO-APARENCIA-DO-PEDIDO-1311
 import type { FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
 import { conferirFichaLiteral, type LeituraDaFicha } from '@/lib/cinematic/elencoSemantico' // KINEO-PROTAGONISTA-SEEDANCE-0111
 import type { FilmQualitySnapshot } from '@/lib/filmComplete/qualityInheritance'

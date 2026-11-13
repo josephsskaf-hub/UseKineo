@@ -14,7 +14,18 @@
 // Módulo PURO (sem imports): o guardião executa em sandbox. Toda função é
 // determinística — mesmo roteiro, mesmo resultado, para o retry ficar estável.
 
-import { ESTILO_CIRILICO_1311, regrasDeLinguaLigadas } from '@/lib/cinematic/aparenciaDoPedido1311' // KINEO-APARENCIA-DO-PEDIDO-1311
+// ═══ KINEO-APARENCIA-DO-PEDIDO-1311 — o interruptor e as regras de língua moram AQUI (este arquivo não tem import, e guardiões dependem disso);
+// o porquê, o alcance e as outras peças: lib/cinematic/aparenciaDoPedido1311.ts. 'off' = byte a byte o de antes. ═══
+export type ModoAparencia1311 = 'off' | 'internal' | 'all'
+/** Interruptor. Reverter: 'off' devolve o comportamento de antes para todo mundo; 'internal' = só a casa nas peças por conta. */
+export const KINEO_APARENCIA_DO_PEDIDO_1311: ModoAparencia1311 = 'all'
+/** As regras de língua (sem conta: o look e o assunto do plano) valem só com 'all'. */
+export const regrasDeLinguaLigadas = (modo: ModoAparencia1311 = KINEO_APARENCIA_DO_PEDIDO_1311): boolean => modo === 'all'
+/** "в стиле пиксар", "стиль Пиксара", "як у Діснея": o mesmo pedido que "Pixar style" (o \b do JS não enxerga cirílico: substring). */
+export const ESTILO_CIRILICO_1311 = /(пиксар|піксар|дисне[йяеюї]|дісне[йяю])/iu
+const MARCA_DE_ESTILO_1311_RE = /^(?:pixar|disney|dreamworks|ghibli|illumination|aardman|пиксар\p{L}*|піксар\p{L}*|дисне\p{L}*|дісне\p{L}*)$/iu
+/** A palavra é nome de estúdio de estilo ("Pixar", "Пиксар", "Disney")? Nesse caso ela fala do LOOK, nunca de quem aparece no plano. */
+export const marcaDeEstilo = (palavra: string): boolean => MARCA_DE_ESTILO_1311_RE.test(String(palavra ?? '').trim())
 export type StyleLook = 'photoreal' | 'animated3d' | 'anime' | 'illustration' | 'noir'
 
 export interface StyleAnchor {
