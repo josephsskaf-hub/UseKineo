@@ -9,7 +9,7 @@ const raiz = join(import.meta.dirname, '..', '..')
 const lf = (t) => String(t).replace(/\r\n/g, '\n')
 const sha = (t) => createHash('sha256').update(t).digest('hex')
 const git = (...a) => execFileSync('git', a, { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 })
-const BASE = '7303dfe89b239722a82273d3a87da855be99d1f5' // a origin/main em que este conserto nasceu (fixa: o recibo não muda quando a origin/main anda)
+const BASE = '8ace4240d14563f75e799a0d4e801bf8e3daf993' // a origin/main de que a virada para 'all' parte (13/11; a régua já estava nela em 'internal'). Fixa: o recibo não muda quando a origin/main anda
 const ESCOPO = ['lib/kling4Trial.ts'] // KINEO-K4-DURACAO-PELA-VOZ-1311 — a régua de durações do Kling 4 grátis
 
 const scope = {}, addedSources = {}

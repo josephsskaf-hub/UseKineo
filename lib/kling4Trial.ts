@@ -59,8 +59,10 @@ export function cabeNoTetoDoPlano(texto: string, teto = KLING4_TETO_DO_PLANO): s
 // último plano; piso de 2 s por plano (o schema da fal aceita 1–30). Sem `pelaVoz` = a régua de sempre, byte a byte.
 export type Kling4TrialTiming = { voiceovers: readonly string[]; wordsPerSecond: number; pelaVoz?: { segundosDaVoz: number } | null }
 export const KLING4_PISO_PELA_VOZ = 2
-/** Interruptor: 'internal' = só contas da casa até a prova paga (reexecutar o pedido salvo do 9e902872 com as durações novas). */
-export const KLING4_DURACAO_PELA_VOZ: 'off' | 'internal' | 'all' = 'internal'
+/** Interruptor. 'all' desde 13/11 05:11: o dono viu o antes e depois com som (prova paga no pedido salvo do 9e902872: cortes 2,08/4,08/7,13 s
+ *  contra a fala 4,0/7,0 s) e escolheu "A", ligar para todos. Reverter: 'off' devolve a régua antiga, byte a byte, a todo mundo;
+ *  'internal' volta a ser só a casa. Mudou o valor? Rode node scripts/test-support/gerar-recibo-k4-duracao-pela-voz-1311.mjs. */
+export const KLING4_DURACAO_PELA_VOZ: 'off' | 'internal' | 'all' = 'all'
 export function duracaoPelaVozLigada(modo: 'off' | 'internal' | 'all', interno: boolean): boolean {
   return modo === 'all' || (modo === 'internal' && interno)
 }

@@ -1,8 +1,8 @@
 // KINEO-K4-DURACAO-PELA-VOZ-1311 [CEO 13/11, "nota ≥ 8 no teste grátis — a próxima causa"] — recibo EXATO desta entrega no caminho
-// grátis do Kling 4 (lib/kling4Trial.ts: a régua de durações pela voz medida, atrás do interruptor KLING4_DURACAO_PELA_VOZ = 'internal').
-// Para o arquivo: o hash de antes (a origin/main em que o conserto nasceu), o de depois e os trechos trocados. Um guardião histórico
+// grátis do Kling 4 (lib/kling4Trial.ts: o interruptor KLING4_DURACAO_PELA_VOZ, 'all' desde 13/11 05:11, decisão do dono "A").
+// Para o arquivo: o hash de antes (a origin/main de que a entrega parte), o de depois e os trechos trocados. Um guardião histórico
 // só ignora o arquivo se desfazer estes trechos devolver EXATAMENTE a origin/main — edição desconhecida, parcial ou a mais (por
-// exemplo o interruptor trocado para 'all', que levaria a régua nova a cliente de fora) continua reprovando. Nunca usar em lib/app.
+// exemplo o interruptor mudado para 'off' ou 'internal' sem gerar o recibo de novo) continua reprovando. Nunca usar em lib/app.
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 

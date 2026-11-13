@@ -5,7 +5,7 @@
 // a preço de Kling 4 (45 cr). E o cinematic_dispatch_result do caminho pago dizia attempted 0 / not_attempted 1 /
 // invariant_ok false / claim_action unknown — "nunca postou" — para um clipe aceito.
 // Sem rede, sem fal, sem banco (db é um Proxy que conta acessos e falha). Rodar: npx tsx scripts/test-k4-despacho-0211.mts
-import { deltaK4DuracaoPelaVoz1311Exato } from './test-support/desfaz-k4-duracao-pela-voz-1311.mjs' // KINEO-K4-DURACAO-PELA-VOZ-1311 [CEO 13/11] — recibo exato da régua de durações pela voz (interruptor 'internal')
+import { deltaK4DuracaoPelaVoz1311Exato } from './test-support/desfaz-k4-duracao-pela-voz-1311.mjs' // KINEO-K4-DURACAO-PELA-VOZ-1311 [CEO 13/11] — recibo exato da régua de durações pela voz (interruptor 'all' desde 13/11 05:11)
 import { KLING4_DURACAO_PELA_VOZ, duracaoPelaVozLigada, buildKling4TrialInput, kling4TrialSceneDurations } from '../lib/kling4Trial' // KINEO-K4-DURACAO-PELA-VOZ-1311
 import { deltaK4FaixaTeto0511Exato } from './test-support/desfaz-k4-faixa-teto-0511.mjs' // KINEO-K4-FAIXA-TETO-0511 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
 import { readFileSync } from 'node:fs'
@@ -65,8 +65,8 @@ ok(KLING4_TRIAL_FALLBACK_AFTER_MS === 8 * 60_000, '2 relógio do filme GRÁTIS i
   try { diffGratis = execFileSync('git', ['diff', '--name-only', 'origin/main', '--', 'lib/kling4TrialAsyncStatus.ts', 'lib/kling4Trial.ts', 'lib/kling4TrialScript.ts'], { cwd: raiz, encoding: 'utf8' }).trim() } catch { /* sem git = falha */ }
   // KINEO-K4-FAIXA-TETO-0511 — a faixa do escritor (só acréscimos em lib/kling4TrialScript.ts) não mexe na medição nem no transporte: passa só pelo recibo exato
   try { const f = 'lib/kling4TrialScript.ts'; if (deltaK4FaixaTeto0511Exato(readFileSync(join(raiz, f), 'utf8'), execFileSync('git', ['show', `origin/main:${f}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }), f)) diffGratis = diffGratis.split(/\r?\n/).filter((x) => x.trim() && x.trim() !== f).join('\n') } catch { /* sem recibo = segue reprovando */ }
-  // KINEO-K4-DURACAO-PELA-VOZ-1311 [CEO 13/11] — a régua de durações pela voz (lib/kling4Trial.ts, interruptor 'internal': só a casa) passa só pelo
-  // recibo EXATO; o interruptor em 'all', ou qualquer outra edição no arquivo, continua reprovando aqui (a seção 5 prova os mutantes)
+  // KINEO-K4-DURACAO-PELA-VOZ-1311 [CEO 13/11; dono 13/11 05:11 "A": interruptor 'all'] — a régua de durações pela voz (lib/kling4Trial.ts) passa só
+  // pelo recibo EXATO; o interruptor mudado sem gerar o recibo de novo, ou qualquer outra edição no arquivo, continua reprovando aqui (seção 5)
   try { const f = 'lib/kling4Trial.ts'; if (deltaK4DuracaoPelaVoz1311Exato(readFileSync(join(raiz, f), 'utf8'), execFileSync('git', ['show', `origin/main:${f}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }), f)) diffGratis = diffGratis.split(/\r?\n/).filter((x) => x.trim() && x.trim() !== f).join('\n') } catch { /* sem recibo = segue reprovando */ }
   ok(diffGratis === '', '2 caminho grátis (status, transporte, portão da voz do 4aba8a177) sem nenhuma mudança') }
 
@@ -94,23 +94,27 @@ console.log('== 4. o despacho do Kling 4 pago entra no ledger (cinematic_dispatc
   ok(amb.ambiguous === 1 && invarianteFecha({ ...amb, planned: 1 }) && nao.not_attempted === 1 && invarianteFecha({ ...nao, planned: 1 }),
     '4 POST sem recibo = ambíguo; sem POST = não tentado; o invariante fecha nos dois') }
 
-console.log('== 5. KINEO-K4-DURACAO-PELA-VOZ-1311: a régua nova não chega a cliente de fora ==')
+console.log("== 5. KINEO-K4-DURACAO-PELA-VOZ-1311: régua pela voz para todos ('all', dono 13/11 05:11 \"A\"), com volta à régua antiga ==")
 { const f = 'lib/kling4Trial.ts', hoje = readFileSync(join(raiz, f), 'utf8')
   let main: string | null = null
   try { main = execFileSync('git', ['show', `origin/main:${f}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }) } catch { /* sem git = falha */ }
   const exato = (t: string) => main !== null && deltaK4DuracaoPelaVoz1311Exato(t, main, f)
   ok(main !== null && (hoje.replace(/\r\n/g, '\n') === main.replace(/\r\n/g, '\n') || exato(hoje)), '5 lib/kling4Trial.ts = origin/main ou origin/main + o recibo exato desta entrega')
-  ok(!exato(hoje.replace("KLING4_DURACAO_PELA_VOZ: 'off' | 'internal' | 'all' = 'internal'", "KLING4_DURACAO_PELA_VOZ: 'off' | 'internal' | 'all' = 'all'")), "5 mutante: interruptor em 'all' (régua nova para todo cliente) NÃO passa pelo recibo, e a verificação 2 fica vermelha")
+  for (const outro of ['off', 'internal']) ok(!exato(hoje.replace("KLING4_DURACAO_PELA_VOZ: 'off' | 'internal' | 'all' = 'all'", `KLING4_DURACAO_PELA_VOZ: 'off' | 'internal' | 'all' = '${outro}'`)), `5 mutante: interruptor em '${outro}' sem gerar o recibo de novo NÃO passa pelo recibo, e a verificação 2 fica vermelha`)
   ok(!exato(hoje.replace("modo === 'all' || (modo === 'internal' && interno)", "modo === 'all' || modo === 'internal'")), '5 mutante: portão que ignora quem é a conta NÃO passa pelo recibo')
   ok(!exato(hoje + '\n// edição a mais\n'), '5 mutante: edição desconhecida no arquivo NÃO passa pelo recibo')
-  ok(KLING4_DURACAO_PELA_VOZ === 'internal' && !duracaoPelaVozLigada(KLING4_DURACAO_PELA_VOZ, false) && duracaoPelaVozLigada(KLING4_DURACAO_PELA_VOZ, true), "5 interruptor 'internal': conta de fora não liga, a casa liga")
+  ok(KLING4_DURACAO_PELA_VOZ === 'all' && duracaoPelaVozLigada(KLING4_DURACAO_PELA_VOZ, false) && duracaoPelaVozLigada(KLING4_DURACAO_PELA_VOZ, true), "5 interruptor 'all': conta de fora e casa recebem a régua pela voz")
+  ok(!duracaoPelaVozLigada('off', false) && !duracaoPelaVozLigada('off', true) && !duracaoPelaVozLigada('internal', false) && duracaoPelaVozLigada('internal', true), "5 volta: 'off' desliga para todos; 'internal' só a casa")
   const falas = ['Want to burn fat fast?', 'They torch calories and build strength.', 'Battle ropes engage your core and boost metabolism.', 'But the ultimate fat blaster is HIIT. Short bursts of intense effort.']
   const enviar = (timing: Parameters<typeof buildKling4TrialInput>[2]) => JSON.stringify(buildKling4TrialInput(['a', 'b', 'c', 'd'], [], timing))
   const semCampo = enviar({ voiceovers: falas, wordsPerSecond: 2.45 })
-  ok(enviar({ voiceovers: falas, wordsPerSecond: 2.45, pelaVoz: null }) === semCampo, '5 cliente de fora (pelaVoz null, o que o plano por seção passa): o envio à fal é byte a byte o de sempre')
+  ok(enviar({ voiceovers: falas, wordsPerSecond: 2.45, pelaVoz: null }) === semCampo, "5 'off' / sem a voz medida (pelaVoz null, o que o plano por seção passa): o envio à fal é byte a byte o de sempre")
   ok(JSON.stringify(JSON.parse(semCampo).input.multi_prompt.map((x: { duration: number }) => x.duration)) === JSON.stringify(kling4TrialSceneDurations(falas, 2.45)), '5 sem a voz medida: as durações são as da régua antiga')
+  ok([0, -3, Number.NaN, 15.6, 40].every((v) => enviar({ voiceovers: falas, wordsPerSecond: 2.45, pelaVoz: { segundosDaVoz: v } }) === semCampo), '5 voz medida inválida (0, negativa, NaN, acima de 15,5 s): o envio volta a ser o de sempre, byte a byte')
+  const pelaVoz = JSON.parse(enviar({ voiceovers: falas, wordsPerSecond: 2.45, pelaVoz: { segundosDaVoz: 12 } })).input.multi_prompt.map((x: { duration: number }) => x.duration) as number[]
+  ok(pelaVoz.reduce((s, x) => s + x, 0) === 15 && pelaVoz.every((x) => x >= 2) && JSON.stringify(pelaVoz) !== JSON.stringify(kling4TrialSceneDurations(falas, 2.45)), `5 com a voz medida (12 s): soma 15 s, piso 2 s, régua nova (${pelaVoz})`)
   const rota = readFileSync(join(raiz, 'app/api/generate-video-cinematic/route.ts'), 'utf8')
-  ok(/duracaoPelaVozLigada\(KLING4_DURACAO_PELA_VOZ, isInternalEmail\(user\.email\)\)\) kling4Timing\.pelaVoz = /.test(rota) && (rota.match(/kling4Timing\.pelaVoz = /g) ?? []).length === 1, '5 a rota só escreve a voz medida pelo portão (interruptor + conta da casa), em um lugar só') }
+  ok(rota.includes("if (kling4Fala?.cabe && typeof kling4Fala.seconds === 'number' && duracaoPelaVozLigada(KLING4_DURACAO_PELA_VOZ, isInternalEmail(user.email))) kling4Timing.pelaVoz = { segundosDaVoz: kling4Fala.seconds }") && (rota.match(/kling4Timing\.pelaVoz = /g) ?? []).length === 1, '5 a rota só escreve a voz medida se a fala CABE e foi medida, pelo interruptor, em um lugar só (fala que não cabe = régua antiga)') }
 
 console.log(`\n${fail === 0 ? 'OK' : 'FALHOU'} — ${pass} verdes, ${fail} vermelhas`)
 if (fail) process.exit(1)
