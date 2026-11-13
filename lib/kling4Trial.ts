@@ -51,7 +51,40 @@ export function cabeNoTetoDoPlano(texto: string, teto = KLING4_TETO_DO_PLANO): s
   return cp(final) <= teto ? final : Array.from(base).slice(0, teto).join('').replace(/\s+\S*$/u, '')
 }
 
-export type Kling4TrialTiming = { voiceovers: readonly string[]; wordsPerSecond: number }
+// KINEO-K4-DURACAO-PELA-VOZ-1311 [CEO 13/11, "nota ≥ 8 no teste grátis — a próxima causa"] — filme 9e902872 (cliente, Kling 4, 15 s,
+// 4 seções): a fala durou 12 s (seções em 0–4 / 4–7 / 7–12 s), mas a régua acima pôs piso de 3 s nas seções curtas e espalhou os 3 s
+// de sobra por todos os planos → [3,3,4,5]. A imagem ficou uma seção ATRÁS da voz ("Battle ropes engage your core" sobre o
+// kettlebell; o HIIT só aparece depois de a fala acabar). `pelaVoz` (só quando o despacho mede a voz e o interruptor está ligado):
+// cada fronteira de plano cai onde a fala da seção termina, na escala da voz MEDIDA; o silêncio depois da fala vai inteiro para o
+// último plano; piso de 2 s por plano (o schema da fal aceita 1–30). Sem `pelaVoz` = a régua de sempre, byte a byte.
+export type Kling4TrialTiming = { voiceovers: readonly string[]; wordsPerSecond: number; pelaVoz?: { segundosDaVoz: number } | null }
+export const KLING4_PISO_PELA_VOZ = 2
+/** Interruptor: 'internal' = só contas da casa até a prova paga (reexecutar o pedido salvo do 9e902872 com as durações novas). */
+export const KLING4_DURACAO_PELA_VOZ: 'off' | 'internal' | 'all' = 'internal'
+export function duracaoPelaVozLigada(modo: 'off' | 'internal' | 'all', interno: boolean): boolean {
+  return modo === 'all' || (modo === 'internal' && interno)
+}
+
+/** KINEO-K4-DURACAO-PELA-VOZ-1311 — durações inteiras cujas fronteiras seguem o fim da fala de cada seção (voz medida). */
+export function kling4TrialSceneDurationsPelaVoz(voiceovers: readonly string[], segundosDaVoz: number): number[] | null {
+  const n = voiceovers.length
+  if (!n || n > 5 || !Number.isFinite(segundosDaVoz) || segundosDaVoz <= 0 || segundosDaVoz > 15.5) return null
+  const palavras = voiceovers.map((t) => narrationWordCount(t))
+  const total = palavras.reduce((s, w) => s + w, 0)
+  if (total <= 0 || palavras.some((w) => w <= 0)) return null
+  const piso = KLING4_PISO_PELA_VOZ
+  const fronteiras: number[] = []
+  let acumulado = 0
+  for (let i = 0; i < n - 1; i++) {
+    acumulado += palavras[i]
+    const fim = Math.round((acumulado / total) * Math.min(segundosDaVoz, 15))
+    const anterior = i === 0 ? 0 : fronteiras[i - 1]
+    fronteiras.push(Math.min(Math.max(fim, anterior + piso), 15 - piso * (n - 1 - i)))
+  }
+  const cortes = [0, ...fronteiras, 15]
+  const segundos = cortes.slice(1).map((c, i) => c - cortes[i])
+  return segundos.every((s) => s >= piso) && segundos.reduce((s, x) => s + x, 0) === 15 ? segundos : null
+}
 
 /** Speech-weighted allocation on the provider's integer clock. Clamp short shots, then apportion the remainder. */
 export function kling4TrialSceneDurations(voiceovers: readonly string[], wordsPerSecond: number): number[] {
@@ -90,7 +123,8 @@ export function buildKling4TrialInput(
   if (!shots.length || shots.some(p => !p)) throw new Kling4TrialPreflightError('kling4_empty_plan')
   if (timing && timing.voiceovers.length !== shots.length) throw new Kling4TrialPreflightError('kling4_mismatched_timing')
   // Empty narration is the only balanced fallback. Birth always supplies its final scene voiceovers and resolved voice pace.
-  const seconds = kling4TrialSceneDurations(timing?.voiceovers ?? shots.map(() => ''), timing?.wordsPerSecond ?? 1)
+  const pelaVoz = timing?.pelaVoz ? kling4TrialSceneDurationsPelaVoz(timing.voiceovers, timing.pelaVoz.segundosDaVoz) : null // KINEO-K4-DURACAO-PELA-VOZ-1311
+  const seconds = pelaVoz ?? kling4TrialSceneDurations(timing?.voiceovers ?? shots.map(() => ''), timing?.wordsPerSecond ?? 1)
   const first = approvedStills[0] || null
   const middle: string[] = []
   const multiPrompt = shots.map((prompt, i) => {

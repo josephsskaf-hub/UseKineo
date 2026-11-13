@@ -23,7 +23,7 @@ import { loadFilmCompleteQuality } from '@/lib/filmComplete/server'
 import type { FilmQualitySnapshot } from '@/lib/filmComplete/qualityInheritance'
 import { readFilmQualitySnapshot } from '@/lib/filmComplete/qualityInheritance' // KINEO-QUALIDADE-TODOS-MOTORES-2910
 import { KLING4_TRIAL_LIVE, kling4TrialEligible } from '@/lib/kling4TrialPolicy'
-import { submitKling4TrialVideo, orchestrateKling4Trial, buildKling4TrialInput, kling4TrialSceneDurations, approvedKling4TrialStills, type Kling4TrialResult } from '@/lib/kling4Trial'
+import { submitKling4TrialVideo, orchestrateKling4Trial, buildKling4TrialInput, kling4TrialSceneDurations, approvedKling4TrialStills, KLING4_DURACAO_PELA_VOZ, duracaoPelaVozLigada, type Kling4TrialResult } from '@/lib/kling4Trial' // KINEO-K4-DURACAO-PELA-VOZ-1311: + interruptor
 import { reserveKling4Trial, recordKling4TrialFilm } from '@/lib/kling4TrialBudget'
 import { medirFalaDoKling4Trial as medirFalaK4Crua } from '@/lib/kling4TrialScript' // KINEO-K4-SEMPRE-0511 [TRAVA 8.2 — fundador 05/11 "vai"]
 import { encaixarFalaNoKling4, ENCAIXE_FALHOU_EVENTO, type EncaixeK4 } from '@/lib/kling4TrialEncaixe' // KINEO-K4-SEMPRE-0511 · KINEO-K4-ENCAIXE-MOTIVO-1111: ENCAIXE_FALHOU_EVENTO
@@ -7970,7 +7970,7 @@ async function manipularPost(req: NextRequest) {
     const kling4Prompts = classicScenePrompts.map((p, i) => promptDaCenaKling4(p, styleAnchor, i)) // KINEO-QUALIDADE-TODOS-MOTORES-2910 — cast/action/style survive the final provider limit. · KINEO-CENA-PEDIDO-3010 — revisor 29/10: a moldura (abertura, 9:16, "characters act naturally") comia os 512 e a ação da fala sumia; sai antes do corte, e cada cena ganha um eixo de câmera
     if (kling4TrialCandidate) for (let i = 0; i < kling4Prompts.length; i++) kling4Prompts[i] = promptDaCenaKling4(classicScenePrompts[i], styleAnchor, i, true) // KINEO-REPETICAO-FREE15-1011 — filme grátis: o clipe pede só o plano da imagem-chave; cena com plano próprio fica sem eixo (nunca o rodízio antigo nem "subject small"). Pago: a linha acima, byte a byte
     // Final scene speech, after short-film repairs; this is the same voice/language/speed ruler signed for compose.
-    const kling4Timing = { voiceovers: scenes.map(s => s.voiceover ?? ''), wordsPerSecond: narrationRate.wordsPerSecond }
+    const kling4Timing: { voiceovers: string[]; wordsPerSecond: number; pelaVoz?: { segundosDaVoz: number } | null } = { voiceovers: scenes.map(s => s.voiceover ?? ''), wordsPerSecond: narrationRate.wordsPerSecond } // KINEO-K4-DURACAO-PELA-VOZ-1311: + pelaVoz (preenchido depois da medida da voz)
     // KINEO-K4-SUJEITO-0111 — revisor 01/11 (CENA_FORA_DO_PEDIDO): "o avião C-54 que sumiu" sem avião (2 homens de terno em 5 de 8 quadros), "criança com caneta 3D"
     // sem a criança, "vida sob o gelo" sem o desfecho. Antes do POST pago: o sujeito central do PEDIDO tem de estar em pelo menos 1 cena do multi_prompt; se não está, a
     // cena cuja fala o cita (senão a última) ganha o sujeito no orçamento dos 512 e perde a imagem-chave do meio desenhada sem ele. Corrige, nunca bloqueia; a fala não muda.
@@ -7996,7 +7996,7 @@ async function manipularPost(req: NextRequest) {
       const q = kling4PlanoPorSecao && verbatim && parsedScript.segments.length > scenes.length // KINEO-K4-PLANO-POR-SECAO-1111 — só quando o roteiro tem mais seções que cenas
         ? planosPorSecao({ prompts: a.prompts, stills: a.approvedStills, falas: a.timing.voiceovers, secoes: parsedScript.segments, objetoConcreto: kling4PlanoVariado }) // KINEO-K4-PLANO-POR-SECAO-1111 · KINEO-K4-PLANO-VARIADO-1111
         : null // KINEO-K4-PLANO-POR-SECAO-1111
-      const r = q ? { prompts: q.prompts, approvedStills: q.stills, timing: { voiceovers: q.falas, wordsPerSecond: a.timing.wordsPerSecond }, planos: q.grupos } : { ...a, planos: null } // KINEO-K4-PLANO-POR-SECAO-1111
+      const r = q ? { prompts: q.prompts, approvedStills: q.stills, timing: { voiceovers: q.falas, wordsPerSecond: a.timing.wordsPerSecond, pelaVoz: a.timing.pelaVoz ?? null }, planos: q.grupos } : { ...a, planos: null } // KINEO-K4-PLANO-POR-SECAO-1111
       const r2 = { ...r, prompts: r.prompts.map((p) => comSuperficieNoPlano(p)) } // KINEO-BALAO-SEM-LETRA-1111 [CEO 11/11] — a metade da cena fundida nasce da pista da seção depois da proteção de superfície: balão/página/tela dela ganha a frase sem letra aqui
       const r3 = kling4PlanoVariado ? { ...r2, prompts: planosComEscalaVariada(r2.prompts, r2.approvedStills).prompts } : r2 // KINEO-K4-PLANO-VARIADO-1111 — escala diferente de plano a plano (nunca dois closes seguidos); plano com imagem-chave fica como está
       // KINEO-K4-PLANO-FINAL-1111 [CEO 11/11, alavanca 1, atrás de KLING4_PLANO_FINAL] — o último plano em movimento: o momento acontece e se completa na tela,
@@ -8031,6 +8031,8 @@ async function manipularPost(req: NextRequest) {
     // que o /api/compose lê, então a montagem não paga a TTS de novo) e a duração do mp3 decide: ≤ 15,5 s → Kling 4; acima, ou
     // sem medida → o Seedance de 3 clipes, que filma a fala inteira (farol e8f91bdf: 18,4 s sobre 15 s). lib/kling4TrialScript.
     const kling4Fala: FalaK4 | null = kling4TrialCandidate && scenes.length === 3 && scenes.every(s => [6, 7, 8].includes(s.clipSeconds ?? 6)) ? await medirFalaDoKling4Trial({ voiceoverScript: verbatim && parsedScript.narration ? parsedScript.narration : scenes.map((s) => s.voiceover).filter(Boolean).join(' '), verbatim, scriptSpeed: parsedScript.speed, voz: vozCurta, language: narrationLanguage.language, quality: String(claimQuality), log: `gen=${generationId.slice(0, 8)}` }) : null // KINEO-K4-NARRACAO-CABE-0111 — o mesmo voiceover_script da resposta abaixo
+    // KINEO-K4-DURACAO-PELA-VOZ-1311 — a voz MEDIDA (o mp3 que a montagem vai usar) decide onde cada plano corta; só com o interruptor (lib/kling4Trial.ts).
+    if (kling4Fala?.cabe && typeof kling4Fala.seconds === 'number' && duracaoPelaVozLigada(KLING4_DURACAO_PELA_VOZ, isInternalEmail(user.email))) kling4Timing.pelaVoz = { segundosDaVoz: kling4Fala.seconds }
     if (kling4Fala && !kling4Fala.cabe) console.warn(`[cinematic] KINEO-K4-NARRACAO-CABE-0111 fala medida ${kling4Fala.seconds ?? '?'}s (teto ${kling4Fala.maxSeconds}s, ${kling4Fala.reason}) → Seedance 15 s, não Kling 4`) // KINEO-K4-NARRACAO-CABE-0111
     if (kling4TrialCandidate && scenes.length === 3 && scenes.every(s => [6, 7, 8].includes(s.clipSeconds ?? 6)) && kling4Fala?.cabe) { // KINEO-K4-NARRACAO-CABE-0111: + fala medida ≤ 15,5 s
       kling4Trial = await orchestrateKling4Trial({
