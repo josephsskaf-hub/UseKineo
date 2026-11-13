@@ -15,7 +15,7 @@ import { AppearanceSettingsButton } from '@/components/AppearanceSettings' // KI
 import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage' // KINEO-GALERIA-HOME-2710
 import NavUgcAdsLink from '@/components/NavUgcAdsLink' // KINEO-GALERIA-HOME-2710
 import { createEntryForContentHref, createEntryHref } from '@/lib/create/entry' // KINEO-ENTRADAS-CARTOES-1011 [fundador 10/11: "todos os menus da parte de cima do site estão indo ainda para os links antigos"] — logado: as abas da tela nova; visitante: o de hoje
-import { MENU_CARTOON_HREF, MENU_CARTOON_LABEL, MENU_CARTOON_NAV_ITEM, MENU_CONNECTOR_HREF, MENU_CONNECTOR_LABEL, MENU_CONNECTOR_NAV_ITEM } from '@/lib/ui/homeRemodela2010' // KINEO-GALERIA-HOME-2710
+import { RECREATE_MENU_HREF, RECREATE_MENU_LABEL, RECREATE_MENU_NAV_ITEM, MENU_CARTOON_HREF, MENU_CARTOON_LABEL, MENU_CARTOON_NAV_ITEM, MENU_CONNECTOR_HREF, MENU_CONNECTOR_LABEL, MENU_CONNECTOR_NAV_ITEM } from '@/lib/ui/homeRemodela2010' // KINEO-GALERIA-HOME-2710
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy' // KINEO-GALERIA-HOME-2710
 import { MADE_WITH_KINEO_HREF, MADE_WITH_KINEO_LABEL, MADE_WITH_KINEO_NAV_ITEM } from '@/lib/homeGaleria' // KINEO-GALERIA-HOME-2710
 import styles from '../examples/ExamplesGallery.module.css' // KINEO-GALERIA-HOME-2710
@@ -66,6 +66,7 @@ export default async function Page({ searchParams }: { searchParams: { page?: st
             <NavUgcAdsLink data-nav-item="more:ugc" signedIn={signedIn} />
             <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM} aria-current="page">{MADE_WITH_KINEO_LABEL}</Link>
             <Link href={createEntryForContentHref('cartoon', MENU_CARTOON_HREF, '/kids-cartoon', signedIn)} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>
+            <Link href={RECREATE_MENU_HREF} data-nav-item={RECREATE_MENU_NAV_ITEM}>{RECREATE_MENU_LABEL}</Link>
             <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM}>{MENU_CONNECTOR_LABEL}</Link>
             <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
           </nav>
