@@ -25,10 +25,35 @@
   max-width: 650px;
 }
 
+/* KINEO-POUSO-AFILIADO-CELULAR-1311 — prévia muda ao lado do texto; letra mínima de 12 px (regra do dono). */
+.lead {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+}
+
+.preview {
+  flex: 0 0 auto;
+  width: 96px;
+  aspect-ratio: 9 / 16;
+  border-radius: 12px;
+  object-fit: cover;
+  background: #0b0b0d;
+}
+
+.offer {
+  margin: 8px 0 0;
+  color: #f5f5f7;
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
 .eyebrow {
   margin: 0 0 6px;
   color: #64b5ff;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 900;
   letter-spacing: 0.12em;
   text-transform: uppercase;

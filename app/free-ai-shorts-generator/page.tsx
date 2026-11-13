@@ -21,6 +21,9 @@ import PaidSeedanceBridge from '@/components/PaidSeedanceBridge'
 import BuyCreatorCta from '@/components/BuyCreatorCta' // KINEO-PAGINAS-QUE-VENDEM-2026-10-12
 import { ENGINES } from '@/lib/growth/enginePageCatalog'
 import { enginePaused } from '@/lib/engineLaunch'
+import { headers } from 'next/headers' // KINEO-POUSO-AFILIADO-CELULAR-1311
+import { filmeGratisPermitido, paisDoRequest } from '@/lib/freeFilmPolicy' // KINEO-POUSO-AFILIADO-CELULAR-1311
+import { TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOffer' // KINEO-POUSO-AFILIADO-CELULAR-1311
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -95,6 +98,51 @@ export const metadata: Metadata = {
 export default function FreeAiShortsGeneratorPage({ searchParams }: { searchParams?: PublicSearchParams }) {
   const signupUrl = buildBlankStudioSignupHref({ campaign: CAMPAIGN })
   const partnerContext = affiliateLandingContext(searchParams, 'video')
+  // KINEO-POUSO-AFILIADO-CELULAR-1311 [dono 13/11, "sim"] — SÓ para quem chega pelo link do parceiro (a mesma condição
+  // que já mostrava o bloco): prévia muda no bloco, a linha do grátis certa para o país e o formulário logo abaixo dele,
+  // na 1ª tela do celular. Quem não vem de afiliado vê a página igual, na mesma ordem. Nenhum texto da página saiu: o
+  // formulário só muda de lugar para o afiliado. País sem filme grátis (Índia, Paquistão…) não recebe promessa de filme.
+  const partnerCountry = partnerContext ? paisDoRequest(headers()) : null
+  const partnerFreeFilm = partnerContext ? filmeGratisPermitido(partnerCountry) : false
+  const partnerOfferLine = partnerContext
+    ? partnerFreeFilm
+      ? `Your first ${TRIAL_FREE_FILM_SECONDS}-second film is free, watermarked, no card.`
+      : 'Type your idea and see your first scene free before you choose a plan.'
+    : null
+  const formCopy = {
+    label: 'What should your free AI Short be about?',
+    placeholder: 'Type one topic or paste your script',
+    submit: 'Create my free Short',
+    examplesLabel: 'Free Short ideas',
+    note: ft(
+      OFFER,
+      'Your idea is carried into signup so the first Fast video can start without a card.',
+      // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — a frase antiga do recuo para o motor rápido prometia o Kineo 1, fora da entrada desde 29/09.
+      `Your idea stays attached through signup and becomes your ${FREE_FILM_LABEL}, watermarked, no card.`,
+    ),
+  }
+  const partnerNoFilmCopy = {
+    ...formCopy,
+    label: 'What should your AI Short be about?',
+    submit: 'Start with my idea',
+    examplesLabel: 'Short ideas',
+    note: 'Your idea stays attached through signup. You see your first scene free before you choose a plan.',
+  }
+  const topicForm = (
+    <TopicGeneratorForm
+      campaign={CAMPAIGN}
+      source={CAMPAIGN}
+      formId={FORM_ID}
+      creationIntent={OFFER.reverseTrial ? 'trial_best' : 'fast'}
+      marginTop={partnerContext ? 0 : undefined}
+      examples={[
+        'The island nobody is allowed to visit',
+        'The money habit that quietly makes people broke',
+        'Why AI agents are replacing old software',
+      ]}
+      copy={partnerContext && !partnerFreeFilm ? partnerNoFilmCopy : formCopy}
+    />
+  )
   const h2: CSSProperties = { fontSize: 'clamp(1.3rem, 3.5vw, 1.75rem)', fontWeight: 650, margin: '44px 0 12px' }
   const p: CSSProperties = { color: '#5A5F67', fontSize: '1rem', lineHeight: 1.65, margin: '0 0 12px' }
   const card: CSSProperties = { background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 14, padding: '16px 18px' }
@@ -125,7 +173,14 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(videoJsonLd).replace(/</g, '\\u003c') }} />
       <PaginaClaraTopo />{/* KINEO-PAGINAS-IA-CLARAS-2110 */}
       <div style={{ maxWidth: 880, margin: '0 auto', padding: '64px 20px 88px' }}>
-        <AffiliateLandingContext context={partnerContext} targetId={FORM_ID} />
+        <AffiliateLandingContext
+          context={partnerContext}
+          targetId={FORM_ID}
+          country={partnerCountry}
+          offerLine={partnerOfferLine}
+          preview={partnerContext ? { poster: FEATURED_EXAMPLE.posterPath, video: FEATURED_EXAMPLE.videoPath, alt: FEATURED_EXAMPLE.title } : null}
+        />
+        {partnerContext && <div style={{ margin: '0 0 30px' }}>{topicForm}</div>}
         <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 750, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#0A5CFF', border: '1px solid rgba(10,92,255,0.35)', background: '#E8EFFF', borderRadius: 999, padding: '6px 12px' }}>
           Free AI Shorts Generator
         </span>
@@ -163,29 +218,8 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
           {ft(OFFER, 'Up to 3 watermarked Fast videos every 24h. No card required.', OFFER.copy.headline)}
         </p>
 
-        <TopicGeneratorForm
-          campaign={CAMPAIGN}
-          source={CAMPAIGN}
-          formId={FORM_ID}
-          creationIntent={OFFER.reverseTrial ? 'trial_best' : 'fast'}
-          examples={[
-            'The island nobody is allowed to visit',
-            'The money habit that quietly makes people broke',
-            'Why AI agents are replacing old software',
-          ]}
-          copy={{
-            label: 'What should your free AI Short be about?',
-            placeholder: 'Type one topic or paste your script',
-            submit: 'Create my free Short',
-            examplesLabel: 'Free Short ideas',
-            note: ft(
-              OFFER,
-              'Your idea is carried into signup so the first Fast video can start without a card.',
-              // KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — a frase antiga do recuo para o motor rápido prometia o Kineo 1, fora da entrada desde 29/09.
-              `Your idea stays attached through signup and becomes your ${FREE_FILM_LABEL}, watermarked, no card.`,
-            ),
-          }}
-        />
+        {/* KINEO-POUSO-AFILIADO-CELULAR-1311 — para o afiliado o formulário já está no topo; aqui só para os outros. */}
+        {!partnerContext && topicForm}
 
         {/* KINEO-PAGINAS-IA-CLARAS-2110 — o exemplo e os 3 vídeos velhos saíram; a âncora #example fica na vitrine atual (a mesma da /claude-connector). */}
         <PaginaClaraVitrine id="example" eyebrow="Real Kineo output" nota="These previews demonstrate the output format, not views or revenue performance." align="left" />
