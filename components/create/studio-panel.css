@@ -184,3 +184,7 @@
 @media (max-width: 640px) {
   .recreate .rc-panel .rc-upload.rc-upload-filled { min-height: 220px; }
 }
+
+/* KINEO-RECREATE-PRONTO-NA-CARA-1311 — "Make another" no aviso de pronto: botão com cara de link, área de toque de 32 px */
+.recreate .rc-next-note .rc-outro { appearance: none; border: 0; background: none; padding: 6px 0; font: inherit; color: inherit; text-decoration: underline; cursor: pointer; }
+.recreate .rc-next-note a { text-decoration: underline; }
