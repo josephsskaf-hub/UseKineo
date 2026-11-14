@@ -167,6 +167,47 @@ const SEM_GENTE_RE = /\b(?:no (?:people|person|humans?|human figures?|one|foregr
 const FEM_VISUAL_RE = /\b(?:woman|women|girl|girls|lady|she|her|hers|herself|mother|sister|daughter|queen|princess|bride)\b/i
 const MASC_VISUAL_RE = /\b(?:man|men|boy|boys|guy|he|him|his|himself|father|brother|son|king|prince|groom)\b/i
 
+// ═══ KINEO-CENA-SEM-GENTE-1411 [CEO 14/11, lote 1 dos 4 vídeos de teste da madrugada: casos C e D] ═══════════════════════════════════════
+// (C) Flight 19 (2f34daf3): "fourteen young airmen … boarding five Avenger torpedo bombers" ganhou "No people, no human figures and no faces
+// anywhere in this shot." — "airmen" não estava na lista de gente. No corpus de 30 dias (61 planos com a cláusula), 18 descreviam gente de
+// PAPEL (scientists, archaeologists, a researcher, astronauts, a busy professional, startled neighbors, a commanding officer, farmers,
+// vendors, the expert…). Aqui: papel de gente e palavra composta em -man/-men/-woman/-women contam como alguém no plano, salvo quando o papel
+// é só referência ("a memorial honoring veterans", "a display showing one candidate") ou posse ("a farmer's market").
+// (D) Earhart (a7def2bc): a ilha Howland marcada sem gente levava a trava de época longa, "every person, building, street, vehicle and object
+// belongs to that exact time — period clothing, period architecture…": o motor pôs gente de terno e casas na ilha deserta. No plano que o
+// código marcou sem gente, a trava vira "only the things this shot describes, each exactly as it looked at that time" (positiva, sem listar
+// gente nem prédio). O ano fica ("period piece set strictly in the year 1937"), e a "Period setting:" curta, que já diz "Any person the shot
+// describes", fica como está. Interruptor CENA_SEM_GENTE_1411: 'off' = byte a byte o de antes. Guardião: scripts/test-cena-sem-gente-1411.mjs.
+export type ModoCenaSemGente = 'off' | 'all'
+export const CENA_SEM_GENTE_1411: ModoCenaSemGente = 'all'
+export const cenaSemGenteLigada = (modo: ModoCenaSemGente = CENA_SEM_GENTE_1411) => modo === 'all'
+export const CENA_SEM_GENTE_VERSAO = 'cena_sem_gente_1411_v1'
+/** A trava de época do plano sem gente (lib/cinematic/filmQuality tira a frase inteira da ação do Kling 4, como tira a longa). */
+export const EPOCA_SEM_GENTE = 'only the things this shot describes, each exactly as it looked at that time'
+const EPOCA_LONGA_RE = /(period piece set strictly in [^:]+):\s*every person, building, street, vehicle and object belongs to that exact time[^]*?as it really looked then/u
+/** No plano sem gente, a trava de época longa (que lista gente, prédio e rua) vira a curta, sem listar nada. Idempotente; sem a trava, igual. */
+export function epocaSemGente(prompt: string): string {
+  return String(prompt ?? '').replace(EPOCA_LONGA_RE, (_m, cabeca: string) => `${cabeca}: ${EPOCA_SEM_GENTE}`)
+}
+const PAPEL_DE_GENTE = 'scientists?|researchers?|archaeologists?|astronauts?|experts?|officers?|commanders?|captains?|lieutenants?|sergeants?|candidates?|veterans?|farmers?|vendors?|neighbou?rs?|professionals?|crews?|aviators?|cadets?|sailors?|troops|recruits?|journalists?|reporters?|photographers?|detectives?|engineers?|mechanics?|chefs?|waiters?|waitress(?:es)?|customers?|shoppers?|protesters?|spectators?|athletes?|climbers?|hikers?|explorers?|travell?ers?|survivors?|prisoners?|servants?|merchants?|senators?|voters?|keepers?|executives?|employees?|gladiators?|emperors?|pharaohs?|scholars?|nuns?|lawyers?|presidents?|archers?|hunters?|fishers?|miners?|builders?|painters?|singers?|musicians?|actors?|actresses?|teachers?|professors?|surgeons?|paramedics?|rescuers?|divers?|refugees?|immigrants?|settlers?|colonists?|natives?|tribesmen|elders?|adults?|humans?'
+const PAPEL_RE = new RegExp(`(?<![\\p{L}\\p{N}])(?:${PAPEL_DE_GENTE}|\\p{L}{2,}(?:man|men|woman|women))(?![\\p{L}\\p{N}])(?!['’]s)`, 'giu')
+/** Palavras em -man/-men que não são gente. */
+const NAO_E_GENTE = new Set(['roman', 'romans', 'german', 'germans', 'ottoman', 'ottomans', 'talisman', 'talismans', 'caiman', 'caimans', 'doberman', 'dobermans', 'omen', 'omens', 'amen', 'stamen', 'stamens', 'specimen', 'specimens', 'abdomen', 'ramen', 'semen', 'regimen', 'acumen', 'hymen', 'cyclamen', 'pacman', 'walkman', 'pokemon', 'yemen'])
+/** O papel citado só como referência: a palavra logo antes (sem artigo nem número) é homenagem, exibição ou destino. */
+const REFERENCIA_ANTES_RE = /(?:^|[^\p{L}])(?:honou?ring|showing|depicting|displaying|remembering|commemorating|for|about|to|like)\s+(?:(?:a|an|the|one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+)?$/iu
+/** KINEO-CENA-SEM-GENTE-1411 (C) — o visual cita gente de PAPEL ("fourteen young airmen", "scientists on a boat")? A negação de gente vence. Pura. */
+export function visualTemGenteDePapel(visual: string): boolean {
+  const v = String(visual ?? '')
+  if (!v.trim() || SEM_GENTE_RE.test(v)) return false
+  for (const m of v.matchAll(PAPEL_RE)) {
+    if (NAO_E_GENTE.has(m[0].toLowerCase())) continue
+    if (REFERENCIA_ANTES_RE.test(v.slice(Math.max(0, (m.index ?? 0) - 40), m.index ?? 0))) continue
+    return true
+  }
+  return false
+}
+// ═══ fim KINEO-CENA-SEM-GENTE-1411 ═══
+
 /** O visual mostra alguém (pessoa, criatura, parte do corpo, quem pilota)? A negação de gente vence. */
 export function visualMostraAlguem(visual: string): boolean {
   const v = String(visual ?? '')
@@ -251,8 +292,10 @@ export function ajustarPromptsDoElenco(args: { prompts: ReadonlyArray<string>; v
       return out
     }
     if (visualMostraAlguem(args.visuals[i] ?? '')) return out
+    if (cenaSemGenteLigada() && visualTemGenteDePapel(args.visuals[i] ?? '')) return out // KINEO-CENA-SEM-GENTE-1411 (C) — "airmen", "scientists": o plano tem gente, fica intocado
     out = out.split(CLAUSULA_PERFORMANCE).join('')
     if (!out.includes(CLAUSULA_SEM_GENTE.trim())) out = `${out.replace(/[\s]+$/, '')}${CLAUSULA_SEM_GENTE}`
+    if (cenaSemGenteLigada()) out = epocaSemGente(out) // KINEO-CENA-SEM-GENTE-1411 (D) — plano sem gente: a época não lista gente, prédio nem rua
     semGente.push(i + 1)
     return out
   })

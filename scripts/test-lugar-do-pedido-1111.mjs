@@ -78,7 +78,7 @@ const MUT = [
   ['M2 o compactador ignora o lugar', { [FQ]: fq.replace('const lugarPedido = /(?:Setting as the customer asked|Setting of this film): ([^.]+)\\./.exec(prompt)?.[1]?.trim()', 'const lugarPedido = undefined as string | undefined') }],
   ['M3 o lugar não cede à roupa', { [FQ]: fq.replace('const pre = lugarPedido && (!cabeAFicha(prefix) || !acaoInteiraComLugar) ?', 'const pre = lugarPedido && !acaoInteiraComLugar ?') }],
   ['M4 a época sem época volta', { [FQ]: fq.replace("period && !/historical era being narrated/i.test(period) ?", 'period ?') }],
-  ['M6 a frase longa da época fica na ação', { [FQ]: fq.replace("action = action.replace(/,?\\s*(?:period piece set strictly in [^:]+)?:\\s*every person", "action = action.replace(/NUNCA(?:period piece set strictly in [^:]+)?:\\s*every person") }],
+  ['M6 a frase longa da época fica na ação', { [FQ]: fq.replace("action = action.replace(/,?\\s*(?:period piece set strictly in [^:]+)?:\\s*(?:every person", "action = action.replace(/NUNCA(?:period piece set strictly in [^:]+)?:\\s*(?:every person") }], // KINEO-CENA-SEM-GENTE-1411 — reancorado: a mesma linha ganhou a alternativa da época curta do plano sem gente
   ['M7 o lugar não cede à ação', { [FQ]: fq.replace('const pre = lugarPedido && (!cabeAFicha(prefix) || !acaoInteiraComLugar) ?', 'const pre = lugarPedido && !cabeAFicha(prefix) ?') }],
   ['M8 o lugar sai de todo plano', { [FQ]: fq.replace('return Math.max(Array.from(porFrase).length, Array.from(porOracao).length) >= limite * 0.6', 'return false') }],
   ['M5 a rota clássica sem o lugar', { [ROTA]: rota.replace('classicScenePrompts[i] = comLugarDoPedido(classicScenePrompts[i], lugarPedido)', 'classicScenePrompts[i] = classicScenePrompts[i]') }],

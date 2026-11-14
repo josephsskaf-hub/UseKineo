@@ -143,7 +143,7 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
   // KINEO-LUGAR-DO-PEDIDO-1111 — a frase longa da época ("…: every person, building, street, vehicle and object belongs to that exact time —
   // period clothing, … as it really looked then") sai INTEIRA da ação: a época curta já vai na frente; tirar só o começo deixava o resto
   // (": every person, building, street…") no plano do 2120f018 refeito.
-  action = action.replace(/,?\s*(?:period piece set strictly in [^:]+)?:\s*every person, building, street, vehicle and object belongs to that exact time[^]*?as it really looked then/giu, '').trim()
+  action = action.replace(/,?\s*(?:period piece set strictly in [^:]+)?:\s*(?:every person, building, street, vehicle and object belongs to that exact time[^]*?as it really looked then|only the things this shot describes, each exactly as it looked at that time)/giu, '').trim() // KINEO-CENA-SEM-GENTE-1411 (D) — + a trava curta do plano sem gente (lib/cinematic/personagemAjuste EPOCA_SEM_GENTE)
   // KINEO-ORIGEM-DO-ELENCO-0311 — o corte de 140-178 caracteres da ficha jogava a linha da origem fora: ela vai curta, na frente, com a marca que os juízes leem. Sem marca: byte a byte.
   const origensDaCena = [...new Set([...prompt.matchAll(/natural features of ([^.;,]+?) people/g)].map((m) => m[1]))] // KINEO-ORIGEM-DO-ELENCO-0311
   if (origensDaCena.length > 0) action = action.replace(/(?:The main person, if one is shown in this shot, is|The [a-z' -]+ in this shot (?:is|are)) [^.]+?natural features of [^.]+? people\.\s*/g, '').trim() // KINEO-ORIGEM-DO-ELENCO-0311
