@@ -63,6 +63,75 @@ async function callModeration(input: ModerationInputPart[]): Promise<ModerationR
   return result
 }
 
+// ═══ KINEO-MODERACAO-DOWNLOAD-1411 [CEO 14/11, pedido 5] — o moderador não conseguiu BAIXAR a foto: tenta mais uma vez antes de recusar ═════
+// Caso: 14/11 04:12:17 UTC, POST /api/recreate/seu-video → 422 moderation_unprocessable, "moderation 400: 400 Failed to download image". A
+// mesma foto tinha passado 25 s antes e passou depois: a falha era do download DELES, não da foto. Em 7 dias, 2 eventos (1 de cliente).
+// Agora, SÓ nesse erro (4xx com "failed to download"): UMA segunda chamada, com a imagem baixada por NÓS e mandada em base64 (o endpoint aceita
+// `image_url.url` como URL ou como data URL — o mesmo formato que outras superfícies já mandam). Só baixamos de onde a casa guarda mídia (o
+// nosso Storage) ou do fornecedor (fal.media), até 8 MB e em 4 s; fora disso, a 2ª chamada repete a URL. Falhou de novo por download = FORA DO
+// AR (unavailable, "tente de novo"), não "esta imagem não serve" (unprocessable). Timeout, 5xx e os outros 4xx seguem como antes: uma chamada,
+// sem retry (a regra da revisão de 25/09). Pior caso a mais: 4 s do nosso download + 8 s da 2ª chamada, só depois de um 400 de download.
+export const MODERATION_DOWNLOAD_ERROR = /fail(?:ed|ure)? to download|could ?n[o']t download|unable to download|error (?:while )?downloading|timed? ?out (?:while )?downloading/i
+export const MODERATION_RESCUE_MAX_BYTES = 8 * 1024 * 1024
+export const MODERATION_RESCUE_FETCH_MS = 4_000
+class ModerationDownloadFailed extends Error {}
+
+/** O erro é o moderador dizendo que não conseguiu baixar a imagem? */
+export function moderationDownloadFailure(error: unknown): boolean {
+  return error instanceof ModerationUnprocessable && MODERATION_DOWNLOAD_ERROR.test(error.message)
+}
+
+/** Só baixamos para resgate o que já é mídia da casa: o nosso Storage ou a entrega do fornecedor. */
+export function moderationRescueHost(url: string): boolean {
+  try {
+    const u = new URL(url)
+    if (u.protocol !== 'https:') return false
+    const nosso = (() => { try { return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').hostname } catch { return '' } })()
+    return (nosso !== '' && u.hostname === nosso) || u.hostname === 'fal.media' || u.hostname.endsWith('.fal.media')
+  } catch {
+    return false
+  }
+}
+
+async function imageAsDataUrl(url: string): Promise<string | null> {
+  if (!moderationRescueHost(url)) return null
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(MODERATION_RESCUE_FETCH_MS), cache: 'no-store' })
+    const type = (res.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase()
+    if (!res.ok || !/^image\/(?:jpeg|png|webp|gif)$/.test(type)) return null
+    const buf = new Uint8Array(await res.arrayBuffer())
+    if (buf.byteLength === 0 || buf.byteLength > MODERATION_RESCUE_MAX_BYTES) return null
+    return `data:${type};base64,${Buffer.from(buf).toString('base64')}`
+  } catch {
+    return null
+  }
+}
+
+/** Uma chamada; se o moderador não baixou a imagem, UMA segunda (em base64 quando dá). `onRescue` avisa o desfecho para o evento. */
+async function callModerationWithRescue(input: ModerationInputPart[], onRescue?: (outcome: 'ok' | 'failed', inline: number) => Promise<void>): Promise<ModerationResult> {
+  try {
+    return await callModeration(input)
+  } catch (error) {
+    if (!moderationDownloadFailure(error)) throw error
+    let inline = 0
+    const again = await Promise.all(input.map(async (part): Promise<ModerationInputPart> => {
+      if (part.type !== 'image_url' || part.image_url.url.startsWith('data:')) return part
+      const data = await imageAsDataUrl(part.image_url.url)
+      if (data) inline += 1
+      return data ? { type: 'image_url', image_url: { url: data } } : part
+    }))
+    try {
+      const result = await callModeration(again)
+      await onRescue?.('ok', inline).catch(() => {})
+      return result
+    } catch (second) {
+      await onRescue?.('failed', inline).catch(() => {})
+      if (moderationDownloadFailure(second)) throw new ModerationDownloadFailed(`moderation image download failed twice: ${second instanceof Error ? second.message : String(second)}`)
+      throw second
+    }
+  }
+}
+
 /**
  * Confere um texto e/ou imagens. O texto vai numa chamada própria (e junto da 1ª imagem, para o modelo ler os dois juntos);
  * cada imagem extra, noutra. Barra se QUALQUER chamada barrar.
@@ -90,7 +159,7 @@ export async function moderateContent(args: {
   let worst: ModerationDecision | null = null
   try {
     for (const batch of batches) {
-      const result = await callModeration(batch)
+      const result = await callModerationWithRescue(batch, (outcome, inline) => writeServerEvent({ name: 'content_moderation_download_retry', userId: args.userId, path: `/moderation/${args.surface}`, metadata: { surface: args.surface, stage: args.stage, outcome, inline_images: inline } }).then(() => undefined)) // KINEO-MODERACAO-DOWNLOAD-1411 — era: await callModeration(batch)
       const hasText = batch.some((p) => p.type === 'text')
       const hasImage = batch.some((p) => p.type === 'image_url')
       const decision = decideModeration(result, hasText ? text : null, { hasImage })

@@ -22,6 +22,8 @@ export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 export const maxDuration = 60
 export const runtime = 'nodejs'
+/** KINEO-MODERACAO-DOWNLOAD-1411 — a frase da CEO para a foto que não pôde ser conferida agora (nada cobrado). */
+const FRASE_FOTO_NAO_CONFERIDA = 'Could not check your photo right now. Try again in a moment. Nothing was charged.'
 const json = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: RECREATE_HEADERS })
 
 export async function POST(req: NextRequest) {
@@ -83,6 +85,11 @@ export async function POST(req: NextRequest) {
         const balance = result.balance ?? (await loadClipAccount(supabase, user))?.balance
         if (balance !== undefined && plan.credits > balance) return json({ error: `You need ${plan.credits - balance} more credits.`, code: 'credits', shortfall: plan.credits - balance, plans: '/pricing' }, result.status)
       }
+      // KINEO-MODERACAO-DOWNLOAD-1411 [CEO 14/11, pedido 5] — a recusa da moderação com a frase CERTA (antes saía "Check your photos, plan and balance", que não é
+      // verdade aqui): checagem fora do ar ou foto que o moderador não conseguiu baixar duas vezes = tentar de novo; bloqueio e imagem que não
+      // serve = a frase da própria moderação.
+      if (result.code === 'moderation_unavailable') return json({ error: FRASE_FOTO_NAO_CONFERIDA, code: result.code, charged: false }, result.status)
+      if (result.code === 'moderation' || result.code === 'moderation_unprocessable') return json({ error: result.error, code: result.code, charged: false }, result.status)
       const motor = recusaDoMotor(result.code)
       if (motor) return json({ error: motor, code: 'engine_refused' }, result.status)
       return json({ error: result.code === 'idempotency_conflict' ? 'This request is already reserved. Check your videos before trying again.' : 'Could not start this video. Check your photos, plan and balance, then retry.', code: result.code }, result.status)
