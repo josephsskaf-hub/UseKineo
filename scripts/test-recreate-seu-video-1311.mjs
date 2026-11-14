@@ -159,10 +159,14 @@ async function provasB(m, mm) {
   const antes = mm.buildFreeClipWatermarkSource('https://c/clean.mp4', info)
   if (antes.elements.length !== 2 || antes.elements.some((e) => e.type === 'audio')) erros.push('B a marca sem som mudou')
   const soSom = mm.buildFreeClipWatermarkSource('https://c/clean.mp4', info, { text: false, audio: { url: ORIGINAL, seconds: 8 } })
-  const a = soSom.elements.find((e) => e.type === 'audio')
-  if (soSom.elements.some((e) => e.type === 'text') || !a || a.source !== ORIGINAL || a.duration !== 8.041 || a.time !== 0) erros.push('B montagem só do som errada: ' + JSON.stringify(soSom.elements))
+  // reancorado KINEO-RECREATE-SOM-SO-O-SOM-1311 (CEO 13/11, item C): o elemento "audio" com o MP4 original por CIMA entregava a IMAGEM do
+  // original (SSIM 0,99). O som agora vem de um VÍDEO do original POR BAIXO e invisível; o clipe do motor por cima, mudo (guardião próprio:
+  // scripts/test-recreate-som-so-o-som-1311.mjs).
+  const a = soSom.elements.find((e) => e.source === ORIGINAL)
+  const motor = soSom.elements.find((e) => e.source === 'https://c/clean.mp4')
+  if (soSom.elements.some((e) => e.type === 'text' || e.type === 'audio') || !a || a.type !== 'video' || a.opacity !== '0%' || !motor || !(a.track < motor.track) || a.duration !== 8.041 || a.time !== 0) erros.push('B montagem só do som errada: ' + JSON.stringify(soSom.elements))
   const comMarca = mm.buildFreeClipWatermarkSource('https://c/clean.mp4', info, { audio: { url: ORIGINAL, seconds: 8 } })
-  if (!comMarca.elements.some((e) => e.type === 'text') || !comMarca.elements.some((e) => e.type === 'audio')) erros.push('B quem não paga perdeu a marca ou o som')
+  if (!comMarca.elements.some((e) => e.type === 'text') || !comMarca.elements.some((e) => e.source === ORIGINAL && e.opacity === '0%')) erros.push('B quem não paga perdeu a marca ou o som')
   if (!mm.parseBrandMarker(mm.brandMarker({ phase: 'rendering', reason: 'audio', startedAt: 1763000000000, renderId: 'render-12345678' }))) erros.push('B a trava não lê o motivo audio')
   if (mm.isBrandedClipUrl(`${SUPA}/storage/v1/object/public/clips/clips/${U}/${ID}${mm.AUDIO_CLIP_SUFFIX}`)) erros.push('B o arquivo com som seria trocado pelo limpo (mudo) de quem paga')
   // a máquina de estados de verdade: 1ª passada pede o render; 2ª copia para o caminho do som
@@ -177,7 +181,7 @@ async function provasB(m, mm) {
   const row = { id: ID, engine: 'h3', seconds: 8, video_url: null }
   try { await mm.brandFreeClip(deps, { row, providerUrl: 'https://fal/out.mp4', reason: 'audio', ageMs: 1000, expireMs: 7200000, audio: { url: ORIGINAL, seconds: 8 } }); erros.push('B a 1ª passada não esperou o render') } catch (x) { if (!/rendering/.test(String(x?.message ?? x))) erros.push('B 1ª passada: ' + (x?.message ?? x)) }
   const src = pedidos[0]
-  if (!src || src.elements.some((e) => e.type === 'text') || !src.elements.some((e) => e.type === 'audio' && e.source === ORIGINAL)) erros.push('B o render pedido não é só o som original: ' + JSON.stringify(src?.elements?.map((e) => e.type)))
+  if (!src || src.elements.some((e) => e.type === 'text') || !src.elements.some((e) => e.type === 'video' && e.opacity === '0%' && e.source === ORIGINAL) /* reancorado KINEO-RECREATE-SOM-SO-O-SOM-1311 */) erros.push('B o render pedido não é só o som original: ' + JSON.stringify(src?.elements?.map((e) => e.type)))
   const fim = await mm.brandFreeClip(deps, { row: { ...row, video_url }, providerUrl: 'https://fal/out.mp4', reason: null, ageMs: 2000, expireMs: 7200000, audio: { url: ORIGINAL, seconds: 8 } }).catch((x) => 'lançou ' + x?.message)
   if (fim !== 'https://nosso/som.mp4' || copias[0] !== 'audio') erros.push(`B a 2ª passada não entregou o arquivo com som (${fim}, ${copias})`)
   return erros
@@ -190,7 +194,7 @@ checa('B o persist do clipe passa o som e entra na montagem por ele', clipSrv.in
 checa('B nada de som gerado (a fal segue com generate_audio false)', carrega().entradaSeedance25({ prompt: '', fotos: [], videoUrl: '', gerados: 4, proporcao: '9:16' }).generate_audio === false)
 const MUTANTES_B = [
   ['B som de qualquer dono', ARQ, (s) => s.replace('return u.startsWith(dono) &&', 'return u.includes(`/${SEU_VIDEO_PASTA}/`) &&')],
-  ['B som sem o corte na duração', MARCA, (s) => s.replace("...(dur ? { duration: Math.round(dur * 1000) / 1000 } : {}), source: opts.audio.url", 'source: opts.audio.url')],
+  ['B som sem o corte na duração', MARCA, (s) => s.replace("const somDoOriginal = { type: 'video', track: 1, time: 0, ...corte, source: opts.audio.url", "const somDoOriginal = { type: 'video', track: 1, time: 0, source: opts.audio.url")],
   ['B só som mas com a marca', MARCA, (s) => s.replace("const elements = opts.text === false ? base.elements.filter((e) => e.type !== 'text') : base.elements", 'const elements = base.elements')],
   ['B render sem o som', MARCA, (s) => s.replace("buildFreeClipWatermarkSource(clean, info, { text: reason !== 'audio', audio: args.audio ?? null })", 'buildFreeClipWatermarkSource(clean, info)')],
   ['B som vai para o caminho da marca', MARCA, (s) => s.replace('const url = await deps.copyBranded(state.url, marker.reason)', 'const url = await deps.copyBranded(state.url)')],

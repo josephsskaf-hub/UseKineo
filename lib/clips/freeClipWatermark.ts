@@ -289,7 +289,16 @@ export function buildFreeClipWatermarkSource(cleanUrl: string, info: ClipVideoIn
     const base = buildFreeClipWatermarkSource(cleanUrl, info) as { elements: Array<Record<string, unknown>> } & Record<string, unknown>
     const dur = typeof info.durationSeconds === 'number' && info.durationSeconds > 0 ? info.durationSeconds : opts.audio?.seconds ?? null
     const elements = opts.text === false ? base.elements.filter((e) => e.type !== 'text') : base.elements
-    return { ...base, elements: opts.audio ? [...elements, { type: 'audio', track: 3, time: 0, ...(dur ? { duration: Math.round(dur * 1000) / 1000 } : {}), source: opts.audio.url, volume: '100%' }] : elements }
+    if (!opts.audio) return { ...base, elements }
+    // KINEO-RECREATE-SOM-SO-O-SOM-1311 [CEO 13/11 22:46, item C] — o defeito medido pela CEO (clipes 19e29401 e 28f2edcd): entregue × ORIGINAL
+    // SSIM 0,99; entregue × saída do motor 0,90. O elemento "audio" com o MP4 do cliente ia na trilha 3, ACIMA do vídeo do motor, e a IMAGEM do
+    // original cobria o quadro. Agora o original entra como VÍDEO na trilha 1 (a de BAIXO), com opacidade 0% — só o som dele sai —, o clipe do
+    // motor por CIMA (trilha 2, quadro inteiro, volume 0%: a saída do motor já é muda) e a marca, quando há, no topo (trilha 3). Nenhum
+    // elemento "audio" com MP4. Mesmo corte na duração do clipe.
+    const corte = dur ? { duration: Math.round(dur * 1000) / 1000 } : {}
+    const somDoOriginal = { type: 'video', track: 1, time: 0, ...corte, source: opts.audio.url, opacity: '0%', volume: '100%' }
+    const camadas = elements.map((e) => (e.type === 'video' ? { ...e, track: 2, volume: '0%' } : e.type === 'text' ? { ...e, track: 3 } : e))
+    return { ...base, elements: [somDoOriginal, ...camadas] }
   }
   return {
     output_format: 'mp4',
