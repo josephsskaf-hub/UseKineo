@@ -58,7 +58,13 @@ import {
   type ClipSubmitDeps,
   type ProviderState,
   type RecreateSwapSettleDeps, // KINEO-RECREATE-TRAVA-1011
+  clipTelemetry, // KINEO-RECREATE-FILA-KLING-EDIT-1411
+  type ClipQueueDeps, // KINEO-RECREATE-FILA-KLING-EDIT-1411
 } from '@/lib/clips/clipFlow'
+import { FILA_MARCA, FILA_MOTIVOS, FILA_TETO_ESPERA_MS, FILA_VAGA_EVENTO, FILA_VAGA_NOME, FILA_VAGA_PATH, entradaDaLinha, naFila, tomarVaga, type FilaIo } from '@/lib/recreate/filaKlingEdit' // KINEO-RECREATE-FILA-KLING-EDIT-1411
+import { idDaVez } from '@/lib/cronLease' // KINEO-RECREATE-FILA-KLING-EDIT-1411 — o id fixo da vaga (o mesmo desenho da vez do cron)
+import { comEndUserDaFal } from '@/lib/recreate/falEndUser' // KINEO-RECREATE-FILA-KLING-EDIT-1411
+import { semMarcasDaCasa } from '@/lib/recreate/seuVideo' // KINEO-RECREATE-FILA-KLING-EDIT-1411
 // KINEO-CLIPE-MARCA-2026-10-06 — a marca do clipe grátis: interruptor e regra puros. A fiação (Creatomate) só é carregada
 // com o interruptor ligado (import dinâmico em persistClipVideo).
 import {
@@ -530,6 +536,7 @@ export function settleDepsFor(admin: SupabaseClient, userId: string): ClipSettle
       markVideoSubmitted: (id, videoModel, requestId) => markRemixVideoSubmitted(admin, id, videoModel, requestId), // KINEO-ROSTO-QUADRO-CHAVE-2810
       videoModel: (row) => { const item = faceRemixForRow(row); if (!item) throw new Error('remix: row is not a face remix'); return faceRemixVideoModel(item) }, // KINEO-ROSTO-QUADRO-CHAVE-2810
     }, // KINEO-ROSTO-QUADRO-CHAVE-2810
+    queue: clipQueueDepsFor(admin), // KINEO-RECREATE-FILA-KLING-EDIT-1411 — a fila anda em toda liquidação (tela, cron de 1 min, varredura)
     recreateSwap: recreateSwapDepsFor(admin, userId), // KINEO-RECREATE-TRAVA-1011 — a trava "não trocou" em TODO caminho que entrega (tela, /clips, cron, varredura)
   }
 }
@@ -613,6 +620,92 @@ export function recreateSwapDepsFor(admin: SupabaseClient, userId: string): Recr
   }
 }
 
+// ═══ KINEO-RECREATE-FILA-KLING-EDIT-1411 [CEO 14/11, pedido 3] — os fios da fila de UM pedido por vez no Kling 4.0 edição ═══════════════
+// Regras e números: lib/recreate/filaKlingEdit.ts. A vaga é uma linha de id fixo em `events` (o desenho de lib/cronLease); a fila são as
+// linhas `pending` do modelo com a marca em failure_reason. Sem tabela, coluna ou cron novos.
+const FILA_VAGA_ID = idDaVez(FILA_VAGA_NOME)
+function filaIoFor(admin: SupabaseClient): FilaIo {
+  return {
+    now: () => Date.now(),
+    maisAntigoNaFila: async () => {
+      const { data, error } = await admin.from(CLIPS_TABLE).select('id').eq('model', KLING4_EDIT_MODEL).eq('status', 'pending').eq('failure_reason', FILA_MARCA)
+        .order('created_at', { ascending: true }).order('id', { ascending: true }).limit(1)
+      if (error) throw new Error(`queue lookup failed: ${error.message}`)
+      const id = (data ?? [])[0]?.id
+      return typeof id === 'string' ? id : null
+    },
+    criarVaga: async (clipId, expiraEm) => {
+      const { error } = await admin.from('events').insert({ id: FILA_VAGA_ID, name: FILA_VAGA_EVENTO, path: FILA_VAGA_PATH, metadata: { clip_id: clipId, expira_em: new Date(expiraEm).toISOString(), versao: 'fila_kling_edit_1411' } })
+      if (!error) return true
+      if ((error as { code?: string }).code === '23505') return false
+      throw new Error(`queue slot insert failed: ${error.message}`)
+    },
+    lerVaga: async () => {
+      const { data, error } = await admin.from('events').select('metadata').eq('id', FILA_VAGA_ID).maybeSingle()
+      if (error) throw new Error(`queue slot read failed: ${error.message}`)
+      const md = (data?.metadata ?? null) as Record<string, unknown> | null
+      if (!md || typeof md.clip_id !== 'string') return null
+      const expira = Date.parse(String(md.expira_em ?? ''))
+      return { clipId: md.clip_id, expiraEm: Number.isFinite(expira) ? expira : 0 }
+    },
+    apagarVaga: async (clipId) => {
+      const { error } = await admin.from('events').delete().eq('id', FILA_VAGA_ID).eq('metadata->>clip_id', clipId)
+      if (error) console.error(`[clips/fila] slot release failed clip=${clipId}:`, error.message)
+    },
+    // O preso: failed PRIMEIRO (condicional: só se ainda aberto — quem fechou sozinho nesse meio-tempo não é estornado), depois o estorno
+    // idempotente e o valor na linha. A mesma ordem da trava "não trocou".
+    fecharPreso: async (clipId) => {
+      const { data, error } = await admin.from(CLIPS_TABLE).select(COLUMNS).eq('id', clipId).in('status', ['pending', 'processing']).maybeSingle()
+      if (error || !data) return
+      const preso = toRow(data as Record<string, unknown>)
+      if (!(await markFailed(admin, preso.id, FILA_MOTIVOS.preso, 0))) return
+      const refunded = await refundRenderCredits(preso.billing_reference)
+      if (refunded > 0) await admin.from(CLIPS_TABLE).update({ credits_refunded: refunded }).eq('id', preso.id).eq('status', 'failed').eq('credits_refunded', 0)
+      await clipEvent(preso.user_id)('clip_failed', { ...clipTelemetry(preso), reason: FILA_MOTIVOS.preso, credits_refunded: refunded, stage: 'queue' })
+    },
+  }
+}
+export function clipQueueDepsFor(admin: SupabaseClient): ClipQueueDeps {
+  const io = filaIoFor(admin)
+  return {
+    applies: (row) => row.model === KLING4_EDIT_MODEL,
+    queued: (row) => naFila(row),
+    take: (row) => tomarVaga(io, row.id),
+    enqueue: async (id) => {
+      const { data, error } = await admin.from(CLIPS_TABLE).update({ failure_reason: FILA_MARCA }).eq('id', id).eq('status', 'pending').is('fal_request_id', null).select('id')
+      if (error) console.error(`[clips/fila] enqueue failed clip=${id}:`, error.message)
+      return !error && (data ?? []).length > 0
+    },
+    // O pedido gravado na impressão da linha, com o mesmo embrulho do envio direto (end_user_id quando o modelo pede; marcas kineo_* fora).
+    submit: async (row) => {
+      const e = entradaDaLinha(row)
+      if (!e) return { ok: false as const, ambiguous: false, error: 'queued request could not be read' }
+      return comEndUserDaFal(submitToFalOnce, row.user_id)(e.model, semMarcasDaCasa(e.input))
+    },
+    markSubmitted: async (id, requestId) => {
+      const { data, error } = await admin.from(CLIPS_TABLE).update({ status: 'processing', fal_request_id: requestId, submitted_at: new Date().toISOString(), failure_reason: null })
+        .eq('id', id).eq('status', 'pending').eq('failure_reason', FILA_MARCA).select('id')
+      if (error) console.error(`[clips/fila] markSubmitted failed clip=${id} request=${requestId}:`, error.message)
+      return !error && (data ?? []).length > 0
+    },
+    release: (id) => io.apagarVaga(id),
+    waitLimitMs: FILA_TETO_ESPERA_MS,
+  }
+}
+/** O estado da fila para a tela e para a recusa de entrada: quantos na fila (antes de `antesDe`, quando dado) e se a vaga está ocupada. Erro = null. */
+export async function filaKlingEditEstado(admin: SupabaseClient, antesDe?: string): Promise<{ naFila: number; vagaOcupada: boolean } | null> {
+  try {
+    let q = admin.from(CLIPS_TABLE).select('id', { count: 'exact', head: true }).eq('model', KLING4_EDIT_MODEL).eq('status', 'pending').eq('failure_reason', FILA_MARCA)
+    if (antesDe) q = q.lt('created_at', antesDe)
+    const { count, error } = await q
+    if (error) return null
+    const vaga = await filaIoFor(admin).lerVaga()
+    return { naFila: count ?? 0, vagaOcupada: !!vaga && vaga.expiraEm > Date.now() }
+  } catch {
+    return null
+  }
+}
+
 export function submitDepsFor(args: {
   admin: SupabaseClient
   userSupabase: SupabaseClient
@@ -675,6 +768,7 @@ export function submitDepsFor(args: {
       return { ok: true, balance: data }
     },
     refund: (ref) => refundRenderCredits(ref),
+    queue: clipQueueDepsFor(admin), // KINEO-RECREATE-FILA-KLING-EDIT-1411 — só age no modelo com fila
     submit: submitToFalOnce,
     markSubmitted: async (id, requestId) => {
       const { data, error } = await admin
@@ -771,6 +865,11 @@ export async function advanceActiveClipJobs(opts: { minAgeMs?: number; limit?: n
   const rows = (data ?? []).map((raw) => toRow(raw as Record<string, unknown>)) // KINEO-RECREATE-TRAVA-1011
   const ordered = [...rows.filter((r) => !usaTravaNaoTrocou(r.model)), ...rows.filter((r) => usaTravaNaoTrocou(r.model)).slice(0, 1)] // KINEO-RECREATE-TRAVA-1011 · KINEO-RECREATE-SEU-VIDEO-1311 — era: r.model !== / === RECREATE_MODEL
   result.waiting += rows.length - ordered.length // KINEO-RECREATE-TRAVA-1011
+  // KINEO-RECREATE-FILA-KLING-EDIT-1411 — quem está NA FILA também passa aqui (barato: sem consulta ao fornecedor nem checagem), depois do que
+  // está em andamento e do mais antigo para o mais novo: fechou um, o próximo sai na mesma passada, mesmo com a tela do cliente fechada.
+  const daFila = rows.filter((r) => naFila(r) && !ordered.includes(r))
+  ordered.push(...daFila)
+  result.waiting -= daFila.length
   for (const row of ordered) { // KINEO-FILME-RAPIDO-1710 · KINEO-RECREATE-TRAVA-1011 — era: for (const raw of data ?? [])
     if (opts.deadlineMs && Date.now() > opts.deadlineMs) break // KINEO-FILME-RAPIDO-1710
     result.scanned += 1 // KINEO-FILME-RAPIDO-1710

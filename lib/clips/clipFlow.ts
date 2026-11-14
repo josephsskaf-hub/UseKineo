@@ -51,6 +51,8 @@ export const CLIP_PENDING_STALE_MS = 10 * 60 * 1000
 export const CLIP_EXPIRE_MS = 6 * 60 * 60 * 1000
 /** Clipes em andamento por conta. */
 export const CLIP_MAX_ACTIVE = 3
+/** KINEO-RECREATE-FILA-KLING-EDIT-1411 — a marca da linha na fila (failure_reason de uma linha pending). O mesmo valor de lib/recreate/filaKlingEdit FILA_MARCA. */
+export const QUEUE_MARK = 'queue_kling_edit'
 
 export type ClipStatus = 'pending' | 'processing' | 'done' | 'failed'
 
@@ -94,12 +96,34 @@ export interface ClipSubmitDeps {
   submit(model: string, input: Record<string, unknown>): Promise<{ ok: true; requestId: string } | { ok: false; ambiguous: boolean; error: string }>
   markSubmitted(id: string, requestId: string): Promise<boolean>
   markFailed(id: string, reason: string, refunded: number): Promise<boolean>
-  event(name: 'clip_requested' | 'clip_failed' | 'clip_engine_fallback', metadata: Record<string, unknown>): Promise<void>
+  event(name: 'clip_requested' | 'clip_failed' | 'clip_engine_fallback' | 'clip_queued', metadata: Record<string, unknown>): Promise<void> // KINEO-RECREATE-FILA-KLING-EDIT-1411 — + clip_queued
   now(): number
+  /** KINEO-RECREATE-FILA-KLING-EDIT-1411 — fila de um pedido por vez no fornecedor (lib/recreate/filaKlingEdit.ts). Só age onde applies(row) é true. */
+  queue?: ClipQueueDeps
   /** KINEO-CLIPE-AUTO-3110 — troca o motor da linha ainda 'pending' (motor, modelo, duração, formato, preço e referência de cobrança). Sem ela, não há troca. */
   switchEngine?(id: string, patch: Pick<ClipRow, 'engine' | 'model' | 'seconds' | 'aspect' | 'credits' | 'fal_usd' | 'billing_reference'>): Promise<boolean>
   /** KINEO-MOTORES-SAEM-0511 — a frase da recusa do clipe NOVO em motor fora da oferta; null = pode seguir (motor da oferta, efeito do catálogo ou Espaços). */
   retiredClipRefusal?(req: ClipRequest): string | null
+}
+
+/** KINEO-RECREATE-FILA-KLING-EDIT-1411 [CEO 14/11: dois pedidos ao mesmo tempo no Kling edit = nenhum troca] — os fios da fila (a ORDEM mora aqui; o servidor só liga). */
+export interface ClipQueueDeps {
+  /** Esta linha é de um modelo com fila? Fora dele: false → caminho de sempre, byte a byte. */
+  applies(row: ClipRow): boolean
+  /** A linha está NA FILA (pending, sem pedido no fornecedor, com a marca)? */
+  queued(row: ClipRow): boolean
+  /** É a vez desta linha E a vaga agora é dela? true = este ator (e só ele) manda ao fornecedor. Fecha o pedido preso, se houver. */
+  take(row: ClipRow): Promise<boolean>
+  /** Marca a linha (ainda pending) como na fila. */
+  enqueue(id: string): Promise<boolean>
+  /** Manda ao fornecedor o pedido gravado na linha (um POST, sem retry do POST pago). */
+  submit(row: ClipRow): Promise<{ ok: true; requestId: string } | { ok: false; ambiguous: boolean; error: string }>
+  /** processing + request_id, condicional à linha ainda na fila. */
+  markSubmitted(id: string, requestId: string): Promise<boolean>
+  /** Solta a vaga SÓ se for desta linha. */
+  release(id: string): Promise<void>
+  /** Teto de espera na fila: passou disso sem sair = falha com estorno. */
+  waitLimitMs: number
 }
 
 export type ClipSubmitResult =
@@ -339,6 +363,15 @@ export async function submitClip(
   // KINEO-EFEITOS-NOVOS-2026-10-13 — efeito-modelo: endpoint e entrada do catálogo; a foto é a já conferida (posse + bytes + moderação).
   // KINEO-ROSTO-QUADRO-CHAVE-2810 — remix: a etapa 1 vai ao edit do Nano Banana com a foto (e o recorte do rosto primeiro, quando veio);
   // KINEO-ROSTO-QUADRO-CHAVE-2810 — o motor de vídeo NÃO é chamado aqui — só no settleClip, com o quadro-chave nosso pronto.
+  // KINEO-RECREATE-FILA-KLING-EDIT-1411 [CEO 14/11] — modelo com fila: só manda AGORA quem pega a vaga (ninguém na frente e nenhum pedido nosso em andamento no
+  // fornecedor). Quem não pega fica na fila, com os créditos já reservados e NADA enviado; sai quando chegar a vez (settleClip). Erro ao
+  // pegar a vaga = fila (nunca dois ao mesmo tempo por engano).
+  const fila = deps.queue?.applies(row) ? deps.queue : null
+  if (fila && !(await fila.take(row).catch(() => false))) {
+    if (!(await fila.enqueue(row.id))) return closeWithRefund('queue_unavailable', 503, 'We could not start this clip right now.')
+    await deps.event('clip_queued', { ...clipTelemetry(row) })
+    return { ok: true, status: 202, clip: { ...row, failure_reason: QUEUE_MARK }, replay: false, balance: debit.balance }
+  }
   const sent = recreate
     ? await deps.submit(recreate.model, recreate.input)
     : remix && req.imageUrl // KINEO-ROSTO-QUADRO-CHAVE-2810
@@ -377,6 +410,7 @@ export async function submitClip(
     }
   }
   if (!sent.ok) {
+    if (fila && !sent.ambiguous) await fila.release(row.id).catch(() => {}) // KINEO-RECREATE-FILA-KLING-EDIT-1411 — recusa clara: a vaga volta já; ambíguo: a vaga vence sozinha (o pedido pode existir do outro lado)
     return closeWithRefund(sent.ambiguous ? 'submit_ambiguous' : 'provider_rejected', 502, 'The engine could not accept this clip.', cleanProviderError(sent.error)) // KINEO-S25-FOTO-CLIPES-1610
   }
 
@@ -414,12 +448,14 @@ export interface ClipSettleDeps {
   refund(billingReference: string): Promise<number>
   markDone(id: string, videoUrl: string): Promise<boolean>
   markFailed(id: string, reason: string, refunded: number): Promise<boolean>
-  event(name: 'clip_delivered' | 'clip_failed' | 'clip_effect_ready' | 'face_remix_keyframe' | 'face_remix_ready', metadata: Record<string, unknown>): Promise<void> // KINEO-ROSTO-QUADRO-CHAVE-2810 — + os dois eventos do remix
+  event(name: 'clip_delivered' | 'clip_failed' | 'clip_effect_ready' | 'face_remix_keyframe' | 'face_remix_ready' | 'clip_requested', metadata: Record<string, unknown>): Promise<void> // KINEO-ROSTO-QUADRO-CHAVE-2810 — + os dois eventos do remix
   now(): number
   /** KINEO-ROSTO-QUADRO-CHAVE-2810 — etapa 2 do remix. Ausente (guardiões antigos, caminhos sem remix) = linha de remix espera. */
   keyframe?: ClipKeyframeDeps // KINEO-ROSTO-QUADRO-CHAVE-2810
   /** KINEO-RECREATE-TRAVA-1011 — trava "não trocou" do Recreate (lib/recreate/swapCheck.ts). Só age onde applies(row) é true. */
   recreateSwap?: RecreateSwapSettleDeps // KINEO-RECREATE-TRAVA-1011
+  /** KINEO-RECREATE-FILA-KLING-EDIT-1411 — a fila de um pedido por vez: o clipe da fila sai aqui quando chega a vez, e quem fecha solta a vaga. */
+  queue?: ClipQueueDeps
 }
 
 /** KINEO-RECREATE-AUDITORIA-DA-TRAVA-1411 — onde a saída reprovada ficou guardada (bucket privado) e até quando. */
@@ -449,6 +485,14 @@ export interface RecreateSwapSettleDeps { // KINEO-RECREATE-TRAVA-1011
 
 export async function settleClip(deps: ClipSettleDeps, row: ClipRow): Promise<ClipRow> {
   if (row.status === 'done' || row.status === 'failed') return row
+  // KINEO-RECREATE-FILA-KLING-EDIT-1411 — o clipe de um modelo com fila que FECHA (pronto ou falha) solta a vaga, e o próximo da fila sai. Envio ambíguo não
+  // solta: o pedido pode existir no fornecedor, e a vaga vence sozinha.
+  const after = await settleOpenClip(deps, row)
+  if (deps.queue?.applies(row) && (after.status === 'done' || after.status === 'failed') && after.failure_reason !== 'submit_ambiguous') await deps.queue.release(row.id).catch(() => {})
+  return after
+}
+
+async function settleOpenClip(deps: ClipSettleDeps, row: ClipRow): Promise<ClipRow> {
   const age = deps.now() - Date.parse(row.created_at)
   // KINEO-ROSTO-QUADRO-CHAVE-2810 — é remix? Em que etapa? (pelo prompt fixo + modelo da linha; nenhuma coluna nova.)
   const remixStage = faceRemixStageForRow(row) // KINEO-ROSTO-QUADRO-CHAVE-2810
@@ -465,6 +509,19 @@ export async function settleClip(deps: ClipSettleDeps, row: ClipRow): Promise<Cl
   }
 
   if (row.status === 'pending' || !row.fal_request_id) {
+    // KINEO-RECREATE-FILA-KLING-EDIT-1411 — a linha NA FILA: passou do teto de espera = falha com estorno; é a vez dela e a vaga é dela = manda agora (um ator só);
+    // senão, espera. A regra de 10 min sem envio não vale para quem está na fila (nada foi enviado de propósito).
+    const fila = deps.queue?.applies(row) && deps.queue.queued(row) ? deps.queue : null
+    if (fila) {
+      if (Number.isFinite(age) && age >= fila.waitLimitMs) return fail('queue_timeout')
+      if (!(await fila.take(row).catch(() => false))) return row
+      const sent = await fila.submit(row)
+      if (!sent.ok) return fail(sent.ambiguous ? 'submit_ambiguous' : 'provider_rejected', cleanProviderError(sent.error))
+      let saved = await fila.markSubmitted(row.id, sent.requestId)
+      if (!saved) saved = await fila.markSubmitted(row.id, sent.requestId)
+      await deps.event('clip_requested', { ...clipTelemetry(row), request_id: sent.requestId, tracking_saved: saved, queued_ms: Math.max(0, age) })
+      return saved ? { ...row, status: 'processing', fal_request_id: sent.requestId, failure_reason: null } : row
+    }
     return Number.isFinite(age) && age >= CLIP_PENDING_STALE_MS ? fail('submit_lost') : row
   }
   if (deps.recreateSwap?.applies(row) && deps.recreateSwap.busy(row, deps.now())) return row // KINEO-RECREATE-TRAVA-1011 — outro ator checa: sai ANTES de consultar/baixar

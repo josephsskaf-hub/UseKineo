@@ -12,6 +12,8 @@ import { lerVideoDoCliente, seuVideoSession, seuVideoSubmitDeps } from '@/lib/re
 import { entradaKling4, entradaSeedance25, modeloDoMotor, recusaDoMotor, SEU_VIDEO_LIMITES, SEU_VIDEO_MOTOR, SEU_VIDEO_VERSAO, validarPrompt } from '@/lib/recreate/seuVideo' // KINEO-RECREATE-KLING4-1311 — + Kling 4.0 edição
 import type { RecreatePlan } from '@/lib/recreate/generation'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { filaKlingEditEstado } from '@/lib/clips/clipServer' // KINEO-RECREATE-FILA-KLING-EDIT-1411
+import { FILA_MOTIVOS, FRASE_FILA_CHEIA, filaCheia, naFila, posicaoNaFila } from '@/lib/recreate/filaKlingEdit' // KINEO-RECREATE-FILA-KLING-EDIT-1411
 import { isInternalEmail } from '@/lib/internalAccounts' // KINEO-RECREATE-SOM-PROVA-1311
 import { MARCA_SOM_PROVA, SEU_VIDEO_SOM_ORIGINAL } from '@/lib/recreate/seuVideo' // KINEO-RECREATE-SOM-PROVA-1311
 
@@ -45,6 +47,13 @@ export async function POST(req: NextRequest) {
   const admin = clipsAdmin()
   const account = admin ? await loadClipAccount(supabase, user) : null
   if (!admin || !account) return json({ error: 'Could not start your video. Nothing was charged.' }, 503)
+  // KINEO-RECREATE-FILA-KLING-EDIT-1411 [CEO 14/11, pedido 3] — um pedido por vez no Kling edit: com a fila cheia (3 na frente = ~12 min), recusa ANTES de cobrar.
+  // Conta da casa também entra na fila e também é recusada aqui. Leitura que falha = segue (a fila em si nunca manda dois ao mesmo tempo).
+  const fila = SEU_VIDEO_MOTOR === 'kling4' ? await filaKlingEditEstado(admin) : null
+  if (fila && filaCheia(fila.naFila, fila.vagaOcupada)) {
+    await writeServerEvent({ name: 'recreate_seu_video_refused', userId: user.id, path: '/api/recreate/seu-video', metadata: { versao: SEU_VIDEO_VERSAO, code: FILA_MOTIVOS.cheia, stage: 'submit', na_fila: fila.naFila, vaga_ocupada: fila.vagaOcupada, charged: false } }).catch(() => false)
+    return json({ error: FRASE_FILA_CHEIA, code: FILA_MOTIVOS.cheia, charged: false, retry_after_seconds: 180 }, 429)
+  }
   const v = await lerVideoDoCliente(admin, user.id, raw.video_path)
   if (!v.ok) return refuse(v.code, v.error, 422)
   if (v.creditos === null) return refuse('duration', 'Choose a video between 2 and 15 seconds. Nothing was charged.', 422)
@@ -70,7 +79,10 @@ export async function POST(req: NextRequest) {
     }
     if (!result.replay && provaDoSom) await writeServerEvent({ name: 'recreate_seu_video_som_prova', userId: user.id, path: '/api/recreate/seu-video', metadata: { versao: SEU_VIDEO_VERSAO, clip_id: result.clip.id, model, prova: true } }).catch(() => false) // KINEO-RECREATE-SOM-PROVA-1311
     if (!result.replay) await writeServerEvent({ name: 'recreate_seu_video_started', userId: user.id, path: '/api/recreate/seu-video', metadata: { versao: SEU_VIDEO_VERSAO, clip_id: result.clip.id, model, motor, video_seconds: Math.round(v.meta.segundos * 100) / 100, fps: Math.round(v.meta.fps), generated_seconds: v.gerados, aspect_ratio: v.proporcao, photos: photos.length, credits: plan.credits, fal_usd: plan.falUsd, prompt_edited: raw.prompt_edited === true, motor_redesenha_cena: motor !== 'kling4', prompt_pede_enquadramento: pr.prompt.includes('same framing and camera as @Video1'), trava_nao_trocou: true } }).catch(() => false)
-    return json({ clip: { id: result.clip.id, status: result.clip.status }, replay: result.replay }, result.status)
+    // KINEO-RECREATE-FILA-KLING-EDIT-1411 — o pedido que ficou na fila volta como `pending` + queued:true e a posição (a tela mostra "In line"); nada foi à fal ainda.
+    const esperando = naFila(result.clip)
+    const estado = esperando ? await filaKlingEditEstado(admin, result.clip.created_at) : null
+    return json({ clip: { id: result.clip.id, status: result.clip.status, ...(esperando ? { queued: true, queue_position: estado ? posicaoNaFila(estado.naFila, estado.vagaOcupada) : null } : {}) }, replay: result.replay }, result.status)
   } catch {
     return json({ error: 'Could not confirm this request. Keep this page open and retry with the same request key.' }, 503)
   }
