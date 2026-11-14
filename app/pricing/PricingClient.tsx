@@ -1,5 +1,7 @@
 'use client'
 
+import { WATCH_PRICING_PUBLIC, WATCH_PRICING_CSS } from '@/lib/pricingWatch'
+
 import Kling4PaidNotice, { useKling4PaidAvailability } from '@/components/Kling4PaidNotice'
 import { KLING4_PAID_COPY, kling4PaidName, kling4PromoZeroCredits } from '@/lib/kling4PaidPresentation'
 
@@ -380,11 +382,13 @@ function trackPricingEvent(name: string, metadata?: Record<string, unknown>): vo
  */
 export type PricingCharacterLimits = { free: number; trial: number; starter: number; basic: number; pro: number }
 
-export default function PricingClient({ initialBilling = 'annual' }: {
+export default function PricingClient({ initialBilling = 'annual', watchPreview = false }: {
   initialBilling?: PricingPlanChoiceBilling
+  watchPreview?: boolean
   // KINEO-PRECOS-LIMPEZA-1510 — a tabela "Compare plans" saiu da página (fundador 15/10); a prop segue aceita para não mexer no servidor.
   characterLimits?: PricingCharacterLimits
 } = {}) {
+  const watchPricing = WATCH_PRICING_PUBLIC || watchPreview
   // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
   const OFFER = useFreeTierOffer()
   const kling4Availability = useKling4PaidAvailability()
@@ -408,11 +412,11 @@ export default function PricingClient({ initialBilling = 'annual' }: {
     return () => controller.abort()
   }, [])
 
-  const FAQS = buildFaqs(OFFER).filter((f) => PRICING_SHOW_AUTOPILOT || !/Autopilot/.test(f.q)).map((f) => ({ ...f, q: f.q.replaceAll('Kling 3', klingPaidName), a: f.a.replaceAll('Kling 3', klingPaidName) }))
+  const FAQS = buildFaqs(OFFER).filter((f) => PRICING_SHOW_AUTOPILOT || !/Autopilot/.test(f.q)).map((f) => ({ ...f, q: f.q.replaceAll('Kling 3', klingPaidName), a: f.a.replaceAll('Kling 3', klingPaidName) + (watchPricing && f.q === 'How do credits work?' ? ' Monthly plans renew monthly; annual plans renew yearly. Cancel anytime.' : '') }))
 
   // Push #099 — open FAQ index for the accordion (null = all collapsed). First
   // question is open by default so the section reads as scannable, not empty.
-  const [openFaq, setOpenFaq] = useState<number | null>(0)
+  const [openFaq, setOpenFaq] = useState<number | null>(watchPricing ? null : 0)
   // Push #114 — CTA state. `purchasing` is the tier whose button shows
   // "Loading…" while the API call is in flight; `checkoutError` surfaces
   // any server-returned error below the cards.
@@ -670,7 +674,7 @@ export default function PricingClient({ initialBilling = 'annual' }: {
     Math.round((getTierPrice(tier, resolvedCurrency, resolvedRegion) * (100 - (affiliateOnCard(tier) ? 50 : WELCOME20_PERCENT_OFF))) / 100)
   // KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — o cartão novo: ligado para todos só com PRICING_VALUE_CARDS_PUBLIC; antes disso,
   // ?preview=valor liga para quem abrir o link (lido no efeito abaixo, nunca no render: hidratação igual ao servidor).
-  const [valueCards, setValueCards] = useState(PRICING_VALUE_CARDS_PUBLIC)
+  const [valueCards, setValueCards] = useState(watchPricing || PRICING_VALUE_CARDS_PUBLIC)
   // KINEO-PRECOS-REFINO-2026-10-09 — a paleta: a do código; ?tema= troca só para quem abrir o link (lida no efeito abaixo).
   const [valuePalette, setValuePalette] = useState<PlanValuePalette>(PRICING_VALUE_PALETTE)
 
@@ -1002,8 +1006,24 @@ export default function PricingClient({ initialBilling = 'annual' }: {
 
 
 
+  const reviewQuote = (
+        <figure className="mx-auto mt-14 max-w-2xl text-center">
+          <blockquote className="text-balance text-lg italic leading-8 text-[var(--text2)]">
+            “Too many good ideas die in the mind. This is a product that gives them an escape
+            route.”
+          </blockquote>
+          <figcaption className="mt-3 text-sm text-[var(--muted)]">
+            — Rick Crossley, subscriber ·{' '}
+            <a href="/reviews" className="text-[var(--accent)] transition hover:text-[var(--text)]">
+              our honest reviews →
+            </a>
+          </figcaption>
+        </figure>
+  )
+
+  const businessPlans = <><PricingBusinessBlock onBuy={() => handleBuy('business')} pending={purchasing === 'business'} switchLabel={switching === 'business' ? 'Switching…' : planSwitchLabel(planSwitch, 'business', 'Business')} switchNote={planSwitch.subscribed && planSwitch.tier !== 'business'} /><PricingTeamsBlock /></>
   return (
-    <div className="pricing-blue min-h-screen bg-[var(--bg)] text-[var(--text)] font-sans">
+    <div className={`pricing-blue ${watchPricing ? 'pricing-watch ' : ''}min-h-screen bg-[var(--bg)] text-[var(--text)] font-sans`}>
       {/* KINEO-WELCOME20-FAIXA-2026-10-09 — a oferta na faixa do topo (fundador, print de referência): o botão leva ao mensal e
           aos planos, onde o botão do Creator/Studio aplica o WELCOME20. Some para assinante e para quem chegou com outro cupom. */}
       {affiliateOffer && !arrivedWithPromo && !planSwitch.subscribed ? (
@@ -1030,6 +1050,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
 .pricing-blue>section{padding-top:32px!important}.pricing-blue h1{font-size:clamp(28px,4vw,42px);font-weight:650}.pricing-blue #plans{gap:20px}.pricing-blue #plans>div{min-width:0;border-radius:20px!important;box-shadow:none!important}.pricing-blue #plans>div:hover{transform:none!important}.pricing-blue #plans button{min-height:44px}.pricing-blue .plan-credit-summary{font-size:14px;color:var(--accent);margin:14px 0 0;font-weight:650}.pricing-blue .plan-detail-breakdown{margin:6px 0 18px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}.pricing-blue .plan-detail-breakdown>summary{min-height:44px;align-content:center;cursor:pointer;font-size:12px;color:var(--muted)}.pricing-blue .plan-detail-breakdown[open]>summary{margin-bottom:10px}.pricing-blue :is(a,button,summary):focus-visible{outline:2px solid var(--accent);outline-offset:3px}.pricing-blue #plans p,.pricing-blue #plans span{overflow-wrap:anywhere}.pricing-blue .pricing-secondary{margin-top:28px}.pricing-blue .pricing-intro{margin-bottom:24px!important}.pricing-blue .pricing-intro>p{display:none}
 @media(max-width:767px){.pricing-blue>section{padding-top:24px!important}.pricing-blue #plans{gap:28px}.pricing-blue #plans>div{padding:24px!important}.pricing-blue .pricing-intro h1{font-size:29px}}
 `}} />
+      {watchPricing ? <style dangerouslySetInnerHTML={{ __html: WATCH_PRICING_CSS }} /> : null}
       {/* Subtle cyber-blue glow */}
       <div
         aria-hidden
@@ -1083,10 +1104,10 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             Pricing
           </div>
           <h1 className="text-balance text-4xl font-black tracking-tight sm:text-5xl text-[var(--text)]">
-            {MRR_CONVERSION_ENABLED ? 'Make your next film or clip.' : displayCurrency ? headline : 'Simple monthly plans. Cancel anytime.'}
+            {watchPricing || MRR_CONVERSION_ENABLED ? 'Make your next film or clip.' : displayCurrency ? headline : 'Simple monthly plans. Cancel anytime.'}
           </h1>
-          <Kling4TrialNotice surface="pricing" />
-          <Kling4PaidNotice surface="pricing" availability={kling4Availability} />
+          {!watchPricing && <Kling4TrialNotice surface="pricing" />}
+          {!watchPricing && <Kling4PaidNotice surface="pricing" availability={kling4Availability} />}
           {/* KINEO-SHOWCASE-2026-07-10 — Joseph: parágrafo comparativo removido
               ("texto sujo") — os CARDS de preço são a estrela do hero. */}
 
@@ -1094,7 +1115,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
               unverifiable "300+ Shorts created" + "4.8 / 5 average rating"
               with real, checkable signals: 3 watermarked Fast videos / 24h,
               cancel anytime, and the 7-day money-back guarantee. */}
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+          <div className={`mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2${watchPricing ? ' pricing-watch-guarantee' : ''}`}>
             {/* KINEO-PRICING-CLARITY-2026-08-03 — 3 selos viraram 2. Excesso de
                 reversão de risco lê como insegurança, não como confiança; e o
                 "3 grátis / 24h" saiu daqui porque a cota do free não é argumento
@@ -1117,9 +1138,9 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
               atualizar semanalmente com o placar, nunca inflar. TAAFT entra como
               "featured" (fato), não como nota. Métrica: pricing_view → checkout_started.
               // banco 2026-09-27: 2.156 perfis externos, 1.563 vídeos completed externos */}
-          <p className="mt-3 text-center text-[12px] font-semibold text-[var(--muted2)]">
+          {!watchPricing && <p className="mt-3 text-center text-[12px] font-semibold text-[var(--muted2)]">
             2,100+ creators · 1,500+ films · featured on There&apos;s An AI For That
-          </p>
+          </p>}
         </div>
 
         {/* KINEO-SPRINT-OFFER-2026-07-14 — ROI slider REMOVED. The
@@ -1148,8 +1169,8 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
 
         {/* Push #267 — Free banner removed with Free card */}
 
-        <PricingAudienceTabs audience={audience} onChange={(a) => { setAudience(a); void trackEvent('pricing_audience_tab_clicked', { audience: a }) }} />{/* KINEO-PLANOS-ABAS-0411 */}
-        <div hidden={audience === 'team'} data-testid="pricing-individual-panel">{/* KINEO-PLANOS-ABAS-0411 — o que já existia, intacto; só fica guardado quando a aba de empresas está aberta */}
+        {!watchPricing && <PricingAudienceTabs audience={audience} onChange={(a) => { setAudience(a); void trackEvent('pricing_audience_tab_clicked', { audience: a }) }} />}{/* KINEO-PLANOS-ABAS-0411 */}
+        <div hidden={!watchPricing && audience === 'team'} data-testid="pricing-individual-panel">{/* KINEO-PLANOS-ABAS-0411 */}
         {/* #381 — monthly / annual billing toggle */}
         <ConversionPricingEntry />
         <div className="mb-7 flex items-center justify-center">
@@ -1238,6 +1259,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
           // lado do preço; "Get <plano>" logo abaixo do preço; embaixo do botão, a economia do anual (ou "Cancel anytime");
           // no pé, o que vem incluso. Nenhum número digitado: economia = 12 × getTierPrice − getAnnualPrice, na moeda da tela.
           const valuePlans = buildPricing(resolvedCurrency, resolvedRegion).filter((p) => p.tier === 'starter' || p.tier === 'basic' || p.tier === 'pro')
+          if (watchPricing) valuePlans.sort((a, b) => Number(b.tier === 'basic') - Number(a.tier === 'basic'))
           return (
             <>
               <style dangerouslySetInnerHTML={{ __html: PLAN_VALUE_STAGE_CSS }} />
@@ -1266,6 +1288,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                     return (
                       <PlanValueCard
                         key={p.tier}
+                        compact={watchPricing}
                         tier={p.tier as PlanValueTier}
                         name={p.name}
                         popular={Boolean('popular' in p && p.popular)}
@@ -1316,7 +1339,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                         ) : undefined}
                         alternatives={alternativasDoPlano(TIER_CREDITS[tier])}
                         included={[
-                          ...incluidoEmTodoPlano(),
+                          ...(!watchPricing ? incluidoEmTodoPlano() : []),
                           ...('storageLine' in p && p.storageLine ? [p.storageLine] : []),
                           // Studio: 2 Enhance HD grátis por mês (app/api/enhance/route.ts, plano 'pro', `(count ?? 0) < 2`).
                           ...(p.tier === 'pro' ? ['2 free HD enhances a month'] : []),
@@ -1326,7 +1349,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                   })}
                 </div>
               </section>
-              <p className="mt-5 mb-2 text-center text-[12px] font-semibold text-[var(--muted)]" data-testid="pricing-currency-note">{CHECKOUT_CURRENCY_DISCLOSURE}</p>{/* KINEO-PRECO-NO-TOPO-1111 [CEO 11/11, tarefa 5 do fundador "design mais bonito"] */}
+              {!watchPricing && <p className="mt-5 mb-2 text-center text-[12px] font-semibold text-[var(--muted)]" data-testid="pricing-currency-note">{CHECKOUT_CURRENCY_DISCLOSURE}</p>}{/* KINEO-PRECO-NO-TOPO-1111 */}
             </>
           )
         })() : (
@@ -1635,7 +1658,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             página esconde de propósito todo <p> solto (.pricing-blue .pricing-intro>p). Texto, sem logo da Anthropic,
             e sem "official/partner/directory" enquanto a listagem estiver em revisão (guardião
             test-works-with-claude-2026-09-30). Aba nova: o link não tira o comprador da página de preços. */}
-        <p className="mt-5 text-center text-[12.5px] font-semibold text-[var(--muted)]">
+        {!watchPricing && <p className="mt-5 text-center text-[12.5px] font-semibold text-[var(--muted)]">
           <a
             href="/claude-connector?src=pricing_badge#connect"
             target="_blank"
@@ -1645,7 +1668,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
           >
             ✦ Works with Claude · add Kineo as a connector →
           </a>
-        </p>
+        </p>}
 
         {/* ONDA1 #11 (13/08) — o erro de checkout aparece ONDE a pessoa esta
             olhando (logo abaixo dos planos), nao 250 linhas depois. */}
@@ -1706,8 +1729,8 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
 
         {/* KINEO-VALOR-NO-CHECKOUT-3110 — logo abaixo dos planos: a prova social real (muda abaixo do piso) e as 3 perguntas que
             recomendam o plano MAIS BARATO que cobre, com a conta à vista (lib/valorNoCheckout.ts). Preço e plano não mudam. */}
-        <p className="mx-auto mt-5 max-w-2xl text-center text-[12.5px] leading-relaxed text-[var(--muted)]" data-testid="pricing-first-film-guarantee">{FIRST_FILM_GUARANTEE.en}</p>{/* KINEO-PRICING-LIMPO-0411 — saiu de cada cartão, fica uma vez */}
-        <FilmsMadeProof surface="pricing" />
+        {!watchPricing && <p className="mx-auto mt-5 max-w-2xl text-center text-[12.5px] leading-relaxed text-[var(--muted)]" data-testid="pricing-first-film-guarantee">{FIRST_FILM_GUARANTEE.en}</p>}{/* KINEO-PRICING-LIMPO-0411 */}
+        {!watchPricing && <FilmsMadeProof surface="pricing" />}
         {/* KINEO-PRICING-SEM-VELHO-0411 — fundador 04/11: "tira essa parte muito velha, how many film do i get e which plan fits me". */}
 
         <div className="pricing-secondary">
@@ -1752,13 +1775,14 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             <div className="min-w-0 text-left">
               <p className="text-[12px] font-black uppercase tracking-[0.08em] text-[var(--accent)]">Your latest film</p>
               <p className="truncate text-[14px] font-bold text-[var(--text)]">{latestFilm.title}</p>
-              <p className="text-[12px] font-semibold text-[var(--muted)]">Your next films come out clean, without the watermark, in 1080p. {MONEY_BACK_GUARANTEE}</p>{/* KINEO-CHECKOUT-CLAREZA-1610 */}
+              <p className="text-[12px] font-semibold text-[var(--muted)]">Your next films come out clean, without the watermark, in 1080p. {!watchPricing && MONEY_BACK_GUARANTEE}</p>{/* KINEO-CHECKOUT-CLAREZA-1610 */}
               <FilmsLikeThisNote qualityMode={latestFilm.quality} seconds={latestFilm.seconds} />{/* KINEO-VALOR-NO-CHECKOUT-3110 */}
             </div>
           </div>
         )}
 
-        <PricingIncludes0511 />{/* KINEO-PRICING-INCLUI-0511 */}
+        {watchPricing ? <PricingIncludes0511 condensed /> : <PricingIncludes0511 />}{/* KINEO-PRICING-INCLUI-0511 */}
+        {watchPricing && <div className="pricing-watch-proof"><FilmsMadeProof surface="pricing" /><p className="text-center text-[12px] text-[var(--muted)]">2,100+ creators · 1,500+ films · featured on There&apos;s An AI For That</p>{reviewQuote}</div>}
         <PricingJourneyProof signedIn={signedIn} intentCampaign={pricingIntentCampaign} />
         </div>
         
@@ -1809,7 +1833,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             em `arrivedWithPromo`. Com um `?promo=` na URL o intro não é o que
             se aplica, então esta letra miúda deixa de ser divulgação e vira
             afirmação falsa sobre duração E sobre créditos do 1º mês. */}
-        {billing === 'monthly' && !arrivedWithPromo && (
+        {!watchPricing && billing === 'monthly' && !arrivedWithPromo && (
           <p className="mx-auto mt-5 max-w-2xl text-center text-[13px] leading-relaxed text-[var(--muted)]">
             Plans renew monthly — cancel anytime. Starter includes{' '}
             {TIER_CREDITS.starter} credits a month, Creator {TIER_CREDITS.basic} and Studio {TIER_CREDITS.pro};
@@ -1836,10 +1860,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             KINEO-TROCA-BUSINESS-2026-10-10 — quem já assina vê "Switch to Business" / "Current plan" e troca sem checkout. */}
         <OneTimeItemOffer surface="pricing" checkout={checkout} />{/* KINEO-COMPRA-AVULSA-2410 — one-off results next to the plan choices; plan prices stay untouched. */}
         </div>{/* KINEO-PLANOS-ABAS-0411 — fim do painel de pessoas */}
-        <div hidden={audience !== 'team'} data-testid="pricing-team-panel">{/* KINEO-PLANOS-ABAS-0411 */}
-        <PricingBusinessBlock onBuy={() => handleBuy('business')} pending={purchasing === 'business'} switchLabel={switching === 'business' ? 'Switching…' : planSwitchLabel(planSwitch, 'business', 'Business')} switchNote={planSwitch.subscribed && planSwitch.tier !== 'business'} />
-        <PricingTeamsBlock />
-        </div>{/* KINEO-PLANOS-ABAS-0411 — fim do painel de empresas */}
+        {!watchPricing && <div hidden={audience !== 'team'} data-testid="pricing-team-panel">{businessPlans}</div>}{/* KINEO-PLANOS-ABAS-0411 */}
 
         <div className="mx-auto max-w-3xl">{billing === 'annual' ? <AnnualEarlyOfferBadge /> : null}</div>{/* KINEO-KIT-BF-VENDA-2010 — o selo do anual ("2 meses grátis" até 21/11: só pinta num plano em que baixa o preço; hoje nenhum, o anual de 30% já vence) e o Kit Black Friday embaixo do Business (o Business vê "incluído no seu plano"; venda fechada = nada) */}
         {/* KINEO-PRICING-LIMPO-0411 — fundador 04/11: "quero tirar também essas duas coisas": Kit BF e Kids saem do /pricing; os produtos seguem nas páginas deles. */}
@@ -2129,18 +2150,8 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             na página onde 44 pessoas morreram no preço. Quem hesita no valor
             lê um assinante de verdade, com nome e link verificável (mesmas
             regras da home #304: só citação autorizada, sem parede de estrelas). */}
-        <figure className="mx-auto mt-14 max-w-2xl text-center">
-          <blockquote className="text-balance text-lg italic leading-8 text-[var(--text2)]">
-            “Too many good ideas die in the mind. This is a product that gives them an escape
-            route.”
-          </blockquote>
-          <figcaption className="mt-3 text-sm text-[var(--muted)]">
-            — Rick Crossley, subscriber ·{' '}
-            <a href="/reviews" className="text-[var(--accent)] transition hover:text-[var(--text)]">
-              our honest reviews →
-            </a>
-          </figcaption>
-        </figure>
+        {watchPricing && <><details className="pricing-watch-availability"><summary>Plan availability</summary><Kling4TrialNotice surface="pricing" /><Kling4PaidNotice surface="pricing" availability={kling4Availability} /></details><section className="pricing-watch-teams" id="teams" aria-labelledby="pricing-watch-teams-title"><h2 id="pricing-watch-teams-title">For teams &amp; business</h2>{businessPlans}</section></>}
+        {!watchPricing && reviewQuote}
 
         <div className="mt-16">
           <div className="mb-6 text-center">
@@ -2179,8 +2190,8 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                       +
                     </span>
                   </button>
-                  {isOpen && (
-                    <div className="px-5 pb-4 -mt-1">
+                  {(isOpen || watchPricing) && (
+                    <div className="px-5 pb-4 -mt-1" hidden={watchPricing && !isOpen}>
                       <p className="text-[13.5px] leading-relaxed text-[var(--muted)]">
                         {item.a}
                       </p>
@@ -2209,6 +2220,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
 
       {/* ───────── Footer ───────── */}
       <footer className="relative z-10 border-t border-[var(--border)]">
+        {watchPricing && <div className="pricing-watch-footer-note"><p data-testid="pricing-currency-note">{CHECKOUT_CURRENCY_DISCLOSURE}</p><a href="/claude-connector?src=pricing_badge#connect" target="_blank" rel="noopener">✦ Works with Claude · add Kineo as a connector →</a></div>}
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 py-8 sm:flex-row sm:px-6">
           <div className="flex items-center gap-2.5">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--card)] border border-[var(--border2)] text-sm">

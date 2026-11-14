@@ -14,19 +14,19 @@ export const PRICING_INCLUI_0511: readonly string[] = [
   'Failed renders give your credits back automatically',
 ]
 
-export default function PricingIncludes0511() {
+export default function PricingIncludes0511({ condensed = false }: { condensed?: boolean } = {}) {
   return (
     <section data-kineo="pricing-inclui" aria-labelledby="pricing-inclui-titulo" className="mx-auto mt-8 max-w-4xl rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 text-left sm:p-6">
       <h2 id="pricing-inclui-titulo" className="text-[16px] font-bold text-[var(--text)]"><UiLabel>Every paid plan includes</UiLabel></h2>
       <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-        {PRICING_INCLUI_0511.map((linha) => (
+        {PRICING_INCLUI_0511.filter(linha => !condensed || !linha.startsWith('Full refund within')).map((linha) => (
           <li key={linha} className="flex items-start gap-2 text-[14px] leading-snug text-[var(--muted)]">
             <span aria-hidden="true" className="font-bold text-[var(--accent)]">✓</span>
             <span><UiLabel>{linha}</UiLabel></span>
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-[13px] text-[var(--muted)]"><UiLabel>Questions? Email us at</UiLabel> <a className="font-semibold text-[var(--accent)] underline" href="mailto:support@usekineo.com">support@usekineo.com</a></p>
+      {!condensed && <p className="mt-3 text-[13px] text-[var(--muted)]"><UiLabel>Questions? Email us at</UiLabel> <a className="font-semibold text-[var(--accent)] underline" href="mailto:support@usekineo.com">support@usekineo.com</a></p>}
     </section>
   )
 }

@@ -1,0 +1,2 @@
+.next/types/app/pricing/page.ts(28,29): error TS2344: Type '{ searchParams?: Record<string, string | string[] | undefined> | undefined; } | undefined' does not satisfy the constraint 'PageProps'.
+  Type 'undefined' is not assignable to type 'PageProps'.

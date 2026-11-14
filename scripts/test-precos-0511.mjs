@@ -23,7 +23,9 @@ function prova(s) {
   if (!/\{annualOfferLive \? <>Up to \{ANNUAL_WELCOME_DISCOUNT_PERCENT\}%<\/> : <>Save \{ANNUAL_DISCOUNT_PERCENT\}%<\/>\}/.test(s.pagina)) e.push('B6 o selo só promete 50% com a oferta aberta')
   if (!/creditsPerReferenceVideo\('cinematic_ai'\)/.test(s.conta) || !/kling4PaidCredits\(60\)/.test(s.conta) || !/kling4PaidCredits\(15\)/.test(s.conta)) e.push('C1 as contas saem dos créditos por motor')
   if (/\b(35|45|150)\b/.test(s.conta.replace(/^\/\/.*$/gm, ''))) e.push('C2 número digitado na conta')
-  if (!s.cartao.includes('const filmes = contaDeFilmes(props.credits)') || !s.cartao.includes('data-kineo="plano-filmes"')) e.push('C3 o cartão mostra a conta')
+  // WATCH adds a compact branch without removing the legacy card. Each branch must still show the derived film count.
+  const filmBlocks = (s.cartao.match(/data-kineo="plano-filmes"/g) ?? []).length
+  if (!s.cartao.includes('const filmes = contaDeFilmes(props.credits)') || filmBlocks !== (s.cartao.includes('if (props.compact)') ? 2 : 1)) e.push('C3 o cartão mostra a conta em cada apresentação')
   if (!s.cartao.includes("plural(filmes.padrao60, 'standard film', 'standard films')") || !s.cartao.includes('Kling 4.0')) e.push('C4 as duas contas no cartão')
   if (/mobile-sticky-cta|showStickyCta|mobileSticky/.test(s.pagina)) e.push('D1 a barra fixa de baixo saiu')
   return e
@@ -48,6 +50,7 @@ const MUT = [
   ['selo promete 50% sempre', /B6/, { pagina: base.pagina.replace('{annualOfferLive ? <>Up to {ANNUAL_WELCOME_DISCOUNT_PERCENT}%</> : <>Save {ANNUAL_DISCOUNT_PERCENT}%</>}', 'Up to {ANNUAL_WELCOME_DISCOUNT_PERCENT}%') }],
   ['número digitado', /C[12]/, { conta: base.conta.replace("creditsPerReferenceVideo('cinematic_ai')", '35') }],
   ['cartão sem a conta', /C3/, { cartao: base.cartao.replace('data-kineo="plano-filmes"', '') }],
+  ['cartão legado sem a conta', /C3/, { cartao: (() => { const at = base.cartao.lastIndexOf('data-kineo="plano-filmes"'); return base.cartao.slice(0, at) + base.cartao.slice(at).replace('data-kineo="plano-filmes"', '') })() }],
   ['barra de volta', /D1/, { pagina: base.pagina + '\n<div className="mobile-sticky-cta" />' }],
 ]
 for (const [nome, esp, m] of MUT) {

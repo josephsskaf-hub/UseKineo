@@ -1,0 +1,899 @@
+{
+  "status": "TESTADO LOCALMENTE",
+  "date": "2026-11-14T03:02:57.063Z",
+  "fixtures": "Public visitor, BR settlement, no active offers/session; consent denied. All API requests locally fulfilled, all external requests blocked. No checkout clicked.",
+  "captures": [
+    {
+      "name": "antes-390-primeira.png",
+      "side": "antes",
+      "width": 390,
+      "height": 844,
+      "state": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390,
+        "tiers": [
+          "starter",
+          "basic",
+          "pro"
+        ],
+        "creatorButton": {
+          "top": 1561.453125,
+          "bottom": 1609.453125,
+          "text": "Get Creator"
+        },
+        "details": [],
+        "faq": [
+          "true",
+          "false",
+          "false",
+          "false",
+          "false",
+          "false",
+          "false",
+          "false"
+        ],
+        "fonts": []
+      }
+    },
+    {
+      "name": "antes-390-completa.png",
+      "side": "antes",
+      "width": 390,
+      "height": 4978,
+      "state": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390,
+        "tiers": [
+          "starter",
+          "basic",
+          "pro"
+        ],
+        "creatorButton": {
+          "top": 1561.453125,
+          "bottom": 1609.453125,
+          "text": "Get Creator"
+        },
+        "details": [],
+        "faq": [
+          "true",
+          "false",
+          "false",
+          "false",
+          "false",
+          "false",
+          "false",
+          "false"
+        ],
+        "fonts": []
+      }
+    },
+    {
+      "name": "antes-1920-primeira.png",
+      "side": "antes",
+      "width": 1920,
+      "height": 1080,
+      "state": {
+        "width": 1920,
+        "height": 1080,
+        "scrollWidth": 1916,
+        "tiers": [
+          "starter",
+          "basic",
+          "pro"
+        ],
+        "creatorButton": {
+          "top": 745.6875,
+          "bottom": 793.6875,
+          "text": "Get Creator"
+        },
+        "details": [],
+        "faq": [
+          "true",
+          "false",
+          "false",
+          "false",
+          "false",
+          "false",
+          "false",
+          "false"
+        ],
+        "fonts": []
+      }
+    },
+    {
+      "name": "antes-1920-completa.png",
+      "side": "antes",
+      "width": 1920,
+      "height": 2818,
+      "state": {
+        "width": 1920,
+        "height": 1080,
+        "scrollWidth": 1916,
+        "tiers": [
+          "starter",
+          "basic",
+          "pro"
+        ],
+        "creatorButton": {
+          "top": 745.6875,
+          "bottom": 793.6875,
+          "text": "Get Creator"
+        },
+        "details": [],
+        "faq": [
+          "true",
+          "false",
+          "false",
+          "false",
+          "false",
+          "false",
+          "false",
+          "false"
+        ],
+        "fonts": []
+      }
+    },
+    {
+      "name": "depois-390-primeira.png",
+      "side": "depois",
+      "width": 390,
+      "height": 844,
+      "state": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390,
+        "tiers": [
+          "basic",
+          "starter",
+          "pro"
+        ],
+        "creatorButton": {
+          "top": 531.546875,
+          "bottom": 579.546875,
+          "text": "Get Creator"
+        },
+        "details": [
+          {
+            "open": false,
+            "tables": 1
+          },
+          {
+            "open": false,
+            "tables": 1
+          },
+          {
+            "open": false,
+            "tables": 1
+          }
+        ],
+        "faq": [
+          "false",
+          "false",
+          "false",
+          "false",
+          "false",
+          "false",
+          "false",
+          "false"
+        ],
+        "fonts": []
+      }
+    },
+    {
+      "name": "depois-390-completa.png",
+      "side": "depois",
+      "width": 390,
+      "height": 4147,
+      "state": {
+        "width": 390,
+        "height": 844,
+        "scrollWidth": 390,
+        "tiers": [
+          "basic",
+          "starter",
+          "pro"
+        ],
+        "creatorButton": {
+          "top": 531.546875,
+          "bottom": 579.546875,
+          "text": "Get Creator"
+        },
+        "details": [
+          {
+            "open": false,
+            "tables": 1
+          },
+          {
+            "open": false,
+            "tables": 1
+          },
+          {
+            "open": false,
+            "tables": 1
+          }
+        ],
+        "faq": [
+          "false",
+          "false",
+          "false",
+          "false",
+          "false",
+          "false",
+          "false",
+          "false"
+        ],
+        "fonts": []
+      }
+    },
+    {
+      "name": "depois-390-anual-detalhes.png",
+      "side": "depois",
+      "width": 390,
+      "height": 844,
+      "billing": "annual",
+      "detailsOpen": true
+    },
+    {
+      "name": "depois-1920-primeira.png",
+      "side": "depois",
+      "width": 1920,
+      "height": 1080,
+      "state": {
+        "width": 1920,
+        "height": 1080,
+        "scrollWidth": 1916,
+        "tiers": [
+          "basic",
+          "starter",
+          "pro"
+        ],
+        "creatorButton": {
+          "top": 567.796875,
+          "bottom": 615.796875,
+          "text": "Get Creator"
+        },
+        "details": [
+          {
+            "open": false,
+            "tables": 1
+          },
+          {
+            "open": false,
+            "tables": 1
+          },
+          {
+            "open": false,
+            "tables": 1
+          }
+        ],
+        "faq": [
+          "false",
+          "false",
+          "false",
+          "false",
+          "false",
+          "false",
+          "false",
+          "false"
+        ],
+        "fonts": []
+      }
+    },
+    {
+      "name": "depois-1920-completa.png",
+      "side": "depois",
+      "width": 1920,
+      "height": 2718,
+      "state": {
+        "width": 1920,
+        "height": 1080,
+        "scrollWidth": 1916,
+        "tiers": [
+          "basic",
+          "starter",
+          "pro"
+        ],
+        "creatorButton": {
+          "top": 567.796875,
+          "bottom": 615.796875,
+          "text": "Get Creator"
+        },
+        "details": [
+          {
+            "open": false,
+            "tables": 1
+          },
+          {
+            "open": false,
+            "tables": 1
+          },
+          {
+            "open": false,
+            "tables": 1
+          }
+        ],
+        "faq": [
+          "false",
+          "false",
+          "false",
+          "false",
+          "false",
+          "false",
+          "false",
+          "false"
+        ],
+        "fonts": []
+      }
+    }
+  ],
+  "network": [
+    {
+      "action": "local-fixture",
+      "path": "/api/kling4-trial/availability",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/events",
+      "method": "POST"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stripe/checkout/resume",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/studio50",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/offer290-rescue",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stats/public",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/kling4-paid/availability",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/affiliate/offer",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stripe/change-plan",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/annual-welcome",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/geo",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/events",
+      "method": "POST"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/kling4-trial/availability",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stripe/checkout/resume",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/studio50",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/offer290-rescue",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/events",
+      "method": "POST"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stats/public",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/kling4-paid/availability",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/affiliate/offer",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stripe/change-plan",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/annual-welcome",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/geo",
+      "method": "GET"
+    },
+    {
+      "action": "blocked-external",
+      "origin": "https://va.vercel-scripts.com",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/events",
+      "method": "POST"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/kling4-paid/availability",
+      "method": "GET"
+    },
+    {
+      "action": "blocked-external",
+      "origin": "https://r.wdfl.co",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/kling4-trial/availability",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stripe/checkout/resume",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/studio50",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/offer290-rescue",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stats/public",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/kling4-paid/availability",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/affiliate/offer",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stripe/change-plan",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/annual-welcome",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/events",
+      "method": "POST"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/geo",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/kling4-trial/availability",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stripe/checkout/resume",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/studio50",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/offer290-rescue",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stats/public",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/kling4-paid/availability",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/events",
+      "method": "POST"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/affiliate/offer",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stripe/change-plan",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/annual-welcome",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/geo",
+      "method": "GET"
+    },
+    {
+      "action": "blocked-external",
+      "origin": "https://va.vercel-scripts.com",
+      "method": "GET"
+    },
+    {
+      "action": "blocked-external",
+      "origin": "https://r.wdfl.co",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/kling4-paid/availability",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/kling4-paid/availability",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/events",
+      "method": "POST"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stripe/checkout/resume",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stripe/checkout/resume",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/studio50",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/offer290-rescue",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stats/public",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/kling4-trial/availability",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/events",
+      "method": "POST"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/kling4-paid/availability",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/affiliate/offer",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/events",
+      "method": "POST"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stripe/change-plan",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/annual-welcome",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/geo",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stripe/checkout/resume",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stripe/checkout/resume",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/studio50",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/offer290-rescue",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stats/public",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/kling4-trial/availability",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/kling4-paid/availability",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/affiliate/offer",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stripe/change-plan",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/annual-welcome",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/geo",
+      "method": "GET"
+    },
+    {
+      "action": "blocked-external",
+      "origin": "https://va.vercel-scripts.com",
+      "method": "GET"
+    },
+    {
+      "action": "blocked-external",
+      "origin": "https://r.wdfl.co",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/kling4-paid/availability",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/kling4-paid/availability",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/events",
+      "method": "POST"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/black-friday",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stripe/checkout/resume",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stripe/checkout/resume",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/studio50",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/offer290-rescue",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stats/public",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/kling4-trial/availability",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/events",
+      "method": "POST"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/kling4-paid/availability",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/affiliate/offer",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stripe/change-plan",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/annual-welcome",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/geo",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stripe/checkout/resume",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stripe/checkout/resume",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/studio50",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/offer290-rescue",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/events",
+      "method": "POST"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stats/public",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/kling4-trial/availability",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/kling4-paid/availability",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/affiliate/offer",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/stripe/change-plan",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/offers/annual-welcome",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/geo",
+      "method": "GET"
+    },
+    {
+      "action": "blocked-external",
+      "origin": "https://va.vercel-scripts.com",
+      "method": "GET"
+    },
+    {
+      "action": "blocked-external",
+      "origin": "https://r.wdfl.co",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/kling4-paid/availability",
+      "method": "GET"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/events",
+      "method": "POST"
+    },
+    {
+      "action": "local-fixture",
+      "path": "/api/kling4-paid/availability",
+      "method": "GET"
+    }
+  ],
+  "errors": []
+}

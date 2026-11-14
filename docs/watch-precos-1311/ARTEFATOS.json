@@ -1,0 +1,74 @@
+{
+  "date": "2026-11-14T03:02:57.063Z",
+  "html": {
+    "file": "COMPARACAO.html",
+    "bytes": 7119281,
+    "sha256": "d63f39ff251af84f7c83330aad299c145dbddb4afd7848808432184881ef2838",
+    "selfContained": true
+  },
+  "images": [
+    {
+      "name": "antes-390-primeira.png",
+      "width": 390,
+      "height": 844,
+      "bytes": 107513,
+      "sha256": "3811bc86b6d9e2592b2cf9a2829a7eb3536d85eb24bc86850a4ad1a6b86ff373"
+    },
+    {
+      "name": "antes-390-completa.png",
+      "width": 390,
+      "height": 4978,
+      "bytes": 657226,
+      "sha256": "722b2654988790bea82b71455e7832c77b4b1e78761b5e18b5e69cd0d981d74e"
+    },
+    {
+      "name": "antes-1920-primeira.png",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 536600,
+      "sha256": "78a2274a37fa7bbbb9236405bce92d57fc2f19c874c65d0fa4e794a5afa9aa86"
+    },
+    {
+      "name": "antes-1920-completa.png",
+      "width": 1920,
+      "height": 2818,
+      "bytes": 1416324,
+      "sha256": "ce6dbbef4ae0ca6ff50f2c50f0b2cfe0905fb537f1f389513ccf6fa472350334"
+    },
+    {
+      "name": "depois-390-primeira.png",
+      "width": 390,
+      "height": 844,
+      "bytes": 101006,
+      "sha256": "15fc6c0b7c7cde47685f29e54eed2eb0e4778db999f328d5c378e5240a14ec59"
+    },
+    {
+      "name": "depois-390-completa.png",
+      "width": 390,
+      "height": 4147,
+      "bytes": 575093,
+      "sha256": "843db9d9d7b360b9adc3d6bd02ca27d8f2c15ccb088db0a6a12efe7a9291cc1c"
+    },
+    {
+      "name": "depois-390-anual-detalhes.png",
+      "width": 390,
+      "height": 844,
+      "bytes": 116486,
+      "sha256": "3195844b1f5bc019adf5fb5684e6fc2b748e174c84153b9194649fbfc91d02ca"
+    },
+    {
+      "name": "depois-1920-primeira.png",
+      "width": 1920,
+      "height": 1080,
+      "bytes": 512286,
+      "sha256": "12f2c883b19dcd4fcd84c652b222098d33fd227973508dab12ff91f327811b4c"
+    },
+    {
+      "name": "depois-1920-completa.png",
+      "width": 1920,
+      "height": 2718,
+      "bytes": 1312578,
+      "sha256": "87fe5b62d4f87c42ef3ffc6e3acc8ad897ce7315ab19a284451273b18923740c"
+    }
+  ]
+}

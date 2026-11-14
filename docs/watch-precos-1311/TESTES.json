@@ -1,0 +1,38 @@
+[
+  {
+    "test": "test-pricing-mensal-1111.mjs",
+    "exitCode": 0
+  },
+  {
+    "test": "test-pricing-inclui-0511.mjs",
+    "exitCode": 0
+  },
+  {
+    "test": "test-pricing-plan-choice-attribution.mjs",
+    "exitCode": 0
+  },
+  {
+    "test": "test-pricing-tier-handoff.mjs",
+    "exitCode": 0
+  },
+  {
+    "test": "test-pricing-detalhe-0611.mjs",
+    "exitCode": 0
+  },
+  {
+    "test": "test-pricing-business-path.mjs",
+    "exitCode": 0
+  },
+  {
+    "test": "test-pricing-letra-12-1211.mjs",
+    "exitCode": 0
+  },
+  {
+    "test": "test-pricing-saved-checkout.mjs",
+    "exitCode": 0
+  },
+  {
+    "test": "test-precos-0511.mjs",
+    "exitCode": 0
+  }
+]

@@ -1,0 +1,64 @@
+TESTADO LOCALMENTE - bateria offline de contratos de precos
+
+### test-pricing-mensal-1111.mjs
+PASS /pricing abre no mensal pelo interruptor próprio; ?billing e promos iguais; pricing_view grava a aba; anual a um clique; parede independente; preços intocados
+mutantes: 16/16 mortos
+OK
+
+### test-pricing-inclui-0511.mjs
+  ok  o bloco confere (ok)
+  ok  os termos seguem dando uso comercial
+  ok  mutante "promete 24 horas" fica vermelho
+  ok  mutante "fila prioritária" fica vermelho
+  ok  mutante "reembolso à mão" fica vermelho
+  ok  mutante "sem e-mail" fica vermelho
+  ok  mutante "título para todos" fica vermelho
+
+7 ok, 0 falha(s)
+
+### test-pricing-plan-choice-attribution.mjs
+
+34/34 pricing plan-choice attribution checks passed
+
+### test-pricing-tier-handoff.mjs
+PASS — 39/39 pricing tier handoff checks
+
+### test-pricing-detalhe-0611.mjs
+  ok  topo sem cancelar
+  ok  sem cancelar embaixo do botão
+  ok  cancelar continua informado
+  ok  lista aberta antes do que é a um clique
+  ok  lista não fica dentro do clique
+  ok  ad e desenho vêm do custo real
+  ok  alternativas não somam com os filmes
+  ok  nada de fila prioritária nem ilimitado
+TUDO OK
+
+### test-pricing-business-path.mjs
+pricing-business-path: 10/10 checks passed
+
+### test-pricing-letra-12-1211.mjs
+test-pricing-letra-12-1211: 7 verificações verdes · 4/4 mutantes mortos
+
+### test-pricing-saved-checkout.mjs
+
+65/65 pricing saved-checkout checks passed
+
+### test-precos-0511.mjs
+  ok   confere (ok)
+  ok   Creator: 4 padrão, ou 1 Kling 4.0 de 60 s, ou 3 de 15 s
+  ok   Studio: 13 padrão, ou 3 Kling 4.0 de 60 s
+  ok   Starter: 1 padrão, sem linha do Kling 4.0
+  ok   mutante "Creator volta a 85" fica vermelho
+  ok   mutante "preço muda" fica vermelho
+  ok   mutante "1º mês esquecido" fica vermelho
+  ok   mutante "Studio volta aos 50%" fica vermelho
+  ok   mutante "Black Friday com Studio" fica vermelho
+  ok   mutante "cartão ignora o plano" fica vermelho
+  ok   mutante "selo promete 50% sempre" fica vermelho
+  ok   mutante "número digitado" fica vermelho
+  ok   mutante "cartão sem a conta" fica vermelho
+  ok   mutante "cartão legado sem a conta" fica vermelho
+  ok   mutante "barra de volta" fica vermelho
+
+15 ok, 0 falha(s)

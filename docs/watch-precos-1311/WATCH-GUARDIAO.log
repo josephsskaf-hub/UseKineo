@@ -1,0 +1,10 @@
+MUTANT REJECTED [flag] public rollout opened
+MUTANT REJECTED [order] Creator no longer first
+MUTANT REJECTED [details] disclosure open by default
+MUTANT REJECTED [cta] button disabled
+MUTANT REJECTED [faq] FAQ text absent from HTML
+MUTANT REJECTED [faq] FAQ initially open
+MUTANT REJECTED [guarantee] full refund repeated
+MUTANT REJECTED [handler] button buys without selection
+MUTANT REJECTED [renewal] annual renewal described as monthly
+WATCH pricing: 114 offline assertions, legacy SSR parity, 9/9 targeted mutants; no API/checkout/browser.

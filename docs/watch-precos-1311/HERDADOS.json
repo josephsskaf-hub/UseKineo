@@ -1,0 +1,30 @@
+[
+  {
+    "mode": "base",
+    "test": "cartao-valor",
+    "passed": false,
+    "error": "desfaz KINEO-CHECKOUT-CLAREZA-1610: components/pricing/PlanValueStage.tsx: bloco achado 0× — import { twoProductsModelForPage } from '@/components/pricin"
+  },
+  {
+    "mode": "base",
+    "test": "works-with-claude",
+    "passed": false,
+    "error": "desfaz-h3-turbo-0511: trecho ausente ou repetido em app/pricing/PricingClient.tsx"
+  },
+  {
+    "mode": "branch",
+    "test": "cartao-valor",
+    "passed": false,
+    "error": "desfaz KINEO-CHECKOUT-CLAREZA-1610: components/pricing/PlanValueStage.tsx: bloco achado 0× — import { twoProductsModelForPage } from '@/components/pricin"
+  },
+  {
+    "mode": "branch",
+    "test": "works-with-claude",
+    "passed": false,
+    "error": "desfaz-h3-turbo-0511: trecho ausente ou repetido em app/pricing/PricingClient.tsx"
+  },
+  {
+    "test": "generated route type",
+    "baseEqualsBranch": true
+  }
+]

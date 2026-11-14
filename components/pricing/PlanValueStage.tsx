@@ -173,6 +173,8 @@ export interface PlanValueCardProps {
   /** KINEO-CHECKOUT-CLAREZA-1610 — o preço CHEIO por mês em centavos de US$ (mensal: TIER_PRICES; anual: ANNUAL_PRICES ÷ 12).
    *  O cartão divide pelos filmes de 60 s que ele mesmo conta. Ausente/0 = a linha não aparece. */
   monthlyPriceMinor?: number | null
+  /** WATCH option A only; all price/count/checkout props are the existing canonical contract. */
+  compact?: boolean
 }
 
 const plural = (n: number, one: string, many: string) => (n === 1 ? one : many)
@@ -224,6 +226,39 @@ export function PlanValueCard(props: PlanValueCardProps) {
   const clipSeconds = value.clips.length ? seconds(value.clips.map((c) => c.seconds)) : ''
   const filmSeconds = value.films.length ? seconds(value.films.map((f) => f.seconds)) : ''
   const cell = (n: number | null) => (typeof n === 'number' && n >= 1 ? <b>{n}</b> : <span className="pv-none">—</span>)
+  const engineDetails = <div className="pv-sec">
+    <div className="pv-label">Each month, by engine</div>
+    <table className="pv-table">
+      <thead><tr><th scope="col"><span className="sr-only">Engine</span></th><th scope="col">Clips · {clipSeconds}</th><th scope="col">Films · {filmSeconds}</th></tr></thead>
+      <tbody>{engines.map(e => <tr key={`${e.engine}:${e.label}`}><td>{e.label}</td><td>{cell(e.clip)}</td><td>{cell(e.film)}</td></tr>)}</tbody>
+    </table>
+    <p className="pv-caption">A clip is one AI scene. A film is a finished Short with voice, captions and music.</p>
+  </div>
+  if (props.compact) return (
+    <div className="pv-card pv-compact" data-tier={props.tier} data-popular={props.popular ? 'true' : undefined} data-selected={props.selected ? 'true' : undefined} data-requested={props.requested ? 'true' : undefined} id={props.cardId} onClick={() => { if (!props.selected) props.onSelect() }}>
+      <div className="pv-compact-heading"><h2>{props.name}</h2>{props.popular ? <span className="pv-chip">Most popular</span> : null}{props.deal ? <span className="pv-chip pv-deal">{props.deal}</span> : null}</div>
+      <div className="pv-compact-price">
+        <div className="pv-price">{props.was ? <span className="pv-was">{props.was}</span> : null}<span className="pv-amount">{preco ? <><span className="pv-cur">{preco.simbolo}</span>{preco.valor}</> : props.amount}</span></div>
+        <p className="pv-per">{props.per}</p>
+        {props.note ? <p className="pv-note">{props.note}</p> : null}
+      </div>
+      <p className="pv-credits"><BoltIcon /><span><span className="pv-n">{value.credits}</span> credits a month</span></p>
+      <div className="pv-films" data-kineo="plano-filmes"><p className="pv-films-main"><span className="pv-films-n">{filmes.padrao60}</span> {plural(filmes.padrao60, 'standard film', 'standard films')} <span className="pv-dim">· 60 s</span></p></div>
+      <button type="button" className={props.selected ? 'pv-cta pv-cta-pop' : 'pv-cta'} disabled={props.ctaDisabled} aria-pressed={props.selected} onClick={e => { e.stopPropagation(); if (props.selected) props.onBuy(); else props.onSelect() }}>{props.selected ? props.ctaLabel : `Select ${props.name}`}</button>
+      <details className="pv-compact-details" onClick={e => e.stopPropagation()}>
+        <summary>See what's included</summary>
+        {props.save ? <p className="pv-save">{props.save}</p> : null}
+        {props.note ? <p className="pv-note">{props.note}</p> : null}
+        {filmes.kling15 >= 1 ? <p className="pv-films-or">or {filmes.kling60 >= 1 ? <><b>{filmes.kling60}</b> premium {plural(filmes.kling60, 'film', 'films')} · 60 s (or <b>{filmes.kling15}</b> of 15 s)</> : <><b>{filmes.kling15}</b> premium {plural(filmes.kling15, 'film', 'films')} · 15 s</>}</p> : null}
+        <ul className="pv-lines"><li className="pv-line">{lines.images.count} {plural(lines.images.count, 'image', 'images')}</li>{topClip ? <li className="pv-line">≈ {topClip.count} {plural(topClip.count, 'clip', 'clips')} · {topClip.seconds} s</li> : null}</ul>
+        {props.alternatives?.length ? <><div className="pv-label">Or use your credits for</div><ul className="pv-inc">{props.alternatives.map(item => <li key={item}><CheckIcon /><span>{item}</span></li>)}</ul></> : null}
+        <div className="pv-label">Included</div><ul className="pv-inc">{props.included.map(item => <li key={item}><CheckIcon /><span>{item}</span></li>)}</ul>
+        {engineDetails}
+        {props.extra ? <div className="pv-extra">{props.extra}</div> : null}
+        {props.footnote ? <div className="pv-foot">{props.footnote}</div> : null}
+      </details>
+    </div>
+  )
   return (
     // KINEO-PLANO-SELECIONADO-2026-10-09 — fundador (pedido repetido): "dá o primeiro clique em cada uma e pré-selecionar e não já ir
     // direto para o pagamento". Clique no cartão = seleciona; o botão do cartão selecionado é o único que abre o pagamento.
