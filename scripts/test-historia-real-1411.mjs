@@ -16,7 +16,8 @@ const falhas = []
 const checa = (n, c) => { if (c) { ok++; console.log('  ok  ' + n) } else { falhas.push(n); console.log('  FALHA ' + n) } }
 const ARQ = 'lib/cinematic/historiaReal1411.ts'
 const globals = { AbortController, setTimeout, clearTimeout }
-const carrega = (mutar = null) => createOfflineLoader({ globals, source: (rel, text) => (mutar && rel === ARQ ? mutar(text) : text) })
+const EP = 'lib/cinematic/elencoEpoca.ts' // as regras 2 e 3 moram aqui (sem import novo: os guardiões antigos carregam este arquivo sozinhos)
+const carrega = (mutar = null, arq = ARQ) => createOfflineLoader({ globals, source: (rel, text) => (mutar && rel === arq ? mutar(text) : text) })
 
 const MONA = "The Mona Lisa vanished on a Monday morning in 1911. And nobody at the Louvre noticed until the next day. The thief was Vincenzo Peruggia, an Italian handyman who had helped build the painting's glass case. On Sunday he hid in a storage closet. On Monday, with the museum closed, he lifted her off the wall, slipped her under his white work smock, and walked out. Paris panicked. The police questioned Pablo Picasso. Then, in 1913, he carried her to Florence and tried to sell her to an art dealer. The dealer called the police."
 const FREEMAN = 'Why did one pilot fly back fourteen times? November fourteenth, nineteen sixty-five. The Ia Drang Valley, Vietnam. An American battalion steps off its helicopters into tall grass. Back at base, Captain Ed Freeman hears the news.'
@@ -64,19 +65,20 @@ const iFolha = rota.indexOf('const personagemElenco: { elenco: FichaDePersonagem
 checa('D a rota troca a ficha do objeto no elenco ANTES da folha, do casting e de toda cena', iObj > 0 && iObj < iFolha)
 const epoca = lf(fs.readFileSync('lib/cinematic/elencoEpoca.ts', 'utf8'))
 checa('D a época lê o ano por extenso e o papel-que-é-o-nomeado não ganha ficha (atrás do interruptor)', epoca.includes('historiaRealLigada() ? comAnosPorExtenso(') && epoca.includes('if (historiaRealLigada() && papelEhONomeado(texto, nucleo)) return null'))
+checa('D elencoEpoca não ganhou import novo (os guardiões antigos o carregam sozinhos)', !epoca.includes("from '@/lib/cinematic/historiaReal1411'"))
 const MUTANTES = [
-  ['a ficha do boneco fica no filme fotorreal', (s) => s.replace('if (o.estilizado) return { elenco: [...elenco], trocados }', 'if (true) return { elenco: [...elenco], trocados }')],
-  ['a pintura perde o óleo e a moldura', (s) => s.replace("', a realistic oil painting on a flat canvas in a carved wooden frame'", "''")],
-  ['o papel nunca é o nomeado', (s) => s.replace('].some((re) => re.test(t))', '].some(() => false)')],
-  ['todo papel é o nomeado', (s) => s.replace('].some((re) => re.test(t))', '].some(() => true)')],
-  ['ano por extenso não é lido', (s) => s.replace("    .replace(EN_RE, (_m, sec, hundred, teen, tens, un, oh) =>", "    .replace(/$^/, (_m, sec, hundred, teen, tens, un, oh) =>")],
-  ['"nineteen, sixty" vira ano', (s) => s.replace("(sixteen|seventeen|eighteen|nineteen)[\\\\s-]+(?:(hundred)", "(sixteen|seventeen|eighteen|nineteen)[\\\\s,-]+(?:(hundred)")],
+  ['a ficha do boneco fica no filme fotorreal', ARQ, (s) => s.replace('if (o.estilizado) return { elenco: [...elenco], trocados }', 'if (true) return { elenco: [...elenco], trocados }')],
+  ['a pintura perde o óleo e a moldura', ARQ, (s) => s.replace("', a realistic oil painting on a flat canvas in a carved wooden frame'", "''")],
+  ['o papel nunca é o nomeado', EP, (s) => s.replace('].some((re) => re.test(t))', '].some(() => false)')],
+  ['todo papel é o nomeado', EP, (s) => s.replace('].some((re) => re.test(t))', '].some(() => true)')],
+  ['ano por extenso não é lido', EP, (s) => s.replace("    .replace(EN_RE, (_m, sec, hundred, teen, tens, un, oh) =>", "    .replace(/$^/, (_m, sec, hundred, teen, tens, un, oh) =>")],
+  ['"nineteen, sixty" vira ano', EP, (s) => s.replace("(sixteen|seventeen|eighteen|nineteen)[\\\\s-]+(?:(hundred)", "(sixteen|seventeen|eighteen|nineteen)[\\\\s,-]+(?:(hundred)")],
 ]
-const src = lf(fs.readFileSync(ARQ, 'utf8'))
-for (const [nome, fn] of MUTANTES) {
+for (const [nome, arq, fn] of MUTANTES) {
+  const src = lf(fs.readFileSync(arq, 'utf8'))
   const mudou = fn(src) !== src
   let e = ['(mutante não aplicou)']
-  if (mudou) { try { e = provas(carrega(fn)) } catch (x) { e = ['lançou: ' + x.message] } }
+  if (mudou) { try { e = provas(carrega(fn, arq)) } catch (x) { e = ['lançou: ' + x.message] } }
   checa(`mutante "${nome}" fica vermelho (${mudou ? e.length + ' erro(s)' : 'NÃO APLICOU'})`, mudou && e.length > 0)
 }
 console.log(`\n${ok} ok, ${falhas.length} falha(s)`)

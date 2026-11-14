@@ -17,52 +17,9 @@
 // Valem em todo motor da estrada clássica (o elenco e a época alimentam H3, Kling 4, Seedance, Kling 2.5 e Veo). Interruptor HISTORIA_REAL_1411:
 // 'off' = byte a byte o de antes. Guardião: scripts/test-historia-real-1411.mjs.
 
-export type ModoHistoriaReal = 'off' | 'all'
-export const HISTORIA_REAL_1411: ModoHistoriaReal = 'all'
-export const historiaRealLigada = (modo: ModoHistoriaReal = HISTORIA_REAL_1411) => modo === 'all'
-export const HISTORIA_REAL_VERSAO = 'historia_real_1411_v1'
-
-// ── 3. ano por extenso ───────────────────────────────────────────────────────────────────────────────────────────────────────────
-const U: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9 }
-const TEEN: Record<string, number> = { ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19 }
-const TENS: Record<string, number> = { twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 }
-const SECULO: Record<string, number> = { sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19 }
-const u = Object.keys(U).join('|'), te = Object.keys(TEEN).join('|'), tn = Object.keys(TENS).join('|')
-const EN_RE = new RegExp(`\\b(sixteen|seventeen|eighteen|nineteen)[\\s-]+(?:(hundred)|(?:(${te})|(${tn})(?:[\\s-]+(${u}))?|oh[\\s-]+(${u})))\\b`, 'gi')
-const EN2000_RE = new RegExp(`\\btwo thousand(?:(?:\\s+and)?[\\s-]+(?:(${te})|(${tn})(?:[\\s-]+(${u}))?|(${u}))\\b|(?=\\s*[.,;!?]|\\s*$))`, 'gi')
-const PU: Record<string, number> = { um: 1, dois: 2, 'três': 3, tres: 3, quatro: 4, cinco: 5, seis: 6, sete: 7, oito: 8, nove: 9 }
-const PTEEN: Record<string, number> = { dez: 10, onze: 11, doze: 12, treze: 13, catorze: 14, quatorze: 14, quinze: 15, dezesseis: 16, dezessete: 17, dezoito: 18, dezenove: 19 }
-const PTENS: Record<string, number> = { vinte: 20, trinta: 30, quarenta: 40, cinquenta: 50, sessenta: 60, setenta: 70, oitenta: 80, noventa: 90 }
-const PCENT: Record<string, number> = { seiscentos: 600, setecentos: 700, oitocentos: 800, novecentos: 900 }
-const pu = Object.keys(PU).join('|'), pte = Object.keys(PTEEN).join('|'), ptn = Object.keys(PTENS).join('|'), pc = Object.keys(PCENT).join('|')
-const PT_RE = new RegExp(`\\bmil\\s+(${pc})(?:\\s+e\\s+(?:(${pte})|(${ptn})(?:\\s+e\\s+(${pu}))?|(${pu})))?(?![\\p{L}])`, 'giu')
-const PT2000_RE = new RegExp(`\\bdois\\s+mil(?:\\s+e\\s+(?:(${pte})|(${ptn})(?:\\s+e\\s+(${pu}))?|(${pu}))(?![\\p{L}])|(?=\\s*[.,;!?]|\\s*$))`, 'giu')
-const low = (s: unknown) => String(s ?? '').toLowerCase()
-
-/** O texto com os anos por extenso em dígitos ("nineteen sixty-five" → "1965"). "She was nineteen, sixty miles away" e "two thousand soldiers" ficam. Pura. */
-export function comAnosPorExtenso(texto: string | null | undefined): string {
-  return String(texto ?? '')
-    .replace(EN_RE, (_m, sec, hundred, teen, tens, un, oh) => String(SECULO[low(sec)] * 100 + (hundred ? 0 : teen ? TEEN[low(teen)] : tens ? TENS[low(tens)] + (un ? U[low(un)] : 0) : U[low(oh)])))
-    .replace(EN2000_RE, (_m, teen, tens, un, so) => String(2000 + (teen ? TEEN[low(teen)] : tens ? TENS[low(tens)] + (un ? U[low(un)] : 0) : so ? U[low(so)] : 0)))
-    .replace(PT_RE, (_m, c, teen, tens, un, so) => String(1000 + PCENT[low(c)] + (teen ? PTEEN[low(teen)] : tens ? PTENS[low(tens)] + (un ? PU[low(un)] : 0) : so ? PU[low(so)] : 0)))
-    .replace(PT2000_RE, (_m, teen, tens, un, so) => String(2000 + (teen ? PTEEN[low(teen)] : tens ? PTENS[low(tens)] + (un ? PU[low(un)] : 0) : so ? PU[low(so)] : 0)))
-}
-
-// ── 2. o papel sem nome é a pessoa nomeada ───────────────────────────────────────────────────────────────────────────────────────
-const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-const NOME = String.raw`\p{Lu}[\p{L}'’.-]+(?:\s+\p{Lu}[\p{L}'’.-]+){0,3}`
-/** "The thief was Vincenzo Peruggia" · "the pilot, Captain Ed Freeman," · "Vincenzo Peruggia, the thief" · "Ed Freeman was the pilot". Pura. */
-export function papelEhONomeado(texto: string | null | undefined, nucleo: string | null | undefined): boolean {
-  const t = String(texto ?? ''), n = esc(String(nucleo ?? '').trim())
-  if (!t || !n) return false
-  const papel = String.raw`(?:[Tt]he|[Oo]ur|[Tt]his)\s+(?:[\p{Ll}-]+\s+){0,3}${n}`
-  return [
-    new RegExp(String.raw`\b${papel}\s+(?:was|is|turned out to be|would be)\s+(?:(?:a|an|the)\s+)?(?:[\p{L}-]+\s+){0,2}?${NOME}`, 'u'),
-    new RegExp(String.raw`\b${papel},\s+${NOME},`, 'u'),
-    new RegExp(String.raw`${NOME},\s+(?:the|a|an)\s+(?:[\p{Ll}-]+\s+){0,3}${n}\b`, 'u'),
-    new RegExp(String.raw`${NOME}\s+(?:was|is)\s+the\s+(?:[\p{Ll}-]+\s+){0,3}${n}\b`, 'u'),
-  ].some((re) => re.test(t))
-}
+// As regras 2 e 3 e o interruptor moram em lib/cinematic/elencoEpoca.ts (quem as usa; os guardiões antigos carregam esse arquivo com
+// carregadores próprios, sem import novo). Este módulo reexporta e guarda a regra 1 (a ficha do objeto real, usada pela rota).
+export { HISTORIA_REAL_1411, historiaRealLigada, HISTORIA_REAL_VERSAO, comAnosPorExtenso, papelEhONomeado, type ModoHistoriaReal } from '@/lib/cinematic/elencoEpoca'
 
 // ── 1. o objeto de verdade ───────────────────────────────────────────────────────────────────────────────────────────────────────
 const ANTROPO_RE = /^(.+?), an anthropomorphic (.+?) character: a .+? with big expressive cartoon eyes/
