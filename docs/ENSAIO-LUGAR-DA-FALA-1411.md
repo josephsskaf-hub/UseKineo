@@ -100,7 +100,7 @@ A lista dos roteiros vai à CEO por mensagem: cada um 3 vezes seguidas, JSON int
 - v2, a opção que a CEO preferiu: a regra só existe para o plano que seria SEM GENTE se não fosse o comentário.
   - Fora do comentário alguém aparece (gente, gente de papel, alguém do elenco)? O plano fica igual.
   - Senão, dentro do comentário saem SÓ os nomes do elenco e os pronomes. "veterans", "soldiers" e "the crowd" ficam.
-- A regra mora em `lib/cinematic/comentarioDoPlano.ts`, e as duas portas usam a mesma:
+- A regra mora em `lib/cinematic/sceneStyle.ts` (módulo puro, sem import; guardiões antigos carregam a sceneStyle sozinha), e as duas portas usam a mesma:
   - `cenasDoElenco` e o ajuste em `personagemAjuste.ts`;
   - `buildStoryScenePrompt` em `sceneStyle.ts`, que ainda punha "consistent design: Earhart…" na ilha e saía contraditório com o "No people".
 - Executado no código real, regra ligada × desligada:

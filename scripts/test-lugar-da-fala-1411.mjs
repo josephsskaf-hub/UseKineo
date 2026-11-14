@@ -11,7 +11,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) { ok++; console.log('  ok  ' + n) } else { falhas.push(n); console.log('  FALHA ' + n) } }
-const PED = 'lib/cinematic/pessoaDoPedido.ts', AJ = 'lib/cinematic/personagemAjuste.ts', FOLHA = 'lib/cinematic/folhaDePersonagem.ts', COM = 'lib/cinematic/comentarioDoPlano.ts', ST = 'lib/cinematic/sceneStyle.ts'
+const PED = 'lib/cinematic/pessoaDoPedido.ts', AJ = 'lib/cinematic/personagemAjuste.ts', FOLHA = 'lib/cinematic/folhaDePersonagem.ts', COM = 'lib/cinematic/sceneStyle.ts', ST = 'lib/cinematic/sceneStyle.ts'
 const lf = (t) => String(t).replace(/\r\n/g, '\n')
 const carrega = (mutar = null, arq = PED) => createOfflineLoader({ globals: { AbortController, setTimeout, clearTimeout }, source: (rel, text) => (mutar && rel === arq ? mutar(lf(text)) : text) })
 

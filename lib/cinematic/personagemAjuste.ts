@@ -31,7 +31,7 @@ import {
 } from '@/lib/cinematic/folhaDePersonagem'
 import { figuraFiel, figuraFielNoTexto, figurasCompostasNoTexto } from '@/lib/cinematic/seresFieis' // KINEO-JUIZ-REFAZ-2810 — a tabela única de figuras conhecidas, consultada depois da tabela da casa
 import type { StyleAnchor } from '@/lib/cinematic/sceneStyle'
-import { comentarioNaoECenaLigado, planoParaQuemEstaNoQuadro } from '@/lib/cinematic/comentarioDoPlano' // KINEO-COMENTARIO-NAO-E-CENA-1411 v2
+import { comentarioNaoECenaLigado, planoParaQuemEstaNoQuadro } from '@/lib/cinematic/sceneStyle' // KINEO-COMENTARIO-NAO-E-CENA-1411 v2
 import { mentionsMinor } from '@/lib/safety/moderationPolicy'
 
 export const MARCA_PERSONAGEM_AJUSTE = 'KINEO-META95-PERSONAGEM-AJUSTE-2010'
@@ -248,8 +248,8 @@ function generoContradiz(visual: string, f: FichaDePersonagem): boolean {
 
 export interface CenaDoElenco { indice: number; nomes: string[]; pelaFala: string[] }
 
-// ═══ KINEO-COMENTARIO-NAO-E-CENA-1411 v2 — a regra mora em lib/cinematic/comentarioDoPlano.ts (a sceneStyle usa a mesma) ═══
-export { COMENTARIO_NAO_E_CENA_1411, comentarioNaoECenaLigado } from '@/lib/cinematic/comentarioDoPlano'
+// ═══ KINEO-COMENTARIO-NAO-E-CENA-1411 v2 — a regra mora em lib/cinematic/sceneStyle.ts (buildStoryScenePrompt usa a mesma) ═══
+export { COMENTARIO_NAO_E_CENA_1411, comentarioNaoECenaLigado } from '@/lib/cinematic/sceneStyle'
 /** Fora do comentário, alguém do quadro: gente, gente de papel ou alguém do elenco citado. */
 function alguemNoPlano(texto: string, elenco: ReadonlyArray<FichaDePersonagem>): boolean {
   return visualMostraAlguem(texto) || visualTemGenteDePapel(texto) || (cenasComPersonagem([texto], elenco)[0]?.nomes.length ?? 0) > 0

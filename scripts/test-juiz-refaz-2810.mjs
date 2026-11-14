@@ -38,7 +38,7 @@ function biblioteca(over = {}) {
   const seres = roda(over.seres ?? SRC.seres)
   const elenco = roda(over.elenco ?? SRC.elenco, { '@/lib/hollywood/router': { sanitizeRealPeople: (t) => t }, '@/lib/cinematic/seresFieis': seres })
   const folha = roda(over.folha ?? SRC.folha, { '@/lib/cinematic/sceneStyle': { deriveExplicitCharacter: () => null }, '@/lib/estrelaDoFilme': { ESTRELA_EDIT_SLUG: 'x', buildEstrelaEditInput: () => ({}) }, '@/lib/aiModels': { AI_TEXT_MODELS: { scenePlannerLight: 'gpt-4o-mini' } }, '@/lib/cinematic/seresFieis': seres })
-  const ajuste = roda(over.ajuste ?? SRC.ajuste, { '@/lib/cinematic/folhaDePersonagem': folha, '@/lib/safety/moderationPolicy': { mentionsMinor: () => false }, '@/lib/cinematic/seresFieis': seres })
+  const ajuste = roda(over.ajuste ?? SRC.ajuste, { '@/lib/cinematic/folhaDePersonagem': folha, '@/lib/safety/moderationPolicy': { mentionsMinor: () => false }, '@/lib/cinematic/seresFieis': seres, '@/lib/cinematic/sceneStyle': roda(rd('lib/cinematic/sceneStyle.ts')) /* KINEO-COMENTARIO-NAO-E-CENA-1411 v2: o ajuste lê a regra do comentário na sceneStyle (módulo real, puro) */ })
   const critico = roda(over.critico ?? SRC.critico, { '@/lib/hollywood/juizStill': { JUIZ_STILL_MODELO: 'gpt-4o-mini' } })
   return { seres, elenco, folha, ajuste, critico }
 }
