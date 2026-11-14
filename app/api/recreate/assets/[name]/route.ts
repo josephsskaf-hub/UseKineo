@@ -4,6 +4,8 @@ import path from 'node:path'
 import { RECREATE_ASSETS, RECREATE_FORMATS } from '@/lib/recreate/formats'
 import { recreateFormatVisible } from '@/lib/recreate/access'
 import { recreateSession, RECREATE_HEADERS } from '@/lib/recreate/server'
+import { MOVIMENTO_DEMOS, MOVIMENTO_DEMO_DONOS } from '@/lib/recreate/movimentoDemos' // KINEO-MOVIMENTO-REVISOR-2-1411
+import { movimentoDemoDoBucketValido } from '@/lib/recreate/movimento' // KINEO-MOVIMENTO-REVISOR-2-1411
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -13,6 +15,10 @@ export async function GET(req: NextRequest, { params }: { params: { name: string
   // KINEO-RECREATE-TRAVA-1011 — a base video/poster is served only to an account that can see its format.
   const owner = RECREATE_FORMATS.find(f => f.preview.endsWith('/' + params.name) || f.poster.endsWith('/' + params.name))
   if (!owner || !recreateFormatVisible(owner, user.email)) return new NextResponse(null, { status: 404, headers: RECREATE_HEADERS })
+  // KINEO-MOVIMENTO-REVISOR-2-1411 [2º revisor, item 1] — o demo do molde de movimento que é resultado do produto (nunca no JavaScript público): redireciona só aqui, depois de
+  // conferir quem pode ver o molde; URL fora da régua (outro ambiente, outro dono) = segue servindo o asset de sempre.
+  const demo = owner.type === 'motion' && owner.preview.endsWith('/' + params.name) ? MOVIMENTO_DEMOS[owner.id] : undefined
+  if (demo && movimentoDemoDoBucketValido(demo, process.env.NEXT_PUBLIC_SUPABASE_URL ?? '', MOVIMENTO_DEMO_DONOS)) return NextResponse.redirect(demo, { status: 302, headers: RECREATE_HEADERS })
   const asset = RECREATE_ASSETS[params.name as keyof typeof RECREATE_ASSETS]
   const bytes = await readFile(path.join(process.cwd(), 'lib/recreate/assets', asset.file))
   const headers = { ...RECREATE_HEADERS, 'Content-Type': asset.contentType, 'Accept-Ranges': 'bytes' }

@@ -30,12 +30,15 @@ const FORMATS = 'lib/recreate/formats.ts', ASSETS = 'lib/recreate/assets'
 const args = Object.fromEntries(process.argv.slice(2).reduce((acc, a, i, all) => (a.startsWith('--') ? [...acc, [a.slice(2), all[i + 1] && !all[i + 1].startsWith('--') ? all[i + 1] : true]] : acc), []))
 const falha = (m) => { console.error('PARADO: ' + m); process.exit(1) }
 // KINEO-MOVIMENTO-CORPO-INTEIRO-1411 [CEO 14/11: "o demo do cartão separado do guia"] — TROCAR O DEMO de um molde que já existe, sem mexer no guia:
-//   node scripts/recreate-movimento-novo-molde.mjs --trocar-demo --id jogada-de-futebol --demo-url https://<projeto>.supabase.co/storage/v1/object/public/renders/clips/<uid>/<clip>.mp4 [--ensaio]
+//   node scripts/recreate-movimento-novo-molde.mjs --trocar-demo --id jogada-de-futebol --projeto https://<projeto>.supabase.co --demo-url https://<projeto>.supabase.co/storage/v1/object/public/renders/clips/<uid da casa>/<clip>.mp4 [--ensaio]
+// KINEO-MOVIMENTO-REVISOR-2-1411 [2º revisor, itens 1 a 3] — a URL vai para lib/recreate/movimentoDemos.ts (só do servidor), NUNCA para o catálogo (que vai no JavaScript
+// público): o preview do catálogo continua o asset atrás do login e a rota de assets redireciona. --projeto = o NEXT_PUBLIC_SUPABASE_URL do ambiente.
 // O demo é o resultado do PRÓPRIO produto (gerado pela conta da casa), já no nosso bucket: o cartão passa a mostrar exatamente o que o cliente recebe.
 // Confere pelo código real (movimentoDemoValido + movimentoProblemasDoMolde), lê o vídeo com ffprobe (9:16, duração do molde ± 0,7 s), tira o pôster do
 // quadro de 1 s (720 px, ≤ 200 KB) para lib/recreate/assets/recreate-mov-<id>-demo.jpg e troca SÓ preview e poster da linha do molde.
 if (args['trocar-demo'] === true) {
-  const idT = String(args.id ?? ''), url = String(args['demo-url'] ?? ''), ensaioT = args.ensaio === true
+  const idT = String(args.id ?? ''), url = String(args['demo-url'] ?? ''), ensaioT = args.ensaio === true, projeto = String(args.projeto ?? '')
+  const DEMOS_T = 'lib/recreate/movimentoDemos.ts'
   const FORMATS_T = 'lib/recreate/formats.ts', ASSETS_T = 'lib/recreate/assets'
   const srcT = fs.readFileSync(FORMATS_T, 'utf8'), crlfT = srcT.includes('\r\n'), lfT = srcT.replace(/\r\n/g, '\n')
   const iL = lfT.indexOf(`  { id: '${idT}', `)
@@ -45,7 +48,8 @@ if (args['trocar-demo'] === true) {
   const prev = /preview: '([^']+)'/.exec(linhaT), post = /poster: '([^']+)'/.exec(linhaT), seg = /seconds: (\d+)/.exec(linhaT)
   if (!prev || !post || !seg || !/type: 'motion'/.test(linhaT)) falha('a 1ª linha do molde não tem preview, poster, seconds e type motion')
   const modT = loader({ '@supabase/supabase-js': { createClient: () => ({}) }, 'server-only': {} })
-  if (!modT('lib/recreate/movimento').movimentoDemoValido(url)) falha('--demo-url precisa ser um MP4 do NOSSO bucket público renders (o resultado do produto)')
+  const donos = modT('lib/recreate/movimentoDemos').MOVIMENTO_DEMO_DONOS
+  if (!modT('lib/recreate/movimento').movimentoDemoDoBucketValido(url, projeto, donos)) falha('--demo-url precisa ser <--projeto>/storage/v1/object/public/renders/clips/<uid da CASA>/<clipe>.mp4 (o resultado do produto pela conta da casa)')
   const pr = JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'stream=codec_type,width,height:format=duration', '-of', 'json', url], { encoding: 'utf8' }))
   const vT = (pr.streams ?? []).find((s) => s.codec_type === 'video'), dT = Number(pr.format?.duration), sT = Number(seg[1])
   if (!vT || !(vT.height > vT.width)) falha('o demo precisa ser vertical')
@@ -55,18 +59,25 @@ if (args['trocar-demo'] === true) {
   for (; qT <= 12; qT += 2) { execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', '1', '-i', url, '-frames:v', '1', '-vf', 'scale=720:-2', '-q:v', String(qT), pos]); if (fs.statSync(pos).size <= 200_000) break }
   if (fs.statSync(pos).size > 200_000) falha('o pôster do demo passou de 200 KB')
   const chave = `${idT}-demo.jpg`, arq = `recreate-mov-${idT}-demo.jpg`
-  let novoT = lfT.slice(0, iL) + linhaT.replace(prev[0], `preview: '${url}'`).replace(post[0], `poster: '/api/recreate/assets/${chave}'`) + lfT.slice(fimL)
+  let novoT = lfT.slice(0, iL) + linhaT.replace(post[0], `poster: '/api/recreate/assets/${chave}'`) + lfT.slice(fimL) // KINEO-MOVIMENTO-REVISOR-2-1411 — o preview do catálogo NÃO muda (a URL vai para movimentoDemos.ts)
+  const demosSrc = fs.readFileSync(DEMOS_T, 'utf8'), crlfD = demosSrc.includes('\r\n')
+  let demosLf = demosSrc.replace(/\r\n/g, '\n').replace(new RegExp(`\\n  '${idT}': '[^']*',`), '')
+  const aD = 'export const MOVIMENTO_DEMOS: Readonly<Record<string, string>> = {\n'
+  if (!demosLf.includes(aD)) falha('âncora de MOVIMENTO_DEMOS')
+  demosLf = demosLf.replace(aD, aD + `  '${idT}': '${url}',\n`)
   if (!novoT.includes(`'${chave}': `)) { const iA = novoT.indexOf('export const RECREATE_ASSETS = {'), iF = novoT.indexOf('\n} as const', iA); novoT = novoT.slice(0, iF + 1) + `  '${chave}': { file: '${arq}', contentType: 'image/jpeg' }, // KINEO-MOVIMENTO-CORPO-INTEIRO-1411 — pôster do demo (resultado do produto)\n` + novoT.slice(iF + 1) }
-  const modN = loader({ '@supabase/supabase-js': { createClient: () => ({}) }, 'server-only': {} }, { [FORMATS_T]: novoT })
+  const modN = loader({ '@supabase/supabase-js': { createClient: () => ({}) }, 'server-only': {} }, { [FORMATS_T]: novoT, [DEMOS_T]: demosLf })
+  if (modN('lib/recreate/movimentoDemos').MOVIMENTO_DEMOS[idT] !== url) falha('o demo não entrou em movimentoDemos.ts')
   const fN = modN('lib/recreate/formats').recreateFormat(idT)
   const probs = modN('lib/recreate/movimento').movimentoProblemasDoMolde(fN)
   if (probs.length) falha('o código recusa: ' + probs.join('; '))
   if (fN.guia !== `${idT}.mp4` && !String(fN.guia).length) falha('o guia mudou')
-  console.log(`OK: demo de ${idT} = ${url} (${vT.width}x${vT.height}, ${dT.toFixed(2)} s) · pôster ${fs.statSync(pos).size} B · guia intacto (${fN.guia})`)
+  console.log(`OK: demo de ${idT} = ${url} (${vT.width}x${vT.height}, ${dT.toFixed(2)} s) · pôster ${fs.statSync(pos).size} B · guia intacto (${fN.guia}) · preview do catálogo intacto (${fN.preview})`)
   if (ensaioT) { console.log('ENSAIO: nada foi escrito.'); process.exit(0) }
   fs.copyFileSync(pos, path.join(ASSETS_T, arq))
   fs.writeFileSync(FORMATS_T, crlfT ? novoT.replace(/\n/g, '\r\n') : novoT)
-  console.log(`Escrito: ${ASSETS_T}/${arq} e ${FORMATS_T}. Próximo: node scripts/test-recreate-movimento-1411.mjs, a bateria pelos arquivos tocados, commit.`)
+  fs.writeFileSync(DEMOS_T, crlfD ? demosLf.replace(/\n/g, '\r\n') : demosLf)
+  console.log(`Escrito: ${ASSETS_T}/${arq}, ${DEMOS_T} e ${FORMATS_T}. Próximo: node scripts/test-recreate-movimento-1411.mjs, a bateria pelos arquivos tocados, commit.`)
   process.exit(0)
 }
 const id = String(args.id ?? ''), titulo = String(args.titulo ?? ''), mp4 = String(args.mp4 ?? ''), cena = String(args.cena ?? '').trim(), acao = String(args.acao ?? '').trim()

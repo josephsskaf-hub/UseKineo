@@ -74,8 +74,9 @@ export function descricaoEmTexto(parsed: unknown): string | null {
   const estilos = [...new Set((Array.isArray(r.hair_style) ? r.hair_style : [r.hair_style]).map((x) => doVocabulario(x, VOCABULARIO.estilo)).filter(Boolean))].slice(0, 2)
   const barba = barbaEmTexto(doVocabulario(r.beard, VOCABULARIO.barba), doVocabulario(r.beard_color, VOCABULARIO.cor))
   if (!cor && !comprimento) return null
-  const cabelo = [comprimento, forma, cor].filter(Boolean).join(' ')
-  const partes = [`with ${cabelo} hair${volume && volume !== 'flat' ? ` with ${volume}` : ''}${estilos.length ? `, ${estilos.join(', ')}` : ''}`]
+  // KINEO-MOVIMENTO-REVISOR-2-1411 [2º revisor, item 5] — "thick" e "full" são adjetivos do cabelo ("thick short wavy black hair"); só "some volume on top" vai depois (era "hair with thick").
+  const cabelo = [volume === 'thick' || volume === 'full' ? volume : '', comprimento, forma, cor].filter(Boolean).join(' ')
+  const partes = [`with ${cabelo} hair${volume === 'some volume on top' ? ' with some volume on top' : ''}${estilos.length ? `, ${estilos.join(', ')}` : ''}`]
   if (barba) partes.push(barba)
   if (r.glasses === true) partes.push('wearing glasses')
   else if (r.glasses === false) partes.push('wearing no glasses')

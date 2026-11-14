@@ -102,11 +102,15 @@ export function temFraseNegativa(texto: string): boolean {
 
 // KINEO-MOVIMENTO-CORPO-INTEIRO-1411 [CEO 14/11, teste pago no painel: corpo inteiro + cabelo e barba descritos = o rosto se mantém] — a descrição lida da foto entra DENTRO da frase de
 // identidade ("… same age, with <cabelo, barba, óculos>."), como no teste; antes ela ia logo depois de "The person from the reference photo".
-const IDENTIDADE = 'Keep their real face exactly: same face shape, eyes, eyebrows, nose, lips, hairline, beard and skin texture, same age'
+// KINEO-MOVIMENTO-REVISOR-2-1411 [2º revisor, item 5] — quando o leitor diz careca ("shaved") ou sem barba ("clean-shaven"), a frase fixa não fala de linha do cabelo nem de barba.
+function identidade(descricao: string | null): string {
+  const tracos = ['face shape', 'eyes', 'eyebrows', 'nose', 'lips', ...(descricao && /\bshaved\b/.test(descricao) ? [] : ['hairline']), ...(descricao && /\bclean-shaven\b/.test(descricao) ? [] : ['beard']), 'skin texture']
+  return `Keep their real face exactly: same ${tracos.slice(0, -1).join(', ')} and ${tracos[tracos.length - 1]}, same age`
+}
 /** O texto do passo 1. `descricao` = o que o leitor viu na foto (cabelo, barba, óculos), ou null quando a leitura falhou. */
 export function movimentoTextoDaCena(f: RecreateFormat, descricao: string | null): string {
-  const identidade = descricao ? `${IDENTIDADE}, ${descricao}.` : `${IDENTIDADE}.` // KINEO-MOVIMENTO-CORPO-INTEIRO-1411 — era: "The person from the reference photo, <descrição>,"
-  return `Photorealistic vertical photo. The person from the reference photo ${f.cena ?? ''}. ${identidade} This one person is the only person in the frame. Plain unmarked surfaces and clean natural light.`.replace(/\s+/g, ' ').trim()
+  const ident = descricao ? `${identidade(descricao)}, ${descricao}.` : `${identidade(null)}.` // KINEO-MOVIMENTO-CORPO-INTEIRO-1411 — era: "The person from the reference photo, <descrição>,"
+  return `Photorealistic vertical photo. The person from the reference photo ${f.cena ?? ''}. ${ident} This one person is the only person in the frame. Plain unmarked surfaces and clean natural light.`.replace(/\s+/g, ' ').trim()
 }
 export function movimentoEntradaDaCena(f: RecreateFormat, foto: string, descricao: string | null): Record<string, unknown> {
   return { prompt: movimentoTextoDaCena(f, descricao), image_urls: [foto], aspect_ratio: '9:16', num_images: 1, resolution: '1K', output_format: 'png' }
@@ -120,11 +124,31 @@ export function movimentoEntradaDoVideo(f: RecreateFormat, cenaUrl: string, guia
 // KINEO-MOVIMENTO-CORPO-INTEIRO-1411 [CEO 14/11: "o demo do cartão separado do guia"] — o cartão mostra `preview`; o motor anima pelo `guia`. O demo pode ser um asset nosso
 // (/api/recreate/assets/<chave em RECREATE_ASSETS>) ou um MP4 do NOSSO bucket público renders (o resultado do próprio produto, gerado pela conta da casa:
 // o cartão passa a mostrar exatamente o que o cliente recebe). Nada de URL de terceiros.
-export const MOVIMENTO_DEMO_DO_BUCKET = /^https:\/\/[a-z0-9]{20}\.supabase\.co\/storage\/v1\/object\/public\/renders\/[A-Za-z0-9_\-/]+\.mp4$/
+// KINEO-MOVIMENTO-REVISOR-2-1411 [2º revisor, itens 1, 2 e 3] — o `preview` do CATÁLOGO (que vai no JavaScript público) é SÓ o asset nosso atrás do login. O demo que é resultado do
+// produto mora em lib/recreate/movimentoDemos.ts (só do servidor) e a rota de assets redireciona para ele; aqui, a régua dessa URL: o bucket renders
+// DESTE ambiente, em clips/<dono>/<clipe>.mp4, e o dono numa lista dada (a conta da casa).
 export function movimentoDemoValido(preview: string): boolean {
   const local = /^\/api\/recreate\/assets\/([A-Za-z0-9_.-]+\.mp4)$/.exec(preview)
-  if (local) return Object.hasOwn(RECREATE_ASSETS, local[1]) && (RECREATE_ASSETS as Record<string, { contentType: string }>)[local[1]].contentType === 'video/mp4'
-  return MOVIMENTO_DEMO_DO_BUCKET.test(preview) && !preview.includes('..')
+  return !!local && Object.hasOwn(RECREATE_ASSETS, local[1]) && (RECREATE_ASSETS as Record<string, { contentType: string }>)[local[1]].contentType === 'video/mp4'
+}
+export function movimentoDemoDoBucketValido(url: string, supabaseUrl: string, donos: readonly string[]): boolean {
+  if (!/^https:\/\/[a-z0-9.-]+$/.test(supabaseUrl)) return false
+  const prefixo = `${supabaseUrl}/storage/v1/object/public/renders/clips/`
+  if (typeof url !== 'string' || !url.startsWith(prefixo)) return false
+  const m = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.mp4$/.exec(url.slice(prefixo.length))
+  return !!m && donos.includes(m[1])
+}
+// KINEO-MOVIMENTO-REVISOR-2-1411 [2º revisor, item 4] — a régua do molde recusa MARCA no texto (a cena e a ação vão ao motor): marcas e clubes conhecidos, e palavra com inicial
+// maiúscula no meio da frase (nome próprio: marca, time, pessoa, lugar), menos as siglas permitidas.
+export const MARCAS_CONHECIDAS = /\b(nike|adidas|puma|reebok|under armour|new balance|umbro|kappa|asics|mizuno|coca-?cola|pepsi|red bull|monster energy|gatorade|heineken|budweiser|emirates|qatar airways|etihad|visa|mastercard|apple|samsung|google|amazon|mcdonald'?s|starbucks|spotify|netflix|playstation|xbox|fifa|uefa|premier league|la liga|champions league|real madrid|barcelona|barça|manchester|chelsea|liverpool|arsenal|juventus|bayern|psg|flamengo|corinthians|palmeiras|boca juniors)\b/i
+const SIGLAS_PERMITIDAS = new Set(['TV'])
+export function temMarca(texto: string): boolean {
+  if (MARCAS_CONHECIDAS.test(texto)) return true
+  for (const frase of texto.split(/(?<=[.!?:;])\s+/)) {
+    const palavras = frase.trim().split(/\s+/).slice(1).map((p) => p.replace(/[^A-Za-z'-]/g, ''))
+    if (palavras.some((p) => /^[A-Z]/.test(p) && !SIGLAS_PERMITIDAS.has(p))) return true
+  }
+  return false
 }
 /** O que um molde de movimento precisa para existir (o guardião roda isto em todo molde do catálogo). Vazio = válido. */
 export function movimentoProblemasDoMolde(f: RecreateFormat): string[] {
@@ -136,9 +160,10 @@ export function movimentoProblemasDoMolde(f: RecreateFormat): string[] {
   const asset = f.guia ? RECREATE_ASSETS[f.guia] : undefined
   if (!asset || asset.contentType !== 'video/mp4') p.push('o guia precisa ser um MP4 nosso em RECREATE_ASSETS')
   if (!f.cena || !/\b(knees up|waist up|full body from head to shoes)\b/i.test(f.cena) || !/face clearly visible/i.test(f.cena)) p.push('a cena enquadra joelhos ou cintura para cima ou o corpo inteiro ("full body from head to shoes"), com "face clearly visible"') // KINEO-MOVIMENTO-CORPO-INTEIRO-1411 — + corpo inteiro
-  if (!movimentoDemoValido(f.preview)) p.push('o demo do cartão é um asset nosso (/api/recreate/assets/<chave>) ou um MP4 do nosso bucket renders') // KINEO-MOVIMENTO-CORPO-INTEIRO-1411
+  if (!movimentoDemoValido(f.preview)) p.push('o preview do catálogo é um asset nosso (/api/recreate/assets/<chave>); o demo do bucket mora em lib/recreate/movimentoDemos.ts') // KINEO-MOVIMENTO-REVISOR-2-1411 — era: asset ou URL do bucket
   if (!f.acao) p.push('o molde precisa da ação do passo 2')
   for (const [nome, texto] of [['cena', f.cena ?? ''], ['acao', f.acao ?? '']] as const) if (temFraseNegativa(texto)) p.push(`${nome} com frase negativa`)
+  for (const [nome, texto] of [['cena', f.cena ?? ''], ['acao', f.acao ?? '']] as const) if (temMarca(texto)) p.push(`${nome} com marca ou nome próprio`) // KINEO-MOVIMENTO-REVISOR-2-1411
   return p
 }
 

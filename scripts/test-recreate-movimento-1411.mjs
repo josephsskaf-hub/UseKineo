@@ -245,12 +245,59 @@ async function bateria(over = {}) {
     if (mov.movimentoProblemasDoMolde(corpo).length) throw new Error(mov.movimentoProblemasDoMolde(corpo).join('; '))
     for (const cena of ['on a pitch, full body, their face clearly visible', 'on a pitch, full body from head to shoes']) if (!mov.movimentoProblemasDoMolde({ ...molde, cena }).length) throw new Error('aceitou: ' + cena)
   })
-  await check('12 o demo do cartão: asset nosso registrado ou MP4 do NOSSO bucket renders; nada de terceiros, caminho torto ou asset que não existe', async () => {
-    const ok = ['/api/recreate/assets/lance-teste.mp4', 'https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/clips/' + U + '/' + U + '.mp4']
-    const ruins = ['/api/recreate/assets/nao-existe.mp4', '/api/recreate/assets/lance-teste.jpg', 'https://evil.example.com/x.mp4', 'https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/avatars/x.mp4', 'https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/../avatars/x.mp4', 'https://v3.fal.media/files/x.mp4']
-    for (const p of ok) if (!mov.movimentoDemoValido(p) || mov.movimentoProblemasDoMolde({ ...molde, preview: p }).length) throw new Error('recusou: ' + p)
-    for (const p of ruins) if (mov.movimentoDemoValido(p)) throw new Error('aceitou: ' + p)
-    if (mov.movimentoGuiaUrl({ ...molde, preview: ok[1] }, SUPA) !== mov.movimentoGuiaUrl(molde, SUPA)) throw new Error('o demo mexeu no guia')
+  await check('12 o preview do CATÁLOGO (vai no JavaScript público) é só asset nosso atrás do login; nenhuma URL do bucket no catálogo', async () => {
+    for (const p of ['/api/recreate/assets/lance-teste.mp4']) if (!mov.movimentoDemoValido(p) || mov.movimentoProblemasDoMolde({ ...molde, preview: p }).length) throw new Error('recusou: ' + p)
+    for (const p of ['/api/recreate/assets/nao-existe.mp4', '/api/recreate/assets/lance-teste.jpg', 'https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/clips/' + U + '/' + U + '.mp4', 'https://evil.example.com/x.mp4']) if (mov.movimentoDemoValido(p)) throw new Error('aceitou no catálogo: ' + p)
+    const real = loader({ '@supabase/supabase-js': { createClient: () => ({}) } }, {})
+    for (const f of real('lib/recreate/formats').RECREATE_FORMATS.filter((x) => x.type === 'motion')) if (/https?:/.test(f.preview) || /https?:/.test(f.poster)) throw new Error('URL no catálogo público: ' + f.id)
+    const cl = lf(CLIENT)
+    if (/movimentoDemos/.test(cl) || /movimentoDemos/.test(lf(FORMATS))) throw new Error('o módulo dos demos chegou ao cliente')
+    if (!/^import 'server-only'/.test(lf('lib/recreate/movimentoDemos.ts'))) throw new Error('movimentoDemos.ts sem server-only')
+  })
+  await check('12 a URL do demo da casa: bucket renders DESTE ambiente, clips/<dono>/<clipe>.mp4, dono = a conta da casa; nada de outro projeto, outro dono, "//", "..", query', async () => {
+    const CASA = 'e92d81bf-0068-46c3-8de7-1f67e2006756', base = SUPA + '/storage/v1/object/public/renders/clips/'
+    const ok = base + CASA + '/' + U + '.mp4'
+    if (!mov.movimentoDemoDoBucketValido(ok, SUPA, [CASA])) throw new Error('recusou o clipe da casa')
+    for (const u of [base + U + '/' + U + '.mp4', 'https://outroprojetoxxxxxxxxxx.supabase.co/storage/v1/object/public/renders/clips/' + CASA + '/' + U + '.mp4', base + CASA + '//' + U + '.mp4', base + CASA + '/../' + U + '.mp4', ok + '?x=1', base + CASA + '/' + U + '.mov', SUPA + '/storage/v1/object/public/avatars/' + CASA + '/' + U + '.mp4', 'http://' + ok.slice(8)])
+      if (mov.movimentoDemoDoBucketValido(u, SUPA, [CASA])) throw new Error('aceitou: ' + u)
+    if (mov.movimentoDemoDoBucketValido(ok, '', [CASA])) throw new Error('aceitou sem o ambiente')
+  })
+  await check('12 a rota de assets EXECUTADA: com demo da casa, quem pode ver o molde recebe 302 para ele; de fora, 404; demo fora da régua = o asset de sempre', async () => {
+    const { NextResponse } = require(require.resolve('next/server', { paths: [process.cwd()] }))
+    const CASA = 'e92d81bf-0068-46c3-8de7-1f67e2006756', demo = SUPA + '/storage/v1/object/public/renders/clips/' + CASA + '/' + U + '.mp4'
+    const rodar = async (usuario, demoUrl) => {
+      const r = loader({ 'next/server': { NextResponse }, 'server-only': {}, '@supabase/supabase-js': { createClient: () => ({}) }, '@/lib/recreate/server': { recreateSession: async () => ({ user: usuario }), RECREATE_HEADERS: { 'Cache-Control': 'private, no-store' } } },
+        { ...overs, 'lib/recreate/movimentoDemos.ts': `export const MOVIMENTO_DEMO_DONOS: readonly string[] = ['${CASA}']\nexport const MOVIMENTO_DEMOS: Readonly<Record<string, string>> = { 'lance-teste': '${demoUrl}' }\n` })
+      return r('app/api/recreate/assets/[name]/route').GET({ headers: { get: () => null } }, { params: { name: 'lance-teste.mp4' } })
+    }
+    const casaV = await rodar({ email: casa }, demo)
+    if (casaV.status !== 302 || casaV.headers.get('location') !== demo) throw new Error('casa: ' + casaV.status + ' ' + casaV.headers.get('location'))
+    const fora = await rodar(null, demo)
+    if (fora.status !== 404 || fora.headers.get('location')) throw new Error('de fora: ' + fora.status)
+    const cliente = await rodar({ email: 'cliente@exemplo.com' }, demo)
+    if (cliente.status !== 404) throw new Error('cliente vê o molde fechado: ' + cliente.status)
+    const alheio = await rodar({ email: casa }, demo.replace(CASA, U))
+    if (alheio.status !== 200 || alheio.headers.get('location')) throw new Error('demo de outro dono redirecionou: ' + alheio.status)
+  })
+  await check('12 a régua do molde recusa MARCA e nome próprio na cena e na ação ("Nike shirt", "nike shirt", "Real Madrid", "near Barcelona"); a sigla TV e o molde real passam', async () => {
+    for (const x of ['wearing a Nike shirt', 'wearing a nike shirt', 'a Real Madrid player', 'a stadium near Barcelona', 'plain boards with a Coca-Cola logo', 'He runs. Then Messi passes'])
+      if (!mov.temMarca(x) || !mov.movimentoProblemasDoMolde({ ...molde, acao: 'The person runs, ' + x }).length) throw new Error('passou: ' + x)
+    for (const x of ['The person runs during a live TV football match. They fall.', mov.movimentoTextoDoVideo(molde)]) if (mov.temMarca(x)) throw new Error('recusou: ' + x)
+  })
+  await check('12 o leitor: "thick" e "full" antes de "hair" (nunca "hair with thick"); "some volume on top" depois; careca e sem barba tiram "hairline" e "beard" da frase fixa', async () => {
+    const t = desc.descricaoEmTexto({ person_visible: true, hair_color: 'black', hair_length: 'short', hair_shape: 'wavy', hair_volume: 'thick' })
+    const f = desc.descricaoEmTexto({ person_visible: true, hair_color: 'black', hair_length: 'short', hair_volume: 'full' })
+    const v = desc.descricaoEmTexto({ person_visible: true, hair_color: 'black', hair_length: 'short', hair_volume: 'some volume on top' })
+    if (t !== 'with thick short wavy black hair' || f !== 'with full short black hair' || v !== 'with short black hair with some volume on top') throw new Error(JSON.stringify([t, f, v]))
+    const sb = mov.movimentoTextoDaCena(molde, 'with short black hair and clean-shaven'), cr = mov.movimentoTextoDaCena(molde, 'with shaved black hair and a full beard'), nada = mov.movimentoTextoDaCena(molde, null)
+    if (/eyebrows, nose, lips, hairline, beard and/.test(sb) || !/same face shape, eyes, eyebrows, nose, lips, hairline and skin texture, same age, with short black hair/.test(sb)) throw new Error('sem barba: ' + sb)
+    if (/hairline/.test(cr) || !/lips, beard and skin texture, same age, with shaved/.test(cr)) throw new Error('careca: ' + cr)
+    if (!/same face shape, eyes, eyebrows, nose, lips, hairline, beard and skin texture, same age\./.test(nada)) throw new Error('sem descrição: ' + nada)
+  })
+  await check('12 o 1º molde real termina a ação prendendo o entorno (mureta branca lisa e arquibancada cinza) e a cena fala a mesma arquibancada', async () => {
+    const real = loader({ '@supabase/supabase-js': { createClient: () => ({}) } }, {})
+    const j = real('lib/recreate/formats').recreateFormat('jogada-de-futebol')
+    if (!j.acao.endsWith('The pitch is surrounded only by a plain low white wall and plain grey stands.') || !/plain grey stands/.test(j.cena) || /plain dark stands/.test(j.cena + j.acao)) throw new Error(JSON.stringify([j.cena.slice(-120), j.acao.slice(-120)]))
   })
   await check('12 todo molde de movimento REAL do catálogo passa na régua (o 1º: jogada-de-futebol de corpo inteiro, sem aprovação)', async () => {
     const reais = lf(FORMATS)
@@ -724,9 +771,17 @@ const mutantes = [
   ['marca antes de 1 h', { [SRV]: src[SRV].replace('export const NUNCA_COBRADO_APOS_MS = 60 * 60 * 1000', 'export const NUNCA_COBRADO_APOS_MS = 0') }],
   ['molde fora da lista ainda julga', { [FLOW]: src[FLOW].replace("    if (!movimentoForRow(row)) return fail(MOVIMENTO_FALHA.cena, null, { motion: 'template_gone' })\n", '') }],
   // KINEO-MOVIMENTO-CORPO-INTEIRO-1411
-  ['descrição de volta para o começo (fora da identidade)', { [MOV]: src[MOV].replace("  const identidade = descricao ? `${IDENTIDADE}, ${descricao}.` : `${IDENTIDADE}.`", "  const identidade = `${IDENTIDADE}.`") }],
+  ['descrição de volta para o começo (fora da identidade)', { [MOV]: src[MOV].replace('  const ident = descricao ? `${identidade(descricao)}, ${descricao}.` : `${identidade(null)}.`', '  const ident = `${identidade(null)}.`') }], // reancorado KINEO-MOVIMENTO-REVISOR-2-1411 (a frase fixa virou função)
   ['régua sem o corpo inteiro', { [MOV]: src[MOV].replace('knees up|waist up|full body from head to shoes', 'knees up|waist up') }],
-  ['demo de qualquer lugar', { [MOV]: src[MOV].replace("  return MOVIMENTO_DEMO_DO_BUCKET.test(preview) && !preview.includes('..')", '  return true') }],
+  ['demo de qualquer lugar no catálogo', { [MOV]: src[MOV].replace("  return !!local && Object.hasOwn(RECREATE_ASSETS, local[1])", '  return true || !!local && Object.hasOwn(RECREATE_ASSETS, local[1])') }],
+  // KINEO-MOVIMENTO-REVISOR-2-1411
+  ['demo de qualquer dono', { [MOV]: src[MOV].replace('  return !!m && donos.includes(m[1])', '  return !!m') }],
+  ['demo de qualquer ambiente', { [MOV]: src[MOV].replace('  const prefixo = `${supabaseUrl}/storage/v1/object/public/renders/clips/`\n  if (typeof url !== \'string\' || !url.startsWith(prefixo)) return false', '  const prefixo = url.slice(0, url.indexOf(\'/storage/v1/object/public/renders/clips/\') + 40)') }],
+  ['rota redireciona sem conferir a régua', { ['app/api/recreate/assets/[name]/route.ts']: lf('app/api/recreate/assets/[name]/route.ts').replace("  if (demo && movimentoDemoDoBucketValido(demo, process.env.NEXT_PUBLIC_SUPABASE_URL ?? '', MOVIMENTO_DEMO_DONOS)) return", '  if (demo) return') }],
+  ['régua sem marca', { [MOV]: src[MOV].replace("  for (const [nome, texto] of [['cena', f.cena ?? ''], ['acao', f.acao ?? '']] as const) if (temMarca(texto)) p.push(`${nome} com marca ou nome próprio`)", '') }],
+  ['marca só pela lista (nome próprio passa)', { [MOV]: src[MOV].replace('    if (palavras.some((p) => /^[A-Z]/.test(p) && !SIGLAS_PERMITIDAS.has(p))) return true\n', '') }],
+  ['"hair with thick" de volta', { [DESC]: src[DESC].replace("  const cabelo = [volume === 'thick' || volume === 'full' ? volume : '', comprimento, forma, cor].filter(Boolean).join(' ')", "  const cabelo = [comprimento, forma, cor].filter(Boolean).join(' ')") }],
+  ['identidade fala de barba no sem barba', { [MOV]: src[MOV].replace("...(descricao && /\\bclean-shaven\\b/.test(descricao) ? [] : ['beard'])", "'beard'") }],
   ['evento sem a descrição usada', { [ROTA]: src[ROTA].replace('{ usd: lida.usd, descricao: lida.texto }', '{ usd: lida.usd }') }],
   ['juiz com campo inventado na fal', { [MOV]: src[MOV].replace("character_orientation: 'video', keep_original_sound: false,", "character_orientation: 'video', keep_original_sound: false, negative_prompt: 'logos',") }],
 ]
