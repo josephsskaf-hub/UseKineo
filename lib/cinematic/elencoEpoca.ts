@@ -825,7 +825,8 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
       const inseridas: number[] = [] // KINEO-ELENCO-EPOCA-2710
       // protagonista ausente de TODO prompt: entra em todas as cenas-alvo; coadjuvante: nas cenas-alvo em que não está // KINEO-ELENCO-EPOCA-2710
       if (!p.nomeado) for (const i of fichaNasCenasComGente) presente[i] = false // KINEO-PROTAGONISTA-DOC-0311 — já desenhado como "a man": a ficha entra assim mesmo (jaPresente já foi lido acima)
-      for (const i of alvo) if (!presente[i] && porCena[i].length < ELENCO_EPOCA_MAX_POR_CENA && !marcadaSemGente1411(prompts[i])) { // KINEO-ELENCO-MARCADOR-2910 // KINEO-QUEM-ESTA-NA-CENA-1411 v2 — cena marcada sem gente não recebe ninguém
+      for (const i of alvo) if (!presente[i] && porCena[i].length < ELENCO_EPOCA_MAX_POR_CENA) { // KINEO-ELENCO-MARCADOR-2910
+        if (marcadaSemGente1411(prompts[i])) continue // KINEO-QUEM-ESTA-NA-CENA-1411 v2 — cena marcada sem gente não recebe ninguém
         const objeto = p.possessivo ? pessoasPossessivas(args.falas[i]).find((dono) => dono.nucleo === p.possessivo!.nucleo)?.objeto : null // KINEO-ELENCO-MARCADOR-2910
         porCena[i].push(`${p.descricao}${objeto ? ` ${objeto}` : ''}`); inseridas.push(i) // KINEO-ELENCO-MARCADOR-2910
       } // KINEO-ELENCO-MARCADOR-2910
