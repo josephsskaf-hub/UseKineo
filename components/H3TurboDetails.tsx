@@ -68,7 +68,7 @@ export default function H3TurboDetails({ language = 'en', reviewedOn, heading, d
   const date = new Intl.DateTimeFormat(language === 'en' ? 'en-US' : language, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${updated}T12:00:00Z`))
   const paginaDoMotor = language === 'en' && !reviewedOn && !heading && !dark // KINEO-CITACOES-FLUXO-D02
   return (<>
-    <section aria-labelledby="h3-turbo-cost"style={{ marginTop: 36 }} data-kineo="h3-turbo-cost">
+    <section aria-labelledby="h3-turbo-cost" style={{ marginTop: 36 }} data-kineo="h3-turbo-cost">
       <h2 id="h3-turbo-cost" style={{ fontSize: '1.3rem', fontWeight: 650 }}>{heading ?? text.heading}</h2>
       <div style={{ overflowX: 'auto', border: '1px solid #E4E4E0', borderRadius: 14, background: '#fff', color: '#0E1116' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, lineHeight: 1.55 }}>
