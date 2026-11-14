@@ -4,6 +4,9 @@
 //   · id em kebab-case, novo (nem no catálogo nem nos assets); título curto em inglês;
 //   · o MP4 (ffprobe): 1 trilha de vídeo h264, 9:16 (largura 700 a 736, altura 1280), 9,5 a 10,6 s, até 12 MB;
 //   · o pôster: o quadro de 1 s, 720 px de largura, JPEG ≤ 200 KB (a régua de scripts/test-recreate-poster-1011.mjs);
+//   · o orçamento dos assets: lib/recreate/assets inteiro < 45 MB (a régua de scripts/test-recreate-trava-1011.mjs: os arquivos vão dentro das
+//     funções /api/recreate e /api/recreate/assets). Não coube: para e explica; com --comprimir, recodifica o demo (h264, mesmo 720x1280, sem som,
+//     CRF 24 a 34) até caber, e mostra o tamanho e o CRF usados (o olho da CEO confere o movimento antes do commit);
 //   · os textos pelo código REAL (lib/recreate/movimento.ts, movimentoProblemasDoMolde): enquadramento "knees up"/"waist up" + "face clearly
 //     visible" na cena, nenhuma frase negativa, uma pessoa no guia, tarifa de 10 s, guia MP4 nos assets.
 // Escreve: lib/recreate/assets/recreate-mov-<id>-v1.mp4 e recreate-mov-<id>.jpg, as 2 chaves em RECREATE_ASSETS e a linha em
@@ -12,7 +15,7 @@
 //
 // Uso (da raiz da worktree):
 //   node scripts/recreate-movimento-novo-molde.mjs --id lance-de-futebol --titulo "Football run" --mp4 C:\caminho\demo.mp4 \
-//     --cena "standing on …, framed from the knees up, their face clearly visible …" --acao "The person runs forward …" [--desde 2026-11-14] [--ensaio]
+//     --cena "standing on …, framed from the knees up, their face clearly visible …" --acao "The person runs forward …" [--desde 2026-11-14] [--ensaio] [--comprimir]
 // --ensaio: confere tudo e mostra o que escreveria, sem escrever nada.
 import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
@@ -26,7 +29,7 @@ const FORMATS = 'lib/recreate/formats.ts', ASSETS = 'lib/recreate/assets'
 const args = Object.fromEntries(process.argv.slice(2).reduce((acc, a, i, all) => (a.startsWith('--') ? [...acc, [a.slice(2), all[i + 1] && !all[i + 1].startsWith('--') ? all[i + 1] : true]] : acc), []))
 const falha = (m) => { console.error('PARADO: ' + m); process.exit(1) }
 const id = String(args.id ?? ''), titulo = String(args.titulo ?? ''), mp4 = String(args.mp4 ?? ''), cena = String(args.cena ?? '').trim(), acao = String(args.acao ?? '').trim()
-const desde = String(args.desde ?? new Date().toISOString().slice(0, 10)), ensaio = args.ensaio === true
+const desde = String(args.desde ?? new Date().toISOString().slice(0, 10)), ensaio = args.ensaio === true, comprimir = args.comprimir === true
 if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(id) || id.length > 40) falha('--id em kebab-case (a-z, 0-9, hífen), até 40')
 if (!titulo || titulo.length > 40 || /['"`\\]/.test(titulo)) falha('--titulo curto (até 40), sem aspas nem barra')
 if (!/^\d{4}-\d{2}-\d{2}$/.test(desde)) falha('--desde AAAA-MM-DD')
@@ -52,6 +55,21 @@ if (!(bytes <= 12 * 1024 * 1024)) falha(`${(bytes / 1048576).toFixed(1)} MB: at�
 
 // 2. o pôster (quadro de 1 s, 720 px, JPEG leve)
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'mov-molde-'))
+// 2a. o orçamento dos assets (< 45 MB no total, contando o pôster: ~200 KB de folga)
+const TETO = 45 * 1024 * 1024
+const usado = fs.readdirSync(ASSETS).reduce((s, n) => { const st = fs.statSync(path.join(ASSETS, n)); return st.isFile() ? s + st.size : s }, 0)
+const cabe = TETO - usado - 220_000
+let fonte = mp4, crfUsado = null
+if (bytes > cabe) {
+  if (!comprimir) falha(`o demo tem ${(bytes / 1048576).toFixed(1)} MB e só cabem ${(Math.max(0, cabe) / 1048576).toFixed(1)} MB em lib/recreate/assets (teto de 45 MB, usado ${(usado / 1048576).toFixed(1)} MB). Rode de novo com --comprimir (recodifica até caber) ou decida subir o teto.`)
+  for (const crf of [24, 26, 28, 30, 32, 34]) {
+    const saida = path.join(tmp, `c${crf}.mp4`)
+    execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', mp4, '-an', '-c:v', 'libx264', '-preset', 'slow', '-crf', String(crf), '-pix_fmt', 'yuv420p', '-movflags', '+faststart', saida])
+    if (fs.statSync(saida).size <= cabe) { fonte = saida; crfUsado = crf; break }
+  }
+  if (!crfUsado) falha('nem com CRF 34 o demo coube no orçamento: decida subir o teto de 45 MB (régua do test-recreate-trava-1011)')
+}
+const bytesFinal = fs.statSync(fonte).size
 const poster = path.join(tmp, arqJpg)
 let q = 4
 for (; q <= 12; q += 2) {
@@ -79,9 +97,9 @@ const creditos = mod('lib/recreate/formats').recreateCreditsFor(f)
 const casa = mod('lib/internalAccounts').INTERNAL_EXACT_EMAILS[0], acc = mod('lib/recreate/access')
 if (!acc.recreateFormatVisible(f, casa) || acc.recreateFormatVisible(f, 'cliente@exemplo.com')) falha('visibilidade: a casa tem de ver e o cliente não')
 
-console.log(`OK: ${id} "${titulo}" · ${v.width}x${v.height} · ${dur.toFixed(2)} s · ${(bytes / 1048576).toFixed(1)} MB · pôster ${fs.statSync(poster).size} B (q ${q}) · ${creditos} créditos · só a casa vê`)
+console.log(`OK: ${id} "${titulo}" · ${v.width}x${v.height} · ${dur.toFixed(2)} s · ${(bytesFinal / 1048576).toFixed(1)} MB${crfUsado ? ` (recodificado, CRF ${crfUsado}, era ${(bytes / 1048576).toFixed(1)} MB: confira o movimento no olho)` : ''} · assets depois: ${((usado + bytesFinal + fs.statSync(poster).size) / 1048576).toFixed(1)} de 45 MB · pôster ${fs.statSync(poster).size} B (q ${q}) · ${creditos} créditos · só a casa vê`)
 if (ensaio) { console.log('ENSAIO: nada foi escrito. A linha seria:\n' + linha + 'e as chaves:\n' + chaves); process.exit(0) }
-fs.copyFileSync(mp4, path.join(ASSETS, arqMp4))
+fs.copyFileSync(fonte, path.join(ASSETS, arqMp4))
 fs.copyFileSync(poster, path.join(ASSETS, arqJpg))
 fs.writeFileSync(FORMATS, crlf ? novo.replace(/\n/g, '\r\n') : novo)
 console.log(`Escrito: ${ASSETS}/${arqMp4}, ${ASSETS}/${arqJpg} e ${FORMATS}. Próximo: node scripts/test-recreate-movimento-1411.mjs, a bateria pelos arquivos tocados, commit.`)
