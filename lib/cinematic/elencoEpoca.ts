@@ -216,6 +216,8 @@ const CRIATURAS = 'dinosaur|dino|dragon|robot|unicorn|monster|ghost|demon|alien|
 export type ModoBichoComNome = 'off' | 'all'
 export const BICHO_COM_NOME_1411: ModoBichoComNome = 'all'
 export const bichoComNomeLigado = (modo: ModoBichoComNome = BICHO_COM_NOME_1411) => modo === 'all'
+/** KINEO-BICHO-COM-NOME-1411 v2 — "<Nome> is a lone wolf": expressão de GENTE com nome de bicho. */
+const IDIOMAS_DE_BICHO_1411 = new Set(['lone wolf', 'night owl', 'busy bee', 'social butterfly', 'early bird', 'dark horse', 'black sheep', 'party animal', 'lame duck', 'sitting duck', 'odd duck', 'guinea pig', 'cash cow', 'sacred cow', 'paper tiger', 'fat cat', 'cool cat', 'scaredy cat', 'top dog', 'lucky dog', 'big fish', 'cold fish', 'rare bird', 'eager beaver', 'queen bee', 'worker bee', 'night hawk', 'war horse', 'social animal', 'political animal', 'copy cat', 'fraidy cat', 'one-trick pony', 'trick pony', 'busy beaver', 'early riser'])
 const RACAS_1411 = 'collie|terrier|retriever|beagle|husky|spaniel|dachshund|chihuahua|pug|corgi|rottweiler|greyhound|mutt|pup|kitty|tabby|foal|cub|stallion|mare|parakeet|cockatoo|ferret|ox' // KINEO-BICHO-COM-NOME-1411
 /** Coisas que viram personagem em conto infantil: "Geli, a geleia roxa", "a little cloud named Nuvo". */ // KINEO-ELENCO-EPOCA-2710
 const SERES_OBJETO = 'jelly|gelatin|gelatine|jello|blob|slime|cloud|star|snowman|snowflake|doll|puppet|teapot|cookie|cupcake|pumpkin|balloon|pencil|crayon|sock|leaf|raindrop|candle|lantern|kite|seed|acorn|pebble|rock|stone|teddy|toy|car|train|truck|boat|plane|rocket|robot|lamp|book|clock|umbrella|flower|tree|mushroom|carrot|potato|apple|banana|egg|moon|sun|wave|bubble' // KINEO-ELENCO-EPOCA-2710
@@ -477,9 +479,15 @@ function tipoDe(nome: string, aposto: string | null, frases: string, titulos: st
   // KINEO-BICHO-COM-NOME-1411 [CEO 14/11, lote 2, caso F: "Bobbie is a shaggy two-year-old collie mix" virou "Bobbie, a man in his thirties with long
   // dark braided hair"] — a frase com cópula diz a espécie: "<Nome> is/was a(n) <até 4 palavras> <bicho>", com o bicho no FIM do sintagma (depois
   // dele só pontuação, fim, mix/cross/breed ou with/who/that/from/named/and/in/on/at/of). "Max is a dog lover" não vira cão. Interruptor abaixo.
+  // v2 (revisão independente 14/11, bloqueio 1): entre o artigo e o bicho só vale adjetivo do PRÓPRIO bicho — palavra de ligação (with, who, that,
+  // and, of, in, on, from, her, his…) ou de gente (a lista PESSOAS) corta: "Lucy is a little girl with a cat", "Tom is a farmer with a horse",
+  // "Jack is a pirate with a parrot", "Mia is a vet who loves her cat" seguem gente.
   if (bichoComNomeLigado()) { // KINEO-BICHO-COM-NOME-1411
-    const copula = new RegExp(String.raw`(?<![\p{L}\p{N}])${escapaRe(nome)}\s+(?:is|was)\s+(?:a|an)\s+(?:[\p{L}\p{N}'’-]+\s+){0,4}?(${CRIATURAS}|${ANIMAIS}|${RACAS_1411})s?(?=\s*(?:[.,;:!?)]|$)|\s+(?:mix|cross|mutt|breed|with|who|that|from|named|called|and|in|on|at|of)(?![\p{L}]))`, 'iu').exec(frases) // KINEO-BICHO-COM-NOME-1411
-    if (copula) { const e = copula[1].toLowerCase(); return { tipo: CRIATURA_RE.test(e) ? 'criatura' : 'animal', especie: e === 'dino' ? 'dinosaur' : e } } // KINEO-BICHO-COM-NOME-1411
+    const corta = String.raw`(?!(?:with|who|whose|that|which|and|or|but|of|in|on|at|from|for|to|by|as|than|like|her|his|their|its|my|our|your|loves?|owns?|has|had|keeps?|vet|veterinarian|owner|${PESSOAS.split('|').filter((w) => !/^(?:baby|kid|toddler)$/.test(w)).join('|')})s?(?![\p{L}\p{N}'’-]))` // KINEO-BICHO-COM-NOME-1411 v2 — "baby", "kid" e "toddler" ficam de fora do corte: "Misho is a tiny turquoise baby dragon" é dragão
+    const copula = new RegExp(String.raw`(?<![\p{L}\p{N}])${escapaRe(nome)}\s+(?:is|was)\s+(?:a|an)\s+(?:${corta}[\p{L}\p{N}'’-]+\s+){0,4}?${corta}(${CRIATURAS}|${ANIMAIS}|${RACAS_1411})s?(?=\s*(?:[.,;:!?)]|$)|\s+(?:mix|cross|mutt|breed|with|who|that|from|named|called|and|in|on|at|of)(?![\p{L}]))`, 'iu').exec(frases) // KINEO-BICHO-COM-NOME-1411
+    // v2: a expressão de gente com nome de bicho ("a lone wolf", "a night owl", "a busy bee", "a dark horse") é gente, não bicho
+    const idioma = copula ? new RegExp(String.raw`(?:^|[^\p{L}])(\p{L}+)\s+${escapaRe(copula[1])}s?$`, 'iu').exec(copula[0])?.[1]?.toLowerCase() : null // KINEO-BICHO-COM-NOME-1411 v2
+    if (copula && !(idioma && IDIOMAS_DE_BICHO_1411.has(`${idioma} ${copula[1].toLowerCase()}`))) { const e = copula[1].toLowerCase(); return { tipo: CRIATURA_RE.test(e) ? 'criatura' : 'animal', especie: e === 'dino' ? 'dinosaur' : e } } // KINEO-BICHO-COM-NOME-1411
   } // KINEO-BICHO-COM-NOME-1411
   // o próprio nome diz a espécie ("Dino", "Leo the Lion" já caiu acima): como em lib/cinematic/folhaDePersonagem tipoDoNome // KINEO-ELENCO-EPOCA-2710
   const pelaForma = CRIATURA_RE.exec(nome.toLowerCase()) ?? ANIMAL_RE.exec(nome.toLowerCase()) // KINEO-ELENCO-EPOCA-2710

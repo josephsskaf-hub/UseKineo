@@ -99,7 +99,13 @@ function especieDaFicha(f: Pick<FichaDePersonagem, 'nucleo' | 'canonica'>): stri
   const e = (m?.[1] ?? f.nucleo ?? 'animal').toLowerCase()
   // KINEO-BICHO-COM-NOME-1411 [CEO 14/11, lote 2, caso F] — "collie mix" deixava o núcleo "mix" e a ficha dizia "a real living mix": a palavra de
   // mistura não é espécie; vale a palavra antes dela na ficha ("collie"), ou "dog" se a ficha não a disser.
-  if (/^(?:mix|mixed|cross|crossbreed|mutt|breed)$/.test(e)) return /\b([a-z-]+)[\s-]+(?:mix|mixed|cross|crossbreed)\b/i.exec(f.canonica)?.[1]?.toLowerCase() ?? 'dog'
+  // v2 (revisão independente 14/11, bloqueio 2): nunca o artigo ("a mix with a brown coat" saía "a real living a"); "a mixed-breed dog" = "dog".
+  if (/^(?:mix|mixed|cross|crossbreed|mutt|breed)$/.test(e)) {
+    const depois = /\bmixed[\s-]+breed\s+([a-z-]+)/i.exec(f.canonica)?.[1]?.toLowerCase() // "a mixed-breed dog" → dog
+    if (depois && !/^(?:with|and|of|in|from|named|called)$/.test(depois)) return depois
+    const antes = /\b([a-z-]+)[\s-]+(?:mix|cross|crossbreed)\b/i.exec(f.canonica)?.[1]?.toLowerCase() // "collie mix" → collie
+    return antes && !/^(?:a|an|the|one|this|that|his|her|their|its|my|our|your|old|young|little|small|big|large|shaggy|scruffy|fluffy|cute|tiny|lovely|sweet|brown|black|white|grey|gray|golden|tan|mixed|\d[\w-]*|[a-z]+-year-old)$/.test(antes) ? antes : 'dog'
+  }
   return e
 }
 
