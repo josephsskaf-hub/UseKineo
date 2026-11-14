@@ -46,7 +46,7 @@ function catalogChecks(o = {}) {
     const f = formats.recreateFormat(id)
     if (APPROVED.includes(id)) ok(f && f.type === 'swap' && f.swapApproved === true && f.swapInTest === false && f.approvedOn === APPROVED_ON[id], `${id}: aprovado em ${APPROVED_ON[id]} (teste pago)`)
     else ok(f && f.type === 'swap' && f.swapApproved === false && f.swapInTest === true, `${id}: troca registrada, NÃO aprovada, em teste`)
-    ok(Array.isArray(f.checkFrames) && f.checkFrames.length === 2, `${id}: quadros da trava declarados`)
+    ok(f.type === 'swap' && Array.isArray(formats.RECREATE_CHECK_FRAMES) && formats.RECREATE_CHECK_FRAMES.length === 2 && !('checkFrames' in f), `${id}: quadros da trava (os mesmos de toda troca, só no servidor)`) // reancorado KINEO-RECEITA-FORA-DO-JS-2-1411
   }
   // KINEO-RECREATE-HOME-1311 — clipes da home: base de 8 s (tarifa 45), 1 foto; na selfie troca SÓ o homem (a moça fica); ativos e quadros da trava em disco.
   { const su = formats.recreateFormat('sueter-aconchegante'), se = formats.recreateFormat('selfie-confete')

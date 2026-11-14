@@ -31,12 +31,21 @@ export async function assinarGuia(admin: SupabaseClient, chave: string | undefin
   }
 }
 
-/** O guia está no privado com o tamanho do manifesto? (antes do débito). Nunca lança. */
-export async function guiaPresente(admin: SupabaseClient, chave: string | undefined | null): Promise<boolean> {
+// KINEO-GUIA-PRIVADO-2-1411 [revisor da CEO 14/11, itens 1, 3 e 5] — prazo em tudo que fala com o storage: um storage pendurado não segura o POST (estouro = ausente = 503
+// sem cobrar) nem a rota do cron (a conferência tem prazo próprio e roda DEPOIS de mídia e enhance).
+export const GUIA_PRAZO_POST_MS = 5_000
+export const GUIA_PRAZO_CONFERENCIA_MS = 20_000
+function comPrazo<T>(p: Promise<T>, ms: number, estouro: T): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  return Promise.race([p, new Promise<T>((ok) => { timer = setTimeout(() => ok(estouro), ms) })]).finally(() => clearTimeout(timer))
+}
+
+/** O guia está no privado com o tamanho do manifesto? (antes do débito). Nunca lança; estouro do prazo = ausente. */
+export async function guiaPresente(admin: SupabaseClient, chave: string | undefined | null, prazoMs: number = GUIA_PRAZO_POST_MS): Promise<boolean> {
   const g = guiaDoManifesto(chave)
   if (!g) return false
   try {
-    const { data, error } = await admin.storage.from(GUIAS_BUCKET).list(GUIAS_PASTA, { search: g.arquivo, limit: 10 })
+    const { data, error } = await comPrazo(admin.storage.from(GUIAS_BUCKET).list(GUIAS_PASTA, { search: g.arquivo, limit: 10 }), prazoMs, { data: null, error: { message: 'prazo' } } as unknown as Awaited<ReturnType<ReturnType<SupabaseClient['storage']['from']>['list']>>)
     if (error) return false
     const item = (data ?? []).find((x) => x.name === g.arquivo) as { name: string; metadata?: { size?: unknown } | null } | undefined
     return !!item && Number(item.metadata?.size) === g.bytes
@@ -61,7 +70,8 @@ export async function conferirGuias(admin: SupabaseClient, evento: (nome: string
         if (bytes.length !== g.bytes || hash !== g.sha256) motivo = 'copia_divergente'
         else {
           const up = await admin.storage.from(GUIAS_BUCKET).upload(`${GUIAS_PASTA}/${g.arquivo}`, bytes, { contentType: 'video/mp4', upsert: false })
-          if (!up.error && (await guiaPresente(admin, chave))) { out.copiados += 1; continue }
+          // KINEO-GUIA-PRIVADO-2-1411 [item 5] — duas conferências juntas: a outra já copiou (o upload desta falha por "já existe"): reconfere antes de gritar falta
+          if (await guiaPresente(admin, chave)) { if (up.error) out.presentes += 1; else out.copiados += 1; continue }
           motivo = 'copia_falhou'
         }
       }
@@ -72,4 +82,10 @@ export async function conferirGuias(admin: SupabaseClient, evento: (nome: string
     await evento(GUIA_EVENTO_FALTANDO, { guia: chave, arquivo: g.arquivo, motivo }).catch(() => {})
   }
   return out
+}
+/** KINEO-GUIA-PRIVADO-2-1411 — a conferência com PRAZO (a rota do cron chama esta, depois de mídia e enhance): estourou = devolve o que tem e segue. */
+export async function conferirGuiasComPrazo(admin: SupabaseClient, evento: (nome: string, metadata: Record<string, unknown>) => Promise<void>, prazoMs: number = GUIA_PRAZO_CONFERENCIA_MS): Promise<{ presentes: number; copiados: number; faltando: string[]; estourou: boolean }> {
+  const r = await comPrazo(conferirGuias(admin, evento).then((x) => ({ ...x, estourou: false })), prazoMs, { presentes: 0, copiados: 0, faltando: [] as string[], estourou: true })
+  if (r.estourou) console.error('[recreate/guias] conferência estourou o prazo de ' + prazoMs + ' ms')
+  return r
 }

@@ -63,6 +63,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { sweepAbandonedAdsV2Debits, sweepAbandonedAvatarDebits, sweepAbandonedCinematicDebits, sweepAbandonedEnhanceDebits, sweepAbandonedMediaDebits, sweepStuckRenderDebits } from '@/lib/credits/refund'
 import { sweepPublishedAnimateJobs, sweepStaleAnimateClaims } from '@/lib/animate/service'
 import { sweepClipJobs } from '@/lib/clips/clipServer'
+import { conferirGuiasComPrazo, guiasAdmin } from '@/lib/recreate/guias' // KINEO-GUIA-PRIVADO-2-1411
+import { writeServerEvent } from '@/lib/serverEvents' // KINEO-GUIA-PRIVADO-2-1411
 
 export const dynamic = 'force-dynamic'
 // ═══ KINEO-DATA-CACHE-2026-09-02 (sprint-assinaturas #17) ═══════════════════
@@ -206,9 +208,20 @@ export async function GET(req: NextRequest) {
     console.error('[cron/refund-sweep] abandoned-enhance sweep failed:', msg)
   }
   console.log('[cron/refund-sweep] media', JSON.stringify(media), 'enhance', JSON.stringify(enhance))
+  // KINEO-GUIA-PRIVADO-2-1411 [revisor da CEO 14/11, item 1] — a conferência dos guias do Recreate (bucket privado) por ÚLTIMO, com prazo: um storage pendurado nunca empurra
+  // as varreduras de estorno (clipes, mídia, enhance) para o teto da função. Antes ela morava dentro de sweepClipJobs, antes de mídia e enhance.
+  const guias = { presentes: 0, copiados: 0, faltando: [] as string[], estourou: false }
+  try {
+    const admin = guiasAdmin()
+    if (admin) Object.assign(guias, await conferirGuiasComPrazo(admin, async (nome, metadata) => { await writeServerEvent({ name: nome, path: '/api/cron/refund-sweep', metadata }) }))
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    errors.push(`recreate_guias: ${msg}`)
+    console.error('[cron/refund-sweep] recreate guides check failed:', msg)
+  }
   console.log('[cron/refund-sweep]', JSON.stringify({ renders, animate, cinematic, animatePublished, avatar, errors }))
 
   // 200 mesmo com erro parcial: as três varreduras são idempotentes e rodam de
   // novo na hora seguinte. Um 5xx aqui só produziria ruído sem ação possível.
-  return NextResponse.json({ ok: errors.length === 0, renders, animate, cinematic, animatePublished, adsV2, clips, media, enhance, errors })
+  return NextResponse.json({ ok: errors.length === 0, renders, animate, cinematic, animatePublished, adsV2, clips, media, enhance, guias, errors })
 }

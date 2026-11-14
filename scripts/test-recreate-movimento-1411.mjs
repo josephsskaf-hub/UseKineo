@@ -406,9 +406,7 @@ async function bateria(over = {}) {
     r = await gm.conferirGuias(sem.admin, evento)
     if (r.faltando.length !== 1 || sem.st.uploads.length || ev.at(-1)[1].motivo !== 'ausente_sem_copia') throw new Error('sem cópia: ' + JSON.stringify(ev.at(-1)))
     if (JSON.stringify(ev).includes('token=')) throw new Error('URL no evento')
-    const varre = (over[SRV] ?? lf(SRV)).replace(/\/\/[^\n]*/g, '')
-    const corpo = varre.slice(varre.indexOf('export async function sweepClipJobs'), varre.indexOf('export async function advanceActiveClipJobs'))
-    if (!corpo.includes('await conferirGuias(admin, ')) throw new Error('a varredura horária não confere os guias')
+    // reancorado KINEO-GUIA-PRIVADO-2-1411 — a conferência foi para a rota do cron (checagem 15)
   })
   await check('13 o guia que falta = o POST recusa ANTES do débito ("Nothing was charged"); o envio do passo 1 não sobe nem lê arquivo', async () => {
     const rota = (over[ROTA] ?? lf(ROTA))
@@ -417,6 +415,65 @@ async function bateria(over = {}) {
     const rs = over[RSERVER] ?? lf(RSERVER)
     const ramo = rs.slice(rs.indexOf("if (format.type === 'motion') {"), rs.indexOf('const seedance ='))
     if (/publicarFonteDaCasa|readFile|upload\(/.test(ramo)) throw new Error('o passo 1 do movimento ainda sobe ou lê o guia')
+  })
+  // ── KINEO-GUIA-PRIVADO-2-1411 [revisor da CEO 14/11, itens 1 a 5] ──
+  const CRON = 'app/api/cron/refund-sweep/route.ts'
+  const comLimite = (p, ms) => Promise.race([p, new Promise((_, ko) => setTimeout(() => ko(new Error('travou: o prazo não segurou')), ms))])
+  const storagePendurado = () => ({ storage: { from: () => ({ list: () => new Promise(() => {}), download: () => new Promise(() => {}), upload: () => new Promise(() => {}), createSignedUrl: () => new Promise(() => {}) }) } })
+  await check('15 storage PENDURADO: guiaPresente (o POST) devolve "ausente" no prazo; a conferência devolve "estourou" no prazo; nada trava', async () => {
+    const t0 = Date.now()
+    if (await comLimite(guiasMod.guiaPresente(storagePendurado(), 'lance-teste.mp4', 40), 2000) !== false) throw new Error('guiaPresente com storage pendurado')
+    const r = await comLimite(guiasMod.conferirGuiasComPrazo(storagePendurado(), async () => {}, 40), 2000)
+    if (!r.estourou) throw new Error('a conferência não estourou')
+    if (Date.now() - t0 > 1500) throw new Error('demorou ' + (Date.now() - t0) + ' ms')
+    if (guiasMod.GUIA_PRAZO_POST_MS > 10_000 || guiasMod.GUIA_PRAZO_CONFERENCIA_MS > 60_000) throw new Error('prazos longos demais para a rota de 60 s e o cron de 300 s')
+  })
+  await check('15 duas conferências ao MESMO tempo: uma copia; a outra vê o upload falhar por "já existe", reconfere e NÃO grava o evento falso de falta', async () => {
+    const crypto = await import('node:crypto')
+    const bytes = Buffer.from('guia-de-teste')
+    const g = { arquivo: 'recreate-passarela.mp4', bytes: bytes.length, sha256: crypto.createHash('sha256').update(bytes).digest('hex') }
+    const gm = loader({ '@supabase/supabase-js': { createClient: () => ({}) } }, { ...over, 'lib/recreate/guiasManifesto.ts': lf('lib/recreate/guiasManifesto.ts').replace(/export const GUIAS_MANIFESTO: Readonly<Record<string, GuiaDoMolde>> = \{\n[\s\S]*?\n\}\n/, `export const GUIAS_MANIFESTO: Readonly<Record<string, GuiaDoMolde>> = {\n  'lance-teste.mp4': ${JSON.stringify(g)},\n}\n`) })('lib/recreate/guias')
+    const s = storageFalso({ legado: { ['renders/recreate-sources/v1/' + g.arquivo]: bytes } })
+    // a "outra" conferência copia no meio desta: o upload desta volta "já existe", e o objeto já está lá
+    const fromReal = s.admin.storage.from
+    s.admin.storage.from = (bucket) => { const b = fromReal(bucket); return { ...b, upload: async (p, by) => { await b.upload(p, by); return { error: { message: 'The resource already exists' } } } } }
+    const ev = []
+    const r = await gm.conferirGuias(s.admin, async (n, md) => { ev.push([n, md]) })
+    if (ev.length || r.faltando.length || r.presentes !== 1) throw new Error('evento falso: ' + JSON.stringify([ev, r]))
+  })
+  await check('15 a conferência mora na ROTA DO CRON, DEPOIS de mídia e enhance, com prazo; não mora mais na varredura dos clipes', async () => {
+    const cron = (over[CRON] ?? lf(CRON)).replace(/\/\/[^\n]*/g, '')
+    const iE = cron.indexOf('await sweepAbandonedEnhanceDebits()'), iM = cron.indexOf('await sweepAbandonedMediaDebits()'), iG = cron.indexOf('if (admin) Object.assign(guias, await conferirGuiasComPrazo(admin, ')
+    if (iG < 0 || iG < iE || iG < iM) throw new Error('a conferência não está depois de mídia e enhance')
+    const varre = (over[SRV] ?? lf(SRV)).replace(/\/\/[^\n]*/g, '')
+    if (/conferirGuias/.test(varre)) throw new Error('a conferência ainda mora na varredura dos clipes')
+  })
+  await check('15 o POST confere o guia ANTES de ler a foto (um 503 não gasta a chamada à OpenAI)', async () => {
+    const rota = (over[ROTA] ?? lf(ROTA))
+    const iG = rota.indexOf("if (!(await guiaPresente(admin, format.guia))) return json({ error: 'Could not start your clip. Nothing was charged.' }, 503)"), iL = rota.indexOf('const lida = await lerDescricaoDaPessoa(')
+    if (iG < 0 || iL < 0 || iG > iL) throw new Error('o guia é conferido depois da leitura da foto')
+  })
+  await check('15 CAMINHO NORMAL (o passo 2 envia e a fal aceita): a URL assinada não aparece em NENHUM evento, log nem na linha', async () => {
+    const eventos = [], logs = []
+    const srvE = loader({
+      '@supabase/supabase-js': { createClient: () => ({}) }, '@fal-ai/client': { fal: { config: () => {}, queue: {} } }, '@/lib/supabase/server': { createClient: () => null }, 'server-only': {},
+      '@/lib/serverEvents': { writeServerEvent: async (e) => { eventos.push(e); return true } },
+    }, overs)('lib/clips/clipServer')
+    const s = storageFalso()
+    const fetchAntes = globalThis.fetch, keyAntes = process.env.FAL_KEY, cons = { log: console.log, warn: console.warn, error: console.error, info: console.info }
+    process.env.FAL_KEY = 'fal-de-teste-0123456789'
+    globalThis.fetch = async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ request_id: 'req-video-ok' }) })
+    for (const k of Object.keys(cons)) console[k] = (...a) => { logs.push(a.map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(' ')) }
+    try {
+      const h = harness()
+      const realDeps = srvE.movimentoDepsFor(s.admin)
+      h.deps.movimento.submitVideo = realDeps.submitVideo
+      h.deps.event = async (n, md) => { eventos.push({ name: n, metadata: md }) }
+      await flow.settleClip(h.deps, linha())
+      if (h.row().fal_request_id !== 'req-video-ok') throw new Error('o passo 2 não saiu: ' + JSON.stringify(h.row()))
+      const tudo = JSON.stringify([eventos, logs, h.row()])
+      if (/SEGREDO|token=|\/object\/sign\//.test(tudo)) throw new Error('a URL assinada vazou no caminho normal: ' + tudo.slice(0, 300))
+    } finally { globalThis.fetch = fetchAntes; process.env.FAL_KEY = keyAntes; Object.assign(console, cons) }
   })
 
   // ── KINEO-RECEITA-FORA-DO-JS-1411 [CEO 14/11: "a receita está no JavaScript público"] ──
@@ -797,6 +854,7 @@ async function bateria(over = {}) {
   // ── 8. as bifurcações ──
   await check('8 cada bifurcação "troca ? … : efeito" trata o movimento ou está na lista revisada (e a lista não sobra)', async () => {
     const revisadas = [
+      ['lib/recreate/swapCheck.ts', "if (format.type !== 'swap') return null", 'KINEO-RECEITA-FORA-DO-JS-2-1411: os quadros da trava \"não trocou\" são só da troca; o movimento tem o juiz da cena'],
       [ROTA, "} else if (format.type === 'swap') {", 'o movimento já saiu no ramo de cima'],
       ['lib/home/watchEntry.ts', "?.type === 'effect' ? 'Use effect' : 'Recreate'", 'só o efeito diz Use effect; troca e movimento dizem Recreate'],
       [CLIENT, "const prepared = selected.type === 'swap' ? await cropFace(normalized) : normalized", 'recorte do rosto só na troca: o movimento quer o cabelo para o leitor'],
@@ -961,7 +1019,12 @@ const mutantes = [
   ['assinatura longa no cartão', { ['app/api/recreate/assets/[name]/route.ts']: lf('app/api/recreate/assets/[name]/route.ts').replace('await assinarGuia(admin, params.name, 60)', 'await assinarGuia(admin, params.name, 86400)') }],
   ['fal com assinatura curta (o vídeo some no meio)', { [SRV]: src[SRV].replace('await assinarGuia(admin, f.guia, 3600)', 'await assinarGuia(admin, f.guia, 60)') }],
   ['cópia do guia sem conferir o sha256', { ['lib/recreate/guias.ts']: lf('lib/recreate/guias.ts').replace('if (bytes.length !== g.bytes || hash !== g.sha256) motivo = ', 'if (false) motivo = ') }],
-  ['varredura sem conferir os guias', { [SRV]: src[SRV].replace(src[SRV].split('\n').find((l) => l.startsWith('  await conferirGuias(admin, ')) + '\n', '') }],
+  ['cron sem conferir os guias', { ['app/api/cron/refund-sweep/route.ts']: lf('app/api/cron/refund-sweep/route.ts').replace('    if (admin) Object.assign(guias, await conferirGuiasComPrazo(admin, ', '    if (false) Object.assign(guias, await conferirGuiasComPrazo(admin, ') }], // reancorado KINEO-GUIA-PRIVADO-2-1411
+  // KINEO-GUIA-PRIVADO-2-1411
+  ['sem prazo no storage', { ['lib/recreate/guias.ts']: lf('lib/recreate/guias.ts').replace('  return Promise.race([p, new Promise<T>((ok) => { timer = setTimeout(() => ok(estouro), ms) })]).finally(() => clearTimeout(timer))', '  void estouro; void ms; void timer; return p') }],
+  ['conferência simultânea grita falta', { ['lib/recreate/guias.ts']: lf('lib/recreate/guias.ts').replace('          if (await guiaPresente(admin, chave)) { if (up.error) out.presentes += 1; else out.copiados += 1; continue }', '          if (!up.error && (await guiaPresente(admin, chave))) { out.copiados += 1; continue }') }],
+  ['guia depois da leitura da foto', { [ROTA]: src[ROTA].replace("      if (!(await guiaPresente(admin, format.guia))) return json({ error: 'Could not start your clip. Nothing was charged.' }, 503)\n", '').replace('      const resolved = planMovimento(raw, ctx, descricao)\n', "      if (!(await guiaPresente(admin, format.guia))) return json({ error: 'Could not start your clip. Nothing was charged.' }, 503)\n      const resolved = planMovimento(raw, ctx, descricao)\n") }],
+  ['URL assinada num evento no caminho normal', { [SRV]: src[SRV].replace('      return submitToFalOnce(MOVIMENTO_VIDEO_MODEL, movimentoEntradaDoVideo(f, cenaUrl, guia))', "      await clipEvent(row.user_id)('recreate_guia_assinado', { clip_id: row.id, guia })\n      return submitToFalOnce(MOVIMENTO_VIDEO_MODEL, movimentoEntradaDoVideo(f, cenaUrl, guia))") }],
   // KINEO-RECEITA-FORA-DO-JS-1411
   ['pedido com a régua de texto', { [MOV]: src[MOV].replace('  if (movimentoProblemasNoPedido(f).length) return bad(', '  if (movimentoProblemasDoMolde(f).length) return bad(') }],
   ['cliente recebe o molde inteiro', { ['lib/recreate/catalogoServidor.ts']: lf('lib/recreate/catalogoServidor.ts').replace('export const formatosParaOCliente = (email: string | null | undefined): RecreateFormat[] => visibleRecreateFormatsServidor(email).map(paraOCliente)', 'export const formatosParaOCliente = (email: string | null | undefined): RecreateFormat[] => visibleRecreateFormatsServidor(email)') }],

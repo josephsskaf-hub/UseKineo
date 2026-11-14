@@ -215,7 +215,7 @@ export async function extractCheckFrames(videoUrl: string, opts: SwapCheckOpts =
 
 /** Base frames from the repo. node:fs is imported HERE (dynamic), so importing this module pulls nothing from Node. */
 export async function baseCheckFrames(format: RecreateFormat, opts: SwapCheckOpts = {}): Promise<[string, string] | null> {
-  if (!format.checkFrames) return null
+  if (format.type !== 'swap') return null // KINEO-RECEITA-FORA-DO-JS-2-1411 — era: !format.checkFrames (toda troca declarava os mesmos quadros)
   try {
     const read = opts.readFileImpl ?? (async (file: string) => (await import('node:fs/promises')).readFile(file))
     const files = [1, 2].map(n => `${process.cwd()}/lib/recreate/assets/check/${format.id}-${n}.jpg`)

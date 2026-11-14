@@ -75,6 +75,9 @@ export async function POST(req: NextRequest) {
       const ctx = { userId: user.id, supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? '', paying: isPayingPlan(account.plan) }
       const conferido = planMovimento(raw, ctx, null)
       if (!conferido.ok) return json({ error: conferido.error }, conferido.status)
+      // KINEO-GUIA-PRIVADO-1411 [CEO 14/11: "se a assinatura ou o objeto falhar, o pedido falha ANTES do débito, com a mensagem de sempre, sem cobrar"]
+      // KINEO-GUIA-PRIVADO-2-1411 [revisor, item 4] — ANTES da leitura da foto: um 503 não gasta a chamada à OpenAI. Estouro do prazo (5 s) = ausente.
+      if (!(await guiaPresente(admin, format.guia))) return json({ error: 'Could not start your clip. Nothing was charged.' }, 503)
       let descricao: string | null = null
       // KINEO-RECREATE-MOVIMENTO-1411 [revisor 14/11] — a repetição do MESMO pedido (mesma chave) não lê a foto de novo: a impressão digital não leva a
       // descrição, e o submitClip devolve o pedido que já existe.
@@ -86,8 +89,6 @@ export async function POST(req: NextRequest) {
       }
       const resolved = planMovimento(raw, ctx, descricao)
       if (!resolved.ok) return json({ error: resolved.error }, resolved.status)
-      // KINEO-GUIA-PRIVADO-1411 [CEO 14/11: "se a assinatura ou o objeto falhar, o pedido falha ANTES do débito, com a mensagem de sempre, sem cobrar"]
-      if (!(await guiaPresente(admin, format.guia))) return json({ error: 'Could not start your clip. Nothing was charged.' }, 503)
       body = resolved.plan.body
       recreatePlan = resolved.plan
     } else if (format.type === 'swap') {
