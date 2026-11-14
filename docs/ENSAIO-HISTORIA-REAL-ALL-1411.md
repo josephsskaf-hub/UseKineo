@@ -148,3 +148,11 @@ O revisor confirmou o caso do Logan, inclusive com o casting falhando, e as fant
 
 - Os dois conservadores ficam como na main (sem ficha nova nem ficha a menos). O erro, se houver, é a 2ª ficha, que já existia.
 - Positivos que seguem certos: "The thief was Vincenzo Peruggia", "Peruggia, the thief", "Peruggia is the thief", "Henry Gunther, a soldier from Baltimore".
+
+## v5: a regra de parada (CEO 14/11)
+- O revisor bloqueou a v4 pela 4ª vez na regra do papel, com o vocativo: "Louis Lépine, the thief is gone, he said". O Lépine é quem ouve a fala, não o ladrão.
+- A CEO aplicou a regra de parada combinada: `PAPEL_E_O_NOMEADO_1411 = 'gratis_ideia'`, e o filme pago e colado fica com o papel como na main.
+- `HISTORIA_REAL_1411` segue `'all'`: a obra de arte real e o ano por extenso.
+- O delta de produção contra o f7b7d47d7 é UMA linha. A lógica do papel fica como na v4, sem o conserto do vocativo.
+- No filme do Logan: a obra real entra ("a still work of art"), e "the thief" fica como na main.
+- A regra do papel para o filme pago volta como lote próprio, só com revisão limpa. Antes, uma lista adversária escrita por mim: vocativo, fala citada, oração intercalada, enumeração, discurso indireto, "Lépine, the thief said, was lying". Considerar o desenho invertido: ligar só quando o elenco do AUTOR traz a mesma pessoa com o papel na descrição.

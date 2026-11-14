@@ -29,7 +29,7 @@ const palavras = (t: unknown) => String(t ?? '').trim().split(/\s+/u).filter(Boo
 /** O filme está dentro do escopo da regra? 'gratis_ideia': filme grátis, não colado, não herdado, pedido de 1 a 60 palavras. 'all': todo filme não herdado. */
 /** KINEO-HISTORIA-REAL-1411 v4 [CEO 14/11]: a regra "o papel sem nome É a pessoa nomeada" tem interruptor PRÓPRIO, para separar do resto com UMA
  *  linha: 'gratis_ideia' devolve só ela ao escopo mínimo; a obra de arte real e o ano por extenso seguem com HISTORIA_REAL_1411. */
-export const PAPEL_E_O_NOMEADO_1411: ModoHistoriaReal = 'all'
+export const PAPEL_E_O_NOMEADO_1411: ModoHistoriaReal = 'gratis_ideia' // v5 [CEO 14/11, regra de parada após o 4º bloqueio]: o papel volta ao escopo mínimo; a obra real e o ano seguem 'all'
 export function escopoDaHistoriaReal(a: { gratis: boolean; verbatim: boolean; herdado: boolean; pedido: string | null | undefined }, modo: ModoHistoriaReal = HISTORIA_REAL_1411): boolean {
   if (modo === 'off' || a.herdado) return false
   if (modo === 'all') return true

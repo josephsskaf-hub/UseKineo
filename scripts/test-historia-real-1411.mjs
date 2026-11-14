@@ -112,7 +112,8 @@ function provas(L) {
   if (!esc({}) || esc({ gratis: false }) || esc({ verbatim: true }) || esc({ herdado: true }) || esc({ pedido: null }) || esc({ pedido: '   ' }) || esc({ pedido: Array(61).fill('word').join(' ') }) || !esc({ pedido: Array(60).fill('word').join(' ') })) erros.push('B o escopo mínimo (grátis, ideia de 1 a 60 palavras, não colado, não herdado)')
   if (esc({}, 'off') || !esc({ gratis: false, verbatim: true, pedido: null }, 'all') || esc({ herdado: true }, 'all')) erros.push("B os modos 'off' e 'all'")
   // reancorado [CEO 14/11 12:40]: o interruptor publicado é 'all' — o pago e colado entra, o herdado segue fora
-  if (m.PAPEL_E_O_NOMEADO_1411 !== 'all' || m.escopoDaHistoriaReal({ ...E, gratis: false, verbatim: true, pedido: MONA }, 'gratis_ideia') !== false) erros.push('B v4 o interruptor próprio do papel não existe ou o escopo mínimo deixou o pago entrar')
+  // v5 [CEO 14/11]: o papel no escopo mínimo; ligar em 'all' só depois de um lote próprio com revisão limpa
+  if (m.PAPEL_E_O_NOMEADO_1411 !== 'gratis_ideia' || m.escopoDaHistoriaReal({ ...E, gratis: false, verbatim: true, pedido: MONA }, m.PAPEL_E_O_NOMEADO_1411) !== false || m.escopoDaHistoriaReal({ ...E, gratis: false, verbatim: true, pedido: MONA }, 'gratis_ideia') !== false) erros.push('B v4 o interruptor próprio do papel não existe ou o escopo mínimo deixou o pago entrar')
   if (m.HISTORIA_REAL_1411 !== 'all' || m.escopoDaHistoriaReal({ ...E, gratis: false, verbatim: true, pedido: MONA }) !== true || m.escopoDaHistoriaReal({ ...E, herdado: true }) !== false) erros.push('B o interruptor publicado não cobre o pago e colado (ou cobre o herdado)')
   // v3: o ano MODERNO por extenso na história ("In twenty eighteen, explorers…") a leva ao presente, como "2018" em números: sem trava
   if (ee.epocaDaHistoria('On November thirteenth, nineteen forty-two, the cruiser sank. In twenty eighteen, explorers finally found the Juneau.', { anoPorExtenso: true }) !== null || ee.epocaDaHistoria('November fourteenth, nineteen sixty-five. In two thousand one, at the White House, he received the medal.', { anoPorExtenso: true }) !== null) erros.push('C v3 a história que chega ao presente (por extenso) ganhou trava')
@@ -184,7 +185,8 @@ function provas(L) {
   if (camada(FREEMAN, {}, fr, ff).relato.epoca !== null) erros.push('D sem pedir, a camada leu 1965 (anúncio e herdado leriam também)')
   if (camada(FREEMAN, { historiaReal: { anoPorExtenso: true } }, fr, ff).relato.epoca?.ano !== 1965) erros.push('D pedindo, a camada não leu 1965')
   // ── (F) [CEO 14/11 12:40] o filme do Logan (b6068711): pago, colado, casting FALHANDO — o elenco é o do leitor semântico (a Mona Lisa como boneco
-  // que fala, o Peruggia do autor). Pelas funções da rota, no interruptor PUBLICADO: a obra vira a obra real e "the thief" não entra ao lado dele.
+  // que fala, o Peruggia do autor). Pelas funções da rota, nos interruptores PUBLICADOS: a obra vira a obra real; o papel (escopo mínimo desde
+  // a v5) fica como na main — "the thief" segue ao lado do Peruggia no pago, como hoje.
   {
     const T = MONA
     const escopo = m.escopoDaHistoriaReal({ gratis: false, verbatim: true, herdado: false, pedido: T })
@@ -194,8 +196,12 @@ function provas(L) {
     if (!escopo || /anthropomorphic|living creature|small arms and legs/.test(ml) || !/the real painting/.test(ml)) erros.push('F Logan: a Mona Lisa segue boneco vivo no pago e colado: ' + ml.slice(0, 90))
     const PLANOS = ['A dimly lit corner of the Louvre, the empty frame of the Mona Lisa on the wall, shadows creeping in.', 'Vincenzo Peruggia, dressed in a white work smock, crouched inside a dark storage closet.', "A close-up of Peruggia's hands carefully lifting the Mona Lisa from the wall.", 'A crowd gathered outside the Louvre, staring at four empty iron hooks on the wall.', 'A dusty trunk in a dimly lit room, the lid slightly ajar.', 'Peruggia walking through a bustling Florence street, the Mona Lisa hidden under his arm.', 'A close-up of art enthusiasts gazing at the iconic Mona Lisa.']
     const FALAS = ['The Mona Lisa vanished on a Monday morning in 1911.', 'The thief was Vincenzo Peruggia, an Italian handyman. On Sunday he hid in a storage closet.', 'On Monday he lifted her off the wall and walked out.', 'Crowds lined up just to stare at four empty iron hooks.', 'The most famous painting in the world sat in a trunk in Paris.', 'Then, in 1913, he carried her to Florence.', 'The crime made her famous.']
-    const era = ee.aplicarElencoEEpoca({ prompts: PLANOS, falas: FALAS, contextoOriginal: T, contextoFiltro: T, modo: 'character_story', tagFaceless: false, provaDeGente: true, ...(escopo ? { historiaReal: { anoPorExtenso: true, nomeadoNoElenco: m.genteNomeadaDoAutor(obra.elenco), nomesNoElenco: m.nomesDaGenteNomeadaDoAutor(obra.elenco) } } : {}) })
-    if (era.prompts.some((p) => /Named character in this shot: the thief/.test(p))) erros.push('F Logan: "the thief" entrou ao lado do Peruggia')
+    const papel = m.escopoDaHistoriaReal({ gratis: false, verbatim: true, herdado: false, pedido: T }, m.PAPEL_E_O_NOMEADO_1411) // a rota: papelEOnomeado1411
+    const comuns = { prompts, falas, contextoOriginal: T, contextoFiltro: T, modo: 'character_story', tagFaceless: false, provaDeGente: true } // a fixture da seção D: a main põe "the thief" nela
+    const era = ee.aplicarElencoEEpoca({ ...comuns, ...(escopo ? { historiaReal: { anoPorExtenso: true, nomeadoNoElenco: papel && m.genteNomeadaDoAutor(obra.elenco), nomesNoElenco: m.nomesDaGenteNomeadaDoAutor(obra.elenco) } } : {}) })
+    const naMain = ee.aplicarElencoEEpoca(comuns)
+    const ladrao = (r) => r.prompts.map((p, i) => (/Named character in this shot: the thief/.test(p) ? i + 1 : 0)).filter(Boolean).join(',')
+    if (ladrao(era) !== ladrao(naMain) || !ladrao(naMain)) erros.push(`F Logan: no pago o "the thief" tem de ficar como na main (main ${ladrao(naMain)}, agora ${ladrao(era)})`)
   }
   return erros
 }
@@ -220,6 +226,7 @@ checa('E a camada de época não lê interruptor global (só o que a chamada pas
 checa('E o repasse da camada (prepararQualidadeDoFilme) leva o argumento sem valor padrão', lf(fs.readFileSync('lib/cinematic/filmQuality.ts', 'utf8')).includes("historiaReal?: Parameters<typeof aplicarElencoEEpoca>[0]['historiaReal']") && lf(fs.readFileSync('lib/cinematic/filmQuality.ts', 'utf8')).includes('const cast = aplicarElencoEEpoca({ ...args, prompts: withRoom')) // reancorado (KINEO-FICHA-DO-AUTOR-MANDA-1411): a mesma chamada com ...args, que pode levar as fichas do autor depois
 
 const MUTANTES = [
+  ['v5: o interruptor do papel em \'all\' (ligar sem revisão)', ARQ, (s) => s.replace("export const PAPEL_E_O_NOMEADO_1411: ModoHistoriaReal = 'gratis_ideia'", "export const PAPEL_E_O_NOMEADO_1411: ModoHistoriaReal = 'all'")],
   ['v4: aposto aceita preposição antes do papel', EP, (s) => s.replace("const ADJ = String.raw`(?:(?!(?:of|the|a|an|for|with|by|from|against|to|in|on|at|and|or|not|never|no)(?![\\p{L}]))[\\p{Ll}-]+\\s+){0,2}?`", "const ADJ = String.raw`(?:[\\p{Ll}-]+\\s+){0,3}?`")],
   ['v4: aposto sem a trava do fim do papel', EP, (s) => s.replace("const FIM_DO_PAPEL = String.raw`(?=", "const FIM_DO_PAPEL = String.raw`(?=[^]|")],
   ['v3: qualquer palavra entre o verbo e o nome', EP, (s) => s.replace(String.raw`const PARTES = String.raw` + '`' + String.raw`(?:\p{Lu}\p{Ll}[\p{Ll}'’-]*\s+){0,2}?` + '`', String.raw`const PARTES = String.raw` + '`' + String.raw`(?:[\p{L}'’-]+\s+){0,2}?` + '`')],
