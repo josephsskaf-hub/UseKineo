@@ -85,9 +85,12 @@ const MES_EN = 'January|February|March|April|May|June|July|August|September|Octo
 const MES_PT = '[Jj]aneiro|[Ff]evereiro|[Mm]arço|[Mm]arco|[Aa]bril|[Mm]aio|[Jj]unho|[Jj]ulho|[Aa]gosto|[Ss]etembro|[Oo]utubro|[Nn]ovembro|[Dd]ezembro'
 const DIA = String.raw`(?:the\s+)?(?:\d{1,2}(?:st|nd|rd|th)?|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth|nineteenth|twentieth|thirtieth|twenty-[a-z]+|thirty-first)`
 const DATA_ANTES_RE = new RegExp(String.raw`(?:\b(?:${MES_EN})(?:\s+${DIA})?\s*,?\s+(?:of\s+)?|\b(?:${MES_PT})\s+de\s+|\b[Tt]he\s+year(?:\s+of)?\s+|\b[Aa]no\s+de\s+)$`, 'u')
-// o número continua ("two thousand five HUNDRED years", "dois mil E QUINHENTOS") ou é uma contagem ("nineteen hundred HOURS"): não é ano
-const NAO_E_ANO_DEPOIS_RE = /^[\s-]*(?:(?:and\s+|e\s+)?(?:hundred|thousand|million|billion|duzentos|trezentos|quatrocentos|quinhentos|seiscentos|setecentos|oitocentos|novecentos|mil|milh)|hours?\b|horas?\b)/iu
-const naData = (texto: string, pos: number, fim: number) => DATA_ANTES_RE.test(texto.slice(Math.max(0, pos - 60), pos)) && !NAO_E_ANO_DEPOIS_RE.test(texto.slice(fim, fim + 24))
+// revisão independente 14/11 (N2): depois do ano só vem pontuação, fim do texto, preposição/conjunção ou o começo de outra frase (artigo ou pronome com
+// maiúscula: as falas do claim chegam sem ponto, "December eighteen seventy-two An old ship"). Número seguido de substantivo é contagem, não ano:
+// "In March, nineteen fifty refugees crossed", "On June 5th, two thousand fans waited", "May nineteen ninety-nine reasons be enough". O número
+// que continua ("two thousand five HUNDRED years", "dois mil E QUINHENTOS") e a contagem ("nineteen hundred HOURS") caem aqui também.
+const DEPOIS_DO_ANO_RE = /^(?:\s*(?:[.,;:!?)\]"'’”…—–]|$)|\s+(?:in|on|at|when|but|as|after|before|during|while|until|from|to|by|with|near|aboard|under|over|em|no|na|nos|nas|quando|mas|depois|antes|durante|até|com|às|ao)(?![\p{L}])|\s+(?:A|An|The|In|On|At|He|She|It|They|We|I|His|Her|Their|Our|O|Os|As|Um|Uma|Ele|Ela|Eles|Elas|Nós|Eu)(?![\p{L}]))/u
+const naData = (texto: string, pos: number, fim: number) => DATA_ANTES_RE.test(texto.slice(Math.max(0, pos - 60), pos)) && DEPOIS_DO_ANO_RE.test(texto.slice(fim, fim + 24))
 
 /** O texto com os anos por extenso DE UMA DATA EXPLÍCITA em dígitos ("November fourteenth, nineteen sixty-five" → "…, 1965"). Fora de data, nada muda. Pura. */
 export function comAnosPorExtenso(texto: string | null | undefined): string {

@@ -105,6 +105,21 @@ function provas(L) {
   const lidoNovo = k4(c.eixosDoFilmeGratis(CENAS, style)) // o que o juiz lê hoje (a rota aplica os eixos na leitura)
   const lidoVelho = k4(CENAS) // o que ele lia antes da revisão
   if (!m.juizLeuOMesmoTexto(lidoNovo, enviado)) erros.push('C3 texto igual não foi reconhecido (o reaproveitamento morreu)')
+  // N1 (revisão independente 14/11): o envio REAL com imagem-chave — o juiz de antes lê buildKling4TrialInput sem imagem, o envio sai com a
+  // referência "Scene N: use …" na frente de cada plano. Os dois saem do código de verdade (lib/kling4Trial.ts), nunca da mesma expressão.
+  const k = L('lib/kling4Trial.ts')
+  const timing = { voiceovers: FALAS, wordsPerSecond: 2.5 }
+  const k4ComEixo = c.eixosDoFilmeGratis(CENAS, style).map((p, i) => c.promptDaCenaKling4(p, style, i, true))
+  const multi = (stills) => k.buildKling4TrialInput(k4ComEixo, stills, timing).input.multi_prompt.map((x, i) => ({ fala: FALAS[i], prompt: x.prompt }))
+  const lidoAntes = multi([])
+  for (const [nome, stills] of [['1ª imagem-chave', ['https://x/1.png', null, null]], ['3 imagens-chave', ['https://x/1.png', 'https://x/2.png', 'https://x/3.png']]]) {
+    const env = multi(stills)
+    if (!env.every((x) => /^Scene \d+: /.test(x.prompt))) erros.push(`N1 fixture (${nome}): o envio não leva a referência da cena`)
+    if (!m.juizLeuOMesmoTexto(lidoAntes, env)) erros.push(`N1 com ${nome} o veredito do MESMO texto não é reaproveitado`)
+    const outro = env.map((x, i) => (i === 1 ? { ...x, prompt: x.prompt.replace('Maya stands', 'A stranger stands') } : x))
+    if (outro[1].prompt === env[1].prompt || m.juizLeuOMesmoTexto(lidoAntes, outro)) erros.push(`N1 com ${nome} reaproveitou com o plano mudado depois do juiz`)
+  }
+  if (m.semReferenciaDaCena('Scene 2: a boy runs. The end.') !== 'Scene 2: a boy runs. The end.' || m.semReferenciaDaCena('Scene 3: use middle keyframe 2. Rest.') !== 'Rest.') erros.push('N1 tirou texto do plano que não é a referência da imagem')
   if (JSON.stringify(lidoVelho) !== JSON.stringify(enviado) && m.juizLeuOMesmoTexto(lidoVelho, enviado)) erros.push('C3 reaproveitou o veredito de um texto que mudou depois (eixos)')
   if (JSON.stringify(lidoVelho) === JSON.stringify(enviado)) erros.push('C3 fixture: os eixos do filme grátis não mudaram o texto (a prova ficou vazia)')
   const comOutraFicha = enviado.map((x, i) => (i === 0 ? { ...x, prompt: x.prompt.replace('straight hair', 'curly hair') } : x))
@@ -159,6 +174,8 @@ const MUTANTES = [
   ['C3: reaproveita com a fala trocada', (s) => s.replace(" && String(c?.fala ?? '') === String(enviado[i]?.fala ?? ''))", ')')],
   ['C3: reaproveita com outro número de planos', (s) => s.replace('lido.length === 0 || lido.length !== enviado.length', 'lido.length === 0')],
   ['C3: nunca reaproveita (2 leituras em todo filme)', (s) => s.replace('return lido.every((c, i) => typeof c?.prompt', 'return false && lido.every((c, i) => typeof c?.prompt')],
+  ['N1: compara com a referência da imagem-chave (o reaproveitamento morre com imagem)', (s) => s.replace('c.prompt === semReferenciaDaCena(enviado[i].prompt)', 'c.prompt === enviado[i].prompt')],
+  ['N1: tira qualquer "Scene N:" do plano', (s) => s.replace('|text-directed shot, no new keyframe for this scene)', '|[^.]*)')],
   ['veredito torto derruba (falhas não-lista)', (s) => s.replace('const falhasDoJuiz = Array.isArray(v?.falhas) ? (v as JuizPlanoVeredito).falhas : []', 'const falhasDoJuiz = (v as JuizPlanoVeredito)?.falhas ?? []')],
 ]
 const src = lf(fs.readFileSync(ARQ, 'utf8'))

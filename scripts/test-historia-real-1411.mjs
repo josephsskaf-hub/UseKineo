@@ -34,7 +34,8 @@ const DATAS = [
   ['Where did the crew of this ship go December eighteen seventy-two An old wooden sailing ship', 'December 1872 An', 1872],
   ['Why did five brothers die on one ship? On November thirteenth, nineteen forty-two, the cruiser USS Juneau was fighting', 'November thirteenth, 1942,', 1942],
   ['Em três de novembro de dois mil e treze, Vladimir e Sergei Kulakov desapareceram.', 'novembro de 2013,', null],
-  ['In the year nineteen twelve the great ship sank.', 'the year 1912 the', 1912],
+  ['In the year nineteen twelve, the great ship sank.', 'the year 1912, the', 1912],
+  ['In March nineteen fifty in Berlin the wall went up.', 'March 1950 in', 1950],
 ]
 // (C) NÃO é ano: 8 do banco real (os 4 primeiros a regra antiga convertia) + os do revisor
 const NAO_E_ANO = [
@@ -56,6 +57,13 @@ const NAO_E_ANO = [
   'In December nineteen hundred hours of footage were lost.',
   'By March two thousand five hundred soldiers had arrived.',
   'They may nineteen hundred times repeat it.',
+  // N2 (revisão independente 14/11): número colado a substantivo é contagem, mesmo depois de um mês
+  'In March, nineteen fifty refugees crossed the border with Maria.',
+  'On June 5th, two thousand fans waited for Taylor at the gate.',
+  'May nineteen ninety-nine reasons be enough for you, Jake.',
+  'In December, two thousand twenty volunteers built the bridge.',
+  'The soldiers march nineteen hundred in total.', // só o mutante do mês minúsculo ("march" verbo) pega este
+  'In the year nineteen twelve the great ship sank.', // limite declarado: sem vírgula e seguido de artigo minúsculo, não vira ano
   'Em novembro de dois mil e quinhentos soldados chegaram ao porto.',
   'In December two thousand five hundred men landed.',
 ]
@@ -185,10 +193,8 @@ const MUTANTES = [
   ['bicho com nome conta como pessoa nomeada', ARQ, (s) => s.replace("f?.tipo === 'humano' && f?.origem === 'autor' && ", "f?.origem === 'autor' && ")],
   // o ano por extenso
   ['(B1) ano por extenso fora de data explícita', EP, (s) => s.replace('DATA_ANTES_RE.test(texto.slice(Math.max(0, pos - 60), pos)) && ', '')],
-  ['(B1) "nineteen hundred hours" vira 1900', EP, (s) => s.replace('|hours?\\b|horas?\\b)/iu', ')/iu')],
-  ['(B1) "two thousand five hundred" vira 2005', EP, (s) => s.replace('(?:hundred|thousand|million|billion|duzentos', '(?:million|billion|duzentos')],
-  ['(B1) "dois mil e quinhentos" vira 2000', EP, (s) => s.replace('|duzentos|trezentos|quatrocentos|quinhentos|seiscentos|setecentos|oitocentos|novecentos|mil|milh)', ')')],
   ['(B1) todo mundo lê o ano por extenso (anúncio, herdado, régua)', EP, (s) => s.replace('digitosAscii(opts?.anoPorExtenso === true ? comAnosPorExtenso(', 'digitosAscii(true ? comAnosPorExtenso(')],
+  ['(N2) número seguido de substantivo vira ano', EP, (s) => s.replace(' && DEPOIS_DO_ANO_RE.test(texto.slice(fim, fim + 24))', '')],
   ['mês minúsculo vale como data ("may" verbo)', EP, (s) => s.replace("const DATA_ANTES_RE = new RegExp(String.raw`(?:\\b(?:${MES_EN})", "const DATA_ANTES_RE = new RegExp(String.raw`(?:\\b(?:${MES_EN.toLowerCase()}|${MES_EN})")],
   ['a data com mês deixa de ser lida', EP, (s) => s.replace('\\b(?:${MES_EN})(?:\\s+${DIA})?\\s*,?\\s+(?:of\\s+)?|', '')],
   ['a camada ignora o pedido de ano da rota', EP, (s) => s.replace('{ anoPorExtenso: args.historiaReal?.anoPorExtenso === true }', '{ anoPorExtenso: false }')],

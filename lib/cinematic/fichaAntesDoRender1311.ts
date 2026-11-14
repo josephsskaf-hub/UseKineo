@@ -86,10 +86,22 @@ export function planosComFichaVerificada(v: JuizPlanoVeredito | null): number[] 
   return [...out].sort((a, b) => a - b)
 }
 
-/** true só quando o juiz leu EXATAMENTE os planos e as falas que foram à fal (mesma quantidade, mesmo texto, mesma ordem). Pura. */
+/**
+ * A referência de imagem-chave que buildKling4TrialInput (lib/kling4Trial.ts) põe na frente de cada plano quando há imagem aprovada — "Scene 1: use
+ * the start image. ", "Scene 2: use middle keyframe 1. ", "Scene 3: text-directed shot, no new keyframe for this scene. ". O juiz de antes lê o
+ * plano SEM imagem (ela ainda não existe); a referência diz qual imagem usar, não o que o plano mostra. Só esses três textos exatos saem.
+ */
+const REFERENCIA_DA_CENA_RE = /^Scene \d+: (?:use the start image|use middle keyframe \d+|text-directed shot, no new keyframe for this scene)\. /u
+export const semReferenciaDaCena = (prompt: string): string => String(prompt ?? '').replace(REFERENCIA_DA_CENA_RE, '')
+
+/**
+ * true só quando o juiz leu EXATAMENTE os planos e as falas que foram à fal (mesma quantidade, mesmo texto, mesma ordem), tirada só a referência
+ * de imagem-chave do envio (revisão independente 14/11, N1: com imagem-chave a comparação falhava sempre). Plano cortado pelo teto de 512 por causa
+ * da referência continua diferente: aí a 2ª leitura roda, porque o texto que foi à fal é outro. Pura.
+ */
 export function juizLeuOMesmoTexto(lido: ReadonlyArray<{ fala: string; prompt: string }> | null | undefined, enviado: ReadonlyArray<{ fala: string; prompt: string }> | null | undefined): boolean {
   if (!Array.isArray(lido) || !Array.isArray(enviado) || lido.length === 0 || lido.length !== enviado.length) return false
-  return lido.every((c, i) => typeof c?.prompt === 'string' && c.prompt.length > 0 && c.prompt === enviado[i]?.prompt && String(c?.fala ?? '') === String(enviado[i]?.fala ?? ''))
+  return lido.every((c, i) => typeof c?.prompt === 'string' && c.prompt.length > 0 && typeof enviado[i]?.prompt === 'string' && c.prompt === semReferenciaDaCena(enviado[i].prompt) && String(c?.fala ?? '') === String(enviado[i]?.fala ?? ''))
 }
 
 /** O plano inteiro refeito pelo veredito (índices 1..N do juiz = planos do filme). Pura; o vetor de entrada não muda. */
