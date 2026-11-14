@@ -25,7 +25,9 @@ const PREVIEW_LOCKED_MESSAGE = 'Generating in this preview is for approved accou
 type Social = { count: number; liked: boolean }
 export type Quote = { id: string; credits: number | null; available: boolean; shortfall: number }
 type Photo = { file: File; url: string }
-type Clip = { id: string; status: string; video_url?: string | null; credits_refunded?: number; reason?: string; queued?: boolean; queue_position?: number; message?: string; needs_status?: boolean }
+type Clip = { id: string; status: string; video_url?: string | null; credits_refunded?: number; reason?: string; queued?: boolean; queue_position?: number; message?: string; needs_status?: boolean; stage?: 'scene' | 'motion'; scene_url?: string; audio?: 'original' | 'silent' } // KINEO-RECREATE-MOVIMENTO-1411 — + stage, scene_url, audio
+// KINEO-RECREATE-MOVIMENTO-1411 — troca e movimento mandam `photos` (uma por pessoa); o efeito manda `image_url`.
+const sendsPhotos = (type: string) => type === 'swap' || type === 'motion'
 type FlowBasePath = '/recreate' | '/recreate-flow-preview'
 type Attempt = { key: string; model: string; payload: Record<string, unknown> }
 const attemptStorage = (account: string, model: string) => `kineo:recreate:flow:attempt:${account}:${model}`
@@ -34,10 +36,10 @@ function savedAttempt(value: unknown, account: string, model: string): Attempt |
   const saved = value as Record<string, unknown>, payload = saved.payload as Record<string, unknown> | undefined
   const format = recreateFormat(model)
   if (!format || !publicRecreatePath(model) || saved.account !== account || saved.model !== model || typeof saved.key !== 'string' || !/^[A-Za-z0-9._:-]{8,100}$/.test(saved.key) || !payload || typeof payload !== 'object' || Array.isArray(payload)) return null
-  const allowed = ['format', 'mode', 'seconds', 'prompt', 'consent', 'simulate', format.type === 'swap' ? 'photos' : 'image_url']
+  const allowed = ['format', 'mode', 'seconds', 'prompt', 'consent', 'simulate', sendsPhotos(format.type) ? 'photos' : 'image_url'] // KINEO-RECREATE-MOVIMENTO-1411 — era: format.type === 'swap' ? …
   if (Object.keys(payload).length !== allowed.length || Object.keys(payload).some(key => !allowed.includes(key)) || payload.format !== model || payload.mode !== 'swap' || payload.seconds !== format.seconds || payload.consent !== true || payload.simulate !== false || typeof payload.prompt !== 'string' || payload.prompt.length > 550) return null
-  const urls = format.type === 'swap' ? payload.photos : [payload.image_url]
-  if (!Array.isArray(urls) || urls.length !== (format.type === 'swap' ? format.photoSlots : 1) || urls.some(url => typeof url !== 'string' || !ownedClipImageUrl(url, account, process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''))) return null
+  const urls = sendsPhotos(format.type) ? payload.photos : [payload.image_url] // KINEO-RECREATE-MOVIMENTO-1411 — era: format.type === 'swap' ? …
+  if (!Array.isArray(urls) || urls.length !== (sendsPhotos(format.type) ? format.photoSlots : 1) || urls.some(url => typeof url !== 'string' || !ownedClipImageUrl(url, account, process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''))) return null
   return { key: saved.key, model, payload }
 }
 // M12 revisão (3): o POST /api/recreate vive até 60 s no servidor (maxDuration); quem espera 30 s declara "incerto" um pedido que ainda corre.
@@ -305,7 +307,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
       if (!sent) {
         setUploading(true)
         const payload: Record<string, unknown> = { format: selected.id, mode: 'swap', seconds: selected.seconds, prompt, consent, simulate: false }
-        if (selected.type === 'swap') payload.photos = await Promise.all(readyPhotos.map(photo => upload(photo.file)))
+        if (sendsPhotos(selected.type)) payload.photos = await Promise.all(readyPhotos.map(photo => upload(photo.file))) // KINEO-RECREATE-MOVIMENTO-1411 — era: selected.type === 'swap'
         else {
           let file = readyPhotos[0].file
           if (selected.photoSlots === 2) {
@@ -379,7 +381,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
         if (!currentQuote?.available || currentQuote.credits === null) throw new Error('Check availability before generating.')
         if (currentQuote.shortfall > 0) throw new Error(`You need ${currentQuote.shortfall} more credits.`)
         if (!consent || readyPhotos.length !== selected.photoSlots) throw new Error('Add the required photos and confirm permission first.')
-        if (selected.type === 'swap') payload.photos = await Promise.all(readyPhotos.map(p => upload(p.file)))
+        if (sendsPhotos(selected.type)) payload.photos = await Promise.all(readyPhotos.map(p => upload(p.file))) // KINEO-RECREATE-MOVIMENTO-1411 — era: selected.type === 'swap'
         else {
           let file = readyPhotos[0].file
           if (selected.photoSlots === 2) {
@@ -441,8 +443,9 @@ export default function RecreateClient({ initialId, internalTools = false, forma
   const marker = (step: number) => <span className="rc-step-number" aria-hidden="true">{states[step - 1] === 'done' ? '✓' : states[step - 1] === 'error' ? '!' : step}</span>
   const blocker = busy || photoBusy ? 'Preparing your photos…' : active ? 'Creating your version: about 3 minutes. You can leave this page; it will be in My videos.' : !quote ? 'Checking availability…' : !quote.available || quote.credits === null ? 'This option is currently unavailable.' : quote.shortfall > 0 ? `You need ${quote.shortfall} more credits.` : photoIssue ? 'Replace the highlighted photo.' : !photosReady ? selected?.photoSlots === 2 ? 'Add both photos to continue.' : 'Add your photo to continue.' : !consent ? 'Confirm photo permission to continue.' : 'Ready when you are.'
   const queuePosition = clip?.queued === true && Number.isInteger(clip.queue_position) && (clip.queue_position ?? 0) > 0 ? clip.queue_position : null
-  const flowState = uncertain ? 'Request not confirmed' : busy ? signedIn ? uploading ? 'Uploading your photos…' : 'Sending your request…' : 'Saving your photos…' : clip?.needs_status ? 'Checking your version…' : clip?.status === 'done' ? 'Your version is ready' : clip?.status === 'failed' ? 'This version could not be completed' : clip?.queued ? queuePosition === null ? 'In line' : `In line · position ${queuePosition}` : active ? 'Creating your version' : ''
-  const flowFailure = clip?.credits_refunded ? clip.reason === 'not_swapped' ? NOT_SWAPPED_MESSAGE : 'Your credit refund was confirmed. Try another photo or template.' : 'Check My videos for the final billing status before starting another.'
+  const flowState = uncertain ? 'Request not confirmed' : busy ? signedIn ? uploading ? 'Uploading your photos…' : 'Sending your request…' : 'Saving your photos…' : clip?.needs_status ? 'Checking your version…' : clip?.status === 'done' ? 'Your version is ready' : clip?.status === 'failed' ? 'This version could not be completed' : clip?.queued ? queuePosition === null ? 'In line' : `In line · position ${queuePosition}` : active && clip?.stage === 'scene' ? 'Preparing your scene' : active && clip?.stage === 'motion' ? 'Animating' : active ? 'Creating your version' : '' // KINEO-RECREATE-MOVIMENTO-1411 — + as duas etapas do movimento
+  // KINEO-RECREATE-MOVIMENTO-1411 — a falha do movimento traz a frase do servidor (que só diz "returned" com o estorno gravado).
+  const flowFailure = (clip?.reason === 'not_you' || clip?.reason === 'engine_refused' || clip?.reason === 'scene_failed') && clip.message ? clip.message : clip?.credits_refunded ? clip.reason === 'not_swapped' ? NOT_SWAPPED_MESSAGE : 'Your credit refund was confirmed. Try another photo or template.' : 'Check My videos for the final billing status before starting another.'
   function leaveFlow(event: { preventDefault(): void }) {
     if (currentFlow && photos.some(Boolean) && !clip && !window.confirm('Your photos are still on this page. Leave this version?')) event.preventDefault()
   }
@@ -494,8 +497,8 @@ export default function RecreateClient({ initialId, internalTools = false, forma
           <p className="rc-consent">Only upload photos you have the right to use.</p>
         </section>
         <section className={`rc-step rc-step-${states[1]}`} data-step-state={states[1]} aria-label="Adjustments"><details className="rc-adjustments" key={selected.id} open={detailsOpen} onToggle={e => setDetailsOpen(e.currentTarget.open)}>
-          <summary>{marker(2)}<span>{selected.type === 'effect' ? 'Effect preset' : 'Face instructions'}</span><small>{stateLabel(states[1])} · {selected.type === 'effect' ? 'Preset' : 'Optional'} <span aria-hidden="true">＋</span></small></summary>
-          <div className="rc-detail-body"><label htmlFor="rc-prompt">Prompt</label><textarea id="rc-prompt" maxLength={550} value={prompt} readOnly={selected.type === 'effect'} disabled={editingDisabled} onChange={e => { if (currentFlow && !canEdit) return; photoTask.current++; handoffApproved.current = false; setPrompt(e.target.value); requestKey.current = null }} />{selected.type === 'effect' && <p className="rc-muted">This effect uses its original preset.</p>}</div>
+          <summary>{marker(2)}<span>{selected.type === 'effect' ? 'Effect preset' : selected.type === 'motion' ? 'Motion preset' : 'Face instructions'}</span><small>{stateLabel(states[1])} · {selected.type !== 'swap' ? 'Preset' : 'Optional'} <span aria-hidden="true">＋</span></small></summary>
+          <div className="rc-detail-body"><label htmlFor="rc-prompt">Prompt</label><textarea id="rc-prompt" maxLength={550} value={prompt} readOnly={selected.type !== 'swap'} disabled={editingDisabled} onChange={e => { if (currentFlow && !canEdit) return; photoTask.current++; handoffApproved.current = false; setPrompt(e.target.value); requestKey.current = null }} />{selected.type === 'effect' && <p className="rc-muted">This effect uses its original preset.</p>}{selected.type === 'motion' && <p className="rc-muted">This template uses its original preset.</p>}</div>
         </details></section>
   </> : null
   return <main className={`recreate${currentFlow ? ' rc-current-flow' : ''}`} data-recreate-current-flow={currentFlow ? true : undefined} aria-busy={currentFlow ? busy || restoring : undefined}>
@@ -529,11 +532,11 @@ export default function RecreateClient({ initialId, internalTools = false, forma
       </aside>}
       {selected && <section className="rc-reference" aria-label="Base video">
         <div className="rc-stage" data-recreate-flow-stage={currentFlow ? true : undefined}>{currentFlow && (flowState || clip) ? <div className="rc-flow-output" aria-live="polite" data-flow-status={uncertain ? 'unknown' : busy ? 'uploading' : clip?.queued ? 'queued' : clip?.status}>
-          <h2>{flowState}</h2>{clip?.status === 'done' && clip.video_url ? <RecreatePlayer key={clip.id} src={clip.video_url} label="Your version" stage={{ kind: 'Your version', title: selected.title }} /> : <div className="rc-flow-status">{clip?.status === 'failed' ? <p>{flowFailure}</p> : uncertain ? <p>Keep this page open to retry the same request. If you leave, check My videos before starting another.</p> : <><progress aria-label={flowState} /><p>{active ? 'Your version will also be in My videos.' : 'Keep this page open.'}</p></>}</div>}
-          <Link href="/library">My videos ↗</Link>{statusPaused && <button type="button" className="rc-change" onClick={() => setStatusPaused(false)}>Refresh status</button>}
+          <h2>{flowState}</h2>{clip?.status === 'done' && clip.video_url ? <RecreatePlayer key={clip.id} src={clip.video_url} label="Your version" stage={{ kind: 'Your version', title: selected.title }} /> : <div className="rc-flow-status">{clip?.status === 'failed' ? <p>{flowFailure}</p> : uncertain ? <p>Keep this page open to retry the same request. If you leave, check My videos before starting another.</p> : <>{active && clip?.stage === 'motion' && clip.scene_url && <img className="rc-flow-scene" src={clip.scene_url} alt="Your scene, being animated" />}<progress aria-label={flowState} /><p>{active ? 'Your version will also be in My videos.' : 'Keep this page open.'}</p></>}</div>} {/* KINEO-RECREATE-MOVIMENTO-1411 — a imagem do passo 1 enquanto anima */}
+          {clip?.status === 'done' && clip.audio === 'silent' && <p className="rc-muted">Silent video</p>}<Link href="/library">My videos ↗</Link>{statusPaused && <button type="button" className="rc-change" onClick={() => setStatusPaused(false)}>Refresh status</button>} {/* KINEO-RECREATE-MOVIMENTO-1411 — "Silent video" no pronto que saiu sem som */}
         </div> : <RecreatePlayer key={selected.id} src={selectedMedia!.video} poster={selectedMedia!.poster} preview label={`Base video: ${selected.title}`}
           stage={{ kind: 'Base video', title: selected.title,
-            detail: `${selected.type === 'swap' ? 'Face swap' : 'Photo effect'} · ${selected.seconds} s · ${selected.photoSlots} ${selected.photoSlots === 1 ? 'photo' : 'photos'}`,
+            detail: `${selected.type === 'swap' ? 'Face swap' : selected.type === 'motion' ? 'Motion' : 'Photo effect'} · ${selected.seconds} s · ${selected.photoSlots} ${selected.photoSlots === 1 ? 'photo' : 'photos'}`,
             action: !createTabs && <button className="rc-change" disabled={editingDisabled} onClick={showTemplates}>Change video ↗</button> }} />}</div>
       </section>}
       <section className="rc-gallery" ref={galleryRef} aria-label="Video templates">

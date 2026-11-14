@@ -60,3 +60,6 @@
 @media(prefers-reduced-motion:reduce){.recreate.rc-current-flow *{scroll-behavior:auto!important;transition:none!important}}
 /* M12 régua do dono: nenhum texto abaixo de 12 px no fluxo novo (o rótulo "Recreate" vinha com 10 px do recreate.css). Só tamanho. */
 .recreate.rc-current-flow .rc-eyebrow{font-size:12px}
+/* KINEO-RECREATE-MOVIMENTO-1411 — a imagem do passo 1 enquanto anima e o aviso "Silent video" no pronto (mesmo tom e mesma escala do fluxo). */
+.recreate.rc-current-flow .rc-flow-status .rc-flow-scene{display:block;width:min(200px,60%);aspect-ratio:9/16;object-fit:cover;border-radius:14px;border:1px solid var(--rc-border)}
+.recreate.rc-current-flow .rc-flow-output>.rc-muted{font-size:13px;margin:12px 0 0;color:var(--rc-muted,inherit)}
