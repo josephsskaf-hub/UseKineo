@@ -27,7 +27,9 @@ const GENTE = [['Max is a dog lover. Max walks to the park every morning. He smi
   ['Sam is a boy and his dog. Sam runs to school. He waves.', 'Sam'], ['Nora is an old woman in a cat costume. Nora dances. She laughs.', 'Nora'],
   ['Mia is a mother hen. Mia cooks for everyone. She smiles.', 'Mia'], // só a lista de gente corta aqui ("mother")
   // expressões de gente com nome de bicho
-  ['Joe is a lone wolf. Joe drives at night. He smokes.', 'Joe'], ['Ann is a night owl. Ann paints until dawn. She hums.', 'Ann'], ['Kim is a busy bee. Kim runs the bakery. She laughs.', 'Kim']]
+  ['Joe is a lone wolf. Joe drives at night. He smokes.', 'Joe'],
+  // 2ª revisão independente 14/11: gente FAZENDO algo com um bicho, e expressões
+  ['Lea is a jockey riding a horse. Lea wins the race. She smiles.', 'Lea'], ['Kim is a zookeeper feeding a lion. Kim laughs. She waves.', 'Kim'], ['Max is a dad walking the dog. Max whistles. He smiles.', 'Max'], ['Zoe is a nanny walking a dog. Zoe sings. She laughs.', 'Zoe'], ['Ali is a falconer releasing a hawk. Ali watches the sky. He smiles.', 'Ali'], ['Liz is a mama bear. Liz guards her kids every night, and she frowns at strangers. Liz smiles at dawn.', 'Liz'], ['Ann is a horse trainer. Ann rides every day. She laughs.', 'Ann'], ['Ann is a night owl. Ann paints until dawn. She hums.', 'Ann'], ['Kim is a busy bee. Kim runs the bakery. She laughs.', 'Kim']]
 const BICHOS_LITERAIS = [['Rex is an old dog. Rex sleeps by the fire all day.', 'Rex', 'dog']] // "old dog" literal segue cão
 // revisão independente 14/11 (bloqueio 2): a palavra antes de "mix" nunca é o artigo
 const MIX = [['Bobbie, a mix with a brown coat', 'dog'], ['Rex, a mixed-breed dog with floppy ears', 'dog'], ['Tom, a mixed-breed cat with white paws', 'cat'], ['Max, a shaggy mix', 'dog'], ['Lola, a beagle mix', 'beagle'], ['Bobbie, exactly as the author wrote: "a scruffy little mutt"', 'dog']]
@@ -53,6 +55,9 @@ function provas(L) {
     const p = ee.personagensNomeados(t, null, false, true).find((x) => x.nome === nome)
     if (!p || p.tipo !== 'criatura' || !p.descricao.includes(esp)) erros.push(`A ${nome} não virou ${esp}: ${JSON.stringify(p ?? null)}`)
   }
+  // o núcleo do 1º sintagma, direto na função: cada fronteira sozinha
+  const NUCLEO = [['Kai is a boy feeding horses.', null], ['Rita is a vet a horse.', null], ['Daisy is a duckling.', 'duckling'], ['Bobbie is a shaggy two-year-old collie mix with a black coat.', 'collie'], ['Max is a dog lover.', null], ['Liz is a mama bear.', null], ['Bo is a stray dog.', 'dog'], ['Rex is an old dog.', 'dog']]
+  for (const [frase, esperado] of NUCLEO) { const r = ee.nucleoDoBichoDaCopula(frase.split(' ')[0], frase); if (r !== esperado) erros.push(`N "${frase}" → ${r} (esperado ${esperado})`) }
   for (const [canonica, esp] of MIX) {
     const l = tr.linhaDeEstilo({ nome: 'x', nucleo: 'mix', tipo: 'animal', origem: 'autor', canonica }, { look: 'photoreal', lookPhrase: 'photorealistic' })
     if (!l.startsWith(`a real living ${esp} filmed`)) erros.push(`B "${canonica}" deu: ${l.slice(0, 40)}`)
@@ -78,14 +83,15 @@ checa(`A e B verdes${base.length ? ': ' + base.join(' · ') : ''}`, base.length 
 }
 const MUTANTES = [
   ['a cópula não lê a espécie', EP, (s) => s.replace('  if (bichoComNomeLigado()) { // KINEO-BICHO-COM-NOME-1411', '  if (false) { // KINEO-BICHO-COM-NOME-1411')],
-  ['sem as raças ("collie" cai em gente)', EP, (s) => s.replace("|${RACAS_1411})s?(?=", ')s?(?=')],
-  ['"dog lover" vira cão (sem a trava do fim do sintagma)', EP, (s) => s.replace(String.raw`s?(?=\s*(?:[.,;:!?)]|$)|\s+(?:mix|cross|mutt|breed|with|who|that|from|named|called|and|in|on|at|of)(?![\p{L}]))`, 's?')],
+  ['sem as raças ("collie" cai em gente)', EP, (s) => s.replace('const bicho = new RegExp(`^(?:${CRIATURAS}|${ANIMAIS}|${RACAS_1411})s?$`', 'const bicho = new RegExp(`^(?:${CRIATURAS}|${ANIMAIS})s?$`')],
   ['a ficha paga volta a dizer "mix"', TR, (s) => s.replace("if (/^(?:mix|mixed|cross|crossbreed|mutt|breed)$/.test(e))", 'if (false)')],
-  // revisão independente 14/11
-  ['(bloqueio 1) gente com bicho vira o bicho (sem o corte)', EP, (s) => s.replace('(?:${corta}[\\p{L}\\p{N}', '(?:[\\p{L}\\p{N}').replace("{0,4}?${corta}(", '{0,4}?(')],
-  ['(bloqueio 1) o corte não lê a lista de gente', EP, (s) => s.replace("|vet|veterinarian|owner|${PESSOAS.split('|')", "|vet|veterinarian|owner|${''.split('|')")],
-  ['a expressão de gente ("a lone wolf") vira bicho', EP, (s) => s.replace("if (copula && !(idioma && IDIOMAS_DE_BICHO_1411.has(", "if (copula && !(false && IDIOMAS_DE_BICHO_1411.has(")],
-  ['"baby dragon" corta (Misho volta a gente)', EP, (s) => s.replace("filter((w) => !/^(?:baby|kid|toddler)$/.test(w))", 'filter(() => true)')],
+  // 2ª revisão independente 14/11: o núcleo do 1º sintagma
+  ['(bloqueio 5) o verbo em -ing não fecha o sintagma ("a jockey riding a horse" vira cavalo)', EP, (s) => s.replace("if (/^[\\p{L}-]{3,}ing$/u.test(w) && !bicho.test(w)) break", '')],
+  ['(bloqueio 5) o 2º artigo não fecha o sintagma', EP, (s) => s.replace('|a|an|the|this|these|those|is|was|', '|this|these|those|is|was|')],
+  ['a ligação (with, who) não fecha o sintagma ("a little girl with a cat" vira gato)', EP, (s) => s.replace('const FRONTEIRA_DO_SINTAGMA_1411 = /^(?:with|who|whose|that|which|and|or|but|of|in|on|at|from|', 'const FRONTEIRA_DO_SINTAGMA_1411 = /^(?:')],
+  ['olha QUALQUER palavra do sintagma, não o núcleo ("a dog lover" vira cão)', EP, (s) => s.replace('  let i = palavras.length - 1', '  let i = Math.max(0, palavras.findIndex((p) => bicho.test(p)))')],
+  ['a expressão de gente ("a lone wolf", "a mama bear") vira bicho', EP, (s) => s.replace('if (i > 0 && IDIOMAS_DE_BICHO_1411.has(', 'if (false && IDIOMAS_DE_BICHO_1411.has(')],
+  ['"collie mix": a mistura vira o núcleo (Bobbie sai gente)', EP, (s) => s.replace('if (i > 0 && MISTURA_1411.test(palavras[i])) i--', '')],
   ['(bloqueio 2) o artigo vira a espécie ("a real living a")', TR, (s) => s.replace("return antes && !/^(?:a|an|the|", "return antes && !/^(?:")],
   ['(bloqueio 2) "mixed-breed dog" não lê o bicho depois', TR, (s) => s.replace('if (depois && !/^(?:with|and|of|in|from|named|called)$/.test(depois)) return depois', '')],
 ]

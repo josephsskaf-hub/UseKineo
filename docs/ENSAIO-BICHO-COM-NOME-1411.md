@@ -29,3 +29,10 @@ Os textos que o revisor achou (Pickles, o ouriço; Bella, a chihuahua; um trecho
 3. Na ficha, a palavra antes de "mix" nunca é o artigo nem um adjetivo; "mixed-breed X" dá X.
 
 Todos esses casos são cenários do guardião `scripts/test-bicho-com-nome-1411.mjs`, com um mutante para cada trava.
+
+## v3 depois da 2ª revisão independente (14/11): o núcleo do 1º sintagma (sugestão da CEO)
+- A lista de corte saiu. `nucleoDoBichoDaCopula` lê "<Nome> is/was a(n) …" só até a 1ª fronteira: palavra de ligação, possessivo, 2º artigo, verbo em -ing ou vírgula. Depois olha a última palavra antes dela. Se é bicho, é bicho; se não, segue gente ("collie mix" → collie).
+- Gente FAZENDO algo com bicho segue gente: "a jockey riding a horse", "a zookeeper feeding a lion", "a dad walking the dog", "a nanny walking a dog", "a toddler hugging a puppy", "a baby holding a kitten", "a falconer releasing a hawk".
+- Expressões que entraram: "mama bear", "mother hen", "papa bear", "teddy bear"…
+- Limite declarado: "Bo is a stray, scruffy dog" volta ao de antes (a vírgula fecha o sintagma em "stray"). "Bo is a stray dog" é cão.
+- Corpus de 30 dias, depois da v3: o mesmo 1 texto muda (Misho → dragão), certo.
