@@ -107,5 +107,9 @@ for (const [nome, fn] of MUTANTES) {
   if (mudou) { try { e = provas(carrega(fn)) } catch (x) { e = ['lançou: ' + x.message] } }
   checa(`mutante "${nome}" fica vermelho (${mudou ? e.length + ' erro(s)' : 'NÃO APLICOU'})`, mudou && e.length > 0)
 }
+{ // revisão independente 14/11 (B3): a regra está DESLIGADA até o ensaio no banco real fechar; a rota só a roda atrás do interruptor, nunca em herdado, e aplica o que calcula
+  const r = String(fs.readFileSync('app/api/generate-video-cinematic/route.ts', 'utf8')).split('\r\n').join('\n')
+  checa('B3 a regra está desligada (interruptor off) e a rota só a roda atrás dele, fora do herdado, dentro de try/catch, aplicando o que calcula', carrega()(ARQ).atributosLigados() === false && r.split('atributosEmTodoPlano(').length === 2 && r.includes('if (atributosLigados() && !qualidadeHerdada) { try { // KINEO-ATRIBUTOS-DO-PEDIDO-1311') && r.includes('if (atrib.relato.mudou) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = atrib.prompts[i]'))
+}
 console.log(`\n${ok} ok, ${falhas.length} falha(s)`)
 process.exit(falhas.length ? 1 : 0)

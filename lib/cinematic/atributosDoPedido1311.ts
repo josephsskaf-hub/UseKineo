@@ -23,7 +23,7 @@
 // Guardião: scripts/test-atributos-do-pedido-1311.mjs.
 
 export type ModoAtributos = 'off' | 'all'
-export const ATRIBUTOS_DO_PEDIDO_1311: ModoAtributos = 'all'
+export const ATRIBUTOS_DO_PEDIDO_1311: ModoAtributos = 'off' // DESLIGADO em 14/11 (revisão independente, bloqueio B3: idade, clima e roupa disparavam errado em pedidos reais). Só religa reescrito, com o ensaio no banco real sem disparo errado e o sim da CEO.
 export const atributosLigados = (modo: ModoAtributos = ATRIBUTOS_DO_PEDIDO_1311) => modo === 'all'
 export const ATRIBUTOS_VERSAO = 'atributos_do_pedido_1311_v2'
 export const ATRIBUTOS_EVENTO = 'cinematic_request_attributes'

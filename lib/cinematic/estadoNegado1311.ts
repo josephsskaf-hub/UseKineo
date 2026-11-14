@@ -12,7 +12,7 @@
 // escreve em pt); outras línguas: sem achado, nada muda. Interruptor ESTADO_NEGADO_1311. Guardião: scripts/test-estado-negado-1311.mjs.
 
 export type ModoEstadoNegado = 'off' | 'all'
-export const ESTADO_NEGADO_1311: ModoEstadoNegado = 'all'
+export const ESTADO_NEGADO_1311: ModoEstadoNegado = 'off' // DESLIGADO em 14/11 (revisão independente, bloqueio B2: "the fire was out of control" virava lareira fria). Só religa reescrito, com o ensaio no banco real sem disparo errado e o sim da CEO.
 export const estadoNegadoLigado = (modo: ModoEstadoNegado = ESTADO_NEGADO_1311) => modo === 'all'
 export const ESTADO_NEGADO_VERSAO = 'estado_negado_1311_v1'
 export const ESTADO_NEGADO_EVENTO = 'cinematic_negated_state'
