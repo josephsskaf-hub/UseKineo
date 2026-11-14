@@ -271,6 +271,8 @@ export function prepararQualidadeDoFilme(args: {
   elencoSemantico?: { nomes: ReadonlyArray<string>; protagonista: string; leitura?: ReadonlyArray<LeituraDaFicha> } | null
   /** KINEO-ORIGEM-DO-ELENCO-0311 — repassado à camada elencoEpoca (aplicarElencoEEpoca); ausente = byte a byte o de antes. */
   origemDoElenco?: Parameters<typeof aplicarElencoEEpoca>[0]['origemDoElenco']
+  /** KINEO-HISTORIA-REAL-1411 — repassado à camada elencoEpoca (aplicarElencoEEpoca); ausente (anúncio, hollywood, herdado) = byte a byte o de antes. */
+  historiaReal?: Parameters<typeof aplicarElencoEEpoca>[0]['historiaReal']
   /** KINEO-ELENCO-PROVA-DE-GENTE-1211 — repassado a elencoDoRoteiro e à camada elencoEpoca; ausente = byte a byte o de antes. */
   provaDeGente?: boolean
 }) {

@@ -53,60 +53,62 @@ const ANO_PRESENTE_MIN = 2015 // KINEO-ELENCO-EPOCA-2710
 const ANO_EPOCA_MAX = 2009 // KINEO-ELENCO-EPOCA-2710
 const ANO_EPOCA_MIN = 1800 // KINEO-ELENCO-EPOCA-2710
 
-// ═══ KINEO-HISTORIA-REAL-1411 [CEO 13-14/11, item 3.3] — regras 2 e 3 (o porquê: lib/cinematic/historiaReal1411.ts). Aqui, sem import novo. ═══
-export type ModoHistoriaReal = 'off' | 'all'
-export const HISTORIA_REAL_1411: ModoHistoriaReal = 'all'
-export const historiaRealLigada = (modo: ModoHistoriaReal = HISTORIA_REAL_1411) => modo === 'all'
-export const HISTORIA_REAL_VERSAO = 'historia_real_1411_v1'
+// ═══ KINEO-HISTORIA-REAL-1411 [CEO 13-14/11, item 3.3; revisão independente 14/11, B1 e C1] — o ano por extenso (o porquê: lib/cinematic/historiaReal1411.ts). ═══
+// Sem import novo (os guardiões antigos carregam este arquivo sozinhos). v2: (1) NINGUÉM lê ano por extenso por padrão — só quem pede
+// (epocaDaHistoria(ctx, { anoPorExtenso: true })), e só a estrada clássica dentro do escopo pede; anúncio, hollywood, herdado, régua e trava de
+// ficha ficam byte a byte. (2) Só vira ano o número escrito numa DATA EXPLÍCITA: logo depois de um mês ("November fourteenth, nineteen
+// sixty-five", "December, nineteen hundred", "três de novembro de dois mil e treze") ou de "the year" / "ano de". "Two thousand five hundred
+// years ago", "nineteen hundred hours", "only nineteen ninety-five", "cabiam dois mil" ficam como estão. (3) A regra de palavra "o papel É o
+// nomeado" (papelEhONomeado) SAIU: quem decide é o elenco que o modelo já leu (aplicarElencoEEpoca, historiaReal.nomeadoNoElenco).
+export type ModoHistoriaReal = 'off' | 'gratis_ideia' | 'all'
+export const HISTORIA_REAL_1411: ModoHistoriaReal = 'gratis_ideia'
+export const historiaRealLigada = (modo: ModoHistoriaReal = HISTORIA_REAL_1411) => modo !== 'off'
+export const HISTORIA_REAL_VERSAO = 'historia_real_1411_v2'
 
-// ── 3. ano por extenso ───────────────────────────────────────────────────────────────────────────────────────────────────────────
 const U: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9 }
 const TEEN: Record<string, number> = { ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19 }
 const TENS: Record<string, number> = { twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 }
 const SECULO: Record<string, number> = { sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19 }
 const u = Object.keys(U).join('|'), te = Object.keys(TEEN).join('|'), tn = Object.keys(TENS).join('|')
-const EN_RE = new RegExp(`\\b(sixteen|seventeen|eighteen|nineteen)[\\s-]+(?:(hundred)|(?:(${te})|(${tn})(?:[\\s-]+(${u}))?|oh[\\s-]+(${u})))\\b`, 'gi')
-const EN2000_RE = new RegExp(`\\btwo thousand(?:(?:\\s+and)?[\\s-]+(?:(${te})|(${tn})(?:[\\s-]+(${u}))?|(${u}))\\b|(?=\\s*[.,;!?]|\\s*$))`, 'gi')
+const EN_RE = new RegExp(String.raw`\b(sixteen|seventeen|eighteen|nineteen)[\s-]+(?:(hundred)|(?:(${te})|(${tn})(?:[\s-]+(${u}))?|oh[\s-]+(${u})))\b`, 'gi')
+const EN2000_RE = new RegExp(String.raw`\btwo thousand(?:(?:\s+and)?[\s-]+(?:(${te})|(${tn})(?:[\s-]+(${u}))?|(${u})))?\b`, 'gi')
 const PU: Record<string, number> = { um: 1, dois: 2, 'três': 3, tres: 3, quatro: 4, cinco: 5, seis: 6, sete: 7, oito: 8, nove: 9 }
 const PTEEN: Record<string, number> = { dez: 10, onze: 11, doze: 12, treze: 13, catorze: 14, quatorze: 14, quinze: 15, dezesseis: 16, dezessete: 17, dezoito: 18, dezenove: 19 }
 const PTENS: Record<string, number> = { vinte: 20, trinta: 30, quarenta: 40, cinquenta: 50, sessenta: 60, setenta: 70, oitenta: 80, noventa: 90 }
 const PCENT: Record<string, number> = { seiscentos: 600, setecentos: 700, oitocentos: 800, novecentos: 900 }
 const pu = Object.keys(PU).join('|'), pte = Object.keys(PTEEN).join('|'), ptn = Object.keys(PTENS).join('|'), pc = Object.keys(PCENT).join('|')
-const PT_RE = new RegExp(`\\bmil\\s+(${pc})(?:\\s+e\\s+(?:(${pte})|(${ptn})(?:\\s+e\\s+(${pu}))?|(${pu})))?(?![\\p{L}])`, 'giu')
-const PT2000_RE = new RegExp(`\\bdois\\s+mil(?:\\s+e\\s+(?:(${pte})|(${ptn})(?:\\s+e\\s+(${pu}))?|(${pu}))(?![\\p{L}])|(?=\\s*[.,;!?]|\\s*$))`, 'giu')
+const PT_RE = new RegExp(String.raw`\bmil\s+(${pc})(?:\s+e\s+(?:(${pte})|(${ptn})(?:\s+e\s+(${pu}))?|(${pu})))?(?![\p{L}])`, 'giu')
+const PT2000_RE = new RegExp(String.raw`\bdois\s+mil(?:\s+e\s+(?:(${pte})|(${ptn})(?:\s+e\s+(${pu}))?|(${pu})))?(?![\p{L}])`, 'giu')
 const low = (s: unknown) => String(s ?? '').toLowerCase()
+// a data explícita: o mês (em inglês com maiúscula: "may" e "march" minúsculos são verbo) com o dia opcional, ou "the year" / "ano de", COLADOS ao número
+const MES_EN = 'January|February|March|April|May|June|July|August|September|October|November|December'
+const MES_PT = '[Jj]aneiro|[Ff]evereiro|[Mm]arço|[Mm]arco|[Aa]bril|[Mm]aio|[Jj]unho|[Jj]ulho|[Aa]gosto|[Ss]etembro|[Oo]utubro|[Nn]ovembro|[Dd]ezembro'
+const DIA = String.raw`(?:the\s+)?(?:\d{1,2}(?:st|nd|rd|th)?|first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth|nineteenth|twentieth|thirtieth|twenty-[a-z]+|thirty-first)`
+const DATA_ANTES_RE = new RegExp(String.raw`(?:\b(?:${MES_EN})(?:\s+${DIA})?\s*,?\s+(?:of\s+)?|\b(?:${MES_PT})\s+de\s+|\b[Tt]he\s+year(?:\s+of)?\s+|\b[Aa]no\s+de\s+)$`, 'u')
+// o número continua ("two thousand five HUNDRED years", "dois mil E QUINHENTOS") ou é uma contagem ("nineteen hundred HOURS"): não é ano
+const NAO_E_ANO_DEPOIS_RE = /^[\s-]*(?:(?:and\s+|e\s+)?(?:hundred|thousand|million|billion|duzentos|trezentos|quatrocentos|quinhentos|seiscentos|setecentos|oitocentos|novecentos|mil|milh)|hours?\b|horas?\b)/iu
+const naData = (texto: string, pos: number, fim: number) => DATA_ANTES_RE.test(texto.slice(Math.max(0, pos - 60), pos)) && !NAO_E_ANO_DEPOIS_RE.test(texto.slice(fim, fim + 24))
 
-/** O texto com os anos por extenso em dígitos ("nineteen sixty-five" → "1965"). "She was nineteen, sixty miles away" e "two thousand soldiers" ficam. Pura. */
+/** O texto com os anos por extenso DE UMA DATA EXPLÍCITA em dígitos ("November fourteenth, nineteen sixty-five" → "…, 1965"). Fora de data, nada muda. Pura. */
 export function comAnosPorExtenso(texto: string | null | undefined): string {
-  return String(texto ?? '')
-    .replace(EN_RE, (_m, sec, hundred, teen, tens, un, oh) => String(SECULO[low(sec)] * 100 + (hundred ? 0 : teen ? TEEN[low(teen)] : tens ? TENS[low(tens)] + (un ? U[low(un)] : 0) : U[low(oh)])))
-    .replace(EN2000_RE, (_m, teen, tens, un, so) => String(2000 + (teen ? TEEN[low(teen)] : tens ? TENS[low(tens)] + (un ? U[low(un)] : 0) : so ? U[low(so)] : 0)))
-    .replace(PT_RE, (_m, c, teen, tens, un, so) => String(1000 + PCENT[low(c)] + (teen ? PTEEN[low(teen)] : tens ? PTENS[low(tens)] + (un ? PU[low(un)] : 0) : so ? PU[low(so)] : 0)))
-    .replace(PT2000_RE, (_m, teen, tens, un, so) => String(2000 + (teen ? PTEEN[low(teen)] : tens ? PTENS[low(tens)] + (un ? PU[low(un)] : 0) : so ? PU[low(so)] : 0)))
-}
-
-// ── 2. o papel sem nome é a pessoa nomeada ───────────────────────────────────────────────────────────────────────────────────────
-const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-const NOME = String.raw`\p{Lu}[\p{L}'’.-]+(?:\s+\p{Lu}[\p{L}'’.-]+){0,3}`
-/** "The thief was Vincenzo Peruggia" · "the pilot, Captain Ed Freeman," · "Vincenzo Peruggia, the thief" · "Ed Freeman was the pilot". Pura. */
-export function papelEhONomeado(texto: string | null | undefined, nucleo: string | null | undefined): boolean {
-  const t = String(texto ?? ''), n = esc(String(nucleo ?? '').trim())
-  if (!t || !n) return false
-  const papel = String.raw`(?:[Tt]he|[Oo]ur|[Tt]his)\s+(?:[\p{Ll}-]+\s+){0,3}${n}`
-  return [
-    new RegExp(String.raw`\b${papel}\s+(?:was|is|turned out to be|would be)\s+(?:(?:a|an|the)\s+)?(?:[\p{L}-]+\s+){0,2}?${NOME}`, 'u'),
-    new RegExp(String.raw`\b${papel},\s+${NOME},`, 'u'),
-    new RegExp(String.raw`${NOME},\s+(?:the|a|an)\s+(?:[\p{Ll}-]+\s+){0,3}${n}\b`, 'u'),
-    new RegExp(String.raw`${NOME}\s+(?:was|is)\s+the\s+(?:[\p{Ll}-]+\s+){0,3}${n}\b`, 'u'),
-  ].some((re) => re.test(t))
+  const t0 = String(texto ?? '')
+  const troca = (t: string, re: RegExp, valor: (g: string[]) => number) => t.replace(re, (...a: unknown[]) => {
+    const m = String(a[0]), pos = Number(a[a.length - 2])
+    return naData(t, pos, pos + m.length) ? String(valor(a.slice(1, -2).map((x) => (x === undefined ? '' : String(x))))) : m
+  })
+  let t = troca(t0, EN_RE, ([sec, hundred, teen, tens, un, oh]) => SECULO[low(sec)] * 100 + (hundred ? 0 : teen ? TEEN[low(teen)] : tens ? TENS[low(tens)] + (un ? U[low(un)] : 0) : U[low(oh)]))
+  t = troca(t, EN2000_RE, ([teen, tens, un, so]) => 2000 + (teen ? TEEN[low(teen)] : tens ? TENS[low(tens)] + (un ? U[low(un)] : 0) : so ? U[low(so)] : 0))
+  t = troca(t, PT_RE, ([c, teen, tens, un, so]) => 1000 + PCENT[low(c)] + (teen ? PTEEN[low(teen)] : tens ? PTENS[low(tens)] + (un ? PU[low(un)] : 0) : so ? PU[low(so)] : 0))
+  t = troca(t, PT2000_RE, ([teen, tens, un, so]) => 2000 + (teen ? PTEEN[low(teen)] : tens ? PTENS[low(tens)] + (un ? PU[low(un)] : 0) : so ? PU[low(so)] : 0))
+  return t
 }
 // ═══ fim KINEO-HISTORIA-REAL-1411 ═══
 
 function rotuloDaDecada(decada: number): string { return decada >= 1900 ? `${decada}s` : `${Math.floor(decada / 100) + 1}th-century` } // KINEO-ELENCO-EPOCA-2710
 
 /** A época que as PALAVRAS da história fixam (tema + fala, qualquer língua). Primeiro ano/década citado; null = presente ou época mista. */ // KINEO-ELENCO-EPOCA-2710
-export function epocaDaHistoria(contexto: string): Epoca | null { // KINEO-ELENCO-EPOCA-2710
-  const t = digitosAscii(historiaRealLigada() ? comAnosPorExtenso(String(contexto ?? '')) : String(contexto ?? '')).slice(0, 6000).replace(RESOLUCAO_RE, ' ') // KINEO-ELENCO-EPOCA-2710 · KINEO-HISTORIA-REAL-1411 — era: digitosAscii(String(contexto ?? '')) ("nineteen sixty-five" não era lido como época)
+export function epocaDaHistoria(contexto: string, opts?: { anoPorExtenso?: boolean }): Epoca | null { // KINEO-ELENCO-EPOCA-2710 · KINEO-HISTORIA-REAL-1411 (opts: só quem pede lê o ano por extenso)
+  const t = digitosAscii(opts?.anoPorExtenso === true ? comAnosPorExtenso(String(contexto ?? '')) : String(contexto ?? '')).slice(0, 6000).replace(RESOLUCAO_RE, ' ') // KINEO-ELENCO-EPOCA-2710 · KINEO-HISTORIA-REAL-1411 — era: digitosAscii(String(contexto ?? '')) ("nineteen sixty-five" não era lido como época)
   const achados: Array<{ pos: number; ano: number | null; decada: number }> = [] // KINEO-ELENCO-EPOCA-2710
   let presente = false // KINEO-ELENCO-EPOCA-2710
   for (const m of t.matchAll(ANO_RE)) { // KINEO-ELENCO-EPOCA-2710
@@ -522,7 +524,6 @@ export function protagonistaSemNome(textoIngles: string, epoca: Epoca | null = n
   if (!m) return null // KINEO-ELENCO-EPOCA-2710
   const papel = limpa(m[1]) // KINEO-ELENCO-EPOCA-2710
   const nucleo = papel.split(' ').pop() ?? papel // KINEO-ELENCO-EPOCA-2710
-  if (historiaRealLigada() && papelEhONomeado(texto, nucleo)) return null // KINEO-HISTORIA-REAL-1411 — "The thief was Vincenzo Peruggia": o papel É a pessoa nomeada; a ficha dela vale (uma pessoa, uma ficha)
   const frases = frasesCom(texto, nucleo).join(' ') // KINEO-ELENCO-EPOCA-2710
   const d = descrever(`the ${papel.toLowerCase()}`, 'humano', null, papel, frases, [], epoca, new Set(), infantil, povoDaHistoria(texto)) // KINEO-ELENCO-EPOCA-2710 · KINEO-REVISOR-RESTO-3010
   return { nome: `the ${papel.toLowerCase()}`, nomeado: false, tipo: 'humano', genero: d.genero, descricao: d.descricao.replace(/^the\s+[^,(]+(?:\s\([^)]*\))?,\s*/i, `the ${papel.toLowerCase()}, `), protagonista: true, ocorrencias: 1, posicoes: [(m.index ?? 0) / Math.max(1, texto.length)] } // KINEO-ELENCO-EPOCA-2710
@@ -620,6 +621,8 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
   kidsCartoon?: boolean // KINEO-ELENCO-EPOCA-2710
   /** KINEO-ELENCO-PROVA-DE-GENTE-1211 — nome sem prova de gente fica fora do elenco (lib/cinematic/provaDeGente); ausente = byte a byte o de antes. */
   provaDeGente?: boolean // KINEO-ELENCO-PROVA-DE-GENTE-1211
+  /** KINEO-HISTORIA-REAL-1411 — só a estrada clássica dentro do escopo passa; ausente = byte a byte o de antes. anoPorExtenso: a data explícita com o ano escrito trava a época. nomeadoNoElenco: o elenco que o modelo leu JÁ tem gente com nome do autor → esta camada não inventa um protagonista sem nome ("the thief" ao lado de Vincenzo Peruggia). */
+  historiaReal?: { anoPorExtenso?: boolean; nomeadoNoElenco?: boolean } | null // KINEO-HISTORIA-REAL-1411
   /** KINEO-PROTAGONISTA-SEEDANCE-0111 — o elenco semântico aplicado na rota (nomes lidos como personagem + o protagonista); null/ausente = comportamento de sempre. */
   elencoSemantico?: { nomes: ReadonlyArray<string>; protagonista: string } | null
   /** KINEO-ORIGEM-DO-ELENCO-0311 — de onde é quem está em cena (lib/cinematic/origemDoElenco, por injeção: esta camada segue sem rede); null/ausente = byte a byte o de antes. */
@@ -632,7 +635,7 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
   const prompts = args.prompts.map((p) => String(p ?? '')) // KINEO-ELENCO-EPOCA-2710
   const n = prompts.length // KINEO-ELENCO-EPOCA-2710
   const { texto, origem } = textoInglesDe(args.contextoOriginal, args.contextoFiltro) // KINEO-ELENCO-EPOCA-2710
-  const epoca = epocaDaHistoria(args.contextoOriginal) // KINEO-ELENCO-EPOCA-2710
+  const epoca = epocaDaHistoria(args.contextoOriginal, { anoPorExtenso: args.historiaReal?.anoPorExtenso === true }) // KINEO-ELENCO-EPOCA-2710 · KINEO-HISTORIA-REAL-1411
   const infantil = historiaInfantil(args.contextoOriginal, texto, args.kidsCartoon === true) // KINEO-ELENCO-EPOCA-2710 — a Amna do conto urdu é menina, não "a woman in her thirties"
   const relato: RelatoElencoEpoca = { versao: ELENCO_EPOCA_VERSAO, texto: origem, epoca: epoca ? { ano: epoca.ano, decada: epoca.decada, rotulo: epoca.rotulo, origem: epoca.origem } : null, cenas_com_epoca: [], elenco: [], ordem_removida: [], falsos_amigos: [], modernidades: [], motivo_sem_elenco: null, historia_infantil: infantil } // KINEO-ELENCO-EPOCA-2710
   if (n === 0) return { prompts, relato } // KINEO-ELENCO-EPOCA-2710
@@ -655,7 +658,8 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
     }
     let fichaNasCenasComGente: number[] = [] // KINEO-PROTAGONISTA-DOC-0311
     if (elenco.length === 0) { // KINEO-ELENCO-EPOCA-2710
-      const semNome = args.provaDeGente === true ? protagonistaSemNome(texto, epoca, infantil, true) : protagonistaSemNome(texto, epoca, infantil) // KINEO-ELENCO-EPOCA-2710 · KINEO-IDEIA-FICHA-ASSUNTO-1211 (A) — "photograph of a person" não é elenco
+      const nomeadoJaNoElenco1411 = args.historiaReal?.nomeadoNoElenco === true // KINEO-HISTORIA-REAL-1411 — a pessoa com nome já tem a ficha dela (folha): nada de 2ª ficha para o papel sem nome
+      const semNome = nomeadoJaNoElenco1411 ? null : args.provaDeGente === true ? protagonistaSemNome(texto, epoca, infantil, true) : protagonistaSemNome(texto, epoca, infantil) // KINEO-ELENCO-EPOCA-2710 · KINEO-IDEIA-FICHA-ASSUNTO-1211 (A) — "photograph of a person" não é elenco
       // só quando NENHUM prompt mostra gente: o passageiro do último trem sumiu porque as 3 cenas eram plataforma, relógio e trilho // KINEO-ELENCO-EPOCA-2710
       const comGente = prompts.map((p) => GENTE_NO_PROMPT_RE.test(p.replace(/no (?:foreground )?(?:human )?faces?/gi, '').replace(/No people, no human figures and no faces anywhere in this shot\./g, '').replace(/talking head|foreground human face/gi, ''))) // KINEO-PROTAGONISTA-DOC-0311
       if (semNome && !comGente.some(Boolean)) elenco = [semNome]
@@ -663,7 +667,7 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
       // KINEO-PROTAGONISTA-DOC-0311 — virava UM HOMEM DIFERENTE por cena (hansak.th 03/11, Petrov 1983, "One man stopped World War 3…": 3 homens, nota 6,5, 1º filme).
       // KINEO-PROTAGONISTA-DOC-0311 — Agora a ficha fixa dele entra nas cenas que mostram UMA pessoa (multidão fica como está) e o "a man" do plano passa a ser ele.
       else if (semNome) { elenco = [semNome]; fichaNasCenasComGente = prompts.map((p, i) => (UMA_PESSOA_NO_PROMPT_RE.test(p) && !MULTIDAO_NO_PROMPT_RE.test(p) ? i : -1)).filter((i) => i >= 0); if (fichaNasCenasComGente.length === 0) { elenco = []; relato.motivo_sem_elenco = 'protagonista_sem_nome_ja_em_cena' } } // KINEO-PROTAGONISTA-DOC-0311 // KINEO-ELENCO-EPOCA-2710
-      else relato.motivo_sem_elenco = semNome ? 'protagonista_sem_nome_ja_em_cena' : 'sem_personagem' // KINEO-ELENCO-EPOCA-2710
+      else relato.motivo_sem_elenco = nomeadoJaNoElenco1411 ? 'gente_nomeada_no_elenco' : semNome ? 'protagonista_sem_nome_ja_em_cena' : 'sem_personagem' // KINEO-ELENCO-EPOCA-2710 · KINEO-HISTORIA-REAL-1411
     } // KINEO-ELENCO-EPOCA-2710
     // KINEO-ORIGEM-DO-ELENCO-0311 — o personagem lido do texto ganha a origem que o texto prova (e perde o povo da tabela de lugares, quando discorda)
     if (args.origemDoElenco) { const povoTabela = povoDaHistoria(texto)?.povo ?? null; for (const p of elenco) { if (p.tipo !== 'humano') continue; const nova = args.origemDoElenco.descricao(p, povoTabela); if (nova) p.descricao = nova } } // KINEO-ORIGEM-DO-ELENCO-0311
