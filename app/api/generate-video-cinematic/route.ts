@@ -82,6 +82,7 @@ import { alertarFundadorFalSemSaldo } from '@/lib/filaQuedaFalServer' // KINEO-F
 import { createHash } from 'crypto'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { fichaAntesDoRenderLigada, refazerPlanoDaFicha, FICHA_ANTES_EVENTO } from '@/lib/cinematic/fichaAntesDoRender1311' // KINEO-FICHA-ANTES-DO-RENDER-1311
 import { iniciarJuizDoPlano, esperarJuizDoPlano, planoDoEnvio, JUIZ_PLANO_EVENT, type JuizPlanoVeredito } from '@/lib/juizDoPlano' // KINEO-JUIZ-PLANO-0111 [TRAVA 8.2 — vai do fundador 01/11 "concordo vai"] — juiz do plano v2 (perguntas sim/não sobre o texto que foi à fal), SÓ OBSERVAR, depois do envio
 import { FREE_WEEKLY_FILM_ADMITTED_EVENT, FREE_WEEKLY_FILM_COUNTRY_EVENTS, FREE_WEEKLY_FILM_EXCLUSIVE_REFUSED_EVENT, FREE_WEEKLY_FILM_IN_USE_MESSAGE, FREE_WEEKLY_FILM_QUALITY, FREE_WEEKLY_FILM_SECONDS, FREE_WEEKLY_FILM_WINDOW_MS, freeWeeklyCountryMatches, freeWeeklyFilmAdmissible, freeWeeklyFilmEligibility, freeWeeklyFilmExclusive } from '@/lib/freeWeeklyFilm' // KINEO-E4-SAIDA-B-2026-09-29 [TRAVA 8.2]
 import { paisDoRequest, REGION_PAID_ONLY_REFUSAL, REGION_PAID_ONLY_TRIAL_STATUS } from '@/lib/freeFilmPolicy' // KINEO-E4-SAIDA-B-2026-09-29
@@ -7415,6 +7416,17 @@ async function manipularPost(req: NextRequest) {
       const lugarFilme = qualidadeHerdada || lugarPedido ? null : lugarDasCenas(scenes.map((s) => s.description)); if (lugarFilme) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comLugarDoFilme(classicScenePrompts[i], lugarFilme) } // KINEO-LUGAR-DO-PEDIDO-1111 [CEO 11/11, reprise dos 6 filmes] — o lugar que o cliente pediu (só quando o pedido cita UM lugar) chega a toda cena; 657ad797: "a stylish Johannesburg coffee shop" virou "a café"
     if (ideiaNaFicha && !qualidadeHerdada) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comIdeiaNaCena(classicScenePrompts[i], ideiaNaFicha, { semPessoa: tagFacelessPresente }) // KINEO-IDEIA-FICHA-ASSUNTO-1211 (C) — estrada clássica (Seedance, H3 do caminho clássico, Kling 2.5, Veo, Kineo 1): pessoa e produto da ideia em todo plano, antes das imagens-chave e do clipe
     for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = relogioComPonteiros(classicScenePrompts[i]) // KINEO-RELOGIO-PONTEIROS-1111 — vizinho f2e8cffc: "clock showing 02:46" saiu ~8:40 (a proteção de texto proíbe números); o relógio vira de ponteiros apontando para a hora, mostrador sem dígitos
+    // KINEO-FICHA-ANTES-DO-RENDER-1311 [CEO 13/11, caso da Maya 28f057bc] — filme grátis do Kling 4: o juiz do plano roda AQUI, antes das imagens-chave e do
+    // 1º POST (espera até 25 s); plano com a ficha contradizendo o pedido tem a ordem do protagonista refeita com a pessoa da ideia (ou retirada).
+    // Desligado, juiz 'off', prazo, erro ou sem a_ficha: o vetor fica byte a byte. lib/cinematic/fichaAntesDoRender1311.ts.
+    if (kling4TrialCandidate && fichaAntesDoRenderLigada() && !qualidadeHerdada) { // KINEO-FICHA-ANTES-DO-RENDER-1311
+      try { // KINEO-FICHA-ANTES-DO-RENDER-1311
+        const vFicha = await esperarJuizDoPlano(iniciarJuizDoPlano({ ...planoDoEnvio({ kling4Candidato: true, kling4Input: () => (scenes.length === 3 && scenes.every(s => [6, 7, 8].includes(s.clipSeconds ?? 6)) ? buildKling4TrialInput(classicScenePrompts.map((p, i) => promptDaCenaKling4(p, styleAnchor, i, true)), [], { voiceovers: scenes.map(s => s.voiceover ?? ''), wordsPerSecond: narrationRate.wordsPerSecond }).input : null), falas: scenes.map((s) => s.voiceover ?? ''), inputs: classicScenePrompts.map((p) => ({ prompt: p })) }), engine: 'kling4', pedido: prompt, verbatim, seconds: duration })) // KINEO-FICHA-ANTES-DO-RENDER-1311
+        const fichaAntes = refazerPlanoDaFicha({ prompts: classicScenePrompts, veredito: vFicha, pessoaDaIdeia: ideiaNaFicha?.pessoa ?? null }) // KINEO-FICHA-ANTES-DO-RENDER-1311
+        if (fichaAntes.relato.refeitos.some((r) => r.acao !== 'nada')) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = fichaAntes.prompts[i] // KINEO-FICHA-ANTES-DO-RENDER-1311
+        if (vFicha) void writeServerEvent({ name: FICHA_ANTES_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { ...fichaAntes.relato, dry_run: body.dry_run === true } }).catch(() => false) // KINEO-FICHA-ANTES-DO-RENDER-1311
+      } catch (e) { console.warn('[cinematic] KINEO-FICHA-ANTES-DO-RENDER falhou, prompts seguem como estavam:', e instanceof Error ? e.message : String(e)) } // KINEO-FICHA-ANTES-DO-RENDER-1311
+    } // KINEO-FICHA-ANTES-DO-RENDER-1311
 
     // ═══ KINEO-DRYRUN-CLASSICO-2026-09-12 — O VALIDADOR DE $0 COBRE OS CLÁSSICOS ═══
     // Até 11/09 `dry_run: true` só parava a família Kling 3/H3/Omni (bloco
