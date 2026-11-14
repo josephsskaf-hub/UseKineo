@@ -1,7 +1,7 @@
 'use client'
 
 // Browser-local handoff only. No network, auth, render intent, signed path or server result is persisted.
-import { SEU_VIDEO_LIMITES } from './seuVideo'
+import { SEU_VIDEO_LIMITES, type SeuVideoGender } from './seuVideoRules'
 import { seuVideoCatalogItem } from './seuVideoCatalog'
 import { seuVideoContentType } from './seuVideoFileType'
 
@@ -11,6 +11,7 @@ export type SeuVideoDraft = {
   prompt: string
   people: 1 | 2 | 3
   consent: boolean
+  genders?: SeuVideoGender[]
   requestKey?: string
 }
 export class SeuVideoDraftStorageError extends Error {
@@ -26,7 +27,7 @@ const TTL = 2 * 60 * 60 * 1000, PHOTO_MAX_BYTES = 8 * 1024 * 1024
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i
 type Reference = { tab: string; owner: string; id: string }
 type StoredFile = { blob: Blob; name: string; lastModified: number }
-type StoredDraft = { version: 1; tab: string; id: string; at: number; source: { kind: 'upload'; file: StoredFile } | { kind: 'catalog'; id: string }; photos: StoredFile[]; prompt: string; people: 1 | 2 | 3; consent: boolean; requestKey?: string }
+type StoredDraft = { version: 1; tab: string; id: string; at: number; source: { kind: 'upload'; file: StoredFile } | { kind: 'catalog'; id: string }; photos: StoredFile[]; prompt: string; people: 1 | 2 | 3; consent: boolean; genders?: SeuVideoGender[]; requestKey?: string }
 let pending: Promise<unknown> = Promise.resolve()
 function serial<T>(work: () => Promise<T>): Promise<T> { const result = pending.then(work, work); pending = result.then(() => undefined, () => undefined); return result }
 const object = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value)
@@ -41,12 +42,17 @@ function catalogId(id: unknown): id is string {
 function validBlob(blob: unknown, video: boolean, name = ''): blob is Blob {
   return typeof Blob !== 'undefined' && blob instanceof Blob && blob.size > 0 && blob.size <= (video ? SEU_VIDEO_LIMITES.maxBytes : PHOTO_MAX_BYTES) && (video ? seuVideoContentType({ name, type: blob.type }) !== null : ['image/jpeg', 'image/png', 'image/webp'].includes(blob.type))
 }
+function validGenders(genders: unknown, people: unknown): boolean {
+  // Earlier drafts did not ask for a choice; the form requests it on return.
+  return genders === undefined || (Array.isArray(genders) && genders.length === people &&
+    Array.from(genders).every(value => value === 'man' || value === 'woman'))
+}
 function validInput(value: unknown): value is SeuVideoDraft {
-  if (!object(value) || !only(value, ['source', 'photos', 'prompt', 'people', 'consent', 'requestKey']) || !object(value.source)) return false
+  if (!object(value) || !only(value, ['source', 'photos', 'prompt', 'people', 'consent', 'genders', 'requestKey']) || !object(value.source)) return false
   const source = value.source
   if (source.kind === 'upload') { if (!only(source, ['kind', 'file']) || typeof File === 'undefined' || !(source.file instanceof File) || !validBlob(source.file, true, source.file.name)) return false }
   else if (source.kind !== 'catalog' || !only(source, ['kind', 'id']) || !catalogId(source.id)) return false
-  return [1, 2, 3].includes(value.people as number) && Array.isArray(value.photos) && value.photos.length === value.people && value.photos.length <= SEU_VIDEO_LIMITES.maxFotos && value.photos.every(file => typeof File !== 'undefined' && file instanceof File && validBlob(file, false)) && typeof value.prompt === 'string' && value.prompt.length <= SEU_VIDEO_LIMITES.maxPrompt && typeof value.consent === 'boolean' && keyValid(value.requestKey)
+  return [1, 2, 3].includes(value.people as number) && Array.isArray(value.photos) && value.photos.length === value.people && value.photos.length <= SEU_VIDEO_LIMITES.maxFotos && value.photos.every(file => typeof File !== 'undefined' && file instanceof File && validBlob(file, false)) && typeof value.prompt === 'string' && value.prompt.length <= SEU_VIDEO_LIMITES.maxPrompt && typeof value.consent === 'boolean' && validGenders(value.genders, value.people) && keyValid(value.requestKey)
 }
 function pack(file: File): StoredFile {
   const safeName = file.name.replace(/[\\/:?*|<>\u0000-\u001f]/g, '_') || 'file', extension = /\.(?:mp4|mov)$/i.exec(safeName)?.[0] ?? ''
@@ -57,11 +63,11 @@ function pack(file: File): StoredFile {
 function validStoredFile(value: unknown, video: boolean): value is StoredFile { return object(value) && only(value, ['blob', 'name', 'lastModified']) && typeof value.name === 'string' && value.name.length > 0 && value.name.length <= 200 && !/[\\/:?*|<>\u0000-\u001f]/.test(value.name) && validBlob(value.blob, video, value.name) && typeof value.lastModified === 'number' && Number.isFinite(value.lastModified) && value.lastModified >= 0 }
 function unpack(file: StoredFile): File { return new File([file.blob], file.name, { type: file.blob.type, lastModified: file.lastModified }) }
 function validStored(value: unknown, ref: Reference): value is StoredDraft {
-  if (!object(value) || !only(value, ['version', 'tab', 'id', 'at', 'source', 'photos', 'prompt', 'people', 'consent', 'requestKey']) || value.version !== 1 || value.tab !== ref.owner || value.id !== ref.id || !fresh(value.at) || !object(value.source)) return false
+  if (!object(value) || !only(value, ['version', 'tab', 'id', 'at', 'source', 'photos', 'prompt', 'people', 'consent', 'genders', 'requestKey']) || value.version !== 1 || value.tab !== ref.owner || value.id !== ref.id || !fresh(value.at) || !object(value.source)) return false
   const source = value.source
   if (source.kind === 'upload') { if (!only(source, ['kind', 'file']) || !validStoredFile(source.file, true)) return false }
   else if (source.kind !== 'catalog' || !only(source, ['kind', 'id']) || !catalogId(source.id)) return false
-  return [1, 2, 3].includes(value.people as number) && Array.isArray(value.photos) && value.photos.length === value.people && value.photos.length <= SEU_VIDEO_LIMITES.maxFotos && value.photos.every(file => validStoredFile(file, false)) && typeof value.prompt === 'string' && value.prompt.length <= SEU_VIDEO_LIMITES.maxPrompt && typeof value.consent === 'boolean' && keyValid(value.requestKey)
+  return [1, 2, 3].includes(value.people as number) && Array.isArray(value.photos) && value.photos.length === value.people && value.photos.length <= SEU_VIDEO_LIMITES.maxFotos && value.photos.every(file => validStoredFile(file, false)) && typeof value.prompt === 'string' && value.prompt.length <= SEU_VIDEO_LIMITES.maxPrompt && typeof value.consent === 'boolean' && validGenders(value.genders, value.people) && keyValid(value.requestKey)
 }
 function storageError(error: unknown): SeuVideoDraftStorageError { if (error instanceof SeuVideoDraftStorageError) return error; return new SeuVideoDraftStorageError(object(error) && error.name === 'QuotaExceededError' ? 'quota' : 'unavailable') }
 function tab(create: boolean): string | null {
@@ -132,7 +138,7 @@ export function saveSeuVideoDraft(draft: SeuVideoDraft): Promise<boolean> {
         if (sessionStorage.getItem(REF_KEY) !== raw) throw new SeuVideoDraftStorageError('unavailable')
         created = true
       }
-      const record: StoredDraft = { version: 1, tab: ref.owner, id: ref.id, at: Date.now(), source: draft.source.kind === 'catalog' ? { kind: 'catalog', id: draft.source.id } : { kind: 'upload', file: pack(draft.source.file) }, photos: draft.photos.map(pack), prompt: draft.prompt, people: draft.people, consent: draft.consent, ...(draft.requestKey === undefined ? {} : { requestKey: draft.requestKey }) }
+      const record: StoredDraft = { version: 1, tab: ref.owner, id: ref.id, at: Date.now(), source: draft.source.kind === 'catalog' ? { kind: 'catalog', id: draft.source.id } : { kind: 'upload', file: pack(draft.source.file) }, photos: draft.photos.map(pack), prompt: draft.prompt, people: draft.people, consent: draft.consent, ...(draft.genders ? { genders: [...draft.genders] } : {}), ...(draft.requestKey === undefined ? {} : { requestKey: draft.requestKey }) }
       await expire()
       await transaction('readwrite', store => store.put(record))
       return true
@@ -155,7 +161,7 @@ export function restoreSeuVideoDraft(explicitRef?: string): Promise<SeuVideoDraf
     if (!validStored(record, ref)) throw new SeuVideoDraftStorageError('corrupt')
     await expire()
     if (explicitRef !== undefined) adopt({ tab: tab(true)!, owner: record.tab, id })
-    return { source: record.source.kind === 'catalog' ? { kind: 'catalog', id: record.source.id } : { kind: 'upload', file: unpack(record.source.file) }, photos: record.photos.map(unpack), prompt: record.prompt, people: record.people, consent: record.consent, ...(record.requestKey === undefined ? {} : { requestKey: record.requestKey }) }
+    return { source: record.source.kind === 'catalog' ? { kind: 'catalog', id: record.source.id } : { kind: 'upload', file: unpack(record.source.file) }, photos: record.photos.map(unpack), prompt: record.prompt, people: record.people, consent: record.consent, ...(record.genders ? { genders: [...record.genders] } : {}), ...(record.requestKey === undefined ? {} : { requestKey: record.requestKey }) }
   })
 }
 
@@ -167,5 +173,13 @@ export function clearSeuVideoDraft(explicitRef?: string): Promise<void> {
     const id = explicitRef ?? ref?.id; if (!id) return
     if (explicitRef === undefined) { const record = await transaction<unknown>('readonly', store => store.get(id)); if (object(record) && record.tab !== ref!.owner) throw new SeuVideoDraftStorageError('corrupt') }
     await transaction('readwrite', store => store.delete(id)); if (ref?.id === id) removeReference(); await expire()
+  })
+}
+
+/** Signing out applies to the device, even when initiated from a different tab. */
+export function clearSeuVideoDraftsOnLogout(): Promise<void> {
+  return serial(async () => {
+    await transaction('readwrite', store => store.clear())
+    removeReference()
   })
 }

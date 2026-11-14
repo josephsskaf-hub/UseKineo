@@ -47,6 +47,9 @@ function comTeto<T>(p: Promise<T>, ms: number): Promise<T | 'teto'> {
 }
 
 async function executarSaida(): Promise<void> {
+  const clearDrafts = import('@/lib/recreate/seuVideoDraft')
+    .then(module => module.clearSeuVideoDraftsOnLogout())
+    .catch(() => undefined)
   const supabase = createClient()
   // 1. Nada mais renova nem regrava o cookie enquanto saímos (relógio de refresh e realtime parados).
   try { supabase.auth.stopAutoRefresh() } catch { /* ignora */ }
@@ -72,6 +75,8 @@ async function executarSaida(): Promise<void> {
   // 3. signOut local do auth-js, com teto: avisa as outras abas (SIGNED_OUT) e limpa a memória do cliente.
   //    A sessão já foi revogada no passo 2, então ele não consegue renovar nada. Não dependemos dele para sair.
   try { await comTeto(supabase.auth.signOut({ scope: 'local' }), SAIR_DA_CONTA_LOCAL_TIMEOUT_MS) } catch { /* ignora */ }
+
+  await comTeto(clearDrafts, SAIR_DA_CONTA_LOCAL_TIMEOUT_MS)
 
   // 4. Apaga no navegador (de novo, imediatamente antes de sair da página) e navega DURO.
   apagarSessaoNoNavegador()

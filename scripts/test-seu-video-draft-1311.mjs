@@ -41,11 +41,11 @@ function database() {
         if (action === 'put' && state.quota || action === 'get' && state.failRead || action === 'delete' && state.failDelete) {
           const error = new Error('storage failed'); error.name = action === 'put' ? 'QuotaExceededError' : 'AbortError'; r.error = error; tx.error = error; r.onerror?.(); tx.onabort?.(); return
         }
-        r.result = action === 'get' ? structuredClone(state.rows.get(key)) : action === 'put' ? (state.rows.set(key.id, structuredClone(key)), key.id) : state.rows.delete(key)
+        r.result = action === 'get' ? structuredClone(state.rows.get(key)) : action === 'put' ? (state.rows.set(key.id, structuredClone(key)), key.id) : action === 'clear' ? state.rows.clear() : state.rows.delete(key)
         r.onsuccess?.(); if (complete) queueMicrotask(() => tx.oncomplete?.())
       }); return r
     }
-    return { indexNames: { contains: name => state.indexes.has(name) }, createIndex(name) { state.indexes.add(name) }, get: key => request('get', key), put: value => request('put', value), delete: key => request('delete', key), index(name) {
+    return { indexNames: { contains: name => state.indexes.has(name) }, createIndex(name) { state.indexes.add(name) }, get: key => request('get', key), put: value => request('put', value), delete: key => request('delete', key), clear: () => request('clear'), index(name) {
       return { openKeyCursor(range) {
         state.log.push({ action: 'expired-keys', index: name })
         const keys = [...state.rows.values()].filter(row => typeof row.at === 'number' && (range.open ? row.at < range.upper : row.at <= range.upper)).map(row => row.id)
@@ -133,6 +133,14 @@ async function verify(override = null) {
   savedGeneric.source.file.name = 'masquerade.mp4'
   await rejectsCode('file-type-rejection', () => fileTypes.api.restoreSeuVideoDraft(), fileTypes.api, 'corrupt')
 
+  const shared = database(), firstTab = world({ idb: shared, override }), secondTab = world({ idb: shared, override })
+  const named = draft({ genders: ['woman'] })
+  check('genders', await firstTab.api.saveSeuVideoDraft(named), 'save per-photo choice')
+  check('genders', (await firstTab.api.restoreSeuVideoDraft()).genders.join() === 'woman', 'restore exact choice')
+  check('genders', !(await firstTab.api.saveSeuVideoDraft(draft({ genders: [] }))), 'reject incomplete choices')
+  await secondTab.api.saveSeuVideoDraft(draft())
+  await secondTab.api.clearSeuVideoDraftsOnLogout()
+  check('logout', shared.state.rows.size === 0 && await firstTab.api.restoreSeuVideoDraft() === null, 'logout clears local media across tabs')
   const catalog = world({ override })
   check('catalog', await catalog.api.saveSeuVideoDraft(draft({ source: { kind: 'catalog', id: 'selfie-confete' } })), 'canonical public swap stores its ID only')
   check('catalog', (await catalog.api.restoreSeuVideoDraft()).source.id === 'selfie-confete', 'catalog restored without storing/downloading its remote video')
