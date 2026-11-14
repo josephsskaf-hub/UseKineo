@@ -406,8 +406,10 @@ export function comElencoNaCena(prompt: string, visual: string, elenco: Readonly
 export type ModoComentarioNaoECena = 'off' | 'all'
 export const COMENTARIO_NAO_E_CENA_1411: ModoComentarioNaoECena = 'all'
 export const comentarioNaoECenaLigado = (modo: ModoComentarioNaoECena = COMENTARIO_NAO_E_CENA_1411) => modo === 'all'
-/** O gatilho do comentário e o resto da frase. "suggesting" e "representing" ficam fora: no corpus aparecem literais ("the fridge suggesting kale"). */
-const COMENTARIO_RE = /(?<![\p{L}])(?:hint(?:s|ed|ing)?\s+at|symboli[sz](?:e|es|ed|ing)|evok(?:e|es|ed|ing)|reminiscent\s+of|in\s+hono(?:u)?r\s+of|a\s+tribute\s+to|allud(?:e|es|ed|ing)\s+to)(?![\p{L}])[^.!?]*/giu
+/** O gatilho do comentário e o resto dele, até a 1ª vírgula ou o fim da frase. "suggesting" e "representing" ficam fora: no corpus aparecem
+ *  literais ("the fridge suggesting kale"). v3 [revisor 14/11 11:08]: com o comentário ABRINDO a frase ("Evoking his childhood, Tom walks
+ *  through the old house."), o corte até o ponto levava o Tom junto; a vírgula fecha o comentário. */
+const COMENTARIO_RE = /(?<![\p{L}])(?:hint(?:s|ed|ing)?\s+at|symboli[sz](?:e|es|ed|ing)|evok(?:e|es|ed|ing)|reminiscent\s+of|in\s+hono(?:u)?r\s+of|a\s+tribute\s+to|allud(?:e|es|ed|ing)\s+to)(?![\p{L}])[^.!?,;]*/giu
 const PRONOME_RE = /(?<![\p{L}])(?:he|him|his|himself|she|her|hers|herself|they|them|their|theirs)(?![\p{L}])/giu
 const escapaComentario1411 = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 

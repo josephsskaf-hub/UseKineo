@@ -113,3 +113,14 @@ A lista dos roteiros vai à CEO por mensagem: cada um 3 vezes seguidas, JSON int
 - O substantivo logo depois que é PARTE do lugar (stop, room, ward, lobby, platform…) agora entra na frase. O tipo do lugar não muda.
 - "on the city bus" já dava "the city bus".
 - Corpus: os mesmos 3 filmes mudam, os 3 certos.
+
+## v3 depois do 2º bloqueio do revisor (CEO 14/11 11:08)
+- Com o comentário ABRINDO a frase, o corte até o ponto final levava o protagonista junto. "Evoking his childhood, Tom walks through the old house." passava a "No people" e sem ficha nas duas portas.
+- Agora o comentário termina na 1ª vírgula ou no fim da frase.
+- Executado com a regra ligada e desligada:
+  - os 4 planos do Tom ("Evoking his childhood…", "Symbolizing a new start…", "Hinting at the storm to come…", "In honor of his father…") saem iguais à base, com ficha nas duas portas;
+  - "Symbolizing hope, Lincoln crosses the bridge" fica com o Lincoln;
+  - a ilha segue sem ficha e sem gente nas duas formas.
+- O guardião tem um cenário que prova que as duas portas (ajuste e sceneStyle) dão a mesma resposta em todo plano dos cenários.
+- No corpus, os 2 casos certos (as latas de filme e "symbolizing God's presence, radiating…") seguem iguais: a vírgula não corta o comentário deles.
+- Anotado para o próximo ensaio da lista de gente: "a lone runner" não é lido como gente (defeito antigo, já assim na base).

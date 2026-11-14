@@ -70,6 +70,14 @@ function provasC(L) {
   const S = L(ST), anc = S.deriveStyleAnchor('photorealistic')
   if (S.buildStoryScenePrompt("Aerial shot of Howland Island, empty ocean, with a stillness that hints at the mystery of Amelia Earhart's disappearance.", anc, elenco[0].canonica).includes('consistent design')) erros.push('C v2 a sceneStyle ainda põe a ficha na ilha')
   if (!S.buildStoryScenePrompt(ator, anc, elenco[0].canonica).includes('consistent design')) erros.push('C v2 a sceneStyle tirou a ficha do ator')
+  // v3 [revisor 14/11 11:08]: comentário ABRINDO a frase fecha na vírgula; o protagonista depois dela fica, com ficha, nas DUAS portas
+  const TOM = [{ nome: 'Tom', nucleo: 'Tom', tipo: 'humano', canonica: 'Tom, a quiet man of forty with grey hair', origem: 'deterministica', protagonista: true, genero: 'man' }]
+  const LINCOLN = [{ nome: 'Lincoln', nucleo: 'Lincoln', tipo: 'humano', canonica: 'Lincoln, a very tall thin man with a dark beard and a black stovepipe hat', origem: 'deterministica', protagonista: true, genero: 'man' }]
+  const ABRINDO = [[TOM, 'Evoking his childhood, Tom walks through the old house.'], [TOM, 'Symbolizing a new start, Tom opens the front door.'], [TOM, 'Hinting at the storm to come, Tom looks at the dark sky.'], [TOM, 'In honor of his father, Tom lights a candle.'], [LINCOLN, 'Symbolizing hope, Lincoln crosses the bridge.']]
+  const portas = (el, plano) => { const vs = ['A wide establishing shot.', 'A close-up of a road.', plano, 'A radio on a desk.']; const r = A.ajustarPromptsDoElenco({ prompts: vs, visuals: vs, falas: ['', '', '', ''], elenco: el }); return { semGente: r.semGente.includes(3), ajuste: r.cenas[2].nomes.length > 0, story: S.buildStoryScenePrompt(plano, anc, el[0].canonica).includes('consistent design') } }
+  for (const [el, plano] of ABRINDO) { const p = portas(el, plano); if (p.semGente || !p.ajuste || !p.story) erros.push(`C v3 comentário abrindo a frase levou o protagonista (${JSON.stringify(p)}): ${plano}`) }
+  // as duas portas dão a MESMA resposta em todo plano dos cenários (abrindo, no meio, no fim, o ator, a ilha)
+  for (const [el, plano] of [...ABRINDO, [elenco, ator], [elenco, "Aerial shot of Howland Island, empty ocean, with a stillness that hints at the mystery of Amelia Earhart's disappearance."], [elenco, 'Aerial shot of Howland Island, empty ocean, with a stillness that hints at the mystery of her disappearance.'], [TOM, 'A wide shot of the old house, hinting at the childhood of Tom.']]) { const p = portas(el, plano); if (p.ajuste !== p.story) erros.push(`C v3 as duas portas discordam (ajuste ${p.ajuste}, sceneStyle ${p.story}): ${plano}`) }
   return erros
 }
 
@@ -98,7 +106,8 @@ const MUTANTES = [
   [COM, provasC, 'C "suggesting" entra como comentário', (s) => s.replace('|allud(?:e|es|ed|ing)\\s+to)', '|allud(?:e|es|ed|ing)\\s+to|suggesting)')],
   [COM, provasC, 'C v2 o comentário vale mesmo com gente fora dele (o bloqueio)', (s) => s.replace('  if (fora === v || mostraAlguem(fora)) return v', '  if (fora === v) return v')],
   [COM, provasC, 'C v2 o comentário inteiro sai (a v1, que tirava os soldados)', (s) => s.replace("  return v.replace(COMENTARIO_RE, (c) => (nomeRe ? c.replace(nomeRe, '') : c).replace(PRONOME_RE, ''))", '  return fora')],
-  [ST, provasC, 'C v2 a sceneStyle ignora o comentário', (s) => s.replace('mentionsStoryCharacter(vQuem, character)', 'mentionsStoryCharacter(v, character)')],
+  [COM, provasC, 'C v3 o comentário volta a ir até o ponto (leva o Tom)', (s) => s.replace(String.raw`allud(?:e|es|ed|ing)\s+to)(?![\p{L}])[^.!?,;]*/giu`, String.raw`allud(?:e|es|ed|ing)\s+to)(?![\p{L}])[^.!?]*/giu`)],
+  [COM, provasC, 'C v2 a sceneStyle ignora o comentário', (s) => s.replace('mentionsStoryCharacter(vQuem, character)', 'mentionsStoryCharacter(v, character)')],
   [PED, provasB, 'B (vi) a parte do lugar fica fora ("the bus")', (s) => s.replace('if (!lugarDeModificador(t, m)) return comParteDoLugar(t, m)', 'if (!lugarDeModificador(t, m)) return m')],
 ]
 for (const [arq, prova, nome, fn] of MUTANTES) {
