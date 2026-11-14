@@ -23,11 +23,11 @@ import { decideEngineGate } from '@/lib/enginePlanGate'
 import { downloadPublicAnimateImage } from '@/lib/animate/remoteImage'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { RECREATE_MODEL } from '@/lib/recreate/generation' // KINEO-RECREATE-TRAVA-1011
-import { KLING4_EDIT_MODEL, silenciarMp4, somOriginalDaLinha } from '@/lib/recreate/seuVideo' // KINEO-RECREATE-SEU-VIDEO-1311 · KINEO-RECREATE-KLING4-1311
+import { KLING4_EDIT_MODEL, silenciarMp4, somOriginalDaLinha, ehModeloDoSeuVideo, trilhaDeSomPorUrl, SEU_VIDEO_MUDO_EVENTO } from '@/lib/recreate/seuVideo' // KINEO-RECREATE-SEU-VIDEO-1311 · KINEO-RECREATE-KLING4-1311
 import { usaTravaNaoTrocou } from '@/lib/recreate/swapCheck' // KINEO-RECREATE-SEU-VIDEO-1311
 import { AUDITORIA_MAX_BYTES, AUDITORIA_PASTA, caminhoDaAuditoria, orcamentoDaCopia, vencidos, venceEm } from '@/lib/recreate/auditoriaDaTrava' // KINEO-RECREATE-AUDITORIA-DA-TRAVA-1411
 import { QUARANTINE_BUCKET } from '@/lib/safety/quarantine' // KINEO-RECREATE-AUDITORIA-DA-TRAVA-1411 — o bucket privado da casa
-import { RECREATE_SWAP_AUDIT_EVENT, isRecreateNotSwappedReason, RECREATE_SWAP_CHECK_EVENT, SWAP_CHECK_LOCK_PREFIX, SWAP_CHECK_LOCK_STALE_MS, recreateRowContext, runSwapCheck, swapCheckBusy, swapCheckLock, sweepSwapRefunds, SWAP_REFUND_SWEEP_REASONS, type SwapVerdict } from '@/lib/recreate/swapCheck' // KINEO-RECREATE-TRAVA-1011
+import { RECREATE_SWAP_AUDIT_EVENT, isRecreateNotSwappedReason, RECREATE_SWAP_CHECK_EVENT, SWAP_CHECK_LOCK_PREFIX, SWAP_CHECK_LOCK_STALE_MS, readSwapApproval, swapApproval, recreateRowContext, runSwapCheck, swapCheckBusy, swapCheckLock, sweepSwapRefunds, SWAP_REFUND_SWEEP_REASONS, type SwapVerdict } from '@/lib/recreate/swapCheck' // KINEO-RECREATE-TRAVA-1011
 import { alertFalExhausted, looksExhausted } from '@/lib/falAlert'
 import {
   CLIP_ENGINES,
@@ -409,14 +409,20 @@ async function persistClipVideo(admin: SupabaseClient, row: ClipRow, providerUrl
   // KINEO-RECREATE-SEU-VIDEO-1311 — o Recreate "com o seu vídeo" (Seedance 2.5, sai mudo) passa pela MESMA montagem para receber o som
   // original do vídeo do cliente; com marca (quem não paga) ou só o som (quem paga). Fora dele, audio = null e nada muda. Dentro do
   // interruptor da marca de propósito: desligado, nada da montagem roda (nem o import), e o clipe sai mudo como na Entrega A.
-  const audio = somOriginalDaLinha(row, process.env.NEXT_PUBLIC_SUPABASE_URL ?? '') // KINEO-RECREATE-SEU-VIDEO-1311
+  const somDaLinha = somOriginalDaLinha(row, process.env.NEXT_PUBLIC_SUPABASE_URL ?? '') // KINEO-RECREATE-SEU-VIDEO-1311
+  // KINEO-RECREATE-SOM-VERDADE-1411 (c) — original sem trilha de som: a montagem do som não entra (nada a pôr); o clipe sai mudo e o status diz isso.
+  const semTrilha = somDaLinha ? (await trilhaDeSomPorUrl(somDaLinha.url, (u, init) => fetch(u, { ...init, signal: AbortSignal.timeout(5_000) }))) === false : false
+  const audio = semTrilha ? null : somDaLinha
+  const mudo = async (motivo: string) => { await clipEvent(row.user_id)(SEU_VIDEO_MUDO_EVENTO, { ...clipTelemetry(row), motivo }).catch(() => {}) } // KINEO-RECREATE-SOM-VERDADE-1411 (b)
   if (FREE_CLIP_WATERMARK_LIVE || isFreeClipMarkTestKey(row.idempotency_key)) {
     const { persistFreeClipWithMark } = await import('@/lib/clips/freeClipWatermarkServer')
     const marked = await persistFreeClipWithMark({
       admin, row, providerUrl, bucket: CLIPS_BUCKET, table: CLIPS_TABLE, cleanToken: clipCleanToken(row.id), expireMs: CLIP_EXPIRE_MS, audio, mute: row.model === KLING4_EDIT_MODEL, // KINEO-RECREATE-SEU-VIDEO-1311 — + audio · KINEO-RECREATE-KLING4-1311 — + mute
     })
-    if (marked !== null) return marked
+    if (marked !== null) { if (semTrilha) await mudo('sem_trilha_no_original'); return marked }
   }
+  // KINEO-RECREATE-SOM-VERDADE-1411 (b) — o "seu vídeo" com som prometido saiu pelo caminho sem montagem: mudo, e isso fica registrado para o status dizer a verdade.
+  if (somDaLinha) await mudo(semTrilha ? 'sem_trilha_no_original' : 'sem_montagem')
   const res = await fetch(providerUrl, { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS), cache: 'no-store' })
   if (!res.ok) throw new Error(`download ${res.status}`)
   const cru = await res.arrayBuffer() // KINEO-RECREATE-KLING4-1311 — era: const buf = await res.arrayBuffer()
@@ -548,6 +554,14 @@ export function recreateSwapDepsFor(admin: SupabaseClient, userId: string): Recr
   return {
     applies: (row) => usaTravaNaoTrocou(row.model), // KINEO-RECREATE-SEU-VIDEO-1311 — era: row.model === RECREATE_MODEL (CEO 13/11: o Seedance 2.5 também gera sem trocar e sem erro)
     busy: (row, now) => swapCheckBusy(row.failure_reason, now),
+    // KINEO-RECREATE-VEREDITO-UMA-VEZ-1411 — o veredito que libera a entrega fica na linha: as passadas seguintes (a montagem do som) não rodam o juiz de novo.
+    approved: (row) => (row.status === 'processing' ? readSwapApproval(row.failure_reason) : null),
+    approve: async (id, lock, result) => {
+      const marca = swapApproval(result, Date.now())
+      const { data, error } = await admin.from(CLIPS_TABLE).update({ failure_reason: marca }).eq('id', id).eq('status', 'processing').eq('failure_reason', lock).select('id')
+      if (error) console.error(`[clips] recreate approve failed clip=${id}:`, error.message)
+      return !error && (data ?? []).length > 0 ? marca : null
+    },
     claim: async (row) => {
       const now = Date.now()
       const lock = swapCheckLock(now, randomUUID().slice(0, 8))
@@ -773,6 +787,21 @@ export async function filaKlingEditEstado(admin: SupabaseClient, clipId?: string
 export const tirarDaFila = (admin: SupabaseClient, clipId: string, motivo: string) => fecharClipeDaFila(admin, clipId, motivo, 'na_fila')
 /** Pedidos do "seu vídeo" (Kling edit) ainda ABERTOS desta conta, do mais antigo ao mais novo, com "está na fila" (nada enviado). Erro = null. */
 // KINEO-RECREATE-FILA-REVISAO-3-1411 (X1) — + naFila: a reconferência depois de entrar precisa saber quem já vai ao fornecedor.
+/**
+ * KINEO-RECREATE-SOM-VERDADE-1411 [revisor independente + CEO 14/11, (b)] — o som que o clipe ENTREGUE do "seu vídeo" tem de verdade: 'original' | 'silent' | null (não
+ * é "seu vídeo", não está pronto, ou a leitura falhou: a tela fica com o que já mostra). Mudo quando: o som está desligado para ele, a montagem
+ * não roda, a montagem caiu no limpo (clip_watermark_failed, menos a leitura do perfil, que segue para a montagem só do som) ou ele saiu pelo
+ * caminho sem montagem / sem trilha no original (recreate_seu_video_mudo). A apresentação promete "original"; o clipe diz o que recebeu.
+ */
+export async function somDoClipeEntregue(admin: SupabaseClient, row: ClipRow): Promise<'original' | 'silent' | null> {
+  if (row.status !== 'done' || !ehModeloDoSeuVideo(row.model)) return null
+  if (!somOriginalDaLinha(row, process.env.NEXT_PUBLIC_SUPABASE_URL ?? '')) return 'silent'
+  if (!(FREE_CLIP_WATERMARK_LIVE || isFreeClipMarkTestKey(row.idempotency_key))) return 'silent'
+  const { data, error } = await admin.from('events').select('name, metadata').in('name', ['clip_watermark_failed', SEU_VIDEO_MUDO_EVENTO]).eq('metadata->>clip_id', row.id).limit(20)
+  if (error) return null
+  const mudo = (data ?? []).some((e) => { const x = e as { name?: unknown; metadata?: { stage?: unknown } | null }; return x.name === SEU_VIDEO_MUDO_EVENTO || (x.name === 'clip_watermark_failed' && x.metadata?.stage !== 'profile') })
+  return mudo ? 'silent' : 'original'
+}
 export async function seuVideoAbertosDaConta(admin: SupabaseClient, userId: string): Promise<Array<{ id: string; naFila: boolean }> | null> {
   const { data, error } = await admin.from(CLIPS_TABLE).select('id, status, failure_reason, fal_request_id').eq('user_id', userId).eq('model', KLING4_EDIT_MODEL).in('status', ['pending', 'processing'])
     .order('created_at', { ascending: true }).order('id', { ascending: true }).limit(20)

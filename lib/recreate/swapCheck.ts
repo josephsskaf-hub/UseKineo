@@ -65,6 +65,17 @@ export const SWAP_CHECK_MODEL_DEFAULT: string = AI_TEXT_MODELS.writer
 /** Facial attributes the vision judge compares. Clothing and scene are identical by construction and never count. */
 export const SWAP_FACE_ATTRIBUTES = ['hair_color', 'hair_length', 'hair_texture', 'beard', 'skin_tone', 'face_shape', 'glasses'] as const
 
+// KINEO-RECREATE-VEREDITO-UMA-VEZ-1411 [revisor independente + CEO 14/11, (a)] — com o som ligado, todo "seu vídeo" passa pela montagem, que na 1ª passada responde "ainda não"
+// (FreeClipNotReady). A reserva da checagem ficava presa 2 min e o juiz rodava DE NOVO: o veredito podia virar (trocou → não trocou, estorno depois de
+// pagar o Creatomate) e a entrega atrasava. Agora o veredito que libera a entrega fica GRAVADO na linha ('swapok_<ms>_<resultado>' em failure_reason,
+// enquanto processing) e as passadas seguintes o reaproveitam: o juiz roda uma vez, a montagem nunca reabre a troca, ninguém espera os 2 min.
+export const SWAP_APPROVED_PREFIX = 'swapok_'
+export const swapApproval = (result: 'swapped' | 'unverified', now: number) => `${SWAP_APPROVED_PREFIX}${String(Math.max(0, Math.floor(now))).padStart(13, '0')}_${result}`
+/** O veredito já aprovado desta linha (o que libera a entrega), ou null. */
+export function readSwapApproval(failureReason: unknown): 'swapped' | 'unverified' | null {
+  const m = typeof failureReason === 'string' ? /^swapok_\d{13}_(swapped|unverified)$/.exec(failureReason) : null
+  return m ? (m[1] as 'swapped' | 'unverified') : null
+}
 /** 'swapcheck_<13-digit ms>[_nonce]' — lexicographic order of the digits = time order (stale comparison in SQL). */
 export const swapCheckLock = (now: number, nonce?: string) => SWAP_CHECK_LOCK_PREFIX + String(Math.max(0, Math.floor(now))).padStart(13, '0') + (nonce ? '_' + nonce : '')
 /** Another actor holds a still-valid check lock on this row. */

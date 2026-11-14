@@ -492,6 +492,10 @@ export interface RecreateSwapSettleDeps { // KINEO-RECREATE-TRAVA-1011
   keepRejected?(row: ClipRow, providerUrl: string, gastoMs: number): Promise<RecreateSwapAudit | null>
   /** KINEO-RECREATE-FILA-REVISAO-1411 — a cópia de auditoria foi guardada: evento próprio (recreate_swap_audit) com o caminho. Roda depois de tudo. */
   recordAudit?(row: ClipRow, audit: RecreateSwapAudit): Promise<void>
+  /** KINEO-RECREATE-VEREDITO-UMA-VEZ-1411 — o veredito que já liberou esta linha numa passada anterior (gravado nela), ou null. Opcional: ausente = o juiz roda em toda passada (como antes). */
+  approved?(row: ClipRow): 'swapped' | 'unverified' | null
+  /** KINEO-RECREATE-VEREDITO-UMA-VEZ-1411 — grava o veredito que libera a entrega, trocando a reserva (UPDATE condicional à reserva deste ator). null = perdeu a reserva. */
+  approve?(id: string, lock: string, result: 'swapped' | 'unverified'): Promise<string | null>
 } // KINEO-RECREATE-TRAVA-1011
 
 export async function settleClip(deps: ClipSettleDeps, row: ClipRow): Promise<ClipRow> {
@@ -592,7 +596,10 @@ async function settleOpenClip(deps: ClipSettleDeps, row: ClipRow, depois: Array<
     const swap = deps.recreateSwap?.applies(row) ? deps.recreateSwap : null // KINEO-RECREATE-TRAVA-1011
     let swapVerdict: { result: string; reason: string } | null = null // KINEO-RECREATE-TRAVA-1011
     let swapLock: string | null = null // KINEO-RECREATE-TRAVA-1011
-    if (swap) { // KINEO-RECREATE-TRAVA-1011
+    let swapRecorded = false // KINEO-RECREATE-VEREDITO-UMA-VEZ-1411 — o evento do veredito já foi gravado (na aprovação)
+    const jaAprovado = swap?.approved ? swap.approved(row) : null // KINEO-RECREATE-VEREDITO-UMA-VEZ-1411 — o juiz já liberou esta linha: a montagem não reabre a troca
+    if (swap && jaAprovado) { swapLock = row.failure_reason as string; swapVerdict = { result: jaAprovado, reason: 'approved_earlier' }; swapRecorded = true } // KINEO-RECREATE-VEREDITO-UMA-VEZ-1411
+    if (swap && !jaAprovado) { // KINEO-RECREATE-TRAVA-1011 · KINEO-RECREATE-VEREDITO-UMA-VEZ-1411 — era: if (swap) {
       const swapStarted = deps.now() // KINEO-RECREATE-AUDITORIA-DA-TRAVA-1411 — o relógio da liquidação (a cópia de auditoria respeita o que sobrou)
       swapLock = await swap.claim(row) // KINEO-RECREATE-TRAVA-1011
       if (!swapLock) return row // KINEO-RECREATE-TRAVA-1011 — outro ator (aba, cron) está checando
@@ -613,6 +620,14 @@ async function settleOpenClip(deps: ClipSettleDeps, row: ClipRow, depois: Array<
         if (swap.keepRejected) { const keep = swap.keepRejected, gasto = Math.max(0, deps.now() - swapStarted), url = state.url; depois.push(async () => { const audit = await keep(row, url, gasto).catch(() => null); if (audit) await swap.recordAudit?.(row, audit) }) }
         return { ...row, status: 'failed', failure_reason: reason, credits_refunded: refunded } // KINEO-RECREATE-TRAVA-1011
       } // KINEO-RECREATE-TRAVA-1011
+      // KINEO-RECREATE-VEREDITO-UMA-VEZ-1411 — liberado (trocou, ou a checagem não pôde ser feita): o veredito fica GRAVADO na linha antes da montagem; o evento dele também.
+      if (swap.approve && (swapVerdict.result === 'swapped' || swapVerdict.result === 'unverified')) {
+        const marca = await swap.approve(row.id, swapLock, swapVerdict.result)
+        if (!marca) return row // perdeu a reserva: quem a detém decide
+        swapLock = marca
+        await swap.record(row, swapVerdict, { delivered: true, credits_refunded: 0 })
+        swapRecorded = true
+      }
     } // KINEO-RECREATE-TRAVA-1011
     let ours: string
     try {
@@ -632,7 +647,7 @@ async function settleOpenClip(deps: ClipSettleDeps, row: ClipRow, depois: Array<
       // KINEO-ROSTO-QUADRO-CHAVE-2810 — remix entregue: as DUAS etapas fecharam (mesmo ponto e condição do clip_delivered).
       const remixItem = remixStage === 'video' ? faceRemixForRow(row) : null // KINEO-ROSTO-QUADRO-CHAVE-2810
       if (remixItem) await deps.event(FACE_REMIX_EVENTS.ready, { ...faceRemixEventMetadata(remixItem, row), keyframe: 'done', video: 'delivered', age_ms: Math.max(0, age) }) // KINEO-ROSTO-QUADRO-CHAVE-2810
-      if (swap && swapVerdict) await swap.record(row, swapVerdict, { delivered: true, credits_refunded: 0 }) // KINEO-RECREATE-TRAVA-1011
+      if (swap && swapVerdict && !swapRecorded) await swap.record(row, swapVerdict, { delivered: true, credits_refunded: 0 }) // KINEO-RECREATE-TRAVA-1011 · KINEO-RECREATE-VEREDITO-UMA-VEZ-1411 — gravado uma vez só
     }
     return { ...row, status: 'done', video_url: ours }
   }

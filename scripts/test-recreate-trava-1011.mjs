@@ -364,7 +364,8 @@ function fakeFetch({ fal = 'ok', vision = null, message = null, hang = false } =
 {
   const src = read('lib/clips/clipServer.ts')
   const fn = src.slice(src.indexOf('export function recreateSwapDepsFor'), src.indexOf('export function submitDepsFor'))
-  ok((fn.match(/\.eq\('failure_reason', lock\)/g) ?? []).length === 2, 'markFailed e markDone da trava só para quem detém a reserva')
+  // reancorado KINEO-RECREATE-VEREDITO-UMA-VEZ-1411: a aprovação do veredito (approve) também é condicional à reserva — markFailed, markDone e approve
+  ok((fn.match(/\.eq\('failure_reason', lock\)/g) ?? []).length === 3 && fn.includes(".update({ failure_reason: marca }).eq('id', id).eq('status', 'processing').eq('failure_reason', lock)"), 'markFailed, markDone e approve da trava só para quem detém a reserva')
   ok(/credits_refunded: 0/.test(fn) && /\.eq\('credits_refunded', 0\)/.test(fn), 'failed nasce com 0 e o estorno do vencedor é gravado depois')
   ok(/unverified_reason:/.test(fn), 'evento grava o motivo normalizado')
   ok(src.includes("...rows.filter((r) => r.model === RECREATE_MODEL).slice(0, 1)]") || src.includes("...rows.filter((r) => usaTravaNaoTrocou(r.model)).slice(0, 1)]") /* KINEO-RECREATE-SEU-VIDEO-1311 — a mesma fila, agora Recast + Seedance */, 'cron: Recreate por último, 1 por passada')
@@ -422,7 +423,9 @@ function fakeFetch({ fal = 'ok', vision = null, message = null, hang = false } =
   ok(second.refunded === 0 && forced.refunded === 0 && ledger.size === 1 && db.get(row.id).credits_refunded === 40, 'rodar a varredura de novo não estorna de novo')
   const src = read('lib/clips/clipServer.ts')
   const sweep = src.slice(src.indexOf('export async function sweepClipJobs'), src.indexOf('export async function advanceActiveClipJobs'))
-  ok(sweep.includes(".eq('status', 'failed').eq('credits_refunded', 0).in('failure_reason', [...SWAP_REFUND_SWEEP_REASONS])") && sweep.includes('sweepSwapRefunds('), 'sweepClipJobs (cron refund-sweep) procura essas linhas e chama a varredura')
+  // reancorado KINEO-RECREATE-TRAVA-1011-REANCORA-1411: a consulta soma os motivos da fila (KINEO-RECREATE-FILA-REVISAO-1411, item 1) e o predicado passado à varredura segue
+  // cobrindo os da trava (isRecreateNotSwappedReason) — nada afrouxado: os motivos da trava continuam na consulta e no predicado.
+  ok(sweep.includes(".eq('status', 'failed').eq('credits_refunded', 0).in('failure_reason', [...SWAP_REFUND_SWEEP_REASONS, ...FILA_MOTIVOS_DE_ESTORNO])") && sweep.includes('sweepSwapRefunds(') && sweep.includes('(motivo) => isRecreateNotSwappedReason(motivo) ||'), 'sweepClipJobs (cron refund-sweep) procura essas linhas e chama a varredura')
   ok(read('app/api/cron/refund-sweep/route.ts').includes('await sweepClipJobs()'), 'o cron de estornos roda sweepClipJobs')
 }
 
@@ -471,7 +474,7 @@ const flowSrc = read('lib/clips/clipFlow.ts'), scSrc = read('lib/recreate/swapCh
 const flowMutants = [
   ["const swap = deps.recreateSwap?.applies(row) ? deps.recreateSwap : null", 'const swap = null as typeof deps.recreateSwap | null'],
   ["if (!swapLock) return row // KINEO-RECREATE-TRAVA-1011 — outro ator", "// KINEO-RECREATE-TRAVA-1011 — outro ator"],
-  ["if (swapVerdict.result === 'unchanged' || swapVerdict.result === 'partial')", "if (swapVerdict.result === 'unchanged')"],
+  ["if (swapVerdict.result === 'unchanged' || swapVerdict.result === 'partial' || swapVerdict.result === 'uncertain')", "if (swapVerdict.result === 'unchanged' || swapVerdict.result === 'uncertain')"], // reancorado KINEO-RECREATE-TRAVA-1011-REANCORA-1411 (desde TRAVA-ALVO-1411 a condição tem também 'uncertain')
   ["if (!(await swap.markFailed(row.id, reason, swapLock))) return row", "await swap.markFailed(row.id, reason, swapLock)"],
   ["if (deps.recreateSwap?.applies(row) && deps.recreateSwap.busy(row, deps.now())) return row", ''],
 ]

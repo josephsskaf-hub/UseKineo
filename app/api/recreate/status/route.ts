@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { recreateSession, RECREATE_HEADERS } from '@/lib/recreate/server'
-import { clipsAdmin, filaKlingEditEstado, loadClip, settleDepsFor } from '@/lib/clips/clipServer'
+import { clipsAdmin, filaKlingEditEstado, loadClip, settleDepsFor, somDoClipeEntregue } from '@/lib/clips/clipServer' // KINEO-RECREATE-SOM-VERDADE-1411 — + somDoClipeEntregue
 import { FILA_MOTIVOS_DE_ESTORNO, esperaNaFila, fraseDaFalhaDaFila, naFila, posicaoNaFila } from '@/lib/recreate/filaKlingEdit' // KINEO-RECREATE-FILA-KLING-EDIT-1411 · KINEO-RECREATE-FILA-REVISAO-1411
 import { settleClip } from '@/lib/clips/clipFlow'
 import { isRecreateNotSwappedReason, RECREATE_NOT_SWAPPED } from '@/lib/recreate/swapCheck'
@@ -42,5 +42,7 @@ export async function GET(req: NextRequest) {
   // KINEO-RECREATE-FILA-REVISAO-1411 (item 1) — "we returned your credits" SÓ com o estorno gravado na linha; se o estorno falhou naquela hora, a frase diz que ele
   // volta (a varredura horária o refaz) e a tela não promete o que ainda não aconteceu.
   const filaFalhou = status === 'failed' && typeof fresh.failure_reason === 'string' && FILA_MOTIVOS_DE_ESTORNO.includes(fresh.failure_reason) ? { reason: 'queue_failed', message: fraseDaFalhaDaFila(credits_refunded) } : {}
-  return NextResponse.json({ clip: { id, status, video_url: status === 'failed' ? null : video_url, credits_refunded, ...reason, ...seuVideo, ...fila, ...filaFalhou } }, { headers: RECREATE_HEADERS })
+  // KINEO-RECREATE-SOM-VERDADE-1411 (b) — o "seu vídeo" pronto diz o som que RECEBEU ('original' | 'silent'): a tela mostra "Silent video" naquele clipe quando a montagem não deu.
+  const som = status === 'done' ? await somDoClipeEntregue(admin, fresh).catch(() => null) : null
+  return NextResponse.json({ clip: { id, status, video_url: status === 'failed' ? null : video_url, credits_refunded, ...reason, ...seuVideo, ...fila, ...filaFalhou, ...(som ? { audio: som } : {}) } }, { headers: RECREATE_HEADERS })
 }

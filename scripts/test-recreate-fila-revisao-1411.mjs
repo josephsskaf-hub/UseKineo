@@ -389,6 +389,19 @@ async function bateria(over = {}, lento = false) {
     await m.srv.sweepClipJobs()
     if (m.linha(A.id).credits_refunded !== 40) throw new Error('a varredura não devolveu')
   })
+  await check('KINEO-RECREATE-SOM-VERDADE-1411 (b): a rota de status EXECUTADA — o "seu vídeo" pronto diz o som que RECEBEU', async () => {
+    const m = servidor(ctx)
+    const R = m.load('app/api/recreate/status/route')
+    const conta = uid(955)
+    ctx.usuario = { id: conta }
+    const pronto = (n, over = {}) => clipe(n, { user_id: conta, status: 'done', video_url: 'https://fixture.supabase.co/storage/v1/object/public/clips/clips/x/y.som.mp4', ...over })
+    const [ok, render, perfil, mudo, outro] = m.por(pronto(51), pronto(52), pronto(53), pronto(54), pronto(55, { model: 'fal-ai/qualquer/outro', fingerprint: JSON.stringify(['pedido', 'fal-ai/qualquer/outro', {}]) }))
+    m.db.tables.events.push({ name: 'clip_watermark_failed', metadata: { clip_id: render.id, stage: 'render' } }, { name: 'clip_watermark_failed', metadata: { clip_id: perfil.id, stage: 'profile' } }, { name: 'recreate_seu_video_mudo', metadata: { clip_id: mudo.id, motivo: 'sem_trilha_no_original' } })
+    const get = async (id) => (await R.GET({ nextUrl: new URL('https://www.usekineo.com/api/recreate/status?id=' + id) })).body.clip
+    const r = { ok: await get(ok.id), render: await get(render.id), perfil: await get(perfil.id), mudo: await get(mudo.id), outro: await get(outro.id) }
+    ctx.usuario = null
+    if (r.ok.audio !== 'original' || r.render.audio !== 'silent' || r.perfil.audio !== 'original' || r.mudo.audio !== 'silent' || 'audio' in r.outro) throw new Error(JSON.stringify(Object.fromEntries(Object.entries(r).map(([k, v]) => [k, v.audio ?? '(sem campo)']))))
+  })
   await check('3ª rodada · M23: a rota de status EXECUTADA — incerto = not_confirmed (frase pelo estorno); não trocou = not_swapped', async () => {
     const m = servidor(ctx)
     const R = m.load('app/api/recreate/status/route')
@@ -440,7 +453,7 @@ async function bateria(over = {}, lento = false) {
   await check('rota de status: posição por id e espera para quem está na fila; frase da falha só com o estorno gravado', async () => {
     if (!status.includes('const estadoDaFila = esperando ? await filaKlingEditEstado(admin, fresh.id) : null') || !status.includes('wait_label: esperaNaFila(posicao).label, wait_minutes: esperaNaFila(posicao).minutes')) throw new Error('espera')
     if (!status.includes("FILA_MOTIVOS_DE_ESTORNO.includes(fresh.failure_reason) ? { reason: 'queue_failed', message: fraseDaFalhaDaFila(credits_refunded) } : {}")) throw new Error('frase da falha')
-    if (!status.includes('...reason, ...seuVideo, ...fila, ...filaFalhou } }')) throw new Error('a espera da fila não ganha das outras mensagens')
+    if (!status.includes('...reason, ...seuVideo, ...fila, ...filaFalhou, ...(som ? { audio: som } : {}) } }')) throw new Error('a espera da fila não ganha das outras mensagens') // reancorado KINEO-RECREATE-SOM-VERDADE-1411 (+ o som do clipe)
   })
   await check('item 11 · todo evento que o servidor grava nesta área está em SERVER_ONLY_EVENTS', async () => {
     const ev = over[EVENTOS] ?? lf(EVENTOS)
@@ -491,6 +504,9 @@ const mutantes = [
   ['cron sem a vigia da vaga', { [SRV]: srv.replace("    if (after.status === 'processing' && row.model === KLING4_EDIT_MODEL) await vigiarDonoDaVaga(filaIoFor(admin), row.id, Date.parse(row.created_at)).catch(() => 'nada')\n", '') }],
   ['X1: quem foi direto não conta', { [PORTA]: porta.replace('    if (outros.some((x) => !x.naFila) || (i > 0', '    if ((i > 0') }],
   ['X3: a frase promete o estorno que falhou', { [ROTA]: rota.replace('error: tirou > 0 ? (cheia ?', 'error: true ? (cheia ?') }],
+  ['(b) status sem o som do clipe', { [STATUS]: status.replace(', ...(som ? { audio: som } : {})', '') }],
+  ['(b) falha do perfil vira mudo', { [SRV]: srv.replace(" && x.metadata?.stage !== 'profile')", ')') }],
+  ['(b) registro do mudo ignorado', { [SRV]: srv.replace('return x.name === SEU_VIDEO_MUDO_EVENTO || (', 'return (') }],
   ['M23: status volta a not_swapped para o incerto', { [STATUS]: status.replace("const naoConfirmou = status === 'failed' && fresh.failure_reason === RECREATE_NOT_SWAPPED.uncertain", 'const naoConfirmou = false') }],
   ['status: frase fixa de estorno', { [STATUS]: status.replace('message: fraseDaFalhaDaFila(credits_refunded)', 'message: FRASE_FILA_FALHOU') }],
   ['status: fila sem a espera', { [STATUS]: status.replace('...(posicao ? { wait_label: esperaNaFila(posicao).label, wait_minutes: esperaNaFila(posicao).minutes } : {})', '') }],

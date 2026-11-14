@@ -191,7 +191,8 @@ const bBase = await provasB(carrega(), carregaMarca())
 checa(`B som original pela montagem: provas verdes${bBase.length ? ': ' + bBase.join(' · ') : ''}`, bBase.length === 0)
 const servMarca = r('lib/clips/freeClipWatermarkServer.ts'), clipSrv = r('lib/clips/clipServer.ts')
 checa('B quem paga recebe a montagem só do som; sem som, o caminho de sempre', servMarca.includes("if (!ctx.audio) return null // KINEO-RECREATE-SEU-VIDEO-1311") && servMarca.includes("reason = 'audio'") && servMarca.includes('audio: ctx.audio ?? null'))
-checa('B o persist do clipe passa o som e entra na montagem por ele', clipSrv.includes("const audio = somOriginalDaLinha(row, process.env.NEXT_PUBLIC_SUPABASE_URL ?? '')") && clipSrv.includes('isFreeClipMarkTestKey(row.idempotency_key)) {') && clipSrv.includes('expireMs: CLIP_EXPIRE_MS, audio,'))
+// reancorado KINEO-RECREATE-SOM-VERDADE-1411: o som da linha passa antes pela leitura da trilha do original (sem trilha = sem montagem do som)
+checa('B o persist do clipe passa o som e entra na montagem por ele', clipSrv.includes("const somDaLinha = somOriginalDaLinha(row, process.env.NEXT_PUBLIC_SUPABASE_URL ?? '')") && clipSrv.includes('const audio = semTrilha ? null : somDaLinha') && clipSrv.includes('isFreeClipMarkTestKey(row.idempotency_key)) {') && clipSrv.includes('expireMs: CLIP_EXPIRE_MS, audio,'))
 checa('B nada de som gerado (a fal segue com generate_audio false)', carrega().entradaSeedance25({ prompt: '', fotos: [], videoUrl: '', gerados: 4, proporcao: '9:16' }).generate_audio === false)
 const MUTANTES_B = [
   ['B som de qualquer dono', ARQ, (s) => s.replace('return u.startsWith(dono) &&', 'return u.includes(`/${SEU_VIDEO_PASTA}/`) &&')],

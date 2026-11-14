@@ -421,6 +421,7 @@ const SERVER_ONLY_EVENTS = new Set([
   'content_moderation_blocked', // o rastro do bloqueio da moderação
   'script_condense_retry', // a 3ª tentativa do escritor
   'media_download_served', // /api/download entregou o arquivo
+  'recreate_seu_video_mudo', // KINEO-RECREATE-SOM-VERDADE-1411 — o "seu vídeo" saiu sem o som original (sem montagem ou sem trilha no original): o status lê isto
   'clip_engine_fallback', // KINEO-RECREATE-FILA-REVISAO-1411 (item 11) — o clipe trocou sozinho para o motor reserva: fato do servidor (lib/clips/clipFlow), estava fora da lista
   'cinematic_negated_state', // KINEO-ESTADO-NEGADO-1311 — o estado que a fala nega e o plano que o recebeu
   'cinematic_request_attributes', // KINEO-ATRIBUTOS-DO-PEDIDO-1311 — os atributos do pedido e o que faltava em cada plano

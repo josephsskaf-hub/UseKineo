@@ -33,6 +33,65 @@ export async function metaPorUrl(url: string, f: typeof fetch): Promise<MetaDoVi
   }
 }
 
+// ═══ KINEO-RECREATE-SOM-VERDADE-1411 [revisor independente + CEO 14/11, (c)] — o vídeo do cliente SEM trilha de som ════════════════════════════════════════
+// A montagem do som põe o original por baixo, invisível, com volume 100%. Um original sem trilha de som não tem o que pôr: mandá-lo ao Creatomate
+// é gasto sem efeito e um comportamento que nunca foi provado. Então: o cabeçalho (moov) do original é lido por Range; sem trilha 'soun' = a
+// montagem do som não entra (quem não paga ainda recebe a marca), o clipe sai mudo e diz isso no status. Leitura que falha = segue como antes.
+export const SEU_VIDEO_MUDO_EVENTO = 'recreate_seu_video_mudo' as const
+const u32s = (b: Uint8Array, o: number) => ((b[o] << 24) >>> 0) + (b[o + 1] << 16) + (b[o + 2] << 8) + b[o + 3]
+const tipos = (b: Uint8Array, o: number) => String.fromCharCode(b[o], b[o + 1], b[o + 2], b[o + 3])
+function* caixasDe(b: Uint8Array, ini: number, fim: number): Generator<{ t: string; ini: number; fim: number }> {
+  let o = ini
+  while (o + 8 <= fim) {
+    let tam = u32s(b, o), cab = 8
+    if (tam === 1) { tam = u32s(b, o + 8) * 4294967296 + u32s(b, o + 12); cab = 16 } else if (tam === 0) tam = fim - o
+    if (tam < cab || o + tam > fim) return
+    yield { t: tipos(b, o + 4), ini: o + cab, fim: o + tam }
+    o += tam
+  }
+}
+/** A caixa moov (sem o cabeçalho dela) tem uma trilha de som (hdlr 'soun')? */
+export function temTrilhaDeSom(moov: Uint8Array): boolean {
+  for (const trak of caixasDe(moov, 0, moov.length)) {
+    if (trak.t !== 'trak') continue
+    for (const mdia of caixasDe(moov, trak.ini, trak.fim)) {
+      if (mdia.t !== 'mdia') continue
+      for (const hdlr of caixasDe(moov, mdia.ini, mdia.fim)) if (hdlr.t === 'hdlr' && tipos(moov, hdlr.ini + 8) === 'soun') return true
+    }
+  }
+  return false
+}
+/** O original tem trilha de som? true | false | null (não deu para ler: quem chama segue como antes). Só o cabeçalho, por Range. Nunca lança. */
+export async function trilhaDeSomPorUrl(url: string, f: typeof fetch): Promise<boolean | null> {
+  try {
+    const head = await f(url, { method: 'HEAD', cache: 'no-store' })
+    const bytes = head.ok ? Number(head.headers.get('content-length') ?? 0) : 0
+    if (!bytes) return null
+    const ler = async (ini: number, fim: number) => {
+      const r = await f(url, { headers: { Range: `bytes=${ini}-${fim}` }, cache: 'no-store' })
+      if (r.status !== 206 && r.status !== 200) throw new Error(`range ${r.status}`)
+      const b = new Uint8Array(await r.arrayBuffer())
+      return r.status === 200 ? b.subarray(ini, fim + 1) : b
+    }
+    let o = 0
+    for (let passo = 0; passo < 12 && o + 8 <= bytes; passo++) {
+      const cab = await ler(o, Math.min(bytes, o + 16) - 1)
+      let tam = u32s(cab, 0)
+      if (tam === 1) tam = u32s(cab, 8) * 4294967296 + u32s(cab, 12); else if (tam === 0) tam = bytes - o
+      if (tam < 8 || o + tam > bytes) return null
+      if (tipos(cab, 4) === 'moov') {
+        if (tam > 8 * 1024 * 1024) return null
+        const moov = await ler(o, o + tam - 1)
+        return temTrilhaDeSom(moov.subarray(u32s(moov, 0) === 1 ? 16 : 8))
+      }
+      o += tam
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
 // ── validação, duração gerada, preço ───────────────────────────────────────────────────────────────────────────────────────────────
 export type RecusaDoVideo = { ok: false; code: 'format' | 'duration' | 'fps' | 'size' | 'resolution'; error: string } // KINEO-RECREATE-KLING4-1311 — + resolution
 export function validarVideo(meta: MetaDoVideo | null, bytes: number, contentType: string, motor: MotorDoSeuVideo = 'seedance25'): { ok: true } | RecusaDoVideo { // KINEO-RECREATE-KLING4-1311 — + motor
