@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { recreateSession, RECREATE_HEADERS } from '@/lib/recreate/server'
 import { clipsAdmin, filaKlingEditEstado, loadClip, movimentoCenaPublica, settleDepsFor, somDoClipeEntregue } from '@/lib/clips/clipServer' // KINEO-RECREATE-SOM-VERDADE-1411 — + somDoClipeEntregue · KINEO-RECREATE-MOVIMENTO-1411 — + movimentoCenaPublica
-import { movimentoFalhaParaTela, movimentoForRow, movimentoStageForRow } from '@/lib/recreate/movimento' // KINEO-RECREATE-MOVIMENTO-1411
+import { ehLinhaDeMovimento, movimentoFalhaParaTela, movimentoStageForRow } from '@/lib/recreate/movimento' // KINEO-RECREATE-MOVIMENTO-1411 · KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 — era: movimentoForRow
 import { FILA_MOTIVOS_DE_ESTORNO, esperaNaFila, fraseDaFalhaDaFila, naFila, posicaoNaFila } from '@/lib/recreate/filaKlingEdit' // KINEO-RECREATE-FILA-KLING-EDIT-1411 · KINEO-RECREATE-FILA-REVISAO-1411
 import { settleClip } from '@/lib/clips/clipFlow'
 import { isRecreateNotSwappedReason, RECREATE_NOT_SWAPPED } from '@/lib/recreate/swapCheck'
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
   // KINEO-RECREATE-MOVIMENTO-1411 [CEO 14/11 07:00, ajuste 5] — o molde de movimento: a etapa enquanto processa ('scene' = "Preparing your scene",
   // 'motion' = "Animating"), a imagem do passo 1 (nosso bucket) enquanto anima e no pronto, 'silent' no pronto (o motor sai sem som) e a falha com a
   // frase certa ("returned" só com o estorno gravado).
-  const ehMovimento = !!movimentoForRow(fresh)
+  const ehMovimento = ehLinhaDeMovimento(fresh) // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 — pela linha (id do molde guardado), não pelo catálogo
   const etapa = ehMovimento && (status === 'pending' || status === 'processing') ? movimentoStageForRow(fresh) : null
   const cena = ehMovimento ? movimentoCenaPublica(admin, fresh) : null
   const falhaDoMovimento = ehMovimento && status === 'failed' ? movimentoFalhaParaTela(fresh.failure_reason, credits_refunded) : null

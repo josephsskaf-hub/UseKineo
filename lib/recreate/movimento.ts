@@ -13,6 +13,7 @@
 import { NANO_BANANA_EDIT_SLUG } from '@/lib/imageReference'
 import { ownedClipImageUrl, type ClipEngineKey, type ClipRequestInput } from '@/lib/clips/clipCatalog'
 import { recreateCreditCost } from '@/lib/checkoutPricing'
+import { recreateMovimentoCredits } from './formats' // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411
 import { RECREATE_ASSETS, RECREATE_FORMATS, type RecreateFormat } from './formats'
 
 export const MOVIMENTO_MARK = 'KINEO-RECREATE-MOVIMENTO-1411'
@@ -41,16 +42,36 @@ export const MOVIMENTO_PROMPT_PREFIXO = 'Recreate motion: '
 // KINEO-MOVIMENTO-VARREDURA-1411 [CEO 14/11 11:50, item 2: "reconhecer só o que o servidor gravou"] — antes bastava o texto ter a forma "Recreate motion: x [y]" (um clipe de
 // cliente com esse texto casava). Agora só o que o servidor grava: o texto EXATO de um molde de movimento da lista (movimentoForRow: id, título, duração,
 // kling, image) E o modelo de um dos dois passos. Molde que sai da vitrine fica na lista com movimentoAprovado false, nunca apagado, para o estorno achar.
-export const ehLinhaDeMovimento = (row: { prompt: string; engine: string; seconds: number; mode: string; model: string }, catalogo: readonly RecreateFormat[] = RECREATE_FORMATS) => (row.model === MOVIMENTO_CENA_MODEL || row.model === MOVIMENTO_VIDEO_MODEL) && movimentoForRow(row, catalogo) !== null
-
-export function movimentoForRow(row: { prompt: string; engine: string; seconds: number; mode: string }, catalogo: readonly RecreateFormat[] = RECREATE_FORMATS): RecreateFormat | null {
-  if (row.mode !== 'image' || row.engine !== MOVIMENTO_ENGINE) return null
-  return catalogo.find(f => f.type === 'motion' && movimentoRowPrompt(f) === row.prompt && f.seconds === row.seconds) ?? null
+// KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 [revisor da CEO 14/11 12:30, item c: "guardar o id do molde à parte na linha e não depender do texto gravado"] — antes a linha era reconhecida
+// pelo texto EXATO do molde no catálogo (título + id + duração): molde renomeado, com duração trocada ou tirado da lista deixava as linhas antigas sem
+// dono (o estorno se perdia; pior, a linha do passo 1 caía no caminho do clipe comum). Agora o id do molde vai na IMPRESSÃO DIGITAL da linha (coluna
+// fingerprint, que só o servidor escreve, em clipFlow.submitClip: [pedido, modelo do passo 1, {…entrada do passo 1, molde: <id>}]). A linha é de movimento
+// pelo que ELA guarda: o id do molde na impressão digital + o modelo de um dos dois passos + kling + image. Não depende do catálogo nem do texto.
+// O catálogo só é lido para RODAR o passo 2 (o guia e a ação): molde que saiu da lista = o envio do passo 2 falha e a linha é estornada (nunca entrega a imagem).
+export const MOVIMENTO_MOLDE_ID = /^[a-z0-9]+(-[a-z0-9]+)*$/
+/** O id do molde guardado pelo servidor na impressão digital da linha; null em qualquer outra linha. */
+export function movimentoIdDaLinha(row: { fingerprint?: string | null }): string | null {
+  if (typeof row.fingerprint !== 'string' || !row.fingerprint.startsWith('[')) return null
+  try {
+    const fp = JSON.parse(row.fingerprint) as unknown
+    if (!Array.isArray(fp) || fp.length !== 3 || fp[1] !== MOVIMENTO_CENA_MODEL || !fp[2] || typeof fp[2] !== 'object') return null
+    const id = (fp[2] as Record<string, unknown>).molde
+    return typeof id === 'string' && id.length <= 60 && MOVIMENTO_MOLDE_ID.test(id) ? id : null
+  } catch { return null }
 }
-/** 'scene' = o passo 1 (a imagem); 'motion' = o passo 2 (animando); null = não é movimento (ou modelo estranho: nunca adivinha). */
-export function movimentoStageForRow(row: { prompt: string; engine: string; seconds: number; mode: string; model: string }, catalogo: readonly RecreateFormat[] = RECREATE_FORMATS): 'scene' | 'motion' | null {
-  if (!movimentoForRow(row, catalogo)) return null
-  return row.model === MOVIMENTO_CENA_MODEL ? 'scene' : row.model === MOVIMENTO_VIDEO_MODEL ? 'motion' : null
+type LinhaDoMovimento = { engine: string; mode: string; model: string; fingerprint?: string | null }
+export const ehLinhaDeMovimento = (row: LinhaDoMovimento) => (row.model === MOVIMENTO_CENA_MODEL || row.model === MOVIMENTO_VIDEO_MODEL) && row.mode === 'image' && row.engine === MOVIMENTO_ENGINE && movimentoIdDaLinha(row) !== null
+
+/** O molde da linha (pelo id guardado), para RODAR o passo 2; null se a linha não é movimento ou o molde saiu do catálogo. */
+export function movimentoForRow(row: LinhaDoMovimento, catalogo: readonly RecreateFormat[] = RECREATE_FORMATS): RecreateFormat | null {
+  if (!ehLinhaDeMovimento(row)) return null
+  const id = movimentoIdDaLinha(row)
+  return catalogo.find(f => f.type === 'motion' && f.id === id) ?? null
+}
+/** 'scene' = o passo 1 (a imagem); 'motion' = o passo 2 (animando); null = não é movimento. Pela LINHA, sem o catálogo. */
+export function movimentoStageForRow(row: LinhaDoMovimento): 'scene' | 'motion' | null {
+  if (!ehLinhaDeMovimento(row)) return null
+  return row.model === MOVIMENTO_CENA_MODEL ? 'scene' : 'motion'
 }
 
 /** A imagem do passo 1 no NOSSO bucket (caminho fixo: dois atores escrevem o MESMO arquivo). */
@@ -98,7 +119,7 @@ export function movimentoEntradaDoVideo(f: RecreateFormat, cenaUrl: string, guia
 export function movimentoProblemasDoMolde(f: RecreateFormat): string[] {
   const p: string[] = []
   if (f.type !== 'motion') return ['não é motion']
-  if (recreateCreditCost(f.seconds) === null) p.push(`${f.seconds} s sem tarifa na tabela do Recreate`)
+  if (recreateMovimentoCredits(f) === null) p.push(`${f.seconds} s sem tarifa na tabela do Recreate (nem provisória da casa)`) // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 — era: recreateCreditCost(f.seconds)
   if (f.photoSlots !== 1) p.push('uma foto só')
   if (f.pessoasNoGuia !== 1) p.push('o guia precisa ter UMA pessoa (pessoasNoGuia: 1)')
   const asset = f.guia ? RECREATE_ASSETS[f.guia] : undefined
@@ -122,9 +143,9 @@ export function planMovimento(raw: Record<string, unknown>, ctx: { userId: strin
   if (movimentoProblemasDoMolde(f).length) return bad('This video is not available yet. Nothing was charged.', 409)
   if (raw.consent !== true) return bad('Confirm you have permission to use these photos.')
   const seconds = Number(raw.seconds)
-  const credits = recreateCreditCost(seconds)
+  if (seconds !== f.seconds) return recreateCreditCost(seconds) === null ? bad('Choose an available duration.') : bad('This duration needs an approved source video of the same length.', 409) // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 — mesma resposta de antes para duração errada
+  const credits = recreateMovimentoCredits(f) // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 — era: recreateCreditCost(seconds) (6 s: o provisório da casa)
   if (credits === null) return bad('Choose an available duration.')
-  if (seconds !== f.seconds) return bad('This duration needs an approved source video of the same length.', 409)
   if (seconds === 15 && !ctx.paying) return bad('Upgrade your plan to use this duration.', 402)
   if (!Array.isArray(raw.photos) || raw.photos.length !== 1) return bad('Add one photo of the person.')
   const foto = typeof raw.photos[0] === 'string' ? ownedClipImageUrl(raw.photos[0], ctx.userId, ctx.supabaseUrl) : null
@@ -134,7 +155,7 @@ export function planMovimento(raw: Record<string, unknown>, ctx: { userId: strin
     body: { engine: MOVIMENTO_ENGINE, seconds, aspect: null, prompt: movimentoRowPrompt(f), imageUrl: foto },
     model: MOVIMENTO_CENA_MODEL, credits, falUsd: movimentoFalUsd(seconds), photos: [foto], input,
     // A descrição lida da foto pode variar entre duas leituras: a repetição do MESMO pedido (mesma chave) não pode virar conflito por isso.
-    fingerprintInput: movimentoEntradaDaCena(f, foto, null),
+    fingerprintInput: { ...movimentoEntradaDaCena(f, foto, null), molde: f.id }, // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 — o id do molde guardado na linha (impressão digital)
   } }
 }
 

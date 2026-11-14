@@ -125,12 +125,20 @@ export const RECREATE_MOVIMENTO_MOLDES: readonly RecreateFormat[] = []
 export const RECREATE_FORMATS: readonly RecreateFormat[] = recreateNewestFirst([...RECREATE_CATALOG, ...RECREATE_MOVIMENTO_MOLDES]) // KINEO-RECREATE-MOVIMENTO-1411 — era: recreateNewestFirst(RECREATE_CATALOG)
 export const recreateFormat = (id: unknown) => RECREATE_FORMATS.find(f => f.id === id) ?? null
 /** KINEO-RECREATE-TRAVA-1011 — a swap is sold only at an approved tariff (RECREATE_PRICING). 8 s = 45 since 10/11 ("Cobra 45"). */
-export const recreateSwapPriced = (f: RecreateFormat) => (f.type !== 'swap' && f.type !== 'motion') || recreateCreditCost(f.seconds) !== null // KINEO-RECREATE-MOVIMENTO-1411 — o movimento usa a MESMA tabela da troca (CEO 14/11: 10 s = 40)
+// KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 [CEO 14/11 12:30: "prepare o molde para aceitar 6 s com o preço lido de lib/checkoutPricing.ts; para a casa, um valor PROVISÓRIO atrás do
+// interruptor internal, marcado no código"] — PROVISÓRIO: 6 s não tem tarifa em RECREATE_PRICING; o preço público é do dono (foto de decisão de 14/11:
+// A = 6 s por 25, recomendada; B = 40; C = esperar 10 s encadeado). Este valor vale SÓ para molde de movimento SEM aprovação (movimentoAprovado !== true),
+// que só a casa vê; molde aprovado (público) exige a tarifa da tabela de lib/checkoutPricing.ts, senão some do catálogo. Com o sim do dono, a linha de
+// preço entra em RECREATE_PRICING e esta tabela sai.
+export const RECREATE_MOVIMENTO_PROVISORIO_CASA: Readonly<Record<number, number>> = { 6: 25 }
+/** Os créditos de um molde de movimento: a tabela do Recreate (lib/checkoutPricing.ts); sem tarifa, o provisório da casa SÓ se o molde não for aprovado. */
+export const recreateMovimentoCredits = (f: RecreateFormat): number | null => recreateCreditCost(f.seconds) ?? (f.type === 'motion' && f.movimentoAprovado !== true ? RECREATE_MOVIMENTO_PROVISORIO_CASA[f.seconds] ?? null : null)
+export const recreateSwapPriced = (f: RecreateFormat) => (f.type !== 'swap' && f.type !== 'motion') || (f.type === 'motion' ? recreateMovimentoCredits(f) : recreateCreditCost(f.seconds)) !== null // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 — era: recreateCreditCost(f.seconds) para os dois // KINEO-RECREATE-MOVIMENTO-1411 — o movimento usa a MESMA tabela da troca (CEO 14/11: 10 s = 40)
 export const RECREATE_UNPRICED_ERROR = 'This video is not available yet: its price for this length is still being decided. Nothing was charged.'
 /** KINEO-RECREATE-MOVIMENTO-1411 — os créditos de qualquer molde: troca e movimento pela tabela do Recreate (mesma duração, mesmo preço); efeito pelo
  *  preço do efeito. Toda tela e rota que mostra ou cobra créditos do catálogo passa por aqui (nunca uma bifurcação "troca ? … : efeito"). */
 export function recreateCreditsFor(f: RecreateFormat): number | null {
-  return f.type === 'swap' || f.type === 'motion' ? recreateCreditCost(f.seconds) : recreateEffectCredits(f)
+  return f.type === 'motion' ? recreateMovimentoCredits(f) : f.type === 'swap' ? recreateCreditCost(f.seconds) : recreateEffectCredits(f) // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 — era: swap ou motion pela tabela
 }
 export function recreateEffectCredits(f: RecreateFormat): number | null {
   const effect = CLIP_EFFECTS.find(e => e.key === f.effectKey)

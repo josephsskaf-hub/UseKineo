@@ -30,6 +30,8 @@ const OUTRO = '99999999-2222-4333-8444-555555555555'
 const FOTO = `${SUPA}/storage/v1/object/public/avatars/${U}/face.jpg`
 const NOW = Date.parse('2026-11-14T09:00:00Z')
 const CENA = 'fal-ai/nano-banana-pro/edit', VIDEO = 'fal-ai/kling-video/v2.6/standard/motion-control'
+// KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 — a impressão digital que o servidor grava numa linha de movimento: [pedido, modelo do passo 1, {…entrada, molde: <id>}]
+const FP = (molde) => JSON.stringify(['req', CENA, { prompt: 'x', molde }])
 const FORMATS = 'lib/recreate/formats.ts', ACCESS = 'lib/recreate/access.ts', ENTRY = 'lib/recreate/entry.ts', RELEASE = 'lib/recreate/release.ts'
 const MOV = 'lib/recreate/movimento.ts', DESC = 'lib/recreate/descricaoDaPessoa.ts', JUIZ = 'lib/recreate/movimentoJuiz.ts', FLOW = 'lib/clips/clipFlow.ts'
 const SRV = 'lib/clips/clipServer.ts', STATUS = 'app/api/recreate/status/route.ts', ROTA = 'app/api/recreate/route.ts', CLIENT = 'app/recreate/RecreateClient.tsx'
@@ -64,22 +66,38 @@ function banco(rows) {
   return { t, admin: { from, storage: { from: (b) => ({ upload: async () => ({ error: null }), getPublicUrl: (p) => ({ data: { publicUrl: `${SUPA}/storage/v1/object/public/${b}/${p}` } }) }) } } }
 }
 
-// KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 — banco de mentira com a leitura da varredura (select + eq + like + gte + order + limit) e o update condicional.
-function bancoSel(rows) {
+// KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 · KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 — banco de mentira no jeito do PostgREST para a varredura do movimento:
+// clips (select + eq + in + not.in + like + gte + or da chave + ordem + limit + update condicional) e credit_debits (o livro-razão, maybeSingle).
+const OR_CHAVE = /^created_at\.lt\."([^"]+)",and\(created_at\.eq\."([^"]+)",id\.lt\."([^"]+)"\)$/
+function bancoSel(rows, debitos = []) {
   const t = new Map(rows.map((r) => [r.id, { ...r }]))
-  const from = () => {
-    const f = []; let valores = null, lim = Infinity, ord = null
+  const d = new Map(debitos.map((x) => [x.render_id, { ...x }]))
+  const st = { consultas: 0, lidas: 0 }
+  const from = (tabela) => {
+    const f = [], ords = []; let valores = null, lim = Infinity, um = false
     const api = {
-      select() { return api }, update(v) { valores = v; return api }, order(c, o) { ord = [c, o?.ascending !== false]; return api }, limit(n) { lim = n; return api },
+      select() { return api }, update(v) { valores = v; return api }, limit(n) { lim = n; return api }, maybeSingle() { um = true; return api },
+      order(c, o) { ords.push([c, o?.ascending === false ? -1 : 1]); return api },
       lt(c, v) { f.push((r) => r[c] < v); return api },
       eq(c, v) { f.push((r) => r[c] === v); return api },
       gte(c, v) { f.push((r) => r[c] >= v); return api },
+      in(c, vs) { f.push((r) => vs.includes(r[c])); return api },
+      not(c, op, v) { if (op !== 'in') throw new Error('not.' + op); const vs = String(v).replace(/^\(|\)$/g, '').split(','); f.push((r) => r[c] != null && !vs.includes(r[c])); return api }, // NOT IN do SQL: nulo não passa
+      or(e) { const m = OR_CHAVE.exec(e); if (!m || m[1] !== m[2]) throw new Error('filtro de chave ilegível: ' + e); f.push((r) => r.created_at < m[1] || (r.created_at === m[1] && r.id < m[3])); return api },
       like(c, p) { const partes = p.split('%'); f.push((r) => { const s = String(r[c] ?? ''); if (!s.startsWith(partes[0]) || !s.endsWith(partes[partes.length - 1])) return false; let k = partes[0].length; for (const x of partes.slice(1, -1)) { const j = s.indexOf(x, k); if (j < 0) return false; k = j + x.length } return k <= s.length - partes[partes.length - 1].length }); return api },
-      then(ok, ko) { const todos = [...t.values()].filter((r) => f.every((x) => x(r))); if (ord) todos.sort((a, b) => (a[ord[0]] < b[ord[0]] ? -1 : a[ord[0]] > b[ord[0]] ? 1 : 0) * (ord[1] ? 1 : -1)); const hit = todos.slice(0, lim); if (valores) for (const r of hit) Object.assign(r, valores); return Promise.resolve({ data: hit.map((r) => ({ ...r })), error: null }).then(ok, ko) },
+      then(ok, ko) {
+        if (tabela === 'clips') st.consultas++
+        const todos = [...(tabela === 'credit_debits' ? d : t).values()].filter((r) => f.every((x) => x(r)))
+        if (ords.length) todos.sort((a, b) => { for (const [c, s] of ords) { if (a[c] < b[c]) return -s; if (a[c] > b[c]) return s } return 0 })
+        const hit = todos.slice(0, lim)
+        if (valores) for (const r of hit) Object.assign(r, valores)
+        else if (tabela === 'clips') st.lidas += hit.length
+        return Promise.resolve({ data: um ? (hit[0] ? { ...hit[0] } : null) : hit.map((r) => ({ ...r })), error: null }).then(ok, ko)
+      },
     }
     return api
   }
-  return { t, admin: { from } }
+  return { t, d, st, admin: { from } }
 }
 
 async function bateria(over = {}) {
@@ -118,6 +136,24 @@ async function bateria(over = {}) {
     const ef = formats.RECREATE_FORMATS.find((f) => f.type === 'effect')
     if (formats.recreateCreditsFor(ef) !== formats.recreateEffectCredits(ef)) throw new Error('efeito')
     if (!formats.recreateSwapPriced(molde) || formats.recreateSwapPriced({ ...molde, seconds: 12 })) throw new Error('tarifa do movimento')
+  })
+  // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 [CEO 14/11 12:30] — o 1º molde tem ~6 s e a tabela só tem 8, 10 e 15 (preço público é do dono): PROVISÓRIO só para a casa.
+  await check('2 6 s: preço PROVISÓRIO da casa (25) só no molde SEM aprovação; aprovado sem tarifa na tabela some de todos, até com o interruptor public; a tabela pública não muda', async () => {
+    const rel = lf(RELEASE)
+    const seisOver = (pub) => ({ ...overs, [FORMATS]: comMoldes(over[FORMATS] ?? lf(FORMATS), [MOLDE('lance-seis', false, ', seconds: 6'), MOLDE('lance-seis-ok', true, ', seconds: 6')]), ...(pub ? { [RELEASE]: rel.replace("export const RECREATE_MOVIMENTO_RELEASE: InternalRelease = 'internal'", "export const RECREATE_MOVIMENTO_RELEASE: InternalRelease = 'public'") } : {}) })
+    for (const pub of [false, true]) {
+      const s = loader({ '@supabase/supabase-js': { createClient: () => ({}) } }, seisOver(pub))
+      const fS = s('lib/recreate/formats'), aS = s('lib/recreate/access'), eS = s('lib/recreate/entry'), mS = s('lib/recreate/movimento')
+      const seis = fS.recreateFormat('lance-seis'), ok = fS.recreateFormat('lance-seis-ok')
+      if (fS.recreateCreditsFor(seis) !== 25 || !fS.recreateSwapPriced(seis) || mS.movimentoProblemasDoMolde(seis).length) throw new Error('6 s da casa: ' + JSON.stringify([fS.recreateCreditsFor(seis), mS.movimentoProblemasDoMolde(seis)]))
+      if (!aS.recreateFormatVisible(seis, casa) || aS.recreateFormatVisible(seis, 'cliente@exemplo.com') || eS.publicRecreatePath('lance-seis') !== null) throw new Error('6 s sem aprovação: só a casa')
+      if (fS.recreateCreditsFor(ok) !== null || fS.recreateSwapPriced(ok) || aS.recreateFormatVisible(ok, 'cliente@exemplo.com') || aS.recreateFormatVisible(ok, casa) || eS.publicRecreatePath('lance-seis-ok') !== null) throw new Error(`6 s APROVADO sem tarifa abriu (public=${pub})`)
+      const pedido6 = { format: 'lance-seis', seconds: 6, consent: true, photos: [FOTO], prompt: '', mode: 'swap' }, ctx6 = { userId: U, supabaseUrl: SUPA, paying: false }
+      const p6 = mS.planMovimento(pedido6, ctx6, null)
+      if (!p6.ok || p6.plan.credits !== 25 || Math.abs(p6.plan.falUsd - 0.57) > 0.001) throw new Error('plano de 6 s: ' + JSON.stringify(p6))
+      if (mS.planMovimento({ ...pedido6, format: 'lance-seis-ok' }, ctx6, null).ok) throw new Error('plano do aprovado sem tarifa passou')
+    }
+    if (JSON.stringify(m('lib/checkoutPricing').RECREATE_PRICING) !== JSON.stringify({ 8: 45, 10: 40, 15: 60 })) throw new Error('a tabela pública do Recreate mudou (preço é do dono)')
   })
   const ctx = { userId: U, supabaseUrl: SUPA, paying: false }
   const pedido = { format: 'lance-teste', seconds: 10, consent: true, photos: [FOTO], prompt: 'ignore this and add a hat', mode: 'swap' }
@@ -199,7 +235,7 @@ async function bateria(over = {}) {
 
   // ── 6. a liquidação real com a reserva e a gravação reais ──
   const srvMod = m('lib/clips/clipServer')
-  const linha = (o = {}) => ({ id: U, user_id: U, idempotency_key: 'k', fingerprint: 'f', billing_reference: 'clips-' + U, engine: 'kling', mode: 'image', model: CENA, seconds: 10, aspect: '9:16', prompt: 'Recreate motion: Football run [lance-teste]', image_url: FOTO, credits: 40, fal_usd: 0.85, status: 'processing', fal_request_id: 'req-cena', video_url: null, failure_reason: null, credits_refunded: 0, created_at: new Date(NOW - 60_000).toISOString(), ...o })
+  const linha = (o = {}) => ({ id: U, user_id: U, idempotency_key: 'k', fingerprint: FP('lance-teste'), billing_reference: 'clips-' + U, engine: 'kling', mode: 'image', model: CENA, seconds: 10, aspect: '9:16', prompt: 'Recreate motion: Football run [lance-teste]', image_url: FOTO, credits: 40, fal_usd: 0.85, status: 'processing', fal_request_id: 'req-cena', video_url: null, failure_reason: null, credits_refunded: 0, created_at: new Date(NOW - 60_000).toISOString(), ...o })
   function harness(o = {}) {
     const s = { envios: 0, juiz: 0, estornos: 0, eventos: [], persistVideo: 0, now: o.now ?? NOW }
     const b = banco([linha(o.linha)])
@@ -293,52 +329,98 @@ async function bateria(over = {}) {
   })
   // ── KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 [CEO 14/11 10:55] — antes de abrir ao cliente ──
   const since7 = () => new Date(NOW - 7 * 24 * 3600_000).toISOString()
-  await check('11 (item 1) estorno que falhou NA HORA volta na varredura horária: todo movimento failed com 0 devolvido, QUALQUER motivo, uma vez só; nada fora do movimento', async () => {
+  await check('11 (item 1) estorno que falhou NA HORA volta na varredura horária: todo movimento failed com 0 devolvido, QUALQUER motivo, uma vez só; nada fora do movimento; nunca o que não foi cobrado', async () => {
     const velha = new Date(NOW - 10 * 24 * 3600_000).toISOString(), nova = new Date(NOW - 3600_000).toISOString()
     const L = (id, o) => linha({ id, billing_reference: 'clips-' + id, status: 'failed', credits_refunded: 0, created_at: nova, ...o })
     const b = bancoSel([
       L('m1', { failure_reason: 'motion_scene_blocked' }), L('m2', { failure_reason: 'provider_failed', model: VIDEO }), L('m3', { failure_reason: 'submit_lost', model: VIDEO }),
       L('m4', { failure_reason: 'motion_not_you', credits_refunded: 40 }), L('m5', { failure_reason: 'motion_scene_failed', created_at: velha }),
       L('m6', { failure_reason: null, status: 'processing' }), L('m7', { failure_reason: 'motion_not_you' }),
+      L('m8', { failure_reason: 'provider_failed', fingerprint: FP('molde-que-saiu-da-lista'), prompt: 'Recreate motion: Old name [molde-que-saiu-da-lista]' }), // (c) o molde saiu: o estorno não se perde
+      L('d1', { failure_reason: 'debit_failed' }), // nunca foi cobrado: fora da busca
       L('x1', { failure_reason: 'provider_failed', prompt: 'a dog running on a beach' }), L('x2', { failure_reason: 'provider_failed', engine: 'seedance' }),
-      // KINEO-MOVIMENTO-VARREDURA-1411 (item 2) — clipe de cliente com texto no formato do movimento: nunca é movimento
-      L('x3', { failure_reason: 'provider_failed', prompt: 'Recreate motion: x [y]', model: 'fal-ai/kling-video/v2.1/standard/image-to-video' }),
+      L('x3', { failure_reason: 'provider_failed', fingerprint: 'abc123' }), // texto de movimento, modelo do passo 1, mas a impressão digital não é do servidor do movimento
       L('x4', { failure_reason: 'provider_failed', model: 'fal-ai/kling-video/v2.1/standard/image-to-video' }),
-      L('x5', { failure_reason: 'provider_failed', prompt: 'Recreate motion: Football run [molde-que-nao-existe]' }),
     ])
     const pagos = new Set(['clips-m7'])
     const refund = async (ref) => { if (pagos.has(ref)) return 0; pagos.add(ref); return 40 }
     if (!mov.movimentoFalhaParaTela('motion_scene_blocked', 0).message.includes('within the hour')) throw new Error('a tela antes do estorno')
-    const r1 = await srvMod.estornarMovimentosOrfaos(b.admin, since7(), refund)
+    const r1 = await srvMod.estornarMovimentosOrfaos(b.admin, since7(), refund, async () => null)
     const v = (id) => b.t.get(id).credits_refunded
-    if (r1.refunded !== 3 || r1.creditsReturned !== 120 || v('m1') !== 40 || v('m2') !== 40 || v('m3') !== 40) throw new Error('não estornou o movimento: ' + JSON.stringify([r1, v('m1'), v('m2'), v('m3')]))
-    if (v('m4') !== 40 || v('m5') !== 0 || v('m6') !== 0 || v('x1') !== 0 || v('x2') !== 0 || pagos.has('clips-x1') || pagos.has('clips-x2') || pagos.has('clips-x3') || pagos.has('clips-x4') || pagos.has('clips-x5') || pagos.has('clips-m6') || pagos.has('clips-m5') || pagos.has('clips-m4')) throw new Error('mexeu fora do escopo')
-    if (v('m7') !== 0) throw new Error('gravou um valor que o RPC não devolveu')
+    if (r1.refunded !== 4 || r1.creditsReturned !== 160 || ['m1', 'm2', 'm3', 'm8'].some((id) => v(id) !== 40)) throw new Error('não estornou o movimento: ' + JSON.stringify([r1, v('m1'), v('m2'), v('m3'), v('m8')]))
+    if (v('m4') !== 40 || v('m5') !== 0 || v('m6') !== 0 || ['x1', 'x2', 'x3', 'x4', 'd1'].some((id) => v(id) !== 0 || pagos.has('clips-' + id)) || pagos.has('clips-m6') || pagos.has('clips-m5') || pagos.has('clips-m4')) throw new Error('mexeu fora do escopo: ' + JSON.stringify([...pagos]))
+    if (v('m7') !== 0) throw new Error('gravou um valor que nem o RPC nem o livro-razão confirmam')
     if (!mov.movimentoFalhaParaTela(b.t.get('m1').failure_reason, v('m1')).message.includes('returned your credits')) throw new Error('a tela depois do estorno')
-    const r2 = await srvMod.estornarMovimentosOrfaos(b.admin, since7(), refund)
-    if (r2.refunded !== 0 || v('m1') !== 40 || pagos.size !== 4) throw new Error('rodar de novo estornou de novo: ' + JSON.stringify(r2))
+    const r2 = await srvMod.estornarMovimentosOrfaos(b.admin, since7(), refund, async () => null)
+    if (r2.refunded !== 0 || v('m1') !== 40 || pagos.size !== 5) throw new Error('rodar de novo estornou de novo: ' + JSON.stringify(r2))
     const varre = (over[SRV] ?? lf(SRV)).replace(/\/\/[^\n]*/g, '')
     const corpo = varre.slice(varre.indexOf('export async function sweepClipJobs'), varre.indexOf('export async function advanceActiveClipJobs'))
     if (!corpo.includes('const mov = await estornarMovimentosOrfaos(admin, since)') || !corpo.includes('result.refunded += mov.refunded')) throw new Error('a varredura horária não chama o estorno do movimento')
   })
-  await check('11 (KINEO-MOVIMENTO-VARREDURA-1411, item 1) a fila não entope: 60 linhas mortas (o RPC devolve 0) não escondem a falha nova NEM a mais antiga atrás delas; teto de 200 por hora', async () => {
-    const L = (id, minAtras, o = {}) => linha({ id, billing_reference: 'clips-' + id, status: 'failed', credits_refunded: 0, failure_reason: 'provider_failed', model: VIDEO, created_at: new Date(NOW - minAtras * 60_000).toISOString(), ...o })
-    const mortas = Array.from({ length: 60 }, (_, i) => L('morta-' + i, 60 + i))
-    const b = bancoSel([L('velha', 3 * 24 * 60), ...mortas, L('nova', 10)])
-    const vivas = new Set(['clips-velha', 'clips-nova'])
+  // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 [revisor da CEO 14/11 12:30, item a] — a linha MORTA (o RPC devolve 0 para sempre: o estorno já aconteceu e a linha
+  // gravou 0) sai da busca pelo livro-razão; com 250, 450 e 1000 mortas mais NOVAS na frente, a órfã de verdade é devolvida em poucas horas, não se perde.
+  for (const n of [250, 450, 1000]) {
+    await check(`11 (a) ${n} linhas mortas mais novas na frente (já estornadas no livro-razão): cada uma grava o valor REAL e sai da busca; a órfã antiga volta em até ${Math.ceil(n / 200) + 1} horas`, async () => {
+      const L = (id, minAtras, o = {}) => linha({ id, billing_reference: 'clips-' + id, status: 'failed', credits_refunded: 0, failure_reason: 'provider_failed', model: VIDEO, created_at: new Date(NOW - minAtras * 60_000).toISOString(), ...o })
+      const mortas = Array.from({ length: n }, (_, i) => L('morta-' + i, 5 + i))
+      const b = bancoSel([...mortas, L('orfa', 5 * 24 * 60)], mortas.map((m) => ({ render_id: m.billing_reference, amount: 40, refunded_at: new Date(NOW - 3600_000).toISOString() })))
+      let pagas = 0, horas = 0
+      const refund = async (ref) => (ref === 'clips-orfa' && !pagas++ ? 40 : 0)
+      while (b.t.get('orfa').credits_refunded === 0 && horas < 50) { horas++; await srvMod.estornarMovimentosOrfaos(b.admin, since7(), refund) }
+      if (b.t.get('orfa').credits_refunded !== 40 || horas > Math.ceil(n / 200) + 1 || pagas !== 1) throw new Error(`órfã: ${b.t.get('orfa').credits_refunded} em ${horas} horas (pagas ${pagas})`)
+      if (mortas.some((m) => b.t.get(m.id).credits_refunded !== 40)) throw new Error('morta sem o valor do livro-razão')
+    })
+  }
+  await check('11 (a) débito ainda NÃO devolvido no livro-razão (erro de verdade no RPC): nada é gravado, a linha volta na hora seguinte', async () => {
+    const l = linha({ id: 'erro-rpc', billing_reference: 'clips-erro-rpc', status: 'failed', credits_refunded: 0, failure_reason: 'provider_failed', model: VIDEO })
+    const b = bancoSel([l], [{ render_id: 'clips-erro-rpc', amount: 40, refunded_at: null }])
     let chamadas = 0
-    const r = await srvMod.estornarMovimentosOrfaos(b.admin, since7(), async (ref) => { chamadas++; return vivas.delete(ref) ? 40 : 0 })
-    if (r.refunded !== 2 || b.t.get('nova').credits_refunded !== 40 || b.t.get('velha').credits_refunded !== 40 || chamadas !== 62) throw new Error('entupiu: ' + JSON.stringify([r, chamadas, b.t.get('nova').credits_refunded, b.t.get('velha').credits_refunded]))
-    const muitas = bancoSel(Array.from({ length: 300 }, (_, i) => L('m-' + i, 5 + i)))
+    await srvMod.estornarMovimentosOrfaos(b.admin, since7(), async () => { chamadas++; return 0 })
+    if (b.t.get('erro-rpc').credits_refunded !== 0) throw new Error('gravou estorno que não aconteceu')
+    await srvMod.estornarMovimentosOrfaos(b.admin, since7(), async () => { chamadas++; return 40 })
+    if (b.t.get('erro-rpc').credits_refunded !== 40 || chamadas !== 2) throw new Error('não voltou na hora seguinte')
+  })
+  await check('11 (a) 250 pedidos que NUNCA foram cobrados (debit_failed) mais novos na frente: fora da busca; a órfã antiga volta na 1ª hora', async () => {
+    const L = (id, minAtras, o = {}) => linha({ id, billing_reference: 'clips-' + id, status: 'failed', credits_refunded: 0, failure_reason: 'debit_failed', created_at: new Date(NOW - minAtras * 60_000).toISOString(), ...o })
+    const b = bancoSel([...Array.from({ length: 250 }, (_, i) => L('sem-debito-' + i, 5 + i)), L('orfa', 3 * 24 * 60, { failure_reason: 'motion_not_you' })])
+    let chamadas = 0
+    const r = await srvMod.estornarMovimentosOrfaos(b.admin, since7(), async (ref) => { chamadas++; return ref === 'clips-orfa' ? 40 : 0 }, async () => null)
+    if (r.refunded !== 1 || b.t.get('orfa').credits_refunded !== 40 || chamadas !== 1) throw new Error(JSON.stringify([r, chamadas]))
+  })
+  await check('11 (b) empate de created_at na borda da página: 80 linhas com a MESMA hora em volta da 50ª; a órfã no meio delas volta; cada linha olhada uma vez', async () => {
+    const hora = new Date(NOW - 2 * 3600_000).toISOString()
+    const L = (id, created_at, o = {}) => linha({ id, billing_reference: 'clips-' + id, status: 'failed', credits_refunded: 0, failure_reason: 'provider_failed', model: VIDEO, created_at, ...o })
+    const linhas = [...Array.from({ length: 30 }, (_, i) => L('antes-' + String(i).padStart(3, '0'), new Date(NOW - (60 + i) * 60_000).toISOString())), ...Array.from({ length: 80 }, (_, i) => L('empate-' + String(i).padStart(3, '0'), hora)), L('empate-orfa', hora)]
+    const b = bancoSel(linhas)
+    const vistos = []
+    await srvMod.estornarMovimentosOrfaos(b.admin, since7(), async (ref) => { vistos.push(ref); return ref === 'clips-empate-orfa' ? 40 : 0 }, async () => null)
+    if (b.t.get('empate-orfa').credits_refunded !== 40) throw new Error('a órfã do empate foi pulada')
+    if (vistos.length !== linhas.length || new Set(vistos).size !== linhas.length) throw new Error(`olhou ${vistos.length} (${new Set(vistos).size} distintas) de ${linhas.length}`)
+  })
+  await check('11 teto de 4 páginas por hora: 300 linhas sem resposta (RPC 0, sem livro-razão) = 200 chamadas', async () => {
+    const L = (id, minAtras) => linha({ id, billing_reference: 'clips-' + id, status: 'failed', credits_refunded: 0, failure_reason: 'provider_failed', model: VIDEO, created_at: new Date(NOW - minAtras * 60_000).toISOString() })
+    const b = bancoSel(Array.from({ length: 300 }, (_, i) => L('m-' + i, 5 + i)))
     let n = 0
-    await srvMod.estornarMovimentosOrfaos(muitas.admin, since7(), async () => { n++; return 0 })
+    await srvMod.estornarMovimentosOrfaos(b.admin, since7(), async () => { n++; return 0 }, async () => null)
     if (n !== 200) throw new Error('teto por hora: ' + n)
   })
-  await check('11 (KINEO-MOVIMENTO-VARREDURA-1411, item 2) o reconhecedor só aceita o que o servidor grava: texto EXATO de um molde da lista + modelo de um dos dois passos', async () => {
+  await check('11 (c) a linha é de movimento pelo id do molde que o SERVIDOR guardou na impressão digital: renomeado, outra duração ou fora da lista continua reconhecido; texto ou modelo do cliente nunca', async () => {
     const e = mov.ehLinhaDeMovimento
     if (!e(linha()) || !e(linha({ model: VIDEO }))) throw new Error('a linha do servidor não foi reconhecida')
-    for (const o of [{ prompt: 'Recreate motion: x [y]' }, { prompt: 'Recreate motion: Football run [molde-que-nao-existe]' }, { model: 'fal-ai/kling-video/v2.1/standard/image-to-video' }, { engine: 'seedance' }, { mode: 't2v' }, { seconds: 5 }, { prompt: 'Recreate motion: Football run [lance-teste] ' }])
+    for (const o of [{ prompt: 'Recreate motion: Renamed run [lance-teste]' }, { seconds: 6 }, { fingerprint: FP('molde-que-saiu-da-lista') }]) if (!e(linha(o))) throw new Error('perdeu a linha: ' + JSON.stringify(o))
+    for (const o of [{ fingerprint: 'abc123' }, { fingerprint: '[not json' }, { fingerprint: JSON.stringify(['req', 'fal-ai/kling-video/v2.1/standard/image-to-video', { molde: 'lance-teste' }]) }, { fingerprint: FP('Lance Teste') }, { fingerprint: FP('x'.repeat(61)) }, { model: 'fal-ai/kling-video/v2.1/standard/image-to-video' }, { engine: 'seedance' }, { mode: 't2v' }])
       if (e(linha(o))) throw new Error('reconheceu: ' + JSON.stringify(o))
+    if (mov.movimentoForRow(linha({ fingerprint: FP('molde-que-saiu-da-lista') })) !== null || mov.movimentoStageForRow(linha({ fingerprint: FP('molde-que-saiu-da-lista') })) !== 'scene') throw new Error('molde fora da lista: estágio pela linha, molde nulo')
+    if (mov.movimentoForRow(linha({ prompt: 'Recreate motion: Renamed run [lance-teste]', seconds: 6 }))?.id !== 'lance-teste') throw new Error('renomeado ou outra duração: perdeu o molde')
+    const r = mov.planMovimento(pedido, ctx, null)
+    if (!r.ok || r.plan.fingerprintInput.molde !== 'lance-teste') throw new Error('o plano não grava o id do molde')
+  })
+  await check('11 (c) o molde saiu da lista com a linha no passo 1: o passo 2 não sai, a linha é estornada, NUNCA entrega a imagem como vídeo', async () => {
+    const h = harness({ linha: { fingerprint: FP('molde-que-saiu-da-lista') } })
+    h.deps.movimento.submitVideo = srvMod.movimentoDepsFor(h.b.admin).submitVideo
+    await flow.settleClip(h.deps, linha({ fingerprint: FP('molde-que-saiu-da-lista') }))
+    const l = h.row()
+    if (l.status !== 'failed' || h.s.estornos !== 1 || l.video_url || h.s.persistVideo) throw new Error(JSON.stringify([l.status, l.failure_reason, h.s]))
   })
   await check('11 (item 1) de ponta a ponta: o estorno dá erro na hora (o RPC devolve 0) → failed com 0 e "within the hour"; a varredura devolve uma vez', async () => {
     const h = harness({ juiz: { result: 'blocked', reason: 'moderation' } })
@@ -415,7 +497,7 @@ async function bateria(over = {}) {
     const b = banco([])
     const ok = srvMod.movimentoCenaPublica(b.admin, linha({ model: VIDEO }))
     if (ok !== `${SUPA}/storage/v1/object/public/renders/clips/${U}/${U}-motion-scene.png`) throw new Error('cena: ' + ok)
-    if (srvMod.movimentoCenaPublica(b.admin, linha()) !== null || srvMod.movimentoCenaPublica(b.admin, linha({ model: VIDEO, status: 'failed' })) !== null || srvMod.movimentoCenaPublica(b.admin, linha({ model: VIDEO, prompt: 'outro' })) !== null) throw new Error('cena fora de hora')
+    if (srvMod.movimentoCenaPublica(b.admin, linha()) !== null || srvMod.movimentoCenaPublica(b.admin, linha({ model: VIDEO, status: 'failed' })) !== null || srvMod.movimentoCenaPublica(b.admin, linha({ model: VIDEO, fingerprint: 'outro' })) !== null /* reancorado KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 — a linha é de movimento pela impressão digital, não pelo texto */) throw new Error('cena fora de hora')
     if (mov.movimentoGuiaUrl(molde, SUPA) !== `${SUPA}/storage/v1/object/public/renders/recreate-sources/v1/recreate-passarela.mp4`) throw new Error('guia: ' + mov.movimentoGuiaUrl(molde, SUPA))
   })
 
@@ -523,8 +605,8 @@ const mutantes = [
   ['movimento cai na regra do efeito (todos veem)', { [ACCESS]: src[ACCESS].replace("  if (f.type === 'motion') return recreateSwapPriced(f)", "  if (f.type === 'motion' && false) return recreateSwapPriced(f)") }],
   ['aprovado abre ao público com o interruptor internal', { [ACCESS]: src[ACCESS].replace("(f.movimentoAprovado === true ? releaseVisible(email, RECREATE_MOVIMENTO_RELEASE) : releaseVisible(email, 'internal'))", "(f.movimentoAprovado === true ? true : releaseVisible(email, 'internal'))") }],
   ['link público do movimento como efeito', { [ENTRY]: src[ENTRY].replace("f.type === 'motion' ? RECREATE_MOVIMENTO_RELEASE === 'public' && f.movimentoAprovado === true && recreateSwapPriced(f)", "f.type === 'motion' ? true") }],
-  ['créditos do movimento pelo efeito', { [FORMATS]: src[FORMATS].replace("return f.type === 'swap' || f.type === 'motion' ? recreateCreditCost(f.seconds) : recreateEffectCredits(f)", "return f.type === 'swap' ? recreateCreditCost(f.seconds) : recreateEffectCredits(f)") }],
-  ['descrição na impressão digital', { [MOV]: src[MOV].replace('    fingerprintInput: movimentoEntradaDaCena(f, foto, null),', '    fingerprintInput: input,') }],
+  ["créditos do movimento pelo efeito", { [FORMATS]: src[FORMATS].replace("f.type === 'motion' ? recreateMovimentoCredits(f) :", "f.type === 'motion' ? recreateEffectCredits(f) :") }],
+  ["descrição na impressão digital", { [MOV]: src[MOV].replace('    fingerprintInput: { ...movimentoEntradaDaCena(f, foto, null), molde: f.id },', '    fingerprintInput: { ...input, molde: f.id },') }],
   ['texto do navegador no passo 1', { [MOV]: src[MOV].replace('  const input = movimentoEntradaDaCena(f, foto, descricao)', "  const input = movimentoEntradaDaCena(f, foto, [descricao, typeof raw.prompt === 'string' ? raw.prompt : ''].filter(Boolean).join(' '))") }],
   ['frase negativa liberada', { [MOV]: src[MOV].replace("export const FRASE_NEGATIVA = /\\b(no|not|never|without|avoid|cannot|don'?t|doesn'?t|isn'?t|aren'?t|nothing|none|neither|nor)\\b|n't\\b/i", 'export const FRASE_NEGATIVA = /^$/') }],
   ['guia com duas pessoas aceito', { [MOV]: src[MOV].replace("  if (f.pessoasNoGuia !== 1) p.push(", '  if (false) p.push(') }],
@@ -553,19 +635,27 @@ const mutantes = [
   ['/check: cabelo depois dos óculos', { [TEXTO]: src[TEXTO].replace("clausulaDoCabelo(a.cabelos?.[i]) + clausulaDosOculos(a.oculos?.[i], i + 1, gs[i] === 'man' ? 'he' : 'she')", "clausulaDosOculos(a.oculos?.[i], i + 1, gs[i] === 'man' ? 'he' : 'she') + clausulaDoCabelo(a.cabelos?.[i])") }],
   // KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 [CEO 14/11 10:55]
   ['varredura horária sem o movimento', { [SRV]: src[SRV].replace('  const mov = await estornarMovimentosOrfaos(admin, since)', '  const mov = { refunded: 0, creditsReturned: 0 }') }],
-  ['estorno do movimento só nos motivos motion_*', { [SRV]: src[SRV].replace('setRefunded(id, refunded) }, () => true)', "setRefunded(id, refunded) }, (motivo) => typeof motivo === 'string' && motivo.startsWith('motion_'))") }],
+  ["estorno do movimento só nos motivos motion_*", { [SRV]: src[SRV].replace("    for (const row of pagina.filter((r) => ehLinhaDeMovimento(r) && r.status === 'failed' && r.credits_refunded === 0)) {", "    for (const row of pagina.filter((r) => ehLinhaDeMovimento(r) && r.status === 'failed' && r.credits_refunded === 0 && String(r.failure_reason).startsWith('motion_'))) {") }],
   // KINEO-MOVIMENTO-VARREDURA-1411 [CEO 14/11 11:50]
-  ['varredura das mais antigas primeiro', { [SRV]: src[SRV].replace("    const { data, error } = await q.order('created_at', { ascending: false }).limit(MOVIMENTO_ESTORNO_PAGINA)", "    const { data, error } = await q.order('created_at', { ascending: true }).limit(MOVIMENTO_ESTORNO_PAGINA)") }],
+  ["varredura das mais antigas primeiro", { [SRV]: src[SRV].replace("await q.order('created_at', { ascending: false }).order('id', { ascending: false }).limit(MOVIMENTO_ESTORNO_PAGINA)", "await q.order('created_at', { ascending: true }).order('id', { ascending: true }).limit(MOVIMENTO_ESTORNO_PAGINA)") }],
   ['varredura de uma página só', { [SRV]: src[SRV].replace('export const MOVIMENTO_ESTORNO_PAGINAS = 4', 'export const MOVIMENTO_ESTORNO_PAGINAS = 1') }],
   ['varredura sem teto', { [SRV]: src[SRV].replace('export const MOVIMENTO_ESTORNO_PAGINAS = 4', 'export const MOVIMENTO_ESTORNO_PAGINAS = 1000') }],
-  ['varredura sem cursor (relê a 1ª página)', { [SRV]: src[SRV].replace('    if (antesDe) q = q.lt(\'created_at\', antesDe)\n', '') }],
-  ['reconhecedor pela forma do texto', { [MOV]: src[MOV].replace('(row.model === MOVIMENTO_CENA_MODEL || row.model === MOVIMENTO_VIDEO_MODEL) && movimentoForRow(row, catalogo) !== null', "row.mode === 'image' && row.engine === MOVIMENTO_ENGINE && /^Recreate motion: .+ \\[[a-z0-9-]+\\]$/.test(row.prompt)") }],
-  ['reconhecedor sem o modelo', { [MOV]: src[MOV].replace('(row.model === MOVIMENTO_CENA_MODEL || row.model === MOVIMENTO_VIDEO_MODEL) && movimentoForRow(row, catalogo) !== null', 'movimentoForRow(row, catalogo) !== null') }],
-  ['varredura do movimento pega o que não é movimento', { [SRV]: src[SRV].replace('pagina.filter((row) => ehLinhaDeMovimento(row))', 'pagina') }],
+  ["varredura sem cursor (relê a 1ª página)", { [SRV]: src[SRV].replace(src[SRV].split('\n').find((l) => l.startsWith('    if (cursor) q = q.or(')) + '\n', '') }],
+  ["reconhecedor pela forma do texto", { [MOV]: src[MOV].replace('&& row.engine === MOVIMENTO_ENGINE && movimentoIdDaLinha(row) !== null', "&& row.engine === MOVIMENTO_ENGINE && /^Recreate motion: .+ \\[[a-z0-9-]+\\]$/.test((row as { prompt?: string }).prompt ?? '')") }],
+  ["reconhecedor sem o modelo", { [MOV]: src[MOV].replace('(row.model === MOVIMENTO_CENA_MODEL || row.model === MOVIMENTO_VIDEO_MODEL) && row.mode', 'row.mode') }],
+  ["varredura do movimento pega o que não é movimento", { [SRV]: src[SRV].replace('pagina.filter((r) => ehLinhaDeMovimento(r) && ', 'pagina.filter((r) => true && ') }],
   ['moderador fora sem evento', { [SRV]: src[SRV].replace("      if (!mod.ok) await clipEvent(row.user_id)(MOVIMENTO_EVENTOS.moderadorFora, { clip_id: row.id, motivo: mod.reason, etapa: 'movimento_cena' })\n", '') }],
   ['três estilos de cabelo', { [DESC]: src[DESC].replace('.filter(Boolean))].slice(0, 2)', '.filter(Boolean))].slice(0, 3)') }],
   ['orçamento da moderação de 60 s', { [SRV]: src[SRV].replace("etapa: 'movimento_cena' }, orcamentoMs: 15_000 })", "etapa: 'movimento_cena' }, orcamentoMs: 60_000 })") }],
   ['corrida da mesma chave vira 409', { [FLOW]: src[FLOW].replace('if (winner && winner.fingerprint === fingerprint) return', 'if (false) return') }],
+  // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 [revisor da CEO 14/11 12:30, itens a, b, c + o preço provisório de 6 s]
+  ["cursor só por created_at (pula o empate)", { [SRV]: src[SRV].replace(src[SRV].split('\n').find((l) => l.startsWith('    if (cursor) q = q.or(')), "    if (cursor) q = q.lt('created_at', cursor.createdAt)") }],
+  ["sem o livro-razão (a linha morta nunca sai)", { [SRV]: src[SRV].replace('      const debito = await livro(row.billing_reference).catch(() => null)\n', '      const debito = null as { amount: number; refunded: boolean } | null\n') }],
+  ["livro-razão grava estorno que não aconteceu", { [SRV]: src[SRV].replace('if (debito?.refunded && debito.amount > 0)', 'if (debito && debito.amount > 0)') }],
+  ["busca com o que nunca foi cobrado", { [SRV]: src[SRV].replace(".not('failure_reason', 'in', `(${MOVIMENTO_ESTORNO_NUNCA_COBRADO.join(',')})`)", '') }],
+  ["sem o id do molde na linha", { [MOV]: src[MOV].replace('    fingerprintInput: { ...movimentoEntradaDaCena(f, foto, null), molde: f.id },', '    fingerprintInput: movimentoEntradaDaCena(f, foto, null),') }],
+  ["linha reconhecida pelo catálogo (texto e duração)", { [MOV]: src[MOV].replace('  return catalogo.find(f => f.type === \'motion\' && f.id === id) ?? null', '  return catalogo.find(f => f.type === \'motion\' && f.id === id && movimentoRowPrompt(f) === (row as { prompt?: string }).prompt) ?? null') }],
+  ["provisório da casa vale para o aprovado", { [FORMATS]: src[FORMATS].replace("(f.type === 'motion' && f.movimentoAprovado !== true ? RECREATE_MOVIMENTO_PROVISORIO_CASA", "(f.type === 'motion' ? RECREATE_MOVIMENTO_PROVISORIO_CASA") }],
   ['juiz com campo inventado na fal', { [MOV]: src[MOV].replace("character_orientation: 'video', keep_original_sound: false,", "character_orientation: 'video', keep_original_sound: false, negative_prompt: 'logos',") }],
 ]
 let mortos = 0

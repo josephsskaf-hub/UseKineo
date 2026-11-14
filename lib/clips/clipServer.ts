@@ -263,7 +263,7 @@ export function toPublicClip(row: ClipRow): PublicClip {
     id: row.id,
     engine: row.engine,
     // KINEO-RECREATE-MOVIMENTO-1411 — selo honesto: o motor real do movimento (a linha guarda 'kling' só por ser chave do catálogo).
-    label: movimentoForRow(row) ? MOVIMENTO_SELO : effect?.template?.label ?? (CLIP_ENGINES[row.engine] ? clipLabelForModel(row.engine, row.model) : row.engine), // KINEO-EFEITOS-NOVOS-2026-10-13 — selo do modelo real · KINEO-ROTULO-CLIPE-H3-1111: clipe antigo do trilho seedance = Seedance 1.5
+    label: ehLinhaDeMovimento(row) ? MOVIMENTO_SELO : effect?.template?.label ?? (CLIP_ENGINES[row.engine] ? clipLabelForModel(row.engine, row.model) : row.engine), // KINEO-EFEITOS-NOVOS-2026-10-13 — selo do modelo real · KINEO-ROTULO-CLIPE-H3-1111: clipe antigo do trilho seedance = Seedance 1.5
     with_image: row.mode === 'image',
     seconds: row.seconds,
     aspect: row.aspect,
@@ -536,7 +536,7 @@ export function movimentoDepsFor(admin: SupabaseClient): ClipMovimentoDeps {
 }
 /** KINEO-RECREATE-MOVIMENTO-1411 — a imagem do passo 1 (nosso bucket) de uma linha de movimento que já passou dele; null nas outras. */
 export function movimentoCenaPublica(admin: SupabaseClient, row: ClipRow): string | null {
-  if (!movimentoForRow(row) || row.model !== MOVIMENTO_VIDEO_MODEL || row.status === 'failed') return null
+  if (!ehLinhaDeMovimento(row) || row.model !== MOVIMENTO_VIDEO_MODEL || row.status === 'failed') return null // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 — era: movimentoForRow (dependia do catálogo)
   const { data } = admin.storage.from(CLIPS_BUCKET).getPublicUrl(movimentoCenaPath(row.user_id, row.id))
   return data?.publicUrl ?? null
 }
@@ -1016,19 +1016,44 @@ export async function sweepClipJobs(): Promise<{ scanned: number; delivered: num
 // (cursor), até 4 páginas (200 linhas) por hora. A falha recente é sempre olhada primeiro; a morta vai para o fim e sai da janela de 7 dias.
 export const MOVIMENTO_ESTORNO_PAGINA = 50
 export const MOVIMENTO_ESTORNO_PAGINAS = 4
-export async function estornarMovimentosOrfaos(admin: SupabaseClient, since: string, refund: (billingReference: string) => Promise<number> = (ref) => refundRenderCredits(ref)): Promise<{ scanned: number; refunded: number; creditsReturned: number }> {
-  const total = { scanned: 0, refunded: 0, creditsReturned: 0 }
-  let antesDe: string | null = null
+// KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 [revisor da CEO 14/11 12:30, itens a e b] — (a) a linha MORTA (o RPC devolve 0 para sempre) ficava na busca 7 dias e, com 250+ mais novas na
+// frente, a órfã de verdade saía da janela sem ser olhada. A linha morta realista é a que JÁ foi estornada mas gravou 0 (o processo caiu entre o estorno
+// e o failed: o 2º fail() recebe 0 do RPC). Agora, quando o RPC devolve 0, a varredura lê o livro-razão (credit_debits pela billing_reference): estorno
+// já registrado = grava na linha o valor REAL devolvido (a linha sai da busca e a tela diz "returned", que é verdade); débito ainda não devolvido = fica
+// para a próxima hora (erro de verdade). A linha que nunca foi cobrada (debit_failed: o débito falhou antes) não entra na busca.
+// (b) empate de created_at na borda da página pulava a linha: a página seguinte vem pela ÚLTIMA CHAVE LIDA (created_at e id), como a auditoria das reservas.
+export const MOVIMENTO_ESTORNO_NUNCA_COBRADO = ['debit_failed'] as const
+const MOVIMENTO_ESTORNO_CHAVE = /^[0-9A-Za-z:.+\- ]{1,64}$/
+export type MovimentoLivroRazao = (billingReference: string) => Promise<{ amount: number; refunded: boolean } | null>
+export function livroRazaoDoClipe(admin: SupabaseClient): MovimentoLivroRazao {
+  return async (ref) => {
+    const { data, error } = await admin.from('credit_debits').select('amount, refunded_at').eq('render_id', ref).maybeSingle()
+    if (error || !data) return null
+    const amount = Number((data as { amount?: unknown }).amount)
+    return Number.isFinite(amount) ? { amount, refunded: typeof (data as { refunded_at?: unknown }).refunded_at === 'string' && Boolean((data as { refunded_at?: string }).refunded_at) } : null
+  }
+}
+export async function estornarMovimentosOrfaos(admin: SupabaseClient, since: string, refund: (billingReference: string) => Promise<number> = (ref) => refundRenderCredits(ref), livro: MovimentoLivroRazao = livroRazaoDoClipe(admin)): Promise<{ scanned: number; refunded: number; creditsReturned: number; jaDevolvidos: number }> {
+  const total = { scanned: 0, refunded: 0, creditsReturned: 0, jaDevolvidos: 0 }
+  const setRefunded = (id: string, refunded: number) => recreateSwapDepsFor(admin, '').setRefunded(id, refunded)
+  let cursor: { createdAt: string; id: string } | null = null
   for (let p = 0; p < MOVIMENTO_ESTORNO_PAGINAS; p++) {
-    let q = admin.from(CLIPS_TABLE).select(COLUMNS).eq('status', 'failed').eq('credits_refunded', 0).like('prompt', `${MOVIMENTO_PROMPT_PREFIXO}%`).gte('created_at', since)
-    if (antesDe) q = q.lt('created_at', antesDe)
-    const { data, error } = await q.order('created_at', { ascending: false }).limit(MOVIMENTO_ESTORNO_PAGINA)
+    let q = admin.from(CLIPS_TABLE).select(COLUMNS).eq('status', 'failed').eq('credits_refunded', 0).like('prompt', `${MOVIMENTO_PROMPT_PREFIXO}%`).in('model', [MOVIMENTO_CENA_MODEL, MOVIMENTO_VIDEO_MODEL]).not('failure_reason', 'in', `(${MOVIMENTO_ESTORNO_NUNCA_COBRADO.join(',')})`).gte('created_at', since)
+    if (cursor) q = q.or(`created_at.lt."${cursor.createdAt}",and(created_at.eq."${cursor.createdAt}",id.lt."${cursor.id}")`)
+    const { data, error } = await q.order('created_at', { ascending: false }).order('id', { ascending: false }).limit(MOVIMENTO_ESTORNO_PAGINA)
     if (error) { console.error('[clips/sweep] motion refund lookup failed:', error.message); break }
     const pagina = (data ?? []).map((raw) => toRow(raw as Record<string, unknown>))
-    const r = await sweepSwapRefunds(pagina.filter((row) => ehLinhaDeMovimento(row)), { refund, setRefunded: (id, refunded) => recreateSwapDepsFor(admin, '').setRefunded(id, refunded) }, () => true)
-    total.scanned += r.scanned; total.refunded += r.refunded; total.creditsReturned += r.creditsReturned
+    for (const row of pagina.filter((r) => ehLinhaDeMovimento(r) && r.status === 'failed' && r.credits_refunded === 0)) {
+      total.scanned += 1
+      const amount = await refund(row.billing_reference)
+      if (amount > 0) { await setRefunded(row.id, amount); total.refunded += 1; total.creditsReturned += amount; continue }
+      const debito = await livro(row.billing_reference).catch(() => null)
+      if (debito?.refunded && debito.amount > 0) { await setRefunded(row.id, debito.amount); total.jaDevolvidos += 1 }
+    }
     if (pagina.length < MOVIMENTO_ESTORNO_PAGINA) break
-    antesDe = pagina[pagina.length - 1].created_at
+    const ultima = pagina[pagina.length - 1]
+    if (!MOVIMENTO_ESTORNO_CHAVE.test(ultima.created_at) || !MOVIMENTO_ESTORNO_CHAVE.test(ultima.id)) { console.error('[clips/sweep] motion refund cursor unreadable'); break }
+    cursor = { createdAt: ultima.created_at, id: ultima.id }
   }
   return total
 }
