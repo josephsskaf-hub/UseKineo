@@ -25,7 +25,7 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = 'chave-de-teste'
 // ── banco de mentira (PostgREST) ──
 const OR_CHAVE = /^created_at\.lt\."([^"]+)",and\(created_at\.eq\."([^"]+)",(id|render_id)\.lt\."([^"]+)"\)$/
 function criarBanco(tabelas, opcoes = {}) {
-  const st = { lidas: { credit_debits: 0, clips: 0 }, rpcs: [] }
+  const st = { lidas: { credit_debits: 0, clips: 0, ads_v2_orders: 0 }, rpcs: [] }
   const from = (nome) => {
     const t = (tabelas[nome] ??= [])
     const f = [], ords = []; let op = 'select', valores = null, lim = Infinity, um = false, ret = false
@@ -36,7 +36,8 @@ function criarBanco(tabelas, opcoes = {}) {
       eq(c, v) { f.push((r) => r[c] === v); return api }, is(c, v) { f.push((r) => (r[c] ?? null) === v); return api },
       lt(c, v) { f.push((r) => r[c] < v); return api }, gte(c, v) { f.push((r) => r[c] >= v); return api },
       in(c, vs) { f.push((r) => vs.includes(r[c])); return api },
-      not(c, o, v) { if (o !== 'in') throw new Error('not.' + o); const vs = String(v).replace(/^\(|\)$/g, '').split(','); f.push((r) => r[c] != null && !vs.includes(r[c])); return api },
+      neq(c, v) { f.push((r) => r[c] !== v); return api },
+      not(c, o, v) { if (o === 'is' && v === null) { f.push((r) => r[c] != null); return api } if (o !== 'in') throw new Error('not.' + o); const vs = String(v).replace(/^\(|\)$/g, '').split(','); f.push((r) => r[c] != null && !vs.includes(r[c])); return api },
       like(c, p) { const re = new RegExp('^' + p.split('%').map((x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$'); f.push((r) => re.test(String(r[c] ?? ''))); return api },
       or(e) { const m = OR_CHAVE.exec(e); if (!m || m[1] !== m[2]) throw new Error('filtro de chave ilegível: ' + e); f.push((r) => r.created_at < m[1] || (r.created_at === m[1] && r[m[3]] < m[4])); return api },
       then(ok, ko) {
@@ -83,53 +84,60 @@ async function bateria(over = {}) {
   const consoleErro = console.error, consoleLog = console.log, consoleWarn = console.warn
   console.error = () => {}; console.log = () => {}; console.warn = () => {}
   try {
-    // ── A. Anúncio v2 ──
+    // ── A. Anúncio v2 — KINEO-VARREDURAS-SEGUIMENTO-1411: a busca parte do PEDIDO não entregue (o entregue nunca é lido; sem corte de 14 dias) ──
     const deb = (ref, ms, o = {}) => ({ render_id: ref, user_id: U, amount: 34, refunded_at: null, kind: 'video', created_at: iso(ms), ...o })
-    const ped = (id, ref, status, o = {}) => ({ id, user_id: U, status, billing_ref: ref, started_at: iso(5 * H), video_id: null, ...o })
-    const entregues = (n, desdeMs = 3 * H) => Array.from({ length: n }, (_, i) => deb(`adsv2-entregue-${String(i).padStart(4, '0')}`, desdeMs + i * 60_000))
-    const pedidosEntregues = (lista) => lista.map((d, i) => ped('e' + i, d.render_id, 'delivered', { video_id: 'v' + i }))
-    await check('A1 250 débitos ENTREGUES mais novos na frente: o abandonado NOVO e o MAIS ANTIGO (13 dias) estornam na 1ª rodada; entregue nunca; nada duas vezes', async () => {
-      const e = entregues(250)
+    const ped = (id, ref, status, o = {}) => ({ id, user_id: U, status, billing_ref: ref, started_at: iso(5 * H), video_id: null, created_at: iso(5 * H), ...o })
+    const pid = (i) => `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`
+    const jaDevolvidos = (n, desdeMs, prefixo = 'velho') => Array.from({ length: n }, (_, i) => ({ d: deb(`adsv2-${prefixo}-${i}`, desdeMs + i * 60_000, { refunded_at: iso(H) }), o: ped(pid(100000 + i), `adsv2-${prefixo}-${i}`, 'failed', { created_at: iso(desdeMs + i * 60_000) }) }))
+    await check('A1 250 pedidos ENTREGUES (débito nunca devolvido) nunca são lidos; o abandonado NOVO e o de 30 DIAS (sem corte de janela) estornam na 1ª rodada; nada duas vezes', async () => {
+      const ent = Array.from({ length: 250 }, (_, i) => ({ d: deb(`adsv2-entregue-${i}`, 3 * H + i * 60_000), o: ped(pid(i), `adsv2-entregue-${i}`, 'delivered', { video_id: 'v' + i, created_at: iso(3 * H + i * 60_000) }) }))
       banco = criarBanco({
-        credit_debits: [...e, deb('adsv2-novo-falhou', 2.5 * H), deb('adsv2-antigo-cancelado', 13 * D)],
-        ads_v2_orders: [...pedidosEntregues(e), ped('n', 'adsv2-novo-falhou', 'failed'), ped('a', 'adsv2-antigo-cancelado', 'cancelled')],
+        credit_debits: [...ent.map((x) => x.d), deb('adsv2-novo-falhou', 2.5 * H), deb('adsv2-antigo-cancelado', 30 * D)],
+        ads_v2_orders: [...ent.map((x) => x.o), ped(pid(900), 'adsv2-novo-falhou', 'failed', { created_at: iso(2.5 * H) }), ped(pid(901), 'adsv2-antigo-cancelado', 'cancelled', { created_at: iso(30 * D) })],
         videos: [], events: [],
       })
       const r = await R.sweepAbandonedAdsV2Debits()
       const devolvidos = banco.tabelas.credit_debits.filter((d) => d.refunded_at).map((d) => d.render_id).sort()
       if (devolvidos.join() !== 'adsv2-antigo-cancelado,adsv2-novo-falhou' || r.refunded !== 2 || r.creditsReturned !== 68) throw new Error(JSON.stringify([devolvidos, r]))
+      if (banco.st.lidas.ads_v2_orders !== 2 || banco.st.lidas.credit_debits !== 2) throw new Error('leu o entregue: ' + JSON.stringify(banco.st.lidas))
       const r2 = await R.sweepAbandonedAdsV2Debits()
       if (r2.refunded !== 0 || banco.st.rpcs.filter((x) => x.startsWith('adsv2-entregue')).length) throw new Error('2ª rodada ou entregue no RPC: ' + JSON.stringify(r2))
     })
-    await check('A2 empate de created_at na borda da página (400 linhas com a MESMA hora, abandonado no meio): estorna, nenhuma linha pulada nem relida', async () => {
-      const hora = iso(5 * H)
-      const e = Array.from({ length: 400 }, (_, i) => deb(`adsv2-empate-${String(i).padStart(4, '0')}`, 0, { created_at: hora }))
-      banco = criarBanco({ credit_debits: [...e, deb('adsv2-empate-0199x', 0, { created_at: hora })], ads_v2_orders: [...pedidosEntregues(e), ped('x', 'adsv2-empate-0199x', 'failed')], videos: [], events: [] })
+    await check('A1b (revisor, b) o abandonado ANTIGO atrás de 2500 pedidos falhos já devolvidos (mais novos) é alcançado na 1ª rodada', async () => {
+      const dev = jaDevolvidos(2500, 3 * H)
+      banco = criarBanco({ credit_debits: [...dev.map((x) => x.d), deb('adsv2-velho-abandonado', 20 * D)], ads_v2_orders: [...dev.map((x) => x.o), ped(pid(950), 'adsv2-velho-abandonado', 'failed', { created_at: iso(20 * D) })], videos: [], events: [] })
       const r = await R.sweepAbandonedAdsV2Debits()
-      if (r.refunded !== 1 || r.scanned !== 401 || banco.st.lidas.credit_debits !== 401) throw new Error(JSON.stringify([r, banco.st.lidas]))
+      if (r.refunded !== 1 || !banco.tabelas.credit_debits.find((d) => d.render_id === 'adsv2-velho-abandonado').refunded_at) throw new Error(JSON.stringify(r))
     })
-    await check('A3 as regras de antes seguem: parado > 2 h vira failed e estorna; em andamento < 2 h não; sem pedido = ambíguo; pedido de outra conta = ambíguo', async () => {
+    await check('A2 empate de created_at na borda da página (400 pedidos com a MESMA hora, abandonado no meio): estorna, cada pedido lido uma vez', async () => {
+      const hora = iso(5 * H)
+      const e = Array.from({ length: 400 }, (_, i) => ({ d: deb(`adsv2-empate-${i}`, 0, { created_at: hora, refunded_at: iso(H) }), o: ped(pid(i), `adsv2-empate-${i}`, 'failed', { created_at: hora }) }))
+      banco = criarBanco({ credit_debits: [...e.map((x) => x.d), deb('adsv2-empate-x', 0, { created_at: hora })], ads_v2_orders: [...e.map((x) => x.o), ped(pid(199).replace(/9$/, 'a'), 'adsv2-empate-x', 'failed', { created_at: hora })], videos: [], events: [] })
+      const r = await R.sweepAbandonedAdsV2Debits()
+      if (r.refunded !== 1 || banco.st.lidas.ads_v2_orders !== 401) throw new Error(JSON.stringify([r, banco.st.lidas]))
+    })
+    await check('A3 as regras de antes seguem: parado > 2 h vira failed e estorna; em andamento < 2 h não; pedido de outra conta = ambíguo, sem estorno', async () => {
       banco = criarBanco({
         credit_debits: [deb('adsv2-parado', 4 * H), deb('adsv2-andando', 3 * H), deb('adsv2-sem-pedido', 3 * H), deb('adsv2-alheio', 3 * H)],
-        ads_v2_orders: [ped('p', 'adsv2-parado', 'generating', { started_at: iso(3 * H) }), ped('q', 'adsv2-andando', 'assembling', { started_at: iso(30 * 60_000) }), ped('z', 'adsv2-alheio', 'failed', { user_id: '99999999-2222-4333-8444-555555555555' })],
+        ads_v2_orders: [ped(pid(1), 'adsv2-parado', 'generating', { started_at: iso(3 * H) }), ped(pid(2), 'adsv2-andando', 'assembling', { started_at: iso(30 * 60_000) }), ped(pid(3), 'adsv2-alheio', 'failed', { user_id: '99999999-2222-4333-8444-555555555555' })],
         videos: [], events: [],
       })
       const r = await R.sweepAbandonedAdsV2Debits()
       const devolvidos = banco.tabelas.credit_debits.filter((d) => d.refunded_at).map((d) => d.render_id)
-      if (devolvidos.join() !== 'adsv2-parado' || r.stalledFailed !== 1 || r.ambiguous !== 2 || banco.tabelas.ads_v2_orders.find((o) => o.id === 'p').status !== 'failed') throw new Error(JSON.stringify([devolvidos, r]))
+      if (devolvidos.join() !== 'adsv2-parado' || r.stalledFailed !== 1 || r.ambiguous !== 1 || banco.tabelas.ads_v2_orders.find((o) => o.id === pid(1)).status !== 'failed') throw new Error(JSON.stringify([devolvidos, r]))
     })
-    await check('A4 teto de 10 páginas por rodada: 2500 entregues = no máximo 2000 linhas lidas', async () => {
-      const e = entregues(2500)
-      banco = criarBanco({ credit_debits: e, ads_v2_orders: pedidosEntregues(e), videos: [], events: [] })
-      await R.sweepAbandonedAdsV2Debits()
-      if (banco.st.lidas.credit_debits !== 2000) throw new Error('lidas: ' + banco.st.lidas.credit_debits)
+    await check('A4 teto de 20 páginas por rodada: 5000 pedidos falhos já devolvidos = no máximo 4000 lidos; o abandonado MAIS NOVO vem primeiro e estorna', async () => {
+      const dev = jaDevolvidos(5000, 3 * H)
+      banco = criarBanco({ credit_debits: [...dev.map((x) => x.d), deb('adsv2-mais-novo', 2.5 * H)], ads_v2_orders: [...dev.map((x) => x.o), ped(pid(960), 'adsv2-mais-novo', 'failed', { created_at: iso(2.5 * H) })], videos: [], events: [] })
+      const r = await R.sweepAbandonedAdsV2Debits()
+      if (banco.st.lidas.ads_v2_orders !== 4000 || r.refunded !== 1) throw new Error('lidas: ' + JSON.stringify([banco.st.lidas, r]))
     })
-    await check('A5 a busca: das mais novas, pela chave (created_at e render_id), janela de 14 dias; o cron chama a varredura', async () => {
+    await check('A5 a busca: pedidos NÃO entregues com referência, das mais novas, pela chave (created_at e id); sem corte de 14 dias; o cron chama a varredura', async () => {
       const s = (over[REFUND] ?? lf(REFUND))
-      for (const x of [".order('created_at', { ascending: false })\n    .order('render_id', { ascending: false })\n    .limit(ADS_V2_SWEEP_PAGE)", "q = q.or(`created_at.lt.\"${cursor.createdAt}\",and(created_at.eq.\"${cursor.createdAt}\",render_id.lt.\"${cursor.ref}\")`)", ".gte('created_at', desde)"]) if (!s.includes(x)) throw new Error('falta: ' + x.slice(0, 60))
+      for (const x of [".neq('status', 'delivered')\n      .is('video_id', null)\n      .not('billing_ref', 'is', null)", "q = q.or(`created_at.lt.\"${cursor.createdAt}\",and(created_at.eq.\"${cursor.createdAt}\",id.lt.\"${cursor.id}\")`)", ".order('created_at', { ascending: false }).order('id', { ascending: false }).limit(ADS_V2_SWEEP_PAGE)"]) if (!s.includes(x)) throw new Error('falta: ' + x.slice(0, 60))
+      if (/ADS_V2_SWEEP_WINDOW_MS/.test(s)) throw new Error('voltou o corte de 14 dias')
       if (!lf('app/api/cron/refund-sweep/route.ts').includes('await sweepAbandonedAdsV2Debits()')) throw new Error('o cron não chama')
     })
-
     // ── B. troca e fila do Recreate ──
     banco = criarBanco({})
     const srv = m('lib/clips/clipServer')
@@ -215,11 +223,13 @@ const src = { [REFUND]: lf(REFUND), [SRV]: lf(SRV) }
 const troca = (arq, a, b) => { if (src[arq].split(a).length !== 2) { console.error('âncora do mutante: ' + a.slice(0, 80)); process.exit(1) } return { [arq]: src[arq].replace(a, () => b) } }
 const linhaQueComeca = (arq, prefixo) => { const l = src[arq].split('\n').find((x) => x.startsWith(prefixo)); if (!l) { console.error('mutante: ' + prefixo); process.exit(1) } return l }
 const mutantes = [
-  ['A: das mais antigas (o defeito)', troca(REFUND, ".order('created_at', { ascending: false })\n    .order('render_id', { ascending: false })\n    .limit(ADS_V2_SWEEP_PAGE)", ".order('created_at', { ascending: true })\n    .order('render_id', { ascending: true })\n    .limit(ADS_V2_SWEEP_PAGE)")],
-  ['A: uma página só', troca(REFUND, 'export const ADS_V2_SWEEP_MAX_PAGES = 10', 'export const ADS_V2_SWEEP_MAX_PAGES = 1')],
-  ['A: sem teto de páginas', troca(REFUND, 'export const ADS_V2_SWEEP_MAX_PAGES = 10', 'export const ADS_V2_SWEEP_MAX_PAGES = 1000')],
-  ['A: chave só por created_at (pula o empate)', troca(REFUND, "  if (cursor) q = q.or(`created_at.lt.\"${cursor.createdAt}\",and(created_at.eq.\"${cursor.createdAt}\",render_id.lt.\"${cursor.ref}\")`)", "  if (cursor) q = q.lt('created_at', cursor.createdAt)")],
-  ['A: estorna o entregue', troca(REFUND, "    if (order.status === 'delivered' || order.video_id || delivered.has(d.render_id)) continue\n", '')],
+  // KINEO-VARREDURAS-SEGUIMENTO-1411 — a busca parte do pedido não entregue
+  ['A: das mais antigas (o defeito)', troca(REFUND, ".order('created_at', { ascending: false }).order('id', { ascending: false }).limit(ADS_V2_SWEEP_PAGE)", ".order('created_at', { ascending: true }).order('id', { ascending: true }).limit(ADS_V2_SWEEP_PAGE)")],
+  ['A: uma página só', troca(REFUND, 'export const ADS_V2_SWEEP_MAX_PAGES = 20', 'export const ADS_V2_SWEEP_MAX_PAGES = 1')],
+  ['A: sem teto de páginas', troca(REFUND, 'export const ADS_V2_SWEEP_MAX_PAGES = 20', 'export const ADS_V2_SWEEP_MAX_PAGES = 1000')],
+  ['A: chave só por created_at (pula o empate)', troca(REFUND, "    if (cursor) q = q.or(`created_at.lt.\"${cursor.createdAt}\",and(created_at.eq.\"${cursor.createdAt}\",id.lt.\"${cursor.id}\")`)", "    if (cursor) q = q.lt('created_at', cursor.createdAt)")],
+  ['A: busca e regra sem o entregue', { [REFUND]: src[REFUND].replace("      .neq('status', 'delivered')\n      .is('video_id', null)\n", '').replace("      if (order.status === 'delivered' || order.video_id || delivered.has(d.render_id)) continue\n", '') }],
+  ['A: de volta o corte de 14 dias', troca(REFUND, "        .lt('created_at', cutoff)\n        .in('render_id', refs.slice(i, i + ADS_V2_DEBIT_REF_CHUNK))", "        .lt('created_at', cutoff)\n        .gte('created_at', new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString())\n        .in('render_id', refs.slice(i, i + ADS_V2_DEBIT_REF_CHUNK))")],
   ['B: das mais antigas', troca(SRV, "    const { data, error } = await q.order('created_at', { ascending: false }).order('id', { ascending: false }).limit(TROCA_FILA_ESTORNO_PAGINA)", "    const { data, error } = await q.order('created_at', { ascending: true }).order('id', { ascending: true }).limit(TROCA_FILA_ESTORNO_PAGINA)")],
   ['B: uma página só', troca(SRV, 'export const TROCA_FILA_ESTORNO_PAGINAS = 4', 'export const TROCA_FILA_ESTORNO_PAGINAS = 1')],
   ['B: chave só por created_at', { [SRV]: src[SRV].replace(src[SRV].split('\n').filter((l) => l.startsWith('    if (cursor) q = q.or(`created_at.lt.'))[1], "    if (cursor) q = q.lt('created_at', cursor.createdAt)") }],

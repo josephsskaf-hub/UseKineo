@@ -605,15 +605,20 @@ export async function sweepAbandonedAvatarDebits(): Promise<{
 //   · débito sem pedido nenhum → não estorna (não há prova de nada) e aparece no log como ambíguo.
 // ═══════════════════════════════════════════════════════════════════════════
 const ADS_V2_ABANDON_CUTOFF_MS = 2 * 60 * 60 * 1000
-// KINEO-VARREDURAS-ESTORNO-1411 [CEO 14/11 12:30, item 3: "defeito de dinheiro do cliente com data marcada"] — a busca lia as 200 MAIS ANTIGAS com refunded_at nulo e SEM
-// limite inferior de data. Débito ENTREGUE também fica com refunded_at nulo para sempre: passando de 200 entregues (eram 107 em 14/11, ~2 por dia), a
-// varredura só relia as 200 entregues mais velhas e o pedido abandonado novo nunca era estornado. Agora: das mais NOVAS para as mais antigas, janela de
-// 14 dias (o entregue sai da busca sozinho; o abandono é julgado de hora em hora a partir de 2 h), páginas de 200 pela ÚLTIMA CHAVE LIDA (created_at e
-// render_id: empate na borda não pula linha), até 10 páginas por rodada. A decisão sobre cada débito é a MESMA de antes.
-export const ADS_V2_SWEEP_WINDOW_MS = 14 * 24 * 60 * 60 * 1000
+// KINEO-VARREDURAS-ESTORNO-1411 [CEO 14/11 12:30, item 3] — a busca lia as 200 MAIS ANTIGAS com refunded_at nulo e sem limite inferior: débito ENTREGUE
+// fica nulo para sempre e, passando de 200, o abandonado novo nunca era estornado.
+// KINEO-VARREDURAS-SEGUIMENTO-1411 [revisor da CEO 14/11: (a) "tirar o ENTREGUE da busca pelo pedido em vez de cortar por 14 dias"; (b) "abandonado atrás
+// de 2000 débitos pendurados nunca é alcançado"] — a busca agora PARTE DO PEDIDO: só os pedidos NÃO entregues (status diferente de delivered, sem vídeo)
+// que têm referência de cobrança, das mais novas para as mais antigas, em páginas de 200 pela ÚLTIMA CHAVE (created_at e id), até 20 páginas por rodada;
+// para cada página, os débitos adsv2 ainda não devolvidos daquelas referências. O entregue nunca é lido (não ocupa página), o abandonado de qualquer
+// idade é alcançado (sem corte de 14 dias) e a decisão sobre cada débito é a MESMA de antes. Débito sem pedido nenhum (adsv2redo-…) segue sem estorno,
+// como antes (não há prova); ele só não é mais contado como "ambíguo" porque a busca não passa por ele.
 export const ADS_V2_SWEEP_PAGE = 200
-export const ADS_V2_SWEEP_MAX_PAGES = 10
+export const ADS_V2_SWEEP_MAX_PAGES = 20
 const ADS_V2_SWEEP_CHAVE = /^[0-9A-Za-z:._+\- ]{1,128}$/
+const ADS_V2_DEBIT_REF_CHUNK = 100
+
+type AdsV2OrderRow = { id: string; user_id: string; status: string; billing_ref: string; started_at: string | null; video_id: string | null; created_at: string }
 
 export async function sweepAbandonedAdsV2Debits(): Promise<{
   scanned: number
@@ -626,86 +631,86 @@ export async function sweepAbandonedAdsV2Debits(): Promise<{
   const db = adminClient()
   if (!db) return result
   const cutoff = new Date(Date.now() - ADS_V2_ABANDON_CUTOFF_MS).toISOString()
-  const desde = new Date(Date.now() - ADS_V2_SWEEP_WINDOW_MS).toISOString() // KINEO-VARREDURAS-ESTORNO-1411
-  let cursor: { createdAt: string; ref: string } | null = null
-  for (let pagina = 0; pagina < ADS_V2_SWEEP_MAX_PAGES; pagina++) { // KINEO-VARREDURAS-ESTORNO-1411 — era: uma leitura das 200 mais antigas
-  let q = db
-    .from('credit_debits')
-    .select('render_id, user_id, amount, created_at')
-    .eq('kind', 'video')
-    .is('refunded_at', null)
-    .like('render_id', 'adsv2%')
-    .lt('created_at', cutoff)
-    .gte('created_at', desde)
-  if (cursor) q = q.or(`created_at.lt."${cursor.createdAt}",and(created_at.eq."${cursor.createdAt}",render_id.lt."${cursor.ref}")`)
-  const { data: debits, error } = await q
-    .order('created_at', { ascending: false })
-    .order('render_id', { ascending: false })
-    .limit(ADS_V2_SWEEP_PAGE)
-  if (error) {
-    console.error('[refund/ads-v2-sweep] debit query failed:', error.message)
-    return result
-  }
-  const candidates = (debits ?? []) as { render_id: string; user_id: string; amount: number; created_at: string }[]
-  result.scanned += candidates.length
-  if (candidates.length === 0) return result
-  const ultima = candidates[candidates.length - 1]
-  const proxima = candidates.length < ADS_V2_SWEEP_PAGE ? null : ADS_V2_SWEEP_CHAVE.test(String(ultima.created_at)) && ADS_V2_SWEEP_CHAVE.test(String(ultima.render_id)) ? { createdAt: String(ultima.created_at), ref: String(ultima.render_id) } : 'ilegivel' as const
-  const refs = candidates.map((d) => d.render_id)
-
-  const { data: orders, error: ordersErr } = await db
-    .from('ads_v2_orders')
-    .select('id, user_id, status, billing_ref, started_at, video_id')
-    .in('billing_ref', refs)
-  if (ordersErr) {
-    // Tabela ainda não aplicada (42P01/PGRST205) ou leitura fora: não estorna nada.
-    console.error('[refund/ads-v2-sweep] orders lookup failed — skipping:', ordersErr.message)
-    return result
-  }
-  const { data: vids, error: vidErr } = await db.from('videos').select('render_id').in('render_id', refs)
-  if (vidErr) {
-    console.error('[refund/ads-v2-sweep] videos lookup failed — skipping:', vidErr.message)
-    return result
-  }
-  const delivered = new Set((vids ?? []).map((v) => v.render_id as string))
-  const byRef = new Map<string, { id: string; user_id: string; status: string; billing_ref: string; started_at: string | null; video_id: string | null }>()
-  for (const o of (orders ?? []) as { id: string; user_id: string; status: string; billing_ref: string; started_at: string | null; video_id: string | null }[]) {
-    byRef.set(o.billing_ref, o)
-  }
-
-  for (const d of candidates) {
-    const order = byRef.get(d.render_id)
-    if (!order || order.user_id !== d.user_id) { result.ambiguous += 1; continue }
-    if (order.status === 'delivered' || order.video_id || delivered.has(d.render_id)) continue
-    if (order.status === 'generating' || order.status === 'assembling') {
-      const started = Date.parse(order.started_at ?? '')
-      if (!Number.isFinite(started) || started > Date.now() - ADS_V2_ABANDON_CUTOFF_MS) continue
-      const won = await db
-        .from('ads_v2_orders')
-        .update({ status: 'failed', failed_at: new Date().toISOString(), error: 'swept_stalled_2h' })
-        .eq('id', order.id)
-        .in('status', ['generating', 'assembling'])
-        .is('video_id', null)
-        .select('id')
-        .maybeSingle()
-      if (won.error || !won.data) continue
-      result.stalledFailed += 1
+  let cursor: { createdAt: string; id: string } | null = null
+  for (let pagina = 0; pagina < ADS_V2_SWEEP_MAX_PAGES; pagina++) {
+    let q = db
+      .from('ads_v2_orders')
+      .select('id, user_id, status, billing_ref, started_at, video_id, created_at')
+      .neq('status', 'delivered')
+      .is('video_id', null)
+      .not('billing_ref', 'is', null)
+    if (cursor) q = q.or(`created_at.lt."${cursor.createdAt}",and(created_at.eq."${cursor.createdAt}",id.lt."${cursor.id}")`)
+    const { data: pedidos, error: ordersErr } = await q.order('created_at', { ascending: false }).order('id', { ascending: false }).limit(ADS_V2_SWEEP_PAGE)
+    if (ordersErr) {
+      // Tabela ainda não aplicada (42P01/PGRST205) ou leitura fora: não estorna nada.
+      console.error('[refund/ads-v2-sweep] orders lookup failed — skipping:', ordersErr.message)
+      return result
     }
-    const amount = await refundRenderCredits(d.render_id)
-    if (amount > 0) {
-      result.refunded += 1
-      result.creditsReturned += amount
-      await db.from('events').insert({
-        user_id: d.user_id,
-        name: 'credits_refunded',
-        path: '/api/cron/refund-sweep',
-        metadata: { billing_reference: d.render_id, order_id: order.id, amount, reason: 'abandoned_ads_v2' },
-      })
+    const orders = (pedidos ?? []) as AdsV2OrderRow[]
+    if (orders.length === 0) return result
+    const byRef = new Map<string, AdsV2OrderRow>()
+    for (const o of orders) if (typeof o.billing_ref === 'string' && o.billing_ref.startsWith('adsv2')) byRef.set(o.billing_ref, o)
+    const refs = [...byRef.keys()]
+    const candidates: { render_id: string; user_id: string; amount: number }[] = []
+    for (let i = 0; i < refs.length; i += ADS_V2_DEBIT_REF_CHUNK) {
+      const { data: debits, error } = await db
+        .from('credit_debits')
+        .select('render_id, user_id, amount, created_at')
+        .eq('kind', 'video')
+        .is('refunded_at', null)
+        .lt('created_at', cutoff)
+        .in('render_id', refs.slice(i, i + ADS_V2_DEBIT_REF_CHUNK))
+      if (error) {
+        console.error('[refund/ads-v2-sweep] debit query failed:', error.message)
+        return result
+      }
+      candidates.push(...((debits ?? []) as { render_id: string; user_id: string; amount: number }[]))
     }
-  }
-  if (proxima === null) return result // KINEO-VARREDURAS-ESTORNO-1411 — página curta: acabou
-  if (proxima === 'ilegivel') { console.error('[refund/ads-v2-sweep] cursor unreadable — stopping this run'); return result }
-  cursor = proxima
+    result.scanned += candidates.length
+    const delivered = new Set<string>()
+    if (candidates.length) {
+      const { data: vids, error: vidErr } = await db.from('videos').select('render_id').in('render_id', candidates.map((d) => d.render_id))
+      if (vidErr) {
+        console.error('[refund/ads-v2-sweep] videos lookup failed — skipping:', vidErr.message)
+        return result
+      }
+      for (const v of vids ?? []) delivered.add(v.render_id as string)
+    }
+
+    for (const d of candidates) {
+      const order = byRef.get(d.render_id)
+      if (!order || order.user_id !== d.user_id) { result.ambiguous += 1; continue }
+      if (order.status === 'delivered' || order.video_id || delivered.has(d.render_id)) continue
+      if (order.status === 'generating' || order.status === 'assembling') {
+        const started = Date.parse(order.started_at ?? '')
+        if (!Number.isFinite(started) || started > Date.now() - ADS_V2_ABANDON_CUTOFF_MS) continue
+        const won = await db
+          .from('ads_v2_orders')
+          .update({ status: 'failed', failed_at: new Date().toISOString(), error: 'swept_stalled_2h' })
+          .eq('id', order.id)
+          .in('status', ['generating', 'assembling'])
+          .is('video_id', null)
+          .select('id')
+          .maybeSingle()
+        if (won.error || !won.data) continue
+        result.stalledFailed += 1
+      }
+      const amount = await refundRenderCredits(d.render_id)
+      if (amount > 0) {
+        result.refunded += 1
+        result.creditsReturned += amount
+        await db.from('events').insert({
+          user_id: d.user_id,
+          name: 'credits_refunded',
+          path: '/api/cron/refund-sweep',
+          metadata: { billing_reference: d.render_id, order_id: order.id, amount, reason: 'abandoned_ads_v2' },
+        })
+      }
+    }
+    if (orders.length < ADS_V2_SWEEP_PAGE) return result
+    const ultima = orders[orders.length - 1]
+    if (!ADS_V2_SWEEP_CHAVE.test(String(ultima.created_at)) || !ADS_V2_SWEEP_CHAVE.test(String(ultima.id))) { console.error('[refund/ads-v2-sweep] cursor unreadable — stopping this run'); return result }
+    cursor = { createdAt: String(ultima.created_at), id: String(ultima.id) }
   }
   return result
 }
