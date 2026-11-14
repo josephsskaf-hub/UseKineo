@@ -1,5 +1,5 @@
 // KINEO-QUEM-ESTA-NA-CENA-1411 v2 — [bloqueio do revisor e da CEO 14/11] (a camada de época respeita a marca sem gente: MARCA_MANDA_NA_EPOCA_1411).
-// Recibo EXATO desta entrega em lib/cinematic/elencoEpoca.ts (e1a6af441 → a32d060bd): o hash
+// Recibo EXATO desta entrega em lib/cinematic/elencoEpoca.ts (e1a6af441 → 89883d997, v2 + v2.1): o hash
 // de antes, o de depois e os trechos trocados. Um guardião histórico só ignora a camada se desfazer estes trechos devolver EXATAMENTE a base. Nunca usar em lib/app.
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
