@@ -83,6 +83,7 @@ import { createHash } from 'crypto'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { fichaAntesDoRenderLigada, refazerPlanoDaFicha, FICHA_ANTES_EVENTO } from '@/lib/cinematic/fichaAntesDoRender1311' // KINEO-FICHA-ANTES-DO-RENDER-1311
+import { atributosLigados, atributosEmTodoPlano, ATRIBUTOS_EVENTO } from '@/lib/cinematic/atributosDoPedido1311' // KINEO-ATRIBUTOS-DO-PEDIDO-1311
 import { iniciarJuizDoPlano, esperarJuizDoPlano, planoDoEnvio, JUIZ_PLANO_EVENT, type JuizPlanoVeredito } from '@/lib/juizDoPlano' // KINEO-JUIZ-PLANO-0111 [TRAVA 8.2 — vai do fundador 01/11 "concordo vai"] — juiz do plano v2 (perguntas sim/não sobre o texto que foi à fal), SÓ OBSERVAR, depois do envio
 import { FREE_WEEKLY_FILM_ADMITTED_EVENT, FREE_WEEKLY_FILM_COUNTRY_EVENTS, FREE_WEEKLY_FILM_EXCLUSIVE_REFUSED_EVENT, FREE_WEEKLY_FILM_IN_USE_MESSAGE, FREE_WEEKLY_FILM_QUALITY, FREE_WEEKLY_FILM_SECONDS, FREE_WEEKLY_FILM_WINDOW_MS, freeWeeklyCountryMatches, freeWeeklyFilmAdmissible, freeWeeklyFilmEligibility, freeWeeklyFilmExclusive } from '@/lib/freeWeeklyFilm' // KINEO-E4-SAIDA-B-2026-09-29 [TRAVA 8.2]
 import { paisDoRequest, REGION_PAID_ONLY_REFUSAL, REGION_PAID_ONLY_TRIAL_STATUS } from '@/lib/freeFilmPolicy' // KINEO-E4-SAIDA-B-2026-09-29
@@ -7416,6 +7417,13 @@ async function manipularPost(req: NextRequest) {
       const lugarFilme = qualidadeHerdada || lugarPedido ? null : lugarDasCenas(scenes.map((s) => s.description)); if (lugarFilme) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comLugarDoFilme(classicScenePrompts[i], lugarFilme) } // KINEO-LUGAR-DO-PEDIDO-1111 [CEO 11/11, reprise dos 6 filmes] — o lugar que o cliente pediu (só quando o pedido cita UM lugar) chega a toda cena; 657ad797: "a stylish Johannesburg coffee shop" virou "a café"
     if (ideiaNaFicha && !qualidadeHerdada) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comIdeiaNaCena(classicScenePrompts[i], ideiaNaFicha, { semPessoa: tagFacelessPresente }) // KINEO-IDEIA-FICHA-ASSUNTO-1211 (C) — estrada clássica (Seedance, H3 do caminho clássico, Kling 2.5, Veo, Kineo 1): pessoa e produto da ideia em todo plano, antes das imagens-chave e do clipe
     for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = relogioComPonteiros(classicScenePrompts[i]) // KINEO-RELOGIO-PONTEIROS-1111 — vizinho f2e8cffc: "clock showing 02:46" saiu ~8:40 (a proteção de texto proíbe números); o relógio vira de ponteiros apontando para a hora, mostrador sem dígitos
+    // KINEO-ATRIBUTOS-DO-PEDIDO-1311 [CEO 13/11, item 3.1] — o que o PEDIDO diz do grupo e do cenário (roupa com cor, faixa de idade, clima) vai a todo plano que
+    // ainda não o diz (e3c00f5c: o azul-marinho só no plano 2); antes do juiz da ficha e das imagens-chave; a conferência plano a plano vai ao evento.
+    if (atributosLigados() && !qualidadeHerdada) { // KINEO-ATRIBUTOS-DO-PEDIDO-1311
+      const atrib = atributosEmTodoPlano(classicScenePrompts, pedidoDoCliente) // KINEO-ATRIBUTOS-DO-PEDIDO-1311
+      if (atrib.relato.mudou) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = atrib.prompts[i] // KINEO-ATRIBUTOS-DO-PEDIDO-1311
+      if (atrib.relato.atributos) void writeServerEvent({ name: ATRIBUTOS_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { ...atrib.relato, dry_run: body.dry_run === true } }).catch(() => false) // KINEO-ATRIBUTOS-DO-PEDIDO-1311
+    } // KINEO-ATRIBUTOS-DO-PEDIDO-1311
     // KINEO-FICHA-ANTES-DO-RENDER-1311 [CEO 13/11, caso da Maya 28f057bc] — filme grátis do Kling 4: o juiz do plano roda AQUI, antes das imagens-chave e do
     // 1º POST (espera até 25 s); plano com a ficha contradizendo o pedido tem a ordem do protagonista refeita com a pessoa da ideia (ou retirada).
     // Desligado, juiz 'off', prazo, erro ou sem a_ficha: o vetor fica byte a byte. lib/cinematic/fichaAntesDoRender1311.ts.
