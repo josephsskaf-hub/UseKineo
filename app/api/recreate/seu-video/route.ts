@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
       // serve = a frase da própria moderação.
       if (result.code === 'moderation_unavailable') return json({ error: FRASE_FOTO_NAO_CONFERIDA, code: result.code, charged: false }, result.status)
       if (result.code === 'moderation' || result.code === 'moderation_unprocessable') return json({ error: result.error, code: result.code, charged: false }, result.status)
-      const motor = recusaDoMotor(result.code)
+      const motor = recusaDoMotor(result.code, result.clip?.credits_refunded) // KINEO-RECUSA-COBRADA-1411 — a frase segue o estorno gravado
       if (motor) return json({ error: motor, code: 'engine_refused' }, result.status)
       return json({ error: result.code === 'idempotency_conflict' ? 'This request is already reserved. Check your videos before trying again.' : 'Could not start this video. Check your photos, plan and balance, then retry.', code: result.code }, result.status)
     }

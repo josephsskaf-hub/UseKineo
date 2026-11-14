@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   const naoConfirmou = status === 'failed' && fresh.failure_reason === RECREATE_NOT_SWAPPED.uncertain
   const reason = naoConfirmou ? { reason: 'not_confirmed', message: credits_refunded > 0 ? FRASE_NAO_CONFIRMOU : FRASE_NAO_CONFIRMOU_SEM_ESTORNO } : status === 'failed' && isRecreateNotSwappedReason(fresh.failure_reason) ? { reason: 'not_swapped' } : {}
   // KINEO-RECREATE-SEU-VIDEO-1311 — o Seedance 2.5 recusou (rosto real, cena sensível): a frase clara; o estorno já foi feito no settleClip.
-  const motor = status === 'failed' && ehModeloDoSeuVideo(fresh.model) ? recusaDoMotor(fresh.failure_reason) : null
+  const motor = status === 'failed' && ehModeloDoSeuVideo(fresh.model) ? recusaDoMotor(fresh.failure_reason, credits_refunded) : null // KINEO-RECUSA-COBRADA-1411 — a frase segue o estorno gravado
   const seuVideo = motor ? { reason: 'engine_refused', message: motor } : {} // KINEO-RECREATE-SEU-VIDEO-1311
   // KINEO-RECREATE-FILA-KLING-EDIT-1411 [CEO 14/11] — o clipe na fila (um pedido por vez no Kling edit): `pending` + queued:true e a posição; a tela mostra "In line".
   // Falha da fila (teto de espera ou pedido preso): a frase própria, com os créditos já devolvidos.

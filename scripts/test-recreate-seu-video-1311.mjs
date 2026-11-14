@@ -101,9 +101,13 @@ async function provas(m) {
   if (m.SEEDANCE25_MODEL !== 'bytedance/seedance-2.5/reference-to-video') erros.push('E modelo errado')
   if (m.SEU_VIDEO_RELEASE !== 'internal') erros.push('E o interruptor não está em só-a-casa')
   // recusa do motor
-  const FRASE = 'The engine did not accept this photo. Nothing was charged. Try another photo.' // a frase da CEO, 13/11
-  if (m.recusaDoMotor('provider_rejected') !== FRASE || m.recusaDoMotor('provider_failed') !== FRASE) erros.push('E recusa do motor sem a frase da CEO')
-  if (m.recusaDoMotor('credits') !== null || m.recusaDoMotor('swap_unchanged') !== null || m.recusaDoMotor('submit_ambiguous') !== null) erros.push('E recusa do motor pegou outro código')
+  // reancorado KINEO-RECUSA-COBRADA-1411 [CEO 14/11 (c)] — a recusa vem depois do débito: a frase segue o estorno gravado (era "Nothing was charged", falso)
+  const FRASE = 'The engine did not accept this photo. We returned your credits. Try another photo.'
+  const FRASE_SEM = 'The engine did not accept this photo. Your credits will be returned within the hour. Try another photo.'
+  if (m.recusaDoMotor('provider_rejected', 45) !== FRASE || m.recusaDoMotor('provider_failed', 45) !== FRASE) erros.push('E recusa do motor estornada sem a frase do estorno')
+  if (m.recusaDoMotor('provider_rejected', 0) !== FRASE_SEM || m.recusaDoMotor('provider_failed', null) !== FRASE_SEM) erros.push('E recusa do motor sem estorno gravado promete o que não aconteceu')
+  for (const c of ['provider_rejected', 'provider_failed']) for (const n of [0, 45]) if (/Nothing was charged|not charged/i.test(m.recusaDoMotor(c, n))) erros.push('E recusa cobrada diz que nada foi cobrado')
+  if (m.recusaDoMotor('credits', 45) !== null || m.recusaDoMotor('swap_unchanged', 45) !== null || m.recusaDoMotor('submit_ambiguous', 45) !== null) erros.push('E recusa do motor pegou outro código')
   return erros
 }
 
@@ -123,7 +127,7 @@ checa('F a conferência não chama motor nem cobra', !/submitClip|queue\.fal|fal
 checa('F 15 s só com plano pago (402 antes de cobrar)', gera.includes("if (v.gerados > 10 && !isPayingPlan(account.plan)) return refuse('plan'") && gera.indexOf("refuse('plan'") < iSub)
 checa('F fotos só da própria conta', gera.includes('ownedClipImageUrl(value, user.id, supabaseUrl)'))
 checa('F o envio usa URL assinada no bucket público, na pasta do cliente', envia.includes('createSignedUploadUrl(path)') && envia.includes('${SEU_VIDEO_PASTA}/${user.id}/${randomUUID()}'))
-checa('F status devolve a recusa do motor só nos modelos do "seu vídeo" (Kling 4.0 edição e Seedance 2.5)', status.includes('ehModeloDoSeuVideo(fresh.model) ? recusaDoMotor(fresh.failure_reason)'))
+checa('F status devolve a recusa do motor só nos modelos do "seu vídeo" (Kling 4.0 edição e Seedance 2.5)', status.includes('ehModeloDoSeuVideo(fresh.model) ? recusaDoMotor(fresh.failure_reason, credits_refunded)') /* reancorado KINEO-RECUSA-COBRADA-1411 — + o estorno gravado */)
 // essencial da CEO (13/11): conta de fora = 404 · vídeo fora do limite não debita · recusa estorna · preço 40/60 (este último em C)
 const acesso = createOfflineLoader()('lib/recreate/access.ts'), casa = createOfflineLoader()('lib/internalAccounts.ts').INTERNAL_EXACT_EMAILS
 const relSeu = carrega().SEU_VIDEO_RELEASE
@@ -468,7 +472,8 @@ const MUTANTES = [
   ['prompt sem conferir cada foto', REGRAS, (s) => s.replace('for (let i = 1; i <= fotos; i++) if (!t.includes(`@Image${i}`)) return', 'for (let i = 1; i <= 0; i++) if (!t.includes(`@Image${i}`)) return')],
   ['caminho de qualquer cliente', ARQ, (s) => s.replace('`^${SEU_VIDEO_PASTA}/${userId}/[0-9a-f-]{36}', '`^${SEU_VIDEO_PASTA}/[0-9a-f-]{36}/[0-9a-f-]{36}')],
   ['com som e 720p', ARQ, (s) => s.replace("resolution: '480p', duration: String(a.gerados), aspect_ratio: a.proporcao, generate_audio: false", "resolution: '720p', duration: String(a.gerados), aspect_ratio: a.proporcao, generate_audio: true")],
-  ['recusa com outra frase', ARQ, (s) => s.replace("'The engine did not accept this photo. Nothing was charged. Try another photo.'", "'The engine refused this.'")],
+  ['recusa com outra frase', ARQ, (s) => s.replace("'The engine did not accept this photo. We returned your credits. Try another photo.'", "'The engine refused this.'")], // reancorado KINEO-RECUSA-COBRADA-1411
+  ['recusa promete estorno sem ele gravado', ARQ, (s) => s.replace('return (creditsRefunded ?? 0) > 0 ? FRASE_RECUSA_DO_MOTOR : FRASE_RECUSA_DO_MOTOR_SEM_ESTORNO', 'return FRASE_RECUSA_DO_MOTOR')], // KINEO-RECUSA-COBRADA-1411
   ['aberto ao público', RELEASE, (s) => s.replace("export const SEU_VIDEO_RELEASE: InternalRelease = 'internal'", "export const SEU_VIDEO_RELEASE: InternalRelease = 'public'")],
 ]
 for (const [nome, alvo, fn] of MUTANTES) {

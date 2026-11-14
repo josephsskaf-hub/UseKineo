@@ -162,6 +162,30 @@ export function clipFallbackRequest(req: ClipRequest): ClipRequest | null {
   return { ...req, engine: CLIP_FALLBACK_ENGINE, model, seconds, aspect }
 }
 
+// KINEO-REPLAY-DEPOIS-DO-DEPLOY-1411 [revisor da CEO 14/11, item 1: "depois de um 409 idempotency_conflict a tela fica em 'incerto'"] — no molde de MOVIMENTO a impressão
+// digital leva o texto da cena e o modelo, que são do SERVIDOR e mudam com um deploy. O pedido do CLIENTE é só o molde, a foto e a duração: se a
+// mesma chave volta com o mesmo molde, a mesma foto e a mesma duração, é o MESMO pedido, e o servidor devolve o clipe que já existe (replay, 200,
+// sem débito, sem envio) em vez de 409. Impressão antiga sem o id do molde, foto ou molde diferente, ou troca e fila (sem molde na impressão) = 409 como antes.
+/** O pedido do cliente dentro da impressão digital de um molde de movimento: [molde, fotos, duração]. null = não é movimento ou não dá para saber. */
+export function pedidoDoClienteNoMovimento(fingerprint: string): string | null {
+  try {
+    const p: unknown = JSON.parse(fingerprint)
+    if (!Array.isArray(p) || p.length < 3 || typeof p[0] !== 'string' || !p[2] || typeof p[2] !== 'object' || Array.isArray(p[2])) return null
+    const entrada = p[2] as Record<string, unknown>
+    const req: unknown = JSON.parse(p[0])
+    const molde = entrada.molde, fotos = entrada.image_urls
+    if (typeof molde !== 'string' || !molde || !Array.isArray(fotos) || !fotos.length || fotos.some((x) => typeof x !== 'string' || !x) || !Array.isArray(req) || typeof req[2] !== 'number') return null
+    return JSON.stringify([molde, fotos, req[2]])
+  } catch {
+    return null
+  }
+}
+/** A mesma chave com o mesmo pedido do cliente, e só a parte do servidor mudou (um deploy no meio). */
+export function mesmoPedidoDepoisDoDeploy(guardada: string, nova: string): boolean {
+  const a = pedidoDoClienteNoMovimento(guardada)
+  return a !== null && a === pedidoDoClienteNoMovimento(nova)
+}
+
 /** Impressão digital do pedido: mesma chave com outro conteúdo = conflito, não replay. */
 export function clipFingerprint(req: ClipRequest): string {
   return JSON.stringify([req.engine, req.mode, req.seconds, req.aspect, req.prompt, req.imageUrl ?? ''])
@@ -277,7 +301,7 @@ export async function submitClip(
   const fingerprint = recreate ? JSON.stringify([clipFingerprint(req), recreate.model, recreate.fingerprintInput ?? recreate.input]) : clipFingerprint(req) // KINEO-RECREATE-MOVIMENTO-1411 — era: recreate.input
   const existing = await deps.findByKey(args.userId, args.idempotencyKey)
   if (existing) {
-    if (existing.fingerprint !== fingerprint) {
+    if (existing.fingerprint !== fingerprint && !(recreate && mesmoPedidoDepoisDoDeploy(existing.fingerprint, fingerprint))) { // KINEO-REPLAY-DEPOIS-DO-DEPLOY-1411 — era: só a impressão inteira
       return { ok: false, status: 409, code: 'idempotency_conflict', error: 'This request key was already used for a different clip.' }
     }
     return { ok: true, status: 200, clip: existing, replay: true, balance: null }
@@ -342,7 +366,7 @@ export async function submitClip(
   if (!inserted.ok) {
     if (inserted.conflict) {
       const winner = await deps.findByKey(args.userId, args.idempotencyKey)
-      if (winner && winner.fingerprint === fingerprint) return { ok: true, status: 200, clip: winner, replay: true, balance: null }
+      if (winner && (winner.fingerprint === fingerprint || (recreate && mesmoPedidoDepoisDoDeploy(winner.fingerprint, fingerprint)))) return { ok: true, status: 200, clip: winner, replay: true, balance: null } // KINEO-REPLAY-DEPOIS-DO-DEPLOY-1411
       return { ok: false, status: 409, code: 'idempotency_conflict', error: 'This request key was already used for a different clip.' }
     }
     return { ok: false, status: 503, code: 'storage', error: 'We could not start your clip right now. Nothing was charged — please try again.' }

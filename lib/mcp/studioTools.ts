@@ -117,7 +117,7 @@ export async function studioAccount(ctx: StudioCtx, pausedEngines: readonly stri
     engines,
     plans_url: `${ctx.publicOrigin}/pricing?utm_source=claude_studio_connector`,
     library_url: `${ctx.publicOrigin}/library`,
-    note: 'Credits are per film: the engine and the length decide the price. A 15-second Seedance 1.5 film is the cheapest way to try.',
+    note: `Credits are per film: the engine and the length decide the price. A 15-second ${studioEngineLabel('seedance')} film is the cheapest way to try.`, // KINEO-ROTULO-CONECTOR-H3-1411 — era: Seedance 1.5 (o motor real é o do rótulo)
   }
   return { ok: true, data, summary: `Plan ${data.plan} · ${credits} credits` }
 }
@@ -363,7 +363,7 @@ export async function studioVideoStatus(ctx: StudioCtx, jobId: string, io: Studi
   const elapsedMs = Number.isFinite(startedMs) ? Math.max(0, io.now() - startedMs) : null
   const elapsedMin = elapsedMs === null ? null : Math.round(elapsedMs / 60000)
   const jobTitle = studioJobTitle(job.dispatch)
-  const base = { job_id: job.generation_id, engine: job.engine, engine_label: studioEngineLabel(job.engine as never), duration_seconds: job.duration, credits_charged: job.credits, started_at: job.created_at, elapsed_minutes: elapsedMin, library_url: `${ctx.publicOrigin}/library` }
+  const base = { job_id: job.generation_id, engine: job.engine, engine_label: studioEngineLabel(job.engine as never, job.created_at) /* KINEO-ROTULO-CONECTOR-H3-1411 — filme antigo mantém o motor que o fez */, duration_seconds: job.duration, credits_charged: job.credits, started_at: job.created_at, elapsed_minutes: elapsedMin, library_url: `${ctx.publicOrigin}/library` }
 
   const [claim, compose] = await Promise.all([
     ctx.db.from('events').select('metadata').eq('id', cinematicClaimId(ctx.userId, job.generation_id)).eq('user_id', ctx.userId).eq('name', CINEMATIC_CLAIM_EVENT).maybeSingle(),

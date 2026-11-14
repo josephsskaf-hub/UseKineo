@@ -167,9 +167,14 @@ export function caminhoDoCliente(path: unknown, userId: string): string | null {
  * sensíveis. O estorno é o de sempre (submitClip/settleClip: closeWithRefund e fail chamam deps.refund); aqui só a frase da tela, a da
  * CEO de 13/11, palavra por palavra. null = não é recusa do motor.
  */
-export const FRASE_RECUSA_DO_MOTOR = 'The engine did not accept this photo. Nothing was charged. Try another photo.'
-export function recusaDoMotor(code: string | null | undefined): string | null {
-  return code === 'provider_rejected' || code === 'provider_failed' ? FRASE_RECUSA_DO_MOTOR : null
+// KINEO-RECUSA-COBRADA-1411 [CEO 14/11, item (c)] — "Nothing was charged" era falso: a recusa vem DEPOIS do débito (o pedido foi cobrado e estornado). A frase segue o estorno
+// GRAVADO na linha: devolvido = "We returned your credits."; estorno ainda não gravado (a varredura horária o refaz) = "will be returned within the hour".
+// Mesmas palavras do molde de movimento (MOVIMENTO_FRASES.devolvido / devolveDepois). Era: 'The engine did not accept this photo. Nothing was charged. Try another photo.'
+export const FRASE_RECUSA_DO_MOTOR = 'The engine did not accept this photo. We returned your credits. Try another photo.'
+export const FRASE_RECUSA_DO_MOTOR_SEM_ESTORNO = 'The engine did not accept this photo. Your credits will be returned within the hour. Try another photo.'
+export function recusaDoMotor(code: string | null | undefined, creditsRefunded: number | null | undefined): string | null {
+  if (code !== 'provider_rejected' && code !== 'provider_failed') return null
+  return (creditsRefunded ?? 0) > 0 ? FRASE_RECUSA_DO_MOTOR : FRASE_RECUSA_DO_MOTOR_SEM_ESTORNO
 }
 // ── Entrega B (CEO 13/11): o som ORIGINAL do vídeo do cliente volta pela montagem da casa (Creatomate, a mesma da marca dos clipes) ──────
 // Nada de som gerado e nada de ffmpeg no servidor. Falhou a montagem = o clipe sai mudo (como na Entrega A), nunca fica preso.

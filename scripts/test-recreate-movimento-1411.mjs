@@ -544,7 +544,8 @@ async function bateria(over = {}) {
     if (!mov.planMovimento({ ...pedido, format: 'lance-teste' }, ctx, null, cat).ok) throw new Error('o pedido foi barrado pela régua de texto')
     if (mov.planMovimento({ ...pedido, format: 'lance-teste' }, ctx, null, [{ ...molde, guia: 'nao-existe.mp4' }]).ok) throw new Error('estrutura não barrou')
   })
-  await check('14 depois de um deploy que muda a impressão digital (ex.: o id do molde entrou nela), o MESMO pedido com a mesma chave volta 409 idempotency_conflict ANTES do débito', async () => {
+  // reancorado KINEO-REPLAY-DEPOIS-DO-DEPLOY-1411 — a impressão ANTIGA, sem o id do molde, não diz qual era o pedido do cliente: segue 409 antes do débito
+  await check('14 impressão ANTIGA sem o id do molde: o mesmo pedido com a mesma chave volta 409 idempotency_conflict ANTES do débito', async () => {
     let debitos = 0
     const antiga = JSON.stringify(['req', CENA, { prompt: 'versão antiga sem molde' }])
     const deps = {
@@ -555,6 +556,65 @@ async function bateria(over = {}) {
     const p = mov.planMovimento(pedido, ctx, null)
     const r = await flow.submitClip(deps, { userId: U, idempotencyKey: 'recreate-depois-do-deploy', body: p.plan.body, recreatePlan: p.plan })
     if (r.ok || r.status !== 409 || r.code !== 'idempotency_conflict' || debitos) throw new Error(JSON.stringify([r.status, r.code, debitos]))
+  })
+  // KINEO-REPLAY-DEPOIS-DO-DEPLOY-1411 [revisor da CEO 14/11, item 1] — a tela ficava em "incerto" depois do 409: agora o servidor devolve o clipe que já existe
+  await check('14 depois de um deploy que muda SÓ a parte do servidor (texto da cena, modelo): a mesma chave com o mesmo molde, foto e duração devolve o clipe que já existe (replay 200), sem débito, sem linha nova, sem envio; na corrida da gravação também; foto, molde ou duração diferente = 409 antes do débito', async () => {
+    const p = mov.planMovimento(pedido, ctx, null)
+    const linhas = []
+    const base = (existente) => {
+      const s = { debitos: 0, envios: 0, linhas: 0 }
+      return { s, deps: {
+        supabaseUrl: SUPA, engineAccess: () => ({ ok: true }), findByKey: async () => existente, countActive: async () => 0, verifyImage: async () => {}, moderate: async () => ({ ok: true }),
+        getBalance: async () => 100, newId: () => 'novo', insertPending: async (row) => { s.linhas++; linhas.push(row); return { ok: true } }, debit: async () => { s.debitos++; return { ok: true, balance: 60 } }, refund: async () => 0,
+        submit: async () => { s.envios++; return { ok: true, requestId: 'x' } }, markSubmitted: async () => true, markFailed: async () => true, event: async () => {}, now: () => NOW,
+      } }
+    }
+    const h0 = base(null)
+    await flow.submitClip(h0.deps, { userId: U, idempotencyKey: 'recreate-deploy-0', body: p.plan.body, recreatePlan: p.plan })
+    const hoje = linhas[0]?.fingerprint
+    if (!hoje) throw new Error('sem impressão gravada')
+    const [req, , ent] = JSON.parse(hoje)
+    const antes = JSON.stringify([req, 'fal-ai/modelo-de-antes', { ...ent, prompt: 'o texto da cena de antes do deploy' }])
+    const existente = { ...linha(), id: 'o-primeiro', fingerprint: antes, status: 'processing' }
+    const h = base(existente)
+    const r = await flow.submitClip(h.deps, { userId: U, idempotencyKey: 'recreate-deploy-1', body: p.plan.body, recreatePlan: p.plan })
+    if (!r.ok || r.status !== 200 || !r.replay || r.clip.id !== 'o-primeiro' || h.s.debitos || h.s.linhas || h.s.envios) throw new Error('replay: ' + JSON.stringify([r.status, r.code, r.replay, r.clip?.id, h.s]))
+    let primeira = true
+    const hc = base(null)
+    hc.deps.findByKey = async () => { if (primeira) { primeira = false; return null } return existente }
+    hc.deps.insertPending = async () => ({ ok: false, conflict: true })
+    const rc = await flow.submitClip(hc.deps, { userId: U, idempotencyKey: 'recreate-deploy-2', body: p.plan.body, recreatePlan: p.plan })
+    if (!rc.ok || rc.status !== 200 || !rc.replay || rc.clip.id !== 'o-primeiro' || hc.s.debitos || hc.s.envios) throw new Error('corrida: ' + JSON.stringify([rc.status, rc.code, hc.s]))
+    const outros = {
+      foto: JSON.stringify([req, CENA, { ...ent, image_urls: [FOTO.replace('face.jpg', 'outra.jpg')] }]),
+      molde: JSON.stringify([req, CENA, { ...ent, molde: 'outro-molde' }]),
+      duracao: JSON.stringify([JSON.stringify(JSON.parse(req).map((v, i) => (i === 2 ? 6 : v))), CENA, ent]),
+      semMolde: JSON.stringify([req, CENA, { ...ent, molde: undefined }]),
+    }
+    for (const [n, fp] of Object.entries(outros)) {
+      const hx = base({ ...linha(), fingerprint: fp })
+      const rx = await flow.submitClip(hx.deps, { userId: U, idempotencyKey: 'recreate-deploy-x', body: p.plan.body, recreatePlan: p.plan })
+      if (rx.ok || rx.status !== 409 || rx.code !== 'idempotency_conflict' || hx.s.debitos) throw new Error('aceitou outro pedido (' + n + ')')
+    }
+    if (flow.mesmoPedidoDepoisDoDeploy(hoje, antes) !== true || flow.mesmoPedidoDepoisDoDeploy(flow.clipFingerprint(p.plan.body), flow.clipFingerprint(p.plan.body)) !== false) throw new Error('a regra fora do movimento')
+  })
+  // KINEO-REPLAY-DEPOIS-DO-DEPLOY-1411 [revisor da CEO 14/11, item 2] — a trava perdeu a checagem do pôster em disco quando o movimento saiu de formats: ela volta aqui, no catálogo REAL
+  await check('15 todo molde de movimento do catálogo REAL do servidor tem o pôster em MOVIMENTO_ASSETS e o arquivo em lib/recreate/assets (mais de 10 KB); todo arquivo de MOVIMENTO_ASSETS existe; o vídeo do cartão é guia do manifesto ou demo', async () => {
+    const r = loader({ '@supabase/supabase-js': { createClient: () => ({}) }, 'server-only': {} }, over)
+    const moldesR = r('lib/recreate/movimentoMoldes'), catR = r('lib/recreate/catalogoServidor'), manR = r('lib/recreate/guiasManifesto'), demosR = r('lib/recreate/movimentoDemos')
+    const P = '/api/recreate/assets/'
+    const lista = catR.RECREATE_FORMATS_SERVIDOR.filter((x) => x.type === 'motion')
+    if (!lista.length) throw new Error('nenhum molde de movimento no catálogo do servidor')
+    for (const x of lista) {
+      if (typeof x.poster !== 'string' || !x.poster.startsWith(P)) throw new Error(x.id + ': pôster fora da rota')
+      const k = x.poster.slice(P.length), a = catR.RECREATE_ASSETS_SERVIDOR[k]
+      if (!a) throw new Error(x.id + ': pôster ' + k + ' fora dos ativos')
+      const arq = path.join('lib/recreate/assets', a.file)
+      if (!fs.existsSync(arq) || fs.statSync(arq).size < 10_000) throw new Error(x.id + ': pôster sem arquivo em disco (' + a.file + ')')
+      const v = typeof x.preview === 'string' && x.preview.startsWith(P) ? x.preview.slice(P.length) : ''
+      if (!manR.guiaDoManifesto(v) && !demosR.MOVIMENTO_DEMOS[x.id]) throw new Error(x.id + ': vídeo do cartão sem guia nem demo')
+    }
+    for (const [k, a] of Object.entries(moldesR.MOVIMENTO_ASSETS)) if (!fs.existsSync(path.join('lib/recreate/assets', a.file))) throw new Error('ativo ' + k + ' sem arquivo')
   })
   await check('6 imagem pronta: reserva, juiz uma vez, UM envio, request_id gravado e a marca solta; evento uma vez; nada estornado', async () => {
     const h = harness()
@@ -987,7 +1047,7 @@ const mutantes = [
   ['moderador fora sem evento', { [SRV]: src[SRV].replace("      if (!mod.ok) await clipEvent(row.user_id)(MOVIMENTO_EVENTOS.moderadorFora, { clip_id: row.id, motivo: mod.reason, etapa: 'movimento_cena' })\n", '') }],
   ['três estilos de cabelo', { [DESC]: src[DESC].replace('.filter(Boolean))].slice(0, 2)', '.filter(Boolean))].slice(0, 3)') }],
   ['orçamento da moderação de 60 s', { [SRV]: src[SRV].replace("etapa: 'movimento_cena' }, orcamentoMs: 15_000 })", "etapa: 'movimento_cena' }, orcamentoMs: 60_000 })") }],
-  ['corrida da mesma chave vira 409', { [FLOW]: src[FLOW].replace('if (winner && winner.fingerprint === fingerprint) return', 'if (false) return') }],
+  ['corrida da mesma chave vira 409', { [FLOW]: src[FLOW].replace('if (winner && (winner.fingerprint === fingerprint || (recreate && mesmoPedidoDepoisDoDeploy(winner.fingerprint, fingerprint)))) return', 'if (false) return') }], // reancorado KINEO-REPLAY-DEPOIS-DO-DEPLOY-1411 — a condição ganhou o replay depois do deploy
   // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 [revisor da CEO 14/11 12:30, itens a, b, c + o preço provisório de 6 s]
   ["cursor só por created_at (pula o empate)", { [SRV]: noMov(linhaDoCursorMov(), "    if (cursor) q = q.lt('created_at', cursor.createdAt)") }],
   ["sem o livro-razão (a linha morta nunca sai)", { [SRV]: noMov('      const debito = await livro(row.billing_reference, row.user_id).catch(() => null)\n', '      const debito = null as { amount: number; refunded: boolean } | null\n') }],
@@ -1030,6 +1090,12 @@ const mutantes = [
   ['cliente recebe o molde inteiro', { ['lib/recreate/catalogoServidor.ts']: lf('lib/recreate/catalogoServidor.ts').replace('export const formatosParaOCliente = (email: string | null | undefined): RecreateFormat[] => visibleRecreateFormatsServidor(email).map(paraOCliente)', 'export const formatosParaOCliente = (email: string | null | undefined): RecreateFormat[] => visibleRecreateFormatsServidor(email)') }],
   ['vitrine leva a cena', { ['lib/recreate/catalogoServidor.ts']: lf('lib/recreate/catalogoServidor.ts').replace("'movimentoAprovado', 'pessoasNoGuia', 'esperaMinutos'] as const", "'movimentoAprovado', 'pessoasNoGuia', 'esperaMinutos', 'cena'] as const") }], // reancorado KINEO-INVASOR-DE-CAMPO-1511: a vitrine ganhou esperaMinutos
   ['cliente vê todos os moldes do servidor', { ['lib/recreate/catalogoServidor.ts']: lf('lib/recreate/catalogoServidor.ts').replace('RECREATE_FORMATS_SERVIDOR.filter((f) => recreateFormatVisible(f, email))', 'RECREATE_FORMATS_SERVIDOR.filter((f) => !!f)') }],
+  // KINEO-REPLAY-DEPOIS-DO-DEPLOY-1411
+  ['deploy volta 409 (sem replay)', { [FLOW]: src[FLOW].replace('existing.fingerprint !== fingerprint && !(recreate && mesmoPedidoDepoisDoDeploy(existing.fingerprint, fingerprint))', 'existing.fingerprint !== fingerprint') }],
+  ['corrida da gravação sem replay', { [FLOW]: src[FLOW].replace('(winner.fingerprint === fingerprint || (recreate && mesmoPedidoDepoisDoDeploy(winner.fingerprint, fingerprint)))', 'winner.fingerprint === fingerprint') }],
+  ['replay ignora a foto', { [FLOW]: src[FLOW].replace('return JSON.stringify([molde, fotos, req[2]])', 'return JSON.stringify([molde, req[2]])') }],
+  ['replay ignora a duração', { [FLOW]: src[FLOW].replace('return JSON.stringify([molde, fotos, req[2]])', 'return JSON.stringify([molde, fotos])') }],
+  ['pôster do molde sem arquivo', { [MOLDES_F]: lf(MOLDES_F).replace("{ file: 'recreate-mov-jogada-de-futebol.jpg'", "{ file: 'recreate-mov-jogada-de-futebol-sumiu.jpg'") }],
   ['juiz com campo inventado na fal', { [MOV]: src[MOV].replace("character_orientation: 'video', keep_original_sound: false,", "character_orientation: 'video', keep_original_sound: false, negative_prompt: 'logos',") }],
 ]
 let mortos = 0
