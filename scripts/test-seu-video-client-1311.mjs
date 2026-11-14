@@ -22,7 +22,7 @@ function world(overrides={}){
     const source=Object.hasOwn(overrides,rel)?overrides[rel]:read(rel),key=rel+'\0'+source
     if(!compiled.has(key))compiled.set(key,ts.transpileModule(source,{fileName:rel,compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText)
     const shim=id=>{if(id==='server-only')return{};const name=id.startsWith('@/')?id.slice(2):id.startsWith('.')?path.posix.normalize(path.posix.join(path.posix.dirname(rel),id)):null;if(!name||/server|supabase|\/api\//.test(name))throw Error('Forbidden dependency '+id);return load(name.endsWith('.ts')?name:name+'.ts')}
-    vm.runInNewContext(compiled.get(key),{module,exports:module.exports,require:shim,process:{env:Object.freeze({})},File,Blob,FormData,URL,URLSearchParams,Response,AbortController,Uint8Array,Object,Promise,Map,WeakMap,WeakSet,Set,Number,String,Array,Math,JSON,Error,TypeError,fetch(){accidental++;throw Error('Uninjected network forbidden')},console},{filename:rel})
+    vm.runInNewContext(compiled.get(key),{module,exports:module.exports,require:shim,process:{env:Object.freeze({})},File,Blob,FormData,URL,URLSearchParams,Response,AbortController,setTimeout,clearTimeout,Uint8Array,Object,Promise,Map,WeakMap,WeakSet,Set,Number,String,Array,Math,JSON,Error,TypeError,fetch(){accidental++;throw Error('Uninjected network forbidden')},console},{filename:rel})
     return module.exports
   }
   return{load,get loaded(){return[...cache.keys()]},get accidental(){return accidental}}
@@ -48,13 +48,16 @@ function transport(options={}){
   const fetch=async(url,init={})=>{
     const method=init.method??'GET',body=typeof init.body==='string'?JSON.parse(init.body):init.body
     calls.push({url,method,body,headers:init.headers,credentials:init.credentials,signal:init.signal})
+    if(options.hang===url)return new Promise(()=>{})
+    if(options.hangBody===url)return {ok:true,status:200,json:()=>new Promise(()=>{}),blob:()=>new Promise(()=>{})}
     const fail=options.errors?.[url]
     if(fail)return json(fail.body??{error:'Fixture refusal'},fail.status)
+    if(url==='/previews/reference-fixture.mp4')return new Response(new Uint8Array([1,2,3]),{status:200})
     if(url===API+'/upload')return options.badTicket?json({ok:true}):json({ok:true,video_path:'recreate-uploads/account/'+ID+'.mp4',upload_url:'https://storage.example/upload/signed?token=fixture',token:'fixture-token',bucket:'renders'})
     if(url==='https://storage.example/upload/signed?token=fixture')return new Response(null,{status:options.putStatus??200})
     if(url===API+'/check')return json({ok:true,seconds:7,fps:30,width:540,height:960,bytes:200,generated_seconds:7,aspect_ratio:'9:16',credits:40,prompt:options.prompt??'Recreate @Video1. Person one becomes @Image1.',balance:100,shortfall:0,needs_plan:false,...options.check})
     if(url==='/api/avatar/upload')return json({url:'https://storage.example/storage/v1/object/public/avatars/account/photo-'+(++photoNo)+'.jpg'})
-    if(url===API){generateNo++;if(options.firstGenerateNetwork&&generateNo===1)throw new TypeError('connection lost');return json({clip:options.badClip?{}:{id:ID,status:'pending'},replay:generateNo>1})}
+    if(url===API){generateNo++;if(options.firstGenerateNetwork&&generateNo===1)throw new TypeError('connection lost');return json({clip:options.badClip?{}:{id:ID,status:'pending',...options.submission},replay:generateNo>1})}
     if(url.startsWith('/api/recreate/status?'))return json({clip:{id:ID,status:'processing',...options.status}})
     throw Error('Unexpected request '+url)
   }
@@ -155,7 +158,7 @@ async function verify(overrides={}){
   for(const body of[{}, {code:'storage',error:'Could not start the request.'}]){
     const f=await prepared(C,{errors:{[API]:{status:503,body}}})
     const e=await errorOf(C,()=>f.client.generateSeuVideo(input(C,f.checked)),body.code??'http','5xx without known refusal remains uncertain')
-    ok(e.outcome===(body.code?'not-started':'unknown'),'coded rejection and missing server response stay distinct')
+    ok(e.outcome==='unknown','unrecognized 5xx response stays uncertain even with a code')
   }
   for(const[status,amount,expected]of[['failed',undefined,false],['failed',0,false],['failed',40,true],['processing',40,false],['done',40,false]]){
     const f=transport({status:{status,...(amount===undefined?{}:{credits_refunded:amount}),video_url:'https://storage.example/video.mp4'}})
@@ -265,6 +268,57 @@ async function verify(overrides={}){
   await retryClient.generateSeuVideo(retryArgs)
   const posts=retryTransport.calls.filter(call=>call.url===API)
   ok(posts.length===2&&JSON.stringify(posts[0].body)===JSON.stringify(posts[1].body)&&posts[0].headers['idempotency-key']===posts[1].headers['idempotency-key']&&count(retryTransport,API+'/check')===1&&count(retryTransport,'/api/avatar/upload')===1,'explicit unknown retry uses same checked key photo URLs and instruction without another check')
+  const phases=[],queueOptions={submission:{queued:true,queue_position:3},status:{status:'pending',queued:true,queue_position:2}}
+  const qt=transport(queueOptions),qc=C.createSeuVideoClient({fetch:qt.fetch,preparePhoto:async f=>f,onPhase:phase=>phases.push(phase)})
+  ok(phases.length===0,'phase observer stays idle before explicit action')
+  const qphotos=[photo('queued.jpg')],qchecked=await qc.prepareSeuVideo({file:video(),people:1,photos:qphotos})
+  const accepted=await qc.generateSeuVideo(input(C,qchecked,qphotos))
+  ok(accepted.clip.queued===true&&accepted.clip.queue_position===3,'accepted pending clip preserves server queue position')
+  const waiting=await qc.getSeuVideoStatus(ID)
+  ok(waiting.queued===true&&waiting.queue_position===2,'status preserves updated queue position')
+  for(const invalid of[null,0,-1,1.5,'2']){queueOptions.status={status:'pending',queued:true,queue_position:invalid};const value=await qc.getSeuVideoStatus(ID);ok(value.queued===true&&value.queue_position===null,'invalid or unknown queue position is never invented')}
+  queueOptions.status={status:'processing'};const running=await qc.getSeuVideoStatus(ID)
+  ok(!running.queued&&running.queue_position===undefined,'leaving queue clears stale queue fields')
+  queueOptions.status={status:'done',queued:true,queue_position:4};const done=await qc.getSeuVideoStatus(ID)
+  ok(!done.queued&&done.queue_position===undefined,'terminal state cannot retain queue markers')
+  ok(phases.slice(0,4).join()===['video-upload','photo-upload','check','generate'].join()&&phases.at(-1)==='status','phase observer follows actual explicit requests')
+  const facts=W.load(PRESENTATION).seuVideoPresentation()
+  for(const n of[1,2,3])ok(facts.defaultPrompts[n]===rules.promptDoSeuVideo(rules.SEU_VIDEO_MOTOR,n,n===1?[]:n===2?['on the left','on the right']:['on the left','in the center','on the right']),'default prompt comes from currently selected server engine')
+  const canonical=await prepared(C,{check:{presentation:facts}})
+  ok(canonical.checked.presentation.defaultPrompts[1]===facts.defaultPrompts[1],'checked presentation preserves canonical public prompts')
+  for(const [code,extra]of[['queue_full',{retry_after_seconds:180}],['swap_cap',{retry_at:'2026-11-15T00:00:00.000Z'}]]){
+    const blocked=await prepared(C,{errors:{[API]:{status:429,body:{error:'Fixture server refusal. Nothing was charged.',code,charged:false,...extra}}}})
+    const refusal=await errorOf(C,()=>blocked.client.generateSeuVideo(input(C,blocked.checked)),code,'429 refusal keeps its exact code')
+    ok(refusal.status===429&&refusal.outcome==='not-started'&&refusal.refusal.charged===false&&refusal.message==='Fixture server refusal. Nothing was charged.','429 refusal preserves precharge evidence and server copy')
+    ok(code==='queue_full'?refusal.refusal.retryAfterSeconds===180:refusal.refusal.retryAt===extra.retry_at,'429 refusal preserves server retry metadata')
+    ok(count(blocked.t,API)===1,'429 refusal never retries automatically')
+  }
+  for(const bodyOnly of[false,true]){
+    const url='/previews/reference-fixture.mp4',setting=bodyOnly?{hangBody:url}:{hang:url},tr=transport(setting),cc=C.createSeuVideoClient({fetch:tr.fetch,timeouts:{requestMs:20}})
+    const refError=await errorOf(C,()=>cc.loadReferenceFile(url,'public-reference'),'timeout','reference fetch and body have bounded timeout')
+    ok(refError.outcome==='not-started'&&tr.calls[0].signal.aborted&&count(tr,API)===0,'reference timeout retains pre-generation state')
+  }
+  const unknownServer=await prepared(C,{errors:{[API]:{status:503,body:{error:'Future server state',code:'future_unknown_code'}}}})
+  const unknownResponse=await errorOf(C,()=>unknownServer.client.generateSeuVideo(input(C,unknownServer.checked)),'future_unknown_code','future 5xx response keeps typed error')
+  ok(unknownResponse.outcome==='unknown','unknown 5xx code never asserts request did not start')
+  for(const hang of[API+'/upload','https://storage.example/upload/signed?token=fixture',API+'/check']){
+    const tr=transport({hang}),cc=C.createSeuVideoClient({fetch:tr.fetch,preparePhoto:async f=>f,timeouts:{requestMs:20,uploadMs:20}})
+    const expired=await errorOf(C,()=>cc.prepareSeuVideo({file:video(),people:1}),'timeout','hung preparation has bounded timeout')
+    ok(expired.outcome==='not-started'&&tr.calls.at(-1).signal.aborted&&count(tr,API)===0,'preparation timeout aborts transport without dispatch')
+  }
+  for(const bodyOnly of[false,true]){
+    const setting=bodyOnly?{hangBody:API}:{hang:API},tr=transport(setting),cc=C.createSeuVideoClient({fetch:tr.fetch,preparePhoto:async f=>f,timeouts:{requestMs:20,uploadMs:20}})
+    const before=await cc.prepareSeuVideo({file:video(),people:1}),args=input(C,before)
+    const expired=await errorOf(C,()=>cc.generateSeuVideo(args),'timeout','hung generate or response body has bounded timeout')
+    ok(expired.outcome==='unknown'&&count(tr,API)===1&&tr.calls.at(-1).signal.aborted,'generation deadline never claims cancellation or retries itself')
+    setting.hang=undefined;setting.hangBody=undefined;await cc.generateSeuVideo(args)
+    const posts=tr.calls.filter(c=>c.url===API)
+    ok(posts.length===2&&posts[0].headers['idempotency-key']===posts[1].headers['idempotency-key']&&JSON.stringify(posts[0].body)===JSON.stringify(posts[1].body)&&count(tr,API+'/check')===1,'explicit timeout retry retains checked key and exact payload')
+  }
+  const abortOptions={hang:API},at=transport(abortOptions),ac=C.createSeuVideoClient({fetch:at.fetch,preparePhoto:async f=>f,timeouts:{requestMs:1000}}),ach=await ac.prepareSeuVideo({file:video(),people:1}),controller=new AbortController()
+  const pending=ac.generateSeuVideo(input(C,ach),controller.signal);for(let i=0;i<30&&count(at,API)===0;i++)await Promise.resolve();controller.abort()
+  const stopped=await errorOf(C,()=>pending,'aborted','waiting for generate can be aborted locally')
+  ok(stopped.outcome==='unknown'&&count(at,API)===1&&!at.calls.some(c=>/cancel/.test(c.url)),'abort after dispatch never cancels or repeats the backend job')
   ok(W.accidental===0,'all operations use injected transport and no implicit network')
 }
 
@@ -272,6 +326,15 @@ await verify()
 const baselineChecks=checks
 const replace=(from,to,rel=CLIENT)=>{const s=read(rel);assert.equal(s.split(from).length-1,1,'unique mutant anchor '+from);return{[rel]:s.replace(from,to)}}
 const mutations=[
+  ['unknown 5xx trusted by arbitrary code',()=>replace('const hasServerCode = knownPreStartCode(code)',"const hasServerCode = typeof data.code === 'string' && !!data.code"),'unrecognized 5xx response stays uncertain even with a code'],
+  ['generation timeout treated as not started',()=>replace("code, phase, undefined, phase === 'generate' ? 'unknown' : 'not-started'","code, phase, undefined, 'not-started'"),'generation deadline never claims cancellation or retries itself'],
+
+  ['queue payload discarded',()=>replace('...(queued ? { queued: true as const, queue_position: position } : {})','...{}'),'accepted pending clip preserves server queue position'],
+  ['fractional queue position accepted',()=>replace('&& Number.isInteger(v.queue_position) ',' '),'invalid or unknown queue position is never invented'],
+  ['terminal clip retains queue',()=>replace("const queued = v.status === 'pending' && v.queued === true","const queued = v.queued === true"),'terminal state cannot retain queue markers'],
+  ['phase observer removed',()=>replace('deps.onPhase?.(phase)','void phase'),'phase observer follows actual explicit requests'],
+  ['precharge evidence discarded',()=>replace("...(typeof data.charged === 'boolean' ? { charged: data.charged } : {})",'...{}'),'429 refusal preserves precharge evidence and server copy'],
+
   ['check drops owned photo URLs',()=>replace('...(selectedPhotos ? { photos } : {})','...(selectedPhotos ? {} : {})'),'partial manual choice is omitted from strict backend field and photo order stays exact'],
   ['suggestions compact empty slots',()=>replace("value[i] === 'man' || value[i] === 'woman' ? value[i] : null","value.filter(gender => gender === 'man' || gender === 'woman')[i] ?? null"),'suggestions preserve every slot including null unknown and missing'],
   ['server suggestion overwrites manual choices',()=>replace('...(genders ? { genders } : {})','...(genders ? { genders: suggestions ?? genders } : {})'),'partial manual choices stay separate and are never overwritten by suggestions'],

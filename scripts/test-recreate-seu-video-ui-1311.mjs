@@ -119,6 +119,7 @@ function harness(options = {}, override) {
   LocalURL.createObjectURL = file => { const url = 'blob:local-fixture-' + h.calls.urls.length; h.calls.urls.push({ file, url }); return url }
   LocalURL.revokeObjectURL = url => h.calls.revoked.push(url)
   const fakeClient = {
+    async loadReferenceFile(src,id,signal) { if(options.referenceError)throw options.referenceError;const response=await globals.fetch(src,{signal,credentials:'same-origin'});return new File([await response.blob()],id+'.mp4',{type:'video/mp4'}) },
     async prepareSeuVideo(value, signal) {
       h.calls.prepare.push({ value, signal })
       const next = h.checkedQueue.shift()
@@ -155,12 +156,15 @@ function harness(options = {}, override) {
   }
   const stubs = {
     react: { ...React, useState: state, useRef, useMemo, useEffect },
+    '@/components/create/CreateTabs': {__esModule:true,default:props=>React.createElement('a',{href:props.recreateHref},'Recreate')},
+    '@/components/create/CreateNavConta': {__esModule:true,default:()=>React.createElement('a',{href:'/library'},'My videos')},
+    '@/components/KineoBolt': { KineoBrandIcon: () => React.createElement('span',{'aria-hidden':true},'ϟ') },
     'next/link': { __esModule: true, default: ({ children, ...props }) => React.createElement('a', props, children) },
     '@/lib/recreate/seuVideoRules': rules,
     '@/lib/recreate/seuVideoCatalog': catalog,
     '@/lib/recreate/seuVideoPreviewRelease': release,
     '@/lib/growth/visitanteEscreveAntes': signup,
-    '@/lib/recreate/seuVideoClient': { ...helper, createSeuVideoClient: options => { h.clientPresentation=options.presentation; return fakeClient }, validateSeuVideoFile: async file => ({ file, seconds: 6, estimatedCredits: helper.estimateSeuVideoCredits(6) }) },
+    '@/lib/recreate/seuVideoClient': { ...helper, createSeuVideoClient: options => { h.clientPresentation=options.presentation; h.clientDeps=options; return fakeClient }, validateSeuVideoFile: async file => ({ file, seconds: 6, estimatedCredits: helper.estimateSeuVideoCredits(6) }) },
     '@/lib/recreate/seuVideoDraft': draft,
   }
   const Component = loadModule(UI, stubs, globals, override ? { [UI]: override } : {}).default
@@ -176,7 +180,7 @@ function harness(options = {}, override) {
 }
 async function selectPhoto(h, slot, file, gender='man') {
   const container = nodes(h.tree, node => node.props?.className === 'sv-photo')[slot]
-  const picker = nodes(container, node => node.type === 'button' && /^(Add|Change) photo$/.test(text(node)))[0]
+  const picker = nodes(container, node => node.type === 'button' && /^(Add|Change) photo$/.test(text(node)))[0]??nodes(container,node=>node.props?.className==='sv-photo-drop')[0]
   await h.click(picker)
   input(h, 'Choose person photo').props.onChange({ target: { files: [file], value: 'fixture' } })
   await h.flush()
@@ -629,6 +633,104 @@ async function recoverableRefusalScenario(override) {
   const failed=harness({stateOverrides:{restoring:false,clip:{id:'message-fixture',status:'failed',reason:'not_swapped',message:serverMessage,credits_refunded:pricing.recreateCreditCost(10),refundConfirmed:true}}},override)
   check(text(failed.tree).includes(serverMessage),'failed-status-keeps-server-message')
 }
+const flowPresentation={...presentation,defaultPrompts:{1:serverRules.promptDoSeuVideo(serverRules.SEU_VIDEO_MOTOR,1),2:serverRules.promptDoSeuVideo(serverRules.SEU_VIDEO_MOTOR,2,['on the left','on the right']),3:serverRules.promptDoSeuVideo(serverRules.SEU_VIDEO_MOTOR,3,['on the left','in the center','on the right'])}}
+const flowProps={currentFlow:true,signedIn:true,generationAllowed:true,accountKey:'house'}
+function flowChecked(suggestions=[null],extra={}){return{video_path:'owned/flow.mp4',people:1,seconds:6,fps:30,width:720,height:1280,bytes:20,generated_seconds:6,credits:helper.estimateSeuVideoCredits(6),prompt:flowPresentation.defaultPrompts[1],genders:[null],suggested_genders:suggestions,needs_plan:false,shortfall:0,...extra}}
+async function currentFlowScenario(override){
+  const h=harness({presentation:flowPresentation,props:{currentFlow:true}},override);await h.flush()
+  equal(textarea(h).props.value,flowPresentation.defaultPrompts[1],'flow-current-engine-prefilled')
+  equal(nodes(h.tree,n=>n.props?.className==='sv-gender-option').length,0,'flow-no-gender-decision-before-check')
+  const large=by(h,n=>n.props?.className==='sv-photo-drop');check(large.type==='button'&&large.props.onDrop&&large.props.onPaste,'flow-large-photo-entry')
+  const one=photo('drop'),two=photo('paste');large.props.onDrop({preventDefault(){},dataTransfer:{files:[one]}});await h.flush()
+  identical(h.calls.urls.at(-1)?.file,one,'flow-drop-same-slot')
+  by(h,n=>n.props?.className==='sv-photo-drop').props.onPaste({preventDefault(){},clipboardData:{files:[],items:[{kind:'file',getAsFile:()=>two}]}});await h.flush()
+  identical(h.calls.urls.at(-1)?.file,two,'flow-paste-same-slot')
+  await h.click(by(h,n=>n.props?.['aria-label']==='3 people'))
+  const third=photo('third-slot'),middle=photo('middle-slot')
+  nodes(h.tree,n=>n.props?.className==='sv-photo-drop')[2].props.onDrop({preventDefault(){},dataTransfer:{files:[third]}});await h.flush()
+  nodes(h.tree,n=>n.props?.className==='sv-photo-drop')[1].props.onPaste({preventDefault(){},clipboardData:{files:[middle],items:[]}});await h.flush()
+  check(h.calls.urls.slice(-3).map(v=>v.file).every((file,i)=>file===[two,middle,third][i]),'flow-input-methods-preserve-three-slots')
+  equal(textarea(h).props.value,flowPresentation.defaultPrompts[3],'flow-three-people-canonical-prompt')
+  check(noRequests(h),'flow-local-photo-methods-never-upload')
+  const css=read('app/recreate-preview/seu-video-current-flow.css')
+  check(!/#[0-9a-f]{3,8}\b/i.test(css)&&css.includes('var(--rc-primary)')&&css.includes('var(--rc-bg)'),'flow-uses-current-theme-tokens')
+  check(css.includes('position:fixed')&&css.includes('.sv-generate-area')&&css.includes('.sv-job-dock'),'flow-action-and-state-fixed')
+  check([...css.matchAll(/font-size:\s*(\d+(?:\.\d+)?)px/g)].every(m=>Number(m[1])>=12),'flow-readable-type')
+  for(const flowBasePath of['/recreate','/recreate-flow-preview']){
+    const guest=harness({presentation:flowPresentation,props:{currentFlow:true,flowBasePath}},override);await ready(guest,{gender:null});await guest.click(generateButton(guest))
+    const target=new URL(guest.calls.navigate[0],'https://fixture.invalid').searchParams.get('redirect')
+    check(target.startsWith(flowBasePath+'/your-video?')&&!target.includes('private-person'),'flow-auth-returns-to-current-route')
+    check(noRequests(guest)&&guest.calls.save.length===1,'flow-guest-only-local-draft')
+    const tabs=harness({presentation:flowPresentation,props:{...flowProps,flowBasePath,createTabs:true}},override)
+    check(nodes(tabs.tree,n=>n.props?.active==='recreate'&&n.props?.recreateHref===flowBasePath).length===1,'flow-tabs-preserve-preview-location')
+  }
+}
+async function currentGenderScenario(override){
+  const h=harness({presentation:flowPresentation,props:flowProps,checkedQueue:[flowChecked()]},override);await ready(h,{gender:null})
+  check(!generateButton(h).props.disabled,'flow-first-generate-does-not-require-gender')
+  await h.click(generateButton(h));equal(h.calls.generate.length,0,'flow-unknown-check-needs-choice')
+  check(generateButton(h).props.disabled&&nodes(h.tree,n=>n.props?.className==='sv-gender-option').length===2,'flow-unknown-only-after-check')
+  await h.click(by(h,n=>n.props?.['aria-label']==='Photo 1: Woman'))
+  await h.click(generateButton(h));equal(h.calls.prepare.length,1,'flow-manual-choice-reuses-check')
+  equal(h.calls.generate[0].value.genders[0],'woman','flow-explicit-choice-submitted')
+  const known=harness({presentation:flowPresentation,props:flowProps,checkedQueue:[flowChecked(['woman'],{prompt:helper.genderSeuVideoPrompt(['woman'])})]},override);await ready(known,{gender:null});await known.click(generateButton(known))
+  equal(known.calls.generate.length,0,'flow-suggestion-requires-review')
+  equal(nodes(known.tree,n=>n.props?.className==='sv-gender-option').length,0,'flow-known-suggestion-is-not-an-extra-decision')
+  check(nodes(known.tree,n=>n.props?.className==='sv-gender-edit').some(n=>/Woman/.test(text(n))),'flow-known-choice-can-be-corrected')
+}
+async function currentQueueScenario(override){
+  for(const position of[3,null]){
+    const h=harness({presentation:flowPresentation,props:flowProps,stateOverrides:{restoring:false,clip:{id:'queued',status:'pending',queued:true,queue_position:position,refundConfirmed:false}}},override)
+    const title=nodes(h.tree,n=>n.type==='h2'&&/In line/.test(text(n)))[0]
+    check(title,'flow-queue-title-uses-server-position')
+    equal(text(title),'In line'+(position?' · position '+position:''),'flow-queue-title-uses-server-position')
+    check(nodes(h.tree,n=>n.props?.className==='sv-job-dock').some(n=>text(n).includes('In line')),'flow-queue-always-visible')
+  }
+  const failure=harness({presentation:flowPresentation,props:flowProps,stateOverrides:{restoring:false,clip:{id:'queue-failed',status:'failed',reason:'queue_failed',message:'We returned your credits.',credits_refunded:0,refundConfirmed:false}}},override)
+  check(!text(failure.tree).includes('We returned your credits.')&&text(failure.tree).includes('not been confirmed'),'flow-no-unconfirmed-refund-claim')
+  for(const code of['queue_full','swap_cap']){
+    const error=new helper.SeuVideoClientError('Server refusal. Nothing was charged.',code,'generate',429,'not-started',undefined,{charged:false,retryAfterSeconds:180})
+    const h=harness({presentation:flowPresentation,props:flowProps,checkedQueue:[flowChecked(['woman'],{prompt:helper.genderSeuVideoPrompt(['woman'])})],generateQueue:[error]},override)
+    const face=photo('429');await ready(h,{gender:null,photo:face});await h.click(generateButton(h));await h.click(generateButton(h))
+    equal(h.calls.generate.length,1,'flow-429-no-automatic-retry')
+    equal(h.calls.clear.length,0,'flow-429-keeps-local-recovery')
+    check(!textarea(h).props.disabled&&text(h.tree).includes('Server refusal.'),'flow-429-shows-server-instruction')
+    await h.click(generateButton(h));equal(h.calls.prepare.length,1,'flow-429-keeps-check')
+    equal(h.calls.generate[0].value.key,h.calls.generate[1].value.key,'flow-429-retry-keeps-key')
+    identical(h.calls.generate[1].value.photos[0],face,'flow-429-keeps-files')
+  }
+  const done=harness({presentation:flowPresentation,props:flowProps,checkedQueue:[flowChecked(['woman'],{prompt:helper.genderSeuVideoPrompt(['woman'])})],generateQueue:[{clip:{id:'replayed',status:'done',refundConfirmed:false},replay:true}],statusQueue:[{id:'replayed',status:'done',video_url:'https://storage.fixture.invalid/generated/result.mp4',refundConfirmed:false}]},override)
+  await ready(done,{gender:null});await done.click(generateButton(done));await done.click(generateButton(done))
+  equal(done.calls.status.length,1,'flow-done-replay-resolves-status-once')
+  equal(done.calls.generate.length,1,'flow-done-replay-never-posts-again')
+  check(nodes(done.tree,n=>n.type==='video'&&n.props['aria-label']==='Your generated video').length===1,'flow-done-replay-shows-result')
+  for(const status of[{id:'replayed',status:'done',refundConfirmed:false},new Error('Temporary status failure')]){
+    const unresolved=harness({presentation:flowPresentation,props:flowProps,checkedQueue:[flowChecked(['woman'],{prompt:helper.genderSeuVideoPrompt(['woman'])})],generateQueue:[{clip:{id:'replayed',status:'done',refundConfirmed:false},replay:true}],statusQueue:[status,{id:'replayed',status:'done',video_url:'https://storage.fixture.invalid/generated/result.mp4',refundConfirmed:false}]},override)
+    await ready(unresolved,{gender:null});await unresolved.click(generateButton(unresolved));await unresolved.click(generateButton(unresolved))
+    check([...unresolved.storage.values()].some(value=>JSON.parse(value).id==='replayed'),'flow-done-without-url-keeps-recovery-pointer')
+    equal(unresolved.calls.status.length,1,'flow-done-without-url-no-automatic-loop')
+    await unresolved.click(button(unresolved,/^Refresh status$/))
+    equal(unresolved.calls.generate.length,1,'flow-done-without-url-refresh-never-posts')
+    check(![...unresolved.storage.values()].some(value=>JSON.parse(value).id==='replayed'),'flow-done-url-clears-recovery-pointer')
+  }
+}
+async function currentPhaseScenario(override){
+  let finish;const waiting=new Promise(resolve=>{finish=resolve})
+  const h=harness({presentation:flowPresentation,props:flowProps,checkedQueue:[waiting]},override);await ready(h,{gender:null});await h.click(generateButton(h));h.clientDeps.onPhase('video-upload');await h.flush()
+  check(text(generateButton(h)).includes('Uploading video'),'flow-upload-state-visible-in-dock')
+  h.unmount();finish(flowChecked());await h.flush();equal(h.calls.generate.length,0,'flow-unmounted-prepare-never-generates')
+  const timeout=harness({presentation:flowPresentation,props:flowProps,referenceError:new helper.SeuVideoClientError('Reference timed out. Try again.','timeout','local')},override);await ready(timeout,{catalog:true,gender:null});await timeout.click(generateButton(timeout))
+  check(!textarea(timeout).props.disabled&&text(timeout.tree).includes('Reference timed out'),'flow-reference-timeout-unlocks-editor')
+  equal(timeout.calls.prepare.length,0,'flow-reference-timeout-does-not-upload')
+  const checkTimeout=harness({presentation:flowPresentation,props:flowProps,checkedQueue:[new helper.SeuVideoClientError('Check timed out.','timeout','check')]},override);await ready(checkTimeout,{gender:null});await checkTimeout.click(generateButton(checkTimeout))
+  check(!textarea(checkTimeout).props.disabled&&text(checkTimeout.tree).includes('Check timed out'),'flow-check-timeout-releases-busy')
+  for(const code of['timeout','future_unknown_code']){
+    const uncertain=new helper.SeuVideoClientError('Unknown result',code,'generate',503,'unknown')
+    const h=harness({presentation:flowPresentation,props:flowProps,checkedQueue:[flowChecked(['woman'],{prompt:helper.genderSeuVideoPrompt(['woman'])})],generateQueue:[uncertain]},override);await ready(h,{gender:null});await h.click(generateButton(h));await h.click(generateButton(h))
+    check(/Retry Generate/.test(text(generateButton(h)))&&textarea(h).props.disabled,'flow-uncertain-release-busy-preserves-snapshot')
+    await h.click(generateButton(h));equal(h.calls.prepare.length,1,'flow-uncertain-retry-keeps-check');equal(h.calls.generate[0].value.key,h.calls.generate[1].value.key,'flow-uncertain-retry-keeps-key')
+  }
+}
 async function publicPresentationScenario(override) {
   check(!read(UI).includes("from '@/lib/recreate/seuVideo'"),'browser-ui-imports-public-rules-only')
   const facts={...presentation,resolution:'1080p',audio:'original',waitLabel:'About 4 minutes'}
@@ -691,7 +793,7 @@ if (arguments_.length) {
   if (arguments_.length !== 2 || arguments_[0] !== '--export-fixtures') throw new Error('Usage: node scripts/test-recreate-seu-video-ui-1311.mjs [--export-fixtures <docs/folder>]')
   exportFixtures(arguments_[1])
 } else {
-const scenarios = { page: pageScenario, mount: mountScenario, metadataRace: metadataRaceScenario, hydrationMetadata: hydrationMetadataScenario, audio:audioScenario, slots: slotsScenario, auth: authScenario, restore: restoreScenario, restoreRace: restoreRaceScenario, quote: quoteScenario, retry: retryScenario, refusal: refusalScenario, status: statusScenario, recheck: recheckScenario,gender:genderScenario,suggestions:suggestionsScenario,expiredAuth:expiredAuthScenario,signedInStorage:signedInStorageScenario,automaticRestore:automaticRestoreScenario,recoverableRefusal:recoverableRefusalScenario,presentation:publicPresentationScenario,pollingCap:pollingCapScenario }
+const scenarios = { currentFlow:currentFlowScenario,currentGender:currentGenderScenario,currentQueue:currentQueueScenario,currentPhase:currentPhaseScenario,page: pageScenario, mount: mountScenario, metadataRace: metadataRaceScenario, hydrationMetadata: hydrationMetadataScenario, audio:audioScenario, slots: slotsScenario, auth: authScenario, restore: restoreScenario, restoreRace: restoreRaceScenario, quote: quoteScenario, retry: retryScenario, refusal: refusalScenario, status: statusScenario, recheck: recheckScenario,gender:genderScenario,suggestions:suggestionsScenario,expiredAuth:expiredAuthScenario,signedInStorage:signedInStorageScenario,automaticRestore:automaticRestoreScenario,recoverableRefusal:recoverableRefusalScenario,presentation:publicPresentationScenario,pollingCap:pollingCapScenario }
 const failures = []
 for (const [name, run] of Object.entries(scenarios)) {
   try { await run(); console.log('PASS ' + name) } catch (error) { failures.push({ name, error }); console.error('FAIL ' + name + ': ' + error.message) }
@@ -705,6 +807,16 @@ function replaceOnce(original, anchor, replacement) {
 }
 const uiSource = read(UI), pageSource = read(PAGE)
 const mutants = [
+  ['flow drop discarded','currentFlow',replaceOnce(uiSource,'choosePhoto(e.dataTransfer.files[0])','void e.dataTransfer.files[0]'),/flow-drop-same-slot/],
+  ['flow paste discarded','currentFlow',replaceOnce(uiSource,'photoSlot.current=i;choosePhoto(file)','photoSlot.current=i;void file'),/flow-paste-same-slot/],
+
+  ['flow prompt ignores server','currentFlow',replaceOnce(uiSource,'presentation.defaultPrompts?.[count as 1|2|3]??legacySuggestedPrompt(values,count)','legacySuggestedPrompt(values,count)'),/flow-current-engine-prefilled/],
+  ['flow unknown choice bypasses review','currentGender',replaceOnce(uiSource,'if(changedCost||changedPrompt||changedGenders||(currentFlow&&merged.some(value=>value===null)))','if(changedCost||changedPrompt||changedGenders)'),/flow-unknown-check-needs-choice/],
+  ['flow queue hides position','currentQueue',replaceOnce(uiSource,'<h2>{currentFlow&&clip.queued?','<h2>{false?'),/flow-queue-title-uses-server-position/],
+  ['flow refund copied without evidence','currentQueue',replaceOnce(uiSource,'currentFlow&&!clip.refundConfirmed?', 'false?'),/flow-no-unconfirmed-refund-claim/],
+  ['flow done replay skips status','currentQueue',replaceOnce(uiSource,"(clipStatus==='done'&&(!currentFlow||!!clip?.video_url))","clipStatus==='done'"),/flow-done-replay-resolves-status-once/],
+  ['flow done without URL loses recovery','currentQueue',replaceOnce(uiSource,"accountKey&&(!currentFlow||result.status!=='done'||!!result.video_url)","accountKey"),/flow-done-without-url-keeps-recovery-pointer/],
+
   ['manual partial ignored without API suggestion','suggestions',replaceOnce(uiSource,'const checkedPrompt=manualPartial?','const checkedPrompt=manualPartial&&suggestions?.some(Boolean)?'),/partial-conflict-keeps-woman-and-neutral/],
 
   ['expired auth keeps stale draft','expiredAuth',replaceOnce(uiSource,'const saved=await saveSeuVideoDraft({source,photos:readyPhotos,genders,prompt:valid.prompt,people,consent,requestKey:keyRef.current??undefined})','const saved=true'),/expired-auth-saves-current-files/],
@@ -714,8 +826,8 @@ const mutants = [
   ['suggestion overwrites manual','suggestions',replaceOnce(uiSource,'genders[i]??suggestions?.[i]??null','suggestions?.[i]??genders[i]??null'),/partial-conflict-keeps-woman-and-neutral|suggestions-never-replace-manual-choice/],
   ['partial conflict ignored','suggestions',replaceOnce(uiSource,'const checkedPrompt=manualPartial?','const checkedPrompt=manualPartial&&merged.every(Boolean)?'),/partial-conflict-keeps-woman-and-neutral/],
   ['suggestions overwrite edited text','suggestions',replaceOnce(uiSource,'const changedPrompt=!promptEdited&&checkedPrompt!==prompt','const changedPrompt=checkedPrompt!==prompt'),/suggestions-preserve-edited-text/],
-  ['suggestion-only update skips review','suggestions',replaceOnce(uiSource,'if(changedCost||changedPrompt||changedGenders)','if(changedCost||changedPrompt)'),/suggestion-only-change-still-requires-review/],
-  ['original audio switch ignored', 'audio', replaceOnce(uiSource,"display.audio==='silent'", "display.audio==='original'"), /audio-copy-follows-server-switch/],
+  ['suggestion-only update skips review','suggestions',replaceOnce(uiSource,'if(changedCost||changedPrompt||changedGenders||(currentFlow&&merged.some(value=>value===null)))','if(changedCost||changedPrompt)'),/suggestion-only-change-still-requires-review/],
+  ['original audio switch ignored', 'audio', replaceOnce(uiSource,"const audioNote=display.audio==='silent'", "const audioNote=display.audio==='original'"), /audio-copy-follows-server-switch/],
   ['not swapped outcome hidden', 'status', replaceOnce(uiSource,"clip.reason==='not_swapped'",'false'), /not-swapped-has-actionable-message/],
   ['done download bypasses owned domain', 'status', replaceOnce(uiSource, "href={downloadHref(clip.video_url,'kineo-recreate-'+clip.id+'.mp4','recreate-preview')}", 'href={clip.video_url}'), /done-download-through-owned-domain/],
   ['done preview loses first frame', 'status', replaceOnce(uiSource, 'src={comPrimeiroQuadro(clip.video_url)}', 'src={clip.video_url}'), /done-output-first-frame-from-owned-status/],
@@ -732,7 +844,7 @@ const mutants = [
   ['uncertain retry changes key', 'retry', replaceOnce(uiSource, 'if(!keyRef.current)keyRef.current=', 'if(true)keyRef.current='), /uncertain-retry-same-key/],
   ['unknown refusal asserts no charge', 'refusal', replaceOnce(uiSource, "if(e.outcome==='unknown'){setMessage('Could not confirm whether this request started. Keep this page open and retry the same request, or check My videos.');return}", "if(e.outcome==='unknown'){setMessage('Nothing was charged.');return}"), /unknown-refusal-no-billing-certainty/],
   ['unconfirmed refund reported', 'status', replaceOnce(uiSource, 'clip.refundConfirmed?`${clip.credits_refunded} credits were returned.`', 'true?`${clip.credits_refunded} credits were returned.`'), /failed-without-confirmed-refund/],
-  ['changed quote skips confirmation', 'quote', replaceOnce(uiSource, 'if(changedCost||changedPrompt||changedGenders)', 'if(false)'), /quote-change-needs-reconfirmation/],
+  ['changed quote skips confirmation', 'quote', replaceOnce(uiSource, 'if(changedCost||changedPrompt||changedGenders||(currentFlow&&merged.some(value=>value===null)))', 'if(false)'), /quote-change-needs-reconfirmation/],
   ['changed prompt stays stale', 'quote', replaceOnce(uiSource, 'if(changedPrompt)setPrompt(checkedPrompt)', 'if(false)setPrompt(checkedPrompt)'), /quote-and-prompt-updated-together/],
   ['restoration unlocks editor early', 'restoreRace', replaceOnce(uiSource, 'const locked=restoring||busy||uncertain||!!clip', 'const locked=busy||uncertain||!!clip'), /restore-pending-blocks-editor/],
   ['late save navigates after unmount', 'restoreRace', replaceOnce(uiSource, 'if(!alive.current||controller.signal.aborted)return\n        if(!saved)', 'if(false)return\n        if(!saved)'), /unmount-during-save-no-auth-or-upload/],
@@ -748,7 +860,7 @@ const mutants = [
   ['known refusal loses server message','recoverableRefusal',replaceOnce(uiSource,'void clearSeuVideoDraft().catch(()=>{});setMessage(e.message);return',"void clearSeuVideoDraft().catch(()=>{});setMessage('Generic failure');return"),/known-refusal-keeps-server-message/],
   ['known refusal remains uncertain','recoverableRefusal',replaceOnce(uiSource,'setUncertain(e.outcome===\'unknown\'||e.code===\'idempotency_conflict\')','setUncertain(true)'),/known-refusal-unlocks-editor/],
   ['known refusal keeps persisted files','recoverableRefusal',replaceOnce(uiSource,'setChecked(null);void clearSeuVideoDraft().catch(()=>{});setMessage(e.message)','setChecked(null);setMessage(e.message)'),/known-refusal-clears-local-draft/],
-  ['failed status hides server message','recoverableRefusal',replaceOnce(uiSource,'clip.message??(clip.reason',"undefined??(clip.reason"),/failed-status-keeps-server-message/],
+  ['failed status hides server message','recoverableRefusal',replaceOnce(uiSource,':clip.message)??(clip.reason',":undefined)??(clip.reason"),/failed-status-keeps-server-message/],
   ['estimated cost presented as confirmed','presentation',replaceOnce(uiSource,"{checked?'':'Estimated '}","{checked?'':''}"),/local-cost-labelled-estimated/],
   ['permission consent hidden','presentation',replaceOnce(uiSource,'I have permission to use these files.','Continue.'),/consent-authorizes-selected-files/],
   ['polling budget disabled','pollingCap',replaceOnce(uiSource,'pollBudget.current.checks>=MAX_STATUS_CHECKS','false'),/automatic-polling-has-finite-budget/],

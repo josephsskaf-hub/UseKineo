@@ -20,6 +20,7 @@ export class SeuVideoClientError extends Error {
     readonly status?: number,
     readonly outcome: 'not-started' | 'unknown' = 'not-started',
     readonly shortfall?: number,
+    readonly refusal?: Readonly<{ charged?: boolean; retryAfterSeconds?: number; retryAt?: string }>,
   ) { super(message) }
 }
 
@@ -61,6 +62,8 @@ export type SeuVideoClip = Readonly<{
   reason?: string
   message?: string
   refundConfirmed: boolean
+  queued?: true
+  queue_position?: number | null
 }>
 export type SeuVideoSubmission = Readonly<{ clip: SeuVideoClip; replay: boolean; key: string }>
 export type PrepareSeuVideoInput = {
@@ -86,6 +89,9 @@ export type SeuVideoClientDeps = {
   fetch?: typeof fetch
   preparePhoto?: (file: File) => Promise<File>
   presentation?: SeuVideoPresentation
+  onPhase?: (phase: SeuVideoPhase) => void
+  /** Offline/test overrides only; the UI uses bounded defaults. */
+  timeouts?: Readonly<{ requestMs?: number; uploadMs?: number }>
 }
 const API = '/api/recreate/seu-video'
 const PHOTO_MAX_BYTES = 8 * 1024 * 1024 // same input limit as the existing Recreate photo uploader
@@ -95,6 +101,8 @@ const record = (v: unknown): Record<string, unknown> => v && typeof v === 'objec
 export const isSeuVideoRefusal = (code: unknown): boolean => typeof code === 'string' && ['refused_face', 'engine_refused', 'provider_rejected', 'provider_failed', 'not_swapped', 'swap_unchanged'].includes(code)
 function fail(message: string, code: string, phase: SeuVideoPhase = 'local'): never { throw new SeuVideoClientError(message, code, phase) }
 const abort = (signal?: AbortSignal) => { if (signal?.aborted) throw new SeuVideoClientError('The request was cancelled. Your local files are still here.', 'aborted', 'local') }
+const PRE_START_CODES = new Set(['auth','unavailable','genders','size','format','duration','resolution','consent','photos','prompt','plan','credits','debit_failed','moderation_unavailable','moderation','moderation_unprocessable','queue_full','swap_cap'])
+const knownPreStartCode = (code: string) => PRE_START_CODES.has(code) || isSeuVideoRefusal(code)
 
 function peopleCount(people: number): void {
   if (!Number.isInteger(people) || people < 1 || people > SEU_VIDEO_LIMITES.maxFotos) fail('Add 1 to 3 photos.', 'photos')
@@ -127,7 +135,9 @@ function presentationFrom(value: unknown): SeuVideoPresentation | undefined {
   const v = record(value)
   if (typeof v.resolution !== 'string' || !v.resolution || typeof v.waitLabel !== 'string' || !v.waitLabel || !['silent', 'original'].includes(String(v.audio))) return undefined
   if (![v.minSeconds, v.maxSeconds, v.minSide, v.maxBytes, v.minFps, v.maxFps].every(finite) || Number(v.minSeconds) <= 0 || Number(v.maxSeconds) < Number(v.minSeconds) || Number(v.minSide) < 0 || Number(v.maxBytes) <= 0 || Number(v.minFps) <= 0 || Number(v.maxFps) < Number(v.minFps)) return undefined
-  return Object.freeze({ resolution: v.resolution, audio: v.audio as SeuVideoPresentation['audio'], waitLabel: v.waitLabel, minSeconds: Number(v.minSeconds), maxSeconds: Number(v.maxSeconds), minSide: Number(v.minSide), maxBytes: Number(v.maxBytes), minFps: Number(v.minFps), maxFps: Number(v.maxFps) })
+  const defaults = record(v.defaultPrompts)
+  const defaultPrompts = [1,2,3].every(n => validarPrompt(defaults[n], n).ok) ? Object.freeze({1: String(defaults[1]), 2: String(defaults[2]), 3: String(defaults[3])}) : undefined
+  return Object.freeze({ ...(defaultPrompts ? { defaultPrompts } : {}), resolution: v.resolution, audio: v.audio as SeuVideoPresentation['audio'], waitLabel: v.waitLabel, minSeconds: Number(v.minSeconds), maxSeconds: Number(v.maxSeconds), minSide: Number(v.minSide), maxBytes: Number(v.maxBytes), minFps: Number(v.minFps), maxFps: Number(v.maxFps) })
 }
 export function validateSeuVideoPhotos(photos: readonly File[]): void {
   peopleCount(photos.length)
@@ -158,7 +168,9 @@ function clipFrom(value: unknown, phase: 'generate' | 'status'): SeuVideoClip {
   const video = v.status === 'done' && typeof v.video_url === 'string' && /^https?:\/\//i.test(v.video_url) ? v.video_url : null
   const refundConfirmed = phase === 'status' && v.status === 'failed' && refunded !== undefined && refunded > 0
   const message = typeof v.message === 'string' && v.message.trim() ? v.message : undefined
-  return Object.freeze({ id: v.id, status: v.status as SeuVideoClip['status'], ...(phase === 'status' ? { video_url: video, ...(refunded === undefined ? {} : { credits_refunded: refunded }), ...(typeof v.reason === 'string' ? { reason: v.reason } : {}), ...(message ? { message } : {}) } : {}), refundConfirmed })
+  const queued = v.status === 'pending' && v.queued === true
+  const position = finite(v.queue_position) && Number.isInteger(v.queue_position) && v.queue_position > 0 ? v.queue_position : null
+  return Object.freeze({ ...(queued ? { queued: true as const, queue_position: position } : {}), id: v.id, status: v.status as SeuVideoClip['status'], ...(phase === 'status' ? { video_url: video, ...(refunded === undefined ? {} : { credits_refunded: refunded }), ...(typeof v.reason === 'string' ? { reason: v.reason } : {}), ...(message ? { message } : {}) } : {}), refundConfirmed })
 }
 
 export function createSeuVideoClient(deps: SeuVideoClientDeps = {}) {
@@ -172,23 +184,48 @@ export function createSeuVideoClient(deps: SeuVideoClientDeps = {}) {
   let nextFileId = 0
   const jobs = new Map<string, { fingerprint: string; inFlight?: Promise<SeuVideoSubmission>; result?: SeuVideoSubmission }>()
 
+  async function deadline<T>(phase: SeuVideoPhase, signal: AbortSignal | null | undefined, run: (signal: AbortSignal) => Promise<T>, upload = false): Promise<T> {
+    abort(signal ?? undefined)
+    const controller = new AbortController()
+    const configured = deps.timeouts?.[upload ? 'uploadMs' : 'requestMs']
+    const ms = finite(configured) && configured > 0 ? configured : upload ? 300_000 : 75_000
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let stop: (() => void) | undefined
+    const interrupted = new Promise<never>((_resolve, reject) => {
+      const error = (code: 'timeout' | 'aborted') => new SeuVideoClientError(phase === 'generate' ? 'Could not confirm whether this request started. Keep this page open and retry with the same request key, or check My videos.' : code === 'timeout' ? 'This step timed out. Your files are still here. Try again.' : 'Stopped waiting. Your files are still here.', code, phase, undefined, phase === 'generate' ? 'unknown' : 'not-started')
+      stop = () => { reject(error('aborted')); controller.abort() }
+      signal?.addEventListener('abort', stop, { once: true })
+      timer = setTimeout(() => { reject(error('timeout')); controller.abort() }, ms)
+    })
+    try { return await Promise.race([run(controller.signal), interrupted]) }
+    finally { if (timer !== undefined) clearTimeout(timer); if (stop) signal?.removeEventListener('abort', stop) }
+  }
+
   async function jsonRequest(url: string, phase: SeuVideoPhase, init: RequestInit): Promise<Record<string, unknown>> {
-    let res: Response
-    try { res = await request(url, { cache: 'no-store', credentials: 'same-origin', ...init }) }
+    try { deps.onPhase?.(phase) } catch { /* A presentation observer never changes the request. */ }
+    let res: Response, data: Record<string, unknown>
+    try {
+      const response = await deadline(phase, init.signal, async signal => {
+        const res = await request(url, { cache: 'no-store', credentials: 'same-origin', ...init, signal })
+        let data: Record<string, unknown>
+        try { data = record(await res.json()) } catch { data = {} }
+        return { res, data }
+      }, phase === 'photo-upload')
+      res = response.res; data = response.data
+    }
     catch (error) {
+      if (error instanceof SeuVideoClientError) throw error
       const cancelled = init.signal?.aborted || (error instanceof Error && error.name === 'AbortError')
       throw new SeuVideoClientError(cancelled ? 'The request was cancelled. Keep this page open.' : phase === 'generate' ? 'Could not confirm this request. Keep this page open and retry with the same request key.' : 'Network error. Keep your files here and retry this step.', cancelled ? 'aborted' : 'network', phase, undefined, phase === 'generate' ? 'unknown' : 'not-started')
     }
-    let data: Record<string, unknown>
-    try { data = record(await res.json()) } catch { data = {} }
     if (!res.ok) {
       const code = typeof data.code === 'string' ? data.code : res.status === 401 ? 'auth' : res.status === 404 ? 'unavailable' : 'http'
       let message = typeof data.error === 'string' ? data.error : 'This step could not finish. Please retry.'
       if (res.status === 401) message = 'Sign in to continue. Your files are still here.'
       if (res.status === 404) message = APPROVED_ONLY
       if (code === 'idempotency_conflict') message = 'This request key is already in use. Check My videos before starting another request.'
-      const hasServerCode = typeof data.code === 'string' && data.code.trim().length > 0
-      throw new SeuVideoClientError(message, code, phase, res.status, phase === 'generate' && res.status >= 500 && !hasServerCode ? 'unknown' : 'not-started', finite(data.shortfall) ? data.shortfall : undefined)
+      const hasServerCode = knownPreStartCode(code)
+      throw new SeuVideoClientError(message, code, phase, res.status, phase === 'generate' && res.status >= 500 && !hasServerCode ? 'unknown' : 'not-started', finite(data.shortfall) ? data.shortfall : undefined, Object.freeze({ ...(typeof data.charged === 'boolean' ? { charged: data.charged } : {}), ...(finite(data.retry_after_seconds) && data.retry_after_seconds >= 0 && Number.isInteger(data.retry_after_seconds) ? { retryAfterSeconds: data.retry_after_seconds } : {}), ...(typeof data.retry_at === 'string' && data.retry_at.length <= 100 && Number.isFinite(Date.parse(data.retry_at)) ? { retryAt: data.retry_at } : {}) }))
     }
     if (Object.keys(data).length === 0) throw new SeuVideoClientError('Could not read the response. Keep this page open and retry the same request.', 'response', phase, res.status, phase === 'generate' ? 'unknown' : 'not-started')
     return data
@@ -210,10 +247,11 @@ export function createSeuVideoClient(deps: SeuVideoClientDeps = {}) {
     abort(signal)
     const ticket = await jsonRequest(API + '/upload', 'video-upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bytes: local.bytes, content_type: local.contentType }), signal })
     if (typeof ticket.video_path !== 'string' || !ticket.video_path || typeof ticket.upload_url !== 'string' || !/^https?:\/\//i.test(ticket.upload_url)) fail('Could not prepare the video upload. Please retry.', 'response', 'video-upload')
+    const uploadUrl = ticket.upload_url
     abort(signal)
     let uploaded: Response
-    try { uploaded = await request(ticket.upload_url, { method: 'PUT', headers: { 'Content-Type': local.contentType }, body: file, credentials: 'omit', signal }) }
-    catch { throw new SeuVideoClientError('Video upload did not finish. Keep the file here and retry.', signal?.aborted ? 'aborted' : 'network', 'video-upload') }
+    try { uploaded = await deadline('video-upload', signal, timedSignal => request(uploadUrl, { method: 'PUT', headers: { 'Content-Type': local.contentType }, body: file, credentials: 'omit', signal: timedSignal }), true) }
+    catch (error) { if (error instanceof SeuVideoClientError) throw error; throw new SeuVideoClientError('Video upload did not finish. Keep the file here and retry.', signal?.aborted ? 'aborted' : 'network', 'video-upload') }
     if (!uploaded.ok) throw new SeuVideoClientError('Video upload did not finish. Keep the file here and retry.', 'upload', 'video-upload', uploaded.status)
     abort(signal)
     // A valid signed video ticket is the existing account/release gate. Never
@@ -301,5 +339,13 @@ export function createSeuVideoClient(deps: SeuVideoClientDeps = {}) {
     if (clip.id !== id) fail('The status response did not match this video. Retry the status check.', 'response', 'status')
     return clip
   }
-  return { prepareSeuVideo, generateSeuVideo, getSeuVideoStatus }
+  async function loadReferenceFile(src: string, id: string, signal?: AbortSignal): Promise<File> {
+    try { deps.onPhase?.('local') } catch {}
+    return deadline('local', signal, async timedSignal => {
+      const response = await request(src, { signal: timedSignal, credentials: 'same-origin', cache: 'no-store' })
+      if (!response.ok) throw new SeuVideoClientError('Could not load this reference. Choose another video or retry.', 'reference', 'local', response.status)
+      return new File([await response.blob()], id + '.mp4', { type: 'video/mp4' })
+    })
+  }
+  return { prepareSeuVideo, generateSeuVideo, getSeuVideoStatus, loadReferenceFile }
 }

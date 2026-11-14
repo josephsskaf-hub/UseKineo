@@ -115,6 +115,8 @@ export function validarPrompt(prompt: unknown, fotos: number): { ok: true; promp
 /** Public presentation is selected on the server; no provider identifier or supplier price crosses this type. */
 export type SeuVideoGender = 'man' | 'woman'
 export type SeuVideoPresentation = Readonly<{
+  /** Canonical public instructions selected on the server; no provider identifier. */
+  defaultPrompts?: Readonly<Record<1 | 2 | 3, string>>
   resolution: string
   audio: 'silent' | 'original'
   waitLabel: string
