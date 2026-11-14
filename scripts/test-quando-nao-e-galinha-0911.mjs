@@ -16,6 +16,9 @@ import { semNomeNaoCruzaPonto1111 } from './test-support/desfaz-nome-nao-cruza-p
 import { semEspecieNaoEGente1111 } from './test-support/desfaz-especie-nao-e-gente-1111.mjs' // KINEO-ESPECIE-NAO-E-GENTE-1111
 import { semElencoProvaDeGente1211 } from './test-support/desfaz-elenco-prova-de-gente-1211.mjs' // KINEO-ELENCO-PROVA-DE-GENTE-1211
 import { semIdeiaFichaAssunto1211 } from './test-support/desfaz-ideia-ficha-assunto-1211.mjs' // KINEO-IDEIA-FICHA-ASSUNTO-1211
+import { semHistoriaReal1411 } from './test-support/desfaz-historia-real-1411.mjs' // KINEO-HISTORIA-REAL-1411
+import { semBichoComNome1411 } from './test-support/desfaz-bicho-com-nome-1411.mjs' // KINEO-BICHO-COM-NOME-1411
+import { semFichaDoAutorManda1411 } from './test-support/desfaz-ficha-do-autor-manda-1411.mjs' // KINEO-FICHA-DO-AUTOR-MANDA-1411
 
 let ok = 0
 let falhas = 0
@@ -181,7 +184,7 @@ const base = carregaBase()
 
 // ── D. recibo exato da TRAVA 8.2 ────────────────────────────────────────────────────────────────────────────────────────
 {
-  const hoje = semEspecieNaoEGente1111(semNomeSemCorpo1111(semNomeNaoCruzaPonto1111(semElencoProvaDeGente1211(semIdeiaFichaAssunto1211(readFileSync(join(raiz, EPOCA), 'utf8'), EPOCA) /* KINEO-IDEIA-FICHA-ASSUNTO-1211 — a camada de 12/11 noite sai antes */, EPOCA) /* KINEO-ELENCO-PROVA-DE-GENTE-1211 — a camada de 12/11 sai primeiro */, EPOCA), EPOCA), EPOCA) // KINEO-ESPECIE-NAO-E-GENTE-1111 — a camada mais nova (11/11) sai antes do recibo
+  const hoje = semEspecieNaoEGente1111(semNomeSemCorpo1111(semNomeNaoCruzaPonto1111(semElencoProvaDeGente1211(semIdeiaFichaAssunto1211(semHistoriaReal1411(semBichoComNome1411(semFichaDoAutorManda1411(readFileSync(join(raiz, EPOCA), 'utf8'), EPOCA), EPOCA), EPOCA) /* KINEO-HISTORIA-REAL-1411 · KINEO-BICHO-COM-NOME-1411 · KINEO-FICHA-DO-AUTOR-MANDA-1411 — as camadas de 14/11 saem primeiro, cada uma pelo recibo exato (hash antes/depois) */, EPOCA) /* KINEO-IDEIA-FICHA-ASSUNTO-1211 — a camada de 12/11 noite sai antes */, EPOCA) /* KINEO-ELENCO-PROVA-DE-GENTE-1211 — a camada de 12/11 sai primeiro */, EPOCA), EPOCA), EPOCA) // KINEO-ESPECIE-NAO-E-GENTE-1111 — a camada mais nova (11/11) sai antes do recibo
   checa('D recibo: desfazer devolve a base exata', semQuandoNaoEGalinha0911(hoje, EPOCA).replace(/\r\n/g, '\n') === BASE_FONTE.replace(/\r\n/g, '\n'))
   checa('D recibo: o arquivo de hoje é exatamente base + esta entrega', deltaQuandoNaoEGalinha0911Exato(hoje, BASE_FONTE, EPOCA))
   checa('D recibo: edição a mais reprova', !deltaQuandoNaoEGalinha0911Exato(hoje.replace('KINEO-QUANDO-NAO-E-GALINHA-0911', 'KINEO-QUANDO-NAO-E-GALINHA-0911 x'), BASE_FONTE, EPOCA))
