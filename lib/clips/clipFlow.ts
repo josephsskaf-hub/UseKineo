@@ -457,8 +457,8 @@ export interface ClipMovimentoDeps {
   persist(row: ClipRow, providerUrl: string): Promise<string>
   /** Reserva o passo 2: UPDATE condicional (modelo do passo 1 + o request_id da imagem) que troca o modelo, zera o request_id e grava a marca de envio. */
   claim(row: ClipRow, marca: string): Promise<boolean>
-  /** "É a pessoa da foto?" na imagem, ANTES de pagar o vídeo. Nunca lança. */
-  gate(row: ClipRow, cenaUrl: string): Promise<{ result: 'same' | 'other' | 'unverified'; reason: string }>
+  /** A imagem do passo 1 no NOSSO moderador e depois "é a pessoa da foto?", ANTES de pagar o vídeo. 'blocked' = o moderador recusou. Nunca lança. */
+  gate(row: ClipRow, cenaUrl: string): Promise<{ result: 'same' | 'other' | 'unverified' | 'blocked'; reason: string }>
   /** Envia o passo 2 (um POST, sem retry do POST pago). */
   submitVideo(row: ClipRow, cenaUrl: string): Promise<{ ok: true; requestId: string } | { ok: false; ambiguous: boolean; error: string }>
   /** Grava o request_id do passo 2 e solta a marca (condicional: modelo do passo 2, sem request_id, com ESTA marca). */
@@ -606,6 +606,10 @@ async function settleOpenClip(deps: ClipSettleDeps, row: ClipRow, depois: Array<
     const marca = movimentoEnvio(deps.now())
     if (!(await mov.claim(row, marca))) return row
     const juiz = await mov.gate(row, cenaUrl).catch(() => ({ result: 'unverified' as const, reason: 'gate_error' }))
+    if (juiz.result === 'blocked') { // KINEO-RECREATE-MOVIMENTO-1411 [CEO 14/11 08:45] — o moderador recusou a imagem: estorno, o vídeo nunca sai
+      const closed = await fail(MOVIMENTO_FALHA.bloqueada, null, { motion: 'scene_blocked', judge: juiz.result, judge_reason: juiz.reason })
+      return { ...closed, model: MOVIMENTO_VIDEO_MODEL, fal_request_id: null }
+    }
     if (juiz.result === 'other') {
       const closed = await fail(MOVIMENTO_FALHA.naoEVoce, null, { motion: 'not_you', judge: juiz.result, judge_reason: juiz.reason })
       return { ...closed, model: MOVIMENTO_VIDEO_MODEL, fal_request_id: null }

@@ -28,7 +28,7 @@ export const MOVIMENTO_VISAO_USD = 0.01
 export const movimentoFalUsd = (seconds: number) => Math.round((MOVIMENTO_CENA_USD + MOVIMENTO_VIDEO_USD_POR_S * seconds) * 100) / 100
 
 /** Motivos de falha que a tela traduz (failure_reason tem 60 caracteres). */
-export const MOVIMENTO_FALHA = { cena: 'motion_scene_failed', naoEVoce: 'motion_not_you' } as const
+export const MOVIMENTO_FALHA = { cena: 'motion_scene_failed', naoEVoce: 'motion_not_you', bloqueada: 'motion_scene_blocked' } as const // KINEO-RECREATE-MOVIMENTO-1411 — + bloqueada (o nosso moderador recusou a imagem do passo 1)
 export const MOVIMENTO_EVENTOS = { cena: 'recreate_movimento_cena', descricao: 'recreate_pessoa_descricao' } as const
 
 /** O texto da LINHA (row.prompt): fixo por molde, escrito só pelo servidor. É por ele que a linha é reconhecida como movimento. */
@@ -63,10 +63,11 @@ export function movimentoEnvioEm(failureReason: unknown): number | null {
 }
 
 // ─── Frases (CEO 14/11, ajuste 6: nada de frase negativa; "plain unmarked boards", "plain solid-colour kits") ───
-/** Palavras que o texto enviado ao motor nunca leva. A única exceção é "no glasses" (CEO: "he wears no glasses" pode). */
-export const FRASE_NEGATIVA = /\b(no|not|never|without|avoid|don'?t|doesn'?t|isn'?t|aren'?t|nothing|none|neither|nor)\b|n't\b/i
+/** Palavras que o texto enviado ao motor nunca leva. A única exceção é "no glasses" nas formas da receita aprovada: "wearing no glasses",
+ *  "he wears no glasses", "she wears no glasses", "they wear no glasses" (CEO 14/11 08:45). */
+export const FRASE_NEGATIVA = /\b(no|not|never|without|avoid|cannot|don'?t|doesn'?t|isn'?t|aren'?t|nothing|none|neither|nor)\b|n't\b/i // KINEO-RECREATE-MOVIMENTO-1411 — + cannot (revisor 14/11)
 export function temFraseNegativa(texto: string): boolean {
-  return FRASE_NEGATIVA.test(texto.replace(/\bwearing no glasses\b/gi, 'wearing bare-faced'))
+  return FRASE_NEGATIVA.test(texto.replace(/\b(wearing|(?:he|she) wears|they wear) no glasses\b/gi, '$1 bare-faced'))
 }
 
 const IDENTIDADE = 'Keep their real face exactly: same face shape, eyes, eyebrows, nose, lips, hairline, beard and skin texture, same age.'
@@ -133,14 +134,16 @@ export const MOVIMENTO_FRASES = {
   naoEVoce: 'The scene did not look like you, so we stopped before animating it.',
   motorRecusou: 'The engine declined this photo. Try a clear, front-facing photo of one person.',
   cenaFalhou: 'We could not prepare your scene.',
+  cenaBloqueada: 'This scene could not be used. Try another photo.',
   devolvido: 'We returned your credits.',
   devolveDepois: 'Your credits will be returned within the hour.',
 } as const
 /** A razão e a frase da falha para a tela; "returned" só com o estorno gravado na linha. */
-export function movimentoFalhaParaTela(failureReason: string | null, creditsRefunded: number): { reason: 'not_you' | 'engine_refused' | 'scene_failed'; message: string } | null {
+export function movimentoFalhaParaTela(failureReason: string | null, creditsRefunded: number): { reason: 'not_you' | 'engine_refused' | 'scene_failed' | 'scene_blocked'; message: string } | null {
   const fim = creditsRefunded > 0 ? MOVIMENTO_FRASES.devolvido : MOVIMENTO_FRASES.devolveDepois
   if (failureReason === MOVIMENTO_FALHA.naoEVoce) return { reason: 'not_you', message: `${MOVIMENTO_FRASES.naoEVoce} ${fim}` }
   if (failureReason === 'provider_failed' || failureReason === 'provider_rejected') return { reason: 'engine_refused', message: `${MOVIMENTO_FRASES.motorRecusou} ${fim}` }
   if (failureReason === MOVIMENTO_FALHA.cena) return { reason: 'scene_failed', message: `${MOVIMENTO_FRASES.cenaFalhou} ${fim}` }
+  if (failureReason === MOVIMENTO_FALHA.bloqueada) return { reason: 'scene_blocked', message: `${MOVIMENTO_FRASES.cenaBloqueada} ${fim}` }
   return null
 }

@@ -70,7 +70,10 @@ export async function POST(req: NextRequest) {
       const conferido = planMovimento(raw, ctx, null)
       if (!conferido.ok) return json({ error: conferido.error }, conferido.status)
       let descricao: string | null = null
-      if (account.balance >= conferido.plan.credits) {
+      // KINEO-RECREATE-MOVIMENTO-1411 [revisor 14/11] — a repetição do MESMO pedido (mesma chave) não lê a foto de novo: a impressão digital não leva a
+      // descrição, e o submitClip devolve o pedido que já existe.
+      const repeticao = key ? await deps.findByKey(user.id, key).catch(() => null) : null
+      if (!repeticao && account.balance >= conferido.plan.credits) {
         const lida = await lerDescricaoDaPessoa(conferido.plan.photos[0])
         descricao = lida.ok ? lida.texto : null
         await writeServerEvent({ name: MOVIMENTO_EVENTOS.descricao, userId: user.id, path: '/api/recreate', metadata: { format: format.id, ok: lida.ok, ...(lida.ok ? { usd: lida.usd } : { why: lida.why }) } }).catch(() => false)
