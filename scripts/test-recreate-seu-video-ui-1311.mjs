@@ -127,7 +127,7 @@ function harness(options = {}, override) {
       return next || { video_path: 'recreate-uploads/fixture/video.mp4', people: value.people, seconds: 6, fps: 30, width: 720, height: 1280, bytes: value.file.size, generated_seconds: 6, credits: helper.estimateSeuVideoCredits(6), prompt: rules.promptPorGeneroOpcional(Array.from({length:value.people},(_,i)=>value.genders?.[i]??null),value.positions), presentation:h.props.presentation, genders:value.genders, needs_plan: false, shortfall: 0 }
     },
     async generateSeuVideo(value, signal) {
-      h.calls.generate.push({ value, signal })
+      h.calls.generate.push({ value, signal, attempt:h.storage.get('kineo:recreate:seu-video:uncertain:'+h.props.accountKey) })
       const next = h.generateQueue.shift()
       if (next instanceof Error) throw next
       return next || { clip: { id: 'fixture-clip', status: 'pending', refundConfirmed: false }, replay: false, key: value.key }
@@ -149,7 +149,7 @@ function harness(options = {}, override) {
     URL: LocalURL,
     crypto: { randomUUID: () => '11111111-2222-4333-8444-' + String(++uuid).padStart(12, '0') },
     window: { location: { assign: destination => h.calls.navigate.push(destination) } },
-    sessionStorage: { getItem: key => h.storage.get(key) || null, setItem: (key, value) => h.storage.set(key, value), removeItem: key => h.storage.delete(key) },
+    sessionStorage: { getItem: key => {if(options.attemptReadError&&key.includes(':uncertain:'))throw new Error('Storage unavailable');return h.storage.get(key)||null}, setItem: (key, value) => {if(options.activeWriteError&&key.includes(':active:'))throw new Error('Quota');if(key.includes(':uncertain:')){if(options.attemptWriteError||h.failAttemptWrite)throw new Error('Quota');if(options.ignoreAttemptWrite)return}h.storage.set(key,value)}, removeItem: key => h.storage.delete(key) },
     fetch: async (url, init) => { h.calls.fetch.push({ url, init }); return { ok: true, blob: async () => new Blob(['public reference fixture'], { type: 'video/mp4' }) } },
     setTimeout: (callback, delay) => { const id = ++nextTimer; h.timers.set(id, { callback, delay }); return id },
     clearTimeout: id => h.timers.delete(id),
@@ -731,6 +731,76 @@ async function currentPhaseScenario(override){
     await h.click(generateButton(h));equal(h.calls.prepare.length,1,'flow-uncertain-retry-keeps-check');equal(h.calls.generate[0].value.key,h.calls.generate[1].value.key,'flow-uncertain-retry-keeps-key')
   }
 }
+async function currentRecoveryScenario(override){
+  const markerKey='kineo:recreate:seu-video:uncertain:house'
+  const checked=()=>flowChecked(['woman'],{prompt:helper.genderSeuVideoPrompt(['woman'])})
+  const unknown=()=>new helper.SeuVideoClientError('Response lost','network','generate',undefined,'unknown')
+  const denial=status=>new helper.SeuVideoClientError('Sign in again',status===401?'auth':'unavailable','generate',status,'not-started')
+  async function start(options={}){
+    const h=harness({presentation:flowPresentation,props:flowProps,checkedQueue:[checked()],...options},override)
+    const face=photo('recovery'),file=video('recovery');await ready(h,{gender:null,photo:face,video:file});await h.click(generateButton(h));await h.click(generateButton(h));return{h,face,file}
+  }
+  for(const status of[401,404]){
+    const{h,face}=await start({generateQueue:[unknown(),denial(status)],saveResult:false})
+    const first=h.calls.generate[0];check(first.attempt&&JSON.parse(first.attempt).requestKey===first.value.key,'flow-attempt-record-before-paid-post')
+    await h.click(generateButton(h))
+    check(textarea(h).props.disabled&&h.storage.has(markerKey),'flow-uncertain-auth-keeps-lock-and-evidence')
+    equal(h.calls.navigate.length,0,'flow-uncertain-auth-never-navigates');equal(h.calls.save.length,0,'flow-uncertain-auth-never-replaces-draft')
+    equal(h.calls.clear.length,0,'flow-uncertain-auth-never-clears-draft')
+    const instruction=textarea(h).props.value;textarea(h).props.onChange({target:{value:'Different request'}});by(h,n=>n.type==='input'&&n.props.type==='checkbox').props.onChange({target:{checked:false}});await h.flush()
+    equal(textarea(h).props.value,instruction,'flow-uncertain-auth-rejects-stale-edit-handler')
+    await h.click(generateButton(h));equal(h.calls.prepare.length,1,'flow-uncertain-auth-keeps-original-check')
+    check(h.calls.generate.every(call=>call.value.key===first.value.key&&call.value.checked===first.value.checked&&call.value.photos[0]===face&&call.value.prompt===instruction),'flow-uncertain-auth-retries-identical-context')
+    h.unmount()
+  }
+  for(const saveResult of[true,false]){
+    const{h}=await start({generateQueue:[denial(401)],saveResult})
+    equal(h.calls.save.length,1,'flow-first-auth-refusal-preserves-normal-handoff')
+    equal(h.calls.navigate.length,saveResult?1:0,'flow-first-auth-refusal-only-navigates-after-save')
+    check(!h.storage.has(markerKey),'flow-first-auth-refusal-is-not-ambiguous')
+    check(!textarea(h).props.disabled,'flow-first-auth-refusal-keeps-editable-files')
+    if(saveResult)check(!h.calls.navigate[0].includes('recovery.mp4'),'flow-first-auth-handoff-has-no-private-input')
+  }
+  for(const options of[{attemptWriteError:true},{ignoreAttemptWrite:true}]){
+    const{h,face}=await start(options)
+    equal(h.calls.generate.length,0,'flow-storage-failure-prevents-paid-post')
+    check(!textarea(h).props.disabled&&h.calls.urls.some(value=>value.file===face),'flow-storage-failure-keeps-local-files')
+    equal(h.calls.navigate.length,0,'flow-storage-failure-never-navigates')
+  }
+  const{h:lost,file,face}=await start({generateQueue:[unknown()]})
+  const first=lost.calls.generate[0],saved=[...lost.storage.entries()]
+  const restored={source:{kind:'upload',file},photos:[face],genders:['woman'],prompt:first.value.prompt,people:1,consent:true,requestKey:'different-stale-draft-key'}
+  const showRecovery=h=>{
+    check(nodes(h.tree,n=>n.type==='button'&&Object.hasOwn(n.props,'data-seu-video-generate')).length===0,'flow-remount-never-offers-resend-without-context')
+    check(nodes(h.tree,n=>n.props?.href==='/library'&&n.props?.className==='sv-generate').length===1,'flow-remount-exposes-library-action')
+    check(!/retry the same request/i.test(text(h.tree))&&textarea(h).props.disabled,'flow-remount-does-not-promise-resend')
+    check(noRequests(h)&&h.calls.navigate.length===0,'flow-remount-no-automatic-post-or-auth')
+  }
+  for(const entry of[saved,[[markerKey,JSON.stringify({version:1,account:'house',requestKey:first.value.key,at:Date.now()-25*60*60*1000})]],[[markerKey,'{"version":1,"account":"another-account"}']]]){
+    const h=harness({presentation:flowPresentation,props:{...flowProps,draftRef:reference},initialStorage:entry,restored},override);await h.flush();showRecovery(h)
+    equal(h.storage.get(markerKey),entry[0][1],'flow-remount-never-discards-unresolved-evidence')
+  }
+  const unavailable=harness({presentation:flowPresentation,props:flowProps,attemptReadError:true},override);await unavailable.flush();showRecovery(unavailable)
+  const another=harness({presentation:flowPresentation,props:{...flowProps,accountKey:'other'},initialStorage:saved},override);await another.flush()
+  check(!textarea(another).props.disabled&&noRequests(another),'flow-recovery-is-bound-to-account')
+  another.props.accountKey='house';another.render();await another.flush();showRecovery(another)
+  const same=harness({presentation:flowPresentation,props:flowProps,initialStorage:[...saved,['kineo:recreate:seu-video:active:house',JSON.stringify({id:'known',at:Date.now(),requestKey:first.value.key})]],restored,statusQueue:[{id:'known',status:'done',video_url:'https://storage.fixture.invalid/generated/known.mp4',refundConfirmed:false}]},override)
+  await same.flush();equal(same.calls.status.length,1,'flow-known-id-recovers-with-get-only');equal(same.calls.generate.length,0,'flow-known-id-never-reposts');check(!same.storage.has(markerKey),'flow-valid-status-replaces-unresolved-evidence')
+  await same.click(button(same,/^Make another$/));check(nodes(same.tree,n=>n.type==='button'&&Object.hasOwn(n.props,'data-seu-video-generate')).length===1&&!textarea(same).props.disabled,'flow-resolved-status-allows-explicit-new-version')
+  const unrelated=harness({presentation:flowPresentation,props:flowProps,initialStorage:[...saved,['kineo:recreate:seu-video:active:house',JSON.stringify({id:'old',at:Date.now(),requestKey:'another-old-key'})]],restored},override);await unrelated.flush();check(noRequests(unrelated),'flow-unrelated-active-never-resolves-attempt');showRecovery(unrelated)
+  lost.failAttemptWrite=true;await lost.click(generateButton(lost));equal(lost.calls.generate.length,1,'flow-quota-after-unknown-does-not-resend');check(textarea(lost).props.disabled&&lost.storage.has(markerKey),'flow-quota-after-unknown-keeps-lock')
+  const before=lost.calls.restore.length;lost.restoreQueue.push({...restored,prompt:first.value.prompt+' Stale saved text.'});lost.props.signedIn=false;lost.render();await lost.flush();lost.props.signedIn=true;lost.render();await lost.flush()
+  equal(lost.calls.restore.length,before,'flow-renewed-auth-keeps-original-live-context')
+  check(textarea(lost).props.value===first.value.prompt&&!generateButton(lost).props.disabled,'flow-renewed-auth-never-rebuilds-original-payload')
+  const conflict=await start({generateQueue:[new helper.SeuVideoClientError('Conflict','idempotency_conflict','generate',409,'not-started')]})
+  check(conflict.h.storage.has(markerKey)&&textarea(conflict.h).props.disabled,'flow-idempotency-conflict-keeps-evidence')
+  const noProof=await start({generateQueue:[new helper.SeuVideoClientError('Queue refused','queue_full','generate',429,'not-started')]})
+  check(noProof.h.storage.has(markerKey)&&textarea(noProof.h).props.disabled,'flow-missing-precharge-proof-keeps-evidence')
+  const terminal=harness({presentation:flowPresentation,props:flowProps,activeWriteError:true,checkedQueue:[checked()],generateQueue:[{clip:{id:'terminal',status:'done',refundConfirmed:false}}],statusQueue:[{id:'terminal',status:'done',video_url:'https://storage.fixture.invalid/generated/terminal.mp4',refundConfirmed:false}]},override)
+  await ready(terminal,{gender:null});await terminal.click(generateButton(terminal));await terminal.click(generateButton(terminal));check(terminal.storage.has(markerKey),'flow-status-pointer-quota-keeps-evidence')
+  await terminal.click(button(terminal,/^Make another$/));check(!terminal.storage.has(markerKey),'flow-terminal-explicit-new-version-cleans-evidence')
+  lost.unmount()
+}
 async function publicPresentationScenario(override) {
   check(!read(UI).includes("from '@/lib/recreate/seuVideo'"),'browser-ui-imports-public-rules-only')
   const facts={...presentation,resolution:'1080p',audio:'original',waitLabel:'About 4 minutes'}
@@ -793,7 +863,7 @@ if (arguments_.length) {
   if (arguments_.length !== 2 || arguments_[0] !== '--export-fixtures') throw new Error('Usage: node scripts/test-recreate-seu-video-ui-1311.mjs [--export-fixtures <docs/folder>]')
   exportFixtures(arguments_[1])
 } else {
-const scenarios = { currentFlow:currentFlowScenario,currentGender:currentGenderScenario,currentQueue:currentQueueScenario,currentPhase:currentPhaseScenario,page: pageScenario, mount: mountScenario, metadataRace: metadataRaceScenario, hydrationMetadata: hydrationMetadataScenario, audio:audioScenario, slots: slotsScenario, auth: authScenario, restore: restoreScenario, restoreRace: restoreRaceScenario, quote: quoteScenario, retry: retryScenario, refusal: refusalScenario, status: statusScenario, recheck: recheckScenario,gender:genderScenario,suggestions:suggestionsScenario,expiredAuth:expiredAuthScenario,signedInStorage:signedInStorageScenario,automaticRestore:automaticRestoreScenario,recoverableRefusal:recoverableRefusalScenario,presentation:publicPresentationScenario,pollingCap:pollingCapScenario }
+const scenarios = { currentRecovery:currentRecoveryScenario,currentFlow:currentFlowScenario,currentGender:currentGenderScenario,currentQueue:currentQueueScenario,currentPhase:currentPhaseScenario,page: pageScenario, mount: mountScenario, metadataRace: metadataRaceScenario, hydrationMetadata: hydrationMetadataScenario, audio:audioScenario, slots: slotsScenario, auth: authScenario, restore: restoreScenario, restoreRace: restoreRaceScenario, quote: quoteScenario, retry: retryScenario, refusal: refusalScenario, status: statusScenario, recheck: recheckScenario,gender:genderScenario,suggestions:suggestionsScenario,expiredAuth:expiredAuthScenario,signedInStorage:signedInStorageScenario,automaticRestore:automaticRestoreScenario,recoverableRefusal:recoverableRefusalScenario,presentation:publicPresentationScenario,pollingCap:pollingCapScenario }
 const failures = []
 for (const [name, run] of Object.entries(scenarios)) {
   try { await run(); console.log('PASS ' + name) } catch (error) { failures.push({ name, error }); console.error('FAIL ' + name + ': ' + error.message) }
@@ -807,6 +877,15 @@ function replaceOnce(original, anchor, replacement) {
 }
 const uiSource = read(UI), pageSource = read(PAGE)
 const mutants = [
+  ['paid post loses durable marker','currentRecovery',replaceOnce(uiSource,'rememberAttempt(accountKey,keyRef.current)','void 0'),/flow-attempt-record-before-paid-post/],
+  ['marker write is not verified','currentRecovery',replaceOnce(uiSource,'if(sessionStorage.getItem(uncertainKey(account))!==raw)','if(false)'),/flow-storage-failure-prevents-paid-post/],
+  ['uncertain auth clears earlier evidence','currentRecovery',replaceOnce(uiSource,"currentFlow&&(uncertain||e.code==='idempotency_conflict'||", "currentFlow&&(false||e.code==='idempotency_conflict'||"),/flow-uncertain-auth-keeps-lock-and-evidence/],
+  ['initial auth refusal wrongly locked','currentRecovery',replaceOnce(uiSource,"currentFlow&&(uncertain||e.code==='idempotency_conflict'||", "currentFlow&&(uncertain||(attemptMarked&&e.status===401)||e.code==='idempotency_conflict'||"),/flow-first-auth-refusal-preserves-normal-handoff/],
+  ['recovery marker not restored','currentRecovery',replaceOnce(uiSource,'if(currentFlow&&signedIn&&accountKey){','if(false){'),/flow-remount-never-offers-resend-without-context/],
+  ['session changes do not reread recovery','currentRecovery',replaceOnce(uiSource,'[draftRef,currentFlow,signedIn,accountKey]','[draftRef]'),/flow-remount-never-offers-resend-without-context/],
+  ['unrelated active id resolves attempt','currentRecovery',replaceOnce(uiSource,'if(attempt&&attempt.requestKey!==saved.requestKey)return','if(false)return'),/flow-unrelated-active-never-resolves-attempt/],
+  ['renewed session rebuilds live payload','currentRecovery',replaceOnce(uiSource,'if(keepOriginal){','if(false){'),/flow-renewed-auth-keeps-original-live-context/],
+  ['terminal explicit reset leaves orphan marker','currentRecovery',replaceOnce(uiSource,'if(currentFlow&&accountKey)forgetAttempt(accountKey,keyRef.current)','if(false)forgetAttempt(accountKey,keyRef.current)'),/flow-terminal-explicit-new-version-cleans-evidence/],
   ['flow drop discarded','currentFlow',replaceOnce(uiSource,'choosePhoto(e.dataTransfer.files[0])','void e.dataTransfer.files[0]'),/flow-drop-same-slot/],
   ['flow paste discarded','currentFlow',replaceOnce(uiSource,'photoSlot.current=i;choosePhoto(file)','photoSlot.current=i;void file'),/flow-paste-same-slot/],
 
@@ -847,7 +926,7 @@ const mutants = [
   ['changed quote skips confirmation', 'quote', replaceOnce(uiSource, 'if(changedCost||changedPrompt||changedGenders||(currentFlow&&merged.some(value=>value===null)))', 'if(false)'), /quote-change-needs-reconfirmation/],
   ['changed prompt stays stale', 'quote', replaceOnce(uiSource, 'if(changedPrompt)setPrompt(checkedPrompt)', 'if(false)setPrompt(checkedPrompt)'), /quote-and-prompt-updated-together/],
   ['restoration unlocks editor early', 'restoreRace', replaceOnce(uiSource, 'const locked=restoring||busy||uncertain||!!clip', 'const locked=busy||uncertain||!!clip'), /restore-pending-blocks-editor/],
-  ['late save navigates after unmount', 'restoreRace', replaceOnce(uiSource, 'if(!alive.current||controller.signal.aborted)return\n        if(!saved)', 'if(false)return\n        if(!saved)'), /unmount-during-save-no-auth-or-upload/],
+  ['late save navigates after unmount', 'restoreRace', replaceOnce(uiSource, 'if(!alive.current||controller.signal.aborted||(currentFlow&&accountRef.current!==accountKey))return\n        if(!saved)', 'if(false)return\n        if(!saved)'), /unmount-during-save-no-auth-or-upload/],
   ['old active job replaces explicit draft', 'restore', replaceOnce(uiSource, 'if(!signedIn||!accountKey||draftRef)return', 'if(!signedIn||!accountKey)return'), /explicit-draft-wins-old-job/],
   ['stale StrictMode restore overwrites current draft', 'restore', replaceOnce(uiSource, 'void restoreSeuVideoDraft(draftRef).then(d=>{\n      if(cancelled)return', 'void restoreSeuVideoDraft(draftRef).then(d=>{\n      if(false)return'), /strictmode-late-restore-ignored/],
   ['source effect erases cached metadata', 'metadataRace', replaceOnce(uiSource, "let cancelled=false\n    if(source.kind==='catalog'){", "let cancelled=false\n    setSeconds(null);setLocalError('')\n    if(source.kind==='catalog'){"), /metadata-before-effects-keeps-cost/],

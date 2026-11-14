@@ -33,6 +33,7 @@
 .sv-current-flow .sv-job-dock{min-height:76px;font-size:14px}
 .sv-current-flow .sv-job-dock a{margin-left:auto;min-height:44px;display:flex;align-items:center;color:var(--rc-accent)}
 .sv-current-flow .sv-generate{width:min(390px,100%);min-height:52px;background:var(--rc-primary);border:1px solid var(--rc-primary);color:var(--rc-on-primary);font-size:15px;font-weight:700}
+.sv-current-flow a.sv-generate{text-decoration:none}
 .sv-current-flow .sv-generate:disabled{opacity:1;background:var(--rc-input);color:var(--rc-muted);border-color:var(--rc-line)}
 .sv-current-flow .sv-output-note{font-size:12px;line-height:1.4;color:var(--rc-muted);border:1px solid var(--rc-line);border-radius:7px;padding:6px 8px}
 .sv-current-flow .sv-stage-status{position:absolute;inset:auto 12px 12px;z-index:1;padding:10px 14px;border-radius:9px;background:var(--rc-panel);color:var(--rc-text);border:1px solid var(--rc-line);font-size:14px;line-height:1.5}

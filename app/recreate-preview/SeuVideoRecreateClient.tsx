@@ -20,6 +20,28 @@ import './seu-video-current-flow.css'
 type Props = {signedIn:boolean;generationAllowed:boolean;accountKey:string|null;presentation:SeuVideoPresentation;initialExample?:string;draftRef?:string;currentFlow?:boolean;flowBasePath?:'/recreate'|'/recreate-flow-preview';createTabs?:boolean}
 type Source = SeuVideoDraft['source']
 const activeKey = (account:string) => 'kineo:recreate:seu-video:active:'+account
+// Tab/account-scoped evidence only: no remote payload, signed path, files or credentials.
+// Expiry forbids replay; it never silently turns an unresolved attempt into a new one.
+const uncertainKey = (account:string) => 'kineo:recreate:seu-video:uncertain:'+account
+const ATTEMPT_TTL = 24*60*60*1000
+const RECOVERY_MESSAGE = 'An earlier generation is still unconfirmed. Check My videos before starting another. This page cannot resend it without the original request.'
+function readAttempt(account:string):{requestKey:string;expired:boolean}|null{
+  const raw=sessionStorage.getItem(uncertainKey(account))
+  if(!raw)return null
+  const value=JSON.parse(raw) as Record<string,unknown>
+  if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(key=>!['version','account','requestKey','at'].includes(key))||value.version!==1||value.account!==account||typeof value.requestKey!=='string'||!/^[A-Za-z0-9._:-]{8,100}$/.test(value.requestKey)||typeof value.at!=='number'||!Number.isFinite(value.at)||value.at<0||value.at>Date.now()+60_000)throw new Error('The previous generation record could not be verified. Check My videos before starting another.')
+  return{requestKey:value.requestKey,expired:Date.now()-value.at>ATTEMPT_TTL}
+}
+function rememberAttempt(account:string,key:string):void{
+  const previous=readAttempt(account)
+  if(previous&&(previous.requestKey!==key||previous.expired))throw new Error(RECOVERY_MESSAGE)
+  const raw=JSON.stringify({version:1,account,requestKey:key,at:Date.now()})
+  sessionStorage.setItem(uncertainKey(account),raw)
+  if(sessionStorage.getItem(uncertainKey(account))!==raw)throw new Error('Could not preserve this request on this device. Keep this page open and try again. Nothing was sent.')
+}
+function forgetAttempt(account:string,key:string|null):void{
+  try{if(key&&readAttempt(account)?.requestKey===key)sessionStorage.removeItem(uncertainKey(account))}catch{/* Unverified recovery evidence is never removed. */}
+}
 const MAX_STATUS_CHECKS = 60
 const positionsFor = (people:number):string[] => people===1?[]:people===2?['on the left','on the right']:['on the left','in the center','on the right']
 const legacySuggestedPrompt = (values:readonly (SeuVideoGender|null)[],people:number) => promptPorGeneroOpcional(Array.from({length:people},(_,i)=>values[i]??null),positionsFor(people))
@@ -48,11 +70,13 @@ export default function SeuVideoRecreateClient({signedIn,generationAllowed,accou
   const [restoring,setRestoring]=useState(true)
   const [busy,setBusy]=useState(false)
   const [uncertain,setUncertain]=useState(false)
+  const [recoveryOnly,setRecoveryOnly]=useState(false)
   const [checked,setChecked]=useState<CheckedSeuVideo|null>(null)
   const [clip,setClip]=useState<SeuVideoClip|null>(null)
   const [statusRetry,setStatusRetry]=useState(0)
   const [statusPaused,setStatusPaused]=useState(false)
   const keyRef=useRef<string|null>(null)
+  const accountRef=useRef(accountKey)
   const lock=useRef(false)
   const videoInput=useRef<HTMLInputElement>(null)
   const referenceVideo=useRef<HTMLVideoElement>(null)
@@ -74,17 +98,27 @@ export default function SeuVideoRecreateClient({signedIn,generationAllowed,accou
   useEffect(()=>{
     let cancelled=false
     setRestoring(true)
+    if(currentFlow&&accountRef.current!==accountKey){
+      accountRef.current=accountKey;runController.current?.abort();keyRef.current=null;setChecked(null);setClip(null);setUncertain(false);setRecoveryOnly(false)
+    }
+    let recovering=false
+    let keepOriginal=currentFlow&&uncertain&&!!checked&&!!keyRef.current
+    if(currentFlow&&signedIn&&accountKey){
+      try{const attempt=readAttempt(accountKey);if(attempt){recovering=keyRef.current!==attempt.requestKey||!checked;keepOriginal=!recovering;keyRef.current=attempt.requestKey;setUncertain(true);setRecoveryOnly(recovering);setMessage(recovering?RECOVERY_MESSAGE:'The earlier generation is still unconfirmed. Keep this page open and check My videos before retrying the same request.')}}
+      catch{recovering=true;setUncertain(true);setRecoveryOnly(true);setMessage(RECOVERY_MESSAGE)}
+    }
+    if(keepOriginal){setRestoring(false);return()=>{cancelled=true}}
     void restoreSeuVideoDraft(draftRef).then(d=>{
       if(cancelled)return
-      if(!d){if(draftRef)setMessage('This saved draft is unavailable or has expired. Choose your files again before generating.');return}
+      if(!d){if(draftRef&&!recovering)setMessage('This saved draft is unavailable or has expired. Choose your files again before generating.');return}
       const restoredGenders=Array.from({length:d.people},(_,i)=>d.genders?.[i]??null)
       const normalized=d.prompt.replace(/\s+/g,' ').trim()
       const automatic=normalized===defaultSeuVideoPrompt(d.people)||normalized===defaultSeuVideoPrompt(d.people,positionsFor(d.people))||normalized===suggestedPrompt(restoredGenders,d.people)
-      setSeconds(null);setLocalError('');setSource(d.source);setPhotos(d.photos);setPeople(d.people);setGenders(restoredGenders);setPrompt(automatic?suggestedPrompt(restoredGenders,d.people):d.prompt);setPromptEdited(!automatic);setConsent(d.consent);keyRef.current=d.requestKey??null
-      setMessage('Your video, photos and instruction are back. Review them, then press Generate. Nothing starts on return.')
-    }).catch(()=>{if(!cancelled)setMessage('Your saved files could not be restored. Keep your original files and choose them again before generating.')}).finally(()=>{if(!cancelled)setRestoring(false)})
+      setSeconds(null);setLocalError('');setSource(d.source);setPhotos(d.photos);setPeople(d.people);setGenders(restoredGenders);setPrompt(automatic?suggestedPrompt(restoredGenders,d.people):d.prompt);setPromptEdited(!automatic);setConsent(d.consent);if(!recovering)keyRef.current=d.requestKey??null
+      setMessage(recovering?RECOVERY_MESSAGE:'Your video, photos and instruction are back. Review them, then press Generate. Nothing starts on return.')
+    }).catch(()=>{if(!cancelled&&!recovering)setMessage('Your saved files could not be restored. Keep your original files and choose them again before generating.')}).finally(()=>{if(!cancelled)setRestoring(false)})
     return()=>{cancelled=true}
-  },[draftRef])
+  },[draftRef,currentFlow,signedIn,accountKey])
 
   useEffect(()=>{
     let cancelled=false
@@ -121,7 +155,8 @@ export default function SeuVideoRecreateClient({signedIn,generationAllowed,accou
     try{
       const raw=sessionStorage.getItem(activeKey(accountKey))
       if(!raw)return
-      const saved=JSON.parse(raw) as {id?:unknown;at?:unknown}
+      const saved=JSON.parse(raw) as {id?:unknown;at?:unknown;requestKey?:unknown}
+      if(currentFlow){const attempt=readAttempt(accountKey);if(attempt&&attempt.requestKey!==saved.requestKey)return}
       if(typeof saved.id==='string'&&/^[a-zA-Z0-9-]{1,100}$/.test(saved.id)&&typeof saved.at==='number'&&Date.now()-saved.at>=0&&Date.now()-saved.at<24*60*60*1000){
         setClip({id:saved.id,status:'pending',refundConfirmed:false})
       }
@@ -141,6 +176,7 @@ export default function SeuVideoRecreateClient({signedIn,generationAllowed,accou
         const result=await client.getSeuVideoStatus(clipId,controller.signal)
         if(cancelled)return
         setClip(result)
+        rememberAccepted(result)
         if(result.status==='done'||(result.status==='failed'&&result.refundConfirmed)){
           if(accountKey&&(!currentFlow||result.status!=='done'||!!result.video_url))try{sessionStorage.removeItem(activeKey(accountKey))}catch{}
           return
@@ -152,7 +188,16 @@ export default function SeuVideoRecreateClient({signedIn,generationAllowed,accou
     return()=>{cancelled=true;controller.abort();if(timer)clearTimeout(timer)}
   },[client,signedIn,accountKey,clipId,clipStatus,clip?.video_url,refundConfirmed,statusRetry,currentFlow])
 
-  function invalidate(){setGenderEditing(null);keyRef.current=null;setChecked(null);setMessage('');setUncertain(false)}
+  function rememberAccepted(result:SeuVideoClip){
+    if(!currentFlow||!accountKey)return
+    setUncertain(false);setRecoveryOnly(false)
+    try{
+      const raw=JSON.stringify({id:result.id,at:Date.now(),requestKey:keyRef.current})
+      sessionStorage.setItem(activeKey(accountKey),raw)
+      if(sessionStorage.getItem(activeKey(accountKey))===raw)forgetAttempt(accountKey,keyRef.current)
+    }catch{/* The accepted ID remains on screen; uncertain evidence survives a failed status-pointer write. */}
+  }
+  function invalidate(){if(currentFlow&&uncertain)return false;setGenderEditing(null);keyRef.current=null;setChecked(null);setMessage('');setUncertain(false);return true}
   function chooseExample(id:string){if(locked||!seuVideoCatalogItem(id))return;invalidate();setSeconds(null);setLocalError('');setSource({kind:'catalog',id})}
   function chooseVideo(file?:File){if(locked||!file)return;invalidate();setSeconds(null);setLocalError('');setSource({kind:'upload',file})}
   function choosePhoto(file?:File){
@@ -180,6 +225,7 @@ export default function SeuVideoRecreateClient({signedIn,generationAllowed,accou
 
   async function generate(){
     if(lock.current||clip||restoring)return
+    if(currentFlow&&(recoveryOnly||(uncertain&&(!checked||!signedIn)))){setMessage(RECOVERY_MESSAGE);return}
     setMessage('')
     if(localError){setMessage(localError);return}
     if(cost===null){setMessage(durationNote);return}
@@ -193,11 +239,12 @@ export default function SeuVideoRecreateClient({signedIn,generationAllowed,accou
     if(signedIn&&!generationAllowed){setMessage('Generation in this preview is currently available to approved accounts only. Your files are still here.');return}
     lock.current=true;setBusy(true)
     const controller=new AbortController();runController.current=controller
+    let attemptMarked=false
     try{
       if(!keyRef.current)keyRef.current='seu-video-'+crypto.randomUUID()
       if(!signedIn){
         const saved=await saveSeuVideoDraft({source,photos:readyPhotos,genders,prompt:valid.prompt,people,consent,requestKey:keyRef.current})
-        if(!alive.current||controller.signal.aborted)return
+        if(!alive.current||controller.signal.aborted||(currentFlow&&accountRef.current!==accountKey))return
         if(!saved)throw new Error('Could not save your files on this device. Keep this page open and try again. Your files have not been sent.')
         const ref=getSeuVideoDraftRef()
         if(!ref)throw new Error('Could not preserve your files for sign-up. Keep this page open and try again.')
@@ -207,7 +254,7 @@ export default function SeuVideoRecreateClient({signedIn,generationAllowed,accou
       let prepared=checked
       if(!prepared){
         prepared=await client.prepareSeuVideo({file:await referenceFile(controller.signal),people,photos:readyPhotos,genders,positions:positionsFor(people)},controller.signal)
-        if(!alive.current)return
+        if(!alive.current||(currentFlow&&accountRef.current!==accountKey))return
         setChecked(prepared)
         // Server suggestions fill empty slots only. An explicit choice or edited
         // instruction always wins, including a partially completed local draft.
@@ -225,21 +272,29 @@ export default function SeuVideoRecreateClient({signedIn,generationAllowed,accou
       }
       if(!uncertain&&prepared.needs_plan){setMessage('This video length requires a paid plan. Your files are still here.');return}
       if(!uncertain&&(prepared.shortfall??0)>0){setMessage(`You need ${prepared.shortfall} more credits. Your files are still here.`);return}
+      if(currentFlow){
+        if(!accountKey)throw new Error('Could not verify this account. Keep your files here and sign in again before generating.')
+        try{rememberAttempt(accountKey,keyRef.current)}catch{throw new Error('Could not preserve this request on this device. Keep this page open and check My videos before trying again. Nothing new was sent.')}
+        attemptMarked=true
+      }
       const result=await client.generateSeuVideo({checked:prepared,photos:readyPhotos,prompt:valid.prompt,promptEdited:true,genders,consent:true,key:keyRef.current,confirmedCredits:cost},controller.signal)
-      if(!alive.current)return
+      if(!alive.current||(currentFlow&&accountRef.current!==accountKey))return
       setClip(result.clip);setUncertain(false)
-      if(accountKey)try{sessionStorage.setItem(activeKey(accountKey),JSON.stringify({id:result.clip.id,at:Date.now()}))}catch{}
+      if(currentFlow)rememberAccepted(result.clip)
+      else if(accountKey)try{sessionStorage.setItem(activeKey(accountKey),JSON.stringify({id:result.clip.id,at:Date.now()}))}catch{}
       try{await clearSeuVideoDraft()}catch{/* Accepted request remains visible even if local cleanup fails. */}
     }catch(e){
-      if(!alive.current)return
+      if(!alive.current||(currentFlow&&accountRef.current!==accountKey))return
       if(e instanceof SeuVideoClientError){
+        if(currentFlow&&(uncertain||e.code==='idempotency_conflict'||(attemptMarked&&['queue_full','swap_cap'].includes(e.code)&&e.refusal?.charged!==false))){setUncertain(true);setMessage('The earlier generation is still unconfirmed. Keep this page open and check My videos. An authentication or availability response does not confirm that it stopped.');return}
         setUncertain(e.outcome==='unknown'||e.code==='idempotency_conflict')
         if(e.outcome==='unknown'){setMessage('Could not confirm whether this request started. Keep this page open and retry the same request, or check My videos.');return}
+        if(currentFlow&&attemptMarked&&accountKey)forgetAttempt(accountKey,keyRef.current)
         if(isSeuVideoRefusal(e.code)){keyRef.current=null;setChecked(null);void clearSeuVideoDraft().catch(()=>{});setMessage(e.message);return}
         if(e.status===401){
           try{
             const saved=await saveSeuVideoDraft({source,photos:readyPhotos,genders,prompt:valid.prompt,people,consent,requestKey:keyRef.current??undefined})
-            if(!alive.current||controller.signal.aborted)return
+            if(!alive.current||controller.signal.aborted||(currentFlow&&accountRef.current!==accountKey))return
             if(!saved)throw new Error('Could not save your files on this device. Keep this page open and try again.')
             const ref=getSeuVideoDraftRef()
             if(!ref)throw new Error('Could not preserve your files for sign-in. Keep this page open and try again.')
@@ -249,18 +304,19 @@ export default function SeuVideoRecreateClient({signedIn,generationAllowed,accou
         }
         if(currentFlow&&['queue_full','swap_cap'].includes(e.code)&&e.refusal?.charged!==false){setMessage(e.code==='queue_full'?'Recreate is busy. Please try again later.':'New attempts are paused. Please try again later.');return}
         setMessage(e.code==='idempotency_conflict'?'This request may already exist. Keep it unchanged and check My videos before creating another.':e.message)
-      }else setMessage(e instanceof Error?e.message:'Could not confirm this request. Keep this page open.')
+      }else{if(currentFlow&&attemptMarked)setUncertain(true);setMessage(e instanceof Error?e.message:'Could not confirm this request. Keep this page open.')}
     }finally{lock.current=false;if(alive.current)setBusy(false)}
   }
 
   function makeAnother(){
     if(!clip||!['done','failed'].includes(clip.status))return
-    setClip(null);setMessage('');setChecked(null);setUncertain(false);setStatusPaused(false);keyRef.current=null
+    if(currentFlow&&accountKey)forgetAttempt(accountKey,keyRef.current)
+    setClip(null);setMessage('');setChecked(null);setUncertain(false);setRecoveryOnly(false);setStatusPaused(false);keyRef.current=null
     if(accountKey)try{sessionStorage.removeItem(activeKey(accountKey))}catch{}
   }
   function recheck(){if(busy||uncertain||clip)return;setChecked(null);keyRef.current=null;setMessage('Your files and instruction are unchanged. Press Generate to check availability again.')}
-  const canSubmit=!restoring&&!busy&&!localError&&cost!==null&&photos.filter(Boolean).length===people&&consent&&prompt.trim().length>0&&!(currentFlow&&checked&&genders.some(value=>value===null))
-  const instruction=<div><label className="sv-step" htmlFor="sv-prompt"><b>3</b>Prompt</label><textarea className="sv-prompt" id="sv-prompt" value={prompt} disabled={locked} maxLength={SEU_VIDEO_LIMITES.maxPrompt} onChange={e=>{invalidate();setPrompt(e.target.value);setPromptEdited(true)}}/><p className="sv-prompt-count">{prompt.length} / {SEU_VIDEO_LIMITES.maxPrompt}</p></div>
+  const canSubmit=!restoring&&!busy&&!recoveryOnly&&!localError&&cost!==null&&photos.filter(Boolean).length===people&&consent&&prompt.trim().length>0&&!(currentFlow&&checked&&genders.some(value=>value===null))
+  const instruction=<div><label className="sv-step" htmlFor="sv-prompt"><b>3</b>Prompt</label><textarea className="sv-prompt" id="sv-prompt" value={prompt} disabled={locked} maxLength={SEU_VIDEO_LIMITES.maxPrompt} onChange={e=>{if(!invalidate())return;setPrompt(e.target.value);setPromptEdited(true)}}/><p className="sv-prompt-count">{prompt.length} / {SEU_VIDEO_LIMITES.maxPrompt}</p></div>
   const result=clip?<section className="sv-card sv-result" aria-live="polite" data-seu-video-result={clip.status}>
         <h2>{currentFlow&&clip.queued?'In line'+(clip.queue_position?' · position '+clip.queue_position:''):clip.status==='done'?(currentFlow&&!clip.video_url?'Loading your video…':'Your version is ready'):clip.status==='failed'?'This version could not be completed':'Creating your version'}</h2>
         {clip.status==='done'&&clip.video_url?<><video src={comPrimeiroQuadro(clip.video_url)} controls playsInline preload="metadata" aria-label="Your generated video"/><div className="sv-actions"><a className="sv-button" href={downloadHref(clip.video_url,'kineo-recreate-'+clip.id+'.mp4','recreate-preview')} download>Download</a><Link className="sv-button" href="/library">My videos ↗</Link></div></>:null}
@@ -287,9 +343,9 @@ export default function SeuVideoRecreateClient({signedIn,generationAllowed,accou
             <div className="sv-photos">{Array.from({length:people},(_,i)=><div className="sv-photo" key={i}>{currentFlow?<><button type="button" className="sv-photo-drop" disabled={locked} aria-label={photos[i]?'Change photo '+(i+1):'Add photo '+(i+1)} onClick={()=>{photoSlot.current=i;photoInput.current?.click()}} onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(locked)return;photoSlot.current=i;choosePhoto(e.dataTransfer.files[0])}} onPaste={e=>{const file=e.clipboardData.files[0]??Array.from(e.clipboardData.items).find(item=>item.kind==='file')?.getAsFile();if(file&&!locked){e.preventDefault();photoSlot.current=i;choosePhoto(file)}}}>{photoUrls[i]?<img src={photoUrls[i]} alt={'Person '+(i+1)+' reference'}/>:<span className="sv-photo-empty">＋<strong>Add your photo</strong></span>}</button>{photos[i]?<button type="button" className="sv-photo-remove" disabled={locked} aria-label={'Remove photo '+(i+1)} onClick={()=>removePhoto(i)}>×</button>:null}</>:<div className="sv-photo-media">{photoUrls[i]?<><img src={photoUrls[i]} alt={`Person ${i+1} reference`}/><button type="button" className="sv-photo-remove" disabled={locked} aria-label={`Remove photo ${i+1}`} onClick={()=>removePhoto(i)}>×</button></>:<span className="sv-photo-empty">Photo {i+1}</span>}</div>}<div className="sv-photo-controls">{!currentFlow?<button className="sv-photo-add" type="button" disabled={locked} onClick={()=>{photoSlot.current=i;photoInput.current?.click()}}>{photos[i]?'Change photo':'Add photo'}</button>:null}{people>1?<span className="sv-position-label">Person {positionsFor(people)[i]} in the video</span>:null}{currentFlow&&checked&&genders[i]!=null&&genderEditing!==i?<button type="button" className="sv-gender-edit" disabled={locked} onClick={()=>setGenderEditing(i)} aria-label={`Change preference for photo ${i+1}`}>{genders[i]==='man'?'Man':'Woman'} · Change</button>:null}{!currentFlow||(checked&&(genders[i]==null||genderEditing===i))?<div className="sv-gender-options" role="group" aria-label={currentFlow?`Choose Man or Woman for photo ${i+1}`:`Photo ${i+1} preference, optional`}>{(['man','woman'] as const).map(value=><button className="sv-gender-option" type="button" key={value} disabled={locked} aria-label={`Photo ${i+1}: ${value==='man'?'Man':'Woman'}`} aria-pressed={genders[i]===value} onClick={()=>changeGender(i,value)}>{value==='man'?'Man':'Woman'}</button>)}</div>:null}</div></div>)}</div><input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" aria-label="Choose person photo" onChange={e=>{choosePhoto(e.target.files?.[0]);e.target.value=''}}/>
           </div>
           {currentFlow?<details className="sv-prompt-details"><summary>Instruction</summary>{instruction}</details>:instruction}
-          <label className="sv-permission"><input type="checkbox" checked={consent} disabled={locked} onChange={e=>{invalidate();setConsent(e.target.checked)}}/>I have permission to use these files.</label>
+          <label className="sv-permission"><input type="checkbox" checked={consent} disabled={locked} onChange={e=>{if(!invalidate())return;setConsent(e.target.checked)}}/>I have permission to use these files.</label>
           {restoring?<p className="sv-note" role="status">Restoring your saved files…</p>:null}{message?<p className="sv-alert" role="status">{message}</p>:null}
-          {!(currentFlow&&clip)?<div className="sv-generate-area"><button className="sv-generate" type="button" data-seu-video-generate="" disabled={!canSubmit} onClick={()=>void generate()}>{busy?(currentFlow?phaseLabel:'Preparing…'):uncertain?'Retry Generate':'Generate'}{cost!==null?<span data-seu-video-cost={checked?'confirmed':'estimated'}>✦ {checked?'':'Estimated '}{cost} credits</span>:null}</button>{currentFlow&&display.audio==='silent'?<span className="sv-output-note">Silent video</span>:null}{checked?.needs_plan||(checked?.shortfall??0)>0?<><Link className="sv-subtle" href="/pricing">See plans ↗</Link>{!uncertain?<button className="sv-subtle" type="button" disabled={busy} onClick={recheck}>Check again</button>:null}</>:null}{uncertain?<p className="sv-note">Keep this page open and retry the same request. If you leave, check My videos before starting another.</p>:null}</div>:null}
+          {!(currentFlow&&clip)?<div className="sv-generate-area">{currentFlow&&recoveryOnly?<Link className="sv-generate" href="/library">Check My videos ↗</Link>:<button className="sv-generate" type="button" data-seu-video-generate="" disabled={!canSubmit} onClick={()=>void generate()}>{busy?(currentFlow?phaseLabel:'Preparing…'):uncertain?'Retry Generate':'Generate'}{cost!==null?<span data-seu-video-cost={checked?'confirmed':'estimated'}>✦ {checked?'':'Estimated '}{cost} credits</span>:null}</button>}{currentFlow&&display.audio==='silent'?<span className="sv-output-note">Silent video</span>:null}{checked?.needs_plan||(checked?.shortfall??0)>0?<><Link className="sv-subtle" href="/pricing">See plans ↗</Link>{!uncertain?<button className="sv-subtle" type="button" disabled={busy} onClick={recheck}>Check again</button>:null}</>:null}{uncertain?<p className="sv-note">{currentFlow&&recoveryOnly?"The original request is not available on this page. Check My videos before starting another.":"Keep this page open and retry the same request. If you leave, check My videos before starting another."}{currentFlow&&!recoveryOnly?<> <Link href="/library">Check My videos ↗</Link></>:null}</p>:null}</div>:null}
         </section>
       </div>}
     </div>
