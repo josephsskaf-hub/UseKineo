@@ -24,7 +24,7 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = 'chave-de-teste'
 
 // ── banco de mentira (PostgREST) ──
 const OR_CHAVE = /^created_at\.lt\."([^"]+)",and\(created_at\.eq\."([^"]+)",(id|render_id)\.lt\."([^"]+)"\)$/
-function criarBanco(tabelas) {
+function criarBanco(tabelas, opcoes = {}) {
   const st = { lidas: { credit_debits: 0, clips: 0 }, rpcs: [] }
   const from = (nome) => {
     const t = (tabelas[nome] ??= [])
@@ -41,6 +41,7 @@ function criarBanco(tabelas) {
       or(e) { const m = OR_CHAVE.exec(e); if (!m || m[1] !== m[2]) throw new Error('filtro de chave ilegível: ' + e); f.push((r) => r.created_at < m[1] || (r.created_at === m[1] && r[m[3]] < m[4])); return api },
       then(ok, ko) {
         return Promise.resolve().then(() => {
+          if (opcoes.erroEm?.includes(nome) && op === 'select') return { data: null, error: { message: 'erro de teste em ' + nome } } // KINEO-NUNCA-COBRADO-TELA-1411
           if (op === 'insert') { t.push(...(Array.isArray(valores) ? valores : [valores]).map((r) => ({ ...r }))); return { data: null, error: null } }
           const todos = t.filter((r) => f.every((x) => x(r)))
           if (ords.length) todos.sort((a, b) => { for (const [c, s] of ords) { if (a[c] < b[c]) return -s; if (a[c] > b[c]) return s } return 0 })
@@ -176,6 +177,29 @@ async function bateria(over = {}) {
       const r2 = await srv.estornarOrfaosDaTrocaEDaFila(banco.db, since, async () => 0, async () => 'sem-debito')
       if (r2.scanned !== 1) throw new Error('a never_charged voltou para a busca: ' + r2.scanned)
     })
+    // KINEO-NUNCA-COBRADO-TELA-1411 [revisor da CEO 14/11, item a] — a marca roda na troca e na fila (abertas a clientes): o livro PADRÃO (livroRazaoDoClipe) executado
+    const UL = (id, o = {}) => L(id, 2 * H, o)
+    await check('B7 o livro padrão confere o DONO: débito estornado de OUTRA conta na mesma referência não grava nada nesta linha', async () => {
+      banco = criarBanco({ clips: [UL('dono')], credit_debits: [{ render_id: 'clips-dono', user_id: '99999999-2222-4333-8444-555555555555', amount: 45, kind: 'video', created_at: iso(3 * H), refunded_at: iso(H) }] })
+      await srv.estornarOrfaosDaTrocaEDaFila(banco.db, since, async () => 0)
+      if (banco.tabelas.clips[0].credits_refunded !== 0) throw new Error('gravou o estorno de outra conta')
+    })
+    await check('B8 o livro FORA DO AR (erro de leitura) não é "sem débito": nada marcado, nada gravado', async () => {
+      banco = criarBanco({ clips: [UL('livro-fora')] }, { erroEm: ['credit_debits'] })
+      await srv.estornarOrfaosDaTrocaEDaFila(banco.db, since, async () => 0)
+      const l = banco.tabelas.clips[0]
+      if (l.failure_reason !== 'swap_unchanged' || l.credits_refunded !== 0) throw new Error(JSON.stringify([l.failure_reason, l.credits_refunded]))
+    })
+    await check('B9 a marca exige credits_refunded 0 NA HORA de gravar: estorno feito por outro caminho entre a leitura e a marca = nada marcado', async () => {
+      banco = criarBanco({ clips: [UL('corrida')] })
+      await srv.estornarOrfaosDaTrocaEDaFila(banco.db, since, async () => 0, async () => { banco.tabelas.clips[0].credits_refunded = 45; return 'sem-debito' })
+      if (banco.tabelas.clips[0].failure_reason !== 'swap_unchanged') throw new Error('marcou never_charged uma linha já estornada')
+    })
+    await check('B10 a tela da troca e da fila: never_charged sem nada devolvido diz "You were not charged" (o movimento tem a frase própria); a tela mostra a frase', async () => {
+      const st = lf('app/api/recreate/status/route.ts').replace(/\/\/[^\n]*/g, ''), cl = lf('app/recreate/RecreateClient.tsx')
+      if (!st.includes("const naoCobrado = !ehMovimento && status === 'failed' && fresh.failure_reason === MOTIVO_NUNCA_COBRADO && credits_refunded === 0 ? { reason: 'not_charged', message: FRASE_NAO_COBRADO } : {}") || !st.includes('...filaFalhou, ...naoCobrado,') || !/FRASE_NAO_COBRADO = 'This video could not be made\. You were not charged\.'/.test(st)) throw new Error('status')
+      if (!cl.includes("clip?.reason === 'not_charged') && clip.message ? clip.message")) throw new Error('a tela não mostra a frase')
+    })
     await check('B5 sweepClipJobs chama a varredura nova', async () => {
       const s = (over[SRV] ?? lf(SRV)).replace(/\/\/[^\n]*/g, '')
       const corpo = s.slice(s.indexOf('export async function sweepClipJobs'), s.indexOf('export async function advanceActiveClipJobs'))
@@ -201,6 +225,10 @@ const mutantes = [
   ['B: chave só por created_at', { [SRV]: src[SRV].replace(src[SRV].split('\n').filter((l) => l.startsWith('    if (cursor) q = q.or(`created_at.lt.'))[1], "    if (cursor) q = q.lt('created_at', cursor.createdAt)") }],
   ['B: sem o livro-razão', troca(SRV, "    for (const row of pagina.filter((r) => r.status === 'failed' && r.credits_refunded === 0 && cobreTrocaOuFila(r.failure_reason))) {\n      total.scanned += 1\n      const amount = await refund(row.billing_reference)\n      if (amount > 0) { await setRefunded(row.id, amount); total.refunded += 1; total.creditsReturned += amount; continue }\n      const debito = await livro(row.billing_reference, row.user_id).catch(() => null)\n", "    for (const row of pagina.filter((r) => r.status === 'failed' && r.credits_refunded === 0 && cobreTrocaOuFila(r.failure_reason))) {\n      total.scanned += 1\n      const amount = await refund(row.billing_reference)\n      if (amount > 0) { await setRefunded(row.id, amount); total.refunded += 1; total.creditsReturned += amount; continue }\n      const debito = null as { amount: number; refunded: boolean } | null; void livro\n")],
   ['B: nunca cobrado fica na busca', { [SRV]: (() => { const s = src[SRV], ini = s.indexOf('export async function estornarOrfaosDaTrocaEDaFila'), fim = s.indexOf('\n}\n', ini); return s.slice(0, ini) + s.slice(ini, fim).replace("      if (debito === 'sem-debito') { if (await marcarNuncaCobrado(admin, row)) total.nuncaCobrados += 1; continue }", '') + s.slice(fim) })() }],
+  // KINEO-NUNCA-COBRADO-TELA-1411
+  ['livro sem conferir o dono', troca(SRV, ".eq('render_id', ref).eq('user_id', userId).maybeSingle()", ".eq('render_id', ref).maybeSingle()")],
+  ['erro do livro tratado como sem débito', troca(SRV, "    if (error) return null\n    if (!data) return 'sem-debito'", "    if (error || !data) return 'sem-debito'")],
+  ['marca sem exigir credits_refunded 0', troca(SRV, "update({ failure_reason: MOTIVO_NUNCA_COBRADO }).eq('id', row.id).eq('status', 'failed').eq('credits_refunded', 0)", "update({ failure_reason: MOTIVO_NUNCA_COBRADO }).eq('id', row.id).eq('status', 'failed')")],
   ['B: sem os motivos da fila', troca(SRV, "const cobreTrocaOuFila = (motivo: string | null) => isRecreateNotSwappedReason(motivo) || (typeof motivo === 'string' && FILA_MOTIVOS_DE_ESTORNO.includes(motivo))", 'const cobreTrocaOuFila = (motivo: string | null) => isRecreateNotSwappedReason(motivo)')],
   // a consulta E a regra filtram o motivo (defesa em dobro): o mutante abre os dois
   ['B: qualquer motivo (consulta e regra)', { [SRV]: src[SRV].replace("cobreTrocaOuFila(r.failure_reason))) {\n      total.scanned += 1", "true)) {\n      total.scanned += 1").replace(".eq('status', 'failed').eq('credits_refunded', 0).in('failure_reason', [...SWAP_REFUND_SWEEP_REASONS, ...FILA_MOTIVOS_DE_ESTORNO]).gte('created_at', since)\n    if (cursor) q = q.or(`created_at.lt.\"${cursor.createdAt}\",and(created_at.eq.\"${cursor.createdAt}\",id.lt.\"${cursor.id}\")`)\n    const { data, error } = await q.order('created_at', { ascending: false }).order('id', { ascending: false }).limit(TROCA_FILA_ESTORNO_PAGINA)", ".eq('status', 'failed').eq('credits_refunded', 0).gte('created_at', since)\n    if (cursor) q = q.or(`created_at.lt.\"${cursor.createdAt}\",and(created_at.eq.\"${cursor.createdAt}\",id.lt.\"${cursor.id}\")`)\n    const { data, error } = await q.order('created_at', { ascending: false }).order('id', { ascending: false }).limit(TROCA_FILA_ESTORNO_PAGINA)") }],

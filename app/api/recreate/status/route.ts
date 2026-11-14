@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { recreateSession, RECREATE_HEADERS } from '@/lib/recreate/server'
 import { clipsAdmin, filaKlingEditEstado, loadClip, movimentoCenaPublica, settleDepsFor, somDoClipeEntregue } from '@/lib/clips/clipServer' // KINEO-RECREATE-SOM-VERDADE-1411 — + somDoClipeEntregue · KINEO-RECREATE-MOVIMENTO-1411 — + movimentoCenaPublica
+import { MOTIVO_NUNCA_COBRADO } from '@/lib/recreate/movimento' // KINEO-NUNCA-COBRADO-TELA-1411
 import { ehLinhaDeMovimento, movimentoFalhaParaTela, movimentoStageForRow } from '@/lib/recreate/movimento' // KINEO-RECREATE-MOVIMENTO-1411 · KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 — era: movimentoForRow
 import { FILA_MOTIVOS_DE_ESTORNO, esperaNaFila, fraseDaFalhaDaFila, naFila, posicaoNaFila } from '@/lib/recreate/filaKlingEdit' // KINEO-RECREATE-FILA-KLING-EDIT-1411 · KINEO-RECREATE-FILA-REVISAO-1411
 import { settleClip } from '@/lib/clips/clipFlow'
@@ -10,6 +11,8 @@ const FRASE_NAO_CONFIRMOU = 'We could not confirm the swap, so we returned your 
 const FRASE_NAO_CONFIRMOU_SEM_ESTORNO = 'We could not confirm the swap. Your credits will be returned within the hour.'
 import { ehModeloDoSeuVideo, recusaDoMotor } from '@/lib/recreate/seuVideo' // KINEO-RECREATE-SEU-VIDEO-1311 · KINEO-RECREATE-KLING4-1311
 
+/** KINEO-NUNCA-COBRADO-TELA-1411 — a frase da troca e da fila para a linha never_charged. */
+const FRASE_NAO_COBRADO = 'This video could not be made. You were not charged.'
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 export const maxDuration = 60
@@ -52,6 +55,9 @@ export async function GET(req: NextRequest) {
   const etapa = ehMovimento && (status === 'pending' || status === 'processing') ? movimentoStageForRow(fresh) : null
   const cena = ehMovimento ? movimentoCenaPublica(admin, fresh) : null
   const falhaDoMovimento = ehMovimento && status === 'failed' ? movimentoFalhaParaTela(fresh.failure_reason, credits_refunded) : null
+  // KINEO-NUNCA-COBRADO-TELA-1411 [revisor da CEO 14/11, item b] — troca e fila: a linha que a varredura marcou never_charged (SEM débito do dono no livro-razão) diz que não foi
+  // cobrada, em vez do texto genérico; só com o motivo never_charged E nada devolvido (o movimento tem a frase própria em movimentoFalhaParaTela).
+  const naoCobrado = !ehMovimento && status === 'failed' && fresh.failure_reason === MOTIVO_NUNCA_COBRADO && credits_refunded === 0 ? { reason: 'not_charged', message: FRASE_NAO_COBRADO } : {}
   const movimento = ehMovimento ? { ...(etapa ? { stage: etapa } : {}), ...(cena ? { scene_url: cena } : {}), ...(status === 'done' ? { audio: 'silent' as const } : {}), ...(falhaDoMovimento ?? {}) } : {}
-  return NextResponse.json({ clip: { id, status, video_url: status === 'failed' ? null : video_url, credits_refunded, ...reason, ...seuVideo, ...fila, ...filaFalhou, ...(som ? { audio: som } : {}), ...movimento } }, { headers: RECREATE_HEADERS })
+  return NextResponse.json({ clip: { id, status, video_url: status === 'failed' ? null : video_url, credits_refunded, ...reason, ...seuVideo, ...fila, ...filaFalhou, ...naoCobrado, ...(som ? { audio: som } : {}), ...movimento } }, { headers: RECREATE_HEADERS })
 }
