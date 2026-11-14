@@ -601,6 +601,10 @@ async function bateria(over = {}) {
 const real = await bateria()
 if (real.length) { console.error('FALHA\n' + real.join('\n')); process.exit(1) }
 const src = Object.fromEntries([ACCESS, ENTRY, MOV, DESC, JUIZ, FLOW, SRV, STATUS, CLIENT, ROTA, 'lib/recreate/catalogPublic.ts', FORMATS, TEXTO, SV].map((f) => [f, lf(f)]))
+// reancorado KINEO-VARREDURAS-ESTORNO-1411 — a varredura da troca e da fila (estornarOrfaosDaTrocaEDaFila) tem linhas IGUAIS às do movimento: os mutantes
+// da varredura do movimento trocam só dentro de estornarMovimentosOrfaos.
+const noMov = (de, para) => { const s = src[SRV], ini = s.indexOf('export async function estornarMovimentosOrfaos'), fim = s.indexOf('\n}\n', ini); const corpo = s.slice(ini, fim); if (ini < 0 || !corpo.includes(de)) throw new Error('âncora do mutante do movimento: ' + de.slice(0, 60)); return s.slice(0, ini) + corpo.replace(de, para) + s.slice(fim) }
+const linhaDoCursorMov = () => { const s = src[SRV], ini = s.indexOf('export async function estornarMovimentosOrfaos'); return s.slice(ini, s.indexOf('\n}\n', ini)).split('\n').find((l) => l.startsWith('    if (cursor) q = q.or(')) }
 const mutantes = [
   ['movimento cai na regra do efeito (todos veem)', { [ACCESS]: src[ACCESS].replace("  if (f.type === 'motion') return recreateSwapPriced(f)", "  if (f.type === 'motion' && false) return recreateSwapPriced(f)") }],
   ['aprovado abre ao público com o interruptor internal', { [ACCESS]: src[ACCESS].replace("(f.movimentoAprovado === true ? releaseVisible(email, RECREATE_MOVIMENTO_RELEASE) : releaseVisible(email, 'internal'))", "(f.movimentoAprovado === true ? true : releaseVisible(email, 'internal'))") }],
@@ -640,7 +644,7 @@ const mutantes = [
   ["varredura das mais antigas primeiro", { [SRV]: src[SRV].replace("await q.order('created_at', { ascending: false }).order('id', { ascending: false }).limit(MOVIMENTO_ESTORNO_PAGINA)", "await q.order('created_at', { ascending: true }).order('id', { ascending: true }).limit(MOVIMENTO_ESTORNO_PAGINA)") }],
   ['varredura de uma página só', { [SRV]: src[SRV].replace('export const MOVIMENTO_ESTORNO_PAGINAS = 4', 'export const MOVIMENTO_ESTORNO_PAGINAS = 1') }],
   ['varredura sem teto', { [SRV]: src[SRV].replace('export const MOVIMENTO_ESTORNO_PAGINAS = 4', 'export const MOVIMENTO_ESTORNO_PAGINAS = 1000') }],
-  ["varredura sem cursor (relê a 1ª página)", { [SRV]: src[SRV].replace(src[SRV].split('\n').find((l) => l.startsWith('    if (cursor) q = q.or(')) + '\n', '') }],
+  ["varredura sem cursor (relê a 1ª página)", { [SRV]: noMov(linhaDoCursorMov() + '\n', '') }],
   ["reconhecedor pela forma do texto", { [MOV]: src[MOV].replace('&& row.engine === MOVIMENTO_ENGINE && movimentoIdDaLinha(row) !== null', "&& row.engine === MOVIMENTO_ENGINE && /^Recreate motion: .+ \\[[a-z0-9-]+\\]$/.test((row as { prompt?: string }).prompt ?? '')") }],
   ["reconhecedor sem o modelo", { [MOV]: src[MOV].replace('(row.model === MOVIMENTO_CENA_MODEL || row.model === MOVIMENTO_VIDEO_MODEL) && row.mode', 'row.mode') }],
   ["varredura do movimento pega o que não é movimento", { [SRV]: src[SRV].replace('pagina.filter((r) => ehLinhaDeMovimento(r) && ', 'pagina.filter((r) => true && ') }],
@@ -649,9 +653,9 @@ const mutantes = [
   ['orçamento da moderação de 60 s', { [SRV]: src[SRV].replace("etapa: 'movimento_cena' }, orcamentoMs: 15_000 })", "etapa: 'movimento_cena' }, orcamentoMs: 60_000 })") }],
   ['corrida da mesma chave vira 409', { [FLOW]: src[FLOW].replace('if (winner && winner.fingerprint === fingerprint) return', 'if (false) return') }],
   // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 [revisor da CEO 14/11 12:30, itens a, b, c + o preço provisório de 6 s]
-  ["cursor só por created_at (pula o empate)", { [SRV]: src[SRV].replace(src[SRV].split('\n').find((l) => l.startsWith('    if (cursor) q = q.or(')), "    if (cursor) q = q.lt('created_at', cursor.createdAt)") }],
-  ["sem o livro-razão (a linha morta nunca sai)", { [SRV]: src[SRV].replace('      const debito = await livro(row.billing_reference).catch(() => null)\n', '      const debito = null as { amount: number; refunded: boolean } | null\n') }],
-  ["livro-razão grava estorno que não aconteceu", { [SRV]: src[SRV].replace('if (debito?.refunded && debito.amount > 0)', 'if (debito && debito.amount > 0)') }],
+  ["cursor só por created_at (pula o empate)", { [SRV]: noMov(linhaDoCursorMov(), "    if (cursor) q = q.lt('created_at', cursor.createdAt)") }],
+  ["sem o livro-razão (a linha morta nunca sai)", { [SRV]: noMov('      const debito = await livro(row.billing_reference).catch(() => null)\n', '      const debito = null as { amount: number; refunded: boolean } | null\n') }],
+  ["livro-razão grava estorno que não aconteceu", { [SRV]: noMov('if (debito?.refunded && debito.amount > 0)', 'if (debito && debito.amount > 0)') }],
   ["busca com o que nunca foi cobrado", { [SRV]: src[SRV].replace(".not('failure_reason', 'in', `(${MOVIMENTO_ESTORNO_NUNCA_COBRADO.join(',')})`)", '') }],
   ["sem o id do molde na linha", { [MOV]: src[MOV].replace('    fingerprintInput: { ...movimentoEntradaDaCena(f, foto, null), molde: f.id },', '    fingerprintInput: movimentoEntradaDaCena(f, foto, null),') }],
   ["linha reconhecida pelo catálogo (texto e duração)", { [MOV]: src[MOV].replace('  return catalogo.find(f => f.type === \'motion\' && f.id === id) ?? null', '  return catalogo.find(f => f.type === \'motion\' && f.id === id && movimentoRowPrompt(f) === (row as { prompt?: string }).prompt) ?? null') }],
