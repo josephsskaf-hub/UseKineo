@@ -279,6 +279,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
     const currentQuote = quotes.find(q => q.id === selected.id)
     const readyPhotos = photos.filter((photo): photo is Photo => photo !== null)
     if (!uncertain && (!flowQuoteReady || !currentQuote?.available || currentQuote.credits === null || readyPhotos.length !== selected.photoSlots || photoErrors.some(Boolean))) return
+    const retrying = uncertain && attempt.current !== null
     flowBusy.current = true; setBusy(true); setMessage(''); setCreateError(false)
     try {
       if (!requestKey.current) requestKey.current = `recreate-${crypto.randomUUID()}`
@@ -308,7 +309,10 @@ export default function RecreateClient({ initialId, internalTools = false, forma
           const storageKey = attemptStorage(accountKey, sent.model), snapshot = JSON.stringify({ ...sent, account: accountKey, at: Date.now() })
           sessionStorage.setItem(storageKey, snapshot)
           if (sessionStorage.getItem(storageKey) !== snapshot) throw new Error('Snapshot not saved.')
-        } catch { clearAttempt(sent.model); requestKey.current = null; throw new Error('Could not save this request for safe retry. Keep this page open and try again before generating.') }
+        } catch {
+          if (!retrying) { clearAttempt(sent.model); requestKey.current = null }
+          throw Object.assign(new Error('Could not save this request for safe retry. Keep this page open and try again, or check My videos.'), { uncertain: retrying })
+        }
       }
       let response: Response
       let data: Record<string, any>
@@ -318,7 +322,8 @@ export default function RecreateClient({ initialId, internalTools = false, forma
       } catch { throw Object.assign(new Error('Could not confirm whether this request started. Retry the same request or check My videos.'), { uncertain: true }) }
       if (!response.ok) {
         const knownRefusal = ['storage', 'moderation_unavailable', 'moderation_unprocessable', 'provider_rejected', 'provider_failed', 'engine_refused', 'not_swapped', 'swap_unchanged'].includes(data.code)
-        const ambiguous = data.code === 'idempotency_conflict' || data.code === 'submit_ambiguous' || (response.status >= 500 && !knownRefusal)
+        const authDuringRetry = retrying && (response.status === 401 || response.status === 404)
+        const ambiguous = authDuringRetry || data.code === 'idempotency_conflict' || data.code === 'submit_ambiguous' || (response.status >= 500 && !knownRefusal)
         if (!ambiguous) { clearAttempt(sent.model); requestKey.current = null; setUncertain(false); if (data.code === 'credits') void loadQuotes() }
         throw Object.assign(new Error(typeof data.error === 'string' ? data.error : 'Could not start. Check your photos and try again.'), { status: response.status, uncertain: ambiguous })
       }
@@ -331,7 +336,14 @@ export default function RecreateClient({ initialId, internalTools = false, forma
       if (!flowAlive.current) return
       const failure = error as Error & { status?: number; uncertain?: boolean }
       setCreateError(true); setMessage(failure.message || 'This step could not finish. Please try again.')
-      if (failure.uncertain) setUncertain(true)
+      if (retrying && (failure.status === 401 || failure.status === 404)) {
+        setUncertain(true); setAuthRetry(true)
+        setMessage('This option is unavailable or your session has expired. Your earlier request is unchanged. Sign in again or check My videos.')
+        if (failure.status === 401) {
+          try { await goToSignup() } catch (saved) { if (flowAlive.current) setMessage(saved instanceof Error ? saved.message : 'Keep this page open and sign in again.') }
+        }
+      }
+      else if (failure.uncertain) setUncertain(true)
       else if (failure.status === 404) { setAuthRetry(true); setMessage('This option is unavailable or your session has expired. Your photos are still here.') }
       else if (failure.status === 401) {
         try { await goToSignup() } catch (saved) { if (flowAlive.current) setMessage(saved instanceof Error ? saved.message : 'Keep this page open. Your photos could not be saved.') }
