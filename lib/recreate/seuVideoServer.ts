@@ -13,6 +13,9 @@ import { AI_TEXT_MODELS } from '@/lib/aiModels' // KINEO-RECREATE-TEXTO-DO-PEDID
 import { usdFromUsage } from '@/lib/regua95/coherenceV2' // KINEO-RECREATE-TEXTO-DO-PEDIDO-1311
 import { PIXEL_MODEL_RATES } from '@/lib/regua95/pixelScore' // KINEO-RECREATE-TEXTO-DO-PEDIDO-1311
 import { semMarcasDaCasa } from './seuVideo' // KINEO-RECREATE-SOM-PROVA-1311
+import { KLING4_EDIT_MODEL, SEEDANCE25_MODEL } from './seuVideo' // KINEO-RECREATE-TETO-NAO-TROCOU-1411
+import { TETO_MOTIVO, TETO_NAO_TROCOU, type ResultadoDoClipe } from './tetoNaoTrocou' // KINEO-RECREATE-TETO-NAO-TROCOU-1411
+import { CLIPS_TABLE } from '@/lib/clips/clipServer' // KINEO-RECREATE-TETO-NAO-TROCOU-1411
 import { comEndUserDaFal } from './falEndUser' // KINEO-SEEDANCE-END-USER-1311
 import {
   SEU_VIDEO_RELEASE, SEU_VIDEO_MOTOR, custoFalKling4, caminhoDoCliente, // KINEO-RECREATE-KLING4-1311 — + SEU_VIDEO_MOTOR, custoFalKling4
@@ -106,4 +109,15 @@ export function ioDoTextoReal(videoUrl: string, meta: MetaDoVideo): IoDoTexto {
       }
     },
   }
+}
+
+// ═══ KINEO-RECREATE-TETO-NAO-TROCOU-1411 [CEO 14/11, pedido 2] — os resultados "não trocou" da conta no "seu vídeo" (regras: ./tetoNaoTrocou) ═══
+// Só os clipes dos motores do "seu vídeo" que a trava reprovou por inteiro (swap_unchanged). A janela exata (24 h pelo fim do clipe) é da regra
+// pura; aqui a leitura pega com 2 h de folga pela criação. Erro de leitura = null, e a rota segue (nunca tranca cliente por erro nosso).
+export async function lerNaoTrocouDaConta(admin: SupabaseClient, userId: string): Promise<ResultadoDoClipe[] | null> {
+  const desde = new Date(Date.now() - (TETO_NAO_TROCOU.janelaHoras + 2) * 60 * 60 * 1000).toISOString()
+  const { data, error } = await admin.from(CLIPS_TABLE).select('failure_reason, settled_at, created_at').eq('user_id', userId).eq('status', 'failed')
+    .eq('failure_reason', TETO_MOTIVO).in('model', [KLING4_EDIT_MODEL, SEEDANCE25_MODEL]).gte('created_at', desde).order('created_at', { ascending: false }).limit(20)
+  if (error) { console.error('[recreate/seu-video] swap cap lookup failed:', error.message); return null }
+  return (data ?? []) as ResultadoDoClipe[]
 }

@@ -8,7 +8,8 @@ import { submitClip } from '@/lib/clips/clipFlow'
 import { ownedClipImageUrl } from '@/lib/clips/clipCatalog'
 import { isPayingPlan } from '@/app/api/admin/_shared/mrr'
 import { RECREATE_HEADERS } from '@/lib/recreate/server'
-import { lerVideoDoCliente, seuVideoSession, seuVideoSubmitDeps } from '@/lib/recreate/seuVideoServer'
+import { lerNaoTrocouDaConta, lerVideoDoCliente, seuVideoSession, seuVideoSubmitDeps } from '@/lib/recreate/seuVideoServer'
+import { decidirTeto, fraseDoTeto, TETO_CODIGO, TETO_EVENTO } from '@/lib/recreate/tetoNaoTrocou' // KINEO-RECREATE-TETO-NAO-TROCOU-1411
 import { entradaKling4, entradaSeedance25, modeloDoMotor, recusaDoMotor, SEU_VIDEO_LIMITES, SEU_VIDEO_MOTOR, SEU_VIDEO_VERSAO, validarPrompt } from '@/lib/recreate/seuVideo' // KINEO-RECREATE-KLING4-1311 — + Kling 4.0 edição
 import type { RecreatePlan } from '@/lib/recreate/generation'
 import { writeServerEvent } from '@/lib/serverEvents'
@@ -53,6 +54,15 @@ export async function POST(req: NextRequest) {
   if (fila && filaCheia(fila.naFila, fila.vagaOcupada)) {
     await writeServerEvent({ name: 'recreate_seu_video_refused', userId: user.id, path: '/api/recreate/seu-video', metadata: { versao: SEU_VIDEO_VERSAO, code: FILA_MOTIVOS.cheia, stage: 'submit', na_fila: fila.naFila, vaga_ocupada: fila.vagaOcupada, charged: false } }).catch(() => false)
     return json({ error: FRASE_FILA_CHEIA, code: FILA_MOTIVOS.cheia, charged: false, retry_after_seconds: 180 }, 429)
+  }
+  // KINEO-RECREATE-TETO-NAO-TROCOU-1411 [CEO 14/11, pedido 2] — teto de tentativas que não trocam (2 em 24 h sem plano, 4 com plano; conta da
+  // casa fora): batido, recusa AQUI — antes de ler o vídeo, de cobrar e da fal — com código próprio e a orientação. Leitura que falha = segue.
+  const casa = isInternalEmail(user.email)
+  const naoTrocou = casa ? [] : await lerNaoTrocouDaConta(admin, user.id)
+  const teto = decidirTeto({ casa, pagante: isPayingPlan(account.plan), resultados: naoTrocou ?? [], agoraMs: Date.now() })
+  if (!teto.ok) {
+    await writeServerEvent({ name: TETO_EVENTO, userId: user.id, path: '/api/recreate/seu-video', metadata: { versao: SEU_VIDEO_VERSAO, code: TETO_CODIGO, usados: teto.usados, limite: teto.limite, pagante: isPayingPlan(account.plan), retry_at: teto.retryAt, charged: false } }).catch(() => false)
+    return json({ error: fraseDoTeto(teto), code: TETO_CODIGO, limit: teto.limite, used: teto.usados, retry_at: teto.retryAt, charged: false }, 429)
   }
   const v = await lerVideoDoCliente(admin, user.id, raw.video_path)
   if (!v.ok) return refuse(v.code, v.error, 422)
