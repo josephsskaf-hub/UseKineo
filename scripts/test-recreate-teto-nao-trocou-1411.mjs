@@ -2,7 +2,9 @@
 // EXECUTA a regra pura (lib/recreate/tetoNaoTrocou.ts): sem plano, a 2ª tentativa passa e a 3ª é recusada; com plano, a 4ª passa e a 5ª é
 // recusada; conta da casa nunca é recusada; falha de outro tipo não conta; resultado com mais de 24 h não conta; a recusa diz quando volta. E a
 // rota (app/api/recreate/seu-video/route.ts): o teto vem ANTES de ler o vídeo, de cobrar (submitClip) e da fal; código próprio, 429, evento de
-// servidor, frase em inglês que orienta e diz que nada foi cobrado; leitura que falha = segue. Mutantes.
+// servidor, frase em inglês que orienta e diz que nada foi cobrado; leitura que falha = segue. Revisão de 14/11 (KINEO-RECREATE-FILA-REVISAO-1411): a rota
+// decide pela PORTA (lib/recreate/portaDoSeuVideo decidirPorta, executada aqui); swap_partial CONTA (decisão da CEO); a casa é a lista EXATA; a leitura
+// só enxerga o "seu vídeo" (vídeo em recreate-uploads/), nunca o catálogo. Mutantes.
 // Rodar: node scripts/test-recreate-teto-nao-trocou-1411.mjs
 import fs from 'node:fs'
 import { createRequire } from 'node:module'
@@ -10,7 +12,8 @@ import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 const ts = require('typescript')
 const lf = (f) => fs.readFileSync(f, 'utf8').replace(/\r\n/g, '\n')
-const TETO = 'lib/recreate/tetoNaoTrocou.ts', ROTA = 'app/api/recreate/seu-video/route.ts', SRV = 'lib/recreate/seuVideoServer.ts'
+const TETO = 'lib/recreate/tetoNaoTrocou.ts', ROTA = 'app/api/recreate/seu-video/route.ts', SRV = 'lib/recreate/seuVideoServer.ts', PORTA = 'lib/recreate/portaDoSeuVideo.ts'
+const { loader } = require('../docs/recreate-0911/test-recreate.cjs')
 function carregar(src) {
   const mod = { exports: {} }
   new Function('require', 'module', 'exports', ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText)(() => { throw new Error('import inesperado') }, mod, mod.exports)
@@ -38,8 +41,13 @@ function bateria(over = {}) {
   check('conta da casa nunca é recusada', () => {
     if (!d(true, false, Array.from({ length: 30 }, (_, i) => naoTrocou(i / 2))).ok) throw new Error('casa recusada')
   })
+  check('swap_partial conta (decisão da CEO 14/11)', () => {
+    const r = d(false, false, [naoTrocou(1), outro('swap_partial', 2)])
+    if (r.ok || r.usados !== 2) throw new Error(JSON.stringify(r))
+    if (JSON.stringify(T.TETO_MOTIVOS) !== JSON.stringify(['swap_unchanged', 'swap_partial'])) throw new Error('motivos: ' + JSON.stringify(T.TETO_MOTIVOS))
+  })
   check('falha de outro tipo não conta', () => {
-    const r = d(false, false, [naoTrocou(1), outro('swap_partial'), outro('provider_failed'), outro('provider_rejected'), outro('expired'), outro('persist_failed'), outro(null)])
+    const r = d(false, false, [naoTrocou(1), outro('swap_uncertain'), outro('queue_stuck'), outro('queue_timeout'), outro('provider_failed'), outro('provider_rejected'), outro('expired'), outro('persist_failed'), outro(null)])
     if (!r.ok || r.usados !== 1) throw new Error(JSON.stringify(r))
   })
   check('fora das 24 h não conta; data ruim não conta', () => {
@@ -61,18 +69,24 @@ function bateria(over = {}) {
   const r = (over[ROTA] ?? lf(ROTA)).replace(/\/\/[^\n]*/g, '')
   const s = (over[SRV] ?? lf(SRV)).replace(/\/\/[^\n]*/g, '')
   check('rota: teto antes do vídeo, da cobrança e da fal; 429, código, evento; casa fora', () => {
-    const iTeto = r.indexOf('const teto = decidirTeto({ casa, pagante: isPayingPlan(account.plan), resultados: naoTrocou ?? [], agoraMs: Date.now() })')
+    const iTeto = r.indexOf('const recusa = decidirPorta({ replay, casa, pagante, abertos: abertos ? abertos.length : null, resultados, fila, agoraMs: Date.now() })')
     const iVideo = r.indexOf('const v = await lerVideoDoCliente('), iCobra = r.indexOf('await submitClip(')
     if (iTeto < 0 || !(iTeto < iVideo && iVideo < iCobra)) throw new Error('ordem')
-    if (!r.includes('const casa = isInternalEmail(user.email)') || !r.includes('const naoTrocou = casa ? [] : await lerNaoTrocouDaConta(admin, user.id)')) throw new Error('casa/leitura')
+    if (!r.includes("const casa = releaseVisible(user.email, 'internal')") || !r.includes('casa ? Promise.resolve([]) : lerNaoTrocouDaConta(admin, user.id),') || !r.includes('const pagante = isPayingPlan(account.plan)')) throw new Error('casa/leitura')
     const bloco = r.slice(iTeto, iVideo)
-    if (!/if \(!teto\.ok\) \{/.test(bloco) || !/name: TETO_EVENTO/.test(bloco) || !/return json\(\{ error: fraseDoTeto\(teto\), code: TETO_CODIGO,[^\n]*charged: false \}, 429\)/.test(bloco)) throw new Error('recusa')
+    if (!bloco.includes('  if (recusa) {') || !bloco.includes("name: recusa.code === TETO_CODIGO ? TETO_EVENTO : 'recreate_seu_video_refused'") || !bloco.includes('return json({ error: recusa.error, code: recusa.code, ...recusa.extra }, recusa.status)')) throw new Error('recusa')
+    // a porta EXECUTADA: a 3ª tentativa sem plano é recusada com 429, o código do teto, a frase e "nada cobrado"; a casa passa; o replay passa
+    const P = loader({}, over)('lib/recreate/portaDoSeuVideo')
+    const base = { replay: false, casa: false, pagante: false, abertos: 0, resultados: [naoTrocou(1), naoTrocou(5)], fila: null, agoraMs: AGORA }
+    const x = P.decidirPorta(base)
+    if (!x || x.status !== 429 || x.code !== 'swap_cap' || x.extra.charged !== false || x.extra.limit !== 2 || x.extra.used !== 2 || x.error !== T.fraseDoTeto({ usados: 2, horas: 19 })) throw new Error('porta: ' + JSON.stringify(x))
+    if (P.decidirPorta({ ...base, casa: true }) !== null || P.decidirPorta({ ...base, replay: true }) !== null || P.decidirPorta({ ...base, resultados: null }) !== null) throw new Error('casa, replay ou leitura que falhou foram recusados')
     if (T.TETO_CODIGO !== 'swap_cap' || T.TETO_EVENTO !== 'recreate_seu_video_swap_cap') throw new Error('nomes')
   })
-  check('servidor: só swap_unchanged dos motores do seu vídeo; erro de leitura = segue', () => {
+  check('servidor: só o "não trocou" do seu vídeo (recreate-uploads/), nunca o catálogo; erro de leitura = segue', () => {
     const ini = s.indexOf('export async function lerNaoTrocouDaConta')
     const bloco = ini >= 0 ? s.slice(ini) : ''
-    if (!bloco.includes(".eq('user_id', userId).eq('status', 'failed')") || !bloco.includes(".eq('failure_reason', TETO_MOTIVO).in('model', [KLING4_EDIT_MODEL, SEEDANCE25_MODEL])")) throw new Error('consulta')
+    if (!bloco.includes(".eq('user_id', userId).eq('status', 'failed')") || !bloco.includes(".in('failure_reason', [...TETO_MOTIVOS]).in('model', [KLING4_EDIT_MODEL, SEEDANCE25_MODEL]).like('fingerprint', `%/${SEU_VIDEO_PASTA}/%`)")) throw new Error('consulta')
     if (!/if \(error\) \{[^\n]*return null \}/.test(bloco)) throw new Error('erro de leitura tranca o cliente')
   })
   return p
@@ -80,16 +94,19 @@ function bateria(over = {}) {
 
 const real = bateria()
 if (real.length) { console.error('FALHA\n' + real.join('\n')); process.exit(1) }
-const teto = lf(TETO), rota = lf(ROTA)
+const teto = lf(TETO), rota = lf(ROTA), porta = lf(PORTA), servidor = lf(SRV)
 const mutantes = [
   ['sem plano com teto 3', { [TETO]: teto.replace('semPlano: 2,', 'semPlano: 3,') }],
   ['com plano com teto 5', { [TETO]: teto.replace('comPlano: 4,', 'comPlano: 5,') }],
   ['casa entra no teto', { [TETO]: teto.replace('  if (a.casa) return { ok: true, usados: 0, limite: null }\n', '') }],
-  ['toda falha conta', { [TETO]: teto.replace('    .filter((r) => r.failure_reason === TETO_MOTIVO)\n', '') }],
+  ['toda falha conta', { [TETO]: teto.replace("    .filter((r) => typeof r.failure_reason === 'string' && TETO_MOTIVOS.includes(r.failure_reason))\n", '') }],
+  ['parcial não conta', { [TETO]: teto.replace("['swap_unchanged', 'swap_partial']", "['swap_unchanged']") }],
   ['janela infinita', { [TETO]: teto.replace('Number.isFinite(t) && t > a.agoraMs - janela && t <= a.agoraMs', 'Number.isFinite(t)') }],
   ['recusa no limite + 1', { [TETO]: teto.replace('if (naJanela.length < limite) return', 'if (naJanela.length <= limite) return') }],
-  ['rota: teto depois da cobrança', { [ROTA]: rota.replace('  if (!teto.ok) {', '  if (false) {') }],
-  ['rota: casa no teto', { [ROTA]: rota.replace('const casa = isInternalEmail(user.email)', 'const casa = false') }],
+  ['rota: a porta não recusa', { [ROTA]: rota.replace('  if (recusa) {', '  if (false) {') }],
+  ['rota: casa pela lista larga', { [ROTA]: rota.replace("const casa = releaseVisible(user.email, 'internal')", 'const casa = isInternalEmail(user.email)') }],
+  ['porta: o teto não recusa', { [PORTA]: porta.replace('  if (!teto.ok) return {', '  if (false) return {') }],
+  ['servidor: o catálogo conta no teto', { [SRV]: servidor.replace(".like('fingerprint', `%/${SEU_VIDEO_PASTA}/%`)", '') }],
 ]
 let mortos = 0
 for (const [n, over] of mutantes) {
@@ -98,4 +115,4 @@ for (const [n, over] of mutantes) {
   if (bateria(over).length) mortos++; else console.error('MUTANTE VIVO: ' + n)
 }
 if (mortos !== mutantes.length) process.exit(1)
-console.log(`PASS teto não trocou: sem plano 2ª passa/3ª recusa; com plano 4ª passa/5ª recusa; casa nunca; outra falha e fora de 24 h não contam; recusa antes do vídeo, da cobrança e da fal, com código, evento e orientação; ${mortos}/${mutantes.length} mutantes mortos`)
+console.log(`PASS teto não trocou: sem plano 2ª passa/3ª recusa; com plano 4ª passa/5ª recusa; casa (lista exata) nunca; parcial conta; outra falha, catálogo e fora de 24 h não contam; recusa antes do vídeo, da cobrança e da fal, com código, evento e orientação; ${mortos}/${mutantes.length} mutantes mortos`)

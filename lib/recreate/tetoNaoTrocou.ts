@@ -3,12 +3,16 @@
 // cliente recebe os créditos de volta: sem teto, alguém repete sem parar às nossas custas. Regra, por conta, numa janela corrida de 24 h:
 //   · conta SEM plano: no máximo 2 resultados swap_unchanged; conta COM plano: 4. A tentativa seguinte é recusada ANTES de cobrar e antes da fal.
 //   · conta da casa: fora do teto.
-//   · só swap_unchanged conta (o veredito "nenhuma pessoa trocou"). Recusa do motor, vencimento, falha de cópia e swap_partial não contam.
+//   · contam swap_unchanged e swap_partial (decisão da CEO de 14/11: a parcial custa a mesma fal e estorna inteiro). Recusa do motor, vencimento,
+//     falha de cópia, as falhas da fila e swap_uncertain não contam. Só clipes do "seu vídeo" (o vídeo em recreate-uploads/), nunca os do catálogo.
+//   · um pedido aberto por conta (lib/recreate/portaDoSeuVideo): sem isso, com 1 "não trocou" a conta abria 3 de uma vez e todos passavam.
 //   · a recusa orienta: foto de frente, nítida, uma pessoa só; vídeo mais curto. E diz quando volta (o resultado mais antigo sai da janela).
 //   · leitura do banco que falha = segue (nunca tranca cliente por erro nosso).
 // Módulo PURO: a rota (app/api/recreate/seu-video) lê as linhas e chama decidirTeto. Guardião: scripts/test-recreate-teto-nao-trocou-1411.mjs.
 export const TETO_NAO_TROCOU = { semPlano: 2, comPlano: 4, janelaHoras: 24 } as const
 export const TETO_MOTIVO = 'swap_unchanged' as const
+/** KINEO-RECREATE-FILA-REVISAO-1411 [CEO 14/11: decisão dela] — swap_partial TAMBÉM conta: custa a mesma fal e estorna inteiro. */
+export const TETO_MOTIVOS: readonly string[] = ['swap_unchanged', 'swap_partial']
 export const TETO_CODIGO = 'swap_cap' as const
 export const TETO_EVENTO = 'recreate_seu_video_swap_cap' as const
 
@@ -22,12 +26,12 @@ const quando = (r: ResultadoDoClipe): number => {
   return Number.isFinite(t) ? t : NaN
 }
 
-/** O teto para ESTA tentativa. `resultados` = os clipes do "seu vídeo" da conta (qualquer motivo): só swap_unchanged dentro de 24 h conta. */
+/** O teto para ESTA tentativa. `resultados` = os clipes do "seu vídeo" da conta (qualquer motivo): só os TETO_MOTIVOS dentro de 24 h contam. */
 export function decidirTeto(a: { casa: boolean; pagante: boolean; resultados: ReadonlyArray<ResultadoDoClipe>; agoraMs: number }): DecisaoDoTeto {
   if (a.casa) return { ok: true, usados: 0, limite: null }
   const janela = TETO_NAO_TROCOU.janelaHoras * 60 * 60 * 1000
   const naJanela = a.resultados
-    .filter((r) => r.failure_reason === TETO_MOTIVO)
+    .filter((r) => typeof r.failure_reason === 'string' && TETO_MOTIVOS.includes(r.failure_reason))
     .map(quando)
     .filter((t) => Number.isFinite(t) && t > a.agoraMs - janela && t <= a.agoraMs)
     .sort((x, y) => x - y)

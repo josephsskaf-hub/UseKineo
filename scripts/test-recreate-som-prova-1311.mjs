@@ -63,7 +63,8 @@ function bateria(over = {}) {
   const r = (over[ROTA] ?? lf(ROTA)).replace(/\/\/[^\n]*/g, '')
   const s = (over[SRV] ?? lf(SRV)).replace(/\/\/[^\n]*/g, '')
   check('rota: marca só com campo + global desligado + conta da casa; evento de prova', () => {
-    if (!r.includes('const provaDoSom = raw.som_original === true && !SEU_VIDEO_SOM_ORIGINAL && isInternalEmail(user.email)')) throw new Error('condição da prova')
+    // reancorado KINEO-RECREATE-FILA-REVISAO-1411 (item 5 do revisor): a casa é a lista EXATA (releaseVisible … 'internal'), não a lista larga de métrica
+    if (!r.includes('const provaDoSom = raw.som_original === true && !SEU_VIDEO_SOM_ORIGINAL && casa') || !r.includes("const casa = releaseVisible(user.email, 'internal')")) throw new Error('condição da prova')
     if (!r.includes('const entrada = provaDoSom ? { ...input, [MARCA_SOM_PROVA]: true } : input') || !/falUsd: v\.falUsd, photos, input: entrada \}/.test(r)) throw new Error('a marca não vai na impressão')
     if (!/if \(!result\.replay && provaDoSom\) await writeServerEvent\(\{ name: 'recreate_seu_video_som_prova'[^\n]*prova: true/.test(r)) throw new Error('sem evento de prova')
   })
@@ -77,7 +78,8 @@ const real = bateria()
 if (real.length) { console.error('FALHA\n' + real.join('\n')); process.exit(1) }
 const sv = lf(SV), rota = lf(ROTA), srv = lf(SRV)
 const mutantes = [
-  ['marca liga sem ser da casa', { [ROTA]: rota.replace(' && isInternalEmail(user.email)', '') }],
+  ['marca liga sem ser da casa', { [ROTA]: rota.replace('!SEU_VIDEO_SOM_ORIGINAL && casa', '!SEU_VIDEO_SOM_ORIGINAL') }],
+  ['casa pela lista larga', { [ROTA]: rota.replace("const casa = releaseVisible(user.email, 'internal')", 'const casa = isInternalEmail(user.email)') }],
   ['somOriginal ignora a marca', { [SV]: sv.replace("if (!ligado && (p[2] as Record<string, unknown>)[MARCA_SOM_PROVA] !== true) return null", 'if (!ligado) return null') }],
   ['marca liga todo clipe', { [SV]: sv.replace("if (!ligado && (p[2] as Record<string, unknown>)[MARCA_SOM_PROVA] !== true) return null", 'if (false) return null') }],
   ['a marca vai à fal', { [SRV]: srv.replace('envio(model, semMarcasDaCasa(input))', 'envio(model, input)') }],

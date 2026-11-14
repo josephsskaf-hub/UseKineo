@@ -408,6 +408,20 @@ const SERVER_ONLY_EVENTS = new Set([
   'recreate_swap_check', // KINEO-RECREATE-TRAVA-1011 — veredito da trava "não trocou" (settleClip, só quem move a linha)
   'recreate_seu_video_started', // KINEO-RECREATE-SEU-VIDEO-1311 — pedido aceito (/api/recreate/seu-video): segundos, custo fal, créditos
   'recreate_seu_video_refused', // KINEO-RECREATE-SEU-VIDEO-1311 — recusa antes de cobrar (conferência ou pedido), com o código
+  // KINEO-RECREATE-FILA-REVISAO-1411 [revisor, item 11] — eventos que só o servidor grava: o navegador não cunha nenhum deles.
+  'clip_queued', // o pedido ficou na fila de um por vez (lib/clips/clipFlow)
+  'recreate_kling_edit_slot', // a VAGA da fila: um evento forjado com este nome não ocupa a vaga (o id é fixo), mas o nome fica reservado
+  'recreate_seu_video_swap_cap', // teto de tentativas que não trocam
+  'recreate_seu_video_gate_unavailable', // leitura da porta que falhou (teto, abertos ou fila)
+  'recreate_swap_audit', // a saída reprovada foi guardada (caminho privado)
+  'recreate_seu_video_prompt', // o texto sugerido do /check (fonte, custo da visão, óculos)
+  'recreate_seu_video_som_prova', // prova do som num clipe só
+  'content_moderation_download_retry', // a 2ª chamada da moderação quando o moderador não baixa a imagem
+  'content_moderation_unavailable', // moderação fora do ar ou imagem que não pôde ser conferida
+  'content_moderation_blocked', // o rastro do bloqueio da moderação
+  'script_condense_retry', // a 3ª tentativa do escritor
+  'media_download_served', // /api/download entregou o arquivo
+  'clip_engine_fallback', // KINEO-RECREATE-FILA-REVISAO-1411 (item 11) — o clipe trocou sozinho para o motor reserva: fato do servidor (lib/clips/clipFlow), estava fora da lista
   'juiz_plano_ficha_antes', // KINEO-FICHA-ANTES-DO-RENDER-1311 — o juiz do plano antes das imagens-chave do Kling 4 grátis e o que ele refez
   'clip_effect_ready',
   'clip_effect_film_upsell_clicked',

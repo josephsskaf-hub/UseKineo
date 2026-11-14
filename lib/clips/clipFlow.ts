@@ -53,6 +53,8 @@ export const CLIP_EXPIRE_MS = 6 * 60 * 60 * 1000
 export const CLIP_MAX_ACTIVE = 3
 /** KINEO-RECREATE-FILA-KLING-EDIT-1411 — a marca da linha na fila (failure_reason de uma linha pending). O mesmo valor de lib/recreate/filaKlingEdit FILA_MARCA. */
 export const QUEUE_MARK = 'queue_kling_edit'
+/** KINEO-RECREATE-FILA-REVISAO-1411 — a marca da linha que saiu da fila e está sendo mandada. O mesmo valor de lib/recreate/filaKlingEdit FILA_ENVIANDO. */
+export const QUEUE_SENDING = 'queue_sending'
 
 export type ClipStatus = 'pending' | 'processing' | 'done' | 'failed'
 
@@ -112,13 +114,20 @@ export interface ClipQueueDeps {
   applies(row: ClipRow): boolean
   /** A linha está NA FILA (pending, sem pedido no fornecedor, com a marca)? */
   queued(row: ClipRow): boolean
-  /** É a vez desta linha E a vaga agora é dela? true = este ator (e só ele) manda ao fornecedor. Fecha o pedido preso, se houver. */
-  take(row: ClipRow): Promise<boolean>
+  /** É a vez desta linha E a vaga agora é dela? true = este ator (e só ele) pode mandar ao fornecedor. `daFila`: a linha está saindo da fila —
+   *  no BANCO ela tem de ser a mais antiga da fila (KINEO-RECREATE-FILA-REVISAO-1411: linha lida antes não decide). Resolve a vaga vencida, se houver. */
+  take(row: ClipRow, opts?: { daFila?: boolean }): Promise<boolean>
+  /** KINEO-RECREATE-FILA-REVISAO-1411 — tira a linha da fila para mandar: UPDATE condicional à marca da fila. Só UM ator consegue; false = já saiu, venceu ou fechou. */
+  claimSend(id: string): Promise<boolean>
+  /** KINEO-RECREATE-FILA-REVISAO-1411 — teto de espera: failed queue_timeout por UPDATE condicional à marca da fila (0 estornado até o estorno). false = não moveu. */
+  expire(id: string): Promise<boolean>
+  /** KINEO-RECREATE-FILA-REVISAO-1411 — grava o valor estornado na linha já failed (onde ainda é 0). */
+  setRefunded(id: string, refunded: number): Promise<void>
   /** Marca a linha (ainda pending) como na fila. */
   enqueue(id: string): Promise<boolean>
   /** Manda ao fornecedor o pedido gravado na linha (um POST, sem retry do POST pago). */
   submit(row: ClipRow): Promise<{ ok: true; requestId: string } | { ok: false; ambiguous: boolean; error: string }>
-  /** processing + request_id, condicional à linha ainda na fila. */
+  /** processing + request_id, condicional à linha que ESTE ator tirou da fila (claimSend). */
   markSubmitted(id: string, requestId: string): Promise<boolean>
   /** Solta a vaga SÓ se for desta linha. */
   release(id: string): Promise<void>
@@ -481,18 +490,26 @@ export interface RecreateSwapSettleDeps { // KINEO-RECREATE-TRAVA-1011
   /** KINEO-RECREATE-AUDITORIA-DA-TRAVA-1411 — guarda a saída REPROVADA do motor em caminho privado, 48 h (só auditoria da casa). Opcional:
    *  ausente ou falhando = segue sem. `gastoMs` = o que a liquidação já gastou (a cópia nunca estoura a rota de status). */
   keepRejected?(row: ClipRow, providerUrl: string, gastoMs: number): Promise<RecreateSwapAudit | null>
+  /** KINEO-RECREATE-FILA-REVISAO-1411 — a cópia de auditoria foi guardada: evento próprio (recreate_swap_audit) com o caminho. Roda depois de tudo. */
+  recordAudit?(row: ClipRow, audit: RecreateSwapAudit): Promise<void>
 } // KINEO-RECREATE-TRAVA-1011
 
 export async function settleClip(deps: ClipSettleDeps, row: ClipRow): Promise<ClipRow> {
   if (row.status === 'done' || row.status === 'failed') return row
   // KINEO-RECREATE-FILA-KLING-EDIT-1411 — o clipe de um modelo com fila que FECHA (pronto ou falha) solta a vaga, e o próximo da fila sai. Envio ambíguo não
   // solta: o pedido pode existir no fornecedor, e a vaga vence sozinha.
-  const after = await settleOpenClip(deps, row)
+  // KINEO-RECREATE-FILA-REVISAO-1411 [revisor, item 10 — bloqueava a publicação] — a cópia de auditoria (download + upload) saiu do meio da liquidação: ela corria
+  // ANTES dos eventos e de soltar a vaga, e um upload pendurado matava a rota de status sem gravar clip_failed/recreate_swap_check e com a vaga
+  // presa. Agora é `depois`: roda só quando a linha já fechou, o estorno foi feito, os eventos gravados e a vaga solta. Se a rota morrer na
+  // cópia, só se perde a cópia.
+  const depois: Array<() => Promise<void>> = []
+  const after = await settleOpenClip(deps, row, depois)
   if (deps.queue?.applies(row) && (after.status === 'done' || after.status === 'failed') && after.failure_reason !== 'submit_ambiguous') await deps.queue.release(row.id).catch(() => {})
+  for (const tarefa of depois) await tarefa().catch(() => {})
   return after
 }
 
-async function settleOpenClip(deps: ClipSettleDeps, row: ClipRow): Promise<ClipRow> {
+async function settleOpenClip(deps: ClipSettleDeps, row: ClipRow, depois: Array<() => Promise<void>>): Promise<ClipRow> {
   const age = deps.now() - Date.parse(row.created_at)
   // KINEO-ROSTO-QUADRO-CHAVE-2810 — é remix? Em que etapa? (pelo prompt fixo + modelo da linha; nenhuma coluna nova.)
   const remixStage = faceRemixStageForRow(row) // KINEO-ROSTO-QUADRO-CHAVE-2810
@@ -513,8 +530,18 @@ async function settleOpenClip(deps: ClipSettleDeps, row: ClipRow): Promise<ClipR
     // senão, espera. A regra de 10 min sem envio não vale para quem está na fila (nada foi enviado de propósito).
     const fila = deps.queue?.applies(row) && deps.queue.queued(row) ? deps.queue : null
     if (fila) {
-      if (Number.isFinite(age) && age >= fila.waitLimitMs) return fail('queue_timeout')
-      if (!(await fila.take(row).catch(() => false))) return row
+      // KINEO-RECREATE-FILA-REVISAO-1411 [revisor, item 4] — a linha pode ter sido lida antes: nada aqui decide pela foto. O teto de espera é failed por UPDATE
+      // condicional à marca (só quem moveu estorna); a saída da fila exige ser, no banco, a mais antiga (take daFila) e ganhar o claimSend.
+      if (Number.isFinite(age) && age >= fila.waitLimitMs) {
+        if (!(await fila.expire(row.id))) return row // outro ator mandou ou fechou: quem moveu decide
+        let refunded = await deps.refund(row.billing_reference)
+        if (refunded <= 0) refunded = await deps.refund(row.billing_reference)
+        if (refunded > 0) await fila.setRefunded(row.id, refunded)
+        await deps.event('clip_failed', { ...clipTelemetry(row), reason: 'queue_timeout', credits_refunded: refunded, stage: 'queue' })
+        return { ...row, status: 'failed', failure_reason: 'queue_timeout', credits_refunded: refunded }
+      }
+      if (!(await fila.take(row, { daFila: true }).catch(() => false))) return row
+      if (!(await fila.claimSend(row.id))) { await fila.release(row.id).catch(() => {}); return row } // a vaga que este ator acabou de pegar volta
       const sent = await fila.submit(row)
       if (!sent.ok) return fail(sent.ambiguous ? 'submit_ambiguous' : 'provider_rejected', cleanProviderError(sent.error))
       let saved = await fila.markSubmitted(row.id, sent.requestId)
@@ -522,6 +549,9 @@ async function settleOpenClip(deps: ClipSettleDeps, row: ClipRow): Promise<ClipR
       await deps.event('clip_requested', { ...clipTelemetry(row), request_id: sent.requestId, tracking_saved: saved, queued_ms: Math.max(0, age) })
       return saved ? { ...row, status: 'processing', fal_request_id: sent.requestId, failure_reason: null } : row
     }
+    // KINEO-RECREATE-FILA-REVISAO-1411 — a linha que SAIU da fila e está sendo mandada (marca queue_sending) não é 'envio perdido' aos 10 min de vida: ela pode
+    // ter esperado na fila. Quem a fecha é a vaga vencida (resolverVagaVencida); o prazo abaixo é só a rede de segurança se ninguém mais pedir.
+    if (deps.queue?.applies(row) && row.failure_reason === QUEUE_SENDING) return Number.isFinite(age) && age >= deps.queue.waitLimitMs + CLIP_PENDING_STALE_MS ? fail('submit_lost') : row
     return Number.isFinite(age) && age >= CLIP_PENDING_STALE_MS ? fail('submit_lost') : row
   }
   if (deps.recreateSwap?.applies(row) && deps.recreateSwap.busy(row, deps.now())) return row // KINEO-RECREATE-TRAVA-1011 — outro ator checa: sai ANTES de consultar/baixar
@@ -577,9 +607,10 @@ async function settleOpenClip(deps: ClipSettleDeps, row: ClipRow): Promise<ClipR
         if (refunded > 0) await swap.setRefunded(row.id, refunded) // KINEO-RECREATE-TRAVA-1011
         // KINEO-RECREATE-AUDITORIA-DA-TRAVA-1411 [CEO 14/11] — DEPOIS do failed e do estorno (o cliente nunca espera por isto): a saída reprovada
         // vai a um caminho privado por 48 h e o caminho entra no evento. Falhou ou não deu tempo = null, e tudo segue como antes.
-        const audit = swap.keepRejected ? await swap.keepRejected(row, state.url, Math.max(0, deps.now() - swapStarted)).catch(() => null) : null
         await deps.event('clip_failed', { ...clipTelemetry(row), reason, credits_refunded: refunded, stage: 'settle', swap_check: swapVerdict.result }) // KINEO-RECREATE-TRAVA-1011
-        await swap.record(row, swapVerdict, { delivered: false, credits_refunded: refunded, audit }) // KINEO-RECREATE-TRAVA-1011 · KINEO-RECREATE-AUDITORIA-DA-TRAVA-1411 — + audit
+        await swap.record(row, swapVerdict, { delivered: false, credits_refunded: refunded }) // KINEO-RECREATE-TRAVA-1011
+        // KINEO-RECREATE-FILA-REVISAO-1411 (item 10) — a cópia fica para DEPOIS de tudo (settleClip a roda com a vaga já solta); guardou = evento próprio com o caminho.
+        if (swap.keepRejected) { const keep = swap.keepRejected, gasto = Math.max(0, deps.now() - swapStarted), url = state.url; depois.push(async () => { const audit = await keep(row, url, gasto).catch(() => null); if (audit) await swap.recordAudit?.(row, audit) }) }
         return { ...row, status: 'failed', failure_reason: reason, credits_refunded: refunded } // KINEO-RECREATE-TRAVA-1011
       } // KINEO-RECREATE-TRAVA-1011
     } // KINEO-RECREATE-TRAVA-1011

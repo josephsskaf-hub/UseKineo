@@ -48,6 +48,8 @@ export interface SwapVerdict {
 }
 
 export const RECREATE_SWAP_CHECK_EVENT = 'recreate_swap_check'
+/** KINEO-RECREATE-FILA-REVISAO-1411 — a saída reprovada foi guardada (bucket privado, 48 h): clip_id, path, bytes, expires_at. */
+export const RECREATE_SWAP_AUDIT_EVENT = 'recreate_swap_audit'
 /** failure_reason written when the result kept the base person(s). The status route maps both to 'not_swapped'. */
 export const RECREATE_NOT_SWAPPED = { unchanged: 'swap_unchanged', partial: 'swap_partial', uncertain: 'swap_uncertain' } as const // KINEO-RECREATE-TRAVA-ALVO-1411 — + uncertain
 export const isRecreateNotSwappedReason = (reason: unknown) => reason === RECREATE_NOT_SWAPPED.unchanged || reason === RECREATE_NOT_SWAPPED.partial || reason === RECREATE_NOT_SWAPPED.uncertain
@@ -333,10 +335,11 @@ export type SwapRefundRow = { id: string; billing_reference: string; failure_rea
 export async function sweepSwapRefunds(
   rows: SwapRefundRow[],
   deps: { refund(billingReference: string): Promise<number>; setRefunded(id: string, refunded: number): Promise<void> },
+  cobre: (motivo: string | null) => boolean = isRecreateNotSwappedReason, // KINEO-RECREATE-FILA-REVISAO-1411 — quem chama pode cobrir outros motivos que fecham failed antes do estorno (a fila)
 ): Promise<{ scanned: number; refunded: number; creditsReturned: number }> {
   const out = { scanned: 0, refunded: 0, creditsReturned: 0 }
   for (const row of rows) {
-    if (row.status !== 'failed' || row.credits_refunded !== 0 || !isRecreateNotSwappedReason(row.failure_reason)) continue
+    if (row.status !== 'failed' || row.credits_refunded !== 0 || !cobre(row.failure_reason)) continue
     out.scanned += 1
     const amount = await deps.refund(row.billing_reference)
     if (amount > 0) {
