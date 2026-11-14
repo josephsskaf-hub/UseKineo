@@ -81,3 +81,46 @@ O juiz da ficha troca o still COM folha pelo de texto puro quando o crítico rep
 - O interruptor 'off'.
 
 `scripts/test-cena-sem-gente-1411.mjs`: o mutante C foi reancorado, e isso está avisado à CEO. A âncora antiga ("deserted vence") não existe com a regra ligada. O mutante agora tira a nova proteção (a gente que já foi volta a contar) e fica vermelho.
+
+## v2 (14/11) · bloqueio do revisor e da CEO: gente presente sumia
+O e1a6af441 foi bloqueado por três pontos. A negação, que passou inteira e melhorou vários casos, ficou como estava.
+
+**1. A silhueta saía por exclusão (lista curta de gente).** Sumiam:
+- "silhouettes of dancers / fishermen / riders / monks / workers / kids";
+- "The silhouettes of two lovers";
+- "Their silhouettes dance on the wall".
+
+Agora a silhueta só sai com PROVA de coisa:
+- **"silhouette(s) of":** só quando o que vem depois é artigo, número, adjetivo de tamanho ou cor, ou nome próprio, seguido de uma coisa da lista (navio, avião, montanha, ilha, baleia…).
+- **"their silhouettes":** só quando o último PLURAL antes, na mesma frase, é coisa da lista ("navy ships and planes…, their silhouettes"). "Two lovers walk on the bridge, their silhouettes" fica gente, porque o plural é "lovers"; "bridge" é singular e não conta.
+- **"its silhouette":** ficou como na main.
+- **O que a lista faz:** a lista de coisas só TIRA gente. O que está fora dela é gente, como na main.
+- **Se o render 9a8cc918 precisa disso** (pergunta da CEO): sim. A regra da fala ignora "they/their", mas a palavra "silhouettes" sozinha ainda contava como gente e punha a Amelia.
+
+**2. A camada de época tirava a marca.** Pela rota, a cena dos navios era marcada pelo ajuste. Mas `aplicarElencoEEpoca` tirava a marca (de propósito, desde KINEO-ELENCO-EPOCA-2710) e punha "Named character in this shot: Amelia Earhart" porque a fala a cita; depois a linha de época vestia a cena.
+- Agora (interruptor `MARCA_MANDA_NA_EPOCA_1411`), a cena marcada não recebe ninguém pela fala nem pela posição.
+- O protagonista que não está em prompt nenhum entra na 1ª cena NÃO marcada.
+- O guardião roda o caso real pela rota (ajuste + camada de época, os 4 planos e as falas do 72f3b718): as cenas 3 e 4 saem só com a marca, sem ficha e sem roupa.
+
+**3. O primeiro nome casava palavra comum.** Casavam "Rose petals", "Will the storm", "June 2, 1937", "In June the rains", "May 1937", "Grace fills", "Hope fades", "A Bill of sale". Agora a parte do nome só casa:
+- **Em papel de pessoa logo depois dela:**
+  - verbo de gente, com advérbio e "is/was" opcionais;
+  - aposto (", the inventor");
+  - posse de corpo ("Mara's hands").
+- **Nunca quando é palavra comum:** mês, flor, virtude, cor, lugar.
+- **Nunca seguida de número.**
+
+As listas só restringem o casamento novo; fora delas vale a main. "Earhart's silver plane" (a coisa dela) e "the Earhart search" não casam. "Amelia climbs", "Earhart checks the radio", "Roland Oznard, a gruff old man" casam.
+
+**4. Menores.**
+- "not a single / not one / not another / not any" + gente agora é negação.
+- **"The house where she once lived":** a decisão é tirar a Sarah. O plano mostra a casa, e "once lived" diz que ela já não está ali. Se a cena a mostra ("now she stands at the door"), o "she stands" a mantém.
+- **A regra de exceção ("Nobody but the captain") foi tirada.** A negação só apaga a frase negada, e quem vem depois do "but/except" já fica no texto. O mutante da exceção sobrevivia, então era regra sem efeito.
+
+**Corpus (os mesmos 94 filmes com elenco e 337 cenas):** igual à v1 contra a produção.
+- 5 cenas passam a ser marcadas, todas certas.
+- 0 perdem a marca em produção.
+- 3 fichas novas certas.
+- 2 fichas tiradas certas.
+
+**Guardião** `scripts/test-quem-esta-na-cena-1411.mjs`: 20 ok, 18 mutantes vermelhos. A seção (G) tem as 9 silhuetas de gente; a (H) tem 12 falsos e 4 certos do primeiro nome; a (I) tem a Earhart pela rota.

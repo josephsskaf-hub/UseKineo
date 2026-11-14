@@ -198,6 +198,11 @@ export type ModoLinhaDeEpoca = 'off' | 'all'
 export const LINHA_DE_EPOCA_1411: ModoLinhaDeEpoca = 'all'
 export const linhaDeEpocaLigada = (modo: ModoLinhaDeEpoca = LINHA_DE_EPOCA_1411) => modo === 'all'
 const SEM_GENTE_NA_CENA_1411 = 'No people, no human figures and no faces anywhere in this shot'
+// KINEO-QUEM-ESTA-NA-CENA-1411 v2 [revisor 14/11: pela rota, a cena dos navios da Earhart era marcada sem gente e esta camada tirava a marca e punha
+// "Named character in this shot: Amelia Earhart…" porque a FALA a cita; a linha de época então vestia a cena]. A cena que o código marcou sem gente
+// não recebe ninguém pela fala nem pela posição; o protagonista que não está em prompt nenhum entra na 1ª cena NÃO marcada. 'off' = o de antes.
+export const MARCA_MANDA_NA_EPOCA_1411: 'off' | 'all' = 'all'
+const marcadaSemGente1411 = (p: string) => MARCA_MANDA_NA_EPOCA_1411 === 'all' && String(p ?? '').includes(SEM_GENTE_NA_CENA_1411)
 /** A lista negativa antiga de veículos (até 11/11, KINEO-EPOCA-POSITIVA-1111) e "no present-day cars" citam veículo sem pôr veículo no plano. */
 const VEICULO_NEGADO_RE_1411 = /(?<![\p{L}])no\s+(?:present-day\s+|modern\s+)?(?:cars?|cabs?|taxis?|trucks?|lorry|lorries|bus|buses|vans?|jeeps?|sedans?|automobiles?|motorcars?|carriages?|wagons?|carts?|trams?|streetcars?|trolleys?|motorcycles?|motorbikes?|bicycles?|bikes?|limousines?)(?![\p{L}])/giu
 // v2 [revisor 14/11, bloqueio do 1b]: veículo de rua citado de outro jeito — marca só quando é claramente o carro ("Model T", "a black Ford"),
@@ -820,11 +825,12 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
       const inseridas: number[] = [] // KINEO-ELENCO-EPOCA-2710
       // protagonista ausente de TODO prompt: entra em todas as cenas-alvo; coadjuvante: nas cenas-alvo em que não está // KINEO-ELENCO-EPOCA-2710
       if (!p.nomeado) for (const i of fichaNasCenasComGente) presente[i] = false // KINEO-PROTAGONISTA-DOC-0311 — já desenhado como "a man": a ficha entra assim mesmo (jaPresente já foi lido acima)
-      for (const i of alvo) if (!presente[i] && porCena[i].length < ELENCO_EPOCA_MAX_POR_CENA) { // KINEO-ELENCO-MARCADOR-2910
+      for (const i of alvo) if (!presente[i] && porCena[i].length < ELENCO_EPOCA_MAX_POR_CENA && !marcadaSemGente1411(prompts[i])) { // KINEO-ELENCO-MARCADOR-2910 // KINEO-QUEM-ESTA-NA-CENA-1411 v2 — cena marcada sem gente não recebe ninguém
         const objeto = p.possessivo ? pessoasPossessivas(args.falas[i]).find((dono) => dono.nucleo === p.possessivo!.nucleo)?.objeto : null // KINEO-ELENCO-MARCADOR-2910
         porCena[i].push(`${p.descricao}${objeto ? ` ${objeto}` : ''}`); inseridas.push(i) // KINEO-ELENCO-MARCADOR-2910
       } // KINEO-ELENCO-MARCADOR-2910
-      if (p.protagonista && inseridas.length === 0 && !jaPresente && porCena[0].length < ELENCO_EPOCA_MAX_POR_CENA) { porCena[0].push(p.descricao); inseridas.push(0) } // KINEO-ELENCO-EPOCA-2710
+      const primeira1411 = MARCA_MANDA_NA_EPOCA_1411 === 'all' ? prompts.findIndex((pr) => !marcadaSemGente1411(pr)) : 0 // KINEO-QUEM-ESTA-NA-CENA-1411 v2 — a 1ª cena NÃO marcada
+      if (p.protagonista && inseridas.length === 0 && !jaPresente && primeira1411 >= 0 && porCena[primeira1411].length < ELENCO_EPOCA_MAX_POR_CENA) { porCena[primeira1411].push(p.descricao); inseridas.push(primeira1411) } // KINEO-ELENCO-EPOCA-2710 // KINEO-QUEM-ESTA-NA-CENA-1411 v2
       relato.elenco.push({ nome: p.nome, nomeado: p.nomeado, tipo: p.tipo, protagonista: p.protagonista, descricao: p.descricao, cenas_pela_fala: pelaFala.map((i) => i + 1), cenas_inseridas: inseridas.map((i) => i + 1), ja_presente: jaPresente }) // KINEO-ELENCO-EPOCA-2710
     } // KINEO-ELENCO-EPOCA-2710
     for (let i = 0; i < n; i++) { // KINEO-ELENCO-EPOCA-2710

@@ -440,16 +440,25 @@ export const MARCA_SEM_GENTE_1411 = 'No people, no human figures and no faces an
 /** Gente negada: "no" (ou without/nor/devoid of/empty of/free of) + até 4 itens de lista ou adjetivos ("other objects or", "animals,", "foreground
  *  human") + palavra de gente; e "nobody", "uninhabited", "unpopulated". O item de lista só passa com vírgula, "or" ou "and" depois: "no cars but
  *  many people walking" não é gente negada. */
-const GENTE_NEGADA_RE_1411 = /(?<![\p{L}])(?:no|without(?:\s+any)?|nor|devoid\s+of|empty\s+of|free\s+of)\s+(?:(?:other|more|visible|living|human|foreground|background|distant|single|[\p{Ll}-]+(?:\s*,|\s+or|\s+and))\s+){0,4}(?:people|persons?|humans?|human\s+figures?|figures?|faces?|one|anyone|someone|crowds?|passers-?by|pedestrians|souls?|characters?|inhabitants?|life|signs?\s+of\s+(?:life|people|anyone))(?:\s+(?:seen\s+from\s+behind(?:\s+as\s+distant\s+silhouettes)?|in\s+sight|around|visible|present|anywhere(?:\s+in\s+this\s+shot)?))?(?![\p{L}-])|(?<![\p{L}])(?:nobody|uninhabited|unpopulated)(?![\p{L}])/giu
-/** A silhueta que é da coisa, não de gente: "its/their silhouette(s)" e "silhouette(s) of (the) ships/mountains…" (sem palavra de gente depois). */
-const SILHUETA_DE_COISA_RE_1411 = /(?<![\p{L}])(?:(?:its|their)\s+(?:dark\s+|black\s+|distant\s+)?silhouettes?|silhouettes?\s+of\s+(?:the\s+|a\s+|an\s+)?(?!(?:man|men|woman|women|boy|boys|girl|girls|person|people|child|children|soldiers?|figures?|someone|a\s+man|a\s+woman)(?![\p{L}]))[\p{L}-]+)(?![\p{L}])/giu
+const GENTE_NEGADA_RE_1411 = /(?<![\p{L}])(?:no|without(?:\s+any)?|nor|devoid\s+of|empty\s+of|free\s+of|not\s+(?:a\s+single|one|another|any))\s+(?:(?:other|more|visible|living|human|foreground|background|distant|single|[\p{Ll}-]+(?:\s*,|\s+or|\s+and))\s+){0,4}(?:people|persons?|humans?|human\s+figures?|figures?|faces?|one|anyone|someone|crowds?|passers-?by|pedestrians|souls?|characters?|inhabitants?|life|signs?\s+of\s+(?:life|people|anyone))(?:\s+(?:seen\s+from\s+behind(?:\s+as\s+distant\s+silhouettes)?|in\s+sight|around|visible|present|anywhere(?:\s+in\s+this\s+shot)?))?(?![\p{L}-])|(?<![\p{L}])(?:nobody|uninhabited|unpopulated)(?![\p{L}])/giu
+/** v2 [bloqueio do revisor 14/11: "silhouettes of dancers/fishermen/riders/monks/workers/kids/two lovers" sumiam] — a silhueta só é de COISA com prova:
+ *  "silhouette(s) of" + só artigo, número, adjetivo de tamanho/cor ou nome próprio + uma COISA desta lista (navio, avião, montanha, ilha, baleia…);
+ *  e "its/their silhouette(s)" só quando o antecedente na mesma frase (o último plural antes) é coisa da lista ("navy ships and planes…, their
+ *  silhouettes"). Fora disso a silhueta segue gente, como na main: a lista só tira, nunca põe gente a menos por exclusão. */
+const COISA_DA_SILHUETA_1411 = 'ships?|boats?|vessels?|planes?|aircraft|jets?|helicopters?|mountains?|hills?|peaks?|cliffs?|rocks?|trees?|palms?|forests?|buildings?|towers?|skyscrapers?|skylines?|city|cities|islands?|ruins|castles?|temples?|pyramids?|domes?|spires?|cranes?|bridges?|lighthouses?|windmills?|volcano(?:es)?|whales?|birds?|horses?|camels?|cars?|trucks?|trains?'
+const SILHUETA_DE_COISA_RE_1411 = new RegExp(`(?<![\\p{L}])silhouettes?\\s+of\\s+(?:(?:the|a|an|its|two|three|four|five|six|seven|eight|nine|ten|several|many|few|distant|dark|black|tall|old|ancient|small|large|huge|giant|\\d+|\\p{Lu}[\\p{L}-]*)\\s+){0,2}(?:${COISA_DA_SILHUETA_1411})(?![\\p{L}])`, 'giu')
+const SILHUETA_DELA_RE_1411 = /(?<![\p{L}])their\s+(?:dark\s+|black\s+|distant\s+)?silhouettes?(?![\p{L}])/giu
+const COISA_RE_1411 = new RegExp(`^(?:${COISA_DA_SILHUETA_1411})$`, 'iu')
 /** Gente que JÁ NÃO está ali: "the empty space where the crew once stood" (Mary Celeste, 45d83f0e — o ensaio no corpus achou). */
 const GENTE_QUE_FOI_RE_1411 = /(?<![\p{L}])(?:where|that|which)\s+(?:the\s+|a\s+|an\s+|its\s+|their\s+|his\s+|her\s+)?(?:[\p{Ll}-]+\s+){0,2}once\s+\p{Ll}+/giu
 /** O plano sem a gente que ele nega, sem a que já foi e sem a silhueta de coisa — o texto em que se procura quem aparece. Desligado: o mesmo texto. */
 export function semGenteNegada(texto: string, modo: ModoQuemEstaNaCena = QUEM_ESTA_NA_CENA_1411): string {
   const t = String(texto ?? '')
   if (!quemEstaNaCenaLigado(modo)) return t
-  return t.replace(GENTE_NEGADA_RE_1411, ' ').replace(GENTE_QUE_FOI_RE_1411, ' ').replace(SILHUETA_DE_COISA_RE_1411, ' ')
+  // v2: "their silhouettes" só sai quando o último PLURAL antes, na mesma frase, é coisa ("navy ships and planes…, their silhouettes"); "two lovers walk on
+  // the bridge, their silhouettes" fica (o plural é "lovers"); sem plural antes ("Their silhouettes dance"), fica
+  const dela = (m: string, ...r: unknown[]) => { const i = r.find((x) => typeof x === 'number') as number; const palavras = (t.slice(0, i).split(/[.!?;]/u).pop() ?? '').match(/\p{L}+/gu) ?? []; for (let k = palavras.length - 1; k >= 0; k--) { const w = palavras[k].toLowerCase(); if (w.length > 3 && /s$/u.test(w) && !/(?:ss|us|is)$/u.test(w)) return COISA_RE_1411.test(w) ? ' ' : m } return m }
+  return t.replace(GENTE_NEGADA_RE_1411, ' ').replace(GENTE_QUE_FOI_RE_1411, ' ').replace(SILHUETA_DE_COISA_RE_1411, ' ').replace(SILHUETA_DELA_RE_1411, dela)
 }
 /** O plano nega gente (a marca do código ou gente negada que o detector antigo não lia)? */
 export function planoNegaGente(texto: string, modo: ModoQuemEstaNaCena = QUEM_ESTA_NA_CENA_1411): boolean {
@@ -457,6 +466,13 @@ export function planoNegaGente(texto: string, modo: ModoQuemEstaNaCena = QUEM_ES
   const t = String(texto ?? '')
   return t.includes(MARCA_SEM_GENTE_1411) || new RegExp(GENTE_NEGADA_RE_1411.source, 'iu').test(t)
 }
+/** v2 [revisor 14/11: "Rose petals", "Will the storm pass", "June 2, 1937", "In June the rains came", "May 1937", "Grace fills", "Hope fades", "A Bill of
+ *  sale"] — parte do nome que também é palavra comum não casa sozinha. Só RESTRINGE o casamento novo: dentro da lista vale o de antes (nome inteiro/núcleo). */
+const PARTE_QUE_E_PALAVRA_1411 = /^(?:january|february|march|april|may|june|july|august|september|october|november|december|monday|tuesday|wednesday|thursday|friday|saturday|sunday|rose|lily|daisy|iris|violet|ivy|poppy|holly|hazel|heather|jasmine|olive|pearl|ruby|amber|crystal|jade|grace|hope|faith|joy|charity|patience|prudence|mercy|honor|honour|glory|destiny|harmony|melody|summer|autumn|winter|spring|dawn|sky|rain|river|storm|star|sunny|angel|love|will|mark|bill|art|pat|rob|jack|frank|grant|chase|hunter|mason|page|bishop|king|rich|sage|brook|cliff|dale|glen|lane|stone|wood|ford|gray|grey|green|brown|white|black|rice|bush|young|long|little|bell|hall|hill|wolf|fox|bird|crow|swan|lake|field|marsh|moon|sun|rock|sterling|victory|liberty|justice|china|india|georgia|virginia|paris|london|florence|sydney|austin|dallas|houston|chelsea|brooklyn|dakota|carolina|savannah|jordan|israel|asia|africa|america|washington|lincoln|victoria)$/iu
+/** v2: a parte do nome só casa em PAPEL DE PESSOA logo depois dela: verbo de gente (com advérbio e is/was opcionais), aposto (", the pilot") ou
+ *  posse de corpo ("Mara's hands"). "Earhart's silver plane" (a coisa dela) e "June 2" (data) não casam. Fora disso, o de antes. */
+const VERBO_DE_GENTE_1411 = '(?:climb|smile|walk|stand|sit|look|turn|wave|open|close|grab|read|speak|shout|whisper|laugh|nod|kneel|jump|pilot|ride|board|step|enter|watch|stare|gaze|check|adjust|wear|push|pull|lift|raise|hug|kiss|dance|sleep|wake|wait|lean|reach|point|frown|sigh|gasp|aim|kick|play|work|cook|bake|paint|pray|peek|examine|sign|pack|land|pick|place|pour|start|finish|sail|row|steer|salute|march|bow|grin|scream|yell|call|answer|ask|listen|decide|remember|notice|follow|help|rescue|crouch|tie|hold|hand|fix|repair|load|carry|study|cry|fly|drive|write|run|sit|leave|take|give|sing|eat|drink|swim|fight|throw|catch|hide|weep|tell|think|hear|see|find|lose|lead|say)(?:s|es|ed|d|ing)?|stood|sat|held|read|wrote|spoke|said|knelt|flew|drove|rode|left|wore|carried|studied|cried|ran|took|gave|sang|ate|drank|swam|fought|threw|caught|hid|wept|told|thought|heard|saw|found|lost|led|put|puts|putting'
+const PAPEL_DE_PESSOA_DEPOIS_1411 = new RegExp(`^(?:\\s+(?:(?:slowly|quickly|quietly|then|now|still|finally|also|gently|carefully|suddenly|again|nervously|calmly|bravely|silently)\\s+)?(?:(?:is|was)\\s+)?(?:${VERBO_DE_GENTE_1411})(?![\\p{L}])|,\\s+(?:a|an|the|her|his|who)\\s|['’]s\\s+(?:[\\p{Ll}-]+\\s+)?(?:hands?|feet|foot|face|eyes?|hair|arms?|shoulders?|fingers?|head|lips|smile|gaze|voice|legs?|body)(?![\\p{L}]))`, 'u')
 const TITULO_NAO_E_NOME_1411 = /^(?:mr|mrs|ms|miss|dr|sir|lady|lord|king|queen|prince|princess|captain|general|saint|st|president|doctor|professor|uncle|aunt|grandma|grandpa|granny|officer|detective|agent|sergeant|colonel|major|father|mother|sister|brother|pope|emperor|empress|count|countess|duke|duchess|baron|van|von|de|da|del|della|di|du|le|la|el|al|bin|ben|the|young|old|little|big|baby)$/iu
 /** As partes do nome próprio que casam a ficha sozinhas ("Amelia", "Earhart"): só nome de 2+ palavras com maiúscula, sem título, e que nenhum outro
  *  do elenco tem. */
@@ -464,7 +480,7 @@ export function partesDoNome1411(ficha: Pick<FichaDePersonagem, 'nome'>, elenco:
   const palavras = String(ficha.nome ?? '').trim().split(/\s+/u)
   if (palavras.length < 2 || !palavras.every((w) => /^\p{Lu}/u.test(w))) return []
   const outros = elenco.filter((e) => e.nome !== ficha.nome).flatMap((e) => String(e.nome ?? '').toLowerCase().split(/[\s-]+/u))
-  return palavras.filter((w) => /^\p{Lu}[\p{L}'’-]{2,}$/u.test(w) && !TITULO_NAO_E_NOME_1411.test(w) && !outros.includes(w.toLowerCase()))
+  return palavras.filter((w) => /^\p{Lu}[\p{L}'’-]{2,}$/u.test(w) && !TITULO_NAO_E_NOME_1411.test(w) && !PARTE_QUE_E_PALAVRA_1411.test(w) && !outros.includes(w.toLowerCase()))
 }
 /** O plano cita esta parte do nome sozinha (não colada a outro nome com maiúscula: "Amelia Johnson" é outra pessoa)? */
 function citaParteDoNome1411(visual: string, ficha: Pick<FichaDePersonagem, 'nome'>, parte: string): boolean {
@@ -476,7 +492,7 @@ function citaParteDoNome1411(visual: string, ficha: Pick<FichaDePersonagem, 'nom
     const antes = /(\p{Lu}[\p{L}'’-]*)\s+$/u.exec(visual.slice(Math.max(0, i - 30), i))
     const colado = (w: string | undefined) => !!w && !doNome.includes(w) && !TITULO_NAO_E_NOME_1411.test(w)
     if (colado(depois?.[1]) || (colado(antes?.[1]) && !/^(?:A|An|The|In|At|On|As|When|Then|And|But|Now|Later|Meanwhile|Here|There)$/u.test(antes?.[1] ?? ''))) continue
-    return true
+    if (PAPEL_DE_PESSOA_DEPOIS_1411.test(visual.slice(i + parte.length))) return true // v2 — só em papel de pessoa
   }
   return false
 }
