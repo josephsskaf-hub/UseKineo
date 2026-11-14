@@ -1,8 +1,10 @@
 import { INTERNAL_EXACT_EMAILS } from '@/lib/internalAccounts'
 
-import { RECREATE_RELEASE, RECREATE_SWAP_RELEASE, SERIES_RELEASE, RECREATE_MOVIMENTO_RELEASE, type InternalRelease } from './release'
+import { RECREATE_RELEASE, RECREATE_SWAP_RELEASE, SERIES_RELEASE, type InternalRelease } from './release'
+import { RECREATE_MOVIMENTO_RELEASE } from './release' // KINEO-RECREATE-MOVIMENTO-1411
 import { RECREATE_FORMATS, recreateSwapPriced, type RecreateFormat } from './formats'
-export { RECREATE_RELEASE, RECREATE_SWAP_RELEASE, SERIES_RELEASE, RECREATE_MOTION_ENABLED, RECREATE_MOVIMENTO_RELEASE, type InternalRelease } from './release'
+export { RECREATE_RELEASE, RECREATE_SWAP_RELEASE, SERIES_RELEASE, RECREATE_MOTION_ENABLED, type InternalRelease } from './release'
+export { RECREATE_MOVIMENTO_RELEASE } from './release' // KINEO-RECREATE-MOVIMENTO-1411
 
 // Visibility only: recreateSession still requires an authenticated user for every API and private asset.
 // Metric exclusion patterns such as test% are NOT an authorization allowlist in internal mode.

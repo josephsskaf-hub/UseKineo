@@ -297,6 +297,15 @@ async function suite(S) {
 console.log('0 — o que NÃO pode mudar (igual à origin/main)')
 for (const rel of ['lib/scenePreview.ts', 'lib/freeFilmPolicy.ts', 'lib/regionPass.ts', 'lib/offers/avulsoUnico3110.ts', 'lib/credits/engineCost.ts', 'app/pricing/PricingClient.tsx', 'app/pricing/page.tsx', 'app/(dashboard)/layout.tsx', 'lib/growth/regiaoPaga1011.ts', 'lib/recreate/access.ts']) {
   const m = main(rel)
+  // reancorado KINEO-RECREATE-MOVIMENTO-1411 — lib/recreate/access.ts ganhou a linha do molde de movimento (antes da regra do efeito): aqui a regra é
+  // "só acréscimos" (toda linha da main continua lá, na mesma ordem), como no preço; a visibilidade do Recreate é guardada por
+  // scripts/test-recreate-movimento-1411.mjs e scripts/test-recreate-trava-1011.mjs.
+  if (rel === 'lib/recreate/access.ts') {
+    const cur = read(rel).split('\n')
+    let k = 0
+    ok(m !== null && m.split('\n').every((line) => { while (k < cur.length && cur[k] !== line) k++; if (k >= cur.length) return false; k++; return true }), `${rel}: só acréscimos em relação à main`)
+    continue
+  }
   ok(m !== null && m === read(rel), `${rel} idêntico à main`)
 }
 const cpMain = main(FILES.cp)
