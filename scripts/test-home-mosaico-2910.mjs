@@ -13,7 +13,7 @@ let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ', m) } else { fail++; console.log('  FALHA', m) } }
 
-function problems(landing, mosaic) {
+function problems(landing, mosaic, fluxo = FLUXO_RECREATE) {
   const p = []
   if (!/export const HOME_MOSAIC_LIVE = true/.test(mosaic)) p.push('interruptor desligado')
   if (!landing.includes("import HomeMosaic, { HOME_MOSAIC_LIVE } from '@/components/home/HomeMosaic'")) p.push('import ausente')
@@ -37,7 +37,10 @@ function problems(landing, mosaic) {
   // KINEO-EFEITO-DIRETO-1011 [fundador 10/11: "Tá caindo nessa página aqui, que era anterior"] — o cartão de efeito vai DIRETO ao Recreate (visitante
   // via cadastro); a página do efeito só como volta do interruptor ou fora do catálogo; a medição mosaic_effect_<key> é a mesma (comportamento em test-clipes-nos-2-lugares-0411)
   if (!mosaic.includes('<Link key={e.key} href={effectCardHref(e, signedIn)} className="kmz-t" data-home-cta={`mosaic_effect_${e.key}`}')) p.push('cartão de efeito não usa o destino direto ou mudou a medição')
-  if (!mosaic.includes('const recreate = publicRecreatePath(`effect-${effectSlug(e)}`)') || !mosaic.includes('return recreate ? recreateEntryHref(`effect-${effectSlug(e)}`, signedIn)! : effectPagePath(effectSlug(e))') || !ENTRADA_RECREATE.includes("signedIn || (RECREATE_FLOW_ENABLED && publicRecreatePath(id)) ? path : '/signup?' + new URLSearchParams({ redirect: path }).toString()") || !FLUXO_RECREATE.includes('export const RECREATE_FLOW_ENABLED = false')) p.push('efeito sem Recreate direto, sem cadastro ou sem a volta do interruptor')
+  if (!mosaic.includes('const recreate = publicRecreatePath(`effect-${effectSlug(e)}`)') || !mosaic.includes('return recreate ? recreateEntryHref(`effect-${effectSlug(e)}`, signedIn)! : effectPagePath(effectSlug(e))') || !ENTRADA_RECREATE.includes("signedIn || (RECREATE_FLOW_ENABLED && publicRecreatePath(id)) ? path : '/signup?' + new URLSearchParams({ redirect: path }).toString()")) p.push('efeito sem Recreate direto, sem cadastro ou sem a volta do interruptor')
+  // KINEO-M12-LIGA-1411 [CEO 14/11] — o fluxo novo está LIGADO: o visitante vai direto ao molde aprovado e a conta vem no Generate. A função acima
+  // continua mandando ao cadastro quando o interruptor desliga (a volta), e o mutante "fluxo desligado" abaixo prova que isto é conferido.
+  if (!fluxo.includes('export const RECREATE_FLOW_ENABLED = true')) p.push('fluxo novo do Recreate desligado: o visitante voltou a passar pelo cadastro antes do molde')
   return p
 }
 
@@ -45,6 +48,7 @@ const LANDING = rd('app/KineoLanding.tsx')
 const MOSAIC = rd('components/home/HomeMosaic.tsx')
 // KINEO-M12-PREVIA-1411 [CEO 14/11, reancoragem sem afrouxar] — o cartão de Recreate e o de efeito passaram a chamar recreateEntryHref (Missão 12 do GPT).
 // O que o guardião protege continua igual: com o interruptor do fluxo novo DESLIGADO, o visitante vai ao cadastro. Por isso ele lê também a função e o interruptor.
+// KINEO-M12-LIGA-1411 — desde a ligação, o interruptor tem de estar LIGADO (visitante direto ao molde); a regra de volta na função segue conferida.
 const ENTRADA_RECREATE = rd('lib/recreate/entry.ts')
 const FLUXO_RECREATE = rd('lib/recreate/flowRelease.ts')
 const errs = problems(LANDING, MOSAIC)
@@ -77,6 +81,7 @@ mut('efeito sem a volta do interruptor', LANDING, MOSAIC.replace(': effectPagePa
 mut('efeito ignora o interruptor', LANDING, MOSAIC.replace('publicRecreatePath(`effect-${effectSlug(e)}`)', '`/recreate/effect-${effectSlug(e)}`')) // KINEO-EFEITO-DIRETO-1011
 mut('medição do efeito muda', LANDING, MOSAIC.replace('data-home-cta={`mosaic_effect_${e.key}`}', 'data-home-cta="mosaic_effect"')) // KINEO-EFEITO-DIRETO-1011
 mut('2 respostas diretas', LANDING + '\n<CitationDirectAnswer page="home" />', MOSAIC)
+ok(problems(LANDING, MOSAIC, FLUXO_RECREATE.replace('RECREATE_FLOW_ENABLED = true', 'RECREATE_FLOW_ENABLED = false')).length > 0 && FLUXO_RECREATE.includes('RECREATE_FLOW_ENABLED = true'), 'M fluxo do Recreate desligado: vermelho') // KINEO-M12-LIGA-1411
 
 console.log(`${pass} ok, ${fail} falha(s)`)
 process.exit(fail ? 1 : 0)

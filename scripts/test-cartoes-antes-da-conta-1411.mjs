@@ -151,6 +151,25 @@ function bateria(over = {}, o = {}) {
   const noCadastro = logado.filter((h) => h.startsWith('/signup?redirect=') && ['filme', 'anuncio', 'cartoon'].includes(tipo(h)))
   if (noCadastro.length) { console.error('FALHA\nC. logado com cartão no cadastro: ' + noCadastro.slice(0, 3).join(' | ')); process.exit(1) }
 }
+// E. KINEO-M12-LIGA-1411 [CEO 14/11, dono: "onde coloca a imagem, onde aperta generate"] — com RECREATE_FLOW_ENABLED ligado, o cartão de Recreate do
+// VISITANTE vai DIRETO ao molde do catálogo (/recreate/<id> aprovado) e a conta vem só no Generate. Logado: o mesmo link de sempre. Mutante: a volta ao desligado.
+const FLUXO = 'lib/recreate/flowRelease.ts'
+function recreateDireto(htmlV, htmlL) {
+  const entry = loader({})('lib/recreate/entry')
+  const v = hrefs(htmlV).filter((h) => tipo(h) === 'recreate'), l = hrefs(htmlL).filter((h) => tipo(h) === 'recreate')
+  if (v.length !== 13) return 'visitante com ' + v.length + ' cartões de Recreate (esperado 13)'
+  const ruins = v.filter((h) => !/^\/recreate\/[a-z0-9-]+$/.test(h) || entry.publicRecreatePath(h.slice('/recreate/'.length)) !== h)
+  if (ruins.length) return 'cartão de Recreate do visitante fora do molde aprovado ou via cadastro: ' + ruins.slice(0, 3).join(' | ')
+  if (l.length !== 13 || l.some((h) => h.startsWith('/signup'))) return 'logado perdeu o link direto do Recreate'
+  return null
+}
+{
+  const e = recreateDireto(htmlVisitante, htmlLogado)
+  if (e) { console.error('FALHA\nE. ' + e); process.exit(1) }
+  const desligado = { [FLUXO]: lf(FLUXO).replace('RECREATE_FLOW_ENABLED = true', 'RECREATE_FLOW_ENABLED = false') }
+  if (desligado[FLUXO] === lf(FLUXO) || !recreateDireto(home(desligado, false), home(desligado, true))) { console.error('MUTANTE VIVO: interruptor do Recreate desligado'); process.exit(1) }
+  console.log('ok E. visitante: 13 cartões de Recreate direto ao molde, conta no Generate; mutante "interruptor desligado" vermelho')
+}
 const antes = loader({}, { [V]: mainSrc(V) })('lib/growth/visitanteEscreveAntes')
 const real = bateria({}, { antes })
 if (real.length) { console.error('FALHA\n' + real.join('\n')); process.exit(1) }

@@ -93,7 +93,7 @@ catalogChecks()
 const noIO = () => { throw new Error('Unexpected paid or database I/O') }
 let user = null
 const sessionStub = { '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user } }) } }) }, 'server-only': {}, '@/lib/clips/clipServer': {}, '@/lib/engineLaunch': { enginePaused: () => null } }
-async function routeChecks(overrides) {
+async function routeChecks(overrides, expectFlowOn = false) {
   const swapPublic = /RECREATE_SWAP_RELEASE: InternalRelease = 'public'/.test(overrides['lib/recreate/release.ts'] ?? releaseSrc)
   const server = loader(sessionStub, overrides)('lib/recreate/server')
   const api = loader({ '@/lib/recreate/server': { ...server, recreateSubmitDeps: noIO }, '@/lib/clips/clipServer': { clipsAdmin: noIO, loadClipAccount: noIO, engineAccessFor: noIO }, '@/lib/serverEvents': { writeServerEvent: noIO }, '@/app/api/admin/_shared/mrr': { isPayingPlan: noIO } }, overrides)('app/api/recreate/route')
@@ -127,7 +127,10 @@ async function routeChecks(overrides) {
   ok(houseCatalog.find(q => q.id === 'escolha-o-favorito').credits === 45 && houseCatalog.find(q => q.id === 'passarela').credits === 40, 'GET da casa: 8 s = 45, 10 s = 40')
   // Páginas.
   const nav = { 'next/navigation': { redirect: href => { throw Error('redirect:' + href) }, notFound: () => { throw Error('not-found') } } }
-  const pages = loader({ ...nav, '@/lib/recreate/server': server }, overrides)
+  // KINEO-M12-LIGA-1411 — com o fluxo novo ligado, /recreate/<id> monta RecreateFlowPage (que lê a apresentação do servidor, 'server-only'): mesmo dublê de sessionStub.
+  const pages = loader({ ...nav, '@/lib/recreate/server': server, 'server-only': {} }, overrides)
+  const flowOn = loader({}, overrides)('lib/recreate/flowRelease').RECREATE_FLOW_ENABLED === true
+  if (expectFlowOn) ok(flowOn, 'produção: fluxo novo do Recreate ligado (visitante abre o molde aprovado antes da conta)')
   const idPage = pages('app/recreate/[id]/page').default
   user = { id: U, email: CUSTOMER }
   await assert.rejects(idPage({ params: { id: 'outfit-morph' } }), /not-found/); passed++
@@ -140,8 +143,15 @@ async function routeChecks(overrides) {
   else { await assert.rejects(idPage({ params: { id: 'passarela' } }), /not-found/); passed++ }
   user = null
   await assert.rejects(idPage({ params: { id: 'outfit-morph' } }), /not-found/); passed++ // troca não aprovada nunca convida para cadastro
-  await assert.rejects(idPage({ params: { id: 'effect-kiss' } }), e => new URL(e.message.slice(9), 'https://fixture').searchParams.get('redirect') === '/recreate/effect-kiss'); passed++
-  if (swapPublic) { await assert.rejects(idPage({ params: { id: 'escolha-o-favorito' } }), e => e.message.startsWith('redirect:') && new URL(e.message.slice(9), 'https://fixture').searchParams.get('redirect') === '/recreate/escolha-o-favorito'); passed++ }
+  if (flowOn) {
+    // KINEO-M12-LIGA-1411 — ligado: o visitante abre o molde aprovado no editor, sem conta; o cadastro vem só no Generate (nunca convite para troca não aprovada, abaixo).
+    const guestKiss = (await idPage({ params: { id: 'effect-kiss' } })).props
+    ok(guestKiss.currentFlow === true && guestKiss.signedIn === false && guestKiss.initialId === 'effect-kiss' && guestKiss.formatIds.every(id => !UNAPPROVED.includes(id)), 'visitante abre o efeito no editor antes da conta, sem troca não aprovada')
+    if (swapPublic) { const g = (await idPage({ params: { id: 'escolha-o-favorito' } })).props; ok(g.currentFlow === true && g.signedIn === false && g.initialId === 'escolha-o-favorito', 'visitante abre a troca aprovada no editor antes da conta') }
+  } else {
+    await assert.rejects(idPage({ params: { id: 'effect-kiss' } }), e => new URL(e.message.slice(9), 'https://fixture').searchParams.get('redirect') === '/recreate/effect-kiss'); passed++
+    if (swapPublic) { await assert.rejects(idPage({ params: { id: 'escolha-o-favorito' } }), e => e.message.startsWith('redirect:') && new URL(e.message.slice(9), 'https://fixture').searchParams.get('redirect') === '/recreate/escolha-o-favorito'); passed++ }
+  }
   for (const id of UNAPPROVED) { await assert.rejects(idPage({ params: { id } }), /not-found/); passed++ }
   user = { id: U, email: HOUSE }
   ok((await idPage({ params: { id: 'passarela' } })).props.formatIds.includes('passarela'), 'casa abre o formato em teste')
@@ -156,7 +166,11 @@ async function routeChecks(overrides) {
   ok(got.status === 200 && got.headers.get('content-type') === 'image/jpeg', 'casa recebe o pôster novo')
 }
 await routeChecks(release('public', 'internal'))
-await routeChecks({}) // KINEO-RECREATE-ABRE-1011 — o estado real de produção (os dois public)
+await routeChecks({}, true) // KINEO-RECREATE-ABRE-1011 — o estado real de produção (os dois public); KINEO-M12-LIGA-1411 — e o fluxo novo ligado
+// KINEO-M12-LIGA-1411 — a volta (fluxo desligado) segue testada: visitante via cadastro. E o mutante "fluxo desligado em produção" fica vermelho.
+const flowOff = { 'lib/recreate/flowRelease.ts': read('lib/recreate/flowRelease.ts').replace('RECREATE_FLOW_ENABLED = true', 'RECREATE_FLOW_ENABLED = false') }
+await routeChecks(flowOff)
+await assert.rejects(routeChecks(flowOff, true), /produção: fluxo novo do Recreate ligado/); passed++; console.log('ok mutante: fluxo novo desligado em produção -> vermelho')
 
 // Arquivos novos, pôsteres, quadros da trava e o rastreio do next.config.
 const assetsDir = join(ROOT, 'lib/recreate/assets')

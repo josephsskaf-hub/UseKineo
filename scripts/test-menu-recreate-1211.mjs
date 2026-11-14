@@ -106,7 +106,9 @@ function checks(o = {}) {
   }
   ok(!ids.some(id => unapproved.includes(id)), 'catálogo: nenhuma troca em teste / não aprovada')
   ok(new Set(ids).size === ids.length, 'catálogo: sem repetido')
-  ok(items.every(i => i.href === '/signup?' + new URLSearchParams({ redirect: '/recreate/' + i.id }).toString()), 'catálogo: cada cartão leva ao fluxo do próprio modelo (cadastro → /recreate/<id>)')
+  // KINEO-M12-LIGA-1411 [CEO 14/11] — fluxo novo LIGADO: o cartão leva o visitante DIRETO ao próprio molde; a conta vem só no Generate.
+  // Mutante "fluxo desligado" abaixo: a volta ao cadastro antes do molde fica vermelha aqui.
+  ok(load('lib/recreate/flowRelease').RECREATE_FLOW_ENABLED === true && items.every(i => i.href === '/recreate/' + i.id), 'catálogo: cada cartão leva direto ao fluxo do próprio modelo (/recreate/<id>; conta no Generate)')
   ok(items.every(i => !i.video.startsWith('/api/') && !i.poster.startsWith('/api/')), 'catálogo: mídia pública (o /api/recreate/assets exige login)')
   ok(items.every(i => existsSync(join(ROOT, 'public', i.video.split('#')[0])) && existsSync(join(ROOT, 'public', i.poster))), 'catálogo: todo vídeo e pôster existe em public/')
 
@@ -147,6 +149,7 @@ const mutants = {
   'texto de 10 px': { 'app/recreate/RecreateCatalogPublic.tsx': read('app/recreate/RecreateCatalogPublic.tsx').replace('font-size:15px', 'font-size:10px') },
   'vídeo toca sozinho': { 'app/recreate/RecreateCatalogPublic.tsx': read('app/recreate/RecreateCatalogPublic.tsx').replace('muted loop playsInline', 'muted loop autoPlay playsInline') },
   'lateral sem Recreate': { 'lib/ui/workspaceNavigation.ts': read('lib/ui/workspaceNavigation.ts').replace('CARTOON_NAV, RECREATE_NAV, ...last', 'CARTOON_NAV, ...last') },
+  'fluxo novo desligado (cartão volta ao cadastro antes do molde)': { 'lib/recreate/flowRelease.ts': read('lib/recreate/flowRelease.ts').replace('RECREATE_FLOW_ENABLED = true', 'RECREATE_FLOW_ENABLED = false') }, // KINEO-M12-LIGA-1411
   'visitante volta a ir direto ao cadastro': { 'app/recreate/page.tsx': read('app/recreate/page.tsx').replace('<RecreateCatalogPublic items={publicRecreateCatalog()} />', "redirect('/signup?')") },
 }
 let red = 0
