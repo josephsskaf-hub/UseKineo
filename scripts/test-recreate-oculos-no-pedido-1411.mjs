@@ -92,7 +92,7 @@ async function bateria(over = {}) {
     if ((sys.match(/"wears_glasses": "yes"\|"no"\|"unclear"/g) ?? []).length !== 2) throw new Error('a visão não pergunta dos óculos do vídeo e da foto')
     if (!/Never identify anyone/.test(sys)) throw new Error('sistema')
     const c = (over[CHECK] ?? lf(CHECK)).replace(/\/\/[^\n]*/g, '')
-    if (!c.includes("texto.descricoes.some(Boolean) || texto.oculos.some(Boolean) || (!genders && texto.generoDe === 'sugestao')") || !/oculos: texto\.oculos \}/.test(c)) throw new Error('/check')
+    if (!c.includes("texto.descricoes.some(Boolean) || texto.oculos.some(Boolean) || (!genders && texto.generoDe === 'sugestao')") || !/oculos: texto\.oculos[ ,}]/.test(c)) throw new Error('/check') // reancorado KINEO-RECREATE-ALVO-POR-QUADROS-1411 (+ candidatos no evento)
     if ((c.match(/montarTextoDoPedido\(/g) ?? []).length !== 1) throw new Error('mais de uma montagem (chamada a mais)')
   })
   return p

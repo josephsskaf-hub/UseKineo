@@ -14,7 +14,7 @@ export type FonteDoTexto = 'tela' | 'visao' | 'tela_e_visao' | 'sugestao' | 'pad
 export const TEXTO_DO_PEDIDO_EVENTO = 'recreate_seu_video_prompt' as const
 export const TEXTO_DO_PEDIDO_VERSAO = 'texto_do_pedido_1311_v1' as const
 export const VISAO_TIMEOUT_MS = 12_000
-export const MAX_PALAVRAS_DESCRICAO = 8
+export const MAX_PALAVRAS_DESCRICAO = 12 // KINEO-RECREATE-ALVO-POR-QUADROS-1411 — era 8: a roupa de cima E de baixo (pedido 7) não cabia ("the man in the dark navy long-sleeve shirt and dark trousers" = 11)
 
 /** Palavras que NÃO são roupa nem posição: identidade, origem, pele, idade, corpo, fama. Descrição com uma delas é descartada. */
 const PROIBIDAS = /\b(skin|race|racial|ethnic\w*|asian|african|black[- ]skinned|white[- ]skinned|caucasian|latin[oa]|hispanic|arab\w*|indian|jewish|muslim|christian|celebrity|famous|actor|actress|singer|rapper|athlete|player\s+\d+|named|called|old|young|elderly|aged|teen\w*|child|kid|baby|girl|boy|fat|thin|skinny|slim|chubby|overweight|beautiful|pretty|handsome|ugly|sexy|tattoo\w*)\b/i
@@ -25,9 +25,12 @@ export function generoValido(v: unknown): Genero | null {
   return t === 'man' || t === 'male' ? 'man' : t === 'woman' || t === 'female' ? 'woman' : null
 }
 
+// KINEO-RECREATE-ALVO-POR-QUADROS-1411 [CEO 14/11, pedido 7: clip d379ec6e, "the person in red shirt on ground"] — a POSE de um instante nunca descreve o alvo: o motor procura
+// no vídeo inteiro. "on the ground", "lying", "sitting"… saem da descrição; sobra a roupa (o que não muda).
+const POSE = /\b(?:(?:lying|sitting|seated|kneeling|standing|running|falling|fallen|rolling)\s+)?(?:on|across)\s+(?:the\s+)?(?:ground|floor|grass|field|pitch)\b|\b(?:lying|sitting|seated|kneeling|crouching|falling|fallen|jumping|laughing|smiling)(?:\s+down)?\b/gi
 /** A descrição que entra no texto: "the …", até 8 palavras, só roupa e posição. null = descartada (o texto usa a posição de hoje). */
 export function descricaoLimpa(v: unknown): string | null {
-  let t = typeof v === 'string' ? v.replace(/[^\p{L}\p{N} ,'-]/gu, ' ').replace(/\s+/g, ' ').trim().toLowerCase() : ''
+  let t = typeof v === 'string' ? v.replace(POSE, ' ').replace(/[^\p{L}\p{N} ,'-]/gu, ' ').replace(/\s+/g, ' ').replace(/[ ,]+$/, '').trim().toLowerCase() : '' // KINEO-RECREATE-ALVO-POR-QUADROS-1411 — + sem pose
   if (!t || /\d/.test(t) || PROIBIDAS.test(t)) return null
   if (!/^the\s/.test(t)) t = 'the ' + t
   const palavras = t.split(' ')
@@ -72,9 +75,11 @@ export function textoComGenero(a: { fotos: number; generos: ReadonlyArray<Genero
   return trocas + ' ' + TAIL
 }
 
-/** As mensagens da visão: UM quadro do vídeo + as fotos. Pede roupa/posição e homem/mulher; proíbe identificar. */
-export function mensagensDaVisao(quadro: string, fotos: string[], pessoas: number) {
+/** As mensagens da visão: os quadros do vídeo (1 = o texto de antes, byte a byte; 2 a 3 = KINEO-RECREATE-ALVO-POR-QUADROS-1411) + as fotos. Pede roupa/posição e homem/mulher; proíbe identificar. */
+export function mensagensDaVisao(quadro: string | readonly string[], fotos: string[], pessoas: number) {
   const n = Math.min(3, Math.max(1, pessoas))
+  const quadros = (typeof quadro === 'string' ? [quadro] : quadro).filter((q) => typeof q === 'string' && q.length > 0).slice(0, 3)
+  if (quadros.length > 1) return mensagensDosQuadros(quadros, fotos, n)
   const system =
     'You describe a video frame and reference photos for a video-editing instruction. Never identify anyone, never name anyone, never guess ' +
     'who anyone is, and never mention age, ethnicity, skin, body shape or attractiveness. Describe people ONLY by visible clothing and position ' +
@@ -90,8 +95,59 @@ export function mensagensDaVisao(quadro: string, fotos: string[], pessoas: numbe
   const img = (url: string): Img => ({ type: 'image_url', image_url: { url, detail: 'low' } })
   return [
     { role: 'system' as const, content: system },
-    { role: 'user' as const, content: [{ type: 'text' as const, text }, img(quadro), ...fotos.map(img)] },
+    { role: 'user' as const, content: [{ type: 'text' as const, text }, img(quadros[0] ?? ''), ...fotos.map(img)] },
   ]
+}
+
+// ═══ KINEO-RECREATE-ALVO-POR-QUADROS-1411 [CEO 14/11, pedido 7] — o alvo pelo vídeo, não por um instante ═══════════════════════════════════════════════════════
+// Caso: clip d379ec6e (molde "invasor de campo", 8 s). A visão viu UM quadro (35%), em que o homem de azul-marinho e o jogador de vermelho estavam
+// no chão, e descreveu o jogador ("the person in red shirt on ground"). O motor não trocou ninguém (swap_unchanged, US$ 1,51 nossos).
+// Agora, na MESMA chamada: 3 quadros (~10%, 50% e 90%); o alvo é quem aparece em MAIS quadros e, no empate, o maior e mais central no conjunto;
+// a descrição usa o que não muda (roupa de cima e de baixo, cor), nunca a pose. Dois ou mais candidatos plausíveis: a lista (até 3) e o
+// escolhido, para a tela deixar trocar; sem escolha = o texto neutro de antes, nunca um chute.
+export const MAX_CANDIDATOS = 3
+function mensagensDosQuadros(quadros: readonly string[], fotos: string[], n: number) {
+  const k = quadros.length
+  const system =
+    'You describe frames of ONE video and reference photos for a video-editing instruction. Never identify anyone, never name anyone, never guess ' +
+    'who anyone is, and never mention age, ethnicity, skin, body shape or attractiveness. Describe people ONLY by the clothing that stays the same ' +
+    'in the whole video: the top and the bottom and their colours (for example: "the man in the dark navy long-sleeve shirt and dark trousers", ' +
+    '"the woman in the red dress"). NEVER describe a pose or an action of one moment (no "on the ground", "lying", "sitting", "running", "falling"). ' +
+    `Reply ONLY with JSON: {"video_people":[{"person": 1-based index, "description": "max ${MAX_PALAVRAS_DESCRICAO} words, clothing only", "wears_glasses": "yes"|"no"|"unclear"}], ` +
+    (n === 1 ? `"candidates":[{"description": "max ${MAX_PALAVRAS_DESCRICAO} words, clothing only"}], "chosen": index in candidates (1-based) or 0, ` : '') +
+    '"photos":[{"photo": 1-based index, "presents_as": "man"|"woman"|"unclear", "wears_glasses": "yes"|"no"|"unclear"}]}. ' +
+    '"wears_glasses" is about eyeglasses or sunglasses on the face; answer "unclear" when the face is small, turned away or hidden.'
+  const quando = k === 3 ? 'about 10%, 50% and 90%' : 'two moments'
+  const text = [
+    `Images 1 to ${k} are frames of the SAME video, at ${quando} of its length, in order.`,
+    n === 1
+      ? 'The TARGET is the person who appears in the MOST of these frames; on a tie, the one who is the largest and most central across the frames. Describe the target as person 1. ' +
+        `If two or more people are equally plausible targets, list them in "candidates" (up to ${MAX_CANDIDATOS}, the target first) and set "chosen" to 1; if you cannot pick one, set "chosen" to 0. With one clear target, "candidates" has only that person.`
+      : `Describe the ${n} main people of the video (the ones present in the most frames), person 1 the LEFTMOST.`,
+    fotos.length ? `Then ${fotos.map((_, i) => `image ${i + 1 + k} is reference photo ${i + 1}`).join(', ')}: say if the person in each photo presents as a man or a woman.` : '',
+  ].filter(Boolean).join('\n')
+  type Img = { type: 'image_url'; image_url: { url: string; detail: 'low' } }
+  const img = (url: string): Img => ({ type: 'image_url', image_url: { url, detail: 'low' } })
+  return [
+    { role: 'system' as const, content: system },
+    { role: 'user' as const, content: [{ type: 'text' as const, text }, ...quadros.map(img), ...fotos.map(img)] },
+  ]
+}
+/** Os candidatos a alvo e o escolhido (1-based; 0 = sem escolha; null = a resposta não trouxe). Nunca lança. */
+export function lerCandidatos(data: unknown): { candidatos: string[]; escolhido: number | null } {
+  const msg = (data as { choices?: Array<{ message?: { content?: unknown } }> })?.choices?.[0]?.message
+  let p: unknown
+  try { p = JSON.parse(typeof msg?.content === 'string' ? msg.content : '') } catch { return { candidatos: [], escolhido: null } }
+  if (!p || typeof p !== 'object') return { candidatos: [], escolhido: null }
+  const lista = Array.isArray((p as { candidates?: unknown }).candidates) ? (p as { candidates: unknown[] }).candidates : []
+  const candidatos: string[] = []
+  for (const c of lista) {
+    const d = descricaoLimpa(c && typeof c === 'object' ? (c as { description?: unknown }).description : c)
+    if (d && !candidatos.includes(d) && candidatos.length < MAX_CANDIDATOS) candidatos.push(d)
+  }
+  const bruto = (p as { chosen?: unknown }).chosen
+  const e = typeof bruto === 'number' ? bruto : typeof bruto === 'string' && /^\s*\d\s*$/.test(bruto) ? Number(bruto) : NaN
+  return { candidatos, escolhido: Number.isInteger(e) ? e : null }
 }
 
 /** A resposta da visão → descrições e gêneros (o que não serve vira null). Nunca lança. */
@@ -115,6 +171,8 @@ export function lerRespostaDaVisao(data: unknown, pessoas: number, fotos: number
 export interface IoDoTexto {
   /** UM quadro do vídeo do cliente (URL jpg), com o custo; null = sem quadro. */
   quadro: () => Promise<{ url: string; usd: number } | null>
+  /** KINEO-RECREATE-ALVO-POR-QUADROS-1411 — 3 quadros (~10%, 50%, 90%) na MESMA chamada de visão; quando existe, ganha do `quadro`. */
+  quadros?: () => Promise<{ urls: string[]; usd: number } | null>
   /** A chamada de visão (o JSON da OpenAI e o custo). null = falhou. */
   visao: (mensagens: ReturnType<typeof mensagensDaVisao>) => Promise<{ data: unknown; usd: number } | null>
 }
@@ -127,6 +185,12 @@ export interface TextoDoPedido {
   generoDe: 'tela' | 'sugestao' | 'nenhum'
   /** KINEO-RECREATE-OCULOS-NO-PEDIDO-1411 — por pessoa: 'usar' (os óculos da foto), 'tirar' (a pessoa do vídeo usa, a da foto não) ou null (sem certeza: nada no texto). */
   oculos: Array<Oculos | null>
+  /** KINEO-RECREATE-ALVO-POR-QUADROS-1411 — com 1 pessoa e 2 ou mais alvos plausíveis: as descrições (até 3) para a tela deixar trocar; senão []. */
+  candidatos: string[]
+  /** O índice (0-based) do candidato que está no texto; null = nenhum (o texto saiu neutro). */
+  escolhido: number | null
+  /** Quantos quadros a visão viu. */
+  quadros: number
 }
 
 /**
@@ -161,15 +225,31 @@ export async function montarTextoDoPedido(io: IoDoTexto, a: { pessoas: number; f
   let sugestao: Array<Genero | null> = Array.from({ length: n }, () => null)
   let oculos: Array<Oculos | null> = Array.from({ length: n }, () => null) // KINEO-RECREATE-OCULOS-NO-PEDIDO-1411
   let visao: TextoDoPedido['visao'] = 'falhou'
+  let candidatos: string[] = [] // KINEO-RECREATE-ALVO-POR-QUADROS-1411
+  let escolhido: number | null = null
+  let vistos = 0
   try {
-    const q = await io.quadro()
-    if (q) {
+    // KINEO-RECREATE-ALVO-POR-QUADROS-1411 — 3 quadros quando o io sabe dar; senão o quadro único de antes (o texto e as mensagens, byte a byte).
+    const q = io.quadros ? await io.quadros() : await io.quadro().then((u) => (u ? { urls: [u.url], usd: u.usd } : null))
+    if (q && q.urls.length) {
       usd += q.usd
-      const r = await io.visao(mensagensDaVisao(q.url, fotos, n))
+      vistos = Math.min(3, q.urls.length)
+      const r = await io.visao(mensagensDaVisao(q.urls.length > 1 ? q.urls : q.urls[0], fotos, n))
       if (r) {
         usd += r.usd
         const lido = lerRespostaDaVisao(r.data, n, fotos.length)
         if (lido) { descricoes = lido.descricoes; sugestao = Array.from({ length: n }, (_, i) => lido.generos[i] ?? null); oculos = Array.from({ length: n }, (_, i) => (i < fotos.length ? decidirOculos(lido.oculosNoVideo[i], lido.oculosNaFoto[i]) : null)); visao = 'ok' }
+        // KINEO-RECREATE-ALVO-POR-QUADROS-1411 — 1 pessoa e 2 ou mais candidatos: o texto usa o ESCOLHIDO; sem escolha, o texto neutro (sem descrição, sem óculos), nunca um chute.
+        if (lido && n === 1 && vistos > 1) {
+          const c = lerCandidatos(r.data)
+          if (c.candidatos.length >= 2) {
+            candidatos = c.candidatos
+            const i = c.escolhido !== null && c.escolhido >= 1 && c.escolhido <= c.candidatos.length ? c.escolhido - 1 : null
+            escolhido = i
+            descricoes = [i === null ? null : c.candidatos[i]]
+            if (i === null) oculos = [null]
+          } else if (c.candidatos.length === 1 && !descricoes[0]) descricoes = [c.candidatos[0]]
+        }
       }
     }
   } catch {
@@ -181,11 +261,11 @@ export async function montarTextoDoPedido(io: IoDoTexto, a: { pessoas: number; f
   const temDescricao = descricoes.some((d) => d) || oculos.some((o) => o) // KINEO-RECREATE-OCULOS-NO-PEDIDO-1411 — os óculos também são algo que a visão acrescenta
   if (telaCompleta) {
     const prompt = textoComGenero({ fotos: n, generos: daTela, descricoes, posicoes: a.posicoes, oculos }) as string
-    return { prompt, fonte: temDescricao ? 'tela_e_visao' : 'tela', usd, visao, generos: daTela, descricoes, sugestao, generoDe: 'tela', oculos }
+    return { prompt, fonte: temDescricao ? 'tela_e_visao' : 'tela', usd, visao, generos: daTela, descricoes, sugestao, generoDe: 'tela', oculos, candidatos, escolhido, quadros: vistos }
   }
   if (sugestaoCompleta) {
     const prompt = textoComGenero({ fotos: n, generos: sugestao, descricoes, posicoes: a.posicoes, oculos }) as string
-    return { prompt, fonte: 'sugestao', usd, visao, generos: sugestao, descricoes, sugestao, generoDe: 'sugestao', oculos }
+    return { prompt, fonte: 'sugestao', usd, visao, generos: sugestao, descricoes, sugestao, generoDe: 'sugestao', oculos, candidatos, escolhido, quadros: vistos }
   }
-  return { prompt: textoNeutroComDescricao(n, descricoes, a.posicoes, oculos), fonte: temDescricao ? 'visao' : 'padrao', usd, visao, generos: daTela, descricoes, sugestao, generoDe: 'nenhum', oculos }
+  return { prompt: textoNeutroComDescricao(n, descricoes, a.posicoes, oculos), fonte: temDescricao ? 'visao' : 'padrao', usd, visao, generos: daTela, descricoes, sugestao, generoDe: 'nenhum', oculos, candidatos, escolhido, quadros: vistos }
 }

@@ -7,7 +7,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { releaseVisible } from './access'
 import { recreateSession } from './server'
 import { submitDepsFor, type ClipAccount } from '@/lib/clips/clipServer'
-import { extractCheckFrames, intervaloPara } from './swapCheck' // KINEO-RECREATE-TEXTO-DO-PEDIDO-1311
+import { extractCheckFrames, extractInstantFrames, intervaloPara } from './swapCheck' // KINEO-RECREATE-TEXTO-DO-PEDIDO-1311 · KINEO-RECREATE-ALVO-POR-QUADROS-1411
 import { VISAO_TIMEOUT_MS, type IoDoTexto } from './textoDoPedido' // KINEO-RECREATE-TEXTO-DO-PEDIDO-1311
 import { AI_TEXT_MODELS } from '@/lib/aiModels' // KINEO-RECREATE-TEXTO-DO-PEDIDO-1311
 import { usdFromUsage } from '@/lib/regua95/coherenceV2' // KINEO-RECREATE-TEXTO-DO-PEDIDO-1311
@@ -86,6 +86,15 @@ export function ioDoTextoReal(videoUrl: string, meta: MetaDoVideo): IoDoTexto {
     quadro: async () => {
       const r = await extractCheckFrames(videoUrl, {}, intervaloPara(meta.segundos * 0.35, meta.fps))
       return r.frames ? { url: r.frames[0], usd: r.usd } : null
+    },
+    // KINEO-RECREATE-ALVO-POR-QUADROS-1411 — 3 quadros (~10%, 50%, 90%) numa extração só: o extrator dá os quadros n, 2n … 9n com n = 10% da duração; ficam o 1º, o 5º e o 9º.
+    // Menos de 3 vieram = o 1º, o do meio e o último que vieram.
+    quadros: async () => {
+      const r = await extractInstantFrames(videoUrl, {}, intervaloPara(meta.segundos * 0.1, meta.fps), 9)
+      if (!r.frames) return null
+      const f = r.frames
+      const urls = f.length >= 9 ? [f[0], f[4], f[8]] : f.length >= 3 ? [f[0], f[Math.floor((f.length - 1) / 2)], f[f.length - 1]] : f.slice(0, 2)
+      return { urls, usd: r.usd }
     },
     visao: async (mensagens) => {
       const key = process.env.OPENAI_API_KEY

@@ -107,7 +107,7 @@ const real = await bateria()
 if (real.length) { console.error('FALHA\n' + real.join('\n')); process.exit(1) }
 const t = lf(TXT), ch = lf(CHECK)
 const mutantes = [
-  ['fotos não vão à visão', { [TXT]: t.replace('mensagensDaVisao(q.url, fotos, n)', 'mensagensDaVisao(q.url, [], n)') }],
+  ['fotos não vão à visão', { [TXT]: t.replace('mensagensDaVisao(q.urls.length > 1 ? q.urls : q.urls[0], fotos, n)', 'mensagensDaVisao(q.urls.length > 1 ? q.urls : q.urls[0], [], n)') }], // reancorado KINEO-RECREATE-ALVO-POR-QUADROS-1411
   ['sugestão ganha da tela', { [TXT]: t.replace('  if (telaCompleta) {', '  if (telaCompleta && !sugestaoCompleta) {') }],
   ['sugestão incompleta escreve gênero', { [TXT]: t.replace('const sugestaoCompleta = sugestao.every((g) => g !== null)', 'const sugestaoCompleta = sugestao.some((g) => g !== null)') }],
   ['descrição fora do molde da tela', { [TXT]: t.replace("gs[i] === 'man' ? 'he' : 'she') + '.'", "gs[i] === 'man' ? 'he' : 'she') + '!'") }], // reancorado KINEO-RECREATE-OCULOS-NO-PEDIDO-1411: a frase ganhou a cláusula dos óculos antes do ponto
