@@ -224,7 +224,12 @@ export function recusaDoMotor(code: string | null | undefined): string | null {
 // ── Entrega B (CEO 13/11): o som ORIGINAL do vídeo do cliente volta pela montagem da casa (Creatomate, a mesma da marca dos clipes) ──────
 // Nada de som gerado e nada de ffmpeg no servidor. Falhou a montagem = o clipe sai mudo (como na Entrega A), nunca fica preso.
 /** ⚠ Interruptor: false = o clipe sai mudo, byte a byte a Entrega A. */
-export const SEU_VIDEO_SOM_ORIGINAL = true
+// KINEO-RECREATE-SOM-DESLIGA-1311 [CEO 13/11 22:05, prova paga pela nossa chave] — DESLIGADO: nas provas dos clipes 19e29401 e 28f2edcd a
+// montagem do som entregou a IMAGEM do vídeo ORIGINAL no lugar da saída do motor (SSIM entregue × origem = 0,99; entregue × saída do motor
+// = 0,90; os dois entregues idênticos entre si, SSIM 1,00). O elemento "audio" com um MP4 como fonte cobre o quadro com o vídeo do cliente.
+// Com false o clipe sai MUDO, que é a saída do motor (o som inventado pelo Kling já é removido por silenciarMp4). Só volta a true depois de a
+// montagem provar, com SSIM contra a saída do motor, que só o SOM do original entra.
+export const SEU_VIDEO_SOM_ORIGINAL = false
 /**
  * O som que entra na montagem: a URL do vídeo original, lida da impressão do pedido (submitClip grava [pedido, modelo, entrada da fal]).
  * Só o Seedance 2.5 e só o arquivo do PRÓPRIO dono no nosso bucket (recreate-uploads/<dono>/<uuid>.mp4|mov). Fora disso: null. Pura.
