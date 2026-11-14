@@ -18,6 +18,8 @@ function problems(landing, mosaic) {
   if (!/export const HOME_MOSAIC_LIVE = true/.test(mosaic)) p.push('interruptor desligado')
   if (!landing.includes("import HomeMosaic, { HOME_MOSAIC_LIVE } from '@/components/home/HomeMosaic'")) p.push('import ausente')
   if (!/<HomeMosaic signedIn=\{isSignedIn\}(?:\s|\/)/.test(landing)) p.push('vitrine não montada')
+  // KINEO-HOME-SEM-FAIXA-RECREATE-1411 [dono 14/11 04:38: "não gostei disso daí. Quero que coloque as novas coisas em cima"] — nada encaixado entre o topo e a grade
+  if (/HomeRecreateStrip|<HomeMosaic[^>]*afterTop=/.test(landing)) p.push('faixa encaixada no meio da vitrine de volta')
   if (!landing.includes('{!HOME_MOSAIC_LIVE && showClips && <HomeClipsStrip')) p.push('faixa de clipes antiga não fica atrás do interruptor')
   if (!landing.includes('{!HOME_MOSAIC_LIVE && trending.length >= 6')) p.push('"Made with Kineo — every engine" não sai')
   if (!landing.includes('{!HOME_MOSAIC_LIVE && <section className="home-more-tools"')) p.push('galeria antiga não fica atrás do interruptor')
@@ -57,6 +59,7 @@ ok(fs.readdirSync(path.join(ROOT, 'public/home-images')).length === old, '(3) pa
 
 const mut = (nome, l, m) => ok(problems(l, m).length > 0, `M ${nome}: vermelho`)
 mut('interruptor off', LANDING, MOSAIC.replace('HOME_MOSAIC_LIVE = true', 'HOME_MOSAIC_LIVE = false'))
+mut('faixa no meio volta', LANDING.replace('<HomeMosaic signedIn={isSignedIn} />', '<HomeMosaic signedIn={isSignedIn} afterTop={<Faixa />} />'), MOSAIC)
 mut('trending volta', LANDING.replace('{!HOME_MOSAIC_LIVE && trending.length >= 6', '{trending.length >= 6'), MOSAIC)
 mut('4 filmes', LANDING, MOSAIC.replace('HOME_MOSAIC_FILMS = 6', 'HOME_MOSAIC_FILMS = 4'))
 mut('4 efeitos', LANDING, MOSAIC.replace(/HOME_MOSAIC_EFFECTS = \d+/, 'HOME_MOSAIC_EFFECTS = 4'))
