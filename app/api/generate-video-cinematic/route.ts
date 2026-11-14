@@ -83,6 +83,7 @@ import { createHash } from 'crypto'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { fichaAntesDoRenderLigada, refazerPlanoDaFicha, FICHA_ANTES_EVENTO } from '@/lib/cinematic/fichaAntesDoRender1311' // KINEO-FICHA-ANTES-DO-RENDER-1311
+import { waitUntilDaRequisicao } from '@/lib/posResposta' // KINEO-FICHA-ANTES-DO-RENDER-1311 (C1)
 import { atributosLigados, atributosEmTodoPlano, ATRIBUTOS_EVENTO } from '@/lib/cinematic/atributosDoPedido1311' // KINEO-ATRIBUTOS-DO-PEDIDO-1311
 import { iniciarJuizDoPlano, esperarJuizDoPlano, planoDoEnvio, JUIZ_PLANO_EVENT, type JuizPlanoVeredito } from '@/lib/juizDoPlano' // KINEO-JUIZ-PLANO-0111 [TRAVA 8.2 — vai do fundador 01/11 "concordo vai"] — juiz do plano v2 (perguntas sim/não sobre o texto que foi à fal), SÓ OBSERVAR, depois do envio
 import { FREE_WEEKLY_FILM_ADMITTED_EVENT, FREE_WEEKLY_FILM_COUNTRY_EVENTS, FREE_WEEKLY_FILM_EXCLUSIVE_REFUSED_EVENT, FREE_WEEKLY_FILM_IN_USE_MESSAGE, FREE_WEEKLY_FILM_QUALITY, FREE_WEEKLY_FILM_SECONDS, FREE_WEEKLY_FILM_WINDOW_MS, freeWeeklyCountryMatches, freeWeeklyFilmAdmissible, freeWeeklyFilmEligibility, freeWeeklyFilmExclusive } from '@/lib/freeWeeklyFilm' // KINEO-E4-SAIDA-B-2026-09-29 [TRAVA 8.2]
@@ -7302,11 +7303,13 @@ async function manipularPost(req: NextRequest) {
     // KINEO-SUJEITO-TODOS-0311 [TRAVA 8.2 — fundador 03/11: "vamos pegar todos esses defeitos que já são conhecidos e arrumar todos, universalizar"] — o sujeito central do
     // KINEO-SUJEITO-TODOS-0311 — PEDIDO (o avião, a criança, a arca) em pelo menos 1 cena também na estrada clássica (Seedance/Veo/Kling 2.5): a decisão calibrada do
     // KINEO-SUJEITO-TODOS-0311 — KINEO-K4-SUJEITO-0111, a frase na frente do plano, sem corte. Corrige, nunca bloqueia; a fala não muda; sem pedido confiável nada sai.
+    let sujeitoDoPedido1311: { sujeito: string; tipo: string | null } | null = null // KINEO-FICHA-ANTES-DO-RENDER-1311 (C3) — o sujeito lido do pedido, para o plano que perde a ordem do protagonista
     if (!desenhoInfantil.ativo) {
       const falasSujeitoClassico = scenes.map((sc) => sc.voiceover ?? '')
       const pedidoSujeitoClassico = pedidoOriginalDoSujeito({ prompt: intake.text, ideiaSolta: ehIdeiaSolta({ prompt: intake.text, scriptMode: body.script_mode }) && !isSeriesContinuationPrompt(intake.text), scriptMode: body.script_mode, originalIdea: body.original_idea, falas: falasSujeitoClassico }) // KINEO-SUJEITO-TODOS-0311
       const sujeitoClassico = await sujeitoEmTodosOsMotores({ pedido: pedidoSujeitoClassico, falas: falasSujeitoClassico, planos: scenes.map((sc) => sc.aiPrompt || sc.stockSearchQuery || sc.description || ''), pessoaPermitida: !romanceAdulto.ativo, estrada: 'classica' }, leituraPronta1311()) // KINEO-SUJEITO-TODOS-0311 — nunca lança · KINEO-PROTAGONISTA-1311 (item 4): a leitura do sujeito feita antes do modo é reaproveitada (mesmo texto)
       if (sujeitoClassico) {
+        if (sujeitoClassico.relato.sujeito) sujeitoDoPedido1311 = { sujeito: sujeitoClassico.relato.sujeito, tipo: sujeitoClassico.relato.tipo ?? null } // KINEO-FICHA-ANTES-DO-RENDER-1311 (C3)
         const cenaSujeito = sujeitoClassico.relato.cena
         if (sujeitoClassico.relato.corrigido && cenaSujeito !== null && scenes[cenaSujeito - 1]) { scenes[cenaSujeito - 1].aiPrompt = sujeitoClassico.planos[cenaSujeito - 1]; console.log(`[cinematic] KINEO-SUJEITO-TODOS-0311: "${sujeitoClassico.relato.sujeito}" entrou na cena ${cenaSujeito} (estrada clássica)`) } // KINEO-SUJEITO-TODOS-0311
         void writeServerEvent({ name: SUJEITO_TODOS_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', metadata: { generation_id: generationId, engine: wantsKling ? 'kling' : wantsVeo ? 'veo' : wantsSora ? 'sora' : 'seedance', dry_run: body.dry_run === true, ...sujeitoClassico.relato } }) // KINEO-SUJEITO-TODOS-0311
@@ -7427,10 +7430,12 @@ async function manipularPost(req: NextRequest) {
     // KINEO-FICHA-ANTES-DO-RENDER-1311 [CEO 13/11, caso da Maya 28f057bc] — filme grátis do Kling 4: o juiz do plano roda AQUI, antes das imagens-chave e do
     // 1º POST (espera até 25 s); plano com a ficha contradizendo o pedido tem a ordem do protagonista refeita com a pessoa da ideia (ou retirada).
     // Desligado, juiz 'off', prazo, erro ou sem a_ficha: o vetor fica byte a byte. lib/cinematic/fichaAntesDoRender1311.ts.
+    let vereditoAntes1311: JuizPlanoVeredito | null = null, fichaRefez1311 = false // KINEO-FICHA-ANTES-DO-RENDER-1311 (C1) — o veredito de antes das imagens e se ele refez algum plano
     if (kling4TrialCandidate && fichaAntesDoRenderLigada() && !qualidadeHerdada) { // KINEO-FICHA-ANTES-DO-RENDER-1311
       try { // KINEO-FICHA-ANTES-DO-RENDER-1311
         const vFicha = await esperarJuizDoPlano(iniciarJuizDoPlano({ ...planoDoEnvio({ kling4Candidato: true, kling4Input: () => (scenes.length === 3 && scenes.every(s => [6, 7, 8].includes(s.clipSeconds ?? 6)) ? buildKling4TrialInput(classicScenePrompts.map((p, i) => promptDaCenaKling4(p, styleAnchor, i, true)), [], { voiceovers: scenes.map(s => s.voiceover ?? ''), wordsPerSecond: narrationRate.wordsPerSecond }).input : null), falas: scenes.map((s) => s.voiceover ?? ''), inputs: classicScenePrompts.map((p) => ({ prompt: p })) }), engine: 'kling4', pedido: prompt, verbatim, seconds: duration })) // KINEO-FICHA-ANTES-DO-RENDER-1311
-        const fichaAntes = refazerPlanoDaFicha({ prompts: classicScenePrompts, veredito: vFicha, pessoaDaIdeia: ideiaNaFicha?.pessoa ?? null }) // KINEO-FICHA-ANTES-DO-RENDER-1311
+        const fichaAntes = refazerPlanoDaFicha({ prompts: classicScenePrompts, veredito: vFicha, pessoaDaIdeia: ideiaNaFicha?.pessoa ?? null, sujeitoDoPedido: sujeitoDoPedido1311 }) // KINEO-FICHA-ANTES-DO-RENDER-1311 · (C3) o sujeito lido do pedido quando não há pessoa da ideia
+        vereditoAntes1311 = vFicha; fichaRefez1311 = fichaAntes.relato.refeitos.some((r) => r.acao !== 'nada') // KINEO-FICHA-ANTES-DO-RENDER-1311 (C1)
         if (fichaAntes.relato.refeitos.some((r) => r.acao !== 'nada')) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = fichaAntes.prompts[i] // KINEO-FICHA-ANTES-DO-RENDER-1311
         if (vFicha) void writeServerEvent({ name: FICHA_ANTES_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { ...fichaAntes.relato, dry_run: body.dry_run === true } }).catch(() => false) // KINEO-FICHA-ANTES-DO-RENDER-1311
       } catch (e) { console.warn('[cinematic] KINEO-FICHA-ANTES-DO-RENDER falhou, prompts seguem como estavam:', e instanceof Error ? e.message : String(e)) } // KINEO-FICHA-ANTES-DO-RENDER-1311
@@ -8124,6 +8129,8 @@ async function manipularPost(req: NextRequest) {
         status: null, ambiguous: true, accepted: false })
       ctxDespacho().outcomes[0].attempt_count++
     }
+    const reaproveitaJuiz1311 = !!kling4Trial?.job && !!vereditoAntes1311 && vereditoAntes1311.status === 'JUDGED' && !fichaRefez1311 // KINEO-FICHA-ANTES-DO-RENDER-1311 (C1) — o texto não foi refeito: o veredito de antes vale; nada de 2ª leitura
+    if (reaproveitaJuiz1311 && vereditoAntes1311) { try { waitUntilDaRequisicao()?.(writeServerEvent({ name: JUIZ_PLANO_EVENT, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, dry_run: body.dry_run === true, ...vereditoAntes1311, rodada: 'antes_reaproveitado' } }).catch(() => false)) } catch { /* sem contexto */ } } else // KINEO-FICHA-ANTES-DO-RENDER-1311 (C1)
     iniciarJuizDoPlano({ ...planoDoEnvio({ kling4Candidato: kling4TrialCandidate, kling4Input: () => (kling4Trial?.job ? (() => { const e = kling4EnvioDoFilme(); return buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input })() /* KINEO-K4-PLANO-POR-SECAO-1111 */ : null), falas: scenes.map((s) => s.voiceover ?? ''), inputs: classicSceneInputs }), engine: kling4Trial?.job ? 'kling4' : wantsKling ? 'kling' : wantsVeo ? 'veo' : wantsSora ? 'sora' : 'seedance', pedido: prompt, verbatim, seconds: duration }, { aoDecidir: registrarJuizPlano }) // KINEO-JUIZ-PLANO-0111 — DEPOIS do 1º POST, nunca antes: Kling 4 grátis = multi_prompt de buildKling4TrialInput (compactado e cortado em 512); fallback/clássico = o prompt de cada input enviado (cena sem input não foi à fal e fica fora); corre em paralelo, sem esperar
     const falRequestIds = submittedScenes.ids
     const usedModels = submittedScenes.models

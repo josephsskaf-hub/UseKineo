@@ -46,6 +46,8 @@ function provas(L) {
   if (fq.sujeitosDaFala('Арену в Помпеях, 79 год н.э., заполняют зрители.').length) erros.push('C "Помпеях" virou assunto obrigatório')
   if (fq.comSujeitoDaFala('A wide shot of the Pompeii arena.', 'Арену в Помпеях, 79 год н.э., заполняют зрители.', []) !== 'A wide shot of the Pompeii arena.') erros.push('C o plano ganhou o assunto em cirílico')
   if (fq.sujeitosDaFala('Η έκρηξη στην Πομπηία, 79 μ.Χ.').length) erros.push('C nome grego virou assunto')
+  // C7 (revisão da CEO): o nome em cirílico CONTA como citado; o latino solto não sai sozinho como assunto
+  if (fq.sujeitosDaFala('В Помпеях жил гладиатор Marcus.').length) erros.push('C7 numa fala russa com outro nome, o latino saiu sozinho: ' + fq.sujeitosDaFala('В Помпеях жил гладиатор Marcus.'))
   if (fq.sujeitosDaFala('Clouds of sulfuric acid cover the sky on Venus.').join() !== 'Venus') erros.push('C nome latino (Venus) deixou de ser assunto: ' + fq.sujeitosDaFala('Clouds of sulfuric acid cover the sky on Venus.'))
   if (fq.sujeitosDaFala('Le volcan a détruit Pompéi.').join() !== 'Pompéi') erros.push('C nome latino com acento (Pompéi) deixou de ser assunto')
   return erros
@@ -54,6 +56,7 @@ function provas(L) {
 const base = provas(carrega())
 checa(`A, B e C verdes nos prompts reais dos 3 filmes${base.length ? ': ' + base.join(' · ') : ''}`, base.length === 0)
 const MUTANTES = [
+  ['C7: o cirílico deixa de contar como citado', (s) => s.replace('    citadas.add(m[0])', "    if (!/^\\p{Script=Latin}/u.test(m[0])) continue; citadas.add(m[0])")],
   ['nome em cirílico volta a ser assunto', (s) => s.replace("if (regrasDeLinguaLigadas() && !/^\\p{Script=Latin}[\\p{Script=Latin}\\p{N}'’]*$/u.test(m[0])) continue // KINEO-B4-MONTAGEM-1311", '')],
   ['nome latino também sai', (s) => s.replace("if (regrasDeLinguaLigadas() && !/^\\p{Script=Latin}[\\p{Script=Latin}\\p{N}'’]*$/u.test(m[0])) continue // KINEO-B4-MONTAGEM-1311", 'if (regrasDeLinguaLigadas()) continue')],
   ['a ação volta a ser cortada (sem o fim da ficha de costas)', (s) => s.replace('— clearly visible in frame(, seen from behind or in profile, face not readable)?\\.?/i', '— clearly visible in frame.?/i')],
