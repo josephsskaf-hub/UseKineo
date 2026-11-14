@@ -198,17 +198,18 @@ export type ModoLinhaDeEpoca = 'off' | 'all'
 export const LINHA_DE_EPOCA_1411: ModoLinhaDeEpoca = 'all'
 export const linhaDeEpocaLigada = (modo: ModoLinhaDeEpoca = LINHA_DE_EPOCA_1411) => modo === 'all'
 const SEM_GENTE_NA_CENA_1411 = 'No people, no human figures and no faces anywhere in this shot'
-/** As frases fixas da casa que citam gente sem pôr gente no quadro (saem antes de ler a cena). */
-const MOLDURA_SEM_GENTE_RE_1411 = /characters act naturally within the scene without addressing the viewer|no foreground human faces?|talking head|foreground human face|close-up portrait|presenter|human figures|human body or human face|no human body|not a human|The main person, if one is shown in this shot,[^.]*\.|with the natural features of [^.;,]*people|every person, building, street, vehicle and object belongs to that exact time|Any person the shot describes/giu
 /** A lista negativa antiga de veículos (até 11/11, KINEO-EPOCA-POSITIVA-1111) e "no present-day cars" citam veículo sem pôr veículo no plano. */
 const VEICULO_NEGADO_RE_1411 = /(?<![\p{L}])no\s+(?:present-day\s+|modern\s+)?(?:cars?|cabs?|taxis?|trucks?|lorry|lorries|bus|buses|vans?|jeeps?|sedans?|automobiles?|motorcars?|carriages?|wagons?|carts?|trams?|streetcars?|trolleys?|motorcycles?|motorbikes?|bicycles?|bikes?|limousines?)(?![\p{L}])/giu
-const PESSOA_NA_CENA_RE_1411 = /(?<![\p{L}])(?:man|men|woman|women|boy|boys|girl|girls|kid|kids|child|children|baby|babies|person|people|persons|figure|figures|silhouette|silhouettes|someone|somebody|guy|guys|lady|ladies|stranger|strangers|crowd|crowds|family|families|couple|character|characters|hands?|faces?|mechanics?|crew|crews|sailors?|pilots?|aviators?|airmen|soldiers?|officers?|workers?|passengers?|explorers?|scientists?|divers?|fishermen|fisherman|villagers|keepers?|thief|police|policemen|guards?|king|queen|named character|feet|foot|legs?|arms|fingers?|visitors?|travell?ers?|tourists?|onlookers?|spectators?|audience|guests?|customers?|students?|teachers?|doctors?|nurses?|staff|vendors?|farmers?|merchants?|shoppers?|commuters?|pedestrians?|residents?|townspeople|tribe|tribesmen|monks?|priests?|nuns?|knights?|warriors?|athletes?|players?|dancers?|musicians?|band|choir|team|brothers|sisters|mother|father|parents)(?![\p{L}])(?!['’]s?(?![\p{L}]))/iu
-const VEICULO_DE_RUA_RE_1411 = /(?<![\p{L}])(?:cars?|cabs?|taxis?|trucks?|lorry|lorries|bus|buses|vans?|jeeps?|sedans?|automobiles?|motorcars?|carriages?|wagons?|carts?|trams?|streetcars?|trolleys?|motorcycles?|motorbikes?|bicycles?|bikes?|limousines?|stagecoach(?:es)?|rickshaws?|bugg(?:y|ies)|horse-drawn)(?![\p{L}])/iu
-/** A linha de época que a cena pede: a data sempre; roupa só com gente; veículo só com veículo de rua; nada condicional nem negativo. */
+// v2 [revisor 14/11, bloqueio do 1b]: veículo de rua citado de outro jeito — marca só quando é claramente o carro ("Model T", "a black Ford"),
+// ambulância, e o carro em PT, ES, FR e DE. "Henry Ford" (gente) não é carro: a marca só vale depois de artigo, cor ou adjetivo de carro.
+const VEICULO_DE_RUA_RE_1411 = /(?<![\p{L}])(?:cars?|cabs?|taxis?|taxicabs?|trucks?|lorry|lorries|bus|buses|vans?|minivans?|jeeps?|sedans?|coupes?|convertibles?|pickups?|automobiles?|motorcars?|carriages?|wagons?|carts?|trams?|streetcars?|trolleys?|motorcycles?|motorbikes?|bicycles?|bikes?|limousines?|stagecoach(?:es)?|rickshaws?|bugg(?:y|ies)|horse-drawn|ambulances?|fire (?:engine|truck)s?|police cars?|squad cars?|model [ta]|carros?|caminh(?:ão|ões)|ônibus|carroças?|bondes?|táxis?|motocicletas?|bicicletas?|coches?|cami(?:ón|ones)|autob(?:ús|uses)|carruajes?|carretas?|tranvías?|voitures?|camions?|calèches?|charrettes?|tramways?|vélos?|autos?|lastwagen|kutschen?|straßenbahnen?|fahrr(?:ad|äder)|motorr(?:ad|äder))(?![\p{L}])|(?<![\p{L}])(?:a|an|the|his|her|their|black|white|red|blue|green|old|new|vintage|battered|shiny)\s+(?:Ford|Chevrolet|Chevy|Cadillac|Buick|Packard|Studebaker|Plymouth|Dodge|Oldsmobile|Volkswagen|Beetle|Mercedes|Peugeot|Citroën|Fiat)(?![\p{L}])/iu
+/** v2 [revisor 14/11, bloqueio do 1b]: a linha de época NÃO adivinha gente por palavra (a lista fechada tirava a roupa do padeiro, do "He opens
+ *  the door", da "Amelia", das frases em outra língua). Toda cena leva a roupa positiva, sem catálogo; só a cena que a regra CENA_SEM_GENTE
+ *  marcou "No people…" leva só a data. Quem decide que não há gente é UMA regra, a que já existe. */
 function linhaDeEpocaDaCena(epoca: Epoca, quando: string, curto: boolean, cena: string): string {
   const t = String(cena ?? '')
   const semGente = t.includes(SEM_GENTE_NA_CENA_1411)
-  const gente = !semGente && PESSOA_NA_CENA_RE_1411.test(t.replace(MOLDURA_SEM_GENTE_RE_1411, ' '))
+  const gente = !semGente
   const veiculo = VEICULO_DE_RUA_RE_1411.test(t.replace(VEICULO_NEGADO_RE_1411, ' '))
   const p = pistasDaEpoca(epoca)
   if (curto) {

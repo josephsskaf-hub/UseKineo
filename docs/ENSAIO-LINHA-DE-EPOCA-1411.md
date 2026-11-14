@@ -52,3 +52,30 @@ O código lê o prompt da cena:
 ## Fora deste lote (anotado)
 - A trava longa "period piece set strictly in the year 1937: every person, building, street, vehicle and object belongs to that exact time…" também cita gente e veículo em toda cena com gente.
 - Na cena sem gente ela já vira a curta (KINEO-CENA-SEM-GENTE-1411). Para a cena com gente e sem veículo, ela merece o mesmo olhar, com ensaio próprio.
+
+## v2 depois do bloqueio do revisor (CEO 14/11)
+- A v1 decidia a roupa por uma lista FECHADA de palavras de gente. 18 de 26 cenas com gente do revisor perdiam a roupa que a main dava:
+  - o padeiro de 1965;
+  - "He opens the door", "Amelia climbs in";
+  - as frases em português, espanhol, francês e alemão.
+- v2, o desenho invertido que a CEO pediu:
+  - TODA cena leva a roupa positiva, sem catálogo ("People in the shot wear period-accurate 1960s clothing true to their own place and role, with period props.");
+  - só a cena que a regra CENA_SEM_GENTE marcou "No people…" leva só a data;
+  - a linha de época não adivinha gente por palavra: quem decide que não há gente é UMA regra, a que já existe.
+- Veículo de rua citado de outro jeito agora chama a frase:
+  - "Model T", "a black Ford" (marca só depois de artigo, cor ou adjetivo de carro: "Henry Ford" é gente);
+  - "ambulance", "fire truck";
+  - o carro em português, espanhol, francês e alemão (carro, coche, voiture, Auto…).
+- A regra da origem (KINEO-ORIGEM-DO-ELENCO-0311: cena com origem não veste a lista ocidental) segue viva onde a linha antiga continua (interruptor 'off' e caminho sem cena) e ganhou mutante de volta.
+
+### O ensaio relido com a v2
+- Das 40 cenas que "perdiam a roupa" na v1, só as 14 marcadas sem gente perdem agora. As outras 26 voltam a ter a frase de roupa.
+- As 26 são cenas em que o plano NÃO mostra ninguém e que a regra de sem gente não marcou:
+  - paisagem de floresta;
+  - aviões no céu;
+  - barcos de busca;
+  - close de mapa ou de objeto;
+  - estrada vazia.
+- Nelas, a frase "People in the shot wear…" pode convidar o motor a pôr gente. Na main elas já recebiam o catálogo inteiro ("Any person the shot describes wears 1930s dress: fedoras…"), então a v2 não piora contra a main: troca o catálogo pela frase curta.
+- A causa é a marca: a regra CENA_SEM_GENTE só roda no ajuste do personagem, isto é, em filme com elenco. Os filmes de b-roll sem elenco nunca ganham a marca "No people…".
+- O conserto certo, como a CEO disse, é estender a marca de cena sem gente aos filmes sem elenco, num lote próprio com ensaio, e não voltar a adivinhar gente na linha de época.
