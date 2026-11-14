@@ -16,7 +16,8 @@
 //       (pintura, retrato, tela, afresco, mural, estátua, escultura, busto), só em filme NÃO desenhado e só com a assinatura de história real:
 //       a história tem ano/década E o elenco tem gente com nome do autor. Torradeira, carro, mascote, comida: nunca.
 //
-// ESCOPO (ordem da CEO 14/11: regra nova nasce no escopo mínimo): HISTORIA_REAL_1411 = 'gratis_ideia' → só o filme grátis (Kling 4) de ideia
+// ESCOPO: nasceu em 'gratis_ideia' (ordem da CEO 14/11: regra nova nasce no escopo mínimo) e foi aberto para 'all' pela CEO em 14/11 12:40, com ensaio
+// no corpus pago e colado de 30 dias (docs/ENSAIO-HISTORIA-REAL-ALL-1411.md). 'gratis_ideia' → só o filme grátis (Kling 4) de ideia
 // curta, não colado, não herdado. 'all' = toda a estrada clássica não herdada (o filme pago da Mona Lisa só é coberto aqui: decisão da CEO).
 // 'off' = byte a byte o de antes. Guardião: scripts/test-historia-real-1411.mjs. Ensaio no banco real: docs do ensaio de 14/11.
 import { HISTORIA_REAL_1411, epocaDaHistoria, type ModoHistoriaReal } from '@/lib/cinematic/elencoEpoca'

@@ -2,7 +2,8 @@
 // Prova OFFLINE, EXECUTANDO o código real, com os textos REAIS do banco (ensaio de 14/11 nos últimos 30 dias) e os casos do revisor como negativos:
 //   (A) a OBRA DE ARTE do elenco de um filme de história real não desenhado ganha a ficha da obra real, e a trava de estilo de verdade não lhe põe
 //       "a living creature"; torradeira, carro, mascote, comida, filme desenhado, conto sem data ou sem pessoa nomeada: intactos (C2);
-//   (B) o escopo: só o filme grátis de ideia curta; pago, colado, herdado e pedido longo ficam fora; o interruptor publicado é 'gratis_ideia';
+//   (B) o escopo: 'gratis_ideia' cobre só o filme grátis de ideia curta; o interruptor publicado é 'all' desde 14/11 12:40 (decisão da CEO:
+//       o pago e colado da Mona Lisa do Logan entra; herdado segue fora); (F) o caso do Logan com o casting FALHANDO, pelas funções da rota;
 //   (C) o ano por extenso só vira ano numa DATA EXPLÍCITA (mês ou "the year"/"ano de") e só para quem pede; os 16 negativos reais ficam (B1);
 //   (D) o papel sem nome não vira 2ª ficha quando o ELENCO já tem gente nomeada do autor (estrutura, não palavra); a regra de palavra saiu (C1);
 //   (E) fora do escopo nada lê: anúncio, hollywood, régua e trava não conhecem a regra; a rota só passa dentro do escopo;
@@ -110,7 +111,11 @@ function provas(L) {
   const esc = (over, modo = 'gratis_ideia') => m.escopoDaHistoriaReal({ ...E, ...over }, modo)
   if (!esc({}) || esc({ gratis: false }) || esc({ verbatim: true }) || esc({ herdado: true }) || esc({ pedido: null }) || esc({ pedido: '   ' }) || esc({ pedido: Array(61).fill('word').join(' ') }) || !esc({ pedido: Array(60).fill('word').join(' ') })) erros.push('B o escopo mínimo (grátis, ideia de 1 a 60 palavras, não colado, não herdado)')
   if (esc({}, 'off') || !esc({ gratis: false, verbatim: true, pedido: null }, 'all') || esc({ herdado: true }, 'all')) erros.push("B os modos 'off' e 'all'")
-  if (m.HISTORIA_REAL_1411 !== 'gratis_ideia' || m.escopoDaHistoriaReal({ ...E, gratis: false }) !== false || m.escopoDaHistoriaReal(E) !== true) erros.push('B o interruptor publicado não é o escopo mínimo')
+  // reancorado [CEO 14/11 12:40]: o interruptor publicado é 'all' — o pago e colado entra, o herdado segue fora
+  if (m.HISTORIA_REAL_1411 !== 'all' || m.escopoDaHistoriaReal({ ...E, gratis: false, verbatim: true, pedido: MONA }) !== true || m.escopoDaHistoriaReal({ ...E, herdado: true }) !== false) erros.push('B o interruptor publicado não cobre o pago e colado (ou cobre o herdado)')
+  // v3: o ano MODERNO por extenso na história ("In twenty eighteen, explorers…") a leva ao presente, como "2018" em números: sem trava
+  if (ee.epocaDaHistoria('On November thirteenth, nineteen forty-two, the cruiser sank. In twenty eighteen, explorers finally found the Juneau.', { anoPorExtenso: true }) !== null || ee.epocaDaHistoria('November fourteenth, nineteen sixty-five. In two thousand one, at the White House, he received the medal.', { anoPorExtenso: true }) !== null) erros.push('C v3 a história que chega ao presente (por extenso) ganhou trava')
+  if (ee.epocaDaHistoria('In August 1923 the dog went missing. He crossed more than two thousand five hundred miles.', { anoPorExtenso: true })?.ano !== 1923 || ee.epocaDaHistoria('In August 1923 the dog went missing. She counted to twenty eleven times.', { anoPorExtenso: true })?.ano !== 1923 || ee.epocaDaHistoria('December, nineteen hundred. Three keepers vanished.', { anoPorExtenso: true })?.ano !== 1900) erros.push('C v3 distância por extenso virou ano moderno, ou a data real perdeu a trava')
   // ── (C) o ano por extenso ──
   for (const [texto, trecho, ano] of DATAS) {
     const c = m.comAnosPorExtenso(texto)
@@ -147,6 +152,20 @@ function provas(L) {
   const fr = ['A valley of tall grass under a grey sky.', 'A row of helicopters on a dirt airfield.', 'A radio on a wooden table.'], ff = [FREEMAN, '', '']
   if (camada(FREEMAN, {}, fr, ff).relato.epoca !== null) erros.push('D sem pedir, a camada leu 1965 (anúncio e herdado leriam também)')
   if (camada(FREEMAN, { historiaReal: { anoPorExtenso: true } }, fr, ff).relato.epoca?.ano !== 1965) erros.push('D pedindo, a camada não leu 1965')
+  // ── (F) [CEO 14/11 12:40] o filme do Logan (b6068711): pago, colado, casting FALHANDO — o elenco é o do leitor semântico (a Mona Lisa como boneco
+  // que fala, o Peruggia do autor). Pelas funções da rota, no interruptor PUBLICADO: a obra vira a obra real e "the thief" não entra ao lado dele.
+  {
+    const T = MONA
+    const escopo = m.escopoDaHistoriaReal({ gratis: false, verbatim: true, herdado: false, pedido: T })
+    const elenco = [objeto('Mona Lisa', 'painting'), { ...PERUGGIA, nome: 'Vincenzo Peruggia', canonica: 'Vincenzo Peruggia, exactly as the author wrote: "Vincenzo Peruggia, an Italian handyman"' }]
+    const obra = escopo ? m.obraRealNoElenco(elenco, { estilizado: false, temEpoca: m.historiaTemEpoca(T), personificados: new Set() }) : { elenco, trocados: [] }
+    const ml = obra.elenco.find((e) => e.nome === 'Mona Lisa')?.canonica ?? ''
+    if (!escopo || /anthropomorphic|living creature|small arms and legs/.test(ml) || !/the real painting/.test(ml)) erros.push('F Logan: a Mona Lisa segue boneco vivo no pago e colado: ' + ml.slice(0, 90))
+    const PLANOS = ['A dimly lit corner of the Louvre, the empty frame of the Mona Lisa on the wall, shadows creeping in.', 'Vincenzo Peruggia, dressed in a white work smock, crouched inside a dark storage closet.', "A close-up of Peruggia's hands carefully lifting the Mona Lisa from the wall.", 'A crowd gathered outside the Louvre, staring at four empty iron hooks on the wall.', 'A dusty trunk in a dimly lit room, the lid slightly ajar.', 'Peruggia walking through a bustling Florence street, the Mona Lisa hidden under his arm.', 'A close-up of art enthusiasts gazing at the iconic Mona Lisa.']
+    const FALAS = ['The Mona Lisa vanished on a Monday morning in 1911.', 'The thief was Vincenzo Peruggia, an Italian handyman. On Sunday he hid in a storage closet.', 'On Monday he lifted her off the wall and walked out.', 'Crowds lined up just to stare at four empty iron hooks.', 'The most famous painting in the world sat in a trunk in Paris.', 'Then, in 1913, he carried her to Florence.', 'The crime made her famous.']
+    const era = ee.aplicarElencoEEpoca({ prompts: PLANOS, falas: FALAS, contextoOriginal: T, contextoFiltro: T, modo: 'character_story', tagFaceless: false, provaDeGente: true, ...(escopo ? { historiaReal: { anoPorExtenso: true, nomeadoNoElenco: m.genteNomeadaDoAutor(obra.elenco) } } : {}) })
+    if (era.prompts.some((p) => /Named character in this shot: the thief/.test(p))) erros.push('F Logan: "the thief" entrou ao lado do Peruggia')
+  }
   return erros
 }
 
@@ -186,7 +205,9 @@ const MUTANTES = [
   ['filme herdado entra no escopo', ARQ, (s) => s.replace("if (modo === 'off' || a.herdado) return false", "if (modo === 'off') return false")],
   ['pedido longo entra no escopo', ARQ, (s) => s.replace(' && n <= HISTORIA_REAL_IDEIA_MAX_PALAVRAS', '')],
   ['sem interruptor (desligado ainda roda)', ARQ, (s) => s.replace("if (modo === 'off' || a.herdado) return false", 'if (a.herdado) return false')],
-  ['o interruptor publicado cobre todo filme', EP, (s) => s.replace("export const HISTORIA_REAL_1411: ModoHistoriaReal = 'gratis_ideia'", "export const HISTORIA_REAL_1411: ModoHistoriaReal = 'all'")],
+  ['o interruptor publicado volta ao escopo mínimo (o Logan fica fora)', EP, (s) => s.replace("export const HISTORIA_REAL_1411: ModoHistoriaReal = 'all'", "export const HISTORIA_REAL_1411: ModoHistoriaReal = 'gratis_ideia'")],
+  ['v3: o ano moderno por extenso não conta', EP, (s) => s.replace(String.raw`  if (opts?.anoPorExtenso === true && ANO_MODERNO_POR_EXTENSO_RE_1411.test(String(contexto ?? ''))) presente = true`, '')],
+  ['v3: sem a preposição de tempo (contagem vira ano)', EP, (s) => s.replace(String.raw`(?:in|by|until|since|from|before|after|around|of)\s+(?:twenty`, String.raw`(?:(?:in|by|until|since|from|before|after|around|of)\s+)?(?:twenty`)],
   // gente nomeada
   ['papel sem nome conta como pessoa nomeada', ARQ, (s) => s.replace(" && !ARTIGO_RE.test(String(f?.nome ?? '').trim()))", ')')],
   ['ficha inventada pelo modelo conta como nomeada', ARQ, (s) => s.replace("f?.tipo === 'humano' && f?.origem === 'autor' && ", "f?.tipo === 'humano' && ")],

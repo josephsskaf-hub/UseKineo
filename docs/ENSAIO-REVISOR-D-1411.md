@@ -37,3 +37,8 @@ Universo: os 30 filmes de 30 dias com ficha de autor humana no claim. Rodei a v1
 - O grupo ("garage", "workshop", "base"…) seguido de uma coisa ("door", "opener", "gate", "lock", "engine"…) é o mecanismo, não gente.
 - "Mechanics of the garage work on a vintage car" e "Mechanics of the air force" seguem gente.
 - Corpus de 30 dias: 0 ocorrência. É proteção.
+
+## Registro (CEO 14/11 12:40): o deserto num plano só não se espalha, de propósito
+- Nos 3 dry-runs da Layla e Qais, o planejador pôs "in a vast desert" só no plano 1, e a fala, em hindustâni, não diz deserto.
+- Pela régua dos 2 planos (item 3 acima), o árido não vai às outras cenas.
+- A CEO aceitou: um plano só é o mesmo caso do deserto de passagem.

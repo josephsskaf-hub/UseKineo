@@ -61,7 +61,7 @@ const ANO_EPOCA_MIN = 1800 // KINEO-ELENCO-EPOCA-2710
 // years ago", "nineteen hundred hours", "only nineteen ninety-five", "cabiam dois mil" ficam como estão. (3) A regra de palavra "o papel É o
 // nomeado" (papelEhONomeado) SAIU: quem decide é o elenco que o modelo já leu (aplicarElencoEEpoca, historiaReal.nomeadoNoElenco).
 export type ModoHistoriaReal = 'off' | 'gratis_ideia' | 'all'
-export const HISTORIA_REAL_1411: ModoHistoriaReal = 'gratis_ideia'
+export const HISTORIA_REAL_1411: ModoHistoriaReal = 'all' // [CEO 14/11 12:40, decisão: o filme pago e colado da Mona Lisa (Logan, b6068711) entra] — era 'gratis_ideia'. Ensaio: docs/ENSAIO-HISTORIA-REAL-ALL-1411.md
 export const historiaRealLigada = (modo: ModoHistoriaReal = HISTORIA_REAL_1411) => modo !== 'off'
 export const HISTORIA_REAL_VERSAO = 'historia_real_1411_v2'
 
@@ -105,6 +105,10 @@ export function comAnosPorExtenso(texto: string | null | undefined): string {
   t = troca(t, PT2000_RE, ([teen, tens, un, so]) => 2000 + (teen ? PTEEN[low(teen)] : tens ? PTENS[low(tens)] + (un ? PU[low(un)] : 0) : so ? PU[low(so)] : 0))
   return t
 }
+/** v3 [CEO 14/11, abrir o escopo para 'all']: o ano MODERNO por extenso em qualquer lugar da história ("in twenty eighteen", "by two thousand and
+ *  five", "em dois mil e dezoito"), com preposição de tempo antes, marca que a história chega ao presente, como o "2018" em números já marcava.
+ *  Sem a preposição não conta: "more than two thousand five hundred miles" (Bobbie) é distância. */
+const ANO_MODERNO_POR_EXTENSO_RE_1411 = /(?<![\p{L}])(?:in|by|until|since|from|before|after|around|of)\s+(?:twenty\s+(?:ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty(?:[- ](?:one|two|three|four|five|six|seven|eight|nine))?|thirty)|two\s+thousand(?:\s+and)?\s+(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty))(?![\p{L}-])(?!\s+(?:hundred|thousand))|(?<![\p{L}])(?:em|até|desde|de)\s+dois\s+mil(?:\s+e\s+(?:um|dois|três|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|catorze|quatorze|quinze|dezesseis|dezessete|dezoito|dezenove|vinte(?:\s+e\s+\p{L}+)?))?(?![\p{L}])(?!\s+(?:reais|pessoas|anos|metros|quilômetros|km))/iu
 // ═══ fim KINEO-HISTORIA-REAL-1411 ═══
 
 function rotuloDaDecada(decada: number): string { return decada >= 1900 ? `${decada}s` : `${Math.floor(decada / 100) + 1}th-century` } // KINEO-ELENCO-EPOCA-2710
@@ -125,6 +129,7 @@ export function epocaDaHistoria(contexto: string, opts?: { anoPorExtenso?: boole
     if (decada >= ANO_PRESENTE_MIN) presente = true // KINEO-ELENCO-EPOCA-2710
     else if (decada >= ANO_EPOCA_MIN && decada <= ANO_EPOCA_MAX) achados.push({ pos: m.index ?? 0, ano: null, decada }) // KINEO-ELENCO-EPOCA-2710
   } // KINEO-ELENCO-EPOCA-2710
+  if (opts?.anoPorExtenso === true && ANO_MODERNO_POR_EXTENSO_RE_1411.test(String(contexto ?? ''))) presente = true // KINEO-HISTORIA-REAL-1411 v3 — "In twenty eighteen, explorers found the Juneau": a história chega ao presente, como "1942 … 2018" em números
   if (presente || achados.length === 0) return null // KINEO-ELENCO-EPOCA-2710
   achados.sort((a, b) => a.pos - b.pos) // KINEO-ELENCO-EPOCA-2710
   const p = achados[0] // KINEO-ELENCO-EPOCA-2710
