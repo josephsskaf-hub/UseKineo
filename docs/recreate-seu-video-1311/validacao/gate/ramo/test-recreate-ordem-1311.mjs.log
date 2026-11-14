@@ -1,0 +1,9 @@
+ok  estado atual: 35 modelos datados pela história; grade pública começa por sueter-aconchegante, selfie-confete, passarela, escolha-o-favorito
+ok  M1 troca nova sem data: vermelho ((1) selfie-confete sem data de entrada (desde=undefined))
+ok  M2 efeito novo sem data: vermelho ((1) effect-kiss sem data de entrada (desde=""))
+ok  M3 data chutada: vermelho ((2) sueter-aconchegante: desde 2026-11-12, a história diz 2026-11-13)
+ok  M4 ordem invertida: vermelho ((3) catálogo fora de ordem: effect-kiss (2026-11-09) antes de passarela (2026-11-10))
+ok  M5 ordenação removida: vermelho ((3) catálogo fora de ordem: elevador (2026-11-09) antes de passarela (2026-11-10))
+ok  M6 desempate instável: vermelho ((3) efeitos de 2026-11-09 fora da ordem de CLIP_EFFECTS (desempate instável))
+ok  M7 grade pública reordenada: vermelho ((3) grade pública fora de ordem: effect-bring-to-life antes de escolha-o-favorito)
+8 ok · 0 falha(s)

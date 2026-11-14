@@ -8,6 +8,10 @@
   ok  F fotos só da própria conta
   ok  F o envio usa URL assinada no bucket público, na pasta do cliente
   ok  F status devolve a recusa do motor só no Seedance 2.5
+  ok  ESSENCIAL conta de fora não vê (404) e a da casa vê
+  ok  ESSENCIAL vídeo fora do limite sai antes do submitClip (nada debitado)
+  ok  ESSENCIAL recusa no envio estorna (provider_rejected → closeWithRefund → deps.refund)
+  ok  ESSENCIAL recusa no fim estorna (provider_failed → fail → deps.refund)
   ok  F eventos só do servidor
   ok  F a trava "não trocou" segue só no Recast
   ok  mutante "sem a régua de fps" fica vermelho (2 erro(s))
@@ -20,6 +24,7 @@
   ok  mutante "prompt sem conferir cada foto" fica vermelho (1 erro(s))
   ok  mutante "caminho de qualquer cliente" fica vermelho (1 erro(s))
   ok  mutante "com som e 720p" fica vermelho (1 erro(s))
+  ok  mutante "recusa com outra frase" fica vermelho (1 erro(s))
   ok  mutante "aberto ao público" fica vermelho (1 erro(s))
 
-23 ok, 0 falha(s)
+28 ok, 0 falha(s)

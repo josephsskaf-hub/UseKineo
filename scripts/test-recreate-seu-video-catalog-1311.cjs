@@ -1,10 +1,9 @@
-/* Offline only: source files, Git blobs and VM evaluation of public catalog data. No API, env files or credentials. */
+/* Offline only: actual source/media files and VM evaluation of public catalog data. No API, env files or credentials. */
 'use strict'
 const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
 const vm = require('node:vm')
-const { execFileSync } = require('node:child_process')
 const ROOT = path.resolve(process.env.KINEO_TEST_ROOT || path.join(__dirname, '..'))
 const ts = (() => {
   for (const location of [path.join(ROOT, 'node_modules/typescript')]) {
@@ -17,10 +16,10 @@ const EXPECTED_IDS = ['selfie-confete', 'sueter-aconchegante', 'passarela', 'esc
 let assertions = 0
 function check(value, message) { assertions++; assert.ok(value, message) }
 function equal(actual, expected, message) { assertions++; assert.deepEqual(actual, expected, message) }
-function git(args) { return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] }) }
 function source(relative) {
   const file = path.join(ROOT, relative)
-  return fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : git(['show', 'HEAD:' + relative])
+  if (!fs.existsSync(file) || !fs.statSync(file).isFile()) throw new Error('Missing runtime source: ' + relative)
+  return fs.readFileSync(file, 'utf8')
 }
 function tree(text, filename) { return ts.createSourceFile(filename, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS) }
 function evaluate(text, filename) {
@@ -55,15 +54,9 @@ function canonicalData() {
   return new Map([...refs.filter(item => item.pessoa === true && item.produto === 'clip').map(item => [item.id, { title: item.title, src: '/previews/galeria/' + item.id + '.mp4', poster: '/posters/galeria/' + item.id + '.webp' }]), [friday.id, { title: friday.title, src: friday.video, poster: friday.poster, seconds: friday.seconds }]])
 }
 const proven = canonicalData()
-const inventory = new Map()
-for (const line of git(['ls-tree', '-r', '--long', 'HEAD', '--', 'public/previews/galeria', 'public/posters/galeria']).split(/\r?\n/)) {
-  const match = line.match(/^\d+ blob [0-9a-f]+\s+(\d+)\t(.+)$/)
-  if (match) inventory.set('/' + match[2].replace(/^public\//, ''), Number(match[1]))
-}
 function assetExists(url) {
   const filename = path.join(ROOT, 'public', url.slice(1))
-  if (fs.existsSync(filename)) return fs.statSync(filename).isFile() && fs.statSync(filename).size > 0
-  return (inventory.get(url) || 0) > 0
+  return fs.existsSync(filename) && fs.statSync(filename).isFile() && fs.statSync(filename).size > 0
 }
 function validate(api, hasAsset = assetExists) {
   check(Array.isArray(api.SEU_VIDEO_CATALOG), 'catalog must export an array')

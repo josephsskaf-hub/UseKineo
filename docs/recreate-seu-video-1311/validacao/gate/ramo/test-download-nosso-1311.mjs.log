@@ -1,0 +1,1 @@
+PASS download pelo nosso domínio: arquivo nosso → /api/download (sessão + dono + attachment com nome Kineo + evento, sem bytes na Vercel); Recreate e 7 telas sem endereço do Supabase; 9/9 mutantes mortos

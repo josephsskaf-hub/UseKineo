@@ -1,0 +1,10 @@
+file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-recreate-trava-1011.mjs:189
+  const nav = { 'next/navigation': { redirect: href => { throw Error('redirect:' + href) }, notFound: () => { throw Error('not-found') } } }
+                                                               ^
+
+Error: redirect:/create/clip?effect=kiss
+    at redirect (file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-recreate-trava-1011.mjs:189:64)
+    at ClipsPage (eval at load (C:\Users\josep\.codex\worktrees\341b\kineo\docs\recreate-0911\test-recreate.cjs:27:5), <anonymous>:37:35)
+    at async file:///C:/Users/josep/.codex/worktrees/341b/kineo/scripts/test-recreate-trava-1011.mjs:193:7
+
+Node.js v24.18.0

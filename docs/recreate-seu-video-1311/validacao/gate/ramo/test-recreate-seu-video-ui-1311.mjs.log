@@ -1,0 +1,14 @@
+PASS page
+PASS mount
+PASS metadataRace
+PASS hydrationMetadata
+PASS slots
+PASS auth
+PASS restore
+PASS restoreRace
+PASS quote
+PASS retry
+PASS refusal
+PASS status
+PASS recheck
+Recreate own-video UI: 13 scenarios, 163 baseline assertions, 25 meaningful mutants rejected. SSR/handlers only; no browser, server, backend or paid generation.
