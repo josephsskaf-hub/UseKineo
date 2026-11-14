@@ -222,7 +222,7 @@ await check('E2 /api/enhance debita e estorna pela MESMA chave (4K era estornado
 // ═══ 4. LIGAÇÃO — o cron roda as redes novas ════════════════════════════════════════════════════════════════════════
 await check('C1 cron refund-sweep chama sweepAbandonedMediaDebits() e sweepAbandonedEnhanceDebits() e devolve os dois no JSON', () => {
   const s = rd('app/api/cron/refund-sweep/route.ts')
-  return /await sweepAbandonedMediaDebits\(\)/.test(s) && /await sweepAbandonedEnhanceDebits\(\)/.test(s) && /clips, media, enhance, errors \}\)/.test(s)
+  return /await sweepAbandonedMediaDebits\(\)/.test(s) && /await sweepAbandonedEnhanceDebits\(\)/.test(s) && /clips, media, enhance, guias, errors \}\)/.test(s) /* reancorado KINEO-GUIA-PRIVADO-2-1411 — o JSON ganhou guias (a conferência do guia do Recreate, depois de mídia e enhance) */
 })
 
 console.log(`\n${ok} ok, ${falhas.length} falha(s)`)
