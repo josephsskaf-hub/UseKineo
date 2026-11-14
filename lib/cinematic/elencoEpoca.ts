@@ -127,9 +127,13 @@ function papelLigadoAoNome1411(texto: string, papel: string, nomes: readonly str
   const TITULO = String.raw`(?:(?:Captain|Capt\.|Detective|Doctor|Dr\.|Mr\.|Mrs\.|Ms\.|Miss|Sir|Lady|Lord|General|Colonel|Major|Lieutenant|Sergeant|Officer|Agent|Professor|Inspector|King|Queen|Prince|Princess)\s+)?`
   const PARTES = String.raw`(?:\p{Lu}\p{Ll}[\p{Ll}'’-]*\s+){0,2}?`
   const COPULA = String.raw`\s*(?:,|\s(?:was|is|—))\s*`
+  // v4 [revisor 14/11, 3º bloqueio]: no aposto o papel é a ÚLTIMA palavra do sintagma. Depois dele só vale pontuação, fim de frase, "who/which/
+  // that", cópula, ou "from/of + Lugar com maiúscula" ("Henry Gunther, a soldier from Baltimore"). Outro substantivo ("the thief hunter"),
+  // hífen ("thief-catcher") ou apóstrofo ("the thief's nemesis") logo depois: o papel é parte de OUTRA coisa, e não liga.
+  const FIM_DO_PAPEL = String.raw`(?=\s*(?:[.,;:!?)\n—]|$)|\s+(?:who|which|that|was|is|were)(?![\p{L}])|\s+(?:from|of)\s+\p{Lu})`
   const ligacoes = [
     new RegExp(String.raw`(?<![\p{L}])[Tt]he\s+` + P + COPULA + String.raw`(?:(?:named|called)\s+)?` + TITULO + PARTES + N + String.raw`(?![\p{L}])`, 'u'),
-    new RegExp(String.raw`(?<![\p{L}])` + N + COPULA + String.raw`(?:[Tt]he|[Aa]n?)\s+` + P + String.raw`(?![\p{L}])(?!\s+(?:of|for|to)(?![\p{L}]))`, 'u'),
+    new RegExp(String.raw`(?<![\p{L}])` + N + COPULA + String.raw`(?:[Tt]he|[Aa]n?)\s+` + P + FIM_DO_PAPEL, 'u'),
   ]
   return String(texto ?? '').split(/(?<=[.!?\n])/u).some((f) => ligacoes.some((re) => re.test(f)))
 }

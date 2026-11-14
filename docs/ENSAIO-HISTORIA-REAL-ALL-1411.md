@@ -126,3 +126,25 @@ O revisor confirmou o caso do Logan, inclusive com o casting falhando, e as fant
 - Os mutantes "qualquer palavra entre o verbo e o nome", "a flag i volta" e "qualquer palavra antes do papel" ficam vermelhos.
 - A peça 3 no corpus sai igual à v2: a Mona Lisa e o Gunther mudam, certos; a mulher misteriosa, a mulher do Kennedy e o piloto do Ia Drang ficam como na main.
 - Anotados, iguais à main: "the thief Vincenzo Peruggia" (sem vírgula) não liga; "The detective chased Peruggia, the thief" e "The brothers were Frank and Joe Sullivan" a camada não lê como papel.
+
+## v4 depois do 3º bloqueio do revisor (CEO 14/11)
+- No aposto, o papel que era só o 1º termo de OUTRO substantivo ainda ligava: "Louis Lépine, the thief hunter / thief catcher / thief-catcher / thief's nemesis". O ladrão perdia a ficha.
+- v4, que ESTREITA a regra: no aposto o papel é a ÚLTIMA palavra do sintagma.
+  - Depois dele só valem pontuação, fim de frase, who/which/that, cópula, ou "from/of + Lugar com maiúscula" (o Gunther "a soldier from Baltimore" segue ligando).
+  - Outro substantivo, hífen ou apóstrofo logo depois NÃO ligam.
+- A regra do papel ganhou interruptor PRÓPRIO (`PAPEL_E_O_NOMEADO_1411` em historiaReal1411.ts). Separar o papel da obra de arte e do ano custa uma linha: 'gratis_ideia' nesse interruptor.
+
+### A lista de armadilhas da CEO (executada; "fica" = o papel mantém a própria ficha)
+| texto | resultado | leitura |
+|---|---|---|
+| Lépine, the thief hunter / catcher / thief-catcher / thief's nemesis | fica | certo: é outra pessoa (os 4 do bloqueio) |
+| Lépine, the thief's brother | fica | certo |
+| Lépine, the thief taker general | fica | certo |
+| Lépine, the thief and the liar | fica | conservador: ele É o ladrão, mas o papel não é a última palavra; igual à main |
+| Lépine, the thief-turned-detective | fica | certo: o hífen faz do papel parte de outra coisa |
+| Lépine, the thief no one caught | fica | conservador: ele É o ladrão, mas o papel não fecha o sintagma; igual à main |
+| Lépine, the thief, smiled | sai | certo: o caso que liga |
+| Lépine, a thief | sai | certo: o aposto indefinido diz que ele é um ladrão, e "the thief" depois é ele |
+
+- Os dois conservadores ficam como na main (sem ficha nova nem ficha a menos). O erro, se houver, é a 2ª ficha, que já existia.
+- Positivos que seguem certos: "The thief was Vincenzo Peruggia", "Peruggia, the thief", "Peruggia is the thief", "Henry Gunther, a soldier from Baltimore".

@@ -112,6 +112,7 @@ function provas(L) {
   if (!esc({}) || esc({ gratis: false }) || esc({ verbatim: true }) || esc({ herdado: true }) || esc({ pedido: null }) || esc({ pedido: '   ' }) || esc({ pedido: Array(61).fill('word').join(' ') }) || !esc({ pedido: Array(60).fill('word').join(' ') })) erros.push('B o escopo mínimo (grátis, ideia de 1 a 60 palavras, não colado, não herdado)')
   if (esc({}, 'off') || !esc({ gratis: false, verbatim: true, pedido: null }, 'all') || esc({ herdado: true }, 'all')) erros.push("B os modos 'off' e 'all'")
   // reancorado [CEO 14/11 12:40]: o interruptor publicado é 'all' — o pago e colado entra, o herdado segue fora
+  if (m.PAPEL_E_O_NOMEADO_1411 !== 'all' || m.escopoDaHistoriaReal({ ...E, gratis: false, verbatim: true, pedido: MONA }, 'gratis_ideia') !== false) erros.push('B v4 o interruptor próprio do papel não existe ou o escopo mínimo deixou o pago entrar')
   if (m.HISTORIA_REAL_1411 !== 'all' || m.escopoDaHistoriaReal({ ...E, gratis: false, verbatim: true, pedido: MONA }) !== true || m.escopoDaHistoriaReal({ ...E, herdado: true }) !== false) erros.push('B o interruptor publicado não cobre o pago e colado (ou cobre o herdado)')
   // v3: o ano MODERNO por extenso na história ("In twenty eighteen, explorers…") a leva ao presente, como "2018" em números: sem trava
   if (ee.epocaDaHistoria('On November thirteenth, nineteen forty-two, the cruiser sank. In twenty eighteen, explorers finally found the Juneau.', { anoPorExtenso: true }) !== null || ee.epocaDaHistoria('November fourteenth, nineteen sixty-five. In two thousand one, at the White House, he received the medal.', { anoPorExtenso: true }) !== null) erros.push('C v3 a história que chega ao presente (por extenso) ganhou trava')
@@ -163,6 +164,10 @@ function provas(L) {
       ['Louis Lépine, a rival of the thief, waited.', true, ['Louis Lépine']],
       ['The thief was Vincenzo Peruggia.', false, VP], ['Then the thief, Vincenzo Peruggia, ran.', false, VP], ['Peruggia, the thief, ran.', false, VP], ['Peruggia is the thief.', false, VP], ['The thief was Vincenzo.', false, VP],
       ['Captain Ed Freeman was the pilot.', false, ['Freeman'], 'the pilot'],
+      // v4 [revisor 14/11, 3º bloqueio]: no aposto o papel é a ÚLTIMA palavra; "the thief hunter/catcher/-catcher/'s nemesis" é outra coisa
+      ['Louis Lépine, the thief hunter, waited in the dark.', true, ['Louis Lépine']], ['Louis Lépine, the thief catcher, waited in the dark.', true, ['Louis Lépine']],
+      ['Louis Lépine, the thief-catcher, waited in the dark.', true, ['Louis Lépine']], ["Louis Lépine, the thief's nemesis, waited in the dark.", true, ['Louis Lépine']],
+      ['Louis Lépine, the thief, smiled.', false, ['Louis Lépine']], ['Louis Lépine, a thief, waited.', false, ['Louis Lépine']],
     ]) if (papelFica(frase, nomes, papel) !== fica) erros.push(`D v3 "${frase}": o papel ${fica ? 'devia FICAR (é outra pessoa)' : 'devia SAIR (é a pessoa nomeada)'}`)
   }
   // (C1) os casos do revisor: sem gente nomeada no elenco, a camada fica BYTE A BYTE a base
@@ -205,15 +210,18 @@ const ESCOPO = 'const historiaReal1411 = escopoDaHistoriaReal({ gratis: kling4Tr
 const OBRA = 'if (historiaReal1411) { try { const obraReal = obraRealNoElenco(elencoDoPedido, { estilizado: isStylizedLook(styleAnchor) || desenhoInfantil.ativo, temEpoca: historiaTemEpoca(prompt), personificados: nomesPersonificados(prompt) }); if (obraReal.trocados.length) { elencoDoPedido.splice(0, elencoDoPedido.length, ...obraReal.elenco);'
 const iEscopo = rota.indexOf(ESCOPO), iObra = rota.indexOf(OBRA)
 const iFolha = rota.indexOf('const personagemElenco: { elenco: FichaDePersonagem[]; casting: string; ms: number } = qualidadeHerdada')
-checa('E a rota decide UM escopo (grátis, não colado, não herdado, o pedido do cliente) e ele manda nas três peças', iEscopo > 0 && rota.split('escopoDaHistoriaReal(').length === 2 && rota.split('obraRealNoElenco(').length === 2)
+// reancorado (v4, CEO 14/11): a regra do papel ganhou interruptor PRÓPRIO — a 2ª chamada é a MESMA, com PAPEL_E_O_NOMEADO_1411, e só ela manda no papel
+checa('E a rota decide UM escopo (grátis, não colado, não herdado, o pedido do cliente) e ele manda nas três peças; o papel tem o mesmo escopo com interruptor próprio', iEscopo > 0 && rota.split('escopoDaHistoriaReal(').length === 3 && rota.includes('const papelEOnomeado1411 = escopoDaHistoriaReal({ gratis: kling4TrialCandidate, verbatim, herdado: !!qualidadeHerdada, pedido: pedidoDoCliente }, PAPEL_E_O_NOMEADO_1411)') && rota.includes('nomeadoNoElenco: papelEOnomeado1411 && genteNomeadaDoAutor(elencoDoAjuste)') && rota.split('obraRealNoElenco(').length === 2)
 checa('E a obra real entra no elenco ANTES da folha, só dentro do escopo, com o filme desenhado e a comida que fala de fora, e É APLICADA ao elenco', iObra > iEscopo && iObra < iFolha && rota.slice(iObra, rota.indexOf('\n', iObra)).includes("} catch (e) { console.warn('[cinematic] KINEO-HISTORIA-REAL falhou, elenco segue como estava:"))
 const linhaClassica = rota.split('\n').find((l) => l.includes('const elencoEpoca = prepararQualidadeDoFilme({ prompts: classicScenePrompts')) ?? ''
-checa('E só a estrada clássica passa a regra à camada de época, e só dentro do escopo (fora dele a chamada fica byte a byte)', rota.split('historiaReal:').length === 2 && linhaClassica.includes('...(historiaReal1411 ? { historiaReal: { anoPorExtenso: true, nomeadoNoElenco: genteNomeadaDoAutor(elencoDoAjuste), nomesNoElenco: nomesDaGenteNomeadaDoAutor(elencoDoAjuste) } } : {})') && linhaClassica.includes('preservarElenco: !!qualidadeHerdada'))
+checa('E só a estrada clássica passa a regra à camada de época, e só dentro do escopo (fora dele a chamada fica byte a byte)', rota.split('historiaReal:').length === 2 && linhaClassica.includes('...(historiaReal1411 ? { historiaReal: { anoPorExtenso: true, nomeadoNoElenco: papelEOnomeado1411 && genteNomeadaDoAutor(elencoDoAjuste), nomesNoElenco: nomesDaGenteNomeadaDoAutor(elencoDoAjuste) } } : {})') && linhaClassica.includes('preservarElenco: !!qualidadeHerdada'))
 checa('E (B1) anúncio, régua, trava de ficha e refazer-cena não conhecem a regra; hollywood não a passa', ['lib/ads/v2FilmQuality.ts', 'lib/ads/cena/filmQuality.ts', 'lib/regua95/perguntasHonestas.ts', 'lib/cinematic/elencoTrava.ts', 'lib/free15RefazCena0311.ts'].every((a) => { const t = fs.readFileSync(a, 'utf8'); return !/anoPorExtenso|historiaReal|comAnosPorExtenso/.test(t) }) && !/anoPorExtenso: true/.test(rota.replace(linhaClassica, '')))
 checa('E a camada de época não lê interruptor global (só o que a chamada passa) e não ganhou import novo', !epoca.includes('historiaRealLigada()') &&epoca.includes('digitosAscii(opts?.anoPorExtenso === true ? comAnosPorExtenso(') && epoca.includes('epocaDaHistoria(args.contextoOriginal, { anoPorExtenso: args.historiaReal?.anoPorExtenso === true })') && !epoca.includes("from '@/lib/cinematic/historiaReal1411'"))
 checa('E o repasse da camada (prepararQualidadeDoFilme) leva o argumento sem valor padrão', lf(fs.readFileSync('lib/cinematic/filmQuality.ts', 'utf8')).includes("historiaReal?: Parameters<typeof aplicarElencoEEpoca>[0]['historiaReal']") && lf(fs.readFileSync('lib/cinematic/filmQuality.ts', 'utf8')).includes('const cast = aplicarElencoEEpoca({ ...args, prompts: withRoom')) // reancorado (KINEO-FICHA-DO-AUTOR-MANDA-1411): a mesma chamada com ...args, que pode levar as fichas do autor depois
 
 const MUTANTES = [
+  ['v4: aposto aceita preposição antes do papel', EP, (s) => s.replace("const ADJ = String.raw`(?:(?!(?:of|the|a|an|for|with|by|from|against|to|in|on|at|and|or|not|never|no)(?![\\p{L}]))[\\p{Ll}-]+\\s+){0,2}?`", "const ADJ = String.raw`(?:[\\p{Ll}-]+\\s+){0,3}?`")],
+  ['v4: aposto sem a trava do fim do papel', EP, (s) => s.replace("const FIM_DO_PAPEL = String.raw`(?=", "const FIM_DO_PAPEL = String.raw`(?=[^]|")],
   ['v3: qualquer palavra entre o verbo e o nome', EP, (s) => s.replace(String.raw`const PARTES = String.raw` + '`' + String.raw`(?:\p{Lu}\p{Ll}[\p{Ll}'’-]*\s+){0,2}?` + '`', String.raw`const PARTES = String.raw` + '`' + String.raw`(?:[\p{L}'’-]+\s+){0,2}?` + '`')],
   ['v3: a flag i volta (\\p{Lu} casa minúscula)', EP, (s) => s.replace("TITULO + PARTES + N + String.raw`(?![\\p{L}])`, 'u'),", "TITULO + PARTES + N + String.raw`(?![\\p{L}])`, 'iu'),")],
   ['v3: qualquer palavra antes do papel ("a rival of the thief")', EP, (s) => s.replace('const P = ADJ + esc(nucleo)', String.raw`const P = String.raw` + '`' + String.raw`(?:[\p{L}-]+\s+){0,3}?` + '`' + ' + esc(nucleo)')],
@@ -264,6 +272,7 @@ for (const [nome, arq, fn] of MUTANTES) {
 }
 // mutantes da ROTA (texto): sem o escopo, em herdado, calculado e nunca aplicado, sem a proteção da comida — cada um derruba uma checagem (E)
 const MUTANTES_DA_ROTA = [
+  ['v4: o papel ignora o interruptor próprio', (r) => r.replace('nomeadoNoElenco: papelEOnomeado1411 && genteNomeadaDoAutor(elencoDoAjuste)', 'nomeadoNoElenco: genteNomeadaDoAutor(elencoDoAjuste)')],
   ['rota: a obra real sem o escopo', (s) => s.replace('if (historiaReal1411) { try { const obraReal', 'if (true) { try { const obraReal')],
   ['rota: o escopo sem o filtro de herdado', (s) => s.replace('herdado: !!qualidadeHerdada, pedido: pedidoDoCliente })', 'herdado: false, pedido: pedidoDoCliente })')],
   ['rota: o escopo sem o filtro de filme grátis', (s) => s.replace('escopoDaHistoriaReal({ gratis: kling4TrialCandidate,', 'escopoDaHistoriaReal({ gratis: true,')],
@@ -276,7 +285,7 @@ const MUTANTES_DA_ROTA = [
 const checagensDaRota = (r) => {
   const iE = r.indexOf(ESCOPO), iO = r.indexOf(OBRA)
   const lc = r.split('\n').find((l) => l.includes('const elencoEpoca = prepararQualidadeDoFilme({ prompts: classicScenePrompts')) ?? ''
-  return iE > 0 && iO > iE && r.split('historiaReal:').length === 2 && lc.includes('...(historiaReal1411 ? { historiaReal: { anoPorExtenso: true, nomeadoNoElenco: genteNomeadaDoAutor(elencoDoAjuste), nomesNoElenco: nomesDaGenteNomeadaDoAutor(elencoDoAjuste) } } : {})') && !/anoPorExtenso: true/.test(r.replace(lc, ''))
+  return iE > 0 && iO > iE && r.split('historiaReal:').length === 2 && lc.includes('...(historiaReal1411 ? { historiaReal: { anoPorExtenso: true, nomeadoNoElenco: papelEOnomeado1411 && genteNomeadaDoAutor(elencoDoAjuste), nomesNoElenco: nomesDaGenteNomeadaDoAutor(elencoDoAjuste) } } : {})') && !/anoPorExtenso: true/.test(r.replace(lc, ''))
 }
 checa('controle: as checagens da rota passam na rota real', checagensDaRota(rota))
 for (const [nome, fn] of MUTANTES_DA_ROTA) {
