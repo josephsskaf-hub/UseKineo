@@ -37,12 +37,16 @@ export const PROVIDER_DEBIT_REF_CHUNK = 100
 
 // KINEO-RESERVA-PAGINADA-1411 [CEO 14/11 12:02, P0] — a leitura dos claims era UMA consulta com .limit(1000) e recusava ao vir 1000 linhas: um teto de VIDA da conta
 // (a do fundador chegou a 1000 em 14/11 e todo filme voltou 503 "Your credit reservation could not be verified"). Agora lê em páginas de 1000
-// (a mesma ordem: created_at desc, id desc) até vir uma página vazia; a decisão sobre cada linha é a MESMA. O deslocamento anda pelo que VEIO
-// (se o servidor devolver menos que 1000 por resposta, nenhuma linha é pulada) e só a página VAZIA encerra. Teto de segurança explícito: 20
-// páginas com dados; ainda havendo linha depois delas, recusa como antes. Erro do banco em qualquer página recusa. A linha repetida entre páginas
-// (um claim novo gravado durante a leitura empurra a lista) conta uma vez só, pelo id.
+// (a mesma ordem: created_at desc, id desc) até vir uma página vazia; a decisão sobre cada linha é a MESMA. Teto de segurança explícito: 20
+// páginas com dados; ainda havendo linha depois delas, recusa como antes. Erro do banco em qualquer página recusa.
+// KINEO-RESERVA-POR-CHAVE-1411 [revisor da CEO 14/11 12:16] — a página seguinte é pedida pela ÚLTIMA CHAVE LIDA (created_at e id menores que a última
+// linha vista), não pela posição: um claim APAGADO entre as páginas (compose solta o pedido, avatar, unlock) fazia a linha 1001 subir para a 1000 e
+// ninguém a lia (reserva de 300 sumia da soma). Pela chave, apagar ou gravar no meio da leitura não pula nem repete linha; por isso não há
+// mais deduplicação. Só a página VAZIA encerra (servidor que devolve menos que 1000 por resposta não corta a leitura). Chave ilegível = recusa.
 export const HOLD_SCAN_PAGE = 1000
 export const HOLD_SCAN_MAX_PAGES = 20
+/** A chave da página seguinte vai DENTRO do filtro do PostgREST: só data/hora e uuid (sem aspas, vírgula, parêntese nem espaço de sobra). */
+export const HOLD_SCAN_CHAVE = /^[0-9A-Za-z:.+\- ]{1,64}$/
 
 export async function inspectActiveComposeCreditHolds(args: {
   db: SupabaseClient
@@ -52,26 +56,28 @@ export async function inspectActiveComposeCreditHolds(args: {
 }): Promise<HoldInspection> {
   const activeSince = new Date(Date.now() - ACTIVE_COMPOSE_CREDIT_HOLD_TTL_MS).toISOString()
   const data: Array<Record<string, unknown>> = [] // KINEO-RESERVA-PAGINADA-1411 — era: uma consulta .limit(1000) que recusava ao vir 1000 linhas
-  const vistos = new Set<unknown>()
-  let from = 0
+  let cursor: { createdAt: string; id: string } | null = null // KINEO-RESERVA-POR-CHAVE-1411 — era: deslocamento pela posição (range)
   for (let pagina = 0; ; pagina++) {
-    const { data: lote, error } = await args.db
+    let consulta = args.db
       .from('events')
       .select('id,name,user_id,path,session_id,metadata,created_at')
       .in('name', [COMPOSE_CLAIM_EVENT, AVATAR_CLAIM_EVENT, CINEMATIC_CLAIM_EVENT])
       .eq('user_id', args.userId)
+    if (cursor) consulta = consulta.or(`created_at.lt."${cursor.createdAt}",and(created_at.eq."${cursor.createdAt}",id.lt."${cursor.id}")`)
+    const { data: lote, error } = await consulta
       .order('created_at', { ascending: false })
       .order('id', { ascending: false })
-      .range(from, from + HOLD_SCAN_PAGE - 1)
+      .limit(HOLD_SCAN_PAGE)
     if (error) return { ok: false, error: error.message }
     if (!lote || lote.length === 0) break
     if (pagina >= HOLD_SCAN_MAX_PAGES) return { ok: false, error: 'credit hold scan truncated; refusing provider submission' }
-    from += lote.length
-    for (const row of lote as Array<Record<string, unknown>>) {
-      if (vistos.has(row.id)) continue
-      vistos.add(row.id)
-      data.push(row)
-    }
+    const linhas = lote as Array<Record<string, unknown>>
+    data.push(...linhas)
+    const ultima = linhas[linhas.length - 1]
+    const createdAt = typeof ultima.created_at === 'string' ? ultima.created_at : ''
+    const id = typeof ultima.id === 'string' ? ultima.id : ''
+    if (!HOLD_SCAN_CHAVE.test(createdAt) || !HOLD_SCAN_CHAVE.test(id)) return { ok: false, error: 'credit hold scan cursor unreadable; refusing provider submission' }
+    cursor = { createdAt, id }
   }
 
   // Avatar and Cinematic claims begin as balance holds, then become real

@@ -18,13 +18,14 @@ const uuid = (i) => `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`
 const claims = Array.from({ length: 517 }, (_, i) => ({ id: uuid(i), name: 'cinematic_submission_claim', user_id: 'u1', metadata: {}, created_at: new Date(Date.now() - i * 1000).toISOString() }))
 let maiorLote = 0, chamadas = 0
 function q(table) {
-  const st = { table, inList: null, faixa: null }
+  const st = { table, inList: null, faixa: null, chave: null }
   const b = {
     select() { return b }, eq() { return b }, order() { return b }, limit() { return b },
     range(a, z) { st.faixa = [a, z]; return b }, // reancorado KINEO-RESERVA-PAGINADA-1411 — a leitura dos claims agora é paginada (range); o banco falso devolve a faixa pedida
+    or(e) { const m = /^created_at\.lt\."([^"]+)",and\(created_at\.eq\."([^"]+)",id\.lt\."([^"]+)"\)$/.exec(e); st.chave = m ? [m[1], m[3]] : 'erro'; return b }, // reancorado KINEO-RESERVA-POR-CHAVE-1411 — página seguinte pela última chave lida
     in(col, list) { if (table === 'events') return b; st.inList = list; return b },
     then(res) {
-      if (table === 'events') return res({ data: st.faixa ? claims.slice(st.faixa[0], st.faixa[1] + 1) : claims, error: null })
+      if (table === 'events') { if (st.chave === 'erro') return res({ data: null, error: { message: 'failed to parse logic tree' } }); const depois = st.chave ? claims.filter((r) => r.created_at < st.chave[0] || (r.created_at === st.chave[0] && r.id < st.chave[1])) : claims; return res({ data: st.faixa ? depois.slice(st.faixa[0], st.faixa[1] + 1) : depois, error: null }) }
       chamadas++; maiorLote = Math.max(maiorLote, st.inList.length)
       if (st.inList.length > 100) return res({ data: null, error: { message: 'Bad Request' } })
       return res({ data: [], error: null })

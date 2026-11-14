@@ -11,6 +11,9 @@
 //  a. 1000 claims antigos (liquidados ou sem reserva) + o atual: as duas rotas passam da auditoria (nunca o 503 da reserva).
 //  b. 1001 e 2500 claims antigos: idem. Em todos, a auditoria leu páginas contíguas de 1000 (2 ou 3 com linhas + a vazia) e TODOS os claims.
 //  c. erro do banco na 2ª página da auditoria: as duas rotas devolvem o 503 da reserva, o claim atual é solto e NADA vai a fornecedor.
+// KINEO-RESERVA-POR-CHAVE-1411 [revisor da CEO 14/11 12:16] — a auditoria pede a página seguinte pela ÚLTIMA CHAVE LIDA (created_at e id), não pela
+// posição: as páginas são conferidas pela chave (cada uma começa logo depois da última linha da anterior, nenhuma linha relida) e:
+//  e. um claim APAGADO entre a 1ª e a 2ª página com uma reserva de 500 na posição 1001: as duas rotas a contam (402); pela posição ela sumia.
 //  d. uma reserva ATIVA de outro filme na 2ª página (atrás de 1500 claims mais novos): as duas rotas a contam e recusam por saldo (402,
 //     "already reserve"); quem lê só a 1ª página deixa passar.
 // Mutantes no fim (no fonte de lib/credits/composeHold.ts): "lê só a 1ª página", "recusa ao vir 1000 linhas" (o comportamento de antes),
@@ -76,7 +79,7 @@ function criarBanco({ falha = () => null, saldoServico = null } = {}) {
   const contem = (obj, sub) => obj && typeof obj === 'object' && Object.entries(sub).every(([k, v]) => (v && typeof v === 'object') ? contem(obj[k], v) : igual(obj[k], v) && typeof obj[k] === typeof v)
   function consulta(quem, tabela) {
     if (!tabelas[tabela]) tabelas[tabela] = []
-    const s = { quem, tabela, op: 'select', filtros: [], desc: [], ordens: [], from: null, to: null, limite: null, um: null, payload: null, depois: false, count: null, head: false }
+    const s = { quem, tabela, op: 'select', filtros: [], desc: [], ordens: [], from: null, to: null, limite: null, um: null, payload: null, depois: false, count: null, head: false, chave: null, chaveRuim: false }
     const api = {
       select(_cols, opts) { if (s.op !== 'select') s.depois = true; if (opts?.count) { s.count = opts.count; s.head = !!opts.head } return api },
       insert(p) { s.op = 'insert'; s.payload = p; return api },
@@ -95,6 +98,7 @@ function criarBanco({ falha = () => null, saldoServico = null } = {}) {
       contains(c, sub) { s.filtros.push((r) => contem(r[c], sub)); return api },
       order(c, o) { s.ordens.push([c, o?.ascending === false ? -1 : 1]); return api },
       range(a, b) { s.from = a; s.to = b; return api },
+      or(e) { const m = /^created_at\.lt\."([^"]+)",and\(created_at\.eq\."([^"]+)",id\.lt\."([^"]+)"\)$/.exec(e); if (!m || m[1] !== m[2]) { s.chaveRuim = true; return api } s.chave = [m[1], m[3]]; s.filtros.push((r) => r.created_at < m[1] || (r.created_at === m[1] && r.id < m[3])); return api }, // KINEO-RESERVA-POR-CHAVE-1411 — o filtro de chave do PostgREST
       limit(n) { s.limite = n; return api },
       single() { s.um = 'single'; return api },
       maybeSingle() { s.um = 'maybe'; return api },
@@ -102,8 +106,9 @@ function criarBanco({ falha = () => null, saldoServico = null } = {}) {
     }
     function executa() {
       const t = tabelas[s.tabela]
-      const pedido = { quem: s.quem, tabela: s.tabela, op: s.op, desc: s.desc.join(','), from: s.from, to: s.to, n: ++seq }
-      pedido.varredura = s.tabela === 'events' && s.op === 'select' && s.desc.includes('in name') && s.from !== null
+      const pedido = { quem: s.quem, tabela: s.tabela, op: s.op, desc: s.desc.join(','), from: s.from, to: s.to, limite: s.limite, chave: s.chave, n: ++seq }
+      pedido.varredura = s.tabela === 'events' && s.op === 'select' && s.desc.includes('in name') && (s.from !== null || s.limite !== null)
+      if (s.chaveRuim) return { data: null, error: { message: 'failed to parse logic tree' }, count: null }
       log.push(pedido)
       const erro = falha(pedido)
       if (erro) return { data: null, error: erro, count: null }
@@ -126,6 +131,7 @@ function criarBanco({ falha = () => null, saldoServico = null } = {}) {
       if (s.limite !== null) fatia = fatia.slice(0, s.limite)
       fatia = fatia.slice(0, MAX_ROWS) // o PostgREST nunca devolve mais que max-rows
       pedido.linhas = fatia.length
+      if (pedido.varredura) { pedido.ids = fatia.map((r) => r.id); pedido.ultima = fatia.length ? [fatia.at(-1).created_at, fatia.at(-1).id] : null }
       // o saldo "fresco" que o cliente de SERVIÇO relê depois da auditoria (pode diferir da leitura de entrada, como numa corrida real)
       if (s.tabela === 'profiles' && s.quem === 'servico' && saldoServico !== null) fatia = fatia.map((r) => ({ ...r, video_credits: saldoServico }))
       return fecha(fatia.map((r) => structuredClone(r)), s.count ? achadas.length : null)
@@ -242,16 +248,17 @@ async function bateria(over = {}) {
         const esperadas = Math.ceil(total / MAX_ROWS) + 1 // as páginas com linhas + a página vazia que encerra a leitura
         const comLinha = r.varreduras.filter((p) => p.linhas > 0).length
         if (comLinha !== paginasCheias || r.varreduras.at(-1).linhas !== 0 || r.varreduras.length !== esperadas) throw new Error(`páginas: ${JSON.stringify(r.varreduras.map((p) => [p.from, p.to, p.linhas]))}`)
-        // páginas contíguas: cada uma começa onde a anterior parou (nenhuma linha pulada nem relida) e pede 1000
-        let anda = 0
-        for (const p of r.varreduras) { if (p.from !== anda || p.to !== p.from + MAX_ROWS - 1) throw new Error('range fora de ordem: ' + JSON.stringify(r.varreduras.map((x) => [x.from, x.to, x.linhas]))); anda += p.linhas }
-        if (anda !== total) throw new Error(`a auditoria leu ${anda} de ${total} claims`)
+        // reancorado KINEO-RESERVA-POR-CHAVE-1411 — era: páginas contíguas por posição (range). Agora: cada página pede 1000 e começa pela chave da última
+        // linha da anterior (a 1ª sem chave); nenhuma linha relida; todas lidas.
+        r.varreduras.forEach((p, i) => { const esperada = i === 0 ? null : r.varreduras[i - 1].ultima; if (p.limite !== MAX_ROWS || JSON.stringify(p.chave) !== JSON.stringify(esperada)) throw new Error('chave fora de ordem: ' + JSON.stringify(r.varreduras.map((x) => [x.chave, x.linhas]))) })
+        const lidos = r.varreduras.flatMap((p) => p.ids ?? [])
+        if (lidos.length !== total || new Set(lidos).size !== total) throw new Error(`a auditoria leu ${lidos.length} (${new Set(lidos).size} distintos) de ${total} claims`)
         if (r.fornecedor.length) throw new Error('fornecedor chamado: ' + r.fornecedor.join(', '))
       })
     }
     // c — erro do banco na 2ª página: recusa, solta o claim, nada vai a fornecedor
     await check(`${qual} erro do banco na 2ª página: 503 da reserva, claim solto, nenhum fornecedor`, async () => {
-      const r = await rodar(rotas, qual, { velhos: 1000, falha: (p) => (p.varredura && p.from === MAX_ROWS ? { message: 'erro de teste na 2ª página' } : null) })
+      const r = await rodar(rotas, qual, { velhos: 1000, falha: (p) => (p.varredura && p.chave ? { message: 'erro de teste na 2ª página' } : null) }) // reancorado KINEO-RESERVA-POR-CHAVE-1411 — a 2ª página é a 1ª com chave
       if (r.status !== 503 || !String(r.json.error ?? '').includes(MSG_RESERVA)) throw new Error(`esperava o 503 da reserva, veio ${r.status} ${JSON.stringify(r.json).slice(0, 300)}`)
       if (r.varreduras.length !== 2) throw new Error('páginas lidas: ' + r.varreduras.length)
       if (r.saldoServicoLido) throw new Error('passou da auditoria (leu o saldo)')
@@ -264,6 +271,14 @@ async function bateria(over = {}) {
       const r = await rodar(rotas, qual, { velhos: 1500, extra: [reservaAtivaAntiga(rotas)], saldoServico: 500 })
       const pos = r.varreduras.length
       if (r.status !== 402 || !/already reserve part of your balance/.test(String(r.json.error ?? ''))) throw new Error(`esperava 402 com a reserva de 500 contada, veio ${r.status} ${JSON.stringify(r.json).slice(0, 300)} (${pos} páginas)`)
+      if (r.fornecedor.length) throw new Error('fornecedor chamado: ' + r.fornecedor.join(', '))
+    })
+    // e — KINEO-RESERVA-POR-CHAVE-1411 [revisor] — claim APAGADO entre a 1ª e a 2ª página; uma reserva ativa de 500 cai na posição 1001 (1ª da 2ª página)
+    await check(`${qual} claim apagado entre as páginas: a reserva de 500 da posição 1001 é contada (402 "already reserve")`, async () => {
+      const ativa = { ...reservaAtivaAntiga(rotas), created_at: new Date(Date.now() - 60_000 - 998_500).toISOString() } // entre o velho 998 e o 999: posição 1001
+      const r = await rodar(rotas, qual, { velhos: 1500, extra: [ativa], saldoServico: 500, falha: (p) => { if (p.varredura && p.chave) { const t = banco.tabelas.events, i = t.findIndex((x) => x.id === uuidVelho(5)); if (i >= 0) t.splice(i, 1) } return null } })
+      if (r.status !== 402 || !/already reserve part of your balance/.test(String(r.json.error ?? ''))) throw new Error(`esperava 402 com a reserva da posição 1001 contada, veio ${r.status} ${JSON.stringify(r.json).slice(0, 300)}`)
+      if (!r.varreduras.some((p) => p.ids?.includes(ativa.id))) throw new Error('a reserva da posição 1001 não foi lida')
       if (r.fornecedor.length) throw new Error('fornecedor chamado: ' + r.fornecedor.join(', '))
     })
   }
@@ -280,7 +295,9 @@ async function bateria(over = {}) {
 }
 
 const MUTANTES = [
-  ['lê só a 1ª página', '      data.push(row)\n    }\n  }\n', '      data.push(row)\n    }\n    break\n  }\n'],
+  ['lê só a 1ª página', '    cursor = { createdAt, id }\n  }\n', '    cursor = { createdAt, id }\n    break\n  }\n'],
+  // KINEO-RESERVA-POR-CHAVE-1411 — a página pela POSIÇÃO (o defeito do revisor: claim apagado no meio pula a linha 1001)
+  ['página pela posição', "    if (cursor) consulta = consulta.or(`created_at.lt.\"${cursor.createdAt}\",and(created_at.eq.\"${cursor.createdAt}\",id.lt.\"${cursor.id}\")`)\n    const { data: lote, error } = await consulta\n      .order('created_at', { ascending: false })\n      .order('id', { ascending: false })\n      .limit(HOLD_SCAN_PAGE)\n", "    const lidas = data.length\n    const { data: lote, error } = await consulta\n      .order('created_at', { ascending: false })\n      .order('id', { ascending: false })\n      .range(lidas, lidas + HOLD_SCAN_PAGE - 1)\n"],
   ['recusa ao vir 1000 linhas (o comportamento de antes)', '    if (!lote || lote.length === 0) break\n', "    if (lote && lote.length >= 1000) return { ok: false, error: 'credit hold scan truncated; refusing provider submission' }\n    if (!lote || lote.length === 0) break\n"],
   ['ignora erro da página', '    if (error) return { ok: false, error: error.message }\n    if (!lote', '    if (error) break\n    if (!lote'],
 ]
