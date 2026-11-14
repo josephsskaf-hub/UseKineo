@@ -1011,11 +1011,26 @@ export async function sweepClipJobs(): Promise<{ scanned: number; delivered: num
 // linha ficava failed com 0 devolvido, a tela prometia "returned within the hour" e nenhuma varredura voltava nela (esta só cobria a troca e a fila; a
 // geral pula os clipes). Aqui, de hora em hora: o movimento failed com 0 devolvido (7 dias), QUALQUER motivo, estorna pela billing_reference (o RPC é
 // idempotente: devolve > 0 uma vez só) e grava o valor só onde ainda é 0. Rodar de novo não estorna de novo.
+// KINEO-MOVIMENTO-VARREDURA-1411 [CEO 14/11 11:50, item 1: "a fila da varredura pode entupir"] — antes: as 50 MAIS ANTIGAS por hora; uma linha morta (o RPC sempre devolve 0)
+// ficava na frente para sempre e, com volume, as novas nunca chegavam. Agora: das mais NOVAS para as mais antigas, em páginas de 50 pelo created_at
+// (cursor), até 4 páginas (200 linhas) por hora. A falha recente é sempre olhada primeiro; a morta vai para o fim e sai da janela de 7 dias.
+export const MOVIMENTO_ESTORNO_PAGINA = 50
+export const MOVIMENTO_ESTORNO_PAGINAS = 4
 export async function estornarMovimentosOrfaos(admin: SupabaseClient, since: string, refund: (billingReference: string) => Promise<number> = (ref) => refundRenderCredits(ref)): Promise<{ scanned: number; refunded: number; creditsReturned: number }> {
-  const { data, error } = await admin.from(CLIPS_TABLE).select(COLUMNS).eq('status', 'failed').eq('credits_refunded', 0).like('prompt', `${MOVIMENTO_PROMPT_PREFIXO}%`).gte('created_at', since).order('created_at', { ascending: true }).limit(50)
-  if (error) { console.error('[clips/sweep] motion refund lookup failed:', error.message); return { scanned: 0, refunded: 0, creditsReturned: 0 } }
-  const rows = (data ?? []).map((raw) => toRow(raw as Record<string, unknown>)).filter(ehLinhaDeMovimento)
-  return sweepSwapRefunds(rows, { refund, setRefunded: (id, refunded) => recreateSwapDepsFor(admin, '').setRefunded(id, refunded) }, () => true)
+  const total = { scanned: 0, refunded: 0, creditsReturned: 0 }
+  let antesDe: string | null = null
+  for (let p = 0; p < MOVIMENTO_ESTORNO_PAGINAS; p++) {
+    let q = admin.from(CLIPS_TABLE).select(COLUMNS).eq('status', 'failed').eq('credits_refunded', 0).like('prompt', `${MOVIMENTO_PROMPT_PREFIXO}%`).gte('created_at', since)
+    if (antesDe) q = q.lt('created_at', antesDe)
+    const { data, error } = await q.order('created_at', { ascending: false }).limit(MOVIMENTO_ESTORNO_PAGINA)
+    if (error) { console.error('[clips/sweep] motion refund lookup failed:', error.message); break }
+    const pagina = (data ?? []).map((raw) => toRow(raw as Record<string, unknown>))
+    const r = await sweepSwapRefunds(pagina.filter((row) => ehLinhaDeMovimento(row)), { refund, setRefunded: (id, refunded) => recreateSwapDepsFor(admin, '').setRefunded(id, refunded) }, () => true)
+    total.scanned += r.scanned; total.refunded += r.refunded; total.creditsReturned += r.creditsReturned
+    if (pagina.length < MOVIMENTO_ESTORNO_PAGINA) break
+    antesDe = pagina[pagina.length - 1].created_at
+  }
+  return total
 }
 // KINEO-FILME-RAPIDO-1710 — o clipe parado com a aba fechada (auditoria 17/10, G8/V7): 4 de 5 clipes grátis de texto
 // esperaram de 33 a 126 min, porque só o poll da tela ou a varredura horária (sweepClipJobs, só 10 min+) os olhava. [KINEO-FILME-RAPIDO-1710]

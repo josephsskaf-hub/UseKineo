@@ -38,7 +38,10 @@ export const movimentoRowPrompt = (f: Pick<RecreateFormat, 'id' | 'title'>) => `
 // KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 [CEO 14/11 10:55, item 1] — a linha de movimento pelo que ELA diz (texto fixo do servidor + motor + modo), sem depender do molde seguir no
 // catálogo: é por aqui que a varredura horária acha o movimento que falhou com o estorno por fazer.
 export const MOVIMENTO_PROMPT_PREFIXO = 'Recreate motion: '
-export const ehLinhaDeMovimento = (row: { prompt: string; engine: string; mode: string }) => row.mode === 'image' && row.engine === MOVIMENTO_ENGINE && /^Recreate motion: .+ [[a-z0-9-]+]$/.test(row.prompt)
+// KINEO-MOVIMENTO-VARREDURA-1411 [CEO 14/11 11:50, item 2: "reconhecer só o que o servidor gravou"] — antes bastava o texto ter a forma "Recreate motion: x [y]" (um clipe de
+// cliente com esse texto casava). Agora só o que o servidor grava: o texto EXATO de um molde de movimento da lista (movimentoForRow: id, título, duração,
+// kling, image) E o modelo de um dos dois passos. Molde que sai da vitrine fica na lista com movimentoAprovado false, nunca apagado, para o estorno achar.
+export const ehLinhaDeMovimento = (row: { prompt: string; engine: string; seconds: number; mode: string; model: string }, catalogo: readonly RecreateFormat[] = RECREATE_FORMATS) => (row.model === MOVIMENTO_CENA_MODEL || row.model === MOVIMENTO_VIDEO_MODEL) && movimentoForRow(row, catalogo) !== null
 
 export function movimentoForRow(row: { prompt: string; engine: string; seconds: number; mode: string }, catalogo: readonly RecreateFormat[] = RECREATE_FORMATS): RecreateFormat | null {
   if (row.mode !== 'image' || row.engine !== MOVIMENTO_ENGINE) return null

@@ -66,13 +66,14 @@ function banco(rows) {
 function bancoSel(rows) {
   const t = new Map(rows.map((r) => [r.id, { ...r }]))
   const from = () => {
-    const f = []; let valores = null, lim = Infinity
+    const f = []; let valores = null, lim = Infinity, ord = null
     const api = {
-      select() { return api }, update(v) { valores = v; return api }, order() { return api }, limit(n) { lim = n; return api },
+      select() { return api }, update(v) { valores = v; return api }, order(c, o) { ord = [c, o?.ascending !== false]; return api }, limit(n) { lim = n; return api },
+      lt(c, v) { f.push((r) => r[c] < v); return api },
       eq(c, v) { f.push((r) => r[c] === v); return api },
       gte(c, v) { f.push((r) => r[c] >= v); return api },
       like(c, p) { const partes = p.split('%'); f.push((r) => { const s = String(r[c] ?? ''); if (!s.startsWith(partes[0]) || !s.endsWith(partes[partes.length - 1])) return false; let k = partes[0].length; for (const x of partes.slice(1, -1)) { const j = s.indexOf(x, k); if (j < 0) return false; k = j + x.length } return k <= s.length - partes[partes.length - 1].length }); return api },
-      then(ok, ko) { const hit = [...t.values()].filter((r) => f.every((x) => x(r))).slice(0, lim); if (valores) for (const r of hit) Object.assign(r, valores); return Promise.resolve({ data: hit.map((r) => ({ ...r })), error: null }).then(ok, ko) },
+      then(ok, ko) { const todos = [...t.values()].filter((r) => f.every((x) => x(r))); if (ord) todos.sort((a, b) => (a[ord[0]] < b[ord[0]] ? -1 : a[ord[0]] > b[ord[0]] ? 1 : 0) * (ord[1] ? 1 : -1)); const hit = todos.slice(0, lim); if (valores) for (const r of hit) Object.assign(r, valores); return Promise.resolve({ data: hit.map((r) => ({ ...r })), error: null }).then(ok, ko) },
     }
     return api
   }
@@ -298,6 +299,10 @@ async function bateria(over = {}) {
       L('m4', { failure_reason: 'motion_not_you', credits_refunded: 40 }), L('m5', { failure_reason: 'motion_scene_failed', created_at: velha }),
       L('m6', { failure_reason: null, status: 'processing' }), L('m7', { failure_reason: 'motion_not_you' }),
       L('x1', { failure_reason: 'provider_failed', prompt: 'a dog running on a beach' }), L('x2', { failure_reason: 'provider_failed', engine: 'seedance' }),
+      // KINEO-MOVIMENTO-VARREDURA-1411 (item 2) — clipe de cliente com texto no formato do movimento: nunca é movimento
+      L('x3', { failure_reason: 'provider_failed', prompt: 'Recreate motion: x [y]', model: 'fal-ai/kling-video/v2.1/standard/image-to-video' }),
+      L('x4', { failure_reason: 'provider_failed', model: 'fal-ai/kling-video/v2.1/standard/image-to-video' }),
+      L('x5', { failure_reason: 'provider_failed', prompt: 'Recreate motion: Football run [molde-que-nao-existe]' }),
     ])
     const pagos = new Set(['clips-m7'])
     const refund = async (ref) => { if (pagos.has(ref)) return 0; pagos.add(ref); return 40 }
@@ -305,7 +310,7 @@ async function bateria(over = {}) {
     const r1 = await srvMod.estornarMovimentosOrfaos(b.admin, since7(), refund)
     const v = (id) => b.t.get(id).credits_refunded
     if (r1.refunded !== 3 || r1.creditsReturned !== 120 || v('m1') !== 40 || v('m2') !== 40 || v('m3') !== 40) throw new Error('não estornou o movimento: ' + JSON.stringify([r1, v('m1'), v('m2'), v('m3')]))
-    if (v('m4') !== 40 || v('m5') !== 0 || v('m6') !== 0 || v('x1') !== 0 || v('x2') !== 0 || pagos.has('clips-x1') || pagos.has('clips-x2') || pagos.has('clips-m6') || pagos.has('clips-m5') || pagos.has('clips-m4')) throw new Error('mexeu fora do escopo')
+    if (v('m4') !== 40 || v('m5') !== 0 || v('m6') !== 0 || v('x1') !== 0 || v('x2') !== 0 || pagos.has('clips-x1') || pagos.has('clips-x2') || pagos.has('clips-x3') || pagos.has('clips-x4') || pagos.has('clips-x5') || pagos.has('clips-m6') || pagos.has('clips-m5') || pagos.has('clips-m4')) throw new Error('mexeu fora do escopo')
     if (v('m7') !== 0) throw new Error('gravou um valor que o RPC não devolveu')
     if (!mov.movimentoFalhaParaTela(b.t.get('m1').failure_reason, v('m1')).message.includes('returned your credits')) throw new Error('a tela depois do estorno')
     const r2 = await srvMod.estornarMovimentosOrfaos(b.admin, since7(), refund)
@@ -313,6 +318,25 @@ async function bateria(over = {}) {
     const varre = (over[SRV] ?? lf(SRV)).replace(/\/\/[^\n]*/g, '')
     const corpo = varre.slice(varre.indexOf('export async function sweepClipJobs'), varre.indexOf('export async function advanceActiveClipJobs'))
     if (!corpo.includes('const mov = await estornarMovimentosOrfaos(admin, since)') || !corpo.includes('result.refunded += mov.refunded')) throw new Error('a varredura horária não chama o estorno do movimento')
+  })
+  await check('11 (KINEO-MOVIMENTO-VARREDURA-1411, item 1) a fila não entope: 60 linhas mortas (o RPC devolve 0) não escondem a falha nova NEM a mais antiga atrás delas; teto de 200 por hora', async () => {
+    const L = (id, minAtras, o = {}) => linha({ id, billing_reference: 'clips-' + id, status: 'failed', credits_refunded: 0, failure_reason: 'provider_failed', model: VIDEO, created_at: new Date(NOW - minAtras * 60_000).toISOString(), ...o })
+    const mortas = Array.from({ length: 60 }, (_, i) => L('morta-' + i, 60 + i))
+    const b = bancoSel([L('velha', 3 * 24 * 60), ...mortas, L('nova', 10)])
+    const vivas = new Set(['clips-velha', 'clips-nova'])
+    let chamadas = 0
+    const r = await srvMod.estornarMovimentosOrfaos(b.admin, since7(), async (ref) => { chamadas++; return vivas.delete(ref) ? 40 : 0 })
+    if (r.refunded !== 2 || b.t.get('nova').credits_refunded !== 40 || b.t.get('velha').credits_refunded !== 40 || chamadas !== 62) throw new Error('entupiu: ' + JSON.stringify([r, chamadas, b.t.get('nova').credits_refunded, b.t.get('velha').credits_refunded]))
+    const muitas = bancoSel(Array.from({ length: 300 }, (_, i) => L('m-' + i, 5 + i)))
+    let n = 0
+    await srvMod.estornarMovimentosOrfaos(muitas.admin, since7(), async () => { n++; return 0 })
+    if (n !== 200) throw new Error('teto por hora: ' + n)
+  })
+  await check('11 (KINEO-MOVIMENTO-VARREDURA-1411, item 2) o reconhecedor só aceita o que o servidor grava: texto EXATO de um molde da lista + modelo de um dos dois passos', async () => {
+    const e = mov.ehLinhaDeMovimento
+    if (!e(linha()) || !e(linha({ model: VIDEO }))) throw new Error('a linha do servidor não foi reconhecida')
+    for (const o of [{ prompt: 'Recreate motion: x [y]' }, { prompt: 'Recreate motion: Football run [molde-que-nao-existe]' }, { model: 'fal-ai/kling-video/v2.1/standard/image-to-video' }, { engine: 'seedance' }, { mode: 't2v' }, { seconds: 5 }, { prompt: 'Recreate motion: Football run [lance-teste] ' }])
+      if (e(linha(o))) throw new Error('reconheceu: ' + JSON.stringify(o))
   })
   await check('11 (item 1) de ponta a ponta: o estorno dá erro na hora (o RPC devolve 0) → failed com 0 e "within the hour"; a varredura devolve uma vez', async () => {
     const h = harness({ juiz: { result: 'blocked', reason: 'moderation' } })
@@ -528,7 +552,14 @@ const mutantes = [
   // KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 [CEO 14/11 10:55]
   ['varredura horária sem o movimento', { [SRV]: src[SRV].replace('  const mov = await estornarMovimentosOrfaos(admin, since)', '  const mov = { refunded: 0, creditsReturned: 0 }') }],
   ['estorno do movimento só nos motivos motion_*', { [SRV]: src[SRV].replace('setRefunded(id, refunded) }, () => true)', "setRefunded(id, refunded) }, (motivo) => typeof motivo === 'string' && motivo.startsWith('motion_'))") }],
-  ['varredura do movimento pega o que não é movimento', { [SRV]: src[SRV].replace('.filter(ehLinhaDeMovimento)', '') }],
+  // KINEO-MOVIMENTO-VARREDURA-1411 [CEO 14/11 11:50]
+  ['varredura das mais antigas primeiro', { [SRV]: src[SRV].replace("    const { data, error } = await q.order('created_at', { ascending: false }).limit(MOVIMENTO_ESTORNO_PAGINA)", "    const { data, error } = await q.order('created_at', { ascending: true }).limit(MOVIMENTO_ESTORNO_PAGINA)") }],
+  ['varredura de uma página só', { [SRV]: src[SRV].replace('export const MOVIMENTO_ESTORNO_PAGINAS = 4', 'export const MOVIMENTO_ESTORNO_PAGINAS = 1') }],
+  ['varredura sem teto', { [SRV]: src[SRV].replace('export const MOVIMENTO_ESTORNO_PAGINAS = 4', 'export const MOVIMENTO_ESTORNO_PAGINAS = 1000') }],
+  ['varredura sem cursor (relê a 1ª página)', { [SRV]: src[SRV].replace('    if (antesDe) q = q.lt(\'created_at\', antesDe)\n', '') }],
+  ['reconhecedor pela forma do texto', { [MOV]: src[MOV].replace('(row.model === MOVIMENTO_CENA_MODEL || row.model === MOVIMENTO_VIDEO_MODEL) && movimentoForRow(row, catalogo) !== null', "row.mode === 'image' && row.engine === MOVIMENTO_ENGINE && /^Recreate motion: .+ \\[[a-z0-9-]+\\]$/.test(row.prompt)") }],
+  ['reconhecedor sem o modelo', { [MOV]: src[MOV].replace('(row.model === MOVIMENTO_CENA_MODEL || row.model === MOVIMENTO_VIDEO_MODEL) && movimentoForRow(row, catalogo) !== null', 'movimentoForRow(row, catalogo) !== null') }],
+  ['varredura do movimento pega o que não é movimento', { [SRV]: src[SRV].replace('pagina.filter((row) => ehLinhaDeMovimento(row))', 'pagina') }],
   ['moderador fora sem evento', { [SRV]: src[SRV].replace("      if (!mod.ok) await clipEvent(row.user_id)(MOVIMENTO_EVENTOS.moderadorFora, { clip_id: row.id, motivo: mod.reason, etapa: 'movimento_cena' })\n", '') }],
   ['três estilos de cabelo', { [DESC]: src[DESC].replace('.filter(Boolean))].slice(0, 2)', '.filter(Boolean))].slice(0, 3)') }],
   ['orçamento da moderação de 60 s', { [SRV]: src[SRV].replace("etapa: 'movimento_cena' }, orcamentoMs: 15_000 })", "etapa: 'movimento_cena' }, orcamentoMs: 60_000 })") }],
