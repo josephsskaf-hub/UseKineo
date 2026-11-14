@@ -363,7 +363,7 @@ async function bateria(over = {}) {
     await check(`11 (a) ${n} linhas mortas mais novas na frente (já estornadas no livro-razão): cada uma grava o valor REAL e sai da busca; a órfã antiga volta em até ${Math.ceil(n / 200) + 1} horas`, async () => {
       const L = (id, minAtras, o = {}) => linha({ id, billing_reference: 'clips-' + id, status: 'failed', credits_refunded: 0, failure_reason: 'provider_failed', model: VIDEO, created_at: new Date(NOW - minAtras * 60_000).toISOString(), ...o })
       const mortas = Array.from({ length: n }, (_, i) => L('morta-' + i, 5 + i))
-      const b = bancoSel([...mortas, L('orfa', 5 * 24 * 60)], mortas.map((m) => ({ render_id: m.billing_reference, amount: 40, refunded_at: new Date(NOW - 3600_000).toISOString() })))
+      const b = bancoSel([...mortas, L('orfa', 5 * 24 * 60)], mortas.map((m) => ({ render_id: m.billing_reference, user_id: U, amount: 40, refunded_at: new Date(NOW - 3600_000).toISOString() })))
       let pagas = 0, horas = 0
       const refund = async (ref) => (ref === 'clips-orfa' && !pagas++ ? 40 : 0)
       while (b.t.get('orfa').credits_refunded === 0 && horas < 50) { horas++; await srvMod.estornarMovimentosOrfaos(b.admin, since7(), refund) }
@@ -373,7 +373,7 @@ async function bateria(over = {}) {
   }
   await check('11 (a) débito ainda NÃO devolvido no livro-razão (erro de verdade no RPC): nada é gravado, a linha volta na hora seguinte', async () => {
     const l = linha({ id: 'erro-rpc', billing_reference: 'clips-erro-rpc', status: 'failed', credits_refunded: 0, failure_reason: 'provider_failed', model: VIDEO })
-    const b = bancoSel([l], [{ render_id: 'clips-erro-rpc', amount: 40, refunded_at: null }])
+    const b = bancoSel([l], [{ render_id: 'clips-erro-rpc', user_id: U, amount: 40, refunded_at: null }])
     let chamadas = 0
     await srvMod.estornarMovimentosOrfaos(b.admin, since7(), async () => { chamadas++; return 0 })
     if (b.t.get('erro-rpc').credits_refunded !== 0) throw new Error('gravou estorno que não aconteceu')
@@ -415,11 +415,36 @@ async function bateria(over = {}) {
     const r = mov.planMovimento(pedido, ctx, null)
     if (!r.ok || r.plan.fingerprintInput.molde !== 'lance-teste') throw new Error('o plano não grava o id do molde')
   })
+  // KINEO-MOVIMENTO-ANTES-DE-ABRIR-2-1411 [revisor da CEO 14/11, itens 1, 2 e 3]
+  await check('11 (1) 250 linhas SEM débito no livro (o processo caiu antes de debitar) mais novas na frente: viram never_charged e saem da busca; a órfã antiga volta em até 3 horas; a tela diz "not charged"', async () => {
+    const L = (id, minAtras, o = {}) => linha({ id, billing_reference: 'clips-' + id, status: 'failed', credits_refunded: 0, failure_reason: 'submit_lost', model: VIDEO, created_at: new Date(Date.now() - minAtras * 60_000).toISOString(), ...o })
+    const sem = Array.from({ length: 250 }, (_, i) => L('sem-' + i, 90 + i))
+    const b = bancoSel([...sem, L('orfa', 5 * 24 * 60)], [{ render_id: 'clips-orfa', user_id: U, amount: 25, refunded_at: null }])
+    let horas = 0
+    while (b.t.get('orfa').credits_refunded === 0 && horas < 20) { horas++; await srvMod.estornarMovimentosOrfaos(b.admin, since7(), async (ref) => (ref === 'clips-orfa' ? 25 : 0)) }
+    if (b.t.get('orfa').credits_refunded !== 25 || horas > 3) throw new Error('órfã em ' + horas + ' horas')
+    if (sem.some((x) => b.t.get(x.id).failure_reason !== 'never_charged' || b.t.get(x.id).credits_refunded !== 0)) throw new Error('linha sem débito não virou never_charged')
+    const tela = mov.movimentoFalhaParaTela('never_charged', 0)
+    if (!tela || !tela.message.includes('You were not charged') || tela.message.includes('returned')) throw new Error(JSON.stringify(tela))
+  })
+  await check('11 (1) sem débito há MENOS de 1 h: espera (nunca disputa com um débito em andamento)', async () => {
+    const l = linha({ id: 'recente', billing_reference: 'clips-recente', status: 'failed', credits_refunded: 0, failure_reason: 'submit_lost', model: VIDEO, created_at: new Date(Date.now() - 20 * 60_000).toISOString() })
+    const b = bancoSel([l])
+    await srvMod.estornarMovimentosOrfaos(b.admin, since7(), async () => 0)
+    if (b.t.get('recente').failure_reason !== 'submit_lost') throw new Error('marcou antes de 1 h')
+  })
+  await check('11 (2) débito de OUTRA conta na mesma referência: nada gravado para esta linha (o livro confere o dono)', async () => {
+    const l = linha({ id: 'alheio', billing_reference: 'clips-alheio', status: 'failed', credits_refunded: 0, failure_reason: 'provider_failed', model: VIDEO, created_at: new Date(Date.now() - 3 * 3600_000).toISOString() })
+    const b = bancoSel([l], [{ render_id: 'clips-alheio', user_id: OUTRO, amount: 25, refunded_at: new Date().toISOString() }])
+    await srvMod.estornarMovimentosOrfaos(b.admin, since7(), async () => 0)
+    if (b.t.get('alheio').credits_refunded !== 0) throw new Error('gravou o estorno de outra conta')
+  })
   await check('11 (c) o molde saiu da lista com a linha no passo 1: o passo 2 não sai, a linha é estornada, NUNCA entrega a imagem como vídeo', async () => {
     const h = harness({ linha: { fingerprint: FP('molde-que-saiu-da-lista') } })
     h.deps.movimento.submitVideo = srvMod.movimentoDepsFor(h.b.admin).submitVideo
     await flow.settleClip(h.deps, linha({ fingerprint: FP('molde-que-saiu-da-lista') }))
     const l = h.row()
+    if (h.s.juiz !== 0 || h.s.envios !== 0) throw new Error('julgou ou enviou com o molde fora da lista: ' + JSON.stringify(h.s)) // KINEO-MOVIMENTO-ANTES-DE-ABRIR-2-1411 — corta antes da moderação e do juiz
     if (l.status !== 'failed' || h.s.estornos !== 1 || l.video_url || h.s.persistVideo) throw new Error(JSON.stringify([l.status, l.failure_reason, h.s]))
   })
   await check('11 (item 1) de ponta a ponta: o estorno dá erro na hora (o RPC devolve 0) → failed com 0 e "within the hour"; a varredura devolve uma vez', async () => {
@@ -654,12 +679,17 @@ const mutantes = [
   ['corrida da mesma chave vira 409', { [FLOW]: src[FLOW].replace('if (winner && winner.fingerprint === fingerprint) return', 'if (false) return') }],
   // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 [revisor da CEO 14/11 12:30, itens a, b, c + o preço provisório de 6 s]
   ["cursor só por created_at (pula o empate)", { [SRV]: noMov(linhaDoCursorMov(), "    if (cursor) q = q.lt('created_at', cursor.createdAt)") }],
-  ["sem o livro-razão (a linha morta nunca sai)", { [SRV]: noMov('      const debito = await livro(row.billing_reference).catch(() => null)\n', '      const debito = null as { amount: number; refunded: boolean } | null\n') }],
+  ["sem o livro-razão (a linha morta nunca sai)", { [SRV]: noMov('      const debito = await livro(row.billing_reference, row.user_id).catch(() => null)\n', '      const debito = null as { amount: number; refunded: boolean } | null\n') }],
   ["livro-razão grava estorno que não aconteceu", { [SRV]: noMov('if (debito?.refunded && debito.amount > 0)', 'if (debito && debito.amount > 0)') }],
   ["busca com o que nunca foi cobrado", { [SRV]: src[SRV].replace(".not('failure_reason', 'in', `(${MOVIMENTO_ESTORNO_NUNCA_COBRADO.join(',')})`)", '') }],
   ["sem o id do molde na linha", { [MOV]: src[MOV].replace('    fingerprintInput: { ...movimentoEntradaDaCena(f, foto, null), molde: f.id },', '    fingerprintInput: movimentoEntradaDaCena(f, foto, null),') }],
   ["linha reconhecida pelo catálogo (texto e duração)", { [MOV]: src[MOV].replace('  return catalogo.find(f => f.type === \'motion\' && f.id === id) ?? null', '  return catalogo.find(f => f.type === \'motion\' && f.id === id && movimentoRowPrompt(f) === (row as { prompt?: string }).prompt) ?? null') }],
   ["provisório da casa vale para o aprovado", { [FORMATS]: src[FORMATS].replace("(f.type === 'motion' && f.movimentoAprovado !== true ? RECREATE_MOVIMENTO_PROVISORIO_CASA", "(f.type === 'motion' ? RECREATE_MOVIMENTO_PROVISORIO_CASA") }],
+  // KINEO-MOVIMENTO-ANTES-DE-ABRIR-2-1411
+  ['nunca cobrado fica na busca', { [SRV]: noMov("      if (debito === 'sem-debito') { if (await marcarNuncaCobrado(admin, row)) total.nuncaCobrados += 1; continue }", '') }],
+  ['livro sem o dono', { [SRV]: src[SRV].replace(".eq('render_id', ref).eq('user_id', userId).maybeSingle()", ".eq('render_id', ref).maybeSingle()") }],
+  ['marca antes de 1 h', { [SRV]: src[SRV].replace('export const NUNCA_COBRADO_APOS_MS = 60 * 60 * 1000', 'export const NUNCA_COBRADO_APOS_MS = 0') }],
+  ['molde fora da lista ainda julga', { [FLOW]: src[FLOW].replace("    if (!movimentoForRow(row)) return fail(MOVIMENTO_FALHA.cena, null, { motion: 'template_gone' })\n", '') }],
   ['juiz com campo inventado na fal', { [MOV]: src[MOV].replace("character_orientation: 'video', keep_original_sound: false,", "character_orientation: 'video', keep_original_sound: false, negative_prompt: 'logos',") }],
 ]
 let mortos = 0

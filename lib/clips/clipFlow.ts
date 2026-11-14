@@ -44,6 +44,7 @@ import { clipEffectCredits, clipEffectEventMetadata, clipEffectForRow, clipTempl
 // KINEO-ROSTO-QUADRO-CHAVE-2810 — etapa estorna o débito INTEIRO; a etapa 1 falhando, o motor de vídeo nunca é chamado.
 import { FACE_REMIX_EVENTS, FACE_REMIX_KEYFRAME_FAILED, FACE_REMIX_KEYFRAME_MODEL, faceRemixCredits, faceRemixEventMetadata, faceRemixFalUsd, faceRemixForRequest, faceRemixForRow, faceRemixKeyframeInput, faceRemixStageForRow } from './faceRemix' // KINEO-ROSTO-QUADRO-CHAVE-2810
 import { MOVIMENTO_FALHA, MOVIMENTO_VIDEO_MODEL, movimentoEnvio, movimentoEnvioEm, movimentoStageForRow } from '@/lib/recreate/movimento' // KINEO-RECREATE-MOVIMENTO-1411
+import { movimentoForRow } from '@/lib/recreate/movimento' // KINEO-MOVIMENTO-ANTES-DE-ABRIR-2-1411
 import { ownedClipImageUrl } from './clipCatalog' // KINEO-ROSTO-QUADRO-CHAVE-2810 — a posse do recorte do rosto (2ª referência do quadro-chave), a mesma régua da foto
 
 /** Pedido sem request_id da fal há mais que isto = o envio morreu no meio; estorna. */
@@ -594,6 +595,9 @@ async function settleOpenClip(deps: ClipSettleDeps, row: ClipRow, depois: Array<
   // estorno sem pagar o vídeo → envia o vídeo → grava o request_id (2 tentativas; perdido, a rede de 10 min da marca estorna).
   if (movStage === 'scene') {
     if (state.state === 'failed') return fail(MOVIMENTO_FALHA.cena, cleanProviderError(state.error), { motion: 'scene_failed' })
+    // KINEO-MOVIMENTO-ANTES-DE-ABRIR-2-1411 [revisor da CEO 14/11, item 3] — o molde saiu da lista: o passo 2 não tem guia nem ação. Estorna JÁ, antes de guardar a imagem, da
+    // moderação, do juiz e do envio que ia falhar (nada de chamada paga à toa).
+    if (!movimentoForRow(row)) return fail(MOVIMENTO_FALHA.cena, null, { motion: 'template_gone' })
     if (state.state !== 'done') return Number.isFinite(age) && age >= CLIP_EXPIRE_MS ? fail('expired', null, { motion: 'scene_expired' }) : row
     if (!deps.movimento) return Number.isFinite(age) && age >= CLIP_EXPIRE_MS ? fail('expired', null, { motion: 'scene_expired' }) : row // sem os fios do passo 2, espera (nunca entrega a imagem como vídeo)
     const mov = deps.movimento

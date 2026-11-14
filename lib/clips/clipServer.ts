@@ -48,6 +48,7 @@ import { SPACE_CLIP_ENGINE, SPACE_CLIP_SECONDS, SPACE_KINDS, buildSpaceMotionPro
 import { faceRemixKeyframePath, faceRemixStageForRow, faceRemixVideoModel, faceRemixForRow } from '@/lib/clips/faceRemix' // KINEO-ROSTO-QUADRO-CHAVE-2810
 import { MOVIMENTO_SELO, MOVIMENTO_CENA_MODEL, MOVIMENTO_VIDEO_MODEL, movimentoCenaPath, movimentoEntradaDoVideo, movimentoForRow, movimentoGuiaUrl, movimentoStageForRow } from '@/lib/recreate/movimento' // KINEO-RECREATE-MOVIMENTO-1411
 import { MOVIMENTO_EVENTOS, MOVIMENTO_PROMPT_PREFIXO, ehLinhaDeMovimento } from '@/lib/recreate/movimento' // KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411
+import { MOTIVO_NUNCA_COBRADO } from '@/lib/recreate/movimento' // KINEO-MOVIMENTO-ANTES-DE-ABRIR-2-1411
 import { julgarCena } from '@/lib/recreate/movimentoJuiz' // KINEO-RECREATE-MOVIMENTO-1411
 import type { ClipMovimentoDeps } from '@/lib/clips/clipFlow' // KINEO-RECREATE-MOVIMENTO-1411
 import { buildClipFalInput } from '@/lib/clips/clipCatalog' // KINEO-ROSTO-QUADRO-CHAVE-2810 — a MESMA entrada do i2v do clipe comum, com o quadro-chave no lugar da foto
@@ -1018,7 +1019,7 @@ export const MOVIMENTO_ESTORNO_PAGINAS = 4
 // já registrado = grava na linha o valor REAL devolvido (a linha sai da busca e a tela diz "returned", que é verdade); débito ainda não devolvido = fica
 // para a próxima hora (erro de verdade). A linha que nunca foi cobrada (debit_failed: o débito falhou antes) não entra na busca.
 // (b) empate de created_at na borda da página pulava a linha: a página seguinte vem pela ÚLTIMA CHAVE LIDA (created_at e id), como a auditoria das reservas.
-export const MOVIMENTO_ESTORNO_NUNCA_COBRADO = ['debit_failed'] as const
+export const MOVIMENTO_ESTORNO_NUNCA_COBRADO = ['debit_failed', MOTIVO_NUNCA_COBRADO] as const // KINEO-MOVIMENTO-ANTES-DE-ABRIR-2-1411 — + never_charged (marcado pela própria varredura)
 // KINEO-VARREDURAS-ESTORNO-1411 [CEO 14/11 12:30, item 3] — os órfãos da TROCA ("não trocou": unchanged, partial, uncertain) e da FILA do Kling edit (queue_stuck, queue_timeout,
 // queue_full): o mesmo desenho do movimento. Antes: as 50 MAIS ANTIGAS em 7 dias, uma leitura; a linha morta na frente escondia a órfã nova. Agora: das
 // mais novas para as mais antigas, páginas de 50 pela última chave (created_at e id), até 4 por hora; RPC devolveu 0 = o livro-razão decide (estorno já
@@ -1026,8 +1027,8 @@ export const MOVIMENTO_ESTORNO_NUNCA_COBRADO = ['debit_failed'] as const
 export const TROCA_FILA_ESTORNO_PAGINA = 50
 export const TROCA_FILA_ESTORNO_PAGINAS = 4
 const cobreTrocaOuFila = (motivo: string | null) => isRecreateNotSwappedReason(motivo) || (typeof motivo === 'string' && FILA_MOTIVOS_DE_ESTORNO.includes(motivo)) // KINEO-RECREATE-FILA-REVISAO-1411 (item 1) — queue_stuck, queue_timeout e queue_full também fecham failed antes do estorno
-export async function estornarOrfaosDaTrocaEDaFila(admin: SupabaseClient, since: string, refund: (billingReference: string) => Promise<number> = (ref) => refundRenderCredits(ref), livro: MovimentoLivroRazao = livroRazaoDoClipe(admin)): Promise<{ scanned: number; refunded: number; creditsReturned: number; jaDevolvidos: number }> {
-  const total = { scanned: 0, refunded: 0, creditsReturned: 0, jaDevolvidos: 0 }
+export async function estornarOrfaosDaTrocaEDaFila(admin: SupabaseClient, since: string, refund: (billingReference: string) => Promise<number> = (ref) => refundRenderCredits(ref), livro: MovimentoLivroRazao = livroRazaoDoClipe(admin)): Promise<{ scanned: number; refunded: number; creditsReturned: number; jaDevolvidos: number; nuncaCobrados: number }> {
+  const total = { scanned: 0, refunded: 0, creditsReturned: 0, jaDevolvidos: 0, nuncaCobrados: 0 }
   const setRefunded = (id: string, refunded: number) => recreateSwapDepsFor(admin, '').setRefunded(id, refunded)
   let cursor: { createdAt: string; id: string } | null = null
   for (let p = 0; p < TROCA_FILA_ESTORNO_PAGINAS; p++) {
@@ -1040,7 +1041,8 @@ export async function estornarOrfaosDaTrocaEDaFila(admin: SupabaseClient, since:
       total.scanned += 1
       const amount = await refund(row.billing_reference)
       if (amount > 0) { await setRefunded(row.id, amount); total.refunded += 1; total.creditsReturned += amount; continue }
-      const debito = await livro(row.billing_reference).catch(() => null)
+      const debito = await livro(row.billing_reference, row.user_id).catch(() => null)
+      if (debito === 'sem-debito') { if (await marcarNuncaCobrado(admin, row)) total.nuncaCobrados += 1; continue } // KINEO-MOVIMENTO-ANTES-DE-ABRIR-2-1411
       if (debito?.refunded && debito.amount > 0) { await setRefunded(row.id, debito.amount); total.jaDevolvidos += 1 }
     }
     if (pagina.length < TROCA_FILA_ESTORNO_PAGINA) break
@@ -1051,17 +1053,34 @@ export async function estornarOrfaosDaTrocaEDaFila(admin: SupabaseClient, since:
   return total
 }
 const MOVIMENTO_ESTORNO_CHAVE = /^[0-9A-Za-z:.+\- ]{1,64}$/
-export type MovimentoLivroRazao = (billingReference: string) => Promise<{ amount: number; refunded: boolean } | null>
+// KINEO-MOVIMENTO-ANTES-DE-ABRIR-2-1411 [revisor da CEO 14/11, itens 1 e 2] — o livro confere o DONO (render_id E user_id: dinheiro confere dono) e diz "sem débito" à parte de "erro de
+// leitura": erro = null (tenta na hora seguinte); nenhuma linha deste dono com esta referência = 'sem-debito' (a varredura marca never_charged).
+/** KINEO-MOVIMENTO-ANTES-DE-ABRIR-2-1411 — a linha failed sem débito do dono no livro, com mais de 1 h: vira never_charged (UPDATE condicional ao motivo lido) e sai da busca; o motivo
+ *  de antes fica no evento clip_nunca_cobrado. Antes de 1 h espera (nunca disputa com um débito em andamento). */
+export const NUNCA_COBRADO_APOS_MS = 60 * 60 * 1000
+export const CLIP_NUNCA_COBRADO_EVENTO = 'clip_nunca_cobrado'
+async function marcarNuncaCobrado(admin: SupabaseClient, row: ClipRow): Promise<boolean> {
+  const criada = Date.parse(row.created_at)
+  if (!Number.isFinite(criada) || Date.now() - criada < NUNCA_COBRADO_APOS_MS || row.failure_reason === MOTIVO_NUNCA_COBRADO) return false
+  let q = admin.from(CLIPS_TABLE).update({ failure_reason: MOTIVO_NUNCA_COBRADO }).eq('id', row.id).eq('status', 'failed').eq('credits_refunded', 0)
+  q = row.failure_reason === null ? q.is('failure_reason', null) : q.eq('failure_reason', row.failure_reason)
+  const { data, error } = await q.select('id')
+  if (error || !(data ?? []).length) return false
+  await clipEvent(row.user_id)(CLIP_NUNCA_COBRADO_EVENTO, { clip_id: row.id, motivo_original: row.failure_reason, billing_reference: row.billing_reference }).catch(() => {})
+  return true
+}
+export type MovimentoLivroRazao = (billingReference: string, userId: string) => Promise<{ amount: number; refunded: boolean } | 'sem-debito' | null>
 export function livroRazaoDoClipe(admin: SupabaseClient): MovimentoLivroRazao {
-  return async (ref) => {
-    const { data, error } = await admin.from('credit_debits').select('amount, refunded_at').eq('render_id', ref).maybeSingle()
-    if (error || !data) return null
+  return async (ref, userId) => {
+    const { data, error } = await admin.from('credit_debits').select('amount, refunded_at').eq('render_id', ref).eq('user_id', userId).maybeSingle()
+    if (error) return null
+    if (!data) return 'sem-debito'
     const amount = Number((data as { amount?: unknown }).amount)
     return Number.isFinite(amount) ? { amount, refunded: typeof (data as { refunded_at?: unknown }).refunded_at === 'string' && Boolean((data as { refunded_at?: string }).refunded_at) } : null
   }
 }
-export async function estornarMovimentosOrfaos(admin: SupabaseClient, since: string, refund: (billingReference: string) => Promise<number> = (ref) => refundRenderCredits(ref), livro: MovimentoLivroRazao = livroRazaoDoClipe(admin)): Promise<{ scanned: number; refunded: number; creditsReturned: number; jaDevolvidos: number }> {
-  const total = { scanned: 0, refunded: 0, creditsReturned: 0, jaDevolvidos: 0 }
+export async function estornarMovimentosOrfaos(admin: SupabaseClient, since: string, refund: (billingReference: string) => Promise<number> = (ref) => refundRenderCredits(ref), livro: MovimentoLivroRazao = livroRazaoDoClipe(admin)): Promise<{ scanned: number; refunded: number; creditsReturned: number; jaDevolvidos: number; nuncaCobrados: number }> {
+  const total = { scanned: 0, refunded: 0, creditsReturned: 0, jaDevolvidos: 0, nuncaCobrados: 0 }
   const setRefunded = (id: string, refunded: number) => recreateSwapDepsFor(admin, '').setRefunded(id, refunded)
   let cursor: { createdAt: string; id: string } | null = null
   for (let p = 0; p < MOVIMENTO_ESTORNO_PAGINAS; p++) {
@@ -1074,7 +1093,8 @@ export async function estornarMovimentosOrfaos(admin: SupabaseClient, since: str
       total.scanned += 1
       const amount = await refund(row.billing_reference)
       if (amount > 0) { await setRefunded(row.id, amount); total.refunded += 1; total.creditsReturned += amount; continue }
-      const debito = await livro(row.billing_reference).catch(() => null)
+      const debito = await livro(row.billing_reference, row.user_id).catch(() => null)
+      if (debito === 'sem-debito') { if (await marcarNuncaCobrado(admin, row)) total.nuncaCobrados += 1; continue } // KINEO-MOVIMENTO-ANTES-DE-ABRIR-2-1411
       if (debito?.refunded && debito.amount > 0) { await setRefunded(row.id, debito.amount); total.jaDevolvidos += 1 }
     }
     if (pagina.length < MOVIMENTO_ESTORNO_PAGINA) break

@@ -167,9 +167,14 @@ export const MOVIMENTO_FRASES = {
   cenaBloqueada: 'This scene could not be used. Try another photo.',
   devolvido: 'We returned your credits.',
   devolveDepois: 'Your credits will be returned within the hour.',
+  naoCobrado: 'You were not charged.', // KINEO-MOVIMENTO-ANTES-DE-ABRIR-2-1411
 } as const
+// KINEO-MOVIMENTO-ANTES-DE-ABRIR-2-1411 [revisor da CEO 14/11, item 1] — a linha failed SEM débito no livro-razão (o processo caiu entre gravar a linha e debitar; ou o débito é de outra
+// conta) ganha este motivo na varredura: sai da busca e a tela diz a verdade ("You were not charged"). O motivo de antes fica no evento clip_nunca_cobrado.
+export const MOTIVO_NUNCA_COBRADO = 'never_charged'
 /** A razão e a frase da falha para a tela; "returned" só com o estorno gravado na linha. */
 export function movimentoFalhaParaTela(failureReason: string | null, creditsRefunded: number): { reason: 'not_you' | 'engine_refused' | 'scene_failed' | 'scene_blocked'; message: string } | null {
+  if (failureReason === MOTIVO_NUNCA_COBRADO) return { reason: 'scene_failed', message: `${MOVIMENTO_FRASES.cenaFalhou} ${MOVIMENTO_FRASES.naoCobrado}` } // KINEO-MOVIMENTO-ANTES-DE-ABRIR-2-1411
   const fim = creditsRefunded > 0 ? MOVIMENTO_FRASES.devolvido : MOVIMENTO_FRASES.devolveDepois
   if (failureReason === MOVIMENTO_FALHA.naoEVoce) return { reason: 'not_you', message: `${MOVIMENTO_FRASES.naoEVoce} ${fim}` }
   if (failureReason === 'provider_failed' || failureReason === 'provider_rejected') return { reason: 'engine_refused', message: `${MOVIMENTO_FRASES.motorRecusou} ${fim}` }
