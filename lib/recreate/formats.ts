@@ -35,6 +35,9 @@ export interface RecreateFormat {
   cena?: string
   /** Motion only: a ação + a câmera + o cenário do passo 2 (o objeto citado aqui aparece), em frase positiva. */
   acao?: string
+  /** Motion only (KINEO-ACAO-SO-O-GUIA-1411): o que o vídeo-guia MOSTRA de fato, para a ação poder citar. Sem a prova aqui, a régua recusa na ação as palavras de
+   *  MOVIMENTO_PEDE_PROVA (choque, defensor, TV): o motor inventa o que o guia não tem, e inventa com marca. */
+  guiaMostra?: readonly ('choque' | 'defensor' | 'tv')[]
   /** Motion only: pessoas no vídeo-guia. O motor guia UMA; o guardião recusa outro número. */
   pessoasNoGuia?: 1
   /** Motion only: true SÓ depois da validação paga da CEO. Sem isso, só a casa vê (com RECREATE_MOVIMENTO_RELEASE diferente de 'off'). */

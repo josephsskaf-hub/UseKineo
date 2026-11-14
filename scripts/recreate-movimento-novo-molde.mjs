@@ -18,6 +18,8 @@
 // Uso (da raiz da worktree):
 //   node scripts/recreate-movimento-novo-molde.mjs --id lance-de-futebol --titulo "Football run" --mp4 C:\caminho\demo.mp4 \
 //     --cena "standing on …, framed from the knees up, their face clearly visible …" --acao "The person runs forward …" [--segundos 10] [--desde 2026-11-14] [--ensaio] [--comprimir]
+//     [--guia-mostra choque,defensor,tv] (KINEO-ACAO-SO-O-GUIA-1411 — SÓ o que o vídeo-guia mostra de fato; sem isso, a régua recusa a ação que cita choque, defensor ou TV)
+//   10 s (o basquete): --segundos 10; o preço é o da tabela do Recreate (10 s = 40, lib/checkoutPricing.ts). Abrir ao cliente pede linha de 10 s na tabela DO MOVIMENTO (sim do dono).
 // --ensaio: confere tudo e mostra o que escreveria, sem escrever nada.
 import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
@@ -91,6 +93,8 @@ if (!titulo || titulo.length > 40 || /['"`\\]/.test(titulo)) falha('--titulo cur
 if (!/^\d{4}-\d{2}-\d{2}$/.test(desde)) falha('--desde AAAA-MM-DD')
 for (const [n, t] of [['cena', cena], ['acao', acao]]) if (!t || t.length > 800 || /['`\\\n]/.test(t)) falha(`--${n}: obrigatório, uma linha, até 800, sem apóstrofo, crase ou barra (escreva "do not" já é proibido: frase positiva)`)
 if (!mp4 || !fs.existsSync(mp4)) falha('--mp4: arquivo não encontrado')
+const guiaMostra = args['guia-mostra'] === undefined ? [] : String(args['guia-mostra']).split(',').map((x) => x.trim()).filter(Boolean) // KINEO-ACAO-SO-O-GUIA-1411
+if (guiaMostra.some((x) => !['choque', 'defensor', 'tv'].includes(x)) || new Set(guiaMostra).size !== guiaMostra.length) falha('--guia-mostra: choque, defensor e/ou tv, separados por vírgula, sem repetir')
 
 const src = fs.readFileSync(FORMATS, 'utf8')
 const crlf = src.includes('\r\n')
@@ -140,7 +144,7 @@ const aM = 'export const GUIAS_MANIFESTO: Readonly<Record<string, GuiaDoMolde>> 
 if (!manifLf.includes(aM)) falha('âncora do manifesto')
 const novoManif = manifLf.replace(aM, aM + `  '${id}.mp4': { arquivo: '${arqMp4}', bytes: ${bytesFinal}, sha256: '${sha256}' },\n`)
 const chaves = `  // KINEO-RECREATE-MOVIMENTO-MOLDE-1411 — pôster do molde de movimento "${titulo}" (quadro de 1 s, 720 px). O guia mora no bucket privado (${MANIF}).\n  '${id}.jpg': { file: '${arqJpg}', contentType: 'image/jpeg' },\n`
-const linha = `  { id: '${id}', title: '${titulo}', desde: '${desde}', type: 'motion', preview: '/api/recreate/assets/${id}.mp4', poster: '/api/recreate/assets/${id}.jpg', guia: '${id}.mp4', seconds: ${segundos}, photoSlots: 1, pessoasNoGuia: 1, prompt: '', movimentoAprovado: false,\n    cena: '${cena}',\n    acao: '${acao}' },\n`
+const linha = `  { id: '${id}', title: '${titulo}', desde: '${desde}', type: 'motion', preview: '/api/recreate/assets/${id}.mp4', poster: '/api/recreate/assets/${id}.jpg', guia: '${id}.mp4', seconds: ${segundos}, photoSlots: 1, pessoasNoGuia: 1, prompt: '', movimentoAprovado: false,\n    cena: '${cena}',\n    acao: '${acao}'${guiaMostra.length ? `, guiaMostra: [${guiaMostra.map((x) => `'${x}'`).join(', ')}]` : ''} },\n`
 const iAssets = lf.indexOf('export const MOVIMENTO_ASSETS: Readonly<Record<string, { file: string; contentType: string }>> = {')
 const iFim = lf.indexOf('\n}\n', iAssets)
 if (iAssets < 0 || iFim < 0) falha('âncora de MOVIMENTO_ASSETS')

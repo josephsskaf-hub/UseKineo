@@ -175,8 +175,16 @@ export function movimentoProblemasDoMolde(f: RecreateFormat): string[] {
   if (!f.acao) p.push('o molde precisa da ação do passo 2')
   for (const [nome, texto] of [['cena', f.cena ?? ''], ['acao', f.acao ?? '']] as const) if (temFraseNegativa(texto)) p.push(`${nome} com frase negativa`)
   for (const [nome, texto] of [['cena', f.cena ?? ''], ['acao', f.acao ?? '']] as const) if (temMarca(texto)) p.push(`${nome} com marca ou nome próprio`) // KINEO-MOVIMENTO-REVISOR-2-1411
+  for (const [prova, re] of Object.entries(MOVIMENTO_PEDE_PROVA) as [keyof typeof MOVIMENTO_PEDE_PROVA, RegExp][]) if (re.test(f.acao ?? '') && !(f.guiaMostra ?? []).includes(prova)) p.push(`a ação cita ${prova}, mas o molde não declara que o guia mostra isso (guiaMostra)`) // KINEO-ACAO-SO-O-GUIA-1411
   return p
 }
+// KINEO-ACAO-SO-O-GUIA-1411 [CEO 14/11: "a ação não pode citar collide, defender de perto nem TV se o molde não declarar que o guia mostra isso"] — palavras que exigem prova
+// no vídeo-guia (campo guiaMostra do molde). Régua de TEXTO: roda na ferramenta e no guardião (movimentoProblemasDoMolde), nunca no caminho do pedido.
+export const MOVIMENTO_PEDE_PROVA = {
+  choque: /\b(collid\w*|collision\w*|clash\w*|tackl\w*|crash\w*|bump\w*|both fall)\b/i,
+  defensor: /\b(defenders?|defending|marker|opponents?)\b/i,
+  tv: /\b(tv|television|televised|broadcast\w*|live match|live football)\b/i,
+} as const
 
 // ─── O plano (o POST) ───
 export type MovimentoPlanResult =

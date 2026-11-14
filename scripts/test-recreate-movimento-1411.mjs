@@ -308,6 +308,42 @@ async function bateria(over = {}) {
     const j = real('lib/recreate/catalogoServidor').recreateFormatServidor('jogada-de-futebol')
     if (!j.acao.endsWith('The pitch is surrounded only by a plain low white wall and plain grey stands.') || !/plain grey stands/.test(j.cena) || /plain dark stands/.test(j.cena + j.acao)) throw new Error(JSON.stringify([j.cena.slice(-120), j.acao.slice(-120)]))
   })
+  // KINEO-ACAO-SO-O-GUIA-1411 [CEO 14/11, teste pago do passo 2: sem o choque, 2 de 2 limpos] — o texto exato da ação e a régua de princípio (palavras que pedem prova no guia)
+  await check('12 a ação do jogada-de-futebol é o texto EXATO da CEO de 14/11 (sem choque, sem defensor, sem TV); a cena não mudou', async () => {
+    const r = loader({ '@supabase/supabase-js': { createClient: () => ({}) }, 'server-only': {} }, over)
+    const j = r('lib/recreate/catalogoServidor').recreateFormatServidor('jogada-de-futebol')
+    if (j.acao !== "The person dribbles a football at full speed across the pitch during a football match, the camera panning with them. The other players stay far away in the background, small and out of focus, in plain solid red kits and plain solid white kits. The person wears plain all-black shoes with black soles. Natural afternoon light. The pitch is surrounded only by a plain low white wall and plain grey stands.") throw new Error('ação: ' + j.acao)
+    if (j.guiaMostra !== undefined) throw new Error('o guia do futebol não mostra choque, defensor nem TV')
+    if (r('lib/recreate/movimento').movimentoProblemasDoMolde(j).length) throw new Error('régua: ' + JSON.stringify(r('lib/recreate/movimento').movimentoProblemasDoMolde(j)))
+  })
+  // KINEO-ACAO-SO-O-GUIA-1411 [CEO 14/11, opção A do preço de 10 s: "impeça abrir um molde de movimento (movimentoAprovado: true) cuja duração não tenha linha na tabela DO MOVIMENTO"]
+  await check('12 molde de movimento APROVADO (e todo público) só com a duração na tabela DO MOVIMENTO (RECREATE_MOVIMENTO_PRICING); sem aprovação, a tabela da troca serve para a casa testar (10 s = 40)', async () => {
+    const r = loader({ '@supabase/supabase-js': { createClient: () => ({}) }, 'server-only': {} }, over)
+    const preco = r('lib/checkoutPricing'), cat = r('lib/recreate/catalogoServidor'), fm = r('lib/recreate/formats')
+    const mov = cat.RECREATE_FORMATS_SERVIDOR.filter((x) => x.type === 'motion')
+    for (const x of [...mov.filter((y) => y.movimentoAprovado === true), ...fm.RECREATE_MOVIMENTO_PUBLICOS]) if (preco.recreateMovimentoCreditCost(x.seconds) === null) throw new Error(`${x.id} aprovado com ${x.seconds} s sem linha na tabela do movimento: preço de cliente pede o sim do dono`)
+    if (fm.recreateMovimentoCredits({ type: 'motion', seconds: 10, movimentoAprovado: false }) !== preco.RECREATE_PRICING[10]) throw new Error('10 s da casa sem o preço herdado da tabela do Recreate')
+  })
+  await check('12 régua de princípio para molde novo: a ação que cita choque, defensor ou TV sem o guia declarar (guiaMostra) é recusada; com a declaração, passa; a cena não entra nessa régua; o pedido não roda essa régua', async () => {
+    const base = mov.movimentoProblemasDoMolde(molde)
+    if (base.length) throw new Error('molde de teste: ' + base.join())
+    const casos = [
+      ['choque', 'The person runs forward and collides with another player, plain green pitch with plain unmarked boards'],
+      ['choque', 'The person runs forward and tackles a player, plain green pitch with plain unmarked boards'],
+      ['defensor', 'The person runs forward past a defender, plain green pitch with plain unmarked boards'],
+      ['tv', 'The person runs forward in a live TV match, plain green pitch with plain unmarked boards'],
+      ['tv', 'The person runs forward during a televised match, plain green pitch with plain unmarked boards'],
+    ]
+    for (const [prova, acao] of casos) {
+      const sem = mov.movimentoProblemasDoMolde({ ...molde, acao })
+      if (!sem.some((x) => x.includes('guiaMostra') && x.includes(prova))) throw new Error('aceitou sem prova: ' + acao)
+      const com = mov.movimentoProblemasDoMolde({ ...molde, acao, guiaMostra: [prova] })
+      if (com.some((x) => x.includes('guiaMostra'))) throw new Error('recusou com a prova: ' + acao + ' ' + com.join())
+      if (mov.movimentoProblemasNoPedido({ ...molde, acao }).some((x) => x.includes('guiaMostra'))) throw new Error('a régua de texto foi ao pedido')
+    }
+    if (mov.movimentoProblemasDoMolde({ ...molde, cena: molde.cena + ', near a defender' }).some((x) => x.includes('guiaMostra'))) throw new Error('a régua da prova pegou a cena')
+    for (const limpa of ['The person dribbles a football past the halfway line, the camera panning with them', 'The other players stay far away in the background']) if (mov.movimentoProblemasDoMolde({ ...molde, acao: limpa }).some((x) => x.includes('guiaMostra'))) throw new Error('falso positivo: ' + limpa)
+  })
   await check('12 todo molde de movimento REAL do catálogo passa na régua (o 1º: jogada-de-futebol de corpo inteiro, sem aprovação)', async () => {
     const reais = lf(FORMATS)
     const real = loader({ '@supabase/supabase-js': { createClient: () => ({}) } }, {})
@@ -1096,6 +1132,12 @@ const mutantes = [
   ['replay ignora a foto', { [FLOW]: src[FLOW].replace('return JSON.stringify([molde, fotos, req[2]])', 'return JSON.stringify([molde, req[2]])') }],
   ['replay ignora a duração', { [FLOW]: src[FLOW].replace('return JSON.stringify([molde, fotos, req[2]])', 'return JSON.stringify([molde, fotos])') }],
   ['pôster do molde sem arquivo', { [MOLDES_F]: lf(MOLDES_F).replace("{ file: 'recreate-mov-jogada-de-futebol.jpg'", "{ file: 'recreate-mov-jogada-de-futebol-sumiu.jpg'") }],
+  // KINEO-ACAO-SO-O-GUIA-1411
+  ['ação volta ao choque', { [MOLDES_F]: lf(MOLDES_F).replace("acao: 'The person dribbles a football at full speed across the pitch during a football match, the camera panning with them.", "acao: 'The person dribbles a football at full speed across the pitch in the middle of a live TV football match, the camera panning with them. They dribble past a defender, then collide with the defender and both fall onto the grass.") }],
+  ['régua sem a prova do guia', { [MOV]: src[MOV].replace("if (re.test(f.acao ?? '') && !(f.guiaMostra ?? []).includes(prova))", "if (false && re.test(f.acao ?? ''))") }],
+  ['régua ignora a declaração', { [MOV]: src[MOV].replace("if (re.test(f.acao ?? '') && !(f.guiaMostra ?? []).includes(prova))", "if (re.test(f.acao ?? ''))") }],
+  ['régua sem a TV', { [MOV]: src[MOV].replace("  tv: /\\b(tv|television|televised|broadcast\\w*|live match|live football)\\b/i,", "  tv: /\\b(broadcast\\w*)\\b/i,") }],
+  ['molde aprovado de 10 s sem linha do movimento', { [MOLDES_F]: lf(MOLDES_F).replace("guia: 'jogada-de-futebol.mp4', seconds: 6, photoSlots: 1, pessoasNoGuia: 1, prompt: '', movimentoAprovado: false,", "guia: 'jogada-de-futebol.mp4', seconds: 10, photoSlots: 1, pessoasNoGuia: 1, prompt: '', movimentoAprovado: true,") }], // KINEO-ACAO-SO-O-GUIA-1411
   ['juiz com campo inventado na fal', { [MOV]: src[MOV].replace("character_orientation: 'video', keep_original_sound: false,", "character_orientation: 'video', keep_original_sound: false, negative_prompt: 'logos',") }],
 ]
 let mortos = 0
