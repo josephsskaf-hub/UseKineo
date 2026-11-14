@@ -33,6 +33,14 @@ const COM_GENTE = [
   'A sweeping shot of a vast farmland in spring, showcasing farmers planting seeds in rich, dark soil under a clear sunny sky.',
   'A wide-angle shot of a farmer\'s market bustling with activity on a Tuesday, vendors shouting and exchanging goods.',
   'Close-up of the expert examining a fossil, with a blurred diagram of chemical echoes in the background.',
+  // revisão independente 14/11 (v2, itens 1 e 3): o plano do roteiro de validação e os papéis que faltavam
+  'Ten young mechanics in grey overalls push the silver twin-engine plane onto the runway.',
+  'Two clergymen walk slowly to the village church.',
+  'Lumberjacks fell a giant pine in the snowy forest.',
+  'Cowboys ride across the dusty plain at sunset.',
+  'Laborers lay the railroad tracks under the hot sun.',
+  'Pilots climb into their cockpits on the carrier deck.',
+  'Dockworkers unload crates at the busy harbor.',
 ]
 // planos reais sem gente (têm de continuar ganhando a cláusula) + as armadilhas da regra nova
 const SEM_GENTE = [
@@ -107,6 +115,9 @@ const MUTANTES = [
   ['C: sem a gente de papel', ARQ, (s) => s.replace("if (cenaSemGenteLigada() && visualTemGenteDePapel(args.visuals[i] ?? '')) return out", "if (false) return out")],
   ['C: "airmen" (composto em -men) não conta', ARQ, (s) => s.replace("const COMPOSTOS_DE_GENTE = 'airm[ae]n|", "const COMPOSTOS_DE_GENTE = '")],
   ['C: volta o sufixo aberto -man/-men (Sherman, dolmen, Bremen viram gente)', ARQ, (s) => s.replace('|${COMPOSTOS_DE_GENTE})(?![', '|${COMPOSTOS_DE_GENTE}|\\\\p{L}{2,}(?:man|men))(?![')],
+  ['C: "mechanics" só no singular (os mecânicos do roteiro de validação saem "sem gente")', ARQ, (s) => s.replace('|mechanics?|pilots?|', '|mechanic|pilots?|')],
+  ['C: "the mechanics of a watch" vira gente (sem a exceção do "of")', ARQ, (s) => s.replace('if (PAPEL_ABSTRATO_RE.test(m[0]) && /^\\s+of\\s/iu.test(v.slice((m.index ?? 0) + m[0].length))) continue', '')],
+  ['C: sem pilots, cowboys, lumberjacks, laborers, dockworkers', ARQ, (s) => s.replace('|pilots?|lumberjacks?|cowboys?|cowgirls?|labou?rers?|dockworkers?|dockers?|porters?', '')],
   ['C: voltam humans, adults, natives, presidents (caveira, águia, flores, Rushmore viram gente)', ARQ, (s) => s.replace("|refugees?|immigrants?|settlers?|colonists?'", "|refugees?|immigrants?|settlers?|colonists?|natives?|adults?|humans?|presidents?'")],
   ['C: a referência ("honoring veterans") conta como gente', ARQ, (s) => s.replace('if (REFERENCIA_ANTES_RE.test(v.slice(Math.max(0, (m.index ?? 0) - 40), m.index ?? 0))) continue', '')],
   ['C: a posse ("farmer\'s market") conta como gente', ARQ, (s) => s.replace("(?![\\\\p{L}\\\\p{N}])(?!['’]s)`, 'giu')", "(?![\\\\p{L}\\\\p{N}])`, 'giu')")],

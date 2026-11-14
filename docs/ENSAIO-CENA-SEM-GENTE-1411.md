@@ -52,3 +52,10 @@ A ilha e o oceano; "deserted deck … where the crew once stood" (Mary Celeste: 
 
 ## v2 depois da revisão independente (14/11, item 5)
 A v1 usava o sufixo aberto -man/-men e papéis largos (humans, adults, natives, presidents, emperors, pharaohs, elders, mechanics). Eles tiravam o "No people" de planos SEM gente fora do corpus: Sherman tank, dolmen, Cayman Islands, snowman, a human skull, an adult bald eagle, native flowers, Bremen, Pullman car, Mount Rushmore, "the General Sherman tree" (do corpus). A v2 usa uma lista fechada de compostos (airmen, firemen, policemen, fishermen, crewmen, seamen, horsemen, workmen…) e tira os papéis largos. A contagem do corpus é a mesma (19 + 9). Os falsos positivos do revisor são cenários do guardião.
+
+## v3 depois da 2ª revisão independente (14/11)
+- "mechanics" volta no plural: "Ten young mechanics in grey overalls push the silver twin-engine plane", do roteiro de validação, tem gente. "the mechanics of a watch" segue sem gente, porque papel + "of" + coisa é o funcionamento.
+- Entram pilots, lumberjacks, cowboys, cowgirls, laborers/labourers, dockworkers, dockers, porters e clergymen.
+- A lista NAO_E_GENTE saiu: com a lista fechada, ela era código morto.
+- Corpus de 30 dias, depois da v3: a mesma contagem (19 por C, 9 por D). Nenhuma das palavras novas aparece nos 61 planos com a cláusula.
+- Ainda perdem o "No people", anotados e sem conserto: "crew quarters empty", "photographs of miners", "statue of the explorers", "seats where the spectators once sat". O papel aparece como dono, retrato ou ausência, e a regra não lê isso.
