@@ -4,7 +4,9 @@
 // duas vezes = FORA DO AR (unavailable, "tente de novo"), nunca "esta imagem não serve", e nunca uma 3ª chamada; (3) outro 4xx (formato,
 // tamanho) = unprocessable, 1 chamada, como antes; (4) timeout/5xx = unavailable, 1 chamada, sem retry; (5) só baixamos do nosso Storage ou do
 // fornecedor, até 8 MB — fora disso a 2ª chamada repete a URL; (6) bloqueio na 2ª chamada continua bloqueio. E a rota do "seu vídeo": a frase
-// certa em cada recusa de moderação. Mutantes. Rodar: node scripts/test-moderacao-download-1411.mjs
+// certa em cada recusa de moderação. 2ª rodada do revisor (KINEO-MODERACAO-DOWNLOAD-REVISAO-1411, itens 8 e 9 — bloqueavam): o resgate não segue
+// redirecionamento; content-length acima de 8 MB não é baixado; corpo sem content-length é cortado no teto; sem cópia nossa NÃO há 2ª chamada e a
+// resposta é a de antes (unprocessable). Mutantes. Rodar: node scripts/test-moderacao-download-1411.mjs
 import fs from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
@@ -20,17 +22,22 @@ const erro = (status, message) => Object.assign(new Error(message), { status })
 const DOWNLOAD = () => erro(400, '400 Failed to download image from ' + NOSSA + '.')
 
 function mundo(src, roteiro, o = {}) {
-  const s = { chamadas: [], eventos: [], downloads: [] }
+  const s = { chamadas: [], eventos: [], downloads: [], inits: [], lidos: 0, cancelado: false }
   const cache = new Map()
   const load = (rel) => {
     if (cache.has(rel)) return cache.get(rel).exports
     const mod = { exports: {} }; cache.set(rel, mod)
     const js = ts.transpileModule(rel === MOD ? src : lf(rel), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
-    const fetchFalso = async (url) => {
-      s.downloads.push(String(url))
+    const fetchFalso = async (url, init) => {
+      s.downloads.push(String(url)); s.inits.push(init ?? {})
       if (o.downloadFalha) throw new Error('rede')
+      if (o.redireciona && init?.redirect === 'error') throw new TypeError('fetch failed: unexpected redirect')
       const bytes = new Uint8Array(o.bytes ?? 2048).fill(7)
-      return { ok: true, headers: { get: (h) => (h === 'content-type' ? (o.tipo ?? 'image/jpeg') : null) }, arrayBuffer: async () => bytes.buffer }
+      const headers = { get: (h) => (h === 'content-type' ? (o.tipo ?? 'image/jpeg') : h === 'content-length' ? (o.declarado ?? null) : null) }
+      // corpo em pedaços de 1 MB, sem fim (o servidor que nunca para): conta o que foi lido e se a leitura foi cancelada
+      const pedaco = new Uint8Array(1024 * 1024) // o mesmo pedaço sempre (o guardião não gasta memória com o corpo sem fim)
+      const body = o.semFim ? { cancel: async () => { s.cancelado = true }, getReader: () => ({ read: async () => { s.lidos += pedaco.byteLength; if (s.lidos > 200 * 1024 * 1024) return { done: true, value: undefined }; return { done: false, value: pedaco } }, cancel: async () => { s.cancelado = true } }) } : o.declarado ? { cancel: async () => { s.cancelado = true }, getReader: () => { throw new Error('leu o corpo com content-length acima do teto') } } : undefined
+      return { ok: true, headers, body, arrayBuffer: async () => { s.lidos += bytes.byteLength; return bytes.buffer } }
     }
     new Function('require', 'module', 'exports', 'process', 'fetch', 'Buffer', 'AbortSignal', 'console', js)((id) => {
       if (id === '@/lib/openai') return { openai: { moderations: { create: async (body) => { s.chamadas.push(body.input); const passo = roteiro[Math.min(s.chamadas.length - 1, roteiro.length - 1)]; if (passo instanceof Error) throw passo; return { results: [passo] } } } } }
@@ -72,17 +79,26 @@ async function bateria(over = {}) {
       if (v.ok || v.reason !== 'unavailable' || s.chamadas.length !== 1) throw new Error(e.message + ' → ' + JSON.stringify(v) + ' chamadas ' + s.chamadas.length)
     }
   })
-  await check('só baixamos do nosso Storage ou do fornecedor, até 8 MB; fora disso a 2ª repete a URL', async () => {
+  // reancorado KINEO-MODERACAO-DOWNLOAD-REVISAO-1411 (item 9): sem cópia nossa NÃO há 2ª chamada; a resposta é a de antes de 14/11 (unprocessable)
+  await check('só baixamos do nosso Storage ou do fornecedor, até 8 MB; sem cópia nossa: 1 chamada, unprocessable, evento skipped', async () => {
+    const semCopia = (r, nome) => { if (r.v.ok || r.v.reason !== 'unprocessable' || r.s.chamadas.length !== 1) throw new Error(nome + ': ' + JSON.stringify(r.v) + ' chamadas ' + r.s.chamadas.length); if (!r.s.eventos.some((e) => e.name === 'content_moderation_download_retry' && e.metadata.outcome === 'skipped')) throw new Error(nome + ': sem evento skipped') }
     const a = await roda([DOWNLOAD(), LIMPO], {}, DE_FORA)
-    if (!a.v.ok || a.s.downloads.length !== 0 || urlDaChamada(a.s, 1) !== DE_FORA) throw new Error('baixou de host de fora')
-    const b = await roda([DOWNLOAD(), LIMPO], { bytes: 9 * 1024 * 1024 })
-    if (!b.v.ok || urlDaChamada(b.s, 1) !== NOSSA) throw new Error('mandou imagem grande em base64')
-    const c = await roda([DOWNLOAD(), LIMPO], { tipo: 'text/html' })
-    if (urlDaChamada(c.s, 1) !== NOSSA) throw new Error('mandou algo que não é imagem')
-    const d = await roda([DOWNLOAD(), LIMPO], { downloadFalha: true })
-    if (!d.v.ok || urlDaChamada(d.s, 1) !== NOSSA) throw new Error('nosso download falhou e a 2ª não repetiu a URL')
+    if (a.s.downloads.length !== 0) throw new Error('baixou de host de fora')
+    semCopia(a, 'host de fora')
+    semCopia(await roda([DOWNLOAD(), LIMPO], { bytes: 9 * 1024 * 1024 }), '9 MB')
+    semCopia(await roda([DOWNLOAD(), LIMPO], { tipo: 'text/html' }), 'não é imagem')
+    semCopia(await roda([DOWNLOAD(), LIMPO], { downloadFalha: true }), 'nosso download falhou')
     const e = await roda([DOWNLOAD(), LIMPO], {}, 'https://v3.fal.media/files/a/b.png')
     if (!urlDaChamada(e.s, 1).startsWith('data:image/jpeg;base64,')) throw new Error('fornecedor fora do resgate')
+  })
+  await check('2ª rodada (item 8): redirecionamento é erro; content-length acima do teto não é lido; corpo sem fim é cortado no teto', async () => {
+    const a = await roda([DOWNLOAD(), LIMPO], { redireciona: true })
+    if (a.s.inits[0]?.redirect !== 'error') throw new Error('o resgate segue redirecionamento: ' + JSON.stringify(a.s.inits[0]))
+    if (a.v.ok || a.v.reason !== 'unprocessable' || a.s.chamadas.length !== 1) throw new Error('302: ' + JSON.stringify(a.v))
+    const b = await roda([DOWNLOAD(), LIMPO], { declarado: String(64 * 1024 * 1024) })
+    if (b.s.lidos !== 0 || !b.s.cancelado || b.v.ok || b.s.chamadas.length !== 1) throw new Error(`64 MB declarados: lidos ${b.s.lidos}, cancelado ${b.s.cancelado}, ${JSON.stringify(b.v)}`)
+    const c = await roda([DOWNLOAD(), LIMPO], { semFim: true })
+    if (c.s.lidos > 9 * 1024 * 1024 || !c.s.cancelado || c.v.ok || c.s.chamadas.length !== 1) throw new Error(`sem fim: lidos ${c.s.lidos}, cancelado ${c.s.cancelado}`)
   })
   await check('bloqueio na 2ª chamada continua bloqueio', async () => {
     const { v } = await roda([DOWNLOAD(), { flagged: true, categories: { 'sexual/minors': true }, category_scores: { sexual: 0.99, 'sexual/minors': 0.99 } }])
@@ -110,7 +126,11 @@ const mutantes = [
   ['retry em qualquer 4xx', { [MOD]: mod.replace('  return error instanceof ModerationUnprocessable && MODERATION_DOWNLOAD_ERROR.test(error.message)', '  return error instanceof ModerationUnprocessable') }],
   ['falha dupla vira "imagem não serve"', { [MOD]: mod.replace('      if (moderationDownloadFailure(second)) throw new ModerationDownloadFailed(', '      if (false) throw new ModerationDownloadFailed(') }],
   ['baixa de qualquer host', { [MOD]: mod.replace('  if (!moderationRescueHost(url)) return null\n', '') }],
-  ['sem teto de tamanho', { [MOD]: mod.replace('if (buf.byteLength === 0 || buf.byteLength > MODERATION_RESCUE_MAX_BYTES) return null', 'if (buf.byteLength === 0) return null') }],
+  ['sem teto de tamanho', { [MOD]: mod.replace('return b.byteLength > max ? null : b }', 'return b }') }], // reancorado KINEO-MODERACAO-DOWNLOAD-REVISAO-1411
+  ['segue redirecionamento', { [MOD]: mod.replace(", cache: 'no-store', redirect: 'error' })", ", cache: 'no-store' })") }],
+  ['não confere o content-length', { [MOD]: mod.replace('    if (Number.isFinite(declarado) && declarado > MODERATION_RESCUE_MAX_BYTES) { await res.body?.cancel().catch(() => {}); return null }\n', '') }],
+  ['corpo sem teto', { [MOD]: mod.replace('    if (total > max) { await reader.cancel().catch(() => {}); return null }\n', '    if (total > 16 * max) return null\n') }],
+  ['sem cópia ainda faz a 2ª chamada', { [MOD]: mod.replace('    if (inline === 0) {', '    if (inline < 0) {') }],
   ['2ª chamada sem base64', { [MOD]: mod.replace("      return data ? { type: 'image_url', image_url: { url: data } } : part", '      return part') }],
   ['rota com a frase genérica', { [ROTA]: rota.replace("      if (result.code === 'moderation_unavailable') return json({ error: FRASE_FOTO_NAO_CONFERIDA, code: result.code, charged: false }, result.status)\n", '') }],
 ]
@@ -121,4 +141,4 @@ for (const [n, over] of mutantes) {
   if ((await bateria(over)).length) mortos++; else console.error('MUTANTE VIVO: ' + n)
 }
 if (mortos !== mutantes.length) process.exit(1)
-console.log(`PASS moderação e download: falha de download ganha UMA 2ª chamada em base64; falhou duas vezes = fora do ar; outros erros sem retry; só nosso Storage e fornecedor, até 8 MB; bloqueio respeitado; frase certa na rota; ${mortos}/${mutantes.length} mutantes mortos`)
+console.log(`PASS moderação e download: falha de download ganha UMA 2ª chamada em base64 (só com cópia nossa: sem ela, 1 chamada e unprocessable como antes); falhou duas vezes = fora do ar; sem redirecionamento; 8 MB antes e durante a leitura; outros erros sem retry; só nosso Storage e fornecedor, até 8 MB; bloqueio respeitado; frase certa na rota; ${mortos}/${mutantes.length} mutantes mortos`)

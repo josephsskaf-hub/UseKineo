@@ -6,6 +6,9 @@
 //    alta, na ordem, + a foto; os MESMOS instantes por tempo absoluto (20/40/60/80% do original), cada vídeo no seu fps;
 //  · o veredito leva instantes, alvo, pares usados e regra, e o evento os grava;
 //  · alvo que não aparece → `uncertain`; mantida → `unchanged`; Seedance e catálogo seguem no caminho de antes.
+// 2ª rodada do revisor (KINEO-RECREATE-TRAVA-REVISAO-1411): resposta 200 sem veredito = incerto (não entrega; rede e tempo seguem unverified);
+// "Yes"/"No"/"Different" e "person": "1" lidos; as 4 respostas do JUIZ REAL de 14/11 (prova da CEO) dão a régua; alvo não atravessa ponto final e
+// sai de mais formas de texto; saída de cabeçalho ilegível nunca é julgada desalinhada; saída curta não entrega.
 // Mutantes. Rodar: node scripts/test-recreate-trava-alvo-1411.mjs
 import fs from 'node:fs'
 import { createRequire } from 'node:module'
@@ -33,7 +36,7 @@ function carregar(src, metas) {
     '@/lib/regua95/pixelScore': { FAL_NTH_FRAME_MODEL: 'fal-ai/workflow-utilities/extract-nth-frame', FAL_USD_PER_COMPUTE_SECOND: 0.001, PIXEL_MODEL_RATES: {} },
     './formats': { RECREATE_CHECK_FRAMES: [84, 168], RECREATE_FORMATS: [] },
     './generation': { RECREATE_MODEL: 'recast', RECREATE_PROVIDER_ORIGIN: 'https://www.usekineo.com' },
-    './seuVideo': { catalogoNoSeedance25: () => false, KLING4_EDIT_MODEL: KLING, SEEDANCE25_MODEL: SEEDANCE, SEU_VIDEO_PASTA: 'recreate-uploads', metaPorUrl: async (url) => metas[url] ?? null },
+    './seuVideo': { catalogoNoSeedance25: () => false, KLING4_EDIT_MODEL: KLING, SEEDANCE25_MODEL: SEEDANCE, SEU_VIDEO_PASTA: 'recreate-uploads', metaPorUrl: async (url) => (typeof metas[url] === 'function' ? metas[url]() : metas[url] ?? null) },
   }
   new Function('require', 'module', 'exports', 'process', js)((id) => { if (id in stubs) return stubs[id]; throw new Error('import inesperado: ' + id) }, mod, mod.exports, { env: {}, cwd: () => '.' })
   return mod.exports
@@ -51,6 +54,14 @@ const RESPOSTA = {
   soOculosMudaram: { person: 1, visible_pairs: [3, 4], base_vs_result: { glasses: 'different' }, same_person: 'no', result_vs_photo: 'yes', note: 'Only glasses differ.' },
   sumiu: { person: 1, visible_pairs: [], base_vs_result: {}, same_person: 'uncertain', result_vs_photo: 'uncertain', note: 'Target face not visible.' },
 }
+// KINEO-RECREATE-TRAVA-REVISAO-1411 — o JUIZ REAL (gpt-4o, a mensagem de buildSwapCheckMessagesAlvo, 4 pares das folhas de quadros da CEO e a foto do
+// pedido), 14/11 02:47 BRT, US$ 0,03. Régua da CEO: f2bd4efe ≠ swapped; 568db487, 9afc54fa e ae3edf15 = swapped. 4 de 4.
+const JUIZ_REAL = {
+  f2bd4efe: { person: 1, visible_pairs: [3, 4], base_vs_result: { hair_color: 'same', hair_length: 'same', hair_texture: 'same', beard: 'same', skin_tone: 'same', face_shape: 'same' }, same_person: 'yes', result_vs_photo: 'no', note: 'Different hair and beard from reference photo.' },
+  '568db487': { person: 1, visible_pairs: [2, 3, 4], base_vs_result: { hair_color: 'different', hair_length: 'same', hair_texture: 'different', beard: 'different', skin_tone: 'same', face_shape: 'same' }, same_person: 'no', result_vs_photo: 'yes', note: 'Different hair color, texture, and beard.' },
+  '9afc54fa': { person: 1, visible_pairs: [1, 2, 3, 4], base_vs_result: { hair_color: 'different', hair_length: 'different', hair_texture: 'different', beard: 'different', skin_tone: 'different', face_shape: 'different' }, same_person: 'no', result_vs_photo: 'yes', note: 'All attributes different; edited matches reference photo.' },
+  ae3edf15: { person: 1, visible_pairs: [3, 4], base_vs_result: { hair_color: 'same', hair_length: 'same', hair_texture: 'same', beard: 'different', skin_tone: 'same', face_shape: 'same' }, same_person: 'no', result_vs_photo: 'yes', note: 'Beard different, matches reference photo.' },
+}
 function rede(resposta) {
   const s = { fal: [], visao: null }
   const f = async (url, init) => {
@@ -59,7 +70,12 @@ function rede(resposta) {
       const tag = b.video_url === VIDEO ? 'base' : 'saida'
       return { ok: true, json: async () => ({ images: Array.from({ length: b.max_frames }, (_, i) => ({ url: `https://f/${tag}-${i}.jpg` })) }) }
     }
-    if (String(url).includes('api.openai.com')) { s.visao = JSON.parse(init.body); return { ok: true, json: async () => ({ choices: [{ message: { content: JSON.stringify({ persons: [resposta] }) } }], usage: {} }) } }
+    if (String(url).includes('api.openai.com')) {
+      s.visao = JSON.parse(init.body)
+      if (resposta && resposta.__status) return { ok: false, status: resposta.__status, json: async () => ({}) }
+      const message = resposta && '__message' in resposta ? resposta.__message : { content: JSON.stringify(resposta && '__json' in resposta ? resposta.__json : { persons: [resposta] }) }
+      return { ok: true, json: async () => ({ choices: [{ message }], usage: {} }) }
+    }
     throw new Error('rede inesperada: ' + url)
   }
   return { s, f }
@@ -134,6 +150,54 @@ async function bateria(over = {}) {
     const b = await roda(RESPOSTA.f2bd4efe, { model: SEEDANCE })
     if (b.s.fal.some((x) => x.max_frames !== 3) || b.v.rule !== undefined) throw new Error('Seedance entrou na regra nova')
   })
+  await check('juiz REAL de 14/11 (prova da CEO): f2bd4efe não é swapped; 568db487, 9afc54fa e ae3edf15 são swapped', async () => {
+    const r = {}
+    for (const [clip, resposta] of Object.entries(JUIZ_REAL)) r[clip] = (await roda(resposta, { prompt: clip === 'f2bd4efe' ? PEDIDO_F2 : PEDIDO_AE })).v.result
+    if (r.f2bd4efe === 'swapped' || r['568db487'] !== 'swapped' || r['9afc54fa'] !== 'swapped' || r.ae3edf15 !== 'swapped') throw new Error(JSON.stringify(r))
+    if (r.f2bd4efe !== 'unchanged') throw new Error('f2bd4efe: ' + r.f2bd4efe)
+  })
+  await check('2ª rodada (item 2): o juiz responde 200 SEM veredito = incerto (não entrega); rede e tempo seguem unverified', async () => {
+    for (const [nome, resposta] of [['persons vazio', { __json: { persons: [] } }], ['{}', { __json: {} }], ['erro no JSON', { __json: { error: 'I cannot compare the faces of real people' } }], ['recusa', { __message: { refusal: "I'm sorry, I can't help.", content: null } }], ['texto que não é JSON', { __message: { content: 'The target seems unchanged.' } }], ['vazio', { __message: { content: '' } }]]) {
+      const { v } = await roda(resposta)
+      if (v.result !== 'uncertain' || v.reason !== 'vision_no_verdict' || v.unverified_reason !== null) throw new Error(nome + ': ' + v.result + '/' + v.reason + '/' + v.unverified_reason)
+    }
+    const http = await roda({ __status: 429 })
+    if (http.v.result !== 'unverified') throw new Error('429: ' + http.v.result)
+  })
+  await check('2ª rodada (item 5): "Yes"/"No"/"Different" com maiúscula e "person": "1" num vídeo que trocou = swapped', async () => {
+    for (const resposta of [{ ...RESPOSTA.ae3edf15, same_person: 'No', result_vs_photo: 'Yes' }, { ...RESPOSTA.ae3edf15, person: '1' }, { ...RESPOSTA.ae3edf15, base_vs_result: { Hair_Color: 'Different', beard: 'DIFFERENT' } }]) {
+      const { v } = await roda(resposta, { prompt: PEDIDO_AE })
+      if (v.result !== 'swapped') throw new Error(JSON.stringify(resposta).slice(0, 120) + ' → ' + v.result + '/' + v.reason)
+    }
+    const p = await roda({ ...RESPOSTA.ae3edf15, person: 'one' }, { prompt: PEDIDO_AE })
+    if (p.v.result === 'swapped') throw new Error('índice que não é número virou pessoa 1')
+  })
+  await check('2ª rodada (item 7): cabeçalho da saída ilegível nunca é julgado com o fps do original; 2ª leitura serve; saída curta não entrega', async () => {
+    const a = await roda(RESPOSTA.ae3edf15, { prompt: PEDIDO_AE, metas: { [VIDEO]: { segundos: 3, fps: 60 }, [SAIDA]: null } })
+    if (a.v.result !== 'unverified' || a.v.reason !== 'result_meta_unavailable' || a.s.visao || a.s.fal.length) throw new Error('ilegível: ' + a.v.result + '/' + a.v.reason)
+    let leituras = 0
+    const b = await roda(RESPOSTA.ae3edf15, { prompt: PEDIDO_AE, metas: { [VIDEO]: { segundos: 3, fps: 60 }, [SAIDA]: () => (++leituras === 1 ? null : { segundos: 3.04, fps: 24 }) } })
+    const sb = b.s.fal.find((x) => x.video_url === SAIDA)
+    if (b.v.result !== 'swapped' || leituras !== 2 || sb.frame_interval !== 14) throw new Error('2ª leitura: ' + b.v.result + ' intervalo ' + sb?.frame_interval)
+    const c = await roda(RESPOSTA.ae3edf15, { prompt: PEDIDO_AE, metas: { [VIDEO]: { segundos: 15, fps: 30 }, [SAIDA]: { segundos: 5, fps: 30 } } })
+    if (c.v.result !== 'uncertain' || c.v.reason !== 'result_too_short' || c.s.visao) throw new Error('15 s → 5 s: ' + c.v.result + '/' + c.v.reason)
+    const d = await roda(RESPOSTA.ae3edf15, { prompt: PEDIDO_AE, metas: { [VIDEO]: { segundos: 15, fps: 30 }, [SAIDA]: { segundos: 10, fps: 30 } } })
+    if (d.v.result !== 'swapped' || JSON.stringify(d.v.instants) !== '[3,6,9]' || d.s.fal.some((x) => x.max_frames !== 4)) throw new Error('15 s → 10 s: ' + JSON.stringify(d.v.instants) + ' ' + JSON.stringify(d.s.fal.map((x) => x.max_frames)))
+  })
+  await check('2ª rodada (itens 4 e 6): o alvo não atravessa ponto final e sai de mais formas; alvo nulo marcado no veredito', async () => {
+    const S = carregar(src, {})
+    const eq = (a, b) => { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(JSON.stringify(a) + ' ≠ ' + JSON.stringify(b)) }
+    eq(S.alvosDoPedido('Replace the man in white in @Video1 with the man from @Image1: his face and hair match @Image1, and he wears no glasses. Replace the woman in red in @Video1 with the woman from @Image2: her face and hair match @Image2.', 2), ['the man in white', 'the woman in red'])
+    eq(S.alvosDoPedido('Replace the man in white in @Video1 with the man from @Image1: his face matches @Image1, and keep his hat. Replace the woman in red in @Video1 with the woman from @Image2.', 2), ['the man in white', 'the woman in red'])
+    eq(S.alvosDoPedido('Troque o homem de camisa azul em @Video1 pelo homem de @Image1, mantendo a dança.', 1), ['o homem de camisa azul'])
+    eq(S.alvosDoPedido('Swap the guy in the blue shirt in @Video1 for @Image1. Keep everything else.', 1), ['the guy in the blue shirt'])
+    eq(S.alvosDoPedido('Replace the dancer in @Video1 with the guy from @Image1.', 1), ['the dancer'])
+    eq(S.alvosDoPedido('Recreate @Video1 exactly: the same choreography, movements and timing, with the same framing and camera as @Video1 and the same scene. The person on the left in @Video1 is the person from @Image1, with the same face. The person on the right in @Video1 is the person from @Image2, with the same face.', 2), ['The person on the left', 'The person on the right'])
+    eq(S.alvosDoPedido('Replace the woman in red in @Video1 with the woman from @Image2: her face matches @Image2. Replace the man in white in @Video1 with the man from @Image1: his face matches @Image1.', 2), ['the man in white', 'the woman in red'])
+    const sem = await roda(RESPOSTA.ae3edf15, { prompt: 'Put @Image1 on the guy in @Video1 please' })
+    const com = await roda(RESPOSTA.ae3edf15, { prompt: PEDIDO_AE })
+    if (sem.v.target_missing !== true || com.v.target_missing !== false) throw new Error('target_missing: ' + sem.v.target_missing + '/' + com.v.target_missing)
+  })
   // ── a liquidação real: uncertain não entrega ──────────────────────────────
   await check('liquidação: uncertain = falha com estorno e motivo próprio, saída guardada, nada entregue', async () => {
     const m = loader({}, over[FLOW] ? { [FLOW]: over[FLOW] } : {})
@@ -155,7 +219,7 @@ async function bateria(over = {}) {
   })
   await check('o evento grava instantes, alvo, pares e regra', async () => {
     const s = (over[SRV] ?? lf(SRV)).replace(/\/\/[^\n]*/g, '')
-    if (!s.includes('instants: v.instants ?? null, subjects: v.subjects ?? null, pairs_used: v.pairs_used ?? null, rule: v.rule ?? null,')) throw new Error('evento')
+    if (!s.includes('instants: v.instants ?? null, subjects: v.subjects ?? null, pairs_used: v.pairs_used ?? null, rule: v.rule ?? null, target_missing: v.target_missing ?? null,')) throw new Error('evento')
   })
   return p
 }
@@ -167,10 +231,19 @@ const mutantes = [
   ['swapped sem parecer a foto (o defeito)', { [SC]: sc.replace('const swapped = persons.filter(p => p.same_as_base === false && p.matches_photo === true).length', 'const swapped = persons.filter(p => p.same_as_base === false).length') }],
   ['Kling volta à regra antiga', { [SC]: sc.replace("    if (row.model === KLING4_EDIT_MODEL && ctx.formatId === 'seu-video' && ctx.baseVideoUrl) return checarComAlvo(ctx, providerVideoUrl, opts, verdict, unverified)", '    void checarComAlvo') }],
   ['juiz sem o alvo do pedido', { [SC]: sc.replace('  const alvos = alvosDoPedido(ctx.prompt, ctx.slots)\n', '  const alvos: Array<string | null> = Array.from({ length: ctx.slots }, () => null)\n') }],
-  ['instantes por proporção', { [SC]: sc.replace('extractInstantFrames(providerVideoUrl, opts, intervaloPara(passo, mr?.fps ?? mb.fps), n)', 'extractInstantFrames(providerVideoUrl, opts, intervaloPara((mr?.segundos ?? mb.segundos) * TRAVA_INSTANTES[0], mr?.fps ?? mb.fps), n)') }],
+  ['instantes por proporção', { [SC]: sc.replace('extractInstantFrames(providerVideoUrl, opts, intervaloPara(passo, mr.fps), n)', 'extractInstantFrames(providerVideoUrl, opts, intervaloPara(mr.segundos * TRAVA_INSTANTES[0], mr.fps), n)') }], // reancorado KINEO-RECREATE-TRAVA-REVISAO-1411
   ['só 2 instantes', { [SC]: sc.replace('export const TRAVA_INSTANTES = [0.2, 0.4, 0.6, 0.8] as const', 'export const TRAVA_INSTANTES = [0.35, 0.7] as const') }],
   ['pares fora de ordem', { [SC]: sc.replace('...pares.flatMap(p => [img(p.base, \'high\'), img(p.result, \'high\')])', "...pares.map(p => img(p.base, 'high')), ...pares.map(p => img(p.result, 'high'))") }],
-  ['óculos voltam a decidir', { [SC]: sc.replace("as Record<string, unknown> | undefined, k, TRAVA_ATRIBUTOS_DO_ALVO))", 'as Record<string, unknown> | undefined, k))') }],
+  ['óculos voltam a decidir', { [SC]: sc.replace('readPerson(pessoaSemCaixa(raw.find(p => indiceDaPessoa(p) === k)), k, TRAVA_ATRIBUTOS_DO_ALVO))', 'readPerson(pessoaSemCaixa(raw.find(p => indiceDaPessoa(p) === k)), k))') }], // reancorado KINEO-RECREATE-TRAVA-REVISAO-1411
+  ['sem veredito volta a entregar', { [SC]: sc.replace("  if (raw.length === 0) return { result: 'uncertain', reason: 'vision_no_verdict', persons }", "  if (raw.length === 0) return { result: 'unverified', reason: 'vision_incomplete', persons }") }],
+  ['resposta ilegível entrega', { [SC]: sc.replace("  if ('why' in answer) return verdict('uncertain', 'vision_no_verdict', { model, usd, ...marca, unverified_reason: null })", "  if ('why' in answer) return unverified(answer.why, 'vision_unusable', { model, usd, ...marca })") }],
+  ['maiúscula vira nulo', { [SC]: sc.replace("const semCaixa = (v: unknown) => (typeof v === 'string' ? v.trim().toLowerCase() : v)", 'const semCaixa = (v: unknown) => v') }],
+  ['índice só número', { [SC]: sc.replace("typeof v === 'string' && /^\\s*\\d\\s*$/.test(v) ? Number(v) : NaN", 'NaN') }],
+  ['alvo atravessa ponto final', { [SC]: sc.replace('|,\\s*and)\\s+([^@:.]{3,120}?)', '|,\\s*and)\\s+([^@:]{3,120}?)') }],
+  ['saída ilegível lida no fps do original', { [SC]: sc.replace('  const mr = mr0 ?? (await metaPorUrl(providerVideoUrl, f))', '  const mr = mr0 ?? mb') }],
+  ['saída curta julgada', { [SC]: sc.replace('  const n = TRAVA_INSTANTES.filter((_, i) => passo * (i + 1) <= mr.segundos - 0.05).length', '  const n = TRAVA_INSTANTES.length') }],
+  ['sem o molde da tela do Seedance', { [SC]: sc.replace('  for (const m of prompt.matchAll(ALVO_E_A_PESSOA)) pega(m[1], m[2])\n', '') }],
+  ['evento sem target_missing', { [SRV]: srv.replace(' target_missing: v.target_missing ?? null,', '') }],
   ['juiz sem o aviso dos óculos', { [SC]: sc.replace("'NOT a reason to say the edited target does not resemble the reference photo. Compare only the face, hair and beard of the target: hair colour, ' +", "'Compare the target: hair colour, ' +") }],
   ['uncertain entrega', { [FLOW]: flowSrc.replace(" || swapVerdict.result === 'uncertain') { // KINEO-RECREATE-TRAVA-1011", ') { // KINEO-RECREATE-TRAVA-1011') }],
   ['evento sem os instantes', { [SRV]: srv.replace('instants: v.instants ?? null, ', '') }],
@@ -182,4 +255,4 @@ for (const [n, over] of mutantes) {
   if ((await bateria(over)).length) mortos++; else console.error('MUTANTE VIVO: ' + n)
 }
 if (mortos !== mutantes.length) process.exit(1)
-console.log(`PASS trava com alvo: f2bd4efe = uncertain (não entrega, estorno); ae3edf15 = swapped; alvo do pedido no juiz; 4 pares por tempo absoluto; instantes, alvo, pares e regra no veredito e no evento; Seedance e catálogo como antes; ${mortos}/${mutantes.length} mutantes mortos`)
+console.log(`PASS trava com alvo: f2bd4efe = uncertain (não entrega, estorno); ae3edf15 = swapped; juiz real de 14/11 na régua (4 de 4); 200 sem veredito = incerto; maiúscula e índice em texto lidos; alvo sem atravessar ponto final; saída ilegível ou curta nunca julgada torta; alvo do pedido no juiz; 4 pares por tempo absoluto; instantes, alvo, pares e regra no veredito e no evento; Seedance e catálogo como antes; ${mortos}/${mutantes.length} mutantes mortos`)

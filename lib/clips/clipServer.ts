@@ -621,7 +621,7 @@ export function recreateSwapDepsFor(admin: SupabaseClient, userId: string): Recr
         unverified_reason: verdict.result === 'unverified' ? (v.unverified_reason ?? 'http_error') : null,
         delivered: outcome.delivered, credits: row.credits, credits_refunded: outcome.credits_refunded,
         persons: v.persons ?? [], model: v.model ?? null, usd: v.usd ?? null, ms: v.ms ?? null, version: 'recreate_swap_check_1011b',
-        instants: v.instants ?? null, subjects: v.subjects ?? null, pairs_used: v.pairs_used ?? null, rule: v.rule ?? null, // KINEO-RECREATE-TRAVA-ALVO-1411 — os instantes julgados, o alvo e a regra (null = checagem antiga, sem alvo)
+        instants: v.instants ?? null, subjects: v.subjects ?? null, pairs_used: v.pairs_used ?? null, rule: v.rule ?? null, target_missing: v.target_missing ?? null, // KINEO-RECREATE-TRAVA-ALVO-1411 — os instantes julgados, o alvo e a regra (null = checagem antiga, sem alvo)
         // KINEO-RECREATE-FILA-REVISAO-1411 (item 10) — a cópia roda DEPOIS deste evento: aqui vai o caminho PREVISTO da saída reprovada (privado, 48 h); o evento
         // recreate_swap_audit confirma quando ela foi guardada (com bytes e vencimento). Entregue = sem cópia.
         audit_bucket: outcome.delivered ? null : QUARANTINE_BUCKET, audit_path: outcome.delivered ? null : caminhoDaAuditoria(row.id),

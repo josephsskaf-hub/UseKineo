@@ -3,7 +3,10 @@ import { recreateSession, RECREATE_HEADERS } from '@/lib/recreate/server'
 import { clipsAdmin, filaKlingEditEstado, loadClip, settleDepsFor } from '@/lib/clips/clipServer'
 import { FILA_MOTIVOS_DE_ESTORNO, esperaNaFila, fraseDaFalhaDaFila, naFila, posicaoNaFila } from '@/lib/recreate/filaKlingEdit' // KINEO-RECREATE-FILA-KLING-EDIT-1411 · KINEO-RECREATE-FILA-REVISAO-1411
 import { settleClip } from '@/lib/clips/clipFlow'
-import { isRecreateNotSwappedReason } from '@/lib/recreate/swapCheck'
+import { isRecreateNotSwappedReason, RECREATE_NOT_SWAPPED } from '@/lib/recreate/swapCheck'
+/** KINEO-RECREATE-TRAVA-REVISAO-1411 (item 11) — a trava não conseguiu confirmar a troca. */
+const FRASE_NAO_CONFIRMOU = 'We could not confirm the swap, so we returned your credits.'
+const FRASE_NAO_CONFIRMOU_SEM_ESTORNO = 'We could not confirm the swap. Your credits will be returned within the hour.'
 import { ehModeloDoSeuVideo, recusaDoMotor } from '@/lib/recreate/seuVideo' // KINEO-RECREATE-SEU-VIDEO-1311 · KINEO-RECREATE-KLING4-1311
 
 export const dynamic = 'force-dynamic'
@@ -22,7 +25,10 @@ export async function GET(req: NextRequest) {
   if (!fresh || fresh === 'error') return NextResponse.json({ error: 'Status unavailable.' }, { status: 503, headers: RECREATE_HEADERS })
   const { status, video_url, credits_refunded } = fresh
   // KINEO-RECREATE-TRAVA-1011 — the only reason the screen needs: the result came back without the customer in it.
-  const reason = status === 'failed' && isRecreateNotSwappedReason(fresh.failure_reason) ? { reason: 'not_swapped' } : {}
+  // KINEO-RECREATE-TRAVA-REVISAO-1411 [revisor 2ª rodada, item 11] — incerto (swap_uncertain) NÃO é "a pessoa não foi trocada" (pode ter sido): razão e frase próprias, e
+  // "returned" só com o estorno gravado.
+  const naoConfirmou = status === 'failed' && fresh.failure_reason === RECREATE_NOT_SWAPPED.uncertain
+  const reason = naoConfirmou ? { reason: 'not_confirmed', message: credits_refunded > 0 ? FRASE_NAO_CONFIRMOU : FRASE_NAO_CONFIRMOU_SEM_ESTORNO } : status === 'failed' && isRecreateNotSwappedReason(fresh.failure_reason) ? { reason: 'not_swapped' } : {}
   // KINEO-RECREATE-SEU-VIDEO-1311 — o Seedance 2.5 recusou (rosto real, cena sensível): a frase clara; o estorno já foi feito no settleClip.
   const motor = status === 'failed' && ehModeloDoSeuVideo(fresh.model) ? recusaDoMotor(fresh.failure_reason) : null
   const seuVideo = motor ? { reason: 'engine_refused', message: motor } : {} // KINEO-RECREATE-SEU-VIDEO-1311

@@ -3,8 +3,8 @@
 // cliente recebe os créditos de volta: sem teto, alguém repete sem parar às nossas custas. Regra, por conta, numa janela corrida de 24 h:
 //   · conta SEM plano: no máximo 2 resultados swap_unchanged; conta COM plano: 4. A tentativa seguinte é recusada ANTES de cobrar e antes da fal.
 //   · conta da casa: fora do teto.
-//   · contam swap_unchanged e swap_partial (decisão da CEO de 14/11: a parcial custa a mesma fal e estorna inteiro). Recusa do motor, vencimento,
-//     falha de cópia, as falhas da fila e swap_uncertain não contam. Só clipes do "seu vídeo" (o vídeo em recreate-uploads/), nunca os do catálogo.
+//   · contam swap_unchanged, swap_partial e swap_uncertain (decisões da CEO de 14/11: os três custam a mesma fal e estornam inteiro). Recusa do
+//     motor, vencimento, falha de cópia e as falhas da fila não contam. Só clipes do "seu vídeo" (o vídeo em recreate-uploads/), nunca os do catálogo.
 //   · um pedido aberto por conta (lib/recreate/portaDoSeuVideo): sem isso, com 1 "não trocou" a conta abria 3 de uma vez e todos passavam.
 //   · a recusa orienta: foto de frente, nítida, uma pessoa só; vídeo mais curto. E diz quando volta (o resultado mais antigo sai da janela).
 //   · leitura do banco que falha = segue (nunca tranca cliente por erro nosso).
@@ -12,7 +12,7 @@
 export const TETO_NAO_TROCOU = { semPlano: 2, comPlano: 4, janelaHoras: 24 } as const
 export const TETO_MOTIVO = 'swap_unchanged' as const
 /** KINEO-RECREATE-FILA-REVISAO-1411 [CEO 14/11: decisão dela] — swap_partial TAMBÉM conta: custa a mesma fal e estorna inteiro. */
-export const TETO_MOTIVOS: readonly string[] = ['swap_unchanged', 'swap_partial']
+export const TETO_MOTIVOS: readonly string[] = ['swap_unchanged', 'swap_partial', 'swap_uncertain'] // KINEO-RECREATE-TRAVA-REVISAO-1411 [revisor 2ª rodada, item 1; DECISÃO DA CEO] — incerto conta no MESMO teto: a fal cobra igual (6 incertos em 1 h e o teto lia 0)
 export const TETO_CODIGO = 'swap_cap' as const
 export const TETO_EVENTO = 'recreate_seu_video_swap_cap' as const
 
@@ -44,5 +44,5 @@ export function decidirTeto(a: { casa: boolean; pagante: boolean; resultados: Re
 
 /** A frase da recusa (inglês, curta, orienta e diz que nada foi cobrado). */
 export function fraseDoTeto(d: { usados: number; horas: number }): string {
-  return `The person was not swapped in your last ${d.usados} tries, so new tries are paused for about ${d.horas} ${d.horas === 1 ? 'hour' : 'hours'}. For a better result, use a sharp, front-facing photo of one person and a shorter video. Nothing was charged.`
+  return `We could not swap the person in your last ${d.usados} tries, so new tries are paused for about ${d.horas} ${d.horas === 1 ? 'hour' : 'hours'}. For a better result, use a sharp, front-facing photo of one person and a shorter video. Nothing was charged.`
 }

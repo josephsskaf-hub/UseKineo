@@ -45,6 +45,7 @@ export interface SwapVerdict {
   subjects?: Array<string | null>
   pairs_used?: number[]
   rule?: string
+  target_missing?: boolean // KINEO-RECREATE-TRAVA-REVISAO-1411 (item 6) — o alvo não saiu do texto do pedido
 }
 
 export const RECREATE_SWAP_CHECK_EVENT = 'recreate_swap_check'
@@ -376,26 +377,52 @@ export const TRAVA_ALVO_REGRA = 'alvo_4_instantes_sem_oculos_1411' as const
 // decidem "mesma pessoa" e "outra pessoa" passam a ser só rosto, cabelo e barba; e o juiz é avisado de que óculos não são motivo nem para dizer
 // "é a mesma" nem para dizer "não parece a foto". Contraprova da CEO: clip 9afc54fa (mesmo plano, texto com "wears no glasses") = swapped.
 export const TRAVA_ATRIBUTOS_DO_ALVO = ['hair_color', 'hair_length', 'hair_texture', 'beard', 'skin_tone', 'face_shape'] as const
-const ALVO_GENERICO = /^the (main|second|third) person$/i
+const ALVO_GENERICO = /^(?:the )?(?:main|second|third|first) (?:main )?person(?: from the left)?$/i
 
+// KINEO-RECREATE-TRAVA-REVISAO-1411 [revisor 2ª rodada, itens 4 e 6] — (4) o alvo NUNCA atravessa ponto final: com 2 pessoas, ", and he wears no glasses. Replace the woman
+// in red" virava o alvo da pessoa 2. (6) mais formas do texto que a pessoa edita: Replace/Swap/Change/Troque/Substitua … in|em @Video1 … @ImageN
+// (with the man from, for, with the guy from, pelo homem de) e o molde da tela do Seedance ("The person … in @Video1 is the person from @ImageN").
+// Alvo que não sai = null, e o evento da trava grava target_missing (o juiz cai no sujeito de antes).
+const ALVO_VERBO = /(?:\b(?:Replace|Swap|Change|Troque|Troca|Trocar|Substitua|Substituir)|,\s*and)\s+([^@:.]{3,120}?)\s+(?:in|em|no|na|of|from|de|do|da)\s+@Video1\b([^@.]{0,80}?)@Image([1-3])\b/giu
+const ALVO_E_A_PESSOA = /(?:^|[.:]\s*)([^@:.]{3,120}?)\s+in\s+@Video1\s+is\s+the\s+(?:man|woman|person)\s+from\s+@Image([1-3])\b/giu
+const limparAlvo = (s: string) => s.replace(/[^\p{L}\p{N} ,'-]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 80)
 /** Os alvos escritos no pedido, um por foto (null = não deu para ler; o juiz recebe o sujeito de antes). Só letras, números, espaço, vírgula, apóstrofo e hífen. */
 export function alvosDoPedido(prompt: unknown, slots: number): Array<string | null> {
   const out: Array<string | null> = Array.from({ length: Math.max(0, slots) }, () => null)
   if (typeof prompt !== 'string') return out
-  for (const m of prompt.matchAll(/(?:\bReplace|,\s*and)\s+([^@:]{3,120}?)\s+in @Video1 with (?:the\s+)?(?:man|woman|person) from @Image([1-3])\b/gi)) {
-    const i = Number(m[2]) - 1
-    const alvo = m[1].replace(/[^\p{L}\p{N} ,'-]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 80)
-    if (i >= 0 && i < out.length && out[i] === null && alvo && !ALVO_GENERICO.test(alvo)) out[i] = alvo
+  const pega = (texto: string, foto: string) => {
+    const i = Number(foto) - 1
+    const alvo = limparAlvo(texto)
+    if (i >= 0 && i < out.length && out[i] === null && alvo.length >= 3 && !ALVO_GENERICO.test(alvo)) out[i] = alvo
   }
+  for (const m of prompt.matchAll(ALVO_VERBO)) pega(m[1], m[3])
+  for (const m of prompt.matchAll(ALVO_E_A_PESSOA)) pega(m[1], m[2])
   return out
 }
 
+// KINEO-RECREATE-TRAVA-REVISAO-1411 [revisor 2ª rodada, item 5] — "Yes"/"No"/"Different" com maiúscula e "person": "1" em texto eram nulo (= incerto: vídeo trocado sem
+// entrega). Só neste caminho (o do catálogo segue byte a byte): os textos da resposta são lidos sem caixa e o índice aceita número em texto.
+const semCaixa = (v: unknown) => (typeof v === 'string' ? v.trim().toLowerCase() : v)
+function pessoaSemCaixa(p: unknown): Record<string, unknown> | undefined {
+  if (!p || typeof p !== 'object') return undefined
+  const r = p as Record<string, unknown>
+  const attrs = r.base_vs_result && typeof r.base_vs_result === 'object' ? Object.fromEntries(Object.entries(r.base_vs_result as Record<string, unknown>).map(([k, v]) => [k.trim().toLowerCase(), semCaixa(v)])) : {}
+  return { ...r, base_vs_result: attrs, same_person: semCaixa(r.same_person), result_vs_photo: semCaixa(r.result_vs_photo) }
+}
+const indiceDaPessoa = (p: unknown): number | null => {
+  const v = p && typeof p === 'object' ? (p as { person?: unknown }).person : null
+  const n = typeof v === 'number' ? v : typeof v === 'string' && /^\s*\d\s*$/.test(v) ? Number(v) : NaN
+  return Number.isInteger(n) ? n : null
+}
 /** A regra do "seu vídeo" no Kling: trocou = diferente da base E parecida com a foto, para cada pessoa. O resto que não é "mantida" = incerto. */
 export function decideSwapEstrito(parsed: unknown, slots: number): { result: SwapCheckResult; reason: string; persons: SwapPerson[] } {
   const raw = parsed && typeof parsed === 'object' && Array.isArray((parsed as { persons?: unknown }).persons) ? (parsed as { persons: unknown[] }).persons : []
   const persons: SwapPerson[] = []
-  for (let k = 1; k <= slots; k++) persons.push(readPerson(raw.find(p => p && typeof p === 'object' && (p as { person?: unknown }).person === k) as Record<string, unknown> | undefined, k, TRAVA_ATRIBUTOS_DO_ALVO)) // KINEO-RECREATE-TRAVA-SEM-OCULOS-1411 — óculos não decidem
-  if (slots < 1 || raw.length === 0) return { result: 'unverified', reason: 'vision_incomplete', persons }
+  for (let k = 1; k <= slots; k++) persons.push(readPerson(pessoaSemCaixa(raw.find(p => indiceDaPessoa(p) === k)), k, TRAVA_ATRIBUTOS_DO_ALVO)) // KINEO-RECREATE-TRAVA-SEM-OCULOS-1411 — óculos não decidem · KINEO-RECREATE-TRAVA-REVISAO-1411 — sem caixa, índice em texto
+  if (slots < 1) return { result: 'unverified', reason: 'vision_incomplete', persons }
+  // KINEO-RECREATE-TRAVA-REVISAO-1411 [revisor 2ª rodada, item 2] — o juiz RESPONDEU (200) sem veredito por pessoa ({"persons": []}, {}, {"error": …}): era unverified, que
+  // ENTREGA e COBRA. Agora é incerto: não entrega, estorna. unverified fica só para rede e tempo.
+  if (raw.length === 0) return { result: 'uncertain', reason: 'vision_no_verdict', persons }
   const kept = persons.filter(p => p.same_as_base === true).length
   const swapped = persons.filter(p => p.same_as_base === false && p.matches_photo === true).length
   if (kept === slots) return { result: 'unchanged', reason: 'all_kept', persons }
@@ -474,13 +501,19 @@ type NaoVerificou = (why: UnverifiedReason, reason: string, extra?: Partial<Swap
 /** A checagem do "seu vídeo" no Kling: alvo do pedido, 4 instantes por tempo absoluto, regra estrita. Chamada por runSwapCheck (mesmo orçamento). */
 async function checarComAlvo(ctx: SwapRowContext, providerVideoUrl: string, opts: SwapCheckOpts, verdict: Fazer, unverified: NaoVerificou): Promise<SwapVerdict> {
   const f = opts.fetchImpl ?? fetch
-  const [mb, mr] = await Promise.all([metaPorUrl(ctx.baseVideoUrl as string, f), metaPorUrl(providerVideoUrl, f)])
+  const [mb, mr0] = await Promise.all([metaPorUrl(ctx.baseVideoUrl as string, f), metaPorUrl(providerVideoUrl, f)])
   if (!mb || !(mb.segundos > 0)) return unverified('base_frames_unavailable', 'base_meta_unavailable')
+  // KINEO-RECREATE-TRAVA-REVISAO-1411 [revisor 2ª rodada, item 7] — sem o cabeçalho da SAÍDA não há como achar o mesmo instante nela (fps diferente desalinha os pares e o
+  // evento gravava instantes que não foram julgados): uma 2ª leitura; ainda ilegível = falha de rede (unverified), nunca um julgamento torto.
+  const mr = mr0 ?? (await metaPorUrl(providerVideoUrl, f))
+  if (!mr || !(mr.segundos > 0)) return unverified('frames_unavailable', 'result_meta_unavailable')
   const passo = mb.segundos * TRAVA_INSTANTES[0] // os instantes são múltiplos do 1º: quadros n, 2n, 3n, 4n no fps de cada arquivo
-  const n = TRAVA_INSTANTES.length
+  // Só os instantes que EXISTEM na saída. Saída que não chega a 2 deles (menos de ~40% do original) = o motor cortou o vídeo: incerto, não entrega.
+  const n = TRAVA_INSTANTES.filter((_, i) => passo * (i + 1) <= mr.segundos - 0.05).length
+  if (n < 2) return verdict('uncertain', 'result_too_short', { rule: TRAVA_ALVO_REGRA })
   const [base, result] = await Promise.all([
     extractInstantFrames(ctx.baseVideoUrl as string, opts, intervaloPara(passo, mb.fps), n),
-    extractInstantFrames(providerVideoUrl, opts, intervaloPara(passo, mr?.fps ?? mb.fps), n),
+    extractInstantFrames(providerVideoUrl, opts, intervaloPara(passo, mr.fps), n), // KINEO-RECREATE-TRAVA-REVISAO-1411 — o fps da própria saída (nunca o do original)
   ])
   const framesUsd = (base.frames ? base.usd : 0) + (result.frames ? result.usd : 0)
   if (!base.frames) return unverified('base_frames_unavailable', 'base_frames_unavailable', { usd: framesUsd })
@@ -489,7 +522,7 @@ async function checarComAlvo(ctx: SwapRowContext, providerVideoUrl: string, opts
   const instants = Array.from({ length: total }, (_, i) => Math.round(passo * (i + 1) * 100) / 100)
   const pares = instants.map((segundos, i) => ({ base: base.frames![i], result: result.frames![i], segundos }))
   const alvos = alvosDoPedido(ctx.prompt, ctx.slots)
-  const marca = { instants, subjects: alvos, rule: TRAVA_ALVO_REGRA }
+  const marca = { instants, subjects: alvos, rule: TRAVA_ALVO_REGRA, target_missing: alvos.some(a => a === null) } // KINEO-RECREATE-TRAVA-REVISAO-1411 (item 6) — o alvo não saiu do texto
   const key = opts.apiKey ?? process.env.OPENAI_API_KEY
   if (!key) return unverified('config', 'vision_key_missing', { usd: framesUsd, ...marca })
   const model = opts.model ?? process.env.RECREATE_SWAP_CHECK_MODEL ?? SWAP_CHECK_MODEL_DEFAULT
@@ -506,7 +539,8 @@ async function checarComAlvo(ctx: SwapRowContext, providerVideoUrl: string, opts
   if (!got.value) return unverified('http_error', 'vision_failed', { model, usd: framesUsd, ...marca })
   const usd = Math.round((framesUsd + usdFromUsage(got.value.usage, PIXEL_MODEL_RATES[model] ?? PIXEL_MODEL_RATES[AI_TEXT_MODELS.writer])) * 1e6) / 1e6
   const answer = readVisionAnswer(got.value)
-  if ('why' in answer) return unverified(answer.why, 'vision_unusable', { model, usd, ...marca })
+  // KINEO-RECREATE-TRAVA-REVISAO-1411 (item 2) — o juiz respondeu (200) e não deu veredito (recusa, texto que não é JSON, conteúdo vazio): incerto, não entrega.
+  if ('why' in answer) return verdict('uncertain', 'vision_no_verdict', { model, usd, ...marca, unverified_reason: null })
   const decided = decideSwapEstrito(answer.parsed, ctx.slots)
   const extra = { persons: decided.persons, model, usd, ...marca, pairs_used: paresUsados(answer.parsed, total) }
   return decided.result === 'unverified' ? unverified('null_answer', decided.reason, extra) : verdict(decided.result, decided.reason, extra)

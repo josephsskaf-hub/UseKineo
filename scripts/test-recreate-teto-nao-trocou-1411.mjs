@@ -41,13 +41,15 @@ function bateria(over = {}) {
   check('conta da casa nunca é recusada', () => {
     if (!d(true, false, Array.from({ length: 30 }, (_, i) => naoTrocou(i / 2))).ok) throw new Error('casa recusada')
   })
-  check('swap_partial conta (decisão da CEO 14/11)', () => {
+  check('swap_partial e swap_uncertain contam (decisões da CEO 14/11)', () => {
     const r = d(false, false, [naoTrocou(1), outro('swap_partial', 2)])
     if (r.ok || r.usados !== 2) throw new Error(JSON.stringify(r))
-    if (JSON.stringify(T.TETO_MOTIVOS) !== JSON.stringify(['swap_unchanged', 'swap_partial'])) throw new Error('motivos: ' + JSON.stringify(T.TETO_MOTIVOS))
+    const u = d(false, false, [outro('swap_uncertain', 1), outro('swap_uncertain', 2)]) // KINEO-RECREATE-TRAVA-REVISAO-1411 (item 1): 6 incertos em 1 h e o teto lia 0
+    if (u.ok || u.usados !== 2) throw new Error('incerto: ' + JSON.stringify(u))
+    if (JSON.stringify(T.TETO_MOTIVOS) !== JSON.stringify(['swap_unchanged', 'swap_partial', 'swap_uncertain'])) throw new Error('motivos: ' + JSON.stringify(T.TETO_MOTIVOS))
   })
   check('falha de outro tipo não conta', () => {
-    const r = d(false, false, [naoTrocou(1), outro('swap_uncertain'), outro('queue_stuck'), outro('queue_timeout'), outro('provider_failed'), outro('provider_rejected'), outro('expired'), outro('persist_failed'), outro(null)])
+    const r = d(false, false, [naoTrocou(1), outro('queue_stuck'), outro('queue_timeout'), outro('provider_failed'), outro('provider_rejected'), outro('expired'), outro('persist_failed'), outro(null)])
     if (!r.ok || r.usados !== 1) throw new Error(JSON.stringify(r))
   })
   check('fora das 24 h não conta; data ruim não conta', () => {
@@ -62,7 +64,7 @@ function bateria(over = {}) {
   })
   check('frase: inglês, orienta, nada cobrado, sem nome de motor', () => {
     const f = T.fraseDoTeto({ usados: 2, horas: 4 })
-    if (!/not swapped in your last 2 tries/.test(f) || !/about 4 hours/.test(f) || !/front-facing photo of one person/.test(f) || !/shorter video/.test(f) || !/Nothing was charged\.$/.test(f)) throw new Error(f)
+    if (!/^We could not swap the person in your last 2 tries/.test(f) || !/about 4 hours/.test(f) || !/front-facing photo of one person/.test(f) || !/shorter video/.test(f) || !/Nothing was charged\.$/.test(f)) throw new Error(f)
     if (/kling|seedance|fal\b/i.test(f) || f.length > 260) throw new Error('motor ou longa: ' + f)
     if (!/about 1 hour\./.test(T.fraseDoTeto({ usados: 2, horas: 1 }))) throw new Error('singular')
   })
@@ -100,7 +102,8 @@ const mutantes = [
   ['com plano com teto 5', { [TETO]: teto.replace('comPlano: 4,', 'comPlano: 5,') }],
   ['casa entra no teto', { [TETO]: teto.replace('  if (a.casa) return { ok: true, usados: 0, limite: null }\n', '') }],
   ['toda falha conta', { [TETO]: teto.replace("    .filter((r) => typeof r.failure_reason === 'string' && TETO_MOTIVOS.includes(r.failure_reason))\n", '') }],
-  ['parcial não conta', { [TETO]: teto.replace("['swap_unchanged', 'swap_partial']", "['swap_unchanged']") }],
+  ['parcial não conta', { [TETO]: teto.replace("['swap_unchanged', 'swap_partial', 'swap_uncertain']", "['swap_unchanged', 'swap_uncertain']") }],
+  ['incerto não conta', { [TETO]: teto.replace("['swap_unchanged', 'swap_partial', 'swap_uncertain']", "['swap_unchanged', 'swap_partial']") }],
   ['janela infinita', { [TETO]: teto.replace('Number.isFinite(t) && t > a.agoraMs - janela && t <= a.agoraMs', 'Number.isFinite(t)') }],
   ['recusa no limite + 1', { [TETO]: teto.replace('if (naJanela.length < limite) return', 'if (naJanela.length <= limite) return') }],
   ['rota: a porta não recusa', { [ROTA]: rota.replace('  if (recusa) {', '  if (false) {') }],

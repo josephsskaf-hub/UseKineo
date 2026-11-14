@@ -305,7 +305,7 @@ async function bateria(over = {}, lento = false) {
     m.por(falhou(73, 1, 'swap_partial'), falhou(74, 3, 'swap_unchanged'), falhou(75, 1, 'queue_stuck'), falhou(76, 1, 'swap_uncertain'))
     const lidas = await sv.lerNaoTrocouDaConta(m.client, conta)
     const d = T.decidirTeto({ casa: false, pagante: false, resultados: lidas, agoraMs: Date.now() })
-    if (lidas.length !== 2 || d.ok || d.usados !== 2) throw new Error('seu vídeo: ' + JSON.stringify([lidas.length, d]))
+    if (lidas.length !== 3 || d.ok || d.usados !== 3) throw new Error('seu vídeo: ' + JSON.stringify([lidas.length, d])) // KINEO-RECREATE-TRAVA-REVISAO-1411 (item 1): swap_uncertain conta
   })
   await check('item 10 · evento da trava com o caminho previsto; cópia guardada = evento próprio; bucket privado', async () => {
     const m = servidor(ctx)

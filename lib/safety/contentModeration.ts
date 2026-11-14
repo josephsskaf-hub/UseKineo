@@ -69,7 +69,8 @@ async function callModeration(input: ModerationInputPart[]): Promise<ModerationR
 // Agora, SÓ nesse erro (4xx com "failed to download"): UMA segunda chamada, com a imagem baixada por NÓS e mandada em base64 (o endpoint aceita
 // `image_url.url` como URL ou como data URL — o mesmo formato que outras superfícies já mandam). Só baixamos de onde a casa guarda mídia (o
 // nosso Storage) ou do fornecedor (fal.media), até 8 MB e em 4 s; fora disso, a 2ª chamada repete a URL. Falhou de novo por download = FORA DO
-// AR (unavailable, "tente de novo"), não "esta imagem não serve" (unprocessable). Timeout, 5xx e os outros 4xx seguem como antes: uma chamada,
+// AR (unavailable, "tente de novo"), não "esta imagem não serve" (unprocessable). REVISÃO (KINEO-MODERACAO-DOWNLOAD-REVISAO-1411): sem cópia nossa, NÃO há 2ª chamada —
+// a resposta volta a ser a de antes (unprocessable); só com a cópia nossa em base64 a 2ª chamada existe. Timeout, 5xx e os outros 4xx seguem como antes: uma chamada,
 // sem retry (a regra da revisão de 25/09). Pior caso a mais: 4 s do nosso download + 8 s da 2ª chamada, só depois de um 400 de download.
 export const MODERATION_DOWNLOAD_ERROR = /fail(?:ed|ure)? to download|could ?n[o']t download|unable to download|error (?:while )?downloading|timed? ?out (?:while )?downloading/i
 export const MODERATION_RESCUE_MAX_BYTES = 8 * 1024 * 1024
@@ -93,22 +94,45 @@ export function moderationRescueHost(url: string): boolean {
   }
 }
 
+// KINEO-MODERACAO-DOWNLOAD-REVISAO-1411 [revisor 2ª rodada, item 8 — bloqueava: /api/images/edit e /upscale aceitam URL da fal vinda do navegador] — o host só vale na URL
+// pedida: redirecionamento é ERRO (o destino de um 302 nunca é buscado). Os 8 MB valem ANTES de baixar (content-length) e DURANTE (o corpo é lido em
+// pedaços e cortado no teto): nunca 64 MB em memória.
 async function imageAsDataUrl(url: string): Promise<string | null> {
   if (!moderationRescueHost(url)) return null
   try {
-    const res = await fetch(url, { signal: AbortSignal.timeout(MODERATION_RESCUE_FETCH_MS), cache: 'no-store' })
+    const res = await fetch(url, { signal: AbortSignal.timeout(MODERATION_RESCUE_FETCH_MS), cache: 'no-store', redirect: 'error' })
     const type = (res.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase()
-    if (!res.ok || !/^image\/(?:jpeg|png|webp|gif)$/.test(type)) return null
-    const buf = new Uint8Array(await res.arrayBuffer())
-    if (buf.byteLength === 0 || buf.byteLength > MODERATION_RESCUE_MAX_BYTES) return null
+    if (!res.ok || !/^image\/(?:jpeg|png|webp|gif)$/.test(type)) { await res.body?.cancel().catch(() => {}); return null }
+    const declarado = Number(res.headers.get('content-length') ?? '')
+    if (Number.isFinite(declarado) && declarado > MODERATION_RESCUE_MAX_BYTES) { await res.body?.cancel().catch(() => {}); return null }
+    const buf = await lerAteOTeto(res, MODERATION_RESCUE_MAX_BYTES)
+    if (!buf || buf.byteLength === 0) return null
     return `data:${type};base64,${Buffer.from(buf).toString('base64')}`
   } catch {
     return null
   }
 }
+/** O corpo até `max` bytes; passou = null e a leitura é cancelada (o resto nem chega). */
+async function lerAteOTeto(res: Response, max: number): Promise<Uint8Array | null> {
+  const reader = res.body?.getReader()
+  if (!reader) { const b = new Uint8Array(await res.arrayBuffer()); return b.byteLength > max ? null : b }
+  const partes: Uint8Array[] = []
+  let total = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    total += value.byteLength
+    if (total > max) { await reader.cancel().catch(() => {}); return null }
+    partes.push(value)
+  }
+  const out = new Uint8Array(total)
+  let pos = 0
+  for (const p of partes) { out.set(p, pos); pos += p.byteLength }
+  return out
+}
 
 /** Uma chamada; se o moderador não baixou a imagem, UMA segunda (em base64 quando dá). `onRescue` avisa o desfecho para o evento. */
-async function callModerationWithRescue(input: ModerationInputPart[], onRescue?: (outcome: 'ok' | 'failed', inline: number) => Promise<void>): Promise<ModerationResult> {
+async function callModerationWithRescue(input: ModerationInputPart[], onRescue?: (outcome: 'ok' | 'failed' | 'skipped', inline: number) => Promise<void>): Promise<ModerationResult> { // KINEO-MODERACAO-DOWNLOAD-REVISAO-1411 — + skipped (a casa não baixou: sem 2ª chamada)
   try {
     return await callModeration(input)
   } catch (error) {
@@ -120,6 +144,13 @@ async function callModerationWithRescue(input: ModerationInputPart[], onRescue?:
       if (data) inline += 1
       return data ? { type: 'image_url', image_url: { url: data } } : part
     }))
+    // KINEO-MODERACAO-DOWNLOAD-REVISAO-1411 [revisor 2ª rodada, item 9 — bloqueava] — a casa NÃO conseguiu baixar nenhuma imagem (host de fora, arquivo grande, rede): a 2ª
+    // chamada repetiria a mesma URL e a resposta seria "tente de novo" para sempre (o laço que a revisão de 25/09 tirou), com até 20 s por foto.
+    // Então: nenhuma 2ª chamada e a resposta de antes de 14/11 (unprocessable: "esta imagem não serve"). O resgate só existe com a cópia nossa.
+    if (inline === 0) {
+      await onRescue?.('skipped', 0).catch(() => {})
+      throw error
+    }
     try {
       const result = await callModeration(again)
       await onRescue?.('ok', inline).catch(() => {})
