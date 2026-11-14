@@ -104,7 +104,11 @@ async function bateria(over = {}) {
   await check('Recreate baixa pelo baixador da casa e pela rota', async () => {
     const s = t('app/recreate/RecreateClient.tsx')
     if (/href=\{clip\.video_url\}/.test(s)) throw new Error('link cru do Supabase no Recreate')
-    if ((s.match(/downloadHref\(clip\.video_url, downloadName, 'recreate'\)/g) ?? []).length !== 2) throw new Error('os 2 links do Recreate não passam pela rota')
+    // KINEO-M12-LIGADO-1411 [CEO 14/11, reancoragem sem afrouxar] — o fluxo novo do Recreate trouxe mais um botão de download (eram 2, são 3).
+    // Em vez de um número fixo: TODO botão "Download" da tela passa pela rota, e são pelo menos os 2 de sempre.
+    const pelaRota = (s.match(/downloadHref\(clip\.video_url, downloadName, 'recreate'\)/g) ?? []).length
+    const botoes = (s.match(/>Download [↓↗]<\/a>/g) ?? []).length
+    if (pelaRota < 2 || pelaRota !== botoes) throw new Error(`os links do Recreate não passam todos pela rota (${pelaRota} de ${botoes})`)
     if (!/downloadVideoFile\(\{[^}]*surface: 'recreate'/.test(s)) throw new Error('sem o baixador da casa (evento de download)')
     if (!/kineo-recreate-\$\{/.test(s)) throw new Error('nome do arquivo')
   })

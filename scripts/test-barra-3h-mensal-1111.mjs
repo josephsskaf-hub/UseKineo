@@ -76,7 +76,9 @@ function battery(src) {
   if (mensal.monthlyFirstMonthMinor(900) !== 630) p.push('a conta do 1º mês mudou (900 → 630)')
   // (6) intocados
   if (!up.includes('useState<ConversionBilling>(paredeBillingInicial())') || !up.includes('Save {plan.annualSaving}/yr')) p.push('a parede no mensal / o Save $X/yr foram mexidos')
-  if (!src[PRICING].includes("export default function PricingClient({ initialBilling = 'annual' }")) p.push('o /pricing foi mexido')
+  // KINEO-PRECOS-PREVIA-1411 [CEO 14/11, reancoragem sem afrouxar] — a assinatura ganhou `watchPreview = false` (prévia escondida); o que este
+  // guardião protege é o /pricing continuar nascendo no ANUAL, e é isso que a âncora segue conferindo
+  if (!src[PRICING].includes("export default function PricingClient({ initialBilling = 'annual'")) p.push('o /pricing foi mexido')
   if (mensal.MONTHLY_FIRST_MONTH_PERCENT_OFF !== 30 || anual.ANNUAL_WELCOME_BAR_HREF !== '/pricing?billing=annual&from=welcome_bar') p.push('a oferta ou o link de 04/11 mudaram')
   return p
 }

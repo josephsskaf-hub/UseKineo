@@ -54,7 +54,8 @@ function battery(src) {
   if (!up.includes('onClick={() => onUpgrade(tier, billing)}')) p.push('o botão do plano não leva a aba escolhida ao checkout')
   // (4) /pricing e preços intocados
   if (src[PRICING].includes('paredeMensal1111')) p.push('o /pricing passou a ler o interruptor da parede')
-  if (!src[PRICING].includes("export default function PricingClient({ initialBilling = 'annual' }")) p.push('o /pricing deixou de nascer no anual')
+  // KINEO-PRECOS-PREVIA-1411 [CEO 14/11, reancoragem sem afrouxar] — a assinatura ganhou `watchPreview = false`; o que se protege é o padrão ANUAL
+  if (!src[PRICING].includes("export default function PricingClient({ initialBilling = 'annual'")) p.push('o /pricing deixou de nascer no anual')
   const bloco = (nome) => (src[PRICES].split(`export const ${nome}: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {`)[1] ?? '').split('\n}\n')[0]
   for (const [tier, mensal, anual] of [['starter', 900, 7600], ['basic', 1900, 16000], ['pro', 5900, 49600]]) {
     if (!bloco('TIER_PRICES').includes(`${tier}: { usd: ${mensal} }`)) p.push(`preço mensal do ${tier} mudou`)
@@ -85,7 +86,7 @@ const MUTANTES = [
   ['anual some do seletor', muta(UPGRADE, "(['monthly', 'annual'] as const).map(value =>", "(['monthly'] as const).map(value =>")],
   ['anual sem save 30%', muta(UPGRADE, '`Annual · save ${ANNUAL_DISCOUNT_PERCENT}%`', "'Annual'")],
   ['plano ignora a aba', muta(UPGRADE, 'onClick={() => onUpgrade(tier, billing)}', "onClick={() => onUpgrade(tier, 'annual')}")],
-  ['/pricing no mensal', muta(PRICING, "export default function PricingClient({ initialBilling = 'annual' }", "export default function PricingClient({ initialBilling = 'monthly' }")],
+  ['/pricing no mensal', muta(PRICING, "export default function PricingClient({ initialBilling = 'annual'", "export default function PricingClient({ initialBilling = 'monthly'")],
   ['Starter mais barato', muta(PRICES, 'export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {\n  starter: { usd: 900 }', 'export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {\n  starter: { usd: 700 }')],
   ['anual do Creator mais barato', muta(PRICES, 'basic: { usd: 16000 }', 'basic: { usd: 12000 }')],
 ]
