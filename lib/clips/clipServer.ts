@@ -261,8 +261,8 @@ export function toPublicClip(row: ClipRow): PublicClip {
     stage: faceRemixStageForRow(row) ?? ({ scene: 'keyframe', motion: 'video', none: null } as const)[movimentoStageForRow(row) ?? 'none'], // KINEO-ROSTO-QUADRO-CHAVE-2810 · KINEO-RECREATE-MOVIMENTO-1411 — o movimento mostra as duas etapas na Library como o remix
     id: row.id,
     engine: row.engine,
-    label: movimentoForRow(row) ? MOVIMENTO_SELO : effect?.template?.label ?? (CLIP_ENGINES[row.engine] ? // KINEO-RECREATE-MOVIMENTO-1411 — selo honesto: o motor real do movimento (a linha guarda 'kling' só por ser chave do catálogo)
-      clipLabelForModel(row.engine, row.model) : row.engine), // KINEO-EFEITOS-NOVOS-2026-10-13 — selo do modelo real · KINEO-ROTULO-CLIPE-H3-1111: clipe antigo do trilho seedance = Seedance 1.5
+    // KINEO-RECREATE-MOVIMENTO-1411 — selo honesto: o motor real do movimento (a linha guarda 'kling' só por ser chave do catálogo).
+    label: movimentoForRow(row) ? MOVIMENTO_SELO : effect?.template?.label ?? (CLIP_ENGINES[row.engine] ? clipLabelForModel(row.engine, row.model) : row.engine), // KINEO-EFEITOS-NOVOS-2026-10-13 — selo do modelo real · KINEO-ROTULO-CLIPE-H3-1111: clipe antigo do trilho seedance = Seedance 1.5
     with_image: row.mode === 'image',
     seconds: row.seconds,
     aspect: row.aspect,
@@ -506,7 +506,15 @@ export function movimentoDepsFor(admin: SupabaseClient): ClipMovimentoDeps {
       if (error) console.error(`[clips] motion claim failed clip=${row.id}:`, error.message)
       return !error && (data ?? []).length > 0
     },
-    gate: (row, cenaUrl) => julgarCena(row.image_url, cenaUrl),
+    // KINEO-RECREATE-MOVIMENTO-1411 [CEO 14/11 08:45: "avalie moderar a IMAGEM do passo 1 com o nosso moderador antes do passo 2"] — o omni-moderation (grátis)
+    // olha a imagem gerada; recusa = 'blocked' (estorno, sem vídeo). Moderador fora do ar ou sem conseguir ler = segue para o juiz (o motor de vídeo
+    // ainda tem o safety checker ligado) e o motivo fica no evento.
+    gate: async (row, cenaUrl) => {
+      const mod = await moderateContent({ surface: 'clip', stage: 'output', userId: row.user_id, imageUrls: [cenaUrl], meta: { clip_id: row.id, etapa: 'movimento_cena' }, orcamentoMs: 15_000 }).catch(() => ({ ok: false as const, reason: 'unavailable' as const, error: 'threw' }))
+      if (!mod.ok && mod.reason === 'blocked') return { result: 'blocked' as const, reason: 'moderation' }
+      const v = await julgarCena(row.image_url, cenaUrl)
+      return mod.ok ? v : { ...v, reason: `${v.reason}; moderation_${mod.reason}` }
+    },
     submitVideo: async (row, cenaUrl) => {
       const f = movimentoForRow(row)
       const guia = f ? movimentoGuiaUrl(f, process.env.NEXT_PUBLIC_SUPABASE_URL ?? '') : null
