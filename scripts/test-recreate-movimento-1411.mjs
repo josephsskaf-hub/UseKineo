@@ -38,7 +38,7 @@ const SRV = 'lib/clips/clipServer.ts', STATUS = 'app/api/recreate/status/route.t
 const RSERVER = 'lib/recreate/server.ts', EVENTOS = 'app/api/events/route.ts', TEXTO = 'lib/recreate/textoDoPedido.ts', SV = 'lib/recreate/seuVideo.ts', CHECK = 'app/api/recreate/seu-video/check/route.ts'
 
 // O molde de teste (o catálogo real nasce vazio: a CEO põe os demos validados). Um sem aprovação e um aprovado.
-const MOLDE = (id, aprovado, extra = '') => `{ id: '${id}', title: 'Football run', desde: '2026-11-14', type: 'motion', preview: '/api/recreate/assets/${id}.mp4', poster: '/api/recreate/assets/${id}.jpg', guia: 'lance-teste.mp4', seconds: 10, photoSlots: 1, pessoasNoGuia: 1, prompt: '', movimentoAprovado: ${aprovado}, cena: 'standing on a plain green football pitch, framed from the knees up, their face clearly visible and turned slightly toward the camera', acao: 'The person runs forward and dribbles a white football, the camera follows at the side, plain green pitch with plain unmarked boards'${extra} }`
+const MOLDE = (id, aprovado, extra = '') => `{ id: '${id}', title: 'Football run', desde: '2026-11-14', type: 'motion', preview: '/api/recreate/assets/lance-teste.mp4', poster: '/api/recreate/assets/${id}.jpg', guia: 'lance-teste.mp4', seconds: 10, photoSlots: 1, pessoasNoGuia: 1, prompt: '', movimentoAprovado: ${aprovado}, cena: 'standing on a plain green football pitch, framed from the knees up, their face clearly visible and turned slightly toward the camera', acao: 'The person runs forward and dribbles a white football, the camera follows at the side, plain green pitch with plain unmarked boards'${extra} }`
 // KINEO-RECREATE-MOVIMENTO-MOLDE-1411 — os moldes de teste entram NA FRENTE da lista real (vazia ou não) e as chaves de teste no fim de RECREATE_ASSETS:
 // a âncora não depende mais da lista vazia nem do último asset (o 1º molde de verdade entra por scripts/recreate-movimento-novo-molde.mjs).
 function comMoldes(src, moldes = [MOLDE('lance-teste', false), MOLDE('lance-aprovado', true)]) {
@@ -233,6 +233,36 @@ async function bateria(over = {}) {
     if ((await juiz.julgarCena(null, `${SUPA}/x.png`, { apiKey: 'k' })).result !== 'unverified') throw new Error('sem foto')
   })
 
+  // KINEO-MOVIMENTO-CORPO-INTEIRO-1411 [CEO 14/11] — corpo inteiro, a descrição dentro da frase de identidade, o demo separado do guia e todo molde REAL do catálogo válido
+  await check('12 a descrição lida da foto vai DENTRO da frase de identidade do passo 1 ("… same age, with …."); sem descrição, a frase fecha em "same age."', async () => {
+    const com = mov.movimentoTextoDaCena(molde, D), sem = mov.movimentoTextoDaCena(molde, null)
+    if (!com.includes('skin texture, same age, ' + D + '.') || com.includes('reference photo, with')) throw new Error('com: ' + com)
+    if (!sem.includes('skin texture, same age. This one person') || sem.includes(', with ')) throw new Error('sem: ' + sem)
+    if (mov.temFraseNegativa(com)) throw new Error('frase negativa')
+  })
+  await check('12 a régua aceita o corpo inteiro ("full body from head to shoes") além de joelhos e cintura; sem enquadramento nem rosto, recusa', async () => {
+    const corpo = { ...molde, cena: 'on a pitch, full body from head to shoes, their face clearly visible' }
+    if (mov.movimentoProblemasDoMolde(corpo).length) throw new Error(mov.movimentoProblemasDoMolde(corpo).join('; '))
+    for (const cena of ['on a pitch, full body, their face clearly visible', 'on a pitch, full body from head to shoes']) if (!mov.movimentoProblemasDoMolde({ ...molde, cena }).length) throw new Error('aceitou: ' + cena)
+  })
+  await check('12 o demo do cartão: asset nosso registrado ou MP4 do NOSSO bucket renders; nada de terceiros, caminho torto ou asset que não existe', async () => {
+    const ok = ['/api/recreate/assets/lance-teste.mp4', 'https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/clips/' + U + '/' + U + '.mp4']
+    const ruins = ['/api/recreate/assets/nao-existe.mp4', '/api/recreate/assets/lance-teste.jpg', 'https://evil.example.com/x.mp4', 'https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/avatars/x.mp4', 'https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/../avatars/x.mp4', 'https://v3.fal.media/files/x.mp4']
+    for (const p of ok) if (!mov.movimentoDemoValido(p) || mov.movimentoProblemasDoMolde({ ...molde, preview: p }).length) throw new Error('recusou: ' + p)
+    for (const p of ruins) if (mov.movimentoDemoValido(p)) throw new Error('aceitou: ' + p)
+    if (mov.movimentoGuiaUrl({ ...molde, preview: ok[1] }, SUPA) !== mov.movimentoGuiaUrl(molde, SUPA)) throw new Error('o demo mexeu no guia')
+  })
+  await check('12 todo molde de movimento REAL do catálogo passa na régua (o 1º: jogada-de-futebol de corpo inteiro, sem aprovação)', async () => {
+    const reais = lf(FORMATS)
+    const real = loader({ '@supabase/supabase-js': { createClient: () => ({}) } }, {})
+    const fr = real('lib/recreate/formats'), mr = real('lib/recreate/movimento')
+    const lista = fr.RECREATE_MOVIMENTO_MOLDES
+    if (!lista.length) throw new Error('o catálogo real não tem molde de movimento')
+    for (const f of lista) { const pr = mr.movimentoProblemasDoMolde(f); if (pr.length) throw new Error(f.id + ': ' + pr.join('; ')) }
+    const j = fr.recreateFormat('jogada-de-futebol')
+    if (!j || !/full body from head to shoes/.test(j.cena) || !/white football on the grass at their feet/.test(j.cena) || j.movimentoAprovado !== false) throw new Error('jogada-de-futebol: ' + JSON.stringify(j?.cena))
+    void reais
+  })
   // ── 6. a liquidação real com a reserva e a gravação reais ──
   const srvMod = m('lib/clips/clipServer')
   const linha = (o = {}) => ({ id: U, user_id: U, idempotency_key: 'k', fingerprint: FP('lance-teste'), billing_reference: 'clips-' + U, engine: 'kling', mode: 'image', model: CENA, seconds: 10, aspect: '9:16', prompt: 'Recreate motion: Football run [lance-teste]', image_url: FOTO, credits: 40, fal_usd: 0.85, status: 'processing', fal_request_id: 'req-cena', video_url: null, failure_reason: null, credits_refunded: 0, created_at: new Date(NOW - 60_000).toISOString(), ...o })
@@ -467,22 +497,25 @@ async function bateria(over = {}) {
       // a gravação demora 40 ms: na corrida, o 2º pedido passa pela busca da chave ANTES da gravação do 1º e cai no conflito do insert (o caminho da corrida)
       insertPending: async (row) => { await new Promise((r) => setTimeout(r, 40)); if (linhas.has(row.idempotency_key)) return { ok: false, conflict: true }; linhas.set(row.idempotency_key, row); return { ok: true } },
       debit: async () => ({ ok: true, balance: 60 }), refund: async () => 0,
-      submit: async () => { envios++; return { ok: true, requestId: 'req-' + envios } }, markSubmitted: async () => true, markFailed: async () => true,
+      submit: async (_m, input) => { envios++; entradas.push(input); return { ok: true, requestId: 'req-' + envios } }, markSubmitted: async () => true, markFailed: async () => true,
       event: async () => {}, now: () => NOW,
     }
     const textos = ['with short black hair and wearing no glasses', 'with long blonde hair and wearing glasses']
+    const eventosRota = [], entradas = []
     const rm = loader({
       '@supabase/supabase-js': { createClient: () => ({}) }, '@fal-ai/client': { fal: { config: () => {}, queue: {} } }, '@/lib/supabase/server': { createClient: () => null }, 'server-only': {},
       'next/server': { NextResponse: { json: (body, init) => ({ status: init?.status ?? 200, body }) } },
       '@/lib/clips/clipServer': { clipsAdmin: () => ({}), engineAccessFor: () => ({ ok: true }), loadClipAccount: async () => ({ userId: U, balance: 100, plan: 'free' }) },
       '@/lib/recreate/server': { recreateSession: async () => ({ supabase: {}, user: { id: U, email: casa } }), recreateSubmitDeps: () => rotaDeps, recreateEngineAccess: () => ({ ok: true }), RECREATE_HEADERS: {} },
-      '@/lib/serverEvents': { writeServerEvent: async () => true },
+      '@/lib/serverEvents': { writeServerEvent: async (e) => { eventosRota.push(e); return true } }, // KINEO-MOVIMENTO-CORPO-INTEIRO-1411 — o evento da descrição
       '@/app/api/admin/_shared/mrr': { isPayingPlan: () => false },
       '@/lib/recreate/descricaoDaPessoa': { lerDescricaoDaPessoa: async () => { const i = leituras++; await new Promise((r) => setTimeout(r, i % 2 ? 1 : 25)); return { ok: true, texto: textos[i % 2], cabeloEBarba: '', usd: 0.005 } } },
     }, overs)
     const POST = rm('app/api/recreate/route').POST
     const req = (key) => ({ headers: { get: (h) => (h === 'idempotency-key' ? key : null) }, nextUrl: { origin: 'https://fixture' }, json: async () => ({ ...pedido }) })
     const a = await POST(req('recreate-seq-1')), b = await POST(req('recreate-seq-1'))
+    const evDesc = eventosRota.find((e) => e.name === 'recreate_pessoa_descricao')
+    if (!evDesc || evDesc.metadata.descricao !== textos[0] || !String(entradas[0]?.prompt).includes('same age, ' + textos[0] + '.')) throw new Error('a descrição usada não está no evento ou no passo 1: ' + JSON.stringify([evDesc?.metadata, entradas[0]?.prompt]).slice(0, 300)) // KINEO-MOVIMENTO-CORPO-INTEIRO-1411
     if (a.status !== 202 || a.body.replay || b.status !== 200 || b.body.replay !== true || leituras !== 1 || envios !== 1) throw new Error('em sequência: ' + JSON.stringify([a, b, leituras, envios]))
     const [c, d] = await Promise.all([POST(req('recreate-par-1')), POST(req('recreate-par-1'))])
     if (leituras !== 3) throw new Error('a corrida não leu as duas descrições: ' + leituras)
@@ -690,6 +723,11 @@ const mutantes = [
   ['livro sem o dono', { [SRV]: src[SRV].replace(".eq('render_id', ref).eq('user_id', userId).maybeSingle()", ".eq('render_id', ref).maybeSingle()") }],
   ['marca antes de 1 h', { [SRV]: src[SRV].replace('export const NUNCA_COBRADO_APOS_MS = 60 * 60 * 1000', 'export const NUNCA_COBRADO_APOS_MS = 0') }],
   ['molde fora da lista ainda julga', { [FLOW]: src[FLOW].replace("    if (!movimentoForRow(row)) return fail(MOVIMENTO_FALHA.cena, null, { motion: 'template_gone' })\n", '') }],
+  // KINEO-MOVIMENTO-CORPO-INTEIRO-1411
+  ['descrição de volta para o começo (fora da identidade)', { [MOV]: src[MOV].replace("  const identidade = descricao ? `${IDENTIDADE}, ${descricao}.` : `${IDENTIDADE}.`", "  const identidade = `${IDENTIDADE}.`") }],
+  ['régua sem o corpo inteiro', { [MOV]: src[MOV].replace('knees up|waist up|full body from head to shoes', 'knees up|waist up') }],
+  ['demo de qualquer lugar', { [MOV]: src[MOV].replace("  return MOVIMENTO_DEMO_DO_BUCKET.test(preview) && !preview.includes('..')", '  return true') }],
+  ['evento sem a descrição usada', { [ROTA]: src[ROTA].replace('{ usd: lida.usd, descricao: lida.texto }', '{ usd: lida.usd }') }],
   ['juiz com campo inventado na fal', { [MOV]: src[MOV].replace("character_orientation: 'video', keep_original_sound: false,", "character_orientation: 'video', keep_original_sound: false, negative_prompt: 'logos',") }],
 ]
 let mortos = 0

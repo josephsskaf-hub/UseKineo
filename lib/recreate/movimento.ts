@@ -100,11 +100,13 @@ export function temFraseNegativa(texto: string): boolean {
   return FRASE_NEGATIVA.test(texto.replace(/\b(wearing|(?:he|she) wears|they wear) no glasses\b/gi, '$1 bare-faced'))
 }
 
-const IDENTIDADE = 'Keep their real face exactly: same face shape, eyes, eyebrows, nose, lips, hairline, beard and skin texture, same age.'
+// KINEO-MOVIMENTO-CORPO-INTEIRO-1411 [CEO 14/11, teste pago no painel: corpo inteiro + cabelo e barba descritos = o rosto se mantém] — a descrição lida da foto entra DENTRO da frase de
+// identidade ("… same age, with <cabelo, barba, óculos>."), como no teste; antes ela ia logo depois de "The person from the reference photo".
+const IDENTIDADE = 'Keep their real face exactly: same face shape, eyes, eyebrows, nose, lips, hairline, beard and skin texture, same age'
 /** O texto do passo 1. `descricao` = o que o leitor viu na foto (cabelo, barba, óculos), ou null quando a leitura falhou. */
 export function movimentoTextoDaCena(f: RecreateFormat, descricao: string | null): string {
-  const pessoa = descricao ? `The person from the reference photo, ${descricao},` : 'The person from the reference photo'
-  return `Photorealistic vertical photo. ${pessoa} ${f.cena ?? ''}. ${IDENTIDADE} This one person is the only person in the frame. Plain unmarked surfaces and clean natural light.`.replace(/\s+/g, ' ').trim()
+  const identidade = descricao ? `${IDENTIDADE}, ${descricao}.` : `${IDENTIDADE}.` // KINEO-MOVIMENTO-CORPO-INTEIRO-1411 — era: "The person from the reference photo, <descrição>,"
+  return `Photorealistic vertical photo. The person from the reference photo ${f.cena ?? ''}. ${identidade} This one person is the only person in the frame. Plain unmarked surfaces and clean natural light.`.replace(/\s+/g, ' ').trim()
 }
 export function movimentoEntradaDaCena(f: RecreateFormat, foto: string, descricao: string | null): Record<string, unknown> {
   return { prompt: movimentoTextoDaCena(f, descricao), image_urls: [foto], aspect_ratio: '9:16', num_images: 1, resolution: '1K', output_format: 'png' }
@@ -115,6 +117,15 @@ export function movimentoEntradaDoVideo(f: RecreateFormat, cenaUrl: string, guia
   return { image_url: cenaUrl, video_url: guiaUrl, character_orientation: 'video', keep_original_sound: false, prompt: movimentoTextoDoVideo(f), enable_safety_checker: true }
 }
 
+// KINEO-MOVIMENTO-CORPO-INTEIRO-1411 [CEO 14/11: "o demo do cartão separado do guia"] — o cartão mostra `preview`; o motor anima pelo `guia`. O demo pode ser um asset nosso
+// (/api/recreate/assets/<chave em RECREATE_ASSETS>) ou um MP4 do NOSSO bucket público renders (o resultado do próprio produto, gerado pela conta da casa:
+// o cartão passa a mostrar exatamente o que o cliente recebe). Nada de URL de terceiros.
+export const MOVIMENTO_DEMO_DO_BUCKET = /^https:\/\/[a-z0-9]{20}\.supabase\.co\/storage\/v1\/object\/public\/renders\/[A-Za-z0-9_\-/]+\.mp4$/
+export function movimentoDemoValido(preview: string): boolean {
+  const local = /^\/api\/recreate\/assets\/([A-Za-z0-9_.-]+\.mp4)$/.exec(preview)
+  if (local) return Object.hasOwn(RECREATE_ASSETS, local[1]) && (RECREATE_ASSETS as Record<string, { contentType: string }>)[local[1]].contentType === 'video/mp4'
+  return MOVIMENTO_DEMO_DO_BUCKET.test(preview) && !preview.includes('..')
+}
 /** O que um molde de movimento precisa para existir (o guardião roda isto em todo molde do catálogo). Vazio = válido. */
 export function movimentoProblemasDoMolde(f: RecreateFormat): string[] {
   const p: string[] = []
@@ -124,7 +135,8 @@ export function movimentoProblemasDoMolde(f: RecreateFormat): string[] {
   if (f.pessoasNoGuia !== 1) p.push('o guia precisa ter UMA pessoa (pessoasNoGuia: 1)')
   const asset = f.guia ? RECREATE_ASSETS[f.guia] : undefined
   if (!asset || asset.contentType !== 'video/mp4') p.push('o guia precisa ser um MP4 nosso em RECREATE_ASSETS')
-  if (!f.cena || !/\b(knees up|waist up)\b/i.test(f.cena) || !/face clearly visible/i.test(f.cena)) p.push('a cena enquadra joelhos ou cintura para cima, com "face clearly visible"')
+  if (!f.cena || !/\b(knees up|waist up|full body from head to shoes)\b/i.test(f.cena) || !/face clearly visible/i.test(f.cena)) p.push('a cena enquadra joelhos ou cintura para cima ou o corpo inteiro ("full body from head to shoes"), com "face clearly visible"') // KINEO-MOVIMENTO-CORPO-INTEIRO-1411 — + corpo inteiro
+  if (!movimentoDemoValido(f.preview)) p.push('o demo do cartão é um asset nosso (/api/recreate/assets/<chave>) ou um MP4 do nosso bucket renders') // KINEO-MOVIMENTO-CORPO-INTEIRO-1411
   if (!f.acao) p.push('o molde precisa da ação do passo 2')
   for (const [nome, texto] of [['cena', f.cena ?? ''], ['acao', f.acao ?? '']] as const) if (temFraseNegativa(texto)) p.push(`${nome} com frase negativa`)
   return p

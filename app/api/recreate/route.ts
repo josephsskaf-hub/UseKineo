@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
       if (!repeticao && account.balance >= conferido.plan.credits) {
         const lida = await lerDescricaoDaPessoa(conferido.plan.photos[0])
         descricao = lida.ok ? lida.texto : null
-        await writeServerEvent({ name: MOVIMENTO_EVENTOS.descricao, userId: user.id, path: '/api/recreate', metadata: { format: format.id, ok: lida.ok, ...(lida.ok ? { usd: lida.usd } : { why: lida.why }) } }).catch(() => false)
+        await writeServerEvent({ name: MOVIMENTO_EVENTOS.descricao, userId: user.id, path: '/api/recreate', metadata: { format: format.id, ok: lida.ok, ...(lida.ok ? { usd: lida.usd, descricao: lida.texto } : { why: lida.why }) } }) /* KINEO-MOVIMENTO-CORPO-INTEIRO-1411 — + a descrição usada (só palavras do vocabulário fechado), prova do que foi ao passo 1 */.catch(() => false)
       }
       const resolved = planMovimento(raw, ctx, descricao)
       if (!resolved.ok) return json({ error: resolved.error }, resolved.status)
