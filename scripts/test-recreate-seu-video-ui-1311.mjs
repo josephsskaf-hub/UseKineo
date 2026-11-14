@@ -226,7 +226,7 @@ async function mountScenario(override) {
   for (const props of [{ signedIn: false, generationAllowed: false }, { signedIn: true, generationAllowed: true, accountKey: 'house' }, { signedIn: true, generationAllowed: false, accountKey: 'customer' }]) {
     const h = harness({ props }, override)
     const html = renderToStaticMarkup(h.tree)
-    check(html.includes('Recreate with your video') && html.includes('480p') && html.includes('silent'), 'ssr-useful-before-effects')
+    check(html.includes('Recreate with your video') && html.includes('480p') && /silent/i.test(html), 'ssr-useful-before-effects')
     check(!/Seedance|bytedance|Minimax|fal-ai/i.test(html), 'ssr-no-engine-details')
     equal(nodes(h.tree, node => node.type === 'progress').length, 0, 'ssr-no-fake-progress')
     await h.flush()

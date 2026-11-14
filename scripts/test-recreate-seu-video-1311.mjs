@@ -146,13 +146,13 @@ async function provasB(m, mm) {
   const erros = []
   const fp = (url, model = m.SEEDANCE25_MODEL) => JSON.stringify(['pedido', model, m.entradaSeedance25({ prompt: 'p @Video1 @Image1', fotos: ['f'], videoUrl: url, gerados: 8, proporcao: '9:16' })])
   const linha = (over = {}) => ({ model: m.SEEDANCE25_MODEL, fingerprint: fp(ORIGINAL), user_id: U, seconds: 8, ...over })
-  const som = m.somOriginalDaLinha(linha(), SUPA)
+  const som = m.somOriginalDaLinha(linha(), SUPA, true)
   if (!som || som.url !== ORIGINAL || som.seconds !== 8) erros.push('B o som original não foi achado: ' + JSON.stringify(som))
-  if (m.somOriginalDaLinha(linha({ user_id: 'ffffffff-bbbb-4ccc-8ddd-eeeeeeeeeeee' }), SUPA) !== null) erros.push('B pegou o vídeo de outro dono')
-  if (m.somOriginalDaLinha(linha({ fingerprint: fp('https://evil.example/a.mp4') }), SUPA) !== null) erros.push('B pegou URL de fora do bucket')
-  if (m.somOriginalDaLinha(linha({ model: 'minimax/h3-max/recast', fingerprint: fp(ORIGINAL, 'minimax/h3-max/recast') }), SUPA) !== null) erros.push('B mexeu no Recreate de catálogo')
+  if (m.somOriginalDaLinha(linha({ user_id: 'ffffffff-bbbb-4ccc-8ddd-eeeeeeeeeeee' }), SUPA, true) !== null) erros.push('B pegou o vídeo de outro dono')
+  if (m.somOriginalDaLinha(linha({ fingerprint: fp('https://evil.example/a.mp4') }), SUPA, true) !== null) erros.push('B pegou URL de fora do bucket')
+  if (m.somOriginalDaLinha(linha({ model: 'minimax/h3-max/recast', fingerprint: fp(ORIGINAL, 'minimax/h3-max/recast') }), SUPA, true) !== null) erros.push('B mexeu no Recreate de catálogo')
   if (m.somOriginalDaLinha(linha(), SUPA, false) !== null) erros.push('B o interruptor desligado não desliga')
-  if (m.somOriginalDaLinha(linha({ fingerprint: '{quebrado' }), SUPA) !== null) erros.push('B impressão quebrada não deu null')
+  if (m.somOriginalDaLinha(linha({ fingerprint: '{quebrado' }), SUPA, true) !== null) erros.push('B impressão quebrada não deu null')
   // a fonte do Creatomate
   const info = { width: 720, height: 1280, fps: 24, durationSeconds: 8.041 }
   const antes = mm.buildFreeClipWatermarkSource('https://c/clean.mp4', info)
@@ -353,7 +353,7 @@ async function provasU(eu) {
   if (guardada) {
     const row = { ...guardada, user_id: U }
     if (sc.swapRowContext(row)?.formatId !== 'seu-video') erros.push('U a trava não lê mais a linha')
-    if (m.somOriginalDaLinha(row, SUPA)?.url !== ORIGINAL) erros.push('U o som original não lê mais a linha')
+    if (m.somOriginalDaLinha(row, SUPA, true)?.url !== ORIGINAL) erros.push('U o som original não lê mais a linha')
   }
   const outros = []
   await eu.comEndUserDaFal(async (model, inp) => { outros.push(inp); return { ok: true, requestId: 'x' } }, U)('minimax/h3-max/recast', { video_url: 'v' })
@@ -405,7 +405,7 @@ async function provasK(m, sc) {
   if (Buffer.compare(Buffer.from(m.silenciarMp4(new Uint8Array(COMECO))), COMECO) !== 0) erros.push('K mexeu num vídeo sem som')
   // a linha do Kling: o som original e a trava leem o video_url; a trava NÃO avisa redesenho e usa os quadros do cliente
   const linha = { model: m.KLING4_EDIT_MODEL, fingerprint: JSON.stringify(['pedido', m.KLING4_EDIT_MODEL, ent]), user_id: U, seconds: 8 }
-  if (m.somOriginalDaLinha(linha, SUPA)?.url !== ORIGINAL) erros.push('K o som original não lê a linha do Kling')
+  if (m.somOriginalDaLinha(linha, SUPA, true)?.url !== ORIGINAL) erros.push('K o som original não lê a linha do Kling')
   const ctx = sc.swapRowContext(linha)
   if (!sc.usaTravaNaoTrocou(m.KLING4_EDIT_MODEL) || !ctx || ctx.baseVideoUrl !== ORIGINAL || ctx.redrawn !== false || ctx.formatId !== 'seu-video') erros.push('K a trava não lê a linha do Kling: ' + JSON.stringify(ctx))
   const falCalls = [], sistemas = []
