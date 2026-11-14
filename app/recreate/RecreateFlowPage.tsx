@@ -21,11 +21,16 @@ export default async function RecreateFlowPage({ id, searchParams = {}, basePath
 }) {
   const { user } = await recreateSession()
   const draftRef = typeof searchParams.draft === 'string' ? searchParams.draft : undefined
+  // M12 revisão (1): "Use your video" só aparece para quem pode gerar com ele. Ao cliente vai só o booleano, nunca a regra.
+  const ownVideoVisible = user ? releaseVisible(user.email, SEU_VIDEO_RELEASE) : SEU_VIDEO_RELEASE === 'public'
+  // M12 revisão (8): a prévia abre para qualquer um; o Generate de quem está logado nela é só das contas da casa (crédito real).
+  const generationAllowed = basePath === '/recreate' || !user || releaseVisible(user.email, 'internal')
   if (id === 'your-video') {
+    if (basePath === '/recreate' && !ownVideoVisible) notFound()
     return <SeuVideoRecreateClient currentFlow flowBasePath={basePath}
       createTabs={!!user && createShellVisible(user.email)}
       signedIn={!!user} accountKey={user?.id ?? null}
-      generationAllowed={!!user && releaseVisible(user.email, SEU_VIDEO_RELEASE)}
+      generationAllowed={!!user && releaseVisible(user.email, SEU_VIDEO_RELEASE) && generationAllowed}
       presentation={seuVideoPresentation()} draftRef={draftRef}
       initialExample={typeof searchParams.example === 'string' ? searchParams.example : undefined} />
   }
@@ -44,6 +49,7 @@ export default async function RecreateFlowPage({ id, searchParams = {}, basePath
   return <RecreateClient currentFlow flowBasePath={basePath} initialId={id}
     guestQuotes={guestQuotes}
     signedIn={!!user} accountKey={user?.id ?? null} draftRef={draftRef}
+    ownVideoVisible={ownVideoVisible} generationAllowed={generationAllowed}
     internalTools={!!user && releaseVisible(user.email, 'internal')}
     formatIds={formatIds} createTabs={!!user && createShellVisible(user.email)} />
 }

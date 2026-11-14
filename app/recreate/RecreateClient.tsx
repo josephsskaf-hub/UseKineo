@@ -20,6 +20,8 @@ import { downloadHref } from '@/lib/downloadNosso'
 
 // KINEO-RECREATE-TRAVA-1011 — the provider returned the base video without the customer: the server refunded and failed the clip.
 const NOT_SWAPPED_MESSAGE = "We couldn't put you in this video. Nothing was charged. Try a clearer, front-facing photo or another video."
+const UNSAVED_MESSAGE = "This browser couldn't keep your photos while you sign up. Try again, or continue and add your photo after."
+const PREVIEW_LOCKED_MESSAGE = 'Generating in this preview is for approved accounts only. Nothing was charged.'
 type Social = { count: number; liked: boolean }
 export type Quote = { id: string; credits: number | null; available: boolean; shortfall: number }
 type Photo = { file: File; url: string }
@@ -38,18 +40,22 @@ function savedAttempt(value: unknown, account: string, model: string): Attempt |
   if (!Array.isArray(urls) || urls.length !== (format.type === 'swap' ? format.photoSlots : 1) || urls.some(url => typeof url !== 'string' || !ownedClipImageUrl(url, account, process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''))) return null
   return { key: saved.key, model, payload }
 }
-async function flowJson(url: string, init: RequestInit = {}): Promise<{ response: Response; data: Record<string, any> }> {
+// M12 revisão (3): o POST /api/recreate vive até 60 s no servidor (maxDuration); quem espera 30 s declara "incerto" um pedido que ainda corre.
+const FLOW_STEP_MS = 30_000, FLOW_POST_MS = 75_000
+async function flowJson(url: string, init: RequestInit = {}, limit = FLOW_STEP_MS): Promise<{ response: Response; data: Record<string, any> }> {
   const controller = new AbortController()
   let timer: ReturnType<typeof setTimeout> | undefined
   try {
     return await Promise.race([
       (async () => { const response = await fetch(url, { ...init, signal: controller.signal }); const value = await response.json(); return { response, data: value && typeof value === 'object' && !Array.isArray(value) ? value : {} } })(),
-      new Promise<never>((_, reject) => { timer = setTimeout(() => { controller.abort(); reject(new Error('This step timed out.')) }, 30_000) }),
+      new Promise<never>((_, reject) => { timer = setTimeout(() => { controller.abort(); reject(new Error('This step timed out.')) }, limit) }),
     ])
   } finally { if (timer !== undefined) clearTimeout(timer) }
 }
 
-export default function RecreateClient({ initialId, internalTools = false, formatIds, createTabs = false, currentFlow = false, signedIn = true, accountKey = null, draftRef, flowBasePath = '/recreate-flow-preview', guestQuotes = [] }: { initialId?: string; internalTools?: boolean; formatIds?: string[]; createTabs?: boolean; currentFlow?: boolean; signedIn?: boolean; accountKey?: string | null; draftRef?: string; flowBasePath?: FlowBasePath; guestQuotes?: readonly Quote[] }) {
+export default function RecreateClient({ initialId, internalTools = false, formatIds, createTabs = false, currentFlow = false, signedIn = true, accountKey = null, draftRef, flowBasePath = '/recreate-flow-preview', guestQuotes = [], ownVideoVisible = false, generationAllowed = true }: { initialId?: string; internalTools?: boolean; formatIds?: string[]; createTabs?: boolean; currentFlow?: boolean; signedIn?: boolean; accountKey?: string | null; draftRef?: string; flowBasePath?: FlowBasePath; guestQuotes?: readonly Quote[]; ownVideoVisible?: boolean; generationAllowed?: boolean }) {
+  // M12 revisão (8): só a prévia passa generationAllowed=false (conta logada fora da casa). Vale para a conta logada; o visitante vai ao cadastro.
+  const previewLocked = currentFlow && signedIn && !generationAllowed
   // KINEO-RECREATE-TRAVA-1011 — the server pages pass the formats this account may request (unapproved swaps: house only).
   const permitted = formatIds ? RECREATE_FORMATS.filter(f => formatIds.includes(f.id)) : RECREATE_FORMATS
   const catalog = currentFlow && !signedIn ? permitted.filter(f => publicRecreatePath(f.id) !== null) : permitted
@@ -89,6 +95,8 @@ export default function RecreateClient({ initialId, internalTools = false, forma
   const [flowQuoteReady, setFlowQuoteReady] = useState(!currentFlow || !signedIn)
   const [statusPaused, setStatusPaused] = useState(false)
   const [availabilityRetry, setAvailabilityRetry] = useState(false)
+  // M12 revisão (2): modo privado ou cota cheia: o rascunho não grava; a pessoa segue ao cadastro e põe a foto de novo, em vez de ficar presa.
+  const [withoutSave, setWithoutSave] = useState(false)
   const flowBusy = useRef(false)
   const attempt = useRef<Attempt | null>(null)
   const activeDraft = useRef<string | undefined>(draftRef)
@@ -249,7 +257,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
     const cached = uploaded.current.get(file)
     if (cached) return cached
     const form = new FormData(); form.set('file', file); form.set('purpose', 'animate'); form.set('rights', 'true')
-    const result = currentFlow ? await flowJson('/api/avatar/upload', { method: 'POST', body: form }) : null
+    const result = currentFlow ? await flowJson('/api/avatar/upload', { method: 'POST', body: form }, FLOW_POST_MS) : null
     const res = result?.response ?? await fetch('/api/avatar/upload', { method: 'POST', body: form })
     const data = result?.data ?? await res.json()
     if (!res.ok || typeof data.url !== 'string') throw Object.assign(new Error(data.error ?? 'Photo upload failed.'), { status: res.status })
@@ -267,13 +275,21 @@ export default function RecreateClient({ initialId, internalTools = false, forma
     const files = photos.filter((photo): photo is Photo => photo !== null).map(photo => photo.file)
     const ref = await saveRecreateFlowDraft(selected.id, files, prompt, requestKey.current ?? undefined, accountKey)
     if (!flowAlive.current) return
-    if (!ref) throw new Error('Could not save your photos on this device. Keep this page open and try again.')
+    if (!ref) setWithoutSave(true)
+    if (!ref) throw new Error(UNSAVED_MESSAGE)
     activeDraft.current = ref
     handoffApproved.current = true
     window.location.assign(cadastroComVolta(`${flowBasePath}/${selected.id}?${new URLSearchParams({ draft: ref })}`))
   }
+  /** Explicit choice only: the photos stay on this page until the person leaves; nothing is uploaded or generated. */
+  function continueWithoutSaving() {
+    if (!selected || flowBusy.current || busy) return
+    handoffApproved.current = true
+    window.location.assign(cadastroComVolta(`${flowBasePath}/${selected.id}`))
+  }
   async function generateCurrentFlow() {
     if (!selected || flowBusy.current || photoLock.current || restoring || (clip && ['pending', 'processing'].includes(clip.status))) return
+    if (previewLocked) { setMessage(PREVIEW_LOCKED_MESSAGE); return }
     if (signedIn && !accountKey) { setMessage('Could not verify your account. Sign in again before generating.'); setAuthRetry(true); return }
     if (uncertain && !attempt.current) { setMessage('Check My videos for the earlier request before starting another.'); return }
     const currentQuote = quotes.find(q => q.id === selected.id)
@@ -317,7 +333,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
       let response: Response
       let data: Record<string, any>
       try {
-        const result = await flowJson('/api/recreate', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': sent.key }, body: JSON.stringify(sent.payload) })
+        const result = await flowJson('/api/recreate', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Idempotency-Key': sent.key }, body: JSON.stringify(sent.payload) }, FLOW_POST_MS)
         response = result.response; data = result.data
       } catch { throw Object.assign(new Error('Could not confirm whether this request started. Retry the same request or check My videos.'), { uncertain: true }) }
       if (!response.ok) {
@@ -448,7 +464,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
   }
   const formFields = selected ? <>
         <div className="rc-panel-intro"><span className="rc-eyebrow">Recreate</span>{createTabs || currentFlow ? <h1>Your version</h1> : <h1>Your version, step by step.</h1>}</div>
-        {currentFlow && <div className="rc-flow-template"><img src={selectedMedia!.poster} alt="" /><div><strong>{selected.title}</strong><button type="button" onClick={showTemplates} disabled={editingDisabled}>Change video ↗</button></div><Link href={`${flowBasePath}/your-video`} onClick={leaveFlow}>Use your video</Link></div>}
+        {currentFlow && <div className="rc-flow-template"><img src={selectedMedia!.poster} alt="" /><div><strong>{selected.title}</strong><button type="button" onClick={showTemplates} disabled={editingDisabled}>Change video ↗</button></div>{ownVideoVisible && <Link href={`${flowBasePath}/your-video`} onClick={leaveFlow}>Use your video</Link>}</div>}
         {createTabs && <div className="ct-base-choice">
           <img src={selected.poster} alt="" width={44} height={50} />
           <div><small>Base video</small><strong>{selected.title}</strong></div>
@@ -484,7 +500,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
   </> : null
   return <main className={`recreate${currentFlow ? ' rc-current-flow' : ''}`} data-recreate-current-flow={currentFlow ? true : undefined} aria-busy={currentFlow ? busy || restoring : undefined}>
     <header className={createTabs ? 'rc-nav ct-nav' : 'rc-nav'}><Link href="/" className="rc-brand" onClick={currentFlow ? leaveFlow : undefined}><KineoBrandIcon size={28} /><span>Kineo</span></Link>{createTabs ? <CreateTabs active="recreate" {...(currentFlow ? { recreateHref: flowBasePath } : {})} /> : <Link href={currentFlow ? flowBasePath : '/recreate'} onClick={e => { if (editingDisabled) e.preventDefault(); else if (currentFlow) leaveFlow(e) }}>Recreate</Link>}{createTabs ? <CreateNavConta /> : <Link href="/library">My videos ↗</Link>}</header>
-    {message && <div className="rc-notice" role="status">{message} {currentFlow ? <>{uncertain && <Link href="/library">My videos ↗</Link>}{authRetry && <button type="button" disabled={busy} onClick={() => void signInAgain()}>Sign in again</button>}{availabilityRetry && <button type="button" disabled={busy} onClick={() => void loadQuotes()}>Retry availability</button>}</> : <button onClick={() => { void loadQuotes(); void loadSocial() }}>Retry</button>}</div>}
+    {message && <div className="rc-notice" role="status">{message} {currentFlow ? <>{uncertain && <Link href="/library">My videos ↗</Link>}{authRetry && <button type="button" disabled={busy} onClick={() => void signInAgain()}>Sign in again</button>}{availabilityRetry && <button type="button" disabled={busy} onClick={() => void loadQuotes()}>Retry availability</button>}{withoutSave && !uncertain && <button type="button" disabled={busy} onClick={continueWithoutSaving}>Continue without saving photos</button>}</> : <button onClick={() => { void loadQuotes(); void loadSocial() }}>Retry</button>}</div>}
     <div className={`rc-workspace ${selected ? '' : 'rc-library-only'}`}>
       {selected && <aside className="rc-panel" aria-label="Create your version">
         {currentFlow ? <div className="rc-flow-fields">{formFields}</div> : formFields}
@@ -495,8 +511,8 @@ export default function RecreateClient({ initialId, internalTools = false, forma
                 conseguindo também"] — o vídeo ficava pronto no fim do painel, atrás deste botão fixo. Pronto = o botão vira o aviso e leva ao vídeo. */}
             {currentFlow ? <>
               {clip?.status === 'done' && clip.video_url ? <><a className="rc-generate" href={downloadHref(clip.video_url, downloadName, 'recreate')} onClick={onDownload}>Download ↓</a><p className="rc-next-note"><Link href="/library">My videos ↗</Link> · <button type="button" className="rc-outro" onClick={() => { setClip(null); requestKey.current = null }}>Make another</button></p></> : <>
-                <button className="rc-generate" data-recreate-generate aria-describedby="rc-generate-reason" disabled={busy || photoBusy || active || restoring || (uncertain ? !attempt.current : !flowQuoteReady || !quote?.available || quote.credits === null || (signedIn && quote.shortfall > 0) || !photosDone)} onClick={() => void generate(false)}>{restoring ? 'Restoring…' : busy ? uploading ? 'Uploading…' : 'Preparing…' : active ? clip?.needs_status ? 'Checking…' : clip?.queued ? 'In line…' : 'Creating…' : uncertain ? 'Retry same request' : 'Generate'}{quote?.credits != null && <span data-flow-quote={signedIn ? 'confirmed' : 'estimated'}>{signedIn ? '' : 'Estimated '}✦ {quote.credits}</span>}</button>
-                <p className="rc-next-note" id="rc-generate-reason" role="status">{uncertain ? 'Keep this request unchanged, or check My videos.' : restoring ? 'Restoring your saved photos…' : active || busy ? flowState : blocker}{signedIn && !!quote?.shortfall && <> <Link href="/pricing">See plans ↗</Link></>}</p>
+                <button className="rc-generate" data-recreate-generate aria-describedby="rc-generate-reason" disabled={previewLocked || busy || photoBusy || active || restoring || (uncertain ? !attempt.current : !flowQuoteReady || !quote?.available || quote.credits === null || (signedIn && quote.shortfall > 0) || !photosDone)} onClick={() => void generate(false)}>{restoring ? 'Restoring…' : busy ? uploading ? 'Uploading…' : 'Preparing…' : active ? clip?.needs_status ? 'Checking…' : clip?.queued ? 'In line…' : 'Creating…' : uncertain ? 'Retry same request' : 'Generate'}{quote?.credits != null && <span data-flow-quote={signedIn ? 'confirmed' : 'estimated'}>{signedIn ? '' : 'Estimated '}✦ {quote.credits}</span>}</button>
+                <p className="rc-next-note" id="rc-generate-reason" role="status">{previewLocked && !active && !busy ? PREVIEW_LOCKED_MESSAGE : uncertain ? 'Keep this request unchanged, or check My videos.' : restoring ? 'Restoring your saved photos…' : active || busy ? flowState : blocker}{signedIn && !!quote?.shortfall && <> <Link href="/pricing">See plans ↗</Link></>}</p>
               </>}
             </> : clip?.status === 'done' && clip.video_url ? <>
               <button className="rc-generate" data-recreate-ready onClick={() => document.querySelector('.rc-result')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>Your version is ready · Watch ↓</button>
@@ -521,7 +537,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
             action: !createTabs && <button className="rc-change" disabled={editingDisabled} onClick={showTemplates}>Change video ↗</button> }} />}</div>
       </section>}
       <section className="rc-gallery" ref={galleryRef} aria-label="Video templates">
-        <div className="rc-gallery-heading">{selected ? <><h2 tabIndex={-1}>Video templates</h2><p>Choose a different starting point.</p></> : <><span className="rc-eyebrow">RECREATE</span><h1 tabIndex={-1}>Video templates</h1><p>Choose a Kineo format. Make it yours.</p></>}{currentFlow && <Link className="rc-flow-own" href={`${flowBasePath}/your-video`} onClick={leaveFlow}>Use your video ↗</Link>}</div>
+        <div className="rc-gallery-heading">{selected ? <><h2 tabIndex={-1}>Video templates</h2><p>Choose a different starting point.</p></> : <><span className="rc-eyebrow">RECREATE</span><h1 tabIndex={-1}>Video templates</h1><p>Choose a Kineo format. Make it yours.</p></>}{currentFlow && ownVideoVisible && <Link className="rc-flow-own" href={`${flowBasePath}/your-video`} onClick={leaveFlow}>Use your video ↗</Link>}</div>
         <div className="rc-grid">{catalog.map((f, index) => <article key={f.id} className={`rc-card ${index % 4 === 1 ? 'rc-card-short' : ''} ${selected?.id === f.id ? 'rc-card-selected' : ''}`}>
           <ExampleCover src={mediaFor(f).video} poster={mediaFor(f).poster} label={`Choose ${f.title}`} disabled={editingDisabled} onSelect={() => choose(f)} />
           <div className="rc-card-top"><button disabled={currentFlow && !signedIn} onClick={() => { setReport(f); setExpanded(null) }} aria-label={`Report ${f.title}`}>⋯</button><button onClick={() => { setExpanded(f); setReport(null) }} aria-label={`Expand ${f.title}`}>⤢</button></div>

@@ -123,7 +123,9 @@ async function states(source){
 }
 async function parity(source){
  const h=harness({props:{currentFlow:false,signedIn:true}},source);await h.flush();ok(!h.tree.props['data-recreate-current-flow'],'off mode keeps legacy root');ok(text(h.tree).includes('Your version, step by step.'),'off mode keeps legacy heading');ok(!area(h).props.onPaste,'off mode has no new paste flow');ok(!text(h.tree).includes('Use your video'),'off mode has no own-video link');equal(h.calls.length,2,'off mode retains legacy quote and social reads')
- const browse=harness({props:{initialId:undefined}},source);await browse.flush();ok(nodes(browse.tree,n=>n.type==='fixture-cover').every(n=>!n.props.src.startsWith('/api/')),'guest gallery media stays public');const link=by(browse,n=>n.props?.href==='/recreate-flow-preview/your-video');ok(!!link,'gallery exposes own video within current design')
+ // M12 revisão (1): o link só nasce com ownVideoVisible vindo do servidor; sem ele, nenhum "Use your video" (guardião: test-recreate-flow-guardas-1411).
+ const hidden=harness({props:{initialId:undefined}},source);await hidden.flush();ok(!nodes(hidden.tree,n=>typeof n.props?.href==='string'&&n.props.href.endsWith('/your-video')).length,'own video link hidden without server permission')
+ const browse=harness({props:{initialId:undefined,ownVideoVisible:true}},source);await browse.flush();ok(nodes(browse.tree,n=>n.type==='fixture-cover').every(n=>!n.props.src.startsWith('/api/')),'guest gallery media stays public');const link=by(browse,n=>n.props?.href==='/recreate-flow-preview/your-video');ok(!!link,'gallery exposes own video within current design')
 }
 async function timeout(source){
  const h=harness({props:{signedIn:true,accountKey:ACCOUNT},hangPost:true},source);await h.flush();await add(h);await h.click(gen(h));ok(h.timers.size>0,'POST has a timeout');h.timer();await h.flush();ok(text(gen(h)).includes('Retry same request'),'POST timeout is uncertain');ok(area(h).props.disabled,'POST timeout locks inputs');equal(posts(h).length,1,'POST timeout never automatically resends')
@@ -166,7 +168,7 @@ const baseline=checks,replace=(from,to)=>{assert.equal(raw.split(from).length,2,
 const mutants=[
  ['private guest reads','guest','if (currentFlow && !signedIn) { setQuotes([...guestQuotes]); setFlowQuoteReady(true); return }','if (false) { setQuotes([...guestQuotes]); setFlowQuoteReady(true); return }','guest mount sends no private HTTP'],
  ['upload before auth','guest','if (!signedIn) { await goToSignup(); return }','if (false) { await goToSignup(); return }','guest saves only on Generate'],
- ['save failure ignored','guest',"if (!ref) throw new Error('Could not save your photos on this device. Keep this page open and try again.')","if (false) throw new Error('Could not save your photos on this device. Keep this page open and try again.')",'failed draft save never navigates'],
+ ['save failure ignored','guest',"if (!ref) throw new Error(UNSAVED_MESSAGE)","if (false) throw new Error(UNSAVED_MESSAGE)",'failed draft save never navigates'],
  ['new key on retry','retry',"'Idempotency-Key': sent.key","'Idempotency-Key': `new-${crypto.randomUUID()}`",'retry preserves exact key'],
  ['uncertain unlocks editing','retry','if (failure.uncertain) setUncertain(true)','if (failure.uncertain) setUncertain(false)','unknown request locks photo edits'],
  ['future code treated known','retry',"response.status >= 500 && !knownRefusal","response.status >= 500 && !data.code",'future 5xx code remains uncertain'],
