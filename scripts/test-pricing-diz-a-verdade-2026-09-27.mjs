@@ -17,6 +17,7 @@
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import assert from 'node:assert/strict'
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..')
 const rd = (p) => readFileSync(join(RAIZ, p), 'utf8').replace(/\r\n/g, '\n')
@@ -116,9 +117,29 @@ ok(/a: `\$\{RENDER_TIME_COPY\}\. We use AI to write, voice, and edit everything 
 // reancorado KINEO-PRECOS-LIMPEZA-1510 — as linhas "Render time" e "Support" eram da tabela, que saiu; o "Priority" segue travado em 0 acima.
 ok(conta(client, "label: 'Render time',") === 0 && conta(client, "label: 'Support',") === 0, 'reancorado KINEO-PRECOS-LIMPEZA-1510: linhas Render time e Support saíram com a tabela')
 
-// Prova social com o placar de 27/09 e o comentário de origem.
-ok(conta(client, '2,100+ creators · 1,500+ films · featured on There&apos;s An AI For That') === 1, "prova social = '2,100+ creators · 1,500+ films'")
+// The approved WATCH preview relocates the existing proof. Its two source
+// branches are mutually exclusive: one painter in legacy, one in preview.
+// Keep the exact sourced claim and reject unguarded duplication in either mode.
+const socialClaim = '2,100+ creators · 1,500+ films · featured on There&apos;s An AI For That'
+function socialContract(source) {
+  if (!/const watchPricing\s*=/.test(source)) return conta(source, socialClaim) === 1
+  const legacy = [...source.matchAll(/\{!watchPricing && <p\b[^>]*>([^<]*?)<\/p>\}/g)].filter(match => match[1].trim() === socialClaim)
+  const preview = source.match(/\{watchPricing && <div className="pricing-watch-proof">([\s\S]*?)<\/div>\}/)?.[1] ?? ''
+  return conta(source, socialClaim) === 2 && legacy.length === 1 && conta(preview, socialClaim) === 1
+}
+ok(socialContract(client), "prova social = placar de27/09, uma pintura por modo público/prévia")
 ok(conta(client, 'banco 2026-09-27: 2.156 perfis externos, 1.563 vídeos completed externos') === 1, 'comentário com a origem do placar (banco 2026-09-27)')
+for (const [name, from, to] of [
+  ['placar alterado', socialClaim, '900+ creators · 450+ Shorts rendered'],
+  ['pintura pública sem condição', '{!watchPricing && <p className="mt-3 text-center', '{true && <p className="mt-3 text-center'],
+  ['pintura da prévia sem condição', '{watchPricing && <div className="pricing-watch-proof">', '{true && <div className="pricing-watch-proof">'],
+  ['placar ausente na prévia', '<p className="text-center text-[12px] text-[var(--muted)]">' + socialClaim, '<p className="text-center text-[12px] text-[var(--muted)]">'],
+]) {
+  const changed = client.replace(from, to)
+  assert.notEqual(changed, client, 'mutante precisa aplicar: ' + name)
+  assert.throws(() => assert(socialContract(changed), '[social]'), error => error instanceof assert.AssertionError && error.message.startsWith('[social]'), 'mutante deve falhar na prova social: ' + name)
+  ok(true, 'mutante rejeitado: ' + name)
+}
 
 // /terms §4.
 ok(/<Section title="4\. Payments and refunds">/.test(terms), '/terms §4 = "Payments and refunds"')
