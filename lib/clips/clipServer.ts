@@ -994,13 +994,9 @@ export async function sweepClipJobs(): Promise<{ scanned: number; delivered: num
     console.error('[clips/sweep] recreate audit cleanup error:', e instanceof Error ? e.message : String(e))
   }
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-  const orphans = await admin.from(CLIPS_TABLE).select(COLUMNS).eq('status', 'failed').eq('credits_refunded', 0).in('failure_reason', [...SWAP_REFUND_SWEEP_REASONS, ...FILA_MOTIVOS_DE_ESTORNO]).gte('created_at', since).order('created_at', { ascending: true }).limit(50)
-  if (orphans.error) console.error('[clips/sweep] recreate refund lookup failed:', orphans.error.message)
-  else {
-    const swept = await sweepSwapRefunds((orphans.data ?? []).map((raw) => toRow(raw as Record<string, unknown>)), { refund: (ref) => refundRenderCredits(ref), setRefunded: (id, refunded) => recreateSwapDepsFor(admin, '').setRefunded(id, refunded) }, (motivo) => isRecreateNotSwappedReason(motivo) || (typeof motivo === 'string' && FILA_MOTIVOS_DE_ESTORNO.includes(motivo)) /* KINEO-RECREATE-FILA-REVISAO-1411 (item 1) — queue_stuck, queue_timeout e queue_full também fecham failed antes do estorno */)
-    result.refunded += swept.refunded
-    result.creditsReturned += swept.creditsReturned
-  }
+  const orfas = await estornarOrfaosDaTrocaEDaFila(admin, since) // KINEO-VARREDURAS-ESTORNO-1411 — era: as 50 mais antigas, uma leitura (a mesma armadilha do movimento)
+  result.refunded += orfas.refunded
+  result.creditsReturned += orfas.creditsReturned
   const mov = await estornarMovimentosOrfaos(admin, since) // KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 [CEO 14/11 10:55, item 1]
   result.refunded += mov.refunded
   result.creditsReturned += mov.creditsReturned
@@ -1023,6 +1019,37 @@ export const MOVIMENTO_ESTORNO_PAGINAS = 4
 // para a próxima hora (erro de verdade). A linha que nunca foi cobrada (debit_failed: o débito falhou antes) não entra na busca.
 // (b) empate de created_at na borda da página pulava a linha: a página seguinte vem pela ÚLTIMA CHAVE LIDA (created_at e id), como a auditoria das reservas.
 export const MOVIMENTO_ESTORNO_NUNCA_COBRADO = ['debit_failed'] as const
+// KINEO-VARREDURAS-ESTORNO-1411 [CEO 14/11 12:30, item 3] — os órfãos da TROCA ("não trocou": unchanged, partial, uncertain) e da FILA do Kling edit (queue_stuck, queue_timeout,
+// queue_full): o mesmo desenho do movimento. Antes: as 50 MAIS ANTIGAS em 7 dias, uma leitura; a linha morta na frente escondia a órfã nova. Agora: das
+// mais novas para as mais antigas, páginas de 50 pela última chave (created_at e id), até 4 por hora; RPC devolveu 0 = o livro-razão decide (estorno já
+// registrado grava o valor REAL e a linha sai da busca; débito não devolvido volta na hora seguinte). A decisão de QUEM é órfão é a mesma de antes.
+export const TROCA_FILA_ESTORNO_PAGINA = 50
+export const TROCA_FILA_ESTORNO_PAGINAS = 4
+const cobreTrocaOuFila = (motivo: string | null) => isRecreateNotSwappedReason(motivo) || (typeof motivo === 'string' && FILA_MOTIVOS_DE_ESTORNO.includes(motivo)) // KINEO-RECREATE-FILA-REVISAO-1411 (item 1) — queue_stuck, queue_timeout e queue_full também fecham failed antes do estorno
+export async function estornarOrfaosDaTrocaEDaFila(admin: SupabaseClient, since: string, refund: (billingReference: string) => Promise<number> = (ref) => refundRenderCredits(ref), livro: MovimentoLivroRazao = livroRazaoDoClipe(admin)): Promise<{ scanned: number; refunded: number; creditsReturned: number; jaDevolvidos: number }> {
+  const total = { scanned: 0, refunded: 0, creditsReturned: 0, jaDevolvidos: 0 }
+  const setRefunded = (id: string, refunded: number) => recreateSwapDepsFor(admin, '').setRefunded(id, refunded)
+  let cursor: { createdAt: string; id: string } | null = null
+  for (let p = 0; p < TROCA_FILA_ESTORNO_PAGINAS; p++) {
+    let q = admin.from(CLIPS_TABLE).select(COLUMNS).eq('status', 'failed').eq('credits_refunded', 0).in('failure_reason', [...SWAP_REFUND_SWEEP_REASONS, ...FILA_MOTIVOS_DE_ESTORNO]).gte('created_at', since)
+    if (cursor) q = q.or(`created_at.lt."${cursor.createdAt}",and(created_at.eq."${cursor.createdAt}",id.lt."${cursor.id}")`)
+    const { data, error } = await q.order('created_at', { ascending: false }).order('id', { ascending: false }).limit(TROCA_FILA_ESTORNO_PAGINA)
+    if (error) { console.error('[clips/sweep] recreate refund lookup failed:', error.message); break }
+    const pagina = (data ?? []).map((raw) => toRow(raw as Record<string, unknown>))
+    for (const row of pagina.filter((r) => r.status === 'failed' && r.credits_refunded === 0 && cobreTrocaOuFila(r.failure_reason))) {
+      total.scanned += 1
+      const amount = await refund(row.billing_reference)
+      if (amount > 0) { await setRefunded(row.id, amount); total.refunded += 1; total.creditsReturned += amount; continue }
+      const debito = await livro(row.billing_reference).catch(() => null)
+      if (debito?.refunded && debito.amount > 0) { await setRefunded(row.id, debito.amount); total.jaDevolvidos += 1 }
+    }
+    if (pagina.length < TROCA_FILA_ESTORNO_PAGINA) break
+    const ultima = pagina[pagina.length - 1]
+    if (!MOVIMENTO_ESTORNO_CHAVE.test(ultima.created_at) || !MOVIMENTO_ESTORNO_CHAVE.test(ultima.id)) { console.error('[clips/sweep] recreate refund cursor unreadable'); break }
+    cursor = { createdAt: ultima.created_at, id: ultima.id }
+  }
+  return total
+}
 const MOVIMENTO_ESTORNO_CHAVE = /^[0-9A-Za-z:.+\- ]{1,64}$/
 export type MovimentoLivroRazao = (billingReference: string) => Promise<{ amount: number; refunded: boolean } | null>
 export function livroRazaoDoClipe(admin: SupabaseClient): MovimentoLivroRazao {

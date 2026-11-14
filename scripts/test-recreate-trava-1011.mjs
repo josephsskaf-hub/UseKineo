@@ -441,7 +441,10 @@ function fakeFetch({ fal = 'ok', vision = null, message = null, hang = false } =
   const sweep = src.slice(src.indexOf('export async function sweepClipJobs'), src.indexOf('export async function advanceActiveClipJobs'))
   // reancorado KINEO-RECREATE-TRAVA-1011-REANCORA-1411: a consulta soma os motivos da fila (KINEO-RECREATE-FILA-REVISAO-1411, item 1) e o predicado passado à varredura segue
   // cobrindo os da trava (isRecreateNotSwappedReason) — nada afrouxado: os motivos da trava continuam na consulta e no predicado.
-  ok(sweep.includes(".eq('status', 'failed').eq('credits_refunded', 0).in('failure_reason', [...SWAP_REFUND_SWEEP_REASONS, ...FILA_MOTIVOS_DE_ESTORNO])") && sweep.includes('sweepSwapRefunds(') && sweep.includes('(motivo) => isRecreateNotSwappedReason(motivo) ||'), 'sweepClipJobs (cron refund-sweep) procura essas linhas e chama a varredura')
+  // reancorado KINEO-VARREDURAS-ESTORNO-1411: a busca e o predicado foram para estornarOrfaosDaTrocaEDaFila (das mais novas, pela chave, com o livro-razão),
+  // chamada por sweepClipJobs; os motivos da trava continuam na consulta e no predicado (cobreTrocaOuFila).
+  const orfas = src.slice(src.indexOf('export async function estornarOrfaosDaTrocaEDaFila'), src.indexOf('\n}\n', src.indexOf('export async function estornarOrfaosDaTrocaEDaFila')))
+  ok(sweep.includes('const orfas = await estornarOrfaosDaTrocaEDaFila(admin, since)') && orfas.includes(".eq('status', 'failed').eq('credits_refunded', 0).in('failure_reason', [...SWAP_REFUND_SWEEP_REASONS, ...FILA_MOTIVOS_DE_ESTORNO])") && orfas.includes('cobreTrocaOuFila(r.failure_reason)') && src.includes('const cobreTrocaOuFila = (motivo: string | null) => isRecreateNotSwappedReason(motivo) ||'), 'sweepClipJobs (cron refund-sweep) procura essas linhas e chama a varredura')
   ok(read('app/api/cron/refund-sweep/route.ts').includes('await sweepClipJobs()'), 'o cron de estornos roda sweepClipJobs')
 }
 
