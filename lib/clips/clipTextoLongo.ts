@@ -3,24 +3,78 @@
 // na tela do Clipe. A tela não avisava que aquilo vira UM clipe curto, e o "animado" do pedido não chegava ao prompt.
 // Lib pura: o aviso de roteiro longo (com a porta para o Filme narrado, texto preenchido) e o estilo pedido no texto.
 
-/** Acima disto o texto é história, não um clipe de 5–12 s. */
+/** Referência antiga (até 14/11 o texto com mais de 60 palavras já era filme). Desde a v2 de
+ *  KINEO-CLIPE-ROTEIRO-QUALQUER-LINGUA-1411 o tamanho SOZINHO não decide nada: precisa de um sinal de filme. */
 export const CLIP_ROTEIRO_PALAVRAS = 60
 
-/** O texto tem cara de roteiro de filme (longo ou com marcas de roteiro)? */
+/** A maior duração que um clipe sai hoje: max(offeredSecondsFor(motor)) de lib/clips/clipCatalog.ts (alvos 5/7/10/15 s).
+ *  Fica copiado aqui para a lib seguir sem import (os guardiões a carregam sozinha); o guardião
+ *  scripts/test-clipe-roteiro-qualquer-lingua-1411.mjs lê o catálogo REAL e fica vermelho se os dois se separarem. */
+export const CLIP_MAX_SEGUNDOS = 15
+
+/** O texto tem cara de roteiro de filme? (KINEO-CLIPE-ROTEIRO-QUALQUER-LINGUA-1411 v2: sinal de filme decide; sem sinal de
+ *  filme, um sinal de clipe — plano descrito com câmera, foto como quadro inicial, blocos de tempo dentro do clipe — tira o
+ *  peso do número de frases; sobra o conto de 5+ frases.) */
 export function pareceRoteiroDeFilme(texto: string): boolean {
   const t = String(texto ?? '').trim()
   if (!t) return false
-  if (t.split(/\s+/).filter(Boolean).length > CLIP_ROTEIRO_PALAVRAS) return true
-  if (PEDE_FALA_RE.test(t) || PEDE_DURACAO_LONGA_RE.test(t) || FALA_DE_PERSONAGEM_RE.test(t)) return true // KINEO-REVISOR-RESTO-3010
-  if (frasesDoTexto(t) >= CLIP_CONTO_FRASES) return true // KINEO-CLIPE-CONTO-3010
-  if (pareceRoteiroEmQualquerLingua(t)) return true // KINEO-CLIPE-ROTEIRO-QUALQUER-LINGUA-1411
-  return /\b(?:HOOK|MICRO REWARD|ESCALATION|PAYOFF|CENA \d|SCENE \d|Cena \d|Scene \d)\b|\[Pexels:/.test(t)
+  if (temSinalDeFilme(t)) return true
+  if (temSinalDeClipe(t)) return false
+  return frasesDoTexto(t) >= CLIP_CONTO_FRASES // KINEO-CLIPE-CONTO-3010
+}
+
+// ═══ KINEO-CLIPE-ROTEIRO-QUALQUER-LINGUA-1411 v2 [ensaio no corpus real, 49 pedidos de 30 dias] ═══
+// Dos 17 pedidos que a regra antiga chamava de filme, 9 eram UMA cena longa de clipe (urso, coelho em 10 s, homem no palco,
+// navio na tempestade, vila de pescadores, 3 Pompeias com "use the uploaded image as the exact starting frame" e blocos
+// 0–3 s / 3–6 s / 6–10 s) — e foram os 3 únicos downloads. Só passavam de 60 palavras. Agora o tamanho não decide sozinho.
+/** Sinais de filme: qualquer um basta. */
+export function temSinalDeFilme(t: string): boolean {
+  if (PEDE_FALA_RE.test(t) || FALA_DE_PERSONAGEM_RE.test(t)) return true // KINEO-REVISOR-RESTO-3010
+  if (duracaoPedida(t) > CLIP_MAX_SEGUNDOS) return true
+  if (falasEntreAspas(t) >= CLIP_FALAS_ENTRE_ASPAS) return true
+  if (PEDE_NARRACAO_RE.test(t)) return true
+  if (MARCA_DE_ROTEIRO_RE.test(t)) return true
+  if (cenasNumeradasDeFilme(t)) return true
+  return PASSA_O_TEMPO_RE.test(t)
+}
+/** Sinais de clipe: a foto enviada como quadro inicial, blocos de tempo que cabem no clipe, ou o plano descrito com 2+ termos
+ *  de câmera/luz/lente. Só pesam quando não há sinal de filme. */
+export function temSinalDeClipe(t: string): boolean {
+  if (FOTO_COMO_QUADRO_RE.test(t)) return true
+  const blocos = fimDosBlocosDeTempo(t)
+  if (blocos.length > 0 && Math.max(...blocos) <= CLIP_MAX_SEGUNDOS) return true
+  return termosDeCamera(t) >= CLIP_TERMOS_DE_CAMERA
 }
 
 // KINEO-REVISOR-RESTO-3010 — revisões de 30/10: 6 de 19 filmes eram clipe MUDO para quem pediu fala (urdu, espanhol, PT),
 // e um anúncio de 30 s virou clipe de 10 s. Texto curto também é roteiro quando pede voz, fala ou mais tempo do que o clipe tem.
+// (A duração passou para duracaoPedida, em qualquer língua e com o teto lido do catálogo — era 13 s fixo.)
 const PEDE_FALA_RE = /\b(?:narrat(?:or|ion|ed)|voice[\s-]?over|voiceover|dialogues?|speaking|talking to (?:the )?camera|says to the camera|narrador|narra[çc][aã]o|narrado|locu[çc][aã]o|locutor|di[aá]logos?|falando|fala para a c[aâ]mera|hablando|voz en off|narraci[oó]n)\b/i
-const PEDE_DURACAO_LONGA_RE = /\b(?:1[3-9]|[2-9]\d|1\d\d)\s*(?:s|sec|secs|seconds?|segundos?)\b|\b(?:1|2|3)\s*(?:min|mins|minutes?|minutos?)\b/i
+const MARCA_DE_ROTEIRO_RE = /\b(?:HOOK|MICRO REWARD|ESCALATION|PAYOFF)\b|\[Pexels:/
+
+// Cenas numeradas ("Scene 1", "Cena 2", "Shot 3"): 3 ou mais, e o tempo que elas pedem passa do clipe (ou não dizem tempo).
+// Uma ou duas marcas sozinhas não bastam (até 14/11, "Scene 1" sozinho já era filme).
+const CENA_NUMERADA_RE = /(?<![\p{L}])(?:scene|cena|escena|szene|scène|shot|plano|tomada)\s*#?\s*(\d{1,2})(?!\d)/giu
+export const CLIP_CENAS_DE_FILME = 3
+function cenasNumeradasDeFilme(t: string): boolean {
+  const cenas = new Set(Array.from(t.matchAll(CENA_NUMERADA_RE), (m) => m[1]))
+  if (cenas.size < CLIP_CENAS_DE_FILME) return false
+  const blocos = fimDosBlocosDeTempo(t)
+  const total = blocos.length > 0 ? Math.max(...blocos) : temposPedidos(t).reduce((s, n) => s + n, 0)
+  return total === 0 || total > CLIP_MAX_SEGUNDOS
+}
+
+// Passagem de tempo dentro da história (um plano de clipe não atravessa o dia): 5 línguas do site.
+const PASSA_O_TEMPO_RE = /(?<![\p{L}])(?:(?:no|ao) fim do dia|no dia seguinte|na manh[aã] seguinte|(?:dias|semanas|meses|anos) depois|at the end of the day|the next (?:day|morning)|(?:days|weeks|months|years) later|later that (?:day|night)|al final del d[ií]a|al d[ií]a siguiente|(?:d[ií]as|semanas|meses|a[ñn]os) despu[ée]s|am (?:n[äa]chsten|folgenden) (?:tag|morgen)|(?:tage|wochen|monate|jahre) sp[äa]ter|am ende des tages|le lendemain|(?:quelques )?(?:jours|semaines|mois|ann[ée]es) plus tard|[àa] la fin de la journ[ée]e)(?![\p{L}])/iu
+
+// Sinais de clipe.
+const FOTO_COMO_QUADRO_RE = /(?<![\p{L}])(?:(?:starting|start|first|opening|initial) frame|uploaded (?:image|photo|picture)|frame inicial|quadro inicial|primeiro quadro|imagem enviada|foto enviada|primer (?:fotograma|cuadro)|imagen (?:subida|cargada)|image de d[ée]part|premi[èe]re image|startbild)(?![\p{L}])/iu
+const TERMO_DE_CAMERA_RE = /(?<![\p{L}])(?:camera|c[âa]mera|c[áa]mara|kamera|cam[ée]ra|close[\s-]?up|primeiro plano|primer plano|gros plan|nahaufnahme|wide shot|plano (?:geral|aberto|general)|plan large|slow[\s-]?motion|c[âa]mera lenta|c[áa]mara lenta|ralenti|zeitlupe|dolly|tracking shot|travelling|pan(?:s|ning)?|zoom(?:s|ing)?|tilt|orbit(?:s|ing)?|drone|aerial|a[ée]re[ao]|lighting|ilumina[çc][ãa]o|iluminaci[óo]n|[ée]clairage|beleuchtung|golden hour|hora dourada|backlight|backlit|contraluz|volumetric|cinematic|cinematogr[áa]fic[oa]|cin[ée]matographique|filmisch|4k|8k|depth of field|profundidade de campo|bokeh|lens|lente|objectif|objektiv|\d{2,3}\s?mm|photorealistic|fotorrealista|hyper[\s-]?realistic|ultra[\s-]?realistic|realistic|realista|r[ée]aliste|realistisch)(?![\p{L}])/giu
+export const CLIP_TERMOS_DE_CAMERA = 2
+/** Quantos termos DIFERENTES de câmera/luz/lente o texto usa (plano descrito, não história contada). */
+export function termosDeCamera(texto: string): number {
+  return new Set(Array.from(String(texto ?? '').matchAll(TERMO_DE_CAMERA_RE), (m) => m[0].toLowerCase().replace(/\s+/g, ' '))).size
+}
 // KINEO-CLIPE-CONTO-3010 — revisão de 30/10 (15:45): o conto das 3:33 (~12 frases, BR) e 7 contos de espelho/porta do mesmo
 // cliente (ES) viraram clipe que acaba no susto, 0 downloads — prosa curta sem as palavras de fala passava sem aviso.
 /** Com tantas frases, o texto é um conto (começo, meio e fim), não um plano de 5–12 s. */
@@ -41,7 +95,8 @@ const FIM_DE_FRASE_RE = /[.!?…؟।]+(?=\s|$)|[。！？]+/g
 //   · duração maior que a do clipe, em qualquer algarismo (٠-٩ ۰-۹ ०-९ ０-９) e com a palavra de segundo/minuto de 15 línguas;
 //   · duas ou mais FALAS entre aspas de qualquer tipo (« » “ ” „ “ " " 「 」 『 』), com 3+ palavras (ou 5+ ideogramas) cada;
 //   · pedido de narração/locução nas línguas que dá para cobrir sem falso positivo;
-//   · texto longo em escrita sem espaço (mais de 120 ideogramas/letras tailandesas).
+//   · (v1 tinha "texto longo em escrita sem espaço"; saiu na v2: tamanho sozinho não decide — o conto em japonês ou chinês
+//     é pego pelas frases, que agora contam 。！？).
 // "16:9", "9:16" e "1080x1920" não são duração: o número precisa da palavra de tempo logo depois.
 /** Algarismos de outras escritas viram 0-9 (só para medir duração). */
 function algarismosLatinos(t: string): string {
@@ -51,21 +106,35 @@ function algarismosLatinos(t: string): string {
     return c
   })
 }
-// Segundos (13 a 199) e minutos (1 a 30): o clipe faz até 12 s. Unidades com fronteira à direita (palavra inteira; turco aceita
-// sufixo: "30 saniyelik") e unidades de escritas sem espaço (CJK, coreano, tailandês), sem fronteira.
+// Número + palavra de segundo/minuto. Unidades com fronteira à direita (palavra inteira; turco aceita sufixo: "30 saniyelik")
+// e unidades de escritas sem espaço (CJK, coreano, tailandês), sem fronteira.
 const UNIDADE_SEGUNDO = '(?:s|secs?|seconds?|secondes?|secondi|segundos?|sekunden?|sek|секунд[аы]?|сек|ثاني[ةه]|ثانیه|ثوان[يى]?|saniye\\p{L}*|detik|giây|सेकंड|सेकेंड|सेकण्ड)'
 const UNIDADE_MINUTO = '(?:min(?:s|utes?|utos?|uten|uti)?|минут[аы]?|мин|دقيق[ةه]|دقائق|dakika\\p{L}*|menit|phút|मिनट)'
 const UNIDADE_SEM_ESPACO_SEG = '(?:秒|초|วินาที)'
 const UNIDADE_SEM_ESPACO_MIN = '(?:分钟|分間|分(?!の)|분|นาที)'
 const ANTES_DO_NUMERO = '(?<![\\d:.,x×/])'
-const SEGUNDOS = '(?:1[3-9]|[2-9]\\d|1\\d\\d)(?!\\d)'
-const MINUTOS = '(?:[1-9]|[12]\\d|30)(?!\\d)'
-const DURACAO_QUALQUER_LINGUA_RE = new RegExp(
-  `${ANTES_DO_NUMERO}(?:${SEGUNDOS}[\\s-]*(?:${UNIDADE_SEGUNDO}[\\p{M}]*(?![\\p{L}\\p{M}])|${UNIDADE_SEM_ESPACO_SEG})` +
-  `|${MINUTOS}[\\s-]*(?:${UNIDADE_MINUTO}[\\p{M}]*(?![\\p{L}\\p{M}])|${UNIDADE_SEM_ESPACO_MIN}))`, 'iu')
+const FIM_DA_UNIDADE = '[\\p{M}]*(?![\\p{L}\\p{M}])'
+const TEMPO_RE = new RegExp(
+  `${ANTES_DO_NUMERO}(\\d{1,3})(?!\\d)[\\s-]*(?:(${UNIDADE_SEGUNDO})${FIM_DA_UNIDADE}|(${UNIDADE_SEM_ESPACO_SEG})|(${UNIDADE_MINUTO})${FIM_DA_UNIDADE}|(${UNIDADE_SEM_ESPACO_MIN}))`, 'giu')
+/** Cada tempo escrito no texto, em segundos ("30 ثانية" → 30, "2 minutes" → 120, "٣٠ ثانية" → 30). */
+export function temposPedidos(texto: string): number[] {
+  return Array.from(algarismosLatinos(String(texto ?? '')).matchAll(TEMPO_RE), (m) => Number(m[1]) * (m[4] || m[5] ? 60 : 1))
+}
+/** A duração que o texto pede: o MAIOR tempo escrito (blocos 0–3 s / 3–6 s / 6–10 s pedem 10 s, não a soma). */
+export function duracaoPedida(texto: string): number {
+  return Math.max(0, ...temposPedidos(texto))
+}
 /** Pede mais tempo do que o clipe tem, em qualquer língua e algarismo. */
 export function pedeDuracaoDeFilme(texto: string): boolean {
-  return DURACAO_QUALQUER_LINGUA_RE.test(algarismosLatinos(String(texto ?? '')))
+  return duracaoPedida(texto) > CLIP_MAX_SEGUNDOS
+}
+// Blocos de tempo de UM plano: "0–3 s", "3-6 sec", "(6–10 seconds)", "first 2 seconds", "últimos 3 segundos".
+const BLOCO_DE_TEMPO_RE = new RegExp(
+  `${ANTES_DO_NUMERO}\\d{1,3}\\s*(?:${UNIDADE_SEGUNDO})?\\s*[–—-]\\s*(\\d{1,3})\\s*(?:${UNIDADE_SEGUNDO}${FIM_DA_UNIDADE}|${UNIDADE_SEM_ESPACO_SEG})` +
+  `|(?<![\\p{L}])(?:first|last|final|primeiros|[úu]ltimos|primeros|ersten|letzten|premi[èe]res|derni[èe]res)\\s+(\\d{1,3})\\s*(?:${UNIDADE_SEGUNDO})${FIM_DA_UNIDADE}`, 'giu')
+/** O fim de cada bloco de tempo (segundos). Vazio = o texto não divide o plano em blocos. */
+export function fimDosBlocosDeTempo(texto: string): number[] {
+  return Array.from(algarismosLatinos(String(texto ?? '')).matchAll(BLOCO_DE_TEMPO_RE), (m) => Number(m[1] ?? m[2]))
 }
 
 // Falas entre aspas: cada par de abre/fecha; o miolo precisa ter cara de fala (3+ palavras ou 5+ ideogramas) — o letreiro
@@ -86,17 +155,6 @@ export const CLIP_FALAS_ENTRE_ASPAS = 2
 // Narração/locução fora das 5 línguas (as 5 já estão em PEDE_FALA_RE). Só palavras que não aparecem num pedido de imagem.
 const PEDE_NARRACAO_RE = /(?:تعليق[\s\p{M}]*صوت|التعليق الصوتي|الراوي|راوٍ|سرد صوتي|озвучк|закадров|рассказчик|диктор|ナレーション|語り手|旁白|画外音|配音|解说|解說|내레이션|나레이션|seslendirme|anlatıcı|dış ses|वॉइसओवर|वॉयसओवर|वॉयस ओवर|कथावाचक|नैरेशन|सूत्रधार|sulih suara|narasi|lồng tiếng|thuyết minh|người dẫn chuyện|การบรรยาย|ผู้บรรยาย|erzähler|erzählstimme|narratore|voce fuori campo|narrateur|voix off)/iu
 
-/** Texto longo em escrita sem espaço (a contagem de palavras por espaço não mede japonês, chinês nem tailandês). */
-export const CLIP_ROTEIRO_IDEOGRAMAS = 120
-
-/** Sinais de roteiro de filme que não dependem da língua (KINEO-CLIPE-ROTEIRO-QUALQUER-LINGUA-1411). */
-export function pareceRoteiroEmQualquerLingua(texto: string): boolean {
-  const t = String(texto ?? '')
-  if (pedeDuracaoDeFilme(t)) return true
-  if (falasEntreAspas(t) >= CLIP_FALAS_ENTRE_ASPAS) return true
-  if (PEDE_NARRACAO_RE.test(t)) return true
-  return (t.match(IDEOGRAMA_RE) ?? []).length > CLIP_ROTEIRO_IDEOGRAMAS
-}
 /** Fala de personagem no formato de roteiro: `Nome: "…"` numa linha. */
 const FALA_DE_PERSONAGEM_RE = /(?:^|\n)\s*\p{Lu}[\p{L}'’ -]{0,30}:\s*["“«]/u
 
