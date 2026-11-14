@@ -62,6 +62,23 @@ function banco(rows) {
   return { t, admin: { from, storage: { from: (b) => ({ upload: async () => ({ error: null }), getPublicUrl: (p) => ({ data: { publicUrl: `${SUPA}/storage/v1/object/public/${b}/${p}` } }) }) } } }
 }
 
+// KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 — banco de mentira com a leitura da varredura (select + eq + like + gte + order + limit) e o update condicional.
+function bancoSel(rows) {
+  const t = new Map(rows.map((r) => [r.id, { ...r }]))
+  const from = () => {
+    const f = []; let valores = null, lim = Infinity
+    const api = {
+      select() { return api }, update(v) { valores = v; return api }, order() { return api }, limit(n) { lim = n; return api },
+      eq(c, v) { f.push((r) => r[c] === v); return api },
+      gte(c, v) { f.push((r) => r[c] >= v); return api },
+      like(c, p) { const partes = p.split('%'); f.push((r) => { const s = String(r[c] ?? ''); if (!s.startsWith(partes[0]) || !s.endsWith(partes[partes.length - 1])) return false; let k = partes[0].length; for (const x of partes.slice(1, -1)) { const j = s.indexOf(x, k); if (j < 0) return false; k = j + x.length } return k <= s.length - partes[partes.length - 1].length }); return api },
+      then(ok, ko) { const hit = [...t.values()].filter((r) => f.every((x) => x(r))).slice(0, lim); if (valores) for (const r of hit) Object.assign(r, valores); return Promise.resolve({ data: hit.map((r) => ({ ...r })), error: null }).then(ok, ko) },
+    }
+    return api
+  }
+  return { t, admin: { from } }
+}
+
 async function bateria(over = {}) {
   const p = []
   const check = async (n, fn) => { try { await fn() } catch (e) { p.push(n + ': ' + e.message) } }
@@ -154,6 +171,10 @@ async function bateria(over = {}) {
     }
     if (!/Every value must be copied EXACTLY from its list/.test(desc.DESCRICAO_INSTRUCAO)) throw new Error('a instrução não fecha o vocabulário')
   })
+  await check('4 no máximo DOIS estilos de cabelo na frase (revisor 14/11: o limite sobrevivia ao mutante)', async () => {
+    const t = desc.descricaoEmTexto({ person_visible: true, hair_color: 'black', hair_length: 'short', hair_style: ['slicked back', 'slightly messy', 'swept up and back off the forehead'] })
+    if (!t || !t.includes('slicked back') || !t.includes('slightly messy') || t.includes('swept up')) throw new Error(String(t))
+  })
   await check('4 o leitor executado com a rede de mentira: lê, e falha sem lançar (http, recusa, sem chave)', async () => {
     const resp = (content, ok = true) => async () => ({ ok, json: async () => ({ choices: [{ message: { content } }], usage: { prompt_tokens: 900, completion_tokens: 60 } }) })
     const ok = await desc.lerDescricaoDaPessoa(FOTO, { apiKey: 'k', fetchImpl: resp(JSON.stringify({ person_visible: true, hair_color: 'black', hair_length: 'short', glasses: false })) })
@@ -230,19 +251,24 @@ async function bateria(over = {}) {
   await check('6 o portão do servidor: moderador primeiro (recusa = blocked, juiz nem roda); moderador fora do ar = segue para o juiz com o motivo', async () => {
     const chamadas = { juiz: 0 }
     let veredito = { ok: true }
+    const evs = [] // KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 — o evento contável do moderador fora do ar
     const m2 = loader({
       '@supabase/supabase-js': { createClient: () => ({}) }, '@fal-ai/client': { fal: { config: () => {}, queue: {} } }, '@/lib/supabase/server': { createClient: () => null }, 'server-only': {},
-      '@/lib/safety/contentModeration': { moderateContent: async (a) => { if (a.stage !== 'output' || JSON.stringify(a.imageUrls) !== JSON.stringify(['https://cena.png'])) throw new Error('moderou outra coisa'); return veredito }, moderationRefusalStatus: () => 422, moderationRefusalMessage: () => 'x' },
+      '@/lib/safety/contentModeration': { moderateContent: async (a) => { if (a.stage !== 'output' || JSON.stringify(a.imageUrls) !== JSON.stringify(['https://cena.png'])) throw new Error('moderou outra coisa'); if (!(a.orcamentoMs >= 10_000 && a.orcamentoMs <= 15_000)) throw new Error('orçamento da moderação fora de 10 a 15 s (a rota tem 60 s): ' + a.orcamentoMs); return veredito },
+      moderationRefusalStatus: () => 422, moderationRefusalMessage: () => 'x' },
+      '@/lib/serverEvents': { writeServerEvent: async (e) => { evs.push(e); return true } },
       '@/lib/recreate/movimentoJuiz': { julgarCena: async () => { chamadas.juiz++; return { result: 'same', reason: 'ok' } } },
     }, overs)
     const gate = m2('lib/clips/clipServer').movimentoDepsFor(banco([]).admin).gate
     veredito = { ok: false, reason: 'blocked', decision: {} }
-    if ((await gate(linha(), 'https://cena.png')).result !== 'blocked' || chamadas.juiz !== 0) throw new Error('recusa do moderador')
+    if ((await gate(linha(), 'https://cena.png')).result !== 'blocked' || chamadas.juiz !== 0 || evs.length) throw new Error('recusa do moderador')
     veredito = { ok: false, reason: 'unavailable', error: 'x' }
     const fora = await gate(linha(), 'https://cena.png')
     if (fora.result !== 'same' || !fora.reason.includes('moderation_unavailable') || chamadas.juiz !== 1) throw new Error('moderador fora do ar: ' + JSON.stringify(fora))
+    // KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 [CEO 14/11 10:55, item 2] — e conta: um evento recreate_movimento_moderador_fora por vez, com o clipe e o motivo
+    if (evs.length !== 1 || evs[0].name !== 'recreate_movimento_moderador_fora' || evs[0].name !== mov.MOVIMENTO_EVENTOS.moderadorFora || evs[0].metadata.motivo !== 'unavailable' || evs[0].metadata.clip_id !== U || evs[0].userId !== U) throw new Error('evento do moderador fora: ' + JSON.stringify(evs))
     veredito = { ok: true }
-    if ((await gate(linha(), 'https://cena.png')).result !== 'same' || chamadas.juiz !== 2) throw new Error('moderação ok')
+    if ((await gate(linha(), 'https://cena.png')).result !== 'same' || chamadas.juiz !== 2 || evs.length !== 1) throw new Error('moderação ok')
   })
   await check('6 X8 (revisor): repetir o MESMO pedido com outra descrição lida da foto devolve o pedido que já existe (200), nunca conflito 409', async () => {
     const linhas = new Map()
@@ -261,6 +287,74 @@ async function bateria(over = {}) {
     const r1 = await flow.submitClip(deps, { userId: U, idempotencyKey: 'recreate-mesmo-pedido-123', body: a.plan.body, recreatePlan: a.plan })
     const r2 = await flow.submitClip(deps, { userId: U, idempotencyKey: 'recreate-mesmo-pedido-123', body: b.plan.body, recreatePlan: b.plan })
     if (!r1.ok || !r2.ok || r2.status !== 200 || !r2.replay || envios !== 1) throw new Error(JSON.stringify([r1.status, r2.status, r2.code, envios]))
+  })
+  // ── KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 [CEO 14/11 10:55] — antes de abrir ao cliente ──
+  const since7 = () => new Date(NOW - 7 * 24 * 3600_000).toISOString()
+  await check('11 (item 1) estorno que falhou NA HORA volta na varredura horária: todo movimento failed com 0 devolvido, QUALQUER motivo, uma vez só; nada fora do movimento', async () => {
+    const velha = new Date(NOW - 10 * 24 * 3600_000).toISOString(), nova = new Date(NOW - 3600_000).toISOString()
+    const L = (id, o) => linha({ id, billing_reference: 'clips-' + id, status: 'failed', credits_refunded: 0, created_at: nova, ...o })
+    const b = bancoSel([
+      L('m1', { failure_reason: 'motion_scene_blocked' }), L('m2', { failure_reason: 'provider_failed', model: VIDEO }), L('m3', { failure_reason: 'submit_lost', model: VIDEO }),
+      L('m4', { failure_reason: 'motion_not_you', credits_refunded: 40 }), L('m5', { failure_reason: 'motion_scene_failed', created_at: velha }),
+      L('m6', { failure_reason: null, status: 'processing' }), L('m7', { failure_reason: 'motion_not_you' }),
+      L('x1', { failure_reason: 'provider_failed', prompt: 'a dog running on a beach' }), L('x2', { failure_reason: 'provider_failed', engine: 'seedance' }),
+    ])
+    const pagos = new Set(['clips-m7'])
+    const refund = async (ref) => { if (pagos.has(ref)) return 0; pagos.add(ref); return 40 }
+    if (!mov.movimentoFalhaParaTela('motion_scene_blocked', 0).message.includes('within the hour')) throw new Error('a tela antes do estorno')
+    const r1 = await srvMod.estornarMovimentosOrfaos(b.admin, since7(), refund)
+    const v = (id) => b.t.get(id).credits_refunded
+    if (r1.refunded !== 3 || r1.creditsReturned !== 120 || v('m1') !== 40 || v('m2') !== 40 || v('m3') !== 40) throw new Error('não estornou o movimento: ' + JSON.stringify([r1, v('m1'), v('m2'), v('m3')]))
+    if (v('m4') !== 40 || v('m5') !== 0 || v('m6') !== 0 || v('x1') !== 0 || v('x2') !== 0 || pagos.has('clips-x1') || pagos.has('clips-x2') || pagos.has('clips-m6') || pagos.has('clips-m5') || pagos.has('clips-m4')) throw new Error('mexeu fora do escopo')
+    if (v('m7') !== 0) throw new Error('gravou um valor que o RPC não devolveu')
+    if (!mov.movimentoFalhaParaTela(b.t.get('m1').failure_reason, v('m1')).message.includes('returned your credits')) throw new Error('a tela depois do estorno')
+    const r2 = await srvMod.estornarMovimentosOrfaos(b.admin, since7(), refund)
+    if (r2.refunded !== 0 || v('m1') !== 40 || pagos.size !== 4) throw new Error('rodar de novo estornou de novo: ' + JSON.stringify(r2))
+    const varre = (over[SRV] ?? lf(SRV)).replace(/\/\/[^\n]*/g, '')
+    const corpo = varre.slice(varre.indexOf('export async function sweepClipJobs'), varre.indexOf('export async function advanceActiveClipJobs'))
+    if (!corpo.includes('const mov = await estornarMovimentosOrfaos(admin, since)') || !corpo.includes('result.refunded += mov.refunded')) throw new Error('a varredura horária não chama o estorno do movimento')
+  })
+  await check('11 (item 1) de ponta a ponta: o estorno dá erro na hora (o RPC devolve 0) → failed com 0 e "within the hour"; a varredura devolve uma vez', async () => {
+    const h = harness({ juiz: { result: 'blocked', reason: 'moderation' } })
+    h.deps.refund = async () => 0
+    await flow.settleClip(h.deps, linha())
+    const l = h.row()
+    if (l.status !== 'failed' || l.credits_refunded !== 0 || l.failure_reason !== 'motion_scene_blocked' || !mov.movimentoFalhaParaTela(l.failure_reason, 0).message.includes('within the hour')) throw new Error(JSON.stringify(l))
+    const b = bancoSel([l])
+    const r = await srvMod.estornarMovimentosOrfaos(b.admin, since7(), async () => 40)
+    if (r.refunded !== 1 || b.t.get(U).credits_refunded !== 40) throw new Error(JSON.stringify(r))
+  })
+  await check('6 X8 EXECUTADO pela rota real (POST /api/recreate → submitClip real): o mesmo pedido duas vezes, em sequência e AO MESMO TEMPO com leituras da foto diferentes, devolve 200 (o que já existe; o novo é 202), nunca 409; um envio por chave', async () => {
+    const linhas = new Map()
+    let n = 0, envios = 0, leituras = 0
+    const rotaDeps = {
+      supabaseUrl: SUPA, engineAccess: () => ({ ok: true }),
+      findByKey: async (_u, k) => linhas.get(k) ?? null, countActive: async () => 0, verifyImage: async () => {}, moderate: async () => ({ ok: true }),
+      getBalance: async () => 100, newId: () => 'clip-' + (++n),
+      // a gravação demora 40 ms: na corrida, o 2º pedido passa pela busca da chave ANTES da gravação do 1º e cai no conflito do insert (o caminho da corrida)
+      insertPending: async (row) => { await new Promise((r) => setTimeout(r, 40)); if (linhas.has(row.idempotency_key)) return { ok: false, conflict: true }; linhas.set(row.idempotency_key, row); return { ok: true } },
+      debit: async () => ({ ok: true, balance: 60 }), refund: async () => 0,
+      submit: async () => { envios++; return { ok: true, requestId: 'req-' + envios } }, markSubmitted: async () => true, markFailed: async () => true,
+      event: async () => {}, now: () => NOW,
+    }
+    const textos = ['with short black hair and wearing no glasses', 'with long blonde hair and wearing glasses']
+    const rm = loader({
+      '@supabase/supabase-js': { createClient: () => ({}) }, '@fal-ai/client': { fal: { config: () => {}, queue: {} } }, '@/lib/supabase/server': { createClient: () => null }, 'server-only': {},
+      'next/server': { NextResponse: { json: (body, init) => ({ status: init?.status ?? 200, body }) } },
+      '@/lib/clips/clipServer': { clipsAdmin: () => ({}), engineAccessFor: () => ({ ok: true }), loadClipAccount: async () => ({ userId: U, balance: 100, plan: 'free' }) },
+      '@/lib/recreate/server': { recreateSession: async () => ({ supabase: {}, user: { id: U, email: casa } }), recreateSubmitDeps: () => rotaDeps, recreateEngineAccess: () => ({ ok: true }), RECREATE_HEADERS: {} },
+      '@/lib/serverEvents': { writeServerEvent: async () => true },
+      '@/app/api/admin/_shared/mrr': { isPayingPlan: () => false },
+      '@/lib/recreate/descricaoDaPessoa': { lerDescricaoDaPessoa: async () => { const i = leituras++; await new Promise((r) => setTimeout(r, i % 2 ? 1 : 25)); return { ok: true, texto: textos[i % 2], cabeloEBarba: '', usd: 0.005 } } },
+    }, overs)
+    const POST = rm('app/api/recreate/route').POST
+    const req = (key) => ({ headers: { get: (h) => (h === 'idempotency-key' ? key : null) }, nextUrl: { origin: 'https://fixture' }, json: async () => ({ ...pedido }) })
+    const a = await POST(req('recreate-seq-1')), b = await POST(req('recreate-seq-1'))
+    if (a.status !== 202 || a.body.replay || b.status !== 200 || b.body.replay !== true || leituras !== 1 || envios !== 1) throw new Error('em sequência: ' + JSON.stringify([a, b, leituras, envios]))
+    const [c, d] = await Promise.all([POST(req('recreate-par-1')), POST(req('recreate-par-1'))])
+    if (leituras !== 3) throw new Error('a corrida não leu as duas descrições: ' + leituras)
+    const st = [c, d].map((x) => `${x.status}:${x.body.replay}`).sort().join(',')
+    if (st !== '200:true,202:false' || c.body.clip.id !== d.body.clip.id || envios !== 2) throw new Error('ao mesmo tempo: ' + JSON.stringify([c, d, envios]))
   })
   await check('6 o motor recusou o passo 2: estorno uma vez (provider_rejected)', async () => {
     const h = harness({ envio: { ok: false, ambiguous: false, error: 'face not allowed' } })
@@ -366,7 +460,7 @@ async function bateria(over = {}) {
   })
   await check('9 eventos só do servidor; a leitura da foto só com saldo; o servidor reserva e grava condicionado', async () => {
     const ev = over[EVENTOS] ?? lf(EVENTOS)
-    if (!ev.includes("'recreate_movimento_cena',") || !ev.includes("'recreate_pessoa_descricao',")) throw new Error('SERVER_ONLY_EVENTS')
+    for (const nome of Object.values(mov.MOVIMENTO_EVENTOS)) if (!ev.includes(`'${nome}',`)) throw new Error('SERVER_ONLY_EVENTS sem ' + nome) // KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 — era: os dois nomes à mão
     if (!rota.includes('const repeticao = key ? await deps.findByKey(user.id, key).catch(() => null) : null') || !rota.includes('if (!repeticao && account.balance >= conferido.plan.credits) {')) throw new Error('leitura sem saldo ou antes da chave')
     if (!client.includes("clip?.reason === 'scene_blocked') && clip.message ? clip.message")) throw new Error('tela sem a frase da cena recusada')
     if (!srv.includes(".eq('id', row.id).eq('status', 'processing').eq('model', MOVIMENTO_CENA_MODEL).eq('fal_request_id', row.fal_request_id)")) throw new Error('reserva sem condição')
@@ -431,6 +525,14 @@ const mutantes = [
   ['/check: cabelo ligado sem ensaio', { [SV]: src[SV].replace('export const SEU_VIDEO_CABELO_NO_TEXTO = false', 'export const SEU_VIDEO_CABELO_NO_TEXTO = true') }],
   ['/check: cabelo sem filtro', { [TEXTO]: src[TEXTO].replace("(c && /^[a-z ,\\-]{3,200}$/.test(c) ? `, with ${c}` : '')", "(c ? `, with ${c}` : '')") }],
   ['/check: cabelo depois dos óculos', { [TEXTO]: src[TEXTO].replace("clausulaDoCabelo(a.cabelos?.[i]) + clausulaDosOculos(a.oculos?.[i], i + 1, gs[i] === 'man' ? 'he' : 'she')", "clausulaDosOculos(a.oculos?.[i], i + 1, gs[i] === 'man' ? 'he' : 'she') + clausulaDoCabelo(a.cabelos?.[i])") }],
+  // KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 [CEO 14/11 10:55]
+  ['varredura horária sem o movimento', { [SRV]: src[SRV].replace('  const mov = await estornarMovimentosOrfaos(admin, since)', '  const mov = { refunded: 0, creditsReturned: 0 }') }],
+  ['estorno do movimento só nos motivos motion_*', { [SRV]: src[SRV].replace('setRefunded(id, refunded) }, () => true)', "setRefunded(id, refunded) }, (motivo) => typeof motivo === 'string' && motivo.startsWith('motion_'))") }],
+  ['varredura do movimento pega o que não é movimento', { [SRV]: src[SRV].replace('.filter(ehLinhaDeMovimento)', '') }],
+  ['moderador fora sem evento', { [SRV]: src[SRV].replace("      if (!mod.ok) await clipEvent(row.user_id)(MOVIMENTO_EVENTOS.moderadorFora, { clip_id: row.id, motivo: mod.reason, etapa: 'movimento_cena' })\n", '') }],
+  ['três estilos de cabelo', { [DESC]: src[DESC].replace('.filter(Boolean))].slice(0, 2)', '.filter(Boolean))].slice(0, 3)') }],
+  ['orçamento da moderação de 60 s', { [SRV]: src[SRV].replace("etapa: 'movimento_cena' }, orcamentoMs: 15_000 })", "etapa: 'movimento_cena' }, orcamentoMs: 60_000 })") }],
+  ['corrida da mesma chave vira 409', { [FLOW]: src[FLOW].replace('if (winner && winner.fingerprint === fingerprint) return', 'if (false) return') }],
   ['juiz com campo inventado na fal', { [MOV]: src[MOV].replace("character_orientation: 'video', keep_original_sound: false,", "character_orientation: 'video', keep_original_sound: false, negative_prompt: 'logos',") }],
 ]
 let mortos = 0

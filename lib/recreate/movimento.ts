@@ -29,10 +29,16 @@ export const movimentoFalUsd = (seconds: number) => Math.round((MOVIMENTO_CENA_U
 
 /** Motivos de falha que a tela traduz (failure_reason tem 60 caracteres). */
 export const MOVIMENTO_FALHA = { cena: 'motion_scene_failed', naoEVoce: 'motion_not_you', bloqueada: 'motion_scene_blocked' } as const // KINEO-RECREATE-MOVIMENTO-1411 — + bloqueada (o nosso moderador recusou a imagem do passo 1)
-export const MOVIMENTO_EVENTOS = { cena: 'recreate_movimento_cena', descricao: 'recreate_pessoa_descricao' } as const
+// KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 [CEO 14/11 10:55, item 2] — + moderadorFora: o nosso moderador não respondeu sobre a imagem do passo 1 e o pedido seguiu para o juiz (contável).
+export const MOVIMENTO_EVENTOS = { cena: 'recreate_movimento_cena', descricao: 'recreate_pessoa_descricao', moderadorFora: 'recreate_movimento_moderador_fora' } as const
 
 /** O texto da LINHA (row.prompt): fixo por molde, escrito só pelo servidor. É por ele que a linha é reconhecida como movimento. */
 export const movimentoRowPrompt = (f: Pick<RecreateFormat, 'id' | 'title'>) => `Recreate motion: ${f.title} [${f.id}]`
+
+// KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 [CEO 14/11 10:55, item 1] — a linha de movimento pelo que ELA diz (texto fixo do servidor + motor + modo), sem depender do molde seguir no
+// catálogo: é por aqui que a varredura horária acha o movimento que falhou com o estorno por fazer.
+export const MOVIMENTO_PROMPT_PREFIXO = 'Recreate motion: '
+export const ehLinhaDeMovimento = (row: { prompt: string; engine: string; mode: string }) => row.mode === 'image' && row.engine === MOVIMENTO_ENGINE && /^Recreate motion: .+ [[a-z0-9-]+]$/.test(row.prompt)
 
 export function movimentoForRow(row: { prompt: string; engine: string; seconds: number; mode: string }, catalogo: readonly RecreateFormat[] = RECREATE_FORMATS): RecreateFormat | null {
   if (row.mode !== 'image' || row.engine !== MOVIMENTO_ENGINE) return null

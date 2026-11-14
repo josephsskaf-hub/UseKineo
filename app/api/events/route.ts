@@ -23,6 +23,7 @@ const SERVER_ONLY_EVENTS = new Set([
   // KINEO-RECREATE-MOVIMENTO-1411 — os dois passos do molde de movimento e a leitura da foto (só o servidor grava).
   'recreate_movimento_cena',
   'recreate_pessoa_descricao',
+  'recreate_movimento_moderador_fora', // KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 — o moderador da cena fora do ar (o pedido seguiu para o juiz)
   // KINEO-EMAIL-FILME-NA-PAGINA-1111 — o clique no botão do e-mail "filme pronto" é contado pela rota /api/email/filme-pronto.
   'video_ready_email_clicked',
   // KINEO-CARTAO-RECUSADO-0111 — carimbos de dedupe do laço do cartão recusado (um carimbo forjado calaria o aviso de

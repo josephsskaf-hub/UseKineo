@@ -47,6 +47,7 @@ import { SPACE_CLIP_ENGINE, SPACE_CLIP_SECONDS, SPACE_KINDS, buildSpaceMotionPro
 // caminho determinístico e o vídeo (i2v do motor) parte dele. A ORDEM mora em lib/clips/clipFlow.ts settleClip; aqui só os fios.
 import { faceRemixKeyframePath, faceRemixStageForRow, faceRemixVideoModel, faceRemixForRow } from '@/lib/clips/faceRemix' // KINEO-ROSTO-QUADRO-CHAVE-2810
 import { MOVIMENTO_SELO, MOVIMENTO_CENA_MODEL, MOVIMENTO_VIDEO_MODEL, movimentoCenaPath, movimentoEntradaDoVideo, movimentoForRow, movimentoGuiaUrl, movimentoStageForRow } from '@/lib/recreate/movimento' // KINEO-RECREATE-MOVIMENTO-1411
+import { MOVIMENTO_EVENTOS, MOVIMENTO_PROMPT_PREFIXO, ehLinhaDeMovimento } from '@/lib/recreate/movimento' // KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411
 import { julgarCena } from '@/lib/recreate/movimentoJuiz' // KINEO-RECREATE-MOVIMENTO-1411
 import type { ClipMovimentoDeps } from '@/lib/clips/clipFlow' // KINEO-RECREATE-MOVIMENTO-1411
 import { buildClipFalInput } from '@/lib/clips/clipCatalog' // KINEO-ROSTO-QUADRO-CHAVE-2810 — a MESMA entrada do i2v do clipe comum, com o quadro-chave no lugar da foto
@@ -512,6 +513,8 @@ export function movimentoDepsFor(admin: SupabaseClient): ClipMovimentoDeps {
     gate: async (row, cenaUrl) => {
       const mod = await moderateContent({ surface: 'clip', stage: 'output', userId: row.user_id, imageUrls: [cenaUrl], meta: { clip_id: row.id, etapa: 'movimento_cena' }, orcamentoMs: 15_000 }).catch(() => ({ ok: false as const, reason: 'unavailable' as const, error: 'threw' }))
       if (!mod.ok && mod.reason === 'blocked') return { result: 'blocked' as const, reason: 'moderation' }
+      // KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 [CEO 14/11 10:55, item 2] — moderador fora do ar (ou sem conseguir ler): segue para o juiz, como aceito, e CONTA num evento próprio.
+      if (!mod.ok) await clipEvent(row.user_id)(MOVIMENTO_EVENTOS.moderadorFora, { clip_id: row.id, motivo: mod.reason, etapa: 'movimento_cena' })
       const v = await julgarCena(row.image_url, cenaUrl)
       return mod.ok ? v : { ...v, reason: `${v.reason}; moderation_${mod.reason}` }
     },
@@ -998,7 +1001,21 @@ export async function sweepClipJobs(): Promise<{ scanned: number; delivered: num
     result.refunded += swept.refunded
     result.creditsReturned += swept.creditsReturned
   }
+  const mov = await estornarMovimentosOrfaos(admin, since) // KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 [CEO 14/11 10:55, item 1]
+  result.refunded += mov.refunded
+  result.creditsReturned += mov.creditsReturned
   return result
+}
+// KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 [CEO 14/11 10:55, item 1: "estorno que falha nunca volta no movimento"] — toda falha do movimento (cena que falhou, não é você, cena recusada
+// pelo moderador, motor que recusou, envio perdido, vencido…) passa pelo fail() do settleClip: estorna e grava failed. Se o estorno deu erro NA HORA, a
+// linha ficava failed com 0 devolvido, a tela prometia "returned within the hour" e nenhuma varredura voltava nela (esta só cobria a troca e a fila; a
+// geral pula os clipes). Aqui, de hora em hora: o movimento failed com 0 devolvido (7 dias), QUALQUER motivo, estorna pela billing_reference (o RPC é
+// idempotente: devolve > 0 uma vez só) e grava o valor só onde ainda é 0. Rodar de novo não estorna de novo.
+export async function estornarMovimentosOrfaos(admin: SupabaseClient, since: string, refund: (billingReference: string) => Promise<number> = (ref) => refundRenderCredits(ref)): Promise<{ scanned: number; refunded: number; creditsReturned: number }> {
+  const { data, error } = await admin.from(CLIPS_TABLE).select(COLUMNS).eq('status', 'failed').eq('credits_refunded', 0).like('prompt', `${MOVIMENTO_PROMPT_PREFIXO}%`).gte('created_at', since).order('created_at', { ascending: true }).limit(50)
+  if (error) { console.error('[clips/sweep] motion refund lookup failed:', error.message); return { scanned: 0, refunded: 0, creditsReturned: 0 } }
+  const rows = (data ?? []).map((raw) => toRow(raw as Record<string, unknown>)).filter(ehLinhaDeMovimento)
+  return sweepSwapRefunds(rows, { refund, setRefunded: (id, refunded) => recreateSwapDepsFor(admin, '').setRefunded(id, refunded) }, () => true)
 }
 // KINEO-FILME-RAPIDO-1710 — o clipe parado com a aba fechada (auditoria 17/10, G8/V7): 4 de 5 clipes grátis de texto
 // esperaram de 33 a 126 min, porque só o poll da tela ou a varredura horária (sweepClipJobs, só 10 min+) os olhava. [KINEO-FILME-RAPIDO-1710]
