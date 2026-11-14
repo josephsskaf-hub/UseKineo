@@ -25,6 +25,8 @@ import { writeServerEvent } from '@/lib/serverEvents'
 import { RECREATE_MODEL } from '@/lib/recreate/generation' // KINEO-RECREATE-TRAVA-1011
 import { KLING4_EDIT_MODEL, silenciarMp4, somOriginalDaLinha } from '@/lib/recreate/seuVideo' // KINEO-RECREATE-SEU-VIDEO-1311 · KINEO-RECREATE-KLING4-1311
 import { usaTravaNaoTrocou } from '@/lib/recreate/swapCheck' // KINEO-RECREATE-SEU-VIDEO-1311
+import { AUDITORIA_MAX_BYTES, AUDITORIA_PASTA, caminhoDaAuditoria, orcamentoDaCopia, vencidos, venceEm } from '@/lib/recreate/auditoriaDaTrava' // KINEO-RECREATE-AUDITORIA-DA-TRAVA-1411
+import { QUARANTINE_BUCKET } from '@/lib/safety/quarantine' // KINEO-RECREATE-AUDITORIA-DA-TRAVA-1411 — o bucket privado da casa
 import { RECREATE_SWAP_CHECK_EVENT, SWAP_CHECK_LOCK_PREFIX, SWAP_CHECK_LOCK_STALE_MS, recreateRowContext, runSwapCheck, swapCheckBusy, swapCheckLock, sweepSwapRefunds, SWAP_REFUND_SWEEP_REASONS, type SwapVerdict } from '@/lib/recreate/swapCheck' // KINEO-RECREATE-TRAVA-1011
 import { alertFalExhausted, looksExhausted } from '@/lib/falAlert'
 import {
@@ -580,6 +582,24 @@ export function recreateSwapDepsFor(admin: SupabaseClient, userId: string): Recr
       if (error) console.error(`[clips] recreate markDone failed clip=${id}:`, error.message)
       return !error && (data ?? []).length > 0
     },
+    // KINEO-RECREATE-AUDITORIA-DA-TRAVA-1411 [CEO 14/11] — a saída reprovada, crua (como o motor entregou), no bucket PRIVADO da casa, pasta só
+    // desta auditoria, 48 h. Nunca lança: qualquer falha = null (a liquidação segue). Regras puras: lib/recreate/auditoriaDaTrava.ts.
+    keepRejected: async (row, providerUrl, gastoMs) => {
+      const path = caminhoDaAuditoria(row.id)
+      const teto = orcamentoDaCopia(gastoMs)
+      if (!path || teto <= 0 || !providerUrl.startsWith('https://')) return null
+      try {
+        const res = await fetch(providerUrl, { signal: AbortSignal.timeout(teto), cache: 'no-store' })
+        if (!res.ok) return null
+        const buf = await res.arrayBuffer()
+        if (buf.byteLength === 0 || buf.byteLength > AUDITORIA_MAX_BYTES) return null
+        const { error } = await admin.storage.from(QUARANTINE_BUCKET).upload(path, buf, { contentType: 'video/mp4', upsert: true })
+        if (error) { console.error(`[clips] recreate audit copy failed clip=${row.id}:`, error.message); return null }
+        return { bucket: QUARANTINE_BUCKET, path, bytes: buf.byteLength, expires_at: venceEm(Date.now()) }
+      } catch {
+        return null
+      }
+    },
     record: async (row, verdict, outcome) => {
       const v = verdict as Partial<SwapVerdict>
       await writeServerEvent({ name: RECREATE_SWAP_CHECK_EVENT, userId, path: '/api/recreate/status', metadata: {
@@ -587,6 +607,7 @@ export function recreateSwapDepsFor(admin: SupabaseClient, userId: string): Recr
         unverified_reason: verdict.result === 'unverified' ? (v.unverified_reason ?? 'http_error') : null,
         delivered: outcome.delivered, credits: row.credits, credits_refunded: outcome.credits_refunded,
         persons: v.persons ?? [], model: v.model ?? null, usd: v.usd ?? null, ms: v.ms ?? null, version: 'recreate_swap_check_1011b',
+        audit_bucket: outcome.audit?.bucket ?? null, audit_path: outcome.audit?.path ?? null, audit_bytes: outcome.audit?.bytes ?? null, audit_expires_at: outcome.audit?.expires_at ?? null, // KINEO-RECREATE-AUDITORIA-DA-TRAVA-1411 — a saída reprovada guardada (privado, 48 h); null = não foi guardada
       } }).catch(() => false)
     },
   }
@@ -713,6 +734,15 @@ export async function sweepClipJobs(): Promise<{ scanned: number; delivered: num
   }
   // KINEO-RECREATE-ABRE-1011 — Recreate reprovado pela trava cujo estorno não chegou a rodar (processo morreu entre o
   // failed e o estorno): estorna UMA vez pela billing_reference (RPC idempotente) e grava o valor onde ainda é 0.
+  // KINEO-RECREATE-AUDITORIA-DA-TRAVA-1411 — a limpeza das 48 h, nesta varredura que já existe: só a pasta da auditoria, só <uuid>.mp4 vencido.
+  try {
+    const pasta = await admin.storage.from(QUARANTINE_BUCKET).list(AUDITORIA_PASTA, { limit: 200, sortBy: { column: 'created_at', order: 'asc' } })
+    const fora = pasta.error ? [] : vencidos(pasta.data ?? [], Date.now())
+    if (pasta.error) console.error('[clips/sweep] recreate audit list failed:', pasta.error.message)
+    if (fora.length) { const rm = await admin.storage.from(QUARANTINE_BUCKET).remove(fora); if (rm.error) console.error('[clips/sweep] recreate audit cleanup failed:', rm.error.message) }
+  } catch (e) {
+    console.error('[clips/sweep] recreate audit cleanup error:', e instanceof Error ? e.message : String(e))
+  }
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
   const orphans = await admin.from(CLIPS_TABLE).select(COLUMNS).eq('status', 'failed').eq('credits_refunded', 0).in('failure_reason', [...SWAP_REFUND_SWEEP_REASONS]).gte('created_at', since).order('created_at', { ascending: true }).limit(50)
   if (orphans.error) console.error('[clips/sweep] recreate refund lookup failed:', orphans.error.message)

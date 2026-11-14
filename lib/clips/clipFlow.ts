@@ -422,6 +422,8 @@ export interface ClipSettleDeps {
   recreateSwap?: RecreateSwapSettleDeps // KINEO-RECREATE-TRAVA-1011
 }
 
+/** KINEO-RECREATE-AUDITORIA-DA-TRAVA-1411 — onde a saída reprovada ficou guardada (bucket privado) e até quando. */
+export interface RecreateSwapAudit { bucket: string; path: string; bytes: number; expires_at: string }
 /** KINEO-RECREATE-TRAVA-1011 — os fios da trava "não trocou" (a ORDEM mora no settleClip; o clipServer só liga). */
 export interface RecreateSwapSettleDeps { // KINEO-RECREATE-TRAVA-1011
   /** Esta linha é um Recreate de troca de rosto? Clipes e efeitos: false → caminho de sempre, byte a byte. */
@@ -439,7 +441,10 @@ export interface RecreateSwapSettleDeps { // KINEO-RECREATE-TRAVA-1011
   /** done condicional à reserva deste ator; solta a reserva (failure_reason volta a null). */
   markDone(id: string, videoUrl: string, lock: string): Promise<boolean> // KINEO-RECREATE-TRAVA-1011
   /** Evento de servidor recreate_swap_check — só quem MOVEU a linha grava. */
-  record(row: ClipRow, verdict: { result: string; reason: string }, outcome: { delivered: boolean; credits_refunded: number }): Promise<void> // KINEO-RECREATE-TRAVA-1011
+  record(row: ClipRow, verdict: { result: string; reason: string }, outcome: { delivered: boolean; credits_refunded: number; audit?: RecreateSwapAudit | null }): Promise<void> // KINEO-RECREATE-TRAVA-1011 · KINEO-RECREATE-AUDITORIA-DA-TRAVA-1411 — + audit
+  /** KINEO-RECREATE-AUDITORIA-DA-TRAVA-1411 — guarda a saída REPROVADA do motor em caminho privado, 48 h (só auditoria da casa). Opcional:
+   *  ausente ou falhando = segue sem. `gastoMs` = o que a liquidação já gastou (a cópia nunca estoura a rota de status). */
+  keepRejected?(row: ClipRow, providerUrl: string, gastoMs: number): Promise<RecreateSwapAudit | null>
 } // KINEO-RECREATE-TRAVA-1011
 
 export async function settleClip(deps: ClipSettleDeps, row: ClipRow): Promise<ClipRow> {
@@ -501,6 +506,7 @@ export async function settleClip(deps: ClipSettleDeps, row: ClipRow): Promise<Cl
     let swapVerdict: { result: string; reason: string } | null = null // KINEO-RECREATE-TRAVA-1011
     let swapLock: string | null = null // KINEO-RECREATE-TRAVA-1011
     if (swap) { // KINEO-RECREATE-TRAVA-1011
+      const swapStarted = deps.now() // KINEO-RECREATE-AUDITORIA-DA-TRAVA-1411 — o relógio da liquidação (a cópia de auditoria respeita o que sobrou)
       swapLock = await swap.claim(row) // KINEO-RECREATE-TRAVA-1011
       if (!swapLock) return row // KINEO-RECREATE-TRAVA-1011 — outro ator (aba, cron) está checando
       swapVerdict = await swap.check(row, state.url).catch(() => ({ result: 'unverified' as const, reason: 'check_error' })) // KINEO-RECREATE-TRAVA-1011
@@ -510,8 +516,11 @@ export async function settleClip(deps: ClipSettleDeps, row: ClipRow): Promise<Cl
         let refunded = await deps.refund(row.billing_reference) // KINEO-RECREATE-TRAVA-1011 — só o vencedor estorna
         if (refunded <= 0) refunded = await deps.refund(row.billing_reference) // KINEO-RECREATE-TRAVA-1011 — 2ª tentativa (o RPC é idempotente)
         if (refunded > 0) await swap.setRefunded(row.id, refunded) // KINEO-RECREATE-TRAVA-1011
+        // KINEO-RECREATE-AUDITORIA-DA-TRAVA-1411 [CEO 14/11] — DEPOIS do failed e do estorno (o cliente nunca espera por isto): a saída reprovada
+        // vai a um caminho privado por 48 h e o caminho entra no evento. Falhou ou não deu tempo = null, e tudo segue como antes.
+        const audit = swap.keepRejected ? await swap.keepRejected(row, state.url, Math.max(0, deps.now() - swapStarted)).catch(() => null) : null
         await deps.event('clip_failed', { ...clipTelemetry(row), reason, credits_refunded: refunded, stage: 'settle', swap_check: swapVerdict.result }) // KINEO-RECREATE-TRAVA-1011
-        await swap.record(row, swapVerdict, { delivered: false, credits_refunded: refunded }) // KINEO-RECREATE-TRAVA-1011
+        await swap.record(row, swapVerdict, { delivered: false, credits_refunded: refunded, audit }) // KINEO-RECREATE-TRAVA-1011 · KINEO-RECREATE-AUDITORIA-DA-TRAVA-1411 — + audit
         return { ...row, status: 'failed', failure_reason: reason, credits_refunded: refunded } // KINEO-RECREATE-TRAVA-1011
       } // KINEO-RECREATE-TRAVA-1011
     } // KINEO-RECREATE-TRAVA-1011
