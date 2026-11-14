@@ -1,3 +1,4 @@
+import { planoParaQuemEstaNoQuadro } from '@/lib/cinematic/comentarioDoPlano' // KINEO-COMENTARIO-NAO-E-CENA-1411 v2
 // KINEO-SCENE-STYLE-2026-09-09 — ESTILO TRAVADO, FECHO SEM REPETIÇÃO, TEXTO SEM LETRA ERRADA.
 //
 // Três defeitos vistos quadro a quadro no relatório dos motores de 09/09:
@@ -351,13 +352,16 @@ export function mentionsStoryCharacter(visual: string, character: string | null)
   return false
 }
 
+/** KINEO-COMENTARIO-NAO-E-CENA-1411 v2 — fora do comentário, alguém no quadro? ("An actor evoking Lincoln": o ator está lá; a ficha fica). */
+const PESSOA_NO_PLANO_RE_1411 = /(?<![\p{L}])(?:man|men|woman|women|boy|boys|girl|girls|person|people|actor|actress|figure|figures|crowd|soldiers?|workers?|families|family|child|children|kid|kids|couple|he|she|they|him|his|her|their)(?![\p{L}])/iu
 export function buildStoryScenePrompt(visual: string, anchor: StyleAnchor, character: string | null): string {
   let v = (visual || '').replace(/\s+/g, ' ').trim()
   // a descrição de cena não pode reintroduzir o look oposto
   if (anchor.look !== 'photoreal') v = v.replace(/\b(photorealistic|photo-realistic|live[- ]action|realistic footage|documentary)\b/gi, '').replace(/\s{2,}/g, ' ').trim()
   v = v.replace(/[\s,;:.]+$/, '')
   if (v.length < 3) v = 'establishing shot of the story world'
-  const who = character && mentionsStoryCharacter(v, character) ? ` The same main character appears in this scene, consistent design: ${character}.` : ''
+  const vQuem = character ? planoParaQuemEstaNoQuadro(v, [character.split(',')[0]], (t) => PESSOA_NO_PLANO_RE_1411.test(t) || mentionsStoryCharacter(t, character)) : v // KINEO-COMENTARIO-NAO-E-CENA-1411 v2 — "…hints at the mystery of Amelia Earhart's disappearance" não põe a ficha na ilha
+  const who = character && mentionsStoryCharacter(vQuem, character) ? ` The same main character appears in this scene, consistent design: ${character}.` : ''
   return (
     `${anchor.lookPhrase}. ${v}.${who} ` +
     `9:16 vertical, subject framed in the upper two-thirds with the lower third clear for captions, ` +

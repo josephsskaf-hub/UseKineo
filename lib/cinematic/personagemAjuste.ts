@@ -31,6 +31,7 @@ import {
 } from '@/lib/cinematic/folhaDePersonagem'
 import { figuraFiel, figuraFielNoTexto, figurasCompostasNoTexto } from '@/lib/cinematic/seresFieis' // KINEO-JUIZ-REFAZ-2810 — a tabela única de figuras conhecidas, consultada depois da tabela da casa
 import type { StyleAnchor } from '@/lib/cinematic/sceneStyle'
+import { comentarioNaoECenaLigado, planoParaQuemEstaNoQuadro } from '@/lib/cinematic/comentarioDoPlano' // KINEO-COMENTARIO-NAO-E-CENA-1411 v2
 import { mentionsMinor } from '@/lib/safety/moderationPolicy'
 
 export const MARCA_PERSONAGEM_AJUSTE = 'KINEO-META95-PERSONAGEM-AJUSTE-2010'
@@ -247,24 +248,19 @@ function generoContradiz(visual: string, f: FichaDePersonagem): boolean {
 
 export interface CenaDoElenco { indice: number; nomes: string[]; pelaFala: string[] }
 
-// ═══ KINEO-COMENTARIO-NAO-E-CENA-1411 [CEO 14/11 09:50, item C: a ilha da Earhart saiu COM gente no 2º dry-run] ═══════════════════════════
-// O planejador fecha o plano com uma oração de comentário: "Aerial shot of Howland Island, a tiny strip of sand surrounded by vast, empty
-// ocean, with a stillness that hints at the mystery of Amelia Earhart's disappearance". O nome (ou o "her") dentro do comentário fazia a
-// casa achar que a Amelia estava na cena: a ficha dela ia para a ilha e a cena deixava de ser "sem gente". Aqui, para decidir QUEM está no
-// quadro, a oração que começa em "hints at / symbolizing / evoking / reminiscent of / in honor of / a tribute to / alluding to" não conta (até
-// o fim da frase). Só a decisão: o texto que vai ao motor não muda. Só para gente (objeto e bicho seguem como sempre), e só na cena cujo
-// plano tinha o comentário. "suggesting" e "representing" ficaram fora: no corpus aparecem literais ("the smart fridge suggesting kale").
-// Interruptor COMENTARIO_NAO_E_CENA_1411: 'off' = byte a byte o de antes. Ensaio: docs/ENSAIO-LUGAR-DA-FALA-1411.md (parte C).
-export const COMENTARIO_NAO_E_CENA_1411: ModoCenaSemGente = 'all'
-export const comentarioNaoECenaLigado = (modo: ModoCenaSemGente = COMENTARIO_NAO_E_CENA_1411) => modo === 'all'
-const COMENTARIO_RE_1411 = /(?<![\p{L}])(?:hint(?:s|ed|ing)?\s+at|symboli[sz](?:e|es|ed|ing)|evok(?:e|es|ed|ing)|reminiscent\s+of|in\s+hono(?:u)?r\s+of|a\s+tribute\s+to|allud(?:e|es|ed|ing)\s+to)(?![\p{L}])[^.!?]*/giu
-/** O plano sem a oração de comentário (só para decidir quem está no quadro). */
-export function semComentarioDoPlano(visual: string): string {
-  return String(visual ?? '').replace(COMENTARIO_RE_1411, '')
+// ═══ KINEO-COMENTARIO-NAO-E-CENA-1411 v2 — a regra mora em lib/cinematic/comentarioDoPlano.ts (a sceneStyle usa a mesma) ═══
+export { COMENTARIO_NAO_E_CENA_1411, comentarioNaoECenaLigado } from '@/lib/cinematic/comentarioDoPlano'
+/** Fora do comentário, alguém do quadro: gente, gente de papel ou alguém do elenco citado. */
+function alguemNoPlano(texto: string, elenco: ReadonlyArray<FichaDePersonagem>): boolean {
+  return visualMostraAlguem(texto) || visualTemGenteDePapel(texto) || (cenasComPersonagem([texto], elenco)[0]?.nomes.length ?? 0) > 0
+}
+/** O plano que decide quem está no quadro: o comentário só tira nome e pronome quando, fora dele, ninguém aparece. */
+export function planoDoQuadro(visual: string, elenco: ReadonlyArray<FichaDePersonagem>): string {
+  return planoParaQuemEstaNoQuadro(visual, elenco.flatMap((e) => [e.nome, e.nucleo]), (t) => alguemNoPlano(t, elenco))
 }
 function cenasSemCitacaoDoComentario(visuals: ReadonlyArray<string>, falas: ReadonlyArray<string>, elenco: ReadonlyArray<FichaDePersonagem>): CenaDoElenco[] {
   const antes = cenasDoElenco(visuals, falas, elenco, true)
-  const limpos = visuals.map((v) => semComentarioDoPlano(v))
+  const limpos = visuals.map((v) => planoDoQuadro(String(v ?? ''), elenco))
   if (limpos.every((v, i) => v === String(visuals[i] ?? ''))) return antes
   const depois = cenasDoElenco(limpos, falas, elenco, true)
   const gente = (n: string) => elenco.find((e) => e.nome === n)?.tipo === 'humano'
@@ -274,7 +270,7 @@ function cenasSemCitacaoDoComentario(visuals: ReadonlyArray<string>, falas: Read
     return { indice: c.indice, nomes, pelaFala: c.pelaFala.filter((n) => nomes.includes(n)) }
   })
 }
-// ═══ fim KINEO-COMENTARIO-NAO-E-CENA-1411 ═══
+// ═══ fim KINEO-COMENTARIO-NAO-E-CENA-1411 v2 ═══
 
 /**
  * Por cena, quem está nela. O VISUAL decide se há alguém no quadro (cenasComPersonagem: nome/papel/pronome no visual); a FALA
@@ -326,7 +322,7 @@ export function ajustarPromptsDoElenco(args: { prompts: ReadonlyArray<string>; v
       }
       return out
     }
-    const vDaCena = comentarioNaoECenaLigado() ? semComentarioDoPlano(args.visuals[i] ?? '') : args.visuals[i] ?? '' // KINEO-COMENTARIO-NAO-E-CENA-1411 — "…hints at the mystery of her disappearance" não põe ninguém no quadro
+    const vDaCena = comentarioNaoECenaLigado() ? planoDoQuadro(args.visuals[i] ?? '', args.elenco) : args.visuals[i] ?? '' // KINEO-COMENTARIO-NAO-E-CENA-1411 — "…hints at the mystery of her disappearance" não põe ninguém no quadro
     if (visualMostraAlguem(vDaCena)) return out
     if (cenaSemGenteLigada() && visualTemGenteDePapel(vDaCena)) return out // KINEO-CENA-SEM-GENTE-1411 (C) — "airmen", "scientists": o plano tem gente, fica intocado
     out = out.split(CLAUSULA_PERFORMANCE).join('')

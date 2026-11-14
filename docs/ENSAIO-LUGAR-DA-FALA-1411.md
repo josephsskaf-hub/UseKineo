@@ -86,3 +86,30 @@ Universo: 92 filmes de 30 dias com elenco, dos quais 20 têm comentário no plan
 
 ## A · Ensaio 3 de 3 pela conta da casa
 A lista dos roteiros vai à CEO por mensagem: cada um 3 vezes seguidas, JSON inteiro com `prompt_inteiro`.
+
+## v2 depois do bloqueio do revisor (CEO 14/11 10:22)
+
+### C · O bloqueio e o conserto
+- A v1 cortava a oração de comentário INTEIRA, até o fim da frase, e levava junto quem estava no quadro.
+- Cinco planos que na base saíam com gente passavam a ganhar "No people…", em todo motor:
+  - o desfile "in honor of the returning soldiers, who march past the crowd";
+  - a banda;
+  - os fogos com as famílias;
+  - a cerimônia no convés;
+  - a estátua com os operários.
+- v2, a opção que a CEO preferiu: a regra só existe para o plano que seria SEM GENTE se não fosse o comentário.
+  - Fora do comentário alguém aparece (gente, gente de papel, alguém do elenco)? O plano fica igual.
+  - Senão, dentro do comentário saem SÓ os nomes do elenco e os pronomes. "veterans", "soldiers" e "the crowd" ficam.
+- A regra mora em `lib/cinematic/comentarioDoPlano.ts`, e as duas portas usam a mesma:
+  - `cenasDoElenco` e o ajuste em `personagemAjuste.ts`;
+  - `buildStoryScenePrompt` em `sceneStyle.ts`, que ainda punha "consistent design: Earhart…" na ilha e saía contraditório com o "No people".
+- Executado no código real, regra ligada × desligada:
+  - os 5 planos do revisor e "An actor evoking Amelia Earhart walks on stage" saem IGUAIS à base (o ator segue com a ficha);
+  - só a ilha muda: sem a ficha nas duas portas e sem gente, com o nome inteiro e com o "her".
+- O corpus de 30 dias segue com os 2 casos certos da v1 (as latas de filme e o "God's presence"), que não têm gente fora do comentário.
+
+### B · Menores do revisor
+- "at the bus stop" dava "the bus", e "in the hospital room" dava "the hospital".
+- O substantivo logo depois que é PARTE do lugar (stop, room, ward, lobby, platform…) agora entra na frase. O tipo do lugar não muda.
+- "on the city bus" já dava "the city bus".
+- Corpus: os mesmos 3 filmes mudam, os 3 certos.

@@ -280,8 +280,19 @@ const lugarDeModificador = (t: string, m: RegExpMatchArray) => lugarDaFalaLigado
 /** A frase do lugar: a 1ª que não é adjetivo de outra coisa (iv); sem ela, o árido com vírgula (iii). Desligado: a de sempre. */
 function fraseDoLugar(t: string): RegExpMatchArray | null {
   if (!lugarDaFalaLigado()) return new RegExp(lugarRe().source, 'iu').exec(t)
-  for (const m of t.matchAll(new RegExp(lugarRe().source, 'giu'))) if (!lugarDeModificador(t, m)) return m
+  for (const m of t.matchAll(new RegExp(lugarRe().source, 'giu'))) if (!lugarDeModificador(t, m)) return comParteDoLugar(t, m)
   return aridoComVirgula(t)
+}
+// (vi) [revisor 14/11]: "at the bus stop" dava "the bus", "in the hospital room" dava "the hospital": a frase para no 1º nome da lista. O
+// substantivo logo depois que é PARTE do lugar (stop, room, ward, lobby, platform…) entra na frase. O tipo do lugar não muda.
+const PARTE_DO_LUGAR_RE_1411 = /^\s+(stops?|rooms?|wards?|terminals?|lobby|lobbies|corridors?|halls?|yards?|platforms?|decks?|entrances?|courtyards?|parking lots?)(?![\p{L}])/iu
+function comParteDoLugar(t: string, m: RegExpMatchArray): RegExpMatchArray {
+  const parte = PARTE_DO_LUGAR_RE_1411.exec(t.slice((m.index ?? 0) + m[0].length))
+  if (!parte) return m
+  const c = [...m] as unknown as RegExpMatchArray
+  c[1] = `${m[1]} ${parte[1]}`
+  c.index = m.index
+  return c
 }
 const PALAVRA_RE_1411 = /[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu
 /** (i) O trecho do roteiro, com a pontuação dele, que a fala da cena repete palavra a palavra. Sem trecho (ou sem roteiro): a própria fala. */
