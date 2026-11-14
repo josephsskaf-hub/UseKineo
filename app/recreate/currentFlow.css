@@ -58,3 +58,5 @@
  .recreate.rc-current-flow .rc-panel .rc-upload.rc-upload-filled,.recreate.rc-current-flow .rc-panel .rc-photos-single .rc-upload{min-height:220px}
 }
 @media(prefers-reduced-motion:reduce){.recreate.rc-current-flow *{scroll-behavior:auto!important;transition:none!important}}
+/* M12 régua do dono: nenhum texto abaixo de 12 px no fluxo novo (o rótulo "Recreate" vinha com 10 px do recreate.css). Só tamanho. */
+.recreate.rc-current-flow .rc-eyebrow{font-size:12px}
