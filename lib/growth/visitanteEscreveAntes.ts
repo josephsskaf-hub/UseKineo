@@ -48,12 +48,32 @@ function telaDoCartao(url: URL): string | null {
   return null
 }
 
+// ═══ KINEO-CARTOES-ANTES-DA-CONTA-1411 [CEO 14/11, pedido 9; auditoria da Div. 1 conferida ao vivo às 02:46] ═══════════════════════════════
+// Desde 10–11/11 (KINEO-ENTRADAS-VISITANTE-1111, lib/create/entry.ts createEntryForSignupHref) a home escreve o destino do VISITANTE com o nome
+// da tela NOVA dentro do cadastro: /signup?redirect=/create/film?…, /create/ads…, /create/cartoon…. A regra de 04/11 (acima) só conhecia
+// /studio, /ads/v2 e /kids-cartoon, então deixou de casar: 27 cartões de filme, anúncio e cartoon da home voltaram a abrir a tela de conta.
+// O conserto fica AQUI (o desvio do /signup), não na home: (1) a home é tela (área do GPT) e o HTML dela não muda; (2) quem chega ao cadastro
+// por outro caminho continua pousando na tela nova depois de entrar (o que a mudança de 11/11 queria); (3) a regra de 04/11 é uma só, com a
+// mesma lista EXATA de parâmetros. A tela nova só existe para quem está logado: para o visitante, cada nome volta à tela de 04/11 que abre sem
+// conta. Sem query, o cartão de anúncio vira o de produto e o de cartoon o da home (os parâmetros que essas telas exigem). Query que a tela
+// de 04/11 não aceita (inclusive a MARCA_DA_VOLTA de quem volta do login) = o cadastro de sempre. Logado: o middleware nem chama isto.
+export const ANUNCIO_DO_CARTAO = `/ads/v2?entry=product&utm_source=${ORIGEM_DO_CARTAO}`
+export const DESENHO_DO_CARTAO = `/kids-cartoon?utm_source=${ORIGEM_DO_CARTAO}`
+function nomeDeHoje(url: URL): string | null {
+  if (url.pathname === '/create/film') return url.search ? `/studio${url.search}` : null
+  if (url.pathname === '/create/ads') return url.search ? `/ads/v2${url.search}` : ANUNCIO_DO_CARTAO
+  if (url.pathname === '/create/cartoon') return url.search ? `/kids-cartoon${url.search}` : DESENHO_DO_CARTAO
+  return null
+}
+
 /** O destino para onde o visitante vai direto; null = o cadastro de sempre. */
 export function destinoDoVisitanteQueEscreve(pathname: string, redirect: string | null): string | null {
   if (pathname !== '/signup' || !redirect) return null
   let url: URL
   try { url = new URL(redirect, 'https://www.usekineo.com') } catch { return null }
   if (url.origin !== 'https://www.usekineo.com' || redirect.startsWith('//')) return null
+  const deHoje = nomeDeHoje(url) // KINEO-CARTOES-ANTES-DA-CONTA-1411 — a tela nova pelo nome de 04/11, com a MESMA régua abaixo
+  if (deHoje) return destinoDoVisitanteQueEscreve(pathname, deHoje)
   if (url.pathname !== '/studio') return telaDoCartao(url)
   if (!/^\/studio\?/.test(redirect) || redirect.startsWith('//')) return null
   const permitidos = new Set(['engine', 'intent_campaign'])
