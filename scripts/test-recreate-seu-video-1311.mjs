@@ -367,7 +367,7 @@ async function provasU(eu) {
 }
 const uBase = await provasU(carregaEU())
 checa(`U end_user_id em todo pedido ao Seedance 2.5, fora da impressão${uBase.length ? ': ' + uBase.join(' · ') : ''}`, uBase.length === 0)
-checa('U os dois caminhos embrulham o envio (catálogo e "seu vídeo")', r('lib/recreate/server.ts').includes('const submit = comEndUserDaFal(deps.submit, account.userId)') && srv.includes('submit: comEndUserDaFal(deps.submit, account.userId)'))
+checa('U os dois caminhos embrulham o envio (catálogo e "seu vídeo")', r('lib/recreate/server.ts').includes('const submit = comEndUserDaFal(deps.submit, account.userId)') && srv.includes('const envio = comEndUserDaFal(deps.submit, account.userId)') && srv.includes('envio(model, semMarcasDaCasa(input))')) // reancorado KINEO-RECREATE-SOM-PROVA-1311: o mesmo embrulho, agora também tirando as marcas kineo_* (guardião próprio: scripts/test-recreate-som-prova-1311.mjs)
 const MUTANTES_U = [
   ['U UUID cru', (s) => s.replace("return id ? createHash('sha256').update(FAL_END_USER_PREFIXO + id).digest('hex').slice(0, 32) : null", 'return id || null')],
   ['U sem o prefixo fixo', (s) => s.replace('.update(FAL_END_USER_PREFIXO + id)', '.update(id)')],

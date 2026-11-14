@@ -12,6 +12,7 @@ import { VISAO_TIMEOUT_MS, type IoDoTexto } from './textoDoPedido' // KINEO-RECR
 import { AI_TEXT_MODELS } from '@/lib/aiModels' // KINEO-RECREATE-TEXTO-DO-PEDIDO-1311
 import { usdFromUsage } from '@/lib/regua95/coherenceV2' // KINEO-RECREATE-TEXTO-DO-PEDIDO-1311
 import { PIXEL_MODEL_RATES } from '@/lib/regua95/pixelScore' // KINEO-RECREATE-TEXTO-DO-PEDIDO-1311
+import { semMarcasDaCasa } from './seuVideo' // KINEO-RECREATE-SOM-PROVA-1311
 import { comEndUserDaFal } from './falEndUser' // KINEO-SEEDANCE-END-USER-1311
 import {
   SEU_VIDEO_RELEASE, SEU_VIDEO_MOTOR, custoFalKling4, caminhoDoCliente, // KINEO-RECREATE-KLING4-1311 — + SEU_VIDEO_MOTOR, custoFalKling4
@@ -70,7 +71,8 @@ export async function lerVideoDoCliente(admin: SupabaseClient, userId: string, p
 /** O submitClip de sempre (saldo, débito, envio, estorno), com o acesso do motor dado pelo interruptor do "seu vídeo" (a sessão já conferiu). */
 export function seuVideoSubmitDeps(admin: SupabaseClient, userSupabase: SupabaseClient, account: ClipAccount) {
   const deps = submitDepsFor({ admin, userSupabase, account })
-  return { ...deps, engineAccess: () => ({ ok: true as const }), submit: comEndUserDaFal(deps.submit, account.userId) } // KINEO-SEEDANCE-END-USER-1311 — + submit com end_user_id
+  const envio = comEndUserDaFal(deps.submit, account.userId)
+  return { ...deps, engineAccess: () => ({ ok: true as const }), submit: (model: string, input: Record<string, unknown>) => envio(model, semMarcasDaCasa(input)) } // KINEO-SEEDANCE-END-USER-1311 — + submit com end_user_id · KINEO-RECREATE-SOM-PROVA-1311 — as marcas da casa (kineo_*) não vão à fal
 }
 
 // ═══ KINEO-RECREATE-TEXTO-DO-PEDIDO-1311 [CEO 13/11 22:46, item A] — o io REAL do texto do pedido (lib/recreate/textoDoPedido.ts) ═══

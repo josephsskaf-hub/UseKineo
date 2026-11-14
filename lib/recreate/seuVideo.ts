@@ -127,11 +127,21 @@ export const SEU_VIDEO_SOM_ORIGINAL = false
  * O som que entra na montagem: a URL do vídeo original, lida da impressão do pedido (submitClip grava [pedido, modelo, entrada da fal]).
  * Só o Seedance 2.5 e só o arquivo do PRÓPRIO dono no nosso bucket (recreate-uploads/<dono>/<uuid>.mp4|mov). Fora disso: null. Pura.
  */
+// KINEO-RECREATE-SOM-PROVA-1311 [CEO 14/11: provar o item C sem ligar o som de todo mundo] — a PROVA do som num clipe só: com o interruptor
+// global desligado, o POST /api/recreate/seu-video aceita `som_original: true` SÓ de conta da casa e grava esta marca na entrada do pedido (a
+// impressão que a liquidação lê). O embrulho do envio (seuVideoSubmitDeps) tira toda chave kineo_* antes da fal: a fal nunca a vê.
+export const MARCA_SOM_PROVA = 'kineo_som_original_prova'
+/** A entrada que vai à fal: sem as marcas da casa (kineo_*). Pura; sem marca, o mesmo objeto. */
+export function semMarcasDaCasa(input: Record<string, unknown>): Record<string, unknown> {
+  if (!Object.keys(input).some((k) => k.startsWith('kineo_'))) return input
+  return Object.fromEntries(Object.entries(input).filter(([k]) => !k.startsWith('kineo_')))
+}
 export function somOriginalDaLinha(row: { model: string | null; fingerprint: string | null; user_id: string; seconds: number }, supabaseUrl: string, ligado: boolean = SEU_VIDEO_SOM_ORIGINAL): { url: string; seconds: number } | null {
-  if (!ligado || !ehModeloDoSeuVideo(row.model) || !row.fingerprint || !supabaseUrl) return null // KINEO-RECREATE-KLING4-1311 — era: row.model !== SEEDANCE25_MODEL
+  if (!ehModeloDoSeuVideo(row.model) || !row.fingerprint || !supabaseUrl) return null // KINEO-RECREATE-KLING4-1311 — era: row.model !== SEEDANCE25_MODEL · KINEO-RECREATE-SOM-PROVA-1311 — o `ligado` vai abaixo (a marca de prova liga só este clipe)
   try {
     const p = JSON.parse(row.fingerprint) as unknown
     if (!Array.isArray(p) || p[1] !== row.model || !p[2] || typeof p[2] !== 'object') return null // KINEO-RECREATE-KLING4-1311 — era: p[1] !== SEEDANCE25_MODEL
+    if (!ligado && (p[2] as Record<string, unknown>)[MARCA_SOM_PROVA] !== true) return null // KINEO-RECREATE-SOM-PROVA-1311
     const url = (p[2] as { video_urls?: unknown }).video_urls
     const um = (p[2] as { video_url?: unknown }).video_url // KINEO-RECREATE-KLING4-1311 — o Kling recebe video_url (um só)
     const u = row.model === KLING4_EDIT_MODEL ? (typeof um === 'string' ? um : '') : Array.isArray(url) && typeof url[0] === 'string' ? url[0] : ''

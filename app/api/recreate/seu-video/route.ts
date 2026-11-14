@@ -12,6 +12,8 @@ import { lerVideoDoCliente, seuVideoSession, seuVideoSubmitDeps } from '@/lib/re
 import { entradaKling4, entradaSeedance25, modeloDoMotor, recusaDoMotor, SEU_VIDEO_LIMITES, SEU_VIDEO_MOTOR, SEU_VIDEO_VERSAO, validarPrompt } from '@/lib/recreate/seuVideo' // KINEO-RECREATE-KLING4-1311 — + Kling 4.0 edição
 import type { RecreatePlan } from '@/lib/recreate/generation'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { isInternalEmail } from '@/lib/internalAccounts' // KINEO-RECREATE-SOM-PROVA-1311
+import { MARCA_SOM_PROVA, SEU_VIDEO_SOM_ORIGINAL } from '@/lib/recreate/seuVideo' // KINEO-RECREATE-SOM-PROVA-1311
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -49,7 +51,11 @@ export async function POST(req: NextRequest) {
   if (v.gerados > 10 && !isPayingPlan(account.plan)) return refuse('plan', 'Videos longer than 10 seconds are part of the paid plans. Nothing was charged.', 402)
   const motor = SEU_VIDEO_MOTOR, model = modeloDoMotor(motor) // KINEO-RECREATE-KLING4-1311 — o interruptor do motor (Kling 4.0 edição; Seedance 2.5 intacto)
   const input = motor === 'kling4' ? entradaKling4({ prompt: pr.prompt, fotos: photos, videoUrl: v.url }) : entradaSeedance25({ prompt: pr.prompt, fotos: photos, videoUrl: v.url, gerados: v.gerados, proporcao: v.proporcao }) // KINEO-RECREATE-KLING4-1311
-  const plan: RecreatePlan = { body: { engine: 'h3', seconds: v.gerados, aspect: null, prompt: pr.prompt, imageUrl: photos[0] }, model, credits: v.creditos, falUsd: v.falUsd, photos, input }
+  // KINEO-RECREATE-SOM-PROVA-1311 [CEO 14/11] — `som_original: true` SÓ de conta da casa e só com o som global desligado: liga a montagem do som
+  // neste clipe e em nenhum outro (a marca vai na impressão do pedido; a fal não a recebe). Conta de fora mandando o campo: ignorado.
+  const provaDoSom = raw.som_original === true && !SEU_VIDEO_SOM_ORIGINAL && isInternalEmail(user.email)
+  const entrada = provaDoSom ? { ...input, [MARCA_SOM_PROVA]: true } : input
+  const plan: RecreatePlan = { body: { engine: 'h3', seconds: v.gerados, aspect: null, prompt: pr.prompt, imageUrl: photos[0] }, model, credits: v.creditos, falUsd: v.falUsd, photos, input: entrada }
   const key = req.headers.get('idempotency-key')?.trim() ?? ''
   try {
     const result = await submitClip(seuVideoSubmitDeps(admin, supabase, account), { userId: user.id, idempotencyKey: key, body: plan.body, recreatePlan: plan })
@@ -62,6 +68,7 @@ export async function POST(req: NextRequest) {
       if (motor) return json({ error: motor, code: 'engine_refused' }, result.status)
       return json({ error: result.code === 'idempotency_conflict' ? 'This request is already reserved. Check your videos before trying again.' : 'Could not start this video. Check your photos, plan and balance, then retry.', code: result.code }, result.status)
     }
+    if (!result.replay && provaDoSom) await writeServerEvent({ name: 'recreate_seu_video_som_prova', userId: user.id, path: '/api/recreate/seu-video', metadata: { versao: SEU_VIDEO_VERSAO, clip_id: result.clip.id, model, prova: true } }).catch(() => false) // KINEO-RECREATE-SOM-PROVA-1311
     if (!result.replay) await writeServerEvent({ name: 'recreate_seu_video_started', userId: user.id, path: '/api/recreate/seu-video', metadata: { versao: SEU_VIDEO_VERSAO, clip_id: result.clip.id, model, motor, video_seconds: Math.round(v.meta.segundos * 100) / 100, fps: Math.round(v.meta.fps), generated_seconds: v.gerados, aspect_ratio: v.proporcao, photos: photos.length, credits: plan.credits, fal_usd: plan.falUsd, prompt_edited: raw.prompt_edited === true, motor_redesenha_cena: motor !== 'kling4', prompt_pede_enquadramento: pr.prompt.includes('same framing and camera as @Video1'), trava_nao_trocou: true } }).catch(() => false)
     return json({ clip: { id: result.clip.id, status: result.clip.status }, replay: result.replay }, result.status)
   } catch {
