@@ -3,3 +3,23 @@
 @media(prefers-reduced-motion:reduce){.sv-page *{scroll-behavior:auto!important;animation:none!important}}
 
 @media(max-width:800px){.sv-reference .sv-frame{float:left;width:140px;height:168px;margin:0 12px 12px 0}.sv-reference .sv-file-name,.sv-reference .sv-format-note{margin-left:152px}.sv-reference>.sv-actions{margin-left:152px;display:flex}.sv-reference>.sv-actions .sv-button{width:100%}.sv-reference>.sv-catalog{clear:both;padding-top:1px}.sv-reference>.sv-alert{clear:both}.sv-reference>.sv-note:last-child{clear:both}}
+
+/* M8 · Use the site's locally loaded Manrope tokens (globals.css + manrope.css).
+   Display headings and controls share the WATCH/site family; supporting text stays at least 12px. */
+.sv-page{--muted:#c7ced6;font-family:var(--font-sans,'Manrope',Arial,Helvetica,sans-serif);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.sv-page :is(h1,h2,.sv-step,.sv-kicker,.sv-file-name,.sv-catalog summary,.sv-button,.sv-generate,.sv-count button,.sv-gender-option,.sv-position-label){font-family:var(--font-display,var(--font-sans,'Manrope',Arial,sans-serif))}
+.sv-intro h1,.sv-result h2{font-weight:750;letter-spacing:-.035em;text-wrap:balance}
+.sv-step{font-weight:700;line-height:1.35;letter-spacing:-.015em}
+.sv-step b{font-weight:750;background:#252a30;border-color:#89939f;color:var(--text)}
+.sv-kicker{font-weight:750;line-height:1.5;letter-spacing:.11em}
+.sv-file-name,.sv-catalog summary,.sv-button,.sv-count button{font-weight:650}
+.sv-note,.sv-intro>p{color:var(--muted);font-weight:500;line-height:1.6}
+.sv-photo-empty,.sv-photo small,.sv-prompt-count{color:var(--muted);font-weight:500;line-height:1.5}
+.sv-catalog-grid span{font-weight:600;line-height:1.45}
+.sv-permission{font-size:14px;line-height:1.55;color:var(--text);font-weight:500}
+.sv-gender-options{display:flex;gap:4px;width:100%;padding:6px;align-items:stretch}
+.sv-photo .sv-gender-option{flex:1;min-width:0;min-height:44px;padding:7px 3px;border:1px solid #727d89;border-radius:7px;background:#20262c;color:var(--text);font-size:12px;line-height:1.25;font-weight:650;text-align:center}
+.sv-photo .sv-gender-option[aria-pressed=true]{border-color:#e2f77a;background:#e2f77a;color:#141909;font-weight:750}
+.sv-photo .sv-gender-option:disabled{opacity:.55;cursor:default}
+.sv-position-label{display:flex;flex-direction:column;gap:6px;width:100%;padding:0 6px 8px;font-size:12px;line-height:1.5;font-weight:650;color:var(--text)}
+@media(max-width:800px){.sv-intro h1{font-size:27px;line-height:1.18}.sv-step{font-size:16px}.sv-note,.sv-intro>p{font-size:13px}.sv-permission{font-size:13px}.sv-gender-options{gap:3px;padding:5px}.sv-photo .sv-gender-option{padding-inline:2px}}
