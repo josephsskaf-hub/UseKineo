@@ -152,10 +152,10 @@ async function verify(overrides={}){
     const e=await errorOf(C,()=>f.client.generateSeuVideo(input(C,f.checked)),code,'provider refusal remains actionable')
     ok(e.outcome==='not-started'&&e.message===message&&C.isSeuVideoRefusal(code),'explicit refusal preserves server message and unlocks retry even on 5xx')
   }
-  for(const body of[{}, {code:'submit_ambiguous',error:'Could not confirm dispatch.'}]){
+  for(const body of[{}, {code:'storage',error:'Could not start the request.'}]){
     const f=await prepared(C,{errors:{[API]:{status:503,body}}})
     const e=await errorOf(C,()=>f.client.generateSeuVideo(input(C,f.checked)),body.code??'http','5xx without known refusal remains uncertain')
-    ok(e.outcome==='unknown','unconfirmed 5xx never claims not-started')
+    ok(e.outcome===(body.code?'not-started':'unknown'),'coded rejection and missing server response stay distinct')
   }
   for(const[status,amount,expected]of[['failed',undefined,false],['failed',0,false],['failed',40,true],['processing',40,false],['done',40,false]]){
     const f=transport({status:{status,...(amount===undefined?{}:{credits_refunded:amount}),video_url:'https://storage.example/video.mp4'}})
@@ -171,7 +171,7 @@ async function verify(overrides={}){
     ok(clip.message==='You were not charged.'&&clip.refundConfirmed===(amount>0),'server status message is preserved independently from refund confirmation')
   }
   const serverPresentation=W.load(PRESENTATION).seuVideoPresentation()
-  ok(serverPresentation.resolution==='720p'&&serverPresentation.audio==='silent'&&serverPresentation.minSeconds===3&&serverPresentation.maxSeconds===15&&serverPresentation.minSide===700&&serverPresentation.waitLabel==='About 1.5–2 minutes','server presentation follows current resolution audio wait and validation')
+  ok(serverPresentation.resolution==='720p'&&serverPresentation.audio==='silent'&&serverPresentation.minSeconds===3&&serverPresentation.maxSeconds===15&&serverPresentation.minSide===700&&serverPresentation.waitLabel==='About 2 minutes','server presentation follows current resolution audio wait and validation')
   ok(!JSON.stringify(serverPresentation).match(/kling|seedance|fal|model|0\.094|0\.1323/i),'public presentation contains no provider details')
   const singular='Replace the main person in @Video1 with the man from @Image1: his face and hair match @Image1. Keep the choreography, timing, camera, framing, background and lighting of @Video1 exactly. Keep the original clothing from @Video1.'
   ok(C.genderSeuVideoPrompt(['man'])===singular,'approved singular prompt is exact')
@@ -208,7 +208,7 @@ const baselineChecks=checks
 const replace=(from,to,rel=CLIENT)=>{const s=read(rel);assert.equal(s.split(from).length-1,1,'unique mutant anchor '+from);return{[rel]:s.replace(from,to)}}
 const mutations=[
   ['browser imports whole provider module',()=>replace("validarPrompt, promptPorGenero,\n} from './seuVideoRules'","validarPrompt, promptPorGenero,\n} from './seuVideo'"),'browser dependency graph excludes provider module'],
-  ['explicit refusal stays uncertain on 5xx',()=>replace("&& !refused &&",'&&'),'explicit refusal preserves server message and unlocks retry even on 5xx'],
+  ['explicit refusal stays uncertain on 5xx',()=>replace(' && !hasServerCode',''),'explicit refusal preserves server message and unlocks retry even on 5xx'],
   ['server failure message replaced',()=>replace("let message = typeof data.error === 'string' ? data.error : 'This step could not finish. Please retry.'","let message = 'Please retry.'"),'explicit refusal preserves server message and unlocks retry even on 5xx'],
   ['gender prompt falsely unedited',()=>replace('input.promptEdited === true || !!genders || prompt.prompt !== checked.prompt','input.promptEdited === true || prompt.prompt !== checked.prompt'),'gender-based prompt is edited even when equal to checked prompt'],
   ['local dimension check removed',()=>replace('if (limits && Math.min(meta.largura, meta.altura) < limits.minSide)','if (false)'),'server-selected limits reject locally before uploads'],

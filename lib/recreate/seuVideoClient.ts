@@ -166,8 +166,8 @@ export function createSeuVideoClient(deps: SeuVideoClientDeps = {}) {
       if (res.status === 401) message = 'Sign in to continue. Your files are still here.'
       if (res.status === 404) message = APPROVED_ONLY
       if (code === 'idempotency_conflict') message = 'This request key is already in use. Check My videos before starting another request.'
-      const refused = isSeuVideoRefusal(code)
-      throw new SeuVideoClientError(message, code, phase, res.status, phase === 'generate' && !refused && (res.status >= 500 || code === 'idempotency_conflict') ? 'unknown' : 'not-started', finite(data.shortfall) ? data.shortfall : undefined)
+      const hasServerCode = typeof data.code === 'string' && data.code.trim().length > 0
+      throw new SeuVideoClientError(message, code, phase, res.status, phase === 'generate' && res.status >= 500 && !hasServerCode ? 'unknown' : 'not-started', finite(data.shortfall) ? data.shortfall : undefined)
     }
     if (Object.keys(data).length === 0) throw new SeuVideoClientError('Could not read the response. Keep this page open and retry the same request.', 'response', phase, res.status, phase === 'generate' ? 'unknown' : 'not-started')
     return data

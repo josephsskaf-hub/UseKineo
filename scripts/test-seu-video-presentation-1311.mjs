@@ -34,7 +34,7 @@ async function verify(overrides={}){
   ok(legacy.status===200&&legacy.body.prompt===m.promptDoSeuVideo(m.SEU_VIDEO_MOTOR,1,[]),'legacy check keeps its existing default prompt')
   ok(JSON.stringify(legacy.body.presentation)===JSON.stringify(presentation),'check and SSR share the selected presentation')
   ok(legacy.body.credits===40&&legacy.body.balance===99&&legacy.body.shortfall===0&&legacy.body.needs_plan===false,'additive presentation preserves checked quote and account fields')
-  ok(presentation.resolution==='720p'&&presentation.minSeconds===3&&presentation.minSide===700&&presentation.audio==='silent'&&presentation.waitLabel==='About 1.5–2 minutes','public facts derive from current server configuration')
+  ok(presentation.resolution==='720p'&&presentation.minSeconds===3&&presentation.minSide===700&&presentation.audio==='silent'&&presentation.waitLabel==='About 2 minutes','public facts derive from current server configuration')
   ok(!/kling|seedance|fal|model|usd|0\.094|0\.1323/i.test(JSON.stringify(presentation)),'public facts contain no provider identity or supplier price')
   for(const genders of[['man'],['woman'],['man','woman'],['woman','man','woman']]){
     const positions=genders.length===1?[]:genders.length===2?['on the left','on the right']:['on the left','in the center','on the right']
