@@ -1,3 +1,4 @@
+  ok mutant: edited prompt telemetry lost
   ok mutant: default credits hardcoded
   ok mutant: cost confirmation ignored
   ok mutant: automatic constructor endpoint
@@ -6,4 +7,4 @@
   ok mutant: changed key payload allowed
   ok mutant: refund inferred from failure
   ok mutant: photo permission removed
-PASS seuVideoClient: 80 checks and 8 mutants; injected I/O only.
+PASS seuVideoClient: 82 checks and 9 mutants; injected I/O only.

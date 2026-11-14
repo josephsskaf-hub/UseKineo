@@ -1,8 +1,9 @@
 // Browser orchestration only. Creating this client and editing/selecting local
 // files never sends a request. Call prepare/generate only from explicit Generate.
 import { compressPhoto } from './photos'
+import { seuVideoContentType } from './seuVideoFileType'
 import {
-  SEU_VIDEO_LIMITES, SEU_VIDEO_TIPOS, lerMetaDoVideo,
+  SEU_VIDEO_LIMITES, lerMetaDoVideo,
   segundosGerados, creditosDoSeuVideo, promptPadrao, validarPrompt,
 } from './seuVideo'
 
@@ -97,10 +98,8 @@ export function validateSeuVideoPhotos(photos: readonly File[]): void {
 /** Local bytes only; the server remains the authority for fps and final quote. */
 export async function validateSeuVideoFile(file: File): Promise<LocalSeuVideo> {
   if (!file || !finite(file.size) || file.size <= 0 || file.size > SEU_VIDEO_LIMITES.maxBytes) fail('Choose a video up to 100 MB.', 'size')
-  const name = String(file.name ?? '').toLowerCase(), mime = String(file.type ?? '').toLowerCase()
-  const generic = !mime || mime === 'application/octet-stream'
-  const contentType = (generic ? /\.mov$/.test(name) ? 'video/quicktime' : /\.mp4$/.test(name) ? 'video/mp4' : '' : mime) as 'video/mp4' | 'video/quicktime'
-  if (/\.webm$/.test(name) || !(SEU_VIDEO_TIPOS as readonly string[]).includes(contentType)) fail('Choose an MP4 or MOV video. WebM is not supported.', 'format')
+  const contentType = seuVideoContentType(file)
+  if (!contentType) fail('Choose an MP4 or MOV video. WebM is not supported.', 'format')
   const meta = await lerMetaDoVideo(async (start, end) => new Uint8Array(await file.slice(start, end + 1).arrayBuffer()), file.size)
   if (!meta || !finite(meta.segundos) || !finite(meta.largura) || !finite(meta.altura) || meta.largura <= 0 || meta.altura <= 0) fail('Could not read this video. Choose an MP4 or MOV video.', 'format')
   if (meta.segundos < SEU_VIDEO_LIMITES.minSegundos || meta.segundos > SEU_VIDEO_LIMITES.maxSegundos) fail('Choose a video between 2 and 15 seconds long.', 'duration')
@@ -204,7 +203,7 @@ export function createSeuVideoClient(deps: SeuVideoClientDeps = {}) {
     if (!prompt.ok) fail(prompt.error.replace(/ Nothing was charged\./g, ''), 'prompt')
     // Same accepted key format as clipFlow; the caller owns its lifetime.
     if (typeof input.key !== 'string' || !/^[A-Za-z0-9._:-]{8,100}$/.test(input.key)) fail('Keep a valid request key before generating.', 'idempotency')
-    const selectedPhotos = [...input.photos], key = input.key
+    const selectedPhotos = [...input.photos], key = input.key, promptEdited = prompt.prompt !== checked.prompt
     const photoIds = selectedPhotos.map(file => { if (!fileIds.has(file)) fileIds.set(file, ++nextFileId); return fileIds.get(file) })
     const fingerprint = JSON.stringify([checked.video_path, checked.people, prompt.prompt, photoIds, true])
     const existing = jobs.get(key)
@@ -217,7 +216,7 @@ export function createSeuVideoClient(deps: SeuVideoClientDeps = {}) {
       const photos: string[] = []
       for (const file of selectedPhotos) photos.push(await uploadPhoto(file, signal))
       abort(signal)
-      const data = await jsonRequest(API, 'generate', { method: 'POST', headers: { 'Content-Type': 'application/json', 'idempotency-key': key }, body: JSON.stringify({ video_path: checked.video_path, photos, prompt: prompt.prompt, consent: true }), signal })
+      const data = await jsonRequest(API, 'generate', { method: 'POST', headers: { 'Content-Type': 'application/json', 'idempotency-key': key }, body: JSON.stringify({ video_path: checked.video_path, photos, prompt: prompt.prompt, consent: true, prompt_edited: promptEdited }), signal })
       const result = Object.freeze({ clip: clipFrom(data.clip, 'generate'), replay: data.replay === true, key })
       job.result = result
       return result

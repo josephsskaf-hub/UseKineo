@@ -14,7 +14,7 @@ const { renderToStaticMarkup } = dependency('react-dom/server')
 const jsx = dependency('react/jsx-runtime')
 const UI = 'app/recreate-preview/SeuVideoRecreateClient.tsx', PAGE = 'app/recreate-preview/page.tsx'
 const texts = new Map()
-const read = relative => { if (!texts.has(relative)) texts.set(relative, fs.readFileSync(path.join(ROOT, relative), 'utf8')); return texts.get(relative) }
+const read = relative => { if (!texts.has(relative)) texts.set(relative, fs.readFileSync(path.join(ROOT, relative), 'utf8').replace(/\r\n/g,'\n')); return texts.get(relative) }
 const same = (a, b) => !!a && !!b && a.length === b.length && a.every((value, index) => Object.is(value, b[index]))
 let assertions = 0
 function check(value, tag, detail = '') { assertions++; assert.ok(value, tag + (detail ? ': ' + detail : '')) }
@@ -450,11 +450,11 @@ async function statusScenario(override) {
   check(/3–4 minutes/.test(text(pending.tree)), 'pending-honest-wait')
   await pending.click(button(pending, /^Refresh status$/))
   equal(pending.calls.generate.length, 1, 'status-error-refresh-never-generates')
-  const output = 'https://media.fixture.invalid/owned-result.mp4'
+  const output = 'https://media-fixture.supabase.co/storage/v1/object/public/renders/clips/house0001/owned-result.mp4'
   const done = harness({ props: { signedIn: true, generationAllowed: true, accountKey: 'house' }, statusQueue: [{ id: 'fixture-clip', status: 'done', video_url: output, refundConfirmed: false }] }, override)
   await ready(done); await done.click(generateButton(done))
   equal(by(done, node => node.type === 'video').props.src, loadModule('lib/videoPrimeiroQuadro.ts').comPrimeiroQuadro(output), 'done-output-first-frame-from-owned-status')
-  equal(by(done, node => node.type === 'a' && Object.hasOwn(node.props, 'download')).props.href, output, 'done-download-matches-displayed-video')
+  equal(by(done, node => node.type === 'a' && Object.hasOwn(node.props, 'download')).props.href, loadModule('lib/downloadNosso.ts').downloadHref(output,'kineo-recreate-fixture-clip.mp4','recreate-preview'), 'done-download-through-owned-domain')
   equal(nodes(done.tree, node => node.type === 'progress').length, 0, 'done-removes-progress')
   equal(done.calls.generate.length, 1, 'done-does-not-restart-generation')
 }
@@ -520,6 +520,7 @@ function replaceOnce(original, anchor, replacement) {
 }
 const uiSource = read(UI), pageSource = read(PAGE)
 const mutants = [
+  ['done download bypasses owned domain', 'status', replaceOnce(uiSource, "href={downloadHref(clip.video_url,'kineo-recreate-'+clip.id+'.mp4','recreate-preview')}", 'href={clip.video_url}'), /done-download-through-owned-domain/],
   ['done preview loses first frame', 'status', replaceOnce(uiSource, 'src={comPrimeiroQuadro(clip.video_url)}', 'src={clip.video_url}'), /done-output-first-frame-from-owned-status/],
   ['public action', 'page', replaceOnce(pageSource, 'generationAllowed={!!user&&releaseVisible(user.email,SEU_VIDEO_RELEASE)}', 'generationAllowed={!!user}'), /page-internal-action-gate/],
   ['index preview', 'page', replaceOnce(pageSource, 'index:false,follow:true,googleBot', 'index:true,follow:true,googleBot'), /preview-noindex/],

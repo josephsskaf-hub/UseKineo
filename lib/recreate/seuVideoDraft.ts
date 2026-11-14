@@ -1,8 +1,9 @@
 'use client'
 
 // Browser-local handoff only. No network, auth, render intent, signed path or server result is persisted.
-import { SEU_VIDEO_LIMITES, SEU_VIDEO_TIPOS } from './seuVideo'
+import { SEU_VIDEO_LIMITES } from './seuVideo'
 import { seuVideoCatalogItem } from './seuVideoCatalog'
+import { seuVideoContentType } from './seuVideoFileType'
 
 export type SeuVideoDraft = {
   source: { kind: 'upload'; file: File } | { kind: 'catalog'; id: string }
@@ -37,18 +38,23 @@ const keyValid = (key: unknown) => key === undefined || typeof key === 'string' 
 function catalogId(id: unknown): id is string {
   return typeof id === 'string' && /^[a-z0-9-]{1,100}$/.test(id) && seuVideoCatalogItem(id) !== null
 }
-function validBlob(blob: unknown, video: boolean): blob is Blob {
-  return typeof Blob !== 'undefined' && blob instanceof Blob && blob.size > 0 && blob.size <= (video ? SEU_VIDEO_LIMITES.maxBytes : PHOTO_MAX_BYTES) && (video ? (SEU_VIDEO_TIPOS as readonly string[]).includes(blob.type) : ['image/jpeg', 'image/png', 'image/webp'].includes(blob.type))
+function validBlob(blob: unknown, video: boolean, name = ''): blob is Blob {
+  return typeof Blob !== 'undefined' && blob instanceof Blob && blob.size > 0 && blob.size <= (video ? SEU_VIDEO_LIMITES.maxBytes : PHOTO_MAX_BYTES) && (video ? seuVideoContentType({ name, type: blob.type }) !== null : ['image/jpeg', 'image/png', 'image/webp'].includes(blob.type))
 }
 function validInput(value: unknown): value is SeuVideoDraft {
   if (!object(value) || !only(value, ['source', 'photos', 'prompt', 'people', 'consent', 'requestKey']) || !object(value.source)) return false
   const source = value.source
-  if (source.kind === 'upload') { if (!only(source, ['kind', 'file']) || typeof File === 'undefined' || !(source.file instanceof File) || !validBlob(source.file, true)) return false }
+  if (source.kind === 'upload') { if (!only(source, ['kind', 'file']) || typeof File === 'undefined' || !(source.file instanceof File) || !validBlob(source.file, true, source.file.name)) return false }
   else if (source.kind !== 'catalog' || !only(source, ['kind', 'id']) || !catalogId(source.id)) return false
   return [1, 2, 3].includes(value.people as number) && Array.isArray(value.photos) && value.photos.length === value.people && value.photos.length <= SEU_VIDEO_LIMITES.maxFotos && value.photos.every(file => typeof File !== 'undefined' && file instanceof File && validBlob(file, false)) && typeof value.prompt === 'string' && value.prompt.length <= SEU_VIDEO_LIMITES.maxPrompt && typeof value.consent === 'boolean' && keyValid(value.requestKey)
 }
-function pack(file: File): StoredFile { return { blob: file.slice(0, file.size, file.type), name: file.name.replace(/[\\/:?*|<>\u0000-\u001f]/g, '_').slice(0, 200) || 'file', lastModified: Number.isFinite(file.lastModified) && file.lastModified >= 0 ? file.lastModified : 0 } }
-function validStoredFile(value: unknown, video: boolean): value is StoredFile { return object(value) && only(value, ['blob', 'name', 'lastModified']) && validBlob(value.blob, video) && typeof value.name === 'string' && value.name.length > 0 && value.name.length <= 200 && !/[\\/:?*|<>\u0000-\u001f]/.test(value.name) && typeof value.lastModified === 'number' && Number.isFinite(value.lastModified) && value.lastModified >= 0 }
+function pack(file: File): StoredFile {
+  const safeName = file.name.replace(/[\\/:?*|<>\u0000-\u001f]/g, '_') || 'file', extension = /\.(?:mp4|mov)$/i.exec(safeName)?.[0] ?? ''
+  // Generic MIME depends on the suffix; truncating a long name must not make a saved video unreadable.
+  const name = safeName.length > 200 && extension ? safeName.slice(0, 200 - extension.length) + extension : safeName.slice(0, 200)
+  return { blob: file.slice(0, file.size, file.type), name, lastModified: Number.isFinite(file.lastModified) && file.lastModified >= 0 ? file.lastModified : 0 }
+}
+function validStoredFile(value: unknown, video: boolean): value is StoredFile { return object(value) && only(value, ['blob', 'name', 'lastModified']) && typeof value.name === 'string' && value.name.length > 0 && value.name.length <= 200 && !/[\\/:?*|<>\u0000-\u001f]/.test(value.name) && validBlob(value.blob, video, value.name) && typeof value.lastModified === 'number' && Number.isFinite(value.lastModified) && value.lastModified >= 0 }
 function unpack(file: StoredFile): File { return new File([file.blob], file.name, { type: file.blob.type, lastModified: file.lastModified }) }
 function validStored(value: unknown, ref: Reference): value is StoredDraft {
   if (!object(value) || !only(value, ['version', 'tab', 'id', 'at', 'source', 'photos', 'prompt', 'people', 'consent', 'requestKey']) || value.version !== 1 || value.tab !== ref.owner || value.id !== ref.id || !fresh(value.at) || !object(value.source)) return false

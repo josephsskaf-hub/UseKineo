@@ -178,5 +178,25 @@
       "scrollWidth": 375,
       "width": 390
     }
+  },
+  {
+    "name": "depois-390",
+    "w": 390,
+    "h": 844,
+    "viewport": {
+      "height": 844,
+      "scrollWidth": 390,
+      "width": 390
+    }
+  },
+  {
+    "name": "depois-1920",
+    "w": 1920,
+    "h": 1080,
+    "viewport": {
+      "height": 1080,
+      "scrollWidth": 1916,
+      "width": 1920
+    }
   }
 ]

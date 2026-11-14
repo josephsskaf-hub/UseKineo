@@ -94,15 +94,17 @@ async function verify(overrides={}){
   ok(changed.t.calls.length===before,'cost mismatch sends no photos or generation')
   await changed.client.generateSeuVideo(input(C,changed.checked))
   ok(count(changed.t,API)===1,'new confirmed checked price permits generation')
+  ok(changed.t.calls.find(c=>c.url===API).body.prompt_edited===true,'edited prompt telemetry reflects actual difference from checked instruction')
   await errorOf(C,()=>client.generateSeuVideo({...input(C,checked),checked:{...checked}}),'check_required','only issued checked object can generate')
 
-  const files=[photo('one.jpg'),photo('two.jpg')],two=await prepared(C,{},2),twoInput=input(C,two.checked,files)
+  const files=[photo('one.jpg'),photo('two.jpg')],two=await prepared(C,{check:{prompt:C.defaultSeuVideoPrompt(2)}},2),twoInput=input(C,two.checked,files)
   await Promise.all([two.client.generateSeuVideo(twoInput),two.client.generateSeuVideo(twoInput)])
   await two.client.generateSeuVideo(twoInput)
   ok(count(two.t,API)===1&&count(two.t,'/api/avatar/upload')===2,'same concurrent and completed key never resubmits')
   const forms=two.t.calls.filter(c=>c.url==='/api/avatar/upload')
   ok(forms.every(c=>c.body instanceof FormData&&c.body.get('purpose')==='animate'&&c.body.get('rights')==='true'&&c.body.get('file') instanceof File),'photos reuse own-account animate upload contract')
   const posted=two.t.calls.find(c=>c.url===API)
+  ok(posted.body.prompt_edited===false,'unchanged prompt telemetry stays false')
   ok(posted.headers['idempotency-key']===twoInput.key&&posted.body.video_path===two.checked.video_path&&posted.body.photos.length===2&&posted.body.consent===true&&!('engine'in posted.body)&&!('credits'in posted.body),'generation request keeps exact backend contract and key')
   const sameCount=two.t.calls.length
   await errorOf(C,()=>two.client.generateSeuVideo({...twoInput,prompt:twoInput.prompt+' Different request.'}),'idempotency_conflict','same key cannot change request inputs')
@@ -166,6 +168,7 @@ await verify()
 const baselineChecks=checks
 const replace=(from,to)=>{const s=read(CLIENT);assert.equal(s.split(from).length-1,1,'unique mutant anchor '+from);return{[CLIENT]:s.replace(from,to)}}
 const mutations=[
+  ['edited prompt telemetry lost',()=>replace('prompt_edited: promptEdited','prompt_edited: false'),'edited prompt telemetry reflects actual difference from checked instruction'],
   ['default credits hardcoded',()=>replace('return creditosDoSeuVideo(segundosGerados(seconds))','return 40'),'pricing comes from shared helper'],
   ['cost confirmation ignored',()=>replace('if (!finite(input.confirmedCredits) || input.confirmedCredits !== checked.credits)','if (false)'),'changed cost requires new confirmation before photos'],
   ['automatic constructor endpoint',()=>replace("  const jobs = new Map<string,", "  void request('/api/should-not-run', {}).catch(() => {})\n  const jobs = new Map<string,"),'initialization performs no endpoint calls'],

@@ -13,8 +13,8 @@
       "file": "prints/depois-390.jpg",
       "width": 390,
       "height": 844,
-      "bytes": 49323,
-      "sha256": "395c1359fa9ce53e1ea80bca12145b5b58da0fcc4fde07f54c03001f49f67dd5"
+      "bytes": 49027,
+      "sha256": "cac7f6aff0f0cf68cce46d7ff43f7819401ac078cd3eff126514d081b66936f3"
     },
     {
       "file": "prints/antes-1920.jpg",
@@ -27,8 +27,8 @@
       "file": "prints/depois-1920.jpg",
       "width": 1920,
       "height": 1080,
-      "bytes": 135076,
-      "sha256": "a6db73ce915d5ab03d2c9011ced48183f311f72dccda97949d0699f78695198e"
+      "bytes": 135043,
+      "sha256": "65ebc393eb634efcadb1ebffadd197eae69931bdd7f63002f60d28a3da93a269"
     },
     {
       "file": "prints/editor-390.jpg",

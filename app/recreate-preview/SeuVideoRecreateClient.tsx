@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { cadastroComVolta } from '@/lib/growth/visitanteEscreveAntes'
 import { comPrimeiroQuadro } from '@/lib/videoPrimeiroQuadro'
+import { downloadHref } from '@/lib/downloadNosso'
 import { SEU_VIDEO_LIMITES, validarPrompt } from '@/lib/recreate/seuVideo'
 import { SEU_VIDEO_CATALOG, seuVideoCatalogItem } from '@/lib/recreate/seuVideoCatalog'
 import { SEU_VIDEO_PREVIEW_PATH } from '@/lib/recreate/seuVideoPreviewRelease'
@@ -213,7 +214,7 @@ export default function SeuVideoRecreateClient({signedIn,generationAllowed,accou
     <div className="sv-wrap"><div className="sv-intro"><div><p className="sv-kicker">Recreate · preview</p><h1>Recreate with your video</h1></div><p>480p · silent video. Generation is currently limited to approved accounts.</p></div>
       {clip ? <section className="sv-card sv-result" aria-live="polite" data-seu-video-result={clip.status}>
         <h2>{clip.status==='done'?'Your version is ready':clip.status==='failed'?'This version could not be completed':'Creating your version'}</h2>
-        {clip.status==='done'&&clip.video_url?<><video src={comPrimeiroQuadro(clip.video_url)} controls playsInline preload="metadata" aria-label="Your generated video"/><div className="sv-actions"><a className="sv-button" href={clip.video_url} download>Download</a><Link className="sv-button" href="/library">My videos ↗</Link></div></>:null}
+        {clip.status==='done'&&clip.video_url?<><video src={comPrimeiroQuadro(clip.video_url)} controls playsInline preload="metadata" aria-label="Your generated video"/><div className="sv-actions"><a className="sv-button" href={downloadHref(clip.video_url,'kineo-recreate-'+clip.id+'.mp4','recreate-preview')} download>Download</a><Link className="sv-button" href="/library">My videos ↗</Link></div></>:null}
         {clip.status==='pending'||clip.status==='processing'?<><progress aria-label="Creating your video"/><p>About 3–4 minutes. You can leave this page; your video will be in My videos.</p><p className="sv-note">No sound is generated in this first version.</p></>:null}
         {clip.status==='failed'?<><p>{clip.reason==='engine_refused'?'The engine could not complete this video with these photos. Try another photo or video.':'This request failed.'}</p><p>{clip.refundConfirmed?`${clip.credits_refunded} credits were returned.`:'The credit return has not been confirmed yet. Refresh the status or check My videos.'}</p></>:null}
         {message?<p className="sv-alert" role="status">{message}</p>:null}<div className="sv-actions"><button className="sv-button" type="button" onClick={()=>{setMessage('');setStatusRetry(n=>n+1)}}>Refresh status</button><Link className="sv-button" href="/library">My videos ↗</Link>{['done','failed'].includes(clip.status)?<button className="sv-button" type="button" onClick={makeAnother}>Make another</button>:null}</div>

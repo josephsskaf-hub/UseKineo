@@ -16,6 +16,7 @@ const ROOT = path.resolve(options.root ?? path.join(path.dirname(fileURLToPath(i
 const DEPS = path.resolve(options.deps ?? ROOT)
 const require = createRequire(import.meta.url), ts = require(require.resolve('typescript', { paths: [DEPS] }))
 const MODULE = 'lib/recreate/seuVideoDraft.ts'
+const FILE_TYPE = 'lib/recreate/seuVideoFileType.ts'
 const compiled = new Map()
 function read(file) {
   // Missing runtime files must fail: never substitute a sibling checkout or historical source.
@@ -72,7 +73,7 @@ function world({ storage = session(), idb = database(), override = null } = {}) 
   function load(file) {
     file = file.replace(/^@\//, ''); if (!/\.(?:ts|json)$/.test(file)) file += '.ts'
     if (cache.has(file)) return cache.get(file)
-    const source = file === MODULE && override !== null ? override : read(file)
+    const source = file === MODULE && typeof override === 'string' ? override : override && typeof override === 'object' && Object.hasOwn(override, file) ? override[file] : read(file)
     if (file.endsWith('.json')) return JSON.parse(source)
     const key = file + '\0' + source
     if (!compiled.has(key)) { const ast = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true); assert.equal(ast.parseDiagnostics.length, 0, 'source parses'); compiled.set(key, ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText) }
@@ -109,6 +110,28 @@ async function verify(override = null) {
   check('email', (await b.api.restoreSeuVideoDraft()).prompt === original.prompt, 'adopted ref supports later idempotent reads')
   await rejectsCode('ref', () => b.api.restoreSeuVideoDraft('https://storage.invalid/signed?token=secret'), b.api, 'corrupt')
   await rejectsCode('ref', () => b.api.clearSeuVideoDraft('../other-draft'), b.api, 'corrupt')
+
+  const fileTypes = world({ override }), contentType = fileTypes.load(FILE_TYPE).seuVideoContentType
+  for (const [name, type, expected] of [['source.mp4', '', 'video/mp4'], ['source.mov', '', 'video/quicktime'], ['SOURCE.MP4', 'application/octet-stream', 'video/mp4'], ['SOURCE.MOV', 'application/octet-stream', 'video/quicktime']]) {
+    const file = new File(['unchanged movie bytes'], name, { type, lastModified: 123 })
+    const editable = draft({ source: { kind: 'upload', file } })
+    check('generic-mime', contentType(file) === expected, 'generic MIME inferred from approved extension only')
+    check('generic-mime', await fileTypes.api.saveSeuVideoDraft(editable), 'generic MIME selected by the client can be saved: ' + name + '/' + type)
+    const restored = await fileTypes.api.restoreSeuVideoDraft()
+    check('generic-mime', restored?.source.kind === 'upload' && restored.source.file instanceof File && restored.source.file.type === type && restored.source.file.name === name && restored.source.file.lastModified === 123 && await restored.source.file.text() === 'unchanged movie bytes' && restored.requestKey === editable.requestKey, 'roundtrip preserves the original bytes, metadata and key without rewriting MIME')
+  }
+  const longName = new File(['long-name movie bytes'], 'x'.repeat(220) + '.MOV', { type: '' })
+  check('generic-mime', await fileTypes.api.saveSeuVideoDraft(draft({ source: { kind: 'upload', file: longName } })), 'long generic-MIME video name can be saved')
+  const restoredLongName = await fileTypes.api.restoreSeuVideoDraft()
+  check('generic-mime', restoredLongName?.source.kind === 'upload' && restoredLongName.source.file.name.length <= 200 && restoredLongName.source.file.name.endsWith('.MOV') && restoredLongName.source.file.type === '' && await restoredLongName.source.file.text() === 'long-name movie bytes', 'bounded filename preserves the suffix needed for restoring generic MIME')
+  for (const [name, type] of [['fake.mp4', 'video/webm'], ['fake.mov', 'video/webm'], ['fake.webm', 'video/mp4'], ['fake.webm', 'application/octet-stream'], ['fake.mp4', 'image/png'], ['fake.bin', ''], ['fake.bin', 'application/octet-stream']]) {
+    const file = new File(['unapproved bytes'], name, { type })
+    check('file-type-rejection', contentType(file) === null && !await fileTypes.api.saveSeuVideoDraft(draft({ source: { kind: 'upload', file } })), 'explicit incompatible MIME or extension cannot masquerade as MP4/MOV: ' + name + '/' + type)
+  }
+  const savedGeneric = fileTypes.idb.state.rows.get(fileTypes.api.getSeuVideoDraftRef())
+  savedGeneric.source.file.blob = new Blob(['webm bytes'], { type: 'video/webm' })
+  savedGeneric.source.file.name = 'masquerade.mp4'
+  await rejectsCode('file-type-rejection', () => fileTypes.api.restoreSeuVideoDraft(), fileTypes.api, 'corrupt')
 
   const catalog = world({ override })
   check('catalog', await catalog.api.saveSeuVideoDraft(draft({ source: { kind: 'catalog', id: 'selfie-confete' } })), 'canonical public swap stores its ID only')
@@ -168,11 +191,13 @@ async function verify(override = null) {
   check('clear', !a.idb.state.rows.has(ref) && b.api.getSeuVideoDraftRef() === null && await a.api.restoreSeuVideoDraft() === null, 'clear from adopted tab clears same bytes; old pointer cannot resurrect them')
   check('cleanup', a.idb.state.opened === a.idb.state.closed, 'successful and failed transactions close their DB connection')
 }
-await verify(); const baseline = checks, original = read(MODULE)
+await verify(); const baseline = checks, original = read(MODULE), fileTypeOriginal = read(FILE_TYPE)
 const mutants = [
   ['restore consumes early', 'idempotent', original.replace('await expire()\n    if (explicitRef !== undefined) adopt', "await transaction('readwrite', store => store.delete(id))\n    await expire()\n    if (explicitRef !== undefined) adopt")],
   ['TTL ignored', 'ttl', original.replace('Date.now() - at <= TTL', 'true')],
-  ['WebM accepted', 'validation', original.replace('(SEU_VIDEO_TIPOS as readonly string[]).includes(blob.type)', 'true')],
+  ['WebM accepted', 'file-type-rejection', original.replace('seuVideoContentType({ name, type: blob.type }) !== null', 'true')],
+  ['generic MIME rejected before extension inference', 'generic-mime', { [FILE_TYPE]: fileTypeOriginal.replace("type !== '' && type !== 'application/octet-stream'", 'true') }],
+  ['explicit WebM MIME gets extension fallback', 'file-type-rejection', { [FILE_TYPE]: fileTypeOriginal.replace("type !== '' && type !== 'application/octet-stream'", 'false') }],
   ['quota reported as success', 'quota', original.replace('} catch {} return false }', '} catch {} return true }')],
   ['cross-tab implicit pointer trusted', 'namespace', original.replace('return ref.tab === tab(false) ?', 'return true ?')],
   ['unknown server data accepted', 'validation', original.replace("!only(source, ['kind', 'id'])", 'false')],
@@ -180,7 +205,7 @@ const mutants = [
   ['idempotency key lost on return', 'identity', original.replace('...(record.requestKey === undefined ? {} : { requestKey: record.requestKey })', '...{}')],
 ]
 for (const [name, id, mutant] of mutants) {
-  assert.notEqual(mutant, original, 'Mutation must apply: ' + name)
+  assert.notEqual(typeof mutant === 'string' ? mutant : mutant[FILE_TYPE], typeof mutant === 'string' ? original : fileTypeOriginal, 'Mutation must apply: ' + name)
   let error; try { await verify(mutant) } catch (e) { error = e }
   assert(error instanceof assert.AssertionError, 'Only AssertionError counts; execution errors never kill mutants: ' + name + ' ' + error?.stack)
   assert(error.message.startsWith('[' + id + ']'), name + ': wrong guard: ' + error.message)

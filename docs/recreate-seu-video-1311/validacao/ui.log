@@ -11,4 +11,4 @@ PASS retry
 PASS refusal
 PASS status
 PASS recheck
-Recreate own-video UI: 13 scenarios, 163 baseline assertions, 24 meaningful mutants rejected. SSR/handlers only; no browser, server, backend or paid generation.
+Recreate own-video UI: 13 scenarios, 163 baseline assertions, 25 meaningful mutants rejected. SSR/handlers only; no browser, server, backend or paid generation.

@@ -1,12 +1,15 @@
- ⚠ Linting is disabled.
   ▲ Next.js 14.2.5
 
    Creating an optimized production build ...
 Browserslist: browsers data (caniuse-lite) is 6 months old. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
  ✓ Compiled successfully
    Skipping validation of types
+   Skipping linting
    Collecting page data ...
  ⚠ Using edge runtime on a page currently disables static generation for that page
    Generating static pages (0/646) ...
@@ -22,7 +25,7 @@ Browserslist: browsers data (caniuse-lite) is 6 months old. Please run:
 
 Route (app)                                               Size     First Load JS
 ┌ ƒ /                                                     415 B           454 kB
-├ ○ /_not-found                                           209 B          88.3 kB
+├ ○ /_not-found                                           210 B          88.3 kB
 ├ ƒ /.well-known/oauth-authorization-server               0 B                0 B
 ├ ƒ /.well-known/oauth-protected-resource                 0 B                0 B
 ├ ƒ /.well-known/oauth-protected-resource/api/mcp/studio  0 B                0 B
@@ -57,11 +60,11 @@ Route (app)                                               Size     First Load JS
 ├   ├ /ads/for/dentists-and-clinics
 ├   ├ /ads/for/real-estate
 ├   └ [+5 more paths]
-├ ƒ /ads/new                                              42.8 kB         177 kB
+├ ƒ /ads/new                                              42.8 kB         178 kB
 ├ ƒ /ads/producao                                         15.1 kB         270 kB
 ├ ƒ /ads/team                                             2.83 kB         258 kB
 ├ ƒ /ads/team/join                                        1.47 kB        89.5 kB
-├ ƒ /ads/v2                                               2.71 kB         695 kB
+├ ƒ /ads/v2                                               2.71 kB         696 kB
 ├ ƒ /affiliate                                            12.4 kB         111 kB
 ├ ○ /agencies                                             5.31 kB         312 kB
 ├ ƒ /agency-production-scope.txt                          0 B                0 B
@@ -73,7 +76,7 @@ Route (app)                                               Size     First Load JS
 ├ ○ /ai-halloween-video                                   2.25 kB         283 kB
 ├ ○ /ai-image-generator                                   2.25 kB         283 kB
 ├ ○ /ai-kids-cartoon-videos                               1.7 kB          380 kB
-├ ○ /ai-robot-video-generator                             209 B          88.3 kB
+├ ○ /ai-robot-video-generator                             210 B          88.3 kB
 ├ ○ /ai-short-film-generator                              169 B           297 kB
 ├ ○ /ai-shorts-for-agencies                               9.41 kB         290 kB
 ├ ○ /ai-shorts-generator-no-watermark                     168 B           297 kB
@@ -122,7 +125,7 @@ Route (app)                                               Size     First Load JS
 ├   ├ /alternatives/invideo
 ├   ├ /alternatives/submagic
 ├   └ [+26 more paths]
-├ ƒ /animate                                              13.7 kB         297 kB
+├ ƒ /animate                                              13.7 kB         298 kB
 ├ ○ /anuncios-black-friday-com-ia                         280 B           363 kB
 ├ ○ /anuncios-black-friday-con-ia                         653 B          99.2 kB
 ├ ○ /anuncios-ugc-com-ia                                  280 B           363 kB
@@ -329,6 +332,7 @@ Route (app)                                               Size     First Load JS
 ├ ƒ /api/diretor/suggest                                  0 B                0 B
 ├ ƒ /api/dodo/checkout                                    0 B                0 B
 ├ ƒ /api/dodo/webhook                                     0 B                0 B
+├ ƒ /api/download                                         0 B                0 B
 ├ ƒ /api/email/filme-pronto                               0 B                0 B
 ├ ƒ /api/enhance                                          0 B                0 B
 ├ ƒ /api/episode-link                                     0 B                0 B
@@ -490,12 +494,12 @@ Route (app)                                               Size     First Load JS
 ├ ƒ /api/youtube/upload                                   0 B                0 B
 ├ ○ /approve                                              5.45 kB         117 kB
 ├ ○ /arena                                                223 B          95.1 kB
-├ ƒ /audio                                                4.83 kB         287 kB
+├ ƒ /audio                                                4.85 kB         288 kB
 ├ ƒ /auth/callback                                        0 B                0 B
 ├ ƒ /auth/guest-link                                      0 B                0 B
 ├ ƒ /auth/signout                                         0 B                0 B
 ├ ƒ /autopilot                                            11 kB           114 kB
-├ ƒ /avatar                                               16.4 kB         354 kB
+├ ƒ /avatar                                               16.4 kB         355 kB
 ├ ƒ /baby-podcast                                         5.27 kB         356 kB
 ├ ○ /best-ai-shorts-generators                            903 B           318 kB
 ├ ƒ /black-friday                                         3.77 kB         287 kB
@@ -516,12 +520,12 @@ Route (app)                                               Size     First Load JS
 ├ ○ /checkout/success                                     11.4 kB         140 kB
 ├ ○ /claude-connector                                     3.44 kB         296 kB
 ├ ○ /client-video-brief-generator                         9.19 kB         290 kB
-├ ƒ /clips                                                9.65 kB         331 kB
+├ ƒ /clips                                                9.65 kB         332 kB
 ├ ƒ /comment-to-video                                     5.26 kB         286 kB
-├ ○ /compare/heygen-alternative                           209 B          88.3 kB
-├ ○ /compare/invideo-alternative                          209 B          88.3 kB
+├ ○ /compare/heygen-alternative                           210 B          88.3 kB
+├ ○ /compare/invideo-alternative                          210 B          88.3 kB
 ├ ƒ /conferencia-receita                                  1.22 kB         284 kB
-├ ○ /contact                                              209 B          88.3 kB
+├ ○ /contact                                              210 B          88.3 kB
 ├ ƒ /create                                               9.42 kB         175 kB
 ├ ƒ /create/[tab]                                         21.8 kB         782 kB
 ├ ƒ /dashboard                                            210 B          88.3 kB
@@ -541,11 +545,11 @@ Route (app)                                               Size     First Load JS
 ├ ○ /faceless-channel-ideas                               157 B           288 kB
 ├ ƒ /faceless-video-generator                             5.15 kB         290 kB
 ├ ○ /faceless-youtube-shorts-generator                    2.52 kB         283 kB
-├ ○ /facts                                                209 B          88.3 kB
+├ ○ /facts                                                211 B          88.3 kB
 ├ ○ /film-60                                              4.06 kB         102 kB
-├ ○ /film-complete                                        11 kB           275 kB
+├ ○ /film-complete                                        11.4 kB         275 kB
 ├ ○ /forgot-password                                      4.33 kB         172 kB
-├ ○ /founding                                             209 B          88.3 kB
+├ ○ /founding                                             210 B          88.3 kB
 ├ ƒ /free                                                 0 B                0 B
 ├ ○ /free-ai-shorts                                       311 B           346 kB
 ├ ƒ /free-ai-shorts-generator                             4.06 kB         356 kB
@@ -565,7 +569,7 @@ Route (app)                                               Size     First Load JS
 ├ ƒ /from-youtube                                         4.64 kB         108 kB
 ├ ○ /generador-de-shorts-gratis                           2.83 kB         305 kB
 ├ ○ /generador-de-videos-de-terror                        169 B           297 kB
-├ ƒ /generate                                             209 B          88.3 kB
+├ ƒ /generate                                             210 B          88.3 kB
 ├ ○ /gerador-de-shorts-gratis                             1.54 kB         353 kB
 ├ ƒ /go/[token]                                           3.98 kB         276 kB
 ├ ● /guides/[slug]                                        2.02 kB         101 kB
@@ -573,18 +577,18 @@ Route (app)                                               Size     First Load JS
 ├   ├ /guides/ai-dropshipping-video-ads
 ├   ├ /guides/ai-personal-care-product-ads
 ├   └ [+5 more paths]
-├ ƒ /history                                              1.08 kB         329 kB
+├ ƒ /history                                              1.09 kB         329 kB
 ├ ○ /how-much-do-instagram-reels-pay                      656 B           103 kB
 ├ ○ /how-much-do-youtube-shorts-pay                       199 B           106 kB
 ├ ○ /how-much-does-tiktok-pay                             656 B           103 kB
 ├ ○ /how-to-start-a-faceless-youtube-channel              2.53 kB         287 kB
 ├ ○ /icon.png                                             0 B                0 B
-├ ƒ /images                                               15.3 kB         297 kB
+├ ƒ /images                                               15.3 kB         298 kB
 ├ ƒ /kids-cartoon                                         3.11 kB         354 kB
 ├ ○ /kineo-in-claude                                      10.5 kB         291 kB
 ├ ○ /kineo-vs-higgsfield                                  223 B          95.1 kB
 ├ ○ /kineo-vs-kineo-studio                                2.25 kB         283 kB
-├ ƒ /library                                              12.4 kB         340 kB
+├ ƒ /library                                              12.4 kB         341 kB
 ├ ○ /llms.txt                                             0 B                0 B
 ├ ○ /login                                                6.24 kB         345 kB
 ├ ƒ /made-with-kineo                                      8.97 kB         383 kB
@@ -595,7 +599,7 @@ Route (app)                                               Size     First Load JS
 ├ ○ /make-money-clipping-with-ai                          1.34 kB        93.1 kB
 ├ ○ /manifest.webmanifest                                 0 B                0 B
 ├ ○ /models-pricing                                       223 B          95.1 kB
-├ ƒ /my-videos                                            7.1 kB          119 kB
+├ ƒ /my-videos                                            7.12 kB         119 kB
 ├ ○ /niche-picker                                         5.78 kB         104 kB
 ├ ƒ /og-card.png                                          0 B                0 B
 ├ ƒ /og-image.png                                         0 B                0 B
@@ -608,15 +612,15 @@ Route (app)                                               Size     First Load JS
 ├ ƒ /pt/made-with-kineo                                   594 B          95.5 kB
 ├ ƒ /pt/made-with-kineo/[slug]                            594 B          95.5 kB
 ├ ○ /real-estate-video-maker                              2.25 kB         283 kB
-├ ƒ /recreate                                             2.3 kB          203 kB
-├ ƒ /recreate-preview                                     14.4 kB         111 kB
-├ ƒ /recreate/[id]                                        224 B           201 kB
+├ ƒ /recreate                                             2.3 kB          207 kB
+├ ƒ /recreate-preview                                     15 kB           112 kB
+├ ƒ /recreate/[id]                                        228 B           205 kB
 ├ ○ /reddit-story-video-generator                         2.53 kB         287 kB
 ├ ƒ /referral                                             1.3 kB         89.3 kB
 ├ ○ /refund                                               2.25 kB         283 kB
 ├ ○ /reset-password                                       4.92 kB         172 kB
-├ ○ /reviews                                              210 B          88.3 kB
-├ ƒ /revive/[handle]                                      210 B          88.3 kB
+├ ○ /reviews                                              209 B          88.3 kB
+├ ƒ /revive/[handle]                                      209 B          88.3 kB
 ├ ○ /robots.txt                                           0 B                0 B
 ├ ƒ /s/[channel]                                          0 B                0 B
 ├ ○ /scripts                                              2.65 kB         305 kB
@@ -638,12 +642,12 @@ Route (app)                                               Size     First Load JS
 ├ ○ /sitemap.xml                                          0 B                0 B
 ├ ○ /sora-alternative                                     179 B          95.6 kB
 ├ ƒ /spaces                                               31.7 kB         302 kB
-├ ○ /start                                                209 B          88.3 kB
+├ ○ /start                                                210 B          88.3 kB
 ├ ○ /state-of-ai-shorts-2026                              2.66 kB         330 kB
 ├ ƒ /studio                                               81.6 kB         494 kB
 ├ ƒ /studio/create                                        191 kB          633 kB
 ├ ƒ /studio/previa                                        5.91 kB         272 kB
-├ ○ /support                                              210 B          88.3 kB
+├ ○ /support                                              209 B          88.3 kB
 ├ ƒ /templates                                            2.6 kB         90.6 kB
 ├ ○ /terms                                                2.25 kB         283 kB
 ├ ○ /text-to-video-shorts                                 5.51 kB         348 kB
@@ -653,7 +657,7 @@ Route (app)                                               Size     First Load JS
 ├ ○ /tiktok-vs-youtube-shorts-monetization                2.46 kB        94.2 kB
 ├ ○ /tools                                                2.21 kB         283 kB
 ├ ƒ /tools/editor                                         9.1 kB          271 kB
-├ ○ /trending                                             209 B          88.3 kB
+├ ○ /trending                                             210 B          88.3 kB
 ├ ○ /trust                                                3.47 kB         284 kB
 ├ ƒ /unsubscribe                                          223 B          95.1 kB
 ├ ƒ /v/[id]                                               3.17 kB         104 kB

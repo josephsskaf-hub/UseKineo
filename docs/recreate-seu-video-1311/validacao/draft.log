@@ -1,9 +1,11 @@
 MUTANT REJECTED [idempotent] restore consumes early
 MUTANT REJECTED [ttl] TTL ignored
-MUTANT REJECTED [validation] WebM accepted
+MUTANT REJECTED [file-type-rejection] WebM accepted
+MUTANT REJECTED [generic-mime] generic MIME rejected before extension inference
+MUTANT REJECTED [file-type-rejection] explicit WebM MIME gets extension fallback
 MUTANT REJECTED [quota] quota reported as success
 MUTANT REJECTED [namespace] cross-tab implicit pointer trusted
 MUTANT REJECTED [validation] unknown server data accepted
 MUTANT REJECTED [validation] catalog allowlist bypassed
 MUTANT REJECTED [identity] idempotency key lost on return
-SeuVideoDraft: 67 offline assertions; 8/8 targeted mutants rejected; no browser/network/render
+SeuVideoDraft: 89 offline assertions; 10/10 targeted mutants rejected; no browser/network/render
