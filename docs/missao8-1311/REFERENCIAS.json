@@ -1,0 +1,247 @@
+{
+  "status": "TESTADO LOCALMENTE",
+  "createdUtc": "2026-11-14T01:35:34.4901310Z",
+  "base": "56e24d47a",
+  "commit": "2025c59067c8bfec56ac9c8d9cbf7564f2f27fc3",
+  "operation": "Local ffmpeg resampling, scale=720:1280:flags=lanczos,setsar=1; H.264 CRF18 yuv420p; passthrough fps; no crop or retiming. Upscale does not create native source detail.",
+  "guard": {
+    "mutants": 20,
+    "assertions": 178,
+    "missingMediaRejected": true
+  },
+  "originalsUnchanged": true,
+  "references": [
+    {
+      "id": "selfie-confete",
+      "original": {
+        "path": "public/previews/galeria/selfie-confete.mp4",
+        "gitBlob": "3513e1a1d415f900aca393eda9331160e43a4139",
+        "sha256": "5B5630DDE85669099D67F7B81DAB261950C002220010168E69EABC7355F76C0B",
+        "stream": {
+          "width": 540,
+          "height": 960,
+          "avg_frame_rate": "24/1",
+          "duration": "6.583333",
+          "nb_frames": "158"
+        }
+      },
+      "reference": {
+        "path": "public/previews/galeria/seu-video-720p/selfie-confete.mp4",
+        "bytes": 2381129,
+        "sha256": "9DBABCF1B1ECC518E45BE8D3FA00D680E4EE0B875D426EAB3C4C134331DE140F",
+        "stream": {
+          "codec_name": "h264",
+          "width": 720,
+          "height": 1280,
+          "pix_fmt": "yuv420p",
+          "avg_frame_rate": "24/1",
+          "duration": "6.583333",
+          "nb_frames": "158"
+        }
+      }
+    },
+    {
+      "id": "sueter-aconchegante",
+      "original": {
+        "path": "public/previews/galeria/sueter-aconchegante.mp4",
+        "gitBlob": "068828abb2c3ada7513b6eedb7152d0e3a483c2a",
+        "sha256": "40653CE623CF4930F20A5293A06E37D08975292F0F5FF990F5C1EBD1D7BCCF20",
+        "stream": {
+          "width": 540,
+          "height": 960,
+          "avg_frame_rate": "24/1",
+          "duration": "6.583333",
+          "nb_frames": "158"
+        }
+      },
+      "reference": {
+        "path": "public/previews/galeria/seu-video-720p/sueter-aconchegante.mp4",
+        "bytes": 2375998,
+        "sha256": "1D43B52A91B969E8694DABBDDE4DCA17D9A5CA1C692C80B3BCE6136438A28F09",
+        "stream": {
+          "codec_name": "h264",
+          "width": 720,
+          "height": 1280,
+          "pix_fmt": "yuv420p",
+          "avg_frame_rate": "24/1",
+          "duration": "6.583333",
+          "nb_frames": "158"
+        }
+      }
+    },
+    {
+      "id": "passarela",
+      "original": {
+        "path": "public/previews/galeria/passarela.mp4",
+        "gitBlob": "4bdf10e473ca2f584c7fab468510263493cb7538",
+        "sha256": "FC588F87FCE0E6D0A09D24B77C1E51DDD970EFC81E71ADBA68227891D3780630",
+        "stream": {
+          "width": 540,
+          "height": 960,
+          "avg_frame_rate": "24/1",
+          "duration": "10.041667",
+          "nb_frames": "241"
+        }
+      },
+      "reference": {
+        "path": "public/previews/galeria/seu-video-720p/passarela.mp4",
+        "bytes": 2604971,
+        "sha256": "045F5474BB2CBE816A36A1B02C2BAC180A40C64637A32E9DE8A31CE7E9C4318A",
+        "stream": {
+          "codec_name": "h264",
+          "width": 720,
+          "height": 1280,
+          "pix_fmt": "yuv420p",
+          "avg_frame_rate": "24/1",
+          "duration": "10.041667",
+          "nb_frames": "241"
+        }
+      }
+    },
+    {
+      "id": "escolha-o-favorito",
+      "original": {
+        "path": "public/previews/galeria/escolha-o-favorito.mp4",
+        "gitBlob": "d159620fb74bb3af01aa8af13cc90dc9bb7328ef",
+        "sha256": "9343DC4DE1923730B1E1A68714529D81A9B5CE0B05DF66ABB2ACF1B543A46CA1",
+        "stream": {
+          "width": 540,
+          "height": 960,
+          "avg_frame_rate": "24/1",
+          "duration": "7.583333",
+          "nb_frames": "182"
+        }
+      },
+      "reference": {
+        "path": "public/previews/galeria/seu-video-720p/escolha-o-favorito.mp4",
+        "bytes": 1650252,
+        "sha256": "911B630031DBEA56EC50E907A3F9C5EE8BB97BB5C56A80F87516119CCB8B93FF",
+        "stream": {
+          "codec_name": "h264",
+          "width": 720,
+          "height": 1280,
+          "pix_fmt": "yuv420p",
+          "avg_frame_rate": "24/1",
+          "duration": "7.583333",
+          "nb_frames": "182"
+        }
+      }
+    },
+    {
+      "id": "duelo-de-danca",
+      "original": {
+        "path": "public/previews/galeria/duelo-de-danca.mp4",
+        "gitBlob": "962d593a4b9d7b31bc724fd3ae9e3be239f6d119",
+        "sha256": "D34937BF5F7D49D4380552D80F974116234650FA8BC039AC4CEDC3F81FEDC18F",
+        "stream": {
+          "width": 540,
+          "height": 960,
+          "avg_frame_rate": "24/1",
+          "duration": "10.041667",
+          "nb_frames": "241"
+        }
+      },
+      "reference": {
+        "path": "public/previews/galeria/seu-video-720p/duelo-de-danca.mp4",
+        "bytes": 2823040,
+        "sha256": "71EF1EFCDC0B67416833F7D1E2D5A9CDDB71A6B7F8E994C2385CD5A6D3AB5DDA",
+        "stream": {
+          "codec_name": "h264",
+          "width": 720,
+          "height": 1280,
+          "pix_fmt": "yuv420p",
+          "avg_frame_rate": "24/1",
+          "duration": "10.041667",
+          "nb_frames": "241"
+        }
+      }
+    },
+    {
+      "id": "outfit-morph",
+      "original": {
+        "path": "public/previews/galeria/outfit-morph.mp4",
+        "gitBlob": "0482532eaa895c51a509d97e43373b0f7442e1b4",
+        "sha256": "24A35985CC7AD19294C5CE6CE3EEBD82152DFBC2999D33974288B2001E25D17D",
+        "stream": {
+          "width": 540,
+          "height": 960,
+          "avg_frame_rate": "24/1",
+          "duration": "9.916667",
+          "nb_frames": "238"
+        }
+      },
+      "reference": {
+        "path": "public/previews/galeria/seu-video-720p/outfit-morph.mp4",
+        "bytes": 2262698,
+        "sha256": "995DA8A26F19CDF34849ED554F5F29927D4AC9EFA51A75CA59F1984D4A583C9E",
+        "stream": {
+          "codec_name": "h264",
+          "width": 720,
+          "height": 1280,
+          "pix_fmt": "yuv420p",
+          "avg_frame_rate": "24/1",
+          "duration": "9.916667",
+          "nb_frames": "238"
+        }
+      }
+    },
+    {
+      "id": "danca-corredor",
+      "original": {
+        "path": "public/previews/galeria/danca-corredor.mp4",
+        "gitBlob": "03c37595728495de918cd009ce67532e6001f5a5",
+        "sha256": "504896D59F81BC4C9123EC1D43C36F3FD0368057511E6483F64EC9C4A5425623",
+        "stream": {
+          "width": 540,
+          "height": 960,
+          "avg_frame_rate": "24/1",
+          "duration": "6.583333",
+          "nb_frames": "158"
+        }
+      },
+      "reference": {
+        "path": "public/previews/galeria/seu-video-720p/danca-corredor.mp4",
+        "bytes": 1583507,
+        "sha256": "69E26F72CBF5B349966729E254A7A449046F3BDF054D13F0999FF644602D3062",
+        "stream": {
+          "codec_name": "h264",
+          "width": 720,
+          "height": 1280,
+          "pix_fmt": "yuv420p",
+          "avg_frame_rate": "24/1",
+          "duration": "6.583333",
+          "nb_frames": "158"
+        }
+      }
+    },
+    {
+      "id": "friday-groove",
+      "original": {
+        "path": "public/previews/galeria/friday-groove.mp4",
+        "gitBlob": "8ed089cf9bf1af345977d7a35ff43f4b25df194a",
+        "sha256": "9E21EAD9B1B3992B53350FBB0E481DA4CCCC015854B54760FB95A52AF4D24EC7",
+        "stream": {
+          "width": 540,
+          "height": 960,
+          "avg_frame_rate": "24/1",
+          "duration": "5.041667",
+          "nb_frames": "121"
+        }
+      },
+      "reference": {
+        "path": "public/previews/galeria/seu-video-720p/friday-groove.mp4",
+        "bytes": 2232624,
+        "sha256": "4FDC0E6140EAE894125CCAE6086262815A77659FAFA564CDBE3DC367C4384279",
+        "stream": {
+          "codec_name": "h264",
+          "width": 720,
+          "height": 1280,
+          "pix_fmt": "yuv420p",
+          "avg_frame_rate": "24/1",
+          "duration": "5.041667",
+          "nb_frames": "121"
+        }
+      }
+    }
+  ]
+}

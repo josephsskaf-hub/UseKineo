@@ -1,0 +1,60 @@
+{
+  "before": [
+    {
+      "href": "/studio?intent_campaign=home_card&example=carta-do-front",
+      "id": "carta-do-front"
+    },
+    {
+      "href": "/kids-cartoon?utm_source=home_card&example=raposa-lanterna",
+      "id": "raposa-lanterna"
+    },
+    {
+      "href": "/signup?redirect=%2Frecreate%2Fselfie-confete",
+      "id": "selfie-confete"
+    },
+    {
+      "href": "/ads/v2?entry=product&utm_source=home_card&example=anuncio-burger-camera-lenta",
+      "id": "anuncio-burger-camera-lenta"
+    },
+    {
+      "href": "/ads/v2?entry=ugc&utm_source=home_card&example=anuncio-creme-selfie",
+      "id": "anuncio-creme-selfie"
+    },
+    {
+      "href": "/signup?redirect=%2Frecreate%2Fsueter-aconchegante",
+      "id": "sueter-aconchegante"
+    }
+  ],
+  "after": [
+    {
+      "href": "/studio?intent_campaign=home_card&example=carta-do-front",
+      "id": "carta-do-front"
+    },
+    {
+      "href": "/kids-cartoon?utm_source=home_card&example=raposa-lanterna",
+      "id": "raposa-lanterna"
+    },
+    {
+      "href": "/recreate-preview?example=selfie-confete",
+      "id": "selfie-confete"
+    },
+    {
+      "href": "/ads/v2?entry=product&utm_source=home_card&example=anuncio-burger-camera-lenta",
+      "id": "anuncio-burger-camera-lenta"
+    },
+    {
+      "href": "/ads/v2?entry=ugc&utm_source=home_card&example=anuncio-creme-selfie",
+      "id": "anuncio-creme-selfie"
+    },
+    {
+      "href": "/recreate-preview?example=sueter-aconchegante",
+      "id": "sueter-aconchegante"
+    }
+  ],
+  "ideas": {
+    "carta-do-front": "Create a fictional wartime short about a 1940s soldier writing a letter inside a canvas tent. He pauses to watch the lantern flame, then keeps writing as shadows move around him. Use intimate narration and a restrained, emotional tone.",
+    "raposa-lanterna": "The selected character follows a little fox carrying a glowing lantern through a misty forest. Fireflies light the path as they explore together. Make it a gentle, curious bedtime adventure.",
+    "anuncio-burger-camera-lenta": "A slow-motion product ad for my burger: a hand lowers the top bun, the cheese settles and steam rises. Use a close view with shallow depth of field, match the ingredients in my photo and keep the focus on the food.",
+    "anuncio-creme-selfie": "A natural selfie-style ad for my face cream. The presenter lifts the jar toward the lens, tilts it, touches a cheek and smiles in soft morning light. Focus on the package and texture I provide, without invented skin results or testimonials."
+  }
+}

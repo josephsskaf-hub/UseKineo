@@ -1,0 +1,32 @@
+[
+  {
+    "credits": "✦ Estimated 40 credits",
+    "displayFont": "Manrope, Arial, sans-serif",
+    "prompt": "Replace the main person in @Video1 with the man from @Image1: his face and hair match @Image1. Keep the choreography, timing, camera, framing, background and lighting of @Video1 exactly. Keep the original clothing from @Video1.",
+    "screen": [
+      1920,
+      1080
+    ],
+    "scroll": 1920,
+    "small": [],
+    "video": [
+      720,
+      1280
+    ]
+  },
+  {
+    "credits": "✦ Estimated 40 credits",
+    "displayFont": "Manrope, Arial, sans-serif",
+    "prompt": "Replace the main person in @Video1 with the woman from @Image1: her face and hair match @Image1. Keep the choreography, timing, camera, framing, background and lighting of @Video1 exactly. Keep the original clothing from @Video1.",
+    "screen": [
+      390,
+      844
+    ],
+    "scroll": 390,
+    "small": [],
+    "video": [
+      720,
+      1280
+    ]
+  }
+]

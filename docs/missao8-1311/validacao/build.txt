@@ -1,0 +1,717 @@
+  ▲ Next.js 14.2.5
+
+   Creating an optimized production build ...
+Browserslist: browsers data (caniuse-lite) is 6 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ✓ Compiled successfully
+   Skipping validation of types
+   Skipping linting
+   Collecting page data ...
+ ⚠ Using edge runtime on a page currently disables static generation for that page
+   Generating static pages (0/646) ...
+[showcase-clips] fetched 10 clips from Pexels
+   Generating static pages (161/646) 
+   Generating static pages (322/646) 
+[engineBenchmarkStats] env ausente — publicando FALLBACK
+[engineBenchmarkStats] env ausente — publicando FALLBACK
+   Generating static pages (484/646) 
+ ✓ Generating static pages (646/646)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                               Size     First Load JS
+┌ ƒ /                                                     415 B           457 kB
+├ ○ /_not-found                                           209 B          88.3 kB
+├ ƒ /.well-known/oauth-authorization-server               0 B                0 B
+├ ƒ /.well-known/oauth-protected-resource                 0 B                0 B
+├ ƒ /.well-known/oauth-protected-resource/api/mcp/studio  0 B                0 B
+├ ƒ /.well-known/openai-apps-challenge                    0 B                0 B
+├ ƒ /a/[code]                                             0 B                0 B
+├ ƒ /account                                              13.2 kB         354 kB
+├ ƒ /admin                                                189 B           106 kB
+├ ƒ /admin/ads                                            1.07 kB        89.1 kB
+├ ƒ /admin/affiliates                                     8.1 kB          103 kB
+├ ƒ /admin/ceo                                            179 B           106 kB
+├ ƒ /admin/clientes                                       223 B          95.1 kB
+├ ƒ /admin/coerencia                                      3.81 kB        98.7 kB
+├ ƒ /admin/demo                                           6.93 kB          95 kB
+├ ƒ /admin/funnel                                         14.7 kB         110 kB
+├ ƒ /admin/leads                                          3.84 kB        98.7 kB
+├ ƒ /admin/metrics                                        3.17 kB        98.1 kB
+├ ƒ /admin/mrr-reactivation                               1.95 kB          90 kB
+├ ƒ /admin/overview                                       223 B          95.1 kB
+├ ƒ /admin/partners                                       2.43 kB        97.3 kB
+├ ƒ /admin/paying                                         223 B          95.1 kB
+├ ƒ /admin/pedidos                                        1.03 kB        95.9 kB
+├ ƒ /admin/people                                         7.61 kB         102 kB
+├ ƒ /admin/people/[id]                                    223 B          95.1 kB
+├ ƒ /admin/supplier-health                                223 B          95.1 kB
+├ ƒ /admin/trial-abuse                                    223 B          95.1 kB
+├ ƒ /admin/trial-cohort                                   223 B          95.1 kB
+├ ƒ /admin/trial-roi                                      223 B          95.1 kB
+├ ƒ /admin/users                                          4.51 kB        99.4 kB
+├ ƒ /ads                                                  7.81 kB         320 kB
+├ ● /ads/for/[segment]                                    594 B          93.7 kB
+├   ├ /ads/for/restaurants
+├   ├ /ads/for/dentists-and-clinics
+├   ├ /ads/for/real-estate
+├   └ [+5 more paths]
+├ ƒ /ads/new                                              42.8 kB         178 kB
+├ ƒ /ads/producao                                         15.1 kB         270 kB
+├ ƒ /ads/team                                             2.83 kB         258 kB
+├ ƒ /ads/team/join                                        1.47 kB        89.5 kB
+├ ƒ /ads/v2                                               2.71 kB         696 kB
+├ ƒ /affiliate                                            12.4 kB         111 kB
+├ ○ /agencies                                             5.31 kB         312 kB
+├ ƒ /agency-production-scope.txt                          0 B                0 B
+├ ○ /ai-avatar                                            5.58 kB         292 kB
+├ ○ /ai-baby-podcast-videos                               2.46 kB         365 kB
+├ ○ /ai-black-friday-video-ads                            280 B           363 kB
+├ ○ /ai-face-swap-video                                   2.14 kB         288 kB
+├ ƒ /ai-faceless-video-generator                          0 B                0 B
+├ ○ /ai-halloween-video                                   2.25 kB         283 kB
+├ ○ /ai-image-generator                                   2.25 kB         283 kB
+├ ○ /ai-kids-cartoon-videos                               1.7 kB          380 kB
+├ ○ /ai-robot-video-generator                             209 B          88.3 kB
+├ ○ /ai-short-film-generator                              169 B           298 kB
+├ ○ /ai-shorts-for-agencies                               9.41 kB         291 kB
+├ ○ /ai-shorts-generator-no-watermark                     168 B           298 kB
+├ ○ /ai-shorts-series                                     2.25 kB         283 kB
+├ ○ /ai-shorts-without-filming                            158 B           288 kB
+├ ○ /ai-ugc-ads                                           280 B           363 kB
+├ ● /ai-ugc-ads/for/[niche]                               280 B           363 kB
+├   ├ /ai-ugc-ads/for/beauty-skincare
+├   ├ /ai-ugc-ads/for/perfume
+├   ├ /ai-ugc-ads/for/supplements
+├   └ [+9 more paths]
+├ ○ /ai-ugc-video-generator                               280 B           363 kB
+├ ○ /ai-video-generator                                   2.93 kB         289 kB
+├ ● /ai-video-generator/[engine]                          6.91 kB         351 kB
+├   ├ /ai-video-generator/seedance
+├   ├ /ai-video-generator/kling-3
+├   ├ /ai-video-generator/minimax-h3
+├   └ /ai-video-generator/minimax-h3-max
+├ ● /ai-video-generator/[engine]/[lang]                   4.87 kB         294 kB
+├   ├ /ai-video-generator/seedance/fr
+├   ├ /ai-video-generator/seedance/de
+├   ├ /ai-video-generator/seedance/it
+├   └ [+10 more paths]
+├ ○ /ai-video-generator/chatgpt-script-to-finished-short  667 B           104 kB
+├ ○ /ai-video-generator/complete-60-second-shorts-cost    667 B           104 kB
+├ ○ /ai-video-generator/faceless-shorts-under-30          677 B           104 kB
+├ ○ /ai-video-generator/for                               2.25 kB         283 kB
+├ ● /ai-video-generator/for/[slug]                        187 B           332 kB
+├   ├ /ai-video-generator/for/faceless-youtube-channels
+├   ├ /ai-video-generator/for/youtube-shorts-creators
+├   ├ /ai-video-generator/for/tiktok
+├   └ [+126 more paths]
+├ ○ /ai-video-generator/free-faceless-tiktok-tools        677 B           104 kB
+├ ○ /ai-video-generator/free-script-to-faceless-video     677 B           104 kB
+├ ○ /ai-video-generator/free-youtube-shorts               677 B           104 kB
+├ ○ /ai-video-generator/horror-story-60-seconds           677 B           104 kB
+├ ○ /ai-video-generator/kling-4                           5.4 kB          292 kB
+├ ○ /ai-video-generator/seedance-2-5                      2.43 kB         289 kB
+├ ○ /ai-video-index                                       2.25 kB         283 kB
+├ ○ /ai-video-upscaler                                    2.25 kB         283 kB
+├ ○ /ai-video-with-talking-characters                     2.52 kB         284 kB
+├ ○ /ai-voice-generator                                   2.25 kB         283 kB
+├ ○ /alternatives                                         277 B           333 kB
+├ ● /alternatives/[competitor]                            276 B           333 kB
+├   ├ /alternatives/opusclip
+├   ├ /alternatives/invideo
+├   ├ /alternatives/submagic
+├   └ [+26 more paths]
+├ ƒ /animate                                              13.7 kB         298 kB
+├ ○ /anuncios-black-friday-com-ia                         280 B           363 kB
+├ ○ /anuncios-black-friday-con-ia                         653 B          99.3 kB
+├ ○ /anuncios-ugc-com-ia                                  280 B           363 kB
+├ ƒ /api/ad-script                                        0 B                0 B
+├ ƒ /api/admin/ads                                        0 B                0 B
+├ ƒ /api/admin/ads-cena                                   0 B                0 B
+├ ƒ /api/admin/ads-judge-calibrate                        0 B                0 B
+├ ƒ /api/admin/affiliates                                 0 B                0 B
+├ ƒ /api/admin/affiliates/[id]                            0 B                0 B
+├ ƒ /api/admin/affiliates/export                          0 B                0 B
+├ ƒ /api/admin/br-recredit                                0 B                0 B
+├ ƒ /api/admin/broll-gc                                   0 B                0 B
+├ ƒ /api/admin/ceo                                        0 B                0 B
+├ ƒ /api/admin/click-stats                                0 B                0 B
+├ ƒ /api/admin/coerencia/avaliar                          0 B                0 B
+├ ƒ /api/admin/coerencia/canario                          0 B                0 B
+├ ƒ /api/admin/coerencia/regua95                          0 B                0 B
+├ ƒ /api/admin/courtesy                                   0 B                0 B
+├ ƒ /api/admin/demo                                       0 B                0 B
+├ ƒ /api/admin/demo-render                                0 B                0 B
+├ ƒ /api/admin/dfy-films                                  0 B                0 B
+├ ƒ /api/admin/effect-probe                               0 B                0 B
+├ ƒ /api/admin/engine-test                                0 B                0 B
+├ ƒ /api/admin/film-feedback-ask                          0 B                0 B
+├ ƒ /api/admin/flag-video                                 0 B                0 B
+├ ƒ /api/admin/funnel                                     0 B                0 B
+├ ƒ /api/admin/grant-credits                              0 B                0 B
+├ ƒ /api/admin/health                                     0 B                0 B
+├ ƒ /api/admin/kineo1-replay                              0 B                0 B
+├ ƒ /api/admin/live                                       0 B                0 B
+├ ƒ /api/admin/llm-fallback-probe                         0 B                0 B
+├ ƒ /api/admin/metrics                                    0 B                0 B
+├ ƒ /api/admin/moderation-scan                            0 B                0 B
+├ ƒ /api/admin/mrr-reactivation                           0 B                0 B
+├ ƒ /api/admin/nota-auto-sonda                            0 B                0 B
+├ ƒ /api/admin/numeros-empresa                            0 B                0 B
+├ ƒ /api/admin/overview                                   0 B                0 B
+├ ƒ /api/admin/partners                                   0 B                0 B
+├ ƒ /api/admin/payment-rails                              0 B                0 B
+├ ƒ /api/admin/people                                     0 B                0 B
+├ ƒ /api/admin/people/[id]                                0 B                0 B
+├ ƒ /api/admin/person-media                               0 B                0 B
+├ ƒ /api/admin/quarantine-media                           0 B                0 B
+├ ƒ /api/admin/recompose-sem-legenda                      0 B                0 B
+├ ƒ /api/admin/reconcile-dunning                          0 B                0 B
+├ ƒ /api/admin/rescue-composed-films                      0 B                0 B
+├ ƒ /api/admin/send-abandon-recovery                      0 B                0 B
+├ ƒ /api/admin/send-affiliate-wakeup-1usd                 0 B                0 B
+├ ƒ /api/admin/send-avatar-launch                         0 B                0 B
+├ ƒ /api/admin/send-black-friday-2026                     0 B                0 B
+├ ƒ /api/admin/send-card-declined                         0 B                0 B
+├ ƒ /api/admin/send-card-entry-d1                         0 B                0 B
+├ ƒ /api/admin/send-checkout-hot-nudge                    0 B                0 B
+├ ƒ /api/admin/send-checkout-recovery                     0 B                0 B
+├ ƒ /api/admin/send-checkout-rescue                       0 B                0 B
+├ ƒ /api/admin/send-comeback50                            0 B                0 B
+├ ƒ /api/admin/send-day19-creator20                       0 B                0 B
+├ ƒ /api/admin/send-dfy-offer                             0 B                0 B
+├ ƒ /api/admin/send-feature-announce                      0 B                0 B
+├ ƒ /api/admin/send-first50-quentes                       0 B                0 B
+├ ƒ /api/admin/send-free-upsell                           0 B                0 B
+├ ƒ /api/admin/send-hot-upsell                            0 B                0 B
+├ ƒ /api/admin/send-hotlead-blast                         0 B                0 B
+├ ƒ /api/admin/send-india-price                           0 B                0 B
+├ ƒ /api/admin/send-kids-launch                           0 B                0 B
+├ ƒ /api/admin/send-made-video-today                      0 B                0 B
+├ ƒ /api/admin/send-next-episode-wall                     0 B                0 B
+├ ƒ /api/admin/send-pack-offer                            0 B                0 B
+├ ƒ /api/admin/send-price-drop                            0 B                0 B
+├ ƒ /api/admin/send-region-first-film                     0 B                0 B
+├ ƒ /api/admin/send-renewal-declined                      0 B                0 B
+├ ƒ /api/admin/send-season-letter                         0 B                0 B
+├ ƒ /api/admin/send-second-try-1usd                       0 B                0 B
+├ ƒ /api/admin/send-stalled-rescue                        0 B                0 B
+├ ƒ /api/admin/send-studio50                              0 B                0 B
+├ ƒ /api/admin/send-subscriber-idle                       0 B                0 B
+├ ƒ /api/admin/send-volta-1211                            0 B                0 B
+├ ƒ /api/admin/send-weekly-quota                          0 B                0 B
+├ ƒ /api/admin/send-winback-25                            0 B                0 B
+├ ƒ /api/admin/send-winback-film-60s                      0 B                0 B
+├ ƒ /api/admin/stranded-debug                             0 B                0 B
+├ ƒ /api/admin/supplier-health                            0 B                0 B
+├ ƒ /api/admin/switch-to-annual                           0 B                0 B
+├ ƒ /api/admin/users                                      0 B                0 B
+├ ƒ /api/admin/volta-1211-status                          0 B                0 B
+├ ƒ /api/ads/auto-brief                                   0 B                0 B
+├ ƒ /api/ads/brand-kit                                    0 B                0 B
+├ ƒ /api/ads/brands                                       0 B                0 B
+├ ƒ /api/ads/from-link                                    0 B                0 B
+├ ƒ /api/ads/orders                                       0 B                0 B
+├ ƒ /api/ads/pessoa-falando                               0 B                0 B
+├ ƒ /api/ads/pessoa-falando/acompanhar                    0 B                0 B
+├ ƒ /api/ads/pessoa-falando/fotos-chave                   0 B                0 B
+├ ƒ /api/ads/pessoa-falando/roteiro                       0 B                0 B
+├ ƒ /api/ads/producao/montage                             0 B                0 B
+├ ƒ /api/ads/producao/plan                                0 B                0 B
+├ ƒ /api/ads/render                                       0 B                0 B
+├ ƒ /api/ads/script                                       0 B                0 B
+├ ƒ /api/ads/team                                         0 B                0 B
+├ ƒ /api/ads/v2/approval                                  0 B                0 B
+├ ƒ /api/ads/v2/approval/decide                           0 B                0 B
+├ ƒ /api/ads/v2/approval/view                             0 B                0 B
+├ ƒ /api/ads/v2/batch                                     0 B                0 B
+├ ƒ /api/ads/v2/cena                                      0 B                0 B
+├ ƒ /api/ads/v2/edit                                      0 B                0 B
+├ ƒ /api/ads/v2/eligibility                               0 B                0 B
+├ ƒ /api/ads/v2/formats                                   0 B                0 B
+├ ƒ /api/ads/v2/link-import                               0 B                0 B
+├ ƒ /api/ads/v2/orders                                    0 B                0 B
+├ ƒ /api/ads/v2/plan                                      0 B                0 B
+├ ƒ /api/ads/v2/plan/choose                               0 B                0 B
+├ ƒ /api/ads/v2/research                                  0 B                0 B
+├ ƒ /api/ads/v2/retake                                    0 B                0 B
+├ ƒ /api/ads/v2/start                                     0 B                0 B
+├ ƒ /api/ads/v2/status                                    0 B                0 B
+├ ƒ /api/ads/v2/variations                                0 B                0 B
+├ ƒ /api/ads/v2/versions                                  0 B                0 B
+├ ƒ /api/ads/voice                                        0 B                0 B
+├ ƒ /api/affiliate/apply                                  0 B                0 B
+├ ƒ /api/affiliate/attribute                              0 B                0 B
+├ ƒ /api/affiliate/client-brief-link                      0 B                0 B
+├ ƒ /api/affiliate/me                                     0 B                0 B
+├ ƒ /api/affiliate/offer                                  0 B                0 B
+├ ƒ /api/affiliate/partner-post                           0 B                0 B
+├ ƒ /api/agencies/apply                                   0 B                0 B
+├ ƒ /api/analyze-idea                                     0 B                0 B
+├ ƒ /api/animate                                          0 B                0 B
+├ ƒ /api/animate-image                                    0 B                0 B
+├ ƒ /api/apply-suggestion                                 0 B                0 B
+├ ƒ /api/audio                                            0 B                0 B
+├ ƒ /api/audio/generate                                   0 B                0 B
+├ ƒ /api/auth/activation-completed                        0 B                0 B
+├ ƒ /api/auth/guest-sessions                              0 B                0 B
+├ ƒ /api/autopilot/schedules                              0 B                0 B
+├ ƒ /api/avatar-status                                    0 B                0 B
+├ ƒ /api/avatar/list                                      0 B                0 B
+├ ƒ /api/avatar/scene                                     0 B                0 B
+├ ƒ /api/avatar/upload                                    0 B                0 B
+├ ƒ /api/avatar/upload-url                                0 B                0 B
+├ ƒ /api/avatar/voice                                     0 B                0 B
+├ ƒ /api/baby-podcast/prepare                             0 B                0 B
+├ ƒ /api/billing/pausa-voluntaria                         0 B                0 B
+├ ƒ /api/billing/recarga-assinante                        0 B                0 B
+├ ƒ /api/brand-logo                                       0 B                0 B
+├ ƒ /api/broll-pexels                                     0 B                0 B
+├ ƒ /api/characters                                       0 B                0 B
+├ ƒ /api/cinematic-clip-status                            0 B                0 B
+├ ƒ /api/clip-status                                      0 B                0 B
+├ ƒ /api/clips                                            0 B                0 B
+├ ƒ /api/clips/effect-upsell                              0 B                0 B
+├ ƒ /api/clips/status                                     0 B                0 B
+├ ƒ /api/compose                                          0 B                0 B
+├ ƒ /api/compose/active                                   0 B                0 B
+├ ƒ /api/compose/status/[renderId]                        0 B                0 B
+├ ƒ /api/compose/unlock                                   0 B                0 B
+├ ƒ /api/consent                                          0 B                0 B
+├ ƒ /api/credits                                          0 B                0 B
+├ ƒ /api/credits/deduct                                   0 B                0 B
+├ ƒ /api/cron/ads-v2-advance                              0 B                0 B
+├ ƒ /api/cron/annual-credit-refill                        0 B                0 B
+├ ƒ /api/cron/autopilot-generate                          0 B                0 B
+├ ƒ /api/cron/courtesy-expire                             0 B                0 B
+├ ƒ /api/cron/finish-orphan-jobs                          0 B                0 B
+├ ƒ /api/cron/finish-stranded-renders                     0 B                0 B
+├ ƒ /api/cron/geo-citation-monitor                        0 B                0 B
+├ ƒ /api/cron/nota-auto                                   0 B                0 B
+├ ƒ /api/cron/placar-versao-b                             0 B                0 B
+├ ƒ /api/cron/quality-radar                               0 B                0 B
+├ ƒ /api/cron/rapido-ads-clipes                           0 B                0 B
+├ ƒ /api/cron/refresh-niche-trends                        0 B                0 B
+├ ƒ /api/cron/refresh-viral-now                           0 B                0 B
+├ ƒ /api/cron/refund-sweep                                0 B                0 B
+├ ƒ /api/cron/regua-95                                    0 B                0 B
+├ ƒ /api/cron/remix-reward                                0 B                0 B
+├ ƒ /api/cron/rescue-vendor-assets                        0 B                0 B
+├ ƒ /api/cron/reset-cinematic-tokens                      0 B                0 B
+├ ƒ /api/cron/resume-parked-renders                       0 B                0 B
+├ ƒ /api/cron/send-activation-nudge                       0 B                0 B
+├ ƒ /api/cron/send-blackout-winback                       0 B                0 B
+├ ƒ /api/cron/send-cap-hit                                0 B                0 B
+├ ƒ /api/cron/send-credits-back                           0 B                0 B
+├ ƒ /api/cron/send-episode2                               0 B                0 B
+├ ƒ /api/cron/send-failure-recovery                       0 B                0 B
+├ ƒ /api/cron/send-momentum-nudge                         0 B                0 B
+├ ƒ /api/cron/send-month2-annual-offer                    0 B                0 B
+├ ƒ /api/cron/send-oneoff-unlock                          0 B                0 B
+├ ƒ /api/cron/send-post-nudge                             0 B                0 B
+├ ƒ /api/cron/send-recovery                               0 B                0 B
+├ ƒ /api/cron/send-reminders                              0 B                0 B
+├ ƒ /api/cron/send-stalled-rescue                         0 B                0 B
+├ ƒ /api/cron/send-stalled-rescue-fresh                   0 B                0 B
+├ ƒ /api/cron/send-trial-eve-notice                       0 B                0 B
+├ ƒ /api/cron/send-video-ready                            0 B                0 B
+├ ƒ /api/cron/send-video-rescue                           0 B                0 B
+├ ƒ /api/cron/shopify-plans                               0 B                0 B
+├ ƒ /api/cron/submit-indexnow                             0 B                0 B
+├ ƒ /api/cron/supplier-watch                              0 B                0 B
+├ ƒ /api/cron/trial-downgrade                             0 B                0 B
+├ ƒ /api/cron/trial-lifecycle-emails                      0 B                0 B
+├ ƒ /api/demo-hooks                                       0 B                0 B
+├ ƒ /api/demo-script                                      0 B                0 B
+├ ƒ /api/dfy-films/order                                  0 B                0 B
+├ ƒ /api/dfy/brief                                        0 B                0 B
+├ ƒ /api/diretor/suggest                                  0 B                0 B
+├ ƒ /api/dodo/checkout                                    0 B                0 B
+├ ƒ /api/dodo/webhook                                     0 B                0 B
+├ ƒ /api/download                                         0 B                0 B
+├ ƒ /api/email/filme-pronto                               0 B                0 B
+├ ƒ /api/enhance                                          0 B                0 B
+├ ƒ /api/episode-link                                     0 B                0 B
+├ ƒ /api/events                                           0 B                0 B
+├ ƒ /api/exit-feedback                                    0 B                0 B
+├ ƒ /api/expand-script                                    0 B                0 B
+├ ○ /api/facts                                            0 B                0 B
+├ ƒ /api/film-complete/checkout                           0 B                0 B
+├ ƒ /api/film-complete/start                              0 B                0 B
+├ ƒ /api/film-complete/status                             0 B                0 B
+├ ƒ /api/film-feedback                                    0 B                0 B
+├ ƒ /api/films-made                                       0 B                0 B
+├ ƒ /api/first-film                                       0 B                0 B
+├ ƒ /api/first-film-redo                                  0 B                0 B
+├ ƒ /api/footage                                          0 B                0 B
+├ ƒ /api/free-redo/film                                   0 B                0 B
+├ ƒ /api/generate                                         0 B                0 B
+├ ƒ /api/generate-avatar                                  0 B                0 B
+├ ƒ /api/generate-broll-plan                              0 B                0 B
+├ ƒ /api/generate-clip                                    0 B                0 B
+├ ƒ /api/generate-script                                  0 B                0 B
+├ ƒ /api/generate-thumbnail                               0 B                0 B
+├ ƒ /api/generate-video                                   0 B                0 B
+├ ƒ /api/generate-video-cinematic                         0 B                0 B
+├ ƒ /api/generate-video-fast                              0 B                0 B
+├ ƒ /api/generate-video/active                            0 B                0 B
+├ ƒ /api/generate-video/cancel                            0 B                0 B
+├ ƒ /api/generate-video/status                            0 B                0 B
+├ ƒ /api/geo                                              0 B                0 B
+├ ƒ /api/gesture-clip                                     0 B                0 B
+├ ƒ /api/gesture-clip-status                              0 B                0 B
+├ ƒ /api/gpt/handoff                                      0 B                0 B
+├ ƒ /api/gpt/handoff/go                                   0 B                0 B
+├ ƒ /api/gpt/handoff/paste                                0 B                0 B
+├ ƒ /api/gpt/handoff/pricing                              0 B                0 B
+├ ƒ /api/home-variant                                     0 B                0 B
+├ ƒ /api/hotmart/webhook                                  0 B                0 B
+├ ƒ /api/images                                           0 B                0 B
+├ ƒ /api/images/edit                                      0 B                0 B
+├ ƒ /api/images/generate                                  0 B                0 B
+├ ƒ /api/images/reference                                 0 B                0 B
+├ ƒ /api/images/upscale                                   0 B                0 B
+├ ƒ /api/kids-cartoon/story                               0 B                0 B
+├ ƒ /api/kids-venda/sample                                0 B                0 B
+├ ƒ /api/kids-venda/status                                0 B                0 B
+├ ƒ /api/kling4-paid/availability                         0 B                0 B
+├ ƒ /api/kling4-trial/availability                        0 B                0 B
+├ ƒ /api/lead-capture                                     0 B                0 B
+├ ƒ /api/mcp                                              0 B                0 B
+├ ƒ /api/mcp/chatgpt                                      0 B                0 B
+├ ƒ /api/mcp/studio                                       0 B                0 B
+├ ƒ /api/mcp/studio/oauth/authorize                       0 B                0 B
+├ ƒ /api/mcp/studio/oauth/register                        0 B                0 B
+├ ƒ /api/mcp/studio/oauth/revoke                          0 B                0 B
+├ ƒ /api/mcp/studio/oauth/token                           0 B                0 B
+├ ƒ /api/me/activate-now                                  0 B                0 B
+├ ƒ /api/me/creator30-offer                               0 B                0 B
+├ ƒ /api/me/credits                                       0 B                0 B
+├ ƒ /api/me/entry-prefill                                 0 B                0 B
+├ ƒ /api/me/plan                                          0 B                0 B
+├ ƒ /api/me/subscription                                  0 B                0 B
+├ ƒ /api/mercadopago/checkout                             0 B                0 B
+├ ƒ /api/mercadopago/webhook                              0 B                0 B
+├ ƒ /api/next-action                                      0 B                0 B
+├ ƒ /api/next-episode                                     0 B                0 B
+├ ƒ /api/next-episode/studio                              0 B                0 B
+├ ƒ /api/next-shorts                                      0 B                0 B
+├ ƒ /api/notify-video-ready                               0 B                0 B
+├ ƒ /api/offers/annual-welcome                            0 B                0 B
+├ ƒ /api/offers/bf2026                                    0 B                0 B
+├ ƒ /api/offers/black-friday                              0 B                0 B
+├ ƒ /api/offers/offer290-rescue                           0 B                0 B
+├ ƒ /api/offers/studio50                                  0 B                0 B
+├ ƒ /api/offers/welcome20-deadline                        0 B                0 B
+├ ƒ /api/paypal/checkout                                  0 B                0 B
+├ ƒ /api/paypal/return                                    0 B                0 B
+├ ƒ /api/paypal/setup                                     0 B                0 B
+├ ƒ /api/paypal/webhook                                   0 B                0 B
+├ ƒ /api/post-reward                                      0 B                0 B
+├ ƒ /api/posted-shorts                                    0 B                0 B
+├ ƒ /api/prewarm-voiceover                                0 B                0 B
+├ ƒ /api/public/viral-score                               0 B                0 B
+├ ƒ /api/publish-pack                                     0 B                0 B
+├ ƒ /api/push/subscribe                                   0 B                0 B
+├ ƒ /api/recreate                                         0 B                0 B
+├ ƒ /api/recreate/assets/[name]                           0 B                0 B
+├ ƒ /api/recreate/seu-video                               0 B                0 B
+├ ƒ /api/recreate/seu-video/check                         0 B                0 B
+├ ƒ /api/recreate/seu-video/upload                        0 B                0 B
+├ ƒ /api/recreate/social                                  0 B                0 B
+├ ƒ /api/recreate/status                                  0 B                0 B
+├ ƒ /api/referral                                         0 B                0 B
+├ ƒ /api/referral/attribute                               0 B                0 B
+├ ƒ /api/referral/qualify                                 0 B                0 B
+├ ƒ /api/regenerate-scene                                 0 B                0 B
+├ ƒ /api/region-pass                                      0 B                0 B
+├ ƒ /api/remix/signup                                     0 B                0 B
+├ ƒ /api/render                                           0 B                0 B
+├ ƒ /api/render-jobs                                      0 B                0 B
+├ ƒ /api/render-recovery                                  0 B                0 B
+├ ƒ /api/render/[id]                                      0 B                0 B
+├ ƒ /api/retry-hollywood-scene                            0 B                0 B
+├ ƒ /api/revive                                           0 B                0 B
+├ ƒ /api/revive/click                                     0 B                0 B
+├ ƒ /api/scene-preview                                    0 B                0 B
+├ ƒ /api/scene-preview/cta                                0 B                0 B
+├ ƒ /api/scene-preview/pricing-strip                      0 B                0 B
+├ ƒ /api/scenes                                           0 B                0 B
+├ ƒ /api/season                                           0 B                0 B
+├ ƒ /api/send-welcome                                     0 B                0 B
+├ ƒ /api/shopify/account                                  0 B                0 B
+├ ƒ /api/shopify/ads                                      0 B                0 B
+├ ƒ /api/shopify/ads/attach                               0 B                0 B
+├ ƒ /api/shopify/ads/status                               0 B                0 B
+├ ƒ /api/shopify/auth                                     0 B                0 B
+├ ƒ /api/shopify/auth/callback                            0 B                0 B
+├ ƒ /api/shopify/products                                 0 B                0 B
+├ ƒ /api/shopify/webhooks                                 0 B                0 B
+├ ○ /api/showcase-clips                                   0 B                0 B
+├ ƒ /api/spaces/brief                                     0 B                0 B
+├ ƒ /api/spaces/montage                                   0 B                0 B
+├ ƒ /api/stats                                            0 B                0 B
+├ ○ /api/stats/public                                     0 B                0 B
+├ ƒ /api/stock                                            0 B                0 B
+├ ƒ /api/storage-usage                                    0 B                0 B
+├ ƒ /api/stripe/cancel-save                               0 B                0 B
+├ ƒ /api/stripe/change-plan                               0 B                0 B
+├ ƒ /api/stripe/checkout                                  0 B                0 B
+├ ƒ /api/stripe/checkout/guest-access                     0 B                0 B
+├ ƒ /api/stripe/checkout/item                             0 B                0 B
+├ ƒ /api/stripe/checkout/pilot-resume                     0 B                0 B
+├ ƒ /api/stripe/checkout/resume                           0 B                0 B
+├ ƒ /api/stripe/checkout/verify                           0 B                0 B
+├ ƒ /api/stripe/end-trial-now                             0 B                0 B
+├ ƒ /api/stripe/portal                                    0 B                0 B
+├ ƒ /api/stripe/portal/update-card                        0 B                0 B
+├ ƒ /api/stripe/switch-to-annual                          0 B                0 B
+├ ƒ /api/stripe/webhook                                   0 B                0 B
+├ ƒ /api/topic-suggest                                    0 B                0 B
+├ ƒ /api/track-click                                      0 B                0 B
+├ ƒ /api/track-signup-source                              0 B                0 B
+├ ƒ /api/trial/claim                                      0 B                0 B
+├ ƒ /api/unsubscribe                                      0 B                0 B
+├ ƒ /api/video-proxy                                      0 B                0 B
+├ ƒ /api/video-summary                                    0 B                0 B
+├ ƒ /api/video/publish                                    0 B                0 B
+├ ƒ /api/video/showcase                                   0 B                0 B
+├ ƒ /api/video/visibility                                 0 B                0 B
+├ ƒ /api/videos                                           0 B                0 B
+├ ƒ /api/viral-now                                        0 B                0 B
+├ ƒ /api/visual-director-status                           0 B                0 B
+├ ƒ /api/voiceover                                        0 B                0 B
+├ ƒ /api/wall/refresh                                     0 B                0 B
+├ ƒ /api/youtube/analytics                                0 B                0 B
+├ ƒ /api/youtube/auth                                     0 B                0 B
+├ ƒ /api/youtube/callback                                 0 B                0 B
+├ ƒ /api/youtube/disconnect                               0 B                0 B
+├ ƒ /api/youtube/status                                   0 B                0 B
+├ ƒ /api/youtube/upload                                   0 B                0 B
+├ ○ /approve                                              5.45 kB         117 kB
+├ ○ /arena                                                223 B          95.1 kB
+├ ƒ /audio                                                4.85 kB         288 kB
+├ ƒ /auth/callback                                        0 B                0 B
+├ ƒ /auth/guest-link                                      0 B                0 B
+├ ƒ /auth/signout                                         0 B                0 B
+├ ƒ /autopilot                                            11 kB           114 kB
+├ ƒ /avatar                                               16.4 kB         355 kB
+├ ƒ /baby-podcast                                         5.27 kB         356 kB
+├ ○ /best-ai-shorts-generators                            903 B           318 kB
+├ ƒ /black-friday                                         3.77 kB         288 kB
+├ ○ /brainrot-video-generator                             2.53 kB         287 kB
+├ ○ /business                                             197 B           126 kB
+├ ○ /business-pilot-review                                5.89 kB         287 kB
+├ ○ /business-video-ads                                   4.91 kB         172 kB
+├ ƒ /business-video-ads/brief                             3.25 kB          95 kB
+├ ƒ /business-video-content-plan                          9.83 kB         291 kB
+├ ○ /can-you-monetize-ai-videos                           3.37 kB         104 kB
+├ ƒ /channel                                              4.68 kB        99.6 kB
+├ ○ /chatgpt                                              2.63 kB         338 kB
+├ ○ /chatgpt-to-youtube-shorts                            2.89 kB         288 kB
+├ ○ /cheapest-ai-shorts-maker                             10.8 kB         302 kB
+├ ○ /checkout/cancelled                                   11.3 kB         154 kB
+├ ○ /checkout/guest                                       2.73 kB        97.6 kB
+├ ○ /checkout/item                                        2.17 kB        90.2 kB
+├ ○ /checkout/success                                     11.4 kB         140 kB
+├ ○ /claude-connector                                     3.44 kB         296 kB
+├ ○ /client-video-brief-generator                         9.19 kB         290 kB
+├ ƒ /clips                                                9.65 kB         332 kB
+├ ƒ /comment-to-video                                     5.26 kB         286 kB
+├ ○ /compare/heygen-alternative                           209 B          88.3 kB
+├ ○ /compare/invideo-alternative                          209 B          88.3 kB
+├ ƒ /conferencia-receita                                  1.22 kB         285 kB
+├ ○ /contact                                              209 B          88.3 kB
+├ ƒ /create                                               9.42 kB         175 kB
+├ ƒ /create/[tab]                                         21.8 kB         782 kB
+├ ƒ /dashboard                                            209 B          88.3 kB
+├ ○ /desenho-infantil-3d-com-ia                           1.7 kB          380 kB
+├ ƒ /done-for-you                                         1.32 kB        89.4 kB
+├ ƒ /effects/[slug]                                       168 B           286 kB
+├ ƒ /effects/[slug]/[lang]                                168 B           286 kB
+├ ƒ /es/made-with-kineo                                   594 B          95.5 kB
+├ ƒ /es/made-with-kineo/[slug]                            594 B          95.5 kB
+├ ƒ /examples                                             4.12 kB         336 kB
+├ ● /examples/[slug]                                      2.74 kB         101 kB
+├   ├ /examples/turkmenistan-door-to-hell
+├   ├ /examples/north-sentinel-island
+├   ├ /examples/japan-autonomous-ai
+├   └ [+3 more paths]
+├ ƒ /examples/design                                      1.09 kB         273 kB
+├ ○ /faceless-channel-ideas                               157 B           288 kB
+├ ƒ /faceless-video-generator                             5.15 kB         290 kB
+├ ○ /faceless-youtube-shorts-generator                    2.52 kB         284 kB
+├ ○ /facts                                                210 B          88.3 kB
+├ ○ /film-60                                              4.06 kB         102 kB
+├ ○ /film-complete                                        11.4 kB         275 kB
+├ ○ /forgot-password                                      4.33 kB         172 kB
+├ ○ /founding                                             209 B          88.3 kB
+├ ƒ /free                                                 0 B                0 B
+├ ○ /free-ai-shorts                                       311 B           347 kB
+├ ƒ /free-ai-shorts-generator                             4.06 kB         356 kB
+├ ● /free-ai-shorts/[niche]                               311 B           347 kB
+├   ├ /free-ai-shorts/money
+├   ├ /free-ai-shorts/faith
+├   ├ /free-ai-shorts/mystery
+├   └ [+42 more paths]
+├ ƒ /free-hook-generator                                  7.59 kB         294 kB
+├ ƒ /free-script-generator                                7.89 kB         307 kB
+├ ● /free-shorts-generator/[lang]                         2.92 kB         305 kB
+├   ├ /free-shorts-generator/fr
+├   ├ /free-shorts-generator/de
+├   ├ /free-shorts-generator/it
+├   └ [+10 more paths]
+├ ƒ /from-saashub                                         4.59 kB         108 kB
+├ ƒ /from-youtube                                         4.64 kB         108 kB
+├ ○ /generador-de-shorts-gratis                           2.83 kB         305 kB
+├ ○ /generador-de-videos-de-terror                        169 B           298 kB
+├ ƒ /generate                                             209 B          88.3 kB
+├ ○ /gerador-de-shorts-gratis                             1.54 kB         354 kB
+├ ƒ /go/[token]                                           3.98 kB         276 kB
+├ ● /guides/[slug]                                        2.02 kB         101 kB
+├   ├ /guides/ai-product-video-accuracy
+├   ├ /guides/ai-dropshipping-video-ads
+├   ├ /guides/ai-personal-care-product-ads
+├   └ [+5 more paths]
+├ ƒ /history                                              1.09 kB         329 kB
+├ ○ /how-much-do-instagram-reels-pay                      656 B           103 kB
+├ ○ /how-much-do-youtube-shorts-pay                       199 B           106 kB
+├ ○ /how-much-does-tiktok-pay                             656 B           103 kB
+├ ○ /how-to-start-a-faceless-youtube-channel              2.53 kB         287 kB
+├ ○ /icon.png                                             0 B                0 B
+├ ƒ /images                                               15.3 kB         298 kB
+├ ƒ /kids-cartoon                                         3.11 kB         354 kB
+├ ○ /kineo-in-claude                                      10.5 kB         292 kB
+├ ○ /kineo-vs-higgsfield                                  223 B          95.1 kB
+├ ○ /kineo-vs-kineo-studio                                2.25 kB         283 kB
+├ ƒ /library                                              12.4 kB         341 kB
+├ ○ /llms.txt                                             0 B                0 B
+├ ○ /login                                                6.24 kB         345 kB
+├ ƒ /made-with-kineo                                      8.97 kB         383 kB
+├ ƒ /made-with-kineo/[slug]                               594 B          95.5 kB
+├ ƒ /made-with-kineo/manage                               3.47 kB         265 kB
+├ ƒ /made-with-kineo/sitemap.xml                          0 B                0 B
+├ ƒ /make                                                 0 B                0 B
+├ ○ /make-money-clipping-with-ai                          1.34 kB        93.1 kB
+├ ○ /manifest.webmanifest                                 0 B                0 B
+├ ○ /models-pricing                                       223 B          95.1 kB
+├ ƒ /my-videos                                            7.12 kB         119 kB
+├ ○ /niche-picker                                         5.78 kB         104 kB
+├ ƒ /og-card.png                                          0 B                0 B
+├ ƒ /og-image.png                                         0 B                0 B
+├ ○ /omni-flash-vs-sora                                   210 B          88.3 kB
+├ ○ /partners                                             3.1 kB          284 kB
+├ ○ /ph                                                   3.32 kB         284 kB
+├ ƒ /pricing                                              48.4 kB         485 kB
+├ ○ /privacy                                              2.21 kB         283 kB
+├ ○ /product-to-video-script                              5.82 kB         287 kB
+├ ƒ /pt/made-with-kineo                                   594 B          95.5 kB
+├ ƒ /pt/made-with-kineo/[slug]                            594 B          95.5 kB
+├ ○ /real-estate-video-maker                              2.25 kB         283 kB
+├ ƒ /recreate                                             2.3 kB          207 kB
+├ ƒ /recreate-preview                                     17.7 kB         115 kB
+├ ƒ /recreate/[id]                                        228 B           205 kB
+├ ○ /reddit-story-video-generator                         2.53 kB         287 kB
+├ ƒ /referral                                             1.3 kB         89.4 kB
+├ ○ /refund                                               2.25 kB         283 kB
+├ ○ /reset-password                                       4.92 kB         172 kB
+├ ○ /reviews                                              209 B          88.3 kB
+├ ƒ /revive/[handle]                                      209 B          88.3 kB
+├ ○ /robots.txt                                           0 B                0 B
+├ ƒ /s/[channel]                                          0 B                0 B
+├ ○ /scripts                                              2.65 kB         305 kB
+├ ● /scripts/[vertical]                                   3.04 kB         284 kB
+├   ├ /scripts/money
+├   ├ /scripts/luxury
+├   ├ /scripts/mystery
+├   └ [+15 more paths]
+├ ○ /seedance-kling-veo-in-one-place                      2.52 kB         284 kB
+├ ○ /seedance-vs-veo-vs-kling                             4.79 kB         295 kB
+├ ƒ /share-to-kineo                                       0 B                0 B
+├ ƒ /shopify/app                                          0 B                0 B
+├ ƒ /shopify/open                                         0 B                0 B
+├ ○ /short-form-video-vendor-evaluation.csv               0 B                0 B
+├ ƒ /shorts-ideas.xml                                     0 B                0 B
+├ ○ /shorts-money-calculator                              181 B           102 kB
+├ ○ /showcase                                             11.7 kB         300 kB
+├ ○ /signup                                               13.5 kB         359 kB
+├ ○ /sitemap.xml                                          0 B                0 B
+├ ○ /sora-alternative                                     179 B          95.6 kB
+├ ƒ /spaces                                               31.7 kB         302 kB
+├ ○ /start                                                209 B          88.3 kB
+├ ○ /state-of-ai-shorts-2026                              2.66 kB         330 kB
+├ ƒ /studio                                               84.7 kB         498 kB
+├ ƒ /studio/create                                        191 kB          633 kB
+├ ƒ /studio/previa                                        5.91 kB         272 kB
+├ ○ /support                                              209 B          88.3 kB
+├ ƒ /templates                                            2.6 kB         90.7 kB
+├ ○ /terms                                                2.25 kB         283 kB
+├ ○ /text-to-video-shorts                                 5.51 kB         349 kB
+├ ƒ /thumbnail-generator                                  7.16 kB         270 kB
+├ ○ /tiktok-creator-rewards-length-checker                6.2 kB          297 kB
+├ ○ /tiktok-creator-rewards-videos                        223 B          95.1 kB
+├ ○ /tiktok-vs-youtube-shorts-monetization                2.46 kB        94.2 kB
+├ ○ /tools                                                2.21 kB         283 kB
+├ ƒ /tools/editor                                         9.1 kB          271 kB
+├ ○ /trending                                             209 B          88.3 kB
+├ ○ /trust                                                3.47 kB         285 kB
+├ ƒ /unsubscribe                                          223 B          95.1 kB
+├ ƒ /v/[id]                                               3.17 kB         104 kB
+├ ƒ /v/[id]/opengraph-image                               0 B                0 B
+├ ƒ /v2                                                   3.37 kB        98.3 kB
+├ ƒ /video                                                8.02 kB        99.6 kB
+├ ƒ /video-sitemap.xml                                    0 B                0 B
+├ ○ /videos-bebe-podcast-ia                               2.46 kB         365 kB
+├ ƒ /viral-now                                            3.94 kB         128 kB
+├ ○ /viral-score                                          6.82 kB         288 kB
+├ ○ /vs                                                   2.53 kB         287 kB
+├ ● /vs/[pair]                                            2.52 kB         284 kB
+├   ├ /vs/heygen-vs-synthesia
+├   ├ /vs/opus-clip-vs-submagic
+├   ├ /vs/captions-vs-submagic
+├   └ [+89 more paths]
+├ ○ /vs/arcads-alternative                                437 B          88.5 kB
+├ ○ /vs/autoshorts-alternative                            1.58 kB         115 kB
+├ ○ /vs/capcut-alternatives-no-editing-shorts             1.58 kB         115 kB
+├ ○ /vs/crayo-alternative                                 1.58 kB         115 kB
+├ ○ /vs/creatify-alternative                              437 B          88.5 kB
+├ ○ /vs/dreamina-alternatives-narrated-shorts             1.58 kB         115 kB
+├ ○ /vs/faceless-video-alternative                        1.58 kB         115 kB
+├ ○ /vs/fliki-alternative                                 1.58 kB         115 kB
+├ ○ /vs/google-flow-alternatives-finished-shorts          1.58 kB         115 kB
+├ ○ /vs/invideo-alternatives-faceless-shorts              667 B           104 kB
+├ ○ /vs/opus-clip-alternatives-original-shorts            1.58 kB         115 kB
+├ ○ /vs/pictory-alternatives-cinematic-shorts             1.58 kB         115 kB
+├ ○ /vs/revid-alternative                                 1.58 kB         115 kB
+├ ○ /vs/synthesia-alternatives-faceless-videos            1.58 kB         115 kB
+├ ○ /vs/topview-alternative                               437 B          88.5 kB
+├ ○ /vs/zebracat-alternative                              1.58 kB         115 kB
+├ ○ /vs/zeely-alternative                                 437 B          88.5 kB
+├ ƒ /wall                                                 2.86 kB         101 kB
+├ ƒ /watch-preview                                        1.47 kB         458 kB
+├ ○ /when-does-youtube-pay-you                            187 B           332 kB
+├ ○ /widget                                               832 B          88.9 kB
+├ ƒ /widget/embed                                         210 B          88.3 kB
+├ ○ /youtube-automation                                   2.53 kB         287 kB
+├ ○ /youtube-automation-case-study                        653 B          99.3 kB
+├ ○ /youtube-shorts-from-topic                            6.25 kB         296 kB
+├ ○ /youtube-shorts-revenue-sharing-explained             187 B           332 kB
+├ ○ /youtube-shorts-rpm-by-niche                          189 B           106 kB
+├ ○ /youtube-shorts-script-timer                          9.55 kB         301 kB
+└ ○ /youtube-shorts-title-generator                       6.14 kB         287 kB
++ First Load JS shared by all                             88.1 kB
+  ├ chunks/1d21227e-2ae1d53150ff7631.js                   53.6 kB
+  ├ chunks/354-9eff527cfdb6271e.js                        31.7 kB
+  └ other shared chunks (total)                           2.77 kB
+
+
+ƒ Middleware                                              95.5 kB
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses getStaticProps)
+ƒ  (Dynamic)  server-rendered on demand
+
