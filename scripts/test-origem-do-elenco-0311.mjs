@@ -211,7 +211,8 @@ async function provaCenas(M) {
   if (!/^.*natural features of Japanese people/.test(com.prompts[0])) erros.push('E cena com gente sem origem: ' + com.prompts[0])
   if (/natural features/.test(com.prompts[1]) || /natural features/.test(com.prompts[2])) erros.push('E cena sem gente recebeu origem')
   if (/fedoras/.test(com.prompts[0]) || !/true to their own place and role/.test(com.prompts[0])) erros.push('E cena com origem vestiu a lista ocidental: ' + com.prompts[0])
-  if (!/fedoras/.test(com.prompts[1])) erros.push('E cena sem origem perdeu a régua de época')
+  // reancorado (KINEO-LINHA-DE-EPOCA-1411, CEO 14/11 12:25): a cena marcada sem gente leva SÓ a data — o catálogo de roupa punha gente na ilha da Earhart
+  if (!/Period setting: 1945 \(1940s\)\.$/.test(com.prompts[1]) || /fedoras|People in the shot|wears/.test(com.prompts[1])) erros.push('E cena sem gente: a régua de época tem de ser só a data: ' + com.prompts[1])
   // ausente = byte a byte
   const sem = E.aplicarElencoEEpoca(base)
   if (JSON.stringify(sem) !== JSON.stringify(E.aplicarElencoEEpoca({ ...base, origemDoElenco: null }))) erros.push('E null ≠ ausente')
@@ -344,7 +345,8 @@ const MUTANTES = [
   ['falha vira filme', { [F.o]: (t) => troca(t, 'if (!resposta || !resposta.ok || !resposta.leitura) return null', 'if (!resposta) return null') }],
   ['cena sem gente recebe origem', { [F.e]: (t) => troca(t, "if (prompts[i].includes('No people, no human figures and no faces anywhere in this shot') || !(GENTE_NO_PROMPT_RE.test(semNegacao) || MULTIDAO_NO_PROMPT_RE.test(semNegacao) || PESSOA_RE.test(semNegacao))) continue", '') }],
   ['[faceless] recebe origem', { [F.e]: (t) => troca(t, "args.origemDoElenco && !args.tagFaceless && args.modo !== 'presenter' ? args.origemDoElenco : null", 'args.origemDoElenco') }],
-  ['cena veste a lista ocidental', { [F.e]: (t) => troca(t, 'if (args.origemDoElenco && r.aplicada === \'longa\' && r.prompt.includes(\'natural features of \'))', 'if (false)') }],
+  // reancorado (KINEO-LINHA-DE-EPOCA-1411): a linha de época nova já não leva o catálogo; quem impede a lista ocidental agora é ela
+  ['cena veste a lista ocidental', { [F.e]: (t) => troca(t, '(gente ? ` People in the shot wear period-accurate ${epoca.rotulo} clothing true to their own place and role, with period props.` : \'\')', '(gente ? ` People in the shot wear ${p.roupa}.` : \'\')') }],
   ['ficha veste a lista ocidental', { [F.t]: (t) => troca(t, "if (c.includes('natural features of ')) return", 'if (false) return') }],
   ['Kling 4 perde a marca', { [F.q]: (t) => troca(t, '${origemCurta}`', '`') }],
   ['crítico não lê a resposta', { [F.c]: (t) => troca(t, ", ...(c.origem ? ['origin'] : [])", '') }],
