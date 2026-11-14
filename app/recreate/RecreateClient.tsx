@@ -322,8 +322,9 @@ export default function RecreateClient({ initialId, internalTools = false, forma
       } catch { throw Object.assign(new Error('Could not confirm whether this request started. Retry the same request or check My videos.'), { uncertain: true }) }
       if (!response.ok) {
         const knownRefusal = ['storage', 'moderation_unavailable', 'moderation_unprocessable', 'provider_rejected', 'provider_failed', 'engine_refused', 'not_swapped', 'swap_unchanged'].includes(data.code)
-        const authDuringRetry = retrying && (response.status === 401 || response.status === 404)
-        const ambiguous = authDuringRetry || data.code === 'idempotency_conflict' || data.code === 'submit_ambiguous' || (response.status >= 500 && !knownRefusal)
+        // Current access/price checks precede replay lookup. No error here can
+        // disprove that an earlier, unconfirmed dispatch already created a clip.
+        const ambiguous = retrying || data.code === 'idempotency_conflict' || data.code === 'submit_ambiguous' || (response.status >= 500 && !knownRefusal)
         if (!ambiguous) { clearAttempt(sent.model); requestKey.current = null; setUncertain(false); if (data.code === 'credits') void loadQuotes() }
         throw Object.assign(new Error(typeof data.error === 'string' ? data.error : 'Could not start. Check your photos and try again.'), { status: response.status, uncertain: ambiguous })
       }

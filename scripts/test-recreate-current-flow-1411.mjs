@@ -104,7 +104,7 @@ async function retry(source){
  const noIdentity=harness({props:{signedIn:true,accountKey:ACCOUNT},post:[{status:503,body:{code:'future_server_code',error:'Unknown future error'}}]},source);await noIdentity.flush();await add(noIdentity);await noIdentity.click(gen(noIdentity));ok(area(noIdentity).props.disabled,'future 5xx code remains uncertain')
  const reload=harness({props:{signedIn:true,accountKey:ACCOUNT},storage:[['kineo:recreate:flow:attempt:'+ACCOUNT+':passarela',JSON.stringify({key:'earlier-key',at:Date.now()})]]},source);await reload.flush();ok(gen(reload).props.disabled,'reload without payload never dispatches another request');equal(posts(reload).length,0,'reload marker sends no generation')
  const browse=harness({props:{initialId:undefined,signedIn:true,accountKey:ACCOUNT},storage:[['kineo:recreate:flow:attempt:'+ACCOUNT+':passarela',JSON.stringify({key:'earlier-key',at:Date.now()})]]},source);await browse.flush();await browse.click(by(browse,n=>n.type==='button'&&n.props['aria-label']==='Use Runway walk'));ok(area(browse).props.disabled,'gallery selection also respects uncertain marker')
- const known=harness({props:{signedIn:true,accountKey:ACCOUNT},post:[new TypeError('lost response'),{status:402,body:{code:'credits',error:'Check your balance.'}}]},source);await known.flush();await add(known);await known.click(gen(known));await known.click(gen(known));ok(!area(known).props.disabled,'known refusal after retry unlocks photo edits')
+ const known=harness({props:{signedIn:true,accountKey:ACCOUNT},post:[new TypeError('lost response'),{status:402,body:{code:'credits',error:'Check your balance.'}}]},source);await known.flush();await add(known);await known.click(gen(known));await known.click(gen(known));ok(area(known).props.disabled,'current credit refusal cannot disprove earlier request')
 }
 async function auth(source){
  const h=harness({props:{signedIn:true,accountKey:ACCOUNT},uploadStatus:401},source);await h.flush();await add(h);await h.click(gen(h));equal(h.saves.length,1,'upload 401 saves current snapshot');equal(h.navigations.length,1,'upload 401 returns to signup');equal(posts(h).length,0,'upload 401 cannot dispatch')
@@ -151,8 +151,17 @@ async function uncertainRecovery(source){
   const fresh=harness({props:{signedIn:true,accountKey:ACCOUNT}},source);await fresh.flush();await add(fresh);fresh.storageFailure=failure;await fresh.click(gen(fresh));equal(posts(fresh).length,0,'first snapshot failure cannot send a new request');ok(!area(fresh).props.disabled,'first unsent snapshot failure permits correction');fresh.storageFailure=null;await fresh.click(gen(fresh));equal(posts(fresh).length,1,'first request starts only after snapshot storage recovers')
  }
 }
-const scenarios={guest,retry,auth,restore,states,parity,timeout,availability,reloadSnapshot,uncertainRecovery}
-for(const run of Object.values(scenarios))await run(raw)
+async function uncertainHttpErrors(source){
+ for(const [status,code]of[[409,'unpriced'],[429,'queue_full'],[402,'credits'],[400,'request']]){
+  const first=harness({props:{signedIn:true,accountKey:ACCOUNT},post:[new TypeError('response lost')]},source);await first.flush();await add(first);await first.click(gen(first));const stored=[...first.storage.entries()],original=posts(first)[0]
+  const retry=harness({props:{signedIn:true,accountKey:ACCOUNT},storage:stored,post:[{status,body:{code,error:'Current request refused.'}}]},source);await retry.flush();equal(posts(retry).length,0,'restored uncertain HTTP scenario never auto-dispatches');await retry.click(gen(retry));ok(area(retry).props.disabled&&prompt(retry).props.disabled,'current HTTP refusal keeps uncertain fields locked');ok(!gen(retry).props.disabled,'current HTTP refusal retains retry payload');ok(retry.storage.has(stored[0][0]),'current HTTP refusal preserves saved request');equal(posts(retry)[0].body,original.body,'current HTTP refusal used original payload');equal(posts(retry)[0].headers['Idempotency-Key'],original.headers['Idempotency-Key'],'current HTTP refusal used original key');await retry.click(gen(retry));equal(posts(retry)[1].body,original.body,'retry after current refusal keeps original payload');equal(posts(retry)[1].headers['Idempotency-Key'],original.headers['Idempotency-Key'],'retry after current refusal keeps original key');equal(retry.calls.filter(call=>call.url==='/api/avatar/upload').length,0,'current HTTP refusal retry never reuploads')
+  const fresh=harness({props:{signedIn:true,accountKey:ACCOUNT},post:[{status,body:{code,error:'Current request refused.'}}]},source);await fresh.flush();await add(fresh);await fresh.click(gen(fresh));ok(!area(fresh).props.disabled,'first known refusal still permits correction');equal(fresh.storage.size,0,'first known refusal clears only its unsent attempt')
+ }
+}
+const scenarios={guest,retry,auth,restore,states,parity,timeout,availability,reloadSnapshot,uncertainRecovery,uncertainHttpErrors}
+const requested=process.argv.length===2?null:process.argv[2]==='--scenario'&&process.argv.length===4?process.argv[3]:''
+assert.ok(requested===null||Object.hasOwn(scenarios,requested),'Usage: node test-recreate-current-flow-1411.mjs [--scenario name]')
+for(const [name,run]of Object.entries(scenarios))if(requested===null||requested===name)await run(raw)
 const baseline=checks,replace=(from,to)=>{assert.equal(raw.split(from).length,2,'unique mutant anchor');return raw.replace(from,to)}
 const mutants=[
  ['private guest reads','guest','if (currentFlow && !signedIn) { setQuotes([...guestQuotes]); setFlowQuoteReady(true); return }','if (false) { setQuotes([...guestQuotes]); setFlowQuoteReady(true); return }','guest mount sends no private HTTP'],
@@ -167,17 +176,21 @@ const mutants=[
  ['signup handoff still warns','guest','if (handoffApproved.current) return; event.preventDefault();','event.preventDefault();','saved signup handoff bypasses leave warning'],
  ['POST timeout unlocks editor','timeout','if (failure.uncertain) setUncertain(true)','if (failure.uncertain) setUncertain(false)','POST timeout is uncertain'],
  ['availability failure has no retry','availability','setAvailabilityRetry(true);','setAvailabilityRetry(false);','availability failure offers retry'],
- ['known retry refusal remains locked','retry',"requestKey.current = null; setUncertain(false); if (data.code", "requestKey.current = null; setUncertain(true); if (data.code",'known refusal after retry unlocks photo edits'],
  ['gallery bypasses reload pointer','retry','[currentFlow, signedIn, accountKey, selected?.id]','[currentFlow, signedIn, accountKey, initialId]','gallery selection also respects uncertain marker'],
  ['terminal replay skips status','states',"const needsStatus = (data.clip.status === 'done'", "const needsStatus = false && (data.clip.status === 'done'",'terminal replay requests authoritative status'],
  ['reload drops payload snapshot','reloadSnapshot','attempt.current = restored','attempt.current = null','validated reload snapshot offers same-request retry'],
  ['snapshot owner not checked','reloadSnapshot','saved.account !== account ||','false ||','invalid saved snapshot remains blocked'],
- ['auth reply clears uncertain request','uncertainRecovery','const authDuringRetry = retrying && (response.status === 401 || response.status === 404)','const authDuringRetry = false','auth during uncertain retry retains same-request retry'],
+ ['auth reply clears uncertain request','uncertainRecovery','const ambiguous = retrying ||','const ambiguous = false ||','auth during uncertain retry retains same-request retry'],
  ['storage failure clears uncertain payload','uncertainRecovery','if (!retrying) { clearAttempt(sent.model); requestKey.current = null }','if (true) { clearAttempt(sent.model); requestKey.current = null }','failed snapshot rewrite keeps retry payload in memory'],
+ ['current refusal discards earlier request','uncertainHttpErrors','const ambiguous = retrying ||','const ambiguous = false ||','current HTTP refusal keeps uncertain fields locked'],
+ ['all errors become permanently uncertain','uncertainHttpErrors','const ambiguous = retrying ||','const ambiguous = true ||','first known refusal still permits correction'],
 ]
-for(const[name,scenario,from,to,message]of mutants){let error;try{await scenarios[scenario](replace(from,to))}catch(e){error=e}assert.ok(error instanceof assert.AssertionError&&error.message===message,`mutant ${name}: expected ${message}; got ${error?.message}`);console.log('ok mutant: '+name)}
+const selectedMutants=mutants.filter(([,scenario])=>requested===null||requested===scenario)
+for(const[name,scenario,from,to,message]of selectedMutants){let error;try{await scenarios[scenario](replace(from,to))}catch(e){error=e}assert.ok(error instanceof assert.AssertionError&&error.message===message,`mutant ${name}: expected ${message}; got ${error?.message}`);console.log('ok mutant: '+name)}
+if(requested===null){
 const css=fs.readFileSync(path.join(ROOT,'app/recreate/currentFlow.css'),'utf8')
 ok(css.includes('object-fit:contain')&&css.includes('env(safe-area-inset-bottom)')&&css.includes('position:fixed'),'flow CSS retains full photo and visible mobile dock')
 ok([...css.matchAll(/font-size:(\d+)px/g)].every(m=>Number(m[1])>=12),'flow CSS font floor is 12px')
 ok(!/watch|#c4ff|lime/i.test(css),'flow CSS uses current appearance only')
-console.log(`PASS current Recreate flow: ${baseline+3} checks and ${mutants.length} exact-assertion mutants; injected I/O only.`)
+}
+console.log(`PASS current Recreate flow${requested?' ['+requested+']':''}: ${baseline+(requested===null?3:0)} checks and ${selectedMutants.length} exact-assertion mutants; injected I/O only.`)
