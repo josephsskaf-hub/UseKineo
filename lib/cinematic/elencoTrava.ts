@@ -96,7 +96,11 @@ export function filmeFotorreal(style: Pick<StyleAnchor, 'look'>): boolean {
 /** A espécie que a ficha diz ("a small dog with true dog anatomy" → "dog"). */
 function especieDaFicha(f: Pick<FichaDePersonagem, 'nucleo' | 'canonica'>): string {
   const m = /\bwith (?:true|realistic) ([a-z-]+) anatomy\b/i.exec(f.canonica)
-  return (m?.[1] ?? f.nucleo ?? 'animal').toLowerCase()
+  const e = (m?.[1] ?? f.nucleo ?? 'animal').toLowerCase()
+  // KINEO-BICHO-COM-NOME-1411 [CEO 14/11, lote 2, caso F] — "collie mix" deixava o núcleo "mix" e a ficha dizia "a real living mix": a palavra de
+  // mistura não é espécie; vale a palavra antes dela na ficha ("collie"), ou "dog" se a ficha não a disser.
+  if (/^(?:mix|mixed|cross|crossbreed|mutt|breed)$/.test(e)) return /\b([a-z-]+)[\s-]+(?:mix|mixed|cross|crossbreed)\b/i.exec(f.canonica)?.[1]?.toLowerCase() ?? 'dog'
+  return e
 }
 
 /** A linha de estilo, sempre POSITIVA: diz o que o personagem É, nunca o que ele não é. */
