@@ -92,7 +92,7 @@ async function bateria(over = {}) {
     if ((sys.match(/"wears_glasses": "yes"\|"no"\|"unclear"/g) ?? []).length !== 2) throw new Error('a visão não pergunta dos óculos do vídeo e da foto')
     if (!/Never identify anyone/.test(sys)) throw new Error('sistema')
     const c = (over[CHECK] ?? lf(CHECK)).replace(/\/\/[^\n]*/g, '')
-    if (!c.includes("texto.descricoes.some(Boolean) || texto.oculos.some(Boolean) || (!genders && texto.generoDe === 'sugestao')") || !/oculos: texto\.oculos[ ,}]/.test(c)) throw new Error('/check') // reancorado KINEO-RECREATE-ALVO-POR-QUADROS-1411 (+ candidatos no evento)
+    if (!c.includes("texto.descricoes.some(Boolean) || texto.oculos.some(Boolean) || !!cabelos?.some(Boolean) || (!genders && texto.generoDe === 'sugestao')") || !/oculos: texto\.oculos[ ,}]/.test(c)) throw new Error('/check') // reancorado KINEO-RECREATE-ALVO-POR-QUADROS-1411 (+ candidatos no evento) // reancorado KINEO-RECREATE-MOVIMENTO-1411 (+ o cabelo lido da foto, com o interruptor)
     if ((c.match(/montarTextoDoPedido\(/g) ?? []).length !== 1) throw new Error('mais de uma montagem (chamada a mais)')
   })
   return p
@@ -108,7 +108,7 @@ const mutantes = [
   ['cláusula some do molde', { [TXT]: t.replace(" + clausulaDosOculos(a.oculos?.[i], i + 1, gs[i] === 'man' ? 'he' : 'she') + '.'", " + '.'") }],
   ['pronome errado', { [TXT]: t.replace("clausulaDosOculos(a.oculos?.[i], i + 1, gs[i] === 'man' ? 'he' : 'she')", "clausulaDosOculos(a.oculos?.[i], i + 1, 'he')") }],
   ['óculos de quem não tem foto', { [TXT]: t.replace('(i < fotos.length ? decidirOculos(lido.oculosNoVideo[i], lido.oculosNaFoto[i]) : null)', "(lido.oculosNoVideo[i] ? 'tirar' : null)") }],
-  ['neutro de 2 ganha cláusula', { [TXT]: t.replace("${n === 1 ? clausulaDosOculos(oculos[0], 1, 'they') : ''}", "${clausulaDosOculos(oculos[0], 1, 'they')}") }],
+  ['neutro de 2 ganha cláusula', { [TXT]: t.replace("${n === 1 ? clausulaDoCabelo(cabelos[0]) + clausulaDosOculos(oculos[0], 1, 'they') : ''}", "${clausulaDoCabelo(cabelos[0]) + clausulaDosOculos(oculos[0], 1, 'they')}") }], // reancorado KINEO-RECREATE-MOVIMENTO-1411 (a linha ganhou a cláusula do cabelo; o mutante é o mesmo)
   ['check não troca o texto pelos óculos', { [CHECK]: ch.replace(' || texto.oculos.some(Boolean)', '') }],
 ]
 let mortos = 0

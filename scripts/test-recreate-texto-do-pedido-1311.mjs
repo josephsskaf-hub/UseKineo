@@ -97,7 +97,7 @@ async function bateria(over = {}) {
     if (!/ownedClipImageUrl\(u, user\.id, supabaseUrl\)/.test(c) || !/\{ pessoas: people, fotos, generosDaTela:/.test(c)) throw new Error('fotos')
     if (!c.includes('body.suggested_genders = texto ? texto.sugestao : []')) throw new Error('sem suggested_genders')
     if (!c.includes('prompt: genders ? promptPorGenero(genders as SeuVideoGender[], positions) : promptDoSeuVideo(SEU_VIDEO_MOTOR, people, positions), engine: SEU_VIDEO_MOTOR')) throw new Error('o texto da tela (GPT) não é mais a base')
-    if (!c.includes("const visaoAcrescenta = !!texto && (texto.descricoes.some(Boolean) || texto.oculos.some(Boolean) || (!genders && texto.generoDe === 'sugestao'))")) throw new Error('regra da troca do texto') // reancorado KINEO-RECREATE-OCULOS-NO-PEDIDO-1411: + os óculos (guardião próprio: scripts/test-recreate-oculos-no-pedido-1411.mjs)
+    if (!c.includes("const visaoAcrescenta = !!texto && (texto.descricoes.some(Boolean) || texto.oculos.some(Boolean) || !!cabelos?.some(Boolean) || (!genders && texto.generoDe === 'sugestao'))")) throw new Error('regra da troca do texto') // reancorado KINEO-RECREATE-OCULOS-NO-PEDIDO-1411: + os óculos (guardião próprio: scripts/test-recreate-oculos-no-pedido-1411.mjs) // reancorado KINEO-RECREATE-MOVIMENTO-1411 (+ o cabelo lido da foto, com o interruptor)
     if (!/name: TEXTO_DO_PEDIDO_EVENTO[^\n]*usd: texto\.usd[^\n]*genero_de: texto\.generoDe/.test(c)) throw new Error('evento sem custo ou sem a origem do gênero')
   })
   return p
