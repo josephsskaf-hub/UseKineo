@@ -28,6 +28,7 @@ import {
   elencoDeterministico, cenasComPersonagem, promptDoStillComFolha, mensagensDoCasting, lerCasting, ensaioDoPersonagem, custoDoPersonagemUsd, PERSONAGEM_MAX_STILLS,
   PERSONAGEM_CASTING_MODELO, PERSONAGEM_CASTING_PRAZO_MS, type FichaDePersonagem,
   PERSONAGEM_MAX_PERSONAGENS, // KINEO-JUIZ-REFAZ-2810
+  semGenteNegada, MARCA_SEM_GENTE_1411, quemEstaNaCenaLigado, // KINEO-QUEM-ESTA-NA-CENA-1411
 } from '@/lib/cinematic/folhaDePersonagem'
 import { figuraFiel, figuraFielNoTexto, figurasCompostasNoTexto } from '@/lib/cinematic/seresFieis' // KINEO-JUIZ-REFAZ-2810 — a tabela única de figuras conhecidas, consultada depois da tabela da casa
 import type { StyleAnchor } from '@/lib/cinematic/sceneStyle'
@@ -203,8 +204,9 @@ const PAPEL_ABSTRATO_RE = /^(?:mechanics|dynamics)$/iu
 const REFERENCIA_ANTES_RE = /(?:^|[^\p{L}])(?:honou?ring|showing|depicting|displaying|remembering|commemorating|for|about|to|like)\s+(?:(?:a|an|the|one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+)?$/iu
 /** KINEO-CENA-SEM-GENTE-1411 (C) — o visual cita gente de PAPEL ("fourteen young airmen", "scientists on a boat")? A negação de gente vence. Pura. */
 export function visualTemGenteDePapel(visual: string): boolean {
-  const v = String(visual ?? '')
-  if (!v.trim() || SEM_GENTE_RE.test(v)) return false
+  if (marcadoSemGente1411(visual)) return false // KINEO-QUEM-ESTA-NA-CENA-1411
+  const v = semGenteNegada(String(visual ?? '')) // KINEO-QUEM-ESTA-NA-CENA-1411 (i) — "no other objects or people": a palavra negada não é gente no plano
+  if (!v.trim() || (!quemEstaNaCenaLigado() && SEM_GENTE_RE.test(v))) return false // KINEO-QUEM-ESTA-NA-CENA-1411 — ligada: a gente negada já saiu; "deserted street" não apaga quem o plano mostra
   for (const m of v.matchAll(PAPEL_RE)) {
     if (PAPEL_ABSTRATO_RE.test(m[0]) && /^\s+of\s/iu.test(v.slice((m.index ?? 0) + m[0].length)) && !/^\s+of\s+(?:the\s+)?(?:[\p{L}-]+\s+)?(?:force|army|navy|crew|team|squad|regiment|corps|company|unit|fleet|brigade|battalion|militia|police|guard|garage|workshop|base|squadron)s?(?![\p{L}])(?!\s+(?:doors?|openers?|gates?|locks?|windows?|roofs?|floors?|lifts?|walls?|lights?|shelf|shelves|tools?|machines?|engines?)(?![\p{L}]))/iu.test(v.slice((m.index ?? 0) + m[0].length))) continue // "the mechanics of a watch"; "Mechanics of the air force" é gente
     if (REFERENCIA_ANTES_RE.test(v.slice(Math.max(0, (m.index ?? 0) - 40), m.index ?? 0))) continue
@@ -214,16 +216,20 @@ export function visualTemGenteDePapel(visual: string): boolean {
 }
 // ═══ fim KINEO-CENA-SEM-GENTE-1411 ═══
 
+/** KINEO-QUEM-ESTA-NA-CENA-1411 — o prompt que o código já marcou sem gente não ganha ninguém em passada nenhuma (a trava, a ficha garantida). */
+const marcadoSemGente1411 = (visual: string) => quemEstaNaCenaLigado() && String(visual ?? '').includes(MARCA_SEM_GENTE_1411)
 /** O visual mostra alguém (pessoa, criatura, parte do corpo, quem pilota)? A negação de gente vence. */
 export function visualMostraAlguem(visual: string): boolean {
-  const v = String(visual ?? '')
-  return !SEM_GENTE_RE.test(v) && (FIGURA_RE.test(v) || GENTE_PT_ES_RE.test(v)) // KINEO-PROTAGONISTA-SEEDANCE-0111 — + gente em PT/ES (rodada 16)
+  if (marcadoSemGente1411(visual)) return false // KINEO-QUEM-ESTA-NA-CENA-1411
+  const v = semGenteNegada(String(visual ?? '')) // KINEO-QUEM-ESTA-NA-CENA-1411 (i)
+  return (quemEstaNaCenaLigado() || !SEM_GENTE_RE.test(v)) && (FIGURA_RE.test(v) || GENTE_PT_ES_RE.test(v)) // KINEO-PROTAGONISTA-SEEDANCE-0111 — + gente em PT/ES (rodada 16)
 }
 
 /** KINEO-PROTAGONISTA-SEEDANCE-0111 (rodada 16) — o visual mostra uma PESSOA (bicho, pronome e parte do corpo não contam)? A negação de gente vence. */
 export function visualMostraPessoa(visual: string): boolean {
-  const v = String(visual ?? '')
-  return !SEM_GENTE_RE.test(v) && (PESSOA_RE.test(v) || GENTE_PT_ES_RE.test(v))
+  if (marcadoSemGente1411(visual)) return false // KINEO-QUEM-ESTA-NA-CENA-1411
+  const v = semGenteNegada(String(visual ?? '')) // KINEO-QUEM-ESTA-NA-CENA-1411 (i)
+  return (quemEstaNaCenaLigado() || !SEM_GENTE_RE.test(v)) && (PESSOA_RE.test(v) || GENTE_PT_ES_RE.test(v))
 }
 
 /** Quem a FALA cita: o nome, o papel ("a boy", "the boy") ou, por pronome, quem a fala anterior citou (gênero tem de bater). */
@@ -286,7 +292,7 @@ export function cenasDoElenco(visuals: ReadonlyArray<string>, falas: ReadonlyArr
     const doVisual = pelosVisuais[indice]?.nomes ?? []
     const daFala = quemNaFala(falas[indice] ?? '', elenco, anteriorFala)
     if (daFala.length > 0) anteriorFala = daFala
-    const extra = visualMostraAlguem(v)
+    const extra = !marcadoSemGente1411(v) && visualMostraAlguem(quemEstaNaCenaLigado() ? semGenteNegada(v).replace(/(?<![\p{L}])(?:they|them|their|theirs)(?![\p{L}])/giu, ' ') : v) // KINEO-QUEM-ESTA-NA-CENA-1411 (ii) — "their silhouettes… as they comb the waters" (os navios) não põe a protagonista da narração
       ? daFala.filter((n) => !doVisual.includes(n) && !generoContradiz(v, elenco.find((e) => e.nome === n) as FichaDePersonagem))
       : []
     return { indice, nomes: [...doVisual, ...extra], pelaFala: extra }

@@ -421,10 +421,72 @@ export function promptDaFolha(ficha: FichaDePersonagem, look: Pick<StyleAnchor, 
 }
 
 // ═══ 4. AS CENAS que citam o personagem ═══════════════════════════════════════════════════════════════════════════
+// ═══ KINEO-QUEM-ESTA-NA-CENA-1411 [CEO 14/11, Earhart refeita (72f3b718): homem de chapéu na ilha, outra mulher na cena dos navios, Amelia sem ficha] ═══
+// (i) Gente NEGADA não é gente no plano. "Wide shot of Howland Island… with no other objects or people" e "Aerial view of navy ships… no other objects
+//     or people": a palavra "people" contava como alguém no quadro, a ilha não era marcada sem gente (a roupa da época entrou e saiu um homem de
+//     chapéu) e, na cena dos navios, a regra da fala pôs a Amelia que a narração cita ("Where did Amelia Earhart go") — sem folha, com outro rosto.
+//     Antes de procurar gente, o texto perde a gente negada ("no other objects or people", "no people seen from behind as distant silhouettes",
+//     "without any people", "no signs of life", "nobody", "uninhabited") e a silhueta que é de coisa ("their silhouettes visible against the waves",
+//     os navios do render 9a8cc918). A marca do código ("No people, no human figures and no faces anywhere in this shot") continua valendo como
+//     "ninguém": prompt já marcado não ganha gente em nenhuma passada seguinte.
+// (iii) O primeiro nome e o sobrenome casam a ficha ("Amelia climbs into her plane" = Amelia Earhart), só quando nenhum outro do elenco tem essa
+//     palavra no nome e a palavra não está colada a outro nome com maiúscula ("Amelia Johnson" é outra pessoa).
+// Interruptor QUEM_ESTA_NA_CENA_1411: 'off' = byte a byte o de antes.
+export type ModoQuemEstaNaCena = 'off' | 'all'
+export const QUEM_ESTA_NA_CENA_1411: ModoQuemEstaNaCena = 'all'
+export const quemEstaNaCenaLigado = (modo: ModoQuemEstaNaCena = QUEM_ESTA_NA_CENA_1411) => modo === 'all'
+/** A marca que o código põe no plano sem gente (lib/cinematic/personagemAjuste CLAUSULA_SEM_GENTE, sem o espaço). */
+export const MARCA_SEM_GENTE_1411 = 'No people, no human figures and no faces anywhere in this shot.'
+/** Gente negada: "no" (ou without/nor/devoid of/empty of/free of) + até 4 itens de lista ou adjetivos ("other objects or", "animals,", "foreground
+ *  human") + palavra de gente; e "nobody", "uninhabited", "unpopulated". O item de lista só passa com vírgula, "or" ou "and" depois: "no cars but
+ *  many people walking" não é gente negada. */
+const GENTE_NEGADA_RE_1411 = /(?<![\p{L}])(?:no|without(?:\s+any)?|nor|devoid\s+of|empty\s+of|free\s+of)\s+(?:(?:other|more|visible|living|human|foreground|background|distant|single|[\p{Ll}-]+(?:\s*,|\s+or|\s+and))\s+){0,4}(?:people|persons?|humans?|human\s+figures?|figures?|faces?|one|anyone|someone|crowds?|passers-?by|pedestrians|souls?|characters?|inhabitants?|life|signs?\s+of\s+(?:life|people|anyone))(?:\s+(?:seen\s+from\s+behind(?:\s+as\s+distant\s+silhouettes)?|in\s+sight|around|visible|present|anywhere(?:\s+in\s+this\s+shot)?))?(?![\p{L}-])|(?<![\p{L}])(?:nobody|uninhabited|unpopulated)(?![\p{L}])/giu
+/** A silhueta que é da coisa, não de gente: "its/their silhouette(s)" e "silhouette(s) of (the) ships/mountains…" (sem palavra de gente depois). */
+const SILHUETA_DE_COISA_RE_1411 = /(?<![\p{L}])(?:(?:its|their)\s+(?:dark\s+|black\s+|distant\s+)?silhouettes?|silhouettes?\s+of\s+(?:the\s+|a\s+|an\s+)?(?!(?:man|men|woman|women|boy|boys|girl|girls|person|people|child|children|soldiers?|figures?|someone|a\s+man|a\s+woman)(?![\p{L}]))[\p{L}-]+)(?![\p{L}])/giu
+/** Gente que JÁ NÃO está ali: "the empty space where the crew once stood" (Mary Celeste, 45d83f0e — o ensaio no corpus achou). */
+const GENTE_QUE_FOI_RE_1411 = /(?<![\p{L}])(?:where|that|which)\s+(?:the\s+|a\s+|an\s+|its\s+|their\s+|his\s+|her\s+)?(?:[\p{Ll}-]+\s+){0,2}once\s+\p{Ll}+/giu
+/** O plano sem a gente que ele nega, sem a que já foi e sem a silhueta de coisa — o texto em que se procura quem aparece. Desligado: o mesmo texto. */
+export function semGenteNegada(texto: string, modo: ModoQuemEstaNaCena = QUEM_ESTA_NA_CENA_1411): string {
+  const t = String(texto ?? '')
+  if (!quemEstaNaCenaLigado(modo)) return t
+  return t.replace(GENTE_NEGADA_RE_1411, ' ').replace(GENTE_QUE_FOI_RE_1411, ' ').replace(SILHUETA_DE_COISA_RE_1411, ' ')
+}
+/** O plano nega gente (a marca do código ou gente negada que o detector antigo não lia)? */
+export function planoNegaGente(texto: string, modo: ModoQuemEstaNaCena = QUEM_ESTA_NA_CENA_1411): boolean {
+  if (!quemEstaNaCenaLigado(modo)) return false
+  const t = String(texto ?? '')
+  return t.includes(MARCA_SEM_GENTE_1411) || new RegExp(GENTE_NEGADA_RE_1411.source, 'iu').test(t)
+}
+const TITULO_NAO_E_NOME_1411 = /^(?:mr|mrs|ms|miss|dr|sir|lady|lord|king|queen|prince|princess|captain|general|saint|st|president|doctor|professor|uncle|aunt|grandma|grandpa|granny|officer|detective|agent|sergeant|colonel|major|father|mother|sister|brother|pope|emperor|empress|count|countess|duke|duchess|baron|van|von|de|da|del|della|di|du|le|la|el|al|bin|ben|the|young|old|little|big|baby)$/iu
+/** As partes do nome próprio que casam a ficha sozinhas ("Amelia", "Earhart"): só nome de 2+ palavras com maiúscula, sem título, e que nenhum outro
+ *  do elenco tem. */
+export function partesDoNome1411(ficha: Pick<FichaDePersonagem, 'nome'>, elenco: ReadonlyArray<Pick<FichaDePersonagem, 'nome'>>): string[] {
+  const palavras = String(ficha.nome ?? '').trim().split(/\s+/u)
+  if (palavras.length < 2 || !palavras.every((w) => /^\p{Lu}/u.test(w))) return []
+  const outros = elenco.filter((e) => e.nome !== ficha.nome).flatMap((e) => String(e.nome ?? '').toLowerCase().split(/[\s-]+/u))
+  return palavras.filter((w) => /^\p{Lu}[\p{L}'’-]{2,}$/u.test(w) && !TITULO_NAO_E_NOME_1411.test(w) && !outros.includes(w.toLowerCase()))
+}
+/** O plano cita esta parte do nome sozinha (não colada a outro nome com maiúscula: "Amelia Johnson" é outra pessoa)? */
+function citaParteDoNome1411(visual: string, ficha: Pick<FichaDePersonagem, 'nome'>, parte: string): boolean {
+  const re = new RegExp(`(?<![\\p{L}\\p{N}])${escapaRe(parte)}(?![\\p{L}\\p{N}])`, 'gu')
+  const doNome = String(ficha.nome ?? '').split(/\s+/u)
+  for (const m of visual.matchAll(re)) {
+    const i = m.index ?? 0
+    const depois = /^\s+(\p{Lu}[\p{L}'’-]*)/u.exec(visual.slice(i + parte.length))
+    const antes = /(\p{Lu}[\p{L}'’-]*)\s+$/u.exec(visual.slice(Math.max(0, i - 30), i))
+    const colado = (w: string | undefined) => !!w && !doNome.includes(w) && !TITULO_NAO_E_NOME_1411.test(w)
+    if (colado(depois?.[1]) || (colado(antes?.[1]) && !/^(?:A|An|The|In|At|On|As|When|Then|And|But|Now|Later|Meanwhile|Here|There)$/u.test(antes?.[1] ?? ''))) continue
+    return true
+  }
+  return false
+}
+// ═══ fim KINEO-QUEM-ESTA-NA-CENA-1411 (bloco) ═══
+
 const SEM_GENTE_RE = /\b(?:no (?:people|person|humans?|human figures?|one|foreground human faces?)|without (?:people|humans?|anyone)|nobody|empty (?:scene|street|room|beach|landscape|city)|unpopulated|deserted)\b/i
 
-function citaNaCena(visual: string, ficha: FichaDePersonagem): boolean {
+function citaNaCena(visual: string, ficha: FichaDePersonagem, elenco: ReadonlyArray<FichaDePersonagem> = []): boolean {
   const v = baixa(visual)
+  if (quemEstaNaCenaLigado() && partesDoNome1411(ficha, elenco).some((p) => citaParteDoNome1411(String(visual ?? ''), ficha, p))) return true // KINEO-QUEM-ESTA-NA-CENA-1411 (iii) — "Amelia climbs…" casa a Amelia Earhart
   const nomeRe = new RegExp(`(?<![\\p{L}\\p{N}])${escapaRe(ficha.nome.toLowerCase().replace(/^the\s+/, ''))}(?![\\p{L}\\p{N}])`, 'u')
   if (nomeRe.test(v)) return true
   if (ficha.nucleo.toLowerCase() !== ficha.nome.toLowerCase()) {
@@ -441,8 +503,8 @@ export function cenasComPersonagem(visuals: ReadonlyArray<string>, elenco: Reado
     const v = String(visual ?? '')
     if (!v.trim()) { anterior = []; return { indice, nomes: [] } }
     // quem é CITADO está na cena ("a young Indian boy … in a deserted street": o menino está lá); a negação de gente só corta o pronome em continuação
-    const nomes = elenco.filter((f) => citaNaCena(v, f)).map((f) => f.nome)
-    if (nomes.length === 0 && SEM_GENTE_RE.test(v)) { anterior = []; return { indice, nomes: [] } }
+    const nomes = elenco.filter((f) => citaNaCena(v, f, elenco)).map((f) => f.nome) // KINEO-QUEM-ESTA-NA-CENA-1411 (iii) — o elenco decide se a parte do nome é só dele
+    if (nomes.length === 0 && (SEM_GENTE_RE.test(v) || planoNegaGente(v))) { anterior = []; return { indice, nomes: [] } } // KINEO-QUEM-ESTA-NA-CENA-1411 (i) — "no other objects or people" também corta o pronome
     if (nomes.length === 0 && anterior.length > 0) {
       // "He opens a book…" / "his face" — o pronome continua o personagem da cena anterior (só humanos com gênero conhecido ou o único do elenco)
       const ele = /\b(?:he|him|his|himself)\b/i.test(v)

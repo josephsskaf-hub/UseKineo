@@ -123,7 +123,10 @@ const MUTANTES = [
   ['C: voltam humans, adults, natives, presidents (caveira, águia, flores, Rushmore viram gente)', ARQ, (s) => s.replace("|refugees?|immigrants?|settlers?|colonists?'", "|refugees?|immigrants?|settlers?|colonists?|natives?|adults?|humans?|presidents?'")],
   ['C: a referência ("honoring veterans") conta como gente', ARQ, (s) => s.replace('if (REFERENCIA_ANTES_RE.test(v.slice(Math.max(0, (m.index ?? 0) - 40), m.index ?? 0))) continue', '')],
   ['C: a posse ("farmer\'s market") conta como gente', ARQ, (s) => s.replace("(?![\\\\p{L}\\\\p{N}])(?!['’]s)`, 'giu')", "(?![\\\\p{L}\\\\p{N}])`, 'giu')")],
-  ['C: a negação de gente ("deserted") não vence', ARQ, (s) => s.replace("if (!v.trim() || SEM_GENTE_RE.test(v)) return false", "if (!v.trim()) return false")],
+  // KINEO-QUEM-ESTA-NA-CENA-1411 — a âncora mudou: com a regra ligada, "the deserted deck… where the crew once stood" fica sem gente porque a gente
+  // NEGADA e a que JÁ FOI saem do texto antes da busca (lib/cinematic/folhaDePersonagem semGenteNegada), não porque "deserted" vence ("two soldiers…
+  // deserted street" agora é gente). O mutante agora tira essa leitura: o detector de papel volta ao texto cru e a tripulação que já foi vira gente.
+  ['C: a gente que já foi ("where the crew once stood") volta a contar', ARQ, (s) => s.replace("  const v = semGenteNegada(String(visual ?? '')) // KINEO-QUEM-ESTA-NA-CENA-1411 (i) — \"no other objects or people\": a palavra negada não é gente no plano\n  if (!v.trim() || (!quemEstaNaCenaLigado() && SEM_GENTE_RE.test(v))) return false", "  const v = String(visual ?? '')\n  if (!v.trim()) return false")],
   ['D: a época longa fica no plano sem gente', ARQ, (s) => s.replace('if (cenaSemGenteLigada()) out = epocaSemGente(out)', '')],
   ['D: a época sai inteira (o ano some)', ARQ, (s) => s.replace("(_m, cabeca: string) => `${cabeca}: ${EPOCA_SEM_GENTE}`", "() => ''")],
   ['D: o Kling 4 não tira a frase curta', 'lib/cinematic/filmQuality.ts', (s) => s.replace('|only the things this shot describes, each exactly as it looked at that time)', ')')],
