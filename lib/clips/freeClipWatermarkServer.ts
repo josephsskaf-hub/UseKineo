@@ -13,6 +13,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { pollCreatomateRender, submitCreatomateRender } from '@/lib/compose'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { isInternalEmail } from '@/lib/internalAccounts' // KINEO-MARCA-TESTE-INTERNO-2026-10-06
+import { silenciarMp4 } from '@/lib/recreate/seuVideo' // KINEO-RECREATE-KLING4-1311
 import type { ClipRow } from '@/lib/clips/clipFlow'
 import {
   CLIP_OWNER_PROFILE_COLUMNS,
@@ -59,6 +60,8 @@ export async function persistFreeClipWithMark(ctx: {
   expireMs: number
   /** KINEO-RECREATE-SEU-VIDEO-1311 — o som original do Recreate "com o seu vídeo" (null/ausente = byte a byte o de antes). */
   audio?: ClipAudioTrack | null
+  /** KINEO-RECREATE-KLING4-1311 — o vídeo do fornecedor vem com um som inventado (Kling 4.0 edição): tirar antes da cópia limpa e da montagem. */
+  mute?: boolean
 }): Promise<string | null> {
   const { admin, row, bucket, table } = ctx
   const event = async (name: string, metadata: Record<string, unknown>) => {
@@ -133,7 +136,7 @@ export async function persistFreeClipWithMark(ctx: {
       if (error) console.error(`[clips/marca] swap failed clip=${row.id}:`, error.message)
       return !error && (data ?? []).length > 0
     },
-    download: downloadBytes,
+    download: async (url) => (ctx.mute ? silenciarMp4(await downloadBytes(url)) : downloadBytes(url)), // KINEO-RECREATE-KLING4-1311 — era: download: downloadBytes
     uploadClean: (bytes) => upload(cleanPath, bytes),
     cleanUrl: () => publicUrl(cleanPath),
     submit: (source) => submitCreatomateRender(source),

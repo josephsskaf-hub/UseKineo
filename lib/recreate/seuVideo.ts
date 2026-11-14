@@ -24,13 +24,13 @@ type Ler = (inicio: number, fim: number) => Promise<Uint8Array>
 const u32 = (b: Uint8Array, o: number) => ((b[o] << 24) >>> 0) + (b[o + 1] << 16) + (b[o + 2] << 8) + b[o + 3]
 const u64 = (b: Uint8Array, o: number) => u32(b, o) * 4294967296 + u32(b, o + 4)
 const tipo = (b: Uint8Array, o: number) => String.fromCharCode(b[o], b[o + 1], b[o + 2], b[o + 3])
-function* caixas(b: Uint8Array, ini: number, fim: number): Generator<{ t: string; ini: number; fim: number }> {
+function* caixas(b: Uint8Array, ini: number, fim: number): Generator<{ t: string; ini: number; fim: number; o: number }> {
   let o = ini
   while (o + 8 <= fim) {
     let tam = u32(b, o), cab = 8
     if (tam === 1) { tam = u64(b, o + 8); cab = 16 } else if (tam === 0) tam = fim - o
     if (tam < cab || o + tam > fim) return
-    yield { t: tipo(b, o + 4), ini: o + cab, fim: o + tam }
+    yield { t: tipo(b, o + 4), ini: o + cab, fim: o + tam, o }
     o += tam
   }
 }
@@ -80,6 +80,28 @@ export async function lerMetaDoVideo(ler: Ler, bytes: number): Promise<MetaDoVid
   }
 }
 
+/**
+ * KINEO-RECREATE-KLING4-1311 [CEO 13/11: "nunca com o som que o Kling inventa"] — tira o som de um MP4/MOV SEM reescrever o arquivo: toda
+ * trilha de áudio (hdlr 'soun') do moov vira uma caixa 'free' do MESMO tamanho (os players a ignoram; nenhum offset muda). Devolve uma
+ * cópia; arquivo ilegível ou sem áudio volta igual. Pura.
+ */
+export function silenciarMp4(bytes: Uint8Array): Uint8Array {
+  const out = new Uint8Array(bytes)
+  try {
+    for (const top of caixas(out, 0, out.length)) {
+      if (top.t !== 'moov') continue
+      for (const trak of caixas(out, top.ini, top.fim)) {
+        if (trak.t !== 'trak') continue
+        const mdia = filho(out, trak, 'mdia'), hdlr = mdia && filho(out, mdia, 'hdlr')
+        if (hdlr && tipo(out, hdlr.ini + 8) === 'soun') out.set([0x66, 0x72, 0x65, 0x65], trak.o + 4) // 'free'
+      }
+    }
+  } catch {
+    return new Uint8Array(bytes)
+  }
+  return out
+}
+
 /** O cabeçalho de um vídeo por URL (HEAD + Range; fetch injetado). Nunca lança: erro = null. Usado pela trava "não trocou" no Seedance. */
 export async function metaPorUrl(url: string, f: typeof fetch): Promise<MetaDoVideo | null> {
   try {
@@ -98,8 +120,10 @@ export async function metaPorUrl(url: string, f: typeof fetch): Promise<MetaDoVi
 }
 
 // ── validação, duração gerada, preço ───────────────────────────────────────────────────────────────────────────────────────────────
-export type RecusaDoVideo = { ok: false; code: 'format' | 'duration' | 'fps' | 'size'; error: string }
-export function validarVideo(meta: MetaDoVideo | null, bytes: number, contentType: string): { ok: true } | RecusaDoVideo {
+export type RecusaDoVideo = { ok: false; code: 'format' | 'duration' | 'fps' | 'size' | 'resolution'; error: string } // KINEO-RECREATE-KLING4-1311 — + resolution
+export function validarVideo(meta: MetaDoVideo | null, bytes: number, contentType: string, motor: MotorDoSeuVideo = 'seedance25'): { ok: true } | RecusaDoVideo { // KINEO-RECREATE-KLING4-1311 — + motor
+  const k = motor === 'kling4' ? validarParaKling4(meta) : null // KINEO-RECREATE-KLING4-1311
+  if (k && meta && (SEU_VIDEO_TIPOS as readonly string[]).includes(contentType) && bytes <= SEU_VIDEO_LIMITES.maxBytes) return k // KINEO-RECREATE-KLING4-1311
   const L = SEU_VIDEO_LIMITES
   if (!(SEU_VIDEO_TIPOS as readonly string[]).includes(contentType) || !meta) return { ok: false, code: 'format', error: 'Send an MP4 or MOV video. Nothing was charged.' }
   if (bytes > L.maxBytes) return { ok: false, code: 'size', error: 'Send a video up to 100 MB. Nothing was charged.' }
@@ -107,6 +131,50 @@ export function validarVideo(meta: MetaDoVideo | null, bytes: number, contentTyp
   if (meta.fps < L.minFps - 0.5 || meta.fps > L.maxFps + 0.5) return { ok: false, code: 'fps', error: `Send a video recorded at 24 to 60 frames per second. Yours has ${Math.round(meta.fps)}. Nothing was charged.` }
   return { ok: true }
 }
+// ═══ KINEO-RECREATE-KLING4-1311 [dono 13/11, prioridade nº 1; CEO 13/11] — o "seu vídeo" no Kling 4.0 edição (kling/v4/video-to-video/edit) ═══
+// Prova da CEO de 13/11 21:20 (playground, a mesma foto de rosto real que o Seedance recusou): 77 s, US$ 0,94 por 5 s em 720p; trocou rosto e
+// cabelo e MANTEVE roupa, cena, enquadramento, dança e giro. A página não tem termos de acesso (nem B2B, nem end_user_id).
+// Schema lido em 13/11 (fal.ai/models/kling/v4/video-to-video/edit/api): prompt (@Video1, @ImageN), video_url de 3 a 30,05 s, 700 a 4.553 px
+// POR LADO, 23,9 a 60 fps, até 300 MB; image_urls; duration (padrão = a do vídeo); resolution 720p|1080p (PADRÃO 1080p: mandamos 720p);
+// aspect_ratio (omitido = o do vídeo). Sem task. O Kling GERA uma faixa de som: ela sai do arquivo antes de guardar (silenciarMp4) e o som
+// do cliente volta pela montagem da Entrega B.
+// Preço (página): US$ 0,094/s em 720p sobre entrada + saída, mínimo 2× a saída. Vídeo abaixo de 700 px num lado: RECUSA no check (ampliar
+// seria uma chamada paga a mais e piora a nitidez do rosto; vídeo de celular já sai em 720p ou mais).
+// Interruptor SEU_VIDEO_MOTOR: 'kling4' (padrão) | 'seedance25' (o caminho anterior, intacto).
+export type MotorDoSeuVideo = 'kling4' | 'seedance25'
+export const SEU_VIDEO_MOTOR: MotorDoSeuVideo = 'kling4'
+export const KLING4_EDIT_MODEL = 'kling/v4/video-to-video/edit'
+export const KLING4_USD_POR_SEGUNDO_720P = 0.094
+export const KLING4_LIMITES = { minLado: 700, minSegundos: 3 } as const
+export const modeloDoMotor = (motor: MotorDoSeuVideo) => (motor === 'kling4' ? KLING4_EDIT_MODEL : SEEDANCE25_MODEL)
+/** Os modelos do "seu vídeo" (a frase da recusa, o som original, a trava). */
+export const ehModeloDoSeuVideo = (model: unknown) => model === KLING4_EDIT_MODEL || model === SEEDANCE25_MODEL
+/** Custo fal do Kling 4.0 edição em 720p: US$ 0,094/s sobre entrada + saída, mínimo 2× a saída (a saída tem a duração do vídeo). */
+export const custoFalKling4 = (segundosDoVideo: number, segundosDaSaida: number = segundosDoVideo) =>
+  Math.round(KLING4_USD_POR_SEGUNDO_720P * Math.max(segundosDoVideo + segundosDaSaida, 2 * segundosDaSaida) * 10000) / 10000
+function validarParaKling4(meta: MetaDoVideo | null): RecusaDoVideo | null {
+  if (!meta) return null
+  if (meta.segundos < KLING4_LIMITES.minSegundos) return { ok: false, code: 'duration', error: `Send a video between ${KLING4_LIMITES.minSegundos} and ${SEU_VIDEO_LIMITES.maxSegundos} seconds long. Yours has ${meta.segundos.toFixed(1)} s. Nothing was charged.` }
+  if (Math.min(meta.largura, meta.altura) < KLING4_LIMITES.minLado) return { ok: false, code: 'resolution', error: `Send a video of at least 700 pixels on each side (720p or more). Yours is ${Math.round(meta.largura)}×${Math.round(meta.altura)}. Nothing was charged.` }
+  return null
+}
+const ORDEM = ['the main person', 'the second person', 'the third person']
+/** O prompt pronto do Kling (neutro de gênero): troca a(s) pessoa(s) e mantém roupa, cena, câmera e coreografia. Editável. */
+export function promptKling4(fotos: number, posicoes: ReadonlyArray<string> = []): string {
+  const n = Math.min(3, Math.max(1, fotos))
+  const quem = Array.from({ length: n }, (_, i) => {
+    const pos = String(posicoes[i] ?? '').replace(/[^\p{L}\p{N} ,'-]/gu, '').trim().slice(0, 60)
+    return `${pos ? `the person ${pos}` : ORDEM[i]} in @Video1 with the person from @Image${i + 1}`
+  }).join(', and ')
+  return `Replace ${quem}: their face and hair match ${n === 1 ? '@Image1' : 'their photo'}. Keep the choreography, timing, camera, framing, background and lighting of @Video1 exactly. Keep the original clothing from @Video1. No logos, no watermark, no readable text.`
+}
+/** O prompt pronto do motor ligado. */
+export const promptDoSeuVideo = (motor: MotorDoSeuVideo, fotos: number, posicoes: ReadonlyArray<string> = []) => (motor === 'kling4' ? promptKling4(fotos, posicoes) : promptPadrao(fotos, posicoes))
+/** A entrada exata do Kling (a da prova da CEO): sem duration (= a do vídeo) e sem aspect_ratio (= o do vídeo), 720p. */
+export function entradaKling4(a: { prompt: string; fotos: string[]; videoUrl: string }) {
+  return { prompt: a.prompt, video_url: a.videoUrl, image_urls: a.fotos, resolution: '720p' }
+}
+
 /** O Seedance 2.5 aceita duration inteira de 4 a 30: o vídeo arredondado, entre 4 e 15. */
 export const segundosGerados = (segundosDoVideo: number) => Math.min(SEU_VIDEO_LIMITES.maxSegundos, Math.max(4, Math.round(segundosDoVideo)))
 /** A tabela de HOJE do Recreate (lib/checkoutPricing RECREATE_PRICING), sem preço novo: até 10 s = a tarifa de 10 s; 11 a 15 s = a de 15 s. */
@@ -162,12 +230,13 @@ export const SEU_VIDEO_SOM_ORIGINAL = true
  * Só o Seedance 2.5 e só o arquivo do PRÓPRIO dono no nosso bucket (recreate-uploads/<dono>/<uuid>.mp4|mov). Fora disso: null. Pura.
  */
 export function somOriginalDaLinha(row: { model: string | null; fingerprint: string | null; user_id: string; seconds: number }, supabaseUrl: string, ligado: boolean = SEU_VIDEO_SOM_ORIGINAL): { url: string; seconds: number } | null {
-  if (!ligado || row.model !== SEEDANCE25_MODEL || !row.fingerprint || !supabaseUrl) return null
+  if (!ligado || !ehModeloDoSeuVideo(row.model) || !row.fingerprint || !supabaseUrl) return null // KINEO-RECREATE-KLING4-1311 — era: row.model !== SEEDANCE25_MODEL
   try {
     const p = JSON.parse(row.fingerprint) as unknown
-    if (!Array.isArray(p) || p[1] !== SEEDANCE25_MODEL || !p[2] || typeof p[2] !== 'object') return null
+    if (!Array.isArray(p) || p[1] !== row.model || !p[2] || typeof p[2] !== 'object') return null // KINEO-RECREATE-KLING4-1311 — era: p[1] !== SEEDANCE25_MODEL
     const url = (p[2] as { video_urls?: unknown }).video_urls
-    const u = Array.isArray(url) && typeof url[0] === 'string' ? url[0] : ''
+    const um = (p[2] as { video_url?: unknown }).video_url // KINEO-RECREATE-KLING4-1311 — o Kling recebe video_url (um só)
+    const u = row.model === KLING4_EDIT_MODEL ? (typeof um === 'string' ? um : '') : Array.isArray(url) && typeof url[0] === 'string' ? url[0] : ''
     const dono = `${supabaseUrl.replace(/\/+$/, '')}/storage/v1/object/public/renders/${SEU_VIDEO_PASTA}/${row.user_id}/`
     return u.startsWith(dono) && /^[0-9a-f-]{36}\.(?:mp4|mov)$/.test(u.slice(dono.length)) ? { url: u, seconds: row.seconds } : null
   } catch {

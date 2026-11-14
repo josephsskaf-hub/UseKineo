@@ -9,7 +9,8 @@ import { recreateSession } from './server'
 import { submitDepsFor, type ClipAccount } from '@/lib/clips/clipServer'
 import { comEndUserDaFal } from './falEndUser' // KINEO-SEEDANCE-END-USER-1311
 import {
-  SEU_VIDEO_RELEASE, caminhoDoCliente, creditosDoSeuVideo, custoFalDoSeuVideo, lerMetaDoVideo, proporcaoDoVideo, segundosGerados, validarVideo,
+  SEU_VIDEO_RELEASE, SEU_VIDEO_MOTOR, custoFalKling4, caminhoDoCliente, // KINEO-RECREATE-KLING4-1311 — + SEU_VIDEO_MOTOR, custoFalKling4
+   creditosDoSeuVideo, custoFalDoSeuVideo, lerMetaDoVideo, proporcaoDoVideo, segundosGerados, validarVideo,
   type MetaDoVideo, type RecusaDoVideo,
 } from './seuVideo'
 
@@ -55,10 +56,10 @@ export async function lerVideoDoCliente(admin: SupabaseClient, userId: string, p
   }
   const meta = bytes > 0 ? await lerMetaDoVideo(ler, bytes) : null
   const tipo = p.endsWith('.mov') ? 'video/quicktime' : 'video/mp4'
-  const v = validarVideo(meta, bytes, tipo)
+  const v = validarVideo(meta, bytes, tipo, SEU_VIDEO_MOTOR) // KINEO-RECREATE-KLING4-1311 — era: validarVideo(meta, bytes, tipo)
   if (!v.ok) return v
   const gerados = segundosGerados(meta!.segundos)
-  return { ok: true, url, bytes, meta: meta!, gerados, creditos: creditosDoSeuVideo(gerados), falUsd: custoFalDoSeuVideo(meta!.segundos, gerados), proporcao: proporcaoDoVideo(meta!.largura, meta!.altura) }
+  return { ok: true, url, bytes, meta: meta!, gerados, creditos: creditosDoSeuVideo(gerados), falUsd: SEU_VIDEO_MOTOR === 'kling4' ? custoFalKling4(meta!.segundos) : custoFalDoSeuVideo(meta!.segundos, gerados), /* KINEO-RECREATE-KLING4-1311 */ proporcao: proporcaoDoVideo(meta!.largura, meta!.altura) }
 }
 
 /** O submitClip de sempre (saldo, débito, envio, estorno), com o acesso do motor dado pelo interruptor do "seu vídeo" (a sessão já conferiu). */

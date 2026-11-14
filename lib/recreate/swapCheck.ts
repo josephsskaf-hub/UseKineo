@@ -24,7 +24,7 @@ import { usdFromUsage } from '@/lib/regua95/coherenceV2'
 import { FAL_NTH_FRAME_MODEL, FAL_USD_PER_COMPUTE_SECOND, PIXEL_MODEL_RATES } from '@/lib/regua95/pixelScore'
 import { RECREATE_CHECK_FRAMES, RECREATE_FORMATS, type RecreateFormat } from './formats'
 import { RECREATE_MODEL, RECREATE_PROVIDER_ORIGIN } from './generation'
-import { catalogoNoSeedance25, metaPorUrl, SEEDANCE25_MODEL, SEU_VIDEO_PASTA } from './seuVideo' // KINEO-RECREATE-SEU-VIDEO-1311
+import { catalogoNoSeedance25, KLING4_EDIT_MODEL, metaPorUrl, SEEDANCE25_MODEL, SEU_VIDEO_PASTA } from './seuVideo' // KINEO-RECREATE-SEU-VIDEO-1311 · KINEO-RECREATE-KLING4-1311
 
 export type SwapCheckResult = 'swapped' | 'unchanged' | 'partial' | 'unverified'
 export type UnverifiedReason = 'refusal' | 'null_answer' | 'invalid_json' | 'timeout' | 'frames_unavailable' | 'base_frames_unavailable' | 'http_error' | 'config'
@@ -221,13 +221,28 @@ export function readVisionAnswer(data: unknown): { parsed: unknown } | { why: Un
 // Diferenças: (1) o Seedance REDESENHA a cena, então o juiz é avisado de que roupa e cenário mudam e não contam (redrawn); (2) no "seu
 // vídeo" os quadros-base vêm do PRÓPRIO vídeo do cliente (mesmo extrator da fal), a 35% e 70% da duração; (3) o número do quadro sai do
 // fps real de cada vídeo (lido do cabeçalho por Range). A decisão (decideSwap) e o estorno (clipFlow) são os mesmos.
-export const usaTravaNaoTrocou = (model: unknown): boolean => model === RECREATE_MODEL || model === SEEDANCE25_MODEL
+export const usaTravaNaoTrocou = (model: unknown): boolean => model === RECREATE_MODEL || model === SEEDANCE25_MODEL || model === KLING4_EDIT_MODEL // KINEO-RECREATE-KLING4-1311 — + Kling 4.0 edição
 export const SEU_VIDEO_SUJEITO_CHECAGEM = 'the main person (the largest and most central person)'
 export type SwapRowContext = { formatId: string; format: RecreateFormat | null; photos: string[]; slots: number; subject?: string; baseVideoUrl: string | null; redrawn: boolean }
 /** Linha → o que a trava precisa (Recast como antes; Seedance: catálogo da Entrega C ou o vídeo do cliente no nosso bucket). */
 export function swapRowContext(row: { model: string; fingerprint: string }): SwapRowContext | null {
   const recast = recreateRowContext(row)
   if (recast) return { formatId: recast.format.id, format: recast.format, photos: recast.photos, slots: recast.format.photoSlots, subject: recast.format.swapSubject, baseVideoUrl: null, redrawn: false }
+  // KINEO-RECREATE-KLING4-1311 — o Kling 4.0 edição MANTÉM a cena: quadros-base do próprio vídeo do cliente, sem o aviso de cena redesenhada.
+  if (row.model === KLING4_EDIT_MODEL) {
+    try {
+      const parsed: unknown = JSON.parse(row.fingerprint)
+      if (!Array.isArray(parsed) || parsed[1] !== KLING4_EDIT_MODEL || !parsed[2] || typeof parsed[2] !== 'object') return null
+      const input = parsed[2] as Record<string, unknown>
+      const video = typeof input.video_url === 'string' ? input.video_url : ''
+      const photos = Array.isArray(input.image_urls) ? input.image_urls.filter((u): u is string => typeof u === 'string' && /^https:\/\//.test(u)) : []
+      if (photos.length < 1 || photos.length > 3) return null
+      if (!new RegExp(`^https://[^/]+/storage/v1/object/public/renders/${SEU_VIDEO_PASTA}/[0-9a-f-]{36}/[0-9a-f-]{36}\\.(?:mp4|mov)$`).test(video)) return null
+      return { formatId: 'seu-video', format: null, photos, slots: photos.length, subject: photos.length === 1 ? SEU_VIDEO_SUJEITO_CHECAGEM : undefined, baseVideoUrl: video, redrawn: false }
+    } catch {
+      return null
+    }
+  }
   if (row.model !== SEEDANCE25_MODEL) return null
   try {
     const parsed: unknown = JSON.parse(row.fingerprint)
@@ -257,7 +272,7 @@ export async function runSwapCheck(row: { model: string; fingerprint: string }, 
   const work = (async (): Promise<SwapVerdict> => {
     let baseRaw: QuadrosBase
     let result: Awaited<ReturnType<typeof extractCheckFrames>>
-    if (!ctx.redrawn) {
+    if (!ctx.redrawn && !ctx.baseVideoUrl) { // KINEO-RECREATE-KLING4-1311 — era: if (!ctx.redrawn) (o Kling não redesenha, mas os quadros-base vêm do vídeo do cliente)
       [baseRaw, result] = await Promise.all([baseCheckFrames(ctx.format as RecreateFormat, opts), extractCheckFrames(providerVideoUrl, opts)])
     } else { // KINEO-RECREATE-SEU-VIDEO-1311 — Seedance: o momento de cada quadro pelo fps real; no "seu vídeo", os quadros-base do próprio original
       const f = opts.fetchImpl ?? fetch

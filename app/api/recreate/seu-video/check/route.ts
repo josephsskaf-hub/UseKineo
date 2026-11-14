@@ -5,7 +5,7 @@ import { clipsAdmin, loadClipAccount } from '@/lib/clips/clipServer'
 import { isPayingPlan } from '@/app/api/admin/_shared/mrr'
 import { RECREATE_HEADERS } from '@/lib/recreate/server'
 import { lerVideoDoCliente, seuVideoSession } from '@/lib/recreate/seuVideoServer'
-import { promptPadrao, SEU_VIDEO_VERSAO } from '@/lib/recreate/seuVideo'
+import { promptDoSeuVideo, SEU_VIDEO_MOTOR, SEU_VIDEO_VERSAO } from '@/lib/recreate/seuVideo' // KINEO-RECREATE-KLING4-1311
 import { writeServerEvent } from '@/lib/serverEvents'
 
 export const dynamic = 'force-dynamic'
@@ -33,6 +33,6 @@ export async function POST(req: NextRequest) {
   return json({
     ok: true, seconds: Math.round(v.meta.segundos * 10) / 10, fps: Math.round(v.meta.fps), width: v.meta.largura, height: v.meta.altura, bytes: v.bytes,
     generated_seconds: v.gerados, aspect_ratio: v.proporcao, credits: v.creditos, balance: account.balance, shortfall: Math.max(0, (v.creditos ?? 0) - account.balance),
-    needs_plan: v.gerados > 10 && !isPayingPlan(account.plan), prompt: promptPadrao(people, positions),
+    needs_plan: v.gerados > 10 && !isPayingPlan(account.plan), prompt: promptDoSeuVideo(SEU_VIDEO_MOTOR, people, positions), engine: SEU_VIDEO_MOTOR, // KINEO-RECREATE-KLING4-1311 — + engine
   })
 }

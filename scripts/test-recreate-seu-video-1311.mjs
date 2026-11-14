@@ -121,7 +121,7 @@ checa('F a conferência não chama motor nem cobra', !/submitClip|queue\.fal|fal
 checa('F 15 s só com plano pago (402 antes de cobrar)', gera.includes("if (v.gerados > 10 && !isPayingPlan(account.plan)) return refuse('plan'") && gera.indexOf("refuse('plan'") < iSub)
 checa('F fotos só da própria conta', gera.includes('ownedClipImageUrl(value, user.id, supabaseUrl)'))
 checa('F o envio usa URL assinada no bucket público, na pasta do cliente', envia.includes('createSignedUploadUrl(path)') && envia.includes('${SEU_VIDEO_PASTA}/${user.id}/${randomUUID()}'))
-checa('F status devolve a recusa do motor só no Seedance 2.5', status.includes('fresh.model === SEEDANCE25_MODEL ? recusaDoMotor(fresh.failure_reason)'))
+checa('F status devolve a recusa do motor só nos modelos do "seu vídeo" (Kling 4.0 edição e Seedance 2.5)', status.includes('ehModeloDoSeuVideo(fresh.model) ? recusaDoMotor(fresh.failure_reason)'))
 // essencial da CEO (13/11): conta de fora = 404 · vídeo fora do limite não debita · recusa estorna · preço 40/60 (este último em C)
 const acesso = createOfflineLoader()('lib/recreate/access.ts'), casa = createOfflineLoader()('lib/internalAccounts.ts').INTERNAL_EXACT_EMAILS
 const relSeu = carrega().SEU_VIDEO_RELEASE
@@ -302,7 +302,7 @@ const tBase = await provasT(carregaSC(), carrega())
 checa(`T trava "não trocou" no Seedance, foto de rosto, task explícito: provas verdes${tBase.length ? ': ' + tBase.join(' · ') : ''}`, tBase.length === 0)
 checa('T o liquidar liga a trava no Seedance (applies) e a passada do cron também', clipSrv.includes('applies: (row) => usaTravaNaoTrocou(row.model)') && clipSrv.includes('rows.filter((r) => !usaTravaNaoTrocou(r.model))'))
 checa('T o estorno do "não trocou" é o do clipFlow (swap.markFailed → deps.refund)', fluxo.includes('if (!(await swap.markFailed(row.id, reason, swapLock))) return row') && /swap\.markFailed[\s\S]{0,400}deps\.refund\(row\.billing_reference\)/.test(fluxo))
-checa('T o prompt padrão pede o enquadramento e a câmera do @Video1, e o evento registra', carrega().promptPadrao(1).includes('same framing and camera as @Video1') && carrega().promptDoCatalogo(1, 'the man').includes('same framing and camera as @Video1') && gera.includes('motor_redesenha_cena: true') && gera.includes("prompt_pede_enquadramento: pr.prompt.includes('same framing and camera as @Video1')"))
+checa('T o prompt padrão pede o enquadramento e a câmera do @Video1, e o evento registra', carrega().promptPadrao(1).includes('same framing and camera as @Video1') && carrega().promptDoCatalogo(1, 'the man').includes('same framing and camera as @Video1') && gera.includes("motor_redesenha_cena: motor !== 'kling4'") && gera.includes("prompt_pede_enquadramento: pr.prompt.includes('same framing and camera as @Video1')"))
 const MUTANTES_T = [
   ['T trava só no Recast', SC, null, (s) => s.replace('export const usaTravaNaoTrocou = (model: unknown): boolean => model === RECREATE_MODEL || model === SEEDANCE25_MODEL', 'export const usaTravaNaoTrocou = (model: unknown): boolean => model === RECREATE_MODEL')],
   ['T sem contexto do Seedance', SC, null, (s) => s.replace('if (row.model !== SEEDANCE25_MODEL) return null', 'return null')],
@@ -373,6 +373,77 @@ for (const [nome, fn] of MUTANTES_U) {
   const fonte = lf(fs.readFileSync(EU, 'utf8')), mudou = fn(fonte) !== fonte
   let e = ['(mutante não aplicou)']
   if (mudou) { try { e = await provasU(carregaEU(fn)) } catch (x) { e = ['lançou: ' + x.message] } }
+  checa(`mutante "${nome}" fica vermelho (${mudou ? e.length + ' erro(s)' : 'NÃO APLICOU'})`, mudou && e.length > 0)
+}
+
+// (K) KINEO-RECREATE-KLING4-1311 [dono 13/11, prioridade nº 1] — o "seu vídeo" no Kling 4.0 edição (padrão), o Seedance 2.5 intacto atrás do
+// interruptor; 700 px por lado e 3 s no check; custo real; o som inventado pelo Kling nunca é guardado; a trava com os quadros do cliente.
+async function provasK(m, sc) {
+  const erros = []
+  if (m.SEU_VIDEO_MOTOR !== 'kling4' || m.modeloDoMotor('kling4') !== 'kling/v4/video-to-video/edit' || m.modeloDoMotor('seedance25') !== 'bytedance/seedance-2.5/reference-to-video') erros.push('K o motor padrão não é o Kling 4.0 edição')
+  const ent = m.entradaKling4({ prompt: 'p @Video1 @Image1', fotos: [PHOTO], videoUrl: ORIGINAL })
+  if (ent.resolution !== '720p' || ent.video_url !== ORIGINAL || ent.image_urls?.[0] !== PHOTO || 'task' in ent || 'duration' in ent || 'aspect_ratio' in ent || 'generate_audio' in ent) erros.push('K entrada do Kling: ' + JSON.stringify(ent))
+  const MB = 1024 * 1024
+  const cod = (meta) => { const r = m.validarVideo(meta, 10 * MB, 'video/mp4', 'kling4'); return r.ok ? 'ok' : r.code }
+  if (cod({ segundos: 7.5, fps: 30, largura: 720, altura: 1280 }) !== 'ok') erros.push('K 720×1280 recusado')
+  if (cod({ segundos: 7.5, fps: 30, largura: 540, altura: 960 }) !== 'resolution') erros.push('K 540×960 passou no Kling (mínimo 700 por lado)')
+  if (cod({ segundos: 2.5, fps: 30, largura: 720, altura: 1280 }) !== 'duration') erros.push('K 2,5 s passou no Kling (mínimo 3)')
+  if (!/700 pixels[\s\S]*Nothing was charged/.test(m.validarVideo({ segundos: 7.5, fps: 30, largura: 540, altura: 960 }, MB, 'video/mp4', 'kling4').error ?? '')) erros.push('K a recusa de 700 px não é clara')
+  if (!m.validarVideo({ segundos: 7.5, fps: 30, largura: 540, altura: 960 }, MB, 'video/mp4', 'seedance25').ok) erros.push('K o Seedance mudou de régua')
+  if (Math.abs(m.custoFalKling4(5) - 0.94) > 0.0001 || Math.abs(m.custoFalKling4(10) - 1.88) > 0.0001) erros.push('K custo fal do Kling (0,094/s × entrada+saída): ' + m.custoFalKling4(5))
+  for (const n of [1, 2, 3]) {
+    const p = m.promptKling4(n)
+    for (let i = 1; i <= n; i++) if (!p.includes('@Image' + i)) erros.push('K prompt sem @Image' + i)
+    if (!p.includes('@Video1') || !/original clothing/.test(p) || !/choreography, timing, camera, framing, background/.test(p) || /\b(he|his|him|she|her)\b/i.test(p) || !m.validarPrompt(p, n).ok) erros.push('K prompt do Kling (' + n + '): ' + p)
+  }
+  if (m.promptDoSeuVideo('kling4', 1) !== m.promptKling4(1) || m.promptDoSeuVideo('seedance25', 1) !== m.promptPadrao(1)) erros.push('K o prompt não segue o motor')
+  // o som inventado sai do arquivo (a trilha 'soun' vira 'free', mesmo tamanho); o vídeo continua legível; arquivo sem som não muda
+  const mudo = Buffer.from(m.silenciarMp4(new Uint8Array(FIM)))
+  const meta = await m.lerMetaDoVideo(ler(mudo), mudo.length)
+  if (mudo.length !== FIM.length || !meta || Math.abs(meta.fps - 30) > 0.01) erros.push('K o vídeo quebrou ao tirar o som')
+  if (mudo.toString('latin1').split('trak').length - 1 !== 1 || FIM.toString('latin1').split('trak').length - 1 !== 2) erros.push('K sobrou trilha de som (ou sumiu a de vídeo)')
+  if (Buffer.compare(Buffer.from(m.silenciarMp4(new Uint8Array(COMECO))), COMECO) !== 0) erros.push('K mexeu num vídeo sem som')
+  // a linha do Kling: o som original e a trava leem o video_url; a trava NÃO avisa redesenho e usa os quadros do cliente
+  const linha = { model: m.KLING4_EDIT_MODEL, fingerprint: JSON.stringify(['pedido', m.KLING4_EDIT_MODEL, ent]), user_id: U, seconds: 8 }
+  if (m.somOriginalDaLinha(linha, SUPA)?.url !== ORIGINAL) erros.push('K o som original não lê a linha do Kling')
+  const ctx = sc.swapRowContext(linha)
+  if (!sc.usaTravaNaoTrocou(m.KLING4_EDIT_MODEL) || !ctx || ctx.baseVideoUrl !== ORIGINAL || ctx.redrawn !== false || ctx.formatId !== 'seu-video') erros.push('K a trava não lê a linha do Kling: ' + JSON.stringify(ctx))
+  const falCalls = [], sistemas = []
+  const fetchImpl = async (url, init = {}) => {
+    if (init.method === 'HEAD') return { ok: true, status: 200, headers: { get: () => String(FIM.length) } }
+    if (init.headers?.Range) { const [a, b] = init.headers.Range.slice(6).split('-').map(Number); return { ok: true, status: 206, arrayBuffer: async () => FIM.buffer.slice(FIM.byteOffset + a, FIM.byteOffset + b + 1) } }
+    if (String(url).startsWith('https://fal.run/')) { const body = JSON.parse(init.body); falCalls.push(body); return { ok: true, json: async () => ({ images: [{ url: 'x' }, { url: body.video_url + '#1' }, { url: body.video_url + '#2' }] }) } }
+    if (String(url).startsWith('https://api.openai.com/')) {
+      const body = JSON.parse(init.body); sistemas.push(body.messages[0].content)
+      const attrs = Object.fromEntries(sc.SWAP_FACE_ATTRIBUTES.map((a) => [a, 'same']))
+      return { ok: true, json: async () => ({ choices: [{ message: { content: JSON.stringify({ persons: [{ person: 1, base_vs_result: attrs, same_person: 'yes', result_vs_photo: 'no', note: '' }] }) } }], usage: {} }) }
+    }
+    throw new Error('rede inesperada: ' + url)
+  }
+  const v = await sc.runSwapCheck(linha, 'https://fal.media/kling.mp4', { fetchImpl, falKey: 'k', apiKey: 'k', model: 'gpt-4o', budgetMs: 5000 })
+  if (v.result !== 'unchanged') erros.push('K não trocou e a trava não pegou no Kling: ' + v.result + '/' + v.reason)
+  if (!falCalls.some((c) => c.video_url === ORIGINAL)) erros.push('K a trava do Kling não usou os quadros do vídeo do cliente')
+  if (!/BY CONSTRUCTION/.test(sistemas[0] ?? '') || /REDRAWS/.test(sistemas[0] ?? '')) erros.push('K o juiz do Kling recebeu o aviso de cena redesenhada')
+  return erros
+}
+const kBase = await provasK(carrega(), carregaSC())
+checa(`K Kling 4.0 edição no "seu vídeo": provas verdes${kBase.length ? ': ' + kBase.join(' · ') : ''}`, kBase.length === 0)
+const servMarcaK = r('lib/clips/freeClipWatermarkServer.ts'), clipSrvK = r('lib/clips/clipServer.ts')
+checa('K o som do Kling sai antes de guardar: na montagem (mute) e no caminho simples', servMarcaK.includes('download: async (url) => (ctx.mute ? silenciarMp4(await downloadBytes(url)) : downloadBytes(url))') && clipSrvK.includes('mute: row.model === KLING4_EDIT_MODEL') && clipSrvK.includes('const buf = row.model === KLING4_EDIT_MODEL ? silenciarMp4(new Uint8Array(cru)) : cru'))
+checa('K a rota escolhe o motor pelo interruptor e o evento diz qual rodou', gera.includes("const input = motor === 'kling4' ? entradaKling4(") && gera.includes('model, motor, video_seconds') && r('app/api/recreate/seu-video/check/route.ts').includes('prompt: promptDoSeuVideo(SEU_VIDEO_MOTOR, people, positions), engine: SEU_VIDEO_MOTOR'))
+const MUTANTES_K = [
+  ['K padrão no Seedance', ARQ, (s) => s.replace("export const SEU_VIDEO_MOTOR: MotorDoSeuVideo = 'kling4'", "export const SEU_VIDEO_MOTOR: MotorDoSeuVideo = 'seedance25'")],
+  ['K Kling em 1080p (padrão da fal)', ARQ, (s) => s.replace("image_urls: a.fotos, resolution: '720p' }", 'image_urls: a.fotos }')],
+  ['K sem o mínimo de 700 px', ARQ, (s) => s.replace('if (Math.min(meta.largura, meta.altura) < KLING4_LIMITES.minLado) return', 'if (false) return')],
+  ['K som do Kling fica', ARQ, (s) => s.replace("if (hdlr && tipo(out, hdlr.ini + 8) === 'soun') out.set(", 'if (false) out.set(')],
+  ['K custo sem o mínimo 2× a saída', ARQ, (s) => s.replace('Math.max(segundosDoVideo + segundosDaSaida, 2 * segundosDaSaida)', 'segundosDaSaida')],
+  ['K trava do Kling com aviso de redesenho', SC, (s) => s.replace('subject: photos.length === 1 ? SEU_VIDEO_SUJEITO_CHECAGEM : undefined, baseVideoUrl: video, redrawn: false }', 'subject: photos.length === 1 ? SEU_VIDEO_SUJEITO_CHECAGEM : undefined, baseVideoUrl: video, redrawn: true }')],
+  ['K som original ignora o Kling', ARQ, (s) => s.replace("const u = row.model === KLING4_EDIT_MODEL ? (typeof um === 'string' ? um : '') :", 'const u =')],
+]
+for (const [nome, arq, fn] of MUTANTES_K) {
+  const fonte = lf(fs.readFileSync(arq, 'utf8')), mudou = fn(fonte) !== fonte
+  let e = ['(mutante não aplicou)']
+  if (mudou) { try { e = await provasK(arq === ARQ ? carrega(fn) : carrega(), arq === SC ? carregaSC(fn) : carregaSC()) } catch (x) { e = ['lançou: ' + x.message] } }
   checa(`mutante "${nome}" fica vermelho (${mudou ? e.length + ' erro(s)' : 'NÃO APLICOU'})`, mudou && e.length > 0)
 }
 

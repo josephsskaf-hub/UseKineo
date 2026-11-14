@@ -23,7 +23,7 @@ import { decideEngineGate } from '@/lib/enginePlanGate'
 import { downloadPublicAnimateImage } from '@/lib/animate/remoteImage'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { RECREATE_MODEL } from '@/lib/recreate/generation' // KINEO-RECREATE-TRAVA-1011
-import { somOriginalDaLinha } from '@/lib/recreate/seuVideo' // KINEO-RECREATE-SEU-VIDEO-1311
+import { KLING4_EDIT_MODEL, silenciarMp4, somOriginalDaLinha } from '@/lib/recreate/seuVideo' // KINEO-RECREATE-SEU-VIDEO-1311 · KINEO-RECREATE-KLING4-1311
 import { usaTravaNaoTrocou } from '@/lib/recreate/swapCheck' // KINEO-RECREATE-SEU-VIDEO-1311
 import { RECREATE_SWAP_CHECK_EVENT, SWAP_CHECK_LOCK_PREFIX, SWAP_CHECK_LOCK_STALE_MS, recreateRowContext, runSwapCheck, swapCheckBusy, swapCheckLock, sweepSwapRefunds, SWAP_REFUND_SWEEP_REASONS, type SwapVerdict } from '@/lib/recreate/swapCheck' // KINEO-RECREATE-TRAVA-1011
 import { alertFalExhausted, looksExhausted } from '@/lib/falAlert'
@@ -405,13 +405,14 @@ async function persistClipVideo(admin: SupabaseClient, row: ClipRow, providerUrl
   if (FREE_CLIP_WATERMARK_LIVE || isFreeClipMarkTestKey(row.idempotency_key)) {
     const { persistFreeClipWithMark } = await import('@/lib/clips/freeClipWatermarkServer')
     const marked = await persistFreeClipWithMark({
-      admin, row, providerUrl, bucket: CLIPS_BUCKET, table: CLIPS_TABLE, cleanToken: clipCleanToken(row.id), expireMs: CLIP_EXPIRE_MS, audio, // KINEO-RECREATE-SEU-VIDEO-1311 — + audio
+      admin, row, providerUrl, bucket: CLIPS_BUCKET, table: CLIPS_TABLE, cleanToken: clipCleanToken(row.id), expireMs: CLIP_EXPIRE_MS, audio, mute: row.model === KLING4_EDIT_MODEL, // KINEO-RECREATE-SEU-VIDEO-1311 — + audio · KINEO-RECREATE-KLING4-1311 — + mute
     })
     if (marked !== null) return marked
   }
   const res = await fetch(providerUrl, { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS), cache: 'no-store' })
   if (!res.ok) throw new Error(`download ${res.status}`)
-  const buf = await res.arrayBuffer()
+  const cru = await res.arrayBuffer() // KINEO-RECREATE-KLING4-1311 — era: const buf = await res.arrayBuffer()
+  const buf = row.model === KLING4_EDIT_MODEL ? silenciarMp4(new Uint8Array(cru)) : cru // KINEO-RECREATE-KLING4-1311 — o som que o Kling inventa nunca é guardado
   if (buf.byteLength === 0 || buf.byteLength > MAX_CLIP_BYTES) throw new Error(`bad size ${buf.byteLength}`)
   // Caminho determinístico + upsert: duas abas persistindo o mesmo clipe escrevem o MESMO arquivo.
   const path = `clips/${row.user_id}/${row.id}.mp4`
