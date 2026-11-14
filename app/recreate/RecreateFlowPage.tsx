@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation'
 import { recreateSession } from '@/lib/recreate/server'
-import { RECREATE_FORMATS, recreateFormat, recreateEffectCredits } from '@/lib/recreate/formats'
-import { recreateCreditCost } from '@/lib/checkoutPricing'
+import { RECREATE_FORMATS, recreateFormat, recreateCreditsFor } from '@/lib/recreate/formats' // KINEO-RECREATE-MOVIMENTO-1411 — era: recreateEffectCredits + recreateCreditCost
 import { publicRecreateCatalog } from '@/lib/recreate/catalogPublic'
 import { publicRecreatePath } from '@/lib/recreate/entry'
 import { recreateFormatVisible, releaseVisible, visibleRecreateFormats } from '@/lib/recreate/access'
@@ -43,7 +42,7 @@ export default async function RecreateFlowPage({ id, searchParams = {}, basePath
   // Public tariff only, no invented account balance or engine availability.
   // The authenticated GET is still required before submitting a paid request.
   const guestQuotes = user ? undefined : RECREATE_FORMATS.filter(format => formatIds.includes(format.id)).map(format => {
-    const credits = format.type === 'swap' ? recreateCreditCost(format.seconds) : recreateEffectCredits(format)
+    const credits = recreateCreditsFor(format) // KINEO-RECREATE-MOVIMENTO-1411 — era: format.type === 'swap' ? recreateCreditCost(format.seconds) : recreateEffectCredits(format)
     return { id: format.id, credits, available: credits !== null, shortfall: 0 }
   })
   return <RecreateClient currentFlow flowBasePath={basePath} initialId={id}

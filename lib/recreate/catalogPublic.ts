@@ -9,11 +9,13 @@
 import { RECREATE_FORMATS, recreateNewestFirst, type RecreateFormat } from './formats'
 import { publicRecreatePath, recreateEntryHref } from './entry'
 
-export type RecreateCatalogItem = { id: string; title: string; href: string; video: string; poster: string; kind: 'swap' | 'effect'; people: number }
+export type RecreateCatalogItem = { id: string; title: string; href: string; video: string; poster: string; kind: 'swap' | 'effect' | 'motion'; people: number } // KINEO-RECREATE-MOVIMENTO-1411 — + motion
 
 /** Prévia pública do vídeo-base (KINEO-MENU-RECREATE-1211). Troca aprovada: a cópia pública da galeria; efeito: a prévia do próprio efeito. */
 export function recreatePublicMedia(f: RecreateFormat): { video: string; poster: string } {
-  if (f.type === 'swap') return { video: `/previews/galeria/${f.id}.mp4`, poster: `/posters/galeria/${f.id}.webp` }
+  // KINEO-RECREATE-MOVIMENTO-1411 — o molde de movimento é como a troca: o vídeo dele mora atrás do login; ao público, a cópia da galeria (entra junto
+  // com a aprovação do molde).
+  if (f.type === 'swap' || f.type === 'motion') return { video: `/previews/galeria/${f.id}.mp4`, poster: `/posters/galeria/${f.id}.webp` }
   return { video: f.preview, poster: f.poster }
 }
 

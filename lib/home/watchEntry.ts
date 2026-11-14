@@ -67,6 +67,6 @@ export function watchClipLabel(clip: ClipeNovo): string {
   if (canonical.produto === 'cartoon') return 'Make a cartoon'
   if (canonical.produto === 'ads') return 'Make your ad'
   if (watchRecreatePath(canonical.id)) return 'Recreate'
-  if (publicRecreatePath(canonical.id)) return recreateFormat(canonical.id)?.type === 'swap' ? 'Recreate' : 'Use effect'
+  if (publicRecreatePath(canonical.id)) return recreateFormat(canonical.id)?.type === 'effect' ? 'Use effect' : 'Recreate' // KINEO-RECREATE-MOVIMENTO-1411 — era: type === 'swap' ? 'Recreate' : 'Use effect' (o movimento também é 'Recreate')
   return canonical.prompt ? 'Use idea' : 'Make a video'
 }

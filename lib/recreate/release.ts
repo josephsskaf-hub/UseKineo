@@ -11,3 +11,7 @@ export const RECREATE_RELEASE: InternalRelease = 'public'
 export const RECREATE_SWAP_RELEASE: InternalRelease = 'public'
 export const SERIES_RELEASE: InternalRelease = 'internal'
 export const RECREATE_MOTION_ENABLED = false
+// KINEO-RECREATE-MOVIMENTO-1411 [dono 14/11 05:35: "O motion de colocar a pessoa no lugar daquele vídeo que viralizou"; CEO 14/11 07:00: "atrás de
+// RECREATE_MOVIMENTO_RELEASE = 'internal'"] — o molde de MOVIMENTO (imagem nossa com a pessoa + o movimento do vídeo-guia NOSSO). 'internal' = só a
+// allowlist exata da casa vê e gera. Ao público só com 'public' E o molde com movimentoAprovado: true (lib/recreate/access.ts).
+export const RECREATE_MOVIMENTO_RELEASE: InternalRelease = 'internal'

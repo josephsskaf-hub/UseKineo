@@ -7,7 +7,7 @@ export interface RecreateFormat {
   preview: string
   poster: string
   seconds: number
-  type: 'swap' | 'effect'
+  type: 'swap' | 'effect' | 'motion' // KINEO-RECREATE-MOVIMENTO-1411 — + motion (imagem nossa com a pessoa + o movimento do vídeo-guia nosso)
   prompt: string
   photoSlots: number
   effectKey?: string
@@ -28,6 +28,17 @@ export interface RecreateFormat {
   swapSubject?: string
   /** Swap only: two base-video frame numbers (24 fps, 0-based) the "not swapped" check compares; JPEGs in lib/recreate/assets/check. */
   checkFrames?: readonly [number, number]
+  /** KINEO-RECREATE-MOVIMENTO-1411 — motion only: chave do MP4 NOSSO em RECREATE_ASSETS que guia o movimento (o próprio vídeo de demonstração do
+   *  cartão). Nunca o vídeo de terceiros: ele não entra no repositório nem no bucket. */
+  guia?: keyof typeof RECREATE_ASSETS
+  /** Motion only: o cenário e o enquadramento da imagem do passo 1 (meio corpo ou joelhos para cima, rosto visível), em frase positiva. */
+  cena?: string
+  /** Motion only: a ação + a câmera + o cenário do passo 2 (o objeto citado aqui aparece), em frase positiva. */
+  acao?: string
+  /** Motion only: pessoas no vídeo-guia. O motor guia UMA; o guardião recusa outro número. */
+  pessoasNoGuia?: 1
+  /** Motion only: true SÓ depois da validação paga da CEO. Sem isso, só a casa vê (com RECREATE_MOVIMENTO_RELEASE diferente de 'off'). */
+  movimentoAprovado?: boolean
 }
 
 export const RECREATE_SWAP_PROMPT = 'Face swap only. Replace only the face with the face from the reference photo. Keep the original clothing, body, scene, lighting, camera, movement, cuts and audio unchanged.'
@@ -102,11 +113,25 @@ const RECREATE_CATALOG: readonly RecreateFormat[] = [
     photoSlots: e.pair ? 2 : 1, effectKey: e.key,
   })),
 ]
-export const RECREATE_FORMATS: readonly RecreateFormat[] = recreateNewestFirst(RECREATE_CATALOG)
+// KINEO-RECREATE-MOVIMENTO-1411 [CEO 14/11 07:00] — os moldes de MOVIMENTO. Cada um: o MP4 do demo (nosso, 720x1280, 10 s) em lib/recreate/assets
+// + a chave em RECREATE_ASSETS (o .mp4 e o .jpg do pôster) + a linha abaixo. Exemplo (a CEO preenche com o demo validado):
+//   { id: 'lance-de-futebol', title: 'Football run', desde: 'AAAA-MM-DD', type: 'motion', preview: '/api/recreate/assets/lance-de-futebol.mp4',
+//     poster: '/api/recreate/assets/lance-de-futebol.jpg', guia: 'lance-de-futebol.mp4', seconds: 10, photoSlots: 1, pessoasNoGuia: 1,
+//     prompt: '', movimentoAprovado: false,
+//     cena: 'standing on a plain green football pitch with plain solid-colour kits around, framed from the knees up, their face clearly visible and turned slightly toward the camera',
+//     acao: 'The person runs forward and dribbles a white football, the camera follows at the side, plain green pitch with plain unmarked boards' }
+// Guardião: scripts/test-recreate-movimento-1411.mjs (molde de 10 s, guia nosso, uma pessoa, frases positivas, enquadramento).
+export const RECREATE_MOVIMENTO_MOLDES: readonly RecreateFormat[] = []
+export const RECREATE_FORMATS: readonly RecreateFormat[] = recreateNewestFirst([...RECREATE_CATALOG, ...RECREATE_MOVIMENTO_MOLDES]) // KINEO-RECREATE-MOVIMENTO-1411 — era: recreateNewestFirst(RECREATE_CATALOG)
 export const recreateFormat = (id: unknown) => RECREATE_FORMATS.find(f => f.id === id) ?? null
 /** KINEO-RECREATE-TRAVA-1011 — a swap is sold only at an approved tariff (RECREATE_PRICING). 8 s = 45 since 10/11 ("Cobra 45"). */
-export const recreateSwapPriced = (f: RecreateFormat) => f.type !== 'swap' || recreateCreditCost(f.seconds) !== null
+export const recreateSwapPriced = (f: RecreateFormat) => (f.type !== 'swap' && f.type !== 'motion') || recreateCreditCost(f.seconds) !== null // KINEO-RECREATE-MOVIMENTO-1411 — o movimento usa a MESMA tabela da troca (CEO 14/11: 10 s = 40)
 export const RECREATE_UNPRICED_ERROR = 'This video is not available yet: its price for this length is still being decided. Nothing was charged.'
+/** KINEO-RECREATE-MOVIMENTO-1411 — os créditos de qualquer molde: troca e movimento pela tabela do Recreate (mesma duração, mesmo preço); efeito pelo
+ *  preço do efeito. Toda tela e rota que mostra ou cobra créditos do catálogo passa por aqui (nunca uma bifurcação "troca ? … : efeito"). */
+export function recreateCreditsFor(f: RecreateFormat): number | null {
+  return f.type === 'swap' || f.type === 'motion' ? recreateCreditCost(f.seconds) : recreateEffectCredits(f)
+}
 export function recreateEffectCredits(f: RecreateFormat): number | null {
   const effect = CLIP_EFFECTS.find(e => e.key === f.effectKey)
   return effect ? clipEffectCredits(effect) : null
