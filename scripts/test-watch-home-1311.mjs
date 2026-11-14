@@ -25,7 +25,15 @@ const lf = (s) => String(s).replace(/\r\n/g, '\n')
 const read = (rel) => lf(fs.readFileSync(path.join(ROOT, rel), 'utf8'))
 const exists = (rel) => fs.existsSync(path.join(ROOT, rel))
 const compiled = new Map()
-const priorLanding = lf(execFileSync('git', ['show', `${BASE}:${LANDING}`], { cwd: ROOT, encoding: 'utf8' }))
+// KINEO-HOME-SEM-FAIXA-RECREATE-1411 [dono 14/11 04:38, vendo a faixa "Recreate" no meio da home: "não gostei disso daí"] — a home de referência é a da BASE
+// menos a faixa do meio, que o dono mandou tirar. As duas trocas têm de acontecer exatamente uma vez; todo o resto da home segue comparado byte a byte.
+const semFaixaDoMeio = (s) => {
+  const importa = "import HomeRecreateStrip from '@/components/home/HomeRecreateStrip'\n"
+  const monta = ' afterTop={<HomeRecreateStrip signedIn={isSignedIn} />}'
+  if (s.split(importa).length !== 2 || s.split(monta).length !== 2) throw new Error('BASE: a faixa Recreate do meio não está lá exatamente uma vez; reancore de propósito')
+  return s.replace(importa, '').replace(monta, '')
+}
+const priorLanding = semFaixaDoMeio(lf(execFileSync('git', ['show', `${BASE}:${LANDING}`], { cwd: ROOT, encoding: 'utf8' })))
 const decode = (s) => s.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>')
 const textOnly = (s) => decode(s.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, '').replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim()
 
