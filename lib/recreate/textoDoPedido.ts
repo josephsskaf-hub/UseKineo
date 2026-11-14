@@ -5,10 +5,9 @@
 // Então o /check monta: "Replace {descrição} in @Video1 with the {man|woman} from @Image1: {his|her} face and hair match @Image1. Keep …".
 //   · descrição: uma chamada de visão barata (AI_TEXT_MODELS.vision) olha UM quadro do vídeo e devolve, para cada pessoa a trocar, até 8
 //     palavras de ROUPA e POSIÇÃO. Nunca identidade, idade, etnia, pele, corpo ou nome: o texto passa por um filtro e, se sujar, cai.
-//   · gênero de cada foto (man | woman): o campo da tela (o GPT vai perguntar homem/mulher) GANHA da visão; sem os dois, cai.
-//   · sem gênero para TODA foto = o texto de hoje (promptKling4), como antes. O cliente continua podendo editar.
+//   · gênero de cada foto (man | woman): SÓ a escolha da tela (`genders`). Nunca lido da foto (CEO 13/11, regra do GPT): a visão não recebe fotos.
+//   · sem a escolha da tela = o texto NEUTRO de hoje (promptKling4) com a descrição; sem descrição, byte a byte o de hoje. O cliente pode editar.
 // Módulo puro com io injetado (quadro e visão): o guardião scripts/test-recreate-texto-do-pedido-1311.mjs executa tudo sem rede.
-import { promptKling4 } from './seuVideo'
 
 export type Genero = 'man' | 'woman'
 export type FonteDoTexto = 'tela' | 'visao' | 'tela_e_visao' | 'padrao'
@@ -107,35 +106,46 @@ export interface TextoDoPedido { prompt: string; fonte: FonteDoTexto; usd: numbe
  * O texto do /check. Gênero da tela ganha da visão; a visão só roda com o vídeo e pelo menos uma foto (ou gênero da tela) — sem foto e sem
  * gênero não há como sair do texto de hoje, então nada é gasto. Qualquer falha = o texto de hoje. Nunca lança.
  */
-export async function montarTextoDoPedido(io: IoDoTexto, a: { pessoas: number; fotos: string[]; generosDaTela: unknown[]; posicoes: string[] }): Promise<TextoDoPedido> {
-  const n = Math.min(3, Math.max(1, a.fotos.length || a.pessoas))
+// KINEO-RECREATE-SEM-GENERO-DA-FOTO-1311 [CEO 13/11, decisão sobre 389acb36d]: o gênero NUNCA sai da foto (regra do GPT em promptPorGenero:
+// "never infer a person's gender from a photo"). A visão só descreve a pessoa do VÍDEO (roupa e posição) e não recebe as fotos. Com a escolha
+// da tela (`genders`), o molde da tela com a descrição; sem ela, o texto NEUTRO de hoje (promptKling4) com a descrição no lugar de "the main
+// person" — sem descrição, byte a byte o promptKling4.
+export function textoNeutroComDescricao(fotos: number, descricoes: ReadonlyArray<string | null> = [], posicoes: ReadonlyArray<string> = []): string {
+  const n = Math.min(3, Math.max(1, fotos))
+  const quem = Array.from({ length: n }, (_, i) => {
+    const pos = String(posicoes[i] ?? '').replace(/[^\p{L}\p{N} ,'-]/gu, '').trim().slice(0, 60)
+    const sujeito = descricaoLimpa(descricoes[i]) ?? (pos ? `the person ${pos}` : ORDEM[i])
+    return `${sujeito} in @Video1 with the person from @Image${i + 1}`
+  }).join(', and ')
+  return `Replace ${quem}: their face and hair match ${n === 1 ? '@Image1' : 'their photo'}. Keep the choreography, timing, camera, framing, background and lighting of @Video1 exactly. Keep the original clothing from @Video1. No logos, no watermark, no readable text.`
+}
+
+export async function montarTextoDoPedido(io: IoDoTexto, a: { pessoas: number; generosDaTela: unknown[]; posicoes: string[] }): Promise<TextoDoPedido> {
+  const n = Math.min(3, Math.max(1, a.pessoas))
   const daTela = Array.from({ length: n }, (_, i) => generoValido(a.generosDaTela[i]))
-  const padrao = (visao: TextoDoPedido['visao'], usd: number, generos = daTela, descricoes: Array<string | null> = []): TextoDoPedido =>
-    ({ prompt: promptKling4(n, a.posicoes), fonte: 'padrao', usd, visao, generos, descricoes })
   const telaCompleta = daTela.every((g) => g !== null)
-  if (!a.fotos.length && !telaCompleta) return padrao('pulou', 0)
   let usd = 0
   let descricoes: Array<string | null> = []
-  let daVisao: Array<Genero | null> = []
   let visao: TextoDoPedido['visao'] = 'falhou'
   try {
     const q = await io.quadro()
     if (q) {
       usd += q.usd
-      const r = await io.visao(mensagensDaVisao(q.url, a.fotos.slice(0, n), n))
+      const r = await io.visao(mensagensDaVisao(q.url, [], n)) // KINEO-RECREATE-SEM-GENERO-DA-FOTO-1311 — nenhuma foto vai à visão
       if (r) {
         usd += r.usd
-        const lido = lerRespostaDaVisao(r.data, n, a.fotos.length ? n : 0)
-        if (lido) { descricoes = lido.descricoes; daVisao = lido.generos; visao = 'ok' }
+        const lido = lerRespostaDaVisao(r.data, n, 0)
+        if (lido) { descricoes = lido.descricoes; visao = 'ok' }
       }
     }
   } catch {
     visao = 'falhou'
   }
-  const generos = Array.from({ length: n }, (_, i) => daTela[i] ?? daVisao[i] ?? null)
-  const prompt = textoComGenero({ fotos: n, generos, descricoes, posicoes: a.posicoes })
-  if (!prompt) return padrao(visao, usd, generos, descricoes)
-  const usouTela = daTela.some((g) => g !== null), usouVisao = visao === 'ok' && (descricoes.some((d) => d) || daTela.some((g, i) => g === null && daVisao[i] !== null))
-  const fonte: FonteDoTexto = usouTela && usouVisao ? 'tela_e_visao' : usouTela ? 'tela' : 'visao'
-  return { prompt, fonte, usd: Math.round(usd * 1e6) / 1e6, visao, generos, descricoes }
+  usd = Math.round(usd * 1e6) / 1e6
+  const temDescricao = descricoes.some((d) => d)
+  if (telaCompleta) {
+    const prompt = textoComGenero({ fotos: n, generos: daTela, descricoes, posicoes: a.posicoes }) as string
+    return { prompt, fonte: temDescricao ? 'tela_e_visao' : 'tela', usd, visao, generos: daTela, descricoes }
+  }
+  return { prompt: textoNeutroComDescricao(n, descricoes, a.posicoes), fonte: temDescricao ? 'visao' : 'padrao', usd, visao, generos: daTela, descricoes }
 }
