@@ -410,7 +410,7 @@ async function scenario(name, run) { await run(); scenarios++; process.stdout.wr
   // the separate 17-mutant home guard; its unrelated children are explicit stubs.
   const hookValues = [], MediaStub = () => null
   let hookIndex = 0
-  const reactHooks = { ...React, useState(initial) {
+  const reactHooks = { ...React, useEffect() {}, /* KINEO-MISSAO8 [CEO 13/11]: a home WATCH ganhou um useEffect (avisa que o lugar do aviso de cookies existe); este teste chama o componente direto e só inspeciona a árvore, então o efeito não roda aqui */ useState(initial) {
     const index = hookIndex++
     if (!(index in hookValues)) hookValues[index] = typeof initial === 'function' ? initial() : initial
     return [hookValues[index], update => { hookValues[index] = typeof update === 'function' ? update(hookValues[index]) : update }]
