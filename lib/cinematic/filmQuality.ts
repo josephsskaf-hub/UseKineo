@@ -356,6 +356,10 @@ export function sujeitosDaFala(fala: string, referenciaNaoESujeito = false): str
     const crua = t.slice(0, m.index ?? 0), antes = crua.trimEnd(), depois = t.slice((m.index ?? 0) + m[0].length), resto = depois.trimStart()
     if (NAO_SUJEITO.has(m[0]) || DATA_0411.has(m[0].normalize('NFD').replace(/\p{M}/gu, '').toLowerCase())) continue
     if (regrasDeLinguaLigadas() && marcaDeEstilo(m[0])) continue // KINEO-APARENCIA-DO-PEDIDO-1311 — "В стиле Пиксар" fala do look: "Пиксар clearly visible as the subject of this shot" saía no plano 4 (7f92fe17)
+    // KINEO-B4-MONTAGEM-1311 [CEO 13/11, fila b4] — Pompeia em russo (42bcd59f, nota 6): "Арену в Помпеях…" virou "Помпеях clearly visible as
+    // the subject of this shot." O plano é escrito em inglês; um nome em outra escrita (cirílico, grego…) chega FLEXIONADO ("Помпеях" é o
+    // locativo de Помпеи) e o motor não o lê como assunto. Só nome em letra latina vira assunto obrigatório; o resto não entra (nem conta).
+    if (regrasDeLinguaLigadas() && !/^\p{Script=Latin}[\p{Script=Latin}\p{N}'’]*$/u.test(m[0])) continue // KINEO-B4-MONTAGEM-1311
     // antes: só letra, número ou vírgula. Início de frase depois de ponto, emoji, aspas, travessão, hífen ou quebra de linha não conta.
     if (!/[\p{L}\p{N},;]$/u.test(antes) || crua.slice(antes.length).includes('\n')) continue
     // Conta ANTES dos filtros, inclusive o que eles descartam: "In 1912, the Titanic sank near Newfoundland" tem dois nomes, e o coadjuvante não pode sair sozinho como assunto.
