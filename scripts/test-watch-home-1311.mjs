@@ -211,7 +211,7 @@ async function problems(overrides = {}) {
   check(off === baseGuest && implicitOff === off, 'paridade visitante: flag OFF devolve HTML anterior')
   check(auth === baseAuth && !isWatch(auth), 'paridade logado: WATCH nunca substitui home autenticada')
   check(isWatch(guest) && !isWatch(off), 'ramo WATCH: somente visitante com flag')
-  check(W.load(RELEASE).WATCH_HOME_ENABLED === true, 'lançamento: flag pública LIGADA em 14/11 pela CEO, depois do veredito da Div. 1 ("pode ligar a home nova"); desligar = voltar a false neste arquivo e aqui')
+  check(W.load(RELEASE).WATCH_HOME_ENABLED === false, 'lançamento: flag pública nasce desligada')
 
   const answer = element(guest, 'data-citation-answer="home"')
   const details = element(guest, 'data-citation-details="home"')
