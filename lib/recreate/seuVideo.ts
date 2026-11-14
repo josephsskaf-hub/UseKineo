@@ -232,3 +232,7 @@ export function promptDoCatalogo(fotos: number, swapSubject?: string): string {
 export function entradaSeedance25(a: { prompt: string; fotos: string[]; videoUrl: string; gerados: number; proporcao: string }) {
   return { prompt: a.prompt, task: 'reference', image_urls: a.fotos, video_urls: [a.videoUrl], resolution: '480p', duration: String(a.gerados), aspect_ratio: a.proporcao, generate_audio: false }
 }
+
+// KINEO-RECREATE-MOVIMENTO-1411 [CEO 14/11 07:00, ajuste 2; quadro "rosto de longe" 05:22] — o /check escreve o cabelo e a barba lidos da foto no texto do
+// "com o seu vídeo" (lib/recreate/descricaoDaPessoa.ts). DESLIGADO até o ensaio pedido no quadro: 10 fotos da casa, texto gerado × o que se vê.
+export const SEU_VIDEO_CABELO_NO_TEXTO = false

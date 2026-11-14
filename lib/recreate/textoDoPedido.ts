@@ -64,14 +64,18 @@ const simNao = (v: unknown): boolean | null => (v === 'yes' || v === true ? true
 const clausulaDosOculos = (o: Oculos | null | undefined, foto: number, pronome: 'he' | 'she' | 'they') =>
   o === 'usar' ? `, wearing the glasses from @Image${foto}` : o === 'tirar' ? `, and ${pronome} ${pronome === 'they' ? 'wear' : 'wears'} no glasses` : ''
 
-export function textoComGenero(a: { fotos: number; generos: ReadonlyArray<Genero | null>; descricoes?: ReadonlyArray<string | null>; posicoes?: ReadonlyArray<string>; oculos?: ReadonlyArray<Oculos | null> }): string | null {
+// KINEO-RECREATE-MOVIMENTO-1411 [CEO 14/11 07:00, ajuste 2; quadro "rosto de longe" 05:22] — o cabelo e a barba lidos da FOTO (lib/recreate/descricaoDaPessoa.ts)
+// entram depois de "face and hair match @ImageN": em plano de longe o Kling mantinha o cabelo da pessoa do vídeo. Só com o interruptor
+// SEU_VIDEO_CABELO_NO_TEXTO (desligado até o ensaio de 10 fotos da casa: texto gerado × o que se vê). Sem cabelo lido = o texto de antes, byte a byte.
+export const clausulaDoCabelo = (c: string | null | undefined) => (c && /^[a-z ,\-]{3,200}$/.test(c) ? `, with ${c}` : '')
+export function textoComGenero(a: { fotos: number; generos: ReadonlyArray<Genero | null>; descricoes?: ReadonlyArray<string | null>; posicoes?: ReadonlyArray<string>; oculos?: ReadonlyArray<Oculos | null>; cabelos?: ReadonlyArray<string | null> }): string | null { // KINEO-RECREATE-MOVIMENTO-1411 — + cabelos
   const n = Math.min(3, Math.max(1, a.fotos))
   const gs = Array.from({ length: n }, (_, i) => generoValido(a.generos[i]))
   if (gs.some((g) => g === null)) return null
   const trocas = Array.from({ length: n }, (_, i) => {
     const pos = String(a.posicoes?.[i] ?? '').replace(/[^\p{L}\p{N} ,'-]/gu, '').trim().slice(0, 60)
     const sujeito = descricaoLimpa(a.descricoes?.[i]) ?? (pos ? 'the person ' + pos : ORDEM[i])
-    return 'Replace ' + sujeito + ' in @Video1 with the ' + gs[i] + ' from @Image' + (i + 1) + ': ' + (gs[i] === 'man' ? 'his' : 'her') + ' face and hair match @Image' + (i + 1) + clausulaDosOculos(a.oculos?.[i], i + 1, gs[i] === 'man' ? 'he' : 'she') + '.' // KINEO-RECREATE-OCULOS-NO-PEDIDO-1411 — + a cláusula dos óculos (vazia sem certeza)
+    return 'Replace ' + sujeito + ' in @Video1 with the ' + gs[i] + ' from @Image' + (i + 1) + ': ' + (gs[i] === 'man' ? 'his' : 'her') + ' face and hair match @Image' + (i + 1) + clausulaDoCabelo(a.cabelos?.[i]) + clausulaDosOculos(a.oculos?.[i], i + 1, gs[i] === 'man' ? 'he' : 'she') + '.' // KINEO-RECREATE-OCULOS-NO-PEDIDO-1411 — + a cláusula dos óculos (vazia sem certeza)
   }).join(' ')
   return trocas + ' ' + TAIL
 }
@@ -202,17 +206,17 @@ export interface TextoDoPedido {
 // "never infer a person's gender from a photo"). A visão só descreve a pessoa do VÍDEO (roupa e posição) e não recebe as fotos. Com a escolha
 // da tela (`genders`), o molde da tela com a descrição; sem ela, o texto NEUTRO de hoje (promptKling4) com a descrição no lugar de "the main
 // person" — sem descrição, byte a byte o promptKling4.
-export function textoNeutroComDescricao(fotos: number, descricoes: ReadonlyArray<string | null> = [], posicoes: ReadonlyArray<string> = [], oculos: ReadonlyArray<Oculos | null> = []): string { // KINEO-RECREATE-OCULOS-NO-PEDIDO-1411 — + oculos (só com 1 pessoa: a frase neutra de 2–3 pessoas é uma só para todas)
+export function textoNeutroComDescricao(fotos: number, descricoes: ReadonlyArray<string | null> = [], posicoes: ReadonlyArray<string> = [], oculos: ReadonlyArray<Oculos | null> = [], cabelos: ReadonlyArray<string | null> = []): string { // KINEO-RECREATE-MOVIMENTO-1411 — + cabelos (só com 1 pessoa) // KINEO-RECREATE-OCULOS-NO-PEDIDO-1411 — + oculos (só com 1 pessoa: a frase neutra de 2–3 pessoas é uma só para todas)
   const n = Math.min(3, Math.max(1, fotos))
   const quem = Array.from({ length: n }, (_, i) => {
     const pos = String(posicoes[i] ?? '').replace(/[^\p{L}\p{N} ,'-]/gu, '').trim().slice(0, 60)
     const sujeito = descricaoLimpa(descricoes[i]) ?? (pos ? `the person ${pos}` : ORDEM[i])
     return `${sujeito} in @Video1 with the person from @Image${i + 1}`
   }).join(', and ')
-  return `Replace ${quem}: their face and hair match ${n === 1 ? '@Image1' : 'their photo'}${n === 1 ? clausulaDosOculos(oculos[0], 1, 'they') : ''}. Keep the choreography, timing, camera, framing, background and lighting of @Video1 exactly. Keep the original clothing from @Video1. No logos, no watermark, no readable text.`
+  return `Replace ${quem}: their face and hair match ${n === 1 ? '@Image1' : 'their photo'}${n === 1 ? clausulaDoCabelo(cabelos[0]) + clausulaDosOculos(oculos[0], 1, 'they') : ''}. Keep the choreography, timing, camera, framing, background and lighting of @Video1 exactly. Keep the original clothing from @Video1. No logos, no watermark, no readable text.`
 }
 
-export async function montarTextoDoPedido(io: IoDoTexto, a: { pessoas: number; fotos?: string[]; generosDaTela: unknown[]; posicoes: string[] }): Promise<TextoDoPedido> {
+export async function montarTextoDoPedido(io: IoDoTexto, a: { pessoas: number; fotos?: string[]; generosDaTela: unknown[]; posicoes: string[]; cabelos?: Array<string | null> }): Promise<TextoDoPedido> { // KINEO-RECREATE-MOVIMENTO-1411 — + cabelos (lidos da foto; só com o interruptor)
   // KINEO-RECREATE-GENERO-SUGERIDO-1411 [dono 14/11, usando a tela: "Tem que escolher se quer trocar o homem ou a mulher, mas é mais uma coisa
   // para pensar. E no site do Higgsfield […] o prompt ele vem com já escrito"; CEO 14/11] — a visão volta a olhar as fotos, mas SÓ como SUGESTÃO
   // (man|woman por foto, nunca idade, etnia, pele ou nome): a tela pré-marca com ela e a pessoa troca se estiver errada. A escolha da tela ganha;
@@ -259,14 +263,15 @@ export async function montarTextoDoPedido(io: IoDoTexto, a: { pessoas: number; f
   usd = Math.round(usd * 1e6) / 1e6
   const sugestaoCompleta = sugestao.every((g) => g !== null)
   if (!telaCompleta && !sugestaoCompleta && n > 1) oculos = oculos.map(() => null) // KINEO-RECREATE-OCULOS-NO-PEDIDO-1411 — neutro de 2–3 pessoas: a frase é uma só, sem cláusula por pessoa
-  const temDescricao = descricoes.some((d) => d) || oculos.some((o) => o) // KINEO-RECREATE-OCULOS-NO-PEDIDO-1411 — os óculos também são algo que a visão acrescenta
+  const cabelos = (a.cabelos ?? []).slice(0, n) // KINEO-RECREATE-MOVIMENTO-1411
+  const temDescricao = descricoes.some((d) => d) || oculos.some((o) => o) || cabelos.some((c) => clausulaDoCabelo(c) !== '') // KINEO-RECREATE-MOVIMENTO-1411 — + o cabelo lido // KINEO-RECREATE-OCULOS-NO-PEDIDO-1411 — os óculos também são algo que a visão acrescenta
   if (telaCompleta) {
-    const prompt = textoComGenero({ fotos: n, generos: daTela, descricoes, posicoes: a.posicoes, oculos }) as string
+    const prompt = textoComGenero({ fotos: n, generos: daTela, descricoes, posicoes: a.posicoes, oculos, cabelos }) as string
     return { prompt, fonte: temDescricao ? 'tela_e_visao' : 'tela', usd, visao, generos: daTela, descricoes, sugestao, generoDe: 'tela', oculos, candidatos, escolhido, quadros: vistos }
   }
   if (sugestaoCompleta) {
-    const prompt = textoComGenero({ fotos: n, generos: sugestao, descricoes, posicoes: a.posicoes, oculos }) as string
+    const prompt = textoComGenero({ fotos: n, generos: sugestao, descricoes, posicoes: a.posicoes, oculos, cabelos }) as string
     return { prompt, fonte: 'sugestao', usd, visao, generos: sugestao, descricoes, sugestao, generoDe: 'sugestao', oculos, candidatos, escolhido, quadros: vistos }
   }
-  return { prompt: textoNeutroComDescricao(n, descricoes, a.posicoes, oculos), fonte: temDescricao ? 'visao' : 'padrao', usd, visao, generos: daTela, descricoes, sugestao, generoDe: 'nenhum', oculos, candidatos, escolhido, quadros: vistos }
+  return { prompt: textoNeutroComDescricao(n, descricoes, a.posicoes, oculos, cabelos), fonte: temDescricao ? 'visao' : 'padrao', usd, visao, generos: daTela, descricoes, sugestao, generoDe: 'nenhum', oculos, candidatos, escolhido, quadros: vistos }
 }

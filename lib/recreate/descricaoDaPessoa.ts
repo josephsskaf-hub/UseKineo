@@ -12,7 +12,9 @@ import { readVisionAnswer } from './swapCheck'
 export const DESCRICAO_TIMEOUT_MS = 8_000
 export const DESCRICAO_MODEL_DEFAULT: string = AI_TEXT_MODELS.writer
 export type DescricaoFalhou = 'config' | 'timeout' | 'http_error' | 'refusal' | 'null_answer' | 'invalid_json' | 'no_person'
-export type DescricaoDaPessoa = { ok: true; texto: string; usd: number } | { ok: false; why: DescricaoFalhou }
+/** `texto` = a frase do movimento (com os óculos); `cabeloEBarba` = só cabelo e barba, sem "with" na frente e sem óculos (o "com o seu vídeo" já
+ *  decide os óculos comparando o vídeo e a foto). */
+export type DescricaoDaPessoa = { ok: true; texto: string; cabeloEBarba: string; usd: number } | { ok: false; why: DescricaoFalhou }
 
 export const DESCRICAO_INSTRUCAO = [
   'You describe the hair and facial hair of the one person in the photo, so an image model can draw the same person.',
@@ -33,6 +35,12 @@ export function campoLimpo(v: unknown, max: number): string {
   if (!t || t.split(' ').length > max) return ''
   if (/\b(no|not|never|without|none|nothing)\b/.test(t)) return ''
   return t
+}
+
+/** Só cabelo e barba (sem óculos, sem "with" na frente), ou null sem o mínimo. */
+export function cabeloEBarbaEmTexto(parsed: unknown): string | null {
+  const t = descricaoEmTexto({ ...((parsed && typeof parsed === 'object' ? parsed : {}) as Record<string, unknown>), glasses: null })
+  return t ? t.replace(/^with /, '') : null
 }
 
 /** Os campos lidos viram UMA frase positiva (ou null quando não há o mínimo: a cor ou o comprimento do cabelo). */
@@ -79,9 +87,10 @@ export async function lerDescricaoDaPessoa(fotoUrl: string, opts: DescricaoOpts 
     const lido = readVisionAnswer(data)
     if ('why' in lido) return { ok: false, why: lido.why === 'refusal' || lido.why === 'null_answer' ? lido.why : 'invalid_json' }
     const texto = descricaoEmTexto(lido.parsed)
-    if (!texto) return { ok: false, why: 'no_person' }
+    const cabeloEBarba = cabeloEBarbaEmTexto(lido.parsed)
+    if (!texto || !cabeloEBarba) return { ok: false, why: 'no_person' }
     const usd = ((data.usage?.prompt_tokens ?? 0) * 2.5 + (data.usage?.completion_tokens ?? 0) * 10) / 1_000_000
-    return { ok: true, texto, usd: Math.round(usd * 10000) / 10000 }
+    return { ok: true, texto, cabeloEBarba, usd: Math.round(usd * 10000) / 10000 }
   } catch (e) {
     return { ok: false, why: (e as { name?: string })?.name === 'TimeoutError' || (e as { name?: string })?.name === 'AbortError' ? 'timeout' : 'http_error' }
   }

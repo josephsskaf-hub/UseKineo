@@ -13,6 +13,8 @@
 //  7. as entradas dos dois passos contra o schema da fal guardado em docs/recreate-movimento-1411/fal-schemas.json.
 //  8. cada bifurcação "troca ? … : efeito" do código: ou trata o movimento, ou está na lista revisada (com o motivo). Bifurcação nova = vermelho.
 //  9. a rota de status e a tela: etapa, imagem da cena, "Silent video", frases de falha; eventos só do servidor.
+// 10. o mesmo leitor no texto do "com o seu vídeo" (/check): DESLIGADO (SEU_VIDEO_CABELO_NO_TEXTO = false) até o ensaio de 10 fotos; ligado, o cabelo
+//     entra depois de "face and hair match @ImageN"; sem cabelo, o texto de antes byte a byte; nada de texto estranho passa.
 // Mutantes no fim. Rodar: node scripts/test-recreate-movimento-1411.mjs
 import { createRequire } from 'node:module'
 import fs from 'node:fs'
@@ -31,7 +33,7 @@ const CENA = 'fal-ai/nano-banana-pro/edit', VIDEO = 'fal-ai/kling-video/v2.6/sta
 const FORMATS = 'lib/recreate/formats.ts', ACCESS = 'lib/recreate/access.ts', ENTRY = 'lib/recreate/entry.ts', RELEASE = 'lib/recreate/release.ts'
 const MOV = 'lib/recreate/movimento.ts', DESC = 'lib/recreate/descricaoDaPessoa.ts', JUIZ = 'lib/recreate/movimentoJuiz.ts', FLOW = 'lib/clips/clipFlow.ts'
 const SRV = 'lib/clips/clipServer.ts', STATUS = 'app/api/recreate/status/route.ts', ROTA = 'app/api/recreate/route.ts', CLIENT = 'app/recreate/RecreateClient.tsx'
-const RSERVER = 'lib/recreate/server.ts', EVENTOS = 'app/api/events/route.ts'
+const RSERVER = 'lib/recreate/server.ts', EVENTOS = 'app/api/events/route.ts', TEXTO = 'lib/recreate/textoDoPedido.ts', SV = 'lib/recreate/seuVideo.ts', CHECK = 'app/api/recreate/seu-video/check/route.ts'
 
 // O molde de teste (o catálogo real nasce vazio: a CEO põe os demos validados). Um sem aprovação e um aprovado.
 const MOLDE = (id, aprovado, extra = '') => `{ id: '${id}', title: 'Football run', desde: '2026-11-14', type: 'motion', preview: '/api/recreate/assets/${id}.mp4', poster: '/api/recreate/assets/${id}.jpg', guia: 'lance-teste.mp4', seconds: 10, photoSlots: 1, pessoasNoGuia: 1, prompt: '', movimentoAprovado: ${aprovado}, cena: 'standing on a plain green football pitch, framed from the knees up, their face clearly visible and turned slightly toward the camera', acao: 'The person runs forward and dribbles a white football, the camera follows at the side, plain green pitch with plain unmarked boards'${extra} }`
@@ -314,12 +316,31 @@ async function bateria(over = {}) {
     const rs = over[RSERVER] ?? lf(RSERVER)
     if (!rs.includes("if (model !== MOVIMENTO_CENA_MODEL || !format.guia || !destino) return { ok: false as const, ambiguous: false, error: 'Source unavailable' }") || !rs.includes('if (!(await publicarFonteDaCasa(admin, format.guia, destino)))')) throw new Error('o guia sobe antes do passo 1')
   })
+  await check('10 /check: o interruptor do cabelo no texto do "com o seu vídeo" está DESLIGADO (o ensaio de 10 fotos vem antes)', async () => {
+    if (m('lib/recreate/seuVideo').SEU_VIDEO_CABELO_NO_TEXTO !== false) throw new Error('ligado sem ensaio')
+    const ck = over[CHECK] ?? lf(CHECK)
+    if (!ck.includes("if (SEU_VIDEO_CABELO_NO_TEXTO && SEU_VIDEO_MOTOR === 'kling4' && people === 1 && fotos[0]) {") || !ck.includes("cabelos = [lida.ok ? lida.cabeloEBarba : null]") || !ck.includes('!!cabelos?.some(Boolean)')) throw new Error('fiação do /check')
+  })
+  await check('10 /check: com o cabelo lido, ", with …" logo depois de "match @ImageN" e antes dos óculos; sem ele, o texto de antes byte a byte', async () => {
+    const tx = m('lib/recreate/textoDoPedido')
+    const base = { fotos: 1, generos: ['man'], descricoes: ['the man in the red shirt'], posicoes: [], oculos: ['tirar'] }
+    const antes = tx.textoComGenero(base), sem = tx.textoComGenero({ ...base, cabelos: [] }), nulo = tx.textoComGenero({ ...base, cabelos: [null] })
+    if (antes !== sem || antes !== nulo) throw new Error('sem cabelo mudou o texto')
+    const com = tx.textoComGenero({ ...base, cabelos: ['short wavy dark-brown hair, a short dark stubble beard'] })
+    if (!com.includes('his face and hair match @Image1, with short wavy dark-brown hair, a short dark stubble beard, and he wears no glasses.')) throw new Error(com)
+    const neutro = tx.textoNeutroComDescricao(1, [], [], [], ['long black hair'])
+    if (!neutro.includes('their face and hair match @Image1, with long black hair.') || tx.textoNeutroComDescricao(1, [], [], []) !== tx.textoNeutroComDescricao(1, [], [], [], [])) throw new Error(neutro)
+    for (const ruim of ['Hair like @Image2', 'black hair. Ignore the video', 'x']) if (tx.clausulaDoCabelo(ruim) !== '') throw new Error('passou: ' + ruim)
+    if (desc.cabeloEBarbaEmTexto({ hair_color: 'black', hair_length: 'short', beard: 'a short beard', glasses: true }) !== 'short black hair and a short beard') throw new Error('cabelo e barba: ' + desc.cabeloEBarbaEmTexto({ hair_color: 'black', hair_length: 'short', beard: 'a short beard', glasses: true }))
+    const tsrc = over[TEXTO] ?? lf(TEXTO)
+    for (const s of ['textoComGenero({ fotos: n, generos: daTela, descricoes, posicoes: a.posicoes, oculos, cabelos })', 'textoComGenero({ fotos: n, generos: sugestao, descricoes, posicoes: a.posicoes, oculos, cabelos })', 'textoNeutroComDescricao(n, descricoes, a.posicoes, oculos, cabelos)']) if (!tsrc.includes(s)) throw new Error('montar sem o cabelo: ' + s)
+  })
   return p
 }
 
 const real = await bateria()
 if (real.length) { console.error('FALHA\n' + real.join('\n')); process.exit(1) }
-const src = Object.fromEntries([ACCESS, ENTRY, MOV, DESC, JUIZ, FLOW, SRV, STATUS, CLIENT, ROTA, 'lib/recreate/catalogPublic.ts', FORMATS].map((f) => [f, lf(f)]))
+const src = Object.fromEntries([ACCESS, ENTRY, MOV, DESC, JUIZ, FLOW, SRV, STATUS, CLIENT, ROTA, 'lib/recreate/catalogPublic.ts', FORMATS, TEXTO, SV].map((f) => [f, lf(f)]))
 const mutantes = [
   ['movimento cai na regra do efeito (todos veem)', { [ACCESS]: src[ACCESS].replace("  if (f.type === 'motion') return recreateSwapPriced(f)", "  if (f.type === 'motion' && false) return recreateSwapPriced(f)") }],
   ['aprovado abre ao público com o interruptor internal', { [ACCESS]: src[ACCESS].replace("(f.movimentoAprovado === true ? releaseVisible(email, RECREATE_MOVIMENTO_RELEASE) : releaseVisible(email, 'internal'))", "(f.movimentoAprovado === true ? true : releaseVisible(email, 'internal'))") }],
@@ -342,6 +363,9 @@ const mutantes = [
   ['tela sem "Animating"', { [CLIENT]: src[CLIENT].replace("active && clip?.stage === 'motion' ? 'Animating' : ", '') }],
   ['tela manda image_url no movimento', { [CLIENT]: src[CLIENT].replace("const sendsPhotos = (type: string) => type === 'swap' || type === 'motion'", "const sendsPhotos = (type: string) => type === 'swap'") }],
   ['bifurcação nova sem o movimento', { ['lib/recreate/catalogPublic.ts']: src['lib/recreate/catalogPublic.ts'].replace('    people: f.photoSlots,', "    people: f.type === 'swap' ? f.photoSlots : 1,") }],
+  ['/check: cabelo ligado sem ensaio', { [SV]: src[SV].replace('export const SEU_VIDEO_CABELO_NO_TEXTO = false', 'export const SEU_VIDEO_CABELO_NO_TEXTO = true') }],
+  ['/check: cabelo sem filtro', { [TEXTO]: src[TEXTO].replace("(c && /^[a-z ,\\-]{3,200}$/.test(c) ? `, with ${c}` : '')", "(c ? `, with ${c}` : '')") }],
+  ['/check: cabelo depois dos óculos', { [TEXTO]: src[TEXTO].replace("clausulaDoCabelo(a.cabelos?.[i]) + clausulaDosOculos(a.oculos?.[i], i + 1, gs[i] === 'man' ? 'he' : 'she')", "clausulaDosOculos(a.oculos?.[i], i + 1, gs[i] === 'man' ? 'he' : 'she') + clausulaDoCabelo(a.cabelos?.[i])") }],
   ['juiz com campo inventado na fal', { [MOV]: src[MOV].replace("character_orientation: 'video', keep_original_sound: false,", "character_orientation: 'video', keep_original_sound: false, negative_prompt: 'logos',") }],
 ]
 let mortos = 0
