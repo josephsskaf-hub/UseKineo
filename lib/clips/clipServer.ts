@@ -46,7 +46,8 @@ import { SPACE_CLIP_ENGINE, SPACE_CLIP_SECONDS, SPACE_KINDS, buildSpaceMotionPro
 // KINEO-ROSTO-QUADRO-CHAVE-2810 — etapa 2 do "Put your face in it": o quadro-chave (PNG do Nano Banana) vai para o NOSSO bucket em
 // caminho determinístico e o vídeo (i2v do motor) parte dele. A ORDEM mora em lib/clips/clipFlow.ts settleClip; aqui só os fios.
 import { faceRemixKeyframePath, faceRemixStageForRow, faceRemixVideoModel, faceRemixForRow } from '@/lib/clips/faceRemix' // KINEO-ROSTO-QUADRO-CHAVE-2810
-import { MOVIMENTO_SELO, MOVIMENTO_CENA_MODEL, MOVIMENTO_VIDEO_MODEL, movimentoCenaPath, movimentoEntradaDoVideo, movimentoForRow, movimentoGuiaUrl, movimentoStageForRow } from '@/lib/recreate/movimento' // KINEO-RECREATE-MOVIMENTO-1411
+import { MOVIMENTO_SELO, MOVIMENTO_CENA_MODEL, MOVIMENTO_VIDEO_MODEL, movimentoCenaPath, movimentoEntradaDoVideo, movimentoForRow, movimentoStageForRow } from '@/lib/recreate/movimento' // KINEO-RECREATE-MOVIMENTO-1411 · KINEO-GUIA-PRIVADO-1411 — era: + movimentoGuiaUrl
+import { assinarGuia, conferirGuias } from '@/lib/recreate/guias' // KINEO-GUIA-PRIVADO-1411
 import { MOVIMENTO_EVENTOS, MOVIMENTO_PROMPT_PREFIXO, ehLinhaDeMovimento } from '@/lib/recreate/movimento' // KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411
 import { MOTIVO_NUNCA_COBRADO } from '@/lib/recreate/movimento' // KINEO-MOVIMENTO-ANTES-DE-ABRIR-2-1411
 import { julgarCena } from '@/lib/recreate/movimentoJuiz' // KINEO-RECREATE-MOVIMENTO-1411
@@ -521,7 +522,7 @@ export function movimentoDepsFor(admin: SupabaseClient): ClipMovimentoDeps {
     },
     submitVideo: async (row, cenaUrl) => {
       const f = movimentoForRow(row)
-      const guia = f ? movimentoGuiaUrl(f, process.env.NEXT_PUBLIC_SUPABASE_URL ?? '') : null
+      const guia = f ? await assinarGuia(admin, f.guia, 3600) : null // KINEO-GUIA-PRIVADO-1411 — URL assinada de 1 h do bucket privado, só na entrada da fal (nunca em evento ou log)
       if (!f || !guia) return { ok: false as const, ambiguous: false, error: 'Motion guide unavailable' }
       return submitToFalOnce(MOVIMENTO_VIDEO_MODEL, movimentoEntradaDoVideo(f, cenaUrl, guia))
     },
@@ -999,6 +1000,7 @@ export async function sweepClipJobs(): Promise<{ scanned: number; delivered: num
   result.refunded += orfas.refunded
   result.creditsReturned += orfas.creditsReturned
   const mov = await estornarMovimentosOrfaos(admin, since) // KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 [CEO 14/11 10:55, item 1]
+  await conferirGuias(admin, clipEvent('00000000-0000-0000-0000-000000000000')).catch(() => null) // KINEO-GUIA-PRIVADO-1411 — de hora em hora: todo guia do manifesto no bucket privado (o que falta é copiado da cópia antiga só com o sha256 certo; senão, evento)
   result.refunded += mov.refunded
   result.creditsReturned += mov.creditsReturned
   return result

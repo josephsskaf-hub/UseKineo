@@ -8,7 +8,8 @@ import { RECREATE_ASSETS, type RecreateFormat } from './formats'
 import { RECREATE_MODEL } from './generation'
 import { catalogoNoSeedance25, SEEDANCE25_MODEL } from './seuVideo' // KINEO-RECREATE-SEU-VIDEO-1311 Entrega C
 import { comEndUserDaFal } from './falEndUser' // KINEO-SEEDANCE-END-USER-1311
-import { MOVIMENTO_CENA_MODEL, movimentoGuiaPath } from './movimento' // KINEO-RECREATE-MOVIMENTO-1411
+import { MOVIMENTO_CENA_MODEL } from './movimento' // KINEO-RECREATE-MOVIMENTO-1411 · KINEO-GUIA-PRIVADO-1411 — era: + movimentoGuiaPath
+import { guiaDoManifesto } from './guiasManifesto' // KINEO-GUIA-PRIVADO-1411
 import { enginePaused } from '@/lib/engineLaunch'
 import type { ClipEngineAccess } from '@/lib/clips/clipCatalog'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -51,9 +52,8 @@ export function recreateSubmitDeps(admin: SupabaseClient, userSupabase: Supabase
     // KINEO-RECREATE-MOVIMENTO-1411 — passo 1 do movimento: ANTES de pedir a imagem, o guia NOSSO vai para o caminho fixo do bucket (o passo 2, no
     // status ou no cron, só calcula a URL: nenhuma rota de liquidação precisa do MP4 no pacote). Guia que não sobe = recusa limpa, com estorno.
     if (format.type === 'motion') {
-      const destino = movimentoGuiaPath(format)
-      if (model !== MOVIMENTO_CENA_MODEL || !format.guia || !destino) return { ok: false as const, ambiguous: false, error: 'Source unavailable' }
-      if (!(await publicarFonteDaCasa(admin, format.guia, destino))) return { ok: false as const, ambiguous: false, error: 'Source storage unavailable' }
+      // KINEO-GUIA-PRIVADO-1411 — o guia mora no bucket PRIVADO e a rota já conferiu que ele está lá ANTES do débito (guiaPresente); aqui nada sobe nem é lido.
+      if (model !== MOVIMENTO_CENA_MODEL || !guiaDoManifesto(format.guia)) return { ok: false as const, ambiguous: false, error: 'Source unavailable' }
       return submit(model, input)
     }
     const seedance = model === SEEDANCE25_MODEL && catalogoNoSeedance25(format.id) // KINEO-RECREATE-SEU-VIDEO-1311 Entrega C

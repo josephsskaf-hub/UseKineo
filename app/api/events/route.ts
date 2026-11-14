@@ -24,7 +24,8 @@ const SERVER_ONLY_EVENTS = new Set([
   'recreate_movimento_cena',
   'recreate_pessoa_descricao',
   'recreate_movimento_moderador_fora',
-  'clip_nunca_cobrado', // KINEO-MOVIMENTO-ANTES-DE-ABRIR-2-1411 — a varredura marcou never_charged (sem débito no livro) // KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 — o moderador da cena fora do ar (o pedido seguiu para o juiz)
+  'clip_nunca_cobrado',
+  'recreate_guia_faltando', // KINEO-GUIA-PRIVADO-1411 — a conferência de hora em hora não achou o guia no bucket privado // KINEO-MOVIMENTO-ANTES-DE-ABRIR-2-1411 — a varredura marcou never_charged (sem débito no livro) // KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 — o moderador da cena fora do ar (o pedido seguiu para o juiz)
   // KINEO-EMAIL-FILME-NA-PAGINA-1111 — o clique no botão do e-mail "filme pronto" é contado pela rota /api/email/filme-pronto.
   'video_ready_email_clicked',
   // KINEO-CARTAO-RECUSADO-0111 — carimbos de dedupe do laço do cartão recusado (um carimbo forjado calaria o aviso de

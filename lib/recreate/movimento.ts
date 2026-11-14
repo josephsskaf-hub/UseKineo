@@ -14,6 +14,7 @@ import { NANO_BANANA_EDIT_SLUG } from '@/lib/imageReference'
 import { ownedClipImageUrl, type ClipEngineKey, type ClipRequestInput } from '@/lib/clips/clipCatalog'
 import { recreateCreditCost } from '@/lib/checkoutPricing'
 import { recreateMovimentoCredits } from './formats' // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411
+import { guiaDoManifesto } from './guiasManifesto' // KINEO-GUIA-PRIVADO-1411
 import { RECREATE_ASSETS, RECREATE_FORMATS, type RecreateFormat } from './formats'
 
 export const MOVIMENTO_MARK = 'KINEO-RECREATE-MOVIMENTO-1411'
@@ -76,13 +77,8 @@ export function movimentoStageForRow(row: LinhaDoMovimento): 'scene' | 'motion' 
 
 /** A imagem do passo 1 no NOSSO bucket (caminho fixo: dois atores escrevem o MESMO arquivo). */
 export const movimentoCenaPath = (userId: string, clipId: string) => `clips/${userId}/${clipId}-motion-scene.png`
-/** O guia no bucket: o POST sobe o arquivo do repositório aqui (o mesmo caminho das fontes da troca); o passo 2 só calcula a URL. */
-export const movimentoGuiaPath = (f: RecreateFormat) => (f.guia && RECREATE_ASSETS[f.guia] ? `recreate-sources/v1/${RECREATE_ASSETS[f.guia].file}` : null)
-export function movimentoGuiaUrl(f: RecreateFormat, supabaseUrl: string): string | null {
-  const path = movimentoGuiaPath(f)
-  const base = supabaseUrl.replace(/\/+$/, '')
-  return path && /^https:\/\//.test(base) ? `${base}/storage/v1/object/public/renders/${path}` : null
-}
+// KINEO-GUIA-PRIVADO-1411 — o guia não é mais publicado nem calculado aqui: mora no bucket PRIVADO (lib/recreate/guiasManifesto.ts) e o passo 2 recebe uma URL assinada de 1 h
+// (lib/recreate/guias.ts assinarGuia). Era: movimentoGuiaPath/movimentoGuiaUrl (público em renders/recreate-sources/v1).
 
 /** A marca do envio do passo 2 (failure_reason enquanto o request_id não está gravado): a rede de 10 min conta dela, não da criação da linha. */
 export const MOVIMENTO_ENVIO_PREFIX = 'movenvio_'
@@ -129,7 +125,9 @@ export function movimentoEntradaDoVideo(f: RecreateFormat, cenaUrl: string, guia
 // DESTE ambiente, em clips/<dono>/<clipe>.mp4, e o dono numa lista dada (a conta da casa).
 export function movimentoDemoValido(preview: string): boolean {
   const local = /^\/api\/recreate\/assets\/([A-Za-z0-9_.-]+\.mp4)$/.exec(preview)
-  return !!local && Object.hasOwn(RECREATE_ASSETS, local[1]) && (RECREATE_ASSETS as Record<string, { contentType: string }>)[local[1]].contentType === 'video/mp4'
+  if (!local) return false
+  if (guiaDoManifesto(local[1])) return true // KINEO-GUIA-PRIVADO-1411 — o próprio guia no bucket privado (a rota de assets redireciona com URL assinada curta)
+  return Object.hasOwn(RECREATE_ASSETS, local[1]) && (RECREATE_ASSETS as Record<string, { contentType: string }>)[local[1]].contentType === 'video/mp4'
 }
 export function movimentoDemoDoBucketValido(url: string, supabaseUrl: string, donos: readonly string[]): boolean {
   if (!/^https:\/\/[a-z0-9.-]+$/.test(supabaseUrl)) return false
@@ -157,8 +155,7 @@ export function movimentoProblemasDoMolde(f: RecreateFormat): string[] {
   if (recreateMovimentoCredits(f) === null) p.push(`${f.seconds} s sem tarifa na tabela do Recreate (nem provisória da casa)`) // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 — era: recreateCreditCost(f.seconds)
   if (f.photoSlots !== 1) p.push('uma foto só')
   if (f.pessoasNoGuia !== 1) p.push('o guia precisa ter UMA pessoa (pessoasNoGuia: 1)')
-  const asset = f.guia ? RECREATE_ASSETS[f.guia] : undefined
-  if (!asset || asset.contentType !== 'video/mp4') p.push('o guia precisa ser um MP4 nosso em RECREATE_ASSETS')
+  if (!guiaDoManifesto(f.guia)) p.push('o guia precisa estar no manifesto do bucket privado (lib/recreate/guiasManifesto.ts)') // KINEO-GUIA-PRIVADO-1411 — era: MP4 em RECREATE_ASSETS
   if (!f.cena || !/\b(knees up|waist up|full body from head to shoes)\b/i.test(f.cena) || !/face clearly visible/i.test(f.cena)) p.push('a cena enquadra joelhos ou cintura para cima ou o corpo inteiro ("full body from head to shoes"), com "face clearly visible"') // KINEO-MOVIMENTO-CORPO-INTEIRO-1411 — + corpo inteiro
   if (!movimentoDemoValido(f.preview)) p.push('o preview do catálogo é um asset nosso (/api/recreate/assets/<chave>); o demo do bucket mora em lib/recreate/movimentoDemos.ts') // KINEO-MOVIMENTO-REVISOR-2-1411 — era: asset ou URL do bucket
   if (!f.acao) p.push('o molde precisa da ação do passo 2')

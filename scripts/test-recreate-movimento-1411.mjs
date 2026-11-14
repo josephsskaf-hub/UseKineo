@@ -103,7 +103,10 @@ function bancoSel(rows, debitos = []) {
 async function bateria(over = {}) {
   const p = []
   const check = async (n, fn) => { try { await fn() } catch (e) { p.push(n + ': ' + e.message) } }
-  const overs = { ...over, [FORMATS]: comMoldes(over[FORMATS] ?? lf(FORMATS)) }
+  // KINEO-GUIA-PRIVADO-1411 — o guia do molde de teste no manifesto do bucket privado (o arquivo de teste é o da passarela)
+  const MANIF = 'lib/recreate/guiasManifesto.ts'
+  const manifSrc = (over[MANIF] ?? lf(MANIF)).replace('export const GUIAS_MANIFESTO: Readonly<Record<string, GuiaDoMolde>> = {\n', "export const GUIAS_MANIFESTO: Readonly<Record<string, GuiaDoMolde>> = {\n  'lance-teste.mp4': { arquivo: 'recreate-passarela.mp4', bytes: 6341943, sha256: '0'.repeat(64) },\n")
+  const overs = { ...over, [FORMATS]: comMoldes(over[FORMATS] ?? lf(FORMATS)), [MANIF]: manifSrc }
   const m = loader({
     '@supabase/supabase-js': { createClient: () => ({}) }, '@fal-ai/client': { fal: { config: () => {}, queue: {} } },
     '@/lib/supabase/server': { createClient: () => null }, 'server-only': {},
@@ -265,8 +268,9 @@ async function bateria(over = {}) {
   await check('12 a rota de assets EXECUTADA: com demo da casa, quem pode ver o molde recebe 302 para ele; de fora, 404; demo fora da régua = o asset de sempre', async () => {
     const { NextResponse } = require(require.resolve('next/server', { paths: [process.cwd()] }))
     const CASA = 'e92d81bf-0068-46c3-8de7-1f67e2006756', demo = SUPA + '/storage/v1/object/public/renders/clips/' + CASA + '/' + U + '.mp4'
+    const assinaturasRota = []
     const rodar = async (usuario, demoUrl) => {
-      const r = loader({ 'next/server': { NextResponse }, 'server-only': {}, '@supabase/supabase-js': { createClient: () => ({}) }, '@/lib/recreate/server': { recreateSession: async () => ({ user: usuario }), RECREATE_HEADERS: { 'Cache-Control': 'private, no-store' } } },
+      const r = loader({ 'next/server': { NextResponse }, 'server-only': {}, '@supabase/supabase-js': { createClient: () => ({}) }, '@/lib/recreate/server': { recreateSession: async () => ({ user: usuario }), RECREATE_HEADERS: { 'Cache-Control': 'private, no-store' } }, '@/lib/recreate/guias': { guiasAdmin: () => ({}), assinarGuia: async (_a, chave, seg) => (assinaturasRota.push([chave, seg]), 'https://fixture.supabase.co/storage/v1/object/sign/quarantine/g.mp4?token=t') } },
         { ...overs, 'lib/recreate/movimentoDemos.ts': `export const MOVIMENTO_DEMO_DONOS: readonly string[] = ['${CASA}']\nexport const MOVIMENTO_DEMOS: Readonly<Record<string, string>> = { 'lance-teste': '${demoUrl}' }\n` })
       return r('app/api/recreate/assets/[name]/route').GET({ headers: { get: () => null } }, { params: { name: 'lance-teste.mp4' } })
     }
@@ -277,7 +281,8 @@ async function bateria(over = {}) {
     const cliente = await rodar({ email: 'cliente@exemplo.com' }, demo)
     if (cliente.status !== 404) throw new Error('cliente vê o molde fechado: ' + cliente.status)
     const alheio = await rodar({ email: casa }, demo.replace(CASA, U))
-    if (alheio.status !== 200 || alheio.headers.get('location')) throw new Error('demo de outro dono redirecionou: ' + alheio.status)
+    // reancorado KINEO-GUIA-PRIVADO-1411 — demo fora da régua: o cartão recebe o GUIA (bucket privado) por URL assinada de 60 s, nunca o demo de outro dono
+    if (alheio.status !== 302 || alheio.headers.get('location') === demo.replace(CASA, U) || !/\/object\/sign\//.test(alheio.headers.get('location') ?? '') || JSON.stringify(assinaturasRota.at(-1)) !== JSON.stringify(['lance-teste.mp4', 60])) throw new Error('demo de outro dono: ' + alheio.status + ' ' + alheio.headers.get('location') + ' ' + JSON.stringify(assinaturasRota))
   })
   await check('12 a régua do molde recusa MARCA e nome próprio na cena e na ação ("Nike shirt", "nike shirt", "Real Madrid", "near Barcelona"); a sigla TV e o molde real passam', async () => {
     for (const x of ['wearing a Nike shirt', 'wearing a nike shirt', 'a Real Madrid player', 'a stadium near Barcelona', 'plain boards with a Coca-Cola logo', 'He runs. Then Messi passes'])
@@ -334,7 +339,82 @@ async function bateria(over = {}) {
       } }),
     }
     return { s, b, deps, row: () => b.t.get(U) }
+  }  // ── KINEO-GUIA-PRIVADO-1411 [CEO 14/11: A aprovada] — o guia no bucket privado ──
+  const ASSINADA = 'https://fixture.supabase.co/storage/v1/object/sign/quarantine/recreate-guias/v1/recreate-passarela.mp4?token=SEGREDO0123456789abcdefSEGREDO'
+  const storageFalso = (o = {}) => {
+    const st = { assinaturas: [], uploads: [], downloads: [] }
+    const presentes = new Map(Object.entries(o.presentes ?? {}))
+    const from = (bucket) => ({
+      createSignedUrl: async (p, seg) => { st.assinaturas.push([bucket, p, seg]); return o.semAssinar ? { data: null, error: { message: 'x' } } : { data: { signedUrl: ASSINADA }, error: null } },
+      list: async (pasta, op) => ({ data: [...presentes.entries()].filter(([k]) => k.startsWith(bucket + '/' + pasta + '/') && k.endsWith('/' + op.search)).map(([k, size]) => ({ name: k.split('/').pop(), metadata: { size } })), error: null }),
+      download: async (p) => { st.downloads.push([bucket, p]); const b = o.legado?.[bucket + '/' + p]; return b ? { data: { arrayBuffer: async () => b }, error: null } : { data: null, error: { message: 'not found' } } },
+      upload: async (p, bytes) => { st.uploads.push([bucket, p, bytes.length]); presentes.set(bucket + '/' + p, bytes.length); return { error: null } },
+    })
+    return { st, admin: { storage: { from } } }
   }
+  const guiasMod = m('lib/recreate/guias'), manif = m('lib/recreate/guiasManifesto')
+  await check('13 o guia: manifesto do bucket privado; assinatura de 1 h para a fal e 60 s para o cartão, no caminho quarantine/recreate-guias/v1; falhou = null', async () => {
+    const g = manif.guiaDoManifesto('lance-teste.mp4')
+    if (!g || manif.guiaCaminho('lance-teste.mp4') !== 'recreate-guias/v1/' + g.arquivo || manif.GUIAS_BUCKET !== 'quarantine') throw new Error('manifesto')
+    const s = storageFalso()
+    if (await guiasMod.assinarGuia(s.admin, 'lance-teste.mp4', 3600) !== ASSINADA || JSON.stringify(s.st.assinaturas[0]) !== JSON.stringify(['quarantine', 'recreate-guias/v1/' + g.arquivo, 3600])) throw new Error('assinatura: ' + JSON.stringify(s.st.assinaturas))
+    if (await guiasMod.assinarGuia(storageFalso({ semAssinar: true }).admin, 'lance-teste.mp4', 3600) !== null || await guiasMod.assinarGuia(s.admin, 'nao-existe.mp4', 3600) !== null) throw new Error('falha não deu null')
+    const real = lf('lib/recreate/guiasManifesto.ts')
+    if (!/'jogada-de-futebol\.mp4': \{ arquivo: 'recreate-mov-jogada-de-futebol-v1\.mp4', bytes: \d+, sha256: '[0-9a-f]{64}' \}/.test(real)) throw new Error('o manifesto real do 1º molde')
+    if (fs.existsSync('lib/recreate/assets/recreate-mov-jogada-de-futebol-v1.mp4') || /jogada-de-futebol\.mp4/.test(lf(FORMATS).split('export const RECREATE_ASSETS')[1].split('} as const')[0])) throw new Error('o MP4 do guia ainda está no pacote')
+  })
+  await check('13 o passo 2 manda à fal a URL ASSINADA de 1 h (nunca a pública); uma URL assinada que a fal devolva no erro NUNCA chega a evento nem à linha', async () => {
+    const s = storageFalso()
+    const fetchAntes = globalThis.fetch, keyAntes = process.env.FAL_KEY
+    const corpos = []
+    process.env.FAL_KEY = 'fal-de-teste-0123456789'
+    globalThis.fetch = async (url, init) => { corpos.push(JSON.parse(init.body)); return { ok: false, status: 422, text: async () => JSON.stringify({ detail: 'could not download ' + ASSINADA }) } }
+    try {
+      const h = harness()
+      const realDeps = srvMod.movimentoDepsFor(s.admin)
+      h.deps.movimento.submitVideo = realDeps.submitVideo
+      const evs = []
+      h.deps.event = async (n, md) => { evs.push([n, md]) }
+      await flow.settleClip(h.deps, linha())
+      if (corpos.length !== 1 || corpos[0].video_url !== ASSINADA || JSON.stringify(s.st.assinaturas[0]?.slice(2)) !== '[3600]') throw new Error('o passo 2 não usou a assinada de 1 h: ' + JSON.stringify([corpos.map((c) => c.video_url), s.st.assinaturas]))
+      const tudo = JSON.stringify([evs, h.row()])
+      if (/SEGREDO|token=|\/object\/sign\//.test(tudo)) throw new Error('a URL assinada vazou: ' + tudo.slice(0, 300))
+      if (h.row().status !== 'failed') throw new Error('não falhou')
+    } finally { globalThis.fetch = fetchAntes; process.env.FAL_KEY = keyAntes }
+  })
+  await check('13 a conferência de hora em hora: presente = nada; ausente com a cópia antiga de sha256 CERTO = copia; sha256 errado ou sem cópia = evento recreate_guia_faltando, nada sobe', async () => {
+    const crypto = await import('node:crypto')
+    const bytes = Buffer.from('guia-de-teste')
+    const g = { arquivo: 'recreate-passarela.mp4', bytes: bytes.length, sha256: crypto.createHash('sha256').update(bytes).digest('hex') }
+    const gm = loader({ '@supabase/supabase-js': { createClient: () => ({}) } }, { ...over, 'lib/recreate/guiasManifesto.ts': lf('lib/recreate/guiasManifesto.ts').replace(/export const GUIAS_MANIFESTO: Readonly<Record<string, GuiaDoMolde>> = \{\n[\s\S]*?\n\}\n/, `export const GUIAS_MANIFESTO: Readonly<Record<string, GuiaDoMolde>> = {\n  'lance-teste.mp4': ${JSON.stringify(g)},\n}\n`) })('lib/recreate/guias')
+    const ev = []
+    const evento = async (n, md) => { ev.push([n, md]) }
+    const pres = storageFalso({ presentes: { ['quarantine/recreate-guias/v1/' + g.arquivo]: g.bytes } })
+    let r = await gm.conferirGuias(pres.admin, evento)
+    if (r.presentes !== 1 || pres.st.uploads.length || ev.length) throw new Error('presente: ' + JSON.stringify(r))
+    const certo = storageFalso({ legado: { ['renders/recreate-sources/v1/' + g.arquivo]: bytes } })
+    r = await gm.conferirGuias(certo.admin, evento)
+    if (r.copiados !== 1 || JSON.stringify(certo.st.uploads[0]) !== JSON.stringify(['quarantine', 'recreate-guias/v1/' + g.arquivo, g.bytes]) || ev.length) throw new Error('cópia certa: ' + JSON.stringify([r, certo.st.uploads]))
+    const errado = storageFalso({ legado: { ['renders/recreate-sources/v1/' + g.arquivo]: Buffer.from('outro-conteudo') } })
+    r = await gm.conferirGuias(errado.admin, evento)
+    if (r.faltando.length !== 1 || errado.st.uploads.length || ev.at(-1)?.[0] !== 'recreate_guia_faltando' || ev.at(-1)[1].motivo !== 'copia_divergente') throw new Error('sha256 errado: ' + JSON.stringify([r, ev]))
+    const sem = storageFalso()
+    r = await gm.conferirGuias(sem.admin, evento)
+    if (r.faltando.length !== 1 || sem.st.uploads.length || ev.at(-1)[1].motivo !== 'ausente_sem_copia') throw new Error('sem cópia: ' + JSON.stringify(ev.at(-1)))
+    if (JSON.stringify(ev).includes('token=')) throw new Error('URL no evento')
+    const varre = (over[SRV] ?? lf(SRV)).replace(/\/\/[^\n]*/g, '')
+    const corpo = varre.slice(varre.indexOf('export async function sweepClipJobs'), varre.indexOf('export async function advanceActiveClipJobs'))
+    if (!corpo.includes('await conferirGuias(admin, ')) throw new Error('a varredura horária não confere os guias')
+  })
+  await check('13 o guia que falta = o POST recusa ANTES do débito ("Nothing was charged"); o envio do passo 1 não sobe nem lê arquivo', async () => {
+    const rota = (over[ROTA] ?? lf(ROTA))
+    const iG = rota.indexOf("if (!(await guiaPresente(admin, format.guia))) return json({ error: 'Could not start your clip. Nothing was charged.' }, 503)"), iS = rota.indexOf('const result = await submitClip(deps,')
+    if (iG < 0 || iS < 0 || iG > iS) throw new Error('a rota não confere o guia antes do submitClip')
+    const rs = over[RSERVER] ?? lf(RSERVER)
+    const ramo = rs.slice(rs.indexOf("if (format.type === 'motion') {"), rs.indexOf('const seedance ='))
+    if (/publicarFonteDaCasa|readFile|upload\(/.test(ramo)) throw new Error('o passo 1 do movimento ainda sobe ou lê o guia')
+  })
+
   await check('6 imagem pronta: reserva, juiz uma vez, UM envio, request_id gravado e a marca solta; evento uma vez; nada estornado', async () => {
     const h = harness()
     const r = await flow.settleClip(h.deps, linha())
@@ -549,12 +629,14 @@ async function bateria(over = {}) {
     }
     const textos = ['with short black hair and wearing no glasses', 'with long blonde hair and wearing glasses']
     const eventosRota = [], entradas = []
+    let guiaNoPrivado = true
     const rm = loader({
       '@supabase/supabase-js': { createClient: () => ({}) }, '@fal-ai/client': { fal: { config: () => {}, queue: {} } }, '@/lib/supabase/server': { createClient: () => null }, 'server-only': {},
       'next/server': { NextResponse: { json: (body, init) => ({ status: init?.status ?? 200, body }) } },
       '@/lib/clips/clipServer': { clipsAdmin: () => ({}), engineAccessFor: () => ({ ok: true }), loadClipAccount: async () => ({ userId: U, balance: 100, plan: 'free' }) },
       '@/lib/recreate/server': { recreateSession: async () => ({ supabase: {}, user: { id: U, email: casa } }), recreateSubmitDeps: () => rotaDeps, recreateEngineAccess: () => ({ ok: true }), RECREATE_HEADERS: {} },
       '@/lib/serverEvents': { writeServerEvent: async (e) => { eventosRota.push(e); return true } }, // KINEO-MOVIMENTO-CORPO-INTEIRO-1411 — o evento da descrição
+      '@/lib/recreate/guias': { guiaPresente: async () => guiaNoPrivado }, // KINEO-GUIA-PRIVADO-1411
       '@/app/api/admin/_shared/mrr': { isPayingPlan: () => false },
       '@/lib/recreate/descricaoDaPessoa': { lerDescricaoDaPessoa: async () => { const i = leituras++; await new Promise((r) => setTimeout(r, i % 2 ? 1 : 25)); return { ok: true, texto: textos[i % 2], cabeloEBarba: '', usd: 0.005 } } },
     }, overs)
@@ -566,6 +648,12 @@ async function bateria(over = {}) {
     if (a.status !== 202 || a.body.replay || b.status !== 200 || b.body.replay !== true || leituras !== 1 || envios !== 1) throw new Error('em sequência: ' + JSON.stringify([a, b, leituras, envios]))
     const [c, d] = await Promise.all([POST(req('recreate-par-1')), POST(req('recreate-par-1'))])
     if (leituras !== 3) throw new Error('a corrida não leu as duas descrições: ' + leituras)
+    // KINEO-GUIA-PRIVADO-1411 — o guia sumiu do bucket privado: 503 "Nothing was charged", sem gravar linha nem debitar
+    guiaNoPrivado = false
+    const antesLinhas = linhas.size
+    const g = await POST(req('recreate-sem-guia-1'))
+    if (g.status !== 503 || !/Nothing was charged/.test(g.body.error) || linhas.size !== antesLinhas) throw new Error('guia ausente: ' + JSON.stringify([g.status, g.body, linhas.size - antesLinhas]))
+    guiaNoPrivado = true
     const st = [c, d].map((x) => `${x.status}:${x.body.replay}`).sort().join(',')
     if (st !== '200:true,202:false' || c.body.clip.id !== d.body.clip.id || envios !== 2) throw new Error('ao mesmo tempo: ' + JSON.stringify([c, d, envios]))
   })
@@ -603,7 +691,7 @@ async function bateria(over = {}) {
     const ok = srvMod.movimentoCenaPublica(b.admin, linha({ model: VIDEO }))
     if (ok !== `${SUPA}/storage/v1/object/public/renders/clips/${U}/${U}-motion-scene.png`) throw new Error('cena: ' + ok)
     if (srvMod.movimentoCenaPublica(b.admin, linha()) !== null || srvMod.movimentoCenaPublica(b.admin, linha({ model: VIDEO, status: 'failed' })) !== null || srvMod.movimentoCenaPublica(b.admin, linha({ model: VIDEO, fingerprint: 'outro' })) !== null /* reancorado KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 — a linha é de movimento pela impressão digital, não pelo texto */) throw new Error('cena fora de hora')
-    if (mov.movimentoGuiaUrl(molde, SUPA) !== `${SUPA}/storage/v1/object/public/renders/recreate-sources/v1/recreate-passarela.mp4`) throw new Error('guia: ' + mov.movimentoGuiaUrl(molde, SUPA))
+    if (typeof mov.movimentoGuiaUrl === 'function') throw new Error('o guia ainda tem URL pública calculada') // reancorado KINEO-GUIA-PRIVADO-1411 — o guia vem por URL assinada do bucket privado (13)
   })
 
   await check('7 as entradas dos dois passos batem com o schema da fal (obrigatórios, enum, nenhum campo inventado)', async () => {
@@ -617,7 +705,7 @@ async function bateria(over = {}) {
       }
     }
     confere(CENA, mov.movimentoEntradaDaCena(molde, FOTO, D))
-    const e2 = mov.movimentoEntradaDoVideo(molde, `${SUPA}/c.png`, mov.movimentoGuiaUrl(molde, SUPA))
+    const e2 = mov.movimentoEntradaDoVideo(molde, `${SUPA}/c.png`, 'https://fixture.supabase.co/storage/v1/object/sign/quarantine/recreate-guias/v1/x.mp4?token=t') // reancorado KINEO-GUIA-PRIVADO-1411
     confere(VIDEO, e2)
     if (e2.character_orientation !== 'video' || e2.keep_original_sound !== false || !e2.prompt.includes('football')) throw new Error('passo 2: ' + JSON.stringify(e2))
   })
@@ -679,7 +767,7 @@ async function bateria(over = {}) {
     if (!srv.includes(".eq('id', row.id).eq('status', 'processing').eq('model', MOVIMENTO_CENA_MODEL).eq('fal_request_id', row.fal_request_id)")) throw new Error('reserva sem condição')
     if (!srv.includes(".eq('id', id).eq('status', 'processing').eq('model', MOVIMENTO_VIDEO_MODEL).is('fal_request_id', null).eq('failure_reason', marca)")) throw new Error('gravação sem a marca')
     const rs = over[RSERVER] ?? lf(RSERVER)
-    if (!rs.includes("if (model !== MOVIMENTO_CENA_MODEL || !format.guia || !destino) return { ok: false as const, ambiguous: false, error: 'Source unavailable' }") || !rs.includes('if (!(await publicarFonteDaCasa(admin, format.guia, destino)))')) throw new Error('o guia sobe antes do passo 1')
+    if (!rs.includes("if (model !== MOVIMENTO_CENA_MODEL || !guiaDoManifesto(format.guia)) return { ok: false as const, ambiguous: false, error: 'Source unavailable' }")) throw new Error('o passo 1 sem o guia do manifesto') // reancorado KINEO-GUIA-PRIVADO-1411 — era: o guia subia antes do passo 1
   })
   await check('10 /check: o interruptor do cabelo no texto do "com o seu vídeo" está DESLIGADO (o ensaio de 10 fotos vem antes)', async () => {
     if (m('lib/recreate/seuVideo').SEU_VIDEO_CABELO_NO_TEXTO !== false) throw new Error('ligado sem ensaio')
@@ -773,7 +861,7 @@ const mutantes = [
   // KINEO-MOVIMENTO-CORPO-INTEIRO-1411
   ['descrição de volta para o começo (fora da identidade)', { [MOV]: src[MOV].replace('  const ident = descricao ? `${identidade(descricao)}, ${descricao}.` : `${identidade(null)}.`', '  const ident = `${identidade(null)}.`') }], // reancorado KINEO-MOVIMENTO-REVISOR-2-1411 (a frase fixa virou função)
   ['régua sem o corpo inteiro', { [MOV]: src[MOV].replace('knees up|waist up|full body from head to shoes', 'knees up|waist up') }],
-  ['demo de qualquer lugar no catálogo', { [MOV]: src[MOV].replace("  return !!local && Object.hasOwn(RECREATE_ASSETS, local[1])", '  return true || !!local && Object.hasOwn(RECREATE_ASSETS, local[1])') }],
+  ['demo de qualquer lugar no catálogo', { [MOV]: src[MOV].replace('  if (!local) return false\n', '  if (!local) return true\n') }], // reancorado KINEO-GUIA-PRIVADO-1411
   // KINEO-MOVIMENTO-REVISOR-2-1411
   ['demo de qualquer dono', { [MOV]: src[MOV].replace('  return !!m && donos.includes(m[1])', '  return !!m') }],
   ['demo de qualquer ambiente', { [MOV]: src[MOV].replace('  const prefixo = `${supabaseUrl}/storage/v1/object/public/renders/clips/`\n  if (typeof url !== \'string\' || !url.startsWith(prefixo)) return false', '  const prefixo = url.slice(0, url.indexOf(\'/storage/v1/object/public/renders/clips/\') + 40)') }],
@@ -783,6 +871,12 @@ const mutantes = [
   ['"hair with thick" de volta', { [DESC]: src[DESC].replace("  const cabelo = [volume === 'thick' || volume === 'full' ? volume : '', comprimento, forma, cor].filter(Boolean).join(' ')", "  const cabelo = [comprimento, forma, cor].filter(Boolean).join(' ')") }],
   ['identidade fala de barba no sem barba', { [MOV]: src[MOV].replace("...(descricao && /\\bclean-shaven\\b/.test(descricao) ? [] : ['beard'])", "'beard'") }],
   ['evento sem a descrição usada', { [ROTA]: src[ROTA].replace('{ usd: lida.usd, descricao: lida.texto }', '{ usd: lida.usd }') }],
+  // KINEO-GUIA-PRIVADO-1411
+  ['guia não conferido antes do débito', { [ROTA]: src[ROTA].replace("      if (!(await guiaPresente(admin, format.guia))) return json({ error: 'Could not start your clip. Nothing was charged.' }, 503)\n", '') }],
+  ['assinatura longa no cartão', { ['app/api/recreate/assets/[name]/route.ts']: lf('app/api/recreate/assets/[name]/route.ts').replace('await assinarGuia(admin, params.name, 60)', 'await assinarGuia(admin, params.name, 86400)') }],
+  ['fal com assinatura curta (o vídeo some no meio)', { [SRV]: src[SRV].replace('await assinarGuia(admin, f.guia, 3600)', 'await assinarGuia(admin, f.guia, 60)') }],
+  ['cópia do guia sem conferir o sha256', { ['lib/recreate/guias.ts']: lf('lib/recreate/guias.ts').replace('if (bytes.length !== g.bytes || hash !== g.sha256) motivo = ', 'if (false) motivo = ') }],
+  ['varredura sem conferir os guias', { [SRV]: src[SRV].replace(src[SRV].split('\n').find((l) => l.startsWith('  await conferirGuias(admin, ')) + '\n', '') }],
   ['juiz com campo inventado na fal', { [MOV]: src[MOV].replace("character_orientation: 'video', keep_original_sound: false,", "character_orientation: 'video', keep_original_sound: false, negative_prompt: 'logos',") }],
 ]
 let mortos = 0

@@ -30,7 +30,7 @@ export interface RecreateFormat {
   checkFrames?: readonly [number, number]
   /** KINEO-RECREATE-MOVIMENTO-1411 — motion only: chave do MP4 NOSSO em RECREATE_ASSETS que guia o movimento (o próprio vídeo de demonstração do
    *  cartão). Nunca o vídeo de terceiros: ele não entra no repositório nem no bucket. */
-  guia?: keyof typeof RECREATE_ASSETS
+  guia?: string // KINEO-GUIA-PRIVADO-1411 — a chave do guia em GUIAS_MANIFESTO (lib/recreate/guiasManifesto.ts): o MP4 mora no bucket privado, não no pacote
   /** Motion only: o cenário e o enquadramento da imagem do passo 1 (meio corpo ou joelhos para cima, rosto visível), em frase positiva. */
   cena?: string
   /** Motion only: a ação + a câmera + o cenário do passo 2 (o objeto citado aqui aparece), em frase positiva. */
@@ -68,8 +68,8 @@ export const RECREATE_ASSETS = {
   'sueter-aconchegante.jpg': { file: 'recreate-sueter.jpg', contentType: 'image/jpeg' },
   'selfie-confete.mp4': { file: 'recreate-selfie.mp4', contentType: 'video/mp4' },
   'selfie-confete.jpg': { file: 'recreate-selfie.jpg', contentType: 'image/jpeg' },
-  // KINEO-RECREATE-MOVIMENTO-MOLDE-1411 — demo nosso do molde de movimento "Football play" (720x1280, 6.3 s); pôster = quadro de 1 s, 720 px.
-  'jogada-de-futebol.mp4': { file: 'recreate-mov-jogada-de-futebol-v1.mp4', contentType: 'video/mp4' },
+  // KINEO-RECREATE-MOVIMENTO-MOLDE-1411 — pôster do molde de movimento "Football play" (quadro de 1 s, 720 px). KINEO-GUIA-PRIVADO-1411: o MP4 do guia saiu daqui (2,8 MB)
+  // para o bucket privado (lib/recreate/guiasManifesto.ts); o cartão o recebe por redirecionamento curto da rota de assets.
   'jogada-de-futebol.jpg': { file: 'recreate-mov-jogada-de-futebol.jpg', contentType: 'image/jpeg' },
 } as const
 

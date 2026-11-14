@@ -6,6 +6,7 @@ import { isPayingPlan } from '@/app/api/admin/_shared/mrr'
 import { recreateFormat, recreateCreditsFor, recreateSwapPriced, RECREATE_UNPRICED_ERROR } from '@/lib/recreate/formats' // KINEO-RECREATE-MOVIMENTO-1411 — era: recreateEffectCredits
 import { MOVIMENTO_CENA_MODEL, MOVIMENTO_EVENTOS, MOVIMENTO_VIDEO_MODEL, movimentoEntradaDaCena, movimentoEntradaDoVideo, movimentoFalUsd, planMovimento } from '@/lib/recreate/movimento' // KINEO-RECREATE-MOVIMENTO-1411
 import { lerDescricaoDaPessoa } from '@/lib/recreate/descricaoDaPessoa' // KINEO-RECREATE-MOVIMENTO-1411
+import { guiaPresente } from '@/lib/recreate/guias' // KINEO-GUIA-PRIVADO-1411
 import { planRecreate } from '@/lib/recreate/generation'
 import { recreateEngineAccess, recreateSession, recreateSubmitDeps, RECREATE_HEADERS } from '@/lib/recreate/server'
 import { writeServerEvent } from '@/lib/serverEvents'
@@ -80,6 +81,8 @@ export async function POST(req: NextRequest) {
       }
       const resolved = planMovimento(raw, ctx, descricao)
       if (!resolved.ok) return json({ error: resolved.error }, resolved.status)
+      // KINEO-GUIA-PRIVADO-1411 [CEO 14/11: "se a assinatura ou o objeto falhar, o pedido falha ANTES do débito, com a mensagem de sempre, sem cobrar"]
+      if (!(await guiaPresente(admin, format.guia))) return json({ error: 'Could not start your clip. Nothing was charged.' }, 503)
       body = resolved.plan.body
       recreatePlan = resolved.plan
     } else if (format.type === 'swap') {

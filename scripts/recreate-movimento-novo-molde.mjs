@@ -10,7 +10,8 @@
 //     CRF 24 a 34) até caber, e mostra o tamanho e o CRF usados (o olho da CEO confere o movimento antes do commit);
 //   · os textos pelo código REAL (lib/recreate/movimento.ts, movimentoProblemasDoMolde): enquadramento "knees up"/"waist up" + "face clearly
 //     visible" na cena, nenhuma frase negativa, uma pessoa no guia, tarifa de 10 s, guia MP4 nos assets.
-// Escreve: lib/recreate/assets/recreate-mov-<id>-v1.mp4 e recreate-mov-<id>.jpg, as 2 chaves em RECREATE_ASSETS e a linha em
+// Escreve (KINEO-GUIA-PRIVADO-1411): o pôster lib/recreate/assets/recreate-mov-<id>.jpg e a chave dele em RECREATE_ASSETS, a entrada do guia (tamanho e sha256) em
+// lib/recreate/guiasManifesto.ts, o MP4 do guia numa pasta temporária para SUBIR ao bucket privado quarantine/recreate-guias/v1, e a linha em
 // RECREATE_MOVIMENTO_MOLDES com movimentoAprovado: false (só a casa vê; o público só com a aprovação da CEO e o interruptor 'public').
 // Demo trocado depois = id novo de arquivo (-v2): o guia sobe para o bucket em recreate-sources/v1/<arquivo> e o nome não pode ser reusado.
 //
@@ -21,6 +22,7 @@
 import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
+import { createHash } from 'node:crypto'
 import os from 'node:os'
 import path from 'node:path'
 
@@ -94,7 +96,7 @@ const src = fs.readFileSync(FORMATS, 'utf8')
 const crlf = src.includes('\r\n')
 const lf = src.replace(/\r\n/g, '\n')
 const arqMp4 = `recreate-mov-${id}-v1.mp4`, arqJpg = `recreate-mov-${id}.jpg`
-if (lf.includes(`'${id}.mp4'`) || lf.includes(`id: '${id}'`) || fs.existsSync(path.join(ASSETS, arqMp4))) falha(`o id ${id} já existe no catálogo ou nos assets`)
+if (lf.includes(`'${id}.jpg'`) || lf.includes(`id: '${id}'`) || fs.existsSync(path.join(ASSETS, arqJpg))) falha(`o id ${id} já existe no catálogo ou nos assets`)
 
 // 1. o MP4
 const probe = JSON.parse(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'stream=codec_type,codec_name,width,height:format=duration,size', '-of', 'json', mp4], { encoding: 'utf8' }))
@@ -109,21 +111,16 @@ if (!(bytes <= 16 * 1024 * 1024)) falha(`${(bytes / 1048576).toFixed(1)} MB: at�
 
 // 2. o pôster (quadro de 1 s, 720 px, JPEG leve)
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'mov-molde-'))
-// 2a. o orçamento dos assets (< 45 MB no total, contando o pôster: ~200 KB de folga)
-const TETO = 45 * 1024 * 1024
-const usado = fs.readdirSync(ASSETS).reduce((s, n) => { const st = fs.statSync(path.join(ASSETS, n)); return st.isFile() ? s + st.size : s }, 0)
-const cabe = TETO - usado - 220_000
+// 2a. KINEO-GUIA-PRIVADO-1411 — o GUIA não entra mais no pacote: mora no bucket privado (quarantine/recreate-guias/v1) e o repositório guarda só o manifesto
+// (tamanho e sha256). --comprimir recodifica (CRF 24) para um guia menor no bucket; o olho da CEO confere o movimento.
 let fonte = mp4, crfUsado = null
-if (bytes > cabe) {
-  if (!comprimir) falha(`o demo tem ${(bytes / 1048576).toFixed(1)} MB e só cabem ${(Math.max(0, cabe) / 1048576).toFixed(1)} MB em lib/recreate/assets (teto de 45 MB, usado ${(usado / 1048576).toFixed(1)} MB). Rode de novo com --comprimir (recodifica até caber) ou decida subir o teto.`)
-  for (const crf of [24, 26, 28, 30, 32, 34]) {
-    const saida = path.join(tmp, `c${crf}.mp4`)
-    execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', mp4, '-an', '-c:v', 'libx264', '-preset', 'slow', '-crf', String(crf), '-pix_fmt', 'yuv420p', '-movflags', '+faststart', saida])
-    if (fs.statSync(saida).size <= cabe) { fonte = saida; crfUsado = crf; break }
-  }
-  if (!crfUsado) falha('nem com CRF 34 o demo coube no orçamento: decida subir o teto de 45 MB (régua do test-recreate-trava-1011)')
+if (comprimir) {
+  fonte = path.join(tmp, 'c24.mp4')
+  execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', mp4, '-an', '-c:v', 'libx264', '-preset', 'slow', '-crf', '24', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', fonte])
+  crfUsado = 24
 }
 const bytesFinal = fs.statSync(fonte).size
+const sha256 = createHash('sha256').update(fs.readFileSync(fonte)).digest('hex')
 const poster = path.join(tmp, arqJpg)
 let q = 4
 for (; q <= 12; q += 2) {
@@ -131,9 +128,18 @@ for (; q <= 12; q += 2) {
   if (fs.statSync(poster).size <= 200_000) break
 }
 if (fs.statSync(poster).size > 200_000) falha('o pôster não ficou abaixo de 200 KB')
+const TETO = 45 * 1024 * 1024
+const usado = fs.readdirSync(ASSETS).reduce((s, n) => { const st = fs.statSync(path.join(ASSETS, n)); return st.isFile() ? s + st.size : s }, 0)
+if (usado + fs.statSync(poster).size >= TETO) falha('o pôster não cabe no teto de 45 MB dos assets')
 
-// 3. as duas chaves dos assets e a linha do catálogo, conferidas pelo código REAL antes de escrever
-const chaves = `  // KINEO-RECREATE-MOVIMENTO-MOLDE-1411 — demo nosso do molde de movimento "${titulo}" (${v.width}x${v.height}, ${dur.toFixed(1)} s); pôster = quadro de 1 s, 720 px.\n  '${id}.mp4': { file: '${arqMp4}', contentType: 'video/mp4' },\n  '${id}.jpg': { file: '${arqJpg}', contentType: 'image/jpeg' },\n`
+// 3. a chave do pôster, a entrada do manifesto e a linha do catálogo, conferidas pelo código REAL antes de escrever
+const MANIF = 'lib/recreate/guiasManifesto.ts'
+const manifLf = fs.readFileSync(MANIF, 'utf8').replace(/\r\n/g, '\n'), crlfM = fs.readFileSync(MANIF, 'utf8').includes('\r\n')
+if (manifLf.includes(`'${id}.mp4': `)) falha(`o guia ${id}.mp4 já está no manifesto`)
+const aM = 'export const GUIAS_MANIFESTO: Readonly<Record<string, GuiaDoMolde>> = {\n'
+if (!manifLf.includes(aM)) falha('âncora do manifesto')
+const novoManif = manifLf.replace(aM, aM + `  '${id}.mp4': { arquivo: '${arqMp4}', bytes: ${bytesFinal}, sha256: '${sha256}' },\n`)
+const chaves = `  // KINEO-RECREATE-MOVIMENTO-MOLDE-1411 — pôster do molde de movimento "${titulo}" (quadro de 1 s, 720 px). O guia mora no bucket privado (${MANIF}).\n  '${id}.jpg': { file: '${arqJpg}', contentType: 'image/jpeg' },\n`
 const linha = `  { id: '${id}', title: '${titulo}', desde: '${desde}', type: 'motion', preview: '/api/recreate/assets/${id}.mp4', poster: '/api/recreate/assets/${id}.jpg', guia: '${id}.mp4', seconds: ${segundos}, photoSlots: 1, pessoasNoGuia: 1, prompt: '', movimentoAprovado: false,\n    cena: '${cena}',\n    acao: '${acao}' },\n`
 const iAssets = lf.indexOf('export const RECREATE_ASSETS = {')
 const iFim = lf.indexOf('\n} as const', iAssets)
@@ -142,7 +148,7 @@ let novo = lf.slice(0, iFim + 1) + chaves + lf.slice(iFim + 1)
 const m = /export const RECREATE_MOVIMENTO_MOLDES: readonly RecreateFormat\[\] = \[(\]?)/.exec(novo)
 if (!m) falha('âncora de RECREATE_MOVIMENTO_MOLDES')
 novo = novo.replace(m[0], `export const RECREATE_MOVIMENTO_MOLDES: readonly RecreateFormat[] = [\n${linha}${m[1] ? ']' : ''}`)
-const mod = loader({ '@supabase/supabase-js': { createClient: () => ({}) }, 'server-only': {} }, { [FORMATS]: novo })
+const mod = loader({ '@supabase/supabase-js': { createClient: () => ({}) }, 'server-only': {} }, { [FORMATS]: novo, [MANIF]: novoManif })
 const f = mod('lib/recreate/formats').recreateFormat(id)
 if (!f || f.type !== 'motion' || f.movimentoAprovado !== false) falha('a linha não entrou no catálogo como movimento sem aprovação')
 const problemas = mod('lib/recreate/movimento').movimentoProblemasDoMolde(f)
@@ -151,9 +157,14 @@ const creditos = mod('lib/recreate/formats').recreateCreditsFor(f)
 const casa = mod('lib/internalAccounts').INTERNAL_EXACT_EMAILS[0], acc = mod('lib/recreate/access')
 if (!acc.recreateFormatVisible(f, casa) || acc.recreateFormatVisible(f, 'cliente@exemplo.com')) falha('visibilidade: a casa tem de ver e o cliente não')
 
-console.log(`OK: ${id} "${titulo}" · ${v.width}x${v.height} · ${dur.toFixed(2)} s · ${(bytesFinal / 1048576).toFixed(1)} MB${crfUsado ? ` (recodificado, CRF ${crfUsado}, era ${(bytes / 1048576).toFixed(1)} MB: confira o movimento no olho)` : ''} · assets depois: ${((usado + bytesFinal + fs.statSync(poster).size) / 1048576).toFixed(1)} de 45 MB · pôster ${fs.statSync(poster).size} B (q ${q}) · ${creditos} créditos · só a casa vê`)
-if (ensaio) { console.log('ENSAIO: nada foi escrito. A linha seria:\n' + linha + 'e as chaves:\n' + chaves); process.exit(0) }
-fs.copyFileSync(fonte, path.join(ASSETS, arqMp4))
+console.log(`OK: ${id} "${titulo}" · ${v.width}x${v.height} · ${dur.toFixed(2)} s · guia ${(bytesFinal / 1048576).toFixed(1)} MB${crfUsado ? ` (recodificado, CRF ${crfUsado}, era ${(bytes / 1048576).toFixed(1)} MB: confira o movimento no olho)` : ''} · sha256 ${sha256.slice(0, 12)}… · pôster ${fs.statSync(poster).size} B (q ${q}) · ${creditos} créditos · só a casa vê`)
+if (ensaio) { console.log('ENSAIO: nada foi escrito. A linha seria:\n' + linha + 'a chave do pôster:\n' + chaves + 'e o manifesto ganharia: ' + `'${id}.mp4': { arquivo: '${arqMp4}', bytes: ${bytesFinal}, sha256: '${sha256}' }`); process.exit(0) }
+const pastaSubida = path.join(os.tmpdir(), 'kineo-guias')
+fs.mkdirSync(pastaSubida, { recursive: true })
+fs.copyFileSync(fonte, path.join(pastaSubida, arqMp4))
 fs.copyFileSync(poster, path.join(ASSETS, arqJpg))
 fs.writeFileSync(FORMATS, crlf ? novo.replace(/\n/g, '\r\n') : novo)
-console.log(`Escrito: ${ASSETS}/${arqMp4}, ${ASSETS}/${arqJpg} e ${FORMATS}. Próximo: node scripts/test-recreate-movimento-1411.mjs, a bateria pelos arquivos tocados, commit.`)
+fs.writeFileSync(MANIF, crlfM ? novoManif.replace(/\n/g, '\r\n') : novoManif)
+console.log(`Escrito: ${ASSETS}/${arqJpg}, ${FORMATS} e ${MANIF}.`)
+console.log(`SUBIR O GUIA (uma vez, pela conta da casa): ${path.join(pastaSubida, arqMp4)} → bucket PRIVADO quarantine, pasta recreate-guias/v1, nome ${arqMp4} (painel do Supabase → Storage).`)
+console.log('Até subir, o pedido do molde recusa ANTES do débito ("Nothing was charged") e a varredura horária grava recreate_guia_faltando. Próximo: node scripts/test-recreate-movimento-1411.mjs, a bateria pelos arquivos tocados, commit.')
