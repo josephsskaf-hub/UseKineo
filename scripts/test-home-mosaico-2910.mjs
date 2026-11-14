@@ -31,16 +31,20 @@ function problems(landing, mosaic) {
   if (/<i>\s*(<UiLabel>)?\s*(Clip|Multi-camera|Narrated film|Effect|Ad style|Trending format|\{tipo\})/.test(mosaic)) p.push('etiqueta de tipo visível no cartão')
   for (const a of ['— clip`}', "' — multi-camera'}", '— narrated film`}', '— effect`}', '— ad style`}', '— ${tipo}`}']) if (!mosaic.includes(a)) p.push(`tipo fora do aria-label (${a})`)
   // Founder 10/11: prepare public Recreate. Only an approved catalog id can replace the legacy destination.
-  if (!mosaic.includes('new URLSearchParams({ engine: c.engine, prompt: c.prompt })') || !mosaic.includes('viaSignup(publicRecreatePath(c.id) ?? clipeNovoDestino(c), signedIn)')) p.push('o link perdeu o motor real ou o fallback do interruptor')
+  if (!mosaic.includes('new URLSearchParams({ engine: c.engine, prompt: c.prompt })') || !mosaic.includes('publicRecreatePath(c.id) ? recreateEntryHref(c.id, signedIn)! : createEntryForSignupHref(viaSignup(clipeNovoDestino(c), signedIn), signedIn)')) p.push('o link perdeu o motor real ou o fallback do interruptor')
   // KINEO-EFEITO-DIRETO-1011 [fundador 10/11: "Tá caindo nessa página aqui, que era anterior"] — o cartão de efeito vai DIRETO ao Recreate (visitante
   // via cadastro); a página do efeito só como volta do interruptor ou fora do catálogo; a medição mosaic_effect_<key> é a mesma (comportamento em test-clipes-nos-2-lugares-0411)
   if (!mosaic.includes('<Link key={e.key} href={effectCardHref(e, signedIn)} className="kmz-t" data-home-cta={`mosaic_effect_${e.key}`}')) p.push('cartão de efeito não usa o destino direto ou mudou a medição')
-  if (!mosaic.includes('const recreate = publicRecreatePath(`effect-${effectSlug(e)}`)') || !mosaic.includes('return recreate ? viaSignup(recreate, signedIn) : effectPagePath(effectSlug(e))')) p.push('efeito sem Recreate direto, sem cadastro ou sem a volta do interruptor')
+  if (!mosaic.includes('const recreate = publicRecreatePath(`effect-${effectSlug(e)}`)') || !mosaic.includes('return recreate ? recreateEntryHref(`effect-${effectSlug(e)}`, signedIn)! : effectPagePath(effectSlug(e))') || !ENTRADA_RECREATE.includes("signedIn || (RECREATE_FLOW_ENABLED && publicRecreatePath(id)) ? path : '/signup?' + new URLSearchParams({ redirect: path }).toString()") || !FLUXO_RECREATE.includes('export const RECREATE_FLOW_ENABLED = false')) p.push('efeito sem Recreate direto, sem cadastro ou sem a volta do interruptor')
   return p
 }
 
 const LANDING = rd('app/KineoLanding.tsx')
 const MOSAIC = rd('components/home/HomeMosaic.tsx')
+// KINEO-M12-PREVIA-1411 [CEO 14/11, reancoragem sem afrouxar] — o cartão de Recreate e o de efeito passaram a chamar recreateEntryHref (Missão 12 do GPT).
+// O que o guardião protege continua igual: com o interruptor do fluxo novo DESLIGADO, o visitante vai ao cadastro. Por isso ele lê também a função e o interruptor.
+const ENTRADA_RECREATE = rd('lib/recreate/entry.ts')
+const FLUXO_RECREATE = rd('lib/recreate/flowRelease.ts')
 const errs = problems(LANDING, MOSAIC)
 ok(errs.length === 0, `(1)(2)(4) montagem, contagens e cartões${errs.length ? ': ' + errs.join('; ') : ''}`)
 
@@ -65,7 +69,7 @@ mut('etiqueta volta no estilo', LANDING, injeta('<span className="kmz-copy"><b><
 mut('tipo sai do aria-label do filme', LANDING, MOSAIC.replace('— narrated film`}', '`}')) // KINEO-CARDS-SEM-ETIQUETA-0911
 mut('link do clipe perde o motor', LANDING, MOSAIC.replace('new URLSearchParams({ engine: c.engine, prompt: c.prompt })', 'new URLSearchParams({ prompt: c.prompt })')) // KINEO-CARDS-SEM-MOTOR-0911
 mut('efeito volta à página antiga', LANDING, MOSAIC.replace('href={effectCardHref(e, signedIn)}', 'href={effectPagePath(effectSlug(e))}')) // KINEO-EFEITO-DIRETO-1011
-mut('efeito sem cadastro', LANDING, MOSAIC.replace('viaSignup(recreate, signedIn)', 'recreate')) // KINEO-EFEITO-DIRETO-1011
+mut('efeito sem cadastro', LANDING, MOSAIC.replace('recreateEntryHref(`effect-${effectSlug(e)}`, signedIn)!', 'recreate')) // KINEO-EFEITO-DIRETO-1011
 mut('efeito sem a volta do interruptor', LANDING, MOSAIC.replace(': effectPagePath(effectSlug(e))\n}', ": '/clips'\n}")) // KINEO-EFEITO-DIRETO-1011
 mut('efeito ignora o interruptor', LANDING, MOSAIC.replace('publicRecreatePath(`effect-${effectSlug(e)}`)', '`/recreate/effect-${effectSlug(e)}`')) // KINEO-EFEITO-DIRETO-1011
 mut('medição do efeito muda', LANDING, MOSAIC.replace('data-home-cta={`mosaic_effect_${e.key}`}', 'data-home-cta="mosaic_effect"')) // KINEO-EFEITO-DIRETO-1011
