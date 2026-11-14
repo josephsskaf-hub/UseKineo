@@ -422,6 +422,7 @@ const SERVER_ONLY_EVENTS = new Set([
   'script_condense_retry', // a 3ª tentativa do escritor
   'media_download_served', // /api/download entregou o arquivo
   'clip_engine_fallback', // KINEO-RECREATE-FILA-REVISAO-1411 (item 11) — o clipe trocou sozinho para o motor reserva: fato do servidor (lib/clips/clipFlow), estava fora da lista
+  'cinematic_negated_state', // KINEO-ESTADO-NEGADO-1311 — o estado que a fala nega e o plano que o recebeu
   'cinematic_request_attributes', // KINEO-ATRIBUTOS-DO-PEDIDO-1311 — os atributos do pedido e o que faltava em cada plano
   'juiz_plano_ficha_antes', // KINEO-FICHA-ANTES-DO-RENDER-1311 — o juiz do plano antes das imagens-chave do Kling 4 grátis e o que ele refez
   'clip_effect_ready',

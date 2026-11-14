@@ -85,6 +85,7 @@ import { writeServerEvent } from '@/lib/serverEvents'
 import { fichaAntesDoRenderLigada, refazerPlanoDaFicha, FICHA_ANTES_EVENTO } from '@/lib/cinematic/fichaAntesDoRender1311' // KINEO-FICHA-ANTES-DO-RENDER-1311
 import { waitUntilDaRequisicao } from '@/lib/posResposta' // KINEO-FICHA-ANTES-DO-RENDER-1311 (C1)
 import { atributosLigados, atributosEmTodoPlano, ATRIBUTOS_EVENTO } from '@/lib/cinematic/atributosDoPedido1311' // KINEO-ATRIBUTOS-DO-PEDIDO-1311
+import { estadoNegadoLigado, estadoNegadoNoFilme, ESTADO_NEGADO_EVENTO } from '@/lib/cinematic/estadoNegado1311' // KINEO-ESTADO-NEGADO-1311
 import { iniciarJuizDoPlano, esperarJuizDoPlano, planoDoEnvio, JUIZ_PLANO_EVENT, type JuizPlanoVeredito } from '@/lib/juizDoPlano' // KINEO-JUIZ-PLANO-0111 [TRAVA 8.2 — vai do fundador 01/11 "concordo vai"] — juiz do plano v2 (perguntas sim/não sobre o texto que foi à fal), SÓ OBSERVAR, depois do envio
 import { FREE_WEEKLY_FILM_ADMITTED_EVENT, FREE_WEEKLY_FILM_COUNTRY_EVENTS, FREE_WEEKLY_FILM_EXCLUSIVE_REFUSED_EVENT, FREE_WEEKLY_FILM_IN_USE_MESSAGE, FREE_WEEKLY_FILM_QUALITY, FREE_WEEKLY_FILM_SECONDS, FREE_WEEKLY_FILM_WINDOW_MS, freeWeeklyCountryMatches, freeWeeklyFilmAdmissible, freeWeeklyFilmEligibility, freeWeeklyFilmExclusive } from '@/lib/freeWeeklyFilm' // KINEO-E4-SAIDA-B-2026-09-29 [TRAVA 8.2]
 import { paisDoRequest, REGION_PAID_ONLY_REFUSAL, REGION_PAID_ONLY_TRIAL_STATUS } from '@/lib/freeFilmPolicy' // KINEO-E4-SAIDA-B-2026-09-29
@@ -7427,6 +7428,12 @@ async function manipularPost(req: NextRequest) {
       if (atrib.relato.mudou) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = atrib.prompts[i] // KINEO-ATRIBUTOS-DO-PEDIDO-1311
       if (atrib.relato.atributos) void writeServerEvent({ name: ATRIBUTOS_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { ...atrib.relato, dry_run: body.dry_run === true } }).catch(() => false) // KINEO-ATRIBUTOS-DO-PEDIDO-1311
     } // KINEO-ATRIBUTOS-DO-PEDIDO-1311
+    // KINEO-ESTADO-NEGADO-1311 [CEO 13/11, item 3.2] — a fala que nega ou desliga a coisa ("the light is dark", "the fire is cold", "railings are torn", "planes could
+    // not take off") põe o ESTADO positivo e visual na frente do plano da MESMA cena; antes do juiz da ficha e das imagens-chave; todo motor da estrada clássica.
+    if (estadoNegadoLigado() && !qualidadeHerdada) { // KINEO-ESTADO-NEGADO-1311
+      const negado = estadoNegadoNoFilme(classicScenePrompts, scenes.map((s) => s.voiceover ?? '')) // KINEO-ESTADO-NEGADO-1311
+      if (negado.relato.mudou) { for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = negado.prompts[i]; void writeServerEvent({ name: ESTADO_NEGADO_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { ...negado.relato, dry_run: body.dry_run === true } }).catch(() => false) } // KINEO-ESTADO-NEGADO-1311
+    } // KINEO-ESTADO-NEGADO-1311
     // KINEO-FICHA-ANTES-DO-RENDER-1311 [CEO 13/11, caso da Maya 28f057bc] — filme grátis do Kling 4: o juiz do plano roda AQUI, antes das imagens-chave e do
     // 1º POST (espera até 25 s); plano com a ficha contradizendo o pedido tem a ordem do protagonista refeita com a pessoa da ideia (ou retirada).
     // Desligado, juiz 'off', prazo, erro ou sem a_ficha: o vetor fica byte a byte. lib/cinematic/fichaAntesDoRender1311.ts.
