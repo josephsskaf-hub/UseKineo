@@ -183,9 +183,47 @@ const PISTAS_SECULO_XIX = { roupa: '19th-century dress: top hats, waistcoats, fr
 export function pistasDaEpoca(epoca: Epoca): { roupa: string; veiculos: string; objetos: string } { return PISTAS_DA_DECADA[epoca.decada] ?? PISTAS_SECULO_XIX } // KINEO-ELENCO-EPOCA-2710
 
 const MARCA_EPOCA_NO_PROMPT = 'Period setting:' // KINEO-ELENCO-EPOCA-2710
+
+// ═══ KINEO-LINHA-DE-EPOCA-1411 [CEO 14/11 12:25, lote 1b: a Earhart refeita piorou de 6 para 5] ═══════════════════════════════════════════
+// A linha de época ia igual a TODA cena: "Any person … wears 1930s dress: fedoras, wide-lapel suits, bias-cut dresses, wool
+// overcoats (do not add people…); a car or carriage, only if the shot describes one, is rounded 1930s sedans with spare wheels on the fender
+// (do not add vehicles…)". O motor de imagem não entende "only if" nem "do not add": desenha o que foi CITADO. A ilha Howland (marcada sem gente)
+// saiu com um homem de chapéu, uma mulher de vestido e o sedã com estepe; o sedã andou sobre o mar na cena dos navios. Agora o CÓDIGO lê o
+// prompt da cena: (1) a frase de veículo só entra quando o plano cita veículo de rua (avião, navio e trem não chamam carro); (2) a de roupa só
+// em cena com gente (cena marcada "No people…" nunca); (3) sem o catálogo genérico de roupa — fica a década e "true to their own place and
+// role" (o catálogo vestia aviadora e mecânico de terno); (4) sem parêntese condicional nem frase negativa ("no present-day cars" também cita
+// carro). Cena sem gente e sem veículo leva só "Period setting: 1937 (1930s)." Interruptor LINHA_DE_EPOCA_1411: 'off' = byte a byte o de
+// antes. Ensaio: docs/ENSAIO-LINHA-DE-EPOCA-1411.md.
+export type ModoLinhaDeEpoca = 'off' | 'all'
+export const LINHA_DE_EPOCA_1411: ModoLinhaDeEpoca = 'all'
+export const linhaDeEpocaLigada = (modo: ModoLinhaDeEpoca = LINHA_DE_EPOCA_1411) => modo === 'all'
+const SEM_GENTE_NA_CENA_1411 = 'No people, no human figures and no faces anywhere in this shot'
+/** As frases fixas da casa que citam gente sem pôr gente no quadro (saem antes de ler a cena). */
+const MOLDURA_SEM_GENTE_RE_1411 = /characters act naturally within the scene without addressing the viewer|no foreground human faces?|talking head|foreground human face|close-up portrait|presenter|human figures|human body or human face|no human body|not a human|The main person, if one is shown in this shot,[^.]*\.|with the natural features of [^.;,]*people|every person, building, street, vehicle and object belongs to that exact time|Any person the shot describes/giu
+/** "no tanks, no cars, no trucks" (a trava antiga, até 11/11) e "no present-day cars" citam veículo sem pôr veículo no plano. */
+const VEICULO_NEGADO_RE_1411 = /(?<![\p{L}])no\s+(?:present-day\s+|modern\s+)?(?:cars?|cabs?|taxis?|trucks?|lorry|lorries|bus|buses|vans?|jeeps?|sedans?|automobiles?|motorcars?|carriages?|wagons?|carts?|trams?|streetcars?|trolleys?|motorcycles?|motorbikes?|bicycles?|bikes?|limousines?)(?![\p{L}])/giu
+const PESSOA_NA_CENA_RE_1411 = /(?<![\p{L}])(?:man|men|woman|women|boy|boys|girl|girls|kid|kids|child|children|baby|babies|person|people|persons|figure|figures|silhouette|silhouettes|someone|somebody|guy|guys|lady|ladies|stranger|strangers|crowd|crowds|family|families|couple|character|characters|hands?|faces?|mechanics?|crew|crews|sailors?|pilots?|aviators?|airmen|soldiers?|officers?|workers?|passengers?|explorers?|scientists?|divers?|fishermen|fisherman|villagers|keepers?|thief|police|policemen|guards?|king|queen|named character|feet|foot|legs?|arms|fingers?|visitors?|travell?ers?|tourists?|onlookers?|spectators?|audience|guests?|customers?|students?|teachers?|doctors?|nurses?|staff|vendors?|farmers?|merchants?|shoppers?|commuters?|pedestrians?|residents?|townspeople|tribe|tribesmen|monks?|priests?|nuns?|knights?|warriors?|athletes?|players?|dancers?|musicians?|band|choir|team|brothers|sisters|mother|father|parents)(?![\p{L}])(?!['’]s?(?![\p{L}]))/iu
+const VEICULO_DE_RUA_RE_1411 = /(?<![\p{L}])(?:cars?|cabs?|taxis?|trucks?|lorry|lorries|bus|buses|vans?|jeeps?|sedans?|automobiles?|motorcars?|carriages?|wagons?|carts?|trams?|streetcars?|trolleys?|motorcycles?|motorbikes?|bicycles?|bikes?|limousines?|stagecoach(?:es)?|rickshaws?|bugg(?:y|ies)|horse-drawn)(?![\p{L}])/iu
+/** A linha de época que a cena pede: a data sempre; roupa só com gente; veículo só com veículo de rua; nada condicional nem negativo. */
+function linhaDeEpocaDaCena(epoca: Epoca, quando: string, curto: boolean, cena: string): string {
+  const t = String(cena ?? '')
+  const semGente = t.includes(SEM_GENTE_NA_CENA_1411)
+  const gente = !semGente && PESSOA_NA_CENA_RE_1411.test(t.replace(MOLDURA_SEM_GENTE_RE_1411, ' '))
+  const veiculo = VEICULO_DE_RUA_RE_1411.test(t.replace(VEICULO_NEGADO_RE_1411, ' '))
+  const p = pistasDaEpoca(epoca)
+  if (curto) {
+    const coisas = [gente ? 'clothing' : '', veiculo ? 'vehicles' : ''].filter(Boolean)
+    return ` ${MARCA_EPOCA_NO_PROMPT} ${quando}${coisas.length ? `; period-accurate ${epoca.rotulo} ${coisas.join(' and ')}` : ''}.`
+  }
+  return ` ${MARCA_EPOCA_NO_PROMPT} ${quando}.` +
+    (gente ? ` People in the shot wear period-accurate ${epoca.rotulo} clothing true to their own place and role, with period props.` : '') +
+    (veiculo ? ` Street vehicles in the shot are ${p.veiculos}.` : '')
+}
+// ═══ fim KINEO-LINHA-DE-EPOCA-1411 ═══
 /** O sufixo positivo de época (longo) e a forma curta para prompt perto do teto. */ // KINEO-ELENCO-EPOCA-2710
-export function sufixoDeEpoca(epoca: Epoca, curto = false): string { // KINEO-ELENCO-EPOCA-2710
+export function sufixoDeEpoca(epoca: Epoca, curto = false, cena?: string): string { // KINEO-ELENCO-EPOCA-2710 · KINEO-LINHA-DE-EPOCA-1411 (cena: o prompt da cena; sem ela, a linha de sempre)
   const quando = epoca.ano !== null ? `${epoca.ano} (${epoca.rotulo})` : `the ${epoca.rotulo}` // KINEO-ELENCO-EPOCA-2710
+  if (cena !== undefined && linhaDeEpocaLigada()) return linhaDeEpocaDaCena(epoca, quando, curto, cena) // KINEO-LINHA-DE-EPOCA-1411
   const p = pistasDaEpoca(epoca) // KINEO-ELENCO-EPOCA-2710
   if (curto) return ` ${MARCA_EPOCA_NO_PROMPT} ${quando}; period-accurate ${epoca.rotulo} clothing, vehicles and props only; no present-day smartphones, cars or fashion.` // KINEO-ELENCO-EPOCA-2710
   // KINEO-EPOCA-SEM-GENTE-INVENTADA-0311 [TRAVA 8.2 — fundador 03/11: "quero consertar tudo agora"] — "Every person in frame wears…"
@@ -217,9 +255,9 @@ export function aplicarEpoca(prompt: string, epoca: Epoca): { prompt: string; ap
   const base = String(prompt ?? '').replace(/\s+$/, '') // KINEO-ELENCO-EPOCA-2710
   if (base.includes(MARCA_EPOCA_NO_PROMPT)) return { prompt: base, aplicada: 'ja_tinha' } // KINEO-ELENCO-EPOCA-2710
   const sep = /[.!?;]$/.test(base) ? '' : '.' // KINEO-ELENCO-EPOCA-2710 — o prompt costuma acabar em "subject framed…" sem ponto
-  const longa = sep + sufixoDeEpoca(epoca) // KINEO-ELENCO-EPOCA-2710
+  const longa = sep + sufixoDeEpoca(epoca, false, base) // KINEO-ELENCO-EPOCA-2710 · KINEO-LINHA-DE-EPOCA-1411 — a linha lê a cena
   if (base.length + longa.length <= ELENCO_EPOCA_TETO_PROMPT) return { prompt: `${base}${longa}`, aplicada: 'longa' } // KINEO-ELENCO-EPOCA-2710
-  const curta = sep + sufixoDeEpoca(epoca, true) // KINEO-ELENCO-EPOCA-2710
+  const curta = sep + sufixoDeEpoca(epoca, true, base) // KINEO-ELENCO-EPOCA-2710 · KINEO-LINHA-DE-EPOCA-1411
   if (base.length + curta.length <= ELENCO_EPOCA_TETO_PROMPT) return { prompt: `${base}${curta}`, aplicada: 'curta' } // KINEO-ELENCO-EPOCA-2710
   return { prompt: base, aplicada: 'sem_espaco' } // KINEO-ELENCO-EPOCA-2710
 } // KINEO-ELENCO-EPOCA-2710
