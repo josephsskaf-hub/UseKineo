@@ -1,4 +1,4 @@
-// M12 revisão independente (CEO 14/11 04:24) — guardião ÚNICO do que precisa ficar de pé ANTES de ligar RECREATE_FLOW_ENABLED.
+// M12 revisão independente (CEO 14/11 04:24) — guardião ÚNICO do fluxo novo do Recreate. KINEO-M12-LIGA-1411: desde a ligação, prova o interruptor LIGADO de verdade e a volta (desligado) simulada.
 // Os testes de docs/missao12-1411 não rodam no novos-vermelhos; este roda (nome casa com 'recreate|flow').
 // Offline: módulos reais transpilados, I/O injetado. Sem rede, sem banco, sem navegador, sem servidor, sem chamada paga.
 // Cada mutante abaixo tem de ficar VERMELHO pela asserção exata que o protege; um mutante verde derruba o guardião.
@@ -84,7 +84,8 @@ function world(overrides = {}, session = { user: null }) {
   return { load: loader(stubs, files), source: file => files[file] ?? read(file), overrides: files }
 }
 const notFound = async (promise, label) => { let error; try { await promise } catch (e) { error = e } ok(error?.message === 'not-found', label) }
-const switchOn = over => ({ ...over, 'lib/recreate/flowRelease.ts': (over['lib/recreate/flowRelease.ts'] ?? read('lib/recreate/flowRelease.ts')).replace('RECREATE_FLOW_ENABLED = false', 'RECREATE_FLOW_ENABLED = true') })
+// KINEO-M12-LIGA-1411 — o interruptor está LIGADO no arquivo; os cenários "ligado" leem o arquivo real. switchOff simula só a VOLTA.
+const switchOff = over => ({ ...over, 'lib/recreate/flowRelease.ts': (over['lib/recreate/flowRelease.ts'] ?? read('lib/recreate/flowRelease.ts')).replace('RECREATE_FLOW_ENABLED = true', 'RECREATE_FLOW_ENABLED = false') })
 
 const suites = {
   // (mutante 1) a volta do cadastro devolve as fotos e PARA: nada sobe nem gera sem o clique.
@@ -95,17 +96,19 @@ const suites = {
     ok(!h.gen().props.disabled, 'restored return is ready for an explicit Generate')
     await h.click(h.gen()); ok(h.posts() === 1, 'restored return generates only after the click')
   },
-  // (mutante 2) com o interruptor desligado, todo link de visitante (home, catálogo, página de efeito) passa pelo cadastro.
+  // (mutante 2) KINEO-M12-LIGA-1411: LIGADO de verdade, o visitante vai direto ao molde aprovado (conta no Generate); molde não aprovado nunca ganha
+  // entrada pública. A VOLTA (interruptor desligado) segue provada: todo link de visitante passa pelo cadastro.
   async entry(over) {
     const w = world(over), E = w.load('lib/recreate/entry'), F = w.load('lib/recreate/formats')
-    ok(w.load('lib/recreate/flowRelease').RECREATE_FLOW_ENABLED === false, 'public switch stays off in this delivery')
-    const open = F.RECREATE_FORMATS.filter(f => E.publicRecreatePath(f.id))
-    ok(open.length > 0, 'fixture has public templates')
-    ok(open.every(f => E.recreateEntryHref(f.id, false).startsWith('/signup?')), 'guest home and catalog links go through signup while the switch is off')
-    ok(w.load('lib/recreate/catalogPublic').publicRecreateCatalog().every(item => item.href.startsWith('/signup?')), 'public catalog cards keep signup while the switch is off')
+    ok(w.load('lib/recreate/flowRelease').RECREATE_FLOW_ENABLED === true, 'public switch is on in production')
+    const open = F.RECREATE_FORMATS.filter(f => E.publicRecreatePath(f.id)), closed = F.RECREATE_FORMATS.filter(f => !E.publicRecreatePath(f.id))
+    ok(open.length > 0 && closed.length > 0, 'fixture has public and unapproved templates')
+    ok(open.every(f => E.recreateEntryHref(f.id, false) === '/recreate/' + f.id), 'guest reaches the approved template before the account')
+    ok(w.load('lib/recreate/catalogPublic').publicRecreateCatalog().every(item => item.href === '/recreate/' + item.id), 'public catalog cards open the template directly')
+    ok(closed.every(f => E.recreateEntryHref(f.id, false).startsWith('/signup?')), 'unapproved template never gains a public editor entry')
     ok(open.every(f => E.recreateEntryHref(f.id, true) === '/recreate/' + f.id), 'signed-in links stay direct')
-    const on = world(switchOn(over)).load('lib/recreate/entry')
-    ok(open.every(f => on.recreateEntryHref(f.id, false) === '/recreate/' + f.id), 'after approval the guest reaches the editor before the account')
+    const off = world(switchOff(over)), offE = off.load('lib/recreate/entry')
+    ok(open.every(f => offE.recreateEntryHref(f.id, false).startsWith('/signup?')) && off.load('lib/recreate/catalogPublic').publicRecreateCatalog().every(item => item.href.startsWith('/signup?')), 'guest home and catalog links go through signup while the switch is off')
   },
   // (mutante 3) sair da conta apaga as fotos do catálogo guardadas no aparelho.
   async logout(over) {
@@ -143,10 +146,16 @@ const suites = {
     const legacy = client(w, { props: { currentFlow: false, signedIn: true, accountKey: ACCOUNT } }); await legacy.flush()
     ok(legacy.expires === 0, 'legacy page never opens the draft store')
   },
-  // (mutante 6) interruptor desligado: as páginas de hoje continuam no cliente de hoje, e /recreate/your-video não existe.
+  // (mutante 6) KINEO-M12-LIGA-1411: LIGADO, /recreate e /recreate/<id> montam o fluxo novo em /recreate para visitante, cliente e casa.
+  // A VOLTA (desligado) segue provada: as páginas de hoje continuam no cliente de hoje, e /recreate/your-video não existe.
   async legacy(over) {
-    const guest = world(over), house = world(over, { user: { id: ACCOUNT, email: HOUSE } }), customer = world(over, { user: { id: ACCOUNT, email: 'customer@example.org' } })
-    ok(guest.load('lib/recreate/flowRelease').RECREATE_FLOW_ENABLED === false, 'public switch stays off in this delivery')
+    for (const user of [null, { id: ACCOUNT, email: HOUSE }, { id: ACCOUNT, email: 'customer@example.org' }]) {
+      const w = world(over, { user })
+      const index = await w.load('app/recreate/page').default(), model = await w.load('app/recreate/[id]/page').default({ params: { id: 'passarela' } })
+      ok(index.props.currentFlow === true && model.props.currentFlow === true && index.props.flowBasePath === '/recreate' && model.props.flowBasePath === '/recreate' && model.props.initialId === 'passarela' && model.props.signedIn === !!user, 'switch on: regular routes mount the new flow on /recreate')
+    }
+    const offOver = switchOff(over)
+    const guest = world(offOver), house = world(offOver, { user: { id: ACCOUNT, email: HOUSE } }), customer = world(offOver, { user: { id: ACCOUNT, email: 'customer@example.org' } })
     const guestIndex = await guest.load('app/recreate/page').default()
     ok(guestIndex.type.name === 'CatalogList', 'guest /recreate keeps the public catalog list')
     for (const w of [house, customer]) {
@@ -171,7 +180,9 @@ const suites = {
   },
   // Item 1: "com o seu vídeo" só aparece para quem pode gerar; ao cliente vai só o booleano.
   async ownVideo(over) {
-    const on = switchOn(over)
+    const on = over // KINEO-M12-LIGA-1411 — interruptor real (ligado); antes era simulado
+    ok(world(on).load('lib/recreate/flowRelease').RECREATE_FLOW_ENABLED === true, 'public switch is on in production')
+    ok((await world(on, { user: { id: ACCOUNT, email: 'customer@example.org' } }).load('app/recreate/page').default()).props.ownVideoVisible === false, 'customer /recreate gets ownVideoVisible=false with the real switch')
     const customer = world(on, { user: { id: ACCOUNT, email: 'customer@example.org' } }), house = world(on, { user: { id: ACCOUNT, email: HOUSE } }), guest = world(on)
     const page = w => w.load('app/recreate/RecreateFlowPage').default
     ok((await page(customer)({ basePath: '/recreate' })).props.ownVideoVisible === false, 'customer catalog gets ownVideoVisible=false')
@@ -220,7 +231,7 @@ const suites = {
     ok((await preview(customer)).props.generationAllowed === false, 'customer preview opens with Generate locked')
     ok((await preview(house)).props.generationAllowed === true, 'house preview can generate')
     ok((await preview(guest)).props.generationAllowed === true, 'guest preview still goes to signup on Generate')
-    ok((await world(switchOn(over), { user: { id: ACCOUNT, email: 'customer@example.org' } }).load('app/recreate/[id]/page').default({ params: { id: 'passarela' } })).props.generationAllowed === true, 'regular route after approval is not locked')
+    ok((await world(over, { user: { id: ACCOUNT, email: 'customer@example.org' } }).load('app/recreate/[id]/page').default({ params: { id: 'passarela' } })).props.generationAllowed === true, 'regular route after approval is not locked')
     const h = client(customer, { props: { signedIn: true, accountKey: ACCOUNT, generationAllowed: false } }); await h.flush(); await h.add()
     ok(h.gen().props.disabled === true && /approved accounts only/.test(text(h.tree)), 'locked preview disables Generate and says why')
     await h.gen().props.onClick({ preventDefault() {} }); await h.flush()
@@ -233,13 +244,14 @@ const src = file => sources[file] ??= read(file)
 const mutate = (file, from, to) => { assert.equal(src(file).split(from).length, 2, 'unique mutant anchor: ' + from.slice(0, 60)); return { [file]: src(file).replace(from, to) } }
 const mutants = [
   ['gerar sozinho no retorno do catálogo', 'noAutoGenerate', () => mutate(CLIENT, "  type StepState = 'todo' | 'active' | 'done' | 'error'", "  useEffect(() => { if (currentFlow && draftRef && !restoring && photosDone && flowQuoteReady) void generate(false) }, [restoring, photosDone, flowQuoteReady])\n  type StepState = 'todo' | 'active' | 'done' | 'error'"), 'return from signup never uploads or generates by itself'],
+  ['interruptor desligado em produção', 'entry', () => mutate('lib/recreate/flowRelease.ts', 'RECREATE_FLOW_ENABLED = true', 'RECREATE_FLOW_ENABLED = false'), 'public switch is on in production'], // KINEO-M12-LIGA-1411
   ['link da home sem cadastro', 'entry', () => mutate('lib/recreate/entry.ts', 'signedIn || (RECREATE_FLOW_ENABLED && publicRecreatePath(id))', 'signedIn || publicRecreatePath(id)'), 'guest home and catalog links go through signup while the switch is off'],
   ['logout sem limpar o rascunho de fotos', 'logout', () => mutate('lib/auth/sairDaContaCliente.ts', "    import('@/lib/recreate/flowDraft').then(module => module.clearRecreateFlowDraft()),\n", ''), 'logout clears every catalog photo draft on this device'],
   ['prévia indexável', 'noindex', () => mutate('app/recreate-flow-preview/[id]/page.tsx', 'robots: { index: false, follow: false }', 'robots: { index: true, follow: true }'), 'preview and flow routes are noindex'],
   ['rascunho que nunca expira', 'sweep', () => mutate(CLIENT, '    if (!currentFlow) return\n    void expireRecreateFlowDrafts()', '    return\n    void expireRecreateFlowDrafts()'), 'flow sweeps expired photo drafts on open and every minute'],
   ['página legada usando o fluxo novo', 'legacy', () => mutate('app/recreate/page.tsx', 'return <RecreateClient internalTools=', 'return <RecreateClient currentFlow flowBasePath="/recreate" internalTools='), 'legacy pages keep the legacy client while the switch is off'],
   ['classe nova forçada na prévia escura', 'darkPreview', () => mutate('app/recreate-preview/SeuVideoRecreateClient.tsx', "className={currentFlow?'sv-page sv-current-flow':'sv-page'}", "className={'sv-page sv-current-flow'}"), 'legacy dark preview keeps its own class without the new flow'],
-  ['"com o seu vídeo" para todos', 'ownVideo', () => mutate('app/recreate/RecreateFlowPage.tsx', "const ownVideoVisible = user ? releaseVisible(user.email, SEU_VIDEO_RELEASE) : SEU_VIDEO_RELEASE === 'public'", 'const ownVideoVisible = true'), 'customer catalog gets ownVideoVisible=false'],
+  ['"com o seu vídeo" para todos', 'ownVideo', () => mutate('app/recreate/RecreateFlowPage.tsx', "const ownVideoVisible = user ? releaseVisible(user.email, SEU_VIDEO_RELEASE) : SEU_VIDEO_RELEASE === 'public'", 'const ownVideoVisible = true'), 'customer /recreate gets ownVideoVisible=false with the real switch'],
   ['link do próprio vídeo sem permissão', 'ownVideo', () => mutate(CLIENT, '{currentFlow && ownVideoVisible && <Link className="rc-flow-own"', '{currentFlow && <Link className="rc-flow-own"'), 'no Use your video link without server permission'],
   ['visitante preso sem armazenamento', 'withoutSave', () => mutate(CLIENT, '    if (!ref) setWithoutSave(true)\n', ''), 'storage failure offers to continue without saving photos'],
   ['POST com 30 s', 'postTimeout', () => mutate(CLIENT, 'FLOW_POST_MS = 75_000', 'FLOW_POST_MS = 30_000'), 'POST waits 75 s, longer than the server maxDuration'],
