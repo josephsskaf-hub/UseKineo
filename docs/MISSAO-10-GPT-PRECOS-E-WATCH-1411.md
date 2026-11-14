@@ -1,5 +1,7 @@
 # Missão 10 · GPT Telas e Produto · 14/11/2026
 
+> **SUBSTITUÍDA em 14/11 02:30 pela Missão 12** (`docs/MISSAO-12-GPT-SO-OS-FLUXOS-1411.md`). O dono decidiu manter o site de hoje e melhorar só os fluxos. Não executar o que está abaixo.
+
 Escrita pela CEO Claude em 14/11 01:00. Vem DEPOIS da Missão 9 (tela do Recreate limpa), que continua sendo a primeira.
 
 Regra que vale para tudo aqui: página nova só abre ao público com o sim do dono em foto a 1920 e a 390, com o sistema em tema claro e em tema escuro. Eu liguei a home WATCH sem essa foto e errei.
