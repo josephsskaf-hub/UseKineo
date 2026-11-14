@@ -136,3 +136,17 @@ export function promptPorGenero(genders: readonly SeuVideoGender[], positions: r
   }).join(' ')
   return replacements + ' Keep the choreography, timing, camera, framing, background and lighting of @Video1 exactly. Keep the original clothing from @Video1.'
 }
+
+/** Optional preferences are explicit per slot; unknown photos stay neutral. No photo inference. */
+export function promptPorGeneroOpcional(genders: readonly (SeuVideoGender | null)[], positions: readonly string[] = []): string {
+  if (!Array.isArray(genders) || genders.length < 1 || genders.length > 3 || Array.from(genders).some(g => g !== null && g !== 'man' && g !== 'woman')) throw new RangeError('Choose 1 to 3 photo slots.')
+  if (genders.every((g): g is SeuVideoGender => g !== null)) return promptPorGenero(genders, positions)
+  if (genders.every(g => g === null)) return promptPadrao(genders.length, positions)
+  const replacements = genders.map((gender, i) => {
+    const position = String(positions[i] ?? '').replace(/[^\p{L}\p{N} ,'-]/gu, '').trim().slice(0, 60)
+    const subject = position ? 'the person ' + position : SUBJECTS[i]
+    const pronoun = gender === 'man' ? 'his' : gender === 'woman' ? 'her' : 'their'
+    return 'Replace ' + subject + ' in @Video1 with the ' + (gender ?? 'person') + ' from @Image' + (i + 1) + ': ' + pronoun + ' face and hair match @Image' + (i + 1) + '.'
+  }).join(' ')
+  return replacements + ' Keep the choreography, timing, camera, framing, background and lighting of @Video1 exactly. Keep the original clothing from @Video1.'
+}

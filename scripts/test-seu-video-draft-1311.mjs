@@ -138,6 +138,13 @@ async function verify(override = null) {
   check('genders', await firstTab.api.saveSeuVideoDraft(named), 'save per-photo choice')
   check('genders', (await firstTab.api.restoreSeuVideoDraft()).genders.join() === 'woman', 'restore exact choice')
   check('genders', !(await firstTab.api.saveSeuVideoDraft(draft({ genders: [] }))), 'reject incomplete choices')
+  const partial = draft({ people: 3, photos: [1,2,3].map(n => new File(['face'+n], n+'.jpg', { type: 'image/jpeg' })), genders: ['woman', null, 'man'] })
+  check('optional-genders', await firstTab.api.saveSeuVideoDraft(partial), 'optional unknown slots persist with partial explicit choices')
+  const partialRef = firstTab.api.getSeuVideoDraftRef()
+  check('optional-genders', JSON.stringify((await firstTab.api.restoreSeuVideoDraft()).genders) === '["woman",null,"man"]', 'no filtering or shifting of optional slots')
+  const otherTab = world({ idb: shared, override })
+  check('optional-genders', JSON.stringify((await otherTab.api.restoreSeuVideoDraft(partialRef)).genders) === '["woman",null,"man"]', 'partial choices survive explicit email return in a new tab')
+  for (const gender of ['', 'robot', 2, undefined]) check('optional-genders', !await firstTab.api.saveSeuVideoDraft(draft({ genders: [gender] })), 'null is the only unknown value; arbitrary choices are rejected')
   await secondTab.api.saveSeuVideoDraft(draft())
   await secondTab.api.clearSeuVideoDraftsOnLogout()
   check('logout', shared.state.rows.size === 0 && await firstTab.api.restoreSeuVideoDraft() === null, 'logout clears local media across tabs')
@@ -201,6 +208,8 @@ async function verify(override = null) {
 }
 await verify(); const baseline = checks, original = read(MODULE), fileTypeOriginal = read(FILE_TYPE)
 const mutants = [
+  ['unknown slots become mandatory', 'optional-genders', original.replace("value === null || value === 'man'", "value === 'man'")],
+  ['restored partial slots compacted', 'optional-genders', original.replace('genders: [...record.genders]', 'genders: record.genders.filter(Boolean)')],
   ['restore consumes early', 'idempotent', original.replace('await expire()\n    if (explicitRef !== undefined) adopt', "await transaction('readwrite', store => store.delete(id))\n    await expire()\n    if (explicitRef !== undefined) adopt")],
   ['TTL ignored', 'ttl', original.replace('Date.now() - at <= TTL', 'true')],
   ['WebM accepted', 'file-type-rejection', original.replace('seuVideoContentType({ name, type: blob.type }) !== null', 'true')],

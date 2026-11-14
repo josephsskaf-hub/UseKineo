@@ -5,10 +5,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { cadastroComVolta } from '@/lib/growth/visitanteEscreveAntes'
 import { comPrimeiroQuadro } from '@/lib/videoPrimeiroQuadro'
 import { downloadHref } from '@/lib/downloadNosso'
-import { SEU_VIDEO_LIMITES, validarPrompt, type SeuVideoGender, type SeuVideoPresentation } from '@/lib/recreate/seuVideoRules'
+import { SEU_VIDEO_LIMITES, validarPrompt, promptPorGeneroOpcional, type SeuVideoGender, type SeuVideoPresentation } from '@/lib/recreate/seuVideoRules'
 import { SEU_VIDEO_CATALOG, seuVideoCatalogItem } from '@/lib/recreate/seuVideoCatalog'
 import { SEU_VIDEO_PREVIEW_PATH } from '@/lib/recreate/seuVideoPreviewRelease'
-import { createSeuVideoClient, defaultSeuVideoPrompt, genderSeuVideoPrompt, estimateSeuVideoCredits, isSeuVideoRefusal, validateSeuVideoFile, validateSeuVideoPhotos, SeuVideoClientError, type CheckedSeuVideo, type SeuVideoClip } from '@/lib/recreate/seuVideoClient'
+import { createSeuVideoClient, defaultSeuVideoPrompt, estimateSeuVideoCredits, isSeuVideoRefusal, validateSeuVideoFile, validateSeuVideoPhotos, SeuVideoClientError, type CheckedSeuVideo, type SeuVideoClip } from '@/lib/recreate/seuVideoClient'
 import { saveSeuVideoDraft, restoreSeuVideoDraft, getSeuVideoDraftRef, clearSeuVideoDraft, type SeuVideoDraft } from '@/lib/recreate/seuVideoDraft'
 import './seu-video.css'
 
@@ -17,8 +17,7 @@ type Source = SeuVideoDraft['source']
 const activeKey = (account:string) => 'kineo:recreate:seu-video:active:'+account
 const MAX_STATUS_CHECKS = 60
 const positionsFor = (people:number):string[] => people===1?[]:people===2?['on the left','on the right']:['on the left','in the center','on the right']
-const validGenders = (values:readonly (SeuVideoGender|null)[],people:number):values is SeuVideoGender[] => values.length===people&&values.every(value=>value==='man'||value==='woman')
-const suggestedPrompt = (values:readonly (SeuVideoGender|null)[],people:number) => validGenders(values,people)?genderSeuVideoPrompt(values,positionsFor(people)):''
+const suggestedPrompt = (values:readonly (SeuVideoGender|null)[],people:number) => promptPorGeneroOpcional(Array.from({length:people},(_,i)=>values[i]??null),positionsFor(people))
 
 export default function SeuVideoRecreateClient({signedIn,generationAllowed,accountKey,presentation,initialExample,draftRef}:Props){
   const client=useMemo(()=>createSeuVideoClient({presentation}),[presentation])
@@ -26,8 +25,8 @@ export default function SeuVideoRecreateClient({signedIn,generationAllowed,accou
   const [source,setSource]=useState<Source>({kind:'catalog',id:first.id})
   const [photos,setPhotos]=useState<(File|null)[]>([])
   const [people,setPeople]=useState<1|2|3>(1)
-  const [genders,setGenders]=useState<(SeuVideoGender|null)[]>([])
-  const [prompt,setPrompt]=useState('')
+  const [genders,setGenders]=useState<(SeuVideoGender|null)[]>([null])
+  const [prompt,setPrompt]=useState(()=>suggestedPrompt([],1))
   const [promptEdited,setPromptEdited]=useState(false)
   const [consent,setConsent]=useState(false)
   const [videoUrl,setVideoUrl]=useState(first.src)
@@ -55,7 +54,6 @@ export default function SeuVideoRecreateClient({signedIn,generationAllowed,accou
   const selected=source.kind==='catalog'?seuVideoCatalogItem(source.id):null
   const cost=checked?.credits??(seconds===null?null:estimateSeuVideoCredits(seconds))
   const locked=restoring||busy||uncertain||!!clip
-  const gendersReady=validGenders(genders,people)
   const display=checked?.presentation??presentation
   const audioNote=display.audio==='silent'?'Silent video in this version.':'Original audio when available. Some videos may be silent.'
   const durationNote=`Choose a video between ${presentation.minSeconds} and ${presentation.maxSeconds} seconds long.`
@@ -175,7 +173,6 @@ export default function SeuVideoRecreateClient({signedIn,generationAllowed,accou
     setMessage('')
     if(localError){setMessage(localError);return}
     if(cost===null){setMessage(durationNote);return}
-    if(!gendersReady){setMessage('Choose Man or Woman for every photo before generating.');return}
     const valid=validarPrompt(prompt,people)
     if(!valid.ok){setMessage(valid.error);return}
     const readyPhotos=photos.filter((p):p is File=>p!==null)
@@ -198,13 +195,22 @@ export default function SeuVideoRecreateClient({signedIn,generationAllowed,accou
       }
       let prepared=checked
       if(!prepared){
-        prepared=await client.prepareSeuVideo({file:await referenceFile(controller.signal),people,genders,positions:positionsFor(people)},controller.signal)
+        prepared=await client.prepareSeuVideo({file:await referenceFile(controller.signal),people,photos:readyPhotos,genders,positions:positionsFor(people)},controller.signal)
         if(!alive.current)return
         setChecked(prepared)
+        // Server suggestions fill empty slots only. An explicit choice or edited
+        // instruction always wins, including a partially completed local draft.
+        const suggestions=prepared.suggested_genders
+        const merged=Array.from({length:people},(_,i)=>genders[i]??suggestions?.[i]??null)
+        const changedGenders=merged.some((value,i)=>value!==(genders[i]??null))
+        const completeManual=genders.length===people&&genders.every(value=>value!==null)
+        const manualPartial=!completeManual&&genders.some(value=>value!==null)
+        const checkedPrompt=manualPartial?suggestedPrompt(merged,people):prepared.prompt
         const changedCost=prepared.credits!==cost
-        const changedPrompt=!promptEdited&&prepared.prompt!==prompt
-        if(changedPrompt)setPrompt(prepared.prompt)
-        if(changedCost||changedPrompt){setMessage(`Video checked. Review the instruction and confirmed cost of ${prepared.credits} credits, then press Generate again.`);return}
+        const changedPrompt=!promptEdited&&checkedPrompt!==prompt
+        if(changedGenders)setGenders(merged)
+        if(changedPrompt)setPrompt(checkedPrompt)
+        if(changedCost||changedPrompt||changedGenders){setMessage(`Review your instruction · ${prepared.credits} credits. Press Generate to continue.`);return}
       }
       if(!uncertain&&prepared.needs_plan){setMessage('This video length requires a paid plan. Your files are still here.');return}
       if(!uncertain&&(prepared.shortfall??0)>0){setMessage(`You need ${prepared.shortfall} more credits. Your files are still here.`);return}
@@ -220,8 +226,15 @@ export default function SeuVideoRecreateClient({signedIn,generationAllowed,accou
         if(e.outcome==='unknown'){setMessage('Could not confirm whether this request started. Keep this page open and retry the same request, or check My videos.');return}
         if(isSeuVideoRefusal(e.code)){keyRef.current=null;setChecked(null);void clearSeuVideoDraft().catch(()=>{});setMessage(e.message);return}
         if(e.status===401){
-          const ref=getSeuVideoDraftRef()
-          if(ref){window.location.assign(cadastroComVolta(SEU_VIDEO_PREVIEW_PATH+'?'+new URLSearchParams({draft:ref}).toString()));return}
+          try{
+            const saved=await saveSeuVideoDraft({source,photos:readyPhotos,genders,prompt:valid.prompt,people,consent,requestKey:keyRef.current??undefined})
+            if(!alive.current||controller.signal.aborted)return
+            if(!saved)throw new Error('Could not save your files on this device. Keep this page open and try again.')
+            const ref=getSeuVideoDraftRef()
+            if(!ref)throw new Error('Could not preserve your files for sign-in. Keep this page open and try again.')
+            window.location.assign(cadastroComVolta(SEU_VIDEO_PREVIEW_PATH+'?'+new URLSearchParams({draft:ref}).toString()))
+          }catch(error){if(alive.current)setMessage(error instanceof Error?error.message:'Could not save your files. Keep this page open and try again.')}
+          return
         }
         setMessage(e.code==='idempotency_conflict'?'This request may already exist. Keep it unchanged and check My videos before creating another.':e.message)
       }else setMessage(e instanceof Error?e.message:'Could not confirm this request. Keep this page open.')
@@ -234,10 +247,10 @@ export default function SeuVideoRecreateClient({signedIn,generationAllowed,accou
     if(accountKey)try{sessionStorage.removeItem(activeKey(accountKey))}catch{}
   }
   function recheck(){if(busy||uncertain||clip)return;setChecked(null);keyRef.current=null;setMessage('Your files and instruction are unchanged. Press Generate to check availability again.')}
-  const canSubmit=!restoring&&!busy&&!localError&&cost!==null&&photos.filter(Boolean).length===people&&gendersReady&&consent&&prompt.trim().length>0
+  const canSubmit=!restoring&&!busy&&!localError&&cost!==null&&photos.filter(Boolean).length===people&&consent&&prompt.trim().length>0
   return <main className="sv-page" data-seu-video-preview="" aria-busy={restoring||busy}>
     <header className="sv-nav"><Link className="sv-brand" href="/watch-preview"><span>▸</span> kineo</Link><nav aria-label="Products"><Link href="/watch-preview">Watch</Link><Link href={SEU_VIDEO_PREVIEW_PATH} aria-current="page">Recreate</Link></nav><div className="sv-nav-right"><Link href="/pricing">Pricing</Link><Link href={signedIn?'/library':'/login'}>{signedIn?'My videos':'Log in'}</Link></div></header>
-    <div className="sv-wrap"><div className="sv-intro"><div><p className="sv-kicker">Recreate · preview</p><h1>Recreate with your video</h1></div><p>{display.resolution} · {audioNote} {display.waitLabel}. Generation is currently limited to approved accounts.</p></div>
+    <div className="sv-wrap"><div className="sv-intro"><h1>Recreate with your video</h1></div>
       {clip ? <section className="sv-card sv-result" aria-live="polite" data-seu-video-result={clip.status}>
         <h2>{clip.status==='done'?'Your version is ready':clip.status==='failed'?'This version could not be completed':'Creating your version'}</h2>
         {clip.status==='done'&&clip.video_url?<><video src={comPrimeiroQuadro(clip.video_url)} controls playsInline preload="metadata" aria-label="Your generated video"/><div className="sv-actions"><a className="sv-button" href={downloadHref(clip.video_url,'kineo-recreate-'+clip.id+'.mp4','recreate-preview')} download>Download</a><Link className="sv-button" href="/library">My videos ↗</Link></div></>:null}
@@ -247,19 +260,19 @@ export default function SeuVideoRecreateClient({signedIn,generationAllowed,accou
       </section>:<div className="sv-grid">
         <section className="sv-card sv-reference" aria-labelledby="sv-reference-title"><h2 className="sv-step" id="sv-reference-title"><b>1</b>Reference video</h2>
           <div className="sv-frame">{videoUrl?<video ref={referenceVideo} key={videoUrl} src={videoUrl} poster={selected?.poster} controls playsInline muted preload="metadata" aria-label="Selected reference video" onLoadedMetadata={e=>{if(source.kind==='catalog'){const n=e.currentTarget.duration;setSeconds(Number.isFinite(n)&&n>=presentation.minSeconds&&n<=presentation.maxSeconds?n:null);if(!Number.isFinite(n)||n<presentation.minSeconds||n>presentation.maxSeconds)setLocalError(durationNote)}}}/>:<div className="sv-frame-empty"><strong>Your video goes here</strong><span>Upload a video or choose one below.</span></div>}</div>
-          <p className="sv-file-name">{source.kind==='upload'?source.file.name:selected?.title}</p><p className="sv-note sv-format-note">MP4 or MOV · {presentation.minSeconds}–{presentation.maxSeconds} seconds · {presentation.minFps}–{presentation.maxFps} fps · up to {Math.round(presentation.maxBytes/1024/1024)} MB{presentation.minSide>0?<> · Input: 720p or higher (at least {presentation.minSide} px per side)</>:null}</p>
+          <p className="sv-file-name">{source.kind==='upload'?source.file.name:selected?.title}</p>
           {localError?<p className="sv-alert" role="alert">{localError}</p>:null}<div className="sv-actions"><button className="sv-button" type="button" disabled={locked} onClick={()=>videoInput.current?.click()}>Upload your video</button></div>
           <input ref={videoInput} type="file" accept="video/mp4,video/quicktime,.mp4,.mov" aria-label="Choose reference video file" onChange={e=>{chooseVideo(e.target.files?.[0]);e.target.value=''}}/>
-          <details className="sv-catalog"><summary>Choose from the catalog <span aria-hidden="true">＋</span></summary><div className="sv-catalog-grid">{SEU_VIDEO_CATALOG.map(item=><button type="button" key={item.id} disabled={locked} aria-pressed={source.kind==='catalog'&&source.id===item.id} onClick={()=>chooseExample(item.id)}>{item.poster?<img src={item.poster} alt="" loading="lazy"/>:null}<span>{item.title}</span></button>)}</div></details><p className="sv-note">Your uploads stay on this device until you press Generate.</p>
+          <details className="sv-catalog"><summary>Choose from the catalog <span aria-hidden="true">＋</span></summary><div className="sv-catalog-grid">{SEU_VIDEO_CATALOG.map(item=><button type="button" key={item.id} disabled={locked} aria-pressed={source.kind==='catalog'&&source.id===item.id} onClick={()=>chooseExample(item.id)}>{item.poster?<img src={item.poster} alt="" loading="lazy"/>:null}<span>{item.title}</span></button>)}</div></details>
         </section>
         <section className="sv-card sv-editor" aria-label="Your version">
           <div><div className="sv-step"><b>2</b><span>Your photos</span><div className="sv-count" role="group" aria-label="People to replace">{([1,2,3] as const).map(n=><button type="button" key={n} disabled={locked} aria-label={`${n} ${n===1?'person':'people'}`} aria-pressed={people===n} onClick={()=>changePeople(n)}>{n}</button>)}</div></div>
-            <div className="sv-photos">{Array.from({length:people},(_,i)=><div className="sv-photo" key={i}>{photoUrls[i]?<><img src={photoUrls[i]} alt={`Person ${i+1} reference`}/><button type="button" className="sv-photo-remove" disabled={locked} aria-label={`Remove photo ${i+1}`} onClick={()=>removePhoto(i)}>×</button></>:<span className="sv-photo-empty">Photo {i+1}</span>}<button type="button" disabled={locked} onClick={()=>{photoSlot.current=i;photoInput.current?.click()}}>{photos[i]?'Change photo':'Add photo'}</button><span className="sv-position-label">{people===1?'Main person in the video':`Person ${positionsFor(people)[i]} in the video`}</span><div className="sv-gender-options" role="group" aria-label={`Who is in photo ${i+1}?`}>{(['man','woman'] as const).map(value=><button className="sv-gender-option" type="button" key={value} disabled={locked} aria-label={`Photo ${i+1}: ${value==='man'?'Man':'Woman'}`} aria-pressed={genders[i]===value} onClick={()=>changeGender(i,value)}>{value==='man'?'Man':'Woman'}</button>)}</div></div>)}</div><input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" aria-label="Choose person photo" onChange={e=>{choosePhoto(e.target.files?.[0]);e.target.value=''}}/><p className="sv-note">One photo per person · JPG, PNG or WebP · up to 8 MB each. Choose Man or Woman for every photo.</p>
+            <div className="sv-photos">{Array.from({length:people},(_,i)=><div className="sv-photo" key={i}><div className="sv-photo-media">{photoUrls[i]?<><img src={photoUrls[i]} alt={`Person ${i+1} reference`}/><button type="button" className="sv-photo-remove" disabled={locked} aria-label={`Remove photo ${i+1}`} onClick={()=>removePhoto(i)}>×</button></>:<span className="sv-photo-empty">Photo {i+1}</span>}</div><div className="sv-photo-controls"><button className="sv-photo-add" type="button" disabled={locked} onClick={()=>{photoSlot.current=i;photoInput.current?.click()}}>{photos[i]?'Change photo':'Add photo'}</button>{people>1?<span className="sv-position-label">Person {positionsFor(people)[i]} in the video</span>:null}<div className="sv-gender-options" role="group" aria-label={`Photo ${i+1} preference, optional`}>{(['man','woman'] as const).map(value=><button className="sv-gender-option" type="button" key={value} disabled={locked} aria-label={`Photo ${i+1}: ${value==='man'?'Man':'Woman'}`} aria-pressed={genders[i]===value} onClick={()=>changeGender(i,value)}>{value==='man'?'Man':'Woman'}</button>)}</div></div></div>)}</div><input ref={photoInput} type="file" accept="image/jpeg,image/png,image/webp" aria-label="Choose person photo" onChange={e=>{choosePhoto(e.target.files?.[0]);e.target.value=''}}/>
           </div>
-          <div><label className="sv-step" htmlFor="sv-prompt"><b>3</b>Prompt</label><textarea className="sv-prompt" id="sv-prompt" value={prompt} placeholder="Choose Man or Woman for each photo to fill the instruction." disabled={locked} maxLength={SEU_VIDEO_LIMITES.maxPrompt} onChange={e=>{invalidate();setPrompt(e.target.value);setPromptEdited(true)}}/><p className="sv-prompt-count">{prompt.length} / {SEU_VIDEO_LIMITES.maxPrompt}</p><p className="sv-note">Edit the instruction for your scene. Keep @Video1 and the @Image number for every photo.</p><button type="button" className="sv-subtle" disabled={locked||!gendersReady} onClick={()=>{if(locked||!gendersReady)return;invalidate();setPrompt(suggestedPrompt(genders,people));setPromptEdited(false)}}>Use the suggested instruction</button></div>
-          <label className="sv-permission"><input type="checkbox" checked={consent} disabled={locked} onChange={e=>{invalidate();setConsent(e.target.checked)}}/>I have permission to use this video and these photos, and I agree to send them for processing when I press Generate.</label>
+          <div><label className="sv-step" htmlFor="sv-prompt"><b>3</b>Prompt</label><textarea className="sv-prompt" id="sv-prompt" value={prompt} disabled={locked} maxLength={SEU_VIDEO_LIMITES.maxPrompt} onChange={e=>{invalidate();setPrompt(e.target.value);setPromptEdited(true)}}/><p className="sv-prompt-count">{prompt.length} / {SEU_VIDEO_LIMITES.maxPrompt}</p></div>
+          <label className="sv-permission"><input type="checkbox" checked={consent} disabled={locked} onChange={e=>{invalidate();setConsent(e.target.checked)}}/>I have permission to use these files.</label>
           {restoring?<p className="sv-note" role="status">Restoring your saved files…</p>:null}{message?<p className="sv-alert" role="status">{message}</p>:null}
-          <div><button className="sv-generate" type="button" data-seu-video-generate="" disabled={!canSubmit} onClick={()=>void generate()}>{busy?'Preparing…':uncertain?'Retry Generate':'Generate'}{cost!==null?<span data-seu-video-cost={checked?'confirmed':'estimated'}>✦ {checked?'':'Estimated '}{cost} credits</span>:null}</button><p className="sv-note">{audioNote} · {display.resolution} · {display.waitLabel}. Nothing starts until you press Generate.</p>{checked?.needs_plan||(checked?.shortfall??0)>0?<><Link className="sv-subtle" href="/pricing">See plans ↗</Link>{!uncertain?<button className="sv-subtle" type="button" disabled={busy} onClick={recheck}>Check again</button>:null}</>:null}{uncertain?<p className="sv-note">Keep this page open and retry the same request. If you leave, check My videos before starting another.</p>:null}</div>
+          <div><button className="sv-generate" type="button" data-seu-video-generate="" disabled={!canSubmit} onClick={()=>void generate()}>{busy?'Preparing…':uncertain?'Retry Generate':'Generate'}{cost!==null?<span data-seu-video-cost={checked?'confirmed':'estimated'}>✦ {checked?'':'Estimated '}{cost} credits</span>:null}</button>{checked?.needs_plan||(checked?.shortfall??0)>0?<><Link className="sv-subtle" href="/pricing">See plans ↗</Link>{!uncertain?<button className="sv-subtle" type="button" disabled={busy} onClick={recheck}>Check again</button>:null}</>:null}{uncertain?<p className="sv-note">Keep this page open and retry the same request. If you leave, check My videos before starting another.</p>:null}</div>
         </section>
       </div>}
     </div>

@@ -11,7 +11,7 @@ export type SeuVideoDraft = {
   prompt: string
   people: 1 | 2 | 3
   consent: boolean
-  genders?: SeuVideoGender[]
+  genders?: (SeuVideoGender | null)[]
   requestKey?: string
 }
 export class SeuVideoDraftStorageError extends Error {
@@ -27,7 +27,7 @@ const TTL = 2 * 60 * 60 * 1000, PHOTO_MAX_BYTES = 8 * 1024 * 1024
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i
 type Reference = { tab: string; owner: string; id: string }
 type StoredFile = { blob: Blob; name: string; lastModified: number }
-type StoredDraft = { version: 1; tab: string; id: string; at: number; source: { kind: 'upload'; file: StoredFile } | { kind: 'catalog'; id: string }; photos: StoredFile[]; prompt: string; people: 1 | 2 | 3; consent: boolean; genders?: SeuVideoGender[]; requestKey?: string }
+type StoredDraft = { version: 1; tab: string; id: string; at: number; source: { kind: 'upload'; file: StoredFile } | { kind: 'catalog'; id: string }; photos: StoredFile[]; prompt: string; people: 1 | 2 | 3; consent: boolean; genders?: (SeuVideoGender | null)[]; requestKey?: string }
 let pending: Promise<unknown> = Promise.resolve()
 function serial<T>(work: () => Promise<T>): Promise<T> { const result = pending.then(work, work); pending = result.then(() => undefined, () => undefined); return result }
 const object = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value)
@@ -43,9 +43,9 @@ function validBlob(blob: unknown, video: boolean, name = ''): blob is Blob {
   return typeof Blob !== 'undefined' && blob instanceof Blob && blob.size > 0 && blob.size <= (video ? SEU_VIDEO_LIMITES.maxBytes : PHOTO_MAX_BYTES) && (video ? seuVideoContentType({ name, type: blob.type }) !== null : ['image/jpeg', 'image/png', 'image/webp'].includes(blob.type))
 }
 function validGenders(genders: unknown, people: unknown): boolean {
-  // Earlier drafts did not ask for a choice; the form requests it on return.
+  // Choice is optional. Keep slot alignment and partial manual choices across auth.
   return genders === undefined || (Array.isArray(genders) && genders.length === people &&
-    Array.from(genders).every(value => value === 'man' || value === 'woman'))
+    Array.from(genders).every(value => value === null || value === 'man' || value === 'woman'))
 }
 function validInput(value: unknown): value is SeuVideoDraft {
   if (!object(value) || !only(value, ['source', 'photos', 'prompt', 'people', 'consent', 'genders', 'requestKey']) || !object(value.source)) return false
