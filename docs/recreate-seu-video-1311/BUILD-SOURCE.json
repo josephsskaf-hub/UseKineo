@@ -1,7 +1,7 @@
 {
-  "date": "2026-11-13T21:10:44.9467266-03:00",
-  "buildAndRawTypesSourceCommit": "192a0fe0a43dfecfd31e3c466a62b3fbb85c84a7",
-  "baseMain": "4a299ab1e85c2aed398fff38daac75b323313f15",
+  "date": "2026-11-13T21:19:57.5857407-03:00",
+  "buildAndRawTypesSourceCommit": "2a161534f1cc12050b580c0e01614003b2d1d430",
+  "baseMain": "0ec28691a532ddc85a732e8cfc906a8dd430a5e0",
   "buildCommand": "npx next build",
   "buildExit": 0,
   "rawTypesCommand": "npx tsc --noEmit --incremental false",
@@ -9,7 +9,7 @@
   "rawTypesScope": "source types, without generated .next/types at start",
   "runtimeGitBlobIds": {
     "app/recreate-preview/page.tsx": "81b707b0bf43113108ab5cd510c2926bd986a3d1",
-    "app/recreate-preview/SeuVideoRecreateClient.tsx": "89c385d1a93df017e187d00402f790148c947391",
+    "app/recreate-preview/SeuVideoRecreateClient.tsx": "dd401d90f2a5fa045dc0bd9c184bd177fabc7331",
     "app/recreate-preview/seu-video.css": "1f305cc2e38d80cc2ac16f2cc1a1bcc09d5f448a",
     "lib/recreate/seuVideoCatalog.ts": "c247968e317b9a58d53927d293e0097825f2fc54",
     "lib/recreate/seuVideoClient.ts": "efa6a5757dbb1fd3e2b52f77e8c20fee2175e0c0",

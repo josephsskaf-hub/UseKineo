@@ -10,7 +10,7 @@
 | Cliente da API com transporte injetado | **PASSOU**, 82 verificações e 9 mutantes; log `test-seu-video-client-1311.mjs.log` na mesma pasta |
 | Rascunho IndexedDB e volta em outra aba | **PASSOU**, 89 verificações e 10 mutantes; log `test-seu-video-draft-1311.mjs.log` |
 | Catálogo: fontes e arquivos reais | **PASSOU**, 8 referências, 98 verificações, 13 mutantes e cenário de mídia ausente recusado; log `test-recreate-seu-video-catalog-1311.cjs.log` |
-| Guardião da API publicada | **PASSOU**, 28 ok, 0 falhas; `validacao/backend.log` |
+| Guardião da API publicada | **PASSOU**, 58 ok, 0 falhas; `validacao/backend.log` |
 | Download da casa | **PASSOU**, guardião da main e seus 9 mutantes; uso do helper na nova tela também protegido por mutante próprio da UI |
 | Gate oficial de vermelhos novos | **PASSOU**, saída 0; 13 testes, 11 verdes e 2 vermelhos também na main; `validacao/gate-console.log`, `validacao/gate/ramo.txt`, `validacao/gate/main.txt` |
 

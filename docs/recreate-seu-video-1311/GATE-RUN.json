@@ -1,0 +1,17 @@
+{
+  "date": "2026-11-13T21:19:57.8461018-03:00",
+  "testedCommit": "2a161534f1cc12050b580c0e01614003b2d1d430",
+  "comparedMain": "0ec28691a532ddc85a732e8cfc906a8dd430a5e0",
+  "command": "bash scripts/ci/novos-vermelhos.sh '^test-(recreate-|seu-video-|menu-recreate-1211|enquadramento-vitrine-0911|sharing-safety|five-improvements|download-nosso-1311)'",
+  "PARALELO": 2,
+  "TETO_SEGUNDOS": 300,
+  "exitCode": 0,
+  "tests": 13,
+  "passed": 11,
+  "alsoFailOnMain": [
+    "test-five-improvements.mjs",
+    "test-recreate-trava-1011.mjs"
+  ],
+  "newFailures": 0,
+  "restoredBranch": "codex/recreate-seu-video-1311"
+}

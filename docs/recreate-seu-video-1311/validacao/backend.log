@@ -13,7 +13,37 @@
   ok  ESSENCIAL recusa no envio estorna (provider_rejected → closeWithRefund → deps.refund)
   ok  ESSENCIAL recusa no fim estorna (provider_failed → fail → deps.refund)
   ok  F eventos só do servidor
-  ok  F a trava "não trocou" segue só no Recast
+  ok  F o contexto do Recast (recreateRowContext) segue só no Recast; o Seedance tem o seu (swapRowContext, seção T)
+  ok  B som original pela montagem: provas verdes
+  ok  B quem paga recebe a montagem só do som; sem som, o caminho de sempre
+  ok  B o persist do clipe passa o som e entra na montagem por ele
+  ok  B nada de som gerado (a fal segue com generate_audio false)
+  ok  mutante "B som de qualquer dono" fica vermelho (1 erro(s))
+  ok  mutante "B som sem o corte na duração" fica vermelho (1 erro(s))
+  ok  mutante "B só som mas com a marca" fica vermelho (2 erro(s))
+  ok  mutante "B render sem o som" fica vermelho (1 erro(s))
+  ok  mutante "B som vai para o caminho da marca" fica vermelho (1 erro(s))
+  ok  mutante "B trava sem o motivo audio" fica vermelho (2 erro(s))
+  ok  C os 3 formatos reprovados no Seedance 2.5, os aprovados no Recast
+  ok  C interruptor desligado = os 3 voltam ao Recast
+  ok  C o envio troca video_urls pelo vídeo-base da casa no bucket (só nos 3)
+  ok  C os 3 continuam só da casa (swapApproved false)
+  ok  mutante "C sem a Dança" fica vermelho (5 erro(s))
+  ok  mutante "C Elevator troca todo mundo" fica vermelho (1 erro(s))
+  ok  mutante "C todo o catálogo no motor novo" fica vermelho (2 erro(s))
+  ok  mutante "C motor novo com preço de custo" fica vermelho (3 erro(s))
+  ok  T a foto pode ser o recorte de rosto que o Recreate já guarda (avatars/<conta>/face-….jpg)
+  ok  T trava "não trocou" no Seedance, foto de rosto, task explícito: provas verdes
+  ok  T o liquidar liga a trava no Seedance (applies) e a passada do cron também
+  ok  T o estorno do "não trocou" é o do clipFlow (swap.markFailed → deps.refund)
+  ok  T o prompt padrão pede o enquadramento e a câmera do @Video1, e o evento registra
+  ok  mutante "T trava só no Recast" fica vermelho (1 erro(s))
+  ok  mutante "T sem contexto do Seedance" fica vermelho (7 erro(s))
+  ok  mutante "T juiz acha que a cena é igual" fica vermelho (1 erro(s))
+  ok  mutante "T quadro fixo 84 (ignora o fps)" fica vermelho (1 erro(s))
+  ok  mutante "T base do catálogo no "seu vídeo"" fica vermelho (4 erro(s))
+  ok  mutante "task no padrão (sem "reference" explícito)" fica vermelho (1 erro(s))
+  ok  mutante "prompt sem o enquadramento do @Video1" fica vermelho (1 erro(s))
   ok  mutante "sem a régua de fps" fica vermelho (2 erro(s))
   ok  mutante "sem o teto de 15 s" fica vermelho (2 erro(s))
   ok  mutante "pega a 1ª trilha (áudio)" fica vermelho (1 erro(s))
@@ -27,4 +57,4 @@
   ok  mutante "recusa com outra frase" fica vermelho (1 erro(s))
   ok  mutante "aberto ao público" fica vermelho (1 erro(s))
 
-28 ok, 0 falha(s)
+58 ok, 0 falha(s)
