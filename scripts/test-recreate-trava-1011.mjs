@@ -85,7 +85,9 @@ function catalogChecks(o = {}) {
   ok(approvedEight.visibleRecreateFormats(CUSTOMER).some(f => f.id === 'escolha-o-favorito'), 'aprovado de 8 s (com tarifa) chega ao cliente')
   const approvedNine = { ...release('public', 'public'), 'lib/recreate/formats.ts': nineSeconds(approve('duelo-de-danca')['lib/recreate/formats.ts']) }
   ok(!L(approvedNine)('lib/recreate/access').visibleRecreateFormats(CUSTOMER).some(f => f.id === 'duelo-de-danca'), 'aprovado SEM tarifa (9 s) nunca chega ao cliente')
-  ok(L(release('internal', 'off'))('lib/recreate/access').visibleRecreateFormats(HOUSE).every(f => f.type === 'effect'), "troca 'off': nem a casa vê troca")
+  // reancorado KINEO-RECREATE-MOVIMENTO-MOLDE-1411 — era every(type === 'effect'): com um molde de MOVIMENTO no catálogo a casa também o vê (ele tem o
+  // próprio interruptor, RECREATE_MOVIMENTO_RELEASE, guardado por scripts/test-recreate-movimento-1411.mjs). O que este teste protege segue igual: troca 'off' = nenhuma troca.
+  ok(L(release('internal', 'off'))('lib/recreate/access').visibleRecreateFormats(HOUSE).every(f => f.type !== 'swap'), "troca 'off': nem a casa vê troca")
 }
 catalogChecks()
 
