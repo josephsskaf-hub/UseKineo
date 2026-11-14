@@ -453,7 +453,7 @@ async function bateria(over = {}, lento = false) {
   await check('rota de status: posição por id e espera para quem está na fila; frase da falha só com o estorno gravado', async () => {
     if (!status.includes('const estadoDaFila = esperando ? await filaKlingEditEstado(admin, fresh.id) : null') || !status.includes('wait_label: esperaNaFila(posicao).label, wait_minutes: esperaNaFila(posicao).minutes')) throw new Error('espera')
     if (!status.includes("FILA_MOTIVOS_DE_ESTORNO.includes(fresh.failure_reason) ? { reason: 'queue_failed', message: fraseDaFalhaDaFila(credits_refunded) } : {}")) throw new Error('frase da falha')
-    if (!status.includes('...reason, ...seuVideo, ...fila, ...filaFalhou, ...(som ? { audio: som } : {}) } }')) throw new Error('a espera da fila não ganha das outras mensagens') // reancorado KINEO-RECREATE-SOM-VERDADE-1411 (+ o som do clipe)
+    if (!status.includes('...reason, ...seuVideo, ...fila, ...filaFalhou, ...(som ? { audio: som } : {}), ...movimento } }')) throw new Error('a espera da fila não ganha das outras mensagens') // reancorado KINEO-RECREATE-SOM-VERDADE-1411 (+ o som do clipe) · KINEO-RECREATE-MOVIMENTO-1411 (+ os campos do movimento, por último e só em linha de movimento)
   })
   await check('item 11 · todo evento que o servidor grava nesta área está em SERVER_ONLY_EVENTS', async () => {
     const ev = over[EVENTOS] ?? lf(EVENTOS)

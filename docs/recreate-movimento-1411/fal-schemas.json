@@ -1,0 +1,144 @@
+{
+ "lido_em": "2026-11-14",
+ "fonte": "https://fal.ai/api/openapi/queue/openapi.json?endpoint_id=<id>",
+ "fal-ai/nano-banana-pro/edit": {
+  "schema": "NanoBananaProEditInput",
+  "required": [
+   "prompt"
+  ],
+  "properties": {
+   "prompt": {
+    "type": "string",
+    "enum": null
+   },
+   "temperature": {
+    "type": "number|null",
+    "enum": null
+   },
+   "history": {
+    "type": "array",
+    "enum": null
+   },
+   "sync_mode": {
+    "type": "boolean",
+    "enum": null
+   },
+   "context": {
+    "type": "array",
+    "enum": null
+   },
+   "limit_generations": {
+    "type": "boolean",
+    "enum": null
+   },
+   "safety_tolerance": {
+    "type": "string",
+    "enum": [
+     "1",
+     "2",
+     "3",
+     "4",
+     "5",
+     "6"
+    ]
+   },
+   "include_thoughts": {
+    "type": "boolean|null",
+    "enum": null
+   },
+   "enable_web_search": {
+    "type": "boolean",
+    "enum": null
+   },
+   "seed": {
+    "type": "integer|null",
+    "enum": null
+   },
+   "output_format": {
+    "type": "string",
+    "enum": [
+     "jpeg",
+     "png",
+     "webp"
+    ]
+   },
+   "max_output_tokens": {
+    "type": "integer|null",
+    "enum": null
+   },
+   "image_urls": {
+    "type": "array",
+    "enum": null
+   },
+   "system_prompt": {
+    "type": "string",
+    "enum": null
+   },
+   "resolution": {
+    "type": "string",
+    "enum": [
+     "1K",
+     "2K",
+     "4K"
+    ]
+   },
+   "return_history": {
+    "type": "boolean",
+    "enum": null
+   },
+   "thinking_level": {
+    "type": "string|null",
+    "enum": null
+   },
+   "aspect_ratio": {
+    "type": "string|null",
+    "enum": null
+   },
+   "num_images": {
+    "type": "integer",
+    "enum": null
+   },
+   "top_p": {
+    "type": "number|null",
+    "enum": null
+   }
+  }
+ },
+ "fal-ai/kling-video/v2.6/standard/motion-control": {
+  "schema": "KlingVideoV26StandardMotionControlInput",
+  "required": [
+   "image_url",
+   "video_url",
+   "character_orientation"
+  ],
+  "properties": {
+   "enable_safety_checker": {
+    "type": "boolean",
+    "enum": null
+   },
+   "character_orientation": {
+    "type": "string",
+    "enum": [
+     "image",
+     "video"
+    ]
+   },
+   "keep_original_sound": {
+    "type": "boolean",
+    "enum": null
+   },
+   "video_url": {
+    "type": "string",
+    "enum": null
+   },
+   "image_url": {
+    "type": "string",
+    "enum": null
+   },
+   "prompt": {
+    "type": "string|null",
+    "enum": null
+   }
+  }
+ }
+}
