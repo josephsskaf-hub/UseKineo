@@ -97,7 +97,7 @@ async function bateria(over = {}) {
     if (!/ownedClipImageUrl\(u, user\.id, supabaseUrl\)/.test(c) || !/\{ pessoas: people, fotos, generosDaTela:/.test(c)) throw new Error('fotos')
     if (!c.includes('body.suggested_genders = texto ? texto.sugestao : []')) throw new Error('sem suggested_genders')
     if (!c.includes('prompt: genders ? promptPorGenero(genders as SeuVideoGender[], positions) : promptDoSeuVideo(SEU_VIDEO_MOTOR, people, positions), engine: SEU_VIDEO_MOTOR')) throw new Error('o texto da tela (GPT) não é mais a base')
-    if (!c.includes("const visaoAcrescenta = !!texto && (texto.descricoes.some(Boolean) || (!genders && texto.generoDe === 'sugestao'))")) throw new Error('regra da troca do texto')
+    if (!c.includes("const visaoAcrescenta = !!texto && (texto.descricoes.some(Boolean) || texto.oculos.some(Boolean) || (!genders && texto.generoDe === 'sugestao'))")) throw new Error('regra da troca do texto') // reancorado KINEO-RECREATE-OCULOS-NO-PEDIDO-1411: + os óculos (guardião próprio: scripts/test-recreate-oculos-no-pedido-1411.mjs)
     if (!/name: TEXTO_DO_PEDIDO_EVENTO[^\n]*usd: texto\.usd[^\n]*genero_de: texto\.generoDe/.test(c)) throw new Error('evento sem custo ou sem a origem do gênero')
   })
   return p
@@ -110,7 +110,7 @@ const mutantes = [
   ['fotos não vão à visão', { [TXT]: t.replace('mensagensDaVisao(q.url, fotos, n)', 'mensagensDaVisao(q.url, [], n)') }],
   ['sugestão ganha da tela', { [TXT]: t.replace('  if (telaCompleta) {', '  if (telaCompleta && !sugestaoCompleta) {') }],
   ['sugestão incompleta escreve gênero', { [TXT]: t.replace('const sugestaoCompleta = sugestao.every((g) => g !== null)', 'const sugestaoCompleta = sugestao.some((g) => g !== null)') }],
-  ['descrição fora do molde da tela', { [TXT]: t.replace("' face and hair match @Image' + (i + 1) + '.'", "' face and hair match @Image' + (i + 1) + '!'") }],
+  ['descrição fora do molde da tela', { [TXT]: t.replace("gs[i] === 'man' ? 'he' : 'she') + '.'", "gs[i] === 'man' ? 'he' : 'she') + '!'") }], // reancorado KINEO-RECREATE-OCULOS-NO-PEDIDO-1411: a frase ganhou a cláusula dos óculos antes do ponto
   ['sem filtro de identidade', { [TXT]: t.replace('if (!t || /\\d/.test(t) || PROIBIDAS.test(t)) return null', 'if (!t) return null') }],
   ['check aceita foto de fora', { [CHECK]: ch.replace('ownedClipImageUrl(u, user.id, supabaseUrl)', 'u') }],
   ['check não devolve a sugestão', { [CHECK]: ch.replace('body.suggested_genders = texto ? texto.sugestao : []', 'body.suggested_genders = []') }],

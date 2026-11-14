@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
   const fotos = (Array.isArray(raw.photos) ? raw.photos : []).slice(0, 3).map((u) => (typeof u === 'string' ? ownedClipImageUrl(u, user.id, supabaseUrl) : null)).filter((u): u is string => !!u)
   const texto = SEU_VIDEO_MOTOR === 'kling4' ? await montarTextoDoPedido(ioDoTextoReal(v.url, v.meta), { pessoas: people, fotos, generosDaTela: (genders as SeuVideoGender[] | undefined) ?? [], posicoes: positions }) : null
-  if (texto) await writeServerEvent({ name: TEXTO_DO_PEDIDO_EVENTO, userId: user.id, path: '/api/recreate/seu-video/check', metadata: { versao: TEXTO_DO_PEDIDO_VERSAO, fonte: texto.fonte, visao: texto.visao, usd: texto.usd, generos: texto.generos, descricoes: texto.descricoes, generos_da_tela: !!genders, genero_de: texto.generoDe, sugestao: texto.sugestao, fotos: fotos.length } }).catch(() => false)
+  if (texto) await writeServerEvent({ name: TEXTO_DO_PEDIDO_EVENTO, userId: user.id, path: '/api/recreate/seu-video/check', metadata: { versao: TEXTO_DO_PEDIDO_VERSAO, fonte: texto.fonte, visao: texto.visao, usd: texto.usd, generos: texto.generos, descricoes: texto.descricoes, generos_da_tela: !!genders, genero_de: texto.generoDe, sugestao: texto.sugestao, fotos: fotos.length, oculos: texto.oculos } }).catch(() => false)
   const body: Record<string, unknown> = {
     ok: true, seconds: Math.round(v.meta.segundos * 10) / 10, fps: Math.round(v.meta.fps), width: v.meta.largura, height: v.meta.altura, bytes: v.bytes,
     generated_seconds: v.gerados, aspect_ratio: v.proporcao, credits: v.creditos, balance: account.balance, shortfall: Math.max(0, (v.creditos ?? 0) - account.balance),
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
   }
   // KINEO-RECREATE-TEXTO-DO-PEDIDO-1311 — o texto da visão só entra quando ACRESCENTA a descrição (roupa e posição). Sem descrição, o texto
   // acima (o da tela ou o de hoje) fica byte a byte.
-  const visaoAcrescenta = !!texto && (texto.descricoes.some(Boolean) || (!genders && texto.generoDe === 'sugestao'))
+  const visaoAcrescenta = !!texto && (texto.descricoes.some(Boolean) || texto.oculos.some(Boolean) || (!genders && texto.generoDe === 'sugestao')) // KINEO-RECREATE-OCULOS-NO-PEDIDO-1411 — + os óculos
   if (visaoAcrescenta && texto) body.prompt = texto.prompt
   body.suggested_genders = texto ? texto.sugestao : [] // KINEO-RECREATE-GENERO-SUGERIDO-1411 — man|woman|null por foto: só para a tela pré-marcar
   body.prompt_source = visaoAcrescenta && texto ? texto.fonte : genders ? 'tela' : 'padrao' // tela | visao | tela_e_visao | padrao
