@@ -35,6 +35,7 @@ const COM_GENTE = [
   'Close-up of the expert examining a fossil, with a blurred diagram of chemical echoes in the background.',
   // revisão independente 14/11 (v2, itens 1 e 3): o plano do roteiro de validação e os papéis que faltavam
   'Ten young mechanics in grey overalls push the silver twin-engine plane onto the runway.',
+  'Mechanics of the air force repair the engine in a hangar.', // revisão 14/11: papel + "of" + GRUPO de gente é gente
   'Two clergymen walk slowly to the village church.',
   'Lumberjacks fell a giant pine in the snowy forest.',
   'Cowboys ride across the dusty plain at sunset.',
@@ -116,7 +117,8 @@ const MUTANTES = [
   ['C: "airmen" (composto em -men) não conta', ARQ, (s) => s.replace("const COMPOSTOS_DE_GENTE = 'airm[ae]n|", "const COMPOSTOS_DE_GENTE = '")],
   ['C: volta o sufixo aberto -man/-men (Sherman, dolmen, Bremen viram gente)', ARQ, (s) => s.replace('|${COMPOSTOS_DE_GENTE})(?![', '|${COMPOSTOS_DE_GENTE}|\\\\p{L}{2,}(?:man|men))(?![')],
   ['C: "mechanics" só no singular (os mecânicos do roteiro de validação saem "sem gente")', ARQ, (s) => s.replace('|mechanics?|pilots?|', '|mechanic|pilots?|')],
-  ['C: "the mechanics of a watch" vira gente (sem a exceção do "of")', ARQ, (s) => s.replace('if (PAPEL_ABSTRATO_RE.test(m[0]) && /^\\s+of\\s/iu.test(v.slice((m.index ?? 0) + m[0].length))) continue', '')],
+  ['C: "the mechanics of a watch" vira gente (sem a exceção do "of")', ARQ, (s) => s.replace('if (PAPEL_ABSTRATO_RE.test(m[0]) && /^\\s+of\\s/iu.test(v.slice((m.index ?? 0) + m[0].length)) && ', 'if (false && ')],
+  ['C: "Mechanics of the air force" sai sem gente (sem a exceção do grupo)', ARQ, (s) => s.replace("&& !/^\\s+of\\s+(?:the\\s+)?(?:[\\p{L}-]+\\s+)?(?:force|", "&& !/^NUNCA(?:force|")],
   ['C: sem pilots, cowboys, lumberjacks, laborers, dockworkers', ARQ, (s) => s.replace('|pilots?|lumberjacks?|cowboys?|cowgirls?|labou?rers?|dockworkers?|dockers?|porters?', '')],
   ['C: voltam humans, adults, natives, presidents (caveira, águia, flores, Rushmore viram gente)', ARQ, (s) => s.replace("|refugees?|immigrants?|settlers?|colonists?'", "|refugees?|immigrants?|settlers?|colonists?|natives?|adults?|humans?|presidents?'")],
   ['C: a referência ("honoring veterans") conta como gente', ARQ, (s) => s.replace('if (REFERENCIA_ANTES_RE.test(v.slice(Math.max(0, (m.index ?? 0) - 40), m.index ?? 0))) continue', '')],
