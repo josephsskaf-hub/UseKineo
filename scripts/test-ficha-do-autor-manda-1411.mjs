@@ -33,6 +33,16 @@ function provas(L) {
   // (C) gente sem ficha do autor segue igual
   const outro = aplica(ee, [{ nome: 'Fred Noonan', canonica: 'Fred Noonan, exactly as the author wrote: "a navigator in a white shirt"' }])
   if (outro.prompts.join('|') !== sem.prompts.join('|')) erros.push('C ficha de OUTRA pessoa mudou a cena')
+  // v2 [revisor 14/11, item D]: (D1) o nome aponta UMA pessoa só; (D3) bicho não ganha ficha de gente
+  const T2 = 'In 1890, John Carter meets John Miller at the docks. John Carter shakes hands. John Miller smiles.'
+  const dois = ee.aplicarElencoEEpoca({ prompts: ['The docks.', 'A handshake.', 'A smile.'], falas: ['In 1890, John Carter meets John Miller at the docks.', 'John Carter shakes hands.', 'John Miller smiles.'], contextoOriginal: T2, contextoFiltro: T2, modo: 'character_story', tagFaceless: false, provaDeGente: true, fichasDoAutor: [{ nome: 'John', canonica: 'John, exactly as the author wrote: "John wears a red scarf"' }] })
+  if (dois.relato.elenco.length !== 2) erros.push('D1 fixture: a camada não leu os dois Johns')
+  if (dois.relato.elenco.some((e) => /red scarf/.test(e.descricao ?? ''))) erros.push('D1 a ficha "John" foi para um dos dois Johns: ' + dois.relato.elenco.map((e) => e.nome + ': ' + e.descricao).join(' | '))
+  const um = ee.aplicarElencoEEpoca({ prompts: ['The docks.', 'A handshake.', 'A smile.'], falas: ['In 1890, John Carter waits at the docks.', 'John Carter shakes hands.', 'He smiles.'], contextoOriginal: 'In 1890, John Carter waits at the docks. John Carter shakes hands. He smiles.', contextoFiltro: 'In 1890, John Carter waits at the docks. John Carter shakes hands. He smiles.', modo: 'character_story', tagFaceless: false, provaDeGente: true, fichasDoAutor: [{ nome: 'John', canonica: 'John, exactly as the author wrote: "John wears a red scarf"' }] })
+  if (!um.relato.elenco.some((e) => /red scarf/.test(e.descricao ?? ''))) erros.push('D1 com UM John só, a ficha "John" devia valer (a Mara do d2201895)')
+  const TB = 'This lost dog found his way home. Bobbie the dog is a shaggy two-year-old collie mix. In 1923 Bobbie goes missing. In 1924 Bobbie limps up to the front door.'
+  const bicho = ee.aplicarElencoEEpoca({ prompts: ['A field.', 'A road.', 'A door.'], falas: ['Bobbie the dog is a shaggy two-year-old collie mix.', 'In 1923 Bobbie goes missing.', 'In 1924 Bobbie limps up to the front door.'], contextoOriginal: TB, contextoFiltro: TB, modo: 'character_story', tagFaceless: false, provaDeGente: true, fichasDoAutor: [{ nome: 'Bobbie', canonica: 'Bobbie, exactly as the author wrote: "a man in a grey hat"' }] })
+  if (bicho.prompts.join(' ').includes('grey hat') || bicho.relato.elenco.some((e) => /grey hat/.test(e.descricao ?? ''))) erros.push('D3 o bicho ganhou a ficha de gente')
   return erros
 }
 
@@ -41,8 +51,10 @@ checa(`A, B e C verdes${base.length ? ': ' + base.join(' · ') : ''}`, base.leng
 const fq = lf(fs.readFileSync(FQ, 'utf8'))
 checa("C a qualidade do filme passa à camada de época SÓ as fichas humanas de origem 'autor', atrás do interruptor", fq.includes("export const FICHA_DO_AUTOR_MANDA_1411: 'off' | 'all' = 'all'") && fq.includes("...(FICHA_DO_AUTOR_MANDA_1411 === 'all' ? { fichasDoAutor: elenco.filter((f) => f.origem === 'autor' && f.tipo === 'humano' && String(f.canonica ?? '').trim()).map((f) => ({ nome: f.nome, canonica: f.canonica })) } : {})"))
 const MUTANTES = [
+  ['v2: o nome vale para duas pessoas', (s) => s.replace('  return elenco.filter((o) => mesmoPersonagem(casam[0].nome, o.nome)).length === 1 ? casam[0] : undefined', '  return casam[0]')],
+  ['a ficha do autor vale para bicho', (s) => s.replace("const fichaDoAutor = p.tipo === 'humano' ? fichaDoAutorDaPessoa(p, elenco, args.fichasDoAutor) : undefined", 'const fichaDoAutor = fichaDoAutorDaPessoa(p, elenco, args.fichasDoAutor)')],
   ['a ficha do autor não substitui a sorteada', (s) => s.replace('if (fichaDoAutor) p.descricao = fichaDoAutor.canonica', 'if (false) p.descricao = fichaDoAutor.canonica')],
-  ['a ficha vale para QUALQUER pessoa (não confere o nome)', (s) => s.replace('args.fichasDoAutor?.find((f) => mesmoPersonagem(f.nome, p.nome))', 'args.fichasDoAutor?.[0]')],
+  ['a ficha vale para QUALQUER pessoa (não confere o nome)', (s) => s.replace('  if (casam.length !== 1) return undefined', '  return (fichas ?? [])[0]')],
 ]
 for (const [nome, fn] of MUTANTES) {
   const src = lf(fs.readFileSync(EP, 'utf8'))

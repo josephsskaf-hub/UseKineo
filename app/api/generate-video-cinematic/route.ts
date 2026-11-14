@@ -7516,10 +7516,27 @@ async function manipularPost(req: NextRequest) {
       const relatorioSeedance = seedanceClipSeconds
         ? classicDryRunReport({ scenes: scenes.map((s, i) => ({ voiceover: s.voiceover, prompt: classicScenePrompts[i] })), targetSeconds: duration, secondsPerClip: seedanceClipSeconds[0], verbatim, wordsPerSecond: narrationRate.wordsPerSecond, sceneSeconds: seedanceClipSeconds, clipLossSeconds: KLING25_CLIP_LOSS_SECONDS })
         : null
+      // KINEO-PROMPT-DO-MOTOR-1411 [revisor 14/11, item D da CEO] — o `prompt_inteiro` é o texto no ponto do ensaio; depois dele a rota ainda
+      // mexe: os eixos do filme grátis, a trava da folha (a ficha em toda cena com personagem) e o corte do Kling 4. Aqui as mesmas funções, na
+      // mesma ordem, sobre uma CÓPIA (nada pago, nada muda no filme). Não entram: as âncoras lidas da folha (visão paga) e o ajuste do sujeito do Kling 4.
+      const motor1411 = ((): { prompts: string[]; kling4: string[] | null; etapas: string[] } => {
+        let ps = [...classicScenePrompts]
+        const etapas: string[] = []
+        if (kling4TrialCandidate) { ps = eixosDoFilmeGratis(ps, styleAnchor); etapas.push('eixos_do_filme_gratis') }
+        const ancoraNoEnsaio = (wantsKling ? 'kling' : wantsVeo ? 'veo' : wantsSora ? null : 'seedance') !== null && CINEMATIC_ANCHOR_ENABLED
+        if (qualidadeFilme.gerarFolha && ancoraNoEnsaio && !estrelaAtiva && elencoDoAjuste.length > 0) {
+          for (const c of cenasDoElenco(ps, scenes.map((s) => s.voiceover ?? ''), elencoDoAjuste)) if (c.nomes.length > 0) ps[c.indice] = garantirFichasNoPrompt(ps[c.indice], elencoDoAjuste.filter((f) => c.nomes.includes(f.nome)))
+          etapas.push('trava_da_folha_sem_ancoras_lidas')
+        }
+        const kling4 = kling4TrialCandidate ? ps.map((p, i) => promptDaCenaKling4(p, styleAnchor, i, true)) : null
+        if (kling4) etapas.push('corte_do_kling4_gratis')
+        return { prompts: ps, kling4, etapas }
+      })()
       const refunded = await releaseBirthClaim('dry_run_no_charge')
       return NextResponse.json({
         dry_run: true,
         family: 'classic',
+        prompt_do_motor: { etapas: motor1411.etapas, cenas: motor1411.prompts.map((p, i) => ({ cena: i + 1, still_e_clipe: p, ...(motor1411.kling4 ? { kling4: motor1411.kling4[i] } : {}) })) }, // KINEO-PROMPT-DO-MOTOR-1411
         engine: wantsKling ? 'kling' : wantsVeo ? 'veo' : wantsSora ? 'sora' : 'seedance',
         verbatim,
         refunded,

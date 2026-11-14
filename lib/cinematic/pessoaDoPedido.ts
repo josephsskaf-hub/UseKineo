@@ -259,6 +259,7 @@ const lugarSoRe = () => (lugarDoRoteiroLigado() ? LUGAR_SO_RE_1411 : LUGAR_SO_RE
 export const LUGAR_DA_FALA_1411: ModoLugarDoRoteiro = 'all'
 export const lugarDaFalaLigado = (modo: ModoLugarDoRoteiro = LUGAR_DA_FALA_1411) => modo === 'all'
 const LUGAR_ARIDO_VIRGULA_RE_1411 = new RegExp(`(?<![\\p{L}])(?:at|in|inside|on|into|through|across|near|outside)\\s+((?:an?|the)\\s+(?:[\\p{L}'’-]+,?\\s+){0,4}?(?:desert|${LUGAR_ARIDO_1411}))(?![\\p{L}])`, 'iu')
+const ARIDO_FIM_RE_1411 = new RegExp(`(?:^|\\s)(?:desert|${LUGAR_ARIDO_1411})$`, 'iu')
 const semFraseDeProibicao = (t: string) => t.split(/(?<=[.!?\n])/u).filter((f) => !/^\s*(?:no|not|never|without|don't|do not)\b/iu.test(f)).join(' ')
 /** O lugar com MAIÚSCULA no meio da frase: nome próprio ("Death Valley"), não o tipo. */
 function nomeProprioNoMeio(t: string, m: RegExpMatchArray): boolean {
@@ -345,6 +346,9 @@ function aridoComNomeProprio(t: string, m: RegExpMatchArray): boolean {
 export function lugarAridoDosPlanos(planos: readonly unknown[]): string | null {
   if (!lugarDoRoteiroLigado()) return null
   const lugar = lugarDasCenas(planos)
+  // KINEO-LUGAR-DA-FALA-1411 (v) [revisor 14/11, item D]: deserto citado DE PASSAGEM num plano só ia a todas as cenas. No corpus, os certos (Racetrack,
+  // Layla e Qais) citam o árido em 2 planos ou mais; os de passagem (8f5dc353, "the lake bed" debaixo d'água do a6b950a5), em 1.
+  if (lugarDaFalaLigado() && lugar && ARIDO_FIM_RE_1411.test(lugar) && planos.filter((p) => { const t = String(p ?? ''); return [...t.matchAll(lugarSoRe())].some((m) => !aridoComNomeProprio(t, m) && tipoDoLugar(m[0]) === 'desert') }).length < 2) return null
   return lugar && new RegExp(`(?:^|\\s)(?:desert|${LUGAR_ARIDO_1411})$`, 'iu').test(lugar) ? lugar : null
 }
 

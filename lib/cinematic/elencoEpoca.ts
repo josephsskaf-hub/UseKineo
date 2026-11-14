@@ -653,6 +653,19 @@ export function cenasDoPersonagem(p: PersonagemNomeado, falas: ReadonlyArray<str
 
 export const CLAUSULA_ELENCO = (descricoes: ReadonlyArray<string>, faceless: boolean) => `Named character${descricoes.length > 1 ? 's' : ''} in this shot: ${descricoes.join('; ')} — clearly visible in frame${faceless ? ', seen from behind or in profile, face not readable' : ''}. ` // KINEO-ELENCO-EPOCA-2710
 
+// ═══ KINEO-FICHA-DO-AUTOR-MANDA-1411 v2 [revisor independente 14/11, item D da CEO] ═══════════════════════════════════════════════════════
+// O nome da ficha do autor tem de apontar UMA pessoa só da camada: a ficha "John" valia para John Carter E para John Miller. Ficha que casa
+// com mais de uma pessoa, ou pessoa que casa com mais de uma ficha, fica sem (a sorteada de sempre). O 1º nome sozinho segue valendo para o
+// nome inteiro quando a pessoa é uma só: no corpus, a ficha "Mara" é a da Mara Lindqvist (d2201895) e exigir o nome inteiro devolvia a sorteada
+// errada ("in her thirties, shoulder-length dark hair" para a mulher de cinquenta de cabelo curto ruivo). A ficha PARCIAL ficou como está:
+// somar idade e cabelo da sorteada errava a mesma Mara (o cabelo sorteado contradiz o texto). Ensaio: docs/ENSAIO-REVISOR-D-1411.md.
+function fichaDoAutorDaPessoa(p: PersonagemNomeado, elenco: readonly PersonagemNomeado[], fichas: ReadonlyArray<{ nome: string; canonica: string }> | null | undefined): { nome: string; canonica: string } | undefined {
+  const casam = (fichas ?? []).filter((f) => mesmoPersonagem(f.nome, p.nome))
+  if (casam.length !== 1) return undefined
+  return elenco.filter((o) => mesmoPersonagem(casam[0].nome, o.nome)).length === 1 ? casam[0] : undefined
+}
+// ═══ fim KINEO-FICHA-DO-AUTOR-MANDA-1411 v2 ═══
+
 /**
  * Elenco nomeado + época + falsos amigos nos prompts FINAIS das cenas (o vetor que alimenta o still FLUX e o clipe), depois do
  * último toque da rota (contrato, eixos, monumento, folha) e antes da moderação, do dry-run e de qualquer POST. Sem nada a fazer:
@@ -725,7 +738,7 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
     if (args.origemDoElenco) { const povoTabela = povoDaHistoria(texto)?.povo ?? null; for (const p of elenco) { if (p.tipo !== 'humano') continue; const nova = args.origemDoElenco.descricao(p, povoTabela); if (nova) p.descricao = nova } } // KINEO-ORIGEM-DO-ELENCO-0311
     const porCena: string[][] = prompts.map(() => []) // KINEO-ELENCO-EPOCA-2710
     for (const p of elenco) { // KINEO-ELENCO-EPOCA-2710
-      const fichaDoAutor = p.tipo === 'humano' ? args.fichasDoAutor?.find((f) => mesmoPersonagem(f.nome, p.nome)) : undefined // KINEO-FICHA-DO-AUTOR-MANDA-1411
+      const fichaDoAutor = p.tipo === 'humano' ? fichaDoAutorDaPessoa(p, elenco, args.fichasDoAutor) : undefined // KINEO-FICHA-DO-AUTOR-MANDA-1411 v2 — o nome aponta UMA pessoa só
       if (fichaDoAutor) p.descricao = fichaDoAutor.canonica // KINEO-FICHA-DO-AUTOR-MANDA-1411 — a aparência escrita pelo autor manda sobre a sorteada
       const presente = prompts.map((pr) => (p.nomeado ? p.nome.split(' ').filter((w) => !TITULO_RE.test(w) && !PARTICULAS.has(w.toLowerCase())).some((w) => citaPalavra(pr, w)) : p.possessivo ? cenaMostraPessoa(pr, p.possessivo.nucleo) : citaPalavra(pr, p.nome.split(' ').pop() ?? p.nome))) // KINEO-ELENCO-MARCADOR-2910 — "girl's teddy" no prompt não prova menina visível.
       const { pelaFala, porPosicao } = cenasDoPersonagem(p, args.falas) // KINEO-ELENCO-EPOCA-2710

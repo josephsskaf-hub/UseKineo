@@ -205,7 +205,7 @@ export function visualTemGenteDePapel(visual: string): boolean {
   const v = String(visual ?? '')
   if (!v.trim() || SEM_GENTE_RE.test(v)) return false
   for (const m of v.matchAll(PAPEL_RE)) {
-    if (PAPEL_ABSTRATO_RE.test(m[0]) && /^\s+of\s/iu.test(v.slice((m.index ?? 0) + m[0].length)) && !/^\s+of\s+(?:the\s+)?(?:[\p{L}-]+\s+)?(?:force|army|navy|crew|team|squad|regiment|corps|company|unit|fleet|brigade|battalion|militia|police|guard|garage|workshop|base|squadron)s?(?![\p{L}])/iu.test(v.slice((m.index ?? 0) + m[0].length))) continue // "the mechanics of a watch"; "Mechanics of the air force" é gente
+    if (PAPEL_ABSTRATO_RE.test(m[0]) && /^\s+of\s/iu.test(v.slice((m.index ?? 0) + m[0].length)) && !/^\s+of\s+(?:the\s+)?(?:[\p{L}-]+\s+)?(?:force|army|navy|crew|team|squad|regiment|corps|company|unit|fleet|brigade|battalion|militia|police|guard|garage|workshop|base|squadron)s?(?![\p{L}])(?!\s+(?:doors?|openers?|gates?|locks?|windows?|roofs?|floors?|lifts?|walls?|lights?|shelf|shelves|tools?|machines?|engines?)(?![\p{L}]))/iu.test(v.slice((m.index ?? 0) + m[0].length))) continue // "the mechanics of a watch"; "Mechanics of the air force" é gente
     if (REFERENCIA_ANTES_RE.test(v.slice(Math.max(0, (m.index ?? 0) - 40), m.index ?? 0))) continue
     return true
   }
