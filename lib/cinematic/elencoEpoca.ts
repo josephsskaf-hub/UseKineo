@@ -670,6 +670,10 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
   /** KINEO-ELENCO-PROVA-DE-GENTE-1211 — nome sem prova de gente fica fora do elenco (lib/cinematic/provaDeGente); ausente = byte a byte o de antes. */
   provaDeGente?: boolean // KINEO-ELENCO-PROVA-DE-GENTE-1211
   /** KINEO-HISTORIA-REAL-1411 — só a estrada clássica dentro do escopo passa; ausente = byte a byte o de antes. anoPorExtenso: a data explícita com o ano escrito trava a época. nomeadoNoElenco: o elenco que o modelo leu JÁ tem gente com nome do autor → esta camada não inventa um protagonista sem nome ("the thief" ao lado de Vincenzo Peruggia). */
+  /** KINEO-FICHA-DO-AUTOR-MANDA-1411 [CEO 14/11, dry-run da Earhart] — as fichas que o elenco da rota JÁ tem com a aparência escrita pelo autor
+   *  (origem 'autor'). A mesma pessoa aqui ganha ESSA descrição (nunca a sorteada: "long hair in two braids" contra "short curly hair"), e a
+   *  cena que já leva a ficha não ganha 2ª descrição. Ausente = byte a byte o de antes. */
+  fichasDoAutor?: ReadonlyArray<{ nome: string; canonica: string }> | null // KINEO-FICHA-DO-AUTOR-MANDA-1411
   historiaReal?: { anoPorExtenso?: boolean; nomeadoNoElenco?: boolean } | null // KINEO-HISTORIA-REAL-1411
   /** KINEO-PROTAGONISTA-SEEDANCE-0111 — o elenco semântico aplicado na rota (nomes lidos como personagem + o protagonista); null/ausente = comportamento de sempre. */
   elencoSemantico?: { nomes: ReadonlyArray<string>; protagonista: string } | null
@@ -721,6 +725,8 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
     if (args.origemDoElenco) { const povoTabela = povoDaHistoria(texto)?.povo ?? null; for (const p of elenco) { if (p.tipo !== 'humano') continue; const nova = args.origemDoElenco.descricao(p, povoTabela); if (nova) p.descricao = nova } } // KINEO-ORIGEM-DO-ELENCO-0311
     const porCena: string[][] = prompts.map(() => []) // KINEO-ELENCO-EPOCA-2710
     for (const p of elenco) { // KINEO-ELENCO-EPOCA-2710
+      const fichaDoAutor = p.tipo === 'humano' ? args.fichasDoAutor?.find((f) => mesmoPersonagem(f.nome, p.nome)) : undefined // KINEO-FICHA-DO-AUTOR-MANDA-1411
+      if (fichaDoAutor) p.descricao = fichaDoAutor.canonica // KINEO-FICHA-DO-AUTOR-MANDA-1411 — a aparência escrita pelo autor manda sobre a sorteada
       const presente = prompts.map((pr) => (p.nomeado ? p.nome.split(' ').filter((w) => !TITULO_RE.test(w) && !PARTICULAS.has(w.toLowerCase())).some((w) => citaPalavra(pr, w)) : p.possessivo ? cenaMostraPessoa(pr, p.possessivo.nucleo) : citaPalavra(pr, p.nome.split(' ').pop() ?? p.nome))) // KINEO-ELENCO-MARCADOR-2910 — "girl's teddy" no prompt não prova menina visível.
       const { pelaFala, porPosicao } = cenasDoPersonagem(p, args.falas) // KINEO-ELENCO-EPOCA-2710
       const alvo = fichaNasCenasComGente.length > 0 && !p.nomeado ? fichaNasCenasComGente : p.possessivo ? pelaFala : pelaFala.length > 0 ? pelaFala : porPosicao.length > 0 ? porPosicao : [0] // KINEO-ELENCO-MARCADOR-2910 // KINEO-PROTAGONISTA-DOC-0311 — protagonista sem nome já em cena: as cenas de uma pessoa

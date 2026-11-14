@@ -262,6 +262,9 @@ export function cenaQuaseIgual(a: string, b: string, ignorar: ReadonlyArray<stri
 }
 export const FINAL_DIFERENTE_DA_ABERTURA = 'final moment of the story, a different place and angle from the opening shot, showing how it ends'
 
+/** KINEO-FICHA-DO-AUTOR-MANDA-1411 [CEO 14/11, dry-run da Earhart] — 'off' = a camada de época não recebe as fichas do autor (byte a byte o de antes). */
+export const FICHA_DO_AUTOR_MANDA_1411: 'off' | 'all' = 'all'
+
 export function prepararQualidadeDoFilme(args: {
   prompts: ReadonlyArray<string>; falas: ReadonlyArray<string>; contextoOriginal: string
   contextoFiltro: string | null | undefined; modo: ModoVisualDoElenco; tagFaceless: boolean
@@ -293,7 +296,7 @@ export function prepararQualidadeDoFilme(args: {
     ? aplicarEixoVisual(p, '', FINAL_DIFERENTE_DA_ABERTURA) : p)
   // KINEO-QUALIDADE-TODOS-MOTORES-2910 — reserve room before elencoEpoca's 2500-char insertion gate.
   const withRoom = args.modo === 'presenter' || args.tagFaceless ? varied : varied.map(p => compactarTextoDoFilme(p, 1800, 650))
-  const cast = aplicarElencoEEpoca({ ...args, prompts: withRoom })
+  const cast = aplicarElencoEEpoca({ ...args, prompts: withRoom, ...(FICHA_DO_AUTOR_MANDA_1411 === 'all' ? { fichasDoAutor: elenco.filter((f) => f.origem === 'autor' && f.tipo === 'humano' && String(f.canonica ?? '').trim()).map((f) => ({ nome: f.nome, canonica: f.canonica })) } : {}) }) // KINEO-FICHA-DO-AUTOR-MANDA-1411 — a aparência escrita pelo autor manda sobre a sorteada da camada de época
   const cenas = cenasDoElenco(cast.prompts, args.falas, elenco)
   const prompts = cast.prompts.map((prompt, i) => {
     let p = prompt
