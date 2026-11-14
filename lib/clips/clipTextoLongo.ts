@@ -7,19 +7,30 @@
  *  KINEO-CLIPE-ROTEIRO-QUALQUER-LINGUA-1411 o tamanho SOZINHO não decide nada: precisa de um sinal de filme. */
 export const CLIP_ROTEIRO_PALAVRAS = 60
 
-/** A maior duração que um clipe sai hoje: max(offeredSecondsFor(motor)) de lib/clips/clipCatalog.ts (alvos 5/7/10/15 s).
+/** v2.1 — o teto quando quem chama não diz o motor: o MENOR dos tetos dos motores de clipe na oferta (lib/clips/clipCatalog.ts
+ *  offeredSecondsFor, sem os aposentados de lib/engineLaunch.ts OFFER_RETIRED_ENGINE_KEYS): hoje o MiniMax H3 Turbo, 12 s.
  *  Fica copiado aqui para a lib seguir sem import (os guardiões a carregam sozinha); o guardião
- *  scripts/test-clipe-roteiro-qualquer-lingua-1411.mjs lê o catálogo REAL e fica vermelho se os dois se separarem. */
-export const CLIP_MAX_SEGUNDOS = 15
+ *  scripts/test-clipe-roteiro-qualquer-lingua-1411.mjs lê o catálogo REAL e fica vermelho se os dois se separarem.
+ *  (Na v2 era 15 s, o MAIOR teto: uma história de "15-second" virou clipe e entrou num motor de 12 s, sem 3 s e sem o enredo.) */
+export const CLIP_MAX_SEGUNDOS_PADRAO = 12
+
+/** Opções: `maxSegundos` = o maior tempo que o MOTOR do pedido faz (a tela /clips: max(offeredSecondsFor(motor)); o Studio:
+ *  o teto do modo clipe). Sem ela, CLIP_MAX_SEGUNDOS_PADRAO. */
+export interface OpcoesDoRoteiro { maxSegundos?: number }
+function tetoDoClipe(opcoes?: OpcoesDoRoteiro): number {
+  const n = opcoes?.maxSegundos
+  return typeof n === 'number' && Number.isFinite(n) && n > 0 ? n : CLIP_MAX_SEGUNDOS_PADRAO
+}
 
 /** O texto tem cara de roteiro de filme? (KINEO-CLIPE-ROTEIRO-QUALQUER-LINGUA-1411 v2: sinal de filme decide; sem sinal de
  *  filme, um sinal de clipe — plano descrito com câmera, foto como quadro inicial, blocos de tempo dentro do clipe — tira o
  *  peso do número de frases; sobra o conto de 5+ frases.) */
-export function pareceRoteiroDeFilme(texto: string): boolean {
+export function pareceRoteiroDeFilme(texto: string, opcoes?: OpcoesDoRoteiro): boolean {
   const t = String(texto ?? '').trim()
   if (!t) return false
-  if (temSinalDeFilme(t)) return true
-  if (temSinalDeClipe(t)) return false
+  const max = tetoDoClipe(opcoes)
+  if (temSinalDeFilme(t, max)) return true
+  if (temSinalDeClipe(t, max)) return false
   return frasesDoTexto(t) >= CLIP_CONTO_FRASES // KINEO-CLIPE-CONTO-3010
 }
 
@@ -28,23 +39,33 @@ export function pareceRoteiroDeFilme(texto: string): boolean {
 // navio na tempestade, vila de pescadores, 3 Pompeias com "use the uploaded image as the exact starting frame" e blocos
 // 0–3 s / 3–6 s / 6–10 s) — e foram os 3 únicos downloads. Só passavam de 60 palavras. Agora o tamanho não decide sozinho.
 /** Sinais de filme: qualquer um basta. */
-export function temSinalDeFilme(t: string): boolean {
+export function temSinalDeFilme(t: string, max: number = CLIP_MAX_SEGUNDOS_PADRAO): boolean {
   if (PEDE_FALA_RE.test(t) || FALA_DE_PERSONAGEM_RE.test(t)) return true // KINEO-REVISOR-RESTO-3010
-  if (duracaoPedida(t) > CLIP_MAX_SEGUNDOS) return true
+  if (FALA_PARA_A_CAMERA_RE.test(t)) return true // v2.1
+  if (duracaoPedida(t) > max) return true
   if (falasEntreAspas(t) >= CLIP_FALAS_ENTRE_ASPAS) return true
   if (PEDE_NARRACAO_RE.test(t)) return true
   if (MARCA_DE_ROTEIRO_RE.test(t)) return true
-  if (cenasNumeradasDeFilme(t)) return true
+  if (ENREDO_RE.test(t)) return true // v2.1
+  if (cenasNumeradasDeFilme(t, max)) return true
   return PASSA_O_TEMPO_RE.test(t)
 }
 /** Sinais de clipe: a foto enviada como quadro inicial, blocos de tempo que cabem no clipe, ou o plano descrito com 2+ termos
  *  de câmera/luz/lente. Só pesam quando não há sinal de filme. */
-export function temSinalDeClipe(t: string): boolean {
+export function temSinalDeClipe(t: string, max: number = CLIP_MAX_SEGUNDOS_PADRAO): boolean {
   if (FOTO_COMO_QUADRO_RE.test(t)) return true
   const blocos = fimDosBlocosDeTempo(t)
-  if (blocos.length > 0 && Math.max(...blocos) <= CLIP_MAX_SEGUNDOS) return true
+  if (blocos.length > 0 && Math.max(...blocos) <= max) return true
   return termosDeCamera(t) >= CLIP_TERMOS_DE_CAMERA
 }
+
+// v2.1 [corpus real 14/11] — dois monólogos dos EUA só eram filme por terem 16 frases: quem fala para a câmera ou conta uma
+// história pede FALA. Formas que não aparecem num pedido de plano mudo; nas 4 outras línguas do site, só as formas certas.
+const FALA_PARA_A_CAMERA_RE = /(?<![\p{L}])(?:(?:speaks?|speaking|talks?|talking|says?) (?:directly )?(?:to|into) (?:the )?camera|tell(?:s|ing)? (?:this|the|a|his|her|their|my|our) story|fala(?:ndo)? (?:direto )?(?:para|pra|com) a c[âa]mera|conta(?:ndo)? (?:a|sua|esta|essa|uma) hist[óo]ria|habla(?:ndo)? (?:a|hacia) (?:la )?c[áa]mara|cuenta(?:ndo)? (?:la|su|esta|una) historia|contando (?:la|su|esta|una) historia|parle (?:face )?(?:à|a) la cam[ée]ra|raconte (?:l'|son |sa |cette |une )histoire|spricht (?:direkt )?in die kamera|erz[äa]hlt (?:die|seine|ihre|diese|eine) geschichte)(?![\p{L}])/iu
+// v2.1 [corpus real 14/11] — a história de "15-second" com "Plot:" e "In the finale" virou clipe na v2. Marca EXPLÍCITA de
+// enredo é sinal de filme (o cliente quer a história contada, não um plano), mesmo quando o tempo cabe no motor. Só rótulo
+// com dois-pontos ou expressão de enredo: "grand finale" de fogos de artifício não conta.
+const ENREDO_RE = /(?<![\p{L}])(?:(?:plot|storyline|synopsis|sinopse|sinopsis|enredo|trama|handlung|intrigue)\s*:|in the finale|plot twist|reviravolta final|giro final|rebondissement final)(?![\p{L}])/iu
 
 // KINEO-REVISOR-RESTO-3010 — revisões de 30/10: 6 de 19 filmes eram clipe MUDO para quem pediu fala (urdu, espanhol, PT),
 // e um anúncio de 30 s virou clipe de 10 s. Texto curto também é roteiro quando pede voz, fala ou mais tempo do que o clipe tem.
@@ -56,12 +77,12 @@ const MARCA_DE_ROTEIRO_RE = /\b(?:HOOK|MICRO REWARD|ESCALATION|PAYOFF)\b|\[Pexel
 // Uma ou duas marcas sozinhas não bastam (até 14/11, "Scene 1" sozinho já era filme).
 const CENA_NUMERADA_RE = /(?<![\p{L}])(?:scene|cena|escena|szene|scène|shot|plano|tomada)\s*#?\s*(\d{1,2})(?!\d)/giu
 export const CLIP_CENAS_DE_FILME = 3
-function cenasNumeradasDeFilme(t: string): boolean {
+function cenasNumeradasDeFilme(t: string, max: number): boolean {
   const cenas = new Set(Array.from(t.matchAll(CENA_NUMERADA_RE), (m) => m[1]))
   if (cenas.size < CLIP_CENAS_DE_FILME) return false
   const blocos = fimDosBlocosDeTempo(t)
   const total = blocos.length > 0 ? Math.max(...blocos) : temposPedidos(t).reduce((s, n) => s + n, 0)
-  return total === 0 || total > CLIP_MAX_SEGUNDOS
+  return total === 0 || total > max
 }
 
 // Passagem de tempo dentro da história (um plano de clipe não atravessa o dia): 5 línguas do site.
@@ -125,8 +146,8 @@ export function duracaoPedida(texto: string): number {
   return Math.max(0, ...temposPedidos(texto))
 }
 /** Pede mais tempo do que o clipe tem, em qualquer língua e algarismo. */
-export function pedeDuracaoDeFilme(texto: string): boolean {
-  return duracaoPedida(texto) > CLIP_MAX_SEGUNDOS
+export function pedeDuracaoDeFilme(texto: string, opcoes?: OpcoesDoRoteiro): boolean {
+  return duracaoPedida(texto) > tetoDoClipe(opcoes)
 }
 // Blocos de tempo de UM plano: "0–3 s", "3-6 sec", "(6–10 seconds)", "first 2 seconds", "últimos 3 segundos".
 const BLOCO_DE_TEMPO_RE = new RegExp(

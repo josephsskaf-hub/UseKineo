@@ -80,7 +80,7 @@ const st = read(F.studio)
 const ep = read(F.epoca)
 const MUTANTES = [
   ['venda vira clipe', { [F.lib]: lib.replace("if (pedeVendaDeProduto(t)) return 'venda'", '') }],
-  ['texto longo vira clipe', { [F.lib]: lib.replace("if (pareceRoteiroDeFilme(t)) return 'filme'", '') }],
+  ['texto longo vira clipe', { [F.lib]: lib.replace("if (pareceRoteiroDeFilme(t, { maxSegundos: CLIPE_NO_STUDIO_MAX_SEGUNDOS })) return 'filme'", '') }], // reancorado 14/11 KINEO-CLIPE-ROTEIRO-QUALQUER-LINGUA-1411 v2.1 (o Studio passa o seu teto de 12 s)
   ['casa vira venda', { [F.lib]: lib.replace("const PRODUTO = '(?:", "const PRODUTO = '(?:casa|") }],
   ['desvio ainda gasta', { [F.studio]: st.replace("        void trackEvent(CLIPE_NO_STUDIO_EVENTOS[desvio], { chars: prompt.trim().length, version: CLIPE_NO_STUDIO_VERSION })\n        return\n", "        void trackEvent(CLIPE_NO_STUDIO_EVENTOS[desvio], { chars: prompt.trim().length, version: CLIPE_NO_STUDIO_VERSION })\n") }],
   ['época volta a ordenar gente', { [F.epoca]: ep.replace('Any person the shot describes wears', 'Every person in frame wears') }],

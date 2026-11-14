@@ -10,7 +10,10 @@
 //   (D) 7 cenas únicas longas e ricas (70–150 palavras, sem fala nem duração longa: urso, coelho em 10 s, homem no palco,
 //       navio na tempestade, vila de pescadores, Pompeia com quadro inicial e blocos 0–3/3–6/6–10 s, cena em PT) → clipe;
 //   (E) "60-second … Hindi voiceover", dois monólogos com falas, K-pop de "2 minutes", corretor (passa o dia) → filme;
-//   (F) CLIP_MAX_SEGUNDOS da lib = a maior duração que o catálogo REAL oferece (max offeredSecondsFor);
+//   (F) v2.1: CLIP_MAX_SEGUNDOS_PADRAO = o MENOR teto dos motores na oferta (catálogo real menos os aposentados), e o teto do
+//       Studio = CLIP_MAX_SECONDS do shotSpec (o que /api/generate-clip corta) = o maior botão do Studio;
+//   (G) v2.1: o teto é o do motor do pedido ("15 seconds" com motor de 15 s = clipe; sem motor = filme, como na main);
+//       "Plot:"/"In the finale" = enredo = filme; "She speaks to the camera" = fala = filme;
 //   (M) "60 palavras voltam a bastar", "bloco de tempo dentro do clipe conta como duração longa", e os sinais de clipe.
 // Rodar: node scripts/test-clipe-roteiro-qualquer-lingua-1411.mjs
 import fs from 'node:fs'
@@ -131,8 +134,28 @@ export const CLIPES = [
   ['de · 5 Sekunden', 'eine Katze springt auf den Tisch, 5 Sekunden'],
   ['fr · 10 secondes', 'un chat saute sur la table, 10 secondes'],
   ['en · 2024 + 3 shots', 'Paris in 2024, 3 shots of the Eiffel tower at night'],
-  ['en · 15 seconds (o clipe faz 15 s)', 'ocean waves crashing on black rocks at sunset, 15 seconds'],
   ['en · "Scene 1" sozinho', 'Scene 1: a cat walks on the roof at night'],
+]
+
+// (G) v2.1 [corpus real 14/11] — o teto é o do MOTOR do pedido; sem motor, o menor teto da oferta (12 s).
+const CURTO_15 = 'ocean waves crashing on black rocks at sunset, 15 seconds'
+// A história de 15 s do corpus (sintética, mesmo formato: "15-second", 9 frases, "Plot:", "In the finale", "cinematic lighting").
+const HISTORIA_15 = 'Create a 15-second animated short. Plot: a tiny robot named Bolt lives alone in a junkyard. Every night he looks at the stars and wishes for a friend. One day a lost puppy wanders in through the fence. Bolt is scared at first and hides behind a broken car. The puppy follows him and wags its tail. They play together until the sun goes down. In the finale, Bolt builds a small house for the puppy out of old metal. Warm cinematic lighting, Pixar style.'
+const HISTORIA_15_SEM_ENREDO = HISTORIA_15.replace('Plot: a', 'A').replace('In the finale, Bolt', 'Then Bolt')
+// Monólogo do corpus (sintético): "She speaks to the camera", falas em linhas, SEM aspas; câmera e luz tiram o peso das frases.
+const MONOLOGO = 'A young woman sits alone in a dim kitchen at night. She speaks to the camera.\nI never told anyone about that summer.\nMy brother left without saying goodbye.\nI still keep his old jacket in my closet.\nClose-up, soft warm lighting, shallow depth of field.'
+export const POR_MOTOR = [
+  ['"15 seconds" curto, sem motor (como na main)', CURTO_15, undefined, true],
+  ['"15 seconds" curto, motor de 15 s', CURTO_15, { maxSegundos: 15 }, false],
+  ['"15 seconds" curto, motor de 12 s', CURTO_15, { maxSegundos: 12 }, true],
+  ['história 15 s com enredo, sem motor', HISTORIA_15, undefined, true],
+  ['história 15 s com enredo, motor de 12 s', HISTORIA_15, { maxSegundos: 12 }, true],
+  ['história 15 s com enredo, motor de 15 s (o enredo decide)', HISTORIA_15, { maxSegundos: 15 }, true],
+  ['a mesma cena sem "Plot:"/"In the finale", motor de 15 s', HISTORIA_15_SEM_ENREDO, { maxSegundos: 15 }, false],
+  ['monólogo "She speaks to the camera" em linhas', MONOLOGO, undefined, true],
+  ['"grand finale" de fogos não é enredo', 'fireworks grand finale over the harbor, wide shot, cinematic, 10 seconds', undefined, false],
+  ['PT "fala para a câmera"', 'um homem fala para a câmera na cozinha, close-up, luz quente', undefined, true],
+  ['ES "cuenta su historia"', 'una abuela cuenta su historia junto al fuego, primer plano, cinematic', undefined, true],
 ]
 
 // (D) v2 — cenas únicas longas e ricas, no formato dos 6 textos do corpus real (sintéticas: o texto dos clientes não sai da
@@ -166,6 +189,8 @@ function checa(L) {
   for (const [nome, t] of CENAS_LONGAS) if (L.longo.pareceRoteiroDeFilme(t) !== false) erros.push(`cena longa virou filme: ${nome}`)
   for (const [nome, t] of FILMES_V2) if (L.longo.pareceRoteiroDeFilme(t) !== true) erros.push(`filme v2 virou clipe: ${nome}`)
   if (L.longo.pareceRoteiroDeFilme(CLIPE_EM_PLANOS[1]) !== false) erros.push(`clipe virou filme: ${CLIPE_EM_PLANOS[0]}`)
+  for (const [nome, t, opcoes, esperado] of POR_MOTOR) if (L.longo.pareceRoteiroDeFilme(t, opcoes) !== esperado) erros.push(`por motor errou: ${nome}`)
+  if (L.studio.decidirClipeNoStudio(CURTO_15) !== 'filme') erros.push('Studio: "15 seconds" passa dos 12 s do Studio e não vira filme')
   if (L.studio.decidirClipeNoStudio(CASO_ARABE) !== 'filme') erros.push('Studio: caso árabe não vira filme')
   if (L.studio.decidirClipeNoStudio('قطة تقفز لمدة 5 ثوان') !== 'clipe') erros.push('Studio: clipe árabe curto não é clipe')
   return erros
@@ -185,13 +210,24 @@ for (const [nome, t] of CENAS_LONGAS) {
 }
 for (const [nome] of FILMES_V2) ok(!base.includes(`filme v2 virou clipe: ${nome}`), `filme · ${nome}`)
 ok(!base.includes(`clipe virou filme: ${CLIPE_EM_PLANOS[0]}`), `clipe · ${CLIPE_EM_PLANOS[0]}`)
-console.log('(F) teto do clipe lido do catálogo real')
+console.log('(G) v2.1: teto do motor, fala para a câmera, enredo')
+for (const [nome, t, opcoes, esperado] of POR_MOTOR) ok(!base.includes(`por motor errou: ${nome}`), `${esperado ? 'filme' : 'clipe'} · ${nome}`)
+console.log('(F) tetos lidos do código real')
 {
   const cat = loadCatalogo()
-  const maxCatalogo = Math.max(...cat.CLIP_ENGINE_ORDER.flatMap((k) => cat.offeredSecondsFor(k)))
-  const L = load().longo
-  ok(L.CLIP_MAX_SEGUNDOS === maxCatalogo, `CLIP_MAX_SEGUNDOS (${L.CLIP_MAX_SEGUNDOS}) = maior duração oferecida no catálogo (${maxCatalogo})`)
-  ok(L.duracaoPedida('0–3 s, 3–6 s, 6–10 s') === 10 && L.duracaoPedida('16:9, 1080x1920') === 0 && L.duracaoPedida('٣٠ ثانية') === 30 && L.duracaoPedida('2 minutes') === 120, 'duracaoPedida: blocos = o maior, 16:9 = 0, ٣٠ ثانية = 30, 2 minutes = 120')
+  // Motores na oferta = o catálogo menos os aposentados de lib/engineLaunch.ts (lido do texto: a lib importa '@/…').
+  const launch = read('lib/engineLaunch.ts')
+  const aposentados = JSON.parse((launch.match(/export const OFFER_RETIRED_ENGINE_KEYS: readonly string\[\] = (\[[^\]]*\])/) ?? [])[1]?.replace(/'/g, '"') ?? 'null')
+  ok(Array.isArray(aposentados) && aposentados.length > 0, `aposentados lidos de engineLaunch.ts: ${JSON.stringify(aposentados)}`)
+  const tetos = cat.CLIP_ENGINE_ORDER.filter((k) => !(aposentados ?? []).includes(k)).map((k) => Math.max(...cat.offeredSecondsFor(k)))
+  const L = load()
+  ok(L.longo.CLIP_MAX_SEGUNDOS_PADRAO === Math.min(...tetos), `CLIP_MAX_SEGUNDOS_PADRAO (${L.longo.CLIP_MAX_SEGUNDOS_PADRAO}) = menor teto dos motores na oferta (${Math.min(...tetos)}; tetos ${tetos.join('/')})`)
+  const shot = (() => { const m = { exports: {} }; new Function('require', 'module', 'exports', ts.transpileModule(read('lib/cinematic/shotSpec.ts'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText)(() => { throw new Error('shotSpec ganhou import') }, m, m.exports); return m.exports })()
+  ok(L.studio.CLIPE_NO_STUDIO_MAX_SEGUNDOS === shot.CLIP_MAX_SECONDS, `teto do Studio na lib (${L.studio.CLIPE_NO_STUDIO_MAX_SEGUNDOS}) = CLIP_MAX_SECONDS do /api/generate-clip (${shot.CLIP_MAX_SECONDS})`)
+  const studio = read('app/(dashboard)/studio/StudioClient.tsx')
+  const botoes = (studio.match(/\{\[([\d, ]+)\]\.map\(\(s\) => \(\s*<button key=\{s\} type="button" className=\{`pill\$\{clipSeconds === s/) ?? [])[1]
+  ok(!!botoes && Math.max(...botoes.split(',').map(Number)) === shot.CLIP_MAX_SECONDS, `botões de duração do clipe no Studio vão até ${shot.CLIP_MAX_SECONDS} (${botoes})`)
+  ok(L.longo.duracaoPedida('0–3 s, 3–6 s, 6–10 s') === 10 && L.longo.duracaoPedida('16:9, 1080x1920') === 0 && L.longo.duracaoPedida('٣٠ ثانية') === 30 && L.longo.duracaoPedida('2 minutes') === 120, 'duracaoPedida: blocos = o maior, 16:9 = 0, ٣٠ ثانية = 30, 2 minutes = 120')
 }
 
 console.log('(M) mutantes')
@@ -202,14 +238,17 @@ const mutantes = [
   ['sem os algarismos arábico-índicos', longo.replace("[٠-٩۰-۹०-९０-９]", '[０-９]')],
   ['"16:9" aceito como duração', longo.replace("const UNIDADE_SEGUNDO = '(?:", "const UNIDADE_SEGUNDO = '(?::|")],
   ['sem o fim de frase CJK', longo.replace('|[。！？]+/g', '/g')],
-  ['60 palavras voltam a bastar', longo.replace("  if (!t) return false\n  if (temSinalDeFilme(t)) return true", "  if (!t) return false\n  if (t.split(/\\s+/).filter(Boolean).length > CLIP_ROTEIRO_PALAVRAS) return true\n  if (temSinalDeFilme(t)) return true")],
+  ['60 palavras voltam a bastar', longo.replace("  if (!t) return false\n  const max", "  if (!t) return false\n  if (t.split(/\\s+/).filter(Boolean).length > CLIP_ROTEIRO_PALAVRAS) return true\n  const max")],
   ['bloco de tempo dentro do clipe conta como duração longa', longo.replace('return Math.max(0, ...temposPedidos(texto))', 'return temposPedidos(texto).reduce((s, n) => s + n, 0)')],
-  ['teto do clipe volta a 12 s', longo.replace('export const CLIP_MAX_SEGUNDOS = 15', 'export const CLIP_MAX_SEGUNDOS = 12')],
+  ['o padrão volta a ser 15', longo.replace('export const CLIP_MAX_SEGUNDOS_PADRAO = 12', 'export const CLIP_MAX_SEGUNDOS_PADRAO = 15')],
+  ['maxSegundos do motor é ignorado', longo.replace('return typeof n === \'number\' && Number.isFinite(n) && n > 0 ? n : CLIP_MAX_SEGUNDOS_PADRAO', 'return CLIP_MAX_SEGUNDOS_PADRAO')],
+  ['fala para a câmera não conta', longo.replace('if (FALA_PARA_A_CAMERA_RE.test(t)) return true // v2.1', '')],
+  ['enredo explícito não conta', longo.replace('if (ENREDO_RE.test(t)) return true // v2.1', '')],
   ['sem o sinal de câmera', longo.replace('return termosDeCamera(t) >= CLIP_TERMOS_DE_CAMERA', 'return false')],
-  ['sem o quadro inicial nem os blocos', longo.replace('if (FOTO_COMO_QUADRO_RE.test(t)) return true', '').replace('if (blocos.length > 0 && Math.max(...blocos) <= CLIP_MAX_SEGUNDOS) return true', '')],
+  ['sem o quadro inicial nem os blocos', longo.replace('if (FOTO_COMO_QUADRO_RE.test(t)) return true', '').replace('if (blocos.length > 0 && Math.max(...blocos) <= max) return true', '')],
   ['sem a passagem de tempo', longo.replace('return PASSA_O_TEMPO_RE.test(t)', 'return false')],
   ['cenas numeradas: uma basta', longo.replace('export const CLIP_CENAS_DE_FILME = 3', 'export const CLIP_CENAS_DE_FILME = 1')],
-  ['sinal de clipe vence sinal de filme', longo.replace("  if (temSinalDeFilme(t)) return true\n  if (temSinalDeClipe(t)) return false", "  if (temSinalDeClipe(t)) return false\n  if (temSinalDeFilme(t)) return true")],
+  ['sinal de clipe vence sinal de filme', longo.replace("  if (temSinalDeFilme(t, max)) return true\n  if (temSinalDeClipe(t, max)) return false", "  if (temSinalDeClipe(t, max)) return false\n  if (temSinalDeFilme(t, max)) return true")],
   ['sem a narração em outras línguas', longo.replace('if (PEDE_NARRACAO_RE.test(t)) return true', '')],
   ['falas sem mínimo de palavras', longo.replace('.length >= 3 ||', '.length >= 1 ||')],
   ['"3分の1" vira minuto', longo.replace("分(?!の)", '分')],

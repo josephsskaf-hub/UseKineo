@@ -34,12 +34,17 @@ export function pedeVendaDeProduto(texto: string | null | undefined): boolean {
 
 export type DecisaoClipeNoStudio = 'venda' | 'filme' | 'clipe'
 
+/** KINEO-CLIPE-ROTEIRO-QUALQUER-LINGUA-1411 v2.1 — o teto do modo clipe do Studio: /api/generate-clip corta em
+ *  CLIP_MAX_SECONDS de lib/cinematic/shotSpec.ts (12 s; os botões do Studio vão até 12). Copiado para esta lib seguir sem
+ *  import; o guardião scripts/test-clipe-roteiro-qualquer-lingua-1411.mjs lê o shotSpec real e fica vermelho se separar. */
+export const CLIPE_NO_STUDIO_MAX_SEGUNDOS = 12
+
 /** O que o modo clipe do Studio faz com este texto (o Studio não manda foto no clipe: o desvio de venda vale sempre). */
 export function decidirClipeNoStudio(texto: string | null | undefined): DecisaoClipeNoStudio {
   const t = String(texto ?? '').trim()
   if (!t) return 'clipe'
   if (pedeVendaDeProduto(t)) return 'venda'
-  if (pareceRoteiroDeFilme(t)) return 'filme'
+  if (pareceRoteiroDeFilme(t, { maxSegundos: CLIPE_NO_STUDIO_MAX_SEGUNDOS })) return 'filme'
   return 'clipe'
 }
 
