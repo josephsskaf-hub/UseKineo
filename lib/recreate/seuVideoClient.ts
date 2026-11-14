@@ -4,8 +4,9 @@ import { compressPhoto } from './photos'
 import { seuVideoContentType } from './seuVideoFileType'
 import {
   SEU_VIDEO_LIMITES, lerMetaDoVideo,
-  segundosGerados, creditosDoSeuVideo, promptPadrao, validarPrompt,
-} from './seuVideo'
+  segundosGerados, creditosDoSeuVideo, promptPadrao, validarPrompt, promptPorGenero,
+} from './seuVideoRules'
+import type { SeuVideoGender, SeuVideoPresentation } from './seuVideoRules'
 
 export type SeuVideoPhase = 'local' | 'video-upload' | 'check' | 'photo-upload' | 'generate' | 'status'
 export class SeuVideoClientError extends Error {
@@ -44,6 +45,8 @@ export type CheckedSeuVideo = Readonly<{
   balance?: number
   shortfall?: number
   needs_plan?: boolean
+  presentation?: SeuVideoPresentation
+  genders?: readonly SeuVideoGender[]
 }>
 export type SeuVideoClip = Readonly<{
   id: string
@@ -55,7 +58,7 @@ export type SeuVideoClip = Readonly<{
   refundConfirmed: boolean
 }>
 export type SeuVideoSubmission = Readonly<{ clip: SeuVideoClip; replay: boolean; key: string }>
-export type PrepareSeuVideoInput = { file: File; people: number; positions?: readonly string[] }
+export type PrepareSeuVideoInput = { file: File; people: number; positions?: readonly string[]; genders?: readonly SeuVideoGender[] }
 export type GenerateSeuVideoInput = {
   checked: CheckedSeuVideo
   photos: readonly File[]
@@ -64,16 +67,20 @@ export type GenerateSeuVideoInput = {
   key: string
   /** Actual latest /check credits the person has explicitly confirmed. */
   confirmedCredits: number
+  promptEdited?: boolean
+  genders?: readonly SeuVideoGender[]
 }
 export type SeuVideoClientDeps = {
   fetch?: typeof fetch
   preparePhoto?: (file: File) => Promise<File>
+  presentation?: SeuVideoPresentation
 }
 const API = '/api/recreate/seu-video'
 const PHOTO_MAX_BYTES = 8 * 1024 * 1024 // same input limit as the existing Recreate photo uploader
 const APPROVED_ONLY = 'This preview is available to approved accounts only. Your files are still here.'
 const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v)
 const record = (v: unknown): Record<string, unknown> => v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : {}
+export const isSeuVideoRefusal = (code: unknown): boolean => typeof code === 'string' && ['refused_face', 'engine_refused', 'provider_rejected', 'provider_failed', 'not_swapped', 'swap_unchanged'].includes(code)
 function fail(message: string, code: string, phase: SeuVideoPhase = 'local'): never { throw new SeuVideoClientError(message, code, phase) }
 const abort = (signal?: AbortSignal) => { if (signal?.aborted) throw new SeuVideoClientError('The request was cancelled. Your local files are still here.', 'aborted', 'local') }
 
@@ -88,6 +95,20 @@ export function defaultSeuVideoPrompt(people: number, positions: readonly string
   peopleCount(people)
   return promptPadrao(people, positions)
 }
+export function genderSeuVideoPrompt(genders: readonly SeuVideoGender[], positions: readonly string[] = []): string {
+  return promptPorGenero(genders, positions)
+}
+function chosenGenders(genders: readonly SeuVideoGender[] | undefined, people: number): readonly SeuVideoGender[] | undefined {
+  if (genders === undefined) return undefined // old callers remain compatible
+  if (!Array.isArray(genders) || genders.length !== people || genders.some(g => g !== 'man' && g !== 'woman')) fail('Choose Man or Woman for each photo.', 'genders')
+  return Object.freeze([...genders])
+}
+function presentationFrom(value: unknown): SeuVideoPresentation | undefined {
+  const v = record(value)
+  if (typeof v.resolution !== 'string' || !v.resolution || typeof v.waitLabel !== 'string' || !v.waitLabel || !['silent', 'original'].includes(String(v.audio))) return undefined
+  if (![v.minSeconds, v.maxSeconds, v.minSide, v.maxBytes, v.minFps, v.maxFps].every(finite) || Number(v.minSeconds) <= 0 || Number(v.maxSeconds) < Number(v.minSeconds) || Number(v.minSide) < 0 || Number(v.maxBytes) <= 0 || Number(v.minFps) <= 0 || Number(v.maxFps) < Number(v.minFps)) return undefined
+  return Object.freeze({ resolution: v.resolution, audio: v.audio as SeuVideoPresentation['audio'], waitLabel: v.waitLabel, minSeconds: Number(v.minSeconds), maxSeconds: Number(v.maxSeconds), minSide: Number(v.minSide), maxBytes: Number(v.maxBytes), minFps: Number(v.minFps), maxFps: Number(v.maxFps) })
+}
 export function validateSeuVideoPhotos(photos: readonly File[]): void {
   peopleCount(photos.length)
   for (const file of photos) {
@@ -96,13 +117,17 @@ export function validateSeuVideoPhotos(photos: readonly File[]): void {
   }
 }
 /** Local bytes only; the server remains the authority for fps and final quote. */
-export async function validateSeuVideoFile(file: File): Promise<LocalSeuVideo> {
-  if (!file || !finite(file.size) || file.size <= 0 || file.size > SEU_VIDEO_LIMITES.maxBytes) fail('Choose a video up to 100 MB.', 'size')
+export async function validateSeuVideoFile(file: File, presentation?: SeuVideoPresentation): Promise<LocalSeuVideo> {
+  const limits = presentationFrom(presentation)
+  if (presentation && !limits) fail('Could not read the current video requirements. Reload this page.', 'presentation')
+  if (!file || !finite(file.size) || file.size <= 0 || file.size > Math.min(SEU_VIDEO_LIMITES.maxBytes, limits?.maxBytes ?? SEU_VIDEO_LIMITES.maxBytes)) fail('Choose a video up to 100 MB.', 'size')
   const contentType = seuVideoContentType(file)
   if (!contentType) fail('Choose an MP4 or MOV video. WebM is not supported.', 'format')
   const meta = await lerMetaDoVideo(async (start, end) => new Uint8Array(await file.slice(start, end + 1).arrayBuffer()), file.size)
   if (!meta || !finite(meta.segundos) || !finite(meta.largura) || !finite(meta.altura) || meta.largura <= 0 || meta.altura <= 0) fail('Could not read this video. Choose an MP4 or MOV video.', 'format')
-  if (meta.segundos < SEU_VIDEO_LIMITES.minSegundos || meta.segundos > SEU_VIDEO_LIMITES.maxSegundos) fail('Choose a video between 2 and 15 seconds long.', 'duration')
+  const minSeconds = limits?.minSeconds ?? SEU_VIDEO_LIMITES.minSegundos, maxSeconds = Math.min(SEU_VIDEO_LIMITES.maxSegundos, limits?.maxSeconds ?? SEU_VIDEO_LIMITES.maxSegundos)
+  if (meta.segundos < minSeconds || meta.segundos > maxSeconds) fail(`Choose a video between ${minSeconds} and ${maxSeconds} seconds long.`, 'duration')
+  if (limits && Math.min(meta.largura, meta.altura) < limits.minSide) fail(`Choose a video with at least ${limits.minSide} pixels on each side.`, 'resolution')
   return Object.freeze({ file, contentType, seconds: meta.segundos, bytes: file.size, width: meta.largura, height: meta.altura, estimatedCredits: estimateSeuVideoCredits(meta.segundos) })
 }
 
@@ -112,9 +137,8 @@ function clipFrom(value: unknown, phase: 'generate' | 'status'): SeuVideoClip {
   const refunded = finite(v.credits_refunded) && v.credits_refunded >= 0 ? v.credits_refunded : undefined
   const video = v.status === 'done' && typeof v.video_url === 'string' && /^https?:\/\//i.test(v.video_url) ? v.video_url : null
   const refundConfirmed = phase === 'status' && v.status === 'failed' && refunded !== undefined && refunded > 0
-  const refusal = phase === 'status' && v.status === 'failed' && v.reason === 'engine_refused'
-    ? 'The engine did not accept this photo or video. Try another photo or video.' + (refundConfirmed ? ` Your ${refunded} credits were refunded.` : ' Check My videos for the final billing status.') : undefined
-  return Object.freeze({ id: v.id, status: v.status as SeuVideoClip['status'], ...(phase === 'status' ? { video_url: video, ...(refunded === undefined ? {} : { credits_refunded: refunded }), ...(typeof v.reason === 'string' ? { reason: v.reason } : {}), ...(refusal ? { message: refusal } : {}) } : {}), refundConfirmed })
+  const message = typeof v.message === 'string' && v.message.trim() ? v.message : undefined
+  return Object.freeze({ id: v.id, status: v.status as SeuVideoClip['status'], ...(phase === 'status' ? { video_url: video, ...(refunded === undefined ? {} : { credits_refunded: refunded }), ...(typeof v.reason === 'string' ? { reason: v.reason } : {}), ...(message ? { message } : {}) } : {}), refundConfirmed })
 }
 
 export function createSeuVideoClient(deps: SeuVideoClientDeps = {}) {
@@ -141,9 +165,9 @@ export function createSeuVideoClient(deps: SeuVideoClientDeps = {}) {
       let message = typeof data.error === 'string' ? data.error : 'This step could not finish. Please retry.'
       if (res.status === 401) message = 'Sign in to continue. Your files are still here.'
       if (res.status === 404) message = APPROVED_ONLY
-      if (['refused_face', 'engine_refused', 'provider_rejected', 'provider_failed'].includes(code)) message = 'The engine did not accept this photo or video. Try another photo or video. Check My videos for the final billing status.'
       if (code === 'idempotency_conflict') message = 'This request key is already in use. Check My videos before starting another request.'
-      throw new SeuVideoClientError(message, code, phase, res.status, phase === 'generate' && (res.status >= 500 || ['refused_face', 'engine_refused', 'provider_rejected', 'provider_failed', 'idempotency_conflict'].includes(code)) ? 'unknown' : 'not-started', finite(data.shortfall) ? data.shortfall : undefined)
+      const refused = isSeuVideoRefusal(code)
+      throw new SeuVideoClientError(message, code, phase, res.status, phase === 'generate' && !refused && (res.status >= 500 || code === 'idempotency_conflict') ? 'unknown' : 'not-started', finite(data.shortfall) ? data.shortfall : undefined)
     }
     if (Object.keys(data).length === 0) throw new SeuVideoClientError('Could not read the response. Keep this page open and retry the same request.', 'response', phase, res.status, phase === 'generate' ? 'unknown' : 'not-started')
     return data
@@ -151,7 +175,8 @@ export function createSeuVideoClient(deps: SeuVideoClientDeps = {}) {
 
   async function prepareSeuVideo(input: PrepareSeuVideoInput, signal?: AbortSignal): Promise<CheckedSeuVideo> {
     abort(signal); peopleCount(input.people)
-    const local = await validateSeuVideoFile(input.file)
+    const genders = chosenGenders(input.genders, input.people)
+    const local = await validateSeuVideoFile(input.file, deps.presentation)
     abort(signal)
     const ticket = await jsonRequest(API + '/upload', 'video-upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bytes: local.bytes, content_type: local.contentType }), signal })
     if (typeof ticket.video_path !== 'string' || !ticket.video_path || typeof ticket.upload_url !== 'string' || !/^https?:\/\//i.test(ticket.upload_url)) fail('Could not prepare the video upload. Please retry.', 'response', 'video-upload')
@@ -161,9 +186,11 @@ export function createSeuVideoClient(deps: SeuVideoClientDeps = {}) {
     catch { throw new SeuVideoClientError('Video upload did not finish. Keep the file here and retry.', signal?.aborted ? 'aborted' : 'network', 'video-upload') }
     if (!uploaded.ok) throw new SeuVideoClientError('Video upload did not finish. Keep the file here and retry.', 'upload', 'video-upload', uploaded.status)
     abort(signal)
-    const data = await jsonRequest(API + '/check', 'check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ video_path: ticket.video_path, people: input.people, ...(input.positions ? { positions: input.positions } : {}) }), signal })
+    const data = await jsonRequest(API + '/check', 'check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ video_path: ticket.video_path, people: input.people, ...(input.positions ? { positions: input.positions } : {}), ...(genders ? { genders } : {}) }), signal })
     if (data.ok !== true || !finite(data.seconds) || !finite(data.fps) || !finite(data.width) || !finite(data.height) || !finite(data.bytes) || !finite(data.generated_seconds) || !finite(data.credits) || data.credits < 0 || typeof data.prompt !== 'string' || !data.prompt.trim()) fail('Could not verify the video and its cost. Check the video again.', 'response', 'check')
-    const checked: CheckedSeuVideo = Object.freeze({ video_path: ticket.video_path, people: input.people, seconds: data.seconds, fps: data.fps, width: data.width, height: data.height, bytes: data.bytes, generated_seconds: data.generated_seconds, credits: data.credits, prompt: data.prompt, ...(typeof data.aspect_ratio === 'string' ? { aspect_ratio: data.aspect_ratio } : {}), ...(finite(data.balance) ? { balance: data.balance } : {}), ...(finite(data.shortfall) ? { shortfall: data.shortfall } : {}), ...(typeof data.needs_plan === 'boolean' ? { needs_plan: data.needs_plan } : {}) })
+    const presentation = presentationFrom(data.presentation) ?? presentationFrom(deps.presentation)
+    if (data.presentation !== undefined && !presentationFrom(data.presentation)) fail('Could not read the checked video requirements. Check the video again.', 'response', 'check')
+    const checked: CheckedSeuVideo = Object.freeze({ video_path: ticket.video_path, people: input.people, seconds: data.seconds, fps: data.fps, width: data.width, height: data.height, bytes: data.bytes, generated_seconds: data.generated_seconds, credits: data.credits, prompt: data.prompt, ...(presentation ? { presentation } : {}), ...(genders ? { genders } : {}), ...(typeof data.aspect_ratio === 'string' ? { aspect_ratio: data.aspect_ratio } : {}), ...(finite(data.balance) ? { balance: data.balance } : {}), ...(finite(data.shortfall) ? { shortfall: data.shortfall } : {}), ...(typeof data.needs_plan === 'boolean' ? { needs_plan: data.needs_plan } : {}) })
     checkedVideos.add(checked)
     return checked
   }
@@ -198,14 +225,16 @@ export function createSeuVideoClient(deps: SeuVideoClientDeps = {}) {
     if (checked.shortfall !== undefined && checked.shortfall > 0) throw new SeuVideoClientError(`You need ${checked.shortfall} more credits.`, 'credits', 'local', 402, 'not-started', checked.shortfall)
     validateSeuVideoPhotos(input.photos)
     if (input.photos.length !== checked.people) fail('The number of photos changed. Check the video and prompt again.', 'people_changed')
+    const genders = chosenGenders(input.genders ?? checked.genders, input.photos.length)
+    if (checked.genders && JSON.stringify(genders) !== JSON.stringify(checked.genders)) fail('The photo choices changed. Check the video and prompt again.', 'genders_changed')
     if (!input.consent) fail('Confirm permission to use this video and these photos.', 'consent')
     const prompt = validarPrompt(input.prompt, input.photos.length)
     if (!prompt.ok) fail(prompt.error.replace(/ Nothing was charged\./g, ''), 'prompt')
     // Same accepted key format as clipFlow; the caller owns its lifetime.
     if (typeof input.key !== 'string' || !/^[A-Za-z0-9._:-]{8,100}$/.test(input.key)) fail('Keep a valid request key before generating.', 'idempotency')
-    const selectedPhotos = [...input.photos], key = input.key, promptEdited = prompt.prompt !== checked.prompt
+    const selectedPhotos = [...input.photos], key = input.key, promptEdited = input.promptEdited === true || !!genders || prompt.prompt !== checked.prompt
     const photoIds = selectedPhotos.map(file => { if (!fileIds.has(file)) fileIds.set(file, ++nextFileId); return fileIds.get(file) })
-    const fingerprint = JSON.stringify([checked.video_path, checked.people, prompt.prompt, photoIds, true])
+    const fingerprint = JSON.stringify([checked.video_path, checked.people, prompt.prompt, photoIds, true, promptEdited, genders])
     const existing = jobs.get(key)
     if (existing && existing.fingerprint !== fingerprint) fail('This request key belongs to different inputs. Keep the earlier request or start a new one explicitly.', 'idempotency_conflict')
     if (existing?.result) return existing.result

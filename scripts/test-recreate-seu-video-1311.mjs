@@ -16,7 +16,8 @@ let ok = 0
 const falhas = []
 const checa = (n, c) => { if (c) { ok++; console.log('  ok  ' + n) } else { falhas.push(n); console.log('  FALHA ' + n) } }
 const ARQ = 'lib/recreate/seuVideo.ts'
-const carrega = (mutar = null) => createOfflineLoader({ source: (rel, text) => (mutar && rel === ARQ ? mutar(text) : text) })(ARQ)
+const REGRAS = 'lib/recreate/seuVideoRules.ts'
+const carrega = (mutar = null, alvo = ARQ) => createOfflineLoader({ source: (rel, text) => (mutar && rel === alvo ? mutar(text) : text) })(ARQ)
 
 // ── MP4 sintético (ISO BMFF), só as caixas que o leitor usa ─────────────────────────────────────────────────────────────────────
 const be = (n, w = 4) => { const b = Buffer.alloc(w); if (w === 8) b.writeBigUInt64BE(BigInt(n)); else b.writeUInt32BE(n >>> 0); return b }
@@ -430,12 +431,12 @@ const kBase = await provasK(carrega(), carregaSC())
 checa(`K Kling 4.0 edição no "seu vídeo": provas verdes${kBase.length ? ': ' + kBase.join(' · ') : ''}`, kBase.length === 0)
 const servMarcaK = r('lib/clips/freeClipWatermarkServer.ts'), clipSrvK = r('lib/clips/clipServer.ts')
 checa('K o som do Kling sai antes de guardar: na montagem (mute) e no caminho simples', servMarcaK.includes('download: async (url) => (ctx.mute ? silenciarMp4(await downloadBytes(url)) : downloadBytes(url))') && clipSrvK.includes('mute: row.model === KLING4_EDIT_MODEL') && clipSrvK.includes('const buf = row.model === KLING4_EDIT_MODEL ? silenciarMp4(new Uint8Array(cru)) : cru'))
-checa('K a rota escolhe o motor pelo interruptor e o evento diz qual rodou', gera.includes("const input = motor === 'kling4' ? entradaKling4(") && gera.includes('model, motor, video_seconds') && r('app/api/recreate/seu-video/check/route.ts').includes('prompt: promptDoSeuVideo(SEU_VIDEO_MOTOR, people, positions), engine: SEU_VIDEO_MOTOR'))
+checa('K a rota escolhe o motor pelo interruptor e o evento diz qual rodou', gera.includes("const input = motor === 'kling4' ? entradaKling4(") && gera.includes('model, motor, video_seconds') && r('app/api/recreate/seu-video/check/route.ts').includes('prompt: genders ? promptPorGenero(genders as SeuVideoGender[], positions) : promptDoSeuVideo(SEU_VIDEO_MOTOR, people, positions), engine: SEU_VIDEO_MOTOR'))
 const MUTANTES_K = [
   ['K padrão no Seedance', ARQ, (s) => s.replace("export const SEU_VIDEO_MOTOR: MotorDoSeuVideo = 'kling4'", "export const SEU_VIDEO_MOTOR: MotorDoSeuVideo = 'seedance25'")],
   ['K Kling em 1080p (padrão da fal)', ARQ, (s) => s.replace("image_urls: a.fotos, resolution: '720p' }", 'image_urls: a.fotos }')],
   ['K sem o mínimo de 700 px', ARQ, (s) => s.replace('if (Math.min(meta.largura, meta.altura) < KLING4_LIMITES.minLado) return', 'if (false) return')],
-  ['K som do Kling fica', ARQ, (s) => s.replace("if (hdlr && tipo(out, hdlr.ini + 8) === 'soun') out.set(", 'if (false) out.set(')],
+  ['K som do Kling fica', REGRAS, (s) => s.replace("if (hdlr && tipo(out, hdlr.ini + 8) === 'soun') out.set(", 'if (false) out.set(')],
   ['K custo sem o mínimo 2× a saída', ARQ, (s) => s.replace('Math.max(segundosDoVideo + segundosDaSaida, 2 * segundosDaSaida)', 'segundosDaSaida')],
   ['K trava do Kling com aviso de redesenho', SC, (s) => s.replace('subject: photos.length === 1 ? SEU_VIDEO_SUJEITO_CHECAGEM : undefined, baseVideoUrl: video, redrawn: false }', 'subject: photos.length === 1 ? SEU_VIDEO_SUJEITO_CHECAGEM : undefined, baseVideoUrl: video, redrawn: true }')],
   ['K som original ignora o Kling', ARQ, (s) => s.replace("const u = row.model === KLING4_EDIT_MODEL ? (typeof um === 'string' ? um : '') :", 'const u =')],
@@ -443,32 +444,31 @@ const MUTANTES_K = [
 for (const [nome, arq, fn] of MUTANTES_K) {
   const fonte = lf(fs.readFileSync(arq, 'utf8')), mudou = fn(fonte) !== fonte
   let e = ['(mutante não aplicou)']
-  if (mudou) { try { e = await provasK(arq === ARQ ? carrega(fn) : carrega(), arq === SC ? carregaSC(fn) : carregaSC()) } catch (x) { e = ['lançou: ' + x.message] } }
+  if (mudou) { try { e = await provasK(arq === ARQ || arq === REGRAS ? carrega(fn, arq) : carrega(), arq === SC ? carregaSC(fn) : carregaSC()) } catch (x) { e = ['lançou: ' + x.message] } }
   checa(`mutante "${nome}" fica vermelho (${mudou ? e.length + ' erro(s)' : 'NÃO APLICOU'})`, mudou && e.length > 0)
 }
 
 // (M) mutantes
 const MUTANTES = [
-  ['task no padrão (sem "reference" explícito)', (s) => s.replace("return { prompt: a.prompt, task: 'reference', image_urls", 'return { prompt: a.prompt, image_urls')],
-  ['prompt sem o enquadramento do @Video1', (s) => s.replaceAll('with the same framing and camera as @Video1 and the same scene', 'and the same scene')],
-  ['sem a régua de fps', (s) => s.replace('if (meta.fps < L.minFps - 0.5 || meta.fps > L.maxFps + 0.5) return', 'if (false) return')],
-  ['sem o teto de 15 s', (s) => s.replace('meta.segundos > L.maxSegundos + 0.25', 'false')],
-  ['pega a 1ª trilha (áudio)', (s) => s.replace("if (!mdia || !hdlr || tipo(moov, hdlr.ini + 8) !== 'vide') continue", 'if (!mdia || !hdlr) continue')],
-  ['mdhd v1 lido como v0', (s) => s.replace('const v1 = moov[mdhd.ini] === 1', 'const v1 = false')],
-  ['duração gerada sem o piso de 4', (s) => s.replace('Math.max(4, Math.round(segundosDoVideo))', 'Math.round(segundosDoVideo)')],
-  ['tudo na tarifa de 10 s', (s) => s.replace('recreateCreditCost(gerados <= 10 ? 10 : 15)', 'recreateCreditCost(10)')],
-  ['custo fal só do gerado', (s) => s.replace('(segundosDoVideo + gerados) * SEEDANCE25_USD_POR_SEGUNDO_480P', 'gerados * SEEDANCE25_USD_POR_SEGUNDO_480P')],
-  ['prompt sem conferir cada foto', (s) => s.replace('for (let i = 1; i <= fotos; i++) if (!t.includes(`@Image${i}`)) return', 'for (let i = 1; i <= 0; i++) if (!t.includes(`@Image${i}`)) return')],
-  ['caminho de qualquer cliente', (s) => s.replace('`^${SEU_VIDEO_PASTA}/${userId}/[0-9a-f-]{36}', '`^${SEU_VIDEO_PASTA}/[0-9a-f-]{36}/[0-9a-f-]{36}')],
-  ['com som e 720p', (s) => s.replace("resolution: '480p', duration: String(a.gerados), aspect_ratio: a.proporcao, generate_audio: false", "resolution: '720p', duration: String(a.gerados), aspect_ratio: a.proporcao, generate_audio: true")],
-  ['recusa com outra frase', (s) => s.replace("'The engine did not accept this photo. Nothing was charged. Try another photo.'", "'The engine refused this.'")],
-  ['aberto ao público', (s) => s.replace("export const SEU_VIDEO_RELEASE: InternalRelease = 'internal'", "export const SEU_VIDEO_RELEASE: InternalRelease = 'public'")],
+  ['task no padrão (sem "reference" explícito)', ARQ, (s) => s.replace("return { prompt: a.prompt, task: 'reference', image_urls", 'return { prompt: a.prompt, image_urls')],
+  ['prompt sem o enquadramento do @Video1', REGRAS, (s) => s.replaceAll('with the same framing and camera as @Video1 and the same scene', 'and the same scene')],
+  ['sem a régua de fps', ARQ, (s) => s.replace('if (meta.fps < L.minFps - 0.5 || meta.fps > L.maxFps + 0.5) return', 'if (false) return')],
+  ['sem o teto de 15 s', ARQ, (s) => s.replace('meta.segundos > L.maxSegundos + 0.25', 'false')],
+  ['pega a 1ª trilha (áudio)', REGRAS, (s) => s.replace("if (!mdia || !hdlr || tipo(moov, hdlr.ini + 8) !== 'vide') continue", 'if (!mdia || !hdlr) continue')],
+  ['mdhd v1 lido como v0', REGRAS, (s) => s.replace('const v1 = moov[mdhd.ini] === 1', 'const v1 = false')],
+  ['duração gerada sem o piso de 4', REGRAS, (s) => s.replace('Math.max(4, Math.round(segundosDoVideo))', 'Math.round(segundosDoVideo)')],
+  ['tudo na tarifa de 10 s', REGRAS, (s) => s.replace('recreateCreditCost(gerados <= 10 ? 10 : 15)', 'recreateCreditCost(10)')],
+  ['custo fal só do gerado', ARQ, (s) => s.replace('(segundosDoVideo + gerados) * SEEDANCE25_USD_POR_SEGUNDO_480P', 'gerados * SEEDANCE25_USD_POR_SEGUNDO_480P')],
+  ['prompt sem conferir cada foto', REGRAS, (s) => s.replace('for (let i = 1; i <= fotos; i++) if (!t.includes(`@Image${i}`)) return', 'for (let i = 1; i <= 0; i++) if (!t.includes(`@Image${i}`)) return')],
+  ['caminho de qualquer cliente', ARQ, (s) => s.replace('`^${SEU_VIDEO_PASTA}/${userId}/[0-9a-f-]{36}', '`^${SEU_VIDEO_PASTA}/[0-9a-f-]{36}/[0-9a-f-]{36}')],
+  ['com som e 720p', ARQ, (s) => s.replace("resolution: '480p', duration: String(a.gerados), aspect_ratio: a.proporcao, generate_audio: false", "resolution: '720p', duration: String(a.gerados), aspect_ratio: a.proporcao, generate_audio: true")],
+  ['recusa com outra frase', ARQ, (s) => s.replace("'The engine did not accept this photo. Nothing was charged. Try another photo.'", "'The engine refused this.'")],
+  ['aberto ao público', ARQ, (s) => s.replace("export const SEU_VIDEO_RELEASE: InternalRelease = 'internal'", "export const SEU_VIDEO_RELEASE: InternalRelease = 'public'")],
 ]
-const src = lf(fs.readFileSync(ARQ, 'utf8'))
-for (const [nome, fn] of MUTANTES) {
-  const mudou = fn(src) !== src
+for (const [nome, alvo, fn] of MUTANTES) {
+  const src = lf(fs.readFileSync(alvo, 'utf8')), mudou = fn(src) !== src
   let e = ['(mutante não aplicou)']
-  if (mudou) { try { e = await provas(carrega(fn)) } catch (x) { e = ['lançou: ' + x.message] } }
+  if (mudou) { try { e = await provas(carrega(fn, alvo)) } catch (x) { e = ['lançou: ' + x.message] } }
   checa(`mutante "${nome}" fica vermelho (${mudou ? e.length + ' erro(s)' : 'NÃO APLICOU'})`, mudou && e.length > 0)
 }
 console.log(`\n${ok} ok, ${falhas.length} falha(s)`)

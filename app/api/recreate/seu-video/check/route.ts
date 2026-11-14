@@ -6,6 +6,9 @@ import { isPayingPlan } from '@/app/api/admin/_shared/mrr'
 import { RECREATE_HEADERS } from '@/lib/recreate/server'
 import { lerVideoDoCliente, seuVideoSession } from '@/lib/recreate/seuVideoServer'
 import { promptDoSeuVideo, SEU_VIDEO_MOTOR, SEU_VIDEO_VERSAO } from '@/lib/recreate/seuVideo' // KINEO-RECREATE-KLING4-1311
+import { promptPorGenero } from '@/lib/recreate/seuVideoRules'
+import type { SeuVideoGender } from '@/lib/recreate/seuVideoRules'
+import { seuVideoPresentation } from '@/lib/recreate/seuVideoPresentation'
 import { writeServerEvent } from '@/lib/serverEvents'
 
 export const dynamic = 'force-dynamic'
@@ -30,9 +33,12 @@ export async function POST(req: NextRequest) {
   }
   const people = Math.min(3, Math.max(1, Math.round(Number(raw.people) || 1)))
   const positions = Array.isArray(raw.positions) ? raw.positions.map((x) => String(x ?? '')) : []
+  const genders = raw.genders === undefined ? undefined : raw.genders
+  if (genders !== undefined && (!Array.isArray(genders) || genders.length !== people || genders.some(g => g !== 'man' && g !== 'woman'))) return json({ error: 'Choose Man or Woman for each photo.', code: 'genders' }, 400)
   return json({
     ok: true, seconds: Math.round(v.meta.segundos * 10) / 10, fps: Math.round(v.meta.fps), width: v.meta.largura, height: v.meta.altura, bytes: v.bytes,
     generated_seconds: v.gerados, aspect_ratio: v.proporcao, credits: v.creditos, balance: account.balance, shortfall: Math.max(0, (v.creditos ?? 0) - account.balance),
-    needs_plan: v.gerados > 10 && !isPayingPlan(account.plan), prompt: promptDoSeuVideo(SEU_VIDEO_MOTOR, people, positions), engine: SEU_VIDEO_MOTOR, // KINEO-RECREATE-KLING4-1311 — + engine
+    needs_plan: v.gerados > 10 && !isPayingPlan(account.plan), prompt: genders ? promptPorGenero(genders as SeuVideoGender[], positions) : promptDoSeuVideo(SEU_VIDEO_MOTOR, people, positions), engine: SEU_VIDEO_MOTOR, // legacy engine response retained; browser uses public presentation only
+    presentation: seuVideoPresentation(), ...(genders ? { prompt_edited: true } : {}),
   })
 }
