@@ -158,7 +158,7 @@ async function routeChecks(overrides, expectFlowOn = false) {
   user = { id: U, email: HOUSE }
   ok((await idPage({ params: { id: 'passarela' } })).props.formatIds.includes('passarela'), 'casa abre o formato em teste')
   // Arquivos do vídeo-base.
-  const assets = loader({ '@/lib/recreate/server': server }, overrides)('app/api/recreate/assets/[name]/route')
+  const assets = loader({ '@/lib/recreate/server': server, 'server-only': {} }, overrides)('app/api/recreate/assets/[name]/route') // reancorado KINEO-MOVIMENTO-REVISOR-2-1411 — a rota lê o módulo dos demos (server-only), o mesmo dublê das páginas
   const asset = name => assets.GET(new NextRequest('https://www.usekineo.com/api/recreate/assets/' + name), { params: { name } })
   user = { id: U, email: CUSTOMER }
   ok((await asset('passarela.mp4')).status === (swapPublic ? 200 : 404), swapPublic ? 'cliente baixa a prévia da troca aprovada' : 'troca interna: cliente não baixa a prévia')
