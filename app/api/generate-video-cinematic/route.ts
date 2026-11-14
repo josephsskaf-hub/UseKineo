@@ -7429,7 +7429,7 @@ async function manipularPost(req: NextRequest) {
     // KINEO-ATRIBUTOS-DO-PEDIDO-1311 [CEO 13/11, item 3.1] — o que o PEDIDO diz do grupo e do cenário (roupa com cor, faixa de idade, clima) vai a todo plano que
     // ainda não o diz (e3c00f5c: o azul-marinho só no plano 2); antes do juiz da ficha e das imagens-chave; a conferência plano a plano vai ao evento.
     if (atributosLigados() && !qualidadeHerdada) { // KINEO-ATRIBUTOS-DO-PEDIDO-1311
-      const atrib = atributosEmTodoPlano(classicScenePrompts, pedidoDoCliente) // KINEO-ATRIBUTOS-DO-PEDIDO-1311
+      const atrib = atributosEmTodoPlano(classicScenePrompts, pedidoDoCliente, { ehIdeia: typeof body.original_idea === 'string' && body.original_idea.trim().length > 0 }) // KINEO-ATRIBUTOS-DO-PEDIDO-1311 — só ideia do cliente (tela ou recuperada) ou pedido de até 60 palavras; roteiro colado longo fica como está
       if (atrib.relato.mudou) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = atrib.prompts[i] // KINEO-ATRIBUTOS-DO-PEDIDO-1311
       if (atrib.relato.atributos) void writeServerEvent({ name: ATRIBUTOS_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { ...atrib.relato, dry_run: body.dry_run === true } }).catch(() => false) // KINEO-ATRIBUTOS-DO-PEDIDO-1311
     } // KINEO-ATRIBUTOS-DO-PEDIDO-1311
