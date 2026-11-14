@@ -37,12 +37,14 @@ const RSERVER = 'lib/recreate/server.ts', EVENTOS = 'app/api/events/route.ts', T
 
 // O molde de teste (o catálogo real nasce vazio: a CEO põe os demos validados). Um sem aprovação e um aprovado.
 const MOLDE = (id, aprovado, extra = '') => `{ id: '${id}', title: 'Football run', desde: '2026-11-14', type: 'motion', preview: '/api/recreate/assets/${id}.mp4', poster: '/api/recreate/assets/${id}.jpg', guia: 'lance-teste.mp4', seconds: 10, photoSlots: 1, pessoasNoGuia: 1, prompt: '', movimentoAprovado: ${aprovado}, cena: 'standing on a plain green football pitch, framed from the knees up, their face clearly visible and turned slightly toward the camera', acao: 'The person runs forward and dribbles a white football, the camera follows at the side, plain green pitch with plain unmarked boards'${extra} }`
+// KINEO-RECREATE-MOVIMENTO-MOLDE-1411 — os moldes de teste entram NA FRENTE da lista real (vazia ou não) e as chaves de teste no fim de RECREATE_ASSETS:
+// a âncora não depende mais da lista vazia nem do último asset (o 1º molde de verdade entra por scripts/recreate-movimento-novo-molde.mjs).
 function comMoldes(src, moldes = [MOLDE('lance-teste', false), MOLDE('lance-aprovado', true)]) {
-  const a = 'export const RECREATE_MOVIMENTO_MOLDES: readonly RecreateFormat[] = []'
-  const b = "  'selfie-confete.jpg': { file: 'recreate-selfie.jpg', contentType: 'image/jpeg' },\n} as const"
-  if (!src.includes(a) || !src.includes(b)) throw new Error('âncora do catálogo de teste')
-  return src.replace(a, `export const RECREATE_MOVIMENTO_MOLDES: readonly RecreateFormat[] = [${moldes.join(',')}]`)
-    .replace(b, "  'selfie-confete.jpg': { file: 'recreate-selfie.jpg', contentType: 'image/jpeg' },\n  'lance-teste.mp4': { file: 'recreate-passarela.mp4', contentType: 'video/mp4' },\n  'lance-teste.jpg': { file: 'recreate-passarela.jpg', contentType: 'image/jpeg' },\n} as const")
+  const m = /export const RECREATE_MOVIMENTO_MOLDES: readonly RecreateFormat\[\] = \[(\]?)/.exec(src)
+  const iAssets = src.indexOf('export const RECREATE_ASSETS = {'), iFim = src.indexOf('\n} as const', iAssets)
+  if (!m || iAssets < 0 || iFim < 0) throw new Error('âncora do catálogo de teste')
+  const comAssets = src.slice(0, iFim + 1) + "  'lance-teste.mp4': { file: 'recreate-passarela.mp4', contentType: 'video/mp4' },\n  'lance-teste.jpg': { file: 'recreate-passarela.jpg', contentType: 'image/jpeg' },\n" + src.slice(iFim + 1)
+  return comAssets.replace(m[0], `export const RECREATE_MOVIMENTO_MOLDES: readonly RecreateFormat[] = [${moldes.join(',')}${m[1] ? ']' : ','}`)
 }
 
 // Banco de mentira: só o que a reserva e a gravação do passo 2 usam (update condicional + select).
