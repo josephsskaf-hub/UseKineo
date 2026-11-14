@@ -20,6 +20,9 @@ import { businessAdsStamp } from '@/lib/growth/businessAdsAttribution'
 export const dynamic = 'force-dynamic'
 
 const SERVER_ONLY_EVENTS = new Set([
+  // KINEO-RECREATE-MOVIMENTO-1411 — os dois passos do molde de movimento e a leitura da foto (só o servidor grava).
+  'recreate_movimento_cena',
+  'recreate_pessoa_descricao',
   // KINEO-EMAIL-FILME-NA-PAGINA-1111 — o clique no botão do e-mail "filme pronto" é contado pela rota /api/email/filme-pronto.
   'video_ready_email_clicked',
   // KINEO-CARTAO-RECUSADO-0111 — carimbos de dedupe do laço do cartão recusado (um carimbo forjado calaria o aviso de

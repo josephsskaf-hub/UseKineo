@@ -18,6 +18,9 @@ export interface RecreatePlan {
   falUsd: number
   photos: string[]
   input: Record<string, unknown>
+  /** KINEO-RECREATE-MOVIMENTO-1411 — o que entra na impressão digital do pedido no lugar de `input` (o movimento tira dela a descrição lida da foto,
+   *  que pode variar entre duas leituras do MESMO pedido). Ausente = `input`, como sempre. */
+  fingerprintInput?: Record<string, unknown>
 }
 export type RecreatePlanResult = { ok: true; plan: RecreatePlan } | { ok: false; status: number; error: string }
 

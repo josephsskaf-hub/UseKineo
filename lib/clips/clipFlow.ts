@@ -43,6 +43,7 @@ import { clipEffectCredits, clipEffectEventMetadata, clipEffectForRow, clipTempl
 // KINEO-ROSTO-QUADRO-CHAVE-2810 — (condicional: um ator só) e envia o vídeo (Kling i2v) partindo do quadro-chave. Falha em qualquer
 // KINEO-ROSTO-QUADRO-CHAVE-2810 — etapa estorna o débito INTEIRO; a etapa 1 falhando, o motor de vídeo nunca é chamado.
 import { FACE_REMIX_EVENTS, FACE_REMIX_KEYFRAME_FAILED, FACE_REMIX_KEYFRAME_MODEL, faceRemixCredits, faceRemixEventMetadata, faceRemixFalUsd, faceRemixForRequest, faceRemixForRow, faceRemixKeyframeInput, faceRemixStageForRow } from './faceRemix' // KINEO-ROSTO-QUADRO-CHAVE-2810
+import { MOVIMENTO_FALHA, MOVIMENTO_VIDEO_MODEL, movimentoEnvio, movimentoEnvioEm, movimentoStageForRow } from '@/lib/recreate/movimento' // KINEO-RECREATE-MOVIMENTO-1411
 import { ownedClipImageUrl } from './clipCatalog' // KINEO-ROSTO-QUADRO-CHAVE-2810 — a posse do recorte do rosto (2ª referência do quadro-chave), a mesma régua da foto
 
 /** Pedido sem request_id da fal há mais que isto = o envio morreu no meio; estorna. */
@@ -272,7 +273,7 @@ export async function submitClip(
     return { ok: false, status: access.status, code: `engine_${access.reason}`, error }
   }
 
-  const fingerprint = recreate ? JSON.stringify([clipFingerprint(req), recreate.model, recreate.input]) : clipFingerprint(req)
+  const fingerprint = recreate ? JSON.stringify([clipFingerprint(req), recreate.model, recreate.fingerprintInput ?? recreate.input]) : clipFingerprint(req) // KINEO-RECREATE-MOVIMENTO-1411 — era: recreate.input
   const existing = await deps.findByKey(args.userId, args.idempotencyKey)
   if (existing) {
     if (existing.fingerprint !== fingerprint) {
@@ -450,6 +451,20 @@ export interface ClipKeyframeDeps { // KINEO-ROSTO-QUADRO-CHAVE-2810
   videoModel(row: ClipRow): string // KINEO-ROSTO-QUADRO-CHAVE-2810
 } // KINEO-ROSTO-QUADRO-CHAVE-2810
 
+/** KINEO-RECREATE-MOVIMENTO-1411 — os fios dos dois passos do molde de movimento (a ORDEM mora no settleClip; o clipServer só liga). */
+export interface ClipMovimentoDeps {
+  /** Copia a imagem do passo 1 para o NOSSO bucket (caminho fixo) e devolve a URL pública nossa. Lança se falhar. */
+  persist(row: ClipRow, providerUrl: string): Promise<string>
+  /** Reserva o passo 2: UPDATE condicional (modelo do passo 1 + o request_id da imagem) que troca o modelo, zera o request_id e grava a marca de envio. */
+  claim(row: ClipRow, marca: string): Promise<boolean>
+  /** "É a pessoa da foto?" na imagem, ANTES de pagar o vídeo. Nunca lança. */
+  gate(row: ClipRow, cenaUrl: string): Promise<{ result: 'same' | 'other' | 'unverified'; reason: string }>
+  /** Envia o passo 2 (um POST, sem retry do POST pago). */
+  submitVideo(row: ClipRow, cenaUrl: string): Promise<{ ok: true; requestId: string } | { ok: false; ambiguous: boolean; error: string }>
+  /** Grava o request_id do passo 2 e solta a marca (condicional: modelo do passo 2, sem request_id, com ESTA marca). */
+  markVideoSubmitted(id: string, marca: string, requestId: string): Promise<boolean>
+}
+
 export interface ClipSettleDeps {
   poll(model: string, requestId: string): Promise<ProviderState>
   /** Copia o MP4 para o nosso bucket e devolve a URL pública NOSSA. Lança se falhar. */
@@ -457,10 +472,12 @@ export interface ClipSettleDeps {
   refund(billingReference: string): Promise<number>
   markDone(id: string, videoUrl: string): Promise<boolean>
   markFailed(id: string, reason: string, refunded: number): Promise<boolean>
-  event(name: 'clip_delivered' | 'clip_failed' | 'clip_effect_ready' | 'face_remix_keyframe' | 'face_remix_ready' | 'clip_requested', metadata: Record<string, unknown>): Promise<void> // KINEO-ROSTO-QUADRO-CHAVE-2810 — + os dois eventos do remix
+  event(name: 'clip_delivered' | 'clip_failed' | 'clip_effect_ready' | 'face_remix_keyframe' | 'face_remix_ready' | 'clip_requested' | 'recreate_movimento_cena', metadata: Record<string, unknown>): Promise<void> // KINEO-ROSTO-QUADRO-CHAVE-2810 — + os dois eventos do remix · KINEO-RECREATE-MOVIMENTO-1411 — + recreate_movimento_cena
   now(): number
   /** KINEO-ROSTO-QUADRO-CHAVE-2810 — etapa 2 do remix. Ausente (guardiões antigos, caminhos sem remix) = linha de remix espera. */
   keyframe?: ClipKeyframeDeps // KINEO-ROSTO-QUADRO-CHAVE-2810
+  /** KINEO-RECREATE-MOVIMENTO-1411 — os dois passos do molde de movimento. Ausente = linha de movimento espera (nunca marca pronto com a imagem). */
+  movimento?: ClipMovimentoDeps
   /** KINEO-RECREATE-TRAVA-1011 — trava "não trocou" do Recreate (lib/recreate/swapCheck.ts). Só age onde applies(row) é true. */
   recreateSwap?: RecreateSwapSettleDeps // KINEO-RECREATE-TRAVA-1011
   /** KINEO-RECREATE-FILA-KLING-EDIT-1411 — a fila de um pedido por vez: o clipe da fila sai aqui quando chega a vez, e quem fecha solta a vaga. */
@@ -517,6 +534,7 @@ async function settleOpenClip(deps: ClipSettleDeps, row: ClipRow, depois: Array<
   const age = deps.now() - Date.parse(row.created_at)
   // KINEO-ROSTO-QUADRO-CHAVE-2810 — é remix? Em que etapa? (pelo prompt fixo + modelo da linha; nenhuma coluna nova.)
   const remixStage = faceRemixStageForRow(row) // KINEO-ROSTO-QUADRO-CHAVE-2810
+  const movStage = movimentoStageForRow(row) // KINEO-RECREATE-MOVIMENTO-1411 — molde de movimento: 'scene' (passo 1) ou 'motion' (passo 2), pela linha (catálogo + modelo), nunca pelos fios
   const remixMeta = (video: 'skipped' | 'rejected' | 'failed') => (remixStage ? { remix: faceRemixForRow(row)?.id ?? null, keyframe: remixStage === 'keyframe' ? 'failed' : 'done', video } : {}) // KINEO-ROSTO-QUADRO-CHAVE-2810 — as DUAS etapas no clip_failed
 
   // KINEO-ROSTO-QUADRO-CHAVE-2810 — `meta`: as duas etapas do remix no clip_failed (padrão pela etapa da linha; a recusa do Kling na etapa 2 passa a sua).
@@ -556,6 +574,13 @@ async function settleOpenClip(deps: ClipSettleDeps, row: ClipRow, depois: Array<
     // KINEO-RECREATE-FILA-REVISAO-1411 — a linha que SAIU da fila e está sendo mandada (marca queue_sending) não é 'envio perdido' aos 10 min de vida: ela pode
     // ter esperado na fila. Quem a fecha é a vaga vencida (resolverVagaVencida); o prazo abaixo é só a rede de segurança se ninguém mais pedir.
     if (deps.queue?.applies(row) && row.failure_reason === QUEUE_SENDING) return Number.isFinite(age) && age >= deps.queue.waitLimitMs + CLIP_PENDING_STALE_MS ? fail('submit_lost') : row
+    // KINEO-RECREATE-MOVIMENTO-1411 — passo 2 reservado e ainda sem request_id: a rede de 10 min conta da MARCA DE ENVIO (o passo 1 pode ter levado
+    // minutos), nunca da criação da linha; sem marca legível, da criação (como sempre).
+    if (movStage === 'motion') {
+      const enviadoEm = movimentoEnvioEm(row.failure_reason)
+      const desde = enviadoEm === null ? age : deps.now() - enviadoEm
+      return Number.isFinite(desde) && desde >= CLIP_PENDING_STALE_MS ? fail('submit_lost', null, { motion: 'video_lost' }) : row
+    }
     return Number.isFinite(age) && age >= CLIP_PENDING_STALE_MS ? fail('submit_lost') : row
   }
   if (deps.recreateSwap?.applies(row) && deps.recreateSwap.busy(row, deps.now())) return row // KINEO-RECREATE-TRAVA-1011 — outro ator checa: sai ANTES de consultar/baixar
@@ -564,6 +589,37 @@ async function settleOpenClip(deps: ClipSettleDeps, row: ClipRow, depois: Array<
   // KINEO-ROSTO-QUADRO-CHAVE-2810 — ETAPA 1 do remix (quadro-chave): falhou → estorna os 10 e o motor de vídeo NUNCA é chamado;
   // KINEO-ROSTO-QUADRO-CHAVE-2810 — pronto → persiste no nosso bucket (a URL da fal expira) → reserva a etapa 2 (um ator só) →
   // KINEO-ROSTO-QUADRO-CHAVE-2810 — envia o vídeo partindo do quadro-chave NOSSO → grava o request_id → evento com as duas etapas.
+  // KINEO-RECREATE-MOVIMENTO-1411 — PASSO 1 do movimento (a imagem): falhou → estorno, o vídeo nunca é chamado; pronto → copia a imagem para o NOSSO
+  // bucket → reserva o passo 2 (um ator só, com a marca de envio) → o juiz "é a pessoa da foto?" (uma vez: só quem reservou) → outra pessoa =
+  // estorno sem pagar o vídeo → envia o vídeo → grava o request_id (2 tentativas; perdido, a rede de 10 min da marca estorna).
+  if (movStage === 'scene') {
+    if (state.state === 'failed') return fail(MOVIMENTO_FALHA.cena, cleanProviderError(state.error), { motion: 'scene_failed' })
+    if (state.state !== 'done') return Number.isFinite(age) && age >= CLIP_EXPIRE_MS ? fail('expired', null, { motion: 'scene_expired' }) : row
+    if (!deps.movimento) return Number.isFinite(age) && age >= CLIP_EXPIRE_MS ? fail('expired', null, { motion: 'scene_expired' }) : row // sem os fios do passo 2, espera (nunca entrega a imagem como vídeo)
+    const mov = deps.movimento
+    let cenaUrl: string
+    try {
+      cenaUrl = await mov.persist(row, state.url)
+    } catch {
+      return Number.isFinite(age) && age >= CLIP_EXPIRE_MS ? fail('persist_failed', null, { motion: 'scene_persist_failed' }) : row
+    }
+    const marca = movimentoEnvio(deps.now())
+    if (!(await mov.claim(row, marca))) return row
+    const juiz = await mov.gate(row, cenaUrl).catch(() => ({ result: 'unverified' as const, reason: 'gate_error' }))
+    if (juiz.result === 'other') {
+      const closed = await fail(MOVIMENTO_FALHA.naoEVoce, null, { motion: 'not_you', judge: juiz.result, judge_reason: juiz.reason })
+      return { ...closed, model: MOVIMENTO_VIDEO_MODEL, fal_request_id: null }
+    }
+    const sent = await mov.submitVideo(row, cenaUrl)
+    if (!sent.ok) {
+      const closed = await fail(sent.ambiguous ? 'submit_ambiguous' : 'provider_rejected', cleanProviderError(sent.error), { motion: 'video_rejected', judge: juiz.result })
+      return { ...closed, model: MOVIMENTO_VIDEO_MODEL, fal_request_id: null }
+    }
+    let saved = await mov.markVideoSubmitted(row.id, marca, sent.requestId)
+    if (!saved) saved = await mov.markVideoSubmitted(row.id, marca, sent.requestId)
+    await deps.event('recreate_movimento_cena', { ...clipTelemetry(row), scene: 'done', video: 'submitted', judge: juiz.result, judge_reason: juiz.reason, scene_ms: Math.max(0, age), request_id: sent.requestId, tracking_saved: saved })
+    return { ...row, model: MOVIMENTO_VIDEO_MODEL, fal_request_id: saved ? sent.requestId : null, failure_reason: saved ? null : marca }
+  }
   if (remixStage === 'keyframe') { // KINEO-ROSTO-QUADRO-CHAVE-2810
     if (state.state === 'failed') return fail(FACE_REMIX_KEYFRAME_FAILED, cleanProviderError(state.error)) // KINEO-ROSTO-QUADRO-CHAVE-2810
     if (state.state !== 'done') return Number.isFinite(age) && age >= CLIP_EXPIRE_MS ? fail('expired') : row // KINEO-ROSTO-QUADRO-CHAVE-2810

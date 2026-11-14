@@ -46,6 +46,9 @@ import { SPACE_CLIP_ENGINE, SPACE_CLIP_SECONDS, SPACE_KINDS, buildSpaceMotionPro
 // KINEO-ROSTO-QUADRO-CHAVE-2810 — etapa 2 do "Put your face in it": o quadro-chave (PNG do Nano Banana) vai para o NOSSO bucket em
 // caminho determinístico e o vídeo (i2v do motor) parte dele. A ORDEM mora em lib/clips/clipFlow.ts settleClip; aqui só os fios.
 import { faceRemixKeyframePath, faceRemixStageForRow, faceRemixVideoModel, faceRemixForRow } from '@/lib/clips/faceRemix' // KINEO-ROSTO-QUADRO-CHAVE-2810
+import { MOVIMENTO_SELO, MOVIMENTO_CENA_MODEL, MOVIMENTO_VIDEO_MODEL, movimentoCenaPath, movimentoEntradaDoVideo, movimentoForRow, movimentoGuiaUrl, movimentoStageForRow } from '@/lib/recreate/movimento' // KINEO-RECREATE-MOVIMENTO-1411
+import { julgarCena } from '@/lib/recreate/movimentoJuiz' // KINEO-RECREATE-MOVIMENTO-1411
+import type { ClipMovimentoDeps } from '@/lib/clips/clipFlow' // KINEO-RECREATE-MOVIMENTO-1411
 import { buildClipFalInput } from '@/lib/clips/clipCatalog' // KINEO-ROSTO-QUADRO-CHAVE-2810 — a MESMA entrada do i2v do clipe comum, com o quadro-chave no lugar da foto
 import {
   CLIP_EXPIRE_MS,
@@ -255,10 +258,11 @@ export interface PublicClip {
 export function toPublicClip(row: ClipRow): PublicClip {
   const effect = clipEffectForRow(row)
   return {
-    stage: faceRemixStageForRow(row), // KINEO-ROSTO-QUADRO-CHAVE-2810
+    stage: faceRemixStageForRow(row) ?? ({ scene: 'keyframe', motion: 'video', none: null } as const)[movimentoStageForRow(row) ?? 'none'], // KINEO-ROSTO-QUADRO-CHAVE-2810 · KINEO-RECREATE-MOVIMENTO-1411 — o movimento mostra as duas etapas na Library como o remix
     id: row.id,
     engine: row.engine,
-    label: effect?.template?.label ?? (CLIP_ENGINES[row.engine] ? clipLabelForModel(row.engine, row.model) : row.engine), // KINEO-EFEITOS-NOVOS-2026-10-13 — selo do modelo real · KINEO-ROTULO-CLIPE-H3-1111: clipe antigo do trilho seedance = Seedance 1.5
+    label: movimentoForRow(row) ? MOVIMENTO_SELO : effect?.template?.label ?? (CLIP_ENGINES[row.engine] ? // KINEO-RECREATE-MOVIMENTO-1411 — selo honesto: o motor real do movimento (a linha guarda 'kling' só por ser chave do catálogo)
+      clipLabelForModel(row.engine, row.model) : row.engine), // KINEO-EFEITOS-NOVOS-2026-10-13 — selo do modelo real · KINEO-ROTULO-CLIPE-H3-1111: clipe antigo do trilho seedance = Seedance 1.5
     with_image: row.mode === 'image',
     seconds: row.seconds,
     aspect: row.aspect,
@@ -441,14 +445,13 @@ async function persistClipVideo(admin: SupabaseClient, row: ClipRow, providerUrl
 const MAX_KEYFRAME_BYTES = 20 * 1024 * 1024 // KINEO-ROSTO-QUADRO-CHAVE-2810
 
 /** O quadro-chave (PNG da fal, URL que expira) vai para o nosso bucket em caminho determinístico (upsert: dois atores, o MESMO arquivo). */
-async function persistClipKeyframe(admin: SupabaseClient, row: ClipRow, providerUrl: string): Promise<string> { // KINEO-ROSTO-QUADRO-CHAVE-2810
+async function persistClipKeyframe(admin: SupabaseClient, row: ClipRow, providerUrl: string, path: string = faceRemixKeyframePath(row.user_id, row.id)): Promise<string> { // KINEO-ROSTO-QUADRO-CHAVE-2810 · KINEO-RECREATE-MOVIMENTO-1411 — + path (a imagem do passo 1 do movimento usa o mesmo cofre)
   const res = await fetch(providerUrl, { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS), cache: 'no-store' }) // KINEO-ROSTO-QUADRO-CHAVE-2810
   if (!res.ok) throw new Error(`keyframe download ${res.status}`) // KINEO-ROSTO-QUADRO-CHAVE-2810
   const buf = await res.arrayBuffer() // KINEO-ROSTO-QUADRO-CHAVE-2810
   if (buf.byteLength === 0 || buf.byteLength > MAX_KEYFRAME_BYTES) throw new Error(`keyframe bad size ${buf.byteLength}`) // KINEO-ROSTO-QUADRO-CHAVE-2810
   const ct = res.headers.get('content-type') ?? '' // KINEO-ROSTO-QUADRO-CHAVE-2810
   const contentType = /image\/(png|jpeg|webp)/.test(ct) ? (ct.match(/image\/(?:png|jpeg|webp)/) as RegExpMatchArray)[0] : 'image/png' // KINEO-ROSTO-QUADRO-CHAVE-2810
-  const path = faceRemixKeyframePath(row.user_id, row.id) // KINEO-ROSTO-QUADRO-CHAVE-2810
   const { error } = await admin.storage.from(CLIPS_BUCKET).upload(path, buf, { contentType, upsert: true }) // KINEO-ROSTO-QUADRO-CHAVE-2810
   if (error) throw new Error(error.message) // KINEO-ROSTO-QUADRO-CHAVE-2810
   const { data } = admin.storage.from(CLIPS_BUCKET).getPublicUrl(path) // KINEO-ROSTO-QUADRO-CHAVE-2810
@@ -488,6 +491,44 @@ async function markRemixVideoSubmitted(admin: SupabaseClient, id: string, videoM
 function submitRemixVideo(row: ClipRow, videoModel: string, keyframeUrl: string) { // KINEO-ROSTO-QUADRO-CHAVE-2810
   return submitToFalOnce(videoModel, buildClipFalInput({ engine: row.engine, mode: 'i2v', model: videoModel, seconds: row.seconds, aspect: 'image', prompt: row.prompt, imageUrl: keyframeUrl })) // KINEO-ROSTO-QUADRO-CHAVE-2810
 } // KINEO-ROSTO-QUADRO-CHAVE-2810
+
+// ─── KINEO-RECREATE-MOVIMENTO-1411 — os dois passos do molde de movimento ─────
+// A ORDEM mora no settleClip; aqui só os fios. A reserva do passo 2 troca o modelo, zera o request_id e grava a marca de envio, condicionada ao modelo
+// do passo 1 + ao request_id da imagem (um ator só). A gravação do request_id é condicionada à MESMA marca e solta a marca.
+export function movimentoDepsFor(admin: SupabaseClient): ClipMovimentoDeps {
+  return {
+    persist: (row, url) => persistClipKeyframe(admin, row, url, movimentoCenaPath(row.user_id, row.id)),
+    claim: async (row, marca) => {
+      const { data, error } = await admin.from(CLIPS_TABLE)
+        .update({ model: MOVIMENTO_VIDEO_MODEL, fal_request_id: null, failure_reason: marca })
+        .eq('id', row.id).eq('status', 'processing').eq('model', MOVIMENTO_CENA_MODEL).eq('fal_request_id', row.fal_request_id)
+        .select('id')
+      if (error) console.error(`[clips] motion claim failed clip=${row.id}:`, error.message)
+      return !error && (data ?? []).length > 0
+    },
+    gate: (row, cenaUrl) => julgarCena(row.image_url, cenaUrl),
+    submitVideo: async (row, cenaUrl) => {
+      const f = movimentoForRow(row)
+      const guia = f ? movimentoGuiaUrl(f, process.env.NEXT_PUBLIC_SUPABASE_URL ?? '') : null
+      if (!f || !guia) return { ok: false as const, ambiguous: false, error: 'Motion guide unavailable' }
+      return submitToFalOnce(MOVIMENTO_VIDEO_MODEL, movimentoEntradaDoVideo(f, cenaUrl, guia))
+    },
+    markVideoSubmitted: async (id, marca, requestId) => {
+      const { data, error } = await admin.from(CLIPS_TABLE)
+        .update({ fal_request_id: requestId, failure_reason: null, submitted_at: new Date().toISOString() })
+        .eq('id', id).eq('status', 'processing').eq('model', MOVIMENTO_VIDEO_MODEL).is('fal_request_id', null).eq('failure_reason', marca)
+        .select('id')
+      if (error) console.error(`[clips] motion markVideoSubmitted failed clip=${id} request=${requestId}:`, error.message)
+      return !error && (data ?? []).length > 0
+    },
+  }
+}
+/** KINEO-RECREATE-MOVIMENTO-1411 — a imagem do passo 1 (nosso bucket) de uma linha de movimento que já passou dele; null nas outras. */
+export function movimentoCenaPublica(admin: SupabaseClient, row: ClipRow): string | null {
+  if (!movimentoForRow(row) || row.model !== MOVIMENTO_VIDEO_MODEL || row.status === 'failed') return null
+  const { data } = admin.storage.from(CLIPS_BUCKET).getPublicUrl(movimentoCenaPath(row.user_id, row.id))
+  return data?.publicUrl ?? null
+}
 
 // ─── Transições condicionais ─────────────────────────────────────────────────
 async function markFailed(admin: SupabaseClient, id: string, reason: string, refunded: number): Promise<boolean> {
@@ -542,6 +583,7 @@ export function settleDepsFor(admin: SupabaseClient, userId: string, ctx: { liqu
       markVideoSubmitted: (id, videoModel, requestId) => markRemixVideoSubmitted(admin, id, videoModel, requestId), // KINEO-ROSTO-QUADRO-CHAVE-2810
       videoModel: (row) => { const item = faceRemixForRow(row); if (!item) throw new Error('remix: row is not a face remix'); return faceRemixVideoModel(item) }, // KINEO-ROSTO-QUADRO-CHAVE-2810
     }, // KINEO-ROSTO-QUADRO-CHAVE-2810
+    movimento: movimentoDepsFor(admin), // KINEO-RECREATE-MOVIMENTO-1411 — os dois passos do molde de movimento em TODO caminho que liquida (tela, /clips, cron, varredura)
     queue: clipQueueDepsFor(admin, ctx), // KINEO-RECREATE-FILA-KLING-EDIT-1411 — a fila anda em toda liquidação (tela, cron de 1 min, varredura)
     recreateSwap: recreateSwapDepsFor(admin, userId), // KINEO-RECREATE-TRAVA-1011 — a trava "não trocou" em TODO caminho que entrega (tela, /clips, cron, varredura)
   }
