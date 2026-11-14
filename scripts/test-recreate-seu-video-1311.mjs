@@ -238,7 +238,7 @@ checa(`C os 3 formatos reprovados no Seedance 2.5, os aprovados no Recast${cBase
 const desligado = planoDe((s) => s.replace('export const CATALOGO_SEEDANCE25_LIGADO = true', 'export const CATALOGO_SEEDANCE25_LIGADO = false')).planRecreate({ format: 'elevador', seconds: 10, photos: [PHOTO], consent: true, mode: 'swap' }, { userId: U, supabaseUrl: SUPA, paying: false })
 checa('C interruptor desligado = os 3 voltam ao Recast', desligado.ok && desligado.plan.model === 'minimax/h3-max/recast')
 const recSrv = r('lib/recreate/server.ts')
-checa('C o envio troca video_urls pelo vídeo-base da casa no bucket (só nos 3)', recSrv.includes('const seedance = model === SEEDANCE25_MODEL && catalogoNoSeedance25(format.id)') && recSrv.includes('seedance ? { ...input, video_urls: [data.publicUrl] } : { ...input, video_url: data.publicUrl }'))
+checa('C o envio troca video_urls pelo vídeo-base da casa no bucket (só nos 3)', recSrv.includes('const seedance = model === SEEDANCE25_MODEL && catalogoNoSeedance25(format.id)') && recSrv.includes('seedance ? { ...input, video_urls: [publicUrl] } : { ...input, video_url: publicUrl }') && recSrv.includes('const publicUrl = await publicarFonteDaCasa(admin, key)')) // reancorado KINEO-RECREATE-MOVIMENTO-1411 (o miolo da subida virou publicarFonteDaCasa: mesmo arquivo, caminho e bucket)
 checa('C os 3 continuam só da casa (swapApproved false)', ['outfit-morph', 'elevador', 'duelo-de-danca'].every((id) => new RegExp(`id: '${id}'[^\\n]*swapApproved: false`).test(r('lib/recreate/formats.ts'))))
 const MUTANTES_C = [
   ['C sem a Dança', ARQ, (s) => s.replace("new Set(['outfit-morph', 'elevador', 'duelo-de-danca'])", "new Set(['outfit-morph', 'elevador'])")],

@@ -457,7 +457,7 @@ function fakeFetch({ fal = 'ok', vision = null, message = null, hang = false } =
 const mutants = [
   ['lib/recreate/access.ts', "if (f.swapApproved === true && recreateSwapPriced(f) && releaseVisible(email, RECREATE_SWAP_RELEASE)) return true", 'if (releaseVisible(email, RECREATE_SWAP_RELEASE)) return true', (o) => catalogChecks(o)],
   ['lib/recreate/access.ts', "return f.swapInTest === true && RECREATE_SWAP_RELEASE !== 'off' && releaseVisible(email, 'internal')", "return f.swapInTest === true && RECREATE_SWAP_RELEASE !== 'off'", (o) => catalogChecks(o)],
-  ['lib/recreate/entry.ts', "(f.type !== 'swap' || (RECREATE_SWAP_RELEASE === 'public' && f.swapApproved === true && recreateSwapPriced(f)))", 'true', (o) => catalogChecks(o)],
+  ['lib/recreate/entry.ts', "f.type !== 'swap' || (RECREATE_SWAP_RELEASE === 'public' && f.swapApproved === true && recreateSwapPriced(f))", 'true', (o) => catalogChecks(o)], // reancorado KINEO-RECREATE-MOVIMENTO-1411 (o movimento sai antes, em ramo próprio; a troca abre igual)
   ['lib/recreate/formats.ts', "seconds: 8, type: 'swap'", "seconds: 10, type: 'swap'", (o) => catalogChecks(o)],
   ['app/api/recreate/route.ts', "if (!recreateFormatVisible(format, user.email)) return json({ error: 'Not found.' }, 404)", '', (o) => routeChecks({ ...release('public', 'internal'), ...o })],
   ['app/api/recreate/route.ts', "if (!recreateSwapPriced(format)) return json({ error: RECREATE_UNPRICED_ERROR, code: 'unpriced' }, 409)", '', (o) => routeChecks({ ...release('public', 'internal'), ...o })],

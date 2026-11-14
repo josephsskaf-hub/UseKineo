@@ -84,7 +84,7 @@ const MUTANTES = [
   ['M2 efeito novo sem data', { [FORMATS]: troca("hug: '2026-11-09', kiss: '2026-11-09',", "hug: '2026-11-09',") }],
   ['M3 data chutada', { [FORMATS]: troca("title: 'Cozy sweater flip', desde: '2026-11-13'", "title: 'Cozy sweater flip', desde: '2026-11-12'") }],
   ['M4 ordem invertida', { [FORMATS]: troca('(a.f.desde < b.f.desde ? 1 : a.f.desde > b.f.desde ? -1 : a.i - b.i)', '(a.f.desde < b.f.desde ? -1 : a.f.desde > b.f.desde ? 1 : a.i - b.i)') }],
-  ['M5 ordenação removida', { [FORMATS]: troca('= recreateNewestFirst(RECREATE_CATALOG)', '= RECREATE_CATALOG') }],
+  ['M5 ordenação removida', { [FORMATS]: troca('= recreateNewestFirst([...RECREATE_CATALOG, ...RECREATE_MOVIMENTO_MOLDES])', '= [...RECREATE_CATALOG, ...RECREATE_MOVIMENTO_MOLDES]') }], // reancorado KINEO-RECREATE-MOVIMENTO-1411 (o catálogo ganhou os moldes de movimento; a ordenação continua a mesma)
   ['M6 desempate instável', { [FORMATS]: troca(': a.i - b.i))', ': b.i - a.i))') }],
   ['M7 grade pública reordenada', { [PUBLICO]: troca('return recreateNewestFirst(RECREATE_FORMATS.filter(f => publicRecreatePath(f.id) !== null)).map(', 'return [...RECREATE_FORMATS.filter(f => publicRecreatePath(f.id) !== null)].reverse().map(') }],
 ]

@@ -174,7 +174,7 @@ const mutants=[
  ['future code treated known','retry',"response.status >= 500 && !knownRefusal","response.status >= 500 && !data.code",'future 5xx code remains uncertain'],
  ['upload status lost','auth',"throw Object.assign(new Error(data.error ?? 'Photo upload failed.'), { status: res.status })","throw new Error(data.error ?? 'Photo upload failed.')",'upload 401 saves current snapshot'],
  ['result keeps base','states','src={clip.video_url} label="Your version" stage=','src={selected.preview} label="Your version" stage=','ready video replaces base in principal stage'],
- ['refund invented','states',"const flowFailure = clip?.credits_refunded ?","const flowFailure = !!clip ?",'refund copy depends on confirmed server state'],
+ ['refund invented','states',": clip?.credits_refunded ? clip.reason === 'not_swapped'",": !!clip ? clip.reason === 'not_swapped'",'refund copy depends on confirmed server state'], // reancorado KINEO-RECREATE-MOVIMENTO-1411 (a falha do movimento traz a frase do servidor antes; o resto da linha é o de antes)
  ['signup handoff still warns','guest','if (handoffApproved.current) return; event.preventDefault();','event.preventDefault();','saved signup handoff bypasses leave warning'],
  ['POST timeout unlocks editor','timeout','if (failure.uncertain) setUncertain(true)','if (failure.uncertain) setUncertain(false)','POST timeout is uncertain'],
  ['availability failure has no retry','availability','setAvailabilityRetry(true);','setAvailabilityRetry(false);','availability failure offers retry'],
