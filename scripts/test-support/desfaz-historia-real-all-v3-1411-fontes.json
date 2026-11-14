@@ -1,0 +1,17 @@
+{
+ "base": "016ecdbb4a3c0fa7288ab6f1b1aa6fa410145b3e",
+ "entrega": "aa1ec8e3da766939d689045f8cf71f7ff06c0d55",
+ "scope": {
+  "lib/cinematic/elencoEpoca.ts": {
+   "beforeSha256": "a97a885bd1a7511492099f055c90e4b7448b82103a5404f307580d10b00ecc35",
+   "afterSha256": "33e2fa65b35ac2e3eddedc6c853cae0d6e73719f185a733482c7255b82919aa3",
+   "hunks": [
+    {
+     "before": "  const nucleo = String(papel ?? '').replace(/^(?:the|a|an)\\s+/iu, '').trim()\n  const alts = [...new Set(nomes.flatMap((n) => { const s = String(n ?? '').trim(); return s ? [s, ...s.split(/\\s+/u).filter((w) => w.length > 2 && /^\\p{Lu}/u.test(w))] : [] }))].sort((a, b) => b.length - a.length).map(esc)\n  if (!nucleo || alts.length === 0) return false\n  const N = `(?:${alts.join('|')})`, P = String.raw`(?:[\\p{L}-]+\\s+){0,3}?` + esc(nucleo)\n  const ligacoes = [\n    new RegExp(String.raw`(?<![\\p{L}])the\\s+` + P + String.raw`\\s*(?:,|\\s(?:was|is|—))\\s*(?:(?:named|called|none other than)\\s+)?(?:\\p{Lu}[\\p{L}'’-]*\\s+){0,2}?` + N + String.raw`(?![\\p{L}])`, 'iu'),\n    new RegExp(String.raw`(?<![\\p{L}])` + N + String.raw`\\s*(?:,|\\s(?:was|is|—))\\s*(?:the|a|an)\\s+` + P + String.raw`(?![\\p{L}])`, 'iu'),\n  ]\n  return String(texto ?? '').split(/(?<=[.!?\\n])/u).some((f) => ligacoes.some((re) => re.test(f)))\n}\n",
+     "after": "  const nucleo = String(papel ?? '').replace(/^(?:the|a|an)\\s+/iu, '').trim()\n  const alts = [...new Set(nomes.flatMap((n) => { const s = String(n ?? '').trim(); return s ? [s, ...s.split(/\\s+/u).filter((w) => w.length > 2 && /^\\p{Lu}/u.test(w))] : [] }))].sort((a, b) => b.length - a.length).map(esc)\n  if (!nucleo || alts.length === 0) return false\n  // v3 [revisor 14/11, bloqueio da v2]: SEM a flag i (com ela, \\p{Lu} casava minúscula e \"The thief was not / hired by / working for Vincenzo\n  // Peruggia\" ligava). Entre a cópula e o nome só cabem um título e partes do nome em Maiúscula-minúscula (\"Captain Ed Freeman\", \"Vincenzo\n  // Peruggia\"): \"not\", \"NOT\", \"by\", \"for\" não passam. Antes do papel, só adjetivo minúsculo que não é preposição nem artigo: o papel é o NÚCLEO\n  // do aposto (\"Peruggia, the thief\"), nunca complemento dele (\"Louis Lépine, a rival of the thief\").\n  const N = `(?:${alts.join('|')})`\n  const ADJ = String.raw`(?:(?!(?:of|the|a|an|for|with|by|from|against|to|in|on|at|and|or|not|never|no)(?![\\p{L}]))[\\p{Ll}-]+\\s+){0,2}?`\n  const P = ADJ + esc(nucleo)\n  const TITULO = String.raw`(?:(?:Captain|Capt\\.|Detective|Doctor|Dr\\.|Mr\\.|Mrs\\.|Ms\\.|Miss|Sir|Lady|Lord|General|Colonel|Major|Lieutenant|Sergeant|Officer|Agent|Professor|Inspector|King|Queen|Prince|Princess)\\s+)?`\n  const PARTES = String.raw`(?:\\p{Lu}\\p{Ll}[\\p{Ll}'’-]*\\s+){0,2}?`\n  const COPULA = String.raw`\\s*(?:,|\\s(?:was|is|—))\\s*`\n  const ligacoes = [\n    new RegExp(String.raw`(?<![\\p{L}])[Tt]he\\s+` + P + COPULA + String.raw`(?:(?:named|called)\\s+)?` + TITULO + PARTES + N + String.raw`(?![\\p{L}])`, 'u'),\n    new RegExp(String.raw`(?<![\\p{L}])` + N + COPULA + String.raw`(?:[Tt]he|[Aa]n?)\\s+` + P + String.raw`(?![\\p{L}])(?!\\s+(?:of|for|to)(?![\\p{L}]))`, 'u'),\n  ]\n  return String(texto ?? '').split(/(?<=[.!?\\n])/u).some((f) => ligacoes.some((re) => re.test(f)))\n}\n"
+    }
+   ]
+  }
+ },
+ "addedSources": {}
+}
