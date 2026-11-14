@@ -226,14 +226,36 @@ const LUGAR_RE = new RegExp(`(?<![\\p{L}])(?:at|in|inside|on|into|through|across
 const LUGAR_SO_RE = new RegExp(`(?<![\\p{L}])${LUGAR_NOME}(?![\\p{L}])`, 'giu')
 export const MARCA_LUGAR_NO_PROMPT = 'Setting as the customer asked:'
 
+// ═══ KINEO-LUGAR-DO-ROTEIRO-1411 [CEO 14/11, lote 3 dos vídeos de teste: caso E] ═══════════════════════════════════════════════════════════
+// Racetrack Playa (39c5cc92, sem gente): os planos 3 e 4 não diziam lugar e o motor fez do deserto um lago ártico. A regra do lugar já lia o
+// roteiro colado (pedidoDoCliente cai no texto quando não há ideia) e as cenas (lugarDasCenas), mas não conhecia "lakebed" nem "playa", e
+// "an empty, dry lakebed" (com vírgula) não casava. Aqui: (1) o lugar árido vira UM tipo só (desert, lakebed, dry lake, playa, salt flat,
+// dunes): "the cracked lakebed at Racetrack Playa" é um lugar, não dois. Nada mais muda: a lista de sempre, a regra de UM lugar só e o
+// rótulo. Interruptor LUGAR_DO_ROTEIRO_1411: 'off' = byte a byte o de antes. Ensaio: docs/ENSAIO-LUGAR-DO-ROTEIRO-1411.md.
+export type ModoLugarDoRoteiro = 'off' | 'all'
+export const LUGAR_DO_ROTEIRO_1411: ModoLugarDoRoteiro = 'all'
+export const lugarDoRoteiroLigado = (modo: ModoLugarDoRoteiro = LUGAR_DO_ROTEIRO_1411) => modo === 'all'
+const LUGAR_ARIDO_1411 = 'dry lakebed|lakebed|lake bed|dry lake|playa|salt flats?|sand dunes|dunes'
+const LUGAR_NOME_1411 = LUGAR_NOME.replace(/^\(\?:/u, `(?:${LUGAR_ARIDO_1411}|`)
+// A vírgula entre adjetivos ("an empty, dry lakebed") NÃO entrou: no ensaio, ela destravava o lugar do filme em 4 filmes e 2 saíam errados
+// (o jardim do Éden ia para a cena de Lúcifer entre as estrelas; a rua da chuva ia para o gatinho já no cobertor). O Racetrack não precisa dela.
+const LUGAR_RE_1411 = new RegExp(`(?<![\\p{L}])(?:at|in|inside|on|into|through|across|near|outside)\\s+((?:an?|the)\\s+(?:[\\p{L}'’-]+\\s+){0,4}?${LUGAR_NOME_1411})(?![\\p{L}])`, 'giu')
+const LUGAR_SO_RE_1411 = new RegExp(`(?<![\\p{L}])${LUGAR_NOME_1411}(?![\\p{L}])`, 'giu')
+const ARIDO_RE_1411 = new RegExp(`^(?:desert|${LUGAR_ARIDO_1411})$`, 'iu')
+/** O TIPO do lugar (a regra pede UM tipo só): "coffeehouse" = "coffee shop"; com o interruptor, todo lugar árido = "desert". */
+const tipoDoLugar = (w: string) => { const t = w.toLowerCase().replace('coffeehouse', 'coffee shop').replace('cafe', 'café'); return lugarDoRoteiroLigado() && ARIDO_RE_1411.test(t) ? 'desert' : t }
+const lugarRe = () => (lugarDoRoteiroLigado() ? LUGAR_RE_1411 : LUGAR_RE)
+const lugarSoRe = () => (lugarDoRoteiroLigado() ? LUGAR_SO_RE_1411 : LUGAR_SO_RE)
+// ═══ fim KINEO-LUGAR-DO-ROTEIRO-1411 ═══
+
 /** O lugar do pedido original ("a stylish Johannesburg coffee shop"), quando o pedido cita UM lugar só. null = nenhum, ou mais de um. */
 export function lugarDoPedido(ideiaOriginal: unknown): string | null {
   const pedido = textoDoPedidoOriginal(ideiaOriginal)
   if (!pedido) return null
   const semProibicao = pedido.split(/(?<=[.!?\n])/u).filter((f) => !/^\s*(?:no|not|never|without|don't|do not)\b/iu.test(f)).join(' ')
-  const nomes = new Set([...semProibicao.matchAll(LUGAR_SO_RE)].map((m) => m[0].toLowerCase().replace('coffeehouse', 'coffee shop').replace('cafe', 'café')))
+  const nomes = new Set([...semProibicao.matchAll(lugarSoRe())].map((m) => tipoDoLugar(m[0]))) // KINEO-LUGAR-DO-ROTEIRO-1411 — era: LUGAR_SO_RE e o mapa de sempre
   if (nomes.size !== 1) return null // nenhum lugar, ou a história passa por mais de um
-  const m = new RegExp(LUGAR_RE.source, 'iu').exec(semProibicao)
+  const m = new RegExp(lugarRe().source, 'iu').exec(semProibicao) // KINEO-LUGAR-DO-ROTEIRO-1411
   if (!m) return null
   const lugar = m[1].trim().replace(/^the\s+/iu, 'the ')
   return lugar.split(/\s+/u).length <= 7 ? lugar : null
@@ -244,11 +266,11 @@ export function lugarDoPedido(ideiaOriginal: unknown): string | null {
  *  (a cena sem lugar deixava a imagem-chave inventar o seu). Nenhum lugar, dois tipos de lugar, ou toda cena já com o seu: null. */
 export function lugarDasCenas(acoes: readonly unknown[]): string | null {
   const textos = acoes.map((a) => String(a ?? '').split(/(?<=[.!?\n])/u).filter((f) => !/^\s*(?:no|not|never|without|don't|do not)\b/iu.test(f)).join(' '))
-  const porCena = textos.map((t) => new Set([...t.matchAll(LUGAR_SO_RE)].map((m) => m[0].toLowerCase().replace('coffeehouse', 'coffee shop').replace('cafe', 'café'))))
+  const porCena = textos.map((t) => new Set([...t.matchAll(lugarSoRe())].map((m) => tipoDoLugar(m[0])))) // KINEO-LUGAR-DO-ROTEIRO-1411 — era: LUGAR_SO_RE e o mapa de sempre
   const nomes = new Set(porCena.flatMap((s) => [...s]))
   if (nomes.size !== 1 || porCena.every((s) => s.size > 0)) return null
   for (const t of textos) {
-    const m = new RegExp(LUGAR_RE.source, 'iu').exec(t)
+    const m = new RegExp(lugarRe().source, 'iu').exec(t) // KINEO-LUGAR-DO-ROTEIRO-1411
     if (m) { const lugar = m[1].trim(); return lugar.split(/\s+/u).length <= 7 ? lugar : null }
   }
   return null
