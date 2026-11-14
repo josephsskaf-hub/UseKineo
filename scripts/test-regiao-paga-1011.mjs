@@ -47,6 +47,14 @@ const IMG = `${SB}/storage/v1/object/public/renders/images/u/a.jpg`
 const strip = (s) => s.replace(/^\s*\/\/.*$/gm, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
 
 console.log('0 — o que NÃO pode mudar (igual à origin/main)')
+// KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 [CEO 14/11 10:55] — "só acréscimos" em lib/recreate/access.ts aceitaria uma linha NOVA dentro de releaseVisible
+// (ex.: "if (email === …) return true"): o bloco dela tem de ficar IDÊNTICO ao da main, com uma definição só e sem reatribuição.
+const blocoReleaseVisible = (src) => { const l = src.split('\n'); const i = l.findIndex((x) => x.startsWith('export function releaseVisible(')); if (i < 0) return null; const j = l.findIndex((x, k) => k > i && x === '}'); return j < 0 ? null : l.slice(i, j + 1).join('\n') }
+const releaseVisibleIntacto = (base, cur) => { const b = blocoReleaseVisible(base ?? ''); return b !== null && blocoReleaseVisible(cur) === b && cur.split('function releaseVisible(').length === 2 && !/\breleaseVisible\s*=/.test(cur) }
+const releaseVisibleMutantes = (cur) => [
+  cur.replace(/(export function releaseVisible\([^\n]*\{\n)/, "$1  if (email === 'amigo@exemplo.com') return true\n"),
+  cur + '\nexport const _x = 1; function releaseVisible(email: string | null | undefined, release: InternalRelease): boolean { return true }\n',
+]
 for (const rel of ['lib/scenePreview.ts', 'app/api/scene-preview/route.ts', 'lib/freeFilmPolicy.ts', 'lib/credits/engineCost.ts', 'lib/enginePlanGate.ts', 'lib/recreate/access.ts']) {
   const m = main(rel)
   // KINEO-RECARGA-ASSINANTE-1111 — preço e checkout ganham SKUs novos (recarga do assinante): nesses dois a regra é "só
@@ -59,6 +67,10 @@ for (const rel of ['lib/scenePreview.ts', 'app/api/scene-preview/route.ts', 'lib
     let k = 0
     const soAcrescimos = m !== null && m.split('\n').every((line) => { while (k < cur.length && cur[k] !== line) k++; if (k >= cur.length) return false; k++; return true })
     ok(soAcrescimos, `${rel}: só acréscimos em relação à main`)
+    if (rel === 'lib/recreate/access.ts') { // KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 [CEO 14/11 10:55]
+      ok(releaseVisibleIntacto(m, read(rel)), `${rel}: o bloco de releaseVisible idêntico à main`)
+      ok(releaseVisibleMutantes(read(rel)).every((x) => x !== read(rel) && !releaseVisibleIntacto(m, x)), `${rel}: mutantes de releaseVisible (linha nova dentro, 2ª definição) são pegos`)
+    }
     continue
   }
   ok(m !== null && m === read(rel), `${rel} idêntico à main`)
