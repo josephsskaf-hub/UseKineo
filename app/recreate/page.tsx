@@ -7,6 +7,7 @@ import RecreateCatalogPublic from './RecreateCatalogPublic' // KINEO-MENU-RECREA
 import { publicRecreateCatalog } from '@/lib/recreate/catalogPublic' // KINEO-MENU-RECREATE-1211
 import { createShellVisible } from '@/lib/create/access' // KINEO-TELA-NOVA-1011 — as abas Film · Cartoon · Ads só para quem vê o /create
 import { releaseVisible, visibleRecreateFormats } from '@/lib/recreate/access'
+import { RECREATE_FLOW_ENABLED } from '@/lib/recreate/flowRelease'
 
 export const dynamic = 'force-dynamic'
 // KINEO-MENU-RECREATE-1211 — título e descrição da grade. Segue fora do índice (noindex): a porta indexável do Recreate é /ai-face-swap-video,
@@ -17,6 +18,10 @@ export const metadata: Metadata = {
   robots: { index: false, follow: true },
 }
 export default async function Page() {
+  if (RECREATE_FLOW_ENABLED) {
+    const { default: RecreateFlowPage } = await import('./RecreateFlowPage')
+    return RecreateFlowPage({ basePath: '/recreate' })
+  }
   const { user } = await recreateSession()
   if (!user) {
     // KINEO-MENU-RECREATE-1211 [fundador 12/11: "Se você quiser entrar no Recreate e olhar tudo que você pode recriar, não tem."] — o visitante

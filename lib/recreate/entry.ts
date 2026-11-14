@@ -1,5 +1,6 @@
 import { RECREATE_RELEASE, RECREATE_SWAP_RELEASE } from './release'
 import { recreateFormat, recreateSwapPriced } from './formats'
+import { RECREATE_FLOW_ENABLED } from './flowRelease'
 
 /** Only catalog items can become Recreate links; the switch restores all legacy destinations when closed. */
 export function publicRecreatePath(id: string): string | null {
@@ -10,5 +11,5 @@ export function publicRecreatePath(id: string): string | null {
 }
 export function recreateEntryHref(id: string, signedIn: boolean): string | null {
   const path = recreateFormat(id) ? `/recreate/${id}` : null
-  return path === null ? null : signedIn ? path : '/signup?' + new URLSearchParams({ redirect: path }).toString()
+  return path === null ? null : signedIn || (RECREATE_FLOW_ENABLED && publicRecreatePath(id)) ? path : '/signup?' + new URLSearchParams({ redirect: path }).toString()
 }

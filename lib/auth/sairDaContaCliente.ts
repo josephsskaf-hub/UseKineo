@@ -40,6 +40,15 @@ export function apagarSessaoNoNavegador(): void {
   } catch {
     /* modo privado / storage bloqueado */
   }
+  // M12: retry snapshots belong to the signed-in account, never the next one.
+  try {
+    const attempts: string[] = []
+    for (let i = 0; i < window.sessionStorage.length; i++) {
+      const key = window.sessionStorage.key(i)
+      if (key?.startsWith('kineo:recreate:flow:attempt:') || key?.startsWith('kineo:recreate:seu-video:uncertain:')) attempts.push(key)
+    }
+    attempts.forEach(key => window.sessionStorage.removeItem(key))
+  } catch { /* Restricted storage must not block sign-out. */ }
 }
 
 function comTeto<T>(p: Promise<T>, ms: number): Promise<T | 'teto'> {
@@ -47,9 +56,10 @@ function comTeto<T>(p: Promise<T>, ms: number): Promise<T | 'teto'> {
 }
 
 async function executarSaida(): Promise<void> {
-  const clearDrafts = import('@/lib/recreate/seuVideoDraft')
-    .then(module => module.clearSeuVideoDraftsOnLogout())
-    .catch(() => undefined)
+  const clearDrafts = Promise.allSettled([
+    import('@/lib/recreate/seuVideoDraft').then(module => module.clearSeuVideoDraftsOnLogout()),
+    import('@/lib/recreate/flowDraft').then(module => module.clearRecreateFlowDraft()),
+  ])
   const supabase = createClient()
   // 1. Nada mais renova nem regrava o cookie enquanto saímos (relógio de refresh e realtime parados).
   try { supabase.auth.stopAutoRefresh() } catch { /* ignora */ }
