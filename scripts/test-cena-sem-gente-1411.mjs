@@ -113,7 +113,7 @@ checa(`C e D verdes nos planos reais${base.length ? ': ' + base.join(' · ') : '
 const rota = lf(fs.readFileSync('app/api/generate-video-cinematic/route.ts', 'utf8'))
 checa('E a rota passa os prompts clássicos pelo ajuste do elenco (onde C e D moram)', rota.includes('ajustarPromptsDoElenco({ prompts: classicScenePrompts'))
 const MUTANTES = [
-  ['C: sem a gente de papel', ARQ, (s) => s.replace("if (cenaSemGenteLigada() && visualTemGenteDePapel(args.visuals[i] ?? '')) return out", "if (false) return out")],
+  ['C: sem a gente de papel', ARQ, (s) => s.replace("if (cenaSemGenteLigada() && visualTemGenteDePapel(vDaCena)) return out", "if (false) return out")], // reancorado: KINEO-COMENTARIO-NAO-E-CENA-1411 lê o plano sem a oração de comentário
   ['C: "airmen" (composto em -men) não conta', ARQ, (s) => s.replace("const COMPOSTOS_DE_GENTE = 'airm[ae]n|", "const COMPOSTOS_DE_GENTE = '")],
   ['C: volta o sufixo aberto -man/-men (Sherman, dolmen, Bremen viram gente)', ARQ, (s) => s.replace('|${COMPOSTOS_DE_GENTE})(?![', '|${COMPOSTOS_DE_GENTE}|\\\\p{L}{2,}(?:man|men))(?![')],
   ['C: "mechanics" só no singular (os mecânicos do roteiro de validação saem "sem gente")', ARQ, (s) => s.replace('|mechanics?|pilots?|', '|mechanic|pilots?|')],

@@ -23,7 +23,8 @@ function provas(L) {
   const erros = []
   const m = L(ARQ)
   // (A)
-  if (m.lugarDoPedido(RACETRACK_PEDIDO) !== null) erros.push('A o pedido do Racetrack tem dois lugares (Death Valley e o leito): devia ficar null')
+  // reancorado (KINEO-LUGAR-DA-FALA-1411 (iii), pedido da CEO 14/11 09:50): "Death Valley" é nome próprio e não conta como 2º tipo contra o leito seco
+  if (m.lugarDoPedido(RACETRACK_PEDIDO) !== 'an empty, dry lakebed') erros.push('A o pedido do Racetrack devia dar o leito seco: ' + m.lugarDoPedido(RACETRACK_PEDIDO))
   const lugar = m.lugarDasCenas(RACETRACK_CENAS)
   if (lugar !== 'the cracked lakebed') erros.push('A o lugar do filme do Racetrack: ' + lugar)
   const comLugar = RACETRACK_CENAS.map((c) => m.comLugarDoFilme(c, lugar))
@@ -37,7 +38,8 @@ function provas(L) {
   // v2 [CEO 14/11, dry-run do Racetrack ao vivo]: a rota passa as DESCRIÇÕES, e no roteiro colado elas são as FALAS (dois lugares: null). O lugar
   // árido sai dos PLANOS. As falas abaixo são as do claim do 39c5cc92, como o dispatch gravou (hint).
   const RACETRACK_FALAS = ['Rocks in Death Valley move by themselves On an empty dry lakebed called Racetrack Playa heavy stones sit at the end of long curving', 'In December of twenty thirteen time-lapse cameras finally caught them moving', 'After a rare rain a thin sheet of ice forms on the shallow water The morning sun breaks the ice into wide floating panels', 'A light breeze pushes the panels and the panels push the rocks Would you have guessed ice Follow for more']
-  if (m.lugarDasCenas(RACETRACK_FALAS) !== null) erros.push('A2 fixture: as falas do Racetrack já davam lugar')
+  // reancorado (KINEO-LUGAR-DA-FALA-1411): as falas agora dão o leito (o nome próprio não conta); com o roteiro, a frase vem com a vírgula dele
+  if (m.lugarDasCenas(RACETRACK_FALAS) !== 'an empty dry lakebed' || m.lugarDasCenas(RACETRACK_FALAS, RACETRACK_PEDIDO) !== 'an empty, dry lakebed') erros.push('A2 as falas do Racetrack: ' + m.lugarDasCenas(RACETRACK_FALAS) + ' / ' + m.lugarDasCenas(RACETRACK_FALAS, RACETRACK_PEDIDO))
   if (m.lugarAridoDosPlanos(RACETRACK_CENAS) !== 'the cracked lakebed') erros.push('A2 o lugar árido não sai dos planos: ' + m.lugarAridoDosPlanos(RACETRACK_CENAS))
   if (m.lugarAridoDosPlanos(['A girl walks into the kitchen.', 'She bakes bread.', 'She smiles at the kitchen window.']) !== null) erros.push('A2 a 2ª leitura pegou um lugar que não é árido')
   // os menores do revisor: nome próprio com maiúscula não é o tipo do lugar
@@ -53,7 +55,7 @@ checa(`A e B verdes nos textos reais${base.length ? ': ' + base.join(' · ') : '
   checa('C desligado: o Racetrack volta a ficar sem lugar (byte a byte o de antes)', m.lugarDasCenas(RACETRACK_CENAS) === null)
 }
 const rota = lf(fs.readFileSync('app/api/generate-video-cinematic/route.ts', 'utf8'))
-checa('C a rota clássica põe o lugar do pedido e, sem ele, o das cenas; sem ele, o árido dos PLANOS; fora do filme herdado', rota.includes('const lugarPedido = qualidadeHerdada ? null : lugarDoPedidoDoCliente(pedidoDoCliente)') && rota.includes('const lugarFilme = qualidadeHerdada || lugarPedido ? null : (lugarDasCenas(scenes.map((s) => s.description)) ?? lugarAridoDosPlanos(scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description)));'))
+checa('C a rota clássica põe o lugar do pedido e, sem ele, o das cenas; sem ele, o árido dos PLANOS; fora do filme herdado', rota.includes('const lugarPedido = qualidadeHerdada ? null : lugarDoPedidoDoCliente(pedidoDoCliente)') && rota.includes('const lugarFilme = qualidadeHerdada || lugarPedido ? null : (lugarDasCenas(scenes.map((s) => s.description), pedidoDoCliente /* KINEO-LUGAR-DA-FALA-1411 — a frase do lugar para na pontuação do roteiro colado */) ?? lugarAridoDosPlanos(scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description)));'))
 // o ensaio de US$ 0 mostra o plano INTEIRO (o `prompt` de 400 escondia a época e o lugar)
 {
   const dr = createOfflineLoader({ globals: {} })('lib/cinematic/classicDryRun.ts')

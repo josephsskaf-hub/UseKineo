@@ -248,6 +248,57 @@ const lugarRe = () => (lugarDoRoteiroLigado() ? LUGAR_RE_1411 : LUGAR_RE)
 const lugarSoRe = () => (lugarDoRoteiroLigado() ? LUGAR_SO_RE_1411 : LUGAR_SO_RE)
 // ═══ fim KINEO-LUGAR-DO-ROTEIRO-1411 ═══
 
+// ═══ KINEO-LUGAR-DA-FALA-1411 [CEO 14/11 09:50, dry-runs ao vivo do Racetrack e da Earhart] ═══════════════════════════════════════════════
+// (i) No roteiro colado a `description` de cada cena é a FALA sem pontuação. "…in the open sea Near that island…" atravessava o ponto final e
+// "Setting of this film: the open sea Near that island." ia a TODA cena da Earhart, inclusive a dos mecânicos na Nova Guiné (o filme pago das
+// 04:16 já saiu assim). Agora a frase do lugar sai do trecho do ROTEIRO que a fala repete palavra a palavra, com a pontuação dele.
+// (iii) Nome próprio de lugar com maiúscula no meio da frase ("Death Valley", "Howland Island") não conta como tipo quando o MESMO texto cita
+// o lugar pelo substantivo comum ("dry lakebed", "that island"). Sem substantivo comum, conta como sempre. E o lugar ÁRIDO aceita a vírgula
+// entre adjetivos ("an empty, dry lakebed"). Só o árido: no ensaio do lote 3, a vírgula geral errava o Éden e o gatinho.
+// Interruptor LUGAR_DA_FALA_1411: 'off' = byte a byte o de antes. Ensaio: docs/ENSAIO-LUGAR-DA-FALA-1411.md.
+export const LUGAR_DA_FALA_1411: ModoLugarDoRoteiro = 'all'
+export const lugarDaFalaLigado = (modo: ModoLugarDoRoteiro = LUGAR_DA_FALA_1411) => modo === 'all'
+const LUGAR_ARIDO_VIRGULA_RE_1411 = new RegExp(`(?<![\\p{L}])(?:at|in|inside|on|into|through|across|near|outside)\\s+((?:an?|the)\\s+(?:[\\p{L}'’-]+,?\\s+){0,4}?(?:desert|${LUGAR_ARIDO_1411}))(?![\\p{L}])`, 'iu')
+const semFraseDeProibicao = (t: string) => t.split(/(?<=[.!?\n])/u).filter((f) => !/^\s*(?:no|not|never|without|don't|do not)\b/iu.test(f)).join(' ')
+/** O lugar com MAIÚSCULA no meio da frase: nome próprio ("Death Valley"), não o tipo. */
+function nomeProprioNoMeio(t: string, m: RegExpMatchArray): boolean {
+  const antes = t.slice(0, m.index ?? 0).trimEnd()
+  return antes.length > 0 && /^\p{Lu}/u.test(m[0]) && !/[.!?:\n]$/u.test(antes)
+}
+/** (iii) O nome próprio não conta quando o mesmo texto cita o lugar ÁRIDO pelo substantivo comum ("Death Valley" × "dry lakebed"). */
+function nomeProprioComComum(t: string, m: RegExpMatchArray): boolean {
+  return lugarDaFalaLigado() && nomeProprioNoMeio(t, m) && [...t.matchAll(lugarSoRe())].some((o) => !nomeProprioNoMeio(t, o) && tipoDoLugar(o[0]) === 'desert')
+} // só contra o lugar ÁRIDO: no ensaio, a regra geral tirava "Pearl Harbor" dos irmãos Sullivan (77c923a8) e "the same ship" ia à porta dos pais em Iowa
+/** (iii) A frase do lugar árido com vírgula entre os adjetivos, quando a frase de sempre não casou. */
+const aridoComVirgula = (t: string) => (lugarDaFalaLigado() ? LUGAR_ARIDO_VIRGULA_RE_1411.exec(t) : null)
+// (iv) "on a family car trip" (Bobbie, 072196d8): o lugar é só o adjetivo de outra coisa, e "Setting as the customer asked: a family car" ia
+// a toda cena, até a da porta em Silverton. No corpus: "bus driver", "car engine", "car window", "house key", "hotel key card", "market day",
+// "house door". "bus stop" e "car park" são lugar de verdade e ficam.
+const MODIFICADOR_RE_1411 = /^\s+(?:trips?|rides?|journeys?|crash(?:es)?|accidents?|drivers?|engines?|windows?|doors?|keys?|owners?|seats?|horns?|tickets?|fares?|days?)(?![\p{L}])/iu
+const lugarDeModificador = (t: string, m: RegExpMatchArray) => lugarDaFalaLigado() && MODIFICADOR_RE_1411.test(t.slice((m.index ?? 0) + m[0].length))
+/** A frase do lugar: a 1ª que não é adjetivo de outra coisa (iv); sem ela, o árido com vírgula (iii). Desligado: a de sempre. */
+function fraseDoLugar(t: string): RegExpMatchArray | null {
+  if (!lugarDaFalaLigado()) return new RegExp(lugarRe().source, 'iu').exec(t)
+  for (const m of t.matchAll(new RegExp(lugarRe().source, 'giu'))) if (!lugarDeModificador(t, m)) return m
+  return aridoComVirgula(t)
+}
+const PALAVRA_RE_1411 = /[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu
+/** (i) O trecho do roteiro, com a pontuação dele, que a fala da cena repete palavra a palavra. Sem trecho (ou sem roteiro): a própria fala. */
+export function comPontuacaoDoRoteiro(fala: string, roteiro: unknown): string {
+  if (!lugarDaFalaLigado() || typeof roteiro !== 'string' || !roteiro.trim()) return fala
+  const f = [...fala.matchAll(PALAVRA_RE_1411)].map((m) => m[0].toLowerCase())
+  if (f.length < 3) return fala
+  const r = [...roteiro.matchAll(PALAVRA_RE_1411)]
+  const rl = r.map((m) => m[0].toLowerCase())
+  for (let i = 0; i + f.length <= r.length; i++) {
+    let k = 0
+    while (k < f.length && rl[i + k] === f[k]) k++
+    if (k === f.length) { const fim = r[i + f.length - 1]; return semFraseDeProibicao(roteiro.slice(r[i].index ?? 0, (fim.index ?? 0) + fim[0].length)) }
+  }
+  return fala
+}
+// ═══ fim KINEO-LUGAR-DA-FALA-1411 ═══
+
 /** O lugar do pedido original ("a stylish Johannesburg coffee shop"), quando o pedido cita UM lugar só. null = nenhum, ou mais de um. */
 export function lugarDoPedido(ideiaOriginal: unknown): string | null {
   const pedido = textoDoPedidoOriginal(ideiaOriginal)
@@ -255,7 +306,7 @@ export function lugarDoPedido(ideiaOriginal: unknown): string | null {
   const semProibicao = pedido.split(/(?<=[.!?\n])/u).filter((f) => !/^\s*(?:no|not|never|without|don't|do not)\b/iu.test(f)).join(' ')
   const nomes = new Set([...semProibicao.matchAll(lugarSoRe())].filter((m) => !aridoComNomeProprio(semProibicao, m)).map((m) => tipoDoLugar(m[0]))) // KINEO-LUGAR-DO-ROTEIRO-1411 — era: LUGAR_SO_RE e o mapa de sempre
   if (nomes.size !== 1) return null // nenhum lugar, ou a história passa por mais de um
-  const m = new RegExp(lugarRe().source, 'iu').exec(semProibicao) // KINEO-LUGAR-DO-ROTEIRO-1411
+  const m = fraseDoLugar(semProibicao) // KINEO-LUGAR-DO-ROTEIRO-1411 · KINEO-LUGAR-DA-FALA-1411 (iii, iv)
   if (!m) return null
   const lugar = m[1].trim().replace(/^the\s+/iu, 'the ')
   return lugar.split(/\s+/u).length <= 7 ? lugar : null
@@ -264,13 +315,14 @@ export function lugarDoPedido(ideiaOriginal: unknown): string | null {
 /** KINEO-LUGAR-UNICO-1111 [CEO 11/11, vigia do filme 4eb0c0c9: floresta → biblioteca → parque sem motivo] — quando o pedido não cita lugar,
  *  o lugar do FILME: se as cenas (a ação de cada uma) citam UM tipo de lugar só e alguma cena não cita nenhum, esse lugar vale para todas
  *  (a cena sem lugar deixava a imagem-chave inventar o seu). Nenhum lugar, dois tipos de lugar, ou toda cena já com o seu: null. */
-export function lugarDasCenas(acoes: readonly unknown[]): string | null {
+export function lugarDasCenas(acoes: readonly unknown[], roteiro: unknown = null): string | null { // KINEO-LUGAR-DA-FALA-1411 — roteiro: o texto colado, com a pontuação
   const textos = acoes.map((a) => String(a ?? '').split(/(?<=[.!?\n])/u).filter((f) => !/^\s*(?:no|not|never|without|don't|do not)\b/iu.test(f)).join(' '))
   const porCena = textos.map((t) => new Set([...t.matchAll(lugarSoRe())].filter((m) => !aridoComNomeProprio(t, m)).map((m) => tipoDoLugar(m[0])))) // KINEO-LUGAR-DO-ROTEIRO-1411 — era: LUGAR_SO_RE e o mapa de sempre
   const nomes = new Set(porCena.flatMap((s) => [...s]))
   if (nomes.size !== 1 || porCena.every((s) => s.size > 0)) return null
   for (const t of textos) {
-    const m = new RegExp(lugarRe().source, 'iu').exec(t) // KINEO-LUGAR-DO-ROTEIRO-1411
+    const tp = comPontuacaoDoRoteiro(t, roteiro) // KINEO-LUGAR-DA-FALA-1411 (i) — a frase do lugar para na pontuação do roteiro
+    const m = fraseDoLugar(tp) // KINEO-LUGAR-DO-ROTEIRO-1411 · KINEO-LUGAR-DA-FALA-1411 (iii, iv)
     if (m) { const lugar = m[1].trim(); return lugar.split(/\s+/u).length <= 7 ? lugar : null }
   }
   return null
@@ -278,6 +330,7 @@ export function lugarDasCenas(acoes: readonly unknown[]): string | null {
 
 /** KINEO-LUGAR-DO-ROTEIRO-1411 v2 — "the Dunes casino", "Racetrack Playa": o lugar árido com MAIÚSCULA no meio da frase é nome próprio, não o tipo. */
 function aridoComNomeProprio(t: string, m: RegExpMatchArray): boolean {
+  if (nomeProprioComComum(t, m) || lugarDeModificador(t, m)) return true // KINEO-LUGAR-DA-FALA-1411 (iii) e (iv) — o adjetivo de outra coisa ("car trip") não é lugar — qualquer lugar com nome próprio, se o texto também cita um pelo nome comum
   if (!lugarDoRoteiroLigado() || !ARIDO_RE_1411.test(m[0]) || /^desert$/iu.test(m[0])) return false
   const antes = t.slice(0, m.index ?? 0).trimEnd()
   return /^\p{Lu}/u.test(m[0]) && antes.length > 0 && !/[.!?:\n]$/u.test(antes)
