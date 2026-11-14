@@ -253,7 +253,7 @@ export function lugarDoPedido(ideiaOriginal: unknown): string | null {
   const pedido = textoDoPedidoOriginal(ideiaOriginal)
   if (!pedido) return null
   const semProibicao = pedido.split(/(?<=[.!?\n])/u).filter((f) => !/^\s*(?:no|not|never|without|don't|do not)\b/iu.test(f)).join(' ')
-  const nomes = new Set([...semProibicao.matchAll(lugarSoRe())].map((m) => tipoDoLugar(m[0]))) // KINEO-LUGAR-DO-ROTEIRO-1411 — era: LUGAR_SO_RE e o mapa de sempre
+  const nomes = new Set([...semProibicao.matchAll(lugarSoRe())].filter((m) => !aridoComNomeProprio(semProibicao, m)).map((m) => tipoDoLugar(m[0]))) // KINEO-LUGAR-DO-ROTEIRO-1411 — era: LUGAR_SO_RE e o mapa de sempre
   if (nomes.size !== 1) return null // nenhum lugar, ou a história passa por mais de um
   const m = new RegExp(lugarRe().source, 'iu').exec(semProibicao) // KINEO-LUGAR-DO-ROTEIRO-1411
   if (!m) return null
@@ -266,7 +266,7 @@ export function lugarDoPedido(ideiaOriginal: unknown): string | null {
  *  (a cena sem lugar deixava a imagem-chave inventar o seu). Nenhum lugar, dois tipos de lugar, ou toda cena já com o seu: null. */
 export function lugarDasCenas(acoes: readonly unknown[]): string | null {
   const textos = acoes.map((a) => String(a ?? '').split(/(?<=[.!?\n])/u).filter((f) => !/^\s*(?:no|not|never|without|don't|do not)\b/iu.test(f)).join(' '))
-  const porCena = textos.map((t) => new Set([...t.matchAll(lugarSoRe())].map((m) => tipoDoLugar(m[0])))) // KINEO-LUGAR-DO-ROTEIRO-1411 — era: LUGAR_SO_RE e o mapa de sempre
+  const porCena = textos.map((t) => new Set([...t.matchAll(lugarSoRe())].filter((m) => !aridoComNomeProprio(t, m)).map((m) => tipoDoLugar(m[0])))) // KINEO-LUGAR-DO-ROTEIRO-1411 — era: LUGAR_SO_RE e o mapa de sempre
   const nomes = new Set(porCena.flatMap((s) => [...s]))
   if (nomes.size !== 1 || porCena.every((s) => s.size > 0)) return null
   for (const t of textos) {
@@ -274,6 +274,25 @@ export function lugarDasCenas(acoes: readonly unknown[]): string | null {
     if (m) { const lugar = m[1].trim(); return lugar.split(/\s+/u).length <= 7 ? lugar : null }
   }
   return null
+}
+
+/** KINEO-LUGAR-DO-ROTEIRO-1411 v2 — "the Dunes casino", "Racetrack Playa": o lugar árido com MAIÚSCULA no meio da frase é nome próprio, não o tipo. */
+function aridoComNomeProprio(t: string, m: RegExpMatchArray): boolean {
+  if (!lugarDoRoteiroLigado() || !ARIDO_RE_1411.test(m[0]) || /^desert$/iu.test(m[0])) return false
+  const antes = t.slice(0, m.index ?? 0).trimEnd()
+  return /^\p{Lu}/u.test(m[0]) && antes.length > 0 && !/[.!?:\n]$/u.test(antes)
+}
+
+/**
+ * KINEO-LUGAR-DO-ROTEIRO-1411 v2 [CEO 14/11, dry-run do Racetrack sem lugar] — a rota passa a lugarDasCenas a `description` de cada cena, que no
+ * roteiro colado é a FALA ("Rocks in Death Valley move by themselves On an empty dry lakebed called Racetrack Playa…": dois lugares, null). Os
+ * PLANOS (aiPrompt) dizem "the cracked lakebed". Esta é a 2ª leitura, só para o lugar ÁRIDO: os planos, com UM tipo de lugar e ele árido.
+ * Qualquer outro lugar fica com a regra de sempre (ler os planos para todo lugar mudaria 189 dos 516 filmes de 30 dias, sem ensaio).
+ */
+export function lugarAridoDosPlanos(planos: readonly unknown[]): string | null {
+  if (!lugarDoRoteiroLigado()) return null
+  const lugar = lugarDasCenas(planos)
+  return lugar && new RegExp(`(?:^|\\s)(?:desert|${LUGAR_ARIDO_1411})$`, 'iu').test(lugar) ? lugar : null
 }
 
 /** KINEO-LUGAR-UNICO-1111 [CEO 11/11] — o lugar do FILME tem rótulo próprio: "as the customer asked" seria falso quando o cliente não pediu lugar. */

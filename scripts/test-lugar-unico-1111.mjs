@@ -48,7 +48,7 @@ function problems(over) {
   const plano = K.promptDaCenaKling4(cena, S.deriveStyleAnchor('stylized 3D animated film'), 1, true)
   no(!plano.includes('Place: a sunny park.') || /Setting of this film/.test(plano), `(c) plano do Kling 4 → ${plano}`)
   const rota = over[ROTA] ?? read(ROTA)
-  no(!rota.includes('const lugarFilme = qualidadeHerdada || lugarPedido ? null : lugarDasCenas(scenes.map((s) => s.description)); if (lugarFilme) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comLugarDoFilme(classicScenePrompts[i], lugarFilme)'), '(d) a rota não usa o lugar das cenas depois do lugar do pedido')
+  no(!rota.includes('const lugarFilme = qualidadeHerdada || lugarPedido ? null : (lugarDasCenas(scenes.map((s) => s.description)) ?? lugarAridoDosPlanos(scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description))); /* KINEO-LUGAR-DO-ROTEIRO-1411 v2 — no roteiro colado a description é a fala; o lugar árido sai dos PLANOS (Racetrack) */ if (lugarFilme) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = comLugarDoFilme(classicScenePrompts[i], lugarFilme)'), '(d) a rota não usa o lugar das cenas depois do lugar do pedido') // reancorado (KINEO-LUGAR-DO-ROTEIRO-1411 v2): a 1ª leitura segue a das descrições; o árido dos planos só entra quando ela é null
   return p
 }
 const atual = problems({})

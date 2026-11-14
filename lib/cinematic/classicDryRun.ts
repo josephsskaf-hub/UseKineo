@@ -31,7 +31,9 @@ export interface ClassicDryRunScene {
   speech_seconds: number
   speech: string
   prompt: string
-  /** KINEO-KLING25-PLANOS-5S-2026-09-28 — só com `sceneSeconds`: o que o compose mostra do plano (segundos − perda). */
+  /** KINEO-ENSAIO-TEXTO-FINAL-1411 [CEO 14/11] — o MESMO plano, INTEIRO (o `prompt` acima é cortado em 400 e escondia a época e o lugar, que
+   *  vêm no fim): o vetor que alimenta a imagem-chave e o clipe no caminho clássico, como está no ponto do ensaio de US$ 0. */
+  prompt_inteiro: string
   useful_seconds?: number
   /** KINEO-KLING25-PLANOS-5S-2026-09-28 — só com `sceneFitWordsPerSecond`: a fala da cena, nesse passo, cabe no útil. */
   fits_plan?: boolean
@@ -102,6 +104,7 @@ export function classicDryRunReport(input: {
       speech_seconds: round1(words / wps),
       speech: String(s.voiceover ?? ''),
       prompt: String(s.prompt ?? '').slice(0, 400),
+      prompt_inteiro: String(s.prompt ?? ''), // KINEO-ENSAIO-TEXTO-FINAL-1411
     }
     if (!perScene) return base
     const useful = Math.round(Math.max(0, perScene[i] - loss) * 100) / 100

@@ -33,3 +33,14 @@ Fora deste lote, sem mudança: no 6ce4440c (leão × urso), o lugar do filme "a 
 - Com a versão entregue, os 19 filmes da vírgula: 0 mudança.
 
 Os casos estão no guardião `scripts/test-lugar-do-roteiro-1411.mjs`: o Racetrack, deserto + dunas + playa, praia + deserto, o Éden e o gatinho. Um mutante devolve a vírgula, e o guardião fica vermelho.
+
+## v2 depois do dry-run ao vivo (14/11, 08:35): o Racetrack ficou sem lugar na produção
+- A causa, no caminho que a rota executa: o lugar do filme é lido de `scenes.map((s) => s.description)`. No roteiro colado, a description de cada cena é a FALA ("Rocks in Death Valley move by themselves On an empty dry lakebed called Racetrack Playa…"). Ela tem dois lugares (Death Valley e o leito seco), então dá null.
+- O ensaio da v1 lia os PLANOS gravados no claim. Foi a minha conta errada, não o módulo.
+- Conserto: quando a leitura das descrições dá null, uma 2ª leitura usa os PLANOS (aiPrompt), e só para o lugar ÁRIDO. Ler os planos para todo lugar mudaria cerca de 189 dos 516 filmes de 30 dias, e isso pede ensaio próprio.
+- Corpus (30 dias, planos do claim com um tipo de lugar só, árido, e alguma cena sem lugar):
+  · 39c5cc92 (Racetrack) → "the cracked lakebed", certo;
+  · 507fe433 (Layla e Qais) → "the desert", certo: a cena 3 dos dois juntos fica no deserto da história;
+  · 8f5dc353 (caminhão no deserto) → sem preposição + artigo antes de "desert", null, sem mudança.
+- O nome próprio com maiúscula no meio da frase não conta como tipo ("the Dunes casino", "Racetrack Playa"). Pendentes anotados: "the playa by the ocean" dá "the playa"; "the dunes by the beach" perde o lugar (dois tipos).
+- O ensaio de US$ 0 ganhou `scenes[i].prompt_inteiro`: o plano inteiro. O `prompt` de sempre é cortado em 400 caracteres e escondia a época e o lugar, que vêm no fim.

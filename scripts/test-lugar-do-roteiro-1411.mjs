@@ -34,6 +34,15 @@ function provas(L) {
   if (m.lugarDasCenas(EDEN) !== null || m.lugarDasCenas(GATINHO) !== null) erros.push('B a vírgula entrou: o Éden ou o gatinho ganharam lugar do filme')
   if (m.lugarDoPedido('A man drinks coffee at a stylish Johannesburg coffee shop.') !== 'a stylish Johannesburg coffee shop') erros.push('B o lugar de sempre mudou')
   if (!m.lugarDoRoteiroLigado() || m.lugarDoRoteiroLigado('off') || m.LUGAR_DO_ROTEIRO_1411 !== 'all') erros.push('interruptor')
+  // v2 [CEO 14/11, dry-run do Racetrack ao vivo]: a rota passa as DESCRIÇÕES, e no roteiro colado elas são as FALAS (dois lugares: null). O lugar
+  // árido sai dos PLANOS. As falas abaixo são as do claim do 39c5cc92, como o dispatch gravou (hint).
+  const RACETRACK_FALAS = ['Rocks in Death Valley move by themselves On an empty dry lakebed called Racetrack Playa heavy stones sit at the end of long curving', 'In December of twenty thirteen time-lapse cameras finally caught them moving', 'After a rare rain a thin sheet of ice forms on the shallow water The morning sun breaks the ice into wide floating panels', 'A light breeze pushes the panels and the panels push the rocks Would you have guessed ice Follow for more']
+  if (m.lugarDasCenas(RACETRACK_FALAS) !== null) erros.push('A2 fixture: as falas do Racetrack já davam lugar')
+  if (m.lugarAridoDosPlanos(RACETRACK_CENAS) !== 'the cracked lakebed') erros.push('A2 o lugar árido não sai dos planos: ' + m.lugarAridoDosPlanos(RACETRACK_CENAS))
+  if (m.lugarAridoDosPlanos(['A girl walks into the kitchen.', 'She bakes bread.', 'She smiles at the kitchen window.']) !== null) erros.push('A2 a 2ª leitura pegou um lugar que não é árido')
+  // os menores do revisor: nome próprio com maiúscula não é o tipo do lugar
+  if (m.lugarDoPedido('A night at the Dunes casino in Las Vegas.') !== null) erros.push('A2 "the Dunes casino" virou lugar')
+  if (m.lugarAridoDosPlanos(['A neon sign of the Dunes hotel at night.', 'Gamblers at the tables inside.', 'A taxi outside.']) !== null) erros.push('A2 "the Dunes hotel" virou lugar árido')
   return erros
 }
 
@@ -44,12 +53,23 @@ checa(`A e B verdes nos textos reais${base.length ? ': ' + base.join(' · ') : '
   checa('C desligado: o Racetrack volta a ficar sem lugar (byte a byte o de antes)', m.lugarDasCenas(RACETRACK_CENAS) === null)
 }
 const rota = lf(fs.readFileSync('app/api/generate-video-cinematic/route.ts', 'utf8'))
-checa('C a rota clássica põe o lugar do pedido e, sem ele, o das cenas, fora do filme herdado', rota.includes('const lugarPedido = qualidadeHerdada ? null : lugarDoPedidoDoCliente(pedidoDoCliente)') && rota.includes('const lugarFilme = qualidadeHerdada || lugarPedido ? null : lugarDasCenas(scenes.map((s) => s.description))'))
+checa('C a rota clássica põe o lugar do pedido e, sem ele, o das cenas; sem ele, o árido dos PLANOS; fora do filme herdado', rota.includes('const lugarPedido = qualidadeHerdada ? null : lugarDoPedidoDoCliente(pedidoDoCliente)') && rota.includes('const lugarFilme = qualidadeHerdada || lugarPedido ? null : (lugarDasCenas(scenes.map((s) => s.description)) ?? lugarAridoDosPlanos(scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description)));'))
+// o ensaio de US$ 0 mostra o plano INTEIRO (o `prompt` de 400 escondia a época e o lugar)
+{
+  const dr = createOfflineLoader({ globals: {} })('lib/cinematic/classicDryRun.ts')
+  const longo = 'Film visual medium: photorealistic. ' + 'x '.repeat(300) + 'period piece set strictly in the year 1937: only the things this shot describes. Setting of this film: the cracked lakebed.'
+  const r = dr.classicDryRunReport({ scenes: [{ voiceover: 'Rocks move.', prompt: longo }], targetSeconds: 35, secondsPerClip: 10, verbatim: true, wordsPerSecond: 2.5 })
+  const c = r.scenes?.[0] ?? {}
+  checa('D o relatório do ensaio traz o plano inteiro (época e lugar visíveis) sem mudar o campo antigo', c.prompt_inteiro === longo && c.prompt === longo.slice(0, 400) && !c.prompt.includes('Setting of this film'))
+}
 const MUTANTES = [
   ['sem "lakebed" e "playa" na lista', (s) => s.replace("const LUGAR_ARIDO_1411 = 'dry lakebed|lakebed|lake bed|dry lake|playa|salt flats?|sand dunes|dunes'", "const LUGAR_ARIDO_1411 = 'xxxx'")],
   ['o lugar árido não vira um tipo só', (s) => s.replace("return lugarDoRoteiroLigado() && ARIDO_RE_1411.test(t) ? 'desert' : t", 'return t')],
   ['a vírgula entra (o Éden ganha lugar)', (s) => s.replace("(?:[\\\\p{L}'’-]+\\\\s+){0,4}?${LUGAR_NOME_1411}", "(?:[\\\\p{L}'’-]+,?\\\\s+){0,4}?${LUGAR_NOME_1411}")],
-  ['lugarDasCenas ignora a regra nova', (s) => s.replace("const porCena = textos.map((t) => new Set([...t.matchAll(lugarSoRe())].map((m) => tipoDoLugar(m[0]))))", "const porCena = textos.map((t) => new Set([...t.matchAll(LUGAR_SO_RE)].map((m) => m[0].toLowerCase())))")],
+  ['lugarDasCenas ignora a regra nova', (s) => s.replace("const porCena = textos.map((t) => new Set([...t.matchAll(lugarSoRe())].filter((m) => !aridoComNomeProprio(t, m)).map((m) => tipoDoLugar(m[0]))))", "const porCena = textos.map((t) => new Set([...t.matchAll(LUGAR_SO_RE)].map((m) => m[0].toLowerCase())))")],
+  ['v2: a 2ª leitura (planos) não existe', (s) => s.replace("  return lugar && new RegExp(`(?:^|\\\\s)(?:desert|${LUGAR_ARIDO_1411})$`, 'iu').test(lugar) ? lugar : null", '  return null')],
+  ['v2: a 2ª leitura aceita qualquer lugar', (s) => s.replace("  return lugar && new RegExp(`(?:^|\\\\s)(?:desert|${LUGAR_ARIDO_1411})$`, 'iu').test(lugar) ? lugar : null", '  return lugar')],
+  ['v2: "the Dunes casino" (nome próprio) vira lugar', (s) => s.replace("return /^\\p{Lu}/u.test(m[0]) && antes.length > 0 && !/[.!?:\\n]$/u.test(antes)", 'return false')],
 ]
 for (const [nome, fn] of MUTANTES) {
   const src = lf(fs.readFileSync(ARQ, 'utf8'))
