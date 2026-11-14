@@ -50,8 +50,10 @@ const pricingSource = read('lib/checkoutPricing.ts')
 const pricingAst = ts.createSourceFile('pricing.ts', pricingSource, ts.ScriptTarget.Latest, true)
 const pricingDeclarations = pricingAst.statements.filter(statement => ts.isFunctionDeclaration(statement) && statement.name?.text === 'recreateCreditCost' || ts.isVariableStatement(statement) && statement.declarationList.declarations.some(declaration => ts.isIdentifier(declaration.name) && declaration.name.text === 'RECREATE_PRICING')).map(statement => statement.getText(pricingAst)).join('\n')
 const pricing = loadModule('lib/checkoutPricing.ts', {}, {}, { 'lib/checkoutPricing.ts': pricingDeclarations })
-const rules = loadModule('lib/recreate/seuVideo.ts', { '@/lib/checkoutPricing': pricing })
-const helper = loadModule('lib/recreate/seuVideoClient.ts', { './seuVideo': rules, './photos': { compressPhoto: async file => file } })
+const rules = loadModule('lib/recreate/seuVideoRules.ts', { '@/lib/checkoutPricing': pricing })
+const serverRules = loadModule('lib/recreate/seuVideo.ts', { '@/lib/checkoutPricing': pricing })
+const helper = loadModule('lib/recreate/seuVideoClient.ts', { './seuVideoRules': rules, './photos': { compressPhoto: async file => file } })
+const presentation = Object.freeze({ resolution:'720p',audio:'silent',waitLabel:'About 2 minutes',minSeconds:3,maxSeconds:15,minSide:700,maxBytes:100*1024*1024,minFps:24,maxFps:60 })
 const catalog = loadModule('lib/recreate/seuVideoCatalog.ts')
 const release = loadModule('lib/recreate/seuVideoPreviewRelease.ts')
 const signup = loadModule('lib/growth/visitanteEscreveAntes.ts')
@@ -99,7 +101,7 @@ function hookStateNames(source) {
 function harness(options = {}, override) {
   const stateNames = options.stateOverrides ? hookStateNames(override ?? read(UI)) : []
   for (const name of Object.keys(options.stateOverrides || {})) if (!stateNames.includes(name)) throw new Error('Unknown fixture state: ' + name)
-  const h = { hooks: [], cursor: 0, stateCursor: 0, dirty: true, pending: [], tree: null, props: { signedIn: false, generationAllowed: false, accountKey: null, ...options.props }, calls: { prepare: [], generate: [], status: [], fetch: [], save: [], restore: [], clear: [], navigate: [], urls: [], revoked: [] }, timers: new Map(), storage: new Map(options.initialStorage || []), checkedQueue: [...(options.checkedQueue || [])], generateQueue: [...(options.generateQueue || [])], statusQueue: [...(options.statusQueue || [])], restoreQueue: [...(options.restoreQueue || [])] }
+  const h = { hooks: [], cursor: 0, stateCursor: 0, dirty: true, pending: [], tree: null, props: { signedIn: false, generationAllowed: false, accountKey: null, presentation:options.presentation??{...presentation,audio:options.originalAudio?'original':'silent'}, ...options.props }, calls: { prepare: [], generate: [], status: [], fetch: [], save: [], restore: [], clear: [], navigate: [], urls: [], revoked: [] }, timers: new Map(), storage: new Map(options.initialStorage || []), checkedQueue: [...(options.checkedQueue || [])], generateQueue: [...(options.generateQueue || [])], statusQueue: [...(options.statusQueue || [])], restoreQueue: [...(options.restoreQueue || [])] }
   const state = initial => {
     const index = h.cursor++, stateName = stateNames[h.stateCursor++]
     if (!h.hooks[index]) h.hooks[index] = { kind: 'state', value: options.stateOverrides && Object.hasOwn(options.stateOverrides, stateName) ? options.stateOverrides[stateName] : typeof initial === 'function' ? initial() : initial }
@@ -121,7 +123,7 @@ function harness(options = {}, override) {
       h.calls.prepare.push({ value, signal })
       const next = h.checkedQueue.shift()
       if (next instanceof Error) throw next
-      return next || { video_path: 'recreate-uploads/fixture/video.mp4', people: value.people, seconds: 6, fps: 30, width: 540, height: 960, bytes: value.file.size, generated_seconds: 6, credits: helper.estimateSeuVideoCredits(6), prompt: helper.defaultSeuVideoPrompt(value.people), needs_plan: false, shortfall: 0 }
+      return next || { video_path: 'recreate-uploads/fixture/video.mp4', people: value.people, seconds: 6, fps: 30, width: 720, height: 1280, bytes: value.file.size, generated_seconds: 6, credits: helper.estimateSeuVideoCredits(6), prompt: helper.genderSeuVideoPrompt(value.genders,value.positions), presentation:h.props.presentation, genders:value.genders, needs_plan: false, shortfall: 0 }
     },
     async generateSeuVideo(value, signal) {
       h.calls.generate.push({ value, signal })
@@ -133,7 +135,7 @@ function harness(options = {}, override) {
       h.calls.status.push({ id, signal })
       const next = h.statusQueue.shift()
       if (next instanceof Error) throw next
-      return next || { id, status: 'pending', refundConfirmed: false }
+      return next || options.defaultStatus || { id, status: 'pending', refundConfirmed: false }
     },
   }
   const draft = {
@@ -154,7 +156,7 @@ function harness(options = {}, override) {
   const stubs = {
     react: { ...React, useState: state, useRef, useMemo, useEffect },
     'next/link': { __esModule: true, default: ({ children, ...props }) => React.createElement('a', props, children) },
-    '@/lib/recreate/seuVideo': {...rules,SEU_VIDEO_SOM_ORIGINAL:options.originalAudio??rules.SEU_VIDEO_SOM_ORIGINAL},
+    '@/lib/recreate/seuVideoRules': rules,
     '@/lib/recreate/seuVideoCatalog': catalog,
     '@/lib/recreate/seuVideoPreviewRelease': release,
     '@/lib/growth/visitanteEscreveAntes': signup,
@@ -168,15 +170,17 @@ function harness(options = {}, override) {
   h.replay = () => { for (const slot of h.hooks) if (slot?.kind === 'effect') { slot.cleanup?.(); slot.cleanup = slot.create() } }
   h.unmount = () => { for (const slot of h.hooks) if (slot?.kind === 'effect') slot.cleanup?.() }
   h.click = async target => { target.props.onClick(); await h.flush() }
+  h.nextTimer = async () => { const next=h.timers.entries().next().value;if(!next)return false;h.timers.delete(next[0]);next[1].callback();await h.flush();return true }
   h.render()
   return h
 }
-async function selectPhoto(h, slot, file) {
+async function selectPhoto(h, slot, file, gender='man') {
   const container = nodes(h.tree, node => node.props?.className === 'sv-photo')[slot]
   const picker = nodes(container, node => node.type === 'button' && /^(Add|Change) photo$/.test(text(node)))[0]
   await h.click(picker)
   input(h, 'Choose person photo').props.onChange({ target: { files: [file], value: 'fixture' } })
   await h.flush()
+  if(gender)await h.click(by(h,node=>node.type==='button'&&node.props['aria-label']===`Photo ${slot+1}: ${gender==='man'?'Man':'Woman'}`))
 }
 async function ready(h, options = {}) {
   await h.flush()
@@ -194,7 +198,8 @@ async function pageScenario(override) {
       'next/navigation': { notFound() { const error = new Error('not-found-fixture'); error.code = 'NOT_FOUND'; throw error } },
       '@/lib/supabase/server': { createClient: () => ({ auth: { async getUser() { authCalls++; return { data: { user } } } } }) },
       '@/lib/recreate/access': { releaseVisible: (email, state) => state === 'public' || state === 'internal' && email === 'house@fixture.invalid' },
-      '@/lib/recreate/seuVideo': rules,
+      '@/lib/recreate/seuVideo': serverRules,
+      '@/lib/recreate/seuVideoPresentation': {seuVideoPresentation:()=>presentation},
       '@/lib/recreate/seuVideoPreviewRelease': release,
       './SeuVideoRecreateClient': { __esModule: true, default: () => null },
     }, {}, override ? { [PAGE]: override } : {})
@@ -204,6 +209,7 @@ async function pageScenario(override) {
     equal(element.props.accountKey, user?.id ?? null, 'page-account-owner')
     equal(element.props.initialExample, 'selfie-confete', 'page-public-example')
     equal(element.props.draftRef, reference, 'page-opaque-draft')
+    identical(element.props.presentation,presentation,'page-public-presentation')
     equal(page.metadata.robots.index, false, 'preview-noindex')
     equal(page.metadata.robots.googleBot.index, false, 'preview-google-noindex')
     equal(authCalls, 1, 'page-one-auth-read')
@@ -213,7 +219,8 @@ async function pageScenario(override) {
     'next/navigation': { notFound() { const error = new Error('not-found-fixture'); error.code = 'NOT_FOUND'; throw error } },
     '@/lib/supabase/server': { createClient() { authCalls++; failIo() } },
     '@/lib/recreate/access': { releaseVisible: () => false },
-    '@/lib/recreate/seuVideo': rules,
+    '@/lib/recreate/seuVideo': serverRules,
+    '@/lib/recreate/seuVideoPresentation': {seuVideoPresentation:()=>presentation},
     '@/lib/recreate/seuVideoPreviewRelease': { ...release, SEU_VIDEO_PREVIEW_ENABLED: false },
     './SeuVideoRecreateClient': { __esModule: true, default: () => null },
   }, {}, override ? { [PAGE]: override } : {})
@@ -226,7 +233,7 @@ async function mountScenario(override) {
   for (const props of [{ signedIn: false, generationAllowed: false }, { signedIn: true, generationAllowed: true, accountKey: 'house' }, { signedIn: true, generationAllowed: false, accountKey: 'customer' }]) {
     const h = harness({ props }, override)
     const html = renderToStaticMarkup(h.tree)
-    check(html.includes('Recreate with your video') && html.includes('480p') && /silent/i.test(html), 'ssr-useful-before-effects')
+    check(html.includes('Recreate with your video') && html.includes(presentation.resolution) && /silent/i.test(html), 'ssr-useful-before-effects')
     check(!/Seedance|bytedance|Minimax|fal-ai/i.test(html), 'ssr-no-engine-details')
     equal(nodes(h.tree, node => node.type === 'progress').length, 0, 'ssr-no-fake-progress')
     await h.flush()
@@ -304,6 +311,7 @@ async function hydrationMetadataScenario(override) {
 async function slotsScenario(override) {
   const h = harness({}, override); await h.flush()
   await h.click(by(h, node => node.type === 'button' && node.props['aria-label'] === '3 people'))
+  for(const number of [1,2])await h.click(by(h,node=>node.type==='button'&&node.props['aria-label']===`Photo ${number}: Man`))
   await selectPhoto(h, 2, photo('third-first'))
   by(h, node => node.type === 'video').props.onLoadedMetadata({ currentTarget: { duration: 6 } })
   by(h, node => node.type === 'input' && node.props.type === 'checkbox').props.onChange({ target: { checked: true } })
@@ -314,6 +322,7 @@ async function slotsScenario(override) {
   await selectPhoto(h, 0, photo('first')); await selectPhoto(h, 1, photo('second'))
   check(!generateButton(h).props.disabled, 'all-distinct-slots-complete')
   await h.click(by(h, node => node.type === 'button' && node.props['aria-label'] === 'Remove photo 2'))
+  await h.click(by(h,node=>node.type==='button'&&node.props['aria-label']==='Photo 2: Man'))
   check(generateButton(h).props.disabled, 'removed-photo-blocks-generate')
   await h.click(generateButton(h))
   check(h.calls.save.length === 0 && noRequests(h), 'removed-photo-cannot-submit')
@@ -333,6 +342,7 @@ async function authScenario(override) {
   check(!h.calls.navigate[0].includes('sensitive') && !destination.searchParams.has('prompt'), 'auth-no-customer-input-in-url')
   identical(h.calls.save[0].source.file, file, 'auth-keeps-original-video')
   identical(h.calls.save[0].photos[0], face, 'auth-keeps-original-photo')
+  equal(Array.from(h.calls.save[0].genders),['man'],'auth-keeps-gender-selection')
   check(noRequests(h), 'guest-generate-no-upload-or-render')
   for (const failure of [{ saveResult: false }, { saveError: new Error('Browser storage is unavailable. Keep this page open.') }, { missingRef: true }]) {
     const blocked = harness(failure, override); await ready(blocked); await blocked.click(generateButton(blocked))
@@ -346,7 +356,7 @@ async function authScenario(override) {
   check(/approved accounts only/.test(text(external.tree)), 'external-account-explained')
 }
 async function restoreScenario(override) {
-  const original = { source: { kind: 'upload', file: video('restored') }, photos: [photo('restored-face')], people: 1, prompt: helper.defaultSeuVideoPrompt(1), consent: true, requestKey: 'restored-request-key' }
+  const original = { source: { kind: 'upload', file: video('restored') }, photos: [photo('restored-face')], genders:['man'], people: 1, prompt: helper.genderSeuVideoPrompt(['man']), consent: true, requestKey: 'restored-request-key' }
   let firstResolve
   const first = new Promise(resolve => { firstResolve = resolve })
   const h = harness({ props: { draftRef: reference }, restoreQueue: [first, Promise.resolve(original)] }, override)
@@ -382,7 +392,7 @@ async function restoreRaceScenario(override) {
   const deferred = new Map()
   let finishSave
   const savePromise = new Promise(resolve => { finishSave = resolve })
-  for (const signedIn of [false, true]) {
+  for (const signedIn of [false]) {
     const waiting = harness({ props: { signedIn, generationAllowed: signedIn, accountKey: signedIn ? 'house' : null }, savePromise }, override)
     await ready(waiting); await waiting.click(generateButton(waiting)); waiting.unmount(); deferred.set(signedIn, waiting)
   }
@@ -393,13 +403,14 @@ async function restoreRaceScenario(override) {
   }
 }
 async function quoteScenario(override) {
-  const changedPrompt = helper.defaultSeuVideoPrompt(1) + ' Keep the camera still.'
+  const changedPrompt = helper.genderSeuVideoPrompt(['man']) + ' Keep the camera still.'
   const checked = { video_path: 'recreate-uploads/fixture/checked.mp4', people: 1, seconds: 12, fps: 30, width: 540, height: 960, bytes: 20, generated_seconds: 12, credits: helper.estimateSeuVideoCredits(12), prompt: changedPrompt, needs_plan: false, shortfall: 0 }
   const h = harness({ props: { signedIn: true, generationAllowed: true, accountKey: 'house' }, checkedQueue: [checked] }, override)
   await ready(h, { catalog: true }); await h.click(generateButton(h))
   equal(h.calls.generate.length, 0, 'quote-change-needs-reconfirmation')
   equal(textarea(h).props.value, changedPrompt, 'quote-and-prompt-updated-together')
   check(text(generateButton(h)).includes(String(checked.credits)), 'confirmed-quote-shown')
+  equal(by(h,node=>node.props?.['data-seu-video-cost']).props['data-seu-video-cost'],'confirmed','checked-cost-is-not-estimate')
   equal(h.calls.fetch[0].url, catalog.SEU_VIDEO_CATALOG[0].src, 'catalog-reference-public-src')
   check(h.calls.prepare[0].value.file instanceof File && h.calls.prepare[0].value.file.name === catalog.SEU_VIDEO_CATALOG[0].id + '.mp4', 'catalog-reference-file-origin')
   await h.click(generateButton(h))
@@ -408,8 +419,10 @@ async function quoteScenario(override) {
   identical(h.calls.generate[0].value.checked, checked, 'generation-uses-exact-check')
   equal(h.calls.generate[0].value.prompt, changedPrompt, 'generation-uses-reviewed-prompt')
   equal(h.calls.generate[0].value.confirmedCredits, checked.credits, 'generation-uses-confirmed-credits')
+  equal(h.calls.generate[0].value.promptEdited,true,'gender-prompt-sent-as-explicit-instruction')
+  equal(Array.from(h.calls.generate[0].value.genders),['man'],'generation-keeps-reviewed-gender')
   const edited = harness({ props: { signedIn: true, generationAllowed: true, accountKey: 'house' } }, override); await ready(edited)
-  const ownPrompt = helper.defaultSeuVideoPrompt(1) + ' Keep the red coat.'
+  const ownPrompt = helper.genderSeuVideoPrompt(['man']) + ' Keep the red coat.'
   textarea(edited).props.onChange({ target: { value: ownPrompt } }); await edited.flush(); await edited.click(generateButton(edited))
   equal(edited.calls.generate[0]?.value.prompt, ownPrompt, 'edited-instruction-preserved')
 }
@@ -455,7 +468,7 @@ async function statusScenario(override) {
   await ready(pending); await pending.click(generateButton(pending))
   const progress = by(pending, node => node.type === 'progress')
   check(progress.props.value === undefined, 'pending-no-invented-progress-percentage')
-  check(/3–4 minutes/.test(text(pending.tree)), 'pending-honest-wait')
+  check(text(pending.tree).includes(presentation.waitLabel), 'pending-honest-wait')
   await pending.click(button(pending, /^Refresh status$/))
   equal(pending.calls.generate.length, 1, 'status-error-refresh-never-generates')
   const output = 'https://media-fixture.supabase.co/storage/v1/object/public/renders/clips/house0001/owned-result.mp4'
@@ -466,12 +479,12 @@ async function statusScenario(override) {
   equal(nodes(done.tree, node => node.type === 'progress').length, 0, 'done-removes-progress')
   equal(done.calls.generate.length, 1, 'done-does-not-restart-generation')
   const unchanged=harness({props:{signedIn:true,generationAllowed:true,accountKey:'house'},stateOverrides:{restoring:false,clip:{id:'not-swapped-fixture',status:'failed',reason:'not_swapped',credits_refunded:0,refundConfirmed:false}}},override)
-  check(text(unchanged.tree).includes("We couldn't put you in this video. Try a clearer photo or another video."),'not-swapped-has-actionable-message')
+  check(text(unchanged.tree).includes('The person in your video was not replaced. Try a clearer photo or another video.'),'not-swapped-has-actionable-message')
   check(/not been confirmed/.test(text(unchanged.tree))&&!/Nothing was charged/.test(text(unchanged.tree)),'not-swapped-keeps-refund-uncertainty')
 }
 async function recheckScenario(override) {
   for (const gate of [{ needs_plan: true, shortfall: 0 }, { needs_plan: false, shortfall: 1 }]) {
-    const blocked = { video_path: 'recreate-uploads/fixture/gated.mp4', people: 1, seconds: 6, fps: 30, width: 540, height: 960, bytes: 20, generated_seconds: 6, credits: helper.estimateSeuVideoCredits(6), prompt: helper.defaultSeuVideoPrompt(1), ...gate }
+    const blocked = { video_path: 'recreate-uploads/fixture/gated.mp4', people: 1, seconds: 6, fps: 30, width: 720, height: 1280, bytes: 20, generated_seconds: 6, credits: helper.estimateSeuVideoCredits(6), prompt: helper.genderSeuVideoPrompt(['man']), ...gate }
     const h = harness({ props: { signedIn: true, generationAllowed: true, accountKey: 'house' }, checkedQueue: [blocked] }, override)
     await ready(h); await h.click(generateButton(h))
     equal(h.calls.generate.length, 0, 'known-plan-credit-gate-no-generation')
@@ -479,6 +492,113 @@ async function recheckScenario(override) {
     check(actions.length > 0, 'known-plan-credit-gate-can-recheck')
     await h.click(actions[0]); await h.click(generateButton(h))
     check(h.calls.prepare.length === 2 && h.calls.generate.length === 1, 'known-plan-credit-recheck-recovers')
+  }
+}
+async function genderScenario(override) {
+  const exactMan='Replace the main person in @Video1 with the man from @Image1: his face and hair match @Image1. Keep the choreography, timing, camera, framing, background and lighting of @Video1 exactly. Keep the original clothing from @Video1.'
+  const exactWoman='Replace the main person in @Video1 with the woman from @Image1: her face and hair match @Image1. Keep the choreography, timing, camera, framing, background and lighting of @Video1 exactly. Keep the original clothing from @Video1.'
+  const h=harness({props:{signedIn:true,generationAllowed:true,accountKey:'house'}},override);await h.flush()
+  check(nodes(h.tree,node=>node.props?.className==='sv-gender-option').every(node=>node.props['aria-pressed']===false),'gender-never-assumed')
+  input(h,'Choose reference video file').props.onChange({target:{files:[video('gender-choice')],value:'fixture'}});await h.flush()
+  await selectPhoto(h,0,photo('gender-choice'),null)
+  by(h,node=>node.type==='input'&&node.props.type==='checkbox').props.onChange({target:{checked:true}})
+  textarea(h).props.onChange({target:{value:exactMan}});await h.flush()
+  check(generateButton(h).props.disabled,'gender-missing-blocks-button')
+  await h.click(generateButton(h));check(noRequests(h)&&h.calls.save.length===0,'gender-missing-no-requests')
+  await h.click(by(h,node=>node.props?.['aria-label']==='Photo 1: Man'))
+  await h.click(button(h,/Use the suggested instruction/))
+  equal(textarea(h).props.value,exactMan,'gender-man-exact-approved-prompt')
+  await h.click(by(h,node=>node.props?.['aria-label']==='Photo 1: Woman'))
+  equal(textarea(h).props.value,exactWoman,'gender-woman-exact-approved-prompt')
+  const custom=exactWoman+' Keep the blue scarf.'
+  textarea(h).props.onChange({target:{value:custom}});await h.flush()
+  await h.click(by(h,node=>node.props?.['aria-label']==='Photo 1: Man'))
+  equal(textarea(h).props.value,custom,'gender-choice-preserves-edited-instruction')
+  await h.click(button(h,/Use the suggested instruction/))
+  await h.click(by(h,node=>node.props?.['aria-label']==='2 people'))
+  await selectPhoto(h,1,photo('second-person'),'woman')
+  const pair=textarea(h).props.value
+  check(pair.includes('the person on the left in @Video1 with the man from @Image1: his face and hair match @Image1.')&&pair.includes('the person on the right in @Video1 with the woman from @Image2: her face and hair match @Image2.'),'gender-pair-position-photo-mapping')
+  await h.click(by(h,node=>node.props?.['aria-label']==='3 people'))
+  await selectPhoto(h,2,photo('third-person'),'man')
+  const trio=textarea(h).props.value
+  check(trio.includes('the person in the center in @Video1 with the woman from @Image2')&&trio.includes('the person on the right in @Video1 with the man from @Image3'),'gender-trio-position-photo-mapping')
+  equal(nodes(h.tree,node=>node.props?.className==='sv-position-label').map(text),['Person on the left in the video','Person in the center in the video','Person on the right in the video'],'gender-positions-visible-per-photo')
+  await selectPhoto(h,1,photo('replacement-person'),null)
+  check(generateButton(h).props.disabled&&!by(h,node=>node.props?.['aria-label']==='Photo 2: Woman').props['aria-pressed'],'new-photo-needs-new-explicit-gender')
+  check(noRequests(h),'gender-editing-never-uploads')
+  const restored={source:{kind:'upload',file:video('legacy')},photos:[photo('legacy-face')],people:1,prompt:custom,consent:true,requestKey:'legacy-draft-key'}
+  const legacy=harness({restored},override);await legacy.flush()
+  equal(textarea(legacy).props.value,custom,'legacy-draft-preserves-edit')
+  check(generateButton(legacy).props.disabled,'legacy-draft-needs-gender-choice')
+  await legacy.click(by(legacy,node=>node.props?.['aria-label']==='Photo 1: Woman'))
+  equal(textarea(legacy).props.value,custom,'legacy-gender-choice-keeps-user-text')
+}
+async function signedInStorageScenario(override) {
+  for(const failure of [{saveResult:false},{saveError:new Error('storage unavailable')}]){
+    const h=harness({...failure,props:{signedIn:true,generationAllowed:true,accountKey:'house'}},override);await ready(h);await h.click(generateButton(h))
+    equal(h.calls.save.length,0,'signed-in-generation-does-not-require-idb')
+    equal(h.calls.generate.length,1,'signed-in-storage-failure-still-generates')
+  }
+}
+async function automaticRestoreScenario(override) {
+  for(const original of [{genders:undefined,prompt:helper.defaultSeuVideoPrompt(1)},{genders:['man'],prompt:helper.genderSeuVideoPrompt(['man'])}]){
+    const draft={source:{kind:'upload',file:video('automatic')},photos:[photo('automatic')],people:1,consent:true,requestKey:'automatic-request-key',...original}
+    const h=harness({restored:draft},override);await h.flush()
+    await h.click(by(h,node=>node.props?.['aria-label']==='Photo 1: Woman'))
+    equal(textarea(h).props.value,helper.genderSeuVideoPrompt(['woman']),'automatic-restored-prompt-follows-gender')
+    check(noRequests(h),'automatic-restore-does-not-generate')
+  }
+  const fresh=harness({},override);await fresh.flush()
+  await fresh.click(by(fresh,node=>node.props?.['aria-label']==='Photo 1: Woman'))
+  const before=textarea(fresh).props.value
+  await selectPhoto(fresh,0,photo('first-photo'),null)
+  check(by(fresh,node=>node.props?.['aria-label']==='Photo 1: Woman').props['aria-pressed'],'first-photo-keeps-prior-gender-choice')
+  equal(textarea(fresh).props.value,before,'first-photo-keeps-generated-instruction')
+  await selectPhoto(fresh,0,photo('replacement-photo'),null)
+  check(!by(fresh,node=>node.props?.['aria-label']==='Photo 1: Woman').props['aria-pressed'],'replacement-photo-needs-gender-review')
+}
+async function recoverableRefusalScenario(override) {
+  for(const code of ['engine_refused','provider_rejected','provider_failed','not_swapped','swap_unchanged']){
+    const message='Server refusal: the person was not replaced. Nothing was charged. Try another photo.'
+    const error=new helper.SeuVideoClientError(message,code,'generate',502,'not-started')
+    const h=harness({props:{signedIn:true,generationAllowed:true,accountKey:'house'},generateQueue:[error]},override)
+    await ready(h);await h.click(generateButton(h))
+    check(text(h.tree).includes(message),'known-refusal-keeps-server-message')
+    check(!textarea(h).props.disabled&&!/Retry Generate/.test(text(generateButton(h))),'known-refusal-unlocks-editor')
+    equal(h.calls.clear.length,1,'known-refusal-clears-local-draft')
+    equal(h.calls.generate.length,1,'known-refusal-does-not-auto-retry')
+    await h.click(generateButton(h))
+    equal(h.calls.prepare.length,2,'known-refusal-starts-new-explicit-check')
+    check(h.calls.generate[0].value.key!==h.calls.generate[1].value.key,'known-refusal-new-explicit-request-key')
+  }
+  const serverMessage='The person was not replaced. Your credits were returned.'
+  const failed=harness({stateOverrides:{restoring:false,clip:{id:'message-fixture',status:'failed',reason:'not_swapped',message:serverMessage,credits_refunded:pricing.recreateCreditCost(10),refundConfirmed:true}}},override)
+  check(text(failed.tree).includes(serverMessage),'failed-status-keeps-server-message')
+}
+async function publicPresentationScenario(override) {
+  check(!read(UI).includes("from '@/lib/recreate/seuVideo'"),'browser-ui-imports-public-rules-only')
+  const facts={...presentation,resolution:'1080p',audio:'original',waitLabel:'About 4 minutes'}
+  const h=harness({presentation:facts},override);await h.flush()
+  const copy=text(h.tree)
+  check(copy.includes(facts.resolution)&&copy.includes(facts.waitLabel)&&!copy.includes('480p'),'public-resolution-and-wait-follow-server')
+  check(copy.includes('Input: 720p or higher')&&copy.includes(String(facts.minSide)+' px per side'),'input-resolution-label-is-explicit')
+  check(nodes(h.tree,node=>node.props?.className==='sv-permission').some(node=>/send them for processing when I press Generate/.test(text(node))),'consent-explicitly-describes-processing')
+  await ready(h)
+  const estimate=by(h,node=>node.props?.['data-seu-video-cost'])
+  check(estimate.props['data-seu-video-cost']==='estimated'&&/Estimated/.test(text(estimate)),'local-cost-labelled-estimated')
+}
+async function pollingCapScenario(override) {
+  for(const status of ['pending','failed']){
+    const h=harness({props:{signedIn:true,generationAllowed:true,accountKey:'house'},defaultStatus:{id:'fixture-clip',status,credits_refunded:0,refundConfirmed:false}},override)
+    await ready(h);await h.click(generateButton(h))
+    for(let count=0;count<75;count++)if(!await h.nextTimer())break
+    check(h.timers.size===0&&h.calls.status.length<=60&&h.calls.status.length>1,'automatic-polling-has-finite-budget')
+    check(/Automatic status checks paused/.test(text(h.tree)),'polling-cap-explained')
+    const before=h.calls.status.length;await h.click(button(h,/^Refresh status$/))
+    check(h.calls.status.length>before&&h.timers.size>0,'polling-cap-allows-explicit-refresh')
+    equal(h.calls.generate.length,1,'polling-cap-never-regenerates')
+    h.unmount()
   }
 }
 
@@ -517,7 +637,7 @@ if (arguments_.length) {
   if (arguments_.length !== 2 || arguments_[0] !== '--export-fixtures') throw new Error('Usage: node scripts/test-recreate-seu-video-ui-1311.mjs [--export-fixtures <docs/folder>]')
   exportFixtures(arguments_[1])
 } else {
-const scenarios = { page: pageScenario, mount: mountScenario, metadataRace: metadataRaceScenario, hydrationMetadata: hydrationMetadataScenario, audio:audioScenario, slots: slotsScenario, auth: authScenario, restore: restoreScenario, restoreRace: restoreRaceScenario, quote: quoteScenario, retry: retryScenario, refusal: refusalScenario, status: statusScenario, recheck: recheckScenario }
+const scenarios = { page: pageScenario, mount: mountScenario, metadataRace: metadataRaceScenario, hydrationMetadata: hydrationMetadataScenario, audio:audioScenario, slots: slotsScenario, auth: authScenario, restore: restoreScenario, restoreRace: restoreRaceScenario, quote: quoteScenario, retry: retryScenario, refusal: refusalScenario, status: statusScenario, recheck: recheckScenario,gender:genderScenario,signedInStorage:signedInStorageScenario,automaticRestore:automaticRestoreScenario,recoverableRefusal:recoverableRefusalScenario,presentation:publicPresentationScenario,pollingCap:pollingCapScenario }
 const failures = []
 for (const [name, run] of Object.entries(scenarios)) {
   try { await run(); console.log('PASS ' + name) } catch (error) { failures.push({ name, error }); console.error('FAIL ' + name + ': ' + error.message) }
@@ -531,7 +651,7 @@ function replaceOnce(original, anchor, replacement) {
 }
 const uiSource = read(UI), pageSource = read(PAGE)
 const mutants = [
-  ['original audio switch ignored', 'audio', replaceOnce(uiSource,'480p · {SEU_VIDEO_SOM_ORIGINAL?', '480p · {false?'), /audio-copy-follows-server-switch/],
+  ['original audio switch ignored', 'audio', replaceOnce(uiSource,"display.audio==='silent'", "display.audio==='original'"), /audio-copy-follows-server-switch/],
   ['not swapped outcome hidden', 'status', replaceOnce(uiSource,"clip.reason==='not_swapped'",'false'), /not-swapped-has-actionable-message/],
   ['done download bypasses owned domain', 'status', replaceOnce(uiSource, "href={downloadHref(clip.video_url,'kineo-recreate-'+clip.id+'.mp4','recreate-preview')}", 'href={clip.video_url}'), /done-download-through-owned-domain/],
   ['done preview loses first frame', 'status', replaceOnce(uiSource, 'src={comPrimeiroQuadro(clip.video_url)}', 'src={clip.video_url}'), /done-output-first-frame-from-owned-status/],
@@ -539,7 +659,7 @@ const mutants = [
   ['index preview', 'page', replaceOnce(pageSource, 'index:false,follow:true,googleBot', 'index:true,follow:true,googleBot'), /preview-noindex/],
   ['disable switch ignored', 'page', replaceOnce(pageSource, 'if(!SEU_VIDEO_PREVIEW_ENABLED)notFound()', 'if(false)notFound()'), /preview-flag-off/],
   ['photo slots auto-filled', 'slots', replaceOnce(uiSource, 'Array.from({length:people},(_,i)=>current[i]??null)', 'Array.from({length:people},(_,i)=>current[i]??file)'), /photo-three-does-not-fill-one-two/],
-  ['removed photo retained', 'slots', replaceOnce(uiSource, 'n===i?null:file', 'n===i?file:file'), /removed-photo-blocks-generate/],
+  ['removed photo retained', 'slots', replaceOnce(uiSource, 'n===index?null:file', 'n===index?file:file'), /removed-photo-blocks-generate/],
   ['auth starts before Generate', 'auth', replaceOnce(uiSource, 'useEffect(()=>{alive.current=true;', "useEffect(()=>{window.location.assign('/signup');alive.current=true;"), /auth-only-on-generate/],
   ['storage failure ignored', 'auth', replaceOnce(uiSource, 'if(!saved)throw new Error', 'if(false)throw new Error'), /storage-failure-stays-local/],
   ['external account sends files', 'auth', replaceOnce(uiSource, 'if(signedIn&&!generationAllowed)', 'if(false)'), /external-account-no-personal-upload/],
@@ -558,6 +678,18 @@ const mutants = [
   ['hydration omits initial metadata read', 'hydrationMetadata', replaceOnce(uiSource, "    read()\n    video.addEventListener('loadedmetadata',read)", "    video.addEventListener('loadedmetadata',read)"), /hydration-ready-metadata-keeps-cost/],
   ['hydration omits later metadata listener', 'hydrationMetadata', replaceOnce(uiSource, "    video.addEventListener('loadedmetadata',read)", "    // Fixture mutant: listener omitted."), /hydration-metadata-listener-installed/],
   ['hydration accepts previous video metadata', 'hydrationMetadata', replaceOnce(uiSource, "if(!video||video.getAttribute('src')!==expected)return", "if(!video)return"), /hydration-previous-source-metadata-rejected/],
+  ['gender check bypassed before prepare','gender',replaceOnce(uiSource,"if(!gendersReady){setMessage('Choose Man or Woman for every photo before generating.');return}",'if(false)return'),/gender-missing-no-requests/],
+  ['gender choice overwrites edited text','gender',replaceOnce(uiSource,'setGenders(next);if(!promptEdited)setPrompt(suggestedPrompt(next,people));else','setGenders(next);if(true)setPrompt(suggestedPrompt(next,people));else'),/gender-choice-preserves-edited-instruction/],
+  ['gender instruction loses explicit flag','quote',replaceOnce(uiSource,'promptEdited:true,genders,consent:true','promptEdited:false,genders,consent:true'),/gender-prompt-sent-as-explicit-instruction/],
+  ['known refusal loses server message','recoverableRefusal',replaceOnce(uiSource,'void clearSeuVideoDraft().catch(()=>{});setMessage(e.message);return',"void clearSeuVideoDraft().catch(()=>{});setMessage('Generic failure');return"),/known-refusal-keeps-server-message/],
+  ['known refusal remains uncertain','recoverableRefusal',replaceOnce(uiSource,'setUncertain(e.outcome===\'unknown\'||e.code===\'idempotency_conflict\')','setUncertain(true)'),/known-refusal-unlocks-editor/],
+  ['known refusal keeps persisted files','recoverableRefusal',replaceOnce(uiSource,'setChecked(null);void clearSeuVideoDraft().catch(()=>{});setMessage(e.message)','setChecked(null);setMessage(e.message)'),/known-refusal-clears-local-draft/],
+  ['failed status hides server message','recoverableRefusal',replaceOnce(uiSource,'clip.message??(clip.reason',"undefined??(clip.reason"),/failed-status-keeps-server-message/],
+  ['estimated cost presented as confirmed','presentation',replaceOnce(uiSource,"{checked?'':'Estimated '}","{checked?'':''}"),/local-cost-labelled-estimated/],
+  ['processing consent hidden','presentation',replaceOnce(uiSource,'and I agree to send them for processing when I press Generate.','and I agree.'),/consent-explicitly-describes-processing/],
+  ['polling budget disabled','pollingCap',replaceOnce(uiSource,'pollBudget.current.checks>=MAX_STATUS_CHECKS','false'),/automatic-polling-has-finite-budget/],
+  ['automatic restored prompt misclassified as user edit','automaticRestore',replaceOnce(uiSource,'setPromptEdited(!automatic)','setPromptEdited(true)'),/automatic-restored-prompt-follows-gender/],
+  ['first photo discards prior gender choice','automaticRestore',replaceOnce(uiSource,'const replacing=photos[photoSlot.current]!=null','const replacing=true'),/first-photo-keeps-prior-gender-choice/],
 ]
 for (const [name, scenario, altered, expected] of mutants) {
   let caught
