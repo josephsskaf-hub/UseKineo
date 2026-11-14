@@ -152,6 +152,18 @@ function provas(L) {
     const GUN = 'In 1918 the war ended at eleven. One of them was Henry Gunther, a soldier from Baltimore. The soldier charged at the guns.'
     const gun = camada(GUN, { ...semNomes, historiaReal: { anoPorExtenso: true, nomeadoNoElenco: true, nomesNoElenco: ['Henry Gunther'] } }, pr3, GUN.split(/(?<=.)s+/))
     if (gun.relato.elenco.some((x) => x.nome === 'the soldier')) erros.push('D v2 "Henry Gunther, a soldier" (aposto) ainda deu ficha ao soldado')
+    // v3 [revisor 14/11, bloqueio da v2]: negação, preposição e complemento NÃO ligam; título e partes do nome ligam
+    const papelFica = (frase, nomes, papel = 'the thief') => {
+      const t = `In 1911 the city slept. ${frase} ${papel[0].toUpperCase() + papel.slice(1)} vanished at dawn.`
+      return camada(t, { ...semNomes, historiaReal: { anoPorExtenso: true, nomeadoNoElenco: true, nomesNoElenco: nomes } }, pr3, t.split(/(?<=\.)\s+/).slice(0, 3)).relato.elenco.some((x) => x.nome === papel)
+    }
+    const VP = ['Vincenzo Peruggia']
+    for (const [frase, fica, nomes, papel] of [
+      ['The thief was not Vincenzo Peruggia.', true, VP], ['The thief was NOT Vincenzo Peruggia.', true, VP], ['The thief was hired by Vincenzo Peruggia.', true, VP], ['The thief was working for Vincenzo Peruggia.', true, VP],
+      ['Louis Lépine, a rival of the thief, waited.', true, ['Louis Lépine']],
+      ['The thief was Vincenzo Peruggia.', false, VP], ['Then the thief, Vincenzo Peruggia, ran.', false, VP], ['Peruggia, the thief, ran.', false, VP], ['Peruggia is the thief.', false, VP], ['The thief was Vincenzo.', false, VP],
+      ['Captain Ed Freeman was the pilot.', false, ['Freeman'], 'the pilot'],
+    ]) if (papelFica(frase, nomes, papel) !== fica) erros.push(`D v3 "${frase}": o papel ${fica ? 'devia FICAR (é outra pessoa)' : 'devia SAIR (é a pessoa nomeada)'}`)
   }
   // (C1) os casos do revisor: sem gente nomeada no elenco, a camada fica BYTE A BYTE a base
   for (const ctx of ['A young girl finds a glowing stone in the forest. Suddenly, the girl hears a voice.', 'The chef was Japanese. The chef plated the fish in silence.', 'The boy was born in Texas. The boy rode his bike to school.', 'In London, the commuter waits for the last train. The commuter checks the clock.']) {
@@ -202,6 +214,9 @@ checa('E a camada de época não lê interruptor global (só o que a chamada pas
 checa('E o repasse da camada (prepararQualidadeDoFilme) leva o argumento sem valor padrão', lf(fs.readFileSync('lib/cinematic/filmQuality.ts', 'utf8')).includes("historiaReal?: Parameters<typeof aplicarElencoEEpoca>[0]['historiaReal']") && lf(fs.readFileSync('lib/cinematic/filmQuality.ts', 'utf8')).includes('const cast = aplicarElencoEEpoca({ ...args, prompts: withRoom')) // reancorado (KINEO-FICHA-DO-AUTOR-MANDA-1411): a mesma chamada com ...args, que pode levar as fichas do autor depois
 
 const MUTANTES = [
+  ['v3: qualquer palavra entre o verbo e o nome', EP, (s) => s.replace(String.raw`const PARTES = String.raw` + '`' + String.raw`(?:\p{Lu}\p{Ll}[\p{Ll}'’-]*\s+){0,2}?` + '`', String.raw`const PARTES = String.raw` + '`' + String.raw`(?:[\p{L}'’-]+\s+){0,2}?` + '`')],
+  ['v3: a flag i volta (\\p{Lu} casa minúscula)', EP, (s) => s.replace("TITULO + PARTES + N + String.raw`(?![\\p{L}])`, 'u'),", "TITULO + PARTES + N + String.raw`(?![\\p{L}])`, 'iu'),")],
+  ['v3: qualquer palavra antes do papel ("a rival of the thief")', EP, (s) => s.replace('const P = ADJ + esc(nucleo)', String.raw`const P = String.raw` + '`' + String.raw`(?:[\p{L}-]+\s+){0,3}?` + '`' + ' + esc(nucleo)')],
   // a obra real
   ['a obra real também em filme desenhado', ARQ, (s) => s.replace('if (o?.estilizado !== false || o?.temEpoca !== true', 'if (o?.temEpoca !== true')],
   ['a obra real em conto sem data', ARQ, (s) => s.replace('o?.estilizado !== false || o?.temEpoca !== true || ', 'o?.estilizado !== false || ')],

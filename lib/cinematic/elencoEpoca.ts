@@ -117,10 +117,19 @@ function papelLigadoAoNome1411(texto: string, papel: string, nomes: readonly str
   const nucleo = String(papel ?? '').replace(/^(?:the|a|an)\s+/iu, '').trim()
   const alts = [...new Set(nomes.flatMap((n) => { const s = String(n ?? '').trim(); return s ? [s, ...s.split(/\s+/u).filter((w) => w.length > 2 && /^\p{Lu}/u.test(w))] : [] }))].sort((a, b) => b.length - a.length).map(esc)
   if (!nucleo || alts.length === 0) return false
-  const N = `(?:${alts.join('|')})`, P = String.raw`(?:[\p{L}-]+\s+){0,3}?` + esc(nucleo)
+  // v3 [revisor 14/11, bloqueio da v2]: SEM a flag i (com ela, \p{Lu} casava minúscula e "The thief was not / hired by / working for Vincenzo
+  // Peruggia" ligava). Entre a cópula e o nome só cabem um título e partes do nome em Maiúscula-minúscula ("Captain Ed Freeman", "Vincenzo
+  // Peruggia"): "not", "NOT", "by", "for" não passam. Antes do papel, só adjetivo minúsculo que não é preposição nem artigo: o papel é o NÚCLEO
+  // do aposto ("Peruggia, the thief"), nunca complemento dele ("Louis Lépine, a rival of the thief").
+  const N = `(?:${alts.join('|')})`
+  const ADJ = String.raw`(?:(?!(?:of|the|a|an|for|with|by|from|against|to|in|on|at|and|or|not|never|no)(?![\p{L}]))[\p{Ll}-]+\s+){0,2}?`
+  const P = ADJ + esc(nucleo)
+  const TITULO = String.raw`(?:(?:Captain|Capt\.|Detective|Doctor|Dr\.|Mr\.|Mrs\.|Ms\.|Miss|Sir|Lady|Lord|General|Colonel|Major|Lieutenant|Sergeant|Officer|Agent|Professor|Inspector|King|Queen|Prince|Princess)\s+)?`
+  const PARTES = String.raw`(?:\p{Lu}\p{Ll}[\p{Ll}'’-]*\s+){0,2}?`
+  const COPULA = String.raw`\s*(?:,|\s(?:was|is|—))\s*`
   const ligacoes = [
-    new RegExp(String.raw`(?<![\p{L}])the\s+` + P + String.raw`\s*(?:,|\s(?:was|is|—))\s*(?:(?:named|called|none other than)\s+)?(?:\p{Lu}[\p{L}'’-]*\s+){0,2}?` + N + String.raw`(?![\p{L}])`, 'iu'),
-    new RegExp(String.raw`(?<![\p{L}])` + N + String.raw`\s*(?:,|\s(?:was|is|—))\s*(?:the|a|an)\s+` + P + String.raw`(?![\p{L}])`, 'iu'),
+    new RegExp(String.raw`(?<![\p{L}])[Tt]he\s+` + P + COPULA + String.raw`(?:(?:named|called)\s+)?` + TITULO + PARTES + N + String.raw`(?![\p{L}])`, 'u'),
+    new RegExp(String.raw`(?<![\p{L}])` + N + COPULA + String.raw`(?:[Tt]he|[Aa]n?)\s+` + P + String.raw`(?![\p{L}])(?!\s+(?:of|for|to)(?![\p{L}]))`, 'u'),
   ]
   return String(texto ?? '').split(/(?<=[.!?\n])/u).some((f) => ligacoes.some((re) => re.test(f)))
 }

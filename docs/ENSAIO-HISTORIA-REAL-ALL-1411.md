@@ -111,3 +111,18 @@ O revisor confirmou o caso do Logan, inclusive com o casting falhando, e as fant
 ### Menores anotados
 - "golden statue" (um ídolo) e "bronze bust" viram obra real.
 - No lote E: "Louvre" e "Paris" como pessoa no dry-run da main.
+
+## v3 depois do 2º bloqueio do revisor (CEO 14/11)
+- A ligação por nome da v2 aceitava QUALQUER palavra entre o verbo e o nome.
+  - Com a flag `i`, `\p{Lu}` casava minúscula. "The thief was not / NOT / hired by / working for Vincenzo Peruggia" ligava, e o ladrão perdia a ficha.
+  - No aposto, "Louis Lépine, a rival of the thief" ligava o ladrão ao Lépine.
+- v3:
+  - sem a flag `i`;
+  - entre a cópula e o nome só cabem um título (Captain, Detective, Dr.…) e partes do nome em Maiúscula-minúscula;
+  - antes do papel, só adjetivo minúsculo que não é preposição, artigo nem negação: o papel é o NÚCLEO do aposto, nunca complemento dele.
+- Guardião, com as frases do revisor:
+  - os 5 negativos (o papel FICA): "was not", "was NOT", "was hired by", "was working for", "a rival of the thief";
+  - os 6 positivos (o papel SAI): "The thief was Vincenzo Peruggia", "the thief, Vincenzo Peruggia,", "Peruggia, the thief", "Peruggia is the thief", "The thief was Vincenzo", "Captain Ed Freeman was the pilot".
+- Os mutantes "qualquer palavra entre o verbo e o nome", "a flag i volta" e "qualquer palavra antes do papel" ficam vermelhos.
+- A peça 3 no corpus sai igual à v2: a Mona Lisa e o Gunther mudam, certos; a mulher misteriosa, a mulher do Kennedy e o piloto do Ia Drang ficam como na main.
+- Anotados, iguais à main: "the thief Vincenzo Peruggia" (sem vírgula) não liga; "The detective chased Peruggia, the thief" e "The brothers were Frank and Joe Sullivan" a camada não lê como papel.
