@@ -68,6 +68,9 @@ export const RECREATE_ASSETS = {
   'sueter-aconchegante.jpg': { file: 'recreate-sueter.jpg', contentType: 'image/jpeg' },
   'selfie-confete.mp4': { file: 'recreate-selfie.mp4', contentType: 'video/mp4' },
   'selfie-confete.jpg': { file: 'recreate-selfie.jpg', contentType: 'image/jpeg' },
+  // KINEO-RECREATE-MOVIMENTO-MOLDE-1411 — demo nosso do molde de movimento "Football play" (720x1280, 6.3 s); pôster = quadro de 1 s, 720 px.
+  'jogada-de-futebol.mp4': { file: 'recreate-mov-jogada-de-futebol-v1.mp4', contentType: 'video/mp4' },
+  'jogada-de-futebol.jpg': { file: 'recreate-mov-jogada-de-futebol.jpg', contentType: 'image/jpeg' },
 } as const
 
 /** KINEO-RECREATE-TRAVA-1011 — frames 84 and 168 (3.5 s and 7.0 s at 24 fps) of base and result feed the "not swapped" check. */
@@ -121,7 +124,11 @@ const RECREATE_CATALOG: readonly RecreateFormat[] = [
 //     cena: 'standing on a plain green football pitch with plain solid-colour kits around, framed from the knees up, their face clearly visible and turned slightly toward the camera',
 //     acao: 'The person runs forward and dribbles a white football, the camera follows at the side, plain green pitch with plain unmarked boards' }
 // Guardião: scripts/test-recreate-movimento-1411.mjs (molde de 10 s, guia nosso, uma pessoa, frases positivas, enquadramento).
-export const RECREATE_MOVIMENTO_MOLDES: readonly RecreateFormat[] = []
+export const RECREATE_MOVIMENTO_MOLDES: readonly RecreateFormat[] = [
+  { id: 'jogada-de-futebol', title: 'Football play', desde: '2026-11-14', type: 'motion', preview: '/api/recreate/assets/jogada-de-futebol.mp4', poster: '/api/recreate/assets/jogada-de-futebol.jpg', guia: 'jogada-de-futebol.mp4', seconds: 6, photoSlots: 1, pessoasNoGuia: 1, prompt: '', movimentoAprovado: false,
+    cena: 'standing on the grass of a football pitch during a daytime match, framed from the knees up, their face clearly visible and turned slightly toward the camera, in a relaxed athletic stance ready to run, wearing a plain navy long-sleeve shirt and dark trousers, with an out-of-focus stadium behind them: plain dark stands and a plain low white wall around the pitch, natural afternoon light',
+    acao: 'The person dribbles a football at full speed across the pitch in the middle of a live TV football match, the camera panning with them. They dribble past a defender, then collide with the defender and both fall onto the grass. Players of both teams wear plain solid kits with plain blank shirts: one team all red, the other all white. Plain dark stands and a plain low white wall around the pitch. Natural afternoon light.' },
+]
 export const RECREATE_FORMATS: readonly RecreateFormat[] = recreateNewestFirst([...RECREATE_CATALOG, ...RECREATE_MOVIMENTO_MOLDES]) // KINEO-RECREATE-MOVIMENTO-1411 — era: recreateNewestFirst(RECREATE_CATALOG)
 export const recreateFormat = (id: unknown) => RECREATE_FORMATS.find(f => f.id === id) ?? null
 /** KINEO-RECREATE-TRAVA-1011 — a swap is sold only at an approved tariff (RECREATE_PRICING). 8 s = 45 since 10/11 ("Cobra 45"). */

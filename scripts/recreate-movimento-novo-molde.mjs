@@ -2,7 +2,8 @@
 // Põe UM molde de movimento no catálogo a partir do demo NOSSO (MP4) e dos dois textos (cena do passo 1, ação do passo 2). Antes de escrever
 // qualquer arquivo, confere tudo e para no primeiro problema:
 //   · id em kebab-case, novo (nem no catálogo nem nos assets); título curto em inglês;
-//   · o MP4 (ffprobe): 1 trilha de vídeo h264, 9:16 (largura 700 a 736, altura 1280), 9,5 a 10,6 s, até 12 MB;
+//   · o MP4 (ffprobe): 1 trilha de vídeo h264, 9:16 (largura 700 a 736, altura 1280), duração de --segundos (padrão 10) − 0,5 a + 0,7 s, até 16 MB;
+//     KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 — o 1º molde tem 6,33 s (--segundos 6): o preço de 6 s é o PROVISÓRIO da casa até o sim do dono;
 //   · o pôster: o quadro de 1 s, 720 px de largura, JPEG ≤ 200 KB (a régua de scripts/test-recreate-poster-1011.mjs);
 //   · o orçamento dos assets: lib/recreate/assets inteiro < 45 MB (a régua de scripts/test-recreate-trava-1011.mjs: os arquivos vão dentro das
 //     funções /api/recreate e /api/recreate/assets). Não coube: para e explica; com --comprimir, recodifica o demo (h264, mesmo 720x1280, sem som,
@@ -15,7 +16,7 @@
 //
 // Uso (da raiz da worktree):
 //   node scripts/recreate-movimento-novo-molde.mjs --id lance-de-futebol --titulo "Football run" --mp4 C:\caminho\demo.mp4 \
-//     --cena "standing on …, framed from the knees up, their face clearly visible …" --acao "The person runs forward …" [--desde 2026-11-14] [--ensaio] [--comprimir]
+//     --cena "standing on …, framed from the knees up, their face clearly visible …" --acao "The person runs forward …" [--segundos 10] [--desde 2026-11-14] [--ensaio] [--comprimir]
 // --ensaio: confere tudo e mostra o que escreveria, sem escrever nada.
 import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
@@ -30,10 +31,12 @@ const args = Object.fromEntries(process.argv.slice(2).reduce((acc, a, i, all) =>
 const falha = (m) => { console.error('PARADO: ' + m); process.exit(1) }
 const id = String(args.id ?? ''), titulo = String(args.titulo ?? ''), mp4 = String(args.mp4 ?? ''), cena = String(args.cena ?? '').trim(), acao = String(args.acao ?? '').trim()
 const desde = String(args.desde ?? new Date().toISOString().slice(0, 10)), ensaio = args.ensaio === true, comprimir = args.comprimir === true
+const segundos = Number(args.segundos ?? 10)
+if (!Number.isInteger(segundos) || segundos < 3 || segundos > 15) falha('--segundos inteiro de 3 a 15')
 if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(id) || id.length > 40) falha('--id em kebab-case (a-z, 0-9, hífen), até 40')
 if (!titulo || titulo.length > 40 || /['"`\\]/.test(titulo)) falha('--titulo curto (até 40), sem aspas nem barra')
 if (!/^\d{4}-\d{2}-\d{2}$/.test(desde)) falha('--desde AAAA-MM-DD')
-for (const [n, t] of [['cena', cena], ['acao', acao]]) if (!t || t.length > 400 || /['`\\\n]/.test(t)) falha(`--${n}: obrigatório, uma linha, até 400, sem apóstrofo, crase ou barra (escreva "do not" já é proibido: frase positiva)`)
+for (const [n, t] of [['cena', cena], ['acao', acao]]) if (!t || t.length > 800 || /['`\\\n]/.test(t)) falha(`--${n}: obrigatório, uma linha, até 800, sem apóstrofo, crase ou barra (escreva "do not" já é proibido: frase positiva)`)
 if (!mp4 || !fs.existsSync(mp4)) falha('--mp4: arquivo não encontrado')
 
 const src = fs.readFileSync(FORMATS, 'utf8')
@@ -50,8 +53,8 @@ if (videos.length !== 1) falha(`o MP4 precisa de 1 trilha de vídeo (tem ${video
 const v = videos[0]
 if (v.codec_name !== 'h264') falha(`codec ${v.codec_name}: precisa h264 (o navegador e a fal)`)
 if (!(v.height === 1280 && v.width >= 700 && v.width <= 736)) falha(`tamanho ${v.width}x${v.height}: precisa 9:16 com altura 1280 (720x1280)`)
-if (!(dur >= 9.5 && dur <= 10.6)) falha(`duração ${dur.toFixed(2)} s: o molde é de 10 s (9,5 a 10,6)`)
-if (!(bytes <= 12 * 1024 * 1024)) falha(`${(bytes / 1048576).toFixed(1)} MB: até 12 MB`)
+if (!(dur >= segundos - 0.5 && dur <= segundos + 0.7)) falha(`duração ${dur.toFixed(2)} s: o molde é de ${segundos} s (${segundos - 0.5} a ${segundos + 0.7})`)
+if (!(bytes <= 16 * 1024 * 1024)) falha(`${(bytes / 1048576).toFixed(1)} MB: até 16 MB`)
 
 // 2. o pôster (quadro de 1 s, 720 px, JPEG leve)
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'mov-molde-'))
@@ -80,7 +83,7 @@ if (fs.statSync(poster).size > 200_000) falha('o pôster não ficou abaixo de 20
 
 // 3. as duas chaves dos assets e a linha do catálogo, conferidas pelo código REAL antes de escrever
 const chaves = `  // KINEO-RECREATE-MOVIMENTO-MOLDE-1411 — demo nosso do molde de movimento "${titulo}" (${v.width}x${v.height}, ${dur.toFixed(1)} s); pôster = quadro de 1 s, 720 px.\n  '${id}.mp4': { file: '${arqMp4}', contentType: 'video/mp4' },\n  '${id}.jpg': { file: '${arqJpg}', contentType: 'image/jpeg' },\n`
-const linha = `  { id: '${id}', title: '${titulo}', desde: '${desde}', type: 'motion', preview: '/api/recreate/assets/${id}.mp4', poster: '/api/recreate/assets/${id}.jpg', guia: '${id}.mp4', seconds: 10, photoSlots: 1, pessoasNoGuia: 1, prompt: '', movimentoAprovado: false,\n    cena: '${cena}',\n    acao: '${acao}' },\n`
+const linha = `  { id: '${id}', title: '${titulo}', desde: '${desde}', type: 'motion', preview: '/api/recreate/assets/${id}.mp4', poster: '/api/recreate/assets/${id}.jpg', guia: '${id}.mp4', seconds: ${segundos}, photoSlots: 1, pessoasNoGuia: 1, prompt: '', movimentoAprovado: false,\n    cena: '${cena}',\n    acao: '${acao}' },\n`
 const iAssets = lf.indexOf('export const RECREATE_ASSETS = {')
 const iFim = lf.indexOf('\n} as const', iAssets)
 if (iAssets < 0 || iFim < 0) falha('âncora de RECREATE_ASSETS')
