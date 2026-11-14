@@ -194,7 +194,9 @@ async function provaDaPagina(mutar = {}) {
   function KidsVendaPanel() { return null }
   const publico = carregador({ mutar })('lib/clipesNos2Lugares.ts').CLIPES_NOVOS
   const desenho = publico.find(c => c.id === 'raposa-lanterna' && c.produto === 'cartoon')
-  const textoInicial = (desenho.prompt || desenho.title).trim().slice(0, 300)
+  const starter = carregador({ mutar })('lib/home/watchStarters.ts').WATCH_PUBLIC_STARTERS[desenho.id]
+  const textoInicial = (desenho.prompt || starter || desenho.title).trim().slice(0, 300)
+  exige(textoInicial !== desenho.title && textoInicial.length > 80 && /fox.*lantern.*forest/i.test(textoInicial), 'visitante: ideia pública canônica tem a cena completa, não só o título')
   async function abrir(usuario, query) {
     const pagina = carregador({ mutar, mocks: {
       'next/navigation': { redirect, notFound() { throw new Error('NEXT_NOT_FOUND') } },
@@ -362,6 +364,7 @@ const MUTANTES_DA_PAGINA = [
   ['visitante recebe os episódios', PG, t => t.replace('<KidsCartoonTemplate visitante ideiaInicial=', '<KidsCartoonTemplate visitante episodios={<KidsVendaPanel />} ideiaInicial='), /visitante: sem painel/],
   ['conta perde os episódios', PG, t => t.replace(' episodios={<KidsVendaPanel />} />', ' />'), /com conta: os episódios/],
   ['ideia pública não chega ao visitante', PG, t => t.replace("visitante ideiaInicial={watchExampleIdea(searchParams?.example, 'cartoon')}", 'visitante'), /visitante: ideia pública canônica/],
+  ['starter volta a ser só título', 'lib/home/watchEntry.ts', t => t.replace('clip.prompt || WATCH_PUBLIC_STARTERS[clip.id] || clip.title', 'clip.prompt || clip.title'), /ideia pública canônica chega ao formulário/],
   ['caixa ignora a ideia recebida', TPL, t => t.replace('const [idea, setIdea] = useState(ideiaInicial)', "const [idea, setIdea] = useState('')"), /ideia pública aparece na caixa editável/],
   ['ideia pública apaga o rascunho do cadastro', TPL, t => t.replace('setIdea(r.idea)', 'setIdea(ideiaInicial)'), /rascunho do cadastro preserva o texto editado/],
 ]

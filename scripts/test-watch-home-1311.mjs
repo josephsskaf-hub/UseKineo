@@ -235,11 +235,19 @@ async function problems(overrides = {}) {
   check(cards.every(a => /^\/(?!\/)/.test(a.href ?? '')), 'cards: destino interno real')
   const swapIds = expectedIds.filter(id => recreateEntry.publicRecreatePath(id) && recreate.recreateFormat(id)?.type === 'swap')
   check(swapIds.length === 4, 'catálogo: exatamente quatro trocas públicas aprovadas')
+  const previewConfig = W.load('lib/recreate/seuVideoPreviewRelease.ts')
+  const references = W.load('lib/recreate/seuVideoCatalog.ts')
+  const previewIds = expectedIds.filter(id => previewConfig.SEU_VIDEO_PREVIEW_ENABLED && clips.CLIPES_NOVOS.find(c => c.id === id)?.produto === 'clip' && references.seuVideoCatalogItem(id))
+  check(!previewConfig.SEU_VIDEO_PREVIEW_ENABLED || previewIds.length === 6, 'catálogo: seis referências ativas no editor novo, sem promover exemplos arquivados')
   for (const a of cards) {
     const id = a['data-watch-card']
     const cta = textOnly(a.html.match(/<span class="watch-cta">([\s\S]*?)<\/span>/)?.[1] ?? '')
     const format = recreateEntry.publicRecreatePath(id) && recreate.recreateFormat(id)
-    check((cta === 'Recreate') === swapIds.includes(id) && (!format || format.type === 'swap' || cta === 'Use effect'), `rótulo aprovado de troca/efeito: ${id}`)
+    check((cta === 'Recreate') === (previewIds.includes(id) || swapIds.includes(id)) && (!format || format.type === 'swap' || cta === 'Use effect'), `rótulo aprovado de troca/efeito: ${id}`)
+    if (previewIds.includes(id)) {
+      const url = new URL(a.href, 'https://offline.invalid')
+      check(url.pathname === previewConfig.SEU_VIDEO_PREVIEW_PATH && url.searchParams.get('example') === id && [...url.searchParams.keys()].join() === 'example', `referência abre editor antes da conta com id exato: ${id}`)
+    }
   }
   for (const c of clips.CLIPES_NOVOS) if (['film', 'cartoon', 'ads'].includes(c.produto)) {
     const card = cards.find(a => a['data-watch-card'] === c.id)
@@ -325,7 +333,9 @@ const mutations = [
   ['coorte mobile quebrada',()=>replacement('lib/home/watchTelemetry.ts','width<=760','width<390'),'coorte de layout acompanha 760px sem adivinhar dispositivo'],
   ['ordem do topo invertida', () => replacement(WATCH, 'top.map((c,i)=>card(c,i+1))', '[...top].reverse().map((c,i)=>card(c,i+1))'), 'topo: seis clipes na ordem CLIPES_NO_TOPO'],
   ['navegação móvel perde Films', () => replacement(WATCH, '{PRODUCTS.map(p=><Link key={p.item} href={p.href} prefetch={false} data-nav-item={p.item}><b', '{PRODUCTS.slice(1).map(p=><Link key={p.item} href={p.href} prefetch={false} data-nav-item={p.item}><b'), 'navegação: quatro produtos com duas entradas Ads, mesmos destinos desktop/mobile'],
-  ['card manual promete Recreate', () => replacement(WATCH, '<UiLabel>{label}</UiLabel>', '<UiLabel>Recreate</UiLabel>'), `rótulo aprovado de troca/efeito: ${topIds[0]}`],
+  ['card de filme promete Recreate', () => replacement(WATCH, '<UiLabel>{label}</UiLabel>', '<UiLabel>Recreate</UiLabel>'), `rótulo aprovado de troca/efeito: ${clips.CLIPES_NOVOS.find(c => c.produto === 'film').id}`],
+  ['referência perde id na URL', () => replacement('lib/home/watchEntry.ts', 'new URLSearchParams({ example: id })', 'new URLSearchParams({})'), 'referência abre editor antes da conta com id exato: selfie-confete'],
+  ['visitante volta ao cadastro antes do editor', () => replacement('lib/home/watchEntry.ts', 'if (recreate) return recreate', 'if (recreate) return viaSignup(recreate, signedIn)'), 'referência abre editor antes da conta com id exato: selfie-confete'],
   ['fotos voltam a cortar', () => replacement(WATCH, 'object-fit:contain', 'object-fit:cover'), 'enquadramento: card 5:6 e foto/vídeo contain'],
   ['fonte 11 reaparece', () => replacement(WATCH, '.watch-intro h1{font-size:14px', '.watch-intro h1{font-size:11px'), 'acessibilidade: fonte explícita mínima12 e ações44'],
   ['noindex desligado', () => replacement(PREVIEW, 'robots: { index:false', 'robots: { index:true'), 'prévia: noindex explícito no metadata real'],

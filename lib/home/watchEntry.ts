@@ -5,6 +5,9 @@ import { viaSignup } from '@/lib/homeGaleria'
 import { publicRecreatePath } from '@/lib/recreate/entry'
 import { recreateFormat } from '@/lib/recreate/formats'
 import { HOME_FEATURED_PLAYLISTS } from '@/lib/ui/homeFeaturedFilms'
+import { seuVideoCatalogItem } from '@/lib/recreate/seuVideoCatalog'
+import { SEU_VIDEO_PREVIEW_ENABLED, SEU_VIDEO_PREVIEW_PATH } from '@/lib/recreate/seuVideoPreviewRelease'
+import { WATCH_PUBLIC_STARTERS } from './watchStarters'
 
 export const WATCH_FEATURED_FILMS = HOME_FEATURED_PLAYLISTS.flat().slice(0, 6)
 export function watchFilmExampleHref(id: string): string {
@@ -25,10 +28,17 @@ export function watchExampleIdea(example: unknown, produto: WatchProduct): strin
   if (!clip) {
     const film = produto==='film' && typeof example==='string'
       ? WATCH_FEATURED_FILMS.find(f=>'home-'+f.id===example) : null
-    return film?.title || ''
+    return film ? (WATCH_PUBLIC_STARTERS['home-' + film.id] || film.title) : ''
   }
   const max = produto === 'cartoon' ? 300 : produto === 'ads' ? 1200 : 2000
-  return (clip.prompt || clip.title).trim().slice(0, max)
+  return (clip.prompt || WATCH_PUBLIC_STARTERS[clip.id] || clip.title).trim().slice(0, max)
+}
+
+/** Presentation-only entry; generation eligibility and costs remain enforced by the destination/server. */
+function watchRecreatePath(id: string): string | null {
+  return SEU_VIDEO_PREVIEW_ENABLED && seuVideoCatalogItem(id)
+    ? SEU_VIDEO_PREVIEW_PATH + '?' + new URLSearchParams({ example: id }).toString()
+    : null
 }
 
 /** A draft or an explicit arrival idea always wins. Safe for React's functional setters. */
@@ -42,13 +52,18 @@ export function watchClipHref(clip: ClipeNovo, signedIn = false): string {
   if (canonical.produto === 'film') return '/studio?' + new URLSearchParams({ intent_campaign: 'home_card', example: canonical.id }).toString()
   if (canonical.produto === 'cartoon') return '/kids-cartoon?' + new URLSearchParams({ utm_source: 'home_card', example: canonical.id }).toString()
   if (canonical.produto === 'ads') return '/ads/v2?' + new URLSearchParams({ entry: canonical.adsEntry ?? 'product', utm_source: 'home_card', example: canonical.id }).toString()
+  const recreate = watchRecreatePath(canonical.id)
+  if (recreate) return recreate
   return viaSignup(publicRecreatePath(canonical.id) ?? clipeNovoDestino(canonical), signedIn)
 }
 
 export function watchClipLabel(clip: ClipeNovo): string {
-  if (clip.produto === 'film') return 'Make a film'
-  if (clip.produto === 'cartoon') return 'Make a cartoon'
-  if (clip.produto === 'ads') return 'Make your ad'
-  if (publicRecreatePath(clip.id)) return recreateFormat(clip.id)?.type === 'swap' ? 'Recreate' : 'Use effect'
-  return clip.prompt ? 'Use idea' : 'Make a video'
+  const canonical = CLIPES_NOVOS.find(item => item.id === clip.id)
+  if (!canonical) return 'Make a video'
+  if (canonical.produto === 'film') return 'Make a film'
+  if (canonical.produto === 'cartoon') return 'Make a cartoon'
+  if (canonical.produto === 'ads') return 'Make your ad'
+  if (watchRecreatePath(canonical.id)) return 'Recreate'
+  if (publicRecreatePath(canonical.id)) return recreateFormat(canonical.id)?.type === 'swap' ? 'Recreate' : 'Use effect'
+  return canonical.prompt ? 'Use idea' : 'Make a video'
 }
