@@ -163,7 +163,7 @@ export async function GET(req: NextRequest) {
 
   // KINEO-ADS-V2-2026-09-28 — o anúncio v2 debita no início (adsv2-/adsv2redo-) e fica fora da varredura genérica;
   // esta é a rede dele, guiada por ads_v2_orders (pedido failed/cancelled ou parado > 2 h sem entrega → estorno).
-  const adsV2 = { scanned: 0, refunded: 0, creditsReturned: 0, stalledFailed: 0, ambiguous: 0 }
+  const adsV2: { scanned: number; refunded: number; creditsReturned: number; stalledFailed: number; ambiguous: number; truncado: boolean; semPedido: number | null } = { scanned: 0, refunded: 0, creditsReturned: 0, stalledFailed: 0, ambiguous: 0, truncado: false, semPedido: null } // KINEO-ADSV2-SEM-PEDIDO-1411 — + truncado e semPedido (null = não contou)
   try {
     Object.assign(adsV2, await sweepAbandonedAdsV2Debits())
   } catch (e) {

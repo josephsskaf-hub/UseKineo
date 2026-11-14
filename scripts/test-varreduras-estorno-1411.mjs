@@ -25,12 +25,12 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = 'chave-de-teste'
 // ── banco de mentira (PostgREST) ──
 const OR_CHAVE = /^created_at\.lt\."([^"]+)",and\(created_at\.eq\."([^"]+)",(id|render_id)\.lt\."([^"]+)"\)$/
 function criarBanco(tabelas, opcoes = {}) {
-  const st = { lidas: { credit_debits: 0, clips: 0, ads_v2_orders: 0 }, rpcs: [] }
+  const st = { lidas: { credit_debits: 0, clips: 0, ads_v2_orders: 0 }, contagem: { credit_debits: 0, ads_v2_orders: 0 }, rpcs: [] } // KINEO-ADSV2-SEM-PEDIDO-1411 — + as leituras da contagem semPedido, à parte
   const from = (nome) => {
     const t = (tabelas[nome] ??= [])
-    const f = [], ords = []; let op = 'select', valores = null, lim = Infinity, um = false, ret = false
+    const f = [], ords = []; let op = 'select', valores = null, lim = Infinity, um = false, ret = false, cols = '', comLike = false
     const api = {
-      select() { if (op !== 'select') ret = true; return api }, insert(v) { op = 'insert'; valores = v; return api }, update(v) { op = 'update'; valores = v; return api },
+      select(c) { if (op !== 'select') ret = true; else cols = String(c ?? ''); return api }, insert(v) { op = 'insert'; valores = v; return api }, update(v) { op = 'update'; valores = v; return api },
       limit(n) { lim = n; return api }, maybeSingle() { um = true; return api },
       order(c, o) { ords.push([c, o?.ascending === false ? -1 : 1]); return api },
       eq(c, v) { f.push((r) => r[c] === v); return api }, is(c, v) { f.push((r) => (r[c] ?? null) === v); return api },
@@ -38,7 +38,7 @@ function criarBanco(tabelas, opcoes = {}) {
       in(c, vs) { f.push((r) => vs.includes(r[c])); return api },
       neq(c, v) { f.push((r) => r[c] !== v); return api },
       not(c, o, v) { if (o === 'is' && v === null) { f.push((r) => r[c] != null); return api } if (o !== 'in') throw new Error('not.' + o); const vs = String(v).replace(/^\(|\)$/g, '').split(','); f.push((r) => r[c] != null && !vs.includes(r[c])); return api },
-      like(c, p) { const re = new RegExp('^' + p.split('%').map((x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$'); f.push((r) => re.test(String(r[c] ?? ''))); return api },
+      like(c, p) { comLike = true; const re = new RegExp('^' + p.split('%').map((x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$'); f.push((r) => re.test(String(r[c] ?? ''))); return api },
       or(e) { const m = OR_CHAVE.exec(e); if (!m || m[1] !== m[2]) throw new Error('filtro de chave ilegível: ' + e); f.push((r) => r.created_at < m[1] || (r.created_at === m[1] && r[m[3]] < m[4])); return api },
       then(ok, ko) {
         return Promise.resolve().then(() => {
@@ -48,7 +48,9 @@ function criarBanco(tabelas, opcoes = {}) {
           if (ords.length) todos.sort((a, b) => { for (const [c, s] of ords) { if (a[c] < b[c]) return -s; if (a[c] > b[c]) return s } return 0 })
           const hit = todos.slice(0, lim)
           if (op === 'update') { for (const r of hit) Object.assign(r, valores); const d = hit.map((r) => ({ ...r })); return { data: um ? d[0] ?? null : ret ? d : null, error: null } }
-          if (nome in st.lidas) st.lidas[nome] += hit.length
+          const daContagem = (nome === 'credit_debits' && comLike) || (nome === 'ads_v2_orders' && cols === 'billing_ref') // KINEO-ADSV2-SEM-PEDIDO-1411
+          if (daContagem) st.contagem[nome] += hit.length
+          else if (nome in st.lidas) st.lidas[nome] += hit.length
           return { data: um ? (hit[0] ? { ...hit[0] } : null) : hit.map((r) => ({ ...r })), error: null }
         }).then(ok, ko)
       },
@@ -131,6 +133,43 @@ async function bateria(over = {}) {
       banco = criarBanco({ credit_debits: [...dev.map((x) => x.d), deb('adsv2-mais-novo', 2.5 * H)], ads_v2_orders: [...dev.map((x) => x.o), ped(pid(960), 'adsv2-mais-novo', 'failed', { created_at: iso(2.5 * H) })], videos: [], events: [] })
       const r = await R.sweepAbandonedAdsV2Debits()
       if (banco.st.lidas.ads_v2_orders !== 4000 || r.refunded !== 1) throw new Error('lidas: ' + JSON.stringify([banco.st.lidas, r]))
+    })
+    // KINEO-ADSV2-SEM-PEDIDO-1411 [CEO 14/11: semPedido SIM, só a contagem; truncado quando as 20 páginas vêm cheias]
+    await check('A4b truncado: 20 páginas cheias = truncado true; rodada que acaba antes = false', async () => {
+      const dev = jaDevolvidos(5000, 3 * H)
+      banco = criarBanco({ credit_debits: dev.map((x) => x.d), ads_v2_orders: dev.map((x) => x.o), videos: [], events: [] })
+      const r = await R.sweepAbandonedAdsV2Debits()
+      if (r.truncado !== true) throw new Error('não avisou: ' + JSON.stringify(r))
+      banco = criarBanco({ credit_debits: dev.slice(0, 3999).map((x) => x.d), ads_v2_orders: dev.slice(0, 3999).map((x) => x.o), videos: [], events: [] })
+      const r2 = await R.sweepAbandonedAdsV2Debits()
+      if (r2.truncado !== false) throw new Error('avisou sem as 20 cheias: ' + JSON.stringify(r2))
+    })
+    await check('A4c semPedido: conta o débito adsv2 (adsv2- e adsv2redo-) não devolvido, de 2 h a 48 h, SEM pedido; não conta o devolvido, o de menos de 2 h, o de mais de 48 h nem o com pedido; nunca estorna o que contou', async () => {
+      banco = criarBanco({
+        credit_debits: [deb('adsv2-orfao', 3 * H), deb('adsv2redo-orfao', 30 * H), deb('adsv2-orfao-devolvido', 3 * H, { refunded_at: iso(H) }), deb('adsv2-orfao-novo', 30 * 60_000), deb('adsv2-orfao-velho', 3 * D), deb('adsv2-com-pedido', 3 * H), deb('render-de-filme', 3 * H)],
+        ads_v2_orders: [ped(pid(1), 'adsv2-com-pedido', 'failed', { created_at: iso(3 * H) })], videos: [], events: [],
+      })
+      const r = await R.sweepAbandonedAdsV2Debits()
+      if (r.semPedido !== 2) throw new Error('contou: ' + JSON.stringify(r))
+      if (banco.st.rpcs.some((x) => x.includes('orfao'))) throw new Error('estornou o que só devia contar: ' + banco.st.rpcs.join())
+      if (r.refunded !== 1) throw new Error('a varredura mudou: ' + JSON.stringify(r))
+    })
+    await check('A4d semPedido não cresce com os entregues de sempre: 250 entregues de 3 dias = 0 lidos pela contagem; 250 de hoje = lidos, contagem 0; erro de leitura = null (não 0)', async () => {
+      const velhos = Array.from({ length: 250 }, (_, i) => ({ d: deb(`adsv2-ent-${i}`, 3 * D + i * 60_000), o: ped(pid(i), `adsv2-ent-${i}`, 'delivered', { video_id: 'v' + i, created_at: iso(3 * D) }) }))
+      banco = criarBanco({ credit_debits: velhos.map((x) => x.d), ads_v2_orders: velhos.map((x) => x.o), videos: [], events: [] })
+      const r = await R.sweepAbandonedAdsV2Debits()
+      if (r.semPedido !== 0 || banco.st.contagem.credit_debits !== 0) throw new Error('leu fora da janela: ' + JSON.stringify([r.semPedido, banco.st.contagem]))
+      const hoje = Array.from({ length: 250 }, (_, i) => ({ d: deb(`adsv2-hoje-${i}`, 3 * H + i * 60_000), o: ped(pid(i), `adsv2-hoje-${i}`, 'delivered', { video_id: 'v' + i, created_at: iso(3 * H) }) }))
+      banco = criarBanco({ credit_debits: hoje.map((x) => x.d), ads_v2_orders: hoje.map((x) => x.o), videos: [], events: [] })
+      const r2 = await R.sweepAbandonedAdsV2Debits()
+      if (r2.semPedido !== 0 || banco.st.contagem.credit_debits !== 250 || banco.st.contagem.ads_v2_orders !== 250 || banco.st.lidas.credit_debits !== 0) throw new Error('hoje: ' + JSON.stringify([r2.semPedido, banco.st.contagem, banco.st.lidas]))
+      banco = criarBanco({ credit_debits: [deb('adsv2-orfao', 3 * H)], ads_v2_orders: [], videos: [], events: [] }, { erroEm: ['credit_debits'] })
+      const r3 = await R.sweepAbandonedAdsV2Debits()
+      if (r3.semPedido !== null) throw new Error('erro virou número: ' + JSON.stringify(r3))
+    })
+    await check('A4e o cron devolve semPedido e truncado no JSON (adsV2), com null e false de partida', async () => {
+      const s = (over['app/api/cron/refund-sweep/route.ts'] ?? lf('app/api/cron/refund-sweep/route.ts'))
+      if (!s.includes("ambiguous: 0, truncado: false, semPedido: null }")) throw new Error('o cron sem os avisos')
     })
     await check('A5 a busca: pedidos NÃO entregues com referência, das mais novas, pela chave (created_at e id); sem corte de 14 dias; o cron chama a varredura', async () => {
       const s = (over[REFUND] ?? lf(REFUND))
@@ -219,12 +258,19 @@ async function bateria(over = {}) {
 
 const real = await bateria()
 if (real.length) { console.error('FALHA\n' + real.join('\n')); process.exit(1) }
-const src = { [REFUND]: lf(REFUND), [SRV]: lf(SRV) }
+const src = { [REFUND]: lf(REFUND), [SRV]: lf(SRV), ['app/api/cron/refund-sweep/route.ts']: lf('app/api/cron/refund-sweep/route.ts') } // + o cron (KINEO-ADSV2-SEM-PEDIDO-1411)
 const troca = (arq, a, b) => { if (src[arq].split(a).length !== 2) { console.error('âncora do mutante: ' + a.slice(0, 80)); process.exit(1) } return { [arq]: src[arq].replace(a, () => b) } }
 const linhaQueComeca = (arq, prefixo) => { const l = src[arq].split('\n').find((x) => x.startsWith(prefixo)); if (!l) { console.error('mutante: ' + prefixo); process.exit(1) } return l }
 const mutantes = [
   // KINEO-VARREDURAS-SEGUIMENTO-1411 — a busca parte do pedido não entregue
   ['A: das mais antigas (o defeito)', troca(REFUND, ".order('created_at', { ascending: false }).order('id', { ascending: false }).limit(ADS_V2_SWEEP_PAGE)", ".order('created_at', { ascending: true }).order('id', { ascending: true }).limit(ADS_V2_SWEEP_PAGE)")],
+  // KINEO-ADSV2-SEM-PEDIDO-1411
+  ['semPedido sem a janela de 48 h', troca(REFUND, "      .gte('created_at', desde)\n      .lt('created_at', cutoff)\n      .order('created_at', { ascending: false })\n      .limit(ADS_V2_SEM_PEDIDO_MAX)", "      .lt('created_at', cutoff)\n      .order('created_at', { ascending: false })\n      .limit(ADS_V2_SEM_PEDIDO_MAX)")],
+  ['semPedido conta o devolvido', troca(REFUND, "      .select('render_id')\n      .eq('kind', 'video')\n      .is('refunded_at', null)\n", "      .select('render_id')\n      .eq('kind', 'video')\n")],
+  ['semPedido conta o de menos de 2 h', troca(REFUND, "      .gte('created_at', desde)\n      .lt('created_at', cutoff)\n", "      .gte('created_at', desde)\n")],
+  ['semPedido com erro vira 0', troca(REFUND, '    if (error) return null\n    const linhas = ', '    if (error) return 0\n    const linhas = ')],
+  ['truncado nunca avisa', troca(REFUND, '  result.truncado = true\n', '')],
+  ['cron sem os avisos', troca('app/api/cron/refund-sweep/route.ts', 'ambiguous: 0, truncado: false, semPedido: null }', 'ambiguous: 0, truncado: false, semPedido: 0 }')],
   ['A: uma página só', troca(REFUND, 'export const ADS_V2_SWEEP_MAX_PAGES = 20', 'export const ADS_V2_SWEEP_MAX_PAGES = 1')],
   ['A: sem teto de páginas', troca(REFUND, 'export const ADS_V2_SWEEP_MAX_PAGES = 20', 'export const ADS_V2_SWEEP_MAX_PAGES = 1000')],
   ['A: chave só por created_at (pula o empate)', troca(REFUND, "    if (cursor) q = q.or(`created_at.lt.\"${cursor.createdAt}\",and(created_at.eq.\"${cursor.createdAt}\",id.lt.\"${cursor.id}\")`)", "    if (cursor) q = q.lt('created_at', cursor.createdAt)")],

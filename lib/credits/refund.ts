@@ -619,15 +619,56 @@ const ADS_V2_SWEEP_CHAVE = /^[0-9A-Za-z:._+\- ]{1,128}$/
 const ADS_V2_DEBIT_REF_CHUNK = 100
 
 type AdsV2OrderRow = { id: string; user_id: string; status: string; billing_ref: string; started_at: string | null; video_id: string | null; created_at: string }
+// KINEO-ADSV2-SEM-PEDIDO-1411 [CEO 14/11, respostas (2) e (3) do seguimento das varreduras] — dois avisos no resultado, nenhum estorno novo:
+//   · semPedido: débitos adsv2 (adsv2-/adsv2redo-) ainda não devolvidos, com mais de 2 h, SEM pedido em ads_v2_orders. A varredura parte do pedido e não os
+//     vê; a contagem os mostra. Janela de 48 h (o cron é de hora em hora: cada um aparece em ~46 rodadas) e no máximo 500 linhas, para nunca crescer com
+//     os entregues de sempre. Erro de leitura = null (não sabemos), nunca 0. Só conta: não estorna (sem pedido não há prova).
+//   · truncado: a rodada leu as 20 páginas CHEIAS (4000 pedidos não entregues) e parou; o resto fica para a próxima. console.error para ver antes de
+//     virar problema (CEO: "são 14 pedidos; 4000 está longe" — cursor guardado não agora).
+export const ADS_V2_SEM_PEDIDO_JANELA_MS = 48 * 60 * 60 * 1000
+export const ADS_V2_SEM_PEDIDO_MAX = 500
+type AdsV2SweepResult = { scanned: number; refunded: number; creditsReturned: number; stalledFailed: number; ambiguous: number; truncado: boolean; semPedido: number | null }
+async function contarDebitosAdsV2SemPedido(db: NonNullable<ReturnType<typeof adminClient>>, cutoff: string): Promise<number | null> {
+  try {
+    const desde = new Date(Date.now() - ADS_V2_SEM_PEDIDO_JANELA_MS).toISOString()
+    const { data, error } = await db
+      .from('credit_debits')
+      .select('render_id')
+      .eq('kind', 'video')
+      .is('refunded_at', null)
+      .like('render_id', 'adsv2%')
+      .gte('created_at', desde)
+      .lt('created_at', cutoff)
+      .order('created_at', { ascending: false })
+      .limit(ADS_V2_SEM_PEDIDO_MAX)
+    if (error) return null
+    const linhas = (data ?? []) as { render_id: string }[]
+    if (linhas.length >= ADS_V2_SEM_PEDIDO_MAX) console.error(`[refund/ads-v2-sweep] semPedido: ${ADS_V2_SEM_PEDIDO_MAX} débitos na janela de 48 h — a contagem é parcial`)
+    const refs = [...new Set(linhas.map((d) => String(d.render_id)))]
+    const comPedido = new Set<string>()
+    for (let i = 0; i < refs.length; i += ADS_V2_DEBIT_REF_CHUNK) {
+      const { data: os, error: e } = await db.from('ads_v2_orders').select('billing_ref').in('billing_ref', refs.slice(i, i + ADS_V2_DEBIT_REF_CHUNK))
+      if (e) return null
+      for (const o of os ?? []) comPedido.add(String((o as { billing_ref: string }).billing_ref))
+    }
+    const n = refs.filter((r) => !comPedido.has(r)).length
+    if (n > 0) console.error(`[refund/ads-v2-sweep] ${n} débito(s) do Anúncio v2 sem pedido nas últimas 48 h: a varredura não os estorna (sem prova)`)
+    return n
+  } catch {
+    return null
+  }
+}
 
-export async function sweepAbandonedAdsV2Debits(): Promise<{
-  scanned: number
-  refunded: number
-  creditsReturned: number
-  stalledFailed: number
-  ambiguous: number
-}> {
-  const result = { scanned: 0, refunded: 0, creditsReturned: 0, stalledFailed: 0, ambiguous: 0 }
+/** A rede do Anúncio v2 + os dois avisos (semPedido e truncado). */
+export async function sweepAbandonedAdsV2Debits(): Promise<AdsV2SweepResult> {
+  const r = await varrerPedidosAdsV2()
+  const db = adminClient()
+  const semPedido = db ? await contarDebitosAdsV2SemPedido(db, new Date(Date.now() - ADS_V2_ABANDON_CUTOFF_MS).toISOString()) : null
+  return { ...r, semPedido }
+}
+
+async function varrerPedidosAdsV2(): Promise<Omit<AdsV2SweepResult, 'semPedido'>> { // KINEO-ADSV2-SEM-PEDIDO-1411 — era: export async function sweepAbandonedAdsV2Debits (o nome público agora soma a contagem)
+  const result = { scanned: 0, refunded: 0, creditsReturned: 0, stalledFailed: 0, ambiguous: 0, truncado: false }
   const db = adminClient()
   if (!db) return result
   const cutoff = new Date(Date.now() - ADS_V2_ABANDON_CUTOFF_MS).toISOString()
@@ -712,6 +753,9 @@ export async function sweepAbandonedAdsV2Debits(): Promise<{
     if (!ADS_V2_SWEEP_CHAVE.test(String(ultima.created_at)) || !ADS_V2_SWEEP_CHAVE.test(String(ultima.id))) { console.error('[refund/ads-v2-sweep] cursor unreadable — stopping this run'); return result }
     cursor = { createdAt: String(ultima.created_at), id: String(ultima.id) }
   }
+  // KINEO-ADSV2-SEM-PEDIDO-1411 — as 20 páginas vieram CHEIAS: pode haver pedido mais antigo que esta rodada não leu
+  result.truncado = true
+  console.error(`[refund/ads-v2-sweep] truncado: ${ADS_V2_SWEEP_MAX_PAGES} páginas cheias (${ADS_V2_SWEEP_MAX_PAGES * ADS_V2_SWEEP_PAGE} pedidos não entregues); o resto fica para a próxima rodada`)
   return result
 }
 
