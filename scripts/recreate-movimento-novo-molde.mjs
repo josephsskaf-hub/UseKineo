@@ -28,7 +28,7 @@ import path from 'node:path'
 
 const require = createRequire(import.meta.url)
 const { loader } = require('../docs/recreate-0911/test-recreate.cjs')
-const FORMATS = 'lib/recreate/formats.ts', ASSETS = 'lib/recreate/assets'
+const FORMATS = 'lib/recreate/movimentoMoldes.ts', ASSETS = 'lib/recreate/assets' // KINEO-RECEITA-FORA-DO-JS-1411 — os moldes de movimento (com a receita) moram no módulo do servidor
 const args = Object.fromEntries(process.argv.slice(2).reduce((acc, a, i, all) => (a.startsWith('--') ? [...acc, [a.slice(2), all[i + 1] && !all[i + 1].startsWith('--') ? all[i + 1] : true]] : acc), []))
 const falha = (m) => { console.error('PARADO: ' + m); process.exit(1) }
 // KINEO-MOVIMENTO-CORPO-INTEIRO-1411 [CEO 14/11: "o demo do cartão separado do guia"] — TROCAR O DEMO de um molde que já existe, sem mexer no guia:
@@ -39,9 +39,9 @@ const falha = (m) => { console.error('PARADO: ' + m); process.exit(1) }
 // Confere pelo código real (movimentoDemoValido + movimentoProblemasDoMolde), lê o vídeo com ffprobe (9:16, duração do molde ± 0,7 s), tira o pôster do
 // quadro de 1 s (720 px, ≤ 200 KB) para lib/recreate/assets/recreate-mov-<id>-demo.jpg e troca SÓ preview e poster da linha do molde.
 if (args['trocar-demo'] === true) {
-  const idT = String(args.id ?? ''), url = String(args['demo-url'] ?? ''), ensaioT = args.ensaio === true, projeto = String(args.projeto ?? '')
+  const idT = String(args.id ?? ''), url = String(args['demo-url'] ?? ''), ensaioT = args.escrever !== true, projeto = String(args.projeto ?? '') // KINEO-RECEITA-FORA-DO-JS-1411 [revisor, item 2] — SECO por padrão: só grava com --escrever
   const DEMOS_T = 'lib/recreate/movimentoDemos.ts'
-  const FORMATS_T = 'lib/recreate/formats.ts', ASSETS_T = 'lib/recreate/assets'
+  const FORMATS_T = 'lib/recreate/movimentoMoldes.ts', ASSETS_T = 'lib/recreate/assets' // KINEO-RECEITA-FORA-DO-JS-1411 — os moldes de movimento moram no módulo do servidor
   const srcT = fs.readFileSync(FORMATS_T, 'utf8'), crlfT = srcT.includes('\r\n'), lfT = srcT.replace(/\r\n/g, '\n')
   const iL = lfT.indexOf(`  { id: '${idT}', `)
   if (!idT || iL < 0) falha('--id de um molde que já está em RECREATE_MOVIMENTO_MOLDES')
@@ -67,15 +67,15 @@ if (args['trocar-demo'] === true) {
   const aD = 'export const MOVIMENTO_DEMOS: Readonly<Record<string, string>> = {\n'
   if (!demosLf.includes(aD)) falha('âncora de MOVIMENTO_DEMOS')
   demosLf = demosLf.replace(aD, aD + `  '${idT}': '${url}',\n`)
-  if (!novoT.includes(`'${chave}': `)) { const iA = novoT.indexOf('export const RECREATE_ASSETS = {'), iF = novoT.indexOf('\n} as const', iA); novoT = novoT.slice(0, iF + 1) + `  '${chave}': { file: '${arq}', contentType: 'image/jpeg' }, // KINEO-MOVIMENTO-CORPO-INTEIRO-1411 — pôster do demo (resultado do produto)\n` + novoT.slice(iF + 1) }
+  if (!novoT.includes(`'${chave}': `)) { const iA = novoT.indexOf('export const MOVIMENTO_ASSETS: Readonly<Record<string, { file: string; contentType: string }>> = {'), iF = novoT.indexOf('\n}\n', iA); novoT = novoT.slice(0, iF + 1) + `  '${chave}': { file: '${arq}', contentType: 'image/jpeg' }, // KINEO-MOVIMENTO-CORPO-INTEIRO-1411 — pôster do demo (resultado do produto)\n` + novoT.slice(iF + 1) }
   const modN = loader({ '@supabase/supabase-js': { createClient: () => ({}) }, 'server-only': {} }, { [FORMATS_T]: novoT, [DEMOS_T]: demosLf })
   if (modN('lib/recreate/movimentoDemos').MOVIMENTO_DEMOS[idT] !== url) falha('o demo não entrou em movimentoDemos.ts')
-  const fN = modN('lib/recreate/formats').recreateFormat(idT)
+  const fN = modN('lib/recreate/catalogoServidor').recreateFormatServidor(idT)
   const probs = modN('lib/recreate/movimento').movimentoProblemasDoMolde(fN)
   if (probs.length) falha('o código recusa: ' + probs.join('; '))
   if (fN.guia !== `${idT}.mp4` && !String(fN.guia).length) falha('o guia mudou')
   console.log(`OK: demo de ${idT} = ${url} (${vT.width}x${vT.height}, ${dT.toFixed(2)} s) · pôster ${fs.statSync(pos).size} B · guia intacto (${fN.guia}) · preview do catálogo intacto (${fN.preview})`)
-  if (ensaioT) { console.log('ENSAIO: nada foi escrito.'); process.exit(0) }
+  if (ensaioT) { console.log('ENSAIO (padrão): nada foi escrito. Para gravar os 3 arquivos, rode de novo com --escrever.'); process.exit(0) }
   fs.copyFileSync(pos, path.join(ASSETS_T, arq))
   fs.writeFileSync(FORMATS_T, crlfT ? novoT.replace(/\n/g, '\r\n') : novoT)
   fs.writeFileSync(DEMOS_T, crlfD ? demosLf.replace(/\n/g, '\r\n') : demosLf)
@@ -141,15 +141,15 @@ if (!manifLf.includes(aM)) falha('âncora do manifesto')
 const novoManif = manifLf.replace(aM, aM + `  '${id}.mp4': { arquivo: '${arqMp4}', bytes: ${bytesFinal}, sha256: '${sha256}' },\n`)
 const chaves = `  // KINEO-RECREATE-MOVIMENTO-MOLDE-1411 — pôster do molde de movimento "${titulo}" (quadro de 1 s, 720 px). O guia mora no bucket privado (${MANIF}).\n  '${id}.jpg': { file: '${arqJpg}', contentType: 'image/jpeg' },\n`
 const linha = `  { id: '${id}', title: '${titulo}', desde: '${desde}', type: 'motion', preview: '/api/recreate/assets/${id}.mp4', poster: '/api/recreate/assets/${id}.jpg', guia: '${id}.mp4', seconds: ${segundos}, photoSlots: 1, pessoasNoGuia: 1, prompt: '', movimentoAprovado: false,\n    cena: '${cena}',\n    acao: '${acao}' },\n`
-const iAssets = lf.indexOf('export const RECREATE_ASSETS = {')
-const iFim = lf.indexOf('\n} as const', iAssets)
-if (iAssets < 0 || iFim < 0) falha('âncora de RECREATE_ASSETS')
+const iAssets = lf.indexOf('export const MOVIMENTO_ASSETS: Readonly<Record<string, { file: string; contentType: string }>> = {')
+const iFim = lf.indexOf('\n}\n', iAssets)
+if (iAssets < 0 || iFim < 0) falha('âncora de MOVIMENTO_ASSETS')
 let novo = lf.slice(0, iFim + 1) + chaves + lf.slice(iFim + 1)
 const m = /export const RECREATE_MOVIMENTO_MOLDES: readonly RecreateFormat\[\] = \[(\]?)/.exec(novo)
 if (!m) falha('âncora de RECREATE_MOVIMENTO_MOLDES')
 novo = novo.replace(m[0], `export const RECREATE_MOVIMENTO_MOLDES: readonly RecreateFormat[] = [\n${linha}${m[1] ? ']' : ''}`)
 const mod = loader({ '@supabase/supabase-js': { createClient: () => ({}) }, 'server-only': {} }, { [FORMATS]: novo, [MANIF]: novoManif })
-const f = mod('lib/recreate/formats').recreateFormat(id)
+const f = mod('lib/recreate/catalogoServidor').recreateFormatServidor(id)
 if (!f || f.type !== 'motion' || f.movimentoAprovado !== false) falha('a linha não entrou no catálogo como movimento sem aprovação')
 const problemas = mod('lib/recreate/movimento').movimentoProblemasDoMolde(f)
 if (problemas.length) falha('o código recusa o molde: ' + problemas.join('; '))

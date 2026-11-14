@@ -39,14 +39,17 @@ const RSERVER = 'lib/recreate/server.ts', EVENTOS = 'app/api/events/route.ts', T
 
 // O molde de teste (o catálogo real nasce vazio: a CEO põe os demos validados). Um sem aprovação e um aprovado.
 const MOLDE = (id, aprovado, extra = '') => `{ id: '${id}', title: 'Football run', desde: '2026-11-14', type: 'motion', preview: '/api/recreate/assets/lance-teste.mp4', poster: '/api/recreate/assets/${id}.jpg', guia: 'lance-teste.mp4', seconds: 10, photoSlots: 1, pessoasNoGuia: 1, prompt: '', movimentoAprovado: ${aprovado}, cena: 'standing on a plain green football pitch, framed from the knees up, their face clearly visible and turned slightly toward the camera', acao: 'The person runs forward and dribbles a white football, the camera follows at the side, plain green pitch with plain unmarked boards'${extra} }`
-// KINEO-RECREATE-MOVIMENTO-MOLDE-1411 — os moldes de teste entram NA FRENTE da lista real (vazia ou não) e as chaves de teste no fim de RECREATE_ASSETS:
-// a âncora não depende mais da lista vazia nem do último asset (o 1º molde de verdade entra por scripts/recreate-movimento-novo-molde.mjs).
-function comMoldes(src, moldes = [MOLDE('lance-teste', false), MOLDE('lance-aprovado', true)]) {
-  const m = /export const RECREATE_MOVIMENTO_MOLDES: readonly RecreateFormat\[\] = \[(\]?)/.exec(src)
-  const iAssets = src.indexOf('export const RECREATE_ASSETS = {'), iFim = src.indexOf('\n} as const', iAssets)
-  if (!m || iAssets < 0 || iFim < 0) throw new Error('âncora do catálogo de teste')
-  const comAssets = src.slice(0, iFim + 1) + "  'lance-teste.mp4': { file: 'recreate-passarela.mp4', contentType: 'video/mp4' },\n  'lance-teste.jpg': { file: 'recreate-passarela.jpg', contentType: 'image/jpeg' },\n" + src.slice(iFim + 1)
-  return comAssets.replace(m[0], `export const RECREATE_MOVIMENTO_MOLDES: readonly RecreateFormat[] = [${moldes.join(',')}${m[1] ? ']' : ','}`)
+// KINEO-RECEITA-FORA-DO-JS-1411 — os moldes de teste entram NA FRENTE da lista real do SERVIDOR (lib/recreate/movimentoMoldes.ts); as chaves de teste no fim de RECREATE_ASSETS
+// e a VITRINE dos aprovados na lista pública do navegador (RECREATE_MOVIMENTO_PUBLICOS), como na vida real.
+const MOLDES_F = 'lib/recreate/movimentoMoldes.ts'
+const VITRINE = (id, extra = '') => `{ id: '${id}', title: 'Football run', desde: '2026-11-14', type: 'motion', preview: '/api/recreate/assets/lance-teste.mp4', poster: '/api/recreate/assets/${id}.jpg', seconds: 10, photoSlots: 1, pessoasNoGuia: 1, prompt: '', movimentoAprovado: true${extra} }`
+function comMoldes(srcFormats, srcMoldes, moldes = [MOLDE('lance-teste', false), MOLDE('lance-aprovado', true)], publicos = [VITRINE('lance-aprovado')]) {
+  const m = /export const RECREATE_MOVIMENTO_MOLDES: readonly RecreateFormat\[\] = \[(\]?)/.exec(srcMoldes)
+  const iAssets = srcFormats.indexOf('export const RECREATE_ASSETS = {'), iFim = srcFormats.indexOf('\n} as const', iAssets)
+  const aPub = 'export const RECREATE_MOVIMENTO_PUBLICOS: readonly RecreateFormat[] = []'
+  if (!m || iAssets < 0 || iFim < 0 || !srcFormats.includes(aPub)) throw new Error('âncora do catálogo de teste')
+  const fmt = (srcFormats.slice(0, iFim + 1) + "  'lance-teste.mp4': { file: 'recreate-passarela.mp4', contentType: 'video/mp4' },\n  'lance-teste.jpg': { file: 'recreate-passarela.jpg', contentType: 'image/jpeg' },\n" + srcFormats.slice(iFim + 1)).replace(aPub, `export const RECREATE_MOVIMENTO_PUBLICOS: readonly RecreateFormat[] = [${publicos.join(',')}]`)
+  return { [FORMATS]: fmt, [MOLDES_F]: srcMoldes.replace(m[0], `export const RECREATE_MOVIMENTO_MOLDES: readonly RecreateFormat[] = [${moldes.join(',')}${m[1] ? ']' : ','}`) }
 }
 
 // Banco de mentira: só o que a reserva e a gravação do passo 2 usam (update condicional + select).
@@ -106,7 +109,7 @@ async function bateria(over = {}) {
   // KINEO-GUIA-PRIVADO-1411 — o guia do molde de teste no manifesto do bucket privado (o arquivo de teste é o da passarela)
   const MANIF = 'lib/recreate/guiasManifesto.ts'
   const manifSrc = (over[MANIF] ?? lf(MANIF)).replace('export const GUIAS_MANIFESTO: Readonly<Record<string, GuiaDoMolde>> = {\n', "export const GUIAS_MANIFESTO: Readonly<Record<string, GuiaDoMolde>> = {\n  'lance-teste.mp4': { arquivo: 'recreate-passarela.mp4', bytes: 6341943, sha256: '0'.repeat(64) },\n")
-  const overs = { ...over, [FORMATS]: comMoldes(over[FORMATS] ?? lf(FORMATS)), [MANIF]: manifSrc }
+  const overs = { ...over, ...comMoldes(over[FORMATS] ?? lf(FORMATS), over[MOLDES_F] ?? lf(MOLDES_F)), [MANIF]: manifSrc } // KINEO-RECEITA-FORA-DO-JS-1411
   const m = loader({
     '@supabase/supabase-js': { createClient: () => ({}) }, '@fal-ai/client': { fal: { config: () => {}, queue: {} } },
     '@/lib/supabase/server': { createClient: () => null }, 'server-only': {},
@@ -114,7 +117,8 @@ async function bateria(over = {}) {
   const formats = m('lib/recreate/formats'), access = m('lib/recreate/access'), entry = m('lib/recreate/entry'), mov = m('lib/recreate/movimento')
   const desc = m('lib/recreate/descricaoDaPessoa'), juiz = m('lib/recreate/movimentoJuiz'), flow = m('lib/clips/clipFlow')
   const casa = m('lib/internalAccounts').INTERNAL_EXACT_EMAILS[0]
-  const molde = formats.recreateFormat('lance-teste'), aprovado = formats.recreateFormat('lance-aprovado')
+  const serv = m('lib/recreate/catalogoServidor') // KINEO-RECEITA-FORA-DO-JS-1411
+  const molde = serv.recreateFormatServidor('lance-teste'), aprovado = serv.recreateFormatServidor('lance-aprovado')
   if (!molde || molde.type !== 'motion') { p.push('o molde de teste não entrou no catálogo'); return p }
 
   await check('1 visibilidade: sem aprovação só a casa; aprovado com o interruptor internal ainda só a casa; o cliente nunca pela regra do efeito', async () => {
@@ -127,11 +131,11 @@ async function bateria(over = {}) {
   await check('1 visibilidade com o interruptor public: só o aprovado abre ao cliente; off: nem a casa', async () => {
     const rel = lf(RELEASE)
     const pub = loader({ '@supabase/supabase-js': { createClient: () => ({}) } }, { ...overs, [RELEASE]: rel.replace("export const RECREATE_MOVIMENTO_RELEASE: InternalRelease = 'internal'", "export const RECREATE_MOVIMENTO_RELEASE: InternalRelease = 'public'") })
-    const fP = pub('lib/recreate/formats'), aP = pub('lib/recreate/access'), eP = pub('lib/recreate/entry')
-    if (!aP.recreateFormatVisible(fP.recreateFormat('lance-aprovado'), 'cliente@exemplo.com') || aP.recreateFormatVisible(fP.recreateFormat('lance-teste'), 'cliente@exemplo.com')) throw new Error('public: aprovado/sem aprovação')
+    const fP = pub('lib/recreate/catalogoServidor'), aP = pub('lib/recreate/access'), eP = pub('lib/recreate/entry')
+    if (!aP.recreateFormatVisible(fP.recreateFormatServidor('lance-aprovado'), 'cliente@exemplo.com') || aP.recreateFormatVisible(fP.recreateFormatServidor('lance-teste'), 'cliente@exemplo.com')) throw new Error('public: aprovado/sem aprovação')
     if (eP.publicRecreatePath('lance-aprovado') !== '/recreate/lance-aprovado' || eP.publicRecreatePath('lance-teste') !== null) throw new Error('public: link')
     const off = loader({ '@supabase/supabase-js': { createClient: () => ({}) } }, { ...overs, [RELEASE]: rel.replace("export const RECREATE_MOVIMENTO_RELEASE: InternalRelease = 'internal'", "export const RECREATE_MOVIMENTO_RELEASE: InternalRelease = 'off'") })
-    if (off('lib/recreate/access').recreateFormatVisible(off('lib/recreate/formats').recreateFormat('lance-teste'), casa)) throw new Error('off: a casa ainda vê')
+    if (off('lib/recreate/access').recreateFormatVisible(off('lib/recreate/catalogoServidor').recreateFormatServidor('lance-teste'), casa)) throw new Error('off: a casa ainda vê')
   })
   await check('2 créditos: 10 s = 40 pela tabela da troca; a troca e o efeito como antes', async () => {
     if (formats.recreateCreditsFor(molde) !== 40) throw new Error('movimento 10 s ≠ 40')
@@ -143,11 +147,11 @@ async function bateria(over = {}) {
   // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 [CEO 14/11 12:30] — o 1º molde tem ~6 s e a tabela só tem 8, 10 e 15 (preço público é do dono): PROVISÓRIO só para a casa.
   await check('2 6 s: preço PROVISÓRIO da casa (25) só no molde SEM aprovação; aprovado sem tarifa na tabela some de todos, até com o interruptor public; a tabela pública não muda', async () => {
     const rel = lf(RELEASE)
-    const seisOver = (pub) => ({ ...overs, [FORMATS]: comMoldes(over[FORMATS] ?? lf(FORMATS), [MOLDE('lance-seis', false, ', seconds: 6'), MOLDE('lance-seis-ok', true, ', seconds: 6')]), ...(pub ? { [RELEASE]: rel.replace("export const RECREATE_MOVIMENTO_RELEASE: InternalRelease = 'internal'", "export const RECREATE_MOVIMENTO_RELEASE: InternalRelease = 'public'") } : {}) })
+    const seisOver = (pub) => ({ ...overs, ...comMoldes(over[FORMATS] ?? lf(FORMATS), over[MOLDES_F] ?? lf(MOLDES_F), [MOLDE('lance-seis', false, ', seconds: 6'), MOLDE('lance-seis-ok', true, ', seconds: 6')], [VITRINE('lance-seis-ok', ', seconds: 6')]), ...(pub ? { [RELEASE]: rel.replace("export const RECREATE_MOVIMENTO_RELEASE: InternalRelease = 'internal'", "export const RECREATE_MOVIMENTO_RELEASE: InternalRelease = 'public'") } : {}) })
     for (const pub of [false, true]) {
       const s = loader({ '@supabase/supabase-js': { createClient: () => ({}) } }, seisOver(pub))
       const fS = s('lib/recreate/formats'), aS = s('lib/recreate/access'), eS = s('lib/recreate/entry'), mS = s('lib/recreate/movimento')
-      const seis = fS.recreateFormat('lance-seis'), ok = fS.recreateFormat('lance-seis-ok')
+      const sS = s('lib/recreate/catalogoServidor'), seis = sS.recreateFormatServidor('lance-seis'), ok = sS.recreateFormatServidor('lance-seis-ok')
       if (fS.recreateCreditsFor(seis) !== 25 || !fS.recreateSwapPriced(seis) || mS.movimentoProblemasDoMolde(seis).length) throw new Error('6 s da casa: ' + JSON.stringify([fS.recreateCreditsFor(seis), mS.movimentoProblemasDoMolde(seis)]))
       if (!aS.recreateFormatVisible(seis, casa) || aS.recreateFormatVisible(seis, 'cliente@exemplo.com') || eS.publicRecreatePath('lance-seis') !== null) throw new Error('6 s sem aprovação: só a casa')
       if (fS.recreateCreditsFor(ok) !== null || fS.recreateSwapPriced(ok) || aS.recreateFormatVisible(ok, 'cliente@exemplo.com') || aS.recreateFormatVisible(ok, casa) || eS.publicRecreatePath('lance-seis-ok') !== null) throw new Error(`6 s APROVADO sem tarifa abriu (public=${pub})`)
@@ -188,8 +192,8 @@ async function bateria(over = {}) {
     if (mov.movimentoProblemasDoMolde(molde).length) throw new Error('o molde bom foi recusado: ' + mov.movimentoProblemasDoMolde(molde).join('; '))
   })
   await check('3 todo molde do catálogo REAL passa na régua (guia nosso, uma pessoa, 10/8/15 s com tarifa, enquadramento, frases positivas)', async () => {
-    const real = loader({}, over)('lib/recreate/formats')
-    for (const f of real.RECREATE_FORMATS.filter((x) => x.type === 'motion')) { const q = mov.movimentoProblemasDoMolde(f); if (q.length) throw new Error(f.id + ': ' + q.join('; ')) }
+    const real = loader({}, over)('lib/recreate/catalogoServidor')
+    for (const f of real.RECREATE_FORMATS_SERVIDOR.filter((x) => x.type === 'motion')) { const q = mov.movimentoProblemasDoMolde(f); if (q.length) throw new Error(f.id + ': ' + q.join('; ')) }
   })
   await check('4 o leitor da pessoa: a frase da receita sai SÓ do vocabulário fechado; fora da lista = vazio; sem cabelo = null; óculos sim/não', async () => {
     const t = desc.descricaoEmTexto({ person_visible: true, hair_color: 'dark-brown', hair_length: 'short', hair_shape: 'wavy', hair_volume: 'some volume on top', hair_style: ['swept up and back off the forehead', 'slightly messy'], beard: 'stubble', beard_color: 'dark-brown', glasses: false })
@@ -252,9 +256,9 @@ async function bateria(over = {}) {
     for (const p of ['/api/recreate/assets/lance-teste.mp4']) if (!mov.movimentoDemoValido(p) || mov.movimentoProblemasDoMolde({ ...molde, preview: p }).length) throw new Error('recusou: ' + p)
     for (const p of ['/api/recreate/assets/nao-existe.mp4', '/api/recreate/assets/lance-teste.jpg', 'https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/clips/' + U + '/' + U + '.mp4', 'https://evil.example.com/x.mp4']) if (mov.movimentoDemoValido(p)) throw new Error('aceitou no catálogo: ' + p)
     const real = loader({ '@supabase/supabase-js': { createClient: () => ({}) } }, {})
-    for (const f of real('lib/recreate/formats').RECREATE_FORMATS.filter((x) => x.type === 'motion')) if (/https?:/.test(f.preview) || /https?:/.test(f.poster)) throw new Error('URL no catálogo público: ' + f.id)
+    for (const f of real('lib/recreate/catalogoServidor').RECREATE_FORMATS_SERVIDOR.filter((x) => x.type === 'motion')) if (/https?:/.test(f.preview) || /https?:/.test(f.poster)) throw new Error('URL no catálogo público: ' + f.id)
     const cl = lf(CLIENT)
-    if (/movimentoDemos/.test(cl) || /movimentoDemos/.test(lf(FORMATS))) throw new Error('o módulo dos demos chegou ao cliente')
+    if (/movimentoDemos/.test(cl) || /movimentoDemos/.test(lf(FORMATS))) throw new Error('o módulo dos demos chegou ao cliente') // o grafo inteiro: checagem 14
     if (!/^import 'server-only'/.test(lf('lib/recreate/movimentoDemos.ts'))) throw new Error('movimentoDemos.ts sem server-only')
   })
   await check('12 a URL do demo da casa: bucket renders DESTE ambiente, clips/<dono>/<clipe>.mp4, dono = a conta da casa; nada de outro projeto, outro dono, "//", "..", query', async () => {
@@ -301,17 +305,17 @@ async function bateria(over = {}) {
   })
   await check('12 o 1º molde real termina a ação prendendo o entorno (mureta branca lisa e arquibancada cinza) e a cena fala a mesma arquibancada', async () => {
     const real = loader({ '@supabase/supabase-js': { createClient: () => ({}) } }, {})
-    const j = real('lib/recreate/formats').recreateFormat('jogada-de-futebol')
+    const j = real('lib/recreate/catalogoServidor').recreateFormatServidor('jogada-de-futebol')
     if (!j.acao.endsWith('The pitch is surrounded only by a plain low white wall and plain grey stands.') || !/plain grey stands/.test(j.cena) || /plain dark stands/.test(j.cena + j.acao)) throw new Error(JSON.stringify([j.cena.slice(-120), j.acao.slice(-120)]))
   })
   await check('12 todo molde de movimento REAL do catálogo passa na régua (o 1º: jogada-de-futebol de corpo inteiro, sem aprovação)', async () => {
     const reais = lf(FORMATS)
     const real = loader({ '@supabase/supabase-js': { createClient: () => ({}) } }, {})
-    const fr = real('lib/recreate/formats'), mr = real('lib/recreate/movimento')
-    const lista = fr.RECREATE_MOVIMENTO_MOLDES
+    const fr = real('lib/recreate/catalogoServidor'), mr = real('lib/recreate/movimento')
+    const lista = real('lib/recreate/movimentoMoldes').RECREATE_MOVIMENTO_MOLDES
     if (!lista.length) throw new Error('o catálogo real não tem molde de movimento')
     for (const f of lista) { const pr = mr.movimentoProblemasDoMolde(f); if (pr.length) throw new Error(f.id + ': ' + pr.join('; ')) }
-    const j = fr.recreateFormat('jogada-de-futebol')
+    const j = fr.recreateFormatServidor('jogada-de-futebol')
     if (!j || !/full body from head to shoes/.test(j.cena) || !/white football on the grass at their feet/.test(j.cena) || j.movimentoAprovado !== false) throw new Error('jogada-de-futebol: ' + JSON.stringify(j?.cena))
     void reais
   })
@@ -415,6 +419,84 @@ async function bateria(over = {}) {
     if (/publicarFonteDaCasa|readFile|upload\(/.test(ramo)) throw new Error('o passo 1 do movimento ainda sobe ou lê o guia')
   })
 
+  // ── KINEO-RECEITA-FORA-DO-JS-1411 [CEO 14/11: "a receita está no JavaScript público"] ──
+  await check('14 o que a PÁGINA manda ao navegador (executada): visitante, cliente e casa recebem só campos de vitrine; molde FECHADO só para a casa; nada de cena, ação, guia, quadros da trava ou notas', async () => {
+    let sessaoPagina = null
+    const pg = loader({ 'server-only': {}, './RecreateClient': { __esModule: true, default: function RecreateClient() { return null } }, '../recreate-preview/SeuVideoRecreateClient': { __esModule: true, default: () => null }, './RecreateCatalogPublic': { __esModule: true, default: () => null }, '@/lib/recreate/seuVideoPresentation': { seuVideoPresentation: () => ({}) }, '@supabase/supabase-js': { createClient: () => ({}) }, 'next/navigation': { notFound: () => { throw new Error('notFound') }, redirect: (u) => { throw new Error('redirect:' + u) } }, '@/lib/recreate/server': { recreateSession: async () => ({ user: sessaoPagina }), RECREATE_HEADERS: {} }, '@/lib/supabase/server': { createClient: () => null } }, overs)
+    const serv = pg('lib/recreate/catalogoServidor')
+    const proibidos = ['cena', 'acao', 'guia', 'checkFrames', 'swapNote']
+    for (const [quem, email, deveVerFechado] of [['visitante', null, false], ['cliente', 'cliente@exemplo.com', false], ['casa', casa, true]]) {
+      const lista = serv.formatosParaOCliente(email)
+      const extra = lista.flatMap((f) => Object.keys(f).filter((k) => !serv.CAMPOS_DE_VITRINE.includes(k)))
+      if (extra.length || lista.some((f) => proibidos.some((k) => k in f))) throw new Error(quem + ': campo fora da vitrine: ' + extra.join(','))
+      if (lista.some((f) => f.type === 'motion' && f.prompt)) throw new Error(quem + ': texto do molde de movimento')
+      const vêFechado = lista.some((f) => f.id === 'lance-teste')
+      if (vêFechado !== deveVerFechado) throw new Error(quem + ': molde fechado ' + (vêFechado ? 'visível' : 'sumiu'))
+    }
+    sessaoPagina = { id: U, email: casa }
+    const el = await pg('app/recreate/page').default()
+    const props = el?.props ?? {}
+    const enviados = props.formatos ?? []
+    if (!enviados.length || enviados.some((f) => Object.keys(f).some((k) => !serv.CAMPOS_DE_VITRINE.includes(k)))) throw new Error('a página manda mais que a vitrine: ' + JSON.stringify(enviados.map((f) => Object.keys(f))).slice(0, 200))
+    if (JSON.stringify(props).match(/plain grey stands|dribbles a football|full body from head to shoes|knees up/)) throw new Error('a receita foi nas props da página')
+    sessaoPagina = { id: U, email: 'cliente@exemplo.com' }
+    const elC = await pg('app/recreate/page').default()
+    if ((elC?.props?.formatos ?? []).some((f) => f.type === 'motion')) throw new Error('o cliente recebeu molde de movimento fechado')
+  })
+  await check('14 o GRAFO do navegador: de todo arquivo "use client", nenhum import chega aos módulos da receita (movimentoMoldes, catalogoServidor, movimento, guias, movimentoDemos) e nenhum módulo alcançado traz as frases da receita', async () => {
+    const raiz = process.cwd(), visto = new Set(), fila = []
+    const resolve = (de, esp) => {
+      let p = esp.startsWith('@/') ? esp.slice(2) : esp.startsWith('.') ? path.posix.normalize(path.posix.join(path.posix.dirname(de), esp)) : null
+      if (!p) return null
+      for (const c of [p, p + '.ts', p + '.tsx', p + '/index.ts', p + '/index.tsx']) if (fs.existsSync(path.join(raiz, c)) && fs.statSync(path.join(raiz, c)).isFile()) return c
+      return null
+    }
+    const clientes = []
+    const anda = (dir) => { for (const n of fs.readdirSync(path.join(raiz, dir))) { const r = dir + '/' + n; if (n === 'node_modules' || n.startsWith('.')) continue; const st = fs.statSync(path.join(raiz, r)); if (st.isDirectory()) anda(r); else if (/\.(tsx?|jsx?)$/.test(n) && /^\s*['"]use client['"]/.test(fs.readFileSync(path.join(raiz, r), 'utf8'))) clientes.push(r) } }
+    anda('app'); anda('lib'); if (fs.existsSync(path.join(raiz, 'components'))) anda('components')
+    for (const c of clientes) { visto.add(c); fila.push(c) }
+    while (fila.length) {
+      const atual = fila.pop()
+      const src = fs.readFileSync(path.join(raiz, atual), 'utf8')
+      for (const mm of src.matchAll(/(?:^|\n)\s*(?:import|export)\s[^'"\n]*?from\s+['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)/g)) {
+        const esp = mm[1] ?? mm[2]
+        if (/^import\s+type\s/.test(mm[0].trim())) continue
+        const r = resolve(atual, esp)
+        if (r && !visto.has(r)) { visto.add(r); fila.push(r) }
+      }
+    }
+    const proibidos = ['lib/recreate/movimentoMoldes.ts', 'lib/recreate/catalogoServidor.ts', 'lib/recreate/movimento.ts', 'lib/recreate/guias.ts', 'lib/recreate/movimentoDemos.ts']
+    const chegou = proibidos.filter((p) => visto.has(p))
+    if (chegou.length) throw new Error('o navegador alcança: ' + chegou.join(', '))
+    const frases = ['plain grey stands', 'dribbles a football', 'full body from head to shoes', 'jogada-de-futebol', 'Football play', 'plain all-black shoes']
+    for (const f of visto) { const s = fs.readFileSync(path.join(raiz, f), 'utf8').replace(/\/\/[^\n]*|\/\*[\s\S]*?\*\//g, ''); const achou = frases.find((x) => s.includes(x)); if (achou) throw new Error(`"${achou}" em ${f} (alcançado pelo navegador)`) }
+    if (clientes.length < 20 || visto.size < 40) throw new Error('o grafo ficou pequeno demais para valer: ' + clientes.length + ' clientes, ' + visto.size + ' módulos')
+  })
+  await check('14 a lista PÚBLICA do movimento (formats, vai ao navegador) só tem vitrine de molde APROVADO, nunca receita nem molde fechado', async () => {
+    const real = loader({ '@supabase/supabase-js': { createClient: () => ({}) } }, {})
+    const pub = real('lib/recreate/formats').RECREATE_MOVIMENTO_PUBLICOS, serv = real('lib/recreate/catalogoServidor')
+    for (const f of pub) { if (f.movimentoAprovado !== true || ['cena', 'acao', 'guia'].some((k) => k in f) || f.prompt) throw new Error('público com receita ou fechado: ' + f.id); if (!serv.recreateFormatServidor(f.id)) throw new Error('público sem o molde do servidor: ' + f.id) }
+    if (real('lib/recreate/formats').RECREATE_FORMATS.some((f) => f.type === 'motion' && f.movimentoAprovado !== true)) throw new Error('molde fechado no catálogo do navegador')
+  })
+  await check('14 a régua de TEXTO não roda no caminho do pedido (falso positivo nunca vira 409 para cliente); a estrutura roda', async () => {
+    const comMarca = { ...molde, acao: 'The person runs past a Nike sign. They fall.' }
+    if (!mov.movimentoProblemasDoMolde(comMarca).length || mov.movimentoProblemasNoPedido(comMarca).length) throw new Error('régua')
+    const cat = [comMarca]
+    if (!mov.planMovimento({ ...pedido, format: 'lance-teste' }, ctx, null, cat).ok) throw new Error('o pedido foi barrado pela régua de texto')
+    if (mov.planMovimento({ ...pedido, format: 'lance-teste' }, ctx, null, [{ ...molde, guia: 'nao-existe.mp4' }]).ok) throw new Error('estrutura não barrou')
+  })
+  await check('14 depois de um deploy que muda a impressão digital (ex.: o id do molde entrou nela), o MESMO pedido com a mesma chave volta 409 idempotency_conflict ANTES do débito', async () => {
+    let debitos = 0
+    const antiga = JSON.stringify(['req', CENA, { prompt: 'versão antiga sem molde' }])
+    const deps = {
+      supabaseUrl: SUPA, engineAccess: () => ({ ok: true }), findByKey: async () => ({ ...linha(), fingerprint: antiga, status: 'processing' }), countActive: async () => 0, verifyImage: async () => {}, moderate: async () => ({ ok: true }),
+      getBalance: async () => 100, newId: () => 'novo', insertPending: async () => ({ ok: true }), debit: async () => { debitos++; return { ok: true, balance: 60 } }, refund: async () => 0,
+      submit: async () => ({ ok: true, requestId: 'x' }), markSubmitted: async () => true, markFailed: async () => true, event: async () => {}, now: () => NOW,
+    }
+    const p = mov.planMovimento(pedido, ctx, null)
+    const r = await flow.submitClip(deps, { userId: U, idempotencyKey: 'recreate-depois-do-deploy', body: p.plan.body, recreatePlan: p.plan })
+    if (r.ok || r.status !== 409 || r.code !== 'idempotency_conflict' || debitos) throw new Error(JSON.stringify([r.status, r.code, debitos]))
+  })
   await check('6 imagem pronta: reserva, juiz uma vez, UM envio, request_id gravado e a marca solta; evento uma vez; nada estornado', async () => {
     const h = harness()
     const r = await flow.settleClip(h.deps, linha())
@@ -791,7 +873,8 @@ async function bateria(over = {}) {
   return p
 }
 
-const real = await bateria()
+const PARTE = process.argv.indexOf('--parte') > 0 ? process.argv[process.argv.indexOf('--parte') + 1] : null
+const real = PARTE ? [] : await bateria() // o filho não roda a base de novo
 if (real.length) { console.error('FALHA\n' + real.join('\n')); process.exit(1) }
 const src = Object.fromEntries([ACCESS, ENTRY, MOV, DESC, JUIZ, FLOW, SRV, STATUS, CLIENT, ROTA, 'lib/recreate/catalogPublic.ts', FORMATS, TEXTO, SV].map((f) => [f, lf(f)]))
 // reancorado KINEO-VARREDURAS-ESTORNO-1411 — a varredura da troca e da fila (estornarOrfaosDaTrocaEDaFila) tem linhas IGUAIS às do movimento: os mutantes
@@ -806,7 +889,7 @@ const mutantes = [
   ["descrição na impressão digital", { [MOV]: src[MOV].replace('    fingerprintInput: { ...movimentoEntradaDaCena(f, foto, null), molde: f.id },', '    fingerprintInput: { ...input, molde: f.id },') }],
   ['texto do navegador no passo 1', { [MOV]: src[MOV].replace('  const input = movimentoEntradaDaCena(f, foto, descricao)', "  const input = movimentoEntradaDaCena(f, foto, [descricao, typeof raw.prompt === 'string' ? raw.prompt : ''].filter(Boolean).join(' '))") }],
   ['frase negativa liberada', { [MOV]: src[MOV].replace("export const FRASE_NEGATIVA = /\\b(no|not|never|without|avoid|cannot|don'?t|doesn'?t|isn'?t|aren'?t|nothing|none|neither|nor)\\b|n't\\b/i", 'export const FRASE_NEGATIVA = /^$/') }],
-  ['guia com duas pessoas aceito', { [MOV]: src[MOV].replace("  if (f.pessoasNoGuia !== 1) p.push(", '  if (false) p.push(') }],
+  ['guia com duas pessoas aceito', { [MOV]: src[MOV].split("  if (f.pessoasNoGuia !== 1) p.push(").join('  if (false) p.push(') }], // reancorado KINEO-RECEITA-FORA-DO-JS-1411 — a regra está nas duas réguas (pedido e molde)
   ['leitor aceita texto livre (vocabulário aberto)', { [DESC]: src[DESC].replace('  return permitidos.includes(t) ? t : \'\'', "  return /^[a-z ,\\-]+$/.test(t) ? t : ''") }],
   ['leitor aceita texto livre só no estilo', { [DESC]: src[DESC].replace('.map((x) => doVocabulario(x, VOCABULARIO.estilo))', ".map((x) => (typeof x === 'string' ? x.toLowerCase() : ''))") }],
   ['moderação da cena ignorada', { [SRV]: src[SRV].replace("      if (!mod.ok && mod.reason === 'blocked') return { result: 'blocked' as const, reason: 'moderation' }\n", '') }],
@@ -877,13 +960,31 @@ const mutantes = [
   ['fal com assinatura curta (o vídeo some no meio)', { [SRV]: src[SRV].replace('await assinarGuia(admin, f.guia, 3600)', 'await assinarGuia(admin, f.guia, 60)') }],
   ['cópia do guia sem conferir o sha256', { ['lib/recreate/guias.ts']: lf('lib/recreate/guias.ts').replace('if (bytes.length !== g.bytes || hash !== g.sha256) motivo = ', 'if (false) motivo = ') }],
   ['varredura sem conferir os guias', { [SRV]: src[SRV].replace(src[SRV].split('\n').find((l) => l.startsWith('  await conferirGuias(admin, ')) + '\n', '') }],
+  // KINEO-RECEITA-FORA-DO-JS-1411
+  ['pedido com a régua de texto', { [MOV]: src[MOV].replace('  if (movimentoProblemasNoPedido(f).length) return bad(', '  if (movimentoProblemasDoMolde(f).length) return bad(') }],
+  ['cliente recebe o molde inteiro', { ['lib/recreate/catalogoServidor.ts']: lf('lib/recreate/catalogoServidor.ts').replace('export const formatosParaOCliente = (email: string | null | undefined): RecreateFormat[] => visibleRecreateFormatsServidor(email).map(paraOCliente)', 'export const formatosParaOCliente = (email: string | null | undefined): RecreateFormat[] => visibleRecreateFormatsServidor(email)') }],
+  ['vitrine leva a cena', { ['lib/recreate/catalogoServidor.ts']: lf('lib/recreate/catalogoServidor.ts').replace("'movimentoAprovado', 'pessoasNoGuia'] as const", "'movimentoAprovado', 'pessoasNoGuia', 'cena'] as const") }],
+  ['cliente vê todos os moldes do servidor', { ['lib/recreate/catalogoServidor.ts']: lf('lib/recreate/catalogoServidor.ts').replace('RECREATE_FORMATS_SERVIDOR.filter((f) => recreateFormatVisible(f, email))', 'RECREATE_FORMATS_SERVIDOR.filter((f) => !!f)') }],
   ['juiz com campo inventado na fal', { [MOV]: src[MOV].replace("character_orientation: 'video', keep_original_sound: false,", "character_orientation: 'video', keep_original_sound: false, negative_prompt: 'logos',") }],
 ]
 let mortos = 0
-for (const [n, over] of mutantes) {
-  const [k, v] = Object.entries(over)[0]
-  if (v === lf(k)) { console.error('MUTANTE SEM EFEITO: ' + n); process.exit(1) }
-  if ((await bateria(over)).length) mortos++; else console.error('MUTANTE VIVO: ' + n)
+for (const [n, over] of mutantes) { const [k, v] = Object.entries(over)[0]; if (v === lf(k)) { console.error('MUTANTE SEM EFEITO: ' + n); process.exit(1) } }
+if (PARTE) {
+  const [i, de] = PARTE.split('/').map(Number)
+  let vivos = 0
+  for (let j = i; j < mutantes.length; j += de) { if ((await bateria(mutantes[j][1])).length) mortos++; else { vivos++; console.error('MUTANTE VIVO: ' + mutantes[j][0]) } }
+  console.log(`PARTE ${PARTE}: ${mortos} mortos, ${vivos} vivos`)
+  process.exit(vivos ? 1 : 0)
 }
+const { spawn } = await import('node:child_process')
+const PROCESSOS = Math.max(1, Math.min(16, Number(process.env.MUTANTES_PROCESSOS ?? 12)))
+const partes = await Promise.all(Array.from({ length: PROCESSOS }, (_, i) => new Promise((ok) => {
+  const filho = spawn(process.execPath, [process.argv[1], '--parte', `${i}/${PROCESSOS}`], { stdio: ['ignore', 'pipe', 'pipe'] })
+  let saida = ''
+  filho.stdout.on('data', (d) => { saida += d })
+  filho.stderr.on('data', (d) => { const s = String(d); if (/MUTANTE/.test(s)) process.stderr.write(s) })
+  filho.on('close', (code) => ok({ code, saida }))
+})))
+for (const p of partes) { const m = /PARTE \S+: (\d+) mortos/.exec(p.saida); mortos += m ? Number(m[1]) : 0; if (p.code !== 0 && !m) console.error('um processo de mutantes caiu: ' + p.saida.slice(-300)) }
 if (mortos !== mutantes.length) process.exit(1)
 console.log(`PASS molde de movimento: visibilidade (internal só a casa; público só aprovado), 10 s = 40, plano e impressão digital, frases positivas, leitor da pessoa, juiz antes de pagar o vídeo, dois passos com UM envio (dois atores), estorno único nas falhas, rede de 10 min pela marca, schema da fal, bifurcações revisadas, status e tela; ${mortos}/${mutantes.length} mutantes mortos`)

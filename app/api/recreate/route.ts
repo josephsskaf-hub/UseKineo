@@ -12,6 +12,7 @@ import { recreateEngineAccess, recreateSession, recreateSubmitDeps, RECREATE_HEA
 import { writeServerEvent } from '@/lib/serverEvents'
 import { recreateFormatVisible, releaseVisible, visibleRecreateFormats } from '@/lib/recreate/access'
 
+import { recreateFormatServidor, visibleRecreateFormatsServidor } from '@/lib/recreate/catalogoServidor' // KINEO-RECEITA-FORA-DO-JS-1411
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 export const maxDuration = 60
@@ -26,7 +27,7 @@ export async function GET() {
   if (!admin || !account) return json({ error: 'Could not load your account. Please retry.' }, 503)
   const access = engineAccessFor(account)
   // KINEO-RECREATE-TRAVA-1011 — only formats this account may request (unapproved swaps: house allowlist only).
-  return json({ catalog: visibleRecreateFormats(user.email).map(f => {
+  return json({ catalog: visibleRecreateFormatsServidor(user.email).map(f => { // KINEO-RECEITA-FORA-DO-JS-1411
     const credits = recreateCreditsFor(f) // KINEO-RECREATE-MOVIMENTO-1411 — era: f.type === 'swap' ? recreateCreditCost(f.seconds) : recreateEffectCredits(f)
     // KINEO-RECREATE-MOVIMENTO-1411 — o movimento não depende do motor do clipe comum (tarifa própria do Recreate): disponível com tarifa.
     return { id: f.id, credits, shortfall: credits === null ? 0 : Math.max(0, credits - account.balance), available: credits !== null && (f.type === 'swap' ? recreateEngineAccess().ok : f.type === 'motion' ? true : access(clipEffectByKey(f.effectKey)!.engine).ok) }
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
   if (req.headers.get('origin') && req.headers.get('origin') !== req.nextUrl.origin) return json({ error: 'Invalid origin.' }, 403)
   let raw: Record<string, unknown>
   try { raw = await req.json() } catch { return json({ error: 'Invalid request.' }, 400) }
-  const format = recreateFormat(raw.format)
+  const format = recreateFormatServidor(raw.format) // KINEO-RECEITA-FORA-DO-JS-1411
   if (!format) return json({ error: 'Choose a format from the catalog.' }, 400)
   // KINEO-RECREATE-TRAVA-1011 — an unapproved swap does not exist for this account: refused before photos, moderation, debit or provider.
   if (!recreateFormatVisible(format, user.email)) return json({ error: 'Not found.' }, 404)

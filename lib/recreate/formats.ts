@@ -68,9 +68,6 @@ export const RECREATE_ASSETS = {
   'sueter-aconchegante.jpg': { file: 'recreate-sueter.jpg', contentType: 'image/jpeg' },
   'selfie-confete.mp4': { file: 'recreate-selfie.mp4', contentType: 'video/mp4' },
   'selfie-confete.jpg': { file: 'recreate-selfie.jpg', contentType: 'image/jpeg' },
-  // KINEO-RECREATE-MOVIMENTO-MOLDE-1411 — pôster do molde de movimento "Football play" (quadro de 1 s, 720 px). KINEO-GUIA-PRIVADO-1411: o MP4 do guia saiu daqui (2,8 MB)
-  // para o bucket privado (lib/recreate/guiasManifesto.ts); o cartão o recebe por redirecionamento curto da rota de assets.
-  'jogada-de-futebol.jpg': { file: 'recreate-mov-jogada-de-futebol.jpg', contentType: 'image/jpeg' },
 } as const
 
 /** KINEO-RECREATE-TRAVA-1011 — frames 84 and 168 (3.5 s and 7.0 s at 24 fps) of base and result feed the "not swapped" check. */
@@ -116,21 +113,13 @@ const RECREATE_CATALOG: readonly RecreateFormat[] = [
     photoSlots: e.pair ? 2 : 1, effectKey: e.key,
   })),
 ]
-// KINEO-RECREATE-MOVIMENTO-1411 [CEO 14/11 07:00] — os moldes de MOVIMENTO. Cada um: o MP4 do demo (nosso, 720x1280, 10 s) em lib/recreate/assets
-// + a chave em RECREATE_ASSETS (o .mp4 e o .jpg do pôster) + a linha abaixo. Exemplo (a CEO preenche com o demo validado):
-//   { id: 'lance-de-futebol', title: 'Football run', desde: 'AAAA-MM-DD', type: 'motion', preview: '/api/recreate/assets/lance-de-futebol.mp4',
-//     poster: '/api/recreate/assets/lance-de-futebol.jpg', guia: 'lance-de-futebol.mp4', seconds: 10, photoSlots: 1, pessoasNoGuia: 1,
-//     prompt: '', movimentoAprovado: false,
-//     cena: 'standing on a plain green football pitch with plain solid-colour kits around, framed from the knees up, their face clearly visible and turned slightly toward the camera',
-//     acao: 'The person runs forward and dribbles a white football, the camera follows at the side, plain green pitch with plain unmarked boards' }
-// Guardião: scripts/test-recreate-movimento-1411.mjs (molde de 10 s, guia nosso, uma pessoa, frases positivas, enquadramento).
-export const RECREATE_MOVIMENTO_MOLDES: readonly RecreateFormat[] = [
-  { id: 'jogada-de-futebol', title: 'Football play', desde: '2026-11-14', type: 'motion', preview: '/api/recreate/assets/jogada-de-futebol.mp4', poster: '/api/recreate/assets/jogada-de-futebol.jpg', guia: 'jogada-de-futebol.mp4', seconds: 6, photoSlots: 1, pessoasNoGuia: 1, prompt: '', movimentoAprovado: false,
-    // KINEO-MOVIMENTO-CORPO-INTEIRO-1411 [CEO 14/11, teste pago no painel (US$ 0,57): corpo inteiro na imagem = o vídeo sai com o corpo inteiro, a bola no pé e os defensores]
-    cena: 'standing on the grass of a football pitch during a daytime match, full body from head to shoes, the person fills most of the frame height, their face clearly visible and turned slightly toward the camera, a white football on the grass at their feet, in a relaxed athletic stance ready to run, wearing a plain navy long-sleeve shirt, dark trousers and plain dark shoes, with an out-of-focus stadium behind them: plain grey stands and a plain low white wall around the pitch, natural afternoon light', // KINEO-MOVIMENTO-REVISOR-2-1411 — era: plain dark stands (a ação agora diz grey)
-    acao: 'The person dribbles a football at full speed across the pitch in the middle of a live TV football match, the camera panning with them. They dribble past a defender, then collide with the defender and both fall onto the grass. Players of both teams wear plain solid kits with plain blank shirts: one team all red, the other all white. Natural afternoon light. The pitch is surrounded only by a plain low white wall and plain grey stands.' }, // KINEO-MOVIMENTO-REVISOR-2-1411 [ideia da CEO 14/11 contra a placa com letras aos 4 s: prender o entorno no FIM da ação; sem teste pago]
-]
-export const RECREATE_FORMATS: readonly RecreateFormat[] = recreateNewestFirst([...RECREATE_CATALOG, ...RECREATE_MOVIMENTO_MOLDES]) // KINEO-RECREATE-MOVIMENTO-1411 — era: recreateNewestFirst(RECREATE_CATALOG)
+// KINEO-RECEITA-FORA-DO-JS-1411 [CEO 14/11: "a receita está no JavaScript público"] — os moldes de MOVIMENTO (inteiros: vitrine E receita) saíram daqui para
+// lib/recreate/movimentoMoldes.ts, que só o servidor lê: este arquivo vai no JavaScript do navegador (RecreateClient, access, entry). O servidor monta
+// o catálogo completo em lib/recreate/catalogoServidor.ts e manda ao cliente só os campos de vitrine dos moldes que aquela pessoa pode ver.
+// KINEO-RECEITA-FORA-DO-JS-1411 — a VITRINE (sem receita: nada de cena, ação nem guia) dos moldes de movimento JÁ APROVADOS para o público, para o link público e o catálogo
+// do navegador acharem o molde; o servidor troca cada um pela versão completa de ./movimentoMoldes. Molde fechado NUNCA entra aqui (o guardião confere).
+export const RECREATE_MOVIMENTO_PUBLICOS: readonly RecreateFormat[] = []
+export const RECREATE_FORMATS: readonly RecreateFormat[] = recreateNewestFirst([...RECREATE_CATALOG, ...RECREATE_MOVIMENTO_PUBLICOS]) // KINEO-RECEITA-FORA-DO-JS-1411 — o catálogo do NAVEGADOR: troca, efeito e a vitrine do movimento aprovado; o movimento fechado e a receita vêm do servidor (catalogoServidor)
 export const recreateFormat = (id: unknown) => RECREATE_FORMATS.find(f => f.id === id) ?? null
 /** KINEO-RECREATE-TRAVA-1011 — a swap is sold only at an approved tariff (RECREATE_PRICING). 8 s = 45 since 10/11 ("Cobra 45"). */
 // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 [CEO 14/11 12:30: "prepare o molde para aceitar 6 s com o preço lido de lib/checkoutPricing.ts; para a casa, um valor PROVISÓRIO atrás do

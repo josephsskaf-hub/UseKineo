@@ -15,7 +15,8 @@ import { ownedClipImageUrl, type ClipEngineKey, type ClipRequestInput } from '@/
 import { recreateCreditCost } from '@/lib/checkoutPricing'
 import { recreateMovimentoCredits } from './formats' // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411
 import { guiaDoManifesto } from './guiasManifesto' // KINEO-GUIA-PRIVADO-1411
-import { RECREATE_ASSETS, RECREATE_FORMATS, type RecreateFormat } from './formats'
+import { type RecreateFormat } from './formats'
+import { RECREATE_ASSETS_SERVIDOR as RECREATE_ASSETS, RECREATE_FORMATS_SERVIDOR as RECREATE_FORMATS } from './catalogoServidor' // KINEO-RECEITA-FORA-DO-JS-1411 — o catálogo e os assets do SERVIDOR (com os moldes de movimento)
 
 export const MOVIMENTO_MARK = 'KINEO-RECREATE-MOVIMENTO-1411'
 export const MOVIMENTO_CENA_MODEL = NANO_BANANA_EDIT_SLUG
@@ -149,6 +150,19 @@ export function temMarca(texto: string): boolean {
   return false
 }
 /** O que um molde de movimento precisa para existir (o guardião roda isto em todo molde do catálogo). Vazio = válido. */
+// KINEO-RECEITA-FORA-DO-JS-1411 [revisor da CEO 14/11, item 1: "a régua vira checagem de quem ESCREVE o molde"] — movimentoProblemasNoPedido é o que o POST confere (estrutura:
+// tarifa, uma foto, uma pessoa no guia, guia no manifesto, demo nosso); a régua de TEXTO (enquadramento, frase negativa, marca) roda só para quem
+// escreve o molde (a ferramenta e o guardião, que garante que nenhum molde do catálogo tem problema): um falso positivo dela nunca vira 409 para cliente.
+export function movimentoProblemasNoPedido(f: RecreateFormat): string[] {
+  if (f.type !== 'motion') return ['não é motion']
+  const p: string[] = []
+  if (recreateMovimentoCredits(f) === null) p.push(`${f.seconds} s sem tarifa na tabela do Recreate (nem provisória da casa)`)
+  if (f.photoSlots !== 1) p.push('uma foto só')
+  if (f.pessoasNoGuia !== 1) p.push('o guia precisa ter UMA pessoa (pessoasNoGuia: 1)')
+  if (!guiaDoManifesto(f.guia)) p.push('o guia precisa estar no manifesto do bucket privado (lib/recreate/guiasManifesto.ts)')
+  if (!f.acao) p.push('o molde precisa da ação do passo 2')
+  return p
+}
 export function movimentoProblemasDoMolde(f: RecreateFormat): string[] {
   const p: string[] = []
   if (f.type !== 'motion') return ['não é motion']
@@ -174,7 +188,8 @@ export function planMovimento(raw: Record<string, unknown>, ctx: { userId: strin
   const bad = (error: string, status = 400): MovimentoPlanResult => ({ ok: false, status, error })
   const f = catalogo.find(x => x.id === raw.format) ?? null
   if (!f || f.type !== 'motion') return bad('Choose a video from the Kineo catalog.')
-  if (movimentoProblemasDoMolde(f).length) return bad('This video is not available yet. Nothing was charged.', 409)
+  if (movimentoProblemasNoPedido(f).length) return bad('This video is not available yet. Nothing was charged.', // KINEO-RECEITA-FORA-DO-JS-1411 — era: movimentoProblemasDoMolde (com a régua de texto)
+    409)
   if (raw.consent !== true) return bad('Confirm you have permission to use these photos.')
   const seconds = Number(raw.seconds)
   if (seconds !== f.seconds) return recreateCreditCost(seconds) === null ? bad('Choose an available duration.') : bad('This duration needs an approved source video of the same length.', 409) // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 — mesma resposta de antes para duração errada

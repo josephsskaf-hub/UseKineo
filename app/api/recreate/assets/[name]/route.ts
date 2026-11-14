@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
-import { RECREATE_ASSETS, RECREATE_FORMATS } from '@/lib/recreate/formats'
+import { RECREATE_ASSETS_SERVIDOR as RECREATE_ASSETS, RECREATE_FORMATS_SERVIDOR as RECREATE_FORMATS } from '@/lib/recreate/catalogoServidor' // KINEO-RECEITA-FORA-DO-JS-1411 — era: '@/lib/recreate/formats' (sem os moldes de movimento)
 import { recreateFormatVisible } from '@/lib/recreate/access'
 import { recreateSession, RECREATE_HEADERS } from '@/lib/recreate/server'
 import { MOVIMENTO_DEMOS, MOVIMENTO_DEMO_DONOS } from '@/lib/recreate/movimentoDemos' // KINEO-MOVIMENTO-REVISOR-2-1411

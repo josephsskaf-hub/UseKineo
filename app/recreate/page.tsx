@@ -6,7 +6,8 @@ import RecreateClient from './RecreateClient'
 import RecreateCatalogPublic from './RecreateCatalogPublic' // KINEO-MENU-RECREATE-1211
 import { publicRecreateCatalog } from '@/lib/recreate/catalogPublic' // KINEO-MENU-RECREATE-1211
 import { createShellVisible } from '@/lib/create/access' // KINEO-TELA-NOVA-1011 — as abas Film · Cartoon · Ads só para quem vê o /create
-import { releaseVisible, visibleRecreateFormats } from '@/lib/recreate/access'
+import { releaseVisible } from '@/lib/recreate/access'
+import { formatosParaOCliente } from '@/lib/recreate/catalogoServidor' // KINEO-RECEITA-FORA-DO-JS-1411
 import { RECREATE_FLOW_ENABLED } from '@/lib/recreate/flowRelease'
 
 export const dynamic = 'force-dynamic'
@@ -29,5 +30,5 @@ export default async function Page() {
     if (RECREATE_RELEASE === 'public') return <RecreateCatalogPublic items={publicRecreateCatalog()} />
     notFound()
   }
-  return <RecreateClient internalTools={releaseVisible(user.email, 'internal')} formatIds={visibleRecreateFormats(user.email).map(f => f.id)} createTabs={createShellVisible(user.email)} />
+  return <RecreateClient internalTools={releaseVisible(user.email, 'internal')} formatos={formatosParaOCliente(user.email)} formatIds={formatosParaOCliente(user.email).map(f => f.id)} createTabs={createShellVisible(user.email)} />
 }

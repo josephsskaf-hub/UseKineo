@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { recreateSession } from '@/lib/recreate/server'
-import { recreateFormat } from '@/lib/recreate/formats'
+import { formatosParaOCliente, recreateFormatServidor as recreateFormat } from '@/lib/recreate/catalogoServidor' // KINEO-RECEITA-FORA-DO-JS-1411 — era: recreateFormat de '@/lib/recreate/formats'
 import { publicRecreatePath, recreateEntryHref } from '@/lib/recreate/entry'
 import RecreateClient from '../RecreateClient'
 import { createShellVisible } from '@/lib/create/access' // KINEO-TELA-NOVA-1011 — as abas Film · Cartoon · Ads só para quem vê o /create
-import { recreateFormatVisible, releaseVisible, visibleRecreateFormats } from '@/lib/recreate/access'
+import { recreateFormatVisible, releaseVisible } from '@/lib/recreate/access'
 import { RECREATE_FLOW_ENABLED } from '@/lib/recreate/flowRelease'
 
 export const dynamic = 'force-dynamic'
@@ -23,5 +23,5 @@ export default async function Page({ params, searchParams = {} }: { params: { id
     notFound()
   }
   if (!recreateFormatVisible(format, user.email)) notFound() // KINEO-RECREATE-TRAVA-1011
-  return <RecreateClient initialId={params.id} internalTools={releaseVisible(user.email, 'internal')} formatIds={visibleRecreateFormats(user.email).map(f => f.id)} createTabs={createShellVisible(user.email)} />
+  return <RecreateClient initialId={params.id} internalTools={releaseVisible(user.email, 'internal')} formatos={formatosParaOCliente(user.email)} formatIds={formatosParaOCliente(user.email).map(f => f.id)} createTabs={createShellVisible(user.email)} />
 }

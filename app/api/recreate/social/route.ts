@@ -4,6 +4,7 @@ import { recreateFormat } from '@/lib/recreate/formats'
 import { visibleRecreateFormats } from '@/lib/recreate/access'
 import { recreateSession, RECREATE_HEADERS } from '@/lib/recreate/server'
 
+import { recreateFormatServidor, visibleRecreateFormatsServidor } from '@/lib/recreate/catalogoServidor' // KINEO-RECEITA-FORA-DO-JS-1411
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 const json = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: RECREATE_HEADERS })
@@ -12,7 +13,7 @@ export async function GET() {
   if (!user) return json({ error: 'Not found.' }, 404)
   const admin = clipsAdmin()
   if (!admin) return json({ error: 'Likes unavailable.' }, 503)
-  const items = await Promise.all(visibleRecreateFormats(user.email).map(async f => { // KINEO-RECREATE-TRAVA-1011
+  const items = await Promise.all(visibleRecreateFormatsServidor(user.email).map(async f => { // KINEO-RECEITA-FORA-DO-JS-1411 // KINEO-RECREATE-TRAVA-1011
     const [total, own] = await Promise.all([
       admin.from('recreate_likes').select('user_id', { count: 'exact', head: true }).eq('format_id', f.id),
       admin.from('recreate_likes').select('user_id').eq('format_id', f.id).eq('user_id', user.id).maybeSingle(),
@@ -28,8 +29,8 @@ export async function POST(req: NextRequest) {
   if (req.headers.get('origin') && req.headers.get('origin') !== req.nextUrl.origin) return json({ error: 'Invalid origin.' }, 403)
   let raw: Record<string, unknown>
   try { raw = await req.json() } catch { return json({ error: 'Invalid request.' }, 400) }
-  const format = recreateFormat(raw.format)
-  if (!format || !visibleRecreateFormats(user.email).includes(format)) return json({ error: 'Unknown format.' }, 400)
+  const format = recreateFormatServidor(raw.format) // KINEO-RECEITA-FORA-DO-JS-1411
+  if (!format || !visibleRecreateFormatsServidor(user.email).includes(format)) return json({ error: 'Unknown format.' }, 400)
   const admin = clipsAdmin()
   if (!admin) return json({ error: 'Could not save. Please retry.' }, 503)
   if (raw.action === 'report') {

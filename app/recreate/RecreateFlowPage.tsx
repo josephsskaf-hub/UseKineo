@@ -1,9 +1,11 @@
 import { notFound } from 'next/navigation'
 import { recreateSession } from '@/lib/recreate/server'
-import { RECREATE_FORMATS, recreateFormat, recreateCreditsFor } from '@/lib/recreate/formats' // KINEO-RECREATE-MOVIMENTO-1411 — era: recreateEffectCredits + recreateCreditCost
+import { RECREATE_FORMATS, recreateCreditsFor } from '@/lib/recreate/formats' // KINEO-RECREATE-MOVIMENTO-1411 — era: recreateEffectCredits + recreateCreditCost
 import { publicRecreateCatalog } from '@/lib/recreate/catalogPublic'
 import { publicRecreatePath } from '@/lib/recreate/entry'
-import { recreateFormatVisible, releaseVisible, visibleRecreateFormats } from '@/lib/recreate/access'
+import { recreateFormatVisible, releaseVisible } from '@/lib/recreate/access'
+import { formatosParaOCliente, recreateFormatServidor as recreateFormat } from '@/lib/recreate/catalogoServidor' // KINEO-RECEITA-FORA-DO-JS-1411
+import { publicRecreateCatalog as catalogoPublico } from '@/lib/recreate/catalogPublic' // KINEO-RECEITA-FORA-DO-JS-1411
 import { createShellVisible } from '@/lib/create/access'
 import { SEU_VIDEO_RELEASE } from '@/lib/recreate/seuVideoRelease'
 import { seuVideoPresentation } from '@/lib/recreate/seuVideoPresentation'
@@ -37,7 +39,8 @@ export default async function RecreateFlowPage({ id, searchParams = {}, basePath
     const format = recreateFormat(id)
     if (!format || (user ? !recreateFormatVisible(format, user.email) : !publicRecreatePath(id))) notFound()
   }
-  const formatIds = user ? visibleRecreateFormats(user.email).map(format => format.id) : publicRecreateCatalog().map(format => format.id)
+  const formatos = user ? formatosParaOCliente(user.email) : formatosParaOCliente(null).filter(f => catalogoPublico().some(p => p.id === f.id)) // KINEO-RECEITA-FORA-DO-JS-1411 — só a vitrine, só o que esta pessoa vê
+  const formatIds = user ? formatos.map(format => format.id) : publicRecreateCatalog().map(format => format.id)
   if (!formatIds.length) notFound()
   // Public tariff only, no invented account balance or engine availability.
   // The authenticated GET is still required before submitting a paid request.
@@ -50,5 +53,5 @@ export default async function RecreateFlowPage({ id, searchParams = {}, basePath
     signedIn={!!user} accountKey={user?.id ?? null} draftRef={draftRef}
     ownVideoVisible={ownVideoVisible} generationAllowed={generationAllowed}
     internalTools={!!user && releaseVisible(user.email, 'internal')}
-    formatIds={formatIds} createTabs={!!user && createShellVisible(user.email)} />
+    formatos={formatos} formatIds={formatIds} createTabs={!!user && createShellVisible(user.email)} />
 }

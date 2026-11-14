@@ -55,11 +55,11 @@ async function flowJson(url: string, init: RequestInit = {}, limit = FLOW_STEP_M
   } finally { if (timer !== undefined) clearTimeout(timer) }
 }
 
-export default function RecreateClient({ initialId, internalTools = false, formatIds, createTabs = false, currentFlow = false, signedIn = true, accountKey = null, draftRef, flowBasePath = '/recreate-flow-preview', guestQuotes = [], ownVideoVisible = false, generationAllowed = true }: { initialId?: string; internalTools?: boolean; formatIds?: string[]; createTabs?: boolean; currentFlow?: boolean; signedIn?: boolean; accountKey?: string | null; draftRef?: string; flowBasePath?: FlowBasePath; guestQuotes?: readonly Quote[]; ownVideoVisible?: boolean; generationAllowed?: boolean }) {
+export default function RecreateClient({ initialId, internalTools = false, formatos, formatIds, createTabs = false, currentFlow = false, signedIn = true, accountKey = null, draftRef, flowBasePath = '/recreate-flow-preview', guestQuotes = [], ownVideoVisible = false, generationAllowed = true }: { initialId?: string; internalTools?: boolean; formatos?: RecreateFormat[]; formatIds?: string[]; createTabs?: boolean; currentFlow?: boolean; signedIn?: boolean; accountKey?: string | null; draftRef?: string; flowBasePath?: FlowBasePath; guestQuotes?: readonly Quote[]; ownVideoVisible?: boolean; generationAllowed?: boolean }) {
   // M12 revisão (8): só a prévia passa generationAllowed=false (conta logada fora da casa). Vale para a conta logada; o visitante vai ao cadastro.
   const previewLocked = currentFlow && signedIn && !generationAllowed
   // KINEO-RECREATE-TRAVA-1011 — the server pages pass the formats this account may request (unapproved swaps: house only).
-  const permitted = formatIds ? RECREATE_FORMATS.filter(f => formatIds.includes(f.id)) : RECREATE_FORMATS
+  const permitted = formatos ?? (formatIds ? RECREATE_FORMATS.filter(f => formatIds.includes(f.id)) : RECREATE_FORMATS) // KINEO-RECEITA-FORA-DO-JS-1411 — a vitrine que o servidor mandou (só o que esta pessoa vê)
   const catalog = currentFlow && !signedIn ? permitted.filter(f => publicRecreatePath(f.id) !== null) : permitted
   const [selected, setSelected] = useState(() => catalog.find(f => f.id === initialId) ?? null)
   const [photos, setPhotos] = useState<(Photo | null)[]>([])
