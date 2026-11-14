@@ -17,12 +17,16 @@
 // Nos dois casos as frases da ficha reprovada que vazaram para o resto do plano também saem. Plano sem a ordem: nada muda (fica no relato).
 // Juiz desligado, sem chave, prazo, erro, UNVERIFIED ou sem a_ficha: byte a byte o de antes. Nenhuma chamada nova além do juiz.
 // Interruptor FICHA_ANTES_DO_RENDER_1311: 'off' = byte a byte o de antes. Guardião: scripts/test-ficha-antes-do-render-1311.mjs.
+//
+// REVISÃO INDEPENDENTE 14/11 (C3, M6): (1) o veredito de antes só é REAPROVEITADO depois do envio quando o juiz leu exatamente o texto e as falas
+// que foram à fal (juizLeuOMesmoTexto); qualquer diferença = a 2ª leitura de sempre. (2) só é refeito o plano cuja acusação de ficha o juiz
+// VERIFICOU (a citação está no texto: "plano N · ficha contradiz …" em defeitos); acusação descartada por ele não refaz nada.
 import type { JuizPlanoVeredito } from '@/lib/juizDoPlano'
 
 export type ModoFichaAntes = 'off' | 'all'
 export const FICHA_ANTES_DO_RENDER_1311: ModoFichaAntes = 'all'
 export const fichaAntesDoRenderLigada = (modo: ModoFichaAntes = FICHA_ANTES_DO_RENDER_1311) => modo === 'all'
-export const FICHA_ANTES_VERSAO = 'ficha_antes_do_render_1311_v1'
+export const FICHA_ANTES_VERSAO = 'ficha_antes_do_render_1311_v2'
 export const FICHA_ANTES_EVENTO = 'juiz_plano_ficha_antes'
 
 const ORDEM_RE = /The only person in this shot is the same main character \(((?:[^()]|\((?:[^()]|\([^()]*\))*\))*)\); any other person described below is replaced by this same character\.\s*/u
@@ -74,12 +78,29 @@ export interface RelatoFichaAntes {
   ms: number | null
 }
 
+/** Os planos (1..N) com a acusação de ficha VERIFICADA pelo juiz: a citação está no texto do plano (linha "plano N · ficha contradiz" em defeitos). */
+export function planosComFichaVerificada(v: JuizPlanoVeredito | null): number[] {
+  const defeitos = Array.isArray(v?.defeitos) ? (v as JuizPlanoVeredito).defeitos : []
+  const out = new Set<number>()
+  for (const d of defeitos) { const m = /^plano (\d+) · ficha contradiz/u.exec(String(d ?? '')); if (m) out.add(Number(m[1])) }
+  return [...out].sort((a, b) => a - b)
+}
+
+/** true só quando o juiz leu EXATAMENTE os planos e as falas que foram à fal (mesma quantidade, mesmo texto, mesma ordem). Pura. */
+export function juizLeuOMesmoTexto(lido: ReadonlyArray<{ fala: string; prompt: string }> | null | undefined, enviado: ReadonlyArray<{ fala: string; prompt: string }> | null | undefined): boolean {
+  if (!Array.isArray(lido) || !Array.isArray(enviado) || lido.length === 0 || lido.length !== enviado.length) return false
+  return lido.every((c, i) => typeof c?.prompt === 'string' && c.prompt.length > 0 && c.prompt === enviado[i]?.prompt && String(c?.fala ?? '') === String(enviado[i]?.fala ?? ''))
+}
+
 /** O plano inteiro refeito pelo veredito (índices 1..N do juiz = planos do filme). Pura; o vetor de entrada não muda. */
 export function refazerPlanoDaFicha(args: { prompts: ReadonlyArray<string>; veredito: JuizPlanoVeredito | null; pessoaDaIdeia: string | null; sujeitoDoPedido?: SujeitoDoPedido }): { prompts: string[]; relato: RelatoFichaAntes } {
   const v = args.veredito
-  const prompts = args.prompts.map((p) => String(p ?? ''))
+  const prompts = (Array.isArray(args.prompts) ? args.prompts : []).map((p) => String(p ?? ''))
+  const falhasDoJuiz = Array.isArray(v?.falhas) ? (v as JuizPlanoVeredito).falhas : [] // veredito torto nunca lança
+  const planosDoJuiz = Array.isArray(v?.planos) ? (v as JuizPlanoVeredito).planos : []
+  const verificados = new Set(planosComFichaVerificada(v)) // M6: acusação que o próprio juiz descartou não refaz plano
   const indiceIncerto = !!v && v.status === 'JUDGED' && v.cenas !== prompts.length // C5
-  const contradiz = v && v.status === 'JUDGED' && v.falhas.includes('a_ficha') && !indiceIncerto ? v.planos.filter((p) => p.a === 'contradiz').map((p) => p.plano) : []
+  const contradiz = v && v.status === 'JUDGED' && falhasDoJuiz.includes('a_ficha') && !indiceIncerto ? planosDoJuiz.filter((p) => p?.a === 'contradiz' && verificados.has(p.plano)).map((p) => p.plano) : []
   const refeitos: RelatoFichaAntes['refeitos'] = []
   for (const n of contradiz) {
     const i = n - 1
@@ -91,7 +112,7 @@ export function refazerPlanoDaFicha(args: { prompts: ReadonlyArray<string>; vere
   return {
     prompts,
     relato: {
-      versao: FICHA_ANTES_VERSAO, status: v?.status ?? 'SEM_VEREDITO', reprovado: !!v?.reprovado, falhas: v?.falhas ?? [], nota: v?.nota ?? null,
+      versao: FICHA_ANTES_VERSAO, status: v?.status ?? 'SEM_VEREDITO', reprovado: !!v?.reprovado, falhas: [...falhasDoJuiz], nota: v?.nota ?? null,
       planos_contradiz: contradiz, refeitos, com_pessoa_da_ideia: !!String(args.pessoaDaIdeia ?? '').trim(), ms: v?.ms ?? null, indice_incerto: indiceIncerto,
     },
   }

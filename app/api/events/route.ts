@@ -425,6 +425,7 @@ const SERVER_ONLY_EVENTS = new Set([
   'cinematic_negated_state', // KINEO-ESTADO-NEGADO-1311 — o estado que a fala nega e o plano que o recebeu
   'cinematic_request_attributes', // KINEO-ATRIBUTOS-DO-PEDIDO-1311 — os atributos do pedido e o que faltava em cada plano
   'juiz_plano_ficha_antes', // KINEO-FICHA-ANTES-DO-RENDER-1311 — o juiz do plano antes das imagens-chave do Kling 4 grátis e o que ele refez
+  'juiz_plano_verdict', // KINEO-JUIZ-PLANO-0111 — o veredito do juiz do plano (lib/juizDoPlano JUIZ_PLANO_EVENT); só o servidor cunha [revisão independente 14/11, M9: estava fora da lista]
   'clip_effect_ready',
   'clip_effect_film_upsell_clicked',
   // KINEO-AVISO-CLIPE-GRATIS-2026-10-06 — escrito SÓ por /api/clips quando o pedido que nasceu da ideia pronta do aviso "Você
