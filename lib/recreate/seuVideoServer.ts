@@ -7,6 +7,11 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { releaseVisible } from './access'
 import { recreateSession } from './server'
 import { submitDepsFor, type ClipAccount } from '@/lib/clips/clipServer'
+import { extractCheckFrames, intervaloPara } from './swapCheck' // KINEO-RECREATE-TEXTO-DO-PEDIDO-1311
+import { VISAO_TIMEOUT_MS, type IoDoTexto } from './textoDoPedido' // KINEO-RECREATE-TEXTO-DO-PEDIDO-1311
+import { AI_TEXT_MODELS } from '@/lib/aiModels' // KINEO-RECREATE-TEXTO-DO-PEDIDO-1311
+import { usdFromUsage } from '@/lib/regua95/coherenceV2' // KINEO-RECREATE-TEXTO-DO-PEDIDO-1311
+import { PIXEL_MODEL_RATES } from '@/lib/regua95/pixelScore' // KINEO-RECREATE-TEXTO-DO-PEDIDO-1311
 import { comEndUserDaFal } from './falEndUser' // KINEO-SEEDANCE-END-USER-1311
 import {
   SEU_VIDEO_RELEASE, SEU_VIDEO_MOTOR, custoFalKling4, caminhoDoCliente, // KINEO-RECREATE-KLING4-1311 — + SEU_VIDEO_MOTOR, custoFalKling4
@@ -66,4 +71,37 @@ export async function lerVideoDoCliente(admin: SupabaseClient, userId: string, p
 export function seuVideoSubmitDeps(admin: SupabaseClient, userSupabase: SupabaseClient, account: ClipAccount) {
   const deps = submitDepsFor({ admin, userSupabase, account })
   return { ...deps, engineAccess: () => ({ ok: true as const }), submit: comEndUserDaFal(deps.submit, account.userId) } // KINEO-SEEDANCE-END-USER-1311 — + submit com end_user_id
+}
+
+// ═══ KINEO-RECREATE-TEXTO-DO-PEDIDO-1311 [CEO 13/11 22:46, item A] — o io REAL do texto do pedido (lib/recreate/textoDoPedido.ts) ═══
+// Quadro: o MESMO extrator da trava "não trocou" (fal workflow-utilities/extract-nth-frame, ~US$ 0,001), a 35% da duração no fps real.
+// Visão: o modelo de imagem da casa (AI_TEXT_MODELS.vision), detail low, JSON, teto de 12 s. Custo de cada parte devolvido para o evento.
+export function ioDoTextoReal(videoUrl: string, meta: MetaDoVideo): IoDoTexto {
+  return {
+    quadro: async () => {
+      const r = await extractCheckFrames(videoUrl, {}, intervaloPara(meta.segundos * 0.35, meta.fps))
+      return r.frames ? { url: r.frames[0], usd: r.usd } : null
+    },
+    visao: async (mensagens) => {
+      const key = process.env.OPENAI_API_KEY
+      if (!key) return null
+      const model = AI_TEXT_MODELS.vision
+      const ctrl = new AbortController()
+      const timer = setTimeout(() => ctrl.abort(), VISAO_TIMEOUT_MS)
+      try {
+        const res = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST', signal: ctrl.signal,
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+          body: JSON.stringify({ model, temperature: 0, max_tokens: 250, response_format: { type: 'json_object' }, messages: mensagens }),
+        })
+        if (!res.ok) return null
+        const data = (await res.json()) as { usage?: { prompt_tokens?: number; completion_tokens?: number } }
+        return { data, usd: usdFromUsage(data.usage, PIXEL_MODEL_RATES[model] ?? undefined) }
+      } catch {
+        return null
+      } finally {
+        clearTimeout(timer)
+      }
+    },
+  }
 }

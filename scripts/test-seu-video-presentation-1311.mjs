@@ -17,6 +17,7 @@ function world(overrides={},{signedIn=true,paid=false,seconds=7,width=720,height
     '@/lib/recreate/server':{RECREATE_HEADERS:{'Cache-Control':'no-store'}},
     '@/lib/recreate/seuVideoServer':{
       seuVideoSession:async()=>({supabase:{},user:signedIn?{id:'fixture-account'}:null}),
+      ioDoTextoReal:()=>({quadro:async()=>null,visao:async()=>null}), // reancorado KINEO-RECREATE-TEXTO-DO-PEDIDO-1311: sem quadro e sem visão = o texto da tela, byte a byte (guardião próprio: scripts/test-recreate-texto-do-pedido-1311.mjs)
       lerVideoDoCliente:async(admin,user,path)=>{calls.push({user,path});const meta={segundos:seconds,fps:30,largura:width,altura:height},m=load('lib/recreate/seuVideo.ts'),result=m.validarVideo(meta,9000,'video/mp4',m.SEU_VIDEO_MOTOR);return result.ok?{ok:true,meta,bytes:9000,gerados:seconds,proporcao:'9:16',creditos:40}:result},
     },
     '@/lib/serverEvents':{writeServerEvent:async()=>true},
