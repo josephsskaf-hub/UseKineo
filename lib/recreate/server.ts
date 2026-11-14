@@ -7,6 +7,7 @@ import { submitDepsFor, type ClipAccount } from '@/lib/clips/clipServer'
 import { RECREATE_ASSETS, type RecreateFormat } from './formats'
 import { RECREATE_MODEL } from './generation'
 import { catalogoNoSeedance25, SEEDANCE25_MODEL } from './seuVideo' // KINEO-RECREATE-SEU-VIDEO-1311 Entrega C
+import { comEndUserDaFal } from './falEndUser' // KINEO-SEEDANCE-END-USER-1311
 import { enginePaused } from '@/lib/engineLaunch'
 import type { ClipEngineAccess } from '@/lib/clips/clipCatalog'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -24,7 +25,7 @@ export async function recreateSession() {
 
 export function recreateSubmitDeps(admin: SupabaseClient, userSupabase: SupabaseClient, account: ClipAccount, format: RecreateFormat) {
   const deps = submitDepsFor({ admin, userSupabase, account })
-  const submit = deps.submit
+  const submit = comEndUserDaFal(deps.submit, account.userId) // KINEO-SEEDANCE-END-USER-1311 — era: deps.submit (os 3 do catálogo no Seedance 2.5 saem com end_user_id)
   return { ...deps, engineAccess: (engine: Parameters<typeof deps.engineAccess>[0]) => format.type === 'swap' && engine === 'h3' ? recreateEngineAccess() : deps.engineAccess(engine), submit: async (model: string, input: Record<string, unknown>) => {
     const seedance = model === SEEDANCE25_MODEL && catalogoNoSeedance25(format.id) // KINEO-RECREATE-SEU-VIDEO-1311 Entrega C
     if (model !== RECREATE_MODEL && !seedance) return submit(model, input) // KINEO-RECREATE-SEU-VIDEO-1311 — era: if (model !== RECREATE_MODEL) return submit(model, input)

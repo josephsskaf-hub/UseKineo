@@ -7,6 +7,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { releaseVisible } from './access'
 import { recreateSession } from './server'
 import { submitDepsFor, type ClipAccount } from '@/lib/clips/clipServer'
+import { comEndUserDaFal } from './falEndUser' // KINEO-SEEDANCE-END-USER-1311
 import {
   SEU_VIDEO_RELEASE, caminhoDoCliente, creditosDoSeuVideo, custoFalDoSeuVideo, lerMetaDoVideo, proporcaoDoVideo, segundosGerados, validarVideo,
   type MetaDoVideo, type RecusaDoVideo,
@@ -63,5 +64,5 @@ export async function lerVideoDoCliente(admin: SupabaseClient, userId: string, p
 /** O submitClip de sempre (saldo, débito, envio, estorno), com o acesso do motor dado pelo interruptor do "seu vídeo" (a sessão já conferiu). */
 export function seuVideoSubmitDeps(admin: SupabaseClient, userSupabase: SupabaseClient, account: ClipAccount) {
   const deps = submitDepsFor({ admin, userSupabase, account })
-  return { ...deps, engineAccess: () => ({ ok: true as const }) }
+  return { ...deps, engineAccess: () => ({ ok: true as const }), submit: comEndUserDaFal(deps.submit, account.userId) } // KINEO-SEEDANCE-END-USER-1311 — + submit com end_user_id
 }

@@ -326,6 +326,56 @@ for (const [nome, arq, , fn] of MUTANTES_T) {
   checa('L com categories: grava quem recusou (model_moderated = o filtro do próprio modelo)', com === sem + ' [model_moderated]' && (cf.cleanProviderError('fal 422 ' + com) ?? '').includes('[model_moderated]'))
 }
 
+// (U) KINEO-SEEDANCE-END-USER-1311 — os termos do Seedance 2.5 na fal exigem end_user_id em todo pedido: anônimo, estável por conta, 32 hex;
+// só no ENVIO (fora da impressão do pedido, que a trava e o som leem). Roda o submitClip de verdade com o envio embrulhado.
+const EU = 'lib/recreate/falEndUser.ts'
+const { createHash } = await import('node:crypto')
+const carregaEU = (mut = null) => createOfflineLoader({ source: (rel, text) => (mut && rel === EU ? mut(text) : text) })(EU)
+async function provasU(eu) {
+  const erros = []
+  const id = eu.falEndUserId(U), outro = eu.falEndUserId('ffffffff-bbbb-4ccc-8ddd-eeeeeeeeeeee')
+  if (!/^[0-9a-f]{32}$/.test(id ?? '') || id !== createHash('sha256').update('kineo-fal-end-user-v1:' + U).digest('hex').slice(0, 32)) erros.push('U o id não é o hash com prefixo fixo, 32 hex: ' + id)
+  if (eu.falEndUserId(U) !== id || outro === id) erros.push('U o id não é estável por conta ou não separa contas')
+  if (String(id).includes(U.replace(/-/g, '').slice(0, 12)) || String(id).includes('@')) erros.push('U o id vaza o UUID ou e-mail')
+  if (eu.falEndUserId('') !== null || eu.falEndUserId(null) !== null) erros.push('U id inventado sem conta')
+  // o submitClip de verdade: a fal recebe end_user_id; a linha (impressão) não
+  const flow = createOfflineLoader({ globals: tGlobals })('lib/clips/clipFlow.ts'), m = carrega(), sc = carregaSC()
+  const enviados = []
+  let guardada = null
+  const base = async (model, input) => { enviados.push({ model, input }); return { ok: true, requestId: 'req-u' } }
+  const deps = { supabaseUrl: SUPA, engineAccess: () => ({ ok: true }), findByKey: async () => null, countActive: async () => 0, verifyImage: async () => {}, moderate: async () => ({ ok: true }), getBalance: async () => 100, newId: () => ID, insertPending: async (row) => { guardada = row; return { ok: true } }, debit: async () => ({ ok: true, balance: 60 }), refund: async () => 40, submit: eu.comEndUserDaFal(base, U), markSubmitted: async () => true, markFailed: async () => true, event: async () => {}, now: () => Date.parse('2026-11-13T22:00:00Z') }
+  const input = m.entradaSeedance25({ prompt: m.promptPadrao(1), fotos: [PHOTO], videoUrl: ORIGINAL, gerados: 8, proporcao: '9:16' })
+  const plan = { body: { engine: 'h3', seconds: 8, aspect: null, prompt: input.prompt, imageUrl: PHOTO }, model: m.SEEDANCE25_MODEL, credits: 40, falUsd: 2.1, photos: [PHOTO], input }
+  const r = await flow.submitClip(deps, { userId: U, idempotencyKey: 'seu-video-end-user-0001', body: plan.body, recreatePlan: plan })
+  if (!r.ok) erros.push('U submitClip falhou: ' + JSON.stringify(r).slice(0, 160))
+  if (enviados[0]?.input?.end_user_id !== id || enviados[0]?.input?.task !== 'reference') erros.push('U a fal não recebeu o end_user_id (ou perdeu o task): ' + JSON.stringify(enviados[0]?.input ?? null).slice(0, 200))
+  if (!guardada || String(guardada.fingerprint).includes('end_user_id')) erros.push('U o end_user_id entrou na impressão do pedido')
+  if (guardada) {
+    const row = { ...guardada, user_id: U }
+    if (sc.swapRowContext(row)?.formatId !== 'seu-video') erros.push('U a trava não lê mais a linha')
+    if (m.somOriginalDaLinha(row, SUPA)?.url !== ORIGINAL) erros.push('U o som original não lê mais a linha')
+  }
+  const outros = []
+  await eu.comEndUserDaFal(async (model, inp) => { outros.push(inp); return { ok: true, requestId: 'x' } }, U)('minimax/h3-max/recast', { video_url: 'v' })
+  if ('end_user_id' in (outros[0] ?? {})) erros.push('U o Recast (outro modelo) ganhou o campo')
+  return erros
+}
+const uBase = await provasU(carregaEU())
+checa(`U end_user_id em todo pedido ao Seedance 2.5, fora da impressão${uBase.length ? ': ' + uBase.join(' · ') : ''}`, uBase.length === 0)
+checa('U os dois caminhos embrulham o envio (catálogo e "seu vídeo")', r('lib/recreate/server.ts').includes('const submit = comEndUserDaFal(deps.submit, account.userId)') && srv.includes('submit: comEndUserDaFal(deps.submit, account.userId)'))
+const MUTANTES_U = [
+  ['U UUID cru', (s) => s.replace("return id ? createHash('sha256').update(FAL_END_USER_PREFIXO + id).digest('hex').slice(0, 32) : null", 'return id || null')],
+  ['U sem o prefixo fixo', (s) => s.replace('.update(FAL_END_USER_PREFIXO + id)', '.update(id)')],
+  ['U não manda o campo', (s) => s.replace('model === SEEDANCE25_MODEL && endUser ? { ...input, end_user_id: endUser } : input', 'input')],
+  ['U manda para todo modelo', (s) => s.replace('model === SEEDANCE25_MODEL && endUser ?', 'endUser ?')],
+]
+for (const [nome, fn] of MUTANTES_U) {
+  const fonte = lf(fs.readFileSync(EU, 'utf8')), mudou = fn(fonte) !== fonte
+  let e = ['(mutante não aplicou)']
+  if (mudou) { try { e = await provasU(carregaEU(fn)) } catch (x) { e = ['lançou: ' + x.message] } }
+  checa(`mutante "${nome}" fica vermelho (${mudou ? e.length + ' erro(s)' : 'NÃO APLICOU'})`, mudou && e.length > 0)
+}
+
 // (M) mutantes
 const MUTANTES = [
   ['task no padrão (sem "reference" explícito)', (s) => s.replace("return { prompt: a.prompt, task: 'reference', image_urls", 'return { prompt: a.prompt, image_urls')],
