@@ -12,7 +12,9 @@
 set -uo pipefail
 padrao=${1:?informe o padrão (regex) dos nomes dos testes, ex.: 'menu|home|ads'}
 em_paralelo=${PARALELO:-4}
-teto=${TETO_SEGUNDOS:-180}
+# KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 [CEO 14/11 10:55: sugestão aceita] — era 180: com 4 em paralelo, test-cartoon-tela-0411 (2 min 9 s sozinho)
+# passava de 180 s e virava um vermelho falso. 420 s = ~3 vezes o mais lento medido; o teto continua valendo para o teste que trava de verdade.
+teto=${TETO_SEGUNDOS:-420}
 SAIDA=${SAIDA:-$(mktemp -d)}
 mkdir -p "$SAIDA"
 if [[ -n "$(git status --porcelain)" ]]; then echo "árvore suja: faça commit (ou um WIP) antes; nada rodou"; exit 2; fi
