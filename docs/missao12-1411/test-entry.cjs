@@ -17,18 +17,25 @@ async function suite(extra = {}) {
     'app/recreate/RecreateCatalogPublic': { __esModule: true, default: function CatalogList() {} },
   }
   const baseline = loader(stubs, extra)
-  ok(baseline('lib/recreate/flowRelease').RECREATE_FLOW_ENABLED === false, 'Public switch stays off until photo approval')
+  // reancorado KINEO-RECREATE-MOVIMENTO-1411 [CEO 14/11 08:45: "reancore ou tire, é resto da Missão 12"] — o interruptor foi LIGADO ao público em 14/11 06:36
+  // (15f3f6b4d); o estado ligado de verdade é provado por scripts/test-recreate-flow-guardas-1411.mjs. Aqui: ligado, e o resto da entrada como antes.
+  ok(baseline('lib/recreate/flowRelease').RECREATE_FLOW_ENABLED === true, 'Public switch is on since owner approval (14/11 06:36)')
   const Tabs = baseline('components/create/CreateTabs').default
   const normalTabs = Tabs({ active: 'recreate' }).props.children.map(link => [link.props['data-create-tab'], link.props.href])
   const previewTabs = Tabs({ active: 'recreate', recreateHref: '/recreate-flow-preview' }).props.children.map(link => [link.props['data-create-tab'], link.props.href])
   ok(normalTabs.find(([id]) => id === 'recreate')[1] === '/recreate', 'Normal creation navigation stays unchanged')
   assert.deepEqual(previewTabs, normalTabs.map(([id, href]) => [id, id === 'recreate' ? '/recreate-flow-preview' : href])); checks++
   const oldPage = baseline('app/recreate/[id]/page').default
-  await assert.rejects(oldPage({ params: { id: 'passarela' } }), error => error.message.startsWith('redirect:') && new URL(error.message.slice(9), 'https://fixture').searchParams.get('redirect') === '/recreate/passarela'); checks++
+  // reancorado KINEO-RECREATE-MOVIMENTO-1411 — com o fluxo ligado, o visitante abre o molde aprovado no fluxo (antes: redirect para o cadastro)
+  const flowPage = await oldPage({ params: { id: 'passarela' } })
+  ok(flowPage.props.currentFlow === true && flowPage.props.signedIn === false && flowPage.props.flowBasePath === '/recreate', 'Guest opens the approved template in the live flow')
+  await noPage(oldPage({ params: { id: 'outfit-morph' } })) // a troca em teste nunca abre ao visitante
   await noPage(baseline('app/recreate/your-video/page').default({}))
+  // reancorado KINEO-RECREATE-MOVIMENTO-1411 — com o fluxo ligado, /recreate é o fluxo (a grade pública vem de publicRecreateCatalog, conferida abaixo)
   const oldIndex = await baseline('app/recreate/page').default()
-  ok(oldIndex.props.items.every(item => item.href.startsWith('/signup?')), 'Current public catalog entry unchanged')
-  const publicIds = oldIndex.props.items.map(item => item.id)
+  ok(oldIndex.props.currentFlow === true && oldIndex.props.signedIn === false, 'Public /recreate is the live flow')
+  const publicIds = baseline('lib/recreate/catalogPublic').publicRecreateCatalog().map(item => item.id)
+  ok(publicIds.length > 0 && !publicIds.includes('outfit-morph'), 'Public catalog lists approved templates only')
   const preview = baseline('app/recreate-flow-preview/[id]/page').default
   const model = await preview({ params: { id: 'passarela' }, searchParams: { draft: 'opaque-local-reference' } })
   ok(model.props.currentFlow === true && model.props.signedIn === false && model.props.flowBasePath === '/recreate-flow-preview', 'Guest opens proposal before signup')
@@ -68,7 +75,7 @@ async function suite(extra = {}) {
 async function main() {
   const checks = await suite()
   const mutations = [
-    ['public activation', 'lib/recreate/flowRelease.ts', 'RECREATE_FLOW_ENABLED = false', 'RECREATE_FLOW_ENABLED = true'],
+    ['public deactivation', 'lib/recreate/flowRelease.ts', 'RECREATE_FLOW_ENABLED = true', 'RECREATE_FLOW_ENABLED = false'], // reancorado KINEO-RECREATE-MOVIMENTO-1411 (o interruptor está ligado)
     ['template access', 'app/recreate/RecreateFlowPage.tsx', '!publicRecreatePath(id)', 'false'],
     ['own-video access', 'app/recreate/RecreateFlowPage.tsx', '!!user && releaseVisible(user.email, SEU_VIDEO_RELEASE)', 'true'],
   ]
