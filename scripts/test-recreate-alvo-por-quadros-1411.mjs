@@ -43,6 +43,8 @@ const INVASOR = (chosen = 1) => resposta({
   candidates: [{ description: NAVY }, { description: 'the player in the red kit on the ground' }], chosen,
   photos: [{ photo: 1, presents_as: 'man', wears_glasses: 'no' }],
 })
+// KINEO-RECREATE-TEXTO-REVISAO-3-1411 (M17) — os óculos lidos são os da pessoa 1 (o 1º candidato): escolhido outro, ou nenhum, a cláusula dos óculos não pode ir para o texto.
+const INVASOR_OCULOS = (chosen) => resposta({ video_people: [{ person: 1, description: NAVY, wears_glasses: 'yes' }], candidates: [{ description: NAVY }, { description: 'the player in the red kit' }], chosen, photos: [{ photo: 1, presents_as: 'man', wears_glasses: 'no' }] })
 const DANCA = resposta({ video_people: [{ person: 1, description: 'the dancer in the white top and black shorts', wears_glasses: 'no' }], candidates: [{ description: 'the dancer in the white top and black shorts' }], chosen: 1, photos: [{ photo: 1, presents_as: 'woman', wears_glasses: 'no' }] })
 function io(data, o = {}) {
   const s = { visoes: 0, mensagens: null, quadro: 0, quadros: 0 }
@@ -83,8 +85,16 @@ async function bateria(over = {}) {
     if (!r.prompt.startsWith('Replace the dancer in the white top and black shorts in @Video1 with the woman from @Image1: her face and hair match @Image1')) throw new Error(r.prompt)
     if (r.candidatos.length !== 0 || r.escolhido !== null) throw new Error(JSON.stringify([r.candidatos, r.escolhido]))
   })
+  await check('KINEO-RECREATE-TEXTO-REVISAO-3-1411 (M17): óculos com candidatos — escolhido o 1º = a cláusula dele; escolhido outro ou nenhum = sem óculos', async () => {
+    const um = (await roda(INVASOR_OCULOS(1))).r
+    if (!um.prompt.includes(`Replace ${NAVY} in @Video1 with the man from @Image1: his face and hair match @Image1, and he wears no glasses.`) || JSON.stringify(um.oculos) !== '["tirar"]') throw new Error('escolhido 1: ' + um.prompt.slice(0, 160))
+    for (const chosen of [2, 0]) {
+      const r = (await roda(INVASOR_OCULOS(chosen))).r
+      if (/glasses/i.test(r.prompt) || JSON.stringify(r.oculos) !== '[null]') throw new Error(`escolhido ${chosen}: os óculos da pessoa 1 foram para o texto: ` + r.prompt.slice(0, 160))
+    }
+  })
   await check('a pose de um instante sai da descrição', async () => {
-    for (const [d, esperado] of [['the person in red shirt on ground', 'the person in red shirt'], ['the man in the navy shirt lying on the grass', 'the man in the navy shirt'], ['the woman in the red dress sitting', 'the woman in the red dress'], ['the dancer in white', 'the dancer in white']]) {
+    for (const [d, esperado] of [['the person in red shirt on ground', 'the person in red shirt'], ['the man in the navy shirt lying on the grass', 'the man in the navy shirt'], ['the woman in the red dress sitting', 'the woman in the red dress'], ['the dancer in white', 'the dancer in white'], ['the man in the navy shirt standing', 'the man in the navy shirt'], ['the woman in red sitting on a bench', 'the woman in red'], ['the man in white by the car', 'the man in white'], ['the woman dancing in the yellow dress', 'the woman in the yellow dress']]) {
       if (T.descricaoLimpa(d) !== esperado) throw new Error(`${d} → ${T.descricaoLimpa(d)}`)
     }
     if (T.descricaoLimpa('lying on the ground') !== null) throw new Error('só pose virou descrição')
@@ -128,6 +138,10 @@ const mutantes = [
   ['sem escolha vira chute', { [TXT]: t.replace('            const i = c.escolhido !== null && c.escolhido >= 1 && c.escolhido <= c.candidatos.length ? c.escolhido - 1 : null', '            const i = c.escolhido !== null && c.escolhido >= 1 && c.escolhido <= c.candidatos.length ? c.escolhido - 1 : 0') }],
   ['lista não volta', { [TXT]: t.replace('            candidatos = c.candidatos\n', '') }],
   ['fotos antes dos quadros', { [TXT]: t.replace("content: [{ type: 'text' as const, text }, ...quadros.map(img), ...fotos.map(img)]", "content: [{ type: 'text' as const, text }, ...fotos.map(img), ...quadros.map(img)]") }],
+  ['M17: óculos da pessoa 1 com outro escolhido', { [TXT]: t.replace('            if (i !== 0) oculos = [null]', '            if (i === null) oculos = [null]') }],
+  ['M17: óculos mantidos sem escolha', { [TXT]: t.replace('            if (i !== 0) oculos = [null]', '            void 0') }],
+  ['lugar fica na descrição', { [TXT]: t.replace('(?:bench|chair|sofa', '(?:xbench|chair|sofa') }],
+  ['standing fica na descrição', { [TXT]: t.replace('|crouching|standing|walking|', '|crouching|walking|') }],
   ['servidor: quadros fora do lugar', { [SRV]: srv.replace('f.length >= 9 ? [f[0], f[4], f[8]]', 'f.length >= 9 ? [f[0], f[1], f[2]]') }],
   ['check sem a lista', { [CHECK]: ch.replace('  body.target_candidates = texto ? texto.candidatos : []\n', '') }],
   ['frase negativa volta', { [TXT]: t.replace("const TAIL = 'Keep the choreography,", "const TAIL = 'Do not change the other people. Keep the choreography,") }],

@@ -84,9 +84,13 @@ export function naFila(row: { status: string; fal_request_id: string | null; fai
  * A vaga VENCEU: o que fazer com o dono antes de alguém passar. Devolve 'ocupada' quando o dono ainda roda no fornecedor dentro do teto duro
  * (a vaga é renovada) e 'livre' quando a vaga foi solta. Nunca fecha como preso um pedido que o fornecedor já entregou.
  */
-export async function resolverVagaVencida(io: FilaIo, vaga: VagaOcupada): Promise<'livre' | 'ocupada'> {
+// KINEO-RECREATE-FILA-REVISAO-3-1411 [revisor 3ª rodada: "o tempo do POST quando liquidar roda a trava dentro do take de outro pedido"] — liquidar o dono consulta a fal
+// e, pronto, roda a trava "não trocou" (até 40 s): isso não cabe dentro do POST de outro cliente (60 s). `podeLiquidar` false (POST e rota de
+// status) = dono ainda no fornecedor é tratado como ocupado e quem resolve é o cron de 1 min (300 s), que liquida o dono pela vigia abaixo.
+export async function resolverVagaVencida(io: FilaIo, vaga: VagaOcupada, opts: { podeLiquidar?: boolean } = {}): Promise<'livre' | 'ocupada'> {
   const estado = await io.estadoDoDono(vaga.clipId)
   if (estado === 'no_fornecedor') {
+    if (opts.podeLiquidar === false) return 'ocupada'
     if ((await io.liquidar(vaga.clipId)) === 'aberto') {
       if (io.now() - vaga.tomadaEm < VAGA_TETO_DURO_MS) { await io.renovarVaga(vaga.clipId, io.now() + VAGA_RENOVA_MS); return 'ocupada' }
       await io.fecharComEstorno(vaga.clipId)
@@ -104,7 +108,7 @@ export async function resolverVagaVencida(io: FilaIo, vaga: VagaOcupada): Promis
  * `daFila`): só passa com a fila vazia. Depois: inserir a vaga; vaga válida de qualquer clipe = espera; vaga VENCIDA = resolve o dono
  * (resolverVagaVencida) e tenta de novo — menos quando a vaga vencida é do PRÓPRIO clipe: aí ele foi resolvido (fechado) e não manda.
  */
-export async function tomarVaga(io: FilaIo, clipId: string, opts: { daFila?: boolean } = {}): Promise<boolean> {
+export async function tomarVaga(io: FilaIo, clipId: string, opts: { daFila?: boolean; podeLiquidar?: boolean } = {}): Promise<boolean> {
   const primeiro = await io.maisAntigoNaFila()
   if (opts.daFila ? primeiro !== clipId : primeiro !== null && primeiro !== clipId) return false
   for (let tentativa = 0; tentativa < 2; tentativa++) {
@@ -112,10 +116,29 @@ export async function tomarVaga(io: FilaIo, clipId: string, opts: { daFila?: boo
     const vaga = await io.lerVaga()
     if (!vaga) continue // liberada entre o insert e a leitura
     if (vaga.expiraEm > io.now()) return false
-    const resolvida = await resolverVagaVencida(io, vaga)
+    const resolvida = await resolverVagaVencida(io, vaga, { podeLiquidar: opts.podeLiquidar })
     if (vaga.clipId === clipId || resolvida === 'ocupada') return false
   }
   return false
+}
+
+/**
+ * KINEO-RECREATE-FILA-REVISAO-3-1411 [revisor 3ª rodada, X4] — a VIGIA do dono da vaga, sem depender de outro pedido: o cron de 1 min chama para cada Kling edit em
+ * andamento. Antes, o teto duro de 20 min só rodava dentro do take de OUTRO pedido: sem ninguém na fila, um pedido preso IN_PROGRESS na fal
+ * deixava a conta recusada ("um por vez") até o vencimento de 6 h. Agora: a vaga dele venceu = resolve como sempre (liquida, renova até o teto
+ * duro, fecha com estorno); ele está no fornecedor SEM a vaga (perdida) e passou da espera máxima mais o teto duro = liquida e, aberto, fecha.
+ */
+export async function vigiarDonoDaVaga(io: FilaIo, clipId: string, criadoEm: number): Promise<'nada' | 'resolvido'> {
+  const vaga = await io.lerVaga()
+  if (vaga && vaga.clipId === clipId) {
+    if (vaga.expiraEm > io.now()) return 'nada'
+    await resolverVagaVencida(io, vaga)
+    return 'resolvido'
+  }
+  if (!Number.isFinite(criadoEm) || io.now() - criadoEm < FILA_TETO_ESPERA_MS + VAGA_TETO_DURO_MS) return 'nada'
+  if ((await io.estadoDoDono(clipId)) !== 'no_fornecedor') return 'nada'
+  if ((await io.liquidar(clipId)) === 'aberto') await io.fecharComEstorno(clipId)
+  return 'resolvido'
 }
 
 /** Posição na fila para a tela: quantos estão na frente (os mais antigos na fila + o que ocupa a vaga) + 1. */

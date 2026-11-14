@@ -52,12 +52,22 @@ export function leiturasQueFalharam(e: Pick<EstadoDaPorta, 'casa' | 'abertos' | 
   return out
 }
 
+/** Um pedido aberto da conta: o id e se ele ainda está NA FILA (nada enviado) — o que não está na fila já vai, ou já foi, ao fornecedor. */
+export interface AbertoDaConta { id: string; naFila: boolean }
 /**
- * Depois de ENTRAR na fila (cobrado, nada enviado): a reconferência. 'sair' = este pedido deve sair com estorno — a conta já tinha outro pedido
- * aberto mais antigo (vários POST juntos passaram pela porta), ou ele ficou além do limite da fila. A casa só sai pelo limite da fila.
+ * Depois de ENTRAR na fila (cobrado, nada enviado): a reconferência. 'sair' = este pedido deve sair com estorno — a conta tem outro pedido
+ * aberto que já vai ao fornecedor, ou outro mais antigo na fila (vários POST juntos passaram pela porta), ou ele ficou além do limite da fila.
+ * A casa só sai pelo limite da fila.
  */
-export function depoisDeEntrar(a: { casa: boolean; clipId: string; abertosDaConta: ReadonlyArray<string> | null; naFrente: number | null; vagaOcupada: boolean }): { sair: false } | { sair: true; motivo: string } {
-  if (!a.casa && a.abertosDaConta && a.abertosDaConta.length > 1 && a.abertosDaConta[0] !== a.clipId) return { sair: true, motivo: FILA_MOTIVOS.umPorVez }
+// KINEO-RECREATE-FILA-REVISAO-3-1411 [revisor 3ª rodada, X1] — dois POST juntos: o MAIS NOVO pegou a vaga e foi direto à fal, o mais antigo ficou na
+// fila e era o 1º da lista: ficava, e a conta tinha 2 abertos. Regra nova: sai quem está na fila e não é o único aberto — se algum outro já não está
+// na fila (foi ou vai ao fornecedor: esse não sai mais) ou é mais antigo na fila. Quem foi direto não tem reconferência: ninguém o tira da fal.
+export function depoisDeEntrar(a: { casa: boolean; clipId: string; abertosDaConta: ReadonlyArray<AbertoDaConta> | null; naFrente: number | null; vagaOcupada: boolean }): { sair: false } | { sair: true; motivo: string } {
+  if (!a.casa && a.abertosDaConta) {
+    const i = a.abertosDaConta.findIndex((x) => x.id === a.clipId)
+    const outros = a.abertosDaConta.filter((x) => x.id !== a.clipId)
+    if (outros.some((x) => !x.naFila) || (i > 0 && a.abertosDaConta.slice(0, i).some((x) => x.naFila))) return { sair: true, motivo: FILA_MOTIVOS.umPorVez }
+  }
   if (a.naFrente !== null && alemDoLimite(a.naFrente, a.vagaOcupada)) return { sair: true, motivo: FILA_MOTIVOS.cheia }
   return { sair: false }
 }

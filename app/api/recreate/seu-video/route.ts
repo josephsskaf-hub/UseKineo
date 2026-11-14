@@ -27,6 +27,9 @@ export const runtime = 'nodejs'
 const FRASE_FOTO_NAO_CONFERIDA = 'Could not check your photo right now. Try again in a moment. Nothing was charged.'
 /** KINEO-RECREATE-FILA-REVISAO-1411 — o pedido que entrou junto com outro da mesma conta e saiu com estorno. */
 const FRASE_UM_POR_VEZ_ESTORNADO = 'You already have a Recreate in progress, so we returned the credits of this one. Wait for it to finish before starting another.'
+// KINEO-RECREATE-FILA-REVISAO-3-1411 (X3) — o estorno falhou agora (a varredura horária o refaz): a tela não promete "returned".
+const FRASE_UM_POR_VEZ_SEM_ESTORNO = 'You already have a Recreate in progress. This one was cancelled and its credits will be returned within the hour.'
+const FRASE_FILA_CHEIA_SEM_ESTORNO = 'Recreate is busy right now. This one was cancelled and its credits will be returned within the hour. Try again in a few minutes.'
 const json = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: RECREATE_HEADERS })
 
 export async function POST(req: NextRequest) {
@@ -112,9 +115,11 @@ export async function POST(req: NextRequest) {
     // aberto mais antigo, ou este ficou além do limite da fila = sai com estorno (UPDATE condicional: só se ainda está na fila).
     if (esperando && !result.replay) {
       const depois = depoisDeEntrar({ casa, clipId: result.clip.id, abertosDaConta: casa ? null : await seuVideoAbertosDaConta(admin, user.id), naFrente: estado ? estado.naFrente : null, vagaOcupada: estado?.vagaOcupada ?? false })
-      if (depois.sair && (await tirarDaFila(admin, result.clip.id, depois.motivo))) {
-        await writeServerEvent({ name: 'recreate_seu_video_refused', userId: user.id, path: '/api/recreate/seu-video', metadata: { versao: SEU_VIDEO_VERSAO, code: depois.motivo, stage: 'after_enqueue', clip_id: result.clip.id, refunded: true } }).catch(() => false)
-        return json({ error: depois.motivo === FILA_MOTIVOS.cheia ? FRASE_FILA_CHEIA_ESTORNADA : FRASE_UM_POR_VEZ_ESTORNADO, code: depois.motivo === FILA_MOTIVOS.cheia ? FILA_MOTIVOS.cheia : PORTA_UM_POR_VEZ, refunded: true }, 429)
+      const tirou = depois.sair ? await tirarDaFila(admin, result.clip.id, depois.motivo) : false // KINEO-RECREATE-FILA-REVISAO-3-1411 (X3) — o estorno gravado (0 = a varredura refaz) ou false (não tirou)
+      if (depois.sair && tirou !== false) {
+        await writeServerEvent({ name: 'recreate_seu_video_refused', userId: user.id, path: '/api/recreate/seu-video', metadata: { versao: SEU_VIDEO_VERSAO, code: depois.motivo, stage: 'after_enqueue', clip_id: result.clip.id, refunded: tirou > 0, credits_refunded: tirou } }).catch(() => false)
+        const cheia = depois.motivo === FILA_MOTIVOS.cheia
+        return json({ error: tirou > 0 ? (cheia ? FRASE_FILA_CHEIA_ESTORNADA : FRASE_UM_POR_VEZ_ESTORNADO) : (cheia ? FRASE_FILA_CHEIA_SEM_ESTORNO : FRASE_UM_POR_VEZ_SEM_ESTORNO), code: cheia ? FILA_MOTIVOS.cheia : PORTA_UM_POR_VEZ, refunded: tirou > 0 }, 429)
       }
     }
     // Quem espera recebe a posição e a espera estimada (item 7, lado do servidor: nunca "About 2 minutes" para quem está na fila).

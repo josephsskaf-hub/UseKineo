@@ -234,6 +234,34 @@ async function bateria(over = {}) {
     await Promise.all([z.pedir(1, KLING, false), z.pedir(2, KLING, false)])
     if (z.s.fal.length !== 2) throw new Error('sem os fios da fila o envio mudou')
   })
+  await check('KINEO-RECREATE-FILA-REVISAO-3-1411: podeLiquidar false (POST e status) = dono no fornecedor fica ocupado e não é liquidado', async () => {
+    const w = mundo(flow, F)
+    const a = await w.pedir(1), b = await w.pedir(2)
+    w.entregue(a)
+    w.s.agora = T0 + 9 * MIN
+    if (await F.tomarVaga(w.io, b, { daFila: true, podeLiquidar: false })) throw new Error('pegou a vaga')
+    if (st(w, a).status !== 'processing') throw new Error('liquidou o dono sem poder')
+    if (!(await F.tomarVaga(w.io, b, { daFila: true })) || st(w, a).status !== 'done') throw new Error('o cron não resolveu')
+  })
+  await check('KINEO-RECREATE-FILA-REVISAO-3-1411 (X4): a vigia sem outro pedido — renova até o teto duro e fecha com estorno; vaga perdida fecha depois da espera + teto', async () => {
+    const w = mundo(flow, F)
+    const a = await w.pedir(1)
+    w.s.agora = T0 + 9 * MIN
+    if ((await F.vigiarDonoDaVaga(w.io, a, T0)) !== 'resolvido' || st(w, a).status !== 'processing' || w.s.vaga?.expiraEm !== w.s.agora + F.VAGA_RENOVA_MS) throw new Error('9 min: ' + JSON.stringify(w.s.vaga))
+    w.s.agora = T0 + 10 * MIN
+    if ((await F.vigiarDonoDaVaga(w.io, a, T0)) !== 'nada') throw new Error('vaga válida mexida')
+    w.s.agora = T0 + 21 * MIN
+    await F.vigiarDonoDaVaga(w.io, a, T0)
+    if (st(w, a).status !== 'failed' || st(w, a).failure_reason !== 'queue_stuck' || st(w, a).credits_refunded !== 40 || w.s.vaga) throw new Error('21 min: ' + JSON.stringify([st(w, a).status, st(w, a).failure_reason]))
+    const x = mundo(flow, F)
+    const c = await x.pedir(1)
+    x.s.vaga = null
+    x.s.agora = T0 + 20 * MIN
+    if ((await F.vigiarDonoDaVaga(x.io, c, T0)) !== 'nada' || st(x, c).status !== 'processing') throw new Error('vaga perdida fechou cedo')
+    x.s.agora = T0 + 36 * MIN
+    await F.vigiarDonoDaVaga(x.io, c, T0)
+    if (st(x, c).failure_reason !== 'queue_stuck' || st(x, c).credits_refunded !== 40) throw new Error('vaga perdida: ' + JSON.stringify(st(x, c)))
+  })
   await check('números, marcas e frases', async () => {
     if (F.VAGA_TTL_MS !== 8 * MIN || F.VAGA_RENOVA_MS !== 2 * MIN || F.VAGA_TETO_DURO_MS !== 20 * MIN || F.FILA_TETO_ESPERA_MS !== 15 * MIN || F.FILA_MAX_NA_FRENTE !== 3) throw new Error('números')
     if (F.posicaoNaFila(0, true) !== 2 || F.posicaoNaFila(2, true) !== 4 || F.posicaoNaFila(0, false) !== 1) throw new Error('posição')
@@ -245,10 +273,11 @@ async function bateria(over = {}) {
   } finally { console.error = real; console.warn = aviso }
   const s = (over[SRV] ?? lf(SRV)).replace(/\/\/[^\n]*/g, '')
   await check('servidor: vaga = INSERT de id fixo; fila por MODELO (casa entra); sair da fila, teto e gravação condicionais à marca', async () => {
-    if (!s.includes("applies: (row) => row.model === KLING4_EDIT_MODEL,\n    queued: (row) => naFila(row),\n    take: (row, opts) => tomarVaga(io, row.id, opts),")) throw new Error('applies/take')
+    if (!s.includes("applies: (row) => row.model === KLING4_EDIT_MODEL,\n    queued: (row) => naFila(row),\n    take: (row, opts) => tomarVaga(io, row.id, { ...opts, podeLiquidar: ctx.liquidarDono === true }),")) throw new Error('applies/take') // reancorado KINEO-RECREATE-FILA-REVISAO-3-1411
     if (!s.includes("admin.from('events').insert({ id: FILA_VAGA_ID, name: FILA_VAGA_EVENTO") || !s.includes("if ((error as { code?: string }).code === '23505') return false")) throw new Error('vaga')
     if (!s.includes(".delete().eq('id', FILA_VAGA_ID).eq('metadata->>clip_id', clipId)")) throw new Error('soltar a vaga de outro clipe')
-    if ((s.match(/queue: clipQueueDepsFor\(admin\),/g) ?? []).length !== 2) throw new Error('fila não ligada nos dois lados')
+    // reancorado KINEO-RECREATE-FILA-REVISAO-3-1411: a liquidação leva o ctx (só os crons liquidam o dono da vaga)
+    if (!s.includes('queue: clipQueueDepsFor(admin, ctx),') || !s.includes('queue: clipQueueDepsFor(admin),')) throw new Error('fila não ligada nos dois lados')
     if (!s.includes(".update({ failure_reason: FILA_ENVIANDO }).eq('id', id).eq('status', 'pending').eq('failure_reason', FILA_MARCA).is('fal_request_id', null).select('id')")) throw new Error('claimSend')
     if (!s.includes(".eq('id', id).eq('status', 'pending').eq('failure_reason', FILA_ENVIANDO).select('id')") || !s.includes('comEndUserDaFal(submitToFalOnce, row.user_id)(e.model, semMarcasDaCasa(e.input))')) throw new Error('envio da fila')
     const fecha = s.slice(s.indexOf('async function fecharClipeDaFila('), s.indexOf('function filaIoFor('))
@@ -278,6 +307,9 @@ const mutantes = [
   ['ambíguo solta a vaga', { [FLOW]: flowSrc.replace(" && after.failure_reason !== 'submit_ambiguous') await deps.queue.release", ') await deps.queue.release') }],
   ['fila só para cliente (casa fora)', { [SRV]: srv.replace('    applies: (row) => row.model === KLING4_EDIT_MODEL,\n    queued:', "    applies: (row) => row.model === KLING4_EDIT_MODEL && !isInternalEmail(row.user_id),\n    queued:") }],
   ['cron sem o Kling em andamento', { [SRV]: srv.replace('  ordered.push(...klingEmAndamento)\n', '') }],
+  ['podeLiquidar ignorado', { [FILA]: fila.replace("    if (opts.podeLiquidar === false) return 'ocupada'\n", '') }],
+  ['vigia sem resolver a vaga vencida', { [FILA]: fila.replace('    await resolverVagaVencida(io, vaga)\n    return \'resolvido\'', "    return 'resolvido'") }],
+  ['vigia fecha vaga perdida cedo', { [FILA]: fila.replace('io.now() - criadoEm < FILA_TETO_ESPERA_MS + VAGA_TETO_DURO_MS', 'io.now() - criadoEm < VAGA_TETO_DURO_MS - 2 * 60_000') }],
 ]
 let mortos = 0
 for (const [n, over] of mutantes) {

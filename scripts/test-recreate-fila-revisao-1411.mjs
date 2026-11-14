@@ -12,6 +12,8 @@
 //   item 10 (R3)         a cópia de auditoria tem teto no upload; o evento da trava leva o caminho previsto e a cópia guardada vira evento próprio.
 //   itens 5, 6, 8        a porta (decidirPorta): replay passa; um pedido aberto por conta; casa = lista EXATA; leitura que falha vira evento.
 //   item 11              todo evento que o servidor grava nesta área está em SERVER_ONLY_EVENTS.
+// 3ª rodada (KINEO-RECREATE-FILA-REVISAO-3-1411): X1 (quem foi direto conta na reconferência), X3 (a frase sai do estorno gravado), X4 (a vigia do cron sem outro
+// pedido), POST e status não liquidam o dono (só o cron), e a rota de status EXECUTADA para o incerto (M23).
 // Mutantes. Rodar: node scripts/test-recreate-fila-revisao-1411.mjs   (≈ 40 s com os mutantes; um caso espera o teto real de 3 s da cópia)
 import { createRequire } from 'node:module'
 import fs from 'node:fs'
@@ -124,6 +126,8 @@ function carregar(over) {
       result: async (_modelo, { requestId }) => ({ data: { video: { url: ctx.atual.fal.get(requestId)?.url } } }),
     } } },
     '@/lib/supabase/server': { createClient: () => null }, 'server-only': {},
+    'next/server': { NextResponse: { json: (body, init) => ({ body, status: init?.status ?? 200 }) } }, // a rota de status, executada (M23)
+    '@/lib/recreate/server': { recreateSession: async () => ({ user: ctx.usuario ?? null }), RECREATE_HEADERS: {} },
   }, over)
   return ctx
 }
@@ -156,6 +160,7 @@ function clipe(n, over = {}) {
   return { id, user_id: user, idempotency_key: 'chave-' + n + '-abcdefgh', fingerprint: JSON.stringify(['pedido', KLING, input]), billing_reference: 'clips-' + id, engine: 'h3', mode: 'image', model: KLING, seconds: 5, aspect: 'image', prompt: 'p', image_url: input.image_urls[0], credits: 40, fal_usd: 0.94,
     status: 'processing', fal_request_id: 'req-' + n, video_url: null, failure_reason: null, credits_refunded: 0, created_at: new Date(Date.now() - 5 * MIN).toISOString(), ...over }
 }
+const CRON = { liquidarDono: true } // KINEO-RECREATE-FILA-REVISAO-3-1411 — só o cron (300 s) liquida o dono de uma vaga vencida
 const naFilaHa = (n, minutos, over = {}) => clipe(n, { status: 'pending', fal_request_id: null, failure_reason: 'queue_kling_edit', created_at: new Date(Date.now() - minutos * MIN).toISOString(), ...over })
 
 async function bateria(over = {}, lento = false) {
@@ -184,7 +189,7 @@ async function bateria(over = {}, lento = false) {
     const [A, B] = m.por(clipe(2, { fal_request_id: 'req-a', created_at: new Date(Date.now() - 9 * MIN).toISOString() }), naFilaHa(3, 5))
     m.porVaga(A.id, Date.now() - 1000, Date.now() - 8 * MIN - 1000)
     m.fal.set('req-a', { status: 'COMPLETED', url: 'https://v3.fal.media/files/a.mp4' })
-    const pegou = await m.srv.clipQueueDepsFor(m.client).take(B, { daFila: true })
+    const pegou = await m.srv.clipQueueDepsFor(m.client, CRON).take(B, { daFila: true })
     if (m.linha(A.id).status !== 'done' || m.estornos.length || m.eventos('clip_failed').length) throw new Error('A = ' + JSON.stringify([m.linha(A.id).status, m.linha(A.id).failure_reason]))
     if (!pegou || m.vagaNoBanco()?.metadata.clip_id !== B.id) throw new Error('B não recebeu a vaga depois da entrega')
   })
@@ -192,12 +197,12 @@ async function bateria(over = {}, lento = false) {
     const m = servidor(ctx)
     const [A, B] = m.por(clipe(2, { fal_request_id: 'req-a', created_at: new Date(Date.now() - 9 * MIN).toISOString() }), naFilaHa(3, 5))
     m.porVaga(A.id, Date.now() - 1000, null) // vaga gravada antes do conserto: sem tomada_em
-    if (await m.srv.clipQueueDepsFor(m.client).take(B, { daFila: true })) throw new Error('B pegou a vaga de um pedido que ainda roda')
+    if (await m.srv.clipQueueDepsFor(m.client, CRON).take(B, { daFila: true })) throw new Error('B pegou a vaga de um pedido que ainda roda')
     if (m.linha(A.id).status !== 'processing' || m.estornos.length || !(Date.parse(m.vagaNoBanco()?.metadata.expira_em) > Date.now())) throw new Error('A = ' + JSON.stringify([m.linha(A.id).status, m.linha(A.id).failure_reason, m.vagaNoBanco()?.metadata]))
     const x = servidor(ctx)
     const [C, D] = x.por(clipe(4, { fal_request_id: 'req-c', created_at: new Date(Date.now() - 22 * MIN).toISOString() }), naFilaHa(5, 5))
     x.porVaga(C.id, Date.now() - 1000, Date.now() - 21 * MIN)
-    const pegou = await x.srv.clipQueueDepsFor(x.client).take(D, { daFila: true })
+    const pegou = await x.srv.clipQueueDepsFor(x.client, CRON).take(D, { daFila: true })
     const c = x.linha(C.id)
     if (c.status !== 'failed' || c.failure_reason !== 'queue_stuck' || c.credits_refunded !== 40 || !x.estornos.includes(C.billing_reference)) throw new Error('teto duro: C = ' + JSON.stringify([c.status, c.failure_reason, c.credits_refunded, x.estornos]))
     const ev = x.eventos('clip_failed')[0]?.metadata
@@ -209,7 +214,7 @@ async function bateria(over = {}, lento = false) {
     const [A, B] = m.por(clipe(2, { status: 'pending', fal_request_id: null, failure_reason: 'queue_sending', created_at: new Date(Date.now() - 30 * MIN).toISOString() }), naFilaHa(3, 5))
     m.porVaga(A.id, Date.now() - 1000, Date.now() - 9 * MIN)
     m.saudavel = false
-    await m.srv.clipQueueDepsFor(m.client).take(B, { daFila: true })
+    await m.srv.clipQueueDepsFor(m.client, CRON).take(B, { daFila: true })
     const a = m.linha(A.id)
     if (a.status !== 'failed' || a.failure_reason !== 'queue_stuck' || a.credits_refunded !== 0 || !m.estornos.includes(A.billing_reference)) throw new Error('A = ' + JSON.stringify([a.status, a.failure_reason, a.credits_refunded, m.estornos]))
     m.saudavel = true
@@ -259,7 +264,7 @@ async function bateria(over = {}, lento = false) {
     const reconferir = async (row, casa = false) => {
       const estado = await m.srv.filaKlingEditEstado(m.client, row.id)
       const d = P.depoisDeEntrar({ casa, clipId: row.id, abertosDaConta: casa ? null : await m.srv.seuVideoAbertosDaConta(m.client, row.user_id), naFrente: estado ? estado.naFrente : null, vagaOcupada: estado?.vagaOcupada ?? false })
-      return d.sair ? ((await m.srv.tirarDaFila(m.client, row.id, d.motivo)) ? d.motivo : 'nao_tirou') : 'fica'
+      return d.sair ? ((await m.srv.tirarDaFila(m.client, row.id, d.motivo)) !== false ? d.motivo : 'nao_tirou') : 'fica'
     }
     const r = [await reconferir(a), await reconferir(b), await reconferir(c)]
     if (JSON.stringify(r) !== JSON.stringify(['fica', 'queue_one_per_account', 'queue_one_per_account'])) throw new Error('mesma conta: ' + JSON.stringify(r))
@@ -273,8 +278,8 @@ async function bateria(over = {}, lento = false) {
     if (m.linha(novos[3].id).credits_refunded !== 40) throw new Error('fila cheia sem estorno')
     // quem já saiu da fila não é tirado (UPDATE condicional), e a casa só sai pelo limite da fila
     Object.assign(m.linha(novos[0].id), { status: 'processing', fal_request_id: 'req-n', failure_reason: null })
-    if (await m.srv.tirarDaFila(m.client, novos[0].id, 'queue_full') || m.linha(novos[0].id).status !== 'processing') throw new Error('tirou da fila quem já estava no fornecedor')
-    if (P.depoisDeEntrar({ casa: true, clipId: 'x', abertosDaConta: ['a', 'x'], naFrente: 0, vagaOcupada: true }).sair) throw new Error('a casa saiu pelo "um por vez"')
+    if ((await m.srv.tirarDaFila(m.client, novos[0].id, 'queue_full')) !== false || m.linha(novos[0].id).status !== 'processing') throw new Error('tirou da fila quem já estava no fornecedor')
+    if (P.depoisDeEntrar({ casa: true, clipId: 'x', abertosDaConta: [{ id: 'a', naFila: false }, { id: 'x', naFila: true }], naFrente: 0, vagaOcupada: true }).sair) throw new Error('a casa saiu pelo "um por vez"')
     if (P.depoisDeEntrar({ casa: false, clipId: 'x', abertosDaConta: null, naFrente: null, vagaOcupada: false }).sair) throw new Error('leitura que falhou tirou o pedido')
   })
   await check('item 7 · quem está na fila recebe posição e espera; empate de milissegundo desempata por id', async () => {
@@ -283,7 +288,7 @@ async function bateria(over = {}, lento = false) {
     const [maior, menor] = m.por(naFilaHa(32, 1, { created_at: quando }), naFilaHa(31, 1, { created_at: quando })) // inseridos fora da ordem do id
     const e1 = await m.srv.filaKlingEditEstado(m.client, menor.id), e2 = await m.srv.filaKlingEditEstado(m.client, maior.id), e0 = await m.srv.filaKlingEditEstado(m.client)
     if (e1.naFrente !== 0 || e2.naFrente !== 1 || e0.naFila !== 2 || e0.naFrente !== 2 || e1.vagaOcupada) throw new Error(JSON.stringify([e1, e2, e0]))
-    if (JSON.stringify(await m.srv.seuVideoAbertosDaConta(m.client, menor.user_id)) !== JSON.stringify([menor.id])) throw new Error('abertos da conta')
+    if (JSON.stringify(await m.srv.seuVideoAbertosDaConta(m.client, menor.user_id)) !== JSON.stringify([{ id: menor.id, naFila: true }])) throw new Error('abertos da conta')
     const espera = m.F.esperaNaFila(m.F.posicaoNaFila(e2.naFrente, true))
     if (espera.label !== 'In line · position 3 · about 11 minutes' || espera.minutes !== 11 || /About 2 minutes/.test(espera.label)) throw new Error('espera: ' + JSON.stringify(espera))
   })
@@ -332,6 +337,72 @@ async function bateria(over = {}, lento = false) {
     clearTimeout(relogio)
     if (fim === 'pendurada' || fim.r !== null) throw new Error('a cópia ficou pendurada no upload (orçamento era 3 s): ' + JSON.stringify(fim))
   })
+  await check('3ª rodada · POST e status NÃO liquidam o dono da vaga (a trava pode levar 40 s): ocupado; o cron entrega', async () => {
+    const m = servidor(ctx)
+    const [A, B] = m.por(clipe(2, { fal_request_id: 'req-a', created_at: new Date(Date.now() - 9 * MIN).toISOString() }), naFilaHa(3, 5))
+    m.porVaga(A.id, Date.now() - 1000, Date.now() - 8 * MIN - 1000)
+    m.fal.set('req-a', { status: 'COMPLETED', url: 'https://v3.fal.media/files/a.mp4' })
+    if (await m.srv.clipQueueDepsFor(m.client).take(B, { daFila: true })) throw new Error('POST/status pegou a vaga de um dono no fornecedor')
+    if (m.consultas.length || m.linha(A.id).status !== 'processing' || m.estornos.length) throw new Error('POST/status liquidou o dono: ' + JSON.stringify([m.consultas, m.linha(A.id).status]))
+    await m.srv.advanceActiveClipJobs()
+    if (m.linha(A.id).status !== 'done') throw new Error('o cron não entregou o dono: ' + m.linha(A.id).status)
+  })
+  await check('3ª rodada · X4: Kling preso na fal e NINGUÉM na fila — o cron renova a vaga e, no teto duro (20 min), fecha com estorno; vaga perdida há 36 min também', async () => {
+    const m = servidor(ctx)
+    const conta = uid(952)
+    const [A] = m.por(clipe(1, { user_id: conta, fal_request_id: 'req-x4', created_at: new Date(Date.now() - 10 * MIN).toISOString() }))
+    m.porVaga(A.id, Date.now() - 1000, Date.now() - 9 * MIN)
+    await m.srv.advanceActiveClipJobs()
+    if (m.linha(A.id).status !== 'processing' || !(Date.parse(m.vagaNoBanco()?.metadata.expira_em) > Date.now())) throw new Error('9 min: não renovou: ' + JSON.stringify([m.linha(A.id).status, m.vagaNoBanco()?.metadata]))
+    m.vagaNoBanco().metadata.expira_em = new Date(Date.now() - 1000).toISOString(); m.vagaNoBanco().metadata.tomada_em = new Date(Date.now() - 21 * MIN).toISOString()
+    await m.srv.advanceActiveClipJobs()
+    const a = m.linha(A.id)
+    if (a.status !== 'failed' || a.failure_reason !== 'queue_stuck' || a.credits_refunded !== 40 || m.vagaNoBanco()) throw new Error('21 min: ' + JSON.stringify([a.status, a.failure_reason, a.credits_refunded]))
+    const P = m.load('lib/recreate/portaDoSeuVideo')
+    if (P.decidirPorta({ replay: false, casa: false, pagante: true, abertos: (await m.srv.seuVideoAbertosDaConta(m.client, conta)).length, resultados: [], fila: { naFila: 0, vagaOcupada: false }, agoraMs: Date.now() }) !== null) throw new Error('a conta continua trancada')
+    const x = servidor(ctx)
+    const [C, D] = x.por(clipe(4, { fal_request_id: 'req-c', created_at: new Date(Date.now() - 36 * MIN).toISOString() }), clipe(5, { fal_request_id: 'req-d', created_at: new Date(Date.now() - 10 * MIN).toISOString() }))
+    await x.srv.advanceActiveClipJobs()
+    if (x.linha(C.id).failure_reason !== 'queue_stuck' || x.linha(C.id).credits_refunded !== 40 || x.linha(D.id).status !== 'processing') throw new Error('vaga perdida: ' + JSON.stringify([x.linha(C.id).failure_reason, x.linha(D.id).status]))
+  })
+  await check('3ª rodada · X1: dois POST da mesma conta — o mais novo foi direto à fal, o mais antigo ficou na fila: o da fila SAI com estorno', async () => {
+    const m = servidor(ctx)
+    const P = m.load('lib/recreate/portaDoSeuVideo')
+    const conta = uid(953)
+    const [A, B] = m.por(naFilaHa(11, 0, { user_id: conta, created_at: new Date(Date.now() - 2000).toISOString() }), clipe(12, { user_id: conta, fal_request_id: 'req-b', created_at: new Date(Date.now() - 1000).toISOString() }))
+    const estado = await m.srv.filaKlingEditEstado(m.client, A.id)
+    const d = P.depoisDeEntrar({ casa: false, clipId: A.id, abertosDaConta: await m.srv.seuVideoAbertosDaConta(m.client, conta), naFrente: estado.naFrente, vagaOcupada: estado.vagaOcupada })
+    if (!d.sair || d.motivo !== 'queue_one_per_account') throw new Error('o da fila ficou: ' + JSON.stringify(d))
+    if ((await m.srv.tirarDaFila(m.client, A.id, d.motivo)) !== 40 || m.linha(A.id).credits_refunded !== 40 || m.linha(B.id).status !== 'processing') throw new Error('saída: ' + JSON.stringify([m.linha(A.id), m.linha(B.id).status]))
+    // o mesmo B ainda a caminho (pending sem marca da fila, mandando): também conta
+    const x = servidor(ctx)
+    const [C] = x.por(naFilaHa(21, 0, { user_id: conta, created_at: new Date(Date.now() - 2000).toISOString() }), clipe(22, { user_id: conta, status: 'pending', fal_request_id: null, failure_reason: null, created_at: new Date(Date.now() - 1000).toISOString() }))
+    if (!P.depoisDeEntrar({ casa: false, clipId: C.id, abertosDaConta: await x.srv.seuVideoAbertosDaConta(x.client, conta), naFrente: 0, vagaOcupada: true }).sair) throw new Error('B a caminho não contou')
+  })
+  await check('3ª rodada · X3: tirar da fila com o estorno em erro devolve 0 (não "returned"); a varredura devolve depois', async () => {
+    const m = servidor(ctx)
+    const [A] = m.por(naFilaHa(31, 1))
+    m.saudavel = false
+    const r = await m.srv.tirarDaFila(m.client, A.id, 'queue_one_per_account')
+    if (r !== 0 || m.linha(A.id).status !== 'failed' || m.linha(A.id).credits_refunded !== 0) throw new Error(JSON.stringify([r, m.linha(A.id)]))
+    m.saudavel = true
+    await m.srv.sweepClipJobs()
+    if (m.linha(A.id).credits_refunded !== 40) throw new Error('a varredura não devolveu')
+  })
+  await check('3ª rodada · M23: a rota de status EXECUTADA — incerto = not_confirmed (frase pelo estorno); não trocou = not_swapped', async () => {
+    const m = servidor(ctx)
+    const R = m.load('app/api/recreate/status/route')
+    const conta = uid(954)
+    ctx.usuario = { id: conta }
+    const falha = (n, motivo, estornado) => clipe(n, { user_id: conta, status: 'failed', failure_reason: motivo, credits_refunded: estornado })
+    const [U, U0, N] = m.por(falha(41, 'swap_uncertain', 40), falha(42, 'swap_uncertain', 0), falha(43, 'swap_unchanged', 40))
+    const get = async (id) => (await R.GET({ nextUrl: new URL('https://www.usekineo.com/api/recreate/status?id=' + id) })).body.clip
+    const u = await get(U.id), u0 = await get(U0.id), n = await get(N.id)
+    ctx.usuario = null
+    if (u.reason !== 'not_confirmed' || u.message !== 'We could not confirm the swap, so we returned your credits.' || u.video_url !== null) throw new Error('incerto: ' + JSON.stringify(u))
+    if (u0.reason !== 'not_confirmed' || !/within the hour/.test(u0.message) || /returned your credits/.test(u0.message)) throw new Error('incerto sem estorno: ' + JSON.stringify(u0))
+    if (n.reason !== 'not_swapped') throw new Error('não trocou: ' + JSON.stringify(n))
+  })
   await check('itens 5, 6, 8 · a porta: replay passa; um pedido aberto por conta; casa = lista EXATA; leitura que falha vira evento', async () => {
     const m = servidor(ctx)
     const P = m.load('lib/recreate/portaDoSeuVideo'), acesso = m.load('lib/recreate/access'), contas = m.load('lib/internalAccounts')
@@ -363,7 +434,7 @@ async function bateria(over = {}, lento = false) {
     if (!rota.includes("const casa = releaseVisible(user.email, 'internal')") || !rota.includes('const [abertos, resultados, fila] = replay ? [null, null, null] : await Promise.all([') || !rota.includes('casa ? Promise.resolve([] as string[]) : seuVideoAbertosDaConta(admin, user.id),')) throw new Error('leituras da porta')
     if (!rota.includes('if (falhas.length) await writeServerEvent({ name: PORTA_LEITURA_FALHOU_EVENTO,')) throw new Error('leitura que falha sem evento')
     const iDepois = i('if (esperando && !result.replay) {')
-    if (!(iDepois > iCobra) || !rota.includes('depoisDeEntrar({ casa, clipId: result.clip.id, abertosDaConta: casa ? null : await seuVideoAbertosDaConta(admin, user.id), naFrente: estado ? estado.naFrente : null, vagaOcupada: estado?.vagaOcupada ?? false })') || !rota.includes('if (depois.sair && (await tirarDaFila(admin, result.clip.id, depois.motivo))) {') || !rota.includes('refunded: true }, 429)')) throw new Error('reconferência depois de entrar')
+    if (!(iDepois > iCobra) || !rota.includes('depoisDeEntrar({ casa, clipId: result.clip.id, abertosDaConta: casa ? null : await seuVideoAbertosDaConta(admin, user.id), naFrente: estado ? estado.naFrente : null, vagaOcupada: estado?.vagaOcupada ?? false })') || !rota.includes('const tirou = depois.sair ? await tirarDaFila(admin, result.clip.id, depois.motivo) : false') || !rota.includes('if (depois.sair && tirou !== false) {') || !rota.includes('return json({ error: tirou > 0 ? (cheia ? FRASE_FILA_CHEIA_ESTORNADA : FRASE_UM_POR_VEZ_ESTORNADO) : (cheia ? FRASE_FILA_CHEIA_SEM_ESTORNO : FRASE_UM_POR_VEZ_SEM_ESTORNO)') || !rota.includes('refunded: tirou > 0 }, 429)')) throw new Error('reconferência depois de entrar')
     if (!rota.includes('const estado = esperando ? await filaKlingEditEstado(admin, result.clip.id) : null') || !rota.includes('wait_label: esperaNaFila(posicao).label, wait_minutes: esperaNaFila(posicao).minutes')) throw new Error('posição e espera na resposta')
   })
   await check('rota de status: posição por id e espera para quem está na fila; frase da falha só com o estorno gravado', async () => {
@@ -406,16 +477,21 @@ const mutantes = [
   ['posição sem desempate por id', { [SRV]: srv.replace(".order('created_at', { ascending: true }).order('id', { ascending: true }).limit(50)", ".order('created_at', { ascending: true }).limit(50)") }],
   ['evento da trava sem o caminho previsto', { [SRV]: srv.replace('audit_path: outcome.delivered ? null : caminhoDaAuditoria(row.id),', 'audit_path: null,') }],
   ['upload sem teto', { [SRV]: srv.replace('try { return await Promise.race([copia, estourou]) } finally { clearTimeout(relogio) }', 'try { return await copia } finally { clearTimeout(relogio) }') }, true],
-  ['o catálogo conta no teto', { [SV]: sv.replace(".like('fingerprint', `%/${SEU_VIDEO_PASTA}/%`)", '') }],
+  ['o catálogo conta no teto', { [SV]: sv.replace(".includes(`/${SEU_VIDEO_PASTA}/`))", ".includes(''))") }], // reancorado KINEO-RECREATE-FILA-REVISAO-3-1411 (sem .like)
   ['replay recusado pela porta', { [PORTA]: porta.replace('  if (e.replay) return null\n', '') }],
   ['sem "um pedido por vez"', { [PORTA]: porta.replace('(e.abertos ?? 0) >= 1', '(e.abertos ?? 0) >= 99') }],
   ['casa recusada pelo "um por vez"', { [PORTA]: porta.replace('  if (!e.casa && (e.abertos ?? 0) >= 1)', '  if ((e.abertos ?? 0) >= 1)') }],
-  ['depois de entrar: a conta fica com vários', { [PORTA]: porta.replace('a.abertosDaConta.length > 1 && a.abertosDaConta[0] !== a.clipId', 'a.abertosDaConta.length > 99') }],
+  ['depois de entrar: a conta fica com vários', { [PORTA]: porta.replace('    if (outros.some((x) => !x.naFila) || (i > 0 && a.abertosDaConta.slice(0, i).some((x) => x.naFila))) return', '    if (false) return') }], // reancorado KINEO-RECREATE-FILA-REVISAO-3-1411
   ['depois de entrar: sem limite da fila', { [PORTA]: porta.replace('  if (a.naFrente !== null && alemDoLimite(a.naFrente, a.vagaOcupada)) return { sair: true, motivo: FILA_MOTIVOS.cheia }\n', '') }],
   ['leitura que falha em silêncio', { [PORTA]: porta.replace("  if (!e.casa && e.abertos === null) out.push('open_requests')\n", '') }],
   ['frase promete estorno que não aconteceu', { [FILA]: fila.replace('(creditsRefunded > 0 ? FRASE_FILA_FALHOU : FRASE_FILA_FALHOU_SEM_ESTORNO)', '(FRASE_FILA_FALHOU)') }],
   ['rota: replay não é conferido', { [ROTA]: rota.replace('const replay = key ? !!(await deps.findByKey(user.id, key).catch(() => null)) : false', 'const replay = false') }],
   ['rota: sem reconferência depois de entrar', { [ROTA]: rota.replace('    if (esperando && !result.replay) {', '    if (false) {') }],
+  ['POST e status liquidam o dono', { [SRV]: srv.replace('podeLiquidar: ctx.liquidarDono === true', 'podeLiquidar: true') }],
+  ['cron sem a vigia da vaga', { [SRV]: srv.replace("    if (after.status === 'processing' && row.model === KLING4_EDIT_MODEL) await vigiarDonoDaVaga(filaIoFor(admin), row.id, Date.parse(row.created_at)).catch(() => 'nada')\n", '') }],
+  ['X1: quem foi direto não conta', { [PORTA]: porta.replace('    if (outros.some((x) => !x.naFila) || (i > 0', '    if ((i > 0') }],
+  ['X3: a frase promete o estorno que falhou', { [ROTA]: rota.replace('error: tirou > 0 ? (cheia ?', 'error: true ? (cheia ?') }],
+  ['M23: status volta a not_swapped para o incerto', { [STATUS]: status.replace("const naoConfirmou = status === 'failed' && fresh.failure_reason === RECREATE_NOT_SWAPPED.uncertain", 'const naoConfirmou = false') }],
   ['status: frase fixa de estorno', { [STATUS]: status.replace('message: fraseDaFalhaDaFila(credits_refunded)', 'message: FRASE_FILA_FALHOU') }],
   ['status: fila sem a espera', { [STATUS]: status.replace('...(posicao ? { wait_label: esperaNaFila(posicao).label, wait_minutes: esperaNaFila(posicao).minutes } : {})', '') }],
   ['evento da fila que o navegador pode forjar', { [EVENTOS]: eventos.replace("'recreate_kling_edit_slot'", "'recreate_kling_edit_slot_x'") }],

@@ -125,9 +125,12 @@ export function ioDoTextoReal(videoUrl: string, meta: MetaDoVideo): IoDoTexto {
 // pura; aqui a leitura pega com 2 h de folga pela criação. Erro de leitura = null, e a rota segue (nunca tranca cliente por erro nosso).
 export async function lerNaoTrocouDaConta(admin: SupabaseClient, userId: string): Promise<ResultadoDoClipe[] | null> {
   const desde = new Date(Date.now() - (TETO_NAO_TROCOU.janelaHoras + 2) * 60 * 60 * 1000).toISOString()
-  const { data, error } = await admin.from(CLIPS_TABLE).select('failure_reason, settled_at, created_at').eq('user_id', userId).eq('status', 'failed')
-    .in('failure_reason', [...TETO_MOTIVOS]).in('model', [KLING4_EDIT_MODEL, SEEDANCE25_MODEL]).like('fingerprint', `%/${SEU_VIDEO_PASTA}/%`) // KINEO-RECREATE-FILA-REVISAO-1411 (item 12) — só o "seu vídeo" (vídeo em recreate-uploads/): os formatos do catálogo no Seedance não contam
-    .gte('created_at', desde).order('created_at', { ascending: false }).limit(20)
+  // KINEO-RECREATE-FILA-REVISAO-3-1411 [revisor 3ª rodada: "se o .like do PostgREST trata % como o banco de mentira"] — sem depender disso: lê até 50 linhas e o filtro do "seu
+  // vídeo" (o vídeo em recreate-uploads/) é feito aqui, no código.
+  const { data, error } = await admin.from(CLIPS_TABLE).select('failure_reason, settled_at, created_at, fingerprint').eq('user_id', userId).eq('status', 'failed')
+    .in('failure_reason', [...TETO_MOTIVOS]).in('model', [KLING4_EDIT_MODEL, SEEDANCE25_MODEL]) // KINEO-RECREATE-FILA-REVISAO-1411 (item 12) — só o "seu vídeo" (vídeo em recreate-uploads/): os formatos do catálogo no Seedance não contam
+    .gte('created_at', desde).order('created_at', { ascending: false }).limit(50)
   if (error) { console.error('[recreate/seu-video] swap cap lookup failed:', error.message); return null }
-  return (data ?? []) as ResultadoDoClipe[]
+  return (data ?? []).filter((r) => typeof (r as { fingerprint?: unknown }).fingerprint === 'string' && ((r as { fingerprint: string }).fingerprint).includes(`/${SEU_VIDEO_PASTA}/`))
+    .map((r) => ({ failure_reason: (r as ResultadoDoClipe).failure_reason, settled_at: (r as ResultadoDoClipe).settled_at, created_at: (r as ResultadoDoClipe).created_at }))
 }

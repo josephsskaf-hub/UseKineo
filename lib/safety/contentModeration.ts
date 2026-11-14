@@ -75,6 +75,11 @@ async function callModeration(input: ModerationInputPart[]): Promise<ModerationR
 export const MODERATION_DOWNLOAD_ERROR = /fail(?:ed|ure)? to download|could ?n[o']t download|unable to download|error (?:while )?downloading|timed? ?out (?:while )?downloading/i
 export const MODERATION_RESCUE_MAX_BYTES = 8 * 1024 * 1024
 export const MODERATION_RESCUE_FETCH_MS = 4_000
+// KINEO-MODERACAO-REVISAO-3-1411 [revisor 3ª rodada, item 3] — UM orçamento para a moderação do pedido inteiro (era por imagem: 3 fotos × 20 s no pior caso = 60 s, o
+// teto da rota). Antes de cada chamada, o que sobra tem de cobrir o teto dela; o resgate só começa se sobra o download + a 2ª chamada. Sem tempo =
+// fora do ar ("tente de novo"), nunca "esta imagem não serve".
+export const MODERATION_ORCAMENTO_MS = 30_000
+class ModerationBudgetExceeded extends Error {}
 class ModerationDownloadFailed extends Error {}
 
 /** O erro é o moderador dizendo que não conseguiu baixar a imagem? */
@@ -88,7 +93,10 @@ export function moderationRescueHost(url: string): boolean {
     const u = new URL(url)
     if (u.protocol !== 'https:') return false
     const nosso = (() => { try { return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').hostname } catch { return '' } })()
-    return (nosso !== '' && u.hostname === nosso) || u.hostname === 'fal.media' || u.hostname.endsWith('.fal.media')
+    // KINEO-MODERACAO-REVISAO-3-1411 [revisor 3ª rodada, (e)] — só o ARQUIVO público do nosso Storage (nunca /auth, /functions, /rest) e só os arquivos da fal (/files/).
+    // Na fal não dá para saber pela URL qual conta gerou o arquivo; o caminho de arquivo é o que dá para restringir.
+    if (nosso !== '' && u.hostname === nosso) return u.pathname.startsWith('/storage/v1/object/public/')
+    return (u.hostname === 'fal.media' || u.hostname.endsWith('.fal.media')) && u.pathname.startsWith('/files/')
   } catch {
     return false
   }
@@ -132,11 +140,16 @@ async function lerAteOTeto(res: Response, max: number): Promise<Uint8Array | nul
 }
 
 /** Uma chamada; se o moderador não baixou a imagem, UMA segunda (em base64 quando dá). `onRescue` avisa o desfecho para o evento. */
-async function callModerationWithRescue(input: ModerationInputPart[], onRescue?: (outcome: 'ok' | 'failed' | 'skipped', inline: number) => Promise<void>): Promise<ModerationResult> { // KINEO-MODERACAO-DOWNLOAD-REVISAO-1411 — + skipped (a casa não baixou: sem 2ª chamada)
+async function callModerationWithRescue(input: ModerationInputPart[], onRescue?: (outcome: 'ok' | 'failed' | 'skipped' | 'no_time', inline: number) => Promise<void>, resta: () => number = () => Infinity): Promise<ModerationResult> { // KINEO-MODERACAO-REVISAO-3-1411 — + resta (o orçamento do pedido) e no_time // KINEO-MODERACAO-DOWNLOAD-REVISAO-1411 — + skipped (a casa não baixou: sem 2ª chamada)
   try {
     return await callModeration(input)
   } catch (error) {
     if (!moderationDownloadFailure(error)) throw error
+    // KINEO-MODERACAO-REVISAO-3-1411 — o resgate (download nosso + 2ª chamada) só começa se cabe no que sobra do orçamento do pedido.
+    if (resta() < MODERATION_RESCUE_FETCH_MS + MODERATION_TIMEOUT_MS) {
+      await onRescue?.('no_time', 0).catch(() => {})
+      throw new ModerationBudgetExceeded('moderation budget exhausted before the rescue')
+    }
     let inline = 0
     const again = await Promise.all(input.map(async (part): Promise<ModerationInputPart> => {
       if (part.type !== 'image_url' || part.image_url.url.startsWith('data:')) return part
@@ -175,6 +188,8 @@ export async function moderateContent(args: {
   imageUrls?: string[]
   meta?: Record<string, unknown>
   omitEvidenceText?: boolean
+  /** KINEO-MODERACAO-REVISAO-3-1411 — o orçamento da moderação deste pedido inteiro (padrão MODERATION_ORCAMENTO_MS). */
+  orcamentoMs?: number
 }): Promise<ModerationVerdict> {
   const text = (args.text ?? '').trim()
   const images = (args.imageUrls ?? []).filter((u) => typeof u === 'string' && u.length > 0)
@@ -189,8 +204,12 @@ export async function moderateContent(args: {
   })
   let worst: ModerationDecision | null = null
   try {
+    const inicio = Date.now() // KINEO-MODERACAO-REVISAO-3-1411
+    const orcamento = typeof args.orcamentoMs === 'number' && args.orcamentoMs > 0 ? args.orcamentoMs : MODERATION_ORCAMENTO_MS
+    const resta = () => orcamento - (Date.now() - inicio)
     for (const batch of batches) {
-      const result = await callModerationWithRescue(batch, (outcome, inline) => writeServerEvent({ name: 'content_moderation_download_retry', userId: args.userId, path: `/moderation/${args.surface}`, metadata: { surface: args.surface, stage: args.stage, outcome, inline_images: inline } }).then(() => undefined)) // KINEO-MODERACAO-DOWNLOAD-1411 — era: await callModeration(batch)
+      if (resta() < MODERATION_TIMEOUT_MS) throw new ModerationBudgetExceeded('moderation budget exhausted') // KINEO-MODERACAO-REVISAO-3-1411 — sem tempo para a próxima chamada: fora do ar
+      const result = await callModerationWithRescue(batch, (outcome, inline) => writeServerEvent({ name: 'content_moderation_download_retry', userId: args.userId, path: `/moderation/${args.surface}`, metadata: { surface: args.surface, stage: args.stage, outcome, inline_images: inline } }).then(() => undefined), resta) // KINEO-MODERACAO-DOWNLOAD-1411 — era: await callModeration(batch)
       const hasText = batch.some((p) => p.type === 'text')
       const hasImage = batch.some((p) => p.type === 'image_url')
       const decision = decideModeration(result, hasText ? text : null, { hasImage })

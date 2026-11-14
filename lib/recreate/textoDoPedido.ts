@@ -27,7 +27,8 @@ export function generoValido(v: unknown): Genero | null {
 
 // KINEO-RECREATE-ALVO-POR-QUADROS-1411 [CEO 14/11, pedido 7: clip d379ec6e, "the person in red shirt on ground"] — a POSE de um instante nunca descreve o alvo: o motor procura
 // no vídeo inteiro. "on the ground", "lying", "sitting"… saem da descrição; sobra a roupa (o que não muda).
-const POSE = /\b(?:(?:lying|sitting|seated|kneeling|standing|running|falling|fallen|rolling)\s+)?(?:on|across)\s+(?:the\s+)?(?:ground|floor|grass|field|pitch)\b|\b(?:lying|sitting|seated|kneeling|crouching|falling|fallen|jumping|laughing|smiling)(?:\s+down)?\b/gi
+// KINEO-RECREATE-TEXTO-REVISAO-3-1411 [revisor 3ª rodada, (c)] — + "standing", "walking", "dancing"… e o LUGAR de um instante ("on a bench", "by the car").
+const POSE = /\b(?:(?:lying|sitting|seated|kneeling|standing|running|falling|fallen|rolling)\s+)?(?:on|across)\s+(?:the\s+)?(?:ground|floor|grass|field|pitch)\b|\b(?:(?:lying|sitting|seated|kneeling|standing|leaning)\s+)?(?:on|at|by|near|next to|in front of|against)\s+(?:a|an|the)\s+(?:bench|chair|sofa|couch|bed|table|desk|car|wall|fence|stairs|steps|stage|street|sidewalk|beach|pool|door|window)\b|\b(?:lying|sitting|seated|kneeling|crouching|standing|walking|running|dancing|posing|waving|falling|fallen|jumping|laughing|smiling|leaning)(?:\s+(?:down|up))?\b/gi
 /** A descrição que entra no texto: "the …", até 8 palavras, só roupa e posição. null = descartada (o texto usa a posição de hoje). */
 export function descricaoLimpa(v: unknown): string | null {
   let t = typeof v === 'string' ? v.replace(POSE, ' ').replace(/[^\p{L}\p{N} ,'-]/gu, ' ').replace(/\s+/g, ' ').replace(/[ ,]+$/, '').trim().toLowerCase() : '' // KINEO-RECREATE-ALVO-POR-QUADROS-1411 — + sem pose
@@ -247,7 +248,7 @@ export async function montarTextoDoPedido(io: IoDoTexto, a: { pessoas: number; f
             const i = c.escolhido !== null && c.escolhido >= 1 && c.escolhido <= c.candidatos.length ? c.escolhido - 1 : null
             escolhido = i
             descricoes = [i === null ? null : c.candidatos[i]]
-            if (i === null) oculos = [null]
+            if (i !== 0) oculos = [null] // KINEO-RECREATE-TEXTO-REVISAO-3-1411 [revisor 3ª rodada, (b)] — os óculos lidos são da pessoa 1 (o 1º candidato): escolhido outro, ou nenhum, nada de óculos
           } else if (c.candidatos.length === 1 && !descricoes[0]) descricoes = [c.candidatos[0]]
         }
       }

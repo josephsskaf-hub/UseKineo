@@ -61,7 +61,7 @@ import {
   clipTelemetry, // KINEO-RECREATE-FILA-KLING-EDIT-1411
   type ClipQueueDeps, // KINEO-RECREATE-FILA-KLING-EDIT-1411
 } from '@/lib/clips/clipFlow'
-import { VAGA_TTL_MS, FILA_ENVIANDO, FILA_MARCA, FILA_MOTIVOS, FILA_MOTIVOS_DE_ESTORNO, FILA_TETO_ESPERA_MS, FILA_VAGA_EVENTO, FILA_VAGA_NOME, FILA_VAGA_PATH, entradaDaLinha, naFila, tomarVaga, type FilaIo } from '@/lib/recreate/filaKlingEdit' // KINEO-RECREATE-FILA-KLING-EDIT-1411
+import { VAGA_TTL_MS, FILA_ENVIANDO, FILA_MARCA, FILA_MOTIVOS, FILA_MOTIVOS_DE_ESTORNO, FILA_TETO_ESPERA_MS, FILA_VAGA_EVENTO, FILA_VAGA_NOME, FILA_VAGA_PATH, entradaDaLinha, naFila, tomarVaga, vigiarDonoDaVaga, type FilaIo } from '@/lib/recreate/filaKlingEdit' // KINEO-RECREATE-FILA-KLING-EDIT-1411
 import { idDaVez } from '@/lib/cronLease' // KINEO-RECREATE-FILA-KLING-EDIT-1411 — o id fixo da vaga (o mesmo desenho da vez do cron)
 import { comEndUserDaFal } from '@/lib/recreate/falEndUser' // KINEO-RECREATE-FILA-KLING-EDIT-1411
 import { semMarcasDaCasa } from '@/lib/recreate/seuVideo' // KINEO-RECREATE-FILA-KLING-EDIT-1411
@@ -510,7 +510,7 @@ function clipEvent(userId: string) {
   }
 }
 
-export function settleDepsFor(admin: SupabaseClient, userId: string): ClipSettleDeps {
+export function settleDepsFor(admin: SupabaseClient, userId: string, ctx: { liquidarDono?: boolean } = {}): ClipSettleDeps { // KINEO-RECREATE-FILA-REVISAO-3-1411 — + ctx (só os crons liquidam o dono da vaga)
   return {
     poll: pollFal,
     persist: (row, url) => persistClipVideo(admin, row, url),
@@ -536,7 +536,7 @@ export function settleDepsFor(admin: SupabaseClient, userId: string): ClipSettle
       markVideoSubmitted: (id, videoModel, requestId) => markRemixVideoSubmitted(admin, id, videoModel, requestId), // KINEO-ROSTO-QUADRO-CHAVE-2810
       videoModel: (row) => { const item = faceRemixForRow(row); if (!item) throw new Error('remix: row is not a face remix'); return faceRemixVideoModel(item) }, // KINEO-ROSTO-QUADRO-CHAVE-2810
     }, // KINEO-ROSTO-QUADRO-CHAVE-2810
-    queue: clipQueueDepsFor(admin), // KINEO-RECREATE-FILA-KLING-EDIT-1411 — a fila anda em toda liquidação (tela, cron de 1 min, varredura)
+    queue: clipQueueDepsFor(admin, ctx), // KINEO-RECREATE-FILA-KLING-EDIT-1411 — a fila anda em toda liquidação (tela, cron de 1 min, varredura)
     recreateSwap: recreateSwapDepsFor(admin, userId), // KINEO-RECREATE-TRAVA-1011 — a trava "não trocou" em TODO caminho que entrega (tela, /clips, cron, varredura)
   }
 }
@@ -636,19 +636,21 @@ export function recreateSwapDepsFor(admin: SupabaseClient, userId: string): Recr
 const FILA_VAGA_ID = idDaVez(FILA_VAGA_NOME)
 /** KINEO-RECREATE-FILA-REVISAO-1411 — fecha um clipe da fila como falha com estorno: failed PRIMEIRO (condicional), depois o estorno idempotente e
  *  o valor na linha. Se o estorno falhar agora, a linha fica failed com 0 e a varredura horária o refaz (FILA_MOTIVOS_DE_ESTORNO). */
-async function fecharClipeDaFila(admin: SupabaseClient, clipId: string, motivo: string, condicao: 'aberto' | 'na_fila'): Promise<boolean> {
+// KINEO-RECREATE-FILA-REVISAO-3-1411 [revisor 3ª rodada, X3] — devolve o ESTORNO gravado (0 = fechou, mas o estorno falhou agora: a varredura horária o refaz) ou false (não
+// fechou: outro ator já tinha mexido). A rota diz "returned" só com estorno > 0.
+async function fecharClipeDaFila(admin: SupabaseClient, clipId: string, motivo: string, condicao: 'aberto' | 'na_fila'): Promise<number | false> {
   let q = admin.from(CLIPS_TABLE).update({ status: 'failed', failure_reason: motivo, credits_refunded: 0, settled_at: new Date().toISOString() }).eq('id', clipId)
   q = condicao === 'na_fila' ? q.eq('status', 'pending').eq('failure_reason', FILA_MARCA) : q.in('status', ['pending', 'processing'])
   const { data, error } = await q.select('id')
   if (error) { console.error(`[clips/fila] close failed clip=${clipId} reason=${motivo}:`, error.message); return false }
   if (!(data ?? []).length) return false // não moveu: outro ator fechou ou mandou
   const lida = await admin.from(CLIPS_TABLE).select(COLUMNS).eq('id', clipId).maybeSingle()
-  if (lida.error || !lida.data) { console.error(`[clips/fila] closed row unreadable clip=${clipId}: the hourly sweep refunds it`); return true }
+  if (lida.error || !lida.data) { console.error(`[clips/fila] closed row unreadable clip=${clipId}: the hourly sweep refunds it`); return 0 }
   const fechado = toRow(lida.data as Record<string, unknown>)
   const refunded = await refundRenderCredits(fechado.billing_reference)
   if (refunded > 0) await admin.from(CLIPS_TABLE).update({ credits_refunded: refunded }).eq('id', clipId).eq('status', 'failed').eq('credits_refunded', 0)
   await clipEvent(fechado.user_id)('clip_failed', { ...clipTelemetry(fechado), reason: motivo, credits_refunded: refunded, stage: 'queue' })
-  return true
+  return refunded
 }
 function filaIoFor(admin: SupabaseClient): FilaIo {
   return {
@@ -705,12 +707,13 @@ function filaIoFor(admin: SupabaseClient): FilaIo {
     fecharComEstorno: async (clipId) => { await fecharClipeDaFila(admin, clipId, FILA_MOTIVOS.preso, 'aberto') },
   }
 }
-export function clipQueueDepsFor(admin: SupabaseClient): ClipQueueDeps {
+// KINEO-RECREATE-FILA-REVISAO-3-1411 — `liquidarDono`: só o cron (300 s) liquida o dono de uma vaga vencida (a trava pode levar 40 s); POST e rota de status (60 s), não.
+export function clipQueueDepsFor(admin: SupabaseClient, ctx: { liquidarDono?: boolean } = {}): ClipQueueDeps {
   const io = filaIoFor(admin)
   return {
     applies: (row) => row.model === KLING4_EDIT_MODEL,
     queued: (row) => naFila(row),
-    take: (row, opts) => tomarVaga(io, row.id, opts),
+    take: (row, opts) => tomarVaga(io, row.id, { ...opts, podeLiquidar: ctx.liquidarDono === true }),
     enqueue: async (id) => {
       const { data, error } = await admin.from(CLIPS_TABLE).update({ failure_reason: FILA_MARCA }).eq('id', id).eq('status', 'pending').is('fal_request_id', null).select('id')
       if (error) console.error(`[clips/fila] enqueue failed clip=${id}:`, error.message)
@@ -768,11 +771,13 @@ export async function filaKlingEditEstado(admin: SupabaseClient, clipId?: string
 }
 /** KINEO-RECREATE-FILA-REVISAO-1411 (item 9) — o pedido que, DEPOIS de entrar, ficou além do limite (vários passaram juntos pela porta) sai com estorno. */
 export const tirarDaFila = (admin: SupabaseClient, clipId: string, motivo: string) => fecharClipeDaFila(admin, clipId, motivo, 'na_fila')
-/** Pedidos do "seu vídeo" (Kling edit) ainda ABERTOS desta conta (na fila, saindo ou no fornecedor), do mais antigo ao mais novo. Erro = null. */
-export async function seuVideoAbertosDaConta(admin: SupabaseClient, userId: string): Promise<string[] | null> {
-  const { data, error } = await admin.from(CLIPS_TABLE).select('id').eq('user_id', userId).eq('model', KLING4_EDIT_MODEL).in('status', ['pending', 'processing'])
+/** Pedidos do "seu vídeo" (Kling edit) ainda ABERTOS desta conta, do mais antigo ao mais novo, com "está na fila" (nada enviado). Erro = null. */
+// KINEO-RECREATE-FILA-REVISAO-3-1411 (X1) — + naFila: a reconferência depois de entrar precisa saber quem já vai ao fornecedor.
+export async function seuVideoAbertosDaConta(admin: SupabaseClient, userId: string): Promise<Array<{ id: string; naFila: boolean }> | null> {
+  const { data, error } = await admin.from(CLIPS_TABLE).select('id, status, failure_reason, fal_request_id').eq('user_id', userId).eq('model', KLING4_EDIT_MODEL).in('status', ['pending', 'processing'])
     .order('created_at', { ascending: true }).order('id', { ascending: true }).limit(20)
-  return error ? null : (data ?? []).map((r) => String((r as { id: unknown }).id))
+  if (error) return null
+  return (data ?? []).map((r) => { const x = r as { id: unknown; status: unknown; failure_reason: unknown; fal_request_id: unknown }; return { id: String(x.id), naFila: x.status === 'pending' && x.failure_reason === FILA_MARCA && !x.fal_request_id } })
 }
 
 export function submitDepsFor(args: {
@@ -888,7 +893,7 @@ export async function sweepClipJobs(): Promise<{ scanned: number; delivered: num
   for (const raw of data ?? []) {
     const row = toRow(raw as Record<string, unknown>)
     result.scanned += 1
-    const after = await settleClip(settleDepsFor(admin, row.user_id), row)
+    const after = await settleClip(settleDepsFor(admin, row.user_id, { liquidarDono: true }), row) // KINEO-RECREATE-FILA-REVISAO-3-1411 — a varredura horária (300 s) liquida o dono da vaga
     if (after.status === 'done') result.delivered += 1
     else if (after.status === 'failed') {
       result.refunded += 1
@@ -947,7 +952,9 @@ export async function advanceActiveClipJobs(opts: { minAgeMs?: number; limit?: n
   for (const row of ordered) { // KINEO-FILME-RAPIDO-1710 · KINEO-RECREATE-TRAVA-1011 — era: for (const raw of data ?? [])
     if (opts.deadlineMs && Date.now() > opts.deadlineMs) break // KINEO-FILME-RAPIDO-1710
     result.scanned += 1 // KINEO-FILME-RAPIDO-1710
-    const after = await settleClip(settleDepsFor(admin, row.user_id), row).catch(() => row) // KINEO-FILME-RAPIDO-1710
+    const after = await settleClip(settleDepsFor(admin, row.user_id, { liquidarDono: true }), row).catch(() => row) // KINEO-FILME-RAPIDO-1710 · KINEO-RECREATE-FILA-REVISAO-3-1411 — o cron (300 s) liquida o dono da vaga
+    // KINEO-RECREATE-FILA-REVISAO-3-1411 (X4) — o Kling edit que segue em andamento: a vigia da vaga (teto duro de 20 min) sem depender de outro pedido na fila.
+    if (after.status === 'processing' && row.model === KLING4_EDIT_MODEL) await vigiarDonoDaVaga(filaIoFor(admin), row.id, Date.parse(row.created_at)).catch(() => 'nada')
     if (after.status === 'done') result.delivered += 1 // KINEO-FILME-RAPIDO-1710
     else if (after.status === 'failed') result.failed += 1 // KINEO-FILME-RAPIDO-1710
     else result.waiting += 1 // KINEO-FILME-RAPIDO-1710

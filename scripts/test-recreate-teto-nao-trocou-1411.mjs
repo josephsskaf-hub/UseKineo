@@ -88,7 +88,7 @@ function bateria(over = {}) {
   check('servidor: só o "não trocou" do seu vídeo (recreate-uploads/), nunca o catálogo; erro de leitura = segue', () => {
     const ini = s.indexOf('export async function lerNaoTrocouDaConta')
     const bloco = ini >= 0 ? s.slice(ini) : ''
-    if (!bloco.includes(".eq('user_id', userId).eq('status', 'failed')") || !bloco.includes(".in('failure_reason', [...TETO_MOTIVOS]).in('model', [KLING4_EDIT_MODEL, SEEDANCE25_MODEL]).like('fingerprint', `%/${SEU_VIDEO_PASTA}/%`)")) throw new Error('consulta')
+    if (!bloco.includes(".eq('user_id', userId).eq('status', 'failed')") || !bloco.includes(".in('failure_reason', [...TETO_MOTIVOS]).in('model', [KLING4_EDIT_MODEL, SEEDANCE25_MODEL])") || !bloco.includes(".includes(`/${SEU_VIDEO_PASTA}/`)")) throw new Error('consulta') // reancorado KINEO-RECREATE-FILA-REVISAO-3-1411: o filtro do seu vídeo é feito no código
     if (!/if \(error\) \{[^\n]*return null \}/.test(bloco)) throw new Error('erro de leitura tranca o cliente')
   })
   return p
@@ -109,7 +109,7 @@ const mutantes = [
   ['rota: a porta não recusa', { [ROTA]: rota.replace('  if (recusa) {', '  if (false) {') }],
   ['rota: casa pela lista larga', { [ROTA]: rota.replace("const casa = releaseVisible(user.email, 'internal')", 'const casa = isInternalEmail(user.email)') }],
   ['porta: o teto não recusa', { [PORTA]: porta.replace('  if (!teto.ok) return {', '  if (false) return {') }],
-  ['servidor: o catálogo conta no teto', { [SRV]: servidor.replace(".like('fingerprint', `%/${SEU_VIDEO_PASTA}/%`)", '') }],
+  ['servidor: o catálogo conta no teto', { [SRV]: servidor.replace(".includes(`/${SEU_VIDEO_PASTA}/`))", '.includes(\'\'))') }], // reancorado KINEO-RECREATE-FILA-REVISAO-3-1411
 ]
 let mortos = 0
 for (const [n, over] of mutantes) {

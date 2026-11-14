@@ -40,7 +40,7 @@ function mundo(src, roteiro, o = {}) {
       return { ok: true, headers, body, arrayBuffer: async () => { s.lidos += bytes.byteLength; return bytes.buffer } }
     }
     new Function('require', 'module', 'exports', 'process', 'fetch', 'Buffer', 'AbortSignal', 'console', js)((id) => {
-      if (id === '@/lib/openai') return { openai: { moderations: { create: async (body) => { s.chamadas.push(body.input); const passo = roteiro[Math.min(s.chamadas.length - 1, roteiro.length - 1)]; if (passo instanceof Error) throw passo; return { results: [passo] } } } } }
+      if (id === '@/lib/openai') return { openai: { moderations: { create: async (body) => { if (o.atrasoMs) await new Promise((r) => setTimeout(r, o.atrasoMs)); s.chamadas.push(body.input); const passo = roteiro[Math.min(s.chamadas.length - 1, roteiro.length - 1)]; if (passo instanceof Error) throw passo; return { results: [passo] } } } } }
       if (id === '@/lib/serverEvents') return { writeServerEvent: async (e) => { s.eventos.push(e); return true } }
       if (id.startsWith('.')) return load(path.posix.join(path.posix.dirname(rel), id) + '.ts')
       throw new Error('import inesperado: ' + id)
@@ -54,7 +54,7 @@ async function bateria(over = {}) {
   const p = []
   const check = async (n, fn) => { try { await fn() } catch (e) { p.push(n + ': ' + e.message) } }
   const src = over[MOD] ?? lf(MOD)
-  const roda = async (roteiro, o = {}, url = NOSSA) => { const w = mundo(src, roteiro, o); const v = await w.M.moderateContent({ surface: 'clip', stage: 'input', userId: 'u1', text: 'a dancer', imageUrls: [url] }); return { v, s: w.s } }
+  const roda = async (roteiro, o = {}, url = NOSSA) => { const w = mundo(src, roteiro, o); const v = await w.M.moderateContent({ surface: 'clip', stage: 'input', userId: 'u1', text: 'a dancer', imageUrls: o.urls ?? [url], ...(o.orcamentoMs ? { orcamentoMs: o.orcamentoMs } : {}) }); return { v, s: w.s } }
   const urlDaChamada = (s, i) => s.chamadas[i].find((x) => x.type === 'image_url').image_url.url
   await check('o caso de 14/11: 1ª não baixa, 2ª em base64 passa', async () => {
     const { v, s } = await roda([DOWNLOAD(), LIMPO])
@@ -100,6 +100,22 @@ async function bateria(over = {}) {
     const c = await roda([DOWNLOAD(), LIMPO], { semFim: true })
     if (c.s.lidos > 9 * 1024 * 1024 || !c.s.cancelado || c.v.ok || c.s.chamadas.length !== 1) throw new Error(`sem fim: lidos ${c.s.lidos}, cancelado ${c.s.cancelado}`)
   })
+  await check('KINEO-MODERACAO-REVISAO-3-1411 (item 3): UM orçamento para o pedido — sem tempo para o resgate ou para a próxima foto = fora do ar', async () => {
+    const M_ = mundo(src, [LIMPO]).M
+    if (M_.MODERATION_ORCAMENTO_MS !== 30_000) throw new Error('orçamento padrão')
+    const a = await roda([DOWNLOAD(), LIMPO], { atrasoMs: 300, orcamentoMs: 12_100 })
+    if (a.v.ok || a.v.reason !== 'unavailable' || a.s.chamadas.length !== 1 || a.s.downloads.length !== 0) throw new Error('resgate sem tempo: ' + JSON.stringify(a.v) + ' chamadas ' + a.s.chamadas.length)
+    if (!a.s.eventos.some((e) => e.name === 'content_moderation_download_retry' && e.metadata.outcome === 'no_time')) throw new Error('sem evento no_time')
+    const b = await roda([LIMPO], { atrasoMs: 300, orcamentoMs: 8_450, urls: [NOSSA, NOSSA, NOSSA] })
+    if (b.v.ok || b.v.reason !== 'unavailable' || b.s.chamadas.length !== 2) throw new Error('3 fotos sem tempo: ' + JSON.stringify(b.v) + ' chamadas ' + b.s.chamadas.length)
+    const c = await roda([LIMPO], { urls: [NOSSA, NOSSA, NOSSA] })
+    if (!c.v.ok || c.s.chamadas.length !== 3) throw new Error('caminho feliz com 3 fotos mudou')
+  })
+  await check('KINEO-MODERACAO-REVISAO-3-1411 (e): o resgate só baixa o arquivo público do nosso Storage e os /files/ da fal', async () => {
+    const M_ = mundo(src, [LIMPO]).M
+    const casos = [['https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/avatars/u/a.jpg', true], ['https://cqqukkvjjrguayiyjvhh.supabase.co/auth/v1/verify?token=t&redirect_to=https://evil.example/x.png', false], ['https://cqqukkvjjrguayiyjvhh.supabase.co/functions/v1/qualquer', false], ['https://cqqukkvjjrguayiyjvhh.supabase.co/rest/v1/clips', false], ['https://v3.fal.media/files/a/b.png', true], ['https://fal.media/files/x.png', true], ['https://v3.fal.media/outra/coisa.png', false], ['https://evilfal.media/files/x.png', false]]
+    for (const [u, esperado] of casos) if (M_.moderationRescueHost(u) !== esperado) throw new Error(u + ' → ' + !esperado)
+  })
   await check('bloqueio na 2ª chamada continua bloqueio', async () => {
     const { v } = await roda([DOWNLOAD(), { flagged: true, categories: { 'sexual/minors': true }, category_scores: { sexual: 0.99, 'sexual/minors': 0.99 } }])
     if (v.ok || v.reason !== 'blocked') throw new Error(JSON.stringify(v))
@@ -127,6 +143,10 @@ const mutantes = [
   ['falha dupla vira "imagem não serve"', { [MOD]: mod.replace('      if (moderationDownloadFailure(second)) throw new ModerationDownloadFailed(', '      if (false) throw new ModerationDownloadFailed(') }],
   ['baixa de qualquer host', { [MOD]: mod.replace('  if (!moderationRescueHost(url)) return null\n', '') }],
   ['sem teto de tamanho', { [MOD]: mod.replace('return b.byteLength > max ? null : b }', 'return b }') }], // reancorado KINEO-MODERACAO-DOWNLOAD-REVISAO-1411
+  ['sem orçamento por foto', { [MOD]: mod.replace("      if (resta() < MODERATION_TIMEOUT_MS) throw new ModerationBudgetExceeded('moderation budget exhausted')", '      void 0') }],
+  ['resgate sem olhar o orçamento', { [MOD]: mod.replace('    if (resta() < MODERATION_RESCUE_FETCH_MS + MODERATION_TIMEOUT_MS) {', '    if (false) {') }],
+  ['qualquer caminho do nosso Supabase', { [MOD]: mod.replace("return u.pathname.startsWith('/storage/v1/object/public/')", 'return true') }],
+  ['qualquer caminho da fal', { [MOD]: mod.replace(" && u.pathname.startsWith('/files/')", '') }],
   ['segue redirecionamento', { [MOD]: mod.replace(", cache: 'no-store', redirect: 'error' })", ", cache: 'no-store' })") }],
   ['não confere o content-length', { [MOD]: mod.replace('    if (Number.isFinite(declarado) && declarado > MODERATION_RESCUE_MAX_BYTES) { await res.body?.cancel().catch(() => {}); return null }\n', '') }],
   ['corpo sem teto', { [MOD]: mod.replace('    if (total > max) { await reader.cancel().catch(() => {}); return null }\n', '    if (total > 16 * max) return null\n') }],
