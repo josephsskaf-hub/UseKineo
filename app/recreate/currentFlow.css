@@ -28,6 +28,8 @@
 .recreate.rc-current-flow .rc-flow-output .rc-player[data-presentation=stage]>video{grid-column:1;max-height:62svh}
 .recreate.rc-current-flow .rc-flow-output .rc-media-info>:not(.rc-player-controls):not(.rc-player-error){display:none}
 .recreate.rc-current-flow .rc-notice a{margin-left:8px;text-decoration:underline}
+/* M12 revisão (4): alvo de toque de 44 px nos botões e links de recuperação e de saída (Sign in again, Retry availability, Continue without saving photos, Refresh status, Make another, See plans, My videos). Só tamanho; cor e fonte herdadas. */
+.recreate.rc-current-flow .rc-notice button,.recreate.rc-current-flow .rc-notice a,.recreate.rc-current-flow .rc-flow-output .rc-change,.recreate.rc-current-flow .rc-next-note button,.recreate.rc-current-flow .rc-next-note a{display:inline-flex;align-items:center;min-height:44px;vertical-align:middle}
 @media(max-width:800px){
  .recreate.rc-current-flow .rc-workspace:not(.rc-library-only){gap:14px;padding:12px 14px 24px}
  .recreate.rc-current-flow .rc-panel{order:0;position:static;height:auto;max-height:none;overflow:visible;padding:16px}
