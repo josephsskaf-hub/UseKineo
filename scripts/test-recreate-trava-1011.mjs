@@ -190,8 +190,13 @@ const assetsDir = join(ROOT, 'lib/recreate/assets')
   const clipsPage = (email) => loader({ ...nav, '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: email ? { id: U, email } : null } }) } }) }, '@/lib/clips/clipLaunch': { clipsVisible: () => true }, './ClipsClient': { __esModule: true, default: () => null } })('app/(dashboard)/clips/page').default
   await assert.rejects(clipsPage(CUSTOMER)({ searchParams: { effect: 'kiss' } }), /redirect:\/recreate\/effect-kiss$/); passed++
   const legacy = loader({ ...nav, '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: { id: U, email: CUSTOMER } } }) } }) }, '@/lib/clips/clipLaunch': { clipsVisible: () => true }, './ClipsClient': { __esModule: true, default: () => null } }, release('internal', 'internal'))('app/(dashboard)/clips/page').default
-  ok((await legacy({ searchParams: { effect: 'kiss' } })) !== undefined, 'caminho de volta: com os interruptores internal, /clips?effect=… fica no /clips')
-  for (const file of ['app/recreate/page.tsx', 'app/recreate/[id]/page.tsx']) ok(read(file).includes('robots: { index: false, follow: false }'), `(d) ${file} continua noindex`)
+  // M12: Recreate rollback does not close the separately approved Clip shell.
+  await assert.rejects(legacy({ searchParams: { effect: 'kiss' } }), /redirect:\/create\/clip\?effect=kiss$/); passed++
+  const noClipShell = { ...release('internal', 'internal'), 'lib/create/clipNaMoldura.ts': read('lib/create/clipNaMoldura.ts').replace("CREATE_CLIP_INPLACE: InternalRelease = 'public'", "CREATE_CLIP_INPLACE: InternalRelease = 'off'") }
+  const oldClips = loader({ ...nav, '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: { id: U, email: CUSTOMER } } }) } }) }, '@/lib/clips/clipLaunch': { clipsVisible: () => true }, './ClipsClient': { __esModule: true, default: () => null } }, noClipShell)('app/(dashboard)/clips/page').default
+  ok((await oldClips({ searchParams: { effect: 'kiss' } })) !== undefined, 'caminho de volta: Recreate interno e aba Clip desligada mantêm /clips')
+  // The public catalog intentionally follows its cards since 12/11; neither page is indexable.
+  for (const file of ['app/recreate/page.tsx', 'app/recreate/[id]/page.tsx']) ok(/robots:\s*\{\s*index:\s*false\b/.test(read(file)), `(d) ${file} continua noindex`)
   ok(!/recreate/i.test(read('app/sitemap.ts')), '(d) /recreate fora do sitemap')
 }
 
@@ -481,7 +486,12 @@ for (const [before, after] of flowMutants) {
   assert(scSrc.includes(before))
   const sc = swapCheckMod({ 'lib/recreate/swapCheck.ts': scSrc.replace(before, 'if (false) return { result: \'partial\'') })
   ok(sc.decideSwap({ persons: [{ person: 1, ...swappedP }, { person: 2, ...keptP }] }, 2).result !== 'partial', 'mutante da decisão (parcial vira outra coisa) morto')
-  const sc2 = swapCheckMod({ 'lib/recreate/swapCheck.ts': scSrc.replace('p.same_as_base === true && p.matches_photo !== true', 'p.same_as_base === true') })
+  const contradictionRule = 'p.same_as_base === true && (opts.cenaMantida === true || p.matches_photo !== true)'
+  assert(scSrc.includes(contradictionRule), 'mutante da contradição precisa atingir a regra atual')
+  const contradiction = { persons: [{ person: 1, ...keptP, result_vs_photo: 'yes' }] }
+  ok(swapCheckMod().decideSwap(contradiction, 1).result === 'unverified', 'contradição sem cena mantida continua incerta')
+  ok(swapCheckMod().decideSwap(contradiction, 1, { cenaMantida: true }).result === 'unchanged', 'cena mantida segue a regra aprovada pelo servidor')
+  const sc2 = swapCheckMod({ 'lib/recreate/swapCheck.ts': scSrc.replace(contradictionRule, 'p.same_as_base === true') })
   ok(sc2.decideSwap({ persons: [{ person: 1, ...keptP, result_vs_photo: 'yes' }] }, 1).result === 'unchanged', 'mutante da contradição: contraditório viraria estorno (o teste de contradição o pega)')
   const rule = 'said === true ? (same > 0 && diff === 0 ? true : null)'
   assert(scSrc.includes(rule))
