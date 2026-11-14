@@ -120,7 +120,12 @@ export function recusaDoMotor(code: string | null | undefined): string | null {
 // = 0,90; os dois entregues idênticos entre si, SSIM 1,00). O elemento "audio" com um MP4 como fonte cobre o quadro com o vídeo do cliente.
 // Com false o clipe sai MUDO, que é a saída do motor (o som inventado pelo Kling já é removido por silenciarMp4). Só volta a true depois de a
 // montagem provar, com SSIM contra a saída do motor, que só o SOM do original entra.
-export const SEU_VIDEO_SOM_ORIGINAL = false
+// KINEO-RECREATE-SOM-LIGA-1411 [CEO 14/11, "Subir. Autorizo 8 usd na fall" do dono; prova em PRODUÇÃO, conta da casa, US$ 1,26] — LIGADO. A montagem em camadas
+// (KINEO-RECREATE-SOM-SO-O-SOM-1311: o original por baixo e invisível, o clipe do motor por cima, mudo) provou trazer SÓ o som: clip 42e8894a
+// (3 s, som_original true): entregue × saída do motor 0,991 de semelhança (mínimo 0,989); entregue × entrada 0,865; áudio do entregue × entrada
+// com correlação 1,000; trava swapped. O 2º pedido da mesma conta (clip 4d4afc8d) passou pela fila e também trocou. A "etiqueta" pública
+// acompanha o interruptor (seuVideoPresentation: audio 'original'), e a marca de prova por clipe fica sem efeito (a rota só a grava com o global desligado).
+export const SEU_VIDEO_SOM_ORIGINAL = true
 /**
  * O som que entra na montagem: a URL do vídeo original, lida da impressão do pedido (submitClip grava [pedido, modelo, entrada da fal]).
  * Só o Seedance 2.5 e só o arquivo do PRÓPRIO dono no nosso bucket (recreate-uploads/<dono>/<uuid>.mp4|mov). Fora disso: null. Pura.

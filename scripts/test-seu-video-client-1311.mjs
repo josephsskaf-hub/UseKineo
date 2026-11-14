@@ -173,8 +173,9 @@ async function verify(overrides={}){
     ok(clip.reason==='engine_refused'&&Boolean(clip.message),'committed backend engine_refused reaches status UI')
     ok(clip.message==='You were not charged.'&&clip.refundConfirmed===(amount>0),'server status message is preserved independently from refund confirmation')
   }
+  // reancorado KINEO-RECREATE-SOM-LIGA-1411 [CEO 14/11]: o som original foi LIGADO depois da prova em produção (clip 42e8894a); a apresentação pública diz 'original'
   const serverPresentation=W.load(PRESENTATION).seuVideoPresentation()
-  ok(serverPresentation.resolution==='720p'&&serverPresentation.audio==='silent'&&serverPresentation.minSeconds===3&&serverPresentation.maxSeconds===15&&serverPresentation.minSide===700&&serverPresentation.waitLabel==='About 2 minutes','server presentation follows current resolution audio wait and validation')
+  ok(serverPresentation.resolution==='720p'&&serverPresentation.audio==='original'&&serverPresentation.minSeconds===3&&serverPresentation.maxSeconds===15&&serverPresentation.minSide===700&&serverPresentation.waitLabel==='About 2 minutes','server presentation follows current resolution audio wait and validation')
   ok(!JSON.stringify(serverPresentation).match(/kling|seedance|fal|model|0\.094|0\.1323/i),'public presentation contains no provider details')
   const singular='Replace the main person in @Video1 with the man from @Image1: his face and hair match @Image1. Keep the choreography, timing, camera, framing, background and lighting of @Video1 exactly. Keep the original clothing from @Video1.'
   ok(C.genderSeuVideoPrompt(['man'])===singular,'approved singular prompt is exact')

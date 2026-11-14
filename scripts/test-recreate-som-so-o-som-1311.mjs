@@ -3,7 +3,8 @@
 // o MP4 ORIGINAL do cliente entra como vídeo na trilha MAIS BAIXA, com opacidade 0% (som 100%), cortado na duração do clipe; o clipe do MOTOR
 // fica acima dele, no quadro inteiro (sem x/y/largura/altura), com volume 0%; a marca, quando há, no topo. Nenhum elemento "audio" com MP4 (o
 // defeito: o "audio" por cima entregava a IMAGEM do original, SSIM 0,99). Sem som original, a fonte é byte a byte a de antes. E o interruptor
-// SEU_VIDEO_SOM_ORIGINAL continua false até a CEO medir o SSIM. Mutantes. Rodar: node scripts/test-recreate-som-so-o-som-1311.mjs
+// SEU_VIDEO_SOM_ORIGINAL foi LIGADO em 14/11 depois da prova em produção (KINEO-RECREATE-SOM-LIGA-1411: clip 42e8894a, entregue × motor 0,991, áudio × entrada 1,000)
+// e a apresentação pública diz "original" (a etiqueta "Silent video" sai). Mutantes. Rodar: node scripts/test-recreate-som-so-o-som-1311.mjs
 import fs from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
@@ -30,6 +31,24 @@ function carregar(over = {}) {
 const ORIGINAL = 'https://x.supabase.co/storage/v1/object/public/renders/recreate-uploads/u/v.mp4'
 const CLEAN = 'https://x.supabase.co/storage/v1/object/public/clips/clips/u/c.mp4'
 const INFO = { width: 720, height: 1280, fps: 24, durationSeconds: 5.041 }
+
+/** A apresentação pública do servidor (lib/recreate/seuVideoPresentation), executada com o seuVideo.ts do jeito que está (ou do mutante). */
+function apresentacao(over = {}) {
+  const cache = new Map()
+  const load = (rel) => {
+    if (cache.has(rel)) return cache.get(rel).exports
+    const mod = { exports: {} }; cache.set(rel, mod)
+    const js = ts.transpileModule(over[rel] ?? lf(rel), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
+    new Function('require', 'module', 'exports', js)((id) => {
+      if (id === 'server-only') return {}
+      if (id === '@/lib/checkoutPricing') return { recreateCreditCost: (s) => (s <= 10 ? 40 : 60) }
+      if (id.startsWith('.')) return load(path.posix.join(path.posix.dirname(rel), id) + '.ts')
+      throw new Error('import inesperado: ' + id)
+    }, mod, mod.exports)
+    return mod.exports
+  }
+  return load('lib/recreate/seuVideoPresentation.ts').seuVideoPresentation()
+}
 
 function bateria(over = {}) {
   const p = []
@@ -60,8 +79,10 @@ function bateria(over = {}) {
     const a = M.buildFreeClipWatermarkSource(CLEAN, INFO)
     if (a.elements.length !== 2 || a.elements[0].type !== 'video' || a.elements[0].track !== 1 || a.elements[1].type !== 'text' || a.elements[1].track !== 2 || 'volume' in a.elements[0]) throw new Error(JSON.stringify(a.elements))
   })
-  check('o interruptor do som continua desligado (a CEO liga depois do SSIM)', () => {
-    if (!/export const SEU_VIDEO_SOM_ORIGINAL = false\b/.test(over[SV] ?? lf(SV))) throw new Error('SEU_VIDEO_SOM_ORIGINAL ligado')
+  check('KINEO-RECREATE-SOM-LIGA-1411: o interruptor do som LIGADO e a apresentação pública diz "original" (sem "Silent video")', () => {
+    if (!/export const SEU_VIDEO_SOM_ORIGINAL = true\b/.test(over[SV] ?? lf(SV))) throw new Error('SEU_VIDEO_SOM_ORIGINAL desligado')
+    const ap = apresentacao(over)
+    if (ap.audio !== 'original') throw new Error('apresentação: ' + ap.audio)
   })
   return p
 }
@@ -74,7 +95,8 @@ const mutantes = [
   ['original visível', { [WM]: w.replace(", opacity: '0%', volume: '100%' }", ", volume: '100%' }") }],
   ['motor com som', { [WM]: w.replace("{ ...e, track: 2, volume: '0%' }", '{ ...e, track: 2 }') }],
   ['volta o elemento audio', { [WM]: w.replace("const somDoOriginal = { type: 'video',", "const somDoOriginal = { type: 'audio',") }],
-  ['interruptor ligado', { [SV]: lf(SV).replace('export const SEU_VIDEO_SOM_ORIGINAL = false', 'export const SEU_VIDEO_SOM_ORIGINAL = true') }],
+  ['interruptor desligado de novo', { [SV]: lf(SV).replace('export const SEU_VIDEO_SOM_ORIGINAL = true', 'export const SEU_VIDEO_SOM_ORIGINAL = false') }], // KINEO-RECREATE-SOM-LIGA-1411
+  ['apresentação presa em silent', { 'lib/recreate/seuVideoPresentation.ts': lf('lib/recreate/seuVideoPresentation.ts').replace("audio: SEU_VIDEO_SOM_ORIGINAL ? 'original' : 'silent'", "audio: 'silent'") }],
 ]
 let mortos = 0
 for (const [n, over] of mutantes) {
@@ -83,4 +105,4 @@ for (const [n, over] of mutantes) {
   if (bateria(over).length) mortos++; else console.error('MUTANTE VIVO: ' + n)
 }
 if (mortos !== mutantes.length) process.exit(1)
-console.log(`PASS som só o som: original por baixo e invisível (opacidade 0%, som 100%, corte na duração), motor por cima no quadro inteiro e mudo, marca no topo, nenhum "audio" com MP4, sem som = fonte de antes, interruptor desligado; ${mortos}/${mutantes.length} mutantes mortos`)
+console.log(`PASS som só o som: original por baixo e invisível (opacidade 0%, som 100%, corte na duração), motor por cima no quadro inteiro e mudo, marca no topo, nenhum "audio" com MP4, sem som = fonte de antes, interruptor LIGADO e apresentação "original"; ${mortos}/${mutantes.length} mutantes mortos`)

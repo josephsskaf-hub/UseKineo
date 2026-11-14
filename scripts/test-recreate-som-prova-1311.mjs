@@ -1,3 +1,5 @@
+// KINEO-RECREATE-SOM-LIGA-1411 (CEO 14/11): o som GLOBAL foi ligado depois da prova em produção (clips 42e8894a e 4d4afc8d). O guardião confere o interruptor LIGADO e
+// segue provando o mecanismo da prova por clipe com o interruptor desligado de forma EXPLÍCITA (somOriginalDaLinha(…, false)), sem afrouxar.
 // KINEO-RECREATE-SOM-PROVA-1311 — guardião da PROVA do som num clipe só (CEO 14/11). Com SEU_VIDEO_SOM_ORIGINAL=false, o POST /api/recreate/seu-video
 // aceita `som_original: true` SÓ de conta da casa: a marca vai na entrada do pedido (a impressão que a liquidação lê) e a montagem do som entra SÓ
 // naquele clipe; a fal nunca recebe a marca. Prova, EXECUTANDO somOriginalDaLinha e semMarcasDaCasa com a MESMA impressão que o submitClip grava
@@ -41,16 +43,20 @@ function bateria(over = {}) {
     const entrada = comMarca ? { ...input, [S.MARCA_SOM_PROVA]: true } : input
     return { model, user_id: U, seconds: 5, fingerprint: JSON.stringify([JSON.stringify(['h3', null, 5, null, 'p', 'https://x/f.jpg']), model, entrada]), entrada }
   }
-  check('o som global continua desligado', () => { if (S.SEU_VIDEO_SOM_ORIGINAL !== false) throw new Error('ligado') })
-  check('sem o campo: nada muda (sem som)', () => { if (S.somOriginalDaLinha(linha(false), SUPA) !== null) throw new Error('som sem a prova') })
+  check('KINEO-RECREATE-SOM-LIGA-1411: o som global LIGADO, e o padrão de somOriginalDaLinha segue o interruptor', () => {
+    if (S.SEU_VIDEO_SOM_ORIGINAL !== true) throw new Error('desligado')
+    if (S.somOriginalDaLinha(linha(false), SUPA)?.url !== ORIGINAL) throw new Error('ligado e sem som no clipe comum')
+  })
+  // a prova por clipe, com o global desligado EXPLÍCITO (reancorado KINEO-RECREATE-SOM-LIGA-1411)
+  check('sem o campo: nada muda (sem som)', () => { if (S.somOriginalDaLinha(linha(false), SUPA, false) !== null) throw new Error('som sem a prova') })
   check('com o campo e conta da casa: a montagem entra neste clipe', () => {
-    const a = S.somOriginalDaLinha(linha(true), SUPA)
+    const a = S.somOriginalDaLinha(linha(true), SUPA, false)
     if (!a || a.url !== ORIGINAL || a.seconds !== 5) throw new Error(JSON.stringify(a))
   })
-  check('conta de fora (a rota não grava a marca): não entra', () => { if (S.somOriginalDaLinha(linha(false), SUPA) !== null) throw new Error('entrou') })
+  check('conta de fora (a rota não grava a marca): não entra', () => { if (S.somOriginalDaLinha(linha(false), SUPA, false) !== null) throw new Error('entrou') })
   check('marca que não é true literal: não entra', () => {
     const l = linha(false); const f = JSON.parse(l.fingerprint); f[2][S.MARCA_SOM_PROVA] = 'true'; l.fingerprint = JSON.stringify(f)
-    if (S.somOriginalDaLinha(l, SUPA) !== null) throw new Error('aceitou "true" texto')
+    if (S.somOriginalDaLinha(l, SUPA, false) !== null) throw new Error('aceitou "true" texto')
   })
   check('com o global ligado, segue como antes (sem precisar da marca)', () => { if (!S.somOriginalDaLinha(linha(false), SUPA, true)) throw new Error('o global ligado parou de ligar') })
   check('a fal nunca recebe a marca', () => {
@@ -83,7 +89,7 @@ const mutantes = [
   ['somOriginal ignora a marca', { [SV]: sv.replace("if (!ligado && (p[2] as Record<string, unknown>)[MARCA_SOM_PROVA] !== true) return null", 'if (!ligado) return null') }],
   ['marca liga todo clipe', { [SV]: sv.replace("if (!ligado && (p[2] as Record<string, unknown>)[MARCA_SOM_PROVA] !== true) return null", 'if (false) return null') }],
   ['a marca vai à fal', { [SRV]: srv.replace('envio(model, semMarcasDaCasa(input))', 'envio(model, input)') }],
-  ['som global ligado', { [SV]: sv.replace('export const SEU_VIDEO_SOM_ORIGINAL = false', 'export const SEU_VIDEO_SOM_ORIGINAL = true') }],
+  ['som global desligado de novo', { [SV]: sv.replace('export const SEU_VIDEO_SOM_ORIGINAL = true', 'export const SEU_VIDEO_SOM_ORIGINAL = false') }], // KINEO-RECREATE-SOM-LIGA-1411
 ]
 let mortos = 0
 for (const [n, over] of mutantes) {
@@ -92,4 +98,4 @@ for (const [n, over] of mutantes) {
   if (bateria(over).length) mortos++; else console.error('MUTANTE VIVO: ' + n)
 }
 if (mortos !== mutantes.length) process.exit(1)
-console.log(`PASS prova do som: sem o campo nada muda; campo + conta da casa = som só naquele clipe; conta de fora não; a fal nunca vê a marca; som global segue desligado; ${mortos}/${mutantes.length} mutantes mortos`)
+console.log(`PASS prova do som: sem o campo nada muda; campo + conta da casa = som só naquele clipe; conta de fora não; a fal nunca vê a marca; som global LIGADO (prova 14/11); ${mortos}/${mutantes.length} mutantes mortos`)
