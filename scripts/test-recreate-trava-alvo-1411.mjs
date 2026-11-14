@@ -44,6 +44,11 @@ const RESPOSTA = {
   f2bd4efe: { person: 1, visible_pairs: [3, 4], base_vs_result: { hair_color: 'different', beard: 'different', glasses: 'different' }, same_person: 'no', result_vs_photo: 'no', note: 'All attributes different.' },
   ae3edf15: { person: 1, visible_pairs: [1, 2, 3, 4], base_vs_result: { hair_color: 'different', beard: 'different' }, same_person: 'no', result_vs_photo: 'yes', note: 'Hair color and beard differ.' },
   mantida: { person: 1, visible_pairs: [2, 3, 4], base_vs_result: { hair_color: 'same', glasses: 'same', face_shape: 'same' }, same_person: 'yes', result_vs_photo: 'no', note: 'Glasses in video, none in photo.' },
+  // KINEO-RECREATE-TRAVA-SEM-OCULOS-1411 — clip 568db487: o motor trocou rosto, cabelo e barba e deixou os ÓCULOS do original. A resposta errada
+  // do juiz ("é a mesma", guiada pelos óculos) e a resposta certa para os mesmos quadros.
+  oculosEnganam: { person: 1, visible_pairs: [1, 2], base_vs_result: { glasses: 'same' }, same_person: 'yes', result_vs_photo: 'no', note: 'Different hair color and beard in photo.' },
+  oculosFicaram: { person: 1, visible_pairs: [1, 2, 3], base_vs_result: { hair_color: 'different', beard: 'different', face_shape: 'different', glasses: 'same' }, same_person: 'no', result_vs_photo: 'yes', note: 'Hair and beard changed; glasses kept.' },
+  soOculosMudaram: { person: 1, visible_pairs: [3, 4], base_vs_result: { glasses: 'different' }, same_person: 'no', result_vs_photo: 'yes', note: 'Only glasses differ.' },
   sumiu: { person: 1, visible_pairs: [], base_vs_result: {}, same_person: 'uncertain', result_vs_photo: 'uncertain', note: 'Target face not visible.' },
 }
 function rede(resposta) {
@@ -83,6 +88,17 @@ async function bateria(over = {}) {
     const a = await roda(RESPOSTA.mantida); if (a.v.result !== 'unchanged') throw new Error('mantida: ' + a.v.result)
     const b = await roda(RESPOSTA.sumiu); if (b.v.result !== 'uncertain' || b.v.reason !== 'target_unclear') throw new Error('sumiu: ' + b.v.result + ' ' + b.v.reason)
   })
+  await check('óculos não decidem (clip 568db487): só os óculos iguais não é "mantida"; trocou com os óculos do original = swapped; só os óculos diferentes não é "trocou"', async () => {
+    const a = await roda(RESPOSTA.oculosEnganam, { prompt: PEDIDO_AE })
+    if (a.v.result === 'unchanged' || a.v.persons[0].same_as_base === true) throw new Error('os óculos ainda fazem "mantida": ' + a.v.result)
+    const b = await roda(RESPOSTA.oculosFicaram, { prompt: PEDIDO_AE })
+    if (b.v.result !== 'swapped') throw new Error('trocou com os óculos do original: ' + b.v.result + ' ' + b.v.reason)
+    const c = await roda(RESPOSTA.soOculosMudaram, { prompt: PEDIDO_AE })
+    if (c.v.result === 'swapped') throw new Error('só os óculos diferentes virou "trocou"')
+    const sys = a.s.visao.messages[0].content
+    if (!/GLASSES and other accessories/.test(sys) || !/glasses are NOT a reason to say the edited target does not resemble the reference photo/.test(sys) || !/Compare only the face, hair and beard of the target/.test(sys)) throw new Error('o juiz não foi avisado dos óculos')
+    if (/"glasses": "same"/.test(sys)) throw new Error('óculos ainda entre os atributos que decidem')
+  })
   await check('o juiz recebe o ALVO do pedido, 4 pares em ordem e a foto', async () => {
     const { s } = await roda(RESPOSTA.f2bd4efe)
     const user = s.visao.messages[1].content, texto = user[0].text
@@ -100,7 +116,7 @@ async function bateria(over = {}) {
     const base = s.fal.find((b) => b.video_url === VIDEO), saida = s.fal.find((b) => b.video_url === SAIDA)
     if (base.frame_interval !== 47 || saida.frame_interval !== 38 || base.max_frames !== 5 || saida.max_frames !== 5) throw new Error(`intervalos ${base.frame_interval}/${saida.frame_interval} max ${base.max_frames}`)
     if (JSON.stringify(v.instants) !== '[1.58,3.16,4.74,6.32]') throw new Error('instantes ' + JSON.stringify(v.instants))
-    if (JSON.stringify(v.subjects) !== '["the man in the dark blue shirt"]' || JSON.stringify(v.pairs_used) !== '[1,2,3,4]' || v.rule !== 'alvo_4_instantes_1411') throw new Error('marca: ' + JSON.stringify([v.subjects, v.pairs_used, v.rule]))
+    if (JSON.stringify(v.subjects) !== '["the man in the dark blue shirt"]' || JSON.stringify(v.pairs_used) !== '[1,2,3,4]' || v.rule !== 'alvo_4_instantes_sem_oculos_1411') throw new Error('marca: ' + JSON.stringify([v.subjects, v.pairs_used, v.rule]))
   })
   await check('alvosDoPedido: molde da tela, neutro, genérico, texto editado, sujeira', async () => {
     const S = carregar(src, {})
@@ -154,6 +170,8 @@ const mutantes = [
   ['instantes por proporção', { [SC]: sc.replace('extractInstantFrames(providerVideoUrl, opts, intervaloPara(passo, mr?.fps ?? mb.fps), n)', 'extractInstantFrames(providerVideoUrl, opts, intervaloPara((mr?.segundos ?? mb.segundos) * TRAVA_INSTANTES[0], mr?.fps ?? mb.fps), n)') }],
   ['só 2 instantes', { [SC]: sc.replace('export const TRAVA_INSTANTES = [0.2, 0.4, 0.6, 0.8] as const', 'export const TRAVA_INSTANTES = [0.35, 0.7] as const') }],
   ['pares fora de ordem', { [SC]: sc.replace('...pares.flatMap(p => [img(p.base, \'high\'), img(p.result, \'high\')])', "...pares.map(p => img(p.base, 'high')), ...pares.map(p => img(p.result, 'high'))") }],
+  ['óculos voltam a decidir', { [SC]: sc.replace("as Record<string, unknown> | undefined, k, TRAVA_ATRIBUTOS_DO_ALVO))", 'as Record<string, unknown> | undefined, k))') }],
+  ['juiz sem o aviso dos óculos', { [SC]: sc.replace("'NOT a reason to say the edited target does not resemble the reference photo. Compare only the face, hair and beard of the target: hair colour, ' +", "'Compare the target: hair colour, ' +") }],
   ['uncertain entrega', { [FLOW]: flowSrc.replace(" || swapVerdict.result === 'uncertain') { // KINEO-RECREATE-TRAVA-1011", ') { // KINEO-RECREATE-TRAVA-1011') }],
   ['evento sem os instantes', { [SRV]: srv.replace('instants: v.instants ?? null, ', '') }],
 ]

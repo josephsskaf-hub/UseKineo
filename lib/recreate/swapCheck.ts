@@ -92,10 +92,10 @@ const yesNo = (x: unknown): boolean | null => (x === 'yes' || x === true ? true 
  * facial attribute was seen as the same and none as different; "different person" only when at least one facial attribute
  * differs. Anything else (all unclear, only clothing/scene, contradictions) is null = uncertain.
  */
-export function readPerson(r: Record<string, unknown> | undefined, k: number): SwapPerson {
+export function readPerson(r: Record<string, unknown> | undefined, k: number, decidem: ReadonlyArray<string> = SWAP_FACE_ATTRIBUTES): SwapPerson { // KINEO-RECREATE-TRAVA-SEM-OCULOS-1411 — + decidem (padrão: a lista de sempre)
   const attrs = r?.base_vs_result && typeof r.base_vs_result === 'object' ? (r.base_vs_result as Record<string, unknown>) : {}
-  const same = SWAP_FACE_ATTRIBUTES.filter(a => attrs[a] === 'same').length
-  const diff = SWAP_FACE_ATTRIBUTES.filter(a => attrs[a] === 'different').length
+  const same = decidem.filter(a => attrs[a] === 'same').length
+  const diff = decidem.filter(a => attrs[a] === 'different').length
   const said = yesNo(r?.same_person)
   const sameAsBase = said === true ? (same > 0 && diff === 0 ? true : null) : said === false ? (diff > 0 ? false : null) : null
   return { person: k, same_as_base: sameAsBase, matches_photo: yesNo(r?.result_vs_photo), note: typeof r?.note === 'string' ? r.note.slice(0, 120) : '' }
@@ -366,7 +366,13 @@ export async function sweepSwapRefunds(
 // Vale SÓ para o "seu vídeo" no Kling 4.0 edição. Catálogo (Recast) e Seedance: byte a byte como antes. Falha de infraestrutura (quadros ou
 // visão fora do ar) continua `unverified` e entrega, como antes — é outra decisão, descrita à CEO.
 export const TRAVA_INSTANTES = [0.2, 0.4, 0.6, 0.8] as const
-export const TRAVA_ALVO_REGRA = 'alvo_4_instantes_1411' as const
+export const TRAVA_ALVO_REGRA = 'alvo_4_instantes_sem_oculos_1411' as const
+// KINEO-RECREATE-TRAVA-SEM-OCULOS-1411 [CEO 14/11, complemento do pedido 4] — o erro no OUTRO sentido: clip 568db487 (14/11 01:33, último plano, 3 s) saiu unchanged/all_kept
+// (same_as_base true, matches_photo false) e foi ESTORNADO, mas o motor tinha trocado rosto, cabelo e barba — só os ÓCULOS do original ficaram.
+// A trava se guiava por acessório. No Kling edit os óculos do original costumam ficar no rosto novo: eles NÃO decidem nada. Os atributos que
+// decidem "mesma pessoa" e "outra pessoa" passam a ser só rosto, cabelo e barba; e o juiz é avisado de que óculos não são motivo nem para dizer
+// "é a mesma" nem para dizer "não parece a foto". Contraprova da CEO: clip 9afc54fa (mesmo plano, texto com "wears no glasses") = swapped.
+export const TRAVA_ATRIBUTOS_DO_ALVO = ['hair_color', 'hair_length', 'hair_texture', 'beard', 'skin_tone', 'face_shape'] as const
 const ALVO_GENERICO = /^the (main|second|third) person$/i
 
 /** Os alvos escritos no pedido, um por foto (null = não deu para ler; o juiz recebe o sujeito de antes). Só letras, números, espaço, vírgula, apóstrofo e hífen. */
@@ -385,7 +391,7 @@ export function alvosDoPedido(prompt: unknown, slots: number): Array<string | nu
 export function decideSwapEstrito(parsed: unknown, slots: number): { result: SwapCheckResult; reason: string; persons: SwapPerson[] } {
   const raw = parsed && typeof parsed === 'object' && Array.isArray((parsed as { persons?: unknown }).persons) ? (parsed as { persons: unknown[] }).persons : []
   const persons: SwapPerson[] = []
-  for (let k = 1; k <= slots; k++) persons.push(readPerson(raw.find(p => p && typeof p === 'object' && (p as { person?: unknown }).person === k) as Record<string, unknown> | undefined, k))
+  for (let k = 1; k <= slots; k++) persons.push(readPerson(raw.find(p => p && typeof p === 'object' && (p as { person?: unknown }).person === k) as Record<string, unknown> | undefined, k, TRAVA_ATRIBUTOS_DO_ALVO)) // KINEO-RECREATE-TRAVA-SEM-OCULOS-1411 — óculos não decidem
   if (slots < 1 || raw.length === 0) return { result: 'unverified', reason: 'vision_incomplete', persons }
   const kept = persons.filter(p => p.same_as_base === true).length
   const swapped = persons.filter(p => p.same_as_base === false && p.matches_photo === true).length
@@ -405,7 +411,7 @@ export function paresUsados(parsed: unknown, total: number): number[] {
 
 /** As mensagens do juiz com alvo: N pares (base, resultado) no MESMO instante, depois uma foto por pessoa. Exportada para o guardião. */
 export function buildSwapCheckMessagesAlvo(slots: number, pares: ReadonlyArray<{ base: string; result: string; segundos: number }>, photos: string[], alvos: ReadonlyArray<string | null>) {
-  const attrs = SWAP_FACE_ATTRIBUTES.map(a => `"${a}": "same"|"different"|"unclear"`).join(', ')
+  const attrs = TRAVA_ATRIBUTOS_DO_ALVO.map(a => `"${a}": "same"|"different"|"unclear"`).join(', ') // KINEO-RECREATE-TRAVA-SEM-OCULOS-1411 — era SWAP_FACE_ATTRIBUTES (com glasses)
   const system =
     'You are a video quality checker comparing VISIBLE APPEARANCE in still frames. Do not identify anyone, do not name anyone and do not ' +
     'guess who anyone is: only compare how the depicted people look. ' +
@@ -414,9 +420,10 @@ export function buildSwapCheckMessagesAlvo(slots: number, pares: ReadonlyArray<{
     'You receive PAIRS of frames taken at the same moment: the ORIGINAL frame and the EDITED frame. Other people in the frames were NOT meant to ' +
     'change: ignore them completely, even when they are larger or more central than the target. The target may be absent, turned away or too small ' +
     'in some pairs: use only the pairs where the face of the target is visible in BOTH frames, and list them in "visible_pairs". ' +
-    'IMPORTANT: clothing, accessories other than glasses, pose, background, lighting, camera and motion are IDENTICAL between original and edit ' +
-    'BY CONSTRUCTION, so they are NOT evidence that it is the same depicted person. Judge only face and head attributes: hair colour, hair ' +
-    'length, hair texture, beard, skin tone, face shape, glasses. ' +
+    'IMPORTANT: clothing, GLASSES and other accessories, pose, background, lighting, camera and motion are kept from the original BY CONSTRUCTION ' +
+    '(the edit often leaves the original glasses on the new face), so they are NOT evidence that it is the same depicted person, and glasses are ' +
+    'NOT a reason to say the edited target does not resemble the reference photo. Compare only the face, hair and beard of the target: hair colour, ' +
+    'hair length, hair texture, beard, skin tone, face shape. ' +
     `Reply ONLY with JSON: {"persons":[{"person": 1-based index, "visible_pairs": [pair numbers used], "base_vs_result": {${attrs}}, "same_person": "yes"|"no"|"uncertain", ` +
     '"result_vs_photo": "yes"|"no"|"uncertain", "note": "max 15 words, attributes only"}]}. ' +
     '"same_person" answers: is the target in the EDITED frames visually the same depicted person as the target in the ORIGINAL frames? ' +
