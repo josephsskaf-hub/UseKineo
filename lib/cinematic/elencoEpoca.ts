@@ -23,6 +23,7 @@
 //     criatura de gelatina. Tabela pequena, só casos conhecidos. // KINEO-ELENCO-EPOCA-2710
 // Sem nome, sem época e sem falso amigo: os prompts voltam byte a byte. Guardião: scripts/test-elenco-epoca-2710.mjs. // KINEO-ELENCO-EPOCA-2710
 import { sanitizeRealPeople } from '@/lib/hollywood/realPeople' // KINEO-QUALIDADE-TODOS-MOTORES-2910 — pure sanitization, including Ads client. // KINEO-ELENCO-EPOCA-2710 — pessoa real famosa nunca vira "named character" (sem semelhança)
+import { historiaRealLigada, comAnosPorExtenso, papelEhONomeado } from '@/lib/cinematic/historiaReal1411' // KINEO-HISTORIA-REAL-1411
 import { figuraFiel, descricaoFielDoSer, nomesPersonificados, descricaoDoSerPersonificado } from '@/lib/cinematic/seresFieis' // KINEO-JUIZ-REFAZ-2810 — anatomia fiel por espécie + figuras conhecidas: o mascote ("big round friendly eyes and a short tail") morreu aqui
 import { semRotulosDeSecao, PALAVRAS_DE_SECAO, pessoasPossessivas, falaCitaPessoa, cenaMostraPessoa } from '@/lib/cinematic/pessoasDaNarracao' // KINEO-ELENCO-MARCADOR-2910
 import { GRUPOS_NAO_NOME, PALAVRAS_NUNCA_NOME, nomeSoCitado } from '@/lib/cinematic/citadoNaoAge' // KINEO-CITADO-NAO-AGE-0311 // KINEO-SO-GENTE-NA-FICHA-0411
@@ -57,7 +58,7 @@ function rotuloDaDecada(decada: number): string { return decada >= 1900 ? `${dec
 
 /** A época que as PALAVRAS da história fixam (tema + fala, qualquer língua). Primeiro ano/década citado; null = presente ou época mista. */ // KINEO-ELENCO-EPOCA-2710
 export function epocaDaHistoria(contexto: string): Epoca | null { // KINEO-ELENCO-EPOCA-2710
-  const t = digitosAscii(String(contexto ?? '')).slice(0, 6000).replace(RESOLUCAO_RE, ' ') // KINEO-ELENCO-EPOCA-2710
+  const t = digitosAscii(historiaRealLigada() ? comAnosPorExtenso(String(contexto ?? '')) : String(contexto ?? '')).slice(0, 6000).replace(RESOLUCAO_RE, ' ') // KINEO-ELENCO-EPOCA-2710 · KINEO-HISTORIA-REAL-1411 — era: digitosAscii(String(contexto ?? '')) ("nineteen sixty-five" não era lido como época)
   const achados: Array<{ pos: number; ano: number | null; decada: number }> = [] // KINEO-ELENCO-EPOCA-2710
   let presente = false // KINEO-ELENCO-EPOCA-2710
   for (const m of t.matchAll(ANO_RE)) { // KINEO-ELENCO-EPOCA-2710
@@ -473,6 +474,7 @@ export function protagonistaSemNome(textoIngles: string, epoca: Epoca | null = n
   if (!m) return null // KINEO-ELENCO-EPOCA-2710
   const papel = limpa(m[1]) // KINEO-ELENCO-EPOCA-2710
   const nucleo = papel.split(' ').pop() ?? papel // KINEO-ELENCO-EPOCA-2710
+  if (historiaRealLigada() && papelEhONomeado(texto, nucleo)) return null // KINEO-HISTORIA-REAL-1411 — "The thief was Vincenzo Peruggia": o papel É a pessoa nomeada; a ficha dela vale (uma pessoa, uma ficha)
   const frases = frasesCom(texto, nucleo).join(' ') // KINEO-ELENCO-EPOCA-2710
   const d = descrever(`the ${papel.toLowerCase()}`, 'humano', null, papel, frases, [], epoca, new Set(), infantil, povoDaHistoria(texto)) // KINEO-ELENCO-EPOCA-2710 · KINEO-REVISOR-RESTO-3010
   return { nome: `the ${papel.toLowerCase()}`, nomeado: false, tipo: 'humano', genero: d.genero, descricao: d.descricao.replace(/^the\s+[^,(]+(?:\s\([^)]*\))?,\s*/i, `the ${papel.toLowerCase()}, `), protagonista: true, ocorrencias: 1, posicoes: [(m.index ?? 0) / Math.max(1, texto.length)] } // KINEO-ELENCO-EPOCA-2710
