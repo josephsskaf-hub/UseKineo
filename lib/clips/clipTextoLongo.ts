@@ -31,7 +31,29 @@ export function pareceRoteiroDeFilme(texto: string, opcoes?: OpcoesDoRoteiro): b
   const max = tetoDoClipe(opcoes)
   if (temSinalDeFilme(t, max)) return true
   if (temSinalDeClipe(t, max)) return false
+  if (descreveUmPlano(t)) return frasesDeHistoria(t) >= CLIP_CONTO_COM_CAMERA // v2.2
   return frasesDoTexto(t) >= CLIP_CONTO_FRASES // KINEO-CLIPE-CONTO-3010
+}
+
+// v2.2 [revisor independente 14/11] — "Cinematic lighting, slow dolly. A soldier returns home…" (7 frases) era filme na main e
+// virou clipe na v2: 2 termos de câmera anulavam o conto. Agora a câmera só decide clipe quando o texto NÃO é conto: conta-se
+// a frase de HISTÓRIA (3+ palavras e nenhum termo de câmera/luz/lente). Fronteira, decidida com casos dos dois lados:
+//   · 6+ frases de história com câmera = conto (o soldado: 1 frase de câmera + 6 de história);
+//   · até 5 frases de história com câmera = um plano descrito (as cenas longas do corpus tinham 3 a 5 frases no total; as
+//     sintéticas do guardião têm 3 a 5 de história: urso 3, coelho 4, palco/navio/vila/bailarina 5).
+// Sem câmera, a régua de sempre: 5 frases (KINEO-CLIPE-CONTO-3010).
+export const CLIP_CONTO_COM_CAMERA = 6
+/** O texto descreve um plano (2+ termos diferentes de câmera/luz/lente)? */
+export function descreveUmPlano(t: string): boolean {
+  return termosDeCamera(t) >= CLIP_TERMOS_DE_CAMERA
+}
+/** Frases de história: 3+ palavras (ou 5+ ideogramas) e nenhum termo de câmera/luz/lente. */
+export function frasesDeHistoria(texto: string): number {
+  return String(texto ?? '').split(/\n+|(?<=[.!?…؟।])\s+|(?<=[。！？])/u).map((f) => f.trim()).filter((f) => {
+    if (!f) return false
+    const longa = f.split(/\s+/).filter(Boolean).length >= 3 || (f.match(IDEOGRAMA_RE) ?? []).length >= 5
+    return longa && termosDeCamera(f) === 0
+  }).length
 }
 
 // ═══ KINEO-CLIPE-ROTEIRO-QUALQUER-LINGUA-1411 v2 [ensaio no corpus real, 49 pedidos de 30 dias] ═══
@@ -50,22 +72,24 @@ export function temSinalDeFilme(t: string, max: number = CLIP_MAX_SEGUNDOS_PADRA
   if (cenasNumeradasDeFilme(t, max)) return true
   return PASSA_O_TEMPO_RE.test(t)
 }
-/** Sinais de clipe: a foto enviada como quadro inicial, blocos de tempo que cabem no clipe, ou o plano descrito com 2+ termos
- *  de câmera/luz/lente. Só pesam quando não há sinal de filme. */
+/** Sinais FORTES de clipe: a foto enviada como quadro inicial, ou blocos de tempo que cabem no clipe. Só pesam quando não há
+ *  sinal de filme. (O plano descrito com câmera é sinal fraco: ver descreveUmPlano, v2.2.) */
 export function temSinalDeClipe(t: string, max: number = CLIP_MAX_SEGUNDOS_PADRAO): boolean {
   if (FOTO_COMO_QUADRO_RE.test(t)) return true
   const blocos = fimDosBlocosDeTempo(t)
-  if (blocos.length > 0 && Math.max(...blocos) <= max) return true
-  return termosDeCamera(t) >= CLIP_TERMOS_DE_CAMERA
+  return blocos.length > 0 && Math.max(...blocos) <= max
 }
 
 // v2.1 [corpus real 14/11] — dois monólogos dos EUA só eram filme por terem 16 frases: quem fala para a câmera ou conta uma
 // história pede FALA. Formas que não aparecem num pedido de plano mudo; nas 4 outras línguas do site, só as formas certas.
-const FALA_PARA_A_CAMERA_RE = /(?<![\p{L}])(?:(?:speaks?|speaking|talks?|talking|says?) (?:directly )?(?:to|into) (?:the )?camera|tell(?:s|ing)? (?:this|the|a|his|her|their|my|our) story|fala(?:ndo)? (?:direto )?(?:para|pra|com) a c[âa]mera|conta(?:ndo)? (?:a|sua|esta|essa|uma) hist[óo]ria|habla(?:ndo)? (?:a|hacia) (?:la )?c[áa]mara|cuenta(?:ndo)? (?:la|su|esta|una) historia|contando (?:la|su|esta|una) historia|parle (?:face )?(?:à|a) la cam[ée]ra|raconte (?:l'|son |sa |cette |une )histoire|spricht (?:direkt )?in die kamera|erz[äa]hlt (?:die|seine|ihre|diese|eine) geschichte)(?![\p{L}])/iu
+// v2.2 [revisor] — "Tell the story of my brand in one shot" é pedido ao gerador, não fala: "contar a história" só conta com
+// a pessoa contando a PRÓPRIA história (his/her/their; sua/su/son/sa/seine/ihre) ou contando para a câmera. Imperativo fora.
+const FALA_PARA_A_CAMERA_RE = /(?<![\p{L}])(?:(?:speaks?|speaking|talks?|talking|says?) (?:directly )?(?:to|into) (?:the )?camera|(?:tells|telling) (?:his|her|their) (?:own )?(?:life )?story|(?:tells|telling) (?:the|a|this|his|her|their|my|our) story (?:directly )?(?:to|into) (?:the )?camera|fala(?:ndo)? (?:direto )?(?:para|pra|com) a c[âa]mera|(?:conta|contando) (?:a )?sua (?:pr[óo]pria )?hist[óo]ria|habla(?:ndo)? (?:a|hacia) (?:la )?c[áa]mara|(?:cuenta|contando) su (?:propia )?historia|parle (?:face )?(?:à|a) la cam[ée]ra|(?:raconte|racontant) (?:son|sa|leur) histoire|spricht (?:direkt )?in die kamera|erz[äa]hlt (?:seine|ihre) (?:eigene )?geschichte)(?![\p{L}])/iu
 // v2.1 [corpus real 14/11] — a história de "15-second" com "Plot:" e "In the finale" virou clipe na v2. Marca EXPLÍCITA de
-// enredo é sinal de filme (o cliente quer a história contada, não um plano), mesmo quando o tempo cabe no motor. Só rótulo
-// com dois-pontos ou expressão de enredo: "grand finale" de fogos de artifício não conta.
-const ENREDO_RE = /(?<![\p{L}])(?:(?:plot|storyline|synopsis|sinopse|sinopsis|enredo|trama|handlung|intrigue)\s*:|in the finale|plot twist|reviravolta final|giro final|rebondissement final)(?![\p{L}])/iu
+// enredo é sinal de filme (o cliente quer a história contada, não um plano), mesmo quando o tempo cabe no motor.
+// v2.2 [revisor] — só como RÓTULO, no começo da linha ou depois de fim de frase ("Plot: …"); "plot twist" solto ("Plot twist
+// ending? No, just a cat…") não conta. "In the finale" fica (o corpus real tem). "grand finale" de fogos não conta.
+const ENREDO_RE = /(?:^|[\n.!?;]\s*)(?:plot|storyline|synopsis|sinopse|sinopsis|enredo|trama|handlung|intrigue)\s*:|(?<![\p{L}])in the finale(?![\p{L}])/iu
 
 // KINEO-REVISOR-RESTO-3010 — revisões de 30/10: 6 de 19 filmes eram clipe MUDO para quem pediu fala (urdu, espanhol, PT),
 // e um anúncio de 30 s virou clipe de 10 s. Texto curto também é roteiro quando pede voz, fala ou mais tempo do que o clipe tem.
@@ -135,11 +159,49 @@ const UNIDADE_SEM_ESPACO_SEG = '(?:秒|초|วินาที)'
 const UNIDADE_SEM_ESPACO_MIN = '(?:分钟|分間|分(?!の)|분|นาที)'
 const ANTES_DO_NUMERO = '(?<![\\d:.,x×/])'
 const FIM_DA_UNIDADE = '[\\p{M}]*(?![\\p{L}\\p{M}])'
+// v2.2 — decimal ("13.5 seconds") lido inteiro; o ponto/vírgula ANTES do número segue barrando ("1/50 s", "2:45 minutes").
 const TEMPO_RE = new RegExp(
-  `${ANTES_DO_NUMERO}(\\d{1,3})(?!\\d)[\\s-]*(?:(${UNIDADE_SEGUNDO})${FIM_DA_UNIDADE}|(${UNIDADE_SEM_ESPACO_SEG})|(${UNIDADE_MINUTO})${FIM_DA_UNIDADE}|(${UNIDADE_SEM_ESPACO_MIN}))`, 'giu')
-/** Cada tempo escrito no texto, em segundos ("30 ثانية" → 30, "2 minutes" → 120, "٣٠ ثانية" → 30). */
+  `${ANTES_DO_NUMERO}(\\d{1,3}(?:[.,]\\d{1,2})?)(?![\\d.,]\\d)([\\s-]*)(?:(${UNIDADE_SEGUNDO})${FIM_DA_UNIDADE}|(${UNIDADE_SEM_ESPACO_SEG})|(${UNIDADE_MINUTO})${FIM_DA_UNIDADE}|(${UNIDADE_SEM_ESPACO_MIN}))`, 'giu')
+
+// ═══ v2.2 [revisor independente 14/11] — a duração só vale quando fala do TAMANHO do vídeo ═══
+// "Timelapse of 30 minutes of sunset in 8 seconds", "A clock showing 15 minutes past ten", "a 20-second exposure photo look"
+// eram clipe na main e viraram filme na v2. Regras (en/pt/es/fr/de; outras escritas seguem lendo o número + unidade):
+//   · TAMANHO declarado vence: "in N seconds", "N-second video/clip/short…", "N seconds long", "video of N seconds";
+//   · não é tamanho: "N minutes of/past/to/later/ago/before/after/left…", "after/before N minutes", "N-second exposure/shutter",
+//     "a 30-minute drive/walk/ride";
+//   · década/estilo não é duração: "60s style", "90s colors", "the 80s", "'90s".
+const PALAVRA_DE_VIDEO = '(?:video|videos|clip|clips|shot|film|movie|short|animation|animated|cartoon|ad|advert|commercial|reel|reels|trailer|teaser|intro|spot|story|sequence|long|v[íi]deo|filme|anima[çc][ãa]o|animado|an[úu]ncio|clipe|curta|pel[íi]cula|animaci[óo]n|anuncio|vid[ée]o|publicit[ée]|dur[ée]e|dura[çc][ãa]o|duraci[óo]n|duration|lang)'
+const TAMANHO_DEPOIS_RE = new RegExp(`^\\s*(?:-\\s*)?(?:(?:of|de|do|da)\\s+)?${PALAVRA_DE_VIDEO}(?![\\p{L}])`, 'iu')
+const TAMANHO_ANTES_RE = new RegExp(`(?:(?:^|[^\\p{L}])(?:in|within|em|en|dans|lasting|durante|dura|mide)|${PALAVRA_DE_VIDEO}\\s+(?:of|de|com|con|avec|von|mit))\\s+(?:(?:just|only|about|around|apenas|s[óo]|cerca de|unos|unas|environ|nur|etwa)\\s+)?$`, 'iu')
+const NAO_E_TAMANHO_DEPOIS_RE = /^\s*(?:-\s*)?(?:of|past|to|till|until|later|ago|before|after|earlier|away|left|remaining|old|exposure|shutter|drive|walk|ride|flight|trip|commute|break|nap|workout|run|jog|wait|delay|lunch|meeting|de|depois|antes|atr[áa]s|mais tarde|para as|despu[ée]s|m[áa]s tarde|plus tard|avant|apr[èe]s|sp[äa]ter|vorher|danach|vor|nach|bis)(?![\p{L}])/iu
+const NAO_E_TAMANHO_ANTES_RE = /(?:^|[^\p{L}])(?:after|before|past|for the last|depois de|antes de|h[áa]|despu[ée]s de|hace|apr[èe]s|avant|il y a|nach|vor|seit)\s+(?:(?:about|around|cerca de|unos|environ|etwa)\s+)?$/iu
+const DECADA_DEPOIS_RE = /^\s*(?:style|styled|colou?rs?|vibes?|look|era|aesthetic|fashion|music|songs?|hits|retro|vintage|sitcom|anime|cartoons?|hair|outfits?|clothes|movies?|films?|tv|kids|nostalgia|estilo|cores|moda|m[úu]sica|anos|a[ñn]os|ann[ée]es|jahre|stil|farben)(?![\p{L}])/iu
+const DECADA_ANTES_RE = /(?:the|of the|in the|dos|das|anos|los|a[ñn]os|des|ann[ée]es|der|die)\s*$|['’]$/iu
+interface TempoNoTexto { segundos: number; tamanho: boolean }
+/** Cada tempo escrito no texto que pode ser o tamanho do vídeo (tamanho = declarado como tal); década e tempo do assunto saem. */
+export function temposDoTexto(texto: string): TempoNoTexto[] {
+  const t = algarismosLatinos(String(texto ?? ''))
+  const out: TempoNoTexto[] = []
+  for (const m of t.matchAll(TEMPO_RE)) {
+    const inicio = m.index ?? 0
+    const antes = t.slice(Math.max(0, inicio - 40), inicio)
+    const depois = t.slice(inicio + m[0].length, inicio + m[0].length + 40)
+    const numero = m[1]
+    const unidade = m[3] ?? ''
+    if (/^s$/i.test(unidade) && m[2] === '' && /^[2-9]0$/.test(numero) && (DECADA_DEPOIS_RE.test(depois) || DECADA_ANTES_RE.test(antes))) continue
+    const segundos = Number(numero.replace(',', '.')) * (m[5] || m[6] ? 60 : 1)
+    if (TAMANHO_DEPOIS_RE.test(depois) || TAMANHO_ANTES_RE.test(antes)) { out.push({ segundos, tamanho: true }); continue }
+    if (NAO_E_TAMANHO_DEPOIS_RE.test(depois) || NAO_E_TAMANHO_ANTES_RE.test(antes)) continue
+    out.push({ segundos, tamanho: false })
+  }
+  return out
+}
+/** Os tempos que pedem o tamanho do vídeo, em segundos ("30 ثانية" → 30, "2 minutes" → 120): se o texto DECLARA o tamanho
+ *  ("in 8 seconds", "60-second video"), só esses; senão, todos os que sobraram. */
 export function temposPedidos(texto: string): number[] {
-  return Array.from(algarismosLatinos(String(texto ?? '')).matchAll(TEMPO_RE), (m) => Number(m[1]) * (m[4] || m[5] ? 60 : 1))
+  const tempos = temposDoTexto(texto)
+  const declarados = tempos.filter((x) => x.tamanho)
+  return (declarados.length > 0 ? declarados : tempos).map((x) => x.segundos)
 }
 /** A duração que o texto pede: o MAIOR tempo escrito (blocos 0–3 s / 3–6 s / 6–10 s pedem 10 s, não a soma). */
 export function duracaoPedida(texto: string): number {
@@ -162,14 +224,35 @@ export function fimDosBlocosDeTempo(texto: string): number[] {
 // "OPEN" ou o nome "Happy Birthday" não contam.
 const FALA_ENTRE_ASPAS_RE = /«([^«»\n]+)»|“([^“”\n]+)”|„([^„“”\n]+)[“”]|"([^"\n]+)"|「([^「」\n]+)」|『([^『』\n]+)』|‹([^‹›\n]+)›|”([^”\n]+)”/gu
 const IDEOGRAMA_RE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}]/gu
-/** Quantas falas (trechos entre aspas com cara de frase) o texto traz. */
+// v2.2 [revisor] — dois nomes de produto ("Morning Dew Shampoo" e "Night Bloom Conditioner") e dois letreiros de 3+ palavras
+// viravam filme. Em escrita LATINA, aspas só são fala quando há QUEM FALA: verbo de fala perto (antes, na mesma frase, ou
+// logo depois: '"Run!" she shouts'), e nenhuma palavra de texto escrito (sign, label, title, logo…) entre eles. Em outras
+// escritas (árabe, cirílico, CJK…) fica a régua de 2+ aspas longas: não há lista segura de verbos para todas.
+const VERBO_DE_FALA_RE = /(?<![\p{L}])(?:says?|said|saying to|asks?|asked|repl(?:y|ies|ied)|answers?|answered|shouts?|shouted|yells?|yelled|whispers?|whispered|tells?|told|exclaims?|exclaimed|screams?|screamed|mutters?|muttered|adds?|added|continues|responds?|responded|cries|cried|diz|disse|dizendo|fala|falou|pergunta|perguntou|responde|respondeu|grita|gritou|sussurra|sussurrou|exclama|exclamou|completa|completou|acrescenta|continua|dice|dijo|diciendo|pregunt[aó]|respond(?:e|i[oó])|grit[aó]|susurr[aó]|exclam[aó]|a[ñn]ade|dit|disant|demande|demanda|r[ée]pond|r[ée]pondit|crie|cria|murmure|s'exclame|ajoute|sagt|sagte|fragt|fragte|antwortet|antwortete|ruft|rief|fl[üu]stert|fl[üu]sterte|schreit|schrie)(?![\p{L}])/iu
+const TEXTO_ESCRITO_RE = /(?<![\p{L}])(?:signs?|signboard|reads|reading|labels?|labell?ed|text|titled?|caption(?:ed)?|logo|named|called|written|writing|banner|poster|brand|product|packaging|bottle|t-?shirt|shirt|neon|font|headline|placa|letreiro|r[óo]tulo|etiqueta|t[íi]tulo|legenda|escrito|chamad[oa]|nomead[oa]|faixa|cartaz|marca|produto|cartel|letrero|llamad[oa]|pancarta|panneau|[ée]tiquette|titre|nomm[ée]e?|appel[ée]e?|[ée]crit|affiche|schild|etikett|titel|aufschrift|genannt|namens|plakat)(?![\p{L}])/iu
+const LATINA_RE = /\p{Script=Latin}/gu
+const LETRA_RE = /\p{L}/gu
+/** Quantas falas (trechos entre aspas com cara de frase e, em escrita latina, com quem fala) o texto traz. */
 export function falasEntreAspas(texto: string): number {
+  const t = String(texto ?? '')
   let n = 0
-  for (const m of String(texto ?? '').matchAll(FALA_ENTRE_ASPAS_RE)) {
+  for (const m of t.matchAll(FALA_ENTRE_ASPAS_RE)) {
     const miolo = (m.slice(1).find((g) => g !== undefined) ?? '').trim()
-    if (miolo.split(/\s+/).filter(Boolean).length >= 3 || (miolo.match(IDEOGRAMA_RE) ?? []).length >= 5) n++
+    if (!(miolo.split(/\s+/).filter(Boolean).length >= 3 || (miolo.match(IDEOGRAMA_RE) ?? []).length >= 5)) continue
+    const latina = (miolo.match(LATINA_RE) ?? []).length * 2 > (miolo.match(LETRA_RE) ?? []).length
+    if (latina && !temQuemFala(t, m.index ?? 0, (m.index ?? 0) + m[0].length)) continue
+    n++
   }
   return n
+}
+/** Há verbo de fala junto da aspa (antes, na mesma frase; ou logo depois) e nenhum texto escrito no meio? */
+function temQuemFala(t: string, abre: number, fecha: number): boolean {
+  const antesTudo = t.slice(Math.max(0, abre - 80), abre)
+  const antes = antesTudo.split(/[.!?\n](?=\s|$)/).pop() ?? ''
+  const depois = (t.slice(fecha, fecha + 30).split(/[.!?\n]/)[0] ?? '')
+  const falaAntes = VERBO_DE_FALA_RE.test(antes) && !TEXTO_ESCRITO_RE.test(antes)
+  const falaDepois = VERBO_DE_FALA_RE.test(depois) && !TEXTO_ESCRITO_RE.test(depois)
+  return falaAntes || falaDepois
 }
 export const CLIP_FALAS_ENTRE_ASPAS = 2
 
