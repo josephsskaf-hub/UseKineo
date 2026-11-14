@@ -194,12 +194,77 @@ async function verify(overrides={}){
   await genderClient.generateSeuVideo({...input(C,genderChecked),prompt:genderPrompt,genders,promptEdited:false})
   ok(genderTransport.calls.find(c=>c.url===API).body.prompt_edited===true,'gender-based prompt is edited even when equal to checked prompt')
   const invalidGender=transport(),invalidClient=C.createSeuVideoClient({fetch:invalidGender.fetch,presentation:serverPresentation})
-  await errorOf(C,()=>invalidClient.prepareSeuVideo({file:high,people:2,genders:['man']}),'genders','missing photo gender rejects before any upload')
+  await errorOf(C,()=>invalidClient.prepareSeuVideo({file:high,people:1,genders:['man','woman']}),'genders','excess photo gender rejects before any upload')
   ok(invalidGender.calls.length===0,'invalid gender never sends uploads')
   const mismatch=await errorOf(C,()=>genderClient.generateSeuVideo({...input(C,genderChecked),genders:['man']}),'genders_changed','changed gender requires a fresh check')
   const changedGenderCost=genderTransport.calls.length
   await errorOf(C,()=>genderClient.generateSeuVideo({...input(C,genderChecked),confirmedCredits:99}),'cost_changed','gender prompt still requires checked quote confirmation')
   ok(genderTransport.calls.length===changedGenderCost,'gender cost confirmation sends no extra request')
+  // M9 source contract: execute current client against the optional fields published by the real /check.
+  const sourceAst=ts.createSourceFile('textoDoPedido.ts',read('lib/recreate/textoDoPedido.ts'),ts.ScriptTarget.Latest,true)
+  const sourceUnion=sourceAst.statements.find(node=>ts.isTypeAliasDeclaration(node)&&node.name.text==='FonteDoTexto')
+  const sourceValues=sourceUnion.type.types.map(node=>node.literal.text)
+  ok(sourceValues.includes('sugestao'),'backend prompt source includes suggestion origin')
+  const backend=read('app/api/recreate/seu-video/check/route.ts')
+  ok(backend.includes('Array.isArray(raw.photos)')&&backend.includes('ownedClipImageUrl(u, user.id, supabaseUrl)')&&backend.includes('body.suggested_genders')&&backend.includes('body.prompt_source'),'new metadata and owned photo input match actual check source')
+  for(const value of sourceValues){const f=await prepared(C,{check:{prompt_source:value}});ok(f.checked.prompt_source===value,'every actual backend prompt source is preserved')}
+  const legacy=await prepared(C)
+  ok(!Object.hasOwn(legacy.checked,'suggested_genders')&&!Object.hasOwn(legacy.checked,'prompt_source'),'legacy check without metadata remains accepted')
+  const unknownSource=await prepared(C,{check:{prompt_source:'provider-secret-future',suggested_genders:'not-an-array'}})
+  ok(!Object.hasOwn(unknownSource.checked,'prompt_source')&&!Object.hasOwn(unknownSource.checked,'suggested_genders'),'unrecognized optional metadata is ignored safely')
+  for(const [people,raw,expected]of[[2,[null,'woman'],[null,'woman']],[3,['man',null,'woman'],['man',null,'woman']],[3,['invalid','woman'],[null,'woman',null]],[1,['woman','man'],['woman']],[2,[],[null,null]]]){
+    const f=await prepared(C,{check:{suggested_genders:raw}},people)
+    ok(JSON.stringify(f.checked.suggested_genders)===JSON.stringify(expected)&&Object.isFrozen(f.checked.suggested_genders),'suggestions preserve every slot including null unknown and missing')
+  }
+  const checkedPhotos=[photo('one.jpg'),photo('two.jpg')],manual=['man',null],m9Transport=transport({check:{prompt:'Server @Video1 @Image1 @Image2',credits:57,suggested_genders:['woman','man'],prompt_source:'sugestao'}})
+  let photoPrepares=0
+  const m9Client=C.createSeuVideoClient({fetch:m9Transport.fetch,preparePhoto:async file=>{photoPrepares++;return file}})
+  C.validateSeuVideoPhotos(checkedPhotos);C.genderSeuVideoPrompt(['man','woman'])
+  ok(m9Transport.calls.length===0,'M9 selecting photos and constructing client never performs I/O')
+  const m9Checked=await m9Client.prepareSeuVideo({file:video(),people:2,photos:checkedPhotos,genders:manual,positions:['on the left','on the right']})
+  const checkRequest=m9Transport.calls.find(call=>call.url===API+'/check')
+  ok(m9Transport.calls.map(call=>call.method+' '+call.url).join('|')==='POST '+API+'/upload|PUT https://storage.example/upload/signed?token=fixture|POST /api/avatar/upload|POST /api/avatar/upload|POST '+API+'/check','M9 authenticates video upload then prepares owned photos before check')
+  ok(Array.isArray(checkRequest.body.photos)&&checkRequest.body.photos.length===2&&checkRequest.body.photos.every((url,i)=>url.endsWith('photo-'+(i+1)+'.jpg'))&&!Object.hasOwn(checkRequest.body,'genders'),'partial manual choice is omitted from strict backend field and photo order stays exact')
+  ok(JSON.stringify(m9Checked.genders)==='["man",null]'&&JSON.stringify(m9Checked.suggested_genders)==='["woman","man"]','partial manual choices stay separate and are never overwritten by suggestions')
+  ok(m9Checked.credits===57&&m9Checked.prompt==='Server @Video1 @Image1 @Image2'&&m9Checked.prompt_source==='sugestao','checked prompt quote and source are server authority')
+  const beforeConfirm=m9Transport.calls.length
+  await errorOf(C,()=>m9Client.generateSeuVideo({...input(C,m9Checked,checkedPhotos),confirmedCredits:40}),'cost_changed','new checked quote requires explicit confirmation before submit')
+  ok(m9Transport.calls.length===beforeConfirm,'unconfirmed new quote performs no additional upload or submit')
+  await errorOf(C,()=>m9Client.generateSeuVideo({...input(C,m9Checked,checkedPhotos),genders:['woman','man']}),'genders_changed','manual non-null choice cannot change under an existing check')
+  const userPrompt='Keep my custom @Video1 instruction for @Image1 and @Image2.'
+  await m9Client.generateSeuVideo({...input(C,m9Checked,checkedPhotos),prompt:userPrompt,promptEdited:true,genders:['man','man']})
+  const m9Post=m9Transport.calls.find(call=>call.url===API)
+  ok(m9Post.body.prompt===userPrompt&&m9Post.body.prompt_edited===true,'explicitly edited instruction survives suggestions and submit')
+  ok(JSON.stringify(m9Post.body.photos)===JSON.stringify(checkRequest.body.photos)&&count(m9Transport,'/api/avatar/upload')===2&&photoPrepares===2,'photo URLs and prepared File cache are reused from check through generation')
+  const beforePhotoChange=m9Transport.calls.length
+  await errorOf(C,()=>m9Client.generateSeuVideo({...input(C,m9Checked,[photo('changed.jpg'),checkedPhotos[1]]),key:'new-photos-key-0001'}),'photos_changed','checked photo identity cannot be swapped before submit')
+  ok(m9Transport.calls.length===beforePhotoChange,'changed checked photo causes no endpoint calls')
+  const emptyManual=transport({check:{suggested_genders:[null,'woman']}}),emptyClient=C.createSeuVideoClient({fetch:emptyManual.fetch,preparePhoto:async f=>f}),emptyPhotos=[photo(),photo()]
+  const emptyChecked=await emptyClient.prepareSeuVideo({file:video(),people:2,photos:emptyPhotos,genders:[null,null]})
+  await emptyClient.generateSeuVideo({...input(C,emptyChecked,emptyPhotos),genders:[null,'woman']})
+  ok(!Object.hasOwn(emptyManual.calls.find(call=>call.url===API+'/check').body,'genders')&&count(emptyManual,API)===1,'unfilled choices never block Generate and null slots may receive suggestions')
+  const snapTransport=transport(),snapClient=C.createSeuVideoClient({fetch:snapTransport.fetch,preparePhoto:async f=>f}),clicked=photo('clicked.jpg'),replacement=photo('replacement.jpg'),snapInput={file:video(),people:1,photos:[clicked],genders:[null],positions:['on the left']}
+  const checking=snapClient.prepareSeuVideo(snapInput);snapInput.photos[0]=replacement;snapInput.genders[0]='woman';snapInput.positions[0]='on the right';snapInput.people=3
+  const snapChecked=await checking,snapCheck=snapTransport.calls.find(call=>call.url===API+'/check')
+  ok(snapChecked.people===1&&snapChecked.genders[0]===null&&snapCheck.body.positions[0]==='on the left'&&snapTransport.calls.find(call=>call.url==='/api/avatar/upload').body.get('file').name==='clicked.jpg','explicit check snapshots people photos manual choices and positions before awaits')
+  for(const [stage,options]of[['video account gate',{errors:{[API+'/upload']:{status:404}}}],['signed PUT',{putStatus:500}]]){
+    const f=transport(options),c=C.createSeuVideoClient({fetch:f.fetch,preparePhoto:async f=>f})
+    await errorOf(C,()=>c.prepareSeuVideo({file:video(),people:1,photos:[photo()]}),stage==='video account gate'?'unavailable':'upload','preparation stops at '+stage)
+    ok(count(f,'/api/avatar/upload')===0&&count(f,API+'/check')===0,'failed account or video upload never uploads photos or checks')
+  }
+  const badPhotos=transport(),badPhotosClient=C.createSeuVideoClient({fetch:badPhotos.fetch})
+  for(const [files,people,code]of[[[],1,'photos'],[[photo()],2,'people_changed'],[[new File(['x'],'bad.gif',{type:'image/gif'})],1,'photo_format']])await errorOf(C,()=>badPhotosClient.prepareSeuVideo({file:video(),people,photos:files}),code,'invalid selected photos reject locally')
+  ok(badPhotos.calls.length===0,'invalid selected photos cause zero I/O')
+  const uploadFailure=transport({errors:{'/api/avatar/upload':{status:503,body:{error:'Upload failed'}}}}),uploadFailureClient=C.createSeuVideoClient({fetch:uploadFailure.fetch,preparePhoto:async f=>f})
+  await errorOf(C,()=>uploadFailureClient.prepareSeuVideo({file:video(),people:1,photos:[photo()]}),'http','photo upload failure is explicit')
+  ok(count(uploadFailure,API+'/check')===0&&count(uploadFailure,API)===0,'photo upload failure cannot reach check or generation')
+  const retryPhotos=[photo('stable.jpg')],retryTransport=transport({firstGenerateNetwork:true,check:{suggested_genders:['woman'],prompt_source:'sugestao'}}),retryClient=C.createSeuVideoClient({fetch:retryTransport.fetch,preparePhoto:async f=>f}),retryChecked=await retryClient.prepareSeuVideo({file:video(),people:1,photos:retryPhotos})
+  const retryArgs={...input(C,retryChecked,retryPhotos),prompt:'Keep @Video1 with @Image1.',promptEdited:true,genders:['woman']}
+  const uncertain=await errorOf(C,()=>retryClient.generateSeuVideo(retryArgs),'network','new metadata preserves uncertain dispatch outcome')
+  ok(uncertain.outcome==='unknown'&&count(retryTransport,API)===1,'uncertain new request never retries itself')
+  await retryClient.generateSeuVideo(retryArgs)
+  const posts=retryTransport.calls.filter(call=>call.url===API)
+  ok(posts.length===2&&JSON.stringify(posts[0].body)===JSON.stringify(posts[1].body)&&posts[0].headers['idempotency-key']===posts[1].headers['idempotency-key']&&count(retryTransport,API+'/check')===1&&count(retryTransport,'/api/avatar/upload')===1,'explicit unknown retry uses same checked key photo URLs and instruction without another check')
   ok(W.accidental===0,'all operations use injected transport and no implicit network')
 }
 
@@ -207,10 +272,18 @@ await verify()
 const baselineChecks=checks
 const replace=(from,to,rel=CLIENT)=>{const s=read(rel);assert.equal(s.split(from).length-1,1,'unique mutant anchor '+from);return{[rel]:s.replace(from,to)}}
 const mutations=[
+  ['check drops owned photo URLs',()=>replace('...(selectedPhotos ? { photos } : {})','...(selectedPhotos ? {} : {})'),'partial manual choice is omitted from strict backend field and photo order stays exact'],
+  ['suggestions compact empty slots',()=>replace("value[i] === 'man' || value[i] === 'woman' ? value[i] : null","value.filter(gender => gender === 'man' || gender === 'woman')[i] ?? null"),'suggestions preserve every slot including null unknown and missing'],
+  ['server suggestion overwrites manual choices',()=>replace('...(genders ? { genders } : {})','...(genders ? { genders: suggestions ?? genders } : {})'),'partial manual choices stay separate and are never overwritten by suggestions'],
+  ['partial manual array sent to strict backend',()=>replace('requestedGenders ? { genders: requestedGenders } : {}','genders ? { genders } : {}'),'partial manual choice is omitted from strict backend field and photo order stays exact'],
+  ['suggestion source lost',()=>replace("'tela', 'visao', 'tela_e_visao', 'sugestao', 'padrao'","'tela', 'visao', 'tela_e_visao', 'padrao'"),'every actual backend prompt source is preserved'],
+  ['checked photo identity ignored',()=>replace('if (preparedPhotos && preparedPhotos.some((file, i) => file !== input.photos[i]))','if (false)'),'checked photo identity cannot be swapped before submit'],
+  ['photo cache discarded before submit',()=>replace('const cached = uploadedPhotos.get(file)','const cached = undefined'),'explicit retry retains same key payload and photo URL'],
+  ['edited user prompt replaced by suggestion',()=>replace('prompt: prompt.prompt, consent: true','prompt: checked.prompt, consent: true'),'explicitly edited instruction survives suggestions and submit'],
   ['browser imports whole provider module',()=>replace("validarPrompt, promptPorGenero,\n} from './seuVideoRules'","validarPrompt, promptPorGenero,\n} from './seuVideo'"),'browser dependency graph excludes provider module'],
   ['explicit refusal stays uncertain on 5xx',()=>replace(' && !hasServerCode',''),'explicit refusal preserves server message and unlocks retry even on 5xx'],
   ['server failure message replaced',()=>replace("let message = typeof data.error === 'string' ? data.error : 'This step could not finish. Please retry.'","let message = 'Please retry.'"),'explicit refusal preserves server message and unlocks retry even on 5xx'],
-  ['gender prompt falsely unedited',()=>replace('input.promptEdited === true || !!genders || prompt.prompt !== checked.prompt','input.promptEdited === true || prompt.prompt !== checked.prompt'),'gender-based prompt is edited even when equal to checked prompt'],
+  ['gender prompt falsely unedited',()=>replace('input.promptEdited === true || genders?.some(gender => gender !== null) === true || prompt.prompt !== checked.prompt','input.promptEdited === true || prompt.prompt !== checked.prompt'),'gender-based prompt is edited even when equal to checked prompt'],
   ['local dimension check removed',()=>replace('if (limits && Math.min(meta.largura, meta.altura) < limits.minSide)','if (false)'),'server-selected limits reject locally before uploads'],
   ['gender silently defaults to man',()=>replace("genders.some(g => g !== 'man' && g !== 'woman')","false",RULES),'incomplete gender never defaults to Man'],
   ['singular prompt loses gender pronoun',()=>replace("(gender === 'man' ? 'his' : 'her')","'their'",RULES),'approved singular prompt is exact'],

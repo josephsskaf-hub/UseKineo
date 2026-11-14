@@ -8,6 +8,8 @@ import {
 } from './seuVideoRules'
 import type { SeuVideoGender, SeuVideoPresentation } from './seuVideoRules'
 
+export type SeuVideoGenderChoice = SeuVideoGender | null
+export type SeuVideoPromptSource = 'tela' | 'visao' | 'tela_e_visao' | 'sugestao' | 'padrao'
 export type SeuVideoPhase = 'local' | 'video-upload' | 'check' | 'photo-upload' | 'generate' | 'status'
 export class SeuVideoClientError extends Error {
   readonly name = 'SeuVideoClientError'
@@ -46,7 +48,10 @@ export type CheckedSeuVideo = Readonly<{
   shortfall?: number
   needs_plan?: boolean
   presentation?: SeuVideoPresentation
-  genders?: readonly SeuVideoGender[]
+  /** Manual choices as clicked, including empty slots. Suggestions never overwrite these. */
+  genders?: readonly SeuVideoGenderChoice[]
+  suggested_genders?: readonly SeuVideoGenderChoice[]
+  prompt_source?: SeuVideoPromptSource
 }>
 export type SeuVideoClip = Readonly<{
   id: string
@@ -58,7 +63,14 @@ export type SeuVideoClip = Readonly<{
   refundConfirmed: boolean
 }>
 export type SeuVideoSubmission = Readonly<{ clip: SeuVideoClip; replay: boolean; key: string }>
-export type PrepareSeuVideoInput = { file: File; people: number; positions?: readonly string[]; genders?: readonly SeuVideoGender[] }
+export type PrepareSeuVideoInput = {
+  file: File
+  people: number
+  positions?: readonly string[]
+  genders?: readonly SeuVideoGenderChoice[]
+  /** Optional for legacy callers. Upload/check only from explicit authenticated Generate. */
+  photos?: readonly File[]
+}
 export type GenerateSeuVideoInput = {
   checked: CheckedSeuVideo
   photos: readonly File[]
@@ -68,7 +80,7 @@ export type GenerateSeuVideoInput = {
   /** Actual latest /check credits the person has explicitly confirmed. */
   confirmedCredits: number
   promptEdited?: boolean
-  genders?: readonly SeuVideoGender[]
+  genders?: readonly SeuVideoGenderChoice[]
 }
 export type SeuVideoClientDeps = {
   fetch?: typeof fetch
@@ -98,10 +110,18 @@ export function defaultSeuVideoPrompt(people: number, positions: readonly string
 export function genderSeuVideoPrompt(genders: readonly SeuVideoGender[], positions: readonly string[] = []): string {
   return promptPorGenero(genders, positions)
 }
-function chosenGenders(genders: readonly SeuVideoGender[] | undefined, people: number): readonly SeuVideoGender[] | undefined {
+function chosenGenders(genders: readonly SeuVideoGenderChoice[] | undefined, people: number): readonly SeuVideoGenderChoice[] | undefined {
   if (genders === undefined) return undefined // old callers remain compatible
-  if (!Array.isArray(genders) || genders.length !== people || genders.some(g => g !== 'man' && g !== 'woman')) fail('Choose Man or Woman for each photo.', 'genders')
-  return Object.freeze([...genders])
+  if (!Array.isArray(genders) || genders.length > people || genders.some(g => g !== null && g !== 'man' && g !== 'woman')) fail('Choose Man or Woman, or leave the photo choice empty.', 'genders')
+  return Object.freeze(Array.from({ length: people }, (_, i) => genders[i] ?? null))
+}
+/** Unknown/missing suggestions keep their original slot; never compact with filter(). */
+function suggestedGenders(value: unknown, people: number): readonly SeuVideoGenderChoice[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  return Object.freeze(Array.from({ length: people }, (_, i) => value[i] === 'man' || value[i] === 'woman' ? value[i] : null))
+}
+function promptSource(value: unknown): SeuVideoPromptSource | undefined {
+  return typeof value === 'string' && ['tela', 'visao', 'tela_e_visao', 'sugestao', 'padrao'].includes(value) ? value as SeuVideoPromptSource : undefined
 }
 function presentationFrom(value: unknown): SeuVideoPresentation | undefined {
   const v = record(value)
@@ -147,6 +167,7 @@ export function createSeuVideoClient(deps: SeuVideoClientDeps = {}) {
   const preparePhoto: (file: File) => Promise<File> = deps.preparePhoto ?? (file => compressPhoto(file))
   const uploadedPhotos = new WeakMap<File, Promise<string>>()
   const checkedVideos = new WeakSet<CheckedSeuVideo>()
+  const checkedPhotos = new WeakMap<CheckedSeuVideo, readonly File[]>()
   const fileIds = new WeakMap<File, number>()
   let nextFileId = 0
   const jobs = new Map<string, { fingerprint: string; inFlight?: Promise<SeuVideoSubmission>; result?: SeuVideoSubmission }>()
@@ -174,24 +195,40 @@ export function createSeuVideoClient(deps: SeuVideoClientDeps = {}) {
   }
 
   async function prepareSeuVideo(input: PrepareSeuVideoInput, signal?: AbortSignal): Promise<CheckedSeuVideo> {
-    abort(signal); peopleCount(input.people)
-    const genders = chosenGenders(input.genders, input.people)
-    const local = await validateSeuVideoFile(input.file, deps.presentation)
+    abort(signal)
+    const { file, people } = input
+    peopleCount(people)
+    const genders = chosenGenders(input.genders, people)
+    const requestedGenders = genders?.every(gender => gender !== null) ? genders as readonly SeuVideoGender[] : undefined
+    const selectedPhotos = input.photos === undefined ? undefined : [...input.photos]
+    const positions = input.positions ? [...input.positions] : undefined
+    if (selectedPhotos) {
+      validateSeuVideoPhotos(selectedPhotos)
+      if (selectedPhotos.length !== people) fail('Add one photo for each person before checking.', 'people_changed')
+    }
+    const local = await validateSeuVideoFile(file, deps.presentation)
     abort(signal)
     const ticket = await jsonRequest(API + '/upload', 'video-upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bytes: local.bytes, content_type: local.contentType }), signal })
     if (typeof ticket.video_path !== 'string' || !ticket.video_path || typeof ticket.upload_url !== 'string' || !/^https?:\/\//i.test(ticket.upload_url)) fail('Could not prepare the video upload. Please retry.', 'response', 'video-upload')
     abort(signal)
     let uploaded: Response
-    try { uploaded = await request(ticket.upload_url, { method: 'PUT', headers: { 'Content-Type': local.contentType }, body: input.file, credentials: 'omit', signal }) }
+    try { uploaded = await request(ticket.upload_url, { method: 'PUT', headers: { 'Content-Type': local.contentType }, body: file, credentials: 'omit', signal }) }
     catch { throw new SeuVideoClientError('Video upload did not finish. Keep the file here and retry.', signal?.aborted ? 'aborted' : 'network', 'video-upload') }
     if (!uploaded.ok) throw new SeuVideoClientError('Video upload did not finish. Keep the file here and retry.', 'upload', 'video-upload', uploaded.status)
     abort(signal)
-    const data = await jsonRequest(API + '/check', 'check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ video_path: ticket.video_path, people: input.people, ...(input.positions ? { positions: input.positions } : {}), ...(genders ? { genders } : {}) }), signal })
+    // A valid signed video ticket is the existing account/release gate. Never
+    // upload photos before it succeeds; the same File cache is reused at submit.
+    const photos: string[] = []
+    if (selectedPhotos) for (const photo of selectedPhotos) photos.push(await uploadPhoto(photo, signal))
+    abort(signal)
+    const data = await jsonRequest(API + '/check', 'check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ video_path: ticket.video_path, people, ...(positions ? { positions } : {}), ...(requestedGenders ? { genders: requestedGenders } : {}), ...(selectedPhotos ? { photos } : {}) }), signal })
     if (data.ok !== true || !finite(data.seconds) || !finite(data.fps) || !finite(data.width) || !finite(data.height) || !finite(data.bytes) || !finite(data.generated_seconds) || !finite(data.credits) || data.credits < 0 || typeof data.prompt !== 'string' || !data.prompt.trim()) fail('Could not verify the video and its cost. Check the video again.', 'response', 'check')
     const presentation = presentationFrom(data.presentation) ?? presentationFrom(deps.presentation)
     if (data.presentation !== undefined && !presentationFrom(data.presentation)) fail('Could not read the checked video requirements. Check the video again.', 'response', 'check')
-    const checked: CheckedSeuVideo = Object.freeze({ video_path: ticket.video_path, people: input.people, seconds: data.seconds, fps: data.fps, width: data.width, height: data.height, bytes: data.bytes, generated_seconds: data.generated_seconds, credits: data.credits, prompt: data.prompt, ...(presentation ? { presentation } : {}), ...(genders ? { genders } : {}), ...(typeof data.aspect_ratio === 'string' ? { aspect_ratio: data.aspect_ratio } : {}), ...(finite(data.balance) ? { balance: data.balance } : {}), ...(finite(data.shortfall) ? { shortfall: data.shortfall } : {}), ...(typeof data.needs_plan === 'boolean' ? { needs_plan: data.needs_plan } : {}) })
+    const suggestions = suggestedGenders(data.suggested_genders, people), source = promptSource(data.prompt_source)
+    const checked: CheckedSeuVideo = Object.freeze({ video_path: ticket.video_path, people, seconds: data.seconds, fps: data.fps, width: data.width, height: data.height, bytes: data.bytes, generated_seconds: data.generated_seconds, credits: data.credits, prompt: data.prompt, ...(presentation ? { presentation } : {}), ...(genders ? { genders } : {}), ...(suggestions ? { suggested_genders: suggestions } : {}), ...(source ? { prompt_source: source } : {}), ...(typeof data.aspect_ratio === 'string' ? { aspect_ratio: data.aspect_ratio } : {}), ...(finite(data.balance) ? { balance: data.balance } : {}), ...(finite(data.shortfall) ? { shortfall: data.shortfall } : {}), ...(typeof data.needs_plan === 'boolean' ? { needs_plan: data.needs_plan } : {}) })
     checkedVideos.add(checked)
+    if (selectedPhotos) checkedPhotos.set(checked, Object.freeze(selectedPhotos))
     return checked
   }
 
@@ -225,14 +262,16 @@ export function createSeuVideoClient(deps: SeuVideoClientDeps = {}) {
     if (checked.shortfall !== undefined && checked.shortfall > 0) throw new SeuVideoClientError(`You need ${checked.shortfall} more credits.`, 'credits', 'local', 402, 'not-started', checked.shortfall)
     validateSeuVideoPhotos(input.photos)
     if (input.photos.length !== checked.people) fail('The number of photos changed. Check the video and prompt again.', 'people_changed')
+    const preparedPhotos = checkedPhotos.get(checked)
+    if (preparedPhotos && preparedPhotos.some((file, i) => file !== input.photos[i])) fail('The photos changed. Check the video and instructions again.', 'photos_changed')
     const genders = chosenGenders(input.genders ?? checked.genders, input.photos.length)
-    if (checked.genders && JSON.stringify(genders) !== JSON.stringify(checked.genders)) fail('The photo choices changed. Check the video and prompt again.', 'genders_changed')
+    if (checked.genders?.some((manual, i) => manual !== null && manual !== genders?.[i])) fail('The photo choices changed. Check the video and prompt again.', 'genders_changed')
     if (!input.consent) fail('Confirm permission to use this video and these photos.', 'consent')
     const prompt = validarPrompt(input.prompt, input.photos.length)
     if (!prompt.ok) fail(prompt.error.replace(/ Nothing was charged\./g, ''), 'prompt')
     // Same accepted key format as clipFlow; the caller owns its lifetime.
     if (typeof input.key !== 'string' || !/^[A-Za-z0-9._:-]{8,100}$/.test(input.key)) fail('Keep a valid request key before generating.', 'idempotency')
-    const selectedPhotos = [...input.photos], key = input.key, promptEdited = input.promptEdited === true || !!genders || prompt.prompt !== checked.prompt
+    const selectedPhotos = [...input.photos], key = input.key, promptEdited = input.promptEdited === true || genders?.some(gender => gender !== null) === true || prompt.prompt !== checked.prompt
     const photoIds = selectedPhotos.map(file => { if (!fileIds.has(file)) fileIds.set(file, ++nextFileId); return fileIds.get(file) })
     const fingerprint = JSON.stringify([checked.video_path, checked.people, prompt.prompt, photoIds, true, promptEdited, genders])
     const existing = jobs.get(key)
