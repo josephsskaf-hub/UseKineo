@@ -115,7 +115,7 @@ function provas(L) {
   if (m.HISTORIA_REAL_1411 !== 'all' || m.escopoDaHistoriaReal({ ...E, gratis: false, verbatim: true, pedido: MONA }) !== true || m.escopoDaHistoriaReal({ ...E, herdado: true }) !== false) erros.push('B o interruptor publicado não cobre o pago e colado (ou cobre o herdado)')
   // v3: o ano MODERNO por extenso na história ("In twenty eighteen, explorers…") a leva ao presente, como "2018" em números: sem trava
   if (ee.epocaDaHistoria('On November thirteenth, nineteen forty-two, the cruiser sank. In twenty eighteen, explorers finally found the Juneau.', { anoPorExtenso: true }) !== null || ee.epocaDaHistoria('November fourteenth, nineteen sixty-five. In two thousand one, at the White House, he received the medal.', { anoPorExtenso: true }) !== null) erros.push('C v3 a história que chega ao presente (por extenso) ganhou trava')
-  if (ee.epocaDaHistoria('In August 1923 the dog went missing. He crossed more than two thousand five hundred miles.', { anoPorExtenso: true })?.ano !== 1923 || ee.epocaDaHistoria('In August 1923 the dog went missing. She counted to twenty eleven times.', { anoPorExtenso: true })?.ano !== 1923 || ee.epocaDaHistoria('December, nineteen hundred. Three keepers vanished.', { anoPorExtenso: true })?.ano !== 1900) erros.push('C v3 distância por extenso virou ano moderno, ou a data real perdeu a trava')
+  if (ee.epocaDaHistoria('In August 1923 the dog went missing. He crossed more than two thousand five hundred miles.', { anoPorExtenso: true })?.ano !== 1923 || ee.epocaDaHistoria('In August 1923 the dog went missing. She counted twenty eleven, then stopped.', { anoPorExtenso: true })?.ano !== 1923 || ee.epocaDaHistoria('In 1942, a crew of twenty nineteen year old sailors boarded the cruiser.', { anoPorExtenso: true })?.ano !== 1942 || ee.epocaDaHistoria('In 1962, a group of twenty twelve year olds took the bus.', { anoPorExtenso: true })?.ano !== 1962 || ee.epocaDaHistoria('December, nineteen hundred. Three keepers vanished.', { anoPorExtenso: true })?.ano !== 1900) erros.push('C v3 distância por extenso virou ano moderno, ou a data real perdeu a trava')
   // ── (C) o ano por extenso ──
   for (const [texto, trecho, ano] of DATAS) {
     const c = m.comAnosPorExtenso(texto)
@@ -135,10 +135,24 @@ function provas(L) {
   const prompts = ['A dim museum gallery with an empty wall and four iron hooks.', 'A dusty storage closet door, slightly open.', 'A wooden trunk in a small rented room.']
   const falas = ['The Mona Lisa vanished on a Monday morning in 1911.', 'The thief was Vincenzo Peruggia, an Italian handyman. On Sunday he hid in a storage closet.', 'For two years the painting sat in a trunk.']
   const camada = (ctx, extra = {}, pr = prompts, fa = falas) => ee.aplicarElencoEEpoca({ prompts: pr, falas: fa, contextoOriginal: ctx, contextoFiltro: ctx, modo: 'character_story', tagFaceless: false, provaDeGente: true, ...extra })
-  const b = camada(MONA), d = camada(MONA, { historiaReal: { nomeadoNoElenco: true } })
+  const b = camada(MONA), d = camada(MONA, { historiaReal: { nomeadoNoElenco: true, nomesNoElenco: ['Vincenzo Peruggia'] } })
   if (!b.relato.elenco.some((x) => x.nome === 'the thief') || !b.prompts.join(' ').includes('the thief, a')) erros.push('D fixture: a base já não inventa "the thief"')
   if (d.relato.elenco.length || d.prompts.join(' ').includes('the thief, a') || d.relato.motivo_sem_elenco !== 'gente_nomeada_no_elenco') erros.push('D "the thief" ainda ganha ficha própria ao lado de Vincenzo Peruggia: ' + JSON.stringify(d.relato.elenco))
   if (d.relato.epoca?.ano !== 1911 || !d.prompts[1].includes('Period setting: 1911')) erros.push('D sem o papel inventado, a época também sumiu')
+  // v2 [revisor 14/11, bloqueio 1]: o papel só sai quando uma cópula ou um aposto o liga ao NOME; sem a ligação, é OUTRA pessoa e mantém a ficha
+  {
+    const semNomes = { elencoSemantico: { nomes: [], protagonista: '' } }
+    const pr3 = ['A dark street at night.', 'A rooftop at night.', 'An empty square at dawn.']
+    const LEPINE = 'In 1911, Detective Louis Lépine chased the thief across Paris. The thief escaped over the rooftops. The thief vanished at dawn.'
+    const lep = camada(LEPINE, { ...semNomes, historiaReal: { anoPorExtenso: true, nomeadoNoElenco: true, nomesNoElenco: ['Louis Lépine'] } }, pr3, LEPINE.split(/(?<=.)s+/))
+    if (!lep.relato.elenco.some((x) => x.nome === 'the thief')) erros.push('D v2 o ladrão do detetive (outra pessoa) perdeu a ficha')
+    const SULL = 'In 1942, Frank and Joe Sullivan boarded the cruiser. The captain gave the order to sail. The captain watched the dark sea.'
+    const sul = camada(SULL, { ...semNomes, historiaReal: { anoPorExtenso: true, nomeadoNoElenco: true, nomesNoElenco: ['Frank', 'Joe Sullivan'] } }, pr3, SULL.split(/(?<=.)s+/))
+    if (!sul.relato.elenco.some((x) => x.nome === 'the captain')) erros.push('D v2 o capitão (outra pessoa) perdeu a ficha')
+    const GUN = 'In 1918 the war ended at eleven. One of them was Henry Gunther, a soldier from Baltimore. The soldier charged at the guns.'
+    const gun = camada(GUN, { ...semNomes, historiaReal: { anoPorExtenso: true, nomeadoNoElenco: true, nomesNoElenco: ['Henry Gunther'] } }, pr3, GUN.split(/(?<=.)s+/))
+    if (gun.relato.elenco.some((x) => x.nome === 'the soldier')) erros.push('D v2 "Henry Gunther, a soldier" (aposto) ainda deu ficha ao soldado')
+  }
   // (C1) os casos do revisor: sem gente nomeada no elenco, a camada fica BYTE A BYTE a base
   for (const ctx of ['A young girl finds a glowing stone in the forest. Suddenly, the girl hears a voice.', 'The chef was Japanese. The chef plated the fish in silence.', 'The boy was born in Texas. The boy rode his bike to school.', 'In London, the commuter waits for the last train. The commuter checks the clock.']) {
     const pr = ['An empty forest clearing at dawn.', 'A kitchen counter with a knife and a fish.', 'A quiet station platform at night.'], fa = [ctx, '', '']
@@ -163,7 +177,7 @@ function provas(L) {
     if (!escopo || /anthropomorphic|living creature|small arms and legs/.test(ml) || !/the real painting/.test(ml)) erros.push('F Logan: a Mona Lisa segue boneco vivo no pago e colado: ' + ml.slice(0, 90))
     const PLANOS = ['A dimly lit corner of the Louvre, the empty frame of the Mona Lisa on the wall, shadows creeping in.', 'Vincenzo Peruggia, dressed in a white work smock, crouched inside a dark storage closet.', "A close-up of Peruggia's hands carefully lifting the Mona Lisa from the wall.", 'A crowd gathered outside the Louvre, staring at four empty iron hooks on the wall.', 'A dusty trunk in a dimly lit room, the lid slightly ajar.', 'Peruggia walking through a bustling Florence street, the Mona Lisa hidden under his arm.', 'A close-up of art enthusiasts gazing at the iconic Mona Lisa.']
     const FALAS = ['The Mona Lisa vanished on a Monday morning in 1911.', 'The thief was Vincenzo Peruggia, an Italian handyman. On Sunday he hid in a storage closet.', 'On Monday he lifted her off the wall and walked out.', 'Crowds lined up just to stare at four empty iron hooks.', 'The most famous painting in the world sat in a trunk in Paris.', 'Then, in 1913, he carried her to Florence.', 'The crime made her famous.']
-    const era = ee.aplicarElencoEEpoca({ prompts: PLANOS, falas: FALAS, contextoOriginal: T, contextoFiltro: T, modo: 'character_story', tagFaceless: false, provaDeGente: true, ...(escopo ? { historiaReal: { anoPorExtenso: true, nomeadoNoElenco: m.genteNomeadaDoAutor(obra.elenco) } } : {}) })
+    const era = ee.aplicarElencoEEpoca({ prompts: PLANOS, falas: FALAS, contextoOriginal: T, contextoFiltro: T, modo: 'character_story', tagFaceless: false, provaDeGente: true, ...(escopo ? { historiaReal: { anoPorExtenso: true, nomeadoNoElenco: m.genteNomeadaDoAutor(obra.elenco), nomesNoElenco: m.nomesDaGenteNomeadaDoAutor(obra.elenco) } } : {}) })
     if (era.prompts.some((p) => /Named character in this shot: the thief/.test(p))) erros.push('F Logan: "the thief" entrou ao lado do Peruggia')
   }
   return erros
@@ -182,7 +196,7 @@ const iFolha = rota.indexOf('const personagemElenco: { elenco: FichaDePersonagem
 checa('E a rota decide UM escopo (grátis, não colado, não herdado, o pedido do cliente) e ele manda nas três peças', iEscopo > 0 && rota.split('escopoDaHistoriaReal(').length === 2 && rota.split('obraRealNoElenco(').length === 2)
 checa('E a obra real entra no elenco ANTES da folha, só dentro do escopo, com o filme desenhado e a comida que fala de fora, e É APLICADA ao elenco', iObra > iEscopo && iObra < iFolha && rota.slice(iObra, rota.indexOf('\n', iObra)).includes("} catch (e) { console.warn('[cinematic] KINEO-HISTORIA-REAL falhou, elenco segue como estava:"))
 const linhaClassica = rota.split('\n').find((l) => l.includes('const elencoEpoca = prepararQualidadeDoFilme({ prompts: classicScenePrompts')) ?? ''
-checa('E só a estrada clássica passa a regra à camada de época, e só dentro do escopo (fora dele a chamada fica byte a byte)', rota.split('historiaReal:').length === 2 && linhaClassica.includes('...(historiaReal1411 ? { historiaReal: { anoPorExtenso: true, nomeadoNoElenco: genteNomeadaDoAutor(elencoDoAjuste) } } : {})') && linhaClassica.includes('preservarElenco: !!qualidadeHerdada'))
+checa('E só a estrada clássica passa a regra à camada de época, e só dentro do escopo (fora dele a chamada fica byte a byte)', rota.split('historiaReal:').length === 2 && linhaClassica.includes('...(historiaReal1411 ? { historiaReal: { anoPorExtenso: true, nomeadoNoElenco: genteNomeadaDoAutor(elencoDoAjuste), nomesNoElenco: nomesDaGenteNomeadaDoAutor(elencoDoAjuste) } } : {})') && linhaClassica.includes('preservarElenco: !!qualidadeHerdada'))
 checa('E (B1) anúncio, régua, trava de ficha e refazer-cena não conhecem a regra; hollywood não a passa', ['lib/ads/v2FilmQuality.ts', 'lib/ads/cena/filmQuality.ts', 'lib/regua95/perguntasHonestas.ts', 'lib/cinematic/elencoTrava.ts', 'lib/free15RefazCena0311.ts'].every((a) => { const t = fs.readFileSync(a, 'utf8'); return !/anoPorExtenso|historiaReal|comAnosPorExtenso/.test(t) }) && !/anoPorExtenso: true/.test(rota.replace(linhaClassica, '')))
 checa('E a camada de época não lê interruptor global (só o que a chamada passa) e não ganhou import novo', !epoca.includes('historiaRealLigada()') &&epoca.includes('digitosAscii(opts?.anoPorExtenso === true ? comAnosPorExtenso(') && epoca.includes('epocaDaHistoria(args.contextoOriginal, { anoPorExtenso: args.historiaReal?.anoPorExtenso === true })') && !epoca.includes("from '@/lib/cinematic/historiaReal1411'"))
 checa('E o repasse da camada (prepararQualidadeDoFilme) leva o argumento sem valor padrão', lf(fs.readFileSync('lib/cinematic/filmQuality.ts', 'utf8')).includes("historiaReal?: Parameters<typeof aplicarElencoEEpoca>[0]['historiaReal']") && lf(fs.readFileSync('lib/cinematic/filmQuality.ts', 'utf8')).includes('const cast = aplicarElencoEEpoca({ ...args, prompts: withRoom')) // reancorado (KINEO-FICHA-DO-AUTOR-MANDA-1411): a mesma chamada com ...args, que pode levar as fichas do autor depois
@@ -220,8 +234,11 @@ const MUTANTES = [
   ['a data com mês deixa de ser lida', EP, (s) => s.replace('\\b(?:${MES_EN})(?:\\s+${DIA})?\\s*,?\\s+(?:of\\s+)?|', '')],
   ['a camada ignora o pedido de ano da rota', EP, (s) => s.replace('{ anoPorExtenso: args.historiaReal?.anoPorExtenso === true }', '{ anoPorExtenso: false }')],
   // o papel sem nome
-  ['(C1) papel sem nome inventado apesar da pessoa nomeada no elenco', EP, (s) => s.replace('const semNome = nomeadoJaNoElenco1411 ? null : args.provaDeGente', 'const semNome = args.provaDeGente')],
-  ['(C1) a camada some com o papel sem nome em todo filme', EP, (s) => s.replace('const nomeadoJaNoElenco1411 = args.historiaReal?.nomeadoNoElenco === true', 'const nomeadoJaNoElenco1411 = true')],
+  ['(C1) papel sem nome inventado apesar da pessoa nomeada no elenco', EP, (s) => s.replace('const semNome = nomeadoJaNoElenco1411 ? null : semNomeLido1411', 'const semNome = semNomeLido1411')],
+  ['(C1) a camada some com o papel sem nome em todo filme', EP, (s) => s.replace('const nomeadoJaNoElenco1411 = args.historiaReal?.nomeadoNoElenco === true && !!semNomeLido1411 && papelLigadoAoNome1411(texto, semNomeLido1411.nome, args.historiaReal?.nomesNoElenco ?? [])', 'const nomeadoJaNoElenco1411 = true')],
+  ['v2: o papel sai sem a ligação escrita (a v1 do bloqueio)', EP, (s) => s.replace('const nomeadoJaNoElenco1411 = args.historiaReal?.nomeadoNoElenco === true && !!semNomeLido1411 && papelLigadoAoNome1411(texto, semNomeLido1411.nome, args.historiaReal?.nomesNoElenco ?? [])', 'const nomeadoJaNoElenco1411 = args.historiaReal?.nomeadoNoElenco === true')],
+  ['v2: o aposto não liga ("Gunther, a soldier")', EP, (s) => s.replace(String.raw`    new RegExp(String.raw` + '`(?<![\\p{L}])` + N + ', String.raw`    new RegExp(String.raw` + '`(?!)` + N + ')],
+  ['v2b: contagem por extenso vira ano moderno', EP, (s) => s.replace('(?:hundred|thousand|years?|year-olds?|yo|', '(?:hundred|thousand|yo|')],
 ]
 for (const [nome, arq, fn] of MUTANTES) {
   const src = lf(fs.readFileSync(arq, 'utf8'))
@@ -244,7 +261,7 @@ const MUTANTES_DA_ROTA = [
 const checagensDaRota = (r) => {
   const iE = r.indexOf(ESCOPO), iO = r.indexOf(OBRA)
   const lc = r.split('\n').find((l) => l.includes('const elencoEpoca = prepararQualidadeDoFilme({ prompts: classicScenePrompts')) ?? ''
-  return iE > 0 && iO > iE && r.split('historiaReal:').length === 2 && lc.includes('...(historiaReal1411 ? { historiaReal: { anoPorExtenso: true, nomeadoNoElenco: genteNomeadaDoAutor(elencoDoAjuste) } } : {})') && !/anoPorExtenso: true/.test(r.replace(lc, ''))
+  return iE > 0 && iO > iE && r.split('historiaReal:').length === 2 && lc.includes('...(historiaReal1411 ? { historiaReal: { anoPorExtenso: true, nomeadoNoElenco: genteNomeadaDoAutor(elencoDoAjuste), nomesNoElenco: nomesDaGenteNomeadaDoAutor(elencoDoAjuste) } } : {})') && !/anoPorExtenso: true/.test(r.replace(lc, ''))
 }
 checa('controle: as checagens da rota passam na rota real', checagensDaRota(rota))
 for (const [nome, fn] of MUTANTES_DA_ROTA) {

@@ -108,7 +108,22 @@ export function comAnosPorExtenso(texto: string | null | undefined): string {
 /** v3 [CEO 14/11, abrir o escopo para 'all']: o ano MODERNO por extenso em qualquer lugar da história ("in twenty eighteen", "by two thousand and
  *  five", "em dois mil e dezoito"), com preposição de tempo antes, marca que a história chega ao presente, como o "2018" em números já marcava.
  *  Sem a preposição não conta: "more than two thousand five hundred miles" (Bobbie) é distância. */
-const ANO_MODERNO_POR_EXTENSO_RE_1411 = /(?<![\p{L}])(?:in|by|until|since|from|before|after|around|of)\s+(?:twenty\s+(?:ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty(?:[- ](?:one|two|three|four|five|six|seven|eight|nine))?|thirty)|two\s+thousand(?:\s+and)?\s+(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty))(?![\p{L}-])(?!\s+(?:hundred|thousand))|(?<![\p{L}])(?:em|até|desde|de)\s+dois\s+mil(?:\s+e\s+(?:um|dois|três|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|catorze|quatorze|quinze|dezesseis|dezessete|dezoito|dezenove|vinte(?:\s+e\s+\p{L}+)?))?(?![\p{L}])(?!\s+(?:reais|pessoas|anos|metros|quilômetros|km))/iu
+const ANO_MODERNO_POR_EXTENSO_RE_1411 = /(?<![\p{L}])(?:in|by|until|since|from|before|after|around|of)\s+(?:twenty\s+(?:ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty(?:[- ](?:one|two|three|four|five|six|seven|eight|nine))?|thirty)|two\s+thousand(?:\s+and)?\s+(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty))(?![\p{L}-])(?!\s+(?:hundred|thousand|years?|year-olds?|yo|dollars?|cents?|pounds?|miles?|kilometers?|kilometres?|meters?|metres?|feet|inches|times|days|weeks|months|minutes|hours|percent|people|men|women|soldiers|sailors|children|boys|girls|students|kids|ships|planes|cars)(?![\p{L}]))|(?<![\p{L}])(?:em|até|desde|de)\s+dois\s+mil(?:\s+e\s+(?:um|dois|três|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|catorze|quatorze|quinze|dezesseis|dezessete|dezoito|dezenove|vinte(?:\s+e\s+\p{L}+)?))?(?![\p{L}])(?!\s+(?:reais|pessoas|anos|metros|quilômetros|km))/iu
+/** v2 [revisor 14/11, bloqueio 1]: o papel sem nome ("the thief") É a pessoa nomeada do elenco só quando uma cópula ou um aposto os liga na mesma
+ *  frase: "The thief was Vincenzo Peruggia", "the thief, Vincenzo Peruggia,", "Peruggia, the thief", "Peruggia was the thief". Sem a ligação escrita
+ *  ("Detective Louis Lépine chased the thief", "Frank and Joe Sullivan… The captain gave the order"), o papel é OUTRA pessoa e mantém a ficha. */
+function papelLigadoAoNome1411(texto: string, papel: string, nomes: readonly string[]): boolean {
+  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const nucleo = String(papel ?? '').replace(/^(?:the|a|an)\s+/iu, '').trim()
+  const alts = [...new Set(nomes.flatMap((n) => { const s = String(n ?? '').trim(); return s ? [s, ...s.split(/\s+/u).filter((w) => w.length > 2 && /^\p{Lu}/u.test(w))] : [] }))].sort((a, b) => b.length - a.length).map(esc)
+  if (!nucleo || alts.length === 0) return false
+  const N = `(?:${alts.join('|')})`, P = String.raw`(?:[\p{L}-]+\s+){0,3}?` + esc(nucleo)
+  const ligacoes = [
+    new RegExp(String.raw`(?<![\p{L}])the\s+` + P + String.raw`\s*(?:,|\s(?:was|is|—))\s*(?:(?:named|called|none other than)\s+)?(?:\p{Lu}[\p{L}'’-]*\s+){0,2}?` + N + String.raw`(?![\p{L}])`, 'iu'),
+    new RegExp(String.raw`(?<![\p{L}])` + N + String.raw`\s*(?:,|\s(?:was|is|—))\s*(?:the|a|an)\s+` + P + String.raw`(?![\p{L}])`, 'iu'),
+  ]
+  return String(texto ?? '').split(/(?<=[.!?\n])/u).some((f) => ligacoes.some((re) => re.test(f)))
+}
 // ═══ fim KINEO-HISTORIA-REAL-1411 ═══
 
 function rotuloDaDecada(decada: number): string { return decada >= 1900 ? `${decada}s` : `${Math.floor(decada / 100) + 1}th-century` } // KINEO-ELENCO-EPOCA-2710
@@ -692,7 +707,7 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
    *  (origem 'autor'). A mesma pessoa aqui ganha ESSA descrição (nunca a sorteada: "long hair in two braids" contra "short curly hair"), e a
    *  cena que já leva a ficha não ganha 2ª descrição. Ausente = byte a byte o de antes. */
   fichasDoAutor?: ReadonlyArray<{ nome: string; canonica: string }> | null // KINEO-FICHA-DO-AUTOR-MANDA-1411
-  historiaReal?: { anoPorExtenso?: boolean; nomeadoNoElenco?: boolean } | null // KINEO-HISTORIA-REAL-1411
+  historiaReal?: { anoPorExtenso?: boolean; nomeadoNoElenco?: boolean; nomesNoElenco?: readonly string[] } | null // KINEO-HISTORIA-REAL-1411 · v2: nomesNoElenco, os nomes da gente nomeada do autor
   /** KINEO-PROTAGONISTA-SEEDANCE-0111 — o elenco semântico aplicado na rota (nomes lidos como personagem + o protagonista); null/ausente = comportamento de sempre. */
   elencoSemantico?: { nomes: ReadonlyArray<string>; protagonista: string } | null
   /** KINEO-ORIGEM-DO-ELENCO-0311 — de onde é quem está em cena (lib/cinematic/origemDoElenco, por injeção: esta camada segue sem rede); null/ausente = byte a byte o de antes. */
@@ -728,8 +743,9 @@ export function aplicarElencoEEpoca(args: { // KINEO-ELENCO-EPOCA-2710
     }
     let fichaNasCenasComGente: number[] = [] // KINEO-PROTAGONISTA-DOC-0311
     if (elenco.length === 0) { // KINEO-ELENCO-EPOCA-2710
-      const nomeadoJaNoElenco1411 = args.historiaReal?.nomeadoNoElenco === true // KINEO-HISTORIA-REAL-1411 — a pessoa com nome já tem a ficha dela (folha): nada de 2ª ficha para o papel sem nome
-      const semNome = nomeadoJaNoElenco1411 ? null : args.provaDeGente === true ? protagonistaSemNome(texto, epoca, infantil, true) : protagonistaSemNome(texto, epoca, infantil) // KINEO-ELENCO-EPOCA-2710 · KINEO-IDEIA-FICHA-ASSUNTO-1211 (A) — "photograph of a person" não é elenco
+      const semNomeLido1411 = args.provaDeGente === true ? protagonistaSemNome(texto, epoca, infantil, true) : protagonistaSemNome(texto, epoca, infantil) // KINEO-HISTORIA-REAL-1411 v2
+      const nomeadoJaNoElenco1411 = args.historiaReal?.nomeadoNoElenco === true && !!semNomeLido1411 && papelLigadoAoNome1411(texto, semNomeLido1411.nome, args.historiaReal?.nomesNoElenco ?? []) // KINEO-HISTORIA-REAL-1411 v2 [revisor 14/11, bloqueio 1] — o papel só sai quando o texto o LIGA ao nome ("The thief was Vincenzo Peruggia", "Peruggia, the thief"); o ladrão de outro roteiro ao lado do detetive com nome mantém a ficha
+      const semNome = nomeadoJaNoElenco1411 ? null : semNomeLido1411 // KINEO-ELENCO-EPOCA-2710 · KINEO-IDEIA-FICHA-ASSUNTO-1211 (A) — "photograph of a person" não é elenco
       // só quando NENHUM prompt mostra gente: o passageiro do último trem sumiu porque as 3 cenas eram plataforma, relógio e trilho // KINEO-ELENCO-EPOCA-2710
       const comGente = prompts.map((p) => GENTE_NO_PROMPT_RE.test(p.replace(/no (?:foreground )?(?:human )?faces?/gi, '').replace(/No people, no human figures and no faces anywhere in this shot\./g, '').replace(/talking head|foreground human face/gi, ''))) // KINEO-PROTAGONISTA-DOC-0311
       if (semNome && !comGente.some(Boolean)) elenco = [semNome]

@@ -79,3 +79,35 @@ O caso está no guardião (`scripts/test-historia-real-1411.mjs`, seção F). O 
 3. 2f34daf3, Flight 19: sem época → "period piece set strictly in the year 1945".
 4. 45d83f0e, Mary Celeste: sem época → 1872.
 5. a63851dd, faroleiros: sem época → 1900.
+
+## v2 depois do bloqueio do revisor (CEO 14/11)
+O revisor confirmou o caso do Logan, inclusive com o casting falhando, e as fantasias em que o autor quer a obra viva (o texto final sai igual à main). Bloqueou duas coisas que a regra fazia nos OUTROS filmes.
+
+### Bloqueio 1 · o papel sem nome que é OUTRA pessoa perdia a ficha
+- A v1 tirava o papel sem nome sempre que o elenco tinha alguém nomeado do autor.
+- "In 1911, Detective Louis Lépine chased the thief…" e "…Frank and Joe Sullivan… The captain gave the order…": o ladrão e o capitão perdiam a ficha e mudavam de rosto a cada cena.
+- v2, o conserto aprovado pela CEO: o papel só sai quando uma cópula ou um aposto o liga ao NOME de alguém do elenco, na mesma frase.
+  - "The thief was Vincenzo Peruggia", "the thief, Vincenzo Peruggia,", "Peruggia, the thief", "Peruggia was the thief".
+  - A rota passa os nomes (`nomesDaGenteNomeadaDoAutor`).
+- A peça 3 foi refeita no corpus: os 19 filmes pagos e colados com gente nomeada do autor, com a leitura do elenco SEM nomes (o caso do bloqueio) e normal.
+
+| filme | papel sem nome | main | v1 | v2 | leitura |
+|---|---|---|---|---|---|
+| b6068711 Mona Lisa | the thief | entra | sai | sai | certo: "The thief was Vincenzo Peruggia" |
+| 9aee4f6d Veterans Day | the soldier | entra | sai | sai | certo: "Henry Gunther, a soldier from Baltimore" |
+| 1c770cb7 | the mysterious woman | entra | sai | entra | certo na v2: é OUTRA pessoa, não o Daniel |
+| 4704e3f6 Kennedy | the woman | entra | sai | entra | certo na v2: a mulher que filma não é o Kennedy |
+| 5e9123e4 Ia Drang | the pilot | entra | sai | entra | igual à main. O piloto É o Freeman, mas o texto não os liga por cópula nem aposto ("one pilot… Captain Ed Freeman… too tall to be a pilot"). A v1 acertava este por acaso |
+
+- **Contra a main, a v2 muda 2 filmes, os 2 certos. A v1 errava 2** (a mulher misteriosa e a mulher do Kennedy).
+- O Ia Drang fica como na main; a ligação por pronome é outro lote, se a CEO quiser.
+
+### Bloqueio 2 · contagem por extenso tirava a trava de época
+- "a crew of twenty nineteen year old sailors" (1942) e "a group of twenty twelve year olds" (1962) eram lidos como ano moderno, e a época sumia.
+- v2: ano moderno por extenso seguido de substantivo de contagem (years, year-olds, dollars, miles, people, soldiers, sailors, kids, times…) é quantidade, não ano.
+- A lista do revisor deu 11 de 11 certos: os com hífen seguem certos, os dois sem hífen voltam a 1942 e 1962, e "In twenty eighteen", "By two thousand and five" e "em dois mil e dezoito" seguem levando ao presente.
+- O corpus de 11 datas por extenso segue igual: mudam 4, certos.
+
+### Menores anotados
+- "golden statue" (um ídolo) e "bronze bust" viram obra real.
+- No lote E: "Louvre" e "Paris" como pessoa no dry-run da main.

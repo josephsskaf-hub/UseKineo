@@ -43,6 +43,10 @@ const ARTIGO_RE = /^(?:the|a|an|o|a|os|as|um|uma|el|la|los|las)\s/iu
 export function genteNomeadaDoAutor(elenco: ReadonlyArray<{ nome?: unknown; tipo?: unknown; origem?: unknown }> | null | undefined): boolean {
   return (Array.isArray(elenco) ? elenco : []).some((f) => f?.tipo === 'humano' && f?.origem === 'autor' && String(f?.nome ?? '').trim().length > 1 && !ARTIGO_RE.test(String(f?.nome ?? '').trim()))
 }
+/** v2 [revisor 14/11, bloqueio 1]: os NOMES dessa gente, para a camada de época só tirar o papel que o texto liga a um deles. */
+export function nomesDaGenteNomeadaDoAutor(elenco: ReadonlyArray<{ nome?: unknown; tipo?: unknown; origem?: unknown }> | null | undefined): string[] {
+  return (Array.isArray(elenco) ? elenco : []).filter((f) => f?.tipo === 'humano' && f?.origem === 'autor' && String(f?.nome ?? '').trim().length > 1 && !ARTIGO_RE.test(String(f?.nome ?? '').trim())).map((f) => String(f.nome).trim())
+}
 
 // ── a obra de arte de verdade ────────────────────────────────────────────────────────────────────────────────────────────────────
 const ANTROPO_RE = /^(.+?), an anthropomorphic (.+?) character: a .+? with big expressive cartoon eyes/
