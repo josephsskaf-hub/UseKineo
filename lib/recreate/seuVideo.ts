@@ -10,9 +10,7 @@ import { SEU_VIDEO_LIMITES, SEU_VIDEO_TIPOS, lerMetaDoVideo, promptPadrao } from
 import type { MetaDoVideo } from './seuVideoRules'
 export { SEU_VIDEO_LIMITES, SEU_VIDEO_TIPOS, lerMetaDoVideo, metaDoMoov, silenciarMp4, segundosGerados, creditosDoSeuVideo, promptPadrao, validarPrompt, promptPorGenero } from './seuVideoRules'
 export type { MetaDoVideo, SeuVideoGender, SeuVideoPresentation } from './seuVideoRules'
-import type { InternalRelease } from './release'
-
-export const SEU_VIDEO_RELEASE: InternalRelease = 'internal'
+export { SEU_VIDEO_RELEASE } from './seuVideoRelease'
 export const SEU_VIDEO_VERSAO = 'recreate_seu_video_1311_v2' // v2: trava "não trocou" no Seedance + enquadramento no prompt (CEO 13/11)
 export const SEEDANCE25_MODEL = 'bytedance/seedance-2.5/reference-to-video'
 /** fal, 480p: soma os segundos ENVIADOS e os GERADOS (conta da sessão Research de 13/11). */

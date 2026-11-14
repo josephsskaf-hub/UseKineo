@@ -7,6 +7,7 @@ import { recreateFormat } from '@/lib/recreate/formats'
 import { HOME_FEATURED_PLAYLISTS } from '@/lib/ui/homeFeaturedFilms'
 import { seuVideoCatalogItem } from '@/lib/recreate/seuVideoCatalog'
 import { SEU_VIDEO_PREVIEW_ENABLED, SEU_VIDEO_PREVIEW_PATH } from '@/lib/recreate/seuVideoPreviewRelease'
+import { SEU_VIDEO_RELEASE } from '@/lib/recreate/seuVideoRelease'
 import { WATCH_PUBLIC_STARTERS } from './watchStarters'
 
 export const WATCH_FEATURED_FILMS = HOME_FEATURED_PLAYLISTS.flat().slice(0, 6)
@@ -36,7 +37,7 @@ export function watchExampleIdea(example: unknown, produto: WatchProduct): strin
 
 /** Presentation-only entry; generation eligibility and costs remain enforced by the destination/server. */
 function watchRecreatePath(id: string): string | null {
-  return SEU_VIDEO_PREVIEW_ENABLED && seuVideoCatalogItem(id)
+  return SEU_VIDEO_RELEASE === 'public' && SEU_VIDEO_PREVIEW_ENABLED && seuVideoCatalogItem(id)
     ? SEU_VIDEO_PREVIEW_PATH + '?' + new URLSearchParams({ example: id }).toString()
     : null
 }
@@ -54,7 +55,9 @@ export function watchClipHref(clip: ClipeNovo, signedIn = false): string {
   if (canonical.produto === 'ads') return '/ads/v2?' + new URLSearchParams({ entry: canonical.adsEntry ?? 'product', utm_source: 'home_card', example: canonical.id }).toString()
   const recreate = watchRecreatePath(canonical.id)
   if (recreate) return recreate
-  return viaSignup(publicRecreatePath(canonical.id) ?? clipeNovoDestino(canonical), signedIn)
+  const publicPath = publicRecreatePath(canonical.id)
+  if (publicPath) return publicPath
+  return viaSignup(clipeNovoDestino(canonical), signedIn)
 }
 
 export function watchClipLabel(clip: ClipeNovo): string {

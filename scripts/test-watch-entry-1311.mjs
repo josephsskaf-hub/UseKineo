@@ -15,6 +15,7 @@ const rd = file => fs.readFileSync(path.join(ROOT, file), 'utf8').replace(/\r\n/
 const HELPER = 'lib/home/watchEntry.ts'
 const STARTERS = 'lib/home/watchStarters.ts'
 const PREVIEW = 'lib/recreate/seuVideoPreviewRelease.ts'
+const ACTION_RELEASE = 'lib/recreate/seuVideoRelease.ts'
 const STUDIO = 'app/(dashboard)/studio/page.tsx'
 const ADVANCED = 'app/(dashboard)/studio/StudioClient.tsx'
 const CARTOON = 'app/(dashboard)/kids-cartoon/page.tsx'
@@ -28,6 +29,7 @@ function world(overrides = {}) {
   function load(file) {
     file = file.replace(/\\/g, '/')
     if (!/\.(?:ts|tsx|json)$/.test(file)) file += '.ts'
+    check('browser-boundary',!['lib/recreate/seuVideo.ts','lib/recreate/seuVideoServer.ts'].includes(file),'browser graph must not import backend/model modules: '+file)
     if (cache.has(file)) return cache.get(file)
     if (file.endsWith('.json')) return JSON.parse(read(file))
     const exports = {}; cache.set(file, exports)
@@ -46,11 +48,12 @@ function world(overrides = {}) {
     return vm.runInNewContext(js, { URLSearchParams, ...bindings }, { timeout: 5000 })
   }
   const expression = (node, bindings) => run('(' + node.getText() + ')', bindings)
-  return { read, load, ast, nodes, run, expression }
+  return { read, load, ast, nodes, run, expression, loaded:cache }
 }
 
 function verify(overrides = {}) {
-  const w = world(overrides), entry = w.load(HELPER), data = w.load('lib/clipesNos2Lugares.ts')
+  const publicRelease = rd(ACTION_RELEASE).replace("= 'internal'","= 'public'")
+  const w = world({[ACTION_RELEASE]:publicRelease,...overrides}), entry = w.load(HELPER), data = w.load('lib/clipesNos2Lugares.ts')
   const recreate = w.load('lib/recreate/entry.ts'), gallery = w.load('lib/homeGaleria.ts')
   const preview = w.load(PREVIEW), catalog = w.load('lib/recreate/seuVideoCatalog.ts'), starters = w.load(STARTERS).WATCH_PUBLIC_STARTERS
   const newReference = item => preview.SEU_VIDEO_PREVIEW_ENABLED && item.produto === 'clip' && catalog.seuVideoCatalogItem(item.id)
@@ -65,7 +68,7 @@ function verify(overrides = {}) {
           const url = new URL(href, 'https://local.invalid')
           check('preview', url.pathname === preview.SEU_VIDEO_PREVIEW_PATH && url.searchParams.get('example') === item.id && [...url.searchParams.keys()].join() === 'example', item.id + ': approved reference opens the real editor before signup with its exact public ID')
           check('preview', entry.watchClipLabel(item) === 'Recreate', item.id + ': new reference card label agrees with its editor')
-        } else check('route', href === gallery.viaSignup(recreate.publicRecreatePath(item.id) ?? data.clipeNovoDestino(item), signed), item.id + ': other clip/effect gates retained')
+        } else check('route', href === (recreate.publicRecreatePath(item.id) ?? gallery.viaSignup(data.clipeNovoDestino(item), signed)), item.id + ': other clip/effect gates retained')
         continue
       }
       const url = new URL(href, 'https://local.invalid')
@@ -79,10 +82,15 @@ function verify(overrides = {}) {
     check('label', !/\$|\bcredits?\b|Kling|Seedance|MiniMax/i.test(entry.watchClipLabel(item)), 'no price or engine in action')
     if (entry.watchClipLabel(item) === 'Recreate') check('honesty', Boolean(newReference(item) || recreate.publicRecreatePath(item.id)), 'Recreate needs the new reference allowlist or the legacy public approval gate')
   }
-  const off = world({ ...overrides, [PREVIEW]: w.read(PREVIEW).replace('SEU_VIDEO_PREVIEW_ENABLED = true', 'SEU_VIDEO_PREVIEW_ENABLED = false') })
+  check('browser-boundary',!w.loaded.has('lib/recreate/seuVideo.ts')&&!w.loaded.has('lib/recreate/seuVideoServer.ts'),'browser entry imports only the pure release value, never server/model code')
+  for(const release of ['internal','off']){
+    const closed=world({...overrides,[ACTION_RELEASE]:rd(ACTION_RELEASE).replace("= 'internal'","= '"+release+"'")}).load(HELPER)
+    for(const item of data.CLIPES_NOVOS.filter(c=>c.produto==='clip'))for(const signed of [false,true])check('release-policy',closed.watchClipHref(item,signed)===(recreate.publicRecreatePath(item.id)??gallery.viaSignup(data.clipeNovoDestino(item),signed)),release+': public card never sends a customer to an internal editor; public catalogue path has no signup wrapper')
+  }
+  const off = world({[ACTION_RELEASE]:publicRelease, ...overrides, [PREVIEW]: w.read(PREVIEW).replace('SEU_VIDEO_PREVIEW_ENABLED = true', 'SEU_VIDEO_PREVIEW_ENABLED = false') })
   const offEntry = off.load(HELPER), formats = w.load('lib/recreate/formats.ts')
   for (const item of data.CLIPES_NOVOS.filter(item => item.produto === 'clip')) {
-    for (const signed of [false, true]) check('release', offEntry.watchClipHref(item, signed) === gallery.viaSignup(recreate.publicRecreatePath(item.id) ?? data.clipeNovoDestino(item), signed), item.id + ': closing preview restores the exact legacy destination')
+    for (const signed of [false, true]) check('release', offEntry.watchClipHref(item, signed) === (recreate.publicRecreatePath(item.id) ?? gallery.viaSignup(data.clipeNovoDestino(item), signed)), item.id + ': closing preview restores the public catalogue destination')
     const legacyLabel = recreate.publicRecreatePath(item.id) ? formats.recreateFormat(item.id)?.type === 'swap' ? 'Recreate' : 'Use effect' : item.prompt ? 'Use idea' : 'Make a video'
     check('release', offEntry.watchClipLabel(item) === legacyLabel, item.id + ': closing preview restores the exact legacy label')
   }
@@ -162,6 +170,9 @@ function verify(overrides = {}) {
 verify()
 const baseline = count
 const mutations = [
+  ['internal generation release ignored','release-policy',{[HELPER]:rd(HELPER).replace("SEU_VIDEO_RELEASE === 'public' && ",'')}],
+  ['public catalogue wrapped in signup','release-policy',{[HELPER]:rd(HELPER).replace('if (publicPath) return publicPath','if (publicPath) return viaSignup(publicPath,signedIn)')}],
+  ['backend imported by browser','browser-boundary',{[HELPER]:rd(HELPER).replace("from '@/lib/recreate/seuVideoRelease'","from '@/lib/recreate/seuVideo'")}],
   ['signup before preview', 'preview', { [HELPER]: rd(HELPER).replace('if (recreate) return recreate', 'if (recreate) return viaSignup(recreate, signedIn)') }],
   ['reference loses public identity', 'preview', { [HELPER]: rd(HELPER).replace('new URLSearchParams({ example: id })', 'new URLSearchParams({})') }],
   ['preview release ignored', 'release', { [HELPER]: rd(HELPER).replace('SEU_VIDEO_PREVIEW_ENABLED && seuVideoCatalogItem(id)', 'true && seuVideoCatalogItem(id)') }],

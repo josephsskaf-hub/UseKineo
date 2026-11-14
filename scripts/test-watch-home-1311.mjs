@@ -149,6 +149,7 @@ function element(html, attribute) {
 const WATCH = 'components/home/WatchVisitorHome.tsx'
 const MEDIA = 'components/home/WatchMedia.tsx'
 const RELEASE = 'lib/home/watchRelease.ts'
+const ACTION_RELEASE = 'lib/recreate/seuVideoRelease.ts'
 const fixtureUser = { id: 'watch-offline-account', email: 'watch-offline@example.test' }
 const isWatch = (html) => html.includes('data-watch-home="visitor"')
 const faqQuestions = [
@@ -203,7 +204,8 @@ function stringLiterals(source, rel) {
 async function problems(overrides = {}) {
   const errors = []
   const check = (condition, label) => { if (!condition) errors.push(label) }
-  const W = world({ overrides })
+  // Retain the complete public-editor contracts and mutants; test closed policies separately below.
+  const W = world({ overrides:{[ACTION_RELEASE]:read(ACTION_RELEASE).replace("= 'internal'","= 'public'"),...overrides} })
   const off = await W.render(LANDING, { watchVisitor: false })
   const implicitOff = await W.render(LANDING)
   const guest = await W.render(LANDING, { watchVisitor: true })
@@ -247,6 +249,16 @@ async function problems(overrides = {}) {
     if (previewIds.includes(id)) {
       const url = new URL(a.href, 'https://offline.invalid')
       check(url.pathname === previewConfig.SEU_VIDEO_PREVIEW_PATH && url.searchParams.get('example') === id && [...url.searchParams.keys()].join() === 'example', `referência abre editor antes da conta com id exato: ${id}`)
+    }
+  }
+  for(const release of ['internal','off']){
+    const closed=world({overrides:{...overrides,[ACTION_RELEASE]:read(ACTION_RELEASE).replace("= 'internal'","= '"+release+"'")}})
+    const html=await closed.render(WATCH,{preview:true})
+    for(const a of anchors(html).filter(a=>Object.hasOwn(a,'data-watch-card'))){
+      const item=clips.CLIPES_NOVOS.find(c=>c.id===a['data-watch-card'])
+      if(item?.produto!=='clip')continue
+      const expected=recreateEntry.publicRecreatePath(item.id)??closed.load('lib/homeGaleria.ts').viaSignup(clips.clipeNovoDestino(item),false)
+      check(a.href===expected,'política interna/off usa catálogo público sem convite de signup: '+item.id)
     }
   }
   for (const c of clips.CLIPES_NOVOS) if (['film', 'cartoon', 'ads'].includes(c.produto)) {
@@ -322,6 +334,7 @@ const baseErrors = await problems()
 for (const e of baseErrors) console.error(`FALHA ${e}`)
 assert.deepEqual(baseErrors, [], 'árvore real precisa passar antes dos mutantes')
 const mutations = [
+  ['geração interna recebe cliente público',()=>replacement('lib/home/watchEntry.ts',"SEU_VIDEO_RELEASE === 'public' && ",''),'política interna/off usa catálogo público sem convite de signup: selfie-confete'],
   ['WATCH alcança logado', () => replacement(LANDING, '{watchVisitor && !isSignedIn ? <WatchVisitorHome', '{watchVisitor ? <WatchVisitorHome'), 'paridade logado: WATCH nunca substitui home autenticada'],
   ['resposta citável retirada', () => replacement(LANDING, '<CitationDirectAnswer page="home" />', ''), 'SEO resposta direta preservada e faceless visível'],
   ['tabelas citáveis retiradas', () => replacement(LANDING, '<CitationDetails page="home" />', ''), 'SEO bloco citável: duas tabelas, cinco respostas e data preservados'],

@@ -17,6 +17,7 @@ const falhas = []
 const checa = (n, c) => { if (c) { ok++; console.log('  ok  ' + n) } else { falhas.push(n); console.log('  FALHA ' + n) } }
 const ARQ = 'lib/recreate/seuVideo.ts'
 const REGRAS = 'lib/recreate/seuVideoRules.ts'
+const RELEASE = 'lib/recreate/seuVideoRelease.ts'
 const carrega = (mutar = null, alvo = ARQ) => createOfflineLoader({ source: (rel, text) => (mutar && rel === alvo ? mutar(text) : text) })(ARQ)
 
 // ── MP4 sintético (ISO BMFF), só as caixas que o leitor usa ─────────────────────────────────────────────────────────────────────
@@ -467,7 +468,7 @@ const MUTANTES = [
   ['caminho de qualquer cliente', ARQ, (s) => s.replace('`^${SEU_VIDEO_PASTA}/${userId}/[0-9a-f-]{36}', '`^${SEU_VIDEO_PASTA}/[0-9a-f-]{36}/[0-9a-f-]{36}')],
   ['com som e 720p', ARQ, (s) => s.replace("resolution: '480p', duration: String(a.gerados), aspect_ratio: a.proporcao, generate_audio: false", "resolution: '720p', duration: String(a.gerados), aspect_ratio: a.proporcao, generate_audio: true")],
   ['recusa com outra frase', ARQ, (s) => s.replace("'The engine did not accept this photo. Nothing was charged. Try another photo.'", "'The engine refused this.'")],
-  ['aberto ao público', ARQ, (s) => s.replace("export const SEU_VIDEO_RELEASE: InternalRelease = 'internal'", "export const SEU_VIDEO_RELEASE: InternalRelease = 'public'")],
+  ['aberto ao público', RELEASE, (s) => s.replace("export const SEU_VIDEO_RELEASE: InternalRelease = 'internal'", "export const SEU_VIDEO_RELEASE: InternalRelease = 'public'")],
 ]
 for (const [nome, alvo, fn] of MUTANTES) {
   const src = lf(fs.readFileSync(alvo, 'utf8')), mudou = fn(src) !== src
