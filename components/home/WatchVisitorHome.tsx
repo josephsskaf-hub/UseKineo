@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { UiLabel, InterfaceLanguageSelect } from '@/components/InterfaceLanguage'
 import { CLIPES_NOVOS, CLIPES_NO_TOPO, clipeNovoPoster, clipeNovoVideo } from '@/lib/clipesNos2Lugares'
 import { watchClipHref, watchClipLabel, WATCH_FEATURED_FILMS, watchFilmExampleHref } from '@/lib/home/watchEntry'
@@ -29,10 +29,15 @@ html:has(.watch-home),body:has(.watch-home){scrollbar-width:none}.klp .watch-hom
 .klp .watch-home .watch-menu{border-bottom:1px solid #34363b;padding:16px 24px;display:flex;gap:20px;align-items:center;flex-wrap:wrap}.klp .watch-home .watch-menu a{font-size:14px;min-height:44px;display:inline-flex;align-items:center}.klp .watch-home .watch-rest{margin-top:14px}.klp .watch-home .watch-collection{font-size:13px;color:#b7bbc2;padding:28px;text-align:center}.klp .watch-home .watch-collection a{text-decoration:underline;text-underline-offset:4px}
 @media(max-width:1100px){.klp .watch-home .watch-products{gap:14px}.klp .watch-home .watch-products a{font-size:12px}.klp .watch-brand small{display:none}.klp .watch-home .watch-card h2{font-size:19px}.klp .watch-home .watch-card-copy{padding:60px 14px 16px;gap:10px}.klp .watch-home .watch-cta{font-size:12px;padding:12px}}
 @media(max-width:760px){.klp .watch-home{padding-bottom:20px}.klp .watch-home .watch-top{padding:7px 14px;min-height:62px;gap:12px}.klp .watch-home .watch-brand{font-size:24px}.klp .watch-home .watch-products{display:none}.klp .watch-home .watch-account{gap:14px}.klp .watch-home .watch-account a{font-size:12px}.klp .watch-home .watch-menu-toggle{display:inline-flex;width:44px;min-height:44px;align-items:center;justify-content:center;background:transparent;color:#f7f6f2;border:1px solid #444;border-radius:9px;font-size:23px}.klp .watch-home .watch-intro{padding:6px 14px;gap:8px}.klp .watch-home .watch-intro h1{font-size:12px;letter-spacing:.3px;min-width:0;flex:1}.klp .watch-home .watch-preview-actions{gap:8px}.klp .watch-home .watch-intro a{font-size:12px}.klp .watch-home .watch-wall{grid-template-columns:minmax(0,1fr);padding:0 8px;gap:10px}.klp .watch-home .watch-card-copy{padding:72px 17px 18px}.klp .watch-home .watch-card h2{font-size:21px;max-width:64%}.klp .watch-home .watch-cta{font-size:13px;padding:12px 17px}.klp .watch-home .watch-menu{padding:12px 16px;gap:8px 20px}.klp .watch-home .watch-bottom{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));position:fixed;inset:auto 0 0;min-height:65px;padding:7px 5px max(7px,env(safe-area-inset-bottom));background:#191b1ef5;border-top:1px solid #444;z-index:50;box-shadow:none;backdrop-filter:none}.klp .watch-home .watch-bottom a{min-width:0;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px;line-height:1.15;text-align:center}.klp .watch-home .watch-bottom b{font-size:19px;line-height:1}.klp:has(.watch-home){padding-bottom:75px}.klp .watch-home .watch-collection{padding:24px 16px}}
+@media(max-width:760px){
+  #watch-cookie-slot .kineo-consent{position:static!important;max-width:none!important;margin:0 8px 10px}
+  body:has(.watch-home) .kineo-consent{bottom:calc(73px + env(safe-area-inset-bottom))!important}
+}
 @media(prefers-reduced-motion:reduce){.klp .watch-home *{scroll-behavior:auto!important;transition:none!important}}
 `
 
 export default function WatchVisitorHome({preview=false}:{preview?:boolean}){
+  useEffect(() => { window.dispatchEvent(new Event('watch-cookie-slot-ready')) }, [])
   const [menu,setMenu]=useState(false)
   const [previewsPaused,setPreviewsPaused]=useState(false)
   const top=CLIPES_NO_TOPO.flatMap(id=>CLIPES_NOVOS.find(c=>c.id===id)??[])
@@ -53,6 +58,7 @@ export default function WatchVisitorHome({preview=false}:{preview?:boolean}){
     </header>
     {menu&&<div className="watch-menu" id="watch-more"><Link href="/made-with-kineo">Made with Kineo</Link><Link href="/kineo-in-claude">Claude &amp; ChatGPT</Link><Link href="/clips?free_clip=1"><UiLabel>Redeem an existing offer</UiLabel></Link><InterfaceLanguageSelect emMenu/><button type="button" onClick={()=>setMenu(false)} aria-label="Close destinations">×</button></div>}
     <div className="watch-intro"><h1><UiLabel>Watch what you could make</UiLabel></h1><div className="watch-preview-actions"><Link href="/made-with-kineo"><UiLabel>View collection</UiLabel> ↗</Link><button className="watch-preview-toggle" type="button" aria-label={previewsPaused?'Play previews':'Pause previews'} title={previewsPaused?'Play previews':'Pause previews'} aria-pressed={previewsPaused} onClick={()=>setPreviewsPaused(paused=>!paused)}><span aria-hidden="true">{previewsPaused?'▶':'Ⅱ'}</span></button></div></div>
+    <div id="watch-cookie-slot" />
     <div className="watch-wall" data-watch-top="1">{top.map((c,i)=>card(c,i+1))}</div>
     <div className="watch-wall watch-rest">{rest.map((c,i)=>card(c,top.length+i+1))}</div>
     <div className="watch-wall watch-rest" aria-label="Narrated films">{WATCH_FEATURED_FILMS.map((film,i)=><Link key={film.id} href={watchFilmExampleHref(film.id)} prefetch={false} className="watch-card" data-watch-film={film.id} onClick={()=>{void trackEvent('home_card_clicked',{...watchViewportMetadata(typeof window==='undefined'?undefined:window.innerWidth),card:'films',clip_id:'home-'+film.id,position:CLIPES_NOVOS.length+i+1,href:watchFilmExampleHref(film.id),signed_in:false,surface:'home',card_v:1,home_variant:preview?'watch-preview':'watch',preview})}}><WatchMedia paused={previewsPaused} src={film.previewUrl||film.videoUrl} poster={film.posterUrl} focus={film.focalPoint}/><div className="watch-card-copy"><h2>{film.title}</h2><span className="watch-cta"><UiLabel>Make a film</UiLabel></span></div></Link>)}</div>

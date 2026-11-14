@@ -6,6 +6,8 @@
 // "Accept" e "Reject" usam o MESMO estilo (CONSENT_BUTTON_STYLE): o guardião scripts/test-consentimento-1610.mjs
 // prova que nenhum dos dois pesa mais.
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import {
@@ -134,12 +136,26 @@ export default function ConsentManager({ marketing, clarity }: { marketing: Reac
 
   const copy = consentCopyFor(language, browserLanguages)
   const showUi = bannerVisible || panelOpen
+  const pathname = usePathname()
+  const [watchSlot, setWatchSlot] = useState<HTMLElement | null>(null)
 
-  return (
-    <>
-      {allowed ? marketing : null}
-      {allowed ? clarity : null}
-      {showUi ? (
+  useEffect(() => {
+    if (!bannerVisible || panelOpen) {
+      setWatchSlot(null)
+      return
+    }
+    const mobile = window.matchMedia('(max-width: 760px)')
+    const sync = () => setWatchSlot(mobile.matches ? document.getElementById('watch-cookie-slot') : null)
+    sync()
+    mobile.addEventListener('change', sync)
+    window.addEventListener('watch-cookie-slot-ready', sync)
+    return () => {
+      mobile.removeEventListener('change', sync)
+      window.removeEventListener('watch-cookie-slot-ready', sync)
+    }
+  }, [bannerVisible, panelOpen, pathname])
+
+  const notice = showUi ? (
         <div
           role="dialog"
           aria-modal="false"
@@ -188,7 +204,12 @@ export default function ConsentManager({ marketing, clarity }: { marketing: Reac
             <Link href="/privacy#cookies" style={{ color: 'var(--muted, #86868b)', textDecoration: 'underline' }}>{copy.privacy}</Link>
           </div>
         </div>
-      ) : null}
+      ) : null
+  return (
+    <>
+      {allowed ? marketing : null}
+      {allowed ? clarity : null}
+      {watchSlot && !panelOpen && watchSlot.isConnected ? createPortal(notice, watchSlot) : notice}
     </>
   )
 }
