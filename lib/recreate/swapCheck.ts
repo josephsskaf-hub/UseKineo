@@ -97,7 +97,11 @@ export function readPerson(r: Record<string, unknown> | undefined, k: number): S
 }
 
 /** The DECISION (code, not the model): any expected person still the base person → refund; all replaced → deliver. */
-export function decideSwap(parsed: unknown, slots: number): { result: SwapCheckResult; reason: string; persons: SwapPerson[] } {
+// KINEO-RECREATE-KLING-NAO-TROCOU-1311 [CEO 13/11 22:46, item B] — o Kling 4.0 edição MANTÉM a cena (roupa, cenário, enquadramento): ali "a
+// mesma pessoa da base" já é a prova de que não trocou, mesmo quando o juiz também diz "parece a foto" (rosto parecido com o da foto na mesma
+// roupa). Caso real: clip 19e29401 saiu unverified (same_as_base true + matches_photo true), entregou e cobrou 40 créditos sem trocar.
+// Com `cenaMantida`, same_as_base true = mantida (unchanged/partial → falha + estorno). Sem a opção, a regra é byte a byte a de antes.
+export function decideSwap(parsed: unknown, slots: number, opts: { cenaMantida?: boolean } = {}): { result: SwapCheckResult; reason: string; persons: SwapPerson[] } {
   const raw = parsed && typeof parsed === 'object' && Array.isArray((parsed as { persons?: unknown }).persons) ? (parsed as { persons: unknown[] }).persons : []
   const persons: SwapPerson[] = []
   for (let k = 1; k <= slots; k++) {
@@ -106,7 +110,7 @@ export function decideSwap(parsed: unknown, slots: number): { result: SwapCheckR
   }
   if (slots < 1 || raw.length === 0) return { result: 'unverified', reason: 'vision_incomplete', persons }
   // Same as base AND like the photo is a contradiction: that person's answer is unknown, never a verdict.
-  const kept = persons.filter(p => p.same_as_base === true && p.matches_photo !== true).length
+  const kept = persons.filter(p => p.same_as_base === true && (opts.cenaMantida === true || p.matches_photo !== true)).length // KINEO-RECREATE-KLING-NAO-TROCOU-1311
   const replaced = persons.filter(p => p.same_as_base === false).length
   if (kept === slots) return { result: 'unchanged', reason: 'all_kept', persons }
   if (kept > 0) return { result: 'partial', reason: `${kept}_of_${slots}_kept`, persons }
@@ -305,7 +309,7 @@ export async function runSwapCheck(row: { model: string; fingerprint: string }, 
     const usd = Math.round((framesUsd + usdFromUsage(got.value.usage, PIXEL_MODEL_RATES[model] ?? PIXEL_MODEL_RATES[AI_TEXT_MODELS.writer])) * 1e6) / 1e6
     const answer = readVisionAnswer(got.value)
     if ('why' in answer) return unverified(answer.why, 'vision_unusable', { model, usd })
-    const decided = decideSwap(answer.parsed, ctx.slots) // KINEO-RECREATE-SEU-VIDEO-1311 — era: ctx.format.photoSlots
+    const decided = decideSwap(answer.parsed, ctx.slots, { cenaMantida: row.model === KLING4_EDIT_MODEL }) // KINEO-RECREATE-SEU-VIDEO-1311 — era: ctx.format.photoSlots · KINEO-RECREATE-KLING-NAO-TROCOU-1311 — no Kling, mesma pessoa = não trocou
     const extra = { persons: decided.persons, model, usd }
     return decided.result === 'unverified' ? unverified('null_answer', decided.reason, extra) : verdict(decided.result, decided.reason, extra)
   })().catch(() => unverified('http_error', 'check_error'))
