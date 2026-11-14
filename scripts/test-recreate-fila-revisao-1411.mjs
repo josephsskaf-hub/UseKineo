@@ -63,7 +63,11 @@ function criarBanco() {
     gt(c, v) { this.f.push((r) => campo(r, c) > v); return this }
     gte(c, v) { this.f.push((r) => campo(r, c) >= v); return this }
     like(c, p) { const re = new RegExp('^' + p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/%/g, '[\\s\\S]*') + '$'); this.f.push((r) => re.test(String(campo(r, c) ?? ''))); return this }
+    // reancorado KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 — a varredura horária agora também passa pelo estorno do movimento, que usa NOT IN e a chave da página
+    not(c, op, v) { if (op !== 'in') throw new Error('not() fora do banco de mentira: ' + op); const vs = String(v).replace(/^\(|\)$/g, '').split(','); this.f.push((r) => campo(r, c) != null && !vs.includes(campo(r, c))); return this }
     or(expr) {
+      const k = /^created_at\.lt\."([^"]+)",and\(created_at\.eq\."([^"]+)",id\.lt\."([^"]+)"\)$/.exec(expr) // a chave da página (estorno do movimento)
+      if (k && k[1] === k[2]) { this.f.push((r) => r.created_at < k[1] || (r.created_at === k[1] && r.id < k[3])); return this }
       const m = /^failure_reason\.is\.null,and\(failure_reason\.like\.(.+)\*,failure_reason\.lt\.(.+)\)$/.exec(expr) // a reserva da trava
       if (!m) throw new Error('or() fora do banco de mentira: ' + expr)
       this.f.push((r) => r.failure_reason == null || (String(r.failure_reason).startsWith(m[1]) && r.failure_reason < m[2]))
