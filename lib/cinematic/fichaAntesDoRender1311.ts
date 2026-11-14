@@ -52,7 +52,7 @@ export function semFichaReprovada(prompt: string, pessoaDaIdeia: string | null, 
   if (!m) return { prompt: p, acao: 'nada' }
   const ficha = m[1]
   const pessoa = String(pessoaDaIdeia ?? '').replace(/[.\s]+$/u, '').trim()
-  const sujeito = !pessoa && sujeitoDoPedido && TIPOS_SEM_GENTE.has(String(sujeitoDoPedido.tipo)) ? String(sujeitoDoPedido.sujeito ?? '').replace(/[.s]+$/u, '').trim() : '' // C3
+  const sujeito = !pessoa && sujeitoDoPedido && TIPOS_SEM_GENTE.has(String(sujeitoDoPedido.tipo)) ? String(sujeitoDoPedido.sujeito ?? '').replace(/[.\s]+$/u, '').trim() : '' // C3 — /[.\s]+$/ (com a barra: sem ela, "octopus" virava "octopu")
   const nova = pessoa ? `The only person in this shot is the same main character (${pessoa}); any other person described below is replaced by this same character. ` : sujeito ? `Main subject clearly visible in frame: ${sujeito}. ` : ''
   const resto = semVazamento(p.slice(0, m.index) + p.slice(m.index + m[0].length), ficha)
   const comecoTrava = /^Film visual medium: .+?\. /u.exec(resto)?.[0] ?? ''

@@ -63,6 +63,12 @@ function provas(L) {
   const c3 = m.refazerPlanoDaFicha({ prompts: PROMPTS, veredito: veredito(), pessoaDaIdeia: null, sujeitoDoPedido: { sujeito: DINO, tipo: 'criatura' } })
   if (!c3.prompts[0].includes(`Main subject clearly visible in frame: ${DINO}.`) || /The only person in this shot|the mother/.test(c3.prompts[0]) || c3.relato.refeitos[0]?.acao !== 'sujeito' || !c3.prompts[0].includes(ACOES[0])) erros.push('C3 criatura sem o sujeito no lugar da ordem: ' + JSON.stringify(c3.relato.refeitos))
   if (!/argentinosaurus/i.test(c.promptDaCenaKling4(c3.prompts[0], style, 0, true))) erros.push('C3 o sujeito não chegou ao texto do Kling 4')
+  // revisão da CEO 14/11: o sujeito terminado em "s" chega inteiro ("octopus" virava "octopu"; "a red bus" virava "a red bu")
+  for (const [suj, tipo] of [['a giant octopus', 'criatura'], ['three dinosaurs.', 'criatura'], ['a red bus ', 'veiculo']]) {
+    const limpo = suj.replace(/[.\s]+$/u, '')
+    const p = m.refazerPlanoDaFicha({ prompts: PROMPTS, veredito: veredito(), pessoaDaIdeia: null, sujeitoDoPedido: { sujeito: suj, tipo } }).prompts[0]
+    if (!p.includes(`Main subject clearly visible in frame: ${limpo}. `)) erros.push(`C3 o sujeito "${limpo}" não chegou inteiro: ${p.slice(p.indexOf('Main subject'), p.indexOf('Main subject') + 70)}`)
+  }
   if (m.refazerPlanoDaFicha({ prompts: PROMPTS, veredito: veredito(), pessoaDaIdeia: null, sujeitoDoPedido: { sujeito: 'a young woman', tipo: 'pessoa' } }).prompts[0].includes('Main subject clearly visible')) erros.push('C3 pessoa virou sujeito (só criatura/objeto/veículo)')
   // C5: o juiz julgou outro número de planos (a reserva descarta cena vazia) → nada é refeito, e o relato diz
   const c5 = m.refazerPlanoDaFicha({ prompts: PROMPTS, veredito: veredito({ cenas: 2 }), pessoaDaIdeia: MAYA })
