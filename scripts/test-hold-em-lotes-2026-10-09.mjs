@@ -18,12 +18,13 @@ const uuid = (i) => `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`
 const claims = Array.from({ length: 517 }, (_, i) => ({ id: uuid(i), name: 'cinematic_submission_claim', user_id: 'u1', metadata: {}, created_at: new Date(Date.now() - i * 1000).toISOString() }))
 let maiorLote = 0, chamadas = 0
 function q(table) {
-  const st = { table, inList: null }
+  const st = { table, inList: null, faixa: null }
   const b = {
     select() { return b }, eq() { return b }, order() { return b }, limit() { return b },
+    range(a, z) { st.faixa = [a, z]; return b }, // reancorado KINEO-RESERVA-PAGINADA-1411 — a leitura dos claims agora é paginada (range); o banco falso devolve a faixa pedida
     in(col, list) { if (table === 'events') return b; st.inList = list; return b },
     then(res) {
-      if (table === 'events') return res({ data: claims, error: null })
+      if (table === 'events') return res({ data: st.faixa ? claims.slice(st.faixa[0], st.faixa[1] + 1) : claims, error: null })
       chamadas++; maiorLote = Math.max(maiorLote, st.inList.length)
       if (st.inList.length > 100) return res({ data: null, error: { message: 'Bad Request' } })
       return res({ data: [], error: null })

@@ -35,6 +35,15 @@ type HoldInspection =
 /** Tamanho do lote do .in() de credit_debits (URL do PostgREST tem teto; 100 refs ≈ 4,6 KB). */
 export const PROVIDER_DEBIT_REF_CHUNK = 100
 
+// KINEO-RESERVA-PAGINADA-1411 [CEO 14/11 12:02, P0] — a leitura dos claims era UMA consulta com .limit(1000) e recusava ao vir 1000 linhas: um teto de VIDA da conta
+// (a do fundador chegou a 1000 em 14/11 e todo filme voltou 503 "Your credit reservation could not be verified"). Agora lê em páginas de 1000
+// (a mesma ordem: created_at desc, id desc) até vir uma página vazia; a decisão sobre cada linha é a MESMA. O deslocamento anda pelo que VEIO
+// (se o servidor devolver menos que 1000 por resposta, nenhuma linha é pulada) e só a página VAZIA encerra. Teto de segurança explícito: 20
+// páginas com dados; ainda havendo linha depois delas, recusa como antes. Erro do banco em qualquer página recusa. A linha repetida entre páginas
+// (um claim novo gravado durante a leitura empurra a lista) conta uma vez só, pelo id.
+export const HOLD_SCAN_PAGE = 1000
+export const HOLD_SCAN_MAX_PAGES = 20
+
 export async function inspectActiveComposeCreditHolds(args: {
   db: SupabaseClient
   secret: string
@@ -42,18 +51,27 @@ export async function inspectActiveComposeCreditHolds(args: {
   currentClaimId: string
 }): Promise<HoldInspection> {
   const activeSince = new Date(Date.now() - ACTIVE_COMPOSE_CREDIT_HOLD_TTL_MS).toISOString()
-  const { data, error } = await args.db
-    .from('events')
-    .select('id,name,user_id,path,session_id,metadata,created_at')
-    .in('name', [COMPOSE_CLAIM_EVENT, AVATAR_CLAIM_EVENT, CINEMATIC_CLAIM_EVENT])
-    .eq('user_id', args.userId)
-    .order('created_at', { ascending: false })
-    .order('id', { ascending: false })
-    .limit(1000)
-
-  if (error) return { ok: false, error: error.message }
-  if ((data?.length ?? 0) >= 1000) {
-    return { ok: false, error: 'credit hold scan truncated; refusing provider submission' }
+  const data: Array<Record<string, unknown>> = [] // KINEO-RESERVA-PAGINADA-1411 — era: uma consulta .limit(1000) que recusava ao vir 1000 linhas
+  const vistos = new Set<unknown>()
+  let from = 0
+  for (let pagina = 0; ; pagina++) {
+    const { data: lote, error } = await args.db
+      .from('events')
+      .select('id,name,user_id,path,session_id,metadata,created_at')
+      .in('name', [COMPOSE_CLAIM_EVENT, AVATAR_CLAIM_EVENT, CINEMATIC_CLAIM_EVENT])
+      .eq('user_id', args.userId)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(from, from + HOLD_SCAN_PAGE - 1)
+    if (error) return { ok: false, error: error.message }
+    if (!lote || lote.length === 0) break
+    if (pagina >= HOLD_SCAN_MAX_PAGES) return { ok: false, error: 'credit hold scan truncated; refusing provider submission' }
+    from += lote.length
+    for (const row of lote as Array<Record<string, unknown>>) {
+      if (vistos.has(row.id)) continue
+      vistos.add(row.id)
+      data.push(row)
+    }
   }
 
   // Avatar and Cinematic claims begin as balance holds, then become real
