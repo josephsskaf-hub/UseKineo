@@ -46,6 +46,21 @@ const SEM_GENTE = [
   'A wide shot of an empty farmer\'s market at dawn, stalls covered with tarps.',
   'A macro shot of a talisman and a specimen jar on a German oak table.',
   'A close-up of an ottoman beside a Doberman sleeping on the rug.',
+  // revisão independente 14/11 (lote 1, item 5): o sufixo aberto -man/-men e os papéis largos tiravam o "No people" destes
+  'A Sherman tank rolls through the empty ruined village.',
+  'An ancient dolmen on a windswept hill.',
+  'Cayman Islands coastline at sunset.',
+  'A snowman in a quiet garden.',
+  'A human skull on a wooden desk.',
+  'An adult bald eagle perched on a branch.',
+  'Native flowers bloom on the prairie.',
+  'Rain on the streets of Bremen.',
+  'A vintage Pullman car at the station.',
+  'Mount Rushmore with four presidents carved into the granite.',
+  'the General Sherman tree is older than you think', // do corpus
+  'A marble bust of an emperor on a stone pedestal.', // ("emperor penguin" não serve: o pinguim já é "alguém" no detector de sempre)
+  'A statue of a pharaoh in the desert.',
+  'The mechanics of an old pocket watch.',
 ]
 const plano = (acao, era = false) => `Film visual medium: photorealistic, ultra-detailed. ${acao}${era ? ERA : ''}, 9:16 vertical framing`
 
@@ -90,10 +105,11 @@ const rota = lf(fs.readFileSync('app/api/generate-video-cinematic/route.ts', 'ut
 checa('E a rota passa os prompts clássicos pelo ajuste do elenco (onde C e D moram)', rota.includes('ajustarPromptsDoElenco({ prompts: classicScenePrompts'))
 const MUTANTES = [
   ['C: sem a gente de papel', ARQ, (s) => s.replace("if (cenaSemGenteLigada() && visualTemGenteDePapel(args.visuals[i] ?? '')) return out", "if (false) return out")],
-  ['C: "airmen" (composto em -men) não conta', ARQ, (s) => s.replace('|\\\\p{L}{2,}(?:man|men|woman|women))', ')')],
+  ['C: "airmen" (composto em -men) não conta', ARQ, (s) => s.replace("const COMPOSTOS_DE_GENTE = 'airm[ae]n|", "const COMPOSTOS_DE_GENTE = '")],
+  ['C: volta o sufixo aberto -man/-men (Sherman, dolmen, Bremen viram gente)', ARQ, (s) => s.replace('|${COMPOSTOS_DE_GENTE})(?![', '|${COMPOSTOS_DE_GENTE}|\\\\p{L}{2,}(?:man|men))(?![')],
+  ['C: voltam humans, adults, natives, presidents (caveira, águia, flores, Rushmore viram gente)', ARQ, (s) => s.replace("|refugees?|immigrants?|settlers?|colonists?'", "|refugees?|immigrants?|settlers?|colonists?|natives?|adults?|humans?|presidents?'")],
   ['C: a referência ("honoring veterans") conta como gente', ARQ, (s) => s.replace('if (REFERENCIA_ANTES_RE.test(v.slice(Math.max(0, (m.index ?? 0) - 40), m.index ?? 0))) continue', '')],
   ['C: a posse ("farmer\'s market") conta como gente', ARQ, (s) => s.replace("(?![\\\\p{L}\\\\p{N}])(?!['’]s)`, 'giu')", "(?![\\\\p{L}\\\\p{N}])`, 'giu')")],
-  ['C: Roman, talisman, German contam como gente', ARQ, (s) => s.replace("if (NAO_E_GENTE.has(m[0].toLowerCase())) continue", '')],
   ['C: a negação de gente ("deserted") não vence', ARQ, (s) => s.replace("if (!v.trim() || SEM_GENTE_RE.test(v)) return false", "if (!v.trim()) return false")],
   ['D: a época longa fica no plano sem gente', ARQ, (s) => s.replace('if (cenaSemGenteLigada()) out = epocaSemGente(out)', '')],
   ['D: a época sai inteira (o ano some)', ARQ, (s) => s.replace("(_m, cabeca: string) => `${cabeca}: ${EPOCA_SEM_GENTE}`", "() => ''")],
