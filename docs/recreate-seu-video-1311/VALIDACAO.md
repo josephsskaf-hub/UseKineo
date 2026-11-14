@@ -1,12 +1,12 @@
 # Validação da missão 7
 
-**TESTADO LOCALMENTE · 13/11/2026, até 21:09 −03:00.** Código da entrega: `8c3eacd19` + `192a0fe0a`, sobre a main publicada `4a299ab1e85c2aed398fff38daac75b323313f15`. A API publicada já está nessa base (`246c5865c` + `8f03330ce`); o primeiro SHA experimental `f928d5b48` foi substituído na ancestralidade, sem duplicar a API. Nenhum arquivo de API ou biblioteca canônica do backend foi modificado pela tela.
+**TESTADO LOCALMENTE · 13/11/2026.** Entrega reancorada na main `0ec28691a532ddc85a732e8cfc906a8dd430a5e0`, incluindo áudio original e proteção contra resultado sem troca. O código exato do build e do typecheck bruto está registrado em `BUILD-SOURCE.json`; o do gate, em `GATE-RUN.json`. O primeiro SHA experimental da API `f928d5b48` foi substituído pela versão publicada, sem duplicar a API. Nenhum arquivo de API ou biblioteca canônica do backend foi modificado pela tela.
 
 | Verificação | Resultado e evidência |
 |---|---|
 | Build otimizado final, após reancorar e corrigir MIME/download | **PASSOU**, `npx next build`, saída 0; `validacao/build.log` |
 | Typecheck bruto das fontes | **PASSOU**, `npx tsc --noEmit --incremental false`, saída 0; `validacao/tsc.log` vazio significa ausência de diagnósticos; `.next/types` ainda ausente no início desta execução |
-| Tela SSR e handlers | **PASSOU**, 13 cenários, 163 verificações e 25 mutantes recusados no contrato esperado; `validacao/gate/ramo/test-recreate-seu-video-ui-1311.mjs.log` |
+| Tela SSR e handlers | **PASSOU**, 14 cenários, 173 verificações e 27 mutantes recusados no contrato esperado; `validacao/gate/ramo/test-recreate-seu-video-ui-1311.mjs.log` |
 | Cliente da API com transporte injetado | **PASSOU**, 82 verificações e 9 mutantes; log `test-seu-video-client-1311.mjs.log` na mesma pasta |
 | Rascunho IndexedDB e volta em outra aba | **PASSOU**, 89 verificações e 10 mutantes; log `test-seu-video-draft-1311.mjs.log` |
 | Catálogo: fontes e arquivos reais | **PASSOU**, 8 referências, 98 verificações, 13 mutantes e cenário de mídia ausente recusado; log `test-recreate-seu-video-catalog-1311.cjs.log` |
@@ -29,5 +29,7 @@ bash scripts/ci/novos-vermelhos.sh '^test-(recreate-|seu-video-|menu-recreate-12
 **TESTADO LOCALMENTE / percurso do visitante:** `FLUXO-NAVEGADOR.json` registra vídeo próprio e foto fictícios, edição, clique Generate, URL de cadastro com referência opaca e restauração na nova aba da mesma origem. Não houve cadastro real, upload autenticado, geração, débito ou estorno reais. Os estados autenticado, externo, espera, falha e resultado são testes de componente ou fixtures explicitamente identificadas.
 
 **FATO CONFIRMADO / correções da revisão:** (1) o mesmo helper de MIME é usado no cliente e no armazenamento, preservando bytes e tipos originais, inclusive nomes longos; (2) a duração do catálogo é lida mesmo se o evento ocorrer antes da hidratação; (3) idempotência preserva o objeto conferido e os arquivos na repetição incerta; (4) a instrução editada é medida corretamente; (5) o resultado usa primeiro quadro e download da casa. Cada contrato alterado tem teste que rejeita sua remoção.
+
+**FATO CONFIRMADO / última integração:** o texto acompanha `SEU_VIDEO_SOM_ORIGINAL` nos estados inicial e de espera, incluindo o modo desligado; a falha `not_swapped` orienta trocar a foto ou vídeo e só confirma estorno com valor positivo no estado. As capturas da nova tela e fixtures foram refeitas após essa integração. A prova de ida/volta do cadastro é anterior à atualização do áudio, como rotulado no HTML.
 
 **QUESTÃO PENDENTE / próximo passo da CEO:** publicar e validar a geração completa com conta da casa e foto autorizada, conferir o download e o estorno real se ocorrer recusa. O interruptor de API continua `internal`; o de apresentação só habilita `/recreate-preview`. A missão 6 Etapa 2 continua preservada e em espera.

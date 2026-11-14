@@ -4,9 +4,6 @@
 Browserslist: browsers data (caniuse-lite) is 6 months old. Please run:
   npx update-browserslist-db@latest
   Why you should do it regularly: https://github.com/browserslist/update-db#readme
-Browserslist: caniuse-lite is outdated. Please run:
-  npx update-browserslist-db@latest
-  Why you should do it regularly: https://github.com/browserslist/update-db#readme
  ✓ Compiled successfully
    Skipping validation of types
    Skipping linting
@@ -545,7 +542,7 @@ Route (app)                                               Size     First Load JS
 ├ ○ /faceless-channel-ideas                               157 B           288 kB
 ├ ƒ /faceless-video-generator                             5.15 kB         290 kB
 ├ ○ /faceless-youtube-shorts-generator                    2.52 kB         283 kB
-├ ○ /facts                                                211 B          88.3 kB
+├ ○ /facts                                                210 B          88.3 kB
 ├ ○ /film-60                                              4.06 kB         102 kB
 ├ ○ /film-complete                                        11.4 kB         275 kB
 ├ ○ /forgot-password                                      4.33 kB         172 kB
@@ -619,8 +616,8 @@ Route (app)                                               Size     First Load JS
 ├ ƒ /referral                                             1.3 kB         89.3 kB
 ├ ○ /refund                                               2.25 kB         283 kB
 ├ ○ /reset-password                                       4.92 kB         172 kB
-├ ○ /reviews                                              209 B          88.3 kB
-├ ƒ /revive/[handle]                                      209 B          88.3 kB
+├ ○ /reviews                                              210 B          88.3 kB
+├ ƒ /revive/[handle]                                      210 B          88.3 kB
 ├ ○ /robots.txt                                           0 B                0 B
 ├ ƒ /s/[channel]                                          0 B                0 B
 ├ ○ /scripts                                              2.65 kB         305 kB
@@ -647,7 +644,7 @@ Route (app)                                               Size     First Load JS
 ├ ƒ /studio                                               81.6 kB         494 kB
 ├ ƒ /studio/create                                        191 kB          633 kB
 ├ ƒ /studio/previa                                        5.91 kB         272 kB
-├ ○ /support                                              209 B          88.3 kB
+├ ○ /support                                              210 B          88.3 kB
 ├ ƒ /templates                                            2.6 kB         90.6 kB
 ├ ○ /terms                                                2.25 kB         283 kB
 ├ ○ /text-to-video-shorts                                 5.51 kB         348 kB
@@ -695,7 +692,7 @@ Route (app)                                               Size     First Load JS
 ├ ƒ /watch-preview                                        1.47 kB         455 kB
 ├ ○ /when-does-youtube-pay-you                            187 B           332 kB
 ├ ○ /widget                                               832 B          88.9 kB
-├ ƒ /widget/embed                                         209 B          88.3 kB
+├ ƒ /widget/embed                                         210 B          88.3 kB
 ├ ○ /youtube-automation                                   2.53 kB         287 kB
 ├ ○ /youtube-automation-case-study                        653 B          99.2 kB
 ├ ○ /youtube-shorts-from-topic                            6.25 kB         296 kB

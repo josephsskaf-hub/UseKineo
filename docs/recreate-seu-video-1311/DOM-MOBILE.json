@@ -1,17 +1,12 @@
 {
-  "date": "2026-11-14T00:06:57.239Z",
-  "build": "production on main 4a299ab1e",
+  "date": "2026-11-14T00:17:09.774Z",
+  "build": "production on main 0ec28691a",
+  "audio": "480p · Original audio when available. Some videos may be silent. Generation is currently limited to approved accounts.",
   "cost": "Generate✦ 40 credits",
   "height": 844,
   "origin": "http://localhost:3034",
   "robots": "noindex, follow",
   "scrollWidth": 390,
   "smallText": [],
-  "video": [
-    {
-      "duration": 6.583333,
-      "ready": 4
-    }
-  ],
   "width": 390
 }

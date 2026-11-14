@@ -13,8 +13,8 @@
       "file": "prints/depois-390.jpg",
       "width": 390,
       "height": 844,
-      "bytes": 49027,
-      "sha256": "cac7f6aff0f0cf68cce46d7ff43f7819401ac078cd3eff126514d081b66936f3"
+      "bytes": 52162,
+      "sha256": "f2be1d00e11aa48b598c6018dc292a2f5dd9f1dda0377e8560939e47077933b6"
     },
     {
       "file": "prints/antes-1920.jpg",
@@ -27,36 +27,36 @@
       "file": "prints/depois-1920.jpg",
       "width": 1920,
       "height": 1080,
-      "bytes": 135043,
-      "sha256": "65ebc393eb634efcadb1ebffadd197eae69931bdd7f63002f60d28a3da93a269"
+      "bytes": 141423,
+      "sha256": "591db844579d38c77c8e1090da901654449df2b5963cdb7a3b81b7b89c8ebd2b"
     },
     {
       "file": "prints/editor-390.jpg",
       "width": 390,
       "height": 844,
-      "bytes": 51371,
-      "sha256": "6fe7f171595aac3343b3dbe9df12f5de6031a8c0d56ed5899e8baf1681707771"
+      "bytes": 51072,
+      "sha256": "2673931a56aa4652d0c081523000d0219a8b88d304bc945d121c5aea15e1a89b"
     },
     {
       "file": "prints/catalogo-390.jpg",
       "width": 390,
       "height": 844,
-      "bytes": 56059,
-      "sha256": "cb443097cc9590a00185315cef74a1252eafabdf6872b041899863016d6a2593"
+      "bytes": 57877,
+      "sha256": "aa3d4c17406e932a6056de3870adce60cfd750c3bc0f2317a44fe09b0f954495"
     },
     {
       "file": "prints/editor-1920.jpg",
       "width": 1920,
       "height": 1080,
-      "bytes": 136692,
-      "sha256": "f44ce2f4b84cd412fca73517d1bd32b1b4aed411a20ed05f4fd8ed2d14d3d037"
+      "bytes": 141423,
+      "sha256": "591db844579d38c77c8e1090da901654449df2b5963cdb7a3b81b7b89c8ebd2b"
     },
     {
       "file": "prints/catalogo-1920.jpg",
       "width": 1920,
       "height": 1080,
-      "bytes": 143081,
-      "sha256": "57936e5ba0b7485aa9d1f5ab1d33f75a1f76201f88a5973517b120383b8e5cbe"
+      "bytes": 147999,
+      "sha256": "6162b7daaa44a9f6dd7ba84578f4db9ea1b35ed089d3f223d909c3a3f3c0d8d8"
     },
     {
       "file": "prints/formulario-preenchido-390.jpg",
@@ -76,57 +76,57 @@
       "file": "prints/fixture-pending-390.jpg",
       "width": 390,
       "height": 844,
-      "bytes": 35279,
-      "sha256": "1e7228396f2cde6000558698f1ddf399f76abd2875e097c243a15b7b1f6f8e70"
+      "bytes": 21207,
+      "sha256": "8f267d53cbc88fd588261f166a1852fc84432b138f44e0ea08b0e8fb17d1f52a"
     },
     {
       "file": "prints/fixture-done-placeholder-390.jpg",
       "width": 390,
       "height": 844,
-      "bytes": 50483,
-      "sha256": "dd9a95621519225cc7742ae9b2c1bfb6e31192fa52a345d038e853f968c18d14"
+      "bytes": 21203,
+      "sha256": "5d606f2f48beb2e6669334b6b9675128553c8eec34f4b21de13356b08a1dbd14"
     },
     {
       "file": "prints/fixture-pending-1920.jpg",
       "width": 1920,
       "height": 1080,
-      "bytes": 59546,
-      "sha256": "3460f2cb0ca00d463d1f4b7f32d06ecb7fd93627fb6e197a840cc5ac3e48e77c"
+      "bytes": 63307,
+      "sha256": "49fae889e5637f6bba919643699de6214b4384da7b8b8312c36142ee156bf97c"
     },
     {
       "file": "prints/fixture-done-placeholder-1920.jpg",
       "width": 1920,
       "height": 1080,
-      "bytes": 92967,
-      "sha256": "b6102dfea7c37eba887f1f68afbed5d97d5bfd626a31c3a6500ff78cfdbf04a0"
+      "bytes": 95488,
+      "sha256": "895309fe21d4c70031e5488cd5f09dfa96e71d5127d1511466256782f4beedc2"
     },
     {
       "file": "prints/fixture-failed-refund-0-390.jpg",
       "width": 390,
       "height": 844,
-      "bytes": 22097,
-      "sha256": "c6159f7c85a09529e82496bc4c68112a595a041c27ea6e997545e5dc70af37f3"
+      "bytes": 47319,
+      "sha256": "a91dafcaaef303d0cd21cbfd7dd109b5dd7533f6c0805de1aa7d694d9c37e058"
     },
     {
       "file": "prints/fixture-failed-refund-40-390.jpg",
       "width": 390,
       "height": 844,
-      "bytes": 41349,
-      "sha256": "f4ba9c224034a1b8ae7bfeb7bab1a7b2f40048bb36c81fc3ecda8c45f4f7e408"
+      "bytes": 21335,
+      "sha256": "5bc4a950202aefaec279294e376169abf6ec7791ccc6d69dcfd7ebd8f2277afa"
     },
     {
       "file": "prints/fixture-failed-refund-0-1920.jpg",
       "width": 1920,
       "height": 1080,
-      "bytes": 66551,
-      "sha256": "cd7e76e7239ef47ec73d3afeddabab775e6298b76d02714ff18dd63130df7ac6"
+      "bytes": 69255,
+      "sha256": "089bd1ec23f3d9cbabc454eda65670c20e5e4b9188acd36817fd17cdd292a96d"
     },
     {
       "file": "prints/fixture-failed-refund-40-1920.jpg",
       "width": 1920,
       "height": 1080,
-      "bytes": 62014,
-      "sha256": "14791614d28347b37ff5b56b14323f057c50a6748167d4b6b6c807cd490eb91c"
+      "bytes": 64490,
+      "sha256": "a4e41c8e1f1aae5c814f6de7cf8bad058a0c25156b4a7fc84227dcb8c30689fe"
     }
   ]
 }

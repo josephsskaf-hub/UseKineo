@@ -154,7 +154,7 @@ function harness(options = {}, override) {
   const stubs = {
     react: { ...React, useState: state, useRef, useMemo, useEffect },
     'next/link': { __esModule: true, default: ({ children, ...props }) => React.createElement('a', props, children) },
-    '@/lib/recreate/seuVideo': rules,
+    '@/lib/recreate/seuVideo': {...rules,SEU_VIDEO_SOM_ORIGINAL:options.originalAudio??rules.SEU_VIDEO_SOM_ORIGINAL},
     '@/lib/recreate/seuVideoCatalog': catalog,
     '@/lib/recreate/seuVideoPreviewRelease': release,
     '@/lib/growth/visitanteEscreveAntes': signup,
@@ -252,6 +252,14 @@ async function metadataRaceScenario(override) {
   check(text(generateButton(h)).includes(credits + ' credits'), 'metadata-before-effects-keeps-cost')
   check(noRequests(h) && h.calls.navigate.length === 0, 'metadata-race-stays-local')
   h.unmount()
+}
+async function audioScenario(override) {
+  for(const originalAudio of [true,false])for(const pending of [false,true]){
+    const h=harness({originalAudio,stateOverrides:{restoring:false,...(pending?{clip:{id:'audio-fixture',status:'pending',refundConfirmed:false}}:{})}},override)
+    const copy=text(h.tree)
+    check(originalAudio?copy.includes('Original audio when available'):!copy.includes('Original audio when available')&&/Silent video|No sound is generated/.test(copy),'audio-copy-follows-server-switch')
+    check(noRequests(h),'audio-state-does-not-generate')
+  }
 }
 async function hydrationMetadataScenario(override) {
   function videoElement(src, readyState = 4, duration = 6.583333) {
@@ -457,6 +465,9 @@ async function statusScenario(override) {
   equal(by(done, node => node.type === 'a' && Object.hasOwn(node.props, 'download')).props.href, loadModule('lib/downloadNosso.ts').downloadHref(output,'kineo-recreate-fixture-clip.mp4','recreate-preview'), 'done-download-through-owned-domain')
   equal(nodes(done.tree, node => node.type === 'progress').length, 0, 'done-removes-progress')
   equal(done.calls.generate.length, 1, 'done-does-not-restart-generation')
+  const unchanged=harness({props:{signedIn:true,generationAllowed:true,accountKey:'house'},stateOverrides:{restoring:false,clip:{id:'not-swapped-fixture',status:'failed',reason:'not_swapped',credits_refunded:0,refundConfirmed:false}}},override)
+  check(text(unchanged.tree).includes("We couldn't put you in this video. Try a clearer photo or another video."),'not-swapped-has-actionable-message')
+  check(/not been confirmed/.test(text(unchanged.tree))&&!/Nothing was charged/.test(text(unchanged.tree)),'not-swapped-keeps-refund-uncertainty')
 }
 async function recheckScenario(override) {
   for (const gate of [{ needs_plan: true, shortfall: 0 }, { needs_plan: false, shortfall: 1 }]) {
@@ -480,7 +491,7 @@ function exportFixtures(destination) {
   const fixtures = [
     { name: 'pending', label: 'Pending · andamento indeterminado', clip: { id: 'fixture-only-pending', status: 'pending', refundConfirmed: false } },
     { name: 'failed-refund-0', label: 'Failed · reembolso ainda não confirmado', clip: { id: 'fixture-only-failed-zero', status: 'failed', credits_refunded: 0, refundConfirmed: false, reason: 'engine_refused' } },
-    { name: 'failed-refund-' + refunded, label: 'Failed · reembolso confirmado pela fixture', clip: { id: 'fixture-only-failed-refunded', status: 'failed', credits_refunded: refunded, refundConfirmed: true, reason: 'engine_refused' } },
+    { name: 'failed-refund-' + refunded, label: 'Failed · pessoa não trocada · reembolso confirmado pela fixture', clip: { id: 'fixture-only-failed-refunded', status: 'failed', credits_refunded: refunded, refundConfirmed: true, reason: 'not_swapped' } },
     { name: 'done-placeholder', label: 'Done · vídeo público usado como PLACEHOLDER', clip: { id: 'fixture-only-done', status: 'done', video_url: placeholder.src, refundConfirmed: false }, message: 'Fixture SSR: this public catalog video is a PLACEHOLDER, not a generated result.' },
   ]
   const escape = value => String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character])
@@ -506,7 +517,7 @@ if (arguments_.length) {
   if (arguments_.length !== 2 || arguments_[0] !== '--export-fixtures') throw new Error('Usage: node scripts/test-recreate-seu-video-ui-1311.mjs [--export-fixtures <docs/folder>]')
   exportFixtures(arguments_[1])
 } else {
-const scenarios = { page: pageScenario, mount: mountScenario, metadataRace: metadataRaceScenario, hydrationMetadata: hydrationMetadataScenario, slots: slotsScenario, auth: authScenario, restore: restoreScenario, restoreRace: restoreRaceScenario, quote: quoteScenario, retry: retryScenario, refusal: refusalScenario, status: statusScenario, recheck: recheckScenario }
+const scenarios = { page: pageScenario, mount: mountScenario, metadataRace: metadataRaceScenario, hydrationMetadata: hydrationMetadataScenario, audio:audioScenario, slots: slotsScenario, auth: authScenario, restore: restoreScenario, restoreRace: restoreRaceScenario, quote: quoteScenario, retry: retryScenario, refusal: refusalScenario, status: statusScenario, recheck: recheckScenario }
 const failures = []
 for (const [name, run] of Object.entries(scenarios)) {
   try { await run(); console.log('PASS ' + name) } catch (error) { failures.push({ name, error }); console.error('FAIL ' + name + ': ' + error.message) }
@@ -520,6 +531,8 @@ function replaceOnce(original, anchor, replacement) {
 }
 const uiSource = read(UI), pageSource = read(PAGE)
 const mutants = [
+  ['original audio switch ignored', 'audio', replaceOnce(uiSource,'480p · {SEU_VIDEO_SOM_ORIGINAL?', '480p · {false?'), /audio-copy-follows-server-switch/],
+  ['not swapped outcome hidden', 'status', replaceOnce(uiSource,"clip.reason==='not_swapped'",'false'), /not-swapped-has-actionable-message/],
   ['done download bypasses owned domain', 'status', replaceOnce(uiSource, "href={downloadHref(clip.video_url,'kineo-recreate-'+clip.id+'.mp4','recreate-preview')}", 'href={clip.video_url}'), /done-download-through-owned-domain/],
   ['done preview loses first frame', 'status', replaceOnce(uiSource, 'src={comPrimeiroQuadro(clip.video_url)}', 'src={clip.video_url}'), /done-output-first-frame-from-owned-status/],
   ['public action', 'page', replaceOnce(pageSource, 'generationAllowed={!!user&&releaseVisible(user.email,SEU_VIDEO_RELEASE)}', 'generationAllowed={!!user}'), /page-internal-action-gate/],

@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { cadastroComVolta } from '@/lib/growth/visitanteEscreveAntes'
 import { comPrimeiroQuadro } from '@/lib/videoPrimeiroQuadro'
 import { downloadHref } from '@/lib/downloadNosso'
-import { SEU_VIDEO_LIMITES, validarPrompt } from '@/lib/recreate/seuVideo'
+import { SEU_VIDEO_LIMITES, SEU_VIDEO_SOM_ORIGINAL, validarPrompt } from '@/lib/recreate/seuVideo'
 import { SEU_VIDEO_CATALOG, seuVideoCatalogItem } from '@/lib/recreate/seuVideoCatalog'
 import { SEU_VIDEO_PREVIEW_PATH } from '@/lib/recreate/seuVideoPreviewRelease'
 import { createSeuVideoClient, defaultSeuVideoPrompt, estimateSeuVideoCredits, validateSeuVideoFile, validateSeuVideoPhotos, SeuVideoClientError, type CheckedSeuVideo, type SeuVideoClip } from '@/lib/recreate/seuVideoClient'
@@ -211,12 +211,12 @@ export default function SeuVideoRecreateClient({signedIn,generationAllowed,accou
   const canSubmit=!restoring&&!busy&&!localError&&cost!==null&&photos.filter(Boolean).length===people&&consent&&prompt.trim().length>0
   return <main className="sv-page" data-seu-video-preview="" aria-busy={restoring||busy}>
     <header className="sv-nav"><Link className="sv-brand" href="/watch-preview"><span>▸</span> kineo</Link><nav aria-label="Products"><Link href="/watch-preview">Watch</Link><Link href={SEU_VIDEO_PREVIEW_PATH} aria-current="page">Recreate</Link></nav><div className="sv-nav-right"><Link href="/pricing">Pricing</Link><Link href={signedIn?'/library':'/login'}>{signedIn?'My videos':'Log in'}</Link></div></header>
-    <div className="sv-wrap"><div className="sv-intro"><div><p className="sv-kicker">Recreate · preview</p><h1>Recreate with your video</h1></div><p>480p · silent video. Generation is currently limited to approved accounts.</p></div>
+    <div className="sv-wrap"><div className="sv-intro"><div><p className="sv-kicker">Recreate · preview</p><h1>Recreate with your video</h1></div><p>480p · {SEU_VIDEO_SOM_ORIGINAL?'Original audio when available. Some videos may be silent.':'Silent video in this version.'} Generation is currently limited to approved accounts.</p></div>
       {clip ? <section className="sv-card sv-result" aria-live="polite" data-seu-video-result={clip.status}>
         <h2>{clip.status==='done'?'Your version is ready':clip.status==='failed'?'This version could not be completed':'Creating your version'}</h2>
         {clip.status==='done'&&clip.video_url?<><video src={comPrimeiroQuadro(clip.video_url)} controls playsInline preload="metadata" aria-label="Your generated video"/><div className="sv-actions"><a className="sv-button" href={downloadHref(clip.video_url,'kineo-recreate-'+clip.id+'.mp4','recreate-preview')} download>Download</a><Link className="sv-button" href="/library">My videos ↗</Link></div></>:null}
-        {clip.status==='pending'||clip.status==='processing'?<><progress aria-label="Creating your video"/><p>About 3–4 minutes. You can leave this page; your video will be in My videos.</p><p className="sv-note">No sound is generated in this first version.</p></>:null}
-        {clip.status==='failed'?<><p>{clip.reason==='engine_refused'?'The engine could not complete this video with these photos. Try another photo or video.':'This request failed.'}</p><p>{clip.refundConfirmed?`${clip.credits_refunded} credits were returned.`:'The credit return has not been confirmed yet. Refresh the status or check My videos.'}</p></>:null}
+        {clip.status==='pending'||clip.status==='processing'?<><progress aria-label="Creating your video"/><p>About 3–4 minutes. You can leave this page; your video will be in My videos.</p><p className="sv-note">{SEU_VIDEO_SOM_ORIGINAL?'Original audio when available. Some videos may be silent.':'No sound is generated in this version.'}</p></>:null}
+        {clip.status==='failed'?<><p>{clip.reason==='engine_refused'?'The engine could not complete this video with these photos. Try another photo or video.':clip.reason==='not_swapped'?"We couldn't put you in this video. Try a clearer photo or another video.":'This request failed.'}</p><p>{clip.refundConfirmed?`${clip.credits_refunded} credits were returned.`:'The credit return has not been confirmed yet. Refresh the status or check My videos.'}</p></>:null}
         {message?<p className="sv-alert" role="status">{message}</p>:null}<div className="sv-actions"><button className="sv-button" type="button" onClick={()=>{setMessage('');setStatusRetry(n=>n+1)}}>Refresh status</button><Link className="sv-button" href="/library">My videos ↗</Link>{['done','failed'].includes(clip.status)?<button className="sv-button" type="button" onClick={makeAnother}>Make another</button>:null}</div>
       </section>:<div className="sv-grid">
         <section className="sv-card sv-reference" aria-labelledby="sv-reference-title"><h2 className="sv-step" id="sv-reference-title"><b>1</b>Reference video</h2>

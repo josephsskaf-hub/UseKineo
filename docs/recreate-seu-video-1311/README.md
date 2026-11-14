@@ -14,6 +14,10 @@ Abra `COMPARACAO.html`: CSS e 18 capturas JPEG embutidos, sem build ou servidor.
 
 **QUESTÃO PENDENTE / DESCONHECIDO:** aceitação de rosto real pelo motor, cobrança/estorno reais, geração autenticada completa e áudio original não foram validados pelo GPT. Login externo e conta da casa foram verificados como estados de componente e gates offline, não como sessões reais do navegador. A instrução inicial é a transformação canônica da API, editável; não é uma análise automática da cena do vídeo.
 
+**FATO CONFIRMADO / atualização da main:** a entrega foi reancorada em `0ec28691a`, incluindo áudio original e a trava de resultado sem troca. O aviso de áudio acompanha `SEU_VIDEO_SOM_ORIGINAL`, sem prometer som quando o processamento falha. O estado `not_swapped` explica que a pessoa não foi inserida e mantém a incerteza do estorno até a confirmação. As capturas da nova tela e as quatro fixtures foram refeitas; o percurso de cadastro continua como registro anterior à atualização do áudio, identificado na comparação.
+
+**EVIDÊNCIA DE PRODUÇÃO relatada pela CEO, 13/11 às 21:03:** o quadro local registra recusas e resultados que não trocaram o rosto real. Essa evidência não comprova funcionamento consistente para rosto real; a tela pronta não elimina esse bloqueio do motor. Fonte: `C:/kineo/docs/QUADRO-DE-SESSOES.md`, registro “RECREATE NO SEEDANCE 2.5 COM ROSTO REAL: NÃO ESTÁ FUNCIONANDO”.
+
 **SUGESTÃO / próximo passo recomendado:** CEO revisa o diff e a comparação, publica a prévia e faz a prova completa com vídeo e foto autorizados na conta da casa, incluindo o download. Não abrir a geração ao público antes da decisão da CEO. O contrato publicado está em `docs/decisoes-1311/recreate-seu-video-contrato-1311.md`.
 
 **DECISÃO DO DONO / escopo:** missão 6 Etapa 2 permanece em espera, preservada no commit `3c171f82f300aceed7a3275ec49689852c0b4f0c` e nos três worktrees `m6s2-*`. Os três consertos adicionais do WATCH também não fazem parte desta entrega.
