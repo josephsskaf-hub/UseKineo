@@ -614,6 +614,7 @@ export function recreateSwapDepsFor(admin: SupabaseClient, userId: string): Recr
         unverified_reason: verdict.result === 'unverified' ? (v.unverified_reason ?? 'http_error') : null,
         delivered: outcome.delivered, credits: row.credits, credits_refunded: outcome.credits_refunded,
         persons: v.persons ?? [], model: v.model ?? null, usd: v.usd ?? null, ms: v.ms ?? null, version: 'recreate_swap_check_1011b',
+        instants: v.instants ?? null, subjects: v.subjects ?? null, pairs_used: v.pairs_used ?? null, rule: v.rule ?? null, // KINEO-RECREATE-TRAVA-ALVO-1411 — os instantes julgados, o alvo e a regra (null = checagem antiga, sem alvo)
         audit_bucket: outcome.audit?.bucket ?? null, audit_path: outcome.audit?.path ?? null, audit_bytes: outcome.audit?.bytes ?? null, audit_expires_at: outcome.audit?.expires_at ?? null, // KINEO-RECREATE-AUDITORIA-DA-TRAVA-1411 — a saída reprovada guardada (privado, 48 h); null = não foi guardada
       } }).catch(() => false)
     },

@@ -26,7 +26,7 @@ import { RECREATE_CHECK_FRAMES, RECREATE_FORMATS, type RecreateFormat } from './
 import { RECREATE_MODEL, RECREATE_PROVIDER_ORIGIN } from './generation'
 import { catalogoNoSeedance25, KLING4_EDIT_MODEL, metaPorUrl, SEEDANCE25_MODEL, SEU_VIDEO_PASTA } from './seuVideo' // KINEO-RECREATE-SEU-VIDEO-1311 · KINEO-RECREATE-KLING4-1311
 
-export type SwapCheckResult = 'swapped' | 'unchanged' | 'partial' | 'unverified'
+export type SwapCheckResult = 'swapped' | 'unchanged' | 'partial' | 'unverified' | 'uncertain' // KINEO-RECREATE-TRAVA-ALVO-1411 — + uncertain (o juiz respondeu e não deu para afirmar a troca: não entrega)
 export type UnverifiedReason = 'refusal' | 'null_answer' | 'invalid_json' | 'timeout' | 'frames_unavailable' | 'base_frames_unavailable' | 'http_error' | 'config'
 export type SwapPerson = { person: number; same_as_base: boolean | null; matches_photo: boolean | null; note: string }
 export interface SwapVerdict {
@@ -40,12 +40,17 @@ export interface SwapVerdict {
   model: string | null
   usd: number
   ms: number
+  /** KINEO-RECREATE-TRAVA-ALVO-1411 — só na checagem com alvo ("seu vídeo" no Kling): os instantes julgados (s), o alvo por pessoa, os pares que o juiz usou e a regra. */
+  instants?: number[]
+  subjects?: Array<string | null>
+  pairs_used?: number[]
+  rule?: string
 }
 
 export const RECREATE_SWAP_CHECK_EVENT = 'recreate_swap_check'
 /** failure_reason written when the result kept the base person(s). The status route maps both to 'not_swapped'. */
-export const RECREATE_NOT_SWAPPED = { unchanged: 'swap_unchanged', partial: 'swap_partial' } as const
-export const isRecreateNotSwappedReason = (reason: unknown) => reason === RECREATE_NOT_SWAPPED.unchanged || reason === RECREATE_NOT_SWAPPED.partial
+export const RECREATE_NOT_SWAPPED = { unchanged: 'swap_unchanged', partial: 'swap_partial', uncertain: 'swap_uncertain' } as const // KINEO-RECREATE-TRAVA-ALVO-1411 — + uncertain
+export const isRecreateNotSwappedReason = (reason: unknown) => reason === RECREATE_NOT_SWAPPED.unchanged || reason === RECREATE_NOT_SWAPPED.partial || reason === RECREATE_NOT_SWAPPED.uncertain
 /** Check lock kept in clips.failure_reason while status='processing' (no new column): one actor checks; stale after 2 min. */
 export const SWAP_CHECK_LOCK_PREFIX = 'swapcheck_'
 export const SWAP_CHECK_LOCK_STALE_MS = 120_000
@@ -227,7 +232,7 @@ export function readVisionAnswer(data: unknown): { parsed: unknown } | { why: Un
 // fps real de cada vídeo (lido do cabeçalho por Range). A decisão (decideSwap) e o estorno (clipFlow) são os mesmos.
 export const usaTravaNaoTrocou = (model: unknown): boolean => model === RECREATE_MODEL || model === SEEDANCE25_MODEL || model === KLING4_EDIT_MODEL // KINEO-RECREATE-KLING4-1311 — + Kling 4.0 edição
 export const SEU_VIDEO_SUJEITO_CHECAGEM = 'the main person (the largest and most central person)'
-export type SwapRowContext = { formatId: string; format: RecreateFormat | null; photos: string[]; slots: number; subject?: string; baseVideoUrl: string | null; redrawn: boolean }
+export type SwapRowContext = { formatId: string; format: RecreateFormat | null; photos: string[]; slots: number; subject?: string; baseVideoUrl: string | null; redrawn: boolean; prompt?: string } // KINEO-RECREATE-TRAVA-ALVO-1411 — + prompt (o pedido enviado ao motor: de lá sai o alvo)
 /** Linha → o que a trava precisa (Recast como antes; Seedance: catálogo da Entrega C ou o vídeo do cliente no nosso bucket). */
 export function swapRowContext(row: { model: string; fingerprint: string }): SwapRowContext | null {
   const recast = recreateRowContext(row)
@@ -242,7 +247,7 @@ export function swapRowContext(row: { model: string; fingerprint: string }): Swa
       const photos = Array.isArray(input.image_urls) ? input.image_urls.filter((u): u is string => typeof u === 'string' && /^https:\/\//.test(u)) : []
       if (photos.length < 1 || photos.length > 3) return null
       if (!new RegExp(`^https://[^/]+/storage/v1/object/public/renders/${SEU_VIDEO_PASTA}/[0-9a-f-]{36}/[0-9a-f-]{36}\\.(?:mp4|mov)$`).test(video)) return null
-      return { formatId: 'seu-video', format: null, photos, slots: photos.length, subject: photos.length === 1 ? SEU_VIDEO_SUJEITO_CHECAGEM : undefined, baseVideoUrl: video, redrawn: false }
+      return { formatId: 'seu-video', format: null, photos, slots: photos.length, subject: photos.length === 1 ? SEU_VIDEO_SUJEITO_CHECAGEM : undefined, baseVideoUrl: video, redrawn: false, prompt: typeof input.prompt === 'string' ? input.prompt : undefined }
     } catch {
       return null
     }
@@ -274,6 +279,7 @@ export async function runSwapCheck(row: { model: string; fingerprint: string }, 
   const unverified = (why: UnverifiedReason, reason: string, extra: Partial<SwapVerdict> = {}) => verdict('unverified', reason, { ...extra, unverified_reason: why })
   if (!ctx) return unverified('config', 'row_context_unknown')
   const work = (async (): Promise<SwapVerdict> => {
+    if (row.model === KLING4_EDIT_MODEL && ctx.formatId === 'seu-video' && ctx.baseVideoUrl) return checarComAlvo(ctx, providerVideoUrl, opts, verdict, unverified) // KINEO-RECREATE-TRAVA-ALVO-1411 — alvo do pedido, 4 instantes, regra estrita
     let baseRaw: QuadrosBase
     let result: Awaited<ReturnType<typeof extractCheckFrames>>
     if (!ctx.redrawn && !ctx.baseVideoUrl) { // KINEO-RECREATE-KLING4-1311 — era: if (!ctx.redrawn) (o Kling não redesenha, mas os quadros-base vêm do vídeo do cliente)
@@ -322,7 +328,7 @@ export async function runSwapCheck(row: { model: string; fingerprint: string }, 
 // entre os dois passos, a linha fica failed com credits_refunded=0 e a varredura comum (só pending/processing) nunca volta nela.
 // A varredura de estornos chama isto para essas linhas: o estorno é idempotente pela billing_reference (o RPC devolve > 0 só
 // uma vez), e o valor só é gravado onde ainda está 0 — rodar de novo não estorna de novo.
-export const SWAP_REFUND_SWEEP_REASONS = [RECREATE_NOT_SWAPPED.unchanged, RECREATE_NOT_SWAPPED.partial] as const
+export const SWAP_REFUND_SWEEP_REASONS = [RECREATE_NOT_SWAPPED.unchanged, RECREATE_NOT_SWAPPED.partial, RECREATE_NOT_SWAPPED.uncertain] as const // KINEO-RECREATE-TRAVA-ALVO-1411 — + uncertain
 export type SwapRefundRow = { id: string; billing_reference: string; failure_reason: string | null; credits_refunded: number; status: string }
 export async function sweepSwapRefunds(
   rows: SwapRefundRow[],
@@ -340,4 +346,158 @@ export async function sweepSwapRefunds(
     }
   }
   return out
+}
+
+// ═══ KINEO-RECREATE-TRAVA-ALVO-1411 [CEO 14/11, pedido 4] — a trava do "seu vídeo" no Kling sem FALSO "swapped" ═════════════════════════
+// Caso: clip f2bd4efe (14/11 01:26, 4 s). O evento gravou swapped / all_swapped com persons [{same_as_base:false, matches_photo:false}], o
+// clipe foi entregue e cobrado — e o homem de camisa azul-escura estava IGUAL ao original (a CEO viu os quadros). Três causas, três consertos:
+//   (a) "trocou" bastava same_as_base false. Agora (decideSwapEstrito) "swapped" exige, para CADA pessoa, diferente da base E parecida com a
+//       foto. Diferente da base sem parecer a foto, ou sem resposta clara = `uncertain`, e incerto NÃO entrega: falha com estorno
+//       (swap_uncertain). Escolha: reprovar, não olhar de novo — uma 2ª rodada dobraria o tempo (a checagem mora dentro dos 60 s da rota de
+//       status) e o juiz já vê 4 instantes numa chamada só. Custo de errar para este lado: a casa paga a fal (US$ 0,94 a 2,82) e o cliente
+//       recebe os créditos; errar para o outro lado é cobrar por um vídeo sem troca.
+//   (b) o juiz não sabia QUEM olhar: o sujeito fixo "the main person (the largest and most central)" virou o jogador que ocupa a tela.
+//       Agora o alvo vem do PRÓPRIO pedido enviado ao motor ("Replace {alvo} in @Video1 with … @ImageN" — a descrição de roupa e posição
+//       que o /check tira por visão ou que o cliente escreveu); sem alvo legível, o sujeito fixo de antes.
+//   (c) base e resultado em 2 instantes (35% e 70%) e nada no evento. Agora 4 instantes (20, 40, 60 e 80% da duração do ORIGINAL), os MESMOS
+//       nos dois vídeos por TEMPO ABSOLUTO (o motor mantém o tempo e só arredonda o fim: 7,9 s viram 8,04 s; por proporção os quadros
+//       desalinhariam), cada um no fps real do seu arquivo; o juiz recebe os pares, usa só aqueles em que o alvo aparece e diz quais usou.
+//       O evento grava os instantes, o alvo, os pares usados e a regra.
+// Vale SÓ para o "seu vídeo" no Kling 4.0 edição. Catálogo (Recast) e Seedance: byte a byte como antes. Falha de infraestrutura (quadros ou
+// visão fora do ar) continua `unverified` e entrega, como antes — é outra decisão, descrita à CEO.
+export const TRAVA_INSTANTES = [0.2, 0.4, 0.6, 0.8] as const
+export const TRAVA_ALVO_REGRA = 'alvo_4_instantes_1411' as const
+const ALVO_GENERICO = /^the (main|second|third) person$/i
+
+/** Os alvos escritos no pedido, um por foto (null = não deu para ler; o juiz recebe o sujeito de antes). Só letras, números, espaço, vírgula, apóstrofo e hífen. */
+export function alvosDoPedido(prompt: unknown, slots: number): Array<string | null> {
+  const out: Array<string | null> = Array.from({ length: Math.max(0, slots) }, () => null)
+  if (typeof prompt !== 'string') return out
+  for (const m of prompt.matchAll(/(?:\bReplace|,\s*and)\s+([^@:]{3,120}?)\s+in @Video1 with (?:the\s+)?(?:man|woman|person) from @Image([1-3])\b/gi)) {
+    const i = Number(m[2]) - 1
+    const alvo = m[1].replace(/[^\p{L}\p{N} ,'-]/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 80)
+    if (i >= 0 && i < out.length && out[i] === null && alvo && !ALVO_GENERICO.test(alvo)) out[i] = alvo
+  }
+  return out
+}
+
+/** A regra do "seu vídeo" no Kling: trocou = diferente da base E parecida com a foto, para cada pessoa. O resto que não é "mantida" = incerto. */
+export function decideSwapEstrito(parsed: unknown, slots: number): { result: SwapCheckResult; reason: string; persons: SwapPerson[] } {
+  const raw = parsed && typeof parsed === 'object' && Array.isArray((parsed as { persons?: unknown }).persons) ? (parsed as { persons: unknown[] }).persons : []
+  const persons: SwapPerson[] = []
+  for (let k = 1; k <= slots; k++) persons.push(readPerson(raw.find(p => p && typeof p === 'object' && (p as { person?: unknown }).person === k) as Record<string, unknown> | undefined, k))
+  if (slots < 1 || raw.length === 0) return { result: 'unverified', reason: 'vision_incomplete', persons }
+  const kept = persons.filter(p => p.same_as_base === true).length
+  const swapped = persons.filter(p => p.same_as_base === false && p.matches_photo === true).length
+  if (kept === slots) return { result: 'unchanged', reason: 'all_kept', persons }
+  if (kept > 0) return { result: 'partial', reason: `${kept}_of_${slots}_kept`, persons }
+  if (swapped === slots) return { result: 'swapped', reason: 'all_swapped', persons }
+  return { result: 'uncertain', reason: persons.some(p => p.same_as_base === false && p.matches_photo === false) ? 'changed_not_like_photo' : 'target_unclear', persons }
+}
+
+/** Os pares usados pelo juiz (1-based), lidos da resposta; fora do intervalo é descartado. */
+export function paresUsados(parsed: unknown, total: number): number[] {
+  const raw = parsed && typeof parsed === 'object' && Array.isArray((parsed as { persons?: unknown }).persons) ? (parsed as { persons: Array<Record<string, unknown>> }).persons : []
+  const set = new Set<number>()
+  for (const p of raw) if (p && Array.isArray(p.visible_pairs)) for (const n of p.visible_pairs) if (typeof n === 'number' && Number.isInteger(n) && n >= 1 && n <= total) set.add(n)
+  return [...set].sort((a, b) => a - b)
+}
+
+/** As mensagens do juiz com alvo: N pares (base, resultado) no MESMO instante, depois uma foto por pessoa. Exportada para o guardião. */
+export function buildSwapCheckMessagesAlvo(slots: number, pares: ReadonlyArray<{ base: string; result: string; segundos: number }>, photos: string[], alvos: ReadonlyArray<string | null>) {
+  const attrs = SWAP_FACE_ATTRIBUTES.map(a => `"${a}": "same"|"different"|"unclear"`).join(', ')
+  const system =
+    'You are a video quality checker comparing VISIBLE APPEARANCE in still frames. Do not identify anyone, do not name anyone and do not ' +
+    'guess who anyone is: only compare how the depicted people look. ' +
+    'A video was edited so that ONE SPECIFIC depicted person (the target, described by clothing and position) should now look like the person in a ' +
+    'customer reference photo. Sometimes the edit silently fails and the target still shows the ORIGINAL appearance. ' +
+    'You receive PAIRS of frames taken at the same moment: the ORIGINAL frame and the EDITED frame. Other people in the frames were NOT meant to ' +
+    'change: ignore them completely, even when they are larger or more central than the target. The target may be absent, turned away or too small ' +
+    'in some pairs: use only the pairs where the face of the target is visible in BOTH frames, and list them in "visible_pairs". ' +
+    'IMPORTANT: clothing, accessories other than glasses, pose, background, lighting, camera and motion are IDENTICAL between original and edit ' +
+    'BY CONSTRUCTION, so they are NOT evidence that it is the same depicted person. Judge only face and head attributes: hair colour, hair ' +
+    'length, hair texture, beard, skin tone, face shape, glasses. ' +
+    `Reply ONLY with JSON: {"persons":[{"person": 1-based index, "visible_pairs": [pair numbers used], "base_vs_result": {${attrs}}, "same_person": "yes"|"no"|"uncertain", ` +
+    '"result_vs_photo": "yes"|"no"|"uncertain", "note": "max 15 words, attributes only"}]}. ' +
+    '"same_person" answers: is the target in the EDITED frames visually the same depicted person as the target in the ORIGINAL frames? ' +
+    '"result_vs_photo" answers: does the target in the EDITED frames visually resemble that person\'s reference photo? Use "uncertain" when the face is too small, hidden or not visible in any pair.'
+  const quem = Array.from({ length: slots }, (_, i) => {
+    const alvo = alvos[i]
+    return `Person ${i + 1} (the target for reference photo ${i + 1}) is ${alvo ? `"${alvo}"` : slots === 1 ? SEU_VIDEO_SUJEITO_CHECAGEM : `the ${['first', 'second', 'third'][i]} main person from the left`} in the ORIGINAL frames.`
+  })
+  const text = [
+    ...quem,
+    `Images, in order: ${pares.map((p, i) => `pair ${i + 1} (at ${p.segundos.toFixed(1)} s): ORIGINAL frame then EDITED frame`).join('; ')};`,
+    `then ${photos.map((_, i) => `the REFERENCE PHOTO for person ${i + 1}`).join(', ')}.`,
+    'For each person, first list visible_pairs, then fill base_vs_result attribute by attribute (original target vs edited target), then answer same_person and result_vs_photo.',
+  ].join('\n')
+  const img = (url: string, detail: 'high' | 'low'): Image => ({ type: 'image_url', image_url: { url, detail } })
+  return [
+    { role: 'system' as const, content: system },
+    { role: 'user' as const, content: [{ type: 'text' as const, text }, ...pares.flatMap(p => [img(p.base, 'high'), img(p.result, 'high')]), ...photos.map(u => img(u, 'low'))] },
+  ]
+}
+
+/** Os quadros n, 2n … (count)n de um vídeo (o quadro 0 é descartado). Nunca lança. Menos quadros que o pedido = devolve os que vieram. */
+export async function extractInstantFrames(videoUrl: string, opts: SwapCheckOpts, interval: number, count: number): Promise<{ frames: string[]; usd: number } | { frames: null; why: UnverifiedReason }> {
+  const key = opts.falKey ?? process.env.FAL_KEY ?? process.env.FAL_API_KEY
+  if (!key || !/^https:\/\//.test(videoUrl)) return { frames: null, why: 'config' }
+  const started = Date.now()
+  const got = await timed(SWAP_CHECK_FRAMES_TIMEOUT_MS, async signal => {
+    const res = await (opts.fetchImpl ?? fetch)(`https://fal.run/${FAL_NTH_FRAME_MODEL}`, {
+      method: 'POST', signal,
+      headers: { Authorization: `Key ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ video_url: videoUrl, frame_interval: interval, max_frames: count + 1, output_format: 'jpg', quality: 85 }),
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as { images?: Array<{ url?: unknown }> }
+    return Array.isArray(data.images) ? data.images.map(i => (typeof i?.url === 'string' ? i.url : '')) : null
+  })
+  if (!got.ok) return { frames: null, why: got.timeout ? 'timeout' : 'frames_unavailable' }
+  const frames = (got.value ?? []).slice(1, count + 1).filter(Boolean)
+  if (frames.length < 2) return { frames: null, why: 'frames_unavailable' }
+  return { frames, usd: ((Date.now() - started) / 1000) * FAL_USD_PER_COMPUTE_SECOND }
+}
+
+type Fazer = (result: SwapCheckResult, reason: string, extra?: Partial<SwapVerdict>) => SwapVerdict
+type NaoVerificou = (why: UnverifiedReason, reason: string, extra?: Partial<SwapVerdict>) => SwapVerdict
+/** A checagem do "seu vídeo" no Kling: alvo do pedido, 4 instantes por tempo absoluto, regra estrita. Chamada por runSwapCheck (mesmo orçamento). */
+async function checarComAlvo(ctx: SwapRowContext, providerVideoUrl: string, opts: SwapCheckOpts, verdict: Fazer, unverified: NaoVerificou): Promise<SwapVerdict> {
+  const f = opts.fetchImpl ?? fetch
+  const [mb, mr] = await Promise.all([metaPorUrl(ctx.baseVideoUrl as string, f), metaPorUrl(providerVideoUrl, f)])
+  if (!mb || !(mb.segundos > 0)) return unverified('base_frames_unavailable', 'base_meta_unavailable')
+  const passo = mb.segundos * TRAVA_INSTANTES[0] // os instantes são múltiplos do 1º: quadros n, 2n, 3n, 4n no fps de cada arquivo
+  const n = TRAVA_INSTANTES.length
+  const [base, result] = await Promise.all([
+    extractInstantFrames(ctx.baseVideoUrl as string, opts, intervaloPara(passo, mb.fps), n),
+    extractInstantFrames(providerVideoUrl, opts, intervaloPara(passo, mr?.fps ?? mb.fps), n),
+  ])
+  const framesUsd = (base.frames ? base.usd : 0) + (result.frames ? result.usd : 0)
+  if (!base.frames) return unverified('base_frames_unavailable', 'base_frames_unavailable', { usd: framesUsd })
+  if (!result.frames) return unverified(result.why, 'result_frames_unavailable', { usd: framesUsd })
+  const total = Math.min(base.frames.length, result.frames.length)
+  const instants = Array.from({ length: total }, (_, i) => Math.round(passo * (i + 1) * 100) / 100)
+  const pares = instants.map((segundos, i) => ({ base: base.frames![i], result: result.frames![i], segundos }))
+  const alvos = alvosDoPedido(ctx.prompt, ctx.slots)
+  const marca = { instants, subjects: alvos, rule: TRAVA_ALVO_REGRA }
+  const key = opts.apiKey ?? process.env.OPENAI_API_KEY
+  if (!key) return unverified('config', 'vision_key_missing', { usd: framesUsd, ...marca })
+  const model = opts.model ?? process.env.RECREATE_SWAP_CHECK_MODEL ?? SWAP_CHECK_MODEL_DEFAULT
+  const got = await timed(SWAP_CHECK_VISION_TIMEOUT_MS, async signal => {
+    const res = await f('https://api.openai.com/v1/chat/completions', {
+      method: 'POST', signal,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model, temperature: 0, max_tokens: 700, response_format: { type: 'json_object' }, messages: buildSwapCheckMessagesAlvo(ctx.slots, pares, ctx.photos, alvos) }),
+    })
+    if (!res.ok) return null
+    return (await res.json()) as { usage?: { prompt_tokens?: number; completion_tokens?: number } }
+  })
+  if (!got.ok) return unverified(got.timeout ? 'timeout' : 'http_error', 'vision_failed', { model, usd: framesUsd, ...marca })
+  if (!got.value) return unverified('http_error', 'vision_failed', { model, usd: framesUsd, ...marca })
+  const usd = Math.round((framesUsd + usdFromUsage(got.value.usage, PIXEL_MODEL_RATES[model] ?? PIXEL_MODEL_RATES[AI_TEXT_MODELS.writer])) * 1e6) / 1e6
+  const answer = readVisionAnswer(got.value)
+  if ('why' in answer) return unverified(answer.why, 'vision_unusable', { model, usd, ...marca })
+  const decided = decideSwapEstrito(answer.parsed, ctx.slots)
+  const extra = { persons: decided.persons, model, usd, ...marca, pairs_used: paresUsados(answer.parsed, total) }
+  return decided.result === 'unverified' ? unverified('null_answer', decided.reason, extra) : verdict(decided.result, decided.reason, extra)
 }

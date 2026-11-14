@@ -469,7 +469,7 @@ export interface RecreateSwapSettleDeps { // KINEO-RECREATE-TRAVA-1011
   /** Reserva a checagem (UPDATE condicional: um ator só, reserva velha de 2 min pode ser retomada). null = outro ator checa. */
   claim(row: ClipRow): Promise<string | null> // KINEO-RECREATE-TRAVA-1011
   /** Quadros do resultado × quadros do vídeo-base × fotos. Nunca lança; falha da checagem = 'unverified'. */
-  check(row: ClipRow, providerUrl: string): Promise<{ result: 'swapped' | 'unchanged' | 'partial' | 'unverified'; reason: string }> // KINEO-RECREATE-TRAVA-1011
+  check(row: ClipRow, providerUrl: string): Promise<{ result: 'swapped' | 'unchanged' | 'partial' | 'unverified' | 'uncertain'; reason: string }> // KINEO-RECREATE-TRAVA-1011 · KINEO-RECREATE-TRAVA-ALVO-1411 — + uncertain
   /** failed condicional: só se a linha ainda está processing COM a reserva deste ator (credits_refunded 0 até o estorno). */
   markFailed(id: string, reason: string, lock: string): Promise<boolean> // KINEO-RECREATE-TRAVA-1011
   /** Grava o valor estornado na linha já failed. */
@@ -567,8 +567,10 @@ async function settleOpenClip(deps: ClipSettleDeps, row: ClipRow): Promise<ClipR
       swapLock = await swap.claim(row) // KINEO-RECREATE-TRAVA-1011
       if (!swapLock) return row // KINEO-RECREATE-TRAVA-1011 — outro ator (aba, cron) está checando
       swapVerdict = await swap.check(row, state.url).catch(() => ({ result: 'unverified' as const, reason: 'check_error' })) // KINEO-RECREATE-TRAVA-1011
-      if (swapVerdict.result === 'unchanged' || swapVerdict.result === 'partial') { // KINEO-RECREATE-TRAVA-1011
-        const reason = swapVerdict.result === 'partial' ? 'swap_partial' : 'swap_unchanged' // KINEO-RECREATE-TRAVA-1011
+      // KINEO-RECREATE-TRAVA-ALVO-1411 [CEO 14/11: clip f2bd4efe entregue e cobrado sem troca] — `uncertain` (o juiz respondeu e não deu para afirmar a troca) também
+      // NÃO entrega: falha com estorno, com motivo próprio (swap_uncertain).
+      if (swapVerdict.result === 'unchanged' || swapVerdict.result === 'partial' || swapVerdict.result === 'uncertain') { // KINEO-RECREATE-TRAVA-1011
+        const reason = swapVerdict.result === 'partial' ? 'swap_partial' : swapVerdict.result === 'uncertain' ? 'swap_uncertain' : 'swap_unchanged' // KINEO-RECREATE-TRAVA-1011
         if (!(await swap.markFailed(row.id, reason, swapLock))) return row // KINEO-RECREATE-TRAVA-1011 — perdeu a reserva: nada
         let refunded = await deps.refund(row.billing_reference) // KINEO-RECREATE-TRAVA-1011 — só o vencedor estorna
         if (refunded <= 0) refunded = await deps.refund(row.billing_reference) // KINEO-RECREATE-TRAVA-1011 — 2ª tentativa (o RPC é idempotente)

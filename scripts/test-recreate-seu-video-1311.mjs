@@ -443,7 +443,7 @@ const MUTANTES_K = [
   ['K sem o mínimo de 700 px', ARQ, (s) => s.replace('if (Math.min(meta.largura, meta.altura) < KLING4_LIMITES.minLado) return', 'if (false) return')],
   ['K som do Kling fica', REGRAS, (s) => s.replace("if (hdlr && tipo(out, hdlr.ini + 8) === 'soun') out.set(", 'if (false) out.set(')],
   ['K custo sem o mínimo 2× a saída', ARQ, (s) => s.replace('Math.max(segundosDoVideo + segundosDaSaida, 2 * segundosDaSaida)', 'segundosDaSaida')],
-  ['K trava do Kling com aviso de redesenho', SC, (s) => s.replace('subject: photos.length === 1 ? SEU_VIDEO_SUJEITO_CHECAGEM : undefined, baseVideoUrl: video, redrawn: false }', 'subject: photos.length === 1 ? SEU_VIDEO_SUJEITO_CHECAGEM : undefined, baseVideoUrl: video, redrawn: true }')],
+  ['K trava do Kling com aviso de redesenho', SC, (s) => s.replace('subject: photos.length === 1 ? SEU_VIDEO_SUJEITO_CHECAGEM : undefined, baseVideoUrl: video, redrawn: false, prompt:', 'subject: photos.length === 1 ? SEU_VIDEO_SUJEITO_CHECAGEM : undefined, baseVideoUrl: video, redrawn: true, prompt:')], // reancorado KINEO-RECREATE-TRAVA-ALVO-1411: a linha do Kling ganhou o prompt (o alvo do juiz)
   ['K som original ignora o Kling', ARQ, (s) => s.replace("const u = row.model === KLING4_EDIT_MODEL ? (typeof um === 'string' ? um : '') :", 'const u =')],
 ]
 for (const [nome, arq, fn] of MUTANTES_K) {

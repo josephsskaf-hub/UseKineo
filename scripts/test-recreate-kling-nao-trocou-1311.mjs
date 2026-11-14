@@ -60,9 +60,11 @@ async function bateria(src) {
     const v = await roda(linha(KLING, 2), [P(1, 'no', 'yes'), P(2, 'yes', 'yes')])
     if (v.result !== 'partial') throw new Error(v.result)
   })
-  await check('Kling: juiz incerto continua unverified (entrega)', async () => {
+  // reancorado KINEO-RECREATE-TRAVA-ALVO-1411 (CEO 14/11, clip f2bd4efe): no Kling o juiz incerto deixou de entregar — vira `uncertain` (falha com
+  // estorno, motivo swap_uncertain). Guardião próprio: scripts/test-recreate-trava-alvo-1411.mjs.
+  await check('Kling: juiz incerto = uncertain (não entrega)', async () => {
     const v = await roda(linha(KLING), [P(1, 'uncertain', 'yes')])
-    if (v.result !== 'unverified') throw new Error(v.result)
+    if (v.result !== 'uncertain') throw new Error(v.result)
   })
   await check('Seedance: regra de antes (mesma + parece a foto = unverified)', async () => {
     const v = await roda(linha(SEEDANCE), [P(1, 'yes', 'yes')])
@@ -81,9 +83,10 @@ const fonte = lf(SC)
 const real = await bateria(fonte)
 if (real.length) { console.error('FALHA\n' + real.join('\n')); process.exit(1) }
 const mutantes = [
-  ['Kling sem a trava nova', fonte.replace('{ cenaMantida: row.model === KLING4_EDIT_MODEL }', '{ cenaMantida: false }')],
+  // reancorado KINEO-RECREATE-TRAVA-ALVO-1411: o Kling do "seu vídeo" passou à regra estrita (decideSwapEstrito); a regra do item B mora nela.
+  ['Kling: mesma pessoa + parece a foto deixa de ser mantida', fonte.replace('const kept = persons.filter(p => p.same_as_base === true).length', 'const kept = persons.filter(p => p.same_as_base === true && p.matches_photo !== true).length')],
   ['trava nova em todo motor', fonte.replace('{ cenaMantida: row.model === KLING4_EDIT_MODEL }', '{ cenaMantida: true }')],
-  ['regra ignora a opção', fonte.replace('(opts.cenaMantida === true || p.matches_photo !== true)', 'p.matches_photo !== true')],
+  ['Kling fora da regra estrita e sem a opção', fonte.replace("    if (row.model === KLING4_EDIT_MODEL && ctx.formatId === 'seu-video' && ctx.baseVideoUrl) return checarComAlvo(ctx, providerVideoUrl, opts, verdict, unverified)", '    void checarComAlvo').replace('(opts.cenaMantida === true || p.matches_photo !== true)', 'p.matches_photo !== true')],
 ]
 let mortos = 0
 for (const [n, src] of mutantes) {
@@ -91,4 +94,4 @@ for (const [n, src] of mutantes) {
   if ((await bateria(src)).length) mortos++; else console.error('MUTANTE VIVO: ' + n)
 }
 if (mortos !== mutantes.length) process.exit(1)
-console.log(`PASS Kling não trocou: mesma pessoa da base = unchanged (estorno) mesmo com "parece a foto"; trocou = swapped; 2 pessoas = partial; incerto = unverified; Seedance e Recast com a regra de antes; ${mortos}/${mutantes.length} mutantes mortos`)
+console.log(`PASS Kling não trocou: mesma pessoa da base = unchanged (estorno) mesmo com "parece a foto"; trocou = swapped; 2 pessoas = partial; incerto = uncertain (não entrega); Seedance e Recast com a regra de antes; ${mortos}/${mutantes.length} mutantes mortos`)
