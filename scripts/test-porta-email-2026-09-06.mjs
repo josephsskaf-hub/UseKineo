@@ -116,7 +116,7 @@ check('importa arrivouDeEmailNosso e escolherPortaDeAuth da fonte única',
 const deslogado = bloco(pagina, 'if (!user) {')
 check('o bloco `if (!user)` foi localizado', deslogado.length > 300)
 check('hasPriorSession continua calculado igual (cookie sb-…auth-token)',
-  /const hasPriorSession = cookies\(\)\s*\.getAll\(\)\s*\.some\(\(c\) => c\.name\.startsWith\('sb-'\) && c\.name\.includes\('auth-token'\)\)/.test(deslogado))
+  /const hasPriorSession = cookies\(\)\s*\.getAll\(\)\s*\.some\(\(c\) => c\.name\.startsWith\('sb-'\) && c\.name\.includes\('auth-token'\) && !c\.name\.endsWith\('code-verifier'\)\)/.test(deslogado)) // reancorado KINEO-COOKIE-VERIFICADOR-1511: sessão de verdade, nunca o verificador do OAuth abandonado
 check('lê o sinal novo do searchParams: arrivouDeEmailNosso(searchParams)',
   /const veioDeEmailNosso = arrivouDeEmailNosso\(searchParams\)/.test(deslogado))
 check('a porta vem de escolherPortaDeAuth com os DOIS sinais (cookie → temCookieDeSessao)',

@@ -139,7 +139,7 @@ function bateria(over = {}, o = {}) {
   })
   const mw = (over[MW] ?? lf(MW)).replace(/\/\/[^\n]*/g, '')
   check('C. o middleware só desvia GET sem cookie de sessão (logado nunca passa por aqui)', () => {
-    if (!mw.includes("if (request.method === 'GET' && request.nextUrl.pathname === '/signup' && !request.cookies.getAll().some((c) => c.name.startsWith('sb-') && c.name.includes('auth-token'))) {")) throw new Error('condição do middleware')
+    if (!mw.includes("if (request.method === 'GET' && request.nextUrl.pathname === '/signup' && !request.cookies.getAll().some((c) => c.name.startsWith('sb-') && c.name.includes('auth-token') && !c.name.endsWith('code-verifier'))) {")) throw new Error('condição do middleware') // reancorado KINEO-COOKIE-VERIFICADOR-1511: o verificador do OAuth abandonado não é sessão
     if (!mw.includes("const destinoEscreve = destinoDoVisitanteQueEscreve(request.nextUrl.pathname, request.nextUrl.searchParams.get('redirect'))")) throw new Error('chamada')
   })
   return p
@@ -184,7 +184,7 @@ const mutantes = [
   ['a volta do login é desviada', { [V]: v.replace('  const deHoje = nomeDeHoje(url)', "  url.searchParams.delete(MARCA_DA_VOLTA)\n  const deHoje = nomeDeHoje(url)") }],
   ['redirect externo aceito', { [V]: v.replace("  if (url.origin !== 'https://www.usekineo.com' || redirect.startsWith('//')) return null\n  const deHoje", '  const deHoje') }],
   ['anúncio de qualquer entrada', { [V]: v.replace("const ENTRADAS_DE_ANUNCIO = new Set(['product', 'ugc'])", "const ENTRADAS_DE_ANUNCIO = new Set(['product', 'ugc', 'avatar'])") }],
-  ['middleware desvia logado', { [MW]: mws.replace(" && !request.cookies.getAll().some((c) => c.name.startsWith('sb-') && c.name.includes('auth-token'))) {", ') {') }],
+  ['middleware desvia logado', { [MW]: mws.replace(" && !request.cookies.getAll().some((c) => c.name.startsWith('sb-') && c.name.includes('auth-token') && !c.name.endsWith('code-verifier'))) {", ') {') }], // reancorado KINEO-COOKIE-VERIFICADOR-1511 — o mesmo estrago sobre a condição de hoje
 ]
 let mortos = 0
 for (const [n, over] of mutantes) {
