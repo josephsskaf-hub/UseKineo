@@ -40,8 +40,15 @@ export function palcoPadrao(catalogo: readonly RecreateFormat[]): RecreateFormat
 
 const detalhe = (f: RecreateFormat) => `${f.type === 'swap' ? 'Face swap' : f.type === 'motion' ? 'Motion' : 'Photo effect'} · ${f.seconds} s · ${f.photoSlots} ${f.photoSlots === 1 ? 'photo' : 'photos'}` // a MESMA linha do palco do Recreate
 
+/** Os títulos (minúsculos) que a grade de modelos desta conta já mostra: o mesmo efeito não aparece de novo nas fileiras do Clips embaixo
+ *  (antes, "Melt it" e mais 20 apareciam 2 ou 3 vezes na mesma tela). Sem lista do servidor, nada some. */
+export function titulosDaGrade(formatos: readonly { title: string }[] | undefined): ReadonlySet<string> {
+  return new Set((formatos ?? []).map(f => f.title.trim().toLowerCase()))
+}
+
 export default function ClipRecreateJuntos({ measurementActor = null, recreate }: { measurementActor?: string | null; recreate: RecreateProps }) {
-  return <ClipsClient measurementActor={measurementActor} rotuloDosAjustes={CLIP_MOLDURA_COPY.details} moldura={clip => <RecreateClient {...recreate} moldura={rc => {
+  const semRepetir = titulosDaGrade(recreate.formatos) // sem hook: este componente só posiciona (o guardião o chama como função pura)
+  return <ClipsClient measurementActor={measurementActor} rotuloDosAjustes={CLIP_MOLDURA_COPY.details} semRepetir={semRepetir} moldura={clip => <RecreateClient {...recreate} moldura={rc => {
     const modelo = rc.selecionado
     const padrao = modelo ? null : palcoPadrao(rc.catalogo)
     const midia = padrao ? rc.midia(padrao) : null

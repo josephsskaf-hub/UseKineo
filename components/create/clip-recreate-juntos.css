@@ -19,3 +19,17 @@
  .recreate.ct-juntos .rc-workspace{min-width:0;max-width:100vw;overflow-x:clip}
  .recreate.ct-juntos .rc-workspace>*{min-width:0;max-width:100%}
 }
+/* Revisão da CEO 15/11 (antes de abrir ao público): a caixa do Clips herdava o .stu da tela antiga (min-height 900 px e 30/34/60 px de margem):
+   sobrava um vão vazio embaixo do botão e a caixa ficava mais estreita que o Generate. Aqui ela ocupa a largura do painel e só a altura que tem. */
+.recreate.ct-juntos .rc-panel.ct-juntos-clip .stu.ct-clip-box{min-height:0;padding:0;margin:0;width:100%}
+.recreate.ct-juntos .ct-clip-box .grid.creation-grid{width:100%;max-width:none}
+.recreate.ct-juntos .ct-clip-box .creation-results:empty{display:none}
+.recreate.ct-juntos .ct-juntos-efeitos.stu,.recreate.ct-juntos .ct-juntos-meus.stu{min-height:0;padding:0}
+/* Cabeçalho da grade: "RECREATE" em cima, o título embaixo, à esquerda; a frase à direita (antes o título caía no meio da linha). */
+.recreate.ct-juntos .rc-gallery-heading{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:4px 16px}
+.recreate.ct-juntos .rc-gallery-heading .rc-eyebrow{grid-column:1;grid-row:1}
+.recreate.ct-juntos .rc-gallery-heading h1{grid-column:1;grid-row:2;margin:0}
+.recreate.ct-juntos .rc-gallery-heading p{grid-column:2;grid-row:2}
+@media(max-width:640px){.recreate.ct-juntos .rc-gallery-heading{grid-template-columns:minmax(0,1fr)}.recreate.ct-juntos .rc-gallery-heading p{grid-column:1;grid-row:3}}
+.recreate.ct-juntos .ct-clip-box .cost .go{flex:1 1 auto;width:100%}
+@media(max-width:800px){.recreate.ct-juntos .rc-reference .rc-player[data-presentation="stage"]:not(:fullscreen) .rc-media-info{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:6px;min-width:0}.recreate.ct-juntos .rc-reference .rc-media-info h2{overflow-wrap:normal;word-break:normal}} /* celular: o título do modelo em cima dos controles (antes "Cozy sweate / r flip" numa coluna de 57 px) */

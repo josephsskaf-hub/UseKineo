@@ -35,8 +35,8 @@ function casosA(o) {
   const page = src(o, PAGE)
   const iNova = page.indexOf(LINHA_NOVA), iSempre = page.indexOf(LINHA_DE_SEMPRE)
   return [
-    ["A1 interruptor nasce 'internal'", release.CAIXA_NOVA_RELEASE === 'internal'],
-    ['A2 padrão: a casa vê, conta de fora não, visitante não', v(HOUSE) === true && v(CUSTOMER) === false && v(null) === false && v(undefined) === false],
+    ["A1 interruptor aberto ao público em 15/11 (dono: \"pode liberar tudo para as pessoas\"); VOLTA = 'internal'", release.CAIXA_NOVA_RELEASE === 'public'],
+    ['A2 padrão (público desde 15/11): a casa e a conta de fora veem; visitante nunca; de volta a "internal", a conta de fora não', v(HOUSE) === true && v(CUSTOMER) === true && v(null) === false && v(undefined) === false && v(CUSTOMER, 'internal') === false && v(HOUSE, 'internal') === true],
     ["A3 'internal': e-mail parecido não é allowlist", v('josephsskaf@gmail.com.evil.org', 'internal') === false && v('test-hacker@example.org', 'internal') === false],
     ["A4 'off': ninguém; 'public': toda conta logada, nunca visitante", [HOUSE, CUSTOMER, null].every(e => v(e, 'off') === false) && v(CUSTOMER, 'public') === true && v(null, 'public') === false],
     ['A5 a página troca a casca só com filmNaMoldura E caixaNovaVisivel', iNova > 0],
@@ -124,7 +124,7 @@ for (const [nome, ok] of todos({})) { total++; console.log(`  ${ok ? 'ok  ' : 'F
 // ─── M. Mutantes: cada um tem de reprovar pelo menos um caso ───────────────────────────────────────────────────────────
 const mut = (p, de, para) => { const s = lf(read(p)); if (!s.includes(de)) throw new Error(`mutante sem alvo em ${p}: ${de.slice(0, 60)}`); return { [p]: s.replace(de, para) } }
 const MUTANTES = [
-  ["M1 interruptor 'public' por padrão", mut('lib/create/release.ts', "CAIXA_NOVA_RELEASE: InternalRelease = 'internal'", "CAIXA_NOVA_RELEASE: InternalRelease = 'public'")],
+  ["M1 interruptor fechado por engano", mut('lib/create/release.ts', "CAIXA_NOVA_RELEASE: InternalRelease = 'public'", "CAIXA_NOVA_RELEASE: InternalRelease = 'off'")],
   ['M2 régua ignora a allowlist', mut('lib/create/access.ts', "release: InternalRelease = CAIXA_NOVA_RELEASE): boolean {\n  return !!email && releaseVisible(email, release)", "release: InternalRelease = CAIXA_NOVA_RELEASE): boolean {\n  return !!email")],
   ['M3 página sem a régua da caixa nova', mut(PAGE, ' && caixaNovaVisivel(user?.email)) return', ') return')],
   ['M4 Generate que não é o gerar() do Studio', mut('components/create/CaixaNovaDoFilme.tsx', 'aoClicar: c.gerar,', 'aoClicar: () => c.setDuracao(60),')],

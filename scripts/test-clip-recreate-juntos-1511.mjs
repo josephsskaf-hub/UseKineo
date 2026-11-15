@@ -26,6 +26,14 @@ const React = require(path.join(ROOT, 'node_modules/react'))
 const jsx = require(path.join(ROOT, 'node_modules/react/jsx-runtime'))
 const { renderToStaticMarkup } = require(path.join(ROOT, 'node_modules/react-dom/server'))
 const BASE = '11daf2720' // origin/main antes desta obra (15/11)
+// KINEO-ABRE-TUDO-1511 — a ÚNICA diferença permitida no ClipsClient: o filtro opcional semRepetir (cada efeito uma vez só na tela única). Cada troca tem de achar o alvo.
+const SEM_REPETIR = [
+  ['export default function ClipsClient({ measurementActor = null, moldura, rotuloDosAjustes }: { measurementActor?: string | null; moldura?: (p: PartesDoClipe) => ReactNode;', 'export default function ClipsClient({ measurementActor = null, moldura, rotuloDosAjustes, semRepetir }: { measurementActor?: string | null; moldura?: (p: PartesDoClipe) => ReactNode; /** KINEO-CLIP-RECREATE-JUNTOS-1511 — títulos (minúsculos) que a tela única já mostra na grade de modelos: o efeito igual não se repete nas fileiras do Clips. Sem ele, nada some. */ semRepetir?: ReadonlySet<string>;'],
+  ['            {trendRowEffects(efeitosDaVitrine, CLIP_TRENDS.filter((tr) => trendTarget(tr, engines)).length).map((fx) => (', '            {trendRowEffects(efeitosDaVitrine, CLIP_TRENDS.filter((tr) => trendTarget(tr, engines)).length).filter((fx) => !semRepetir?.has(fx.title.trim().toLowerCase())).map((fx) => ( // KINEO-CLIP-RECREATE-JUNTOS-1511 — sem repetir o modelo da grade'],
+  ['            {efeitosDaVitrine.map((fx) => ( // KINEO-CLIPS-TELA-0511', '            {efeitosDaVitrine.filter((fx) => !semRepetir?.has(fx.title.trim().toLowerCase())).map((fx) => ( // KINEO-CLIP-RECREATE-JUNTOS-1511 sem repetir · KINEO-CLIPS-TELA-0511'],
+  ['{houseRemixes.map((rx) => ( // KINEO-DANCA-PUBLICA-3110', '{houseRemixes.filter((rx) => !semRepetir?.has(rx.title.trim().toLowerCase())).map((rx) => ( // KINEO-CLIP-RECREATE-JUNTOS-1511 sem repetir · KINEO-DANCA-PUBLICA-3110'],
+]
+const comSemRepetir = s => SEM_REPETIR.reduce((t, [de, para]) => { if (t.split(de).length !== 2) throw new Error('SEM_REPETIR sem alvo único: ' + de.slice(0, 60)); return t.replace(de, para) }, s)
 const baseSrc = p => execFileSync('git', ['show', `${BASE}:${p}`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 })
 const lf = s => s.replace(/\r\n/g, '\n')
 const src = (o, p) => lf(o[p] ?? read(p))
@@ -47,12 +55,12 @@ function casosA(o) {
   const v = (e, r) => j.clipRecreateJuntosVisivel(e, r)
   const ambasHoje = e => clip.clipNaMolduraVisivel(e) && acc.recreateVisible(e)
   return [
-    ["A1 interruptor nasce 'internal'", rel.CLIP_RECREATE_JUNTOS_RELEASE === 'internal'],
-    ['A2 padrão: a casa vê; conta de fora e visitante não', v(HOUSE) === true && v(CUSTOMER) === false && v(null) === false && v(undefined) === false && v('') === false],
+    ["A1 interruptor aberto ao público em 15/11 (dono: \"pode liberar tudo para as pessoas\"); VOLTA = 'internal'", rel.CLIP_RECREATE_JUNTOS_RELEASE === 'public'],
+    ['A2 padrão (público desde 15/11): a casa vê; a conta de fora vê se já abre /create/clip e /recreate; visitante nunca; de volta a "internal", a conta de fora não', v(HOUSE) === true && v(CUSTOMER) === ambasHoje(CUSTOMER) && v(null) === false && v(undefined) === false && v('') === false && v(CUSTOMER, 'internal') === false && v(HOUSE, 'internal') === true],
     ["A3 'internal' é a allowlist EXATA (e-mail parecido não passa)", v('josephsskaf@gmail.com.evil.org', 'internal') === false && v('test-hacker@example.org', 'internal') === false],
     ["A4 'off': ninguém; 'public': só quem já abre /create/clip e /recreate; visitante nunca", [HOUSE, CUSTOMER, null].every(e => v(e, 'off') === false) && v(CUSTOMER, 'public') === ambasHoje(CUSTOMER) && v(null, 'public') === false],
-    ['A5 a aba Recreate some só para quem tem a tela única; os outros: recreateVisible', j.abaRecreateVisivel(HOUSE) === false && j.abaRecreateVisivel(CUSTOMER) === acc.recreateVisible(CUSTOMER) && j.abaRecreateVisivel(HOUSE, 'off') === acc.recreateVisible(HOUSE)],
-    ['A6 /create/<aba>: a casa recebe a barra sem Recreate; a conta de fora, a de sempre', ['film', 'cartoon', 'ads'].every(t => create.createShellDecision(t, { email: HOUSE }).showRecreate === false && create.createShellDecision(t, { email: CUSTOMER }).showRecreate === acc.recreateVisible(CUSTOMER))],
+    ['A5 a aba Recreate some só para quem tem a tela única; os outros: recreateVisible', j.abaRecreateVisivel(HOUSE) === false && j.abaRecreateVisivel(CUSTOMER) === (acc.recreateVisible(CUSTOMER) && !v(CUSTOMER)) && j.abaRecreateVisivel(CUSTOMER, 'internal') === acc.recreateVisible(CUSTOMER) && j.abaRecreateVisivel(HOUSE, 'off') === acc.recreateVisible(HOUSE)],
+    ['A6 /create/<aba>: a casa recebe a barra sem Recreate; a conta de fora, a de sempre', ['film', 'cartoon', 'ads'].every(t => create.createShellDecision(t, { email: HOUSE }).showRecreate === false && create.createShellDecision(t, { email: CUSTOMER }).showRecreate === j.abaRecreateVisivel(CUSTOMER))],
     ['A7 Library e Ads: a MESMA régua da barra', src(o, 'app/(dashboard)/DashboardShell.tsx').includes('<CreateMolduraTopo showRecreate={abaRecreateVisivel(userEmail)} showClip={clipNaMolduraVisivel(userEmail)} />') && src(o, 'app/(dashboard)/ads/v2/AdsV2Workspace.tsx').includes('showRecreate: abaRecreateVisivel(user?.email)') && src(o, CREATE).includes('showRecreate={abaRecreateVisivel(quem.email)')],
   ]
 }
@@ -99,7 +107,8 @@ function casosB(o) {
     ['B3 /create/clip: a tela única só depois das portas de hoje (aba Clip, efeito → Recreate) e antes da aba Clip de sempre', iClip > 0 && iPorta > iClip && iEfeito > iPorta && iJ > iEfeito && iMold > iJ && create.slice(iJ, iMold).includes("return RecreateFlowPage({ basePath: '/recreate' })")],
     ['B4 /recreate/your-video: a barra só muda com a mesma régua', flow.includes("abaJuntos={!!user && basePath === '/recreate' && clipRecreateJuntosVisivel(user.email)}") && src(o, 'app/recreate-preview/SeuVideoRecreateClient.tsx').includes("<CreateTabs active={abaJuntos?'clip':'recreate'} {...{recreateHref:flowBasePath}} {...(abaJuntos?{showClip:true,showRecreate:false}:{})}/>")],
     ...casosHtml.map(([n, props]) => [`B5 RecreateClient sem moldura = HTML da main (${n})`, ssrRecreate(o, props) === ssrRecreate({ ...o, ...base }, props)]),
-    ['B6 ClipsClient byte a byte o da main (mesmo estado, upload, pedido, preço e eventos)', src(o, CLIPS) === lf(baseSrc(CLIPS))],
+    ['B6 ClipsClient byte a byte o da main + SÓ o filtro opcional semRepetir (mesmo estado, upload, pedido, preço e eventos)', src(o, CLIPS) === comSemRepetir(lf(baseSrc(CLIPS)))],
+    ['B6b sem semRepetir nada some: todo filtro novo é `!semRepetir?.has(…)`', src(o, CLIPS).split('!semRepetir?.has(').length === 4 && !src(o, CLIPS).includes('semRepetir.has(')],
     ['B7 a aba Clip de sempre (ClipNaMoldura) intocada', src(o, 'components/create/ClipNaMoldura.tsx') === lf(baseSrc('components/create/ClipNaMoldura.tsx'))],
   ]
 }
@@ -189,9 +198,11 @@ async function casosC(o) {
   const espiao = nome => ({ __esModule: true, default: props => { vistos[nome] = props; return null } })
   const elJ = L(o, { '@/app/(dashboard)/clips/ClipsClient': espiao('juntos') })('components/create/ClipRecreateJuntos').default({ measurementActor: 'u1', recreate: { currentFlow: true, initialId: 'x' } })
   const elC = L(o, { '@/app/(dashboard)/clips/ClipsClient': espiao('aba') })('components/create/ClipNaMoldura').default({ measurementActor: 'u1' })
-  const semMoldura = p => Object.fromEntries(Object.entries(p).filter(([k]) => k !== 'moldura'))
+  const semMoldura = p => Object.fromEntries(Object.entries(p).filter(([k]) => k !== 'moldura' && k !== 'semRepetir'))
   const rcEl = elJ.props.moldura({ estilos: null, grade: null, tendencias: null, efeitos: null, meusClipes: null })
   out.push(['C4 ClipsClient recebe as MESMAS props da aba Clip de hoje (measurementActor, rótulo do Details)', isDeepStrictEqual(semMoldura(elJ.props), semMoldura(elC.props)) && typeof elJ.props.moldura === 'function'])
+  const elG = L(o, { '@/app/(dashboard)/clips/ClipsClient': espiao('grade') })('components/create/ClipRecreateJuntos').default({ measurementActor: 'u1', recreate: { currentFlow: true, formatos: [{ title: ' Melt it ' }, { title: 'Runway walk' }] } })
+  out.push(['C4b cada efeito uma vez só: o ClipsClient recebe os títulos da grade desta conta (minúsculos); sem lista, nada some', elG.props.semRepetir instanceof Set && elG.props.semRepetir.has('melt it') && elG.props.semRepetir.has('runway walk') && elG.props.semRepetir.size === 2 && elJ.props.semRepetir instanceof Set && elJ.props.semRepetir.size === 0])
   out.push(['C5 RecreateClient recebe exatamente as props da rota + a moldura', isDeepStrictEqual(semMoldura(rcEl.props), { currentFlow: true, initialId: 'x' }) && typeof rcEl.props.moldura === 'function'])
   out.push(['C6 a tela única não tem estado, rede, roteador nem evento próprios', !/\buse(State|Effect|Ref|Router)\b|fetch\(|track(Closed)?Event|sessionStorage|localStorage/.test(src(o, JUNTOS))])
   return out
@@ -269,7 +280,7 @@ for (const [nome, ok] of await todos({})) { total++; console.log(`  ${ok ? 'ok  
 // ─── M. Mutantes ────────────────────────────────────────────────────────────────────────────────────────────────────
 const mut = (p, de, para) => { const s = lf(read(p)); if (s.split(de).length !== 2) throw new Error(`mutante sem alvo único em ${p}: ${de.slice(0, 60)}`); return { [p]: s.replace(de, para) } }
 const MUTANTES = [
-  ["M1 interruptor 'public' por padrão", mut('lib/create/release.ts', "CLIP_RECREATE_JUNTOS_RELEASE: InternalRelease = 'internal'", "CLIP_RECREATE_JUNTOS_RELEASE: InternalRelease = 'public'")],
+  ["M1 interruptor fechado por engano", mut('lib/create/release.ts', "CLIP_RECREATE_JUNTOS_RELEASE: InternalRelease = 'public'", "CLIP_RECREATE_JUNTOS_RELEASE: InternalRelease = 'off'")],
   ['M2 régua ignora a allowlist', mut('lib/create/clipRecreateJuntos.ts', "release !== 'off' && releaseVisible(email, release) &&", "release !== 'off' &&")],
   ['M3 /recreate desvia sem a régua', mut(FLOW, "if (user && basePath === '/recreate' && clipRecreateJuntosVisivel(user.email)) {", "if (user && basePath === '/recreate') {")],
   ['M4 a tela única recebe outra prop', mut(FLOW, "internalTools: !!user && releaseVisible(user.email, 'internal'), formatos", 'internalTools: true, formatos')],
@@ -286,6 +297,8 @@ const MUTANTES = [
   ['M15 voltar ao Clip manda pedido', mut(RC, "    window.history.replaceState(null, '', url)\n    return true", "    void fetch('/api/recreate', { cache: 'no-store' })\n    window.history.replaceState(null, '', url)\n    return true")],
   ['M16 /create/clip pula a porta da aba Clip', mut(CREATE, "    if (!clipNaMolduraVisivel(u?.email)) redirect('/clips' + (query ? '?' + query : ''))\n", '')],
   ['M18 os estilos do Clips só no painel do Clips (a grade de efeitos perde o CSS com um modelo aberto)', mut(JUNTOS, '{clip.estilos}{/* os estilos', '{/* os estilos')],
+  ['M19 o efeito repetido volta (a grade e as fileiras do Clips mostram o mesmo)', mut(JUNTOS, 'semRepetir={semRepetir} moldura=', 'moldura=')],
+  ['M20 o filtro some sem a lista (esconde efeito na /clips de sempre)', mut(CLIPS, '.filter((fx) => !semRepetir?.has(fx.title.trim().toLowerCase())).map((fx) => ( // KINEO-CLIP-RECREATE-JUNTOS-1511 sem repetir', '.filter((fx) => !semRepetir || !semRepetir.has(fx.title.trim().toLowerCase())).map((fx) => ( // KINEO-CLIP-RECREATE-JUNTOS-1511 sem repetir')],
   ['M17 preço escrito na casca', mut(JUNTOS, "recriar: 'Recreate this ↗'", "recriar: 'Recreate this · ✦ 40 ↗'")],
 ]
 for (const [nome, o] of MUTANTES) {

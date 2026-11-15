@@ -254,7 +254,7 @@ async function composePairPhoto(a: File, b: File): Promise<File> {
 /** KINEO-CLIP-NA-MOLDURA-1011 — as peças da tela de Clips que a moldura nova recebe (o MESMO JSX, os MESMOS handlers). */
 export interface PartesDoClipe { estilos: ReactNode; grade: ReactNode; tendencias: ReactNode; efeitos: ReactNode; meusClipes: ReactNode }
 
-export default function ClipsClient({ measurementActor = null, moldura, rotuloDosAjustes }: { measurementActor?: string | null; moldura?: (p: PartesDoClipe) => ReactNode; /** KINEO-CLIP-NA-MOLDURA-1011 — na moldura, o resumo do <details> chama "Details" como os outros passos */ rotuloDosAjustes?: string }) {
+export default function ClipsClient({ measurementActor = null, moldura, rotuloDosAjustes, semRepetir }: { measurementActor?: string | null; moldura?: (p: PartesDoClipe) => ReactNode; /** KINEO-CLIP-RECREATE-JUNTOS-1511 — títulos (minúsculos) que a tela única já mostra na grade de modelos: o efeito igual não se repete nas fileiras do Clips. Sem ele, nada some. */ semRepetir?: ReadonlySet<string>; /** KINEO-CLIP-NA-MOLDURA-1011 — na moldura, o resumo do <details> chama "Details" como os outros passos */ rotuloDosAjustes?: string }) {
   const language = useInterfaceLanguage()
   const t = useCallback((key: ClipCopyKey, vars?: Record<string, string | number>) => clipCopy(language, key, vars), [language])
   useProductStage('clips') // KINEO-CLIPS-CORES-2026-10-01 — fundo e barra lateral na cor da aba, como Imagens/Espaços/Ads
@@ -1190,7 +1190,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
             })}
             {/* KINEO-VITRINE-ESTACAO-3110 — fundador 30/10: "lotar o Trending this week com os de Natal" — os efeitos da estação
                 (Halloween → Día de Muertos → Natal, lib/clips/clipSeason.ts) entram depois das ideias; o clique escolhe o efeito. */}
-            {trendRowEffects(efeitosDaVitrine, CLIP_TRENDS.filter((tr) => trendTarget(tr, engines)).length).map((fx) => (
+            {trendRowEffects(efeitosDaVitrine, CLIP_TRENDS.filter((tr) => trendTarget(tr, engines)).length).filter((fx) => !semRepetir?.has(fx.title.trim().toLowerCase())).map((fx) => ( // KINEO-CLIP-RECREATE-JUNTOS-1511 — sem repetir o modelo da grade
               <button key={'season-' + fx.key} type="button" className="fx-card trend-card" data-clip-action="select_season_effect" data-clip-effect={fx.key} onClick={() => { if (fx.key !== effectKey) chooseEffect(fx.key); else document.getElementById('clip-effect-panel')?.scrollIntoView({ block: 'center', behavior: 'smooth' }) }}>
                 <span className="fx-media">
                   <video src={fx.preview!.video} poster={fx.preview!.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" />
@@ -1213,7 +1213,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
           <div className="lab" id="clip-effects-title">{t('effectsTitle')}</div>
           <p className="clip-meta" style={{ marginTop: 0, marginBottom: 12 }}>{t('effectsSub')}</p>
           <div className="fx-grid" role="group" aria-labelledby="clip-effects-title">
-            {houseRemixes.map((rx) => ( // KINEO-DANCA-PUBLICA-3110 — sem preço no cartão: o preço mora só no botão do painel
+            {houseRemixes.filter((rx) => !semRepetir?.has(rx.title.trim().toLowerCase())).map((rx) => ( // KINEO-CLIP-RECREATE-JUNTOS-1511 sem repetir · KINEO-DANCA-PUBLICA-3110 — sem preço no cartão: o preço mora só no botão do painel
               <button key={'remix-' + rx.id} type="button" className="fx-card" data-clip-action="select_face_remix" data-face-remix={rx.id} onClick={() => chooseHouseRemix(rx.id)}>{/* KINEO-DANCA-PUBLICA-3110 */}
                 <span className="fx-media"><video src={rx.video} poster={rx.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" /></span>{/* KINEO-DANCA-PUBLICA-3110 */}
                 <span className="fx-title"><UiLabel>{rx.title}</UiLabel></span>{/* KINEO-DANCA-PUBLICA-3110 */}
@@ -1221,7 +1221,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
                 <span className="fx-foot">{/* KINEO-CLIPS-SEM-SELO-1111 — sem selo de motor */}<span className="pr trend-go"><UiLabel>Put your face in it →</UiLabel></span></span>{/* KINEO-DANCA-PUBLICA-3110 */}
               </button>
             ))}
-            {efeitosDaVitrine.map((fx) => ( // KINEO-CLIPS-TELA-0511 — fora de estação sai da grade; o link ?effect= segue abrindo o efeito
+            {efeitosDaVitrine.filter((fx) => !semRepetir?.has(fx.title.trim().toLowerCase())).map((fx) => ( // KINEO-CLIP-RECREATE-JUNTOS-1511 sem repetir · KINEO-CLIPS-TELA-0511 — fora de estação sai da grade; o link ?effect= segue abrindo o efeito
               <button key={fx.key} type="button" className="fx-card" data-clip-action="select_effect" data-clip-effect={fx.key} aria-pressed={fx.key === effectKey} onClick={() => chooseEffect(fx.key)}>
                 <span className="fx-media">
                   {fx.preview

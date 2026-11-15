@@ -29,7 +29,9 @@ export const CREATE_ENTRY_RELEASE: InternalRelease = 'public'
 // Só muda a CASCA da aba Film: estado, recusas, gerar() e pedido continuam os do StudioSimples (components/studio/StudioSimples.tsx).
 // 'off' = ninguém · 'internal' = só a allowlist exata da casa · 'public' = toda conta que já vê o Studio na moldura (CREATE_FILM_INPLACE).
 // Fora dele, a tela de 3 passos de hoje, byte a byte. Guardião: scripts/test-caixa-nova-1511.mjs.
-export const CAIXA_NOVA_RELEASE: InternalRelease = 'internal'
+// KINEO-ABRE-TUDO-1511 [dono 15/11: "pode liberar tudo para as pessoas, inclusive via desktop… não pode ter erro no desktop, precisa estar igual ao mobile"]
+// — aberto ao público em 15/11/2026, depois da conferência em 1440 e 390 px. VOLTA: 'internal' fecha de novo (só a casa); 'off' tira de todos.
+export const CAIXA_NOVA_RELEASE: InternalRelease = 'public'
 
 // KINEO-CLIP-RECREATE-JUNTOS-1511 [dono 15/11: "juntar a aba de Clips com a aba de Recreate, porque no fundo é a mesma coisa… o fluxo de Clips é ótimo,
 // o Recreate tem mais opções de vídeo… manter o fluxo na lateral, os vídeos que dá para recriar EMBAIXO e o modelo escolhido rodando à DIREITA"] —
@@ -37,4 +39,6 @@ export const CAIXA_NOVA_RELEASE: InternalRelease = 'internal'
 // troca o painel pelo do Recreate (o MESMO RecreateClient). Só a casca muda: o pedido ao /api/clips e ao /api/recreate é o de sempre.
 // 'off' = ninguém · 'internal' = só a allowlist exata da casa · 'public' = toda conta logada que já vê /create/clip e /recreate. Visitante: nunca.
 // Fora dele, /create/clip e /recreate de hoje, byte a byte. Guardião: scripts/test-clip-recreate-juntos-1511.mjs.
-export const CLIP_RECREATE_JUNTOS_RELEASE: InternalRelease = 'internal'
+// KINEO-ABRE-TUDO-1511 — aberto ao público (conta logada) em 15/11/2026, com a revisão da CEO (sem vão no painel, caixa na largura do painel,
+// cada efeito uma vez só, título do modelo inteiro no celular). VOLTA: 'internal' fecha de novo (só a casa); 'off' tira de todos.
+export const CLIP_RECREATE_JUNTOS_RELEASE: InternalRelease = 'public'

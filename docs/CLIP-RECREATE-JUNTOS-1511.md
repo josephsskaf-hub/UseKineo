@@ -16,6 +16,8 @@ Pedido do dono (15/11): juntar a aba Clips com a aba Recreate ("no fundo é a me
 ## Fotos
 Fora do repo, em C:/kineo/docs/clip-recreate-juntos-1511/ (1920 e 390 px; claro e escuro). Prévia só de desenvolvimento em /dev/clip-recreate-juntos (404 em produção).
 
-## Em aberto para o dono
-- Efeitos repetidos: vários efeitos aparecem duas vezes na mesma tela (como modelo do Recreate, `effect-*`, e como efeito do Clips). Hoje cada um gera pelo seu caminho. Escolher qual fica é uma decisão separada.
-- O rótulo da aba ficou "Clip". A palavra "Recreate" continua no título da grade e nos botões dos cartões.
+## Aberto ao público (15/11, dono: "pode liberar tudo para as pessoas, inclusive via desktop")
+- `CLIP_RECREATE_JUNTOS_RELEASE` e `CAIXA_NOVA_RELEASE` = 'public' (conta logada; visitante segue no fluxo de hoje). Volta: 'internal'.
+- Revisão da CEO antes de abrir: a caixa do Clips herdava 900 px de altura mínima e 34 px de margem do .stu antigo (vão vazio e caixa mais estreita que o botão); o título da grade caía no meio da linha; no celular o título do modelo quebrava no meio da palavra ("Cozy sweate / r flip").
+- Efeitos repetidos: decidido pela recomendada (cada efeito UMA vez). O efeito que já está na grade de modelos sai das fileiras do Clips embaixo (`semRepetir` no ClipsClient; sem a lista, nada some). Ficam só os 6 que a grade não tem (Golden dribbles, Pet dance, Fruit babies, Toy car, Night zoo, Friday Groove).
+- Rótulo da aba: "Clip". "Recreate" segue no título da grade e nos botões dos cartões.
