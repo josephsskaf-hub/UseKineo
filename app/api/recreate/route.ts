@@ -13,6 +13,9 @@ import { writeServerEvent } from '@/lib/serverEvents'
 import { recreateFormatVisible, releaseVisible, visibleRecreateFormats } from '@/lib/recreate/access'
 
 import { recreateFormatServidor, visibleRecreateFormatsServidor } from '@/lib/recreate/catalogoServidor' // KINEO-RECEITA-FORA-DO-JS-1411
+import { INVASOR_ID } from '@/lib/recreate/invasorMolde' // KINEO-INVASOR-DE-CAMPO-1511
+import { INVASOR_CREDITOS_PROVISORIO_CASA } from '@/lib/recreate/invasor' // KINEO-INVASOR-DE-CAMPO-1511
+import { pedirInvasor, simulacaoDoInvasor } from '@/lib/recreate/invasorRota' // KINEO-INVASOR-DE-CAMPO-1511
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 export const maxDuration = 60
@@ -28,7 +31,7 @@ export async function GET() {
   const access = engineAccessFor(account)
   // KINEO-RECREATE-TRAVA-1011 — only formats this account may request (unapproved swaps: house allowlist only).
   return json({ catalog: visibleRecreateFormatsServidor(user.email).map(f => { // KINEO-RECEITA-FORA-DO-JS-1411
-    const credits = recreateCreditsFor(f) // KINEO-RECREATE-MOVIMENTO-1411 — era: f.type === 'swap' ? recreateCreditCost(f.seconds) : recreateEffectCredits(f)
+    const credits = f.id === INVASOR_ID ? INVASOR_CREDITOS_PROVISORIO_CASA : recreateCreditsFor(f) // KINEO-INVASOR-DE-CAMPO-1511 — o preço PROVISÓRIO da casa (lib/recreate/invasor.ts) · KINEO-RECREATE-MOVIMENTO-1411 — era: f.type === 'swap' ? recreateCreditCost(f.seconds) : recreateEffectCredits(f)
     // KINEO-RECREATE-MOVIMENTO-1411 — o movimento não depende do motor do clipe comum (tarifa própria do Recreate): disponível com tarifa.
     return { id: f.id, credits, shortfall: credits === null ? 0 : Math.max(0, credits - account.balance), available: credits !== null && (f.type === 'swap' ? recreateEngineAccess().ok : f.type === 'motion' ? true : access(clipEffectByKey(f.effectKey)!.engine).ok) }
   }) })
@@ -44,6 +47,8 @@ export async function POST(req: NextRequest) {
   if (!format) return json({ error: 'Choose a format from the catalog.' }, 400)
   // KINEO-RECREATE-TRAVA-1011 — an unapproved swap does not exist for this account: refused before photos, moderation, debit or provider.
   if (!recreateFormatVisible(format, user.email)) return json({ error: 'Not found.' }, 404)
+  // KINEO-INVASOR-DE-CAMPO-1511 — o molde de vários trechos tem preço PROVISÓRIO da casa (18 s não está na tabela) e fluxo próprio antes do submitClip.
+  if (format.id === INVASOR_ID) return pedirInvasorNaRota(req, user, raw, supabase)
   if (!recreateSwapPriced(format)) return json({ error: RECREATE_UNPRICED_ERROR, code: 'unpriced' }, 409)
   if (raw.mode && raw.mode !== 'swap') return json({ error: 'This mode is unavailable.' }, 400)
   // Simulation exits before profile reads, moderation, writes, debits, uploads or provider calls.
@@ -111,6 +116,21 @@ export async function POST(req: NextRequest) {
     }
     if (!result.replay) await writeServerEvent({ name: 'recreate_started', userId: user.id, path: '/api/recreate', metadata: { format: format.id, clip_id: result.clip.id, seconds: result.clip.seconds, credits: result.clip.credits } }).catch(() => false)
     return json({ clip: { id: result.clip.id, status: result.clip.status }, replay: result.replay }, result.status)
+  } catch {
+    return json({ error: 'Could not confirm this request. Keep this page open and retry with the same request key.' }, 503)
+  }
+}
+
+// KINEO-INVASOR-DE-CAMPO-1511 — o POST do "Pitch invader": simulação (só a casa), consentimento, conta, e o fluxo de lib/recreate/invasorRota.ts.
+async function pedirInvasorNaRota(req: NextRequest, user: NonNullable<Awaited<ReturnType<typeof recreateSession>>['user']>, raw: Record<string, unknown>, supabase: Awaited<ReturnType<typeof recreateSession>>['supabase']) {
+  if (raw.simulate === true) return releaseVisible(user.email, 'internal') ? json(simulacaoDoInvasor()) : json({ error: 'Not found.' }, 404)
+  if (raw.consent !== true) return json({ error: 'Confirm you have permission to use these photos.' }, 400)
+  const admin = clipsAdmin()
+  const account = admin ? await loadClipAccount(supabase, user) : null
+  if (!admin || !account) return json({ error: 'Could not start your clip. Nothing was charged.' }, 503)
+  try {
+    const r = await pedirInvasor({ admin, supabase, user, account, raw, key: req.headers.get('idempotency-key')?.trim() ?? '' })
+    return json(r.body, r.status)
   } catch {
     return json({ error: 'Could not confirm this request. Keep this page open and retry with the same request key.' }, 503)
   }

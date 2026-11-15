@@ -8,12 +8,14 @@ import { MOVIMENTO_DEMOS, MOVIMENTO_DEMO_DONOS } from '@/lib/recreate/movimentoD
 import { movimentoDemoDoBucketValido } from '@/lib/recreate/movimento' // KINEO-MOVIMENTO-REVISOR-2-1411
 import { guiaDoManifesto } from '@/lib/recreate/guiasManifesto' // KINEO-GUIA-PRIVADO-1411
 import { assinarGuia, guiasAdmin } from '@/lib/recreate/guias' // KINEO-GUIA-PRIVADO-1411
+import { invasorArquivoDaVitrine } from '@/lib/recreate/invasorMolde' // KINEO-INVASOR-DE-CAMPO-1511
+import { assinarVitrineDoInvasor } from '@/lib/recreate/invasorServer' // KINEO-INVASOR-DE-CAMPO-1511
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 export async function GET(req: NextRequest, { params }: { params: { name: string } }) {
   const { user } = await recreateSession()
-  if (!user || !(Object.hasOwn(RECREATE_ASSETS, params.name) || guiaDoManifesto(params.name))) return new NextResponse(null, { status: 404, headers: RECREATE_HEADERS }) // KINEO-GUIA-PRIVADO-1411 — + o guia do manifesto (bucket privado)
+  if (!user || !(Object.hasOwn(RECREATE_ASSETS, params.name) || guiaDoManifesto(params.name) || invasorArquivoDaVitrine(params.name))) return new NextResponse(null, { status: 404, headers: RECREATE_HEADERS }) // KINEO-GUIA-PRIVADO-1411 — + o guia do manifesto (bucket privado)
   // KINEO-RECREATE-TRAVA-1011 — a base video/poster is served only to an account that can see its format.
   const owner = RECREATE_FORMATS.find(f => f.preview.endsWith('/' + params.name) || f.poster.endsWith('/' + params.name))
   if (!owner || !recreateFormatVisible(owner, user.email)) return new NextResponse(null, { status: 404, headers: RECREATE_HEADERS })
@@ -25,6 +27,12 @@ export async function GET(req: NextRequest, { params }: { params: { name: string
   if (guiaDoManifesto(params.name)) {
     const admin = guiasAdmin()
     const assinada = admin ? await assinarGuia(admin, params.name, 60) : null
+    return assinada ? NextResponse.redirect(assinada, { status: 302, headers: RECREATE_HEADERS }) : new NextResponse(null, { status: 404, headers: RECREATE_HEADERS })
+  }
+  // KINEO-INVASOR-DE-CAMPO-1511 — o cartão do Pitch invader mora no bucket PRIVADO: URL assinada CURTA (60 s) só no Location, para quem pode ver o molde (a casa).
+  if (invasorArquivoDaVitrine(params.name)) {
+    const admin = guiasAdmin()
+    const assinada = admin ? await assinarVitrineDoInvasor(admin, params.name, 60) : null
     return assinada ? NextResponse.redirect(assinada, { status: 302, headers: RECREATE_HEADERS }) : new NextResponse(null, { status: 404, headers: RECREATE_HEADERS })
   }
   const asset = RECREATE_ASSETS[params.name as keyof typeof RECREATE_ASSETS]

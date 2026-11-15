@@ -71,6 +71,11 @@ import { VAGA_TTL_MS, FILA_ENVIANDO, FILA_MARCA, FILA_MOTIVOS, FILA_MOTIVOS_DE_E
 import { idDaVez } from '@/lib/cronLease' // KINEO-RECREATE-FILA-KLING-EDIT-1411 — o id fixo da vaga (o mesmo desenho da vez do cron)
 import { comEndUserDaFal } from '@/lib/recreate/falEndUser' // KINEO-RECREATE-FILA-KLING-EDIT-1411
 import { semMarcasDaCasa } from '@/lib/recreate/seuVideo' // KINEO-RECREATE-FILA-KLING-EDIT-1411
+// KINEO-INVASOR-DE-CAMPO-1511 — o molde de vários trechos: a máquina (pura) e os arquivos privados dele.
+import { INVASOR_TRECHOS, INVASOR_SAIDA } from '@/lib/recreate/invasorMolde'
+import { INVASOR_SELO, entradaDoTrecho, fonteDaMontagem, invasorDaLinha, resolverEntrada, settleInvasor, INVASOR_SEGUNDOS_DO_FILME, type InvasorIo } from '@/lib/recreate/invasor'
+import { assinarSomDoInvasor, assinarTrechoDoInvasor } from '@/lib/recreate/invasorServer'
+import { buildFreeClipWatermarkSource, freeClipWatermarkDecision } from '@/lib/clips/freeClipWatermark'
 // KINEO-CLIPE-MARCA-2026-10-06 — a marca do clipe grátis: interruptor e regra puros. A fiação (Creatomate) só é carregada
 // com o interruptor ligado (import dinâmico em persistClipVideo).
 import {
@@ -265,7 +270,7 @@ export function toPublicClip(row: ClipRow): PublicClip {
     id: row.id,
     engine: row.engine,
     // KINEO-RECREATE-MOVIMENTO-1411 — selo honesto: o motor real do movimento (a linha guarda 'kling' só por ser chave do catálogo).
-    label: ehLinhaDeMovimento(row) ? MOVIMENTO_SELO : effect?.template?.label ?? (CLIP_ENGINES[row.engine] ? clipLabelForModel(row.engine, row.model) : row.engine), // KINEO-EFEITOS-NOVOS-2026-10-13 — selo do modelo real · KINEO-ROTULO-CLIPE-H3-1111: clipe antigo do trilho seedance = Seedance 1.5
+    label: ehLinhaDeMovimento(row) ? MOVIMENTO_SELO : invasorDaLinha(row) ? INVASOR_SELO : effect?.template?.label ?? (CLIP_ENGINES[row.engine] ? clipLabelForModel(row.engine, row.model) : row.engine), // KINEO-EFEITOS-NOVOS-2026-10-13 — selo do modelo real · KINEO-ROTULO-CLIPE-H3-1111: clipe antigo do trilho seedance = Seedance 1.5
     with_image: row.mode === 'image',
     seconds: row.seconds,
     aspect: row.aspect,
@@ -599,6 +604,7 @@ export function settleDepsFor(admin: SupabaseClient, userId: string, ctx: { liqu
     movimento: movimentoDepsFor(admin), // KINEO-RECREATE-MOVIMENTO-1411 — os dois passos do molde de movimento em TODO caminho que liquida (tela, /clips, cron, varredura)
     queue: clipQueueDepsFor(admin, ctx), // KINEO-RECREATE-FILA-KLING-EDIT-1411 — a fila anda em toda liquidação (tela, cron de 1 min, varredura)
     recreateSwap: recreateSwapDepsFor(admin, userId), // KINEO-RECREATE-TRAVA-1011 — a trava "não trocou" em TODO caminho que entrega (tela, /clips, cron, varredura)
+    invasor: { applies: (row) => invasorDaLinha(row), settle: (row) => settleInvasor(invasorIoFor(admin, userId), row) }, // KINEO-INVASOR-DE-CAMPO-1511 — em TODO caminho que liquida (tela, cron, varredura)
   }
 }
 
@@ -807,8 +813,13 @@ export function clipQueueDepsFor(admin: SupabaseClient, ctx: { liquidarDono?: bo
     },
     // O pedido gravado na impressão da linha, com o mesmo embrulho do envio direto (end_user_id quando o modelo pede; marcas kineo_* fora).
     submit: async (row) => {
-      const e = entradaDaLinha(row)
-      if (!e) return { ok: false as const, ambiguous: false, error: 'queued request could not be read' }
+      const lida = entradaDaLinha(row)
+      if (!lida) return { ok: false as const, ambiguous: false, error: 'queued request could not be read' }
+      // KINEO-INVASOR-DE-CAMPO-1511 — o trecho 0 do molde de vários trechos guarda um MARCADOR no lugar do vídeo: a URL assinada (privada, 1 h) nasce aqui,
+      // no envio. Entrada sem marcador: a mesma (resolverEntrada só tira as marcas kineo_*, que semMarcasDaCasa tiraria de qualquer jeito).
+      const resolvida = await resolverEntrada(lida.input, (i) => assinarTrechoDoInvasor(admin, i))
+      if (!resolvida) return { ok: false as const, ambiguous: false, error: 'Source unavailable' }
+      const e = { model: lida.model, input: resolvida }
       return comEndUserDaFal(submitToFalOnce, row.user_id)(e.model, semMarcasDaCasa(e.input))
     },
     markSubmitted: async (id, requestId) => {
@@ -819,6 +830,90 @@ export function clipQueueDepsFor(admin: SupabaseClient, ctx: { liquidarDono?: bo
     },
     release: (id) => io.apagarVaga(id),
     waitLimitMs: FILA_TETO_ESPERA_MS,
+  }
+}
+
+// ═══ KINEO-INVASOR-DE-CAMPO-1511 — os fios da máquina de vários trechos (a ORDEM mora em lib/recreate/invasor.ts settleInvasor) ═══════════════
+/** A vaga do Kling edit continua (ou passa a ser) DESTE clipe: a dele = renova o prazo E o início (o teto duro de 20 min passa a valer por trecho);
+ *  livre = toma (INSERT de id fixo); de outro clipe = false (o trecho NUNCA sai em paralelo). */
+async function garantirVagaDoClipe(admin: SupabaseClient, clipId: string): Promise<boolean> {
+  const agora = Date.now()
+  const atual = await admin.from('events').select('metadata').eq('id', FILA_VAGA_ID).maybeSingle()
+  if (atual.error) throw new Error(`queue slot read failed: ${atual.error.message}`)
+  const md = (atual.data?.metadata ?? null) as Record<string, unknown> | null
+  if (md && md.clip_id === clipId) {
+    const { data, error } = await admin.from('events').update({ metadata: { ...md, expira_em: new Date(agora + VAGA_TTL_MS).toISOString(), tomada_em: new Date(agora).toISOString() } }).eq('id', FILA_VAGA_ID).eq('metadata->>clip_id', clipId).select('id')
+    return !error && (data ?? []).length > 0
+  }
+  if (md) return false
+  return filaIoFor(admin).criarVaga(clipId, agora + VAGA_TTL_MS)
+}
+const invasorTrechoPath = (userId: string, clipId: string, i: number) => `clips/${userId}/${clipId}-trecho-${i}.mp4`
+function invasorIoFor(admin: SupabaseClient, userId: string): InvasorIo {
+  const publica = (path: string) => { const { data } = admin.storage.from(CLIPS_BUCKET).getPublicUrl(path); if (!data?.publicUrl) throw new Error('no public url'); return data.publicUrl }
+  const baixar = async (url: string) => {
+    const res = await fetch(url, { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS), cache: 'no-store' })
+    if (!res.ok) throw new Error(`download ${res.status}`)
+    const buf = new Uint8Array(await res.arrayBuffer())
+    if (buf.byteLength === 0 || buf.byteLength > MAX_CLIP_BYTES) throw new Error(`bad size ${buf.byteLength}`)
+    return buf
+  }
+  const subir = async (path: string, bytes: Uint8Array) => {
+    const { error } = await admin.storage.from(CLIPS_BUCKET).upload(path, bytes, { contentType: 'video/mp4', upsert: true })
+    if (error) throw new Error(error.message)
+    return publica(path)
+  }
+  return {
+    now: () => Date.now(),
+    poll: pollFal,
+    guardarTrecho: async (row, i, url) => subir(invasorTrechoPath(row.user_id, row.id, i), silenciarMp4(await baixar(url))), // o som que o Kling inventa nunca é guardado
+    urlsDosTrechos: async (row) => Promise.all(INVASOR_TRECHOS.map(async (_, i) => {
+      const url = publica(invasorTrechoPath(row.user_id, row.id, i))
+      const head = await fetch(url, { method: 'HEAD', cache: 'no-store', signal: AbortSignal.timeout(10_000) })
+      if (!head.ok) throw new Error(`segment ${i} missing`)
+      return url
+    })),
+    mover: async (id, de, para) => {
+      let q = admin.from(CLIPS_TABLE).update(para).eq('id', id).eq('status', 'processing')
+      q = de.failure_reason === null ? q.is('failure_reason', null) : q.eq('failure_reason', de.failure_reason)
+      q = de.fal_request_id === null ? q.is('fal_request_id', null) : q.eq('fal_request_id', de.fal_request_id)
+      const { data, error } = await q.select('id')
+      if (error) console.error(`[clips/invasor] move failed clip=${id}:`, error.message)
+      return !error && (data ?? []).length > 0
+    },
+    garantirVaga: (clipId) => garantirVagaDoClipe(admin, clipId),
+    soltarVaga: (clipId) => filaIoFor(admin).apagarVaga(clipId),
+    enviarTrecho: async (row, i, dados) => {
+      const entrada = await resolverEntrada(entradaDoTrecho({ prompt: dados.prompt, foto: dados.foto, trecho: i }), (t) => assinarTrechoDoInvasor(admin, t))
+      if (!entrada) return { ok: false, ambiguous: false, error: 'Source unavailable' }
+      return comEndUserDaFal(submitToFalOnce, row.user_id)(KLING4_EDIT_MODEL, entrada)
+    },
+    montar: async (row, trechos) => {
+      const som = await assinarSomDoInvasor(admin)
+      if (!som) return { ok: false, error: 'sound unavailable' }
+      // A marca usekineo.com de quem não paga: a MESMA decisão e o MESMO elemento de texto dos clipes (lib/clips/freeClipWatermark.ts). Perfil ilegível = sem marca, como lá.
+      const perfil = await admin.from('profiles').select(CLIP_OWNER_PROFILE_COLUMNS).eq('id', row.user_id).maybeSingle()
+      const decisao = freeClipWatermarkDecision({ live: FREE_CLIP_WATERMARK_LIVE, profile: perfil.error ? null : ((perfil.data ?? null) as ClipOwnerProfile | null) })
+      const texto = decisao.brand ? (buildFreeClipWatermarkSource('about:blank', { width: INVASOR_SAIDA.largura, height: INVASOR_SAIDA.altura, fps: INVASOR_SAIDA.fps, durationSeconds: INVASOR_SEGUNDOS_DO_FILME }) as { elements: Array<Record<string, unknown>> }).elements.find((e) => e.type === 'text') ?? null : null
+      const { submitCreatomateRender } = await import('@/lib/compose')
+      return { ok: true, renderId: await submitCreatomateRender(fonteDaMontagem({ trechos, som, marca: texto })) }
+    },
+    consultarMontagem: async (renderId) => {
+      const { pollCreatomateRender } = await import('@/lib/compose')
+      const st = await pollCreatomateRender(renderId)
+      if (st.status === 'succeeded' && st.url) return { status: 'succeeded', url: st.url }
+      if (st.status === 'failed' || st.status === 'cancelled') return { status: 'failed', error: st.error ?? null }
+      return { status: 'pending' }
+    },
+    guardarFilme: async (row, url) => subir(`clips/${row.user_id}/${row.id}.mp4`, await baixar(url)),
+    markDone: async (id, videoUrl, marca) => {
+      const { data, error } = await admin.from(CLIPS_TABLE).update({ status: 'done', video_url: videoUrl, failure_reason: null, settled_at: new Date().toISOString() }).eq('id', id).eq('status', 'processing').eq('failure_reason', marca).select('id')
+      if (error) console.error(`[clips/invasor] markDone failed clip=${id}:`, error.message)
+      return !error && (data ?? []).length > 0
+    },
+    refund: (ref) => refundRenderCredits(ref),
+    markFailed: (id, reason, refunded) => markFailed(admin, id, reason, refunded),
+    event: clipEvent(userId),
   }
 }
 /**

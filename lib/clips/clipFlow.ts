@@ -483,6 +483,9 @@ export interface ClipSettleDeps {
   recreateSwap?: RecreateSwapSettleDeps // KINEO-RECREATE-TRAVA-1011
   /** KINEO-RECREATE-FILA-KLING-EDIT-1411 — a fila de um pedido por vez: o clipe da fila sai aqui quando chega a vez, e quem fecha solta a vaga. */
   queue?: ClipQueueDeps
+  /** KINEO-INVASOR-DE-CAMPO-1511 — o molde de vários trechos (lib/recreate/invasor.ts): a linha dele EM ANDAMENTO no fornecedor ou na montagem é
+   *  liquidada pela máquina própria (trecho a trecho, um por vez, montagem com o som original). Ausente ou applies false = caminho de sempre. */
+  invasor?: { applies(row: ClipRow): boolean; settle(row: ClipRow): Promise<ClipRow> }
 }
 
 /** KINEO-RECREATE-AUDITORIA-DA-TRAVA-1411 — onde a saída reprovada ficou guardada (bucket privado) e até quando. */
@@ -518,6 +521,9 @@ export interface RecreateSwapSettleDeps { // KINEO-RECREATE-TRAVA-1011
 
 export async function settleClip(deps: ClipSettleDeps, row: ClipRow): Promise<ClipRow> {
   if (row.status === 'done' || row.status === 'failed') return row
+  // KINEO-INVASOR-DE-CAMPO-1511 — a linha do molde de vários trechos que JÁ saiu da fila (processing) segue a máquina própria; na fila (pending) ela é
+  // um Kling edit como os outros (o trecho 0 sai pela fila de sempre).
+  if (row.status === 'processing' && deps.invasor?.applies(row)) return deps.invasor.settle(row)
   // KINEO-RECREATE-FILA-KLING-EDIT-1411 — o clipe de um modelo com fila que FECHA (pronto ou falha) solta a vaga, e o próximo da fila sai. Envio ambíguo não
   // solta: o pedido pode existir no fornecedor, e a vaga vence sozinha.
   // KINEO-RECREATE-FILA-REVISAO-1411 [revisor, item 10 — bloqueava a publicação] — a cópia de auditoria (download + upload) saiu do meio da liquidação: ela corria
