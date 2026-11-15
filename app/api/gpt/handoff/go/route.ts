@@ -140,7 +140,7 @@ export async function GET(req: NextRequest) {
   try {
     const hasPriorSession = cookies()
       .getAll()
-      .some((c) => c.name.startsWith('sb-') && c.name.includes('auth-token'))
+      .some((c) => c.name.startsWith('sb-') && c.name.includes('auth-token') && !c.name.endsWith('code-verifier')) // KINEO-COOKIE-VERIFICADOR-1511
     authPath = hasPriorSession ? '/login' : '/signup'
   } catch {
     authPath = '/signup'

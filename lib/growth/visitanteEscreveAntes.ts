@@ -32,7 +32,7 @@ export function cadastroComVolta(caminhoAtual: string): string {
 
 /** O navegador tem cookie de sessão? O mesmo teste do middleware; sem ele, nem pergunta à API (a resposta seria 401). */
 export function temCookieDeSessao(cookies: string): boolean {
-  return cookies.split(';').some((c) => { const nome = c.split('=')[0].trim(); return nome.startsWith('sb-') && nome.includes('auth-token') })
+  return cookies.split(';').some((c) => { const nome = c.split('=')[0].trim(); return nome.startsWith('sb-') && nome.includes('auth-token') && !nome.endsWith('code-verifier') }) // KINEO-COOKIE-VERIFICADOR-1511
 }
 
 function telaDoCartao(url: URL): string | null {

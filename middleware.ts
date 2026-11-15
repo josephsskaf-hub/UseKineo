@@ -112,7 +112,7 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
   }
 
   // KINEO-ESCREVE-ANTES-DO-LOGIN-0411 [fundador 04/11: "1a"] — cartão de filme da home, sem sessão: escreve primeiro no Studio; o login vem no Generate.
-  if (request.method === 'GET' && request.nextUrl.pathname === '/signup' && !request.cookies.getAll().some((c) => c.name.startsWith('sb-') && c.name.includes('auth-token'))) {
+  if (request.method === 'GET' && request.nextUrl.pathname === '/signup' && !request.cookies.getAll().some((c) => c.name.startsWith('sb-') && c.name.includes('auth-token') && !c.name.endsWith('code-verifier'))) { // KINEO-COOKIE-VERIFICADOR-1511 [dono 15/11 "você conserta"] — sb-<ref>-auth-token-code-verifier fica de um login do Google COMEÇADO e não terminado: não é sessão; contava como sessão e o visitante caía no cadastro
     const destinoEscreve = destinoDoVisitanteQueEscreve(request.nextUrl.pathname, request.nextUrl.searchParams.get('redirect'))
     if (destinoEscreve) return NextResponse.redirect(new URL(destinoEscreve, request.url), 307)
   }

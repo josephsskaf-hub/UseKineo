@@ -51,14 +51,28 @@ casosC.push(
   ['C7 ideia curta demais não vai ao link', voltaDoClipe({ engine: 'h3' }, 'ab') === '/clips?engine=h3'],
 )
 
+// KINEO-COOKIE-VERIFICADOR-1511 — o cookie do login do Google COMEÇADO e não terminado não é sessão (os 4 lugares que fazem o teste).
+const R0 = regra(false)
+const ARQS_COOKIE = ['middleware.ts', 'app/(dashboard)/studio/create/page.tsx', 'app/api/gpt/handoff/go/route.ts', 'lib/growth/visitanteEscreveAntes.ts']
+const textos = ARQS_COOKIE.map((f) => readFileSync(join(RAIZ, f), 'utf8'))
+casosC.push(
+  ['V1 só o verificador do OAuth: não é sessão', R0.temCookieDeSessao('sb-cqqukkvjjrguayiyjvhh-auth-token-code-verifier=abc') === false],
+  ['V2 sessão de verdade (inteira ou em pedaços) continua sessão', R0.temCookieDeSessao('sb-cqqukkvjjrguayiyjvhh-auth-token=x') === true && R0.temCookieDeSessao('a=1; sb-cqqukkvjjrguayiyjvhh-auth-token.0=x') === true],
+  ['V3 verificador + sessão = sessão', R0.temCookieDeSessao('sb-x-auth-token-code-verifier=a; sb-x-auth-token=b') === true],
+  ['V4 os 4 lugares ignoram o verificador', textos.every((t) => t.includes("includes('auth-token') && !c.name.endsWith('code-verifier')") || t.includes("includes('auth-token') && !nome.endsWith('code-verifier')"))],
+)
 let falhas = 0
 for (const [nome, ok] of [...casosR(regra(false)), ...casosC]) { console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${nome}`); if (!ok) falhas++ }
 const m1 = casosR(regra(true)).filter(([n, ok]) => /^R[123] /.test(n) && !ok).length
 console.log(`  ${m1 === 3 ? 'ok  ' : 'FAIL'} M1 sem a linha do /clips no desvio, os cartões de clipe voltam à conta (${m1} de 3 reprovam)`)
 if (m1 !== 3) falhas++
+const mutV = createOfflineLoader({ source: (p, t) => (p.split(String.fromCharCode(92)).join('/').endsWith(REGRA) ? t.replace(" && !nome.endsWith('code-verifier')", '') : t) })(REGRA)
+const m3 = mutV.temCookieDeSessao('sb-x-auth-token-code-verifier=a') === true
+console.log(`  ${m3 ? 'ok  ' : 'FAIL'} M3 sem a exceção do verificador, o abandono do Google volta a contar como sessão`)
+if (!m3) falhas++
 const semDesvio = fonte.replace(/if \(res\.status === 401\) \{[\s\S]*?\} \/\/ KINEO-CRIAR-SEM-PAREDE-1511\n/, '')
 const m2 = semDesvio !== fonte && !/res\.status === 401/.test(semDesvio)
 console.log(`  ${m2 ? 'ok  ' : 'FAIL'} M2 sem o desvio do 401, C1 reprova (o erro vermelho voltaria)`)
 if (!m2) falhas++
-console.log(`${16 - falhas} ok, ${falhas} falha(s)`)
+console.log(`${21 - falhas} ok, ${falhas} falha(s)`)
 process.exit(falhas ? 1 : 0)

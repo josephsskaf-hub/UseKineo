@@ -122,7 +122,7 @@ export default async function StudioCreatePage({ searchParams }: StudioCreatePag
     // lib/lifecycle/emailReturnDoor.ts; aqui só se lê e se chama.
     const hasPriorSession = cookies()
       .getAll()
-      .some((c) => c.name.startsWith('sb-') && c.name.includes('auth-token'))
+      .some((c) => c.name.startsWith('sb-') && c.name.includes('auth-token') && !c.name.endsWith('code-verifier')) // KINEO-COOKIE-VERIFICADOR-1511 — o verificador do OAuth abandonado não é sessão
     const veioDeEmailNosso = arrivouDeEmailNosso(searchParams)
     const authPath = escolherPortaDeAuth({
       temCookieDeSessao: hasPriorSession,
