@@ -48,6 +48,9 @@
   .recreate .sv-current-flow{padding-bottom:136px}
   .sv-current-flow .rc-nav{height:58px;gap:20px;padding:0 18px}
   .sv-current-flow .rc-nav a{min-height:44px;display:flex;align-items:center}
+  /* KINEO-SEU-VIDEO-TOPO-1511 [dono 15/11, print do celular: as abas Film · Clip · Cartoon · Ads por cima de "Your video, your version."] — a barra com abas
+     tem DUAS linhas no celular (marca e conta em cima, abas embaixo): a altura fixa de 58 px da barra simples cortava a 2ª linha por cima do título. */
+  .sv-current-flow .rc-nav.ct-nav{height:auto;min-height:58px;padding:10px 16px 6px}
   .sv-current-flow .sv-wrap{padding:16px 12px 24px}
   .sv-current-flow .sv-intro{margin-bottom:14px}
   .sv-current-flow .sv-intro h1{font-size:25px}
