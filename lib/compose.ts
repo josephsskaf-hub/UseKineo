@@ -1339,8 +1339,10 @@ export function buildCaptionsFromWhisperWords(
           groups.push(current.slice(0, -nomeAntesDoNumero))
           current = current.slice(-nomeAntesDoNumero)
         } else if (!natural && next && current.length > 1 && (terminaEmPalavraFuncao(w.word) || numeroPreso)) { // KINEO-LEGENDA-NUMERO-RTL-0111
-          groups.push(current.slice(0, -1))
-          current = [w]
+          let desce = 1 // KINEO-LEGENDA-SEM-QUEBRA-1511 — duas palavras-função seguidas ("OF BRONZE FROM | A GREEK…"): descem as duas; o pedaço que fica nunca fica vazio
+          while (!numeroPreso && current.length - desce > 1 && terminaEmPalavraFuncao(current[current.length - desce - 1].word)) desce++ // KINEO-LEGENDA-SEM-QUEBRA-1511
+          groups.push(current.slice(0, -desce)) // KINEO-LEGENDA-SEM-QUEBRA-1511 — era slice(0, -1)
+          current = current.slice(-desce) // KINEO-LEGENDA-SEM-QUEBRA-1511 — era [w]
         } else {
           groups.push(current)
           current = []
@@ -1351,6 +1353,26 @@ export function buildCaptionsFromWhisperWords(
     }
     if (current.length) groups.push(current)
   }
+  // KINEO-LEGENDA-SEM-QUEBRA-1511 — a última palavra da frase não fica sozinha na tela ("THIS IS THE MARY | CELESTE.",
+  // "THE LIFEBOAT IS | GONE."): pedaço de 1 palavra que fecha a oração, logo depois de um pedaço fechado só pelo teto, recebe
+  // a(s) última(s) palavra(s) dele — e uma palavra-função no fim do anterior desce junto ("THIS IS | THE MARY CELESTE.").
+  // O pedaço anterior nunca fica com menos de 2. Pedaço da negação (maior que o teto) e o uso como tokenizador (maxWords ≤ 2): intocados.
+  if (maxWords > 2) { // KINEO-LEGENDA-SEM-QUEBRA-1511
+    const fechaNatural = (g: WhisperWord[], prox: WhisperWord | undefined): boolean => { // KINEO-LEGENDA-SEM-QUEBRA-1511 — o mesmo fecho natural do laço acima
+      const u = g[g.length - 1] // KINEO-LEGENDA-SEM-QUEBRA-1511
+      return u.sentenceEnd === true || (!!prox && prox.start - u.end >= SENTENCE_GAP_SECONDS) || /[,;:،؛，、；]$/.test((u.word ?? '').trim()) // KINEO-LEGENDA-SEM-QUEBRA-1511
+    } // KINEO-LEGENDA-SEM-QUEBRA-1511
+    for (let g = 1; g < groups.length; g++) { // KINEO-LEGENDA-SEM-QUEBRA-1511
+      const ant = groups[g - 1], cur = groups[g] // KINEO-LEGENDA-SEM-QUEBRA-1511
+      if (cur.length !== 1 || ant.length < 3 || ant.length > maxWords) continue // KINEO-LEGENDA-SEM-QUEBRA-1511
+      if (!fechaNatural(cur, groups[g + 1]?.[0])) continue // KINEO-LEGENDA-SEM-QUEBRA-1511 — a palavra sozinha fecha a oração
+      if (fechaNatural(ant, cur[0])) continue // KINEO-LEGENDA-SEM-QUEBRA-1511 — o anterior fechou numa vírgula/ponto/pausa: são orações diferentes
+      let desce = 1 // KINEO-LEGENDA-SEM-QUEBRA-1511
+      while (ant.length - desce > 2 && terminaEmPalavraFuncao(ant[ant.length - desce - 1].word)) desce++ // KINEO-LEGENDA-SEM-QUEBRA-1511
+      groups[g] = [...ant.slice(ant.length - desce), ...cur] // KINEO-LEGENDA-SEM-QUEBRA-1511
+      groups[g - 1] = ant.slice(0, ant.length - desce) // KINEO-LEGENDA-SEM-QUEBRA-1511
+    } // KINEO-LEGENDA-SEM-QUEBRA-1511
+  } // KINEO-LEGENDA-SEM-QUEBRA-1511
 
   for (let i = 0; i < groups.length; i++) {
     const chunk = groups[i]
@@ -1475,6 +1497,60 @@ export function segmentosSemNegacaoPartida(segmentos: CaptionSegment[], maxWords
   } // KINEO-LEGENDA-NEGACAO-0911
   return mudou ? saida : segmentos // KINEO-LEGENDA-NEGACAO-0911
 } // KINEO-LEGENDA-NEGACAO-0911
+
+// ═══ KINEO-LEGENDA-SEM-QUEBRA-1511 — o corte proporcional (sem Whisper) deixa de fatiar de N em N às cegas ═══
+// Fundador 15/11 (prints da vitrine: Mary Celeste "NO ONE AT THE" | "WHEEL.", "THE AZORES, SAILS TORN,"): quando a medição
+// da voz falha, buildCaptionSegments (lib/openai) corta cada frase a cada N palavras sem olhar vírgula nem artigo — sai
+// palavra sozinha no fim da frase e pedaço terminando em "the/at/of". Aqui cada frase é repartida em pedaços equilibrados
+// de 2..N palavras: nunca palavra sozinha, nunca terminar em palavra-função (a mesma lista do corte por Whisper), a vírgula
+// é o lugar preferido de cortar e nome próprio não se separa do número que o segue. Frase que já cabe em N: intocada.
+// Escritas sem espaço (chinês, japonês, tailandês): intocadas. Nada a mudar = o MESMO array (os guardiões comparam).
+export function partirFraseDaLegenda(palavras: readonly string[], max: number): number[] { // KINEO-LEGENDA-SEM-QUEBRA-1511
+  const n = palavras.length // KINEO-LEGENDA-SEM-QUEBRA-1511
+  if (n <= max || max < 2) return n ? [n] : [] // KINEO-LEGENDA-SEM-QUEBRA-1511
+  const alvo = n / Math.ceil(n / max) // KINEO-LEGENDA-SEM-QUEBRA-1511
+  const custo: number[] = new Array(n + 1).fill(Infinity), de: number[] = new Array(n + 1).fill(-1) // KINEO-LEGENDA-SEM-QUEBRA-1511
+  custo[0] = 0 // KINEO-LEGENDA-SEM-QUEBRA-1511
+  for (let fim = 2; fim <= n; fim++) { // KINEO-LEGENDA-SEM-QUEBRA-1511
+    for (let tam = 2; tam <= max && tam <= fim; tam++) { // KINEO-LEGENDA-SEM-QUEBRA-1511 — nunca 1 palavra sozinha
+      const ini = fim - tam // KINEO-LEGENDA-SEM-QUEBRA-1511
+      if (!Number.isFinite(custo[ini])) continue // KINEO-LEGENDA-SEM-QUEBRA-1511
+      const meio = fim < n, ultima = palavras[fim - 1] ?? '', proxima = palavras[fim] // KINEO-LEGENDA-SEM-QUEBRA-1511
+      let c = custo[ini] + 10 + (tam - alvo) ** 2 // KINEO-LEGENDA-SEM-QUEBRA-1511
+      if (meio && terminaEmPalavraFuncao(ultima)) c += 100 // KINEO-LEGENDA-SEM-QUEBRA-1511
+      if (meio && palavrasDoNomeAntesDoNumero([{ word: 'x' }, { word: ultima }], proxima) > 0) c += 50 // KINEO-LEGENDA-SEM-QUEBRA-1511 — "World War | 3"
+      if (meio && /^\p{Lu}[\p{L}'’-]*$/u.test(ultima) && /^\p{Lu}[\p{L}'’-]*[,.;:!?]?$/u.test(proxima ?? '')) c += 40 // KINEO-LEGENDA-SEM-QUEBRA-1511 — nome próprio não se parte ("World | War", "Mary | Celeste"); a 1ª palavra da frase não conta
+      if (meio && /[,;:،؛，、；]["'”’»)\]」』]*$/.test(ultima)) c -= 6 // KINEO-LEGENDA-SEM-QUEBRA-1511 — a vírgula é o corte natural
+      if (c < custo[fim] - 1e-9) { custo[fim] = c; de[fim] = ini } // KINEO-LEGENDA-SEM-QUEBRA-1511
+    } // KINEO-LEGENDA-SEM-QUEBRA-1511
+  } // KINEO-LEGENDA-SEM-QUEBRA-1511
+  if (!Number.isFinite(custo[n])) return [n] // KINEO-LEGENDA-SEM-QUEBRA-1511
+  const tams: number[] = [] // KINEO-LEGENDA-SEM-QUEBRA-1511
+  for (let fim = n; fim > 0; fim = de[fim]) tams.unshift(fim - de[fim]) // KINEO-LEGENDA-SEM-QUEBRA-1511
+  return tams // KINEO-LEGENDA-SEM-QUEBRA-1511
+} // KINEO-LEGENDA-SEM-QUEBRA-1511
+export function segmentosSemQuebra(segmentos: CaptionSegment[], maxWords: number): CaptionSegment[] { // KINEO-LEGENDA-SEM-QUEBRA-1511
+  if (!(maxWords > 2)) return segmentos // KINEO-LEGENDA-SEM-QUEBRA-1511
+  const fechaAFrase = (palavra: string): boolean => /[.!?…؟۔।。！？]["'”’»)\]」』]*$/.test(palavra) // KINEO-LEGENDA-SEM-QUEBRA-1511 — o mesmo fecho de frase de segmentosSemNegacaoPartida
+  const semEspaco = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}]/u // KINEO-LEGENDA-SEM-QUEBRA-1511
+  const saida: CaptionSegment[] = [] // KINEO-LEGENDA-SEM-QUEBRA-1511
+  let mudou = false // KINEO-LEGENDA-SEM-QUEBRA-1511
+  for (let i = 0; i < segmentos.length;) { // KINEO-LEGENDA-SEM-QUEBRA-1511
+    let j = i // KINEO-LEGENDA-SEM-QUEBRA-1511 — a frase: os segmentos até o que termina em ponto (buildCaptionSegments nunca atravessa uma frase)
+    while (j < segmentos.length - 1 && !fechaAFrase(segmentos[j].text.trim())) j++ // KINEO-LEGENDA-SEM-QUEBRA-1511
+    const daFrase = segmentos.slice(i, j + 1) // KINEO-LEGENDA-SEM-QUEBRA-1511
+    const palavras = daFrase.flatMap((seg) => narrationTokens(seg.text)) // KINEO-LEGENDA-SEM-QUEBRA-1511
+    const tams = daFrase.length > 1 && !daFrase.some((seg) => semEspaco.test(seg.text)) ? partirFraseDaLegenda(palavras, maxWords) : null // KINEO-LEGENDA-SEM-QUEBRA-1511
+    const antes = daFrase.map((seg) => narrationTokens(seg.text).length) // KINEO-LEGENDA-SEM-QUEBRA-1511
+    if (tams && tams.join(',') !== antes.join(',')) { // KINEO-LEGENDA-SEM-QUEBRA-1511
+      mudou = true // KINEO-LEGENDA-SEM-QUEBRA-1511
+      let k = 0 // KINEO-LEGENDA-SEM-QUEBRA-1511
+      for (const tam of tams) { const text = joinNarrationTokens(palavras.slice(k, k + tam)).trim(); k += tam; if (text) saida.push({ text, highlight: pickHighlightWord(text) }) } // KINEO-LEGENDA-SEM-QUEBRA-1511
+    } else saida.push(...daFrase) // KINEO-LEGENDA-SEM-QUEBRA-1511 — os mesmos objetos
+    i = j + 1 // KINEO-LEGENDA-SEM-QUEBRA-1511
+  } // KINEO-LEGENDA-SEM-QUEBRA-1511
+  return mudou ? saida : segmentos // KINEO-LEGENDA-SEM-QUEBRA-1511
+} // KINEO-LEGENDA-SEM-QUEBRA-1511
 
 function wordCount(s: string): number {
   const t = (s ?? '').trim()
@@ -3187,7 +3263,7 @@ export function buildCreatomateSource({
     // Push #292 — 3 words/chunk (was 4). Matches directCaps limit above.
     // PUSH #94 — both paths now read the same constant, so the Whisper and the
     // proportional-fallback renders can never disagree on caption granularity.
-    const scriptSegments = segmentosSemNegacaoPartida(buildCaptionSegments(voiceoverScript, CAPTION_WORDS_PER_CHUNK), CAPTION_WORDS_PER_CHUNK) // KINEO-LEGENDA-NEGACAO-0911
+    const scriptSegments = segmentosSemNegacaoPartida(segmentosSemQuebra(buildCaptionSegments(voiceoverScript, CAPTION_WORDS_PER_CHUNK), CAPTION_WORDS_PER_CHUNK), CAPTION_WORDS_PER_CHUNK) // KINEO-LEGENDA-NEGACAO-0911 · KINEO-LEGENDA-SEM-QUEBRA-1511
     const captionsClean: CaptionSegment[] = scriptSegments.length > 0
       ? scriptSegments
       : sceneCaptions
@@ -3795,7 +3871,7 @@ export function buildHollywoodCreatomateSource({
       }
     } else if (block.text && block.text.trim()) {
       // Proportional fallback within the block window.
-      const segments = segmentosSemNegacaoPartida(buildCaptionSegments(block.text, /* KINEO-SPRINT-12H-2026-07-29: was a hardcoded 3. Hollywood is the most expensive tier and was the last place still slicing captions three-at-a-time, i.e. the only path still able to burn `IT IT'S CALLED` on screen. Track the same knob every other tier uses. */ CAPTION_WORDS_PER_CHUNK), CAPTION_WORDS_PER_CHUNK) // KINEO-LEGENDA-NEGACAO-0911
+      const segments = segmentosSemNegacaoPartida(segmentosSemQuebra(buildCaptionSegments(block.text, /* KINEO-SPRINT-12H-2026-07-29: was a hardcoded 3. Hollywood is the most expensive tier and was the last place still slicing captions three-at-a-time, i.e. the only path still able to burn `IT IT'S CALLED` on screen. Track the same knob every other tier uses. */ CAPTION_WORDS_PER_CHUNK), CAPTION_WORDS_PER_CHUNK), CAPTION_WORDS_PER_CHUNK) // KINEO-LEGENDA-NEGACAO-0911 · KINEO-LEGENDA-SEM-QUEBRA-1511
       const totalWords = segments.reduce((s, seg) => s + Math.max(1, wordCount(seg.text)), 0) || 1
       let elapsed = block.time
       const window = Math.max(1, Math.min(audioDur, captionWindowEnd - block.time))
