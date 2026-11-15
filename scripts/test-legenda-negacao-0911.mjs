@@ -30,6 +30,7 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import { semLegendaNegacao0911 } from './test-support/desfaz-legenda-negacao-0911.mjs'
 import { semLegendaSemAspas1111 } from './test-support/desfaz-legenda-sem-aspas-1111.mjs' // KINEO-LEGENDA-SEM-ASPAS-1111 — a camada mais nova de lib/compose.ts sai antes
+import { semLegendaSemQuebra1511 } from './test-support/desfaz-legenda-sem-quebra-1511.mjs' // KINEO-LEGENDA-SEM-QUEBRA-1511 — camada de 15/11, sai antes de todas
 
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const nativeRequire = createRequire(import.meta.url)
@@ -70,7 +71,7 @@ function carregar({ compose, negacao } = {}) {
 }
 
 const FONTE_HOJE = fs.readFileSync(ARQ_COMPOSE, 'utf8').replace(/\r\n/g, '\n')
-const FONTE_BASE = semLegendaNegacao0911(semLegendaSemAspas1111(FONTE_HOJE, 'lib/compose.ts'), 'lib/compose.ts').replace(/\r\n/g, '\n')
+const FONTE_BASE = semLegendaNegacao0911(semLegendaSemAspas1111(semLegendaSemQuebra1511(FONTE_HOJE, 'lib/compose.ts'), 'lib/compose.ts'), 'lib/compose.ts').replace(/\r\n/g, '\n') // reancorado KINEO-LEGENDA-SEM-QUEBRA-1511: a camada mais nova sai primeiro, pelo recibo exato
 const FONTE_NEGACAO = fs.readFileSync(ARQ_NEGACAO, 'utf8').replace(/\r\n/g, '\n')
 const TETO = 4 // CAPTION_WORDS_PER_CHUNK de lib/compose.ts (conferido em estática abaixo)
 
@@ -583,7 +584,7 @@ diz('CAPTION_WORDS_PER_CHUNK continua 4 (o teto que este guardião usa)', /\ncon
   const chamadas = FONTE_HOJE.split('\n').filter((l) => l.includes('buildCaptionsFromWhisperWords(') && !l.includes('export function') && !l.trim().startsWith('//') && !l.trim().startsWith('*'))
   diz('os 3 cortes por Whisper do filme (clássico, bloco hollywood, fala nativa por clipe) passam pelo mesmo cortador', chamadas.length === 3, String(chamadas.length))
   const proporcionais = FONTE_HOJE.split('\n').filter((l) => l.includes('buildCaptionSegments(') && !l.trim().startsWith('//') && !l.trim().startsWith('*') && !l.startsWith('import'))
-  diz('os 2 cortes proporcionais (clássico e bloco hollywood) passam por segmentosSemNegacaoPartida', proporcionais.length === 2 && proporcionais.every((l) => l.includes('segmentosSemNegacaoPartida(buildCaptionSegments(')), String(proporcionais.length))
+  diz('os 2 cortes proporcionais (clássico e bloco hollywood) passam por segmentosSemNegacaoPartida', proporcionais.length === 2 && proporcionais.every((l) => l.includes('segmentosSemNegacaoPartida(segmentosSemQuebra(buildCaptionSegments(')) /* reancorado KINEO-LEGENDA-SEM-QUEBRA-1511: a regra da negação continua por fora, depois do corte sem quebra */, String(proporcionais.length))
   diz('o cortador por Whisper e o corte proporcional pedem o plano ao MESMO helper quando o pedaço bate no teto, com o idioma do filme', /planoDaNegacao\(current, [^\n]*idioma: ACTIVE_CAPTION_IDIOMA/.test(FONTE_HOJE) && /planoDaNegacao\(atual, [^\n]*idioma: ACTIVE_CAPTION_IDIOMA/.test(FONTE_HOJE) && /ACTIVE_CAPTION_IDIOMA = typeof language === 'string' \? language : null/.test(FONTE_HOJE))
   diz('a conta da pílula deste guardião usa os números do formato 9:16 de hoje (caixa 78%, legenda 54, gancho 64) e a letra de 0,72 em', /'9:16': \{[\s\S]*?captionWidth: '78%',[\s\S]*?captionFontSize: 54,\s*hookFontSize: 64,/.test(ASPECTO) && /\nconst LEGENDA_LETRA_EM = 0\.72\n/.test(FONTE_HOJE) && LETRAS_CORPO === 19 && LETRAS_GANCHO === 16)
   diz('o anti-gagueira é o mesmo código da base (este conserto não o toca)', (() => { const trecho = (f) => f.slice(f.indexOf('// Anti-stutter guard.'), f.indexOf('const text = joinNarrationTokens(chunkWords).trim()')); return trecho(FONTE_HOJE).length > 300 && trecho(FONTE_HOJE) === trecho(FONTE_BASE) })())
@@ -591,7 +592,8 @@ diz('CAPTION_WORDS_PER_CHUNK continua 4 (o teto que este guardião usa)', /\ncon
 }
 
 const BASE = carregar({ compose: FONTE_BASE })
-const HOJE = carregar({ compose: FONTE_HOJE })
+const FONTE_HOJE_SEM_QUEBRA = semLegendaSemQuebra1511(FONTE_HOJE, 'lib/compose.ts').replace(/\r\n/g, '\n') // reancorado KINEO-LEGENDA-SEM-QUEBRA-1511: a bateria e os mutantes desta entrega rodam o arquivo de hoje SEM a camada de 15/11 (que tem guardião próprio, test-legenda-sem-quebra-1511), para medir só o delta da negação
+const HOJE = carregar({ compose: FONTE_HOJE_SEM_QUEBRA }) // reancorado KINEO-LEGENDA-SEM-QUEBRA-1511 — era FONTE_HOJE
 console.log('1-6) A bateria: base × hoje')
 const falhas = bateria(BASE, HOJE)
 const rodadas = verificacoes
@@ -602,7 +604,7 @@ diz('a mesma bateria REPROVA a base contra ela mesma (o defeito está lá, e tam
 
 console.log('7) Mutantes: cada estrago tem de ser pego')
 const mutante = (nome, alvo, de, para, esperadas) => {
-  const fonte = alvo === 'compose' ? FONTE_HOJE : FONTE_NEGACAO
+  const fonte = alvo === 'compose' ? FONTE_HOJE_SEM_QUEBRA : FONTE_NEGACAO // reancorado KINEO-LEGENDA-SEM-QUEBRA-1511 — era FONTE_HOJE
   if (fonte.split(de).length !== 2) return diz(`mutante "${nome}" aplicável`, false, 'trecho ausente ou repetido')
   let f
   try { f = bateria(BASE, carregar({ [alvo]: fonte.replace(de, () => para) })) } catch (e) { f = ['erro: ' + e.message] }
