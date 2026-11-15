@@ -34,12 +34,28 @@ import { galeriaPromptFromUrl } from '@/lib/homeGaleria' // KINEO-GALERIA-HOME-2
 import { intervaloDePoll, POLL_RAPIDO_ADS_MS } from '@/lib/pollingRapido' // KINEO-FILME-RAPIDO-1710 · polling — clipe em andamento: pergunta já e a cada 3 s nos 2 primeiros minutos (linha própria)
 import { downloadVideoFile } from '@/lib/videoDownload' // KINEO-DOWNLOAD-CLIPE-3010
 import { PremiereStage, PremiereResult, usePremiereBeacon } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110 — a espera vira a estreia
+import { cadastroComVolta } from '@/lib/growth/visitanteEscreveAntes' // KINEO-CRIAR-SEM-PAREDE-1511
 import { useUiCopy } from '@/components/InterfaceLanguage' // KINEO-ESTREIA-3110 — textos da estreia (props de texto) na língua da tela
 import { CLIPS_TELA_CSS, clipsTelaMaisOpcoes, efeitosDaVitrineDoClipe } from '@/lib/clips/clipsTela0511' // KINEO-CLIPS-TELA-0511 — a caixa primeiro, a grade embaixo, sem Halloween
 
 // KINEO-CLIPE360-AMOSTRA-1410 — a escolha de efeito sobrevive à ida e volta pela barra lateral (sessionStorage desta aba).
 // Antes, ela morava só na memória da tela: o Pedro (14/10) escolheu "Produto 360°", foi ao /spaces, voltou ao /clips e o
 // efeito tinha sumido — o clipe saiu livre. Armazenamento bloqueado (aba anônima) = a tela segue como antes, sem lembrar.
+// KINEO-CRIAR-SEM-PAREDE-1511 — o caminho de volta do cadastro: o MESMO /clips com o que a pessoa escolheu (efeito, remix ou motor + ideia).
+// O /clips já relê ?effect=, ?remix=, ?engine= e ?prompt= (galeriaPromptFromUrl). A foto não viaja: ela sobe de novo depois de entrar.
+function voltaDoClipe(payload: Record<string, unknown>, prompt: string): string {
+  const q = new URLSearchParams()
+  if (typeof payload.effect === 'string') q.set('effect', payload.effect)
+  else if (typeof payload.remix === 'string') q.set('remix', payload.remix)
+  else {
+    if (typeof payload.engine === 'string') q.set('engine', payload.engine)
+    const ideia = prompt.trim().slice(0, 1000)
+    if (ideia.length >= 3) q.set('prompt', ideia)
+  }
+  const s = q.toString()
+  return s ? `/clips?${s}` : '/clips'
+}
+
 function rememberClipEffect(key: string | null) {
   try {
     if (key) window.sessionStorage.setItem(CLIP_EFFECT_MEMORY_KEY, key)
@@ -607,6 +623,10 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
       }
       if (typeof data?.balance === 'number') setBalance(data.balance)
       if (res.ok && !payload.effect) freeClipOriginRef.current = false
+      if (res.status === 401) { // KINEO-CRIAR-SEM-PAREDE-1511 [dono 15/11 "você conserta"] — visitante: o Generate abre o CADASTRO e volta ao /clips com a mesma ideia (era o erro vermelho "You must be signed in" + link para "Welcome back")
+        window.location.assign(cadastroComVolta(voltaDoClipe(payload, prompt))) // KINEO-CRIAR-SEM-PAREDE-1511
+        return // KINEO-CRIAR-SEM-PAREDE-1511
+      } // KINEO-CRIAR-SEM-PAREDE-1511
       if (!res.ok) {
         // KINEO-S25-CLIPES-2026-10-06 — 402 engine_paid (motor só de planos pagos) leva aos planos, não à recarga de créditos.
         const paidOnly = data?.code === 'engine_paid'
@@ -783,7 +803,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
       {error.credits && (outOfCreditsDestination(plan) === 'topup'
         ? <button type="button" onClick={() => setShowTopup(true)} style={{ color: 'var(--indigo)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>{t('addCredits')}</button>
         : <a href="/pricing" style={{ color: 'var(--indigo)', fontWeight: 700 }}>{t('addCredits')}</a>)}
-      {/signed in/i.test(error.text) && <a href="/login?redirect=/clips" style={{ color: 'var(--indigo)', fontWeight: 700 }}>{t('signIn')}</a>}
+      {/signed in/i.test(error.text) && <a href={cadastroComVolta("/clips")} style={{ color: 'var(--indigo)', fontWeight: 700 }}>{t('signIn')}</a>}
       {error.upgrade && <a href={error.upgrade} style={{ color: 'var(--indigo)', fontWeight: 700 }}>{t('seePlans')}</a>}
     </p>
   )

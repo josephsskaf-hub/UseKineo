@@ -74,6 +74,11 @@ export function destinoDoVisitanteQueEscreve(pathname: string, redirect: string 
   if (url.origin !== 'https://www.usekineo.com' || redirect.startsWith('//')) return null
   const deHoje = nomeDeHoje(url) // KINEO-CARTOES-ANTES-DA-CONTA-1411 — a tela nova pelo nome de 04/11, com a MESMA régua abaixo
   if (deHoje) return destinoDoVisitanteQueEscreve(pathname, deHoje)
+  // KINEO-CRIAR-SEM-PAREDE-1511 [dono 15/11 05:05 "você conserta"; teste sem conta de 15/11] — os 22 cartões de CLIPE da home levavam a
+  // /signup?redirect=/clips… e a pessoa via o cadastro antes de escrever. O /clips abre para visitante (o GET entrega o catálogo de conta nova)
+  // e, desde esta entrega, o Generate do visitante abre o cadastro com volta (ClipsClient: cadastroComVolta). Quem já volta do login
+  // (MARCA_DA_VOLTA) segue pelo cadastro, senão nunca chegaria nele.
+  if (url.pathname === '/clips') return url.searchParams.has(MARCA_DA_VOLTA) ? null : `/clips${url.search}`
   if (url.pathname !== '/studio') return telaDoCartao(url)
   if (!/^\/studio\?/.test(redirect) || redirect.startsWith('//')) return null
   const permitidos = new Set(['engine', 'intent_campaign'])

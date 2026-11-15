@@ -106,7 +106,8 @@ function bateria(over = {}, o = {}) {
     const a = contar(o.antes, visitante)
     const eq = (x, y) => JSON.stringify(x) === JSON.stringify(y)
     if (!eq(d.filme, { cartoes: 12, conta: 0, semConta: 12 }) || !eq(d.anuncio, { cartoes: 13, conta: 0, semConta: 13 }) || !eq(d.cartoon, { cartoes: 2, conta: 0, semConta: 2 })) throw new Error('depois: ' + JSON.stringify(d))
-    if (!eq(d.clips, a.clips) || !eq(d.recreate, a.recreate)) throw new Error('/clips ou /recreate mudaram: ' + JSON.stringify([a.clips, d.clips, a.recreate, d.recreate]))
+    // reancorado KINEO-CRIAR-SEM-PAREDE-1511 [dono 15/11 "você conserta"]: os cartões de /clips passam a abrir SEM conta (o Generate do visitante abre o cadastro com volta); o número de cartões não muda e /recreate continua igual à main
+    if (!eq(d.clips, { cartoes: a.clips.cartoes, conta: 0, semConta: a.clips.cartoes }) || a.clips.cartoes < 20 || !eq(d.recreate, a.recreate)) throw new Error('/clips ou /recreate fora do esperado: ' + JSON.stringify([a.clips, d.clips, a.recreate, d.recreate]))
   })
   check('D. volta do login, externo, //, barra invertida, sem campanha e com ideia: o cadastro de sempre', () => {
     const marca = V_.MARCA_DA_VOLTA
