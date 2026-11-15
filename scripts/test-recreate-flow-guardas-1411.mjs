@@ -153,7 +153,9 @@ const suites = {
       const w = world(over, { user })
       // KINEO-CLIP-RECREATE-JUNTOS-1511 — reancorado: a casa no interruptor recebe a tela única (Clip + Recreate); as props do RecreateClient vão em `recreate`,
       // iguais uma a uma às de sempre (scripts/test-clip-recreate-juntos-1511.mjs B2). Visitante e cliente: o RecreateClient direto, como antes.
-      const rc = el => (user?.email === HOUSE ? { props: el.props.recreate } : el)
+      // KINEO-ABRE-TUDO-1511 — aberta ao público: quem recebe a tela única é decidido pela MESMA régua da rota (clipRecreateJuntosVisivel), não pelo e-mail da casa.
+      const juntos = !!user && w.load('lib/create/clipRecreateJuntos').clipRecreateJuntosVisivel(user.email)
+      const rc = el => (juntos ? { props: el.props.recreate } : el)
       const index = rc(await w.load('app/recreate/page').default()), model = rc(await w.load('app/recreate/[id]/page').default({ params: { id: 'passarela' } }))
       ok(index.props.currentFlow === true && model.props.currentFlow === true && index.props.flowBasePath === '/recreate' && model.props.flowBasePath === '/recreate' && model.props.initialId === 'passarela' && model.props.signedIn === !!user, 'switch on: regular routes mount the new flow on /recreate')
     }
@@ -185,10 +187,12 @@ const suites = {
   async ownVideo(over) {
     const on = over // KINEO-M12-LIGA-1411 — interruptor real (ligado); antes era simulado
     ok(world(on).load('lib/recreate/flowRelease').RECREATE_FLOW_ENABLED === true, 'public switch is on in production')
-    ok((await world(on, { user: { id: ACCOUNT, email: 'customer@example.org' } }).load('app/recreate/page').default()).props.ownVideoVisible === false, 'customer /recreate gets ownVideoVisible=false with the real switch')
+    // KINEO-ABRE-TUDO-1511 — aberta ao público: quem tem a tela única recebe as props do RecreateClient em `recreate` (a MESMA régua da rota).
+    const jv = e => world(on).load('lib/create/clipRecreateJuntos').clipRecreateJuntosVisivel(e), pp = (el, e) => (jv(e) ? el.props.recreate : el.props)
+    ok(pp(await world(on, { user: { id: ACCOUNT, email: 'customer@example.org' } }).load('app/recreate/page').default(), 'customer@example.org').ownVideoVisible === false, 'customer /recreate gets ownVideoVisible=false with the real switch')
     const customer = world(on, { user: { id: ACCOUNT, email: 'customer@example.org' } }), house = world(on, { user: { id: ACCOUNT, email: HOUSE } }), guest = world(on)
     const page = w => w.load('app/recreate/RecreateFlowPage').default
-    ok((await page(customer)({ basePath: '/recreate' })).props.ownVideoVisible === false, 'customer catalog gets ownVideoVisible=false')
+    ok(pp(await page(customer)({ basePath: '/recreate' }), 'customer@example.org').ownVideoVisible === false, 'customer catalog gets ownVideoVisible=false')
     ok((await page(guest)({ basePath: '/recreate' })).props.ownVideoVisible === false, 'guest catalog gets ownVideoVisible=false while own video is house-only')
     ok((await page(house)({ basePath: '/recreate' })).props.recreate.ownVideoVisible === true, 'house catalog keeps the own-video entry') // KINEO-CLIP-RECREATE-JUNTOS-1511 — a casa: tela única, props do RecreateClient em `recreate`
     await notFound(customer.load('app/recreate/your-video/page').default({}), 'customer cannot open /recreate/your-video after approval')
@@ -234,7 +238,9 @@ const suites = {
     ok((await preview(customer)).props.generationAllowed === false, 'customer preview opens with Generate locked')
     ok((await preview(house)).props.generationAllowed === true, 'house preview can generate')
     ok((await preview(guest)).props.generationAllowed === true, 'guest preview still goes to signup on Generate')
-    ok((await world(over, { user: { id: ACCOUNT, email: 'customer@example.org' } }).load('app/recreate/[id]/page').default({ params: { id: 'passarela' } })).props.generationAllowed === true, 'regular route after approval is not locked')
+    const regular = await world(over, { user: { id: ACCOUNT, email: 'customer@example.org' } }).load('app/recreate/[id]/page').default({ params: { id: 'passarela' } })
+    const juntosCliente = world(over).load('lib/create/clipRecreateJuntos').clipRecreateJuntosVisivel('customer@example.org') // KINEO-ABRE-TUDO-1511 — a MESMA régua da rota
+    ok((juntosCliente ? regular.props.recreate : regular.props).generationAllowed === true, 'regular route after approval is not locked')
     const h = client(customer, { props: { signedIn: true, accountKey: ACCOUNT, generationAllowed: false } }); await h.flush(); await h.add()
     ok(h.gen().props.disabled === true && /approved accounts only/.test(text(h.tree)), 'locked preview disables Generate and says why')
     await h.gen().props.onClick({ preventDefault() {} }); await h.flush()

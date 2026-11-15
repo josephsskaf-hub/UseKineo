@@ -1213,7 +1213,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
           <div className="lab" id="clip-effects-title">{t('effectsTitle')}</div>
           <p className="clip-meta" style={{ marginTop: 0, marginBottom: 12 }}>{t('effectsSub')}</p>
           <div className="fx-grid" role="group" aria-labelledby="clip-effects-title">
-            {houseRemixes.filter((rx) => !semRepetir?.has(rx.title.trim().toLowerCase())).map((rx) => ( // KINEO-CLIP-RECREATE-JUNTOS-1511 sem repetir · KINEO-DANCA-PUBLICA-3110 — sem preço no cartão: o preço mora só no botão do painel
+            {houseRemixes.map((rx) => ( // KINEO-DANCA-PUBLICA-3110 — sem preço no cartão: o preço mora só no botão do painel
               <button key={'remix-' + rx.id} type="button" className="fx-card" data-clip-action="select_face_remix" data-face-remix={rx.id} onClick={() => chooseHouseRemix(rx.id)}>{/* KINEO-DANCA-PUBLICA-3110 */}
                 <span className="fx-media"><video src={rx.video} poster={rx.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" /></span>{/* KINEO-DANCA-PUBLICA-3110 */}
                 <span className="fx-title"><UiLabel>{rx.title}</UiLabel></span>{/* KINEO-DANCA-PUBLICA-3110 */}

@@ -136,12 +136,16 @@ async function routeChecks(overrides, expectFlowOn = false) {
   const idPage = pages('app/recreate/[id]/page').default
   user = { id: U, email: CUSTOMER }
   await assert.rejects(idPage({ params: { id: 'outfit-morph' } }), /not-found/); passed++
-  const listProps = (await pages('app/recreate/page').default()).props
+  // KINEO-ABRE-TUDO-1511 — com a tela única aberta ao público, a conta logada recebe <ClipRecreateJuntos recreate={…}>: as props do RecreateClient
+  // vão em `recreate`, iguais uma a uma (scripts/test-clip-recreate-juntos-1511.mjs B2). Quem recebe é a MESMA régua da rota.
+  const juntosCliente = pages('lib/create/clipRecreateJuntos').clipRecreateJuntosVisivel(CUSTOMER)
+  const propsDe = el => (juntosCliente && flowOn ? el.props.recreate : el.props) // a tela única só existe no fluxo novo (RecreateFlowPage); desligado, a página de antes
+  const listProps = propsDe(await pages('app/recreate/page').default())
   const hidden = swapPublic ? UNAPPROVED : SWAPS
   ok(listProps.formatIds.length > 20 && !listProps.formatIds.some(id => hidden.includes(id)), 'página pública: cartões de troca não liberada fora')
   ok(!swapPublic || APPROVED.every(id => listProps.formatIds.includes(id)), 'página pública: trocas aprovadas dentro')
-  ok((await idPage({ params: { id: 'effect-kiss' } })).props.formatIds.every(id => !hidden.includes(id)), 'página do efeito: sem troca não liberada no catálogo')
-  if (swapPublic) ok((await idPage({ params: { id: 'passarela' } })).props.initialId === 'passarela', 'cliente abre a troca aprovada')
+  ok(propsDe(await idPage({ params: { id: 'effect-kiss' } })).formatIds.every(id => !hidden.includes(id)), 'página do efeito: sem troca não liberada no catálogo')
+  if (swapPublic) ok(propsDe(await idPage({ params: { id: 'passarela' } })).initialId === 'passarela', 'cliente abre a troca aprovada')
   else { await assert.rejects(idPage({ params: { id: 'passarela' } }), /not-found/); passed++ }
   user = null
   await assert.rejects(idPage({ params: { id: 'outfit-morph' } }), /not-found/); passed++ // troca não aprovada nunca convida para cadastro

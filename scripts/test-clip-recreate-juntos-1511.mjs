@@ -31,7 +31,6 @@ const SEM_REPETIR = [
   ['export default function ClipsClient({ measurementActor = null, moldura, rotuloDosAjustes }: { measurementActor?: string | null; moldura?: (p: PartesDoClipe) => ReactNode;', 'export default function ClipsClient({ measurementActor = null, moldura, rotuloDosAjustes, semRepetir }: { measurementActor?: string | null; moldura?: (p: PartesDoClipe) => ReactNode; /** KINEO-CLIP-RECREATE-JUNTOS-1511 — títulos (minúsculos) que a tela única já mostra na grade de modelos: o efeito igual não se repete nas fileiras do Clips. Sem ele, nada some. */ semRepetir?: ReadonlySet<string>;'],
   ['            {trendRowEffects(efeitosDaVitrine, CLIP_TRENDS.filter((tr) => trendTarget(tr, engines)).length).map((fx) => (', '            {trendRowEffects(efeitosDaVitrine, CLIP_TRENDS.filter((tr) => trendTarget(tr, engines)).length).filter((fx) => !semRepetir?.has(fx.title.trim().toLowerCase())).map((fx) => ( // KINEO-CLIP-RECREATE-JUNTOS-1511 — sem repetir o modelo da grade'],
   ['            {efeitosDaVitrine.map((fx) => ( // KINEO-CLIPS-TELA-0511', '            {efeitosDaVitrine.filter((fx) => !semRepetir?.has(fx.title.trim().toLowerCase())).map((fx) => ( // KINEO-CLIP-RECREATE-JUNTOS-1511 sem repetir · KINEO-CLIPS-TELA-0511'],
-  ['{houseRemixes.map((rx) => ( // KINEO-DANCA-PUBLICA-3110', '{houseRemixes.filter((rx) => !semRepetir?.has(rx.title.trim().toLowerCase())).map((rx) => ( // KINEO-CLIP-RECREATE-JUNTOS-1511 sem repetir · KINEO-DANCA-PUBLICA-3110'],
 ]
 const comSemRepetir = s => SEM_REPETIR.reduce((t, [de, para]) => { if (t.split(de).length !== 2) throw new Error('SEM_REPETIR sem alvo único: ' + de.slice(0, 60)); return t.replace(de, para) }, s)
 const baseSrc = p => execFileSync('git', ['show', `${BASE}:${p}`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 })
@@ -108,7 +107,7 @@ function casosB(o) {
     ['B4 /recreate/your-video: a barra só muda com a mesma régua', flow.includes("abaJuntos={!!user && basePath === '/recreate' && clipRecreateJuntosVisivel(user.email)}") && src(o, 'app/recreate-preview/SeuVideoRecreateClient.tsx').includes("<CreateTabs active={abaJuntos?'clip':'recreate'} {...{recreateHref:flowBasePath}} {...(abaJuntos?{showClip:true,showRecreate:false}:{})}/>")],
     ...casosHtml.map(([n, props]) => [`B5 RecreateClient sem moldura = HTML da main (${n})`, ssrRecreate(o, props) === ssrRecreate({ ...o, ...base }, props)]),
     ['B6 ClipsClient byte a byte o da main + SÓ o filtro opcional semRepetir (mesmo estado, upload, pedido, preço e eventos)', src(o, CLIPS) === comSemRepetir(lf(baseSrc(CLIPS)))],
-    ['B6b sem semRepetir nada some: todo filtro novo é `!semRepetir?.has(…)`', src(o, CLIPS).split('!semRepetir?.has(').length === 4 && !src(o, CLIPS).includes('semRepetir.has(')],
+    ['B6b sem semRepetir nada some: todo filtro novo é `!semRepetir?.has(…)`', src(o, CLIPS).split('!semRepetir?.has(').length === 3 && !src(o, CLIPS).includes('semRepetir.has(')],
     ['B7 a aba Clip de sempre (ClipNaMoldura) intocada', src(o, 'components/create/ClipNaMoldura.tsx') === lf(baseSrc('components/create/ClipNaMoldura.tsx'))],
   ]
 }
