@@ -22,3 +22,11 @@ export const CREATE_FILM_INPLACE: InternalRelease = 'public'
 // VOLTA: 'off' (ou 'internal') devolve TODAS as entradas ao destino antigo, byte a byte. Desligar CREATE_SHELL_RELEASE ou
 // CREATE_FILM_INPLACE também devolve (nenhuma entrada aponta para uma tela fechada).
 export const CREATE_ENTRY_RELEASE: InternalRelease = 'public'
+
+// KINEO-CAIXA-NOVA-1511 [dono 15/11: "o mais importante é o fluxo onde a pessoa faz a magia acontecer… deixar um lugar mais confortável, que mais
+// pessoas olhem e confiem… olhar todos os líderes de mercado e repetir igual"] — a CAIXA DE CRIAR no padrão dos líderes (docs/DESENHO-CAIXA-DE-CRIAR-1511.md):
+// uma caixa grande com o texto, o "+" dentro, ajustes em chips e o Generate com o custo; linha de confiança; exemplos reais embaixo.
+// Só muda a CASCA da aba Film: estado, recusas, gerar() e pedido continuam os do StudioSimples (components/studio/StudioSimples.tsx).
+// 'off' = ninguém · 'internal' = só a allowlist exata da casa · 'public' = toda conta que já vê o Studio na moldura (CREATE_FILM_INPLACE).
+// Fora dele, a tela de 3 passos de hoje, byte a byte. Guardião: scripts/test-caixa-nova-1511.mjs.
+export const CAIXA_NOVA_RELEASE: InternalRelease = 'internal'

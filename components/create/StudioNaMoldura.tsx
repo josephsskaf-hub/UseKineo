@@ -13,6 +13,7 @@ import { precoDoGenerate } from '@/lib/create/filmNaMoldura'
 import { MOTOR_PADRAO, ROTULO_PADRAO, kling4AoVivo } from '@/lib/create/motorOpcional' // KINEO-MOTOR-OPCIONAL-1011
 import { KLING4_PAID_COPY } from '@/lib/kling4PaidPresentation' // KINEO-MOTOR-OPCIONAL-1011 — o mesmo aviso de limites do Studio antigo
 import { engineDisplayName } from '@/lib/enginePlanGate' // KINEO-MOTOR-OPCIONAL-1011 — o nome que a recusa do servidor usa
+import CaixaNovaDoFilme from './CaixaNovaDoFilme' // KINEO-CAIXA-NOVA-1511
 
 export function PassosDoStudio({ c, preco }: { c: CaixaNaMoldura; preco: number | null }) {
   const temTexto = c.texto.trim().length > 0
@@ -73,6 +74,8 @@ export function PassosDoStudio({ c, preco }: { c: CaixaNaMoldura; preco: number 
 }
 
 // KINEO-ENTRADAS-TELA-NOVA-1011 — ideiaInicial: a ideia do link (?ideia=), o MESMO prop que o /studio passa à caixa (só preenche; nada começa sozinho).
-export default function StudioNaMoldura({ showRecreate, showClip = false, motor, campanha, ideiaInicial = '' }: { showRecreate: boolean; /** KINEO-CLIP-NA-MOLDURA-1011 */ showClip?: boolean; motor: string; campanha: string; ideiaInicial?: string }) {
+export default function StudioNaMoldura({ showRecreate, showClip = false, motor, campanha, ideiaInicial = '', caixaNova = false }: { showRecreate: boolean; /** KINEO-CLIP-NA-MOLDURA-1011 */ showClip?: boolean; motor: string; campanha: string; ideiaInicial?: string; /** KINEO-CAIXA-NOVA-1511 — a caixa no padrão dos líderes (interruptor CAIXA_NOVA_RELEASE); sem ele, os 3 passos de hoje */ caixaNova?: boolean }) {
+  // KINEO-CAIXA-NOVA-1511 — o MESMO StudioSimples (estado, recusas, gerar(), pedido) e o MESMO precoDoGenerate; só a casca troca.
+  if (caixaNova) return <StudioSimples filmes={[]} motor={motor} campanha={campanha} ideiaInicial={ideiaInicial} moldura={c => <CaixaNovaDoFilme c={c} showRecreate={showRecreate} showClip={showClip} preco={precoDoGenerate({ motor: c.motor, duracao: c.duracao, contaPaga: c.contaPaga, palavraPorPalavra: c.palavraPorPalavra, texto: c.texto, opcoesDuracao: c.opcoesDuracao, kling4: c.kling4 })} />} />
   return <StudioSimples filmes={[]} motor={motor} campanha={campanha} ideiaInicial={ideiaInicial} moldura={c => <CreateShell tab="film" showRecreate={showRecreate} showClip={showClip} aoEscolher={c.escrever} painel={<PassosDoStudio c={c} preco={precoDoGenerate({ motor: c.motor, duracao: c.duracao, contaPaga: c.contaPaga, palavraPorPalavra: c.palavraPorPalavra, texto: c.texto, opcoesDuracao: c.opcoesDuracao, kling4: c.kling4 })} />} />} />
 }
