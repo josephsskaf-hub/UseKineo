@@ -116,7 +116,7 @@ function verify(overrides = {}) {
   for (const excluded of allCurated.slice(6)) check('allowlist', entry.watchExampleIdea('home-' + excluded.id, 'film') === '', 'a curated film outside the six WATCH cards is not an active alias')
   const active = data.CLIPES_NOVOS.filter(item => ['film', 'cartoon', 'ads'].includes(item.produto) && item.prompt === null)
   const required = [...active.map(item => item.id), ...curated.map(item => 'home-' + item.id)]
-  check('starter-content', Object.keys(starters).sort().join() === required.sort().join() && required.length === 23, 'all 17 active null-prompt examples and six curated films have one starter; no inactive kit retag')
+  check('starter-content', Object.keys(starters).sort().join() === required.sort().join() && required.length === 27, 'all 21 active null-prompt examples and six curated films have one starter; no inactive kit retag') /* reancorado KINEO-FILMES-VIRAIS-1511: +4 filmes virais na vitrine (17 → 21), cada um com o seu texto inicial */
   for (const item of [...active, ...curated.map(film => ({ ...film, id: 'home-' + film.id, produto: 'film' }))]) {
     const text = starters[item.id], max = item.produto === 'cartoon' ? 300 : item.produto === 'ads' ? 1200 : 2000
     check('starter-content', typeof text === 'string' && text.length > 80 && text.length <= max && text !== item.title && text.split(/[.!?]/).filter(s => s.trim()).length >= 2, item.id + ': useful complete editable directions, never a title or truncated seed')
