@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react' // KINEO-CLIP-RECREATE-JUNTOS-1511: + ReactNode, RefObject
 import { KineoBrandIcon } from '@/components/KineoBolt'
 import { RECREATE_FORMATS, recreateFormat, type RecreateFormat } from '@/lib/recreate/formats'
 import { ownedClipImageUrl } from '@/lib/clips/clipCatalog'
@@ -55,7 +55,13 @@ async function flowJson(url: string, init: RequestInit = {}, limit = FLOW_STEP_M
   } finally { if (timer !== undefined) clearTimeout(timer) }
 }
 
-export default function RecreateClient({ initialId, internalTools = false, formatos, formatIds, createTabs = false, currentFlow = false, signedIn = true, accountKey = null, draftRef, flowBasePath = '/recreate-flow-preview', guestQuotes = [], ownVideoVisible = false, generationAllowed = true }: { initialId?: string; internalTools?: boolean; formatos?: RecreateFormat[]; formatIds?: string[]; createTabs?: boolean; currentFlow?: boolean; signedIn?: boolean; accountKey?: string | null; draftRef?: string; flowBasePath?: FlowBasePath; guestQuotes?: readonly Quote[]; ownVideoVisible?: boolean; generationAllowed?: boolean }) {
+/** KINEO-CLIP-RECREATE-JUNTOS-1511 — as peças desta tela que a tela Clip + Recreate recebe (o MESMO JSX, os MESMOS handlers). */
+export interface PartesDoRecreate {
+  selecionado: RecreateFormat | null; catalogo: readonly RecreateFormat[]; midia: (f: RecreateFormat) => { video: string; poster: string }
+  escolher: (f: RecreateFormat) => void; soltar: (url: string) => boolean; ocupado: boolean; sair: (event: { preventDefault(): void }) => void
+  aviso: ReactNode; painel: ReactNode; palco: ReactNode; galeria: ReactNode; galeriaRef: RefObject<HTMLElement>; dialogo: ReactNode
+}
+export default function RecreateClient({ initialId, internalTools = false, formatos, formatIds, createTabs = false, currentFlow = false, signedIn = true, accountKey = null, draftRef, flowBasePath = '/recreate-flow-preview', guestQuotes = [], ownVideoVisible = false, generationAllowed = true, moldura }: { initialId?: string; internalTools?: boolean; formatos?: RecreateFormat[]; formatIds?: string[]; createTabs?: boolean; currentFlow?: boolean; signedIn?: boolean; accountKey?: string | null; draftRef?: string; flowBasePath?: FlowBasePath; guestQuotes?: readonly Quote[]; ownVideoVisible?: boolean; generationAllowed?: boolean; /** KINEO-CLIP-RECREATE-JUNTOS-1511 — sem ela, a tela de sempre */ moldura?: (p: PartesDoRecreate) => ReactNode }) {
   // M12 revisão (8): só a prévia passa generationAllowed=false (conta logada fora da casa). Vale para a conta logada; o visitante vai ao cadastro.
   const previewLocked = currentFlow && signedIn && !generationAllowed
   // KINEO-RECREATE-TRAVA-1011 — the server pages pass the formats this account may request (unapproved swaps: house only).
@@ -217,6 +223,20 @@ export default function RecreateClient({ initialId, internalTools = false, forma
     window.history.replaceState(null, '', `${currentFlow ? flowBasePath : '/recreate'}/${f.id}`)
     if (currentFlow) window.requestAnimationFrame(() => document.querySelector('.rc-current-flow .rc-panel')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }))
     if (!currentFlow && window.matchMedia('(max-width: 640px)').matches) window.requestAnimationFrame(() => document.querySelector('.rc-reference')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
+  // KINEO-CLIP-RECREATE-JUNTOS-1511 — só na tela que junta Clip e Recreate: volta ao Clip (nenhum modelo escolhido). As MESMAS travas e a MESMA
+  // limpeza do choose(), sem rede: nada é enviado, gerado nem cobrado. false = não soltou (pedido correndo, foto preparando ou a pessoa cancelou).
+  function soltar(url: string): boolean {
+    if (!selected) return true
+    if (!canEdit || busy || photoLock.current || (clip && ['pending', 'processing'].includes(clip.status))) return false
+    if (currentFlow && photos.some(Boolean) && !window.confirm('Going back to Clip clears these photos. Continue?')) return false
+    setSelected(null); setPrompt(''); setPhotos([]); setClip(null); setSimulation(null); setMessage(''); requestKey.current = null
+    handoffApproved.current = false
+    setPhotoErrors([]); setDragging(null); setDetailsOpen(false); setCreateError(false)
+    if (currentFlow) { attempt.current = null; activeDraft.current = undefined; setAuthRetry(false) }
+    for (const photo of photos) if (photo) URL.revokeObjectURL(photo.url)
+    window.history.replaceState(null, '', url)
+    return true
   }
   function removePhoto(index: number) {
     if (!canEdit) return
@@ -501,11 +521,11 @@ export default function RecreateClient({ initialId, internalTools = false, forma
           <div className="rc-detail-body"><label htmlFor="rc-prompt">Prompt</label><textarea id="rc-prompt" maxLength={550} value={prompt} readOnly={selected.type !== 'swap'} disabled={editingDisabled} onChange={e => { if (currentFlow && !canEdit) return; photoTask.current++; handoffApproved.current = false; setPrompt(e.target.value); requestKey.current = null }} />{selected.type === 'effect' && <p className="rc-muted">This effect uses its original preset.</p>}{selected.type === 'motion' && <p className="rc-muted">This template uses its original preset.</p>}</div>
         </details></section>
   </> : null
-  return <main className={`recreate${currentFlow ? ' rc-current-flow' : ''}`} data-recreate-current-flow={currentFlow ? true : undefined} aria-busy={currentFlow ? busy || restoring : undefined}>
-    <header className={createTabs ? 'rc-nav ct-nav' : 'rc-nav'}><Link href="/" className="rc-brand" onClick={currentFlow ? leaveFlow : undefined}><KineoBrandIcon size={28} /><span>Kineo</span></Link>{createTabs ? <CreateTabs active="recreate" {...(currentFlow ? { recreateHref: flowBasePath } : {})} /> : <Link href={currentFlow ? flowBasePath : '/recreate'} onClick={e => { if (editingDisabled) e.preventDefault(); else if (currentFlow) leaveFlow(e) }}>Recreate</Link>}{createTabs ? <CreateNavConta /> : <Link href="/library">My videos ↗</Link>}</header>
-    {message && <div className="rc-notice" role="status">{message} {currentFlow ? <>{uncertain && <Link href="/library">My videos ↗</Link>}{authRetry && <button type="button" disabled={busy} onClick={() => void signInAgain()}>Sign in again</button>}{availabilityRetry && <button type="button" disabled={busy} onClick={() => void loadQuotes()}>Retry availability</button>}{withoutSave && !uncertain && <button type="button" disabled={busy} onClick={continueWithoutSaving}>Continue without saving photos</button>}</> : <button onClick={() => { void loadQuotes(); void loadSocial() }}>Retry</button>}</div>}
-    <div className={`rc-workspace ${selected ? '' : 'rc-library-only'}`}>
-      {selected && <aside className="rc-panel" aria-label="Create your version">
+  // KINEO-CLIP-RECREATE-JUNTOS-1511 [dono 15/11: "juntar a aba de Clips com a aba de Recreate… no fundo é a mesma coisa"] — as peças desta tela, SEM
+  // cópia, para a tela que junta Clip e Recreate (components/create/ClipRecreateJuntos.tsx) só reposicionar: o mesmo estado, os mesmos handlers, o
+  // mesmo pedido. Sem `moldura`, o HTML é byte a byte o de antes (scripts/test-clip-recreate-juntos-1511.mjs).
+  const aviso = message && <div className="rc-notice" role="status">{message} {currentFlow ? <>{uncertain && <Link href="/library">My videos ↗</Link>}{authRetry && <button type="button" disabled={busy} onClick={() => void signInAgain()}>Sign in again</button>}{availabilityRetry && <button type="button" disabled={busy} onClick={() => void loadQuotes()}>Retry availability</button>}{withoutSave && !uncertain && <button type="button" disabled={busy} onClick={continueWithoutSaving}>Continue without saving photos</button>}</> : <button onClick={() => { void loadQuotes(); void loadSocial() }}>Retry</button>}</div>
+  const painel = selected && <>
         {currentFlow ? <div className="rc-flow-fields">{formFields}</div> : formFields}
         <section className={`rc-step rc-generate-area rc-step-${states[2]}`} data-step-state={states[2]} aria-labelledby="rc-create-heading">
           <div className="rc-step-heading">{marker(3)}<h2 id="rc-create-heading">Create your version</h2><span className="rc-step-status">{stateLabel(states[2])}</span></div>
@@ -529,8 +549,8 @@ export default function RecreateClient({ initialId, internalTools = false, forma
         </section>
         {simulation && <output className="rc-result"><strong>Simulation · no generation</strong><p>{simulation.format} · {simulation.seconds} s · {simulation.mode}</p><p>Up to {simulation.photos} photos. No upload, debit or render was made.</p></output>}
         {!currentFlow && clip && <div className="rc-result" aria-live="polite"><strong>{clip.status === 'done' ? 'Your version is ready' : clip.status === 'failed' ? 'Generation failed' : 'Creating your version'}</strong>{clip.status === 'done' && clip.video_url && <><RecreatePlayer src={clip.video_url} label="Your version" /><a href={downloadHref(clip.video_url, downloadName, 'recreate')} onClick={onDownload}>Download ↓</a></>}{clip.status === 'failed' && <p>{clip.reason === 'not_swapped' ? clip.credits_refunded ? NOT_SWAPPED_MESSAGE : "We couldn't put you in this video. Check your videos for the final billing status." : clip.credits_refunded ? 'Your credit refund was confirmed.' : 'Check your videos for the final billing status.'}</p>}<Link href="/library">My videos ↗</Link></div>}
-      </aside>}
-      {selected && <section className="rc-reference" aria-label="Base video">
+  </>
+  const palco = selected && <>
         <div className="rc-stage" data-recreate-flow-stage={currentFlow ? true : undefined}>{currentFlow && (flowState || clip) ? <div className="rc-flow-output" aria-live="polite" data-flow-status={uncertain ? 'unknown' : busy ? 'uploading' : clip?.queued ? 'queued' : clip?.status}>
           <h2>{flowState}</h2>{clip?.status === 'done' && clip.video_url ? <RecreatePlayer key={clip.id} src={clip.video_url} label="Your version" stage={{ kind: 'Your version', title: selected.title }} /> : <div className="rc-flow-status">{clip?.status === 'failed' ? <p>{flowFailure}</p> : uncertain ? <p>Keep this page open to retry the same request. If you leave, check My videos before starting another.</p> : <>{active && clip?.stage === 'motion' && clip.scene_url && <img className="rc-flow-scene" src={clip.scene_url} alt="Your scene, being animated" />}<progress aria-label={flowState} /><p>{active ? 'Your version will also be in My videos.' : 'Keep this page open.'}</p></>}</div>} {/* KINEO-RECREATE-MOVIMENTO-1411 — a imagem do passo 1 enquanto anima */}
           {clip?.status === 'done' && clip.audio === 'silent' && <p className="rc-muted">Silent video</p>}<Link href="/library">My videos ↗</Link>{statusPaused && <button type="button" className="rc-change" onClick={() => setStatusPaused(false)}>Refresh status</button>} {/* KINEO-RECREATE-MOVIMENTO-1411 — "Silent video" no pronto que saiu sem som */}
@@ -538,20 +558,31 @@ export default function RecreateClient({ initialId, internalTools = false, forma
           stage={{ kind: 'Base video', title: selected.title,
             detail: `${selected.type === 'swap' ? 'Face swap' : selected.type === 'motion' ? 'Motion' : 'Photo effect'} · ${selected.seconds} s · ${selected.photoSlots} ${selected.photoSlots === 1 ? 'photo' : 'photos'}`,
             action: !createTabs && <button className="rc-change" disabled={editingDisabled} onClick={showTemplates}>Change video ↗</button> }} />}</div>
-      </section>}
-      <section className="rc-gallery" ref={galleryRef} aria-label="Video templates">
+  </>
+  const galeria = <>
         <div className="rc-gallery-heading">{selected ? <><h2 tabIndex={-1}>Video templates</h2><p>Choose a different starting point.</p></> : <><span className="rc-eyebrow">RECREATE</span><h1 tabIndex={-1}>Video templates</h1><p>Choose a Kineo format. Make it yours.</p></>}{currentFlow && ownVideoVisible && <Link className="rc-flow-own" href={`${flowBasePath}/your-video`} onClick={leaveFlow}>Use your video ↗</Link>}</div>
         <div className="rc-grid">{catalog.map((f, index) => <article key={f.id} className={`rc-card ${index % 4 === 1 ? 'rc-card-short' : ''} ${selected?.id === f.id ? 'rc-card-selected' : ''}`}>
           <ExampleCover src={mediaFor(f).video} poster={mediaFor(f).poster} label={`Choose ${f.title}`} disabled={editingDisabled} onSelect={() => choose(f)} />
           <div className="rc-card-top"><button disabled={currentFlow && !signedIn} onClick={() => { setReport(f); setExpanded(null) }} aria-label={`Report ${f.title}`}>⋯</button><button onClick={() => { setExpanded(f); setReport(null) }} aria-label={`Expand ${f.title}`}>⤢</button></div>
           <div className="rc-card-bottom"><h3>{f.title}</h3><div><button className={social[f.id]?.liked ? 'rc-liked' : ''} disabled={!social[f.id] || socialBusy} aria-label={`Like ${f.title}`} aria-pressed={social[f.id]?.liked ?? false} onClick={() => void like(f)}>♡{social[f.id]?.count > 0 ? ` ${social[f.id].count}` : ''}</button><button className="rc-template-action" disabled={editingDisabled} onClick={() => choose(f)} aria-label={`Use ${f.title}`}>{selected?.id === f.id ? 'Selected ✓' : 'Recreate ↗'}</button></div></div>
         </article>)}</div>
-      </section>
-    </div>
+  </>
+  const dialogo = <>
     <dialog ref={dialogRef} className="rc-dialog" onCancel={() => { setExpanded(null); setReport(null) }} onClick={e => { if (e.target === e.currentTarget) { setExpanded(null); setReport(null) } }}>
       <button className="rc-close" autoFocus aria-label="Close" onClick={() => { setExpanded(null); setReport(null) }}>×</button>
       {expanded && <><h2>{expanded.title}</h2><RecreatePlayer key={expanded.id} src={mediaFor(expanded).video} poster={mediaFor(expanded).poster} preview label={expanded.title} /><button onClick={() => { choose(expanded); setExpanded(null) }}>Recreate ↗</button></>}
       {report && <><h2>Report {report.title}</h2><label>Reason<select value={reason} onChange={e => setReason(e.target.value)}><option value="rights">Rights or consent</option><option value="unsafe">Unsafe content</option><option value="other">Other</option></select></label><button disabled={socialBusy} onClick={() => void sendReport()}>Send report</button></>}
     </dialog>
+  </>
+  if (moldura) return moldura({ selecionado: selected, catalogo: catalog, midia: mediaFor, escolher: choose, soltar, ocupado: editingDisabled, sair: leaveFlow, aviso, painel, palco, galeria, galeriaRef: galleryRef, dialogo })
+  return <main className={`recreate${currentFlow ? ' rc-current-flow' : ''}`} data-recreate-current-flow={currentFlow ? true : undefined} aria-busy={currentFlow ? busy || restoring : undefined}>
+    <header className={createTabs ? 'rc-nav ct-nav' : 'rc-nav'}><Link href="/" className="rc-brand" onClick={currentFlow ? leaveFlow : undefined}><KineoBrandIcon size={28} /><span>Kineo</span></Link>{createTabs ? <CreateTabs active="recreate" {...(currentFlow ? { recreateHref: flowBasePath } : {})} /> : <Link href={currentFlow ? flowBasePath : '/recreate'} onClick={e => { if (editingDisabled) e.preventDefault(); else if (currentFlow) leaveFlow(e) }}>Recreate</Link>}{createTabs ? <CreateNavConta /> : <Link href="/library">My videos ↗</Link>}</header>
+    {aviso}
+    <div className={`rc-workspace ${selected ? '' : 'rc-library-only'}`}>
+      {selected && <aside className="rc-panel" aria-label="Create your version">{painel}</aside>}
+      {selected && <section className="rc-reference" aria-label="Base video">{palco}</section>}
+      <section className="rc-gallery" ref={galleryRef} aria-label="Video templates">{galeria}</section>
+    </div>
+    {dialogo}
   </main>
 }

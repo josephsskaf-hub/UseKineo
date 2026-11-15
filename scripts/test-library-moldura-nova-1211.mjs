@@ -45,7 +45,8 @@ function all(o = {}) {
   ok(s.indexOf('if (usaMolduraNova(pathname))') < s.indexOf('<Sidebar'), 'a Library volta antes de montar a lateral')
   ok(!/<Sidebar|<MobileNav|<TopBar/.test(ramo[1]), 'na Library: sem lateral, sem barra de baixo, sem o topo antigo')
   ok(/<CreateMolduraTopo /.test(ramo[1]) && /<AnnualWelcomeBar /.test(ramo[1]) && /<BlackFridayBanner /.test(ramo[1]) && /<Creator30OfferModal \/>/.test(ramo[1]) && /<WelcomeOfferModal /.test(ramo[1]), 'na Library: cabeçalho novo + as ofertas da casca')
-  ok(/showRecreate=\{recreateVisible\(userEmail\)\} showClip=\{clipNaMolduraVisivel\(userEmail\)\}/.test(ramo[1]), 'as mesmas abas que a pessoa vê no /create')
+  // KINEO-CLIP-RECREATE-JUNTOS-1511 — reancorado: a régua da aba Recreate é a MESMA do /create (lib/create/access.ts createShellDecision → abaRecreateVisivel).
+  ok(/showRecreate=\{abaRecreateVisivel\(userEmail\)\} showClip=\{clipNaMolduraVisivel\(userEmail\)\}/.test(ramo[1]), 'as mesmas abas que a pessoa vê no /create')
   // 4) Nenhum texto da Library abaixo de 12 px.
   const lib = src(LIB)
   const peq = [...lib.matchAll(/fontSize:\s*(\d+(?:\.\d+)?)(?=\s*[,}])|text-\[(\d+(?:\.\d+)?)px\]|font-size:\s*(\d+(?:\.\d+)?)px/g)].map(m => Number(m[1] ?? m[2] ?? m[3])).filter(v => v < 12)

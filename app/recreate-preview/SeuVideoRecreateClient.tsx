@@ -17,7 +17,7 @@ import './seu-video.css'
 import '../recreate/recreate.css'
 import './seu-video-current-flow.css'
 
-type Props = {signedIn:boolean;generationAllowed:boolean;accountKey:string|null;presentation:SeuVideoPresentation;initialExample?:string;draftRef?:string;currentFlow?:boolean;flowBasePath?:'/recreate'|'/recreate-flow-preview';createTabs?:boolean}
+type Props = {signedIn:boolean;generationAllowed:boolean;accountKey:string|null;presentation:SeuVideoPresentation;initialExample?:string;draftRef?:string;currentFlow?:boolean;flowBasePath?:'/recreate'|'/recreate-flow-preview';createTabs?:boolean;/** KINEO-CLIP-RECREATE-JUNTOS-1511 — a conta da tela única (Clip + Recreate): a barra marca Clip e não tem a aba Recreate */abaJuntos?:boolean}
 type Source = SeuVideoDraft['source']
 const activeKey = (account:string) => 'kineo:recreate:seu-video:active:'+account
 // Tab/account-scoped evidence only: no remote payload, signed path, files or credentials.
@@ -46,7 +46,7 @@ const MAX_STATUS_CHECKS = 60
 const positionsFor = (people:number):string[] => people===1?[]:people===2?['on the left','on the right']:['on the left','in the center','on the right']
 const legacySuggestedPrompt = (values:readonly (SeuVideoGender|null)[],people:number) => promptPorGeneroOpcional(Array.from({length:people},(_,i)=>values[i]??null),positionsFor(people))
 
-export default function SeuVideoRecreateClient({signedIn,generationAllowed,accountKey,presentation,initialExample,draftRef,currentFlow=false,flowBasePath='/recreate-flow-preview',createTabs=false}:Props){
+export default function SeuVideoRecreateClient({signedIn,generationAllowed,accountKey,presentation,initialExample,draftRef,currentFlow=false,flowBasePath='/recreate-flow-preview',createTabs=false,abaJuntos=false}:Props){
   function suggestedPrompt(values:readonly (SeuVideoGender|null)[],count:number){
     return currentFlow&&!values.some(value=>value!==null) ? presentation.defaultPrompts?.[count as 1|2|3]??legacySuggestedPrompt(values,count) : legacySuggestedPrompt(values,count)
   }
@@ -326,7 +326,7 @@ export default function SeuVideoRecreateClient({signedIn,generationAllowed,accou
         {statusPaused?<p className="sv-note">Automatic checking is paused. Use Refresh status to check again.</p>:null}{message?<p className="sv-alert" role="status">{message}</p>:null}<div className="sv-actions"><button className="sv-button" type="button" onClick={refreshStatus}>Refresh status</button><Link className="sv-button" href="/library">My videos ↗</Link>{['done','failed'].includes(clip.status)?<button className="sv-button" type="button" onClick={makeAnother}>Make another</button>:null}</div>
       </section>:null
   const view=<main className={currentFlow?'sv-page sv-current-flow':'sv-page'} data-seu-video-flow={currentFlow?'current':undefined} data-seu-video-result-stage={currentFlow&&clip?'true':undefined} data-seu-video-preview="" aria-busy={restoring||busy}>
-    {currentFlow?<header className={createTabs?'rc-nav ct-nav':'rc-nav'}><Link className="rc-brand" href="/"><KineoBrandIcon size={28}/><span>Kineo</span></Link>{createTabs?<CreateTabs active="recreate" {...{recreateHref:flowBasePath}}/>:<Link href={flowBasePath}>Recreate</Link>}{createTabs?<CreateNavConta/>:<Link href={signedIn?'/library':'/login'}>{signedIn?'My videos ↗':'Log in'}</Link>}</header>:<header className="sv-nav"><Link className="sv-brand" href="/watch-preview"><span>▸</span> kineo</Link><nav aria-label="Products"><Link href="/watch-preview">Watch</Link><Link href={SEU_VIDEO_PREVIEW_PATH} aria-current="page">Recreate</Link></nav><div className="sv-nav-right"><Link href="/pricing">Pricing</Link><Link href={signedIn?'/library':'/login'}>{signedIn?'My videos':'Log in'}</Link></div></header>}
+    {currentFlow?<header className={createTabs?'rc-nav ct-nav':'rc-nav'}><Link className="rc-brand" href="/"><KineoBrandIcon size={28}/><span>Kineo</span></Link>{createTabs?<CreateTabs active={abaJuntos?'clip':'recreate'} {...{recreateHref:flowBasePath}} {...(abaJuntos?{showClip:true,showRecreate:false}:{})}/>:<Link href={flowBasePath}>Recreate</Link>}{createTabs?<CreateNavConta/>:<Link href={signedIn?'/library':'/login'}>{signedIn?'My videos ↗':'Log in'}</Link>}</header>:<header className="sv-nav"><Link className="sv-brand" href="/watch-preview"><span>▸</span> kineo</Link><nav aria-label="Products"><Link href="/watch-preview">Watch</Link><Link href={SEU_VIDEO_PREVIEW_PATH} aria-current="page">Recreate</Link></nav><div className="sv-nav-right"><Link href="/pricing">Pricing</Link><Link href={signedIn?'/library':'/login'}>{signedIn?'My videos':'Log in'}</Link></div></header>}
     <div className="sv-wrap"><div className="sv-intro"><h1>{currentFlow?'Your video, your version.':'Recreate with your video'}</h1></div>
       {clip&&!currentFlow ? result : <div className="sv-grid">
         {clip&&currentFlow?result:<>

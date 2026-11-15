@@ -1,5 +1,6 @@
 // KINEO-TELA-NOVA-1011 — quem vê a tela nova. Mesma regra do Recreate: allowlist EXATA da casa no modo 'internal'.
-import { releaseVisible, recreateVisible } from '@/lib/recreate/access'
+import { releaseVisible } from '@/lib/recreate/access'
+import { abaRecreateVisivel } from './clipRecreateJuntos' // KINEO-CLIP-RECREATE-JUNTOS-1511
 import { CAIXA_NOVA_RELEASE, CREATE_FILM_INPLACE, CREATE_SHELL_RELEASE } from './release'
 import type { InternalRelease } from '@/lib/recreate/release'
 import { createTabHref, isCreateTab, type CreateTab } from './tabs'
@@ -20,7 +21,8 @@ export function createShellDecision(tab: string, user: { email?: string | null }
   if (!user) return release === 'public' ? { kind: 'signup', href: '/signup?' + new URLSearchParams({ redirect: createTabHref(tab as CreateTab) + (query ? '?' + query : '') }).toString() } : { kind: 'not_found' }
   if (!createShellVisible(user.email, release)) return { kind: 'not_found' }
   // A aba Recreate só aparece para quem abre o /recreate (senão ela levaria a um 404).
-  return { kind: 'show', showRecreate: recreateVisible(user.email) }
+  // KINEO-CLIP-RECREATE-JUNTOS-1511 — quem tem a tela única (Clip + Recreate) não recebe a aba Recreate: ela É a aba Clip. Fora do interruptor, recreateVisible.
+  return { kind: 'show', showRecreate: abaRecreateVisivel(user.email) }
 }
 
 /** KINEO-STUDIO-NA-MOLDURA-1011 — a aba Film mostra o Studio real (caixa única) dentro da moldura? Só para quem JÁ vê /create/film. */

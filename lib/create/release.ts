@@ -30,3 +30,11 @@ export const CREATE_ENTRY_RELEASE: InternalRelease = 'public'
 // 'off' = ninguém · 'internal' = só a allowlist exata da casa · 'public' = toda conta que já vê o Studio na moldura (CREATE_FILM_INPLACE).
 // Fora dele, a tela de 3 passos de hoje, byte a byte. Guardião: scripts/test-caixa-nova-1511.mjs.
 export const CAIXA_NOVA_RELEASE: InternalRelease = 'internal'
+
+// KINEO-CLIP-RECREATE-JUNTOS-1511 [dono 15/11: "juntar a aba de Clips com a aba de Recreate, porque no fundo é a mesma coisa… o fluxo de Clips é ótimo,
+// o Recreate tem mais opções de vídeo… manter o fluxo na lateral, os vídeos que dá para recriar EMBAIXO e o modelo escolhido rodando à DIREITA"] —
+// UMA tela (aba "Clip") com o painel do Clips à esquerda, o modelo do Recreate tocando à direita e a grade dos modelos embaixo. Escolher um modelo
+// troca o painel pelo do Recreate (o MESMO RecreateClient). Só a casca muda: o pedido ao /api/clips e ao /api/recreate é o de sempre.
+// 'off' = ninguém · 'internal' = só a allowlist exata da casa · 'public' = toda conta logada que já vê /create/clip e /recreate. Visitante: nunca.
+// Fora dele, /create/clip e /recreate de hoje, byte a byte. Guardião: scripts/test-clip-recreate-juntos-1511.mjs.
+export const CLIP_RECREATE_JUNTOS_RELEASE: InternalRelease = 'internal'

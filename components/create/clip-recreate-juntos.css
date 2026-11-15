@@ -1,0 +1,21 @@
+/* KINEO-CLIP-RECREATE-JUNTOS-1511 — a tela que junta Clip e Recreate (components/create/ClipRecreateJuntos.tsx). Tudo debaixo de .ct-juntos:
+   nada aqui alcança o /clips, o /create/clip nem o /recreate de sempre. Só posição e tamanho; cores e fontes herdadas das duas telas. */
+/* Painel do Clips: o painel do fluxo do Recreate é uma coluna fixa sem rolagem (o Generate preso embaixo); a caixa do Clips é mais alta, então rola. */
+.recreate.rc-current-flow.ct-juntos .rc-panel.ct-juntos-clip{display:block;overflow-y:auto}
+.recreate.ct-juntos .ct-juntos-voltar{flex:none;align-self:flex-start;min-height:44px;padding:8px 0;margin:-6px 0 6px;background:none;border:0;color:var(--rc-accent);font-size:13px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.recreate.ct-juntos .ct-juntos-voltar:disabled{opacity:.5;cursor:default}
+/* Embaixo, à direita: a grade dos modelos e, depois, as tendências e os efeitos do Clips e My clips, na mesma rolagem. */
+.recreate.ct-juntos .rc-gallery-heading h1{font-size:20px}
+/* A grade dos modelos é GRADE (várias linhas), não a fileira de arrastar do Recreate com modelo aberto: aqui ela é o cardápio inteiro, "embaixo". */
+.recreate.rc-current-flow.ct-juntos .rc-workspace .rc-gallery .rc-grid{grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:repeat(var(--rc-cols,2),minmax(0,1fr));overflow-x:visible;scroll-snap-type:none}
+.recreate.ct-juntos .ct-juntos-efeitos{margin-top:28px}
+.create-shell.create-clip.ct-juntos .ct-juntos-galeria .fx-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));margin-bottom:16px}
+.create-shell.create-clip.ct-juntos .ct-juntos-galeria .fx-media{max-height:220px}
+.create-shell.create-clip.ct-juntos .ct-juntos-meus .clip-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+.recreate.ct-juntos .ct-juntos-galeria .stu.clips-workspace{background:transparent;min-width:0;padding:0}
+/* Celular: painel primeiro, depois o modelo tocando, depois a grade (a ordem do fluxo do Recreate, ≤ 800 px); nada passa da largura. */
+@media(max-width:800px){
+ .recreate.rc-current-flow.ct-juntos .rc-panel.ct-juntos-clip{overflow:visible}
+ .recreate.ct-juntos .rc-workspace{min-width:0;max-width:100vw;overflow-x:clip}
+ .recreate.ct-juntos .rc-workspace>*{min-width:0;max-width:100%}
+}

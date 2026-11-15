@@ -61,7 +61,9 @@ function switchChecks(o = {}) {
         ok(visitor.kind === 'signup' && visitor.href === `/signup?redirect=%2Fcreate%2F${tab}`, `public: visitante vai ao cadastro e volta para ${tab}`)
         ok(outsider.kind === 'show' && house.kind === 'show', `public: conta logada vê ${tab}`)
         const recreateAccess = m('lib/recreate/access')
-        ok(outsider.showRecreate === recreateAccess.recreateVisible(CUSTOMER) && house.showRecreate === true, 'public: a aba Recreate segue o interruptor do Recreate (nunca leva a 404)')
+        // KINEO-CLIP-RECREATE-JUNTOS-1511 — reancorado: quem tem a tela única (Clip + Recreate; hoje só a casa) não recebe a aba Recreate (ela É a aba Clip).
+        const juntos = m('lib/create/clipRecreateJuntos')
+        ok(outsider.showRecreate === recreateAccess.recreateVisible(CUSTOMER) && house.showRecreate === (recreateAccess.recreateVisible(HOUSE) && !juntos.clipRecreateJuntosVisivel(HOUSE)) && juntos.abaRecreateVisivel(HOUSE, 'off') === true, 'public: a aba Recreate segue o interruptor do Recreate (nunca leva a 404)')
         const internalRecreate = loader(stubs, { ...o, 'lib/recreate/release.ts': read('lib/recreate/release.ts').replace(/RECREATE_RELEASE: InternalRelease = '[a-z]+'/, "RECREATE_RELEASE: InternalRelease = 'internal'") })('lib/create/access')
         ok(internalRecreate.createShellDecision(tab, { email: CUSTOMER }, 'public').showRecreate === false, 'public + Recreate internal: conta de fora não recebe a aba Recreate')
       }

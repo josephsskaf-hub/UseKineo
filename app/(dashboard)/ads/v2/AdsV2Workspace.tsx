@@ -12,8 +12,8 @@
 // KINEO-ADS-AMOSTRA-2026-10-09 — a 2ª porta abre para a conta free/trial que ainda não usou a AMOSTRA GRÁTIS (adsSampleOpen):
 // ela entra com sample={true} (um nível, 15 s, sem 3 variações), SEM rastro ads_access_denied. Quem já usou a dela segue
 // para /ads?from=v2 como antes.
-import { recreateVisible } from '@/lib/recreate/access'
 import { clipNaMolduraVisivel } from '@/lib/create/clipNaMoldura'
+import { abaRecreateVisivel } from '@/lib/create/clipRecreateJuntos' // KINEO-CLIP-RECREATE-JUNTOS-1511
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { adsGate, loadAdsAccess } from '@/lib/ads/serverAccess'
@@ -71,7 +71,7 @@ export default async function AdsV2Workspace({ searchParams, moldura = false }: 
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  const navigation = { showRecreate: recreateVisible(user?.email), showClip: clipNaMolduraVisivel(user?.email) }
+  const navigation = { showRecreate: abaRecreateVisivel(user?.email) /* KINEO-CLIP-RECREATE-JUNTOS-1511 — era recreateVisible */, showClip: clipNaMolduraVisivel(user?.email) }
   // KINEO-CARDS-ANTES-DO-LOGIN-0411 — sem conta, vindo do cartão da home ou do botão da porta: a tela de verdade, sem oferta e sem nenhuma chamada de conta; o login vem na primeira ação que precisa dele.
   const rawOrigem = searchParams?.utm_source
   if (!user && ADS_ESCOLHA_SAMPLE_LIVE && ADS_V2_PUBLIC && !isUuid(resumeOrder) && !bfCampaign && anuncioAbreSemConta(entry, Array.isArray(rawOrigem) ? rawOrigem[0] : rawOrigem)) {

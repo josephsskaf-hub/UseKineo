@@ -22,8 +22,8 @@ import WelcomeOfferModal from '@/components/WelcomeOfferModal' // KINEO-WELCOME2
 import { usePathname } from 'next/navigation'
 import CreateMolduraTopo from '@/components/create/CreateMolduraTopo' // KINEO-LIBRARY-MOLDURA-NOVA-1211
 import { usaMolduraNova } from '@/lib/create/molduraNova' // KINEO-LIBRARY-MOLDURA-NOVA-1211
-import { recreateVisible } from '@/lib/recreate/access' // KINEO-LIBRARY-MOLDURA-NOVA-1211 — as mesmas abas da tela nova
 import { clipNaMolduraVisivel } from '@/lib/create/clipNaMoldura' // KINEO-LIBRARY-MOLDURA-NOVA-1211
+import { abaRecreateVisivel } from '@/lib/create/clipRecreateJuntos' // KINEO-LIBRARY-MOLDURA-NOVA-1211 — as mesmas abas da tela nova · KINEO-CLIP-RECREATE-JUNTOS-1511: era recreateVisible (a aba Recreate some para quem tem a tela única)
 
 interface DashboardShellProps {
   children: React.ReactNode
@@ -97,7 +97,7 @@ export default function DashboardShell({
   // foto div1-library-decisao-ABC.png; as outras telas logadas seguem na casca de sempre até a decisão do dono.
   if (usaMolduraNova(pathname)) return (
     <div data-dashboard-moldura="nova" style={{ background: 'var(--bg)', minHeight: '100svh' }}>
-      <CreateMolduraTopo showRecreate={recreateVisible(userEmail)} showClip={clipNaMolduraVisivel(userEmail)} />
+      <CreateMolduraTopo showRecreate={abaRecreateVisivel(userEmail)} showClip={clipNaMolduraVisivel(userEmail)} />
       <AnnualWelcomeBar initial={annualWelcomeBar} placement="app" />
       <BlackFridayBanner placement="app" />
       {isLoggedIn && <Creator30OfferModal />}

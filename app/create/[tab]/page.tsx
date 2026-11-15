@@ -21,6 +21,7 @@ import ClipNaMoldura from '@/components/create/ClipNaMoldura' // KINEO-CLIP-NA-M
 import { clipNaMolduraVisivel } from '@/lib/create/clipNaMoldura' // KINEO-CLIP-NA-MOLDURA-1011
 import { recreateVisible } from '@/lib/recreate/access' // KINEO-CLIP-NA-MOLDURA-1011
 import { recreateFormat } from '@/lib/recreate/formats' // KINEO-CLIP-NA-MOLDURA-1011
+import { abaRecreateVisivel, clipRecreateJuntosVisivel } from '@/lib/create/clipRecreateJuntos' // KINEO-CLIP-RECREATE-JUNTOS-1511
 
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: { absolute: 'Create | Kineo' }, robots: { index: false, follow: false } }
@@ -39,6 +40,12 @@ export default async function Page({ params, searchParams = {} }: { params: { ta
       const id = `effect-${searchParams.effect.replaceAll('_', '-')}`
       if (recreateFormat(id)) redirect(`/recreate/${id}`)
     }
+    // KINEO-CLIP-RECREATE-JUNTOS-1511 [dono 15/11: "juntar a aba de Clips com a aba de Recreate"] — no interruptor (hoje só a casa): a tela única, montada
+    // pela MESMA porta do /recreate (mesmas props do RecreateClient, mesmo catálogo filtrado por conta). Fora dele, a aba Clip de sempre (linha de baixo).
+    if (clipRecreateJuntosVisivel(u?.email)) {
+      const { default: RecreateFlowPage } = await import('@/app/recreate/RecreateFlowPage')
+      return RecreateFlowPage({ basePath: '/recreate' })
+    }
     return <ClipNaMoldura measurementActor={u?.id ?? null} showRecreate={recreateVisible(u?.email)} />
   }
   if (params.tab === 'film' && !filmParamsSupported(searchParams, { arrival: true })) redirect(`/studio?${query}`)
@@ -49,7 +56,7 @@ export default async function Page({ params, searchParams = {} }: { params: { ta
   // caminho de sempre (o mesmo redirect de antes). A tela é o painel; o servidor é da Div. 5 (lib/ads/pessoaFalando/telaContrato.ts).
   if (params.tab === 'ads' && searchParams.formato === 'pessoa_falando') {
     const { data: { user: quem } } = await createClient().auth.getUser()
-    if (quem && pessoaFalandoLigado(KINEO_ADS_PESSOA_FALANDO, isAdsInternalEmail(quem.email))) return <CreateShell tab="ads" signedIn showRecreate={recreateVisible(quem.email)} showClip={clipNaMolduraVisivel(quem.email)} painel={<PessoaFalandoPainel />} />
+    if (quem && pessoaFalandoLigado(KINEO_ADS_PESSOA_FALANDO, isAdsInternalEmail(quem.email))) return <CreateShell tab="ads" signedIn showRecreate={abaRecreateVisivel(quem.email) /* KINEO-CLIP-RECREATE-JUNTOS-1511 — era recreateVisible */} showClip={clipNaMolduraVisivel(quem.email)} painel={<PessoaFalandoPainel />} />
   }
 
   if (query && params.tab === 'cartoon' && !cartoonArrivalSupported(searchParams)) redirect(`/kids-cartoon?${query}`)

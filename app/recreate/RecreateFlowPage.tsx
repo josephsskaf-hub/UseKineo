@@ -12,6 +12,8 @@ import { seuVideoPresentation } from '@/lib/recreate/seuVideoPresentation'
 import type { RecreateFlowBasePath } from '@/lib/recreate/flowRelease'
 import RecreateClient from './RecreateClient'
 import SeuVideoRecreateClient from '../recreate-preview/SeuVideoRecreateClient'
+import ClipRecreateJuntos, { type RecreateProps } from '@/components/create/ClipRecreateJuntos' // KINEO-CLIP-RECREATE-JUNTOS-1511
+import { clipRecreateJuntosVisivel } from '@/lib/create/clipRecreateJuntos' // KINEO-CLIP-RECREATE-JUNTOS-1511
 
 type Query = Record<string, string | string[] | undefined>
 
@@ -30,6 +32,7 @@ export default async function RecreateFlowPage({ id, searchParams = {}, basePath
     if (basePath === '/recreate' && !ownVideoVisible) notFound()
     return <SeuVideoRecreateClient currentFlow flowBasePath={basePath}
       createTabs={!!user && createShellVisible(user.email)}
+      abaJuntos={!!user && basePath === '/recreate' && clipRecreateJuntosVisivel(user.email)} /* KINEO-CLIP-RECREATE-JUNTOS-1511 */
       signedIn={!!user} accountKey={user?.id ?? null}
       generationAllowed={!!user && releaseVisible(user.email, SEU_VIDEO_RELEASE) && generationAllowed}
       presentation={seuVideoPresentation()} draftRef={draftRef}
@@ -48,6 +51,13 @@ export default async function RecreateFlowPage({ id, searchParams = {}, basePath
     const credits = recreateCreditsFor(format) // KINEO-RECREATE-MOVIMENTO-1411 — era: format.type === 'swap' ? recreateCreditCost(format.seconds) : recreateEffectCredits(format)
     return { id: format.id, credits, available: credits !== null, shortfall: 0 }
   })
+  // KINEO-CLIP-RECREATE-JUNTOS-1511 [dono 15/11: "juntar a aba de Clips com a aba de Recreate"] — quem está no interruptor (hoje só a casa) vê a tela
+  // única: o MESMO RecreateClient, com as MESMAS props da linha de baixo (o guardião compara uma a uma), dentro da tela que junta o Clips.
+  // Visitante e conta fora do interruptor: a linha de baixo, como sempre. Só nas rotas do Recreate (a prévia /recreate-flow-preview fica como está).
+  if (user && basePath === '/recreate' && clipRecreateJuntosVisivel(user.email)) {
+    const recreate: RecreateProps = { currentFlow: true, flowBasePath: basePath, initialId: id, guestQuotes, signedIn: !!user, accountKey: user?.id ?? null, draftRef, ownVideoVisible, generationAllowed, internalTools: !!user && releaseVisible(user.email, 'internal'), formatos, formatIds, createTabs: !!user && createShellVisible(user.email) }
+    return <ClipRecreateJuntos measurementActor={user.id} recreate={recreate} />
+  }
   return <RecreateClient currentFlow flowBasePath={basePath} initialId={id}
     guestQuotes={guestQuotes}
     signedIn={!!user} accountKey={user?.id ?? null} draftRef={draftRef}
