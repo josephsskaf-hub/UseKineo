@@ -156,7 +156,8 @@ async function routeChecks(overrides, expectFlowOn = false) {
   }
   for (const id of UNAPPROVED) { await assert.rejects(idPage({ params: { id } }), /not-found/); passed++ }
   user = { id: U, email: HOUSE }
-  ok((await idPage({ params: { id: 'passarela' } })).props.formatIds.includes('passarela'), 'casa abre o formato em teste')
+  // KINEO-CLIP-RECREATE-JUNTOS-1511 — reancorado: a casa no interruptor recebe a tela única; as props do RecreateClient vão em `recreate` (iguais às de sempre).
+  ok(((p => p.recreate ?? p)((await idPage({ params: { id: 'passarela' } })).props)).formatIds.includes('passarela'), 'casa abre o formato em teste')
   // Arquivos do vídeo-base.
   const assets = loader({ '@/lib/recreate/server': server, 'server-only': {} }, overrides)('app/api/recreate/assets/[name]/route') // reancorado KINEO-MOVIMENTO-REVISOR-2-1411 — a rota lê o módulo dos demos (server-only), o mesmo dublê das páginas
   const asset = name => assets.GET(new NextRequest('https://www.usekineo.com/api/recreate/assets/' + name), { params: { name } })

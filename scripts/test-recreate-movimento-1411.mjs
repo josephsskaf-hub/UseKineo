@@ -435,10 +435,12 @@ async function bateria(over = {}) {
     }
     sessaoPagina = { id: U, email: casa }
     const el = await pg('app/recreate/page').default()
-    const props = el?.props ?? {}
+    // KINEO-CLIP-RECREATE-JUNTOS-1511 — reancorado: a casa no interruptor recebe a tela única (Clip + Recreate); as props do RecreateClient vão em `recreate`,
+    // iguais uma a uma às de sempre (scripts/test-clip-recreate-juntos-1511.mjs B2). A busca da receita olha TODAS as props da página.
+    const props = el?.props?.recreate ?? el?.props ?? {}
     const enviados = props.formatos ?? []
     if (!enviados.length || enviados.some((f) => Object.keys(f).some((k) => !serv.CAMPOS_DE_VITRINE.includes(k)))) throw new Error('a página manda mais que a vitrine: ' + JSON.stringify(enviados.map((f) => Object.keys(f))).slice(0, 200))
-    if (JSON.stringify(props).match(/plain grey stands|dribbles a football|full body from head to shoes|knees up/)) throw new Error('a receita foi nas props da página')
+    if (JSON.stringify(el?.props ?? {}).match(/plain grey stands|dribbles a football|full body from head to shoes|knees up/)) throw new Error('a receita foi nas props da página')
     sessaoPagina = { id: U, email: 'cliente@exemplo.com' }
     const elC = await pg('app/recreate/page').default()
     if ((elC?.props?.formatos ?? []).some((f) => f.type === 'motion')) throw new Error('o cliente recebeu molde de movimento fechado')

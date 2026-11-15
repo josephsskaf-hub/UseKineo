@@ -151,7 +151,10 @@ const suites = {
   async legacy(over) {
     for (const user of [null, { id: ACCOUNT, email: HOUSE }, { id: ACCOUNT, email: 'customer@example.org' }]) {
       const w = world(over, { user })
-      const index = await w.load('app/recreate/page').default(), model = await w.load('app/recreate/[id]/page').default({ params: { id: 'passarela' } })
+      // KINEO-CLIP-RECREATE-JUNTOS-1511 — reancorado: a casa no interruptor recebe a tela única (Clip + Recreate); as props do RecreateClient vão em `recreate`,
+      // iguais uma a uma às de sempre (scripts/test-clip-recreate-juntos-1511.mjs B2). Visitante e cliente: o RecreateClient direto, como antes.
+      const rc = el => (user?.email === HOUSE ? { props: el.props.recreate } : el)
+      const index = rc(await w.load('app/recreate/page').default()), model = rc(await w.load('app/recreate/[id]/page').default({ params: { id: 'passarela' } }))
       ok(index.props.currentFlow === true && model.props.currentFlow === true && index.props.flowBasePath === '/recreate' && model.props.flowBasePath === '/recreate' && model.props.initialId === 'passarela' && model.props.signedIn === !!user, 'switch on: regular routes mount the new flow on /recreate')
     }
     const offOver = switchOff(over)
@@ -187,7 +190,7 @@ const suites = {
     const page = w => w.load('app/recreate/RecreateFlowPage').default
     ok((await page(customer)({ basePath: '/recreate' })).props.ownVideoVisible === false, 'customer catalog gets ownVideoVisible=false')
     ok((await page(guest)({ basePath: '/recreate' })).props.ownVideoVisible === false, 'guest catalog gets ownVideoVisible=false while own video is house-only')
-    ok((await page(house)({ basePath: '/recreate' })).props.ownVideoVisible === true, 'house catalog keeps the own-video entry')
+    ok((await page(house)({ basePath: '/recreate' })).props.recreate.ownVideoVisible === true, 'house catalog keeps the own-video entry') // KINEO-CLIP-RECREATE-JUNTOS-1511 — a casa: tela única, props do RecreateClient em `recreate`
     await notFound(customer.load('app/recreate/your-video/page').default({}), 'customer cannot open /recreate/your-video after approval')
     await notFound(guest.load('app/recreate/your-video/page').default({}), 'guest cannot open /recreate/your-video after approval')
     ok((await house.load('app/recreate/your-video/page').default({})).props.generationAllowed === true, 'house opens and generates with own video')
