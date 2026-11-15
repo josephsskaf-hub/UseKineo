@@ -19,6 +19,9 @@
 // de Ads ("made with Kineo Ads", "made by the ad tool"): os 6 de 10/11 foram feitos à mão, fora do produto de Ads. O convite chama; não atribui.
 export const CLIPES_NOS_2_LUGARES_MARK = 'KINEO-CLIPES-NOS-2-LUGARES-0411'
 
+/** KINEO-FILMES-VIRAIS-1511 [dono 15/11] — os exemplos do menu Film, nesta ordem: os filmes mais vistos do Instagram @usekineo (views e curtidas reais em lib/home/cardSocialStats.ts). */
+export const FILMES_DO_MENU: readonly string[] = ['filme-veteranos', 'filme-navio-mais-rapido', 'filme-viking-america', 'filme-escudo-da-siberia']
+
 interface ClipeNovoBase {
   id: string
   title: string
@@ -76,6 +79,14 @@ export const CLIPES_NOVOS: readonly ClipeNovo[] = [
   { id: 'filme-mary-celeste', title: 'The ghost ship Mary Celeste', engine: null, produto: 'film', selo: 'Narrated film', clipId: 'studio:772be5b8/9302d8c6', focus: '50% 36%', pessoa: false, prompt: null }, // KINEO-VITRINE-10-1011 — Studio job 772be5b8, vídeo 9302d8c6, Kling 4.0, 09/11/2026
   { id: 'filme-anticitera', title: 'The 2,000-year-old computer', engine: null, produto: 'film', selo: 'Narrated film', clipId: 'studio:1b9e1d60/a451a9b4', focus: '50% 38%', pessoa: false, prompt: null }, // KINEO-VITRINE-10-1011 — Studio job 1b9e1d60, vídeo a451a9b4, Kling 4.0, 09/11/2026
   { id: 'filme-porta-do-inferno', title: 'The Door to Hell is fading', engine: null, produto: 'film', selo: 'Narrated film', clipId: 'studio:9a3e5b44/1fcab375', focus: '50% 50%', pessoa: false, prompt: null }, // KINEO-VITRINE-10-1011 — Studio job 9a3e5b44, vídeo 1fcab375, Kling 4.0, 09/11/2026
+  // KINEO-FILMES-VIRAIS-1511 [dono 15/11: "trocar os vídeos do menu Film pelos melhores filmes que temos, alguns que viralizaram, como o do dia
+  // dos veteranos 11/11, e adicionar o número de likes e views como os líderes fazem"] — os 5 filmes narrados mais vistos do Instagram @usekineo
+  // (lidos no perfil em 15/11; números em lib/home/cardSocialStats.ts). O 5º, Nantucket (1.109 views), ficou de fora: nenhum trecho dele tem legenda inteira. Feitos no Kineo Studio pela conta do dono; clipId = studio:<render>/<vídeo>.
+  // Prévia = da abertura até uma pausa de FIM DE FRASE (conferido quadro a quadro: nenhuma legenda partida no corte), 540×960, sem som, ≤600 KB.
+  { id: 'filme-veteranos', title: 'Why is Veterans Day always November 11?', engine: null, produto: 'film', selo: 'Narrated film', clipId: 'studio:90ae9c4f/12e52984', focus: '50% 50%', pessoa: true, prompt: null }, // KINEO-FILMES-VIRAIS-1511 — 0–5,6 s
+  { id: 'filme-navio-mais-rapido', title: 'Why is America sinking its fastest ship?', engine: null, produto: 'film', selo: 'Narrated film', clipId: 'studio:3e5cfac4/f7fab214', focus: '50% 50%', pessoa: false, prompt: null }, // KINEO-FILMES-VIRAIS-1511 — 0–2,6 s (só a pergunta: o resto do trecho tem a legenda antiga partida, 'ON NOVEMBER ELEVENTH OFF | FLORIDA')
+  { id: 'filme-viking-america', title: 'The Viking family that reached America first', engine: null, produto: 'film', selo: 'Narrated film', clipId: 'studio:b3d9579f/f8ea1e8f', focus: '50% 50%', pessoa: false, prompt: null }, // KINEO-FILMES-VIRAIS-1511 — 0–2,9 s (só a pergunta: depois vem 'A SKELETON NEAR THEIR | HOME')
+  { id: 'filme-escudo-da-siberia', title: 'What did this shepherd find in Siberia?', engine: null, produto: 'film', selo: 'Narrated film', clipId: 'studio:14cc930f/c48acb08', focus: '50% 50%', pessoa: false, prompt: null }, // KINEO-FILMES-VIRAIS-1511 — 0–2,2 s (só a pergunta: depois vem 'STICKING OUT OF THE | SIDE')
   // 7 CLIPES de uma cena: foto do Nano Banana Pro + Kling 4.0 image-to-video (kling/v4/image-to-video na fal), 09/11/2026. Kling 4.0 não é motor
   // do /clips: como o outfit-morph, nenhum motor no cartão, selo 'Trending format', destino /clips puro (sem motor, sem texto). Nada leva às Ads
   // nem ao Cartoon: não foram esses produtos que fizeram estes vídeos. clipId = fal:<saída>.

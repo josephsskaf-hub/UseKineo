@@ -15,6 +15,7 @@ import { guardarRascunhoDoDesenho } from '@/lib/ads/rascunhoDoVisitante'
 import { CARTOON_IDEA_MAX_CHARS, CREATE_COPY, CREATE_EVENTS, CREATE_EXAMPLES, FILM_IDEA_MAX_CHARS, adsContinueHref, cartoonContinueHref, cartoonDraft, continueBlocker, filmContinueHref, type CreateExample, type CreateTab } from '@/lib/create/tabs'
 import '@/app/recreate/recreate.css'
 import './create.css'
+import ContagemSocial, { CONTAGEM_SOCIAL_CSS } from '@/components/create/ContagemSocial' // KINEO-FILMES-VIRAIS-1511
 
 export function continueHref(tab: CreateTab, idea: string, signedIn: boolean): string {
   return tab === 'film' ? filmContinueHref(idea, signedIn) : tab === 'cartoon' ? cartoonContinueHref(signedIn) : adsContinueHref(signedIn)
@@ -84,11 +85,11 @@ export default function CreateShell({ tab, signedIn = true, showRecreate = true,
         <div className="rc-stage"><RecreatePlayer key={example.id} src={example.video} poster={example.poster} preview label={example.title}
           stage={{ kind: tab === 'film' ? 'Film example' : tab === 'cartoon' ? 'Cartoon example' : 'Ad example', title: example.title }} /></div>
       </section>
-      <section className="rc-gallery" aria-label={copy.galleryTitle} data-product-gallery={tab}>
+      <section className="rc-gallery" aria-label={copy.galleryTitle} data-product-gallery={tab}><style dangerouslySetInnerHTML={{ __html: CONTAGEM_SOCIAL_CSS }} />{/* KINEO-FILMES-VIRAIS-1511 */}
         <div className="rc-gallery-heading"><h2>{copy.galleryTitle}</h2><p>{copy.galleryHint}</p></div>
         <div className="rc-grid">{examples.map((e, index) => <article key={e.id} className={`rc-card ${index % 4 === 1 ? 'rc-card-short' : ''} ${example.id === e.id ? 'rc-card-selected' : ''}`} data-create-example={e.id}>
           <ExampleCover src={e.video} poster={e.poster} label={`${hasInput ? 'Choose idea' : 'Preview'}: ${e.title}`} onSelect={() => choose(e)} />
-          <div className="rc-card-bottom"><h3>{e.title}</h3><div><button className="rc-template-action" type="button" onClick={() => choose(e)} aria-label={`${hasInput ? 'Use the idea' : 'View'}: ${e.title}`}>{example.id === e.id ? 'Selected ✓' : copy.useLabel}</button></div></div>
+          <div className="rc-card-bottom"><ContagemSocial video={e.video} />{/* KINEO-FILMES-VIRAIS-1511 — acima do nome, sobre a faixa escura */}<h3>{e.title}</h3><div><button className="rc-template-action" type="button" onClick={() => choose(e)} aria-label={`${hasInput ? 'Use the idea' : 'View'}: ${e.title}`}>{example.id === e.id ? 'Selected ✓' : copy.useLabel}</button></div></div>
         </article>)}</div>
       </section>
     </div>

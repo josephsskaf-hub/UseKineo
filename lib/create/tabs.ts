@@ -5,7 +5,7 @@
 //   Cartoon → /kids-cartoon, com a ideia no rascunho que o template já relê (lib/ads/rascunhoDoVisitante.ts → lerRascunhoDoDesenho)
 //   Ads     → /ads/new?utm_source=create_ads     (o mesmo destino do menu "Product ads"; app/(dashboard)/ads/new/page.tsx lê utm_*)
 // MÓDULO PURO: sem e-mail, sem rede, sem preço.
-import { CLIPES_NOVOS, CRIAR_ANUNCIO_HREF, clipeNovoAnuncio, clipeNovoPoster, clipeNovoVideo } from '@/lib/clipesNos2Lugares'
+import { CLIPES_NOVOS, FILMES_DO_MENU, CRIAR_ANUNCIO_HREF, clipeNovoAnuncio, clipeNovoPoster, clipeNovoVideo } from '@/lib/clipesNos2Lugares'
 import { viaSignup } from '@/lib/homeGaleria'
 import { KIDS_CARTOON_TEMPLATE_PATH, KIDS_IDEA_MAX_CHARS } from '@/lib/kidsCartoon/kidsCartoon'
 
@@ -42,7 +42,7 @@ const galeria = (c: Clipe, idea: string | null): CreateExample => ({ id: c.id, t
 // KINEO-TELAS-2-1311 — cada exemplo nasce na lista canônica de clipes. O tipo do produto é curadoria, não uma alegação sobre o motor que o gerou.
 /** Nenhum exemplo traz prompt paralelo: o clique usa o título real como ideia. */
 export const CREATE_EXAMPLES: Readonly<Record<CreateTab, readonly CreateExample[]>> = {
-  film: CLIPES_NOVOS.filter(c => c.produto === 'film').map(c => galeria(c, c.title)),
+  film: FILMES_DO_MENU.map(id => CLIPES_NOVOS.find(c => c.id === id)).filter((c): c is Clipe => !!c).map(c => galeria(c, c.title)), // KINEO-FILMES-VIRAIS-1511 — os virais, nesta ordem; era todos os filmes de CLIPES_NOVOS
   cartoon: CLIPES_NOVOS.filter(c => c.produto === 'cartoon').map(c => galeria(c, c.title)),
   ads: CLIPES_NOVOS.filter(clipeNovoAnuncio).map(c => galeria(c, null)),
 }

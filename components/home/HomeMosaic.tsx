@@ -27,7 +27,7 @@ import { publicEffectPages, effectPagePath, effectSlug } from '@/lib/clips/clipE
 import { HOME_GALLERY_BIG, HOME_GALLERY_DIR, HOME_GALLERY_IMAGES, type HomeGalleryImage } from '@/components/home/HomeImageGallery'
 import { clipsFirstFilmHref } from '@/lib/growth/homeClipsFirst'
 import { createEntryForSignupHref, createEntryForContentHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"]
-import { cardStatFor, compactCount } from '@/lib/home/cardSocialStats' // KINEO-CARDS-VIEWS-0911
+import ContagemSocial, { CONTAGEM_SOCIAL_CSS } from '@/components/create/ContagemSocial' // KINEO-FILMES-VIRAIS-1511 — era cardStatFor/compactCount direto (KINEO-CARDS-VIEWS-0911)
 import { seasonalEffectKeys } from '@/lib/clips/clipSeason' // KINEO-VITRINE-ESTACAO-3110
 import { publicRecreatePath, recreateEntryHref } from '@/lib/recreate/entry'
 import { MENU_CARTOON_HREF } from '@/lib/ui/homeRemodela2010' // KINEO-HOME-ESTRATEGIA-A-1311
@@ -211,7 +211,7 @@ export function homeMosaicTiles(now: number = Date.now(), opts: { full?: boolean
   return [...HOME_MOTION_TILES, ...ordem] // KINEO-HOME-DOIS-EIXOS-0611 — fileira própria e cheia, sem tirar nada da grade
 }
 
-const CSS = `
+const CSS = CONTAGEM_SOCIAL_CSS + `
 .klp .kmz{padding:22px 0 10px}
 .klp .kmz-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));grid-auto-rows:clamp(92px,8.6vw,138px);grid-auto-flow:row dense;gap:12px}
 .klp .kmz-t{position:relative;display:block;min-width:0;grid-row:span 2;overflow:hidden;border:1px solid var(--line,rgba(127,140,160,.25));border-radius:14px;background:#101821;color:#fff;text-decoration:none;isolation:isolate}
@@ -318,15 +318,8 @@ function Chips({ novo = false, recreate = false, ad = false, convite = null }: {
 }
 
 // KINEO-CARDS-VIEWS-0911 — views reais do post do mesmo vídeo na @usekineo (lib/home/cardSocialStats.ts); sem post, sem número.
-function Views({ video }: { video?: string }) {
-  const stat = cardStatFor(video)
-  if (!stat) return null
-  return (
-    <span className="kmz-views" title={`${stat.views.toLocaleString('en-US')} views on ${stat.source}`}>
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8Z" /><circle cx="8" cy="8" r="2" /></svg>
-      {compactCount(stat.views)}<span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}> views on {stat.source}</span>
-    </span>
-  )
+function Views({ video }: { video?: string }) { // KINEO-FILMES-VIRAIS-1511 — o mesmo contador dos cartões de criar: views e, quando o post tem, curtidas
+  return <span className="kmz-views"><ContagemSocial video={video} /></span>
 }
 
 function focusStyle(poster: string | undefined, focus: string | undefined): CSSProperties | undefined {

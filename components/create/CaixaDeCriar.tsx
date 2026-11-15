@@ -8,6 +8,7 @@
 // botão já calculados pelo código que cobra. Nada aqui gera sozinho: o clique num exemplo só PREENCHE a caixa.
 import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import './caixa-nova.css'
+import ContagemSocial from './ContagemSocial' // KINEO-FILMES-VIRAIS-1511
 
 export interface ChipDaCaixa {
   id: string
@@ -154,7 +155,7 @@ function Exemplo({ e, ativo, aoEscolher }: { e: ExemploDaCaixa; ativo: boolean; 
     onPointerEnter={() => { const v = video.current; if (v) { v.muted = true; void v.play().catch(() => {}) } }}
     onPointerLeave={() => { const v = video.current; if (v) { v.pause(); v.currentTime = 0 } }}>
     <video ref={video} src={e.video} poster={e.poster} muted loop playsInline preload="none" aria-hidden="true" />
-    <span className="cx-exemplo-nome">{e.title}</span>
+    <span className="cx-exemplo-nome"><ContagemSocial video={e.video} />{/* KINEO-FILMES-VIRAIS-1511 — views e curtidas reais do post, embaixo, sobre a faixa escura (o topo dos filmes já tem o título gravado) */}{e.title}</span>
     <span className="cx-exemplo-usar" aria-hidden="true">{ativo ? 'Selected ✓' : 'Use idea'}</span>
   </button>
 }
