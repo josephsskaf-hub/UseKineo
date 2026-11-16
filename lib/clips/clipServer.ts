@@ -878,8 +878,9 @@ function invasorIoFor(admin: SupabaseClient, userId: string): InvasorIo {
       const t = dados.molde.trechos[i]
       const base = t ? await assinarTrechoDoInvasor(admin, dados.molde, i) : null
       if (!t || !base) return { result: 'unverified', reason: 'base_unsigned' }
-      const v = await checarTrocaDoTrecho({ baseVideoUrl: base, baseMeta: { segundos: t.segundosDoArquivo, fps: t.fps, largura: dados.molde.entrada.largura, altura: dados.molde.entrada.altura }, resultVideoUrl: providerUrl, photos: [dados.foto], prompt: dados.prompt, formatId: dados.molde.id })
-      return { result: v.result, reason: v.reason, usd: v.usd }
+      const v = await checarTrocaDoTrecho({ baseVideoUrl: base, baseMeta: { segundos: t.segundosDoArquivo, fps: t.fps, largura: dados.molde.entrada.largura, altura: dados.molde.entrada.altura }, resultVideoUrl: providerUrl, photos: [dados.foto], prompt: dados.prompt, formatId: dados.molde.id, instantes: t.instantesDaTrava })
+      // KINEO-TRAVA-INSTANTES-MOLDE-1611 — o evento da trava leva os instantes julgados (os do molde) e a resposta do juiz por pessoa
+      return { result: v.result, reason: v.reason, usd: v.usd, auditoria: { instants: v.instants ?? null, instants_source: v.instants_source ?? null, pairs_used: v.pairs_used ?? null, judge: v.judge ?? null, subjects: v.subjects ?? null, target_missing: v.target_missing ?? null, model: v.model ?? null, unverified_reason: v.unverified_reason ?? null } }
     },
     urlsDosTrechos: async (row) => Promise.all((dadosDaLinha(row)?.molde ?? MOLDE_PITCH_INVADER).trechos.map(async (_, i) => {
       const url = publica(invasorTrechoPath(row.user_id, row.id, i))

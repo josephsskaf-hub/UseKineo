@@ -46,7 +46,12 @@ export interface SwapVerdict {
   pairs_used?: number[]
   rule?: string
   target_missing?: boolean // KINEO-RECREATE-TRAVA-REVISAO-1411 (item 6) — o alvo não saiu do texto do pedido
+  /** KINEO-TRAVA-INSTANTES-MOLDE-1611 — de onde vieram os instantes ('molde' = escolhidos no molde de trechos; 'padrao' = 20/40/60/80%) e a resposta do juiz por pessoa (curta), para auditar. */
+  instants_source?: 'molde' | 'padrao'
+  judge?: RespostaDoJuiz[]
 }
+/** KINEO-TRAVA-INSTANTES-MOLDE-1611 — o que o juiz respondeu para uma pessoa, como veio (só os campos da resposta, encurtados): a auditoria do veredito. */
+export type RespostaDoJuiz = { person: number | null; same_person: string | null; result_vs_photo: string | null; visible_pairs: number[]; base_vs_result: Record<string, string>; note: string }
 
 export const RECREATE_SWAP_CHECK_EVENT = 'recreate_swap_check'
 /** KINEO-RECREATE-FILA-REVISAO-1411 — a saída reprovada foi guardada (bucket privado, 48 h): clip_id, path, bytes, expires_at. */
@@ -246,7 +251,7 @@ export function readVisionAnswer(data: unknown): { parsed: unknown } | { why: Un
 // fps real de cada vídeo (lido do cabeçalho por Range). A decisão (decideSwap) e o estorno (clipFlow) são os mesmos.
 export const usaTravaNaoTrocou = (model: unknown): boolean => model === RECREATE_MODEL || model === SEEDANCE25_MODEL || model === KLING4_EDIT_MODEL // KINEO-RECREATE-KLING4-1311 — + Kling 4.0 edição
 export const SEU_VIDEO_SUJEITO_CHECAGEM = 'the main person (the largest and most central person)'
-export type SwapRowContext = { formatId: string; format: RecreateFormat | null; photos: string[]; slots: number; subject?: string; baseVideoUrl: string | null; redrawn: boolean; prompt?: string; baseMeta?: MetaDoVideo } // KINEO-INVASOR-DE-CAMPO-1511 — + baseMeta (o trecho privado: duração e fps conhecidos, sem HEAD na URL assinada) · KINEO-RECREATE-TRAVA-ALVO-1411 — + prompt (o pedido enviado ao motor: de lá sai o alvo)
+export type SwapRowContext = { formatId: string; format: RecreateFormat | null; photos: string[]; slots: number; subject?: string; baseVideoUrl: string | null; redrawn: boolean; prompt?: string; baseMeta?: MetaDoVideo; instantes?: readonly number[] } // KINEO-TRAVA-INSTANTES-MOLDE-1611 — + instantes (os do trecho do molde) · KINEO-INVASOR-DE-CAMPO-1511 — + baseMeta (o trecho privado: duração e fps conhecidos, sem HEAD na URL assinada) · KINEO-RECREATE-TRAVA-ALVO-1411 — + prompt (o pedido enviado ao motor: de lá sai o alvo)
 /** Linha → o que a trava precisa (Recast como antes; Seedance: catálogo da Entrega C ou o vídeo do cliente no nosso bucket). */
 export function swapRowContext(row: { model: string; fingerprint: string }): SwapRowContext | null {
   const recast = recreateRowContext(row)
@@ -521,6 +526,8 @@ async function checarComAlvo(ctx: SwapRowContext, providerVideoUrl: string, opts
   // evento gravava instantes que não foram julgados): uma 2ª leitura; ainda ilegível = falha de rede (unverified), nunca um julgamento torto.
   const mr = mr0 ?? (await metaPorUrl(providerVideoUrl, f))
   if (!mr || !(mr.segundos > 0)) return unverified('frames_unavailable', 'result_meta_unavailable')
+  const doMolde = instantesValidos(ctx.instantes, mb.segundos) // KINEO-TRAVA-INSTANTES-MOLDE-1611 — o trecho do molde diz onde olhar; sem isso, o padrão abaixo
+  if (doMolde) return checarNosInstantes(ctx, providerVideoUrl, opts, verdict, unverified, mb, mr, doMolde)
   const passo = mb.segundos * TRAVA_INSTANTES[0] // os instantes são múltiplos do 1º: quadros n, 2n, 3n, 4n no fps de cada arquivo
   // Só os instantes que EXISTEM na saída. Saída que não chega a 2 deles (menos de ~40% do original) = o motor cortou o vídeo: incerto, não entrega.
   const n = TRAVA_INSTANTES.filter((_, i) => passo * (i + 1) <= mr.segundos - 0.05).length
@@ -535,8 +542,71 @@ async function checarComAlvo(ctx: SwapRowContext, providerVideoUrl: string, opts
   const total = Math.min(base.frames.length, result.frames.length)
   const instants = Array.from({ length: total }, (_, i) => Math.round(passo * (i + 1) * 100) / 100)
   const pares = instants.map((segundos, i) => ({ base: base.frames![i], result: result.frames![i], segundos }))
+  return julgarPares(ctx, pares, framesUsd, 'padrao', opts, verdict, unverified)
+}
+
+// ═══ KINEO-TRAVA-INSTANTES-MOLDE-1611 [CEO 16/11: ebe8bd47 trecho 1 = all_kept e 1332dd10 trecho 0 = target_unclear, mas o rosto FOI trocado] ═══
+// Os 20/40/60/80% do trecho caíam em rosto de lado, coberto ou pequeno. O molde de trechos escolhe os instantes (s do arquivo, grade de 0,5 s) onde o alvo
+// está de frente. Mesma extração (quadros n, 2n, … do extrator da fal, cada arquivo no seu fps), só com o passo comum dos instantes; o juiz e a regra são os mesmos.
+export const TRAVA_GRADE_S = 0.5
+const mdc = (a: number, b: number): number => (b === 0 ? a : mdc(b, a % b))
+/** Instantes do molde utilizáveis no original (2 a 4, na grade, crescentes, dentro da duração), ou null = usar o padrão. */
+export function instantesValidos(instantes: unknown, segundos: number): number[] | null {
+  if (!Array.isArray(instantes) || instantes.length < 2 || instantes.length > 4 || !(segundos > 0)) return null
+  for (let i = 0; i < instantes.length; i++) {
+    const t = instantes[i]
+    if (typeof t !== 'number' || !Number.isFinite(t) || t <= 0 || t >= segundos || Math.abs(t / TRAVA_GRADE_S - Math.round(t / TRAVA_GRADE_S)) > 1e-9) return null
+    if (i > 0 && !(t > instantes[i - 1])) return null
+  }
+  return instantes.slice()
+}
+/** O passo comum (s) e a posição de cada instante na saída do extrator (1 = o quadro do 1º passo). */
+export function passoDosInstantes(instantes: readonly number[]): { passo: number; posicoes: number[] } {
+  const ks = instantes.map(t => Math.round(t / TRAVA_GRADE_S))
+  const g = ks.reduce((a, k) => mdc(a, k))
+  return { passo: g * TRAVA_GRADE_S, posicoes: ks.map(k => k / g) }
+}
+async function checarNosInstantes(ctx: SwapRowContext, providerVideoUrl: string, opts: SwapCheckOpts, verdict: Fazer, unverified: NaoVerificou, mb: MetaDoVideo, mr: MetaDoVideo, instantes: number[]): Promise<SwapVerdict> {
+  // Só os instantes que EXISTEM na saída (a mesma folga do padrão). Menos de 2 = o motor cortou o vídeo: incerto, não entrega.
+  const vale = instantes.filter(t => t <= mr.segundos - 0.05)
+  if (vale.length < 2) return verdict('uncertain', 'result_too_short', { rule: TRAVA_ALVO_REGRA, instants_source: 'molde' })
+  const { passo, posicoes } = passoDosInstantes(vale)
+  const ate = posicoes[posicoes.length - 1]
+  const [base, result] = await Promise.all([
+    extractInstantFrames(ctx.baseVideoUrl as string, opts, intervaloPara(passo, mb.fps), ate),
+    extractInstantFrames(providerVideoUrl, opts, intervaloPara(passo, mr.fps), ate), // o fps da própria saída
+  ])
+  const framesUsd = (base.frames ? base.usd : 0) + (result.frames ? result.usd : 0)
+  if (!base.frames) return unverified('base_frames_unavailable', 'base_frames_unavailable', { usd: framesUsd, instants_source: 'molde' })
+  if (!result.frames) return unverified(result.why, 'result_frames_unavailable', { usd: framesUsd, instants_source: 'molde' })
+  // Como no padrão: o extrator pode devolver menos quadros (vídeo mais curto); vale o que veio dos dois lados, e menos de 2 pares é falha de rede.
+  const total = Math.min(base.frames.length, result.frames.length)
+  const pares = vale.flatMap((segundos, j) => (posicoes[j] <= total ? [{ base: base.frames![posicoes[j] - 1], result: result.frames![posicoes[j] - 1], segundos }] : []))
+  if (pares.length < 2) return unverified('frames_unavailable', 'result_frames_unavailable', { usd: framesUsd, instants_source: 'molde' })
+  return julgarPares(ctx, pares, framesUsd, 'molde', opts, verdict, unverified)
+}
+
+/** A resposta do juiz por pessoa, encurtada (no máximo 3 pessoas, nota de 120 letras): vai ao evento para auditar o veredito. */
+export function respostasDoJuiz(parsed: unknown): RespostaDoJuiz[] {
+  const raw = parsed && typeof parsed === 'object' && Array.isArray((parsed as { persons?: unknown }).persons) ? (parsed as { persons: unknown[] }).persons : []
+  const curto = (v: unknown, n = 16) => (typeof v === 'string' ? v.trim().toLowerCase().slice(0, n) : typeof v === 'boolean' ? String(v) : null)
+  return raw.slice(0, 3).map(p => {
+    const r = p && typeof p === 'object' ? (p as Record<string, unknown>) : {}
+    const attrs = r.base_vs_result && typeof r.base_vs_result === 'object' ? (r.base_vs_result as Record<string, unknown>) : {}
+    const base_vs_result: Record<string, string> = {}
+    for (const a of SWAP_FACE_ATTRIBUTES) { const v = curto(attrs[a], 12); if (v) base_vs_result[a] = v }
+    const visible_pairs = Array.isArray(r.visible_pairs) ? r.visible_pairs.filter((n): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 1 && n <= 16).slice(0, 16) : []
+    return { person: indiceDaPessoa(p), same_person: curto(r.same_person), result_vs_photo: curto(r.result_vs_photo), visible_pairs, base_vs_result, note: typeof r.note === 'string' ? r.note.slice(0, 120) : '' }
+  })
+}
+
+/** O juiz com alvo sobre os pares prontos (o padrão e os instantes do molde passam pelo MESMO juiz e pela MESMA regra). */
+async function julgarPares(ctx: SwapRowContext, pares: Array<{ base: string; result: string; segundos: number }>, framesUsd: number, fonte: 'molde' | 'padrao', opts: SwapCheckOpts, verdict: Fazer, unverified: NaoVerificou): Promise<SwapVerdict> {
+  const f = opts.fetchImpl ?? fetch
+  const total = pares.length
+  const instants = pares.map(p => p.segundos)
   const alvos = alvosDoPedido(ctx.prompt, ctx.slots)
-  const marca = { instants, subjects: alvos, rule: TRAVA_ALVO_REGRA, target_missing: alvos.some(a => a === null) } // KINEO-RECREATE-TRAVA-REVISAO-1411 (item 6) — o alvo não saiu do texto
+  const marca = { instants, subjects: alvos, rule: TRAVA_ALVO_REGRA, target_missing: alvos.some(a => a === null), instants_source: fonte } // KINEO-RECREATE-TRAVA-REVISAO-1411 (item 6) — o alvo não saiu do texto
   const key = opts.apiKey ?? process.env.OPENAI_API_KEY
   if (!key) return unverified('config', 'vision_key_missing', { usd: framesUsd, ...marca })
   const model = opts.model ?? process.env.RECREATE_SWAP_CHECK_MODEL ?? SWAP_CHECK_MODEL_DEFAULT
@@ -556,7 +626,7 @@ async function checarComAlvo(ctx: SwapRowContext, providerVideoUrl: string, opts
   // KINEO-RECREATE-TRAVA-REVISAO-1411 (item 2) — o juiz respondeu (200) e não deu veredito (recusa, texto que não é JSON, conteúdo vazio): incerto, não entrega.
   if ('why' in answer) return verdict('uncertain', 'vision_no_verdict', { model, usd, ...marca, unverified_reason: null })
   const decided = decideSwapEstrito(answer.parsed, ctx.slots)
-  const extra = { persons: decided.persons, model, usd, ...marca, pairs_used: paresUsados(answer.parsed, total) }
+  const extra = { persons: decided.persons, model, usd, ...marca, pairs_used: paresUsados(answer.parsed, total), judge: respostasDoJuiz(answer.parsed) } // KINEO-TRAVA-INSTANTES-MOLDE-1611 — + a resposta do juiz por pessoa
   return decided.result === 'unverified' ? unverified('null_answer', decided.reason, extra) : verdict(decided.result, decided.reason, extra)
 }
 
@@ -564,9 +634,9 @@ async function checarComAlvo(ctx: SwapRowContext, providerVideoUrl: string, opts
 // A trava do Kling edit (checarComAlvo: o alvo escrito no pedido, 4 instantes, regra estrita, mesmo orçamento de 40 s) num TRECHO do molde de vários trechos:
 // o original é o trecho privado (URL assinada, duração e fps do manifesto), o resultado é a saída do motor, a foto é a do cliente. Custo por trecho: 2 extrações
 // de quadros na fal (~US$ 0,001 cada) + 1 chamada de visão (4 pares em detalhe alto + a foto): o usd volta no veredito.
-export async function checarTrocaDoTrecho(a: { baseVideoUrl: string; baseMeta: MetaDoVideo; resultVideoUrl: string; photos: string[]; prompt: string; formatId: string }, opts: SwapCheckOpts = {}): Promise<SwapVerdict> {
+export async function checarTrocaDoTrecho(a: { baseVideoUrl: string; baseMeta: MetaDoVideo; resultVideoUrl: string; photos: string[]; prompt: string; formatId: string; instantes?: readonly number[] }, opts: SwapCheckOpts = {}): Promise<SwapVerdict> { // KINEO-TRAVA-INSTANTES-MOLDE-1611 — + instantes (os do trecho)
   const started = Date.now()
-  const ctx: SwapRowContext = { formatId: a.formatId, format: null, photos: a.photos, slots: a.photos.length, subject: SEU_VIDEO_SUJEITO_CHECAGEM, baseVideoUrl: a.baseVideoUrl, redrawn: false, prompt: a.prompt, baseMeta: a.baseMeta }
+  const ctx: SwapRowContext = { formatId: a.formatId, format: null, photos: a.photos, slots: a.photos.length, subject: SEU_VIDEO_SUJEITO_CHECAGEM, baseVideoUrl: a.baseVideoUrl, redrawn: false, prompt: a.prompt, baseMeta: a.baseMeta, instantes: a.instantes }
   const verdict = (result: SwapCheckResult, reason: string, extra: Partial<SwapVerdict> = {}): SwapVerdict => ({ result, reason, unverified_reason: null, format: a.formatId, persons: [], model: null, usd: 0, ms: Date.now() - started, ...extra })
   const unverified = (why: UnverifiedReason, reason: string, extra: Partial<SwapVerdict> = {}) => verdict('unverified', reason, { ...extra, unverified_reason: why })
   if (a.photos.length !== 1 || !/^https:\/\//.test(a.baseVideoUrl) || !/^https:\/\//.test(a.resultVideoUrl)) return unverified('config', 'segment_context_unknown')

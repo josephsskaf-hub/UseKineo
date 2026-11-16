@@ -213,7 +213,7 @@ export interface InvasorIo {
   guardarTrecho(row: ClipRow, i: number, providerUrl: string): Promise<{ url: string; segundos: number | null }>
   /** KINEO-INVASOR-DE-CAMPO-1511 [revisor 15/11, item 2] — a MESMA trava "não trocou" do Kling edit (lib/recreate/swapCheck.ts, alvo do pedido, 4 instantes, regra
    *  estrita): o trecho original (privado) × a saída do motor × a foto. Nunca lança; falha da checagem = 'unverified' (a política de sempre: entrega). */
-  conferirTroca(row: ClipRow, i: number, providerUrl: string, dados: { prompt: string; foto: string; molde: MoldeDeTrechos }): Promise<{ result: string; reason: string; usd?: number }>
+  conferirTroca(row: ClipRow, i: number, providerUrl: string, dados: { prompt: string; foto: string; molde: MoldeDeTrechos }): Promise<{ result: string; reason: string; usd?: number; auditoria?: AuditoriaDaTrava }>
   /** As URLs NOSSAS dos trechos já guardados (na ordem), para a montagem. Lança se faltar algum. */
   urlsDosTrechos(row: ClipRow): Promise<string[]>
   /** UPDATE condicional: só se a linha ainda está `processing` com ESTE failure_reason e ESTE fal_request_id. true = este ator moveu. */
@@ -235,6 +235,9 @@ export interface InvasorIo {
   markFailed(id: string, reason: string, refunded: number): Promise<boolean>
   event(name: string, metadata: Record<string, unknown>): Promise<void>
 }
+
+/** KINEO-TRAVA-INSTANTES-MOLDE-1611 [CEO 16/11: o evento da trava não dizia o que o juiz viu nem onde] — o que vai ao evento recreate_invasor_trava para auditar o veredito. */
+export type AuditoriaDaTrava = { instants: number[] | null; instants_source: string | null; pairs_used: number[] | null; judge: unknown[] | null; subjects: Array<string | null> | null; target_missing: boolean | null; model: string | null; unverified_reason: string | null }
 
 const telemetria = (row: ClipRow) => ({ clip_id: row.id, format: dadosDaLinha(row)?.molde.id ?? INVASOR_ID, engine: row.engine, seconds: row.seconds, credits: row.credits })
 
@@ -299,8 +302,8 @@ export async function settleInvasor(io: InvasorIo, row: ClipRow): Promise<ClipRo
   if (!(await io.mover(row.id, { failure_reason: row.failure_reason, fal_request_id: row.fal_request_id }, { failure_reason: conf }))) return row // outro ator levou
   const esperado = T[i].segundosDoArquivo
   if (guardado.segundos === null || !(guardado.segundos >= esperado - INVASOR_TOLERANCIA_S)) return fail(INVASOR_FALHAS.curto, { trecho: i, segundos: guardado.segundos, esperado })
-  const veredito: { result: string; reason: string; usd?: number } = await io.conferirTroca(row, i, st.url, dados).catch(() => ({ result: 'unverified', reason: 'check_error' }))
-  await io.event(INVASOR_EVENTOS.trava, { ...telemetria(row), trecho: i, result: veredito.result, reason: veredito.reason, usd: veredito.usd ?? null })
+  const veredito: { result: string; reason: string; usd?: number; auditoria?: AuditoriaDaTrava } = await io.conferirTroca(row, i, st.url, dados).catch(() => ({ result: 'unverified', reason: 'check_error' }))
+  await io.event(INVASOR_EVENTOS.trava, { ...telemetria(row), ...(veredito.auditoria ?? {}), trecho: i, result: veredito.result, reason: veredito.reason, usd: veredito.usd ?? null }) // KINEO-TRAVA-INSTANTES-MOLDE-1611 — + os instantes e a resposta do juiz (antes dos campos fixos: não os sobrescreve)
   if (Object.hasOwn(NAO_ENTREGA, veredito.result)) return fail(NAO_ENTREGA[veredito.result], { trecho: i, swap_check: veredito.result })
   if (i < T.length - 1) {
     const envio = marcaDoEnvio(i + 1, io.now())

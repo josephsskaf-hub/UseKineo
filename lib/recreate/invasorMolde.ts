@@ -41,6 +41,9 @@ export type TrechoDoInvasor = ArquivoDoMolde & {
   segundosNoFilme: number
   /** velocidade da montagem (100 = normal; 125 = o trecho alongado de 2,4 → 3,0 s volta ao tempo real). */
   velocidade: number
+  /** KINEO-TRAVA-INSTANTES-MOLDE-1611 — os instantes (s do ARQUIVO do trecho; grade de 0,5 s, crescentes, de 2 a 4) em que a trava "não trocou" compara o
+   *  original e a saída: escolhidos olhando os quadros, com o rosto do alvo DE FRENTE, grande e sem ninguém na frente. Ausente = 20/40/60/80% do trecho. */
+  instantesDaTrava?: readonly number[]
 }
 /** O alvo do texto: a PESSOA pela roupa (a receita de 14/11) ou o BICHO pela aparência. */
 export type AlvoDoMolde =
@@ -83,9 +86,9 @@ export interface MoldeDeTrechos {
 //              REESCRITOS a 24 fps (setpts, sem duplicar quadro) = 3,0 s, e a montagem devolve a velocidade (125%).
 // O som do filme é o do original nos mesmos cortes (0 a 16 s + 21,367 a 23,767 s, com o buraco de carimbo de tempo do AAC preenchido), 18,4 s, MP3.
 export const INVASOR_TRECHOS: readonly TrechoDoInvasor[] = [
-  { arquivo: 'recreate-invasor-de-campo-t0-v1.mp4', bytes: 9284106, sha256: '3298998a8c7b8b0e6d1f5eaed7541b3a3480c24e17287080f0dc4527220df342', contentType: 'video/mp4', quadros: [0, 239], segundosDoArquivo: 8, fps: 30, segundosNoFilme: 8, velocidade: 100 },
-  { arquivo: 'recreate-invasor-de-campo-t1-v1.mp4', bytes: 9683089, sha256: '1f1c997186bf757e3ae6d822f3d4f699329c41b7b62275d3abef26c40d18c80b', contentType: 'video/mp4', quadros: [240, 479], segundosDoArquivo: 8, fps: 30, segundosNoFilme: 8, velocidade: 100 },
-  { arquivo: 'recreate-invasor-de-campo-t2-v1.mp4', bytes: 2707495, sha256: 'ebd3265b2947bc67204d8325381e7ca8b7c7b0a0799c8dba24560fc629aece97', contentType: 'video/mp4', quadros: [641, 712], segundosDoArquivo: 3, fps: 24, segundosNoFilme: 2.4, velocidade: 125 },
+  { arquivo: 'recreate-invasor-de-campo-t0-v1.mp4', bytes: 9284106, sha256: '3298998a8c7b8b0e6d1f5eaed7541b3a3480c24e17287080f0dc4527220df342', contentType: 'video/mp4', quadros: [0, 239], segundosDoArquivo: 8, fps: 30, segundosNoFilme: 8, velocidade: 100, instantesDaTrava: [2.5, 3, 4.5, 7.5] },
+  { arquivo: 'recreate-invasor-de-campo-t1-v1.mp4', bytes: 9683089, sha256: '1f1c997186bf757e3ae6d822f3d4f699329c41b7b62275d3abef26c40d18c80b', contentType: 'video/mp4', quadros: [240, 479], segundosDoArquivo: 8, fps: 30, segundosNoFilme: 8, velocidade: 100, instantesDaTrava: [5.5, 6, 7, 7.5] },
+  { arquivo: 'recreate-invasor-de-campo-t2-v1.mp4', bytes: 2707495, sha256: 'ebd3265b2947bc67204d8325381e7ca8b7c7b0a0799c8dba24560fc629aece97', contentType: 'video/mp4', quadros: [641, 712], segundosDoArquivo: 3, fps: 24, segundosNoFilme: 2.4, velocidade: 125, instantesDaTrava: [1, 1.5, 2, 2.5] },
 ]
 export const INVASOR_SOM: ArquivoDoMolde & { segundos: number } = { arquivo: 'recreate-invasor-de-campo-som-v1.mp3', bytes: 443392, sha256: '51d8314c77286b2bf5dc081c09b6117bc0b3bf95f1b273618405f71e7c053e20', contentType: 'audio/mpeg', segundos: 18.4 }
 /** O cartão: o original nos mesmos cortes, 720×1280, com o som — "o que você vai receber". Servido por redirecionamento curto. */
@@ -138,9 +141,9 @@ export const BASQUETE_CAMISETA_LISA: boolean = true
 const BASQUETE: MoldeDeTrechos = {
   id: 'basquete', titulo: 'Slam dunk', desde: '2026-11-16',
   trechos: [
-    { arquivo: 'recreate-basquete-t0-v1.mp4', bytes: 5814759, sha256: 'daefcb503a519d42aa5674892cf859ee53eeda6fc14d394dfb5e26f21e72aae3', contentType: 'video/mp4', quadros: [136, 327], segundosDoArquivo: 8, fps: 24, segundosNoFilme: 8, velocidade: 100 },
+    { arquivo: 'recreate-basquete-t0-v1.mp4', bytes: 5814759, sha256: 'daefcb503a519d42aa5674892cf859ee53eeda6fc14d394dfb5e26f21e72aae3', contentType: 'video/mp4', quadros: [136, 327], segundosDoArquivo: 8, fps: 24, segundosNoFilme: 8, velocidade: 100, instantesDaTrava: [1.5, 3.5, 5, 7.5] },
     // KINEO-SEGUNDO-INTEIRO-1611 — era t1-v1 (quadros 328–480, 6,375 s): o Kling devolveu 6,042 s (clipe 90a42302, invasor_segment_short). Agora 6 s inteiros, mesmo início.
-    { arquivo: 'recreate-basquete-t1-v2.mp4', bytes: 4120362, sha256: '5563069b96ea2c10f5b4e283ffe762fdf5ccecd9cd0a5074e5d7182a3be75629', contentType: 'video/mp4', quadros: [328, 471], segundosDoArquivo: 6, fps: 24, segundosNoFilme: 6, velocidade: 100 },
+    { arquivo: 'recreate-basquete-t1-v2.mp4', bytes: 4120362, sha256: '5563069b96ea2c10f5b4e283ffe762fdf5ccecd9cd0a5074e5d7182a3be75629', contentType: 'video/mp4', quadros: [328, 471], segundosDoArquivo: 6, fps: 24, segundosNoFilme: 6, velocidade: 100, instantesDaTrava: [3, 4, 4.5, 5] },
   ],
   som: { arquivo: 'recreate-basquete-som-v2.mp3', bytes: 337337, sha256: 'cbcfb586a2b8c85478f5acfdece1d2443df0af180f900801d9ff1895dc0ffb05', contentType: 'audio/mpeg', segundos: 14 },
   vitrine: {
@@ -167,9 +170,9 @@ export const CACHORRO_ABERTO_AO_PUBLICO: boolean = true
 const CACHORRO_CRAQUE: MoldeDeTrechos = {
   id: 'cachorro-craque', titulo: 'Dog goal', desde: '2026-11-16',
   trechos: [
-    { arquivo: 'recreate-cachorro-craque-t0-v1.mp4', bytes: 3475452, sha256: '2686fb66daf2a55990bf1d26ce01784a11b9b7262ecc51238fa4fe74563434c4', contentType: 'video/mp4', quadros: [0, 191], segundosDoArquivo: 8, fps: 24, segundosNoFilme: 8, velocidade: 100 },
+    { arquivo: 'recreate-cachorro-craque-t0-v1.mp4', bytes: 3475452, sha256: '2686fb66daf2a55990bf1d26ce01784a11b9b7262ecc51238fa4fe74563434c4', contentType: 'video/mp4', quadros: [0, 191], segundosDoArquivo: 8, fps: 24, segundosNoFilme: 8, velocidade: 100, instantesDaTrava: [1, 3, 4.5, 6] },
     // KINEO-SEGUNDO-INTEIRO-1611 — era t1-v1 (quadros 192–360, 7,04 s): o mesmo risco do basquete. Agora 7 s inteiros, mesmo início.
-    { arquivo: 'recreate-cachorro-craque-t1-v2.mp4', bytes: 3541812, sha256: '282cf430fdf221749d4c3127bfea2379e07f69da71855982b4eaa64383024b66', contentType: 'video/mp4', quadros: [192, 359], segundosDoArquivo: 7, fps: 24, segundosNoFilme: 7, velocidade: 100 },
+    { arquivo: 'recreate-cachorro-craque-t1-v2.mp4', bytes: 3541812, sha256: '282cf430fdf221749d4c3127bfea2379e07f69da71855982b4eaa64383024b66', contentType: 'video/mp4', quadros: [192, 359], segundosDoArquivo: 7, fps: 24, segundosNoFilme: 7, velocidade: 100, instantesDaTrava: [1, 3, 4.5, 5] },
   ],
   som: { arquivo: 'recreate-cachorro-craque-som-v2.mp3', bytes: 361890, sha256: 'f4fd13b08edd4372c89a055ed43737f5d6bb7b86ca6e11787c93cb51b6b10930', contentType: 'audio/mpeg', segundos: 15 },
   vitrine: {
@@ -234,8 +237,8 @@ const VENDEDOR_DE_ILUSAO: MoldeDeTrechos = {
     // lado ou fora do quadro); fica um corte seco aos 5 s. Os 8 instantes conferidos na folha docs/remodelamento-1611/vendedor/folhas/trava-v2.jpg.
     // trecho 0 = quadros 0 a 119 (0 a 5 s: a moça no colo e a queda; instantes 1 · 2 · 3 · 4 s de frente);
     // trecho 1 = quadros 315 a 458 (13,125 a 19,125 s, 6 s: abre o paletó e fala para a câmera; instantes 1,2 · 2,4 · 3,6 · 4,8 s de frente).
-    { arquivo: 'recreate-vendedor-de-ilusao-t0-v2.mp4', bytes: 1918768, sha256: 'bd0aafc82e77c4b22e37b1f3655e2015ff8ade4ba9675b8d6832a8f3c9b6511e', contentType: 'video/mp4', quadros: [0, 119], segundosDoArquivo: 5, fps: 24, segundosNoFilme: 5, velocidade: 100 },
-    { arquivo: 'recreate-vendedor-de-ilusao-t1-v2.mp4', bytes: 2439849, sha256: '7432d489c20d1645e6e0f16944e9279ace8993ef1c7eddb3b226934324f5990b', contentType: 'video/mp4', quadros: [315, 458], segundosDoArquivo: 6, fps: 24, segundosNoFilme: 6, velocidade: 100 },
+    { arquivo: 'recreate-vendedor-de-ilusao-t0-v2.mp4', bytes: 1918768, sha256: 'bd0aafc82e77c4b22e37b1f3655e2015ff8ade4ba9675b8d6832a8f3c9b6511e', contentType: 'video/mp4', quadros: [0, 119], segundosDoArquivo: 5, fps: 24, segundosNoFilme: 5, velocidade: 100, instantesDaTrava: [2, 2.5, 3.5, 4] },
+    { arquivo: 'recreate-vendedor-de-ilusao-t1-v2.mp4', bytes: 2439849, sha256: '7432d489c20d1645e6e0f16944e9279ace8993ef1c7eddb3b226934324f5990b', contentType: 'video/mp4', quadros: [315, 458], segundosDoArquivo: 6, fps: 24, segundosNoFilme: 6, velocidade: 100, instantesDaTrava: [1.5, 2, 4.5, 5] },
   ],
   som: { arquivo: 'recreate-vendedor-de-ilusao-som-v2.mp3', bytes: 265866, sha256: 'f043e87a80ea58f78ca84fa674ee38c913b66276dd31c96fa6ad956617b421d7', contentType: 'audio/mpeg', segundos: 11 }, // a mesma hustle-04 de 1,0 s, 11 s
   vitrine: {
@@ -249,6 +252,15 @@ const VENDEDOR_DE_ILUSAO: MoldeDeTrechos = {
   nota: '16/11: the "after" half of a split-screen trend (suit, luxury SUV), cropped above a burned-in label to 16:9; 2 Kling 4.0 edit segments with the face frontal at every check instant (5 + 6 s, paid test ebe8bd47 failed on the side-face walk) + our CC0 track; house only',
 }
 
+// KINEO-TRAVA-INSTANTES-MOLDE-1611 [CEO 16/11: testes pagos ebe8bd47 (trecho 1, all_kept) e 1332dd10 (trecho 0, target_unclear) recusaram trocas que SAÍRAM] — os
+// 20/40/60/80% caíam em rosto de lado, de costas, coberto ou pequeno, e com 2 pessoas na cena o juiz não decidia. Cada trecho agora diz ONDE olhar
+// (instantesDaTrava, s do arquivo, grade de 0,5 s: quadro inteiro a 24 e a 30 fps). Escolhidos em 16/11 nas folhas a 2 quadros/s (a grade) de cada guia:
+//   Pitch t0 2,5 · 3 · 4,5 · 7,5 (a corrida: rosto de 3/4 de frente; 1,6 s era de costas, 6,5 s de perfil) · t1 5,5 · 6 · 7 · 7,5 (sentado de frente; 1,6 e 3,2 s eram o
+//   encontrão e a queda) · t2 1 · 1,5 · 2 · 2,5 (de pé, de frente; 0,6 s era a cabeça baixa atrás do nº 9);
+//   Slam dunk t0 1,5 · 3,5 · 5 · 7,5 (drible, salto e grito de frente; 6,4 s era o braço na frente) · t1 3 · 4 · 4,5 · 5 (o grito de frente; 1,2 e 2,4 s, a mão do torcedor);
+//   Dog goal t0 (também o "Dog goal · you") 1 · 3 · 4,5 · 6 (o cão de frente, sem a bola nem o goleiro na frente) · t1 1 · 3 · 4,5 · 5 (de frente; 5,6 s já pequeno);
+//   Illusion seller t0 2 · 2,5 · 3,5 · 4 (o rosto dele de frente e grande com a moça no colo; 1 s era pequeno) · t1 1,5 · 2 · 4,5 · 5 (falando para a câmera; 3,6 s pequeno).
+// A regra não mudou: diferente da base E parecido com a foto; incerto não entrega.
 /** O registro dos moldes de vários trechos. O 1º é o Pitch invader (byte a byte o de antes). */
 // KINEO-SEGUNDO-INTEIRO-1611 [CEO 16/11, teste pago 90a42302] — REGRA: todo arquivo de trecho enviado ao motor tem SEGUNDO INTEIRO (≥ 3 s, ≤ 8 s): o Kling 4.0 edição devolve
 // o inteiro + 1 quadro (8 → 8,04; 3 → 3,04) e corta o resto (6,375 → 6,042: falha "trecho curto" e estorno). O que vai ao filme pode ser fracionário (o 2,4 s do
