@@ -226,7 +226,7 @@ const CACHORRO_CRAQUE_HUMANO: MoldeDeTrechos = {
 // music-novas/README.md), de 1,0 s, 11 s (v2; era 19 s), −16 LUFS, entrada de 0,15 s e saída de 0,6 s. A boca dele mexe (ele fala o vídeo todo): no filme, fala muda sob a música.
 // O carro: o desenho do SUV é o de uma marca de luxo conhecida; o emblema do capô tem ~15 px e a placa da frente, borrada — nenhum dos dois é legível. Recorte não o evita
 // (o carro é o fundo de todos os quadros).
-// SÓ DA CASA (interruptor fechado), preço provisório da casa (lib/checkoutPricing.ts RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO). Nada na home nem no catálogo público.
+// Nasceu SÓ DA CASA; desde KINEO-VENDEDOR-ABRE-50-1611 aberto a 50 (lib/checkoutPricing.ts RECREATE_PRICING_MOLDES_PUBLICOS). Nada na home nem no catálogo público.
 // KINEO-VENDEDOR-ABRE-50-1611 [dono 16/11 ~05:40: "50"] — ABERTO ao público a 50 (lib/checkoutPricing.ts RECREATE_PRICING_MOLDES_PUBLICOS) depois do teste pago 518ee8a5
 // (11 s, rosto trocado nos 2 trechos, trava por instantes 412a0d2e4). Volta: false.
 export const VENDEDOR_ABERTO_AO_PUBLICO: boolean = true
@@ -251,7 +251,7 @@ const VENDEDOR_DE_ILUSAO: MoldeDeTrechos = {
   alvo: { tipo: 'pessoa', texto: 'the man in the dark navy suit and white shirt', deOculos: false, roupa: 'Keep the original clothing from @Video1.' },
   segundos: 11, aberto: VENDEDOR_ABERTO_AO_PUBLICO, creditosPublicos: recreateCreditCostMoldePublico('vendedor-de-ilusao'), creditosDaCasa: null, approvedOn: '2026-11-16', abertoEm: '2026-11-16T05:40-03:00',
   esperaMinutos: [5, 10], // 2 trechos de 1,5 a 4 min + a trava de cada trecho + a montagem (KINEO-VENDEDOR-ROSTO-1611; eram 3)
-  nota: '16/11: the "after" half of a split-screen trend (suit, luxury SUV), cropped above a burned-in label to 16:9; 2 Kling 4.0 edit segments with the face frontal at every check instant (5 + 6 s, paid test ebe8bd47 failed on the side-face walk) + our CC0 track; house only',
+  nota: '16/11: the "after" half of a split-screen trend (suit, luxury SUV), cropped above a burned-in label to 16:9; 2 Kling 4.0 edit segments with the face frontal at every check instant (5 + 6 s, paid test ebe8bd47 failed on the side-face walk) + our CC0 track; open at 50 since 16/11 (paid test 518ee8a5)',
 }
 
 // KINEO-TRAVA-INSTANTES-MOLDE-1611 [CEO 16/11: testes pagos ebe8bd47 (trecho 1, all_kept) e 1332dd10 (trecho 0, target_unclear) recusaram trocas que SAÍRAM] — os
