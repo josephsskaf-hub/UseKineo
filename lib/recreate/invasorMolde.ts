@@ -281,7 +281,7 @@ export function formatoDoMolde(m: MoldeDeTrechos): RecreateFormat {
     id: m.id, title: m.titulo, desde: m.desde, type: 'swap',
     preview: `/api/recreate/assets/${m.id}.mp4`, poster: `/api/recreate/assets/${m.id}.jpg`,
     seconds: m.segundos, prompt: '', photoSlots: 1, swapApproved: publico, swapInTest: !publico, ...(m.approvedOn ? { approvedOn: m.approvedOn } : {}),
-    creditos: creditosDoMolde(m), esperaMinutos: m.esperaMinutos, swapNote: m.nota,
+    creditos: creditosDoMolde(m), esperaMinutos: m.esperaMinutos, // KINEO-RECEITA-FORA-DO-JS-2-1411 (rebase 16/11) — era: + swapNote: m.nota (o campo saiu do formato; a nota fica em m.nota, no servidor)
     ...(m.abertoEm ? { abertoEm: m.abertoEm } : {}), // KINEO-DOG-YOU-ABRE-1611 — só do servidor (não é campo de vitrine)
     ...(publico ? { palco: true } : {}), // KINEO-PALCO-INVADER-1611 — o aberto mais novo abre o palco da tela única para quem está logado
   }
