@@ -484,7 +484,7 @@ async function bateria(over = {}) {
       const ix = (id) => casa.findIndex((f) => f.id === id)
       if (casa.some((f) => f.id === 'jogada-de-futebol') || ix('invasor-de-campo') < 0 || ix('invasor-de-campo') > ix('sueter-aconchegante')) throw new Error('grade da casa: ' + casa.slice(0, 4).map((f) => f.id)) // KINEO-REMODELAMENTO-MOLDES-1611 — os moldes novos (16/11) da casa vêm antes
       const cli = cat.formatosParaOCliente('customer@example.org')
-      if (cli.some((f) => f.id === 'jogada-de-futebol') || cli.slice(0, 4).map((f) => f.id).join() !== 'cachorro-craque-humano,basquete,cachorro-craque,invasor-de-campo') throw new Error('grade do cliente: ' + cli.slice(0, 4).map((f) => f.id))
+      if (cli.some((f) => f.id === 'jogada-de-futebol') || cli.slice(0, 5).map((f) => f.id).join() !== 'vendedor-de-ilusao,cachorro-craque-humano,basquete,cachorro-craque,invasor-de-campo') throw new Error('grade do cliente: ' + cli.slice(0, 4).map((f) => f.id))
     })
     await check('item 7: a tela promete a espera real do molde (10 a 15 min), sem número inventado', async () => {
       const cat = m('lib/recreate/catalogoServidor')
@@ -590,10 +590,10 @@ async function bateria(over = {}) {
       if (c.trechos.map((t) => t.segundosNoFilme).join() !== '8,7' || c.som.segundos !== 15 || I.segundosDoFilme(c) !== 15 || c.trechos[1].quadros.join() !== '192,359') throw new Error('cachorro 8 + 7 s')
       for (const mo of [b, c]) if (!mo.trechos[1].arquivo.endsWith('-t1-v2.mp4') || !mo.som.arquivo.endsWith('-som-v2.mp3') || !mo.vitrine[mo.id + '.mp4'].arquivo.endsWith('-vitrine-v2.mp4')) throw new Error(mo.id + ': arquivos novos com nome novo (-v2)')
     })
-    await check('moldes 7 (KINEO-MOLDE-VENDEDOR-1611): o vendedor de ilusão — só da casa a 45 da tabela da casa, 5 + 6 s com o rosto de frente nos instantes da trava (KINEO-VENDEDOR-ROSTO-1611), 1280×720 (≥ 700 px por lado), alvo pelo terno, faixa CC0, fora da home', async () => {
+    await check('moldes 7 (KINEO-MOLDE-VENDEDOR-1611): o vendedor de ilusão — ABERTO a 50 da tabela pública (KINEO-VENDEDOR-ABRE-50-1611, dono "50"), 5 + 6 s com o rosto de frente nos instantes da trava (KINEO-VENDEDOR-ROSTO-1611), 1280×720 (≥ 700 px por lado), alvo pelo terno, faixa CC0, fora da home', async () => {
       const id = 'vendedor-de-ilusao', p = m('lib/checkoutPricing'), access = m('lib/recreate/access'), cat = m('lib/recreate/catalogoServidor')
       const mo = M.moldeDeTrechos(id)
-      if (!mo || mo.aberto !== false || M.VENDEDOR_ABERTO_AO_PUBLICO !== false || mo.creditosPublicos !== null || mo.creditosDaCasa !== 45 || mo.creditosDaCasa !== p.recreateCreditCostMoldeDaCasa(id) || p.recreateCreditCostMoldePublico(id) !== null) throw new Error('interruptor ou preço')
+      if (!mo || mo.aberto !== true || M.VENDEDOR_ABERTO_AO_PUBLICO !== true || mo.creditosPublicos !== 50 || mo.creditosPublicos !== p.recreateCreditCostMoldePublico(id) || mo.creditosDaCasa !== null || p.recreateCreditCostMoldeDaCasa(id) !== null || mo.abertoEm !== '2026-11-16T05:40-03:00') throw new Error('interruptor ou preço')
       for (const x of M.MOLDES_DE_TRECHOS) if (x.entrada.largura < 700 || x.entrada.altura < 700 || Math.max(x.entrada.largura, x.entrada.altura) / Math.min(x.entrada.largura, x.entrada.altura) > 2.5) throw new Error(x.id + ': entrada fora do que o Kling 4.0 edição aceita (≥ 700 px por lado, proporção ≤ 2,5)')
       if (mo.entrada.largura !== 1280 || mo.entrada.altura !== 720 || mo.saida.largura !== 1280 || mo.saida.altura !== 720 || mo.saida.fps !== 24) throw new Error('entrada/saída 1280×720')
       if (mo.trechos.map((t) => t.segundosDoArquivo).join() !== '5,6' || mo.trechos.map((t) => t.quadros.join('-')).join() !== '0-119,315-458' || mo.trechos.some((t) => !t.arquivo.endsWith('-v2.mp4')) || mo.trechos.some((t) => t.fps !== 24 || t.velocidade !== 100 || t.segundosNoFilme !== t.segundosDoArquivo)) throw new Error('trechos')
@@ -604,8 +604,8 @@ async function bateria(over = {}) {
       const t = I.textoDoMolde(mo, { genero: 'man', cabeloEBarba: CABELO, semOculos: true })
       if (t !== esperado || mo.alvo.tipo !== 'pessoa' || mo.alvo.deOculos !== false) throw new Error('texto: ' + t)
       const f = cat.recreateFormatServidor(id)
-      if (!f || f.swapApproved !== false || f.swapInTest !== true || f.palco || f.creditos !== 45 || access.recreateFormatVisible(f, 'customer@example.org') || !access.recreateFormatVisible(f, 'josephsskaf@gmail.com')) throw new Error('visibilidade: ' + JSON.stringify(f))
-      if (cat.formatosParaOCliente('customer@example.org').some((x) => x.id === id) || m('lib/recreate/formats').RECREATE_FORMATS.some((x) => x.id === id)) throw new Error('cliente ou JS público')
+      if (!f || f.swapApproved !== true || f.palco !== true || f.creditos !== 50 || !access.recreateFormatVisible(f, 'customer@example.org') || !access.recreateFormatVisible(f, 'josephsskaf@gmail.com')) throw new Error('visibilidade: ' + JSON.stringify(f))
+      if (!cat.formatosParaOCliente('customer@example.org').some((x) => x.id === id) || m('lib/recreate/catalogPublic').publicRecreateCatalog().some((x) => x.id === id) || m('lib/recreate/formats').RECREATE_FORMATS.some((x) => x.id === id)) throw new Error('cliente logado sem o molde, ou no JS público')
       if (lf('lib/clipesNos2Lugares.ts').includes(id) || lf('lib/recreate/entry.ts').includes(id)) throw new Error('foi para a home')
       const u = uid(77), r0 = I.planInvasor({ format: id, consent: true, photos: [foto(u)] }, { userId: u, supabaseUrl: SUPA, dono: (x) => (x.startsWith(`${SUPA}/storage/v1/object/public/avatars/${u}/`) ? x : null) }, { cabeloEBarba: CABELO, semOculos: true })
       if (!r0.ok || r0.plan.input.prompt !== esperado || r0.plan.input.video_url !== I.marcadorDoTrecho(0, id)) throw new Error('pedido da casa: ' + JSON.stringify(r0).slice(0, 300))
@@ -615,8 +615,8 @@ async function bateria(over = {}) {
       const cat = m('lib/recreate/catalogoServidor'), pub = m('lib/recreate/catalogPublic')
       const marcados = M.FORMATOS_DOS_MOLDES_DE_TRECHOS.filter((f) => f.palco === true).map((f) => f.id)
       if (marcados.join() !== M.MOLDES_DE_TRECHOS.filter((x) => x.aberto).map((x) => x.id).join() || !marcados.includes('invasor-de-campo') || !marcados.includes('basquete') || !marcados.includes('cachorro-craque')) throw new Error('marcados: ' + marcados)
-      for (const email of ['customer@example.org', 'josephsskaf@gmail.com']) { const l = cat.formatosParaOCliente(email); if (l.find((f) => f.palco === true)?.id !== 'cachorro-craque-humano') throw new Error('logado sem o palco: ' + email) }
-      if (cat.formatosParaOCliente('customer@example.org')[0]?.id !== 'cachorro-craque-humano') throw new Error('a grade do cliente não abre no aberto mais novo')
+      for (const email of ['customer@example.org', 'josephsskaf@gmail.com']) { const l = cat.formatosParaOCliente(email); if (l.find((f) => f.palco === true)?.id !== 'vendedor-de-ilusao') throw new Error('logado sem o palco: ' + email) }
+      if (cat.formatosParaOCliente('customer@example.org')[0]?.id !== 'vendedor-de-ilusao') throw new Error('a grade do cliente não abre no aberto mais novo')
       const visitante = cat.formatosParaOCliente(null).filter((f) => pub.publicRecreateCatalog().some((p) => p.id === f.id))
       if (visitante.some((f) => f.palco === true || f.id === 'invasor-de-campo')) throw new Error('o visitante recebeu o molde')
       if (M.FORMATOS_DOS_MOLDES_DE_TRECHOS.some((f) => f.palco !== undefined && f.palco !== true)) throw new Error('palco só true ou ausente')
@@ -629,7 +629,7 @@ async function bateria(over = {}) {
       if (!sc || sc.swapApproved !== false || sc.palco === true || sc.creditos !== null || sf.recreateCreditsFor(sc) !== null || sf.recreateSwapPriced(sc) || sa.recreateFormatVisible(sc, 'customer@example.org')) throw new Error('aberto sem preço foi ao público: ' + JSON.stringify(sc))
       const cat = m('lib/recreate/catalogoServidor')
       const casa = cat.formatosParaOCliente('josephsskaf@gmail.com').map((f) => f.id), cli = cat.formatosParaOCliente('customer@example.org').map((f) => f.id)
-      if (casa.slice(0, 4).join() !== 'cachorro-craque-humano,basquete,cachorro-craque,invasor-de-campo' || cli.slice(0, 4).join() !== 'cachorro-craque-humano,basquete,cachorro-craque,invasor-de-campo' || cat.formatosParaOCliente('customer@example.org').some((x) => 'abertoEm' in x)) throw new Error('grade: ' + casa.slice(0, 4) + ' | ' + cli.slice(0, 3))
+      if (casa.slice(0, 5).join() !== 'vendedor-de-ilusao,cachorro-craque-humano,basquete,cachorro-craque,invasor-de-campo' || cli.slice(0, 5).join() !== 'vendedor-de-ilusao,cachorro-craque-humano,basquete,cachorro-craque,invasor-de-campo' || cat.formatosParaOCliente('customer@example.org').some((x) => 'abertoEm' in x)) throw new Error('grade: ' + casa.slice(0, 4) + ' | ' + cli.slice(0, 3))
       const ordena = cat.novidadesNaFrente([{ id: 'a', desde: '2026-11-10' }, { id: 'b', desde: '2026-11-01', palco: true, approvedOn: '2026-11-12' }, { id: 'c', desde: '2026-11-11', palco: true }]).map((x) => x.id).join()
       if (ordena !== 'b,c,a') throw new Error('novidadesNaFrente pela data de abertura: ' + ordena)
       const L = m('lib/clipesNos2Lugares')
@@ -767,20 +767,20 @@ const mutantes = [
   ['novidade: a ação da bola some do cachorro', { [MOLDE]: molde.replace(", acao: 'he carries the ball from @Video1 in his mouth and drops it at the same moment as in @Video1' }", ' }') }],
   ['novidade: a variante humana volta a fechar', { [MOLDE]: molde.replace('export const CACHORRO_HUMANO_ABERTO_AO_PUBLICO: boolean = true', 'export const CACHORRO_HUMANO_ABERTO_AO_PUBLICO: boolean = false') }],
   ['novidade: a hora em que abriu não desempata o mesmo dia', { ['lib/recreate/catalogoServidor.ts']: lf('lib/recreate/catalogoServidor.ts').replace('  const data = (f: T) => f.abertoEm ?? f.approvedOn ?? f.desde', '  const data = (f: T) => f.approvedOn ?? f.desde') }],
-  ['humano: o preço público volta a 60 (o dono corrigiu para 40)', { ['lib/checkoutPricing.ts']: lf('lib/checkoutPricing.ts').replace("'cachorro-craque-humano': 40 } as const", "'cachorro-craque-humano': 60 } as const") }],
+  ['humano: o preço público volta a 60 (o dono corrigiu para 40)', { ['lib/checkoutPricing.ts']: lf('lib/checkoutPricing.ts').replace("'cachorro-craque-humano': 40, ", "'cachorro-craque-humano': 60, ") }],
   ['novidade: aberto sem preço cai na tabela por duração (achado 1)', { [MOLDE]: molde.replace('swapApproved: publico, swapInTest: !publico,', 'swapApproved: m.aberto, swapInTest: !m.aberto,') }],
   ['novidade: creditos null vira o preço por duração (achado 1)', { [FORMATS]: formats.replace("f.type === 'swap' ? (f.creditos !== undefined ? f.creditos : recreateCreditCost(f.seconds)) : recreateEffectCredits(f)", "f.type === 'swap' ? f.creditos ?? recreateCreditCost(f.seconds) : recreateEffectCredits(f)") }],
   ['novidade: a grade não põe o aberto mais novo na frente', { ['lib/recreate/catalogoServidor.ts']: lf('lib/recreate/catalogoServidor.ts').replace('  return [...abertos, ...lista.filter((f) => f.palco !== true)]', '  return [...lista]') }],
   ['novidade: o topo da home sem os moldes na frente', { ['lib/clipesNos2Lugares.ts']: lf('lib/clipesNos2Lugares.ts').replace('  return [...moldes, ...base.filter((id) => !moldes.includes(id))].slice(0, 6)', '  return [...base.filter((id) => !moldes.includes(id)), ...moldes].slice(0, 6)') }],
   ['novidade: o topo da home pela ordem da lista, não pela data', { ['lib/clipesNos2Lugares.ts']: lf('lib/clipesNos2Lugares.ts').replace('.sort((a, b) => (a.desde < b.desde ? 1 : a.desde > b.desde ? -1 : a.i - b.i))', '.sort((a, b) => a.i - b.i)') }],
   // KINEO-MOLDE-VENDEDOR-1611
-  ['vendedor: abre ao público sem o teste e sem o sim do dono', { [MOLDE]: molde.replace('export const VENDEDOR_ABERTO_AO_PUBLICO: boolean = false', 'export const VENDEDOR_ABERTO_AO_PUBLICO: boolean = true') }],
+  ['vendedor: fecha de novo sem ordem do dono', { [MOLDE]: molde.replace('export const VENDEDOR_ABERTO_AO_PUBLICO: boolean = true', 'export const VENDEDOR_ABERTO_AO_PUBLICO: boolean = false') }],
   ['vendedor: a metade inteira de 608 px (o Kling recusa abaixo de 700)', { [MOLDE]: molde.replace("entrada: { largura: 1280, altura: 720 }, saida: { largura: 1280, altura: 720, fps: 24 },", "entrada: { largura: 1080, altura: 608 }, saida: { largura: 1280, altura: 720, fps: 24 },") }],
-  ['vendedor: o preço provisório da casa some', { ['lib/checkoutPricing.ts']: lf('lib/checkoutPricing.ts').replace("RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO: Readonly<Record<string, number>> = { 'vendedor-de-ilusao': 45 }", 'RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO: Readonly<Record<string, number>> = {}') }],
+  ['vendedor: o preço público some (aberto sem preço)', { ['lib/checkoutPricing.ts']: lf('lib/checkoutPricing.ts').replace(", 'vendedor-de-ilusao': 50 } as const", " } as const") }],
   ['vendedor: o alvo pela pose, não pelo terno', { [MOLDE]: molde.replace("texto: 'the man in the dark navy suit and white shirt'", "texto: 'the man carrying the woman'") }],
   ['vendedor: volta o trecho da ida ao carro (rosto de lado nos instantes da trava, teste ebe8bd47)', { [MOLDE]: molde.replace("quadros: [315, 458], segundosDoArquivo: 6, fps: 24, segundosNoFilme: 6, velocidade: 100", "quadros: [96, 239], segundosDoArquivo: 6, fps: 24, segundosNoFilme: 6, velocidade: 100") }],
   ['vendedor: o som de 19 s num filme de 11 s', { [MOLDE]: molde.replace("contentType: 'audio/mpeg', segundos: 11 }, // a mesma hustle-04", "contentType: 'audio/mpeg', segundos: 19 }, // a mesma hustle-04") }],
-  ['vendedor: o preço da casa fica nos 75 do filme de 19 s', { ['lib/checkoutPricing.ts']: lf('lib/checkoutPricing.ts').replace("{ 'vendedor-de-ilusao': 45 }", "{ 'vendedor-de-ilusao': 75 }") }],
+  ['vendedor: o preço público volta aos 45 da casa (o dono disse 50)', { ['lib/checkoutPricing.ts']: lf('lib/checkoutPricing.ts').replace("'vendedor-de-ilusao': 50 } as const", "'vendedor-de-ilusao': 45 } as const") }],
   ['moldes: a linha aceita o marcador de outro molde', { [INV]: inv.replace('    if (!molde || trechoDoMarcador(e.video_url, molde.id) !== 0) return null', '    if (!molde || lerMarcador(e.video_url)?.i !== 0) return null') }],
   ['moldes: a montagem com os cortes do Pitch invader', { [INV]: inv.replace('  const molde = a.molde ?? MOLDE_PITCH_INVADER // KINEO-REMODELAMENTO-MOLDES-1611', '  const molde = MOLDE_PITCH_INVADER // KINEO-REMODELAMENTO-MOLDES-1611') }],
   // 2ª revisão independente de 15/11 (bloqueios para o público)
@@ -827,4 +827,4 @@ for (const [n, over] of mutantes) {
   if (falhas.length) mortos++; else console.error("MUTANTE VIVO: " + n)
 }
 if (mortos !== mutantes.length) process.exit(1)
-console.log(`PASS invasor de campo + moldes por dados (Pitch invader byte a byte; basquete e cachorro craque abertos a 75; a variante humana aberta a 40; o vendedor de ilusão só da casa a 45, 5 + 6 s com o rosto de frente em 1280×720): débito único, 3 trechos em ordem e um por vez (o outro cliente espera a montagem), virada com um envio só, estorno em toda falha, montagem 8+8+2,4 s a 125% com o som original, receita de 14/11, molde só da casa e fora do JS público; revisão 15/11: vigia não fecha a montagem, trava e duração em cada trecho, vaga relida depois do liquidar, fila pelos trechos que faltam, preço 75 da tabela, "Football play" retirado, espera de 10 a 15 min; ${mortos}/${mutantes.length} mutantes mortos`)
+console.log(`PASS invasor de campo + moldes por dados (Pitch invader byte a byte; basquete e cachorro craque abertos a 75; a variante humana aberta a 40; o vendedor de ilusão aberto a 50, 5 + 6 s com o rosto de frente em 1280×720): débito único, 3 trechos em ordem e um por vez (o outro cliente espera a montagem), virada com um envio só, estorno em toda falha, montagem 8+8+2,4 s a 125% com o som original, receita de 14/11, molde só da casa e fora do JS público; revisão 15/11: vigia não fecha a montagem, trava e duração em cada trecho, vaga relida depois do liquidar, fila pelos trechos que faltam, preço 75 da tabela, "Football play" retirado, espera de 10 a 15 min; ${mortos}/${mutantes.length} mutantes mortos`)
