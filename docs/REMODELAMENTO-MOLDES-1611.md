@@ -38,3 +38,9 @@ Pedido do dono (16/11 ~00:10): "por que não podemos fazer o do basquete e o do 
 - Carro: emblema e placa ilegíveis; o desenho do SUV é reconhecível e é o fundo de todo quadro (recorte não evita).
 - Só da casa (`VENDEDOR_ABERTO_AO_PUBLICO = false`), 75 provisório da casa (19 s enviados, o volume do Pitch invader). Custo fal previsto: US$ 3,58 + trava. Nada na home.
 - Falta: subir os 6 arquivos de `C:\kineo\docs\remodelamento-1611\subir-ao-bucket-privado-vendedor\` (manifesto junto) ao `quarantine/recreate-guias/v1`; publicar; teste pago da casa; preço público e abertura (o dono).
+
+## 16/11 · vendedor de ilusão v2: o rosto de frente nos instantes da trava (KINEO-VENDEDOR-ROSTO-1611)
+- Teste pago da casa ebe8bd47: trecho 0 trocado e aprovado; trecho 1 (4–12 s) falhou com swap_unchanged e estornou 75. A cópia do trecho 1 (renders/clips/.../ebe8bd47-…-trecho-1.mp4) mostra o rosto TROCADO: a falha é da trava, que olha 4 instantes (20/40/60/80% do trecho = 5,6 · 7,2 · 8,8 · 10,4 s do filme) e neles o rosto estava de lado, curvado sobre o capô ou cortado no topo.
+- Regra deste molde: todo trecho com o rosto de frente nos 4 instantes da trava. Novos cortes: trecho 0 = 0–5 s (quadros 0–119: a moça no colo e a queda), trecho 1 = 13,125–19,125 s (quadros 315–458: abre o paletó e fala). Saem a ida ao carro e o relógio (rosto de lado ou fora do quadro). Filme de 11 s com um corte seco aos 5 s. Os 8 instantes conferidos em `C:\kineo\docs\remodelamento-1611\vendedor\folhas\trava-v2.jpg`.
+- Som e cartão recortados juntos (-v2); o pôster v1 continua (quadro de 1,5 s, dentro do trecho 0). Preço provisório da casa: 45 (~4 por segundo enviado, 11 s). Custo fal previsto: US$ 2,08 + trava.
+- Subir os 4 arquivos de `C:\kineo\docs\remodelamento-1611\subir-ao-bucket-privado-vendedor-v2\` (manifesto junto).

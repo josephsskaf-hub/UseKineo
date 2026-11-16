@@ -216,10 +216,11 @@ const CACHORRO_CRAQUE_HUMANO: MoldeDeTrechos = {
 // de IA (y 513–552 da metade): o recorte é 896×504 a partir de (0, 960) — acima do rótulo, 16:9, o rapaz dentro do quadro do 1º ao último quadro (folha a 2 fps conferida)
 // —, levado a 1280×720 (o Kling 4.0 edição pede ≥ 700 px em cada lado; a metade inteira tem 608 de altura). Perde os pés no plano aberto dos primeiros 4 s.
 // Trechos de SEGUNDO INTEIRO, emendas nos picos de movimento do plano (a moça cai aos 4 s; a câmera avança para o relógio aos 12 s):
-//   trecho 0 = quadros 0 a 95 (0 a 4 s, 4 s), trecho 1 = quadros 96 a 287 (4 a 12 s, 8 s), trecho 2 = quadros 288 a 455 (12 a 19 s, 7 s). Ficam de fora 3 quadros finais.
+//   v1 (KINEO-MOLDE-VENDEDOR-1611): 0–95 (4 s), 96–287 (8 s), 288–455 (7 s) — o teste pago ebe8bd47 falhou no trecho 1 (rosto de lado nos instantes da trava).
+//   v2 (KINEO-VENDEDOR-ROSTO-1611): 0–119 (5 s) e 315–458 (6 s), 11 s com um corte seco aos 5 s — ver o comentário dos trechos abaixo.
 // O ALVO pela roupa: "the man in the dark navy suit and white shirt" (a moça veste preto; ninguém mais em quadro). Sem óculos no vídeo. A roupa fica (o terno é o "rico").
 // O SOM ORIGINAL é a fala dele em espanhol ("sonido original"; não ouvi): NÃO entra. No lugar, hustle-04 da NOSSA biblioteca CC0 ("Soulja Unit - Beyond The Moon",
-// music-novas/README.md), de 1,0 s, 19 s, −16 LUFS, entrada de 0,15 s e saída de 0,6 s. A boca dele mexe (ele fala o vídeo todo): no filme, fala muda sob a música.
+// music-novas/README.md), de 1,0 s, 11 s (v2; era 19 s), −16 LUFS, entrada de 0,15 s e saída de 0,6 s. A boca dele mexe (ele fala o vídeo todo): no filme, fala muda sob a música.
 // O carro: o desenho do SUV é o de uma marca de luxo conhecida; o emblema do capô tem ~15 px e a placa da frente, borrada — nenhum dos dois é legível. Recorte não o evita
 // (o carro é o fundo de todos os quadros).
 // SÓ DA CASA (interruptor fechado), preço provisório da casa (lib/checkoutPricing.ts RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO). Nada na home nem no catálogo público.
@@ -227,20 +228,25 @@ export const VENDEDOR_ABERTO_AO_PUBLICO: boolean = false
 const VENDEDOR_DE_ILUSAO: MoldeDeTrechos = {
   id: 'vendedor-de-ilusao', titulo: 'Illusion seller', desde: '2026-11-16',
   trechos: [
-    { arquivo: 'recreate-vendedor-de-ilusao-t0-v1.mp4', bytes: 1457096, sha256: '7b69bcf0315703697872d9863a5b1f10e82963f401ff6e617ca05292122bd5f3', contentType: 'video/mp4', quadros: [0, 95], segundosDoArquivo: 4, fps: 24, segundosNoFilme: 4, velocidade: 100 },
-    { arquivo: 'recreate-vendedor-de-ilusao-t1-v1.mp4', bytes: 3437693, sha256: '6f421ec0256353ab29029eeadc6872d7f7e20f1115ab25fff02ebc642d418227', contentType: 'video/mp4', quadros: [96, 287], segundosDoArquivo: 8, fps: 24, segundosNoFilme: 8, velocidade: 100 },
-    { arquivo: 'recreate-vendedor-de-ilusao-t2-v1.mp4', bytes: 2932499, sha256: '3a6f934c5146e7344cb64bf181e5816e8fea036f866cc666ead8a07fb26538a2', contentType: 'video/mp4', quadros: [288, 455], segundosDoArquivo: 7, fps: 24, segundosNoFilme: 7, velocidade: 100 },
+    // KINEO-VENDEDOR-ROSTO-1611 [CEO 16/11, teste pago ebe8bd47: o trecho 1 (4 a 12 s) falhou com swap_unchanged e estornou] — a cópia do trecho 1 mostra o rosto TROCADO;
+    // a trava olha 4 instantes (20/40/60/80% do trecho = 5,6 · 7,2 · 8,8 · 10,4 s do filme) e neles o rosto estava de lado, curvado sobre o capô ou cortado no topo:
+    // o juiz não viu a troca. REGRA deste molde: todo trecho com o rosto DE FRENTE nos 4 instantes da trava. Saem a ida ao carro e o relógio (5 a 13,125 s, rosto de
+    // lado ou fora do quadro); fica um corte seco aos 5 s. Os 8 instantes conferidos na folha docs/remodelamento-1611/vendedor/folhas/trava-v2.jpg.
+    // trecho 0 = quadros 0 a 119 (0 a 5 s: a moça no colo e a queda; instantes 1 · 2 · 3 · 4 s de frente);
+    // trecho 1 = quadros 315 a 458 (13,125 a 19,125 s, 6 s: abre o paletó e fala para a câmera; instantes 1,2 · 2,4 · 3,6 · 4,8 s de frente).
+    { arquivo: 'recreate-vendedor-de-ilusao-t0-v2.mp4', bytes: 1918768, sha256: 'bd0aafc82e77c4b22e37b1f3655e2015ff8ade4ba9675b8d6832a8f3c9b6511e', contentType: 'video/mp4', quadros: [0, 119], segundosDoArquivo: 5, fps: 24, segundosNoFilme: 5, velocidade: 100 },
+    { arquivo: 'recreate-vendedor-de-ilusao-t1-v2.mp4', bytes: 2439849, sha256: '7432d489c20d1645e6e0f16944e9279ace8993ef1c7eddb3b226934324f5990b', contentType: 'video/mp4', quadros: [315, 458], segundosDoArquivo: 6, fps: 24, segundosNoFilme: 6, velocidade: 100 },
   ],
-  som: { arquivo: 'recreate-vendedor-de-ilusao-som-v1.mp3', bytes: 457709, sha256: '42fdb104e5e5959fab2e552b4092e9d60245a287bf08c2d735f199a66522b577', contentType: 'audio/mpeg', segundos: 19 },
+  som: { arquivo: 'recreate-vendedor-de-ilusao-som-v2.mp3', bytes: 265866, sha256: 'f043e87a80ea58f78ca84fa674ee38c913b66276dd31c96fa6ad956617b421d7', contentType: 'audio/mpeg', segundos: 11 }, // a mesma hustle-04 de 1,0 s, 11 s
   vitrine: {
-    'vendedor-de-ilusao.mp4': { arquivo: 'recreate-vendedor-de-ilusao-vitrine-v1.mp4', bytes: 5166017, sha256: 'e311c60e3a92eca091b31a0059bb8af278b19805a25f41bd041477a3ebbac59b', contentType: 'video/mp4' },
+    'vendedor-de-ilusao.mp4': { arquivo: 'recreate-vendedor-de-ilusao-vitrine-v2.mp4', bytes: 2868580, sha256: 'd533df34ba1914d46f73847d2ee757af8c4dd7b060c860858eea2b21a6ab1b0c', contentType: 'video/mp4' }, // os 2 cortes novos com o som v2
     'vendedor-de-ilusao.jpg': { arquivo: 'recreate-vendedor-de-ilusao-vitrine-v1.jpg', bytes: 72669, sha256: '92df7a97b61c599529061c855e7c885d08a00a1a90e9454f1c0d62e228e03198', contentType: 'image/jpeg' },
   },
   entrada: { largura: 1280, altura: 720 }, saida: { largura: 1280, altura: 720, fps: 24 },
   alvo: { tipo: 'pessoa', texto: 'the man in the dark navy suit and white shirt', deOculos: false, roupa: 'Keep the original clothing from @Video1.' },
-  segundos: 19, aberto: VENDEDOR_ABERTO_AO_PUBLICO, creditosPublicos: null, creditosDaCasa: recreateCreditCostMoldeDaCasa('vendedor-de-ilusao'),
-  esperaMinutos: [10, 15], // 3 trechos de 1,5 a 4 min + a trava de cada trecho + a montagem (o mesmo volume do Pitch invader)
-  nota: '16/11: the "after" half of a split-screen trend (suit, luxury SUV), cropped above a burned-in label to 16:9; 3 Kling 4.0 edit segments (4 + 8 + 7 s) + our CC0 track; house only',
+  segundos: 11, aberto: VENDEDOR_ABERTO_AO_PUBLICO, creditosPublicos: null, creditosDaCasa: recreateCreditCostMoldeDaCasa('vendedor-de-ilusao'),
+  esperaMinutos: [5, 10], // 2 trechos de 1,5 a 4 min + a trava de cada trecho + a montagem (KINEO-VENDEDOR-ROSTO-1611; eram 3)
+  nota: '16/11: the "after" half of a split-screen trend (suit, luxury SUV), cropped above a burned-in label to 16:9; 2 Kling 4.0 edit segments with the face frontal at every check instant (5 + 6 s, paid test ebe8bd47 failed on the side-face walk) + our CC0 track; house only',
 }
 
 /** O registro dos moldes de vários trechos. O 1º é o Pitch invader (byte a byte o de antes). */
