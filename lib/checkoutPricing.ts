@@ -25,13 +25,15 @@ export function recreateCreditCostVariosTrechos(seconds: number): number | null 
 // basquete = 14,4 s enviados → 60; cachorro-craque = 15,0 s enviados → 60. Vale SÓ enquanto o molde é da casa: com o interruptor aberto ao público, o molde lê o preço
 // PÚBLICO (nenhum, até o sim do dono: sem preço, o molde some do catálogo do cliente). Com o sim, a linha passa para uma tabela pública e sai daqui.
 // KINEO-NOVIDADE-EM-EVIDENCIA-1611 — o cachorro craque saiu daqui (abriu ao público a 75, tabela abaixo); entra a variante humana "Dog goal · you" (75, só da casa).
-export const RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO = { basquete: 60, 'cachorro-craque-humano': 75 } as const
+// KINEO-BASQUETE-ABRE-1611 — o basquete saiu daqui (abriu ao público a 75, tabela abaixo).
+export const RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO = { 'cachorro-craque-humano': 75 } as const
 export function recreateCreditCostMoldeDaCasa(id: string): number | null {
   return Object.prototype.hasOwnProperty.call(RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO, id) ? RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO[id as keyof typeof RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO] : null
 }
 // KINEO-NOVIDADE-EM-EVIDENCIA-1611 [dono 16/11 ~02:00: "abre a 75"] — preço PÚBLICO, por molde, dos moldes de vários trechos que não estão na tabela por duração:
 // o "Dog goal" (cachorro-craque, 15 s) = 75 créditos. Único lugar deste número; o molde o lê por recreateCreditCostMoldePublico.
-export const RECREATE_PRICING_MOLDES_PUBLICOS = { 'cachorro-craque': 75 } as const
+// KINEO-BASQUETE-ABRE-1611 [dono 16/11 ~02:30: "Abre a 75"] — o "Slam dunk" (basquete, 14 s, camiseta lisa) = 75 créditos.
+export const RECREATE_PRICING_MOLDES_PUBLICOS = { 'cachorro-craque': 75, basquete: 75 } as const
 export function recreateCreditCostMoldePublico(id: string): number | null {
   return Object.prototype.hasOwnProperty.call(RECREATE_PRICING_MOLDES_PUBLICOS, id) ? RECREATE_PRICING_MOLDES_PUBLICOS[id as keyof typeof RECREATE_PRICING_MOLDES_PUBLICOS] : null
 }

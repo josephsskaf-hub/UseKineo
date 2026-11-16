@@ -128,7 +128,9 @@ const PITCH_INVADER: MoldeDeTrechos = {
 // normalizada a −16 LUFS, entrada de 0,15 s e saída de 0,6 s.
 // VARIANTE "camiseta lisa" (para tirar a estampa do autor da roupa do cliente): BASQUETE_CAMISETA_LISA, DESLIGADA. Ligada, a frase da roupa vira "Keep the original
 // shorts and shoes from @Video1, and he wears a plain black t-shirt." Nunca testada (trocar roupa junto com o rosto); a CEO decide depois do teste.
-export const BASQUETE_ABERTO_AO_PUBLICO: boolean = false
+// KINEO-BASQUETE-ABRE-1611 [dono 16/11 ~02:30: "Abre a 75"] — ABERTO ao público a 75 (lib/checkoutPricing.ts RECREATE_PRICING_MOLDES_PUBLICOS), com a camiseta lisa ligada:
+// teste pago da casa d5649ec7 (a estampa do autor sumiu; rosto trocado do drible ao grito); o dono pagou o influenciador pelo vídeo. Volta: false.
+export const BASQUETE_ABERTO_AO_PUBLICO: boolean = true
 // KINEO-CAMISETA-LISA-1611 [dono 16/11 ~01:50: "testa a lisa"] — ligada para o teste pago da casa; o molde segue só da casa.
 export const BASQUETE_CAMISETA_LISA: boolean = true
 const BASQUETE: MoldeDeTrechos = {
@@ -145,7 +147,7 @@ const BASQUETE: MoldeDeTrechos = {
   },
   entrada: { largura: 720, altura: 1280 }, saida: { largura: 720, altura: 1280, fps: 24 },
   alvo: { tipo: 'pessoa', texto: 'the man in the black t-shirt and dark shorts', deOculos: true, roupa: BASQUETE_CAMISETA_LISA ? 'Keep the original shorts and shoes from @Video1, and he wears a plain black t-shirt.' : 'Keep the original clothing from @Video1.' },
-  segundos: 14, aberto: BASQUETE_ABERTO_AO_PUBLICO, creditosPublicos: null, creditosDaCasa: recreateCreditCostMoldeDaCasa('basquete'),
+  segundos: 14, aberto: BASQUETE_ABERTO_AO_PUBLICO, creditosPublicos: recreateCreditCostMoldePublico('basquete'), creditosDaCasa: null, approvedOn: '2026-11-16',
   esperaMinutos: [5, 10], // 2 trechos de 1,5 a 4 min + a trava de cada trecho + a montagem
   nota: '16/11: 2 Kling 4.0 edit segments (8 + 6 s, whole seconds) + our CC0 library track instead of the original song; house only until the paid test',
 }
