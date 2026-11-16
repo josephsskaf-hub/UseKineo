@@ -13,8 +13,7 @@ import { lerDescricaoDaPessoa } from './descricaoDaPessoa'
 import { FILA_MOTIVOS, FRASE_FILA_CHEIA_ESTORNADA, esperaNaFila, naFila, posicaoNaFila } from './filaKlingEdit'
 import { depoisDeEntrar, leiturasQueFalharam, PORTA_LEITURA_FALHOU_EVENTO, PORTA_UM_POR_VEZ } from './portaDoSeuVideo'
 import { TETO_CODIGO, TETO_EVENTO, TETO_MOTIVOS, TETO_NAO_TROCOU } from './tetoNaoTrocou'
-import { lerNaoTrocouDaConta } from './seuVideoServer'
-import { recreateEngineAccess } from './server'
+import { recreateEngineAccess } from '@/lib/recreate/server' // o mesmo caminho que a rota importa (os guardiões trocam este módulo pelo dublê)
 import { releaseVisible } from './access'
 import { INVASOR_TRECHOS } from './invasorMolde'
 import { INVASOR_CREDITOS, INVASOR_EVENTOS, INVASOR_FAL_USD, entradaDoTrecho, invasorDaLinha, planInvasor, portaDoInvasor, resolverEntrada, semOculosDaDescricao, textoDoInvasor } from './invasor'
@@ -63,13 +62,11 @@ export async function pedirInvasor(a: { admin: SupabaseClient; supabase: Supabas
   // motor em pausa; um pedido aberto do Kling edit por conta (o molde de vários trechos conta do 1º trecho ao fim da montagem); o teto de "não trocou" da conta
   // (o "seu vídeo" e este molde juntos); a fila cheia contada pelos trechos que faltam. A casa (lista EXATA) fica fora do um por vez e do teto, e entra na fila.
   const casa = releaseVisible(user.email, 'internal')
-  const [abertos, doSeuVideo, doInvasor, fila] = await Promise.all([
+  const [abertos, resultados, fila] = await Promise.all([
     casa ? Promise.resolve([] as Array<{ id: string; naFila: boolean }>) : kling4AbertosDaConta(admin, user.id),
-    casa ? Promise.resolve([]) : lerNaoTrocouDaConta(admin, user.id),
-    casa ? Promise.resolve([]) : lerNaoTrocouDoInvasor(admin, user.id, TETO_MOTIVOS, TETO_NAO_TROCOU.janelaHoras),
+    casa ? Promise.resolve([]) : lerNaoTrocouDoInvasor(admin, user.id, TETO_MOTIVOS, TETO_NAO_TROCOU.janelaHoras), // o "seu vídeo" + este molde
     filaKlingEditEstado(admin),
   ])
-  const resultados = doSeuVideo === null || doInvasor === null ? null : [...doSeuVideo, ...doInvasor]
   const falhas = leiturasQueFalharam({ casa, abertos: abertos ? abertos.length : null, resultados, filaEsperada: true, fila })
   if (falhas.length) await writeServerEvent({ name: PORTA_LEITURA_FALHOU_EVENTO, userId: user.id, path: '/api/recreate', metadata: { produto: 'invasor_de_campo', leituras: falhas } }).catch(() => false)
   const recusa = portaDoInvasor({ replay: false, casa, pagante: isPayingPlan(account.plan), abertos: abertos ? abertos.length : null, resultados, fila, agoraMs: Date.now(), motorOk: recreateEngineAccess().ok })
