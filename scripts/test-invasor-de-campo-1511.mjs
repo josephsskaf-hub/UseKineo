@@ -21,7 +21,7 @@ const T0 = Date.parse('2026-11-15T20:00:00Z'), MIN = 60_000
 const uid = (n) => `${String(n).padStart(8, '0')}-2222-3333-4444-555555555555`
 const foto = (u) => `${SUPA}/storage/v1/object/public/avatars/${u}/face.jpg`
 const CABELO = 'medium-length wavy dark-brown hair, brushed up and back and a short dark-brown stubble beard'
-const assinar = async (i) => `https://fixture.supabase.co/storage/v1/object/sign/quarantine/recreate-guias/v1/t${i}.mp4?token=abc`
+const assinar = async (molde, i) => `https://fixture.supabase.co/storage/v1/object/sign/quarantine/recreate-guias/v1/${molde.id === 'invasor-de-campo' ? '' : molde.id + '-'}t${i}.mp4?token=abc`
 
 // ── banco de mentira no jeito do PostgREST (o mesmo de scripts/test-varreduras-estorno-1411.mjs), para EXECUTAR a varredura real do servidor ──
 const OR_CHAVE = /^created_at\.lt\."([^"]+)",and\(created_at\.eq\."([^"]+)",id\.lt\."([^"]+)"\)$/
@@ -101,12 +101,12 @@ function mundo(m, o = {}) {
     poll: async (_m, req) => { await tick(); return s.poll.get(req) ?? { state: 'running' } },
     guardarTrecho: async (row, i) => { await tick(); s.guardados.add(row.id + ':' + i); return { url: `https://ours.org/clips/${row.id}-trecho-${i}.mp4`, segundos: o.segundos ? o.segundos(i) : M.INVASOR_TRECHOS[i].segundosDoArquivo + 0.04 } },
     conferirTroca: async (row, i, url, dados) => { await tick(); s.travas.push({ clipId: row.id, i, url, prompt: dados.prompt, foto: dados.foto }); return o.trava ? o.trava(i) : { result: 'swapped', reason: 'all_swapped', usd: 0.02 } },
-    urlsDosTrechos: async (row) => M.INVASOR_TRECHOS.map((_, i) => { if (!s.guardados.has(row.id + ':' + i)) throw new Error('trecho faltando'); return `https://ours.org/clips/${row.id}-trecho-${i}.mp4` }),
+    urlsDosTrechos: async (row) => I.dadosDaLinha(row).molde.trechos.map((_, i) => { if (!s.guardados.has(row.id + ':' + i)) throw new Error('trecho faltando'); return `https://ours.org/clips/${row.id}-trecho-${i}.mp4` }),
     mover: async (id, de, para) => { await tick(); if (o.moverFalha?.(para)) return false; const r = s.rows.get(id); if (!r || r.status !== 'processing' || r.failure_reason !== de.failure_reason || r.fal_request_id !== de.fal_request_id) return false; Object.assign(r, para); return true },
     garantirVaga: async (clipId) => { await tick(); if (s.vaga?.clipId === clipId) { s.vaga.expiraEm = s.agora + F.VAGA_TTL_MS; s.vaga.tomadaEm = s.agora; return true } if (s.vaga) return false; s.vaga = { clipId, expiraEm: s.agora + F.VAGA_TTL_MS, tomadaEm: s.agora }; return true },
     soltarVaga: async (clipId) => { if (s.vaga?.clipId === clipId) s.vaga = null },
-    enviarTrecho: async (row, i, dados) => { await tick(); const entrada = await I.resolverEntrada(I.entradaDoTrecho({ prompt: dados.prompt, foto: dados.foto, trecho: i }), assinar); if (o.envioDoTrecho) return o.envioDoTrecho(i); return enviarFal(row.id, KLING, entrada) },
-    montar: async (row, trechos) => { await tick(); const id = 'render-' + (s.renders.length + 1); s.renders.push({ id, fonte: I.fonteDaMontagem({ trechos, som: 'https://signed.org/som.mp3' }) }); return { ok: true, renderId: id } },
+    enviarTrecho: async (row, i, dados) => { await tick(); const entrada = await I.resolverEntrada(I.entradaDoTrecho({ prompt: dados.prompt, foto: dados.foto, trecho: i, molde: dados.molde }), assinar); if (o.envioDoTrecho) return o.envioDoTrecho(i); return enviarFal(row.id, KLING, entrada) },
+    montar: async (row, trechos) => { await tick(); const id = 'render-' + (s.renders.length + 1); s.renders.push({ id, fonte: I.fonteDaMontagem({ molde: I.dadosDaLinha(row).molde, trechos, som: 'https://signed.org/som.mp3' }) }); return { ok: true, renderId: id } },
     consultarMontagem: async (id) => s.renderEstado.get(id) ?? { status: 'pending' },
     guardarFilme: async (row) => `https://ours.org/clips/${row.user_id}/${row.id}.mp4`,
     markDone: async (id, url, marca) => { const r = s.rows.get(id); if (!r || r.status !== 'processing' || r.failure_reason !== marca) return false; Object.assign(r, { status: 'done', video_url: url, failure_reason: null }); return true },
@@ -152,7 +152,7 @@ function mundo(m, o = {}) {
   const passadaDoCron = async (id) => { const after = await flow.settleClip(settleDeps(), snap(id)); if (after.status === 'processing' && after.model === KLING) await F.vigiarDonoDaVaga(io, id, Date.parse(s.rows.get(id).created_at), { soComVaga: I.invasorDaLinha(after) }); return after }
   /** o estado da fila para a porta e a tela (lib/clips/clipServer filaKlingEditEstado): na fila pelo peso de cada linha, a vaga pelo peso do dono */
   const estadoDaFila = (clipId) => { const q = [...s.rows.values()].filter((r) => F.naFila(r)).sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id)).map((r) => ({ id: r.id, peso: I.pesoNaFila(r) })); const ocupada = !!s.vaga && s.vaga.expiraEm > s.agora; const dono = ocupada ? s.rows.get(s.vaga.clipId) : null; return F.filaPonderada(q, { ocupada, peso: dono ? I.pesoNaFila(dono) : 1 }, clipId) }
-  return { s, I, M, F, io, pedirInvasor, pedirComum, liquidar, entregar, snap, passadaDoCron, estadoDaFila }
+  return { s, I, M, F, io, submitDeps, pedirInvasor, pedirComum, liquidar, entregar, snap, passadaDoCron, estadoDaFila }
 }
 
 async function bateria(over = {}) {
@@ -193,7 +193,7 @@ async function bateria(over = {}) {
     })
     await check('a entrada da fal: marcador vira URL assinada, marcas kineo_* saem; assinatura que falha = nada enviado', async () => {
       const e = await I.resolverEntrada({ prompt: 'p', video_url: I.marcadorDoTrecho(2), image_urls: ['x'], kineo_molde: 'invasor-de-campo' }, assinar)
-      if (e.video_url !== await assinar(2) || 'kineo_molde' in e) throw new Error(JSON.stringify(e))
+      if (e.video_url !== await assinar(M.MOLDE_PITCH_INVADER, 2) || 'kineo_molde' in e) throw new Error(JSON.stringify(e))
       if ((await I.resolverEntrada({ video_url: I.marcadorDoTrecho(1) }, async () => null)) !== null) throw new Error('falha de assinatura passou')
       if ((await I.resolverEntrada({ video_url: 'kineo-trecho://outro/0' }, assinar)) !== null) throw new Error('marcador de outro molde passou')
       const comum = await I.resolverEntrada({ video_url: 'https://a.org/v.mp4', kineo_x: 1 }, assinar)
@@ -481,7 +481,8 @@ async function bateria(over = {}) {
       const linhaAntiga = { engine: 'kling', mode: 'image', model: movimento.MOVIMENTO_VIDEO_MODEL, fingerprint: JSON.stringify(['x', movimento.MOVIMENTO_CENA_MODEL, { molde: 'jogada-de-futebol' }]) }
       if (movimento.movimentoForRow(linhaAntiga)?.id !== 'jogada-de-futebol') throw new Error('a linha antiga perdeu o molde')
       const casa = cat.formatosParaOCliente('josephsskaf@gmail.com')
-      if (casa.some((f) => f.id === 'jogada-de-futebol') || casa[0]?.id !== 'invasor-de-campo') throw new Error('grade da casa: ' + casa.slice(0, 3).map((f) => f.id))
+      const ix = (id) => casa.findIndex((f) => f.id === id)
+      if (casa.some((f) => f.id === 'jogada-de-futebol') || ix('invasor-de-campo') < 0 || ix('invasor-de-campo') > ix('sueter-aconchegante')) throw new Error('grade da casa: ' + casa.slice(0, 4).map((f) => f.id)) // KINEO-REMODELAMENTO-MOLDES-1611 — os moldes novos (16/11) da casa vêm antes
       const cli = cat.formatosParaOCliente('customer@example.org')
       if (cli.some((f) => f.id === 'jogada-de-futebol') || cli[0]?.id !== 'invasor-de-campo') throw new Error('grade do cliente: ' + cli.slice(0, 3).map((f) => f.id))
     })
@@ -491,6 +492,86 @@ async function bateria(over = {}) {
       if (!v || JSON.stringify(v.esperaMinutos) !== '[10,15]' || !cat.CAMPOS_DE_VITRINE.includes('esperaMinutos')) throw new Error('a vitrine não leva a espera')
       const tela = lf('app/recreate/RecreateClient.tsx')
       if (!tela.includes('`about ${selected.esperaMinutos[0]} to ${selected.esperaMinutos[1]} minutes` : \'about 3 minutes\'') || !tela.includes('active ? `Creating your version: ${espera}. You can leave this page; it will be in My videos.`')) throw new Error('a tela não usa a espera do molde')
+    })
+    // ── KINEO-REMODELAMENTO-MOLDES-1611 [CEO 16/11]: moldes por DADOS (Pitch invader inalterado; basquete e cachorro craque só da casa) ──
+    await check('moldes 1: o Pitch invader manda à fal e à montagem BYTE A BYTE o de antes (o retrato gravado em 16/11 antes da mudança)', async () => {
+      const U2 = '00000077-2222-3333-4444-555555555555', F2 = 'https://fixture.supabase.co/storage/v1/object/public/avatars/' + U2 + '/face.jpg'
+      const ctx = { userId: U2, supabaseUrl: 'https://fixture.supabase.co', dono: (x) => x }
+      const agora = JSON.stringify({
+        planos: [[{ format: 'invasor-de-campo', consent: true, photos: [F2] }, null], [{ format: 'invasor-de-campo', consent: true, photos: [F2] }, { cabeloEBarba: 'medium-length wavy dark-brown hair, brushed up and back and a short dark-brown stubble beard', semOculos: true }], [{ format: 'invasor-de-campo', consent: true, photos: [F2], gender: 'woman' }, { cabeloEBarba: 'long straight black hair', semOculos: false }]].map(([r, l]) => I.planInvasor(r, ctx, l)),
+        trechos: [0, 1, 2].map((i) => I.entradaDoTrecho({ prompt: 'P', foto: F2, trecho: i })),
+        montagem: I.fonteDaMontagem({ trechos: ['a', 'b', 'c'], som: 's', marca: { type: 'text', text: 'usekineo.com' } }),
+        consts: { credits: I.INVASOR_CREDITOS, fal: I.INVASOR_FAL_USD, seg: I.INVASOR_SEGUNDOS_DO_FILME, model: I.INVASOR_MONTAGEM_MODEL, selo: I.INVASOR_SELO },
+      })
+      if (agora !== lf('scripts/test-support/invasor-pedido-fal-1511.json').trim()) throw new Error('o pedido do Pitch invader mudou')
+      if (I.fonteDaMontagem({ molde: M.MOLDE_PITCH_INVADER, trechos: ['a', 'b', 'c'], som: 's' }).duration !== 18.4 || M.MOLDES_DE_TRECHOS[0] !== M.MOLDE_PITCH_INVADER) throw new Error('o 1º registro')
+    })
+    await check('moldes 2: basquete e cachorro craque — cortes, arquivos privados com sha256, só da casa, preço provisório da tabela', async () => {
+      const p = m('lib/checkoutPricing'), access = m('lib/recreate/access'), cat = m('lib/recreate/catalogoServidor')
+      for (const id of ['basquete', 'cachorro-craque']) {
+        const mo = M.moldeDeTrechos(id)
+        if (!mo || mo.aberto !== false || mo.creditosPublicos !== null || mo.creditosDaCasa !== p.recreateCreditCostMoldeDaCasa(id) || mo.creditosDaCasa !== 60) throw new Error(id + ': interruptor ou preço')
+        if (mo.trechos.length !== 2 || mo.trechos.some((t) => t.segundosDoArquivo < 3 || t.segundosDoArquivo > 8 || t.velocidade !== 100 || Math.abs((t.quadros[1] - t.quadros[0] + 1) / t.fps - t.segundosDoArquivo) > 0.001)) throw new Error(id + ': trechos')
+        if (Math.abs(I.segundosDoFilme(mo) - mo.som.segundos) > 0.001 || mo.trechos[1].quadros[0] !== mo.trechos[0].quadros[1] + 1) throw new Error(id + ': som ou emenda')
+        for (const a of [...mo.trechos, mo.som, ...Object.values(mo.vitrine)]) if (!a.arquivo.startsWith(`recreate-${id}-`) || !/^[0-9a-f]{64}$/.test(a.sha256) || !(a.bytes > 0)) throw new Error(id + ': manifesto ' + a.arquivo)
+        if (!mo.vitrine[id + '.mp4'] || !mo.vitrine[id + '.jpg'] || M.invasorArquivoDaVitrine(id + '.jpg') !== mo.vitrine[id + '.jpg']) throw new Error(id + ': cartão')
+        const f = cat.recreateFormatServidor(id)
+        if (!f || access.recreateFormatVisible(f, 'customer@example.org') || !access.recreateFormatVisible(f, 'josephsskaf@gmail.com') || f.creditos !== 60) throw new Error(id + ': visibilidade')
+        if (cat.formatosParaOCliente('customer@example.org').some((x) => x.id === id) || m('lib/recreate/formats').RECREATE_FORMATS.some((x) => x.id === id)) throw new Error(id + ': cliente ou JS público')
+      }
+      if (p.recreateCreditCost(14) !== null || !/AGUARDA O SIM DO DONO/.test(lf('lib/checkoutPricing.ts'))) throw new Error('preço da casa fora da tabela ou sem a marca')
+      // interruptor aberto SEM preço público: o cliente continua sem ver e o pedido é recusado (o provisório da casa nunca vira preço público)
+      const aberto = loader({}, { [MOLDE]: (over[MOLDE] ?? lf(MOLDE)).replace('export const BASQUETE_ABERTO_AO_PUBLICO: boolean = false', 'export const BASQUETE_ABERTO_AO_PUBLICO: boolean = true') })
+      const fb = aberto('lib/recreate/catalogoServidor').recreateFormatServidor('basquete')
+      if (aberto('lib/recreate/access').recreateFormatVisible(fb, 'customer@example.org') || fb.creditos !== null) throw new Error('o preço provisório da casa virou público')
+      const pl = aberto('lib/recreate/invasor').planInvasor({ format: 'basquete', consent: true, photos: [foto(uid(5))] }, { userId: uid(5), supabaseUrl: SUPA, dono: (x) => x }, null)
+      if (pl.ok || pl.status !== 409) throw new Error('pedido sem preço público passou')
+    })
+    await check('moldes 3: os textos — basquete pela roupa (camiseta preta), "camiseta lisa" desligada; cachorro pelo bicho; nenhuma frase negativa', async () => {
+      const mov = m('lib/recreate/movimento')
+      const b = M.moldeDeTrechos('basquete'), c = M.moldeDeTrechos('cachorro-craque')
+      const tb = I.textoDoMolde(b, { genero: 'man', cabeloEBarba: CABELO, semOculos: true })
+      if (tb !== `Replace the man in the black t-shirt and dark shorts in @Video1 with the man from @Image1: his face, hair and beard match @Image1, with ${CABELO}, and he wears no glasses. Keep his movements, the timing, the camera, the framing, every other person, the background and the lighting of @Video1 exactly. Keep the original clothing from @Video1.`) throw new Error(tb)
+      if (M.BASQUETE_CAMISETA_LISA !== false) throw new Error('a variante camiseta lisa está ligada')
+      const lisa = loader({}, { [MOLDE]: lf(MOLDE).replace('export const BASQUETE_CAMISETA_LISA: boolean = false', 'export const BASQUETE_CAMISETA_LISA: boolean = true') })
+      const tl = lisa('lib/recreate/invasor').textoDoMolde(lisa('lib/recreate/invasorMolde').moldeDeTrechos('basquete'), { genero: 'man', semOculos: true })
+      if (!tl.endsWith('Keep the original shorts and shoes from @Video1, and he wears a plain black t-shirt.')) throw new Error('variante: ' + tl)
+      const tc = I.textoDoMolde(c, { bicho: 'dog', cabeloEBarba: CABELO, genero: 'woman' })
+      if (tc !== 'Replace the German Shepherd dog in @Video1 with the dog from @Image1: his fur, face and ears match @Image1. Keep his movements, the timing, the camera, the framing, every other person, the background and the lighting of @Video1 exactly.') throw new Error(tc)
+      if (!I.textoDoMolde(c, { bicho: 'cat' }).includes('with the cat from @Image1')) throw new Error('gato')
+      for (const mo of M.MOLDES_DE_TRECHOS) for (const g of ['man', 'woman']) for (const so of [true, false, null]) for (const bi of ['dog', 'cat']) { const t = I.textoDoMolde(mo, { genero: g, semOculos: so, bicho: bi, cabeloEBarba: CABELO }); if (mov.temFraseNegativa(t)) throw new Error('frase negativa: ' + t) }
+      if (!lf('lib/recreate/invasorRota.ts').includes("if (molde.alvo.tipo === 'pessoa' && creditos !== null && account.balance >= creditos) {")) throw new Error('o leitor de cabelo roda no pet')
+      if (!/hustle-02/.test(lf(MOLDE)) || !/Todas \*\*CC0\*\*/.test(lf('music-novas/README.md')) || !/`hustle-02\.mp3` \| Soulja Unit - Basic \(2019\)/.test(lf('music-novas/README.md'))) throw new Error('a trilha do basquete sem a origem CC0')
+    })
+    for (const id of ['basquete', 'cachorro-craque']) {
+      await check(`moldes 4: ${id} pela máquina inteira — débito único, 2 trechos um por vez com a trava, montagem com os cortes e o som do molde, done`, async () => {
+        const w = mundo(m)
+        const u = uid(990)
+        const r0 = I.planInvasor({ format: id, consent: true, photos: [foto(u)] }, { userId: u, supabaseUrl: SUPA, dono: (x) => (x.startsWith(`${SUPA}/storage/v1/object/public/avatars/${u}/`) ? x : null) }, { cabeloEBarba: CABELO, semOculos: true })
+        const flow = m('lib/clips/clipFlow')
+        const sd = await flow.submitClip(w.submitDeps(), { userId: u, idempotencyKey: 'molde-' + id + '-1', body: r0.plan.body, recreatePlan: r0.plan })
+        if (!sd.ok) throw new Error('submit: ' + JSON.stringify(sd))
+        const a = sd.clip.id
+        const mo = M.moldeDeTrechos(id)
+        if (st(w, a).seconds !== mo.segundos || I.trechosQueFaltam(st(w, a)) !== 2) throw new Error('linha')
+        for (let i = 0; i < 2; i++) { w.entregar(a); await w.liquidar(a) }
+        if (st(w, a).model !== I.INVASOR_MONTAGEM_MODEL || w.s.vaga || w.s.travas.length !== 2) throw new Error('montagem: ' + JSON.stringify(st(w, a)))
+        const ins = doClipe(w, a).map((x) => x.input)
+        if (ins.length !== 2 || ins.map((x) => x.video_url).join() !== [0, 1].map((i) => `https://fixture.supabase.co/storage/v1/object/sign/quarantine/recreate-guias/v1/${id}-t${i}.mp4?token=abc`).join() || ins.some((x) => 'kineo_molde' in x || x.prompt !== r0.plan.input.prompt)) throw new Error('entradas: ' + JSON.stringify(ins))
+        const fo = w.s.renders[0].fonte
+        const esp = mo.trechos.map((t) => t.segundosNoFilme)
+        if (fo.elements.filter((e) => e.type === 'video').map((e) => e.duration).join() !== esp.join() || fo.duration !== I.segundosDoFilme(mo) || fo.elements.find((e) => e.type === 'audio').duration !== mo.som.segundos || fo.elements.some((e) => e.speed)) throw new Error('montagem: ' + JSON.stringify(fo))
+        w.s.renderEstado.set('render-1', { status: 'succeeded', url: 'https://cdn.creatomate.com/r.mp4' }); await w.liquidar(a)
+        if (st(w, a).status !== 'done' || w.s.debitos.length !== 1 || w.s.estornos.length || w.s.maxAberto !== 1) throw new Error('fim: ' + JSON.stringify(st(w, a)))
+      })
+    }
+    await check('moldes 5: o molde vem do que o servidor gravou — marcador de um molde com o id de outro não é linha de ninguém', async () => {
+      const inp = { prompt: 'p', video_url: I.marcadorDoTrecho(0, 'invasor-de-campo'), image_urls: [foto(uid(1))], resolution: '720p', kineo_molde: 'basquete' }
+      if (I.dadosDaLinha({ fingerprint: JSON.stringify(['x', KLING, inp]) }) !== null) throw new Error('marcador trocado aceito')
+      const ok = { ...inp, video_url: I.marcadorDoTrecho(0, 'basquete') }
+      if (I.dadosDaLinha({ fingerprint: JSON.stringify(['x', KLING, ok]) })?.molde.id !== 'basquete') throw new Error('linha do basquete')
+      if (I.lerMarcador('kineo-trecho://basquete/2') !== null || I.lerMarcador('kineo-trecho://cachorro-craque/1')?.i !== 1) throw new Error('trecho fora do molde')
+      if (I.dadosDaLinha({ fingerprint: JSON.stringify(['x', KLING, { ...ok, kineo_molde: 'nao-existe', video_url: 'kineo-trecho://nao-existe/0' }]) }) !== null) throw new Error('molde inexistente')
     })
     // ── 2ª revisão independente de 15/11 (bloqueios para abrir ao público) ──
     await check('2ª revisão, item 1: a varredura horária refaz o estorno do invasor failed com 0 devolvido (qualquer motivo), uma vez só; nunca cobrado e outros clipes fora', async () => {
@@ -550,12 +631,12 @@ async function bateria(over = {}) {
       const sc = lf('lib/recreate/swapCheck.ts')
       if (!sc.includes('const work = checarComAlvo(ctx, a.resultVideoUrl, opts, verdict, unverified)') || !sc.includes('ctx.baseMeta ?? metaPorUrl(ctx.baseVideoUrl as string, f)')) throw new Error('item 2: a trava do trecho não é a do Kling edit')
       if (!srv.includes('label: ehLinhaDeMovimento(row) ? MOVIMENTO_SELO : invasorDaLinha(row) ? INVASOR_SELO :') || I.INVASOR_SELO !== 'Kling 4.0 Edit') throw new Error('o selo da Library não é o motor real')
-      if (!srv.includes('const resolvida = await resolverEntrada(lida.input, (i) => assinarTrechoDoInvasor(admin, i))') || !srv.includes('comEndUserDaFal(submitToFalOnce, row.user_id)(e.model, semMarcasDaCasa(e.input))')) throw new Error('envio da fila sem resolver o marcador')
+      if (!srv.includes('const resolvida = await resolverEntrada(lida.input, (molde, i) => assinarTrechoDoInvasor(admin, molde, i))') || !srv.includes('comEndUserDaFal(submitToFalOnce, row.user_id)(e.model, semMarcasDaCasa(e.input))')) throw new Error('envio da fila sem resolver o marcador')
       const g = srv.slice(srv.indexOf('async function garantirVagaDoClipe('), srv.indexOf('const invasorTrechoPath'))
       if (!g.includes("tomada_em: new Date(agora).toISOString()") || !g.includes("if (md) return false") || !g.includes(".eq('metadata->>clip_id', clipId)")) throw new Error('a vaga do invasor: renovar início, nunca tomar a de outro')
       const io = srv.slice(srv.indexOf('function invasorIoFor('), srv.indexOf('/**\n * O estado da fila para a tela'))
       if (!io.includes('silenciarMp4(await baixar(url))') || !io.includes('freeClipWatermarkDecision({ live: FREE_CLIP_WATERMARK_LIVE') || !io.includes(".eq('failure_reason', marca)") || !io.includes('markFailed(admin, id, reason, refunded)') || !io.includes('refundRenderCredits(ref)')) throw new Error('fios do io')
-      const iVis = rota.indexOf('if (!recreateFormatVisible(format, user.email)) return json'), iInv = rota.indexOf('if (format.id === INVASOR_ID) return pedirInvasorNaRota('), iPreco = rota.indexOf('if (!recreateSwapPriced(format))')
+      const iVis = rota.indexOf('if (!recreateFormatVisible(format, user.email)) return json'), iInv = rota.indexOf('if (moldeDeTrechos(format.id)) return pedirInvasorNaRota('), iPreco = rota.indexOf('if (!recreateSwapPriced(format))')
       if (!(iVis > 0 && iInv > iVis && iPreco > iInv)) throw new Error('a rota confere a visibilidade ANTES do invasor')
       if (!pedir.includes('await submitClip(deps, { userId: user.id, idempotencyKey: key, body: plan.body, recreatePlan: plan })') || pedir.indexOf('invasorArquivosPresentes(admin)') > pedir.indexOf('await submitClip(') || pedir.indexOf('filaCheia(') > pedir.indexOf('await submitClip(')) throw new Error('porta e arquivos antes do débito')
       if (!assets.includes('if (invasorArquivoDaVitrine(params.name)) {') || assets.indexOf('if (!owner || !recreateFormatVisible(owner, user.email))') > assets.indexOf('if (invasorArquivoDaVitrine(params.name)) {')) throw new Error('o cartão sem conferir quem vê')
@@ -599,6 +680,15 @@ const fila = lf(FILA), access = lf(ACCESS), mov = lf(MOV)
 const SRV = 'lib/clips/clipServer.ts', ROTA = 'lib/recreate/invasorRota.ts'
 const srvSrc = lf(SRV), rotaSrc = lf(ROTA)
 const mutantes = [
+  // KINEO-REMODELAMENTO-MOLDES-1611 — moldes por dados
+  ['moldes: o Pitch invader muda o texto', { [MOLDE]: molde.replace("roupa: 'Keep the original clothing from @Video1.' },\n  segundos: 18,", "roupa: 'Keep the clothing from @Video1.' },\n  segundos: 18,") }],
+  ['moldes: o basquete abre ao público', { [MOLDE]: molde.replace('export const BASQUETE_ABERTO_AO_PUBLICO: boolean = false', 'export const BASQUETE_ABERTO_AO_PUBLICO: boolean = true') }],
+  ['moldes: o cachorro abre ao público', { [MOLDE]: molde.replace('export const CACHORRO_ABERTO_AO_PUBLICO: boolean = false', 'export const CACHORRO_ABERTO_AO_PUBLICO: boolean = true') }],
+  ['moldes: o preço da casa vira público', { [MOLDE]: molde.replace('(m.aberto ? m.creditosPublicos : m.creditosPublicos ?? m.creditosDaCasa)', '(m.creditosPublicos ?? m.creditosDaCasa)') }],
+  ['moldes: a camiseta lisa ligada', { [MOLDE]: molde.replace('export const BASQUETE_CAMISETA_LISA: boolean = false', 'export const BASQUETE_CAMISETA_LISA: boolean = true') }],
+  ['moldes: o texto do bicho com a roupa', { [INV]: inv.replace("the lighting of @Video1 exactly.`\n  }", "the lighting of @Video1 exactly. Keep the original clothing from @Video1.`\n  }") }],
+  ['moldes: a linha aceita o marcador de outro molde', { [INV]: inv.replace('    if (!molde || trechoDoMarcador(e.video_url, molde.id) !== 0) return null', '    if (!molde || lerMarcador(e.video_url)?.i !== 0) return null') }],
+  ['moldes: a montagem com os cortes do Pitch invader', { [INV]: inv.replace('  const molde = a.molde ?? MOLDE_PITCH_INVADER // KINEO-REMODELAMENTO-MOLDES-1611', '  const molde = MOLDE_PITCH_INVADER // KINEO-REMODELAMENTO-MOLDES-1611') }],
   // 2ª revisão independente de 15/11 (bloqueios para o público)
   ['2ª rev. item 1: a varredura não acha o invasor', { [SRV]: srvSrc.replace(".like('fingerprint', '%kineo_molde%')", ".like('fingerprint', '%kineo_nada%')") }],
   ['2ª rev. item 1: a varredura horária não chama a do invasor', { [SRV]: srvSrc.replace('  const inv = await estornarInvasoresOrfaos(admin, since)', '  const inv = { refunded: 0, creditsReturned: 0 }') }],
@@ -615,11 +705,11 @@ const mutantes = [
   ['item 3: o teto da vaga lido antes do liquidar', { [FILA]: fila.replace("      const atual = await io.lerVaga()\n      if (!atual) return 'livre'\n      if (atual.clipId !== vaga.clipId || atual.expiraEm > io.now()) return 'ocupada'\n      if (io.now() - atual.tomadaEm < VAGA_TETO_DURO_MS)", "      if (io.now() - vaga.tomadaEm < VAGA_TETO_DURO_MS)") }],
   ['item 4: o invasor pesa 1 na fila', { [INV]: inv.replace('(invasorDaLinha(row) ? Math.max(1, trechosQueFaltam(row)) : 1)', '1') }],
   ['item 4: o peso de quem segura a vaga some', { [FILA]: fila.replace('  const extra = vaga.ocupada ? Math.max(0, p(vaga.peso) - 1) : 0', '  const extra = 0') }],
-  ['item 5: número do preço no molde', { [MOLDE]: molde.replace('  creditos: recreateCreditCostVariosTrechos(18),', '  creditos: 75,') }],
+  ['item 5: número do preço no molde', { [MOLDE]: molde.replace('creditosPublicos: recreateCreditCostVariosTrechos(18)', 'creditosPublicos: 75') }],
   ['item 6: molde retirado segue visível', { [ACCESS]: access.replace('  if (f.retirado) return false', '  if (f.retirado && false) return false') }],
   ['item 6: "Football play" não foi retirado', { [MOV]: mov.replace("    retirado: '2026-11-15 · dono: tira esse e coloca esse (Pitch invader no lugar)',\n", '') }],
   ['a vaga não é conferida na virada', { [INV]: inv.replace('    if (!(await io.garantirVaga(row.id).catch(() => false))) return fail(', '    if (false) return fail(') }],
-  ['pula o último trecho', { [INV]: inv.replace('  if (i < INVASOR_TRECHOS.length - 1) {', '  if (i < 1) {') }],
+  ['pula o último trecho', { [INV]: inv.replace('  if (i < T.length - 1) {', '  if (i < 1) {') }],
   ['a montagem não solta a vaga', { [INV]: inv.replace("  await io.soltarVaga(row.id).catch(() => {})\n  await io.event(INVASOR_EVENTOS.trecho, { ...telemetria(row), trecho: 'all_done'", "  await io.event(INVASOR_EVENTOS.trecho, { ...telemetria(row), trecho: 'all_done'") }],
   ['o trecho alongado sem a velocidade de volta', { [INV]: inv.replace("...(tr.velocidade !== 100 ? { speed: `${tr.velocidade}%` } : {})", '') }],
   ['sem "wears no glasses"', { [INV]: inv.replace("a.semOculos !== false ? `, and ${ele} wears no glasses` : ''", "a.semOculos === 'nunca' ? 'x' : ''") }],
@@ -631,7 +721,7 @@ const mutantes = [
   ['o interruptor volta a fechar (o cliente não vê)', { [MOLDE]: molde.replace('export const INVASOR_ABERTO_AO_PUBLICO: boolean = true', 'export const INVASOR_ABERTO_AO_PUBLICO: boolean = false') }],
   ['envio perdido nunca fecha', { [INV]: inv.replace('agora - marca.em >= INVASOR_ENVIO_PERDIDO_MS ?', 'false ?') }],
   ['montagem tenta para sempre', { [INV]: inv.replace("    if (marca.n >= INVASOR_MONTAGEM_TENTATIVAS) return fail(INVASOR_FALHAS.montagem, { why: motivo })", '    void motivo') }],
-  ['montagem sem o som original', { [INV]: inv.replace("  const som = { type: 'audio', track: 2, time: 0, duration: INVASOR_SOM.segundos, source: a.som, volume: '100%' }", "  const som = { type: 'audio', track: 2, time: 0, duration: INVASOR_SOM.segundos, source: a.som, volume: '0%' }") }],
+  ['montagem sem o som original', { [INV]: inv.replace("  const som = { type: 'audio', track: 2, time: 0, duration: molde.som.segundos, source: a.som, volume: '100%' }", "  const som = { type: 'audio', track: 2, time: 0, duration: molde.som.segundos, source: a.som, volume: '0%' }") }],
   ['corte do último trecho errado', { [MOLDE]: molde.replace('quadros: [641, 712], segundosDoArquivo: 3, fps: 24, segundosNoFilme: 2.4, velocidade: 125', 'quadros: [641, 712], segundosDoArquivo: 3, fps: 24, segundosNoFilme: 3, velocidade: 100') }],
 ]
 let mortos = 0
@@ -643,4 +733,4 @@ for (const [n, over] of mutantes) {
   if (falhas.length) mortos++; else console.error("MUTANTE VIVO: " + n)
 }
 if (mortos !== mutantes.length) process.exit(1)
-console.log(`PASS invasor de campo: débito único, 3 trechos em ordem e um por vez (o outro cliente espera a montagem), virada com um envio só, estorno em toda falha, montagem 8+8+2,4 s a 125% com o som original, receita de 14/11, molde só da casa e fora do JS público; revisão 15/11: vigia não fecha a montagem, trava e duração em cada trecho, vaga relida depois do liquidar, fila pelos trechos que faltam, preço 75 da tabela, "Football play" retirado, espera de 10 a 15 min; ${mortos}/${mutantes.length} mutantes mortos`)
+console.log(`PASS invasor de campo + moldes por dados (Pitch invader byte a byte, basquete e cachorro craque só da casa): débito único, 3 trechos em ordem e um por vez (o outro cliente espera a montagem), virada com um envio só, estorno em toda falha, montagem 8+8+2,4 s a 125% com o som original, receita de 14/11, molde só da casa e fora do JS público; revisão 15/11: vigia não fecha a montagem, trava e duração em cada trecho, vaga relida depois do liquidar, fila pelos trechos que faltam, preço 75 da tabela, "Football play" retirado, espera de 10 a 15 min; ${mortos}/${mutantes.length} mutantes mortos`)

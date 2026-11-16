@@ -20,18 +20,21 @@ import type { RecreatePlan } from './generation'
 import { KLING4_EDIT_MODEL, KLING4_USD_POR_SEGUNDO_720P } from './seuVideo'
 import { RECREATE_UNPRICED_ERROR } from './formats'
 import { decidirPorta, type EstadoDaPorta, type RecusaDaPorta } from './portaDoSeuVideo'
-import { INVASOR_ALVO, INVASOR_ALVO_DE_OCULOS, INVASOR_FORMATO, INVASOR_ID, INVASOR_SAIDA, INVASOR_SOM, INVASOR_TRECHOS } from './invasorMolde'
+import { INVASOR_FORMATO, INVASOR_ID, MOLDE_PITCH_INVADER, creditosDoMolde, moldeDeTrechos, type MoldeDeTrechos } from './invasorMolde'
 
 export const INVASOR_MARCA = 'KINEO-INVASOR-DE-CAMPO-1511'
-/** A etapa da montagem na coluna `model` (o id do render do Creatomate vai em fal_request_id). Não é um modelo da fal: só esta máquina o lê. */
+/** A etapa da montagem na coluna `model` (o id do render do Creatomate vai em fal_request_id). Não é um modelo da fal: só esta máquina o lê. Um só para todos os moldes. */
 export const INVASOR_MONTAGEM_MODEL = 'kineo/montagem-invasor-de-campo'
 /** O selo honesto da Library: o motor real que trocou o rosto (a linha guarda a chave 'h3' do catálogo de clipes, como o "seu vídeo"). */
 export const INVASOR_SELO = 'Kling 4.0 Edit'
 // O preço vem da tabela ÚNICA (lib/checkoutPricing.ts RECREATE_PRICING_VARIOS_TRECHOS, lido em ./invasorMolde): nenhum número aqui. null = sem preço = recusa limpa.
 export const INVASOR_CREDITOS: number | null = INVASOR_FORMATO.creditos ?? null
-/** Custo fal previsto (Kling 4.0 edição 720p, US$ 0,094/s sobre entrada + saída; a saída tem a duração do arquivo + 1 quadro). */
-export const INVASOR_FAL_USD = Math.round(INVASOR_TRECHOS.reduce((s, t) => s + KLING4_USD_POR_SEGUNDO_720P * (t.segundosDoArquivo + t.segundosDoArquivo + 0.04), 0) * 100) / 100
-export const INVASOR_SEGUNDOS_DO_FILME = Math.round(INVASOR_TRECHOS.reduce((s, t) => s + t.segundosNoFilme, 0) * 1000) / 1000
+/** KINEO-REMODELAMENTO-MOLDES-1611 — custo fal previsto de um molde (Kling 4.0 edição 720p, US$ 0,094/s sobre entrada + saída; a saída tem a duração do arquivo + 1 quadro). */
+export const falUsdDoMolde = (m: Pick<MoldeDeTrechos, 'trechos'>) => Math.round(m.trechos.reduce((s, t) => s + KLING4_USD_POR_SEGUNDO_720P * (t.segundosDoArquivo + t.segundosDoArquivo + 0.04), 0) * 100) / 100
+export const segundosDoFilme = (m: Pick<MoldeDeTrechos, 'trechos'>) => Math.round(m.trechos.reduce((s, t) => s + t.segundosNoFilme, 0) * 1000) / 1000
+/** Custo fal previsto do Pitch invader. */
+export const INVASOR_FAL_USD = falUsdDoMolde(MOLDE_PITCH_INVADER)
+export const INVASOR_SEGUNDOS_DO_FILME = segundosDoFilme(MOLDE_PITCH_INVADER)
 /** O envio de um trecho reservado e sem request_id gravado há mais que isto = perdido (estorno). O mesmo prazo do submit_lost de sempre. */
 export const INVASOR_ENVIO_PERDIDO_MS = 10 * 60 * 1000
 /** Montagem: tentativas (render que falha ou some) e quanto esperar um render antes de mandar de novo. */
@@ -50,16 +53,29 @@ export const INVASOR_FALHAS = { vagaPerdida: 'invasor_slot_lost', montagem: 'inv
 
 // ─── O texto (a receita de 14/11, palavra por palavra; nenhuma frase negativa além de "wears no glasses") ───
 export type InvasorGenero = 'man' | 'woman'
+/** KINEO-REMODELAMENTO-MOLDES-1611 — o bicho da foto do cliente no molde de bicho (o cachorro craque). */
+export type InvasorBicho = 'dog' | 'cat'
 /** Cabelo e barba lidos da foto (lib/recreate/descricaoDaPessoa.ts cabeloEBarba: só palavras do vocabulário fechado). Fora da forma = vazio. */
 const cabeloValido = (c: string | null | undefined) => (typeof c === 'string' && /^[a-z ,\-]{3,200}$/.test(c) ? c : null)
+/** O texto do Pitch invader (o de sempre, byte a byte). */
 export function textoDoInvasor(a: { genero?: InvasorGenero | null; cabeloEBarba?: string | null; semOculos?: boolean | null }): string {
+  return textoDoMolde(MOLDE_PITCH_INVADER, a)
+}
+/** KINEO-REMODELAMENTO-MOLDES-1611 — o texto de QUALQUER molde: pessoa = a receita de 14/11 com o alvo e a frase da roupa do molde; bicho = a mesma receita adaptada
+ *  ("his fur, face and ears match @Image1"), sem frase da roupa e sem leitura de cabelo. Nenhuma frase negativa além de "wears no glasses". */
+export function textoDoMolde(m: Pick<MoldeDeTrechos, 'alvo'>, a: { genero?: InvasorGenero | null; cabeloEBarba?: string | null; semOculos?: boolean | null; bicho?: InvasorBicho | null }): string {
+  const alvo = m.alvo
+  if (alvo.tipo === 'bicho') {
+    const bicho = a.bicho === 'cat' ? 'cat' : 'dog'
+    return `Replace ${alvo.texto} in @Video1 with the ${bicho} from @Image1: his fur, face and ears match @Image1. Keep his movements, the timing, the camera, the framing, every other person, the background and the lighting of @Video1 exactly.`
+  }
   const mulher = a.genero === 'woman'
   const ele = mulher ? 'she' : 'he', dele = mulher ? 'her' : 'his'
   const cabelo = cabeloValido(a.cabeloEBarba)
   // O homem do vídeo usa óculos: a foto sem óculos (ou não lida) pede "wears no glasses"; a foto com óculos deixa os óculos.
-  const oculos = INVASOR_ALVO_DE_OCULOS && a.semOculos !== false ? `, and ${ele} wears no glasses` : ''
+  const oculos = alvo.deOculos && a.semOculos !== false ? `, and ${ele} wears no glasses` : ''
   const traços = mulher ? `${dele} face and hair match @Image1` : `${dele} face, hair and beard match @Image1`
-  return `Replace ${INVASOR_ALVO} in @Video1 with the ${mulher ? 'woman' : 'man'} from @Image1: ${traços}${cabelo ? `, with ${cabelo}` : ''}${oculos}. Keep ${dele} movements, the timing, the camera, the framing, every other person, the background and the lighting of @Video1 exactly. Keep the original clothing from @Video1.`
+  return `Replace ${alvo.texto} in @Video1 with the ${mulher ? 'woman' : 'man'} from @Image1: ${traços}${cabelo ? `, with ${cabelo}` : ''}${oculos}. Keep ${dele} movements, the timing, the camera, the framing, every other person, the background and the lighting of @Video1 exactly. ${alvo.roupa}`
 }
 /** "wearing no glasses" no fim da frase do leitor = sem óculos; "wearing glasses" = com; sem leitura = null. */
 export function semOculosDaDescricao(texto: string | null | undefined): boolean | null {
@@ -71,23 +87,29 @@ export function semOculosDaDescricao(texto: string | null | undefined): boolean 
 
 // ─── A entrada da fal (o vídeo do trecho é um MARCADOR na linha: a URL assinada só nasce no envio) ───
 export const INVASOR_TRECHO_PREFIXO = 'kineo-trecho://'
-export const marcadorDoTrecho = (i: number) => `${INVASOR_TRECHO_PREFIXO}${INVASOR_ID}/${i}`
-export function trechoDoMarcador(v: unknown): number | null {
+export const marcadorDoTrecho = (i: number, id: string = INVASOR_ID) => `${INVASOR_TRECHO_PREFIXO}${id}/${i}`
+/** O molde e o trecho de um marcador (o molde tem de estar no registro e o trecho existir nele), ou null. */
+export function lerMarcador(v: unknown): { molde: MoldeDeTrechos; i: number } | null {
   const m = typeof v === 'string' ? /^kineo-trecho:\/\/([a-z0-9-]+)\/(\d)$/.exec(v) : null
-  if (!m || m[1] !== INVASOR_ID) return null
+  const molde = m ? moldeDeTrechos(m[1]) : null
+  if (!m || !molde) return null
   const i = Number(m[2])
-  return i < INVASOR_TRECHOS.length ? i : null
+  return i < molde.trechos.length ? { molde, i } : null
 }
-export function entradaDoTrecho(a: { prompt: string; foto: string; trecho: number }): Record<string, unknown> {
-  return { prompt: a.prompt, video_url: marcadorDoTrecho(a.trecho), image_urls: [a.foto], resolution: '720p' }
+export function trechoDoMarcador(v: unknown, id: string = INVASOR_ID): number | null {
+  const r = lerMarcador(v)
+  return r && r.molde.id === id ? r.i : null
+}
+export function entradaDoTrecho(a: { prompt: string; foto: string; trecho: number; molde?: Pick<MoldeDeTrechos, 'id'> }): Record<string, unknown> {
+  return { prompt: a.prompt, video_url: marcadorDoTrecho(a.trecho, a.molde?.id ?? INVASOR_ID), image_urls: [a.foto], resolution: '720p' }
 }
 /** A entrada que vai à fal: o marcador do trecho vira a URL assinada (1 h) e as marcas da casa (kineo_*) saem. Assinatura que falha = null (o envio
  *  falha limpo, com estorno). Entrada sem marcador: a mesma, só sem as marcas. */
-export async function resolverEntrada(input: Record<string, unknown>, assinar: (trecho: number) => Promise<string | null>): Promise<Record<string, unknown> | null> {
+export async function resolverEntrada(input: Record<string, unknown>, assinar: (molde: MoldeDeTrechos, trecho: number) => Promise<string | null>): Promise<Record<string, unknown> | null> {
   const limpa = Object.fromEntries(Object.entries(input).filter(([k]) => !k.startsWith('kineo_')))
   if (typeof limpa.video_url !== 'string' || !limpa.video_url.startsWith(INVASOR_TRECHO_PREFIXO)) return limpa
-  const i = trechoDoMarcador(limpa.video_url)
-  const url = i === null ? null : await assinar(i).catch(() => null)
+  const r = lerMarcador(limpa.video_url)
+  const url = r === null ? null : await assinar(r.molde, r.i).catch(() => null)
   return url && /^https:\/\//.test(url) ? { ...limpa, video_url: url } : null
 }
 
@@ -95,18 +117,21 @@ export async function resolverEntrada(input: Record<string, unknown>, assinar: (
 export type InvasorPlanResult = { ok: true; plan: RecreatePlan } | { ok: false; status: number; error: string }
 export function planInvasor(raw: Record<string, unknown>, ctx: { userId: string; supabaseUrl: string; dono: (url: string) => string | null }, leitura: { cabeloEBarba: string | null; semOculos: boolean | null } | null): InvasorPlanResult {
   const bad = (error: string, status = 400): InvasorPlanResult => ({ ok: false, status, error })
-  if (raw.format !== INVASOR_ID) return bad('Choose a video from the Kineo catalog.')
-  if (INVASOR_CREDITOS === null) return bad(RECREATE_UNPRICED_ERROR, 409)
+  const molde = moldeDeTrechos(raw.format)
+  if (!molde) return bad('Choose a video from the Kineo catalog.')
+  const credits = creditosDoMolde(molde)
+  if (credits === null) return bad(RECREATE_UNPRICED_ERROR, 409)
   if (raw.consent !== true) return bad('Confirm you have permission to use these photos.')
   if (!Array.isArray(raw.photos) || raw.photos.length !== 1) return bad('Add a photo for each person in this format.')
   const foto = typeof raw.photos[0] === 'string' ? ctx.dono(raw.photos[0]) : null
   if (!foto) return bad('Upload photos to your own account before continuing.', 403)
   const genero: InvasorGenero = raw.gender === 'woman' ? 'woman' : 'man'
-  const prompt = textoDoInvasor({ genero, cabeloEBarba: leitura?.cabeloEBarba ?? null, semOculos: leitura?.semOculos ?? null })
+  const bicho: InvasorBicho = raw.pet === 'cat' ? 'cat' : 'dog'
+  const prompt = textoDoMolde(molde, { genero, bicho, cabeloEBarba: leitura?.cabeloEBarba ?? null, semOculos: leitura?.semOculos ?? null })
   return { ok: true, plan: {
-    body: { engine: 'h3', seconds: INVASOR_FORMATO.seconds, aspect: null, prompt, imageUrl: foto },
-    model: KLING4_EDIT_MODEL, credits: INVASOR_CREDITOS, falUsd: INVASOR_FAL_USD, photos: [foto],
-    input: { ...entradaDoTrecho({ prompt, foto, trecho: 0 }), kineo_molde: INVASOR_ID },
+    body: { engine: 'h3', seconds: molde.segundos, aspect: null, prompt, imageUrl: foto },
+    model: KLING4_EDIT_MODEL, credits, falUsd: falUsdDoMolde(molde), photos: [foto],
+    input: { ...entradaDoTrecho({ prompt, foto, trecho: 0, molde }), kineo_molde: molde.id },
   } }
 }
 
@@ -123,16 +148,17 @@ export function portaDoInvasor(e: EstadoDaPorta & { motorOk: boolean }): RecusaD
 // ─── A linha ───
 type LinhaDoInvasor = Pick<ClipRow, 'fingerprint' | 'engine' | 'mode' | 'model'>
 /** A entrada do trecho 0 guardada pelo servidor na impressão digital ([pedido, modelo, entrada]) — é dela que os trechos seguintes saem. */
-export function dadosDaLinha(row: { fingerprint?: string | null }): { prompt: string; foto: string } | null {
+export function dadosDaLinha(row: { fingerprint?: string | null }): { prompt: string; foto: string; molde: MoldeDeTrechos } | null {
   if (typeof row.fingerprint !== 'string' || !row.fingerprint.startsWith('[')) return null
   try {
     const fp = JSON.parse(row.fingerprint) as unknown
     if (!Array.isArray(fp) || fp.length !== 3 || fp[1] !== KLING4_EDIT_MODEL || !fp[2] || typeof fp[2] !== 'object') return null
     const e = fp[2] as Record<string, unknown>
-    if (e.kineo_molde !== INVASOR_ID || trechoDoMarcador(e.video_url) !== 0) return null
+    const molde = moldeDeTrechos(e.kineo_molde) // KINEO-REMODELAMENTO-MOLDES-1611 — era: só o Pitch invader
+    if (!molde || trechoDoMarcador(e.video_url, molde.id) !== 0) return null
     const foto = Array.isArray(e.image_urls) && typeof e.image_urls[0] === 'string' ? e.image_urls[0] : ''
     if (typeof e.prompt !== 'string' || !e.prompt || !/^https:\/\//.test(foto)) return null
-    return { prompt: e.prompt, foto }
+    return { prompt: e.prompt, foto, molde }
   } catch { return null }
 }
 /** É linha do invasor? Pelo que o SERVIDOR gravou (impressão digital + motor + modo + um dos dois modelos), nunca pelo texto. */
@@ -161,17 +187,18 @@ export function lerMarca(v: string | null): { tipo: 'trecho'; i: number } | { ti
 // ─── A montagem (RenderScript do Creatomate) ───
 /** Os trechos em sequência na trilha 1 (mudos: o som que o Kling inventa nunca sai), o trecho alongado com a velocidade de volta, o som ORIGINAL na
  *  trilha 2 e, para quem não paga, a marca usekineo.com por cima (o mesmo texto e lugar dos clipes; `marca` = o elemento pronto). */
-export function fonteDaMontagem(a: { trechos: readonly string[]; som: string; marca?: Record<string, unknown> | null }): Record<string, unknown> {
-  if (a.trechos.length !== INVASOR_TRECHOS.length) throw new Error('montagem: trechos faltando')
+export function fonteDaMontagem(a: { molde?: MoldeDeTrechos; trechos: readonly string[]; som: string; marca?: Record<string, unknown> | null }): Record<string, unknown> {
+  const molde = a.molde ?? MOLDE_PITCH_INVADER // KINEO-REMODELAMENTO-MOLDES-1611 — o molde da linha (sem ele, o Pitch invader, byte a byte)
+  if (a.trechos.length !== molde.trechos.length) throw new Error('montagem: trechos faltando')
   let t = 0
-  const videos = INVASOR_TRECHOS.map((tr, i) => {
+  const videos = molde.trechos.map((tr, i) => {
     const el = { type: 'video', track: 1, time: Math.round(t * 1000) / 1000, duration: tr.segundosNoFilme, source: a.trechos[i], volume: '0%', ...(tr.velocidade !== 100 ? { speed: `${tr.velocidade}%` } : {}) }
     t += tr.segundosNoFilme
     return el
   })
-  const som = { type: 'audio', track: 2, time: 0, duration: INVASOR_SOM.segundos, source: a.som, volume: '100%' }
+  const som = { type: 'audio', track: 2, time: 0, duration: molde.som.segundos, source: a.som, volume: '100%' }
   return {
-    output_format: 'mp4', width: INVASOR_SAIDA.largura, height: INVASOR_SAIDA.altura, frame_rate: INVASOR_SAIDA.fps, duration: INVASOR_SEGUNDOS_DO_FILME,
+    output_format: 'mp4', width: molde.saida.largura, height: molde.saida.altura, frame_rate: molde.saida.fps, duration: segundosDoFilme(molde),
     elements: [...videos, som, ...(a.marca ? [{ ...a.marca, track: 3, time: 0 }] : [])],
   }
 }
@@ -186,7 +213,7 @@ export interface InvasorIo {
   guardarTrecho(row: ClipRow, i: number, providerUrl: string): Promise<{ url: string; segundos: number | null }>
   /** KINEO-INVASOR-DE-CAMPO-1511 [revisor 15/11, item 2] — a MESMA trava "não trocou" do Kling edit (lib/recreate/swapCheck.ts, alvo do pedido, 4 instantes, regra
    *  estrita): o trecho original (privado) × a saída do motor × a foto. Nunca lança; falha da checagem = 'unverified' (a política de sempre: entrega). */
-  conferirTroca(row: ClipRow, i: number, providerUrl: string, dados: { prompt: string; foto: string }): Promise<{ result: string; reason: string; usd?: number }>
+  conferirTroca(row: ClipRow, i: number, providerUrl: string, dados: { prompt: string; foto: string; molde: MoldeDeTrechos }): Promise<{ result: string; reason: string; usd?: number }>
   /** As URLs NOSSAS dos trechos já guardados (na ordem), para a montagem. Lança se faltar algum. */
   urlsDosTrechos(row: ClipRow): Promise<string[]>
   /** UPDATE condicional: só se a linha ainda está `processing` com ESTE failure_reason e ESTE fal_request_id. true = este ator moveu. */
@@ -196,7 +223,7 @@ export interface InvasorIo {
   /** Solta a vaga SÓ se for desta linha. */
   soltarVaga(clipId: string): Promise<void>
   /** Manda o trecho i ao Kling (um POST, sem retry do POST pago). */
-  enviarTrecho(row: ClipRow, i: number, dados: { prompt: string; foto: string }): Promise<EnvioDoFornecedor>
+  enviarTrecho(row: ClipRow, i: number, dados: { prompt: string; foto: string; molde: MoldeDeTrechos }): Promise<EnvioDoFornecedor>
   /** Manda a montagem. Devolve o id do render, ou erro. */
   montar(row: ClipRow, trechos: string[]): Promise<{ ok: true; renderId: string } | { ok: false; error: string }>
   consultarMontagem(renderId: string): Promise<EstadoDaMontagem>
@@ -209,19 +236,20 @@ export interface InvasorIo {
   event(name: string, metadata: Record<string, unknown>): Promise<void>
 }
 
-const telemetria = (row: ClipRow) => ({ clip_id: row.id, format: INVASOR_ID, engine: row.engine, seconds: row.seconds, credits: row.credits })
+const telemetria = (row: ClipRow) => ({ clip_id: row.id, format: dadosDaLinha(row)?.molde.id ?? INVASOR_ID, engine: row.engine, seconds: row.seconds, credits: row.credits })
 
 /** KINEO-INVASOR-DE-CAMPO-1511 [revisor 15/11, item 2] — o veredito da trava que NÃO entrega (o mesmo do Kling edit: não trocou, parcial, incerto) → o motivo da falha. */
 const NAO_ENTREGA: Readonly<Record<string, string>> = { unchanged: 'swap_unchanged', partial: 'swap_partial', uncertain: 'swap_uncertain' }
 
 /** KINEO-INVASOR-DE-CAMPO-1511 [revisor 15/11, item 4] — quantos pedidos ao fornecedor esta linha ainda vai fazer: na fila, todos; no trecho i (rodando, conferindo
  *  ou enviando o i), os que faltam a partir dele; na montagem, nenhum. É o peso da linha na fila (lib/recreate/filaKlingEdit.ts filaPonderada). */
-export function trechosQueFaltam(row: Pick<ClipRow, 'status' | 'model' | 'failure_reason'>): number {
-  if (row.status === 'pending') return INVASOR_TRECHOS.length
+export function trechosQueFaltam(row: Pick<ClipRow, 'status' | 'model' | 'failure_reason'> & { fingerprint?: string | null }): number {
+  const total = (dadosDaLinha(row)?.molde ?? MOLDE_PITCH_INVADER).trechos.length // KINEO-REMODELAMENTO-MOLDES-1611 — os trechos do molde da linha
+  if (row.status === 'pending') return total
   if (row.status !== 'processing' || row.model === INVASOR_MONTAGEM_MODEL) return 0
   const m = lerMarca(row.failure_reason)
   if (!m || m.tipo === 'montagem') return 0
-  return Math.max(0, INVASOR_TRECHOS.length - (m.tipo === 'conferencia' ? m.i + 1 : m.i))
+  return Math.max(0, total - (m.tipo === 'conferencia' ? m.i + 1 : m.i))
 }
 /** O peso de uma linha qualquer do Kling edit na fila: o invasor pelos trechos que faltam (no mínimo 1); o pedido de sempre, 1. */
 export const pesoNaFila = (row: Pick<ClipRow, 'status' | 'model' | 'failure_reason' | 'fingerprint' | 'engine' | 'mode'>) => (invasorDaLinha(row) ? Math.max(1, trechosQueFaltam(row)) : 1)
@@ -252,9 +280,10 @@ export async function settleInvasor(io: InvasorIo, row: ClipRow): Promise<ClipRo
   // Outro ator está conferindo este trecho (duração + trava): espera. Conferência abandonada (o ator morreu) é retomada por este, do zero.
   if (marca.tipo === 'conferencia' && agora - marca.em < INVASOR_CONFERENCIA_VENCE_MS) return row
   const i = marca.i
-  if (i >= INVASOR_TRECHOS.length || !row.fal_request_id) return row
   const dados = dadosDaLinha(row)
   if (!dados) return row
+  const T = dados.molde.trechos // KINEO-REMODELAMENTO-MOLDES-1611 — os trechos do molde da linha
+  if (i >= T.length || !row.fal_request_id) return row
   const st = await io.poll(KLING4_EDIT_MODEL, row.fal_request_id)
   if (st.state === 'failed') return fail('provider_failed', { trecho: i, provider_error: st.error })
   if (st.state !== 'done') return row
@@ -268,12 +297,12 @@ export async function settleInvasor(io: InvasorIo, row: ClipRow): Promise<ClipRo
   // mais curto que o esperado ou que não trocou = falha com estorno, NUNCA entrega; só depois disso o próximo trecho (ou a montagem) anda.
   const conf = marcaDaConferencia(i, agora)
   if (!(await io.mover(row.id, { failure_reason: row.failure_reason, fal_request_id: row.fal_request_id }, { failure_reason: conf }))) return row // outro ator levou
-  const esperado = INVASOR_TRECHOS[i].segundosDoArquivo
+  const esperado = T[i].segundosDoArquivo
   if (guardado.segundos === null || !(guardado.segundos >= esperado - INVASOR_TOLERANCIA_S)) return fail(INVASOR_FALHAS.curto, { trecho: i, segundos: guardado.segundos, esperado })
   const veredito: { result: string; reason: string; usd?: number } = await io.conferirTroca(row, i, st.url, dados).catch(() => ({ result: 'unverified', reason: 'check_error' }))
   await io.event(INVASOR_EVENTOS.trava, { ...telemetria(row), trecho: i, result: veredito.result, reason: veredito.reason, usd: veredito.usd ?? null })
   if (Object.hasOwn(NAO_ENTREGA, veredito.result)) return fail(NAO_ENTREGA[veredito.result], { trecho: i, swap_check: veredito.result })
-  if (i < INVASOR_TRECHOS.length - 1) {
+  if (i < T.length - 1) {
     const envio = marcaDoEnvio(i + 1, io.now())
     if (!(await io.mover(row.id, { failure_reason: conf, fal_request_id: row.fal_request_id }, { failure_reason: envio }))) return row // outro ator retomou a conferência
     if (!(await io.garantirVaga(row.id).catch(() => false))) return fail(INVASOR_FALHAS.vagaPerdida, { trecho: i + 1 }, false)

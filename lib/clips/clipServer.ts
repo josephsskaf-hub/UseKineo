@@ -72,8 +72,8 @@ import { idDaVez } from '@/lib/cronLease' // KINEO-RECREATE-FILA-KLING-EDIT-1411
 import { comEndUserDaFal } from '@/lib/recreate/falEndUser' // KINEO-RECREATE-FILA-KLING-EDIT-1411
 import { semMarcasDaCasa } from '@/lib/recreate/seuVideo' // KINEO-RECREATE-FILA-KLING-EDIT-1411
 // KINEO-INVASOR-DE-CAMPO-1511 — o molde de vários trechos: a máquina (pura) e os arquivos privados dele.
-import { INVASOR_ENTRADA, INVASOR_ID, INVASOR_TRECHOS, INVASOR_SAIDA } from '@/lib/recreate/invasorMolde'
-import { INVASOR_MONTAGEM_MODEL, INVASOR_SELO, pesoNaFila, entradaDoTrecho, fonteDaMontagem, invasorDaLinha, resolverEntrada, settleInvasor, INVASOR_SEGUNDOS_DO_FILME, type InvasorIo } from '@/lib/recreate/invasor'
+import { MOLDE_PITCH_INVADER } from '@/lib/recreate/invasorMolde' // KINEO-REMODELAMENTO-MOLDES-1611 — o molde vem da linha (dadosDaLinha); sem ele, o Pitch invader
+import { INVASOR_MONTAGEM_MODEL, INVASOR_SELO, dadosDaLinha, pesoNaFila, entradaDoTrecho, fonteDaMontagem, invasorDaLinha, resolverEntrada, segundosDoFilme, settleInvasor, type InvasorIo } from '@/lib/recreate/invasor'
 import { assinarSomDoInvasor, assinarTrechoDoInvasor } from '@/lib/recreate/invasorServer'
 import { buildFreeClipWatermarkSource, freeClipWatermarkDecision, probeClipVideo } from '@/lib/clips/freeClipWatermark'
 import { checarTrocaDoTrecho } from '@/lib/recreate/swapCheck' // KINEO-INVASOR-DE-CAMPO-1511 — a trava em cada trecho
@@ -822,7 +822,7 @@ export function clipQueueDepsFor(admin: SupabaseClient, ctx: { liquidarDono?: bo
       if (!lida) return { ok: false as const, ambiguous: false, error: 'queued request could not be read' }
       // KINEO-INVASOR-DE-CAMPO-1511 — o trecho 0 do molde de vários trechos guarda um MARCADOR no lugar do vídeo: a URL assinada (privada, 1 h) nasce aqui,
       // no envio. Entrada sem marcador: a mesma (resolverEntrada só tira as marcas kineo_*, que semMarcasDaCasa tiraria de qualquer jeito).
-      const resolvida = await resolverEntrada(lida.input, (i) => assinarTrechoDoInvasor(admin, i))
+      const resolvida = await resolverEntrada(lida.input, (molde, i) => assinarTrechoDoInvasor(admin, molde, i))
       if (!resolvida) return { ok: false as const, ambiguous: false, error: 'Source unavailable' }
       const e = { model: lida.model, input: resolvida }
       return comEndUserDaFal(submitToFalOnce, row.user_id)(e.model, semMarcasDaCasa(e.input))
@@ -875,13 +875,13 @@ function invasorIoFor(admin: SupabaseClient, userId: string): InvasorIo {
     guardarTrecho: async (row, i, url) => { const bytes = silenciarMp4(await baixar(url)); const info = probeClipVideo(bytes); return { url: await subir(invasorTrechoPath(row.user_id, row.id, i), bytes), segundos: info?.durationSeconds ?? null } },
     // KINEO-INVASOR-DE-CAMPO-1511 [revisor 15/11, item 2] — a trava "não trocou" do Kling edit em CADA trecho: o trecho original (privado, assinado) × a saída do motor × a foto.
     conferirTroca: async (row, i, providerUrl, dados) => {
-      const t = INVASOR_TRECHOS[i]
-      const base = t ? await assinarTrechoDoInvasor(admin, i) : null
+      const t = dados.molde.trechos[i]
+      const base = t ? await assinarTrechoDoInvasor(admin, dados.molde, i) : null
       if (!t || !base) return { result: 'unverified', reason: 'base_unsigned' }
-      const v = await checarTrocaDoTrecho({ baseVideoUrl: base, baseMeta: { segundos: t.segundosDoArquivo, fps: t.fps, largura: INVASOR_ENTRADA.largura, altura: INVASOR_ENTRADA.altura }, resultVideoUrl: providerUrl, photos: [dados.foto], prompt: dados.prompt, formatId: INVASOR_ID })
+      const v = await checarTrocaDoTrecho({ baseVideoUrl: base, baseMeta: { segundos: t.segundosDoArquivo, fps: t.fps, largura: dados.molde.entrada.largura, altura: dados.molde.entrada.altura }, resultVideoUrl: providerUrl, photos: [dados.foto], prompt: dados.prompt, formatId: dados.molde.id })
       return { result: v.result, reason: v.reason, usd: v.usd }
     },
-    urlsDosTrechos: async (row) => Promise.all(INVASOR_TRECHOS.map(async (_, i) => {
+    urlsDosTrechos: async (row) => Promise.all((dadosDaLinha(row)?.molde ?? MOLDE_PITCH_INVADER).trechos.map(async (_, i) => {
       const url = publica(invasorTrechoPath(row.user_id, row.id, i))
       const head = await fetch(url, { method: 'HEAD', cache: 'no-store', signal: AbortSignal.timeout(10_000) })
       if (!head.ok) throw new Error(`segment ${i} missing`)
@@ -898,19 +898,20 @@ function invasorIoFor(admin: SupabaseClient, userId: string): InvasorIo {
     garantirVaga: (clipId) => garantirVagaDoClipe(admin, clipId),
     soltarVaga: (clipId) => filaIoFor(admin).apagarVaga(clipId),
     enviarTrecho: async (row, i, dados) => {
-      const entrada = await resolverEntrada(entradaDoTrecho({ prompt: dados.prompt, foto: dados.foto, trecho: i }), (t) => assinarTrechoDoInvasor(admin, t))
+      const entrada = await resolverEntrada(entradaDoTrecho({ prompt: dados.prompt, foto: dados.foto, trecho: i, molde: dados.molde }), (molde, t) => assinarTrechoDoInvasor(admin, molde, t))
       if (!entrada) return { ok: false, ambiguous: false, error: 'Source unavailable' }
       return comEndUserDaFal(submitToFalOnce, row.user_id)(KLING4_EDIT_MODEL, entrada)
     },
     montar: async (row, trechos) => {
-      const som = await assinarSomDoInvasor(admin)
+      const molde = dadosDaLinha(row)?.molde ?? MOLDE_PITCH_INVADER
+      const som = await assinarSomDoInvasor(admin, molde)
       if (!som) return { ok: false, error: 'sound unavailable' }
       // A marca usekineo.com de quem não paga: a MESMA decisão e o MESMO elemento de texto dos clipes (lib/clips/freeClipWatermark.ts). Perfil ilegível = sem marca, como lá.
       const perfil = await admin.from('profiles').select(CLIP_OWNER_PROFILE_COLUMNS).eq('id', row.user_id).maybeSingle()
       const decisao = freeClipWatermarkDecision({ live: FREE_CLIP_WATERMARK_LIVE, profile: perfil.error ? null : ((perfil.data ?? null) as ClipOwnerProfile | null) })
-      const texto = decisao.brand ? (buildFreeClipWatermarkSource('about:blank', { width: INVASOR_SAIDA.largura, height: INVASOR_SAIDA.altura, fps: INVASOR_SAIDA.fps, durationSeconds: INVASOR_SEGUNDOS_DO_FILME }) as { elements: Array<Record<string, unknown>> }).elements.find((e) => e.type === 'text') ?? null : null
+      const texto = decisao.brand ? (buildFreeClipWatermarkSource('about:blank', { width: molde.saida.largura, height: molde.saida.altura, fps: molde.saida.fps, durationSeconds: segundosDoFilme(molde) }) as { elements: Array<Record<string, unknown>> }).elements.find((e) => e.type === 'text') ?? null : null
       const { submitCreatomateRender } = await import('@/lib/compose')
-      return { ok: true, renderId: await submitCreatomateRender(fonteDaMontagem({ trechos, som, marca: texto })) }
+      return { ok: true, renderId: await submitCreatomateRender(fonteDaMontagem({ molde, trechos, som, marca: texto })) }
     },
     consultarMontagem: async (renderId) => {
       const { pollCreatomateRender } = await import('@/lib/compose')

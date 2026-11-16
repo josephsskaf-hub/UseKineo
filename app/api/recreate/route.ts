@@ -13,7 +13,7 @@ import { writeServerEvent } from '@/lib/serverEvents'
 import { recreateFormatVisible, releaseVisible, visibleRecreateFormats } from '@/lib/recreate/access'
 
 import { recreateFormatServidor, visibleRecreateFormatsServidor } from '@/lib/recreate/catalogoServidor' // KINEO-RECEITA-FORA-DO-JS-1411
-import { INVASOR_ID } from '@/lib/recreate/invasorMolde' // KINEO-INVASOR-DE-CAMPO-1511
+import { moldeDeTrechos } from '@/lib/recreate/invasorMolde' // KINEO-INVASOR-DE-CAMPO-1511 · KINEO-REMODELAMENTO-MOLDES-1611 — todo molde de vários trechos
 import { pedirInvasor, simulacaoDoInvasor } from '@/lib/recreate/invasorRota' // KINEO-INVASOR-DE-CAMPO-1511
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
   // KINEO-RECREATE-TRAVA-1011 — an unapproved swap does not exist for this account: refused before photos, moderation, debit or provider.
   if (!recreateFormatVisible(format, user.email)) return json({ error: 'Not found.' }, 404)
   // KINEO-INVASOR-DE-CAMPO-1511 — o molde de vários trechos tem preço PROVISÓRIO da casa (18 s não está na tabela) e fluxo próprio antes do submitClip.
-  if (format.id === INVASOR_ID) return pedirInvasorNaRota(req, user, raw, supabase)
+  if (moldeDeTrechos(format.id)) return pedirInvasorNaRota(req, user, raw, supabase) // KINEO-REMODELAMENTO-MOLDES-1611 — era: format.id === INVASOR_ID
   if (!recreateSwapPriced(format)) return json({ error: RECREATE_UNPRICED_ERROR, code: 'unpriced' }, 409)
   if (raw.mode && raw.mode !== 'swap') return json({ error: 'This mode is unavailable.' }, 400)
   // Simulation exits before profile reads, moderation, writes, debits, uploads or provider calls.
@@ -122,7 +122,8 @@ export async function POST(req: NextRequest) {
 
 // KINEO-INVASOR-DE-CAMPO-1511 — o POST do "Pitch invader": simulação (só a casa), consentimento, conta, e o fluxo de lib/recreate/invasorRota.ts.
 async function pedirInvasorNaRota(req: NextRequest, user: NonNullable<Awaited<ReturnType<typeof recreateSession>>['user']>, raw: Record<string, unknown>, supabase: Awaited<ReturnType<typeof recreateSession>>['supabase']) {
-  if (raw.simulate === true) return releaseVisible(user.email, 'internal') ? json(simulacaoDoInvasor()) : json({ error: 'Not found.' }, 404)
+  const molde = moldeDeTrechos(raw.format)
+  if (raw.simulate === true) return releaseVisible(user.email, 'internal') && molde ? json(simulacaoDoInvasor(molde)) : json({ error: 'Not found.' }, 404)
   if (raw.consent !== true) return json({ error: 'Confirm you have permission to use these photos.' }, 400)
   const admin = clipsAdmin()
   const account = admin ? await loadClipAccount(supabase, user) : null

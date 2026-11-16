@@ -6,9 +6,9 @@
 import { RECREATE_ASSETS, RECREATE_FORMATS, recreateNewestFirst, type RecreateFormat } from './formats'
 import { MOVIMENTO_ASSETS, RECREATE_MOVIMENTO_MOLDES } from './movimentoMoldes'
 import { recreateFormatVisible } from './access'
-import { INVASOR_FORMATO } from './invasorMolde' // KINEO-INVASOR-DE-CAMPO-1511 — o molde de vários trechos (só a casa vê: swapInTest)
+import { FORMATOS_DOS_MOLDES_DE_TRECHOS } from './invasorMolde' // KINEO-INVASOR-DE-CAMPO-1511 · KINEO-REMODELAMENTO-MOLDES-1611 — os moldes de vários trechos (cada um com o seu interruptor)
 
-export const RECREATE_FORMATS_SERVIDOR: readonly RecreateFormat[] = recreateNewestFirst([...RECREATE_FORMATS.filter((f) => f.type !== 'motion'), ...RECREATE_MOVIMENTO_MOLDES, INVASOR_FORMATO]) // KINEO-INVASOR-DE-CAMPO-1511 — + INVASOR_FORMATO · a vitrine pública do movimento dá lugar à versão completa
+export const RECREATE_FORMATS_SERVIDOR: readonly RecreateFormat[] = recreateNewestFirst([...RECREATE_FORMATS.filter((f) => f.type !== 'motion'), ...RECREATE_MOVIMENTO_MOLDES, ...FORMATOS_DOS_MOLDES_DE_TRECHOS]) // KINEO-INVASOR-DE-CAMPO-1511 — + INVASOR_FORMATO · a vitrine pública do movimento dá lugar à versão completa
 export const recreateFormatServidor = (id: unknown): RecreateFormat | null => RECREATE_FORMATS_SERVIDOR.find((f) => f.id === id) ?? null
 export const visibleRecreateFormatsServidor = (email: string | null | undefined): RecreateFormat[] => RECREATE_FORMATS_SERVIDOR.filter((f) => recreateFormatVisible(f, email))
 /** Os assets servidos pela rota /api/recreate/assets: os do navegador + os pôsteres dos moldes de movimento. */

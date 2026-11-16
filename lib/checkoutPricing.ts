@@ -20,6 +20,14 @@ export const RECREATE_PRICING_VARIOS_TRECHOS = { 18: 75 } as const
 export function recreateCreditCostVariosTrechos(seconds: number): number | null {
   return Object.prototype.hasOwnProperty.call(RECREATE_PRICING_VARIOS_TRECHOS, seconds) ? RECREATE_PRICING_VARIOS_TRECHOS[seconds as keyof typeof RECREATE_PRICING_VARIOS_TRECHOS] : null
 }
+// KINEO-REMODELAMENTO-MOLDES-1611 [CEO 16/11] — ⚠ AGUARDA O SIM DO DONO (o preço público é dele). Preço PROVISÓRIO, SÓ DA CASA, dos moldes de vários trechos novos, por molde:
+// ~4 créditos por segundo enviado ao motor (a mesma margem do Pitch invader: 75 por 19 s enviados), arredondado de 5 em 5 (docs/remodelamento-1511/FICHAS.md).
+// basquete = 14,4 s enviados → 60; cachorro-craque = 15,0 s enviados → 60. Vale SÓ enquanto o molde é da casa: com o interruptor aberto ao público, o molde lê o preço
+// PÚBLICO (nenhum, até o sim do dono: sem preço, o molde some do catálogo do cliente). Com o sim, a linha passa para uma tabela pública e sai daqui.
+export const RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO = { basquete: 60, 'cachorro-craque': 60 } as const
+export function recreateCreditCostMoldeDaCasa(id: string): number | null {
+  return Object.prototype.hasOwnProperty.call(RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO, id) ? RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO[id as keyof typeof RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO] : null
+}
 
 export const ONE_TIME_ITEM_USD_MINOR = { one_time_ad: 900, one_time_film35: 500 } as const // KINEO-COMPRA-AVULSA-2410 — founder-approved single-item prices; monthly plans unchanged.
 export const ONE_TIME_ITEM_V1_AMOUNTS = { one_time_ad: { usd: 900, brl: 4490 }, one_time_film35: { usd: 500, brl: 2490 } } as const // KINEO-COMPRA-AVULSA-2410 — immutable receipt snapshot; future prices must never reprice a paid V1 session.
