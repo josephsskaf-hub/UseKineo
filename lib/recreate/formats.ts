@@ -47,6 +47,8 @@ export interface RecreateFormat {
   esperaMinutos?: readonly [number, number]
   /** KINEO-PALCO-INVADER-1611 — o molde ABERTO da máquina de trechos: o palco da tela única (Clip + Recreate) abre nele. Só o servidor marca. */
   palco?: boolean
+  /** KINEO-DOG-YOU-ABRE-1611 — só do servidor: o instante em que o molde de vários trechos abriu ao público (ISO, com hora). Desempata a ordem de novidade no mesmo dia. */
+  abertoEm?: string
 }
 
 export const RECREATE_SWAP_PROMPT = 'Face swap only. Replace only the face with the face from the reference photo. Keep the original clothing, body, scene, lighting, camera, movement, cuts and audio unchanged.'

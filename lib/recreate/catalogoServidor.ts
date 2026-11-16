@@ -11,8 +11,8 @@ import { FORMATOS_DOS_MOLDES_DE_TRECHOS } from './invasorMolde' // KINEO-INVASOR
 // KINEO-NOVIDADE-EM-EVIDENCIA-1611 [dono 16/11 ~02:00: "já coloca sempre em evidência as novas"] — os moldes ABERTOS da máquina de trechos (palco) vêm na FRENTE, do
 // mais novo para o mais antigo pela data em que abriram (approvedOn, senão desde); o resto segue do mais novo ao mais antigo. Regra, não lista: abrir um molde já o põe
 // em 1º no palco padrão da tela única e na grade de quem está logado.
-export function novidadesNaFrente<T extends { palco?: boolean; approvedOn?: string; desde: string }>(lista: readonly T[]): T[] {
-  const data = (f: T) => f.approvedOn ?? f.desde
+export function novidadesNaFrente<T extends { palco?: boolean; abertoEm?: string; approvedOn?: string; desde: string }>(lista: readonly T[]): T[] {
+  const data = (f: T) => f.abertoEm ?? f.approvedOn ?? f.desde // KINEO-DOG-YOU-ABRE-1611 — + abertoEm (a hora em que abriu: desempata o mesmo dia)
   const abertos = lista.filter((f) => f.palco === true).sort((a, b) => (data(a) < data(b) ? 1 : data(a) > data(b) ? -1 : 0))
   return [...abertos, ...lista.filter((f) => f.palco !== true)]
 }

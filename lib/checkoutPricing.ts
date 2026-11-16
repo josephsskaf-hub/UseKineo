@@ -27,14 +27,16 @@ export function recreateCreditCostVariosTrechos(seconds: number): number | null 
 // KINEO-NOVIDADE-EM-EVIDENCIA-1611 — o cachorro craque saiu daqui (abriu ao público a 75, tabela abaixo); entra a variante humana "Dog goal · you" (75, só da casa).
 // KINEO-BASQUETE-ABRE-1611 — o basquete saiu daqui (abriu ao público a 75, tabela abaixo).
 // KINEO-CACHORRO-HUMANO-8S-1611 — a variante humana ficou com 8 s (só o trecho 0): 40 provisório da casa (a tabela de 10 s = 40).
-export const RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO = { 'cachorro-craque-humano': 40 } as const
+// KINEO-DOG-YOU-ABRE-1611 — a variante humana saiu daqui (abriu ao público a 40, tabela abaixo). Tabela vazia até o próximo molde da casa.
+export const RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO: Readonly<Record<string, number>> = {}
 export function recreateCreditCostMoldeDaCasa(id: string): number | null {
-  return Object.prototype.hasOwnProperty.call(RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO, id) ? RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO[id as keyof typeof RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO] : null
+  return Object.prototype.hasOwnProperty.call(RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO, id) ? RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO[id] : null
 }
 // KINEO-NOVIDADE-EM-EVIDENCIA-1611 [dono 16/11 ~02:00: "abre a 75"] — preço PÚBLICO, por molde, dos moldes de vários trechos que não estão na tabela por duração:
 // o "Dog goal" (cachorro-craque, 15 s) = 75 créditos. Único lugar deste número; o molde o lê por recreateCreditCostMoldePublico.
 // KINEO-BASQUETE-ABRE-1611 [dono 16/11 ~02:30: "Abre a 75"] — o "Slam dunk" (basquete, 14 s, camiseta lisa) = 75 créditos.
-export const RECREATE_PRICING_MOLDES_PUBLICOS = { 'cachorro-craque': 75, basquete: 75 } as const
+// KINEO-DOG-YOU-ABRE-1611 [dono 16/11 ~04:05: "15 segundos 75 e 9 sec 40"] — o "Dog goal · you" (cachorro-craque-humano, 8 s, a pessoa da foto) = 40 créditos; o Dog goal do pet (15 s) segue 75.
+export const RECREATE_PRICING_MOLDES_PUBLICOS = { 'cachorro-craque': 75, basquete: 75, 'cachorro-craque-humano': 40 } as const
 export function recreateCreditCostMoldePublico(id: string): number | null {
   return Object.prototype.hasOwnProperty.call(RECREATE_PRICING_MOLDES_PUBLICOS, id) ? RECREATE_PRICING_MOLDES_PUBLICOS[id as keyof typeof RECREATE_PRICING_MOLDES_PUBLICOS] : null
 }
