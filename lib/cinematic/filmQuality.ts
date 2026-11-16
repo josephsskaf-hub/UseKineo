@@ -13,7 +13,6 @@ import type { FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
 import { conferirFichaLiteral, type LeituraDaFicha } from '@/lib/cinematic/elencoSemantico' // KINEO-PROTAGONISTA-SEEDANCE-0111
 import type { FilmQualitySnapshot } from '@/lib/filmComplete/qualityInheritance'
 import { kling25ShotAxis } from '@/lib/cinematic/klingShots'
-import { classeDaLuz } from '@/lib/cinematic/pessoaDoPedido' // KINEO-PREMISSA-VISUAL-1611
 
 export const FILM_QUALITY_VERSION = 'film_quality_2910_v1' as const
 
@@ -78,10 +77,6 @@ export function caiEmOracao(texto: string, limite: number): boolean {
   const porOracao = partes.join(', ').replace(/[\s,;:—-]+$/u, '')
   return Math.max(Array.from(porFrase).length, Array.from(porOracao).length) >= limite * 0.6
 }
-
-/** KINEO-PREMISSA-VISUAL-1611 — 'off' = a luz do pedido nunca cede à ação do plano do Kling 4 (byte a byte o de antes). */
-export const PREMISSA_VISUAL_1611: 'off' | 'all' = 'all'
-export const premissaVisualLigada = (modo: 'off' | 'all' = PREMISSA_VISUAL_1611): boolean => modo === 'all'
 
 // KINEO-QUALIDADE-TODOS-MOTORES-2910 — leave room for Kling's keyframe directive inside its 512-code-point limit.
 export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): string {
@@ -218,23 +213,8 @@ export function promptCurtoDoFilmeKling4(prompt: string, style: StyleAnchor): st
       const fichaComLugar = who(Math.max(0, Math.min(identityBudget, coreBudget - Array.from(prefix + whoLabel).length - 50)))
       const acaoInteiraComLugar = caiEmOracao(action, Math.max(0, coreBudget - Array.from(prefix + fichaComLugar).length))
       const pre = lugarPedido && (!cabeAFicha(prefix) || !acaoInteiraComLugar) ? prefix.replace(/Place: [^.]+\. /, '') : prefix
-      const fichaDe = (x: string) => who(Math.max(0, Math.min(identityBudget, coreBudget - Array.from(x + whoLabel).length - 50))) // KINEO-PREMISSA-VISUAL-1611 — a mesma conta de sempre, por prefixo
-      // KINEO-PREMISSA-VISUAL-1611 [conserto do revisor 16/11, filme 224c4659: "nobody had a shadow… until one boy woke up with two"] — o
-      // planejador escreveu a premissa nas cenas ("…two distinct shadows stretching across the floor in the moonlight", "…revealing the boy
-      // standing alone, his shadow completely gone"), mas ela vinha na ÚLTIMA oração da ação e este corte a tirou: o plano final foi ao motor
-      // só com "A quiet morning scene shows empty streetlights casting no shadows," (corte em vírgula, que a regra do lugar aceita) e com
-      // "Light: Moonlight shines through the window." na frente — a luz da cena 1 do pedido no lugar do desfecho, na cena da manhã seguinte.
-      // Agora a luz do pedido cede à ação quando (1) a 1ª frase da ação não cabe inteira atrás da ficha, (2) essa frase JÁ diz a luz da cena
-      // ("in the moonlight", "a quiet morning scene": a linha "Light:" repete ou contradiz) e (3) sem a linha a frase cabe inteira. O plano
-      // termina nessa frase. Ação sem luz própria (a luz do pedido é a única: 657ad797), ação que já cabia, ou que não cabe nem assim: byte a
-      // byte o de antes. O lugar segue a regra dele (acima). Guardião: scripts/test-premissa-visual-1611.mjs.
-      const frase1 = firstAction.trim()
-      const cabeAFrase = (x: string) => Array.from(x + fichaDe(x) + frase1).length <= coreBudget
-      const semLuz = pre.replace(/Light: [^.]+\. /, '')
-      const luzCede = premissaVisualLigada() && semLuz !== pre && classeDaLuz(frase1) !== null && !cabeAFrase(pre) && cabeAFrase(semLuz)
-      const pre1611 = luzCede ? semLuz : pre
-      const ficha = fichaDe(pre1611)
-      core = pre1611 + ficha + (luzCede ? frase1.replace(/[.!?…\s]+$/u, '') : cortaEmFronteira(action, Math.max(0, coreBudget - Array.from(pre1611 + ficha).length)))
+      const ficha = who(Math.max(0, Math.min(identityBudget, coreBudget - Array.from(pre + whoLabel).length - 50)))
+      core = pre + ficha + cortaEmFronteira(action, Math.max(0, coreBudget - Array.from(pre + ficha).length))
     } else core = prefix + firstAction + ' ' + who(reducedIdentity) + action.slice(firstAction.length)
   }
   // KINEO-K4-PLANO-DA-SECAO-1111 — o corte do núcleo cai em FRONTEIRA (frase ou oração), nunca no meio da palavra: era take(core,

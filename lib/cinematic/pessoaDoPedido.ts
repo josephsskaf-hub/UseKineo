@@ -179,11 +179,38 @@ const CLASSE_LUZ: ReadonlyArray<[RegExp, 'dia' | 'tarde' | 'noite']> = [
   [/(?<![\p{L}])(?:sunset|dusk|twilight|golden hour)(?![\p{L}])/iu, 'tarde'],
   [/(?<![\p{L}])(?:sunlight|daylight|sunshine|sun|sunrise|dawn|morning|midday|noon|window light)(?![\p{L}])/iu, 'dia'],
 ]
-/** A classe da luz que um texto diz (dia, tarde, noite); null = o texto não fala de luz. Exportada para o corte do plano do Kling 4 (KINEO-PREMISSA-VISUAL-1611). */
-export const classeDaLuz = (t: string) => CLASSE_LUZ.find(([re]) => re.test(t))?.[1] ?? null
+const classeDaLuz = (t: string) => CLASSE_LUZ.find(([re]) => re.test(t))?.[1] ?? null
 /** Luz de DIA: "dimly lit" no plano da cena contradiz e sai. */
 const LUZ_DE_DIA_RE = /(?<![\p{L}])(?:sunlight|sunlit|sunshine|daylight|natural light|sunrise|window light|bright light|midday|noon|morning)(?![\p{L}])/iu
 export const MARCA_LUZ_NO_PROMPT = 'Lighting as the customer asked:'
+
+// ═══ KINEO-PREMISSA-VISUAL-1611 [conserto do revisor 16/11, filme 224c4659, Kling 4 grátis, nota 5: CENA_FORA_DO_PEDIDO] ═══════════════════
+// O pedido veio escrito POR CENAS ("Scene 1 — Hook (0–5 s) … Visual: A blocky Roblox boy wakes up in a dark bedroom. Moonlight shines through
+// the window." … "Scene 5 — The ending … The next morning…"). A frase de luz da cena 1 virava a luz do FILME: "Light: Moonlight shines through
+// the window." foi na frente de todo plano do Kling 4, até o da manhã seguinte, e esses 44 caracteres tiraram do plano a oração da premissa
+// ("…two distinct shadows stretching across the floor in the moonlight"; "…revealing the boy standing alone, his shadow completely gone").
+// Aqui: em pedido com DUAS ou mais cenas numeradas ("Scene 1", "Scene 2"…), a frase de luz narrada DENTRO de uma cena é a luz daquela cena —
+// vale o que já vale para a expressão de luz em frase de ação: não vira luz global (o planejador põe a luz na cena certa), mas conta para o
+// conflito de luzes. A luz dita como direção ("Lighting: …", "Use soft natural daylight…") ou antes da 1ª cena continua global. Pedido sem
+// cenas numeradas (657ad797): byte a byte o de antes.
+// O LUGAR tem o mesmo defeito: a tela manda só os 600 primeiros caracteres da ideia, o pedido chegou até a cena 2, e "in a dark bedroom" (cena 1)
+// virou o lugar do filme — "Place: a dark bedroom." no plano da rua e no da manhã seguinte (o revisor: "o mesmo quarto aparece 3 vezes"), e os 23
+// caracteres dele ainda tiravam "his shadow completely gone" do plano final. Em pedido com 2+ cenas numeradas, o lugar só é o do FILME quando
+// TODA cena numerada o cita; citado em parte delas, é daquelas cenas (o planejador o escreve lá; sem lugar do pedido, vale lugarDasCenas).
+// Interruptor LUZ_POR_CENA_1611 (os dois): 'off' = o de antes. Guardião: scripts/test-premissa-visual-1611.mjs.
+export const LUZ_POR_CENA_1611: 'off' | 'all' = 'all'
+export const luzPorCenaLigada = (modo: 'off' | 'all' = LUZ_POR_CENA_1611): boolean => modo === 'all'
+const CENA_NUMERADA_RE_1611 = /^(?:scene|shot)\s*#?\d{1,2}(?![\p{L}\p{N}])/iu
+const ROTULO_DE_LUZ_RE_1611 = /^(?:lighting|light)\s*:/iu
+/** O texto de cada cena numerada do pedido ("Scene 1 …", "Scene 2 …"), na ordem; null = menos de duas (o pedido não é por cenas). */
+function cenasNumeradas1611(pedido: string): string[] | null {
+  const blocos: string[] = []
+  for (const f of pedido.split(/(?<=[.!?\n])/u)) {
+    if (CENA_NUMERADA_RE_1611.test(f.trim())) blocos.push(f)
+    else if (blocos.length) blocos[blocos.length - 1] += f
+  }
+  return blocos.length >= 2 ? blocos : null
+}
 
 /** A luz do pedido original: a frase cujo assunto é a luz, ou só a expressão de luz da frase de ação. null = não há, ou há duas luzes diferentes. */
 export function luzDoPedido(ideiaOriginal: unknown): string | null {
@@ -191,11 +218,19 @@ export function luzDoPedido(ideiaOriginal: unknown): string | null {
   if (!pedido) return null
   const achadas: string[] = []
   const daAcao: string[] = []
-  for (const f of pedido.split(/(?<=[.!?\n])/u)) {
+  const frases = pedido.split(/(?<=[.!?\n])/u)
+  const porCenas = luzPorCenaLigada() && frases.filter((f) => CENA_NUMERADA_RE_1611.test(f.trim())).length >= 2 // KINEO-PREMISSA-VISUAL-1611
+  let dentroDeCena = false
+  for (const f of frases) {
     const t = f.trim().replace(/[.!?]+$/u, '').trim()
+    if (porCenas && CENA_NUMERADA_RE_1611.test(t)) dentroDeCena = true
     if (!t || /^(?:no|not|never|without|don't|do not)\b/iu.test(t)) continue
     const n = t.split(/\s+/u).length
-    if (SUJEITO_LUZ_RE.test(t) && n >= 2 && n <= 20 && !/(?<![\p{L}])(?:text|subtitles?|captions?|logos?)(?![\p{L}])/iu.test(t)) { achadas.push(t); continue }
+    if (SUJEITO_LUZ_RE.test(t) && n >= 2 && n <= 20 && !/(?<![\p{L}])(?:text|subtitles?|captions?|logos?)(?![\p{L}])/iu.test(t)) {
+      if (dentroDeCena && !ROTULO_DE_LUZ_RE_1611.test(t)) daAcao.push(t) // KINEO-PREMISSA-VISUAL-1611 — a luz narrada dentro de uma cena numerada é daquela cena
+      else achadas.push(t)
+      continue
+    }
     const e = EXPRESSAO_LUZ_RE.exec(t)
     // KINEO-LUZ-DO-PEDIDO-1111 (revisão da CEO) — a expressão de luz só vale em frase de DIREÇÃO de filmagem ("Use soft natural daylight,
     // realistic skin texture…"); dentro de frase de AÇÃO ("At sunset, the boy finds the box", "…and at night finds the box") ela não entra
@@ -319,6 +354,9 @@ export function lugarDoPedido(ideiaOriginal: unknown): string | null {
   const semProibicao = pedido.split(/(?<=[.!?\n])/u).filter((f) => !/^\s*(?:no|not|never|without|don't|do not)\b/iu.test(f)).join(' ')
   const nomes = new Set([...semProibicao.matchAll(lugarSoRe())].filter((m) => !aridoComNomeProprio(semProibicao, m)).map((m) => tipoDoLugar(m[0]))) // KINEO-LUGAR-DO-ROTEIRO-1411 — era: LUGAR_SO_RE e o mapa de sempre
   if (nomes.size !== 1) return null // nenhum lugar, ou a história passa por mais de um
+  // KINEO-PREMISSA-VISUAL-1611 — pedido por cenas numeradas: o lugar que só parte das cenas cita é daquelas cenas, não do filme
+  const cenas1611 = luzPorCenaLigada() ? cenasNumeradas1611(pedido) : null
+  if (cenas1611 && !cenas1611.every((c) => [...c.matchAll(lugarSoRe())].some((x) => !aridoComNomeProprio(c, x)))) return null
   const m = fraseDoLugar(semProibicao) // KINEO-LUGAR-DO-ROTEIRO-1411 · KINEO-LUGAR-DA-FALA-1411 (iii, iv)
   if (!m) return null
   const lugar = m[1].trim().replace(/^the\s+/iu, 'the ')
