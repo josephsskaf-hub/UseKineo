@@ -495,7 +495,7 @@ export function buildSwapCheckMessagesAlvo(slots: number, pares: ReadonlyArray<{
 }
 
 /** Os quadros n, 2n … (count)n de um vídeo (o quadro 0 é descartado). Nunca lança. Menos quadros que o pedido = devolve os que vieram. */
-export async function extractInstantFrames(videoUrl: string, opts: SwapCheckOpts, interval: number, count: number): Promise<{ frames: string[]; usd: number } | { frames: null; why: UnverifiedReason }> {
+export async function extractInstantFrames(videoUrl: string, opts: SwapCheckOpts, interval: number, count: number, posicional = false): Promise<{ frames: string[]; usd: number } | { frames: null; why: UnverifiedReason }> {
   const key = opts.falKey ?? process.env.FAL_KEY ?? process.env.FAL_API_KEY
   if (!key || !/^https:\/\//.test(videoUrl)) return { frames: null, why: 'config' }
   const started = Date.now()
@@ -510,8 +510,9 @@ export async function extractInstantFrames(videoUrl: string, opts: SwapCheckOpts
     return Array.isArray(data.images) ? data.images.map(i => (typeof i?.url === 'string' ? i.url : '')) : null
   })
   if (!got.ok) return { frames: null, why: got.timeout ? 'timeout' : 'frames_unavailable' }
-  const frames = (got.value ?? []).slice(1, count + 1).filter(Boolean)
-  if (frames.length < 2) return { frames: null, why: 'frames_unavailable' }
+  // KINEO-TRAVA-INSTANTES-MOLDE-1611 [revisão, nit 4] — posicional: o vazio fica no lugar (''), para o par de cada instante não escorregar; o padrão segue tirando os vazios.
+  const frames = posicional ? (got.value ?? []).slice(1, count + 1) : (got.value ?? []).slice(1, count + 1).filter(Boolean)
+  if (frames.filter(Boolean).length < 2) return { frames: null, why: 'frames_unavailable' }
   return { frames, usd: ((Date.now() - started) / 1000) * FAL_USD_PER_COMPUTE_SECOND }
 }
 
@@ -527,7 +528,8 @@ async function checarComAlvo(ctx: SwapRowContext, providerVideoUrl: string, opts
   const mr = mr0 ?? (await metaPorUrl(providerVideoUrl, f))
   if (!mr || !(mr.segundos > 0)) return unverified('frames_unavailable', 'result_meta_unavailable')
   const doMolde = instantesValidos(ctx.instantes, mb.segundos) // KINEO-TRAVA-INSTANTES-MOLDE-1611 — o trecho do molde diz onde olhar; sem isso, o padrão abaixo
-  if (doMolde) return checarNosInstantes(ctx, providerVideoUrl, opts, verdict, unverified, mb, mr, doMolde)
+  const noMolde = doMolde ? await checarNosInstantes(ctx, providerVideoUrl, opts, verdict, unverified, mb, mr, doMolde) : null
+  if (noMolde) return noMolde // null = fps em que a grade não cai em quadro inteiro: o padrão abaixo
   const passo = mb.segundos * TRAVA_INSTANTES[0] // os instantes são múltiplos do 1º: quadros n, 2n, 3n, 4n no fps de cada arquivo
   // Só os instantes que EXISTEM na saída. Saída que não chega a 2 deles (menos de ~40% do original) = o motor cortou o vídeo: incerto, não entrega.
   const n = TRAVA_INSTANTES.filter((_, i) => passo * (i + 1) <= mr.segundos - 0.05).length
@@ -566,23 +568,30 @@ export function passoDosInstantes(instantes: readonly number[]): { passo: number
   const g = ks.reduce((a, k) => mdc(a, k))
   return { passo: g * TRAVA_GRADE_S, posicoes: ks.map(k => k / g) }
 }
-async function checarNosInstantes(ctx: SwapRowContext, providerVideoUrl: string, opts: SwapCheckOpts, verdict: Fazer, unverified: NaoVerificou, mb: MetaDoVideo, mr: MetaDoVideo, instantes: number[]): Promise<SwapVerdict> {
+/** Quanto (s) o quadro tirado no último instante escorrega do instante pedido, num arquivo de `fps` (o extrator só aceita intervalo inteiro). */
+export const desvioDaGrade = (passo: number, ate: number, fps: number | null | undefined) => { const q = typeof fps === 'number' && fps > 0 ? fps : 24; return Math.abs(intervaloPara(passo, fps) / q - passo) * ate }
+async function checarNosInstantes(ctx: SwapRowContext, providerVideoUrl: string, opts: SwapCheckOpts, verdict: Fazer, unverified: NaoVerificou, mb: MetaDoVideo, mr: MetaDoVideo, instantes: number[]): Promise<SwapVerdict | null> {
   // Só os instantes que EXISTEM na saída (a mesma folga do padrão). Menos de 2 = o motor cortou o vídeo: incerto, não entrega.
   const vale = instantes.filter(t => t <= mr.segundos - 0.05)
   if (vale.length < 2) return verdict('uncertain', 'result_too_short', { rule: TRAVA_ALVO_REGRA, instants_source: 'molde' })
   const { passo, posicoes } = passoDosInstantes(vale)
   const ate = posicoes[posicoes.length - 1]
+  // [revisão, nit 2] fps em que o passo não dá quadro inteiro (25 fps: 12,5) escorregaria o par; mais de 1/20 s no último instante = o padrão (nunca um par torto).
+  if (desvioDaGrade(passo, ate, mb.fps) > 0.05 || desvioDaGrade(passo, ate, mr.fps) > 0.05) return null
   const [base, result] = await Promise.all([
-    extractInstantFrames(ctx.baseVideoUrl as string, opts, intervaloPara(passo, mb.fps), ate),
-    extractInstantFrames(providerVideoUrl, opts, intervaloPara(passo, mr.fps), ate), // o fps da própria saída
+    extractInstantFrames(ctx.baseVideoUrl as string, opts, intervaloPara(passo, mb.fps), ate, true),
+    extractInstantFrames(providerVideoUrl, opts, intervaloPara(passo, mr.fps), ate, true), // o fps da própria saída; posicional: o vazio fica no lugar
   ])
   const framesUsd = (base.frames ? base.usd : 0) + (result.frames ? result.usd : 0)
   if (!base.frames) return unverified('base_frames_unavailable', 'base_frames_unavailable', { usd: framesUsd, instants_source: 'molde' })
   if (!result.frames) return unverified(result.why, 'result_frames_unavailable', { usd: framesUsd, instants_source: 'molde' })
-  // Como no padrão: o extrator pode devolver menos quadros (vídeo mais curto); vale o que veio dos dois lados, e menos de 2 pares é falha de rede.
-  const total = Math.min(base.frames.length, result.frames.length)
-  const pares = vale.flatMap((segundos, j) => (posicoes[j] <= total ? [{ base: base.frames![posicoes[j] - 1], result: result.frames![posicoes[j] - 1], segundos }] : []))
-  if (pares.length < 2) return unverified('frames_unavailable', 'result_frames_unavailable', { usd: framesUsd, instants_source: 'molde' })
+  // Como no padrão: o extrator pode devolver menos quadros; vale o par em que os DOIS lados vieram, na posição do instante (sem escorregar).
+  const pares = vale.flatMap((segundos, j) => { const b = base.frames![posicoes[j] - 1], r = result.frames![posicoes[j] - 1]; return b && r ? [{ base: b, result: r, segundos }] : [] })
+  if (pares.length < 2) {
+    // [revisão, achado 1] o original veio inteiro e a SAÍDA não: o vídeo do motor é mais curto do que diz o cabeçalho — incerto, não entrega (nunca entrega sem julgar).
+    if (base.frames.length >= ate && base.frames.every(Boolean) && result.frames.length < ate) return verdict('uncertain', 'result_too_short', { usd: framesUsd, rule: TRAVA_ALVO_REGRA, instants_source: 'molde' })
+    return unverified('frames_unavailable', 'result_frames_unavailable', { usd: framesUsd, instants_source: 'molde' })
+  }
   return julgarPares(ctx, pares, framesUsd, 'molde', opts, verdict, unverified)
 }
 

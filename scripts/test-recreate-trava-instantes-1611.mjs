@@ -44,14 +44,14 @@ function carregar(src, metas) {
   return mod.exports
 }
 // fal devolve max_frames imagens (a 0 é o quadro 0); a OpenAI devolve a resposta dada.
-function rede(resposta, { curta = 0 } = {}) {
+function rede(resposta, { curta = 0, buraco = -1 } = {}) {
   const s = { fal: [], visao: null }
   const f = async (url, init) => {
     if (String(url).startsWith('https://fal.run/')) {
       const b = JSON.parse(init.body); s.fal.push({ ...b })
       const tag = b.video_url === BASE ? 'base' : 'saida'
       const n = tag === 'saida' && curta ? Math.min(curta, b.max_frames) : b.max_frames
-      return { ok: true, json: async () => ({ images: Array.from({ length: n }, (_, i) => ({ url: `https://f/${tag}-${i}.jpg` })) }) }
+      return { ok: true, json: async () => ({ images: Array.from({ length: n }, (_, i) => ({ url: tag === 'saida' && i === buraco ? '' : `https://f/${tag}-${i}.jpg` })) }) }
     }
     if (String(url).includes('api.openai.com')) {
       s.visao = JSON.parse(init.body)
@@ -72,9 +72,9 @@ async function bateria(over = {}) {
   const m = loader({}, over)
   const M = m('lib/recreate/invasorMolde'), I = m('lib/recreate/invasor')
   const sc = over[SC] ?? lf(SC), srv = (over[SRV] ?? lf(SRV)).replace(/\/\/[^\n]*/g, '')
-  const trava = async (resposta, { instantes, base = { segundos: 8, fps: 30 }, saida = { segundos: 8.04, fps: 24 }, curta } = {}) => {
+  const trava = async (resposta, { instantes, base = { segundos: 8, fps: 30 }, saida = { segundos: 8.04, fps: 24 }, curta, buraco } = {}) => {
     const S = carregar(sc, { [SAIDA]: saida })
-    const r = rede(resposta, { curta })
+    const r = rede(resposta, { curta, buraco })
     const v = await S.checarTrocaDoTrecho({ baseVideoUrl: BASE, baseMeta: { ...base, largura: 1080, altura: 1920 }, resultVideoUrl: SAIDA, photos: [FOTO], prompt: PEDIDO, formatId: 'vendedor-de-ilusao', ...(instantes ? { instantes } : {}) }, { fetchImpl: r.f, falKey: 'k', apiKey: 'k', budgetMs: 5000 })
     return { v, s: r.s, S }
   }
@@ -121,15 +121,20 @@ async function bateria(over = {}) {
     if (wb.frame_interval !== 24 || wb.max_frames !== 5 || w.v.instants.join() !== '1,2,3,4') throw new Error('passo de 1 s: ' + JSON.stringify(w.s.fal))
   })
 
-  await check('4. saída mais curta: só os instantes que existem nela; menos de 2 = incerto (não entrega); extrator com menos quadros = só os pares que vieram', async () => {
+  await check('4. saída mais curta: só os instantes que existem nela; menos de 2 = incerto (não entrega); extrator com menos quadros = só os pares que vieram, sem escorregar; fps fora da grade = o padrão', async () => {
     const a = await trava(TROCOU, { instantes: [2.5, 3, 4.5, 7.5], saida: { segundos: 7, fps: 24 } })
     if (a.v.instants.join() !== '2.5,3,4.5' || a.s.fal.find((x) => x.video_url === SAIDA).max_frames !== 10) throw new Error('7 s: ' + a.v.instants)
     const b = await trava(TROCOU, { instantes: [2.5, 3, 4.5, 7.5], saida: { segundos: 2.8, fps: 24 } })
     if (b.v.result !== 'uncertain' || b.v.reason !== 'result_too_short' || b.s.visao) throw new Error('2,8 s: ' + b.v.result + ' ' + b.v.reason)
     const c = await trava(TROCOU, { instantes: [2.5, 3, 4.5, 7.5], curta: 10 }) // o extrator devolveu até o quadro 9 (4,5 s)
     if (c.v.instants.join() !== '2.5,3,4.5') throw new Error('extrator curto: ' + c.v.instants)
-    const d = await trava(TROCOU, { instantes: [2.5, 3, 4.5, 7.5], curta: 6 }) // só o 2,5 s
-    if (d.v.result !== 'unverified' || d.s.visao) throw new Error('1 par julgado: ' + d.v.result)
+    const d = await trava(TROCOU, { instantes: [2.5, 3, 4.5, 7.5], curta: 6 }) // o original inteiro, a saída só até o 2,5 s: mais curta que o cabeçalho
+    if (d.v.result !== 'uncertain' || d.v.reason !== 'result_too_short' || d.s.visao) throw new Error('saída curta: ' + d.v.result + ' ' + d.v.reason)
+    const e = await trava(TROCOU, { instantes: [2.5, 3, 4.5, 7.5], buraco: 6 }) // a fal devolveu o quadro do 3 s vazio: o par some, os outros não escorregam
+    const ei = e.s.visao.messages[1].content.filter((x) => x.type === 'image_url').map((x) => x.image_url.url)
+    if (e.v.instants.join() !== '2.5,4.5,7.5' || ei.slice(0, 6).join() !== [5, 9, 15].flatMap((k) => [`https://f/base-${k}.jpg`, `https://f/saida-${k}.jpg`]).join()) throw new Error('buraco: ' + e.v.instants + ' ' + ei.join())
+    const g = await trava(TROCOU, { instantes: [2.5, 3, 4.5, 7.5], base: { segundos: 8, fps: 25 } }) // 0,5 s a 25 fps = 12,5 quadros: o par escorregaria
+    if (g.v.instants_source !== 'padrao') throw new Error('25 fps: ' + g.v.instants_source)
   })
 
   await check('5. instantes inválidos (fora da grade, fora do arquivo, fora de ordem, 1 só, 5) = o padrão, nunca um par torto', async () => {
@@ -160,7 +165,7 @@ async function bateria(over = {}) {
     const inp = { prompt: PEDIDO, video_url: I.marcadorDoTrecho(0, mo.id), image_urls: [FOTO], resolution: '720p', kineo_molde: mo.id }
     const row = { id: 'c1', user_id: 'u1', status: 'processing', model: KLING, engine: 'kling', seconds: 11, credits: 45, billing_reference: 'b1', created_at: new Date(1e12).toISOString(), failure_reason: I.marcaDoTrecho(1), fal_request_id: 'req-1', fingerprint: JSON.stringify(['x', KLING, inp]) }
     const eventos = [], pedidos = []
-    const aud = { instants: [1.5, 2, 4.5, 5], instants_source: 'molde', pairs_used: [1, 2], judge: [{ person: 1, same_person: 'uncertain', result_vs_photo: 'uncertain', visible_pairs: [], base_vs_result: {}, note: 'n' }], subjects: ['alvo'], target_missing: false, model: 'gpt-4o', unverified_reason: null, trecho: 99, result: 'x', reason: 'y' }
+    const aud = { instants: [1.5, 2, 4.5, 5], instants_source: 'molde', pairs_used: [1, 2], judge: [{ person: 1, same_person: 'uncertain', result_vs_photo: 'uncertain', visible_pairs: [], base_vs_result: {}, note: 'n' }], subjects: ['alvo'], target_missing: false, model: 'gpt-4o', unverified_reason: null, trecho: 99, result: 'x', reason: 'y', clip_id: 'zz', format: 'zz' }
     const io = {
       now: () => 1e12 + 60_000, poll: async () => ({ state: 'done', url: SAIDA }), guardarTrecho: async () => ({ url: 'https://ours.org/t1.mp4', segundos: 6.04 }),
       mover: async () => true, conferirTroca: async (r, i, url, dados) => { pedidos.push({ i, molde: dados.molde.id }); return { result: 'uncertain', reason: 'target_unclear', usd: 0.03, auditoria: aud } },
@@ -169,7 +174,7 @@ async function bateria(over = {}) {
     await I.settleInvasor(io, row)
     const ev = eventos.find(([n]) => n === 'recreate_invasor_trava')?.[1]
     if (!ev || pedidos[0]?.i !== 1) throw new Error('sem evento da trava: ' + JSON.stringify(eventos.map(([n]) => n)))
-    if (ev.trecho !== 1 || ev.result !== 'uncertain' || ev.reason !== 'target_unclear' || ev.clip_id !== 'c1') throw new Error('campos fixos sobrescritos: ' + JSON.stringify(ev))
+    if (ev.trecho !== 1 || ev.result !== 'uncertain' || ev.reason !== 'target_unclear' || ev.clip_id !== 'c1' || ev.format !== 'vendedor-de-ilusao') throw new Error('campos fixos sobrescritos: ' + JSON.stringify(ev))
     if (ev.instants?.join() !== '1.5,2,4.5,5' || ev.instants_source !== 'molde' || ev.judge?.[0]?.same_person !== 'uncertain' || ev.pairs_used?.join() !== '1,2') throw new Error('auditoria fora do evento: ' + JSON.stringify(ev))
     if (!eventos.some(([n, x]) => n === 'clip_failed' && x.reason === 'swap_uncertain')) throw new Error('incerto entregou')
   })
@@ -187,18 +192,21 @@ const sc = lf(SC), molde = lf(MOLDE), inv = lf(INV), srvSrc = lf(SRV)
 const mutantes = [
   ['o molde perde os instantes do trecho 0 do vendedor', { [MOLDE]: molde.replace(', instantesDaTrava: [2, 2.5, 3.5, 4] }', ' }') }],
   ['instante do vendedor fora da grade', { [MOLDE]: molde.replace('instantesDaTrava: [1.5, 2, 4.5, 5] }', 'instantesDaTrava: [1.5, 2, 4.4, 5] }') }],
-  ['a trava ignora os instantes do molde', { [SC]: sc.replace('  if (doMolde) return checarNosInstantes(', '  if (false) return checarNosInstantes(') }],
+  ['a trava ignora os instantes do molde', { [SC]: sc.replace('  const noMolde = doMolde ? await checarNosInstantes(', '  const noMolde = false ? await checarNosInstantes(') }],
   ['o servidor não passa os instantes', { [SRV]: srvSrc.replace('formatId: dados.molde.id, instantes: t.instantesDaTrava })', 'formatId: dados.molde.id })') }],
   ['passo fixo de 0,5 s (sem o passo comum)', { [SC]: sc.replace('  return { passo: g * TRAVA_GRADE_S, posicoes: ks.map(k => k / g) }', '  return { passo: TRAVA_GRADE_S, posicoes: ks }') }],
-  ['os instantes do molde no fps do original na saída', { [SC]: sc.replace('    extractInstantFrames(providerVideoUrl, opts, intervaloPara(passo, mr.fps), ate), // o fps da própria saída', '    extractInstantFrames(providerVideoUrl, opts, intervaloPara(passo, mb.fps), ate),') }],
-  ['par na posição errada (um a menos)', { [SC]: sc.replace("vale.flatMap((segundos, j) => (posicoes[j] <= total ? [{ base: base.frames![posicoes[j] - 1], result: result.frames![posicoes[j] - 1], segundos }] : []))", "vale.flatMap((segundos, j) => (posicoes[j] <= total ? [{ base: base.frames![j], result: result.frames![j], segundos }] : []))") }],
+  ['os instantes do molde no fps do original na saída', { [SC]: sc.replace('    extractInstantFrames(providerVideoUrl, opts, intervaloPara(passo, mr.fps), ate, true), // o fps da própria saída', '    extractInstantFrames(providerVideoUrl, opts, intervaloPara(passo, mb.fps), ate, true),') }],
+  ['par na posição errada (um a menos)', { [SC]: sc.replace('const b = base.frames![posicoes[j] - 1], r = result.frames![posicoes[j] - 1]', 'const b = base.frames![j], r = result.frames![j]') }],
+  ['o extrator tira os vazios (o par escorrega)', { [SC]: sc.replace('    extractInstantFrames(providerVideoUrl, opts, intervaloPara(passo, mr.fps), ate, true), // o fps', '    extractInstantFrames(providerVideoUrl, opts, intervaloPara(passo, mr.fps), ate), // o fps') }],
+  ['saída mais curta que o cabeçalho entrega sem julgar', { [SC]: sc.replace("result.frames.length < ate) return verdict('uncertain', 'result_too_short'", "result.frames.length < ate) return unverified('frames_unavailable', 'result_too_short'") }],
+  ['fps fora da grade escorrega o par', { [SC]: sc.replace('  if (desvioDaGrade(passo, ate, mb.fps) > 0.05 || desvioDaGrade(passo, ate, mr.fps) > 0.05) return null\n', '') }],
   ['saída curta julgada com instante que não existe', { [SC]: sc.replace('  const vale = instantes.filter(t => t <= mr.segundos - 0.05)', '  const vale = instantes') }],
   ['instante fora da grade aceito', { [SC]: sc.replace(' || Math.abs(t / TRAVA_GRADE_S - Math.round(t / TRAVA_GRADE_S)) > 1e-9) return null', ') return null') }],
   ['instante fora de ordem aceito', { [SC]: sc.replace('    if (i > 0 && !(t > instantes[i - 1])) return null\n', '') }],
   ['o juiz fica fora do veredito', { [SC]: sc.replace(', judge: respostasDoJuiz(answer.parsed) }', ' }') }],
   ['nota do juiz sem teto', { [SC]: sc.replace("note: typeof r.note === 'string' ? r.note.slice(0, 120) : '' }", "note: typeof r.note === 'string' ? r.note : '' }") }],
-  ['o evento sem a auditoria', { [INV]: inv.replace('{ ...telemetria(row), ...(veredito.auditoria ?? {}), trecho: i,', '{ ...telemetria(row), trecho: i,') }],
-  ['a auditoria sobrescreve os campos fixos', { [INV]: inv.replace("{ ...telemetria(row), ...(veredito.auditoria ?? {}), trecho: i, result: veredito.result, reason: veredito.reason, usd: veredito.usd ?? null }", "{ ...telemetria(row), trecho: i, result: veredito.result, reason: veredito.reason, usd: veredito.usd ?? null, ...(veredito.auditoria ?? {}) }") }],
+  ['o evento sem a auditoria', { [INV]: inv.replace('{ ...(veredito.auditoria ?? {}), ...telemetria(row), trecho: i,', '{ ...telemetria(row), trecho: i,') }],
+  ['a auditoria sobrescreve os campos fixos', { [INV]: inv.replace('{ ...(veredito.auditoria ?? {}), ...telemetria(row), trecho: i,', '{ ...telemetria(row), ...(veredito.auditoria ?? {}), trecho: i,') }],
   ['o servidor sem o juiz na auditoria', { [SRV]: srvSrc.replace(' judge: v.judge ?? null,', '') }],
   ['a regra afrouxa no molde (diferente basta)', { [SC]: sc.replace('const swapped = persons.filter(p => p.same_as_base === false && p.matches_photo === true).length', 'const swapped = persons.filter(p => p.same_as_base === false).length') }],
   ['o padrão muda (35/70%)', { [SC]: sc.replace('export const TRAVA_INSTANTES = [0.2, 0.4, 0.6, 0.8] as const', 'export const TRAVA_INSTANTES = [0.35, 0.7] as const') }],

@@ -303,7 +303,7 @@ export async function settleInvasor(io: InvasorIo, row: ClipRow): Promise<ClipRo
   const esperado = T[i].segundosDoArquivo
   if (guardado.segundos === null || !(guardado.segundos >= esperado - INVASOR_TOLERANCIA_S)) return fail(INVASOR_FALHAS.curto, { trecho: i, segundos: guardado.segundos, esperado })
   const veredito: { result: string; reason: string; usd?: number; auditoria?: AuditoriaDaTrava } = await io.conferirTroca(row, i, st.url, dados).catch(() => ({ result: 'unverified', reason: 'check_error' }))
-  await io.event(INVASOR_EVENTOS.trava, { ...telemetria(row), ...(veredito.auditoria ?? {}), trecho: i, result: veredito.result, reason: veredito.reason, usd: veredito.usd ?? null }) // KINEO-TRAVA-INSTANTES-MOLDE-1611 — + os instantes e a resposta do juiz (antes dos campos fixos: não os sobrescreve)
+  await io.event(INVASOR_EVENTOS.trava, { ...(veredito.auditoria ?? {}), ...telemetria(row), trecho: i, result: veredito.result, reason: veredito.reason, usd: veredito.usd ?? null }) // KINEO-TRAVA-INSTANTES-MOLDE-1611 — + os instantes e a resposta do juiz (ANTES de todo campo fixo: não sobrescreve clip_id, format, trecho, result)
   if (Object.hasOwn(NAO_ENTREGA, veredito.result)) return fail(NAO_ENTREGA[veredito.result], { trecho: i, swap_check: veredito.result })
   if (i < T.length - 1) {
     const envio = marcaDoEnvio(i + 1, io.now())
