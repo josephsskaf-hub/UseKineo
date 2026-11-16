@@ -28,7 +28,8 @@ export function recreateCreditCostVariosTrechos(seconds: number): number | null 
 // KINEO-BASQUETE-ABRE-1611 — o basquete saiu daqui (abriu ao público a 75, tabela abaixo).
 // KINEO-CACHORRO-HUMANO-8S-1611 — a variante humana ficou com 8 s (só o trecho 0): 40 provisório da casa (a tabela de 10 s = 40).
 // KINEO-DOG-YOU-ABRE-1611 — a variante humana saiu daqui (abriu ao público a 40, tabela abaixo). Tabela vazia até o próximo molde da casa.
-export const RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO: Readonly<Record<string, number>> = {}
+// KINEO-MOLDE-VENDEDOR-1611 [CEO 16/11 ~04:15] — entra o "vendedor de ilusão" (19 s enviados em 3 trechos de 4 + 8 + 7 s, o mesmo volume do Pitch invader) → 75, só da casa.
+export const RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO: Readonly<Record<string, number>> = { 'vendedor-de-ilusao': 75 }
 export function recreateCreditCostMoldeDaCasa(id: string): number | null {
   return Object.prototype.hasOwnProperty.call(RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO, id) ? RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO[id] : null
 }

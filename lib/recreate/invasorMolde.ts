@@ -19,7 +19,7 @@
 // home. O cartão da home mostra só o NOSSO render (teste pago a3b76cb7, rosto inventado), recortado sem jogador, camisa, número, patrocínio ou escudo
 // (public/previews/galeria/invasor-de-campo.mp4), e o link sai de lib/recreate/entry.ts RECREATE_MOLDES_SO_LOGADO (só o id).
 import type { RecreateFormat } from './formats'
-import { recreateCreditCostMoldePublico, recreateCreditCostVariosTrechos } from '@/lib/checkoutPricing'
+import { recreateCreditCostMoldeDaCasa, recreateCreditCostMoldePublico, recreateCreditCostVariosTrechos } from '@/lib/checkoutPricing'
 
 // ═══ KINEO-REMODELAMENTO-MOLDES-1611 [dono 16/11 ~00:10: "por que não podemos fazer o do basquete e o do cachorro pra hoje?"; CEO 16/11] ═══
 // A máquina de vários trechos virou MOLDES POR DADOS: cada molde é um registro (id, título, trechos, som, alvo, cartão, preço, interruptor). O Pitch invader é o
@@ -207,11 +207,47 @@ const CACHORRO_CRAQUE_HUMANO: MoldeDeTrechos = {
   nota: '16/11: the dog clip with the PERSON from the photo in place of the dog, first 8 s only (paid test 215d670f: the low-camera second segment broke); house only',
 }
 
+// ─── 5. Vendedor de ilusão (KINEO-MOLDE-VENDEDOR-1611 [CEO 16/11 ~04:15, dono: "faz esse primeiro"]) — docs/remodelamento-1611/vendedor/original-1080.mp4 ───
+// O vídeo nº 1 da pesquisa (TikTok @climentstudios 7702518015413292310, 2,0 mi de views): 1080×1920, 24 fps, 459 quadros = 19,125 s, UM plano de câmera na mão,
+// sem corte seco (medido quadro a quadro em 16/11). A tela é dividida EM CIMA E EMBAIXO (não lado a lado), cada metade 1080×608 (16:9): em cima o "Original" (rapaz de
+// camiseta branca, garagem, carro preto) e embaixo o "depois" (o MESMO rapaz de terno azul-marinho e camisa branca, um SUV amarelo de luxo, uma moça de vestido preto no
+// colo nos primeiros 4,5 s, relógio dourado aos 11–13 s). A legenda em espanhol fica na faixa preta de cima, fora das metades.
+// A BASE é SÓ o "depois" (o cliente vira o "rico"): a metade de baixo, y 960–1567 do original. Ela traz, queimado no canto de baixo à esquerda, o rótulo de outra empresa
+// de IA (y 513–552 da metade): o recorte é 896×504 a partir de (0, 960) — acima do rótulo, 16:9, o rapaz dentro do quadro do 1º ao último quadro (folha a 2 fps conferida)
+// —, levado a 1280×720 (o Kling 4.0 edição pede ≥ 700 px em cada lado; a metade inteira tem 608 de altura). Perde os pés no plano aberto dos primeiros 4 s.
+// Trechos de SEGUNDO INTEIRO, emendas nos picos de movimento do plano (a moça cai aos 4 s; a câmera avança para o relógio aos 12 s):
+//   trecho 0 = quadros 0 a 95 (0 a 4 s, 4 s), trecho 1 = quadros 96 a 287 (4 a 12 s, 8 s), trecho 2 = quadros 288 a 455 (12 a 19 s, 7 s). Ficam de fora 3 quadros finais.
+// O ALVO pela roupa: "the man in the dark navy suit and white shirt" (a moça veste preto; ninguém mais em quadro). Sem óculos no vídeo. A roupa fica (o terno é o "rico").
+// O SOM ORIGINAL é a fala dele em espanhol ("sonido original"; não ouvi): NÃO entra. No lugar, hustle-04 da NOSSA biblioteca CC0 ("Soulja Unit - Beyond The Moon",
+// music-novas/README.md), de 1,0 s, 19 s, −16 LUFS, entrada de 0,15 s e saída de 0,6 s. A boca dele mexe (ele fala o vídeo todo): no filme, fala muda sob a música.
+// O carro: o desenho do SUV é o de uma marca de luxo conhecida; o emblema do capô tem ~15 px e a placa da frente, borrada — nenhum dos dois é legível. Recorte não o evita
+// (o carro é o fundo de todos os quadros).
+// SÓ DA CASA (interruptor fechado), preço provisório da casa (lib/checkoutPricing.ts RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO). Nada na home nem no catálogo público.
+export const VENDEDOR_ABERTO_AO_PUBLICO: boolean = false
+const VENDEDOR_DE_ILUSAO: MoldeDeTrechos = {
+  id: 'vendedor-de-ilusao', titulo: 'Illusion seller', desde: '2026-11-16',
+  trechos: [
+    { arquivo: 'recreate-vendedor-de-ilusao-t0-v1.mp4', bytes: 1457096, sha256: '7b69bcf0315703697872d9863a5b1f10e82963f401ff6e617ca05292122bd5f3', contentType: 'video/mp4', quadros: [0, 95], segundosDoArquivo: 4, fps: 24, segundosNoFilme: 4, velocidade: 100 },
+    { arquivo: 'recreate-vendedor-de-ilusao-t1-v1.mp4', bytes: 3437693, sha256: '6f421ec0256353ab29029eeadc6872d7f7e20f1115ab25fff02ebc642d418227', contentType: 'video/mp4', quadros: [96, 287], segundosDoArquivo: 8, fps: 24, segundosNoFilme: 8, velocidade: 100 },
+    { arquivo: 'recreate-vendedor-de-ilusao-t2-v1.mp4', bytes: 2932499, sha256: '3a6f934c5146e7344cb64bf181e5816e8fea036f866cc666ead8a07fb26538a2', contentType: 'video/mp4', quadros: [288, 455], segundosDoArquivo: 7, fps: 24, segundosNoFilme: 7, velocidade: 100 },
+  ],
+  som: { arquivo: 'recreate-vendedor-de-ilusao-som-v1.mp3', bytes: 457709, sha256: '42fdb104e5e5959fab2e552b4092e9d60245a287bf08c2d735f199a66522b577', contentType: 'audio/mpeg', segundos: 19 },
+  vitrine: {
+    'vendedor-de-ilusao.mp4': { arquivo: 'recreate-vendedor-de-ilusao-vitrine-v1.mp4', bytes: 5166017, sha256: 'e311c60e3a92eca091b31a0059bb8af278b19805a25f41bd041477a3ebbac59b', contentType: 'video/mp4' },
+    'vendedor-de-ilusao.jpg': { arquivo: 'recreate-vendedor-de-ilusao-vitrine-v1.jpg', bytes: 72669, sha256: '92df7a97b61c599529061c855e7c885d08a00a1a90e9454f1c0d62e228e03198', contentType: 'image/jpeg' },
+  },
+  entrada: { largura: 1280, altura: 720 }, saida: { largura: 1280, altura: 720, fps: 24 },
+  alvo: { tipo: 'pessoa', texto: 'the man in the dark navy suit and white shirt', deOculos: false, roupa: 'Keep the original clothing from @Video1.' },
+  segundos: 19, aberto: VENDEDOR_ABERTO_AO_PUBLICO, creditosPublicos: null, creditosDaCasa: recreateCreditCostMoldeDaCasa('vendedor-de-ilusao'),
+  esperaMinutos: [10, 15], // 3 trechos de 1,5 a 4 min + a trava de cada trecho + a montagem (o mesmo volume do Pitch invader)
+  nota: '16/11: the "after" half of a split-screen trend (suit, luxury SUV), cropped above a burned-in label to 16:9; 3 Kling 4.0 edit segments (4 + 8 + 7 s) + our CC0 track; house only',
+}
+
 /** O registro dos moldes de vários trechos. O 1º é o Pitch invader (byte a byte o de antes). */
 // KINEO-SEGUNDO-INTEIRO-1611 [CEO 16/11, teste pago 90a42302] — REGRA: todo arquivo de trecho enviado ao motor tem SEGUNDO INTEIRO (≥ 3 s, ≤ 8 s): o Kling 4.0 edição devolve
 // o inteiro + 1 quadro (8 → 8,04; 3 → 3,04) e corta o resto (6,375 → 6,042: falha "trecho curto" e estorno). O que vai ao filme pode ser fracionário (o 2,4 s do
 // Pitch invader, alongado a 3,0 s e devolvido a 125%). O guardião confere em todo molde.
-export const MOLDES_DE_TRECHOS: readonly MoldeDeTrechos[] = [PITCH_INVADER, BASQUETE, CACHORRO_CRAQUE, CACHORRO_CRAQUE_HUMANO]
+export const MOLDES_DE_TRECHOS: readonly MoldeDeTrechos[] = [PITCH_INVADER, BASQUETE, CACHORRO_CRAQUE, CACHORRO_CRAQUE_HUMANO, VENDEDOR_DE_ILUSAO]
 export const moldeDeTrechos = (id: unknown): MoldeDeTrechos | null => MOLDES_DE_TRECHOS.find((m) => m.id === id) ?? null
 export const MOLDE_PITCH_INVADER = PITCH_INVADER
 
