@@ -584,6 +584,18 @@ async function bateria(over = {}) {
       if (c.trechos.map((t) => t.segundosNoFilme).join() !== '8,7' || c.som.segundos !== 15 || I.segundosDoFilme(c) !== 15 || c.trechos[1].quadros.join() !== '192,359') throw new Error('cachorro 8 + 7 s')
       for (const mo of [b, c]) if (!mo.trechos[1].arquivo.endsWith('-t1-v2.mp4') || !mo.som.arquivo.endsWith('-som-v2.mp3') || !mo.vitrine[mo.id + '.mp4'].arquivo.endsWith('-vitrine-v2.mp4')) throw new Error(mo.id + ': arquivos novos com nome novo (-v2)')
     })
+    await check('palco (KINEO-PALCO-INVADER-1611): só o molde ABERTO da máquina de trechos leva palco; o cliente e a casa logados o recebem; o visitante não recebe o molde', async () => {
+      const cat = m('lib/recreate/catalogoServidor'), pub = m('lib/recreate/catalogPublic')
+      const marcados = M.FORMATOS_DOS_MOLDES_DE_TRECHOS.filter((f) => f.palco === true).map((f) => f.id)
+      if (marcados.join() !== M.MOLDES_DE_TRECHOS.filter((x) => x.aberto).map((x) => x.id).join() || !marcados.includes('invasor-de-campo') || marcados.includes('basquete') || marcados.includes('cachorro-craque')) throw new Error('marcados: ' + marcados)
+      for (const email of ['customer@example.org', 'josephsskaf@gmail.com']) { const l = cat.formatosParaOCliente(email); if (l.find((f) => f.palco === true)?.id !== 'invasor-de-campo') throw new Error('logado sem o palco: ' + email) }
+      if (cat.formatosParaOCliente('customer@example.org')[0]?.id !== 'invasor-de-campo') throw new Error('a grade do cliente não abre no Pitch invader')
+      const visitante = cat.formatosParaOCliente(null).filter((f) => pub.publicRecreateCatalog().some((p) => p.id === f.id))
+      if (visitante.some((f) => f.palco === true || f.id === 'invasor-de-campo')) throw new Error('o visitante recebeu o molde')
+      if (M.FORMATOS_DOS_MOLDES_DE_TRECHOS.some((f) => f.palco !== undefined && f.palco !== true)) throw new Error('palco só true ou ausente')
+      const juntos = lf('components/create/ClipRecreateJuntos.tsx')
+      if (!juntos.includes('  const destaque = catalogo.find(f => f.palco === true)\n  if (destaque) return destaque\n  return catalogo.find(f => publicRecreatePath(f.id) !== null) ?? catalogo[0] ?? null')) throw new Error('o palco da tela única não abre no molde aberto')
+    })
     // ── 2ª revisão independente de 15/11 (bloqueios para abrir ao público) ──
     await check('2ª revisão, item 1: a varredura horária refaz o estorno do invasor failed com 0 devolvido (qualquer motivo), uma vez só; nunca cobrado e outros clipes fora', async () => {
       const banco = bancoDeMentira()
@@ -692,6 +704,9 @@ const SRV = 'lib/clips/clipServer.ts', ROTA = 'lib/recreate/invasorRota.ts'
 const srvSrc = lf(SRV), rotaSrc = lf(ROTA)
 const mutantes = [
   // KINEO-REMODELAMENTO-MOLDES-1611 — moldes por dados
+  ['palco: o servidor não marca o molde aberto', { [MOLDE]: molde.replace('    ...(m.aberto ? { palco: true } : {}),', '') }],
+  ['palco: o molde da casa também abre o palco', { [MOLDE]: molde.replace('    ...(m.aberto ? { palco: true } : {}),', '    ...({ palco: true }),') }],
+  ['palco: a vitrine do cliente perde o palco', { ['lib/recreate/catalogoServidor.ts']: lf('lib/recreate/catalogoServidor.ts').replace('  if (f.palco === true) out.palco = true', '') }],
   ['moldes: trecho fracionário (o 6,375 s que o Kling cortou)', { [MOLDE]: molde.replace("quadros: [328, 471], segundosDoArquivo: 6, fps: 24, segundosNoFilme: 6, velocidade: 100", "quadros: [328, 480], segundosDoArquivo: 6.375, fps: 24, segundosNoFilme: 6.375, velocidade: 100") }],
   ['moldes: o cachorro volta a 7,04 s', { [MOLDE]: molde.replace("quadros: [192, 359], segundosDoArquivo: 7, fps: 24, segundosNoFilme: 7, velocidade: 100", "quadros: [192, 360], segundosDoArquivo: 7.042, fps: 24, segundosNoFilme: 7.042, velocidade: 100") }],
   ['moldes: o Pitch invader muda o texto', { [MOLDE]: molde.replace("roupa: 'Keep the original clothing from @Video1.' },\n  segundos: 18,", "roupa: 'Keep the clothing from @Video1.' },\n  segundos: 18,") }],

@@ -191,6 +191,7 @@ export function formatoDoMolde(m: MoldeDeTrechos): RecreateFormat {
     preview: `/api/recreate/assets/${m.id}.mp4`, poster: `/api/recreate/assets/${m.id}.jpg`,
     seconds: m.segundos, prompt: '', photoSlots: 1, swapApproved: m.aberto, swapInTest: !m.aberto, ...(m.approvedOn ? { approvedOn: m.approvedOn } : {}),
     creditos: creditosDoMolde(m), esperaMinutos: m.esperaMinutos, swapNote: m.nota,
+    ...(m.aberto ? { palco: true } : {}), // KINEO-PALCO-INVADER-1611 — o aberto mais novo abre o palco da tela única para quem está logado
   }
 }
 export const INVASOR_FORMATO: RecreateFormat = formatoDoMolde(PITCH_INVADER)

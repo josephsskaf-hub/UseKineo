@@ -34,7 +34,12 @@ export const JUNTOS_COPY = { voltar: '← Clip from your idea', palco: 'Video te
 export type RecreateProps = Omit<ComponentProps<typeof RecreateClient>, 'moldura'>
 
 /** O modelo que toca à direita antes de qualquer escolha: o primeiro com link público (a vitrine), senão o primeiro da grade desta conta. */
+// KINEO-PALCO-INVADER-1611 [dono 16/11 ~01:55: "se a gente puder já colocar o vídeo do Invader na tela principal, seria animal… os que têm de novidade têm que ficar
+// sempre no começo"] — ANTES da regra de sempre: o molde ABERTO mais novo da máquina de trechos (o servidor marca `palco` só no molde aberto ao público e só o manda a
+// quem pode vê-lo; o catálogo vem do mais novo ao mais antigo). Visitante não recebe o molde: segue a regra de sempre.
 export function palcoPadrao(catalogo: readonly RecreateFormat[]): RecreateFormat | null {
+  const destaque = catalogo.find(f => f.palco === true)
+  if (destaque) return destaque
   return catalogo.find(f => publicRecreatePath(f.id) !== null) ?? catalogo[0] ?? null
 }
 

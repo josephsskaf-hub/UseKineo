@@ -20,6 +20,7 @@ export function paraOCliente(f: RecreateFormat): RecreateFormat {
   const out: Record<string, unknown> = {}
   for (const k of CAMPOS_DE_VITRINE) if (f[k as keyof RecreateFormat] !== undefined) out[k] = f[k as keyof RecreateFormat]
   if (f.type === 'motion') out.prompt = '' // o molde de movimento é um preset: o texto dele é receita
+  if (f.palco === true) out.palco = true // KINEO-PALCO-INVADER-1611 — o molde aberto da máquina de trechos abre o palco da tela única (campo de vitrine, sem receita)
   return out as unknown as RecreateFormat
 }
 export const formatosParaOCliente = (email: string | null | undefined): RecreateFormat[] => visibleRecreateFormatsServidor(email).map(paraOCliente)

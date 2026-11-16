@@ -45,6 +45,8 @@ export interface RecreateFormat {
   retirado?: string
   /** KINEO-INVASOR-DE-CAMPO-1511 — a espera real que a tela promete enquanto o vídeo é feito, em minutos [mínimo, máximo]. Ausente = a frase de sempre. */
   esperaMinutos?: readonly [number, number]
+  /** KINEO-PALCO-INVADER-1611 — o molde ABERTO da máquina de trechos: o palco da tela única (Clip + Recreate) abre nele. Só o servidor marca. */
+  palco?: boolean
 }
 
 export const RECREATE_SWAP_PROMPT = 'Face swap only. Replace only the face with the face from the reference photo. Keep the original clothing, body, scene, lighting, camera, movement, cuts and audio unchanged.'
