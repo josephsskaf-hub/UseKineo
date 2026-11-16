@@ -102,6 +102,9 @@ const VERDADE = {
   'anuncio-tenis-pedestal': ['fal:0ab243e1/KXAGTs7aSc0LLyjlsg_jF', null, 'anuncio', 'Ad example'],
   'anuncio-creme-selfie': ['fal:0ab24414/Q22EH_dnQykRmRdKNM5Am', null, 'anuncio', 'Ad example'],
   'anuncio-burger-camera-lenta': ['fal:0ab243f1/jcIHlvocwL6UrZndIR3Oa', null, 'anuncio', 'Ad example'],
+  // KINEO-HOME-PITCH-1611 [dono 16/11: "Coloca o pitch na homepage!!"] — o molde "Pitch invader": prévia = o teste pago da casa (clipe a3b76cb7). Modo 'molde':
+  // sem motor, sem texto, selo 'Recreate template'; o cartão abre /recreate/<id> (logado) ou o cadastro com volta para lá (visitante). Guardião próprio: test-home-pitch-1611.
+  'invasor-de-campo': ['clip:a3b76cb7', null, 'molde', 'Recreate template'],
 }
 // KINEO-ADS-NATAL-VITRINE-1011 — o que NENHUM cartão pode dizer nem insinuar (nem no texto, nem no aria-label): que o vídeo foi feito pela
 // ferramenta de Ads. Os exemplos de anúncio foram feitos à mão; o convite "Make your ad" chama a pessoa, não atribui a autoria.
@@ -112,7 +115,7 @@ const NOMES_DE_MOTOR = /\b(Kling|Seedance|MiniMax|H3|Veo|Omni|Hailuo|Wan|Sora|Ru
 // da vitrine mostra motor (texto visível nem aria-label). A regra vira: o motor GRAVADO no dado é o real (VERDADE) e o link abre nele.
 const { CLIP_ENGINES, clipShowcaseLabel } = require(path.join(ROOT, 'lib/clips/clipCatalog.ts')) // KINEO-ROTULO-CLIPE-H3-1111: clipShowcaseLabel
 // Founder 10/11: prepare public Recreate; preserve legacy destinations outside the approved catalog.
-const { publicRecreatePath } = require(path.join(ROOT, 'lib/recreate/entry.ts'))
+const { publicRecreatePath, recreateMoldeLogadoHref } = require(path.join(ROOT, 'lib/recreate/entry.ts')) // KINEO-HOME-PITCH-1611 — + recreateMoldeLogadoHref
 const { MENU_CARTOON_HREF } = require(path.join(ROOT, 'lib/ui/homeRemodela2010.ts')) // KINEO-HOME-ESTRATEGIA-A-1311
 const CONVITE_APROVADO = { 'carta-do-front': 'film', 'raposa-lanterna': 'cartoon' } // KINEO-HOME-ESTRATEGIA-A-1311 — a verdade do guardião: só estes dois (dono 13/11, estratégia A); a tela não decide sozinha
 const escapa = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -146,6 +149,7 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
     if (modo === 'filme' && c.prompt !== null) e.push(`A ${id}: filme preenchendo texto no /clips`) // KINEO-VITRINE-10-1011
     if (modo === 'anuncio' && c.prompt !== null) e.push(`A ${id}: exemplo de anúncio preenchendo texto`) // KINEO-ADS-NATAL-VITRINE-1011
     if (modo === 'foto' && c.prompt !== null) e.push(`A ${id}: clipe de foto preenchendo texto de movimento`)
+    if (modo === 'molde' && (c.prompt !== null || recreateMoldeLogadoHref(id, true) !== `/recreate/${id}`)) e.push(`A ${id}: molde do Recreate com texto ou fora da lista "só logado"`) // KINEO-HOME-PITCH-1611
     if (modo === 'texto' && !(typeof c.prompt === 'string' && c.prompt.length > 80 && c.prompt.length <= 1000)) e.push(`A ${id}: clipe de texto sem o texto (ou além do teto do campo)`)
     if (/keep the same (woman|face)/i.test(c.prompt ?? '')) e.push(`A ${id}: texto que depende de foto`)
     if (!/^50% \d+%$/.test(c.focus)) e.push(`A ${id}: sem foco`)
@@ -218,6 +222,8 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
         if (bruto !== ENTRADA.createEntryForContentHref('cartoon', MENU_CARTOON_HREF, '/kids-cartoon', false)) e.push(`B ${lugar}: ${c.id} (convite de desenho) não leva ao Cartoon do menu: ${bruto.slice(0, 80)}`)
         if (!/data-home-cta="mosaic_cartoon"/.test(cartao)) e.push(`B ${lugar}: ${c.id} (convite de desenho) medido como outro tipo de cartão`)
         if (!/data-convite="cartoon"[^>]*>[\s\S]*?Make a cartoon/.test(cartao)) e.push(`B ${lugar}: ${c.id} sem o convite "Make a cartoon"`)
+      } else if (VERDADE[c.id]?.[2] === 'molde') { // KINEO-HOME-PITCH-1611 — molde só de quem tem conta: o visitante vai ao cadastro e volta EXATAMENTE para /recreate/<id>
+        if (destino !== `/recreate/${c.id}` || bruto !== '/signup?' + new URLSearchParams({ redirect: `/recreate/${c.id}` }).toString() || bruto !== recreateMoldeLogadoHref(c.id, false)) e.push(`B ${lugar}: ${c.id} (molde do Recreate) não leva ao cadastro com volta ao molde: ${bruto.slice(0, 80)}`)
       } else if (c.engine === null) { const esperado = publicRecreatePath(c.id) ?? '/clips'; if (destino !== esperado) e.push(`B ${lugar}: ${c.id} (formato) não leva ao catálogo aprovado ou fallback: ${bruto.slice(0, 80)}`) }
       else if (!destino.startsWith('/clips?') || pedido.get('engine') !== c.engine) e.push(`B ${lugar}: ${c.id} não leva ao /clips no motor: ${bruto.slice(0, 80)}`)
       // KINEO-HOME-ESTRATEGIA-A-1311 — o convite só aparece em quem está no mapa, e nunca junto do Recreate ou do Make your ad
@@ -244,7 +250,7 @@ function checa({ lib, mosaico }, fontes = {}, existe = (rel) => fs.existsSync(pa
         const [cartao, cta] = m
         const href = (/href="([^"]+)"/.exec(cartao)?.[1] ?? '').replace(/&amp;/g, '&')
         const destino = href.startsWith('/signup?') ? new URLSearchParams(href.split('?').slice(1).join('?')).get('redirect') ?? '' : href
-        const formato = destino.startsWith('/recreate/') && publicRecreatePath(destino.slice('/recreate/'.length)) === destino
+        const formato = destino.startsWith('/recreate/') && (publicRecreatePath(destino.slice('/recreate/'.length)) === destino || recreateMoldeLogadoHref(destino.slice('/recreate/'.length), false) === href) // KINEO-HOME-PITCH-1611 — + o molde só de quem tem conta (o mesmo link que a lib dá ao visitante)
         const tipo = cta.startsWith('mosaic_effect_') ? 'efeito' : cta.startsWith('mosaic_style_') ? 'estilo' : cta === 'mosaic_clip' ? (formato ? 'formato Recreate' : /prompt(=|%3D)/.test(href) ? 'clipe com texto' : 'clipe sem texto') : cta.replace('mosaic_', '')
         const deve = tipo === 'efeito' || tipo === 'estilo' || tipo === 'clipe com texto' || tipo === 'formato Recreate'
         const tem = /class="[^\"]*\bkmz-re\b[^\"]*"/.test(cartao) && !/class="[^\"]*\bkmz-mkad\b[^\"]*"/.test(cartao)

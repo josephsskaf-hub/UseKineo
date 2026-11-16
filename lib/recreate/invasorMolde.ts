@@ -15,6 +15,9 @@
 // Os arquivos moram no bucket PRIVADO `quarantine`, pasta recreate-guias/v1 (a mesma dos guias de movimento; a limpeza de 48 h só toca a auditoria),
 // com tamanho e sha256 conferidos aqui. Ao fornecedor vão por URL assinada de 1 h; nunca por URL pública, nunca em evento ou log.
 // Vídeo de transmissão de terceiros: só a conta da casa vê o molde (swapInTest), e ele NUNCA vai para a home, a vitrine pública ou o catálogo público.
+// KINEO-HOME-PITCH-1611 [dono 16/11: "Coloca o pitch na homepage!!"] — continua valendo para ESTE arquivo (trechos, som, vitrine do original): nada daqui vai à
+// home. O cartão da home mostra só o NOSSO render (teste pago a3b76cb7, rosto inventado), recortado sem jogador, camisa, número, patrocínio ou escudo
+// (public/previews/galeria/invasor-de-campo.mp4), e o link sai de lib/recreate/entry.ts RECREATE_MOLDES_SO_LOGADO (só o id).
 import type { RecreateFormat } from './formats'
 import { recreateCreditCostVariosTrechos } from '@/lib/checkoutPricing'
 

@@ -54,7 +54,7 @@ export type ClipeNovo = ClipeNovoBase & (
       engine: null
       /** O tipo do cartão (só no aria-label). 'Trending format' = clipe de uma cena, abre o /clips puro. 'Narrated film' = filme narrado feito
        *  de verdade no Kineo Studio: abre o Studio pelo mesmo link dos filmes da vitrine (KINEO-VITRINE-10-1011). */
-      selo: 'Trending format' | 'Narrated film' | 'Ad example' // KINEO-ADS-NATAL-VITRINE-1011 — 'Ad example' = exemplo de anúncio: abre a criação de anúncio
+      selo: 'Trending format' | 'Narrated film' | 'Ad example' | 'Recreate template' // KINEO-ADS-NATAL-VITRINE-1011 — 'Ad example' = exemplo de anúncio: abre a criação de anúncio · KINEO-HOME-PITCH-1611 — 'Recreate template' = molde do Recreate só de quem tem conta (lib/recreate/entry.ts RECREATE_MOLDES_SO_LOGADO): abre /recreate/<id>, visitante pelo cadastro
     }
 )
 
@@ -135,6 +135,12 @@ export const CLIPES_NOVOS: readonly ClipeNovo[] = [
   { id: 'anuncio-tenis-pedestal', title: 'The sneaker drop', engine: null, produto: 'ads', selo: 'Ad example', clipId: 'fal:0ab243e1/KXAGTs7aSc0LLyjlsg_jF', focus: '50% 72%', pessoa: false, prompt: null }, // KINEO-HOME-10-CLIPES-1311
   { id: 'anuncio-creme-selfie', title: 'Honest face cream review', engine: null, produto: 'ads', selo: 'Ad example', clipId: 'fal:0ab24414/Q22EH_dnQykRmRdKNM5Am', focus: '50% 14%', pessoa: true, prompt: null, adsEntry: 'ugc' }, // KINEO-HOME-10-CLIPES-1311
   { id: 'anuncio-burger-camera-lenta', title: 'Your burger, slow motion', engine: null, produto: 'ads', selo: 'Ad example', clipId: 'fal:0ab243f1/jcIHlvocwL6UrZndIR3Oa', focus: '50% 72%', pessoa: false, prompt: null }, // KINEO-HOME-10-CLIPES-1311
+  // KINEO-HOME-PITCH-1611 [dono 16/11 ~00:10: "Coloca o pitch na homepage!! Em alguma posição de destaque"] — o molde "Pitch invader" do Recreate (no ar desde
+  // b2b840c8b para todo cliente logado, 75 créditos). VERDADE: a prévia é o NOSSO vídeo, o teste pago da casa de 15/11 (clipe a3b76cb7, rosto inventado, não é
+  // pessoa real; docs/invasor-de-campo-1511/TESTE-PAGO-1511.mp4), trecho 12,17–15,4 s (ele cai, senta e gesticula), recortado 540×960 a partir do canto de
+  // cima à esquerda (x 0, y 160 do quadro 720×1280): conferido a 8 e a 24 quadros/s, nenhum jogador, camisa listrada, número, patrocínio ou escudo na janela.
+  // Nada do vídeo de transmissão original nem dos arquivos privados do molde vai à vitrine. Sem motor no cartão; o tipo 'Recreate template' só no aria-label.
+  { id: 'invasor-de-campo', title: 'Pitch invader', engine: null, produto: 'clip', selo: 'Recreate template', clipId: 'clip:a3b76cb7', focus: '50% 33%', pessoa: true, prompt: null }, // KINEO-HOME-PITCH-1611
 ]
 
 /** KINEO-HOME-10-CLIPES-1311 — os 10 clipes que saíram da vitrine (home e /made-with-kineo) em 13/11 para os 10 novos entrarem. O registro de
@@ -162,7 +168,11 @@ export const CLIPES_FORA_DA_VITRINE_1311: readonly ClipeNovo[] = [
 // KINEO-HOME-ESTRATEGIA-A-1311 [dono 13/11 de madrugada: "A" às 3 estratégias de cards do GPT, com o ajuste da CEO] — "Your next story": a 1ª linha é filme · desenho ·
 // Recreate (carta do front, raposa, selfie) e a 2ª é anúncio · anúncio UGC · Recreate (hambúrguer, creme, suéter). Os mesmos 6 clipes aprovados;
 // muda só a ordem. Motivo: nos últimos 14 dias filme teve 105 cliques e desenho 73, contra 33 de anúncio (docs/home-1311/CLIQUES-POR-CARTAO-1311.md).
-export const CLIPES_NO_TOPO: readonly string[] = ['carta-do-front', 'raposa-lanterna', 'selfie-confete', 'anuncio-burger-camera-lenta', 'anuncio-creme-selfie', 'sueter-aconchegante'] // KINEO-HOME-TOPO-5X6-1311 — só clipe que cabe em pé na janela 5:6 (o balão é corpo inteiro com braços para cima: fica na grade)
+// KINEO-HOME-PITCH-1611 [dono 16/11 ~00:10: "Coloca o pitch na homepage!! Em alguma posição de destaque"] — o "Pitch invader" entra NA FRENTE: a 1ª célula do
+// topo (em cima à esquerda, no computador e no celular). Pela regra acima o último (o suéter) sai do topo e segue na grade de baixo e no /made-with-kineo.
+// Cartão 2×2 foi medido na tela de dev e recusado: a 1920 px ele ficava 1236×1481 (mais alto que a tela; a 1ª dobra mostrava só grama) e, na fileira de 2
+// do celular, 2×2 + 5 deixava um buraco. O destaque é a posição, no mesmo tamanho dos vizinhos.
+export const CLIPES_NO_TOPO: readonly string[] = ['invasor-de-campo', 'carta-do-front', 'raposa-lanterna', 'selfie-confete', 'anuncio-burger-camera-lenta', 'anuncio-creme-selfie'] // KINEO-HOME-TOPO-5X6-1311 — só clipe que cabe em pé na janela 5:6 (o balão é corpo inteiro com braços para cima: fica na grade) · KINEO-HOME-PITCH-1611 — era: ['carta-do-front', …, 'anuncio-creme-selfie', 'sueter-aconchegante']
 /** KINEO-HOME-ESTRATEGIA-A-1311 — o convite dos cartões que não têm "Recreate" nem "Make your ad": a pessoa faz o DELA no produto daquele tipo de trabalho.
  *  Nada no cartão diz que ESTE vídeo saiu do produto (não saiu: foi feito à mão, ver 13/11 acima); o mesmo critério do "Make your ad" de 10/11.
  *  Vale na home e no /made-with-kineo. Quando a classificação por produto do GPT entrar (campo `produto`), ela substitui este mapa. */
