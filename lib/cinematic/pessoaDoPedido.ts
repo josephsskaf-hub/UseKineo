@@ -200,16 +200,35 @@ export const MARCA_LUZ_NO_PROMPT = 'Lighting as the customer asked:'
 // Interruptor LUZ_POR_CENA_1611 (os dois): 'off' = o de antes. Guardião: scripts/test-premissa-visual-1611.mjs.
 export const LUZ_POR_CENA_1611: 'off' | 'all' = 'all'
 export const luzPorCenaLigada = (modo: 'off' | 'all' = LUZ_POR_CENA_1611): boolean => modo === 'all'
-const CENA_NUMERADA_RE_1611 = /^(?:scene|shot)\s*#?\d{1,2}(?![\p{L}\p{N}])/iu
+// Volta 3 (revisão da volta 2), quatro apertos — todos para o lado de "igual à main":
+// (1) a tela corta a ideia em 600 caracteres: a última cena, quando o pedido acaba sem pontuação final ("Scene 4 —", "Scene 4: The boy lau"),
+//     está cortada e não conta na conferência do lugar; (2) o lugar dito ANTES da 1ª cena ("The whole film happens in a kitchen.") é do filme;
+// (3) cena numerada pede separador depois do número (":", travessão, hífen, ponto ou fim de linha): "Shot 24 fps", "Shot 50 mm lens" e
+//     "Shot 9:16 vertical" são direção de filmagem, não cena; (4) cena só de narração ("Scene 2: Narration: …") ou só de proibição
+//     ("Scene 2: No people on the rooftop.") não tem imagem e não conta na conferência do lugar.
+const CENA_NUMERADA_RE_1611 = /^(?:scene|shot)\s*#?\d{1,2}\s*(?::(?!\d)|[—–-]|\.(?!\d)|$)/iu
+const CABECA_DA_CENA_RE_1611 = /^(?:scene|shot)\s*#?\d{1,2}\s*(:|[—–-]|\.)?\s*/iu
+const NARRACAO_RE_1611 = /^(?:narrator|narration|voice[- ]?over|v\.?o\.?|dialogue|caption|on-screen text|end text|text)\s*:/iu
+const FIM_DE_FRASE_RE_1611 = /[.!?…"”'’)]$/u
 const ROTULO_DE_LUZ_RE_1611 = /^(?:lighting|light)\s*:/iu
-/** O texto de cada cena numerada do pedido ("Scene 1 …", "Scene 2 …"), na ordem; null = menos de duas (o pedido não é por cenas). */
-function cenasNumeradas1611(pedido: string): string[] | null {
-  const blocos: string[] = []
+/** O texto de antes da 1ª cena numerada e o de cada cena ("Scene 1 …", "Scene 2 …"), na ordem; null = menos de duas (o pedido não é por cenas). */
+function cenasNumeradas1611(pedido: string): { antes: string; cenas: string[] } | null {
+  const cenas: string[] = []
+  let antes = ''
   for (const f of pedido.split(/(?<=[.!?\n])/u)) {
-    if (CENA_NUMERADA_RE_1611.test(f.trim())) blocos.push(f)
-    else if (blocos.length) blocos[blocos.length - 1] += f
+    if (CENA_NUMERADA_RE_1611.test(f.trim())) cenas.push(f)
+    else if (cenas.length) cenas[cenas.length - 1] += f
+    else antes += f
   }
-  return blocos.length >= 2 ? blocos : null
+  return cenas.length >= 2 ? { antes, cenas } : null
+}
+/** (4) A cena descreve IMAGEM: sobra frase depois de tirar o título ("— Hook (0–5 s)"), as linhas de narração e as frases de proibição. */
+function cenaComImagem1611(bloco: string): boolean {
+  const b = bloco.trim()
+  const cabeca = CABECA_DA_CENA_RE_1611.exec(b)
+  const linhas = b.slice(cabeca?.[0].length ?? 0).split('\n').map((l) => l.trim())
+  if (cabeca?.[1] !== ':' && linhas.length && !/[.!?…]["”'’)]?$/u.test(linhas[0])) linhas.shift() // o título da cena, sem pontuação final
+  return linhas.filter((l) => !NARRACAO_RE_1611.test(l)).join(' ').split(/(?<=[.!?])/u).some((f) => { const t = f.trim(); return t.split(/\s+/u).length >= 2 && !/^(?:no|not|never|without|don't|do not)\b/iu.test(t) })
 }
 
 /** A luz do pedido original: a frase cujo assunto é a luz, ou só a expressão de luz da frase de ação. null = não há, ou há duas luzes diferentes. */
@@ -219,11 +238,11 @@ export function luzDoPedido(ideiaOriginal: unknown): string | null {
   const achadas: string[] = []
   const daAcao: string[] = []
   const frases = pedido.split(/(?<=[.!?\n])/u)
-  const porCenas = luzPorCenaLigada() && frases.filter((f) => CENA_NUMERADA_RE_1611.test(f.trim())).length >= 2 // KINEO-PREMISSA-VISUAL-1611
+  const porCenas = luzPorCenaLigada() && cenasNumeradas1611(pedido) !== null // KINEO-PREMISSA-VISUAL-1611
   let dentroDeCena = false
   for (const f of frases) {
     const t = f.trim().replace(/[.!?]+$/u, '').trim()
-    if (porCenas && CENA_NUMERADA_RE_1611.test(t)) dentroDeCena = true
+    if (porCenas && CENA_NUMERADA_RE_1611.test(f.trim())) dentroDeCena = true
     if (!t || /^(?:no|not|never|without|don't|do not)\b/iu.test(t)) continue
     const n = t.split(/\s+/u).length
     if (SUJEITO_LUZ_RE.test(t) && n >= 2 && n <= 20 && !/(?<![\p{L}])(?:text|subtitles?|captions?|logos?)(?![\p{L}])/iu.test(t)) {
@@ -355,8 +374,13 @@ export function lugarDoPedido(ideiaOriginal: unknown): string | null {
   const nomes = new Set([...semProibicao.matchAll(lugarSoRe())].filter((m) => !aridoComNomeProprio(semProibicao, m)).map((m) => tipoDoLugar(m[0]))) // KINEO-LUGAR-DO-ROTEIRO-1411 — era: LUGAR_SO_RE e o mapa de sempre
   if (nomes.size !== 1) return null // nenhum lugar, ou a história passa por mais de um
   // KINEO-PREMISSA-VISUAL-1611 — pedido por cenas numeradas: o lugar que só parte das cenas cita é daquelas cenas, não do filme
-  const cenas1611 = luzPorCenaLigada() ? cenasNumeradas1611(pedido) : null
-  if (cenas1611 && !cenas1611.every((c) => [...c.matchAll(lugarSoRe())].some((x) => !aridoComNomeProprio(c, x)))) return null
+  const porCenas1611 = luzPorCenaLigada() ? cenasNumeradas1611(pedido) : null
+  if (porCenas1611) {
+    const cita = (c: string) => [...c.matchAll(lugarSoRe())].some((x) => !aridoComNomeProprio(c, x))
+    const inteiras = FIM_DE_FRASE_RE_1611.test(pedido.trimEnd()) ? porCenas1611.cenas : porCenas1611.cenas.slice(0, -1) // (1) a última, cortada, não conta
+    const comImagem = inteiras.filter(cenaComImagem1611) // (4) cena só de narração ou de proibição não conta
+    if (!cita(porCenas1611.antes) && !comImagem.every(cita)) return null // (2) dito antes da 1ª cena = do filme
+  }
   const m = fraseDoLugar(semProibicao) // KINEO-LUGAR-DO-ROTEIRO-1411 · KINEO-LUGAR-DA-FALA-1411 (iii, iv)
   if (!m) return null
   const lugar = m[1].trim().replace(/^the\s+/iu, 'the ')

@@ -158,5 +158,59 @@ for (const [i, s] of SECOES.entries()) for (const objetoConcreto of [true, false
 const metadeDoCaso = promptDaSecao(agora[1], { pexelsQuery: 'rainy doorstep', voiceover: 'That night, a stranger whispered, "Don\'t turn around."' }, { objetoConcreto: true })
 ok(!/Light:/.test(metadeDoCaso) && /Identity: the stranger/.test(metadeDoCaso) && /rainy doorstep/.test(metadeDoCaso), 'filme do caso: a metade "rainy doorstep" não recebe a lua da janela do quarto', metadeDoCaso)
 
+// ═══ (5) VOLTA 3 — os 4 apertos da revisão da volta 2, cada um com o seu caso e o seu MUTANTE (a correção desfeita reprova o caso) ═══
+console.log('\n(5) volta 3: pedido cortado, lugar antes da 1ª cena, separador da cena, cena sem imagem')
+let nMutante = 0
+async function mutante(de, para) {
+  if (fonte.split(de).length !== 2) throw new Error(`mutante: trecho não achado (ou repetido) na lib: ${de}`)
+  const arq = resolve(aqui, `../lib/cinematic/_pessoaDoPedido_mutante_${process.pid}_${++nMutante}.ts`)
+  writeFileSync(arq, fonte.replace(de, () => para))
+  try { return await import(pathToFileURL(arq).href) } finally { unlinkSync(arq) }
+}
+const igualAMain = (pedido) => luzDoPedido(pedido) === luzAntes(pedido) && lugarDoPedido(pedido) === lugarAntes(pedido)
+const mostra = (pedido) => JSON.stringify({ luz: [luzDoPedido(pedido), luzAntes(pedido)], lugar: [lugarDoPedido(pedido), lugarAntes(pedido)] })
+
+// (5.1) o pedido cortado em 600 caracteres: a última cena, cortada, não conta
+const CORTE_CABECA = 'Scene 1: A boy bakes bread in a kitchen. Scene 2: He burns the bread in the kitchen. Scene 3: His dog steals it in the kitchen. Scene 4 —'
+const CORTE_MEIO = 'Scene 1: A boy bakes bread in a kitchen. Scene 2: He burns the bread in the kitchen. Scene 3: His dog steals it in the kitchen. Scene 4: The boy lau'
+for (const [nome, p] of [['"Scene 4 —" no fim', CORTE_CABECA], ['"Scene 4: The boy lau" no fim', CORTE_MEIO]]) ok(lugarDoPedido(p) === 'a kitchen' && igualAMain(p), `5.1 pedido cortado, ${nome}: o lugar "a kitchen" fica, como na main`, mostra(p))
+const m1 = await mutante('? porCenas1611.cenas : porCenas1611.cenas.slice(0, -1)', '? porCenas1611.cenas : porCenas1611.cenas')
+ok(m1.lugarDoPedido(CORTE_MEIO) === null, '5.1 mutante (a última cena cortada volta a contar): o caso reprova', JSON.stringify(m1.lugarDoPedido(CORTE_MEIO)))
+ok(lugarDoPedido(PEDIDO) === null && !/[.!?…"”'’)]$/.test(PEDIDO.trimEnd()), '5.1 o caso real (cortado em 600) continua sem lugar do filme: a cena 2, inteira, não cita o quarto')
+
+// (5.2) o lugar dito antes da 1ª cena é do filme
+const ANTES_COZINHA = 'The whole film happens in a kitchen. Warm candlelight fills the room. Scene 1: A boy bakes bread. Scene 2: He burns the bread. Scene 3: His dog steals it.'
+const ANTES_PADARIA = 'A short film set in a small bakery. Scene 1: A girl kneads the dough. Scene 2: She opens the oven and smiles.'
+ok(lugarDoPedido(ANTES_COZINHA) === 'a kitchen' && luzDoPedido(ANTES_COZINHA) === 'Warm candlelight fills the room' && igualAMain(ANTES_COZINHA), '5.2 lugar e luz antes da 1ª cena: "a kitchen" e a luz de vela, como na main', mostra(ANTES_COZINHA))
+ok(lugarDoPedido(ANTES_PADARIA) === 'a small bakery' && igualAMain(ANTES_PADARIA), '5.2 "A short film set in a small bakery. Scene 1: …": "a small bakery", como na main', mostra(ANTES_PADARIA))
+const m2 = await mutante('if (!cita(porCenas1611.antes) && !comImagem.every(cita)) return null', 'if (!comImagem.every(cita)) return null')
+ok(m2.lugarDoPedido(ANTES_COZINHA) === null && m2.lugarDoPedido(ANTES_PADARIA) === null, '5.2 mutante (o texto de antes da 1ª cena não é olhado): os dois casos reprovam', JSON.stringify([m2.lugarDoPedido(ANTES_COZINHA), m2.lugarDoPedido(ANTES_PADARIA)]))
+
+// (5.3) cena numerada pede separador depois do número; fps, mm e 9:16 são direção de filmagem
+const LENTE = 'Shot 24 fps. Shot 50 mm lens. Natural sunlight enters through large glass windows. A woman sits at a coffee shop.'
+const VERTICAL = 'Shot 9:16 vertical. Scene 1: A woman waters plants in a garden. Soft warm light fills the room.'
+ok(igualAMain(LENTE) && luzDoPedido(LENTE) === 'Natural sunlight enters through large glass windows' && lugarDoPedido(LENTE) === 'a coffee shop', '5.3 "Shot 24 fps. Shot 50 mm lens. …": luz e lugar como na main', mostra(LENTE))
+ok(igualAMain(VERTICAL) && luzDoPedido(VERTICAL) === 'Soft warm light fills the room' && lugarDoPedido(VERTICAL) === 'a garden', '5.3 "Shot 9:16 vertical. Scene 1: …": luz e lugar como na main', mostra(VERTICAL))
+const RE_NOVA = String.raw`const CENA_NUMERADA_RE_1611 = /^(?:scene|shot)\s*#?\d{1,2}\s*(?::(?!\d)|[—–-]|\.(?!\d)|$)/iu`
+const RE_VELHA = String.raw`const CENA_NUMERADA_RE_1611 = /^(?:scene|shot)\s*#?\d{1,2}(?![\p{L}\p{N}])/iu`
+const m3 = await mutante(RE_NOVA, RE_VELHA)
+ok(m3.luzDoPedido(LENTE) === null && m3.luzDoPedido(VERTICAL) === null, '5.3 mutante (a regex da volta 2, sem separador): os dois casos perdem a luz do cliente', JSON.stringify([m3.luzDoPedido(LENTE), m3.luzDoPedido(VERTICAL)]))
+for (const [marca, conta] of [['Scene 1: x', true], ['Scene 2 — Hook', true], ['Scene 3 - x', true], ['Shot 4. x', true], ['SCENE 5', true], ['Scene #6: x', true], ['Shot 24 fps', false], ['Shot 50 mm lens', false], ['Shot 9:16 vertical', false], ['Shot 1 minute long', false]]) {
+  const p = `Scene 1: A boy wakes up. Moonlight shines through the window.\n${marca}\nHe walks away.`
+  ok((luzDoPedido(p) === null) === conta, `5.3 "${marca}" ${conta ? 'é' : 'não é'} cena numerada`, JSON.stringify(luzDoPedido(p)))
+}
+
+// (5.4) cena só de narração ou só de proibição não tem imagem: não conta na conferência do lugar
+const SO_NARRACAO = 'Scene 1: A woman reads alone in a café. Scene 2: Narration: She had lost everything.'
+const SO_PROIBICAO = 'Scene 1: A man waits alone on a rooftop. Scene 2: No people on the rooftop.'
+const SO_PROIBICAO_2 = 'Scene 1: A man waits alone on a rooftop. Scene 2: No text, no logos.'
+ok(lugarDoPedido(SO_NARRACAO) === 'a café' && igualAMain(SO_NARRACAO), '5.4 "Scene 2: Narration: She had lost everything.": "a café" fica, como na main', mostra(SO_NARRACAO))
+ok(lugarDoPedido(SO_PROIBICAO) === 'a rooftop' && igualAMain(SO_PROIBICAO), '5.4 "Scene 2: No people on the rooftop.": "a rooftop" fica, como na main', mostra(SO_PROIBICAO))
+ok(lugarDoPedido(SO_PROIBICAO_2) === 'a rooftop' && igualAMain(SO_PROIBICAO_2), '5.4 "Scene 2: No text, no logos.": "a rooftop" fica, como na main', mostra(SO_PROIBICAO_2))
+const m4 = await mutante('const comImagem = inteiras.filter(cenaComImagem1611)', 'const comImagem = inteiras')
+ok(m4.lugarDoPedido(SO_NARRACAO) === null && m4.lugarDoPedido(SO_PROIBICAO_2) === null, '5.4 mutante (toda cena conta, com ou sem imagem): os casos reprovam', JSON.stringify([m4.lugarDoPedido(SO_NARRACAO), m4.lugarDoPedido(SO_PROIBICAO_2)]))
+// e a cena COM imagem que não cita o lugar continua tirando o lugar do filme (o conserto de origem)
+ok(lugarDoPedido(SO_NA_1) === null, '5.4 cena 2 com imagem e sem o lugar: o lugar da cena 1 não é o do filme')
+
 console.log(`\n${pass} ok, ${fail} falha(s)`)
 process.exit(fail ? 1 : 0)
