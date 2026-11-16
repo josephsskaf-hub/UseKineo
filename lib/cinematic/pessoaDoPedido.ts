@@ -179,7 +179,8 @@ const CLASSE_LUZ: ReadonlyArray<[RegExp, 'dia' | 'tarde' | 'noite']> = [
   [/(?<![\p{L}])(?:sunset|dusk|twilight|golden hour)(?![\p{L}])/iu, 'tarde'],
   [/(?<![\p{L}])(?:sunlight|daylight|sunshine|sun|sunrise|dawn|morning|midday|noon|window light)(?![\p{L}])/iu, 'dia'],
 ]
-const classeDaLuz = (t: string) => CLASSE_LUZ.find(([re]) => re.test(t))?.[1] ?? null
+/** A classe da luz que um texto diz (dia, tarde, noite); null = o texto não fala de luz. Exportada para o corte do plano do Kling 4 (KINEO-PREMISSA-VISUAL-1611). */
+export const classeDaLuz = (t: string) => CLASSE_LUZ.find(([re]) => re.test(t))?.[1] ?? null
 /** Luz de DIA: "dimly lit" no plano da cena contradiz e sai. */
 const LUZ_DE_DIA_RE = /(?<![\p{L}])(?:sunlight|sunlit|sunshine|daylight|natural light|sunrise|window light|bright light|midday|noon|morning)(?![\p{L}])/iu
 export const MARCA_LUZ_NO_PROMPT = 'Lighting as the customer asked:'
