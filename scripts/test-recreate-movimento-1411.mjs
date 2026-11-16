@@ -317,11 +317,13 @@ async function bateria(over = {}) {
     if (r('lib/recreate/movimento').movimentoProblemasDoMolde(j).length) throw new Error('régua: ' + JSON.stringify(r('lib/recreate/movimento').movimentoProblemasDoMolde(j)))
   })
   // KINEO-ACAO-SO-O-GUIA-1411 [CEO 14/11, opção A do preço de 10 s: "impeça abrir um molde de movimento (movimentoAprovado: true) cuja duração não tenha linha na tabela DO MOVIMENTO"]
-  await check('12 molde de movimento APROVADO (e todo público) só com a duração na tabela DO MOVIMENTO (RECREATE_MOVIMENTO_PRICING); sem aprovação, a tabela da troca serve para a casa testar (10 s = 40)', async () => {
+  // KINEO-ACAO-SO-O-GUIA-1411 (rebase 16/11) — a main de 16/11 guarda o preço PÚBLICO por molde (RECREATE_PRICING_MOLDES_PUBLICOS, com o sim do dono); a tabela do movimento por duração não entrou.
+  // A mesma regra, na régua de hoje: molde de movimento APROVADO só com o id na tabela pública por molde; sem aprovação, a tabela por duração serve à casa.
+  await check('12 molde de movimento APROVADO (e todo público) só com o preço PÚBLICO do molde (RECREATE_PRICING_MOLDES_PUBLICOS, sim do dono); sem aprovação, a tabela da troca serve para a casa testar (10 s = 40)', async () => {
     const r = loader({ '@supabase/supabase-js': { createClient: () => ({}) }, 'server-only': {} }, over)
     const preco = r('lib/checkoutPricing'), cat = r('lib/recreate/catalogoServidor'), fm = r('lib/recreate/formats')
     const mov = cat.RECREATE_FORMATS_SERVIDOR.filter((x) => x.type === 'motion')
-    for (const x of [...mov.filter((y) => y.movimentoAprovado === true), ...fm.RECREATE_MOVIMENTO_PUBLICOS]) if (preco.recreateMovimentoCreditCost(x.seconds) === null) throw new Error(`${x.id} aprovado com ${x.seconds} s sem linha na tabela do movimento: preço de cliente pede o sim do dono`)
+    for (const x of [...mov.filter((y) => y.movimentoAprovado === true), ...fm.RECREATE_MOVIMENTO_PUBLICOS]) if (preco.recreateCreditCostMoldePublico(x.id) === null) throw new Error(`${x.id} aprovado sem preço público do molde: preço de cliente pede o sim do dono`)
     if (fm.recreateMovimentoCredits({ type: 'motion', seconds: 10, movimentoAprovado: false }) !== preco.RECREATE_PRICING[10]) throw new Error('10 s da casa sem o preço herdado da tabela do Recreate')
   })
   await check('12 régua de princípio para molde novo: a ação que cita choque, defensor ou TV sem o guia declarar (guiaMostra) é recusada; com a declaração, passa; a cena não entra nessa régua; o pedido não roda essa régua', async () => {
@@ -520,7 +522,8 @@ async function bateria(over = {}) {
     const proibidos = ['cena', 'acao', 'guia', 'checkFrames', 'swapNote']
     for (const [quem, email, deveVerFechado] of [['visitante', null, false], ['cliente', 'cliente@exemplo.com', false], ['casa', casa, true]]) {
       const lista = serv.formatosParaOCliente(email)
-      const extra = lista.flatMap((f) => Object.keys(f).filter((k) => !serv.CAMPOS_DE_VITRINE.includes(k)))
+      // reancorado no rebase de 16/11 — KINEO-PALCO-INVADER-1611 pôs `palco: true` (molde aberto da máquina de trechos) de propósito na vitrine: só esse valor, nunca num molde de movimento
+      const extra = lista.flatMap((f) => Object.keys(f).filter((k) => !serv.CAMPOS_DE_VITRINE.includes(k) && !(k === 'palco' && f.palco === true && f.type !== 'motion')))
       if (extra.length || lista.some((f) => proibidos.some((k) => k in f))) throw new Error(quem + ': campo fora da vitrine: ' + extra.join(','))
       if (lista.some((f) => f.type === 'motion' && f.prompt)) throw new Error(quem + ': texto do molde de movimento')
       const vêFechado = lista.some((f) => f.id === 'lance-teste')
@@ -532,7 +535,7 @@ async function bateria(over = {}) {
     // iguais uma a uma às de sempre (scripts/test-clip-recreate-juntos-1511.mjs B2). A busca da receita olha TODAS as props da página.
     const props = el?.props?.recreate ?? el?.props ?? {}
     const enviados = props.formatos ?? []
-    if (!enviados.length || enviados.some((f) => Object.keys(f).some((k) => !serv.CAMPOS_DE_VITRINE.includes(k)))) throw new Error('a página manda mais que a vitrine: ' + JSON.stringify(enviados.map((f) => Object.keys(f))).slice(0, 200))
+    if (!enviados.length || enviados.some((f) => Object.keys(f).some((k) => !serv.CAMPOS_DE_VITRINE.includes(k) && !(k === 'palco' && f.palco === true && f.type !== 'motion'))) /* reancorado no rebase de 16/11: palco: true é vitrine (KINEO-PALCO-INVADER-1611) */) throw new Error('a página manda mais que a vitrine: ' + JSON.stringify(enviados.map((f) => Object.keys(f))).slice(0, 200))
     if (JSON.stringify(el?.props ?? {}).match(/plain grey stands|dribbles a football|full body from head to shoes|knees up/)) throw new Error('a receita foi nas props da página')
     sessaoPagina = { id: U, email: 'cliente@exemplo.com' }
     const elC = await pg('app/recreate/page').default()

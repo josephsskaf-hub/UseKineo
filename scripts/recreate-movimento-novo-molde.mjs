@@ -19,7 +19,7 @@
 //   node scripts/recreate-movimento-novo-molde.mjs --id lance-de-futebol --titulo "Football run" --mp4 C:\caminho\demo.mp4 \
 //     --cena "standing on …, framed from the knees up, their face clearly visible …" --acao "The person runs forward …" [--segundos 10] [--desde 2026-11-14] [--ensaio] [--comprimir]
 //     [--guia-mostra choque,defensor,tv] (KINEO-ACAO-SO-O-GUIA-1411 — SÓ o que o vídeo-guia mostra de fato; sem isso, a régua recusa a ação que cita choque, defensor ou TV)
-//   10 s (o basquete): --segundos 10; o preço é o da tabela do Recreate (10 s = 40, lib/checkoutPricing.ts). Abrir ao cliente pede linha de 10 s na tabela DO MOVIMENTO (sim do dono).
+//   10 s (o basquete): --segundos 10; o preço é o da tabela do Recreate (10 s = 40, lib/checkoutPricing.ts). Abrir ao cliente pede o preço público do molde em RECREATE_PRICING_MOLDES_PUBLICOS (sim do dono).
 // --ensaio: confere tudo e mostra o que escreveria, sem escrever nada.
 import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
