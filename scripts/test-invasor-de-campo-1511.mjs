@@ -511,13 +511,13 @@ async function bateria(over = {}) {
       for (const id of ['basquete', 'cachorro-craque', 'cachorro-craque-humano']) {
         const mo = M.moldeDeTrechos(id)
         const casa = id === 'cachorro-craque-humano' // KINEO-BASQUETE-ABRE-1611 — o basquete e o cachorro abriram a 75; só a variante humana segue da casa
-        if (!mo || (casa ? mo.aberto !== false || mo.creditosPublicos !== null || mo.creditosDaCasa !== p.recreateCreditCostMoldeDaCasa(id) || mo.creditosDaCasa !== 75 : mo.aberto !== true || mo.creditosPublicos !== 75 || mo.creditosPublicos !== p.recreateCreditCostMoldePublico(id))) throw new Error(id + ': interruptor ou preço')
-        if (mo.trechos.length !== 2 || mo.trechos.some((t) => t.segundosDoArquivo < 3 || t.segundosDoArquivo > 8 || t.velocidade !== 100 || Math.abs((t.quadros[1] - t.quadros[0] + 1) / t.fps - t.segundosDoArquivo) > 0.001)) throw new Error(id + ': trechos')
-        if (Math.abs(I.segundosDoFilme(mo) - mo.som.segundos) > 0.001 || mo.trechos[1].quadros[0] !== mo.trechos[0].quadros[1] + 1) throw new Error(id + ': som ou emenda')
+        if (!mo || (casa ? mo.aberto !== false || mo.creditosPublicos !== null || mo.creditosDaCasa !== p.recreateCreditCostMoldeDaCasa(id) || mo.creditosDaCasa !== 40 : mo.aberto !== true || mo.creditosPublicos !== 75 || mo.creditosPublicos !== p.recreateCreditCostMoldePublico(id))) throw new Error(id + ': interruptor ou preço')
+        if (mo.trechos.length !== (casa ? 1 : 2) || mo.trechos.some((t) => t.segundosDoArquivo < 3 || t.segundosDoArquivo > 8 || t.velocidade !== 100 || Math.abs((t.quadros[1] - t.quadros[0] + 1) / t.fps - t.segundosDoArquivo) > 0.001)) throw new Error(id + ': trechos')
+        if (Math.abs(I.segundosDoFilme(mo) - mo.som.segundos) > 0.001 || (mo.trechos.length > 1 && mo.trechos[1].quadros[0] !== mo.trechos[0].quadros[1] + 1)) throw new Error(id + ': som ou emenda')
         for (const a of [...mo.trechos, mo.som, ...Object.values(mo.vitrine)]) if (!a.arquivo.startsWith(`recreate-${id.replace(/-humano$/, '')}-`) || !/^[0-9a-f]{64}$/.test(a.sha256) || !(a.bytes > 0)) throw new Error(id + ': manifesto ' + a.arquivo)
         if (!mo.vitrine[id + '.mp4'] || !mo.vitrine[id + '.jpg'] || M.invasorArquivoDaVitrine(id + '.jpg') !== mo.vitrine[id + '.jpg']) throw new Error(id + ': cartão')
         const f = cat.recreateFormatServidor(id)
-        if (!f || access.recreateFormatVisible(f, 'customer@example.org') === casa || !access.recreateFormatVisible(f, 'josephsskaf@gmail.com') || f.creditos !== 75) throw new Error(id + ': visibilidade')
+        if (!f || access.recreateFormatVisible(f, 'customer@example.org') === casa || !access.recreateFormatVisible(f, 'josephsskaf@gmail.com') || f.creditos !== (casa ? 40 : 75)) throw new Error(id + ': visibilidade')
         if (cat.formatosParaOCliente('customer@example.org').some((x) => x.id === id) === casa || m('lib/recreate/formats').RECREATE_FORMATS.some((x) => x.id === id)) throw new Error(id + ': cliente ou JS público')
       }
       if (p.recreateCreditCost(14) !== null || !/AGUARDA O SIM DO DONO/.test(lf('lib/checkoutPricing.ts'))) throw new Error('preço da casa fora da tabela ou sem a marca')
@@ -543,12 +543,12 @@ async function bateria(over = {}) {
       if (!I.textoDoMolde(c, { bicho: 'cat' }).includes('with the cat from @Image1')) throw new Error('gato')
       const h = M.moldeDeTrechos('cachorro-craque-humano'), th = I.textoDoMolde(h, { genero: 'man', cabeloEBarba: CABELO, semOculos: true })
       if (th !== `Replace the German Shepherd dog in @Video1 with the man from @Image1: his face, hair and beard match @Image1, with ${CABELO}. Keep his movements, the timing, the camera, the framing, every other person, the background and the lighting of @Video1 exactly.`) throw new Error('humano: ' + th)
-      if (!I.textoDoMolde(h, { genero: 'woman' }).startsWith('Replace the German Shepherd dog in @Video1 with the woman from @Image1: her face and hair match @Image1. Keep her movements') || h.trechos !== c.trechos || h.som !== c.som || h.alvo.tipo !== 'pessoa') throw new Error('humano: mulher ou trechos')
+      if (!I.textoDoMolde(h, { genero: 'woman' }).startsWith('Replace the German Shepherd dog in @Video1 with the woman from @Image1: her face and hair match @Image1. Keep her movements') || h.trechos.length !== 1 || h.trechos[0] !== c.trechos[0] || h.segundos !== 8 || h.som.segundos !== 8 || I.segundosDoFilme(h) !== 8 || !h.som.arquivo.endsWith('-humano-som-v3.mp3') || !h.vitrine['cachorro-craque-humano.mp4'].arquivo.endsWith('-humano-vitrine-v3.mp4') || h.alvo.tipo !== 'pessoa') throw new Error('humano: mulher ou trechos')
       for (const mo of M.MOLDES_DE_TRECHOS) for (const g of ['man', 'woman']) for (const so of [true, false, null]) for (const bi of ['dog', 'cat']) { const t = I.textoDoMolde(mo, { genero: g, semOculos: so, bicho: bi, cabeloEBarba: CABELO }); if (mov.temFraseNegativa(t)) throw new Error('frase negativa: ' + t) }
       if (!lf('lib/recreate/invasorRota.ts').includes("if (molde.alvo.tipo === 'pessoa' && creditos !== null && account.balance >= creditos) {")) throw new Error('o leitor de cabelo roda no pet')
       if (!/hustle-02/.test(lf(MOLDE)) || !/Todas \*\*CC0\*\*/.test(lf('music-novas/README.md')) || !/`hustle-02\.mp3` \| Soulja Unit - Basic \(2019\)/.test(lf('music-novas/README.md'))) throw new Error('a trilha do basquete sem a origem CC0')
     })
-    for (const id of ['basquete', 'cachorro-craque']) {
+    for (const id of ['basquete', 'cachorro-craque', 'cachorro-craque-humano']) { // KINEO-CACHORRO-HUMANO-8S-1611 — + a variante humana de 1 trecho (8 s)
       await check(`moldes 4: ${id} pela máquina inteira — débito único, 2 trechos um por vez com a trava, montagem com os cortes e o som do molde, done`, async () => {
         const w = mundo(m)
         const u = uid(990)
@@ -558,11 +558,12 @@ async function bateria(over = {}) {
         if (!sd.ok) throw new Error('submit: ' + JSON.stringify(sd))
         const a = sd.clip.id
         const mo = M.moldeDeTrechos(id)
-        if (st(w, a).seconds !== mo.segundos || I.trechosQueFaltam(st(w, a)) !== 2) throw new Error('linha')
-        for (let i = 0; i < 2; i++) { w.entregar(a); await w.liquidar(a) }
-        if (st(w, a).model !== I.INVASOR_MONTAGEM_MODEL || w.s.vaga || w.s.travas.length !== 2) throw new Error('montagem: ' + JSON.stringify(st(w, a)))
+        const n = mo.trechos.length
+        if (st(w, a).seconds !== mo.segundos || I.trechosQueFaltam(st(w, a)) !== n) throw new Error('linha')
+        for (let i = 0; i < n; i++) { w.entregar(a); await w.liquidar(a) }
+        if (st(w, a).model !== I.INVASOR_MONTAGEM_MODEL || w.s.vaga || w.s.travas.length !== n) throw new Error('montagem: ' + JSON.stringify(st(w, a)))
         const ins = doClipe(w, a).map((x) => x.input)
-        if (ins.length !== 2 || ins.map((x) => x.video_url).join() !== [0, 1].map((i) => `https://fixture.supabase.co/storage/v1/object/sign/quarantine/recreate-guias/v1/${id}-t${i}.mp4?token=abc`).join() || ins.some((x) => 'kineo_molde' in x || x.prompt !== r0.plan.input.prompt)) throw new Error('entradas: ' + JSON.stringify(ins))
+        if (ins.length !== n || ins.map((x) => x.video_url).join() !== mo.trechos.map((_, i) => `https://fixture.supabase.co/storage/v1/object/sign/quarantine/recreate-guias/v1/${id}-t${i}.mp4?token=abc`).join() || ins.some((x) => 'kineo_molde' in x || x.prompt !== r0.plan.input.prompt)) throw new Error('entradas: ' + JSON.stringify(ins))
         const fo = w.s.renders[0].fonte
         const esp = mo.trechos.map((t) => t.segundosNoFilme)
         if (fo.elements.filter((e) => e.type === 'video').map((e) => e.duration).join() !== esp.join() || fo.duration !== I.segundosDoFilme(mo) || fo.elements.find((e) => e.type === 'audio').duration !== mo.som.segundos || fo.elements.some((e) => e.speed)) throw new Error('montagem: ' + JSON.stringify(fo))
@@ -733,6 +734,8 @@ const mutantes = [
   ['moldes: trecho fracionário (o 6,375 s que o Kling cortou)', { [MOLDE]: molde.replace("quadros: [328, 471], segundosDoArquivo: 6, fps: 24, segundosNoFilme: 6, velocidade: 100", "quadros: [328, 480], segundosDoArquivo: 6.375, fps: 24, segundosNoFilme: 6.375, velocidade: 100") }],
   ['moldes: o cachorro volta a 7,04 s', { [MOLDE]: molde.replace("quadros: [192, 359], segundosDoArquivo: 7, fps: 24, segundosNoFilme: 7, velocidade: 100", "quadros: [192, 360], segundosDoArquivo: 7.042, fps: 24, segundosNoFilme: 7.042, velocidade: 100") }],
   ['moldes: o Pitch invader muda o texto', { [MOLDE]: molde.replace("roupa: 'Keep the original clothing from @Video1.' },\n  segundos: 18,", "roupa: 'Keep the clothing from @Video1.' },\n  segundos: 18,") }],
+  ['humano: volta aos 2 trechos (o 2º quebrou no teste 215d670f)', { [MOLDE]: molde.replace('  trechos: [CACHORRO_CRAQUE.trechos[0]],', '  trechos: CACHORRO_CRAQUE.trechos,') }],
+  ['humano: o som de 15 s num filme de 8 s', { [MOLDE]: molde.replace("som: { arquivo: 'recreate-cachorro-craque-humano-som-v3.mp3', bytes: 193871, sha256: '11e2d6fef33f6d7e81c587ee6843f8cb05765a4de44ef43c656434f43975df5b', contentType: 'audio/mpeg', segundos: 8 },", 'som: CACHORRO_CRAQUE.som,') }],
   ['moldes: o basquete volta a fechar', { [MOLDE]: molde.replace('export const BASQUETE_ABERTO_AO_PUBLICO: boolean = true', 'export const BASQUETE_ABERTO_AO_PUBLICO: boolean = false') }],
   ['basquete: aberto sem preço público (nunca o provisório)', { [MOLDE]: molde.replace("creditosPublicos: recreateCreditCostMoldePublico('basquete'), creditosDaCasa: null,", "creditosPublicos: null, creditosDaCasa: 60,") }],
   ['moldes: o cachorro volta a fechar', { [MOLDE]: molde.replace('export const CACHORRO_ABERTO_AO_PUBLICO: boolean = true', 'export const CACHORRO_ABERTO_AO_PUBLICO: boolean = false') }],

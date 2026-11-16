@@ -187,13 +187,20 @@ const CACHORRO_CRAQUE: MoldeDeTrechos = {
 export const CACHORRO_HUMANO_ABERTO_AO_PUBLICO: boolean = false
 const CACHORRO_CRAQUE_HUMANO: MoldeDeTrechos = {
   id: 'cachorro-craque-humano', titulo: 'Dog goal · you', desde: '2026-11-16',
-  trechos: CACHORRO_CRAQUE.trechos, som: CACHORRO_CRAQUE.som,
-  vitrine: { 'cachorro-craque-humano.mp4': CACHORRO_CRAQUE.vitrine['cachorro-craque.mp4'], 'cachorro-craque-humano.jpg': CACHORRO_CRAQUE.vitrine['cachorro-craque.jpg'] },
+  // KINEO-CACHORRO-HUMANO-8S-1611 [CEO 16/11, teste pago 215d670f: trecho 0 ótimo; trecho 1 quebrado — câmera na altura do cachorro, o motor pôs só o busto da pessoa
+  // saindo do gramado; o dono reprovou] — SÓ o trecho 0 (8 s, quadros 0–191, o mesmo arquivo do cachorro), som do original cortado aos 8 s (-v3) e cartão de 8 s (-v3).
+  // A máquina monta 1 trecho do mesmo jeito (o som original por baixo).
+  trechos: [CACHORRO_CRAQUE.trechos[0]],
+  som: { arquivo: 'recreate-cachorro-craque-humano-som-v3.mp3', bytes: 193871, sha256: '11e2d6fef33f6d7e81c587ee6843f8cb05765a4de44ef43c656434f43975df5b', contentType: 'audio/mpeg', segundos: 8 },
+  vitrine: {
+    'cachorro-craque-humano.mp4': { arquivo: 'recreate-cachorro-craque-humano-vitrine-v3.mp4', bytes: 1995691, sha256: '0ae9258f406c6a0dd6c97c6860f579000ce212557e4072ada4fc34086bd14056', contentType: 'video/mp4' },
+    'cachorro-craque-humano.jpg': CACHORRO_CRAQUE.vitrine['cachorro-craque.jpg'],
+  },
   entrada: CACHORRO_CRAQUE.entrada, saida: CACHORRO_CRAQUE.saida,
   alvo: { tipo: 'pessoa', texto: 'the German Shepherd dog', deOculos: false, roupa: '' },
-  segundos: 15, aberto: CACHORRO_HUMANO_ABERTO_AO_PUBLICO, creditosPublicos: null, creditosDaCasa: recreateCreditCostMoldeDaCasa('cachorro-craque-humano'),
-  esperaMinutos: [5, 10],
-  nota: '16/11: the dog clip with the PERSON from the photo in place of the dog; house only until the paid test',
+  segundos: 8, aberto: CACHORRO_HUMANO_ABERTO_AO_PUBLICO, creditosPublicos: null, creditosDaCasa: recreateCreditCostMoldeDaCasa('cachorro-craque-humano'),
+  esperaMinutos: [3, 6], // 1 trecho de 1,5 a 4 min + a trava + a montagem
+  nota: '16/11: the dog clip with the PERSON from the photo in place of the dog, first 8 s only (paid test 215d670f: the low-camera second segment broke); house only',
 }
 
 /** O registro dos moldes de vários trechos. O 1º é o Pitch invader (byte a byte o de antes). */

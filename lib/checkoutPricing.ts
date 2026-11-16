@@ -26,7 +26,8 @@ export function recreateCreditCostVariosTrechos(seconds: number): number | null 
 // PÚBLICO (nenhum, até o sim do dono: sem preço, o molde some do catálogo do cliente). Com o sim, a linha passa para uma tabela pública e sai daqui.
 // KINEO-NOVIDADE-EM-EVIDENCIA-1611 — o cachorro craque saiu daqui (abriu ao público a 75, tabela abaixo); entra a variante humana "Dog goal · you" (75, só da casa).
 // KINEO-BASQUETE-ABRE-1611 — o basquete saiu daqui (abriu ao público a 75, tabela abaixo).
-export const RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO = { 'cachorro-craque-humano': 75 } as const
+// KINEO-CACHORRO-HUMANO-8S-1611 — a variante humana ficou com 8 s (só o trecho 0): 40 provisório da casa (a tabela de 10 s = 40).
+export const RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO = { 'cachorro-craque-humano': 40 } as const
 export function recreateCreditCostMoldeDaCasa(id: string): number | null {
   return Object.prototype.hasOwnProperty.call(RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO, id) ? RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO[id as keyof typeof RECREATE_PRICING_MOLDES_DA_CASA_AGUARDA_DONO] : null
 }
