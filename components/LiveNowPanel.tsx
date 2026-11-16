@@ -13,6 +13,7 @@ import { startVisiblePolling } from '@/lib/admin/visiblePolling'
 import type { LiveData, LiveVisitor } from '@/app/api/admin/live/route'
 import { EmailBotao, PessoaLink } from '@/components/admin/PessoaLink' // KINEO-ADMIN-PESSOA-1910
 import { NumerosDaEmpresa, UltimosCadastros, useNumerosEmpresa } from '@/components/admin/NumerosEmpresa' // KINEO-ADMIN-NUMEROS-0311
+import { PlacarFilmeGratis } from '@/components/admin/PlacarFilmeGratis' // KINEO-PLACAR-FILME-GRATIS-1611
 
 const REFRESH_MS = 60_000
 
@@ -125,6 +126,9 @@ export default function LiveNowPanel() {
         ))}
         <CheckoutHonestoCard loaded={data !== null} value={data?.checkout_honesto ?? null} cardStyle={CARD} />
       </div>
+
+      {/* KINEO-PLACAR-FILME-GRATIS-1611 — CEO 16/11: o placar do 1º filme grátis em largura cheia, logo abaixo do tráfego e antes das duas colunas. */}
+      <PlacarFilmeGratis />
 
       {/* KINEO-ADMIN-NUMEROS-0311 — fundador 03/11: à esquerda as pessoas que entram, à direita os números da empresa; em tela estreita, um embaixo do outro. */}
       <style>{'.lnp-duas{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}@media (min-width:1180px){.lnp-duas{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);align-items:start}}'}</style>
