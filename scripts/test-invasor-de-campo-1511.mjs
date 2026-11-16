@@ -484,7 +484,7 @@ async function bateria(over = {}) {
       const ix = (id) => casa.findIndex((f) => f.id === id)
       if (casa.some((f) => f.id === 'jogada-de-futebol') || ix('invasor-de-campo') < 0 || ix('invasor-de-campo') > ix('sueter-aconchegante')) throw new Error('grade da casa: ' + casa.slice(0, 4).map((f) => f.id)) // KINEO-REMODELAMENTO-MOLDES-1611 — os moldes novos (16/11) da casa vêm antes
       const cli = cat.formatosParaOCliente('customer@example.org')
-      if (cli.some((f) => f.id === 'jogada-de-futebol') || cli[0]?.id !== 'invasor-de-campo') throw new Error('grade do cliente: ' + cli.slice(0, 3).map((f) => f.id))
+      if (cli.some((f) => f.id === 'jogada-de-futebol') || cli[0]?.id !== 'cachorro-craque' || cli[1]?.id !== 'invasor-de-campo') throw new Error('grade do cliente: ' + cli.slice(0, 3).map((f) => f.id))
     })
     await check('item 7: a tela promete a espera real do molde (10 a 15 min), sem número inventado', async () => {
       const cat = m('lib/recreate/catalogoServidor')
@@ -508,16 +508,17 @@ async function bateria(over = {}) {
     })
     await check('moldes 2: basquete e cachorro craque — cortes, arquivos privados com sha256, só da casa, preço provisório da tabela', async () => {
       const p = m('lib/checkoutPricing'), access = m('lib/recreate/access'), cat = m('lib/recreate/catalogoServidor')
-      for (const id of ['basquete', 'cachorro-craque']) {
+      for (const id of ['basquete', 'cachorro-craque', 'cachorro-craque-humano']) {
         const mo = M.moldeDeTrechos(id)
-        if (!mo || mo.aberto !== false || mo.creditosPublicos !== null || mo.creditosDaCasa !== p.recreateCreditCostMoldeDaCasa(id) || mo.creditosDaCasa !== 60) throw new Error(id + ': interruptor ou preço')
+        const casa = id !== 'cachorro-craque'
+        if (!mo || (casa ? mo.aberto !== false || mo.creditosPublicos !== null || mo.creditosDaCasa !== p.recreateCreditCostMoldeDaCasa(id) || mo.creditosDaCasa !== (id === 'basquete' ? 60 : 75) : mo.aberto !== true || mo.creditosPublicos !== 75 || mo.creditosPublicos !== p.recreateCreditCostMoldePublico(id))) throw new Error(id + ': interruptor ou preço')
         if (mo.trechos.length !== 2 || mo.trechos.some((t) => t.segundosDoArquivo < 3 || t.segundosDoArquivo > 8 || t.velocidade !== 100 || Math.abs((t.quadros[1] - t.quadros[0] + 1) / t.fps - t.segundosDoArquivo) > 0.001)) throw new Error(id + ': trechos')
         if (Math.abs(I.segundosDoFilme(mo) - mo.som.segundos) > 0.001 || mo.trechos[1].quadros[0] !== mo.trechos[0].quadros[1] + 1) throw new Error(id + ': som ou emenda')
-        for (const a of [...mo.trechos, mo.som, ...Object.values(mo.vitrine)]) if (!a.arquivo.startsWith(`recreate-${id}-`) || !/^[0-9a-f]{64}$/.test(a.sha256) || !(a.bytes > 0)) throw new Error(id + ': manifesto ' + a.arquivo)
+        for (const a of [...mo.trechos, mo.som, ...Object.values(mo.vitrine)]) if (!a.arquivo.startsWith(`recreate-${id.replace(/-humano$/, '')}-`) || !/^[0-9a-f]{64}$/.test(a.sha256) || !(a.bytes > 0)) throw new Error(id + ': manifesto ' + a.arquivo)
         if (!mo.vitrine[id + '.mp4'] || !mo.vitrine[id + '.jpg'] || M.invasorArquivoDaVitrine(id + '.jpg') !== mo.vitrine[id + '.jpg']) throw new Error(id + ': cartão')
         const f = cat.recreateFormatServidor(id)
-        if (!f || access.recreateFormatVisible(f, 'customer@example.org') || !access.recreateFormatVisible(f, 'josephsskaf@gmail.com') || f.creditos !== 60) throw new Error(id + ': visibilidade')
-        if (cat.formatosParaOCliente('customer@example.org').some((x) => x.id === id) || m('lib/recreate/formats').RECREATE_FORMATS.some((x) => x.id === id)) throw new Error(id + ': cliente ou JS público')
+        if (!f || access.recreateFormatVisible(f, 'customer@example.org') === casa || !access.recreateFormatVisible(f, 'josephsskaf@gmail.com') || f.creditos !== (id === 'basquete' ? 60 : 75)) throw new Error(id + ': visibilidade')
+        if (cat.formatosParaOCliente('customer@example.org').some((x) => x.id === id) === casa || m('lib/recreate/formats').RECREATE_FORMATS.some((x) => x.id === id)) throw new Error(id + ': cliente ou JS público')
       }
       if (p.recreateCreditCost(14) !== null || !/AGUARDA O SIM DO DONO/.test(lf('lib/checkoutPricing.ts'))) throw new Error('preço da casa fora da tabela ou sem a marca')
       // interruptor aberto SEM preço público: o cliente continua sem ver e o pedido é recusado (o provisório da casa nunca vira preço público)
@@ -538,8 +539,11 @@ async function bateria(over = {}) {
       const tl = lisa('lib/recreate/invasor').textoDoMolde(lisa('lib/recreate/invasorMolde').moldeDeTrechos('basquete'), { genero: 'man', semOculos: true })
       if (!tl.endsWith('Keep the original shorts and shoes from @Video1, and he wears a plain black t-shirt.')) throw new Error('variante: ' + tl)
       const tc = I.textoDoMolde(c, { bicho: 'dog', cabeloEBarba: CABELO, genero: 'woman' })
-      if (tc !== 'Replace the German Shepherd dog in @Video1 with the dog from @Image1: his fur, face and ears match @Image1. Keep his movements, the timing, the camera, the framing, every other person, the background and the lighting of @Video1 exactly.') throw new Error(tc)
+      if (tc !== 'Replace the German Shepherd dog in @Video1 with the dog from @Image1: his fur, face and ears match @Image1, and he carries the ball from @Video1 in his mouth and drops it at the same moment as in @Video1. Keep his movements, the timing, the camera, the framing, every other person, the background and the lighting of @Video1 exactly.') throw new Error(tc)
       if (!I.textoDoMolde(c, { bicho: 'cat' }).includes('with the cat from @Image1')) throw new Error('gato')
+      const h = M.moldeDeTrechos('cachorro-craque-humano'), th = I.textoDoMolde(h, { genero: 'man', cabeloEBarba: CABELO, semOculos: true })
+      if (th !== `Replace the German Shepherd dog in @Video1 with the man from @Image1: his face, hair and beard match @Image1, with ${CABELO}. Keep his movements, the timing, the camera, the framing, every other person, the background and the lighting of @Video1 exactly.`) throw new Error('humano: ' + th)
+      if (!I.textoDoMolde(h, { genero: 'woman' }).startsWith('Replace the German Shepherd dog in @Video1 with the woman from @Image1: her face and hair match @Image1. Keep her movements') || h.trechos !== c.trechos || h.som !== c.som || h.alvo.tipo !== 'pessoa') throw new Error('humano: mulher ou trechos')
       for (const mo of M.MOLDES_DE_TRECHOS) for (const g of ['man', 'woman']) for (const so of [true, false, null]) for (const bi of ['dog', 'cat']) { const t = I.textoDoMolde(mo, { genero: g, semOculos: so, bicho: bi, cabeloEBarba: CABELO }); if (mov.temFraseNegativa(t)) throw new Error('frase negativa: ' + t) }
       if (!lf('lib/recreate/invasorRota.ts').includes("if (molde.alvo.tipo === 'pessoa' && creditos !== null && account.balance >= creditos) {")) throw new Error('o leitor de cabelo roda no pet')
       if (!/hustle-02/.test(lf(MOLDE)) || !/Todas \*\*CC0\*\*/.test(lf('music-novas/README.md')) || !/`hustle-02\.mp3` \| Soulja Unit - Basic \(2019\)/.test(lf('music-novas/README.md'))) throw new Error('a trilha do basquete sem a origem CC0')
@@ -587,14 +591,33 @@ async function bateria(over = {}) {
     await check('palco (KINEO-PALCO-INVADER-1611): só o molde ABERTO da máquina de trechos leva palco; o cliente e a casa logados o recebem; o visitante não recebe o molde', async () => {
       const cat = m('lib/recreate/catalogoServidor'), pub = m('lib/recreate/catalogPublic')
       const marcados = M.FORMATOS_DOS_MOLDES_DE_TRECHOS.filter((f) => f.palco === true).map((f) => f.id)
-      if (marcados.join() !== M.MOLDES_DE_TRECHOS.filter((x) => x.aberto).map((x) => x.id).join() || !marcados.includes('invasor-de-campo') || marcados.includes('basquete') || marcados.includes('cachorro-craque')) throw new Error('marcados: ' + marcados)
-      for (const email of ['customer@example.org', 'josephsskaf@gmail.com']) { const l = cat.formatosParaOCliente(email); if (l.find((f) => f.palco === true)?.id !== 'invasor-de-campo') throw new Error('logado sem o palco: ' + email) }
-      if (cat.formatosParaOCliente('customer@example.org')[0]?.id !== 'invasor-de-campo') throw new Error('a grade do cliente não abre no Pitch invader')
+      if (marcados.join() !== M.MOLDES_DE_TRECHOS.filter((x) => x.aberto).map((x) => x.id).join() || !marcados.includes('invasor-de-campo') || marcados.includes('basquete') || !marcados.includes('cachorro-craque')) throw new Error('marcados: ' + marcados)
+      for (const email of ['customer@example.org', 'josephsskaf@gmail.com']) { const l = cat.formatosParaOCliente(email); if (l.find((f) => f.palco === true)?.id !== 'cachorro-craque') throw new Error('logado sem o palco: ' + email) }
+      if (cat.formatosParaOCliente('customer@example.org')[0]?.id !== 'cachorro-craque') throw new Error('a grade do cliente não abre no aberto mais novo')
       const visitante = cat.formatosParaOCliente(null).filter((f) => pub.publicRecreateCatalog().some((p) => p.id === f.id))
       if (visitante.some((f) => f.palco === true || f.id === 'invasor-de-campo')) throw new Error('o visitante recebeu o molde')
       if (M.FORMATOS_DOS_MOLDES_DE_TRECHOS.some((f) => f.palco !== undefined && f.palco !== true)) throw new Error('palco só true ou ausente')
       const juntos = lf('components/create/ClipRecreateJuntos.tsx')
       if (!juntos.includes('  const destaque = catalogo.find(f => f.palco === true)\n  if (destaque) return destaque\n  return catalogo.find(f => publicRecreatePath(f.id) !== null) ?? catalogo[0] ?? null')) throw new Error('o palco da tela única não abre no molde aberto')
+    })
+    await check('novidade (KINEO-NOVIDADE-EM-EVIDENCIA-1611): molde aberto sem preço nunca vai ao público nem cai na tabela por duração; o aberto mais novo abre a grade e o palco; o topo da home por data', async () => {
+      const semPreco = loader({}, { [MOLDE]: (over[MOLDE] ?? lf(MOLDE)).replace("creditosPublicos: recreateCreditCostMoldePublico('cachorro-craque')", 'creditosPublicos: null') })
+      const sc = semPreco('lib/recreate/catalogoServidor').recreateFormatServidor('cachorro-craque'), sf = semPreco('lib/recreate/formats'), sa = semPreco('lib/recreate/access')
+      if (!sc || sc.swapApproved !== false || sc.palco === true || sc.creditos !== null || sf.recreateCreditsFor(sc) !== null || sf.recreateSwapPriced(sc) || sa.recreateFormatVisible(sc, 'customer@example.org')) throw new Error('aberto sem preço foi ao público: ' + JSON.stringify(sc))
+      const cat = m('lib/recreate/catalogoServidor')
+      const casa = cat.formatosParaOCliente('josephsskaf@gmail.com').map((f) => f.id), cli = cat.formatosParaOCliente('customer@example.org').map((f) => f.id)
+      if (casa.slice(0, 2).join() !== 'cachorro-craque,invasor-de-campo' || cli.slice(0, 2).join() !== 'cachorro-craque,invasor-de-campo') throw new Error('grade: ' + casa.slice(0, 4) + ' | ' + cli.slice(0, 3))
+      const ordena = cat.novidadesNaFrente([{ id: 'a', desde: '2026-11-10' }, { id: 'b', desde: '2026-11-01', palco: true, approvedOn: '2026-11-12' }, { id: 'c', desde: '2026-11-11', palco: true }]).map((x) => x.id).join()
+      if (ordena !== 'b,c,a') throw new Error('novidadesNaFrente pela data de abertura: ' + ordena)
+      const L = m('lib/clipesNos2Lugares')
+      if (L.CLIPES_NO_TOPO.join() !== L.topoComNovidades(L.TOPO_DA_CASA).join() || L.CLIPES_NO_TOPO[0] !== 'invasor-de-campo' || L.CLIPES_NO_TOPO.length !== 6 || L.CLIPES_NO_TOPO.includes('sueter-aconchegante')) throw new Error('topo da home hoje: ' + L.CLIPES_NO_TOPO)
+      const pit = L.CLIPES_NOVOS.find((x) => x.id === 'invasor-de-campo')
+      const comCao = L.topoComNovidades(L.TOPO_DA_CASA, [...L.CLIPES_NOVOS, { ...pit, id: 'cachorro-craque', title: 'Dog goal', desde: '2026-11-16' }])
+      if (comCao.slice(0, 2).join() !== 'cachorro-craque,invasor-de-campo' || comCao.length !== 6) throw new Error('com o cartão do cachorro: ' + comCao)
+      if (L.topoComNovidades(L.TOPO_DA_CASA, L.CLIPES_NOVOS.map((x) => (x.id === 'invasor-de-campo' ? { ...x, desde: undefined } : x)))[0] === 'invasor-de-campo') throw new Error('cartão sem data de abertura na frente')
+      if (L.CLIPES_NOVOS.filter((x) => x.selo === 'Recreate template').some((x) => !m('lib/recreate/entry').RECREATE_MOLDES_SO_LOGADO.includes(x.id))) throw new Error('cartão de molde que não está aberto')
+      const E = m('lib/recreate/entry')
+      for (const id of E.RECREATE_MOLDES_SO_LOGADO) if (!cli.includes(id)) throw new Error('molde da home que o cliente não vê: ' + id)
     })
     // ── 2ª revisão independente de 15/11 (bloqueios para abrir ao público) ──
     await check('2ª revisão, item 1: a varredura horária refaz o estorno do invasor failed com 0 devolvido (qualquer motivo), uma vez só; nunca cobrado e outros clipes fora', async () => {
@@ -704,17 +727,24 @@ const SRV = 'lib/clips/clipServer.ts', ROTA = 'lib/recreate/invasorRota.ts'
 const srvSrc = lf(SRV), rotaSrc = lf(ROTA)
 const mutantes = [
   // KINEO-REMODELAMENTO-MOLDES-1611 — moldes por dados
-  ['palco: o servidor não marca o molde aberto', { [MOLDE]: molde.replace('    ...(m.aberto ? { palco: true } : {}),', '') }],
-  ['palco: o molde da casa também abre o palco', { [MOLDE]: molde.replace('    ...(m.aberto ? { palco: true } : {}),', '    ...({ palco: true }),') }],
+  ['palco: o servidor não marca o molde aberto', { [MOLDE]: molde.replace('    ...(publico ? { palco: true } : {}),', '') }],
+  ['palco: o molde da casa também abre o palco', { [MOLDE]: molde.replace('    ...(publico ? { palco: true } : {}),', '    ...({ palco: true }),') }],
   ['palco: a vitrine do cliente perde o palco', { ['lib/recreate/catalogoServidor.ts']: lf('lib/recreate/catalogoServidor.ts').replace('  if (f.palco === true) out.palco = true', '') }],
   ['moldes: trecho fracionário (o 6,375 s que o Kling cortou)', { [MOLDE]: molde.replace("quadros: [328, 471], segundosDoArquivo: 6, fps: 24, segundosNoFilme: 6, velocidade: 100", "quadros: [328, 480], segundosDoArquivo: 6.375, fps: 24, segundosNoFilme: 6.375, velocidade: 100") }],
   ['moldes: o cachorro volta a 7,04 s', { [MOLDE]: molde.replace("quadros: [192, 359], segundosDoArquivo: 7, fps: 24, segundosNoFilme: 7, velocidade: 100", "quadros: [192, 360], segundosDoArquivo: 7.042, fps: 24, segundosNoFilme: 7.042, velocidade: 100") }],
   ['moldes: o Pitch invader muda o texto', { [MOLDE]: molde.replace("roupa: 'Keep the original clothing from @Video1.' },\n  segundos: 18,", "roupa: 'Keep the clothing from @Video1.' },\n  segundos: 18,") }],
   ['moldes: o basquete abre ao público', { [MOLDE]: molde.replace('export const BASQUETE_ABERTO_AO_PUBLICO: boolean = false', 'export const BASQUETE_ABERTO_AO_PUBLICO: boolean = true') }],
-  ['moldes: o cachorro abre ao público', { [MOLDE]: molde.replace('export const CACHORRO_ABERTO_AO_PUBLICO: boolean = false', 'export const CACHORRO_ABERTO_AO_PUBLICO: boolean = true') }],
+  ['moldes: o cachorro volta a fechar', { [MOLDE]: molde.replace('export const CACHORRO_ABERTO_AO_PUBLICO: boolean = true', 'export const CACHORRO_ABERTO_AO_PUBLICO: boolean = false') }],
   ['moldes: o preço da casa vira público', { [MOLDE]: molde.replace('(m.aberto ? m.creditosPublicos : m.creditosPublicos ?? m.creditosDaCasa)', '(m.creditosPublicos ?? m.creditosDaCasa)') }],
   ['moldes: a camiseta lisa desligada', { [MOLDE]: molde.replace('export const BASQUETE_CAMISETA_LISA: boolean = true', 'export const BASQUETE_CAMISETA_LISA: boolean = false') }],
-  ['moldes: o texto do bicho com a roupa', { [INV]: inv.replace("the lighting of @Video1 exactly.`\n  }", "the lighting of @Video1 exactly. Keep the original clothing from @Video1.`\n  }") }],
+  ['moldes: o texto do bicho com a roupa', { [INV]: inv.replace("the lighting of @Video1 exactly.` // KINEO-NOVIDADE-EM-EVIDENCIA-1611 — + a ação (a bola do @Video1)", "the lighting of @Video1 exactly. Keep the original clothing from @Video1.`") }],
+  ['novidade: a ação da bola some do cachorro', { [MOLDE]: molde.replace(", acao: 'he carries the ball from @Video1 in his mouth and drops it at the same moment as in @Video1' }", ' }') }],
+  ['novidade: a variante humana abre ao público', { [MOLDE]: molde.replace('export const CACHORRO_HUMANO_ABERTO_AO_PUBLICO: boolean = false', 'export const CACHORRO_HUMANO_ABERTO_AO_PUBLICO: boolean = true') }],
+  ['novidade: aberto sem preço cai na tabela por duração (achado 1)', { [MOLDE]: molde.replace('swapApproved: publico, swapInTest: !publico,', 'swapApproved: m.aberto, swapInTest: !m.aberto,') }],
+  ['novidade: creditos null vira o preço por duração (achado 1)', { [FORMATS]: formats.replace("f.type === 'swap' ? (f.creditos !== undefined ? f.creditos : recreateCreditCost(f.seconds)) : recreateEffectCredits(f)", "f.type === 'swap' ? f.creditos ?? recreateCreditCost(f.seconds) : recreateEffectCredits(f)") }],
+  ['novidade: a grade não põe o aberto mais novo na frente', { ['lib/recreate/catalogoServidor.ts']: lf('lib/recreate/catalogoServidor.ts').replace('  return [...abertos, ...lista.filter((f) => f.palco !== true)]', '  return [...lista]') }],
+  ['novidade: o topo da home sem os moldes na frente', { ['lib/clipesNos2Lugares.ts']: lf('lib/clipesNos2Lugares.ts').replace('  return [...moldes, ...base.filter((id) => !moldes.includes(id))].slice(0, 6)', '  return [...base.filter((id) => !moldes.includes(id)), ...moldes].slice(0, 6)') }],
+  ['novidade: o topo da home pela ordem da lista, não pela data', { ['lib/clipesNos2Lugares.ts']: lf('lib/clipesNos2Lugares.ts').replace('.sort((a, b) => (a.desde < b.desde ? 1 : a.desde > b.desde ? -1 : a.i - b.i))', '.sort((a, b) => a.i - b.i)') }],
   ['moldes: a linha aceita o marcador de outro molde', { [INV]: inv.replace('    if (!molde || trechoDoMarcador(e.video_url, molde.id) !== 0) return null', '    if (!molde || lerMarcador(e.video_url)?.i !== 0) return null') }],
   ['moldes: a montagem com os cortes do Pitch invader', { [INV]: inv.replace('  const molde = a.molde ?? MOLDE_PITCH_INVADER // KINEO-REMODELAMENTO-MOLDES-1611', '  const molde = MOLDE_PITCH_INVADER // KINEO-REMODELAMENTO-MOLDES-1611') }],
   // 2ª revisão independente de 15/11 (bloqueios para o público)

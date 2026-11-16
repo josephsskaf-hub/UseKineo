@@ -24,7 +24,8 @@ export const assinarVitrineDoInvasor = (admin: SupabaseClient, nome: string, seg
 /** Todos os arquivos do molde estão no privado com o tamanho do manifesto? Conferido ANTES do débito (falta = recusa limpa, nada cobrado). Nunca lança. */
 export async function invasorArquivosPresentes(admin: SupabaseClient, molde: Pick<MoldeDeTrechos, 'id' | 'trechos' | 'som'>): Promise<boolean> {
   try {
-    const { data, error } = await admin.storage.from(INVASOR_BUCKET).list(INVASOR_PASTA, { search: `recreate-${molde.id}-`, limit: 50 })
+    // KINEO-NOVIDADE-EM-EVIDENCIA-1611 — por arquivo (a variante humana usa os arquivos do cachorro): a pasta inteira, não o prefixo do id.
+    const { data, error } = await admin.storage.from(INVASOR_BUCKET).list(INVASOR_PASTA, { search: 'recreate-', limit: 200 })
     if (error) return false
     const tamanho = new Map((data ?? []).map((x) => [x.name, Number((x as { metadata?: { size?: unknown } | null }).metadata?.size)]))
     return [...molde.trechos, molde.som].every((a) => tamanho.get(a.arquivo) === a.bytes)

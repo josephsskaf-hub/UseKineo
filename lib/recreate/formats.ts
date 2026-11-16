@@ -138,12 +138,12 @@ export const recreateFormat = (id: unknown) => RECREATE_FORMATS.find(f => f.id =
 export const RECREATE_MOVIMENTO_PROVISORIO_CASA: Readonly<Record<number, number>> = { 6: 25 }
 /** Os créditos de um molde de movimento: a tabela do Recreate (lib/checkoutPricing.ts); sem tarifa, o provisório da casa SÓ se o molde não for aprovado. */
 export const recreateMovimentoCredits = (f: RecreateFormat): number | null => recreateCreditCost(f.seconds) ?? (f.type === 'motion' && f.movimentoAprovado !== true ? RECREATE_MOVIMENTO_PROVISORIO_CASA[f.seconds] ?? null : null)
-export const recreateSwapPriced = (f: RecreateFormat) => (f.type !== 'swap' && f.type !== 'motion') || (f.type === 'motion' ? recreateMovimentoCredits(f) : f.creditos ?? recreateCreditCost(f.seconds)) !== null // KINEO-INVASOR-DE-CAMPO-1511 — + f.creditos (swap fora da tabela por duração) // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 — era: recreateCreditCost(f.seconds) para os dois // KINEO-RECREATE-MOVIMENTO-1411 — o movimento usa a MESMA tabela da troca (CEO 14/11: 10 s = 40)
+export const recreateSwapPriced = (f: RecreateFormat) => (f.type !== 'swap' && f.type !== 'motion') || (f.type === 'motion' ? recreateMovimentoCredits(f) : f.creditos !== undefined ? f.creditos : recreateCreditCost(f.seconds)) !== null // KINEO-INVASOR-DE-CAMPO-1511 — + f.creditos (swap fora da tabela por duração) // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 — era: recreateCreditCost(f.seconds) para os dois // KINEO-RECREATE-MOVIMENTO-1411 — o movimento usa a MESMA tabela da troca (CEO 14/11: 10 s = 40)
 export const RECREATE_UNPRICED_ERROR = 'This video is not available yet: its price for this length is still being decided. Nothing was charged.'
 /** KINEO-RECREATE-MOVIMENTO-1411 — os créditos de qualquer molde: troca e movimento pela tabela do Recreate (mesma duração, mesmo preço); efeito pelo
  *  preço do efeito. Toda tela e rota que mostra ou cobra créditos do catálogo passa por aqui (nunca uma bifurcação "troca ? … : efeito"). */
 export function recreateCreditsFor(f: RecreateFormat): number | null {
-  return f.type === 'motion' ? recreateMovimentoCredits(f) : f.type === 'swap' ? f.creditos ?? recreateCreditCost(f.seconds) : recreateEffectCredits(f) // KINEO-INVASOR-DE-CAMPO-1511 — + f.creditos // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 — era: swap ou motion pela tabela
+  return f.type === 'motion' ? recreateMovimentoCredits(f) : f.type === 'swap' ? (f.creditos !== undefined ? f.creditos : recreateCreditCost(f.seconds)) : recreateEffectCredits(f) // KINEO-INVASOR-DE-CAMPO-1511 — + f.creditos // KINEO-MOVIMENTO-ANTES-DE-ABRIR-1411 — era: swap ou motion pela tabela
 }
 export function recreateEffectCredits(f: RecreateFormat): number | null {
   const effect = CLIP_EFFECTS.find(e => e.key === f.effectKey)

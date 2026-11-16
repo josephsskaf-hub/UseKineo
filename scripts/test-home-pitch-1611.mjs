@@ -139,8 +139,8 @@ for (const [n, ok] of casos) { console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${n}`); if
 
 const troca = (a, b) => (s) => { if (!s.includes(a)) throw new Error('âncora do mutante sumiu: ' + a.slice(0, 70)); return s.replace(a, b) }
 const MUT = [
-  ['o Pitch invader sai da frente do topo', { [LIB]: troca("['invasor-de-campo', 'carta-do-front',", "['carta-do-front', 'invasor-de-campo',") }, 'T2'],
-  ['o Pitch invader sai do topo (só na grade)', { [LIB]: troca("['invasor-de-campo', 'carta-do-front',", "['carta-do-front',") }, 'T1'],
+  ['o Pitch invader sai da frente do topo', { [LIB]: troca('  return [...moldes, ...base.filter((id) => !moldes.includes(id))].slice(0, 6)', '  return [...base.filter((id) => !moldes.includes(id)).slice(0, 1), ...moldes, ...base.filter((id) => !moldes.includes(id)).slice(1)].slice(0, 6)') }, 'T2'], // reancorado KINEO-NOVIDADE-EM-EVIDENCIA-1611: o topo é a regra topoComNovidades
+  ['o Pitch invader sai do topo (só na grade)', { [LIB]: troca("prompt: null, desde: '2026-11-15' },", 'prompt: null },') }, 'T1'], // reancorado KINEO-NOVIDADE-EM-EVIDENCIA-1611: sem a data de abertura o cartão não entra na frente
   ['o 1º cartão do topo fica 2×2 (mais alto que a tela)', { [MOSAICO]: troca('.klp .kmz-topo-grid>.kmz-t{grid-column:auto;grid-row:auto;aspect-ratio:5/6}\n', '.klp .kmz-topo-grid>.kmz-t{grid-column:auto;grid-row:auto;aspect-ratio:5/6}\n.klp .kmz-topo-grid>.kmz-t:first-child{grid-column:span 2;grid-row:span 2}\n') }, 'T5'],
   ['o Pitch invader aparece duas vezes na home', { [MOSAICO]: troca('if (!topo && !full && NO_TOPO.has(c.id)) return null', 'if (!topo && !full && NO_TOPO.has(c.id) && c.id !== \'invasor-de-campo\') return null') }, 'T4'],
   ['o visitante vai direto à página (404)', { [ENTRY]: troca("return signedIn ? path : '/signup?' + new URLSearchParams({ redirect: path }).toString()", 'return path') }, 'L1'],

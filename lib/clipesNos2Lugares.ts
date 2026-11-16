@@ -38,6 +38,9 @@ interface ClipeNovoBase {
   /** Texto do clipe, palavra por palavra, para preencher o /clips. null = clipe feito a partir de uma foto: o texto dele só descreve o
    *  movimento ("Keep the same woman…") e sem a foto mentiria; o cartão abre o /clips no motor e a pessoa manda a foto dela. */
   prompt: string | null
+  /** KINEO-NOVIDADE-EM-EVIDENCIA-1611 — só no cartão de MOLDE do Recreate ('Recreate template'): o dia em que o molde abriu ao público (YYYY-MM-DD). É por ele
+   *  que o topo da home se ordena (topoComNovidades): o molde aberto mais novo abre a home. */
+  desde?: string
 }
 
 // KINEO-OUTFIT-MORPH-HOME-0911 — fundador 09/11: um clipe pode entrar como FORMATO da moda, sem nome de motor no cartão (ele quer menos
@@ -140,7 +143,7 @@ export const CLIPES_NOVOS: readonly ClipeNovo[] = [
   // pessoa real; docs/invasor-de-campo-1511/TESTE-PAGO-1511.mp4), trecho 12,17–15,4 s (ele cai, senta e gesticula), recortado 540×960 a partir do canto de
   // cima à esquerda (x 0, y 160 do quadro 720×1280): conferido a 8 e a 24 quadros/s, nenhum jogador, camisa listrada, número, patrocínio ou escudo na janela.
   // Nada do vídeo de transmissão original nem dos arquivos privados do molde vai à vitrine. Sem motor no cartão; o tipo 'Recreate template' só no aria-label.
-  { id: 'invasor-de-campo', title: 'Pitch invader', engine: null, produto: 'clip', selo: 'Recreate template', clipId: 'clip:a3b76cb7', focus: '50% 33%', pessoa: true, prompt: null }, // KINEO-HOME-PITCH-1611
+  { id: 'invasor-de-campo', title: 'Pitch invader', engine: null, produto: 'clip', selo: 'Recreate template', clipId: 'clip:a3b76cb7', focus: '50% 33%', pessoa: true, prompt: null, desde: '2026-11-15' }, // KINEO-HOME-PITCH-1611
 ]
 
 /** KINEO-HOME-10-CLIPES-1311 — os 10 clipes que saíram da vitrine (home e /made-with-kineo) em 13/11 para os 10 novos entrarem. O registro de
@@ -172,7 +175,17 @@ export const CLIPES_FORA_DA_VITRINE_1311: readonly ClipeNovo[] = [
 // topo (em cima à esquerda, no computador e no celular). Pela regra acima o último (o suéter) sai do topo e segue na grade de baixo e no /made-with-kineo.
 // Cartão 2×2 foi medido na tela de dev e recusado: a 1920 px ele ficava 1236×1481 (mais alto que a tela; a 1ª dobra mostrava só grama) e, na fileira de 2
 // do celular, 2×2 + 5 deixava um buraco. O destaque é a posição, no mesmo tamanho dos vizinhos.
-export const CLIPES_NO_TOPO: readonly string[] = ['invasor-de-campo', 'carta-do-front', 'raposa-lanterna', 'selfie-confete', 'anuncio-burger-camera-lenta', 'anuncio-creme-selfie'] // KINEO-HOME-TOPO-5X6-1311 — só clipe que cabe em pé na janela 5:6 (o balão é corpo inteiro com braços para cima: fica na grade) · KINEO-HOME-PITCH-1611 — era: ['carta-do-front', …, 'anuncio-creme-selfie', 'sueter-aconchegante']
+// KINEO-NOVIDADE-EM-EVIDENCIA-1611 [dono 16/11 ~02:00: "já coloca sempre em evidência as novas"] — REGRA, não lista: os cartões de MOLDE do Recreate (CLIPES_NOVOS,
+// selo 'Recreate template', com `desde` = o dia em que o molde abriu; só molde aberto a todo cliente logado tem cartão: o guardião scripts/test-home-pitch-1611.mjs
+// confere com lib/recreate/entry.ts RECREATE_MOLDES_SO_LOGADO) abrem o topo, do mais novo para o mais antigo; depois, os 6 escolhidos da casa (TOPO_DA_CASA), sempre 6 no total. Hoje: o Pitch invader e os 5 primeiros da casa (o suéter fica na grade).
+// Molde aberto SEM cartão (o "Dog goal": o teste pago 48e7e5bf mostra a bola dupla e a placa com letras) só entra quando o cartão dele entrar em CLIPES_NOVOS.
+export const TOPO_DA_CASA: readonly string[] = ['carta-do-front', 'raposa-lanterna', 'selfie-confete', 'anuncio-burger-camera-lenta', 'anuncio-creme-selfie', 'sueter-aconchegante']
+export function topoComNovidades(base: readonly string[], cartoes: readonly ClipeNovo[] = CLIPES_NOVOS): string[] { // módulo puro, sem import (o guardião dos 2 lugares confere)
+  const moldes = cartoes.filter((c) => c.selo === 'Recreate template' && typeof c.desde === 'string')
+    .map((c, i) => ({ id: c.id, desde: c.desde as string, i })).sort((a, b) => (a.desde < b.desde ? 1 : a.desde > b.desde ? -1 : a.i - b.i)).map((c) => c.id)
+  return [...moldes, ...base.filter((id) => !moldes.includes(id))].slice(0, 6)
+}
+export const CLIPES_NO_TOPO: readonly string[] = topoComNovidades(TOPO_DA_CASA) // KINEO-HOME-TOPO-5X6-1311 — só clipe que cabe em pé na janela 5:6 (o balão é corpo inteiro com braços para cima: fica na grade) · KINEO-HOME-PITCH-1611 — era: ['carta-do-front', …, 'anuncio-creme-selfie', 'sueter-aconchegante']
 /** KINEO-HOME-ESTRATEGIA-A-1311 — o convite dos cartões que não têm "Recreate" nem "Make your ad": a pessoa faz o DELA no produto daquele tipo de trabalho.
  *  Nada no cartão diz que ESTE vídeo saiu do produto (não saiu: foi feito à mão, ver 13/11 acima); o mesmo critério do "Make your ad" de 10/11.
  *  Vale na home e no /made-with-kineo. Quando a classificação por produto do GPT entrar (campo `produto`), ela substitui este mapa. */

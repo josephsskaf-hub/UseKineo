@@ -19,7 +19,7 @@
 // home. O cartão da home mostra só o NOSSO render (teste pago a3b76cb7, rosto inventado), recortado sem jogador, camisa, número, patrocínio ou escudo
 // (public/previews/galeria/invasor-de-campo.mp4), e o link sai de lib/recreate/entry.ts RECREATE_MOLDES_SO_LOGADO (só o id).
 import type { RecreateFormat } from './formats'
-import { recreateCreditCostMoldeDaCasa, recreateCreditCostVariosTrechos } from '@/lib/checkoutPricing'
+import { recreateCreditCostMoldeDaCasa, recreateCreditCostMoldePublico, recreateCreditCostVariosTrechos } from '@/lib/checkoutPricing'
 
 // ═══ KINEO-REMODELAMENTO-MOLDES-1611 [dono 16/11 ~00:10: "por que não podemos fazer o do basquete e o do cachorro pra hoje?"; CEO 16/11] ═══
 // A máquina de vários trechos virou MOLDES POR DADOS: cada molde é um registro (id, título, trechos, som, alvo, cartão, preço, interruptor). O Pitch invader é o
@@ -45,7 +45,7 @@ export type TrechoDoInvasor = ArquivoDoMolde & {
 /** O alvo do texto: a PESSOA pela roupa (a receita de 14/11) ou o BICHO pela aparência. */
 export type AlvoDoMolde =
   | { tipo: 'pessoa'; texto: string; deOculos: boolean; roupa: string }
-  | { tipo: 'bicho'; texto: string }
+  | { tipo: 'bicho'; texto: string; /** a ação do bicho que o texto prende ao @Video1 (frase positiva), ou nada. */ acao?: string }
 export interface MoldeDeTrechos {
   id: string
   titulo: string
@@ -155,7 +155,11 @@ const BASQUETE: MoldeDeTrechos = {
 // cliente é a do PET: o texto é o da receita adaptado a bicho ("his fur, face and ears match @Image1"), sem frase negativa e sem a frase da roupa. O som é o original
 // do vídeo (tudo gerado por IA, "áudio original"; o conteúdo do som não foi ouvido por mim).
 // Riscos (ficha): trocar bicho por bicho no Kling edit nunca foi provado; a trava "não trocou" de hoje é escrita para rosto humano e pode errar com bicho.
-export const CACHORRO_ABERTO_AO_PUBLICO: boolean = false
+// KINEO-NOVIDADE-EM-EVIDENCIA-1611 [dono 16/11 ~02:00: "abre a 75"] — ABERTO ao público depois do teste pago da casa (clipe 48e7e5bf, corgi inventado), a 75 créditos
+// (lib/checkoutPricing.ts RECREATE_PRICING_MOLDES_PUBLICOS). Volta: false.
+// BOLA DUPLA (dono: "ele fica com as duas bolas"): no teste, o pet saiu com uma bola na boca E a bola do @Video1 no chão. O texto agora prende a bola do vídeo à
+// boca do bicho e ao momento em que o cachorro do @Video1 a solta (frase positiva; nunca "no second ball").
+export const CACHORRO_ABERTO_AO_PUBLICO: boolean = true
 const CACHORRO_CRAQUE: MoldeDeTrechos = {
   id: 'cachorro-craque', titulo: 'Dog goal', desde: '2026-11-16',
   trechos: [
@@ -169,29 +173,47 @@ const CACHORRO_CRAQUE: MoldeDeTrechos = {
     'cachorro-craque.jpg': { arquivo: 'recreate-cachorro-craque-vitrine-v1.jpg', bytes: 40679, sha256: 'dd0b4bf08c08fa11f68875262e6ac19e494917f43da35ac9cd89e534bc971735', contentType: 'image/jpeg' },
   },
   entrada: { largura: 720, altura: 1280 }, saida: { largura: 720, altura: 1280, fps: 24 },
-  alvo: { tipo: 'bicho', texto: 'the German Shepherd dog' },
-  segundos: 15, aberto: CACHORRO_ABERTO_AO_PUBLICO, creditosPublicos: null, creditosDaCasa: recreateCreditCostMoldeDaCasa('cachorro-craque'),
+  alvo: { tipo: 'bicho', texto: 'the German Shepherd dog', acao: 'he carries the ball from @Video1 in his mouth and drops it at the same moment as in @Video1' },
+  segundos: 15, aberto: CACHORRO_ABERTO_AO_PUBLICO, creditosPublicos: recreateCreditCostMoldePublico('cachorro-craque'), creditosDaCasa: null, approvedOn: '2026-11-16',
   esperaMinutos: [5, 10],
-  nota: '16/11: 2 Kling 4.0 edit segments (8 + 7 s, whole seconds), pet photo, original sound; house only until the paid test (pet-for-pet swap never proven)',
+  nota: '16/11: 2 Kling 4.0 edit segments (8 + 7 s, whole seconds), pet photo, original sound; paid house test 48e7e5bf; public (owner 16/11)',
+}
+
+// ─── 4. Cachorro craque · você (KINEO-NOVIDADE-EM-EVIDENCIA-1611 [dono 16/11 ~02:00: "testa o humano"]) — os MESMOS trechos, som e cartão do cachorro craque; a PESSOA da
+// foto no lugar do pastor-alemão ("the man from @Image1", cabelo, barba e óculos lidos da foto como no Pitch invader; o gênero vem do pedido, padrão homem). Sem a frase
+// da roupa (o alvo é um bicho, não veste nada) e sem "wears no glasses" (o cachorro do vídeo não usa óculos). SÓ DA CASA, preço provisório 75, interruptor próprio.
+export const CACHORRO_HUMANO_ABERTO_AO_PUBLICO: boolean = false
+const CACHORRO_CRAQUE_HUMANO: MoldeDeTrechos = {
+  id: 'cachorro-craque-humano', titulo: 'Dog goal · you', desde: '2026-11-16',
+  trechos: CACHORRO_CRAQUE.trechos, som: CACHORRO_CRAQUE.som,
+  vitrine: { 'cachorro-craque-humano.mp4': CACHORRO_CRAQUE.vitrine['cachorro-craque.mp4'], 'cachorro-craque-humano.jpg': CACHORRO_CRAQUE.vitrine['cachorro-craque.jpg'] },
+  entrada: CACHORRO_CRAQUE.entrada, saida: CACHORRO_CRAQUE.saida,
+  alvo: { tipo: 'pessoa', texto: 'the German Shepherd dog', deOculos: false, roupa: '' },
+  segundos: 15, aberto: CACHORRO_HUMANO_ABERTO_AO_PUBLICO, creditosPublicos: null, creditosDaCasa: recreateCreditCostMoldeDaCasa('cachorro-craque-humano'),
+  esperaMinutos: [5, 10],
+  nota: '16/11: the dog clip with the PERSON from the photo in place of the dog; house only until the paid test',
 }
 
 /** O registro dos moldes de vários trechos. O 1º é o Pitch invader (byte a byte o de antes). */
 // KINEO-SEGUNDO-INTEIRO-1611 [CEO 16/11, teste pago 90a42302] — REGRA: todo arquivo de trecho enviado ao motor tem SEGUNDO INTEIRO (≥ 3 s, ≤ 8 s): o Kling 4.0 edição devolve
 // o inteiro + 1 quadro (8 → 8,04; 3 → 3,04) e corta o resto (6,375 → 6,042: falha "trecho curto" e estorno). O que vai ao filme pode ser fracionário (o 2,4 s do
 // Pitch invader, alongado a 3,0 s e devolvido a 125%). O guardião confere em todo molde.
-export const MOLDES_DE_TRECHOS: readonly MoldeDeTrechos[] = [PITCH_INVADER, BASQUETE, CACHORRO_CRAQUE]
+export const MOLDES_DE_TRECHOS: readonly MoldeDeTrechos[] = [PITCH_INVADER, BASQUETE, CACHORRO_CRAQUE, CACHORRO_CRAQUE_HUMANO]
 export const moldeDeTrechos = (id: unknown): MoldeDeTrechos | null => MOLDES_DE_TRECHOS.find((m) => m.id === id) ?? null
 export const MOLDE_PITCH_INVADER = PITCH_INVADER
 
 /** Os créditos do molde: com o interruptor ABERTO, só o preço público (sem ele = sem preço, o molde some do catálogo do cliente); da casa, o público ou o provisório. */
 export const creditosDoMolde = (m: Pick<MoldeDeTrechos, 'aberto' | 'creditosPublicos' | 'creditosDaCasa'>): number | null => (m.aberto ? m.creditosPublicos : m.creditosPublicos ?? m.creditosDaCasa)
+/** KINEO-NOVIDADE-EM-EVIDENCIA-1611 [revisão 16/11, achado 1] — o molde só vai ao público ABERTO E com preço (nunca cai na tabela por duração: 15 s = 60 era o preço errado). */
+export const moldeNoPublico = (m: Pick<MoldeDeTrechos, 'aberto' | 'creditosPublicos' | 'creditosDaCasa'>) => m.aberto && creditosDoMolde(m) !== null
 export function formatoDoMolde(m: MoldeDeTrechos): RecreateFormat {
+  const publico = moldeNoPublico(m)
   return {
     id: m.id, title: m.titulo, desde: m.desde, type: 'swap',
     preview: `/api/recreate/assets/${m.id}.mp4`, poster: `/api/recreate/assets/${m.id}.jpg`,
-    seconds: m.segundos, prompt: '', photoSlots: 1, swapApproved: m.aberto, swapInTest: !m.aberto, ...(m.approvedOn ? { approvedOn: m.approvedOn } : {}),
+    seconds: m.segundos, prompt: '', photoSlots: 1, swapApproved: publico, swapInTest: !publico, ...(m.approvedOn ? { approvedOn: m.approvedOn } : {}),
     creditos: creditosDoMolde(m), esperaMinutos: m.esperaMinutos, swapNote: m.nota,
-    ...(m.aberto ? { palco: true } : {}), // KINEO-PALCO-INVADER-1611 — o aberto mais novo abre o palco da tela única para quem está logado
+    ...(publico ? { palco: true } : {}), // KINEO-PALCO-INVADER-1611 — o aberto mais novo abre o palco da tela única para quem está logado
   }
 }
 export const INVASOR_FORMATO: RecreateFormat = formatoDoMolde(PITCH_INVADER)

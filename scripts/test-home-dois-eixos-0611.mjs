@@ -32,7 +32,7 @@ assert.ok(mosaic.includes('if (opts.full) return ordem'), 'Made with Kineo mant�
 // KINEO-CARDS-SEM-ETIQUETA-0911 [fundador 09/11: "Só a etiqueta"] — nem etiqueta de tipo na tela: o tipo vive só no aria-label
 assert.ok(!mosaic.includes('<i>Multi-camera') && mosaic.includes("aria-label={t.title + ' — multi-camera'}") && !/Multi-camera · |' — Kling/.test(mosaic), 'sem etiqueta nem motor; tipo no aria-label')
 const lib = read('lib/clipesNos2Lugares.ts').toString('utf8')
-const topo = [...(lib.match(/export const CLIPES_NO_TOPO: readonly string\[\] = \[([^\]]+)\]/) ?? ['', ''])[1].matchAll(/'([a-z0-9-]+)'/g)].map((m) => m[1])
+const topo = [...(lib.match(/export const TOPO_DA_CASA: readonly string\[\] = \[([^\]]+)\]/) ?? ['', ''])[1].matchAll(/'([a-z0-9-]+)'/g)].map((m) => m[1]) // reancorado KINEO-NOVIDADE-EM-EVIDENCIA-1611: o topo é a regra topoComNovidades(TOPO_DA_CASA); os 6 da casa seguem aqui
 assert.equal(topo.length, 6, 'o topo tem 6 clipes (duas linhas inteiras de 3)')
 assert.equal(new Set(topo).size, 6, 'sem clipe repetido no topo')
 const lista = lib.slice(lib.indexOf('export const CLIPES_NOVOS'), lib.indexOf('export const CLIPES_FORA_DA_VITRINE_1311'))

@@ -67,7 +67,7 @@ export function textoDoMolde(m: Pick<MoldeDeTrechos, 'alvo'>, a: { genero?: Inva
   const alvo = m.alvo
   if (alvo.tipo === 'bicho') {
     const bicho = a.bicho === 'cat' ? 'cat' : 'dog'
-    return `Replace ${alvo.texto} in @Video1 with the ${bicho} from @Image1: his fur, face and ears match @Image1. Keep his movements, the timing, the camera, the framing, every other person, the background and the lighting of @Video1 exactly.`
+    return `Replace ${alvo.texto} in @Video1 with the ${bicho} from @Image1: his fur, face and ears match @Image1${alvo.acao ? `, and ${alvo.acao}` : ''}. Keep his movements, the timing, the camera, the framing, every other person, the background and the lighting of @Video1 exactly.` // KINEO-NOVIDADE-EM-EVIDENCIA-1611 — + a ação (a bola do @Video1)
   }
   const mulher = a.genero === 'woman'
   const ele = mulher ? 'she' : 'he', dele = mulher ? 'her' : 'his'
@@ -75,7 +75,7 @@ export function textoDoMolde(m: Pick<MoldeDeTrechos, 'alvo'>, a: { genero?: Inva
   // O homem do vídeo usa óculos: a foto sem óculos (ou não lida) pede "wears no glasses"; a foto com óculos deixa os óculos.
   const oculos = alvo.deOculos && a.semOculos !== false ? `, and ${ele} wears no glasses` : ''
   const traços = mulher ? `${dele} face and hair match @Image1` : `${dele} face, hair and beard match @Image1`
-  return `Replace ${alvo.texto} in @Video1 with the ${mulher ? 'woman' : 'man'} from @Image1: ${traços}${cabelo ? `, with ${cabelo}` : ''}${oculos}. Keep ${dele} movements, the timing, the camera, the framing, every other person, the background and the lighting of @Video1 exactly. ${alvo.roupa}`
+  return `Replace ${alvo.texto} in @Video1 with the ${mulher ? 'woman' : 'man'} from @Image1: ${traços}${cabelo ? `, with ${cabelo}` : ''}${oculos}. Keep ${dele} movements, the timing, the camera, the framing, every other person, the background and the lighting of @Video1 exactly.${alvo.roupa ? ` ${alvo.roupa}` : ''}` // KINEO-NOVIDADE-EM-EVIDENCIA-1611 — sem frase da roupa quando o alvo não veste nada
 }
 /** "wearing no glasses" no fim da frase do leitor = sem óculos; "wearing glasses" = com; sem leitura = null. */
 export function semOculosDaDescricao(texto: string | null | undefined): boolean | null {

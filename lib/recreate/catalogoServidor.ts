@@ -8,7 +8,15 @@ import { MOVIMENTO_ASSETS, RECREATE_MOVIMENTO_MOLDES } from './movimentoMoldes'
 import { recreateFormatVisible } from './access'
 import { FORMATOS_DOS_MOLDES_DE_TRECHOS } from './invasorMolde' // KINEO-INVASOR-DE-CAMPO-1511 · KINEO-REMODELAMENTO-MOLDES-1611 — os moldes de vários trechos (cada um com o seu interruptor)
 
-export const RECREATE_FORMATS_SERVIDOR: readonly RecreateFormat[] = recreateNewestFirst([...RECREATE_FORMATS.filter((f) => f.type !== 'motion'), ...RECREATE_MOVIMENTO_MOLDES, ...FORMATOS_DOS_MOLDES_DE_TRECHOS]) // KINEO-INVASOR-DE-CAMPO-1511 — + INVASOR_FORMATO · a vitrine pública do movimento dá lugar à versão completa
+// KINEO-NOVIDADE-EM-EVIDENCIA-1611 [dono 16/11 ~02:00: "já coloca sempre em evidência as novas"] — os moldes ABERTOS da máquina de trechos (palco) vêm na FRENTE, do
+// mais novo para o mais antigo pela data em que abriram (approvedOn, senão desde); o resto segue do mais novo ao mais antigo. Regra, não lista: abrir um molde já o põe
+// em 1º no palco padrão da tela única e na grade de quem está logado.
+export function novidadesNaFrente<T extends { palco?: boolean; approvedOn?: string; desde: string }>(lista: readonly T[]): T[] {
+  const data = (f: T) => f.approvedOn ?? f.desde
+  const abertos = lista.filter((f) => f.palco === true).sort((a, b) => (data(a) < data(b) ? 1 : data(a) > data(b) ? -1 : 0))
+  return [...abertos, ...lista.filter((f) => f.palco !== true)]
+}
+export const RECREATE_FORMATS_SERVIDOR: readonly RecreateFormat[] = novidadesNaFrente(recreateNewestFirst([...RECREATE_FORMATS.filter((f) => f.type !== 'motion'), ...RECREATE_MOVIMENTO_MOLDES, ...FORMATOS_DOS_MOLDES_DE_TRECHOS])) // KINEO-INVASOR-DE-CAMPO-1511 — + INVASOR_FORMATO · a vitrine pública do movimento dá lugar à versão completa
 export const recreateFormatServidor = (id: unknown): RecreateFormat | null => RECREATE_FORMATS_SERVIDOR.find((f) => f.id === id) ?? null
 export const visibleRecreateFormatsServidor = (email: string | null | undefined): RecreateFormat[] => RECREATE_FORMATS_SERVIDOR.filter((f) => recreateFormatVisible(f, email))
 /** Os assets servidos pela rota /api/recreate/assets: os do navegador + os pôsteres dos moldes de movimento. */
