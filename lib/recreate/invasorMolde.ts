@@ -129,7 +129,8 @@ const PITCH_INVADER: MoldeDeTrechos = {
 // VARIANTE "camiseta lisa" (para tirar a estampa do autor da roupa do cliente): BASQUETE_CAMISETA_LISA, DESLIGADA. Ligada, a frase da roupa vira "Keep the original
 // shorts and shoes from @Video1, and he wears a plain black t-shirt." Nunca testada (trocar roupa junto com o rosto); a CEO decide depois do teste.
 export const BASQUETE_ABERTO_AO_PUBLICO: boolean = false
-export const BASQUETE_CAMISETA_LISA: boolean = false
+// KINEO-CAMISETA-LISA-1611 [dono 16/11 ~01:50: "testa a lisa"] — ligada para o teste pago da casa; o molde segue só da casa.
+export const BASQUETE_CAMISETA_LISA: boolean = true
 const BASQUETE: MoldeDeTrechos = {
   id: 'basquete', titulo: 'Slam dunk', desde: '2026-11-16',
   trechos: [

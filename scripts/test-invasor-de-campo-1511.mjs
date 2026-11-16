@@ -530,9 +530,10 @@ async function bateria(over = {}) {
     await check('moldes 3: os textos — basquete pela roupa (camiseta preta), "camiseta lisa" desligada; cachorro pelo bicho; nenhuma frase negativa', async () => {
       const mov = m('lib/recreate/movimento')
       const b = M.moldeDeTrechos('basquete'), c = M.moldeDeTrechos('cachorro-craque')
-      const tb = I.textoDoMolde(b, { genero: 'man', cabeloEBarba: CABELO, semOculos: true })
+      const semLisa = loader({}, { [MOLDE]: lf(MOLDE).replace('export const BASQUETE_CAMISETA_LISA: boolean = true', 'export const BASQUETE_CAMISETA_LISA: boolean = false') }) // KINEO-CAMISETA-LISA-1611 — o texto de sempre continua provado com a variante desligada
+      const tb = semLisa('lib/recreate/invasor').textoDoMolde(semLisa('lib/recreate/invasorMolde').moldeDeTrechos('basquete'), { genero: 'man', cabeloEBarba: CABELO, semOculos: true })
       if (tb !== `Replace the man in the black t-shirt and dark shorts in @Video1 with the man from @Image1: his face, hair and beard match @Image1, with ${CABELO}, and he wears no glasses. Keep his movements, the timing, the camera, the framing, every other person, the background and the lighting of @Video1 exactly. Keep the original clothing from @Video1.`) throw new Error(tb)
-      if (M.BASQUETE_CAMISETA_LISA !== false) throw new Error('a variante camiseta lisa está ligada')
+      if (M.BASQUETE_CAMISETA_LISA !== true) throw new Error('a variante camiseta lisa deveria estar ligada (dono 16/11: testa a lisa)')
       const lisa = loader({}, { [MOLDE]: lf(MOLDE).replace('export const BASQUETE_CAMISETA_LISA: boolean = false', 'export const BASQUETE_CAMISETA_LISA: boolean = true') })
       const tl = lisa('lib/recreate/invasor').textoDoMolde(lisa('lib/recreate/invasorMolde').moldeDeTrechos('basquete'), { genero: 'man', semOculos: true })
       if (!tl.endsWith('Keep the original shorts and shoes from @Video1, and he wears a plain black t-shirt.')) throw new Error('variante: ' + tl)
@@ -697,7 +698,7 @@ const mutantes = [
   ['moldes: o basquete abre ao público', { [MOLDE]: molde.replace('export const BASQUETE_ABERTO_AO_PUBLICO: boolean = false', 'export const BASQUETE_ABERTO_AO_PUBLICO: boolean = true') }],
   ['moldes: o cachorro abre ao público', { [MOLDE]: molde.replace('export const CACHORRO_ABERTO_AO_PUBLICO: boolean = false', 'export const CACHORRO_ABERTO_AO_PUBLICO: boolean = true') }],
   ['moldes: o preço da casa vira público', { [MOLDE]: molde.replace('(m.aberto ? m.creditosPublicos : m.creditosPublicos ?? m.creditosDaCasa)', '(m.creditosPublicos ?? m.creditosDaCasa)') }],
-  ['moldes: a camiseta lisa ligada', { [MOLDE]: molde.replace('export const BASQUETE_CAMISETA_LISA: boolean = false', 'export const BASQUETE_CAMISETA_LISA: boolean = true') }],
+  ['moldes: a camiseta lisa desligada', { [MOLDE]: molde.replace('export const BASQUETE_CAMISETA_LISA: boolean = true', 'export const BASQUETE_CAMISETA_LISA: boolean = false') }],
   ['moldes: o texto do bicho com a roupa', { [INV]: inv.replace("the lighting of @Video1 exactly.`\n  }", "the lighting of @Video1 exactly. Keep the original clothing from @Video1.`\n  }") }],
   ['moldes: a linha aceita o marcador de outro molde', { [INV]: inv.replace('    if (!molde || trechoDoMarcador(e.video_url, molde.id) !== 0) return null', '    if (!molde || lerMarcador(e.video_url)?.i !== 0) return null') }],
   ['moldes: a montagem com os cortes do Pitch invader', { [INV]: inv.replace('  const molde = a.molde ?? MOLDE_PITCH_INVADER // KINEO-REMODELAMENTO-MOLDES-1611', '  const molde = MOLDE_PITCH_INVADER // KINEO-REMODELAMENTO-MOLDES-1611') }],
