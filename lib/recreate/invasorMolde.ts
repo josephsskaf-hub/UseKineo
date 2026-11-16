@@ -117,14 +117,14 @@ const PITCH_INVADER: MoldeDeTrechos = {
 }
 
 // ─── 2. Basquete (KINEO-REMODELAMENTO-MOLDES-1611) — docs/remodelamento-1511/DftZ5FrnJPD.mp4 (720×1280, 24 fps, 481 quadros = 20,04 s; ficha em FICHAS.md) ───
-// Versão de 14,4 s, 2 trechos, nenhum abaixo de 3 s: trecho 0 = quadros 136 a 327 (5,667 a 13,667 s: o drible de frente e a enterrada; o clarão de 1 quadro em
-// 10,6 s fica dentro); trecho 1 = quadros 328 a 480 (13,667 a 20,042 s: a comemoração gritando de frente). O vídeo tem 20,04 s (o som, 20,15 s): o 2º trecho tem
-// 6,375 s, não 6,5. Medido em 16/11 quadro a quadro: não há corte seco em 13,65 s (a câmera desce no pouso); a emenda no meio do plano é como o 8/8 do Pitch invader.
+// Versão de 14 s, 2 trechos de SEGUNDO INTEIRO: trecho 0 = quadros 136 a 327 (5,667 a 13,667 s: o drible de frente e a enterrada; o clarão de 1 quadro em
+// 10,6 s fica dentro); trecho 1 = quadros 328 a 471 (13,667 a 19,667 s, 6 s: a comemoração gritando de frente; KINEO-SEGUNDO-INTEIRO-1611 — era até o quadro 480,
+// 6,375 s, e o Kling devolveu 6,042 s). Medido em 16/11 quadro a quadro: não há corte seco em 13,65 s (a câmera desce no pouso); a emenda no meio do plano é como o 8/8 do Pitch invader.
 // O ALVO, como está no vídeo: camiseta PRETA com a estampa branca do evento do autor ("Salto Criativo / 21/22 de novembro, link na bio"), bermuda escura, cabelo
 // comprido cacheado, barba e ÓCULOS — o alvo vai pela roupa (o cabelo é o que muda). Os árbitros vestem cinza e os jogadores, branco: "the man in the black t-shirt"
 // é único no quadro.
 // O SOM ORIGINAL TEM "Forever" (Drake, Kanye West, Lil Wayne, Eminem): NÃO entra. No lugar, a faixa hustle-02 da NOSSA biblioteca de música dos filmes ("Soulja Unit -
-// Basic (2019)", music-novas/README.md: as 59 faixas são CC0, domínio público, colhidas pela API do Openverse em 21/08/2026; no bucket `music`), de 1,0 s, 14,375 s,
+// Basic (2019)", music-novas/README.md: as 59 faixas são CC0, domínio público, colhidas pela API do Openverse em 21/08/2026; no bucket `music`), de 1,0 s, 14 s,
 // normalizada a −16 LUFS, entrada de 0,15 s e saída de 0,6 s.
 // VARIANTE "camiseta lisa" (para tirar a estampa do autor da roupa do cliente): BASQUETE_CAMISETA_LISA, DESLIGADA. Ligada, a frase da roupa vira "Keep the original
 // shorts and shoes from @Video1, and he wears a plain black t-shirt." Nunca testada (trocar roupa junto com o rosto); a CEO decide depois do teste.
@@ -134,22 +134,23 @@ const BASQUETE: MoldeDeTrechos = {
   id: 'basquete', titulo: 'Slam dunk', desde: '2026-11-16',
   trechos: [
     { arquivo: 'recreate-basquete-t0-v1.mp4', bytes: 5814759, sha256: 'daefcb503a519d42aa5674892cf859ee53eeda6fc14d394dfb5e26f21e72aae3', contentType: 'video/mp4', quadros: [136, 327], segundosDoArquivo: 8, fps: 24, segundosNoFilme: 8, velocidade: 100 },
-    { arquivo: 'recreate-basquete-t1-v1.mp4', bytes: 4358303, sha256: '5b2af1f3c23f392857d967f52db6432e2042c12385a02445d317e65555c0c6d8', contentType: 'video/mp4', quadros: [328, 480], segundosDoArquivo: 6.375, fps: 24, segundosNoFilme: 6.375, velocidade: 100 },
+    // KINEO-SEGUNDO-INTEIRO-1611 — era t1-v1 (quadros 328–480, 6,375 s): o Kling devolveu 6,042 s (clipe 90a42302, invasor_segment_short). Agora 6 s inteiros, mesmo início.
+    { arquivo: 'recreate-basquete-t1-v2.mp4', bytes: 4120362, sha256: '5563069b96ea2c10f5b4e283ffe762fdf5ccecd9cd0a5074e5d7182a3be75629', contentType: 'video/mp4', quadros: [328, 471], segundosDoArquivo: 6, fps: 24, segundosNoFilme: 6, velocidade: 100 },
   ],
-  som: { arquivo: 'recreate-basquete-som-v1.mp3', bytes: 346741, sha256: '7f214c91e238d96a763b16b8ff040a9f3480adbc103a855b6202cf1d8b487a68', contentType: 'audio/mpeg', segundos: 14.375 },
+  som: { arquivo: 'recreate-basquete-som-v2.mp3', bytes: 337337, sha256: 'cbcfb586a2b8c85478f5acfdece1d2443df0af180f900801d9ff1895dc0ffb05', contentType: 'audio/mpeg', segundos: 14 },
   vitrine: {
-    'basquete.mp4': { arquivo: 'recreate-basquete-vitrine-v1.mp4', bytes: 5611389, sha256: '880461f7ade4a564a7039f751a8e37f500d9b82d3fb088fba0a1a5bf26c061b4', contentType: 'video/mp4' },
+    'basquete.mp4': { arquivo: 'recreate-basquete-vitrine-v2.mp4', bytes: 5482656, sha256: '60746711b9c27e095ed282935cb3e485647e4aea55af938413261dbfe6530d24', contentType: 'video/mp4' },
     'basquete.jpg': { arquivo: 'recreate-basquete-vitrine-v1.jpg', bytes: 76780, sha256: 'e4749c321f9b184fd76242613580df8bc9f71c785e58991182907ebb61f31869', contentType: 'image/jpeg' },
   },
   entrada: { largura: 720, altura: 1280 }, saida: { largura: 720, altura: 1280, fps: 24 },
   alvo: { tipo: 'pessoa', texto: 'the man in the black t-shirt and dark shorts', deOculos: true, roupa: BASQUETE_CAMISETA_LISA ? 'Keep the original shorts and shoes from @Video1, and he wears a plain black t-shirt.' : 'Keep the original clothing from @Video1.' },
   segundos: 14, aberto: BASQUETE_ABERTO_AO_PUBLICO, creditosPublicos: null, creditosDaCasa: recreateCreditCostMoldeDaCasa('basquete'),
   esperaMinutos: [5, 10], // 2 trechos de 1,5 a 4 min + a trava de cada trecho + a montagem
-  nota: '16/11: 2 Kling 4.0 edit segments (8 + 6.375 s) + our CC0 library track instead of the original song; house only until the paid test',
+  nota: '16/11: 2 Kling 4.0 edit segments (8 + 6 s, whole seconds) + our CC0 library track instead of the original song; house only until the paid test',
 }
 
 // ─── 3. Cachorro craque (KINEO-REMODELAMENTO-MOLDES-1611) — docs/videos-do-dono-1411/originais/De05eyZIhuo.mp4 (720×1280, 24 fps, 361 quadros = 15,04 s) ───
-// Um plano só: trecho 0 = quadros 0 a 191 (0 a 8,0 s), trecho 1 = quadros 192 a 360 (8,0 a 15,04 s; 7,04 s). Alvo: o pastor-alemão, pela aparência. A foto do
+// Um plano só: trecho 0 = quadros 0 a 191 (0 a 8,0 s), trecho 1 = quadros 192 a 359 (8,0 a 15,0 s; 7 s — KINEO-SEGUNDO-INTEIRO-1611, era até o 360). Alvo: o pastor-alemão, pela aparência. A foto do
 // cliente é a do PET: o texto é o da receita adaptado a bicho ("his fur, face and ears match @Image1"), sem frase negativa e sem a frase da roupa. O som é o original
 // do vídeo (tudo gerado por IA, "áudio original"; o conteúdo do som não foi ouvido por mim).
 // Riscos (ficha): trocar bicho por bicho no Kling edit nunca foi provado; a trava "não trocou" de hoje é escrita para rosto humano e pode errar com bicho.
@@ -158,21 +159,25 @@ const CACHORRO_CRAQUE: MoldeDeTrechos = {
   id: 'cachorro-craque', titulo: 'Dog goal', desde: '2026-11-16',
   trechos: [
     { arquivo: 'recreate-cachorro-craque-t0-v1.mp4', bytes: 3475452, sha256: '2686fb66daf2a55990bf1d26ce01784a11b9b7262ecc51238fa4fe74563434c4', contentType: 'video/mp4', quadros: [0, 191], segundosDoArquivo: 8, fps: 24, segundosNoFilme: 8, velocidade: 100 },
-    { arquivo: 'recreate-cachorro-craque-t1-v1.mp4', bytes: 3598601, sha256: 'f3667ed93572da35e74d5a518fe9b8d88eaf2459676b204ea98d81b7fa2f744e', contentType: 'video/mp4', quadros: [192, 360], segundosDoArquivo: 7.042, fps: 24, segundosNoFilme: 7.042, velocidade: 100 },
+    // KINEO-SEGUNDO-INTEIRO-1611 — era t1-v1 (quadros 192–360, 7,04 s): o mesmo risco do basquete. Agora 7 s inteiros, mesmo início.
+    { arquivo: 'recreate-cachorro-craque-t1-v2.mp4', bytes: 3541812, sha256: '282cf430fdf221749d4c3127bfea2379e07f69da71855982b4eaa64383024b66', contentType: 'video/mp4', quadros: [192, 359], segundosDoArquivo: 7, fps: 24, segundosNoFilme: 7, velocidade: 100 },
   ],
-  som: { arquivo: 'recreate-cachorro-craque-som-v1.mp3', bytes: 362517, sha256: '8fca37a3e38abb5cabd6440da6c0e873c5ae964585d9ccb23ebb6ca5a220eefe', contentType: 'audio/mpeg', segundos: 15.042 },
+  som: { arquivo: 'recreate-cachorro-craque-som-v2.mp3', bytes: 361890, sha256: 'f4fd13b08edd4372c89a055ed43737f5d6bb7b86ca6e11787c93cb51b6b10930', contentType: 'audio/mpeg', segundos: 15 },
   vitrine: {
-    'cachorro-craque.mp4': { arquivo: 'recreate-cachorro-craque-vitrine-v1.mp4', bytes: 3963250, sha256: '626b2624f4ff1dcc74e37bb7509633a784a6b489a140a8b5c79624e561ad47e1', contentType: 'video/mp4' },
+    'cachorro-craque.mp4': { arquivo: 'recreate-cachorro-craque-vitrine-v2.mp4', bytes: 3967871, sha256: 'ed3b025f229be29b7031c27a3f72915f5024123a5d88dc53fca22a1a51e816e1', contentType: 'video/mp4' },
     'cachorro-craque.jpg': { arquivo: 'recreate-cachorro-craque-vitrine-v1.jpg', bytes: 40679, sha256: 'dd0b4bf08c08fa11f68875262e6ac19e494917f43da35ac9cd89e534bc971735', contentType: 'image/jpeg' },
   },
   entrada: { largura: 720, altura: 1280 }, saida: { largura: 720, altura: 1280, fps: 24 },
   alvo: { tipo: 'bicho', texto: 'the German Shepherd dog' },
   segundos: 15, aberto: CACHORRO_ABERTO_AO_PUBLICO, creditosPublicos: null, creditosDaCasa: recreateCreditCostMoldeDaCasa('cachorro-craque'),
   esperaMinutos: [5, 10],
-  nota: '16/11: 2 Kling 4.0 edit segments (8 + 7.04 s), pet photo, original sound; house only until the paid test (pet-for-pet swap never proven)',
+  nota: '16/11: 2 Kling 4.0 edit segments (8 + 7 s, whole seconds), pet photo, original sound; house only until the paid test (pet-for-pet swap never proven)',
 }
 
 /** O registro dos moldes de vários trechos. O 1º é o Pitch invader (byte a byte o de antes). */
+// KINEO-SEGUNDO-INTEIRO-1611 [CEO 16/11, teste pago 90a42302] — REGRA: todo arquivo de trecho enviado ao motor tem SEGUNDO INTEIRO (≥ 3 s, ≤ 8 s): o Kling 4.0 edição devolve
+// o inteiro + 1 quadro (8 → 8,04; 3 → 3,04) e corta o resto (6,375 → 6,042: falha "trecho curto" e estorno). O que vai ao filme pode ser fracionário (o 2,4 s do
+// Pitch invader, alongado a 3,0 s e devolvido a 125%). O guardião confere em todo molde.
 export const MOLDES_DE_TRECHOS: readonly MoldeDeTrechos[] = [PITCH_INVADER, BASQUETE, CACHORRO_CRAQUE]
 export const moldeDeTrechos = (id: unknown): MoldeDeTrechos | null => MOLDES_DE_TRECHOS.find((m) => m.id === id) ?? null
 export const MOLDE_PITCH_INVADER = PITCH_INVADER

@@ -4,7 +4,7 @@ Pedido do dono (16/11 ~00:10): "por que não podemos fazer o do basquete e o do 
 
 ## Basquete ("Slam dunk", id `basquete`)
 - Origem: `docs/remodelamento-1511/DftZ5FrnJPD.mp4` (720×1280, 24 fps, 20,04 s de vídeo).
-- Trechos: 0 = quadros 136–327 (5,667–13,667 s, 8,0 s); 1 = quadros 328–480 (13,667–20,042 s, 6,375 s). Filme: 14,375 s. Não há corte seco em 13,65 s (medido quadro a quadro): é uma emenda no meio do plano, como no Pitch invader.
+- Trechos: 0 = quadros 136–327 (5,667–13,667 s, 8 s); 1 = quadros 328–471 (13,667–19,667 s, 6 s; era 6,375 s e o Kling devolveu 6,042 s no teste 90a42302). Filme: 14 s. Regra: todo trecho tem segundo inteiro. Não há corte seco em 13,65 s (medido quadro a quadro): é uma emenda no meio do plano, como no Pitch invader.
 - Alvo, como está no vídeo: camiseta PRETA com a estampa branca do evento do autor, bermuda escura, óculos. Texto: "Replace the man in the black t-shirt and dark shorts in @Video1 with the man from @Image1: his face, hair and beard match @Image1, with <cabelo e barba da foto>, and he wears no glasses. Keep his movements, the timing, the camera, the framing, every other person, the background and the lighting of @Video1 exactly. Keep the original clothing from @Video1."
 - Variante "camiseta lisa" (`BASQUETE_CAMISETA_LISA`, desligada): a última frase vira "Keep the original shorts and shoes from @Video1, and he wears a plain black t-shirt." Nunca testada.
 - Som: o original tem "Forever" (Drake e outros) e NÃO entra. No lugar: `hustle-02.mp3` da nossa biblioteca de música dos filmes ("Soulja Unit - Basic (2019)"; `music-novas/README.md`: as 59 faixas são CC0, domínio público, colhidas pela API do Openverse em 21/08/2026; no bucket `music`), de 1,0 s, 14,375 s, −16 LUFS.
@@ -12,7 +12,7 @@ Pedido do dono (16/11 ~00:10): "por que não podemos fazer o do basquete e o do 
 
 ## Cachorro craque ("Dog goal", id `cachorro-craque`)
 - Origem: `docs/videos-do-dono-1411/originais/De05eyZIhuo.mp4` (720×1280, 24 fps, 15,04 s).
-- Trechos: 0 = quadros 0–191 (0–8,0 s); 1 = quadros 192–360 (8,0–15,04 s, 7,04 s). Filme: 15,04 s.
+- Trechos: 0 = quadros 0–191 (0–8 s); 1 = quadros 192–359 (8–15 s, 7 s). Filme: 15 s.
 - Alvo: o pastor-alemão; a foto do cliente é a do pet. Texto: "Replace the German Shepherd dog in @Video1 with the dog from @Image1: his fur, face and ears match @Image1. Keep his movements, the timing, the camera, the framing, every other person, the background and the lighting of @Video1 exactly." (`pet: 'cat'` no pedido troca "dog" por "cat" na 2ª menção). Sem leitura de cabelo.
 - Som: o original do vídeo (não foi ouvido).
 - Preço provisório da casa: 60 créditos. Custo fal previsto: US$ 2,84 + trava.

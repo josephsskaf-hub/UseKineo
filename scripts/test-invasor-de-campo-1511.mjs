@@ -573,6 +573,16 @@ async function bateria(over = {}) {
       if (I.lerMarcador('kineo-trecho://basquete/2') !== null || I.lerMarcador('kineo-trecho://cachorro-craque/1')?.i !== 1) throw new Error('trecho fora do molde')
       if (I.dadosDaLinha({ fingerprint: JSON.stringify(['x', KLING, { ...ok, kineo_molde: 'nao-existe', video_url: 'kineo-trecho://nao-existe/0' }]) }) !== null) throw new Error('molde inexistente')
     })
+    await check('moldes 6 (KINEO-SEGUNDO-INTEIRO-1611): todo arquivo de trecho de todo molde tem SEGUNDO INTEIRO, de 3 a 8 s (o Kling devolve o inteiro + 1 quadro e corta o resto)', async () => {
+      for (const mo of M.MOLDES_DE_TRECHOS) for (const t of mo.trechos) {
+        if (!Number.isInteger(t.segundosDoArquivo) || t.segundosDoArquivo < 3 || t.segundosDoArquivo > 8) throw new Error(`${mo.id}: ${t.arquivo} com ${t.segundosDoArquivo} s`)
+        if ((t.quadros[1] - t.quadros[0] + 1) / (t.velocidade === 100 ? t.fps : 30) !== (t.velocidade === 100 ? t.segundosDoArquivo : t.segundosNoFilme)) throw new Error(`${mo.id}: ${t.arquivo} quadros × duração`)
+      }
+      const b = M.moldeDeTrechos('basquete'), c = M.moldeDeTrechos('cachorro-craque')
+      if (b.trechos.map((t) => t.segundosNoFilme).join() !== '8,6' || b.som.segundos !== 14 || I.segundosDoFilme(b) !== 14 || b.trechos[1].quadros.join() !== '328,471') throw new Error('basquete 8 + 6 s')
+      if (c.trechos.map((t) => t.segundosNoFilme).join() !== '8,7' || c.som.segundos !== 15 || I.segundosDoFilme(c) !== 15 || c.trechos[1].quadros.join() !== '192,359') throw new Error('cachorro 8 + 7 s')
+      for (const mo of [b, c]) if (!mo.trechos[1].arquivo.endsWith('-t1-v2.mp4') || !mo.som.arquivo.endsWith('-som-v2.mp3') || !mo.vitrine[mo.id + '.mp4'].arquivo.endsWith('-vitrine-v2.mp4')) throw new Error(mo.id + ': arquivos novos com nome novo (-v2)')
+    })
     // ── 2ª revisão independente de 15/11 (bloqueios para abrir ao público) ──
     await check('2ª revisão, item 1: a varredura horária refaz o estorno do invasor failed com 0 devolvido (qualquer motivo), uma vez só; nunca cobrado e outros clipes fora', async () => {
       const banco = bancoDeMentira()
@@ -681,6 +691,8 @@ const SRV = 'lib/clips/clipServer.ts', ROTA = 'lib/recreate/invasorRota.ts'
 const srvSrc = lf(SRV), rotaSrc = lf(ROTA)
 const mutantes = [
   // KINEO-REMODELAMENTO-MOLDES-1611 — moldes por dados
+  ['moldes: trecho fracionário (o 6,375 s que o Kling cortou)', { [MOLDE]: molde.replace("quadros: [328, 471], segundosDoArquivo: 6, fps: 24, segundosNoFilme: 6, velocidade: 100", "quadros: [328, 480], segundosDoArquivo: 6.375, fps: 24, segundosNoFilme: 6.375, velocidade: 100") }],
+  ['moldes: o cachorro volta a 7,04 s', { [MOLDE]: molde.replace("quadros: [192, 359], segundosDoArquivo: 7, fps: 24, segundosNoFilme: 7, velocidade: 100", "quadros: [192, 360], segundosDoArquivo: 7.042, fps: 24, segundosNoFilme: 7.042, velocidade: 100") }],
   ['moldes: o Pitch invader muda o texto', { [MOLDE]: molde.replace("roupa: 'Keep the original clothing from @Video1.' },\n  segundos: 18,", "roupa: 'Keep the clothing from @Video1.' },\n  segundos: 18,") }],
   ['moldes: o basquete abre ao público', { [MOLDE]: molde.replace('export const BASQUETE_ABERTO_AO_PUBLICO: boolean = false', 'export const BASQUETE_ABERTO_AO_PUBLICO: boolean = true') }],
   ['moldes: o cachorro abre ao público', { [MOLDE]: molde.replace('export const CACHORRO_ABERTO_AO_PUBLICO: boolean = false', 'export const CACHORRO_ABERTO_AO_PUBLICO: boolean = true') }],
