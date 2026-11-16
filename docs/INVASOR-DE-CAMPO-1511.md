@@ -15,7 +15,16 @@ O cliente logado manda UMA foto. O servidor faz 3 pedidos ao `kling/v4/video-to-
 16,0 a 21,2 s fica de fora (vários cortes e o alvo coberto pelo nº 9). Som: o original nos mesmos cortes, 18,4 s.
 
 ## Preço
-PROVISÓRIO da casa: 74 créditos (10 s = 40 da tabela × 18,4 s). Custo fal previsto: US$ 3,60 por pedido (3 trechos). O preço público é do dono.
+75 créditos (dono 15/11 ~22:00: "vamos vender a 75"), em `lib/checkoutPricing.ts` RECREATE_PRICING_VARIOS_TRECHOS. Custo fal previsto: US$ 3,60 por pedido (3 trechos) + a trava em cada trecho (~US$ 0,037 cada pela média medida em produção, ~US$ 0,11 por pedido).
+
+## Revisão independente de 15/11 (consertado)
+1. A vigia do cron olha o modelo DEPOIS da passada e não fecha o pedido que entrou na montagem nem o que não segura a vaga (`soComVaga`); a linha na montagem não segura o fornecedor da fila.
+2. Cada trecho passa pela trava "não trocou" do Kling edit (alvo do pedido, 4 instantes) e pela duração (mais curto que o arquivo − 0,1 s = falha). Não trocou, parcial, incerto ou curto = estorno, nunca entrega. Checagem que não roda = entrega (a política de sempre).
+3. A vaga é relida depois do liquidar: o trecho novo renovou a vaga, ninguém entra em paralelo.
+4. A fila conta os trechos que faltam (3 na fila; os que faltam de quem segura a vaga): porta, posição e espera.
+5. Preço na tabela única (acima).
+6. "Football play" (jogada-de-futebol) retirado da grade e do catálogo para todos; fica na lista para as linhas antigas, guia no bucket. O Pitch invader está no topo da grade da casa. Interruptor de uma linha: `INVASOR_ABERTO_AO_PUBLICO` em `lib/recreate/invasorMolde.ts` (fechado).
+7. A tela diz "about 10 to 15 minutes" para este molde (campo `esperaMinutos`).
 
 ## O que falta para abrir
 1. Subir os 6 arquivos de `C:\kineo\docs\invasor-de-campo-1511\subir-ao-bucket-privado\` ao bucket PRIVADO `quarantine`, pasta `recreate-guias/v1`, com os mesmos nomes (painel do Supabase → Storage). Tamanho e sha256 estão em `lib/recreate/invasorMolde.ts`; sem eles a rota recusa antes de cobrar.

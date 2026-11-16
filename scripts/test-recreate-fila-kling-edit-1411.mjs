@@ -297,8 +297,9 @@ const mutantes = [
   ['daFila não confere o banco', { [FILA]: fila.replace('opts.daFila ? primeiro !== clipId : primeiro !== null && primeiro !== clipId', 'primeiro !== null && primeiro !== clipId') }],
   ['vaga vencida do próprio clipe manda de novo', { [FILA]: fila.replace("    if (vaga.clipId === clipId || resolvida === 'ocupada') return false", "    if (resolvida === 'ocupada') return false") }],
   ['vaga vencida nunca é retomada', { [FILA]: fila.replace('    if (vaga.expiraEm > io.now()) return false\n', '    if (vaga.expiraEm > 0) return false\n') }],
-  ['pedido entregue vira preso (não liquida antes)', { [FILA]: fila.replace("    if ((await io.liquidar(vaga.clipId)) === 'aberto') {\n      if (io.now() - vaga.tomadaEm < VAGA_TETO_DURO_MS) { await io.renovarVaga(vaga.clipId, io.now() + VAGA_RENOVA_MS); return 'ocupada' }\n      await io.fecharComEstorno(vaga.clipId)\n    }", '    await io.fecharComEstorno(vaga.clipId)') }],
-  ['sem teto duro', { [FILA]: fila.replace('if (io.now() - vaga.tomadaEm < VAGA_TETO_DURO_MS) {', 'if (io.now() > 0) {') }],
+  // reancorado KINEO-INVASOR-DE-CAMPO-1511 (revisor 15/11, item 3): o bloco do liquidar relê a vaga antes do teto duro; os dois mutantes atacam o MESMO comportamento
+  ['pedido entregue vira preso (não liquida antes)', { [FILA]: fila.replace(/    if \(\(await io\.liquidar\(vaga\.clipId\)\) === 'aberto'\) \{\n[\s\S]*?      await io\.fecharComEstorno\(vaga\.clipId\)\n    \}/, '    await io.fecharComEstorno(vaga.clipId)') }],
+  ['sem teto duro', { [FILA]: fila.replace('if (io.now() - atual.tomadaEm < VAGA_TETO_DURO_MS) {', 'if (io.now() > 0) {') }],
   ['clipe que ficou fora do fornecedor não é fechado', { [FILA]: fila.replace("  } else if (estado === 'fora_do_fornecedor') {\n    await io.fecharComEstorno(vaga.clipId)\n  }", '  }') }],
   ['quem fecha não solta a vaga', { [FLOW]: flowSrc.replace("await deps.queue.release(row.id).catch(() => {})\n  for (const tarefa of depois)", 'void 0\n  for (const tarefa of depois)') }],
   ['sem teto de espera', { [FLOW]: flowSrc.replace('      if (Number.isFinite(age) && age >= fila.waitLimitMs) {\n', '      if (false) {\n') }],

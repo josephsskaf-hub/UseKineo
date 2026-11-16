@@ -11,7 +11,7 @@ import { comEndUserDaFal } from './falEndUser'
 import { lerDescricaoDaPessoa } from './descricaoDaPessoa'
 import { FRASE_FILA_CHEIA, esperaNaFila, filaCheia, naFila, posicaoNaFila } from './filaKlingEdit'
 import { INVASOR_TRECHOS } from './invasorMolde'
-import { INVASOR_CREDITOS_PROVISORIO_CASA, INVASOR_EVENTOS, INVASOR_FAL_USD, entradaDoTrecho, invasorDaLinha, planInvasor, resolverEntrada, semOculosDaDescricao, textoDoInvasor } from './invasor'
+import { INVASOR_CREDITOS, INVASOR_EVENTOS, INVASOR_FAL_USD, entradaDoTrecho, invasorDaLinha, planInvasor, resolverEntrada, semOculosDaDescricao, textoDoInvasor } from './invasor'
 import { assinarTrechoDoInvasor, invasorArquivosPresentes } from './invasorServer'
 import { writeServerEvent } from '@/lib/serverEvents'
 
@@ -21,7 +21,7 @@ const NADA_COBRADO = 'Could not start your clip. Nothing was charged.'
 /** A simulação (só a casa): as entradas dos 3 trechos com o vídeo como marcador e o custo. Ninguém é chamado. */
 export function simulacaoDoInvasor(): Record<string, unknown> {
   const prompt = textoDoInvasor({ genero: 'man', cabeloEBarba: null, semOculos: true })
-  return { simulation: true, format: 'Pitch invader', seconds: 18, photos: 1, credits: INVASOR_CREDITOS_PROVISORIO_CASA, mode: 'Face swap', charged: false, fal_usd: INVASOR_FAL_USD,
+  return { simulation: true, format: 'Pitch invader', seconds: 18, photos: 1, credits: INVASOR_CREDITOS, mode: 'Face swap', charged: false, fal_usd: INVASOR_FAL_USD,
     steps: INVASOR_TRECHOS.map((_, i) => ({ model: 'kling/v4/video-to-video/edit', input: { ...entradaDoTrecho({ prompt, foto: '<your photo>', trecho: i }), video_url: `<segment ${i + 1} of ${INVASOR_TRECHOS.length}, private>` } })) }
 }
 
@@ -53,7 +53,7 @@ export async function pedirInvasor(a: { admin: SupabaseClient; supabase: Supabas
   if (fila && filaCheia(fila.naFila, fila.vagaOcupada)) return { body: { error: FRASE_FILA_CHEIA, code: 'queue_full' }, status: 429 }
   if (!(await invasorArquivosPresentes(admin))) return { body: { error: NADA_COBRADO }, status: 503 }
   let leitura: { cabeloEBarba: string | null; semOculos: boolean | null } | null = null
-  if (account.balance >= INVASOR_CREDITOS_PROVISORIO_CASA) {
+  if (INVASOR_CREDITOS !== null && account.balance >= INVASOR_CREDITOS) {
     const lida = await lerDescricaoDaPessoa(conferido.plan.photos[0])
     leitura = lida.ok ? { cabeloEBarba: lida.cabeloEBarba, semOculos: semOculosDaDescricao(lida.texto) } : null
     await writeServerEvent({ name: INVASOR_EVENTOS.descricao, userId: user.id, path: '/api/recreate', metadata: { produto: 'invasor_de_campo', ok: lida.ok, ...(lida.ok ? { usd: lida.usd, descricao: lida.texto } : { why: lida.why }) } }).catch(() => false)

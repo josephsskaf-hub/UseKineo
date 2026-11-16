@@ -505,7 +505,7 @@ const mutantes = [
   ['rota: replay não é conferido', { [ROTA]: rota.replace('const replay = key ? !!(await deps.findByKey(user.id, key).catch(() => null)) : false', 'const replay = false') }],
   ['rota: sem reconferência depois de entrar', { [ROTA]: rota.replace('    if (esperando && !result.replay) {', '    if (false) {') }],
   ['POST e status liquidam o dono', { [SRV]: srv.replace('podeLiquidar: ctx.liquidarDono === true', 'podeLiquidar: true') }],
-  ['cron sem a vigia da vaga', { [SRV]: srv.replace("    if (after.status === 'processing' && row.model === KLING4_EDIT_MODEL) await vigiarDonoDaVaga(filaIoFor(admin), row.id, Date.parse(row.created_at)).catch(() => 'nada')\n", '') }],
+  ['cron sem a vigia da vaga', { [SRV]: srv.replace("    if (after.status === 'processing' && after.model === KLING4_EDIT_MODEL) await vigiarDonoDaVaga(filaIoFor(admin), row.id, Date.parse(row.created_at), { soComVaga: invasorDaLinha(after) }).catch(() => 'nada')\n", '') }], // reancorado KINEO-INVASOR-DE-CAMPO-1511 (revisor 15/11, item 1): o modelo DEPOIS da passada + soComVaga
   ['X1: quem foi direto não conta', { [PORTA]: porta.replace('    if (outros.some((x) => !x.naFila) || (i > 0', '    if ((i > 0') }],
   ['X3: a frase promete o estorno que falhou', { [ROTA]: rota.replace('error: tirou > 0 ? (cheia ?', 'error: true ? (cheia ?') }],
   ['(b) status sem o som do clipe', { [STATUS]: status.replace(', ...(som ? { audio: som } : {})', '') }],

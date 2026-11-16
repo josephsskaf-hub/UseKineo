@@ -14,7 +14,6 @@ import { recreateFormatVisible, releaseVisible, visibleRecreateFormats } from '@
 
 import { recreateFormatServidor, visibleRecreateFormatsServidor } from '@/lib/recreate/catalogoServidor' // KINEO-RECEITA-FORA-DO-JS-1411
 import { INVASOR_ID } from '@/lib/recreate/invasorMolde' // KINEO-INVASOR-DE-CAMPO-1511
-import { INVASOR_CREDITOS_PROVISORIO_CASA } from '@/lib/recreate/invasor' // KINEO-INVASOR-DE-CAMPO-1511
 import { pedirInvasor, simulacaoDoInvasor } from '@/lib/recreate/invasorRota' // KINEO-INVASOR-DE-CAMPO-1511
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -31,7 +30,7 @@ export async function GET() {
   const access = engineAccessFor(account)
   // KINEO-RECREATE-TRAVA-1011 — only formats this account may request (unapproved swaps: house allowlist only).
   return json({ catalog: visibleRecreateFormatsServidor(user.email).map(f => { // KINEO-RECEITA-FORA-DO-JS-1411
-    const credits = f.id === INVASOR_ID ? INVASOR_CREDITOS_PROVISORIO_CASA : recreateCreditsFor(f) // KINEO-INVASOR-DE-CAMPO-1511 — o preço PROVISÓRIO da casa (lib/recreate/invasor.ts) · KINEO-RECREATE-MOVIMENTO-1411 — era: f.type === 'swap' ? recreateCreditCost(f.seconds) : recreateEffectCredits(f)
+    const credits = recreateCreditsFor(f) // KINEO-RECREATE-MOVIMENTO-1411 — era: f.type === 'swap' ? recreateCreditCost(f.seconds) : recreateEffectCredits(f)
     // KINEO-RECREATE-MOVIMENTO-1411 — o movimento não depende do motor do clipe comum (tarifa própria do Recreate): disponível com tarifa.
     return { id: f.id, credits, shortfall: credits === null ? 0 : Math.max(0, credits - account.balance), available: credits !== null && (f.type === 'swap' ? recreateEngineAccess().ok : f.type === 'motion' ? true : access(clipEffectByKey(f.effectKey)!.engine).ok) }
   }) })

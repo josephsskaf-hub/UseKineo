@@ -72,10 +72,12 @@ import { idDaVez } from '@/lib/cronLease' // KINEO-RECREATE-FILA-KLING-EDIT-1411
 import { comEndUserDaFal } from '@/lib/recreate/falEndUser' // KINEO-RECREATE-FILA-KLING-EDIT-1411
 import { semMarcasDaCasa } from '@/lib/recreate/seuVideo' // KINEO-RECREATE-FILA-KLING-EDIT-1411
 // KINEO-INVASOR-DE-CAMPO-1511 — o molde de vários trechos: a máquina (pura) e os arquivos privados dele.
-import { INVASOR_TRECHOS, INVASOR_SAIDA } from '@/lib/recreate/invasorMolde'
-import { INVASOR_SELO, entradaDoTrecho, fonteDaMontagem, invasorDaLinha, resolverEntrada, settleInvasor, INVASOR_SEGUNDOS_DO_FILME, type InvasorIo } from '@/lib/recreate/invasor'
+import { INVASOR_ENTRADA, INVASOR_ID, INVASOR_TRECHOS, INVASOR_SAIDA } from '@/lib/recreate/invasorMolde'
+import { INVASOR_SELO, pesoNaFila, entradaDoTrecho, fonteDaMontagem, invasorDaLinha, resolverEntrada, settleInvasor, INVASOR_SEGUNDOS_DO_FILME, type InvasorIo } from '@/lib/recreate/invasor'
 import { assinarSomDoInvasor, assinarTrechoDoInvasor } from '@/lib/recreate/invasorServer'
-import { buildFreeClipWatermarkSource, freeClipWatermarkDecision } from '@/lib/clips/freeClipWatermark'
+import { buildFreeClipWatermarkSource, freeClipWatermarkDecision, probeClipVideo } from '@/lib/clips/freeClipWatermark'
+import { checarTrocaDoTrecho } from '@/lib/recreate/swapCheck' // KINEO-INVASOR-DE-CAMPO-1511 — a trava em cada trecho
+import { filaPonderada } from '@/lib/recreate/filaKlingEdit' // KINEO-INVASOR-DE-CAMPO-1511 — a fila contada pelos trechos que faltam
 // KINEO-CLIPE-MARCA-2026-10-06 — a marca do clipe grátis: interruptor e regra puros. A fiação (Creatomate) só é carregada
 // com o interruptor ligado (import dinâmico em persistClipVideo).
 import {
@@ -765,9 +767,12 @@ function filaIoFor(admin: SupabaseClient): FilaIo {
       if (error) console.error(`[clips/fila] slot renew failed clip=${clipId}:`, error.message)
     },
     estadoDoDono: async (clipId) => {
-      const { data, error } = await admin.from(CLIPS_TABLE).select('status, fal_request_id').eq('id', clipId).maybeSingle()
+      const { data, error } = await admin.from(CLIPS_TABLE).select('status, fal_request_id, model').eq('id', clipId).maybeSingle()
       if (error) throw new Error(`queue owner read failed: ${error.message}`)
       if (!data || (data.status !== 'pending' && data.status !== 'processing')) return 'fechado'
+      // KINEO-INVASOR-DE-CAMPO-1511 [revisor 15/11, item 1] — a linha que já não é um Kling edit (o molde de vários trechos na MONTAGEM: model trocado, o id do render em
+      // fal_request_id) não segura o fornecedor da fila: para a vaga, está fechada (nunca "presa", nunca estornada pela vigia).
+      if ((data as { model?: unknown }).model !== KLING4_EDIT_MODEL) return 'fechado'
       return data.status === 'processing' && data.fal_request_id ? 'no_fornecedor' : 'fora_do_fornecedor'
     },
     // KINEO-RECREATE-FILA-REVISAO-1411 (item 2) — o dono da vaga vencida ESTÁ no fornecedor: a liquidação de verdade (consulta; pronto = trava e
@@ -866,7 +871,16 @@ function invasorIoFor(admin: SupabaseClient, userId: string): InvasorIo {
   return {
     now: () => Date.now(),
     poll: pollFal,
-    guardarTrecho: async (row, i, url) => subir(invasorTrechoPath(row.user_id, row.id, i), silenciarMp4(await baixar(url))), // o som que o Kling inventa nunca é guardado
+    // o som que o Kling inventa nunca é guardado; a duração é lida do próprio MP4 (KINEO-INVASOR-DE-CAMPO-1511, item 2: trecho curto = falha com estorno)
+    guardarTrecho: async (row, i, url) => { const bytes = silenciarMp4(await baixar(url)); const info = probeClipVideo(bytes); return { url: await subir(invasorTrechoPath(row.user_id, row.id, i), bytes), segundos: info?.durationSeconds ?? null } },
+    // KINEO-INVASOR-DE-CAMPO-1511 [revisor 15/11, item 2] — a trava "não trocou" do Kling edit em CADA trecho: o trecho original (privado, assinado) × a saída do motor × a foto.
+    conferirTroca: async (row, i, providerUrl, dados) => {
+      const t = INVASOR_TRECHOS[i]
+      const base = t ? await assinarTrechoDoInvasor(admin, i) : null
+      if (!t || !base) return { result: 'unverified', reason: 'base_unsigned' }
+      const v = await checarTrocaDoTrecho({ baseVideoUrl: base, baseMeta: { segundos: t.segundosDoArquivo, fps: t.fps, largura: INVASOR_ENTRADA.largura, altura: INVASOR_ENTRADA.altura }, resultVideoUrl: providerUrl, photos: [dados.foto], prompt: dados.prompt, formatId: INVASOR_ID })
+      return { result: v.result, reason: v.reason, usd: v.usd }
+    },
     urlsDosTrechos: async (row) => Promise.all(INVASOR_TRECHOS.map(async (_, i) => {
       const url = publica(invasorTrechoPath(row.user_id, row.id, i))
       const head = await fetch(url, { method: 'HEAD', cache: 'no-store', signal: AbortSignal.timeout(10_000) })
@@ -922,13 +936,19 @@ function invasorIoFor(admin: SupabaseClient, userId: string): InvasorIo {
  */
 export async function filaKlingEditEstado(admin: SupabaseClient, clipId?: string): Promise<{ naFila: number; naFrente: number; vagaOcupada: boolean } | null> {
   try {
-    const { data, error } = await admin.from(CLIPS_TABLE).select('id').eq('model', KLING4_EDIT_MODEL).eq('status', 'pending').eq('failure_reason', FILA_MARCA)
+    // KINEO-INVASOR-DE-CAMPO-1511 [revisor 15/11, item 4] — a fila contada em PEDIDOS AO FORNECEDOR: o molde de vários trechos pesa os trechos que faltam (filaPonderada).
+    const { data, error } = await admin.from(CLIPS_TABLE).select('id, status, model, failure_reason, fingerprint, engine, mode').eq('model', KLING4_EDIT_MODEL).eq('status', 'pending').eq('failure_reason', FILA_MARCA)
       .order('created_at', { ascending: true }).order('id', { ascending: true }).limit(50)
     if (error) return null
-    const ids = (data ?? []).map((r) => String((r as { id: unknown }).id))
-    const i = clipId ? ids.indexOf(clipId) : -1
+    const fila = (data ?? []).map((r) => { const x = r as Record<string, unknown>; return { id: String(x.id), peso: pesoNaFila(x as unknown as ClipRow) } })
     const vaga = await filaIoFor(admin).lerVaga()
-    return { naFila: ids.length, naFrente: i >= 0 ? i : ids.length, vagaOcupada: !!vaga && vaga.expiraEm > Date.now() }
+    const ocupada = !!vaga && vaga.expiraEm > Date.now()
+    let pesoDaVaga = 1
+    if (ocupada && vaga) {
+      const dono = await admin.from(CLIPS_TABLE).select('id, status, model, failure_reason, fingerprint, engine, mode').eq('id', vaga.clipId).maybeSingle()
+      if (!dono.error && dono.data) pesoDaVaga = pesoNaFila(dono.data as unknown as ClipRow)
+    }
+    return filaPonderada(fila, { ocupada, peso: pesoDaVaga }, clipId)
   } catch {
     return null
   }
@@ -1234,7 +1254,9 @@ export async function advanceActiveClipJobs(opts: { minAgeMs?: number; limit?: n
     result.scanned += 1 // KINEO-FILME-RAPIDO-1710
     const after = await settleClip(settleDepsFor(admin, row.user_id, { liquidarDono: true }), row).catch(() => row) // KINEO-FILME-RAPIDO-1710 · KINEO-RECREATE-FILA-REVISAO-3-1411 — o cron (300 s) liquida o dono da vaga
     // KINEO-RECREATE-FILA-REVISAO-3-1411 (X4) — o Kling edit que segue em andamento: a vigia da vaga (teto duro de 20 min) sem depender de outro pedido na fila.
-    if (after.status === 'processing' && row.model === KLING4_EDIT_MODEL) await vigiarDonoDaVaga(filaIoFor(admin), row.id, Date.parse(row.created_at)).catch(() => 'nada')
+    // KINEO-INVASOR-DE-CAMPO-1511 [revisor 15/11, item 1] — pelo modelo DEPOIS da liquidação (o molde de vários trechos que entrou na montagem nesta passada já não é Kling
+    // edit), e o dono do molde de vários trechos só é vigiado enquanto segura a vaga (soComVaga). Era: row.model (o de antes da passada).
+    if (after.status === 'processing' && after.model === KLING4_EDIT_MODEL) await vigiarDonoDaVaga(filaIoFor(admin), row.id, Date.parse(row.created_at), { soComVaga: invasorDaLinha(after) }).catch(() => 'nada')
     if (after.status === 'done') result.delivered += 1 // KINEO-FILME-RAPIDO-1710
     else if (after.status === 'failed') result.failed += 1 // KINEO-FILME-RAPIDO-1710
     else result.waiting += 1 // KINEO-FILME-RAPIDO-1710

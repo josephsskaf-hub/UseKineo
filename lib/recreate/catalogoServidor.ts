@@ -15,7 +15,7 @@ export const visibleRecreateFormatsServidor = (email: string | null | undefined)
 export const RECREATE_ASSETS_SERVIDOR: Readonly<Record<string, { file: string; contentType: string }>> = { ...RECREATE_ASSETS, ...MOVIMENTO_ASSETS }
 
 /** Os campos de VITRINE que o navegador recebe. Tudo o mais (cena, acao, guia, checkFrames, swapNote…) fica no servidor. */
-export const CAMPOS_DE_VITRINE = ['id', 'title', 'desde', 'type', 'preview', 'poster', 'seconds', 'photoSlots', 'prompt', 'swapSubject', 'effectKey', 'swapApproved', 'swapInTest', 'approvedOn', 'movimentoAprovado', 'pessoasNoGuia'] as const
+export const CAMPOS_DE_VITRINE = ['id', 'title', 'desde', 'type', 'preview', 'poster', 'seconds', 'photoSlots', 'prompt', 'swapSubject', 'effectKey', 'swapApproved', 'swapInTest', 'approvedOn', 'movimentoAprovado', 'pessoasNoGuia', 'esperaMinutos'] as const // KINEO-INVASOR-DE-CAMPO-1511 — + esperaMinutos (a espera real que a tela promete)
 export function paraOCliente(f: RecreateFormat): RecreateFormat {
   const out: Record<string, unknown> = {}
   for (const k of CAMPOS_DE_VITRINE) if (f[k as keyof RecreateFormat] !== undefined) out[k] = f[k as keyof RecreateFormat]

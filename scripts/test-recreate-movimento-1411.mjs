@@ -965,7 +965,7 @@ const mutantes = [
   // KINEO-RECEITA-FORA-DO-JS-1411
   ['pedido com a régua de texto', { [MOV]: src[MOV].replace('  if (movimentoProblemasNoPedido(f).length) return bad(', '  if (movimentoProblemasDoMolde(f).length) return bad(') }],
   ['cliente recebe o molde inteiro', { ['lib/recreate/catalogoServidor.ts']: lf('lib/recreate/catalogoServidor.ts').replace('export const formatosParaOCliente = (email: string | null | undefined): RecreateFormat[] => visibleRecreateFormatsServidor(email).map(paraOCliente)', 'export const formatosParaOCliente = (email: string | null | undefined): RecreateFormat[] => visibleRecreateFormatsServidor(email)') }],
-  ['vitrine leva a cena', { ['lib/recreate/catalogoServidor.ts']: lf('lib/recreate/catalogoServidor.ts').replace("'movimentoAprovado', 'pessoasNoGuia'] as const", "'movimentoAprovado', 'pessoasNoGuia', 'cena'] as const") }],
+  ['vitrine leva a cena', { ['lib/recreate/catalogoServidor.ts']: lf('lib/recreate/catalogoServidor.ts').replace("'movimentoAprovado', 'pessoasNoGuia', 'esperaMinutos'] as const", "'movimentoAprovado', 'pessoasNoGuia', 'esperaMinutos', 'cena'] as const") }], // reancorado KINEO-INVASOR-DE-CAMPO-1511: a vitrine ganhou esperaMinutos
   ['cliente vê todos os moldes do servidor', { ['lib/recreate/catalogoServidor.ts']: lf('lib/recreate/catalogoServidor.ts').replace('RECREATE_FORMATS_SERVIDOR.filter((f) => recreateFormatVisible(f, email))', 'RECREATE_FORMATS_SERVIDOR.filter((f) => !!f)') }],
   ['juiz com campo inventado na fal', { [MOV]: src[MOV].replace("character_orientation: 'video', keep_original_sound: false,", "character_orientation: 'video', keep_original_sound: false, negative_prompt: 'logos',") }],
 ]

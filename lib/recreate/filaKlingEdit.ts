@@ -92,7 +92,13 @@ export async function resolverVagaVencida(io: FilaIo, vaga: VagaOcupada, opts: {
   if (estado === 'no_fornecedor') {
     if (opts.podeLiquidar === false) return 'ocupada'
     if ((await io.liquidar(vaga.clipId)) === 'aberto') {
-      if (io.now() - vaga.tomadaEm < VAGA_TETO_DURO_MS) { await io.renovarVaga(vaga.clipId, io.now() + VAGA_RENOVA_MS); return 'ocupada' }
+      // KINEO-INVASOR-DE-CAMPO-1511 [revisor independente 15/11, item 3] — a vaga é RELIDA depois do liquidar: dentro dele o dono pode ter mandado o trecho seguinte
+      // (o molde de vários trechos renova o prazo E o início da vaga) ou soltado a vaga (montagem). Decidir pelo início lido ANTES fechava o pedido com o
+      // trecho novo rodando e apagava a vaga: o próximo cliente ia em paralelo. Agora: vaga solta = livre; de outro = ocupada; renovada = ocupada.
+      const atual = await io.lerVaga()
+      if (!atual) return 'livre'
+      if (atual.clipId !== vaga.clipId || atual.expiraEm > io.now()) return 'ocupada'
+      if (io.now() - atual.tomadaEm < VAGA_TETO_DURO_MS) { await io.renovarVaga(vaga.clipId, io.now() + VAGA_RENOVA_MS); return 'ocupada' }
       await io.fecharComEstorno(vaga.clipId)
     }
   } else if (estado === 'fora_do_fornecedor') {
@@ -128,13 +134,16 @@ export async function tomarVaga(io: FilaIo, clipId: string, opts: { daFila?: boo
  * deixava a conta recusada ("um por vez") até o vencimento de 6 h. Agora: a vaga dele venceu = resolve como sempre (liquida, renova até o teto
  * duro, fecha com estorno); ele está no fornecedor SEM a vaga (perdida) e passou da espera máxima mais o teto duro = liquida e, aberto, fecha.
  */
-export async function vigiarDonoDaVaga(io: FilaIo, clipId: string, criadoEm: number): Promise<'nada' | 'resolvido'> {
+// KINEO-INVASOR-DE-CAMPO-1511 [revisor independente 15/11, item 1] — soComVaga: o dono é do molde de vários trechos. Ele só é vigiado enquanto SEGURA a vaga; sem ela
+// (montagem, ou vaga perdida — a virada do trecho seguinte já estorna) a vigia nunca o fecha.
+export async function vigiarDonoDaVaga(io: FilaIo, clipId: string, criadoEm: number, opts: { soComVaga?: boolean } = {}): Promise<'nada' | 'resolvido'> {
   const vaga = await io.lerVaga()
   if (vaga && vaga.clipId === clipId) {
     if (vaga.expiraEm > io.now()) return 'nada'
     await resolverVagaVencida(io, vaga)
     return 'resolvido'
   }
+  if (opts.soComVaga) return 'nada'
   if (!Number.isFinite(criadoEm) || io.now() - criadoEm < FILA_TETO_ESPERA_MS + VAGA_TETO_DURO_MS) return 'nada'
   if ((await io.estadoDoDono(clipId)) !== 'no_fornecedor') return 'nada'
   if ((await io.liquidar(clipId)) === 'aberto') await io.fecharComEstorno(clipId)
@@ -143,6 +152,18 @@ export async function vigiarDonoDaVaga(io: FilaIo, clipId: string, criadoEm: num
 
 /** Posição na fila para a tela: quantos estão na frente (os mais antigos na fila + o que ocupa a vaga) + 1. */
 export const posicaoNaFila = (naFrenteNaFila: number, vagaOcupada: boolean) => Math.max(0, naFrenteNaFila) + (vagaOcupada ? 1 : 0) + 1
+
+// KINEO-INVASOR-DE-CAMPO-1511 [revisor independente 15/11, item 4] — a fila CONTADA EM PEDIDOS AO FORNECEDOR: o molde de vários trechos pesa os trechos que faltam (3 na
+// fila; quem segura a vaga, os que faltam dele). O peso extra de quem segura a vaga entra em naFila e naFrente (está na frente de todos), então a porta (filaCheia),
+// a posição e a espera de sempre contam certo sem mudar quem as chama. Peso 1 = o pedido de sempre (byte a byte o de antes).
+export function filaPonderada(fila: ReadonlyArray<{ id: string; peso: number }>, vaga: { ocupada: boolean; peso: number }, clipId?: string): { naFila: number; naFrente: number; vagaOcupada: boolean } {
+  const p = (n: number) => (Number.isFinite(n) && n >= 1 ? Math.floor(n) : 1)
+  const extra = vaga.ocupada ? Math.max(0, p(vaga.peso) - 1) : 0
+  const total = fila.reduce((s, x) => s + p(x.peso), 0)
+  const i = clipId ? fila.findIndex((x) => x.id === clipId) : -1
+  const antes = i >= 0 ? fila.slice(0, i).reduce((s, x) => s + p(x.peso), 0) : total
+  return { naFila: total + extra, naFrente: antes + extra, vagaOcupada: vaga.ocupada }
+}
 
 /** A fila está cheia para um pedido NOVO? (recusa antes de cobrar) */
 export const filaCheia = (naFila: number, vagaOcupada: boolean) => naFila + (vagaOcupada ? 1 : 0) >= FILA_MAX_NA_FRENTE

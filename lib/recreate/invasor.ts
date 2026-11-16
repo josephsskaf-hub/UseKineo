@@ -18,6 +18,7 @@
 import type { ClipRow, ProviderState } from '@/lib/clips/clipFlow'
 import type { RecreatePlan } from './generation'
 import { KLING4_EDIT_MODEL, KLING4_USD_POR_SEGUNDO_720P } from './seuVideo'
+import { RECREATE_UNPRICED_ERROR } from './formats'
 import { INVASOR_ALVO, INVASOR_ALVO_DE_OCULOS, INVASOR_FORMATO, INVASOR_ID, INVASOR_SAIDA, INVASOR_SOM, INVASOR_TRECHOS } from './invasorMolde'
 
 export const INVASOR_MARCA = 'KINEO-INVASOR-DE-CAMPO-1511'
@@ -25,10 +26,8 @@ export const INVASOR_MARCA = 'KINEO-INVASOR-DE-CAMPO-1511'
 export const INVASOR_MONTAGEM_MODEL = 'kineo/montagem-invasor-de-campo'
 /** O selo honesto da Library: o motor real que trocou o rosto (a linha guarda a chave 'h3' do catálogo de clipes, como o "seu vídeo"). */
 export const INVASOR_SELO = 'Kling 4.0 Edit'
-// ⚠ PROVISÓRIO (KINEO-INVASOR-DE-CAMPO-1511): o preço PÚBLICO é do dono. Proporcional à tabela de hoje (lib/checkoutPricing.ts RECREATE_PRICING: 10 s = 40,
-// 4 créditos por segundo) × 18,4 s = 73,6 → 74. Vale SÓ enquanto o molde é da casa (swapInTest); com o sim do dono, o preço entra em RECREATE_PRICING
-// (ou numa tabela própria lá) e esta constante sai.
-export const INVASOR_CREDITOS_PROVISORIO_CASA = 74
+// O preço vem da tabela ÚNICA (lib/checkoutPricing.ts RECREATE_PRICING_VARIOS_TRECHOS, lido em ./invasorMolde): nenhum número aqui. null = sem preço = recusa limpa.
+export const INVASOR_CREDITOS: number | null = INVASOR_FORMATO.creditos ?? null
 /** Custo fal previsto (Kling 4.0 edição 720p, US$ 0,094/s sobre entrada + saída; a saída tem a duração do arquivo + 1 quadro). */
 export const INVASOR_FAL_USD = Math.round(INVASOR_TRECHOS.reduce((s, t) => s + KLING4_USD_POR_SEGUNDO_720P * (t.segundosDoArquivo + t.segundosDoArquivo + 0.04), 0) * 100) / 100
 export const INVASOR_SEGUNDOS_DO_FILME = Math.round(INVASOR_TRECHOS.reduce((s, t) => s + t.segundosNoFilme, 0) * 1000) / 1000
@@ -40,8 +39,13 @@ export const INVASOR_MONTAGEM_REENVIO_MS = 2 * 60 * 1000
 export const INVASOR_MONTAGEM_TETO_MS = 10 * 60 * 1000
 /** Linha de mais que isto (do pedido ao fim) = vencida, estorno. O mesmo CLIP_EXPIRE_MS do clipe. */
 export const INVASOR_EXPIRA_MS = 6 * 60 * 60 * 1000
-export const INVASOR_EVENTOS = { trecho: 'recreate_invasor_trecho', montagem: 'recreate_invasor_montagem', pronto: 'recreate_invasor_pronto', descricao: 'recreate_pessoa_descricao' } as const
-export const INVASOR_FALHAS = { vagaPerdida: 'invasor_slot_lost', montagem: 'invasor_assembly_failed' } as const
+/** KINEO-INVASOR-DE-CAMPO-1511 [revisor 15/11, item 2] — a conferência de um trecho (até 40 s da trava + a cópia) reservada há mais que isto = o ator morreu: outro
+ *  a retoma. O mesmo prazo da reserva da trava de sempre (SWAP_CHECK_LOCK_STALE_MS, 2 min). */
+export const INVASOR_CONFERENCIA_VENCE_MS = 2 * 60 * 1000
+/** A saída do Kling dura o arquivo + 1 quadro (8 → 8,04 s; 3 → 3,04 s). Mais curta que o arquivo menos isto = o motor cortou o trecho: falha com estorno. */
+export const INVASOR_TOLERANCIA_S = 0.1
+export const INVASOR_EVENTOS = { trecho: 'recreate_invasor_trecho', trava: 'recreate_invasor_trava', montagem: 'recreate_invasor_montagem', pronto: 'recreate_invasor_pronto', descricao: 'recreate_pessoa_descricao' } as const
+export const INVASOR_FALHAS = { vagaPerdida: 'invasor_slot_lost', montagem: 'invasor_assembly_failed', curto: 'invasor_segment_short' } as const
 
 // ─── O texto (a receita de 14/11, palavra por palavra; nenhuma frase negativa além de "wears no glasses") ───
 export type InvasorGenero = 'man' | 'woman'
@@ -91,6 +95,7 @@ export type InvasorPlanResult = { ok: true; plan: RecreatePlan } | { ok: false; 
 export function planInvasor(raw: Record<string, unknown>, ctx: { userId: string; supabaseUrl: string; dono: (url: string) => string | null }, leitura: { cabeloEBarba: string | null; semOculos: boolean | null } | null): InvasorPlanResult {
   const bad = (error: string, status = 400): InvasorPlanResult => ({ ok: false, status, error })
   if (raw.format !== INVASOR_ID) return bad('Choose a video from the Kineo catalog.')
+  if (INVASOR_CREDITOS === null) return bad(RECREATE_UNPRICED_ERROR, 409)
   if (raw.consent !== true) return bad('Confirm you have permission to use these photos.')
   if (!Array.isArray(raw.photos) || raw.photos.length !== 1) return bad('Add a photo for each person in this format.')
   const foto = typeof raw.photos[0] === 'string' ? ctx.dono(raw.photos[0]) : null
@@ -99,7 +104,7 @@ export function planInvasor(raw: Record<string, unknown>, ctx: { userId: string;
   const prompt = textoDoInvasor({ genero, cabeloEBarba: leitura?.cabeloEBarba ?? null, semOculos: leitura?.semOculos ?? null })
   return { ok: true, plan: {
     body: { engine: 'h3', seconds: INVASOR_FORMATO.seconds, aspect: null, prompt, imageUrl: foto },
-    model: KLING4_EDIT_MODEL, credits: INVASOR_CREDITOS_PROVISORIO_CASA, falUsd: INVASOR_FAL_USD, photos: [foto],
+    model: KLING4_EDIT_MODEL, credits: INVASOR_CREDITOS, falUsd: INVASOR_FAL_USD, photos: [foto],
     input: { ...entradaDoTrecho({ prompt, foto, trecho: 0 }), kineo_molde: INVASOR_ID },
   } }
 }
@@ -126,12 +131,17 @@ const ms13 = (n: number) => String(Math.max(0, Math.floor(n))).padStart(13, '0')
 export const marcaDoTrecho = (i: number): string | null => (i === 0 ? null : `inv_t${i}`)
 export const marcaDoEnvio = (i: number, agora: number) => `inv_e${i}_${ms13(agora)}`
 export const marcaDaMontagem = (n: number, agora: number) => `inv_m${n}_${ms13(agora)}`
-export function lerMarca(v: string | null): { tipo: 'trecho'; i: number } | { tipo: 'envio'; i: number; em: number } | { tipo: 'montagem'; n: number; em: number } | null {
+/** KINEO-INVASOR-DE-CAMPO-1511 [revisor 15/11, item 2] — a CONFERÊNCIA do trecho i (duração + trava "não trocou") reservada por UM ator. Mais velha que
+ *  INVASOR_CONFERENCIA_VENCE_MS = o ator morreu no meio: outro a retoma do zero (a saída do fornecedor ainda está no request_id). */
+export const marcaDaConferencia = (i: number, agora: number) => `inv_c${i}_${ms13(agora)}`
+export function lerMarca(v: string | null): { tipo: 'trecho'; i: number } | { tipo: 'envio'; i: number; em: number } | { tipo: 'conferencia'; i: number; em: number } | { tipo: 'montagem'; n: number; em: number } | null {
   if (v === null) return { tipo: 'trecho', i: 0 }
   let m = /^inv_t(\d)$/.exec(v)
   if (m) return { tipo: 'trecho', i: Number(m[1]) }
   m = /^inv_e(\d)_(\d{13})$/.exec(v)
   if (m) return { tipo: 'envio', i: Number(m[1]), em: Number(m[2]) }
+  m = /^inv_c(\d)_(\d{13})$/.exec(v)
+  if (m) return { tipo: 'conferencia', i: Number(m[1]), em: Number(m[2]) }
   m = /^inv_m(\d)_(\d{13})$/.exec(v)
   if (m) return { tipo: 'montagem', n: Number(m[1]), em: Number(m[2]) }
   return null
@@ -161,8 +171,11 @@ export type EstadoDaMontagem = { status: 'succeeded'; url: string } | { status: 
 export interface InvasorIo {
   now(): number
   poll(model: string, requestId: string): Promise<ProviderState>
-  /** Copia a saída do trecho i para o NOSSO bucket (caminho fixo) e devolve a URL nossa. Lança se falhar. */
-  guardarTrecho(row: ClipRow, i: number, providerUrl: string): Promise<string>
+  /** Copia a saída do trecho i para o NOSSO bucket (caminho fixo) e devolve a URL nossa e a DURAÇÃO lida do MP4 (null = ilegível). Lança se falhar. */
+  guardarTrecho(row: ClipRow, i: number, providerUrl: string): Promise<{ url: string; segundos: number | null }>
+  /** KINEO-INVASOR-DE-CAMPO-1511 [revisor 15/11, item 2] — a MESMA trava "não trocou" do Kling edit (lib/recreate/swapCheck.ts, alvo do pedido, 4 instantes, regra
+   *  estrita): o trecho original (privado) × a saída do motor × a foto. Nunca lança; falha da checagem = 'unverified' (a política de sempre: entrega). */
+  conferirTroca(row: ClipRow, i: number, providerUrl: string, dados: { prompt: string; foto: string }): Promise<{ result: string; reason: string; usd?: number }>
   /** As URLs NOSSAS dos trechos já guardados (na ordem), para a montagem. Lança se faltar algum. */
   urlsDosTrechos(row: ClipRow): Promise<string[]>
   /** UPDATE condicional: só se a linha ainda está `processing` com ESTE failure_reason e ESTE fal_request_id. true = este ator moveu. */
@@ -187,6 +200,21 @@ export interface InvasorIo {
 
 const telemetria = (row: ClipRow) => ({ clip_id: row.id, format: INVASOR_ID, engine: row.engine, seconds: row.seconds, credits: row.credits })
 
+/** KINEO-INVASOR-DE-CAMPO-1511 [revisor 15/11, item 2] — o veredito da trava que NÃO entrega (o mesmo do Kling edit: não trocou, parcial, incerto) → o motivo da falha. */
+const NAO_ENTREGA: Readonly<Record<string, string>> = { unchanged: 'swap_unchanged', partial: 'swap_partial', uncertain: 'swap_uncertain' }
+
+/** KINEO-INVASOR-DE-CAMPO-1511 [revisor 15/11, item 4] — quantos pedidos ao fornecedor esta linha ainda vai fazer: na fila, todos; no trecho i (rodando, conferindo
+ *  ou enviando o i), os que faltam a partir dele; na montagem, nenhum. É o peso da linha na fila (lib/recreate/filaKlingEdit.ts filaPonderada). */
+export function trechosQueFaltam(row: Pick<ClipRow, 'status' | 'model' | 'failure_reason'>): number {
+  if (row.status === 'pending') return INVASOR_TRECHOS.length
+  if (row.status !== 'processing' || row.model === INVASOR_MONTAGEM_MODEL) return 0
+  const m = lerMarca(row.failure_reason)
+  if (!m || m.tipo === 'montagem') return 0
+  return Math.max(0, INVASOR_TRECHOS.length - (m.tipo === 'conferencia' ? m.i + 1 : m.i))
+}
+/** O peso de uma linha qualquer do Kling edit na fila: o invasor pelos trechos que faltam (no mínimo 1); o pedido de sempre, 1. */
+export const pesoNaFila = (row: Pick<ClipRow, 'status' | 'model' | 'failure_reason' | 'fingerprint' | 'engine' | 'mode'>) => (invasorDaLinha(row) ? Math.max(1, trechosQueFaltam(row)) : 1)
+
 export async function settleInvasor(io: InvasorIo, row: ClipRow): Promise<ClipRow> {
   if (row.status !== 'processing') return row
   const agora = io.now()
@@ -210,6 +238,8 @@ export async function settleInvasor(io: InvasorIo, row: ClipRow): Promise<ClipRo
     // Outro ator reservou o envio e ainda não gravou o request_id. Perdido depois do prazo = estorno (o pedido pode existir do outro lado: a vaga vence sozinha).
     return agora - marca.em >= INVASOR_ENVIO_PERDIDO_MS ? fail('submit_lost', { trecho: marca.i }, false) : row
   }
+  // Outro ator está conferindo este trecho (duração + trava): espera. Conferência abandonada (o ator morreu) é retomada por este, do zero.
+  if (marca.tipo === 'conferencia' && agora - marca.em < INVASOR_CONFERENCIA_VENCE_MS) return row
   const i = marca.i
   if (i >= INVASOR_TRECHOS.length || !row.fal_request_id) return row
   const dados = dadosDaLinha(row)
@@ -217,14 +247,24 @@ export async function settleInvasor(io: InvasorIo, row: ClipRow): Promise<ClipRo
   const st = await io.poll(KLING4_EDIT_MODEL, row.fal_request_id)
   if (st.state === 'failed') return fail('provider_failed', { trecho: i, provider_error: st.error })
   if (st.state !== 'done') return row
+  let guardado: { url: string; segundos: number | null }
   try {
-    await io.guardarTrecho(row, i, st.url)
+    guardado = await io.guardarTrecho(row, i, st.url)
   } catch {
     return row // tenta de novo na próxima passada (o prazo de 6 h estorna)
   }
+  // KINEO-INVASOR-DE-CAMPO-1511 [revisor 15/11, item 2] — UM ator confere o trecho (reserva condicional): a duração e a trava "não trocou" do Kling edit. Trecho
+  // mais curto que o esperado ou que não trocou = falha com estorno, NUNCA entrega; só depois disso o próximo trecho (ou a montagem) anda.
+  const conf = marcaDaConferencia(i, agora)
+  if (!(await io.mover(row.id, { failure_reason: row.failure_reason, fal_request_id: row.fal_request_id }, { failure_reason: conf }))) return row // outro ator levou
+  const esperado = INVASOR_TRECHOS[i].segundosDoArquivo
+  if (guardado.segundos === null || !(guardado.segundos >= esperado - INVASOR_TOLERANCIA_S)) return fail(INVASOR_FALHAS.curto, { trecho: i, segundos: guardado.segundos, esperado })
+  const veredito: { result: string; reason: string; usd?: number } = await io.conferirTroca(row, i, st.url, dados).catch(() => ({ result: 'unverified', reason: 'check_error' }))
+  await io.event(INVASOR_EVENTOS.trava, { ...telemetria(row), trecho: i, result: veredito.result, reason: veredito.reason, usd: veredito.usd ?? null })
+  if (Object.hasOwn(NAO_ENTREGA, veredito.result)) return fail(NAO_ENTREGA[veredito.result], { trecho: i, swap_check: veredito.result })
   if (i < INVASOR_TRECHOS.length - 1) {
-    const envio = marcaDoEnvio(i + 1, agora)
-    if (!(await io.mover(row.id, { failure_reason: row.failure_reason, fal_request_id: row.fal_request_id }, { failure_reason: envio }))) return row // outro ator levou
+    const envio = marcaDoEnvio(i + 1, io.now())
+    if (!(await io.mover(row.id, { failure_reason: conf, fal_request_id: row.fal_request_id }, { failure_reason: envio }))) return row // outro ator retomou a conferência
     if (!(await io.garantirVaga(row.id).catch(() => false))) return fail(INVASOR_FALHAS.vagaPerdida, { trecho: i + 1 }, false)
     const sent = await io.enviarTrecho(row, i + 1, dados)
     if (!sent.ok) return fail(sent.ambiguous ? 'submit_ambiguous' : 'provider_rejected', { trecho: i + 1, provider_error: sent.error })
@@ -234,9 +274,9 @@ export async function settleInvasor(io: InvasorIo, row: ClipRow): Promise<ClipRo
     await io.event(INVASOR_EVENTOS.trecho, { ...telemetria(row), trecho: i + 1, request_id: sent.requestId, tracking_saved: saved, ms: Math.max(0, idade) })
     return saved ? { ...row, failure_reason: proxima, fal_request_id: sent.requestId } : { ...row, failure_reason: envio }
   }
-  // o último trecho ficou pronto: a montagem é deste ator (um só), e a vaga volta para o próximo cliente
-  const m1 = marcaDaMontagem(1, agora)
-  if (!(await io.mover(row.id, { failure_reason: row.failure_reason, fal_request_id: row.fal_request_id }, { failure_reason: m1, fal_request_id: null, model: INVASOR_MONTAGEM_MODEL }))) return row
+  // o último trecho passou na conferência: a montagem é deste ator (um só), e a vaga volta para o próximo cliente
+  const m1 = marcaDaMontagem(1, io.now())
+  if (!(await io.mover(row.id, { failure_reason: conf, fal_request_id: row.fal_request_id }, { failure_reason: m1, fal_request_id: null, model: INVASOR_MONTAGEM_MODEL }))) return row
   await io.soltarVaga(row.id).catch(() => {})
   await io.event(INVASOR_EVENTOS.trecho, { ...telemetria(row), trecho: 'all_done', ms: Math.max(0, idade) })
   const montando = { ...row, model: INVASOR_MONTAGEM_MODEL, failure_reason: m1, fal_request_id: null }

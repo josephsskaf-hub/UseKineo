@@ -24,7 +24,7 @@ import { usdFromUsage } from '@/lib/regua95/coherenceV2'
 import { FAL_NTH_FRAME_MODEL, FAL_USD_PER_COMPUTE_SECOND, PIXEL_MODEL_RATES } from '@/lib/regua95/pixelScore'
 import { RECREATE_CHECK_FRAMES, RECREATE_FORMATS, type RecreateFormat } from './formats'
 import { RECREATE_MODEL, RECREATE_PROVIDER_ORIGIN } from './generation'
-import { catalogoNoSeedance25, KLING4_EDIT_MODEL, metaPorUrl, SEEDANCE25_MODEL, SEU_VIDEO_PASTA } from './seuVideo' // KINEO-RECREATE-SEU-VIDEO-1311 · KINEO-RECREATE-KLING4-1311
+import { catalogoNoSeedance25, KLING4_EDIT_MODEL, metaPorUrl, SEEDANCE25_MODEL, SEU_VIDEO_PASTA, type MetaDoVideo } from './seuVideo' // KINEO-RECREATE-SEU-VIDEO-1311 · KINEO-RECREATE-KLING4-1311
 
 export type SwapCheckResult = 'swapped' | 'unchanged' | 'partial' | 'unverified' | 'uncertain' // KINEO-RECREATE-TRAVA-ALVO-1411 — + uncertain (o juiz respondeu e não deu para afirmar a troca: não entrega)
 export type UnverifiedReason = 'refusal' | 'null_answer' | 'invalid_json' | 'timeout' | 'frames_unavailable' | 'base_frames_unavailable' | 'http_error' | 'config'
@@ -246,7 +246,7 @@ export function readVisionAnswer(data: unknown): { parsed: unknown } | { why: Un
 // fps real de cada vídeo (lido do cabeçalho por Range). A decisão (decideSwap) e o estorno (clipFlow) são os mesmos.
 export const usaTravaNaoTrocou = (model: unknown): boolean => model === RECREATE_MODEL || model === SEEDANCE25_MODEL || model === KLING4_EDIT_MODEL // KINEO-RECREATE-KLING4-1311 — + Kling 4.0 edição
 export const SEU_VIDEO_SUJEITO_CHECAGEM = 'the main person (the largest and most central person)'
-export type SwapRowContext = { formatId: string; format: RecreateFormat | null; photos: string[]; slots: number; subject?: string; baseVideoUrl: string | null; redrawn: boolean; prompt?: string } // KINEO-RECREATE-TRAVA-ALVO-1411 — + prompt (o pedido enviado ao motor: de lá sai o alvo)
+export type SwapRowContext = { formatId: string; format: RecreateFormat | null; photos: string[]; slots: number; subject?: string; baseVideoUrl: string | null; redrawn: boolean; prompt?: string; baseMeta?: MetaDoVideo } // KINEO-INVASOR-DE-CAMPO-1511 — + baseMeta (o trecho privado: duração e fps conhecidos, sem HEAD na URL assinada) · KINEO-RECREATE-TRAVA-ALVO-1411 — + prompt (o pedido enviado ao motor: de lá sai o alvo)
 /** Linha → o que a trava precisa (Recast como antes; Seedance: catálogo da Entrega C ou o vídeo do cliente no nosso bucket). */
 export function swapRowContext(row: { model: string; fingerprint: string }): SwapRowContext | null {
   const recast = recreateRowContext(row)
@@ -515,7 +515,7 @@ type NaoVerificou = (why: UnverifiedReason, reason: string, extra?: Partial<Swap
 /** A checagem do "seu vídeo" no Kling: alvo do pedido, 4 instantes por tempo absoluto, regra estrita. Chamada por runSwapCheck (mesmo orçamento). */
 async function checarComAlvo(ctx: SwapRowContext, providerVideoUrl: string, opts: SwapCheckOpts, verdict: Fazer, unverified: NaoVerificou): Promise<SwapVerdict> {
   const f = opts.fetchImpl ?? fetch
-  const [mb, mr0] = await Promise.all([metaPorUrl(ctx.baseVideoUrl as string, f), metaPorUrl(providerVideoUrl, f)])
+  const [mb, mr0] = await Promise.all([ctx.baseMeta ?? metaPorUrl(ctx.baseVideoUrl as string, f), metaPorUrl(providerVideoUrl, f)]) // KINEO-INVASOR-DE-CAMPO-1511 — era: metaPorUrl(ctx.baseVideoUrl…) sempre
   if (!mb || !(mb.segundos > 0)) return unverified('base_frames_unavailable', 'base_meta_unavailable')
   // KINEO-RECREATE-TRAVA-REVISAO-1411 [revisor 2ª rodada, item 7] — sem o cabeçalho da SAÍDA não há como achar o mesmo instante nela (fps diferente desalinha os pares e o
   // evento gravava instantes que não foram julgados): uma 2ª leitura; ainda ilegível = falha de rede (unverified), nunca um julgamento torto.
@@ -558,4 +558,20 @@ async function checarComAlvo(ctx: SwapRowContext, providerVideoUrl: string, opts
   const decided = decideSwapEstrito(answer.parsed, ctx.slots)
   const extra = { persons: decided.persons, model, usd, ...marca, pairs_used: paresUsados(answer.parsed, total) }
   return decided.result === 'unverified' ? unverified('null_answer', decided.reason, extra) : verdict(decided.result, decided.reason, extra)
+}
+
+// ═══ KINEO-INVASOR-DE-CAMPO-1511 [revisor independente 15/11, item 2: "cada trecho tem de passar pela mesma trava"] ═══
+// A trava do Kling edit (checarComAlvo: o alvo escrito no pedido, 4 instantes, regra estrita, mesmo orçamento de 40 s) num TRECHO do molde de vários trechos:
+// o original é o trecho privado (URL assinada, duração e fps do manifesto), o resultado é a saída do motor, a foto é a do cliente. Custo por trecho: 2 extrações
+// de quadros na fal (~US$ 0,001 cada) + 1 chamada de visão (4 pares em detalhe alto + a foto): o usd volta no veredito.
+export async function checarTrocaDoTrecho(a: { baseVideoUrl: string; baseMeta: MetaDoVideo; resultVideoUrl: string; photos: string[]; prompt: string; formatId: string }, opts: SwapCheckOpts = {}): Promise<SwapVerdict> {
+  const started = Date.now()
+  const ctx: SwapRowContext = { formatId: a.formatId, format: null, photos: a.photos, slots: a.photos.length, subject: SEU_VIDEO_SUJEITO_CHECAGEM, baseVideoUrl: a.baseVideoUrl, redrawn: false, prompt: a.prompt, baseMeta: a.baseMeta }
+  const verdict = (result: SwapCheckResult, reason: string, extra: Partial<SwapVerdict> = {}): SwapVerdict => ({ result, reason, unverified_reason: null, format: a.formatId, persons: [], model: null, usd: 0, ms: Date.now() - started, ...extra })
+  const unverified = (why: UnverifiedReason, reason: string, extra: Partial<SwapVerdict> = {}) => verdict('unverified', reason, { ...extra, unverified_reason: why })
+  if (a.photos.length !== 1 || !/^https:\/\//.test(a.baseVideoUrl) || !/^https:\/\//.test(a.resultVideoUrl)) return unverified('config', 'segment_context_unknown')
+  const work = checarComAlvo(ctx, a.resultVideoUrl, opts, verdict, unverified).catch(() => unverified('http_error', 'check_error'))
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const overBudget = new Promise<SwapVerdict>(resolve => { timer = setTimeout(() => resolve(unverified('timeout', 'check_timeout')), opts.budgetMs ?? SWAP_CHECK_BUDGET_MS) })
+  try { return await Promise.race([work, overBudget]) } finally { clearTimeout(timer) }
 }

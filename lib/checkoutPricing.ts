@@ -13,6 +13,13 @@ export const RECREATE_PRICING = { 8: 45, 10: 40, 15: 60 } as const
 export function recreateCreditCost(seconds: number): number | null {
   return Object.prototype.hasOwnProperty.call(RECREATE_PRICING, seconds) ? RECREATE_PRICING[seconds as keyof typeof RECREATE_PRICING] : null
 }
+// KINEO-INVASOR-DE-CAMPO-1511 [dono 15/11 ~22:00: "vamos vender a 75"] — o Recreate de VÁRIOS TRECHOS (o molde "Pitch invader", 18 s) = 75 créditos. Tabela própria,
+// separada de RECREATE_PRICING de propósito: lá a duração vale para todo Recreate de um pedido só (troca e "seu vídeo"); aqui só para o molde de vários
+// trechos (recreateCreditCost(18) continua null). Único lugar deste número: o molde o lê por recreateCreditCostVariosTrechos.
+export const RECREATE_PRICING_VARIOS_TRECHOS = { 18: 75 } as const
+export function recreateCreditCostVariosTrechos(seconds: number): number | null {
+  return Object.prototype.hasOwnProperty.call(RECREATE_PRICING_VARIOS_TRECHOS, seconds) ? RECREATE_PRICING_VARIOS_TRECHOS[seconds as keyof typeof RECREATE_PRICING_VARIOS_TRECHOS] : null
+}
 
 export const ONE_TIME_ITEM_USD_MINOR = { one_time_ad: 900, one_time_film35: 500 } as const // KINEO-COMPRA-AVULSA-2410 — founder-approved single-item prices; monthly plans unchanged.
 export const ONE_TIME_ITEM_V1_AMOUNTS = { one_time_ad: { usd: 900, brl: 4490 }, one_time_film35: { usd: 500, brl: 2490 } } as const // KINEO-COMPRA-AVULSA-2410 — immutable receipt snapshot; future prices must never reprice a paid V1 session.

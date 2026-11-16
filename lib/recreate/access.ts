@@ -20,6 +20,7 @@ export const seriesVisible = (email?: string | null) => releaseVisible(email, SE
  */
 export function recreateFormatVisible(f: RecreateFormat, email: string | null | undefined): boolean {
   if (!releaseVisible(email, RECREATE_RELEASE)) return false
+  if (f.retirado) return false // KINEO-INVASOR-DE-CAMPO-1511 [dono 15/11: "tira esse e coloca esse"] — molde retirado: ninguém vê nem pede (a casa também)
   // KINEO-RECREATE-MOVIMENTO-1411 — o movimento NUNCA cai na regra do efeito (que mostra a todos): ao público só com o interruptor 'public' E o molde
   // aprovado; sem aprovação, só a allowlist exata da casa, e nada com o interruptor 'off'. Sempre com tarifa da tabela.
   if (f.type === 'motion') return recreateSwapPriced(f) && RECREATE_MOVIMENTO_RELEASE !== 'off' && (f.movimentoAprovado === true ? releaseVisible(email, RECREATE_MOVIMENTO_RELEASE) : releaseVisible(email, 'internal'))
