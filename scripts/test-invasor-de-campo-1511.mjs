@@ -23,6 +23,44 @@ const foto = (u) => `${SUPA}/storage/v1/object/public/avatars/${u}/face.jpg`
 const CABELO = 'medium-length wavy dark-brown hair, brushed up and back and a short dark-brown stubble beard'
 const assinar = async (i) => `https://fixture.supabase.co/storage/v1/object/sign/quarantine/recreate-guias/v1/t${i}.mp4?token=abc`
 
+// ── banco de mentira no jeito do PostgREST (o mesmo de scripts/test-varreduras-estorno-1411.mjs), para EXECUTAR a varredura real do servidor ──
+const OR_CHAVE = /^created_at\.lt\."([^"]+)",and\(created_at\.eq\."([^"]+)",id\.lt\."([^"]+)"\)$/
+function bancoDeMentira() {
+  const tabelas = {}
+  const from = (nome) => {
+    const t = (tabelas[nome] ??= [])
+    const f = [], ords = []; let op = 'select', valores = null, lim = Infinity, um = false, ret = false
+    const api = {
+      select() { if (op !== 'select') ret = true; return api }, update(v) { op = 'update'; valores = v; return api }, insert(v) { op = 'insert'; valores = v; return api },
+      limit(n) { lim = n; return api }, maybeSingle() { um = true; return api }, order(c, o) { ords.push([c, o?.ascending === false ? -1 : 1]); return api },
+      eq(c, v) { f.push((r) => r[c] === v); return api }, is(c, v) { f.push((r) => (r[c] ?? null) === v); return api }, gte(c, v) { f.push((r) => r[c] >= v); return api },
+      in(c, vs) { f.push((r) => vs.includes(r[c])); return api },
+      not(c, o, v) { if (o !== 'in') throw new Error('not.' + o); const vs = String(v).replace(/^\(|\)$/g, '').split(','); f.push((r) => r[c] != null && !vs.includes(r[c])); return api },
+      like(c, p) { const re = new RegExp('^' + p.split('%').map((x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$'); f.push((r) => re.test(String(r[c] ?? ''))); return api },
+      or(e) { const mm = OR_CHAVE.exec(e); if (!mm || mm[1] !== mm[2]) throw new Error('filtro de chave ilegível: ' + e); f.push((r) => r.created_at < mm[1] || (r.created_at === mm[1] && r.id < mm[3])); return api },
+      then(ok, ko) {
+        return Promise.resolve().then(() => {
+          if (op === 'insert') { t.push(...(Array.isArray(valores) ? valores : [valores]).map((r) => ({ ...r }))); return { data: null, error: null } }
+          const todos = t.filter((r) => f.every((x) => x(r)))
+          if (ords.length) todos.sort((a, b) => { for (const [c, s] of ords) { if (a[c] < b[c]) return -s; if (a[c] > b[c]) return s } return 0 })
+          const hit = todos.slice(0, lim)
+          if (op === 'update') { for (const r of hit) Object.assign(r, valores); const d = hit.map((r) => ({ ...r })); return { data: um ? d[0] ?? null : ret ? d : null, error: null } }
+          return { data: um ? (hit[0] ? { ...hit[0] } : null) : hit.map((r) => ({ ...r })), error: null }
+        }).then(ok, ko)
+      },
+    }
+    return api
+  }
+  return { tabelas, db: { from, rpc: async () => ({ data: 0, error: null }), storage: { from: () => ({}) } } }
+}
+const STUBS_DO_SERVIDOR = {
+  '@/lib/composeClaim': { COMPOSE_CLAIM_EVENT: 'compose_submission_claim' },
+  '@/lib/cinematic/claim': { CINEMATIC_CLAIM_EVENT: 'cinematic_submission_claim', releaseCinematicClaim: async () => null },
+  '@/lib/reverseTrial': { recordReverseTrialRefundForRender: async () => null },
+  '@/lib/avatar/reservation': { loadVerifiedAvatarClaimForBillingReference: async () => null, refundAvatarBirthDebitForFailedRequest: async () => ({ ok: true, credits: 0 }) },
+  '@fal-ai/client': { fal: { config: () => {}, queue: {} } }, '@/lib/supabase/server': { createClient: () => null }, 'server-only': {},
+}
+
 function mundo(m, o = {}) {
   const flow = m('lib/clips/clipFlow'), F = m('lib/recreate/filaKlingEdit'), I = m('lib/recreate/invasor'), M = m('lib/recreate/invasorMolde')
   const s = { rows: new Map(), vaga: null, fal: [], aberto: new Set(), maxAberto: 0, agora: T0, debitos: [], estornos: [], eventos: [], n: 0, poll: new Map(), travas: [], renders: [], renderEstado: new Map(), guardados: new Set(), invasorChamado: 0 }
@@ -302,15 +340,21 @@ async function bateria(over = {}) {
         if (Math.abs(quadros / 30 - t.segundosNoFilme) > 1e-9 || Math.abs((t.segundosNoFilme * t.velocidade) / 100 - t.segundosDoArquivo) > 1e-9 || t.segundosDoArquivo < 3 || t.segundosDoArquivo > 8) throw new Error('trecho ' + t.arquivo)
         if (!/^[0-9a-f]{64}$/.test(t.sha256) || !(t.bytes > 0)) throw new Error('manifesto ' + t.arquivo)
       }
-      if (T[1].quadros[0] !== T[0].quadros[1] + 1 || M.INVASOR_BUCKET !== 'quarantine' || M.INVASOR_FORMATO.swapApproved !== false || M.INVASOR_FORMATO.swapInTest !== true) throw new Error('molde')
+      if (T[1].quadros[0] !== T[0].quadros[1] + 1 || M.INVASOR_BUCKET !== 'quarantine' || M.INVASOR_FORMATO.swapApproved !== M.INVASOR_ABERTO_AO_PUBLICO || M.INVASOR_FORMATO.swapInTest !== !M.INVASOR_ABERTO_AO_PUBLICO) throw new Error('molde')
     })
-    await check('só a casa vê o molde; o catálogo do navegador e o público não têm o molde', async () => {
+    await check('o interruptor ABERTO (CEO 15/11): todo cliente logado vê o molde na grade; visitante não; o catálogo do navegador e o público de visitante não têm o molde', async () => {
       const access = m('lib/recreate/access'), cat = m('lib/recreate/catalogoServidor'), formats = m('lib/recreate/formats'), pub = m('lib/recreate/catalogPublic')
-      if (access.recreateFormatVisible(M.INVASOR_FORMATO, 'customer@example.org') !== false || access.recreateFormatVisible(M.INVASOR_FORMATO, null) !== false) throw new Error('cliente vê')
+      if (M.INVASOR_ABERTO_AO_PUBLICO !== true || M.INVASOR_FORMATO.approvedOn !== '2026-11-15') throw new Error('o interruptor está fechado')
+      if (access.recreateFormatVisible(M.INVASOR_FORMATO, 'customer@example.org') !== true) throw new Error('o cliente não vê')
+      if (access.recreateFormatVisible(M.INVASOR_FORMATO, null) !== true) throw new Error('a regra de visibilidade mudou') // a página e as rotas exigem login (recreateSession)
       if (access.recreateFormatVisible(M.INVASOR_FORMATO, 'josephsskaf@gmail.com') !== true) throw new Error('a casa não vê')
-      if (cat.formatosParaOCliente('customer@example.org').some((f) => f.id === 'invasor-de-campo')) throw new Error('vitrine do cliente tem o molde')
+      const cli = cat.formatosParaOCliente('customer@example.org').find((f) => f.id === 'invasor-de-campo')
+      if (!cli || 'swapNote' in cli || 'creditos' in cli) throw new Error('vitrine do cliente')
       const casa = cat.formatosParaOCliente('josephsskaf@gmail.com').find((f) => f.id === 'invasor-de-campo')
       if (!casa || 'swapNote' in casa) throw new Error('vitrine da casa')
+      const fechado = loader({}, { [MOLDE]: lf(MOLDE).replace('export const INVASOR_ABERTO_AO_PUBLICO: boolean = true', 'export const INVASOR_ABERTO_AO_PUBLICO: boolean = false') })
+      const fc = fechado('lib/recreate/catalogoServidor')
+      if (fc.formatosParaOCliente('customer@example.org').some((f) => f.id === 'invasor-de-campo') || !fc.formatosParaOCliente('josephsskaf@gmail.com').some((f) => f.id === 'invasor-de-campo')) throw new Error('o interruptor fechado não volta a só a casa')
       if (formats.RECREATE_FORMATS.some((f) => f.id === 'invasor-de-campo') || pub.publicRecreateCatalog().some((x) => x.id === 'invasor-de-campo')) throw new Error('catálogo do navegador ou público tem o molde')
     })
     await check("a receita fora do JavaScript público: nenhum 'use client' alcança os módulos do invasor", async () => {
@@ -438,9 +482,8 @@ async function bateria(over = {}) {
       if (movimento.movimentoForRow(linhaAntiga)?.id !== 'jogada-de-futebol') throw new Error('a linha antiga perdeu o molde')
       const casa = cat.formatosParaOCliente('josephsskaf@gmail.com')
       if (casa.some((f) => f.id === 'jogada-de-futebol') || casa[0]?.id !== 'invasor-de-campo') throw new Error('grade da casa: ' + casa.slice(0, 3).map((f) => f.id))
-      if (M.INVASOR_ABERTO_AO_PUBLICO !== false || cat.formatosParaOCliente('customer@example.org').some((f) => f.id === 'invasor-de-campo')) throw new Error('o interruptor está aberto')
-      const aberto = loader({}, { [MOLDE]: lf(MOLDE).replace('export const INVASOR_ABERTO_AO_PUBLICO: boolean = false', 'export const INVASOR_ABERTO_AO_PUBLICO: boolean = true') })
-      if (!aberto('lib/recreate/catalogoServidor').formatosParaOCliente('customer@example.org').some((f) => f.id === 'invasor-de-campo')) throw new Error('o interruptor de uma linha não abre ao cliente')
+      const cli = cat.formatosParaOCliente('customer@example.org')
+      if (cli.some((f) => f.id === 'jogada-de-futebol') || cli[0]?.id !== 'invasor-de-campo') throw new Error('grade do cliente: ' + cli.slice(0, 3).map((f) => f.id))
     })
     await check('item 7: a tela promete a espera real do molde (10 a 15 min), sem número inventado', async () => {
       const cat = m('lib/recreate/catalogoServidor')
@@ -448,6 +491,54 @@ async function bateria(over = {}) {
       if (!v || JSON.stringify(v.esperaMinutos) !== '[10,15]' || !cat.CAMPOS_DE_VITRINE.includes('esperaMinutos')) throw new Error('a vitrine não leva a espera')
       const tela = lf('app/recreate/RecreateClient.tsx')
       if (!tela.includes('`about ${selected.esperaMinutos[0]} to ${selected.esperaMinutos[1]} minutes` : \'about 3 minutes\'') || !tela.includes('active ? `Creating your version: ${espera}. You can leave this page; it will be in My videos.`')) throw new Error('a tela não usa a espera do molde')
+    })
+    // ── 2ª revisão independente de 15/11 (bloqueios para abrir ao público) ──
+    await check('2ª revisão, item 1: a varredura horária refaz o estorno do invasor failed com 0 devolvido (qualquer motivo), uma vez só; nunca cobrado e outros clipes fora', async () => {
+      const banco = bancoDeMentira()
+      const srv = loader({ ...STUBS_DO_SERVIDOR, '@supabase/supabase-js': { createClient: () => banco.db } }, over)('lib/clips/clipServer')
+      const u = uid(77)
+      const r0 = I.planInvasor({ format: 'invasor-de-campo', consent: true, photos: [foto(u)] }, { userId: u, supabaseUrl: SUPA, dono: (x) => x }, null)
+      const fp = JSON.stringify(['pedido', KLING, r0.plan.input])
+      const linha = (n, reason, o = {}) => ({ id: uid(n), user_id: u, idempotency_key: 'k' + n, fingerprint: fp, billing_reference: 'clips-' + uid(n), engine: 'h3', mode: 'image', model: KLING, seconds: 18, aspect: 'image', prompt: 'p', image_url: foto(u), credits: 75, fal_usd: 3.6, status: 'failed', fal_request_id: null, video_url: null, failure_reason: reason, credits_refunded: 0, created_at: new Date(Date.now() - n * 60_000).toISOString(), ...o })
+      const motivos = ['invasor_segment_short', 'invasor_slot_lost', 'invasor_assembly_failed', 'provider_failed', 'provider_rejected', 'submit_lost', 'submit_ambiguous', 'expired', 'swap_unchanged', 'swap_partial', 'swap_uncertain']
+      banco.tabelas.clips = [
+        ...motivos.map((r, i) => linha(10 + i, r, i === 2 ? { model: I.INVASOR_MONTAGEM_MODEL } : {})),
+        linha(40, 'debit_failed'), linha(41, 'provider_failed', { credits_refunded: 75 }),
+        linha(42, 'provider_failed', { fingerprint: JSON.stringify(['pedido', KLING, { prompt: 'p', video_url: 'https://x.org/v.mp4', image_urls: [foto(u)], kineo_molde: 'outro' }]) }),
+      ]
+      const pagos = new Set()
+      const refund = async (ref) => (pagos.has(ref) ? 0 : (pagos.add(ref), 75))
+      const since = new Date(Date.now() - 7 * 24 * 3600_000).toISOString()
+      const r = await srv.estornarInvasoresOrfaos(banco.db, since, refund, async () => null)
+      const devolvidas = banco.tabelas.clips.filter((x) => x.credits_refunded === 75).map((x) => x.id)
+      if (r.refunded !== motivos.length || r.creditsReturned !== 75 * motivos.length) throw new Error('estornos: ' + JSON.stringify(r))
+      if (devolvidas.length !== motivos.length + 1 || banco.tabelas.clips.find((x) => x.failure_reason === 'debit_failed').credits_refunded !== 0 || banco.tabelas.clips[banco.tabelas.clips.length - 1].credits_refunded !== 0) throw new Error('linha errada estornada')
+      const r2 = await srv.estornarInvasoresOrfaos(banco.db, since, refund, async () => null)
+      if (r2.refunded !== 0 || pagos.size !== motivos.length) throw new Error('estornou duas vezes')
+      const lf2 = (f) => (over[f] ?? lf(f)).replace(/\r\n/g, '\n')
+      if (!lf2('lib/clips/clipServer.ts').includes('  const inv = await estornarInvasoresOrfaos(admin, since)')) throw new Error('a varredura horária não chama a do invasor')
+    })
+    await check('2ª revisão, item 2: a porta do invasor (pausa do motor, um por vez, teto de "não trocou", fila cheia) recusa ANTES de cobrar; a casa entra na fila', async () => {
+      const base = { replay: false, casa: false, pagante: false, abertos: 0, resultados: [], fila: { naFila: 0, vagaOcupada: false }, agoraMs: Date.now(), motorOk: true }
+      if (I.portaDoInvasor(base) !== null) throw new Error('pedido limpo recusado')
+      const p = I.portaDoInvasor({ ...base, motorOk: false })
+      if (!p || p.code !== 'engine_paused' || p.status !== 409 || p.extra.charged !== false) throw new Error('motor em pausa passou')
+      if (I.portaDoInvasor({ ...base, casa: true, motorOk: false })?.code !== 'engine_paused') throw new Error('a casa fura a pausa')
+      if (I.portaDoInvasor({ ...base, abertos: 1 })?.code !== 'already_in_progress') throw new Error('dois pedidos abertos na conta')
+      if (I.portaDoInvasor({ ...base, casa: true, abertos: 1 }) !== null) throw new Error('a casa fica fora do um por vez')
+      const agora = Date.now(), r = (n) => Array.from({ length: n }, () => ({ failure_reason: 'swap_unchanged', settled_at: new Date(agora - 60_000).toISOString(), created_at: new Date(agora - 120_000).toISOString() }))
+      if (I.portaDoInvasor({ ...base, resultados: r(2) })?.code !== 'swap_cap') throw new Error('o teto de "não trocou" não vale')
+      if (I.portaDoInvasor({ ...base, fila: { naFila: 2, vagaOcupada: true } })?.code !== 'queue_full' || I.portaDoInvasor({ ...base, casa: true, fila: { naFila: 2, vagaOcupada: true } })?.code !== 'queue_full') throw new Error('fila cheia passou')
+      if (I.portaDoInvasor({ ...base, replay: true, motorOk: false, abertos: 3 }) !== null) throw new Error('a repetição da mesma chave tem de voltar como replay')
+      const porta = m('lib/recreate/portaDoSeuVideo')
+      const d = porta.depoisDeEntrar({ casa: false, clipId: 'b', abertosDaConta: [{ id: 'a', naFila: false }, { id: 'b', naFila: true }], naFrente: 0, vagaOcupada: true })
+      if (!d.sair || d.motivo !== 'queue_one_per_account') throw new Error('reconferência')
+      const rota = (over['lib/recreate/invasorRota.ts'] ?? lf('lib/recreate/invasorRota.ts')).replace(/\r\n/g, '\n'), srv = (over['lib/clips/clipServer.ts'] ?? lf('lib/clips/clipServer.ts')).replace(/\r\n/g, '\n')
+      if (!rota.includes('    engineAccess: () => recreateEngineAccess(),')) throw new Error('o submitClip do invasor ignora a pausa do motor')
+      const iPorta = rota.indexOf('const recusa = portaDoInvasor({'), iLeitura = rota.indexOf('await lerDescricaoDaPessoa('), iSubmit = rota.indexOf('await submitClip(deps,'), iDepois = rota.indexOf('const depois = depoisDeEntrar({ casa, clipId: result.clip.id, abertosDaConta: casa ? null : await kling4AbertosDaConta(admin, user.id)')
+      if (!(iPorta > 0 && iPorta < iLeitura && iLeitura < iSubmit && iDepois > iSubmit)) throw new Error('a ordem: porta antes da leitura e da cobrança; reconferência depois de entrar')
+      if (!rota.includes('motorOk: recreateEngineAccess().ok') || !rota.includes('const resultados = doSeuVideo === null || doInvasor === null ? null : [...doSeuVideo, ...doInvasor]') || !rota.includes('await tirarDaFila(admin, result.clip.id, depois.motivo)')) throw new Error('fios da porta')
+      if (!srv.includes(".in('model', [KLING4_EDIT_MODEL, INVASOR_MONTAGEM_MODEL]).in('status', ['pending', 'processing'])")) throw new Error('o um por vez não vê o invasor na montagem')
     })
     await check('os fios do servidor e da rota', async () => {
       const srv = lf('lib/clips/clipServer.ts'), rota = lf('app/api/recreate/route.ts'), assets = lf('app/api/recreate/assets/[name]/route.ts'), pedir = lf('lib/recreate/invasorRota.ts')
@@ -505,7 +596,17 @@ if (real.length) { console.error('FALHA\n' + real.join('\n')); process.exit(1) }
 const inv = lf(INV), flow = lf(FLOW), molde = lf(MOLDE), formats = lf(FORMATS)
 const FILA = 'lib/recreate/filaKlingEdit.ts', ACCESS = 'lib/recreate/access.ts', MOV = 'lib/recreate/movimentoMoldes.ts'
 const fila = lf(FILA), access = lf(ACCESS), mov = lf(MOV)
+const SRV = 'lib/clips/clipServer.ts', ROTA = 'lib/recreate/invasorRota.ts'
+const srvSrc = lf(SRV), rotaSrc = lf(ROTA)
 const mutantes = [
+  // 2ª revisão independente de 15/11 (bloqueios para o público)
+  ['2ª rev. item 1: a varredura não acha o invasor', { [SRV]: srvSrc.replace(".like('fingerprint', '%kineo_molde%')", ".like('fingerprint', '%kineo_nada%')") }],
+  ['2ª rev. item 1: a varredura horária não chama a do invasor', { [SRV]: srvSrc.replace('  const inv = await estornarInvasoresOrfaos(admin, since)', '  const inv = { refunded: 0, creditsReturned: 0 }') }],
+  ['2ª rev. item 1: a varredura estorna o que nunca foi cobrado', { [SRV]: srvSrc.replace(".like('fingerprint', '%kineo_molde%').not('failure_reason', 'in', `(${MOVIMENTO_ESTORNO_NUNCA_COBRADO.join(',')})`)", ".like('fingerprint', '%kineo_molde%')") }],
+  ['2ª rev. item 2: a porta ignora a pausa do motor', { [INV]: inv.replace('  if (!e.replay && !e.motorOk) return', '  if (false) return') }],
+  ['2ª rev. item 2: o submitClip do invasor sem a pausa', { [ROTA]: rotaSrc.replace('    engineAccess: () => recreateEngineAccess(),', '    engineAccess: () => ({ ok: true as const }),') }],
+  ['2ª rev. item 2: sem a reconferência depois de entrar', { [ROTA]: rotaSrc.replace('const depois = depoisDeEntrar({ casa, clipId: result.clip.id, abertosDaConta: casa ? null : await kling4AbertosDaConta(admin, user.id)', 'const depois = depoisDeEntrar({ casa, clipId: result.clip.id, abertosDaConta: null') }],
+  ['2ª rev. item 2: o um por vez não vê o invasor na montagem', { [SRV]: srvSrc.replace(".in('model', [KLING4_EDIT_MODEL, INVASOR_MONTAGEM_MODEL]).in('status', ['pending', 'processing'])", ".in('model', [KLING4_EDIT_MODEL]).in('status', ['pending', 'processing'])") }],
   // revisão independente de 15/11
   ['item 1: a vigia fecha o invasor que não segura a vaga', { [FILA]: fila.replace("  if (opts.soComVaga) return 'nada'\n", '') }],
   ['item 2: trecho que não trocou é entregue', { [INV]: inv.replace('  if (Object.hasOwn(NAO_ENTREGA, veredito.result)) return fail(', '  if (false) return fail(') }],
@@ -527,7 +628,7 @@ const mutantes = [
   ['settleClip sem a máquina do invasor', { [FLOW]: flow.replace("  if (row.status === 'processing' && deps.invasor?.applies(row)) return deps.invasor.settle(row)\n", '') }],
   ['as marcas kineo_* vão à fal', { [INV]: inv.replace("Object.entries(input).filter(([k]) => !k.startsWith('kineo_'))", 'Object.entries(input)') }],
   ['a receita no JavaScript público', { [FORMATS]: formats.replace("import { recreateCreditCost } from '@/lib/checkoutPricing'", "import { recreateCreditCost } from '@/lib/checkoutPricing'\nimport { INVASOR_ID } from './invasorMolde'") }],
-  ['o cliente vê o molde (interruptor aberto)', { [MOLDE]: molde.replace('export const INVASOR_ABERTO_AO_PUBLICO: boolean = false', 'export const INVASOR_ABERTO_AO_PUBLICO: boolean = true') }],
+  ['o interruptor volta a fechar (o cliente não vê)', { [MOLDE]: molde.replace('export const INVASOR_ABERTO_AO_PUBLICO: boolean = true', 'export const INVASOR_ABERTO_AO_PUBLICO: boolean = false') }],
   ['envio perdido nunca fecha', { [INV]: inv.replace('agora - marca.em >= INVASOR_ENVIO_PERDIDO_MS ?', 'false ?') }],
   ['montagem tenta para sempre', { [INV]: inv.replace("    if (marca.n >= INVASOR_MONTAGEM_TENTATIVAS) return fail(INVASOR_FALHAS.montagem, { why: motivo })", '    void motivo') }],
   ['montagem sem o som original', { [INV]: inv.replace("  const som = { type: 'audio', track: 2, time: 0, duration: INVASOR_SOM.segundos, source: a.som, volume: '100%' }", "  const som = { type: 'audio', track: 2, time: 0, duration: INVASOR_SOM.segundos, source: a.som, volume: '0%' }") }],

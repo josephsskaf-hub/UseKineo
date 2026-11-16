@@ -19,6 +19,7 @@ import type { ClipRow, ProviderState } from '@/lib/clips/clipFlow'
 import type { RecreatePlan } from './generation'
 import { KLING4_EDIT_MODEL, KLING4_USD_POR_SEGUNDO_720P } from './seuVideo'
 import { RECREATE_UNPRICED_ERROR } from './formats'
+import { decidirPorta, type EstadoDaPorta, type RecusaDaPorta } from './portaDoSeuVideo'
 import { INVASOR_ALVO, INVASOR_ALVO_DE_OCULOS, INVASOR_FORMATO, INVASOR_ID, INVASOR_SAIDA, INVASOR_SOM, INVASOR_TRECHOS } from './invasorMolde'
 
 export const INVASOR_MARCA = 'KINEO-INVASOR-DE-CAMPO-1511'
@@ -107,6 +108,16 @@ export function planInvasor(raw: Record<string, unknown>, ctx: { userId: string;
     model: KLING4_EDIT_MODEL, credits: INVASOR_CREDITOS, falUsd: INVASOR_FAL_USD, photos: [foto],
     input: { ...entradaDoTrecho({ prompt, foto, trecho: 0 }), kineo_molde: INVASOR_ID },
   } }
+}
+
+// ─── A porta (KINEO-INVASOR-DE-CAMPO-1511 [2º revisor 15/11, item 2]) ───
+export const INVASOR_PAUSADO = 'engine_paused' as const
+export const FRASE_INVASOR_PAUSADO = 'This video is temporarily paused for maintenance. Nothing was charged.'
+/** Tudo o que recusa o pedido ANTES de cobrar: o motor em pausa (a mesma pausa da troca do catálogo) e a porta do Kling edit (lib/recreate/portaDoSeuVideo decidirPorta:
+ *  um pedido aberto por conta, o teto de "não trocou", a fila cheia). null = pode seguir para a cobrança. A repetição da mesma chave nunca passa por aqui. */
+export function portaDoInvasor(e: EstadoDaPorta & { motorOk: boolean }): RecusaDaPorta | null {
+  if (!e.replay && !e.motorOk) return { code: INVASOR_PAUSADO, status: 409, error: FRASE_INVASOR_PAUSADO, extra: { charged: false } }
+  return decidirPorta(e)
 }
 
 // ─── A linha ───

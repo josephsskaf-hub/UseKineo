@@ -26,7 +26,13 @@ O cliente logado manda UMA foto. O servidor faz 3 pedidos ao `kling/v4/video-to-
 6. "Football play" (jogada-de-futebol) retirado da grade e do catálogo para todos; fica na lista para as linhas antigas, guia no bucket. O Pitch invader está no topo da grade da casa. Interruptor de uma linha: `INVASOR_ABERTO_AO_PUBLICO` em `lib/recreate/invasorMolde.ts` (fechado).
 7. A tela diz "about 10 to 15 minutes" para este molde (campo `esperaMinutos`).
 
-## O que falta para abrir
+## Aberto ao público (15/11)
+Teste pago da casa aprovado pela CEO (clipe a3b76cb7, 6 min 40 s, 18,4 s com som, rosto trocado nos 3 trechos). 2ª revisão independente: os 2 bloqueios consertados.
+1. Varredura horária `estornarInvasoresOrfaos` (lib/clips/clipServer.ts): toda linha do invasor failed com 0 devolvido, qualquer motivo menos "nunca cobrado", estorna pela billing_reference (idempotente); 0 = o livro-razão decide.
+2. A rota do invasor tem as travas do Recreate: pausa do motor (recreateEngineAccess, também no submitClip), um pedido aberto do Kling edit por conta (contando o invasor na montagem), teto de "não trocou" da conta ("seu vídeo" + invasor), fila cheia pelos trechos que faltam, tudo ANTES de cobrar; depois de entrar na fila, a reconferência (depoisDeEntrar) tira com estorno.
+`INVASOR_ABERTO_AO_PUBLICO = true`: todo cliente logado vê o molde na grade do Recreate (no lugar do "Football play"). Visitante e home: nada. Volta: false.
+
+## O que falta para abrir (histórico de 15/11, antes do teste)
 1. Subir os 6 arquivos de `C:\kineo\docs\invasor-de-campo-1511\subir-ao-bucket-privado\` ao bucket PRIVADO `quarantine`, pasta `recreate-guias/v1`, com os mesmos nomes (painel do Supabase → Storage). Tamanho e sha256 estão em `lib/recreate/invasorMolde.ts`; sem eles a rota recusa antes de cobrar.
 2. Publicar. O molde é só da casa (`swapInTest`), fora da home e do catálogo público.
 3. Teste pago (conta da casa, rosto inventado, ~US$ 3,75 com a foto): só DEPOIS de publicar. Antes disso o cron de produção liquidaria a linha com o código velho (entregaria o trecho 0 como filme e cobraria).

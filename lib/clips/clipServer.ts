@@ -73,7 +73,7 @@ import { comEndUserDaFal } from '@/lib/recreate/falEndUser' // KINEO-RECREATE-FI
 import { semMarcasDaCasa } from '@/lib/recreate/seuVideo' // KINEO-RECREATE-FILA-KLING-EDIT-1411
 // KINEO-INVASOR-DE-CAMPO-1511 — o molde de vários trechos: a máquina (pura) e os arquivos privados dele.
 import { INVASOR_ENTRADA, INVASOR_ID, INVASOR_TRECHOS, INVASOR_SAIDA } from '@/lib/recreate/invasorMolde'
-import { INVASOR_SELO, pesoNaFila, entradaDoTrecho, fonteDaMontagem, invasorDaLinha, resolverEntrada, settleInvasor, INVASOR_SEGUNDOS_DO_FILME, type InvasorIo } from '@/lib/recreate/invasor'
+import { INVASOR_MONTAGEM_MODEL, INVASOR_SELO, pesoNaFila, entradaDoTrecho, fonteDaMontagem, invasorDaLinha, resolverEntrada, settleInvasor, INVASOR_SEGUNDOS_DO_FILME, type InvasorIo } from '@/lib/recreate/invasor'
 import { assinarSomDoInvasor, assinarTrechoDoInvasor } from '@/lib/recreate/invasorServer'
 import { buildFreeClipWatermarkSource, freeClipWatermarkDecision, probeClipVideo } from '@/lib/clips/freeClipWatermark'
 import { checarTrocaDoTrecho } from '@/lib/recreate/swapCheck' // KINEO-INVASOR-DE-CAMPO-1511 — a trava em cada trecho
@@ -1118,6 +1118,9 @@ export async function sweepClipJobs(): Promise<{ scanned: number; delivered: num
   await conferirGuias(admin, clipEvent('00000000-0000-0000-0000-000000000000')).catch(() => null) // KINEO-GUIA-PRIVADO-1411 — de hora em hora: todo guia do manifesto no bucket privado (o que falta é copiado da cópia antiga só com o sha256 certo; senão, evento)
   result.refunded += mov.refunded
   result.creditsReturned += mov.creditsReturned
+  const inv = await estornarInvasoresOrfaos(admin, since) // KINEO-INVASOR-DE-CAMPO-1511 [2º revisor 15/11, item 1] — o molde de vários trechos, qualquer motivo
+  result.refunded += inv.refunded
+  result.creditsReturned += inv.creditsReturned
   return result
 }
 // KINEO-MOVIMENTO-ANTES-DO-CLIENTE-1411 [CEO 14/11 10:55, item 1: "estorno que falha nunca volta no movimento"] — toda falha do movimento (cena que falhou, não é você, cena recusada
@@ -1170,6 +1173,54 @@ export async function estornarOrfaosDaTrocaEDaFila(admin: SupabaseClient, since:
   return total
 }
 const MOVIMENTO_ESTORNO_CHAVE = /^[0-9A-Za-z:.+\- ]{1,64}$/
+// KINEO-INVASOR-DE-CAMPO-1511 [2º revisor independente 15/11, item 1: "estorno que falha na hora nunca volta"] — o molde de vários trechos fecha failed por fail() (estorno e
+// depois failed), mas refundRenderCredits devolve 0 em erro de RPC SEM lançar: a linha ficava failed com 0 devolvido (75 créditos) e nenhuma varredura voltava nela (a da troca
+// e da fila só cobre swap_* e a fila; a do movimento, só o movimento). Agora, de hora em hora, o MESMO desenho do movimento: toda linha do invasor failed com 0 devolvido
+// (7 dias), QUALQUER motivo (trecho curto, vaga perdida, montagem, recusa, envio perdido, ambíguo, vencido, não trocou por trecho…), menos a que nunca foi cobrada, estorna
+// pela billing_reference (o RPC é idempotente: devolve > 0 uma vez só); 0 = o livro-razão decide (estorno já registrado grava o valor real; sem débito = never_charged).
+// Busca estreita pelo que o servidor gravou (modelo dos trechos ou da montagem + kineo_molde na impressão digital) e conferida no código (invasorDaLinha).
+export async function estornarInvasoresOrfaos(admin: SupabaseClient, since: string, refund: (billingReference: string) => Promise<number> = (ref) => refundRenderCredits(ref), livro: MovimentoLivroRazao = livroRazaoDoClipe(admin)): Promise<{ scanned: number; refunded: number; creditsReturned: number; jaDevolvidos: number; nuncaCobrados: number }> {
+  const total = { scanned: 0, refunded: 0, creditsReturned: 0, jaDevolvidos: 0, nuncaCobrados: 0 }
+  const setRefunded = (id: string, refunded: number) => recreateSwapDepsFor(admin, '').setRefunded(id, refunded)
+  let cursor: { createdAt: string; id: string } | null = null
+  for (let p = 0; p < MOVIMENTO_ESTORNO_PAGINAS; p++) {
+    let q = admin.from(CLIPS_TABLE).select(COLUMNS).eq('status', 'failed').eq('credits_refunded', 0).in('model', [KLING4_EDIT_MODEL, INVASOR_MONTAGEM_MODEL]).like('fingerprint', '%kineo_molde%').not('failure_reason', 'in', `(${MOVIMENTO_ESTORNO_NUNCA_COBRADO.join(',')})`).gte('created_at', since)
+    if (cursor) q = q.or(`created_at.lt."${cursor.createdAt}",and(created_at.eq."${cursor.createdAt}",id.lt."${cursor.id}")`)
+    const { data, error } = await q.order('created_at', { ascending: false }).order('id', { ascending: false }).limit(MOVIMENTO_ESTORNO_PAGINA)
+    if (error) { console.error('[clips/sweep] invasor refund lookup failed:', error.message); break }
+    const pagina = (data ?? []).map((raw) => toRow(raw as Record<string, unknown>))
+    for (const row of pagina.filter((r) => invasorDaLinha(r) && r.status === 'failed' && r.credits_refunded === 0)) {
+      total.scanned += 1
+      const amount = await refund(row.billing_reference)
+      if (amount > 0) { await setRefunded(row.id, amount); total.refunded += 1; total.creditsReturned += amount; continue }
+      const debito = await livro(row.billing_reference, row.user_id).catch(() => null)
+      if (debito === 'sem-debito') { if (await marcarNuncaCobrado(admin, row)) total.nuncaCobrados += 1; continue }
+      if (debito?.refunded && debito.amount > 0) { await setRefunded(row.id, debito.amount); total.jaDevolvidos += 1 }
+    }
+    if (pagina.length < MOVIMENTO_ESTORNO_PAGINA) break
+    const ultima = pagina[pagina.length - 1]
+    if (!MOVIMENTO_ESTORNO_CHAVE.test(ultima.created_at) || !MOVIMENTO_ESTORNO_CHAVE.test(ultima.id)) { console.error('[clips/sweep] invasor refund cursor unreadable'); break }
+    cursor = { createdAt: ultima.created_at, id: ultima.id }
+  }
+  return total
+}
+/** KINEO-INVASOR-DE-CAMPO-1511 [2º revisor 15/11, item 2] — os pedidos ABERTOS da conta no Kling edit, contando o molde de vários trechos inteiro (na fila, nos trechos e
+ *  na MONTAGEM, quando o modelo da linha já mudou), do mais antigo ao mais novo, com "está na fila". Para a porta (um por vez) e a reconferência. Erro = null. */
+export async function kling4AbertosDaConta(admin: SupabaseClient, userId: string): Promise<Array<{ id: string; naFila: boolean }> | null> {
+  const { data, error } = await admin.from(CLIPS_TABLE).select('id, status, failure_reason, fal_request_id').eq('user_id', userId).in('model', [KLING4_EDIT_MODEL, INVASOR_MONTAGEM_MODEL]).in('status', ['pending', 'processing'])
+    .order('created_at', { ascending: true }).order('id', { ascending: true }).limit(20)
+  if (error) return null
+  return (data ?? []).map((r) => { const x = r as { id: unknown; status: unknown; failure_reason: unknown; fal_request_id: unknown }; return { id: String(x.id), naFila: x.status === 'pending' && x.failure_reason === FILA_MARCA && !x.fal_request_id } })
+}
+/** KINEO-INVASOR-DE-CAMPO-1511 [2º revisor 15/11, item 2] — os "não trocou" da conta no molde de vários trechos (o mesmo teto do "seu vídeo": lib/recreate/tetoNaoTrocou). Erro = null. */
+export async function lerNaoTrocouDoInvasor(admin: SupabaseClient, userId: string, motivos: readonly string[], janelaHoras: number): Promise<Array<{ failure_reason: string | null; settled_at: string | null; created_at: string }> | null> {
+  const desde = new Date(Date.now() - (janelaHoras + 2) * 60 * 60 * 1000).toISOString()
+  const { data, error } = await admin.from(CLIPS_TABLE).select('failure_reason, settled_at, created_at, fingerprint, engine, mode, model').eq('user_id', userId).eq('status', 'failed')
+    .in('failure_reason', [...motivos]).in('model', [KLING4_EDIT_MODEL, INVASOR_MONTAGEM_MODEL]).gte('created_at', desde).order('created_at', { ascending: false }).limit(50)
+  if (error) return null
+  return (data ?? []).filter((r) => invasorDaLinha(r as unknown as ClipRow))
+    .map((r) => { const x = r as { failure_reason: string | null; settled_at: string | null; created_at: string }; return { failure_reason: x.failure_reason, settled_at: x.settled_at, created_at: x.created_at } })
+}
 // KINEO-MOVIMENTO-ANTES-DE-ABRIR-2-1411 [revisor da CEO 14/11, itens 1 e 2] — o livro confere o DONO (render_id E user_id: dinheiro confere dono) e diz "sem débito" à parte de "erro de
 // leitura": erro = null (tenta na hora seguinte); nenhuma linha deste dono com esta referência = 'sem-debito' (a varredura marca never_charged).
 /** KINEO-MOVIMENTO-ANTES-DE-ABRIR-2-1411 — a linha failed sem débito do dono no livro, com mais de 1 h: vira never_charged (UPDATE condicional ao motivo lido) e sai da busca; o motivo

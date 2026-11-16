@@ -59,12 +59,15 @@ export const INVASOR_ALVO_DE_OCULOS = true
 // KINEO-INVASOR-DE-CAMPO-1511 [CEO 15/11] — O INTERRUPTOR DE UMA LINHA. false = só a casa vê e pede (swapInTest). true = o molde vai a TODO cliente logado na grade do
 // Recreate (swapApproved), com o preço da tabela (lib/checkoutPricing.ts). Só depois do teste pago da casa (quadros conferidos) e do sim do dono no preço.
 // Não põe nada na home nem na vitrine pública de visitante.
-export const INVASOR_ABERTO_AO_PUBLICO: boolean = false
+// ABERTO em 15/11 (CEO): teste pago da casa aprovado (clipe a3b76cb7, 6 min 40 s, 18,4 s com som, rosto trocado nos 3 trechos, folha a 2 fps conferida), 2ª revisão
+// independente com os 2 bloqueios consertados (varredura de estorno do invasor; pausa do motor, um por vez, teto de "não trocou" e reconferência na rota), molde e
+// preço de 75 aprovados pelo dono. Volta: false.
+export const INVASOR_ABERTO_AO_PUBLICO: boolean = true
 
 export const INVASOR_FORMATO: RecreateFormat = {
   id: INVASOR_ID, title: 'Pitch invader', desde: '2026-11-15', type: 'swap',
   preview: '/api/recreate/assets/invasor-de-campo.mp4', poster: '/api/recreate/assets/invasor-de-campo.jpg',
-  seconds: 18, prompt: '', photoSlots: 1, swapApproved: INVASOR_ABERTO_AO_PUBLICO, swapInTest: !INVASOR_ABERTO_AO_PUBLICO,
+  seconds: 18, prompt: '', photoSlots: 1, swapApproved: INVASOR_ABERTO_AO_PUBLICO, swapInTest: !INVASOR_ABERTO_AO_PUBLICO, approvedOn: '2026-11-15',
   creditos: recreateCreditCostVariosTrechos(18), // lib/checkoutPricing.ts (dono 15/11: "vamos vender a 75")
   esperaMinutos: [10, 15], // 3 trechos de 1,5 a 4 min cada (medido 13–14/11: 88 a 259 s por pedido) + a trava de cada trecho + a montagem
   swapNote: '15/11: 3 Kling 4.0 edit segments (8 + 8 + 2.4 s) one at a time + assembly with the original sound; house only (third-party broadcast clip)',
