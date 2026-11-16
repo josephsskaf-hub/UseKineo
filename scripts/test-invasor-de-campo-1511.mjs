@@ -522,7 +522,7 @@ async function bateria(over = {}) {
       }
       if (p.recreateCreditCost(14) !== null || !/AGUARDA O SIM DO DONO/.test(lf('lib/checkoutPricing.ts'))) throw new Error('preço da casa fora da tabela ou sem a marca')
       // interruptor aberto SEM preço público: o cliente continua sem ver e o pedido é recusado (o provisório da casa nunca vira preço público)
-      const aberto = loader({}, { [MOLDE]: (over[MOLDE] ?? lf(MOLDE)).replace('export const BASQUETE_ABERTO_AO_PUBLICO: boolean = false', 'export const BASQUETE_ABERTO_AO_PUBLICO: boolean = true') })
+      const aberto = loader({}, { ...over, [MOLDE]: (over[MOLDE] ?? lf(MOLDE)).replace('export const BASQUETE_ABERTO_AO_PUBLICO: boolean = false', 'export const BASQUETE_ABERTO_AO_PUBLICO: boolean = true') })
       const fb = aberto('lib/recreate/catalogoServidor').recreateFormatServidor('basquete')
       if (aberto('lib/recreate/access').recreateFormatVisible(fb, 'customer@example.org') || fb.creditos !== null) throw new Error('o preço provisório da casa virou público')
       const pl = aberto('lib/recreate/invasor').planInvasor({ format: 'basquete', consent: true, photos: [foto(uid(5))] }, { userId: uid(5), supabaseUrl: SUPA, dono: (x) => x }, null)
@@ -601,7 +601,7 @@ async function bateria(over = {}) {
       if (!juntos.includes('  const destaque = catalogo.find(f => f.palco === true)\n  if (destaque) return destaque\n  return catalogo.find(f => publicRecreatePath(f.id) !== null) ?? catalogo[0] ?? null')) throw new Error('o palco da tela única não abre no molde aberto')
     })
     await check('novidade (KINEO-NOVIDADE-EM-EVIDENCIA-1611): molde aberto sem preço nunca vai ao público nem cai na tabela por duração; o aberto mais novo abre a grade e o palco; o topo da home por data', async () => {
-      const semPreco = loader({}, { [MOLDE]: (over[MOLDE] ?? lf(MOLDE)).replace("creditosPublicos: recreateCreditCostMoldePublico('cachorro-craque')", 'creditosPublicos: null') })
+      const semPreco = loader({}, { ...over, [MOLDE]: (over[MOLDE] ?? lf(MOLDE)).replace("creditosPublicos: recreateCreditCostMoldePublico('cachorro-craque')", 'creditosPublicos: null') })
       const sc = semPreco('lib/recreate/catalogoServidor').recreateFormatServidor('cachorro-craque'), sf = semPreco('lib/recreate/formats'), sa = semPreco('lib/recreate/access')
       if (!sc || sc.swapApproved !== false || sc.palco === true || sc.creditos !== null || sf.recreateCreditsFor(sc) !== null || sf.recreateSwapPriced(sc) || sa.recreateFormatVisible(sc, 'customer@example.org')) throw new Error('aberto sem preço foi ao público: ' + JSON.stringify(sc))
       const cat = m('lib/recreate/catalogoServidor')

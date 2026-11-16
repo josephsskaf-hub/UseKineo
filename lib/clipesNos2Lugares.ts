@@ -181,7 +181,7 @@ export const CLIPES_FORA_DA_VITRINE_1311: readonly ClipeNovo[] = [
 // Molde aberto SEM cartão (o "Dog goal": o teste pago 48e7e5bf mostra a bola dupla e a placa com letras) só entra quando o cartão dele entrar em CLIPES_NOVOS.
 export const TOPO_DA_CASA: readonly string[] = ['carta-do-front', 'raposa-lanterna', 'selfie-confete', 'anuncio-burger-camera-lenta', 'anuncio-creme-selfie', 'sueter-aconchegante']
 export function topoComNovidades(base: readonly string[], cartoes: readonly ClipeNovo[] = CLIPES_NOVOS): string[] { // módulo puro, sem import (o guardião dos 2 lugares confere)
-  const moldes = cartoes.filter((c) => c.selo === 'Recreate template' && typeof c.desde === 'string')
+  const moldes = (cartoes ?? []).filter((c) => c.selo === 'Recreate template' && typeof c.desde === 'string') // lista ausente (os guardiões refazem a lista de datas antigas depois deste ponto) = só a base
     .map((c, i) => ({ id: c.id, desde: c.desde as string, i })).sort((a, b) => (a.desde < b.desde ? 1 : a.desde > b.desde ? -1 : a.i - b.i)).map((c) => c.id)
   return [...moldes, ...base.filter((id) => !moldes.includes(id))].slice(0, 6)
 }
