@@ -487,7 +487,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
     setCompraAberta(true)
   }
   const botaoDeCompra = faltam > 0 && quote ? <button className="rc-generate" data-recreate-buy-credits="" aria-describedby="rc-generate-reason" onClick={abrirCompra}>{`Get ${faltam} more credits`}<span>✦ {quote.credits}</span></button> : null
-  const compra = compraAberta ? <TopupOuRecargaModal surface="recreate_generate" onClose={() => setCompraAberta(false)} /> : null
+  const compra = compraAberta ? <TopupOuRecargaModal surface="recreate_generate" shortfall={faltam} onClose={() => setCompraAberta(false)} /> : null
   const photoCount = photos.filter(Boolean).length
   const photosReady = !!selected && photoCount === selected.photoSlots
   const editingDisabled = busy || photoBusy || active || (currentFlow && (restoring || uncertain))

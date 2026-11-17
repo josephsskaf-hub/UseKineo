@@ -41,12 +41,18 @@ import { RECARGA_ASSINANTE_COPY } from '@/lib/billing/recargaAssinante' // KINEO
 export type CreditsTopupRecarga = { go: string; back: string; qa: boolean }
 
 /** KINEO-PRECO-MERCADO-0411 — sem top-up à venda, quem fica sem crédito vê o caminho que existe: subir de plano ou esperar a renovação. */
-export default function CreditsTopupModal(props: { onClose: () => void; surface: string; recarga?: CreditsTopupRecarga | null }) {
+export function creditShortfallCopy(shortfall?: number | null): string | null {
+  return typeof shortfall === 'number' && Number.isSafeInteger(shortfall) && shortfall > 0
+    ? `You need ${shortfall} more ${shortfall === 1 ? 'credit' : 'credits'}.`
+    : null
+}
+
+export default function CreditsTopupModal(props: { onClose: () => void; surface: string; recarga?: CreditsTopupRecarga | null; shortfall?: number | null }) {
   if (TOPUPS_LIVE || props.recarga) return <CreditsTopupModalVenda {...props} /> // KINEO-RECARGA-ASSINANTE-1111 — a barra do assinante
   return (
     <div role="dialog" aria-modal="true" data-credits-out-plans onClick={props.onClose} style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.55)' }}>
       <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 400, padding: 24, borderRadius: 16, background: 'var(--surface, #fff)', color: 'var(--text)', border: '1px solid var(--border)' }}>
-        <h2 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 900 }}>You&apos;re out of credits</h2>
+        <h2 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 900 }}>{creditShortfallCopy(props.shortfall) ?? 'Add credits to keep creating'}</h2>
         <p style={{ margin: '0 0 18px', fontSize: 14, lineHeight: 1.5, color: 'var(--muted)' }}>Credits come with your plan and renew every month. Pick a bigger plan to keep creating now.</p>
         <a href="/pricing?from=out_of_credits" style={{ display: 'block', padding: '12px 14px', borderRadius: 12, background: 'var(--accent)', color: '#fff', fontWeight: 800, textAlign: 'center', textDecoration: 'none' }}>See plans</a>
         <button type="button" onClick={props.onClose} style={{ display: 'block', width: '100%', marginTop: 8, padding: 10, border: 0, background: 'transparent', color: 'var(--muted)', fontWeight: 700, cursor: 'pointer' }}>Not now</button>
@@ -59,11 +65,13 @@ function CreditsTopupModalVenda({
   onClose,
   surface,
   recarga = null,
+  shortfall,
 }: {
   onClose: () => void
   /** telemetry surface, e.g. 'sidebar_chip' | 'images_402' | 'audio_402' */
   surface: string
   recarga?: CreditsTopupRecarga | null
+  shortfall?: number | null
 }) {
   const checkout = useCheckoutLaunch(`credits_topup_modal_${surface}`)
   const [recargaGoing, setRecargaGoing] = useState(false) // KINEO-RECARGA-ASSINANTE-1111
@@ -146,7 +154,7 @@ function CreditsTopupModalVenda({
         </div>
 
         <h2 className="text-2xl font-black mb-1 tracking-tight" style={{ color: 'var(--text)' }}>
-          Keep your plan. <span className="grad-text">Add credits.</span>
+          {creditShortfallCopy(shortfall) ?? <>Keep your plan. <span className="grad-text">Add credits.</span></>}
         </h2>
         <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
           One-time packs, added to your balance instantly after payment. No subscription change.

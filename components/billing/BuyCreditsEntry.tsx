@@ -35,16 +35,16 @@ export function useRecargaEntrada(surface: string, enabled = true): RecargaAssin
 }
 
 /** A barra aberta a partir de uma entrada (a volta depois de pagar = a tela atual, com a ideia quando houver). */
-export function BuyCreditsModal({ offer, surface, idea = null, onClose }: { offer: RecargaAssinanteOffer; surface: string; idea?: string | null; onClose: () => void }) {
+export function BuyCreditsModal({ offer, surface, idea = null, shortfall, onClose }: { shortfall?: number | null; offer: RecargaAssinanteOffer; surface: string; idea?: string | null; onClose: () => void }) {
   const back = typeof window !== 'undefined' ? recargaAssinanteBack(`${window.location.pathname}${window.location.search}`, idea) : '/studio'
-  const modal = <CreditsTopupModal surface={`buy_credits_${surface}`} recarga={{ go: offer.go, back, qa: offer.qa }} onClose={onClose} />
+  const modal = <CreditsTopupModal surface={`buy_credits_${surface}`} recarga={{ go: offer.go, back, qa: offer.qa }} shortfall={shortfall} onClose={onClose} />
   return typeof document !== 'undefined' ? createPortal(modal, document.body) : modal
 }
 
 /** KINEO-RECARGA-TELAS-1211 — o pop-up de "sem crédito" das telas de criação: o servidor diz se é assinante pago → a barra da recarga;
  *  senão (ou leitura que falhou) → o pop-up de sempre ("Pick a bigger plan"). Enquanto lê, nada é pintado (sem piscar de uma tela para
  *  a outra). Troca de UMA linha em cada tela; quem não assina vê exatamente o de antes. */
-export function TopupOuRecargaModal({ surface, onClose, idea = null }: { surface: string; onClose: () => void; idea?: string | null }) {
+export function TopupOuRecargaModal({ surface, onClose, idea = null, shortfall }: { shortfall?: number | null; surface: string; onClose: () => void; idea?: string | null }) {
   const [estado, setEstado] = useState<'lendo' | 'nada' | RecargaAssinanteOffer>(RECARGA_ASSINANTE_1111_RELEASE === 'off' ? 'nada' : 'lendo')
   useEffect(() => {
     if (RECARGA_ASSINANTE_1111_RELEASE === 'off') return
@@ -60,8 +60,8 @@ export function TopupOuRecargaModal({ surface, onClose, idea = null }: { surface
     return () => { alive = false }
   }, [surface])
   if (estado === 'lendo') return null
-  if (estado === 'nada') return <CreditsTopupModal surface={surface} onClose={onClose} />
-  return <BuyCreditsModal offer={estado} surface={surface} idea={idea} onClose={onClose} />
+  if (estado === 'nada') return <CreditsTopupModal surface={surface} shortfall={shortfall} onClose={onClose} />
+  return <BuyCreditsModal offer={estado} surface={surface} idea={idea} shortfall={shortfall} onClose={onClose} />
 }
 
 /** O link discreto "Buy credits" (≥ 12 px) para pôr junto da linha de custo das telas de criação. */

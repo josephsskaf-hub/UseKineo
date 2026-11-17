@@ -34,8 +34,8 @@ function battery(src) {
   if (!f.includes("setEstado(o && o.show === true && typeof o.go === 'string' && typeof o.qa === 'boolean' ? (o as RecargaAssinanteOffer) : 'nada')")) p.push('a peça não decide pelo "show" do servidor')
   if (!f.includes(".catch(() => { if (alive) setEstado('nada') })")) p.push('leitura que falhou não volta ao pop-up de antes')
   if (!f.includes("if (estado === 'lendo') return null")) p.push('a peça pinta antes de saber (pisca de uma tela para a outra)')
-  if (!f.includes("if (estado === 'nada') return <CreditsTopupModal surface={surface} onClose={onClose} />")) p.push('quem não assina não vê o pop-up de antes')
-  if (!f.includes('return <BuyCreditsModal offer={estado} surface={surface} idea={idea} onClose={onClose} />')) p.push('o assinante não vê a mesma barra da recarga')
+  if (!f.includes("if (estado === 'nada') return <CreditsTopupModal surface={surface} shortfall={shortfall} onClose={onClose} />")) p.push('quem não assina não vê o pop-up de antes')
+  if (!f.includes('return <BuyCreditsModal offer={estado} surface={surface} idea={idea} shortfall={shortfall} onClose={onClose} />')) p.push('o assinante não vê a mesma barra da recarga')
   for (const pre of ['/images', '/audio', '/animate', '/clips']) if (!src[LIB].includes(`'${pre}'`)) p.push(`depois de pagar, ${pre} não volta para ${pre}`)
   return p
 }
