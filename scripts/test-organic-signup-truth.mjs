@@ -64,6 +64,17 @@ check(!JSON.stringify(context).includes('private customer idea'), 'prompt never 
 check(!JSON.stringify(context).includes('private@example.com'), 'email never enters analytics context')
 equal(truth.organicSignupHandoffContext(new URLSearchParams({ utm_source: 'direct' })), null, 'non-organic handoff is ignored')
 
+
+check(truth.isOrganicSignupAttribution({ campaign: 'for_creators_1611' }), 'creator landing handoff is recognized')
+check(!truth.isOrganicSignupAttribution({ campaign: 'for_creators_1611_other' }), 'creator landing campaign match is exact')
+const creatorsContext = truth.organicSignupHandoffContext(new URLSearchParams({ intent_campaign: 'for_creators_1611', create_intent: 'trial_best' }))
+equal(creatorsContext.campaign, 'for_creators_1611', 'creator campaign survives signup handoff')
+equal(creatorsContext.source, 'unknown', 'creator landing does not invent an acquisition source')
+equal(creatorsContext.medium, 'unknown', 'creator landing does not invent an acquisition medium')
+const creatorsReferral = truth.organicSignupHandoffContext(new URLSearchParams({ intent_campaign: 'for_creators_1611', utm_source: 'chatgpt.com', utm_medium: 'referral' }))
+equal(creatorsReferral.source, 'chatgpt.com', 'creator landing retains referral source')
+equal(creatorsReferral.medium, 'referral', 'creator landing retains referral medium')
+
 const event = (name, user_id, session_id = null, metadata = null) => ({
   name, user_id, session_id, metadata, created_at: '2026-08-29T12:00:00Z',
 })

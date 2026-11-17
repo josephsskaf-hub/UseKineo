@@ -6,6 +6,9 @@ const ANSWER_ENGINE_HOOK_ATTRIBUTION = {
   campaign: 'aeo_hook_workbench_v1',
 } as const
 
+// Explicit public landing handoffs identify the page, never the visitor's acquisition source.
+const PUBLIC_LANDING_CAMPAIGNS = new Set(['for_creators_1611'])
+
 // Campaigns emitted by public search pages. They prove the product handoff even
 // when acquisition source is ChatGPT or another referral. Keep source/medium
 // separate so this cohort does not erase the real first touch.
@@ -41,7 +44,7 @@ export function isOrganicSignupAttribution(input: {
   if (source === ANSWER_ENGINE_HOOK_ATTRIBUTION.source &&
     medium === ANSWER_ENGINE_HOOK_ATTRIBUTION.medium &&
     campaign === ANSWER_ENGINE_HOOK_ATTRIBUTION.campaign) return true
-  return LEGACY_ORGANIC_CAMPAIGN_PREFIXES.some((prefix) => campaign.startsWith(prefix))
+  return PUBLIC_LANDING_CAMPAIGNS.has(campaign) || LEGACY_ORGANIC_CAMPAIGN_PREFIXES.some((prefix) => campaign.startsWith(prefix))
 }
 
 export type OrganicSignupHandoffContext = {
@@ -64,8 +67,8 @@ export function organicSignupHandoffContext(params: URLSearchParams): OrganicSig
   return {
     version: ORGANIC_SIGNUP_TRUTH_VERSION,
     campaign,
-    source: source || 'legacy_campaign',
-    medium: medium || 'legacy_campaign',
+    source: source || (PUBLIC_LANDING_CAMPAIGNS.has(campaign) ? 'unknown' : 'legacy_campaign'),
+    medium: medium || (PUBLIC_LANDING_CAMPAIGNS.has(campaign) ? 'unknown' : 'legacy_campaign'),
     createIntent,
   }
 }
