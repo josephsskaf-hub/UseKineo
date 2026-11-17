@@ -17,6 +17,11 @@ const films = [
   { category: 'CURIOSITY', title: 'The river that boils', id: 'c1f80b50-1de6-4140-9ce4-b4cfbeb185c3', detail: 'A question from the natural world.' },
 ]
 
+// KINEO-FOR-CREATORS-ACABAMENTO-1611 [dono 16/11 22:53, print do iPhone]: "↗" e "✳" viravam emoji colorido no iOS (caixa azul e
+// asterisco verde). Ícone desenhado em SVG, que herda a cor do texto e não depende da fonte do aparelho.
+const Seta = () => <svg className="ico-seta" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 17 17 7" /><path d="M8.5 7H17v8.5" /></svg>
+const Faisca = () => <svg className="ico-faisca" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12 2c.6 5.2 4.8 9.4 10 10-5.2.6-9.4 4.8-10 10-.6-5.2-4.8-9.4-10-10 5.2-.6 9.4-4.8 10-10Z" /></svg>
+
 export default function CreatorsPage({ freeFilm }: { freeFilm: boolean }) {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const [idea, setIdea] = useState('')
@@ -46,21 +51,21 @@ export default function CreatorsPage({ freeFilm }: { freeFilm: boolean }) {
           <input type="hidden" name="create_intent" value="trial_best" />
           <input type="hidden" name="intent_campaign" value={campaign} />
           {redirect && <input type="hidden" name="redirect" value={redirect} />}
-          <button type="submit" disabled={!valid}>{action}<span aria-hidden="true">↗</span></button>
+          <button type="submit" disabled={!valid}>{action}<span className="btn-ico" aria-hidden="true"><Seta /></span></button>
           <p>{freeFilm ? 'For eligible new accounts · Your idea follows you through signup' : 'Your idea follows you through signup'}</p>
         </form>
       </div>
       <div className="hero-visual">
         <div className="visual-top"><span>THE CREATOR'S CUT</span><span>01 / 03</span></div>
         <div className="hero-film"><video src="https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/e92d81bf-0068-46c3-8de7-1f67e2006756/e97ea42d-f63b-4197-9cd7-e12e9a57744d.mp4" poster="/posters/showcase-sep07/0ab3e871-2c99-4f6e-9f3c-59773208b12e.webp" autoPlay muted loop playsInline controls preload="metadata" aria-label="A Kineo film about a town in Norway" /><div className="film-overlay"><span>MADE WITH KINEO</span><strong>The town where<br />the sun disappears</strong><small>Film · sound available in player</small></div></div>
-        <div className="visual-bottom"><span>IDEA → NARRATED FILM</span><span>✳</span></div>
+        <div className="visual-bottom"><span>IDEA → NARRATED FILM</span><span><Faisca /></span></div>
       </div>
     </section>
     <section className="examples wrap" id="films">
       <div className="section-head"><div><div className="eyebrow"><span /> FROM THE KINEO STUDIO</div><h2>Stories worth<br /><em>showing up for.</em></h2></div><p>Different subjects. Your point of view.<br />Explore previews of films made with Kineo.</p></div>
       <div className="film-grid">{films.map((film, i) => <article className="film-card" key={film.id}>
         <div className="card-media"><video src={film.gallery ? `/previews/galeria/${film.id}.mp4` : `/previews/ex-${film.id}.mp4`} poster={film.gallery ? `/posters/galeria/${film.id}.webp` : `/posters/ex-${film.id}.webp`} muted loop playsInline controls preload="none" aria-label={`Preview of ${film.title}`} /><span className="card-number">0{i + 1}</span><span className="preview-tag">PREVIEW · MUTED</span></div>
-        <div className="card-info"><div className="card-category">{film.category} <span>↗</span></div><h3>{film.title}</h3><p>{film.detail}</p></div>
+        <div className="card-info"><div className="card-category">{film.category} <span><Seta /></span></div><h3>{film.title}</h3><p>{film.detail}</p></div>
       </article>)}</div>
     </section>
     <section className="closing wrap"><div className="closing-line" /><div className="closing-content"><span>YOUR NEXT STORY STARTS HERE</span><p>Make something your<br /><em>channel can call its own.</em></p><a href="#channel-idea">Back to your idea ↑</a></div></section>
