@@ -34,3 +34,6 @@
 @media(max-width:640px){.recreate.ct-juntos .rc-gallery-heading{grid-template-columns:minmax(0,1fr)}.recreate.ct-juntos .rc-gallery-heading p{grid-column:1;grid-row:3}}
 .recreate.ct-juntos .ct-clip-box .cost .go{flex:1 1 auto;width:100%}
 @media(max-width:800px){.recreate.ct-juntos .rc-reference .rc-player[data-presentation="stage"]:not(:fullscreen) .rc-media-info{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:6px;min-width:0}.recreate.ct-juntos .rc-reference .rc-media-info h2{overflow-wrap:normal;word-break:normal}} /* celular: o título do modelo em cima dos controles (antes "Cozy sweate / r flip" numa coluna de 57 px) */
+/* KINEO-TELA-RECREATE-1611 [dono 16/11: "tá travando um pouco"] — as fileiras do Clips embaixo da grade (tendências, efeitos que tocam sozinhos, My clips) só são
+   desenhadas quando chegam perto da tela: o navegador pula layout e pintura do que está fora (content-visibility), com a altura reservada para a rolagem não pular. */
+.recreate.ct-juntos .ct-juntos-efeitos,.recreate.ct-juntos .ct-juntos-meus{content-visibility:auto;contain-intrinsic-size:auto 900px}

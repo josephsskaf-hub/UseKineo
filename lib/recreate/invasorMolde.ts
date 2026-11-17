@@ -74,6 +74,9 @@ export interface MoldeDeTrechos {
   /** KINEO-DOG-YOU-ABRE-1611 — quando abriu ao público (ISO, hora de Brasília): a ordem de novidade (o que abriu por último vem 1º). */
   abertoEm?: string
   nota: string
+  /** KINEO-TELA-RECREATE-1611 [dono 16/11 23:00: "tem dog goal you, dog goal, tá repetitivo… Pitch invader de costas"] — capa PÚBLICA (public/) do cartão da grade,
+   *  só para molde ABERTO: um quadro do nosso próprio clipe com a pessoa de frente. Sem ela, a capa do bucket (o vídeo-base). Não muda o manifesto do bucket. */
+  posterPublico?: string
 }
 
 // ─── 1. Pitch invader (KINEO-INVASOR-DE-CAMPO-1511) — os valores de antes, sem mudança ───
@@ -114,6 +117,7 @@ export const INVASOR_ALVO_DE_OCULOS = true
 export const INVASOR_ABERTO_AO_PUBLICO: boolean = true
 
 const PITCH_INVADER: MoldeDeTrechos = {
+  posterPublico: '/posters/galeria/invasor-de-campo.webp', // KINEO-TELA-RECREATE-1611 — de frente (a MESMA capa da home, KINEO-HOME-PITCH-1611), não de costas
   id: INVASOR_ID, titulo: 'Pitch invader', desde: '2026-11-15', trechos: INVASOR_TRECHOS, som: INVASOR_SOM, vitrine: INVASOR_VITRINE,
   entrada: INVASOR_ENTRADA, saida: INVASOR_SAIDA, alvo: { tipo: 'pessoa', texto: INVASOR_ALVO, deOculos: INVASOR_ALVO_DE_OCULOS, roupa: 'Keep the original clothing from @Video1.' },
   segundos: 18, aberto: INVASOR_ABERTO_AO_PUBLICO, creditosPublicos: recreateCreditCostVariosTrechos(18), creditosDaCasa: null, approvedOn: '2026-11-15',
@@ -194,6 +198,7 @@ const CACHORRO_CRAQUE: MoldeDeTrechos = {
 export const CACHORRO_HUMANO_ABERTO_AO_PUBLICO: boolean = true
 const CACHORRO_CRAQUE_HUMANO: MoldeDeTrechos = {
   id: 'cachorro-craque-humano', titulo: 'Dog goal · you', desde: '2026-11-16',
+  posterPublico: '/posters/galeria/cachorro-craque-humano.webp', // KINEO-TELA-RECREATE-1611 — a PESSOA (teste pago 9eaffdb7, 4,55 s), não o mesmo quadro do cachorro
   // KINEO-CACHORRO-HUMANO-8S-1611 [CEO 16/11, teste pago 215d670f: trecho 0 ótimo; trecho 1 quebrado — câmera na altura do cachorro, o motor pôs só o busto da pessoa
   // saindo do gramado; o dono reprovou] — SÓ o trecho 0 (8 s, quadros 0–191, o mesmo arquivo do cachorro), som do original cortado aos 8 s (-v3) e cartão de 8 s (-v3).
   // A máquina monta 1 trecho do mesmo jeito (o som original por baixo).
@@ -279,7 +284,7 @@ export function formatoDoMolde(m: MoldeDeTrechos): RecreateFormat {
   const publico = moldeNoPublico(m)
   return {
     id: m.id, title: m.titulo, desde: m.desde, type: 'swap',
-    preview: `/api/recreate/assets/${m.id}.mp4`, poster: `/api/recreate/assets/${m.id}.jpg`,
+    preview: `/api/recreate/assets/${m.id}.mp4`, poster: publico && m.posterPublico ? m.posterPublico : `/api/recreate/assets/${m.id}.jpg`, // KINEO-TELA-RECREATE-1611 — + posterPublico
     seconds: m.segundos, prompt: '', photoSlots: 1, swapApproved: publico, swapInTest: !publico, ...(m.approvedOn ? { approvedOn: m.approvedOn } : {}),
     creditos: creditosDoMolde(m), esperaMinutos: m.esperaMinutos, // KINEO-RECEITA-FORA-DO-JS-2-1411 (rebase 16/11) — era: + swapNote: m.nota (o campo saiu do formato; a nota fica em m.nota, no servidor)
     ...(m.abertoEm ? { abertoEm: m.abertoEm } : {}), // KINEO-DOG-YOU-ABRE-1611 — só do servidor (não é campo de vitrine)

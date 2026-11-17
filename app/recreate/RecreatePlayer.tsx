@@ -13,8 +13,8 @@ interface PlayerProps {
 }
 
 /** The gallery loads covers first. Selecting one uses the existing mode-specific callback. */
-export function ExampleCover({ src, poster, label, disabled, onSelect }: {
-  src: string; poster: string; label: string; disabled?: boolean; onSelect: () => void
+export function ExampleCover({ src, poster, label, disabled, onSelect, foco }: {
+  src: string; poster: string; label: string; disabled?: boolean; onSelect: () => void; /** KINEO-TELA-RECREATE-1611 — object-position da capa (rosto ou ação inteiros) */ foco?: string
 }) {
   const video = useRef<HTMLVideoElement>(null)
   return <button type="button" className="rc-example-cover" aria-label={label} disabled={disabled}
@@ -25,7 +25,7 @@ export function ExampleCover({ src, poster, label, disabled, onSelect }: {
       }
     }}
     onPointerLeave={() => video.current?.pause()}>
-    <video ref={video} src={src} poster={poster} muted loop playsInline preload="none" aria-hidden="true" />
+    <video ref={video} src={src} poster={poster} muted loop playsInline preload="none" aria-hidden="true" style={foco ? { objectPosition: foco } : undefined} />
   </button>
 }
 

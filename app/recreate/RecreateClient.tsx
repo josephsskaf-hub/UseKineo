@@ -29,6 +29,22 @@ export function Icone({ nome }: { nome: 'trocar' | 'video' | 'seta' | 'voltar' |
   const d = { trocar: 'M4 8h13l-3-3M20 16H7l3 3', video: 'M4 7h11v10H4zM15 10.5 20 8v8l-5-2.5', seta: 'M7 17 17 7M9 7h8v8', voltar: 'M19 12H5m6-6-6 6 6 6', creditos: 'M13 3 5 14h6l-1 7 8-11h-6z' }[nome]
   return <svg className="rc-icone" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d={d} /></svg>
 }
+/** KINEO-TELA-RECREATE-1611 [dono 16/11 23:00: "Slam dunk corta a cabeça… Pitch invader cortado"] — o foco da capa por molde, conferido na capa a 1920 px (cartão
+ *  ~1,34 deitado) e a 390 px (~1,15): a cabeça inteira com respiro. Molde fora daqui: o foco de sempre (center 42%, studio-media.css). */
+export const FOCO_DA_CAPA: Readonly<Record<string, string>> = { basquete: '50% 30%', 'cachorro-craque-humano': '50% 8%', 'invasor-de-campo': '50% 25%' }
+/** KINEO-TELA-RECREATE-1611 [dono: "tem dog goal you, dog goal, tá repetitivo"] — a mesma família de molde (o "· you" e o original) nunca a menos de 5 cartões
+ *  (nem na mesma fileira de 4, nem logo embaixo; no celular, nem lado a lado nem em cima). O 1º cartão nunca sai do lugar: a novidade continua em evidência. */
+export function gradeSemParecidosJuntos<T extends { id: string }>(lista: readonly T[], distancia = 5): T[] {
+  const familia = (f: T) => f.id.replace(/-humano$/, '')
+  const out = [...lista]
+  for (let i = 1; i < out.length; i++) {
+    const perto = (f: T) => out.slice(Math.max(0, i - distancia + 1), i).some(o => familia(o) === familia(f))
+    if (!perto(out[i])) continue
+    const j = out.findIndex((o, k) => k > i && !perto(o))
+    if (j > i) { const [x] = out.splice(j, 1); out.splice(i, 0, x) }
+  }
+  return out
+}
 type Social = { count: number; liked: boolean }
 export type Quote = { id: string; credits: number | null; available: boolean; shortfall: number }
 type Photo = { file: File; url: string }
@@ -585,10 +601,10 @@ export default function RecreateClient({ initialId, internalTools = false, forma
   </>
   const galeria = <>
         <div className="rc-gallery-heading">{selected ? <><h2 tabIndex={-1}>Video templates</h2><p>Choose a different starting point.</p></> : <><span className="rc-eyebrow">RECREATE</span><h1 tabIndex={-1}>Video templates</h1><p>Choose a Kineo format. Make it yours.</p></>}{currentFlow && ownVideoVisible && <Link className="rc-flow-own" href={`${flowBasePath}/your-video`} onClick={leaveFlow}><Icone nome="video" />Use your video</Link>}</div>
-        <div className="rc-grid">{catalog.map((f, index) => <article key={f.id} className={`rc-card ${index % 4 === 1 ? 'rc-card-short' : ''} ${selected?.id === f.id ? 'rc-card-selected' : ''}`}>
-          <ExampleCover src={mediaFor(f).video} poster={mediaFor(f).poster} label={`Choose ${f.title}`} disabled={editingDisabled} onSelect={() => choose(f)} />
+        <div className="rc-grid">{gradeSemParecidosJuntos(catalog).map((f, index) => <article key={f.id} className={`rc-card ${index % 4 === 1 ? 'rc-card-short' : ''} ${selected?.id === f.id ? 'rc-card-selected' : ''}`}>
+          <ExampleCover src={mediaFor(f).video} poster={mediaFor(f).poster} label={`Choose ${f.title}`} disabled={editingDisabled} onSelect={() => choose(f)} foco={FOCO_DA_CAPA[f.id]} />
           <div className="rc-card-top"><button disabled={currentFlow && !signedIn} onClick={() => { setReport(f); setExpanded(null) }} aria-label={`Report ${f.title}`}>⋯</button><button onClick={() => { setExpanded(f); setReport(null) }} aria-label={`Expand ${f.title}`}>⤢</button></div>
-          <div className="rc-card-bottom"><h3>{f.title}</h3><div><button className={social[f.id]?.liked ? 'rc-liked' : ''} disabled={!social[f.id] || socialBusy} aria-label={`Like ${f.title}`} aria-pressed={social[f.id]?.liked ?? false} onClick={() => void like(f)}>♡{social[f.id]?.count > 0 ? ` ${social[f.id].count}` : ''}</button><button className="rc-template-action" disabled={editingDisabled} onClick={() => choose(f)} aria-label={`Use ${f.title}`}>{selected?.id === f.id ? 'Selected ✓' : 'Recreate ↗'}</button></div></div>
+          <div className="rc-card-bottom"><h3>{f.title}</h3><div><button className={social[f.id]?.liked ? 'rc-liked' : ''} disabled={!social[f.id] || socialBusy} aria-label={`Like ${f.title}`} aria-pressed={social[f.id]?.liked ?? false} onClick={() => void like(f)}>♡{social[f.id]?.count > 0 ? ` ${social[f.id].count}` : ''}</button><button className="rc-template-action" disabled={editingDisabled} onClick={() => choose(f)} aria-label={`Use ${f.title}`}>{selected?.id === f.id ? 'Selected ✓' : <>Recreate<Icone nome="seta" /></>}</button></div></div>
         </article>)}</div>
   </>
   const dialogo = <>
