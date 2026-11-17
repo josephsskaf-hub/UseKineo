@@ -2,7 +2,8 @@
    nada aqui alcança o /clips, o /create/clip nem o /recreate de sempre. Só posição e tamanho; cores e fontes herdadas das duas telas. */
 /* Painel do Clips: o painel do fluxo do Recreate é uma coluna fixa sem rolagem (o Generate preso embaixo); a caixa do Clips é mais alta, então rola. */
 .recreate.rc-current-flow.ct-juntos .rc-panel.ct-juntos-clip{display:block;overflow-y:auto}
-.recreate.ct-juntos .ct-juntos-voltar{flex:none;align-self:flex-start;min-height:44px;padding:8px 0;margin:-6px 0 6px;background:none;border:0;color:var(--rc-accent);font-size:13px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+/* KINEO-TELA-RECREATE-1611 — "voltar ao Clip" com corpo de ação (pílula discreta + seta SVG), não link de rodapé */
+.recreate.ct-juntos .ct-juntos-voltar{flex:none;align-self:flex-start;display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:8px 14px 8px 11px;margin:-6px 0 10px;background:var(--rc-card);border:1px solid var(--rc-line);border-radius:999px;color:var(--rc-text);font-size:14px;font-weight:650;cursor:pointer}
 .recreate.ct-juntos .ct-juntos-voltar:disabled{opacity:.5;cursor:default}
 /* Embaixo, à direita: a grade dos modelos e, depois, as tendências e os efeitos do Clips e My clips, na mesma rolagem. */
 .recreate.ct-juntos .rc-gallery-heading h1{font-size:20px}

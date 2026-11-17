@@ -55,6 +55,12 @@ async function flowJson(url: string, init: RequestInit = {}, limit = FLOW_STEP_M
   } finally { if (timer !== undefined) clearTimeout(timer) }
 }
 
+/** KINEO-TELA-RECREATE-1611 — os ícones das ações do painel e da grade, em SVG (o iOS desenha "↗" U+2197 como emoji, uma caixa azul). */
+export function Icone({ nome }: { nome: 'trocar' | 'video' | 'seta' | 'voltar' | 'creditos' }) {
+  const d = { trocar: 'M4 8h13l-3-3M20 16H7l3 3', video: 'M4 7h11v10H4zM15 10.5 20 8v8l-5-2.5', seta: 'M7 17 17 7M9 7h8v8', voltar: 'M19 12H5m6-6-6 6 6 6', creditos: 'M13 3 5 14h6l-1 7 8-11h-6z' }[nome]
+  return <svg className="rc-icone" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d={d} /></svg>
+}
+
 /** KINEO-CLIP-RECREATE-JUNTOS-1511 — as peças desta tela que a tela Clip + Recreate recebe (o MESMO JSX, os MESMOS handlers). */
 export interface PartesDoRecreate {
   selecionado: RecreateFormat | null; catalogo: readonly RecreateFormat[]; midia: (f: RecreateFormat) => { video: string; poster: string }
@@ -489,12 +495,14 @@ export default function RecreateClient({ initialId, internalTools = false, forma
   }
   const formFields = selected ? <>
         <div className="rc-panel-intro"><span className="rc-eyebrow">Recreate</span>{createTabs || currentFlow ? <h1>Your version</h1> : <h1>Your version, step by step.</h1>}</div>
-        {currentFlow && <div className="rc-flow-template"><img src={selectedMedia!.poster} alt="" /><div><strong>{selected.title}</strong><button type="button" onClick={showTemplates} disabled={editingDisabled}>Change video ↗</button></div>{ownVideoVisible && <Link href={`${flowBasePath}/your-video`} onClick={leaveFlow}>Use your video</Link>}</div>}
-        {createTabs && <div className="ct-base-choice">
-          <img src={selected.poster} alt="" width={44} height={50} />
+        {/* KINEO-TELA-RECREATE-1611 [dono 16/11 23:00: "aparece duas vezes slam dunk, change video, use your video, slam dunk, change… tá meio igual"] — UMA
+            linha do vídeo-base (miniatura, nome, um "Change") e "Use your video" como ação secundária embaixo; ações com corpo de botão e ícone SVG (o iOS troca "↗" por emoji). */}
+        {(currentFlow || createTabs) && <div className="ct-base-choice rc-base-row" data-base-row="">
+          <img src={selectedMedia!.poster} alt="" width={44} height={50} />
           <div><small>Base video</small><strong>{selected.title}</strong></div>
-          <button type="button" onClick={showTemplates} disabled={editingDisabled} aria-label="Change base video">Change ↗</button>
+          <button type="button" className="rc-acao" onClick={showTemplates} disabled={editingDisabled} aria-label="Change base video">Change<Icone nome="trocar" /></button>
         </div>}
+        {currentFlow && ownVideoVisible && <Link className="rc-acao rc-acao-secundaria" href={`${flowBasePath}/your-video`} onClick={leaveFlow}><Icone nome="video" />Use your own video instead</Link>}
         <div className="rc-progress"><span>{states.includes('error') ? 'Check the highlighted step' : clip?.status === 'done' ? 'Your version is ready' : photosDone ? 'Your photos are ready' : 'Start with your photos'}</span><div role="progressbar" aria-label="Creation steps completed" aria-valuemin={0} aria-valuemax={3} aria-valuenow={states.filter(state => state === 'done').length}>{states.map((state, index) => <i key={index} className={`rc-progress-${state}`} />)}</div></div>
         <section className={`rc-step rc-step-${states[0]}`} data-step-state={states[0]} aria-labelledby="rc-photo-heading">
           <div className="rc-step-heading">{marker(1)}<h2 id="rc-photo-heading">{selected.photoSlots > 1 ? 'Your photos' : 'Your photo'}</h2><span className="rc-step-status">{photosDone && photos[0] && <img src={photos[0].url} alt="" />}{stateLabel(states[0])}</span></div>
@@ -537,7 +545,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
             {currentFlow ? <>
               {clip?.status === 'done' && clip.video_url ? <><a className="rc-generate" href={downloadHref(clip.video_url, downloadName, 'recreate')} onClick={onDownload}>Download ↓</a><p className="rc-next-note"><Link href="/library">My videos ↗</Link> · <button type="button" className="rc-outro" onClick={() => { setClip(null); requestKey.current = null }}>Make another</button></p></> : <>
                 <button className="rc-generate" data-recreate-generate aria-describedby="rc-generate-reason" disabled={previewLocked || busy || photoBusy || active || restoring || (uncertain ? !attempt.current : !flowQuoteReady || !quote?.available || quote.credits === null || (signedIn && quote.shortfall > 0) || !photosDone)} onClick={() => void generate(false)}>{restoring ? 'Restoring…' : busy ? uploading ? 'Uploading…' : 'Preparing…' : active ? clip?.needs_status ? 'Checking…' : clip?.queued ? 'In line…' : 'Creating…' : uncertain ? 'Retry same request' : 'Generate'}{quote?.credits != null && <span data-flow-quote={signedIn ? 'confirmed' : 'estimated'}>{signedIn ? '' : 'Estimated '}✦ {quote.credits}</span>}</button>
-                <p className="rc-next-note" id="rc-generate-reason" role="status">{previewLocked && !active && !busy ? PREVIEW_LOCKED_MESSAGE : uncertain ? 'Keep this request unchanged, or check My videos.' : restoring ? 'Restoring your saved photos…' : active || busy ? flowState : blocker}{signedIn && !!quote?.shortfall && <> <Link href="/pricing">See plans ↗</Link></>}</p>
+                <p className="rc-next-note" id="rc-generate-reason" role="status">{previewLocked && !active && !busy ? PREVIEW_LOCKED_MESSAGE : uncertain ? 'Keep this request unchanged, or check My videos.' : restoring ? 'Restoring your saved photos…' : active || busy ? flowState : blocker}{signedIn && !!quote?.shortfall && <> <Link className="rc-acao" href="/pricing">See plans<Icone nome="seta" /></Link></>}</p>
               </>}
             </> : clip?.status === 'done' && clip.video_url ? <>
               <button className="rc-generate" data-recreate-ready onClick={() => document.querySelector('.rc-result')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>Your version is ready · Watch ↓</button>
@@ -562,7 +570,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
             action: !createTabs && <button className="rc-change" disabled={editingDisabled} onClick={showTemplates}>Change video ↗</button> }} />}</div>
   </>
   const galeria = <>
-        <div className="rc-gallery-heading">{selected ? <><h2 tabIndex={-1}>Video templates</h2><p>Choose a different starting point.</p></> : <><span className="rc-eyebrow">RECREATE</span><h1 tabIndex={-1}>Video templates</h1><p>Choose a Kineo format. Make it yours.</p></>}{currentFlow && ownVideoVisible && <Link className="rc-flow-own" href={`${flowBasePath}/your-video`} onClick={leaveFlow}>Use your video ↗</Link>}</div>
+        <div className="rc-gallery-heading">{selected ? <><h2 tabIndex={-1}>Video templates</h2><p>Choose a different starting point.</p></> : <><span className="rc-eyebrow">RECREATE</span><h1 tabIndex={-1}>Video templates</h1><p>Choose a Kineo format. Make it yours.</p></>}{currentFlow && ownVideoVisible && <Link className="rc-flow-own" href={`${flowBasePath}/your-video`} onClick={leaveFlow}><Icone nome="video" />Use your video</Link>}</div>
         <div className="rc-grid">{catalog.map((f, index) => <article key={f.id} className={`rc-card ${index % 4 === 1 ? 'rc-card-short' : ''} ${selected?.id === f.id ? 'rc-card-selected' : ''}`}>
           <ExampleCover src={mediaFor(f).video} poster={mediaFor(f).poster} label={`Choose ${f.title}`} disabled={editingDisabled} onSelect={() => choose(f)} />
           <div className="rc-card-top"><button disabled={currentFlow && !signedIn} onClick={() => { setReport(f); setExpanded(null) }} aria-label={`Report ${f.title}`}>⋯</button><button onClick={() => { setExpanded(f); setReport(null) }} aria-label={`Expand ${f.title}`}>⤢</button></div>

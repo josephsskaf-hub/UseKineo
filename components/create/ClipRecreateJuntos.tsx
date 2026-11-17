@@ -15,7 +15,7 @@ import Link from 'next/link'
 import type { ComponentProps, SyntheticEvent } from 'react'
 import { KineoBrandIcon } from '@/components/KineoBolt'
 import ClipsClient from '@/app/(dashboard)/clips/ClipsClient'
-import RecreateClient from '@/app/recreate/RecreateClient'
+import RecreateClient, { Icone } from '@/app/recreate/RecreateClient' // KINEO-TELA-RECREATE-1611 — + Icone (a seta do "voltar" em SVG)
 import RecreatePlayer from '@/app/recreate/RecreatePlayer'
 import type { RecreateFormat } from '@/lib/recreate/formats'
 import { publicRecreatePath } from '@/lib/recreate/entry'
@@ -29,7 +29,7 @@ import './clip-recreate-juntos.css'
 
 /** Para onde a URL volta quando a pessoa sai do modelo (a aba Clip). Escolher um modelo leva a URL a /recreate/<id>, como no Recreate de hoje. */
 export const JUNTOS_VOLTA = '/create/clip'
-export const JUNTOS_COPY = { voltar: '← Clip from your idea', palco: 'Video template', recriar: 'Recreate this ↗', efeitos: 'Clip effects' } as const
+export const JUNTOS_COPY = { voltar: 'Clip from your idea', palco: 'Video template', recriar: 'Recreate this ↗', efeitos: 'Clip effects' } as const
 
 export type RecreateProps = Omit<ComponentProps<typeof RecreateClient>, 'moldura'>
 
@@ -65,7 +65,7 @@ export default function ClipRecreateJuntos({ measurementActor = null, recreate }
       {rc.aviso}
       <div className="rc-workspace">
         {modelo ? <aside className="rc-panel" aria-label="Create your version">
-          <button type="button" className="ct-juntos-voltar" data-juntos-voltar="" disabled={rc.ocupado} onClick={() => rc.soltar(JUNTOS_VOLTA)}>{JUNTOS_COPY.voltar}</button>
+          <button type="button" className="ct-juntos-voltar" data-juntos-voltar="" disabled={rc.ocupado} onClick={() => rc.soltar(JUNTOS_VOLTA)}><Icone nome="voltar" />{JUNTOS_COPY.voltar}</button>
           {rc.painel}
         </aside> : <aside className="rc-panel ct-juntos-clip" aria-label={CLIP_MOLDURA_COPY.title}>
           <div className="rc-panel-intro"><span className="rc-eyebrow">{CLIP_MOLDURA_COPY.eyebrow}</span><h1>{CLIP_MOLDURA_COPY.title}</h1></div>
