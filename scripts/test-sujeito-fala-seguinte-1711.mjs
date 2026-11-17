@@ -84,6 +84,45 @@ async function provasLeitura(S) {
   // (6) pedaço em minúscula e frase curta não são frase; aspas e rótulo saem; teto de 2
   const f6 = S.frasesSeguintesDaFala(['[Pexels: x] “One two three four. and then more words here. No. Third real sentence here. Fourth real sentence here. Fifth one here.”'], 'One two three four.')
   if (JSON.stringify(f6) !== JSON.stringify(['Third real sentence here.', 'Fourth real sentence here.'])) e.push('frases seguintes (filtro): ' + JSON.stringify(f6))
+  // ── volta 2 (revisão independente 17/11) ──
+  // (b) a 1ª leitura que falha encerra o laço: a frase 2 cai (rede) e a frase 3, que traria o avião, nem é lida; planos intactos
+  const lb = []
+  const falasB = ['A mystery nobody could explain for decades. Nobody knows what happened that night. In 1950, a plane vanished.', 'The end.']
+  const mb = await S.sujeitoEmTodosOsMotores({ pedido: null, falas: falasB, planos: ['p1', 'p2'], pessoaPermitida: true, estrada: 'classica' }, { fetchImpl: async (u, init) => { const r = await modelo(lb)(u, init); if (lb.length === 2) throw new Error('rede'); return r }, tentativasExtras: 0 })
+  if (lb.length !== 2) e.push('(b) depois da leitura que falhou ainda leu: ' + JSON.stringify(lb))
+  if (!mb || mb.relato.sujeito || mb.planos[0] !== 'p1' || mb.planos[1] !== 'p2') e.push('(b) leitura falhou e ainda assim houve sujeito ou plano mexido')
+  // (c) abreviação e inicial não partem a frase
+  const fc = S.frasesSeguintesDaFala(['A strange night in the old harbor town. Dr. Arthur Vance met Mr. F. Scott at the St. James dock. Then Mrs. Hale and Ms. Reed left with Tom Jr. that night. More here.'], 'A strange night in the old harbor town.')
+  if (JSON.stringify(fc) !== JSON.stringify(['Dr. Arthur Vance met Mr. F. Scott at the St. James dock.', 'Then Mrs. Hale and Ms. Reed left with Tom Jr. that night.'])) e.push('(c) abreviação partiu a frase: ' + JSON.stringify(fc))
+  // (c) o rabo de uma 1ª frase longa (lida só até 140) não vira frase
+  const cabeca = 'On the cold morning of the second of July the famous pilot climbed into her silver twin-engine plane while ten young mechanics in grey suit' // 139 caracteres: a leitura corta aqui
+  const longa = `${cabeca} Navy officers watched her go. Her radio went silent near the island. Nobody found her.`
+  const primeiraLonga = S.primeiraFraseDaFala(longa)
+  const fl = S.frasesSeguintesDaFala([longa], primeiraLonga)
+  if (primeiraLonga !== cabeca || JSON.stringify(fl) !== JSON.stringify(['Her radio went silent near the island.', 'Nobody found her.'])) e.push('(c) rabo da 1ª frase longa virou frase: ' + JSON.stringify(fl))
+  return e
+}
+
+// (a) o sujeito lido de uma frase SEGUINTE não alimenta a camada da ficha (sujeitoDoPedido1311 → refazerPlanoDaFicha). Baleias de Galápagos (58f63487): "satellite tags".
+function provasFicha(L) {
+  const e = []
+  const S = L(SU), F = L('lib/cinematic/fichaAntesDoRender1311.ts')
+  const ORDEM = 'The only person in this shot is the same main character (a marine biologist in a blue jacket); any other person described below is replaced by this same character. '
+  const prompts = [`Film visual medium: photorealistic. ${ORDEM}A blue whale surfaces in open water off the Galápagos Islands.`, 'Film visual medium: photorealistic. A research boat on a calm sea.']
+  const veredito = { status: 'JUDGED', reprovado: true, falhas: ['a_ficha'], nota: 60, cenas: 2, ms: 10, planos: [{ plano: 1, a: 'contradiz', b: 'nao', c: 'nao' }, { plano: 2, a: 'sem_ficha', b: 'nao', c: 'nao' }], defeitos: ['plano 1 · ficha contradiz a fala: "a marine biologist" × "Where did the Galápagos blue whales go?"'] }
+  const refaz = (sujeitoDoPedido) => F.refazerPlanoDaFicha({ prompts, veredito, pessoaDaIdeia: null, sujeitoDoPedido })
+  const semNada = refaz(null)
+  if (semNada.relato.refeitos[0]?.acao !== 'sem_ordem') { e.push('(a) fixture: o plano 1 não perdeu a ordem: ' + JSON.stringify(semNada.relato.refeitos)); return e }
+  const daSeguinte = S.sujeitoQueAlimentaAFicha({ sujeito: 'satellite tags', tipo: 'objeto', motivo_do_pedido: 'fala_seguinte' })
+  if (daSeguinte !== null) e.push('(a) o sujeito da frase seguinte alimenta a ficha: ' + JSON.stringify(daSeguinte))
+  const comSeguinte = refaz(daSeguinte)
+  if (JSON.stringify(comSeguinte.prompts) !== JSON.stringify(semNada.prompts) || comSeguinte.prompts.join(' ').includes('satellite tags')) e.push('(a) baleias: o plano sem ordem mudou com "satellite tags": ' + comSeguinte.prompts[0].slice(0, 120))
+  // controle: pedido e 1ª frase alimentam como sempre
+  for (const motivo of ['ideia_solta', 'ideia_original', 'fala_de_abertura']) {
+    const s = S.sujeitoQueAlimentaAFicha({ sujeito: 'a blue whale', tipo: 'criatura', motivo_do_pedido: motivo })
+    if (!s || s.sujeito !== 'a blue whale' || s.tipo !== 'criatura' || !refaz(s).prompts[0].includes('Main subject clearly visible in frame: a blue whale.')) e.push('(a) controle: ' + motivo + ' deixou de alimentar a ficha')
+  }
+  if (S.sujeitoQueAlimentaAFicha({ sujeito: null, tipo: null, motivo_do_pedido: 'ideia_solta' }) !== null) e.push('(a) sem sujeito devia ser null')
   return e
 }
 
@@ -115,6 +154,14 @@ function provasMetade(L) {
   // cena de uma seção só com a frase: intocada
   const uma = Q.comSujeitoDaCenaNaMetade(['Photoreal film. A.', 'B'], ['Photoreal film. Main subject clearly visible in frame: a plane. A.', 'B'], ['a plane', 'x'], [[0], [1]])
   if (uma[0] !== 'Photoreal film. A.' || uma[1] !== 'B') e.push('cena não fundida foi mexida')
+  // (d) volta 2 — a metade é escolhida pelo substantivo núcleo, nunca por adjetivo
+  const NAVIO = ['Photoreal film. Main subject clearly visible in frame: an old wooden ship. Fog.']
+  const d2 = Q.comSujeitoDaCenaNaMetade(['Photoreal film. A.', 'Photoreal film. B.'], NAVIO, ['An old man told this story.', 'The ship sank in one night.'], [[0, 1]])
+  if (d2[0] !== 'Photoreal film. A.' || d2[1] !== 'Photoreal film. Main subject clearly visible in frame: an old wooden ship. B.') e.push('(d) navio: não foi à 2ª metade: ' + JSON.stringify(d2))
+  const d3 = Q.comSujeitoDaCenaNaMetade(['Photoreal film. A.', 'Photoreal film. B.', 'Photoreal film. C.'], NAVIO, ['An old man told this story.', 'The ships sank in one night.', 'Nobody came back.'], [[0, 1, 2]])
+  if (d3[0] !== 'Photoreal film. A.' || !d3[1].includes('an old wooden ship') || d3[2] !== 'Photoreal film. C.') e.push('(d) navio em 3 metades: o adjetivo decidiu: ' + JSON.stringify(d3))
+  const nucleos = [['an old wooden ship', 'ship'], ['a plane', 'plane'], ['a ninja cat running on rooftops (ginger)', 'cat'], ['a child with a 3D pen', 'child'], ['a C-54 Skymaster airplane', 'airplane'], ['a U.S. Navy airplane', 'airplane']]
+  for (const [frase, n] of nucleos) if (Q.nucleoDoSujeito(frase) !== n) e.push(`(d) núcleo de "${frase}": ${Q.nucleoDoSujeito(frase)}`)
   return e
 }
 
@@ -128,14 +175,30 @@ const srcS = lf(fs.readFileSync(SU, 'utf8')), srcQ = lf(fs.readFileSync(QP, 'utf
 // R — recibo exato [TRAVA 8.2]: desfazer esta entrega devolve a base do recibo; edição desconhecida não é desfeita; a cadeia antiga (avião não vira carro, 03/11) volta a casar
 const sha = (t) => createHash('sha256').update(lf(t)).digest('hex')
 const R = SUJEITO_FALA_SEGUINTE_1711.scope
-checa('R o recibo cobre os 2 arquivos e desfaz exato', Object.keys(R).sort().join() === [SU, QP].sort().join() && sha(semSujeitoFalaSeguinte1711(srcS, SU)) === R[SU].beforeSha256 && sha(semSujeitoFalaSeguinte1711(srcQ, QP)) === R[QP].beforeSha256)
+const ROTA = 'app/api/generate-video-cinematic/route.ts'
+checa('R o recibo cobre os 3 arquivos e desfaz exato', Object.keys(R).sort().join() === [SU, QP, ROTA].sort().join() && sha(semSujeitoFalaSeguinte1711(srcS, SU)) === R[SU].beforeSha256 && sha(semSujeitoFalaSeguinte1711(srcQ, QP)) === R[QP].beforeSha256 && sha(semSujeitoFalaSeguinte1711(rota, ROTA)) === R[ROTA].beforeSha256)
+// (a) volta 2 — a ficha não recebe o sujeito da frase seguinte: a função e a fiação na rota (depois de guardar o sujeito, antes de refazer o plano)
+const e3 = provasFicha(carrega(SU))
+checa(`(a) o sujeito da frase seguinte não alimenta a ficha; baleias iguais; pedido e 1ª frase como sempre${e3.length ? ': ' + e3.join(' · ') : ''}`, e3.length === 0)
+const iGuarda = rota.indexOf('if (sujeitoClassico.relato.sujeito) sujeitoDoPedido1311 = { sujeito: sujeitoClassico.relato.sujeito, tipo: sujeitoClassico.relato.tipo ?? null }'), iFiltro = rota.indexOf('sujeitoDoPedido1311 = sujeitoDoPedido1311 && sujeitoQueAlimentaAFicha(sujeitoClassico.relato)'), iRefaz = rota.indexOf('sujeitoDoPedido: sujeitoDoPedido1311 })')
+checa('(a) a rota filtra o sujeito antes de refazerPlanoDaFicha', iGuarda > 0 && iFiltro > iGuarda && iRefaz > iFiltro && (rota.match(/sujeitoDoPedido1311 = /g) ?? []).length === 2)
 checa('R edição desconhecida não é desfeita', semSujeitoFalaSeguinte1711(`${srcS}// edição desconhecida`, SU) === `${srcS}// edição desconhecida`)
 checa('R a camada de 03/11 sai depois desta (cadeia inteira)', R[SU].beforeSha256 === AVIAO_CARRO_0311.scope[SU].afterSha256 && sha(semAviaoCarro0311(srcS, SU)) === AVIAO_CARRO_0311.scope[SU].beforeSha256)
 const MUT_S = [
   ['não lê a frase seguinte', (t) => lf(t).replace('for (const seguinte of frasesSeguintesDaFala(args.falas, frase)) {', 'for (const seguinte of [] as string[]) {')],
   ['sem teto de leituras', (t) => lf(t).replace('.slice(0, FRASES_SEGUINTES_MAX)', '')],
   ['pedaço em minúscula vira frase', (t) => lf(t).replace(' && !/^\\p{Ll}/u.test(f)', '')],
+  ['(b) segue lendo depois da falha', (t) => lf(t).replace('if (!leitura.ok) break', '')],
+  ['(c) abreviação fecha frase', (t) => lf(t).replace('if (out.length && ABREVIACAO_NO_FIM.test(out[out.length - 1]))', 'if (false)')],
+  ['(c) rabo da 1ª frase vira frase', (t) => lf(t).replace('frasesInteiras(t).slice(1)', 'frasesInteiras(primeira && t.startsWith(primeira) ? t.slice(primeira.length) : t)')],
 ]
+{
+  const fn = (t) => lf(t).replace(' || relato.motivo_do_pedido === MOTIVO_FALA_SEGUINTE', '')
+  const mudou = fn(srcS) !== srcS
+  let e = []
+  if (mudou) { try { e = provasFicha(carrega(SU, fn)) } catch (x) { e = ['lançou: ' + x.message] } }
+  checa(`mutante "(a) frase seguinte alimenta a ficha" fica vermelho (${mudou ? e.length + ' erro(s)' : 'NÃO APLICOU'})`, mudou && e.length > 0)
+}
 for (const [nome, fn] of MUT_S) {
   const mudou = fn(srcS) !== srcS
   let e = []
@@ -146,6 +209,7 @@ const MUT_Q = [
   ['a metade não recebe o sujeito', (t) => lf(t).replace('prompts: comSujeitoDaCenaNaMetade(prompts, a.prompts, falas, grupos), stills', 'prompts, stills')],
   ['sempre a 1ª metade', (t) => lf(t).replace('const alvo = ini + (cita >= 0 ? cita : g.length - 1)', 'const alvo = ini')],
   ['mexe em cena não fundida', (t) => lf(t).replace('const m = g.length > 1 ? SUJEITO_DA_CENA_RE', 'const m = g.length > 0 ? SUJEITO_DA_CENA_RE')],
+  ['(d) adjetivo decide a metade', (t) => lf(t).replace("return ws[ws.length - 1] ?? ''", "return ws[1] ?? ''")],
 ]
 for (const [nome, fn] of MUT_Q) {
   const mudou = fn(srcQ) !== srcQ

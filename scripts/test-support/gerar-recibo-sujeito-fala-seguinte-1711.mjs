@@ -9,7 +9,7 @@ const raiz = join(import.meta.dirname, '..', '..')
 const lf = (t) => String(t).replace(/\r\n/g, '\n')
 const sha = (t) => createHash('sha256').update(t).digest('hex')
 const git = (...a) => execFileSync('git', a, { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 })
-const ESCOPO = ['lib/cinematic/sujeitoTodosMotores.ts', 'lib/kling4QuatroPlanos.ts'] // a leitura segue pelas frases seguintes da narração; a frase do sujeito sobrevive à cena fundida do Kling 4
+const ESCOPO = ['lib/cinematic/sujeitoTodosMotores.ts', 'lib/kling4QuatroPlanos.ts', 'app/api/generate-video-cinematic/route.ts'] // a leitura segue pelas frases seguintes da narração; a frase do sujeito sobrevive à cena fundida do Kling 4; (volta 2) o sujeito da frase seguinte não alimenta a ficha
 
 const scope = {}, addedSources = {}
 for (const file of ESCOPO) {

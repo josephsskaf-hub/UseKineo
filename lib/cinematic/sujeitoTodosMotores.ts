@@ -61,8 +61,11 @@ export async function sujeitoEmTodosOsMotores(args: {
     // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 — narração abriu com "A 70-year-old mystery... unsolved and chilling." e só a frase SEGUINTE disse "In 1950, a plane vanished.": a leitura
     // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 — parava na 1ª frase (kind none) e nenhum plano pediu o avião. A MESMA leitura calibrada, uma frase por vez, nas próximas frases inteiras
     // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 — da narração (no máximo FRASES_SEGUINTES_MAX, sem tentativa extra); a 1ª com sujeito vale. Nenhuma tem = o resultado de sempre.
+    // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 (volta 2, revisão independente 17/11) — a 1ª leitura que FALHAR (prazo, rede, JSON) encerra o laço: nada de somar espera em cima de falha.
     for (const seguinte of frasesSeguintesDaFala(args.falas, frase)) {
-      const r = exigirSujeitoEmTodos({ ...args, pedido: { pedido: seguinte, fonte: 'ideia_solta', motivo: 'fala_seguinte' }, leitura: await lerSujeitoDoPedido(seguinte, { ...opts, tentativasExtras: 0 }) })
+      const leitura = await lerSujeitoDoPedido(seguinte, { ...opts, tentativasExtras: 0 })
+      if (!leitura.ok) break
+      const r = exigirSujeitoEmTodos({ ...args, pedido: { pedido: seguinte, fonte: 'ideia_solta', motivo: MOTIVO_FALA_SEGUINTE }, leitura })
       if (r.relato.sujeito) return r
     }
     return doPedido ?? daFala
@@ -83,6 +86,27 @@ export const FRASES_SEGUINTES_MAX = 2
 /** KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 — as frases inteiras da narração DEPOIS da 1ª (8 a 140 caracteres), na ordem, no máximo FRASES_SEGUINTES_MAX. Pedaço que começa em minúscula é resto da frase anterior ("mystery... unsolved and chilling.") e não conta. */
 export function frasesSeguintesDaFala(falas: ReadonlyArray<string | null | undefined>, primeira: string): string[] {
   const t = falas.map((f) => String(f ?? '')).join(' ').replace(/\[[^\]]*\]/g, ' ').replace(/["“”]/g, '').replace(/^[\s'‘’]+/, '').replace(/\s+/g, ' ').trim()
-  const resto = primeira && t.startsWith(primeira) ? t.slice(primeira.length) : t
-  return resto.split(/(?<=[.!?…؟。])\s+/u).map((f) => f.trim()).filter((f) => f.length >= 8 && f.length <= 140 && !/^\p{Ll}/u.test(f) && f !== primeira).slice(0, FRASES_SEGUINTES_MAX)
+  // volta 2 — a frase de abertura sai INTEIRA (índice 0), tenha o tamanho que tiver: o rabo de uma 1ª frase longa (cortada em 140 na leitura) nunca vira frase; pedaço já lido na 1ª leitura também não
+  return frasesInteiras(t).slice(1).map((f) => f.trim()).filter((f) => f.length >= 8 && f.length <= 140 && !/^\p{Ll}/u.test(f) && !(primeira && primeira.includes(f))).slice(0, FRASES_SEGUINTES_MAX)
+}
+// KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 (volta 2) — abreviação ("Dr.", "Mr.", "Mrs.", "Ms.", "St.", "Jr.") e inicial ("F.") não fecham frase: o pedaço se junta ao seguinte.
+const ABREVIACAO_NO_FIM = /(?:^|[\s(])(?:Dr|Mr|Mrs|Ms|St|Jr|\p{Lu})\.$/u
+function frasesInteiras(t: string): string[] {
+  const out: string[] = []
+  for (const pedaco of t.split(/(?<=[.!?…؟。])\s+/u)) {
+    if (out.length && ABREVIACAO_NO_FIM.test(out[out.length - 1])) out[out.length - 1] += ` ${pedaco}`
+    else out.push(pedaco)
+  }
+  return out
+}
+
+export const MOTIVO_FALA_SEGUINTE = 'fala_seguinte' as const
+/**
+ * KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 (volta 2, revisão independente 17/11) — o sujeito que alimenta a camada da ficha (sujeitoDoPedido1311 → refazerPlanoDaFicha).
+ * O sujeito lido de uma frase SEGUINTE da narração é local (vale para a cena cuja fala o cita): não vira "o sujeito do pedido" dos planos que perdem a ordem do
+ * protagonista — nas baleias de Galápagos (58f63487) "satellite tags" iria para esses planos. Pedido e 1ª frase: como sempre.
+ */
+export function sujeitoQueAlimentaAFicha(relato: Pick<RelatoSujeitoTodos, 'sujeito' | 'tipo' | 'motivo_do_pedido'> | null | undefined): { sujeito: string; tipo: string | null } | null {
+  if (!relato?.sujeito || relato.motivo_do_pedido === MOTIVO_FALA_SEGUINTE) return null
+  return { sujeito: relato.sujeito, tipo: relato.tipo ?? null }
 }

@@ -158,7 +158,16 @@ export function planosPorSecao(a: {
 // "foggy forest path" e "old newspaper headline". Agora a frase que a cena fundida traz vai, inteira e logo depois do meio (a mesma inserção
 // de comSujeitoNasMetades), à metade cuja FALA cita o sujeito; nenhuma cita = a última metade (sem imagem-chave, dirigida pelo texto).
 // Cena sem a frase, cena de uma seção só, ou metade que já a traz: byte a byte como antes. Pura.
-const SUJEITO_DA_CENA_RE = /Main subject clearly visible in frame: (.+?)(?<!\b[A-Z])\.(?=\s|$)/u
+// volta 2 (revisão independente 17/11) — o substantivo núcleo da frase do sujeito (inglês): sem o parêntese, até a 1ª preposição ou oração, sem o gerúndio do fim; a última palavra.
+// "an old wooden ship" → ship · "a ninja cat running on rooftops (ginger)" → cat · "a child with a 3D pen" → child · "a C-54 Skymaster airplane" → airplane.
+const CORTE_DO_NUCLEO = /\s(?:of|in|on|at|with|from|over|under|near|by|for|into|through|across|above|behind|that|who|which|and)\s/iu
+export function nucleoDoSujeito(frase: string): string {
+  const ws = norm(frase).replace(/\([^)]*\)/gu, ' ').split(CORTE_DO_NUCLEO)[0].toLowerCase().match(/[\p{L}\p{N}][\p{L}\p{N}-]*/gu) ?? []
+  while (ws.length > 1 && /ing$/u.test(ws[ws.length - 1])) ws.pop()
+  return ws[ws.length - 1] ?? ''
+}
+const mesmaPalavra = (w: string, nucleo: string) => w === nucleo || w === `${nucleo}s` || w === `${nucleo}es` || `${w}s` === nucleo
+const SUJEITO_DA_CENA_RE =/Main subject clearly visible in frame: (.+?)(?<!\b[A-Z])\.(?=\s|$)/u
 export function comSujeitoDaCenaNaMetade(planos: readonly string[], promptsDasCenas: readonly string[], falasDosPlanos: readonly string[], grupos: readonly number[][]): string[] {
   const saida = [...planos]
   let k = 0
@@ -167,8 +176,8 @@ export function comSujeitoDaCenaNaMetade(planos: readonly string[], promptsDasCe
     k += g.length
     const m = g.length > 1 ? SUJEITO_DA_CENA_RE.exec(norm(promptsDasCenas[i])) : null
     if (!m || saida.slice(ini, k).some((p) => p.includes(m[0]))) return
-    const doSujeito = palavras(m[1])
-    const cita = g.findIndex((_, pos) => [...palavras(falasDosPlanos[ini + pos] ?? '')].some((w) => doSujeito.has(w)))
+    const nucleo = nucleoDoSujeito(m[1]) // volta 2 — só o substantivo núcleo decide a metade (adjetivo não: "an old wooden ship" × "An old man told this story.")
+    const cita = nucleo ? g.findIndex((_, pos) => (norm(falasDosPlanos[ini + pos]).toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []).some((w) => mesmaPalavra(w, nucleo))) : -1
     const alvo = ini + (cita >= 0 ? cita : g.length - 1)
     const p = norm(saida[alvo])
     const meio = /^[^.]{2,60}\./.exec(p)?.[0] ?? ''
