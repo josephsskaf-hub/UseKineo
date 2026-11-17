@@ -61,6 +61,9 @@ export async function sujeitoEmTodosOsMotores(args: {
     // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 — narração abriu com "A 70-year-old mystery... unsolved and chilling." e só a frase SEGUINTE disse "In 1950, a plane vanished.": a leitura
     // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 — parava na 1ª frase (kind none) e nenhum plano pediu o avião. A MESMA leitura calibrada, uma frase por vez, nas próximas frases inteiras
     // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 — da narração (no máximo FRASES_SEGUINTES_MAX, sem tentativa extra); a 1ª com sujeito vale. Nenhuma tem = o resultado de sempre.
+    // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 (volta 2-B, CEO 17/11: regra conservadora) — as frases seguintes só são lidas quando a 1ª frase NÃO tinha sujeito (kind none, motivo uso_none: o caso
+    // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 (volta 2-B) — do avião). Sujeito barrado por trava (nome ou título, maiúscula, pessoa real, sem núcleo…) ou leitura que falhou: nada de frase seguinte.
+    if (!primeiraFraseSemSujeito(daFala.relato)) return doPedido ?? daFala
     // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 (volta 2, revisão independente 17/11) — a 1ª leitura que FALHAR (prazo, rede, JSON) encerra o laço: nada de somar espera em cima de falha.
     for (const seguinte of frasesSeguintesDaFala(args.falas, frase)) {
       const leitura = await lerSujeitoDoPedido(seguinte, { ...opts, tentativasExtras: 0 })
@@ -98,6 +101,11 @@ function frasesInteiras(t: string): string[] {
     else out.push(pedaco)
   }
   return out
+}
+
+/** KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 (volta 2-B) — a 1ª frase foi lida e não tem sujeito concreto (kind none, uso_none). Qualquer outro motivo é trava ou falha. */
+export function primeiraFraseSemSujeito(relato: Pick<RelatoSujeitoTodos, 'motivo_sem_sujeito' | 'leitura'>): boolean {
+  return relato.motivo_sem_sujeito === 'uso_none' && relato.leitura?.ok === true && relato.leitura.kind === 'none'
 }
 
 export const MOTIVO_FALA_SEGUINTE = 'fala_seguinte' as const

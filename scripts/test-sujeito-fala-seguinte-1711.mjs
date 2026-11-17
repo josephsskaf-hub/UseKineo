@@ -39,7 +39,7 @@ const NADA = { reasoning: 'An abstract concept; no concrete subject to visualize
 /** o modelo gravado: avião só quando a frase lida fala em avião; o resto, nada (como no evento aefd0488). Guarda o que foi lido. */
 const modelo = (lidos) => async (_url, init) => { const msgs = JSON.parse(String(init?.body ?? '{}')).messages ?? []; const lido = String(msgs[msgs.length - 1]?.content ?? '').replace(/^Video request:\n/, ''); lidos.push(lido); return resposta(/\bplane\b/i.test(lido) ? AVIAO : NADA) }
 
-async function provasLeitura(S) {
+async function provasLeitura(S, L_SO = S.__so) {
   const e = []
   const seg = S.frasesSeguintesDaFala(FALAS, S.primeiraFraseDaFala(FALAS[0]))
   if (S.primeiraFraseDaFala(FALAS[0]) !== 'A 70-year-old mystery...') e.push('a 1ª frase mudou: ' + S.primeiraFraseDaFala(FALAS[0]))
@@ -84,6 +84,31 @@ async function provasLeitura(S) {
   // (6) pedaço em minúscula e frase curta não são frase; aspas e rótulo saem; teto de 2
   const f6 = S.frasesSeguintesDaFala(['[Pexels: x] “One two three four. and then more words here. No. Third real sentence here. Fourth real sentence here. Fifth one here.”'], 'One two three four.')
   if (JSON.stringify(f6) !== JSON.stringify(['Third real sentence here.', 'Fourth real sentence here.'])) e.push('frases seguintes (filtro): ' + JSON.stringify(f6))
+  // ── volta 2-B (CEO 17/11, regra conservadora) ──
+  // o avião é uso_none: a leitura gravada no evento aefd0488 (kind none, word_use none) sobre a 1ª frase real dá motivo uso_none, e só por isso a frase seguinte é lida
+  const O = L_SO
+  const leituraReal = await O.lerSujeitoDoPedido('A 70-year-old mystery...', { fetchImpl: async () => resposta(NADA), tentativasExtras: 0 })
+  const relatoReal = S.exigirSujeitoEmTodos({ pedido: { pedido: 'A 70-year-old mystery...', fonte: 'ideia_solta', motivo: 'fala_de_abertura' }, leitura: leituraReal, falas: FALAS, planos: PLANOS, pessoaPermitida: true, estrada: 'classica' }).relato
+  if (relatoReal.motivo_sem_sujeito !== 'uso_none' || relatoReal.leitura?.kind !== 'none' || relatoReal.leitura?.word_use !== 'none' || relatoReal.leitura?.descartado !== 'uso_none' || !S.primeiraFraseSemSujeito(relatoReal)) e.push('2-B o avião não é uso_none: ' + JSON.stringify({ m: relatoReal.motivo_sem_sujeito, k: relatoReal.leitura?.kind }))
+  // controles: 1ª frase com sujeito barrado por trava NÃO lê as frases seguintes (a 2ª frase traria o avião)
+  const TRAVAS = [
+    ['pessoa real', { reasoning: 'A named man.', subject: 'Roland Oznard', head_noun: 'man', subject_visual_no_people: 'an old man', kind: 'person_generic', real_person: true, has_human: true, mention_words: ['Roland'], word_use: 'literal', request_language: 'en' }, 'Roland Oznard fights his smart fridge today.'],
+    ['nome ou título', { reasoning: 'A game title.', subject: 'GTA 6', head_noun: 'game', subject_visual_no_people: 'a video game', kind: 'object', real_person: false, has_human: false, mention_words: ['GTA'], word_use: 'name_or_title', request_language: 'en' }, 'GTA 6 is about to launch at last.'],
+    ['maiúscula no visual', { reasoning: 'A dirty car.', subject: 'a dirty Range Rover', head_noun: 'car', subject_visual_no_people: 'a dirty Range Rover', kind: 'vehicle', real_person: false, has_human: false, mention_words: ['Range Rover'], word_use: 'literal', request_language: 'en' }, 'A busy professional, a dirty Range Rover, and no time.'],
+  ]
+  for (const [nome, obj, abertura] of TRAVAS) {
+    const lt = []
+    const f = async (u, init) => { const r = await modelo(lt)(u, init); return lt.length === 1 ? resposta(obj) : r }
+    const falasT = [`${abertura} In 1950, a plane vanished. It left no trace.`, 'The end.']
+    const mt = await S.sujeitoEmTodosOsMotores({ pedido: null, falas: falasT, planos: ['p1', 'p2'], pessoaPermitida: true, estrada: 'classica' }, { fetchImpl: f, tentativasExtras: 0 })
+    const motivo = mt?.relato.motivo_sem_sujeito
+    if (!motivo || motivo === 'uso_none' || mt.relato.sujeito) { e.push(`2-B fixture "${nome}": não é trava (${motivo})`); continue }
+    if (lt.length !== 1 || mt.planos[0] !== 'p1' || mt.planos[1] !== 'p2' || mt.relato.motivo_do_pedido !== 'fala_de_abertura') e.push(`2-B trava "${nome}" (${motivo}): leu a frase seguinte ou mexeu no plano: ${JSON.stringify(lt)}`)
+  }
+  // a 1ª leitura que falha também não abre as frases seguintes
+  const lf1 = []
+  await S.sujeitoEmTodosOsMotores({ pedido: null, falas: FALAS, planos: PLANOS, pessoaPermitida: true, estrada: 'classica' }, { fetchImpl: async () => { lf1.push(1); throw new Error('rede') }, tentativasExtras: 0 })
+  if (lf1.length !== 1) e.push('2-B 1ª leitura falhou e leu a seguinte: ' + lf1.length)
   // ── volta 2 (revisão independente 17/11) ──
   // (b) a 1ª leitura que falha encerra o laço: a frase 2 cai (rede) e a frase 3, que traria o avião, nem é lida; planos intactos
   const lb = []
@@ -165,7 +190,8 @@ function provasMetade(L) {
   return e
 }
 
-const e1 = await provasLeitura(carrega(SU)(SU))
+const comSo = (L) => Object.assign({}, L(SU), { __so: L('lib/cinematic/sujeitoObrigatorio.ts') })
+const e1 = await provasLeitura(comSo(carrega(SU)))
 checa(`A a leitura segue pelas frases seguintes da narração; controles iguais${e1.length ? ': ' + e1.join(' · ') : ''}`, e1.length === 0)
 const e2 = provasMetade(carrega(QP))
 checa(`B a frase do sujeito sobrevive à cena fundida do Kling 4; controles iguais${e2.length ? ': ' + e2.join(' · ') : ''}`, e2.length === 0)
@@ -188,6 +214,7 @@ const MUT_S = [
   ['não lê a frase seguinte', (t) => lf(t).replace('for (const seguinte of frasesSeguintesDaFala(args.falas, frase)) {', 'for (const seguinte of [] as string[]) {')],
   ['sem teto de leituras', (t) => lf(t).replace('.slice(0, FRASES_SEGUINTES_MAX)', '')],
   ['pedaço em minúscula vira frase', (t) => lf(t).replace(' && !/^\\p{Ll}/u.test(f)', '')],
+  ['(2-B) trava liberada: lê a frase seguinte com sujeito barrado', (t) => lf(t).replace('if (!primeiraFraseSemSujeito(daFala.relato)) return doPedido ?? daFala', '')],
   ['(b) segue lendo depois da falha', (t) => lf(t).replace('if (!leitura.ok) break', '')],
   ['(c) abreviação fecha frase', (t) => lf(t).replace('if (out.length && ABREVIACAO_NO_FIM.test(out[out.length - 1]))', 'if (false)')],
   ['(c) rabo da 1ª frase vira frase', (t) => lf(t).replace('frasesInteiras(t).slice(1)', 'frasesInteiras(primeira && t.startsWith(primeira) ? t.slice(primeira.length) : t)')],
@@ -202,7 +229,7 @@ const MUT_S = [
 for (const [nome, fn] of MUT_S) {
   const mudou = fn(srcS) !== srcS
   let e = []
-  if (mudou) { try { e = await provasLeitura(carrega(SU, fn)(SU)) } catch (x) { e = ['lançou: ' + x.message] } }
+  if (mudou) { try { e = await provasLeitura(comSo(carrega(SU, fn))) } catch (x) { e = ['lançou: ' + x.message] } }
   checa(`mutante "${nome}" fica vermelho (${mudou ? e.length + ' erro(s)' : 'NÃO APLICOU'})`, mudou && e.length > 0)
 }
 const MUT_Q = [

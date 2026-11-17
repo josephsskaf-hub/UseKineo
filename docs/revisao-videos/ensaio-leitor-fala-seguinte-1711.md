@@ -46,3 +46,14 @@ Ler as frases seguintes só quando a 1ª leitura respondeu `uso_none` (o caso pr
 ## Para rodar o ensaio
 
 Falta a chave no ambiente da sessão (`OPENAI_API_KEY`), posta por quem pode. São cerca de 144 leituras curtas (72 filmes × 2 frases); pelo preço de tabela do gpt-4o-mini fica bem abaixo do teto de US$ 1, valor que não conferi nesta sessão.
+
+## Volta 2-B — a CEO decidiu a regra conservadora (17/11)
+
+A proposta acima foi implementada: as frases seguintes só são lidas quando a leitura da 1ª frase respondeu kind none com motivo `uso_none`. O ensaio do leitor real continua sem rodar.
+
+Contagem pelo Supabase (só leitura, mesmos 14 dias, 128 eventos sem sujeito pela fala, 70 com narração gravada):
+
+- A regra B passa a ler 38 filmes: `uso_none` com kind none, narração gravada e pelo menos uma frase depois da primeira. A conta de "frase depois" é por pontuação no SQL, sem os filtros de tamanho e de minúscula da função, então 38 é o teto.
+- Ficam fora, por trava ou falha na 1ª frase, 29 filmes com narração gravada.
+- Dos 3 casos da revisão: 365ef281 (lava-rápido, `visual_com_maiuscula`) e 58f63487 (baleias, `visual_com_maiuscula`) saem; a3b48be4 (onda de Lituya Bay, `uso_none`) continua dentro.
+- O avião 44d02f20 é `uso_none` com kind none: continua dentro.
