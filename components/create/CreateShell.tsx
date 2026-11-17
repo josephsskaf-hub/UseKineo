@@ -15,6 +15,7 @@ import { guardarRascunhoDoDesenho } from '@/lib/ads/rascunhoDoVisitante'
 import { CARTOON_IDEA_MAX_CHARS, CREATE_COPY, CREATE_EVENTS, CREATE_EXAMPLES, FILM_IDEA_MAX_CHARS, adsContinueHref, cartoonContinueHref, cartoonDraft, continueBlocker, filmContinueHref, type CreateExample, type CreateTab } from '@/lib/create/tabs'
 import '@/app/recreate/recreate.css'
 import './create.css'
+import CartoonOffer, { CARTOON_OFFER_CSS, CartoonPurchaseDock } from '@/components/kidsCartoon/CartoonOffer'
 import ContagemSocial, { CONTAGEM_SOCIAL_CSS } from '@/components/create/ContagemSocial' // KINEO-FILMES-VIRAIS-1511
 
 export function continueHref(tab: CreateTab, idea: string, signedIn: boolean): string {
@@ -23,7 +24,7 @@ export function continueHref(tab: CreateTab, idea: string, signedIn: boolean): s
 
 // KINEO-STUDIO-NA-MOLDURA-1011 — `painel` (opcional) troca SÓ os passos do painel pelos do Studio real (StudioSimples); `aoEscolher` recebe a
 // ideia do exemplo. Sem eles, o HTML é byte a byte o de antes (scripts/test-studio-na-moldura-1011.mjs).
-export default function CreateShell({ tab, signedIn = true, showRecreate = true, showClip = false, painel, aoEscolher }: { tab: CreateTab; signedIn?: boolean; showRecreate?: boolean; /** KINEO-CLIP-NA-MOLDURA-1011 */ showClip?: boolean; painel?: ReactNode; aoEscolher?: (ideia: string) => void }) {
+export default function CreateShell({ tab, signedIn = true, showRecreate = true, showClip = false, painel, aoEscolher, aoComprar }: { tab: CreateTab; signedIn?: boolean; showRecreate?: boolean; /** KINEO-CLIP-NA-MOLDURA-1011 */ showClip?: boolean; painel?: ReactNode; aoEscolher?: (ideia: string) => void; aoComprar?: () => void }) {
   const copy = CREATE_COPY[tab]
   const examples = CREATE_EXAMPLES[tab]
   const [example, setExample] = useState<CreateExample>(examples[0])
@@ -53,10 +54,12 @@ export default function CreateShell({ tab, signedIn = true, showRecreate = true,
   const marker = (n: number) => <span className="rc-step-number" aria-hidden="true">{states[n - 1] === 'done' ? '✓' : n}</span>
 
   return <main className="recreate create-shell" data-create-shell={tab}>
+    {tab === 'cartoon' ? <style dangerouslySetInnerHTML={{ __html: CARTOON_OFFER_CSS }} /> : null}
     <header className="rc-nav ct-nav"><Link href="/" className="rc-brand"><KineoBrandIcon size={28} /><span>Kineo</span></Link><CreateTabs active={tab} showRecreate={showRecreate} showClip={showClip} /><CreateNavConta /></header>{/* KINEO-TELA-NOVA-CABECALHO-1011 — saldo · Pricing · My videos */}
     <div className="rc-workspace">
       <aside className="rc-panel" aria-label={copy.title}>
         <div className="rc-panel-intro"><span className="rc-eyebrow">{copy.eyebrow}</span><h1>{copy.title}</h1></div>
+        {tab === 'cartoon' ? <CartoonOffer compact /> : null}
         {painel ?? <>
         <div className="rc-progress"><span>{ready ? 'Ready to continue' : 'Start with your idea'}</span><div role="progressbar" aria-label="Steps completed" aria-valuemin={0} aria-valuemax={3} aria-valuenow={states.filter(s => s === 'done').length}>{states.map((s, i) => <i key={i} className={`rc-progress-${s}`} />)}</div></div>
         <section className={`rc-step rc-step-${states[0]}`} data-step-state={states[0]} aria-labelledby="ct-step1">
@@ -93,5 +96,9 @@ export default function CreateShell({ tab, signedIn = true, showRecreate = true,
         </article>)}</div>
       </section>
     </div>
+    {tab === 'cartoon' ? <CartoonPurchaseDock onPlans={() => {
+      if (aoComprar) aoComprar()
+      else if (!painel) guardarRascunhoDoDesenho(cartoonDraft(idea))
+    }} /> : null}
   </main>
 }

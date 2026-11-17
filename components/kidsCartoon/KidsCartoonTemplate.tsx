@@ -17,6 +17,7 @@
 import { cadastroComVolta } from '@/lib/growth/visitanteEscreveAntes' // KINEO-CARDS-ANTES-DO-LOGIN-0411
 import { guardarRascunhoDoDesenho, lerRascunhoDoDesenho } from '@/lib/ads/rascunhoDoVisitante' // KINEO-CARDS-ANTES-DO-LOGIN-0411
 import Link from 'next/link'
+import CartoonOffer, { CARTOON_OFFER_CSS, CartoonPurchaseDock } from './CartoonOffer'
 import { NARRATION_LANGUAGES, type NarrationLanguage } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
@@ -451,12 +452,14 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
       <ProductStageStyles />
       <style dangerouslySetInnerHTML={{ __html: ADS_QUADRO_TINT_CSS + ADS_QUADRO_STUDIO_CSS }} />
       <style dangerouslySetInnerHTML={{ __html: KIDS_TELA_CSS + KIDS_TEMPLATE_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: CARTOON_OFFER_CSS }} />
       <header className="adsw-header adv2-head">
         <div>
           <h1>{t.title}</h1>
           <p className="sub">{t.lead}</p>
         </div>
       </header>
+      {!renderView && !reviewing ? <CartoonOffer language={ui} /> : null}
       {/* KINEO-CELULAR-FLUXO-0611 — conta sem plano com filme grátis aberto: a saída vem antes dos personagens; o desenho segue só com plano. */}
       {semPlano && filmeGratis && !visitante ? (
         <section className="ace-card" data-kineo="kids-filme-gratis">
@@ -615,6 +618,10 @@ export default function KidsCartoonTemplate({ visitante = false, episodios = nul
         </aside>
       </div>
       </div>
+      <CartoonPurchaseDock language={ui} onPlans={() => {
+        guardarRascunhoDoDesenho({ character, idea, ideaId, language, duration })
+        void trackEvent('kids_cartoon_plans_clicked', { credits: cost, balance, duration, surface: 'purchase_dock' })
+      }} />
     </div>
   )
 }

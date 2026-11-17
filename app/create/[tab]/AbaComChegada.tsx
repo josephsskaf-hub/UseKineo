@@ -51,5 +51,5 @@ export default function AbaComChegada({ tab, showRecreate, showClip = false, des
       </div>
     </section>
   </>
-  return <CreateShell tab={tab} showRecreate={showRecreate} showClip={showClip} painel={painel} aoEscolher={hasInput ? (ideia: string) => setIdea(ideia.slice(0, CARTOON_IDEA_MAX_CHARS)) : undefined} />
+  return <CreateShell tab={tab} showRecreate={showRecreate} showClip={showClip} painel={painel} aoComprar={tab === 'cartoon' ? () => guardarRascunhoDoDesenho(cartoonDraft(idea)) : undefined} aoEscolher={hasInput ? (ideia: string) => setIdea(ideia.slice(0, CARTOON_IDEA_MAX_CHARS)) : undefined} />
 }
