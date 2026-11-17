@@ -69,6 +69,25 @@
  .recreate.rc-current-flow .rc-panel .rc-upload{min-height:180px}
  .recreate.rc-current-flow .rc-panel .rc-upload.rc-upload-filled,.recreate.rc-current-flow .rc-panel .rc-photos-single .rc-upload{min-height:220px}
 }
+/* KINEO-TELA-RECREATE-1611 [dono 16/11 23:50: "Cuidado só com a rolagem da tela. Deixa tudo em uma tela… melhor do que a pessoa ter que clicar para baixar o conteúdo"] —
+   no computador o painel não rola por dentro: a área da foto (o bloco mais alto) encolhe com a altura da janela e, em janela baixa, os espaços ficam mais justos.
+   O aviso de direito de uso continua visível. No celular (até 800 px) nada muda: a página rola, sem rolagem dentro de rolagem. */
+@media(min-width:801px){
+ .recreate.rc-current-flow .rc-flow-fields{flex:none;overflow:visible;padding-right:0}
+ .recreate.rc-current-flow .rc-panel .rc-photos-single .rc-upload{min-height:88px;height:clamp(88px,calc(100svh - 775px),220px)}
+}
+@media(min-width:801px) and (max-height:900px){
+ .recreate.rc-current-flow .rc-panel-intro h1{font-size:22px;margin-bottom:6px}
+ .recreate.rc-current-flow .rc-panel .rc-step{padding:6px 0}
+ .recreate.rc-current-flow .rc-panel .rc-muted{margin:4px 0 8px}
+ .recreate.rc-current-flow .rc-base-row{padding:6px 8px;margin-bottom:8px}
+ .recreate.rc-current-flow .rc-base-row>img{width:36px;height:42px}
+ .recreate.rc-current-flow .rc-acao-secundaria{min-height:38px;margin-bottom:6px;padding-block:6px}
+ .recreate.ct-juntos .ct-juntos-voltar{min-height:36px;margin-bottom:6px}
+ .recreate.rc-current-flow .rc-photo-guide,.recreate.rc-current-flow .rc-consent{margin:4px 0}
+ .recreate.rc-current-flow .rc-panel .rc-generate{min-height:46px;margin-top:8px}
+ .recreate.rc-current-flow .rc-panel .rc-photos-single .rc-upload{height:clamp(88px,calc(100svh - 700px),220px)}
+}
 @media(prefers-reduced-motion:reduce){.recreate.rc-current-flow *{scroll-behavior:auto!important;transition:none!important}}
 /* M12 régua do dono: nenhum texto abaixo de 12 px no fluxo novo (o rótulo "Recreate" vinha com 10 px do recreate.css). Só tamanho. */
 .recreate.rc-current-flow .rc-eyebrow{font-size:12px}
