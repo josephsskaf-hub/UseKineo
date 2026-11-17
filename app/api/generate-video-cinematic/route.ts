@@ -3686,6 +3686,11 @@ async function manipularPost(req: NextRequest) {
         // metade do trial confiscada por uma recusa didática. O release é o
         // mesmo caminho do dry-run/FAILFAST: estorna e libera na hora.
         await releaseBirthClaim('narration_too_short_no_charge')
+        // N1 16/11: o histórico contém só recusas ANTERIORES. Ler depois do insert
+        // abaixo fazia a primeira recusa contar como duas (corpus real de 30 dias).
+        // A leitura é best-effort dentro de historicoDeParedes; não altera o portão.
+        const agoraEsp = Date.now()
+        const historicoGuard = await historicoDeParedes(cinematicAdmin, user.id, agoraEsp)
         // KINEO-GUARD-VISIVEL-2026-08-25 (fundador: "isso precisa refletir pra
         // mim no adm") — o bloqueio educativo ganha um evento com NOME próprio,
         // porque o /admin/live só enxerga nomes: sem isto, o guard aparecia
@@ -3724,9 +3729,8 @@ async function manipularPost(req: NextRequest) {
         const msgGuard = narrationTooShortMessage(fit, SUPPORTED_DURATIONS)
         let espiralGuard: ReturnType<typeof avaliarEspiral> = null
         try {
-          const agoraEsp = Date.now()
           espiralGuard = avaliarEspiral({
-            historico: await historicoDeParedes(cinematicAdmin, user.id, agoraEsp),
+            historico: historicoGuard,
             paredeAtual: 'narracao_curta',
             agora: agoraEsp,
           })
