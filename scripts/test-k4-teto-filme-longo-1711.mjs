@@ -6,7 +6,8 @@
 //   D. o acerto: o código aceita custo 0 ou 2,355 a 3,14; a migration grava a RESERVA do filme como custo (preço exato do clipe);
 //   E. a migration: faixas nos CHECKs, função antiga sai na mesma transação, padrão 2355, regra das 24 h por reserved_milliusd > 0,
 //      devolução da reserva inteira, só service_role; F. a rota passa o clipe medido à reserva, DEPOIS da medição; o interruptor fica 15.
-// A migration NÃO roda aqui (não há @electric-sql/pglite): a parte E é leitura do texto. Rodar: node scripts/test-k4-teto-filme-longo-1711.mjs
+// A parte E é leitura do texto. A parte G executa o SQL em PGlite só com K4_PGLITE=<.../@electric-sql/pglite/dist/index.js>;
+// sem ela, G é pulada e o SQL NÃO roda. Rodar: node scripts/test-k4-teto-filme-longo-1711.mjs
 import { readFileSync, writeFileSync, mkdtempSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -106,6 +107,57 @@ ok(corpo('transition_kling4_trial_fallback').includes('v_film.reserved_milliusd 
 const release = corpo('release_kling4_trial')
 ok(release.includes('reserved_milliusd - v_film.reserved_milliusd') && release.includes('v_film.reserved_milliusd < 2355') && !release.includes('<> 2355'), 'E13 devolução devolve a reserva inteira do filme')
 ok(/grant execute on function public\.record_kling4_trial_film\(text, uuid, text, text, integer\), public\.transition_kling4_trial_fallback\(text, uuid\),\n  public\.release_kling4_trial\(text, uuid\) to service_role;/.test(sql) && !/grant[^;]*\bto (anon|authenticated|public)\b/.test(sql), 'E14 só service_role em todas')
+
+// Parecer da revisão (17/11): duas transições inválidas fechadas sob a mesma trava.
+ok(release.includes("if v_film.engine_used = 'kling4' or coalesce(v_film.cost_milliusd, 0) > 0 then return jsonb_build_object('code', 'unavailable')"), 'E15 devolução recusa filme com custo positivo registrado (reserva → custo → troca → devolução)')
+ok(record.includes('or (p_cost_milliusd > 0 and v_film.released_at is not null)'), 'E16 acerto recusa custo positivo em reserva já devolvida (reserva → devolução → custo)')
+
+// G. SQL de verdade (PGlite em memória), só quando K4_PGLITE aponta para package/dist/index.js do @electric-sql/pglite.
+if (process.env.K4_PGLITE) {
+  console.log('== G. SQL executado em PGlite (banco descartável em memória) ==')
+  const { PGlite } = await import(pathToFileURL(process.env.K4_PGLITE).href)
+  const db = new PGlite()
+  await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
+    grant usage on schema public to anon, authenticated, service_role;
+    create table public.events(id uuid primary key, name text, user_id uuid, path text, metadata jsonb);
+    create table public.trial_signup_fingerprints(user_id uuid, fingerprint_hash text);
+    grant select, insert, update on public.events, public.trial_signup_fingerprints to service_role;`)
+  await db.exec(read('supabase/migrations/20261029011109_kling4_trial_daily_budget.sql'))
+  await db.exec(read('supabase/migrations/20261029021044_kling4_trial_async_fallback.sql'))
+  await db.exec(read('docs/migracoes-pendentes/20261111_kling4_trial_release.sql').split('commit;')[0] + 'commit;')
+  await db.exec(sql.replace(/notify pgrst[^\n]*\n?/, ''))
+  const call = async (fn, args) => {
+    const e = Object.entries(args)
+    await db.exec('set role service_role;')
+    try { return (await db.query(`select public.${fn}(${e.map(([k], i) => `${k} => $${i + 1}`).join(',')}) as r`, e.map(([, v]) => v))).rows[0].r }
+    finally { await db.exec('reset role;') }
+  }
+  const uid = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`
+  const res = (j, u) => call('reserve_kling4_trial', { p_job_id: j, p_user_id: uid(u), p_country: 'br', p_reserve_milliusd: 3140 })
+  const rel = (j, u) => call('release_kling4_trial', { p_job_id: j, p_user_id: uid(u) })
+  const reg = (j, u, eng, c) => call('record_kling4_trial_film', { p_job_id: j, p_user_id: uid(u), p_country: 'br', p_engine_used: eng, p_cost_milliusd: c })
+  const dia = async () => Number((await db.query('select coalesce(sum(reserved_milliusd),0) n from public.kling4_trial_days')).rows[0].n)
+  const filme = async (j) => (await db.query('select * from public.kling4_trial_films where job_id = $1', [j])).rows[0]
+  { // 1. reservar 3140 → custo 3140 → troca → devolver: recusado; o dia segue 3140
+    await res('g1', 1); await reg('g1', 1, 'kling4', 3140)
+    const t = await call('transition_kling4_trial_fallback', { p_job_id: 'g1', p_user_id: uid(1) })
+    const r = await rel('g1', 1); const f = await filme('g1')
+    ok(t.code === 'ok' && r.code === 'unavailable' && (await dia()) === 3140 && f.released_at === null && f.cost_milliusd === 3140, 'G1 custo registrado não volta ao teto: devolução = unavailable, dia 3140') }
+  { // 2. reservar → devolver → custo Kling: recusado; nada gravado
+    await db.exec('truncate public.kling4_trial_films, public.kling4_trial_days, public.events;')
+    await res('g2', 2); const r1 = await rel('g2', 2); const r = await reg('g2', 2, 'kling4', 2355); const f = await filme('g2')
+    ok(r1.code === 'ok' && r.code === 'unavailable' && f.cost_milliusd === null && f.recorded_at === null && (await dia()) === 0, 'G2 custo positivo depois da devolução = unavailable, nada gravado')
+    // 3. custo zero do fallback depois de devolver continua aceito; 4. devolver de novo continua unchanged
+    const r0 = await reg('g2', 2, 'seedance15_fallback', 0); const f0 = await filme('g2')
+    ok(r0.code === 'ok' && f0.cost_milliusd === 0 && f0.engine_used === 'seedance15_fallback', 'G3 custo 0 do fallback depois da devolução continua aceito')
+    const r2 = await rel('g2', 2)
+    ok(r2.code === 'unchanged' && (await dia()) === 0, 'G4 devolver duas vezes continua unchanged; dia segue 0') }
+  { // 5. caminho bom intacto: reserva → 4xx → devolver → custo 0
+    await db.exec('truncate public.kling4_trial_films, public.kling4_trial_days, public.events;')
+    await res('g5', 5); const r = await rel('g5', 5)
+    ok(r.code === 'ok' && r.released_milliusd === 3140 && (await dia()) === 0, 'G5 devolução normal (sem custo) continua devolvendo 3140') }
+  await db.close()
+} else console.log('== G. pulado: sem K4_PGLITE, o SQL NÃO foi executado ==')
 
 console.log('== F. rota e anúncio ==')
 const rota = read('app/api/generate-video-cinematic/route.ts')

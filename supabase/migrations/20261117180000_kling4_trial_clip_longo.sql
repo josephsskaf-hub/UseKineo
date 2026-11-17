@@ -84,6 +84,7 @@ begin
   if found and v_film.recorded_at is not null then return jsonb_build_object('code', 'unchanged'); end if;
   if (p_engine_used = 'kling4' and (coalesce(v_film.reserved_milliusd, 0) < 2355 or p_cost_milliusd < 2355))
     or (p_engine_used = 'seedance15_cap' and p_cost_milliusd <> 0)
+    or (p_cost_milliusd > 0 and v_film.released_at is not null)
     or p_cost_milliusd > coalesce(v_film.reserved_milliusd, 0) then
     return jsonb_build_object('code', 'unavailable');
   end if;
@@ -143,7 +144,7 @@ begin
   select * into v_film from public.kling4_trial_films where user_id = p_user_id and job_id = p_job_id for update;
   if not found or v_film.reserved_milliusd < 2355 then return jsonb_build_object('code', 'unavailable'); end if;
   if v_film.released_at is not null then return jsonb_build_object('code', 'unchanged'); end if;
-  if v_film.engine_used = 'kling4' then return jsonb_build_object('code', 'unavailable'); end if;
+  if v_film.engine_used = 'kling4' or coalesce(v_film.cost_milliusd, 0) > 0 then return jsonb_build_object('code', 'unavailable'); end if;
   update public.kling4_trial_films set released_at = now() where user_id = p_user_id and job_id = p_job_id;
   update public.kling4_trial_days set reserved_milliusd = greatest(reserved_milliusd - v_film.reserved_milliusd, 0)
     where request_day = v_film.request_day;
