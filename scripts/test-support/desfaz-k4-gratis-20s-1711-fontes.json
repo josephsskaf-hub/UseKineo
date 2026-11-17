@@ -1,0 +1,86 @@
+{
+ "base": "f63918082828b91aa36c7780f7b05836aff3fc1f",
+ "scope": {
+  "lib/kling4Trial.ts": {
+   "beforeSha256": "ed828d690f8cf369b4c1f304de4c7a49b0faf6849aad978d467f3b0c143564b1",
+   "afterSha256": "2069119ada783317460f1fb1d6a2410fa114bd1c1efaaf65d0c2b8b539a07dff",
+   "hunks": [
+    {
+     "before": "// último plano; piso de 2 s por plano (o schema da fal aceita 1–30). Sem `pelaVoz` = a régua de sempre, byte a byte.\nexport type Kling4TrialTiming = { voiceovers: readonly string[]; wordsPerSecond: number; pelaVoz?: { segundosDaVoz: number } | null }\nexport const KLING4_PISO_PELA_VOZ = 2",
+     "after": "// último plano; piso de 2 s por plano (o schema da fal aceita 1–30). Sem `pelaVoz` = a régua de sempre, byte a byte.\nexport type Kling4TrialTiming = { voiceovers: readonly string[]; wordsPerSecond: number; pelaVoz?: { segundosDaVoz: number } | null; clipSeconds?: number } // KINEO-K4-GRATIS-20S-1711: + clipSeconds (o clipe nasce do tamanho da voz; ausente = 15)\nexport const KLING4_PISO_PELA_VOZ = 2"
+    },
+    {
+     "before": "/** KINEO-K4-DURACAO-PELA-VOZ-1311 — durações inteiras cujas fronteiras seguem o fim da fala de cada seção (voz medida). */\nexport function kling4TrialSceneDurationsPelaVoz(voiceovers: readonly string[], segundosDaVoz: number): number[] | null {\n  const n = voiceovers.length\n  if (!n || n > 5 || !Number.isFinite(segundosDaVoz) || segundosDaVoz <= 0 || segundosDaVoz > 15.5) return null\n  const palavras = voiceovers.map((t) => narrationWordCount(t))\n  const total = palavras.reduce((s, w) => s + w, 0)\n  if (total <= 0 || palavras.some((w) => w <= 0)) return null\n  const piso = KLING4_PISO_PELA_VOZ",
+     "after": "/** KINEO-K4-DURACAO-PELA-VOZ-1311 — durações inteiras cujas fronteiras seguem o fim da fala de cada seção (voz medida). */\nexport function kling4TrialSceneDurationsPelaVoz(voiceovers: readonly string[], segundosDaVoz: number, total = 15): number[] | null { // KINEO-K4-GRATIS-20S-1711: + total (padrão 15 = hoje)\n  const n = voiceovers.length\n  if (!n || n > 5 || !Number.isFinite(segundosDaVoz) || segundosDaVoz <= 0 || segundosDaVoz > 15.5 + (total - 15)) return null\n  const palavras = voiceovers.map((t) => narrationWordCount(t))\n  const palavrasTotal = palavras.reduce((s, w) => s + w, 0)\n  if (palavrasTotal <= 0 || palavras.some((w) => w <= 0)) return null\n  const piso = KLING4_PISO_PELA_VOZ"
+    },
+    {
+     "before": "    acumulado += palavras[i]\n    const fim = Math.round((acumulado / total) * Math.min(segundosDaVoz, 15))\n    const anterior = i === 0 ? 0 : fronteiras[i - 1]\n    fronteiras.push(Math.min(Math.max(fim, anterior + piso), 15 - piso * (n - 1 - i)))\n  }\n  const cortes = [0, ...fronteiras, 15]\n  const segundos = cortes.slice(1).map((c, i) => c - cortes[i])\n  return segundos.every((s) => s >= piso) && segundos.reduce((s, x) => s + x, 0) === 15 ? segundos : null\n}",
+     "after": "    acumulado += palavras[i]\n    const fim = Math.round((acumulado / palavrasTotal) * Math.min(segundosDaVoz, total))\n    const anterior = i === 0 ? 0 : fronteiras[i - 1]\n    fronteiras.push(Math.min(Math.max(fim, anterior + piso), total - piso * (n - 1 - i)))\n  }\n  const cortes = [0, ...fronteiras, total]\n  const segundos = cortes.slice(1).map((c, i) => c - cortes[i])\n  return segundos.every((s) => s >= piso) && segundos.reduce((s, x) => s + x, 0) === total ? segundos : null\n}"
+    },
+    {
+     "before": "/** Speech-weighted allocation on the provider's integer clock. Clamp short shots, then apportion the remainder. */\nexport function kling4TrialSceneDurations(voiceovers: readonly string[], wordsPerSecond: number): number[] {\n  const n = voiceovers.length",
+     "after": "/** Speech-weighted allocation on the provider's integer clock. Clamp short shots, then apportion the remainder. */\nexport function kling4TrialSceneDurations(voiceovers: readonly string[], wordsPerSecond: number, total = 15): number[] { // KINEO-K4-GRATIS-20S-1711: + total (padrão 15 = hoje)\n  const n = voiceovers.length"
+    },
+    {
+     "before": "  const target = new Array<number>(n).fill(3)\n  let remaining = 15\n  let active = speech.map((_, i) => i)",
+     "after": "  const target = new Array<number>(n).fill(3)\n  let remaining = total\n  let active = speech.map((_, i) => i)"
+    },
+    {
+     "before": "    .sort((a, b) => b.fraction - a.fraction || a.i - b.i)\n  const spare = 15 - seconds.reduce((sum, s) => sum + s, 0)\n  for (let k = 0; k < spare; k++) seconds[order[k].i]++",
+     "after": "    .sort((a, b) => b.fraction - a.fraction || a.i - b.i)\n  const spare = total - seconds.reduce((sum, s) => sum + s, 0)\n  for (let k = 0; k < spare; k++) seconds[order[k].i]++"
+    },
+    {
+     "before": "\nexport function buildKling4TrialInput(",
+     "after": "\n/** KINEO-K4-GRATIS-20S-1711 — o total do clipe: inteiro de 15 a 30 (schema kling/v4: 3–30); qualquer outra coisa = 15. */\nexport function kling4TrialClipTotal(clipSeconds: unknown): number {\n  return typeof clipSeconds === 'number' && Number.isInteger(clipSeconds) && clipSeconds >= 15 && clipSeconds <= 30 ? clipSeconds : 15\n}\n\nexport function buildKling4TrialInput("
+    },
+    {
+     "before": "  // Empty narration is the only balanced fallback. Birth always supplies its final scene voiceovers and resolved voice pace.\n  const pelaVoz = timing?.pelaVoz ? kling4TrialSceneDurationsPelaVoz(timing.voiceovers, timing.pelaVoz.segundosDaVoz) : null // KINEO-K4-DURACAO-PELA-VOZ-1311\n  const seconds = pelaVoz ?? kling4TrialSceneDurations(timing?.voiceovers ?? shots.map(() => ''), timing?.wordsPerSecond ?? 1)\n  const first = approvedStills[0] || null",
+     "after": "  // Empty narration is the only balanced fallback. Birth always supplies its final scene voiceovers and resolved voice pace.\n  const total = kling4TrialClipTotal(timing?.clipSeconds) // KINEO-K4-GRATIS-20S-1711 — 15 sem clipSeconds (hoje)\n  const pelaVoz = timing?.pelaVoz ? kling4TrialSceneDurationsPelaVoz(timing.voiceovers, timing.pelaVoz.segundosDaVoz, total) : null // KINEO-K4-DURACAO-PELA-VOZ-1311\n  const seconds = pelaVoz ?? kling4TrialSceneDurations(timing?.voiceovers ?? shots.map(() => ''), timing?.wordsPerSecond ?? 1, total)\n  const first = approvedStills[0] || null"
+    },
+    {
+     "before": "    input: {\n      multi_prompt: multiPrompt, duration: 15, resolution: '720p',\n      ...(first ? { start_image_url: first, ...(middle.length ? { middle_image_urls: middle } : {}) } : { aspect_ratio: '9:16' }),",
+     "after": "    input: {\n      multi_prompt: multiPrompt, duration: total, resolution: '720p', // KINEO-K4-GRATIS-20S-1711 — a soma dos planos (schema kling/v4: 3–30 s)\n      ...(first ? { start_image_url: first, ...(middle.length ? { middle_image_urls: middle } : {}) } : { aspect_ratio: '9:16' }),"
+    }
+   ]
+  },
+  "lib/kling4TrialScript.ts": {
+   "beforeSha256": "54a3e4a574d3ab24ccb0f0b42e35d570b2ca56b3467d58a092174b963a07a45a",
+   "afterSha256": "666e3615b97feb95d029ffa2e3e883703ac51ece9e5625848071cd2d56317dff",
+   "hunks": [
+    {
+     "before": "\n/** A decisão, só sobre a duração medida: ≤ 15,5 s cabe; acima ou sem medida, não. */\nexport function kling4TrialFalaCabe(seconds: number | null): FalaK4 {\n  const s = typeof seconds === 'number' && Number.isFinite(seconds) && seconds > 0.5 ? Math.round(seconds * 1000) / 1000 : null\n  if (s === null) return { seconds: null, maxSeconds: K4_TETO_MEDIDO_SEGUNDOS, cabe: false, reason: 'narration_unmeasured_kling4' }\n  return { seconds: s, maxSeconds: K4_TETO_MEDIDO_SEGUNDOS, cabe: s <= K4_TETO_MEDIDO_SEGUNDOS, reason: s <= K4_TETO_MEDIDO_SEGUNDOS ? 'fits' : 'narration_over_kling4_15s' }\n}",
+     "after": "\n/** A decisão, só sobre a duração medida: ≤ 15,5 s cabe; acima ou sem medida, não. KINEO-K4-GRATIS-20S-1711 — `teto` (padrão 15,5) vem de\n *  kling4TrialTetoDaFala; o motivo acima do teto continua 'narration_over_kling4_15s' (o selo da tela lê esse nome). */\nexport function kling4TrialFalaCabe(seconds: number | null, teto: number = K4_TETO_MEDIDO_SEGUNDOS): FalaK4 {\n  const s = typeof seconds === 'number' && Number.isFinite(seconds) && seconds > 0.5 ? Math.round(seconds * 1000) / 1000 : null\n  if (s === null) return { seconds: null, maxSeconds: teto, cabe: false, reason: 'narration_unmeasured_kling4' }\n  return { seconds: s, maxSeconds: teto, cabe: s <= teto, reason: s <= teto ? 'fits' : 'narration_over_kling4_15s' }\n}"
+    },
+    {
+     "before": "  prazoMs?: number\n}",
+     "after": "  prazoMs?: number\n  /** KINEO-K4-GRATIS-20S-1711 — teto da fala medida (s); padrão K4_TETO_MEDIDO_SEGUNDOS (o de hoje). */\n  tetoSegundos?: number\n}"
+    },
+    {
+     "before": "\nasync function medirSemPrazo(a: ArgsDaFalaK4, deps?: DepsDaFalaK4): Promise<FalaK4> {\n  try {",
+     "after": "\nconst tetoDaMedicao = (a: ArgsDaFalaK4) => typeof a.tetoSegundos === 'number' && Number.isFinite(a.tetoSegundos) && a.tetoSegundos > 0 ? a.tetoSegundos : K4_TETO_MEDIDO_SEGUNDOS // KINEO-K4-GRATIS-20S-1711\n\nasync function medirSemPrazo(a: ArgsDaFalaK4, deps?: DepsDaFalaK4): Promise<FalaK4> {\n  const teto = tetoDaMedicao(a) // KINEO-K4-GRATIS-20S-1711\n  try {"
+    },
+    {
+     "before": "    const narracao = stripScriptMarkers(raw) || (raw.trim() ? salvageScriptNarration(raw) : '')\n    if (!narracao || !a.voz) return kling4TrialFalaCabe(null)\n    const assinada = vozAssinadaDoClaim({ narration_voice: campoDaVozAssinada(a.voz), speed: a.scriptSpeed })\n    if (!assinada) return kling4TrialFalaCabe(null)\n    const s = Number(assinada.speed)",
+     "after": "    const narracao = stripScriptMarkers(raw) || (raw.trim() ? salvageScriptNarration(raw) : '')\n    if (!narracao || !a.voz) return kling4TrialFalaCabe(null, teto)\n    const assinada = vozAssinadaDoClaim({ narration_voice: campoDaVozAssinada(a.voz), speed: a.scriptSpeed })\n    if (!assinada) return kling4TrialFalaCabe(null, teto)\n    const s = Number(assinada.speed)"
+    },
+    {
+     "before": "    const explicitSpeed = Number.isFinite(s) && s > 0 ? Math.max(0.7, Math.min(1.3, s)) : null // ≡ compose\n    if (explicitSpeed === null && !a.verbatim) return kling4TrialFalaCabe(null)\n    const d = deps ?? await depsDeProducao()",
+     "after": "    const explicitSpeed = Number.isFinite(s) && s > 0 ? Math.max(0.7, Math.min(1.3, s)) : null // ≡ compose\n    if (explicitSpeed === null && !a.verbatim) return kling4TrialFalaCabe(null, teto)\n    const d = deps ?? await depsDeProducao()"
+    },
+    {
+     "before": "    const voz = d.aquecivel({ script: narracao, speed: explicitSpeed ?? 1.0, vertical: assinada.vertical, language: a.language, quality: a.quality, log: a.log })\n    if (!voz) return kling4TrialFalaCabe(null)\n    if (!(await voz.produzir())) return kling4TrialFalaCabe(null)\n    const pronta = await d.lookup(voz.chave)\n    return kling4TrialFalaCabe(pronta?.audioDuration ?? null)\n  } catch (e) {",
+     "after": "    const voz = d.aquecivel({ script: narracao, speed: explicitSpeed ?? 1.0, vertical: assinada.vertical, language: a.language, quality: a.quality, log: a.log })\n    if (!voz) return kling4TrialFalaCabe(null, teto)\n    if (!(await voz.produzir())) return kling4TrialFalaCabe(null, teto)\n    const pronta = await d.lookup(voz.chave)\n    return kling4TrialFalaCabe(pronta?.audioDuration ?? null, teto)\n  } catch (e) {"
+    },
+    {
+     "before": "    console.warn('[kling4-trial] KINEO-K4-NARRACAO-CABE-0111 medição da fala falhou (→ Seedance):', e instanceof Error ? e.message : String(e))\n    return kling4TrialFalaCabe(null)\n  }",
+     "after": "    console.warn('[kling4-trial] KINEO-K4-NARRACAO-CABE-0111 medição da fala falhou (→ Seedance):', e instanceof Error ? e.message : String(e))\n    return kling4TrialFalaCabe(null, teto)\n  }"
+    },
+    {
+     "before": "      console.warn(`[kling4-trial] KINEO-K4-NARRACAO-CABE-0111 medição da fala passou de ${prazo} ms (→ Seedance)`)\n      resolve({ ...kling4TrialFalaCabe(null), reason: 'narration_measure_timeout_kling4' })\n    }, prazo)",
+     "after": "      console.warn(`[kling4-trial] KINEO-K4-NARRACAO-CABE-0111 medição da fala passou de ${prazo} ms (→ Seedance)`)\n      resolve({ ...kling4TrialFalaCabe(null, tetoDaMedicao(a)), reason: 'narration_measure_timeout_kling4' })\n    }, prazo)"
+    }
+   ]
+  }
+ },
+ "addedSources": {}
+}

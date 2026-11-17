@@ -7,6 +7,7 @@
 // Sem rede, sem fal, sem banco (db é um Proxy que conta acessos e falha). Rodar: npx tsx scripts/test-k4-despacho-0211.mts
 import { deltaK4DuracaoPelaVoz1311Exato } from './test-support/desfaz-k4-duracao-pela-voz-1311.mjs' // KINEO-K4-DURACAO-PELA-VOZ-1311 [CEO 13/11] — recibo exato da régua de durações pela voz (interruptor 'all' desde 13/11 05:11)
 import { KLING4_DURACAO_PELA_VOZ, duracaoPelaVozLigada, buildKling4TrialInput, kling4TrialSceneDurations } from '../lib/kling4Trial' // KINEO-K4-DURACAO-PELA-VOZ-1311
+import { deltaK4Gratis20s1711Exato } from './test-support/desfaz-k4-gratis-20s-1711.mjs' // KINEO-K4-GRATIS-20S-1711 [dono 17/11, opção A] — recibo exato do clipe de até 20 s (interruptor em 15 = desligado)
 import { deltaK4FaixaTeto0511Exato } from './test-support/desfaz-k4-faixa-teto-0511.mjs' // KINEO-K4-FAIXA-TETO-0511 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
@@ -68,6 +69,8 @@ ok(KLING4_TRIAL_FALLBACK_AFTER_MS === 8 * 60_000, '2 relógio do filme GRÁTIS i
   // KINEO-K4-DURACAO-PELA-VOZ-1311 [CEO 13/11; dono 13/11 05:11 "A": interruptor 'all'] — a régua de durações pela voz (lib/kling4Trial.ts) passa só
   // pelo recibo EXATO; o interruptor mudado sem gerar o recibo de novo, ou qualquer outra edição no arquivo, continua reprovando aqui (seção 5)
   try { const f = 'lib/kling4Trial.ts'; if (deltaK4DuracaoPelaVoz1311Exato(readFileSync(join(raiz, f), 'utf8'), execFileSync('git', ['show', `origin/main:${f}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }), f)) diffGratis = diffGratis.split(/\r?\n/).filter((x) => x.trim() && x.trim() !== f).join('\n') } catch { /* sem recibo = segue reprovando */ }
+  // KINEO-K4-GRATIS-20S-1711 — o total do clipe (lib/kling4Trial.ts) e o teto da medição (lib/kling4TrialScript.ts) passam só pelo recibo EXATO desta entrega
+  for (const f of ['lib/kling4Trial.ts', 'lib/kling4TrialScript.ts']) { try { if (deltaK4Gratis20s1711Exato(readFileSync(join(raiz, f), 'utf8'), execFileSync('git', ['show', `origin/main:${f}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }), f)) diffGratis = diffGratis.split(/\r?\n/).filter((x) => x.trim() && x.trim() !== f).join('\n') } catch { /* sem recibo = segue reprovando */ } }
   ok(diffGratis === '', '2 caminho grátis (status, transporte, portão da voz do 4aba8a177) sem nenhuma mudança') }
 
 console.log('== 3. falha real e reserva já começada continuam como antes ==')
@@ -99,7 +102,8 @@ console.log("== 5. KINEO-K4-DURACAO-PELA-VOZ-1311: régua pela voz para todos ('
   let main: string | null = null
   try { main = execFileSync('git', ['show', `origin/main:${f}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }) } catch { /* sem git = falha */ }
   const exato = (t: string) => main !== null && deltaK4DuracaoPelaVoz1311Exato(t, main, f)
-  ok(main !== null && (hoje.replace(/\r\n/g, '\n') === main.replace(/\r\n/g, '\n') || exato(hoje)), '5 lib/kling4Trial.ts = origin/main ou origin/main + o recibo exato desta entrega')
+  ok(main !== null && (hoje.replace(/\r\n/g, '\n') === main.replace(/\r\n/g, '\n') || exato(hoje) || deltaK4Gratis20s1711Exato(hoje, main, f)), '5 lib/kling4Trial.ts = origin/main ou origin/main + o recibo exato desta entrega') // KINEO-K4-GRATIS-20S-1711: + o recibo do clipe de até 20 s
+  ok(!(main !== null && deltaK4Gratis20s1711Exato(hoje + '\n// edição a mais\n', main, f)), '5 mutante: edição a mais sobre o recibo do clipe de até 20 s NÃO passa') // KINEO-K4-GRATIS-20S-1711
   for (const outro of ['off', 'internal']) ok(!exato(hoje.replace("KLING4_DURACAO_PELA_VOZ: 'off' | 'internal' | 'all' = 'all'", `KLING4_DURACAO_PELA_VOZ: 'off' | 'internal' | 'all' = '${outro}'`)), `5 mutante: interruptor em '${outro}' sem gerar o recibo de novo NÃO passa pelo recibo, e a verificação 2 fica vermelha`)
   ok(!exato(hoje.replace("modo === 'all' || (modo === 'internal' && interno)", "modo === 'all' || modo === 'internal'")), '5 mutante: portão que ignora quem é a conta NÃO passa pelo recibo')
   ok(!exato(hoje + '\n// edição a mais\n'), '5 mutante: edição desconhecida no arquivo NÃO passa pelo recibo')
