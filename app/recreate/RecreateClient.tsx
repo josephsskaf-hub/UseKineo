@@ -17,6 +17,8 @@ import './recreate.css'
 import './currentFlow.css'
 import { downloadVideoFile } from '@/lib/videoDownload' // KINEO-DOWNLOAD-NOSSO-1311
 import { downloadHref } from '@/lib/downloadNosso'
+import { TopupOuRecargaModal, BUY_CREDITS_OPENED_EVENT } from '@/components/billing/BuyCreditsEntry' // KINEO-TELA-RECREATE-1611 — o MESMO pop-up de compra das outras telas
+import { trackEvent } from '@/lib/analytics'
 
 // KINEO-RECREATE-TRAVA-1011 — the provider returned the base video without the customer: the server refunded and failed the clip.
 const NOT_SWAPPED_MESSAGE = "We couldn't put you in this video. Nothing was charged. Try a clearer, front-facing photo or another video."
@@ -96,6 +98,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
   const [dragging, setDragging] = useState<number | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [createError, setCreateError] = useState(false)
+  const [compraAberta, setCompraAberta] = useState(false) // KINEO-TELA-RECREATE-1611 — o pop-up de compra aberto pelo Generate sem crédito
   const photoLock = useRef(false)
   const photoSlot = useRef(0)
   const photoTask = useRef(0)
@@ -457,6 +460,18 @@ export default function RecreateClient({ initialId, internalTools = false, forma
   // KINEO-CAMINHOS-DO-VIDEO-1311 — no celular o resultado nascia no fim do painel, atrás do botão fixo: quando fica pronto (ou falha), a tela rola até ele.
   const fimDoClipe = clip && ['done', 'failed'].includes(clip.status) ? clip.status : null
   useEffect(() => { if (!currentFlow && fimDoClipe) document.querySelector('.rc-result')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }, [fimDoClipe, currentFlow])
+  // KINEO-TELA-RECREATE-1611 [dono 16/11 23:00: "normalmente aqui tem que ser o pop-up de crédito. Inclusive, eu não estou vendo ele"] — logado e sem saldo
+  // para este molde: o Generate fica clicável, diz quantos créditos faltam (o shortfall do servidor) e abre o MESMO pop-up das outras telas de criação
+  // (TopupOuRecargaModal: assinante pago → a barra da recarga dele; conta grátis ou leitura que falhou → "You're out of credits" com os planos). Nenhum
+  // preço aqui (o pop-up lê lib/checkoutPricing), nenhum pedido ao /api/recreate, nenhum débito. Medida: buy_credits_entry_opened, superfície recreate_generate.
+  const faltam = signedIn && !uncertain && !active && !busy && quote?.available && quote.credits !== null && quote.shortfall > 0 ? quote.shortfall : 0
+  function abrirCompra() {
+    if (!selected || !quote || faltam <= 0) return
+    void trackEvent(BUY_CREDITS_OPENED_EVENT, { surface: 'recreate_generate', format: selected.id, credits: quote.credits, shortfall: faltam })
+    setCompraAberta(true)
+  }
+  const botaoDeCompra = faltam > 0 && quote ? <button className="rc-generate" data-recreate-buy-credits="" aria-describedby="rc-generate-reason" onClick={abrirCompra}>{`Get ${faltam} more credits`}<span>✦ {quote.credits}</span></button> : null
+  const compra = compraAberta ? <TopupOuRecargaModal surface="recreate_generate" onClose={() => setCompraAberta(false)} /> : null
   const photoCount = photos.filter(Boolean).length
   const photosReady = !!selected && photoCount === selected.photoSlots
   const editingDisabled = busy || photoBusy || active || (currentFlow && (restoring || uncertain))
@@ -543,15 +558,15 @@ export default function RecreateClient({ initialId, internalTools = false, forma
                 conseguindo também"] — o vídeo ficava pronto no fim do painel, atrás deste botão fixo. Pronto = o botão vira o aviso e leva ao vídeo. */}
             {currentFlow ? <>
               {clip?.status === 'done' && clip.video_url ? <><a className="rc-generate" href={downloadHref(clip.video_url, downloadName, 'recreate')} onClick={onDownload}>Download ↓</a><p className="rc-next-note"><Link href="/library">My videos ↗</Link> · <button type="button" className="rc-outro" onClick={() => { setClip(null); requestKey.current = null }}>Make another</button></p></> : <>
-                <button className="rc-generate" data-recreate-generate aria-describedby="rc-generate-reason" disabled={previewLocked || busy || photoBusy || active || restoring || (uncertain ? !attempt.current : !flowQuoteReady || !quote?.available || quote.credits === null || (signedIn && quote.shortfall > 0) || !photosDone)} onClick={() => void generate(false)}>{restoring ? 'Restoring…' : busy ? uploading ? 'Uploading…' : 'Preparing…' : active ? clip?.needs_status ? 'Checking…' : clip?.queued ? 'In line…' : 'Creating…' : uncertain ? 'Retry same request' : 'Generate'}{quote?.credits != null && <span data-flow-quote={signedIn ? 'confirmed' : 'estimated'}>{signedIn ? '' : 'Estimated '}✦ {quote.credits}</span>}</button>
-                <p className="rc-next-note" id="rc-generate-reason" role="status">{previewLocked && !active && !busy ? PREVIEW_LOCKED_MESSAGE : uncertain ? 'Keep this request unchanged, or check My videos.' : restoring ? 'Restoring your saved photos…' : active || busy ? flowState : blocker}{signedIn && !!quote?.shortfall && <> <Link className="rc-acao" href="/pricing">See plans<Icone nome="seta" /></Link></>}</p>
+                {botaoDeCompra ?? <button className="rc-generate" data-recreate-generate aria-describedby="rc-generate-reason" disabled={previewLocked || busy || photoBusy || active || restoring || (uncertain ? !attempt.current : !flowQuoteReady || !quote?.available || quote.credits === null || (signedIn && quote.shortfall > 0) || !photosDone)} onClick={() => void generate(false)}>{restoring ? 'Restoring…' : busy ? uploading ? 'Uploading…' : 'Preparing…' : active ? clip?.needs_status ? 'Checking…' : clip?.queued ? 'In line…' : 'Creating…' : uncertain ? 'Retry same request' : 'Generate'}{quote?.credits != null && <span data-flow-quote={signedIn ? 'confirmed' : 'estimated'}>{signedIn ? '' : 'Estimated '}✦ {quote.credits}</span>}</button>}
+                <p className="rc-next-note" id="rc-generate-reason" role="status">{previewLocked && !active && !busy ? PREVIEW_LOCKED_MESSAGE : uncertain ? 'Keep this request unchanged, or check My videos.' : restoring ? 'Restoring your saved photos…' : active || busy ? flowState : blocker}</p>
               </>}
             </> : clip?.status === 'done' && clip.video_url ? <>
               <button className="rc-generate" data-recreate-ready onClick={() => document.querySelector('.rc-result')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>Your version is ready · Watch ↓</button>
               <p className="rc-next-note" role="status"><a href={downloadHref(clip.video_url, downloadName, 'recreate')} onClick={onDownload}>Download ↓</a> · <Link href="/library">My videos ↗</Link> · <button type="button" className="rc-outro" onClick={() => { setClip(null); requestKey.current = null }}>Make another</button></p>
             </> : <>
-            <button className="rc-generate" data-recreate-generate aria-describedby="rc-generate-reason" disabled={editingDisabled || !quote?.available || quote.credits === null || quote.shortfall > 0 || !photosDone} onClick={() => void generate(false)}>{busy ? 'Preparing…' : active ? 'Creating…' : 'Generate'}{quote?.credits !== null && quote?.credits !== undefined && <span>✦ {quote.credits}</span>}</button>
-            <p className="rc-next-note" id="rc-generate-reason" role="status">{blocker}{quote?.available && quote.shortfall > 0 && <> <Link href="/pricing">See plans ↗</Link></>}</p>
+            {botaoDeCompra ?? <button className="rc-generate" data-recreate-generate aria-describedby="rc-generate-reason" disabled={editingDisabled || !quote?.available || quote.credits === null || quote.shortfall > 0 || !photosDone} onClick={() => void generate(false)}>{busy ? 'Preparing…' : active ? 'Creating…' : 'Generate'}{quote?.credits !== null && quote?.credits !== undefined && <span>✦ {quote.credits}</span>}</button>}
+            <p className="rc-next-note" id="rc-generate-reason" role="status">{blocker}</p>
             </>}
           </div>
           {internalTools && <button className="rc-simulate" disabled={busy} onClick={() => void generate(true)}>Simulate · no generation</button>}
@@ -577,6 +592,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
         </article>)}</div>
   </>
   const dialogo = <>
+    {compra /* KINEO-TELA-RECREATE-1611 — o pop-up de compra na raiz da tela (dentro do painel, o position:fixed ficava preso ao painel) */}
     <dialog ref={dialogRef} className="rc-dialog" onCancel={() => { setExpanded(null); setReport(null) }} onClick={e => { if (e.target === e.currentTarget) { setExpanded(null); setReport(null) } }}>
       <button className="rc-close" autoFocus aria-label="Close" onClick={() => { setExpanded(null); setReport(null) }}>×</button>
       {expanded && <><h2>{expanded.title}</h2><RecreatePlayer key={expanded.id} src={mediaFor(expanded).video} poster={mediaFor(expanded).poster} preview label={expanded.title} /><button onClick={() => { choose(expanded); setExpanded(null) }}>Recreate ↗</button></>}
