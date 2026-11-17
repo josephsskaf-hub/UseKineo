@@ -1,3 +1,4 @@
+import { semSujeitoFalaSeguinte1711 } from './desfaz-sujeito-fala-seguinte-1711.mjs' // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 — [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]: a camada mais nova (17/11) sai primeiro
 import { semK4Sempre0511 } from './desfaz-k4-sempre-0511.mjs' // KINEO-K4-SEMPRE-0511 — a camada mais nova (05/11) sai primeiro
 // KINEO-AVIAO-NAO-VIRA-CARRO-0311 — [TRAVA 8.2 — fundador 03/11: "universalizar"]
 // (a época não acrescenta veículo; o sujeito obrigatório também lê a 1ª frase da narração).
@@ -14,6 +15,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semAviaoCarro0311(source, file) {
+  source = semSujeitoFalaSeguinte1711(source, file) // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711
   source = semK4Sempre0511(source, file)
   const entry = AVIAO_CARRO_0311.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source

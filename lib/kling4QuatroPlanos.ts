@@ -148,7 +148,33 @@ export function planosPorSecao(a: {
       falas.push(i === 0 && pos === 0 && prefixo ? `${prefixo} ${fala}` : fala)
     })
   })
-  return { prompts, stills, falas, grupos }
+  return { prompts: comSujeitoDaCenaNaMetade(prompts, a.prompts, falas, grupos), stills, falas, grupos } // KINEO-SUJEITO-NA-METADE-1711
+}
+
+// ═══ KINEO-SUJEITO-NA-METADE-1711 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — o sujeito obrigatório sobrevive à cena fundida ═══
+// Revisor 17/11 (filme 44d02f20, "In 1950, a plane vanished", nota 5, nenhum avião em 8 quadros). O sujeito obrigatório entra na CENA como
+// "Main subject clearly visible in frame: a plane." (lib/cinematic/sujeitoObrigatorio e sujeitoTodosMotores). Quando essa cena é fundida (duas
+// seções), cada metade nasce só da pista da sua seção (promptDaSecao) e a frase do sujeito ficava fora das duas: o pedido ao Kling 4 saía
+// "foggy forest path" e "old newspaper headline". Agora a frase que a cena fundida traz vai, inteira e logo depois do meio (a mesma inserção
+// de comSujeitoNasMetades), à metade cuja FALA cita o sujeito; nenhuma cita = a última metade (sem imagem-chave, dirigida pelo texto).
+// Cena sem a frase, cena de uma seção só, ou metade que já a traz: byte a byte como antes. Pura.
+const SUJEITO_DA_CENA_RE = /Main subject clearly visible in frame: (.+?)(?<!\b[A-Z])\.(?=\s|$)/u
+export function comSujeitoDaCenaNaMetade(planos: readonly string[], promptsDasCenas: readonly string[], falasDosPlanos: readonly string[], grupos: readonly number[][]): string[] {
+  const saida = [...planos]
+  let k = 0
+  grupos.forEach((g, i) => {
+    const ini = k
+    k += g.length
+    const m = g.length > 1 ? SUJEITO_DA_CENA_RE.exec(norm(promptsDasCenas[i])) : null
+    if (!m || saida.slice(ini, k).some((p) => p.includes(m[0]))) return
+    const doSujeito = palavras(m[1])
+    const cita = g.findIndex((_, pos) => [...palavras(falasDosPlanos[ini + pos] ?? '')].some((w) => doSujeito.has(w)))
+    const alvo = ini + (cita >= 0 ? cita : g.length - 1)
+    const p = norm(saida[alvo])
+    const meio = /^[^.]{2,60}\./.exec(p)?.[0] ?? ''
+    saida[alvo] = norm(`${meio} ${m[0]} ${p.slice(meio.length)}`)
+  })
+  return saida
 }
 
 // ═══ KINEO-SUJEITO-APARENCIA-1311 (b) [CEO 13/11, gato ninja 7f92fe17] — a metade de cena leva o sujeito completo do pedido ═══

@@ -56,7 +56,16 @@ export async function sujeitoEmTodosOsMotores(args: {
     const frase = primeiraFraseDaFala(args.falas[0])
     if (!frase) return doPedido
     const daFala = exigirSujeitoEmTodos({ ...args, pedido: { pedido: frase, fonte: 'ideia_solta', motivo: 'fala_de_abertura' }, leitura: await lerSujeitoDoPedido(frase, opts) })
-    return daFala.relato.sujeito ? daFala : doPedido ?? daFala
+    if (daFala.relato.sujeito) return daFala
+    // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — revisor 17/11 (filme 44d02f20, Kling 4 grátis, 1º filme, nota 5): a
+    // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 — narração abriu com "A 70-year-old mystery... unsolved and chilling." e só a frase SEGUINTE disse "In 1950, a plane vanished.": a leitura
+    // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 — parava na 1ª frase (kind none) e nenhum plano pediu o avião. A MESMA leitura calibrada, uma frase por vez, nas próximas frases inteiras
+    // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 — da narração (no máximo FRASES_SEGUINTES_MAX, sem tentativa extra); a 1ª com sujeito vale. Nenhuma tem = o resultado de sempre.
+    for (const seguinte of frasesSeguintesDaFala(args.falas, frase)) {
+      const r = exigirSujeitoEmTodos({ ...args, pedido: { pedido: seguinte, fonte: 'ideia_solta', motivo: 'fala_seguinte' }, leitura: await lerSujeitoDoPedido(seguinte, { ...opts, tentativasExtras: 0 }) })
+      if (r.relato.sujeito) return r
+    }
+    return doPedido ?? daFala
   } catch {
     return null
   }
@@ -68,4 +77,12 @@ export function primeiraFraseDaFala(fala: string | null | undefined): string {
   const m = /^.{8,140}?[.!?…؟。](?=\s|$|["”’])/u.exec(t)
   const frase = (m ? m[0] : t.slice(0, 140)).replace(/["“”]/g, '').trim()
   return frase.length >= 8 ? frase : ''
+}
+
+export const FRASES_SEGUINTES_MAX = 2
+/** KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 — as frases inteiras da narração DEPOIS da 1ª (8 a 140 caracteres), na ordem, no máximo FRASES_SEGUINTES_MAX. Pedaço que começa em minúscula é resto da frase anterior ("mystery... unsolved and chilling.") e não conta. */
+export function frasesSeguintesDaFala(falas: ReadonlyArray<string | null | undefined>, primeira: string): string[] {
+  const t = falas.map((f) => String(f ?? '')).join(' ').replace(/\[[^\]]*\]/g, ' ').replace(/["“”]/g, '').replace(/^[\s'‘’]+/, '').replace(/\s+/g, ' ').trim()
+  const resto = primeira && t.startsWith(primeira) ? t.slice(primeira.length) : t
+  return resto.split(/(?<=[.!?…؟。])\s+/u).map((f) => f.trim()).filter((f) => f.length >= 8 && f.length <= 140 && !/^\p{Ll}/u.test(f) && f !== primeira).slice(0, FRASES_SEGUINTES_MAX)
 }

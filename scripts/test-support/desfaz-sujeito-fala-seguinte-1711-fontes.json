@@ -1,0 +1,34 @@
+{
+ "base": "2e9e3e97c13da929ebb33961677963d22b37c058",
+ "scope": {
+  "lib/cinematic/sujeitoTodosMotores.ts": {
+   "beforeSha256": "9ed61570b81f574067cdd5ee2d4998c536523b857b3d152d668c21c88e80fb62",
+   "afterSha256": "17e499de56866137173aeb017fa687bdeb13c8c4d533fe294fbca3fb11db7248",
+   "hunks": [
+    {
+     "before": "    const daFala = exigirSujeitoEmTodos({ ...args, pedido: { pedido: frase, fonte: 'ideia_solta', motivo: 'fala_de_abertura' }, leitura: await lerSujeitoDoPedido(frase, opts) })\n    return daFala.relato.sujeito ? daFala : doPedido ?? daFala\n  } catch {",
+     "after": "    const daFala = exigirSujeitoEmTodos({ ...args, pedido: { pedido: frase, fonte: 'ideia_solta', motivo: 'fala_de_abertura' }, leitura: await lerSujeitoDoPedido(frase, opts) })\n    if (daFala.relato.sujeito) return daFala\n    // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — revisor 17/11 (filme 44d02f20, Kling 4 grátis, 1º filme, nota 5): a\n    // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 — narração abriu com \"A 70-year-old mystery... unsolved and chilling.\" e só a frase SEGUINTE disse \"In 1950, a plane vanished.\": a leitura\n    // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 — parava na 1ª frase (kind none) e nenhum plano pediu o avião. A MESMA leitura calibrada, uma frase por vez, nas próximas frases inteiras\n    // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 — da narração (no máximo FRASES_SEGUINTES_MAX, sem tentativa extra); a 1ª com sujeito vale. Nenhuma tem = o resultado de sempre.\n    for (const seguinte of frasesSeguintesDaFala(args.falas, frase)) {\n      const r = exigirSujeitoEmTodos({ ...args, pedido: { pedido: seguinte, fonte: 'ideia_solta', motivo: 'fala_seguinte' }, leitura: await lerSujeitoDoPedido(seguinte, { ...opts, tentativasExtras: 0 }) })\n      if (r.relato.sujeito) return r\n    }\n    return doPedido ?? daFala\n  } catch {"
+    },
+    {
+     "before": "",
+     "after": "\nexport const FRASES_SEGUINTES_MAX = 2\n/** KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 — as frases inteiras da narração DEPOIS da 1ª (8 a 140 caracteres), na ordem, no máximo FRASES_SEGUINTES_MAX. Pedaço que começa em minúscula é resto da frase anterior (\"mystery... unsolved and chilling.\") e não conta. */\nexport function frasesSeguintesDaFala(falas: ReadonlyArray<string | null | undefined>, primeira: string): string[] {\n  const t = falas.map((f) => String(f ?? '')).join(' ').replace(/\\[[^\\]]*\\]/g, ' ').replace(/[\"“”]/g, '').replace(/^[\\s'‘’]+/, '').replace(/\\s+/g, ' ').trim()\n  const resto = primeira && t.startsWith(primeira) ? t.slice(primeira.length) : t\n  return resto.split(/(?<=[.!?…؟。])\\s+/u).map((f) => f.trim()).filter((f) => f.length >= 8 && f.length <= 140 && !/^\\p{Ll}/u.test(f) && f !== primeira).slice(0, FRASES_SEGUINTES_MAX)\n}\n"
+    }
+   ]
+  },
+  "lib/kling4QuatroPlanos.ts": {
+   "beforeSha256": "efa37b967114ff65c958bfccbe8c4e771bfcc5e83549f4855ab80651dd8719cf",
+   "afterSha256": "642c58265a35aa3c6aff4bfcf09d91d10ab3fc1892594607ee380c147de842df",
+   "hunks": [
+    {
+     "before": "  })\n  return { prompts, stills, falas, grupos }\n}",
+     "after": "  })\n  return { prompts: comSujeitoDaCenaNaMetade(prompts, a.prompts, falas, grupos), stills, falas, grupos } // KINEO-SUJEITO-NA-METADE-1711\n}"
+    },
+    {
+     "before": "\n// ═══ KINEO-SUJEITO-APARENCIA-1311 (b) [CEO 13/11, gato ninja 7f92fe17] — a metade de cena leva o sujeito completo do pedido ═══",
+     "after": "\n// ═══ KINEO-SUJEITO-NA-METADE-1711 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — o sujeito obrigatório sobrevive à cena fundida ═══\n// Revisor 17/11 (filme 44d02f20, \"In 1950, a plane vanished\", nota 5, nenhum avião em 8 quadros). O sujeito obrigatório entra na CENA como\n// \"Main subject clearly visible in frame: a plane.\" (lib/cinematic/sujeitoObrigatorio e sujeitoTodosMotores). Quando essa cena é fundida (duas\n// seções), cada metade nasce só da pista da sua seção (promptDaSecao) e a frase do sujeito ficava fora das duas: o pedido ao Kling 4 saía\n// \"foggy forest path\" e \"old newspaper headline\". Agora a frase que a cena fundida traz vai, inteira e logo depois do meio (a mesma inserção\n// de comSujeitoNasMetades), à metade cuja FALA cita o sujeito; nenhuma cita = a última metade (sem imagem-chave, dirigida pelo texto).\n// Cena sem a frase, cena de uma seção só, ou metade que já a traz: byte a byte como antes. Pura.\nconst SUJEITO_DA_CENA_RE = /Main subject clearly visible in frame: (.+?)(?<!\\b[A-Z])\\.(?=\\s|$)/u\nexport function comSujeitoDaCenaNaMetade(planos: readonly string[], promptsDasCenas: readonly string[], falasDosPlanos: readonly string[], grupos: readonly number[][]): string[] {\n  const saida = [...planos]\n  let k = 0\n  grupos.forEach((g, i) => {\n    const ini = k\n    k += g.length\n    const m = g.length > 1 ? SUJEITO_DA_CENA_RE.exec(norm(promptsDasCenas[i])) : null\n    if (!m || saida.slice(ini, k).some((p) => p.includes(m[0]))) return\n    const doSujeito = palavras(m[1])\n    const cita = g.findIndex((_, pos) => [...palavras(falasDosPlanos[ini + pos] ?? '')].some((w) => doSujeito.has(w)))\n    const alvo = ini + (cita >= 0 ? cita : g.length - 1)\n    const p = norm(saida[alvo])\n    const meio = /^[^.]{2,60}\\./.exec(p)?.[0] ?? ''\n    saida[alvo] = norm(`${meio} ${m[0]} ${p.slice(meio.length)}`)\n  })\n  return saida\n}\n\n// ═══ KINEO-SUJEITO-APARENCIA-1311 (b) [CEO 13/11, gato ninja 7f92fe17] — a metade de cena leva o sujeito completo do pedido ═══"
+    }
+   ]
+  }
+ },
+ "addedSources": {}
+}
