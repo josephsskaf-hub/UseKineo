@@ -598,7 +598,7 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
           </p>}
           <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
           <p style={{ fontSize: '0.85rem', color: '#5A5F67', margin: '10px 0 0' }}>
-            Script • Voiceover • Captions • AI-generated scenes • Ready in about 6 minutes · <b style={{ color: '#0A5CFF' }}>{ft(OFFER, 'up to 3 watermarked Fast videos / 24h', OFFER.copy.chipLower)}</b>, no card
+            Script • Voiceover • Captions • AI-generated scenes • {params.niche === 'horror' ? 'Generation time varies by film and queue' : 'Ready in about 6 minutes'} · <b style={{ color: '#0A5CFF' }}>{ft(OFFER, 'up to 3 watermarked Fast videos / 24h', OFFER.copy.chipLower)}</b>, no card
           </p>
           {/* KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — compra direta do Creator na primeira dobra dos 30 nichos; o botão grátis de
               sempre (ou o roteiro de anúncio, no localbusiness) vira o secundário, ao lado. Seedance pausado = hero de antes. */}

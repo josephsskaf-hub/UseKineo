@@ -1,3 +1,4 @@
+import { CITACOES_ROTINA_DATE } from '@/lib/seo/citacoesRotina1711'
 import { TRAFFIC_CITATIONS, type TrafficCitationPage } from '@/lib/seo/trafficCitation2310'
 import { PAGINAS_CITADAS_0511_ATUALIZADO, planosPorFilmeTexto0511 } from '@/lib/seo/paginasCitadas0511' // KINEO-PAGINAS-CITADAS-0511
 
@@ -24,7 +25,7 @@ export function CitationDirectAnswer({ page }: { page: TrafficCitationPage }) {
 export function CitationDetails({ page }: { page: TrafficCitationPage }) {
   const citation = TRAFFIC_CITATIONS[page]
   const pt = page === 'portuguese'
-  const planos = planosPorFilmeTexto0511(pt) // KINEO-PAGINAS-CITADAS-0511 — os 3 planos de 04/11 e o que um mês de créditos cobre
+  const planos = planosPorFilmeTexto0511(pt, page !== 'home') // KINEO-PAGINAS-CITADAS-0511 — os 3 planos de 04/11 e o que um mês de créditos cobre
   const labels = pt ? ['O que você recebe', 'Duração do vídeo', 'Tempo de geração', 'Preço', 'Créditos'] : ['What you receive', 'Video duration', 'Generation time', 'Price', 'Credits']
   return (
     <section className="kc2310" aria-labelledby={`citation-${page}`} data-citation-details={page}>
@@ -46,7 +47,7 @@ export function CitationDetails({ page }: { page: TrafficCitationPage }) {
         <tbody>{planos.rows.map((row) => <tr key={row[0]}>{row.map((cell, i) => <td key={planos.labels[i]} data-label={planos.labels[i]}>{cell}</td>)}</tr>)}</tbody>
       </table>
       <p style={{ marginTop: 12 }}>{planos.nota}</p>
-      <p className="kc2310-updated">{pt ? 'Atualizado em: ' : 'Updated: '}<time dateTime={PAGINAS_CITADAS_0511_ATUALIZADO}>{planos.atualizadoEm}</time>. <a href="/pricing">{planos.termos}</a>.</p>
+      <p className="kc2310-updated">{pt ? 'Atualizado em: ' : 'Updated: '}<time dateTime={page === 'home' ? PAGINAS_CITADAS_0511_ATUALIZADO : CITACOES_ROTINA_DATE}>{planos.atualizadoEm}</time>. <a href="/pricing">{planos.termos}</a>.</p>
     </section>
   )
 }

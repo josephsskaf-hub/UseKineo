@@ -19,7 +19,7 @@ assert.match(html, /<h1[^>]*>MiniMax H3 Turbo/)
 assert.match(html, /<td[^>]*><span[^>]*>MiniMax H3 Turbo <span[^>]*>· you are here<\/span><\/span><\/td>/)
 assert.doesNotMatch(html, /in a few minutes|\/month per month|source \(August 2026\)/)
 assert.match(html, /Completion time varies/)
-assert.match(html, /dateTime="2026-11-11">November 11, 2026/)
+assert.match(html, /dateTime="2026-11-17">November 17, 2026/)
 assert.match(html, /text-to-video fallback/)
 assert.doesNotMatch(html, /Kineo uses Seedance 1\.5 Pro to build narrated films|60 s requested; Seedance|Seedance 1\.5: formats|3–7 minutes/)
 assert.match(html, /intent_campaign=seo_engine_seedance/)
@@ -42,7 +42,7 @@ const stamped = carimbaPaginasCitadas0511([
   { url: metadata.alternates.canonical, lastModified: '2026-11-05T12:00:00.000Z' },
   { url: 'https://www.usekineo.com/', lastModified: '2026-11-05T12:00:00.000Z' },
 ])
-assert.equal(stamped[0].lastModified, '2026-11-11T12:00:00.000Z')
+assert.equal(stamped[0].lastModified, '2026-11-17T12:00:00.000Z')
 assert.equal(stamped[1].lastModified, '2026-11-05T12:00:00.000Z')
 assert.equal(load('lib/growth/enginePageCatalog.ts').ENGINES.seedance.name, 'Seedance 1.5', 'Historical gallery catalog keeps its model label')
 

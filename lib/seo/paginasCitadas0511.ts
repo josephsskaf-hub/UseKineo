@@ -4,6 +4,7 @@
 // (lib/checkoutPricing.ts) e da régua de créditos (lib/credits/engineCost.ts). Não muda preço, checkout nem motor.
 // A data só anda quando o conteúdo anda: a mesma constante assina a linha "Updated" das páginas e o <lastmod> do mapa do site, e o cron de
 // IndexNow avisa o Bing na primeira hora depois do deploy. Guardião: scripts/test-paginas-citadas-0511.mjs.
+import { STANDARD_FILM_NAME, CITACOES_ROTINA_DATE, CITACOES_ROTINA_PATHS } from './citacoesRotina1711'
 import { ANNUAL_DISCOUNT_PERCENT, TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing'
 import { creditCostForDuration } from '@/lib/credits/engineCost'
 import { H3_TURBO_PUBLIC } from '@/lib/engineLaunch'
@@ -35,7 +36,7 @@ export function planosPorFilme0511(): PlanoPorFilme[] {
 
 export type PlanosPorFilmeTexto = { heading: string; caption: string; labels: readonly string[]; rows: string[][]; nota: string; atualizadoEm: string; termos: string }
 
-export function planosPorFilmeTexto0511(pt: boolean): PlanosPorFilmeTexto {
+export function planosPorFilmeTexto0511(pt: boolean, reviewed = false): PlanosPorFilmeTexto {
   const ou = pt ? 'ou' : 'or'
   const rows = planosPorFilme0511().map((p) => [
     p.plano,
@@ -47,19 +48,19 @@ export function planosPorFilmeTexto0511(pt: boolean): PlanosPorFilmeTexto {
   const [c15, c35, c60, c90] = [15, 35, 60, 90].map(creditos)
   return pt ? {
     heading: 'Planos e custo por filme',
-    caption: 'O que os créditos de um mês cobrem no Seedance 1.5. Os valores vêm da tabela de cobrança.',
+    caption: `O que os créditos de um mês cobrem no ${STANDARD_FILM_NAME}. Os valores vêm da tabela de cobrança.`,
     labels: ['Plano', 'Preço por mês', 'Créditos por mês', 'Filmes que esses créditos cobrem', 'Quanto sai um filme de 60 s'],
     rows,
-    nota: `Um filme Seedance 1.5 usa ${c15} créditos em 15 segundos, ${c35} em 35, ${c60} em 60 e ${c90} em 90. No plano anual, o preço mensal cai ${ANNUAL_DISCOUNT_PERCENT}%. Os valores em US$ são a referência; no Brasil, o checkout cobra em reais. O custo em créditos aparece antes de gerar.`,
-    atualizadoEm: '5 de novembro de 2026',
+    nota: `Um filme ${STANDARD_FILM_NAME} usa ${c15} créditos em 15 segundos, ${c35} em 35, ${c60} em 60 e ${c90} em 90. No plano anual, o preço mensal cai ${ANNUAL_DISCOUNT_PERCENT}%. Os valores em US$ são a referência; no Brasil, o checkout cobra em reais. O custo em créditos aparece antes de gerar.`,
+    atualizadoEm: reviewed ? '17 de novembro de 2026' : '5 de novembro de 2026',
     termos: 'Preços e condições atuais do teste',
   } : {
     heading: 'Plans and cost per film',
-    caption: 'What one month of credits covers on Seedance 1.5. Amounts come from the billing table.',
+    caption: `What one month of credits covers on ${STANDARD_FILM_NAME}. Amounts come from the billing table.`,
     labels: ['Plan', 'Price per month', 'Credits per month', 'Films those credits cover', 'What a 60 s film costs'],
     rows,
-    nota: `A Seedance 1.5 film uses ${c15} credits at 15 seconds, ${c35} at 35, ${c60} at 60 and ${c90} at 90. Annual billing takes ${ANNUAL_DISCOUNT_PERCENT}% off the monthly price. USD is the reference price; customers in Brazil pay in reais at checkout. The credit cost is shown before you generate.`,
-    atualizadoEm: 'November 5, 2026',
+    nota: `A ${STANDARD_FILM_NAME} film uses ${c15} credits at 15 seconds, ${c35} at 35, ${c60} at 60 and ${c90} at 90. Annual billing takes ${ANNUAL_DISCOUNT_PERCENT}% off the monthly price. USD is the reference price; customers in Brazil pay in reais at checkout. The credit cost is shown before you generate.`,
+    atualizadoEm: reviewed ? 'November 17, 2026' : 'November 5, 2026',
     termos: 'Current prices and trial terms',
   }
 }
@@ -75,8 +76,9 @@ export function carimbaPaginasCitadas0511<T extends { url: string; lastModified?
       : H3_TURBO_PUBLIC && path === '/ai-video-generator/seedance'
       ? `${H3_TURBO_PAGE_UPDATED}T12:00:00.000Z`
       : PAGINAS_CITADAS_0511_LASTMOD
-    const carimbo = Date.parse(lastModified)
+    const reviewed = CITACOES_ROTINA_PATHS.includes(path) ? `${CITACOES_ROTINA_DATE}T12:00:00.000Z` : lastModified
+    const carimbo = Math.max(Date.parse(lastModified), Date.parse(reviewed))
     const atual = entry.lastModified ? new Date(entry.lastModified).getTime() : 0
-    return atual >= carimbo ? entry : { ...entry, lastModified }
+    return atual >= carimbo ? entry : { ...entry, lastModified: new Date(carimbo).toISOString() }
   })
 }

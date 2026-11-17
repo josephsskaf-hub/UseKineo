@@ -55,11 +55,11 @@ const FAQ = [
   },
   {
     q: 'É grátis mesmo? Precisa de cartão?',
-    a: 'Toda conta nova ganha ' + FILME_GRATIS + ' — você assiste, baixa e posta. Planos pagos liberam o MP4 limpo, a partir de US$ ' + STARTER_USD_AMOUNT + ' por mês como preço de referência em USD. Para clientes no Brasil, a cobrança normalmente é em reais; confira o valor no checkout.',
+    a: 'Contas novas elegíveis nos países atendidos ganham ' + FILME_GRATIS + ' — você assiste, baixa e posta. Planos pagos liberam o MP4 limpo, a partir de US$ ' + STARTER_USD_AMOUNT + ' por mês como preço de referência em USD. Para clientes no Brasil, a cobrança normalmente é em reais; confira o valor no checkout.',
   },
   {
     q: 'Preciso aparecer ou saber editar?',
-    a: 'Não. É o formato faceless: a IA escreve, narra, escolhe as cenas e adiciona as legendas. Você digita o tema e baixa o vídeo pronto, em cerca de 6 minutos.',
+    a: 'Não. É o formato faceless: a IA escreve, narra, escolhe as cenas e adiciona as legendas. Você digita o tema e baixa o vídeo pronto, com tempo de geração variável conforme o filme e a fila.',
   },
 ]
 

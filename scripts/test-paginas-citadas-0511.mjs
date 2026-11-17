@@ -68,9 +68,9 @@ function prova(mutar = {}) {
     const pt = page === 'portuguese'
     exige(html.includes(`data-citation-plans="${page}"`) && (html.match(/<table/g) ?? []).length === 2, `${page}: a tabela de planos está no bloco`)
     exige((html.match(/<h3>/g) ?? []).length === 5, `${page}: seguem 5 perguntas`)
-    exige((html.match(/<time /g) ?? []).length === 1 && html.toLowerCase().includes('datetime="2026-11-05"'), `${page}: data de 05/11`)
+    exige((html.match(/<time /g) ?? []).length === 1 && html.toLowerCase().includes('datetime="' + (page === 'home' ? '2026-11-05' : '2026-11-17') + '"'), `${page}: data de 05/11`)
     exige(!/October 23|23 de outubro|2026-10-23/.test(html), `${page}: sem a data antiga`)
-    exige(texto.includes(pt ? '5 de novembro de 2026' : 'November 5, 2026'), `${page}: data escrita na língua da página`)
+    exige(texto.includes(pt ? '17 de novembro de 2026' : page === 'home' ? 'November 5, 2026' : 'November 17, 2026'), `${page}: data escrita na língua da página`)
     exige(texto.includes(pt ? 'Planos e custo por filme' : 'Plans and cost per film'), `${page}: título na língua da página`)
     for (const p of esperado) {
       exige(texto.includes(pt ? `US$ ${p.usd}` : `US$${p.usd}`) && new RegExp(`\\b${p.saldo}\\b`).test(texto), `${page}: ${p.nome} com preço e créditos`)
@@ -87,7 +87,7 @@ function prova(mutar = {}) {
   const mapa = [...P.PAGINAS_CITADAS_0511_PATHS, '/pricing', '/free-ai-shorts/mythology'].map((p) => ({ url: base + (p === '/' ? '' : p), lastModified: '2026-10-23T12:00:00.000Z' }))
   const saida = P.carimbaPaginasCitadas0511([...mapa, { url: base + '/text-to-video-shorts', lastModified: '2026-12-01T00:00:00.000Z' }])
   const dia = (x) => new Date(x.lastModified).toISOString().slice(0, 10)
-  exige(P.PAGINAS_CITADAS_0511_PATHS.length === 6 && saida.slice(0, 6).every((x) => dia(x) === (H3_TURBO_PUBLIC && new URL(x.url).pathname === '/ai-video-generator/seedance' ? '2026-11-11' : '2026-11-05')), 'mapa: datas aprovadas das 6 páginas, incluindo revisão H3 de 11/11')
+  exige(P.PAGINAS_CITADAS_0511_PATHS.length === 6 && saida.slice(0, 6).every((x) => dia(x) === (new URL(x.url).pathname === '/' ? '2026-11-05' : '2026-11-17')), 'mapa: datas aprovadas das 6 páginas, incluindo revisão H3 de 11/11')
   exige(dia(saida[6]) === '2026-10-23' && dia(saida[7]) === '2026-10-23', 'mapa: nenhuma outra página muda de data')
   exige(dia(saida[8]) === '2026-12-01', 'mapa: data mais nova fica')
   const fonteMapa = (mutar[MAPA] ?? ((t) => t))(ler(MAPA))
@@ -113,7 +113,7 @@ const MUTANTES = [
   ['filme a mais do que o saldo paga', LIB, (t) => t.replace('Math.floor(saldo / creditos(s))', 'Math.ceil(saldo / creditos(s))'), /filmes que cabem|acima do saldo/],
   ['preço escrito à mão', LIB, (t) => t.replace('const precoUsd = TIER_PRICES[tier].usd / 100', 'const precoUsd = 7'), /preço e créditos/],
   ['custo do filme de 60 s errado', LIB, (t) => t.replace('creditos(60) * precoUsd / saldo', 'creditos(35) * precoUsd / saldo'), /custo do filme de 60 s/],
-  ['data parada em 23/10', COMP, (t) => t.replace('<time dateTime={PAGINAS_CITADAS_0511_ATUALIZADO}>{planos.atualizadoEm}</time>', '<time dateTime="2026-10-23">October 23, 2026</time>'), /data de 05\/11|data antiga/],
+  ['data parada em 23/10', COMP, (t) => t.replace("<time dateTime={page === 'home' ? PAGINAS_CITADAS_0511_ATUALIZADO : CITACOES_ROTINA_DATE}>{planos.atualizadoEm}</time>", '<time dateTime="2026-10-23">October 23, 2026</time>'), /data de 05\/11|data antiga/],
   ['tabela fora da tela', COMP, (t) => t.replace('<tbody>{planos.rows.map(', '<tbody>{[].map('), /com preço e créditos|filmes de 60 s/],
   ['página em português com texto em inglês', LIB, (t) => t.replace("const ou = pt ? 'ou' : 'or'", "pt = false\n  const ou = 'or'"), /língua da página/],
   ['carimbo alarga para todo o mapa', LIB, (t) => t.replace('if (!alvo.has(path) && !localizedH3) return entry', ''), /nenhuma outra página/],

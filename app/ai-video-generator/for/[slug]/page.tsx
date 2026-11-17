@@ -23,6 +23,7 @@ import H3TurboDetails from '@/components/H3TurboDetails'
 
 const OFFER = getFreeTierOffer()
 const BASE = 'https://www.usekineo.com'
+import { STANDARD_FILM_NAME } from '@/lib/seo/citacoesRotina1711'
 const ENGINE_NAME: Record<IntentEngine, string> = { fast: 'Kineo 1', cinematic_ai: 'Seedance 1.5' }
 
 export const dynamic = 'force-static'
@@ -36,7 +37,7 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
   const p = getIntentPage(params.slug)
   if (!p) return {}
   const url = `${BASE}${intentPagePath(p.slug)}`
-  const description = p.slug === 'story-videos' ? STORY_VIDEO_COPY.description : `${p.intro.slice(0, 150).replace(/\s+\S*$/, '')}… Real films, ${ENGINE_NAME[p.engine]} and generative engines, free trial with no card.`
+  const description = p.slug === 'story-videos' ? STORY_VIDEO_COPY.description : `${p.intro.slice(0, 150).replace(/\s+\S*$/, '')}… Real films, ${p.slug === 'urdu' ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} and generative engines, free trial with no card.`
   return {
     metadataBase: new URL(BASE),
     title: p.title,
@@ -80,7 +81,7 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
   const url = `${BASE}${intentPagePath(p.slug)}`
   const engineCost = creditsPerReferenceVideo(p.engine)
   const story = p.slug === 'story-videos'
-  const offerName = story ? STORY_VIDEO_ENGINE : ENGINE_NAME[p.engine]
+  const offerName = story ? STORY_VIDEO_ENGINE : p.slug === 'urdu' ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]
   // KINEO-FILME-GRATIS-15S-2026-09-29 — o Kineo 1 ('fast') não é mais oferecido a conta nova: a página não diz que o trial
   // cobre filmes dele (era "the trial covers 2 Kineo 1 films"). O que o trial paga é o Seedance 1.5 de 15 s.
   const trialFilms = p.engine === 'fast' ? 0 : trialFilmsForEngine(engineCost)
@@ -96,8 +97,8 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
   const siblings = INTENT_PAGES.filter((x) => x.family === p.family && x.slug !== p.slug).slice(0, 8)
   const faqs = story
     ? [...STORY_VIDEO_COPY.faq, { q: 'Which model creates the story scenes?', a: STORY_VIDEO_COPY.engineAnswer }, { q: 'How much does it cost?', a: STORY_VIDEO_COPY.costAnswer }]
-    : [...p.faq, { q: 'How much does it cost?', a: `The free trial gives ${TRIAL_CREDITS_SHOWN} credits with no card. ${ENGINE_NAME[p.engine]} costs ${engineCost} credits for a 60-second film${trialFilms > 0 ? `, so the trial covers ${trialFilms} film${trialFilms > 1 ? 's' : ''}` : `, which needs a plan${trialFreeFilm}`}. Plans start at ${STARTER_MONTH} for ${STARTER_CREDITS} credits.` }]
-  const visibleFaqs = story ? faqs : [...p.faq, { q: 'How much does it cost?', a: `The free trial gives ${TRIAL_CREDITS_SHOWN} credits with no card. ${ENGINE_NAME[p.engine]} costs ${engineCost} credits per 60-second film${trialFilms > 0 ? `, so the trial covers ${trialFilms} film${trialFilms > 1 ? 's' : ''}` : `, which needs a plan${trialFreeFilm}`}. Plans start at ${STARTER_MONTH} for ${STARTER_CREDITS} credits.` }]
+    : [...p.faq, { q: 'How much does it cost?', a: `The free trial gives ${TRIAL_CREDITS_SHOWN} credits with no card. ${p.slug === 'urdu' ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} costs ${engineCost} credits for a 60-second film${trialFilms > 0 ? `, so the trial covers ${trialFilms} film${trialFilms > 1 ? 's' : ''}` : `, which needs a plan${trialFreeFilm}`}. Plans start at ${STARTER_MONTH} for ${STARTER_CREDITS} credits.` }]
+  const visibleFaqs = story ? faqs : [...p.faq, { q: 'How much does it cost?', a: `The free trial gives ${TRIAL_CREDITS_SHOWN} credits with no card. ${p.slug === 'urdu' ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} costs ${engineCost} credits per 60-second film${trialFilms > 0 ? `, so the trial covers ${trialFilms} film${trialFilms > 1 ? 's' : ''}` : `, which needs a plan${trialFreeFilm}`}. Plans start at ${STARTER_MONTH} for ${STARTER_CREDITS} credits.` }]
 
   const faqJsonLd = {
     '@context': 'https://schema.org',
@@ -158,7 +159,7 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
           <p style={{ fontSize: '0.82rem', color: '#5A5F67', margin: '12px 0 0' }}>
             {story ? 'Review the prepared story, selected model, duration and credit cost in Studio before generating.' : <>
               {ft(OFFER, `${TRIAL_CREDITS_SHOWN} free credits, no card`, OFFER.copy.chip)}
-              {trialFilms > 0 ? ` · the trial covers ${trialFilms} ${ENGINE_NAME[p.engine]} film${trialFilms > 1 ? 's' : ''}` : `${TRIAL_SEEDANCE15_FILMS >= 1 ? ` · the trial pays for one ${FREE_FILM_LABEL}` : ''} · 60-second films on a plan (from ${STARTER_MONTH})`}
+              {trialFilms > 0 ? ` · the trial covers ${trialFilms} ${p.slug === 'urdu' ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} film${trialFilms > 1 ? 's' : ''}` : `${TRIAL_SEEDANCE15_FILMS >= 1 ? ` · the trial pays for one ${FREE_FILM_LABEL}` : ''} · 60-second films on a plan (from ${STARTER_MONTH})`}
             </>}
           </p>
         </section>

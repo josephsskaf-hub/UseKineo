@@ -1,3 +1,4 @@
+import { STANDARD_FILM_NAME } from '@/lib/seo/citacoesRotina1711'
 import { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine' // KINEO-LLMS-K4-2910
 import { STARTER_CREDITS, STARTER_USD_AMOUNT } from '@/lib/marketingPrice'
 import { TRIAL_CREDITS_SHOWN, TRIAL_FREE_FILM_CREDITS, TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOffer'
@@ -18,7 +19,7 @@ const trialPrice = 'Free trial in supported countries'
 const paidPrice = `Starter: ${price} reference; Brazil pays in BRL at checkout`
 const timing = 'Varies by film length and selected engine'
 const trialRow = (output: string): string[] => [output, `${TRIAL_FREE_FILM_SECONDS} s requested; ${FREE_FILM_ENGINE_NAME}`, timing, trialPrice, trialCredits] // KINEO-LLMS-K4-2910
-const paidRow = (output: string): string[] => [output, '60 s requested; Seedance 1.5', timing, paidPrice, paidCredits]
+const paidRow = (output: string): string[] => [output, `60 s requested; ${STANDARD_FILM_NAME}`, timing, paidPrice, paidCredits]
 const clean = 'Paid plans provide clean MP4 downloads. The trial film has a watermark.'
 const free = `In supported countries, ${TRIAL_CREDITS_SHOWN} trial credits cover a watermarked ${TRIAL_FREE_FILM_SECONDS}-second ${FREE_FILM_ENGINE_NAME} film, with no card.` // KINEO-LLMS-K4-2910
 
@@ -36,21 +37,21 @@ export const TRAFFIC_CITATIONS: Record<TrafficCitationPage, Citation> = {
     ],
   },
   seedance: {
-    heading: 'Seedance 1.5: formats, credits and answers',
-    answer: `Kineo uses Seedance 1.5 Pro to build narrated films from an idea or script, including generated scenes, voice, captions and music. A 60-second film costs ${film60} credits. Starter includes ${STARTER_CREDITS} credits for US$${STARTER_USD_AMOUNT} per month. In supported countries, new accounts can try a watermarked ${TRIAL_FREE_FILM_SECONDS}-second film made with ${FREE_FILM_ENGINE_NAME} using their ${TRIAL_CREDITS_SHOWN} trial credits.`, // KINEO-LLMS-K4-2910
-    rows: [trialRow(`${FREE_FILM_ENGINE_NAME} narrated film with voice, captions and music`), paidRow('Seedance 1.5 narrated film with clean MP4 on a paid plan')], // KINEO-LLMS-K4-2910
+    heading: `${STANDARD_FILM_NAME}: formats, credits and answers`,
+    answer: `Kineo uses ${STANDARD_FILM_NAME} to build narrated films from an idea or script, including generated scenes, voice, captions and music. A 60-second film costs ${film60} credits. Starter includes ${STARTER_CREDITS} credits for US$${STARTER_USD_AMOUNT} per month. In supported countries, new accounts can try a watermarked ${TRIAL_FREE_FILM_SECONDS}-second film made with ${FREE_FILM_ENGINE_NAME} using their ${TRIAL_CREDITS_SHOWN} trial credits.`, // KINEO-LLMS-K4-2910
+    rows: [trialRow(`${FREE_FILM_ENGINE_NAME} narrated film with voice, captions and music`), paidRow(`${STANDARD_FILM_NAME} narrated film with clean MP4 on a paid plan`)], // KINEO-LLMS-K4-2910
     faq: [
-      { q: 'Which Seedance model does Kineo use here?', a: 'ByteDance Seedance 1.5 Pro.' },
+      { q: 'Which Seedance model does Kineo use here?', a: `${STANDARD_FILM_NAME} for the current standard film. This legacy address preserves the existing guide.` },
       { q: 'Is this a clip or a finished film?', a: 'Choose a clip for one scene; Make a Film also includes narration, captions and music.' },
-      { q: 'How many credits does a 60-second film use?', a: `${film60} credits on Seedance 1.5.` },
+      { q: 'How many credits does a 60-second film use?', a: `${film60} credits on ${STANDARD_FILM_NAME}.` },
       { q: 'Can I try it without a card?', a: free },
       { q: 'Does a 60-second film take 60 seconds to generate?', a: 'No. Film duration is the requested output length; generation time is the wait for the file. There is no fixed delivery time.' },
     ],
   },
   text: {
     heading: 'Text to Shorts: formats, credits and answers',
-    answer: `Paste a topic or a finished script into Kineo to create a vertical Short with AI narration, scenes, captions and music. You can keep your own spoken wording. A 60-second Seedance 1.5 film uses ${film60} credits; Starter costs US$${STARTER_USD_AMOUNT} monthly. The supported-country trial covers a shorter, watermarked ${TRIAL_FREE_FILM_SECONDS}-second film.`,
-    rows: [trialRow(`Topic → written script and narrated ${FREE_FILM_ENGINE_NAME} film`), paidRow('Your script → narrated Seedance 1.5 film and clean MP4')], // KINEO-LLMS-K4-2910
+    answer: `Paste a topic or a finished script into Kineo to create a vertical Short with AI narration, scenes, captions and music. You can keep your own spoken wording. A 60-second ${STANDARD_FILM_NAME} film uses ${film60} credits; Starter costs US$${STARTER_USD_AMOUNT} monthly. The supported-country trial covers a shorter, watermarked ${TRIAL_FREE_FILM_SECONDS}-second film.`,
+    rows: [trialRow(`Topic → written script and narrated ${FREE_FILM_ENGINE_NAME} film`), paidRow(`Your script → narrated ${STANDARD_FILM_NAME} film and clean MP4`)], // KINEO-LLMS-K4-2910
     faq: [
       { q: 'Can I start with one sentence?', a: 'Yes. Kineo can write the script from your topic.' },
       { q: 'Can I paste a finished script?', a: 'Yes. Use your own spoken script in the script field.' },
@@ -67,14 +68,14 @@ export const TRAFFIC_CITATIONS: Record<TrafficCitationPage, Citation> = {
       { q: 'Do I have to appear on camera?', a: 'No. This is a faceless video workflow.' },
       { q: 'Can I supply the scary idea?', a: 'Yes. Type your idea or choose a suggested starting point.' },
       { q: 'Does the trial unlock every engine?', a: `No. The trial film uses ${FREE_FILM_ENGINE_NAME}. Other engines and longer films require enough paid credits and an eligible plan.` }, // KINEO-LLMS-K4-2910
-      { q: 'Is a 60-second horror film included in the trial?', a: `No. Seedance 1.5 uses ${film60} credits for 60 seconds, above the ${TRIAL_CREDITS_SHOWN}-credit trial balance.` },
+      { q: 'Is a 60-second horror film included in the trial?', a: `No. ${STANDARD_FILM_NAME} uses ${film60} credits for 60 seconds, above the ${TRIAL_CREDITS_SHOWN}-credit trial balance.` },
       { q: 'Can I download without a watermark?', a: clean },
     ],
   },
   urdu: {
     heading: 'Urdu films: formats, credits and answers',
-    answer: `Write an Urdu idea or paste an Urdu script into Kineo to create a narrated vertical film. The voice, captions and title follow Urdu, with scenes based on the text. A 60-second Seedance 1.5 film uses ${film60} credits. Starter provides ${STARTER_CREDITS} monthly credits for US$${STARTER_USD_AMOUNT}; trial films are shorter and watermarked.`,
-    rows: [trialRow('Urdu idea or script → narrated film, captions, music and vertical MP4'), paidRow('Urdu narrated Seedance 1.5 film with clean MP4')],
+    answer: `Write an Urdu idea or paste an Urdu script into Kineo to create a narrated vertical film. The voice, captions and title follow Urdu, with scenes based on the text. A 60-second ${STANDARD_FILM_NAME} film uses ${film60} credits. Starter provides ${STARTER_CREDITS} monthly credits for US$${STARTER_USD_AMOUNT}; trial films are shorter and watermarked.`,
+    rows: [trialRow('Urdu idea or script → narrated film, captions, music and vertical MP4'), paidRow(`Urdu narrated ${STANDARD_FILM_NAME} film with clean MP4`)],
     faq: [
       { q: 'Should I write the prompt in Urdu?', a: 'Yes. Write the idea in Urdu or paste a full Urdu script.' },
       { q: 'Do the captions follow the voice?', a: 'Yes. Captions follow the narration language.' },
@@ -88,7 +89,7 @@ export const TRAFFIC_CITATIONS: Record<TrafficCitationPage, Citation> = {
     answer: `A Kineo cria um Short vertical em português a partir de uma ideia ou roteiro, com narração, cenas e legendas. A amostra grátis é um filme ${FREE_FILM_ENGINE_NAME} de ${TRIAL_FREE_FILM_SECONDS} segundos com marca d’água, sem cartão, em países atendidos. Planos pagos liberam MP4 limpo. No Brasil, você paga em reais no checkout.`, // KINEO-LLMS-K4-2910
     rows: [
       ['Ideia em português → filme narrado, cenas e legendas', `${TRIAL_FREE_FILM_SECONDS} s solicitados; ${FREE_FILM_ENGINE_NAME}`, 'Varia conforme a duração e o motor escolhido', 'Amostra grátis nos países atendidos', `${TRIAL_FREE_FILM_CREDITS} por filme; ${TRIAL_CREDITS_SHOWN} no teste`], // KINEO-LLMS-K4-2910
-      ['Filme narrado em português com MP4 limpo', '60 s solicitados; Seedance 1.5', 'Varia conforme a duração e o motor escolhido', `Starter: US$${STARTER_USD_AMOUNT}/mês como referência; Brasil paga em reais no checkout`, `${film60} por filme; ${STARTER_CREDITS}/mês no Starter`],
+      ['Filme narrado em português com MP4 limpo', `60 s solicitados; ${STANDARD_FILM_NAME}`, 'Varia conforme a duração e o motor escolhido', `Starter: US$${STARTER_USD_AMOUNT}/mês como referência; Brasil paga em reais no checkout`, `${film60} por filme; ${STARTER_CREDITS}/mês no Starter`],
     ],
     faq: [
       { q: 'O vídeo sai em português do Brasil?', a: 'Sim. Esta página abre o fluxo com narração e legendas em português do Brasil.' },
