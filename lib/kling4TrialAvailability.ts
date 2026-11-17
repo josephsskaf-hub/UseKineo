@@ -1,7 +1,7 @@
 // Public announcement state only: this read does not reserve a film or promise capacity to a later request.
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { KLING4_TRIAL_LIVE } from '@/lib/kling4TrialPolicy'
-import { KLING4_TRIAL_COST_USD, KLING4_TRIAL_DAILY_CAP_USD } from '@/lib/kling4TrialBudget'
+import { KLING4_TRIAL_LIVE, KLING4_TRIAL_MAX_SECONDS } from '@/lib/kling4TrialPolicy'
+import { KLING4_TRIAL_DAILY_CAP_USD, kling4TrialReserveMilliusd } from '@/lib/kling4TrialBudget'
 import { filmeGratisPermitido } from '@/lib/freeFilmPolicy'
 
 export type Kling4TrialAvailability = {
@@ -33,7 +33,7 @@ export async function readKling4TrialAvailability(
     // A known-empty day has its entire allowance. Missing table/schema/query errors never mean zero spending.
     const reserved = r.data === null ? 0 : r.data?.reserved_milliusd
     const cap = Math.round(KLING4_TRIAL_DAILY_CAP_USD * 1000)
-    const nextFilm = Math.round(KLING4_TRIAL_COST_USD * 1000)
+    const nextFilm = kling4TrialReserveMilliusd(KLING4_TRIAL_MAX_SECONDS) ?? 2355 // KINEO-K4-TETO-FILME-LONGO-1711 — o anúncio conta o pior caso do teto (15 = 2355, hoje)
     if (typeof reserved !== 'number' || !Number.isInteger(reserved) || reserved < 0 || reserved > cap) return state
     return { ...state, available: reserved + nextFilm <= cap }
   } catch { return state }

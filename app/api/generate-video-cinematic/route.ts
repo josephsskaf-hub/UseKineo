@@ -8162,7 +8162,7 @@ async function manipularPost(req: NextRequest) {
     if (kling4Fala && !kling4Fala.cabe) console.warn(`[cinematic] KINEO-K4-NARRACAO-CABE-0111 fala medida ${kling4Fala.seconds ?? '?'}s (teto ${kling4Fala.maxSeconds}s, ${kling4Fala.reason}) → Seedance 15 s, não Kling 4`) // KINEO-K4-NARRACAO-CABE-0111
     if (kling4TrialCandidate && scenes.length === 3 && scenes.every(s => [6, 7, 8].includes(s.clipSeconds ?? 6)) && kling4Fala?.cabe) { // KINEO-K4-NARRACAO-CABE-0111: + fala medida ≤ 15,5 s
       kling4Trial = await orchestrateKling4Trial({
-        reserve: () => reserveKling4Trial(cinematicAdmin, { jobId: generationId, userId: user.id, country: paisDoRequest(req.headers) }),
+        reserve: () => reserveKling4Trial(cinematicAdmin, { jobId: generationId, userId: user.id, country: paisDoRequest(req.headers), clipSeconds: kling4Timing.clipSeconds }), // KINEO-K4-TETO-FILME-LONGO-1711 — a reserva é o preço do clipe já medido (sem clipSeconds = 15 s = 2355, hoje)
         submit: async () => { await aplicarSujeitoNoKling4(); return submitKling4TrialVideo(kling4PorSecao({ // KINEO-K4-SUJEITO-0111 v5 — o sujeito entra depois da reserva aprovada, antes do POST pago · KINEO-K4-PLANO-POR-SECAO-1111: kling4PorSecao
           prompts: kling4Prompts, approvedStills: kling4ApprovedStills, timing: kling4Timing,
         }), { apiKey: process.env.FAL_KEY ?? '', onPost: () => { kling4Posts++; ctxDespacho().totalPosts++ } }) },

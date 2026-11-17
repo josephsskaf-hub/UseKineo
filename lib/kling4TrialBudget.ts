@@ -14,20 +14,37 @@ export type Kling4TrialReservation =
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu
 const validIdentity = (i: Identity) => UUID.test(i.userId) && typeof i.jobId === 'string' && i.jobId.trim().length > 0 && i.jobId.length <= 200
+// KINEO-K4-TETO-FILME-LONGO-1711 — o razão do teto diário conta o preço do clipe: 15 s = 2355 milésimos (hoje); 16 a 20 s = 0,157/s
+// (2512 a 3140). A migration 20261117180000 aceita reserva entre 2355 e 3140. A voz é medida ANTES da reserva (na rota), então a reserva
+// é o preço exato do clipe; o acerto (record_kling4_trial_film) grava esse mesmo valor como custo.
+export const KLING4_TRIAL_MAX_RESERVE_MILLIUSD = 3140
+/** 0,157 US$/s em milésimos (o mesmo KLING4_TRIAL_USD_PER_SECOND de lib/kling4TrialPolicy; sem import: os guardiões carregam este módulo sozinho). */
+export const KLING4_TRIAL_MILLIUSD_PER_SECOND = 157
+/** Milésimos de US$ que o filme ocupa no teto do dia; null = clipe fora da faixa (sem reserva → motor barato). Sem clipe ou 15 = 2355. */
+export function kling4TrialReserveMilliusd(clipSeconds?: number | null): number | null {
+  if (clipSeconds === undefined || clipSeconds === null || clipSeconds === 15) return 2355
+  if (!Number.isInteger(clipSeconds) || clipSeconds < 15) return null
+  const m = clipSeconds * KLING4_TRIAL_MILLIUSD_PER_SECOND
+  return m >= 2355 && m <= KLING4_TRIAL_MAX_RESERVE_MILLIUSD ? m : null
+}
 const country = (value: string | null | undefined) => typeof value === 'string' && /^[a-z]{2}$/iu.test(value) ? value.toUpperCase() : null
 
 /** Only a NEW atomic reservation permits one Kling submission. Replays must use the existing claim or Seedance. */
-export async function reserveKling4Trial(admin: SupabaseClient, i: Identity): Promise<Kling4TrialReservation> {
+export async function reserveKling4Trial(admin: SupabaseClient, i: Identity & { clipSeconds?: number | null }): Promise<Kling4TrialReservation> {
   if (!validIdentity(i)) return { allowed: false, reason: 'unavailable' }
+  const reserva = kling4TrialReserveMilliusd(i.clipSeconds) // KINEO-K4-TETO-FILME-LONGO-1711
+  if (reserva === null) return { allowed: false, reason: 'unavailable' }
   try {
     // KINEO-K4-DEVOLUCAO-1111 — a casa fica FORA da regra das 24 h (p_cap_24h=false); o resto chama com os 3 argumentos de
     // sempre (na função nova, p_cap_24h = true por padrão). Assim este código vale ANTES e DEPOIS da migration: antes dela, só a
     // casa perde o Kling 4 (parâmetro desconhecido → 'unavailable' → motor barato); ninguém de fora muda.
     const casa = await contaDaCasa(admin, i.userId)
-    const r = await admin.rpc('reserve_kling4_trial', { p_job_id: i.jobId, p_user_id: i.userId, p_country: country(i.country), ...(casa ? { p_cap_24h: false } : {}) })
+    // KINEO-K4-TETO-FILME-LONGO-1711 — clipe de 15 s: os mesmos argumentos de hoje (vale antes e depois da migration). Clipe maior:
+    // + p_reserve_milliusd; antes da migration o parâmetro é desconhecido → 'unavailable' → motor barato, nunca gasto sem reserva.
+    const r = await admin.rpc('reserve_kling4_trial', { p_job_id: i.jobId, p_user_id: i.userId, p_country: country(i.country), ...(casa ? { p_cap_24h: false } : {}), ...(reserva !== 2355 ? { p_reserve_milliusd: reserva } : {}) })
     const row = Array.isArray(r.data) ? r.data[0] : r.data
     if (r.error || !row) return { allowed: false, reason: 'unavailable' }
-    if (row.code === 'ok' && row.reserved_milliusd === 2355) return { allowed: true, reservedUsd: KLING4_TRIAL_COST_USD, release: () => releaseKling4Trial(admin, i) }
+    if (row.code === 'ok' && row.reserved_milliusd === reserva) return { allowed: true, reservedUsd: reserva / 1000, release: () => releaseKling4Trial(admin, i) }
     if (row.code === 'cap' || row.code === 'duplicate' || row.code === 'teto_24h') return { allowed: false, reason: row.code }
   } catch { /* A missing/unreachable ledger must never authorize a paid request. */ }
   return { allowed: false, reason: 'unavailable' }
@@ -61,7 +78,7 @@ export async function releaseKling4Trial(admin: SupabaseClient, i: Identity): Pr
 /** One result/event per film; only the terminal async Kling-to-Seedance transition may correct its engine. */
 export async function recordKling4TrialFilm(admin: SupabaseClient, i: Identity & { engineUsed: Kling4TrialEngineUsed; costUsd: number }): Promise<boolean> {
   if (!validIdentity(i) || !['kling4', 'seedance15_fallback', 'seedance15_cap'].includes(i.engineUsed)
-      || ![0, KLING4_TRIAL_COST_USD].includes(i.costUsd)) return false
+      || !(i.costUsd === 0 || (i.costUsd >= KLING4_TRIAL_COST_USD && i.costUsd <= KLING4_TRIAL_MAX_RESERVE_MILLIUSD / 1000))) return false // KINEO-K4-TETO-FILME-LONGO-1711: 0 ou 2,355 a 3,14
   try {
     const r = await admin.rpc('record_kling4_trial_film', {
       p_job_id: i.jobId, p_user_id: i.userId, p_country: country(i.country),
@@ -71,7 +88,7 @@ export async function recordKling4TrialFilm(admin: SupabaseClient, i: Identity &
     if (r.error || (row?.code !== 'ok' && row?.code !== 'unchanged')) return false
     // A lambda may die after the fallback authority CAS and before correcting its initial Kling event.
     // Common birth/compose replays repair that one-way transition without changing cost or country.
-    if (row.code === 'unchanged' && i.engineUsed === 'seedance15_fallback' && i.costUsd === KLING4_TRIAL_COST_USD) {
+    if (row.code === 'unchanged' && i.engineUsed === 'seedance15_fallback' && i.costUsd >= KLING4_TRIAL_COST_USD) { // KINEO-K4-TETO-FILME-LONGO-1711: >=
       const transitioned = await admin.rpc('transition_kling4_trial_fallback', { p_job_id: i.jobId, p_user_id: i.userId })
       const terminal = Array.isArray(transitioned.data) ? transitioned.data[0] : transitioned.data
       return !transitioned.error && (terminal?.code === 'ok' || terminal?.code === 'unchanged')
