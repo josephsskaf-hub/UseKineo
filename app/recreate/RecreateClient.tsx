@@ -22,6 +22,11 @@ import { downloadHref } from '@/lib/downloadNosso'
 const NOT_SWAPPED_MESSAGE = "We couldn't put you in this video. Nothing was charged. Try a clearer, front-facing photo or another video."
 const UNSAVED_MESSAGE = "This browser couldn't keep your photos while you sign up. Try again, or continue and add your photo after."
 const PREVIEW_LOCKED_MESSAGE = 'Generating in this preview is for approved accounts only. Nothing was charged.'
+/** KINEO-TELA-RECREATE-1611 — os ícones das ações do painel e da grade, em SVG (o iOS desenha "↗" U+2197 como emoji, uma caixa azul). */
+export function Icone({ nome }: { nome: 'trocar' | 'video' | 'seta' | 'voltar' | 'creditos' }) {
+  const d = { trocar: 'M4 8h13l-3-3M20 16H7l3 3', video: 'M4 7h11v10H4zM15 10.5 20 8v8l-5-2.5', seta: 'M7 17 17 7M9 7h8v8', voltar: 'M19 12H5m6-6-6 6 6 6', creditos: 'M13 3 5 14h6l-1 7 8-11h-6z' }[nome]
+  return <svg className="rc-icone" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d={d} /></svg>
+}
 type Social = { count: number; liked: boolean }
 export type Quote = { id: string; credits: number | null; available: boolean; shortfall: number }
 type Photo = { file: File; url: string }
@@ -53,12 +58,6 @@ async function flowJson(url: string, init: RequestInit = {}, limit = FLOW_STEP_M
       new Promise<never>((_, reject) => { timer = setTimeout(() => { controller.abort(); reject(new Error('This step timed out.')) }, limit) }),
     ])
   } finally { if (timer !== undefined) clearTimeout(timer) }
-}
-
-/** KINEO-TELA-RECREATE-1611 — os ícones das ações do painel e da grade, em SVG (o iOS desenha "↗" U+2197 como emoji, uma caixa azul). */
-export function Icone({ nome }: { nome: 'trocar' | 'video' | 'seta' | 'voltar' | 'creditos' }) {
-  const d = { trocar: 'M4 8h13l-3-3M20 16H7l3 3', video: 'M4 7h11v10H4zM15 10.5 20 8v8l-5-2.5', seta: 'M7 17 17 7M9 7h8v8', voltar: 'M19 12H5m6-6-6 6 6 6', creditos: 'M13 3 5 14h6l-1 7 8-11h-6z' }[nome]
-  return <svg className="rc-icone" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path d={d} /></svg>
 }
 
 /** KINEO-CLIP-RECREATE-JUNTOS-1511 — as peças desta tela que a tela Clip + Recreate recebe (o MESMO JSX, os MESMOS handlers). */

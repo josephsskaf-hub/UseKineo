@@ -18,6 +18,8 @@ import { execFileSync } from 'node:child_process'
 import { isDeepStrictEqual } from 'node:util'
 import path from 'node:path'
 import vm from 'node:vm'
+import { comTelaRecreate1611 } from './tela-recreate-1611-trocas.mjs' // KINEO-TELA-RECREATE-1611
+
 
 const require = createRequire(import.meta.url)
 const { loader, read, ROOT } = require('../docs/recreate-0911/test-recreate.cjs')
@@ -64,7 +66,7 @@ function casosA(o) {
   ]
 }
 
-const BASE_RC = { [RC]: baseSrc(RC) }
+const BASE_RC = { [RC]: comTelaRecreate1611(lf(baseSrc(RC))) } // KINEO-TELA-RECREATE-1611 — a base de 15/11 + SÓ as trocas pedidas pelo dono em 16/11 (scripts/tela-recreate-1611-trocas.mjs, cada uma com alvo único)
 // ─── B. Quem não está no interruptor: as telas de hoje ───────────────────────────────────────────────────────────────
 /** Atributos de um JSX (<Tag … />) e as chaves de um objeto literal `const <nome>… = { … }`, como texto normalizado. */
 function atributosDoJsx(code, tag) {
