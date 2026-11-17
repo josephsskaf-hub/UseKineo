@@ -10,6 +10,7 @@
 // `force-static`. Cabeçalho que mente é a próxima decisão errada de alguém.
 
 import type { Metadata } from 'next'
+import GoogleCreatorDoor from '@/components/seo/GoogleCreatorDoor'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 // KINEO-FERRAMENTA-NA-PAGINA-2026-08-14 — ver o bloco no corpo. Client island;
 // o resto da página segue server e `force-static` continua valendo.
@@ -190,6 +191,8 @@ export default function ShortsRpmByNichePage() {
           RPM swings widely by country, season and audience. Treat these as
           directional guidance for choosing a niche.
         </p>
+
+        <GoogleCreatorDoor sourcePage="/youtube-shorts-rpm-by-niche" />
 
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 12px' }}>
           RPM vs CPM: what actually hits your bank account

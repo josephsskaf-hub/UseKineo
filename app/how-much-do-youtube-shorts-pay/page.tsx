@@ -9,6 +9,7 @@
 // mirror the visible page so the markup can never drift from what a human reads.
 
 import type { Metadata } from 'next'
+import GoogleCreatorDoor from '@/components/seo/GoogleCreatorDoor'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 // KINEO-STARTER-EM-ARTIGO-2026-08-15 — o MESMO componente da home/#70, nunca
@@ -276,6 +277,8 @@ export default function HowMuchDoYouTubeShortsPayPage() {
           No figure on this page is a promise of earnings. Shorts RPM varies widely and
           YouTube does not publish per-view rates.
         </p>
+
+        <GoogleCreatorDoor sourcePage="/how-much-do-youtube-shorts-pay" />
 
         <section
           aria-labelledby="verified-answer"
