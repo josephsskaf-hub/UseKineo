@@ -15,7 +15,7 @@ type OrganicCtaLinkProps = {
    * In-page handoffs measure interest separately from an action that leaves
    * the page. The default preserves all existing organic links.
    */
-  analyticsEvent?: 'organic_cta_clicked' | 'organic_handoff_opened'
+  analyticsEvent?: 'organic_cta_clicked' | 'organic_handoff_opened' | 'shorts_watch_hours_creators_clicked'
   /**
    * Optional in-page handoff. When present, the link scrolls to this element
    * and focuses its first form control instead of leaving the page.

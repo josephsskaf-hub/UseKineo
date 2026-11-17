@@ -361,6 +361,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: r.priority,
   }))
   carimbaPaginasUgc2010(staticEntries) // KINEO-PAGINAS-UGC-2010 — home, /pricing e /ads ganharam link para as páginas novas
+  staticEntries.push({
+    url: `${BASE}/do-shorts-count-toward-4000-watch-hours`,
+    lastModified: new Date('2026-11-17T00:00:00Z'),
+    changeFrequency: 'monthly',
+    priority: 0.8,
+  })
   // KINEO-PAGINAS-IA-0111 — os 2 artigos de dinheiro entram aqui (mesmo perfil de /how-much-do-youtube-shorts-pay); as 10 do
   // catálogo /for já vieram de INTENT_SLUGS e os 8 nichos vêm de NICHE_SLUGS logo abaixo (essas 18 levam o carimbo do cluster
   // claro de trafego2310Sitemap, selado por scripts/test-trafego-index-2310.mjs). URL nova no sitemap = o cron do IndexNow avisa o
