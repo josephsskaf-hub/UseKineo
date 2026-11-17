@@ -40,11 +40,12 @@ export const K4_PRAZO_DA_MEDICAO_MS = 20_000
 export type MotivoDaFalaK4 = 'fits' | 'narration_over_kling4_15s' | 'narration_unmeasured_kling4' | 'narration_measure_timeout_kling4'
 export interface FalaK4 { seconds: number | null; maxSeconds: number; cabe: boolean; reason: MotivoDaFalaK4 }
 
-/** A decisão, só sobre a duração medida: ≤ 15,5 s cabe; acima ou sem medida, não. */
-export function kling4TrialFalaCabe(seconds: number | null): FalaK4 {
+/** A decisão, só sobre a duração medida: ≤ 15,5 s cabe; acima ou sem medida, não. KINEO-K4-GRATIS-20S-1711 — `teto` (padrão 15,5) vem de
+ *  kling4TrialTetoDaFala; o motivo acima do teto continua 'narration_over_kling4_15s' (o selo da tela lê esse nome). */
+export function kling4TrialFalaCabe(seconds: number | null, teto: number = K4_TETO_MEDIDO_SEGUNDOS): FalaK4 {
   const s = typeof seconds === 'number' && Number.isFinite(seconds) && seconds > 0.5 ? Math.round(seconds * 1000) / 1000 : null
-  if (s === null) return { seconds: null, maxSeconds: K4_TETO_MEDIDO_SEGUNDOS, cabe: false, reason: 'narration_unmeasured_kling4' }
-  return { seconds: s, maxSeconds: K4_TETO_MEDIDO_SEGUNDOS, cabe: s <= K4_TETO_MEDIDO_SEGUNDOS, reason: s <= K4_TETO_MEDIDO_SEGUNDOS ? 'fits' : 'narration_over_kling4_15s' }
+  if (s === null) return { seconds: null, maxSeconds: teto, cabe: false, reason: 'narration_unmeasured_kling4' }
+  return { seconds: s, maxSeconds: teto, cabe: s <= teto, reason: s <= teto ? 'fits' : 'narration_over_kling4_15s' }
 }
 
 /** O que a medição usa (injetável no teste): a voz clássica aquecível e a leitura do cache de voz — as do compose. */
@@ -68,27 +69,32 @@ type ArgsDaFalaK4 = {
   log?: string
   /** Prazo da medição (padrão K4_PRAZO_DA_MEDICAO_MS). */
   prazoMs?: number
+  /** KINEO-K4-GRATIS-20S-1711 — teto da fala medida (s); padrão K4_TETO_MEDIDO_SEGUNDOS (o de hoje). */
+  tetoSegundos?: number
 }
 
+const tetoDaMedicao = (a: ArgsDaFalaK4) => typeof a.tetoSegundos === 'number' && Number.isFinite(a.tetoSegundos) && a.tetoSegundos > 0 ? a.tetoSegundos : K4_TETO_MEDIDO_SEGUNDOS // KINEO-K4-GRATIS-20S-1711
+
 async function medirSemPrazo(a: ArgsDaFalaK4, deps?: DepsDaFalaK4): Promise<FalaK4> {
+  const teto = tetoDaMedicao(a) // KINEO-K4-GRATIS-20S-1711
   try {
     const raw = String(a.voiceoverScript ?? '')
     const narracao = stripScriptMarkers(raw) || (raw.trim() ? salvageScriptNarration(raw) : '')
-    if (!narracao || !a.voz) return kling4TrialFalaCabe(null)
+    if (!narracao || !a.voz) return kling4TrialFalaCabe(null, teto)
     const assinada = vozAssinadaDoClaim({ narration_voice: campoDaVozAssinada(a.voz), speed: a.scriptSpeed })
-    if (!assinada) return kling4TrialFalaCabe(null)
+    if (!assinada) return kling4TrialFalaCabe(null, teto)
     const s = Number(assinada.speed)
     const explicitSpeed = Number.isFinite(s) && s > 0 ? Math.max(0.7, Math.min(1.3, s)) : null // ≡ compose
-    if (explicitSpeed === null && !a.verbatim) return kling4TrialFalaCabe(null)
+    if (explicitSpeed === null && !a.verbatim) return kling4TrialFalaCabe(null, teto)
     const d = deps ?? await depsDeProducao()
     const voz = d.aquecivel({ script: narracao, speed: explicitSpeed ?? 1.0, vertical: assinada.vertical, language: a.language, quality: a.quality, log: a.log })
-    if (!voz) return kling4TrialFalaCabe(null)
-    if (!(await voz.produzir())) return kling4TrialFalaCabe(null)
+    if (!voz) return kling4TrialFalaCabe(null, teto)
+    if (!(await voz.produzir())) return kling4TrialFalaCabe(null, teto)
     const pronta = await d.lookup(voz.chave)
-    return kling4TrialFalaCabe(pronta?.audioDuration ?? null)
+    return kling4TrialFalaCabe(pronta?.audioDuration ?? null, teto)
   } catch (e) {
     console.warn('[kling4-trial] KINEO-K4-NARRACAO-CABE-0111 medição da fala falhou (→ Seedance):', e instanceof Error ? e.message : String(e))
-    return kling4TrialFalaCabe(null)
+    return kling4TrialFalaCabe(null, teto)
   }
 }
 
@@ -107,7 +113,7 @@ export async function medirFalaDoKling4Trial(a: ArgsDaFalaK4, deps?: DepsDaFalaK
   const estouro = new Promise<FalaK4>((resolve) => {
     timer = setTimeout(() => {
       console.warn(`[kling4-trial] KINEO-K4-NARRACAO-CABE-0111 medição da fala passou de ${prazo} ms (→ Seedance)`)
-      resolve({ ...kling4TrialFalaCabe(null), reason: 'narration_measure_timeout_kling4' })
+      resolve({ ...kling4TrialFalaCabe(null, tetoDaMedicao(a)), reason: 'narration_measure_timeout_kling4' })
     }, prazo)
   })
   try {

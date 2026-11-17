@@ -57,7 +57,7 @@ export function cabeNoTetoDoPlano(texto: string, teto = KLING4_TETO_DO_PLANO): s
 // kettlebell; o HIIT só aparece depois de a fala acabar). `pelaVoz` (só quando o despacho mede a voz e o interruptor está ligado):
 // cada fronteira de plano cai onde a fala da seção termina, na escala da voz MEDIDA; o silêncio depois da fala vai inteiro para o
 // último plano; piso de 2 s por plano (o schema da fal aceita 1–30). Sem `pelaVoz` = a régua de sempre, byte a byte.
-export type Kling4TrialTiming = { voiceovers: readonly string[]; wordsPerSecond: number; pelaVoz?: { segundosDaVoz: number } | null }
+export type Kling4TrialTiming = { voiceovers: readonly string[]; wordsPerSecond: number; pelaVoz?: { segundosDaVoz: number } | null; clipSeconds?: number } // KINEO-K4-GRATIS-20S-1711: + clipSeconds (o clipe nasce do tamanho da voz; ausente = 15)
 export const KLING4_PISO_PELA_VOZ = 2
 /** Interruptor. 'all' desde 13/11 05:11: o dono viu o antes e depois com som (prova paga no pedido salvo do 9e902872: cortes 2,08/4,08/7,13 s
  *  contra a fala 4,0/7,0 s) e escolheu "A", ligar para todos. Reverter: 'off' devolve a régua antiga, byte a byte, a todo mundo;
@@ -68,35 +68,35 @@ export function duracaoPelaVozLigada(modo: 'off' | 'internal' | 'all', interno: 
 }
 
 /** KINEO-K4-DURACAO-PELA-VOZ-1311 — durações inteiras cujas fronteiras seguem o fim da fala de cada seção (voz medida). */
-export function kling4TrialSceneDurationsPelaVoz(voiceovers: readonly string[], segundosDaVoz: number): number[] | null {
+export function kling4TrialSceneDurationsPelaVoz(voiceovers: readonly string[], segundosDaVoz: number, total = 15): number[] | null { // KINEO-K4-GRATIS-20S-1711: + total (padrão 15 = hoje)
   const n = voiceovers.length
-  if (!n || n > 5 || !Number.isFinite(segundosDaVoz) || segundosDaVoz <= 0 || segundosDaVoz > 15.5) return null
+  if (!n || n > 5 || !Number.isFinite(segundosDaVoz) || segundosDaVoz <= 0 || segundosDaVoz > 15.5 + (total - 15)) return null
   const palavras = voiceovers.map((t) => narrationWordCount(t))
-  const total = palavras.reduce((s, w) => s + w, 0)
-  if (total <= 0 || palavras.some((w) => w <= 0)) return null
+  const palavrasTotal = palavras.reduce((s, w) => s + w, 0)
+  if (palavrasTotal <= 0 || palavras.some((w) => w <= 0)) return null
   const piso = KLING4_PISO_PELA_VOZ
   const fronteiras: number[] = []
   let acumulado = 0
   for (let i = 0; i < n - 1; i++) {
     acumulado += palavras[i]
-    const fim = Math.round((acumulado / total) * Math.min(segundosDaVoz, 15))
+    const fim = Math.round((acumulado / palavrasTotal) * Math.min(segundosDaVoz, total))
     const anterior = i === 0 ? 0 : fronteiras[i - 1]
-    fronteiras.push(Math.min(Math.max(fim, anterior + piso), 15 - piso * (n - 1 - i)))
+    fronteiras.push(Math.min(Math.max(fim, anterior + piso), total - piso * (n - 1 - i)))
   }
-  const cortes = [0, ...fronteiras, 15]
+  const cortes = [0, ...fronteiras, total]
   const segundos = cortes.slice(1).map((c, i) => c - cortes[i])
-  return segundos.every((s) => s >= piso) && segundos.reduce((s, x) => s + x, 0) === 15 ? segundos : null
+  return segundos.every((s) => s >= piso) && segundos.reduce((s, x) => s + x, 0) === total ? segundos : null
 }
 
 /** Speech-weighted allocation on the provider's integer clock. Clamp short shots, then apportion the remainder. */
-export function kling4TrialSceneDurations(voiceovers: readonly string[], wordsPerSecond: number): number[] {
+export function kling4TrialSceneDurations(voiceovers: readonly string[], wordsPerSecond: number, total = 15): number[] { // KINEO-K4-GRATIS-20S-1711: + total (padrão 15 = hoje)
   const n = voiceovers.length
   if (!n || n > 5 || !Number.isFinite(wordsPerSecond) || wordsPerSecond <= 0) {
     throw new Kling4TrialPreflightError('kling4_invalid_timing')
   }
   const speech = voiceovers.map(text => narrationWordCount(text) / wordsPerSecond)
   const target = new Array<number>(n).fill(3)
-  let remaining = 15
+  let remaining = total
   let active = speech.map((_, i) => i)
   // Water-fill: a floor-bound shot stays at three seconds; other shots share time by their actual speech weight.
   while (active.length) {
@@ -113,9 +113,14 @@ export function kling4TrialSceneDurations(voiceovers: readonly string[], wordsPe
   const seconds = target.map(s => Math.max(3, Math.floor(s)))
   const order = target.map((s, i) => ({ i, fraction: s - seconds[i] }))
     .sort((a, b) => b.fraction - a.fraction || a.i - b.i)
-  const spare = 15 - seconds.reduce((sum, s) => sum + s, 0)
+  const spare = total - seconds.reduce((sum, s) => sum + s, 0)
   for (let k = 0; k < spare; k++) seconds[order[k].i]++
   return seconds
+}
+
+/** KINEO-K4-GRATIS-20S-1711 — o total do clipe: inteiro de 15 a 30 (schema kling/v4: 3–30); qualquer outra coisa = 15. */
+export function kling4TrialClipTotal(clipSeconds: unknown): number {
+  return typeof clipSeconds === 'number' && Number.isInteger(clipSeconds) && clipSeconds >= 15 && clipSeconds <= 30 ? clipSeconds : 15
 }
 
 export function buildKling4TrialInput(
@@ -125,8 +130,9 @@ export function buildKling4TrialInput(
   if (!shots.length || shots.some(p => !p)) throw new Kling4TrialPreflightError('kling4_empty_plan')
   if (timing && timing.voiceovers.length !== shots.length) throw new Kling4TrialPreflightError('kling4_mismatched_timing')
   // Empty narration is the only balanced fallback. Birth always supplies its final scene voiceovers and resolved voice pace.
-  const pelaVoz = timing?.pelaVoz ? kling4TrialSceneDurationsPelaVoz(timing.voiceovers, timing.pelaVoz.segundosDaVoz) : null // KINEO-K4-DURACAO-PELA-VOZ-1311
-  const seconds = pelaVoz ?? kling4TrialSceneDurations(timing?.voiceovers ?? shots.map(() => ''), timing?.wordsPerSecond ?? 1)
+  const total = kling4TrialClipTotal(timing?.clipSeconds) // KINEO-K4-GRATIS-20S-1711 — 15 sem clipSeconds (hoje)
+  const pelaVoz = timing?.pelaVoz ? kling4TrialSceneDurationsPelaVoz(timing.voiceovers, timing.pelaVoz.segundosDaVoz, total) : null // KINEO-K4-DURACAO-PELA-VOZ-1311
+  const seconds = pelaVoz ?? kling4TrialSceneDurations(timing?.voiceovers ?? shots.map(() => ''), timing?.wordsPerSecond ?? 1, total)
   const first = approvedStills[0] || null
   const middle: string[] = []
   const multiPrompt = shots.map((prompt, i) => {
@@ -145,7 +151,7 @@ export function buildKling4TrialInput(
   return {
     model: first ? KLING4_I2V_MODEL : KLING4_T2V_MODEL,
     input: {
-      multi_prompt: multiPrompt, duration: 15, resolution: '720p',
+      multi_prompt: multiPrompt, duration: total, resolution: '720p', // KINEO-K4-GRATIS-20S-1711 — a soma dos planos (schema kling/v4: 3–30 s)
       ...(first ? { start_image_url: first, ...(middle.length ? { middle_image_urls: middle } : {}) } : { aspect_ratio: '9:16' }),
     } as Record<string, unknown>,
   }

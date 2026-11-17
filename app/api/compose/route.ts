@@ -98,7 +98,7 @@ import { alignSignedClipPlan } from '@/lib/cinematic/klingShots' // KINEO-KLING2
 import { isVeoClaim, veoAlignSignedClipPlan } from '@/lib/cinematic/veoShots' // [TRAVA 8.2] VEO-PLANOS-2026-09-29 — claim do Veo assina 4|6|8
 import { alignSignedClipPlanWith } from '@/lib/cinematic/klingShots' // [TRAVA 8.2 — "vai" do 3x6] KINEO-SEEDANCE-15S-3X6-2026-09-29
 import { isSeedanceShortClaim, SEEDANCE_SHORT_CLIP_STEPS } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai" do 3x6] claim do Seedance a 15 s assina 6|7|8
-import { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim'
+import { kling4TrialEngineFromClaim, kling4TrialClipSecondsFromClaim } from '@/lib/kling4TrialClaim' // KINEO-K4-GRATIS-20S-1711: + kling4TrialClipSecondsFromClaim
 import { recordKling4TrialFilm } from '@/lib/kling4TrialBudget'
 import { vozAssinadaDoClaim } from '@/lib/vozDoFilmeCurto' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29
 import { collectSceneNarrations, verifyObservedSpeech } from '@/lib/cinematic/speechContract'
@@ -3557,6 +3557,7 @@ export async function POST(req: NextRequest) {
         realAudioDuration,
         seedanceShortFilm: quality === 'cinematic_ai' && isSeedanceShortClaim(cinematicBirthClaim?.response),
         kling4TrialEngine: kling4TrialEngineFromClaim(cinematicBirthClaim?.response),
+        kling4TrialClipSeconds: kling4TrialClipSecondsFromClaim(cinematicBirthClaim?.response), // KINEO-K4-GRATIS-20S-1711 — 15 quando o claim não traz o campo (todo filme de hoje)
         whisperWords: legendaWords, // KINEO-LEGENDA-GRAFIA-DO-ROTEIRO-2026-09-28 — tempo do Whisper, grafia do roteiro
         musicUrl,
         avatarUrl: avatarMode ? avatarUrlBody : null,

@@ -343,6 +343,8 @@ export interface ComposeInputs {
   seedanceShortFilm?: boolean
   /** Verified first-free-film trial only; never read from request body. */
   kling4TrialEngine?: Kling4TrialEngine | null
+  /** KINEO-K4-GRATIS-20S-1711 — segundos do clipe único do Kling 4 grátis, lidos do claim assinado (kling4TrialClipSecondsFromClaim); ausente = 15. */
+  kling4TrialClipSeconds?: number | null
   /**
    * Push #175 — optional pre-computed word-level timing from Whisper
    * transcription. Each entry aligns with the corresponding caption segment
@@ -2417,6 +2419,7 @@ export function buildCreatomateSource({
   realAudioDuration,
   seedanceShortFilm,
   kling4TrialEngine,
+  kling4TrialClipSeconds = null, // KINEO-K4-GRATIS-20S-1711
   whisperTimings,
   whisperWords,
   musicUrl,
@@ -2775,7 +2778,7 @@ export function buildCreatomateSource({
     // (17,7 s no "planeta de gelo"), o laço ligado voltava ao quadro ZERO — o filme terminava na cena de ABERTURA e o
     // desfecho narrado ("a vida sob o gelo", o avião sumido) passava sobre o começo. Agora o filme toca uma vez e a sobra
     // fica no FIM: os últimos segundos da última cena (o piso de cena é 3 s) com um empurrão lento, nunca a abertura.
-    const K4_SEGUNDOS = 15 // KINEO-K4-FIM-SEM-VOLTA-0111
+    const K4_SEGUNDOS = typeof kling4TrialClipSeconds === 'number' && Number.isInteger(kling4TrialClipSeconds) && kling4TrialClipSeconds > 15 && kling4TrialClipSeconds <= 30 ? kling4TrialClipSeconds : 15 // KINEO-K4-FIM-SEM-VOLTA-0111 · KINEO-K4-GRATIS-20S-1711 — o clipe pode nascer do tamanho da voz (16–20 s); sem o campo, 15 como sempre
     const K4_CAUDA = 3 // KINEO-K4-FIM-SEM-VOLTA-0111 — dentro da última cena (kling4TrialSceneDurations: piso de 3 s)
     const k4Base = { type: 'video' as const, track: 2, source: cleanClips[0], fit: 'cover' as const, loop: false, x: '50%', y: '50%', width: '100%', height: '100%', volume: '0%' } // KINEO-K4-FIM-SEM-VOLTA-0111
     const k4Inteiro = round3(Math.min(totalDuration, K4_SEGUNDOS)) // KINEO-K4-FIM-SEM-VOLTA-0111

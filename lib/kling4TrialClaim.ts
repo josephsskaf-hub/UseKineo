@@ -28,6 +28,14 @@ export function kling4TrialFalaEncurtada(response: Record<string, unknown> | nul
   return !!(response!.kling4_trial as Record<string, unknown>).narration_refit
 }
 
+/** KINEO-K4-GRATIS-20S-1711 — segundos do clipe único do Kling 4 grátis: o `clip_duration` assinado no marcador (16–30, só gravado
+ *  quando o clipe nasceu do tamanho da voz acima de 15 s); todo outro claim = 15, como sempre. */
+export function kling4TrialClipSecondsFromClaim(response: Record<string, unknown> | null | undefined): number {
+  if (kling4TrialEngineFromClaim(response) !== 'kling4') return 15
+  const n = (response!.kling4_trial as Record<string, unknown>).clip_duration
+  return typeof n === 'number' && Number.isInteger(n) && n > 15 && n <= 30 ? n : 15
+}
+
 /** The birth route already awaited this result. Bind its signed URL without repolling the supplier. */
 export function kling4TrialVideoUrlFromClaim(response: Record<string, unknown> | null | undefined): string | null {
   if (kling4TrialEngineFromClaim(response) !== 'kling4') return null
