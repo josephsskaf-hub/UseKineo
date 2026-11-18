@@ -46,11 +46,7 @@ export function remixEngineFromEngineUsed(engineUsed: string | null | undefined)
 
 /** Nome honesto do motor para o selo "Made with Kineo" (null = sem selo de motor). */
 export function remixEngineLabel(engineUsed: string | null | undefined): string | null {
-  const e = (engineUsed ?? '').trim().toLowerCase()
-  if (e === 'kling4') return 'Kling 4.0'
-  if (e === 'seedance15_fallback') return 'Seedance 1.5'
-  if (e === 'h3_max_turbo') return 'MiniMax H3 Turbo' // KINEO-H3-TURBO-ABRE-0511
-  return null
+  return engineLabelFor(null, engineUsed)
 }
 
 /**
@@ -123,3 +119,4 @@ export function remixSourceFromDestination(params: Pick<URLSearchParams, 'get'>)
   if ((params.get('intent_campaign') ?? '').trim() !== REMIX_CAMPAIGN) return null
   return remixSourceVideoId(params.get('utm_content'))
 }
+import { engineLabelFor } from './engineLabel'

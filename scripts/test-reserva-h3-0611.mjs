@@ -25,7 +25,9 @@ checa('envio sem repetição', envio.includes('submitKling4TrialH3Fallback') && 
 checa('imagem aprovada viaja no plano assinado', rota.includes('image_url: kling4ApprovedStills[i]'))
 checa('caminho síncrono sem a trava do grátis; desenho segue no Seedance', rota.includes('h3TurboNoFilmePadrao(user.email) && !desenhoInfantil.ativo ? H3_TURBO_I2V_MODEL : SEEDANCE_I2V_MODEL'))
 checa('Kling 4 entregue mantém o selo', selo.includes("teste.engine_used !== 'seedance15_fallback' && teste.engine_used !== 'seedance15_cap'") && selo.includes('claim.response?.kling4_paid || claim.response?.kling4_trial'))
-checa('reserva grava o motor real nas 2 gravações', (status.match(/engineDaReservaDoGratis\(prepaidCinematicClaim\)/g) || []).length === 2)
+const { filmEngineUsed } = await carrega(ler('lib/filmEngineUsed.ts'))
+const receipt = model => ({ response: { kling4_trial: {} }, falModels: [model], falRequestIds: ['1'], authorizedCompletedUrls: ['video'] })
+checa('reserva grava o motor real nas 2 gravações', status.includes('recordedFilmEngine(filmEngineUsed(prepaidCinematicClaim,') && status.includes('engineUsed: deliveredEngine,') && status.includes('engine_used: deliveredEngine,') && filmEngineUsed(receipt(R.RESERVA_H3_MODEL)) === 'h3_max_turbo' && filmEngineUsed(receipt('fal-ai/bytedance/seedance/v1.5/pro/image-to-video')) === 'seedance15_fallback')
 checa('lista do claim aceita o H3', ler('lib/kling4TrialClaim.ts').includes("model === 'minimax/h3-max-turbo/image-to-video'"))
 checa('status de clipe aceita H3', clip.includes('H3_TURBO_I2V_MODEL, //'))
 if (falhas) { console.error(falhas + ' falha(s)'); process.exit(1) }

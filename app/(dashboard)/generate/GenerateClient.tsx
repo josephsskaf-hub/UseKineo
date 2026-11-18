@@ -2204,7 +2204,7 @@ export default function GenerateClient({
   const [renderProgress, setRenderProgress] = useState<number>(0)
   const [generateProgress, setGenerateProgress] = useState<number>(0)
   const [textoEncurtadoK4, setTextoEncurtadoK4] = useState(false) // KINEO-K4-SEMPRE-0511 — o filme grátis saiu com o texto encurtado para caber nos 15 s
-  const [actualEngineUsed, setActualEngineUsed] = useState<string | null>(null)
+  const [actualEngineLabel, setActualEngineLabel] = useState<string | null>(null)
   const [actualEngineNote, setActualEngineNote] = useState<string | null>(null) // KINEO-K4-NARRACAO-CABE-0111 — 'narration_over_15s': o grátis saiu no Seedance porque a fala passou de 15 s
   const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null)
   const [linkParaTrocar, setLinkParaTrocar] = useState<string | null>(null) // KINEO-FILME-RAPIDO-1710 — render cujo link do Creatomate ainda vai virar o do bucket
@@ -5262,7 +5262,7 @@ export default function GenerateClient({
           falModelRef.current = typeof replacement.fal_model === 'string' ? replacement.fal_model : ''
           falModelsRef.current = replacement.fal_models as string[]
           falQualityRef.current = replacement.quality === 'cinematic_hollywood' ? 'cinematic_hollywood' : 'cinematic_ai'
-          if (replacement.quality === 'cinematic_hollywood' && typeof replacement.engine_used === 'string') setActualEngineUsed(replacement.engine_used)
+          if (replacement.quality === 'cinematic_hollywood' && typeof replacement.engine_used === 'string') setActualEngineLabel(engineLabelFor(null, replacement.engine_used))
           sceneEnginesRef.current = []
           scenePromptsRef.current = Array.isArray(replacement.scene_prompts) ? replacement.scene_prompts.map(x => typeof x === 'string' ? x : '') : []
           sceneAnchorsRef.current = Array.isArray(replacement.scene_anchor_urls) ? replacement.scene_anchor_urls.map(x => typeof x === 'string' ? x : null) : []
@@ -7124,7 +7124,7 @@ export default function GenerateClient({
             try { window.dispatchEvent(new Event('creditsChanged')) } catch {}
           }
           setRenderProgress(100)
-          if (typeof data.engine_used === 'string') setActualEngineUsed(data.engine_used)
+          setActualEngineLabel(engineLabelFor(data.quality_mode, data.engine_used))
           setActualEngineNote(data.engine_note === 'narration_over_15s' ? 'narration_over_15s' : null) // KINEO-K4-NARRACAO-CABE-0111
           setFinalVideoUrl(url)
           setLinkParaTrocar(data.asset_pending === true ? (renderId as string) : null) // KINEO-FILME-RAPIDO-1710
@@ -8825,7 +8825,7 @@ export default function GenerateClient({
     setClipUrls([])
     setRenderId(null)
     setFinalVideoUrl(null)
-    setActualEngineUsed(null); setActualEngineNote(null) /* KINEO-K4-NARRACAO-CABE-0111 — limpa o motivo (1) */
+    setActualEngineLabel(null); setActualEngineNote(null) /* KINEO-K4-NARRACAO-CABE-0111 — limpa o motivo (1) */
     // KINEO-TRIAL-WATERMARK-2026-09-07 — filme novo, veredito novo: sem
     // este reset o render seguinte herdaria o `watermark` do anterior.
     setServerWatermark(null)
@@ -10124,7 +10124,7 @@ export default function GenerateClient({
     setFalClipsDone({ done: 0, total: 0 })
     setRenderId(null)
     setFinalVideoUrl(null)
-    setActualEngineUsed(null); setActualEngineNote(null) /* KINEO-K4-NARRACAO-CABE-0111 — limpa o motivo (2) */
+    setActualEngineLabel(null); setActualEngineNote(null) /* KINEO-K4-NARRACAO-CABE-0111 — limpa o motivo (2) */
     // KINEO-TRIAL-WATERMARK-2026-09-07 — filme novo, veredito novo: sem
     // este reset o render seguinte herdaria o `watermark` do anterior.
     setServerWatermark(null)
@@ -11702,7 +11702,7 @@ export default function GenerateClient({
     setClipUrls([])
     setRenderId(null)
     setFinalVideoUrl(null)
-    setActualEngineUsed(null); setActualEngineNote(null) /* KINEO-K4-NARRACAO-CABE-0111 — limpa o motivo (3) */
+    setActualEngineLabel(null); setActualEngineNote(null) /* KINEO-K4-NARRACAO-CABE-0111 — limpa o motivo (3) */
     // KINEO-TRIAL-WATERMARK-2026-09-07 — filme novo, veredito novo: sem
     // este reset o render seguinte herdaria o `watermark` do anterior.
     setServerWatermark(null)
@@ -17898,8 +17898,8 @@ export default function GenerateClient({
                 </svg>
                 <h2 className="tracking-tight" style={{ fontSize: '1.5rem', color: 'var(--text)', lineHeight: 1.2, fontFamily: "var(--font-display), var(--font-inter), sans-serif", fontWeight: 600 }}>
                   Your video is ready
-                  {engineLabelFor(null, actualEngineUsed) ? <span data-kling4-actual-engine style={{ display: 'block', fontSize: 12, marginTop: 6 }}>{engineLabelFor(null, actualEngineUsed)}</span> : null}
-                  {actualEngineNote === 'narration_over_15s' && engineLabelFor(null, actualEngineUsed) === 'Seedance 1.5' ? <span data-kling4-fallback-note style={{ display: 'block', fontSize: 12, marginTop: 4, fontWeight: 400, color: 'var(--muted)' }}><UiLabel>Your narration was longer than 15 s, so this one was made with Seedance 1.5</UiLabel></span> : null /* KINEO-K4-NARRACAO-CABE-0111 — selo honesto: o motivo, do reason gravado no claim */}
+                  {actualEngineLabel ? <span data-kling4-actual-engine style={{ display: 'block', fontSize: 12, marginTop: 6 }}>{actualEngineLabel}</span> : null}
+                  {actualEngineNote === 'narration_over_15s' && actualEngineLabel === 'Seedance 1.5' ? <span data-kling4-fallback-note style={{ display: 'block', fontSize: 12, marginTop: 4, fontWeight: 400, color: 'var(--muted)' }}><UiLabel>Your narration was longer than 15 s, so this one was made with Seedance 1.5</UiLabel></span> : null /* KINEO-K4-NARRACAO-CABE-0111 — selo honesto: o motivo, do reason gravado no claim */}
                 </h2>
                 <p className="text-xs mt-1.5" style={{ color: 'var(--muted)', letterSpacing: '0.04em' }}>
                   {finalVideoSeconds ?? duration}s · MP4

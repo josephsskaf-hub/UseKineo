@@ -6,7 +6,7 @@ import {
 } from '@/lib/madeWithKineo'
 
 // Narrow production columns. No script/prompt, no profile name, no SELECT *.
-export const SHOWCASE_VIDEO_COLUMNS = 'id,user_id,title,topic,status,video_url,thumbnail_url,quality_mode,duration,created_at,render_id,published_at,published_via'
+export const SHOWCASE_VIDEO_COLUMNS = 'id,user_id,title,topic,status,video_url,thumbnail_url,quality_mode,engine_used,duration,created_at,render_id,published_at,published_via'
 
 export function showcaseAdminClient(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY

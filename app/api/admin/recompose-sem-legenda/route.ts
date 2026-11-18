@@ -58,6 +58,7 @@ type VideoRow = {
   title: string | null
   topic: string | null
   quality_mode: string | null
+  engine_used?: string | null
   duration: number | null
   platform: string | null
   youtube_description: string | null
@@ -279,7 +280,7 @@ async function acompanhar(a: { admin: SupabaseClient; userId: string; video: Vid
     credits_used: 0,
   }
   if (video.youtube_description) row.youtube_description = video.youtube_description
-  if ((video as { engine_used?: unknown }).engine_used === 'h3_max_turbo') row.engine_used = 'h3_max_turbo' // KINEO-H3-TURBO-ABRE-0511 — mesmo filme, mesmo selo
+  row.engine_used = recordedFilmEngine(video.engine_used)
   let bVideoId: string | null = null
   let criado = false
   const ins = await admin.from('videos').insert(row).select('id').maybeSingle()
@@ -319,3 +320,4 @@ export async function POST(req: NextRequest) {
     return responder({ ok: false, motivo: 'erro_inesperado' }, 500)
   }
 }
+import { recordedFilmEngine } from '@/lib/engineLabel'

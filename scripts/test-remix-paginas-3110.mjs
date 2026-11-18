@@ -37,6 +37,7 @@ const run = (src, extra = {}) => {
   const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText
   const exports = {}
   const require = (id) => {
+    if (id === './engineLabel') return run(read('lib/engineLabel.ts'))
     if (id === '../freeFilmEngine') return { FREE_FILM_ENGINE_NAME: 'Seedance 1.5' }
     throw new Error(`import inesperado: ${id}`)
   }

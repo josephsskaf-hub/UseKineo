@@ -13,7 +13,7 @@ const CARD: React.CSSProperties = { background: 'var(--card)', border: '1px soli
 const TH: React.CSSProperties = { fontSize: '0.56rem', letterSpacing: '0.05em', color: 'var(--muted2)', padding: '8px 8px', whiteSpace: 'nowrap' }
 const TD: React.CSSProperties = { padding: '7px 8px', fontSize: '0.74rem', color: 'var(--text)', whiteSpace: 'nowrap' }
 const num = (n: number | null) => (n === null ? '—' : n.toLocaleString('pt-BR', { maximumFractionDigits: 1 }))
-const motorCurto = (m: string) => (m === 'sem motor' ? m : engineLabelFor(null, m) ?? engineLabelFor(m) ?? m)
+const motorCurto = (m: string) => engineLabelFor(m, m) ?? 'sem motor'
 
 function corDaPct(pct: number | null, meta: number) {
   if (pct === null) return 'var(--muted2)'

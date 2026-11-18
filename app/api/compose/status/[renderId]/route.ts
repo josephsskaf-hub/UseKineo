@@ -1,7 +1,9 @@
+import { engineLabelFor, recordedFilmEngine } from '@/lib/engineLabel'
+import { existingFilmId } from '@/lib/duplicateFilmReceipt'
+import { kling4TrialFallbackPorFalaLonga, kling4TrialFalaEncurtada } from '@/lib/kling4TrialClaim'
+import { filmEngineUsed } from '@/lib/filmEngineUsed'
 import { NextRequest, NextResponse } from 'next/server'
-import { engineUsedDoFilmePadrao } from '@/lib/engineLabel' // KINEO-H3-TURBO-ABRE-0511
 import { createClient as createServerSupabase } from '@/lib/supabase/server'
-import { engineDaReservaDoGratis } from '@/lib/engineLabel' // KINEO-RESERVA-H3-0611
 import { MAX_EPISODE_MEMORY_CHARS } from '@/lib/episodeMemory'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { pollCreatomateRender } from '@/lib/compose'
@@ -119,7 +121,7 @@ async function persistCompletedVideo(args: {
   duration: number
   topic: string
   creditsUsed: number
-  engineUsed?: 'kling4' | 'seedance15_fallback' | 'h3_max_turbo' // KINEO-H3-TURBO-ABRE-0511
+  engineUsed?: string | null // KINEO-H3-TURBO-ABRE-0511
   // PUSH #100 — descrição já BRANDED (helper aplicado pelo caller). Vazio =
   // não escreve a coluna, deixando o /api/video-summary preencher depois.
   youtubeDescription?: string
@@ -182,7 +184,7 @@ async function persistCompletedVideo(args: {
     duration: args.duration,
     quality_mode: args.quality,
     credits_used: args.creditsUsed,
-    ...(args.engineUsed ? { engine_used: args.engineUsed } : {}),
+    engine_used: args.engineUsed ?? null,
   }
   const brandedDescription = (args.youtubeDescription ?? '').trim()
   if (brandedDescription) row.youtube_description = brandedDescription
@@ -224,13 +226,8 @@ async function persistCompletedVideo(args: {
   // log explicitly for tracing and skip the re-insert.
   if ((error as { code?: string }).code === '23505') {
     console.log(`[history] DUPLICATE render_id=${args.renderId} — already persisted (videos_render_id_unique); skipping re-insert`)
-    const { data: existing } = await admin
-      .from('videos')
-      .select('id')
-      .eq('render_id', args.renderId)
-      .eq('user_id', args.userId)
-      .maybeSingle()
-    return { ok: true, duplicate: true, id: existing?.id ? String(existing.id) : undefined, topic: temaDoFilme } // KINEO-PEDIDO-CERTO-2710
+    const id = await existingFilmId(admin, args.userId, args.renderId, args.engineUsed)
+    return { ok: true, duplicate: true, id, topic: temaDoFilme } // KINEO-PEDIDO-CERTO-2710
   }
 
   // Real failure — never swallow silently. Surface the full PostgREST error.
@@ -616,6 +613,7 @@ export async function GET(
     }
 
     if (state.status === 'succeeded' && state.url) {
+      const deliveredEngine = recordedFilmEngine(filmEngineUsed(prepaidCinematicClaim, prepaidAvatarClaim ? 'avatar' : intent?.quality))
       if (prepaidCinematicClaim?.status === 'released') {
         return NextResponse.json({
           phase: 'failed',
@@ -1161,21 +1159,11 @@ export async function GET(
             // 21/08. `topicFinal` cai no claim quando a URL não traz nada.
             topic: topicFinal,
             creditsUsed: free15GateFailure ? 0 : cost,
-            ...((prepaidCinematicClaim?.response?.kling4_paid as Record<string, unknown> | undefined)?.version === 'kling4_paid_2810' &&
-              ['kling4', 'seedance15_fallback'].includes(String((prepaidCinematicClaim?.response?.kling4_paid as Record<string, unknown>).engine_used))
-              ? { engineUsed: (prepaidCinematicClaim!.response!.kling4_paid as { engine_used: 'kling4' | 'seedance15_fallback' }).engine_used } : {}),
-            // KINEO-TRIAL-ENGINE-2910 — o filme grátis em Kling 4.0 (marcador kling4_trial do claim assinado) nascia com engine_used
-            // NULO e o /admin mostrava "Seedance 1.5" (1º filme orgânico, 29/10 19:45Z). Sem marcador pago, o do trial decide;
-            // reserva por teto (seedance15_cap) é Seedance de fato e grava como seedance15_fallback (mesmo selo).
-            ...((prepaidCinematicClaim?.response?.kling4_paid as Record<string, unknown> | undefined)?.version !== 'kling4_paid_2810' &&
-              await import('@/lib/kling4TrialClaim').then((m) => m.kling4TrialEngineFromClaim(prepaidCinematicClaim?.response as Record<string, unknown> | null | undefined))
-              ? { engineUsed: (await import('@/lib/kling4TrialClaim')).kling4TrialEngineFromClaim(prepaidCinematicClaim?.response as Record<string, unknown> | null | undefined) === 'kling4' ? 'kling4' as const : 'seedance15_fallback' as const } : {}),
-            ...(engineUsedDoFilmePadrao(prepaidCinematicClaim) ? { engineUsed: 'h3_max_turbo' as const } : {}), // KINEO-H3-TURBO-ABRE-0511 — filme novo no H3 Max Turbo, pelo modelo do claim assinado
+            engineUsed: deliveredEngine,
             youtubeDescription: historyDescription,
             // sprint-retencao #4 — a fala do filme, do claim. Uma leitura, aqui,
             // no único momento em que a linha de `videos` é criada.
             narration: await lerNarracaoDoEpisodio(),
-            ...(engineDaReservaDoGratis(prepaidCinematicClaim) ? { engineUsed: 'h3_max_turbo' as const } : {}), // KINEO-RESERVA-H3-0611
             // KINEO-PEDIDO-CERTO-2710 — autoridade: o tema do claim do compose (gravado no envio) → o pedido que a rota cinematográfica
             // KINEO-PEDIDO-CERTO-2710 — RECEBEU (claim assinado, limpo de marcadores) → o ?topic= da aba. Conferidos contra a fala.
             temasCandidatos: () => [ // KINEO-PEDIDO-CERTO-2710
@@ -1634,17 +1622,11 @@ export async function GET(
 
       return NextResponse.json({
         phase: 'done',
-        ...((prepaidCinematicClaim?.response?.kling4_paid as Record<string, unknown> | undefined)?.version === 'kling4_paid_2810' ? {
-          engine_used: (prepaidCinematicClaim!.response!.kling4_paid as Record<string, unknown>).engine_used,
-          engine_label: (prepaidCinematicClaim!.response!.kling4_paid as Record<string, unknown>).engine_used === 'kling4' ? 'Kling 4.0' : 'Seedance 1.5',
-        } : await (async () => { // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "vai 16"] — selo honesto do filme grátis
-          const m = await import('@/lib/kling4TrialClaim')
-          const resp = prepaidCinematicClaim?.response as Record<string, unknown> | null | undefined
-          const engine = m.kling4TrialEngineFromClaim(resp)
-          if (!engine) return engineUsedDoFilmePadrao(prepaidCinematicClaim) ? { engine_used: 'h3_max_turbo' } : {} // KINEO-H3-TURBO-ABRE-0511
-          return { engine_used: engine === 'kling4' ? 'kling4' : 'seedance15_fallback', ...(m.kling4TrialFallbackPorFalaLonga(resp) ? { engine_note: 'narration_over_15s' } : m.kling4TrialFalaEncurtada(resp) ? { engine_note: 'narration_shortened' } : {}) }
-        })()),
-        ...(engineDaReservaDoGratis(prepaidCinematicClaim) ? { engine_used: 'h3_max_turbo' } : {}), // KINEO-RESERVA-H3-0611
+        engine_used: deliveredEngine,
+        quality_mode: quality,
+        engine_label: engineLabelFor(quality, deliveredEngine),
+        ...(kling4TrialFallbackPorFalaLonga(prepaidCinematicClaim?.response) ? { engine_note:'narration_over_15s' }
+          : kling4TrialFalaEncurtada(prepaidCinematicClaim?.response) ? { engine_note:'narration_shortened' } : {}),
         final_video_url: responseVideoUrl,
         ...(linkDoBucketDepois ? { asset_pending: true } : {}), // KINEO-FILME-RAPIDO-1710 — a tela troca pelo link do bucket (?asset=1)
         video_id: videoId,

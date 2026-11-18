@@ -42,20 +42,33 @@ export function engineUsedDoFilmePadrao(claim: { quality?: unknown; falModels?: 
   return claim.falModels.includes(H3_TURBO_FAL_MODEL) || claim.falModels.includes(H3_TURBO_T2V_FAL_MODEL) /* KINEO-SEEDANCE-SAI-1111 */ ? 'h3_max_turbo' : null
 }
 
-/** Nome público do motor para um quality_mode; null = não inventar selo. */
+const deliveredLabels: Record<string, string> = {
+  omni: 'Omni Flash', s25: 'Seedance 2.5', sora: 'Sora', avatar: 'Avatar',
+  h3_max_reference: 'MiniMax H3 Max', h3_max: 'MiniMax H3 Max', h3: 'MiniMax H3', kineo1: 'Kineo 1', kling25: 'Kling 2.5',
+  kling4: 'Kling 4.0', kling3: 'Kling 3',
+  h3_max_turbo: 'MiniMax H3 Turbo', // KINEO-H3-TURBO-ABRE-0511
+  seedance15_fallback: 'Seedance 1.5', seedance15_cap: 'Seedance 1.5',
+  seedance: 'Seedance 1.5', seedance2: 'Seedance 2', veo31: 'Veo 3.1',
+}
+const knownLabel = (code: string) => Object.prototype.hasOwnProperty.call(deliveredLabels, code) ? deliveredLabels[code] : null
+
+/** Only a known receipt, including a list of distinct verified engines, can be persisted or exposed as actual. */
+export function recordedFilmEngine(value?: string | null): string | null {
+  const code = typeof value === 'string' ? value.trim().toLowerCase() : ''
+  if (!code) return null
+  if (knownLabel(code)) return code
+  if (!code.startsWith('mixed:')) return null
+  const codes = code.slice(6).split(',')
+  const labels = codes.map(knownLabel)
+  return codes.length > 1 && labels.every(Boolean) && new Set(labels).size === codes.length ? 'mixed:' + codes.sort().join(',') : null
+}
+
 export function engineLabelFor(qualityMode: string | null | undefined, engineUsed?: string | null): string | null {
-  if (engineUsed) {
-    const actual: Record<string, string> = {
-      kling4: 'Kling 4.0', kling3: 'Kling 3',
-      h3_max_turbo: 'MiniMax H3 Turbo', // KINEO-H3-TURBO-ABRE-0511
-      seedance15_fallback: 'Seedance 1.5', seedance15_cap: 'Seedance 1.5',
-      seedance: 'Seedance 1.5', seedance2: 'Seedance 2', veo31: 'Veo 3.1',
-    }
-    // A new or unknown supplier value must not inherit the catalogue's label.
-    return actual[engineUsed.trim().toLowerCase()] ?? null
-  }
-  if (!qualityMode) return null
-  return MAPA[qualityMode.toLowerCase().trim()] ?? null
+  const actual = recordedFilmEngine(engineUsed)
+  if (actual?.startsWith('mixed:')) return 'Multiple engines · ' + actual.slice(6).split(',').map(knownLabel).join(' + ')
+  if (actual) return knownLabel(actual)
+  const quality = typeof qualityMode === 'string' ? qualityMode.trim().toLowerCase() : ''
+  return quality && Object.prototype.hasOwnProperty.call(MAPA, quality) ? MAPA[quality] : null
 }
 
 // KINEO-RESERVA-H3-0611 — a reserva do filme grátis leva o selo do motor que rodou de verdade. Kling 4 entregue não entra.

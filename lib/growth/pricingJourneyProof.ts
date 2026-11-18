@@ -14,6 +14,7 @@ export type PricingJourneyVideo = {
   status: string
   duration: number | null
   quality_mode: string | null
+  engine_used?: string | null
   title?: string
   video_url?: string | null
   enhanced_url?: string | null
@@ -89,7 +90,7 @@ export function decidePricingJourneyProof(input: PricingJourneyProofInput): Pric
   return {
     state: 'after_delivery',
     completedCountBucket: countBucket(completedCount),
-    engineLabel: engineLabelFor(latestCompleted.quality_mode),
+    engineLabel: engineLabelFor(latestCompleted.quality_mode, latestCompleted.engine_used),
     duration: latestCompleted.duration,
     version: PRICING_JOURNEY_PROOF_VERSION,
   }

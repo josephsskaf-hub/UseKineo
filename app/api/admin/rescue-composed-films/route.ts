@@ -142,6 +142,14 @@ export async function GET(req: NextRequest) {
       if (state?.url) row.file_url = state.url
       if (typeof state?.durationSeconds === 'number') row.file_seconds = Math.round(state.durationSeconds)
       if (verdict === 'persist' && confirm && state?.url) {
+        let engine: string | null = null
+        try {
+          const receipt = await loadSettledCinematicClaimForRender({ db: admin, secret: svc, userId: c.user_id, renderId: c.render_id })
+          if (!receipt.ok) throw new Error(receipt.error)
+          engine = recordedFilmEngine(filmEngineUsed(receipt.claim))
+        } catch {
+          console.warn('[rescue-composed-films] engine receipt unavailable', { renderId: c.render_id })
+        }
         const { data, error } = await admin
           .from('videos')
           .insert({
@@ -155,6 +163,7 @@ export async function GET(req: NextRequest) {
             platform: 'YouTube Shorts',
             duration: row.file_seconds ?? c.duration,
             quality_mode: c.quality,
+            engine_used: engine,
             credits_used: 0,
           })
           .select('id')
@@ -198,3 +207,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
   }
 }
+import { recordedFilmEngine } from '@/lib/engineLabel'
+import { filmEngineUsed } from '@/lib/filmEngineUsed'
+import { loadSettledCinematicClaimForRender } from '@/lib/cinematic/claim'

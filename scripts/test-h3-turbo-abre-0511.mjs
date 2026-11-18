@@ -34,11 +34,13 @@ ok(selo.engineLabelFor('cinematic_ai', 'seedance15_fallback') === 'Seedance 1.5'
 
 // ── a gravação ──────────────────────────────────────────────────────────────────────────────────────────────
 const St = lf('app/api/compose/status/[renderId]/route.ts')
-ok(St.includes("...(engineUsedDoFilmePadrao(prepaidCinematicClaim) ? { engineUsed: 'h3_max_turbo' as const } : {})"), 'o filme entregue grava engine_used pelo claim assinado')
-ok(St.includes("if (!engine) return engineUsedDoFilmePadrao(prepaidCinematicClaim) ? { engine_used: 'h3_max_turbo' } : {}"), 'a tela de filme pronto recebe o mesmo motor')
+const attribution = await carrega(lf('lib/filmEngineUsed.ts'))
+const turboReceipt = { falModels: ['minimax/h3-max-turbo/image-to-video'], falRequestIds: ['1'], authorizedCompletedUrls: ['clip'] }
+ok(attribution.filmEngineUsed(turboReceipt) === 'h3_max_turbo' && St.includes('recordedFilmEngine(filmEngineUsed(prepaidCinematicClaim,') && St.includes('engineUsed: deliveredEngine,'), 'o filme entregue grava o H3 Turbo do recibo')
+ok(St.includes('engine_used: deliveredEngine,'), 'a tela recebe a mesma atribuição')
 ok(lf('lib/freeRedo/filmServer.ts').includes("engine_used === 'h3_max_turbo') row.engine_used = 'h3_max_turbo'"), 'a versão refeita não volta para o selo Seedance')
-const Rx = lf('lib/remixPaginas3110.ts')
-ok(Rx.includes("e === 'h3_max_turbo') return 'seedance'") && Rx.includes(`e === 'h3_max_turbo') return '${N}'`), 'a página pública e o remix conhecem o motor; a chave segue seedance')
+const remix = createOfflineLoader()('@/lib/remixPaginas3110')
+ok(remix.remixEngineFromEngineUsed('h3_max_turbo') === 'seedance' && remix.remixEngineLabel('h3_max_turbo') === N, 'a página pública e o remix conhecem o motor; a chave segue seedance')
 
 // ── o interruptor e o que não muda ──────────────────────────────────────────────────────────────────────────
 const E = lf('lib/engineLaunch.ts'), R = lf('app/api/generate-video-cinematic/route.ts')
@@ -79,3 +81,4 @@ ok(St.includes('creditsUsed: free15GateFailure ? 0 : cost'), 'a cobrança não m
 ok(!fs.existsSync('lib/pricing'), 'nenhuma pasta lib/pricing nova')
 console.log('\n' + pass + ' ok, ' + fail + ' falha(s)')
 process.exit(fail ? 1 : 0)
+import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'

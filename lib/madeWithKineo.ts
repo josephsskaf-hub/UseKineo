@@ -19,6 +19,7 @@ export type ShowcaseRow = {
   final_video_url?: string | null
   thumbnail_url?: string | null
   quality_mode?: string | null
+  engine_used?: string | null
   duration?: number | null
   created_at?: string | null
   render_id?: string | null
@@ -106,7 +107,7 @@ export function toShowcaseFilm(
   const posterUrl = isShowcaseMediaUrl(row.thumbnail_url) ? row.thumbnail_url : null
   return {
     id: row.id.toLowerCase(), slug: showcaseSlug(row.id, title), title, theme, language,
-    engine: engineLabelFor(row.quality_mode), inputWordCount: words || null, generationSeconds, durationSeconds,
+    engine: engineLabelFor(row.quality_mode, row.engine_used), inputWordCount: words || null, generationSeconds, durationSeconds,
     playbackUrl, posterUrl, thumbnailUrl: posterUrl || `${SHOWCASE_BASE}/v/${row.id.toLowerCase()}/opengraph-image`,
     publishedAt: new Date(row.published_at).toISOString(), isInternal: isInternalEmail(ownerEmail),
   }

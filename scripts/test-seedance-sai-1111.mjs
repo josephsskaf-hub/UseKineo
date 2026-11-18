@@ -39,6 +39,7 @@ const FILES = {
 // Onde o endereço PODE sobrar (só fora de comentário), com o teto de ocorrências e o porquê.
 const IDENTIDADE = {
   'app/api/generate-video-cinematic/route.ts': 2, // SEEDANCE_MODEL / SEEDANCE_I2V_MODEL: nome da família e claim antigo; o envio troca (t2vVivo, i2vDoFilmePadrao)
+  'lib/filmEngineUsed.ts': 1, // leitura do motor em recibos históricos, sem despacho
   'lib/classicSceneRetry.ts': 2, // reconhecer cena assinada antiga
   'app/api/cinematic-clip-status/route.ts': 2, // consultar job antigo
   'lib/cinematic/claim.ts': 1, // RESERVA_SEEDANCE_15_ANTIGO: aceitar claim antigo
