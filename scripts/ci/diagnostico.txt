@@ -88,3 +88,4 @@ node docs/recreate-0911/test-recreate.cjs
 # TELAS-1311 — contratos offline novos começam no diagnóstico, conforme PLATAFORMA-PORTAO-1111.
 node scripts/test-ads-moldura-1311.cjs
 node scripts/test-ads-options-1311.cjs
+node scripts/test-temas-iguais-1811.mjs

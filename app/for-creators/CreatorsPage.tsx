@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
 import { buildAuthenticatedCreationRedirect, CREATION_HANDOFF_PROMPT_MAX_CHARS, FOR_CREATORS_CAMPAIGN as campaign } from '@/lib/creationHandoff'
 
@@ -22,15 +23,14 @@ const Seta = () => <svg className="ico-seta" viewBox="0 0 24 24" width="18" heig
 const Faisca = () => <svg className="ico-faisca" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12 2c.6 5.2 4.8 9.4 10 10-5.2.6-9.4 4.8-10 10-.6-5.2-4.8-9.4-10-10 5.2-.6 9.4-4.8 10-10Z" /></svg>
 
 export default function CreatorsPage({ freeFilm, initialIdea }: { freeFilm: boolean; initialIdea: string }) {
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
   const [idea, setIdea] = useState(initialIdea)
   const tooShort = idea.length > 0 && idea.trim().length < 3
   const redirect = buildAuthenticatedCreationRedirect({ prompt: idea, campaign, createIntent: 'trial_best' })
-  return <main className="creators" data-theme={theme}>
+  return <main className="creators">
     <header className="creators-nav wrap">
       <a className="brand" href="/" aria-label="Kineo home"><span className="brand-mark">k</span>kineo<span className="brand-dot">.</span></a>
       <span className="nav-label">MADE FOR CHANNEL CREATORS</span>
-      <button className="theme-toggle" type="button" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}><span aria-hidden="true">{theme === 'dark' ? '☼' : '☾'}</span> {theme === 'dark' ? 'Light' : 'Dark'}</button>
+      <AppearanceSettingsButton />
     </header>
     <section className="hero wrap">
       <div className="hero-copy">

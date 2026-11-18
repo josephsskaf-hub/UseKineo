@@ -12,9 +12,13 @@
   --accent-soft:#E8EFFF; --on-accent:#fff; --header-bg:#FFFFFFF0;
   --public-nav:#FFFFFF; --public-nav-text:#0E1116; --brand:#0A5CFF;
   --danger:#B42318; --warning:#8A4B00; --success:#0F7A55;
-  --modal-overlay:rgba(14,17,22,.32); --modal-shadow:0 24px 80px #0E111626;
-  --sh-card:0 1px 2px #0E111608,0 8px 24px -12px #0E111614; --sh-card-h:0 14px 34px -12px #0E111624;
-  --sh-cta:0 1px 2px #0A5CFF33,0 6px 16px -6px #0A5CFF55;
+  --modal-overlay:rgba(14,17,22,.32); --modal-shadow-color:#0E111626;
+  --card-rim:#FFFFFFB3; --card-rim-hover:#FFFFFFCC;
+  --card-shadow-color:#0E111614; --card-shadow-hover-color:#0E111624; --cta-shadow-color:#0A5CFF33;
+  --modal-shadow:0 24px 80px var(--modal-shadow-color);
+  --sh-card:inset 0 1px 0 var(--card-rim),0 12px 36px var(--card-shadow-color);
+  --sh-card-h:inset 0 1px 0 var(--card-rim-hover),0 18px 48px var(--card-shadow-hover-color);
+  --sh-cta:0 6px 22px var(--cta-shadow-color);
 }
 html[data-theme='dark'], .kineo-admin-theme {
   color-scheme:dark;
@@ -24,10 +28,10 @@ html[data-theme='dark'], .kineo-admin-theme {
   --purple:#4D8DFF; --purple-light:#8DB4FF; --accent:#8DB4FF;
   --accent-soft:#12203A; --on-accent:#04122E; --header-bg:#0B0E13ED;
   --danger:#FF8787; --warning:#FFBF58; --success:#5FD4A4;
-  --modal-overlay:rgba(3,5,9,.74); --modal-shadow:0 24px 80px #000a;
+  --modal-overlay:rgba(3,5,9,.74); --modal-shadow-color:#000a;
   --public-nav:#07090D; --public-nav-text:#F2F4F7;
-  --sh-card:inset 0 1px 0 #ffffff08,0 12px 36px #00000040; --sh-card-h:inset 0 1px 0 #ffffff0d,0 18px 48px #00000059;
-  --sh-cta:0 6px 22px #4D8DFF2e;
+  --card-rim:#ffffff08; --card-rim-hover:#ffffff0d;
+  --card-shadow-color:#00000040; --card-shadow-hover-color:#00000059; --cta-shadow-color:#4D8DFF2e;
   --surface:var(--card); --surface-soft:var(--card2);
 }
 /* Admin screens deliberately use dark charts and status colors. Scope all
@@ -35,7 +39,6 @@ html[data-theme='dark'], .kineo-admin-theme {
 .kineo-admin-theme{position:relative;min-height:100vh;background:var(--bg);color:var(--text)}
 body::before{background:radial-gradient(ellipse 1100px 650px at 0 0,var(--accent-soft),transparent 74%)}
 body::after{opacity:.008}
-html:not([data-theme='dark']) body::before{display:none}
 /* The application canvas can grow with the viewport; reading forms keep their own measure. */
 html .stu{width:100%;max-width:none;min-width:0}
 html .pricing-blue>section{width:100%;max-width:1440px}
@@ -100,7 +103,6 @@ html .pricing-blue #plans button{border-radius:11px}
 .gv-card:not(.render-workspace-primary):not(.done-result){--text:#eef5fe;--text2:#d6e5f5;--muted:#a8bad0;--muted2:#91a8c2;--border:#2d425a;--card:#121f2e;--card2:#192b3f;--indigo:#2997ff;--accent:#91c9ff;--accent-soft:#1b3754;--on-accent:#062341;color:var(--text)}
 /* Finished films share the shell's palette; only the media itself stays black. */
 .done-result{color:var(--text);--accent-soft:var(--card2)}
-html:not([data-theme='dark']) main.done-workspace::before{display:none}
 .done-result :is(button,a,summary):focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .done-result input::placeholder{color:var(--muted2);opacity:1}
 ::-webkit-scrollbar-thumb{background:#879bb470}
@@ -343,7 +345,7 @@ body::before{z-index:-1}
   html[data-theme='dark'] .kpl .kpc-caixa{color:#C9D1DC!important}
   html[data-theme='dark'] .kpl .kpc-porta{color:#F2F4F7!important}
 
-  html[data-theme='dark'] .kpn{background:#0B0E13!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;border-bottom-color:#1F2530!important}
+  html[data-theme='dark'] .kpn{background:#0B0E13!important;border-bottom-color:#1F2530!important}
   html[data-theme='dark'] .kpn-logo{color:#F2F4F7!important}
   html[data-theme='dark'] .kpn-bars i{background:#F2F4F7!important}
   .kpn{backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
