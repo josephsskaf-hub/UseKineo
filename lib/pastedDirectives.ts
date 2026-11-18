@@ -117,23 +117,44 @@ function segundosDe(valor: number, unidade: string): number {
   return /^(minute|min|minuto)/i.test(unidade) ? valor * 60 : valor
 }
 
+// A scene can declare its own duration before the duration of the whole film.
+function outputDurationLabel(before: string): boolean {
+  const label = /\b(?:duration|length|dura[çc][ãa]o|duraci[oó]n)\s*(?:(?:is|should be|must be|of|é(?: de)?|es(?: de)?|de)\s+)?[:=]?\s*(?:(?:exactly|precisely|exatamente|exactamente|precisamente)\s+)?$/i.exec(before)
+  if (!label) return false
+  const owner = before.slice(0, label.index)
+  return !/\b(?:scene|shot|clock|timer|countdown|cena|plano|rel[oó]gio|escena|toma|temporizador)(?:\s+\d+)?(?:['’]s)?(?:\s+total)?\s*[:–—-]?\s*$/i.test(owner)
+}
+
+const FILM_DURATION_PREFIX = /\b(?:v[íi]deo|filme?|movie|short|reel|clip|story|hist[oó]ria|pel[ií]cula)\s*(?:(?:de|of|com|with|lasting|tenha|dure|lasts|is|(?:should|must|will|needs to|has to)\s+(?:be|last)|(?:deve|debe)\s+(?:ter|durar))\s+)?[:=]?\s*(?:(?:exactly|precisely|exatamente|exactamente|precisamente)\s+)?$/i
+const MAKE_IT_PREFIX = /(?:^|[.!?;\n])\s*(?:please\s+)?(?:make|keep)\s+it\s+(?:(?:exactly|precisely)\s+)?$/i
+
 /** PEDIDO-FIEL-2610: mm:ss is duration only next to a film/duration request.
  * A story's clock time ("at 3:00") and aspect ratio ("9:16") are not duration. */
 function primeiraDuracaoPedida(texto: string): { raw: string; seconds: number; index: number } | null {
   RE_DURACAO.lastIndex = 0
-  const unit = RE_DURACAO.exec(texto)
-  let first = unit ? {
-    raw: unit[0].trim(),
-    seconds: segundosDe(unit[2] ? Math.max(Number(unit[1]), Number(unit[2])) : Number(unit[1]), unit[3]),
-    index: unit.index,
-  } : null
+  let first: { raw: string; seconds: number; index: number } | null = null
+  // Units need a duration/film context too. A scene's elapsed time is content,
+  // not a request for an 1800-second film. Continue scanning after such a time.
+  for (let unit = RE_DURACAO.exec(texto); unit; unit = RE_DURACAO.exec(texto)) {
+    const before = texto.slice(Math.max(0, unit.index - 100), unit.index)
+    const after = texto.slice(unit.index + unit[0].length, unit.index + unit[0].length + 150)
+    const requestedLength = MAKE_IT_PREFIX.test(before)
+      && /^\s*(?:long\b|[.!?;]|$)/i.test(after)
+    const explicit = requestedLength || outputDurationLabel(before)
+    const filmBefore = FILM_DURATION_PREFIX.test(before)
+    const filmAfter = /^\s*(?:[,\s-]*(?:long|vertical|horizontal|cinematic|animated|cartoon|YouTube|you tube|viral|background|educational|STEM|documentary-style|9:16|16:9|widescreen)){0,8}[,\s-]+(?:v[íi]deo|filme|film|movie|shorts?|reel|clip|story|hist[oó]ria)\b/i.test(after)
+    const standalone = unit.index === 0 && /^[.!?]?$/.test(texto.slice(unit[0].length).trim())
+    if (!explicit && !filmBefore && !filmAfter && !standalone) continue
+    first = { raw: unit[0].trim(), seconds: segundosDe(unit[2] ? Math.max(Number(unit[1]), Number(unit[2])) : Number(unit[1]), unit[3]), index: unit.index }
+    break
+  }
   const clock = /(?<!\d)(\d{1,3}):([0-5]\d)(?!\d)/g
   for (let m = clock.exec(texto); m; m = clock.exec(texto)) {
     const before = texto.slice(Math.max(0, m.index - 80), m.index)
     const after = texto.slice(m.index + m[0].length, m.index + m[0].length + 80)
-    const explicit = /\b(?:dura[çc][ãa]o|duraci[oó]n|duration|length)\s*(?:(?::|=|de|of)\s*)?$/i.test(before)
+    const explicit = outputDurationLabel(before)
       || /^\s*(?:(?:de|of)\s+)?(?:dura[çc][ãa]o|duraci[oó]n|duration)\b/i.test(after)
-    const film = /\b(?:v[íi]deo|filme|film|movie|short|reel|clip)\s+(?:(?:de|com|of|lasting|tenha|dure|lasts)\s*)?$/i.test(before)
+    const film = FILM_DURATION_PREFIX.test(before)
       || /^\s*(?:-\s*)?(?:v[íi]deo|filme|film|movie|short|reel|clip)\b/i.test(after)
     if (!explicit && (!film || m[0] === '9:16')) continue
     const seconds = Number(m[1]) * 60 + Number(m[2])
@@ -165,7 +186,8 @@ export function readPastedDirectives(raw: string | null | undefined, duracoes: r
   // ── duração ──────────────────────────────────────────────────────────────
   // A semente da casa carrega o texto do episódio anterior e pode conter um
   // número de segundos que NÃO é pedido da pessoa. Fora dela, o primeiro
-  // número de duração do texto é a intenção declarada.
+  // tamanho com contexto de filme/duração é a intenção declarada; tempo de
+  // uma cena ou de um acontecimento da história não escolhe o botão.
   if (!semente) {
     const duration = primeiraDuracaoPedida(texto)
     if (duration) {

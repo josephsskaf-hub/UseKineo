@@ -688,11 +688,6 @@ export async function POST(req: NextRequest) {
       console.warn('[compose] voiceover PERDIDO', JSON.stringify({
         causa: perda.causa, ...perda.detalhes, user: authenticatedUserId,
       }))
-      await logComposeRefusal('voiceover_lost', authenticatedUserId, {
-        causa: perda.causa,
-        ...perda.detalhes,
-        duration: Number(body.duration) || null,
-      })
       // ═══ sprint-v1v4 #22 — E SE ESTA JA E A SEGUNDA EM CINCO MINUTOS? ═══
       // O caso real de 31/08: 23:03:53 este mesmo 400 com duration=45, e
       // 23:04:15 ELE DE NOVO com duration=35. A pessoa mudou o que a primeira
@@ -729,6 +724,12 @@ export async function POST(req: NextRequest) {
           }
         }
       } catch { /* espiral nunca derruba nem atrasa a recusa */ }
+      // Read only PAST refusals: the current one is counted by avaliarEspiral.
+      await logComposeRefusal('voiceover_lost', authenticatedUserId, {
+        causa: perda.causa,
+        ...perda.detalhes,
+        duration: Number(body.duration) || null,
+      })
       return NextResponse.json(
         { error: mensagemComEspiral('voiceover_script is required.', espiralCompose) },
         { status: 400 },
