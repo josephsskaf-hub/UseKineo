@@ -9,6 +9,8 @@ const require = createRequire(import.meta.url)
 const { loader, read, ROOT } = require('../docs/recreate-0911/test-recreate.cjs')
 const React = require(join(ROOT, 'node_modules/react'))
 const { renderToStaticMarkup } = require(join(ROOT, 'node_modules/react-dom/server'))
+const { render } = require('../docs/revisoes/pricing-enxuta-1711/preview.cjs')
+const { findPricingMarkers } = require('./test-support/pricing-markup.cjs')
 
 const STAGE = 'components/pricing/PlanValueStage.tsx'
 const PRICING = 'app/pricing/PricingClient.tsx'
@@ -44,18 +46,24 @@ function all(o = {}) {
   ok(!/\.pv-card\[data-popular=true\]\{order:-1\}/.test(css.replace(/\/\*[\s\S]*?\*\//g, '')), 'celular: o Creator não pula mais para antes do Starter')
   ok(!/\.pv-card\[data-tier=[^\]]*\]\{order:/.test(css), 'nenhuma outra troca de ordem')
   // 3) /pricing: com os cartões novos, o aviso de moeda vem DEPOIS dos cartões (e uma vez só).
-  const p = src(PRICING)
-  const ini = p.indexOf('<section className="pv-stage"')
-  const fim = p.indexOf('</section>', ini)
-  ok(ini > 0 && fim > ini, 'palco dos cartões encontrado')
-  const nota = p.indexOf('data-testid="pricing-currency-note">{CHECKOUT_CURRENCY_DISCLOSURE}</p>')
-  ok(nota > fim && nota - fim < 200, 'o aviso de moeda vem logo depois dos cartões')
-  ok(/\{valueCards \? null : \(\n\s*<p className="-mt-5 mb-7 text-center text-\[12px\][^\n]*\n\s*\{CHECKOUT_CURRENCY_DISCLOSURE\}/.test(p), 'antes dos cartões novos o aviso não aparece (só no palco antigo)')
+  const stages = html => html.match(/<section class="pv-stage"[^>]*>[\s\S]*?<\/section>/)
+  const notes = html => findPricingMarkers(html, 'data-testid', 'pricing-currency-note')
+  for (const billing of ['monthly', 'annual']) {
+    const html = render(false, false, false, { billing, sourceOverride: src(PRICING) })
+    const grid = stages(html)
+    ok(grid, 'palco dos cartões novos renderizado')
+    const note = notes(html)
+    const afterGrid = /<\/section>\s*<p\b[^>]*data-testid="pricing-currency-note"/.test(html.slice(grid.index))
+    ok(note.length === 1 && note[0].visible && afterGrid, 'o único aviso de moeda visível vem logo depois dos cartões')
+  }
+  const legacy = render(false, false, false, { valueCards: false })
+  ok(!stages(legacy) && notes(legacy).length === 1 && notes(legacy)[0].visible, 'palco antigo mantém seu único aviso visível')
 }
 
 all()
 const real = passed
 const s = p => read(p)
+const currencyNotice = /\{!watchPricing && <p\b[^\n]*data-testid="pricing-currency-note"[^\n]*\}\{\/\* KINEO-PRECO-NO-TOPO-1111 \*\/\}/
 const mutants = [
   ['preço do topo some', { [STAGE]: s(STAGE).replace(/<span className="pv-toprice" data-kineo="preco-no-topo">[^\n]*\n/, '') }],
   ['topo mostra outro número', { [STAGE]: s(STAGE).replace('<span className="pv-toprice-n">{preco ? <><span className="pv-cur">{preco.simbolo}</span>{preco.valor}</> : props.amount}</span>', '<span className="pv-toprice-n">{props.was ?? props.amount}</span>') }],
@@ -63,7 +71,11 @@ const mutants = [
   ['Creator volta a pular para o 1º lugar', { [STAGE]: s(STAGE).replace('@media (max-width:900px){.pv-grid{grid-template-columns:1fr;gap:20px}', '@media (max-width:900px){.pv-grid{grid-template-columns:1fr;gap:20px}.pv-card[data-popular=true]{order:-1}') }],
   ['computador também perde o preço de baixo', { [STAGE]: s(STAGE).replace('.pv-toprice{display:none;margin-left:auto', '.pv-buy .pv-price{display:none}.pv-toprice{display:none;margin-left:auto') }],
   ['celular repete o preço', { [STAGE]: s(STAGE).replace('.pv-buy .pv-price{display:none}', '') }],
-  ['aviso de moeda volta para cima', { [PRICING]: s(PRICING).replace('{valueCards ? null : (', '{true ? (').replace(/\r?\n\s*<p className="mt-5 mb-2 text-center text-\[12px\] font-semibold text-\[var\(--muted\)\]" data-testid="pricing-currency-note">\{CHECKOUT_CURRENCY_DISCLOSURE\}<\/p>[^\r\n]*/, '') }],
+  ['aviso de moeda volta para cima', { [PRICING]: s(PRICING).replace(currencyNotice, '').replace('<section className="pv-stage"', match => {
+    const note = s(PRICING).match(currencyNotice)?.[0]
+    assert(note, 'encontrou o aviso usado de fato pelo palco novo')
+    return note + match
+  }) }],
 ]
 let bitten = 0
 for (const [name, o] of mutants) {

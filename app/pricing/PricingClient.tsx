@@ -1041,62 +1041,8 @@ export default function PricingClient({ initialBilling = 'annual', watchPreview 
           </a>
         </p>}
 
-        {/* KINEO-VALOR-NO-CHECKOUT-3110 — logo abaixo dos planos: a prova social real (muda abaixo do piso) e as 3 perguntas que
-            recomendam o plano MAIS BARATO que cobre, com a conta à vista (lib/valorNoCheckout.ts). Preço e plano não mudam. */}
-        {!watchPricing && <p className="mx-auto mt-5 max-w-2xl text-center text-[12.5px] leading-relaxed text-[var(--muted)]" data-testid="pricing-first-film-guarantee">{FIRST_FILM_GUARANTEE.en}</p>}{/* KINEO-PRICING-LIMPO-0411 */}
-        {!watchPricing && <FilmsMadeProof surface="pricing" />}
-        {/* KINEO-PRICING-SEM-VELHO-0411 — fundador 04/11: "tira essa parte muito velha, how many film do i get e which plan fits me". */}
-
         <div className="pricing-secondary">
-        {/* KINEO-PRECOS-REFINO-2026-10-09 — fundador: "essa parte ficou muito poluída". Com o cartão novo, a caixa do convite
-            grátis vira uma linha só, e só para quem ainda não tem conta (quem tem conta já começou). */}
-        {valueCards ? (signedIn === false ? (
-          <p className="mx-auto mb-7 max-w-2xl text-center text-[13.5px] font-medium text-[var(--muted)]">
-            Not ready to choose?{' '}
-            <Link href="/signup" className="font-bold text-[var(--accent)] hover:underline">{OFFER.copy.ctaPrimary}</Link>
-          </p>
-        ) : null) : (
-        <div
-          className="mx-auto mb-7 max-w-2xl rounded-2xl px-5 py-4 text-center"
-          style={{ background: 'var(--accent-soft)', border: '1px solid var(--border2)' }}
-        >
-          <p className="text-[13px] leading-relaxed text-[var(--muted)]">{OFFER.copy.headline}</p>
-          <Link href="/signup" className="mt-3 inline-block font-semibold text-[var(--accent)]">{OFFER.copy.ctaPrimary}</Link>
-          <CostCalculatorLink
-            placement="pricing_pre_cards"
-            className="mt-2 inline-block text-[12.5px] font-extrabold text-[var(--accent)] hover:underline"
-          >
-            Calculate the exact monthly cost for your output →
-          </CostCalculatorLink>
-        </div>
-        )}
-
-        {/* KINEO-MRR-3-FILME-PROPRIO-2026-09-16 — o filme da própria pessoa + a garantia, antes dos cards. */}
-        {latestFilm && (
-          <div
-            data-kineo="latest-film"
-            className="mx-auto mb-7 flex max-w-2xl items-center gap-4 rounded-2xl px-4 py-3"
-            style={{ background: 'var(--card2)', border: '1px solid var(--border)' }}
-          >
-            <video
-              src={latestFilm.url}
-              muted
-              playsInline
-              preload="metadata"
-              style={{ width: 54, height: 96, objectFit: 'cover', borderRadius: 10, background: '#000', flex: '0 0 auto' }}
-              aria-hidden="true"
-            />
-            <div className="min-w-0 text-left">
-              <p className="text-[12px] font-black uppercase tracking-[0.08em] text-[var(--accent)]">Your latest film</p>
-              <p className="truncate text-[14px] font-bold text-[var(--text)]">{latestFilm.title}</p>
-              <p className="text-[12px] font-semibold text-[var(--muted)]">Your next films come out clean, without the watermark, in 1080p. {!watchPricing && MONEY_BACK_GUARANTEE}</p>{/* KINEO-CHECKOUT-CLAREZA-1610 */}
-              <FilmsLikeThisNote qualityMode={latestFilm.quality} seconds={latestFilm.seconds} />{/* KINEO-VALOR-NO-CHECKOUT-3110 */}
-            </div>
-          </div>
-        )}
-
-        {watchPricing ? <PricingIncludes0511 condensed /> : <PricingIncludes0511 />}{/* KINEO-PRICING-INCLUI-0511 */}
-        {watchPricing && <div className="pricing-watch-proof"><FilmsMadeProof surface="pricing" /><p className="text-center text-[12px] text-[var(--muted)]">2,100+ creators · 1,500+ films · featured on There&apos;s An AI For That</p>{reviewQuote}</div>}
+        {!watchPricing && <PricingIncludes0511 />}
         </div>
 
 
@@ -1138,43 +1084,12 @@ export default function PricingClient({ initialBilling = 'annual', watchPreview 
         </p>
         )}
 
-        {/* KINEO-PRICING-CLARITY-2026-08-03 — TODA a letra miúda que saiu dos
-            cards vive aqui, uma vez só, abaixo da grade. Mantém a divulgação
-            obrigatória (renovação + grant menor no 1º mês, proteção contra
-            chargeback) sem poluir a decisão. */}
-        {/* KINEO-PROMO-CONTRADICTS-PAGE-2026-08-13 — ver o bloco de comentário
-            em `arrivedWithPromo`. Com um `?promo=` na URL o intro não é o que
-            se aplica, então esta letra miúda deixa de ser divulgação e vira
-            afirmação falsa sobre duração E sobre créditos do 1º mês. */}
-        {!watchPricing && billing === 'monthly' && !arrivedWithPromo && (
-          <p className="mx-auto mt-5 max-w-2xl text-center text-[13px] leading-relaxed text-[var(--muted)]">
-            Plans renew monthly — cancel anytime. Starter includes{' '}
-            {TIER_CREDITS.starter} credits a month, Creator {TIER_CREDITS.basic} and Studio {TIER_CREDITS.pro};
-            credits reset each month (no rollover).
-          </p>
-        )}
-        {billing === 'monthly' && arrivedWithPromo && (
-          <p
-            className="mx-auto mt-5 max-w-2xl rounded-xl px-4 py-3 text-center text-[13px] font-bold leading-relaxed"
-            style={{ background: 'var(--pricing-success-soft)', border: '1px solid var(--pricing-success)', color: 'var(--pricing-success)' }}
-          >
-            {/* 2ª passada: a 1ª versão dizia "your code IS APPLIED" — afirmação
-                sobre o RESULTADO, falsa se o código estiver expirado ou não
-                cobrir o plano clicado. A frase abaixo afirma só o que ESTE
-                sistema faz (encaminhar o código) e devolve a verificação para
-                onde ela é sempre verdadeira: o total do Stripe antes do
-                pagamento. Nenhuma promessa que dependa do Stripe aceitar. */}
-            Your code goes to checkout automatically — you&apos;ll see the exact amount
-            before you pay. Cancel anytime.
-          </p>
-        )}
-
         {/* KINEO-BUSINESS-84-2026-10-09 — o plano Business, EMBAIXO dos 3 cartões (que ficam intactos), antes dos créditos avulsos.
             KINEO-TROCA-BUSINESS-2026-10-10 — quem já assina vê "Switch to Business" / "Current plan" e troca sem checkout. */}
         <OneTimeItemOffer surface="pricing" checkout={checkout} />{/* KINEO-COMPRA-AVULSA-2410 — one-off results next to the plan choices; plan prices stay untouched. */}
 
   </>
-  const referenceExtras = <>
+  const pricingOffers = <>
         <div className="mx-auto max-w-3xl">{billing === 'annual' ? <AnnualEarlyOfferBadge /> : null}</div>{/* KINEO-KIT-BF-VENDA-2010 — o selo do anual ("2 meses grátis" até 21/11: só pinta num plano em que baixa o preço; hoje nenhum, o anual de 30% já vence) e o Kit Black Friday embaixo do Business (o Business vê "incluído no seu plano"; venda fechada = nada) */}
         {/* KINEO-PRICING-LIMPO-0411 — fundador 04/11: "quero tirar também essas duas coisas": Kit BF e Kids saem do /pricing; os produtos seguem nas páginas deles. */}
         {PRICING_SHOW_ADS_BLOCK ? <PricingAdsBlock /> : null}
@@ -1444,7 +1359,7 @@ export default function PricingClient({ initialBilling = 'annual', watchPreview 
 
 
   </>
-  const visibleFaqs = FAQS.filter(item => ['Do I need a credit card to start?', 'How fast are videos generated?', 'How do credits work?'].includes(item.q))
+  const visibleFaqs = watchPricing ? FAQS : FAQS.filter(item => ['Do I need a credit card to start?', 'How fast are videos generated?', 'How do credits work?'].includes(item.q))
   return (
     <div className={`pricing-blue ${watchPricing ? 'pricing-watch ' : ''}min-h-screen bg-[var(--bg)] text-[var(--text)] font-sans`}>
       {/* KINEO-WELCOME20-FAIXA-2026-10-09 — a oferta na faixa do topo (fundador, print de referência): o botão leva ao mensal e
@@ -1549,7 +1464,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             {[MONEY_BACK_GUARANTEE].map((label) => ( /* KINEO-PRICING-DETALHE-0611 — fundador 06/11: cancelar perto do botão dá má impressão; nenhum dos 3 concorrentes faz */
               <div key={label} className="flex items-center gap-1.5 text-[12.5px] font-semibold text-[var(--muted)]">
                 <span aria-hidden="true" style={{ color: 'var(--accent)' }}>✓</span>
-                <span>{label}</span>
+                <span data-testid="pricing-refund-notice">{label}</span>
               </div>
             ))}
           </div>
@@ -1639,7 +1554,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
             14 dias do anual) está na faixa de confiança do topo e sob o botão de cada cartão logo abaixo. */}
         {/* KINEO-PRECO-NO-TOPO-1111 [CEO 11/11, tarefa 5 do fundador "design mais bonito"] — com os cartões novos, o aviso de moeda desce para baixo deles (antes ficava entre o seletor e o 1º cartão, empurrando o preço para fora da tela do celular) */}
         {valueCards ? null : (
-        <p className="-mt-5 mb-7 text-center text-[12px] font-semibold text-[var(--muted)]">
+        <p className="-mt-5 mb-7 text-center text-[12px] font-semibold text-[var(--muted)]" data-testid="pricing-currency-note">
           {CHECKOUT_CURRENCY_DISCLOSURE}
         </p>
         )}
@@ -2160,9 +2075,94 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
           </div>
         )}
 
-        <div data-pricing-after-plans className="pricing-after-plans"><p data-testid="pricing-first-film-guarantee" className="pricing-guarantee">{FIRST_FILM_GUARANTEE.en}</p><PricingIncludes0511 compact /></div>
+        <div data-pricing-after-plans className="pricing-after-plans">
+          {!watchPricing && <p data-testid="pricing-first-film-guarantee" className="pricing-guarantee">{FIRST_FILM_GUARANTEE.en}</p>}
+          {watchPricing ? <PricingIncludes0511 condensed /> : <PricingIncludes0511 compact />}
+        </div>
         </div>{/* KINEO-PLANOS-ABAS-0411 — fim do painel de pessoas */}
         {!watchPricing && <div hidden={audience !== 'team'} data-testid="pricing-team-panel">{businessPlans}</div>}{/* KINEO-PLANOS-ABAS-0411 */}
+
+        {/* KINEO-PRICING-CLARITY-2026-08-03 — TODA a letra miúda que saiu dos
+            cards vive aqui, uma vez só, abaixo da grade. Mantém a divulgação
+            obrigatória (renovação + grant menor no 1º mês, proteção contra
+            chargeback) sem poluir a decisão. */}
+        {/* KINEO-PROMO-CONTRADICTS-PAGE-2026-08-13 — ver o bloco de comentário
+            em `arrivedWithPromo`. Com um `?promo=` na URL o intro não é o que
+            se aplica, então esta letra miúda deixa de ser divulgação e vira
+            afirmação falsa sobre duração E sobre créditos do 1º mês. */}
+        {!watchPricing && billing === 'monthly' && !arrivedWithPromo && (
+          <p data-testid="pricing-renewal-notice" className="mx-auto mt-5 max-w-2xl text-center text-[13px] leading-relaxed text-[var(--muted)]">
+            Plans renew monthly — cancel anytime. Starter includes{' '}
+            {TIER_CREDITS.starter} credits a month, Creator {TIER_CREDITS.basic} and Studio {TIER_CREDITS.pro};
+            credits reset each month (no rollover).
+          </p>
+        )}
+        {billing === 'monthly' && arrivedWithPromo && (
+          <p data-testid="pricing-promo-notice"
+            className="mx-auto mt-5 max-w-2xl rounded-xl px-4 py-3 text-center text-[13px] font-bold leading-relaxed"
+            style={{ background: 'var(--pricing-success-soft)', border: '1px solid var(--pricing-success)', color: 'var(--pricing-success)' }}
+          >
+            {/* 2ª passada: a 1ª versão dizia "your code IS APPLIED" — afirmação
+                sobre o RESULTADO, falsa se o código estiver expirado ou não
+                cobrir o plano clicado. A frase abaixo afirma só o que ESTE
+                sistema faz (encaminhar o código) e devolve a verificação para
+                onde ela é sempre verdadeira: o total do Stripe antes do
+                pagamento. Nenhuma promessa que dependa do Stripe aceitar. */}
+            Your code goes to checkout automatically — you&apos;ll see the exact amount
+            before you pay. Cancel anytime.
+          </p>
+        )}
+
+        {/* KINEO-MRR-3-FILME-PROPRIO-2026-09-16 — o filme da própria pessoa perto dos planos. */}
+        {latestFilm && (
+          <div
+            data-kineo="latest-film"
+            className="mx-auto mb-7 flex max-w-2xl items-center gap-4 rounded-2xl px-4 py-3"
+            style={{ background: 'var(--card2)', border: '1px solid var(--border)' }}
+          >
+            <video
+              src={latestFilm.url}
+              muted
+              playsInline
+              preload="metadata"
+              style={{ width: 54, height: 96, objectFit: 'cover', borderRadius: 10, background: '#000', flex: '0 0 auto' }}
+              aria-hidden="true"
+            />
+            <div className="min-w-0 text-left">
+              <p className="text-[12px] font-black uppercase tracking-[0.08em] text-[var(--accent)]">Your latest film</p>
+              <p className="truncate text-[14px] font-bold text-[var(--text)]">{latestFilm.title}</p>
+              <p className="text-[12px] font-semibold text-[var(--muted)]">Your next films come out clean, without the watermark, in 1080p.</p>{/* KINEO-CHECKOUT-CLAREZA-1610 */}
+              <FilmsLikeThisNote qualityMode={latestFilm.quality} seconds={latestFilm.seconds} />{/* KINEO-VALOR-NO-CHECKOUT-3110 */}
+            </div>
+          </div>
+        )}
+
+        {!watchPricing && <FilmsMadeProof surface="pricing" />}
+        {/* KINEO-PRECOS-REFINO-2026-10-09 — fundador: "essa parte ficou muito poluída". Com o cartão novo, a caixa do convite
+            grátis vira uma linha só, e só para quem ainda não tem conta (quem tem conta já começou). */}
+        {valueCards ? (signedIn === false ? (
+          <p className="mx-auto mb-7 max-w-2xl text-center text-[13.5px] font-medium text-[var(--muted)]">
+            Not ready to choose?{' '}
+            <Link href="/signup" className="font-bold text-[var(--accent)] hover:underline">{OFFER.copy.ctaPrimary}</Link>
+          </p>
+        ) : null) : (
+        <div
+          className="mx-auto mb-7 max-w-2xl rounded-2xl px-5 py-4 text-center"
+          style={{ background: 'var(--accent-soft)', border: '1px solid var(--border2)' }}
+        >
+          <p className="text-[13px] leading-relaxed text-[var(--muted)]">{OFFER.copy.headline}</p>
+          <Link href="/signup" className="mt-3 inline-block font-semibold text-[var(--accent)]">{OFFER.copy.ctaPrimary}</Link>
+          <CostCalculatorLink
+            placement="pricing_pre_cards"
+            className="mt-2 inline-block text-[12.5px] font-extrabold text-[var(--accent)] hover:underline"
+          >
+            Calculate the exact monthly cost for your output →
+          </CostCalculatorLink>
+        </div>
+        )}
+
+        {watchPricing && <div className="pricing-watch-proof"><FilmsMadeProof surface="pricing" /><p className="text-center text-[12px] text-[var(--muted)]">2,100+ creators · 1,500+ films · featured on There&apos;s An AI For That</p>{reviewQuote}</div>}
+        {pricingOffers}
 
         <div className="pricing-short-faq mt-8">
           <div className="mb-4 text-center">
@@ -2225,7 +2225,26 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
           </p>
         </div>
 
-        <details className="pricing-reference" data-pricing-reference><summary>See all formats, credits and cost per film</summary><CitationDirectAnswer page="home" /><CitationDetails page="home" /><div className="pricing-reference-faq">{FAQS.filter(item => !visibleFaqs.includes(item)).map(item => <details key={item.q}><summary>{item.q}</summary><p>{item.a}</p></details>)}</div>{referencePeople}{referenceExtras}</details><div className="pricing-final"><a href="#plans">Choose your plan</a></div>
+        <details
+          className="pricing-reference"
+          data-pricing-reference
+          onToggle={(event) => {
+            if (event.target === event.currentTarget && event.currentTarget.open) {
+              void trackEvent('pricing_reference_opened', { surface: 'pricing_page', billing, variant: watchPricing ? 'watch' : 'standard' })
+            }
+          }}
+        >
+          <summary>See all formats, credits and cost per film</summary>
+          <CitationDirectAnswer page="home" />
+          <CitationDetails page="home" />
+          {!watchPricing && <div className="pricing-reference-faq">
+            {FAQS.filter(item => !visibleFaqs.includes(item)).map(item => (
+              <details key={item.q}><summary>{item.q}</summary><p>{item.a}</p></details>
+            ))}
+          </div>}
+          {referencePeople}
+        </details>
+        <div className="pricing-final"><a href="#plans">Choose your plan</a></div>
         </section>
 
       {/* KINEO-PRECOS-0511 [fundador 05/11, print: "tire essas coisas de starter, creator e estúdio que está lá embaixo"] — a barra fixa de baixo saiu. */}

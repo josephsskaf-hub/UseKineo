@@ -8,7 +8,7 @@ import { createRequire } from 'node:module'
 const root = process.cwd(), require = createRequire(path.join(root, 'package.json'))
 const ts = require('typescript'), React = require('react'), { renderToStaticMarkup } = require('react-dom/server')
 const CLIENT = 'app/pricing/PricingClient.tsx', CARD = 'components/pricing/PlanValueStage.tsx', INCLUDES = 'components/pricing/PricingIncludes0511.tsx', FLAG = 'lib/pricingWatch.ts'
-const BASE = '56e24d47a', read = file => fs.readFileSync(path.join(root, file), 'utf8').replace(/\r\n/g, '\n')
+const BASE = '617b3e417', read = file => fs.readFileSync(path.join(root, file), 'utf8').replace(/\r\n/g, '\n')
 let checks = 0
 const check = (id, value, message) => { assert(value, '[' + id + '] ' + message); checks++ }
 const Null = () => null
@@ -88,7 +88,7 @@ function verify(changes = {}) {
     check('renewal', /Monthly plans renew monthly; annual plans renew yearly/.test(text(tree)), 'FAQ explains both renewal periods accurately')
     check('business', nodes(tree, n => n.attrs?.id === 'teams').length === 1 && text(tree).includes('For teams & business'), 'Business has an explicit section')
     const proof = nodes(tree, n => hasClass(n, 'pricing-watch-proof'))[0]
-    check('proof', proof && nodes(proof, n => n.tag === 'blockquote').length === 1 && /creators/.test(text(proof)) && html.indexOf('pricing-watch-proof') < html.indexOf('id="teams"'), 'existing counter and subscriber quote form one block before Business')
+    check('proof', proof && !hidden(proof) && nodes(proof, n => n.tag === 'blockquote').length === 1 && /creators/.test(text(proof)) && html.indexOf('class="pricing-watch-proof"') < html.indexOf('id="teams"'), 'existing counter and subscriber quote form one visible block before Business')
     const connector = nodes(tree, n => n.tag === 'a' && n.attrs?.href?.startsWith('/claude-connector?src=pricing_badge'))
     check('connector', connector.length === 1 && connector[0].attrs.target === '_blank' && connector[0].attrs.rel === 'noopener' && nodes(tree, n => n.tag === 'footer').some(n => nodes(n, child => child === connector[0]).length === 1), 'one truthful connector link lives in the footer with its original safe destination')
   }
@@ -96,17 +96,27 @@ function verify(changes = {}) {
   for (const selected of [false, true]) { let bought = 0, chosen = 0; const element = card({ ...props, selected, onBuy: () => bought++, onSelect: () => chosen++ }); const button = element.props.children.find(n => n?.type === 'button'); button.props.onClick({ stopPropagation() {} }); check('handler', selected ? bought === 1 && chosen === 0 : bought === 0 && chosen === 1, 'first click selects; selected button alone buys') }
   check('preview', /index:\s*false/.test(read('app/pricing-preview/page.tsx')) && /initialBilling=\{handoff.initialBilling\}/.test(read('app/pricing-preview/page.tsx')) && !read('app/sitemap.ts').includes('/pricing-preview'), 'preview is demonstrable, noindex and uses canonical billing handoff')
 }
-verify(); const baseline = checks
+verify()
 const originals = Object.fromEntries([CLIENT, CARD, INCLUDES].map(file => [file, execFileSync('git', ['show', BASE + ':' + file], { encoding: 'utf8' }).replace(/\r\n/g, '\n')]))
-for (const billing of ['monthly', 'annual']) for (const brl of [false, true]) check('rollback', world({}, brl).render(false, billing) === world(originals, brl).render(false, billing), 'closed flag preserves exact legacy SSR HTML for ' + billing + (brl ? '/BRL' : '/USD'))
+// The standard page deliberately changed outside the grid. Keep exact parity
+// for plan markup and check that the preview skin still stays off that route.
+const planGrid = html => html.match(/<section class="pv-stage"[^>]*>[\s\S]*?<\/section>/)?.[0]
+for (const billing of ['monthly', 'annual']) for (const brl of [false, true]) {
+  const actual = world({}, brl).render(false, billing)
+  const original = world(originals, brl).render(false, billing)
+  const label = billing + (brl ? '/BRL' : '/USD')
+  check('rollback', planGrid(actual) && planGrid(actual) === planGrid(original), 'closed flag preserves exact public plan HTML for ' + label)
+  check('rollback', !actual.includes('class="pricing-blue pricing-watch ') && !actual.includes('class="pricing-watch-proof"') && !actual.includes('id="teams"'), 'preview-only surface is absent from /pricing for ' + label)
+}
+const baseline = checks
 const mutations = [
   ['public rollout opened', 'flag', FLAG, 'WATCH_PRICING_PUBLIC = false', 'WATCH_PRICING_PUBLIC = true'],
   ['Creator no longer first', 'order', CLIENT, 'if (watchPricing) valuePlans.sort', 'if (false) valuePlans.sort'],
   ['disclosure open by default', 'details', CARD, '<details className="pv-compact-details"', '<details open className="pv-compact-details"'],
   ['button disabled', 'cta', CARD, 'disabled={props.ctaDisabled}', 'disabled={true}'],
-  ['FAQ text absent from HTML', 'faq', CLIENT, '(isOpen || watchPricing) &&', 'isOpen &&'],
+  ['FAQ text absent from HTML', 'faq', CLIENT, '{item.a}\n', "{isOpen ? item.a : ''}\n"],
   ['FAQ initially open', 'faq', CLIENT, 'watchPricing ? null : 0', '0'],
-  ['full refund repeated', 'guarantee', CLIENT, '{!watchPricing && <p className="mx-auto mt-5 max-w-2xl text-center text-[12.5px] leading-relaxed text-[var(--muted)]" data-testid="pricing-first-film-guarantee">', '{true && <p className="mx-auto mt-5 max-w-2xl text-center text-[12.5px] leading-relaxed text-[var(--muted)]" data-testid="pricing-first-film-guarantee">'],
+  ['first-film guarantee repeated on WATCH', 'guarantee', CLIENT, '{!watchPricing && <p data-testid="pricing-first-film-guarantee"', '{true && <p data-testid="pricing-first-film-guarantee"'],
   ['button buys without selection', 'handler', CARD, 'if (props.selected) props.onBuy(); else props.onSelect()', 'props.onBuy()'],
   ['annual renewal described as monthly', 'renewal', CLIENT, 'Monthly plans renew monthly; annual plans renew yearly. Cancel anytime.', 'Plans renew monthly — cancel anytime.'],
 ]
@@ -116,4 +126,4 @@ for (const [name, id, file, before, after] of mutations) {
   assert(error instanceof assert.AssertionError && error.message.startsWith('[' + id + ']'), name + ': intended AssertionError required, never execution error: ' + error?.stack)
   console.log('MUTANT REJECTED [' + id + '] ' + name)
 }
-console.log('WATCH pricing: ' + baseline + ' offline assertions, legacy SSR parity, ' + mutations.length + '/' + mutations.length + ' targeted mutants; no API/checkout/browser.')
+console.log('WATCH pricing: ' + baseline + ' offline assertions, exact public plan HTML, ' + mutations.length + '/' + mutations.length + ' targeted mutants; no API/checkout/browser.')

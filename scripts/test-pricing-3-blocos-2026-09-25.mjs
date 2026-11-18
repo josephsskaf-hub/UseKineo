@@ -83,17 +83,20 @@ const money = (minor) => checkout.formatCheckoutMoney('usd', minor)
 {
   const src = rd(CLIENT)
   const { render } = require('./docs/revisoes/pricing-enxuta-1711/preview.cjs')
-  const ids = ['plans', 'fixture-pricing-ads', 'fixture-pricing-credits', 'autopilot-lite']
+  const { findPricingMarkers } = require('./scripts/test-support/pricing-markup.cjs')
+  const ids = ['plans', blocks.PRICING_ADS_BLOCK_ID, blocks.PRICING_CREDITS_BLOCK_ID, 'autopilot-lite', 'autopilot']
+  const markers = html => ids.map(id => findPricingMarkers(html, 'id', id))
   const inOrder = (html) => {
-    const positions = ids.map((id) => html.indexOf(`id="${id}"`))
+    const positions = markers(html).map(found => found[0]?.position ?? -1)
     return positions[0] >= 0 && positions.slice(1).every((position, index) => position > positions[index])
   }
+  const visible = html => markers(html).every(found => found.length === 1 && found[0].visible)
   for (const billing of ['monthly', 'annual']) {
     const html = render(false, false, false, { billing, orderFixture: true })
-    ok(inOrder(html), `1a ${billing}: HTML #plans < anúncios < créditos < #autopilot-lite`)
-    ok(ids.every((id) => html.split(`id="${id}"`).length === 2), `1b ${billing}: cada bloco aparece uma vez`)
+    ok(inOrder(html), `1a ${billing}: #plans < anúncios < créditos < #autopilot-lite < #autopilot`)
+    ok(visible(html), `1b ${billing}: blocos e âncoras únicos e visíveis com a caixa fechada`)
   }
-  const extras = '{referenceExtras}'
+  const extras = '{pricingOffers}'
   const plans = '{valueCards ? (() => {'
   const mutant = render(false, false, false, {
     orderFixture: true,
@@ -103,6 +106,19 @@ const money = (minor) => checkout.formatCheckoutMoney('usd', minor)
     },
   })
   ok(ids.every((id) => mutant.includes(`id="${id}"`)) && !inOrder(mutant), '1e mutante: blocos renderizados antes dos planos quebram a asserção')
+  const closedMutant = render(false, false, false, {
+    orderFixture: true,
+    mutate: code => {
+      if (!code.includes(extras)) throw Error('Âncora do mutante de visibilidade ausente')
+      return code.replace(extras, '<details><summary>Extras</summary>{pricingOffers}</details>')
+    },
+  })
+  ok(inOrder(closedMutant) && !visible(closedMutant), '1g mutante: a ordem certa não salva os blocos escondidos')
+  const anchorMutant = render(false, false, false, {
+    orderFixture: true,
+    mutate: code => code.replace('id="autopilot"', 'id="autopilot-moved"'),
+  })
+  ok(anchorMutant.includes('id="autopilot-moved"') && !visible(anchorMutant), '1h mutante: remover a âncora usada pelo checkout falha')
   ok(/^import PricingAdsBlock from '@\/components\/pricing\/PricingAdsBlock'/m.test(src) && /^import PricingCreditsBlock from '@\/components\/pricing\/PricingCreditsBlock'/m.test(src), '1c imports dos dois componentes novos')
   // KINEO-ANUAL-40OFF-2026-10-05 — o selo do anual virou "SAVE {ANNUAL_DISCOUNT_PERCENT}%" (era "2 MONTHS FREE").
   ok(src.includes("setBilling('monthly')") && src.includes("setBilling('annual')") && src.includes('Up to {ANNUAL_WELCOME_DISCOUNT_PERCENT}%'), '1d seletor Mensal/Anual intacto')

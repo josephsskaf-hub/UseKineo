@@ -16,6 +16,8 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { root, offlineModules, React, renderToStaticMarkup } from './gpt24h-offline-support.mjs'
+import pricingFixture from '../docs/revisoes/pricing-enxuta-1711/preview.cjs'
+import pricingMarkup from './test-support/pricing-markup.cjs'
 
 const MARCA = 'KINEO-VALOR-NO-CHECKOUT-3110'
 const LIB = 'lib/valorNoCheckout.ts'
@@ -133,7 +135,24 @@ function problems(replacements = {}) {
   const pr = src(PRICING)
   if (pr.includes('<PlanFinder />') || !pr.includes('<FilmsMadeProof surface="pricing" />')) p.push('pricing: sem PlanFinder (KINEO-PRICING-SEM-VELHO-0411), com prova social')
   if (!pr.includes('<FilmsLikeThisNote qualityMode={latestFilm.quality} seconds={latestFilm.seconds} />')) p.push('pricing: "films like this" no Your latest film')
-  if (pr.indexOf('<FilmsMadeProof surface="pricing" />') > pr.indexOf('<div className="pricing-secondary">')) p.push('pricing: prova social abaixo da dobra secundária')
+  if (!Object.keys(replacements).length || replacements[PRICING]) {
+    if (!pr.includes('<PlanFinder />')) {
+      try {
+        // The real counter awaits a server read. Use a marker only for its
+        // position and visibility in the real rendered PricingClient.
+        const html = pricingFixture.render(false, false, false, {
+          sourceOverride: pr.replaceAll('<FilmsMadeProof surface="pricing" />', '<div data-testid="pricing-films-proof" />'),
+        })
+        const proof = pricingMarkup.findPricingMarkers(html, 'data-testid', 'pricing-films-proof')
+        const plans = pricingMarkup.findPricingMarkers(html, 'id', 'plans')
+        if (proof.length !== 1 || !proof[0].visible || !plans[0] || proof[0].position <= plans[0].position) {
+          p.push('pricing: prova social visível depois dos planos com a caixa fechada')
+        }
+      } catch (e) {
+        p.push('render pricing: ' + String(e && e.message))
+      }
+    }
+  }
   const uiSrc = src(UI)
   if (!uiSrc.includes('trackEvent(PLAN_FINDER_OPENED_EVENT') || !uiSrc.includes('trackEvent(PLAN_FINDER_RECOMMENDED_EVENT')) p.push('ui: eventos')
   if (lib.PLAN_FINDER_OPENED_EVENT !== 'plan_finder_opened' || lib.PLAN_FINDER_RECOMMENDED_EVENT !== 'plan_finder_recommended') p.push('eventos com nome errado')
@@ -179,6 +198,12 @@ const MUTANTES = [
   ['parede sem prova social', muta(UPGRADE, '<FilmsMadeProof surface="upgrade" />', '')],
   ['parede sem films like this', muta(UPGRADE, '<FilmsLikeThisNote qualityMode={film.quality_mode} seconds={film.duration} />', '')],
   ['pricing com PlanFinder de volta', muta(PRICING, '<FilmsMadeProof surface="pricing" />', '<FilmsMadeProof surface="pricing" /><PlanFinder />')],
+  ['pricing esconde prova social', {
+    [PRICING]: SRC[PRICING].replace('{!watchPricing && <FilmsMadeProof surface="pricing" />}', '').replace(
+      'const referencePeople = <>',
+      'const referencePeople = <>{!watchPricing && <FilmsMadeProof surface="pricing" />}',
+    ),
+  }],
   ['ui sem evento de abertura', muta(UI, 'trackEvent(PLAN_FINDER_OPENED_EVENT', 'void (PLAN_FINDER_OPENED_EVENT')],
 ]
 for (const [nome, repl] of MUTANTES) {

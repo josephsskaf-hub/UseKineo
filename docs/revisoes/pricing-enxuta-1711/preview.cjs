@@ -1,9 +1,12 @@
 // Offline SSR of the real PricingClient. Effects and checkout disabled, account SIMULATED.
 const fs=require('fs'),cp=require('child_process'),React=require('react'),{renderToStaticMarkup:ssr}=require('react-dom/server'),{loader}=require('../../recreate-0911/test-recreate.cjs');
 const noop=()=>null,children=({children})=>React.createElement(React.Fragment,null,children);
-function render(before=false,signedIn=false,active=false,{billing='monthly',orderFixture=false,mutate=s=>s}={}){
- const source=before?cp.execFileSync('git',['show','8c1d7b4d4:app/pricing/PricingClient.tsx'],{encoding:'utf8'}):fs.readFileSync('app/pricing/PricingClient.tsx','utf8');
+function render(before=false,signedIn=false,active=false,{billing='monthly',orderFixture=false,promo=false,valueCards,latestFilm,inspect,sourceOverride,trackEvent=()=>{throw Error('analytics forbidden')},mutate=s=>s}={}){
+ const source=sourceOverride ?? (before?cp.execFileSync('git',['show','8c1d7b4d4:app/pricing/PricingClient.tsx'],{encoding:'utf8'}):fs.readFileSync('app/pricing/PricingClient.tsx','utf8'));
  let prepared=source.replace('const [alreadySubscribed, setAlreadySubscribed] = useState(false)', 'const [alreadySubscribed, setAlreadySubscribed] = useState('+active+')').replace('useState<boolean | null>(null)',`useState<boolean | null>(${signedIn})`).replace('useState<DisplayCurrency | null>(null)',"useState<DisplayCurrency | null>('usd')");
+ if(promo) prepared=prepared.replace('const [arrivedWithPromo, setArrivedWithPromo] = useState(false)', 'const [arrivedWithPromo, setArrivedWithPromo] = useState(true)');
+ if(valueCards!==undefined) prepared=prepared.replace('useState(watchPricing || PRICING_VALUE_CARDS_PUBLIC)',`useState(${valueCards})`);
+ if(latestFilm) prepared=prepared.replace('seconds: number | null } | null>(null)',`seconds: number | null } | null>(${JSON.stringify(latestFilm)})`);
  if(orderFixture){
   prepared=prepared.replace(/export const PRICING_SHOW_ADS_BLOCK = \w+/, 'export const PRICING_SHOW_ADS_BLOCK = true')
     .replace(/export const PRICING_SHOW_AUTOPILOT = \w+/, 'export const PRICING_SHOW_AUTOPILOT = true')
@@ -12,10 +15,6 @@ function render(before=false,signedIn=false,active=false,{billing='monthly',orde
  prepared=mutate(prepared);
  const L=loader({
  react:{...React,useEffect:()=>{}},
- ...(orderFixture ? {
-   '@/components/pricing/PricingAdsBlock':{__esModule:true,default:()=>React.createElement('div',{id:'fixture-pricing-ads'})},
-   '@/components/pricing/PricingCreditsBlock':{__esModule:true,default:()=>React.createElement('div',{id:'fixture-pricing-credits'})},
- } : {}),
  'next/link':{__esModule:true,default:({href,children,...props})=>React.createElement('a',{href,...props},children)},
  '@/components/InterfaceLanguage':{UiLabel:children,useInterfaceLanguage:()=> 'en'},
  '@/components/FreeTierOfferProvider':{useFreeTierOffer:()=>loader()('lib/freeTierOffer').getFreeTierOffer()},
@@ -24,10 +23,16 @@ function render(before=false,signedIn=false,active=false,{billing='monthly',orde
  '@/components/pricing/AnnualOfferCountdown':{AnnualOfferCountdown:noop,useWelcomeOffers:()=>({annual:null,monthly:{deadlineMs:null,ended:false}})},
  '@/lib/growth/useWelcome20Deadline':{useWelcome20Deadline:()=>({label:null,active:false})},
  '@/lib/checkoutTelemetry':{useCheckoutLaunch:()=>({pending:null,launch:()=>{throw Error('checkout forbidden')}})},
- '@/lib/analytics':{trackEvent:()=>{throw Error('analytics forbidden')}},
+ '@/lib/analytics':{trackEvent},
  '@/lib/supabase/client':{createClient:()=>{throw Error('auth forbidden')}},
  },{'app/pricing/PricingClient.tsx':prepared});
- const Comp=L('app/pricing/PricingClient');return ssr(React.createElement(Comp.default,{initialBilling:billing}));
+ const Comp=L('app/pricing/PricingClient').default;
+ function Fixture() {
+   const tree = Comp({ initialBilling: billing });
+   inspect?.(tree);
+   return tree;
+ }
+ return ssr(React.createElement(Fixture));
 }
 if(require.main===module)(async()=>{
  const postcss=require('postcss'),tailwind=require('tailwindcss');
