@@ -61,8 +61,8 @@ export default function CreatorsPage({ freeFilm, initialIdea }: { freeFilm: bool
           <input type="hidden" name="create_intent" value="trial_best" />
           <input type="hidden" name="intent_campaign" value={campaign} />
           {redirect && <input type="hidden" name="redirect" value={redirect} />}
-          <button type="submit">{freeFilm ? 'Start my first film free' : 'Start with my idea'}<span className="btn-ico" aria-hidden="true"><Seta /></span></button>
-          <p>Your idea opens in Studio after you sign in.{freeFilm && ' Eligible new accounts can make their first film free.'}</p>
+          <button type="submit" aria-describedby="idea-next-step">{freeFilm ? 'Start my first film free' : 'Start with my idea'}<span className="btn-ico" aria-hidden="true"><Seta /></span></button>
+          <p id="idea-next-step" className="idea-next-step">Create an account or sign in to open your idea in Studio.{freeFilm && ' Eligible new accounts can make their first film free.'}</p>
         </form>
       </div>
       <div className="hero-visual">

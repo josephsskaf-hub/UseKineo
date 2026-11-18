@@ -11,3 +11,5 @@
 .creators .card-category .ico-seta{width:14px;height:14px}
 .creators .visual-bottom span:last-child{display:inline-flex;font-size:0}
 @media(max-width:760px){.creators .hero-film video{object-position:50% 6%}}
+
+.creators .idea-form .idea-next-step { margin: 10px 0 0; font-size: 13px; }
