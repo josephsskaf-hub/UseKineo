@@ -692,6 +692,12 @@ export default function HowMuchDoYouTubeShortsPayPage() {
           Keep going
         </h2>
         <ul style={{ color: MUTED, lineHeight: 1.9, fontSize: '0.95rem', paddingLeft: 20, margin: '0 0 40px' }}>
+          <li>{/* KINEO-CITACOES-HORAS-1711 — a página nova nasce com visita deste artigo */}
+            <a href="/do-shorts-count-toward-4000-watch-hours" style={{ color: ACCENT, textDecoration: 'none' }}>
+              Do Shorts count toward 4,000 watch hours?
+            </a>{' '}
+            : the YouTube Partner Program rule, checked on the official YouTube page.
+          </li>
           <li>{/* KINEO-CITACOES-DINHEIRO-1311 */}
             <a href="/how-much-does-tiktok-pay" style={{ color: ACCENT, textDecoration: 'none' }}>
               How much does TikTok pay?

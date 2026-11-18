@@ -9,7 +9,8 @@ const require = createRequire(import.meta.url)
 const ts = require('typescript')
 const component = 'components/seo/GoogleCreatorDoor.tsx'
 const pages = [
-  ['how-much-do-youtube-shorts-pay', '3e9df2d4e639c24caa0d5aa62bda5f708c304c507daebf3ca6b107f981841f66'],
+  // KINEO-CITACOES-HORAS-1711 (CEO, 17/11): recibo reancorado por UMA linha nova na lista 'Keep going' (link para a página das 4.000 horas). Título, H1, texto e tabelas iguais.
+  ['how-much-do-youtube-shorts-pay', '91ddf6615623477906c9e7436e8aaa240585e9b0be71c1fc7f895e6fc1058c3b'],
   ['youtube-shorts-rpm-by-niche', 'be4ed2613d63b070dd32133f85c38926d338658d97607504a0f4b89f40135974'],
 ]
 
