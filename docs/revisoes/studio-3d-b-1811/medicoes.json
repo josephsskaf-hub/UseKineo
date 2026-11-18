@@ -1,0 +1,192 @@
+{
+  "date": "2026-11-18T22:13:01.962Z",
+  "environment": "Local production builds, identical root and dashboard layouts, repository JS, test auth, blocked remote services",
+  "weight": [
+    {
+      "version": "original",
+      "account": "owner",
+      "html": 20343,
+      "js": 708652,
+      "resourceCount": 16,
+      "scene": [],
+      "requests": 1003263
+    },
+    {
+      "version": "off",
+      "account": "owner",
+      "html": 20345,
+      "js": 708652,
+      "resourceCount": 16,
+      "scene": [],
+      "requests": 1003265
+    },
+    {
+      "version": "on",
+      "account": "owner",
+      "html": 20652,
+      "js": 708842,
+      "resourceCount": 16,
+      "scene": [],
+      "requests": 1003762
+    },
+    {
+      "version": "on",
+      "account": "sister",
+      "html": 20592,
+      "js": 708842,
+      "resourceCount": 16,
+      "scene": [],
+      "requests": 1003702
+    },
+    {
+      "version": "on",
+      "account": "guest",
+      "html": 19290,
+      "js": 708842,
+      "resourceCount": 16,
+      "scene": [],
+      "requests": 1000588
+    }
+  ],
+  "performance": [
+    {
+      "width": 1366,
+      "cpu": 2,
+      "network": "loopback",
+      "ms": 10002,
+      "frames": 600,
+      "fps": 59.99,
+      "attached": true,
+      "backend": "WebGPU",
+      "assets": [
+        {
+          "path": "/screening-room/studio-idea.js",
+          "bytes": 2506
+        },
+        {
+          "path": "/screening-room/scene.js",
+          "bytes": 227763
+        },
+        {
+          "path": "/screening-room/lituya-h3.webp",
+          "bytes": 8908
+        },
+        {
+          "path": "/screening-room/lituya-h3.mp4",
+          "bytes": 468633
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "cpu": 4,
+      "network": "10 Mbps, 75 ms",
+      "ms": 10003,
+      "frames": 600,
+      "fps": 59.98,
+      "attached": true,
+      "backend": "WebGPU",
+      "assets": [
+        {
+          "path": "/screening-room/studio-idea.js",
+          "bytes": 2506
+        },
+        {
+          "path": "/screening-room/scene.js",
+          "bytes": 227763
+        },
+        {
+          "path": "/screening-room/lituya-h3.webp",
+          "bytes": 8908
+        },
+        {
+          "path": "/screening-room/lituya-h3.mp4",
+          "bytes": 468633
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "cpu": 4,
+      "network": "10 Mbps, 75 ms",
+      "ms": 10013,
+      "frames": 601,
+      "fps": 60.02,
+      "attached": true,
+      "backend": "WebGL2",
+      "assets": [
+        {
+          "path": "/screening-room/studio-idea.js",
+          "bytes": 2506
+        },
+        {
+          "path": "/screening-room/scene.js",
+          "bytes": 227763
+        },
+        {
+          "path": "/screening-room/lituya-h3.webp",
+          "bytes": 8908
+        },
+        {
+          "path": "/screening-room/lituya-h3.mp4",
+          "bytes": 468633
+        }
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "width": 1920,
+      "theme": "light",
+      "editorAndControlsIdentical": true,
+      "projectionBounds": {
+        "x": 720,
+        "y": 446.546875,
+        "width": 728,
+        "height": 266
+      }
+    },
+    {
+      "width": 1920,
+      "theme": "dark",
+      "editorAndControlsIdentical": true,
+      "projectionBounds": {
+        "x": 720,
+        "y": 446.546875,
+        "width": 728,
+        "height": 266
+      }
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "editorAndControlsIdentical": true,
+      "projectionBounds": {
+        "x": 16,
+        "y": 383.1875,
+        "width": 358,
+        "height": 231.671875
+      }
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "editorAndControlsIdentical": true,
+      "projectionBounds": {
+        "x": 16,
+        "y": 383.1875,
+        "width": 358,
+        "height": 231.671875
+      }
+    },
+    "reduced returned exact original geometry, draft and CTA",
+    "noGPU returned exact original geometry, draft and CTA",
+    "reduce-while-active returned exact original geometry, draft and CTA",
+    "slow-laptop returned exact original geometry, draft and CTA",
+    "slow-phone returned exact original geometry, draft and CTA",
+    "owner Settings 35 s and exact Generate query match the baseline; no rendering or debit executed.",
+    "guest Settings 35 s and exact Generate query match the baseline; no rendering or debit executed."
+  ],
+  "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3090 (0x00002204) Direct3D11 vs_5_0 ps_5_0, D3D11-32.0.16.1088)",
+  "chrome": "157.0.8103.51"
+}

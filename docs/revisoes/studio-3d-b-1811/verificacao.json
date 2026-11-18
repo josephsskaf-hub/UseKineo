@@ -1,0 +1,96 @@
+{
+  "date": "2026-11-18T22:16:50.277Z",
+  "fallbackPixels": [
+    {
+      "width": 390,
+      "failure": "reduced",
+      "original": "583a69aa916c3d9f15f06a80820d1681b68d410a9a168154bf44a5dfa660e8c0",
+      "enabled": "583a69aa916c3d9f15f06a80820d1681b68d410a9a168154bf44a5dfa660e8c0",
+      "identical": true
+    },
+    {
+      "width": 390,
+      "failure": "noGPU",
+      "original": "583a69aa916c3d9f15f06a80820d1681b68d410a9a168154bf44a5dfa660e8c0",
+      "enabled": "583a69aa916c3d9f15f06a80820d1681b68d410a9a168154bf44a5dfa660e8c0",
+      "identical": true
+    },
+    {
+      "width": 1920,
+      "failure": "reduced",
+      "original": "9c21d4a144bdf301e88badadf32a55d823373d82e268a8d3d3b4af02e7627849",
+      "enabled": "9c21d4a144bdf301e88badadf32a55d823373d82e268a8d3d3b4af02e7627849",
+      "identical": true
+    },
+    {
+      "width": 1920,
+      "failure": "noGPU",
+      "original": "9c21d4a144bdf301e88badadf32a55d823373d82e268a8d3d3b4af02e7627849",
+      "enabled": "9c21d4a144bdf301e88badadf32a55d823373d82e268a8d3d3b4af02e7627849",
+      "identical": true
+    }
+  ],
+  "paint": [
+    {
+      "width": 1366,
+      "cpu": 2,
+      "version": "original",
+      "fcp": 224,
+      "lcp": 224,
+      "editorVisible": true
+    },
+    {
+      "width": 1366,
+      "cpu": 2,
+      "version": "off",
+      "fcp": 256,
+      "lcp": 256,
+      "editorVisible": true
+    },
+    {
+      "width": 1366,
+      "cpu": 2,
+      "version": "on",
+      "fcp": 256,
+      "lcp": 256,
+      "editorVisible": true
+    },
+    {
+      "width": 390,
+      "cpu": 4,
+      "version": "original",
+      "fcp": 552,
+      "lcp": 552,
+      "editorVisible": true
+    },
+    {
+      "width": 390,
+      "cpu": 4,
+      "version": "off",
+      "fcp": 568,
+      "lcp": 568,
+      "editorVisible": true
+    },
+    {
+      "width": 390,
+      "cpu": 4,
+      "version": "on",
+      "fcp": 608,
+      "lcp": 608,
+      "editorVisible": true
+    }
+  ],
+  "gallery": {
+    "photos": 8,
+    "photoSelectors": true,
+    "offlineVideoSeconds": 10,
+    "zoom": true
+  },
+  "html": {
+    "uncompressed": [
+      78834,
+      78834
+    ],
+    "equalAfterHashes": true
+  }
+}

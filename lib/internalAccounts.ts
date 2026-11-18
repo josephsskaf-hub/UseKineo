@@ -11,9 +11,16 @@
 // INTERNAL_ACCOUNTS_LABEL ("internal accounts excluded") so numbers are
 // never mistaken for raw totals.
 
+const FOUNDER_EMAIL = 'josephsskaf@gmail.com'
+
+/** Access to the founder's private previews requires his confirmed primary account. */
+export function isConfirmedFounder(user: { email?: string | null; email_confirmed_at?: string | null } | null): boolean {
+  return !!user?.email_confirmed_at && user.email?.trim().toLowerCase() === FOUNDER_EMAIL
+}
+
 /** Exact e-mails confirmed by the founder (him + sister + named test accounts). */
 export const INTERNAL_EXACT_EMAILS: string[] = [
-  'josephsskaf@gmail.com',
+  FOUNDER_EMAIL,
   'josephskaf@hotmail.com',
   'victoriaskaf96@gmail.com',
   'joseph+teste01@gmail.com',

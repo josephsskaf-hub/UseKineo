@@ -21,6 +21,7 @@ import { contaPagaDoSaldo } from '@/lib/create/filmNaMoldura' // KINEO-STUDIO-NA
 import { duracoesDoMotor, flagsDoCorpo, kling4AoVivo, motoresOpcionais, type FlagsDoSeletor, type OpcaoDeMotor } from '@/lib/create/motorOpcional' // KINEO-MOTOR-OPCIONAL-1011
 import { rebaseKling4Lease } from '@/lib/kling4PaidPresentation' // KINEO-MOTOR-OPCIONAL-1011 — a mesma leitura do Kling 4.0 que o Studio antigo faz
 import { KineoBrandIcon } from '@/components/KineoBolt' // KINEO-CELULAR-A-0611
+import { requestFilmProjection } from './requestFilmProjection'
 
 const CSS = `
 .ksx{max-width:760px;margin:0 auto;padding:clamp(20px,6vh,64px) 16px 48px;color:var(--text)}
@@ -230,7 +231,10 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
           rows={4}
           aria-label="Your idea"
           placeholder="One idea is enough. A finished film comes out: voiced, scored and captioned."
-          onChange={(e) => { setTexto(e.target.value); setAviso(null); if (e.target.value.trim()) registrar('mrr_idea_entered') }}
+          onChange={(e) => {
+            setTexto(e.target.value); setAviso(null); if (e.target.value.trim()) registrar('mrr_idea_entered')
+            if (process.env.NEXT_PUBLIC_KINEO_STUDIO_FILM_3D === 'true') requestFilmProjection(e.currentTarget)
+          }}
         />
         {aviso ? <p className="ksx-msg" role="alert">{aviso}</p> : null}
         <div className="ksx-row">

@@ -16,6 +16,8 @@ import { campanhaDaCaixa, motorDaCaixa, usarCaixaUnica } from '@/lib/growth/stud
 import StudioIdeaArrival from '@/components/StudioIdeaArrival'
 import { SEEDANCE_15S_PUBLIC } from '@/lib/engineLaunch' // KINEO-STUDIO-CLS-2026-10-13 — o motor que a tela abre (o mesmo useState do StudioClient)
 
+import { signedInFounder } from '@/lib/auth/signedInFounder'
+
 export const metadata = { title: 'Studio — Kineo' }
 
 /** Chave do seletor do Studio → motor dos filmes da casa (mesmo mapa que ENGINE_QUALITY do StudioClient). */
@@ -46,6 +48,11 @@ const BEST_FILM_IDS = [
 /** Motor dos filmes da casa → chave do seletor do Studio (inverso de HERO_ENGINE). */
 const STUDIO_KEY: Record<string, string> = Object.fromEntries(Object.entries(HERO_ENGINE).map(([k, v]) => [v, k]))
 
+async function founderFilmEntry(entry: JSX.Element) {
+  if (await signedInFounder()) return <>{entry}<span data-founder-film-projection="" hidden /></>
+  return entry
+}
+
 export default function StudioPage({ searchParams = {} }: { searchParams?: Record<string, string | string[] | undefined> }) {
   const engineHeroes: Record<string, StudioHeroVideo[]> = {}
   for (const [key, engine] of Object.entries(HERO_ENGINE)) {
@@ -67,12 +74,13 @@ export default function StudioPage({ searchParams = {} }: { searchParams?: Recor
   const lcpPoster = engineHeroes[SEEDANCE_15S_PUBLIC ? 'seedance' : 'fast']?.[0]?.poster
   // KINEO-CAIXA-UNICA-0411 [fundador 04/11: "1a"] — quem só chegou vê a caixa única; quem traz trabalho (texto, retomada, episódio) ou pede "More options" segue no Studio completo.
   if (usarCaixaUnica(searchParams)) {
-    return (
+    const entry = (
       <>
         <StudioIdeaArrival />
         <StudioSimples filmes={filmesDaPorta0511()} motor={motorDaCaixa(searchParams.engine)} campanha={campanhaDaCaixa(searchParams.intent_campaign)} ideiaInicial={watchExampleText(ideiaDoLink(searchParams.ideia), searchParams.example, 'film')} />
       </>
     )
+    return process.env.NEXT_PUBLIC_KINEO_STUDIO_FILM_3D === 'true' ? founderFilmEntry(entry) : entry
   }
   return (
     <>

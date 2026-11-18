@@ -1,5 +1,5 @@
 import { timingSafeEqual, createHash } from 'node:crypto'
-import { createClient } from '@/lib/supabase/server'
+import { signedInFounder } from '@/lib/auth/signedInFounder'
 import { APPEARANCE_BOOT } from '@/lib/ui/appearance'
 
 type Room = 'a' | 'b' | 'c'
@@ -43,14 +43,7 @@ async function canView(url: URL) {
     const digest = (value: string) => createHash('sha256').update(value).digest()
     if (timingSafeEqual(digest(key), digest(supplied[0]))) return true
   }
-  try {
-    const {
-      data: { user },
-    } = await createClient().auth.getUser()
-    return !!user?.email_confirmed_at && user.email?.toLowerCase() === 'josephsskaf@gmail.com'
-  } catch {
-    return false
-  }
+  return signedInFounder()
 }
 
 export async function screeningRoom(request: Request, concept: Room) {
