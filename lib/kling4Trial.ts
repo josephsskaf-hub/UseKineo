@@ -4,6 +4,24 @@ import { narrationWordCount } from '@/lib/textLanguage'
 
 export const KLING4_T2V_MODEL = 'kling/v4/text-to-video'
 export const KLING4_I2V_MODEL = 'kling/v4/image-to-video'
+export const KLING4_REFERENCE_MODEL = 'kling/v4/reference-to-video'
+export type Kling4CharacterReference = { imageUrl: string; continuity: string }
+
+export function buildKling4ReferenceInput(shots: readonly { prompt: string; duration: number }[], reference: Kling4CharacterReference) {
+  const duration = shots.reduce((sum, shot) => sum + shot.duration, 0)
+  if (!Number.isInteger(duration) || duration < 3 || duration > 30 || shots.some(s =>
+    !Number.isInteger(s.duration) || s.duration < 1 || !s.prompt.trim())) throw new Error('invalid_kling4_reference_plan')
+  const multi_prompt = shots.map(shot => {
+    // Keep scene action first and reserve its own space independently of the identity lock.
+    const tail = ' ' + reference.continuity + ' Mouth closed, no speaking.'
+    const budget = KLING4_TETO_DO_PLANO - Array.from(tail).length
+    const raw = shot.prompt.trim().replace(/\s*Mouth closed, no speaking\.$/i, '')
+    const chars = Array.from(raw)
+    const action = chars.length <= budget ? raw : chars.slice(0, budget).join('').replace(/\s+\S*$/u, '').trimEnd()
+    return { prompt: action + tail, duration: shot.duration }
+  })
+  return { model: KLING4_REFERENCE_MODEL, input: { image_urls: [reference.imageUrl], multi_prompt, duration, resolution: '720p', aspect_ratio: '9:16' } }
+}
 export const KLING4_TRIAL_TIMEOUT_MS = 8 * 60_000
 
 type StillReport = {
@@ -57,7 +75,7 @@ export function cabeNoTetoDoPlano(texto: string, teto = KLING4_TETO_DO_PLANO): s
 // kettlebell; o HIIT só aparece depois de a fala acabar). `pelaVoz` (só quando o despacho mede a voz e o interruptor está ligado):
 // cada fronteira de plano cai onde a fala da seção termina, na escala da voz MEDIDA; o silêncio depois da fala vai inteiro para o
 // último plano; piso de 2 s por plano (o schema da fal aceita 1–30). Sem `pelaVoz` = a régua de sempre, byte a byte.
-export type Kling4TrialTiming = { voiceovers: readonly string[]; wordsPerSecond: number; pelaVoz?: { segundosDaVoz: number } | null; clipSeconds?: number } // KINEO-K4-GRATIS-20S-1711: + clipSeconds (o clipe nasce do tamanho da voz; ausente = 15)
+export type Kling4TrialTiming = { fixedCharacter?: Kling4CharacterReference; voiceovers: readonly string[]; wordsPerSecond: number; pelaVoz?: { segundosDaVoz: number } | null; clipSeconds?: number } // KINEO-K4-GRATIS-20S-1711: + clipSeconds (o clipe nasce do tamanho da voz; ausente = 15)
 export const KLING4_PISO_PELA_VOZ = 2
 /** Interruptor. 'all' desde 13/11 05:11: o dono viu o antes e depois com som (prova paga no pedido salvo do 9e902872: cortes 2,08/4,08/7,13 s
  *  contra a fala 4,0/7,0 s) e escolheu "A", ligar para todos. Reverter: 'off' devolve a régua antiga, byte a byte, a todo mundo;
@@ -133,6 +151,7 @@ export function buildKling4TrialInput(
   const total = kling4TrialClipTotal(timing?.clipSeconds) // KINEO-K4-GRATIS-20S-1711 — 15 sem clipSeconds (hoje)
   const pelaVoz = timing?.pelaVoz ? kling4TrialSceneDurationsPelaVoz(timing.voiceovers, timing.pelaVoz.segundosDaVoz, total) : null // KINEO-K4-DURACAO-PELA-VOZ-1311
   const seconds = pelaVoz ?? kling4TrialSceneDurations(timing?.voiceovers ?? shots.map(() => ''), timing?.wordsPerSecond ?? 1, total)
+  if (timing?.fixedCharacter) return buildKling4ReferenceInput(shots.map((prompt, i) => ({ prompt, duration: seconds[i] })), timing.fixedCharacter)
   const first = approvedStills[0] || null
   const middle: string[] = []
   const multiPrompt = shots.map((prompt, i) => {

@@ -49,7 +49,7 @@ function covers(list: Segment[], url: string, start: number, end: number, origin
 export function cenasKling4ParaRefazer(claim: ClaimParaRefazer, source: unknown, trocadas?: Readonly<Record<number, string>> | null): CenaRefazivel[] {
   const response = claim.response
   if (kling4TrialEngineFromClaim(response) !== 'kling4' || claim.falModels.length !== 1 ||
-      !['kling/v4/text-to-video', 'kling/v4/image-to-video'].includes(claim.falModels[0])) return []
+      !['kling/v4/text-to-video', 'kling/v4/image-to-video', 'kling/v4/reference-to-video'].includes(claim.falModels[0])) return []
   const original = claim.authorizedCompletedUrls[0]
   if (!https(original)) return []
   const marker = response!.kling4_trial as Obj, plan = marker.scene_plan

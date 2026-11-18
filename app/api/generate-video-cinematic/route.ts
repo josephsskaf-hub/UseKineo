@@ -32,6 +32,8 @@ import { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim'
 import { kling4GratisPassaNaTrava } from '@/lib/kling4GratisTravaServer' // KINEO-TRAVA-K4-GRATIS-1111
 import { kling4GratisDentroDoTeto } from '@/lib/kling4GratisTetoServer' // KINEO-TETO-K4-GRATIS-1111
 import { medirFalaDoKling4Trial, type FalaK4 } from '@/lib/kling4TrialScript' // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "2 c"]
+import { fixedCharacterEnabled, fixedCharacterReference, referenceRehearsal } from '@/lib/cinematic/kling4PersonagemFixo'
+import { KLING4_REFERENCE_MODEL, type Kling4CharacterReference } from '@/lib/kling4Trial'
 import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy'
 import { kling4PaidCredits, kling4PaidFalExtrasMilliUsd, kling4PaidBudget } from '@/lib/kling4PaidPricing'
 import { isKling4PaidFilmSeconds, prepareKling4PaidFilm, kling4PaidFallbackPrompts } from '@/lib/kling4PaidFilm'
@@ -1619,11 +1621,19 @@ async function manipularPost(req: NextRequest) {
     // user's own clips.
     // KINEO-VERBATIM-SEM-MARCADOR-2026-08-24: `script_mode` ('verbatim'|'ai')
     // e `dry_run` (validador de $0, só contas do fundador) entram no contrato.
-    let body: { generationId?: string; prompt?: string; duration?: number; allow_shorter_duration?: boolean; engine?: string; language?: string; vertical?: string; characterId?: string; script_mode?: string; k4_gratis_ensaio?: boolean; /* KINEO-K4-GRATIS-20S-1711 — só isDryRunAccount: o filme grátis do Kling 4 com teto de 20 s neste pedido */ dry_run?: boolean | 'stills'; /* KINEO-BANCO-PROVA-2710 — 'stills' = o banco de pedidos-prova (para no still, só conta do ensaio) */ brollScenes?: Array<{ sceneNumber?: number; brollPrompt?: string; shotType?: string; negativePrompt?: string; userFootageUrl?: string }>; globalStyle?: { mood?: string; lighting?: string; cameraStyle?: string }; /* KINEO-K4-SUJEITO-0111 — a ideia de onde o roteiro estruturado pelo cliente nasceu (só o sujeito obrigatório do Kling 4 lê) */ original_idea?: string }
+    let body: { generationId?: string; prompt?: string; duration?: number; allow_shorter_duration?: boolean; engine?: string; language?: string; vertical?: string; characterId?: string; script_mode?: string; k4_personagem_fixo?: boolean; k4_reference_plan?: unknown; k4_gratis_ensaio?: boolean; /* KINEO-K4-GRATIS-20S-1711 — só isDryRunAccount: o filme grátis do Kling 4 com teto de 20 s neste pedido */ dry_run?: boolean | 'stills'; /* KINEO-BANCO-PROVA-2710 — 'stills' = o banco de pedidos-prova (para no still, só conta do ensaio) */ brollScenes?: Array<{ sceneNumber?: number; brollPrompt?: string; shotType?: string; negativePrompt?: string; userFootageUrl?: string }>; globalStyle?: { mood?: string; lighting?: string; cameraStyle?: string }; /* KINEO-K4-SUJEITO-0111 — a ideia de onde o roteiro estruturado pelo cliente nasceu (só o sujeito obrigatório do Kling 4 lê) */ original_idea?: string }
     try {
       body = await req.json()
     } catch {
       return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 })
+    }
+    const ensaioPersonagemFixo = fixedCharacterEnabled(user.email, body.k4_personagem_fixo)
+    if (body.k4_personagem_fixo === true && body.dry_run === true) {
+      if (!ensaioPersonagemFixo) return NextResponse.json({ error: 'Rehearsal disabled.' }, { status: 403 })
+      const preview = referenceRehearsal(body.k4_reference_plan)
+      return preview ? NextResponse.json(preview) : NextResponse.json({
+        reason: 'prepared_reference_plan_required', charged: false,
+      }, { status: 422 })
     }
     // KINEO-APARENCIA-DO-PEDIDO-1311 (peça 1) [CEO 13/11] — a tela não mandou a ideia, mas o roteiro despachado começa com o que o nosso escritor
     // gravou dela (script_head do script_written da pessoa, até 6 h; lib/cinematic/ideiaDoEscritor1311): a ideia volta, como a tela mandaria.
@@ -4050,6 +4060,13 @@ async function manipularPost(req: NextRequest) {
     // KINEO-ELENCO-TRAVA-0311 — infantil e sem a cor sorteada que o pedido não disse. Antes do snapshot: a estrada clássica (policy) e a hollywood (fichaDoProtagonista → characterHint) leem a travada.
     const travaEstiloDoPedido = !qualidadeHerdada && personagemElenco.elenco.length > 0 ? travarEstiloDoElenco(personagemElenco.elenco, styleAnchor, textoDoPedido(prompt, body.original_idea)) : null // KINEO-ELENCO-TRAVA-0311
     if (travaEstiloDoPedido && travaEstiloDoPedido.trocas.length > 0) { personagemElenco.elenco = travaEstiloDoPedido.elenco; if (personagem.ativo && !estrelaFicha && classicVisualMode === 'character_story') { classicVisualPolicy.character = fichaDoProtagonista(personagemElenco.elenco); const secundariosTravados = elencoSecundario(personagemElenco.elenco); if (secundariosTravados.length > 0) classicVisualPolicy.elenco = secundariosTravados }; console.log(`[personagem] gen=${generationId} KINEO-ELENCO-TRAVA: estilo ${styleAnchor.look} travado em ${travaEstiloDoPedido.trocas.length} ficha(s)`) } // KINEO-ELENCO-TRAVA-0311
+    // The founder may already have a subscription and previous films. Only opt this
+    // short narrated film into the existing trial dispatcher after identifying a human lead.
+    if (ensaioPersonagemFixo && KLING4_TRIAL_LIVE && seedanceShortFilm && !kidsPedidoAdmitido &&
+        classicVisualMode === 'character_story' && personagemElenco.elenco.some(f => f.protagonista && f.tipo === 'humano')) {
+      kling4TrialCandidate = true
+      aspectRequested = '9:16'
+    }
     // KINEO-QUALIDADE-TODOS-MOTORES-2910 — signed snapshot shared by both engine branches.
     qualitySnapshot = { version: FILM_QUALITY_VERSION, sourceGenerationId: generationId, characters: personagemElenco.elenco,
       style: { ...styleAnchor }, characterReferences: [...(qualidadeHerdada?.characterReferences ?? [])], approvedStills: [...(qualidadeHerdada?.approvedStills ?? [])],
@@ -8092,7 +8109,11 @@ async function manipularPost(req: NextRequest) {
     const kling4Prompts = classicScenePrompts.map((p, i) => promptDaCenaKling4(p, styleAnchor, i)) // KINEO-QUALIDADE-TODOS-MOTORES-2910 — cast/action/style survive the final provider limit. · KINEO-CENA-PEDIDO-3010 — revisor 29/10: a moldura (abertura, 9:16, "characters act naturally") comia os 512 e a ação da fala sumia; sai antes do corte, e cada cena ganha um eixo de câmera
     if (kling4TrialCandidate) for (let i = 0; i < kling4Prompts.length; i++) kling4Prompts[i] = promptDaCenaKling4(classicScenePrompts[i], styleAnchor, i, true) // KINEO-REPETICAO-FREE15-1011 — filme grátis: o clipe pede só o plano da imagem-chave; cena com plano próprio fica sem eixo (nunca o rodízio antigo nem "subject small"). Pago: a linha acima, byte a byte
     // Final scene speech, after short-film repairs; this is the same voice/language/speed ruler signed for compose.
-    const kling4Timing: { voiceovers: string[]; wordsPerSecond: number; pelaVoz?: { segundosDaVoz: number } | null; clipSeconds?: number } = { voiceovers: scenes.map(s => s.voiceover ?? ''), wordsPerSecond: narrationRate.wordsPerSecond } // KINEO-K4-DURACAO-PELA-VOZ-1311: + pelaVoz (preenchido depois da medida da voz)
+    const kling4Timing: { fixedCharacter?: Kling4CharacterReference; voiceovers: string[]; wordsPerSecond: number; pelaVoz?: { segundosDaVoz: number } | null; clipSeconds?: number } = { voiceovers: scenes.map(s => s.voiceover ?? ''), wordsPerSecond: narrationRate.wordsPerSecond } // KINEO-K4-DURACAO-PELA-VOZ-1311: + pelaVoz (preenchido depois da medida da voz)
+    if (ensaioPersonagemFixo && kling4TrialCandidate && classicVisualMode === 'character_story') {
+      const reference = fixedCharacterReference(qualitySnapshot, [pedidoDoCliente, prompt].filter(Boolean).join('\n'))
+      if (reference) kling4Timing.fixedCharacter = reference
+    }
     // KINEO-K4-SUJEITO-0111 — revisor 01/11 (CENA_FORA_DO_PEDIDO): "o avião C-54 que sumiu" sem avião (2 homens de terno em 5 de 8 quadros), "criança com caneta 3D"
     // sem a criança, "vida sob o gelo" sem o desfecho. Antes do POST pago: o sujeito central do PEDIDO tem de estar em pelo menos 1 cena do multi_prompt; se não está, a
     // cena cuja fala o cita (senão a última) ganha o sujeito no orçamento dos 512 e perde a imagem-chave do meio desenhada sem ele. Corrige, nunca bloqueia; a fala não muda.
@@ -8120,6 +8141,16 @@ async function manipularPost(req: NextRequest) {
         : null // KINEO-K4-PLANO-POR-SECAO-1111
       if (q && sujeitoAparenciaLigada() && kling4Sujeito.r?.relato.planos_com_sujeito?.length) q.prompts.splice(0, q.prompts.length, ...comSujeitoNasMetades(q.prompts, q.grupos, kling4Sujeito.r.relato.sujeito)) // KINEO-SUJEITO-APARENCIA-1311 (b) — o sujeito completo que foi a todo plano vai também a cada metade de cena
       const r = q ? { prompts: q.prompts, approvedStills: q.stills, timing: { voiceovers: q.falas, wordsPerSecond: a.timing.wordsPerSecond, pelaVoz: a.timing.pelaVoz ?? null }, planos: q.grupos } : { ...a, planos: null } // KINEO-K4-PLANO-POR-SECAO-1111
+      if (a.timing.fixedCharacter && verbatim && parsedScript.segments.length > scenes.length && !q) {
+        // An unmapped script section must never be advertised as a reference shot.
+        r.timing = { ...r.timing, fixedCharacter: undefined }
+      } else if (a.timing.fixedCharacter) {
+        // Put each planned visual ahead of repeated style/setting in the 512-character budget.
+        const cues = q ? q.grupos.flat().map(i => parsedScript.segments[i]?.pexelsQuery)
+          : scenes.map(s => s.description)
+        r.prompts = r.prompts.map((p, i) => cues[i]?.trim() ? cues[i]!.trim() + '. ' + p : p)
+        if (q) Object.assign(r.timing, { fixedCharacter: a.timing.fixedCharacter })
+      }
       if (q && a.timing.clipSeconds) Object.assign(r.timing, { clipSeconds: a.timing.clipSeconds }) // KINEO-K4-GRATIS-20S-1711 — o plano por seção leva o total do clipe (sem o campo = 15)
       const r2 = { ...r, prompts: r.prompts.map((p) => comSuperficieNoPlano(p)) } // KINEO-BALAO-SEM-LETRA-1111 [CEO 11/11] — a metade da cena fundida nasce da pista da seção depois da proteção de superfície: balão/página/tela dela ganha a frase sem letra aqui
       const r3 = kling4PlanoVariado ? { ...r2, prompts: planosComEscalaVariada(r2.prompts, r2.approvedStills).prompts } : r2 // KINEO-K4-PLANO-VARIADO-1111 — escala diferente de plano a plano (nunca dois closes seguidos); plano com imagem-chave fica como está
@@ -8452,6 +8483,13 @@ async function manipularPost(req: NextRequest) {
             clip_word_starts: response.clip_word_starts,
           },
         } : {}),
+      }
+      if (kling4Trial.job?.model === KLING4_REFERENCE_MODEL) {
+        const e = kling4EnvioDoFilme()
+        const wire = buildKling4TrialInput(e.prompts, e.approvedStills, e.timing)
+        const shots = wire.input.multi_prompt as { duration: number }[]
+        response.k4_reference_plan = { story: [pedidoDoCliente, prompt].filter(Boolean).join('\n'), quality: qualitySnapshot,
+          shots: e.prompts.map((p, i) => ({ prompt: p, duration: shots[i].duration })) }
       }
       if (kling4Encaixe.r) (response.kling4_trial as Record<string, unknown>).narration_refit = kling4Encaixe.r.rastro // KINEO-K4-SEMPRE-0511 — quanto foi encurtada
       if (kling4Trial.job) (response.kling4_trial as Record<string, unknown>).fallback_scenes = classicScenePrompts.map((prompt, i) => ({ prompt, duration: scenes[i].clipSeconds ?? 6, ...(kling4ApprovedStills[i] ? { image_url: kling4ApprovedStills[i] } : {}) })) // KINEO-RESERVA-H3-0611 — a imagem aprovada viaja assinada para a reserva

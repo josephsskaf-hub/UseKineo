@@ -972,7 +972,7 @@ export async function startKling4TrialFallback(args: {
   }
   if (marker.engine_used === 'seedance15_fallback' || (marker.engine_used === 'kling4' && marker.fallback_started === true)) return { ok: true, claim: current }
   if (marker.engine_used !== 'kling4' || current.falRequestIds.length !== 1 || current.falRequestIds[0] !== args.originalRequestId ||
-      !['kling/v4/text-to-video','kling/v4/image-to-video'].includes(current.falModels[0]) || current.authorizedCompletedUrls.some(Boolean)) {
+      !['kling/v4/text-to-video','kling/v4/image-to-video','kling/v4/reference-to-video'].includes(current.falModels[0]) || current.authorizedCompletedUrls.some(Boolean)) {
     return { ok: false, error: 'original source changed or already authorized', conflict: true }
   }
   const nextResponse = { ...response, kling4_trial: { ...marker, fallback_started: true, fallback_reason: args.reason } }
@@ -999,7 +999,7 @@ export async function switchKling4TrialToSeedanceFallback(args: {
     return sameArray(current.falRequestIds, args.requestIds) ? { ok: true, claim: current } : { ok: false, error: 'fallback already frozen', conflict: true }
   }
   if (marker.engine_used !== 'kling4' || marker.fallback_started !== true || current.falRequestIds.length !== 1 || current.falRequestIds[0] !== args.originalRequestId ||
-      !['kling/v4/text-to-video','kling/v4/image-to-video'].includes(current.falModels[0]) || current.authorizedCompletedUrls.some(Boolean)) {
+      !['kling/v4/text-to-video','kling/v4/image-to-video','kling/v4/reference-to-video'].includes(current.falModels[0]) || current.authorizedCompletedUrls.some(Boolean)) {
     return { ok: false, error: 'original source changed or already authorized', conflict: true }
   }
   const fallback = marker.fallback_response as Record<string, unknown> | undefined

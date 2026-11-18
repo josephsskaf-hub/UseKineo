@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { CinematicClaim } from '@/lib/cinematic/claim'
-import { KLING4_T2V_MODEL, KLING4_I2V_MODEL, KLING4_TRIAL_TIMEOUT_MS, pollKling4TrialVideo } from '@/lib/kling4Trial'
+import { KLING4_T2V_MODEL, KLING4_I2V_MODEL, KLING4_REFERENCE_MODEL, KLING4_TRIAL_TIMEOUT_MS, pollKling4TrialVideo } from '@/lib/kling4Trial'
 import { kling4TrialEngineFromClaim, kling4TrialVideoUrlFromClaim } from '@/lib/kling4TrialClaim'
 import { ensureKling4TrialFallback } from '@/lib/kling4TrialFallback'
 
@@ -45,7 +45,7 @@ export async function advanceKling4TrialStatus(
   if (engine !== 'kling4') return { kind: 'ordinary', claim: args.claim }
   const claim = args.claim
   if (claim.falRequestIds.length !== 1 || !claim.falRequestIds[0] ||
-      ![KLING4_T2V_MODEL, KLING4_I2V_MODEL].includes(claim.falModels[0])) return { kind: 'pending', claim }
+      ![KLING4_T2V_MODEL, KLING4_I2V_MODEL, KLING4_REFERENCE_MODEL].includes(claim.falModels[0])) return { kind: 'pending', claim }
   const requestId = claim.falRequestIds[0]
   // Old synchronous births already proved their result and must remain deliverable.
   const completed = claim.authorizedCompletedUrls[0] || kling4TrialVideoUrlFromClaim(claim.response)

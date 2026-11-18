@@ -18,7 +18,7 @@ import {
 } from '@/lib/cinematic/claim'
 import { refundRenderCredits } from '@/lib/credits/refund'
 import { alertFalExhausted } from '@/lib/falAlert' // KINEO-FAL-SALDO-ALERTA-2026-09-28
-import { KLING4_T2V_MODEL, KLING4_I2V_MODEL } from '@/lib/kling4Trial'
+import { KLING4_T2V_MODEL, KLING4_I2V_MODEL, KLING4_REFERENCE_MODEL } from '@/lib/kling4Trial'
 import { advanceKling4TrialStatus, kling4TrialPollIdsMatch } from '@/lib/kling4TrialAsyncStatus'
 import { advanceKling4PaidStatus, kling4PaidMarker, kling4PaidPollIdsMatch } from '@/lib/kling4PaidAsyncStatus'
 import { recoverSceneFailures, sceneRetryPollIdsMatch } from '@/lib/cinematic/sceneRecovery' // KINEO-CENA-RETRY-3010 [TRAVA 8.2 — pedido do fundador 30/10]
@@ -80,6 +80,7 @@ const OMNI_I2V_MODEL = 'google/gemini-omni-flash/image-to-video'
 const S25_I2V_MODEL = 'fal-ai/seedance-2.5/image-to-video'
 const S25_T2V_MODEL = 'fal-ai/seedance-2.5/text-to-video'
 const ALLOWED_MODELS = new Set([
+  KLING4_REFERENCE_MODEL,
   KLING4_T2V_MODEL,
   KLING4_I2V_MODEL,
   H3_T2V_MODEL,
