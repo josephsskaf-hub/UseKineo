@@ -1,4 +1,4 @@
-// KINEO-CELULAR-A-0611 — guardião sem rede: tema escuro só por padrão no celular, preferência salva vence, computador intacto.
+// KINEO-CELULAR-A-0611 — guardião sem rede: preferência salva vence e o padrão do site depende da largura.
 import fs from 'node:fs'
 import vm from 'node:vm'
 import ts from 'typescript'
@@ -9,9 +9,17 @@ const js = ts.transpileModule(ler('lib/ui/appearance.ts'), { compilerOptions: { 
 const mod = { exports: {} }
 vm.runInNewContext(js, { module: mod, exports: mod.exports })
 const boot = mod.exports.APPEARANCE_BOOT
-const roda = (src, salvo, celular) => {
+const ambiente = (salvo, celular, pathname, bloqueado = false) => ({
+  location: { pathname },
+  localStorage: { getItem: () => {
+    if (bloqueado) throw new Error('storage indisponível')
+    return salvo
+  } },
+  matchMedia: () => ({ matches: celular }),
+})
+const roda = (src, salvo, celular, pathname = '/', bloqueado = false) => {
   const document = { documentElement: { dataset: {} } }
-  vm.runInNewContext(src, { document, localStorage: { getItem: () => salvo }, matchMedia: () => ({ matches: celular }) })
+  vm.runInNewContext(src, { document, ...ambiente(salvo, celular, pathname, bloqueado) })
   return document.documentElement.dataset.theme
 }
 const prova = (src) => [
@@ -23,6 +31,31 @@ const prova = (src) => [
 ]
 prova(boot).forEach((v, i) => checa('tema caso ' + (i + 1), v))
 checa('mutante (claro salvo não vence) é pego', prova(boot.replace("s!=='light'&&", '')).includes(false))
+const casosForCreators = [
+  ['visita nova no desktop', '/for-creators', null, false, false, 'dark'],
+  ['visita nova no celular', '/for-creators', null, true, false, 'dark'],
+  ['preferência vazia', '/for-creators', '', false, false, 'dark'],
+  ['formato com barra final', '/for-creators/', null, false, false, 'dark'],
+  ['claro salvo no desktop', '/for-creators', 'light', false, false, 'light'],
+  ['claro salvo no celular', '/for-creators', 'light', true, false, 'light'],
+  ['escuro salvo no desktop', '/for-creators', 'dark', false, false, 'dark'],
+  ['storage indisponível', '/for-creators', null, false, true, 'dark'],
+  ['rota com prefixo semelhante', '/for-creators-other', null, false, false, 'light'],
+  ['pricing no desktop', '/pricing', null, false, false, 'light'],
+  ['pricing no celular', '/pricing', null, true, false, 'dark'],
+  ['pricing com storage indisponível', '/pricing', null, true, true, 'light'],
+]
+const provaForCreators = src => casosForCreators.every(([, path, salvo, celular, bloqueado, esperado]) =>
+  roda(src, salvo, celular, path, bloqueado) === esperado)
+checa('padrão de /for-creators no script do head e isolamento da rota', provaForCreators(boot))
+checa('mutante (exceção removida do head) é pego', !provaForCreators(boot.replace('c||matchMedia', 'matchMedia')))
+checa('mutante (exceção aplicada ao site inteiro) é pego', !provaForCreators(boot.replace('c||matchMedia', 'true||matchMedia')))
+for (const [label, path, salvo, celular, bloqueado, esperado] of casosForCreators) {
+  const browser = { exports: {} }
+  vm.runInNewContext(js, { exports: browser.exports, ...ambiente(salvo, celular, path, bloqueado) })
+  const { FOR_CREATORS_PATH, readPageAppearance } = browser.exports
+  checa('navegação e boot concordam · ' + label, readPageAppearance(FOR_CREATORS_PATH.test(path)) === esperado)
+}
 const semMedia = { documentElement: { dataset: {} } }
 vm.runInNewContext(boot, { document: semMedia, localStorage: { getItem: () => null } })
 checa('navegador sem matchMedia fica no claro', semMedia.documentElement.dataset.theme === 'light')

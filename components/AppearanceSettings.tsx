@@ -1,13 +1,17 @@
 'use client'
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
-import { APPEARANCE_KEY, parseAppearance, type Appearance } from '@/lib/ui/appearance'
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { usePathname } from 'next/navigation'
+import { APPEARANCE_KEY, FOR_CREATORS_PATH, parseAppearance, readPageAppearance, type Appearance } from '@/lib/ui/appearance'
 import { useUiCopy } from '@/components/InterfaceLanguage'
 
 const AppearanceContext = createContext({ open: (_trigger: HTMLElement) => {} })
 
 export function AppearanceProvider({ children }: { children: ReactNode }) {
   const t = useUiCopy()
+  const defaultDark = FOR_CREATORS_PATH.test(usePathname() ?? '')
+  const previousDefaultDark = useRef(defaultDark)
+  const temporaryChoice = useRef<Appearance | null>(null)
   const [theme, setTheme] = useState<Appearance>('light')
   const [isOpen, setOpen] = useState(false)
   const [updated, setUpdated] = useState(false)
@@ -17,14 +21,25 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
     document.documentElement.dataset.theme = value
     setTheme(value)
     if (persist) {
-      try { localStorage.setItem(APPEARANCE_KEY, value) } catch { /* Keep this visit's choice. */ }
+      try {
+        localStorage.setItem(APPEARANCE_KEY, value)
+        temporaryChoice.current = null
+      } catch { temporaryChoice.current = value }
       setUpdated(true)
     }
   }, [])
+  useLayoutEffect(() => {
+    if (previousDefaultDark.current === defaultDark) return
+    previousDefaultDark.current = defaultDark
+    apply(temporaryChoice.current ?? readPageAppearance(defaultDark))
+  }, [apply, defaultDark])
   useEffect(() => {
     apply(parseAppearance(document.documentElement.dataset.theme))
     const sync = (event: StorageEvent) => {
-      if (event.key === APPEARANCE_KEY || event.key === null) apply(parseAppearance(event.newValue))
+      if (event.key !== APPEARANCE_KEY && event.key !== null) return
+      temporaryChoice.current = null
+      const value = event.newValue
+      apply(value === 'light' || value === 'dark' ? value : previousDefaultDark.current ? 'dark' : 'light')
     }
     window.addEventListener('storage', sync)
     return () => window.removeEventListener('storage', sync)
@@ -48,7 +63,7 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
       <fieldset className="appearance-options"><legend className="sr-only">{t('Appearance')}</legend>
         {(['light', 'dark'] as const).map(value => <label key={value} className="appearance-option">
           <span className={`appearance-mini appearance-mini-${value}`} aria-hidden="true"><i /><span><b /><em /><em /><em /></span></span>
-          <span className="appearance-label"><strong>{t(value === 'light' ? 'Light' : 'Dark')}</strong><input type="radio" name="kineo-appearance" value={value} checked={theme === value} onChange={() => apply(value, true)} /></span>
+          <span className="appearance-label"><strong>{t(value === 'light' ? 'Light' : 'Dark')}</strong><input type="radio" name="kineo-appearance" value={value} checked={theme === value} onChange={() => apply(value, true)} onClick={() => { if (defaultDark && theme === value) apply(value, true) }} /></span>
           <small>{t(value === 'light' ? 'Soft white surfaces.' : 'Deep navy surfaces.')}</small>
         </label>)}
       </fieldset>
