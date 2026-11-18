@@ -17,6 +17,7 @@ import { TopupOuRecargaModal } from '@/components/billing/BuyCreditsEntry' // KI
 import ControlIcon from '@/components/ControlIcon'
 import { outOfCreditsDestination } from '@/lib/credits/outOfCreditsPlans'
 import { clipCopy, type ClipCopyKey } from '@/lib/clips/clipCopy'
+import { clipPhotoProblem, type ClipPhotoProblem } from '@/lib/clips/clipPhotoInput'
 import { pareceRoteiroDeFilme, hrefDoFilmeComTexto, promptDoClipeComEstilo, CLIPE_ROTEIRO_EVENTOS, citaMarcaNoClipe, CLIPE_LOGO_EVENTOS } from '@/lib/clips/clipTextoLongo' // KINEO-CENA-PEDIDO-3010 · KINEO-CLIPE-OU-FILME-3010 · KINEO-CLIPE-LOGO-3010
 import ClipTelemetry, { readClipEntryOrigin } from '@/lib/clips/ClipTelemetry'
 import { CLIP_MEASUREMENT_ENABLED } from '@/lib/clips/clipMeasurement'
@@ -280,6 +281,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
   const [aspect, setAspect] = useState<string>('9:16')
   const [prompt, setPrompt] = useState('')
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const [photoProblem, setPhotoProblem] = useState<ClipPhotoProblem | null>(null)
   const [uploading, setUploading] = useState(false)
   const [busy, setBusy] = useState(false)
   // upgrade (KINEO-S25-CLIPES-2026-10-06): recusa 402 engine_paid → o link é "ver planos", não "adicionar créditos".
@@ -365,6 +367,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
     setEffectKey(null)
     rememberClipEffect(null) // KINEO-CLIPE360-AMOSTRA-1410
     setPhotoUrl(null)
+    setPhotoProblem(null)
     setEngineKey(target.key)
     setSeconds(FREE_CLIP_IDEA.seconds)
     setAspect(FREE_CLIP_IDEA.aspect)
@@ -382,6 +385,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
     setEffectKey(null)
     rememberClipEffect(null)
     setPhotoUrl(null)
+    setPhotoProblem(null)
     setEngineKey(target.key)
     setSeconds(trend.seconds)
     setAspect(trend.aspect)
@@ -472,7 +476,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
       })()
     : []
   const textOk = withPhoto ? prompt.trim().length === 0 || prompt.trim().length >= 3 : prompt.trim().length >= 3
-  const canGenerate = !!engine && lengthOk && !modeProblem && textOk && !busy && !uploading && cost !== null
+  const canGenerate = !!engine && lengthOk && !modeProblem && textOk && !busy && !uploading && !photoProblem && cost !== null
   // KINEO-CLIPE-OU-FILME-3010 — texto de filme sem foto: o botão principal leva ao Filme narrado; o clipe fica como opção pequena.
   const roteiroDeFilme = !withPhoto && pareceRoteiroDeFilme(prompt)
   const roteiroVistoRef = useRef(false)
@@ -527,10 +531,16 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
   async function onPhoto(file: File | null) {
     if (!file) return
     setError(null)
+    setPhotoProblem(null)
     setUploading(true)
     setFaceUrl(null) // KINEO-ROSTO-QUADRO-CHAVE-2810
     try {
       const normalized = await compressPhoto(file, !!remix) // KINEO-ROSTO-QUADRO-CHAVE-2810 — no remix: sempre JPEG ≤ 1600 px, sem barras pretas
+      const problem = await clipPhotoProblem(normalized)
+      if (problem) {
+        setPhotoProblem(problem)
+        return
+      }
       const upload = uploadClipPhoto // KINEO-ABRACO-BEIJO-3110 — o upload subiu para o componente (a foto comum, o rosto e as 2 fotos do Abraço/Beijo usam o mesmo)
       const url = await upload(normalized) // KINEO-ROSTO-QUADRO-CHAVE-2810
       setPhotoUrl(url) // KINEO-ROSTO-QUADRO-CHAVE-2810
@@ -782,7 +792,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
     </div>
   )
 
-  const photoRow = photoBlocked && !photoUrl ? (
+  const photoRow = <>{photoBlocked && !photoUrl ? (
     <div className="photo-row" data-clip-photo-blocked={engine?.key}>
       <span className="clip-meta" style={{ marginTop: 0 }}>{t('noPhoto', { engine: engine?.label ?? '' })}</span>
       {photoPickButtons}
@@ -796,7 +806,22 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
       <span className="clip-meta" style={{ marginTop: 0 }}>{effect ? t('effectPhoto') : remix ? <UiLabel>Required — one clear photo where the face is easy to see. Kineo first places you in the scene, then films it.</UiLabel> : <>{t('photo')} · {t('photoHint')}</>}</span>{/* KINEO-ROSTO-AJUSTE-2810 — no remix a foto é obrigatória (o "Photo (optional)" do clipe livre enganava) · KINEO-ROSTO-QUADRO-CHAVE-2810 — era "It becomes the first frame." (agora o 1º quadro é a cena) */}
       <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(e) => void onPhoto(e.target.files?.[0] ?? null)} />
     </div>
-  )
+  )}
+    {photoProblem && (
+      <div className="notice" role="alert" data-clip-photo-problem={photoProblem}>
+        <UiLabel>{photoProblem === 'aspect'
+          ? 'This photo is too wide or too tall. Crop it to 16:9 or 9:16, or choose another photo.'
+          : 'We could not read this photo. Choose a JPG, PNG or WebP image.'}</UiLabel>
+        {!effect && !remix && (
+          <div className="row">
+            <button type="button" className="pill" onClick={() => setPhotoProblem(null)}>
+              <UiLabel>Continue without a photo</UiLabel>
+            </button>
+          </div>
+        )}
+      </div>
+    )}
+  </>
 
   const errorBlock = error && (
     <p role="alert" style={{ marginTop: 10, padding: '9px 12px', borderRadius: 10, background: 'rgba(255,107,107,.08)', border: '1px solid rgba(255,107,107,.35)', color: 'var(--text)', fontSize: 12.5 }}>
