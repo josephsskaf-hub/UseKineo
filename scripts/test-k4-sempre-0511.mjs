@@ -72,7 +72,7 @@ async function prova(fonte = ler(LIB), rota = ler(ROTA), status = ler(STATUS), c
   if (!/\.narration_refit = kling4Encaixe\.r\.rastro/.test(rota)) e.push('D3 rastro no claim')
   if (!/kling4Trial = \{ engineUsed: 'seedance15_fallback', costUsd: 0, reason: kling4Fala && !kling4Fala\.cabe \? kling4Fala\.reason/.test(rota)) e.push('D4 a reserva continua')
   // E) a tela diz a verdade
-  if (!/kling4TrialFalaEncurtada\(resp\) \? \{ engine_note: 'narration_shortened' \}/.test(status)) e.push('E1 status avisa')
+  if (!/kling4TrialFalaEncurtada\(prepaidCinematicClaim\?\.response\) \? \{ engine_note:'narration_shortened' \}/.test(status)) e.push('E1 status avisa') // KINEO-RECIBO-MOTOR-1811 [CEO Claude]: reancorado, o aviso agora lê o claim direto
   if (!/kling4TrialFalaEncurtada[\s\S]*!== 'kling4'\) return false[\s\S]*narration_refit/.test(claim)) e.push('E2 só em filme Kling 4 encurtado')
   if (!tela.includes('{textoEncurtadoK4 ? <p data-kling4-shortened-note') || !tela.includes(AVISO) || !tela.includes("setTextoEncurtadoK4(data.engine_note === 'narration_shortened')")) e.push('E3 tela mostra o aviso')
   return e
