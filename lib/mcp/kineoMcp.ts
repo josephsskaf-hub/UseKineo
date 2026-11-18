@@ -36,6 +36,7 @@ import {
   DEFAULT_LANGUAGE,
   DURATIONS,
   ENGINE_LABELS,
+  ROTULOS_DO_CONTRATO_CONGELADO, // KINEO-ROTULO-CHATGPT-H3-1411 (opção A, CEO 16/11)
   HANDOFF_ENGINES,
   HANDOFF_TTL_DAYS,
   SCRIPT_MAX_CHARS,
@@ -160,7 +161,7 @@ export function buildTools(opts: { pausedEngines: readonly string[] }): McpTool[
   const engines = activeEngines(opts.pausedEngines)
   const standard = engines.filter((e) => engineFamily(e as never) === 'classic')
   const premium = engines.filter((e) => engineFamily(e as never) === 'hollywood')
-  const label = (ids: string[]) => ids.map((e) => `${e} = ${ENGINE_LABELS[e as keyof typeof ENGINE_LABELS]}`).join(', ')
+  const label = (ids: string[]) => ids.map((e) => `${e} = ${ROTULOS_DO_CONTRATO_CONGELADO[e as keyof typeof ROTULOS_DO_CONTRATO_CONGELADO]}`).join(', ') // KINEO-ROTULO-CHATGPT-H3-1411 (opção A, CEO 16/11) — metadado congelado; era: ENGINE_LABELS
   const ref = DEFAULT_DURATION
 
   const factsTitle = 'Get Kineo plans, pricing and engines'

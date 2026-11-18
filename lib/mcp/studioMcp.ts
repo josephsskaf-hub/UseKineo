@@ -14,7 +14,7 @@
 // recusa sem saldo ANTES de chamar o caminho pago, teto por usuário, idempotência pela chave do cliente, anotações.
 //
 // NENHUM PREÇO DIGITADO: crédito por motor/duração vem de creditCostForDuration (a função que COBRA no site).
-import { ENGINE_LABELS } from '@/lib/gptHandoff'
+import { rotuloDoMotorNaData } from '@/lib/gptHandoff' // KINEO-ROTULO-CHATGPT-H3-1411 — era: ENGINE_LABELS (o rótulo e o corte vêm da régua única)
 import { creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 import { supportedDurationsFor } from '@/lib/durationByEngine'
 import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy' // KINEO-CONECTOR-K4-2910
@@ -60,19 +60,10 @@ export const STUDIO_SCRIPT_MAX_CHARS = 6000
 export const STUDIO_IDEA_MAX_CHARS = 2000
 export const STUDIO_LIST_MAX = 20
 
-// KINEO-ROTULO-CONECTOR-H3-1411 [CEO 14/11, item (d): rótulo honesto do conector] — selo honesto (CLAUDE.md: "o motor mostrado é o motor real"): a chave 'seedance'
-// renderiza no MiniMax H3 Turbo (aberto aos clientes em KINEO-H3-TURBO-ABRE-0511, 05/11 21:46 BRT; todo envio desde KINEO-SEEDANCE-SAI-1111, 11/11).
-// O nome é o do Studio (StudioClient: 'MiniMax H3 Turbo'). O valor do parâmetro ('seedance') e os créditos NÃO mudam. Filme feito ANTES de
-// 05/11 21:46 BRT segue com o nome do motor que o fez (Seedance 1.5), como o llms.txt diz. ENGINE_LABELS (lib/gptHandoff) não muda aqui: ele
-// alimenta também o app do ChatGPT e a página /chatgpt-to-youtube-shorts (lado do GPT).
-export const STUDIO_H3_TURBO_DESDE = Date.parse('2026-11-06T00:46:55Z')
-export const STUDIO_ENGINE_LABELS: Readonly<Record<StudioEngine, string>> = { ...ENGINE_LABELS, seedance: 'MiniMax H3 Turbo' }
+// KINEO-ROTULO-CONECTOR-H3-1411 [CEO 14/11, item (d)] · KINEO-ROTULO-CHATGPT-H3-1411 — o rótulo e o corte moram agora em lib/gptHandoff.ts (ENGINE_LABELS e rotuloDoMotorNaData),
+// a MESMA régua do app do ChatGPT e do conector: seedance = MiniMax H3 Turbo; filme de antes de 05/11 21:46 BRT = Seedance 1.5. Parâmetro e créditos iguais.
 export function studioEngineLabel(engine: StudioEngine, criadoEm?: string | null): string {
-  if (engine === 'seedance' && criadoEm) {
-    const t = Date.parse(criadoEm)
-    if (Number.isFinite(t) && t < STUDIO_H3_TURBO_DESDE) return ENGINE_LABELS.seedance
-  }
-  return STUDIO_ENGINE_LABELS[engine]
+  return rotuloDoMotorNaData(engine, criadoEm)
 }
 
 export function activeStudioEngines(pausedEngines: readonly string[]): StudioEngine[] {

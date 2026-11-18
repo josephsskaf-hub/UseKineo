@@ -147,14 +147,32 @@ export const ENGINE_ALIASES: Readonly<Record<string, HandoffEngine>> = {
   'seedance-1.5': 'seedance',
 }
 
+// KINEO-ROTULO-CHATGPT-H3-1411 [CEO 14/11: "SIM, troque ENGINE_LABELS.seedance para o motor real"] — selo honesto no app do ChatGPT, no conector Kineo Studio e na página que lê
+// este rótulo: a chave 'seedance' renderiza no MiniMax H3 Turbo (aberto aos clientes em 05/11 21:46 BRT, KINEO-H3-TURBO-ABRE-0511; todo envio desde
+// 11/11, KINEO-SEEDANCE-SAI-1111). Muda SÓ o texto mostrado: o valor do parâmetro ('seedance'), os nomes das ferramentas e os créditos ficam iguais.
+// Filme feito antes do corte mantém o nome do motor que o fez (rotuloDoMotorNaData). Era: seedance: 'Seedance 1.5'.
+export const SEEDANCE_ROTULO_ANTIGO = 'Seedance 1.5'
+export const H3_TURBO_ROTULO_DESDE = Date.parse('2026-11-06T00:46:55Z')
 export const ENGINE_LABELS: Readonly<Record<HandoffEngine, string>> = {
   fast: 'Kineo 1',
-  seedance: 'Seedance 1.5',
+  seedance: 'MiniMax H3 Turbo', // KINEO-ROTULO-CHATGPT-H3-1411
   kling: 'Kling 2.5',
   veo: 'Veo 3.1',
   hollywood: KLING4_PAID_LIVE ? 'Kling 4.0' : 'Kling 3', // KINEO-CONECTOR-K4-2910 — com o interruptor ligado a rota hollywood renderiza Kling 4.0; selo honesto nos dois conectores
   h3: 'MiniMax H3',
   omni: 'Omni Flash',
+}
+// KINEO-ROTULO-CHATGPT-H3-1411 (opção A, CEO 16/11) — a DESCRIÇÃO das ferramentas (tools/list) é metadado congelado do app do ChatGPT v1.0.0 enviado à OpenAI (docs/chatgpt-plugin/contrato-v1.0.0.json,
+// guardião test-chatgpt-app-contrato-2026-10-06): ela segue o rótulo de 05/10 até a próxima versão do app, que leva o nome novo com o plano de revisão.
+// Todo o resto (resultado das ferramentas, capacidades, mensagens, conector Kineo Studio, páginas) mostra o motor real.
+export const ROTULOS_DO_CONTRATO_CONGELADO: Readonly<Record<HandoffEngine, string>> = { ...ENGINE_LABELS, seedance: SEEDANCE_ROTULO_ANTIGO }
+/** KINEO-ROTULO-CHATGPT-H3-1411 — o rótulo de um filme JÁ feito: o de antes do corte do H3 Turbo segue Seedance 1.5; data ausente ou ilegível = o rótulo de hoje. */
+export function rotuloDoMotorNaData(engine: HandoffEngine, criadoEm?: string | null): string {
+  if (engine === 'seedance' && criadoEm) {
+    const t = Date.parse(criadoEm)
+    if (Number.isFinite(t) && t < H3_TURBO_ROTULO_DESDE) return SEEDANCE_ROTULO_ANTIGO
+  }
+  return ENGINE_LABELS[engine]
 }
 
 // ─── As DUAS réguas (CLAUDE.md 02/09: "padronizar as duas QUEBRA um lado") ──
