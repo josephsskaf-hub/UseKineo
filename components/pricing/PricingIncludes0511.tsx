@@ -14,12 +14,13 @@ export const PRICING_INCLUI_0511: readonly string[] = [
   'Failed renders give your credits back automatically',
 ]
 
-export default function PricingIncludes0511({ condensed = false }: { condensed?: boolean } = {}) {
+export default function PricingIncludes0511({ condensed = false, compact = false }: { condensed?: boolean; compact?: boolean } = {}) {
+  const titleId = compact ? 'pricing-inclui-curto-titulo' : 'pricing-inclui-titulo'
   return (
-    <section data-kineo="pricing-inclui" aria-labelledby="pricing-inclui-titulo" className="mx-auto mt-8 max-w-4xl rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 text-left sm:p-6">
-      <h2 id="pricing-inclui-titulo" className="text-[16px] font-bold text-[var(--text)]"><UiLabel>Every paid plan includes</UiLabel></h2>
-      <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-        {PRICING_INCLUI_0511.filter(linha => !condensed || !linha.startsWith('Full refund within')).map((linha) => (
+    <section data-kineo="pricing-inclui" aria-labelledby={titleId} className="mx-auto mt-8 max-w-4xl rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 text-left sm:p-6">
+      <h2 id={titleId} className="text-[16px] font-bold text-[var(--text)]"><UiLabel>Every paid plan includes</UiLabel></h2>
+      <ul className={compact ? "mt-3 grid gap-2" : "mt-3 grid gap-2 sm:grid-cols-2"}>
+        {PRICING_INCLUI_0511.filter(linha => compact ? linha.startsWith('Cancel anytime') : !condensed || !linha.startsWith('Full refund within')).map((linha) => (
           <li key={linha} className="flex items-start gap-2 text-[14px] leading-snug text-[var(--muted)]">
             <span aria-hidden="true" className="font-bold text-[var(--accent)]">✓</span>
             <span><UiLabel>{linha}</UiLabel></span>

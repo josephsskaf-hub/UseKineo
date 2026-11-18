@@ -82,16 +82,31 @@ const money = (minor) => checkout.formatCheckoutMoney('usd', minor)
 // ── 1. Montagem no /pricing ───────────────────────────────────────────────────────────────────────────────────────
 {
   const src = rd(CLIENT)
-  const i = (s) => src.indexOf(s)
-  const plans = i('id="plans"'), ads = i('<PricingAdsBlock />'), credits = i('<PricingCreditsBlock />'), lite = i('id="autopilot-lite"')
-  ok(plans > 0 && ads > plans && credits > ads && lite > credits, '1a ordem: #plans < <PricingAdsBlock /> < <PricingCreditsBlock /> < #autopilot-lite')
-  ok(src.split('<PricingAdsBlock />').length === 2 && src.split('<PricingCreditsBlock />').length === 2, '1b cada bloco montado exatamente uma vez')
+  const { render } = require('./docs/revisoes/pricing-enxuta-1711/preview.cjs')
+  const ids = ['plans', 'fixture-pricing-ads', 'fixture-pricing-credits', 'autopilot-lite']
+  const inOrder = (html) => {
+    const positions = ids.map((id) => html.indexOf(`id="${id}"`))
+    return positions[0] >= 0 && positions.slice(1).every((position, index) => position > positions[index])
+  }
+  for (const billing of ['monthly', 'annual']) {
+    const html = render(false, false, false, { billing, orderFixture: true })
+    ok(inOrder(html), `1a ${billing}: HTML #plans < anúncios < créditos < #autopilot-lite`)
+    ok(ids.every((id) => html.split(`id="${id}"`).length === 2), `1b ${billing}: cada bloco aparece uma vez`)
+  }
+  const extras = '{referenceExtras}'
+  const plans = '{valueCards ? (() => {'
+  const mutant = render(false, false, false, {
+    orderFixture: true,
+    mutate: (code) => {
+      if (!code.includes(extras) || !code.includes(plans)) throw Error('Âncoras do mutante de ordem ausentes')
+      return code.replace(extras, '').replace(plans, extras + plans)
+    },
+  })
+  ok(ids.every((id) => mutant.includes(`id="${id}"`)) && !inOrder(mutant), '1e mutante: blocos renderizados antes dos planos quebram a asserção')
   ok(/^import PricingAdsBlock from '@\/components\/pricing\/PricingAdsBlock'/m.test(src) && /^import PricingCreditsBlock from '@\/components\/pricing\/PricingCreditsBlock'/m.test(src), '1c imports dos dois componentes novos')
   // KINEO-ANUAL-40OFF-2026-10-05 — o selo do anual virou "SAVE {ANNUAL_DISCOUNT_PERCENT}%" (era "2 MONTHS FREE").
   ok(src.includes("setBilling('monthly')") && src.includes("setBilling('annual')") && src.includes('Up to {ANNUAL_WELCOME_DISCOUNT_PERCENT}%'), '1d seletor Mensal/Anual intacto')
   // Os blocos NÃO podem nascer dentro de um ramo do seletor (são compras únicas, valem para os dois lados).
-  const antes = src.slice(Math.max(0, ads - 400), ads)
-  ok(!/billing === '(monthly|annual)' &&[^}]*$/.test(antes.split(')}').pop()), '1e blocos fora de qualquer ramo `billing === ...`')
   ok(!src.includes('CreditsTopupModal') && !src.includes('pack=ads_pass'), '1f PricingClient não abre recarga nem passe por conta própria')
 }
 

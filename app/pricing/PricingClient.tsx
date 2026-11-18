@@ -6,6 +6,7 @@ import Kling4PaidNotice, { useKling4PaidAvailability } from '@/components/Kling4
 import { KLING4_PAID_COPY, kling4PaidName, kling4PromoZeroCredits } from '@/lib/kling4PaidPresentation'
 
 import Kling4TrialNotice from '@/components/Kling4TrialNotice'
+import { CitationDetails, CitationDirectAnswer } from '@/components/seo/TrafficCitation2310'
 import PricingIncludes0511 from '@/components/pricing/PricingIncludes0511' // KINEO-PRICING-INCLUI-0511
 import { alternativasDoPlano, incluidoEmTodoPlano } from '@/lib/planoDetalhado' // KINEO-PRICING-DETALHE-0611
 
@@ -1022,6 +1023,428 @@ export default function PricingClient({ initialBilling = 'annual', watchPreview 
   )
 
   const businessPlans = <><PricingBusinessBlock onBuy={() => handleBuy('business')} pending={purchasing === 'business'} switchLabel={switching === 'business' ? 'Switching…' : planSwitchLabel(planSwitch, 'business', 'Business')} switchNote={planSwitch.subscribed && planSwitch.tier !== 'business'} /><PricingTeamsBlock /></>
+  const referencePeople = <>
+        {/* KINEO-WORKS-WITH-CLAUDE-2026-09-30 — selo de confiança verdadeiro: o conector MCP (/api/mcp) funciona hoje
+            como conector personalizado no Claude. Fica LOGO ABAIXO dos planos (perto do botão de compra): o topo da
+            página esconde de propósito todo <p> solto (.pricing-blue .pricing-intro>p). Texto, sem logo da Anthropic,
+            e sem "official/partner/directory" enquanto a listagem estiver em revisão (guardião
+            test-works-with-claude-2026-09-30). Aba nova: o link não tira o comprador da página de preços. */}
+        {!watchPricing && <p className="mt-5 text-center text-[12.5px] font-semibold text-[var(--muted)]">
+          <a
+            href="/claude-connector?src=pricing_badge#connect"
+            target="_blank"
+            rel="noopener"
+            className="underline-offset-2 hover:underline"
+            style={{ color: 'var(--muted)' }}
+          >
+            ✦ Works with Claude · add Kineo as a connector →
+          </a>
+        </p>}
+
+        {/* KINEO-VALOR-NO-CHECKOUT-3110 — logo abaixo dos planos: a prova social real (muda abaixo do piso) e as 3 perguntas que
+            recomendam o plano MAIS BARATO que cobre, com a conta à vista (lib/valorNoCheckout.ts). Preço e plano não mudam. */}
+        {!watchPricing && <p className="mx-auto mt-5 max-w-2xl text-center text-[12.5px] leading-relaxed text-[var(--muted)]" data-testid="pricing-first-film-guarantee">{FIRST_FILM_GUARANTEE.en}</p>}{/* KINEO-PRICING-LIMPO-0411 */}
+        {!watchPricing && <FilmsMadeProof surface="pricing" />}
+        {/* KINEO-PRICING-SEM-VELHO-0411 — fundador 04/11: "tira essa parte muito velha, how many film do i get e which plan fits me". */}
+
+        <div className="pricing-secondary">
+        {/* KINEO-PRECOS-REFINO-2026-10-09 — fundador: "essa parte ficou muito poluída". Com o cartão novo, a caixa do convite
+            grátis vira uma linha só, e só para quem ainda não tem conta (quem tem conta já começou). */}
+        {valueCards ? (signedIn === false ? (
+          <p className="mx-auto mb-7 max-w-2xl text-center text-[13.5px] font-medium text-[var(--muted)]">
+            Not ready to choose?{' '}
+            <Link href="/signup" className="font-bold text-[var(--accent)] hover:underline">{OFFER.copy.ctaPrimary}</Link>
+          </p>
+        ) : null) : (
+        <div
+          className="mx-auto mb-7 max-w-2xl rounded-2xl px-5 py-4 text-center"
+          style={{ background: 'var(--accent-soft)', border: '1px solid var(--border2)' }}
+        >
+          <p className="text-[13px] leading-relaxed text-[var(--muted)]">{OFFER.copy.headline}</p>
+          <Link href="/signup" className="mt-3 inline-block font-semibold text-[var(--accent)]">{OFFER.copy.ctaPrimary}</Link>
+          <CostCalculatorLink
+            placement="pricing_pre_cards"
+            className="mt-2 inline-block text-[12.5px] font-extrabold text-[var(--accent)] hover:underline"
+          >
+            Calculate the exact monthly cost for your output →
+          </CostCalculatorLink>
+        </div>
+        )}
+
+        {/* KINEO-MRR-3-FILME-PROPRIO-2026-09-16 — o filme da própria pessoa + a garantia, antes dos cards. */}
+        {latestFilm && (
+          <div
+            data-kineo="latest-film"
+            className="mx-auto mb-7 flex max-w-2xl items-center gap-4 rounded-2xl px-4 py-3"
+            style={{ background: 'var(--card2)', border: '1px solid var(--border)' }}
+          >
+            <video
+              src={latestFilm.url}
+              muted
+              playsInline
+              preload="metadata"
+              style={{ width: 54, height: 96, objectFit: 'cover', borderRadius: 10, background: '#000', flex: '0 0 auto' }}
+              aria-hidden="true"
+            />
+            <div className="min-w-0 text-left">
+              <p className="text-[12px] font-black uppercase tracking-[0.08em] text-[var(--accent)]">Your latest film</p>
+              <p className="truncate text-[14px] font-bold text-[var(--text)]">{latestFilm.title}</p>
+              <p className="text-[12px] font-semibold text-[var(--muted)]">Your next films come out clean, without the watermark, in 1080p. {!watchPricing && MONEY_BACK_GUARANTEE}</p>{/* KINEO-CHECKOUT-CLAREZA-1610 */}
+              <FilmsLikeThisNote qualityMode={latestFilm.quality} seconds={latestFilm.seconds} />{/* KINEO-VALOR-NO-CHECKOUT-3110 */}
+            </div>
+          </div>
+        )}
+
+        {watchPricing ? <PricingIncludes0511 condensed /> : <PricingIncludes0511 />}{/* KINEO-PRICING-INCLUI-0511 */}
+        {watchPricing && <div className="pricing-watch-proof"><FilmsMadeProof surface="pricing" /><p className="text-center text-[12px] text-[var(--muted)]">2,100+ creators · 1,500+ films · featured on There&apos;s An AI For That</p>{reviewQuote}</div>}
+        </div>
+
+
+        {/* KINEO-CEO-HOUR-2026-08-17 (#5) — o tradutor de creditos VISIVEL,
+            nao so no FAQ: uma fita de precos por resultado. */}
+        {/* KINEO-PRECOS-REFINO-2026-10-09 — com o cartão novo, cada plano já diz o que o crédito compra, motor por motor. */}
+        {valueCards ? null : (
+        <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-[var(--border)] bg-[var(--card)] px-5 py-4">
+          <p className="mb-2.5 text-center text-[12px] font-extrabold uppercase tracking-[.14em] text-[var(--accent)]">What one credit buys</p>
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-[12.5px] font-semibold text-[var(--muted)]">
+            <span>🎬 Film (MiniMax H3 Turbo) — <b className="text-[var(--text)]">{creditsPerReferenceVideo('cinematic_ai')} cr</b></span>
+            <span>🎥 MiniMax H3 — <b className="text-[var(--text)]">{creditsPerReferenceVideo('cinematic_h3')} cr</b></span>
+            <span>🎞 {klingPaidName} — <b className="text-[var(--text)]">{creditsPerReferenceVideo('cinematic_hollywood')} cr</b></span>
+            <span>🖼 Image — <b className="text-[var(--text)]">1-5 cr</b></span>
+            <span>🎙 Voiceover — <b className="text-[var(--text)]">1-2 cr</b></span>
+            <span>✨ HD Enhance — <b className="text-[var(--text)]">10 cr</b></span>
+          </div>
+        </div>
+        )}
+
+        {/* [KINEO-COMMERCIAL-LICENSE-2026-08-12] — a primeira pergunta de
+            qualquer agência ("posso vender isso pro meu cliente?") não tinha
+            resposta em lugar nenhum desta página. A linha abaixo NÃO promete
+            nada além do que os /terms já concedem hoje: uso comercial (seção
+            2), propriedade do output (seções 3 e 5) — e diz o limite que a
+            MESMA seção 5 impõe (não revender o Serviço em si). Vale para todos
+            os planos, por isso vive abaixo da grade inteira e não dentro de um
+            card. Sem preço, sem desconto, sem entitlement: só licença. */}
+        {/* KINEO-PRECOS-REFINO-2026-10-09 — com o cartão novo, "Commercial use" está em "Included" de cada plano. */}
+        {valueCards ? null : (
+        <p className="mx-auto mt-5 max-w-2xl text-center text-[12.5px] font-semibold leading-relaxed text-[var(--muted)]">
+          <span aria-hidden="true" style={{ color: 'var(--accent)' }}>✓</span> Commercial use is included
+          on every plan: the videos you generate are yours to post, monetize or deliver to a client.
+          What you cannot resell is Kineo itself —{' '}
+          <Link href="/terms" className="font-bold text-[var(--accent)] hover:underline">
+            see the terms
+          </Link>
+          .
+        </p>
+        )}
+
+        {/* KINEO-PRICING-CLARITY-2026-08-03 — TODA a letra miúda que saiu dos
+            cards vive aqui, uma vez só, abaixo da grade. Mantém a divulgação
+            obrigatória (renovação + grant menor no 1º mês, proteção contra
+            chargeback) sem poluir a decisão. */}
+        {/* KINEO-PROMO-CONTRADICTS-PAGE-2026-08-13 — ver o bloco de comentário
+            em `arrivedWithPromo`. Com um `?promo=` na URL o intro não é o que
+            se aplica, então esta letra miúda deixa de ser divulgação e vira
+            afirmação falsa sobre duração E sobre créditos do 1º mês. */}
+        {!watchPricing && billing === 'monthly' && !arrivedWithPromo && (
+          <p className="mx-auto mt-5 max-w-2xl text-center text-[13px] leading-relaxed text-[var(--muted)]">
+            Plans renew monthly — cancel anytime. Starter includes{' '}
+            {TIER_CREDITS.starter} credits a month, Creator {TIER_CREDITS.basic} and Studio {TIER_CREDITS.pro};
+            credits reset each month (no rollover).
+          </p>
+        )}
+        {billing === 'monthly' && arrivedWithPromo && (
+          <p
+            className="mx-auto mt-5 max-w-2xl rounded-xl px-4 py-3 text-center text-[13px] font-bold leading-relaxed"
+            style={{ background: 'var(--pricing-success-soft)', border: '1px solid var(--pricing-success)', color: 'var(--pricing-success)' }}
+          >
+            {/* 2ª passada: a 1ª versão dizia "your code IS APPLIED" — afirmação
+                sobre o RESULTADO, falsa se o código estiver expirado ou não
+                cobrir o plano clicado. A frase abaixo afirma só o que ESTE
+                sistema faz (encaminhar o código) e devolve a verificação para
+                onde ela é sempre verdadeira: o total do Stripe antes do
+                pagamento. Nenhuma promessa que dependa do Stripe aceitar. */}
+            Your code goes to checkout automatically — you&apos;ll see the exact amount
+            before you pay. Cancel anytime.
+          </p>
+        )}
+
+        {/* KINEO-BUSINESS-84-2026-10-09 — o plano Business, EMBAIXO dos 3 cartões (que ficam intactos), antes dos créditos avulsos.
+            KINEO-TROCA-BUSINESS-2026-10-10 — quem já assina vê "Switch to Business" / "Current plan" e troca sem checkout. */}
+        <OneTimeItemOffer surface="pricing" checkout={checkout} />{/* KINEO-COMPRA-AVULSA-2410 — one-off results next to the plan choices; plan prices stay untouched. */}
+
+  </>
+  const referenceExtras = <>
+        <div className="mx-auto max-w-3xl">{billing === 'annual' ? <AnnualEarlyOfferBadge /> : null}</div>{/* KINEO-KIT-BF-VENDA-2010 — o selo do anual ("2 meses grátis" até 21/11: só pinta num plano em que baixa o preço; hoje nenhum, o anual de 30% já vence) e o Kit Black Friday embaixo do Business (o Business vê "incluído no seu plano"; venda fechada = nada) */}
+        {/* KINEO-PRICING-LIMPO-0411 — fundador 04/11: "quero tirar também essas duas coisas": Kit BF e Kids saem do /pricing; os produtos seguem nas páginas deles. */}
+        {PRICING_SHOW_ADS_BLOCK ? <PricingAdsBlock /> : null}
+        {TOPUPS_LIVE ? <PricingCreditsBlock /> : null}{/* KINEO-PRECO-MERCADO-0411 — sem top-up à venda, /pricing não anuncia crédito avulso */}
+        {PRECOS_DOIS_PRODUTOS_PUBLIC ? <details className="pricing-compare mx-auto mt-10 max-w-4xl"><summary className="cursor-pointer text-center text-[14px] font-semibold text-[var(--muted)]">Compare what each engine costs</summary><TwoProductsPricing /></details> : null}{/* KINEO-PRICING-LIMPO-0411 — 1.400 px de tabela a um clique */}
+        {/* ══════════════════════════════════════════════════════════════
+            KINEO-AUTOPILOT-299-2026-07-26 — DONE-FOR-YOU TIER.
+
+            Deliberately OUTSIDE the 3-card grid. Dropped into that row, $299
+            next to $37.90 reads as a mistake. Standing alone, next to what a
+            human editing agency charges for the same output, it reads as a
+            bargain — which, at 30 Shorts/month, it is:
+              VidChops     $495/mo   for 16 shorts  → $30.94 per short
+              Tasty Edits  $2,400/mo for 30 shorts  → $80.00 per short
+              Kineo Autopilot $299/mo for 30 shorts → $9.97 per short
+            The comparison is honest about what differs (an agency gives you a
+            human editor; we give you a machine that never misses a day), so
+            the claim survives contact with a prospect who checks it.
+
+            Monthly only — no annual toggle applies to this card.
+            ══════════════════════════════════════════════════════════════ */}
+        {/* KINEO-PAID-NOT-ENTITLED-2026-08-06 — âncora de aterrissagem. Quem
+            chega de /autopilot clicando "See what Autopilot adds" já sabe o que
+            quer; sem o id ele caía no topo, numa grade de 3 cards que de
+            propósito NÃO contém o Autopilot. Mesmo degrau de desistência que o
+            #paste do /wall resolveu ontem. */}
+        {/* KINEO-AUTOPILOT-LITE-2026-09-16 (fundador: "vamos fazer esse Autopilot Lite… tudo integrado") — o degrau
+            entre Studio e Autopilot: o mesmo robô, UMA vez por semana. Fica acima do $299 de propósito: quem chega
+            aqui vindo dos planos de crédito vê primeiro o passo pequeno. */}
+        {PRICING_SHOW_AUTOPILOT ? (
+          <>
+            <div id="autopilot-lite" className="mx-auto mt-14 max-w-5xl scroll-mt-24">
+              <div className="mb-4 text-center">
+                <div className="text-[12px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">
+                  Or let your series run itself
+                </div>
+                <h2 className="mt-2 text-[1.7rem] font-black tracking-tight text-[var(--text)]">
+                  Autopilot Lite — one episode a week, published for you
+                </h2>
+              </div>
+              <div
+                className="relative overflow-hidden rounded-2xl border p-6 sm:p-8"
+                style={{ borderColor: 'var(--border2)', background: 'linear-gradient(135deg, rgba(41,151,255,0.05) 0%, var(--card) 55%)' }}
+              >
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--indigo)] px-3 py-1 text-[12px] font-black uppercase tracking-[.12em] text-[var(--on-accent)]">
+                  Weekly · done for you
+                </div>
+                <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:items-center">
+                  <div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-[2.8rem] font-black leading-none tracking-tight text-[var(--text)]">
+                        {displayCurrency ? formatCheckoutMoney(resolvedCurrency, AUTOPILOT_LITE_PRICES[resolvedCurrency]) : '—'}
+                      </span>
+                      <span className="text-[13px] font-semibold text-[var(--accent)]">/ month</span>
+                    </div>
+                    <p className="mt-3 text-[14px] leading-snug text-[var(--text)]">
+                      You connect your YouTube channel once and pick a niche. Every week we write the next episode of
+                      your series, narrate it, pick the footage, add captions and publish it to your channel. Same thread
+                      every week, never a repeat.
+                    </p>
+                    <p className="mt-3 text-[12.5px] leading-snug text-[var(--muted)]">
+                      About 4 to 5 episodes a month, each one continuing the last. Want a daily channel instead? That is
+                      Autopilot, right below.
+                    </p>
+                    <p className="mt-3 text-[12px] font-semibold text-[var(--muted)]">
+                      Includes {TIER_CREDITS.autopilot_lite} credits/month for videos you want to make yourself, on any
+                      engine. Cancel anytime.
+                    </p>
+                  </div>
+                  <div>
+                    <ul className="flex flex-col gap-2.5">
+                      {[
+                        '📺 Your YouTube channel, connected once — we publish directly',
+                        '🗓️ One episode every week, on the day and time you choose',
+                        '🧵 Each episode continues the previous one — a real series, not random Shorts',
+                        '✍️ Script, AI voiceover, footage, captions — all handled',
+                        `✨ ${TIER_CREDITS.autopilot_lite} credits/month for your own videos, any engine`,
+                        '⏸️ Pause, change the posting time, or cancel whenever you want',
+                      ].map((f) => (
+                        <li key={f} className="flex items-start gap-2 text-[13.5px] text-[var(--text)]">
+                          <span className="mt-[3px] text-[var(--accent)]">✓</span>
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      type="button"
+                      disabled={purchasing === 'autopilot_lite'}
+                      onClick={() => handleBuy('autopilot_lite')}
+                      className="mt-6 block w-full rounded-xl bg-[var(--indigo)] px-4 py-3.5 text-center text-[14px] font-extrabold text-[var(--on-accent)] shadow-[0_8px_24px_rgba(41,151,255,.3)] transition hover:brightness-110 disabled:opacity-60"
+                    >
+                      {purchasing === 'autopilot_lite' ? 'Opening secure checkout…' : 'Start Autopilot Lite →'}
+                    </button>
+                    <p className="mt-2 text-center text-[12px] font-semibold text-[var(--muted)]">
+                      🔒 Secure Stripe checkout · billed by Kineo · cancel anytime · 7-day money-back
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="autopilot" className="mx-auto mt-14 max-w-5xl scroll-mt-24">
+              <div className="mb-4 text-center">
+                <div className="text-[12px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">
+                  Or don&apos;t make videos at all
+                </div>
+                <h2 className="mt-2 text-[1.7rem] font-black tracking-tight text-[var(--text)]">
+                  Autopilot — we run your channel for you
+                </h2>
+              </div>
+
+              <div
+                className="relative overflow-hidden rounded-2xl border p-6 sm:p-8"
+                style={{
+                  borderColor: 'var(--border2)',
+                  background: 'linear-gradient(135deg, var(--accent-soft) 0%, var(--card) 75%)',
+                }}
+              >
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[12px] font-black uppercase tracking-[.12em] text-[var(--on-accent)] shadow-[0_4px_18px_rgba(41,151,255,.45)] bg-[var(--indigo)]">
+                  Done for you
+                </div>
+
+                <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:items-center">
+                  <div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-[2.8rem] font-black leading-none tracking-tight text-[var(--text)]">
+                        {displayCurrency ? formatCheckoutMoney(resolvedCurrency, AUTOPILOT_PRICES[resolvedCurrency]) : '—'}
+                      </span>
+                      <span className="text-[13px] font-semibold text-[var(--accent)]">/ month</span>
+                    </div>
+                    <p className="mt-3 text-[14px] leading-snug text-[var(--text)]">
+                      You connect your YouTube channel once. We publish one Short to it
+                      every single day — script, voiceover, footage, captions, title,
+                      description and upload. You do nothing.
+                    </p>
+                    <p className="mt-3 text-[12.5px] leading-snug text-[var(--muted)]">
+                      That is 30 Shorts a month, about{' '}
+                      {displayCurrency
+                        ? formatCheckoutMoney(resolvedCurrency, Math.round(AUTOPILOT_PRICES[resolvedCurrency] / 30))
+                        : 'a tenth of the agency rate'}{' '}
+                      each. A human editing agency charges USD $495/month for 16 Shorts, or
+                      USD $2,400/month for 30. Autopilot does not give you a human editor —
+                      it gives you a machine that has never missed a day.
+                    </p>
+                    <p className="mt-3 text-[12px] font-semibold text-[var(--muted)]">
+                      Includes {TIER_CREDITS.autopilot} credits/month for videos you want to
+                      make yourself, on any engine. Cancel anytime.
+                    </p>
+                  </div>
+
+                  <div>
+                    <ul className="flex flex-col gap-2.5">
+                      {[
+                        '📺 Your YouTube channel, connected once — we publish directly',
+                        '🗓️ One Short published every day, automatically',
+                        '🧠 Topics chosen for you and never repeated',
+                        '✍️ Script, AI voiceover, footage, captions — all handled',
+                        `✨ ${TIER_CREDITS.autopilot} credits/month for your own videos, any engine`,
+                        '⏸️ Pause, change the posting time, or cancel whenever you want',
+                      ].map((f) => (
+                        <li key={f} className="flex items-start gap-2 text-[13.5px] text-[var(--text)]">
+                          <span className="mt-[3px] text-[var(--accent)]">✓</span>
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      type="button"
+                      disabled={purchasing === 'autopilot'}
+                      onClick={() => handleBuy('autopilot')}
+                      className="mt-6 block w-full rounded-xl bg-[var(--indigo)] px-4 py-3.5 text-center text-[14px] font-extrabold text-[var(--on-accent)] shadow-[0_8px_24px_rgba(41,151,255,.35)] transition hover:brightness-110 hover:shadow-[0_10px_30px_rgba(41,151,255,.45)] disabled:opacity-60"
+                    >
+                      {purchasing === 'autopilot' ? 'Opening secure checkout…' : 'Start Autopilot →'}
+                    </button>
+                    <p className="mt-2 text-center text-[12px] font-semibold text-[var(--muted)]">
+                      🔒 Secure Stripe checkout · billed by Kineo · cancel anytime · 7-day money-back
+                    </p>
+                  </div>
+                </div>
+
+                {/* ══════════════════════════════════════════════════════════════
+                    KINEO-PILOT-99-2026-07-26 — $99 / 7-DAY PILOT.
+
+                    Attached to the Autopilot card, not a fourth tier in the grid.
+                    A fourth column turns a choice into a comparison exercise; this
+                    is the same product with a smaller first step, so it belongs
+                    under the product it steps into.
+
+                    Why it exists: 713 signups, 3 paying customers, and 82% of
+                    activated users made exactly one video and left. The $299 buyer
+                    is not in that base — so the ask is $99 once, and the $299
+                    upgrade becomes a decision to NOT interrupt something already
+                    running on the customer's own channel.
+
+                    Copy discipline: it promises exactly what the cron delivers —
+                    7 Shorts, one per day, at the hour the customer picks. No
+                    "grow your channel", no view counts, no revenue claims.
+                    ══════════════════════════════════════════════════════════════ */}
+                <div
+                  className="mt-7 rounded-xl border border-dashed p-5 sm:p-6"
+                  style={{ borderColor: 'var(--border2)', background: 'var(--accent-soft)' }}
+                >
+                  <div className="grid grid-cols-1 gap-5 md:grid-cols-[1fr_auto] md:items-center">
+                    <div>
+                      <div className="text-[12px] font-extrabold uppercase tracking-[.12em] text-[var(--accent)]">
+                        Not ready for {displayCurrency ? formatCheckoutMoney(resolvedCurrency, AUTOPILOT_PRICES[resolvedCurrency]) : 'the monthly'}/month?
+                      </div>
+                      <h3 className="mt-1.5 text-[1.15rem] font-black tracking-tight text-[var(--text)]">
+                        Try it for one week —{' '}
+                        {displayCurrency ? formatCheckoutMoney(resolvedCurrency, AUTOPILOT_PILOT_PRICES[resolvedCurrency]) : '—'}, once
+                      </h3>
+                      <p className="mt-2 text-[13.5px] leading-snug text-[var(--text)]">
+                        {AUTOPILOT_PILOT_DAYS} Shorts published to your YouTube channel,
+                        one per day, at the time you pick. If you don&apos;t want to
+                        continue, the videos are yours and that&apos;s it.
+                      </p>
+                      <p className="mt-2 text-[12px] leading-snug text-[var(--muted)]">
+                        One-time payment — not a subscription, nothing to cancel. It ends
+                        on its own after {AUTOPILOT_PILOT_DAYS} days. A human editing agency
+                        would charge you roughly USD $217 for {AUTOPILOT_PILOT_DAYS} Shorts
+                        at their $30.94-per-Short rate.
+                      </p>
+                    </div>
+
+                    <div className="md:w-[230px]">
+                      <button
+                        type="button"
+                        disabled={purchasing === 'autopilot_pilot'}
+                        onClick={handleBuyAutopilotPilot}
+                        className="block w-full rounded-xl border border-[var(--accent)] px-4 py-3 text-center text-[13.5px] font-extrabold text-[var(--accent)] transition hover:bg-[var(--indigo)] hover:text-[var(--on-accent)] disabled:opacity-60"
+                      >
+                        {purchasing === 'autopilot_pilot'
+                          ? 'Opening secure checkout…'
+                          : `Start the ${AUTOPILOT_PILOT_DAYS}-day pilot →`}
+                      </button>
+                      <p className="mt-2 text-center text-[12px] font-semibold text-[var(--muted)]">
+                        🔒 Stripe · one-time · no auto-renew
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <AutopilotBreakEvenCalculator
+                  currency={resolvedCurrency}
+                  pending={purchasing}
+                  onStartMonthly={() => handleBuy('autopilot')}
+                  onStartPilot={handleBuyAutopilotPilot}
+                />
+              </div>
+            </div>
+          </>
+        ) : null}
+
+        {/* ROBO-ENTRY-490 — the one-time $4.90 Starter Pack was moved UP to a
+            featured entry offer above the plans; the duplicate secondary button
+            that used to sit here was removed to avoid a repeated adjacent CTA. */}
+
+        {/* KINEO-2026-07-06 — Pix/Mercado Pago (BR) section removed at Joseph's request. */}
+
+
+        {/* KINEO-QUOTE-PRICING-2026-08-24 (pacote noturno, UI#5) — a voz real
+            na página onde 44 pessoas morreram no preço. Quem hesita no valor
+            lê um assinante de verdade, com nome e link verificável (mesmas
+            regras da home #304: só citação autorizada, sem parede de estrelas). */}
+        {watchPricing && <><details className="pricing-watch-availability"><summary>Plan availability</summary><Kling4TrialNotice surface="pricing" /><Kling4PaidNotice surface="pricing" availability={kling4Availability} /></details><section className="pricing-watch-teams" id="teams" aria-labelledby="pricing-watch-teams-title"><h2 id="pricing-watch-teams-title">For teams &amp; business</h2>{businessPlans}</section></>}
+        {!watchPricing && reviewQuote}
+
+
+  </>
+  const visibleFaqs = FAQS.filter(item => ['Do I need a credit card to start?', 'How fast are videos generated?', 'How do credits work?'].includes(item.q))
   return (
     <div className={`pricing-blue ${watchPricing ? 'pricing-watch ' : ''}min-h-screen bg-[var(--bg)] text-[var(--text)] font-sans`}>
       {/* KINEO-WELCOME20-FAIXA-2026-10-09 — a oferta na faixa do topo (fundador, print de referência): o botão leva ao mensal e
@@ -1045,6 +1468,7 @@ export default function PricingClient({ initialBilling = 'annual', watchPreview 
         />
       ) : null}
       <style dangerouslySetInnerHTML={{__html: `
+.pricing-after-plans{margin:24px auto 0;max-width:672px}.pricing-guarantee{text-align:center;font-size:14px;line-height:1.6;color:var(--muted)}.pricing-after-plans [data-kineo=pricing-inclui]{margin-top:16px;padding:20px}.pricing-short-faq{margin-top:28px}.pricing-short-faq h2{font-size:22px}.pricing-reference{max-width:672px;margin:24px auto;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:0 4px}.pricing-reference>summary{padding:18px 0;cursor:pointer;font-size:14px;font-weight:650;color:var(--text)}.pricing-reference-faq details{margin:12px 0}.pricing-reference-faq summary{cursor:pointer}.pricing-reference-faq p{font-size:14px;line-height:1.6;color:var(--muted)}.pricing-reference .kc2310{color:var(--text)}.pricing-reference .kc2310 :is(table,td,th,.kc2310-faq div){background:var(--card);border-color:var(--border);color:var(--text)}.pricing-reference .kc2310 :is(p,caption){color:var(--muted)!important}.pricing-final{text-align:center;margin:24px 0 0}.pricing-final>a{display:inline-flex;align-items:center;min-height:44px;padding:12px 24px;border-radius:12px;background:var(--accent);color:var(--on-accent,#fff);font-weight:700;text-decoration:none}
 .pricing-blue{--pricing-error:#b52b3b;--pricing-error-soft:#fff0f2;--pricing-warning:#965209;--pricing-success:#18724e;--pricing-success-soft:#edf8f2;background:var(--bg)!important;color:var(--text)}
 html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft:#381d29;--pricing-warning:#ffc17b;--pricing-success:#73d9aa;--pricing-success-soft:#163629}
 .pricing-blue>section{padding-top:32px!important}.pricing-blue h1{font-size:clamp(28px,4vw,42px);font-weight:650}.pricing-blue #plans{gap:20px}.pricing-blue #plans>div{min-width:0;border-radius:20px!important;box-shadow:none!important}.pricing-blue #plans>div:hover{transform:none!important}.pricing-blue #plans button{min-height:44px}.pricing-blue .plan-credit-summary{font-size:14px;color:var(--accent);margin:14px 0 0;font-weight:650}.pricing-blue .plan-detail-breakdown{margin:6px 0 18px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}.pricing-blue .plan-detail-breakdown>summary{min-height:44px;align-content:center;cursor:pointer;font-size:12px;color:var(--muted)}.pricing-blue .plan-detail-breakdown[open]>summary{margin-bottom:10px}.pricing-blue :is(a,button,summary):focus-visible{outline:2px solid var(--accent);outline-offset:3px}.pricing-blue #plans p,.pricing-blue #plans span{overflow-wrap:anywhere}.pricing-blue .pricing-secondary{margin-top:28px}.pricing-blue .pricing-intro{margin-bottom:24px!important}.pricing-blue .pricing-intro>p{display:none}
@@ -1167,6 +1591,8 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         )}
 
 
+        <PricingJourneyProof signedIn={signedIn} intentCampaign={pricingIntentCampaign} />
+
         {/* Push #267 — Free banner removed with Free card */}
 
         {!watchPricing && <PricingAudienceTabs audience={audience} onChange={(a) => { setAudience(a); void trackEvent('pricing_audience_tab_clicked', { audience: a }) }} />}{/* KINEO-PLANOS-ABAS-0411 */}
@@ -1251,7 +1677,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         <Offer290RescueCard surface="pricing" />
         {/* KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — com o cartão novo, os planos vêm logo depois do seletor mensal/anual (como
             a InVideo); a prova do filme desce para baixo do palco, sem sumir. */}
-        
+
         {valueCards ? (() => {
           // KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — o palco novo: mesmo plano, mesmo preço, mesmo handleBuy; muda o que o cartão
           // CONTA (o que os créditos compram, calculado dentro do cartão por lib/pricingPlanValue.ts) e a cara.
@@ -1653,23 +2079,6 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         </div>
         )}
 
-        {/* KINEO-WORKS-WITH-CLAUDE-2026-09-30 — selo de confiança verdadeiro: o conector MCP (/api/mcp) funciona hoje
-            como conector personalizado no Claude. Fica LOGO ABAIXO dos planos (perto do botão de compra): o topo da
-            página esconde de propósito todo <p> solto (.pricing-blue .pricing-intro>p). Texto, sem logo da Anthropic,
-            e sem "official/partner/directory" enquanto a listagem estiver em revisão (guardião
-            test-works-with-claude-2026-09-30). Aba nova: o link não tira o comprador da página de preços. */}
-        {!watchPricing && <p className="mt-5 text-center text-[12.5px] font-semibold text-[var(--muted)]">
-          <a
-            href="/claude-connector?src=pricing_badge#connect"
-            target="_blank"
-            rel="noopener"
-            className="underline-offset-2 hover:underline"
-            style={{ color: 'var(--muted)' }}
-          >
-            ✦ Works with Claude · add Kineo as a connector →
-          </a>
-        </p>}
-
         {/* ONDA1 #11 (13/08) — o erro de checkout aparece ONDE a pessoa esta
             olhando (logo abaixo dos planos), nao 250 linhas depois. */}
         {checkoutError && checkoutSetupFailure ? (
@@ -1727,401 +2136,6 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
           </div>
         ) : null}
 
-        {/* KINEO-VALOR-NO-CHECKOUT-3110 — logo abaixo dos planos: a prova social real (muda abaixo do piso) e as 3 perguntas que
-            recomendam o plano MAIS BARATO que cobre, com a conta à vista (lib/valorNoCheckout.ts). Preço e plano não mudam. */}
-        {!watchPricing && <p className="mx-auto mt-5 max-w-2xl text-center text-[12.5px] leading-relaxed text-[var(--muted)]" data-testid="pricing-first-film-guarantee">{FIRST_FILM_GUARANTEE.en}</p>}{/* KINEO-PRICING-LIMPO-0411 */}
-        {!watchPricing && <FilmsMadeProof surface="pricing" />}
-        {/* KINEO-PRICING-SEM-VELHO-0411 — fundador 04/11: "tira essa parte muito velha, how many film do i get e which plan fits me". */}
-
-        <div className="pricing-secondary">
-        {/* KINEO-PRECOS-REFINO-2026-10-09 — fundador: "essa parte ficou muito poluída". Com o cartão novo, a caixa do convite
-            grátis vira uma linha só, e só para quem ainda não tem conta (quem tem conta já começou). */}
-        {valueCards ? (signedIn === false ? (
-          <p className="mx-auto mb-7 max-w-2xl text-center text-[13.5px] font-medium text-[var(--muted)]">
-            Not ready to choose?{' '}
-            <Link href="/signup" className="font-bold text-[var(--accent)] hover:underline">{OFFER.copy.ctaPrimary}</Link>
-          </p>
-        ) : null) : (
-        <div
-          className="mx-auto mb-7 max-w-2xl rounded-2xl px-5 py-4 text-center"
-          style={{ background: 'var(--accent-soft)', border: '1px solid var(--border2)' }}
-        >
-          <p className="text-[13px] leading-relaxed text-[var(--muted)]">{OFFER.copy.headline}</p>
-          <Link href="/signup" className="mt-3 inline-block font-semibold text-[var(--accent)]">{OFFER.copy.ctaPrimary}</Link>
-          <CostCalculatorLink
-            placement="pricing_pre_cards"
-            className="mt-2 inline-block text-[12.5px] font-extrabold text-[var(--accent)] hover:underline"
-          >
-            Calculate the exact monthly cost for your output →
-          </CostCalculatorLink>
-        </div>
-        )}
-
-        {/* KINEO-MRR-3-FILME-PROPRIO-2026-09-16 — o filme da própria pessoa + a garantia, antes dos cards. */}
-        {latestFilm && (
-          <div
-            data-kineo="latest-film"
-            className="mx-auto mb-7 flex max-w-2xl items-center gap-4 rounded-2xl px-4 py-3"
-            style={{ background: 'var(--card2)', border: '1px solid var(--border)' }}
-          >
-            <video
-              src={latestFilm.url}
-              muted
-              playsInline
-              preload="metadata"
-              style={{ width: 54, height: 96, objectFit: 'cover', borderRadius: 10, background: '#000', flex: '0 0 auto' }}
-              aria-hidden="true"
-            />
-            <div className="min-w-0 text-left">
-              <p className="text-[12px] font-black uppercase tracking-[0.08em] text-[var(--accent)]">Your latest film</p>
-              <p className="truncate text-[14px] font-bold text-[var(--text)]">{latestFilm.title}</p>
-              <p className="text-[12px] font-semibold text-[var(--muted)]">Your next films come out clean, without the watermark, in 1080p. {!watchPricing && MONEY_BACK_GUARANTEE}</p>{/* KINEO-CHECKOUT-CLAREZA-1610 */}
-              <FilmsLikeThisNote qualityMode={latestFilm.quality} seconds={latestFilm.seconds} />{/* KINEO-VALOR-NO-CHECKOUT-3110 */}
-            </div>
-          </div>
-        )}
-
-        {watchPricing ? <PricingIncludes0511 condensed /> : <PricingIncludes0511 />}{/* KINEO-PRICING-INCLUI-0511 */}
-        {watchPricing && <div className="pricing-watch-proof"><FilmsMadeProof surface="pricing" /><p className="text-center text-[12px] text-[var(--muted)]">2,100+ creators · 1,500+ films · featured on There&apos;s An AI For That</p>{reviewQuote}</div>}
-        <PricingJourneyProof signedIn={signedIn} intentCampaign={pricingIntentCampaign} />
-        </div>
-        
-
-        {/* KINEO-CEO-HOUR-2026-08-17 (#5) — o tradutor de creditos VISIVEL,
-            nao so no FAQ: uma fita de precos por resultado. */}
-        {/* KINEO-PRECOS-REFINO-2026-10-09 — com o cartão novo, cada plano já diz o que o crédito compra, motor por motor. */}
-        {valueCards ? null : (
-        <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-[var(--border)] bg-[var(--card)] px-5 py-4">
-          <p className="mb-2.5 text-center text-[12px] font-extrabold uppercase tracking-[.14em] text-[var(--accent)]">What one credit buys</p>
-          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-[12.5px] font-semibold text-[var(--muted)]">
-            <span>🎬 Film (MiniMax H3 Turbo) — <b className="text-[var(--text)]">{creditsPerReferenceVideo('cinematic_ai')} cr</b></span>
-            <span>🎥 MiniMax H3 — <b className="text-[var(--text)]">{creditsPerReferenceVideo('cinematic_h3')} cr</b></span>
-            <span>🎞 {klingPaidName} — <b className="text-[var(--text)]">{creditsPerReferenceVideo('cinematic_hollywood')} cr</b></span>
-            <span>🖼 Image — <b className="text-[var(--text)]">1-5 cr</b></span>
-            <span>🎙 Voiceover — <b className="text-[var(--text)]">1-2 cr</b></span>
-            <span>✨ HD Enhance — <b className="text-[var(--text)]">10 cr</b></span>
-          </div>
-        </div>
-        )}
-
-        {/* [KINEO-COMMERCIAL-LICENSE-2026-08-12] — a primeira pergunta de
-            qualquer agência ("posso vender isso pro meu cliente?") não tinha
-            resposta em lugar nenhum desta página. A linha abaixo NÃO promete
-            nada além do que os /terms já concedem hoje: uso comercial (seção
-            2), propriedade do output (seções 3 e 5) — e diz o limite que a
-            MESMA seção 5 impõe (não revender o Serviço em si). Vale para todos
-            os planos, por isso vive abaixo da grade inteira e não dentro de um
-            card. Sem preço, sem desconto, sem entitlement: só licença. */}
-        {/* KINEO-PRECOS-REFINO-2026-10-09 — com o cartão novo, "Commercial use" está em "Included" de cada plano. */}
-        {valueCards ? null : (
-        <p className="mx-auto mt-5 max-w-2xl text-center text-[12.5px] font-semibold leading-relaxed text-[var(--muted)]">
-          <span aria-hidden="true" style={{ color: 'var(--accent)' }}>✓</span> Commercial use is included
-          on every plan: the videos you generate are yours to post, monetize or deliver to a client.
-          What you cannot resell is Kineo itself —{' '}
-          <Link href="/terms" className="font-bold text-[var(--accent)] hover:underline">
-            see the terms
-          </Link>
-          .
-        </p>
-        )}
-
-        {/* KINEO-PRICING-CLARITY-2026-08-03 — TODA a letra miúda que saiu dos
-            cards vive aqui, uma vez só, abaixo da grade. Mantém a divulgação
-            obrigatória (renovação + grant menor no 1º mês, proteção contra
-            chargeback) sem poluir a decisão. */}
-        {/* KINEO-PROMO-CONTRADICTS-PAGE-2026-08-13 — ver o bloco de comentário
-            em `arrivedWithPromo`. Com um `?promo=` na URL o intro não é o que
-            se aplica, então esta letra miúda deixa de ser divulgação e vira
-            afirmação falsa sobre duração E sobre créditos do 1º mês. */}
-        {!watchPricing && billing === 'monthly' && !arrivedWithPromo && (
-          <p className="mx-auto mt-5 max-w-2xl text-center text-[13px] leading-relaxed text-[var(--muted)]">
-            Plans renew monthly — cancel anytime. Starter includes{' '}
-            {TIER_CREDITS.starter} credits a month, Creator {TIER_CREDITS.basic} and Studio {TIER_CREDITS.pro};
-            credits reset each month (no rollover).
-          </p>
-        )}
-        {billing === 'monthly' && arrivedWithPromo && (
-          <p
-            className="mx-auto mt-5 max-w-2xl rounded-xl px-4 py-3 text-center text-[13px] font-bold leading-relaxed"
-            style={{ background: 'var(--pricing-success-soft)', border: '1px solid var(--pricing-success)', color: 'var(--pricing-success)' }}
-          >
-            {/* 2ª passada: a 1ª versão dizia "your code IS APPLIED" — afirmação
-                sobre o RESULTADO, falsa se o código estiver expirado ou não
-                cobrir o plano clicado. A frase abaixo afirma só o que ESTE
-                sistema faz (encaminhar o código) e devolve a verificação para
-                onde ela é sempre verdadeira: o total do Stripe antes do
-                pagamento. Nenhuma promessa que dependa do Stripe aceitar. */}
-            Your code goes to checkout automatically — you&apos;ll see the exact amount
-            before you pay. Cancel anytime.
-          </p>
-        )}
-
-        {/* KINEO-BUSINESS-84-2026-10-09 — o plano Business, EMBAIXO dos 3 cartões (que ficam intactos), antes dos créditos avulsos.
-            KINEO-TROCA-BUSINESS-2026-10-10 — quem já assina vê "Switch to Business" / "Current plan" e troca sem checkout. */}
-        <OneTimeItemOffer surface="pricing" checkout={checkout} />{/* KINEO-COMPRA-AVULSA-2410 — one-off results next to the plan choices; plan prices stay untouched. */}
-        </div>{/* KINEO-PLANOS-ABAS-0411 — fim do painel de pessoas */}
-        {!watchPricing && <div hidden={audience !== 'team'} data-testid="pricing-team-panel">{businessPlans}</div>}{/* KINEO-PLANOS-ABAS-0411 */}
-
-        <div className="mx-auto max-w-3xl">{billing === 'annual' ? <AnnualEarlyOfferBadge /> : null}</div>{/* KINEO-KIT-BF-VENDA-2010 — o selo do anual ("2 meses grátis" até 21/11: só pinta num plano em que baixa o preço; hoje nenhum, o anual de 30% já vence) e o Kit Black Friday embaixo do Business (o Business vê "incluído no seu plano"; venda fechada = nada) */}
-        {/* KINEO-PRICING-LIMPO-0411 — fundador 04/11: "quero tirar também essas duas coisas": Kit BF e Kids saem do /pricing; os produtos seguem nas páginas deles. */}
-        {PRICING_SHOW_ADS_BLOCK ? <PricingAdsBlock /> : null}
-        {TOPUPS_LIVE ? <PricingCreditsBlock /> : null}{/* KINEO-PRECO-MERCADO-0411 — sem top-up à venda, /pricing não anuncia crédito avulso */}
-        {PRECOS_DOIS_PRODUTOS_PUBLIC ? <details className="pricing-compare mx-auto mt-10 max-w-4xl"><summary className="cursor-pointer text-center text-[14px] font-semibold text-[var(--muted)]">Compare what each engine costs</summary><TwoProductsPricing /></details> : null}{/* KINEO-PRICING-LIMPO-0411 — 1.400 px de tabela a um clique */}
-        {/* ══════════════════════════════════════════════════════════════
-            KINEO-AUTOPILOT-299-2026-07-26 — DONE-FOR-YOU TIER.
-
-            Deliberately OUTSIDE the 3-card grid. Dropped into that row, $299
-            next to $37.90 reads as a mistake. Standing alone, next to what a
-            human editing agency charges for the same output, it reads as a
-            bargain — which, at 30 Shorts/month, it is:
-              VidChops     $495/mo   for 16 shorts  → $30.94 per short
-              Tasty Edits  $2,400/mo for 30 shorts  → $80.00 per short
-              Kineo Autopilot $299/mo for 30 shorts → $9.97 per short
-            The comparison is honest about what differs (an agency gives you a
-            human editor; we give you a machine that never misses a day), so
-            the claim survives contact with a prospect who checks it.
-
-            Monthly only — no annual toggle applies to this card.
-            ══════════════════════════════════════════════════════════════ */}
-        {/* KINEO-PAID-NOT-ENTITLED-2026-08-06 — âncora de aterrissagem. Quem
-            chega de /autopilot clicando "See what Autopilot adds" já sabe o que
-            quer; sem o id ele caía no topo, numa grade de 3 cards que de
-            propósito NÃO contém o Autopilot. Mesmo degrau de desistência que o
-            #paste do /wall resolveu ontem. */}
-        {/* KINEO-AUTOPILOT-LITE-2026-09-16 (fundador: "vamos fazer esse Autopilot Lite… tudo integrado") — o degrau
-            entre Studio e Autopilot: o mesmo robô, UMA vez por semana. Fica acima do $299 de propósito: quem chega
-            aqui vindo dos planos de crédito vê primeiro o passo pequeno. */}
-        {PRICING_SHOW_AUTOPILOT ? (
-          <>
-            <div id="autopilot-lite" className="mx-auto mt-14 max-w-5xl scroll-mt-24">
-              <div className="mb-4 text-center">
-                <div className="text-[12px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">
-                  Or let your series run itself
-                </div>
-                <h2 className="mt-2 text-[1.7rem] font-black tracking-tight text-[var(--text)]">
-                  Autopilot Lite — one episode a week, published for you
-                </h2>
-              </div>
-              <div
-                className="relative overflow-hidden rounded-2xl border p-6 sm:p-8"
-                style={{ borderColor: 'var(--border2)', background: 'linear-gradient(135deg, rgba(41,151,255,0.05) 0%, var(--card) 55%)' }}
-              >
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--indigo)] px-3 py-1 text-[12px] font-black uppercase tracking-[.12em] text-[var(--on-accent)]">
-                  Weekly · done for you
-                </div>
-                <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:items-center">
-                  <div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-[2.8rem] font-black leading-none tracking-tight text-[var(--text)]">
-                        {displayCurrency ? formatCheckoutMoney(resolvedCurrency, AUTOPILOT_LITE_PRICES[resolvedCurrency]) : '—'}
-                      </span>
-                      <span className="text-[13px] font-semibold text-[var(--accent)]">/ month</span>
-                    </div>
-                    <p className="mt-3 text-[14px] leading-snug text-[var(--text)]">
-                      You connect your YouTube channel once and pick a niche. Every week we write the next episode of
-                      your series, narrate it, pick the footage, add captions and publish it to your channel. Same thread
-                      every week, never a repeat.
-                    </p>
-                    <p className="mt-3 text-[12.5px] leading-snug text-[var(--muted)]">
-                      About 4 to 5 episodes a month, each one continuing the last. Want a daily channel instead? That is
-                      Autopilot, right below.
-                    </p>
-                    <p className="mt-3 text-[12px] font-semibold text-[var(--muted)]">
-                      Includes {TIER_CREDITS.autopilot_lite} credits/month for videos you want to make yourself, on any
-                      engine. Cancel anytime.
-                    </p>
-                  </div>
-                  <div>
-                    <ul className="flex flex-col gap-2.5">
-                      {[
-                        '📺 Your YouTube channel, connected once — we publish directly',
-                        '🗓️ One episode every week, on the day and time you choose',
-                        '🧵 Each episode continues the previous one — a real series, not random Shorts',
-                        '✍️ Script, AI voiceover, footage, captions — all handled',
-                        `✨ ${TIER_CREDITS.autopilot_lite} credits/month for your own videos, any engine`,
-                        '⏸️ Pause, change the posting time, or cancel whenever you want',
-                      ].map((f) => (
-                        <li key={f} className="flex items-start gap-2 text-[13.5px] text-[var(--text)]">
-                          <span className="mt-[3px] text-[var(--accent)]">✓</span>
-                          <span>{f}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <button
-                      type="button"
-                      disabled={purchasing === 'autopilot_lite'}
-                      onClick={() => handleBuy('autopilot_lite')}
-                      className="mt-6 block w-full rounded-xl bg-[var(--indigo)] px-4 py-3.5 text-center text-[14px] font-extrabold text-[var(--on-accent)] shadow-[0_8px_24px_rgba(41,151,255,.3)] transition hover:brightness-110 disabled:opacity-60"
-                    >
-                      {purchasing === 'autopilot_lite' ? 'Opening secure checkout…' : 'Start Autopilot Lite →'}
-                    </button>
-                    <p className="mt-2 text-center text-[12px] font-semibold text-[var(--muted)]">
-                      🔒 Secure Stripe checkout · billed by Kineo · cancel anytime · 7-day money-back
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div id="autopilot" className="mx-auto mt-14 max-w-5xl scroll-mt-24">
-              <div className="mb-4 text-center">
-                <div className="text-[12px] font-extrabold uppercase tracking-[.14em] text-[var(--muted)]">
-                  Or don&apos;t make videos at all
-                </div>
-                <h2 className="mt-2 text-[1.7rem] font-black tracking-tight text-[var(--text)]">
-                  Autopilot — we run your channel for you
-                </h2>
-              </div>
-
-              <div
-                className="relative overflow-hidden rounded-2xl border p-6 sm:p-8"
-                style={{
-                  borderColor: 'var(--border2)',
-                  background: 'linear-gradient(135deg, var(--accent-soft) 0%, var(--card) 75%)',
-                }}
-              >
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[12px] font-black uppercase tracking-[.12em] text-[var(--on-accent)] shadow-[0_4px_18px_rgba(41,151,255,.45)] bg-[var(--indigo)]">
-                  Done for you
-                </div>
-
-                <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:items-center">
-                  <div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-[2.8rem] font-black leading-none tracking-tight text-[var(--text)]">
-                        {displayCurrency ? formatCheckoutMoney(resolvedCurrency, AUTOPILOT_PRICES[resolvedCurrency]) : '—'}
-                      </span>
-                      <span className="text-[13px] font-semibold text-[var(--accent)]">/ month</span>
-                    </div>
-                    <p className="mt-3 text-[14px] leading-snug text-[var(--text)]">
-                      You connect your YouTube channel once. We publish one Short to it
-                      every single day — script, voiceover, footage, captions, title,
-                      description and upload. You do nothing.
-                    </p>
-                    <p className="mt-3 text-[12.5px] leading-snug text-[var(--muted)]">
-                      That is 30 Shorts a month, about{' '}
-                      {displayCurrency
-                        ? formatCheckoutMoney(resolvedCurrency, Math.round(AUTOPILOT_PRICES[resolvedCurrency] / 30))
-                        : 'a tenth of the agency rate'}{' '}
-                      each. A human editing agency charges USD $495/month for 16 Shorts, or
-                      USD $2,400/month for 30. Autopilot does not give you a human editor —
-                      it gives you a machine that has never missed a day.
-                    </p>
-                    <p className="mt-3 text-[12px] font-semibold text-[var(--muted)]">
-                      Includes {TIER_CREDITS.autopilot} credits/month for videos you want to
-                      make yourself, on any engine. Cancel anytime.
-                    </p>
-                  </div>
-
-                  <div>
-                    <ul className="flex flex-col gap-2.5">
-                      {[
-                        '📺 Your YouTube channel, connected once — we publish directly',
-                        '🗓️ One Short published every day, automatically',
-                        '🧠 Topics chosen for you and never repeated',
-                        '✍️ Script, AI voiceover, footage, captions — all handled',
-                        `✨ ${TIER_CREDITS.autopilot} credits/month for your own videos, any engine`,
-                        '⏸️ Pause, change the posting time, or cancel whenever you want',
-                      ].map((f) => (
-                        <li key={f} className="flex items-start gap-2 text-[13.5px] text-[var(--text)]">
-                          <span className="mt-[3px] text-[var(--accent)]">✓</span>
-                          <span>{f}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <button
-                      type="button"
-                      disabled={purchasing === 'autopilot'}
-                      onClick={() => handleBuy('autopilot')}
-                      className="mt-6 block w-full rounded-xl bg-[var(--indigo)] px-4 py-3.5 text-center text-[14px] font-extrabold text-[var(--on-accent)] shadow-[0_8px_24px_rgba(41,151,255,.35)] transition hover:brightness-110 hover:shadow-[0_10px_30px_rgba(41,151,255,.45)] disabled:opacity-60"
-                    >
-                      {purchasing === 'autopilot' ? 'Opening secure checkout…' : 'Start Autopilot →'}
-                    </button>
-                    <p className="mt-2 text-center text-[12px] font-semibold text-[var(--muted)]">
-                      🔒 Secure Stripe checkout · billed by Kineo · cancel anytime · 7-day money-back
-                    </p>
-                  </div>
-                </div>
-
-                {/* ══════════════════════════════════════════════════════════════
-                    KINEO-PILOT-99-2026-07-26 — $99 / 7-DAY PILOT.
-
-                    Attached to the Autopilot card, not a fourth tier in the grid.
-                    A fourth column turns a choice into a comparison exercise; this
-                    is the same product with a smaller first step, so it belongs
-                    under the product it steps into.
-
-                    Why it exists: 713 signups, 3 paying customers, and 82% of
-                    activated users made exactly one video and left. The $299 buyer
-                    is not in that base — so the ask is $99 once, and the $299
-                    upgrade becomes a decision to NOT interrupt something already
-                    running on the customer's own channel.
-
-                    Copy discipline: it promises exactly what the cron delivers —
-                    7 Shorts, one per day, at the hour the customer picks. No
-                    "grow your channel", no view counts, no revenue claims.
-                    ══════════════════════════════════════════════════════════════ */}
-                <div
-                  className="mt-7 rounded-xl border border-dashed p-5 sm:p-6"
-                  style={{ borderColor: 'var(--border2)', background: 'var(--accent-soft)' }}
-                >
-                  <div className="grid grid-cols-1 gap-5 md:grid-cols-[1fr_auto] md:items-center">
-                    <div>
-                      <div className="text-[12px] font-extrabold uppercase tracking-[.12em] text-[var(--accent)]">
-                        Not ready for {displayCurrency ? formatCheckoutMoney(resolvedCurrency, AUTOPILOT_PRICES[resolvedCurrency]) : 'the monthly'}/month?
-                      </div>
-                      <h3 className="mt-1.5 text-[1.15rem] font-black tracking-tight text-[var(--text)]">
-                        Try it for one week —{' '}
-                        {displayCurrency ? formatCheckoutMoney(resolvedCurrency, AUTOPILOT_PILOT_PRICES[resolvedCurrency]) : '—'}, once
-                      </h3>
-                      <p className="mt-2 text-[13.5px] leading-snug text-[var(--text)]">
-                        {AUTOPILOT_PILOT_DAYS} Shorts published to your YouTube channel,
-                        one per day, at the time you pick. If you don&apos;t want to
-                        continue, the videos are yours and that&apos;s it.
-                      </p>
-                      <p className="mt-2 text-[12px] leading-snug text-[var(--muted)]">
-                        One-time payment — not a subscription, nothing to cancel. It ends
-                        on its own after {AUTOPILOT_PILOT_DAYS} days. A human editing agency
-                        would charge you roughly USD $217 for {AUTOPILOT_PILOT_DAYS} Shorts
-                        at their $30.94-per-Short rate.
-                      </p>
-                    </div>
-
-                    <div className="md:w-[230px]">
-                      <button
-                        type="button"
-                        disabled={purchasing === 'autopilot_pilot'}
-                        onClick={handleBuyAutopilotPilot}
-                        className="block w-full rounded-xl border border-[var(--accent)] px-4 py-3 text-center text-[13.5px] font-extrabold text-[var(--accent)] transition hover:bg-[var(--indigo)] hover:text-[var(--on-accent)] disabled:opacity-60"
-                      >
-                        {purchasing === 'autopilot_pilot'
-                          ? 'Opening secure checkout…'
-                          : `Start the ${AUTOPILOT_PILOT_DAYS}-day pilot →`}
-                      </button>
-                      <p className="mt-2 text-center text-[12px] font-semibold text-[var(--muted)]">
-                        🔒 Stripe · one-time · no auto-renew
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <AutopilotBreakEvenCalculator
-                  currency={resolvedCurrency}
-                  pending={purchasing}
-                  onStartMonthly={() => handleBuy('autopilot')}
-                  onStartPilot={handleBuyAutopilotPilot}
-                />
-              </div>
-            </div>
-          </>
-        ) : null}
-
-        {/* ROBO-ENTRY-490 — the one-time $4.90 Starter Pack was moved UP to a
-            featured entry offer above the plans; the duplicate secondary button
-            that used to sit here was removed to avoid a repeated adjacent CTA. */}
-
-        {/* KINEO-2026-07-06 — Pix/Mercado Pago (BR) section removed at Joseph's request. */}
-
-
         {/* Push #171 — "already subscribed" info banner. Shown instead of
             the old silent redirect so users understand their plan is active. */}
         {switchNotice && (
@@ -2146,15 +2160,12 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
           </div>
         )}
 
-        {/* KINEO-QUOTE-PRICING-2026-08-24 (pacote noturno, UI#5) — a voz real
-            na página onde 44 pessoas morreram no preço. Quem hesita no valor
-            lê um assinante de verdade, com nome e link verificável (mesmas
-            regras da home #304: só citação autorizada, sem parede de estrelas). */}
-        {watchPricing && <><details className="pricing-watch-availability"><summary>Plan availability</summary><Kling4TrialNotice surface="pricing" /><Kling4PaidNotice surface="pricing" availability={kling4Availability} /></details><section className="pricing-watch-teams" id="teams" aria-labelledby="pricing-watch-teams-title"><h2 id="pricing-watch-teams-title">For teams &amp; business</h2>{businessPlans}</section></>}
-        {!watchPricing && reviewQuote}
+        <div data-pricing-after-plans className="pricing-after-plans"><p data-testid="pricing-first-film-guarantee" className="pricing-guarantee">{FIRST_FILM_GUARANTEE.en}</p><PricingIncludes0511 compact /></div>
+        </div>{/* KINEO-PLANOS-ABAS-0411 — fim do painel de pessoas */}
+        {!watchPricing && <div hidden={audience !== 'team'} data-testid="pricing-team-panel">{businessPlans}</div>}{/* KINEO-PLANOS-ABAS-0411 */}
 
-        <div className="mt-16">
-          <div className="mb-6 text-center">
+        <div className="pricing-short-faq mt-8">
+          <div className="mb-4 text-center">
             <div className="mb-2 text-[12px] font-extrabold uppercase tracking-[.16em] text-[var(--accent)]">
               FAQ
             </div>
@@ -2164,7 +2175,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
           </div>
 
           <div className="mx-auto max-w-2xl overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)]">
-            {FAQS.map((item, i) => {
+            {visibleFaqs.map((item, i) => {
               const isOpen = openFaq === i
               return (
                 <div
@@ -2190,8 +2201,9 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                       +
                     </span>
                   </button>
-                  {(isOpen || watchPricing) && (
-                    <div className="px-5 pb-4 -mt-1" hidden={watchPricing && !isOpen}>
+                  {(
+
+                    <div className="px-5 pb-4 -mt-1" hidden={!isOpen}>
                       <p className="text-[13.5px] leading-relaxed text-[var(--muted)]">
                         {item.a}
                       </p>
@@ -2213,6 +2225,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
           </p>
         </div>
 
+        <details className="pricing-reference" data-pricing-reference><summary>See all formats, credits and cost per film</summary><CitationDirectAnswer page="home" /><CitationDetails page="home" /><div className="pricing-reference-faq">{FAQS.filter(item => !visibleFaqs.includes(item)).map(item => <details key={item.q}><summary>{item.q}</summary><p>{item.a}</p></details>)}</div>{referencePeople}{referenceExtras}</details><div className="pricing-final"><a href="#plans">Choose your plan</a></div>
         </section>
 
       {/* KINEO-PRECOS-0511 [fundador 05/11, print: "tire essas coisas de starter, creator e estúdio que está lá embaixo"] — a barra fixa de baixo saiu. */}
