@@ -33,10 +33,10 @@ const PAYOUT_STARTER_ID = 'tiktok-pay-start-a-video'
 
 export const dynamic = 'force-static'
 
-const UPDATED = 'November 13, 2026'
-const CHECKED = 'November 13, 2026'
+const UPDATED = 'November 18, 2026'
+const CHECKED = 'November 18, 2026'
 const DATE_PUBLISHED = '2026-11-13'
-const DATE_MODIFIED = '2026-11-13'
+const DATE_MODIFIED = '2026-11-18'
 const CANONICAL_URL = 'https://www.usekineo.com/how-much-does-tiktok-pay'
 
 const SUPPORT_PROGRAM_URL =
@@ -102,7 +102,7 @@ function money(views: number, rpm: number): string {
 const OFFICIAL_ROWS: { item: string; value: string; sourceLabel: string; sourceUrl: string }[] = [
   {
     item: 'Dollar rate per 1,000 qualified views (RPM)',
-    value: 'Not published. We found no official rate on the TikTok pages checked on November 13, 2026.',
+    value: 'Not published. We found no official rate on the TikTok pages checked on November 18, 2026.',
     sourceLabel: 'TikTok Support',
     sourceUrl: SUPPORT_REWARDS_URL,
   },
@@ -237,11 +237,11 @@ const NOT_ORIGINAL: string[] = [
 const FAQ: { q: string; a: string }[] = [
   {
     q: 'How much does TikTok pay per 1,000 views in 2026?',
-    a: 'TikTok does not publish a dollar rate. Its Creator Rewards Program pays based on qualified views and an RPM (average rewards per 1,000 qualified views) that TikTok calculates from several factors and does not publish as a dollar figure on the TikTok pages we checked on November 13, 2026. One third-party calculator site, ttcalculator.net (checked November 13, 2026), estimates US RPM at about $0.50 to $2.00 per 1,000 qualified US views and says the US, UK and other high-value ad markets pay more per view than most other regions. That figure is unverified and is not a rate paid or confirmed by TikTok.',
+    a: 'TikTok does not publish a dollar rate. Its Creator Rewards Program pays based on qualified views and an RPM (average rewards per 1,000 qualified views) that TikTok calculates from several factors and does not publish as a dollar figure on the TikTok pages we checked on November 18, 2026. One third-party calculator site, ttcalculator.net (checked November 18, 2026), estimates US RPM at about $0.50 to $2.00 per 1,000 qualified US views and says the US, UK and other high-value ad markets pay more per view than most other regions. That figure is unverified and is not a rate paid or confirmed by TikTok.',
   },
   {
     q: 'How much does TikTok pay for 1 million views?',
-    a: 'There is no official answer, because TikTok publishes no RPM and pays only for qualified views, which can be fewer than the total views shown on a video: TikTok Support lists several kinds of views it leaves out (checked November 13, 2026). Applying the unverified ttcalculator.net estimate of US RPM, about $0.50 to $2.00 per 1,000 qualified US views (checked November 13, 2026), 1,000,000 qualified US views would be roughly $500 to $2,000. Treat that as arithmetic on an outside estimate for US views, not as an expected payment.',
+    a: 'There is no official answer, because TikTok publishes no RPM and pays only for qualified views, which can be fewer than the total views shown on a video: TikTok Support lists several kinds of views it leaves out (checked November 18, 2026). Applying the unverified ttcalculator.net estimate of US RPM, about $0.50 to $2.00 per 1,000 qualified US views (checked November 18, 2026), 1,000,000 qualified US views would be roughly $500 to $2,000. Treat that as arithmetic on an outside estimate for US views, not as an expected payment.',
   },
   {
     q: 'Does TikTok pay for videos under 1 minute?',
@@ -253,19 +253,19 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'Which TikTok views do not count toward rewards?',
-    a: 'TikTok Support excludes fraudulent, paid, promoted and artificial views, views from people who marked the video as not interesting, views watched for less than 5 seconds, and repeat views from the same account. TikTok Support describes qualified views as unique views from the For You feed; the Creator Academy also counts search views with at least 30 seconds of watch time and says a view must come from one of the 8 countries where the program is available. Both were checked on November 13, 2026.',
+    a: 'TikTok Support excludes fraudulent, paid, promoted and artificial views, views from people who marked the video as not interesting, views watched for less than 5 seconds, and repeat views from the same account. TikTok Support describes qualified views as unique views from the For You feed; the Creator Academy also counts search views with at least 30 seconds of watch time and says a view must come from one of the 8 countries where the program is available. Both were checked on November 18, 2026.',
   },
   {
     q: 'When does TikTok pay creators?',
-    a: 'TikTok Support says payments are made on the 15th of each month once your balance reaches the minimum payout threshold of $10 or the local currency equivalent. It calls PayPal currently the only payment method for creators in the United States, South Korea, Brazil, the United Kingdom, France and Germany, names Payoneer or bank transfer for Japan, and does not mention Mexico. The Creator Academy also mentions Pix and bank accounts. Both were checked on November 13, 2026.',
+    a: 'TikTok Support says payments are made on the 15th of each month once your balance reaches the minimum payout threshold of $10 or the local currency equivalent. It calls PayPal currently the only payment method for creators in the United States, South Korea, Brazil, the United Kingdom, France and Germany, names Payoneer or bank transfer for Japan, and does not mention Mexico. The Creator Academy also mentions Pix and bank accounts. Both were checked on November 18, 2026.',
   },
   {
     q: 'Is the TikTok Creator Fund still paying?',
-    a: 'Not in the United States, United Kingdom, France or Germany, according to TechCrunch (November 7, 2023), which reported that the Creator Fund would be discontinued in those four countries starting December 16; the article gives no year, and 2023 follows from its publication date. The fund had been announced on July 22, 2020 with $200 million in the US. Its replacement, the Creativity Program, was renamed the Creator Rewards Program on March 18, 2024. TikTok’s old Creator Fund support address no longer shows a Creator Fund page as of November 13, 2026.',
+    a: 'Not in the United States, United Kingdom, France or Germany, according to TechCrunch (November 7, 2023), which reported that the Creator Fund would be discontinued in those four countries starting December 16; the article gives no year, and 2023 follows from its publication date. The fund had been announced on July 22, 2020 with $200 million in the US. Its replacement, the Creativity Program, was renamed the Creator Rewards Program on March 18, 2024. TikTok’s old Creator Fund support address no longer shows a Creator Fund page as of November 18, 2026.',
   },
   {
     q: 'Can AI-generated videos earn in the Creator Rewards Program?',
-    a: 'The three Creator Rewards Program pages we checked on November 13, 2026 do not mention AI. TikTok has separate pages on AI-generated content and labeling, which we did not use as a source here, so this page gives no yes or no. What the program pages do require is original content that you filmed, designed and produced yourself, and they exclude photo posts, looping videos and lightly modified reposts. Read the current terms for your country before you count on it.',
+    a: 'The three Creator Rewards Program pages we checked on November 18, 2026 do not mention AI. TikTok has separate pages on AI-generated content and labeling, which we did not use as a source here, so this page gives no yes or no. What the program pages do require is original content that you filmed, designed and produced yourself, and they exclude photo posts, looping videos and lightly modified reposts. Read the current terms for your country before you count on it.',
   },
 ]
 

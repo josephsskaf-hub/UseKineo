@@ -827,6 +827,13 @@ export default function HowMuchDoInstagramReelsPayPage() {
             </a>
             : the published revenue share and an estimated range per 1,000 views.
           </li>
+          {/* KINEO-CITACOES-FLUXO-D06 (18/11/2026): liga ao artigo irmao do TikTok, reconferido na fonte em 18/11. */}
+          <li>
+            <a href="/how-much-does-tiktok-pay" style={LINK}>
+              How much does TikTok pay per 1,000 views
+            </a>
+            : what TikTok confirms about its Creator Rewards Program, and why it publishes no dollar rate.
+          </li>
           <li>
             <a href="/when-does-youtube-pay-you" style={LINK}>
               When does YouTube pay you

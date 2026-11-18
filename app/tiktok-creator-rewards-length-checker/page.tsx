@@ -352,6 +352,7 @@ export default function TikTokCreatorRewardsLengthCheckerPage() {
           <ul>
             <li><Link href="/tiktok-creator-rewards-videos">Making 1-minute videos for TikTok Creator Rewards</Link></li>
             <li><Link href="/tiktok-vs-youtube-shorts-monetization">TikTok vs YouTube Shorts: which pays more</Link></li>
+            <li><Link href="/how-much-does-tiktok-pay">How much does TikTok pay per 1,000 views in 2026</Link></li>
             <li><Link href="/youtube-shorts-script-timer">YouTube Shorts script timer</Link></li>
           </ul>
         </nav>
