@@ -1,5 +1,6 @@
 import {
   buildAuthenticatedCreationRedirect,
+  FOR_CREATORS_CAMPAIGN,
   readCreationHandoff,
   type CreationDuration,
   type CreationLanguage,
@@ -15,6 +16,7 @@ export type SignupCreationPreview = {
   heading: string
   description: string
   excerpt: string[]
+  editIdeaHref?: string
 }
 
 const STRUCTURE_MARKER = /^(?:HOOK|MICRO REWARD(?:\s+\d+)?|FACT(?:\s+\d+)?|ESCALATION|RHYTHM|PAYOFF)\s*:/i
@@ -189,7 +191,15 @@ export function buildAuthenticatedCreationSignupPreview(
   })
   if (canonical !== normalized) return null
 
-  return buildSignupCreationPreview(params)
+  const preview = buildSignupCreationPreview(params)
+  if (!preview || campaign !== FOR_CREATORS_CAMPAIGN || scriptMode || duration || language) return preview
+
+  return {
+    ...preview,
+    heading: 'Your film idea',
+    description: 'After you sign in, Studio opens with this topic.',
+    editIdeaHref: `/for-creators?${new URLSearchParams({ prompt: handoff.prompt })}#channel-idea`,
+  }
 }
 
 /** Resolve the exact preview the auth page may promise for its outer query. */

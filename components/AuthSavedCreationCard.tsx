@@ -46,6 +46,11 @@ export default function AuthSavedCreationCard({
       <p className="text-[11px] leading-relaxed m-0" style={{ color: '#8f949e' }}>
         {preview.description}
       </p>
+      {preview.editIdeaHref && (
+        <a href={preview.editIdeaHref} className="inline-block mt-2 py-1 text-sm underline" style={{ color: '#a7ccff' }}>
+          Edit my idea
+        </a>
+      )}
     </section>
   )
 }

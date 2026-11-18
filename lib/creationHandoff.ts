@@ -9,6 +9,7 @@ export type CreationLanguage = NarrationLanguage
 // ceiling. The public form must surface this boundary instead of letting the
 // browser silently discard everything after it.
 export const CREATION_HANDOFF_PROMPT_MAX_CHARS = 1000
+export const FOR_CREATORS_CAMPAIGN = 'for_creators_1611'
 
 // ═══ KINEO-DURACOES-CURTAS-2026-09-29 [vai do fundador 29/09 'vai pra todas as 4'] — as durações curtas NOVAS por motor (abaixo de 35),
 // espelho de lib/durationByEngine.ts supportedDurationsFor (este módulo roda no guardião sem imports; o guardião

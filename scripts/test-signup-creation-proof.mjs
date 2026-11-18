@@ -147,6 +147,16 @@ const publicCreationRedirect = handoff.buildAuthenticatedCreationRedirect({
   createIntent: 'fast',
 })
 check(publicCreationRedirect, 'real public launcher builds an authenticated creation destination')
+const creatorTopic = 'Marés & navegação: who sailed past #7?'
+const creatorRedirect = handoff.buildAuthenticatedCreationRedirect({
+  prompt: creatorTopic, campaign: handoff.FOR_CREATORS_CAMPAIGN, createIntent: 'trial_best',
+})
+for (const build of [proof.buildSignupCreationPreviewFromAuthParams, proof.buildLoginCreationPreviewFromAuthParams]) {
+  const edit = new URL(build(new URLSearchParams({ redirect: creatorRedirect })).editIdeaHref, 'https://kineo.local')
+  equal(edit.pathname + edit.hash, '/for-creators#channel-idea', 'channel owners can edit their idea from either auth page')
+  equal(edit.searchParams.get('prompt'), creatorTopic, 'editing preserves accented text and reserved URL characters')
+  equal(build(new URLSearchParams({ redirect: publicCreationRedirect })).editIdeaHref, undefined, 'other campaigns keep their own destination')
+}
 equal(proof.buildAuthenticatedCreationSignupPreview(publicCreationRedirect)?.kind, 'idea', 'canonical public creation is recognized as an idea')
 check(
   authPreview({ redirect: publicCreationRedirect })?.excerpt.join(' ').includes('Door to Hell'),

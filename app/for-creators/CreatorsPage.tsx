@@ -2,9 +2,8 @@
 
 import { useState } from 'react'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
-import { buildAuthenticatedCreationRedirect, CREATION_HANDOFF_PROMPT_MAX_CHARS } from '@/lib/creationHandoff'
+import { buildAuthenticatedCreationRedirect, CREATION_HANDOFF_PROMPT_MAX_CHARS, FOR_CREATORS_CAMPAIGN as campaign } from '@/lib/creationHandoff'
 
-const campaign = 'for_creators_1611'
 const films = [
   { category: 'MYSTERY', title: 'The ghost ship Mary Celeste', id: 'filme-mary-celeste', detail: 'An empty ship. An unanswered question.', gallery: true },
   { category: 'MYSTERY', title: 'The Dyatlov Pass incident', id: 'f3de57b0-3486-4400-ba72-c9390774d426', detail: 'A mystery in the mountains.' },
@@ -22,12 +21,11 @@ const films = [
 const Seta = () => <svg className="ico-seta" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M7 17 17 7" /><path d="M8.5 7H17v8.5" /></svg>
 const Faisca = () => <svg className="ico-faisca" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12 2c.6 5.2 4.8 9.4 10 10-5.2.6-9.4 4.8-10 10-.6-5.2-4.8-9.4-10-10 5.2-.6 9.4-4.8 10-10Z" /></svg>
 
-export default function CreatorsPage({ freeFilm }: { freeFilm: boolean }) {
+export default function CreatorsPage({ freeFilm, initialIdea }: { freeFilm: boolean; initialIdea: string }) {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark')
-  const [idea, setIdea] = useState('')
-  const valid = idea.trim().length >= 3 && idea.trim().length <= CREATION_HANDOFF_PROMPT_MAX_CHARS
+  const [idea, setIdea] = useState(initialIdea)
+  const tooShort = idea.length > 0 && idea.trim().length < 3
   const redirect = buildAuthenticatedCreationRedirect({ prompt: idea, campaign, createIntent: 'trial_best' })
-  const action = freeFilm ? 'Start my first film free' : 'Start with my idea'
   return <main className="creators" data-theme={theme}>
     <header className="creators-nav wrap">
       <a className="brand" href="/" aria-label="Kineo home"><span className="brand-mark">k</span>kineo<span className="brand-dot">.</span></a>
@@ -40,19 +38,31 @@ export default function CreatorsPage({ freeFilm }: { freeFilm: boolean }) {
         <h1>Your channel has stories.<br /><em>Make them films.</em></h1>
         <p className="intro">Turn an idea into a narrated film with captions. For faceless creators posting three or more times a week.</p>
         <form className="idea-form" action="/signup" method="get" onSubmit={e => {
-          if (!valid) { e.preventDefault(); return }
+          if (idea.trim().length < 3) {
+            e.preventDefault()
+            const field = e.currentTarget.elements.namedItem('prompt') as HTMLTextAreaElement
+            field.setCustomValidity('Enter a topic with at least 3 characters.')
+            field.reportValidity()
+            return
+          }
           rememberSignupCampaign(campaign)
           const details = { source: campaign, placement: 'hero_form', topic_length: idea.trim().length, creation_intent: 'trial_best' }
           void trackEvent('organic_topic_submitted', details)
           void trackEvent('organic_cta_clicked', { ...details, destination: '/signup', mirrors: 'organic_topic_submitted' })
         }}>
           <label htmlFor="channel-idea">WHAT'S YOUR NEXT FILM ABOUT?</label>
-          <textarea id="channel-idea" name="prompt" value={idea} onChange={e => setIdea(e.target.value)} placeholder="A mystery, a moment in history, a question..." rows={2} minLength={3} maxLength={CREATION_HANDOFF_PROMPT_MAX_CHARS} required />
+          <textarea id="channel-idea" name="prompt" value={idea} onChange={e => {
+            e.currentTarget.setCustomValidity('')
+            setIdea(e.target.value)
+          }} aria-describedby="idea-length" placeholder="A mystery, a moment in history, a question..." rows={2} minLength={3} maxLength={CREATION_HANDOFF_PROMPT_MAX_CHARS} required />
+          <p id="idea-length" aria-live="polite">{tooShort
+            ? 'Add a little more detail — at least 3 characters.'
+            : `3–${CREATION_HANDOFF_PROMPT_MAX_CHARS.toLocaleString('en-US')} characters`}</p>
           <input type="hidden" name="create_intent" value="trial_best" />
           <input type="hidden" name="intent_campaign" value={campaign} />
           {redirect && <input type="hidden" name="redirect" value={redirect} />}
-          <button type="submit" disabled={!valid}>{action}<span className="btn-ico" aria-hidden="true"><Seta /></span></button>
-          <p>{freeFilm ? 'For eligible new accounts · Your idea follows you through signup' : 'Your idea follows you through signup'}</p>
+          <button type="submit">{freeFilm ? 'Start my first film free' : 'Start with my idea'}<span className="btn-ico" aria-hidden="true"><Seta /></span></button>
+          <p>Your idea opens in Studio after you sign in.{freeFilm && ' Eligible new accounts can make their first film free.'}</p>
         </form>
       </div>
       <div className="hero-visual">
