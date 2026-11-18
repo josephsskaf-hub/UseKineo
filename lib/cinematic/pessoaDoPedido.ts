@@ -366,12 +366,37 @@ export function comPontuacaoDoRoteiro(fala: string, roteiro: unknown): string {
 }
 // ═══ fim KINEO-LUGAR-DA-FALA-1411 ═══
 
+// ═══ KINEO-LUGAR-SUBTERRANEO-1811 [conserto 18/11, filme pago 426e783f, nota 5] ══════════════════════════════════════════════════════════════
+// O pedido: "…approaches a man hole cover on the cobblestone street… descends into the dark sewers… along the large dark sewer…". A lista de
+// lugares conhece "street" e não conhece "sewer": a conta dava UM lugar só e "Setting as the customer asked: the cobblestone street." foi às
+// 7 cenas, inclusive às 5 do esgoto ("In the dark sewer, he pauses… Setting as the customer asked: the cobblestone street."). O filme ficou na
+// rua. Aqui: o lugar SUBTERRÂNEO (sewer, tunnel, catacombs, dungeon, crypt, bunker, cellar, mineshaft, storm drain) conta como mais um TIPO de
+// lugar na regra de "um lugar só". Só conta: nunca vira a frase do lugar (quem diz o esgoto na cena certa é o planejador). Não conta quando os
+// lugares do texto já são debaixo da terra ou de trilho (cave, subway, metro, basement, train, station): "the train stops in a dark tunnel" é
+// um lugar só. Interruptor LUGAR_SUBTERRANEO_1811: 'off' = byte a byte o de antes. Ensaio: docs/ENSAIO-LUGAR-SUBTERRANEO-1811.md.
+export const LUGAR_SUBTERRANEO_1811: ModoLugarDoRoteiro = 'all'
+export const lugarSubterraneoLigado = (modo: ModoLugarDoRoteiro = LUGAR_SUBTERRANEO_1811) => modo === 'all'
+const SUBTERRANEO_RE_1811 = /(?<![\p{L}])(?:sewers?|storm drains?|tunnels?|catacombs?|dungeons?|crypts?|bunkers?|cellars?|mineshafts?)(?![\p{L}])/iu
+const TIPO_SUBTERRANEO_1811 = 'underground'
+const JA_SUBTERRANEO_RE_1811 = /^(?:cave|subway|metro|basement|train|station|train station)$/u
+/** Os tipos de lugar do texto, mais o subterrâneo quando o texto o cita. */
+function comSubterraneo1811(t: string, tipos: Set<string>): Set<string> {
+  if (lugarSubterraneoLigado() && SUBTERRANEO_RE_1811.test(t)) tipos.add(TIPO_SUBTERRANEO_1811)
+  return tipos
+}
+/** O subterrâneo só conta ao lado de um lugar que não é debaixo da terra nem de trilho; sozinho, ou com eles, sai da conta (o de antes). */
+function subterraneoConta1811(nomes: ReadonlySet<string>): boolean {
+  return nomes.has(TIPO_SUBTERRANEO_1811) && [...nomes].some((n) => n !== TIPO_SUBTERRANEO_1811 && !JA_SUBTERRANEO_RE_1811.test(n))
+}
+// ═══ fim KINEO-LUGAR-SUBTERRANEO-1811 ═══
+
 /** O lugar do pedido original ("a stylish Johannesburg coffee shop"), quando o pedido cita UM lugar só. null = nenhum, ou mais de um. */
 export function lugarDoPedido(ideiaOriginal: unknown): string | null {
   const pedido = textoDoPedidoOriginal(ideiaOriginal)
   if (!pedido) return null
   const semProibicao = pedido.split(/(?<=[.!?\n])/u).filter((f) => !/^\s*(?:no|not|never|without|don't|do not)\b/iu.test(f)).join(' ')
   const nomes = new Set([...semProibicao.matchAll(lugarSoRe())].filter((m) => !aridoComNomeProprio(semProibicao, m)).map((m) => tipoDoLugar(m[0]))) // KINEO-LUGAR-DO-ROTEIRO-1411 — era: LUGAR_SO_RE e o mapa de sempre
+  if (subterraneoConta1811(comSubterraneo1811(semProibicao, new Set(nomes)))) return null // KINEO-LUGAR-SUBTERRANEO-1811 — rua + esgoto são dois lugares: a casa não escolhe
   if (nomes.size !== 1) return null // nenhum lugar, ou a história passa por mais de um
   // KINEO-PREMISSA-VISUAL-1611 — pedido por cenas numeradas: o lugar que só parte das cenas cita é daquelas cenas, não do filme
   const porCenas1611 = luzPorCenaLigada() ? cenasNumeradas1611(pedido) : null
@@ -394,6 +419,7 @@ export function lugarDasCenas(acoes: readonly unknown[], roteiro: unknown = null
   const textos = acoes.map((a) => String(a ?? '').split(/(?<=[.!?\n])/u).filter((f) => !/^\s*(?:no|not|never|without|don't|do not)\b/iu.test(f)).join(' '))
   const porCena = textos.map((t) => new Set([...t.matchAll(lugarSoRe())].filter((m) => !aridoComNomeProprio(t, m)).map((m) => tipoDoLugar(m[0])))) // KINEO-LUGAR-DO-ROTEIRO-1411 — era: LUGAR_SO_RE e o mapa de sempre
   const nomes = new Set(porCena.flatMap((s) => [...s]))
+  if (subterraneoConta1811(textos.reduce((soma, t) => comSubterraneo1811(t, soma), new Set(nomes)))) return null // KINEO-LUGAR-SUBTERRANEO-1811 — as cenas passam por rua e esgoto: dois lugares
   if (nomes.size !== 1 || porCena.every((s) => s.size > 0)) return null
   for (const t of textos) {
     const tp = comPontuacaoDoRoteiro(t, roteiro) // KINEO-LUGAR-DA-FALA-1411 (i) — a frase do lugar para na pontuação do roteiro
