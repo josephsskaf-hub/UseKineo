@@ -36,6 +36,7 @@ import { downloadVideoFile } from '@/lib/videoDownload' // KINEO-DOWNLOAD-CLIPE-
 import { PremiereStage, PremiereResult, usePremiereBeacon } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110 — a espera vira a estreia
 import { cadastroComVolta } from '@/lib/growth/visitanteEscreveAntes' // KINEO-CRIAR-SEM-PAREDE-1511
 import { useUiCopy } from '@/components/InterfaceLanguage' // KINEO-ESTREIA-3110 — textos da estreia (props de texto) na língua da tela
+import VisibleClipVideo from '@/components/clips/VisibleClipVideo'
 import { CLIPS_TELA_CSS, clipsTelaMaisOpcoes, efeitosDaVitrineDoClipe } from '@/lib/clips/clipsTela0511' // KINEO-CLIPS-TELA-0511 — a caixa primeiro, a grade embaixo, sem Halloween
 
 // KINEO-CLIPE360-AMOSTRA-1410 — a escolha de efeito sobrevive à ida e volta pela barra lateral (sessionStorage desta aba).
@@ -131,7 +132,7 @@ const ASPECT_ICON: Record<string, string> = { '9:16': '▯', '16:9': '▭', '1:1
 function EngineShowcaseMedia({ sc }: { sc: ClipEngineShowcase }) {
   return (
     <span className="sc-media" aria-hidden="true">
-      <video src={sc.video} poster={sc.poster} autoPlay muted loop playsInline preload="metadata" style={{ objectPosition: sc.focus }} />
+      <VisibleClipVideo src={sc.video} poster={sc.poster} autoPlay muted loop playsInline style={{ objectPosition: sc.focus }} />
     </span>
   )
 }
@@ -892,7 +893,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
             <div className="card creation-input" id="clip-remix-panel" data-face-remix={remix.id}>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
               <div className="lab"><span className="n">1</span><UiLabel>Put your face in it</UiLabel> · <UiLabel>{remix.title}</UiLabel></div>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
               <div className="remix-scene">{/* KINEO-ROSTO-NO-CLIPE-2810 */}
-                <span className="fx-media"><video src={remix.video} poster={remix.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" /></span>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
+                <span className="fx-media"><VisibleClipVideo src={remix.video} poster={remix.poster} autoPlay muted loop playsInline aria-hidden="true" /></span>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
                 <p className="clip-meta" style={{ marginTop: 0 }}><UiLabel>Upload one clear photo of a face. Kineo makes this same scene with that person as the star.</UiLabel></p>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
               </div>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
               <div className="lab" style={{ marginTop: 14 }}><span className="n">2</span><UiLabel>Add a photo of a face</UiLabel></div>{/* KINEO-ROSTO-NO-CLIPE-2810 */}
@@ -1177,7 +1178,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
               return (
                 <button key={tr.key} type="button" className="fx-card trend-card" data-clip-action="select_trend" data-clip-trend={tr.key} onClick={() => applyTrend(tr)}>
                   <span className="fx-media">
-                    <video src={tr.preview.video} poster={tr.preview.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" />
+                    <VisibleClipVideo src={tr.preview.video} poster={tr.preview.poster} autoPlay muted loop playsInline aria-hidden="true" />
                   </span>
                   <span className="fx-title"><UiLabel>{tr.title}</UiLabel></span>
                   <span className="fx-sub"><UiLabel>{tr.sub}</UiLabel></span>
@@ -1193,7 +1194,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
             {trendRowEffects(efeitosDaVitrine, CLIP_TRENDS.filter((tr) => trendTarget(tr, engines)).length).filter((fx) => !semRepetir?.has(fx.title.trim().toLowerCase())).map((fx) => ( // KINEO-CLIP-RECREATE-JUNTOS-1511 — sem repetir o modelo da grade
               <button key={'season-' + fx.key} type="button" className="fx-card trend-card" data-clip-action="select_season_effect" data-clip-effect={fx.key} onClick={() => { if (fx.key !== effectKey) chooseEffect(fx.key); else document.getElementById('clip-effect-panel')?.scrollIntoView({ block: 'center', behavior: 'smooth' }) }}>
                 <span className="fx-media">
-                  <video src={fx.preview!.video} poster={fx.preview!.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" />
+                  <VisibleClipVideo src={fx.preview!.video} poster={fx.preview!.poster} autoPlay muted loop playsInline aria-hidden="true" />
                 </span>
                 <span className="fx-title"><UiLabel>{fx.title}</UiLabel></span>
                 <span className="fx-sub"><UiLabel>{fx.sub}</UiLabel></span>
@@ -1215,7 +1216,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
           <div className="fx-grid" role="group" aria-labelledby="clip-effects-title">
             {houseRemixes.map((rx) => ( // KINEO-DANCA-PUBLICA-3110 — sem preço no cartão: o preço mora só no botão do painel
               <button key={'remix-' + rx.id} type="button" className="fx-card" data-clip-action="select_face_remix" data-face-remix={rx.id} onClick={() => chooseHouseRemix(rx.id)}>{/* KINEO-DANCA-PUBLICA-3110 */}
-                <span className="fx-media"><video src={rx.video} poster={rx.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" /></span>{/* KINEO-DANCA-PUBLICA-3110 */}
+                <span className="fx-media"><VisibleClipVideo src={rx.video} poster={rx.poster} autoPlay muted loop playsInline aria-hidden="true" /></span>{/* KINEO-DANCA-PUBLICA-3110 */}
                 <span className="fx-title"><UiLabel>{rx.title}</UiLabel></span>{/* KINEO-DANCA-PUBLICA-3110 */}
                 <span className="fx-sub"><UiLabel>{rx.id === 'friday-groove' ? 'Your photo leads a Friday-night dance class' : 'Your photo, in this scene'}</UiLabel></span>{/* KINEO-DANCA-PUBLICA-3110 */}
                 <span className="fx-foot">{/* KINEO-CLIPS-SEM-SELO-1111 — sem selo de motor */}<span className="pr trend-go"><UiLabel>Put your face in it →</UiLabel></span></span>{/* KINEO-DANCA-PUBLICA-3110 */}
@@ -1225,7 +1226,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
               <button key={fx.key} type="button" className="fx-card" data-clip-action="select_effect" data-clip-effect={fx.key} aria-pressed={fx.key === effectKey} onClick={() => chooseEffect(fx.key)}>
                 <span className="fx-media">
                   {fx.preview
-                    ? <video src={fx.preview.video} poster={fx.preview.poster} autoPlay muted loop playsInline preload="metadata" aria-hidden="true" />
+                    ? <VisibleClipVideo src={fx.preview.video} poster={fx.preview.poster} autoPlay muted loop playsInline aria-hidden="true" />
                     : <span className="fx-soon">{t('previewSoon')}</span>}
                 </span>
                 <span className="fx-title"><UiLabel>{fx.title}</UiLabel></span>
@@ -1246,7 +1247,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
             {clips.map((c) => (
               <div key={c.id} className="card clip-card" style={{ padding: 10 }}>
                 {c.status === 'done' && c.video_url
-                  ? <video src={c.video_url} controls playsInline preload="metadata" />
+                  ? <VisibleClipVideo src={c.video_url} controls playsInline style={{ aspectRatio: c.aspect === '16:9' ? '16 / 9' : c.aspect === '1:1' ? '1 / 1' : '9 / 16', objectFit: 'contain' }} />
                   : <div className="clip-wait">{c.status === 'failed' ? (c.credits_refunded > 0 ? t('failedRefunded', { n: c.credits_refunded }) : t('failed')) : c.stage === 'keyframe' ? <UiLabel>Placing you in the scene…</UiLabel> : c.stage === 'video' ? <UiLabel>Filming your scene…</UiLabel> : t('inProgress')}</div>}{/* KINEO-ROSTO-QUADRO-CHAVE-2810 — as duas etapas do remix com nome */}
                 <div className="clip-meta">{/* KINEO-CLIPS-SEM-SELO-1111 — sem motor no cartão de My clips */}{c.seconds} s · {c.aspect === 'image' ? t('samePhoto') : c.aspect}{semMotor ? null : <> · {c.credits} cr</>}</div>
                 {c.effect

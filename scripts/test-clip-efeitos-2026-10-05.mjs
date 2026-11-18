@@ -297,7 +297,7 @@ ok(!/ref_image/.test(fxSrc.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g,
 // Tela
 const client = read('app/(dashboard)/clips/ClipsClient.tsx')
 ok(client.includes('await send({ effect: effect.key, image_url: photoUrl })') && !/send\(\{ effect: effect\.key[^}]*prompt/.test(client), '(7a) a tela manda só { effect, image_url } — nenhum prompt no pedido de efeito')
-ok(client.includes(": <span className=\"fx-soon\">{t('previewSoon')}</span>}") && client.includes('<video src={fx.preview.video} poster={fx.preview.poster} autoPlay muted loop playsInline'), '(7b) prévia em vídeo onde existe; onde é null, placeholder MARCADO "Preview coming soon"')
+ok(client.includes(": <span className=\"fx-soon\">{t('previewSoon')}</span>}") && client.includes('<VisibleClipVideo src={fx.preview.video} poster={fx.preview.poster} autoPlay muted loop playsInline'), '(7b) prévia em vídeo onde existe; onde é null, placeholder MARCADO "Preview coming soon"')
 // Fundador, sprint 06/10: cartão sem preço; créditos apenas no botão que gera.
 ok(!client.includes('<span className="tag">{fx.engine_label}</span>') && !client.includes('{fx.credits} cr') && !client.includes('className="fx-note"') /* KINEO-CLIPS-SEM-SELO-1111 [CEO 11/11]: o cartão do efeito sai sem selo e sem a nota do motor; o motor real segue na revisão do efeito */ && /photoUrl \? <>\{t\('generate'\)\} · \{effect.credits\}/.test(client), '(7c) cartão sem nome de motor (KINEO-CLIPS-SEM-SELO-1111); preço só no botão de gerar')
 ok((client.match(/fetch\('\/api\/avatar\/upload'/g) ?? []).length === 1 && client.includes("fd.append('rights', 'true')") && client.includes("fd.append('purpose', 'animate')"), '(7d) o efeito usa o MESMO upload/termo de direitos do /clips (um caminho só)')

@@ -19,6 +19,7 @@ import { isDeepStrictEqual } from 'node:util'
 import path from 'node:path'
 import vm from 'node:vm'
 import { comTelaRecreate1611 } from './tela-recreate-1611-trocas.mjs' // KINEO-TELA-RECREATE-1611
+import { comClipsVisivel1711 } from './clips-visivel-1711-trocas.mjs'
 
 
 const require = createRequire(import.meta.url)
@@ -108,7 +109,7 @@ function casosB(o) {
     ['B3 /create/clip: a tela única só depois das portas de hoje (aba Clip, efeito → Recreate) e antes da aba Clip de sempre', iClip > 0 && iPorta > iClip && iEfeito > iPorta && iJ > iEfeito && iMold > iJ && create.slice(iJ, iMold).includes("return RecreateFlowPage({ basePath: '/recreate' })")],
     ['B4 /recreate/your-video: a barra só muda com a mesma régua', flow.includes("abaJuntos={!!user && basePath === '/recreate' && clipRecreateJuntosVisivel(user.email)}") && src(o, 'app/recreate-preview/SeuVideoRecreateClient.tsx').includes("<CreateTabs active={abaJuntos?'clip':'recreate'} {...{recreateHref:flowBasePath}} {...(abaJuntos?{showClip:true,showRecreate:false}:{})}/>")],
     ...casosHtml.map(([n, props]) => [`B5 RecreateClient sem moldura = HTML da main (${n})`, ssrRecreate(o, props) === ssrRecreate({ ...o, ...base }, props)]),
-    ['B6 ClipsClient byte a byte o da main + SÓ o filtro opcional semRepetir (mesmo estado, upload, pedido, preço e eventos)', src(o, CLIPS) === comSemRepetir(lf(baseSrc(CLIPS)))],
+    ['B6 ClipsClient byte a byte o da base + filtros aprovados e SÓ mídia visível 17/11 (mesmo estado, upload, pedido, preço e eventos)', src(o, CLIPS) === comClipsVisivel1711(comSemRepetir(lf(baseSrc(CLIPS))))],
     ['B6b sem semRepetir nada some: todo filtro novo é `!semRepetir?.has(…)`', src(o, CLIPS).split('!semRepetir?.has(').length === 3 && !src(o, CLIPS).includes('semRepetir.has(')],
     ['B7 a aba Clip de sempre (ClipNaMoldura) intocada', src(o, 'components/create/ClipNaMoldura.tsx') === lf(baseSrc('components/create/ClipNaMoldura.tsx'))],
   ]
