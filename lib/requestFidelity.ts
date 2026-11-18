@@ -1,10 +1,35 @@
 // PEDIDO-FIEL-2610 — pure preflight, before any writer, claim or provider work.
 import { looksLikeBrief } from './scriptParser'
 import { readPastedDirectives } from './pastedDirectives'
+import { looksLikeModelRefusal } from './modelRefusal'
 
 export const REQUEST_FIDELITY_VERSION = 'pedido_fiel_20261026_v1'
 export function isInstructionBrief(prompt: string): boolean {
   return looksLikeBrief(prompt.replace(/\[faceless\]|\[camera:[^\]]*\]/gi, ' ').trim())
+}
+
+/** Require a conventional field marker or a topic request naming the medium.
+ * Without either signal a nominal opening can just as easily be spoken. */
+function isTopicField(text: string): boolean {
+  if (/^(?:ролик|видео)\s+на\s+тему\s*:\s*\S/iu.test(text)) return true
+  return /^trending\s+topic\s+for\s+(?:[\p{L}\p{N}’-]+\s+)*(?:videos?|films?|channels?|shorts?|reels?|tiktok|youtube)\.?$/iu.test(text)
+}
+
+/** Conservative intake: recognize requests, never infer authorship from length.
+ * Quoted/labelled speech remains the parser's responsibility. Ambiguous hooks
+ * stay verbatim; choosing AI authoring always requires the person's action. */
+export function nonNarrationInput(prompt: string): boolean {
+  const text = prompt.trim()
+  if (isInstructionBrief(text)) return true
+  // A labelled line can intentionally SAY an imperative, URL or model refusal.
+  if (/^(?:[\s\S]*\n)?\s*(?:narration|voiceover|narra[çc][ãa]o|fala|di[aá]logo|HOOK)\s*[:\n]/i.test(text)
+    || /\[Pexels\s*:/i.test(text)) return false
+  if (/^https?:\/\/\S+$/i.test(text)) return true
+  if (/^(?:I\b|as an AI\b|desculpe\b|sinto muito\b|lo siento\b)/i.test(text) && looksLikeModelRefusal(text)) return true
+  const opening = text.replace(/^(?:please|por favor)[,\s]+/i, '')
+  // Bare noun phrases such as "video on demand" can be the subject of a sentence.
+  if (isTopicField(opening)) return true
+  return /^(?:create|generate|write|produce|crie|gere|escreva|produza|crea|genera|escribe)\s+(?:(?:me|a|an|the|um|uma|un|una|o|el)\s+){0,2}(?:script|story|narration|roteiro|hist[oó]ria|narra[çc][ãa]o|guion)\b/i.test(opening)
 }
 
 /** Called only after the existing refund function has reported its real outcome. */
@@ -46,7 +71,7 @@ export function briefRequiresReview(language?: unknown): RequestFidelityReview {
 
 /** Never rewrites text or changes the selected mode/duration. Explicit speech is untouched. */
 export function reviewRequestFidelity(input: { prompt: string; scriptMode?: unknown; duration?: unknown; language?: unknown }): RequestFidelityReview | null {
-  if (!isInstructionBrief(input.prompt)) return null
+  if (!nonNarrationInput(input.prompt)) return null
   const mode = typeof input.scriptMode === 'string' ? input.scriptMode.toLowerCase() : ''
   if (mode !== 'ai') {
     return briefRequiresReview(input.language)
