@@ -1,0 +1,20 @@
+{
+  "date": "2026-11-18T19:04:51.393Z",
+  "checks": [
+    "a noGPU: no canvas, no automatic video requests, browse, edit and create remain available",
+    "a reduce: no canvas, no automatic video requests, browse, edit and create remain available",
+    "b noGPU: no canvas, no automatic video requests, browse, edit and create remain available",
+    "b reduce: no canvas, no automatic video requests, browse, edit and create remain available",
+    "c noGPU: no canvas, no automatic video requests, browse, edit and create remain available",
+    "c reduce: no canvas, no automatic video requests, browse, edit and create remain available",
+    "a 390: identical geometry in light and dark themes",
+    "a 1920: identical geometry in light and dark themes",
+    "b 390: identical geometry in light and dark themes",
+    "b 1920: identical geometry in light and dark themes",
+    "c 390: identical geometry in light and dark themes",
+    "c 1920: identical geometry in light and dark themes",
+    "Offline approval HTML loads all 24 stills and plays three 10-second videos without HTTP.",
+    "Native Studio handoff at 390 px: entered draft including ampersand is visible in Studio edit field after Create. No POST permitted during test.",
+    "Production handler mock: null user, different user and unconfirmed founder denied; confirmed founder admitted on all three routes with no preview key."
+  ]
+}

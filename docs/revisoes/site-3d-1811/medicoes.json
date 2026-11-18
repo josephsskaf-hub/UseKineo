@@ -1,0 +1,398 @@
+{
+  "date": "2026-11-18T19:05:04.294Z",
+  "chrome": "157.0.8103.51",
+  "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3090 (0x00002204) Direct3D11 vs_5_0 ps_5_0, D3D11-32.0.16.1088)",
+  "metrics": [
+    {
+      "concept": "a",
+      "width": 1920,
+      "cssHeight": 1080,
+      "emulatedDpr": 1,
+      "cpuSlowdown": 1,
+      "network": "loopback, unthrottled",
+      "backend": "WebGPU",
+      "interactiveMs": 51,
+      "lcpMs": 364,
+      "initialTransferBytes": 138955,
+      "sceneFetched": false,
+      "activationMs": 287,
+      "ms": 10004,
+      "frames": 600,
+      "fps": 59.98,
+      "assets": [
+        {
+          "file": "/screening-room/scene.js",
+          "transferBytes": 227969,
+          "encodedBytes": 227669
+        },
+        {
+          "file": "/screening-room/volcano-scene.mp4",
+          "transferBytes": 296296,
+          "encodedBytes": 295996
+        },
+        {
+          "file": "/screening-room/lituya-h3.mp4",
+          "transferBytes": 468933,
+          "encodedBytes": 468633
+        },
+        {
+          "file": "/screening-room/castle.mp4",
+          "transferBytes": 428976,
+          "encodedBytes": 428676
+        },
+        {
+          "file": "/screening-room/tunguska-globe.mp4",
+          "transferBytes": 234558,
+          "encodedBytes": 234258
+        }
+      ]
+    },
+    {
+      "concept": "b",
+      "width": 1920,
+      "cssHeight": 1080,
+      "emulatedDpr": 1,
+      "cpuSlowdown": 1,
+      "network": "loopback, unthrottled",
+      "backend": "WebGPU",
+      "interactiveMs": 133,
+      "lcpMs": 220,
+      "initialTransferBytes": 137724,
+      "sceneFetched": false,
+      "activationMs": 366,
+      "ms": 10008,
+      "frames": 601,
+      "fps": 60.05,
+      "assets": [
+        {
+          "file": "/screening-room/scene.js",
+          "transferBytes": 227969,
+          "encodedBytes": 227669
+        },
+        {
+          "file": "/screening-room/lituya-h3.mp4",
+          "transferBytes": 468933,
+          "encodedBytes": 468633
+        }
+      ]
+    },
+    {
+      "concept": "c",
+      "width": 1920,
+      "cssHeight": 1080,
+      "emulatedDpr": 1,
+      "cpuSlowdown": 1,
+      "network": "loopback, unthrottled",
+      "backend": "WebGPU",
+      "interactiveMs": 102,
+      "lcpMs": 156,
+      "initialTransferBytes": 137736,
+      "sceneFetched": false,
+      "activationMs": 270,
+      "ms": 10004,
+      "frames": 600,
+      "fps": 59.97,
+      "assets": [
+        {
+          "file": "/screening-room/scene.js",
+          "transferBytes": 227969,
+          "encodedBytes": 227669
+        },
+        {
+          "file": "/screening-room/volcano-scene.mp4",
+          "transferBytes": 296296,
+          "encodedBytes": 295996
+        },
+        {
+          "file": "/screening-room/lituya-h3.mp4",
+          "transferBytes": 468933,
+          "encodedBytes": 468633
+        },
+        {
+          "file": "/screening-room/castle.mp4",
+          "transferBytes": 428976,
+          "encodedBytes": 428676
+        },
+        {
+          "file": "/screening-room/tunguska-globe.mp4",
+          "transferBytes": 234558,
+          "encodedBytes": 234258
+        }
+      ]
+    },
+    {
+      "concept": "a",
+      "width": 1366,
+      "cssHeight": 768,
+      "emulatedDpr": 1,
+      "cpuSlowdown": 2,
+      "network": "loopback, unthrottled",
+      "backend": "WebGPU",
+      "interactiveMs": 48,
+      "lcpMs": 264,
+      "initialTransferBytes": 137727,
+      "sceneFetched": false,
+      "activationMs": 384,
+      "ms": 10002,
+      "frames": 600,
+      "fps": 59.99,
+      "assets": [
+        {
+          "file": "/screening-room/scene.js",
+          "transferBytes": 227969,
+          "encodedBytes": 227669
+        },
+        {
+          "file": "/screening-room/volcano-scene.mp4",
+          "transferBytes": 296296,
+          "encodedBytes": 295996
+        },
+        {
+          "file": "/screening-room/lituya-h3.mp4",
+          "transferBytes": 468933,
+          "encodedBytes": 468633
+        },
+        {
+          "file": "/screening-room/castle.mp4",
+          "transferBytes": 428976,
+          "encodedBytes": 428676
+        },
+        {
+          "file": "/screening-room/tunguska-globe.mp4",
+          "transferBytes": 234558,
+          "encodedBytes": 234258
+        }
+      ]
+    },
+    {
+      "concept": "b",
+      "width": 1366,
+      "cssHeight": 768,
+      "emulatedDpr": 1,
+      "cpuSlowdown": 2,
+      "network": "loopback, unthrottled",
+      "backend": "WebGPU",
+      "interactiveMs": 193,
+      "lcpMs": 216,
+      "initialTransferBytes": 137724,
+      "sceneFetched": false,
+      "activationMs": 396,
+      "ms": 10001,
+      "frames": 600,
+      "fps": 59.99,
+      "assets": [
+        {
+          "file": "/screening-room/scene.js",
+          "transferBytes": 227969,
+          "encodedBytes": 227669
+        },
+        {
+          "file": "/screening-room/lituya-h3.mp4",
+          "transferBytes": 468933,
+          "encodedBytes": 468633
+        }
+      ]
+    },
+    {
+      "concept": "c",
+      "width": 1366,
+      "cssHeight": 768,
+      "emulatedDpr": 1,
+      "cpuSlowdown": 2,
+      "network": "loopback, unthrottled",
+      "backend": "WebGPU",
+      "interactiveMs": 201,
+      "lcpMs": 220,
+      "initialTransferBytes": 137736,
+      "sceneFetched": false,
+      "activationMs": 422,
+      "ms": 10004,
+      "frames": 600,
+      "fps": 59.98,
+      "assets": [
+        {
+          "file": "/screening-room/scene.js",
+          "transferBytes": 227969,
+          "encodedBytes": 227669
+        },
+        {
+          "file": "/screening-room/volcano-scene.mp4",
+          "transferBytes": 296296,
+          "encodedBytes": 295996
+        },
+        {
+          "file": "/screening-room/lituya-h3.mp4",
+          "transferBytes": 468933,
+          "encodedBytes": 468633
+        },
+        {
+          "file": "/screening-room/castle.mp4",
+          "transferBytes": 428976,
+          "encodedBytes": 428676
+        },
+        {
+          "file": "/screening-room/tunguska-globe.mp4",
+          "transferBytes": 234558,
+          "encodedBytes": 234258
+        }
+      ]
+    },
+    {
+      "concept": "a",
+      "width": 390,
+      "cssHeight": 844,
+      "emulatedDpr": 2.75,
+      "cpuSlowdown": 4,
+      "network": "10 Mbps down, 75 ms latency",
+      "backend": "WebGPU",
+      "interactiveMs": 691,
+      "lcpMs": 764,
+      "initialTransferBytes": 137727,
+      "sceneFetched": false,
+      "activationMs": 1307,
+      "ms": 10002,
+      "frames": 600,
+      "fps": 59.99,
+      "assets": [
+        {
+          "file": "/screening-room/scene.js",
+          "transferBytes": 227969,
+          "encodedBytes": 227669
+        },
+        {
+          "file": "/screening-room/volcano-scene.mp4",
+          "transferBytes": 296296,
+          "encodedBytes": 295996
+        },
+        {
+          "file": "/screening-room/lituya-h3.mp4",
+          "transferBytes": 468933,
+          "encodedBytes": 468633
+        },
+        {
+          "file": "/screening-room/castle.mp4",
+          "transferBytes": 428976,
+          "encodedBytes": 428676
+        },
+        {
+          "file": "/screening-room/tunguska-globe.mp4",
+          "transferBytes": 234558,
+          "encodedBytes": 234258
+        }
+      ]
+    },
+    {
+      "concept": "b",
+      "width": 390,
+      "cssHeight": 844,
+      "emulatedDpr": 2.75,
+      "cpuSlowdown": 4,
+      "network": "10 Mbps down, 75 ms latency",
+      "backend": "WebGPU",
+      "interactiveMs": 609,
+      "lcpMs": 624,
+      "initialTransferBytes": 137724,
+      "sceneFetched": false,
+      "activationMs": 1149,
+      "ms": 10002,
+      "frames": 601,
+      "fps": 60.09,
+      "assets": [
+        {
+          "file": "/screening-room/scene.js",
+          "transferBytes": 227969,
+          "encodedBytes": 227669
+        },
+        {
+          "file": "/screening-room/lituya-h3.mp4",
+          "transferBytes": 468933,
+          "encodedBytes": 468633
+        }
+      ]
+    },
+    {
+      "concept": "c",
+      "width": 390,
+      "cssHeight": 844,
+      "emulatedDpr": 2.75,
+      "cpuSlowdown": 4,
+      "network": "10 Mbps down, 75 ms latency",
+      "backend": "WebGPU",
+      "interactiveMs": 643,
+      "lcpMs": 660,
+      "initialTransferBytes": 137736,
+      "sceneFetched": false,
+      "activationMs": 1204,
+      "ms": 10009,
+      "frames": 601,
+      "fps": 60.05,
+      "assets": [
+        {
+          "file": "/screening-room/scene.js",
+          "transferBytes": 227969,
+          "encodedBytes": 227669
+        },
+        {
+          "file": "/screening-room/volcano-scene.mp4",
+          "transferBytes": 296296,
+          "encodedBytes": 295996
+        },
+        {
+          "file": "/screening-room/lituya-h3.mp4",
+          "transferBytes": 468933,
+          "encodedBytes": 468633
+        },
+        {
+          "file": "/screening-room/castle.mp4",
+          "transferBytes": 428976,
+          "encodedBytes": 428676
+        },
+        {
+          "file": "/screening-room/tunguska-globe.mp4",
+          "transferBytes": 234558,
+          "encodedBytes": 234258
+        }
+      ]
+    }
+  ],
+  "fallbackMetrics": [
+    {
+      "concept": "a",
+      "backend": "WebGL2",
+      "width": 390,
+      "cssHeight": 844,
+      "emulatedDpr": 2.75,
+      "cpuSlowdown": 4,
+      "windowSeconds": 10,
+      "reading": "60.0 FPS · WebGL2"
+    },
+    {
+      "concept": "b",
+      "backend": "WebGL2",
+      "width": 390,
+      "cssHeight": 844,
+      "emulatedDpr": 2.75,
+      "cpuSlowdown": 4,
+      "windowSeconds": 10,
+      "reading": "60.1 FPS · WebGL2"
+    },
+    {
+      "concept": "c",
+      "backend": "WebGL2",
+      "width": 390,
+      "cssHeight": 844,
+      "emulatedDpr": 2.75,
+      "cpuSlowdown": 4,
+      "windowSeconds": 10,
+      "reading": "60.1 FPS · WebGL2"
+    }
+  ],
+  "checks": [
+    "All three local production routes return 404 for anonymous missing, invalid, empty and duplicate keys. Valid key returns 200, private no-store, no-referrer and noindex.",
+    "A: WebGL2 renders with WebGPU unavailable, arrows change the selected film, player advances, modal and page Create buttons hit-tested, restart works and runtime reduced motion removes the canvas.",
+    "B: WebGL2 renders with WebGPU unavailable, arrows change the selected film, player advances, modal and page Create buttons hit-tested, restart works and runtime reduced motion removes the canvas.",
+    "C: WebGL2 renders with WebGPU unavailable, arrows change the selected film, player advances, modal and page Create buttons hit-tested, restart works and runtime reduced motion removes the canvas.",
+    "B reduce: static posters, no video fetch, editable idea and accessible Create button.",
+    "B no-gpu: static posters, no video fetch, editable idea and accessible Create button."
+  ]
+}
