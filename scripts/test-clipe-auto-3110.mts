@@ -22,7 +22,7 @@ function deps(opts: { firstOk?: boolean; ambiguous?: boolean; secondOk?: boolean
     engineAccess: (e: string) => (e === 'seedance' && opts.seedanceOk === false ? { ok: false, status: 403, reason: 'paused' } : { ok: true }),
     findByKey: async () => null,
     countActive: async () => 0,
-    verifyImage: async () => {},
+    verifyImage: async () => null,
     moderate: async () => ({ ok: true }),
     getBalance: async () => 500,
     newId: () => 'clip-1',

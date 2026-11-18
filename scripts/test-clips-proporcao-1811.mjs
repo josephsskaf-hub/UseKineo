@@ -30,5 +30,9 @@ for (const [size, expected] of cases) {
   dimensions = size
   assert.equal(await clipPhotoProblem(file), expected, JSON.stringify(size))
 }
-assert.equal(revoked, cases.length)
+dimensions = [1000, 399]
+assert.equal(await clipPhotoProblem(file, false), null)
+dimensions = null
+assert.equal(await clipPhotoProblem(file, false), 'unreadable')
+assert.equal(revoked, cases.length + 2)
 console.log('PASS: landscape, portrait, inclusive limits, extreme ratios, corrupt input and URL cleanup.')

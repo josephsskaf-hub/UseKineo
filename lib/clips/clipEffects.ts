@@ -27,7 +27,7 @@
 // de dinheiro. `engine` de um efeito-modelo é o TRILHO de acesso (portão de plano, pausa e a coluna `engine` da tabela
 // `clips`, que só aceita os 7 motores): os 3 andam no trilho 'kling'. O selo honesto vem de template.label ("Kling 1.6",
 // "PixVerse 5.5") e o modelo REAL fica gravado em clips.model (é dele que o pollFal lê o resultado).
-import { CLIP_ENGINES, type ClipEngineKey, type ClipRequestInput } from './clipCatalog'
+import { CLIP_ENGINES, clipPhotoAspectLimited, type ClipEngineKey, type ClipRequestInput } from './clipCatalog'
 import { clipCreditCost, clipTemplateCreditCost } from './clipPricing'
 import { clipMeasurementVersion } from './clipMeasurement'
 
@@ -630,6 +630,7 @@ export function clipEffectEngineLabel(effect: Pick<ClipEffect, 'key' | 'engine'>
 
 /** O que a galeria recebe do GET /api/clips — sem o prompt (o navegador não precisa dele nem o manda de volta). */
 export interface PublicClipEffect {
+  photoAspectLimited?: boolean
   key: ClipEffectKey
   title: string
   sub: string
@@ -656,6 +657,7 @@ export function publicClipEffects(engineOk: (engine: ClipEngineKey) => boolean):
     credits: clipEffectCredits(e),
     person: e.person,
     preview: e.preview,
+    ...(clipPhotoAspectLimited(e.template?.model ?? CLIP_ENGINES[e.engine].i2vModel) && { photoAspectLimited: true }),
     ...(e.pair ? { pair: true } : {}), // KINEO-ABRACO-BEIJO-3110 — só nos efeitos de 2 fotos (os outros ficam byte a byte iguais)
   }))
 }

@@ -69,6 +69,7 @@ function rememberedClipEffect(): string | null {
 }
 
 type Engine = {
+  photoAspectLimited?: boolean
   key: string
   label: string
   text: boolean
@@ -112,6 +113,7 @@ type Clip = {
 type FaceRemixCard = { id: string; title: string; engine: string; engine_label: string; seconds: number; credits: number; video: string; poster: string; house?: boolean } // KINEO-ROSTO-NO-CLIPE-2810 · KINEO-DANCA-PUBLICA-3110 — + house (cartão próprio na grade de efeitos)
 
 type EffectCard = {
+  photoAspectLimited?: boolean
   key: string
   title: string
   sub: string
@@ -509,6 +511,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
 
   function chooseEngine(next: Engine) {
     setEngineKey(next.key)
+    setPhotoProblem(null)
     setError(null)
     // Trocar de MOTOR com uma duração que ele não faz: vai para a duração mais próxima que o card acabou de mostrar.
     if (!next.seconds.includes(seconds)) {
@@ -536,7 +539,8 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
     setFaceUrl(null) // KINEO-ROSTO-QUADRO-CHAVE-2810
     try {
       const normalized = await compressPhoto(file, !!remix) // KINEO-ROSTO-QUADRO-CHAVE-2810 — no remix: sempre JPEG ≤ 1600 px, sem barras pretas
-      const problem = await clipPhotoProblem(normalized)
+      const limitAspect = !remix && (effect ? effect.photoAspectLimited : engine?.photoAspectLimited) === true
+      const problem = await clipPhotoProblem(normalized, limitAspect)
       if (problem) {
         setPhotoProblem(problem)
         return
@@ -561,6 +565,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
     const next = effectKey === key ? null : key // KINEO-CLIPE360-AMOSTRA-1410 — o mesmo vai-e-volta do cartão, agora lembrado
     setEffectKey(next)
     rememberClipEffect(next)
+    setPhotoProblem(null)
     setError(null)
     window.requestAnimationFrame(() => document.getElementById('clip-effect-panel')?.scrollIntoView({ block: 'center', behavior: 'smooth' })) // KINEO-EFEITO-ROLA-3110 — o painel aparece inteiro, não só a borda
   }
@@ -571,6 +576,7 @@ export default function ClipsClient({ measurementActor = null, moldura, rotuloDo
     if (!effects.some((fx) => fx.key === CLIP_ROTATE_EFFECT_KEY)) return
     setEffectKey(CLIP_ROTATE_EFFECT_KEY)
     rememberClipEffect(CLIP_ROTATE_EFFECT_KEY)
+    setPhotoProblem(null)
     setError(null)
     window.requestAnimationFrame(() => document.getElementById('clip-effect-panel')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }))
   }

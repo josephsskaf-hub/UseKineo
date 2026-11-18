@@ -62,6 +62,12 @@ const range = (a: number, b: number): number[] => Array.from({ length: b - a + 1
 
 export const CLIP_ENGINE_ORDER: readonly ClipEngineKey[] = ['seedance', 'kling', 'hollywood', 'veo', 'h3', 'omni', 's25']
 
+const H3_TURBO_IMAGE_MODEL = 'minimax/h3-max-turbo/image-to-video'
+
+export function clipPhotoAspectLimited(model: string | null | undefined): boolean {
+  return model === H3_TURBO_IMAGE_MODEL
+}
+
 export const CLIP_ENGINES: Record<ClipEngineKey, ClipEngineSpec> = {
   hollywood: {
     key: 'hollywood',
@@ -85,7 +91,7 @@ export const CLIP_ENGINES: Record<ClipEngineKey, ClipEngineSpec> = {
     key: 'seedance',
     label: 'MiniMax H3 Turbo', // KINEO-ROTULO-CLIPE-H3-1111 [CEO 11/11: "rótulo honesto"] — a chave segue 'seedance', mas desde ead4a920a o clipe roda no MiniMax H3 Max Turbo; era 'Seedance 1.5'
     t2vModel: 'minimax/h3-max-turbo/text-to-video', // KINEO-SEEDANCE-SAI-1111 — o Seedance 1.5 sai da fal em 11/11; era 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
-    i2vModel: 'minimax/h3-max-turbo/image-to-video', // KINEO-SEEDANCE-SAI-1111 — era 'fal-ai/bytedance/seedance/v1.5/pro/image-to-video'
+    i2vModel: H3_TURBO_IMAGE_MODEL, // KINEO-SEEDANCE-SAI-1111 — era 'fal-ai/bytedance/seedance/v1.5/pro/image-to-video'
     falSeconds: range(4, 12),
     t2vAspects: ['9:16', '16:9', '1:1'],
     i2vAspects: 'image',

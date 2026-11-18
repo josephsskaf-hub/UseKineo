@@ -45,7 +45,8 @@ import { clipEffectCredits, clipEffectEventMetadata, clipEffectForRow, clipTempl
 import { FACE_REMIX_EVENTS, FACE_REMIX_KEYFRAME_FAILED, FACE_REMIX_KEYFRAME_MODEL, faceRemixCredits, faceRemixEventMetadata, faceRemixFalUsd, faceRemixForRequest, faceRemixForRow, faceRemixKeyframeInput, faceRemixStageForRow } from './faceRemix' // KINEO-ROSTO-QUADRO-CHAVE-2810
 import { MOVIMENTO_FALHA, MOVIMENTO_VIDEO_MODEL, movimentoEnvio, movimentoEnvioEm, movimentoStageForRow } from '@/lib/recreate/movimento' // KINEO-RECREATE-MOVIMENTO-1411
 import { movimentoForRow } from '@/lib/recreate/movimento' // KINEO-MOVIMENTO-ANTES-DE-ABRIR-2-1411
-import { ownedClipImageUrl } from './clipCatalog' // KINEO-ROSTO-QUADRO-CHAVE-2810 — a posse do recorte do rosto (2ª referência do quadro-chave), a mesma régua da foto
+import type { ClipPhotoProblem } from './clipPhotoInput'
+import { ownedClipImageUrl, clipPhotoAspectLimited } from './clipCatalog' // KINEO-ROSTO-QUADRO-CHAVE-2810 — a posse do recorte do rosto (2ª referência do quadro-chave), a mesma régua da foto
 
 /** Pedido sem request_id da fal há mais que isto = o envio morreu no meio; estorna. */
 export const CLIP_PENDING_STALE_MS = 10 * 60 * 1000
@@ -90,7 +91,7 @@ export interface ClipSubmitDeps {
   engineAccess(engine: ClipEngineKey): ClipEngineAccess
   findByKey(userId: string, key: string): Promise<ClipRow | null>
   countActive(userId: string): Promise<number>
-  verifyImage(url: string): Promise<void>
+  verifyImage(url: string): Promise<ClipPhotoProblem | null>
   moderate(args: { text: string; imageUrls: string[] }): Promise<ModerationOutcome>
   getBalance(userId: string): Promise<number>
   newId(): string
@@ -318,9 +319,17 @@ export async function submitClip(
     return { ok: false, status: 429, code: 'too_many_active', error: `You already have ${CLIP_MAX_ACTIVE} clips in progress. Wait for one to finish.` }
   }
 
+  const model = recreate ? recreate.model : remix ? FACE_REMIX_KEYFRAME_MODEL : template ? template.model : req.model
+  let photoProblem: ClipPhotoProblem | null = null
   if (req.imageUrl) {
     try {
-      await deps.verifyImage(req.imageUrl)
+      photoProblem = await deps.verifyImage(req.imageUrl)
+      if (photoProblem && clipPhotoAspectLimited(model)) {
+        const error = photoProblem === 'aspect'
+          ? 'This photo is too wide or too tall. Crop it to 16:9 or 9:16, or choose another photo. Nothing was charged.'
+          : 'We could not read your photo dimensions. Upload a JPG or PNG again. Nothing was charged.'
+        return { ok: false, status: 400, code: photoProblem === 'aspect' ? 'image_aspect' : 'image', error }
+      }
       for (const photo of recreate?.photos.slice(1) ?? []) await deps.verifyImage(photo)
       if (faceImageUrl) await deps.verifyImage(faceImageUrl) // KINEO-ROSTO-QUADRO-CHAVE-2810 — o recorte também tem de ser JPG/PNG de verdade
     } catch {
@@ -348,7 +357,7 @@ export async function submitClip(
     billing_reference: `clips-${id}`,
     engine: req.engine,
     mode: req.mode === 'i2v' ? 'image' : 'text',
-    model: recreate ? recreate.model : remix ? FACE_REMIX_KEYFRAME_MODEL : template ? template.model : req.model, // KINEO-EFEITOS-NOVOS-2026-10-13 — o pollFal lê o resultado deste modelo · KINEO-ROSTO-QUADRO-CHAVE-2810 — remix nasce na etapa 1 (quadro-chave); o settleClip troca para o i2v
+    model, // KINEO-EFEITOS-NOVOS-2026-10-13 — o pollFal lê o resultado deste modelo · KINEO-ROSTO-QUADRO-CHAVE-2810 — remix nasce na etapa 1 (quadro-chave); o settleClip troca para o i2v
     seconds: req.seconds,
     aspect: req.aspect,
     prompt: req.prompt,
@@ -417,7 +426,7 @@ export async function submitClip(
   // KINEO-CLIPE-AUTO-3110 — a fal recusou no envio: uma tentativa no Seedance 1.5 antes de devolver erro ao cliente.
   if (!sent.ok && !sent.ambiguous && !template && !remix && !recreate && deps.switchEngine) { // KINEO-ROSTO-QUADRO-CHAVE-2810 — remix fora: a etapa 1 é o quadro-chave, não um clipe
     const fb = clipFallbackRequest(req)
-    if (fb && deps.engineAccess(fb.engine).ok) {
+    if (fb && !(photoProblem && clipPhotoAspectLimited(fb.model)) && deps.engineAccess(fb.engine).ok) {
       const second = await deps.submit(fb.model, buildClipFalInput(fb))
       if (second.ok) {
         const fbCredits = Math.min(credits, clipCreditCost(fb.engine, fb.seconds, fb.mode === 'i2v'))

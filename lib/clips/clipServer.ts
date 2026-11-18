@@ -20,6 +20,8 @@ import { moderationRefusalMessage, moderationRefusalStatus } from '@/lib/safety/
 import { moderateTopic } from '@/lib/safety/topicModeration' // KINEO-MODERACAO-1410 [TRAVA 8.2 — vai do fundador 14/10] — a régua completa no pedido dos Clipes
 import { enginePaused, engineOffered, engineRetired } from '@/lib/engineLaunch' // KINEO-S25-CLIPES-2026-10-06: o clipe do 2.5 lê clipS25Visible (lib/clips/clipLaunch.ts)
 import { decideEngineGate } from '@/lib/enginePlanGate'
+import { adsV2ImageSizeFromHead } from '@/lib/ads/v2BolaFix'
+import { clipPhotoDimensionsProblem } from '@/lib/clips/clipPhotoInput'
 import { downloadPublicAnimateImage } from '@/lib/animate/remoteImage'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { RECREATE_MODEL } from '@/lib/recreate/generation' // KINEO-RECREATE-TRAVA-1011
@@ -52,7 +54,7 @@ import { MOVIMENTO_EVENTOS, MOVIMENTO_PROMPT_PREFIXO, ehLinhaDeMovimento } from 
 import { MOTIVO_NUNCA_COBRADO } from '@/lib/recreate/movimento' // KINEO-MOVIMENTO-ANTES-DE-ABRIR-2-1411
 import { julgarCena } from '@/lib/recreate/movimentoJuiz' // KINEO-RECREATE-MOVIMENTO-1411
 import type { ClipMovimentoDeps } from '@/lib/clips/clipFlow' // KINEO-RECREATE-MOVIMENTO-1411
-import { buildClipFalInput } from '@/lib/clips/clipCatalog' // KINEO-ROSTO-QUADRO-CHAVE-2810 — a MESMA entrada do i2v do clipe comum, com o quadro-chave no lugar da foto
+import { buildClipFalInput, clipPhotoAspectLimited } from '@/lib/clips/clipCatalog' // KINEO-ROSTO-QUADRO-CHAVE-2810 — a MESMA entrada do i2v do clipe comum, com o quadro-chave no lugar da foto
 import {
   CLIP_EXPIRE_MS,
   CLIP_PENDING_STALE_MS,
@@ -189,6 +191,7 @@ export function clipS25Paying(account: Pick<ClipAccount, 'email' | 'plan' | 'par
 }
 
 export interface PublicClipEngine {
+  photoAspectLimited?: boolean
   key: ClipEngineKey
   label: string
   text: boolean
@@ -211,6 +214,7 @@ export function clipCatalogFor(access: (engine: ClipEngineKey) => ClipEngineAcce
       label: CLIP_ENGINES[key].label,
       text: modes.includes('t2v'),
       photo: modes.includes('i2v'),
+      ...(clipPhotoAspectLimited(CLIP_ENGINES[key].i2vModel) && { photoAspectLimited: true }),
       seconds,
       credits: Object.fromEntries(seconds.map((s) => [String(s), clipCreditCost(key, s)])),
       textAspects: modes.includes('t2v') ? aspectsFor(key, 't2v') : [],
@@ -1007,7 +1011,10 @@ export function submitDepsFor(args: {
       if (error) throw new Error(`clip count failed: ${error.message}`)
       return count ?? 0
     },
-    verifyImage: async (url) => { await downloadPublicAnimateImage(url) },
+    verifyImage: async (url) => {
+      const { buffer } = await downloadPublicAnimateImage(url)
+      return clipPhotoDimensionsProblem(adsV2ImageSizeFromHead(buffer))
+    },
     moderate: async ({ text, imageUrls }) => {
       const verdict = await moderateContent({ surface: 'clip', stage: 'input', userId: account.userId, text, imageUrls })
       if (verdict.ok) { const tema = await moderateTopic({ entry: 'clips', userId: account.userId, text }); if (!tema.ok) return { ok: false, reason: 'blocked', status: tema.status, message: tema.message } } // KINEO-MODERACAO-1410
