@@ -27,6 +27,12 @@ const LINHA_NOVA = 'if (filmNaMoldura(params.tab, user?.email) && caixaNovaVisiv
 const LINHA_DE_SEMPRE = 'if (filmNaMoldura(params.tab, user?.email)) return <><StudioIdeaArrival /><StudioNaMoldura showRecreate={decision.showRecreate} showClip={showClip} motor={motorDaCaixa(undefined)} campanha={campanha} ideiaInicial={ideiaDoLink(searchParams.ideia)} /></>'
 
 const src = (o, p) => lf(o[p] ?? read(p))
+// KINEO-STUDIO-3D-B-1811 [CEO Claude] — a caixa ganhou UMA chamada atrás de chave desligada (prévia 3D do dono). O gerador continua
+// comparado byte a byte com a main de antes: só estas duas inserções exatas são descontadas; qualquer outra letra diferente reprova.
+const PROJECAO_IMPORT = "import { requestFilmProjection } from './requestFilmProjection'\n"
+const PROJECAO_ONCHANGE = "onChange={(e) => {\n            setTexto(e.target.value); setAviso(null); if (e.target.value.trim()) registrar('mrr_idea_entered')\n            if (process.env.NEXT_PUBLIC_KINEO_STUDIO_FILM_3D === 'true') requestFilmProjection(e.currentTarget)\n          }}"
+const ONCHANGE_DE_ANTES = "onChange={(e) => { setTexto(e.target.value); setAviso(null); if (e.target.value.trim()) registrar('mrr_idea_entered') }}"
+const semProjecao3D = s => s.replace(PROJECAO_IMPORT, '').replace(PROJECAO_ONCHANGE, ONCHANGE_DE_ANTES)
 
 // ─── A. Interruptor e porta ────────────────────────────────────────────────────────────────────────────────────────────
 function casosA(o) {
@@ -48,7 +54,7 @@ function casosA(o) {
 // ─── B. O gerador é o de antes ─────────────────────────────────────────────────────────────────────────────────────────
 function casosB(o) {
   return ['components/studio/StudioSimples.tsx', 'lib/growth/studioSimples.ts', 'lib/create/filmNaMoldura.ts', 'lib/credits/engineCost.ts']
-    .map((p, i) => [`B${i + 1} ${p} igual à main de antes (${BASE})`, src(o, p) === lf(baseSrc(p))])
+    .map((p, i) => [`B${i + 1} ${p} igual à main de antes (${BASE})`, semProjecao3D(src(o, p)) === lf(baseSrc(p))])
 }
 
 // ─── C. Mesmo pedido pelos dois caminhos ───────────────────────────────────────────────────────────────────────────────
