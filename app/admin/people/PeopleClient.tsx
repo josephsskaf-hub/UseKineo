@@ -302,7 +302,8 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
   }
 
   const filtered = useMemo(() => {
-    const base = (people ?? []).filter((p) => !p.is_internal) // fundador/teste fora
+    const base = (people ?? []).filter(p => p.is_founder || !p.is_internal)
+      .sort((a, b) => Number(b.is_founder) - Number(a.is_founder))
     const needle = q.trim().toLowerCase()
     if (!needle) return base
     return base.filter(
@@ -312,7 +313,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
 
   const KIND_ORDER: Record<string, number> = { active: 0, churned: 1, one_time: 2 }
   const buyers = useMemo(
-    () => filtered.filter((p) => p.paid_kind).sort((a, b) => (KIND_ORDER[a.paid_kind!] ?? 9) - (KIND_ORDER[b.paid_kind!] ?? 9)),
+    () => filtered.filter((p) => !p.is_internal && p.paid_kind).sort((a, b) => (KIND_ORDER[a.paid_kind!] ?? 9) - (KIND_ORDER[b.paid_kind!] ?? 9)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [filtered],
   )

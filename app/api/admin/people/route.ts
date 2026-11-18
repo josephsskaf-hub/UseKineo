@@ -51,6 +51,7 @@ export interface PersonRow {
   // 'churned'; pagou sem nunca ter subscription = pack avulso = 'one_time'.
   paid_kind: PaidKind
   is_internal: boolean
+  is_founder: boolean
   // KINEO-CORTESIA-2026-10-03 — cortesia ativa (nível e fim). Plano *_trial com isto preenchido = presente do admin,
   // não trial de $1 nem pagante.
   courtesy_level: string | null
@@ -233,6 +234,7 @@ export async function GET() {
           has_paid: p.has_paid === true,
           paid_kind: paidKind,
           is_internal: isInternal(p.email as string),
+          is_founder: p.email?.trim().toLowerCase() === 'josephsskaf@gmail.com',
           courtesy_level: courtesyByUser.get(p.id)?.level ?? null,
           courtesy_until: courtesyByUser.get(p.id)?.ends_at ?? null,
           first_paid: firstPaid.get(p.id) ?? null,
