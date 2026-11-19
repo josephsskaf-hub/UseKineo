@@ -68,6 +68,12 @@ function prova(mutar = {}) {
     const pt = page === 'portuguese'
     exige(html.includes(`data-citation-plans="${page}"`) && (html.match(/<table/g) ?? []).length === 2, `${page}: a tabela de planos está no bloco`)
     exige((html.match(/<h3>/g) ?? []).length === 5, `${page}: seguem 5 perguntas`)
+    if (page === 'home') {
+      const perguntas = html.match(/<div class="kc2310-faq"[^>]*>(.*?)<\/div>/)?.[1] ?? ''
+      exige((perguntas.match(/<details><summary>/g) ?? []).length === 5 && !/<details[^>]*\bopen\b/.test(perguntas), 'home: 5 perguntas fechadas com as respostas no HTML')
+      exige((perguntas.match(/<p>/g) ?? []).length === 5, 'home: respostas preservadas no HTML')
+      exige(/<details class="kc2310-plans"><summary>See plans and cost per film<\/summary>.*?<table>.*?<\/table>.*?<\/details>/.test(html), 'home: tabela de planos fechada e presente no HTML')
+    }
     exige((html.match(/<time /g) ?? []).length === 1 && html.toLowerCase().includes('datetime="' + (page === 'home' ? '2026-11-05' : '2026-11-17') + '"'), `${page}: data de 05/11`)
     exige(!/October 23|23 de outubro|2026-10-23/.test(html), `${page}: sem a data antiga`)
     exige(texto.includes(pt ? '17 de novembro de 2026' : page === 'home' ? 'November 5, 2026' : 'November 17, 2026'), `${page}: data escrita na língua da página`)
@@ -115,6 +121,8 @@ const MUTANTES = [
   ['custo do filme de 60 s errado', LIB, (t) => t.replace('creditos(60) * precoUsd / saldo', 'creditos(35) * precoUsd / saldo'), /custo do filme de 60 s/],
   ['data parada em 23/10', COMP, (t) => t.replace("<time dateTime={page === 'home' ? PAGINAS_CITADAS_0511_ATUALIZADO : CITACOES_ROTINA_DATE}>{planos.atualizadoEm}</time>", '<time dateTime="2026-10-23">October 23, 2026</time>'), /data de 05\/11|data antiga/],
   ['tabela fora da tela', COMP, (t) => t.replace('<tbody>{planos.rows.map(', '<tbody>{[].map('), /com preço e créditos|filmes de 60 s/],
+  ['perguntas da home abertas', COMP, (t) => t.replace('<details key={item.q}>', '<details open key={item.q}>'), /5 perguntas fechadas/],
+  ['tabela de planos da home aberta', COMP, (t) => t.replace('<details className="kc2310-plans">', '<details open className="kc2310-plans">'), /tabela de planos fechada/],
   ['página em português com texto em inglês', LIB, (t) => t.replace("const ou = pt ? 'ou' : 'or'", "pt = false\n  const ou = 'or'"), /língua da página/],
   ['carimbo alarga para todo o mapa', LIB, (t) => t.replace('if (!alvo.has(path) && !localizedH3) return entry', ''), /nenhuma outra página/],
   ['carimbo anda para trás', LIB, (t) => t.replace('return atual >= carimbo ? entry : ', 'return '), /data mais nova fica/],

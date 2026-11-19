@@ -6,7 +6,7 @@ import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
 // Self-contained, styles scoped under .klp so they don't leak into the rest of the app.
 // Marker: KINEO-LANDING-V3-2026-06-30
 import { clipsVisible } from '@/lib/clips/clipLaunch'
-import { VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY, PAUSED_ENGINES_COPY, avatarVisible, kineo1Visible } from '@/lib/engineLaunch'
+import { VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY, PAUSED_ENGINES_COPY, avatarVisible } from '@/lib/engineLaunch'
 import EngineNewsBar from '@/components/home/EngineNewsBar' // KINEO-FAIXA-S25-2026-10-09
 import { enginePlanBadge } from '@/lib/enginePlanGate'
 import Link from 'next/link'
@@ -19,7 +19,6 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import Footer from '@/components/Footer'
 import { CitationDirectAnswer, CitationDetails } from '@/components/seo/TrafficCitation2310'
 import PhWelcomeBanner from '@/components/PhWelcomeBanner'
-import CostCalculatorLink from '@/components/CostCalculatorLink'
 import HomePricingCheckoutLink, { HomePricingCheckoutGroup } from '@/components/HomePricingCheckoutLink'
 import LandingViewTracker from '@/components/LandingViewTracker'
 import ResumeStrip from '@/components/ResumeStrip' // KINEO-FAIXA-CONTINUAR-2026-09-01
@@ -460,17 +459,6 @@ html:not([data-theme=dark]) .klp .nav-links>select.kineo-idioma-menu{color:#0E11
 .klp .plan li .ck{color:var(--blue);flex:none;display:grid;place-items:center;width:19px;height:19px;margin-top:1px;border-radius:var(--r-pill);background:rgba(41,151,255,.13);font-size:12px;font-weight:800}
 .klp .plan .btn{justify-content:center;margin-top:auto;width:100%}
 .klp .home-pricing-checkout-error{margin:9px 4px 0;color:#ff8b8b;font-size:12px;font-weight:700;line-height:1.45;text-align:center}
-.klp .snote{margin:26px auto 0;max-width:600px;text-align:center;font-size:14.5px;line-height:1.6;color:var(--muted)}
-.klp .snote b{color:var(--txt);font-weight:650}
-.klp .final{position:relative;text-align:center;overflow:hidden;border-radius:var(--r-lg);padding:88px 24px;background:linear-gradient(180deg,var(--card2) 0%,var(--card) 100%);border:1px solid var(--line);box-shadow:var(--sh-card-h)}
-.klp .final::before{content:'';position:absolute;inset:-40px;background:url('/videos/example-turkmenistan.webp') center 30%/cover no-repeat;opacity:.07;filter:blur(26px) saturate(1.2);pointer-events:none}
-.klp .final .glow{position:absolute;width:720px;height:400px;left:50%;top:-140px;transform:translateX(-50%);background:radial-gradient(ellipse at center,rgba(41,151,255,.18),transparent 66%);opacity:.75}
-.klp .final h2{font-size:clamp(2rem,4.4vw,3rem);font-weight:600;letter-spacing:-.024em;font-family:var(--font-display),var(--font-inter),'Inter',sans-serif}
-.klp .final p{margin-top:14px;color:var(--muted);font-size:1.15rem}
-.klp .final .fcta{display:flex;justify-content:center;margin-top:30px}
-.klp .taaft-badge{margin:0 auto 18px;opacity:.8;line-height:0}
-.klp .taaft-badge img{max-width:190px;height:auto;display:inline-block}
-.klp .taaft-badge:hover{opacity:1}
 /* KINEO-HOME-POLISH-R2-2026-07-27 — ICONOGRAFIA PROPRIA.
    Os 8 cards do toolkit usavam emoji de sistema (🎬 🎭 🫥 📦 🌀 🖼️ 🔥 ⚡).
    Emoji renderiza com desenho, peso e altura-x diferentes em cada SO — no
@@ -490,9 +478,6 @@ html:not([data-theme=dark]) .klp .nav-links>select.kineo-idioma-menu{color:#0E11
 .klp .tcard:hover .tlink{gap:9px}
 @keyframes badgeIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
 .klp .badge{animation:badgeIn .4s var(--ease-out-expo) .3s both;display:inline-flex;align-items:center;height:22px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--blue);background:rgba(41,151,255,.13);border:1px solid rgba(41,151,255,.32);padding:0 7px;border-radius:var(--r-pill)}
-.klp .pricing-more{margin-top:20px;text-align:center;font-size:12.5px;color:var(--muted2)}
-.klp .final h2{letter-spacing:-.03em;text-wrap:balance;font-weight:640}
-.klp .final p{max-width:520px;margin-left:auto;margin-right:auto;text-wrap:balance}
 .klp .gallery-cap{max-width:760px;margin-left:auto;margin-right:auto;line-height:1.65}
 .klp .nav-cta{display:flex;align-items:center;gap:10px}
 /* Dia 5 (13/08): fade-up das secoes ao rolar. .rv so e aplicada por JS (o
@@ -572,7 +557,6 @@ html:not([data-theme=dark]) .klp .nav-links>select.kineo-idioma-menu{color:#0E11
 .klp .nav-links{display:none}
 .klp section{padding:26px 0}
 .klp .sec-h{margin-bottom:40px}
-.klp .final{padding:60px 20px;border-radius:var(--r-lg)}
 .klp .nav-toggle-wrap{display:inline-flex;position:relative;width:44px;height:44px;align-items:center;justify-content:center}
 .klp .nav-mobile-menu{position:fixed;top:62px;left:0;right:0;flex-direction:column;background:var(--s0);border-bottom:1px solid var(--line);padding:8px 28px 20px;gap:2px;max-height:calc(100vh - 62px);overflow-y:auto;z-index:49}
 .klp .nav-mobile-menu a{min-height:44px;display:flex;align-items:center;padding:10px 4px;font-size:15px;font-weight:500;color:var(--txt);border-bottom:1px solid var(--line)}
@@ -713,9 +697,6 @@ a.pl-badge:hover{color:var(--txt);border-color:rgba(41,151,255,.5)}
 .klp .pstack img:nth-child(2){transform:translateY(10px)}
 .klp .pstack img:nth-child(3){transform:translateY(22px)}
 @media(max-width:1000px){.klp .pstack{display:none}}
-.klp .fchips{margin-top:20px;display:flex;justify-content:center;gap:9px;flex-wrap:wrap}
-.klp .fchips a{font-size:13px;font-weight:650;color:var(--txt);border:1px solid var(--line);border-radius:var(--r-pill);padding:8px 16px;background:rgba(255,255,255,.04);transition:border-color var(--dur-fast) ease,background var(--dur-fast) ease}
-.klp .fchips a:hover{border-color:rgba(41,151,255,.6);background:rgba(41,151,255,.1)}
 @media (prefers-reduced-motion: no-preference){
 .klp .hero-ftr .ftr{animation:hgIn var(--dur-slow) var(--ease-out-expo) backwards}
 .klp .hero-ftr .ftr:nth-child(2){animation-delay:60ms}
@@ -779,7 +760,6 @@ a.pl-badge:hover{color:var(--txt);border-color:rgba(41,151,255,.5)}
 .klp .tcard{padding:22px 20px}
 .klp .tico{width:42px;height:42px;border-radius:var(--r-sm)}
 .klp .plan .pr{font-size:2.5rem}
-.klp .snote{padding:18px 20px;font-size:14px}
 }
 /* Founder: videos directly below navigation, no visible introductory block.
    Keep the semantic heading without reserving layout space. */
@@ -847,7 +827,6 @@ export default function KineoLanding({
   // final). A vitrine é pública — aqui só a casa (isInternalEmail) continua vendo; o legado de quem já paga e usa é
   // resolvido no servidor do Studio (lib/kineo1Access.ts, E2b). A grade do bento fecha sozinha para qualquer contagem
   // (lib/ui/homePresentation.ts): visitante 4 tiles, casa 6.
-  const showKineo1 = kineo1Visible(initialEmail)
   // KINEO-HOME-3-CARDS-1910 — um booleano decide a primeira dobra: os 3 cards (interruptor aberto, ou conta da casa vendo a
   // KINEO-HOME-3-CARDS-1910 — prévia) ou as 2 portas de sempre. Fechado, o visitante vê a home de hoje, byte a byte.
   const showThreeCards = home3CardsOn(HOME_3_CARDS_LIVE, isInternalEmail(initialEmail)) // KINEO-HOME-3-CARDS-1910
@@ -1329,22 +1308,10 @@ export default function KineoLanding({
             </div>
           </div>
           </HomePricingCheckoutGroup>
-          {/* KINEO-SPRINT-OFFER-2026-07-14 — the "10 videos for $4.90 one-time"
-              note is gone (single-offer cleanup; ?pack=starter stays alive for
-              the watermark unlock only). The intro month is the entry path. */}
-          {/* KINEO-DUAS-PORTAS-2026-10-13 — coerência: a frase "3 Fast videos every 24h" saiu (Kineo 1 fora da entrada desde 29/09);
-              fica a verdade do grant (1º filme de 15 s, com marca d'água). */}
-          <div className="snote"><UiLabel>Try it first: </UiLabel><b><UiLabel>{ft(OFFER, `every new account${GRANT_COUNTRY_CLAUSE} gets ${TRIAL_GRANT_CREDITS_COPY} free credits — ${TRIAL_FIRST_FILM_PHRASE}`, `every new account${GRANT_COUNTRY_CLAUSE} gets ${TRIAL_GRANT_CREDITS_COPY} free credits — ${TRIAL_FIRST_FILM_PHRASE}`)}</UiLabel></b><UiLabel>{' — no card, watermark included.'}</UiLabel></div>
           {/* KINEO-CRO-2026-07-25 — payment-trust line to lower checkout anxiety. */}
           <p style={{ marginTop: 14, textAlign: 'center', fontSize: 12.5, letterSpacing: '.02em', color: 'var(--muted2)' }}><UiLabel>
             Secure checkout by Stripe&nbsp;·&nbsp;Cancel in one click&nbsp;·&nbsp;Credits refunded automatically if a render fails
           </UiLabel></p>
-          <div className="pricing-more" style={{ display: 'flex', justifyContent: 'center', gap: 18, flexWrap: 'wrap' }}>
-            <Link className="link" href="/pricing"><UiLabel>Full pricing, FAQ &amp; plan comparison →</UiLabel></Link>
-            <CostCalculatorLink className="link" placement="home_pricing" ><UiLabel>Calculate your cost per Short →</UiLabel></CostCalculatorLink>
-            <Link className="link" href="/how-much-do-youtube-shorts-pay"><UiLabel>How much do Shorts pay? →</UiLabel></Link>
-            <Link className="link" href="/youtube-shorts-rpm-by-niche"><UiLabel>Highest-RPM niches →</UiLabel></Link>
-          </div>
         </div>
       </section>
 
@@ -1371,7 +1338,7 @@ export default function KineoLanding({
                 byte; o texto fora do ft() nao mudou. */}
             <details className="qa"><summary><h3><UiLabel>Is the video really mine to post?</UiLabel></h3></summary><p><UiLabel>{ft(OFFER, 'Yes. Never-paid free users can download, share and post the watermarked MP4.', 'Yes. Never-paid free users can download, share and post the watermarked MP4.')}</UiLabel><UiLabel> Paid plans unlock the clean, watermark-free MP4 for YouTube, TikTok or Reels.</UiLabel></p></details>
             <details className="qa"><summary><h3><UiLabel>Do I need any editing skills?</UiLabel></h3></summary><p><UiLabel>{`${HOME_FAQ_EDITING_ANSWER} `}</UiLabel><UiLabel>{ft(OFFER, 'Free downloads carry a watermark; paid plans unlock the clean MP4.', 'Free downloads carry a watermark; paid plans unlock the clean MP4.')}</UiLabel></p></details>
-            <details className="qa"><summary><h3><UiLabel>Is there a watermark?</UiLabel></h3></summary><p><UiLabel>{ft(OFFER, `New accounts get ${TRIAL_GRANT_CREDITS_COPY} credits — ${TRIAL_FIRST_FILM_PHRASE}; trial films are watermarked.`, `New accounts get ${TRIAL_GRANT_CREDITS_COPY} credits — ${TRIAL_FIRST_FILM_PHRASE}; trial films are watermarked.`)}</UiLabel><UiLabel> Paid plans export clean, watermark-free MP4s.</UiLabel></p></details>
+            <details className="qa"><summary><h3><UiLabel>Is there a watermark?</UiLabel></h3></summary><p><UiLabel>{ft(OFFER, `New accounts${GRANT_COUNTRY_CLAUSE} get ${TRIAL_GRANT_CREDITS_COPY} credits — ${TRIAL_FIRST_FILM_PHRASE}; trial films are watermarked.`, `New accounts${GRANT_COUNTRY_CLAUSE} get ${TRIAL_GRANT_CREDITS_COPY} credits — ${TRIAL_FIRST_FILM_PHRASE}; trial films are watermarked.`)}</UiLabel><UiLabel> Paid plans export clean, watermark-free MP4s.</UiLabel></p></details>
             {/* KINEO-CEO-HOUR-2026-08-17 (#9) — os produtos novos entram no FAQ */}
             <details className="qa"><summary><h3><UiLabel>Can Kineo also generate images and voiceovers?</UiLabel></h3></summary><p><UiLabel>Yes — Kineo includes an AI image studio (6 engines including FLUX, Seedream and Nano Banana Pro, from 1 credit per image) and a voice studio with 4 text-to-speech engines (from 1 credit per 1000 characters). Everything you make lives in your Library.</UiLabel></p></details>
             <details className="qa"><summary><h3><UiLabel>Can I make my videos sharper?</UiLabel></h3></summary><p><UiLabel>Every video has a one-click Enhance option powered by Topaz film restoration — it removes compression artifacts, recovers detail and adds fine cinematic grain. 10 credits per video; the Studio plan includes 2 free enhances a month.</UiLabel></p></details>
@@ -1407,75 +1374,11 @@ export default function KineoLanding({
         </div>
       </section>
 
-      <section>
-        <div className="wrap">
-          <div className="final">
-            <div className="glow" />
-            <div style={{ position: 'relative', zIndex: 1 }}>
-              <h2 className="gtxt"><UiLabel>Pick your engine. Ship a Short today.</UiLabel></h2>
-              <p><UiLabel>{ft(OFFER, `Every new account${GRANT_COUNTRY_CLAUSE} starts free with ${TRIAL_CREDITS_SHOWN} credits — ${TRIAL_FIRST_FILM_PHRASE}, no card.`, `Every new account${GRANT_COUNTRY_CLAUSE} starts free with ${TRIAL_CREDITS_SHOWN} credits — ${TRIAL_FIRST_FILM_PHRASE}, no card.`)}</UiLabel></p>
-              {/* #10 (aprovado 15/08) — fechamento no estilo vitrine: os 5
-                  motores clicaveis + Start free. O href antigo #try-kineo
-                  apontava para o composer, que nao existe mais. */}
-              <div className="fchips">
-                {showKineo1 && <Link href={createEntryHref('film', '/studio?engine=fast&intent_campaign=final_chip', isSignedIn)}>Kineo 1</Link>}
-                <Link href={createEntryHref('film', '/studio?engine=seedance&intent_campaign=final_chip', isSignedIn)}>MiniMax H3 Turbo</Link>
-                <Link href={createEntryHref('film', '/studio?engine=hollywood&intent_campaign=final_chip', isSignedIn)}>Kling 4.0</Link>
-              </div>
-              {/* KINEO-SEM-PORTEIRO-2026-09-02 b — o CTA final da home escapou
-                  da primeira varredura porque não usa o atributo href com o caminho literal:
-                  o caminho vive dentro de um ternário. Lição registrada: para
-                  achar link nesta base não basta procurar `href=`, tem que
-                  procurar a STRING do caminho. */}
-              <div className="fcta"><Link className="btn btn-w" data-auth-modal="signup" href={isSignedIn ? createEntryHref('film', '/studio', isSignedIn) : referralBridge ? '#try-kineo' : '/signup?utm_source=final_cta'}>{isSignedIn ? 'Create a video' : CARD_ENTRY_COPY.ctaShort}</Link></div>
-              {/* ONDA6 #1 (14/08) — o fechamento ganha a linha de reversao de
-                  risco do hero: fecha a pagina com a mesma forca que abre.
-                  KINEO-TRIAL-SWAP-LEAK-2026-08-15 — esta linha NASCEU fora da
-                  troca atomica. O commit 15e4154 (07/08) embrulhou em ft() as
-                  ~45 frases que prometem o free tier; a ONDA 7 (2499311, 14/08)
-                  criou ESTA depois e em literal cru. Com a flag ON — o estado de
-                  producao — a home fechava prometendo "3 free videos every 24h"
-                  a 10cm do FAQ que diz "1 watermarked Fast video per month" e do
-                  bloco de pricing que diz "full Creator trial: 50 credits". Uma
-                  varredura no repo inteiro (app/ components/ lib/) confirma que
-                  era a UNICA ocorrencia crua: todas as outras ja passam por ft().
-                  Com a flag OFF o texto volta byte a byte ao literal anterior. */}
-              <p style={{ marginTop: 16, fontSize: '13.5px', color: 'var(--muted2)' }}><span style={{ color: 'var(--blue)' }}>✓</span> Free to start&nbsp;·&nbsp;<span style={{ color: 'var(--blue)' }}>✓</span> <UiLabel>{ft(OFFER, '3 free videos every 24h', OFFER.copy.chip)}</UiLabel>&nbsp;·&nbsp;<span style={{ color: 'var(--blue)' }}>✓</span><UiLabel> Cancel anytime</UiLabel></p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Marker: KINEO-TAAFT-BADGE-2026-07-01 (verification embed — homepage only) */}
-      <div className="wrap" style={{ paddingTop: 28, paddingBottom: 28, textAlign: 'center', borderTop: '1px solid var(--line)' }}>
-        <div className="taaft-badge" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18, flexWrap: 'wrap' }}>
-          <a href={"https://theresanaiforthat.com/ai/kineo/?ref=featured&v=11418043"} target="_blank" rel="nofollow noreferrer">
-            <img width={200} height={42} loading="lazy" decoding="async" src={"https://media.theresanaiforthat.com/featured-on-taaft.png?width=600"} alt="Featured on There's An AI For That" />
-          </a>
-          {/* KINEO-FAZIER-2026-07-31 — requisito do tier GRATUITO do Fazier: "A
-              backlink to our site is required (on your homepage or footer)".
-              Fazier é o diretório com a melhor razão dofollow/esforço medida na
-              pesquisa de 29/07 (57 links externos, 0 nofollow) e o free tier dá
-              listagem permanente + possível destaque na home deles. Link de
-              TEXTO deliberadamente — o embed de badge deles carrega um <script>
-              de terceiro na landing, e um script externo no caminho crítico da
-              página de conversão não vale um selo. dofollow de propósito: o
-              backlink recíproco É a moeda do acordo. */}
-          <a
-            href="https://fazier.com"
-            target="_blank"
-            rel="noreferrer"
-            style={{ color: 'var(--muted2)', fontSize: 12.5, fontWeight: 700, textDecoration: 'none', border: '1px solid var(--line)', borderRadius: 'var(--r-pill)', padding: '8px 14px' }}
-          >
-            Launched on Fazier
-          </a>
-        </div>
-      </div>
       {/* KINEO-PAGINA-IGUAL-0411 — fundador 04/11: "queria deixar tudo igual". A barra fixa de quem não está logado saiu da home: 1 cadastro e 0 pagantes em 30 dias. */}
       {/* KINEO-LOGIN-MODAL-1410 — o modal de entrar/criar conta (abre pelos links marcados com data-auth-modal e por /?auth=…). */}
       <HomeAuthModal signedIn={isSignedIn} />
     </main>
-    <Footer showStats={false} />
+    <Footer showStats={false} homeCompact />
     </>
   )
 }

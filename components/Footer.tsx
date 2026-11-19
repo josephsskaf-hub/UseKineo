@@ -226,7 +226,7 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
   },
 ]
 
-export default function Footer({ showStats = true }: { showStats?: boolean }) {
+export default function Footer({ showStats = true, homeCompact = false }: { showStats?: boolean; homeCompact?: boolean }) {
   return (
     <footer
       className="kineo-footer"
@@ -248,10 +248,12 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
         >
           <KineoBrandIcon size={20} /> Kineo
         </Link>
-        <p style={{ margin: '6px auto 0', maxWidth: 460, color: 'var(--muted)' }}><UiLabel>
+        <p style={{ margin: '6px auto 0', maxWidth: 460, color: 'var(--muted)' }}>{homeCompact ? (
+          <UiLabel>From one idea to a faceless YouTube Short.</UiLabel>
+        ) : <><UiLabel>
           Turn one idea into a ready-to-post faceless YouTube Short — script,
           AI voiceover, footage &amp; captions in a few minutes. </UiLabel><UiLabel>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}</UiLabel><UiLabel> Paid plans unlock clean MP4s.
-        </UiLabel></p>
+        </UiLabel></>}</p>
         <div style={{ marginTop: 16 }}><InterfaceLanguageSelect /></div>
       </div>
 
@@ -332,6 +334,16 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
           </details>
         ))}
       </nav>
+
+      {homeCompact && (
+        // KINEO-TAAFT-BADGE-2026-07-01 — verification embed, homepage only.
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px 14px', flexWrap: 'wrap', marginBottom: 18 }}>
+          <a href="https://theresanaiforthat.com/ai/kineo/?ref=featured&v=11418043" target="_blank" rel="nofollow noreferrer">
+            <img width={120} height={25} loading="lazy" decoding="async" src="https://media.theresanaiforthat.com/featured-on-taaft.png?width=600" alt="Featured on There's An AI For That" />
+          </a>
+          <a href="https://fazier.com" target="_blank" rel="noreferrer" style={linkStyle}>Launched on Fazier</a>
+        </div>
+      )}
 
       {/* Legal + contact (preserved) */}
       <div style={{ textAlign: 'center' }}>

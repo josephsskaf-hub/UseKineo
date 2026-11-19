@@ -124,7 +124,7 @@ const mede = async (src) => { const W = executeTs('lib/engineWall.ts', wallMocks
 }
 
 // ── (d) home renderizada ────────────────────────────────────────────────────────────────────────────────────────────
-console.log('== (d) home: visitante sem Kineo 1, casa com as 2 portas ==')
+console.log('== (d) home: sem porta do Kineo 1 para visitante ou casa ==')
 const wall = ['fast', 'cinematic_ai', 'cinematic_kling', 'cinematic_veo', 'cinematic_hollywood'].map((engine, i) => ({ id: 'w' + i, title: 'Demo ' + i, videoUrl: '/demo.mp4', engine, badge: engine.toUpperCase() }))
 const homeDe = (entry, email) => renderPage(entry, false, {}, { initialEmail: email, engineWall: wall })
 const semKineo1 = (html) => !html.includes('Kineo 1') && !html.includes('engine=fast')
@@ -132,21 +132,17 @@ const semKineo1 = (html) => !html.includes('Kineo 1') && !html.includes('engine=
   const pub = homeDe('app/KineoLanding.tsx', null), logado = homeDe('app/KineoLanding.tsx', PUBLICO), casa = homeDe('app/KineoLanding.tsx', INTERNO)
   checa('home (visitante): 0 "Kineo 1" e 0 link engine=fast', semKineo1(pub))
   checa('home (e-mail público logado): idem', semKineo1(logado))
-  // REANCORADO 30/09 — fundador: "tira essa parte" (a grade "Video" com os tiles de motor saiu da home). Some a porta do tile;
-  // ficam 2 portas do Kineo 1 para a casa (mega-menu e chip final), ainda atrás de showKineo1.
   // REANCORADO KINEO-S25-ABRE-2026-10-06: "Six ... Seedance 1.5 and Seedance 2.5 (paid plans)".
   // KINEO-H3MAX-2026-10-13 — reancorado: + "MiniMax H3 Max" na lista do FAQ (contagem "Seven").
   checa('home (visitante): sem grade de tiles e FAQ "Seven ... and Seedance 2.5 (paid plans)"', conta(pub, 'class="tile') === 0 && pub.includes('Kling 4.0, MiniMax H3, MiniMax H3 Max, MiniMax H3 Turbo and Seedance 2.5 (paid plans)')) // KINEO-MOTORES-SAEM-0511
-  // KINEO-MENU-VIDEO-LIMPO-2026-10-09 — re-ancorado: o fundador ("2 sim") tirou o Kineo 1 do mega-menu também para a casa; sobra o chip final.
-  checa('home (casa): sobra 1 porta do Kineo 1 (chip final); mega-menu e tile sem ele', conta(casa, 'engine=fast&amp;intent_campaign=nav_mega') === 0 && conta(casa, 'engine=fast&amp;intent_campaign=engine_tile') === 0 && conta(casa, 'engine=fast&amp;intent_campaign=final_chip') === 1)
-  checa('mutante (predicado aplicado à casa, que vê as portas) → vermelho', !semKineo1(casa))
+  checa('home (casa): 0 "Kineo 1" e 0 link engine=fast', semKineo1(casa))
   const land = rd('app/KineoLanding.tsx')
-  checa('a porta que sobrou está atrás de showKineo1 = kineo1Visible(initialEmail)', land.includes('  const showKineo1 = kineo1Visible(initialEmail)\n') && conta(land, '{showKineo1 && <') === 1 && conta(land, 'engine=fast') === 1)
-  // Mutante no JSX real: sem a guarda, o visitante volta a ver o Kineo 1.
+  checa('o bloco final não oferece mais o chip', !land.includes('intent_campaign=final_chip'))
+  // Mutante no JSX real: restaurar um link ao Kineo 1 quebra a garantia.
   const tmp = tmpRel('k1-home-mutante.tsx')
   try {
-    writeFileSync(join(RAIZ, tmp), trocar(land, '  const showKineo1 = kineo1Visible(initialEmail)\n', '  const showKineo1 = true\n'))
-    checa('mutante (showKineo1 = true) → o visitante volta a ver o Kineo 1', !semKineo1(homeDe(tmp, null)))
+    writeFileSync(join(RAIZ, tmp), trocar(land, '<CitationDetails page="home" />', '<><a href="/studio?engine=fast">Kineo 1</a><CitationDetails page="home" /></>'))
+    checa('mutante (chip recolocado) → o visitante volta a ver o Kineo 1', !semKineo1(homeDe(tmp, null)))
   } finally { rmSync(join(RAIZ, tmp), { force: true }) }
   checa('o mutante da home foi gravado fora da worktree', !tmp.startsWith('scripts/') && !tmp.startsWith('app/'))
 }
