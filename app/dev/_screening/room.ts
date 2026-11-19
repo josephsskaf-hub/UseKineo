@@ -1,5 +1,4 @@
-import { timingSafeEqual, createHash } from 'node:crypto'
-import { signedInFounder } from '@/lib/auth/signedInFounder'
+import { canViewScreening } from './access'
 import { APPEARANCE_BOOT } from '@/lib/ui/appearance'
 
 type Room = 'a' | 'b' | 'c'
@@ -35,19 +34,8 @@ const headers = {
   'X-Content-Type-Options': 'nosniff',
 }
 
-async function canView(url: URL) {
-  if (process.env.NODE_ENV === 'development') return true
-  const key = process.env.KINEO_3D_PREVIEW_KEY
-  const supplied = url.searchParams.getAll('k')
-  if (key && supplied.length === 1) {
-    const digest = (value: string) => createHash('sha256').update(value).digest()
-    if (timingSafeEqual(digest(key), digest(supplied[0]))) return true
-  }
-  return signedInFounder()
-}
-
 export async function screeningRoom(request: Request, concept: Room) {
-  if (!(await canView(new URL(request.url)))) return new Response('Not found', { status: 404, headers })
+  if (!(await canViewScreening(new URL(request.url).searchParams.getAll('k')))) return new Response('Not found', { status: 404, headers })
   const room = rooms[concept]
   const [slug, title, engine] = films[room.first]
   const filmRows = films

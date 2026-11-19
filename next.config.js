@@ -129,6 +129,17 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Consume the screening key before rendering the home and its analytics.
+  async rewrites() {
+    return { beforeFiles: [{ source: '/dev/home-3d', has: [{ type: 'query', key: 'k' }], destination: '/dev/home-3d/enter' }] }
+  },
+  async headers() {
+    return [{ source: '/dev/home-3d/:path*', headers: [
+      { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' },
+      { key: 'Referrer-Policy', value: 'no-referrer' },
+      { key: 'Cache-Control', value: 'private, no-store' },
+    ] }]
+  },
   async redirects() {
     return [
       // KINEO-FILMS-DIRETO-1311 — exact index redirect; public /examples/<slug> detail routes remain.

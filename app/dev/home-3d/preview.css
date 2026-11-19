@@ -1,0 +1,30 @@
+/* All additions live on the private page. On phones the original product doors and media take the full width. */
+@media (min-width:768px) and (pointer:fine) and (prefers-reduced-motion:no-preference) {
+  [data-home-projection] .hp-stage { position:absolute; pointer-events:none; overflow:hidden; }
+  [data-home-projection] .hp-stage canvas { width:100%; height:100%; display:block; }
+  [data-home-projection] .hp-caption { position:absolute; z-index:1; right:16px; bottom:11px; font:600 11px/1.4 system-ui,sans-serif; color:#eef3ee; text-shadow:0 1px 4px #15181a; }
+  [data-home-projection] .hp-idea { position:relative; z-index:2; width:min(280px,28vw); height:36px; padding:0 13px; border-radius:20px; border:1px solid var(--line,#aaaaaa); background:var(--bg,#fff); color:var(--txt); font:inherit; font-size:13px; }
+  [data-home-projection] .hp-idea:focus-visible { outline:2px solid #338aff; outline-offset:2px; }
+  [data-home-projection=a]:not([data-static-home]) .k3c-head { isolation:isolate; overflow:hidden; position:relative; box-sizing:border-box; min-height:170px; border-radius:18px; padding:22px 26px; display:grid; align-content:center; justify-items:start; justify-content:start; gap:8px; background:linear-gradient(110deg,#102329 8%,#284245 60%,#0c1a20); }
+  [data-home-projection=a]:not([data-static-home]) .k3c-head .k3c-kicker { z-index:1; font-size:clamp(25px,2vw,36px); line-height:1.1; letter-spacing:-.045em; text-transform:none; color:#fff; }
+  [data-home-projection=a]:not([data-static-home]) .k3c-head .k3c-more { z-index:1; color:#d4e9e6; font-size:12px; }
+  [data-home-projection=a]:not([data-static-home]) .hp-stage { inset:0; background:radial-gradient(ellipse at 60% 115%,#45636699,transparent 70%); }
+  [data-home-projection=a]:not([data-static-home]) .hp-still { position:absolute; inset:0 0 0 30%; width:70%; height:100%; object-fit:cover; object-position:50% 32%; opacity:.45; mask-image:linear-gradient(90deg,transparent,#000 48%); }
+  [data-home-projection=a]:not([data-static-home]) .hp-stage canvas { transform:translateX(12%) scale(1.52) rotate(-3deg); }
+  [data-home-projection=a]:not([data-static-home]) .hp-idea { order:1; background:#173237; border-color:#809996; color:#fff; }
+  [data-home-projection=a]:not([data-static-home]) .hp-idea::placeholder { color:#d9e9e5; }
+  [data-home-projection=b]:not([data-static-home]) .k3c-head { min-height:36px; align-items:center; }
+  [data-home-projection=b]:not([data-static-home]) .k3c-head { justify-content:flex-start; }
+  [data-home-projection=b]:not([data-static-home]) .k3c-more { margin-left:auto; }
+  [data-home-projection=b]:not([data-static-home])[data-playing] [data-home-card=films] .k3c-media { background:radial-gradient(ellipse at 60% 24%,#476664,#1b353a 62%,#0e1b24); }
+  [data-home-projection=b]:not([data-static-home])[data-playing] [data-home-card=films] .k3c-media > :is(picture,video) { visibility:hidden; }
+  [data-home-projection=b]:not([data-static-home]) .hp-stage { z-index:2; inset:0 0 24%; }
+  [data-home-projection=b]:not([data-static-home]) .hp-stage canvas { transform:scale(1.1); }
+  [data-home-projection=b]:not([data-static-home]) .hp-caption { top:12px; bottom:auto; }
+  [data-home-projection] .hp-stage:not([data-backend]) { opacity:0; }
+}
+[data-home-projection] .hp-stage, [data-home-projection] .hp-still, [data-home-projection] .hp-idea { pointer-events:none; }
+[data-home-projection] input.hp-idea { pointer-events:auto; }
+@media (max-width:767px),(pointer:coarse),(prefers-reduced-motion:reduce) {
+  [data-home-projection] :is(.hp-stage,.hp-idea,.hp-still) { display:none; }
+}
