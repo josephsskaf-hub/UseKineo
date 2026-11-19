@@ -28,28 +28,45 @@ c92b352b e b1ffe3ad entram depois desta volta (o portão de nome derrubava os do
 
 ## Passo a passo (Chrome do fundador, logado em usekineo.com)
 1. Ter o sim do dono para o valor da tabela.
-2. Rodar `docs/plano-da-fala-1911/ensaio-a2-2-lista.sql` (só SELECT) e copiar as linhas dos 4 filmes (roteiro, ideia, engine, language).
-3. No console, UM filme por vez, sem `dry_run`:
+2. Rodar `docs/plano-da-fala-1911/ensaio-a2-2-lista.sql` (só SELECT) e copiar as linhas dos 4 filmes (roteiro, ideia, engine, language). Ordem: 273c7774, 1c770cb7, 40543daf, d8bfd93d.
+3. No console, UM filme por vez, sem `dry_run`. Anotar o `generationId` que o console imprime:
 ```js
 const l = { /* a linha do filme */ }
+const generationId = crypto.randomUUID()
 const r = await fetch('/api/generate-video-cinematic', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
   prompt: l.roteiro, original_idea: l.ideia ?? undefined, script_mode: 'verbatim',
   k4_gratis_ensaio: true, k4_roteiro_do_escritor: !!l.ideia,
   engine: l.engine ?? undefined, language: l.language ?? undefined,
-  duration: 15, quality: 'cinematic_ai', generationId: crypto.randomUUID() }) }).then((x) => x.json())
-console.log(r.generationId ?? r)
+  duration: 15, quality: 'cinematic_ai', generationId }) }).then((x) => x.json())
+console.log(l.gen.slice(0, 8), 'generationId =', generationId, r.error ?? '')
 ```
-4. Esperar o filme terminar (Library ou status) antes do próximo: um Kling 4 por vez.
-   **REGRA DE PARADA [revisor 19/11, 6ª passada]:** antes do 2º filme, conferir o 1º no banco (passo 5). PARAR e não rodar os outros se o 1º:
-   - não tiver `ensaio_fundador` no claim;
-   - não tiver o sujeito com motivo `ideia_*_do_escritor`;
-   - tiver caído no caminho de hoje (o evento `kling4_descritor_forte` não existe, ou a descrição por seção não está nos planos);
-   - tiver saído com clipe acima de 15 s.
-
-   Do mesmo jeito, o 3º e o 4º só rodam se o anterior passou nas quatro. Parou: mandar à Div. 2 o `generation_id` e o motivo.
-5. Conferir no banco (só SELECT), pelo `generation_id`:
-   - o `cinematic_submission_claim` tem `kling4_trial.ensaio_fundador = true` e os planos com a descrição por seção;
-   - o relato do sujeito vem com o motivo `ideia_*_do_escritor`;
-   - o evento `kling4_descritor_forte` traz o veredito, as reescritas, `ultimo_sem_sujeito` e `nomes_depois`.
+4. Esperar o filme terminar (Library) antes de seguir.
+5. **Conferência obrigatória antes do PRÓXIMO filme** (só SELECT; troque os `generationId` anotados e `tem_ideia` = se a linha do SQL tinha ideia). Só roda o próximo filme se TODOS os já rodados saírem `PASSA`. Saiu `PARA`: não rodar mais nenhum e mandar à Div. 2 o `generationId` e o veredito.
+```sql
+with prova(gen, tem_ideia) as (values
+  ('<generationId do 273c7774>', false),
+  ('<generationId do 1c770cb7>', true),
+  ('<generationId do 40543daf>', true),
+  ('<generationId do d8bfd93d>', true)
+), c as (
+  select p.gen, p.tem_ideia, (select metadata->'response'->'kling4_trial' from events where name = 'cinematic_submission_claim' and session_id = p.gen order by created_at desc limit 1) k,
+    (select metadata from events where name = 'kling4_descritor_forte' and session_id = p.gen order by created_at desc limit 1) a2
+  from prova p where p.gen not like '<%'
+)
+select gen, k->>'engine_used' motor, coalesce((k->>'clip_duration')::numeric, 15) clipe_s, k->'sujeito_obrigatorio'->>'motivo_do_pedido' sujeito,
+  a2->'reescritas' reescritas, a2->'nomes_depois' nomes_depois,
+  case
+    when k is null then 'PARA: sem claim do Kling 4 grátis'
+    when k->>'engine_used' is distinct from 'kling4' then 'PARA: caiu na reserva (não é Kling 4)'
+    when k->>'ensaio_fundador' is distinct from 'true' then 'PARA: sem ensaio_fundador'
+    when a2 is null then 'PARA: o A2 não rodou (caminho de hoje)'
+    when jsonb_array_length(coalesce(a2->'nomes_depois', '[]'::jsonb)) > 0 then 'PARA: nome próprio persistiu (caminho de hoje)'
+    when coalesce((k->>'clip_duration')::numeric, 15) > 20 then 'PARA: clipe acima de 20 s (o modo ensaio vai até 20)'
+    when tem_ideia and coalesce(k->'sujeito_obrigatorio'->>'motivo_do_pedido', '') not like 'ideia%do_escritor' then 'PARA: o sujeito não recebeu a ideia (ideia_*_do_escritor)'
+    else 'PASSA'
+  end veredito
+from c order by gen;
+```
+O clipe de 16 a 20 s é legítimo: o modo ensaio mede a voz e vai até 20 s, ao custo de até US$ 3,14. O 273c7774 não tem ideia (roteiro colado pelo cliente), então não se exige o motivo `ideia_*_do_escritor` dele.
 6. Comparar em quadros com o filme original do mesmo roteiro: a cena do pedido, o sujeito no último plano e o desfecho.
 7. Os créditos saem da conta do fundador. A fal cobra pelo clipe e pelas imagens.
