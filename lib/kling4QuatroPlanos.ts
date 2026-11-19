@@ -20,7 +20,7 @@ export function planoPorSecaoLigado(modo: ModoPlanoPorSecao, contaDaCasa: boolea
   return modo === 'public' || (modo === 'internal' && contaDaCasa === true)
 }
 
-export type SecaoDoRoteiro = { voiceover: string; pexelsQuery: string }
+export type SecaoDoRoteiro = { voiceover: string; pexelsQuery: string; descricao?: string | null } // KINEO-PLANO-DA-FALA-1911: `descricao` só com o interruptor (lib/kling4PlanoDaFala1911.ts)
 const norm = (t: unknown) => String(t ?? '').trim().replace(/\s+/gu, ' ')
 
 /** Quais seções formam cada cena (índices), conferido pelo TEXTO falado. null = não dá para provar (nunca adivinha). */
@@ -91,6 +91,43 @@ export function falaDividida(fala: string, secoes: readonly SecaoDoRoteiro[]): s
   return pesos.map((p, i) => { const fim = i === pesos.length - 1 ? pal.length : Math.max(ini + 1, Math.round(ini + (p / total) * pal.length)); const t = pal.slice(ini, fim).join(' '); ini = fim; return t })
 }
 
+// ═══ KINEO-PLANO-DA-FALA-1911 (A1) [CEO 19/11] — a ação da metade de cena fundida vem da descrição da SEÇÃO (pedido + fala), senão da ação do
+// descritor da cena + a fala; nunca o molde da pista. Interruptor e chamada ao descritor: lib/kling4PlanoDaFala1911.ts. Aqui só o texto, puro.
+/** Teto do plano da metade (code points) antes da referência "Scene N: …" (até 63), da escala e da superfície: o envio fica ≤ 512 sem cortar a proteção. */
+export const PLANO_DA_FALA_TETO = 430
+/** A ação que o DESCRITOR escreveu para a cena (do pedido e da fala da cena inteira), lida da estrutura do NOSSO prompt: sem o meio, a moldura de
+ *  câmera, luz, época, origem, ficha, lugar e a cauda de estilo/proteção. Nunca lê o texto do cliente como regra; só tira as nossas peças.
+ *  Ex.: o grifo (b1ffe3ad) — "The Griffin soars upward towards the towering Mount Meru…" — que o molde da pista trocava por "starry night sky". */
+export function acaoDaCena(promptDaCena: string): string {
+  let t = norm(promptDaCena)
+  // 1º o meio ("Photoreal film." / "Film visual medium: …."), depois as nossas peças, por último a cauda de estilo e proteção
+  const pecas = [/Light: [^.]+\.\s*/gu, /Period setting: [^.]+\.\s*/gu, /Everyone shown has the natural features of [^.]+ people\.\s*|People: [^.]+\.\s*/gu,
+    /(?:Visible(?:, seen from behind)?|Identity): .+?\.(?=\s)\s*/gu, /Setting: [^.]*?(?:\([^)]*\))?\.\s*/gu, /People in the shot wear [^.]+\.\s*/gu, /Never a different or generic place\.\s*/gu,
+    /(?:Wide|Medium|Close|Extreme|Clear|Opening)[^.]{0,200}?(?:shot|framing|readable|fade-in|pull-back|push-in|focus|depth of field)[^.]*\.\s*/gu, /photorealistic, ultra-detailed\.\s*/gu]
+  const cortes = [/,?\s*faceless cinematic b-roll[\s\S]*$/u, /\s+photorealistic, ultra-detailed,[\s\S]*$/u, /,?\s*no readable text[\s\S]*$/u, /\s*Mouth closed, no speaking\.?$/u]
+  t = t.replace(/^(?:Film visual medium: [^.]+\.|[^.]{2,60}\.)\s*/u, '')
+  for (const p of pecas) t = t.replace(p, '')
+  for (const c of cortes) t = t.replace(c, '')
+  const frase = norm(t).split(/(?<=[.!?])\s+/u).find((f) => f.replace(/[^\p{L}]/gu, '').length >= 12) ?? ''
+  return frase.replace(/[\s,.;:!?…]+$/u, '')
+}
+
+/** A ação da metade: a descrição da seção; sem ela, a ação do descritor da cena + a fala da seção; sem as duas, a fala. A pista nunca é a ação
+ *  sozinha. `max` (code points) protege o teto do plano: corta a ação da cena em fronteira de palavra, nunca a fala nem a proteção do fim. */
+export function acaoDaSecao(descricao: string | null | undefined, fala: string, acaoCena = '', max = 320): string {
+  const d = norm(descricao).replace(/[\s.!?…]+$/u, '')
+  if (d.length >= 12) { const a = Array.from(d); return `${a.length <= max - 1 ? d : a.slice(0, Math.max(11, max - 1)).join('').replace(/\s+\S*$/u, '')}.` }
+  const f = norm(fala).replace(/[\s.!?…]+$/u, '')
+  const momento = f ? `This shot shows only this moment: ${f}.` : ''
+  const c = norm(acaoCena)
+  if (!c) return momento
+  const sobra = max - Array.from(momento).length - 2
+  if (sobra < 30) return momento
+  const corte = Array.from(c).slice(0, sobra).join(''), virgula = corte.lastIndexOf(', ')
+  const cc = Array.from(c).length <= sobra ? c : virgula >= 20 ? corte.slice(0, virgula) : corte.replace(/[\s,;:]*\S*$/u, '') // corta na oração inteira, senão na palavra
+  return norm(`${cc}. ${momento}`)
+}
+
 // KINEO-K4-PLANO-DA-SECAO-1111 [CEO 11/11, revisão do teste dos 4 planos] — o plano de uma cena fundida repetia a AÇÃO inteira da cena (o plano 2 do Pompeia
 // era "A wide shot captures the bustling ancient Roman amphitheater…" de novo, só com outro "Shot focus"): funcionou por sorte. Agora
 // cada plano de cena fundida nasce da SUA seção: o meio ("Photoreal film."), o lugar ("Setting: …") e a época do prompt da cena, a
@@ -115,6 +152,14 @@ export function promptDaSecao(promptDaCena: string, secao: SecaoDoRoteiro, opcoe
   const fala = norm(secao.voiceover).replace(/[\s.!?…]+$/u, '')
   // KINEO-K4-PLANO-VARIADO-1111 [alavanca 2, atrás de KLING4_PLANO_VARIADO] — a ação da metade é o OBJETO concreto da seção (a pista), não a fala abstrata
   // ("This shot shows only this moment: This manifestation is God, not all of God." no 2120f018). Sem pista, fica a fala, como antes.
+  // KINEO-PLANO-DA-FALA-1911 (A1) — com a descrição da seção (do pedido e da fala), ela é a ação; sem ela, a fala. O molde da pista não roda.
+  if (secao.descricao !== undefined) { // o teto: o plano inteiro fica ≤ 430 code points (folga para a referência "Scene N: …" de até 63, a escala e a superfície antes dos 512)
+    const pecasA1 = [meio, luz, periodo, origem, quem, lugar] // KINEO-PLANO-DA-FALA-1911 — as mesmas peças da metade de sempre
+    const fimA1 = (epoca ? ` The scene is a ${epoca}.` : '') + cauda
+    const fixo = norm(pecasA1.join(' ') + fimA1)
+    const acaoA1 = acaoDaSecao(secao.descricao, fala, acaoDaCena(p), Math.max(60, PLANO_DA_FALA_TETO - Array.from(fixo).length - 1))
+    return norm([...pecasA1, acaoA1].join(' ') + fimA1)
+  }
   const acao = opcoes.objetoConcreto && norm(secao.pexelsQuery) ? `Main subject of this shot: ${pista(secao)}, shown in motion.` : `Shot focus: ${pista(secao)}. This shot shows only this moment: ${fala}.`
   return norm(`${meio} ${luz} ${periodo} ${origem} ${quem} ${lugar} ${acao}${epoca ? ` The scene is a ${epoca}.` : ''}${cauda}`)
 }
@@ -141,7 +186,8 @@ export function planosPorSecao(a: {
     // KINEO-SECAO-COM-FALA-REESCRITA-1111 — sem texto igual, a fala de cada metade é a fala REAL da cena (a que vai ser narrada) dividida
     const reais = !exatos && g.length > 1 ? falaDividida(a.falas[i], g.map((j) => a.secoes[j])) : null
     g.forEach((j, pos) => {
-      const secao = reais ? { pexelsQuery: a.secoes[j].pexelsQuery, voiceover: reais[pos] } : a.secoes[j]
+      const secaoDaFala = reais ? { pexelsQuery: a.secoes[j].pexelsQuery, voiceover: reais[pos] } : a.secoes[j]
+      const secao = a.secoes[j].descricao !== undefined ? { ...secaoDaFala, descricao: a.secoes[j].descricao ?? null } : secaoDaFala // KINEO-PLANO-DA-FALA-1911 (A1): a descrição viaja na seção
       prompts.push(g.length === 1 ? a.prompts[i] : promptDaSecao(a.prompts[i], secao, { objetoConcreto: a.objetoConcreto === true })) // KINEO-K4-PLANO-DA-SECAO-1111 · KINEO-K4-PLANO-VARIADO-1111 — era: `Shot focus: ${pista(a.secoes[j])}. ${a.prompts[i]}` (a ação da cena inteira em cada metade)
       stills.push(pos === 0 ? (a.stills[i] ?? null) : null)
       const fala = g.length === 1 && !exatos ? norm(a.falas[i]) : norm(secao.voiceover)
