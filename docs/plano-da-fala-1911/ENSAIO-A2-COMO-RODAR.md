@@ -79,16 +79,41 @@ Custo por dry_run:
 | Em quantos o juiz reprovou e a reescrita consertou | `novo.juiz.reprovado` e `final.juiz` aprovado |
 | Em quantos dos 13 bons o novo ficou pior | `hoje.juiz` aprovado e `final.juiz` reprovado |
 
-## 2º ensaio (depois da volta do 1º, 19/11)
-O 1º gastou US$ 1,52 em 51 pedidos: ~US$ 0,0175 de base por filme (texto de sempre + voz) e ~US$ 0,0134 do A2 medido por filme com A2.
-O que a volta acrescenta por filme com A2 (estimado sobre o replay dos 47):
-- seção pedida de novo (nula ou sem espaço): 35 seções em 14 filmes, UMA chamada gpt-4o por filme (~US$ 0,005) ≈ US$ 0,07 no total;
-- reescrita da última seção (sujeito do pedido fora do último plano, ou reprovação por sujeito sem plano apontado) + juiz final: ~14 filmes × ~US$ 0,006 ≈ US$ 0,08;
-- juiz do plano final com o sujeito injetado, só quando a injeção muda o último plano: ~10 × US$ 0,0012 ≈ US$ 0,01;
-- nome próprio conferido de novo depois da reescrita: < US$ 0,0003 por filme que reescreveu por nome.
+## 2º ensaio (depois da volta do 1º e da 4ª passada do revisor, 19/11)
+**Autorização:** dono, 19/11, teto próprio de **US$ 1,50** (o 1º gastou US$ 1,52 dos US$ 3).
+**Branch:** a de publicação desta volta. Ela leva o B1(a) com `PORTAO_DO_SUJEITO_1911 = 'internal'`: sem ele, o roteiro literal (`script_mode: 'verbatim'`) não tem pedido para o leitor do sujeito, e nem o sujeito obrigatório no último plano nem a reescrita por sujeito disparam.
+**Lista:** `docs/plano-da-fala-1911/ensaio-a2-2-lista.sql` (só SELECT, 41 linhas na ordem): os 35 com defeito que tiveram `a2_ensaio` e os 4 bons que pioraram (47d66e48, 3505835b, b4de7d59, c968edac) = 39; no fim, se sobrar teto, os 2 de descrição nula (42bcd59f, caed3456).
 
+Prova offline (código desta branch, ideias reais do `script_written`): dos 42 pedidos da lista atual, nenhum chegava ao leitor do sujeito; com o B1(a), **38 chegam**. Os 4 que não chegam: 3 roteiros colados pelo cliente, sem `script_written` (273c7774, 3eb34f6a, 4134e784), e 1 ideia que discorda da fala (44d02f20). O sujeito em si sai da leitura semântica, que é gpt-4o-mini, e só o ensaio mede: abstrato ("mystery") = sem sujeito obrigatório.
+
+```js
+// cole as linhas do SQL em `linhas` (array de {gen, grupo, molde, roteiro, engine, language, ideia}); em sequência; para antes de passar do teto
+// k4_roteiro_do_escritor: a ideia veio do script_written casado = roteiro do nosso escritor (só o dry_run da conta do ensaio pode declarar isso)
+// POR_FILME_MAX = pior caso de um filme: base 0,0175 (texto de sempre + voz) + descritor A2 0,0071 + 2 pedidos a mais 0,010 + 1 reescrita 0,005
+//   + 4 juízes 0,0048 + nome próprio ×2 e sujeito 0,0009 ≈ US$ 0,045; só começa o filme que cabe inteiro no teto
+const linhas = [/* … */], TETO = 1.5, BASE_POR_FILME = 0.0175, SEM_USAGE_POR_FILME = 0.0012, POR_FILME_MAX = 0.045
+window.__a2b = []
+for (const l of linhas) {
+  const gasto = window.__a2b.reduce((n, r) => n + (r.a2?.custo?.total_usd ?? 0) + BASE_POR_FILME + SEM_USAGE_POR_FILME, 0)
+  if (gasto + POR_FILME_MAX > TETO) { console.log('teto: parei antes de', l.gen, 'gasto ~US$', gasto.toFixed(4)); break }
+  const r = await fetch('/api/generate-video-cinematic', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+    prompt: l.roteiro, original_idea: l.ideia ?? undefined, script_mode: 'verbatim', dry_run: true, k4_gratis_ensaio: true, k4_roteiro_do_escritor: !!l.ideia,
+    engine: l.engine ?? undefined, language: l.language ?? undefined,
+    duration: 15, quality: 'cinematic_ai', generationId: crypto.randomUUID() }) }).then((x) => x.json()).catch((e) => ({ erro: String(e) }))
+  window.__a2b.push({ gen: l.gen, grupo: l.grupo, molde: l.molde, a2: r.a2_ensaio ?? null, erro: r.erro ?? r.error ?? null })
+  console.log(l.gen.slice(0, 8), l.grupo, r.a2_ensaio?.caminho, r.a2_ensaio?.custo?.total_usd, r.a2_ensaio?.reescritas, r.a2_ensaio?.ultimo_sem_sujeito, r.a2_ensaio?.sujeito_injetado_no_ultimo)
+}
+copy(JSON.stringify(window.__a2b)) // gravar em docs/decisoes-1911/tres-defeitos/ENSAIO-A2-2.json
+```
+
+O que muda na resposta (`a2_ensaio`, versão `a2_ensaio_1911_v2`):
+- `caminho`: `a2`, ou `hoje` com `motivo`. O motivo é um destes: descrição nula ou sem espaço depois de pedir de novo, prazo dos pedidos a mais, nome próprio que persistiu, ou filme que o A2 não cobre (`sem_secoes`, `secoes_menos_que_cenas`).
+- `pedidas_de_novo`: as seções pedidas de novo (no máximo 1 vez cada e 2 pedidos por filme, 60 s somados).
+- `ultimo_sem_sujeito` e `sujeito_injetado_no_ultimo`: o sujeito obrigatório no último plano. `final.planos` é o que iria à fal, já com a injeção; `depois_da_reescrita.planos` é o que a revisão viu.
+- `nomes_depois`: o nome próprio que persistiu depois da reescrita.
+
+Custo estimado sobre o replay dos 47 (o corte da cláusula de estilo repetida faz caber 171 de 177 seções; só 6 seções, em 3 filmes, são pedidas de novo):
 | Recorte | Filmes | Estimativa |
 |---|---|---|
-| Os 51 de novo | 51 | ≈ US$ 1,70 (passa uns US$ 0,22 dos US$ 1,48 que sobram dos US$ 3) |
-| Os 35 com defeito + os 4 bons que pioraram (47d66e48, 3505835b, b4de7d59, c968edac) | 39 | ≈ US$ 1,35 (cabe) |
-| Só os 35 com defeito | 35 | ≈ US$ 1,21 (cabe) |
+| A lista (39) | 39 | ≈ US$ 1,37 |
+| + os 2 de descrição nula | 41 | ≈ US$ 1,44 (o laço para antes de US$ 1,50) |

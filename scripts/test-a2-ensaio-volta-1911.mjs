@@ -49,35 +49,47 @@ async function prova(over = {}) {
   no(!rota.includes("{ role: 'system', content: porSecao ? sistemaPorSecao(system) + REGRA_DO_PLANO_DA_FALA : system }"), 'A4 só a chamada por seção perde a câmera; a das cenas fica a de sempre')
 
   // ── B · cortes e seções vazias, no replay dos 47 ──
-  const conta = { inteira: 0, virgulaVelha: 0, falaVelha: 0, virgulaNova: 0, pedeDeNovo: 0 }
-  for (const f of COM_A2) f.descricoes.forEach((d0, j) => {
-    if (typeof d0 !== 'string') return
-    const d = norm(d0).replace(/[\s.!?…]+$/u, ''), relato = {}
-    const plano = Q.promptDaSecao(f.hoje[j], { voiceover: f.falas[Math.min(j, f.falas.length - 1)] ?? '', pexelsQuery: '', descricao: d0 }, { relato })
-    if (norm(plano).includes(d)) { conta.inteira++; return }
-    const velho = Q.cortaInteiro(d, relato.espaco + 1, false)
-    if (!velho) conta.falaVelha++; else if (!/[.!?]$/.test(velho)) conta.virgulaVelha++
-    if (relato.caiuNaFala) { conta.pedeDeNovo++; return }
-    const novo = Q.cortaInteiro(d, relato.espaco + 1, true)
-    if (!novo || !/[.!?]$/.test(novo) || !norm(plano).includes(novo)) conta.virgulaNova++
-  })
-  no(conta.virgulaVelha !== 32 || conta.falaVelha !== 3, `B0 o defeito medido no replay: a régua velha cortava 32 seções na vírgula e jogava 3 na fala crua (${JSON.stringify(conta)})`)
-  no(conta.virgulaNova !== 0, `B1 nenhum corte fora de frase vai ao motor (${conta.virgulaNova})`)
-  no(conta.pedeDeNovo !== 35 || conta.inteira !== 142, `B2 as que não cabem em frase inteira são pedidas de novo com o espaço do plano: 35 seções; 142 cabem inteiras (${JSON.stringify(conta)})`)
+  const medir = (QQ) => {
+    const conta = { inteira: 0, virgulaVelha: 0, falaVelha: 0, virgulaNova: 0, pedeDeNovo: 0, filmes: new Set() }
+    for (const f of COM_A2) f.descricoes.forEach((d0, j) => {
+      if (typeof d0 !== 'string') return
+      const d = norm(d0).replace(/[\s.!?…]+$/u, ''), relato = {}
+      const plano = QQ.promptDaSecao(f.hoje[j], { voiceover: f.falas[Math.min(j, f.falas.length - 1)] ?? '', pexelsQuery: '', descricao: d0 }, { relato })
+      if (norm(plano).includes(d)) { conta.inteira++; return }
+      const velho = QQ.cortaInteiro(d, relato.espaco + 1, false)
+      if (!velho) conta.falaVelha++; else if (!/[.!?]$/.test(velho)) conta.virgulaVelha++
+      if (relato.caiuNaFala) { conta.pedeDeNovo++; conta.filmes.add(f.gen); return }
+      const novo = QQ.cortaInteiro(d, relato.espaco + 1, true)
+      if (!novo || !/[.!?]$/.test(novo) || !norm(plano).includes(novo)) conta.virgulaNova++
+    })
+    return { ...conta, filmes: conta.filmes.size }
+  }
+  // a ficha com a cláusula de estilo inteira (o código do 1º ensaio) × sem ela no plano com descrição (o de agora)
+  let Q0 = null
+  try { Q0 = createOfflineLoader({ source: (rel, src) => (rel === QP ? (over[QP] ?? src).replace('    const quemA1 = quemSemEstilo(quem)', '    const quemA1 = quem') : over[rel] ?? src) })('@/' + QP) } catch (e) { p.push(`B0 variante sem o corte do estilo não carrega: ${e.message}`) }
+  const com = Q0 ? medir(Q0) : null, sem = medir(Q)
+  no(!com || com.virgulaVelha !== 32 || com.falaVelha !== 3 || com.pedeDeNovo !== 35 || com.filmes !== 11, `B0 o defeito medido no replay, com a ficha inteira: a régua velha cortava 32 seções na vírgula e jogava 3 na fala crua; seriam 35 seções pedidas de novo em 11 filmes (${JSON.stringify(com)})`)
+  no(sem.virgulaNova !== 0 || (com && com.virgulaNova !== 0), `B1 nenhum corte fora de frase vai ao motor (${sem.virgulaNova})`)
+  no(sem.pedeDeNovo !== 6 || sem.filmes !== 3 || sem.inteira !== 171, `B2 sem a cláusula de estilo repetida, 171 de 177 seções cabem inteiras; só 6 (em 3 filmes) são pedidas de novo (${JSON.stringify(sem)})`)
   { const f = COM_A2.find((x) => x.gen === '03d002f3'), relato = {}
     const pl = Q.promptDaSecao(f.hoje[0], { voiceover: f.falas[0], pexelsQuery: '', descricao: f.descricoes[0] }, { relato })
-    no(/in a vibrant\./.test(pl) || !relato.caiuNaFala, `B3 03d002f3: "in a vibrant." nunca mais; a seção é pedida de novo (${relato.espaco} caracteres)`) }
+    no(/in a vibrant\./.test(pl) || !(pl.includes(norm(f.descricoes[0]).replace(/[\s.!?…]+$/u, '')) || relato.caiuNaFala), `B3 03d002f3: "in a vibrant." nunca mais; a descrição inteira ou pedida de novo (${relato.espaco} caracteres)`) }
+  // a cláusula de estilo sai SÓ no plano com descrição (porta 'internal'); o plano de hoje (sem descrição) fica byte a byte
+  { const quem = 'Identity: Léo, 13 ans, exactly as the author wrote; drawn in the film\'s own look (stylized 3D animated film look, soft rounded shapes, bright saturated colors, not photorealistic), the same character design in every scene.'
+    no(Q.quemSemEstilo(quem) !== 'Identity: Léo, 13 ans, exactly as the author wrote.' || Q.quemSemEstilo('Identity: the boy, a boy with red hair; a real person filmed in photorealistic live action, natural skin texture and real fabric clothing.') !== 'Identity: the boy, a boy with red hair.' || Q.quemSemEstilo('Identity: Rex, a dog; a real living dog filmed in photorealistic live action, natural fur and true-to-life dog size and proportions.') !== 'Identity: Rex, a dog.' || Q.quemSemEstilo('Identity: the bear, a bear; drawn in the film\'s own look (stylized 3D animated film look, soft rounded shapes, bright saturated colors.') !== 'Identity: the bear, a bear.', 'B10 a cláusula de estilo (texto nosso, 4 formas, inteira ou cortada) sai; nome e descrição do autor ficam')
+    const cena = `3D animated film. ${quem} A boy runs. no readable text, letters, numbers, labels or signage anywhere in the frame`
+    no(!Q.promptDaSecao(cena, { voiceover: 'He runs.', pexelsQuery: 'boy running' }).includes('the same character design in every scene'), 'B11 sem descrição por seção (o caminho de hoje), a ficha do plano fica inteira') }
   // a rota: completarDescricoes1911 executada com um descritor falso
   const chamadas = []
   let respostas = []
   const escopo = {
     descricoesPorSecao: L.descricoesPorSecao, secoesParaODescritor: L.secoesParaODescritor, kling4DescritorForte1911: true, topicoDoDescritorA2: L.topicoDoDescritorA2, topicoComoDado: L.topicoComoDado,
     body: { original_idea: 'A plane vanishes' }, prompt: 'HOOK: x', classicVisualPolicy: {}, desenhoInfantil: { ativo: false }, MODELO_DO_DESCRITOR_FORTE: 'gpt-4o', usosDoDescritorA2: [],
-    descricoesCompletas: L.descricoesCompletas, secoesQueNaoCabem: L.secoesQueNaoCabem, notaDoEspaco: L.notaDoEspaco,
+    descricoesCompletas: L.descricoesCompletas, secoesQueNaoCabem: L.secoesQueNaoCabem, notaDoEspaco: L.notaDoEspaco, DESCRICAO_DE_NOVO_TETO_MS: 60_000,
     generateCinematicDescriptions: async (secoes, topico, _p, lote) => { chamadas.push({ n: secoes.length, topico, lote }); return respostas.shift() ?? null },
   }
   let completar
-  try { completar = daRota(rota, '    const completarDescricoes1911 = async', "} catch { return { descricoes: null, pedidas, motivo: 'erro' } }\n    }", 'completarDescricoes1911', escopo) } catch (e) { p.push(`B4 completarDescricoes1911 não executa: ${e.message}`) }
+  try { completar = daRota(rota, '    const completarDescricoes1911 = async', "'prazo_dos_pedidos_de_novo' : 'erro' } }\n    }", 'completarDescricoes1911', escopo) } catch (e) { p.push(`B4 completarDescricoes1911 não executa: ${e.message}`) }
   if (completar) {
     const longa = 'Photoreal film. Identity: the pilot, a man in his early thirties with short dark hair, a leather jacket and a silver watch; a real person filmed in photorealistic live action, natural skin texture and real fabric clothing, with calm grey eyes and a thin scar on the chin, the same face in every scene, recognizable in every shot. Shot focus: plane. no readable text, letters, numbers, labels or signage anywhere in the frame Mouth closed, no speaking.'
     const secoes = [{ voiceover: 'A plane took off.', pexelsQuery: 'plane' }, { voiceover: 'It vanished.', pexelsQuery: 'sky' }, { voiceover: 'Nobody found it.', pexelsQuery: 'sea' }]
@@ -97,6 +109,16 @@ async function prova(over = {}) {
     chamadas.length = 0; respostas = [[comprida]]
     const r4 = await completar([comprida, 'The plane fades into clouds.', 'Searchers scan the sea.'], secoes, [longa, longa, longa], falas)
     no(r4.descricoes !== null || r4.motivo !== 'descricao_nao_cabe_depois_de_pedir_de_novo', `B7 ainda sem espaço: o caminho de hoje (${JSON.stringify(r4)})`)
+    // [revisor 19/11, 4ª passada] UM pedido a mais por seção: a nula que voltou comprida não é pedida outra vez por espaço (2 pedidos na mesma seção)
+    chamadas.length = 0; respostas = [[comprida]]
+    const r5 = await completar([null, 'The plane fades into clouds.', 'Searchers scan the sea.'], secoes, [longa, longa, longa], falas)
+    no(chamadas.length !== 1 || r5.descricoes !== null || r5.motivo !== 'descricao_nao_cabe_depois_de_pedir_de_novo', `B12 a mesma seção nunca é pedida 2 vezes (${JSON.stringify({ n: chamadas.length, r5 })})`)
+    // 60 s somados: o pedido que não volta a tempo = o caminho de hoje (o teto vem de DESCRICAO_DE_NOVO_TETO_MS)
+    let devagar
+    try { devagar = daRota(rota, '    const completarDescricoes1911 = async', "'prazo_dos_pedidos_de_novo' : 'erro' } }\n    }", 'completarDescricoes1911', { ...escopo, DESCRICAO_DE_NOVO_TETO_MS: 40, generateCinematicDescriptions: () => new Promise(() => {}) }) } catch (e) { p.push(`B13 não executa: ${e.message}`) }
+    if (devagar) { const t = Date.now(); let tm6 = null; const r6 = await Promise.race([devagar([null, 'The plane fades into clouds.', 'Searchers scan the sea.'], secoes, [longa, longa, longa], falas), new Promise((ok) => { tm6 = setTimeout(() => ok({ descricoes: null, motivo: 'pendurou' }), 2000) })]); clearTimeout(tm6)
+      no(r6.descricoes !== null || r6.motivo !== 'prazo_dos_pedidos_de_novo' || Date.now() - t > 2000, `B13 o pedido a mais tem teto de tempo somado: passou, caminho de hoje (${JSON.stringify(r6)})`) }
+    no(!rota.includes('    const DESCRICAO_DE_NOVO_TETO_MS = 60_000'), 'B14 o teto somado dos pedidos a mais é 60 s (148 s do pior filme + 60 < 300 do maxDuration)')
   }
   no(!rota.includes("if (!d) return { versao: 'a2_ensaio_1911_v2', motivo: completas1911.motivo ?? 'descricoes_incompletas', caminho: 'hoje'") || !rota.includes("const c1911 = await completarDescricoes1911(await descricoesDasSecoesK4, parsedScript.segments, kling4Prompts, scenes.map((s) => s.voiceover ?? '')); const d = c1911.descricoes; if (d)"), 'B8 o envio e o eco usam a mesma conclusão; sem descrição completa = caminho de hoje, dito no eco')
   no(!rota.includes("motivo: parsedScript.segments.length < 2 ? 'sem_secoes' : parsedScript.segments.length < scenes.length ? 'secoes_menos_que_cenas'"), 'B9 os filmes que o A2 não cobre (982a6aeb: 2 seções; 32cbb2d4: roteiro corrido) dizem o motivo no eco')
@@ -132,7 +154,14 @@ async function prova(over = {}) {
   const sel = (gen, extra) => { const f = COM_A2.find((x) => x.gen === gen); return L.secoesAReescrever(f.juiz, f.novo.length, f.descricoes.length, { planos: f.novo, ...extra }).map((x) => x + 1) }
   no(JSON.stringify(sel('876487b4', { sujeitoConcreto: true })) !== '[3]' || JSON.stringify(sel('44d02f20', { sujeitoConcreto: true })) !== '[4]' || JSON.stringify(sel('c827ec0d', { sujeitoConcreto: true })) !== '[4]', 'D1 reprovação por sujeito sem plano apontado (eram 5 sem reescrita): a última seção, com sujeito concreto')
   no(JSON.stringify(sel('44d02f20', { sujeitoConcreto: false })) !== '[]', 'D2 sem sujeito concreto lido do pedido ("mystery"): nada a desenhar, nada reescrito')
-  no(JSON.stringify(sel('f133c184', { sujeitoConcreto: true })) !== '[]' || !L.sujeitoDoJuizEscrito(COM_A2.find((x) => x.gen === 'f133c184').juiz, COM_A2.find((x) => x.gen === 'f133c184').novo), 'D3 f133c184: o juiz diz "Mount Vesuvius" ausente com o Vesúvio escrito em todo plano: a falha não vale')
+  no(JSON.stringify(sel('f133c184', { sujeitoConcreto: true })) !== '[]' || !L.sujeitoDoJuizEscrito(COM_A2.find((x) => x.gen === 'f133c184').juiz, COM_A2.find((x) => x.gen === 'f133c184').novo), 'D3 f133c184: o juiz diz "Mount Vesuvius" ausente com o Vesúvio escrito na ação: a falha não vale')
+  // [revisor 19/11, 4ª passada] só a AÇÃO, com fronteira de palavra, sem negação; sujeito vazio nunca anula
+  { const v = (d) => ({ status: 'JUDGED', falhas: ['d_sujeito'], cenas_reescreveria: [], d_sujeito: d }), j = L.sujeitoDoJuizEscrito
+    no(j(v('plane'), ['Photoreal film. Clouds roll over the sea, with no plane anywhere. no readable text, letters']) || j(v('hikers'), ['Photoreal film. A dark forest without the hikers.']), 'D3b a menção negada não conta ("no plane", "without the hikers")')
+    no(j(v('cat'), ['Photoreal film. An education center at dawn.']) || j(v('man'), ['Photoreal film. A woman walks home.']), 'D3c fronteira de palavra ("cat" ≠ "education", "man" ≠ "woman")')
+    no(j(v('Sarah'), ['Photoreal film. Identity: Sarah, a woman with red hair. The last photo strip on a table. no readable text']) || j(v('Mount Vesuvius'), ['Photoreal film. Setting: Mount Vesuvius (the real landmark). An empty street at dawn.']), 'D3d o sujeito só na ficha (Identity:) ou no lugar (Setting:) é o sujeito escondido: o juiz vale')
+    no(j(v(''), ['Photoreal film. A plane.']) || j(v('  '), ['x']) || JSON.stringify(L.secoesAReescrever(v(''), 3, 3, { planos: ['a', 'b', 'c'], sujeitoConcreto: true })) !== '[2]', 'D3e sujeito vazio nunca anula o juiz (o mutante R14 do revisor)')
+    no(!j(v('plane'), ['Photoreal film. Medium shot. A small plane skims the waves. no readable text']), 'D3f a menção na ação, sem negação, conta') }
   { const f = COM_A2.find((x) => x.gen === '804e9f0b'), nota = L.notaDaReescrita(f.juiz, {})
     no(!/Each shot keeps exactly who and what its own narration line says; add only what was missing/.test(nota) || /show that subject clearly, doing what each narration line says/.test(nota), 'D4 804e9f0b: a nota não manda pôr o sujeito do juiz em todo plano (a partida do pai virou o Victor no cockpit)') }
   { const r = await L.revisarPlanosA2({ planos: () => ['Metal Sonic runs.', 'b', 'c'], falas: () => ['a', 'b', 'c'], nSecoes: 3, rejulgar: false, julgar: async () => ({ status: 'JUDGED', falhas: [] }), nomes: async () => [0], reescrever: async () => {}, nomesDeNovo: true })
@@ -154,6 +183,14 @@ const MUT = [
   ['rota: injeção no caminho de hoje', ROTA, (s) => s.replace(" && parsedScript.segments.some((x) => typeof (x as { descricao?: unknown }).descricao === 'string') && !promptMostraOSujeito(r.prompts[k], s1911))", ' && !promptMostraOSujeito(r.prompts[k], s1911))')],
   ['revisão sem o sujeito no último', LIB, (s) => s.replace('  if (extra.ultimoSemSujeito) alvo.add(nSecoes - 1)', '  if (false) alvo.add(nSecoes - 1)')],
   ['sujeito sem plano não reescreve', LIB, (s) => s.replace("  if (falhas.includes('d_sujeito') && !(v.cenas_reescreveria ?? []).length && extra.sujeitoConcreto !== false) alvo.add(nSecoes - 1)", '')],
+  ['estilo repetido fica no plano com descrição', QP, (s) => s.replace('    const quemA1 = quemSemEstilo(quem)', '    const quemA1 = quem')],
+  ['estilo sai também do plano de hoje', QP, (s) => s.replace("  return norm(`${meio} ${luz} ${periodo} ${origem} ${quem} ${lugar} ${acao}", "  return norm(`${meio} ${luz} ${periodo} ${origem} ${quemSemEstilo(quem)} ${lugar} ${acao}")],
+  ['juiz: o plano inteiro', LIB, (s) => s.replace('const a = acaoDoPlano(p); for', 'const a = norm(p); for')],
+  ['juiz: sem fronteira', LIB, (s) => s.replace("const re = new RegExp(`(?<![\\\\p{L}\\\\p{N}])${", "const re = new RegExp(`${").replace("}(?![\\\\p{L}\\\\p{N}])`, 'giu')", "}`, 'giu')")],
+  ['juiz: negação conta', LIB, (s) => s.replace('if (!NEGADO_ANTES.test(a.slice(Math.max(0, (m.index ?? 0) - 40), m.index ?? 0))) return true', 'return true')],
+  ['juiz: sujeito vazio anula', LIB, (s) => s.replace("  if (!planos?.length || Array.from(d.replace(/[^\\p{L}\\p{N}]+/gu, '')).length < 3) return false\n", "  if (!planos?.length) return false\n")],
+  ['rota: a mesma seção 2 vezes', ROTA, (s) => s.replace("        if (fora.some((f) => pedidas.includes(f.secao))) return { descricoes: null, pedidas, motivo: 'descricao_nao_cabe_depois_de_pedir_de_novo' }", '        if (false) return { descricoes: null, pedidas, motivo: \'x\' }')],
+  ['rota: sem teto de tempo', ROTA, (s) => s.replace("const resta = DESCRICAO_DE_NOVO_TETO_MS - (Date.now() - t0); if (resta <= 0) return Promise.reject(new Error('prazo'));", 'return p;')],
   ['juiz contraditório vale', LIB, (s) => s.replace("&& !(f === 'd_sujeito' && sujeitoDoJuizEscrito(v, extra.planos)))", ')')],
   ['sujeito abstrato reescreve', LIB, (s) => s.replace(' && extra.sujeitoConcreto !== false) alvo.add(nSecoes - 1)', ') alvo.add(nSecoes - 1)')],
   ['nota antiga', LIB, (s) => s.replace(' Each shot keeps exactly who and what its own narration line says; add only what was missing.', ' Show that subject clearly, doing what each narration line says.')],
@@ -165,4 +202,4 @@ if (p0.length) { console.error('FAIL test-a2-ensaio-volta-1911:\n  ' + p0.join('
 const vivos = []
 for (const [nome, arq, f] of MUT) { const o = read(arq), m = f(o); if (m === o) { vivos.push(`${nome} (não pegou a fonte)`); continue } if (!(await prova({ [arq]: m })).length) vivos.push(nome) }
 if (vivos.length) { console.error('FAIL test-a2-ensaio-volta-1911: mutantes vivos:\n  ' + vivos.join('\n  ')); process.exit(1) }
-console.log(`PASS test-a2-ensaio-volta-1911 (replay dos 47 do ensaio: "Aerial" 34/47 na descrição 1; vírgula 32 e fala crua 3 na régua velha → 0; 35 seções pedidas de novo; ${MUT.length} mutantes mortos)`)
+console.log(`PASS test-a2-ensaio-volta-1911 (replay dos 47 do ensaio: "Aerial" 34/47 na descrição 1; vírgula 32 e fala crua 3 na régua velha → 0; sem a cláusula de estilo repetida, 6 seções pedidas de novo (eram 35); ${MUT.length} mutantes mortos)`)

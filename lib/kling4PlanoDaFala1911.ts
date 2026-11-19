@@ -90,8 +90,20 @@ export function secoesAReescrever(v: VereditoMinimo, nPlanos: number, nSecoes: n
 }
 /** O juiz disse que o sujeito não aparece, mas o próprio sujeito que ele leu está escrito num plano (f133c184: "Mount Vesuvius" em todo plano) = a falha não vale. */
 export function sujeitoDoJuizEscrito(v: VereditoMinimo, planos: readonly string[] | undefined): boolean {
-  const d = norm(v?.d_sujeito).toLowerCase()
-  return !!planos?.length && d.length >= 3 && planos.some((p) => norm(p).toLowerCase().includes(d))
+  // [revisor 19/11, 4ª passada] só a AÇÃO do plano (o sujeito só na linha Identity:/Setting: é justamente o sujeito escondido), com fronteira de palavra
+  // ("cat" não casa com "education", "man" com "woman"), e a menção negada não conta ("no plane", "without the hikers"). Sujeito vazio nunca anula o juiz.
+  const d = norm(v?.d_sujeito)
+  if (!planos?.length || Array.from(d.replace(/[^\p{L}\p{N}]+/gu, '')).length < 3) return false
+  const re = new RegExp(`(?<![\\p{L}\\p{N}])${d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+')}(?![\\p{L}\\p{N}])`, 'giu')
+  return planos.some((p) => { const a = acaoDoPlano(p); for (const m of a.matchAll(re)) { if (!NEGADO_ANTES.test(a.slice(Math.max(0, (m.index ?? 0) - 40), m.index ?? 0))) return true } return false })
+}
+/** A negação em inglês logo antes da menção (os planos são texto NOSSO, sempre em inglês): "no", "not", "without", "never", "nor", "none of" + até 2 palavras. */
+const NEGADO_ANTES = /(?:^|[^\p{L}])(?:no|not|without|never|nor|none\s+of)(?:\s+[\p{L}'-]+){0,2}\s+$/iu
+/** A AÇÃO do plano: sem o meio ("Photoreal film."), a abertura do plano final, a ficha (Identity:/Visible:), o lugar (Setting:), a época, a luz, a origem e a proteção do fim. */
+export function acaoDoPlano(plano: string): string {
+  let t = norm(plano).replace(/^[^.]{2,60}\.\s*/u, '')
+  for (const re of [/Final shot, in continuous motion:[^.]*\./u, /(?:Visible(?:, seen from behind)?|Identity): .+?(?:\.(?=\s)|(?=,?\s*no readable text)|$)/u, /Setting: [^.]*?(?:\([^)]*\))?\./u, /Period setting: [^.]+\./u, /Light: [^.]+\./u, /Everyone shown has the natural features of [^.]+ people\./u, /People: [^.]+\./u, /,?\s*no readable text[\s\S]*$/u, /\s*Mouth closed, no speaking\.?/u]) t = t.replace(re, ' ')
+  return norm(t)
 }
 
 const FALHA_EM_PALAVRAS: Record<string, string> = {

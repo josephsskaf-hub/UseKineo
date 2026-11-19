@@ -1662,7 +1662,9 @@ async function manipularPost(req: NextRequest) {
     // KINEO-PORTAO-DO-SUJEITO-1911 (B1a) — o roteiro literal foi escrito pelo NOSSO escritor? (o script_written casado pelo começo, as regras da ideia original).
     // Só lido com o portão ligado: decide se o sujeito obrigatório do Kling 4 grátis pode usar a ideia original. Desligado = nenhuma leitura a mais.
     const portaoDoSujeito1911 = portaoDoSujeitoLigado(PORTAO_DO_SUJEITO_1911, isDryRunAccount(user.email)) // 'internal' = só os 3 e-mails exatos do ensaio (a régua larga abria para e-mail parecido, revisor 19/11)
-    const roteiroDoEscritor1911 = portaoDoSujeito1911 ? Boolean(await recuperarIdeiaDoEscritor(user.id, body.prompt)) : false
+    // [CEO 19/11, 2º ensaio do A2] o ensaio roda na conta do fundador com o roteiro de um cliente: o script_written é do cliente, não do fundador. Só o dry_run da
+    // conta do ensaio pode declarar "roteiro do nosso escritor" (a lista do ensaio prova: a ideia veio do script_written casado); cliente nunca.
+    const roteiroDoEscritor1911 = portaoDoSujeito1911 ? (Boolean(await recuperarIdeiaDoEscritor(user.id, body.prompt)) || (body.dry_run === true && isDryRunAccount(user.email) && (body as { k4_roteiro_do_escritor?: unknown }).k4_roteiro_do_escritor === true)) : false
     const pedidoEstacionado = pedidoEstacionavel(body) // KINEO-FILA-QUEDA-FAL-2810 — a cópia fechada do pedido, ANTES de a rota mexer no body (script_mode do monumento etc.); null = não estaciona
 
     // KINEO-FACELESS-2026-08-25 — tag [faceless] no script = filme SEM avatar:
@@ -7559,6 +7561,7 @@ async function manipularPost(req: NextRequest) {
     // [ensaio A2 19/11] o sujeito do pedido é OBRIGATÓRIO no último plano do A2 (8 filmes perdiam o sujeito no fim). Liga DEPOIS da revisão (que vê os planos
     // sem a injeção e reescreve a última seção primeiro); o que ainda faltar entra pelo mesmo injetor (comSujeitoNaCena). Só com a descrição por seção em uso.
     const ultimoComSujeito1911 = { ligado: false }
+    const DESCRICAO_DE_NOVO_TETO_MS = 60_000 // [revisor 19/11, 4ª passada] os pedidos de descrição a mais, somados, por filme
     const garantirSujeitoNoUltimo1911 = (r: { prompts: string[] }): void => { const s1911 = ultimoComSujeito1911.ligado ? kling4Sujeito.r?.obrigatorio : null; const k = r.prompts.length - 1; if (s1911 && k >= 0 && parsedScript.segments.some((x) => typeof (x as { descricao?: unknown }).descricao === 'string') && !promptMostraOSujeito(r.prompts[k], s1911)) r.prompts[k] = comSujeitoNaCena(r.prompts[k], s1911.frase, k) }
     const kling4PorSecao = (a: { prompts: string[]; approvedStills: (string | null)[]; timing: typeof kling4Timing }): { prompts: string[]; approvedStills: (string | null)[]; timing: typeof kling4Timing; planos: number[][] | null } => { // KINEO-K4-PLANO-POR-SECAO-1111
       const q = kling4PlanoPorSecao && verbatim && parsedScript.segments.length > scenes.length // KINEO-K4-PLANO-POR-SECAO-1111 — só quando o roteiro tem mais seções que cenas
@@ -7594,20 +7597,23 @@ async function manipularPost(req: NextRequest) {
     const completarDescricoes1911 = async (d0: ReadonlyArray<string | null>, secoes: ReadonlyArray<{ voiceover: string; pexelsQuery: string }>, promptsDasCenas: readonly string[], falasDasCenas: readonly string[]): Promise<{ descricoes: string[] | null; pedidas: number[]; motivo: string | null }> => {
       const pedidas: number[] = []
       try {
-        const n = secoes.length, d = [...d0]
-        const pedir = async (alvo: number[], nota: string) => { const novas = descricoesPorSecao(await generateCinematicDescriptions(secoesParaODescritor(alvo.map((j) => secoes[j])), `${kling4DescritorForte1911 ? topicoDoDescritorA2(body.original_idea, prompt) : topicoComoDado(prompt)}${nota ? `\n\n${nota}` : ''}`, classicVisualPolicy, { numeros: alvo.map((j) => j + 1), total: n }, desenhoInfantil.ativo ? { name: desenhoInfantil.personagem.name, sheet: desenhoInfantil.personagem.sheet } : null, true, true, kling4DescritorForte1911 ? MODELO_DO_DESCRITOR_FORTE : undefined, (u) => { usosDoDescritorA2.push(u) }), alvo.length); alvo.forEach((j, k) => { if (novas[k]) d[j] = novas[k] }) }
+        const n = secoes.length, d = [...d0], t0 = Date.now()
+        // [revisor 19/11, 4ª passada] no máximo UM pedido a mais por seção e 2 por filme, e 60 s somados (148 s do p100 + 60 < 300 do maxDuration); passou do prazo = caminho de hoje
+        const prazo = <T,>(p: Promise<T>): Promise<T> => { const resta = DESCRICAO_DE_NOVO_TETO_MS - (Date.now() - t0); if (resta <= 0) return Promise.reject(new Error('prazo')); let tm: ReturnType<typeof setTimeout> | null = null; return Promise.race([p, new Promise<T>((_, rej) => { tm = setTimeout(() => rej(new Error('prazo')), resta) })]).finally(() => { if (tm) clearTimeout(tm) }) }
+        const pedir = async (alvo: number[], nota: string) => { const novas = descricoesPorSecao(await prazo(generateCinematicDescriptions(secoesParaODescritor(alvo.map((j) => secoes[j])), `${kling4DescritorForte1911 ? topicoDoDescritorA2(body.original_idea, prompt) : topicoComoDado(prompt)}${nota ? `\n\n${nota}` : ''}`, classicVisualPolicy, { numeros: alvo.map((j) => j + 1), total: n }, desenhoInfantil.ativo ? { name: desenhoInfantil.personagem.name, sheet: desenhoInfantil.personagem.sheet } : null, true, true, kling4DescritorForte1911 ? MODELO_DO_DESCRITOR_FORTE : undefined, (u) => { usosDoDescritorA2.push(u) })), alvo.length); alvo.forEach((j, k) => { if (novas[k]) d[j] = novas[k] }) }
         const nulas = d.map((x, j) => (typeof x === 'string' && x.trim().length >= 12 ? -1 : j)).filter((j) => j >= 0)
         if (nulas.length) { pedidas.push(...nulas); await pedir(nulas, '') }
         const c1 = descricoesCompletas(d, n)
         if (!c1) return { descricoes: null, pedidas, motivo: 'descricao_nula_depois_de_pedir_de_novo' }
         const fora = secoesQueNaoCabem(promptsDasCenas, secoes.map((x, j) => ({ ...x, descricao: c1[j] })), falasDasCenas, kling4DescritorForte1911)
         if (!fora.length) return { descricoes: c1, pedidas, motivo: null }
+        if (fora.some((f) => pedidas.includes(f.secao))) return { descricoes: null, pedidas, motivo: 'descricao_nao_cabe_depois_de_pedir_de_novo' } // uma vez por seção: a nula que voltou e não coube não é pedida outra vez
         pedidas.push(...fora.map((f) => f.secao))
         await pedir(fora.map((f) => f.secao), notaDoEspaco(fora.map((f) => ({ numero: f.secao + 1, espaco: f.espaco }))))
         const c2 = descricoesCompletas(d, n)
         if (!c2 || secoesQueNaoCabem(promptsDasCenas, secoes.map((x, j) => ({ ...x, descricao: c2[j] })), falasDasCenas, kling4DescritorForte1911).length) return { descricoes: null, pedidas, motivo: 'descricao_nao_cabe_depois_de_pedir_de_novo' }
         return { descricoes: c2, pedidas, motivo: null }
-      } catch { return { descricoes: null, pedidas, motivo: 'erro' } }
+      } catch (e) { return { descricoes: null, pedidas, motivo: e instanceof Error && e.message === 'prazo' ? 'prazo_dos_pedidos_de_novo' : 'erro' } }
     }
     if (body.dry_run === true && isDryRunAccount(user.email)) {
       const classicReport = classicDryRunReport({

@@ -781,7 +781,7 @@ export async function sujeitoNoKling4(args: {
 // script_written casado) usa a ideia original, como o roteiro do Studio; roteiro colado pelo cliente continua de fora; (2) ideia longa vai ao leitor
 // semântico que já existe, cortada nos primeiros PEDIDO_LONGO_MAX caracteres em fronteira de frase — nunca roteiro (colchete [Pexels] ou cabeçalho de
 // seção = fora). O resto (ideia que discorda da fala, sem ideia) é o de sempre. 'off' = pedidoOriginalDoSujeito byte a byte.
-export const PORTAO_DO_SUJEITO_1911: 'off' | 'internal' | 'public' = 'off'
+export const PORTAO_DO_SUJEITO_1911: 'off' | 'internal' | 'public' = 'internal' // CEO 19/11: 'internal' (isDryRunAccount) para o 2º ensaio do A2 exercitar o sujeito; 'public' só com revisor independente + prova paga + sim do dono
 export const PEDIDO_LONGO_MAX = 1500
 export function portaoDoSujeitoLigado(modo: 'off' | 'internal' | 'public', contaDaCasa: boolean): boolean {
   return modo === 'public' || (modo === 'internal' && contaDaCasa === true)

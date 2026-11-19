@@ -155,6 +155,12 @@ export function acaoDaSecao(descricao: string | null | undefined, fala: string, 
 // pista e a fala da seção como ação, e a mesma proteção de texto/boca do fim do prompt. Nenhuma ação de outra seção entra.
 /** [ensaio A2 19/11] o que a metade com descrição conta à rota: o espaço da descrição (com toda peça opcional fora) e se ela não coube e caiu na fala. */
 export interface RelatoDaMetade { espaco?: number; caiuNaFala?: boolean }
+/** [ensaio A2 19/11] A ficha do plano sem a cláusula de estilo que a linha de estilo (lib/cinematic/elencoTrava linhaDeEstilo) acrescenta — texto NOSSO, nas suas 4
+ *  formas, inteira ou cortada pelo teto da cena. O nome, a descrição do autor e a aparência ficam. */
+export function quemSemEstilo(quem: string): string {
+  const q = String(quem ?? '').replace(/;\s*(?:drawn in the film's own look|a real person filmed in photorealistic live action|a real living [^;,.()]{1,40} filmed in photorealistic live action|a living creature filmed in photorealistic live action)\b[^;]*?(?=;|\.?$)/u, '')
+  return q === quem ? quem : q.replace(/[\s,;]+$/u, '').replace(/([^.])$/u, '$1.')
+}
 export const PREFIXO_DA_FALA = 'This shot shows only this moment: '
 export function promptDaSecao(promptDaCena: string, secao: SecaoDoRoteiro, opcoes: { objetoConcreto?: boolean; relato?: RelatoDaMetade } = {}): string {
   const p = norm(promptDaCena)
@@ -182,9 +188,12 @@ export function promptDaSecao(promptDaCena: string, secao: SecaoDoRoteiro, opcoe
     // (luz, a frase longa da época, lugar, origem) e só depois a ação é cortada (em fronteira); meio, período, ficha e a proteção do fim ficam sempre.
     const acaoCheia = acaoDaSecao(secao.descricao, fala, acaoDaCena(p), 10_000)
     let opcionais = { luz, epocaFrase: epoca ? ` The scene is a ${epoca}.` : '', lugar, origem }
-    const montarA1 = (acaoA1: string) => norm([meio, opcionais.luz, periodo, opcionais.origem, quem, opcionais.lugar, acaoA1].join(' ') + opcionais.epocaFrase + cauda)
+    // [ensaio A2 19/11] a ficha come ~250 dos 430 e ~170 deles são a cláusula de estilo ("drawn in the film's own look (…), the same character design in every scene",
+    // "a real person filmed in photorealistic live action, …"), que repete o meio do plano; no plano com descrição ela sai (o resto da ficha fica)
+    const quemA1 = quemSemEstilo(quem)
+    const montarA1 = (acaoA1: string) => norm([meio, opcionais.luz, periodo, opcionais.origem, quemA1, opcionais.lugar, acaoA1].join(' ') + opcionais.epocaFrase + cauda)
     for (const k of ['luz', 'epocaFrase', 'lugar', 'origem'] as const) { if (cp1911(montarA1(acaoCheia)) <= PLANO_DA_FALA_TETO) break; opcionais = { ...opcionais, [k]: '' } }
-    if (opcoes.relato) { opcoes.relato.espaco = Math.max(40, PLANO_DA_FALA_TETO - cp1911(norm([meio, periodo, quem].join(' ') + cauda)) - 1) - 2; opcoes.relato.caiuNaFala = false } // [ensaio A2 19/11]
+    if (opcoes.relato) { opcoes.relato.espaco = Math.max(40, PLANO_DA_FALA_TETO - cp1911(norm([meio, periodo, quemA1].join(' ') + cauda)) - 1) - 2; opcoes.relato.caiuNaFala = false } // [ensaio A2 19/11]
     if (cp1911(montarA1(acaoCheia)) <= PLANO_DA_FALA_TETO) return montarA1(acaoCheia)
     const fixo = montarA1('')
     const maxAcao = Math.max(40, PLANO_DA_FALA_TETO - cp1911(fixo) - 1)

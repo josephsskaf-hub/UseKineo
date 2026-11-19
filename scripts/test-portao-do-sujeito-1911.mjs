@@ -24,7 +24,9 @@ async function prova(over = {}) {
   try { S = createOfflineLoader({ source: (rel, src) => over[rel] ?? src })('@/' + LIB) } catch (e) { return [`lib não carrega: ${e.message}`] }
   const base = (o) => ({ prompt: ROTEIRO, ideiaSolta: false, scriptMode: 'verbatim', originalIdea: IDEIA_LONGA, falas: FALAS, ...o })
   const novo = (o, ctx) => S.pedidoOriginalDoSujeito1911({ ...base(o), portao: true, roteiroDoEscritor: true, ...ctx })
-  no(S.PORTAO_DO_SUJEITO_1911 !== 'off', 'A0 o portão nasce off')
+  no(S.PORTAO_DO_SUJEITO_1911 !== 'internal', "A0 estado de publicação: 'internal' (só a conta exata do ensaio); 'public' só com revisor independente + prova paga + sim do dono")
+  { const rr = over[ROTA] ?? read(ROTA)
+    no(!rr.includes("(body.dry_run === true && isDryRunAccount(user.email) && (body as { k4_roteiro_do_escritor?: unknown }).k4_roteiro_do_escritor === true)"), 'A0b só o dry_run da conta exata do ensaio declara "roteiro do nosso escritor" (cliente nunca)') }
   no(S.portaoDoSujeitoLigado('internal', false) || !S.portaoDoSujeitoLigado('internal', true) || !S.portaoDoSujeitoLigado('public', false) || S.portaoDoSujeitoLigado('off', true), 'A1 off | internal (só a casa) | public')
   // desligado = o de sempre, byte a byte, em todas as formas
   for (const o of [{}, { originalIdea: IDEIA_CURTA }, { scriptMode: 'ai' }, { scriptMode: 'ai', originalIdea: IDEIA_CURTA }, { originalIdea: null }, { ideiaSolta: true, prompt: IDEIA_CURTA, scriptMode: 'ai' }])
@@ -53,13 +55,15 @@ async function prova(over = {}) {
   // ── C · a rota ──
   const rota = over[ROTA] ?? read(ROTA)
   no(!rota.includes('const portaoDoSujeito1911 = portaoDoSujeitoLigado(PORTAO_DO_SUJEITO_1911, isDryRunAccount(user.email))'), 'C1 o portão pelo interruptor e pela régua EXATA do ensaio (isDryRunAccount)')
-  no(!rota.includes('const roteiroDoEscritor1911 = portaoDoSujeito1911 ? Boolean(await recuperarIdeiaDoEscritor(user.id, body.prompt)) : false'), 'C2 "roteiro do nosso escritor" = o script_written casado, lido só com o portão ligado')
+  no(!rota.includes('const roteiroDoEscritor1911 = portaoDoSujeito1911 ? (Boolean(await recuperarIdeiaDoEscritor(user.id, body.prompt)) ||'), 'C2 "roteiro do nosso escritor" = o script_written casado, lido só com o portão ligado')
   no(!rota.includes('? pedidoOriginalDoSujeito1911({ portao: portaoDoSujeito1911, roteiroDoEscritor: roteiroDoEscritor1911, prompt: intake.text,'), 'C3 o Kling 4 grátis usa o embrulho com os dois sinais')
   return p
 }
 
 const MUT = [
-  ['portão ligado', LIB, (s) => s.replace("export const PORTAO_DO_SUJEITO_1911: 'off' | 'internal' | 'public' = 'off'", "export const PORTAO_DO_SUJEITO_1911: 'off' | 'internal' | 'public' = 'public'")],
+  ['portão público', LIB, (s) => s.replace("export const PORTAO_DO_SUJEITO_1911: 'off' | 'internal' | 'public' = 'internal'", "export const PORTAO_DO_SUJEITO_1911: 'off' | 'internal' | 'public' = 'public'")],
+  ['rota: declaração do escritor sem dry_run', ROTA, (s) => s.replace('(body.dry_run === true && isDryRunAccount(user.email) && (body as { k4_roteiro_do_escritor?: unknown })', '(isDryRunAccount(user.email) && (body as { k4_roteiro_do_escritor?: unknown })')],
+  ['rota: declaração do escritor de qualquer conta', ROTA, (s) => s.replace('(body.dry_run === true && isDryRunAccount(user.email) && (body as { k4_roteiro_do_escritor?: unknown })', '(body.dry_run === true && (body as { k4_roteiro_do_escritor?: unknown })')],
   ['internal para todos', LIB, (s) => s.replace("return modo === 'public' || (modo === 'internal' && contaDaCasa === true)\n}\n/** A ideia longa", "return modo !== 'off'\n}\n/** A ideia longa")],
   ['abre roteiro colado', LIB, (s) => s.replace("base.motivo === 'roteiro_da_pessoa' && args.roteiroDoEscritor ?", "base.motivo === 'roteiro_da_pessoa' ?")],
   ['aceita colchete', LIB, (s) => s.replace("if (!t || t.length > 4000 || /[[\\]]/.test(t) || CABECALHO_DE_SECAO.test(String(ideia ?? ''))) return null", "if (!t || t.length > 4000 || CABECALHO_DE_SECAO.test(String(ideia ?? ''))) return null")],
@@ -68,7 +72,7 @@ const MUT = [
   ['sem o corte de 1500', LIB, (s) => s.replace('if (t.length <= PEDIDO_LONGO_MAX) return t\n', 'return t\n')],
   ['ignora a fala que discorda', LIB, (s) => s.replace("  if (temaDiscordaDaFala(longo, (args.falas ?? []).join(' '))) return { pedido: null, fonte: null, motivo: 'ideia_original_discorda_da_fala' }\n", '')],
   ['desligado muda', LIB, (s) => s.replace('  if (!args.portao) return base\n', '')],
-  ['rota: lê o banco sem o portão', ROTA, (s) => s.replace('const roteiroDoEscritor1911 = portaoDoSujeito1911 ? Boolean(await recuperarIdeiaDoEscritor(user.id, body.prompt)) : false', 'const roteiroDoEscritor1911 = Boolean(await recuperarIdeiaDoEscritor(user.id, body.prompt))')],
+  ['rota: lê o banco sem o portão', ROTA, (s) => s.replace('const roteiroDoEscritor1911 = portaoDoSujeito1911 ? (Boolean(await recuperarIdeiaDoEscritor(user.id, body.prompt)) ||', 'const roteiroDoEscritor1911 = true ? (Boolean(await recuperarIdeiaDoEscritor(user.id, body.prompt)) ||')],
   ['rota: sem o sinal do escritor', ROTA, (s) => s.replaceAll('roteiroDoEscritor: roteiroDoEscritor1911, prompt: intake.text,', 'roteiroDoEscritor: true, prompt: intake.text,')],
 ]
 const p0 = await prova()
