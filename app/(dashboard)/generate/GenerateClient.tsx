@@ -2207,6 +2207,14 @@ export default function GenerateClient({
   const [actualEngineLabel, setActualEngineLabel] = useState<string | null>(null)
   const [actualEngineNote, setActualEngineNote] = useState<string | null>(null) // KINEO-K4-NARRACAO-CABE-0111 — 'narration_over_15s': o grátis saiu no Seedance porque a fala passou de 15 s
   const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null)
+  const [compactReadyResult, setCompactReadyResult] = useState(false)
+  useEffect(() => {
+    const viewport = window.matchMedia('(max-width: 767px)')
+    const update = () => setCompactReadyResult(viewport.matches)
+    update()
+    viewport.addEventListener('change', update)
+    return () => viewport.removeEventListener('change', update)
+  }, [])
   const [linkParaTrocar, setLinkParaTrocar] = useState<string | null>(null) // KINEO-FILME-RAPIDO-1710 — render cujo link do Creatomate ainda vai virar o do bucket
   const retomarPlayerEmRef = useRef<{ t: number; muted: boolean } | null>(null) // KINEO-FILME-RAPIDO-1710 — onde o player estava na hora da troca do link
   // #283 — KINEO-DURACAO-NO-BOTAO (fundador 23/08): o botão de download dizia
@@ -14532,6 +14540,15 @@ export default function GenerateClient({
       ? { label: 'Now', text: 'All scenes are filmed. Recording the voice, adding captions and music — your premiere is next.' }
       : statusMessage ? { label: 'Now', text: statusMessage.replace(/^\p{Extended_Pictographic}\s*/u, '') } : null
 
+  const firstFilmContinuation = primeiroFilmeEntregue && !fullVersionOfferEligible ? (
+    <section className="gv-card done-first-film-offer rounded-2xl px-5 sm:px-8 py-6 mb-4" data-primeiro-filme="entregue">
+      <div className="done-first-film-label text-xs font-bold tracking-widest">YOUR FIRST FILM IS DONE</div>
+      <h3 className="mt-1 text-lg font-semibold leading-tight">Continue this series → Episode 2</h3>
+      <p className="mt-1.5 text-sm leading-normal">Same character, same voice, next chapter — without the watermark. Episode 2 is part of the Creator plan.</p>
+      <a href={`/pricing?intent_campaign=${PRIMEIRO_FILME_VERSION}#plans`} className="btn btn-w done-first-film-plans" onClick={() => { void trackEvent('first_film_cta_click', { version: PRIMEIRO_FILME_VERSION, target: 'pricing' }) }}>See plans — from {formatCheckoutMoney('usd', getTierPrice('starter', 'usd'))}/mo</a>
+    </section>
+  ) : null
+
   return (
     // KINEO-CONTENT-REDESIGN-2026-07-10 (Joseph) — the "miolo": wider canvas
     // (max-w-5xl) + more vertical air, landing-neutral card surfaces (#131316)
@@ -14570,6 +14587,20 @@ export default function GenerateClient({
         .done-result-options > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 6px; }
         .done-result-support { grid-column: 1 / -1; width: 100%; margin-top: 28px; border-top: 1px solid var(--border); }
         .done-result-support-body { display: flex; flex-direction: column; align-items: center; padding-bottom: 12px; }
+        .done-first-film-offer { background: var(--accent-soft); border: 1px solid var(--accent); color: var(--text); }
+        .done-first-film-offer > p { color: var(--muted); }
+        .done-first-film-label { color: var(--accent); }
+        .done-first-film-plans { display: inline-flex; align-items: center; margin-top: 12px; }
+        @media (max-width: 767px) {
+          main.done-workspace { padding-block: 16px; }
+          .done-workspace .done-result-heading { width: 100%; }
+          .done-workspace .done-result-heading > svg { display: none!important; }
+          .done-result-heading .done-download-primary { min-height: 44px; width: 100%; }
+          .done-ready-offer { margin-top: 12px; }
+          .done-ready-offer .done-first-film-offer { margin: 0; padding: 12px; }
+          .done-ready-offer .done-first-film-label { display: none; }
+          .done-ready-offer .done-first-film-plans { min-height: 44px; }
+        }
         @media (max-width: 1100px) { .done-workspace .done-result { display: flex; flex-direction: column; gap: 20px; padding: 18px; } .done-result-heading { order: 0; margin-bottom: 0; } .done-result-preview { order: 1; width: 100%; min-height: 0; padding: 12px; } .done-result-preview .gv-done-frame { width: min(100%, 300px)!important; } .done-result-export { order: 2; width: 100%; } .done-result-actions { order: 3; } .done-result-support { order: 4; margin-top: 0; } }
         .render-workspace-primary { min-height: calc(100svh - 240px); padding: clamp(20px, 3vw, 44px); display: flex; flex-direction: column; justify-content: center; gap: 22px; }
         .render-workspace-primary .gv-stage { min-height: 72px; padding: 18px; border-radius: 14px; }
@@ -17867,16 +17898,7 @@ export default function GenerateClient({
             </section>
           )}
 
-          {phase === 'done' && finalVideoUrl && primeiroFilmeEntregue && !fullVersionOfferEligible && (
-            <section className="gv-card rounded-2xl px-5 sm:px-8 py-6 mb-4" style={{ background: '#0f1a2a', border: '1px solid #2997ff' }} data-primeiro-filme="entregue">
-              <div className="text-xs" style={{ color: '#2997ff', letterSpacing: '0.08em', fontWeight: 700 }}>YOUR FIRST FILM IS DONE</div>
-              <h3 className="mt-1" style={{ color: 'var(--text)', fontSize: '1.15rem', fontWeight: 600, lineHeight: 1.25 }}>Continue this series → Episode 2</h3>
-              <p className="text-sm mt-1.5" style={{ color: 'var(--muted)', lineHeight: 1.5 }}>Same character, same voice, next chapter — without the watermark. Episode 2 is part of the Creator plan.</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <a href={`/pricing?intent_campaign=${PRIMEIRO_FILME_VERSION}#plans`} className="btn btn-w" onClick={() => { void trackEvent('first_film_cta_click', { version: PRIMEIRO_FILME_VERSION, target: 'pricing' }) }}>See plans — from {formatCheckoutMoney('usd', getTierPrice('starter', 'usd'))}/mo</a>{/* KINEO-PRECO-V8-A-2026-09-28 — era "$9.90" digitado; o preço sai da fonte única */}
-              </div>
-            </section>
-          )}
+          {phase === 'done' && finalVideoUrl && !compactReadyResult && firstFilmContinuation}
           {phase === 'done' && finalVideoUrl && (
             <section
               className="gv-card done-result rounded-2xl px-5 sm:px-8 py-8 sm:py-10 mb-6 flex flex-col items-center"
@@ -17916,13 +17938,20 @@ export default function GenerateClient({
                   rel="noreferrer"
                   data-testid="done-download-top"
                   aria-label="Download MP4"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-lg mt-3 py-2 px-4 text-sm font-bold"
-                  style={{ background: fullVersionOfferEligible ? 'transparent' : 'var(--accent)', color: fullVersionOfferEligible ? 'var(--accent)' : 'var(--on-accent)', border: fullVersionOfferEligible ? '1px solid var(--border)' : undefined, textDecoration: 'none' }}
+                  className="done-download-primary inline-flex items-center justify-center gap-1.5 rounded-lg mt-3 py-2 px-4 text-sm font-bold"
+                  style={fullVersionOfferEligible && !compactReadyResult
+                    ? { background: 'transparent', color: 'var(--accent)', border: '1px solid var(--border)', textDecoration: 'none' }
+                    : { background: 'var(--accent)', color: 'var(--on-accent)', textDecoration: 'none' }}
                 >
                   <span aria-hidden="true">⬇</span> Download MP4
                 </a>
                 {/* KINEO-DOWNLOAD-OFERTA-2810 — a oferta nasce ao lado do botão apertado; filme limpo pago ganha o HD. */}
                 {renderDownloadUpsell('top')}
+                {compactReadyResult && (fullVersionOfferEligible || firstFilmContinuation) && (
+                  <div className="done-ready-offer">
+                    {fullVersionOfferEligible ? <FilmReadyFullVersionUpsell videoId={publicVideoId} /> : firstFilmContinuation}
+                  </div>
+                )}
                 {showMakeItHd && publicVideoId && <MakeItHdButton videoId={publicVideoId} surface="done_screen_top" />}
                 {/* KINEO-CLAMP-FALADO-2026-08-28 — a verdade sobre o corte do
                     free, dita NO momento em que a pessoa perceberia a duração
@@ -18655,7 +18684,7 @@ export default function GenerateClient({
 
                 {/* KINEO-UPSELL-FILME15-2610 — same delivered free film, full 35 s version. This shared position follows
                     both download branches. The authenticated checkout route persists the saved script before Stripe. */}
-                {fullVersionOfferEligible && (
+                {!compactReadyResult && fullVersionOfferEligible && (
                   <FilmReadyFullVersionUpsell videoId={publicVideoId} />
                 )}
 
