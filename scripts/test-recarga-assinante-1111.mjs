@@ -372,6 +372,11 @@ async function suite(S) {
     t(SL.sliderCreditsForShortfall(2) === SL.CREDIT_SLIDER_MIN && SL.sliderCreditsForShortfall(null) === SL.CREDIT_SLIDER_MIN &&
       SL.sliderCreditsForShortfall(61) === 70 && SL.sliderCreditsForShortfall(9999) === SL.CREDIT_SLIDER_MAX &&
       S.modal.includes('? sliderCreditsForShortfall(shortfall)'), 'J17 o aviso começa no menor degrau existente que cobre a falta')
+    const protectedSelector = S.notice.match(/const PROTECTED = '([^']+)'/)?.[1].split(',') ?? []
+    const ready = { top: 670, bottom: 760, left: 12, right: 378 }
+    const renderNotices = protectedSelector.includes('.kineo-render-notice') ? [ready] : []
+    t(place(card, renderNotices, 844, 72) === 186, 'J18 o aviso espera espaço fora do cartão de filme pronto')
+    t(!/(?:[$€£]\s*\d|\b(?:USD|BRL|EUR|GBP)\s*\d|\d\s*(?:USD|BRL|EUR|GBP)\b)/i.test(strip(S.notice)), 'J19 nenhum preço literal no texto do aviso')
   }
   return out
 }
@@ -421,6 +426,8 @@ const MUTANTS = [
   ['aviso passa por cima do player e Generate', 'placement', 'bottom = area.top - gap', 'bottom = bottom'],
   ['aviso perde atribuição no checkout', 'checkout', 'recarga_entry: CREDIT_BALANCE_NOTICE_SURFACE', 'recarga_entry: undefined'],
   ['aviso reabre na quantidade geral', 'modal', '? sliderCreditsForShortfall(shortfall)', '? CREDIT_SLIDER_DEFAULT'],
+  ['aviso cobre o filme pronto', 'notice', '.rc-player,.kineo-render-notice,', '.rc-player,'],
+  ['preço digitado no texto do aviso', 'notice', 'Add credits to make your next video.', 'Add credits for $9.'],
 ]
 for (const [name, key, from, to] of MUTANTS) {
   const src = norm(SRC[key])

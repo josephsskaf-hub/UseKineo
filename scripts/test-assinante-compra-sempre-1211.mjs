@@ -58,7 +58,7 @@ function battery(src) {
   // (3) entrada sempre visível, decidida pelo servidor
   const e = src[ENTRY]
   if (!e.includes('fetch(`${RECARGA_ASSINANTE_API}?surface=${encodeURIComponent(surface)}`')) p.push('a entrada não pergunta ao servidor')
-  if (!e.includes("if (alive && o && o.show === true && typeof o.go === 'string'")) p.push('a entrada pinta sem o "show" do servidor')
+  if (!e.includes("setOffer(o && o.show === true && typeof o.go === 'string'")) p.push('a entrada pinta sem o "show" do servidor')
   if (!e.includes('<CreditsTopupModal surface={`buy_credits_${surface}`} recarga={{ go: offer.go, back, qa: offer.qa }}')) p.push('a entrada não abre a MESMA barra da recarga')
   if (!/fontSize: 1[2-9]/u.test(e.slice(e.indexOf('data-kineo="buy-credits-entry"')))) p.push('"Buy credits" abaixo de 12 px')
   if (/\$\d|US\$|credits for/u.test(e.slice(e.indexOf('export default function BuyCreditsLink')))) p.push('preço na entrada (só na barra)')
@@ -90,7 +90,7 @@ const muta = (rel, from, to) => {
 const MUTANTES = [
   ['rota volta a exigir zerado', muta(ROUTE, '  const button = qa || subscriber\n', '  const button = qa || zeroed\n')],
   ['checkout volta a exigir zerado no botão', muta(CHECKOUT, 'const eligible = recargaAssinanteSubscriber(profile)', "const eligible = kind === 'button' ? recargaAssinanteEligible(profile, 9) : recargaAssinanteSubscriber(profile)")],
-  ['entrada pinta para todos', muta(ENTRY, "if (alive && o && o.show === true && typeof o.go === 'string'", "if (alive && o && typeof o.go === 'string'")],
+  ['entrada pinta para todos', muta(ENTRY, "setOffer(o && o.show === true && typeof o.go === 'string'", "setOffer(o && typeof o.go === 'string'")],
   ['chip do assinante vai à /pricing', muta(SIDEBAR, '    if (recargaChip) { // KINEO-ASSINANTE-COMPRA-SEMPRE-1211', '    if (false) { // KINEO-ASSINANTE-COMPRA-SEMPRE-1211')],
   ['chip abre a barra antiga', muta(SIDEBAR, '? <BuyCreditsModal offer={recargaChip} surface={topupSurface}', '? <CreditsTopupModal surface="sidebar_chip"')],
   ['painel sem Buy credits', muta(SIDEBAR, "onBuyCredits={recargaChip ? () => {", "onBuyCredits={false ? () => {")],

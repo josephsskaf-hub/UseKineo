@@ -13,7 +13,7 @@ const SURFACE = CREDIT_BALANCE_NOTICE_SURFACE
 const DISMISSED = 'kineo:credit-balance-notice:dismissed'
 const SHOWN = 'kineo:credit-balance-notice:shown'
 const BLOCKING = 'dialog[open],[role="dialog"],[data-kineo="subscriber-upgrade"],.kineo-consent'
-const PROTECTED = 'video,iframe,.rc-player,[data-protect-credit-notice],.cx-gerar,.rc-generate,[data-testid="studio-simple-generate"],[data-testid="sticky-generate-bar"],#studio-generation-review,[data-clip-action="generate"],button'
+const PROTECTED = 'video,iframe,.rc-player,.kineo-render-notice,[data-protect-credit-notice],.cx-gerar,.rc-generate,[data-testid="studio-simple-generate"],[data-testid="sticky-generate-bar"],#studio-generation-review,[data-clip-action="generate"],button'
 
 function sessionFlag(key: string): boolean {
   try { return sessionStorage.getItem(key) === '1' } catch { return false }
