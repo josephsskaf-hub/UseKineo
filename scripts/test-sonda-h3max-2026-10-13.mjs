@@ -40,7 +40,7 @@ function rulesAdmin(src) {
   const gate = "if (!(await adminUser())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })"
   return !!post && !!get &&
     post.split('\n')[1].trim() === gate && get.split('\n')[1].trim() === gate &&
-    src.includes("const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com', 'josephskaf@hotmail.com'])") &&
+    src.includes("const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@hotmail.com'])") &&
     src.includes('return user && ADMIN_EMAILS.has((user.email ?? \'\').toLowerCase()) ? user : null')
 }
 
