@@ -18,6 +18,8 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { trackEvent } from '@/lib/analytics'
+import { downloadVideoFile } from '@/lib/videoDownload' // KINEO-ESTREIA-DOWNLOAD-1911
+import { estreiaBaixaPeloModulo, nomeDoVideoDaEstreia, superficieDaEstreia } from '@/lib/premiereDownload' // KINEO-ESTREIA-DOWNLOAD-1911
 import { useReadyBeacon } from '@/components/video/useReadyBeacon'
 import s from './premiere.module.css'
 import EsperaPerguntas0511 from './EsperaPerguntas0511' // KINEO-PERGUNTAS-NA-ESPERA-0511
@@ -253,6 +255,14 @@ export function PremiereResult(props: {
     void trackEvent('premiere_download_clicked', { surface, kind: props.kind })
     props.onDownload?.()
   }
+  // KINEO-ESTREIA-DOWNLOAD-1911 — o vídeo com link (clipe do Studio, desenho, podcast) baixa pelo módulo único: folha "Salvar vídeo" no iPhone, blob com
+  // nome no computador e no Android, eventos video_download_*. Os eventos da tela (onDownload) continuam saindo como antes.
+  const peloModulo = estreiaBaixaPeloModulo(props.kind, props.downloadHref)
+  const baixarVideo = () => {
+    download()
+    if (!props.downloadHref) return
+    void downloadVideoFile({ url: props.downloadHref, filename: nomeDoVideoDaEstreia(props.title, surface), exportType: 'current_asset', surface: superficieDaEstreia(surface), extra: { premiere: true } })
+  }
   const share = async () => {
     void trackEvent('premiere_share_clicked', { surface })
     try {
@@ -285,7 +295,11 @@ export function PremiereResult(props: {
         )}
       </div>
       <div className={s.actions}>
-        {props.downloadHref ? (
+        {peloModulo ? (
+          <button type="button" className={`${s.btn} ${s.btnPrimary}`} style={{ flex: 1 }} onClick={baixarVideo}>
+            ⬇ {props.downloadLabel ?? 'Download'}
+          </button>
+        ) : props.downloadHref ? (
           <a className={`${s.btn} ${s.btnPrimary}`} style={{ flex: 1 }} href={props.downloadHref} download onClick={download}>
             ⬇ {props.downloadLabel ?? 'Download'}
           </a>
