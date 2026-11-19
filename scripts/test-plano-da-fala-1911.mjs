@@ -101,14 +101,15 @@ async function prova(over = {}) {
 
   // ── C · a ligação na rota ──
   const rota = over[ROTA] ?? read(ROTA)
-  no(!rota.includes("const kling4PlanoDaFala1911 = kling4DescritorForte1911 || (kling4TrialCandidate && verbatim && planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, isInternalEmail(user.email)) && parsedScript.segments.length > scenes.length)"), 'C1 só o Kling 4 grátis literal com cena fundida, pelo interruptor (ou o A2, que liga o descritor por seção)')
+  no(!rota.includes("const kling4PlanoDaFala1911 = kling4DescritorForte1911 || (kling4TrialCandidate && verbatim && planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, isDryRunAccount(user.email)) && parsedScript.segments.length > scenes.length)"), 'C1 só o Kling 4 grátis literal com cena fundida, pelo interruptor (ou o A2, que liga o descritor por seção)')
   no(!rota.includes('? generateCinematicDescriptions(secoesParaODescritor(parsedScript.segments), kling4DescritorForte1911 ? topicoDoDescritorA2(body.original_idea, prompt) : topicoComoDado(prompt), classicVisualPolicy, undefined,') || !rota.includes('sheet: desenhoInfantil.personagem.sheet } : null, true, true, kling4DescritorForte1911 ? MODELO_DO_DESCRITOR_FORTE : undefined, (u) => { usosDoDescritorA2.push(u) })\n'), 'C2 o descritor por seção: o pedido como Topic (no A2 com a ideia do cliente), a regra do Kling 4 e a regra por seção')
   no(!rota.includes('.then((d) => descricoesPorSecao(d, parsedScript.segments.length)).catch(() => descricoesPorSecao(null, parsedScript.segments.length))'), 'C2b [item 7] a chamada por seção que falha nunca vira 500 (catch = sem descrição = o caminho de hoje)')
   no(!rota.includes("{ role: 'system', content: porSecao ? system + REGRA_DO_PLANO_DA_FALA : system }"), 'C3 a regra por seção só na chamada por seção')
   const iDesc = rota.indexOf('const descricoesDasSecoesK4: Promise<(string | null)[]> | null'), iCenas = rota.indexOf('cobertura = await describeScenesCovered(scenes.length')
   no(!(iDesc > 0 && iCenas > iDesc), 'C4 a chamada por seção começa ANTES da das cenas (em paralelo, sem somar espera)')
   const iUsa = rota.indexOf("if (descricoesDasSecoesK4) { const d = descricoesCompletas(await descricoesDasSecoesK4, parsedScript.segments.length); if (d) parsedScript.segments.forEach((s, j) => { Object.assign(s, { descricao: d[j] }) }) }"), iEnvio = rota.indexOf('const kling4EnvioDoFilme = () =>')
-  no(!(iUsa > 0 && iEnvio > iUsa), 'C5 a descrição entra nas seções antes da montagem do envio (juiz, claim e POST leem a mesma)')
+  { const chamadas = [...rota.matchAll(/kling4EnvioDoFilme\(\)|revisarA2DoFilme\(false\)|submitKling4TrialVideo\(kling4PorSecao\(/g)].map((m) => m.index)
+    no(!(iUsa > 0 && iEnvio > 0 && chamadas.length >= 3 && chamadas.every((i) => i > iUsa)), 'C5 a descrição entra nas seções antes de toda chamada da montagem do envio (juiz, claim e POST leem a mesma)') }
   no(!rota.includes("objetoConcreto: kling4PlanoVariado }) // KINEO-K4-PLANO-POR-SECAO-1111 · KINEO-K4-PLANO-VARIADO-1111"), 'C6 a montagem de sempre continua igual (a descrição viaja na seção)')
   no(!rota.includes("fallback_scenes: classicScenePrompts.map((prompt, i) => ({ prompt, duration: scenes[i].clipSeconds ?? 6 })),"), 'C7 a reserva H3 nasce das cenas de sempre (nada do A1 toca classicScenePrompts)')
   no(rota.split('\n').filter((l) => l.includes('KINEO-PLANO-DA-FALA-1911') || l.includes('descricoesDasSecoesK4')).some((l) => /classicScenePrompts|\.aiPrompt\s*=|scenes\[[^\]]*\]\.(?:voiceover|description)\s*=/.test(l)), 'C8 o A1 não escreve nas cenas')

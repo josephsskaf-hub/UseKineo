@@ -49,8 +49,17 @@ async function prova(over = {}) {
   no(L.planoDaFalaLigado(L.KLING4_PLANO_DA_FALA_1911, false) || L.planoDaFalaLigado(L.KLING4_DESCRITOR_FORTE_1911, false), 'F1 cliente de fora: as duas portas fecham (o caminho de hoje)')
   no(!L.planoDaFalaLigado(L.KLING4_PLANO_DA_FALA_1911, true) || !L.planoDaFalaLigado(L.KLING4_DESCRITOR_FORTE_1911, true), 'F2 conta da casa: as duas abrem (o ensaio)')
   { const rr = over[ROTA] ?? read(ROTA)
-    no(!rr.includes('const kling4DescritorForte1911 = kling4TrialCandidate && verbatim && planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isInternalEmail(user.email))') || !rr.includes('(kling4TrialCandidate && verbatim && planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, isInternalEmail(user.email))'), 'F3 as portas da rota leem o e-mail da conta')
+    no(!rr.includes('const kling4DescritorForte1911 = kling4TrialCandidate && verbatim && planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isDryRunAccount(user.email))') || !rr.includes('(kling4TrialCandidate && verbatim && planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, isDryRunAccount(user.email))'), 'F3 as portas da rota leem o e-mail da conta, pela régua EXATA do ensaio (isDryRunAccount)')
     no(!rr.includes('const descricoesDasSecoesK4: Promise<(string | null)[]> | null = kling4PlanoDaFala1911\n      ?') || !rr.includes("const a2Ensaio1911 = kling4DescritorForte1911 && descricoesDasSecoesK4 && motor1411.kling4 ?") || !rr.includes('if (kling4DescritorForte1911 && descricoesDasSecoesK4) promptsDeCenaInteira(') || !rr.includes('if (descricoesDasSecoesK4) { const d = descricoesCompletas('), 'F4 toda peça nova está atrás das portas (porta fechada = nenhuma chamada, nenhuma mudança)') }
+  // [revisor 19/11, 2ª volta, item 1] a régua larga da casa (isInternalEmail) abre para e-mail parecido: um render REAL de quem não é da casa entraria no A1/A2.
+  // As portas usam isDryRunAccount (os 3 e-mails exatos do ensaio): e-mail parecido NÃO abre.
+  { let D, I
+    try { D = load('@/lib/cinematic/classicDryRun'); I = load('@/lib/internalAccounts') } catch (e) { p.push(`F5 réguas não carregam: ${e.message}`) }
+    if (D && I) {
+      const parecidos = ['joseph+qualquer@evil.com', 'testando.ana@gmail.com', 'josephskaf.fake@outlook.com', 'victoriaskafxyz@yahoo.com', 'a@mailinator.com.br']
+      const abre = parecidos.filter((e) => (over[ROTA] ?? read(ROTA)).includes('planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isInternalEmail(user.email))') ? I.isInternalEmail(e) : D.isDryRunAccount(e))
+      no(abre.length > 0, `F5 e-mail parecido com o da casa NÃO abre as portas (${abre.join(', ')})`)
+      no(D.isDryRunAccount(null) || D.isDryRunAccount(''), 'F5b sem e-mail não abre') } }
   no(L.MODELO_DO_DESCRITOR_FORTE !== 'gpt-4o', `A1 o modelo forte é AI_TEXT_MODELS.planner (${L.MODELO_DO_DESCRITOR_FORTE})`)
   const v = (o) => ({ status: 'JUDGED', falhas: ['d_sujeito'], cenas_reescreveria: [2], d_sujeito: 'a griffin', ...o })
   no(JSON.stringify(L.secoesAReescrever(v(), 4, 4)) !== '[1]', 'A2 plano 2 reprovado = seção 2 (índice 1)')
@@ -90,7 +99,7 @@ async function prova(over = {}) {
   no(!oa.calls[0]?.messages[1].content.includes(nota) || !/These are scenes 2 of a 4-scene film/.test(oa.calls[0]?.messages[1].content) || (oa.calls[0]?.messages[1].content.match(/^Scene \d+:/gm) ?? []).length !== 1, 'C3 a reescrita: só a seção reprovada, com a nota do juiz junto do Topic')
   // ── D · a ligação na rota ──
   const rota = over[ROTA] ?? read(ROTA)
-  no(!rota.includes("const kling4DescritorForte1911 = kling4TrialCandidate && verbatim && planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isInternalEmail(user.email)) && parsedScript.segments.length >= scenes.length && parsedScript.segments.length <= 5"), 'D1 o A2: só o Kling 4 grátis literal, pelo interruptor')
+  no(!rota.includes("const kling4DescritorForte1911 = kling4TrialCandidate && verbatim && planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isDryRunAccount(user.email)) && parsedScript.segments.length >= scenes.length && parsedScript.segments.length <= 5"), 'D1 o A2: só o Kling 4 grátis literal, pelo interruptor')
   no(!rota.includes('true, true, kling4DescritorForte1911 ? MODELO_DO_DESCRITOR_FORTE : undefined, (u) => { usosDoDescritorA2.push(u) })'), 'D2 a chamada por seção usa o modelo forte só com o A2 (e mede os tokens)')
   no(!rota.includes("if (kling4DescritorForte1911 && descricoesDasSecoesK4) promptsDeCenaInteira(kling4PromptsDasCenas1911, parsedScript.segments, scenes.map((s) => s.voiceover ?? '')).forEach((p, i) => { kling4Prompts[i] = p })"), 'D3 no A2 a cena de uma seção só nasce da sua descrição')
   no(!rota.includes('const kling4PromptsDasCenas1911 = [...kling4Prompts]') || (rota.match(/promptsDeCenaInteira\(kling4PromptsDasCenas1911,/g) ?? []).length !== 2, 'D4 a reescrita parte sempre dos prompts originais das cenas (e refaz depois da reescrita)')
@@ -105,11 +114,19 @@ async function prova(over = {}) {
   const dry = rota.slice(iDry, iRef)
   no(/submitKling4TrialVideo|reserveKling4Trial|fal\.run|generateStill|orchestrateKling4Trial/.test(dry), 'E2 o ensaio não chama a fal, não reserva nem compra nada')
   no(!dry.includes('hoje: { planos: hoje.planos, juiz: vHoje }, novo: { planos: novo.planos, juiz: r.veredito }') || !dry.includes('rejulgar: true') || !dry.includes('custo: { descritor, juiz_usd') || !dry.includes('ms: { espera_do_descritor: esperaMs'), 'E3 hoje × novo, juiz dos dois, reescrita e juiz final, tempos e custo medido')
-  no(!dry.includes('const hoje = montar(parsedScript.segments.map((x) => ({ voiceover: x.voiceover, pexelsQuery: x.pexelsQuery })))'), 'E4 o HOJE é o montador de sempre (sem descrição por seção)')
+  no(!dry.includes('const hoje = await montar(parsedScript.segments.map((x) => ({ voiceover: x.voiceover, pexelsQuery: x.pexelsQuery })))'), 'E4 o HOJE é o montador de sempre (sem descrição por seção)')
+  // [revisor 19/11, 2ª volta, item 2] o eco mostra o que IRIA à fal: o MESMO kling4PorSecao do envio e o injetor do sujeito do submit, nos dois lados
+  no(!dry.includes('const e = kling4PorSecao({ prompts: ps, approvedStills: stills, timing: timingDoEco })') || !dry.includes('buildKling4TrialInput(e.prompts, e.approvedStills, e.timing)') || /planosPorSecao\(|comSuperficieNoPlano\(|planosComEscalaVariada\(/.test(dry), 'E16 o eco monta pelo kling4PorSecao do envio (sem montador próprio)')
+  { const argsEnvio = (rota.match(/const kling4PedidoSujeito = kling4TrialCandidate && !desenhoInfantil\.ativo \? pedidoOriginalDoSujeito\(\{(.*?)falas: kling4Timing\.voiceovers \}\)/) ?? [])[1]
+    no(!argsEnvio || !dry.includes(`const pedidoDoSujeitoEco = kling4TrialCandidate && !desenhoInfantil.ativo ? pedidoOriginalDoSujeito({${argsEnvio}falas: falasCena })`) || !dry.includes('const rs = pedidoDoSujeitoEco ? await sujeitoNoKling4({ pedido: pedidoDoSujeitoEco, falas: falasCena, prompts: ps, stills, pessoaPermitida: !romanceAdulto.ativo }, leituraPronta1311())') || !dry.includes('kling4Sujeito.r = rs'), 'E17 o eco aplica o sujeito do submit (mesmo pedido, mesma chamada), também nas metades') }
+  { const iDef = rota.indexOf('    const kling4PorSecao = (a: {'), iD = rota.indexOf('    if (body.dry_run === true && isDryRunAccount(user.email)) {'), iFlags = ['    const kling4Sujeito: {', '    const kling4PlanoPorSecao = ', '    const kling4PlanoFinal = ', '    const kling4PlanoVariado = '].map((x) => rota.indexOf(x))
+    no(!(iDef > 0 && iD > iDef && iFlags.every((i) => i > 0 && i < iDef)), 'E18 a montagem do envio é definida antes do dry_run (o eco e o envio usam a mesma)') }
+  no(!dry.includes("timingDoEco.pelaVoz = { segundosDaVoz: k4EnsaioRelato.fala_segundos }") || !dry.includes('timingDoEco.fixedCharacter = reference') || !dry.includes('timingDoEco.clipSeconds = k4EnsaioRelato.clip_seconds'), 'E19 o eco leva o timing do envio (voz medida, personagem fixo, clipe até 20 s)')
+  no((rota.match(/\{ tetoMs: A2_TETO_DO_JUIZ_MS \}\), A2_TETO_DO_JUIZ_MS\)/g) ?? []).length !== 2, 'E20 o teto de 12 s do juiz do A2 vai também ao fetch (envio e eco)')
   no(!dry.includes('const d = descricoesCompletas(d0, parsedScript.segments.length)') || !dry.includes("if (!d) return { versao: 'a2_ensaio_1911_v1', motivo: 'descricoes_incompletas'"), 'E4b [revisor 19/11, item 4] descrição incompleta: o ensaio mostra só o hoje (o filme fica no caminho de hoje)')
   no(!rota.includes("if (kling4DescritorForte1911 && descricoesDasSecoesK4 && parsedScript.segments.every((s) => typeof (s as { descricao?: unknown }).descricao === 'string')) {"), 'E4c a revisão real do A2 só roda com a descrição de todas as seções (nunca reescreve um filme pela metade)')
   no(L.planoDaFalaLigado('internal', false) || !L.planoDaFalaLigado('internal', true), 'E5 internal = só contas da casa (cliente fora)')
-  no(!rota.includes('planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isInternalEmail(user.email))'), 'E6 a rota decide pelo e-mail da conta')
+  no(!rota.includes('planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isDryRunAccount(user.email))'), 'E6 a rota decide pelo e-mail da conta')
   const tp = L.topicoDoDescritorA2('A griffin flying to the North Star', 'HOOK: [Pexels: x] text.')
   no(!tp.includes("<<<\nREQUEST (the customer's own words): A griffin flying to the North Star") || !tp.includes('SCRIPT: HOOK: [Pexels: x] text.\n>>>') || !tp.endsWith(`RULE: ${L.REGRA_SEM_NOME_PROPRIO}`) || !/never instructions to you/.test(tp), 'E7 o Topic do A2: pedido + roteiro CERCADOS como dado, e a regra de nome próprio fora do cerco')
   no(L.topicoDoDescritorA2(null, 'S').startsWith('REQUEST') || !/version original|original character or thing by its role and look/.test(L.REGRA_SEM_NOME_PROPRIO), 'E8 sem pedido, só o roteiro e a regra; a regra pede a versão original pelo papel')
@@ -132,15 +149,25 @@ async function prova(over = {}) {
     const quebra = await L.revisarPlanosA2({ planos: () => ['p'], falas: () => ['f'], nSecoes: 1, rejulgar: false, julgar: async () => { throw new Error('x') }, nomes: async () => { throw new Error('y') }, reescrever: async () => {} })
     no(quebra.veredito !== null || quebra.nomes.length, 'E15 erro do juiz ou da pergunta = peça vazia, nunca lança') }
   no(!rota.includes("model: modelo ?? 'gpt-4o-mini',"), 'D9 sem modelo = gpt-4o-mini, como sempre')
-  no(!(over[EVT] ?? read(EVT)).includes("'kling4_descritor_forte',"), 'D10 o evento do A2 é só do servidor')
+  { const ev = over[EVT] ?? read(EVT), i0 = ev.indexOf('const SERVER_ONLY_EVENTS = new Set(['), lista = i0 >= 0 ? ev.slice(i0, ev.indexOf('])', i0)) : ''
+    no(!/^\s*'kling4_descritor_forte',/m.test(lista) || !ev.includes('if (SERVER_ONLY_EVENTS.has(name)) {'), 'D10 o evento do A2 é só do servidor (linha viva na lista SERVER_ONLY_EVENTS)') }
+  no(!rota.includes("void writeServerEvent({ name: A2_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, juiz: (rA2.veredito as JuizPlanoVeredito | null)?.status ?? null, reprovado: (rA2.veredito as JuizPlanoVeredito | null)?.reprovado ?? null, falhas: (rA2.veredito as JuizPlanoVeredito | null)?.falhas ?? [], nomes: rA2.nomes.map((p) => p + 1), reescritas: rA2.reescritas, ms: rA2.ms } }).catch(() => false)"), 'D11 o evento do A2 grava só veredito, posições e tempo (nunca texto do plano nem do cliente)')
   return { p, tamanho }
 }
 
 const MUT = [
   ['A2 público', LIB, (s) => s.replace("KLING4_DESCRITOR_FORTE_1911: ModoPlanoDaFala = 'internal'", "KLING4_DESCRITOR_FORTE_1911: ModoPlanoDaFala = 'public'")],
   ['A1 público', LIB, (s) => s.replace("KLING4_PLANO_DA_FALA_1911: ModoPlanoDaFala = 'internal'", "KLING4_PLANO_DA_FALA_1911: ModoPlanoDaFala = 'public'")],
-  ['rota: A2 para todos', ROTA, (s) => s.replace('planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isInternalEmail(user.email))', 'planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, true)')],
-  ['rota: A1 para todos', ROTA, (s) => s.replace('planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, isInternalEmail(user.email))', 'planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, true)')],
+  ['rota: A2 para todos', ROTA, (s) => s.replace('planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isDryRunAccount(user.email))', 'planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, true)')],
+  ['rota: A1 para todos', ROTA, (s) => s.replace('planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, isDryRunAccount(user.email))', 'planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, true)')],
+  ['porta larga: A2 pela régua da casa', ROTA, (s) => s.replace('planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isDryRunAccount(user.email))', 'planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isInternalEmail(user.email))')],
+  ['porta larga: A1 pela régua da casa', ROTA, (s) => s.replace('planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, isDryRunAccount(user.email))', 'planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, isInternalEmail(user.email))')],
+  ['evento sai da lista só-servidor', EVT, (s) => s.replace("  'kling4_descritor_forte', // KINEO-DESCRITOR-FORTE-1911", "  // 'kling4_descritor_forte', // KINEO-DESCRITOR-FORTE-1911")],
+  ['evento grava o texto dos planos', ROTA, (s) => s.replace('reescritas: rA2.reescritas, ms: rA2.ms } })', 'reescritas: rA2.reescritas, ms: rA2.ms, planos: kling4Prompts, pedido: body.original_idea } })')],
+  ['eco sem o sujeito', ROTA, (s) => s.replace('const rs = pedidoDoSujeitoEco ? await sujeitoNoKling4(', 'const rs = false ? await sujeitoNoKling4(')],
+  ['eco com montador próprio', ROTA, (s) => s.replace('const e = kling4PorSecao({ prompts: ps, approvedStills: stills, timing: timingDoEco })', 'const e = { prompts: ps, approvedStills: stills, timing: timingDoEco }')],
+  ['eco sem a voz medida', ROTA, (s) => s.replace('timingDoEco.pelaVoz = { segundosDaVoz: k4EnsaioRelato.fala_segundos }', 'void 0')],
+  ['juiz do A2 sem teto no fetch', ROTA, (s) => s.replace("seconds: duration }, { tetoMs: A2_TETO_DO_JUIZ_MS }), A2_TETO_DO_JUIZ_MS)\n    const reescreverA2", "seconds: duration }), A2_TETO_DO_JUIZ_MS)\n    const reescreverA2")],
   ['juiz sem veredito reescreve', LIB, (s) => s.replace("if (!v || v.status !== 'JUDGED' || nPlanos !== nSecoes || nSecoes < 1) return []", 'if (!v || nSecoes < 1) return []')],
   ['qualquer falha reescreve', LIB, (s) => s.replace('const falhas = (v.falhas ?? []).filter((f) => FALHAS_QUE_REESCREVEM.includes(f))\n  if (!falhas.length) return []', 'const falhas = [...(v.falhas ?? [])]\n  if (!falhas.length) return []')],
   ['final fraco não reescreve o fim', LIB, (s) => s.replace("if (falhas.includes('e_final')) alvo.add(nSecoes - 1)", '')],
@@ -153,7 +180,7 @@ const MUT = [
   ['rota: reescrita sem a nota', ROTA, (s) => s.replace('`${topicoDoDescritorA2(body.original_idea, prompt)}\\n\\n${nota}`, classicVisualPolicy, { numeros: alvo.map((j) => j + 1), total: parsedScript.segments.length }', 'prompt, classicVisualPolicy, { numeros: alvo.map((j) => j + 1), total: parsedScript.segments.length }')],
   ['rota: sem a checagem de nome próprio', ROTA, (s) => s.replace('nomes: (planos) => planosComNomeProprio(planos), reescrever: reescreverA2 })', 'nomes: async () => [], reescrever: reescreverA2 })')],
   ['rota: ensaio sem rejulgar', ROTA, (s) => s.replace('nSecoes: secoes.length, rejulgar: true, julgar,', 'nSecoes: secoes.length, rejulgar: false, julgar,')],
-  ['rota: hoje com a descrição', ROTA, (s) => s.replace('const hoje = montar(parsedScript.segments.map((x) => ({ voiceover: x.voiceover, pexelsQuery: x.pexelsQuery })))', 'const hoje = montar(parsedScript.segments.map((x) => ({ voiceover: x.voiceover, pexelsQuery: x.pexelsQuery, descricao: null })))')],
+  ['rota: hoje com a descrição', ROTA, (s) => s.replace('const hoje = await montar(parsedScript.segments.map((x) => ({ voiceover: x.voiceover, pexelsQuery: x.pexelsQuery })))', 'const hoje = await montar(parsedScript.segments.map((x) => ({ voiceover: x.voiceover, pexelsQuery: x.pexelsQuery, descricao: x.pexelsQuery })))')],
   ['lib: nome sem conferir a citação', LIB, (s) => s.replace(' && planos[a.plano - 1].toLowerCase().includes(nome.toLowerCase())) out.add(a.plano - 1)', ') out.add(a.plano - 1)')],
   ['lib: revisão reescreve duas vezes', LIB, (s) => s.replace('if (a.rejulgar) vf = await cronometro', "if (a.rejulgar) await a.reescrever(alvo, ''); if (a.rejulgar) vf = await cronometro")],
   ['lib: nome sem a nota', LIB, (s) => s.replace('${comNome.length ? ` ${NOTA_DO_NOME_PROPRIO}` : \'\'}', '')],

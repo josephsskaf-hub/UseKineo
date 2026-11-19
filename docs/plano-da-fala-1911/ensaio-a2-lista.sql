@@ -16,6 +16,7 @@ with n as (
   group by c.session_id
 ), e as (
   select g.*, cl.user_id, cl.created_at quando, cl.metadata->'response'->>'prompt' roteiro,
+    cl.metadata->>'engine' motor_pedido, cl.metadata->'response'->>'language' lingua, -- [revisor 19/11] o ensaio manda o motor e a língua do pedido (roteiro em português medido em inglês = medida errada)
     (select d.metadata from events d where d.name = 'cinematic_dispatch_result' and d.metadata->>'generation_id' = g.gen
        and d.metadata->>'engine' like 'kling/v4%' order by d.created_at desc limit 1) disp
   from g join kling4_trial_films f on f.job_id = g.gen and f.engine_used = 'kling4'
@@ -27,7 +28,7 @@ select
   gen, case when defeito then 'defeito' else 'bom' end grupo, nota,
   case when jsonb_array_length(coalesce(disp->'scene_plan'->'scenes', '[]'::jsonb)) = 0 then 'sem_registro'
        when (disp->'scene_plan')::text like '%Main subject of this shot:%' then 'com_molde' else 'sem_molde' end molde,
-  roteiro,
+  roteiro, motor_pedido engine, lingua language,
   (select w.metadata->>'original_idea' from events w where w.name = 'script_written' and w.user_id = e.user_id and w.created_at <= e.quando
      and length(w.metadata->>'script_head') >= 40 and position(w.metadata->>'script_head' in roteiro) = 1 order by w.created_at desc limit 1) ideia,
   (select jsonb_agg(s->>'prompt' order by (s->>'i')::int) from jsonb_array_elements(coalesce(disp->'scene_plan'->'scenes', '[]'::jsonb)) s) planos_enviados
