@@ -64,17 +64,20 @@ async function prova(over = {}) {
   } catch (e) { return [`libs não carregam: ${e.message}`] }
 
   // ── (a) a lib ──
-  const fix = (o) => R.velocidadeFixadaParaMedir({ candidato: true, verbatim: false, speed: null, ...o })
-  no(R.K4_MEDIR_SEMPRE_1911 !== true || E.K4_ENCAIXE_INSISTE_1911 !== false || R.K4_ESPERA_QUEM_RODA_1911 !== true, 'A0 (a) e (c) ligados; (b) DESLIGADO até a régua fechar (revisão da CEO 19/11)')
+  const fix = (o) => R.velocidadeFixadaParaMedir({ ligado: true, candidato: true, verbatim: false, speed: null, ...o })
+  no(R.K4_MEDIR_SEMPRE_1911 !== false, 'A0a (a) DESLIGADO: aumenta gasto (+US$ 1,97 por filme) e o dono travou todo gasto em 19/11; liga só com o sim dele')
+  no(E.K4_ENCAIXE_INSISTE_1911 !== false, 'A0b (b) DESLIGADO: a régua encaixeServe aprova fecho estragado (16 de 21 casos do revisor); liga só com a régua endurecida')
+  no(R.K4_ESPERA_QUEM_RODA_1911 !== true, 'A0c (c) LIGADO: a consulta de status no prazo não compra nada a mais')
+  no(R.K4_PISO_DA_FALA_SEM_ESCALA_SEGUNDOS !== 12, 'A0d piso do (a) = 12 s (CEO 19/11)')
   no(fix({}) !== true, 'A1 não literal sem speed é medido a 1,0')
   no(fix({ verbatim: true }) !== false, 'A2 roteiro literal fica como estava')
   no(fix({ speed: 1.1 }) !== false || fix({ speed: 0.9 }) !== false, 'A3 roteiro com speed: fica como estava')
   no(fix({ speed: 0 }) !== true || fix({ speed: 'x' }) !== true, 'A3b speed inválido conta como sem speed')
   no(fix({ candidato: false }) !== false, 'A4 só o filme grátis do Kling 4')
-  no(fix({ ligado: false }) !== false, 'A5 desligado = o de antes')
+  no(fix({ ligado: false }) !== false || R.velocidadeFixadaParaMedir({ candidato: true, verbatim: false, speed: null }) !== false, 'A5 desligado (o padrão de hoje) = o de antes')
   const c8 = R.falaCurtaSemEscala(fala(8), true)
   no(c8.cabe !== false || c8.reason !== 'narration_short_unscaled_kling4' || c8.seconds !== 8, 'A6 medida a 1,0 e < 10 s: não vai ao Kling 4, motivo próprio')
-  no(R.falaCurtaSemEscala(fala(10), true).cabe !== true || R.falaCurtaSemEscala(fala(12.4), true).reason !== 'fits', 'A7 10 s ou mais segue')
+  no(R.falaCurtaSemEscala(fala(11.9), true).cabe !== false || R.falaCurtaSemEscala(fala(12), true).cabe !== true || R.falaCurtaSemEscala(fala(12.4), true).reason !== 'fits', 'A7 piso de 12 s: 11,9 fica no caminho de antes; 12 ou mais segue')
   no(R.falaCurtaSemEscala(fala(8), false).cabe !== true, 'A8 roteiro literal curto: escolha do cliente, segue como antes')
   no(R.falaCurtaSemEscala(fala(17), true).reason !== 'narration_over_kling4_15s' || R.falaCurtaSemEscala(fala(null), true).reason !== 'narration_unmeasured_kling4', 'A9 longa e sem medida passam intactas')
   no(R.velocidadeAssinadaNoClaim({ fixada: true, foiAoKling4: true, speed: null }) !== 1, 'A10 Kling 4 medido a 1,0 assina speed 1')
@@ -177,7 +180,10 @@ const MUT = [
   ['A: ignora o literal', 'lib/kling4TrialReserva1911.ts', (s) => s.replace('!a.candidato || a.verbatim', '!a.candidato')],
   ['A: sem piso de 10 s', 'lib/kling4TrialReserva1911.ts', (s) => s.replace('fala.seconds >= K4_PISO_DA_FALA_SEM_ESCALA_SEGUNDOS', 'fala.seconds >= 0')],
   ['A: speed 1 também na reserva', 'lib/kling4TrialReserva1911.ts', (s) => s.replace('a.fixada && a.foiAoKling4 ? 1', 'a.fixada ? 1')],
-  ['A: interruptor de medida desligado', 'lib/kling4TrialReserva1911.ts', (s) => s.replace('K4_MEDIR_SEMPRE_1911: boolean = true', 'K4_MEDIR_SEMPRE_1911: boolean = false')],
+  ['A: ligar o (a) sem o sim do dono', 'lib/kling4TrialReserva1911.ts', (s) => s.replace('K4_MEDIR_SEMPRE_1911: boolean = false', 'K4_MEDIR_SEMPRE_1911: boolean = true')],
+  ['A: piso de volta a 10 s', 'lib/kling4TrialReserva1911.ts', (s) => s.replace('K4_PISO_DA_FALA_SEM_ESCALA_SEGUNDOS = 12', 'K4_PISO_DA_FALA_SEM_ESCALA_SEGUNDOS = 10')],
+  ['B: ligar o (b) sem a régua', 'lib/kling4TrialEncaixe.ts', (s) => s.replace('K4_ENCAIXE_INSISTE_1911: boolean = false', 'K4_ENCAIXE_INSISTE_1911: boolean = true')],
+  ['C: desligar o (c)', 'lib/kling4TrialReserva1911.ts', (s) => s.replace('K4_ESPERA_QUEM_RODA_1911: boolean = true', 'K4_ESPERA_QUEM_RODA_1911: boolean = false')],
   ['C: espera sem limite', 'lib/kling4TrialReserva1911.ts', (s) => s.replace("a.status === 'processing' && a.idadeMs < a.prazoMs + K4_ESPERA_EXTRA_MS", "a.status === 'processing'")],
   ['C: espera também na fila', 'lib/kling4TrialReserva1911.ts', (s) => s.replace("a.status === 'processing' && a.idadeMs", "(a.status === 'processing' || a.status === 'pending') && a.idadeMs")],
   ['B: não insiste na reprovada', 'lib/kling4TrialEncaixe.ts', (s) => s.replace('if (!encaixeServe(atuais, novas, a.language)) { if (insiste) continue;', 'if (!encaixeServe(atuais, novas, a.language)) {')],

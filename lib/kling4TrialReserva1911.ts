@@ -4,7 +4,7 @@
 //  (a) K4_MEDIR_SEMPRE_1911 — as 3 "sem medida" (8ee1cd8d, e9cff0bd, 4ff35049) eram roteiro NÃO literal sem `speed:`: a montagem
 //      reescreve esse texto por um modelo antes da voz (scaleVoiceoverScript), então não havia o que medir. Agora a rota mede o
 //      texto como está, a 1,0, e, SE o filme for ao Kling 4, assina `speed: 1` no claim: a montagem fala exatamente o que foi
-//      medido (sem reescrever nem re-sintetizar). Fala medida abaixo de 10 s fica no caminho de antes (a reserva reescreve e
+//      medido (sem reescrever nem re-sintetizar). Fala medida abaixo de 12 s fica no caminho de antes (a reserva reescreve e
 //      enche os 15 s), com o motivo 'narration_short_unscaled_kling4'. Nada muda para roteiro literal, roteiro com `speed:` ou pago.
 //  (b) K4_ENCAIXE_INSISTE_1911 — nas 2 "acima de 15 s" (5bc6d6b9, defd272c) o encurtamento desistiu na 1ª resposta ruim do modelo
 //      ('encurtado_reprovado'). Agora resposta reprovada ou vazia gasta uma rodada (das 3, dentro dos 30 s) e o modelo é chamado de
@@ -16,11 +16,11 @@
 // Selo honesto: nada aqui escolhe motor por nome nem mexe no débito; o motor gravado continua sendo o que rodou.
 import type { FalaK4 } from '@/lib/kling4TrialScript'
 
-export const K4_MEDIR_SEMPRE_1911: boolean = true
+export const K4_MEDIR_SEMPRE_1911: boolean = false // DESLIGADO (CEO 19/11): +US$ 1,97 por filme (~US$ 5,9/semana); liga só com o sim do dono
 // K4_ENCAIXE_INSISTE_1911 mora em lib/kling4TrialEncaixe.ts (o guardião antigo do encaixe carrega aquela lib sozinha).
 export const K4_ESPERA_QUEM_RODA_1911: boolean = true
 /** (a) Abaixo disso a fala NÃO reescrita deixaria o filme de 15 s mudo no fim: fica no caminho de antes (o mesmo piso do encaixe). */
-export const K4_PISO_DA_FALA_SEM_ESCALA_SEGUNDOS = 10
+export const K4_PISO_DA_FALA_SEM_ESCALA_SEGUNDOS = 12 // CEO 19/11: era 10; abaixo de 12 s o último plano fica com 3+ s sem voz (o silêncio vai inteiro para ele): reabre com número depois do A1
 /** (c) Quanto a mais se espera um Kling 4 que a fal diz estar rodando, depois dos 8 min. */
 export const K4_ESPERA_EXTRA_MS = 4 * 60_000
 export const MOTIVO_FALA_CURTA_SEM_ESCALA = 'narration_short_unscaled_kling4' as const
