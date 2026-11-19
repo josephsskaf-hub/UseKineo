@@ -57,7 +57,8 @@ export function CitationDetails({ page }: { page: TrafficCitationPage }) {
   </>
   return (
     <section className={home ? 'kc2310 kc2310-home' : 'kc2310'} aria-labelledby={`citation-${page}`} data-citation-details={page}>
-      <style>{home ? STYLE + HOME_STYLE : STYLE}</style>
+      {/* KINEO-HIDRATACAO-1911 — CSS por dangerouslySetInnerHTML: como filho de <style>, o servidor escapa o ">" de HOME_STYLE para &gt; e o cliente não (React #425/#418/#423 em toda página com a seção da home). */}
+      <style dangerouslySetInnerHTML={{ __html: home ? STYLE + HOME_STYLE : STYLE }} />
       <h2 id={`citation-${page}`}>{citation.heading}</h2>
       <table>
         <caption style={{ textAlign: 'left', color: captionColor, fontSize: 13, marginBottom: 10 }}>{pt ? 'A duração solicitada do vídeo é diferente do tempo de espera pela geração.' : 'Requested video duration is different from the wait for generation.'}</caption>

@@ -116,7 +116,8 @@ export default function ViralScoreClient() {
 
   return (
     <div className="vs-wrap">
-      <style>{CSS}</style>
+      {/* KINEO-HIDRATACAO-1911 — CSS por dangerouslySetInnerHTML: como filho de <style>, as aspas do CSS saíam escapadas do servidor (React #425). */}
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div className="vs-brand"><span className="vs-logo">◆</span><b>Kineo</b></div>
       <h1>Will your idea <span>go viral?</span></h1>
       <p className="vs-sub">Paste any YouTube Shorts / TikTok idea. Get an instant score from Kineo&apos;s viral engine — free, no signup.</p>
