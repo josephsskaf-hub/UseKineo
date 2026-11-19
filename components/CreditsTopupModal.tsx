@@ -22,7 +22,7 @@ import CreditMinutesSummary from '@/components/CreditMinutesSummary'
 // quantos créditos quer"): os 4 pacotes fixos viraram UMA barra de 50 a 2.000 créditos. Preço da escada aprovada em
 // lib/credits/creditSlider (a MESMA função que a rota da Stripe usa para cobrar — aqui só se mostra). Os ids antigos
 // (topup40/120/100/300) seguem vendáveis por link direto; só saíram desta vitrine.
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   formatCheckoutMoney,
   recargaAssinanteMinFilmCredits,
@@ -30,9 +30,9 @@ import {
 } from '@/lib/checkoutPricing'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import {
-  CREDIT_SLIDER_DEFAULT, CREDIT_SLIDER_MAX, CREDIT_SLIDER_MIN, CREDIT_SLIDER_PACK_ID, CREDIT_SLIDER_STEP, sliderPriceUsdMinor,
+  CREDIT_SLIDER_DEFAULT, CREDIT_SLIDER_MAX, CREDIT_SLIDER_MIN, CREDIT_SLIDER_PACK_ID, CREDIT_SLIDER_STEP, sliderCreditsForShortfall, sliderPriceUsdMinor,
 } from '@/lib/credits/creditSlider'
-import { RECARGA_ASSINANTE_COPY } from '@/lib/billing/recargaAssinante' // KINEO-RECARGA-ASSINANTE-1111
+import { CREDIT_BALANCE_NOTICE_SURFACE, RECARGA_ASSINANTE_COPY } from '@/lib/billing/recargaAssinante' // KINEO-RECARGA-ASSINANTE-1111
 
 /** KINEO-RECARGA-ASSINANTE-1111 [fundador 11/11: "eu aprovo a escada de 9 dólares até 500 dólares… só para assinantes"] — a
  *  barra aberta a partir do aviso de sem crédito do assinante (components/billing/SubscriberUpgradeNudge.tsx). Com `recarga`,
@@ -77,7 +77,11 @@ function CreditsTopupModalVenda({
   const [recargaGoing, setRecargaGoing] = useState(false) // KINEO-RECARGA-ASSINANTE-1111
   const [currency, setCurrency] = useState<CheckoutCurrency | null>(null)
   const [credits, setCredits] = useState<number | null>(null)
-  const [amount, setAmount] = useState<number>(CREDIT_SLIDER_DEFAULT)
+  const [amount, setAmount] = useState(() => surface === `buy_credits_${CREDIT_BALANCE_NOTICE_SURFACE}`
+    ? sliderCreditsForShortfall(shortfall)
+    : CREDIT_SLIDER_DEFAULT)
+  const panel = useRef<HTMLDivElement>(null)
+  const closeButton = useRef<HTMLButtonElement>(null)
 
   // Moeda do comprador — mesma regra do UpgradeModal/PricingCards: rótulo
   // segura no '—' até o /api/geo responder; a COBRANÇA é re-resolvida
@@ -112,8 +116,20 @@ function CreditsTopupModalVenda({
   }, [])
 
   useEffect(() => {
+    const previousFocus = document.activeElement
+    closeButton.current?.focus()
+    return () => { if (previousFocus instanceof HTMLElement) previousFocus.focus() }
+  }, [])
+
+  useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
+      if (e.key !== 'Tab') return
+      const items = panel.current?.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled])')
+      const first = items?.[0]
+      const last = items?.[items.length - 1]
+      if (e.shiftKey && document.activeElement === first && last) { e.preventDefault(); last.focus() }
+      if (!e.shiftKey && document.activeElement === last && first) { e.preventDefault(); first.focus() }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -121,7 +137,7 @@ function CreditsTopupModalVenda({
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex items-center justify-center p-4"
+      className={`fixed inset-0 z-[90] flex items-center justify-center p-4${recarga ? ' credit-topup-modal' : ''}`}
       // KINEO-TOPUP-UX-2026-09-01 (pedido do fundador, com print): o fundo
       // 88% preto + blur 20px APAGAVA o dashboard — o modal parecia uma tela
       // nova, não uma caixa sobre a tela dele. Véu leve: o dashboard continua
@@ -133,31 +149,34 @@ function CreditsTopupModalVenda({
       aria-label="Add credits"
     >
       <div
-        className="w-full max-w-lg rounded-2xl p-7 relative"
+        ref={panel}
+        className="credit-topup-panel w-full max-w-lg rounded-2xl p-7 relative"
         style={{ background: 'var(--card)', border: '1px solid var(--border)', boxShadow: '0 0 80px rgba(0,0,0,.5)', maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto' }}
       >
         <button
+          type="button"
+          ref={closeButton}
           onClick={onClose}
           aria-label="Close"
-          className="absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center text-sm"
+          className="credit-topup-close absolute top-4 right-4 w-8 h-8 rounded-lg flex items-center justify-center text-sm"
           style={{ background: 'var(--card2)', border: '1px solid var(--border)', color: 'var(--muted)', cursor: 'pointer' }}
         >
           <span aria-hidden="true">✕</span>
         </button>
 
         <div
-          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mb-3"
-          style={{ background: 'rgba(143,198,255,.12)', border: '1px solid rgba(143,198,255,.25)', color: 'var(--accent)' }}
+          className="credit-topup-balance inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mb-3"
+          style={{ color: 'var(--accent)' }}
         >
           <span aria-hidden="true"><KineoBolt /></span>
           {credits !== null ? `${credits} ${credits === 1 ? 'credit' : 'credits'} left` : 'Credits'}
         </div>
 
-        <h2 className="text-2xl font-black mb-1 tracking-tight" style={{ color: 'var(--text)' }}>
-          {creditShortfallCopy(shortfall) ?? <>Keep your plan. <span className="grad-text">Add credits.</span></>}
+        <h2 className="credit-topup-title text-2xl font-black mb-1 tracking-tight" style={{ color: 'var(--text)' }}>
+          {recarga ? 'Add credits' : creditShortfallCopy(shortfall) ?? <>Keep your plan. <span className="grad-text">Add credits.</span></>}
         </h2>
         <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
-          One-time packs, added to your balance instantly after payment. No subscription change.
+          {recarga ? [creditShortfallCopy(shortfall), RECARGA_ASSINANTE_COPY.terms].filter(Boolean).join(' ') : 'One-time packs, added to your balance instantly after payment. No subscription change.'}
         </p>
 
         {(() => {
@@ -167,35 +186,38 @@ function CreditsTopupModalVenda({
           const pct = ((amount - CREDIT_SLIDER_MIN) / (CREDIT_SLIDER_MAX - CREDIT_SLIDER_MIN)) * 100
           return (
             <div data-kineo="credit-slider">
-              <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                <div>
-                  <span style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em' }}>+{amount.toLocaleString('en-US')}</span>
-                  <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--muted)', marginLeft: 6 }}>credits</span>
+              <div className="credit-topup-amount">
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <div>
+                    <span style={{ fontSize: '2rem', fontWeight: 900, color: 'var(--text)', letterSpacing: '-0.02em' }}>+{amount.toLocaleString('en-US')}</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--muted)', marginLeft: 6 }}>credits</span>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ display: 'block', fontSize: '1.6rem', fontWeight: 900, color: 'var(--accent)' }}>{price}</span>
+                    <span style={{ display: 'block', fontSize: 12, color: 'var(--muted)' }}>{perCredit} per credit · one-time</span>
+                  </div>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <span style={{ display: 'block', fontSize: '1.6rem', fontWeight: 900, color: 'var(--accent)' }}>{price}</span>
-                  <span style={{ display: 'block', fontSize: '0.7rem', color: 'var(--muted)' }}>{perCredit} per credit · one-time</span>
+                <input
+                  id="credit-slider"
+                  className="credit-topup-range"
+                  type="range"
+                  min={CREDIT_SLIDER_MIN}
+                  max={CREDIT_SLIDER_MAX}
+                  step={CREDIT_SLIDER_STEP}
+                  value={amount}
+                  onChange={(e) => setAmount(Number(e.target.value))}
+                  aria-label="Credits to add"
+                  aria-valuetext={`${amount} credits for ${price}`}
+                  disabled={checkout.pending !== null || recargaGoing}
+                  style={recarga ? undefined : {
+                    width: '100%', margin: '18px 0 6px', accentColor: 'var(--indigo)', cursor: 'pointer',
+                    background: `linear-gradient(90deg, var(--indigo) ${pct}%, var(--border) ${pct}%)`, height: 6, borderRadius: 999,
+                  }}
+                />
+                <div className="credit-topup-marks" style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--muted)' }}>
+                  {/* KINEO-RECARGA-ASSINANTE-1111 — marcas da faixa da fonte única (a escada nova vai de 60 a 3.700). */}
+                  <span>{CREDIT_SLIDER_MIN}</span><span>{Math.round(CREDIT_SLIDER_MAX / 3 / 100) * 100}</span><span>{Math.round((CREDIT_SLIDER_MAX * 2) / 3 / 100) * 100}</span><span>{CREDIT_SLIDER_MAX.toLocaleString('en-US')}</span>
                 </div>
-              </div>
-              <input
-                id="credit-slider"
-                type="range"
-                min={CREDIT_SLIDER_MIN}
-                max={CREDIT_SLIDER_MAX}
-                step={CREDIT_SLIDER_STEP}
-                value={amount}
-                onChange={(e) => setAmount(Number(e.target.value))}
-                aria-label="Credits to add"
-                aria-valuetext={`${amount} credits for ${price}`}
-                disabled={checkout.pending !== null}
-                style={{
-                  width: '100%', margin: '18px 0 6px', accentColor: 'var(--indigo)', cursor: 'pointer',
-                  background: `linear-gradient(90deg, var(--indigo) ${pct}%, var(--border) ${pct}%)`, height: 6, borderRadius: 999,
-                }}
-              />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', color: 'var(--muted)' }}>
-                {/* KINEO-RECARGA-ASSINANTE-1111 — marcas da faixa da fonte única (a escada nova vai de 60 a 3.700). */}
-                <span>{CREDIT_SLIDER_MIN}</span><span>{Math.round(CREDIT_SLIDER_MAX / 3 / 100) * 100}</span><span>{Math.round((CREDIT_SLIDER_MAX * 2) / 3 / 100) * 100}</span><span>{CREDIT_SLIDER_MAX.toLocaleString('en-US')}</span>
               </div>
               {/* KINEO-BARRA-SEM-MOTOR-1111 — na barra do assinante, a conta em FILMES, sem nome de motor (regra do fundador:
                   nada de nome de motor em cartão/botão). O resumo por motor segue onde já estava (top-up antigo). */}

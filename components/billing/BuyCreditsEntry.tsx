@@ -17,20 +17,29 @@ export const BUY_CREDITS_LABEL = 'Buy credits'
 export const BUY_CREDITS_OPENED_EVENT = 'buy_credits_entry_opened'
 
 /** A oferta do servidor para esta superfície (null = não pinta). `enabled` false = nenhuma leitura. */
-export function useRecargaEntrada(surface: string, enabled = true): RecargaAssinanteOffer | null {
+export function useRecargaEntrada(surface: string, enabled = true, refreshOn?: string): RecargaAssinanteOffer | null {
   const [offer, setOffer] = useState<RecargaAssinanteOffer | null>(null)
   useEffect(() => {
     if (!enabled || RECARGA_ASSINANTE_1111_RELEASE === 'off') { setOffer(null); return }
     let alive = true
-    void fetch(`${RECARGA_ASSINANTE_API}?surface=${encodeURIComponent(surface)}`, { cache: 'no-store', credentials: 'same-origin' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d: unknown) => {
-        const o = d as Partial<RecargaAssinanteOffer> | null
-        if (alive && o && o.show === true && typeof o.go === 'string' && typeof o.qa === 'boolean') setOffer(o as RecargaAssinanteOffer)
-      })
-      .catch(() => { /* sem oferta: nada pintado */ })
-    return () => { alive = false }
-  }, [surface, enabled])
+    let latest = 0
+    function refresh() {
+      const request = ++latest
+      void fetch(`${RECARGA_ASSINANTE_API}?surface=${encodeURIComponent(surface)}`, { cache: 'no-store', credentials: 'same-origin' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d: unknown) => {
+          const o = d as Partial<RecargaAssinanteOffer> | null
+          if (alive && request === latest) setOffer(o && o.show === true && typeof o.go === 'string' && typeof o.qa === 'boolean' ? o as RecargaAssinanteOffer : null)
+        })
+        .catch(() => { if (alive && request === latest) setOffer(null) })
+    }
+    refresh()
+    if (refreshOn !== undefined) window.addEventListener('creditsChanged', refresh)
+    return () => {
+      alive = false
+      window.removeEventListener('creditsChanged', refresh)
+    }
+  }, [surface, enabled, refreshOn])
   return offer
 }
 

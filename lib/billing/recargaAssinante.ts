@@ -42,6 +42,23 @@ export const RECARGA_ASSINANTE_EVENTS = {
 
 /** A rota da oferta (GET = a oferta; ?go=1 = o clique, que re-decide no servidor e leva ao checkout). */
 export const RECARGA_ASSINANTE_API = '/api/billing/recarga-assinante'
+export const CREDIT_BALANCE_NOTICE_SURFACE = 'credit_balance_notice'
+export const CREDIT_BALANCE_NOTICE_SHOWN = 'credit_balance_notice_shown'
+
+export type CreditBalanceNotice = {
+  reason: 'zero' | 'shortfall' | 'rapid_spend'
+  balance: number
+  shortfall: number | null
+}
+
+export function creditBalanceNotice(balance: unknown, nextFilmCost: number | null, cycleBalance: number | null, spent: number): CreditBalanceNotice | null {
+  if (typeof balance !== 'number' || !Number.isSafeInteger(balance) || balance < 0) return null
+  const shortfall = nextFilmCost !== null && nextFilmCost > balance ? nextFilmCost - balance : null
+  if (balance === 0) return { reason: 'zero', balance, shortfall }
+  if (shortfall !== null) return { reason: 'shortfall', balance, shortfall }
+  if (cycleBalance !== null && cycleBalance > 0 && spent >= cycleBalance / 2) return { reason: 'rapid_spend', balance, shortfall: null }
+  return null
+}
 
 /** Os planos que compram: os três pagos da escada, pela régua isPayingPlan do admin (o `_trial` — cortesia e teste — fica
  *  fora). 'creator'/'studio' são os nomes antigos de 'basic'/'pro' que o perfil ainda pode guardar. */
@@ -135,7 +152,15 @@ export function recargaAssinanteWithParam(path: string, key: string, value: stri
 /** O que a rota da oferta manda ao navegador (só exibição; o checkout re-decide tudo no servidor). */
 /** `button` = o botão de 60 (só quem não paga o filme mais barato); a barra ("Need more?") vale para todo assinante que
  *  chegou ao aviso. */
-export interface RecargaAssinanteOffer { show: true; qa: boolean; price: string; credits: number; go: string; button: boolean }
+export interface RecargaAssinanteOffer {
+  show: true
+  qa: boolean
+  price: string
+  credits: number
+  go: string
+  button: boolean
+  notice?: CreditBalanceNotice
+}
 
 // ── textos (inglês, como o resto do aviso; o useUiCopy traduz o que tiver chave). {price}/{credits} da fonte única. ──
 // A VERDADE, sem prometer o que o produto não cumpre: NÃO dizemos "os créditos não expiram". Pela regra de renovação

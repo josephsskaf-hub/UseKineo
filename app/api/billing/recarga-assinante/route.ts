@@ -14,8 +14,10 @@ import { createClient } from '@/lib/supabase/server'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { releaseVisible } from '@/lib/recreate/access'
 import { recargaAssinanteMinFilmCredits } from '@/lib/checkoutPricing'
+import { loadCreditBalanceNotice } from '@/lib/billing/loadCreditBalanceNotice'
 import { RECARGA_ASSINANTE_1111, normalizeSliderCredits, usdWholeLabel } from '@/lib/credits/creditSlider'
 import {
+  CREDIT_BALANCE_NOTICE_SURFACE,
   RECARGA_ASSINANTE_1111_RELEASE,
   RECARGA_ASSINANTE_API,
   RECARGA_ASSINANTE_CAMPAIGN,
@@ -78,11 +80,16 @@ export async function GET(req: NextRequest) {
     if (rawCredits === null && !button) return goBack()
     await writeServerEvent({ name: RECARGA_ASSINANTE_EVENTS.clicked, userId: user.id, path: RECARGA_ASSINANTE_API, metadata: { ...meta, kind: credits === null ? 'button' : 'slider', credits: credits ?? RECARGA_ASSINANTE_1111.credits } })
     if (qa) return NextResponse.redirect(new URL(recargaAssinanteWithParam(back, 'recarga', 'qa'), req.url), 303)
-    const checkout = `/api/stripe/checkout?pack=${RECARGA_ASSINANTE_SKU}&intent_campaign=${RECARGA_ASSINANTE_CAMPAIGN}${credits === null ? '' : `&credits=${credits}`}&back=${encodeURIComponent(back)}`
-    return NextResponse.redirect(new URL(checkout, req.url), 303)
+    const checkout = new URL(`/api/stripe/checkout?pack=${RECARGA_ASSINANTE_SKU}&intent_campaign=${RECARGA_ASSINANTE_CAMPAIGN}${credits === null ? '' : `&credits=${credits}`}&back=${encodeURIComponent(back)}`, req.url)
+    if (surface === CREDIT_BALANCE_NOTICE_SURFACE) checkout.searchParams.set('recarga_entry', surface)
+    return NextResponse.redirect(checkout, 303)
   }
 
-  await writeServerEvent({ name: RECARGA_ASSINANTE_EVENTS.shown, userId: user.id, path: RECARGA_ASSINANTE_API, metadata: meta })
+  // Count the new entry when it actually fits on screen, not on eligibility read.
+  const isNotice = surface === CREDIT_BALANCE_NOTICE_SURFACE
+  const notice = isNotice && p ? await loadCreditBalanceNotice(db, user.id, p) : null
+  if (isNotice && !notice) return HIDE()
+  if (!isNotice) await writeServerEvent({ name: RECARGA_ASSINANTE_EVENTS.shown, userId: user.id, path: RECARGA_ASSINANTE_API, metadata: meta })
   const offer: RecargaAssinanteOffer = {
     show: true,
     qa,
@@ -90,6 +97,7 @@ export async function GET(req: NextRequest) {
     credits: RECARGA_ASSINANTE_1111.credits,
     go: `${RECARGA_ASSINANTE_API}?go=1&surface=${surface}`,
     button,
+    ...(notice ? { notice } : {}),
   }
   return NextResponse.json(offer, { headers: NO_STORE })
 }

@@ -34,6 +34,9 @@ const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail+
 
 const FILES = {
   lib: 'lib/billing/recargaAssinante.ts',
+  noticeLoader: 'lib/billing/loadCreditBalanceNotice.ts',
+  placement: 'lib/billing/creditNoticePlacement.ts',
+  notice: 'components/billing/CreditBalanceNotice.tsx',
   cp: 'lib/checkoutPricing.ts',
   slider: 'lib/credits/creditSlider.ts',
   modal: 'components/CreditsTopupModal.tsx',
@@ -76,14 +79,25 @@ const USER = { id: '22222222-2222-4222-8222-222222222222', email: 'buyer@example
 const SUB = { plan: 'basic', stripe_subscription_id: 'sub_123', video_credits: 1, email: 'buyer@example.com', stripe_customer_id: 'cus_1' }
 const REL = (s, v) => ({ ...s, lib: s.lib.replace(/RECARGA_ASSINANTE_1111_RELEASE: RecargaAssinanteRelease = '(off|internal|public)'/, `RECARGA_ASSINANTE_1111_RELEASE: RecargaAssinanteRelease = '${v}'`) })
 
-function fakeDb(profile, calls, { profileErr = false } = {}) {
+function fakeDb(profile, calls, { profileErr = false, tables = {} } = {}) {
   return {
     from(table) {
       calls.dbReads.push(table)
+      let rows = table === 'profiles' ? [profile] : tables[table] ?? []
+      const value = (row, key) => key.includes('->>') ? row.metadata?.[key.split('->>')[1]] : row[key]
       const b = {
         select() { return b },
-        eq() { return b },
-        maybeSingle() { return Promise.resolve(profileErr ? { data: null, error: { message: 'down' } } : { data: profile ?? null, error: null }) },
+        eq(key, v) { if (table !== 'profiles') rows = rows.filter((row) => value(row, key) === v); return b },
+        in(key, values) { rows = rows.filter((row) => values.includes(value(row, key))); return b },
+        is(key, v) { rows = rows.filter((row) => value(row, key) === v); return b },
+        not(key, _op, v) { rows = rows.filter((row) => value(row, key) !== v); return b },
+        gt(key, v) { rows = rows.filter((row) => value(row, key) > v); return b },
+        gte(key, v) { rows = rows.filter((row) => value(row, key) >= v); return b },
+        lte(key, v) { rows = rows.filter((row) => value(row, key) <= v); return b },
+        order(key) { rows = [...rows].sort((a, b) => String(b[key]).localeCompare(String(a[key]))); return b },
+        limit(n) { rows = rows.slice(0, n); return b },
+        then(resolve) { return resolve({ data: rows, error: null }) },
+        maybeSingle() { return Promise.resolve(table === 'profiles' && profileErr ? { data: null, error: { message: 'down' } } : { data: rows[0] ?? null, error: null }) },
       }
       return b
     },
@@ -121,9 +135,9 @@ async function runCheckout(S, { user = USER, profile = SUB, url = 'https://www.u
   const res = await C.buildRecargaAssinanteAndRedirect(req, deps)
   return { res, calls }
 }
-async function runRoute(S, { user = USER, profile = SUB, url = 'https://www.usekineo.com/api/billing/recarga-assinante?surface=studio_cockpit_short' } = {}) {
+async function runRoute(S, { user = USER, profile = SUB, tables, url = 'https://www.usekineo.com/api/billing/recarga-assinante?surface=studio_cockpit_short' } = {}) {
   const calls = { stripe: [], checkoutEvents: [], serverEvents: [], dbReads: [], auth: 0 }
-  const load = loader(S, baseStubs(S, user, profile, calls), ENV)
+  const load = loader(S, baseStubs(S, user, profile, calls, { tables }), ENV)
   const R = load(FILES.route)
   const u = new URL(url)
   const res = await R.GET({ url, nextUrl: u, headers: { get: () => null } })
@@ -300,6 +314,65 @@ async function suite(S) {
   for (const e of ['recarga_assinante_shown', 'recarga_assinante_clicked', 'recarga_assinante_checkout_started', 'recarga_assinante_paid']) {
     t(S.events.includes(`'${e}'`) && S.events.indexOf(`'${e}'`) > S.events.indexOf('const SERVER_ONLY_EVENTS = new Set(['), `H ${e} em SERVER_ONLY_EVENTS`)
   }
+
+  // Aviso de saldo: rota real, consultas filtradas e a mesma compra em Stripe falso.
+  {
+    const surface = L.CREDIT_BALANCE_NOTICE_SURFACE
+    const url = `https://www.usekineo.com/api/billing/recarga-assinante?surface=${surface}`
+    const profile = { ...SUB, video_credits: 7 }
+    const recent = (hours) => new Date(Date.now() - hours * 3600_000).toISOString()
+    const cost = load('lib/credits/engineCost.ts').creditCostForDuration('cinematic_ai', true, 15)
+    const film = { user_id: USER.id, status: 'completed', quality_mode: 'cinematic_ai', duration: 15, credits_used: cost, created_at: recent(1), render_id: 'film_1' }
+    const cycle = { user_id: USER.id, name: 'subscription_invoice_paid', created_at: recent(3), metadata: { stripe_subscription_id: SUB.stripe_subscription_id, balance_after: 40, credits_granted: 30 } }
+    const debit = { user_id: USER.id, amount: 20, created_at: recent(2), refunded_at: null }
+    const videos = [film, { ...film, user_id: 'other', created_at: recent(0.5), duration: 60, credits_used: 35 }, { ...film, created_at: recent(0.25), status: 'failed', duration: 60, credits_used: 35 }]
+    const low = await runRoute(S, { profile, url, tables: { videos } })
+    t(low.res.body.notice?.reason === 'shortfall' && low.res.body.notice.shortfall === cost - 7, 'J1 saldo insuficiente usa o último filme completo desta conta')
+    t(low.calls.serverEvents.length === 0, 'J2 elegibilidade do novo aviso não conta como exibição')
+    const zero = await runRoute(S, { profile: { ...profile, video_credits: 0 }, url })
+    t(zero.res.body.notice?.reason === 'zero' && zero.res.body.notice.shortfall === null, 'J3 saldo zerado sem filme conhecido não inventa números')
+    const rapid = await runRoute(S, { profile: { ...profile, video_credits: cost }, url, tables: { videos, events: [cycle], credit_debits: [debit] } })
+    t(rapid.res.body.notice?.reason === 'rapid_spend' && rapid.res.body.notice.shortfall === null, 'J4 o limiar inclui exatamente metade do saldo inicial do ciclo')
+    const first = { ...cycle, name: 'payment_success', metadata: { stripe_subscription_id: SUB.stripe_subscription_id, credits_granted: 40 } }
+    const firstRapid = await runRoute(S, { profile: { ...profile, video_credits: cost }, url, tables: { videos, events: [first], credit_debits: [debit] } })
+    t(firstRapid.res.body.notice?.reason === 'rapid_spend', 'J5 a primeira cobrança também identifica o ciclo')
+    const lowSpend = await runRoute(S, { profile: { ...profile, video_credits: cost }, url, tables: {
+      videos,
+      events: [cycle, { ...cycle, created_at: recent(0.5), metadata: { stripe_subscription_id: 'different', balance_after: 100 } }],
+      credit_debits: [{ ...debit, amount: 19 }, { ...debit, refunded_at: recent(1) }, { ...debit, user_id: 'other' }, { ...debit, created_at: recent(4) }],
+    } })
+    t(lowSpend.res.body.show === false, 'J6 estorno, outra pessoa e débito pré-ciclo não contam')
+    const older = await runRoute(S, { profile: { ...profile, video_credits: cost }, url, tables: { videos, events: [{ ...cycle, created_at: recent(48) }], credit_debits: [{ ...debit, created_at: recent(25) }] } })
+    t(older.res.body.show === false, 'J7 débito fora de 24 horas não conta, mesmo dentro do ciclo')
+    const unknown = await runRoute(S, { profile, url, tables: { videos: [{ ...film, credits_used: 0 }] } })
+    t(unknown.res.body.show === false, 'J8 referência promocional não vira déficit sem confirmação')
+    const foreign = await runRoute(S, { profile: { ...profile, plan: 'free', video_credits: 0 }, url })
+    t(foreign.res.body.show === false && !foreign.calls.dbReads.includes('videos'), 'J9 mantém a elegibilidade atual da recarga')
+    const click = await runRoute(S, { profile, url: `${url}&go=1&credits=700&back=%2Fcreate%2Ffilm` })
+    const destination = new URL(click.res.location)
+    t(destination.searchParams.get('recarga_entry') === surface && destination.searchParams.get('credits') === '700' &&
+      click.calls.serverEvents.some((event) => event.name === L.RECARGA_ASSINANTE_EVENTS.clicked && event.metadata.surface === surface), 'J10 clique leva a origem e a quantidade pelo handler existente')
+    const checkout = await runCheckout(S, { url: destination.href })
+    destination.searchParams.delete('recarga_entry')
+    const old = await runCheckout(S, { url: destination.href })
+    const payment = checkout.calls.stripe[0]
+    const originalPayment = old.calls.stripe[0]
+    t(JSON.stringify(payment?.params.line_items) === JSON.stringify(originalPayment?.params.line_items) && payment?.params.metadata.recarga_entry === surface &&
+      originalPayment?.params.metadata.recarga_entry === undefined && payment?.opts.idempotencyKey !== originalPayment?.opts.idempotencyKey, 'J11 sessões da mesma recarga mantêm preço e atribuição sem colisão')
+    t(W.slice(iPaid).split('\n')[0].includes('session.metadata?.recarga_entry === CREDIT_BALANCE_NOTICE_SURFACE'), 'J12 o pago usa somente a origem da sessão confirmada')
+    t(S.notice.includes('creditNoticeBottom(') && S.notice.includes('subscriber-upgrade') && S.notice.includes('setSessionFlag(DISMISSED)') &&
+      S.notice.includes('trackClosedEvent(CREDIT_BALANCE_NOTICE_SHOWN') && S.notice.includes('<BuyCreditsModal'), 'J13 aviso próprio sem competir com 402 e reuso do modal')
+    const place = load(FILES.placement).creditNoticeBottom
+    const card = { top: 630, bottom: 750, left: 12, right: 378 }
+    const generate = { top: 618, bottom: 666, left: 24, right: 366 }
+    const player = { top: 348, bottom: 520, left: 24, right: 366 }
+    t(place(card, [], 844, 72) === 72, 'J14 no celular respeita a área da MobileNav')
+    t(place(card, [generate, player], 844, 72) === 508, 'J15 sobe acima do Generate e do player')
+    t(place(card, [{ ...player, top: 40, bottom: 810 }], 844, 72) === null, 'J16 sem espaço livre o aviso espera')
+    t(SL.sliderCreditsForShortfall(2) === SL.CREDIT_SLIDER_MIN && SL.sliderCreditsForShortfall(null) === SL.CREDIT_SLIDER_MIN &&
+      SL.sliderCreditsForShortfall(61) === 70 && SL.sliderCreditsForShortfall(9999) === SL.CREDIT_SLIDER_MAX &&
+      S.modal.includes('? sliderCreditsForShortfall(shortfall)'), 'J17 o aviso começa no menor degrau existente que cobre a falta')
+  }
   return out
 }
 
@@ -342,6 +415,12 @@ const MUTANTS = [
   ['aviso: preço digitado', 'nudge', '{recargaAssinanteFill(RECARGA_ASSINANTE_COPY.cta, { price: recarga.price, credits: recarga.credits })}', 'Add 60 credits — $9'],
   ['texto promete não expirar', 'lib', "terms: 'One-time payment. Your plan stays the same.',", "terms: 'One-time payment. Credits never expire.',"],
   ['evento cunhável pelo navegador', 'events', "  'recarga_assinante_paid',\n", ''],
+  ['ritmo ignora metade exata', 'lib', 'spent >= cycleBalance / 2', 'spent > cycleBalance / 2'],
+  ['ritmo conta estorno', 'noticeLoader', ".is('refunded_at', null)", ''],
+  ['ritmo conta outros ciclos', 'noticeLoader', 'Math.max(cycleStart, now - DAY_MS)', 'now - DAY_MS'],
+  ['aviso passa por cima do player e Generate', 'placement', 'bottom = area.top - gap', 'bottom = bottom'],
+  ['aviso perde atribuição no checkout', 'checkout', 'recarga_entry: CREDIT_BALANCE_NOTICE_SURFACE', 'recarga_entry: undefined'],
+  ['aviso reabre na quantidade geral', 'modal', '? sliderCreditsForShortfall(shortfall)', '? CREDIT_SLIDER_DEFAULT'],
 ]
 for (const [name, key, from, to] of MUTANTS) {
   const src = norm(SRC[key])

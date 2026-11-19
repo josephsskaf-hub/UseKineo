@@ -66,3 +66,9 @@ export function usdWholeLabel(minor: number): string {
 export function netAfterStripeIntlCardUsd(grossUsd: number): number {
   return grossUsd * (1 - 0.044) - 0.3
 }
+/** Choose the smallest existing slider step that covers an immediate shortfall. */
+export function sliderCreditsForShortfall(shortfall: number | null | undefined): number {
+  const needed = typeof shortfall === 'number' && Number.isSafeInteger(shortfall) && shortfall > 0 ? shortfall : CREDIT_SLIDER_MIN
+  const step = Math.ceil(needed / CREDIT_SLIDER_STEP) * CREDIT_SLIDER_STEP
+  return Math.min(CREDIT_SLIDER_MAX, Math.max(CREDIT_SLIDER_MIN, step))
+}

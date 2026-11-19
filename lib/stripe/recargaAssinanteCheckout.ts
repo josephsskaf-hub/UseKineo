@@ -24,6 +24,7 @@ import { stripe } from '@/lib/stripe'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { CREDIT_SLIDER_MAX, CREDIT_SLIDER_MIN, RECARGA_ASSINANTE_1111, normalizeSliderCredits, sliderPriceUsdMinor } from '@/lib/credits/creditSlider'
 import {
+  CREDIT_BALANCE_NOTICE_SURFACE,
   RECARGA_ASSINANTE_CAMPAIGN,
   RECARGA_ASSINANTE_EVENTS,
   RECARGA_ASSINANTE_1111_RELEASE,
@@ -57,12 +58,14 @@ export async function buildRecargaAssinanteAndRedirect(req: NextRequest, deps: R
   if (RECARGA_ASSINANTE_1111_RELEASE !== 'public') return refused()
 
   const browserSessionId = deps.browserSessionIdFrom(req)
+  const fromNotice = req.nextUrl.searchParams.get('recarga_entry') === CREDIT_BALANCE_NOTICE_SURFACE
+  const attribution = fromNotice ? { surface: CREDIT_BALANCE_NOTICE_SURFACE } : {}
   // Sem ?credits = o botão; com ?credits = a barra. Quantidade inválida = de volta com erro visível, nunca outro pacote.
   const rawCredits = req.nextUrl.searchParams.get('credits')
   const kind: 'button' | 'slider' = rawCredits === null ? 'button' : 'slider'
   const credits = kind === 'button' ? RECARGA_ASSINANTE_1111.credits : normalizeSliderCredits(rawCredits)
   const unitAmount = kind === 'button' ? RECARGA_ASSINANTE_1111.usdMinor : sliderPriceUsdMinor(credits)
-  const skuContext: Record<string, unknown> = { sku: RECARGA_ASSINANTE_SKU, kind, mode: 'payment', currency: 'usd', unit_amount: unitAmount, settlement_currency: 'usd', charge_amount: unitAmount, pack_credits: credits, intent_campaign: RECARGA_ASSINANTE_CAMPAIGN, version: RECARGA_ASSINANTE_VERSION }
+  const skuContext: Record<string, unknown> = { sku: RECARGA_ASSINANTE_SKU, kind, mode: 'payment', currency: 'usd', unit_amount: unitAmount, settlement_currency: 'usd', charge_amount: unitAmount, pack_credits: credits, intent_campaign: RECARGA_ASSINANTE_CAMPAIGN, version: RECARGA_ASSINANTE_VERSION, ...attribution }
   let failureUserId: string | null = null
   async function redirectError(msg: string) {
     await deps.recordCheckoutEvent('checkout_failed', failureUserId, { ...skuContext, stage: 'redirect', reason: deps.checkoutFailureReason(msg) }, browserSessionId)
@@ -112,13 +115,14 @@ export async function buildRecargaAssinanteAndRedirect(req: NextRequest, deps: R
       recarga_kind: kind,
       intent_campaign: RECARGA_ASSINANTE_CAMPAIGN,
       offer_version: RECARGA_ASSINANTE_VERSION,
+      ...(fromNotice ? { recarga_entry: CREDIT_BALANCE_NOTICE_SURFACE } : {}),
     },
   }
   if (p?.stripe_customer_id) sessionParams.customer = p.stripe_customer_id
   else sessionParams.customer_email = p?.email ?? user.email ?? undefined
 
   // Um clique = no máximo uma sessão (a mesma chave devolve a mesma sessão na mesma janela de 5 min da rota).
-  const key = deps.oneTimeIdempotencyKey({ sku: RECARGA_ASSINANTE_SKU, user_id: user.id, currency: 'usd', unit_amount: unitAmount, credits, contract_version: RECARGA_ASSINANTE_VERSION, success_url: sessionParams.success_url, customer: sessionParams.customer ?? null })
+  const key = deps.oneTimeIdempotencyKey({ sku: RECARGA_ASSINANTE_SKU, user_id: user.id, currency: 'usd', unit_amount: unitAmount, credits, contract_version: RECARGA_ASSINANTE_VERSION, success_url: sessionParams.success_url, customer: sessionParams.customer ?? null, ...attribution })
   let session: Stripe.Checkout.Session
   try {
     session = await stripe.checkout.sessions.create(sessionParams, { idempotencyKey: key })
@@ -135,6 +139,6 @@ export async function buildRecargaAssinanteAndRedirect(req: NextRequest, deps: R
     }
   }
   await deps.recordCheckoutEvent('checkout_started', user.id, { ...skuContext, stripe_session_id: session.id }, browserSessionId)
-  await writeServerEvent({ name: RECARGA_ASSINANTE_EVENTS.checkoutStarted, userId: user.id, path: '/api/stripe/checkout', metadata: { stripe_session_id: session.id, campaign: RECARGA_ASSINANTE_CAMPAIGN, kind, credits, unit_amount: unitAmount, currency: 'usd', plan: skuContext.plan ?? null, balance: skuContext.balance ?? null, version: RECARGA_ASSINANTE_VERSION } })
+  await writeServerEvent({ name: RECARGA_ASSINANTE_EVENTS.checkoutStarted, userId: user.id, path: '/api/stripe/checkout', metadata: { stripe_session_id: session.id, campaign: RECARGA_ASSINANTE_CAMPAIGN, kind, credits, unit_amount: unitAmount, currency: 'usd', plan: skuContext.plan ?? null, balance: skuContext.balance ?? null, version: RECARGA_ASSINANTE_VERSION, ...attribution } })
   return NextResponse.redirect(session.url!)
 }

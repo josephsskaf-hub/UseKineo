@@ -16,6 +16,7 @@ import { InterfaceLanguageProvider } from '@/components/InterfaceLanguage'
 import InstallAppBanner from '@/components/InstallAppBanner'
 import { installColors, iphoneStartupImages } from '@/lib/ui/installAppearance'
 import { AppearanceProvider } from '@/components/AppearanceSettings'
+import CreditBalanceNotice from '@/components/billing/CreditBalanceNotice'
 import { APPEARANCE_BOOT } from '@/lib/ui/appearance'
 import { FreeTierOfferProvider } from '@/components/FreeTierOfferProvider'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
@@ -271,7 +272,7 @@ export default function RootLayout({
       {/* [KINEO-TRIAL-SWAP-2026-08-07] — FreeTierOfferProvider envolve TODO o
           conteúdo: é o único caminho pelo qual client components leem a oferta
           do free tier (a env da flag não existe no browser). */}
-      <body><StructuredData /><InterfaceLanguageProvider><AppearanceProvider><FreeTierOfferProvider offer={OFFER}><SourceCapture /><NavClickTelemetry /><CheckoutResumeBanner /><AutopilotPilotResumeBanner /><CheckoutStalledCta /><InstallAppBanner />{children}</FreeTierOfferProvider><ConsentManager marketing={withMicrosoftUet(marketingTags, MS_UET_TAG_ID)} clarity={CLARITY_ID ? <ClarityTag projectId={CLARITY_ID} /> : null} /></AppearanceProvider></InterfaceLanguageProvider><Analytics /></body>
+      <body><StructuredData /><InterfaceLanguageProvider><AppearanceProvider><FreeTierOfferProvider offer={OFFER}><SourceCapture /><NavClickTelemetry /><CheckoutResumeBanner /><AutopilotPilotResumeBanner /><CheckoutStalledCta /><InstallAppBanner />{children}<CreditBalanceNotice /></FreeTierOfferProvider><ConsentManager marketing={withMicrosoftUet(marketingTags, MS_UET_TAG_ID)} clarity={CLARITY_ID ? <ClarityTag projectId={CLARITY_ID} /> : null} /></AppearanceProvider></InterfaceLanguageProvider><Analytics /></body>
     </html>
   )
 }
