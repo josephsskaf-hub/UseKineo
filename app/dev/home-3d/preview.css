@@ -13,9 +13,8 @@
   [data-home-projection=a]:not([data-static-home]) .hp-stage canvas { transform:translateX(12%) scale(1.52) rotate(-3deg); }
   [data-home-projection=a]:not([data-static-home]) .hp-idea { order:1; background:#173237; border-color:#809996; color:#fff; }
   [data-home-projection=a]:not([data-static-home]) .hp-idea::placeholder { color:#d9e9e5; }
-  [data-home-projection=b]:not([data-static-home]) .k3c-head { min-height:36px; align-items:center; }
-  [data-home-projection=b]:not([data-static-home]) .k3c-head { justify-content:flex-start; }
-  [data-home-projection=b]:not([data-static-home]) .k3c-more { margin-left:auto; }
+  [data-home-projection=b]:not([data-static-home]) .k3c-head { position:relative; }
+  [data-home-projection=b]:not([data-static-home]) .hp-idea { position:absolute; left:clamp(170px,12vw,225px); top:50%; transform:translateY(-50%); height:30px; }
   [data-home-projection=b]:not([data-static-home])[data-playing] [data-home-card=films] .k3c-media { background:radial-gradient(ellipse at 60% 24%,#476664,#1b353a 62%,#0e1b24); }
   [data-home-projection=b]:not([data-static-home])[data-playing] [data-home-card=films] .k3c-media > :is(picture,video) { visibility:hidden; }
   [data-home-projection=b]:not([data-static-home]) .hp-stage { z-index:2; inset:0 0 24%; }
