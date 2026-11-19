@@ -126,7 +126,7 @@ interface PersonMedia {
   plan: string | null
   trial: { granted: number; used: number } | null
   signup_at: string | null
-  videos: Array<{ id: string; url: string | null; thumb: string | null; topic: string | null; topic_full?: string | null; narration?: string | null; prompt_is_ui?: boolean; coherence?: { score: number; verdict: string; problems: string[]; summary: string; request_pt?: string; narration_vs_visuals: number | null; prompt_vs_narration: number } | null; quality: string | null; status: string | null; created_at: string; credits: number | null; seconds: number | null }>
+  videos: Array<{ id: string; url: string | null; thumb: string | null; topic: string | null; topic_full?: string | null; narration?: string | null; prompt_is_ui?: boolean; coherence?: { score: number; verdict: string; problems: string[]; summary: string; request_pt?: string; narration_vs_visuals: number | null; prompt_vs_narration: number } | null; quality: string | null; engine?: string | null; status: string | null; created_at: string; credits: number | null; seconds: number | null }>
   images_total: number
   audios_total: number
   animations_delivered: number
@@ -697,7 +697,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
                         )}
                         <div style={{ padding: '7px 9px' }}>
                           <div style={{ color: '#C4B5FD', fontSize: 9.5, fontWeight: 800, textTransform: 'uppercase' }}>
-                            {MEDIA_ENGINE_LABEL[v.quality ?? ''] ?? v.quality ?? '—'}{v.status && v.status !== 'completed' ? ` · ${v.status}` : ''}
+                            {v.engine ?? MEDIA_ENGINE_LABEL[v.quality ?? ''] ?? v.quality ?? '—' /* KINEO-SELO-ADMIN-1811 — o motor que rodou (recibo), não o nome do modo */}{v.status && v.status !== 'completed' ? ` · ${v.status}` : ''}
                           </div>
                           {v.prompt_is_ui && (
                             <div style={{ color: '#FF8787', fontSize: 10, fontWeight: 800, marginTop: 3 }}>⚠ prompt = texto da nossa própria tela (colado)</div>

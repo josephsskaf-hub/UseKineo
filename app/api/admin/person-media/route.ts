@@ -13,6 +13,7 @@
 // Gate de acesso: idêntico a todo /api/admin/* — sessão + allowlist.
 import { NextResponse } from 'next/server'
 import { looksLikeOurOwnUi } from '@/lib/promptGuard'
+import { engineLabelFor } from '@/lib/engineLabel' // KINEO-SELO-ADMIN-1811
 import { listFastCoherence } from '@/lib/admin/fastCoherence' // KINEO-1-COERENCIA-2026-09-16
 import { createClient } from '@/lib/supabase/server'
 import { readAll } from '@/lib/supabase/readAll'
@@ -73,7 +74,7 @@ export async function GET(req: Request) {
     const [vids, imgs, auds, animates, guardBlocks, claims] = await Promise.all([
       admin
         .from('videos')
-        .select('id, video_url, thumbnail_url, topic, quality_mode, status, created_at, credits_used, duration')
+        .select('id, video_url, thumbnail_url, topic, quality_mode, status, created_at, credits_used, duration, engine_used') // KINEO-SELO-ADMIN-1811
         .eq('user_id', uid)
         .order('created_at', { ascending: false })
         .limit(200),
@@ -139,6 +140,11 @@ export async function GET(req: Request) {
         prompt_is_ui: looksLikeOurOwnUi(typeof v.topic === 'string' ? v.topic : ''),
         coherence: coerenciaPorVideo.get(v.id as string) ?? null, // KINEO-1-COERENCIA
         quality: v.quality_mode ?? null,
+        // KINEO-SELO-ADMIN-1811 [CEO 18/11; dono: "a gente não faz nenhum nem outro, a gente tem o Kling 4 e o H3"] — o cartão
+        // dizia KLING 3 / SEEDANCE porque a tela traduzia só o quality_mode (cinematic_hollywood → Kling 3, cinematic_ai →
+        // Seedance) e ignorava videos.engine_used, o recibo do motor que rodou (kling4, h3_max_turbo). Selo honesto: o rótulo
+        // vem da tradução única de lib/engineLabel.ts, recibo primeiro; sem recibo, o mapa de sempre por quality_mode.
+        engine: engineLabelFor(v.quality_mode ?? null, (v as { engine_used?: string | null }).engine_used ?? null),
         // ⚠️ KINEO-ADMIN-CUSTO-2026-08-27 (fundador: "parece que ela gastou 4
         // creditos no Kineo 1 e nao e 4, e 5"). O painel mostrava o motor e
         // NAO mostrava o custo — entao qualquer numero visto em outro lugar
