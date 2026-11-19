@@ -9,6 +9,7 @@
 //       apontado reescreve a última (o do juiz, pedido em forma concreta); a ficha em PARTE dos planos reescreve esses; a reescrita da última mantém o desfecho.
 // Mutantes no fim.
 import fs from 'node:fs'
+import ts from 'typescript'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
@@ -20,13 +21,19 @@ const ROTA = 'app/api/generate-video-cinematic/route.ts', LIB = 'lib/kling4Plano
 const R2 = JSON.parse(read('docs/plano-da-fala-1911/ensaio-a2-2-replay.json')).filmes
 const g = (gen) => R2.find((f) => f.gen === gen)
 const planoCom = (f, re) => f.revisto.findIndex((p) => re.test(p))
+/** Extrai e executa um trecho da rota (do início da linha de `inicio` até o fim de `fim`) com o escopo dado; devolve `nome`. */
+function daRota(rota, inicio, fim, nome, escopo) {
+  const a = rota.lastIndexOf('\n', rota.indexOf(inicio)) + 1, b = rota.indexOf(fim, a)
+  if (a <= 0 || b < 0) throw new Error(`trecho ${nome} não achado`)
+  return Function(...Object.keys(escopo), ts.transpile(rota.slice(a, b + fim.length) + `\nreturn ${nome}`, { target: ts.ScriptTarget.ES2022 }))(...Object.values(escopo))
+}
 
 async function prova(over = {}) {
   const p = []
   const no = (ruim, msg) => { if (ruim) p.push(msg) }
   const load = createOfflineLoader({ globals: { Response, setTimeout, clearTimeout, AbortController }, source: (rel, src) => over[rel] ?? src })
-  let L, S
-  try { L = load('@/' + LIB); S = load('@/' + SUJ) } catch (e) { return [`libs não carregam: ${e.message}`] }
+  let L, S, Q
+  try { L = load('@/' + LIB); S = load('@/' + SUJ); Q = load('@/lib/kling4QuatroPlanos') } catch (e) { return [`libs não carregam: ${e.message}`] }
   const rota = over[ROTA] ?? read(ROTA)
 
   // ── N · o portão de nome ──
@@ -44,8 +51,16 @@ async function prova(over = {}) {
       { plano: 1, nome: 'Green Hills', tipo: 'place' }, { plano: 2, nome: 'Metal Sonic', tipo: 'third_party_character' }, { plano: 3, nome: 'Amy Rose', tipo: 'third_party_character' }, { plano: 4, nome: 'Amy Rose', tipo: 'third_party_character' }] }) } }] }), { status: 200 }) }
     const r = await L.planosComNomeProprio(f.revisto, { apiKey: 'x', fetchImpl, hoje: f.hoje, pedido: 'Sonic and Amy Rose race through time' })
     no(JSON.stringify(r) !== '[2,3]' || !/<<<Sonic and Amy Rose race through time>>>/.test(chamadas[0]?.messages?.[1]?.content ?? '') || !/invented_by_customer/.test(chamadas[0]?.messages?.[0]?.content ?? ''), `N8 o portão só aponta os planos com o nome de terceiro NOVO (${JSON.stringify(r)}); o pedido vai cercado como dado e a pergunta tem o tipo`) }
-  no(!rota.includes("nomes: (p) => planosComNomeProprio(p, { hoje: hoje.planos, pedido:") || !rota.includes("nomes: (planos) => planosComNomeProprio(planos, { hoje: [...kling4PromptsDasCenas1911, ...parsedScript.segments.map((x) => x.pexelsQuery)], pedido:"), 'N9 o eco e o envio passam o texto de hoje e o pedido ao portão de nome')
+  no(!rota.includes("nomes: (p) => planosComNomeProprio(p, { hoje: hoje.planos, pedido:") || !rota.includes("nomes: (planos) => planosComNomeProprio(planos, { hoje: hojeDoNome1911(), pedido:"), 'N9 o eco e o envio passam o texto de hoje e o pedido ao portão de nome')
 
+  // [revisor 19/11, 6ª passada] o texto de hoje do envio = os planos que hoje iriam ao motor: a pista de uma seção que não vira plano NÃO conta; a pista que vira
+  // metade do molde de sempre (cena fundida) conta
+  { const cenas = ['Photoreal film. A hedgehog runs through green hills at dawn.', 'Photoreal film. Two friends race toward a glowing portal.', 'Photoreal film. They cross the finish line together.']
+    const hojeCom = (segs, falas) => { try { return daRota(rota, '    const hojeDoNome1911 = ', '}\n', 'hojeDoNome1911', { verbatim: true, kling4PlanoVariado: true, kling4PlanoPorSecao: true, kling4PromptsDasCenas1911: cenas, kling4ApprovedStills: [null, null, null], scenes: falas.map((v) => ({ voiceover: v })), planosPorSecao: Q.planosPorSecao, parsedScript: { segments: segs } })() } catch (e) { p.push(`N10 hojeDoNome1911 não executa: ${e.message}`); return [] } }
+    const sozinhas = hojeCom([{ voiceover: 'A hedgehog runs.', pexelsQuery: 'hills' }, { voiceover: 'They race.', pexelsQuery: 'Amy Rose race portal' }, { voiceover: 'They win.', pexelsQuery: 'finish line' }], ['A hedgehog runs.', 'They race.', 'They win.'])
+    no(sozinhas.length !== 3 || sozinhas.some((x) => /Amy Rose/.test(x)), 'N10 cena de uma seção só: a pista [Pexels: Amy Rose …] não vai ao motor hoje e não conta como "já estava hoje"')
+    const fundidas = hojeCom([{ voiceover: 'A hedgehog runs.', pexelsQuery: 'hills' }, { voiceover: 'They race.', pexelsQuery: 'portal race' }, { voiceover: 'They meet Amy.', pexelsQuery: 'Amy Rose waving' }, { voiceover: 'They win.', pexelsQuery: 'finish line' }], ['A hedgehog runs.', 'They race. They meet Amy.', 'They win.'])
+    no(fundidas.length !== 4 || !fundidas.some((x) => /Amy Rose/.test(x)), `N11 cena fundida: a metade do molde de sempre leva a pista ao motor hoje, então ela conta (${JSON.stringify(fundidas).slice(0, 200)})`) }
   // ── S · o sujeito exigido ──
   const ler = (o) => S.avaliarSujeito({ leitura: { ok: true, valor: { word_use: 'literal', reasoning: '', request_language: 'en', descartado: null, appearance: null, has_human: false, real_person: false, ...o }, ms: 1, model: 'x', tentativas: 1 } }).sujeito
   const tubarao = ler({ subject: 'sharks', subject_visual: 'a shark swimming in the ocean', head_noun: 'shark', kind: 'creature', mention_words: ['sharks'] })
@@ -82,7 +97,9 @@ const MUT = [
   ['portão: o plano inteiro', LIB, (s) => s.replace('  if (!re.test(acaoDoPlano(plano))) return false\n', '  if (!re.test(plano)) return false\n')],
   ['portão: sem o pedido', LIB, (s) => s.replace("    user: `${opts.pedido ? `REQUEST: <<<${String(opts.pedido).slice(0, 1500)}>>>\\n\\n` : ''}", '    user: `')],
   ['rota: eco sem o hoje', ROTA, (s) => s.replace("nomes: (p) => planosComNomeProprio(p, { hoje: hoje.planos, pedido:", "nomes: (p) => planosComNomeProprio(p, { pedido:")],
-  ['rota: envio sem o hoje', ROTA, (s) => s.replace("planosComNomeProprio(planos, { hoje: [...kling4PromptsDasCenas1911, ...parsedScript.segments.map((x) => x.pexelsQuery)], pedido:", "planosComNomeProprio(planos, { pedido:")],
+  ['rota: envio sem o hoje', ROTA, (s) => s.replace("planosComNomeProprio(planos, { hoje: hojeDoNome1911(), pedido:", "planosComNomeProprio(planos, { pedido:")],
+  ['rota: a pista do cliente conta como hoje', ROTA, (s) => s.replace('return q ? q.prompts : [...kling4PromptsDasCenas1911] }', 'return [...(q ? q.prompts : kling4PromptsDasCenas1911), ...parsedScript.segments.map((x) => x.pexelsQuery)] }')],
+  ['rota: hoje sem as metades do molde', ROTA, (s) => s.replace('return q ? q.prompts : [...kling4PromptsDasCenas1911] }', 'return [...kling4PromptsDasCenas1911] }')],
   ['sujeito de qualquer fala', SUJ, (s) => s.replace("  return !!s && falas.length > 0 && (falaCita(falas[0] ?? '', s) || falaCita(falas[falas.length - 1] ?? '', s))", '  return !!s && falas.some((f) => falaCita(f, s))')],
   ['coisa exigida com ficha', SUJ, (s) => s.replace(" && (s.tipo === 'pessoa' || !FICHA_NO_PLANO_RE.test(String(ultimoPlano ?? '')))", '')],
   ['gente não exigida com ficha', SUJ, (s) => s.replace("(s.tipo === 'pessoa' || !FICHA_NO_PLANO_RE.test(String(ultimoPlano ?? '')))", "!FICHA_NO_PLANO_RE.test(String(ultimoPlano ?? ''))")],

@@ -40,6 +40,13 @@ const r = await fetch('/api/generate-video-cinematic', { method: 'POST', headers
 console.log(r.generationId ?? r)
 ```
 4. Esperar o filme terminar (Library ou status) antes do próximo: um Kling 4 por vez.
+   **REGRA DE PARADA [revisor 19/11, 6ª passada]:** antes do 2º filme, conferir o 1º no banco (passo 5). PARAR e não rodar os outros se o 1º:
+   - não tiver `ensaio_fundador` no claim;
+   - não tiver o sujeito com motivo `ideia_*_do_escritor`;
+   - tiver caído no caminho de hoje (o evento `kling4_descritor_forte` não existe, ou a descrição por seção não está nos planos);
+   - tiver saído com clipe acima de 15 s.
+
+   Do mesmo jeito, o 3º e o 4º só rodam se o anterior passou nas quatro. Parou: mandar à Div. 2 o `generation_id` e o motivo.
 5. Conferir no banco (só SELECT), pelo `generation_id`:
    - o `cinematic_submission_claim` tem `kling4_trial.ensaio_fundador = true` e os planos com a descrição por seção;
    - o relato do sujeito vem com o motivo `ideia_*_do_escritor`;
