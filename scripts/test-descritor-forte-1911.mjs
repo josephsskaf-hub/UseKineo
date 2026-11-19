@@ -52,7 +52,7 @@ async function prova(over = {}) {
     no(!rr.includes('const kling4DescritorForte1911 = kling4TrialCandidate && verbatim && planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isDryRunAccount(user.email))') || !rr.includes('(kling4TrialCandidate && verbatim && planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, isDryRunAccount(user.email))'), 'F3 as portas da rota leem o e-mail da conta, pela régua EXATA do ensaio (isDryRunAccount)')
     no(!rr.includes('const descricoesDasSecoesK4: Promise<(string | null)[]> | null = kling4PlanoDaFala1911\n      ?') || !rr.includes("const a2Ensaio1911 = kling4DescritorForte1911 && descricoesDasSecoesK4 && motor1411.kling4 ?") || !rr.includes('if (kling4DescritorForte1911 && descricoesDasSecoesK4) promptsDeCenaInteira(') || !rr.includes('if (descricoesDasSecoesK4) { const c1911 = await completarDescricoes1911('), 'F4 toda peça nova está atrás das portas (porta fechada = nenhuma chamada, nenhuma mudança)') }
   // [revisor 19/11, 2ª volta, item 1] a régua larga da casa (isInternalEmail) abre para e-mail parecido: um render REAL de quem não é da casa entraria no A1/A2.
-  // As portas usam isDryRunAccount (os 3 e-mails exatos do ensaio): e-mail parecido NÃO abre.
+  // As portas usam isDryRunAccount (a lista exata do ensaio: hoje 1 e-mail, o do fundador): e-mail parecido NÃO abre.
   { let D, I
     try { D = load('@/lib/cinematic/classicDryRun'); I = load('@/lib/internalAccounts') } catch (e) { p.push(`F5 réguas não carregam: ${e.message}`) }
     if (D && I) {
@@ -114,6 +114,26 @@ async function prova(over = {}) {
   no(!(iDry > 0 && iRef > iDry && rota.includes('...(a2Ensaio1911 ? { a2_ensaio: a2Ensaio1911 } : {}),')), 'E1 o dry_run devolve o ensaio do A2 (antes de liberar o crédito, sem POST)')
   const dry = rota.slice(iDry, iRef)
   no(/submitKling4TrialVideo|reserveKling4Trial|fal\.run|generateStill|orchestrateKling4Trial/.test(dry), 'E2 o ensaio não chama a fal, não reserva nem compra nada')
+  // [revisor 19/11, 3ª volta] o eco nunca derruba o dry_run (erro vira campo) e não grava evento nenhum (o texto dos planos fica só na resposta da conta do ensaio)
+  no(!dry.includes('})().catch((e) => ({ erro: String(e instanceof Error ? e.message : e).slice(0, 160) })) : null'), 'E21 erro no eco vira { erro } e o dry_run responde')
+  no(/writeServerEvent|writeEvent\(|trackEvent|\.from\(['"]events['"]\)/.test(dry), 'E22 o eco não grava evento (nenhum texto de plano sai da resposta)')
+  // [revisor 19/11, 3ª volta] a montagem do envio é DEFINIDA antes do dry_run: executa o kling4PorSecao da rota com a descrição posta nas seções DEPOIS da
+  // definição (como a rota faz) — uma cópia das seções na definição faria o A1/A2 da casa perder a descrição sem ninguém notar
+  { const rr = over[ROTA] ?? read(ROTA)
+    const ini = rr.lastIndexOf('\n', rr.indexOf('const kling4PorSecao = (a:')) + 1, fim = rr.indexOf('    const kling4EnvioDoFilme', ini)
+    let porSecao = null
+    try {
+      const js = ts.transpile(rr.slice(ini, fim) + '\nreturn kling4PorSecao', { target: ts.ScriptTarget.ES2022 })
+      const cues = ['A boy finds a map in the attic', 'He follows it into the forest', 'A red door waits between two oaks', 'Behind it, his grandfather smiles']
+      const parsedScript = { segments: cues.map((c) => ({ voiceover: `${c}.`, pexelsQuery: c })) }
+      const scope = { parsedScript, scenes: [{ description: 'a' }, { description: 'b' }, { description: 'c' }], verbatim: true, kling4PlanoPorSecao: true, kling4PlanoVariado: false, kling4PlanoFinal: false,
+        planosPorSecao: Q.planosPorSecao, sujeitoAparenciaLigada: () => false, kling4Sujeito: { r: null }, comSujeitoNasMetades: (x) => x, comSuperficieNoPlano: (x) => x }
+      const fn = Function(...Object.keys(scope), js)(...Object.values(scope))
+      parsedScript.segments.forEach((s, j) => { Object.assign(s, { descricao: `DESCRICAO-DA-SECAO-${j + 1}: a boy with a lantern walks under tall oaks` }) })
+      const r = fn({ prompts: ['First scene.', 'Second scene.', 'Last scene.'], approvedStills: [null, null, null], timing: { voiceovers: [`${cues[0]}.`, `${cues[1]}. ${cues[2]}.`, `${cues[3]}.`], wordsPerSecond: 2.5 } })
+      porSecao = r.prompts.join(' | ')
+    } catch (e) { porSecao = `erro: ${e.message}` }
+    no(!/DESCRICAO-DA-SECAO-[23]/.test(porSecao ?? ''), `E23 a descrição posta DEPOIS da definição chega aos planos (a montagem lê as seções na hora da chamada) (${String(porSecao).slice(0, 160)})`) }
   no(!dry.includes('hoje: { planos: hoje.planos, juiz: vHoje }, novo: { planos: novo.planos, juiz: r.veredito }') || !dry.includes('rejulgar: true') || !dry.includes('custo: { descritor, juiz_usd') || !dry.includes('ms: { espera_do_descritor: esperaMs'), 'E3 hoje × novo, juiz dos dois, reescrita e juiz final, tempos e custo medido')
   no(!dry.includes('const hoje = await montar(parsedScript.segments.map((x) => ({ voiceover: x.voiceover, pexelsQuery: x.pexelsQuery })))'), 'E4 o HOJE é o montador de sempre (sem descrição por seção)')
   // [revisor 19/11, 2ª volta, item 2] o eco mostra o que IRIA à fal: o MESMO kling4PorSecao do envio e o injetor do sujeito do submit, nos dois lados
@@ -187,6 +207,9 @@ const MUT = [
   ['lib: nome sem a nota', LIB, (s) => s.replace('${comNome.length ? ` ${NOTA_DO_NOME_PROPRIO}` : \'\'}', '')],
   ['rota: ensaio aceita descrição incompleta', ROTA, (s) => s.replace('const d = completas1911.descricoes', 'const d = d0 as string[]')],
   ['rota: revisão com descrição incompleta', ROTA, (s) => s.replace(" && parsedScript.segments.every((s) => typeof (s as { descricao?: unknown }).descricao === 'string')) {", ') {')],
+  ['eco sem o catch', ROTA, (s) => s.replace('})().catch((e) => ({ erro: String(e instanceof Error ? e.message : e).slice(0, 160) })) : null', '})() : null')],
+  ['eco grava evento com os planos', ROTA, (s) => s.replace('        const juizes = [vHoje, r.veredito, r.vereditoFinal] as Array<JuizPlanoVeredito | null>', '        void writeServerEvent({ name: A2_EVENTO, userId: user.id, path: \'/x\', sessionId: generationId, metadata: { planos: atual.planos } })\n        const juizes = [vHoje, r.veredito, r.vereditoFinal] as Array<JuizPlanoVeredito | null>')],
+  ['seções copiadas na definição', ROTA, (s) => s.replace('    const kling4PorSecao = (a: {', '    const secoesNaDefinicao1911 = parsedScript.segments.map((x) => ({ ...x })); const kling4PorSecao = (a: {').replace('secoes: parsedScript.segments, objetoConcreto: kling4PlanoVariado })', 'secoes: secoesNaDefinicao1911, objetoConcreto: kling4PlanoVariado })')],
   ['lib: preço errado', LIB, (s) => s.replace("'gpt-4o': { entrada: 2.5e-6, saida: 10e-6 }", "'gpt-4o': { entrada: 0.15e-6, saida: 0.6e-6 }")],
   ['lib: internal para todos', LIB, (s) => s.replace("return modo === 'public' || (modo === 'internal' && contaDaCasa === true)", "return modo === 'public' || modo === 'internal'")],
 ]

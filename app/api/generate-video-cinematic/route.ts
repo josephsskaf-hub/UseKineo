@@ -27,6 +27,7 @@ import { KLING4_TRIAL_MAX_SECONDS, KLING4_TRIAL_MAX_SECONDS_ENSAIO, kling4TrialT
 import { submitKling4TrialVideo, orchestrateKling4Trial, buildKling4TrialInput, kling4TrialSceneDurations, kling4TrialClipTotal /* KINEO-K4-GRATIS-20S-1711 */, approvedKling4TrialStills, KLING4_DURACAO_PELA_VOZ, duracaoPelaVozLigada, type Kling4TrialResult } from '@/lib/kling4Trial' // KINEO-K4-DURACAO-PELA-VOZ-1311: + interruptor
 import { reserveKling4Trial, recordKling4TrialFilm } from '@/lib/kling4TrialBudget'
 import { medirFalaDoKling4Trial as medirFalaK4Crua } from '@/lib/kling4TrialScript' // KINEO-K4-SEMPRE-0511 [TRAVA 8.2 — fundador 05/11 "vai"]
+import { K4_REGUA_DO_FECHO_1911, reguaDoFechoLigada } from '@/lib/kling4TrialEncaixe' // KINEO-REGUA-DO-FECHO-1911
 import { encaixarFalaNoKling4, ENCAIXE_FALHOU_EVENTO, type EncaixeK4 } from '@/lib/kling4TrialEncaixe' // KINEO-K4-SEMPRE-0511 · KINEO-K4-ENCAIXE-MOTIVO-1111: ENCAIXE_FALHOU_EVENTO
 import { kling4TrialEngineFromClaim } from '@/lib/kling4TrialClaim'
 import { kling4GratisPassaNaTrava } from '@/lib/kling4GratisTravaServer' // KINEO-TRAVA-K4-GRATIS-1111
@@ -8320,7 +8321,7 @@ async function manipularPost(req: NextRequest) {
       if (fala.seconds === null) fala = await medirFalaK4Crua({ ...a, prazoMs: 15_000 })
       fala = falaCurtaSemEscala(fala, velocidadeFixada1911) // KINEO-RESERVA-GRATIS-1911 (a) — sem reescrita, abaixo de 10 s o filme ficaria mudo no fim: o caminho de antes
       if (fala.reason !== 'narration_over_kling4_15s') return fala
-      const encaixe = await encaixarFalaNoKling4({ falas: kling4Timing.voiceovers, fala, language: a.language, medir: (texto) => medirFalaK4Crua({ ...a, voiceoverScript: texto }),
+      const encaixe = await encaixarFalaNoKling4({ falas: kling4Timing.voiceovers, fala, language: a.language, medir: (texto) => medirFalaK4Crua({ ...a, voiceoverScript: texto }), reguaDoFecho: reguaDoFechoLigada(K4_REGUA_DO_FECHO_1911, isDryRunAccount(user.email)), /* KINEO-REGUA-DO-FECHO-1911 — o fecho fica palavra por palavra (off = o de antes) */
         aoFalhar: (motivo, detalhe) => { void writeServerEvent({ name: ENCAIXE_FALHOU_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, motivo, ...detalhe, segundos_antes: fala.seconds, language: a.language, palavras_antes: kling4Timing.voiceovers.join(' ').split(/\s+/).filter(Boolean).length /* KINEO-RESERVA-GRATIS-1911 — era /s+/ (cortava na letra s) */ } }) } }) // KINEO-K4-ENCAIXE-MOTIVO-1111 — o motivo de ir à reserva fica no banco
       if (!encaixe) return fala
       kling4Encaixe.r = encaixe

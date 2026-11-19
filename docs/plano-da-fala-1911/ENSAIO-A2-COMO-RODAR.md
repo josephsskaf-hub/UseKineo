@@ -4,7 +4,7 @@
 **Branch:** `codex/div2-a1a2-pub-1911`. Ela contém o A1, o A2 e o eco do ensaio no `dry_run`.
 
 ## Antes de rodar
-1. Publicar A1 + A2 com `KLING4_PLANO_DA_FALA_1911 = 'internal'` e `KLING4_DESCRITOR_FORTE_1911 = 'internal'`, depois do revisor. No `'internal'` só entram os 3 e-mails exatos do ensaio (`isDryRunAccount`, 2ª volta do revisor em 19/11: a régua larga `isInternalEmail` abria para e-mail parecido). Cliente fica fora, provado pelos testes F1 a F5 do guardião.
+1. Publicar A1 + A2 com `KLING4_PLANO_DA_FALA_1911 = 'internal'` e `KLING4_DESCRITOR_FORTE_1911 = 'internal'`, depois do revisor. No `'internal'` só entra a conta exata do ensaio — hoje 1 e-mail, o Gmail do fundador (`isDryRunAccount`, 2ª volta do revisor em 19/11: a régua larga `isInternalEmail` abria para e-mail parecido). Cliente fica fora, provado pelos testes F1 a F5 do guardião.
 2. Rodar `docs/plano-da-fala-1911/ensaio-a2-lista.sql` (só SELECT). Ele devolve 51 filmes na ordem do ensaio:
    - 38 com defeito: 3 sem o molde, 12 com o molde, 23 sem planos registrados (anteriores a 12/11);
    - 13 bons (nota 8 ou mais).

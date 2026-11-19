@@ -11,7 +11,7 @@ import { narrationWordCount } from '@/lib/textLanguage'
 /** Onde a fala encurtada mira (a medição aceita até 15,5 s): deixa folga para a voz real. */
 export const K4_ALVO_DO_ENCAIXE_SEGUNDOS = 14.6
 /** KINEO-K4-ENCAIXE-MOTIVO-1111 — os pontos em que o encaixe desiste (evento kling4_encaixe_falhou). */
-export type MotivoDoEncaixe = 'sem_medida' | 'prazo' | 'alvo_pequeno' | 'encurtar_sem_texto' | 'encurtado_reprovado' | 'remedida_falhou' | 'curto_demais' | 'rodadas_esgotadas' | 'erro'
+export type MotivoDoEncaixe = 'sem_medida' | 'prazo' | 'alvo_pequeno' | 'encurtar_sem_texto' | 'encurtado_reprovado' | 'remedida_falhou' | 'curto_demais' | 'rodadas_esgotadas' | 'erro' | 'fecho_alterado' | 'fecho_nao_cabe' // KINEO-REGUA-DO-FECHO-1911: + os dois do fecho
 export const ENCAIXE_FALHOU_EVENTO = 'kling4_encaixe_falhou'
 /** Abaixo disso o filme de 15 s ficaria com fala curta demais: não adota. */
 export const K4_PISO_DO_ENCAIXE_SEGUNDOS = 10
@@ -78,6 +78,49 @@ export function porQueOEncaixeNaoServe(antes: readonly string[], depois: readonl
   return !fortes.length || fortes.filter((w) => finalNovo.has(w)).length / fortes.length >= 1 / 3 ? null : 'final_perdido'
 }
 
+// ═══ KINEO-REGUA-DO-FECHO-1911 [CEO 19/11] — a régua aprovava fecho estragado ═══════════════════════════════════════════════════════
+// Corpus do revisor (21 encurtamentos de 12 falas reais): encaixeServe aprovou 17, entre eles "ten people were hanged" → "people were hanged",
+// "Nobody has ever heard it again" → "Somebody has heard it again", "Not one word has been read" → "One word has been read", "but no creatures"
+// sumido e "the beginning of the stethoscope" → "the beginning". O terço das palavras fortes não vê número por extenso, negação nem a palavra
+// da revelação. Critério ESTRUTURAL, sem lista de palavras: o FECHO (a última frase da última cena de antes) fica PALAVRA POR PALAVRA, na
+// ordem, dentro da última cena de depois. Nos 13 encurtamentos reais aprovados em 14 dias (06–18/11), isso sozinho reprovaria 9 (o modelo
+// apara o fecho: "now", "violent", "juntos", "had"), que iriam à reserva. Por isso, com o interruptor, o fecho também NÃO vai ao modelo: o
+// encurtador recebe só o resto (com o orçamento menos as palavras do fecho) e o fecho volta colado, intacto. A régua continua conferindo.
+// Interruptor K4_REGUA_DO_FECHO_1911: 'off' = a main byte a byte; 'internal' = só a conta exata do ensaio (isDryRunAccount: hoje 1 e-mail, o do fundador); 'public' só com revisor
+// independente + prova paga + sim do dono. Guardião: scripts/test-regua-do-fecho-1911.mjs.
+export type ModoReguaDoFecho1911 = 'off' | 'internal' | 'public'
+export const K4_REGUA_DO_FECHO_1911: ModoReguaDoFecho1911 = 'off' // 'public' só com revisor independente + prova paga + sim do dono
+export const reguaDoFechoLigada = (modo: ModoReguaDoFecho1911, contaDoEnsaio: boolean): boolean => modo === 'public' || (modo === 'internal' && contaDoEnsaio)
+/** O fecho: a última frase da última cena (o que o espectador ouve por último). */
+export function fechoDaFala(falas: readonly string[]): string { return ultimaFrase(String(falas[falas.length - 1] ?? '')) }
+/** O fecho de antes está inteiro, palavra por palavra e na ordem, dentro da última cena de depois? */
+export function fechoPreservado(antes: readonly string[], depois: readonly string[]): boolean {
+  const f = palavrasDe(fechoDaFala(antes))
+  if (!f.length) return true
+  const d = palavrasDe(String(depois[depois.length - 1] ?? ''))
+  for (let i = 0; i + f.length <= d.length; i++) if (f.every((w, k) => d[i + k] === w)) return true
+  return false
+}
+/** A régua com o fecho: a de sempre (encaixeServe) E o fecho intacto. O rótulo do que reprovou, ou null. */
+export function porQueOFechoNaoServe(antes: readonly string[], depois: readonly string[], language?: unknown): string | null {
+  return porQueOEncaixeNaoServe(antes, depois, language) ?? (fechoPreservado(antes, depois) ? null : 'fecho_alterado')
+}
+/**
+ * O que vai ao modelo sem o fecho: as cenas com a última sem a sua última frase (ou sem a última cena, quando ela é só o fecho), e como colar o
+ * fecho de volta, intacto. null = o fecho não está no fim da última cena ou não sobra nada para encurtar (aí vai tudo, e a régua julga).
+ */
+export function separarOFecho(falas: readonly string[], fecho: string): { entrada: string[]; colar: (saida: readonly string[]) => string[] | null } | null {
+  const ultima = String(falas[falas.length - 1] ?? '').trim()
+  if (!fecho || !ultima.endsWith(fecho)) return null
+  const resto = ultima.slice(0, ultima.length - fecho.length).trim()
+  const entrada = resto ? [...falas.slice(0, -1), resto] : falas.slice(0, -1)
+  if (!entrada.length) return null
+  return {
+    entrada: [...entrada],
+    colar: (saida) => (saida.length !== entrada.length ? null : resto ? [...saida.slice(0, -1), `${String(saida[saida.length - 1]).trim()} ${fecho}`] : [...saida, fecho]),
+  }
+}
+
 export interface EncaixeK4 {
   falas: string[]
   fala: FalaK4
@@ -114,6 +157,8 @@ export async function encaixarFalaNoKling4(a: {
   aoFalhar?: (motivo: MotivoDoEncaixe, detalhe?: Record<string, unknown>) => void
   /** KINEO-RESERVA-GRATIS-1911 (b) — só para o guardião: força o interruptor K4_ENCAIXE_INSISTE_1911. */
   insiste?: boolean
+  /** KINEO-REGUA-DO-FECHO-1911 — a rota passa reguaDoFechoLigada(K4_REGUA_DO_FECHO_1911, conta do ensaio). Ausente = o de antes. */
+  reguaDoFecho?: boolean
 }): Promise<EncaixeK4 | null> {
   const agora = a.agora ?? Date.now
   const inicio = agora()
@@ -125,15 +170,20 @@ export async function encaixarFalaNoKling4(a: {
     if (a.fala.seconds === null) return falha('sem_medida')
     let atuais = [...a.falas]
     let segundos = a.fala.seconds
+    const fecho1911 = a.reguaDoFecho ? fechoDaFala(a.falas) : '' // KINEO-REGUA-DO-FECHO-1911 — o fecho do texto ORIGINAL, uma vez
     for (let rodada = 1; rodada <= K4_RODADAS_DO_ENCAIXE; rodada++) {
       if (agora() - inicio >= prazo) return falha('prazo', { rodada }) // KINEO-K4-ENCAIXE-MOTIVO-1111
       const alvo = alvoDoEncaixe(conta(atuais), segundos)
       if (alvo < atuais.length * MIN_PALAVRAS_POR_CENA) return falha('alvo_pequeno', { rodada, alvo, segundos }) // KINEO-K4-ENCAIXE-MOTIVO-1111
-      const novas = await encurtar(atuais, alvo)
+      const sep1911 = a.reguaDoFecho ? separarOFecho(atuais, fecho1911) : null // KINEO-REGUA-DO-FECHO-1911 — o fecho não vai ao modelo
+      const alvo1911 = sep1911 ? alvo - narrationWordCount(fecho1911, a.language) : alvo
+      if (sep1911 && alvo1911 < sep1911.entrada.length * MIN_PALAVRAS_POR_CENA) return falha('fecho_nao_cabe', { rodada, alvo }) // KINEO-REGUA-DO-FECHO-1911
+      const novas = sep1911 ? await encurtar(sep1911.entrada, alvo1911).then((x) => (x ? sep1911.colar(x) : null)) : await encurtar(atuais, alvo)
       // KINEO-RESERVA-GRATIS-1911 (b) — resposta vazia ou reprovada gasta a rodada e o modelo é chamado de novo com o MESMO texto (antes desistia na 1ª;
       // 5bc6d6b9 e defd272c, 12-13/11). Na última rodada, a desistência de sempre. A régua e a voz continuam decidindo.
       const insiste = (a.insiste ?? K4_ENCAIXE_INSISTE_1911) && rodada < K4_RODADAS_DO_ENCAIXE
       if (!novas) { if (insiste) continue; return falha('encurtar_sem_texto', { rodada, alvo }) } // KINEO-K4-ENCAIXE-MOTIVO-1111
+      if (a.reguaDoFecho && !fechoPreservado(atuais, novas)) { if (insiste) continue; return falha('fecho_alterado', { rodada, alvo }) } // KINEO-REGUA-DO-FECHO-1911 — o fecho de antes, palavra por palavra
       if (!encaixeServe(atuais, novas, a.language)) { if (insiste) continue; return falha('encurtado_reprovado', { rodada, alvo, palavras: conta(novas), ...((a.insiste ?? K4_ENCAIXE_INSISTE_1911) ? { porque: porQueOEncaixeNaoServe(atuais, novas, a.language) ?? 'outra' } : {}) }) } // KINEO-K4-ENCAIXE-MOTIVO-1111 · KINEO-RESERVA-GRATIS-1911 (b): + a regra que reprovou
       const medida = await a.medir(novas.join(' '))
       if (medida.seconds === null) return falha('remedida_falhou', { rodada }) // KINEO-K4-ENCAIXE-MOTIVO-1111
