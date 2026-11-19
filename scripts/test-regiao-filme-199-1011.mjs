@@ -21,6 +21,7 @@ import vm from 'node:vm'
 import { execSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
+import { pricingPreservado1911 } from './varredura-1911-trocas.mjs'
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -305,6 +306,13 @@ const releaseVisibleMutantes = (cur) => [
 console.log('0 — o que NÃO pode mudar (igual à origin/main)')
 for (const rel of ['lib/scenePreview.ts', 'lib/freeFilmPolicy.ts', 'lib/regionPass.ts', 'lib/offers/avulsoUnico3110.ts', 'lib/credits/engineCost.ts', 'app/pricing/PricingClient.tsx', 'app/pricing/page.tsx', 'app/(dashboard)/layout.tsx', 'lib/growth/regiaoPaga1011.ts', 'lib/recreate/access.ts']) {
   const m = main(rel)
+  if (rel === 'app/pricing/PricingClient.tsx') {
+    const pricing = read(rel)
+    ok(pricingPreservado1911(m, pricing), `${rel} idêntico à main, exceto os recortes do cabeçalho`)
+    const billingAlterado = pricing.replace('/api/stripe/checkout?tier=${tier}${billingParam}', '/api/stripe/checkout?tier=${tier}&billing=yearly')
+    ok(billingAlterado !== pricing && !pricingPreservado1911(m, billingAlterado), 'mudança no checkout fora do cabeçalho é rejeitada')
+    continue
+  }
   // reancorado KINEO-RECREATE-MOVIMENTO-1411 — lib/recreate/access.ts ganhou a linha do molde de movimento (antes da regra do efeito): aqui a regra é
   // "só acréscimos" (toda linha da main continua lá, na mesma ordem), como no preço; a visibilidade do Recreate é guardada por
   // scripts/test-recreate-movimento-1411.mjs e scripts/test-recreate-trava-1011.mjs.

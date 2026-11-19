@@ -51,7 +51,7 @@ function all(o = {}) {
       for (const c of cs) {
         const fileiras = (c.corpo.match(/class="kmz-chips"/g) || []).length
         ok(fileiras <= 1, `uma fileira de etiquetas por cartão (${fileiras})`)
-        for (const e of c.corpo.matchAll(/<span class="([^"]*)"[^>]*>(?:<svg[\s\S]*?<\/svg>)?(?:⚡ NEW|<span>Recreate|Recreate|Make your ad|<span>Make your ad)/g)) ok(/\bkmz-chip\b/.test(e[1]), `etiqueta com desenho próprio: ${e[1]}`)
+        for (const e of c.corpo.matchAll(/<span class="([^"]*)"[^>]*>(?:<svg[\s\S]*?<\/svg>)?(?:⚡ NEW|(?:<span>)?(?:Recreate|Use clip prompt|Make your ad))/g)) ok(/\bkmz-chip\b/.test(e[1]), `etiqueta com desenho próprio: ${e[1]}`)
         const fileira = fileiras === 1 ? c.corpo.match(/<span class="kmz-chips">([\s\S]*?)<\/span><span class="kmz-shade"/) : null
         if (fileiras === 1) ok(fileira, 'a fileira de etiquetas é uma caixa só, antes da sombra')
         const soltas = (fileira ? c.corpo.replace(fileira[0], '') : c.corpo).match(/class="kmz-chip\b/g)
@@ -96,7 +96,7 @@ const mutants = [
   ['foto volta sem nome', { [MOSAIC]: s(MOSAIC).replace('<span className="kmz-copy"><b>{mosaicImageTitle(img.file, img.alt)}</b></span>', '') }],
   ['nome some de uma foto e a reserva também', { [MOSAIC]: s(MOSAIC).replace("'canoe.webp': 'Canoe on a misty lake',", '').replace("return MOSAIC_IMAGE_TITLE[file] ?? alt.replace", "return MOSAIC_IMAGE_TITLE[file] ?? ''.replace") }],
   ['NEW volta ao desenho rosa solto', { [MOSAIC]: s(MOSAIC).replace('<Chips novo={newKeys.has(e.key)} recreate={podeRecriar(t)} />', '{newKeys.has(e.key) ? <span className="kmz-new">⚡ NEW</span> : null}<Chips recreate={podeRecriar(t)} />') }],
-  ['Recreate fora da fileira', { [MOSAIC]: s(MOSAIC).replace('<Chips recreate={podeRecriar(t)} ad={podeFazerAnuncio(t)} convite={convite} />', '{podeRecriar(t) ? <Recreate /> : null}<Chips ad={podeFazerAnuncio(t)} convite={convite} />') }],
+  ['Recreate fora da fileira', { [MOSAIC]: s(MOSAIC).replace('<Chips recreate={podeRecriar(t)} clipPrompt={clipPrompt} ad={podeFazerAnuncio(t)} convite={convite} />', '{podeRecriar(t) ? <Recreate clipPrompt={clipPrompt} /> : null}<Chips ad={podeFazerAnuncio(t)} convite={convite} />') }],
   ['"Put your face in it" com desenho próprio', { [MOSAIC]: s(MOSAIC).replace('className="kmz-chip kmz-face"', 'className="kmz-face"') }],
   ['fileira não quebra linha (sobrepõe)', { [MOSAIC]: s(MOSAIC).replace('display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px', 'display:flex;flex-wrap:nowrap;align-items:flex-start;gap:6px') }],
   ['no celular a fileira fica por baixo do "Put your face in it"', { [MOSAIC]: s(MOSAIC).replace('.klp .kmz-cell .kmz-t .kmz-chips{top:38px}', '.klp .kmz-cell .kmz-t .kmz-chips{top:6px}') }],

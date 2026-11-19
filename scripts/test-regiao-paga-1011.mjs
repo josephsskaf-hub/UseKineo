@@ -13,6 +13,7 @@ import path from 'node:path'
 import { execSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
+import { pricingPreservado1911 } from './varredura-1911-trocas.mjs'
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 const require = createRequire(import.meta.url)
@@ -84,7 +85,11 @@ for (const rel of ['lib/checkoutPricing.ts', 'app/api/stripe/checkout/route.ts']
   ok(m !== null && soAcrescimos(m, read(rel)), `${rel}: só acréscimos sobre a main (nenhuma linha de preço/checkout mudou)`)
 }
 ok(P.PREVIA_PER_ACCOUNT_TOTAL === 3 && P.PREVIA_PER_ACCOUNT_PER_DAY === 1 && P.PREVIA_GLOBAL_PER_DAY === 200, 'tetos da prévia: 3 por conta, 1 por dia, 200 por dia')
-ok(main('app/pricing/PricingClient.tsx') === read('app/pricing/PricingClient.tsx'), 'a tabela de preços (PricingClient) idêntica à main')
+const pricingBase = main('app/pricing/PricingClient.tsx')
+const pricing = read('app/pricing/PricingClient.tsx')
+ok(pricingPreservado1911(pricingBase, pricing), 'PricingClient idêntico à main, exceto os recortes do cabeçalho')
+const audienciaAlterada = pricing.replace('<PricingAudienceTabs audience={audience}', '<PricingAudienceTabs audience={"ads"}')
+ok(audienciaAlterada !== pricing && !pricingPreservado1911(pricingBase, audienciaAlterada), 'mudança fora do cabeçalho da tabela de preços é rejeitada')
 
 const HOUSE = [true, false]
 const RELEASES = ['off', 'internal', 'public']
