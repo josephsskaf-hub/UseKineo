@@ -421,6 +421,7 @@ async function scenario(name, run) { await run(); scenarios++; process.stdout.wr
     react: reactHooks, 'react/jsx-runtime': dependency('react/jsx-runtime'),
     'next/link': { __esModule: true, default: Link },
     '@/components/InterfaceLanguage': { UiLabel: ({ children }) => children, InterfaceLanguageSelect: () => null },
+    '@/components/SiteSettingsMenu': { __esModule: true, default: () => null },
     '@/lib/clipesNos2Lugares': poster,
     '@/lib/home/watchEntry': { watchClipHref: item => '/project/' + item.id, watchClipLabel: () => 'Use idea', WATCH_FEATURED_FILMS: featured, watchFilmExampleHref: id => '/film/' + id },
     './WatchMedia': { __esModule: true, default: MediaStub },

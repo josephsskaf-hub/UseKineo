@@ -142,7 +142,9 @@ check('route/auth change closes sheets, no generation invoked', () => {
 check('outside pointer listener cleaned up', () => {
   const listeners = new Map()
   class FakeNode {}
+  class FakeElement extends FakeNode { constructor(inDialog) { super(); this.inDialog = inDialog } closest(sel) { return this.inDialog && sel === 'dialog[open]' ? this : null } }
   globalThis.Node = FakeNode
+  globalThis.Element = FakeElement
   globalThis.document = {
     addEventListener: (key, callback) => listeners.set(key, callback),
     removeEventListener: (key, callback) => { assert.equal(listeners.get(key), callback); listeners.delete(key) },
@@ -151,10 +153,17 @@ check('outside pointer listener cleaned up', () => {
   details = [makeDetails()]
   listeners.get('pointerdown')({ target: new FakeNode() })
   assert.equal(details[0].open, false)
+  // KINEO-MENU-CONFIG-1811: toque dentro do diálogo de configurações aberto não fecha o menu
+  details = [makeDetails()]
+  listeners.get('pointerdown')({ target: new FakeElement(true) })
+  assert.equal(details[0].open, true)
+  listeners.get('pointerdown')({ target: new FakeElement(false) })
+  assert.equal(details[0].open, false)
   cleanup()
   assert.equal(listeners.size, 0)
   delete globalThis.document
   delete globalThis.Node
+  delete globalThis.Element
 })
 // KINEO-LIBRARY-MOLDURA-NOVA-1211 [fundador 12/11: "a Library volta no fluxo antigo"] — a /library saiu desta lista: ela abre na moldura da tela nova
 // (sem o topo antigo e sem a lateral); a checagem logo abaixo trava isso. As outras telas seguem na casca de sempre.
