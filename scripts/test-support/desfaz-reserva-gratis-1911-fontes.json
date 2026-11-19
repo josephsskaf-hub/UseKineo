@@ -1,0 +1,33 @@
+{
+ "base": "114018aded9655bb20c6d35255a47593f3ceb352",
+ "scope": {
+  "lib/kling4TrialAsyncStatus.ts": {
+   "beforeSha256": "0df8b646b1ecc3d094620e638bcc8a12719b7cc5682a14c7e3a9a0f011ef4df7",
+   "afterSha256": "9c7fe53ba1ceacf2583454de318a6cbef0ea7e0ecf20a3948f801090b8e384b1",
+   "hunks": [
+    {
+     "before": "import { KLING4_T2V_MODEL, KLING4_I2V_MODEL, KLING4_REFERENCE_MODEL, KLING4_TRIAL_TIMEOUT_MS, pollKling4TrialVideo } from '@/lib/kling4Trial'\nimport { kling4TrialEngineFromClaim, kling4TrialVideoUrlFromClaim } from '@/lib/kling4TrialClaim'\nimport { ensureKling4TrialFallback } from '@/lib/kling4TrialFallback'\n\nexport const KLING4_TRIAL_FALLBACK_AFTER_MS = KLING4_TRIAL_TIMEOUT_MS\ntype Identity = { db: SupabaseClient; secret: string; userId: string; generationId: string; claim: CinematicClaim }\n",
+     "after": "import { KLING4_T2V_MODEL, KLING4_I2V_MODEL, KLING4_REFERENCE_MODEL, KLING4_TRIAL_TIMEOUT_MS, pollKling4TrialVideo } from '@/lib/kling4Trial'\nimport { kling4TrialEngineFromClaim, kling4TrialVideoUrlFromClaim } from '@/lib/kling4TrialClaim'\nimport { ensureKling4TrialFallback } from '@/lib/kling4TrialFallback'\nimport { K4_ESPERA_QUEM_RODA_1911, decisaoNoPrazoDoKling4 } from '@/lib/kling4TrialReserva1911' // KINEO-RESERVA-GRATIS-1911 (c)\n\nexport const KLING4_TRIAL_FALLBACK_AFTER_MS = KLING4_TRIAL_TIMEOUT_MS\ntype Identity = { db: SupabaseClient; secret: string; userId: string; generationId: string; claim: CinematicClaim }\n"
+    },
+    {
+     "before": "  deps: {\n    poll?: (requestId: string) => Promise<PollResult>\n    fallback?: typeof ensureKling4TrialFallback\n  } = {},\n): Promise<Kling4TrialAdvance> {\n  const engine = kling4TrialEngineFromClaim(args.claim.response)\n",
+     "after": "  deps: {\n    poll?: (requestId: string) => Promise<PollResult>\n    fallback?: typeof ensureKling4TrialFallback\n    /** KINEO-RESERVA-GRATIS-1911 (c) — só para o guardião: força o interruptor K4_ESPERA_QUEM_RODA_1911. */\n    esperaQuemRoda?: boolean\n  } = {},\n): Promise<Kling4TrialAdvance> {\n  const engine = kling4TrialEngineFromClaim(args.claim.response)\n"
+    },
+    {
+     "before": "  let reason: 'provider_failed' | 'timeout' | null = storedMarker?.fallback_started === true\n    ? storedMarker.fallback_reason === 'timeout' ? 'timeout' : 'provider_failed'\n    : now - submittedAt >= KLING4_TRIAL_FALLBACK_AFTER_MS ? 'timeout' : null\n  if (!reason) {\n    let result: PollResult\n    try { result = await (deps.poll ?? (id => pollKling4TrialVideo(id, { apiKey: process.env.FAL_KEY ?? '' })))(requestId) }\n",
+     "after": "  let reason: 'provider_failed' | 'timeout' | null = storedMarker?.fallback_started === true\n    ? storedMarker.fallback_reason === 'timeout' ? 'timeout' : 'provider_failed'\n    : now - submittedAt >= KLING4_TRIAL_FALLBACK_AFTER_MS ? 'timeout' : null\n  // KINEO-RESERVA-GRATIS-1911 (c) — no prazo, UMA consulta de status grátis antes de comprar a reserva: pronto = entrega o Kling 4; falhou = reserva\n  // por falha; ainda rodando = espera até K4_ESPERA_EXTRA_MS a mais; na fila, sem resposta ou além disso = reserva por tempo, como antes.\n  if (reason === 'timeout' && storedMarker?.fallback_started !== true && (deps.esperaQuemRoda ?? K4_ESPERA_QUEM_RODA_1911)) {\n    let noPrazo: PollResult | null = null\n    try { noPrazo = await (deps.poll ?? (id => pollKling4TrialVideo(id, { apiKey: process.env.FAL_KEY ?? '' })))(requestId) } catch { noPrazo = null }\n    const decisao = noPrazo ? decisaoNoPrazoDoKling4({ status: noPrazo.status, temUrl: typeof noPrazo.url === 'string' && noPrazo.url.startsWith('https://'), idadeMs: now - submittedAt, prazoMs: KLING4_TRIAL_FALLBACK_AFTER_MS }) : 'timeout'\n    if (decisao === 'kling_done' && noPrazo?.url) return { kind: 'kling_done', claim, url: noPrazo.url }\n    if (decisao === 'esperar') return { kind: 'pending', claim }\n    if (decisao === 'provider_failed') reason = 'provider_failed'\n  }\n  if (!reason) {\n    let result: PollResult\n    try { result = await (deps.poll ?? (id => pollKling4TrialVideo(id, { apiKey: process.env.FAL_KEY ?? '' })))(requestId) }\n"
+    }
+   ]
+  },
+  "lib/kling4TrialScript.ts": {
+   "beforeSha256": "666e3615b97feb95d029ffa2e3e883703ac51ece9e5625848071cd2d56317dff",
+   "afterSha256": "8f1fc99663180078e7311e658a3121a78cce3fc9871a1015a28a7c34535ac898",
+   "hunks": [
+    {
+     "before": "/** Prazo próprio da medição (TTS + Whisper): estourou = sem medida = Seedance, sem segurar a rota. */\nexport const K4_PRAZO_DA_MEDICAO_MS = 20_000\n\nexport type MotivoDaFalaK4 = 'fits' | 'narration_over_kling4_15s' | 'narration_unmeasured_kling4' | 'narration_measure_timeout_kling4'\nexport interface FalaK4 { seconds: number | null; maxSeconds: number; cabe: boolean; reason: MotivoDaFalaK4 }\n\n/** A decisão, só sobre a duração medida: ≤ 15,5 s cabe; acima ou sem medida, não. KINEO-K4-GRATIS-20S-1711 — `teto` (padrão 15,5) vem de\n",
+     "after": "/** Prazo próprio da medição (TTS + Whisper): estourou = sem medida = Seedance, sem segurar a rota. */\nexport const K4_PRAZO_DA_MEDICAO_MS = 20_000\n\nexport type MotivoDaFalaK4 = 'fits' | 'narration_over_kling4_15s' | 'narration_unmeasured_kling4' | 'narration_measure_timeout_kling4' | 'narration_short_unscaled_kling4' // KINEO-RESERVA-GRATIS-1911 (a): o último só nasce em lib/kling4TrialReserva1911.ts\nexport interface FalaK4 { seconds: number | null; maxSeconds: number; cabe: boolean; reason: MotivoDaFalaK4 }\n\n/** A decisão, só sobre a duração medida: ≤ 15,5 s cabe; acima ou sem medida, não. KINEO-K4-GRATIS-20S-1711 — `teto` (padrão 15,5) vem de\n"
+    }
+   ]
+  }
+ }
+}

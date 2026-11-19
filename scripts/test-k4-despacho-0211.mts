@@ -8,6 +8,7 @@
 import { deltaK4DuracaoPelaVoz1311Exato } from './test-support/desfaz-k4-duracao-pela-voz-1311.mjs' // KINEO-K4-DURACAO-PELA-VOZ-1311 [CEO 13/11] — recibo exato da régua de durações pela voz (interruptor 'all' desde 13/11 05:11)
 import { KLING4_DURACAO_PELA_VOZ, duracaoPelaVozLigada, buildKling4TrialInput, kling4TrialSceneDurations } from '../lib/kling4Trial' // KINEO-K4-DURACAO-PELA-VOZ-1311
 import { deltaK4Gratis20s1711Exato } from './test-support/desfaz-k4-gratis-20s-1711.mjs' // KINEO-K4-GRATIS-20S-1711 [dono 17/11, opção A] — recibo exato do clipe de até 20 s (interruptor em 15 = desligado)
+import { deltaReservaGratis1911Exato } from './test-support/desfaz-reserva-gratis-1911.mjs' // KINEO-RESERVA-GRATIS-1911 [CEO 19/11] — recibo exato da Frente 1
 import { deltaK4FaixaTeto0511Exato } from './test-support/desfaz-k4-faixa-teto-0511.mjs' // KINEO-K4-FAIXA-TETO-0511 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
@@ -85,6 +86,9 @@ ok(KLING4_TRIAL_FALLBACK_AFTER_MS === 8 * 60_000, '2 relógio do filme GRÁTIS i
   try { const f = 'lib/kling4Trial.ts'; if (deltaK4DuracaoPelaVoz1311Exato(readFileSync(join(raiz, f), 'utf8'), execFileSync('git', ['show', `origin/main:${f}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }), f)) diffGratis = diffGratis.split(/\r?\n/).filter((x) => x.trim() && x.trim() !== f).join('\n') } catch { /* sem recibo = segue reprovando */ }
   // KINEO-K4-GRATIS-20S-1711 — o total do clipe (lib/kling4Trial.ts) e o teto da medição (lib/kling4TrialScript.ts) passam só pelo recibo EXATO desta entrega
   for (const f of ['lib/kling4Trial.ts', 'lib/kling4TrialScript.ts']) { try { if (deltaK4Gratis20s1711Exato(readFileSync(join(raiz, f), 'utf8'), execFileSync('git', ['show', `origin/main:${f}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }), f)) diffGratis = diffGratis.split(/\r?\n/).filter((x) => x.trim() && x.trim() !== f).join('\n') } catch { /* sem recibo = segue reprovando */ } }
+  // KINEO-RESERVA-GRATIS-1911 [CEO 19/11, Frente 1] — reancorado: a consulta de status no prazo (lib/kling4TrialAsyncStatus.ts) e o motivo novo no tipo
+  // (lib/kling4TrialScript.ts) passam só pelo recibo EXATO desta entrega; o comportamento novo é provado em scripts/test-reserva-gratis-1911.mjs
+  for (const f of ['lib/kling4TrialAsyncStatus.ts', 'lib/kling4TrialScript.ts']) { try { if (deltaReservaGratis1911Exato(readFileSync(join(raiz, f), 'utf8'), execFileSync('git', ['show', `origin/main:${f}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }), f)) diffGratis = diffGratis.split(/\r?\n/).filter((x) => x.trim() && x.trim() !== f).join('\n') } catch { /* sem recibo = segue reprovando */ } }
   for (const file of Object.keys(referenceReceipt)) {
     const before = execFileSync('git',['show','origin/main:' + file],{cwd:raiz,encoding:'utf8'})
     const after = readFileSync(join(raiz,file),'utf8')
