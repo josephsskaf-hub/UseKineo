@@ -7641,7 +7641,8 @@ async function manipularPost(req: NextRequest) {
         const montar = async (secoes: Array<{ voiceover: string; pexelsQuery: string; descricao?: string | null }>) => {
           let ps = secoes.some((x) => typeof x.descricao === 'string') ? promptsDeCenaInteira(k4, secoes, falasCena) : [...k4] // como o envio: só o A2 refaz a cena pela descrição
           let stills: (string | null)[] = ps.map(() => null)
-          const rs = pedidoDoSujeitoEco ? await sujeitoNoKling4({ pedido: pedidoDoSujeitoEco, falas: falasCena, prompts: ps, stills, pessoaPermitida: !romanceAdulto.ativo }, leituraPronta1311()) : null // o mesmo injetor do submit
+          const leituraDoEco = leituraPronta1311() // a mesma leitura do sujeito que o submit reaproveita
+          const rs = pedidoDoSujeitoEco ? await sujeitoNoKling4({ pedido: pedidoDoSujeitoEco, falas: falasCena, prompts: ps, stills, pessoaPermitida: !romanceAdulto.ativo }, leituraDoEco) : null // o mesmo injetor do submit
           if (rs?.relato.corrigido) { ps = [...rs.prompts]; stills = ps.map((_, i) => rs.stills[i] ?? null) }
           // daqui ao fim, síncrono: o sujeito e as seções DESTE lado e o kling4PorSecao do envio (os dois lados rodam um depois do outro)
           kling4Sujeito.r = rs
