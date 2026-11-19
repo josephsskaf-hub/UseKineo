@@ -1,0 +1,727 @@
+{
+  "baseline": "Separate production build of home source and config from 7514f4996",
+  "date": "2026-11-19T02:43:49.284Z",
+  "runs": [
+    {
+      "width": 1366,
+      "v": "c",
+      "round": 1,
+      "fcp": 352,
+      "lcp": 820,
+      "lcpElement": "IMG ",
+      "load": 812,
+      "firstArt": null,
+      "art": [],
+      "initial": 3524810
+    },
+    {
+      "width": 1366,
+      "v": "a",
+      "round": 1,
+      "fcp": 688,
+      "lcp": 688,
+      "lcpElement": "IMG k3c-cycle-poster",
+      "load": 798,
+      "firstArt": 1118,
+      "art": [
+        {
+          "file": "/screening-room/home-projection.js",
+          "encoded": 1382
+        },
+        {
+          "file": "/screening-room/scene.js",
+          "encoded": 227763
+        },
+        {
+          "file": "/screening-room/lituya-h3.webp",
+          "encoded": 8908
+        },
+        {
+          "file": "/screening-room/lituya-h3.mp4",
+          "encoded": 468633
+        }
+      ],
+      "initial": 3447342
+    },
+    {
+      "width": 1366,
+      "v": "b",
+      "round": 1,
+      "fcp": 688,
+      "lcp": 688,
+      "lcpElement": "IMG ",
+      "load": 870,
+      "firstArt": 1174,
+      "art": [
+        {
+          "file": "/screening-room/home-projection.js",
+          "encoded": 1382
+        },
+        {
+          "file": "/screening-room/scene.js",
+          "encoded": 227763
+        },
+        {
+          "file": "/screening-room/lituya-h3.webp",
+          "encoded": 8908
+        },
+        {
+          "file": "/screening-room/lituya-h3.mp4",
+          "encoded": 468633
+        }
+      ],
+      "initial": 3528501
+    },
+    {
+      "width": 1366,
+      "v": "b",
+      "round": 2,
+      "fcp": 608,
+      "lcp": 608,
+      "lcpElement": "IMG ",
+      "load": 761,
+      "firstArt": 1214,
+      "art": [
+        {
+          "file": "/screening-room/home-projection.js",
+          "encoded": 1382
+        },
+        {
+          "file": "/screening-room/scene.js",
+          "encoded": 227763
+        },
+        {
+          "file": "/screening-room/lituya-h3.webp",
+          "encoded": 8908
+        },
+        {
+          "file": "/screening-room/lituya-h3.mp4",
+          "encoded": 468633
+        }
+      ],
+      "initial": 3528501
+    },
+    {
+      "width": 1366,
+      "v": "c",
+      "round": 2,
+      "fcp": 684,
+      "lcp": 768,
+      "lcpElement": "IMG ",
+      "load": 817,
+      "firstArt": null,
+      "art": [],
+      "initial": 3524810
+    },
+    {
+      "width": 1366,
+      "v": "a",
+      "round": 2,
+      "fcp": 504,
+      "lcp": 504,
+      "lcpElement": "IMG k3c-cycle-poster",
+      "load": 742,
+      "firstArt": 1085,
+      "art": [
+        {
+          "file": "/screening-room/home-projection.js",
+          "encoded": 1382
+        },
+        {
+          "file": "/screening-room/scene.js",
+          "encoded": 227763
+        },
+        {
+          "file": "/screening-room/lituya-h3.webp",
+          "encoded": 8908
+        },
+        {
+          "file": "/screening-room/lituya-h3.mp4",
+          "encoded": 468633
+        }
+      ],
+      "initial": 3447342
+    },
+    {
+      "width": 1366,
+      "v": "a",
+      "round": 3,
+      "fcp": 760,
+      "lcp": 760,
+      "lcpElement": "IMG k3c-cycle-poster",
+      "load": 938,
+      "firstArt": 1329,
+      "art": [
+        {
+          "file": "/screening-room/home-projection.js",
+          "encoded": 1382
+        },
+        {
+          "file": "/screening-room/scene.js",
+          "encoded": 227763
+        },
+        {
+          "file": "/screening-room/lituya-h3.webp",
+          "encoded": 8908
+        },
+        {
+          "file": "/screening-room/lituya-h3.mp4",
+          "encoded": 468633
+        }
+      ],
+      "initial": 3447342
+    },
+    {
+      "width": 1366,
+      "v": "b",
+      "round": 3,
+      "fcp": 588,
+      "lcp": 588,
+      "lcpElement": "IMG ",
+      "load": 770,
+      "firstArt": 1067,
+      "art": [
+        {
+          "file": "/screening-room/home-projection.js",
+          "encoded": 1382
+        },
+        {
+          "file": "/screening-room/scene.js",
+          "encoded": 227763
+        },
+        {
+          "file": "/screening-room/lituya-h3.webp",
+          "encoded": 8908
+        },
+        {
+          "file": "/screening-room/lituya-h3.mp4",
+          "encoded": 468633
+        }
+      ],
+      "initial": 3528501
+    },
+    {
+      "width": 1366,
+      "v": "c",
+      "round": 3,
+      "fcp": 672,
+      "lcp": 856,
+      "lcpElement": "IMG ",
+      "load": 817,
+      "firstArt": null,
+      "art": [],
+      "initial": 3524810
+    },
+    {
+      "width": 1366,
+      "v": "b",
+      "round": 4,
+      "fcp": 636,
+      "lcp": 636,
+      "lcpElement": "IMG ",
+      "load": 794,
+      "firstArt": 1031,
+      "art": [
+        {
+          "file": "/screening-room/home-projection.js",
+          "encoded": 1382
+        },
+        {
+          "file": "/screening-room/scene.js",
+          "encoded": 227763
+        },
+        {
+          "file": "/screening-room/lituya-h3.webp",
+          "encoded": 8908
+        },
+        {
+          "file": "/screening-room/lituya-h3.mp4",
+          "encoded": 468633
+        }
+      ],
+      "initial": 3528501
+    },
+    {
+      "width": 1366,
+      "v": "a",
+      "round": 4,
+      "fcp": 560,
+      "lcp": 560,
+      "lcpElement": "IMG k3c-cycle-poster",
+      "load": 741,
+      "firstArt": 1038,
+      "art": [
+        {
+          "file": "/screening-room/home-projection.js",
+          "encoded": 1382
+        },
+        {
+          "file": "/screening-room/scene.js",
+          "encoded": 227763
+        },
+        {
+          "file": "/screening-room/lituya-h3.webp",
+          "encoded": 8908
+        },
+        {
+          "file": "/screening-room/lituya-h3.mp4",
+          "encoded": 468633
+        }
+      ],
+      "initial": 3447342
+    },
+    {
+      "width": 1366,
+      "v": "c",
+      "round": 4,
+      "fcp": 592,
+      "lcp": 708,
+      "lcpElement": "IMG ",
+      "load": 753,
+      "firstArt": null,
+      "art": [],
+      "initial": 3524810
+    },
+    {
+      "width": 1366,
+      "v": "a",
+      "round": 5,
+      "fcp": 648,
+      "lcp": 648,
+      "lcpElement": "IMG k3c-cycle-poster",
+      "load": 779,
+      "firstArt": 1090,
+      "art": [
+        {
+          "file": "/screening-room/home-projection.js",
+          "encoded": 1382
+        },
+        {
+          "file": "/screening-room/scene.js",
+          "encoded": 227763
+        },
+        {
+          "file": "/screening-room/lituya-h3.webp",
+          "encoded": 8908
+        },
+        {
+          "file": "/screening-room/lituya-h3.mp4",
+          "encoded": 468633
+        }
+      ],
+      "initial": 3447342
+    },
+    {
+      "width": 1366,
+      "v": "c",
+      "round": 5,
+      "fcp": 636,
+      "lcp": 788,
+      "lcpElement": "IMG ",
+      "load": 773,
+      "firstArt": null,
+      "art": [],
+      "initial": 3524810
+    },
+    {
+      "width": 1366,
+      "v": "b",
+      "round": 5,
+      "fcp": 612,
+      "lcp": 612,
+      "lcpElement": "IMG ",
+      "load": 760,
+      "firstArt": 1009,
+      "art": [
+        {
+          "file": "/screening-room/home-projection.js",
+          "encoded": 1382
+        },
+        {
+          "file": "/screening-room/scene.js",
+          "encoded": 227763
+        },
+        {
+          "file": "/screening-room/lituya-h3.webp",
+          "encoded": 8908
+        },
+        {
+          "file": "/screening-room/lituya-h3.mp4",
+          "encoded": 468633
+        }
+      ],
+      "initial": 3528501
+    },
+    {
+      "width": 1366,
+      "v": "c",
+      "round": 6,
+      "fcp": 608,
+      "lcp": 724,
+      "lcpElement": "IMG ",
+      "load": 762,
+      "firstArt": null,
+      "art": [],
+      "initial": 3524810
+    },
+    {
+      "width": 1366,
+      "v": "b",
+      "round": 6,
+      "fcp": 620,
+      "lcp": 620,
+      "lcpElement": "IMG ",
+      "load": 768,
+      "firstArt": 1065,
+      "art": [
+        {
+          "file": "/screening-room/home-projection.js",
+          "encoded": 1382
+        },
+        {
+          "file": "/screening-room/scene.js",
+          "encoded": 227763
+        },
+        {
+          "file": "/screening-room/lituya-h3.webp",
+          "encoded": 8908
+        },
+        {
+          "file": "/screening-room/lituya-h3.mp4",
+          "encoded": 468633
+        }
+      ],
+      "initial": 3528501
+    },
+    {
+      "width": 1366,
+      "v": "a",
+      "round": 6,
+      "fcp": 624,
+      "lcp": 624,
+      "lcpElement": "IMG k3c-cycle-poster",
+      "load": 775,
+      "firstArt": 1054,
+      "art": [
+        {
+          "file": "/screening-room/home-projection.js",
+          "encoded": 1382
+        },
+        {
+          "file": "/screening-room/scene.js",
+          "encoded": 227763
+        },
+        {
+          "file": "/screening-room/lituya-h3.webp",
+          "encoded": 8908
+        },
+        {
+          "file": "/screening-room/lituya-h3.mp4",
+          "encoded": 468633
+        }
+      ],
+      "initial": 3447342
+    },
+    {
+      "width": 390,
+      "v": "c",
+      "round": 1,
+      "fcp": 1264,
+      "lcp": 1264,
+      "lcpElement": "IMG k3c-cycle-poster",
+      "load": 4031,
+      "firstArt": null,
+      "art": [],
+      "initial": 5731578
+    },
+    {
+      "width": 390,
+      "v": "a",
+      "round": 1,
+      "fcp": 584,
+      "lcp": 584,
+      "lcpElement": "IMG k3c-cycle-poster",
+      "load": 3425,
+      "firstArt": null,
+      "art": [],
+      "initial": 5735383
+    },
+    {
+      "width": 390,
+      "v": "b",
+      "round": 1,
+      "fcp": 1112,
+      "lcp": 1144,
+      "lcpElement": "IMG k3c-cycle-poster",
+      "load": 3992,
+      "firstArt": null,
+      "art": [],
+      "initial": 5735656
+    },
+    {
+      "width": 390,
+      "v": "b",
+      "round": 2,
+      "fcp": 1084,
+      "lcp": 1084,
+      "lcpElement": "IMG k3c-cycle-poster",
+      "load": 3976,
+      "firstArt": null,
+      "art": [],
+      "initial": 5735656
+    },
+    {
+      "width": 390,
+      "v": "c",
+      "round": 2,
+      "fcp": 1108,
+      "lcp": 1108,
+      "lcpElement": "IMG k3c-cycle-poster",
+      "load": 4042,
+      "firstArt": null,
+      "art": [],
+      "initial": 5731578
+    },
+    {
+      "width": 390,
+      "v": "a",
+      "round": 2,
+      "fcp": 1076,
+      "lcp": 1076,
+      "lcpElement": "IMG k3c-cycle-poster",
+      "load": 3966,
+      "firstArt": null,
+      "art": [],
+      "initial": 5735383
+    },
+    {
+      "width": 390,
+      "v": "a",
+      "round": 3,
+      "fcp": 1096,
+      "lcp": 1096,
+      "lcpElement": "IMG k3c-cycle-poster",
+      "load": 3790,
+      "firstArt": null,
+      "art": [],
+      "initial": 5735383
+    },
+    {
+      "width": 390,
+      "v": "b",
+      "round": 3,
+      "fcp": 624,
+      "lcp": 992,
+      "lcpElement": "IMG k3c-cycle-poster",
+      "load": 3760,
+      "firstArt": null,
+      "art": [],
+      "initial": 5735656
+    },
+    {
+      "width": 390,
+      "v": "c",
+      "round": 3,
+      "fcp": 1096,
+      "lcp": 1096,
+      "lcpElement": "IMG k3c-cycle-poster",
+      "load": 4007,
+      "firstArt": null,
+      "art": [],
+      "initial": 5731578
+    },
+    {
+      "width": 390,
+      "v": "b",
+      "round": 4,
+      "fcp": 1068,
+      "lcp": 1068,
+      "lcpElement": "IMG k3c-cycle-poster",
+      "load": 3964,
+      "firstArt": null,
+      "art": [],
+      "initial": 5735656
+    },
+    {
+      "width": 390,
+      "v": "a",
+      "round": 4,
+      "fcp": 640,
+      "lcp": 640,
+      "lcpElement": "IMG k3c-cycle-poster",
+      "load": 3560,
+      "firstArt": null,
+      "art": [],
+      "initial": 5735383
+    },
+    {
+      "width": 390,
+      "v": "c",
+      "round": 4,
+      "fcp": 1108,
+      "lcp": 1108,
+      "lcpElement": "IMG k3c-cycle-poster",
+      "load": 4043,
+      "firstArt": null,
+      "art": [],
+      "initial": 5731578
+    },
+    {
+      "width": 390,
+      "v": "a",
+      "round": 5,
+      "fcp": 612,
+      "lcp": 612,
+      "lcpElement": "IMG k3c-cycle-poster",
+      "load": 3846,
+      "firstArt": null,
+      "art": [],
+      "initial": 5735383
+    },
+    {
+      "width": 390,
+      "v": "c",
+      "round": 5,
+      "fcp": 1108,
+      "lcp": 1108,
+      "lcpElement": "IMG k3c-cycle-poster",
+      "load": 4005,
+      "firstArt": null,
+      "art": [],
+      "initial": 5731578
+    },
+    {
+      "width": 390,
+      "v": "b",
+      "round": 5,
+      "fcp": 604,
+      "lcp": 1056,
+      "lcpElement": "IMG k3c-cycle-poster",
+      "load": 3845,
+      "firstArt": null,
+      "art": [],
+      "initial": 5735656
+    },
+    {
+      "width": 390,
+      "v": "c",
+      "round": 6,
+      "fcp": 1144,
+      "lcp": 1144,
+      "lcpElement": "IMG k3c-cycle-poster",
+      "load": 3717,
+      "firstArt": null,
+      "art": [],
+      "initial": 5731578
+    },
+    {
+      "width": 390,
+      "v": "b",
+      "round": 6,
+      "fcp": 552,
+      "lcp": 552,
+      "lcpElement": "IMG k3c-cycle-poster",
+      "load": 3434,
+      "firstArt": null,
+      "art": [],
+      "initial": 5735656
+    },
+    {
+      "width": 390,
+      "v": "a",
+      "round": 6,
+      "fcp": 652,
+      "lcp": 652,
+      "lcpElement": "IMG k3c-cycle-poster",
+      "load": 3833,
+      "firstArt": null,
+      "art": [],
+      "initial": 5735383
+    }
+  ],
+  "fps": [
+    {
+      "width": 1366,
+      "v": "a",
+      "ms": 10002,
+      "frames3d": 300,
+      "fps3d": 29.99,
+      "backend": "WebGPU",
+      "visibleVideosObserved": 1,
+      "videoFrames": 240,
+      "videoFps": 23.99,
+      "rafFps": 29.99
+    },
+    {
+      "width": 1366,
+      "v": "b",
+      "ms": 10005,
+      "frames3d": 300,
+      "fps3d": 29.99,
+      "backend": "WebGPU",
+      "visibleVideosObserved": 1,
+      "videoFrames": 239,
+      "videoFps": 23.89,
+      "rafFps": 29.99
+    },
+    {
+      "width": 1366,
+      "v": "c",
+      "ms": 10010,
+      "frames3d": null,
+      "fps3d": null,
+      "backend": null,
+      "visibleVideosObserved": 1,
+      "videoFrames": 134,
+      "videoFps": 13.39,
+      "rafFps": 30.27
+    },
+    {
+      "width": 390,
+      "v": "a",
+      "ms": 10017,
+      "frames3d": null,
+      "fps3d": null,
+      "backend": null,
+      "visibleVideosObserved": 1,
+      "videoFrames": 128,
+      "videoFps": 12.78,
+      "rafFps": 30.05
+    },
+    {
+      "width": 390,
+      "v": "b",
+      "ms": 10007,
+      "frames3d": null,
+      "fps3d": null,
+      "backend": null,
+      "visibleVideosObserved": 1,
+      "videoFrames": 125,
+      "videoFps": 12.49,
+      "rafFps": 29.98
+    },
+    {
+      "width": 390,
+      "v": "c",
+      "ms": 10014,
+      "frames3d": null,
+      "fps3d": null,
+      "backend": null,
+      "visibleVideosObserved": 1,
+      "videoFrames": 138,
+      "videoFps": 13.78,
+      "rafFps": 30.06
+    }
+  ],
+  "access": {
+    "/dev/home-3d": 404,
+    "/dev/home-3d?k=wrong": 404,
+    "/dev/home-3d?k=wrong&k=wrong": 404,
+    "confirmedFounder": 200,
+    "otherInternal": 404,
+    "exchange": 303,
+    "robots": "noindex, nofollow, noarchive"
+  },
+  "gpu": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3090 (0x00002204) Direct3D11 vs_5_0 ps_5_0, D3D11-32.0.16.1088)",
+  "chrome": "157.0.8103.51"
+}

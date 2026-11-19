@@ -1,0 +1,14 @@
+{
+  "webgl2": true,
+  "staticAfterResize": true,
+  "dataSaver": true,
+  "founderWithoutKey": {
+    "status": 200,
+    "dashboard": true,
+    "film": "/create/film?engine=seedance&intent_campaign=home_card"
+  },
+  "matchingThemeGeometry": true,
+  "offlinePhotos": 12,
+  "offlineVideoSeconds": 10,
+  "zoom": true
+}
