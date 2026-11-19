@@ -19,6 +19,7 @@ import { isDeepStrictEqual } from 'node:util'
 import path from 'node:path'
 import vm from 'node:vm'
 import { comTelaRecreate1611 } from './tela-recreate-1611-trocas.mjs' // KINEO-TELA-RECREATE-1611
+import { comMenuConfig1811 } from './menu-config-1811-trocas.mjs' // KINEO-MENU-CONFIG-1811
 import { comClipsVisivel1711 } from './clips-visivel-1711-trocas.mjs'
 import { comClipsProporcao1811 } from './clips-proporcao-1811-trocas.mjs'
 
@@ -68,7 +69,7 @@ function casosA(o) {
   ]
 }
 
-const BASE_RC = { [RC]: comTelaRecreate1611(lf(baseSrc(RC))) } // KINEO-TELA-RECREATE-1611 — a base de 15/11 + SÓ as trocas pedidas pelo dono em 16/11 (scripts/tela-recreate-1611-trocas.mjs, cada uma com alvo único)
+const BASE_RC = { [RC]: comMenuConfig1811(comTelaRecreate1611(lf(baseSrc(RC)))) } // KINEO-TELA-RECREATE-1611 — a base de 15/11 + SÓ as trocas pedidas pelo dono em 16/11 (scripts/tela-recreate-1611-trocas.mjs, cada uma com alvo único)
 // ─── B. Quem não está no interruptor: as telas de hoje ───────────────────────────────────────────────────────────────
 /** Atributos de um JSX (<Tag … />) e as chaves de um objeto literal `const <nome>… = { … }`, como texto normalizado. */
 function atributosDoJsx(code, tag) {
@@ -130,7 +131,7 @@ function harness(o, { moldura = false, props = {} } = {}) {
   const real = L(o)
   const deps = {
     react: { ...React, useState, useRef, useEffect }, 'react/jsx-runtime': jsx, 'next/link': { __esModule: true, default: 'a' },
-    '@/components/KineoBolt': { KineoBrandIcon: stub }, '@/lib/clips/clipCatalog': real('lib/clips/clipCatalog'), '@/lib/recreate/formats': real('lib/recreate/formats'), '@/lib/recreate/entry': real('lib/recreate/entry'), '@/lib/recreate/catalogPublic': real('lib/recreate/catalogPublic'),
+    '@/components/KineoBolt': { KineoBrandIcon: stub }, '@/components/SiteSettingsMenu': { __esModule: true, default: () => null }, '@/lib/clips/clipCatalog': real('lib/clips/clipCatalog'), '@/lib/recreate/formats': real('lib/recreate/formats'), '@/lib/recreate/entry': real('lib/recreate/entry'), '@/lib/recreate/catalogPublic': real('lib/recreate/catalogPublic'),
     '@/lib/recreate/photos': { compressPhoto: prepare, cropFace: prepare, composePairPhoto: async () => new File(['par'], 'par.jpg', { type: 'image/jpeg' }) },
     '@/components/billing/BuyCreditsEntry': { TopupOuRecargaModal: () => null, BUY_CREDITS_OPENED_EVENT: 'buy_credits_entry_opened' }, '@/lib/analytics': { trackEvent: async () => {} }, // KINEO-TELA-RECREATE-1611
     './RecreatePlayer': { __esModule: true, default: 'fixture-player', ExampleCover: 'fixture-cover' },
