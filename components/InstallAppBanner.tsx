@@ -11,6 +11,8 @@ interface InstallPrompt extends Event {
 }
 
 const dismissedKey = 'sfai_install_dismissed_at'
+// KINEO-CONVITE-INSTALAR-1911 [CEO 19/11]: o dono tirou o convite em 05/11 ("tira esses avisos tb, muito antigos"). A base instalável sobe; o convite só liga com o sim dele, por foto.
+const CONVITE_DE_INSTALAR_LIGADO = false as boolean
 
 export default function InstallAppBanner() {
   const pathname = usePathname()
@@ -71,7 +73,7 @@ export default function InstallAppBanner() {
     } catch { /* A consumed browser prompt can only be offered on a new event. */ }
   }
 
-  if (dismissed || !mode || (pathname !== '/' && pathname !== '/studio')) return null
+  if (!CONVITE_DE_INSTALAR_LIGADO || dismissed || !mode || (pathname !== '/' && pathname !== '/studio')) return null
   return <aside className="install-kineo" aria-label={t('Install Kineo')}>
     <div className="install-kineo-inner">
       <img src="/pwa/kineo-192.png" width="32" height="32" alt="" />
