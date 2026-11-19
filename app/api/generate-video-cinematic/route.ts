@@ -319,6 +319,7 @@ import { KIDS_CARTOON_LIVE, comPersonagemInfantil, desenhoInfantilDoPedido, kids
 import { ancoraDaHistoria, elencoDoDesenho, travarDesenhoInfantil } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-DESENHO-LEO-0111 — o personagem escolhido é o protagonista de toda cena; objeto e cenário da história fixos
 import { velocidadeFixadaParaMedir, falaCurtaSemEscala, velocidadeAssinadaNoClaim } from '@/lib/kling4TrialReserva1911' // KINEO-RESERVA-GRATIS-1911 (a) — o filme grátis de roteiro não literal também é medido antes de decidir
 import { sujeitoNoKling4, pedidoOriginalDoSujeito, sujeitoAparenciaLigada } from '@/lib/cinematic/sujeitoObrigatorio' // KINEO-K4-SUJEITO-0111 — o tema central do PEDIDO ORIGINAL (avião, criança com caneta 3D, vida sob o gelo) em pelo menos 1 cena do Kling 4, antes do POST pago; nunca lido do roteiro nem das pistas [Pexels]; v4: lido por UMA chamada semântica curta (falha segura); v5: só depois da reserva do teste
+import { PORTAO_DO_SUJEITO_1911, portaoDoSujeitoLigado, pedidoOriginalDoSujeito1911 } from '@/lib/cinematic/sujeitoObrigatorio' // KINEO-PORTAO-DO-SUJEITO-1911 (B1a)
 import { sujeitoEmTodosOsMotores, SUJEITO_TODOS_EVENTO } from '@/lib/cinematic/sujeitoTodosMotores' // KINEO-SUJEITO-TODOS-0311 [TRAVA 8.2 — fundador 03/11 "universalizar"]: o sujeito do pedido em todos os motores
 import { sujeitoQueAlimentaAFicha } from '@/lib/cinematic/sujeitoTodosMotores' // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 (volta 2) [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
 import { ehIdeiaSolta } from '@/lib/meta95/ideiaNoEscritor' // KINEO-K4-SUJEITO-0111 — ideia solta que chegou crua = o pedido original
@@ -1658,6 +1659,10 @@ async function manipularPost(req: NextRequest) {
       if (ideiaDoEscritor) { body.original_idea = ideiaDoEscritor; void writeServerEvent({ name: 'original_idea_recovered', userId: user.id, path: '/api/generate-video-cinematic', metadata: { version: APARENCIA_1311_VERSAO, chars: ideiaDoEscritor.length, generation_id: typeof body.generationId === 'string' ? body.generationId : null } }) } // KINEO-APARENCIA-DO-PEDIDO-1311
     } // KINEO-APARENCIA-DO-PEDIDO-1311
     void writeServerEvent({ name: FILM_IDEA_STATUS_EVENT, userId: user.id, path: '/api/generate-video-cinematic', metadata: statusDaIdeiaDoFilme({ daTela: ideiaDaTela1311, final: body.original_idea, roteiro: body.prompt, generationId: body.generationId, dryRun: body.dry_run === true, servico: isServiceJob }) }) // KINEO-IDEIA-VIAJA-1311
+    // KINEO-PORTAO-DO-SUJEITO-1911 (B1a) — o roteiro literal foi escrito pelo NOSSO escritor? (o script_written casado pelo começo, as regras da ideia original).
+    // Só lido com o portão ligado: decide se o sujeito obrigatório do Kling 4 grátis pode usar a ideia original. Desligado = nenhuma leitura a mais.
+    const portaoDoSujeito1911 = portaoDoSujeitoLigado(PORTAO_DO_SUJEITO_1911, isDryRunAccount(user.email)) // 'internal' = só os 3 e-mails exatos do ensaio (a régua larga abria para e-mail parecido, revisor 19/11)
+    const roteiroDoEscritor1911 = portaoDoSujeito1911 ? Boolean(await recuperarIdeiaDoEscritor(user.id, body.prompt)) : false
     const pedidoEstacionado = pedidoEstacionavel(body) // KINEO-FILA-QUEDA-FAL-2810 — a cópia fechada do pedido, ANTES de a rota mexer no body (script_mode do monumento etc.); null = não estaciona
 
     // KINEO-FACELESS-2026-08-25 — tag [faceless] no script = filme SEM avatar:
@@ -7661,7 +7666,7 @@ async function manipularPost(req: NextRequest) {
         // [revisor 19/11, 2ª volta] o eco mostra o que IRIA à fal: o injetor do sujeito do submit e o MESMO kling4PorSecao do envio (superfície, escala variada,
         // sujeito nas metades, plano final, personagem fixo) e o buildKling4TrialInput com o timing, nos dois lados. A descrição viaja em parsedScript.segments, como
         // no envio (o dry_run devolve antes de qualquer envio: nada pago muda). Não entram: as imagens-chave (o dry_run não gera stills) e o encaixe da fala.
-        const pedidoDoSujeitoEco = kling4TrialCandidate && !desenhoInfantil.ativo ? pedidoOriginalDoSujeito({ prompt: intake.text, ideiaSolta: ehIdeiaSolta({ prompt: intake.text, scriptMode: body.script_mode }) && !isSeriesContinuationPrompt(intake.text), scriptMode: body.script_mode, originalIdea: body.original_idea, falas: falasCena }) : null
+        const pedidoDoSujeitoEco = kling4TrialCandidate && !desenhoInfantil.ativo ? pedidoOriginalDoSujeito1911({ portao: portaoDoSujeito1911, roteiroDoEscritor: roteiroDoEscritor1911, prompt: intake.text, ideiaSolta: ehIdeiaSolta({ prompt: intake.text, scriptMode: body.script_mode }) && !isSeriesContinuationPrompt(intake.text), scriptMode: body.script_mode, originalIdea: body.original_idea, falas: falasCena }) : null
         const timingDoEco: Parameters<typeof kling4PorSecao>[0]['timing'] = { voiceovers: falasCena, wordsPerSecond: narrationRate.wordsPerSecond }
         if (k4EnsaioRelato && 'fala_segundos' in k4EnsaioRelato && typeof k4EnsaioRelato.fala_segundos === 'number' && duracaoPelaVozLigada(KLING4_DURACAO_PELA_VOZ, isInternalEmail(user.email))) timingDoEco.pelaVoz = { segundosDaVoz: k4EnsaioRelato.fala_segundos }
         if (k4EnsaioRelato && 'clip_seconds' in k4EnsaioRelato && typeof k4EnsaioRelato.clip_seconds === 'number' && k4EnsaioRelato.clip_seconds > 15) timingDoEco.clipSeconds = k4EnsaioRelato.clip_seconds
@@ -8260,7 +8265,7 @@ async function manipularPost(req: NextRequest) {
     // v2: o sujeito sai SÓ do pedido original (ideia solta crua, ou a original_idea do roteiro estruturado pelo cliente) — nunca do roteiro com pistas [Pexels]; sem pedido confiável, nada muda.
     // v4: o sujeito vem de UMA chamada semântica ao gpt-4o-mini sobre esse pedido (prazo ~4 s, 1 tentativa extra no máximo); erro, prazo ou JSON inválido = nada muda.
     // v5: a chamada só sai DEPOIS da reserva do teste aprovada e com as 3 cenas do Kling 4 (dentro do submit): em fallback ela não é gasta nem soma espera.
-    const kling4PedidoSujeito = kling4TrialCandidate && !desenhoInfantil.ativo ? pedidoOriginalDoSujeito({ prompt: intake.text, ideiaSolta: ehIdeiaSolta({ prompt: intake.text, scriptMode: body.script_mode }) && !isSeriesContinuationPrompt(intake.text), scriptMode: body.script_mode, originalIdea: body.original_idea, falas: kling4Timing.voiceovers }) : null // KINEO-K4-SUJEITO-0111
+    const kling4PedidoSujeito = kling4TrialCandidate && !desenhoInfantil.ativo ? pedidoOriginalDoSujeito1911({ portao: portaoDoSujeito1911, roteiroDoEscritor: roteiroDoEscritor1911, prompt: intake.text, ideiaSolta: ehIdeiaSolta({ prompt: intake.text, scriptMode: body.script_mode }) && !isSeriesContinuationPrompt(intake.text), scriptMode: body.script_mode, originalIdea: body.original_idea, falas: kling4Timing.voiceovers }) : null // KINEO-K4-SUJEITO-0111 · KINEO-PORTAO-DO-SUJEITO-1911 (B1a): desligado = pedidoOriginalDoSujeito byte a byte
     const aplicarSujeitoNoKling4 = async () => { // KINEO-K4-SUJEITO-0111
       if (!kling4PedidoSujeito) return
       const r = await sujeitoNoKling4({ pedido: kling4PedidoSujeito, falas: kling4Timing.voiceovers, prompts: kling4Prompts, stills: kling4ApprovedStills, pessoaPermitida: !romanceAdulto.ativo }, leituraPronta1311()) // KINEO-PROTAGONISTA-1311 (item 4)

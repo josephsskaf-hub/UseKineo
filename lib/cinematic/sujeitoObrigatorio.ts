@@ -773,3 +773,35 @@ export async function sujeitoNoKling4(args: {
     return { prompts: [...args.prompts], stills: [...(args.stills ?? [])], relato }
   }
 }
+
+// ═══ KINEO-PORTAO-DO-SUJEITO-1911 · B1(a) [CEO 19/11: aprovado; diagnóstico dos três defeitos] — o sujeito obrigatório do Kling 4 grátis nem rodava ═══
+// 65 de 77 filmes do Kling 4 grátis (14 dias) saíram "sem_pedido": 36 pelo portão "roteiro_da_pessoa" (todo script_mode 'verbatim', inclusive o roteiro que
+// o NOSSO escritor fez — 14 deles; os outros 22 são roteiro colado pelo cliente) e 26 por "ideia_original_invalida" (pedidoCurto: ideia > 280 caracteres ou
+// 45 palavras — todas as 26 são ideias nossas, média 1.194 caracteres). Ligado: (1) roteiro literal ESCRITO PELO NOSSO ESCRITOR (a rota prova pelo
+// script_written casado) usa a ideia original, como o roteiro do Studio; roteiro colado pelo cliente continua de fora; (2) ideia longa vai ao leitor
+// semântico que já existe, cortada nos primeiros PEDIDO_LONGO_MAX caracteres em fronteira de frase — nunca roteiro (colchete [Pexels] ou cabeçalho de
+// seção = fora). O resto (ideia que discorda da fala, sem ideia) é o de sempre. 'off' = pedidoOriginalDoSujeito byte a byte.
+export const PORTAO_DO_SUJEITO_1911: 'off' | 'internal' | 'public' = 'off'
+export const PEDIDO_LONGO_MAX = 1500
+export function portaoDoSujeitoLigado(modo: 'off' | 'internal' | 'public', contaDaCasa: boolean): boolean {
+  return modo === 'public' || (modo === 'internal' && contaDaCasa === true)
+}
+/** A ideia longa como pedido: sem marcador de roteiro; cortada em fronteira de frase até PEDIDO_LONGO_MAX. null = não serve. */
+export function pedidoLongoDaIdeia(ideia: unknown): string | null {
+  const t = limpa(ideia)
+  if (!t || t.length > 4000 || /[[\]]/.test(t) || CABECALHO_DE_SECAO.test(String(ideia ?? ''))) return null
+  if (t.length <= PEDIDO_LONGO_MAX) return t
+  const corte = t.slice(0, PEDIDO_LONGO_MAX), fim = Math.max(corte.lastIndexOf('. '), corte.lastIndexOf('! '), corte.lastIndexOf('? '))
+  return fim >= PEDIDO_LONGO_MAX * 0.4 ? corte.slice(0, fim + 1) : corte.replace(/\s+\S*$/, '')
+}
+/** pedidoOriginalDoSujeito com o portão do B1(a). `portao` false = o de sempre. */
+export function pedidoOriginalDoSujeito1911(args: Parameters<typeof pedidoOriginalDoSujeito>[0] & { portao: boolean; roteiroDoEscritor: boolean }): PedidoDoSujeito {
+  const base = pedidoOriginalDoSujeito(args)
+  if (!args.portao) return base
+  const r = base.motivo === 'roteiro_da_pessoa' && args.roteiroDoEscritor ? pedidoOriginalDoSujeito({ ...args, scriptMode: 'ai', ideiaSolta: false }) : base
+  if (r.motivo !== 'ideia_original_invalida') return r === base ? base : { ...r, motivo: r.pedido ? `${r.motivo}_do_escritor` : r.motivo }
+  const longo = pedidoLongoDaIdeia(args.originalIdea)
+  if (!longo) return r
+  if (temaDiscordaDaFala(longo, (args.falas ?? []).join(' '))) return { pedido: null, fonte: null, motivo: 'ideia_original_discorda_da_fala' }
+  return { pedido: longo, fonte: 'ideia_original', motivo: base.motivo === 'roteiro_da_pessoa' ? 'ideia_longa_do_escritor' : 'ideia_longa' }
+}
