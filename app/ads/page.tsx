@@ -207,7 +207,7 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
           {/* KINEO-PAGINA-IGUAL-0411 — fundador 04/11: "tem uma diferença enorme… queria deixar tudo igual". A mesma página para todos, com um botão principal no mesmo lugar. */}
           <div className="ads-cta" data-kineo={sampleOpen ? 'ads-door-sample' : undefined}>
             <DoorCta cta={cta} placement="hero" href={makerHref} />
-            {sampleOpen && cta === 'open' ? <p className="gnote">One {ADS_ESCOLHA_SAMPLE_SECONDS}-second ad per account: an AI presenter with your real product, {ADS_ESCOLHA_SAMPLE_PHOTOS} stills to pick from, voice-over and music, with a small usekineo.com watermark. No card needed.</p> : null}
+            {sampleOpen && cta === 'open' ? <p className="gnote"><strong>Free presenter sample.</strong> One {ADS_ESCOLHA_SAMPLE_SECONDS}-second ad per account with your product, {ADS_ESCOLHA_SAMPLE_PHOTOS} stills to choose from, voice-over, music and a small usekineo.com watermark. No card needed.</p> : null}
           </div>
         </header>
 

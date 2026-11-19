@@ -108,6 +108,15 @@ export function recreateNewestFirst<T extends { desde: string }>(list: readonly 
   return list.map((f, i) => ({ f, i })).sort((a, b) => (a.f.desde < b.f.desde ? 1 : a.f.desde > b.f.desde ? -1 : a.i - b.i)).map(x => x.f)
 }
 
+const HALLOWEEN_AND_DAY_OF_THE_DEAD = new Set(['effect-witch', 'effect-zombie', 'effect-werewolf', 'effect-catrina', 'effect-catrina-pet'])
+
+export function recreateAutumnTemplatesLast<T extends { id: string }>(list: readonly T[]): T[] {
+  return [
+    ...list.filter((format) => !HALLOWEEN_AND_DAY_OF_THE_DEAD.has(format.id)),
+    ...list.filter((format) => HALLOWEEN_AND_DAY_OF_THE_DEAD.has(format.id)),
+  ]
+}
+
 // Written in the order models were added; RECREATE_FORMATS (and so the public grid, the signed-in grid and /ai-face-swap-video) lists
 // them newest first.
 const RECREATE_CATALOG: readonly RecreateFormat[] = [

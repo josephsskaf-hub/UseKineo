@@ -1,10 +1,11 @@
 'use client'
 
+import PublicSiteHeader from '@/components/PublicSiteHeader'
 import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import Link from 'next/link'
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react' // KINEO-CLIP-RECREATE-JUNTOS-1511: + ReactNode, RefObject
 import { KineoBrandIcon } from '@/components/KineoBolt'
-import { RECREATE_FORMATS, recreateFormat, type RecreateFormat } from '@/lib/recreate/formats'
+import { RECREATE_FORMATS, recreateAutumnTemplatesLast, recreateFormat, type RecreateFormat } from '@/lib/recreate/formats'
 import { ownedClipImageUrl } from '@/lib/clips/clipCatalog'
 import { publicRecreatePath } from '@/lib/recreate/entry'
 import { recreatePublicMedia } from '@/lib/recreate/catalogPublic'
@@ -615,7 +616,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
   </>
   const galeria = <>
         <div className="rc-gallery-heading">{selected ? <><h2 tabIndex={-1}>Video templates</h2><p>Choose a different starting point.</p></> : <><span className="rc-eyebrow">RECREATE</span><h1 tabIndex={-1}>Video templates</h1><p>Choose a Kineo format. Make it yours.</p></>}{currentFlow && ownVideoVisible && <Link className="rc-flow-own" href={`${flowBasePath}/your-video`} onClick={leaveFlow}><Icone nome="video" />Use your video</Link>}</div>
-        <div className="rc-grid">{gradeSemParecidosJuntos(catalog).map((f, index) => <article key={f.id} className={`rc-card ${index % 4 === 1 ? 'rc-card-short' : ''} ${selected?.id === f.id ? 'rc-card-selected' : ''}`}>
+        <div className="rc-grid">{recreateAutumnTemplatesLast(gradeSemParecidosJuntos(catalog)).map((f, index) => <article key={f.id} className={`rc-card ${index % 4 === 1 ? 'rc-card-short' : ''} ${selected?.id === f.id ? 'rc-card-selected' : ''}`}>
           <ExampleCover src={mediaFor(f).video} poster={mediaFor(f).poster} label={`Choose ${f.title}`} disabled={editingDisabled} onSelect={() => choose(f)} foco={FOCO_DA_CAPA[f.id]} />
           <div className="rc-card-top"><button disabled={currentFlow && !signedIn} onClick={() => { setReport(f); setExpanded(null) }} aria-label={`Report ${f.title}`}>⋯</button><button onClick={() => { setExpanded(f); setReport(null) }} aria-label={`Expand ${f.title}`}>⤢</button></div>
           <div className="rc-card-bottom"><h3>{f.title}</h3><div><button className={social[f.id]?.liked ? 'rc-liked' : ''} disabled={!social[f.id] || socialBusy} aria-label={`Like ${f.title}`} aria-pressed={social[f.id]?.liked ?? false} onClick={() => void like(f)}>♡{social[f.id]?.count > 0 ? ` ${social[f.id].count}` : ''}</button><button className="rc-template-action" disabled={editingDisabled} onClick={() => choose(f)} aria-label={`Use ${f.title}`}>{selected?.id === f.id ? 'Selected ✓' : <>Recreate<Icone nome="seta" /></>}</button></div></div>
@@ -631,7 +632,9 @@ export default function RecreateClient({ initialId, internalTools = false, forma
   </>
   if (moldura) return moldura({ selecionado: selected, catalogo: catalog, midia: mediaFor, escolher: choose, soltar, ocupado: editingDisabled, sair: leaveFlow, aviso, painel, palco, galeria, galeriaRef: galleryRef, dialogo })
   return <main className={`recreate${currentFlow ? ' rc-current-flow' : ''}`} data-recreate-current-flow={currentFlow ? true : undefined} aria-busy={currentFlow ? busy || restoring : undefined}>
-    <header className={createTabs ? 'rc-nav ct-nav' : 'rc-nav'}><Link href="/" className="rc-brand" onClick={currentFlow ? leaveFlow : undefined}><KineoBrandIcon size={28} /><span>Kineo</span></Link>{createTabs ? <CreateTabs active="recreate" {...(currentFlow ? { recreateHref: flowBasePath } : {})} /> : <Link href={currentFlow ? flowBasePath : '/recreate'} onClick={e => { if (editingDisabled) e.preventDefault(); else if (currentFlow) leaveFlow(e) }}>Recreate</Link>}{createTabs ? <CreateNavConta /> : <SiteSettingsMenu signedIn={signedIn} />}</header>
+    {currentFlow && flowBasePath === '/recreate' && !selected && !createTabs
+      ? <PublicSiteHeader signedIn={signedIn} currentPath="/recreate" signupHref="/signup?redirect=%2Frecreate" />
+      : <header className={createTabs ? 'rc-nav ct-nav' : 'rc-nav'}><Link href="/" className="rc-brand" onClick={currentFlow ? leaveFlow : undefined}><KineoBrandIcon size={28} /><span>Kineo</span></Link>{createTabs ? <CreateTabs active="recreate" {...(currentFlow ? { recreateHref: flowBasePath } : {})} /> : <Link href={currentFlow ? flowBasePath : '/recreate'} onClick={e => { if (editingDisabled) e.preventDefault(); else if (currentFlow) leaveFlow(e) }}>Recreate</Link>}{createTabs ? <CreateNavConta /> : <SiteSettingsMenu signedIn={signedIn} />}</header>}
     {aviso}
     <div className={`rc-workspace ${selected ? '' : 'rc-library-only'}`}>
       {selected && <aside className="rc-panel" aria-label="Create your version">{painel}</aside>}

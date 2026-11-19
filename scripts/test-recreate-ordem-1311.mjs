@@ -11,6 +11,8 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const FORMATS = 'lib/recreate/formats.ts'
 const PUBLICO = 'lib/recreate/catalogPublic.ts'
+const SERVIDOR = 'lib/recreate/catalogoServidor.ts'
+const SAZONAIS = new Set(['effect-witch', 'effect-zombie', 'effect-werewolf', 'effect-catrina', 'effect-catrina-pet'])
 const git = (...a) => execFileSync('git', a, { encoding: 'utf8', maxBuffer: 64 << 20 }).trim()
 const hoje = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date())
 const primeiroDia = (busca, arquivo) => git('log', '--reverse', '--format=%ad', '--date=short', '-S' + busca, '--', arquivo).split('\n')[0] || null
@@ -50,11 +52,18 @@ function problemas(mut = {}) {
   // (3) ordem
   const i = crescente(todos)
   if (i > 0) p.push(`(3) catálogo fora de ordem: ${todos[i - 1].id} (${todos[i - 1].desde}) antes de ${todos[i].id} (${todos[i].desde})`)
-  const pub = C.publicRecreateCatalog().map((x) => todos.find((f) => f.id === x.id))
-  const j = crescente(pub)
-  if (j > 0) p.push(`(3) grade pública fora de ordem: ${pub[j - 1].id} antes de ${pub[j].id}`)
+  const publicos = C.publicRecreateCatalog().map((x) => todos.find((f) => f.id === x.id))
   const casa = I.INTERNAL_EXACT_EMAILS?.[0]
   if (casa) { const k = crescente(A.visibleRecreateFormats(casa)); if (k > 0) p.push('(3) grade logada fora de ordem') }
+  const S = L(SERVIDOR)
+  for (const [grade, lista] of [['pública', publicos], ['após login', S.formatosParaOCliente(casa)]]) {
+    const regulares = lista.filter((f) => !SAZONAIS.has(f.id))
+    const sazonais = lista.filter((f) => SAZONAIS.has(f.id))
+    if (!sazonais.length) p.push(`(3) grade ${grade} sem moldes sazonais`)
+    if (crescente(regulares) > 0 || crescente(sazonais) > 0 || lista.slice(0, regulares.length).some((f) => SAZONAIS.has(f.id))) {
+      p.push(`(3) grade ${grade} fora de ordem: novidades antes dos sazonais, cada grupo por data`)
+    }
+  }
   // desempate estável: efeitos do mesmo dia na ordem de CLIP_EFFECTS; trocas do mesmo dia na ordem em que foram escritas
   const efeitos = todos.filter((f) => f.type === 'effect')
   const ordemEfeitos = E.CLIP_EFFECTS.filter((e) => e.preview?.poster).map((e) => `effect-${e.key.replaceAll('_', '-')}`)
@@ -86,7 +95,8 @@ const MUTANTES = [
   ['M4 ordem invertida', { [FORMATS]: troca('(a.f.desde < b.f.desde ? 1 : a.f.desde > b.f.desde ? -1 : a.i - b.i)', '(a.f.desde < b.f.desde ? -1 : a.f.desde > b.f.desde ? 1 : a.i - b.i)') }],
   ['M5 ordenação removida', { [FORMATS]: troca('= recreateNewestFirst([...RECREATE_CATALOG, ...RECREATE_MOVIMENTO_PUBLICOS])', '= [...RECREATE_CATALOG, ...RECREATE_MOVIMENTO_PUBLICOS]') }], // reancorado KINEO-RECREATE-MOVIMENTO-1411 · KINEO-RECEITA-FORA-DO-JS-1411 (o catálogo do navegador leva a vitrine do movimento aprovado; o fechado mora no servidor; a ordenação continua a mesma)
   ['M6 desempate instável', { [FORMATS]: troca(': a.i - b.i))', ': b.i - a.i))') }],
-  ['M7 grade pública reordenada', { [PUBLICO]: troca('return recreateNewestFirst(RECREATE_FORMATS.filter(f => publicRecreatePath(f.id) !== null)).map(', 'return [...RECREATE_FORMATS.filter(f => publicRecreatePath(f.id) !== null)].reverse().map(') }],
+  ['M7 grade pública reordenada', { [PUBLICO]: troca('recreateAutumnTemplatesLast(recreateNewestFirst(RECREATE_FORMATS.filter(f => publicRecreatePath(f.id) !== null)))', 'recreateAutumnTemplatesLast(RECREATE_FORMATS.filter(f => publicRecreatePath(f.id) !== null).reverse())') }],
+  ['M8 sazonais voltam ao topo', { [PUBLICO]: troca('return recreateAutumnTemplatesLast(recreateNewestFirst(RECREATE_FORMATS.filter(f => publicRecreatePath(f.id) !== null)))', 'return recreateNewestFirst(RECREATE_FORMATS.filter(f => publicRecreatePath(f.id) !== null))') }],
 ]
 const L1 = (await import('node:fs')).readFileSync
 for (const [nome, mut] of MUTANTES) {

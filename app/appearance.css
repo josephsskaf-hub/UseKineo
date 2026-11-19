@@ -169,6 +169,14 @@ html .stu.images-workspace .image-engine-icon{width:26px;height:26px;border-radi
 html .stu.library-page .library-toolbar{display:flex;flex-wrap:wrap;align-items:center;margin-bottom:18px}
 html .stu.library-page .library-create-actions{order:2;margin-inline-start:auto}
 html .stu.library-page .library-create-actions>a{background:var(--indigo)!important;color:var(--on-accent)!important;border-color:var(--indigo)}
+
+[data-public-site-header].kpn{background:var(--header-bg);border-color:var(--border);color:var(--text)}
+[data-public-site-header] .kpn-links a,[data-public-site-header] .kpn-login{color:var(--text)}
+[data-public-site-header] .kpn-links a:hover,[data-public-site-header] .kpn-links a[aria-current=page],[data-public-site-header] .kpn-logo .mk{color:var(--indigo)}
+[data-public-site-header] .kpn-links a.kpn-primary::after,[data-public-site-header] .kpn-bars i{background:var(--indigo)}
+[data-public-site-header] .kpn-menu{background:var(--bg);border-color:var(--border)}
+[data-public-site-header] .kpn-menu a{color:var(--text);border-color:var(--border)}
+[data-public-site-header] .kpn-cta{background:var(--indigo);border-color:var(--indigo);color:var(--on-accent)!important;box-shadow:none}
 html .stu.library-page .library-search{flex:1 1 230px;max-width:350px;min-width:0;position:relative}
 html .stu.library-page .library-status-placeholder{background:var(--card2);color:var(--muted)}
 html .stu.library-page .library-status-placeholder>span{color:var(--accent)}
@@ -358,6 +366,7 @@ body::before{z-index:-1}
   .kpn-menu::before{content:"Kineo";flex:none;display:flex;align-items:center;min-height:44px;padding:0 6px 8px;font-size:18px;font-weight:700;color:var(--text)}
   .kpn-menu a{display:flex!important;align-items:center;gap:12px;min-height:46px!important;padding:10px!important;border-bottom:0!important;border-radius:12px;font-weight:600!important;font-size:15px!important;color:var(--text)!important}
   .kpn-menu a[data-nav-item]::before{content:"";flex:none;width:20px;height:20px;background:currentColor;-webkit-mask:var(--ico) center/contain no-repeat;mask:var(--ico) center/contain no-repeat}
+.klp .nav-mobile-menu a[data-nav-item="more:recreate"],.kpn-menu a[data-nav-item="more:recreate"]{--ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 12a8 8 0 1 1-2.4-5.7L20 9M20 4v5h-5'/%3E%3C/svg%3E")}
 .kpn-menu a[data-nav-item="video"]{--ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Cpath d='M8 5v14M16 5v14M3 12h18'/%3E%3C/svg%3E")}
   .kpn-menu a[data-nav-item="business"]{--ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 11l15-6v14L3 13z'/%3E%3Cpath d='M8 14v4a2 2 0 0 0 4 0v-2'/%3E%3C/svg%3E")}
   .kpn-menu a[data-nav-item="more:ugc"]{--ico:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 21a8 8 0 0 1 16 0'/%3E%3C/svg%3E")}

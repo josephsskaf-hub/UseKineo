@@ -1,6 +1,6 @@
 'use client'
 
-import SiteSettingsMenu from '@/components/SiteSettingsMenu'
+import PublicSiteHeader from '@/components/PublicSiteHeader'
 import { WATCH_PRICING_PUBLIC, WATCH_PRICING_CSS } from '@/lib/pricingWatch'
 
 import Kling4PaidNotice, { useKling4PaidAvailability } from '@/components/Kling4PaidNotice'
@@ -11,7 +11,7 @@ import { CitationDetails, CitationDirectAnswer } from '@/components/seo/TrafficC
 import PricingIncludes0511 from '@/components/pricing/PricingIncludes0511' // KINEO-PRICING-INCLUI-0511
 import { alternativasDoPlano, incluidoEmTodoPlano } from '@/lib/planoDetalhado' // KINEO-PRICING-DETALHE-0611
 
-import KineoBolt, { KineoBoltText, KineoBrandIcon } from '@/components/KineoBolt'
+import KineoBolt, { KineoBoltText } from '@/components/KineoBolt'
 import CreditMinutesSummary from '@/components/CreditMinutesSummary'
 
 // Push #076 — Standalone /pricing page (real route, not just an anchor).
@@ -1402,29 +1402,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         style={{ background: 'var(--indigo)', filter: 'blur(160px)' }}
       />
 
-      {/* ───────── Top Nav (simple) ───────── */}
-      <nav className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--card)] backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-2.5">
-            <KineoBrandIcon size={32} />
-            <div className="flex flex-col leading-none">
-              <span className="text-[15px] font-extrabold tracking-tight text-[var(--text)]">
-                Kineo
-              </span>
-            </div>
-          </Link>
-
-          <div className="flex items-center gap-2 sm:gap-3">
-            <SiteSettingsMenu />
-            <Link
-              href="/"
-              className="rounded-lg px-3 py-2 text-sm font-semibold text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--card2)] transition"
-            >
-              ← Back to Home
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <PublicSiteHeader signedIn={signedIn ?? undefined} currentPath="/pricing" />
 
       {/* ───────── Exit-intent modal (Starter Pack rescue offer) ───────── */}
       <ExitIntentOffer />

@@ -3,7 +3,7 @@
 // com a receita). Nenhum módulo 'use client' importa este arquivo (o guardião percorre o grafo). As páginas montam a lista do cliente com
 // formatosParaOCliente(email): só os moldes que aquela pessoa pode ver, e de cada um só os campos de vitrine (nada de cena, ação, guia, quadros da trava
 // nem notas internas).
-import { RECREATE_ASSETS, RECREATE_FORMATS, recreateNewestFirst, type RecreateFormat } from './formats'
+import { RECREATE_ASSETS, RECREATE_FORMATS, recreateAutumnTemplatesLast, recreateNewestFirst, type RecreateFormat } from './formats'
 import { MOVIMENTO_ASSETS, RECREATE_MOVIMENTO_MOLDES } from './movimentoMoldes'
 import { recreateFormatVisible } from './access'
 import { FORMATOS_DOS_MOLDES_DE_TRECHOS } from './invasorMolde' // KINEO-INVASOR-DE-CAMPO-1511 · KINEO-REMODELAMENTO-MOLDES-1611 — os moldes de vários trechos (cada um com o seu interruptor)
@@ -31,4 +31,4 @@ export function paraOCliente(f: RecreateFormat): RecreateFormat {
   if (f.palco === true) out.palco = true // KINEO-PALCO-INVADER-1611 — o molde aberto da máquina de trechos abre o palco da tela única (campo de vitrine, sem receita)
   return out as unknown as RecreateFormat
 }
-export const formatosParaOCliente = (email: string | null | undefined): RecreateFormat[] => visibleRecreateFormatsServidor(email).map(paraOCliente)
+export const formatosParaOCliente = (email: string | null | undefined): RecreateFormat[] => recreateAutumnTemplatesLast(visibleRecreateFormatsServidor(email)).map(paraOCliente)

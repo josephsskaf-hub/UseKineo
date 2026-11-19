@@ -4,6 +4,7 @@
 // parado, vídeo só toca com o mouse em cima (computador) ou com o toque no botão ▶ (celular). Nada começa sozinho. O cartão inteiro leva ao
 // fluxo daquele modelo. Sem preço, sem nome de motor, nenhum texto abaixo de 12 px.
 import Link from 'next/link'
+import PublicSiteHeader from '@/components/PublicSiteHeader'
 import { useRef, useState } from 'react'
 import type { RecreateCatalogItem } from '@/lib/recreate/catalogPublic'
 
@@ -62,13 +63,7 @@ export default function RecreateCatalogPublic({ items }: { items: RecreateCatalo
   return (
     <div className="rcp" data-recreate-catalog="public">
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
-      <nav className="rcp-nav" aria-label="Main navigation">
-        <Link href="/" className="rcp-brand">Kineo</Link>
-        <Link href="/made-with-kineo" className="rcp-hide-sm">Made with Kineo</Link>
-        <Link href="/pricing">Pricing</Link>
-        <Link href="/login" className="rcp-hide-sm">Log in</Link>
-        <Link href={'/signup?' + new URLSearchParams({ redirect: '/recreate' }).toString()} className="rcp-cta">Get started</Link>
-      </nav>
+      <PublicSiteHeader currentPath="/recreate" signupHref="/signup?redirect=%2Frecreate" signupLabel="Get started" />
       <main className="rcp-main">
         <p className="rcp-eyebrow">Kineo Recreate</p>
         <h1>Recreate — put yourself in the clip</h1>

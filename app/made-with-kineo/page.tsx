@@ -4,22 +4,17 @@
 // narrados misturados (curadoria em lib/homeGaleria.ts). Embaixo, INTACTA na regra: a vitrine de filmes que os donos escolheram
 // mostrar (KINEO-VITRINE-FILMES-2610 — só com consentimento, lida a cada visita; o estado vazio honesto continua). /pt e /es e
 // as páginas de cada filme seguem com components/MadeWithKineo.tsx, sem mudança.
-import SiteSettingsMenu from '@/components/SiteSettingsMenu'
+import PublicSiteHeader from '@/components/PublicSiteHeader'
 import Link from 'next/link'
 import { showcaseMetadata, showcasePageNumber } from '@/components/MadeWithKineo'
 import { getShowcaseFilms } from '@/lib/madeWithKineoServer' // KINEO-GALERIA-HOME-2710
 import { showcasePath } from '@/lib/madeWithKineo' // KINEO-GALERIA-HOME-2710
 import { SHOWCASE_COPY, showcaseCreateHref, showcaseProductionLine } from '@/lib/madeWithKineoCopy' // KINEO-GALERIA-HOME-2710
 import { createClient } from '@/lib/supabase/server' // KINEO-GALERIA-HOME-2710
-import { KineoBrandIcon } from '@/components/KineoBolt' // KINEO-GALERIA-HOME-2710
 import { UiLabel } from '@/components/InterfaceLanguage' // KINEO-GALERIA-HOME-2710
-import NavUgcAdsLink from '@/components/NavUgcAdsLink' // KINEO-GALERIA-HOME-2710
-import { createEntryForContentHref, createEntryHref } from '@/lib/create/entry' // KINEO-ENTRADAS-CARTOES-1011 [fundador 10/11: "todos os menus da parte de cima do site estão indo ainda para os links antigos"] — logado: as abas da tela nova; visitante: o de hoje
-import { RECREATE_MENU_HREF, RECREATE_MENU_LABEL, RECREATE_MENU_NAV_ITEM, MENU_CARTOON_HREF, MENU_CARTOON_LABEL, MENU_CARTOON_NAV_ITEM, MENU_CONNECTOR_HREF, MENU_CONNECTOR_LABEL, MENU_CONNECTOR_NAV_ITEM } from '@/lib/ui/homeRemodela2010' // KINEO-GALERIA-HOME-2710
-import { CARD_ENTRY_COPY } from '@/lib/entryPolicy' // KINEO-GALERIA-HOME-2710
-import { MADE_WITH_KINEO_HREF, MADE_WITH_KINEO_LABEL, MADE_WITH_KINEO_NAV_ITEM } from '@/lib/homeGaleria' // KINEO-GALERIA-HOME-2710
+import { createEntryForContentHref } from '@/lib/create/entry'
+import { MADE_WITH_KINEO_LABEL } from '@/lib/homeGaleria' // KINEO-GALERIA-HOME-2710
 import styles from '../examples/ExamplesGallery.module.css' // KINEO-GALERIA-HOME-2710
-import { MENU_CELULAR_VITRINE_CSS } from '@/lib/ui/menuCelularVitrine' // KINEO-MENU-CELULAR-VITRINE-1111
 import '../trending/trending.css' // KINEO-GALERIA-HOME-2710
 import fs from 'node:fs' // KINEO-JUNTA-TRENDING-3110
 import path from 'node:path' // KINEO-JUNTA-TRENDING-3110
@@ -53,31 +48,7 @@ export default async function Page({ searchParams }: { searchParams: { page?: st
   const copy = SHOWCASE_COPY.en // KINEO-GALERIA-HOME-2710
   return ( // KINEO-GALERIA-HOME-2710
     <main className={`${styles.page} trending-page`} data-galeria-page="KINEO-GALERIA-HOME-2710">
-      {/* 8 itens no topo: rótulo numa linha só, e até 1240px o menu desce para a 2ª fileira (o mesmo arranjo que o kit já usa abaixo de 1000px) */}
-      <style dangerouslySetInnerHTML={{ __html: '[data-galeria-page] header nav a{white-space:nowrap}@media(max-width:1240px) and (min-width:1001px){[data-galeria-page] header>div{display:flex;flex-wrap:wrap;gap:0 20px;padding-top:17px;padding-bottom:13px}[data-galeria-page] header>div>div{margin-left:auto}[data-galeria-page] header nav{order:3;width:100%;justify-content:center;gap:24px;padding-top:16px;flex-wrap:wrap}}' }} />
-      <style dangerouslySetInnerHTML={{ __html: MENU_CELULAR_VITRINE_CSS }} />{/* KINEO-MENU-CELULAR-VITRINE-1111 — menu do topo numa linha só no celular */}
-      <header className={styles.pageHeader}>
-        <div className={styles.headerInner}>
-          <Link href="/" className={styles.brand}><KineoBrandIcon size={26} />Kineo</Link>
-          <nav className={styles.nav} aria-label="Main navigation" data-nav-surface="top" data-nav-area="public">
-            {/* par do topo da home (app/KineoLanding.tsx): "Made with Kineo" logo depois dos itens de filme e de anúncio */}
-            <Link href={createEntryHref('film', '/studio', signedIn)} className={styles.navPrimary} data-nav-item="video"><UiLabel>Make a film</UiLabel></Link>
-            <Link href={createEntryHref('ads', '/ads/new', signedIn)} className={styles.navPrimary} data-nav-item="business"><UiLabel>Product ads</UiLabel></Link>
-            <NavUgcAdsLink data-nav-item="more:ugc" signedIn={signedIn} />
-            <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM} aria-current="page">{MADE_WITH_KINEO_LABEL}</Link>
-            <Link href={createEntryForContentHref('cartoon', MENU_CARTOON_HREF, '/kids-cartoon', signedIn)} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{MENU_CARTOON_LABEL}</UiLabel></Link>
-            <Link href={RECREATE_MENU_HREF} data-nav-item={RECREATE_MENU_NAV_ITEM}>{RECREATE_MENU_LABEL}</Link>
-            <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM}>{MENU_CONNECTOR_LABEL}</Link>
-            <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
-          </nav>
-          <div className={styles.headerTools}>
-            <SiteSettingsMenu />
-            {signedIn
-              ? <Link href={createEntryHref('film', '/studio', signedIn)} className={styles.navCta}><UiLabel>Open Studio</UiLabel></Link>
-              : <Link href="/signup?utm_source=made_with_kineo" className={styles.navCta}><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>}
-          </div>
-        </div>
-      </header>
+      <PublicSiteHeader signedIn={signedIn} currentPath="/made-with-kineo" signupHref="/signup?utm_source=made_with_kineo" />
 
       <div className="tr-wrap">
         <section className="tr-hero" aria-labelledby="mwk-title">

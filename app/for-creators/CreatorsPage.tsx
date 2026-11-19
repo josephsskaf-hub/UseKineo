@@ -1,6 +1,6 @@
 'use client'
 
-import SiteSettingsMenu from '@/components/SiteSettingsMenu'
+import PublicSiteHeader from '@/components/PublicSiteHeader'
 import { useState } from 'react'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
 import { buildAuthenticatedCreationRedirect, CREATION_HANDOFF_PROMPT_MAX_CHARS, FOR_CREATORS_CAMPAIGN as campaign } from '@/lib/creationHandoff'
@@ -27,11 +27,7 @@ export default function CreatorsPage({ freeFilm, initialIdea }: { freeFilm: bool
   const tooShort = idea.length > 0 && idea.trim().length < 3
   const redirect = buildAuthenticatedCreationRedirect({ prompt: idea, campaign, createIntent: 'trial_best' })
   return <main className="creators">
-    <header className="creators-nav wrap">
-      <a className="brand" href="/" aria-label="Kineo home"><span className="brand-mark">k</span>kineo<span className="brand-dot">.</span></a>
-      <span className="nav-label">MADE FOR CHANNEL CREATORS</span>
-      <SiteSettingsMenu />
-    </header>
+    <PublicSiteHeader />
     <section className="hero wrap">
       <div className="hero-copy">
         <div className="eyebrow"><span /> FOR FACELESS CHANNELS</div>

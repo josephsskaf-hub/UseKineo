@@ -67,7 +67,7 @@ import LandingPlanPrice from '@/components/LandingPlanPrice'
 // cartão volta ao preço cheio aqui. As respostas da FAQ que mentiam moram em lib/growth/homeTextos.ts (espelho do JSON-LD).
 import { WELCOME20_SITE_OFFER_LIVE } from '@/lib/growth/publicPromoTruth'
 import { HOME_FAQ_EDITING_ANSWER, HOME_FAQ_TIME_ANSWER } from '@/lib/growth/homeTextos'
-import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing' // KINEO-AEO-PRICE-TRUTH-2026-08-19
+import { formatCheckoutMoney, TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing' // KINEO-AEO-PRICE-TRUTH-2026-08-19
 import { GUEST_CHECKOUT_LIVE } from '@/lib/growth/guestCheckout' // KINEO-COMPRA-SEM-LOGIN-2026-10-06
 // KINEO-CLIPES-2026-08-19 — filme pronto + cenas, ver lib/marketingPrice.
 import { CHECKOUT_CURRENCY_DISCLOSURE, filmsAndScenes, imagesFor, nanoBananasFor, voiceoversFor, filmsOn } from '@/lib/marketingPrice' // KINEO-CARD-CHEIO-2026-08-25
@@ -1190,7 +1190,7 @@ export default function KineoLanding({
               <tr><td><UiLabel>AI image studio included</UiLabel></td><td className="us" data-label="Kineo"><UiLabel>6 engines</UiLabel></td><td className="no" data-label="OpusClip">—</td><td className="no" data-label="HeyGen">—</td><td className="no" data-label="Submagic">—</td></tr>
               <tr><td><UiLabel>Voice studio (text-to-speech)</UiLabel></td><td className="us" data-label="Kineo"><UiLabel>4 engines</UiLabel></td><td className="no" data-label="OpusClip">—</td><td className="no" data-label="HeyGen"><UiLabel>limited</UiLabel></td><td className="no" data-label="Submagic">—</td></tr>
               <tr><td><UiLabel>One-click HD film enhance</UiLabel></td><td className="us" data-label="Kineo">Topaz ✓</td><td className="no" data-label="OpusClip">—</td><td className="no" data-label="HeyGen">—</td><td className="no" data-label="Submagic">—</td></tr>
-              <tr><td><UiLabel>Starting price</UiLabel></td><td className="us" data-label="Kineo">{usdPrice(TIER_PRICES.starter.usd)}<UiLabel>/mo</UiLabel></td><td data-label="OpusClip">$15/mo</td><td data-label="HeyGen">$29/mo</td><td data-label="Submagic">$19/mo</td></tr>
+              <tr><td><UiLabel>Starting price</UiLabel></td><td className="us" data-label="Kineo">{formatCheckoutMoney('usd', TIER_PRICES.starter.usd)}<UiLabel>/mo</UiLabel></td><td data-label="OpusClip">$15/mo</td><td data-label="HeyGen">$29/mo</td><td data-label="Submagic">$19/mo</td></tr>
             </tbody>
           </table></div>
           <p style={{ marginTop: 12, textAlign: 'center', fontSize: 12, color: 'var(--muted2)' }}>✓ included&nbsp;&nbsp;·&nbsp;&nbsp;— not available</p>

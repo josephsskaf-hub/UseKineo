@@ -276,11 +276,11 @@ export function podeFazerAnuncio(t: Tile): boolean {
   return t.kind === 'novo' && clipeNovoAnuncio(t.clip)
 }
 
-function Recreate() {
+function Recreate({ clipPrompt = false }: { clipPrompt?: boolean }) {
   return (
     <span className="kmz-chip kmz-re" aria-hidden="true">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9" /><path d="M13.5 2.5v3h-3" /></svg>
-      <UiLabel>Recreate</UiLabel>
+      <UiLabel>{clipPrompt ? 'Use clip prompt' : 'Recreate'}</UiLabel>
     </span>
   )
 }
@@ -306,12 +306,12 @@ function MakeYours({ tipo }: { tipo: 'film' | 'cartoon' }) {
 }
 
 // KINEO-ETIQUETA-UNICA-1111 [CEO 11/11, tarefa 2] — as etiquetas do cartão numa fileira só (um desenho, quebra linha, nunca sobrepõe).
-function Chips({ novo = false, recreate = false, ad = false, convite = null }: { novo?: boolean; recreate?: boolean; ad?: boolean; convite?: 'film' | 'cartoon' | null }) {
+function Chips({ novo = false, recreate = false, clipPrompt = false, ad = false, convite = null }: { novo?: boolean; recreate?: boolean; clipPrompt?: boolean; ad?: boolean; convite?: 'film' | 'cartoon' | null }) {
   if (!novo && !recreate && !ad && !convite) return null
   return (
     <span className="kmz-chips">
       {novo ? <span className="kmz-chip kmz-new">⚡ NEW</span> : null}
-      {recreate ? <Recreate /> : null}
+      {recreate ? <Recreate clipPrompt={clipPrompt} /> : null}
       {ad ? <MakeYourAd /> : null}
       {convite ? <MakeYours tipo={convite} /> : null}
     </span>
@@ -342,13 +342,13 @@ export default function HomeMosaic({ signedIn, full = false, styles = [], afterT
             novos do topo ficam EM PÉ, na janela 5:6 da regra de enquadramento, fora da grade de linhas fixas (3 por linha no computador, 2 no celular),
             e são desenhados pelo MESMO cartão de clipe novo da grade (uma fonte só: mesmo destino, mesmo convite, mesma medição). */}
         {(() => {
-          const cartao = (t: Tile, topo = false) => {
+          const cartao = (t: Tile, topo = false, firstPosters = false) => {
             if (t.kind === 'clip') {
               const c = t.clip
               const card = (
                 <Link key={c.id} href={viaSignup('/clips?' + new URLSearchParams({ engine: c.engine, prompt: c.prompt }).toString(), signedIn)} className="kmz-t kmz-big" data-home-cta="mosaic_clip" aria-label={`${c.title} — clip`}>
                   <div className="kmz-md" style={focusStyle(c.poster, MOSAIC_CLIP_FOCUS[c.id] ?? c.focus)}><WallMedia src={c.video} /></div>
-                  <Chips recreate={podeRecriar(t)} />
+                  <Chips recreate={podeRecriar(t)} clipPrompt />
                 <span className="kmz-shade" aria-hidden="true" />
                   <span className="kmz-copy"><b><UiLabel>{c.title}</UiLabel></b><Views video={c.video} /></span>
                 </Link>
@@ -364,15 +364,16 @@ export default function HomeMosaic({ signedIn, full = false, styles = [], afterT
               const c = t.clip
               if (!topo && !full && NO_TOPO.has(c.id)) return null // KINEO-HOME-TOPO-CLIPES-1311 — já abre a home no topo; no /made-with-kineo (full) segue na grade
               const convite = podeRecriar(t) || podeFazerAnuncio(t) ? null : clipeNovoConvite(c) // KINEO-HOME-ESTRATEGIA-A-1311 — só quem não tem Recreate nem Make your ad
+              const clipPrompt = Boolean(c.prompt && !publicRecreatePath(c.id) && !recreateMoldeLogadoHref(c.id, signedIn))
               const tipo = c.selo ?? 'Clip' // KINEO-CARDS-SEM-MOTOR-0911 — o TIPO (Clip / Trending format), nunca o motor; o motor real segue no dado e no link · KINEO-CARDS-SEM-ETIQUETA-0911 — o tipo vive só no aria-label
               return ( // KINEO-ADS-NATAL-VITRINE-1011 — exemplo de anúncio: clipeNovoDestino dá /ads/new (via viaSignup), medido à parte como mosaic_ad
                 <Link key={'novo-' + c.id} href={convite === 'cartoon' ? createEntryForContentHref('cartoon', MENU_CARTOON_HREF, '/kids-cartoon', signedIn) /* KINEO-HOME-ESTRATEGIA-A-1311 — o mesmo destino do item Cartoon do menu do topo */ : convite === 'film' || clipeNovoAbreStudio(c) ? filmHref /* KINEO-VITRINE-10-1011 — filme do Studio: o link dos filmes */ : (recreateMoldeLogadoHref(c.id, signedIn) /* KINEO-HOME-PITCH-1611 — molde só de quem tem conta: logado abre /recreate/<id>; visitante pelo cadastro e volta */ ?? (publicRecreatePath(c.id) ? recreateEntryHref(c.id, signedIn)! : createEntryForSignupHref(viaSignup(clipeNovoDestino(c), signedIn), signedIn))) /* KINEO-ENTRADAS-TELA-NOVA-1011 — logado: só /ads/new seco vira /create/ads */} className={`kmz-t${t.grande ? ' kmz-big' : ''}`} data-home-cta={podeFazerAnuncio(t) ? 'mosaic_ad' : convite === 'film' ? 'mosaic_film' : convite === 'cartoon' ? 'mosaic_cartoon' : 'mosaic_clip'} data-clip-novo={c.id} aria-label={`${c.title} — ${tipo}`}>
                   <div className="kmz-md" style={focusStyle(undefined, c.focus)}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={clipeNovoPoster(c)} width={540} height={960} alt="" loading="lazy" decoding="async" style={{ objectPosition: c.focus, transform: 'none' }} />
+                    <img src={clipeNovoPoster(c)} width={540} height={960} alt="" loading={topo || firstPosters ? 'eager' : 'lazy'} decoding="async" style={{ objectPosition: c.focus, transform: 'none' }} />
                     <WallMedia src={clipeNovoVideo(c)} />
                   </div>
-                  <Chips recreate={podeRecriar(t)} ad={podeFazerAnuncio(t)} convite={convite} />{/* KINEO-ADS-NATAL-VITRINE-1011 · KINEO-ETIQUETA-UNICA-1111 · KINEO-HOME-ESTRATEGIA-A-1311 */}
+                  <Chips recreate={podeRecriar(t)} clipPrompt={clipPrompt} ad={podeFazerAnuncio(t)} convite={convite} />{/* KINEO-ADS-NATAL-VITRINE-1011 · KINEO-ETIQUETA-UNICA-1111 · KINEO-HOME-ESTRATEGIA-A-1311 */}
                 <span className="kmz-shade" aria-hidden="true" />
                   <span className="kmz-copy"><b><UiLabel>{c.title}</UiLabel></b><Views video={clipeNovoVideo(c)} /></span>{/* KINEO-OUTFIT-MORPH-HOME-0911 */}
                 </Link>
@@ -440,7 +441,7 @@ export default function HomeMosaic({ signedIn, full = false, styles = [], afterT
             <>
               {doTopo.length ? <div className="kmz-topo-grid" data-home-topo-grid="1">{doTopo.map((t) => cartao(t, true))}</div> : null}
               {afterTop}
-              <div className="kmz-grid">{tiles.map((t) => cartao(t))}</div>
+              <div className="kmz-grid">{tiles.map((t, index) => cartao(t, false, index < 6))}</div>
             </>
           )
         })()}

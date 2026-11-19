@@ -54,6 +54,7 @@ export default function WallMedia({ src }: { src: string }) {
           playsInline
           preload="none"
           onPlaying={(e) => { e.currentTarget.style.opacity = '1' }}
+          onError={(e) => { e.currentTarget.style.opacity = '0' }}
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0, transition: 'opacity 250ms cubic-bezier(.2,0,0,1)' }}
         />
       )}

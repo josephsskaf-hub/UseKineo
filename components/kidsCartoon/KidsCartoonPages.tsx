@@ -9,6 +9,7 @@
 // os passos e a FAQ do preço dizem o fluxo novo (o filme sai na mesma página, com a linha de créditos logo acima do botão).
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import PublicSiteHeader from '@/components/PublicSiteHeader'
 import Footer from '@/components/Footer'
 import UgcVideo from '@/components/ugc/UgcVideo'
 import KidsCtaLink from '@/components/kidsCartoon/KidsCtaLink'
@@ -137,7 +138,7 @@ export function kidsPageCopy(lang: KidsLang) {
     h1: 'AI cartoon videos: narrated 3D kids stories from one idea',
     lead: 'You type the idea (or pick a ready one), choose the character and the language. Kineo writes a short, innocent story and renders a vertical 3D cartoon with narration and captions — the same character from start to finish.',
     cta: 'Make my first cartoon', how: 'How it works', note: 'Included in paid plans. The credit price shows on the Generate button, before you confirm.', reviewed: 'Reviewed',
-    caption: 'Test short made with the film flow (Seedance 1.5, 3D style). It carries the usekineo.com/free mark because it was made on the house account.',
+    caption: 'A 3D animated short made with Kineo.',
     summaryHeading: 'What it is', summary: [citation.answer], // KINEO-CARTOON-TRACAO-2210
     stepsHeading: 'In 3 steps', steps: [
       { title: 'Pick the character', body: 'Leo, Mia, Dino, Pip, Bibi, Ollie, Preta, Guilhermina or Amora — Kineo’s own characters, not another studio’s.' },
@@ -184,14 +185,11 @@ export function KidsCartoonPage({ lang }: { lang: KidsLang }) {
   const howToLd = { '@context': 'https://schema.org', '@type': 'HowTo', name: c.h1, step: c.steps.map((s, i) => ({ '@type': 'HowToStep', position: i + 1, name: s.title, text: s.body, url: `${PAGINAS_KIDS_BASE}${path}#how` })) }
   return (
     <main className="kug" lang={pt ? 'pt-BR' : 'en'} data-paginas-kids={PAGINAS_KIDS_MARK}>
-      <style dangerouslySetInnerHTML={{ __html: UGC_PAGE_CSS + HOME_KIDS_CARD_CSS + CARTOON_CITATION_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: UGC_PAGE_CSS + HOME_KIDS_CARD_CSS + CARTOON_CITATION_CSS + '\n.kug-language{display:inline-flex;align-items:center;min-height:44px;font-size:14px;color:var(--text)}' }} />
       {ld(faqLd)}{ld(howToLd)}
+      <PublicSiteHeader currentPath={path} />
       <div className="kug-wrap">
-        <nav className="kug-nav" aria-label={pt ? 'Navegação' : 'Main navigation'}>
-          <Link className="kug-brand" href="/">Kineo</Link>
-          <Link className="kug-hide-sm" href={pt ? KIDS_EN_PATH : KIDS_PT_PATH}>{pt ? 'English' : 'Português'}</Link>
-          <Link href="/pricing">{pt ? 'Preços' : 'Pricing'}</Link>
-        </nav>
+        <Link className="kug-language" href={pt ? KIDS_EN_PATH : KIDS_PT_PATH} hrefLang={pt ? 'en' : 'pt-BR'}>{pt ? 'English' : 'Português'}</Link>
         <header className="kug-hero">
           <div>
             <p className="kug-eyebrow">{c.eyebrow}</p>
