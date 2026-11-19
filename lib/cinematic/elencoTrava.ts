@@ -222,6 +222,28 @@ export function lerAncoras(raw: string): AncorasDeAparencia | null {
   const a: AncorasDeAparencia = { idade: campo(j.age_range), cabelo: campo(j.hair), pele: campo(j.skin_tone), roupa: campo(j.clothing), pelagem: campo(j.coat), porte: campo(j.size), barba: semPelo ? 'clean-shaven' : campo(j.facial_hair) }
   return Object.values(a).some(Boolean) ? a : null
 }
+// KINEO-FICHA-IDADE-ESCRITA-1911 — B1(b) [CEO 19/11: "idade da folha só quando a idade está escrita no texto; a ROUPA FICA, desde que o tipo esteja
+// certo"]. A folha é uma imagem que NÓS geramos: a idade lida dela ("10-12" no leão Aaron, c92b352b) é invenção quando o texto não a escreve, e ia a
+// toda cena. Com o interruptor ligado, a idade da folha só entra quando o leitor do elenco achou a idade ESCRITA deste personagem (age_text, trecho
+// literal conferido no texto); cabelo, barba, pele, roupa, porte e pelagem ficam como hoje. 'off' = a main byte a byte; 'internal' = só os 3 e-mails
+// exatos do ensaio; 'public' só com revisor independente + prova paga + sim do dono. Guardião: scripts/test-segunda-leitura-da-gente-1911.mjs.
+export type ModoFichaIdade1911 = 'off' | 'internal' | 'public'
+export const FICHA_IDADE_ESCRITA_1911: ModoFichaIdade1911 = 'off' // 'public' só com revisor independente + prova paga + sim do dono
+export const fichaIdadeLigada = (modo: ModoFichaIdade1911, contaDoEnsaio: boolean): boolean => modo === 'public' || (modo === 'internal' && contaDoEnsaio)
+/** As âncoras sem a idade quando o texto não escreve a idade deste personagem; o resto fica. Só idade (nada mais) = null (a ficha fica como estava). */
+export function ancorasComIdadeDoTexto(a: AncorasDeAparencia | null, idadeEscrita: boolean): AncorasDeAparencia | null {
+  if (!a || idadeEscrita || !a.idade) return a
+  const b: AncorasDeAparencia = { ...a, idade: '' }
+  return Object.values(b).some(Boolean) ? b : null
+}
+const chaveDoNome = (n: unknown) => String(n ?? '').replace(/\s+/g, ' ').trim().toLowerCase().replace(/^the\s+/, '')
+/** Os personagens cuja idade o TEXTO escreve, segundo o leitor do elenco (age_text conferido): nome, ou "the <papel>" sem nome. */
+export function nomesComIdadeEscrita(elenco: { protagonist: { name: string | null; role: string | null; age_text?: string | null } | null; supporting: ReadonlyArray<{ name: string | null; role: string | null; age_text?: string | null }> } | null | undefined): Set<string> {
+  if (!elenco) return new Set()
+  return new Set([elenco.protagonist, ...elenco.supporting].filter((p) => !!p && !!String(p.age_text ?? '').trim()).map((p) => chaveDoNome(p!.name ?? p!.role)))
+}
+export const idadeEscritaDoNome = (escritas: ReadonlySet<string>, nome: string): boolean => escritas.has(chaveDoNome(nome))
+
 /** A frase das âncoras (só o que a imagem mostrou). */
 export function fraseDasAncoras(tipo: FichaDePersonagem['tipo'], a: AncorasDeAparencia): string {
   const partes = tipo === 'humano'
