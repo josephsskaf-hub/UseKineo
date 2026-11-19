@@ -3,7 +3,7 @@
 // contagem e os episódios entregues (vídeo + título + legenda + hashtags). Só lê; nada cobra nem grava. Relógio e regras do SERVIDOR.
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { isInternalEmail } from '@/lib/internalAccounts'
+import { contaDaCasaExata } from '@/lib/internalAccounts'
 import { KIDS_PRICES, KIDS_SALES_OPEN_FOR_PUBLIC, KIDS_VENDA_DURATION, KIDS_VIDEOS, kidsSalesOpen } from '@/lib/kidsVenda/kidsVenda'
 import { kidsSampleEligibility, kidsServiceClient, loadKidsStatus } from '@/lib/kidsVenda/server'
 import { KIDS_EPISODIO_GRATIS_LIVE } from '@/lib/kidsVenda/ofertaKids' // KINEO-CARTOON-SO-PLANO-0411
@@ -17,7 +17,7 @@ export async function GET() {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 })
-  const internal = isInternalEmail(user.email)
+  const internal = contaDaCasaExata(user.email)
   const open = kidsSalesOpen(KIDS_SALES_OPEN_FOR_PUBLIC, internal)
   const db = kidsServiceClient()
   if (!db) return NextResponse.json({ ready: false, open, orders: [] }, { headers: { 'Cache-Control': 'private, no-store' } })

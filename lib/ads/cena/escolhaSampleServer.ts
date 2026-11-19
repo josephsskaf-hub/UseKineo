@@ -1,6 +1,6 @@
 // KINEO-AMOSTRA-ANUNCIO-2410 — personal, irrevocable sample allowance and authoritative person-level measurement.
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { isInternalEmail } from '@/lib/internalAccounts'
+import { contaDaCasaExata } from '@/lib/internalAccounts'
 import { ADS_ESCOLHA_SAMPLE_LIVE, ADS_ESCOLHA_SAMPLE_ESTIMATE_CENTS, ADS_ESCOLHA_SAMPLE_KLING4_ESTIMATE_CENTS, escolhaSampleEstimateCents } from './escolhaSamplePolicy'
 import { adsSampleCountryAllowed } from '../eligibilityPure' // KINEO-ADS-SIMPLES-2810 — só países do filme grátis; país desconhecido = fechado
 
@@ -40,7 +40,7 @@ export async function reserveEscolhaSample(admin: SupabaseClient, i: Identity & 
   if (!user) return { ok: false, error: 'ads_sample_account_required', status: 403 }
   try {
     const result = await admin.rpc('reserve_ads_escolha_sample', {
-      p_order_id: i.orderId, p_actor_id: i.actorId, p_owner_id: i.ownerId, p_lease_at: i.leaseAt, p_is_internal: isInternalEmail(user.email),
+      p_order_id: i.orderId, p_actor_id: i.actorId, p_owner_id: i.ownerId, p_lease_at: i.leaseAt, p_is_internal: contaDaCasaExata(user.email),
     })
     const row = Array.isArray(result.data) ? result.data[0] : result.data
     if (result.error || !row) return unavailable()

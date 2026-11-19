@@ -6,7 +6,7 @@
 // recusa quem já tem pedido pago). Interruptor: KIDS_SALES_LIVE=false → 404 para quem não é da casa.
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { isInternalEmail } from '@/lib/internalAccounts'
+import { contaDaCasaExata } from '@/lib/internalAccounts'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { KIDS_EVENTS, KIDS_SALES_OPEN_FOR_PUBLIC, kidsSalesOpen, validateKidsSeriesRequest } from '@/lib/kidsVenda/kidsVenda'
 import { createKidsOrder, kidsSampleEligibility, kidsServiceClient } from '@/lib/kidsVenda/server'
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 })
   if (!KIDS_EPISODIO_GRATIS_LIVE) { await writeServerEvent({ name: KIDS_EVENTS.sampleRefused, userId: user.id, path: PATH, metadata: { reason: 'free_episode_off' } }).catch(() => false); return NextResponse.json({ error: 'Free cartoon episodes have ended. Cartoons are included in paid plans and use your plan credits. Nothing was charged.', reason: 'free_episode_off', charged: false }, { status: 410 }) } // KINEO-CARTOON-SO-PLANO-0411 — no servidor, para todo mundo
-  const internal = isInternalEmail(user.email)
+  const internal = contaDaCasaExata(user.email)
   if (!kidsSalesOpen(KIDS_SALES_OPEN_FOR_PUBLIC, internal)) return NextResponse.json({ error: 'Not found.' }, { status: 404 })
   let raw: unknown
   try { raw = await req.json() } catch { return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 }) }
