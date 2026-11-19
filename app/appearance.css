@@ -409,3 +409,19 @@ body::before{z-index:-1}
 .klp .k3c-card .k3c-media[data-home-cover="ugc-scenes"] :is(.k3c-cycle-poster,video[data-home-cycle-slot]){
   filter:none!important
 }
+
+/* The same settings surface for visitors and the workspace. */
+.site-settings-dialog{margin:auto;width:min(360px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;padding:20px;border:1px solid var(--border);border-radius:18px;background:var(--card);color:var(--text);font:inherit;text-align:start;white-space:normal}
+.site-settings-dialog:not([open]){display:none}
+.site-settings-dialog::backdrop{background:var(--modal-overlay)}
+.site-settings-title,.site-settings-dialog .site-settings-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.site-settings-title{margin-bottom:12px}
+.site-settings-title h2{margin:0;line-height:1.3;font-family:inherit;font-size:21px;font-weight:600;color:var(--text)}
+.site-settings-dialog .site-settings-row{box-sizing:border-box;width:100%;min-height:46px;margin:2px 0;padding:7px 10px;border:0;border-radius:8px;background:transparent;color:var(--text);font:inherit;font-size:15px;text-decoration:none;cursor:pointer}
+.site-settings-dialog .appearance-settings-row{justify-content:flex-start}
+.site-settings-row:hover,.site-settings-row:focus-visible{background:var(--accent-soft)}
+.site-settings-account{padding-top:7px;margin-top:8px;border-top:1px solid var(--border)}
+.site-settings-trigger{min-width:40px;min-height:40px}
+@media(max-width:767px){.site-settings-trigger{min-width:44px;min-height:44px}}
+
+.site-settings-dialog select:focus-visible{outline:2px solid var(--accent);outline-offset:3px}

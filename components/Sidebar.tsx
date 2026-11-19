@@ -1,13 +1,13 @@
 'use client'
 
+import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
 
 import Link from 'next/link'
 import { MORE_NAV, navItemIdFor, sidebarNavItems, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
 import { createEntryForLegacyHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"]
 import { clipsVisible } from '@/lib/clips/clipLaunch' // KINEO-CLIPES-2026-09-29 — item Clips só com o interruptor (ou conta da casa)
-import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage'
-import { AppearanceSettingsButton } from '@/components/AppearanceSettings' // KINEO-CELULAR-A-0611
+import { UiLabel } from '@/components/InterfaceLanguage'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { sairDaConta } from '@/lib/auth/sairDaContaCliente' // KINEO-SAIR-DA-CONTA-1510
@@ -686,7 +686,6 @@ export default function Sidebar({
                     others). Reuses the "pricing" tag icon — closest existing NAV_ICONS
                     match for a commission/money concept. */}
                 <NavItem href="/affiliate" icon={NAV_ICONS.pricing} label="Earn 30%" exact={false} pathname={pathname} onClick={onClose} />
-                <div className="kineo-gaveta-extras"><InterfaceLanguageSelect /><AppearanceSettingsButton /></div>{/* KINEO-CELULAR-A-0611 */}
               </>
             </div>
           )}
@@ -802,6 +801,7 @@ export default function Sidebar({
             button) is the single purchase surface, and it stays BLUE at 0
             (red reads as an error; 0 credits is the normal free-tier state). */}
 
+        <SiteSettingsMenu signedIn={!!isLoggedIn} />
         {/* User row + settings menu + small logout */}
         <div style={{ borderTop: '1px solid var(--border)', padding: '10px 12px 12px', position: 'relative' }}>
           {/* KINEO-MENU-CONTA-0411 — menu compacto com créditos, renovação e atalhos; o raciocínio está no cabeçalho de
@@ -867,9 +867,6 @@ export default function Sidebar({
               )}
             </div>
 
-            {/* KINEO-NAV-REDESIGN-2026-07-10 — one clean control: an SVG gear
-                that opens the account menu (Profile · Billing · Usage · Sign
-                out). The old emoji gear + door-emoji Sign out button are gone. */}
             {isLoggedIn ? (
               <button
                 onClick={() => setSettingsOpen((v) => !v)}
@@ -891,8 +888,7 @@ export default function Sidebar({
                 onMouseLeave={(e) => { if (!settingsOpen) (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)' }}
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <circle cx="12" cy="12" r="3.2" />
-                  <path d="M19.4 15a1.6 1.6 0 0 0 .32 1.76l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.6 1.6 0 0 0-1.76-.32 1.6 1.6 0 0 0-.97 1.46V21a2 2 0 1 1-4 0v-.09a1.6 1.6 0 0 0-1.05-1.46 1.6 1.6 0 0 0-1.76.32l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.6 1.6 0 0 0 4.6 15a1.6 1.6 0 0 0-1.46-.97H3a2 2 0 1 1 0-4h.09A1.6 1.6 0 0 0 4.55 9a1.6 1.6 0 0 0-.32-1.76l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.6 1.6 0 0 0 1.76.32H9a1.6 1.6 0 0 0 .97-1.46V3a2 2 0 1 1 4 0v.09a1.6 1.6 0 0 0 .97 1.46 1.6 1.6 0 0 0 1.76-.32l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.6 1.6 0 0 0-.32 1.76V9c.2.6.76 1 1.46.97H21a2 2 0 1 1 0 4h-.09a1.6 1.6 0 0 0-1.51 1.03Z" />
+                  <circle cx="4" cy="12" r="1.3" /><circle cx="12" cy="12" r="1.3" /><circle cx="20" cy="12" r="1.3" />
                 </svg>
               </button>
             ) : (

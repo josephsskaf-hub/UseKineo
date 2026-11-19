@@ -1,8 +1,9 @@
 'use client'
 
+import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { InterfaceLanguageSelect, useUiCopy } from '@/components/InterfaceLanguage'
+import { useUiCopy } from '@/components/InterfaceLanguage'
 import { EDITING_TOOLS, defaults, downloadName, outputSize, validateSettings, type EditingTool, type EditSettings, type ClipInfo } from '@/lib/videoEditing/settings'
 import { drawFrame, exportClip, readClip, recordingMime, sampleClip } from '@/lib/videoEditing/browserEditor'
 import './editor.css'
@@ -99,7 +100,7 @@ export default function VideoEditor({ initialTool }: { initialTool: EditingTool 
   const output = info ? outputSize(info.width, info.height, settings.aspect) : null
   return <main className="ke-editor">
     <div className="ke-shell">
-      <nav className="ke-nav" aria-label={t('Primary', 'Principal')}><Link href="/" className="ke-logo">Kineo</Link><div><Link href="/tools">← {t('All tools', 'Todas las herramientas')}</Link><InterfaceLanguageSelect /></div></nav>
+      <nav className="ke-nav" aria-label={t('Primary', 'Principal')}><Link href="/" className="ke-logo">Kineo</Link><div><Link href="/tools">← {t('All tools', 'Todas las herramientas')}</Link><SiteSettingsMenu /></div></nav>
       <header className="ke-heading"><p className="ke-eyebrow">{t('EDITING TOOLS', 'HERRAMIENTAS DE EDICIÓN')}</p><h1>{t(selected.name, selected.es)}</h1><p>{t('Edit your video, preview the changes, then export a copy.', 'Edita tu vídeo, revisa los cambios y exporta una copia.')}</p></header>
       <nav className="ke-tool-tabs" aria-label={t('Editing tools', 'Herramientas de edición')}>{EDITING_TOOLS.map(item => <button key={item.id} type="button" aria-pressed={tool === item.id} disabled={Boolean(busy)} onClick={() => selectTool(item.id)}>{t(item.name, item.es)}</button>)}</nav>
       <div className="ke-layout">

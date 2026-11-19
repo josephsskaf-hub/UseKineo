@@ -1,11 +1,11 @@
 'use client'
 
+import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import { useState, Fragment, type CSSProperties, type ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { KineoBrandIcon } from '@/components/KineoBolt'
-import { InterfaceLanguageSelect, useInterfaceLanguage } from '@/components/InterfaceLanguage'
-import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
+import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { PRODUCT_TINT, ProductStageStyles } from '@/components/ProductStage'
 import ShowcaseMedia from '@/components/showcase/ShowcaseMedia'
 import ShowcaseTelemetry from '@/components/showcase/ShowcaseTelemetry'
@@ -62,7 +62,7 @@ export default function ShowcaseClient({ children }: { children?: ReactNode }) {
     <a className="sc-skip" href="#films">{copy.skip}</a>
     <header className="sc-header">
       <Link href="/" className="sc-brand" aria-label="Kineo"><KineoBrandIcon size={26} /> Kineo<span>{copy.showcase}</span></Link>
-      <div className="sc-settings"><InterfaceLanguageSelect /><AppearanceSettingsButton /></div>
+      <div className="sc-settings"><SiteSettingsMenu /></div>
     </header>
     <main>
       <div className="sc-intro">

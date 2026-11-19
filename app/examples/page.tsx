@@ -1,4 +1,5 @@
 
+import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import { KineoBrandIcon } from '@/components/KineoBolt'
 import type { Metadata } from 'next'
 import Link from 'next/link'
@@ -16,8 +17,7 @@ import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import { createClient } from '@/lib/supabase/server'
 import ExamplesBusinessProofBridge from './ExamplesBusinessProofBridge'
 import { CARD_ENTRY_COPY } from '@/lib/entryPolicy'
-import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
-import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage'
+import { UiLabel } from '@/components/InterfaceLanguage'
 import NavUgcAdsLink from '@/components/NavUgcAdsLink' // KINEO-MENU-UGC-2010 — o item "AI UGC Ads" do menu do topo (par da home)
 import { createEntryForContentHref, createEntryHref } from '@/lib/create/entry' // KINEO-ENTRADAS-CARTOES-1011 [fundador 10/11: "todos os menus da parte de cima do site estão indo ainda para os links antigos"] — logado: as abas da tela nova; visitante: o de hoje
 import { MADE_WITH_KINEO_HREF, MADE_WITH_KINEO_LABEL, MADE_WITH_KINEO_NAV_ITEM } from '@/lib/homeGaleria' // KINEO-GALERIA-HOME-2710
@@ -68,8 +68,7 @@ export default async function ExamplesPage() {
             <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
           </nav>
           <div className={styles.headerTools}>
-            <InterfaceLanguageSelect />
-            <AppearanceSettingsButton compact />
+            <SiteSettingsMenu />
             {isLoggedIn ? (
               <Link
                 href={createEntryHref('film', '/studio', isLoggedIn)}

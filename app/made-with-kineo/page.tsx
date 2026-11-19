@@ -4,6 +4,7 @@
 // narrados misturados (curadoria em lib/homeGaleria.ts). Embaixo, INTACTA na regra: a vitrine de filmes que os donos escolheram
 // mostrar (KINEO-VITRINE-FILMES-2610 — só com consentimento, lida a cada visita; o estado vazio honesto continua). /pt e /es e
 // as páginas de cada filme seguem com components/MadeWithKineo.tsx, sem mudança.
+import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import Link from 'next/link'
 import { showcaseMetadata, showcasePageNumber } from '@/components/MadeWithKineo'
 import { getShowcaseFilms } from '@/lib/madeWithKineoServer' // KINEO-GALERIA-HOME-2710
@@ -11,8 +12,7 @@ import { showcasePath } from '@/lib/madeWithKineo' // KINEO-GALERIA-HOME-2710
 import { SHOWCASE_COPY, showcaseCreateHref, showcaseProductionLine } from '@/lib/madeWithKineoCopy' // KINEO-GALERIA-HOME-2710
 import { createClient } from '@/lib/supabase/server' // KINEO-GALERIA-HOME-2710
 import { KineoBrandIcon } from '@/components/KineoBolt' // KINEO-GALERIA-HOME-2710
-import { AppearanceSettingsButton } from '@/components/AppearanceSettings' // KINEO-GALERIA-HOME-2710
-import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage' // KINEO-GALERIA-HOME-2710
+import { UiLabel } from '@/components/InterfaceLanguage' // KINEO-GALERIA-HOME-2710
 import NavUgcAdsLink from '@/components/NavUgcAdsLink' // KINEO-GALERIA-HOME-2710
 import { createEntryForContentHref, createEntryHref } from '@/lib/create/entry' // KINEO-ENTRADAS-CARTOES-1011 [fundador 10/11: "todos os menus da parte de cima do site estão indo ainda para os links antigos"] — logado: as abas da tela nova; visitante: o de hoje
 import { RECREATE_MENU_HREF, RECREATE_MENU_LABEL, RECREATE_MENU_NAV_ITEM, MENU_CARTOON_HREF, MENU_CARTOON_LABEL, MENU_CARTOON_NAV_ITEM, MENU_CONNECTOR_HREF, MENU_CONNECTOR_LABEL, MENU_CONNECTOR_NAV_ITEM } from '@/lib/ui/homeRemodela2010' // KINEO-GALERIA-HOME-2710
@@ -71,8 +71,7 @@ export default async function Page({ searchParams }: { searchParams: { page?: st
             <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
           </nav>
           <div className={styles.headerTools}>
-            <InterfaceLanguageSelect />
-            <AppearanceSettingsButton compact />
+            <SiteSettingsMenu />
             {signedIn
               ? <Link href={createEntryHref('film', '/studio', signedIn)} className={styles.navCta}><UiLabel>Open Studio</UiLabel></Link>
               : <Link href="/signup?utm_source=made_with_kineo" className={styles.navCta}><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>}

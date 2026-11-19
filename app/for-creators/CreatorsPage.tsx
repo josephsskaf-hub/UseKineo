@@ -1,7 +1,7 @@
 'use client'
 
+import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import { useState } from 'react'
-import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
 import { buildAuthenticatedCreationRedirect, CREATION_HANDOFF_PROMPT_MAX_CHARS, FOR_CREATORS_CAMPAIGN as campaign } from '@/lib/creationHandoff'
 
@@ -30,7 +30,7 @@ export default function CreatorsPage({ freeFilm, initialIdea }: { freeFilm: bool
     <header className="creators-nav wrap">
       <a className="brand" href="/" aria-label="Kineo home"><span className="brand-mark">k</span>kineo<span className="brand-dot">.</span></a>
       <span className="nav-label">MADE FOR CHANNEL CREATORS</span>
-      <AppearanceSettingsButton />
+      <SiteSettingsMenu />
     </header>
     <section className="hero wrap">
       <div className="hero-copy">

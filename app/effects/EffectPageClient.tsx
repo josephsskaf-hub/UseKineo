@@ -1,8 +1,8 @@
 'use client'
+import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { KineoBrandIcon } from '@/components/KineoBolt'
-import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 import { INTERFACE_LANGUAGE_OPTIONS, interfaceLanguageIsRtl, type InterfaceLanguage } from '@/lib/ui/interfaceLanguage'
 import { clipEffectEngineLabel } from '@/lib/clips/clipEffects' // KINEO-EFEITOS-NOVOS-2026-10-13: selo do modelo real (Kling 1.6 / PixVerse 5.5 nos efeitos-modelo)
 import { effectDestination, effectPagePath, effectSlug, effectText, type EffectPageCard } from '@/lib/clips/clipEffectPages'
@@ -24,7 +24,7 @@ export default function EffectPageClient({ effect, language, signedIn, related, 
         <select aria-label={t('Language')} value={language} onChange={e => router.push(effectPagePath(effectSlug(effect), e.target.value as InterfaceLanguage))}>
           {INTERFACE_LANGUAGE_OPTIONS.map(option => <option key={option.code} value={option.code}>{option.native}</option>)}
         </select>
-        <AppearanceSettingsButton />
+        <SiteSettingsMenu />
       </div>
     </header>
     <div className="ep-wrap">

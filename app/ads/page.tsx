@@ -11,13 +11,12 @@
 // The pass is off sale (lib/ads/offer.ts adsPassOnSale); Studio Ads itself stays open and indexed (adsPassLive). Who cannot pay for an ad finds the plans
 // at the point of generating, inside /ads/v2 (lib/ads/eligibilityPure adsV2RefusalFor, AdsEligibilityNotice). Guardian: scripts/test-frente-0411.mjs.
 // The button: Studio Ads closed and not internal → "Opens soon"; signed in → the maker; not signed in → the maker's guest screen (login comes at the first action that needs it).
+import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation' // KINEO-ADS-V2-VIRADA-2026-09-29 — go=maker
 import Footer from '@/components/Footer'
 import { KineoBrandIcon } from '@/components/KineoBolt'
-import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
-import { InterfaceLanguageSelect } from '@/components/InterfaceLanguage'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { createClient } from '@/lib/supabase/server'
 import { footageAdminClient } from '@/lib/userFootage'
@@ -181,8 +180,7 @@ export default async function StudioAdsPage({ searchParams }: { searchParams?: S
           <a href="/" className="ads-brand"><KineoBrandIcon size={26} />Kineo<span> / Studio Ads</span></a>
           <div className="ads-nav-actions">
             <a href={DFY_HREF} className="ads-navlink">Have it made for you →</a>
-            <InterfaceLanguageSelect />
-            <AppearanceSettingsButton />
+            <SiteSettingsMenu />
           </div>
         </nav>
 

@@ -8,10 +8,11 @@
 // próprias (lib/seo/paginasIaClaras2110.ts) e a faixa dos cards usa o tema claro exportado (app/kineoLandingTheme.ts).
 // Medição dos cards: o clique segue o contrato fechado da home (home_card_clicked, surface 'home'); quem quiser separar estas
 // páginas lê events.path (trackEvent grava o pathname de cada clique).
+import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import Link from 'next/link'
 import { KineoBrandIcon } from '@/components/KineoBolt'
 import NavUgcAdsLink from '@/components/NavUgcAdsLink'
-import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage'
+import { UiLabel } from '@/components/InterfaceLanguage'
 import HomeThreeCards from '@/components/home/HomeThreeCards'
 import { HOME_4TH_CARD_LIVE } from '@/lib/ui/homeKidsCard'
 import { KINEO_LANDING_THEME_CSS } from '@/app/kineoLandingTheme'
@@ -45,7 +46,7 @@ export function PaginaClaraTopo() {
           <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
         </div>
         <div className="kpn-right">
-          <InterfaceLanguageSelect />
+          <SiteSettingsMenu />
           <Link className="kpn-login" href="/login" data-nav-item="login"><UiLabel>Log in</UiLabel></Link>
           <Link className="kpn-cta" href="/signup?utm_source=nav"><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>
           <div className="kpn-toggle">
@@ -60,7 +61,6 @@ export function PaginaClaraTopo() {
               <Link href={RECREATE_MENU_HREF} data-nav-item={RECREATE_MENU_NAV_ITEM}>{RECREATE_MENU_LABEL}</Link>
           <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM}>{MENU_CONNECTOR_LABEL}</Link>
               <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
-              <InterfaceLanguageSelect emMenu />{/* KINEO-CELULAR-ENTRADAS-0611 — no celular o idioma sai do topo e fica no menu */}
               <Link href="/login" data-nav-item="login"><UiLabel>Log in</UiLabel></Link>
               <Link className="kpn-cta" href="/signup?utm_source=nav-mobile"><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>
             </label>

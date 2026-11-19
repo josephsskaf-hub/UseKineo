@@ -1,5 +1,6 @@
 'use client'
 
+import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import Link from 'next/link'
 import { NOMES_DE_PRODUTO } from '@/lib/ui/nomesDeProduto'
 import { MORE_NAV, MORE_TOOLS_NAV, CARTOON_NAV, RECREATE_NAV, WORKSPACE_NAV, navItemIdFor, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
@@ -188,6 +189,7 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
   useEffect(() => { closeDisclosures(navRef.current) }, [pathname, isLoggedIn])
   useEffect(() => {
     const closeOutside = (event: PointerEvent) => {
+      if (event.target instanceof Element && event.target.closest('dialog[open]')) return
       if (event.target instanceof Node && !navRef.current?.contains(event.target)) {
         closeDisclosures(navRef.current)
       }
@@ -237,6 +239,7 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
               if (details) { details.open = false; details.querySelector('summary')?.focus() }
             }}>×</button>
         </div>
+        <SiteSettingsMenu signedIn={isLoggedIn} />
         {group.links.map((item) => (
           <Link key={item.href} href={createEntryForLegacyHref(item.href, isLoggedIn === true)} data-nav-item={navItemIdFor(item.href)}
             aria-current={isActive(pathname, item.href) ? (pathname === item.href ? 'page' : 'location') : undefined}

@@ -33,7 +33,17 @@ const semFaixaDoMeio = (s) => {
   if (s.split(importa).length !== 2 || s.split(monta).length !== 2) throw new Error('BASE: a faixa Recreate do meio não está lá exatamente uma vez; reancore de propósito')
   return s.replace(importa, '').replace(monta, '')
 }
-const priorLanding = semFaixaDoMeio(lf(execFileSync('git', ['show', `${BASE}:${LANDING}`], { cwd: ROOT, encoding: 'utf8' })))
+// Reproduz somente a mudança aprovada do menu na referência congelada.
+const menuDeConfiguracoes = source => {
+  const gallery = '<Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>{MADE_WITH_KINEO_LABEL}</Link>'
+  const before = /<PublicNavDropdown item="more:menu" label="More">\s*<span className="nd-menu nd-more">([\s\S]*?)<\/span>\s*<\/PublicNavDropdown>/
+  if (!source.match(before)?.[1].includes(gallery)) throw Error('Galeria histórica diferente da esperada')
+  return source.replace(before, gallery)
+    .replace("import PublicNavDropdown from '@/components/PublicNavDropdown'", "import SiteSettingsMenu from '@/components/SiteSettingsMenu'")
+    .replaceAll('<InterfaceLanguageSelect emMenu />', '')
+    .replace('<div className="nav-right">', '<div className="nav-right"><SiteSettingsMenu signedIn={isSignedIn} />')
+}
+const priorLanding = menuDeConfiguracoes(semFaixaDoMeio(lf(execFileSync('git', ['show', `${BASE}:${LANDING}`], { cwd: ROOT, encoding: 'utf8' }))))
 const decode = (s) => s.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>')
 const textOnly = (s) => decode(s.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, '').replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim()
 

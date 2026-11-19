@@ -1,5 +1,6 @@
 'use client'
 
+import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import { WATCH_PRICING_PUBLIC, WATCH_PRICING_CSS } from '@/lib/pricingWatch'
 
 import Kling4PaidNotice, { useKling4PaidAvailability } from '@/components/Kling4PaidNotice'
@@ -12,7 +13,6 @@ import { alternativasDoPlano, incluidoEmTodoPlano } from '@/lib/planoDetalhado' 
 
 import KineoBolt, { KineoBoltText, KineoBrandIcon } from '@/components/KineoBolt'
 import CreditMinutesSummary from '@/components/CreditMinutesSummary'
-import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 
 // Push #076 — Standalone /pricing page (real route, not just an anchor).
 // Mirrors the Cyber Blue theme used by HomePageClient.
@@ -1415,7 +1415,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
           </Link>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <AppearanceSettingsButton />
+            <SiteSettingsMenu />
             <Link
               href="/"
               className="rounded-lg px-3 py-2 text-sm font-semibold text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--card2)] transition"

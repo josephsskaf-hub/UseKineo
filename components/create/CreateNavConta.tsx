@@ -8,6 +8,7 @@
 //     app/(dashboard)/library/LibraryClient.tsx:103-109 e :84 /api/videos; os clipes e os Recreates, que são linhas de clipe, na aba Clips via /api/clips :79).
 //     É também o item "Library" do menu (lib/ui/workspaceNavigation.ts:16).
 // Sem hooks próprios: entra no RecreateClient sem mexer na ordem dos useState dele.
+import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import Link from 'next/link'
 import NavCreditsBadge from '@/components/NavCreditsBadge'
 import './create.css'
@@ -30,5 +31,6 @@ export default function CreateNavConta() {
       <Link href={CREATE_NAV_PRICING_HREF} className="ct-nav-link" data-create-nav="pricing">Pricing</Link>
     </details>
     <Link href={CREATE_NAV_VIDEOS_HREF} className="ct-nav-link" data-create-nav="videos">My videos ↗</Link>
+    <SiteSettingsMenu />
   </div>
 }

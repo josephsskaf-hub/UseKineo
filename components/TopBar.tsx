@@ -1,10 +1,10 @@
 'use client'
 
+import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
-import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 
 import Link from 'next/link'
-import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage'
+import { UiLabel } from '@/components/InterfaceLanguage'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { trackEvent } from '@/lib/analytics'
@@ -96,8 +96,7 @@ export default function TopBar({ title, subtitle, onMenuToggle, isPro, presente 
           nav home for the Avatar product; the top bar stays clean. */}
       <div className="ml-auto flex items-center gap-2 flex-shrink-0">
         <div className="kineo-topbar-extras flex items-center gap-2">{/* KINEO-CELULAR-A-0611 — no celular, idioma e aparência moram na gaveta */}
-          <InterfaceLanguageSelect />
-          <AppearanceSettingsButton />
+          <SiteSettingsMenu />
         </div>
         {presente}
         {/* Push #098 — header credits badge. Red link to /pricing when 0,

@@ -57,11 +57,10 @@ function checks(o = {}) {
   const desk = landing.slice(deskStart, deskEnd)
   const iCartoon = desk.indexOf('NOMES_DE_PRODUTO.cartoon.curto')
   const iRecreate = desk.search(/href=\{RECREATE_MENU_HREF\}[^>]*data-nav-item=\{RECREATE_MENU_NAV_ITEM\}/)
-  const iMore = desk.indexOf('<PublicNavDropdown item="more:menu"')
+  const iGallery = desk.indexOf('href={MADE_WITH_KINEO_HREF}')
   ok(iRecreate > 0, 'topo do computador: link Recreate com RECREATE_MENU_HREF')
-  ok(iCartoon > 0 && iCartoon < iRecreate && iRecreate < iMore, 'topo do computador: Recreate logo depois de Cartoons e antes do More')
-  const moreBlock = desk.slice(iMore, desk.indexOf('</PublicNavDropdown>', iMore))
-  ok(!/RECREATE_MENU/.test(moreBlock), 'Recreate não está escondido dentro do More')
+  ok(iCartoon > 0 && iCartoon < iRecreate && iRecreate < iGallery, 'topo do computador: Recreate logo depois de Cartoons e antes do More')
+  ok(!desk.includes('<PublicNavDropdown'), 'Recreate e a galeria têm links diretos')
   ok(/\{RECREATE_MENU_LABEL\}/.test(desk.slice(iRecreate, iRecreate + 260)), 'topo do computador: rótulo do Recreate da fonte única')
 
   // (2a) Menu do celular da home: Recreate depois de Cartoons.
@@ -143,7 +142,7 @@ console.log(`ok — ${total} verificações`)
 const L = read('app/KineoLanding.tsx')
 const mutants = {
   'Recreate some do topo do computador': { 'app/KineoLanding.tsx': L.replace(/\n\s*<Link href=\{RECREATE_MENU_HREF\}[^\n]*KINEO-MENU-RECREATE-1211 — topo[^\n]*/, '') },
-  'Recreate vai para dentro do More': { 'app/KineoLanding.tsx': L.replace('<span className="nd-menu nd-more">', '<span className="nd-menu nd-more"><Link href={RECREATE_MENU_HREF} data-nav-item={RECREATE_MENU_NAV_ITEM}>{RECREATE_MENU_LABEL}</Link>') },
+  'Recreate vai para dentro do More': { 'app/KineoLanding.tsx': L.replace('<Link href={RECREATE_MENU_HREF}', '<PublicNavDropdown item="more:menu" label="More"><Link href={RECREATE_MENU_HREF}') },
   'troca em teste aparece na grade': { 'lib/recreate/catalogPublic.ts': read('lib/recreate/catalogPublic.ts').replace('.filter(f => publicRecreatePath(f.id) !== null)', '') },
   'preço no cartão': { 'app/recreate/RecreateCatalogPublic.tsx': read('app/recreate/RecreateCatalogPublic.tsx').replace('Recreate ↗</span>', 'Recreate ↗ 40 credits</span>') },
   'texto de 10 px': { 'app/recreate/RecreateCatalogPublic.tsx': read('app/recreate/RecreateCatalogPublic.tsx').replace('font-size:15px', 'font-size:10px') },

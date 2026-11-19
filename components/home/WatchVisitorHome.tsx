@@ -1,8 +1,9 @@
 'use client'
 
+import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { UiLabel, InterfaceLanguageSelect } from '@/components/InterfaceLanguage'
+import { UiLabel } from '@/components/InterfaceLanguage'
 import { CLIPES_NOVOS, CLIPES_NO_TOPO, clipeNovoPoster, clipeNovoVideo } from '@/lib/clipesNos2Lugares'
 import { watchClipHref, watchClipLabel, WATCH_FEATURED_FILMS, watchFilmExampleHref } from '@/lib/home/watchEntry'
 import WatchMedia from './WatchMedia'
@@ -54,9 +55,9 @@ export default function WatchVisitorHome({preview=false}:{preview?:boolean}){
     <style>{CSS}</style>
     <header className="watch-top"><Link className="watch-brand" href="/"><span aria-hidden="true">▸▸</span>kineo<small>WATCH</small></Link>
       <nav className="watch-products" aria-label="Products" data-nav-surface="top" data-nav-area="public">{PRODUCTS.map(p=><Link key={p.item} href={p.href} prefetch={false} data-nav-item={p.item}><UiLabel>{p.label}</UiLabel></Link>)}</nav>
-      <div className="watch-account"><Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link><Link href="/login"><UiLabel>Log in</UiLabel></Link><button className="watch-menu-toggle" type="button" aria-label="More destinations" aria-expanded={menu} aria-controls="watch-more" onClick={()=>setMenu(!menu)}>☰</button></div>
+      <div className="watch-account"><SiteSettingsMenu signedIn={false} /><Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link><Link href="/login"><UiLabel>Log in</UiLabel></Link><button className="watch-menu-toggle" type="button" aria-label="More destinations" aria-expanded={menu} aria-controls="watch-more" onClick={()=>setMenu(!menu)}>☰</button></div>
     </header>
-    {menu&&<div className="watch-menu" id="watch-more"><Link href="/made-with-kineo">Made with Kineo</Link><Link href="/kineo-in-claude">Claude &amp; ChatGPT</Link><Link href="/clips?free_clip=1"><UiLabel>Redeem an existing offer</UiLabel></Link><InterfaceLanguageSelect emMenu/><button type="button" onClick={()=>setMenu(false)} aria-label="Close destinations">×</button></div>}
+    {menu&&<div className="watch-menu" id="watch-more"><Link href="/made-with-kineo">Made with Kineo</Link><Link href="/kineo-in-claude">Claude &amp; ChatGPT</Link><Link href="/clips?free_clip=1"><UiLabel>Redeem an existing offer</UiLabel></Link><button type="button" onClick={()=>setMenu(false)} aria-label="Close destinations">×</button></div>}
     <div className="watch-intro"><h1><UiLabel>Watch what you could make</UiLabel></h1><div className="watch-preview-actions"><Link href="/made-with-kineo"><UiLabel>View collection</UiLabel> ↗</Link><button className="watch-preview-toggle" type="button" aria-label={previewsPaused?'Play previews':'Pause previews'} title={previewsPaused?'Play previews':'Pause previews'} aria-pressed={previewsPaused} onClick={()=>setPreviewsPaused(paused=>!paused)}><span aria-hidden="true">{previewsPaused?'▶':'Ⅱ'}</span></button></div></div>
     <div id="watch-cookie-slot" />
     <div className="watch-wall" data-watch-top="1">{top.map((c,i)=>card(c,i+1))}</div>

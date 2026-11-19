@@ -1,5 +1,6 @@
 'use client'
 
+import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import Link from 'next/link'
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react' // KINEO-CLIP-RECREATE-JUNTOS-1511: + ReactNode, RefObject
 import { KineoBrandIcon } from '@/components/KineoBolt'
@@ -31,7 +32,7 @@ export function Icone({ nome }: { nome: 'trocar' | 'video' | 'seta' | 'voltar' |
 }
 /** KINEO-TELA-RECREATE-1611 [dono 16/11 23:00: "Slam dunk corta a cabeça… Pitch invader cortado"] — o foco da capa por molde, conferido na capa a 1920 px (cartão
  *  ~1,34 deitado) e a 390 px (~1,15): a cabeça inteira com respiro. Molde fora daqui: o foco de sempre (center 42%, studio-media.css). */
-export const FOCO_DA_CAPA: Readonly<Record<string, string>> = { basquete: '50% 30%', 'cachorro-craque-humano': '50% 8%', 'invasor-de-campo': '50% 25%' }
+export const FOCO_DA_CAPA: Readonly<Record<string, string>> = { basquete: '50% 30%', 'cachorro-craque-humano': '50% 8%', 'invasor-de-campo': '50% 25%', 'effect-kiss': '50% 20%', 'effect-pet-lion': '50% 0%' }
 /** KINEO-TELA-RECREATE-1611 [dono: "tem dog goal you, dog goal, tá repetitivo"] — a mesma família de molde (o "· you" e o original) nunca a menos de 5 cartões
  *  (nem na mesma fileira de 4, nem logo embaixo; no celular, nem lado a lado nem em cima). O 1º cartão nunca sai do lugar: a novidade continua em evidência. */
 export function gradeSemParecidosJuntos<T extends { id: string }>(lista: readonly T[], distancia = 5): T[] {
@@ -617,7 +618,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
   </>
   if (moldura) return moldura({ selecionado: selected, catalogo: catalog, midia: mediaFor, escolher: choose, soltar, ocupado: editingDisabled, sair: leaveFlow, aviso, painel, palco, galeria, galeriaRef: galleryRef, dialogo })
   return <main className={`recreate${currentFlow ? ' rc-current-flow' : ''}`} data-recreate-current-flow={currentFlow ? true : undefined} aria-busy={currentFlow ? busy || restoring : undefined}>
-    <header className={createTabs ? 'rc-nav ct-nav' : 'rc-nav'}><Link href="/" className="rc-brand" onClick={currentFlow ? leaveFlow : undefined}><KineoBrandIcon size={28} /><span>Kineo</span></Link>{createTabs ? <CreateTabs active="recreate" {...(currentFlow ? { recreateHref: flowBasePath } : {})} /> : <Link href={currentFlow ? flowBasePath : '/recreate'} onClick={e => { if (editingDisabled) e.preventDefault(); else if (currentFlow) leaveFlow(e) }}>Recreate</Link>}{createTabs ? <CreateNavConta /> : <Link href="/library">My videos ↗</Link>}</header>
+    <header className={createTabs ? 'rc-nav ct-nav' : 'rc-nav'}><Link href="/" className="rc-brand" onClick={currentFlow ? leaveFlow : undefined}><KineoBrandIcon size={28} /><span>Kineo</span></Link>{createTabs ? <CreateTabs active="recreate" {...(currentFlow ? { recreateHref: flowBasePath } : {})} /> : <Link href={currentFlow ? flowBasePath : '/recreate'} onClick={e => { if (editingDisabled) e.preventDefault(); else if (currentFlow) leaveFlow(e) }}>Recreate</Link>}{createTabs ? <CreateNavConta /> : <SiteSettingsMenu signedIn={signedIn} />}</header>
     {aviso}
     <div className={`rc-workspace ${selected ? '' : 'rc-library-only'}`}>
       {selected && <aside className="rc-panel" aria-label="Create your version">{painel}</aside>}

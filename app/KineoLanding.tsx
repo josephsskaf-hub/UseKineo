@@ -1,4 +1,4 @@
-import PublicNavDropdown from '@/components/PublicNavDropdown'
+import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import Kling4TrialNotice from '@/components/Kling4TrialNotice'
 
 import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
@@ -10,7 +10,7 @@ import { VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY, PAUSED_ENGINES_COPY, a
 import EngineNewsBar from '@/components/home/EngineNewsBar' // KINEO-FAIXA-S25-2026-10-09
 import { enginePlanBadge } from '@/lib/enginePlanGate'
 import Link from 'next/link'
-import { InterfaceLanguageSelect, UiLabel, UiText } from '@/components/InterfaceLanguage'
+import { UiLabel, UiText } from '@/components/InterfaceLanguage'
 import { HOME_PRESENTATION_CSS } from '@/lib/ui/homePresentation'
 import { KINEO_LANDING_THEME_CSS } from './kineoLandingTheme'
 // KINEO-HOME-REMODELA-2010 — import { IMG_ENGINES } saiu com o "More tools" do topo (os motores de imagem seguem em /images)
@@ -947,23 +947,19 @@ export default function KineoLanding({
             {/* KINEO-HOME-REMODELA-2010 — 4º principal: os desenhos 3D para crianças; ao lado, o conector (Claude e ChatGPT). O "More tools" saiu: Images, Clips, Spaces e Examples seguem no rodapé e pela URL. */}
             <Link href={createEntryForContentHref('cartoon', MENU_CARTOON_HREF, '/kids-cartoon', isSignedIn)} data-nav-item={MENU_CARTOON_NAV_ITEM}><UiLabel>{NOMES_DE_PRODUTO.cartoon.curto}</UiLabel></Link>{/* KINEO-HOME-REMODELA-2010 */}
             <Link href={RECREATE_MENU_HREF} data-nav-item={RECREATE_MENU_NAV_ITEM}>{RECREATE_MENU_LABEL}</Link>{/* KINEO-MENU-RECREATE-1211 — topo: 1º nível logo depois de Cartoons, fora do More; leva à grade de todos os modelos que dá para recriar */}
-            {/* KINEO-MENU-4-MAIS-1211 [CEO 12/11, tarefa 4 do fundador "design mais bonito"; opção C da imagem div1-t4-decisao-ABC.png — a escolha final é do fundador] — no computador: os 4 produtos, "More" só com Made with Kineo (6 pessoas em 30 dias), Claude & ChatGPT segue visível (ordem de 20/10; Higgsfield e InVideo mostram MCP no topo) e Pricing vai para a direita, ao lado do Log in (2º item mais clicado: 28 pessoas). O menu do celular não muda de lugar. */}
-            <PublicNavDropdown item="more:menu" label="More">
-              <span className="nd-menu nd-more">
-                <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>{MADE_WITH_KINEO_LABEL}</Link>{/* KINEO-GALERIA-HOME-2710 */}
-              </span>
-            </PublicNavDropdown>
+            <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>{MADE_WITH_KINEO_LABEL}</Link>
             <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM} className="nav-connector">{MENU_CONNECTOR_LABEL}</Link>{/* KINEO-HOME-REMODELA-2010 */}
             {/* KINEO-JUNTA-TRENDING-3110 — o item saiu do topo: o Trending virou o topo da página Made with Kineo (fundador 30/10). Histórico: KINEO-TRENDING-2026-10-13 — fundador 13/10: "🔥 Trending now" no topo (vídeos reais feitos na Kineo, cada um com "Make mine"). Item
                 novo logo antes de Pricing; nada saiu nem encolheu. Pares: menu do celular abaixo, /examples, /trending, Sidebar/MobileNav. */}
-            <InterfaceLanguageSelect emMenu />{/* KINEO-HOME-TOPO-0511 — fundador 05/11: "deixar só Log in e Get started. O English vai no menu" */}
+
           </div>
         <div className="nav-right">
+          <SiteSettingsMenu signedIn={isSignedIn} />
           {/* KINEO-HOME-TOPO-0511 — fundador 05/11: "cadê o presentinho?". Fora do .nav-cta, que some no celular; à esquerda de Log in para visitante e dos créditos para quem entrou. */}
           <CaixaDePresente0511 visitante={!initialUser} filmeGratisNoPais={freeFilmInCountry} />
           {/* KINEO-NAV-4-ITENS-2026-09-25 — "Log in" em texto ao lado do CTA de
               cadastro, so para visitante; no celular ele mora no menu. */}
-          <Link className="nav-login nav-pricing" href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>{/* KINEO-MENU-4-MAIS-1211 [CEO 12/11, tarefa 4 do fundador "design mais bonito"; opção C da imagem div1-t4-decisao-ABC.png — a escolha final é do fundador] */}
+          <Link className="nav-login nav-pricing" href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
           {initialUser ? null : <Link className="nav-login" href="/login" data-nav-item="login" data-auth-modal="login"><UiLabel>Log in</UiLabel></Link>}
           {initialUser
             ? <div className="nav-cta"><NavCreditsBadge /><Link className="btn btn-w nav-dashboard" style={{ padding: '12px 20px', fontSize: '14px' }} href={createEntryHref('film', '/studio', isSignedIn)}><UiLabel>Dashboard</UiLabel></Link></div>
@@ -985,7 +981,7 @@ export default function KineoLanding({
               <Link href={RECREATE_MENU_HREF} data-nav-item={RECREATE_MENU_NAV_ITEM}>{RECREATE_MENU_LABEL}</Link>{/* KINEO-MENU-RECREATE-1211 — par do topo no celular */}
               <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM}>{MENU_CONNECTOR_LABEL}</Link>{/* KINEO-HOME-REMODELA-2010 — par do topo */}
               <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
-              <InterfaceLanguageSelect emMenu />{/* KINEO-HOME-TOPO-0511 — par do topo no celular */}
+
               {initialUser
                 ? <Link className="btn btn-w" href={createEntryHref('film', '/studio', isSignedIn)}><UiLabel>Dashboard</UiLabel></Link>
                 : <Link href="/login" data-nav-item="login" data-auth-modal="login"><UiLabel>Log in</UiLabel></Link>}

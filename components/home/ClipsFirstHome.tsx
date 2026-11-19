@@ -16,10 +16,11 @@
 // · Mesmos rastreadores da home atual (homepage_view com variant própria, conversão de cadastro do Ads em ?signup=1,
 //   convite welcome20, faixa "continue de onde parou") — o A/B compara a PRIMEIRA TELA, não a oferta.
 // · Mobile-first: 2 colunas de efeito no celular, botão de foto em largura cheia, nenhuma rolagem lateral.
+import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import Link from 'next/link'
 import { NOMES_DE_PRODUTO } from '@/lib/ui/nomesDeProduto'
 import { KineoBrandIcon } from '@/components/KineoBolt'
-import { InterfaceLanguageSelect, UiLabel } from '@/components/InterfaceLanguage'
+import { UiLabel } from '@/components/InterfaceLanguage'
 import NavCreditsBadge from '@/components/NavCreditsBadge'
 import Footer from '@/components/Footer'
 import WallMedia from '@/components/WallMedia'
@@ -189,7 +190,7 @@ export default function ClipsFirstHome({
               <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
             </div>
             <div className="nr">
-              <InterfaceLanguageSelect />
+              <SiteSettingsMenu signedIn={signedIn} />
               {signedIn ? (
                 <>
                   <NavCreditsBadge />

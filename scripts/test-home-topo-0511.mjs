@@ -8,6 +8,8 @@ const raiz = process.cwd()
 const F = {
   home: 'app/KineoLanding.tsx',
   pagina: 'app/page.tsx',
+  settings: 'components/SiteSettingsMenu.tsx',
+  tema: 'app/appearance.css',
   lingua: 'components/InterfaceLanguage.tsx',
   regra: 'lib/ui/caixaPresente0511.ts',
   caixa: 'components/CaixaDePresente0511.tsx',
@@ -36,21 +38,17 @@ function problemas(mut = {}) {
   const menu = home.slice(iLinks, iDireita)
   const direita = home.slice(iDireita, iCompacto)
   const compacto = home.slice(iCompacto, iFimCompacto)
-  checa('o menu do topo tem o seletor', menu.includes('<InterfaceLanguageSelect emMenu />'))
-  // KINEO-MENU-4-MAIS-1211 [CEO 12/11, opção C — escolha final do fundador] — Pricing saiu do meio do topo para a direita, ao lado do Log in: o seletor passa a fechar a fileira (depois do último item, Claude & ChatGPT). Antes: "o seletor vem depois de Pricing".
-  checa('o seletor fecha a fileira do topo (depois de Claude & ChatGPT)', menu.indexOf('data-nav-item={MENU_CONNECTOR_NAV_ITEM}') > 0 && menu.indexOf('<InterfaceLanguageSelect emMenu />') > menu.indexOf('data-nav-item={MENU_CONNECTOR_NAV_ITEM}'))
+  checa('idioma dentro das configurações', fonte(F.settings).includes('<InterfaceLanguageSelect />'))
+  checa('menu comum ao desktop e celular', direita.includes('<SiteSettingsMenu signedIn={isSignedIn} />'))
   checa('Pricing à direita, antes do Log in', direita.indexOf('data-nav-item="pricing"') > 0 && direita.indexOf('data-nav-item="pricing"') < direita.indexOf('data-nav-item="login"'))
   checa('à direita não sobra seletor', !direita.includes('InterfaceLanguageSelect'))
-  checa('o menu compacto tem o seletor, depois de Pricing', compacto.includes('<InterfaceLanguageSelect emMenu />') && compacto.indexOf('<InterfaceLanguageSelect emMenu />') > compacto.indexOf('data-nav-item="pricing"'))
+  checa('idioma sai da navegação e do menu compacto', !menu.includes('<InterfaceLanguageSelect') && !compacto.includes('<InterfaceLanguageSelect'))
   const css = (seletor) => { const i = home.indexOf(seletor + '{'); return i < 0 ? '' : home.slice(i + seletor.length + 1, home.indexOf('}', i)) }
   const login = css('.klp .nav-login')
   checa('Log in e Get started: mesma altura', /height:40px/.test(login) && /height:40px/.test(css('.klp .nav-right>.btn-w,.klp .nav-right .nav-dashboard')))
   checa('Log in e Get started: mesma letra', /font-size:14px/.test(login) && /font-weight:650/.test(login) && direita.includes("fontSize: '14px'"))
   checa('o Log in segue escondido no compacto', home.indexOf('.klp .nav-login{display:inline-flex') < home.indexOf('.klp .nav-login{display:none}'))
-  const seletor = css('.klp select.kineo-idioma-menu')
-  checa('o seletor herda a letra do menu', /font:inherit/.test(seletor) && /color:inherit/.test(seletor) && /border:0/.test(seletor))
-  checa('o seletor segue visível no foco do teclado', /\.kineo-idioma-menu:focus-visible\{outline:2px/.test(home))
-  checa('no compacto o seletor vence o tema de .nav-right', home.includes('.klp .nav-right .nav-mobile-menu select.kineo-idioma-menu{width:100%!important'))
+  checa('foco visível no seletor', fonte(F.tema).includes('.site-settings-dialog select:focus-visible'))
   const lingua = fonte(F.lingua)
   checa('é o mesmo seletor: mesma troca de idioma nos dois jeitos', (lingua.match(/onChange=\{event => choose\(parseInterfaceLanguage\(event\.target\.value\)\)\}/g) || []).length === 1)
   checa('sem emMenu, o seletor de sempre', lingua.includes("emMenu = false") && lingua.includes("'kineo-interface-language'}"))
@@ -112,10 +110,10 @@ function problemas(mut = {}) {
 const troca = (rel, de, para) => { if (!SRC[rel].includes(de)) throw new Error(`mutante não encaixa em ${rel}: ${de}`); return { [rel]: SRC[rel].replace(de, para) } }
 const MUTANTES = {
   'o seletor volta para a direita': troca(F.home, '<div className="nav-right">\n', '<div className="nav-right">\n          <InterfaceLanguageSelect />\n'),
-  'o seletor sai do menu do topo': troca(F.home, '<InterfaceLanguageSelect emMenu />{/* KINEO-HOME-TOPO-0511 — fundador', '{/* KINEO-HOME-TOPO-0511 — fundador'),
-  'o seletor sai do menu compacto': troca(F.home, '<InterfaceLanguageSelect emMenu />{/* KINEO-HOME-TOPO-0511 — par do topo', '{/* KINEO-HOME-TOPO-0511 — par do topo'),
+  'idioma sai das configurações': troca(F.settings, '<InterfaceLanguageSelect />', ''),
+  'configurações somem do topo': troca(F.home, '<SiteSettingsMenu signedIn={isSignedIn} />', ''),
   'Log in menor que Get started': troca(F.home, '.klp .nav-login{display:inline-flex;align-items:center;height:40px;font-size:14px;font-weight:650', '.klp .nav-login{display:inline-flex;align-items:center;height:32px;font-size:12px;font-weight:550'),
-  'o seletor perde o foco do teclado': troca(F.home, '.klp select.kineo-idioma-menu:focus-visible{outline:2px solid var(--blue);outline-offset:3px}', ''),
+  'o seletor perde o foco do teclado': troca(F.tema, '.site-settings-dialog select:focus-visible', '.missing'),
   'o presente some da home': troca(F.home, '<CaixaDePresente0511 visitante={!initialUser} filmeGratisNoPais={freeFilmInCountry} />', ''),
   'o presente entra no .nav-cta e some no celular': troca(F.home, '<div className="nav-cta"><NavCreditsBadge />', '<div className="nav-cta"><CaixaDePresente0511 /><NavCreditsBadge />'),
   'visitante tratado como conta': troca(F.home, 'visitante={!initialUser}', 'visitante={false}'),

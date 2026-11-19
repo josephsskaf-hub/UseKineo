@@ -33,11 +33,9 @@ function all(o = {}) {
   ok(!topo.includes('<PublicNavDropdown item="video"') && !topo.includes('NavEngineItem') && !topo.includes('nav_mega'), 'topo: Films abre direto, sem submenu e sem motor (KINEO-FILMS-DIRETO-1311)')
   ok(topo.includes('<UiLabel>{NOMES_DE_PRODUTO.product_ads.curto}</UiLabel>') && topo.includes('label={NOMES_DE_PRODUTO.ugc_ads.curto}') && topo.includes('<UiLabel>{NOMES_DE_PRODUTO.cartoon.curto}</UiLabel>'), 'topo: Product Ads, UGC Ads e Cartoons (fonte única)')
   ok(!/<UiLabel>(?:Make a film|Product ads|AI UGC Ads|AI Cartoon Videos)<\/UiLabel>|label="Make a film"/.test(topo + cel), 'nenhum nome antigo escrito à mão no cabeçalho')
-  const more = topo.match(/<PublicNavDropdown item="more:menu" label="More">([\s\S]*?)<\/PublicNavDropdown>/)
-  ok(more, 'topo: "More" existe')
-  ok(more[1].includes('href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}') && !more[1].includes('MENU_CONNECTOR_HREF'), 'More: só Made with Kineo (opção C)')
-  ok(topo.replace(more[0], '').includes('href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM}'), 'Claude & ChatGPT segue visível no topo (ordem do fundador de 20/10)')
-  ok(!topo.replace(more[0], '').includes('MADE_WITH_KINEO_HREF'), 'Made with Kineo não aparece duas vezes no topo')
+  ok(!topo.includes('<PublicNavDropdown'), 'links diretos no topo')
+  ok(topo.split('href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}').length === 2, 'Made with Kineo direto uma única vez')
+  ok(topo.includes('href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM}'), 'conector direto no topo')
   ok(!topo.includes('href="/pricing"'), 'Pricing saiu do meio do topo')
   const pr = direita.indexOf('<Link className="nav-login nav-pricing" href="/pricing" data-nav-item="pricing">')
   ok(pr > 0 && pr < direita.indexOf('data-nav-item="login"'), 'Pricing à direita, logo antes do Log in')
@@ -58,6 +56,7 @@ const real = passed
 const r = p => read(p)
 const mutants = [
   ['Claude & ChatGPT vai para o More (opção B)', LAND, r(LAND).replace(/(\n\s*<Link href=\{MENU_CONNECTOR_HREF\} data-nav-item=\{MENU_CONNECTOR_NAV_ITEM\} className="nav-connector">[^\n]*)\n/, '\n').replace('                <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>', '                <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM}>x</Link>\n                <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>')],
+  ['Made with Kineo volta ao submenu', LAND, r(LAND).replace('<Link href={MADE_WITH_KINEO_HREF}', '<PublicNavDropdown item="more:menu" label="More"><Link href={MADE_WITH_KINEO_HREF}')],
   ['nome antigo volta à mão', LAND, r(LAND).replace('data-nav-item="video" className="nav-primary"><UiLabel>{NOMES_DE_PRODUTO.film.curto}</UiLabel>', 'data-nav-item="video" className="nav-primary"><UiLabel>Make a film</UiLabel>')], // KINEO-FILMS-DIRETO-1311 — alvo novo: Films é um link direto
   ['Pricing some da direita', LAND, r(LAND).replace('<Link className="nav-login nav-pricing" href="/pricing" data-nav-item="pricing">', '<Link className="nav-login nav-pricing" href="/planos" data-nav-item="pricing">')],
   ['tabela muda', NOMES, r(NOMES).replace("cartoon: { curto: 'Cartoons', longo: 'AI Cartoons' }", "cartoon: { curto: 'Cartoon', longo: 'AI Cartoon Videos' }")],

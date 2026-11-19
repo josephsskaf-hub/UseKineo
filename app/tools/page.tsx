@@ -1,7 +1,8 @@
+import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
-import { InterfaceLanguageSelect, UiLabel, UiText } from '@/components/InterfaceLanguage'
+import { UiLabel, UiText } from '@/components/InterfaceLanguage'
 import { TOOL_SPANISH } from '@/lib/ui/toolSpanish'
 import { FREE_TOOL_FACTS, PUBLIC_COST_PLANNER_FACT } from '@/lib/kineoFacts'
 import { EDITING_TOOLS } from '@/lib/videoEditing/settings'
@@ -231,7 +232,7 @@ export default function ToolsPage() {
       <div className="tools-shell">
         <nav className="tools-nav" aria-label="Primary">
           <Link href="/" className="tools-logo">Kineo</Link>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}><InterfaceLanguageSelect /><Link href="/free-ai-shorts-generator" className="tools-product-link"><UiText es="Crear un Short completo →">Make a finished Short →</UiText></Link></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}><SiteSettingsMenu /><Link href="/free-ai-shorts-generator" className="tools-product-link"><UiText es="Crear un Short completo →">Make a finished Short →</UiText></Link></div>
         </nav>
 
         <header className="tools-hero">
