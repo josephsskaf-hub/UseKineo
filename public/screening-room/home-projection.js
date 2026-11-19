@@ -26,7 +26,8 @@ export async function projectHome(root, placement, pageSignal, publicHome = fals
   field.setAttribute('aria-label', 'Animate text in the Lituya Bay preview')
   field.autocomplete = 'off'
   let debounce, monitor, sample, inView = false
-  const floor = publicHome ? 60 : 24
+  // KINEO-HOME-3D-PISO-1911 [CEO]: 60 era pedido errado da CEO; tela de 60 Hz mede 59,x e a película sumia para quase todos. Piso público = 45.
+  const floor = publicHome ? 45 : 24
   const windowMs = publicHome ? 3000 : 4000
   const readFrames = () => ({ now: performance.now(), frames: Number(stage.dataset.frames || 0) })
   const resetSample = () => { sample = inView && !document.hidden ? readFrames() : undefined }
