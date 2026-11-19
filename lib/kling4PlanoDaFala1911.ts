@@ -45,3 +45,118 @@ export function topicoComoDado(texto: string): string {
 export function descricoesCompletas(d: ReadonlyArray<string | null> | null | undefined, nSecoes: number): string[] | null {
   return Array.isArray(d) && d.length === nSecoes && nSecoes > 0 && d.every((x) => typeof x === 'string' && x.trim().length >= 12) ? (d as string[]) : null
 }
+
+// ═══ KINEO-DESCRITOR-FORTE-1911 · A2 [CEO 19/11] — descritor forte no plano do Kling 4 grátis + o juiz ANTES do envio ═══
+// Ligado (só o Kling 4 grátis literal): TODA seção ganha a sua descrição (inclusive em cena de uma seção só), escrita por AI_TEXT_MODELS.planner
+// (gpt-4o; hoje o descritor roda em gpt-4o-mini fixo); o plano de cada seção nasce dela (promptDaSecao). Antes da reserva e do POST pago, o juiz do
+// plano (lib/juizDoPlano.ts, o mesmo do ensaio) lê os planos que iriam à fal; plano reprovado por sujeito ausente, criatura no lugar do
+// protagonista ou final que não entrega tem SÓ a sua seção reescrita, uma vez, com a nota do juiz. Juiz em prazo, erro ou sem veredito = segue.
+// As cenas (stills, crítico, reserva H3) não mudam. 'off' = nada daqui roda.
+import { AI_TEXT_MODELS } from '@/lib/aiModels'
+import { promptDaSecao, secoesDasCenas, type SecaoDoRoteiro } from '@/lib/kling4QuatroPlanos'
+export const KLING4_DESCRITOR_FORTE_1911: ModoPlanoDaFala = 'off' // nasce desligado: custo por filme e latência medidos no ensaio antes de ligar
+export const MODELO_DO_DESCRITOR_FORTE: string = AI_TEXT_MODELS.planner
+export const A2_TETO_DO_JUIZ_MS = 12_000
+export const A2_EVENTO = 'kling4_descritor_forte'
+export const FALHAS_QUE_REESCREVEM: readonly string[] = ['c_criatura', 'd_sujeito', 'e_final']
+
+type VereditoMinimo = { status?: string; falhas?: readonly string[]; cenas_reescreveria?: readonly number[]; d_sujeito?: string | null } | null | undefined
+/** Seções (0-based) a reescrever: só com veredito JUDGED e falha de conteúdo; plano p (1..N) = seção p-1 (no A2 há um plano por seção).
+ *  Final que não entrega sem plano apontado = a última seção. Contagem de planos ≠ seções = nada (nunca desloca). */
+export function secoesAReescrever(v: VereditoMinimo, nPlanos: number, nSecoes: number): number[] {
+  if (!v || v.status !== 'JUDGED' || nPlanos !== nSecoes || nSecoes < 1) return []
+  const falhas = (v.falhas ?? []).filter((f) => FALHAS_QUE_REESCREVEM.includes(f))
+  if (!falhas.length) return []
+  const alvo = new Set((v.cenas_reescreveria ?? []).filter((p) => Number.isInteger(p) && p >= 1 && p <= nPlanos).map((p) => p - 1))
+  if (falhas.includes('e_final')) alvo.add(nSecoes - 1)
+  return [...alvo].sort((a, b) => a - b)
+}
+
+const FALHA_EM_PALAVRAS: Record<string, string> = {
+  c_criatura: 'a creature, object or adjective took the place of the story\'s protagonist',
+  d_sujeito: 'the central subject of the request was not clearly visible',
+  e_final: 'the last shot did not deliver the outcome the narration promises',
+}
+/** A nota que vai ao descritor na reescrita (só para o modelo; nunca ao cliente). */
+export function notaDaReescrita(v: VereditoMinimo): string {
+  const falhas = (v?.falhas ?? []).filter((f) => FALHAS_QUE_REESCREVEM.includes(f)).map((f) => FALHA_EM_PALAVRAS[f]).filter(Boolean)
+  const sujeito = String(v?.d_sujeito ?? '').trim().slice(0, 120)
+  return `A reviewer rejected the previous version of these shots because ${falhas.join('; ') || 'they did not show the request'}.${sujeito ? ` The central subject of the request is: ${sujeito}.` : ''} Rewrite ONLY these shots: show that subject clearly, doing what each narration line says; the last shot of the film shows the outcome with that subject.`
+}
+
+/** A2 — o prompt do Kling 4 de cada cena de UMA seção só passa a nascer da descrição dessa seção (a cena fundida já nasce em planosPorSecao).
+ *  Parte sempre dos prompts ORIGINAIS das cenas. Mapa seção → cena provado pela fala (secoesDasCenas); sem mapa = os prompts de sempre. */
+export function promptsDeCenaInteira(promptsDasCenas: readonly string[], secoes: readonly SecaoDoRoteiro[], falasDasCenas: readonly string[]): string[] {
+  const g = secoesDasCenas(secoes, falasDasCenas)
+  if (!g || g.length !== promptsDasCenas.length) return [...promptsDasCenas]
+  return promptsDasCenas.map((p, i) => (g[i].length === 1 && typeof secoes[g[i][0]].descricao === 'string' ? promptDaSecao(p, secoes[g[i][0]]) : p))
+}
+
+// ═══ A2 · nome de marca, obra ou famoso não vai ao motor [CEO 19/11: "versão original pelo papel"; não é filtro por lista de palavras] ═══
+// O descritor recebe a regra no Topic; depois dele, uma pergunta semântica curta (gpt-4o-mini) aponta o plano que AINDA nomeia marca, franquia,
+// estúdio, obra, personagem de terceiro ou pessoa famosa real — só vale com o nome CITADO e presente no texto do plano (nada inventado); esse
+// plano entra na reescrita junto dos que o juiz reprovou.
+import { perguntaSemantica } from '@/lib/cinematic/sujeitoObrigatorio'
+export const REGRA_SEM_NOME_PROPRIO = 'Never write a brand, a franchise, a studio, a film, game or series title, a third-party character\'s name or a real famous person\'s name in a shot: describe an original character or thing by its role and look instead.'
+/** O Topic do descritor por seção no A2: o PEDIDO do cliente (quando existe) + o roteiro + a regra de nome próprio. */
+export function topicoDoDescritorA2(ideia: unknown, roteiro: string): string {
+  const i = typeof ideia === 'string' ? ideia.trim().slice(0, 1500) : ''
+  return `${topicoComoDado(`${i ? `REQUEST (the customer's own words): ${i}\n\nSCRIPT: ` : ''}${roteiro}`)}\n\nRULE: ${REGRA_SEM_NOME_PROPRIO}` // [revisor 19/11, item 7] o texto do cliente cercado como dado
+}
+export const NOTA_DO_NOME_PROPRIO = 'Also remove every brand, franchise, studio, title, third-party character or real famous person named in these shots; describe an original by its role and look.'
+
+/** Planos (0-based) que nomeiam marca/obra/personagem de terceiro/famoso, com a citação conferida no texto. Falha = []. */
+export async function planosComNomeProprio(planos: readonly string[], opts: { apiKey?: string; fetchImpl?: typeof fetch } = {}): Promise<number[]> {
+  if (!planos.length) return []
+  const r = await perguntaSemantica<Array<{ plano: number; nome: string }>>({
+    system: 'You check short video-generation prompts. For each SHOT, list every proper name of a brand, franchise, studio, film, game or series title, third-party fictional character, or real famous person that the text names. Quote each name exactly as it appears in that shot\'s text. Generic words (a hedgehog, a robot, a superhero, a city) are not names. Return {"achados": [{"plano": <shot number>, "nome": "<exact quote>"}]}; an empty list when there is none.',
+    user: planos.map((p, i) => `SHOT ${i + 1}: ${p}`).join('\n'),
+    nome: 'a2_nome_proprio', maxTokens: 300,
+    ler: (o) => { const a = (o as { achados?: unknown } | null)?.achados; return Array.isArray(a) ? (a as Array<{ plano: number; nome: string }>) : null },
+    schema: { type: 'object', additionalProperties: false, required: ['achados'], properties: { achados: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['plano', 'nome'], properties: { plano: { type: 'integer' }, nome: { type: 'string' } } } } } },
+  }, { model: 'gpt-4o-mini', timeoutMs: 6_000, tentativasExtras: 0, ...opts })
+  if (!r.ok) return []
+  const out = new Set<number>()
+  for (const a of r.valor) {
+    const nome = typeof a?.nome === 'string' ? a.nome.trim() : ''
+    if (Number.isInteger(a?.plano) && a.plano >= 1 && a.plano <= planos.length && nome.length >= 2 && planos[a.plano - 1].toLowerCase().includes(nome.toLowerCase())) out.add(a.plano - 1)
+  }
+  return [...out].sort((x, y) => x - y)
+}
+
+export type RelatoDaRevisaoA2 = { juiz: unknown; nomes: number[]; reescritas: number[]; juiz_final: unknown; ms: { juiz: number; nomes: number; reescrita: number; juiz_final: number } }
+/** A revisão do A2 antes do envio (e no ensaio do dry_run): juiz + nome próprio em paralelo; só as seções apontadas são reescritas, uma vez.
+ *  `rejulgar` (só o ensaio) lê de novo depois da reescrita. Nunca lança: erro de uma peça = aquela peça vazia. */
+export async function revisarPlanosA2(a: {
+  planos: () => string[]; falas: () => string[]; nSecoes: number; rejulgar: boolean
+  julgar: (planos: string[], falas: string[]) => Promise<VereditoMinimo>
+  nomes: (planos: string[]) => Promise<number[]>
+  reescrever: (alvo: number[], nota: string) => Promise<void>
+}): Promise<RelatoDaRevisaoA2 & { veredito: VereditoMinimo; vereditoFinal: VereditoMinimo }> {
+  const ms = { juiz: 0, nomes: 0, reescrita: 0, juiz_final: 0 }
+  const cronometro = async <T,>(k: keyof typeof ms, f: () => Promise<T>, vazio: T): Promise<T> => { const t = Date.now(); try { return await f() } catch { return vazio } finally { ms[k] = Date.now() - t } }
+  const planos = a.planos(), falas = a.falas()
+  const [v, nomes] = await Promise.all([cronometro('juiz', () => a.julgar(planos, falas), null as VereditoMinimo), cronometro('nomes', () => a.nomes(planos), [] as number[])])
+  const comNome = planos.length === a.nSecoes ? nomes : []
+  const alvo = [...new Set([...secoesAReescrever(v, planos.length, a.nSecoes), ...comNome])].sort((x, y) => x - y)
+  let vf: VereditoMinimo = null
+  if (alvo.length) {
+    await cronometro('reescrita', () => a.reescrever(alvo, `${notaDaReescrita(v)}${comNome.length ? ` ${NOTA_DO_NOME_PROPRIO}` : ''}`), undefined)
+    if (a.rejulgar) vf = await cronometro('juiz_final', () => a.julgar(a.planos(), a.falas()), null as VereditoMinimo)
+  }
+  return { juiz: v, veredito: v, nomes, reescritas: alvo.map((j) => j + 1), juiz_final: vf, vereditoFinal: vf, ms }
+}
+
+/** Preço por token (US$) conferido em 19/11 na página do fornecedor (developers.openai.com/api/docs/pricing, tabela Standard, por 1M tokens):
+ *  gpt-4o US$ 2,50 entrada / US$ 10,00 saída; gpt-4o-mini US$ 0,15 / US$ 0,60. Só o ensaio usa (soma o gasto MEDIDO pelo usage). */
+export const PRECO_POR_TOKEN_1911: Readonly<Record<string, { entrada: number; saida: number }>> = { 'gpt-4o': { entrada: 2.5e-6, saida: 10e-6 }, 'gpt-4o-mini': { entrada: 0.15e-6, saida: 0.6e-6 } }
+export function custoDoUso(usos: ReadonlyArray<{ model: string; usage: unknown }>): { usd: number; tokens_entrada: number; tokens_saida: number; sem_usage: number } {
+  let usd = 0, entrada = 0, saida = 0, sem = 0
+  for (const u of usos) {
+    const us = u.usage as { prompt_tokens?: unknown; completion_tokens?: unknown } | null
+    const p = PRECO_POR_TOKEN_1911[u.model]
+    if (!us || typeof us.prompt_tokens !== 'number' || typeof us.completion_tokens !== 'number' || !p) { sem++; continue }
+    entrada += us.prompt_tokens; saida += us.completion_tokens; usd += us.prompt_tokens * p.entrada + us.completion_tokens * p.saida
+  }
+  return { usd: Math.round(usd * 1e6) / 1e6, tokens_entrada: entrada, tokens_saida: saida, sem_usage: sem }
+}

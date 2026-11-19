@@ -101,8 +101,8 @@ async function prova(over = {}) {
 
   // ── C · a ligação na rota ──
   const rota = over[ROTA] ?? read(ROTA)
-  no(!rota.includes("const kling4PlanoDaFala1911 = kling4TrialCandidate && verbatim && planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, isInternalEmail(user.email)) && parsedScript.segments.length > scenes.length"), 'C1 só o Kling 4 grátis literal com cena fundida, pelo interruptor')
-  no(!rota.includes('? generateCinematicDescriptions(secoesParaODescritor(parsedScript.segments), topicoComoDado(prompt), classicVisualPolicy, undefined,') || !/sheet: desenhoInfantil\.personagem\.sheet \} : null, true, true\)\n/.test(rota), 'C2 o descritor por seção: o texto do cliente cercado como dado, a regra do Kling 4 e a regra por seção')
+  no(!rota.includes("const kling4PlanoDaFala1911 = kling4DescritorForte1911 || (kling4TrialCandidate && verbatim && planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, isInternalEmail(user.email)) && parsedScript.segments.length > scenes.length)"), 'C1 só o Kling 4 grátis literal com cena fundida, pelo interruptor (ou o A2, que liga o descritor por seção)')
+  no(!rota.includes('? generateCinematicDescriptions(secoesParaODescritor(parsedScript.segments), kling4DescritorForte1911 ? topicoDoDescritorA2(body.original_idea, prompt) : topicoComoDado(prompt), classicVisualPolicy, undefined,') || !rota.includes('sheet: desenhoInfantil.personagem.sheet } : null, true, true, kling4DescritorForte1911 ? MODELO_DO_DESCRITOR_FORTE : undefined, (u) => { usosDoDescritorA2.push(u) })\n'), 'C2 o descritor por seção: o pedido como Topic (no A2 com a ideia do cliente), a regra do Kling 4 e a regra por seção')
   no(!rota.includes('.then((d) => descricoesPorSecao(d, parsedScript.segments.length)).catch(() => descricoesPorSecao(null, parsedScript.segments.length))'), 'C2b [item 7] a chamada por seção que falha nunca vira 500 (catch = sem descrição = o caminho de hoje)')
   no(!rota.includes("{ role: 'system', content: porSecao ? system + REGRA_DO_PLANO_DA_FALA : system }"), 'C3 a regra por seção só na chamada por seção')
   const iDesc = rota.indexOf('const descricoesDasSecoesK4: Promise<(string | null)[]> | null'), iCenas = rota.indexOf('cobertura = await describeScenesCovered(scenes.length')
@@ -123,12 +123,12 @@ const MUT = [
   ['interruptor ligado', LIB, (s) => s.replace("KLING4_PLANO_DA_FALA_1911: ModoPlanoDaFala = 'off'", "KLING4_PLANO_DA_FALA_1911: ModoPlanoDaFala = 'public'")],
   ['contagem errada desloca', LIB, (s) => s.replace('if (!Array.isArray(saida) || saida.length !== nSecoes)', 'if (!Array.isArray(saida))')],
   ['regra sem o desfecho', LIB, (s) => s.replace('The LAST item shows how the story ends, with the central subject of the Topic clearly visible in that final moment', 'The LAST item closes the film')],
-  ['rota: descritor sem a regra por seção', ROTA, (s) => s.replace('sheet: desenhoInfantil.personagem.sheet } : null, true, true)\n', 'sheet: desenhoInfantil.personagem.sheet } : null, true)\n')],
+  ['rota: descritor sem a regra por seção', ROTA, (s) => s.replace('sheet: desenhoInfantil.personagem.sheet } : null, true, true, kling4DescritorForte1911 ? MODELO_DO_DESCRITOR_FORTE : undefined, (u) => { usosDoDescritorA2.push(u) })\n', 'sheet: desenhoInfantil.personagem.sheet } : null, true, false, kling4DescritorForte1911 ? MODELO_DO_DESCRITOR_FORTE : undefined, (u) => { usosDoDescritorA2.push(u) })\n')],
   ['rota: regra em toda chamada', ROTA, (s) => s.replace("content: porSecao ? system + REGRA_DO_PLANO_DA_FALA : system }", 'content: system + REGRA_DO_PLANO_DA_FALA }')],
   ['rota: descrição não entra nas seções', ROTA, (s) => s.replace('if (d) parsedScript.segments.forEach((s, j) => { Object.assign(s, { descricao: d[j] }) })', 'void d')],
   ['rota: aceita descrição incompleta', ROTA, (s) => s.replace('const d = descricoesCompletas(await descricoesDasSecoesK4, parsedScript.segments.length); if (d)', 'const d = await descricoesDasSecoesK4; if (d)')],
   ['rota: sem o catch', ROTA, (s) => s.replace('.catch(() => descricoesPorSecao(null, parsedScript.segments.length))', '')],
-  ['rota: texto do cliente cru', ROTA, (s) => s.replace('secoesParaODescritor(parsedScript.segments), topicoComoDado(prompt), classicVisualPolicy', 'secoesParaODescritor(parsedScript.segments), prompt, classicVisualPolicy')],
+  ['rota: texto do cliente cru', ROTA, (s) => s.replace(': topicoComoDado(prompt), classicVisualPolicy, undefined,', ': prompt, classicVisualPolicy, undefined,')],
   ['lib: sem teto na fala', QP, (s) => s.replace('const momento = f ? `${PREFIXO}${falaCabe(Math.max(0, max - cp1911(PREFIXO) - 1))}` : \'\'', 'const momento = f ? `${PREFIXO}${fecha(f)}` : \'\'')],
   ['lib: corta na palavra', QP, (s) => s.replace('  return v >= 20 ? c.slice(0, v) : null\n}', '  return v >= 20 ? c.slice(0, v) : c.replace(/\\s+\\S*$/u, \'\')\n}')],
   ['lib: T. rex partido', QP, (s) => s.replace('const FIM_DE_FRASE_A1 = /(?<!(?:^|[\\s(])\\p{Lu}[.])(?<=[.!?])\\s+/u', 'const FIM_DE_FRASE_A1 = /(?<=[.!?])\\s+/u')],

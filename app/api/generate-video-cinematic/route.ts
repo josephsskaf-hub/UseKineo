@@ -45,6 +45,7 @@ import { creditCostFor, creditCostForDuration, type Quality } from '@/lib/credit
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { comPeloFacialDoTexto } from '@/lib/cinematic/peloFacialDoTexto' // KINEO-PELO-FACIAL-DO-TEXTO-1211
 import { KLING4_PLANO_DA_FALA_1911, planoDaFalaLigado, REGRA_DO_PLANO_DA_FALA, secoesParaODescritor, descricoesPorSecao, topicoComoDado, descricoesCompletas } from '@/lib/kling4PlanoDaFala1911' // KINEO-PLANO-DA-FALA-1911 (A1)
+import { KLING4_DESCRITOR_FORTE_1911, MODELO_DO_DESCRITOR_FORTE, A2_TETO_DO_JUIZ_MS, A2_EVENTO, promptsDeCenaInteira, topicoDoDescritorA2, planosComNomeProprio, revisarPlanosA2, custoDoUso } from '@/lib/kling4PlanoDaFala1911' // KINEO-DESCRITOR-FORTE-1911 (A2)
 import { KLING4_PLANO_POR_SECAO, KLING4_PLANO_POR_SECAO_VERSAO, planoPorSecaoLigado, planosPorSecao } from '@/lib/kling4QuatroPlanos' // KINEO-K4-PLANO-POR-SECAO-1111
 import { comSujeitoNasMetades } from '@/lib/kling4QuatroPlanos' // KINEO-SUJEITO-APARENCIA-1311 (b)
 import { KLING4_PLANO_VARIADO, KLING4_PLANO_VARIADO_VERSAO, planoVariadoLigado, planosComEscalaVariada } from '@/lib/kling4PlanoVariado' // KINEO-K4-PLANO-VARIADO-1111
@@ -1060,6 +1061,8 @@ async function generateCinematicDescriptions(
   desenhoProtagonista?: { name: string; sheet: string } | null, // KINEO-DESENHO-LEO-0111 — só o desenho infantil: o personagem escolhido é o sujeito de todo plano
   kling4Gratis?: boolean, // KINEO-K4-SUJEITO-0111 v6 — só o Kling 4 grátis recebe a regra do sujeito central (nos outros motores clássicos ela não teve render de validação)
   porSecao?: boolean, // KINEO-PLANO-DA-FALA-1911 (A1) — cada item é uma SEÇÃO do roteiro (um plano curto do Kling 4 grátis): a regra do plano da fala
+  modelo?: string, // KINEO-DESCRITOR-FORTE-1911 (A2) — o modelo forte (AI_TEXT_MODELS.planner) só no filme grátis com o interruptor; ausente = gpt-4o-mini, como sempre
+  aoUsar?: (u: { model: string; usage: unknown; ms: number }) => void, // KINEO-DESCRITOR-FORTE-1911 (A2) — o ensaio do dry_run mede os tokens de cada chamada
 ): Promise<string[]> {
   const list = scenes
     .map((s, i) => {
@@ -1100,9 +1103,10 @@ ${REGRAS_DO_ESCRITOR_DE_CENAS}
   // chamada, cobrando a contagem, antes de o chamador cair no texto cru.
   let best: string[] = []
   for (let tentativa = 0; tentativa < 2; tentativa++) {
+    const t0Descritor1911 = Date.now() // KINEO-DESCRITOR-FORTE-1911 (A2)
     const completion = await openai.chat.completions.create(
       {
-        model: 'gpt-4o-mini',
+        model: modelo ?? 'gpt-4o-mini', // KINEO-DESCRITOR-FORTE-1911 (A2): ausente = o de sempre
         messages: [
           { role: 'system', content: porSecao ? system + REGRA_DO_PLANO_DA_FALA : system }, // KINEO-PLANO-DA-FALA-1911 (A1): só na chamada por seção
           { role: 'user', content: tentativa === 0 ? userMsg : `${userMsg}\n\nYour previous answer had ${best.length} descriptions. Return EXACTLY ${scenes.length} descriptions, one per scene, in order.` },
@@ -1116,6 +1120,7 @@ ${REGRAS_DO_ESCRITOR_DE_CENAS}
       // queries. The caller's try/catch keeps the keyword fallback as last resort.
       { timeout: 15000, maxRetries: 1 },
     )
+    try { aoUsar?.({ model: modelo ?? 'gpt-4o-mini', usage: (completion as { usage?: unknown }).usage ?? null, ms: Date.now() - t0Descritor1911 }) } catch { /* medir nunca derruba */ } // KINEO-DESCRITOR-FORTE-1911 (A2)
 
     const raw = completion.choices[0]?.message?.content?.trim() ?? ''
     if (!raw) continue
@@ -4400,9 +4405,11 @@ async function manipularPost(req: NextRequest) {
     const cenasSemDescricaoDoModelo = new Set<number>() // índices 0-based cujo plano veio do fallback: o supervisor fala×imagem não pode devolvê-los à criatura/CTA literal
     // KINEO-PLANO-DA-FALA-1911 (A1) [CEO 19/11] — o Kling 4 grátis com cena fundida: cada SEÇÃO ganha a sua descrição, do pedido e da fala dela, numa
     // chamada do mesmo descritor que corre EM PARALELO com a das cenas (lida só na montagem dos planos). As cenas e a reserva não mudam. 'off' = nada.
-    const kling4PlanoDaFala1911 = kling4TrialCandidate && verbatim && planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, isInternalEmail(user.email)) && parsedScript.segments.length > scenes.length
+    const kling4DescritorForte1911 = kling4TrialCandidate && verbatim && planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isInternalEmail(user.email)) && parsedScript.segments.length >= scenes.length && parsedScript.segments.length <= 5 // KINEO-DESCRITOR-FORTE-1911 (A2): todo plano do grátis nasce da sua seção
+    const kling4PlanoDaFala1911 = kling4DescritorForte1911 || (kling4TrialCandidate && verbatim && planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, isInternalEmail(user.email)) && parsedScript.segments.length > scenes.length)
+    const usosDoDescritorA2: Array<{ model: string; usage: unknown; ms: number }> = [] // KINEO-DESCRITOR-FORTE-1911 (A2) — tokens e tempo de cada chamada do descritor por seção (o ensaio do dry_run devolve)
     const descricoesDasSecoesK4: Promise<(string | null)[]> | null = kling4PlanoDaFala1911
-      ? generateCinematicDescriptions(secoesParaODescritor(parsedScript.segments), topicoComoDado(prompt), classicVisualPolicy, undefined, desenhoInfantil.ativo ? { name: desenhoInfantil.personagem.name, sheet: desenhoInfantil.personagem.sheet } : null, true, true)
+      ? generateCinematicDescriptions(secoesParaODescritor(parsedScript.segments), kling4DescritorForte1911 ? topicoDoDescritorA2(body.original_idea, prompt) : topicoComoDado(prompt), classicVisualPolicy, undefined, desenhoInfantil.ativo ? { name: desenhoInfantil.personagem.name, sheet: desenhoInfantil.personagem.sheet } : null, true, true, kling4DescritorForte1911 ? MODELO_DO_DESCRITOR_FORTE : undefined, (u) => { usosDoDescritorA2.push(u) })
         .then((d) => descricoesPorSecao(d, parsedScript.segments.length)).catch(() => descricoesPorSecao(null, parsedScript.segments.length))
       : null
     if (verbatim && !planoDeBrollAplicado && !hollywoodPath) { // KINEO-TRILHA-15S — era: planScenes.length === 0 (com plano fora de posição, o descritor era pulado)
@@ -7582,9 +7589,44 @@ async function manipularPost(req: NextRequest) {
           return { teto_segundos: k4GratisMaxSeconds, teto_da_fala: fala.maxSeconds, fala_segundos: fala.seconds, motivo: fala.reason, motor: clip ? 'kling4' : 'reserva_ou_encaixe', clip_seconds: clip, planos_segundos: entrada ? (entrada.multi_prompt as Array<{ duration: number }>).map((p) => p.duration) : null, duration_na_fal: entrada ? entrada.duration : null, custo_previsto_usd: clip ? kling4TrialClipCostUsd(clip) : null }
         } catch (e) { return { erro: e instanceof Error ? e.message.slice(0, 200) : 'erro' } }
       })() : null // KINEO-K4-GRATIS-20S-1711
+      // KINEO-DESCRITOR-FORTE-1911 (A2) — o ENSAIO DE TEXTO pela própria rota (dono 19/11: até US$ 3, só texto): com o A2 ligado para a conta (internal), o dry_run
+      // monta os planos que IRIAM à fal a partir da prévia do Kling 4 acima — HOJE (o montador de sempre, sem descrição por seção) e NOVO (A2) —, julga os dois,
+      // procura nome próprio, reescreve só o apontado, julga de novo e devolve tudo com tempo, tokens e custo medido. Nada vai à fal; nenhum crédito.
+      const a2Ensaio1911 = kling4DescritorForte1911 && descricoesDasSecoesK4 && motor1411.kling4 ? await (async () => {
+        const k4 = motor1411.kling4 as string[], falasCena = scenes.map((s) => s.voiceover ?? '')
+        const montar = (secoes: Array<{ voiceover: string; pexelsQuery: string; descricao?: string | null }>) => {
+          const inteiras = promptsDeCenaInteira(k4, secoes, falasCena)
+          const q = planosPorSecao({ prompts: inteiras, stills: [], falas: falasCena, secoes, objetoConcreto: planoVariadoLigado(KLING4_PLANO_VARIADO, isInternalEmail(user.email)) })
+          const planos = q ? q.prompts : inteiras
+          return { planos: (buildKling4TrialInput(planos, []).input.multi_prompt as Array<{ prompt: string }>).map((m) => m.prompt), falas: q ? q.falas : falasCena }
+        }
+        const hoje = montar(parsedScript.segments.map((x) => ({ voiceover: x.voiceover, pexelsQuery: x.pexelsQuery })))
+        const t0 = Date.now(); const d0 = await descricoesDasSecoesK4; const esperaMs = Date.now() - t0
+        const d = descricoesCompletas(d0, parsedScript.segments.length) // [revisor 19/11, item 4] descrição incompleta = o filme fica no caminho de hoje (o ensaio mostra só o hoje)
+        if (!d) return { versao: 'a2_ensaio_1911_v1', motivo: 'descricoes_incompletas', descricoes: d0, hoje: { planos: hoje.planos }, ms: { espera_do_descritor: esperaMs }, custo: { descritor: custoDoUso(usosDoDescritorA2) } }
+        const secoes = parsedScript.segments.map((x, j) => ({ voiceover: x.voiceover, pexelsQuery: x.pexelsQuery, descricao: d[j] ?? null }))
+        let atual = montar(secoes)
+        const novo = atual
+        const julgar = async (planos: string[], falas: string[]) => esperarJuizDoPlano(iniciarJuizDoPlano({ ...planoDoEnvio({ kling4Candidato: true, kling4Input: () => ({ multi_prompt: planos.map((p) => ({ prompt: p })) }), falas, inputs: [] }), ensaio: true, engine: 'kling4', pedido: prompt, verbatim, seconds: duration }), A2_TETO_DO_JUIZ_MS)
+        const reescrever = async (alvo: number[], nota: string) => {
+          const novas = descricoesPorSecao(await generateCinematicDescriptions(secoesParaODescritor(alvo.map((j) => secoes[j])), `${topicoDoDescritorA2(body.original_idea, prompt)}\n\n${nota}`, classicVisualPolicy, { numeros: alvo.map((j) => j + 1), total: secoes.length }, desenhoInfantil.ativo ? { name: desenhoInfantil.personagem.name, sheet: desenhoInfantil.personagem.sheet } : null, true, true, MODELO_DO_DESCRITOR_FORTE, (u) => { usosDoDescritorA2.push(u) }), alvo.length)
+          alvo.forEach((j, k) => { if (novas[k]) secoes[j] = { ...secoes[j], descricao: novas[k] } })
+          atual = montar(secoes)
+        }
+        const [vHoje, r] = await Promise.all([julgar(hoje.planos, hoje.falas), revisarPlanosA2({ planos: () => atual.planos, falas: () => atual.falas, nSecoes: secoes.length, rejulgar: true, julgar, nomes: (p) => planosComNomeProprio(p), reescrever })])
+        const juizes = [vHoje, r.veredito, r.vereditoFinal] as Array<JuizPlanoVeredito | null>
+        const descritor = custoDoUso(usosDoDescritorA2)
+        const juizUsd = juizes.reduce((n, v) => n + (typeof v?.usd === 'number' ? v.usd : 0), 0)
+        return { versao: 'a2_ensaio_1911_v1', pedido: typeof body.original_idea === 'string' ? body.original_idea.slice(0, 600) : null, falas: falasCena,
+          hoje: { planos: hoje.planos, juiz: vHoje }, novo: { planos: novo.planos, juiz: r.veredito }, nomes_proprios: r.nomes.map((p) => p + 1), reescritas: r.reescritas,
+          final: { planos: atual.planos, juiz: r.vereditoFinal }, descricoes: secoes.map((x) => x.descricao),
+          ms: { espera_do_descritor: esperaMs, descritor: usosDoDescritorA2.map((u) => u.ms), ...r.ms },
+          custo: { descritor, juiz_usd: Math.round(juizUsd * 1e6) / 1e6, total_usd: Math.round((descritor.usd + juizUsd) * 1e6) / 1e6, nome_proprio: 'gpt-4o-mini sem usage devolvido (estimado < US$ 0,0003 por filme)' } }
+      })().catch((e) => ({ erro: String(e instanceof Error ? e.message : e).slice(0, 160) })) : null
       const refunded = await releaseBirthClaim('dry_run_no_charge')
       return NextResponse.json({
         dry_run: true,
+        ...(a2Ensaio1911 ? { a2_ensaio: a2Ensaio1911 } : {}), // KINEO-DESCRITOR-FORTE-1911 (A2) — o ensaio de texto
         family: 'classic',
         ...(k4EnsaioRelato ? { k4_gratis_ensaio: k4EnsaioRelato } : {}), // KINEO-K4-GRATIS-20S-1711
         prompt_do_motor: { etapas: motor1411.etapas, cenas: motor1411.prompts.map((p, i) => ({ cena: i + 1, still_e_clipe: p, ...(motor1411.kling4 ? { kling4: motor1411.kling4[i] } : {}) })) }, // KINEO-PROMPT-DO-MOTOR-1411
@@ -8144,6 +8186,8 @@ async function manipularPost(req: NextRequest) {
     // juiz do plano e o claim leem a MESMA entrada. Sem seções provadas pelo texto → null → os 3 planos de sempre, byte a byte.
     const kling4PlanoPorSecao = planoPorSecaoLigado(KLING4_PLANO_POR_SECAO, isInternalEmail(user.email)) // KINEO-K4-PLANO-POR-SECAO-1111
     if (descricoesDasSecoesK4) { const d = descricoesCompletas(await descricoesDasSecoesK4, parsedScript.segments.length); if (d) parsedScript.segments.forEach((s, j) => { Object.assign(s, { descricao: d[j] }) }) } // KINEO-PLANO-DA-FALA-1911 (A1) — já correu em paralelo com as cenas; a descrição viaja na seção (promptDaSecao a usa e o molde da pista não roda)
+    const kling4PromptsDasCenas1911 = [...kling4Prompts] // KINEO-DESCRITOR-FORTE-1911 (A2) — os prompts ORIGINAIS das cenas (a reescrita parte sempre deles)
+    if (kling4DescritorForte1911 && descricoesDasSecoesK4) promptsDeCenaInteira(kling4PromptsDasCenas1911, parsedScript.segments, scenes.map((s) => s.voiceover ?? '')).forEach((p, i) => { kling4Prompts[i] = p }) // KINEO-DESCRITOR-FORTE-1911 (A2): a cena de uma seção só nasce da descrição da sua seção
     const kling4PlanoFinal = planoFinalLigado(KLING4_PLANO_FINAL, isInternalEmail(user.email)) // KINEO-K4-PLANO-FINAL-1111 — 'internal' até a nota da prova paga
     const kling4PlanoVariado = planoVariadoLigado(KLING4_PLANO_VARIADO, isInternalEmail(user.email)) // KINEO-K4-PLANO-VARIADO-1111 [CEO 11/11, alavanca 2] — 'internal' até a nota da prova paga
     const kling4PorSecao = (a: { prompts: string[]; approvedStills: (string | null)[]; timing: typeof kling4Timing }): { prompts: string[]; approvedStills: (string | null)[]; timing: typeof kling4Timing; planos: number[][] | null } => { // KINEO-K4-PLANO-POR-SECAO-1111
@@ -8173,6 +8217,24 @@ async function manipularPost(req: NextRequest) {
       return { ...r3, prompts: r3.prompts.map((p, i) => i === ultimo ? planoFinalEmMovimento(p, { comImagemChave: Boolean(r3.approvedStills[ultimo]), escalaAnterior }) : p) }
     } // KINEO-K4-PLANO-POR-SECAO-1111
     const kling4EnvioDoFilme = () => kling4PorSecao({ prompts: kling4Prompts, approvedStills: kling4ApprovedStills, timing: kling4Timing }) // KINEO-K4-PLANO-POR-SECAO-1111 — a MESMA entrada para o juiz do plano e o claim
+    // KINEO-DESCRITOR-FORTE-1911 (A2) — a revisão antes do envio, num lugar só (o envio real e o ensaio do dry_run): juiz do plano + nome próprio, reescrita só das
+    // seções apontadas, pelo modelo forte, com a nota junto do Topic; a cena de uma seção só volta a nascer da sua descrição. `rejulgar` = só o ensaio.
+    const julgarA2 = async (planos: string[], falas: string[]) => esperarJuizDoPlano(iniciarJuizDoPlano({ ...planoDoEnvio({ kling4Candidato: true, kling4Input: () => ({ multi_prompt: planos.map((p) => ({ prompt: p })) }), falas, inputs: [] }), engine: 'kling4', pedido: prompt, verbatim, seconds: duration }), A2_TETO_DO_JUIZ_MS)
+    const reescreverA2 = async (alvo: number[], nota: string) => {
+      const novas = descricoesPorSecao(await generateCinematicDescriptions(secoesParaODescritor(alvo.map((j) => parsedScript.segments[j])), `${topicoDoDescritorA2(body.original_idea, prompt)}\n\n${nota}`, classicVisualPolicy, { numeros: alvo.map((j) => j + 1), total: parsedScript.segments.length }, desenhoInfantil.ativo ? { name: desenhoInfantil.personagem.name, sheet: desenhoInfantil.personagem.sheet } : null, true, true, MODELO_DO_DESCRITOR_FORTE, (u) => { usosDoDescritorA2.push(u) }), alvo.length)
+      alvo.forEach((j, k) => { if (novas[k]) Object.assign(parsedScript.segments[j], { descricao: novas[k] }) })
+      promptsDeCenaInteira(kling4PromptsDasCenas1911, parsedScript.segments, scenes.map((s) => s.voiceover ?? '')).forEach((p, i) => { kling4Prompts[i] = p })
+    }
+    const revisarA2DoFilme = (rejulgar: boolean) => revisarPlanosA2({ planos: () => { const e = kling4EnvioDoFilme(); return (buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input.multi_prompt as Array<{ prompt: string }>).map((m) => m.prompt) }, falas: () => kling4EnvioDoFilme().timing.voiceovers, nSecoes: parsedScript.segments.length, rejulgar, julgar: julgarA2, nomes: (planos) => planosComNomeProprio(planos), reescrever: reescreverA2 })
+    // KINEO-DESCRITOR-FORTE-1911 (A2) — o juiz do plano lê os planos que IRIAM à fal, antes da reserva e do POST pago; plano reprovado por sujeito ausente,
+    // criatura no lugar do protagonista ou final que não entrega tem SÓ a sua seção reescrita, uma vez, pelo modelo forte com a nota do juiz. Juiz em prazo,
+    // erro ou sem veredito = segue como estava. O evento guarda o veredito, as seções reescritas e o tempo (nunca texto do cliente).
+    if (kling4DescritorForte1911 && descricoesDasSecoesK4 && parsedScript.segments.every((s) => typeof (s as { descricao?: unknown }).descricao === 'string')) { // [revisor 19/11, item 4] só com a descrição de todas as seções
+      try {
+        const rA2 = await revisarA2DoFilme(false)
+        void writeServerEvent({ name: A2_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, juiz: (rA2.veredito as JuizPlanoVeredito | null)?.status ?? null, reprovado: (rA2.veredito as JuizPlanoVeredito | null)?.reprovado ?? null, falhas: (rA2.veredito as JuizPlanoVeredito | null)?.falhas ?? [], nomes: rA2.nomes.map((p) => p + 1), reescritas: rA2.reescritas, ms: rA2.ms } }).catch(() => false)
+      } catch (err) { console.warn('[cinematic] KINEO-DESCRITOR-FORTE-1911 juiz/reescrita falhou, os planos seguem:', err instanceof Error ? err.message : String(err)) }
+    }
     let kling4Trial: Kling4TrialResult | null = null
     // KINEO-K4-SEMPRE-0511 [TRAVA 8.2 — fundador 05/11 "vai"] — Kling 4 para todo filme grátis, sempre em 15 s. Dentro deste bloco, medirFalaDoKling4Trial mede e, se precisar, encaixa:
     // sem medida, uma nova tentativa; fala longa, encurta e mede de novo, antes do POST pago. Só o que a voz confirmou troca a fala; falhou, o texto fica inteiro e o filme vai à reserva, como antes.

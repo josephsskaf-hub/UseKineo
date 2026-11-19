@@ -20,6 +20,7 @@ import { businessAdsStamp } from '@/lib/growth/businessAdsAttribution'
 export const dynamic = 'force-dynamic'
 
 const SERVER_ONLY_EVENTS = new Set([
+  'kling4_descritor_forte', // KINEO-DESCRITOR-FORTE-1911 (A2) — o veredito do juiz antes do envio e as seções reescritas (só o servidor grava)
   // KINEO-RECREATE-MOVIMENTO-1411 — os dois passos do molde de movimento e a leitura da foto (só o servidor grava).
   'recreate_movimento_cena',
   'recreate_pessoa_descricao',
