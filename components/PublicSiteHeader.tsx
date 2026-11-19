@@ -17,9 +17,9 @@ export default function PublicSiteHeader({ signedIn, currentPath, signupHref, si
   signupLabel?: string
 }) {
   const filmHref = createEntryHref('film', '/studio', !!signedIn)
-  const links = (primaryClass?: string) => (<>
-    <Link href={filmHref} className={primaryClass} data-nav-item="video"><UiLabel>{NOMES_DE_PRODUTO.film.curto}</UiLabel></Link>
-    <Link href={createEntryHref('ads', '/ads/new', !!signedIn)} className={primaryClass} data-nav-item="business"><UiLabel>{NOMES_DE_PRODUTO.product_ads.curto}</UiLabel></Link>
+  const links = (<>
+    <Link href={filmHref} data-nav-item="video"><UiLabel>{NOMES_DE_PRODUTO.film.curto}</UiLabel></Link>
+    <Link href={createEntryHref('ads', '/ads/new', !!signedIn)} data-nav-item="business"><UiLabel>{NOMES_DE_PRODUTO.product_ads.curto}</UiLabel></Link>
     <NavUgcAdsLink data-nav-item="more:ugc" signedIn={signedIn} label={NOMES_DE_PRODUTO.ugc_ads.curto} />
     <Link href={createEntryForContentHref('cartoon', MENU_CARTOON_HREF, '/kids-cartoon', !!signedIn)} data-nav-item={MENU_CARTOON_NAV_ITEM} aria-current={currentPath === MENU_CARTOON_HREF ? 'page' : undefined}><UiLabel>{NOMES_DE_PRODUTO.cartoon.curto}</UiLabel></Link>
     <Link href={RECREATE_MENU_HREF} data-nav-item={RECREATE_MENU_NAV_ITEM} aria-current={currentPath === RECREATE_MENU_HREF ? 'page' : undefined}>{RECREATE_MENU_LABEL}</Link>
@@ -36,7 +36,7 @@ export default function PublicSiteHeader({ signedIn, currentPath, signupHref, si
       <style dangerouslySetInnerHTML={{ __html: PAGINA_CLARA_CSS }} />
       <nav aria-label="Main" className="kpn-in">
         <Link href="/" className="kpn-logo"><KineoBrandIcon className="mk" size={30} />Kineo</Link>
-        <div className="kpn-links" data-nav-surface="top" data-nav-area="public">{links('kpn-primary')}</div>
+        <div className="kpn-links" data-nav-surface="top" data-nav-area="public">{links}</div>
         <div className="kpn-right">
           <SiteSettingsMenu signedIn={signedIn} />
           {login}{action(false)}
@@ -44,7 +44,7 @@ export default function PublicSiteHeader({ signedIn, currentPath, signupHref, si
             <input type="checkbox" id="kpn-toggle" aria-label="Menu" aria-controls="kpn-menu" />
             <span className="kpn-bars" aria-hidden="true"><i /><i /><i /></span>
             <label htmlFor="kpn-toggle" id="kpn-menu" className="kpn-menu" data-nav-surface="mobile" data-nav-area="public">
-              {links()}{login}{action(true)}
+              {links}{login}{action(true)}
             </label>
           </div>
         </div>

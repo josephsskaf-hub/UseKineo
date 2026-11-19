@@ -40,7 +40,9 @@ function problemas(mut = {}) {
   const compacto = home.slice(iCompacto, iFimCompacto)
   checa('idioma dentro das configurações', fonte(F.settings).includes('<InterfaceLanguageSelect />'))
   checa('menu comum ao desktop e celular', direita.includes('<SiteSettingsMenu signedIn={isSignedIn} />'))
-  checa('Pricing à direita, antes do Log in', direita.indexOf('data-nav-item="pricing"') > 0 && direita.indexOf('data-nav-item="pricing"') < direita.indexOf('data-nav-item="login"'))
+  // KINEO-PRICING-NO-MENU-1911 — o fundador moveu Pricing para a lista depois do conector em 19/11 às 19:38.
+  const pricing = 'href="/pricing" data-nav-item="pricing"'
+  checa('Pricing no topo depois do conector, no compacto e fora da direita', menu.split(pricing).length === 2 && menu.indexOf('MENU_CONNECTOR_HREF') < menu.indexOf(pricing) && compacto.split(pricing).length === 2 && !direita.includes('data-nav-item="pricing"'))
   checa('à direita não sobra seletor', !direita.includes('InterfaceLanguageSelect'))
   checa('idioma sai da navegação e do menu compacto', !menu.includes('<InterfaceLanguageSelect') && !compacto.includes('<InterfaceLanguageSelect'))
   const css = (seletor) => { const i = home.indexOf(seletor + '{'); return i < 0 ? '' : home.slice(i + seletor.length + 1, home.indexOf('}', i)) }
@@ -112,6 +114,7 @@ const MUTANTES = {
   'o seletor volta para a direita': troca(F.home, '<div className="nav-right">\n', '<div className="nav-right">\n          <InterfaceLanguageSelect />\n'),
   'idioma sai das configurações': troca(F.settings, '<InterfaceLanguageSelect />', ''),
   'configurações somem do topo': troca(F.home, '<SiteSettingsMenu signedIn={isSignedIn} />', ''),
+  'Pricing volta para a direita': { [F.home]: troca(F.home, '            <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>{/* KINEO-PRICING-NO-MENU-1911 */}\n', '')[F.home].replace('<div className="nav-right">', '<div className="nav-right"><Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>') },
   'Log in menor que Get started': troca(F.home, '.klp .nav-login{display:inline-flex;align-items:center;height:40px;font-size:14px;font-weight:650', '.klp .nav-login{display:inline-flex;align-items:center;height:32px;font-size:12px;font-weight:550'),
   'o seletor perde o foco do teclado': troca(F.tema, '.site-settings-dialog select:focus-visible', '.missing'),
   'o presente some da home': troca(F.home, '<CaixaDePresente0511 visitante={!initialUser} filmeGratisNoPais={freeFilmInCountry} />', ''),

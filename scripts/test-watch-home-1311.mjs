@@ -61,7 +61,23 @@ function homeLimpa(source) {
   return source.replace('<Footer showStats={false} />', '<Footer showStats={false} homeCompact />')
 }
 const historicalLanding = lf(execFileSync('git', ['show', `${BASE}:${LANDING}`], { cwd: ROOT, encoding: 'utf8' }))
-const priorLanding = comVarreduraHome1911(homeLimpa(menuDeConfiguracoes(semFaixaDoMeio(historicalLanding))))
+// Decisão do fundador de 19/11 às 19:38. Só o link do desktop muda de lugar.
+function pricingNoMenu(source) {
+  const pricing = '<Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>'
+  const connector = '            <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM} className="nav-connector">{MENU_CONNECTOR_LABEL}</Link>{/* KINEO-HOME-REMODELA-2010 */}\n'
+  const oldStyleMarker = 'KINEO-MENU-4-MAIS-1211 [CEO 12/11, tarefa 4 do fundador "design mais bonito"; opção C da imagem div1-t4-decisao-ABC.png — a escolha final é do fundador]'
+  const moves = [
+    [`.klp .nav-pricing{margin-right:6px} /* ${oldStyleMarker} */\n`, ''],
+    [`          <Link className="nav-login nav-pricing"${pricing.slice(5)}{/* ${oldStyleMarker} */}\n`, ''],
+    [connector, `${connector}            ${pricing}{/* KINEO-PRICING-NO-MENU-1911 */}\n`],
+  ]
+  for (const [from, to] of moves) {
+    assert.equal(source.split(from).length, 2, `BASE: recorte único de Pricing no menu — ${from.trim()}`)
+    source = source.replace(from, () => to)
+  }
+  return source
+}
+const priorLanding = pricingNoMenu(comVarreduraHome1911(homeLimpa(menuDeConfiguracoes(semFaixaDoMeio(historicalLanding)))))
 const decode = (s) => s.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>')
 const textOnly = (s) => decode(s.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, '').replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim()
 

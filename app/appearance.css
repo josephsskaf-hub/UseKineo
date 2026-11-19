@@ -172,10 +172,12 @@ html .stu.library-page .library-create-actions>a{background:var(--indigo)!import
 
 [data-public-site-header].kpn{background:var(--header-bg);border-color:var(--border);color:var(--text)}
 [data-public-site-header] .kpn-links a,[data-public-site-header] .kpn-login{color:var(--text)}
-[data-public-site-header] .kpn-links a:hover,[data-public-site-header] .kpn-links a[aria-current=page],[data-public-site-header] .kpn-logo .mk{color:var(--indigo)}
-[data-public-site-header] .kpn-links a.kpn-primary::after,[data-public-site-header] .kpn-bars i{background:var(--indigo)}
+[data-public-site-header] .kpn-links a:hover,[data-public-site-header] .kpn-logo .mk{color:var(--indigo)}
+[data-public-site-header] .kpn-links a[aria-current=page]::after{content:'';position:absolute;inset:auto 0 4px;height:2px;border-radius:2px;background:var(--indigo)}
+[data-public-site-header] .kpn-bars i{background:var(--indigo)}
 [data-public-site-header] .kpn-menu{background:var(--bg);border-color:var(--border)}
 [data-public-site-header] .kpn-menu a{color:var(--text);border-color:var(--border)}
+[data-public-site-header] a[aria-current=page]{color:var(--indigo);font-weight:650}
 [data-public-site-header] .kpn-cta{background:var(--indigo);border-color:var(--indigo);color:var(--on-accent)!important;box-shadow:none}
 html .stu.library-page .library-search{flex:1 1 230px;max-width:350px;min-width:0;position:relative}
 html .stu.library-page .library-status-placeholder{background:var(--card2);color:var(--muted)}

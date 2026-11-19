@@ -251,7 +251,6 @@ html{scroll-behavior:smooth}
 .klp .nd-mega .nm-more a:hover{color:#fff}
 .klp .nav-login{display:inline-flex;align-items:center;height:40px;font-size:14px;font-weight:650;color:var(--txt);white-space:nowrap;transition:color var(--dur-fast) ease} /* KINEO-HOME-TOPO-0511 — mesma altura e mesma letra do Get started */
 .klp .nav-login:hover{color:var(--blue)}
-.klp .nav-pricing{margin-right:6px} /* KINEO-MENU-4-MAIS-1211 [CEO 12/11, tarefa 4 do fundador "design mais bonito"; opção C da imagem div1-t4-decisao-ABC.png — a escolha final é do fundador] */
 .klp .nd-more{min-width:190px} /* KINEO-MENU-4-MAIS-1211 [CEO 12/11, tarefa 4 do fundador "design mais bonito"; opção C da imagem div1-t4-decisao-ABC.png — a escolha final é do fundador] */
 .klp .nav-right>.btn-w,.klp .nav-right .nav-dashboard{height:40px;line-height:1} /* KINEO-HOME-TOPO-0511 */
 .klp .nav-right .appearance-icon{width:40px;height:40px;border-color:var(--line);background:transparent;color:var(--txt)} /* KINEO-HOME-TOPO-0511 — o presente, na altura dos botões */
@@ -928,6 +927,7 @@ export default function KineoLanding({
             <Link href={RECREATE_MENU_HREF} data-nav-item={RECREATE_MENU_NAV_ITEM}>{RECREATE_MENU_LABEL}</Link>{/* KINEO-MENU-RECREATE-1211 — topo: 1º nível logo depois de Cartoons, fora do More; leva à grade de todos os modelos que dá para recriar */}
             <Link href={MADE_WITH_KINEO_HREF} data-nav-item={MADE_WITH_KINEO_NAV_ITEM}>{MADE_WITH_KINEO_LABEL}</Link>
             <Link href={MENU_CONNECTOR_HREF} data-nav-item={MENU_CONNECTOR_NAV_ITEM} className="nav-connector">{MENU_CONNECTOR_LABEL}</Link>{/* KINEO-HOME-REMODELA-2010 */}
+            <Link href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>{/* KINEO-PRICING-NO-MENU-1911 */}
             {/* KINEO-JUNTA-TRENDING-3110 — o item saiu do topo: o Trending virou o topo da página Made with Kineo (fundador 30/10). Histórico: KINEO-TRENDING-2026-10-13 — fundador 13/10: "🔥 Trending now" no topo (vídeos reais feitos na Kineo, cada um com "Make mine"). Item
                 novo logo antes de Pricing; nada saiu nem encolheu. Pares: menu do celular abaixo, /examples, /trending, Sidebar/MobileNav. */}
 
@@ -938,7 +938,6 @@ export default function KineoLanding({
           <CaixaDePresente0511 visitante={!initialUser} filmeGratisNoPais={freeFilmInCountry} />
           {/* KINEO-NAV-4-ITENS-2026-09-25 — "Log in" em texto ao lado do CTA de
               cadastro, so para visitante; no celular ele mora no menu. */}
-          <Link className="nav-login nav-pricing" href="/pricing" data-nav-item="pricing"><UiLabel>Pricing</UiLabel></Link>
           {initialUser ? null : <Link className="nav-login" href="/login" data-nav-item="login" data-auth-modal="login"><UiLabel>Log in</UiLabel></Link>}
           {initialUser
             ? <div className="nav-cta"><NavCreditsBadge /><Link className="btn btn-w nav-dashboard" style={{ padding: '12px 20px', fontSize: '14px' }} href={createEntryHref('film', '/studio', isSignedIn)}><UiLabel>Dashboard</UiLabel></Link></div>
