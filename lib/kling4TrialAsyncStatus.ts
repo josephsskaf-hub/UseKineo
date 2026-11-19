@@ -3,6 +3,7 @@ import type { CinematicClaim } from '@/lib/cinematic/claim'
 import { KLING4_T2V_MODEL, KLING4_I2V_MODEL, KLING4_REFERENCE_MODEL, KLING4_TRIAL_TIMEOUT_MS, pollKling4TrialVideo } from '@/lib/kling4Trial'
 import { kling4TrialEngineFromClaim, kling4TrialVideoUrlFromClaim } from '@/lib/kling4TrialClaim'
 import { ensureKling4TrialFallback } from '@/lib/kling4TrialFallback'
+import { K4_ESPERA_QUEM_RODA_1911, decisaoNoPrazoDoKling4 } from '@/lib/kling4TrialReserva1911' // KINEO-RESERVA-GRATIS-1911 (c)
 
 export const KLING4_TRIAL_FALLBACK_AFTER_MS = KLING4_TRIAL_TIMEOUT_MS
 type Identity = { db: SupabaseClient; secret: string; userId: string; generationId: string; claim: CinematicClaim }
@@ -28,6 +29,8 @@ export async function advanceKling4TrialStatus(
   deps: {
     poll?: (requestId: string) => Promise<PollResult>
     fallback?: typeof ensureKling4TrialFallback
+    /** KINEO-RESERVA-GRATIS-1911 (c) — só para o guardião: força o interruptor K4_ESPERA_QUEM_RODA_1911. */
+    esperaQuemRoda?: boolean
   } = {},
 ): Promise<Kling4TrialAdvance> {
   const engine = kling4TrialEngineFromClaim(args.claim.response)
@@ -57,6 +60,16 @@ export async function advanceKling4TrialStatus(
   let reason: 'provider_failed' | 'timeout' | null = storedMarker?.fallback_started === true
     ? storedMarker.fallback_reason === 'timeout' ? 'timeout' : 'provider_failed'
     : now - submittedAt >= KLING4_TRIAL_FALLBACK_AFTER_MS ? 'timeout' : null
+  // KINEO-RESERVA-GRATIS-1911 (c) — no prazo, UMA consulta de status grátis antes de comprar a reserva: pronto = entrega o Kling 4; falhou = reserva
+  // por falha; ainda rodando = espera até K4_ESPERA_EXTRA_MS a mais; na fila, sem resposta ou além disso = reserva por tempo, como antes.
+  if (reason === 'timeout' && storedMarker?.fallback_started !== true && (deps.esperaQuemRoda ?? K4_ESPERA_QUEM_RODA_1911)) {
+    let noPrazo: PollResult | null = null
+    try { noPrazo = await (deps.poll ?? (id => pollKling4TrialVideo(id, { apiKey: process.env.FAL_KEY ?? '' })))(requestId) } catch { noPrazo = null }
+    const decisao = noPrazo ? decisaoNoPrazoDoKling4({ status: noPrazo.status, temUrl: typeof noPrazo.url === 'string' && noPrazo.url.startsWith('https://'), idadeMs: now - submittedAt, prazoMs: KLING4_TRIAL_FALLBACK_AFTER_MS }) : 'timeout'
+    if (decisao === 'kling_done' && noPrazo?.url) return { kind: 'kling_done', claim, url: noPrazo.url }
+    if (decisao === 'esperar') return { kind: 'pending', claim }
+    if (decisao === 'provider_failed') reason = 'provider_failed'
+  }
   if (!reason) {
     let result: PollResult
     try { result = await (deps.poll ?? (id => pollKling4TrialVideo(id, { apiKey: process.env.FAL_KEY ?? '' })))(requestId) }

@@ -87,17 +87,19 @@ test('a three-minute queued Kling job keeps waiting instead of starting Seedance
 
 test('terminal provider failure and the eight-minute deadline initiate fallback for distinct reasons', async () => {
   const { advanceKling4TrialStatus } = offline()('lib/kling4TrialAsyncStatus.ts')
-  for (const [age, reason] of [[180000, 'provider_failed'], [480000, 'timeout']]) {
+  // KINEO-RESERVA-GRATIS-1911 (c) [CEO 19/11] — reancorado: no prazo de 8 min sai UMA consulta de status grátis antes da reserva (antes: nenhuma).
+  // Na fila = reserva por tempo, como antes; falhou = reserva por falha (o motivo verdadeiro); rodando ou pronto: scripts/test-reserva-gratis-1911.mjs.
+  for (const [age, reason, status] of [[180000, 'provider_failed', 'failed'], [480000, 'timeout', 'pending']]) {
     const claim = birth(), replacement = fallbackClaim(claim)
     let polls = 0, fallbacks = 0
     const result = await advanceKling4TrialStatus(args(claim, age), {
-      poll: async () => { polls++; return { status: 'failed', url: null } },
+      poll: async () => { polls++; return { status, url: null } },
       fallback: async input => { fallbacks++; assert.equal(input.reason, reason); return { ok: true, pending: false, claim: replacement } },
     })
     assert.equal(result.kind, 'ordinary')
     assert.equal(result.claim.response.kling4_trial.engine_used, 'seedance15_fallback')
     assert.equal(fallbacks, 1)
-    assert.equal(polls, reason === 'timeout' ? 0 : 1, 'at the real deadline no extra supplier poll is necessary')
+    assert.equal(polls, 1, 'KINEO-RESERVA-GRATIS-1911 (c): at the real deadline one free status poll decides before any fallback spend')
     const again = await advanceKling4TrialStatus(args(result.claim, 490000), { poll: forbidden, fallback: forbidden })
     assert.equal(again.kind, 'ordinary', 'a retargeted film never starts fallback a second time')
   }

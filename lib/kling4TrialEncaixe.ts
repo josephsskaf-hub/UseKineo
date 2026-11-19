@@ -17,6 +17,8 @@ export const ENCAIXE_FALHOU_EVENTO = 'kling4_encaixe_falhou'
 export const K4_PISO_DO_ENCAIXE_SEGUNDOS = 10
 export const K4_RODADAS_DO_ENCAIXE = 3 // o modelo erra a contagem por poucas palavras (7 textos reais, 05/11): quem decide é a voz medida, rodada a rodada
 export const K4_PRAZO_DO_ENCAIXE_MS = 30_000
+/** KINEO-RESERVA-GRATIS-1911 (b) [CEO 19/11] — resposta vazia ou reprovada do modelo gasta a rodada em vez de desistir (lib/kling4TrialReserva1911.ts). false = o de antes. */
+export const K4_ENCAIXE_INSISTE_1911: boolean = true
 const MIN_PALAVRAS_POR_CENA = 3
 const FIM_DE_FRASE = /[.!?…؟۔।。！？]["'”’»)\]]*\s*$/u
 
@@ -56,6 +58,26 @@ export function encaixeServe(antes: readonly string[], depois: readonly string[]
   return !fortes.length || fortes.filter((w) => finalNovo.has(w)).length / fortes.length >= 1 / 3
 }
 
+/** KINEO-RESERVA-GRATIS-1911 (b) — só o RÓTULO para o evento: qual regra de encaixeServe reprovou (quem decide continua sendo encaixeServe).
+ *  Nunca o texto do cliente. null = serve. O guardião confere que os dois concordam. */
+export function porQueOEncaixeNaoServe(antes: readonly string[], depois: readonly string[], language?: unknown): string | null {
+  if (depois.length !== antes.length || !depois.length) return 'cenas'
+  if (depois.some((f) => narrationWordCount(f, language) < MIN_PALAVRAS_POR_CENA)) return 'cena_curta'
+  if (depois.some((f) => !FIM_DE_FRASE.test(f))) return 'frase_aberta'
+  const conta = (l: readonly string[]) => l.reduce((n, f) => n + narrationWordCount(f, language), 0)
+  if (conta(depois) >= conta(antes)) return 'nao_encurtou' // o tamanho certo quem confere é a voz, não a contagem
+  const novas = depois.flatMap((f) => palavrasDe(f))
+  const velhas = new Set(antes.flatMap((f) => palavrasDe(f)))
+  // Nenhum número novo, e no máximo 10% de palavra fora do texto (flexão ao encurtar uma oração).
+  if (novas.some((w) => /\p{N}/u.test(w) && !velhas.has(w))) return 'numero_novo'
+  if (novas.filter((w) => !velhas.has(w)).length > novas.length * 0.1) return 'palavra_nova'
+  // A revelação: todo número da última frase de antes continua, e ao menos um terço das palavras fortes dela.
+  const fortes = palavrasDe(ultimaFrase(antes[antes.length - 1])).filter((w) => w.length >= 4 || /\p{N}/u.test(w))
+  const finalNovo = new Set(palavrasDe(depois[depois.length - 1]))
+  if (fortes.some((w) => /\p{N}/u.test(w) && !finalNovo.has(w))) return 'numero_do_final'
+  return !fortes.length || fortes.filter((w) => finalNovo.has(w)).length / fortes.length >= 1 / 3 ? null : 'final_perdido'
+}
+
 export interface EncaixeK4 {
   falas: string[]
   fala: FalaK4
@@ -90,6 +112,8 @@ export async function encaixarFalaNoKling4(a: {
   prazoMs?: number
   /** KINEO-K4-ENCAIXE-MOTIVO-1111 — por que o encaixe desistiu (o filme vai à reserva); sem isto a falha só existia no console. */
   aoFalhar?: (motivo: MotivoDoEncaixe, detalhe?: Record<string, unknown>) => void
+  /** KINEO-RESERVA-GRATIS-1911 (b) — só para o guardião: força o interruptor K4_ENCAIXE_INSISTE_1911. */
+  insiste?: boolean
 }): Promise<EncaixeK4 | null> {
   const agora = a.agora ?? Date.now
   const inicio = agora()
@@ -106,8 +130,11 @@ export async function encaixarFalaNoKling4(a: {
       const alvo = alvoDoEncaixe(conta(atuais), segundos)
       if (alvo < atuais.length * MIN_PALAVRAS_POR_CENA) return falha('alvo_pequeno', { rodada, alvo, segundos }) // KINEO-K4-ENCAIXE-MOTIVO-1111
       const novas = await encurtar(atuais, alvo)
-      if (!novas) return falha('encurtar_sem_texto', { rodada, alvo }) // KINEO-K4-ENCAIXE-MOTIVO-1111
-      if (!encaixeServe(atuais, novas, a.language)) return falha('encurtado_reprovado', { rodada, alvo, palavras: conta(novas) }) // KINEO-K4-ENCAIXE-MOTIVO-1111
+      // KINEO-RESERVA-GRATIS-1911 (b) — resposta vazia ou reprovada gasta a rodada e o modelo é chamado de novo com o MESMO texto (antes desistia na 1ª;
+      // 5bc6d6b9 e defd272c, 12-13/11). Na última rodada, a desistência de sempre. A régua e a voz continuam decidindo.
+      const insiste = (a.insiste ?? K4_ENCAIXE_INSISTE_1911) && rodada < K4_RODADAS_DO_ENCAIXE
+      if (!novas) { if (insiste) continue; return falha('encurtar_sem_texto', { rodada, alvo }) } // KINEO-K4-ENCAIXE-MOTIVO-1111
+      if (!encaixeServe(atuais, novas, a.language)) { if (insiste) continue; return falha('encurtado_reprovado', { rodada, alvo, palavras: conta(novas), porque: porQueOEncaixeNaoServe(atuais, novas, a.language) ?? 'outra' }) } // KINEO-K4-ENCAIXE-MOTIVO-1111 · KINEO-RESERVA-GRATIS-1911 (b): + a regra que reprovou
       const medida = await a.medir(novas.join(' '))
       if (medida.seconds === null) return falha('remedida_falhou', { rodada }) // KINEO-K4-ENCAIXE-MOTIVO-1111
       if (medida.cabe) {

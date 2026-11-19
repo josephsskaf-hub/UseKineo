@@ -37,7 +37,7 @@ export const K4_TETO_MEDIDO_SEGUNDOS = 15.5
 /** Prazo próprio da medição (TTS + Whisper): estourou = sem medida = Seedance, sem segurar a rota. */
 export const K4_PRAZO_DA_MEDICAO_MS = 20_000
 
-export type MotivoDaFalaK4 = 'fits' | 'narration_over_kling4_15s' | 'narration_unmeasured_kling4' | 'narration_measure_timeout_kling4'
+export type MotivoDaFalaK4 = 'fits' | 'narration_over_kling4_15s' | 'narration_unmeasured_kling4' | 'narration_measure_timeout_kling4' | 'narration_short_unscaled_kling4' // KINEO-RESERVA-GRATIS-1911 (a): o último só nasce em lib/kling4TrialReserva1911.ts
 export interface FalaK4 { seconds: number | null; maxSeconds: number; cabe: boolean; reason: MotivoDaFalaK4 }
 
 /** A decisão, só sobre a duração medida: ≤ 15,5 s cabe; acima ou sem medida, não. KINEO-K4-GRATIS-20S-1711 — `teto` (padrão 15,5) vem de

@@ -313,6 +313,7 @@ import { KIDS_NARRATION_VERTICAL, kidsClaimField } from '@/lib/kidsCartoon/kidsC
 import { vozQueOComposeEscolhe } from '@/lib/vozDoFilmeCurto' // KINEO-DESENHO-SOM-2110 — a voz do desenho de 35 s assinada como a do 15 s
 import { KIDS_CARTOON_LIVE, comPersonagemInfantil, desenhoInfantilDoPedido, kidsCartoonOn } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-BEBE-QUE-FALA-2010 [TRAVA 8.2 — vai do fundador 20/10 "começa hoje"] — o desenho infantil 3D: estilo e personagem em TODA cena
 import { ancoraDaHistoria, elencoDoDesenho, travarDesenhoInfantil } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-DESENHO-LEO-0111 — o personagem escolhido é o protagonista de toda cena; objeto e cenário da história fixos
+import { velocidadeFixadaParaMedir, falaCurtaSemEscala, velocidadeAssinadaNoClaim } from '@/lib/kling4TrialReserva1911' // KINEO-RESERVA-GRATIS-1911 (a) — o filme grátis de roteiro não literal também é medido antes de decidir
 import { sujeitoNoKling4, pedidoOriginalDoSujeito, sujeitoAparenciaLigada } from '@/lib/cinematic/sujeitoObrigatorio' // KINEO-K4-SUJEITO-0111 — o tema central do PEDIDO ORIGINAL (avião, criança com caneta 3D, vida sob o gelo) em pelo menos 1 cena do Kling 4, antes do POST pago; nunca lido do roteiro nem das pistas [Pexels]; v4: lido por UMA chamada semântica curta (falha segura); v5: só depois da reserva do teste
 import { sujeitoEmTodosOsMotores, SUJEITO_TODOS_EVENTO } from '@/lib/cinematic/sujeitoTodosMotores' // KINEO-SUJEITO-TODOS-0311 [TRAVA 8.2 — fundador 03/11 "universalizar"]: o sujeito do pedido em todos os motores
 import { sujeitoQueAlimentaAFicha } from '@/lib/cinematic/sujeitoTodosMotores' // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 (volta 2) [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
@@ -8166,12 +8167,17 @@ async function manipularPost(req: NextRequest) {
     // KINEO-K4-SEMPRE-0511 [TRAVA 8.2 — fundador 05/11 "vai"] — Kling 4 para todo filme grátis, sempre em 15 s. Dentro deste bloco, medirFalaDoKling4Trial mede e, se precisar, encaixa:
     // sem medida, uma nova tentativa; fala longa, encurta e mede de novo, antes do POST pago. Só o que a voz confirmou troca a fala; falhou, o texto fica inteiro e o filme vai à reserva, como antes.
     const kling4Encaixe: { r: EncaixeK4 | null } = { r: null }
+    // KINEO-RESERVA-GRATIS-1911 (a) — roteiro NÃO literal sem `speed:`: a montagem o reescreveria antes da voz e não havia o que medir (3 de 9 reservas,
+    // 12 a 18/11). Agora mede o texto como está, a 1,0; se o filme for ao Kling 4, `speed: 1` vai assinado e a montagem fala o que foi medido.
+    const velocidadeFixada1911 = velocidadeFixadaParaMedir({ candidato: kling4TrialCandidate, verbatim, speed: parsedScript.speed })
     const medirFalaDoKling4Trial = async (a: Parameters<typeof medirFalaK4Crua>[0]): Promise<FalaK4> => {
+      if (velocidadeFixada1911) a = { ...a, scriptSpeed: 1 } // KINEO-RESERVA-GRATIS-1911 (a) — a mesma velocidade da medida, do encurtamento e da montagem
       let fala = await medirFalaK4Crua(a)
       if (fala.seconds === null) fala = await medirFalaK4Crua({ ...a, prazoMs: 15_000 })
+      fala = falaCurtaSemEscala(fala, velocidadeFixada1911) // KINEO-RESERVA-GRATIS-1911 (a) — sem reescrita, abaixo de 10 s o filme ficaria mudo no fim: o caminho de antes
       if (fala.reason !== 'narration_over_kling4_15s') return fala
       const encaixe = await encaixarFalaNoKling4({ falas: kling4Timing.voiceovers, fala, language: a.language, medir: (texto) => medirFalaK4Crua({ ...a, voiceoverScript: texto }),
-        aoFalhar: (motivo, detalhe) => { void writeServerEvent({ name: ENCAIXE_FALHOU_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, motivo, ...detalhe, segundos_antes: fala.seconds, language: a.language, palavras_antes: kling4Timing.voiceovers.join(' ').split(/s+/).filter(Boolean).length } }) } }) // KINEO-K4-ENCAIXE-MOTIVO-1111 — o motivo de ir à reserva fica no banco
+        aoFalhar: (motivo, detalhe) => { void writeServerEvent({ name: ENCAIXE_FALHOU_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, motivo, ...detalhe, segundos_antes: fala.seconds, language: a.language, palavras_antes: kling4Timing.voiceovers.join(' ').split(/\s+/).filter(Boolean).length /* KINEO-RESERVA-GRATIS-1911 — era /s+/ (cortava na letra s) */ } }) } }) // KINEO-K4-ENCAIXE-MOTIVO-1111 — o motivo de ir à reserva fica no banco
       if (!encaixe) return fala
       kling4Encaixe.r = encaixe
       scenes.forEach((s, i) => { s.voiceover = encaixe.falas[i]; kling4Timing.voiceovers[i] = encaixe.falas[i] })
@@ -8449,7 +8455,7 @@ async function manipularPost(req: NextRequest) {
       ...(scenes.some((s) => typeof s.clipSeconds === 'number') ? { clip_seconds: scenes.map((s) => s.clipSeconds ?? null), clip_word_starts: kling25SceneWordStarts(voiceoverScript, scenes.map((s) => s.voiceover)) } : {}),
       quality: claimQuality,
       verbatim,
-      speed: parsedScript.speed,
+      speed: velocidadeAssinadaNoClaim({ fixada: velocidadeFixada1911, foiAoKling4: Boolean(kling4Trial?.job), speed: parsedScript.speed }), // KINEO-RESERVA-GRATIS-1911 (a) — 1 só no Kling 4 medido a 1,0; senão o de sempre
       // Contrato de Cena no caminho classico (Veo, Kling 2.5, Seedance,
       // Kineo 1). Mesmos campos do caminho hollywood, para o placar medir a
       // cobertura REAL do gate sem precisar adivinhar por qual estrada o
