@@ -79,7 +79,7 @@ const STAMP = 'first50_quentes_emailed_v1'
 // o fundador dispara na segunda, nunca antes do respiro.
 const STAMP2 = 'first50_quentes_emailed_v2'
 const ONDA2_GAP_MS = 60 * 60 * 60 * 1000
-const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com'])
+const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com'])
 
 function isInternalOrJunk(email: string): boolean {
   const e = email.toLowerCase()

@@ -168,7 +168,7 @@ export function classicDryRunReport(input: {
 }
 
 /** Contas que podem rodar o validador de $0 (mesma lista do bloco hollywood da rota). */
-export const DRY_RUN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com'])
+export const DRY_RUN_EMAILS = new Set(['josephsskaf@gmail.com'])
 export function isDryRunAccount(email: string | null | undefined): boolean {
   return DRY_RUN_EMAILS.has(String(email ?? '').toLowerCase())
 }

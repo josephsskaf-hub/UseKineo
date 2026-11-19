@@ -15,7 +15,7 @@ export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 export const maxDuration = 30
 
-const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com', 'josephskaf@hotmail.com'])
+const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@hotmail.com'])
 const PROMPT_MAX = 2000
 
 const ENGINES: Record<string, { model: string; min: number; max: number; input: (prompt: string, image: string, seconds: number) => Record<string, unknown> }> = {

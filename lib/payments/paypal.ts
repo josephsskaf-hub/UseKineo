@@ -9,7 +9,7 @@ import {
 } from './alternative'
 
 const PROTECTED_EMAILS = new Set([
-  'josephsskaf@gmail.com', 'josephskaf@gmail.com', 'josephskaf@hotmail.com', 'joseph-test@shortsforgeai.com',
+  'josephsskaf@gmail.com', 'josephskaf@hotmail.com', 
 ])
 
 export async function fetchPaypalResource(path: string): Promise<Record<string, any>> {

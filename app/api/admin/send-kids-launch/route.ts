@@ -16,7 +16,7 @@ export const fetchCache = 'force-no-store'
 export const maxDuration = 300
 
 const PATH = '/api/admin/send-kids-launch'
-const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com', 'josephskaf@hotmail.com'])
+const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@hotmail.com'])
 const json = (body: unknown, status = 200) => NextResponse.json(body, { status, headers: { 'Cache-Control': 'no-store' } })
 
 async function prepare(admin: SupabaseClient, ids?: string[]) {

@@ -166,9 +166,7 @@ function getAdminClient() {
 // starter/free. Any plan-changing event for these emails is skipped.
 const PROTECTED_EMAILS = new Set([
   'josephsskaf@gmail.com',
-  'josephskaf@gmail.com',
   'josephskaf@hotmail.com',
-  'joseph-test@shortsforgeai.com',
 ])
 
 type AdminClient = ReturnType<typeof getAdminClient>

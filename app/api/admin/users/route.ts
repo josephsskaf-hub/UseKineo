@@ -41,8 +41,7 @@ export const fetchCache = 'force-no-store'
 
 const ADMIN_EMAILS = new Set([
   'josephsskaf@gmail.com',
-  'josephskaf@gmail.com',
-  'joseph-test@shortsforgeai.com', 'josephskaf@hotmail.com',
+  'josephskaf@hotmail.com',
 ])
 
 // KINEO-ADMIN-HQ-2026-08-03 — every value the Stripe webhook/checkout can

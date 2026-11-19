@@ -12,8 +12,7 @@ export const dynamic = 'force-dynamic'
 
 const ADMIN_EMAILS = new Set([
   'josephsskaf@gmail.com',
-  'josephskaf@gmail.com',
-  'joseph-test@shortsforgeai.com', 'josephskaf@hotmail.com',
+  'josephskaf@hotmail.com',
 ])
 
 function startOfTodayIso(): string {

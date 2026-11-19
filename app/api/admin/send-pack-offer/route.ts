@@ -42,8 +42,7 @@ export const fetchCache = 'force-no-store'
 
 const ADMIN_EMAILS = new Set([
   'josephsskaf@gmail.com',
-  'josephskaf@gmail.com',
-  'joseph-test@shortsforgeai.com', 'josephskaf@hotmail.com',
+  'josephskaf@hotmail.com',
 ])
 
 // hello@ = prospecção/resgate de leads (support@ is reserved for support).

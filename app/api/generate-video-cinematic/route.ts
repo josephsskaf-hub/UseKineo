@@ -5737,7 +5737,7 @@ async function manipularPost(req: NextRequest) {
       // Creatomate, zero TTS, e o débito é estornado na hora pelo mesmo
       // caminho do FAILFAST. Testar um roteiro passa de $7 para ~$0,02.
       {
-        const dryRunEmails = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com'])
+        const dryRunEmails = new Set(['josephsskaf@gmail.com'])
         if (body.dry_run === true && dryRunEmails.has((user.email ?? '').toLowerCase())) {
           const wordsOf = (t?: string) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
           const planReport = plan.scenes.map((sc, i) => ({

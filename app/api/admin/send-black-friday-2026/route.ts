@@ -59,7 +59,7 @@ export const maxDuration = 300
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 
-const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com', 'josephskaf@hotmail.com'])
+const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@hotmail.com'])
 const ROUTE = '/api/admin/send-black-friday-2026'
 const CHUNK = 200
 // Carimbo literal = BF2026_EMAIL_SENT (o compilador confere): a cobertura da supressão lê o nome literal na rota.

@@ -19,7 +19,7 @@ export const maxDuration = 120
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
 
-const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com', 'josephskaf@hotmail.com'])
+const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@hotmail.com'])
 const ROUTE = '/api/admin/volta-1211-status'
 const CHUNK = 200
 const RESEND = 'https://api.resend.com'
