@@ -43,7 +43,23 @@ const menuDeConfiguracoes = source => {
     .replaceAll('<InterfaceLanguageSelect emMenu />', '')
     .replace('<div className="nav-right">', '<div className="nav-right"><SiteSettingsMenu signedIn={isSignedIn} />')
 }
-const priorLanding = menuDeConfiguracoes(semFaixaDoMeio(lf(execFileSync('git', ['show', `${BASE}:${LANDING}`], { cwd: ROOT, encoding: 'utf8' }))))
+// Limpeza aprovada da home de 19/11. Aplica só os recortes previstos à fonte
+// histórica. O HTML de todo o restante continua comparado byte a byte.
+function homeLimpa(source) {
+  const cuts = [
+    [/^\.klp \.(?:snote|final|taaft-badge|pricing-more|fchips)\b[^\n]*\n/gm, 19, 'CSS das seções retiradas'],
+    [/^ +<div className="snote">[^\n]*\n/gm, 1, 'oferta repetida'],
+    [/^          <div className="pricing-more"[^\n]*\n(?:^ {12}[^\n]*\n)+^          <\/div>\n/gm, 1, 'quatro links repetidos'],
+    [/^      <section>\n        <div className="wrap">\n          <div className="final">[\s\S]*?(?=^      \{\/\* KINEO-PAGINA-IGUAL-0411)/gm, 1, 'encerramento e selos antes do rodapé'],
+  ]
+  for (const [pattern, count, label] of cuts) {
+    assert.equal([...source.matchAll(pattern)].length, count, `BASE: ${label}`)
+    source = source.replace(pattern, '')
+  }
+  assert.equal(source.split('<Footer showStats={false} />').length, 2, 'BASE: um rodapé')
+  return source.replace('<Footer showStats={false} />', '<Footer showStats={false} homeCompact />')
+}
+const priorLanding = homeLimpa(menuDeConfiguracoes(semFaixaDoMeio(lf(execFileSync('git', ['show', `${BASE}:${LANDING}`], { cwd: ROOT, encoding: 'utf8' })))))
 const decode = (s) => s.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>')
 const textOnly = (s) => decode(s.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, '').replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim()
 
@@ -354,6 +370,7 @@ assert.deepEqual(baseErrors, [], 'árvore real precisa passar antes dos mutantes
 const mutations = [
   ['geração interna recebe cliente público',()=>replacement('lib/home/watchEntry.ts',"SEU_VIDEO_RELEASE === 'public' && ",''),'política interna/off usa catálogo público sem convite de signup: selfie-confete'],
   ['WATCH alcança logado', () => replacement(LANDING, '{watchVisitor && !isSignedIn ? <WatchVisitorHome', '{watchVisitor ? <WatchVisitorHome'), 'paridade logado: WATCH nunca substitui home autenticada'],
+  ['limpeza avança além dos recortes aprovados', () => replacement(LANDING, 'From idea to posted Short in 3 steps.', 'Make a Short'), 'paridade visitante: flag OFF devolve HTML anterior'],
   ['resposta citável retirada', () => replacement(LANDING, '<CitationDirectAnswer page="home" />', ''), 'SEO resposta direta preservada e faceless visível'],
   ['tabelas citáveis retiradas', () => replacement(LANDING, '<CitationDetails page="home" />', ''), 'SEO bloco citável: duas tabelas, cinco respostas e data preservados'],
   ['FAQ perde pergunta', () => replacement(LANDING, 'Can I use my own script?', 'Question removed'), 'SEO FAQ completo: quinze respostas preservadas'],
