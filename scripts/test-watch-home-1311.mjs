@@ -10,6 +10,7 @@ import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
+import { comVarreduraHome1911 } from './varredura-1911-trocas.mjs'
 
 const rootArg = process.argv.indexOf('--root')
 const ROOT = rootArg >= 0 ? path.resolve(process.argv[rootArg + 1]) : path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -59,7 +60,8 @@ function homeLimpa(source) {
   assert.equal(source.split('<Footer showStats={false} />').length, 2, 'BASE: um rodapé')
   return source.replace('<Footer showStats={false} />', '<Footer showStats={false} homeCompact />')
 }
-const priorLanding = homeLimpa(menuDeConfiguracoes(semFaixaDoMeio(lf(execFileSync('git', ['show', `${BASE}:${LANDING}`], { cwd: ROOT, encoding: 'utf8' })))))
+const historicalLanding = lf(execFileSync('git', ['show', `${BASE}:${LANDING}`], { cwd: ROOT, encoding: 'utf8' }))
+const priorLanding = comVarreduraHome1911(homeLimpa(menuDeConfiguracoes(semFaixaDoMeio(historicalLanding))))
 const decode = (s) => s.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>')
 const textOnly = (s) => decode(s.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, '').replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim()
 
@@ -371,6 +373,7 @@ const mutations = [
   ['geração interna recebe cliente público',()=>replacement('lib/home/watchEntry.ts',"SEU_VIDEO_RELEASE === 'public' && ",''),'política interna/off usa catálogo público sem convite de signup: selfie-confete'],
   ['WATCH alcança logado', () => replacement(LANDING, '{watchVisitor && !isSignedIn ? <WatchVisitorHome', '{watchVisitor ? <WatchVisitorHome'), 'paridade logado: WATCH nunca substitui home autenticada'],
   ['limpeza avança além dos recortes aprovados', () => replacement(LANDING, 'From idea to posted Short in 3 steps.', 'Make a Short'), 'paridade visitante: flag OFF devolve HTML anterior'],
+  ['comparativo perde o formato monetário aprovado', () => replacement(LANDING, "{formatCheckoutMoney('usd', TIER_PRICES.starter.usd)}", '{usdPrice(TIER_PRICES.starter.usd)}'), 'paridade visitante: flag OFF devolve HTML anterior'],
   ['resposta citável retirada', () => replacement(LANDING, '<CitationDirectAnswer page="home" />', ''), 'SEO resposta direta preservada e faceless visível'],
   ['tabelas citáveis retiradas', () => replacement(LANDING, '<CitationDetails page="home" />', ''), 'SEO bloco citável: duas tabelas, cinco respostas e data preservados'],
   ['FAQ perde pergunta', () => replacement(LANDING, 'Can I use my own script?', 'Question removed'), 'SEO FAQ completo: quinze respostas preservadas'],

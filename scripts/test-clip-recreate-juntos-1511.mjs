@@ -20,6 +20,7 @@ import path from 'node:path'
 import vm from 'node:vm'
 import { comTelaRecreate1611 } from './tela-recreate-1611-trocas.mjs' // KINEO-TELA-RECREATE-1611
 import { comMenuConfig1811 } from './menu-config-1811-trocas.mjs' // KINEO-MENU-CONFIG-1811
+import { comVarreduraRecreate1911 } from './varredura-1911-trocas.mjs'
 import { comClipsVisivel1711 } from './clips-visivel-1711-trocas.mjs'
 import { comClipsProporcao1811 } from './clips-proporcao-1811-trocas.mjs'
 
@@ -69,7 +70,7 @@ function casosA(o) {
   ]
 }
 
-const BASE_RC = { [RC]: comMenuConfig1811(comTelaRecreate1611(lf(baseSrc(RC)))) } // KINEO-TELA-RECREATE-1611 — a base de 15/11 + SÓ as trocas pedidas pelo dono em 16/11 (scripts/tela-recreate-1611-trocas.mjs, cada uma com alvo único)
+const BASE_RC = { [RC]: comVarreduraRecreate1911(comMenuConfig1811(comTelaRecreate1611(lf(baseSrc(RC))))) }
 // ─── B. Quem não está no interruptor: as telas de hoje ───────────────────────────────────────────────────────────────
 /** Atributos de um JSX (<Tag … />) e as chaves de um objeto literal `const <nome>… = { … }`, como texto normalizado. */
 function atributosDoJsx(code, tag) {
@@ -101,6 +102,7 @@ function casosB(o) {
   const base = BASE_RC
   const casosHtml = [
     ['biblioteca (nenhum modelo)', { currentFlow: true, flowBasePath: '/recreate', signedIn: true, accountKey: 'u1', createTabs: true }],
+    ['vitrine pública (nenhum modelo)', { currentFlow: true, flowBasePath: '/recreate', signedIn: false, createTabs: false }],
     ['modelo aberto, logado', { currentFlow: true, flowBasePath: '/recreate', signedIn: true, accountKey: 'u1', createTabs: true, initialId: 'passarela', ownVideoVisible: true }],
     ['visitante com modelo', { currentFlow: true, flowBasePath: '/recreate', signedIn: false, initialId: 'passarela', guestQuotes: [{ id: 'passarela', credits: 40, available: true, shortfall: 0 }] }],
     ['tela antiga (sem fluxo)', { initialId: 'passarela', internalTools: true }],
@@ -131,7 +133,7 @@ function harness(o, { moldura = false, props = {} } = {}) {
   const real = L(o)
   const deps = {
     react: { ...React, useState, useRef, useEffect }, 'react/jsx-runtime': jsx, 'next/link': { __esModule: true, default: 'a' },
-    '@/components/KineoBolt': { KineoBrandIcon: stub }, '@/components/SiteSettingsMenu': { __esModule: true, default: () => null }, '@/lib/clips/clipCatalog': real('lib/clips/clipCatalog'), '@/lib/recreate/formats': real('lib/recreate/formats'), '@/lib/recreate/entry': real('lib/recreate/entry'), '@/lib/recreate/catalogPublic': real('lib/recreate/catalogPublic'),
+    '@/components/PublicSiteHeader': { __esModule: true, default: stub }, '@/components/KineoBolt': { KineoBrandIcon: stub }, '@/components/SiteSettingsMenu': { __esModule: true, default: () => null }, '@/lib/clips/clipCatalog': real('lib/clips/clipCatalog'), '@/lib/recreate/formats': real('lib/recreate/formats'), '@/lib/recreate/entry': real('lib/recreate/entry'), '@/lib/recreate/catalogPublic': real('lib/recreate/catalogPublic'),
     '@/lib/recreate/photos': { compressPhoto: prepare, cropFace: prepare, composePairPhoto: async () => new File(['par'], 'par.jpg', { type: 'image/jpeg' }) },
     '@/components/billing/BuyCreditsEntry': { TopupOuRecargaModal: () => null, BUY_CREDITS_OPENED_EVENT: 'buy_credits_entry_opened' }, '@/lib/analytics': { trackEvent: async () => {} }, // KINEO-TELA-RECREATE-1611
     './RecreatePlayer': { __esModule: true, default: 'fixture-player', ExampleCover: 'fixture-cover' },
@@ -293,6 +295,7 @@ const MUTANTES = [
   ['M4 a tela única recebe outra prop', mut(FLOW, "internalTools: !!user && releaseVisible(user.email, 'internal'), formatos", 'internalTools: true, formatos')],
   ['M5 o pedido muda só na tela única', mut(RC, "const payload: Record<string, unknown> = { format: selected.id, mode: 'swap', seconds: selected.seconds, prompt, consent, simulate: false }", "const payload: Record<string, unknown> = { format: selected.id, mode: 'swap', seconds: selected.seconds + (moldura ? 1 : 0), prompt, consent, simulate: false }")],
   ['M6 a tela de sempre muda', mut(RC, '      {selected && <section className="rc-reference" aria-label="Base video">{palco}</section>}', '      {selected && <section className="rc-reference" aria-label="Template">{palco}</section>}')],
+  ['M6b a vitrine perde o cabeçalho público', mut(RC, "currentFlow && flowBasePath === '/recreate' && !selected && !createTabs", "currentFlow && flowBasePath === '/recreate' && !selected && createTabs")],
   ['M7 a aba Recreate volta na tela única', mut(JUNTOS, '<CreateTabs active="clip" showRecreate={false} showClip />', '<CreateTabs active="clip" showClip />')],
   ['M8 o Clip some da barra (o defeito do dono)', mut(JUNTOS, '<CreateTabs active="clip" showRecreate={false} showClip />', '<CreateTabs active="clip" showRecreate={false} />')],
   ['M9 "Recreate this" não escolhe', mut(JUNTOS, 'onClick={() => rc.escolher(padrao)}', 'onClick={() => rc.soltar(JUNTOS_VOLTA)}')],

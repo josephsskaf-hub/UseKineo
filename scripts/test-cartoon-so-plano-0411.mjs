@@ -225,7 +225,7 @@ const CLAIM = /free episode|first episode free|episódio grátis|1º episódio g
 function provaDosTextos(mutar = {}) {
   const e = []
   const exige = (c, m) => { if (!c) e.push(m) }
-  const mocks = { 'next/link': { __esModule: true, default: ({ children, href, className }) => React.createElement('a', { href, className }, children) }, '@/components/Footer': { __esModule: true, default: () => null }, '@/components/ugc/UgcVideo': { __esModule: true, default: () => null }, '@/components/ugc/UgcPages': { UGC_PAGE_CSS: '' }, '@/lib/analytics': { trackEvent: async () => true }, '@/lib/supabase/client': { createClient: () => ({ auth: { getSession: async () => ({ data: {} }) } }) } }
+  const mocks = { 'next/link': { __esModule: true, default: ({ children, href, className }) => React.createElement('a', { href, className }, children) }, '@/components/Footer': { __esModule: true, default: () => null }, '@/components/PublicSiteHeader': { __esModule: true, default: () => null }, '@/components/ugc/UgcVideo': { __esModule: true, default: () => null }, '@/components/ugc/UgcPages': { UGC_PAGE_CSS: '' }, '@/lib/analytics': { trackEvent: async () => true }, '@/lib/supabase/client': { createClient: () => ({ auth: { getSession: async () => ({ data: {} }) } }) } }
   const P = carregador({ mocks, mutar })(PAGINAS)
   for (const lang of ['en', 'pt']) {
     const h = renderToStaticMarkup(React.createElement(P.KidsCartoonPage, { lang })).replace(/<style[\s\S]*?<\/style>/g, '').replace(/usekineo\.com\/free[^.]*\./g, '')

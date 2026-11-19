@@ -43,6 +43,7 @@ function carregador({ mocks = {}, mutar = {}, globais = {} } = {}) {
 const dublesTela = {
   'next/link': { __esModule: true, default: ({ children, href, className, ...r }) => React.createElement('a', { href, className, 'data-kineo': r['data-kineo'] }, children) },
   '@/components/Footer': { __esModule: true, default: () => null },
+  '@/components/PublicSiteHeader': { __esModule: true, default: () => null },
   '@/components/ugc/UgcVideo': { __esModule: true, default: () => null },
   '@/components/ugc/UgcPages': { UGC_PAGE_CSS: '' },
   '@/lib/analytics': { trackEvent: async () => true },
