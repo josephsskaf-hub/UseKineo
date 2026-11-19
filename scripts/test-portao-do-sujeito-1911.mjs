@@ -26,7 +26,7 @@ async function prova(over = {}) {
   const novo = (o, ctx) => S.pedidoOriginalDoSujeito1911({ ...base(o), portao: true, roteiroDoEscritor: true, ...ctx })
   no(S.PORTAO_DO_SUJEITO_1911 !== 'internal', "A0 estado de publicação: 'internal' (só a conta exata do ensaio); 'public' só com revisor independente + prova paga + sim do dono")
   { const rr = over[ROTA] ?? read(ROTA)
-    no(!rr.includes("(body.dry_run === true && isDryRunAccount(user.email) && (body as { k4_roteiro_do_escritor?: unknown }).k4_roteiro_do_escritor === true)"), 'A0b só o dry_run da conta exata do ensaio declara "roteiro do nosso escritor" (cliente nunca)') }
+    no(!rr.includes("(isDryRunAccount(user.email) && body.k4_gratis_ensaio === true && (body as { k4_roteiro_do_escritor?: unknown }).k4_roteiro_do_escritor === true)"), 'A0b só a conta exata do ensaio, no modo ensaio (dry_run ou a prova paga), declara "roteiro do nosso escritor" (cliente nunca)') }
   no(S.portaoDoSujeitoLigado('internal', false) || !S.portaoDoSujeitoLigado('internal', true) || !S.portaoDoSujeitoLigado('public', false) || S.portaoDoSujeitoLigado('off', true), 'A1 off | internal (só a casa) | public')
   // desligado = o de sempre, byte a byte, em todas as formas
   for (const o of [{}, { originalIdea: IDEIA_CURTA }, { scriptMode: 'ai' }, { scriptMode: 'ai', originalIdea: IDEIA_CURTA }, { originalIdea: null }, { ideiaSolta: true, prompt: IDEIA_CURTA, scriptMode: 'ai' }])
@@ -62,8 +62,8 @@ async function prova(over = {}) {
 
 const MUT = [
   ['portão público', LIB, (s) => s.replace("export const PORTAO_DO_SUJEITO_1911: 'off' | 'internal' | 'public' = 'internal'", "export const PORTAO_DO_SUJEITO_1911: 'off' | 'internal' | 'public' = 'public'")],
-  ['rota: declaração do escritor sem dry_run', ROTA, (s) => s.replace('(body.dry_run === true && isDryRunAccount(user.email) && (body as { k4_roteiro_do_escritor?: unknown })', '(isDryRunAccount(user.email) && (body as { k4_roteiro_do_escritor?: unknown })')],
-  ['rota: declaração do escritor de qualquer conta', ROTA, (s) => s.replace('(body.dry_run === true && isDryRunAccount(user.email) && (body as { k4_roteiro_do_escritor?: unknown })', '(body.dry_run === true && (body as { k4_roteiro_do_escritor?: unknown })')],
+  ['rota: declaração do escritor fora do modo ensaio', ROTA, (s) => s.replace('(isDryRunAccount(user.email) && body.k4_gratis_ensaio === true && (body as { k4_roteiro_do_escritor?: unknown })', '(isDryRunAccount(user.email) && (body as { k4_roteiro_do_escritor?: unknown })')],
+  ['rota: declaração do escritor de qualquer conta', ROTA, (s) => s.replace('(isDryRunAccount(user.email) && body.k4_gratis_ensaio === true && (body as { k4_roteiro_do_escritor?: unknown })', '(body.k4_gratis_ensaio === true && (body as { k4_roteiro_do_escritor?: unknown })')],
   ['internal para todos', LIB, (s) => s.replace("return modo === 'public' || (modo === 'internal' && contaDaCasa === true)\n}\n/** A ideia longa", "return modo !== 'off'\n}\n/** A ideia longa")],
   ['abre roteiro colado', LIB, (s) => s.replace("base.motivo === 'roteiro_da_pessoa' && args.roteiroDoEscritor ?", "base.motivo === 'roteiro_da_pessoa' ?")],
   ['aceita colchete', LIB, (s) => s.replace("if (!t || t.length > 4000 || /[[\\]]/.test(t) || CABECALHO_DE_SECAO.test(String(ideia ?? ''))) return null", "if (!t || t.length > 4000 || CABECALHO_DE_SECAO.test(String(ideia ?? ''))) return null")],

@@ -1664,7 +1664,9 @@ async function manipularPost(req: NextRequest) {
     const portaoDoSujeito1911 = portaoDoSujeitoLigado(PORTAO_DO_SUJEITO_1911, isDryRunAccount(user.email)) // 'internal' = só os 3 e-mails exatos do ensaio (a régua larga abria para e-mail parecido, revisor 19/11)
     // [CEO 19/11, 2º ensaio do A2] o ensaio roda na conta do fundador com o roteiro de um cliente: o script_written é do cliente, não do fundador. Só o dry_run da
     // conta do ensaio pode declarar "roteiro do nosso escritor" (a lista do ensaio prova: a ideia veio do script_written casado); cliente nunca.
-    const roteiroDoEscritor1911 = portaoDoSujeito1911 ? (Boolean(await recuperarIdeiaDoEscritor(user.id, body.prompt)) || (body.dry_run === true && isDryRunAccount(user.email) && (body as { k4_roteiro_do_escritor?: unknown }).k4_roteiro_do_escritor === true)) : false
+    // [CEO 19/11, prova paga, opção (a)] vale também no render REAL da conta exata do ensaio, só no modo ensaio (k4_gratis_ensaio): o MESMO roteiro do cliente,
+    // com A1, A2 e o portão do sujeito, contra o filme do defeito. Revisor: é mudança de porta (só a conta exata; cliente continua sem o parâmetro).
+    const roteiroDoEscritor1911 = portaoDoSujeito1911 ? (Boolean(await recuperarIdeiaDoEscritor(user.id, body.prompt)) || (isDryRunAccount(user.email) && body.k4_gratis_ensaio === true && (body as { k4_roteiro_do_escritor?: unknown }).k4_roteiro_do_escritor === true)) : false
     const pedidoEstacionado = pedidoEstacionavel(body) // KINEO-FILA-QUEDA-FAL-2810 — a cópia fechada do pedido, ANTES de a rota mexer no body (script_mode do monumento etc.); null = não estaciona
 
     // KINEO-FACELESS-2026-08-25 — tag [faceless] no script = filme SEM avatar:
