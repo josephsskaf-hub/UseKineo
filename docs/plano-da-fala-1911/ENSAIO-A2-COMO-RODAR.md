@@ -78,3 +78,17 @@ Custo por dry_run:
 | Em quantos dos 38 o sujeito aparece no texto novo | `final.juiz.d_sujeito_aparece = 'sim'` sem `c_criatura`, contra `hoje.juiz` |
 | Em quantos o juiz reprovou e a reescrita consertou | `novo.juiz.reprovado` e `final.juiz` aprovado |
 | Em quantos dos 13 bons o novo ficou pior | `hoje.juiz` aprovado e `final.juiz` reprovado |
+
+## 2º ensaio (depois da volta do 1º, 19/11)
+O 1º gastou US$ 1,52 em 51 pedidos: ~US$ 0,0175 de base por filme (texto de sempre + voz) e ~US$ 0,0134 do A2 medido por filme com A2.
+O que a volta acrescenta por filme com A2 (estimado sobre o replay dos 47):
+- seção pedida de novo (nula ou sem espaço): 35 seções em 14 filmes, UMA chamada gpt-4o por filme (~US$ 0,005) ≈ US$ 0,07 no total;
+- reescrita da última seção (sujeito do pedido fora do último plano, ou reprovação por sujeito sem plano apontado) + juiz final: ~14 filmes × ~US$ 0,006 ≈ US$ 0,08;
+- juiz do plano final com o sujeito injetado, só quando a injeção muda o último plano: ~10 × US$ 0,0012 ≈ US$ 0,01;
+- nome próprio conferido de novo depois da reescrita: < US$ 0,0003 por filme que reescreveu por nome.
+
+| Recorte | Filmes | Estimativa |
+|---|---|---|
+| Os 51 de novo | 51 | ≈ US$ 1,70 (passa uns US$ 0,22 dos US$ 1,48 que sobram dos US$ 3) |
+| Os 35 com defeito + os 4 bons que pioraram (47d66e48, 3505835b, b4de7d59, c968edac) | 39 | ≈ US$ 1,35 (cabe) |
+| Só os 35 com defeito | 35 | ≈ US$ 1,21 (cabe) |
