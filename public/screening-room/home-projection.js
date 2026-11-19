@@ -1,5 +1,45 @@
 // Leave the original link, copy, poster and video mounted. The decorative layer never owns a click.
-export async function projectHome(root, placement, pageSignal, publicHome = false) {
+export function projectHome(root, placement, pageSignal, publicHome = false) {
+  return mountProjection(root, placement, pageSignal, publicHome, publicHome)
+}
+
+// Count only time when the visitor can actually see the card.
+function waitForRecovery(card, pageSignal, retry) {
+  let remaining = 8000
+  let started = null
+  let timer
+  let inView = false
+  const observer = new IntersectionObserver(([entry]) => {
+    inView = entry.isIntersecting
+    sync()
+  })
+  function stop() {
+    clearTimeout(timer)
+    observer.disconnect()
+    document.removeEventListener('visibilitychange', sync)
+    pageSignal.removeEventListener('abort', stop)
+  }
+  function resume() {
+    if (pageSignal.aborted || document.hidden || !inView) { sync(); return }
+    stop()
+    retry()
+  }
+  function sync() {
+    if (started !== null) {
+      remaining = Math.max(0, remaining - (performance.now() - started))
+      started = null
+      clearTimeout(timer)
+    }
+    if (pageSignal.aborted || document.hidden || !inView) return
+    started = performance.now()
+    timer = setTimeout(resume, remaining)
+  }
+  observer.observe(card)
+  document.addEventListener('visibilitychange', sync)
+  pageSignal.addEventListener('abort', stop, { once: true })
+}
+
+async function mountProjection(root, placement, pageSignal, publicHome, canRetry) {
   const head = root.querySelector('.k3c-head')
   const card = root.querySelector('[data-home-card="films"]')
   const media = card?.querySelector('.k3c-media')
@@ -70,8 +110,11 @@ export async function projectHome(root, placement, pageSignal, publicHome = fals
       const elapsed = current.now - sample.now
       if (elapsed < windowMs) return
       const fps = (current.frames - sample.frames) * 1000 / elapsed
-      if (fps < floor) clear()
-      else sample = current
+      if (fps >= floor) { sample = current; return }
+      clear()
+      if (canRetry && !pageSignal.aborted) {
+        waitForRecovery(card, pageSignal, () => mountProjection(root, placement, pageSignal, publicHome, false))
+      }
     }, 100)
   } catch { clear() }
 }
