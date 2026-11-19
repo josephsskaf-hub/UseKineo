@@ -28,7 +28,7 @@ function descritor(over, openai) {
   const P = load('@/lib/cinematic/pistaNaoManda.ts'), C = load('@/lib/cinematic/cenarioDoFilme.ts'), L = load('@/' + LIB)
   const exp = {}
   vm.runInNewContext(js, { exports: exp, console: { warn() {}, log() {} }, JSON, Math, Array, String, Number, openai,
-    temMarcaDeBusca: P.temMarcaDeBusca, REGRA_DA_PISTA: P.REGRA_DA_PISTA, REGRAS_DO_ESCRITOR_DE_CENAS: C.REGRAS_DO_ESCRITOR_DE_CENAS, REGRA_DO_PLANO_DA_FALA: L.REGRA_DO_PLANO_DA_FALA,
+    temMarcaDeBusca: P.temMarcaDeBusca, REGRA_DA_PISTA: P.REGRA_DA_PISTA, REGRAS_DO_ESCRITOR_DE_CENAS: C.REGRAS_DO_ESCRITOR_DE_CENAS, REGRA_DO_PLANO_DA_FALA: L.REGRA_DO_PLANO_DA_FALA, sistemaPorSecao: L.sistemaPorSecao,
     visualDescriptionDirection: () => 'faceless documentary b-roll, no presenter', aspectSpec: () => ({ promptFraming: '9:16 vertical framing' }), NO_TEXT_OBJECT_DIRECTION: 'No text-bearing objects.' })
   return exp.generateCinematicDescriptions
 }
@@ -50,7 +50,7 @@ async function prova(over = {}) {
   no(!L.planoDaFalaLigado(L.KLING4_PLANO_DA_FALA_1911, true) || !L.planoDaFalaLigado(L.KLING4_DESCRITOR_FORTE_1911, true), 'F2 conta da casa: as duas abrem (o ensaio)')
   { const rr = over[ROTA] ?? read(ROTA)
     no(!rr.includes('const kling4DescritorForte1911 = kling4TrialCandidate && verbatim && planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isDryRunAccount(user.email))') || !rr.includes('(kling4TrialCandidate && verbatim && planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, isDryRunAccount(user.email))'), 'F3 as portas da rota leem o e-mail da conta, pela régua EXATA do ensaio (isDryRunAccount)')
-    no(!rr.includes('const descricoesDasSecoesK4: Promise<(string | null)[]> | null = kling4PlanoDaFala1911\n      ?') || !rr.includes("const a2Ensaio1911 = kling4DescritorForte1911 && descricoesDasSecoesK4 && motor1411.kling4 ?") || !rr.includes('if (kling4DescritorForte1911 && descricoesDasSecoesK4) promptsDeCenaInteira(') || !rr.includes('if (descricoesDasSecoesK4) { const d = descricoesCompletas('), 'F4 toda peça nova está atrás das portas (porta fechada = nenhuma chamada, nenhuma mudança)') }
+    no(!rr.includes('const descricoesDasSecoesK4: Promise<(string | null)[]> | null = kling4PlanoDaFala1911\n      ?') || !rr.includes("const a2Ensaio1911 = kling4DescritorForte1911 && descricoesDasSecoesK4 && motor1411.kling4 ?") || !rr.includes('if (kling4DescritorForte1911 && descricoesDasSecoesK4) promptsDeCenaInteira(') || !rr.includes('if (descricoesDasSecoesK4) { const c1911 = await completarDescricoes1911('), 'F4 toda peça nova está atrás das portas (porta fechada = nenhuma chamada, nenhuma mudança)') }
   // [revisor 19/11, 2ª volta, item 1] a régua larga da casa (isInternalEmail) abre para e-mail parecido: um render REAL de quem não é da casa entraria no A1/A2.
   // As portas usam isDryRunAccount (os 3 e-mails exatos do ensaio): e-mail parecido NÃO abre.
   { let D, I
@@ -103,10 +103,10 @@ async function prova(over = {}) {
   no(!rota.includes('true, true, kling4DescritorForte1911 ? MODELO_DO_DESCRITOR_FORTE : undefined, (u) => { usosDoDescritorA2.push(u) })'), 'D2 a chamada por seção usa o modelo forte só com o A2 (e mede os tokens)')
   no(!rota.includes("if (kling4DescritorForte1911 && descricoesDasSecoesK4) promptsDeCenaInteira(kling4PromptsDasCenas1911, parsedScript.segments, scenes.map((s) => s.voiceover ?? '')).forEach((p, i) => { kling4Prompts[i] = p })"), 'D3 no A2 a cena de uma seção só nasce da sua descrição')
   no(!rota.includes('const kling4PromptsDasCenas1911 = [...kling4Prompts]') || (rota.match(/promptsDeCenaInteira\(kling4PromptsDasCenas1911,/g) ?? []).length !== 2, 'D4 a reescrita parte sempre dos prompts originais das cenas (e refaz depois da reescrita)')
-  const iEnvio = rota.indexOf('const kling4EnvioDoFilme = () =>'), iJuiz = rota.indexOf('const rA2 = await revisarA2DoFilme(false)'), iPago = rota.indexOf('kling4Trial = await orchestrateKling4Trial({')
+  const iEnvio = rota.indexOf('const kling4EnvioDoFilme = () =>'), iJuiz = rota.indexOf('const rA2 = await revisarA2DoFilme(false, sujeitoA21911)'), iPago = rota.indexOf('kling4Trial = await orchestrateKling4Trial({')
   no(!(iEnvio > 0 && iJuiz > iEnvio && iPago > iJuiz), 'D5 o juiz do A2 roda depois de montar os planos e ANTES da reserva e do POST pago')
   const bloco = rota.slice(iJuiz, iPago)
-  no(!rota.includes('A2_TETO_DO_JUIZ_MS)\n    const reescreverA2') || !rota.includes('nSecoes: parsedScript.segments.length, rejulgar, julgar: julgarA2, nomes: (planos) => planosComNomeProprio(planos), reescrever: reescreverA2 })') || !rota.includes('`${topicoDoDescritorA2(body.original_idea, prompt)}\\n\\n${nota}`, classicVisualPolicy, { numeros: alvo.map((j) => j + 1), total: parsedScript.segments.length }'), 'D6 o juiz tem teto; revisão única (juiz + nome próprio); só as seções apontadas reescritas, pelo modelo forte, com a nota junto do Topic')
+  no(!rota.includes('A2_TETO_DO_JUIZ_MS)\n    const reescreverA2') || !rota.includes('nSecoes: parsedScript.segments.length, rejulgar, julgar: julgarA2, nomes: (planos) => planosComNomeProprio(planos), reescrever: reescreverA2, sujeito: (pl) => (sujeitoA2 ?') || !rota.includes('`${topicoDoDescritorA2(body.original_idea, prompt)}\\n\\n${nota}`, classicVisualPolicy, { numeros: alvo.map((j) => j + 1), total: parsedScript.segments.length }'), 'D6 o juiz tem teto; revisão única (juiz + nome próprio); só as seções apontadas reescritas, pelo modelo forte, com a nota junto do Topic')
   no(!/catch \(err\) \{ console\.warn\('\[cinematic\] KINEO-DESCRITOR-FORTE-1911/.test(bloco), 'D7 erro no juiz ou na reescrita não derruba o filme')
   // ── E · o ensaio pelo dry_run, nome próprio, Topic, custo e 'internal' só para a casa ──
   const iDry = rota.indexOf('const a2Ensaio1911 = kling4DescritorForte1911 && descricoesDasSecoesK4 && motor1411.kling4 ?'), iRef = rota.indexOf("const refunded = await releaseBirthClaim('dry_run_no_charge')")
@@ -123,7 +123,7 @@ async function prova(over = {}) {
     no(!(iDef > 0 && iD > iDef && iFlags.every((i) => i > 0 && i < iDef)), 'E18 a montagem do envio é definida antes do dry_run (o eco e o envio usam a mesma)') }
   no(!dry.includes("timingDoEco.pelaVoz = { segundosDaVoz: k4EnsaioRelato.fala_segundos }") || !dry.includes('timingDoEco.fixedCharacter = reference') || !dry.includes('timingDoEco.clipSeconds = k4EnsaioRelato.clip_seconds'), 'E19 o eco leva o timing do envio (voz medida, personagem fixo, clipe até 20 s)')
   no((rota.match(/\{ tetoMs: A2_TETO_DO_JUIZ_MS \}\), A2_TETO_DO_JUIZ_MS\)/g) ?? []).length !== 2, 'E20 o teto de 12 s do juiz do A2 vai também ao fetch (envio e eco)')
-  no(!dry.includes('const d = descricoesCompletas(d0, parsedScript.segments.length)') || !dry.includes("if (!d) return { versao: 'a2_ensaio_1911_v1', motivo: 'descricoes_incompletas'"), 'E4b [revisor 19/11, item 4] descrição incompleta: o ensaio mostra só o hoje (o filme fica no caminho de hoje)')
+  no(!dry.includes('const completas1911 = await completarDescricoes1911(d0, parsedScript.segments, k4, falasCena)') || !dry.includes('const d = completas1911.descricoes') || !dry.includes("if (!d) return { versao: 'a2_ensaio_1911_v2', motivo: completas1911.motivo ?? 'descricoes_incompletas', caminho: 'hoje'"), 'E4b [revisor 19/11, item 4] descrição incompleta: o ensaio mostra só o hoje (o filme fica no caminho de hoje)')
   no(!rota.includes("if (kling4DescritorForte1911 && descricoesDasSecoesK4 && parsedScript.segments.every((s) => typeof (s as { descricao?: unknown }).descricao === 'string')) {"), 'E4c a revisão real do A2 só roda com a descrição de todas as seções (nunca reescreve um filme pela metade)')
   no(L.planoDaFalaLigado('internal', false) || !L.planoDaFalaLigado('internal', true), 'E5 internal = só contas da casa (cliente fora)')
   no(!rota.includes('planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isDryRunAccount(user.email))'), 'E6 a rota decide pelo e-mail da conta')
@@ -151,7 +151,7 @@ async function prova(over = {}) {
   no(!rota.includes("model: modelo ?? 'gpt-4o-mini',"), 'D9 sem modelo = gpt-4o-mini, como sempre')
   { const ev = over[EVT] ?? read(EVT), i0 = ev.indexOf('const SERVER_ONLY_EVENTS = new Set(['), lista = i0 >= 0 ? ev.slice(i0, ev.indexOf('])', i0)) : ''
     no(!/^\s*'kling4_descritor_forte',/m.test(lista) || !ev.includes('if (SERVER_ONLY_EVENTS.has(name)) {'), 'D10 o evento do A2 é só do servidor (linha viva na lista SERVER_ONLY_EVENTS)') }
-  no(!rota.includes("void writeServerEvent({ name: A2_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, juiz: (rA2.veredito as JuizPlanoVeredito | null)?.status ?? null, reprovado: (rA2.veredito as JuizPlanoVeredito | null)?.reprovado ?? null, falhas: (rA2.veredito as JuizPlanoVeredito | null)?.falhas ?? [], nomes: rA2.nomes.map((p) => p + 1), reescritas: rA2.reescritas, ms: rA2.ms } }).catch(() => false)"), 'D11 o evento do A2 grava só veredito, posições e tempo (nunca texto do plano nem do cliente)')
+  no(!rota.includes("void writeServerEvent({ name: A2_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, juiz: (rA2.veredito as JuizPlanoVeredito | null)?.status ?? null, reprovado: (rA2.veredito as JuizPlanoVeredito | null)?.reprovado ?? null, falhas: (rA2.veredito as JuizPlanoVeredito | null)?.falhas ?? [], nomes: rA2.nomes.map((p) => p + 1), reescritas: rA2.reescritas, ms: rA2.ms, ultimo_sem_sujeito: rA2.ultimo_sem_sujeito ?? false, nomes_depois: rA2.nomes_depois ?? [] } }).catch(() => false)"), 'D11 o evento do A2 grava só veredito, posições e tempo (nunca texto do plano nem do cliente)')
   return { p, tamanho }
 }
 
@@ -163,28 +163,28 @@ const MUT = [
   ['porta larga: A2 pela régua da casa', ROTA, (s) => s.replace('planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isDryRunAccount(user.email))', 'planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isInternalEmail(user.email))')],
   ['porta larga: A1 pela régua da casa', ROTA, (s) => s.replace('planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, isDryRunAccount(user.email))', 'planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, isInternalEmail(user.email))')],
   ['evento sai da lista só-servidor', EVT, (s) => s.replace("  'kling4_descritor_forte', // KINEO-DESCRITOR-FORTE-1911", "  // 'kling4_descritor_forte', // KINEO-DESCRITOR-FORTE-1911")],
-  ['evento grava o texto dos planos', ROTA, (s) => s.replace('reescritas: rA2.reescritas, ms: rA2.ms } })', 'reescritas: rA2.reescritas, ms: rA2.ms, planos: kling4Prompts, pedido: body.original_idea } })')],
+  ['evento grava o texto dos planos', ROTA, (s) => s.replace('nomes_depois: rA2.nomes_depois ?? [] } })', 'nomes_depois: rA2.nomes_depois ?? [], planos: kling4Prompts, pedido: body.original_idea } })')],
   ['eco sem o sujeito', ROTA, (s) => s.replace('const rs = pedidoDoSujeitoEco ? await sujeitoNoKling4(', 'const rs = false ? await sujeitoNoKling4(')],
   ['eco com montador próprio', ROTA, (s) => s.replace('const e = kling4PorSecao({ prompts: ps, approvedStills: stills, timing: timingDoEco })', 'const e = { prompts: ps, approvedStills: stills, timing: timingDoEco }')],
   ['eco sem a voz medida', ROTA, (s) => s.replace('timingDoEco.pelaVoz = { segundosDaVoz: k4EnsaioRelato.fala_segundos }', 'void 0')],
   ['juiz do A2 sem teto no fetch', ROTA, (s) => s.replace("seconds: duration }, { tetoMs: A2_TETO_DO_JUIZ_MS }), A2_TETO_DO_JUIZ_MS)\n    const reescreverA2", "seconds: duration }), A2_TETO_DO_JUIZ_MS)\n    const reescreverA2")],
-  ['juiz sem veredito reescreve', LIB, (s) => s.replace("if (!v || v.status !== 'JUDGED' || nPlanos !== nSecoes || nSecoes < 1) return []", 'if (!v || nSecoes < 1) return []')],
-  ['qualquer falha reescreve', LIB, (s) => s.replace('const falhas = (v.falhas ?? []).filter((f) => FALHAS_QUE_REESCREVEM.includes(f))\n  if (!falhas.length) return []', 'const falhas = [...(v.falhas ?? [])]\n  if (!falhas.length) return []')],
+  ['juiz sem veredito reescreve', LIB, (s) => s.replace("  if (!v || v.status !== 'JUDGED') return [...alvo]", '  if (!v) return [...alvo]')],
+  ['qualquer falha reescreve', LIB, (s) => s.replace("const falhas = (v.falhas ?? []).filter((f) => FALHAS_QUE_REESCREVEM.includes(f) && !(f === 'd_sujeito' && sujeitoDoJuizEscrito(v, extra.planos)))", 'const falhas = [...(v.falhas ?? [])]')],
   ['final fraco não reescreve o fim', LIB, (s) => s.replace("if (falhas.includes('e_final')) alvo.add(nSecoes - 1)", '')],
   ['cena inteira sem a descrição', LIB, (s) => s.replace("g[i].length === 1 && typeof secoes[g[i][0]].descricao === 'string' ? promptDaSecao(p, secoes[g[i][0]]) : p", 'p')],
   ['cena fundida reescrita aqui', LIB, (s) => s.replace("g[i].length === 1 && typeof secoes[g[i][0]].descricao === 'string'", "typeof secoes[g[i][0]].descricao === 'string'")],
   ['mapa adivinhado', LIB, (s) => s.replace('if (!g || g.length !== promptsDasCenas.length) return [...promptsDasCenas]', 'if (!g) return promptsDasCenas.map((p, i) => promptDaSecao(p, secoes[i] ?? secoes[0]))')],
   ['rota: cena inteira não nasce da seção', ROTA, (s) => s.replace("if (kling4DescritorForte1911 && descricoesDasSecoesK4) promptsDeCenaInteira(kling4PromptsDasCenas1911,", 'if (false) promptsDeCenaInteira(kling4PromptsDasCenas1911,')],
-  ['rota: sem o modelo forte', ROTA, (s) => s.replace('true, true, kling4DescritorForte1911 ? MODELO_DO_DESCRITOR_FORTE : undefined, (u) =>', 'true, true, undefined, (u) =>')],
+  ['rota: sem o modelo forte', ROTA, (s) => s.replaceAll('true, true, kling4DescritorForte1911 ? MODELO_DO_DESCRITOR_FORTE : undefined, (u) =>', 'true, true, undefined, (u) =>')],
   ['rota: modelo forte sempre', ROTA, (s) => s.replace("model: modelo ?? 'gpt-4o-mini',", "model: 'gpt-4o',")],
   ['rota: reescrita sem a nota', ROTA, (s) => s.replace('`${topicoDoDescritorA2(body.original_idea, prompt)}\\n\\n${nota}`, classicVisualPolicy, { numeros: alvo.map((j) => j + 1), total: parsedScript.segments.length }', 'prompt, classicVisualPolicy, { numeros: alvo.map((j) => j + 1), total: parsedScript.segments.length }')],
-  ['rota: sem a checagem de nome próprio', ROTA, (s) => s.replace('nomes: (planos) => planosComNomeProprio(planos), reescrever: reescreverA2 })', 'nomes: async () => [], reescrever: reescreverA2 })')],
+  ['rota: sem a checagem de nome próprio', ROTA, (s) => s.replace('nomes: (planos) => planosComNomeProprio(planos), reescrever: reescreverA2, sujeito:', 'nomes: async () => [], reescrever: reescreverA2, sujeito:')],
   ['rota: ensaio sem rejulgar', ROTA, (s) => s.replace('nSecoes: secoes.length, rejulgar: true, julgar,', 'nSecoes: secoes.length, rejulgar: false, julgar,')],
   ['rota: hoje com a descrição', ROTA, (s) => s.replace('const hoje = await montar(parsedScript.segments.map((x) => ({ voiceover: x.voiceover, pexelsQuery: x.pexelsQuery })))', 'const hoje = await montar(parsedScript.segments.map((x) => ({ voiceover: x.voiceover, pexelsQuery: x.pexelsQuery, descricao: x.pexelsQuery })))')],
   ['lib: nome sem conferir a citação', LIB, (s) => s.replace(' && planos[a.plano - 1].toLowerCase().includes(nome.toLowerCase())) out.add(a.plano - 1)', ') out.add(a.plano - 1)')],
   ['lib: revisão reescreve duas vezes', LIB, (s) => s.replace('if (a.rejulgar) vf = await cronometro', "if (a.rejulgar) await a.reescrever(alvo, ''); if (a.rejulgar) vf = await cronometro")],
   ['lib: nome sem a nota', LIB, (s) => s.replace('${comNome.length ? ` ${NOTA_DO_NOME_PROPRIO}` : \'\'}', '')],
-  ['rota: ensaio aceita descrição incompleta', ROTA, (s) => s.replace('const d = descricoesCompletas(d0, parsedScript.segments.length)', 'const d = d0')],
+  ['rota: ensaio aceita descrição incompleta', ROTA, (s) => s.replace('const d = completas1911.descricoes', 'const d = d0 as string[]')],
   ['rota: revisão com descrição incompleta', ROTA, (s) => s.replace(" && parsedScript.segments.every((s) => typeof (s as { descricao?: unknown }).descricao === 'string')) {", ') {')],
   ['lib: preço errado', LIB, (s) => s.replace("'gpt-4o': { entrada: 2.5e-6, saida: 10e-6 }", "'gpt-4o': { entrada: 0.15e-6, saida: 0.6e-6 }")],
   ['lib: internal para todos', LIB, (s) => s.replace("return modo === 'public' || (modo === 'internal' && contaDaCasa === true)", "return modo === 'public' || modo === 'internal'")],

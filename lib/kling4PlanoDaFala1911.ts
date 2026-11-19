@@ -19,9 +19,20 @@ export function planoDaFalaLigado(modo: ModoPlanoDaFala, contaDaCasa: boolean): 
 }
 
 /** Acrescentado ao sistema do descritor SÓ na chamada por seção (cada item = uma seção do roteiro). */
-export const REGRA_DO_PLANO_DA_FALA = '\n- KINEO-PLANO-DA-FALA-1911: each item is ONE short shot (about 3 to 5 seconds) of a 15-second film, one per narration line, in order. Write it from the Topic (the person\'s request) and that line\'s narration: show the subject that narration is about, doing what it says. The visual hint is only a stock-footage search term: it may add surroundings but a shot is never only the hint. The LAST item shows how the story ends, with the central subject of the Topic clearly visible in that final moment, never an empty landscape, sky or mood shot.'
+export const REGRA_DO_PLANO_DA_FALA = '\n- KINEO-PLANO-DA-FALA-1911: each item is ONE short shot (about 3 to 5 seconds) of a 15-second film, one per narration line, in order. Write it from the Topic (the person\'s request) and that line\'s narration: show the subject that narration is about, doing what it says. The visual hint is only a stock-footage search term: it may add surroundings but a shot is never only the hint. The LAST item shows how the story ends, with the central subject of the Topic clearly visible in that final moment, never an empty landscape, sky or mood shot.' +
+  // [ensaio A2 19/11] "Aerial shot" abria o plano 1 em 34 de 47 filmes (a regra de câmera da rota lista "aerial" primeiro); frases cortadas na vírgula; a cor do
+  // dinossauro contra a ficha. A câmera é da montagem (a escala de cada plano), a 1ª frase basta sozinha e a aparência de personagem é da ficha.
+  '\n- Do not name a camera move, lens or shot type: the editor sets the framing of every shot. Describe only what is seen: who, doing what, where.' +
+  '\n- The FIRST sentence of each item is a complete shot on its own (who, doing what, where) in at most 18 words; at most one more short sentence of detail may follow.' +
+  '\n- Never describe how a named or recurring character looks (age, hair, skin, clothes, colours): a character sheet sets that; describe only what they do.'
 
 const norm = (t: unknown) => String(t ?? '').trim().replace(/\s+/gu, ' ')
+
+/** [ensaio A2 19/11] O sistema do descritor na chamada POR SEÇÃO: sem as duas linhas de câmera da rota ("Include a camera move (aerial, …)" e "VARY … rotate aerial / …"),
+ *  que o modelo forte lia como "abra com aerial". A chamada das cenas (a de sempre) não passa por aqui. */
+export function sistemaPorSecao(sistema: string): string {
+  return String(sistema ?? '').split('\n').filter((l) => !/^- (?:Include a camera move|VARY the camera move)\b/.test(l)).join('\n')
+}
 
 /** As seções no formato que o descritor lê (narration + visual hint). */
 export function secoesParaODescritor(secoes: ReadonlyArray<{ voiceover: string; pexelsQuery: string }>): { voiceover: string; stockSearchQuery: string; description: string }[] {
@@ -53,7 +64,7 @@ export function descricoesCompletas(d: ReadonlyArray<string | null> | null | und
 // protagonista ou final que não entrega tem SÓ a sua seção reescrita, uma vez, com a nota do juiz. Juiz em prazo, erro ou sem veredito = segue.
 // As cenas (stills, crítico, reserva H3) não mudam. 'off' = nada daqui roda.
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
-import { promptDaSecao, secoesDasCenas, type SecaoDoRoteiro } from '@/lib/kling4QuatroPlanos'
+import { promptDaSecao, secoesDasCenas, secoesPorPalavras, type SecaoDoRoteiro, type RelatoDaMetade } from '@/lib/kling4QuatroPlanos'
 export const KLING4_DESCRITOR_FORTE_1911: ModoPlanoDaFala = 'internal' // CEO 19/11: 'internal' = só contas da casa (o ensaio pelo dry_run); 'public' só com revisor independente + prova paga + sim do dono
 export const MODELO_DO_DESCRITOR_FORTE: string = AI_TEXT_MODELS.planner
 export const A2_TETO_DO_JUIZ_MS = 12_000
@@ -63,13 +74,24 @@ export const FALHAS_QUE_REESCREVEM: readonly string[] = ['c_criatura', 'd_sujeit
 type VereditoMinimo = { status?: string; falhas?: readonly string[]; cenas_reescreveria?: readonly number[]; d_sujeito?: string | null } | null | undefined
 /** Seções (0-based) a reescrever: só com veredito JUDGED e falha de conteúdo; plano p (1..N) = seção p-1 (no A2 há um plano por seção).
  *  Final que não entrega sem plano apontado = a última seção. Contagem de planos ≠ seções = nada (nunca desloca). */
-export function secoesAReescrever(v: VereditoMinimo, nPlanos: number, nSecoes: number): number[] {
-  if (!v || v.status !== 'JUDGED' || nPlanos !== nSecoes || nSecoes < 1) return []
-  const falhas = (v.falhas ?? []).filter((f) => FALHAS_QUE_REESCREVEM.includes(f))
-  if (!falhas.length) return []
-  const alvo = new Set((v.cenas_reescreveria ?? []).filter((p) => Number.isInteger(p) && p >= 1 && p <= nPlanos).map((p) => p - 1))
+export function secoesAReescrever(v: VereditoMinimo, nPlanos: number, nSecoes: number, extra: { planos?: readonly string[]; ultimoSemSujeito?: boolean; sujeitoConcreto?: boolean } = {}): number[] {
+  if (nPlanos !== nSecoes || nSecoes < 1) return []
+  const alvo = new Set<number>()
+  if (extra.ultimoSemSujeito) alvo.add(nSecoes - 1) // [ensaio A2 19/11] o último plano sem o sujeito do pedido (o injetor) — conferido no código, não pelo juiz
+  if (!v || v.status !== 'JUDGED') return [...alvo]
+  const falhas = (v.falhas ?? []).filter((f) => FALHAS_QUE_REESCREVEM.includes(f) && !(f === 'd_sujeito' && sujeitoDoJuizEscrito(v, extra.planos)))
+  if (!falhas.length) return [...alvo].sort((a, b) => a - b)
+  for (const p of (v.cenas_reescreveria ?? []).filter((p) => Number.isInteger(p) && p >= 1 && p <= nPlanos)) alvo.add(p - 1)
   if (falhas.includes('e_final')) alvo.add(nSecoes - 1)
+  // [ensaio A2 19/11] reprovação por sujeito sem plano apontado ficava sem reescrita: agora a última seção — só com sujeito CONCRETO lido do pedido (o injetor);
+  // o do juiz sozinho costuma ser abstrato ("mystery", "3 facts", "ایک موقع") e não se desenha
+  if (falhas.includes('d_sujeito') && !(v.cenas_reescreveria ?? []).length && extra.sujeitoConcreto !== false) alvo.add(nSecoes - 1)
   return [...alvo].sort((a, b) => a - b)
+}
+/** O juiz disse que o sujeito não aparece, mas o próprio sujeito que ele leu está escrito num plano (f133c184: "Mount Vesuvius" em todo plano) = a falha não vale. */
+export function sujeitoDoJuizEscrito(v: VereditoMinimo, planos: readonly string[] | undefined): boolean {
+  const d = norm(v?.d_sujeito).toLowerCase()
+  return !!planos?.length && d.length >= 3 && planos.some((p) => norm(p).toLowerCase().includes(d))
 }
 
 const FALHA_EM_PALAVRAS: Record<string, string> = {
@@ -78,10 +100,38 @@ const FALHA_EM_PALAVRAS: Record<string, string> = {
   e_final: 'the last shot did not deliver the outcome the narration promises',
 }
 /** A nota que vai ao descritor na reescrita (só para o modelo; nunca ao cliente). */
-export function notaDaReescrita(v: VereditoMinimo): string {
+export function notaDaReescrita(v: VereditoMinimo, extra: { sujeito?: string | null; ultimoSemSujeito?: boolean } = {}): string {
   const falhas = (v?.falhas ?? []).filter((f) => FALHAS_QUE_REESCREVEM.includes(f)).map((f) => FALHA_EM_PALAVRAS[f]).filter(Boolean)
-  const sujeito = String(v?.d_sujeito ?? '').trim().slice(0, 120)
-  return `A reviewer rejected the previous version of these shots because ${falhas.join('; ') || 'they did not show the request'}.${sujeito ? ` The central subject of the request is: ${sujeito}.` : ''} Rewrite ONLY these shots: show that subject clearly, doing what each narration line says; the last shot of the film shows the outcome with that subject.`
+  if (extra.ultimoSemSujeito) falhas.push('the last shot did not show the central subject of the request')
+  // [ensaio A2 19/11] o sujeito que FALTOU vem do injetor (o pedido lido, concreto); o do juiz só sem ele (o juiz lê "mystery", "3 facts")
+  const sujeito = String(extra.sujeito ?? v?.d_sujeito ?? '').trim().slice(0, 120)
+  // [ensaio A2 19/11, 804e9f0b] a nota antiga mandava "mostre esse sujeito" em todo plano reescrito: a partida do pai virou o Victor no cockpit. Cada plano
+  // reescrito continua dizendo o que a SUA fala diz; só o que faltou entra.
+  return `A reviewer rejected the previous version of these shots because ${falhas.join('; ') || 'they did not show the request'}. Rewrite ONLY these shots. Each shot keeps exactly who and what its own narration line says; add only what was missing.${sujeito ? ` The central subject of the request is: ${sujeito}.` : ''}${extra.ultimoSemSujeito && sujeito ? ` The LAST shot must clearly show ${sujeito} in the final moment the last narration line tells.` : ''}`
+}
+/** [ensaio A2 19/11] o pedido de novo da seção cuja descrição não coube em frase inteira (o plano caía na fala crua): uma frase, no espaço que o plano tem. */
+export function notaDoEspaco(espacos: ReadonlyArray<{ numero: number; espaco: number }>): string {
+  return `Each of these shots must fit its plan: write it as ONE complete sentence (who, doing what, where), no longer than ${espacos.map((e) => `${e.espaco} characters for shot ${e.numero}`).join(', ')}.`
+}
+/**
+ * [ensaio A2 19/11] As seções com descrição que NÃO coube em frase inteira no seu plano (caiu na fala crua: "This shot shows only this moment: Comment."),
+ * com o espaço que o plano tem para ela. Mesma montagem do envio: metade de cena fundida e cena de uma seção só, pelo mapa da fala.
+ */
+export function secoesQueNaoCabem(promptsDasCenas: readonly string[], secoes: readonly SecaoDoRoteiro[], falasDasCenas: readonly string[], cenaInteira = false): Array<{ secao: number; espaco: number }> {
+  const exatos = secoesDasCenas(secoes, falasDasCenas)
+  const g = exatos ?? secoesPorPalavras(secoes, falasDasCenas)
+  if (!g || g.length !== promptsDasCenas.length) return []
+  const fora: Array<{ secao: number; espaco: number }> = []
+  g.forEach((grupo, i) => {
+    if (grupo.length === 1 && (!cenaInteira || !exatos)) return // a cena de uma seção só nasce da descrição só no A2 e com o mapa exato (promptsDeCenaInteira)
+    for (const j of grupo) {
+      if (typeof secoes[j]?.descricao !== 'string') continue
+      const relato: RelatoDaMetade = {}
+      promptDaSecao(promptsDasCenas[i], secoes[j], { relato })
+      if (relato.caiuNaFala) fora.push({ secao: j, espaco: relato.espaco ?? 0 })
+    }
+  })
+  return fora
 }
 
 /** A2 — o prompt do Kling 4 de cada cena de UMA seção só passa a nascer da descrição dessa seção (a cena fundida já nasce em planosPorSecao).
@@ -124,7 +174,7 @@ export async function planosComNomeProprio(planos: readonly string[], opts: { ap
   return [...out].sort((x, y) => x - y)
 }
 
-export type RelatoDaRevisaoA2 = { juiz: unknown; nomes: number[]; reescritas: number[]; juiz_final: unknown; ms: { juiz: number; nomes: number; reescrita: number; juiz_final: number } }
+export type RelatoDaRevisaoA2 = { juiz: unknown; nomes: number[]; reescritas: number[]; juiz_final: unknown; ms: { juiz: number; nomes: number; reescrita: number; juiz_final: number; nomes_final?: number }; ultimo_sem_sujeito?: boolean; nomes_depois?: number[] }
 /** A revisão do A2 antes do envio (e no ensaio do dry_run): juiz + nome próprio em paralelo; só as seções apontadas são reescritas, uma vez.
  *  `rejulgar` (só o ensaio) lê de novo depois da reescrita. Nunca lança: erro de uma peça = aquela peça vazia. */
 export async function revisarPlanosA2(a: {
@@ -132,19 +182,28 @@ export async function revisarPlanosA2(a: {
   julgar: (planos: string[], falas: string[]) => Promise<VereditoMinimo>
   nomes: (planos: string[]) => Promise<number[]>
   reescrever: (alvo: number[], nota: string) => Promise<void>
+  /** [ensaio A2 19/11] o sujeito do pedido (o injetor) e se ele está no ÚLTIMO plano destes planos; null = sem sujeito concreto (nada a exigir). */
+  sujeito?: (planos: string[]) => { frase: string; noUltimo: boolean } | null
+  /** [ensaio A2 19/11] depois da reescrita, o nome próprio é conferido de novo nos planos reescritos (nome que persiste = o filme volta ao caminho de hoje). */
+  nomesDeNovo?: boolean
 }): Promise<RelatoDaRevisaoA2 & { veredito: VereditoMinimo; vereditoFinal: VereditoMinimo }> {
-  const ms = { juiz: 0, nomes: 0, reescrita: 0, juiz_final: 0 }
+  const ms: { juiz: number; nomes: number; reescrita: number; juiz_final: number; nomes_final?: number } = { juiz: 0, nomes: 0, reescrita: 0, juiz_final: 0 }
   const cronometro = async <T,>(k: keyof typeof ms, f: () => Promise<T>, vazio: T): Promise<T> => { const t = Date.now(); try { return await f() } catch { return vazio } finally { ms[k] = Date.now() - t } }
   const planos = a.planos(), falas = a.falas()
   const [v, nomes] = await Promise.all([cronometro('juiz', () => a.julgar(planos, falas), null as VereditoMinimo), cronometro('nomes', () => a.nomes(planos), [] as number[])])
   const comNome = planos.length === a.nSecoes ? nomes : []
-  const alvo = [...new Set([...secoesAReescrever(v, planos.length, a.nSecoes), ...comNome])].sort((x, y) => x - y)
+  let suj: { frase: string; noUltimo: boolean } | null = null
+  try { suj = a.sujeito ? a.sujeito(planos) : null } catch { suj = null }
+  const ultimoSemSujeito = !!suj && !suj.noUltimo
+  const alvo = [...new Set([...secoesAReescrever(v, planos.length, a.nSecoes, { planos, ultimoSemSujeito, ...(a.sujeito ? { sujeitoConcreto: !!suj } : {}) }), ...comNome])].sort((x, y) => x - y)
   let vf: VereditoMinimo = null
+  let nomesDepois: number[] | undefined
   if (alvo.length) {
-    await cronometro('reescrita', () => a.reescrever(alvo, `${notaDaReescrita(v)}${comNome.length ? ` ${NOTA_DO_NOME_PROPRIO}` : ''}`), undefined)
+    await cronometro('reescrita', () => a.reescrever(alvo, `${notaDaReescrita(v, { sujeito: suj?.frase ?? null, ultimoSemSujeito })}${comNome.length ? ` ${NOTA_DO_NOME_PROPRIO}` : ''}`), undefined)
+    if (a.nomesDeNovo && comNome.length) { const t = Date.now(); try { nomesDepois = (await a.nomes(a.planos())).filter((p) => alvo.includes(p)) } catch { nomesDepois = [] } finally { ms.nomes_final = Date.now() - t } }
     if (a.rejulgar) vf = await cronometro('juiz_final', () => a.julgar(a.planos(), a.falas()), null as VereditoMinimo)
   }
-  return { juiz: v, veredito: v, nomes, reescritas: alvo.map((j) => j + 1), juiz_final: vf, vereditoFinal: vf, ms }
+  return { juiz: v, veredito: v, nomes, reescritas: alvo.map((j) => j + 1), juiz_final: vf, vereditoFinal: vf, ms, ultimo_sem_sujeito: ultimoSemSujeito, ...(nomesDepois ? { nomes_depois: nomesDepois.map((p) => p + 1) } : {}) }
 }
 
 /** Preço por token (US$) conferido em 19/11 na página do fornecedor (developers.openai.com/api/docs/pricing, tabela Standard, por 1M tokens):

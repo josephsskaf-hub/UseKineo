@@ -116,13 +116,15 @@ export function acaoDaCena(promptDaCena: string): string {
 const FIM_DE_FRASE_A1 = /(?<!(?:^|[\s(])\p{Lu}[.])(?<=[.!?])\s+/u
 const cp1911 = (s: string) => Array.from(s).length
 /** Corta `t` até `max` code points em fronteira de FRASE; senão de ORAÇÃO (", " ou "; "); senão null — nunca deixa frase aberta ("stand confidently on a"). */
-export function cortaInteiro(t: string, max: number): string | null {
+/** `soFrase` [ensaio A2 19/11] — a DESCRIÇÃO só se corta em fronteira de frase: a vírgula partia lista de adjetivos ("in a vibrant, colorful garden" → "in a vibrant."). */
+export function cortaInteiro(t: string, max: number, soFrase = false): string | null {
   const s = norm(t)
   if (cp1911(s) <= max) return s
   const c = Array.from(s).slice(0, Math.max(0, max)).join('')
   let fim = -1
   for (const m of c.matchAll(/[.!?](?=\s)/gu)) { const i = m.index ?? -1; if (i >= 20 && !/(?:^|[\s(])\p{Lu}$/u.test(c.slice(0, i))) fim = i }
   if (fim >= 20) return c.slice(0, fim + 1)
+  if (soFrase) return null
   const v = Math.max(c.lastIndexOf(', '), c.lastIndexOf('; '))
   return v >= 20 ? c.slice(0, v) : null
 }
@@ -135,7 +137,7 @@ export function acaoDaSecao(descricao: string | null | undefined, fala: string, 
   // sem fronteira, ela sai), depois a fala (frase/oração; em último caso a palavra). Nunca frase aberta na ação, nunca ",." no fim; a proteção do
   // plano fica fora daqui (promptDaSecao a mantém).
   const d = norm(descricao).replace(/[\s.!?…]+$/u, '')
-  if (d.length >= 12) { const c = cortaInteiro(d, max - 1); if (c) return fecha(c) }
+  if (d.length >= 12) { const c = cortaInteiro(d, max - 1, true); if (c) return fecha(c) } // [ensaio A2 19/11] só fronteira de frase
   const f = norm(fala).replace(/[\s.!?…]+$/u, '')
   const PREFIXO = 'This shot shows only this moment: '
   const falaCabe = (n: number) => { if (!f) return ''; const c = cortaInteiro(f, n) ?? Array.from(f).slice(0, Math.max(0, n)).join('').replace(/\s+\S*$/u, ''); return c ? fecha(c) : '' }
@@ -151,7 +153,10 @@ export function acaoDaSecao(descricao: string | null | undefined, fala: string, 
 // era "A wide shot captures the bustling ancient Roman amphitheater…" de novo, só com outro "Shot focus"): funcionou por sorte. Agora
 // cada plano de cena fundida nasce da SUA seção: o meio ("Photoreal film."), o lugar ("Setting: …") e a época do prompt da cena, a
 // pista e a fala da seção como ação, e a mesma proteção de texto/boca do fim do prompt. Nenhuma ação de outra seção entra.
-export function promptDaSecao(promptDaCena: string, secao: SecaoDoRoteiro, opcoes: { objetoConcreto?: boolean } = {}): string {
+/** [ensaio A2 19/11] o que a metade com descrição conta à rota: o espaço da descrição (com toda peça opcional fora) e se ela não coube e caiu na fala. */
+export interface RelatoDaMetade { espaco?: number; caiuNaFala?: boolean }
+export const PREFIXO_DA_FALA = 'This shot shows only this moment: '
+export function promptDaSecao(promptDaCena: string, secao: SecaoDoRoteiro, opcoes: { objetoConcreto?: boolean; relato?: RelatoDaMetade } = {}): string {
   const p = norm(promptDaCena)
   const meio = /^[^.]{2,60}\./.exec(p)?.[0] ?? ''
   const lugar = /Setting: [^.]*?(?:\([^)]*\))?\./.exec(p)?.[0] ?? ''
@@ -179,9 +184,14 @@ export function promptDaSecao(promptDaCena: string, secao: SecaoDoRoteiro, opcoe
     let opcionais = { luz, epocaFrase: epoca ? ` The scene is a ${epoca}.` : '', lugar, origem }
     const montarA1 = (acaoA1: string) => norm([meio, opcionais.luz, periodo, opcionais.origem, quem, opcionais.lugar, acaoA1].join(' ') + opcionais.epocaFrase + cauda)
     for (const k of ['luz', 'epocaFrase', 'lugar', 'origem'] as const) { if (cp1911(montarA1(acaoCheia)) <= PLANO_DA_FALA_TETO) break; opcionais = { ...opcionais, [k]: '' } }
+    if (opcoes.relato) { opcoes.relato.espaco = Math.max(40, PLANO_DA_FALA_TETO - cp1911(norm([meio, periodo, quem].join(' ') + cauda)) - 1) - 2; opcoes.relato.caiuNaFala = false } // [ensaio A2 19/11]
     if (cp1911(montarA1(acaoCheia)) <= PLANO_DA_FALA_TETO) return montarA1(acaoCheia)
     const fixo = montarA1('')
-    return montarA1(acaoDaSecao(secao.descricao, fala, acaoDaCena(p), Math.max(40, PLANO_DA_FALA_TETO - cp1911(fixo) - 1)))
+    const maxAcao = Math.max(40, PLANO_DA_FALA_TETO - cp1911(fixo) - 1)
+    const dA1 = norm(secao.descricao).replace(/[\s.!?…]+$/u, '')
+    // [ensaio A2 19/11] nenhuma frase inteira da descrição cabe: o plano ficaria com a fala crua ("This shot shows only this moment: Comment.") ou sem ação nenhuma
+    if (opcoes.relato && dA1.length >= 12) { opcoes.relato.espaco = maxAcao - 2; opcoes.relato.caiuNaFala = cortaInteiro(dA1, maxAcao - 1, true) === null }
+    return montarA1(acaoDaSecao(secao.descricao, fala, acaoDaCena(p), maxAcao))
   }
   const acao = opcoes.objetoConcreto && norm(secao.pexelsQuery) ? `Main subject of this shot: ${pista(secao)}, shown in motion.` : `Shot focus: ${pista(secao)}. This shot shows only this moment: ${fala}.`
   return norm(`${meio} ${luz} ${periodo} ${origem} ${quem} ${lugar} ${acao}${epoca ? ` The scene is a ${epoca}.` : ''}${cauda}`)

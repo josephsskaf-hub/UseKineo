@@ -758,7 +758,7 @@ export function exigirSujeitoNoKling4(args: {
  */
 export async function sujeitoNoKling4(args: {
   pedido: PedidoDoSujeito; falas: ReadonlyArray<string>; prompts: ReadonlyArray<string>; stills?: ReadonlyArray<string | null>; pessoaPermitida?: boolean
-}, opts: OpcoesSemanticas = {}): Promise<{ prompts: string[]; stills: (string | null)[]; relato: RelatoSujeitoK4 }> {
+}, opts: OpcoesSemanticas = {}): Promise<{ prompts: string[]; stills: (string | null)[]; relato: RelatoSujeitoK4; /** [ensaio A2 19/11] o sujeito avaliado (chaves de presença), para exigir o último plano do A2 */ obrigatorio?: SujeitoObrigatorio | null }> {
   try {
     const leitura = args.pedido.pedido ? await lerSujeitoDoPedido(args.pedido.pedido, opts) : null
     // KINEO-SUJEITO-APARENCIA-1311 (a) — com o sujeito decidido e válido, a pergunta separada da aparência; falha = sem aparência (nada muda)
@@ -767,7 +767,7 @@ export async function sujeitoNoKling4(args: {
       const ap = await lerAparenciaDoSujeito(args.pedido.pedido, leitura.valor.subject_visual, opts)
       if (ap.ok) leitura.valor.appearance = ap.valor.appearance
     }
-    return exigirSujeitoNoKling4({ ...args, leitura, todosOsPlanos: ligado })
+    return { ...exigirSujeitoNoKling4({ ...args, leitura, todosOsPlanos: ligado }), obrigatorio: args.pedido.pedido ? avaliarSujeito({ leitura, pessoaPermitida: args.pessoaPermitida }).sujeito : null } // [ensaio A2 19/11] + o sujeito avaliado
   } catch (e) {
     const relato: RelatoSujeitoK4 = { versao: SUJEITO_K4_VERSAO, sujeito: null, tipo: null, origem: null, motivo_sem_sujeito: `erro_inesperado:${e instanceof Error ? e.name : 'desconhecido'}`, fonte_do_pedido: args.pedido.fonte, motivo_do_pedido: args.pedido.motivo, leitura: null, ja_presente: false, corrigido: false, cena: null, keyframe_removido: false }
     return { prompts: [...args.prompts], stills: [...(args.stills ?? [])], relato }

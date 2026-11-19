@@ -46,6 +46,8 @@ import { isInternalEmail } from '@/lib/internalAccounts'
 import { comPeloFacialDoTexto } from '@/lib/cinematic/peloFacialDoTexto' // KINEO-PELO-FACIAL-DO-TEXTO-1211
 import { KLING4_PLANO_DA_FALA_1911, planoDaFalaLigado, REGRA_DO_PLANO_DA_FALA, secoesParaODescritor, descricoesPorSecao, topicoComoDado, descricoesCompletas } from '@/lib/kling4PlanoDaFala1911' // KINEO-PLANO-DA-FALA-1911 (A1)
 import { KLING4_DESCRITOR_FORTE_1911, MODELO_DO_DESCRITOR_FORTE, A2_TETO_DO_JUIZ_MS, A2_EVENTO, promptsDeCenaInteira, topicoDoDescritorA2, planosComNomeProprio, revisarPlanosA2, custoDoUso } from '@/lib/kling4PlanoDaFala1911' // KINEO-DESCRITOR-FORTE-1911 (A2)
+import { sistemaPorSecao, notaDoEspaco, secoesQueNaoCabem } from '@/lib/kling4PlanoDaFala1911' // [ensaio A2 19/11] sem câmera nomeada; a seção que não coube é pedida de novo
+import { promptMostraOSujeito, comSujeitoNaCena } from '@/lib/cinematic/sujeitoObrigatorio' // [ensaio A2 19/11] o sujeito do pedido no último plano do A2
 import { KLING4_PLANO_POR_SECAO, KLING4_PLANO_POR_SECAO_VERSAO, planoPorSecaoLigado, planosPorSecao } from '@/lib/kling4QuatroPlanos' // KINEO-K4-PLANO-POR-SECAO-1111
 import { comSujeitoNasMetades } from '@/lib/kling4QuatroPlanos' // KINEO-SUJEITO-APARENCIA-1311 (b)
 import { KLING4_PLANO_VARIADO, KLING4_PLANO_VARIADO_VERSAO, planoVariadoLigado, planosComEscalaVariada } from '@/lib/kling4PlanoVariado' // KINEO-K4-PLANO-VARIADO-1111
@@ -1108,7 +1110,7 @@ ${REGRAS_DO_ESCRITOR_DE_CENAS}
       {
         model: modelo ?? 'gpt-4o-mini', // KINEO-DESCRITOR-FORTE-1911 (A2): ausente = o de sempre
         messages: [
-          { role: 'system', content: porSecao ? system + REGRA_DO_PLANO_DA_FALA : system }, // KINEO-PLANO-DA-FALA-1911 (A1): só na chamada por seção
+          { role: 'system', content: porSecao ? sistemaPorSecao(system) + REGRA_DO_PLANO_DA_FALA : system }, // KINEO-PLANO-DA-FALA-1911 (A1): só na chamada por seção · [ensaio A2 19/11] sem as linhas de câmera ("aerial" abria 34 de 47)
           { role: 'user', content: tentativa === 0 ? userMsg : `${userMsg}\n\nYour previous answer had ${best.length} descriptions. Return EXACTLY ${scenes.length} descriptions, one per scene, in order.` },
         ],
         temperature: 0.6,
@@ -7549,6 +7551,10 @@ async function manipularPost(req: NextRequest) {
     const kling4PlanoPorSecao = planoPorSecaoLigado(KLING4_PLANO_POR_SECAO, isInternalEmail(user.email)) // KINEO-K4-PLANO-POR-SECAO-1111
     const kling4PlanoFinal = planoFinalLigado(KLING4_PLANO_FINAL, isInternalEmail(user.email)) // KINEO-K4-PLANO-FINAL-1111 — 'internal' até a nota da prova paga
     const kling4PlanoVariado = planoVariadoLigado(KLING4_PLANO_VARIADO, isInternalEmail(user.email)) // KINEO-K4-PLANO-VARIADO-1111 [CEO 11/11, alavanca 2] — 'internal' até a nota da prova paga
+    // [ensaio A2 19/11] o sujeito do pedido é OBRIGATÓRIO no último plano do A2 (8 filmes perdiam o sujeito no fim). Liga DEPOIS da revisão (que vê os planos
+    // sem a injeção e reescreve a última seção primeiro); o que ainda faltar entra pelo mesmo injetor (comSujeitoNaCena). Só com a descrição por seção em uso.
+    const ultimoComSujeito1911 = { ligado: false }
+    const garantirSujeitoNoUltimo1911 = (r: { prompts: string[] }): void => { const s1911 = ultimoComSujeito1911.ligado ? kling4Sujeito.r?.obrigatorio : null; const k = r.prompts.length - 1; if (s1911 && k >= 0 && parsedScript.segments.some((x) => typeof (x as { descricao?: unknown }).descricao === 'string') && !promptMostraOSujeito(r.prompts[k], s1911)) r.prompts[k] = comSujeitoNaCena(r.prompts[k], s1911.frase, k) }
     const kling4PorSecao = (a: { prompts: string[]; approvedStills: (string | null)[]; timing: typeof kling4Timing }): { prompts: string[]; approvedStills: (string | null)[]; timing: typeof kling4Timing; planos: number[][] | null } => { // KINEO-K4-PLANO-POR-SECAO-1111
       const q = kling4PlanoPorSecao && verbatim && parsedScript.segments.length > scenes.length // KINEO-K4-PLANO-POR-SECAO-1111 — só quando o roteiro tem mais seções que cenas
         ? planosPorSecao({ prompts: a.prompts, stills: a.approvedStills, falas: a.timing.voiceovers, secoes: parsedScript.segments, objetoConcreto: kling4PlanoVariado }) // KINEO-K4-PLANO-POR-SECAO-1111 · KINEO-K4-PLANO-VARIADO-1111
@@ -7570,12 +7576,34 @@ async function manipularPost(req: NextRequest) {
       const r3 = kling4PlanoVariado ? { ...r2, prompts: planosComEscalaVariada(r2.prompts, r2.approvedStills).prompts } : r2 // KINEO-K4-PLANO-VARIADO-1111 — escala diferente de plano a plano (nunca dois closes seguidos); plano com imagem-chave fica como está
       // KINEO-K4-PLANO-FINAL-1111 [CEO 11/11, alavanca 1, atrás de KLING4_PLANO_FINAL] — o último plano em movimento: o momento acontece e se completa na tela,
       // sem oração que só descreve nem câmera parada, e não termina num close (salvo com imagem-chave)
+      garantirSujeitoNoUltimo1911(r3) // [ensaio A2 19/11] o sujeito no último plano (só A2, depois da revisão)
       if (!kling4PlanoFinal || !r3.prompts.length) return r3
       const ultimo = r3.prompts.length - 1
       const escalaAnterior = ultimo > 0 ? (escalaDoPlano(r3.prompts[ultimo - 1])?.escala ?? null) : null
       return { ...r3, prompts: r3.prompts.map((p, i) => i === ultimo ? planoFinalEmMovimento(p, { comImagemChave: Boolean(r3.approvedStills[ultimo]), escalaAnterior }) : p) }
     } // KINEO-K4-PLANO-POR-SECAO-1111
     const kling4EnvioDoFilme = () => kling4PorSecao({ prompts: kling4Prompts, approvedStills: kling4ApprovedStills, timing: kling4Timing }) // KINEO-K4-PLANO-POR-SECAO-1111 — a MESMA entrada para o juiz do plano e o claim
+    // [ensaio A2 19/11] as descrições por seção completas e que CABEM: seção nula (42bcd59f, caed3456) ou que não coube em frase inteira no seu plano (o plano caía
+    // na fala crua: "This shot shows only this moment: Comment.", 193e4465) é pedida de novo UMA vez, só ela (a que não coube, com o espaço do plano). Ainda
+    // faltando = null: o filme fica no caminho de hoje. Nunca lança.
+    const completarDescricoes1911 = async (d0: ReadonlyArray<string | null>, secoes: ReadonlyArray<{ voiceover: string; pexelsQuery: string }>, promptsDasCenas: readonly string[], falasDasCenas: readonly string[]): Promise<{ descricoes: string[] | null; pedidas: number[]; motivo: string | null }> => {
+      const pedidas: number[] = []
+      try {
+        const n = secoes.length, d = [...d0]
+        const pedir = async (alvo: number[], nota: string) => { const novas = descricoesPorSecao(await generateCinematicDescriptions(secoesParaODescritor(alvo.map((j) => secoes[j])), `${kling4DescritorForte1911 ? topicoDoDescritorA2(body.original_idea, prompt) : topicoComoDado(prompt)}${nota ? `\n\n${nota}` : ''}`, classicVisualPolicy, { numeros: alvo.map((j) => j + 1), total: n }, desenhoInfantil.ativo ? { name: desenhoInfantil.personagem.name, sheet: desenhoInfantil.personagem.sheet } : null, true, true, kling4DescritorForte1911 ? MODELO_DO_DESCRITOR_FORTE : undefined, (u) => { usosDoDescritorA2.push(u) }), alvo.length); alvo.forEach((j, k) => { if (novas[k]) d[j] = novas[k] }) }
+        const nulas = d.map((x, j) => (typeof x === 'string' && x.trim().length >= 12 ? -1 : j)).filter((j) => j >= 0)
+        if (nulas.length) { pedidas.push(...nulas); await pedir(nulas, '') }
+        const c1 = descricoesCompletas(d, n)
+        if (!c1) return { descricoes: null, pedidas, motivo: 'descricao_nula_depois_de_pedir_de_novo' }
+        const fora = secoesQueNaoCabem(promptsDasCenas, secoes.map((x, j) => ({ ...x, descricao: c1[j] })), falasDasCenas, kling4DescritorForte1911)
+        if (!fora.length) return { descricoes: c1, pedidas, motivo: null }
+        pedidas.push(...fora.map((f) => f.secao))
+        await pedir(fora.map((f) => f.secao), notaDoEspaco(fora.map((f) => ({ numero: f.secao + 1, espaco: f.espaco }))))
+        const c2 = descricoesCompletas(d, n)
+        if (!c2 || secoesQueNaoCabem(promptsDasCenas, secoes.map((x, j) => ({ ...x, descricao: c2[j] })), falasDasCenas, kling4DescritorForte1911).length) return { descricoes: null, pedidas, motivo: 'descricao_nao_cabe_depois_de_pedir_de_novo' }
+        return { descricoes: c2, pedidas, motivo: null }
+      } catch { return { descricoes: null, pedidas, motivo: 'erro' } }
+    }
     if (body.dry_run === true && isDryRunAccount(user.email)) {
       const classicReport = classicDryRunReport({
         scenes: scenes.map((s, i) => ({ voiceover: s.voiceover, prompt: classicScenePrompts[i] })),
@@ -7648,12 +7676,13 @@ async function manipularPost(req: NextRequest) {
           kling4Sujeito.r = rs
           parsedScript.segments.forEach((x, j) => { const d = secoes[j]?.descricao; if (typeof d === 'string') Object.assign(x, { descricao: d }); else delete (x as { descricao?: unknown }).descricao })
           const e = kling4PorSecao({ prompts: ps, approvedStills: stills, timing: timingDoEco })
-          return { planos: (buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input.multi_prompt as Array<{ prompt: string }>).map((m) => m.prompt), falas: e.timing.voiceovers, sujeito: rs ? { corrigido: rs.relato.corrigido, cena: rs.relato.cena ?? null } : null }
+          return { planos: (buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input.multi_prompt as Array<{ prompt: string }>).map((m) => m.prompt), falas: e.timing.voiceovers, sujeito: rs ? { corrigido: rs.relato.corrigido, cena: rs.relato.cena ?? null } : null, obrigatorio: rs?.obrigatorio ?? null }
         }
         const hoje = await montar(parsedScript.segments.map((x) => ({ voiceover: x.voiceover, pexelsQuery: x.pexelsQuery })))
         const t0 = Date.now(); const d0 = await descricoesDasSecoesK4; const esperaMs = Date.now() - t0
-        const d = descricoesCompletas(d0, parsedScript.segments.length) // [revisor 19/11, item 4] descrição incompleta = o filme fica no caminho de hoje (o ensaio mostra só o hoje)
-        if (!d) return { versao: 'a2_ensaio_1911_v1', motivo: 'descricoes_incompletas', descricoes: d0, hoje: { planos: hoje.planos }, ms: { espera_do_descritor: esperaMs }, custo: { descritor: custoDoUso(usosDoDescritorA2) } }
+        const completas1911 = await completarDescricoes1911(d0, parsedScript.segments, k4, falasCena) // [ensaio A2 19/11] nula ou sem espaço = pedida de novo uma vez
+        const d = completas1911.descricoes // [revisor 19/11, item 4] descrição incompleta = o filme fica no caminho de hoje (o ensaio mostra só o hoje)
+        if (!d) return { versao: 'a2_ensaio_1911_v2', motivo: completas1911.motivo ?? 'descricoes_incompletas', caminho: 'hoje', pedidas_de_novo: completas1911.pedidas.map((j) => j + 1), descricoes: d0, hoje: { planos: hoje.planos }, ms: { espera_do_descritor: esperaMs }, custo: { descritor: custoDoUso(usosDoDescritorA2) } }
         const secoes = parsedScript.segments.map((x, j) => ({ voiceover: x.voiceover, pexelsQuery: x.pexelsQuery, descricao: d[j] ?? null }))
         let atual = await montar(secoes)
         const novo = atual
@@ -7663,13 +7692,20 @@ async function manipularPost(req: NextRequest) {
           alvo.forEach((j, k) => { if (novas[k]) secoes[j] = { ...secoes[j], descricao: novas[k] } })
           atual = await montar(secoes)
         }
-        const [vHoje, r] = await Promise.all([julgar(hoje.planos, hoje.falas), revisarPlanosA2({ planos: () => atual.planos, falas: () => atual.falas, nSecoes: secoes.length, rejulgar: true, julgar, nomes: (p) => planosComNomeProprio(p), reescrever })])
-        const juizes = [vHoje, r.veredito, r.vereditoFinal] as Array<JuizPlanoVeredito | null>
+        const [vHoje, r] = await Promise.all([julgar(hoje.planos, hoje.falas), revisarPlanosA2({ planos: () => atual.planos, falas: () => atual.falas, nSecoes: secoes.length, rejulgar: true, julgar, nomes: (p) => planosComNomeProprio(p), reescrever, sujeito: (pl) => (atual.obrigatorio ? { frase: atual.obrigatorio.frase, noUltimo: promptMostraOSujeito(pl[pl.length - 1] ?? '', atual.obrigatorio) } : null), nomesDeNovo: true })])
+        // [ensaio A2 19/11] nome próprio que persiste depois da reescrita = o filme volta ao caminho de hoje; senão o que vai à fal: o sujeito obrigatório no último plano
+        const caiNoHoje1911 = (r.nomes_depois ?? []).length > 0
+        ultimoComSujeito1911.ligado = !caiNoHoje1911
+        const vaiAFal = caiNoHoje1911 ? hoje : await montar(secoes)
+        ultimoComSujeito1911.ligado = false
+        const injetado1911 = !caiNoHoje1911 && vaiAFal.planos[vaiAFal.planos.length - 1] !== atual.planos[atual.planos.length - 1]
+        const vInjetado = injetado1911 ? await julgar(vaiAFal.planos, vaiAFal.falas) : null
+        const juizes = [vHoje, r.veredito, r.vereditoFinal, vInjetado] as Array<JuizPlanoVeredito | null>
         const descritor = custoDoUso(usosDoDescritorA2)
         const juizUsd = juizes.reduce((n, v) => n + (typeof v?.usd === 'number' ? v.usd : 0), 0)
-        return { versao: 'a2_ensaio_1911_v1', pedido: typeof body.original_idea === 'string' ? body.original_idea.slice(0, 600) : null, falas: falasCena,
+        return { versao: 'a2_ensaio_1911_v2', caminho: caiNoHoje1911 ? 'hoje' : 'a2', pedidas_de_novo: completas1911.pedidas.map((j) => j + 1), ultimo_sem_sujeito: r.ultimo_sem_sujeito ?? false, nomes_depois: r.nomes_depois ?? [], sujeito_injetado_no_ultimo: injetado1911, pedido: typeof body.original_idea === 'string' ? body.original_idea.slice(0, 600) : null, falas: falasCena,
           hoje: { planos: hoje.planos, juiz: vHoje }, novo: { planos: novo.planos, juiz: r.veredito }, nomes_proprios: r.nomes.map((p) => p + 1), reescritas: r.reescritas,
-          final: { planos: atual.planos, juiz: r.vereditoFinal }, descricoes: secoes.map((x) => x.descricao),
+          final: { planos: vaiAFal.planos, juiz: vInjetado ?? (caiNoHoje1911 ? vHoje : r.vereditoFinal) }, depois_da_reescrita: { planos: atual.planos }, descricoes: secoes.map((x) => x.descricao),
           montagem: { de: 'kling4PorSecao do envio + sujeito do submit', sujeito: { hoje: hoje.sujeito, novo: novo.sujeito, final: atual.sujeito }, sem: ['imagens-chave (o dry_run não gera stills)', 'encaixe da fala'] },
           ms: { espera_do_descritor: esperaMs, descritor: usosDoDescritorA2.map((u) => u.ms), ...r.ms },
           custo: { descritor, juiz_usd: Math.round(juizUsd * 1e6) / 1e6, total_usd: Math.round((descritor.usd + juizUsd) * 1e6) / 1e6, nome_proprio: 'gpt-4o-mini sem usage devolvido (estimado < US$ 0,0003 por chamada)', sujeito_do_eco: 'gpt-4o-mini, uma leitura por montagem, sem usage devolvido' } }
@@ -7677,7 +7713,8 @@ async function manipularPost(req: NextRequest) {
       const refunded = await releaseBirthClaim('dry_run_no_charge')
       return NextResponse.json({
         dry_run: true,
-        ...(a2Ensaio1911 ? { a2_ensaio: a2Ensaio1911 } : {}), // KINEO-DESCRITOR-FORTE-1911 (A2) — o ensaio de texto
+        ...(a2Ensaio1911 ? { a2_ensaio: a2Ensaio1911 } : {}),
+        ...(!a2Ensaio1911 && k4GratisEnsaio && verbatim && planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isDryRunAccount(user.email)) ? { a2_ensaio: { versao: 'a2_ensaio_1911_v2', caminho: 'hoje', motivo: parsedScript.segments.length < 2 ? 'sem_secoes' : parsedScript.segments.length < scenes.length ? 'secoes_menos_que_cenas' : parsedScript.segments.length > 5 ? 'secoes_demais' : 'fora_do_kling4_gratis', secoes: parsedScript.segments.length, cenas: scenes.length } } : {}), // [ensaio A2 19/11] o A2 precisa de uma seção por plano: sem isso, o caminho de hoje, dito na resposta // KINEO-DESCRITOR-FORTE-1911 (A2) — o ensaio de texto
         family: 'classic',
         ...(k4EnsaioRelato ? { k4_gratis_ensaio: k4EnsaioRelato } : {}), // KINEO-K4-GRATIS-20S-1711
         prompt_do_motor: { etapas: motor1411.etapas, cenas: motor1411.prompts.map((p, i) => ({ cena: i + 1, still_e_clipe: p, ...(motor1411.kling4 ? { kling4: motor1411.kling4[i] } : {}) })) }, // KINEO-PROMPT-DO-MOTOR-1411
@@ -8231,7 +8268,7 @@ async function manipularPost(req: NextRequest) {
       if (r.relato.corrigido) { for (let i = 0; i < kling4Prompts.length; i++) kling4Prompts[i] = r.prompts[i]; for (let i = 0; i < kling4ApprovedStills.length; i++) kling4ApprovedStills[i] = r.stills[i] ?? null; console.log(`[cinematic] KINEO-K4-SUJEITO: "${r.relato.sujeito}" (pedido: ${r.relato.fonte_do_pedido}) entrou na cena ${r.relato.cena}${r.relato.keyframe_removido ? ' (imagem-chave do meio retirada)' : ''}`) }
       else if (r.relato.motivo_sem_sujeito && r.relato.fonte_do_pedido) console.log(`[cinematic] KINEO-K4-SUJEITO: nada injetado (${r.relato.motivo_sem_sujeito})`)
     }
-    if (descricoesDasSecoesK4) { const d = descricoesCompletas(await descricoesDasSecoesK4, parsedScript.segments.length); if (d) parsedScript.segments.forEach((s, j) => { Object.assign(s, { descricao: d[j] }) }) } // KINEO-PLANO-DA-FALA-1911 (A1) — já correu em paralelo com as cenas; a descrição viaja na seção (promptDaSecao a usa e o molde da pista não roda)
+    if (descricoesDasSecoesK4) { const c1911 = await completarDescricoes1911(await descricoesDasSecoesK4, parsedScript.segments, kling4Prompts, scenes.map((s) => s.voiceover ?? '')); const d = c1911.descricoes; if (d) parsedScript.segments.forEach((s, j) => { Object.assign(s, { descricao: d[j] }) }) } // [ensaio A2 19/11] nula ou sem espaço = pedida de novo uma vez; ainda falta = caminho de hoje // KINEO-PLANO-DA-FALA-1911 (A1) — já correu em paralelo com as cenas; a descrição viaja na seção (promptDaSecao a usa e o molde da pista não roda)
     const kling4PromptsDasCenas1911 = [...kling4Prompts] // KINEO-DESCRITOR-FORTE-1911 (A2) — os prompts ORIGINAIS das cenas (a reescrita parte sempre deles)
     if (kling4DescritorForte1911 && descricoesDasSecoesK4) promptsDeCenaInteira(kling4PromptsDasCenas1911, parsedScript.segments, scenes.map((s) => s.voiceover ?? '')).forEach((p, i) => { kling4Prompts[i] = p }) // KINEO-DESCRITOR-FORTE-1911 (A2): a cena de uma seção só nasce da descrição da sua seção
     // KINEO-DESCRITOR-FORTE-1911 (A2) — a revisão antes do envio, num lugar só (o envio real e o ensaio do dry_run): juiz do plano + nome próprio, reescrita só das
@@ -8242,14 +8279,18 @@ async function manipularPost(req: NextRequest) {
       alvo.forEach((j, k) => { if (novas[k]) Object.assign(parsedScript.segments[j], { descricao: novas[k] }) })
       promptsDeCenaInteira(kling4PromptsDasCenas1911, parsedScript.segments, scenes.map((s) => s.voiceover ?? '')).forEach((p, i) => { kling4Prompts[i] = p })
     }
-    const revisarA2DoFilme = (rejulgar: boolean) => revisarPlanosA2({ planos: () => { const e = kling4EnvioDoFilme(); return (buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input.multi_prompt as Array<{ prompt: string }>).map((m) => m.prompt) }, falas: () => kling4EnvioDoFilme().timing.voiceovers, nSecoes: parsedScript.segments.length, rejulgar, julgar: julgarA2, nomes: (planos) => planosComNomeProprio(planos), reescrever: reescreverA2 })
+    const revisarA2DoFilme = (rejulgar: boolean, sujeitoA2: { frase: string; chaves: RegExp[]; tokens: string[] } | null = null) => revisarPlanosA2({ planos: () => { const e = kling4EnvioDoFilme(); return (buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input.multi_prompt as Array<{ prompt: string }>).map((m) => m.prompt) }, falas: () => kling4EnvioDoFilme().timing.voiceovers, nSecoes: parsedScript.segments.length, rejulgar, julgar: julgarA2, nomes: (planos) => planosComNomeProprio(planos), reescrever: reescreverA2, sujeito: (pl) => (sujeitoA2 ? { frase: sujeitoA2.frase, noUltimo: promptMostraOSujeito(pl[pl.length - 1] ?? '', sujeitoA2 as Parameters<typeof promptMostraOSujeito>[1]) } : null), nomesDeNovo: true })
     // KINEO-DESCRITOR-FORTE-1911 (A2) — o juiz do plano lê os planos que IRIAM à fal, antes da reserva e do POST pago; plano reprovado por sujeito ausente,
     // criatura no lugar do protagonista ou final que não entrega tem SÓ a sua seção reescrita, uma vez, pelo modelo forte com a nota do juiz. Juiz em prazo,
     // erro ou sem veredito = segue como estava. O evento guarda o veredito, as seções reescritas e o tempo (nunca texto do cliente).
     if (kling4DescritorForte1911 && descricoesDasSecoesK4 && parsedScript.segments.every((s) => typeof (s as { descricao?: unknown }).descricao === 'string')) { // [revisor 19/11, item 4] só com a descrição de todas as seções
       try {
-        const rA2 = await revisarA2DoFilme(false)
-        void writeServerEvent({ name: A2_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, juiz: (rA2.veredito as JuizPlanoVeredito | null)?.status ?? null, reprovado: (rA2.veredito as JuizPlanoVeredito | null)?.reprovado ?? null, falhas: (rA2.veredito as JuizPlanoVeredito | null)?.falhas ?? [], nomes: rA2.nomes.map((p) => p + 1), reescritas: rA2.reescritas, ms: rA2.ms } }).catch(() => false)
+        const leituraDoA21911 = leituraPronta1311() // [ensaio A2 19/11] o sujeito do pedido (a leitura que o submit reaproveita) para exigir o último plano
+        const sujeitoA21911 = kling4PedidoSujeito ? ((await sujeitoNoKling4({ pedido: kling4PedidoSujeito, falas: kling4Timing.voiceovers, prompts: kling4Prompts, stills: kling4ApprovedStills, pessoaPermitida: !romanceAdulto.ativo }, leituraDoA21911)).obrigatorio ?? null) : null
+        const rA2 = await revisarA2DoFilme(false, sujeitoA21911)
+        if ((rA2.nomes_depois ?? []).length) { parsedScript.segments.forEach((x) => { delete (x as { descricao?: unknown }).descricao }); kling4PromptsDasCenas1911.forEach((p, i) => { kling4Prompts[i] = p }) } // [ensaio A2 19/11] o nome persistiu depois da reescrita: o filme volta ao caminho de hoje
+        else ultimoComSujeito1911.ligado = true // [ensaio A2 19/11] daqui ao envio, o sujeito do pedido é obrigatório no último plano
+        void writeServerEvent({ name: A2_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, juiz: (rA2.veredito as JuizPlanoVeredito | null)?.status ?? null, reprovado: (rA2.veredito as JuizPlanoVeredito | null)?.reprovado ?? null, falhas: (rA2.veredito as JuizPlanoVeredito | null)?.falhas ?? [], nomes: rA2.nomes.map((p) => p + 1), reescritas: rA2.reescritas, ms: rA2.ms, ultimo_sem_sujeito: rA2.ultimo_sem_sujeito ?? false, nomes_depois: rA2.nomes_depois ?? [] } }).catch(() => false)
       } catch (err) { console.warn('[cinematic] KINEO-DESCRITOR-FORTE-1911 juiz/reescrita falhou, os planos seguem:', err instanceof Error ? err.message : String(err)) }
     }
     let kling4Trial: Kling4TrialResult | null = null
