@@ -42,7 +42,7 @@ async function prova(over = {}) {
   try { Q = load('@/' + QP); L = load('@/' + LIB) } catch (e) { return [`libs não carregam: ${e.message}`] }
 
   // ── A · a lib, executada ──
-  no(L.KLING4_PLANO_DA_FALA_1911 !== 'off', 'A0 o interruptor nasce off')
+  no(L.KLING4_PLANO_DA_FALA_1911 !== 'internal', 'A0 estado de publicação: internal (só a casa). public = só com revisor independente + prova paga + sim do dono')
   no(L.planoDaFalaLigado('off', true) || L.planoDaFalaLigado('internal', false) || !L.planoDaFalaLigado('internal', true) || !L.planoDaFalaLigado('public', false), 'A1 off | internal | public')
   no(!/LAST item shows how the story ends, with the central subject of the Topic clearly visible/.test(L.REGRA_DO_PLANO_DA_FALA) || !/never only the hint/.test(L.REGRA_DO_PLANO_DA_FALA), 'A2 a regra por seção: o último plano é o desfecho COM o sujeito; a pista nunca sozinha')
   no(JSON.stringify(L.descricoesPorSecao(['A griffin soars over Mount Meru at dawn', ''], 2)) !== JSON.stringify(['A griffin soars over Mount Meru at dawn', null]), 'A3 descrição vazia = null')
@@ -120,7 +120,7 @@ const MUT = [
   ['a seção não leva a descrição', QP, (s) => s.replace('const secao = a.secoes[j].descricao !== undefined ?', 'const secao = false ?')],
   ['sem a ação do descritor da cena', QP, (s) => s.replace('acaoDaSecao(secao.descricao, fala, acaoDaCena(p), 10_000)', "acaoDaSecao(secao.descricao, fala, '', 10_000)").replace('acaoDaSecao(secao.descricao, fala, acaoDaCena(p), Math.max(40', "acaoDaSecao(secao.descricao, fala, '', Math.max(40")],
   ['teto corta a fala', QP, (s) => s.replace('const sobra = max - cp1911(momento) - 2', 'const sobra = max - 2')],
-  ['interruptor ligado', LIB, (s) => s.replace("KLING4_PLANO_DA_FALA_1911: ModoPlanoDaFala = 'off'", "KLING4_PLANO_DA_FALA_1911: ModoPlanoDaFala = 'public'")],
+  ['interruptor público', LIB, (s) => s.replace("KLING4_PLANO_DA_FALA_1911: ModoPlanoDaFala = 'internal'", "KLING4_PLANO_DA_FALA_1911: ModoPlanoDaFala = 'public'")],
   ['contagem errada desloca', LIB, (s) => s.replace('if (!Array.isArray(saida) || saida.length !== nSecoes)', 'if (!Array.isArray(saida))')],
   ['regra sem o desfecho', LIB, (s) => s.replace('The LAST item shows how the story ends, with the central subject of the Topic clearly visible in that final moment', 'The LAST item closes the film')],
   ['rota: descritor sem a regra por seção', ROTA, (s) => s.replace('sheet: desenhoInfantil.personagem.sheet } : null, true, true, kling4DescritorForte1911 ? MODELO_DO_DESCRITOR_FORTE : undefined, (u) => { usosDoDescritorA2.push(u) })\n', 'sheet: desenhoInfantil.personagem.sheet } : null, true, false, kling4DescritorForte1911 ? MODELO_DO_DESCRITOR_FORTE : undefined, (u) => { usosDoDescritorA2.push(u) })\n')],

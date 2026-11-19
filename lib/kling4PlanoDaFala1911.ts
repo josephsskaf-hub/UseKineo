@@ -11,7 +11,7 @@
 // Não muda: as cenas (still, crítico, clipe da reserva H3 de 3 cenas), cena de uma seção só, o envio fora do Kling 4 grátis. 'off' = byte a byte.
 
 export type ModoPlanoDaFala = 'off' | 'internal' | 'public'
-export const KLING4_PLANO_DA_FALA_1911: ModoPlanoDaFala = 'off' // nasce desligado; ligar = decisão da CEO depois do revisor independente
+export const KLING4_PLANO_DA_FALA_1911: ModoPlanoDaFala = 'internal' // CEO 19/11: 'internal' = só contas da casa (o ensaio pelo dry_run); 'public' só com revisor independente + prova paga + sim do dono
 export const KLING4_PLANO_DA_FALA_VERSAO = 'plano_da_fala_1911_v1'
 
 export function planoDaFalaLigado(modo: ModoPlanoDaFala, contaDaCasa: boolean): boolean {
@@ -54,7 +54,7 @@ export function descricoesCompletas(d: ReadonlyArray<string | null> | null | und
 // As cenas (stills, crítico, reserva H3) não mudam. 'off' = nada daqui roda.
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import { promptDaSecao, secoesDasCenas, type SecaoDoRoteiro } from '@/lib/kling4QuatroPlanos'
-export const KLING4_DESCRITOR_FORTE_1911: ModoPlanoDaFala = 'off' // nasce desligado: custo por filme e latência medidos no ensaio antes de ligar
+export const KLING4_DESCRITOR_FORTE_1911: ModoPlanoDaFala = 'internal' // CEO 19/11: 'internal' = só contas da casa (o ensaio pelo dry_run); 'public' só com revisor independente + prova paga + sim do dono
 export const MODELO_DO_DESCRITOR_FORTE: string = AI_TEXT_MODELS.planner
 export const A2_TETO_DO_JUIZ_MS = 12_000
 export const A2_EVENTO = 'kling4_descritor_forte'

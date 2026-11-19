@@ -43,7 +43,14 @@ async function prova(over = {}) {
   let L, Q
   try { L = load('@/' + LIB); Q = load('@/' + QP) } catch (e) { return [`libs não carregam: ${e.message}`] }
   // ── A · a lib ──
-  no(L.KLING4_DESCRITOR_FORTE_1911 !== 'off', 'A0 o A2 nasce off (custo e latência medidos antes de ligar)')
+  no(L.KLING4_DESCRITOR_FORTE_1911 !== 'internal' || L.KLING4_PLANO_DA_FALA_1911 !== 'internal', 'A0 estado de publicação: os dois em internal (só a casa). public = só com revisor independente + prova paga + sim do dono')
+  // [CEO 19/11] com os dois em 'internal', o cliente de fora recebe EXATAMENTE o caminho de hoje: as duas portas fecham para e-mail que não é da casa e
+  // toda peça nova da rota está atrás delas (a descrição por seção, o eco do dry_run e a revisão do A2)
+  no(L.planoDaFalaLigado(L.KLING4_PLANO_DA_FALA_1911, false) || L.planoDaFalaLigado(L.KLING4_DESCRITOR_FORTE_1911, false), 'F1 cliente de fora: as duas portas fecham (o caminho de hoje)')
+  no(!L.planoDaFalaLigado(L.KLING4_PLANO_DA_FALA_1911, true) || !L.planoDaFalaLigado(L.KLING4_DESCRITOR_FORTE_1911, true), 'F2 conta da casa: as duas abrem (o ensaio)')
+  { const rr = over[ROTA] ?? read(ROTA)
+    no(!rr.includes('const kling4DescritorForte1911 = kling4TrialCandidate && verbatim && planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isInternalEmail(user.email))') || !rr.includes('(kling4TrialCandidate && verbatim && planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, isInternalEmail(user.email))'), 'F3 as portas da rota leem o e-mail da conta')
+    no(!rr.includes('const descricoesDasSecoesK4: Promise<(string | null)[]> | null = kling4PlanoDaFala1911\n      ?') || !rr.includes("const a2Ensaio1911 = kling4DescritorForte1911 && descricoesDasSecoesK4 && motor1411.kling4 ?") || !rr.includes('if (kling4DescritorForte1911 && descricoesDasSecoesK4) promptsDeCenaInteira(') || !rr.includes('if (descricoesDasSecoesK4) { const d = descricoesCompletas('), 'F4 toda peça nova está atrás das portas (porta fechada = nenhuma chamada, nenhuma mudança)') }
   no(L.MODELO_DO_DESCRITOR_FORTE !== 'gpt-4o', `A1 o modelo forte é AI_TEXT_MODELS.planner (${L.MODELO_DO_DESCRITOR_FORTE})`)
   const v = (o) => ({ status: 'JUDGED', falhas: ['d_sujeito'], cenas_reescreveria: [2], d_sujeito: 'a griffin', ...o })
   no(JSON.stringify(L.secoesAReescrever(v(), 4, 4)) !== '[1]', 'A2 plano 2 reprovado = seção 2 (índice 1)')
@@ -130,7 +137,10 @@ async function prova(over = {}) {
 }
 
 const MUT = [
-  ['A2 ligado', LIB, (s) => s.replace("KLING4_DESCRITOR_FORTE_1911: ModoPlanoDaFala = 'off'", "KLING4_DESCRITOR_FORTE_1911: ModoPlanoDaFala = 'public'")],
+  ['A2 público', LIB, (s) => s.replace("KLING4_DESCRITOR_FORTE_1911: ModoPlanoDaFala = 'internal'", "KLING4_DESCRITOR_FORTE_1911: ModoPlanoDaFala = 'public'")],
+  ['A1 público', LIB, (s) => s.replace("KLING4_PLANO_DA_FALA_1911: ModoPlanoDaFala = 'internal'", "KLING4_PLANO_DA_FALA_1911: ModoPlanoDaFala = 'public'")],
+  ['rota: A2 para todos', ROTA, (s) => s.replace('planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isInternalEmail(user.email))', 'planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, true)')],
+  ['rota: A1 para todos', ROTA, (s) => s.replace('planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, isInternalEmail(user.email))', 'planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, true)')],
   ['juiz sem veredito reescreve', LIB, (s) => s.replace("if (!v || v.status !== 'JUDGED' || nPlanos !== nSecoes || nSecoes < 1) return []", 'if (!v || nSecoes < 1) return []')],
   ['qualquer falha reescreve', LIB, (s) => s.replace('const falhas = (v.falhas ?? []).filter((f) => FALHAS_QUE_REESCREVEM.includes(f))\n  if (!falhas.length) return []', 'const falhas = [...(v.falhas ?? [])]\n  if (!falhas.length) return []')],
   ['final fraco não reescreve o fim', LIB, (s) => s.replace("if (falhas.includes('e_final')) alvo.add(nSecoes - 1)", '')],
