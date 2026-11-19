@@ -143,6 +143,9 @@ export const CLIPES_NOVOS: readonly ClipeNovo[] = [
   // pessoa real; docs/invasor-de-campo-1511/TESTE-PAGO-1511.mp4), trecho 12,17–15,4 s (ele cai, senta e gesticula), recortado 540×960 a partir do canto de
   // cima à esquerda (x 0, y 160 do quadro 720×1280): conferido a 8 e a 24 quadros/s, nenhum jogador, camisa listrada, número, patrocínio ou escudo na janela.
   // Nada do vídeo de transmissão original nem dos arquivos privados do molde vai à vitrine. Sem motor no cartão; o tipo 'Recreate template' só no aria-label.
+  // KINEO-PITCH-AMIGO-1811 [dono 18/11 ~22:27, vendo 5 opções: "eu quero aquela foto do meu amigo. Tá melhor do que essa. Não quero dessa pessoa que eu não conheço" e depois "sim do meu amigo, pode colocar"] —
+  // a prévia e o pôster passaram a ser o vídeo de 14/11 feito com a foto do amigo do dono (PESSOA REAL, com o sim dela dado ao dono): drible 5,9–8,1 s + rosto 16,75–18,35 s,
+  // o MESMO molde, montado à mão pela CEO (não é o clipe a3b76cb7; o clipId segue só como a âncora do cartão). O texto acima descreve a prévia de 16/11 (rosto inventado). Se o amigo retirar o sim: voltar ao arquivo de 16/11.
   { id: 'invasor-de-campo', title: 'Pitch invader', engine: null, produto: 'clip', selo: 'Recreate template', clipId: 'clip:a3b76cb7', focus: '50% 33%', pessoa: true, prompt: null, desde: '2026-11-15' }, // KINEO-HOME-PITCH-1611
 ]
 
