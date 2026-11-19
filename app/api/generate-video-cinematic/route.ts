@@ -44,7 +44,7 @@ import { ensureKling4PromoBudgetToday } from '@/lib/kling4PromoCarry'
 import { creditCostFor, creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { comPeloFacialDoTexto } from '@/lib/cinematic/peloFacialDoTexto' // KINEO-PELO-FACIAL-DO-TEXTO-1211
-import { KLING4_PLANO_DA_FALA_1911, planoDaFalaLigado, REGRA_DO_PLANO_DA_FALA, secoesParaODescritor, descricoesPorSecao } from '@/lib/kling4PlanoDaFala1911' // KINEO-PLANO-DA-FALA-1911 (A1)
+import { KLING4_PLANO_DA_FALA_1911, planoDaFalaLigado, REGRA_DO_PLANO_DA_FALA, secoesParaODescritor, descricoesPorSecao, topicoComoDado, descricoesCompletas } from '@/lib/kling4PlanoDaFala1911' // KINEO-PLANO-DA-FALA-1911 (A1)
 import { KLING4_PLANO_POR_SECAO, KLING4_PLANO_POR_SECAO_VERSAO, planoPorSecaoLigado, planosPorSecao } from '@/lib/kling4QuatroPlanos' // KINEO-K4-PLANO-POR-SECAO-1111
 import { comSujeitoNasMetades } from '@/lib/kling4QuatroPlanos' // KINEO-SUJEITO-APARENCIA-1311 (b)
 import { KLING4_PLANO_VARIADO, KLING4_PLANO_VARIADO_VERSAO, planoVariadoLigado, planosComEscalaVariada } from '@/lib/kling4PlanoVariado' // KINEO-K4-PLANO-VARIADO-1111
@@ -4402,7 +4402,7 @@ async function manipularPost(req: NextRequest) {
     // chamada do mesmo descritor que corre EM PARALELO com a das cenas (lida só na montagem dos planos). As cenas e a reserva não mudam. 'off' = nada.
     const kling4PlanoDaFala1911 = kling4TrialCandidate && verbatim && planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, isInternalEmail(user.email)) && parsedScript.segments.length > scenes.length
     const descricoesDasSecoesK4: Promise<(string | null)[]> | null = kling4PlanoDaFala1911
-      ? generateCinematicDescriptions(secoesParaODescritor(parsedScript.segments), prompt, classicVisualPolicy, undefined, desenhoInfantil.ativo ? { name: desenhoInfantil.personagem.name, sheet: desenhoInfantil.personagem.sheet } : null, true, true)
+      ? generateCinematicDescriptions(secoesParaODescritor(parsedScript.segments), topicoComoDado(prompt), classicVisualPolicy, undefined, desenhoInfantil.ativo ? { name: desenhoInfantil.personagem.name, sheet: desenhoInfantil.personagem.sheet } : null, true, true)
         .then((d) => descricoesPorSecao(d, parsedScript.segments.length)).catch(() => descricoesPorSecao(null, parsedScript.segments.length))
       : null
     if (verbatim && !planoDeBrollAplicado && !hollywoodPath) { // KINEO-TRILHA-15S — era: planScenes.length === 0 (com plano fora de posição, o descritor era pulado)
@@ -8143,7 +8143,7 @@ async function manipularPost(req: NextRequest) {
     // KLING4_PLANO_POR_SECAO ('internal' = só a casa). Lido na hora do envio (depois do sujeito e da fala encaixada): o que vai à fal, o
     // juiz do plano e o claim leem a MESMA entrada. Sem seções provadas pelo texto → null → os 3 planos de sempre, byte a byte.
     const kling4PlanoPorSecao = planoPorSecaoLigado(KLING4_PLANO_POR_SECAO, isInternalEmail(user.email)) // KINEO-K4-PLANO-POR-SECAO-1111
-    if (descricoesDasSecoesK4) { const d = await descricoesDasSecoesK4; parsedScript.segments.forEach((s, j) => { Object.assign(s, { descricao: d[j] ?? null }) }) } // KINEO-PLANO-DA-FALA-1911 (A1) — já correu em paralelo com as cenas; a descrição viaja na seção (promptDaSecao a usa e o molde da pista não roda)
+    if (descricoesDasSecoesK4) { const d = descricoesCompletas(await descricoesDasSecoesK4, parsedScript.segments.length); if (d) parsedScript.segments.forEach((s, j) => { Object.assign(s, { descricao: d[j] }) }) } // KINEO-PLANO-DA-FALA-1911 (A1) — já correu em paralelo com as cenas; a descrição viaja na seção (promptDaSecao a usa e o molde da pista não roda)
     const kling4PlanoFinal = planoFinalLigado(KLING4_PLANO_FINAL, isInternalEmail(user.email)) // KINEO-K4-PLANO-FINAL-1111 — 'internal' até a nota da prova paga
     const kling4PlanoVariado = planoVariadoLigado(KLING4_PLANO_VARIADO, isInternalEmail(user.email)) // KINEO-K4-PLANO-VARIADO-1111 [CEO 11/11, alavanca 2] — 'internal' até a nota da prova paga
     const kling4PorSecao = (a: { prompts: string[]; approvedStills: (string | null)[]; timing: typeof kling4Timing }): { prompts: string[]; approvedStills: (string | null)[]; timing: typeof kling4Timing; planos: number[][] | null } => { // KINEO-K4-PLANO-POR-SECAO-1111

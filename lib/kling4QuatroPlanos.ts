@@ -108,24 +108,43 @@ export function acaoDaCena(promptDaCena: string): string {
   t = t.replace(/^(?:Film visual medium: [^.]+\.|[^.]{2,60}\.)\s*/u, '')
   for (const p of pecas) t = t.replace(p, '')
   for (const c of cortes) t = t.replace(c, '')
-  const frase = norm(t).split(/(?<=[.!?])\s+/u).find((f) => f.replace(/[^\p{L}]/gu, '').length >= 12) ?? ''
+  const frase = norm(t).split(FIM_DE_FRASE_A1).find((f) => f.replace(/[^\p{L}]/gu, '').length >= 12) ?? ''
   return frase.replace(/[\s,.;:!?…]+$/u, '')
 }
+
+/** Fronteira de frase que não parte abreviação de uma letra maiúscula ("a powerful T. rex", revisor 19/11, 09f6d635). */
+const FIM_DE_FRASE_A1 = /(?<!(?:^|[\s(])\p{Lu}[.])(?<=[.!?])\s+/u
+const cp1911 = (s: string) => Array.from(s).length
+/** Corta `t` até `max` code points em fronteira de FRASE; senão de ORAÇÃO (", " ou "; "); senão null — nunca deixa frase aberta ("stand confidently on a"). */
+export function cortaInteiro(t: string, max: number): string | null {
+  const s = norm(t)
+  if (cp1911(s) <= max) return s
+  const c = Array.from(s).slice(0, Math.max(0, max)).join('')
+  let fim = -1
+  for (const m of c.matchAll(/[.!?](?=\s)/gu)) { const i = m.index ?? -1; if (i >= 20 && !/(?:^|[\s(])\p{Lu}$/u.test(c.slice(0, i))) fim = i }
+  if (fim >= 20) return c.slice(0, fim + 1)
+  const v = Math.max(c.lastIndexOf(', '), c.lastIndexOf('; '))
+  return v >= 20 ? c.slice(0, v) : null
+}
+const fecha = (t: string) => `${norm(t).replace(/[\s,;:.!?…—-]+$/u, '')}.` // um ponto final só (nunca ",." no fim)
 
 /** A ação da metade: a descrição da seção; sem ela, a ação do descritor da cena + a fala da seção; sem as duas, a fala. A pista nunca é a ação
  *  sozinha. `max` (code points) protege o teto do plano: corta a ação da cena em fronteira de palavra, nunca a fala nem a proteção do fim. */
 export function acaoDaSecao(descricao: string | null | undefined, fala: string, acaoCena = '', max = 320): string {
+  // KINEO-PLANO-DA-FALA-1911 [revisor 19/11, itens 1 e 2] — TETO na fala também: corta-se primeiro a AÇÃO (inteira ou em fronteira de frase/oração;
+  // sem fronteira, ela sai), depois a fala (frase/oração; em último caso a palavra). Nunca frase aberta na ação, nunca ",." no fim; a proteção do
+  // plano fica fora daqui (promptDaSecao a mantém).
   const d = norm(descricao).replace(/[\s.!?…]+$/u, '')
-  if (d.length >= 12) { const a = Array.from(d); return `${a.length <= max - 1 ? d : a.slice(0, Math.max(11, max - 1)).join('').replace(/\s+\S*$/u, '')}.` }
+  if (d.length >= 12) { const c = cortaInteiro(d, max - 1); if (c) return fecha(c) }
   const f = norm(fala).replace(/[\s.!?…]+$/u, '')
-  const momento = f ? `This shot shows only this moment: ${f}.` : ''
-  const c = norm(acaoCena)
+  const PREFIXO = 'This shot shows only this moment: '
+  const falaCabe = (n: number) => { if (!f) return ''; const c = cortaInteiro(f, n) ?? Array.from(f).slice(0, Math.max(0, n)).join('').replace(/\s+\S*$/u, ''); return c ? fecha(c) : '' }
+  const momento = f ? `${PREFIXO}${falaCabe(Math.max(0, max - cp1911(PREFIXO) - 1))}` : ''
+  const c = d.length >= 12 ? '' : norm(acaoCena) // descrição sem fronteira que caiba: nada de ação herdada no lugar
   if (!c) return momento
-  const sobra = max - Array.from(momento).length - 2
-  if (sobra < 30) return momento
-  const corte = Array.from(c).slice(0, sobra).join(''), virgula = corte.lastIndexOf(', ')
-  const cc = Array.from(c).length <= sobra ? c : virgula >= 20 ? corte.slice(0, virgula) : corte.replace(/[\s,;:]*\S*$/u, '') // corta na oração inteira, senão na palavra
-  return norm(`${cc}. ${momento}`)
+  const sobra = max - cp1911(momento) - 2
+  const cc = sobra >= 30 ? cortaInteiro(c, sobra) : null
+  return cc ? norm(`${fecha(cc)} ${momento}`) : momento
 }
 
 // KINEO-K4-PLANO-DA-SECAO-1111 [CEO 11/11, revisão do teste dos 4 planos] — o plano de uma cena fundida repetia a AÇÃO inteira da cena (o plano 2 do Pompeia
@@ -154,11 +173,15 @@ export function promptDaSecao(promptDaCena: string, secao: SecaoDoRoteiro, opcoe
   // ("This shot shows only this moment: This manifestation is God, not all of God." no 2120f018). Sem pista, fica a fala, como antes.
   // KINEO-PLANO-DA-FALA-1911 (A1) — com a descrição da seção (do pedido e da fala), ela é a ação; sem ela, a fala. O molde da pista não roda.
   if (secao.descricao !== undefined) { // o teto: o plano inteiro fica ≤ 430 code points (folga para a referência "Scene N: …" de até 63, a escala e a superfície antes dos 512)
-    const pecasA1 = [meio, luz, periodo, origem, quem, lugar] // KINEO-PLANO-DA-FALA-1911 — as mesmas peças da metade de sempre
-    const fimA1 = (epoca ? ` The scene is a ${epoca}.` : '') + cauda
-    const fixo = norm(pecasA1.join(' ') + fimA1)
-    const acaoA1 = acaoDaSecao(secao.descricao, fala, acaoDaCena(p), Math.max(60, PLANO_DA_FALA_TETO - Array.from(fixo).length - 1))
-    return norm([...pecasA1, acaoA1].join(' ') + fimA1)
+    // KINEO-PLANO-DA-FALA-1911 [revisor 19/11, item 1] — as mesmas peças da metade de sempre; se o plano passar do teto, saem primeiro as OPCIONAIS
+    // (luz, a frase longa da época, lugar, origem) e só depois a ação é cortada (em fronteira); meio, período, ficha e a proteção do fim ficam sempre.
+    const acaoCheia = acaoDaSecao(secao.descricao, fala, acaoDaCena(p), 10_000)
+    let opcionais = { luz, epocaFrase: epoca ? ` The scene is a ${epoca}.` : '', lugar, origem }
+    const montarA1 = (acaoA1: string) => norm([meio, opcionais.luz, periodo, opcionais.origem, quem, opcionais.lugar, acaoA1].join(' ') + opcionais.epocaFrase + cauda)
+    for (const k of ['luz', 'epocaFrase', 'lugar', 'origem'] as const) { if (cp1911(montarA1(acaoCheia)) <= PLANO_DA_FALA_TETO) break; opcionais = { ...opcionais, [k]: '' } }
+    if (cp1911(montarA1(acaoCheia)) <= PLANO_DA_FALA_TETO) return montarA1(acaoCheia)
+    const fixo = montarA1('')
+    return montarA1(acaoDaSecao(secao.descricao, fala, acaoDaCena(p), Math.max(40, PLANO_DA_FALA_TETO - cp1911(fixo) - 1)))
   }
   const acao = opcoes.objetoConcreto && norm(secao.pexelsQuery) ? `Main subject of this shot: ${pista(secao)}, shown in motion.` : `Shot focus: ${pista(secao)}. This shot shows only this moment: ${fala}.`
   return norm(`${meio} ${luz} ${periodo} ${origem} ${quem} ${lugar} ${acao}${epoca ? ` The scene is a ${epoca}.` : ''}${cauda}`)
