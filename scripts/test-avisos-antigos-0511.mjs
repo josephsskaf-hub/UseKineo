@@ -5,11 +5,10 @@ const P = fs.readFileSync('components/EnablePushBanner.tsx', 'utf8').replace(/\r
 let pass = 0, fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ', m) } else { fail++; console.log('  FALHA', m) } }
 const pushOff = (t) => t.includes('const CARTAO_DO_PUSH_LIGADO = false as boolean') && t.includes('if (!CARTAO_DO_PUSH_LIGADO) return null')
-const instOff = (t) => t.includes('const CARTAO_DE_INSTALAR_LIGADO = false as boolean') && t.includes("if (mode === 'hidden' || !CARTAO_DE_INSTALAR_LIGADO) return null")
+ok(!I.includes('Get the Kineo app') && !I.includes('Full screen, faster'), 'o anúncio antigo não volta')
+ok(I.includes('Add Kineo to your home screen') && !L.includes('<InstallAppBanner />'), 'convite novo sem duplicata no dashboard')
 ok(pushOff(P), 'o cartão de push não aparece')
 ok(!pushOff(P.replace('CARTAO_DO_PUSH_LIGADO = false', 'CARTAO_DO_PUSH_LIGADO = true')), 'mutante: ligar fica vermelho')
-ok(instOff(I), 'o convite de instalar não aparece')
-ok(!instOff(I.replace('CARTAO_DE_INSTALAR_LIGADO = false', 'CARTAO_DE_INSTALAR_LIGADO = true')), 'mutante: ligar fica vermelho')
 ok(L.includes('<EnablePushBanner />'), 'o componente segue montado: quem já autorizou continua inscrito')
 ok(P.indexOf('useEffect(() =>') > 0 && P.indexOf('useEffect(() =>') < P.indexOf('if (!CARTAO_DO_PUSH_LIGADO) return null'), 'o trabalho silencioso roda antes de sair')
 console.log('\n' + pass + ' ok, ' + fail + ' falha(s)')

@@ -1,0 +1,9 @@
+.install-kineo { background: var(--card); color: var(--text); border-bottom: 1px solid var(--border); }
+.install-kineo-inner { display:grid; grid-template-columns:32px 1fr 44px; align-items:center; gap:0 10px; max-width:600px; padding:3px 12px; margin:auto; }
+.install-kineo img { border-radius:8px; }
+.install-kineo button { min-height:44px; border:0; background:transparent; font:inherit; cursor:pointer; }
+.install-kineo-action { color:var(--text); font-weight:600!important; text-align:start; font-size:14px!important; }
+.install-kineo-close { color:var(--muted); font-size:22px!important; }
+.install-kineo button:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; border-radius:6px; }
+.install-kineo p { grid-column:2 / -1; margin:0 0 10px; color:var(--text2); font-size:14px; line-height:1.4; }
+@media (min-width:768px), (display-mode:standalone) { .install-kineo { display:none; } }

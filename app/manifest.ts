@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next'
+import { installColors } from '@/lib/ui/installAppearance'
 
 type KineoManifest = Omit<MetadataRoute.Manifest, 'share_target'> & {
   share_target: {
@@ -20,12 +21,12 @@ export default function manifest(): KineoManifest {
     description:
       'Turn any topic into a finished YouTube Short, usually in 3–7 minutes. AI writes the script, finds footage, adds voiceover & captions.',
     id: '/',
-    start_url: '/studio', // KINEO-SEM-PORTEIRO-2026-09-03 c — o app instalado abria no porteiro
+    start_url: '/app-launch',
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',
-    background_color: '#0d0d14',
-    theme_color: '#0d0d14',
+    background_color: installColors.dark,
+    theme_color: installColors.dark,
     categories: ['productivity', 'video'],
     // GROWTH 03/09/2026 — an installed Kineo becomes an Android/Chromium
     // share-sheet destination. POST keeps the shared text out of URLs,
@@ -38,10 +39,10 @@ export default function manifest(): KineoManifest {
       params: { title: 'title', text: 'text', url: 'url' },
     },
     icons: [
-      { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { src: '/pwa/kineo-192.png', sizes: '192x192', type: 'image/png' },
+      { src: '/pwa/kineo-512.png', sizes: '512x512', type: 'image/png' },
       {
-        src: '/icon-maskable-512.png',
+        src: '/pwa/kineo-maskable.png',
         sizes: '512x512',
         type: 'image/png',
         purpose: 'maskable',

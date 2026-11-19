@@ -5,7 +5,6 @@ import { readAnnualWelcomeBar } from '@/lib/billing/annualWelcomeBarServer' // K
 // Push #423 — mobile users see a one-tap "Install app" banner (Android)
 // or the Add-to-Home-Screen hint (iOS). Dashboard only, so the public
 // landing/ads funnel stays distraction-free.
-import InstallAppBanner from '@/components/InstallAppBanner'
 import WorkspaceSecondaryNotice from '@/components/WorkspaceSecondaryNotice'
 // KINEO-CHATGPT-WELCOME-2026-08-22 — faixa para quem chegou por link do
 // ChatGPT (150 pessoas, 0 conversoes; caem direto no /generate e pulam toda
@@ -220,7 +219,6 @@ export default async function DashboardLayout({
       </Suspense>
       {children}
       <WorkspaceSecondaryNotice>
-        <InstallAppBanner />
         {user && <ReferralPromoBanner />}
       </WorkspaceSecondaryNotice>
       <EnablePushBanner />

@@ -121,7 +121,7 @@ console.log('9b · RODADA 3 (03/09) — os 20 que o fio de alarme achou')
 // Não foi a rodada 2 que achou estes: foi a VARREDURA da seção 10, na primeira
 // vez que rodou. É exatamente para isso que ela existe — e é por isso que ela
 // vale mais que qualquer lista feita à mão.
-check('PWA instalado abria no porteiro (manifest start_url)', src('app/manifest.ts').includes("start_url: '/studio'"))
+check('PWA instalado abria no porteiro (manifest start_url)', src('app/manifest.ts').includes("start_url: '/app-launch'") && src('app/app-launch/route.ts').includes("Location: user ? '/studio' : '/'"))
 check('e-mail de boas-vindas NOVO aponta direto (os antigos seguem pelo porteiro)', src('app/api/send-welcome/route.ts').includes("'/studio/create?welcome=1'"))
 check('fallback de redirect pós-login', src('lib/authRedirect.ts').includes("fallback = '/studio'"))
 check('pós-checkout self-serve (tipo E valor)', !src('lib/growth/checkoutSuccessFlow.ts').includes("'/generate'"))

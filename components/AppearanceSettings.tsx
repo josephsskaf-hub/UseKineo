@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
 import { APPEARANCE_KEY, FOR_CREATORS_PATH, parseAppearance, readPageAppearance, type Appearance } from '@/lib/ui/appearance'
+import { installColors } from '@/lib/ui/installAppearance'
 import { useUiCopy } from '@/components/InterfaceLanguage'
 
 const AppearanceContext = createContext({ open: (_trigger: HTMLElement) => {} })
@@ -19,6 +20,9 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
   const trigger = useRef<HTMLElement | null>(null)
   const apply = useCallback((value: Appearance, persist = false) => {
     document.documentElement.dataset.theme = value
+    document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach(meta => {
+      meta.content = installColors[value]
+    })
     setTheme(value)
     if (persist) {
       try {

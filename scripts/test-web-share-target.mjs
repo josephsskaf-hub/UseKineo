@@ -151,7 +151,7 @@ const direct = routeModule.GET({ url: 'https://www.usekineo.com/share-to-kineo' 
 equal(direct.status, 307, 'direct GET remains a safe temporary redirect')
 equal(direct.url, 'https://www.usekineo.com/free-script-generator', 'direct GET is neutral and cannot forge a POST arrival')
 
-const manifestModule = executeTs('app/manifest.ts')
+const manifestModule = executeTs('app/manifest.ts', { '@/lib/ui/installAppearance': executeTs('lib/ui/installAppearance.ts') })
 const manifestObject = manifestModule.default()
 equal(manifestObject.share_target.action, '/share-to-kineo', 'executed manifest exposes the first-party action')
 equal(manifestObject.share_target.method, 'POST', 'executed manifest uses POST')

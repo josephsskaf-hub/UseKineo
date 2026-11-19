@@ -1,194 +1,87 @@
 'use client'
 
-import { KineoBrandIcon } from '@/components/KineoBolt'
+import { useEffect, useRef, useState } from 'react'
+import { usePathname } from 'next/navigation'
+import { useUiCopy } from '@/components/InterfaceLanguage'
+import './InstallAppBanner.css'
 
-// Push #423 — "Install app" banner. The PWA (#422) is installable, but
-// almost nobody knows about "Add to Home Screen", so the app offers
-// itself:
-//   - Android/Chrome: captures the `beforeinstallprompt` event and shows
-//     a one-tap "Install app" button that fires the NATIVE install dialog.
-//   - iOS Safari: no install API exists, so we show a tiny visual
-//     instruction (Share → Add to Home Screen).
-//   - Hidden when already running as an installed app (standalone), on
-//     desktop without install support, and for 14 days after dismissal.
-
-import { useEffect, useState } from 'react'
-
-const CARTAO_DE_INSTALAR_LIGADO = false as boolean // KINEO-AVISOS-ANTIGOS-0511
-
-const DISMISS_KEY = 'sfai_install_dismissed_at'
-const DISMISS_DAYS = 14
-
-interface BeforeInstallPromptEvent extends Event {
+interface InstallPrompt extends Event {
   prompt: () => Promise<void>
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
-function isStandalone(): boolean {
-  if (typeof window === 'undefined') return true
-  return (
-    window.matchMedia('(display-mode: standalone)').matches ||
-    // iOS Safari legacy flag
-    (window.navigator as unknown as { standalone?: boolean }).standalone === true
-  )
-}
-
-function isIos(): boolean {
-  if (typeof navigator === 'undefined') return false
-  const ua = navigator.userAgent
-  // iPadOS 13+ reports as Mac, so also check touch points
-  return (
-    /iPhone|iPad|iPod/i.test(ua) ||
-    (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1)
-  )
-}
-
-function recentlyDismissed(): boolean {
-  try {
-    const at = localStorage.getItem(DISMISS_KEY)
-    if (!at) return false
-    return Date.now() - Number(at) < DISMISS_DAYS * 86400000
-  } catch {
-    return false
-  }
-}
+const dismissedKey = 'sfai_install_dismissed_at'
 
 export default function InstallAppBanner() {
-  const [mode, setMode] = useState<'hidden' | 'android' | 'ios'>('hidden')
-  const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null)
+  const pathname = usePathname()
+  const t = useUiCopy()
+  const prompt = useRef<InstallPrompt | null>(null)
+  const [mode, setMode] = useState<'ios' | 'android' | null>(null)
+  const [dismissed, setDismissed] = useState(false)
+  const [instructions, setInstructions] = useState(false)
 
   useEffect(() => {
-    if (isStandalone() || recentlyDismissed()) return
-
-    if (isIos()) {
-      // Show only in Safari (in-app browsers can't install)
-      setMode('ios')
-      return
+    if (dismissed) return
+    try { if (localStorage.getItem(dismissedKey)) return } catch { /* restricted storage */ }
+    const mobile = matchMedia('(max-width: 767px) and (pointer: coarse)')
+    const standalone = matchMedia('(display-mode: standalone)')
+    const nav = navigator as Navigator & { standalone?: boolean }
+    const native = (window as Window & { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.()
+    const ios = /iPhone|iPod|iPad/.test(nav.userAgent) || (nav.platform === 'MacIntel' && nav.maxTouchPoints > 1)
+    const safari = /Version\/.*Safari\//.test(nav.userAgent) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(nav.userAgent)
+    const eligible = () => mobile.matches && !standalone.matches && !nav.standalone && !native
+    const refresh = () => setMode(eligible() ? ios && safari ? 'ios' : prompt.current ? 'android' : null : null)
+    const capture = (event: Event) => {
+      if (!eligible()) return
+      event.preventDefault()
+      prompt.current = event as InstallPrompt
+      refresh()
     }
-
-    const onPrompt = (e: Event) => {
-      e.preventDefault()
-      setDeferred(e as BeforeInstallPromptEvent)
-      setMode('android')
+    const installed = () => { prompt.current = null; setMode(null); setDismissed(true) }
+    const sync = (event: StorageEvent) => { if (event.key === dismissedKey && event.newValue) setDismissed(true) }
+    refresh()
+    window.addEventListener('beforeinstallprompt', capture)
+    window.addEventListener('appinstalled', installed)
+    window.addEventListener('storage', sync)
+    mobile.addEventListener('change', refresh)
+    standalone.addEventListener('change', refresh)
+    return () => {
+      window.removeEventListener('beforeinstallprompt', capture)
+      window.removeEventListener('appinstalled', installed)
+      window.removeEventListener('storage', sync)
+      mobile.removeEventListener('change', refresh)
+      standalone.removeEventListener('change', refresh)
     }
-    window.addEventListener('beforeinstallprompt', onPrompt)
-    return () => window.removeEventListener('beforeinstallprompt', onPrompt)
-  }, [])
+  }, [dismissed])
 
   function dismiss() {
-    try {
-      localStorage.setItem(DISMISS_KEY, String(Date.now()))
-    } catch {
-      /* private mode — banner just reappears next session */
-    }
-    setMode('hidden')
+    try { localStorage.setItem(dismissedKey, '1') } catch { /* keep closed for this visit */ }
+    prompt.current = null
+    setDismissed(true)
   }
 
   async function install() {
-    if (!deferred) return
-    await deferred.prompt()
-    const choice = await deferred.userChoice
-    if (choice.outcome === 'accepted') {
-      setMode('hidden')
-    } else {
-      dismiss()
-    }
+    const event = prompt.current
+    if (!event) return
+    prompt.current = null
+    setMode(null)
+    try {
+      await event.prompt()
+      if ((await event.userChoice).outcome === 'dismissed') dismiss()
+    } catch { /* A consumed browser prompt can only be offered on a new event. */ }
   }
 
-  // KINEO-AVISOS-ANTIGOS-0511 [fundador 05/11: "tira esses avisos tb, muito antigos"] — o convite para instalar o app não aparece mais.
-  if (mode === 'hidden' || !CARTAO_DE_INSTALAR_LIGADO) return null
-
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        left: 12,
-        right: 12,
-        // KINEO-PRELAUNCH-PATH-2026-08-08 — bottom:12 com zIndex 70 cobria a
-        // MobileNav (zIndex 50, MESMO contexto de empilhamento: os dois moram
-        // dentro do wrapper `relative z-10` do DashboardShell). A nav ocupa de
-        // 0 a 62+max(safe-area,6px) e a fileira tocavel comeca ~34px acima do
-        // chao num iPhone — este banner tapava de 34 a 76px, ou seja a maior
-        // parte de Generator / Viral Now / My Videos / Pricing. 62px da nav +
-        // 12px de respiro + a safe area. No desktop a MobileNav e md:hidden,
-        // entao o banner passa a flutuar ~74px acima do rodape em vez de 12px
-        // — efeito puramente cosmetico num card dispensavel, e o unico preco
-        // de nao usar valor arbitrario de Tailwind (que poderia nao ser gerado
-        // pelo JIT e zerar o offset).
-        bottom: 'calc(74px + env(safe-area-inset-bottom))',
-        zIndex: 70,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        padding: '12px 14px',
-        borderRadius: 16,
-        background: 'var(--card)',
-        border: '1px solid var(--border)',
-        boxShadow: 'var(--sh-card-h)',
-        backdropFilter: 'blur(10px)',
-        maxWidth: 480,
-        margin: '0 auto',
-      }}
-    >
-      <KineoBrandIcon size={32} />
-
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 800, color: 'var(--text)', lineHeight: 1.3 }}>
-          Get the Kineo app
-        </p>
-        {mode === 'ios' ? (
-          <p style={{ margin: '2px 0 0', fontSize: '0.68rem', color: 'var(--muted)', lineHeight: 1.4 }}>
-            Tap <span style={{ color: 'var(--accent)', fontWeight: 700 }}>Share</span>{' '}
-            <span aria-hidden>⎙</span> then{' '}
-            <span style={{ color: 'var(--accent)', fontWeight: 700 }}>
-              Add to Home Screen
-            </span>
-          </p>
-        ) : (
-          <p style={{ margin: '2px 0 0', fontSize: '0.68rem', color: 'var(--muted)', lineHeight: 1.4 }}>
-            Full screen, faster, one tap away
-          </p>
-        )}
-      </div>
-
-      {mode === 'android' && (
-        <button
-          onClick={install}
-          style={{
-            padding: '9px 16px',
-            minHeight: 44,
-            borderRadius: 11,
-            border: 'none',
-            background: 'var(--indigo)',
-            color: 'var(--on-accent)',
-            fontSize: '0.75rem',
-            fontWeight: 900,
-            cursor: 'pointer',
-            flexShrink: 0,
-          }}
-        >
-          Install
-        </button>
-      )}
-
-      <button
-        onClick={dismiss}
-        aria-label="Dismiss"
-        style={{
-          width: 44,
-          height: 44,
-          borderRadius: 8,
-          border: 'none',
-          background: 'var(--card2)',
-          color: 'var(--muted)',
-          fontSize: '0.8rem',
-          fontWeight: 700,
-          cursor: 'pointer',
-          flexShrink: 0,
-        }}
-      >
-        ✕
+  if (dismissed || !mode || (pathname !== '/' && pathname !== '/studio')) return null
+  return <aside className="install-kineo" aria-label={t('Install Kineo')}>
+    <div className="install-kineo-inner">
+      <img src="/pwa/kineo-192.png" width="32" height="32" alt="" />
+      <button className="install-kineo-action" type="button"
+        aria-expanded={mode === 'ios' ? instructions : undefined}
+        onClick={mode === 'ios' ? () => setInstructions(value => !value) : install}>
+        {t('Add Kineo to your home screen')}
       </button>
+      <button className="install-kineo-close" type="button" aria-label={t('Dismiss')} onClick={dismiss}>×</button>
+      {instructions && mode === 'ios' && <p>{t('In Safari, tap Share, then Add to Home Screen and Add.')}</p>}
     </div>
-  )
+  </aside>
 }

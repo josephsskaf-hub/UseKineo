@@ -1,0 +1,15 @@
+{
+  "appId": "com.usekineo.prototype",
+  "appName": "Kineo Local",
+  "webDir": "www",
+  "server": {
+    "url": "http://localhost:3339/app-launch",
+    "cleartext": true
+  },
+  "android": {
+    "adjustMarginsForEdgeToEdge": "force"
+  },
+  "ios": {
+    "contentInset": "automatic"
+  }
+}

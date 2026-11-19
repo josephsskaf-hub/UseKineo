@@ -13,6 +13,8 @@ import AutopilotPilotResumeBanner from '@/components/AutopilotPilotResumeBanner'
 import CheckoutStalledCta from '@/components/CheckoutStalledCta'
 import { Analytics } from '@vercel/analytics/next'
 import { InterfaceLanguageProvider } from '@/components/InterfaceLanguage'
+import InstallAppBanner from '@/components/InstallAppBanner'
+import { installColors, iphoneStartupImages } from '@/lib/ui/installAppearance'
 import { AppearanceProvider } from '@/components/AppearanceSettings'
 import { APPEARANCE_BOOT } from '@/lib/ui/appearance'
 import { FreeTierOfferProvider } from '@/components/FreeTierOfferProvider'
@@ -61,7 +63,10 @@ export const viewport: Viewport = {
   maximumScale: 5,
   // Push #422 — PWA: paints the iOS/Android browser chrome in the brand
   // dark so the installed app feels native edge-to-edge.
-  themeColor: '#0d0d14',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: installColors.light },
+    { media: '(prefers-color-scheme: dark)', color: installColors.dark },
+  ],
 }
 
 // Push #297 — meta title + description rewritten for Google Ads Quality
@@ -164,14 +169,15 @@ export const metadata: Metadata = {
     shortcut: '/favicon.svg?v=blue-bolt-20260928',
     // Push #422 — real PNG for iOS home screen (Safari ignores SVG here
     // and would fall back to a screenshot-gray tile).
-    apple: '/apple-touch-icon.png',
+    apple: '/pwa/apple-touch.png',
   },
   // Push #422 — PWA: lets the installed web app run full-screen on iOS
   // ("Add to Home Screen") with a black-translucent status bar.
   appleWebApp: {
     capable: true,
     title: 'Kineo',
-    statusBarStyle: 'black-translucent',
+    statusBarStyle: 'default',
+    startupImage: iphoneStartupImages,
   },
 }
 
@@ -265,7 +271,7 @@ export default function RootLayout({
       {/* [KINEO-TRIAL-SWAP-2026-08-07] — FreeTierOfferProvider envolve TODO o
           conteúdo: é o único caminho pelo qual client components leem a oferta
           do free tier (a env da flag não existe no browser). */}
-      <body><StructuredData /><InterfaceLanguageProvider><AppearanceProvider><FreeTierOfferProvider offer={OFFER}><SourceCapture /><NavClickTelemetry /><CheckoutResumeBanner /><AutopilotPilotResumeBanner /><CheckoutStalledCta />{children}</FreeTierOfferProvider><ConsentManager marketing={withMicrosoftUet(marketingTags, MS_UET_TAG_ID)} clarity={CLARITY_ID ? <ClarityTag projectId={CLARITY_ID} /> : null} /></AppearanceProvider></InterfaceLanguageProvider><Analytics /></body>
+      <body><StructuredData /><InterfaceLanguageProvider><AppearanceProvider><FreeTierOfferProvider offer={OFFER}><SourceCapture /><NavClickTelemetry /><CheckoutResumeBanner /><AutopilotPilotResumeBanner /><CheckoutStalledCta /><InstallAppBanner />{children}</FreeTierOfferProvider><ConsentManager marketing={withMicrosoftUet(marketingTags, MS_UET_TAG_ID)} clarity={CLARITY_ID ? <ClarityTag projectId={CLARITY_ID} /> : null} /></AppearanceProvider></InterfaceLanguageProvider><Analytics /></body>
     </html>
   )
 }
