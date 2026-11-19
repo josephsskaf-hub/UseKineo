@@ -2,6 +2,7 @@ import { WATCH_HOME_ENABLED } from '@/lib/home/watchRelease'
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+import HomeProjection from '@/components/home/HomeProjection'
 import KineoLanding from './KineoLanding'
 import AnnualWelcomeBar from '@/components/AnnualWelcomeBar' // KINEO-OFERTA-3H-0411
 import { readAnnualWelcomeBar } from '@/lib/billing/annualWelcomeBarServer' // KINEO-OFERTA-3H-0411
@@ -204,6 +205,7 @@ export default async function HomePage({
         clipsFirst={clipsFirst}
         watchVisitor={WATCH_HOME_ENABLED && !user}
       />
+      <HomeProjection placement="b" publicHome />
       {homeExposure}
     </>
   )

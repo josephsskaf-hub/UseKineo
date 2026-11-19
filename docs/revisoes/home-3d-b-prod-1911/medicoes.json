@@ -1,0 +1,193 @@
+{
+  "at": "2026-11-19T09:52:24.652Z",
+  "chrome": "157.0.8103.51",
+  "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3090 (0x00002204) Direct3D11 vs_5_0 ps_5_0, D3D11-32.0.16.1088)",
+  "runs": [
+    {
+      "width": 1920,
+      "v": "antes",
+      "round": 1,
+      "lcp": [
+        644,
+        ""
+      ],
+      "load": 510,
+      "firstBytes": 3390934,
+      "lateArtBytes": 0,
+      "history": []
+    },
+    {
+      "width": 1920,
+      "v": "depois",
+      "round": 1,
+      "lcp": [
+        512,
+        ""
+      ],
+      "load": 460.19999998807907,
+      "firstBytes": 3391515,
+      "lateArtBytes": 708890,
+      "firstArt": 652.6999999880791,
+      "history": [
+        {
+          "time": 938.8000000119209,
+          "active": true
+        },
+        {
+          "time": 4050.600000023842,
+          "active": false
+        }
+      ]
+    },
+    {
+      "width": 1920,
+      "v": "depois",
+      "round": 2,
+      "lcp": [
+        532,
+        ""
+      ],
+      "load": 503.7000000476837,
+      "firstBytes": 3391515,
+      "lateArtBytes": 708890,
+      "firstArt": 658.6000000238419,
+      "history": [
+        {
+          "time": 953.5,
+          "active": true
+        },
+        {
+          "time": 4069.2000000476837,
+          "active": false
+        }
+      ]
+    },
+    {
+      "width": 1920,
+      "v": "antes",
+      "round": 2,
+      "lcp": [
+        544,
+        ""
+      ],
+      "load": 485.39999997615814,
+      "firstBytes": 3390934,
+      "lateArtBytes": 0,
+      "history": []
+    },
+    {
+      "width": 1920,
+      "v": "antes",
+      "round": 3,
+      "lcp": [
+        540,
+        ""
+      ],
+      "load": 474.30000001192093,
+      "firstBytes": 3390934,
+      "lateArtBytes": 0,
+      "history": []
+    },
+    {
+      "width": 1920,
+      "v": "depois",
+      "round": 3,
+      "lcp": [
+        524,
+        ""
+      ],
+      "load": 471.4000000357628,
+      "firstBytes": 3391515,
+      "lateArtBytes": 708890,
+      "firstArt": 660.6999999880791,
+      "history": [
+        {
+          "time": 956.9000000357628,
+          "active": true
+        },
+        {
+          "time": 4062.199999988079,
+          "active": false
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "v": "antes",
+      "round": 1,
+      "lcp": [
+        868,
+        "k3c-cycle-poster"
+      ],
+      "load": 3523,
+      "firstBytes": 5733712,
+      "lateArtBytes": 0,
+      "history": []
+    },
+    {
+      "width": 390,
+      "v": "depois",
+      "round": 1,
+      "lcp": [
+        1120,
+        "k3c-cycle-poster"
+      ],
+      "load": 3670.699999988079,
+      "firstBytes": 5734293,
+      "lateArtBytes": 0,
+      "history": []
+    },
+    {
+      "width": 390,
+      "v": "depois",
+      "round": 2,
+      "lcp": [
+        836,
+        "k3c-cycle-poster"
+      ],
+      "load": 3737.699999988079,
+      "firstBytes": 5734293,
+      "lateArtBytes": 0,
+      "history": []
+    },
+    {
+      "width": 390,
+      "v": "antes",
+      "round": 2,
+      "lcp": [
+        1120,
+        "k3c-cycle-poster"
+      ],
+      "load": 3706,
+      "firstBytes": 5733712,
+      "lateArtBytes": 0,
+      "history": []
+    },
+    {
+      "width": 390,
+      "v": "antes",
+      "round": 3,
+      "lcp": [
+        1140,
+        "k3c-cycle-poster"
+      ],
+      "load": 3765.2999999523163,
+      "firstBytes": 5733712,
+      "lateArtBytes": 0,
+      "history": []
+    },
+    {
+      "width": 390,
+      "v": "depois",
+      "round": 3,
+      "lcp": [
+        1308,
+        "k3c-cycle-poster"
+      ],
+      "load": 3858.600000023842,
+      "firstBytes": 5734293,
+      "lateArtBytes": 0,
+      "history": []
+    }
+  ]
+}

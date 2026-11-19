@@ -1,0 +1,12 @@
+/* Loaded after the home is ready, for an eligible desktop with the film card in view. */
+.klp .k3c-head:has(> .hp-idea) { position:relative }
+.klp .hp-idea { position:absolute; left:clamp(170px,12vw,225px); top:50%; transform:translateY(-50%); width:min(250px,26vw); height:30px; padding:0 13px; border:1px solid var(--line2); border-radius:20px; background:var(--card); color:var(--txt); font:inherit; font-size:13px }
+.klp .hp-idea::placeholder { color:var(--muted) }
+.klp .hp-idea:focus-visible { outline:2px solid var(--blue); outline-offset:2px }
+.klp .hp-stage { position:absolute; inset:0 0 24%; z-index:2; overflow:hidden; pointer-events:none; visibility:hidden }
+.klp[data-playing] .hp-stage { visibility:visible }
+.klp[data-playing] [data-home-card=films] .k3c-media { background:radial-gradient(ellipse at 60% 24%,var(--muted),var(--txt2) 62%,var(--txt)) }
+html[data-theme=dark] .klp[data-playing] [data-home-card=films] .k3c-media { background:radial-gradient(ellipse at 60% 24%,var(--line3),var(--card2) 62%,var(--bg)) }
+.klp[data-playing] [data-home-card=films] .k3c-media > :is(picture,video) { visibility:hidden }
+.klp .hp-stage canvas { display:block; width:100%; height:100%; transform:scale(1.1) }
+.klp .hp-caption { position:absolute; top:12px; right:16px; padding:3px 8px; border-radius:12px; background:var(--card); color:var(--txt); font:600 11px/1.4 system-ui,sans-serif }

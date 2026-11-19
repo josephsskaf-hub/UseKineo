@@ -1,0 +1,38 @@
+[
+  {
+    "mode": "desktop",
+    "backend": "WebGPU",
+    "elapsedMs": 3022,
+    "rendered": 91,
+    "fps": 30.112508272667107,
+    "fallback": true,
+    "history": [
+      {
+        "time": 816.1999999880791,
+        "active": true
+      },
+      {
+        "time": 3842.199999988079,
+        "active": false
+      }
+    ]
+  },
+  {
+    "mode": "webgl2",
+    "backend": "WebGL2",
+    "elapsedMs": 3038.900000035763,
+    "rendered": 89,
+    "fps": 29.28691302739564,
+    "fallback": true,
+    "history": [
+      {
+        "time": 555.1000000238419,
+        "active": true
+      },
+      {
+        "time": 3583.300000011921,
+        "active": false
+      }
+    ]
+  }
+]

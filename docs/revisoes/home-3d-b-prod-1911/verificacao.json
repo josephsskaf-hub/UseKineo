@@ -1,0 +1,185 @@
+[
+  {
+    "v": "antes",
+    "width": 1920,
+    "theme": "light",
+    "backend": null,
+    "frames": 0,
+    "label": null,
+    "count": 4,
+    "cta": true,
+    "orderAndHeadingsEqual": true,
+    "assets": []
+  },
+  {
+    "v": "depois",
+    "width": 1920,
+    "theme": "light",
+    "backend": "WebGPU",
+    "frames": 72,
+    "label": "Lituya Bay sample · MiniMax H3",
+    "count": 4,
+    "cta": true,
+    "orderAndHeadingsEqual": true,
+    "assets": [
+      "/screening-room/home-film.css",
+      "/screening-room/home-projection.js",
+      "/screening-room/scene.js",
+      "/screening-room/lituya-h3.webp",
+      "/screening-room/lituya-h3.mp4"
+    ]
+  },
+  {
+    "v": "antes",
+    "width": 1920,
+    "theme": "dark",
+    "backend": null,
+    "frames": 0,
+    "label": null,
+    "count": 4,
+    "cta": true,
+    "orderAndHeadingsEqual": true,
+    "assets": []
+  },
+  {
+    "v": "depois",
+    "width": 1920,
+    "theme": "dark",
+    "backend": "WebGPU",
+    "frames": 84,
+    "label": "Lituya Bay sample · MiniMax H3",
+    "count": 4,
+    "cta": true,
+    "orderAndHeadingsEqual": true,
+    "assets": [
+      "/screening-room/home-film.css",
+      "/screening-room/home-projection.js",
+      "/screening-room/scene.js",
+      "/screening-room/lituya-h3.webp",
+      "/screening-room/lituya-h3.mp4"
+    ]
+  },
+  {
+    "v": "antes",
+    "width": 390,
+    "theme": "light",
+    "backend": null,
+    "frames": 0,
+    "label": null,
+    "count": 4,
+    "cta": true,
+    "orderAndHeadingsEqual": true,
+    "assets": []
+  },
+  {
+    "v": "depois",
+    "width": 390,
+    "theme": "light",
+    "backend": null,
+    "frames": 0,
+    "label": null,
+    "count": 4,
+    "cta": true,
+    "orderAndHeadingsEqual": true,
+    "assets": []
+  },
+  {
+    "v": "antes",
+    "width": 390,
+    "theme": "dark",
+    "backend": null,
+    "frames": 0,
+    "label": null,
+    "count": 4,
+    "cta": true,
+    "orderAndHeadingsEqual": true,
+    "assets": []
+  },
+  {
+    "v": "depois",
+    "width": 390,
+    "theme": "dark",
+    "backend": null,
+    "frames": 0,
+    "label": null,
+    "count": 4,
+    "cta": true,
+    "orderAndHeadingsEqual": true,
+    "assets": []
+  },
+  {
+    "mode": "reduce",
+    "history": [],
+    "assets": [],
+    "cta": true
+  },
+  {
+    "mode": "noGPU",
+    "history": [],
+    "assets": [
+      "/screening-room/home-film.css",
+      "/screening-room/home-projection.js",
+      "/screening-room/scene.js"
+    ],
+    "cta": true
+  },
+  {
+    "mode": "slow",
+    "history": [
+      {
+        "time": 684.3000000119209,
+        "active": true
+      },
+      {
+        "time": 3697.900000035763,
+        "active": false
+      }
+    ],
+    "assets": [
+      "/screening-room/home-film.css",
+      "/screening-room/home-projection.js",
+      "/screening-room/scene.js",
+      "/screening-room/lituya-h3.webp",
+      "/screening-room/lituya-h3.mp4"
+    ],
+    "cta": true
+  },
+  {
+    "mode": "switchReduce",
+    "history": [
+      {
+        "time": 595.7000000476837,
+        "active": true
+      },
+      {
+        "time": 700.4000000357628,
+        "active": false
+      }
+    ],
+    "assets": [
+      "/screening-room/home-film.css",
+      "/screening-room/home-projection.js",
+      "/screening-room/scene.js",
+      "/screening-room/lituya-h3.webp",
+      "/screening-room/lituya-h3.mp4"
+    ],
+    "cta": true
+  },
+  {
+    "mode": "member",
+    "history": [
+      {
+        "time": 636.1999999880791,
+        "active": true
+      }
+    ],
+    "assets": [
+      "/screening-room/home-film.css",
+      "/screening-room/home-projection.js",
+      "/screening-room/scene.js",
+      "/screening-room/lituya-h3.webp",
+      "/screening-room/lituya-h3.mp4"
+    ],
+    "cta": true
+  }
+]

@@ -5,7 +5,7 @@ import HomePage from '../../page'
 import { CLIPES_NO_TOPO, clipeNovoPoster } from '@/lib/clipesNos2Lugares'
 import { canViewScreening } from '../_screening/access'
 import { cookieName, validPass } from './pass'
-import HomeProjection from './HomeProjection'
+import HomeProjection from '@/components/home/HomeProjection'
 import './preview.css'
 
 export const dynamic = 'force-dynamic'

@@ -1,5 +1,5 @@
 // Leave the original link, copy, poster and video mounted. The decorative layer never owns a click.
-export async function projectHome(root, placement, pageSignal) {
+export async function projectHome(root, placement, pageSignal, publicHome = false) {
   const head = root.querySelector('.k3c-head')
   const card = root.querySelector('[data-home-card="films"]')
   const media = card?.querySelector('.k3c-media')
@@ -22,11 +22,15 @@ export async function projectHome(root, placement, pageSignal) {
   const field = document.createElement('input')
   field.type = 'text'
   field.className = 'hp-idea'
-  field.placeholder = 'Type a phrase to see it in film'
-  field.setAttribute('aria-label', 'Animate a phrase in the film preview')
+  field.placeholder = 'Animate text in this preview'
+  field.setAttribute('aria-label', 'Animate text in the Lituya Bay preview')
   field.autocomplete = 'off'
   let debounce, monitor, sample, inView = false
-  const visibility = new IntersectionObserver(([entry]) => { inView = entry.isIntersecting; sample = undefined })
+  const floor = publicHome ? 60 : 24
+  const windowMs = publicHome ? 3000 : 4000
+  const readFrames = () => ({ now: performance.now(), frames: Number(stage.dataset.frames || 0) })
+  const resetSample = () => { sample = inView && !document.hidden ? readFrames() : undefined }
+  const visibility = new IntersectionObserver(([entry]) => { inView = entry.isIntersecting; resetSample() })
   const clear = () => {
     abort.abort()
     visibility.disconnect()
@@ -49,7 +53,7 @@ export async function projectHome(root, placement, pageSignal) {
     root.dataset.playing = ''
     const caption = document.createElement('span')
     caption.className = 'hp-caption'
-    caption.textContent = 'Lituya Bay · MiniMax H3'
+    caption.textContent = 'Lituya Bay sample · MiniMax H3'
     stage.append(caption)
     head.insertBefore(field, head.querySelector('.k3c-more'))
     field.addEventListener('input', () => {
@@ -57,15 +61,16 @@ export async function projectHome(root, placement, pageSignal) {
       debounce = setTimeout(() => session.words(Array.from(field.value.trim()).slice(-27).join('') || 'Lituya Bay'), 140)
     }, { signal })
     visibility.observe(stage)
-    document.addEventListener('visibilitychange', () => { sample = undefined }, { signal })
-    // Below a sustained 24 fps, expose the original card or its poster. A 30 Hz laptop stays animated.
+    document.addEventListener('visibilitychange', resetSample, { signal })
+    // Count completed scene renders only during a full visible measurement window.
     monitor = setInterval(() => {
-      if (!inView || document.hidden) { sample = undefined; return }
-      const now = performance.now(), frames = Number(stage.dataset.frames || 0)
-      if (!sample) { sample = { now, frames }; return }
-      if (now - sample.now < 4000) return
-      if ((frames - sample.frames) * 1000 / (now - sample.now) < 24) clear()
-      else sample = { now, frames }
-    }, 500)
+      if (!sample) return
+      const current = readFrames()
+      const elapsed = current.now - sample.now
+      if (elapsed < windowMs) return
+      const fps = (current.frames - sample.frames) * 1000 / elapsed
+      if (fps < floor) clear()
+      else sample = current
+    }, 100)
   } catch { clear() }
 }
