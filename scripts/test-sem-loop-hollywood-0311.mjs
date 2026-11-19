@@ -35,11 +35,15 @@ function provasMontagem(L) {
   ]
   const el = montar(L, clips)
   const a = el.filter((e) => e.source === A), b = el.filter((e) => e.source === B)
-  if (a.some((e) => e.loop === true) || b.some((e) => e.loop === true)) erros.push('A clipe curto ainda com loop:true')
+  if (a.some((e) => e.loop === true)) erros.push('A clipe curto ainda com loop:true')
   if (a[0]?.duration !== 7 || a[0]?.time !== 0) erros.push('A o clipe não toca uma vez inteiro')
   const fimA = Math.max(...a.map((e) => Math.round((e.time + e.duration) * 1000) / 1000))
   if (fimA !== 7.4 + 0.25 || a.slice(1).some((e) => Math.abs(e.trim_start + e.duration - 7) > 0.001 || e.volume !== '0%')) erros.push('A a sobra não é o fim do próprio clipe até fechar a janela: ' + JSON.stringify(a.slice(1)))
-  if (b.length !== 2 || Math.abs(b[1].trim_start - 4.75) > 0.001) erros.push('A a sobra do crossfade (0,25 s) não segura o fim do clipe de 5 s')
+  // REANCORADO KINEO-RABO-NAO-PASSA-1811 [CEO 18/11] — a âncora antiga exigia aqui um rabo de 0,25 s começando em 12,4 s, o instante
+  // exato da entrada do clipe C na faixa 2. Foi esse padrão que apagou o clipe 2 inteiro do filme 3ce4d510 de assinante (preto de
+  // 15,25 s a 30 s, clipes da fal perfeitos). Clipe que cobre a própria cena e só não cobre o crossfade volta ao de antes de 03/11:
+  // um elemento, loop:true sob o fade (0,25 s). O clipe A (curto de verdade, 7,0 s em 7,4 s) segue segurando o fim, verificado acima.
+  if (b.length !== 1 || b[0].loop !== true || Math.abs(b[0].duration - 5.25) > 0.001) erros.push('A o clipe de 5 s que só não cobre o crossfade não ficou como antes de 03/11 (um elemento, loop sob o fade)')
   // B — sem duração conhecida / clipe que cobre / fala nativa: idêntico
   const base = JSON.stringify(montar(L, sem(clips)))
   if (JSON.stringify(montar(L, clips.map((c) => ({ ...c, mediaSeconds: 20 })))) !== base) erros.push('B clipe que cobre a janela mudou a montagem')
@@ -95,7 +99,7 @@ checa('o compose sonda só os b-rolls (support/cinematic) depois da verificaçã
 
 console.log('M) mutantes')
 const mut = [
-  ['montagem sem segurar o fim (volta o laço)', { 'lib/compose.ts': (t) => t.replace('    seguraOFimDoClipeCurto(elements, clip, nativeSpeech(clip)) // KINEO-FRENTE-A-SEM-LOOP-0311\n', '') }, () => provasMontagem],
+  ['montagem sem segurar o fim (volta o laço)', { 'lib/compose.ts': (t) => t.replace('    seguraOFimDoClipeCurto(elements, clip, nativeSpeech(clip), isLast ? null : sceneStarts[i + 1]) // KINEO-FRENTE-A-SEM-LOOP-0311 · KINEO-RABO-NAO-PASSA-1811\n', '') /* âncora da chamada atualizada pela KINEO-RABO-NAO-PASSA-1811 */ }, () => provasMontagem],
   ['sobra a partir do quadro zero', { 'lib/compose.ts': (t) => t.replace('      trim_start: round3(real - len),', '      trim_start: 0,') }, () => provasMontagem],
   ['sonda que não procura no fim do arquivo', { 'lib/mp4Duration.ts': (t) => t.replace('    if (!inicio.total || inicio.total <= SONDA_BYTES) return null', '    return null') }, () => provasSonda],
 ]

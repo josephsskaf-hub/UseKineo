@@ -3520,18 +3520,27 @@ const HOLLYWOOD_CLIP_VOLUME: Record<HollywoodClipInput['engine'], string> = {
 // produção —, mudo (a voz é a narração; o ambiente do clipe não gagueja). Nada muda quando: a duração é desconhecida, o clipe cobre a
 // janela, ou a cena tem fala nativa (diálogo/apresentador já entram com loop:false). A fala e os tempos da timeline nunca mudam.
 const SOBRA_CAUDA_MAX_S = 3 // KINEO-FRENTE-A-SEM-LOOP-0311 — o trecho final que se repete (≤ o clipe)
-export function seguraOFimDoClipeCurto(elements: CreatomateElement[], clip: HollywoodClipInput, falaNativa: boolean): void {
+// ═══ KINEO-RABO-NAO-PASSA-1811 [CEO 18/11, filme 3ce4d510 de assinante: 2ª metade preta] — num clipe que NÃO é o último, o rabo
+// desta regra entrava na faixa 2 DEPOIS da entrada do clipe seguinte (clipe 1 de 15,04 s numa janela de 15 s + 0,25 s de crossfade:
+// rabo de 15,042 a 15,25 s, clipe 2 em 15,0 s) e o Creatomate apagou o clipe 2 inteiro: preto de 15,25 s ao fim, com os dois clipes
+// da fal perfeitos. Regra nova: nenhum trecho do clipe N começa depois da entrada do clipe N+1 na faixa. Se o clipe já cobre a cena
+// até a entrada do seguinte (só falta o crossfade), fica como antes de 03/11 (loop sob o fade); senão o último trecho do rabo começa
+// antes da entrada e atravessa o crossfade, como o elemento principal sempre fez. Último clipe (inicioDoProximo nulo): byte a byte o de 03/11.
+export function seguraOFimDoClipeCurto(elements: CreatomateElement[], clip: HollywoodClipInput, falaNativa: boolean, inicioDoProximo: number | null = null): void {
   const real = clip.mediaSeconds
   const el = elements[elements.length - 1]
   if (falaNativa || !el || el.type !== 'video' || el.source !== clip.url || el.loop !== true) return
   if (typeof real !== 'number' || !Number.isFinite(real) || real < 0.5 || !(el.duration > real + 0.02)) return
+  if (inicioDoProximo !== null && el.time + real >= inicioDoProximo - 0.001) return // KINEO-RABO-NAO-PASSA-1811 — o clipe cobre a cena; falta só o crossfade
   const janela = el.duration
   el.loop = false
   el.duration = round3(real)
   const cauda = Math.min(SOBRA_CAUDA_MAX_S, real)
   const fimDaJanela = round3(el.time + janela)
   for (let t = round3(el.time + real), k = 0; fimDaJanela - t > 0.01; k++) {
-    const len = round3(Math.min(cauda, fimDaJanela - t))
+    if (inicioDoProximo !== null && t >= inicioDoProximo - 0.001) break // KINEO-RABO-NAO-PASSA-1811 — nada começa depois da entrada do seguinte
+    let len = round3(Math.min(cauda, fimDaJanela - t))
+    if (inicioDoProximo !== null && t + len >= inicioDoProximo - 0.001) len = round3(Math.min(real, fimDaJanela - t)) // KINEO-RABO-NAO-PASSA-1811 — o último trecho atravessa o crossfade
     elements.push({
       type: 'video', track: el.track, time: t, duration: len, source: clip.url,
       fit: 'cover', loop: false, x: '50%', y: '50%', width: '100%', height: '100%', volume: '0%',
@@ -3743,7 +3752,7 @@ export function buildHollywoodCreatomateSource({
         ? { enter_transition: { type: 'fade', duration: fadeFor(clip) } }
         : {}), // The hook and first word are visible from frame one, not faded from black.
     })
-    seguraOFimDoClipeCurto(elements, clip, nativeSpeech(clip)) // KINEO-FRENTE-A-SEM-LOOP-0311
+    seguraOFimDoClipeCurto(elements, clip, nativeSpeech(clip), isLast ? null : sceneStarts[i + 1]) // KINEO-FRENTE-A-SEM-LOOP-0311 · KINEO-RABO-NAO-PASSA-1811
   })
 
   // Track 3 — readability overlays (same as the standard builder).
