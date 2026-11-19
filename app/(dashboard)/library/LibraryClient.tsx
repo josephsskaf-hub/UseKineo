@@ -19,7 +19,8 @@ import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { trackEvent } from '@/lib/analytics'
 import { buildStudioSeriesReviewHref } from '@/lib/navigation/studioSeriesReview'
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
-import { downloadVideoFile } from '@/lib/videoDownload' // KINEO-DOWNLOAD-CELULAR-1911 — era: downloadHref (o módulo único já baixa pelo nosso domínio)
+import { downloadHref } from '@/lib/downloadNosso' // KINEO-DOWNLOAD-NOSSO-1311 — baixar pelo nosso domínio, nunca o endereço do Supabase
+import { downloadVideoFile } from '@/lib/videoDownload' // KINEO-DOWNLOAD-CELULAR-1911 — só para clipe e anúncio
 
 type Tab = 'all' | 'videos' | 'ads' | 'clips' | 'images' | 'audio' // KINEO-LIBRARY-TUDO-3110 — anúncios e clipes ganham aba própria
 
@@ -58,8 +59,23 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
       .catch(() => {})
   }, [])
   // KINEO-NOITE2-2026-08-17 (#1) — download de verdade (blob) na estante.
-  // KINEO-DOWNLOAD-CELULAR-1911 — pelo módulo único (lib/videoDownload.ts): eventos, folha do iPhone e o link de resgate. Era: fetch + blob + window.open, sem evento.
+  // KINEO-DOWNLOAD-CELULAR-1911 (volta do revisor 19/11): imagem e áudio seguem neste caminho, SEM evento de vídeo (video_downloaded decide e-mail e funil).
   async function dl(url: string, filename: string) {
+    try {
+      const res = await fetch(url)
+      if (!res.ok) throw new Error('fetch failed')
+      const blob = await res.blob()
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000)
+    } catch { window.open(downloadHref(url, filename, 'library'), '_blank', 'noopener') }
+  }
+  // KINEO-DOWNLOAD-CELULAR-1911 — só o VÍDEO (clipe e anúncio, .mp4) passa pelo módulo único: eventos, folha do iPhone e o link de resgate.
+  async function dlVideo(url: string, filename: string) {
     await downloadVideoFile({ url, filename, exportType: 'current_asset', surface: 'library' })
   }
 
@@ -129,7 +145,7 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
               <video src={comPrimeiroQuadro(c.video_url)} controls playsInline preload="metadata" style={{ width: '100%', borderRadius: 10, display: 'block', background: '#000' }} />
               <p className="library-asset-model">{c.label} · {c.seconds} s</p>
               <div className="row library-asset-actions" style={{ marginTop: 8 }}>
-                <button type="button" className="pill" onClick={() => dl(c.video_url!, `kineo-clip-${c.id.slice(0, 6)}.mp4`)}><ControlIcon name="download" /> <UiLabel>Download</UiLabel></button>
+                <button type="button" className="pill" onClick={() => dlVideo(c.video_url!, `kineo-clip-${c.id.slice(0, 6)}.mp4`)}><ControlIcon name="download" /> <UiLabel>Download</UiLabel></button>
                 <Link className="pill" style={{ textDecoration: 'none' }} href="/clips"><UiLabel>Clips</UiLabel> ↗</Link>
               </div>
             </div>
@@ -250,7 +266,7 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
                   <video src={src ?? undefined} poster={v.thumbnail_url ?? undefined} controls playsInline preload="metadata" style={{ width: '100%', borderRadius: 10, display: 'block', background: '#000' }} />
                   <p className="library-asset-model">{v.title ?? 'Product ad'}</p>
                   <div className="row library-asset-actions" style={{ marginTop: 8 }}>
-                    <button type="button" className="pill" onClick={() => dl(src!, `kineo-ad-${v.id.slice(0, 6)}.mp4`)}><ControlIcon name="download" /> <UiLabel>Download</UiLabel></button>
+                    <button type="button" className="pill" onClick={() => dlVideo(src!, `kineo-ad-${v.id.slice(0, 6)}.mp4`)}><ControlIcon name="download" /> <UiLabel>Download</UiLabel></button>
                     <Link className="pill" style={{ textDecoration: 'none' }} href="/ads/new"><UiLabel>Product ads</UiLabel> ↗</Link>
                   </div>
                 </div>

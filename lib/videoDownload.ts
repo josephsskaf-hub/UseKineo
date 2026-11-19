@@ -190,8 +190,19 @@ export function resultadoDaFolha(err: unknown): ResultadoDaFolha {
   if (name === 'NotAllowedError') return 'needs_tap'
   return 'failed'
 }
+/**
+ * KINEO-DOWNLOAD-CELULAR-1911 (volta do revisor 19/11) — o blob é VÍDEO? Tipo video/*, ou tipo vazio/genérico com nome de vídeo (.mp4 .mov .webm .m4v). Imagem e áudio nunca: nem
+ * folha "Save video", nem video_downloaded (o evento decide e-mail e funil).
+ */
+export function ehBlobDeVideo(type: unknown, filename: string): boolean {
+  const t = typeof type === 'string' ? type.trim().toLowerCase() : ''
+  if (t.startsWith('video/')) return true
+  if (t !== '' && t !== 'application/octet-stream' && t !== 'binary/octet-stream') return false
+  return /\.(mp4|mov|webm|m4v)$/i.test(filename)
+}
 function arquivoParaAFolha(blob: Blob, filename: string): File | null {
   try {
+    if (!ehBlobDeVideo(blob.type, filename)) return null // KINEO-DOWNLOAD-CELULAR-1911 (volta do revisor 19/11)
     const type = typeof blob.type === 'string' && blob.type.startsWith('video/') ? blob.type : 'video/mp4'
     return new File([blob], filename, { type })
   } catch {
@@ -1022,6 +1033,11 @@ async function runDownload(
         /* ignore */
       }
     }, 4000)
+    // KINEO-DOWNLOAD-CELULAR-1911 (volta do revisor 19/11) — defesa dupla: o arquivo salvou, mas não é vídeo (imagem, áudio): evento próprio, nunca video_downloaded nem o anúncio.
+    if (!ehBlobDeVideo(blob.type, filename)) {
+      fire('media_downloaded_not_video', { ...base, method: 'blob', bytes: blob.size, blob_type: typeof blob.type === 'string' ? blob.type.slice(0, 40) : null })
+      return 'blob'
+    }
 
     fire('video_downloaded', {
       ...base,

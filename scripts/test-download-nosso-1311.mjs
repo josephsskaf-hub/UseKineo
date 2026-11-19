@@ -118,9 +118,9 @@ async function bateria(over = {}) {
       ['app/(dashboard)/ads/v2/AdsV2AfterDelivery.tsx', /downloadHref\(v\.video_url,/, /href=\{v\.video_url\}/],
       ['app/film-complete/page.tsx', /downloadHref\(videoUrl,[\s\S]*downloadHref\(sourceUrl,/, /href=\{videoUrl\}/],
       ['components/growth/DownloadUpsell.tsx', /downloadHref\(hdUrl,/, /href=\{hdUrl\}/],
-      // REANCORADO 19/11 (KINEO-DOWNLOAD-CELULAR-1911): a estante passou a baixar pelo baixador da casa, cuja aba de reserva e link manual vão pela rota
-      // (checado no bloco abaixo); o endereço cru continua proibido.
-      ['app/(dashboard)/library/LibraryClient.tsx', /downloadVideoFile\(\{ url, filename, exportType: 'current_asset', surface: 'library' \}\)/, /window\.open\(url,/],
+      // KINEO-DOWNLOAD-CELULAR-1911 (volta do revisor 19/11): a âncora original volta — imagem e áudio da estante seguem pela rota; o vídeo passa pelo baixador da casa
+      // (test-download-celular-1911, caso 6).
+      ['app/(dashboard)/library/LibraryClient.tsx', /window\.open\(downloadHref\(url,/, /window\.open\(url,/],
       ['app/(dashboard)/audio/AudioClient.tsx', /window\.open\(downloadHref\(url,/, /window\.open\(url,/],
       ['app/(dashboard)/images/ImagesClient.tsx', /window\.open\(downloadHref\(url,/, /window\.open\(url,/],
     ]

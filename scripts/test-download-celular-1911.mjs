@@ -27,7 +27,7 @@ const UA = {
 const erro = (name) => Object.assign(new Error(name), { name })
 const tick = () => new Promise((r) => setImmediate(r))
 
-function mundo({ ua, touch = 5, share = 'ok', canShare = true }) {
+function mundo({ ua, touch = 5, share = 'ok', canShare = true, tipo = 'video/mp4' }) {
   const w = { events: [], shares: [], anchorClicks: [], opened: [], gesto: false }
   const achar = (e, pred) => { for (const c of e.children) { if (pred(c)) return c; const r = achar(c, pred); if (r) return r } return null }
   const el = (tag) => {
@@ -67,7 +67,7 @@ function mundo({ ua, touch = 5, share = 'ok', canShare = true }) {
   }
   class FakeURL extends URL { static createObjectURL() { return 'blob:https://usekineo.com/x' } static revokeObjectURL() {} }
   const window = { location: { pathname: '/generate' }, open: (u) => { w.opened.push(u); return null } }
-  const fetch = async () => ({ ok: true, status: 200, blob: async () => new Blob([new Uint8Array(2048)], { type: 'video/mp4' }) })
+  const fetch = async () => ({ ok: true, status: 200, blob: async () => new Blob([new Uint8Array(2048)], { type: tipo }) })
   const timers = { setTimeout: () => 0, clearTimeout() {}, setInterval: () => 0, clearInterval() {} }
   w.document = document
   w.painel = () => document.getElementById('kineo-manual-download')
@@ -80,7 +80,7 @@ function carregar(w, fonte) {
   new Function('require', 'module', 'exports', 'process', js(lf('lib/downloadNosso.ts')))(() => ({}), nosso, nosso.exports, { env: { NEXT_PUBLIC_SUPABASE_URL: 'https://cqqukkvjjrguayiyjvhh.supabase.co' } })
   const req = (m) => {
     if (m === '@/lib/analytics') return { trackEvent: async (name, metadata) => { w.events.push({ name, metadata }) } }
-    if (m === '@/lib/postVideoSignal') return { anunciarVideoEntregue: () => {} }
+    if (m === '@/lib/postVideoSignal') return { anunciarVideoEntregue: () => { w.anunciados = (w.anunciados ?? 0) + 1 } }
     if (m === '@/lib/downloadNosso') return nosso.exports
     throw new Error('import inesperado ' + m)
   }
@@ -91,7 +91,7 @@ function carregar(w, fonte) {
   return mod.exports
 }
 
-const baixar = (M) => M.downloadVideoFile({ url: URL_VIDEO, filename: 'my-film.mp4', exportType: 'clean', surface: 'done_screen', videoId: 'v1' })
+const baixar = (M, filename = 'my-film.mp4') => M.downloadVideoFile({ url: URL_VIDEO, filename, exportType: 'clean', surface: 'done_screen', videoId: 'v1' })
 const ev = (w, n) => w.events.filter((e) => e.name === n)
 
 async function bateria(over = {}) {
@@ -157,6 +157,25 @@ async function bateria(over = {}) {
     if (!a || !/\/api\/download\?|download=/.test(a.attrs.href)) throw new Error('sem o link que abre o MP4')
     if (!box.children.some((c) => c.textContent === 'Opens the video in a new tab. Tap Share, then Save Video.')) throw new Error('sem a linha do iPhone')
   })
+  await check('(4c) canShare recusa o arquivo: nenhuma folha, caminho de sempre', async () => { // KINEO-DOWNLOAD-CELULAR-1911 (volta do revisor 19/11) (R4)
+    const w = mundo({ ua: UA.iphone, share: 'ok', canShare: false })
+    const r = await baixar(carregar(w, fonte))
+    if (r !== 'blob' || w.shares.length || w.anchorClicks.length !== 1 || ev(w, 'video_downloaded')[0]?.metadata.share_sheet !== 'unsupported') throw new Error(`desfecho ${r}, folhas ${w.shares.length}`)
+  })
+  for (const [nome, ua, tipo, arquivo] of [['iPhone PNG', UA.iphone, 'image/png', 'kineo-image-1.png'], ['iPhone MP3', UA.iphone, 'audio/mpeg', 'kineo-audio-1.mp3'], ['computador PNG', UA.mac, 'image/png', 'kineo-image-1.png']]) {
+    await check(`(7) ${nome} pelo módulo: zero folha, zero video_downloaded, zero anúncio`, async () => { // KINEO-DOWNLOAD-CELULAR-1911 (volta do revisor 19/11)
+      const w = mundo({ ua, touch: ua === UA.mac ? 0 : 5, share: 'ok', tipo })
+      const r = await baixar(carregar(w, fonte), arquivo)
+      if (w.shares.length) throw new Error('imagem/áudio foi à folha "Save video"')
+      if (ev(w, 'video_downloaded').length || w.anunciados) throw new Error('imagem/áudio virou video_downloaded')
+      if (r !== 'blob' || !ev(w, 'media_downloaded_not_video').length || w.anchorClicks[0]?.download !== arquivo) throw new Error('desfecho ' + r)
+    })
+  }
+  await check('(8) mp4 servido como octet-stream ainda é vídeo', async () => { // KINEO-DOWNLOAD-CELULAR-1911 (volta do revisor 19/11)
+    const w = mundo({ ua: UA.iphone, share: 'ok', tipo: 'application/octet-stream' })
+    const r = await baixar(carregar(w, fonte))
+    if (r !== 'blob' || w.shares[0]?.data?.files?.[0]?.type !== 'video/mp4' || ev(w, 'video_downloaded')[0]?.metadata.method !== 'share_sheet') throw new Error('desfecho ' + r)
+  })
   await check('(4b) folha que falha: cai no caminho de sempre com o painel', async () => {
     const w = mundo({ ua: UA.iphone, share: 'falha' })
     const r = await baixar(carregar(w, fonte))
@@ -167,14 +186,20 @@ async function bateria(over = {}) {
       const w = mundo({ ua, touch: nome === 'Android' ? 5 : 0, share: 'ok' })
       const r = await baixar(carregar(w, fonte))
       if (r !== 'blob' || w.shares.length || w.anchorClicks.length !== 1 || w.painel()) throw new Error(`desfecho ${r}, folhas ${w.shares.length}, painel ${!!w.painel()}`)
+      if (w.anchorClicks[0].download !== 'my-film.mp4') throw new Error('o <a download> perdeu o nome do arquivo: ' + w.anchorClicks[0].download) // KINEO-DOWNLOAD-CELULAR-1911 (volta do revisor 19/11) (R7)
       const d = ev(w, 'video_downloaded')[0]?.metadata
       if (d?.method !== 'blob' || d.os !== os || 'share_sheet' in d) throw new Error('evento ' + JSON.stringify(d))
     })
   }
-  await check('(6) a estante baixa pelo módulo único', async () => {
-    const s = over[LIB] ?? lf(LIB)
-    const corpo = s.slice(s.indexOf('  async function dl('), s.indexOf('  async function dl(') + 400)
-    if (!corpo.includes("await downloadVideoFile({ url, filename, exportType: 'current_asset', surface: 'library' })") || /window\.open|res\.blob\(\)/.test(corpo)) throw new Error('a estante baixa por fora')
+  await check('(6) a estante: só clipe e anúncio pelo módulo; imagem e áudio fora, sem evento de vídeo', async () => { // KINEO-DOWNLOAD-CELULAR-1911 (volta do revisor 19/11)
+    const s = (over[LIB] ?? lf(LIB)).replace(/\/\/[^\n]*/g, '')
+    const i = s.indexOf('  async function dlVideo(')
+    if (i < 0 || !s.slice(i, i + 200).includes("await downloadVideoFile({ url, filename, exportType: 'current_asset', surface: 'library' })")) throw new Error('sem o dlVideo pelo módulo')
+    const dl = s.slice(s.indexOf('  async function dl('), i)
+    if (dl.includes('downloadVideoFile') || dl.includes('trackEvent')) throw new Error('imagem/áudio da estante emitem evento de vídeo')
+    const usos = (re) => (s.match(re) ?? []).length
+    if (usos(/onClick=\{\(\) => dlVideo\([^\n]*?\.mp4`\)\}/g) !== 2) throw new Error('clipe e anúncio não passam pelo dlVideo')
+    if (usos(/onClick=\{\(\) => dl\([^\n]*?\.(png|mp3)`\)\}/g) !== 2 || usos(/dlVideo\([^\n]*?\.(png|mp3)`\)/g)) throw new Error('imagem/áudio passam pelo módulo de vídeo')
   })
   return p
 }
@@ -192,6 +217,13 @@ const mutantes = [
   ['Android ganha a folha', VD, "    if (base.os === 'ios') {\n      const file", "    if (base.os !== 'other') {\n      const file"],
   ['iPhone com folha ainda clica no <a download>', VD, "          anunciarVideoEntregue({ method: metodo, ms: comum.ms })\n          return 'blob'", "          anunciarVideoEntregue({ method: metodo, ms: comum.ms })\n          const a0 = document.createElement('a'); a0.href = 'blob:x'; a0.download = filename; a0.click()\n          return 'blob'"],
   ['estante volta a baixar por fora', LIB, "await downloadVideoFile({ url, filename, exportType: 'current_asset', surface: 'library' })", "window.open(url, '_blank')"],
+  ['imagem da estante pelo módulo de vídeo', LIB, "onClick={() => dl(im.upscaled_url ?? im.url,", "onClick={() => dlVideo(im.upscaled_url ?? im.url,"],
+  ['áudio da estante pelo módulo de vídeo', LIB, "onClick={() => dl(a.url,", "onClick={() => dlVideo(a.url,"],
+  ['folha aceita imagem', VD, "    if (!ehBlobDeVideo(blob.type, filename)) return null // KINEO-DOWNLOAD-CELULAR-1911 (volta do revisor 19/11)\n", ''],
+  ['imagem vira video_downloaded', VD, "    if (!ehBlobDeVideo(blob.type, filename)) {\n      fire('media_downloaded_not_video'", "    if (false) {\n      fire('media_downloaded_not_video'"],
+  ['sem canShare', VD, "typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })", "typeof navigator.canShare === 'function'"],
+  ['computador sem o nome do arquivo', VD, "    a.href = blobUrl\n    a.download = filename\n", "    a.href = blobUrl\n"],
+  ['octet-stream deixa de ser vídeo', VD, "  if (t !== '' && t !== 'application/octet-stream' && t !== 'binary/octet-stream') return false", "  if (t !== '') return false"],
 ]
 let mortos = 0
 for (const [n, f, de, para] of mutantes) {
