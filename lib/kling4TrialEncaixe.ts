@@ -18,7 +18,7 @@ export const K4_PISO_DO_ENCAIXE_SEGUNDOS = 10
 export const K4_RODADAS_DO_ENCAIXE = 3 // o modelo erra a contagem por poucas palavras (7 textos reais, 05/11): quem decide é a voz medida, rodada a rodada
 export const K4_PRAZO_DO_ENCAIXE_MS = 30_000
 /** KINEO-RESERVA-GRATIS-1911 (b) [CEO 19/11] — resposta vazia ou reprovada do modelo gasta a rodada em vez de desistir (lib/kling4TrialReserva1911.ts). false = o de antes. */
-export const K4_ENCAIXE_INSISTE_1911: boolean = true
+export const K4_ENCAIXE_INSISTE_1911: boolean = false // DESLIGADO (revisão da CEO 19/11): a régua encaixeServe aprova fecho estragado; ligar só com a régua endurecida
 const MIN_PALAVRAS_POR_CENA = 3
 const FIM_DE_FRASE = /[.!?…؟۔।。！？]["'”’»)\]]*\s*$/u
 
@@ -134,7 +134,7 @@ export async function encaixarFalaNoKling4(a: {
       // 5bc6d6b9 e defd272c, 12-13/11). Na última rodada, a desistência de sempre. A régua e a voz continuam decidindo.
       const insiste = (a.insiste ?? K4_ENCAIXE_INSISTE_1911) && rodada < K4_RODADAS_DO_ENCAIXE
       if (!novas) { if (insiste) continue; return falha('encurtar_sem_texto', { rodada, alvo }) } // KINEO-K4-ENCAIXE-MOTIVO-1111
-      if (!encaixeServe(atuais, novas, a.language)) { if (insiste) continue; return falha('encurtado_reprovado', { rodada, alvo, palavras: conta(novas), porque: porQueOEncaixeNaoServe(atuais, novas, a.language) ?? 'outra' }) } // KINEO-K4-ENCAIXE-MOTIVO-1111 · KINEO-RESERVA-GRATIS-1911 (b): + a regra que reprovou
+      if (!encaixeServe(atuais, novas, a.language)) { if (insiste) continue; return falha('encurtado_reprovado', { rodada, alvo, palavras: conta(novas), ...((a.insiste ?? K4_ENCAIXE_INSISTE_1911) ? { porque: porQueOEncaixeNaoServe(atuais, novas, a.language) ?? 'outra' } : {}) }) } // KINEO-K4-ENCAIXE-MOTIVO-1111 · KINEO-RESERVA-GRATIS-1911 (b): + a regra que reprovou
       const medida = await a.medir(novas.join(' '))
       if (medida.seconds === null) return falha('remedida_falhou', { rodada }) // KINEO-K4-ENCAIXE-MOTIVO-1111
       if (medida.cabe) {

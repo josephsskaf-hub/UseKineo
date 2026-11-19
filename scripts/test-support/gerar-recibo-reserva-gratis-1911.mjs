@@ -3,7 +3,7 @@
 import { execFileSync } from 'node:child_process'
 import { writeFileSync, readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
-const ARQS = ['lib/kling4TrialAsyncStatus.ts', 'lib/kling4TrialScript.ts']
+const ARQS = ['lib/kling4TrialAsyncStatus.ts', 'lib/kling4TrialScript.ts', 'lib/kling4TrialEncaixe.ts', 'app/api/generate-video-cinematic/route.ts'] // revisão da CEO 19/11: o recibo cobre também o encaixe e a rota
 const lf = (t) => String(t).replace(/\r\n/g, '\n')
 const sha = (t) => createHash('sha256').update(t).digest('hex')
 const scope = {}

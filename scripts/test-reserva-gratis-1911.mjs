@@ -65,7 +65,7 @@ async function prova(over = {}) {
 
   // ── (a) a lib ──
   const fix = (o) => R.velocidadeFixadaParaMedir({ candidato: true, verbatim: false, speed: null, ...o })
-  no(R.K4_MEDIR_SEMPRE_1911 !== true || E.K4_ENCAIXE_INSISTE_1911 !== true || R.K4_ESPERA_QUEM_RODA_1911 !== true, 'A0 os três interruptores nascem ligados')
+  no(R.K4_MEDIR_SEMPRE_1911 !== true || E.K4_ENCAIXE_INSISTE_1911 !== false || R.K4_ESPERA_QUEM_RODA_1911 !== true, 'A0 (a) e (c) ligados; (b) DESLIGADO até a régua fechar (revisão da CEO 19/11)')
   no(fix({}) !== true, 'A1 não literal sem speed é medido a 1,0')
   no(fix({ verbatim: true }) !== false, 'A2 roteiro literal fica como estava')
   no(fix({ speed: 1.1 }) !== false || fix({ speed: 0.9 }) !== false, 'A3 roteiro com speed: fica como estava')
@@ -94,7 +94,7 @@ async function prova(over = {}) {
     const roteiro = o.respostas
     const r = await E.encaixarFalaNoKling4({ falas: FALAS, fala: fala(17.2), language: 'en', medir: async () => fala(13.9), agora: () => 0,
       encurtar: async (atuais, alvo) => { const resp = roteiro[Math.min(chamadas, roteiro.length - 1)]; chamadas++; return resp === null ? null : resp(atuais, alvo) },
-      aoFalhar: (m, d) => falhas.push({ m, d }), ...(o.insiste === undefined ? {} : { insiste: o.insiste }) })
+      aoFalhar: (m, d) => falhas.push({ m, d }), ...(o.insiste === undefined ? { insiste: true } : o.insiste === 'padrao' ? {} : { insiste: o.insiste }) })
     return { r, falhas, chamadas }
   }
   let x = await rodar({ respostas: [ruim, curto] })
@@ -105,6 +105,8 @@ async function prova(over = {}) {
   no(x.r !== null || x.chamadas !== 3 || x.falhas.length !== 1 || x.falhas[0].m !== 'encurtado_reprovado' || x.falhas[0].d?.porque !== 'palavra_nova' || x.falhas[0].d?.rodada !== 3, 'B3 sempre reprovada: 3 rodadas, desiste uma vez com a regra')
   x = await rodar({ respostas: [null] })
   no(x.r !== null || x.chamadas !== 3 || x.falhas.length !== 1 || x.falhas[0].m !== 'encurtar_sem_texto', 'B4 sempre vazia: 3 rodadas e o motivo de sempre')
+  x = await rodar({ respostas: [ruim, curto], insiste: 'padrao' })
+  no(x.r !== null || x.chamadas !== 1 || x.falhas[0]?.m !== 'encurtado_reprovado' || 'porque' in (x.falhas[0]?.d ?? {}), 'B5b padrão (desligado): desiste na 1ª e o evento é o de antes, sem porque')
   x = await rodar({ respostas: [ruim, curto], insiste: false })
   no(x.r !== null || x.chamadas !== 1 || x.falhas[0]?.m !== 'encurtado_reprovado', 'B5 desligado: desiste na 1ª, como antes')
   const semNumero = (l) => [...curto(l).slice(0, 2), 'Stones fall and terrified people run for the exits.']
@@ -113,6 +115,8 @@ async function prova(over = {}) {
   no(E.porQueOEncaixeNaoServe(FALAS, FALAS, 'en') !== 'nao_encurtou', 'B8 não encurtou')
   no(E.porQueOEncaixeNaoServe(FALAS, curto(FALAS).map((f, i) => i ? f : f.replace('.', ' 99.')), 'en') !== 'numero_novo', 'B9 número novo')
   no(E.porQueOEncaixeNaoServe(FALAS, curto(FALAS), 'en') !== null, 'B10 a boa serve')
+  const semFecho = [...curto(FALAS).slice(0, 2), 'And 2000 people run.']
+  no(E.encaixeServe(FALAS, semFecho, 'en') !== false, 'B13 a régua: o fecho que perde as palavras fortes da última frase (fica só o número) é reprovado')
   for (const d of [curto(FALAS), ruim(FALAS), semNumero(FALAS), FALAS, FALAS.slice(0, 2)]) no(E.encaixeServe(FALAS, d, 'en') !== (E.porQueOEncaixeNaoServe(FALAS, d, 'en') === null), 'B11 encaixeServe é a mesma régua')
   // o texto só troca com a voz confirmando (a medida de cada rodada decide)
   const longo = await E.encaixarFalaNoKling4({ falas: FALAS, fala: fala(17.2), language: 'en', medir: async () => fala(16.4), agora: () => 0, encurtar: async (l) => curto(l), aoFalhar: () => {} })
@@ -144,6 +148,14 @@ async function prova(over = {}) {
   y = await avancar(3 * MIN, { status: 'processing', url: null })
   no(y.r.kind !== 'pending' || y.polls !== 1 || y.reserva !== null, 'C9 antes do prazo nada muda')
   no(R.decisaoNoPrazoDoKling4({ status: 'done', temUrl: false, idadeMs: 9 * MIN, prazoMs: 8 * MIN }) !== 'timeout', 'C10 pronto sem URL não entrega')
+  y = await avancar(9 * MIN, { status: 'done', url: 'http://fal.media/x.mp4' })
+  no(y.r.kind === 'kling_done' || y.reserva !== 'timeout', 'C11 URL que não é https no prazo: não entrega, reserva por tempo')
+  { // C12 reserva JÁ comprada por tempo e o Kling 4 que termina depois: não consulta, não entrega o Kling 4, não compra de novo (só retoma a mesma reserva)
+    const a = argsDe(9 * MIN); a.claim.response.kling4_trial.fallback_started = true; a.claim.response.kling4_trial.fallback_reason = 'timeout'
+    let polls = 0, reservas = []
+    const r = await A.advanceKling4TrialStatus(a, { poll: async () => { polls++; return { status: 'done', url: VIDEO } }, fallback: async (inp) => { reservas.push(inp.reason); return { ok: true, pending: false, claim: inp.claim, ambiguous: false, noAccepted: false } } })
+    no(r.kind === 'kling_done' || polls !== 0 || reservas.length !== 1 || reservas[0] !== 'timeout', 'C12 reserva já iniciada por tempo: o Kling 4 atrasado não é entregue nem consultado; só a MESMA reserva segue')
+  }
 
   // ── (a) a ligação na rota ──
   const rota = over['app/api/generate-video-cinematic/route.ts'] ?? read('app/api/generate-video-cinematic/route.ts')
@@ -174,6 +186,9 @@ const MUT = [
   ['B: sem a regra do número do final', 'lib/kling4TrialEncaixe.ts', (s) => s.replace("!finalNovo.has(w))) return 'numero_do_final'", "!finalNovo.has(w) && false)) return 'numero_do_final'")],
   ['C: sem a consulta no prazo', 'lib/kling4TrialAsyncStatus.ts', (s) => s.replace("if (reason === 'timeout' && storedMarker?.fallback_started !== true &&", "if (false && reason === 'timeout' && storedMarker?.fallback_started !== true &&")],
   ['C: rodando vira reserva', 'lib/kling4TrialAsyncStatus.ts', (s) => s.replace("if (decisao === 'esperar') return { kind: 'pending', claim }", '')],
+  ['C (revisor c6): consulta mesmo com a reserva já comprada', 'lib/kling4TrialAsyncStatus.ts', (s) => s.replace("if (reason === 'timeout' && storedMarker?.fallback_started !== true &&", "if (reason === 'timeout' &&")],
+  ['C (revisor c5): aceita URL sem https', 'lib/kling4TrialAsyncStatus.ts', (s) => s.replace("typeof noPrazo.url === 'string' && noPrazo.url.startsWith('https://')", "typeof noPrazo.url === 'string'")],
+  ['B (revisor): régua sem o 1/3 do fecho', 'lib/kling4TrialEncaixe.ts', (s) => s.replace('return !fortes.length || fortes.filter((w) => finalNovo.has(w)).length / fortes.length >= 1 / 3\n}', 'return !fortes.length || fortes.filter((w) => finalNovo.has(w)).length / fortes.length >= 0\n}')],
   ['C: falhou vira tempo', 'lib/kling4TrialAsyncStatus.ts', (s) => s.replace("if (decisao === 'provider_failed') reason = 'provider_failed'", '')],
   ['D: rota mede sem fixar', 'app/api/generate-video-cinematic/route.ts', (s) => s.replace('if (velocidadeFixada1911) a = { ...a, scriptSpeed: 1 }', '')],
   ['D: rota sem piso', 'app/api/generate-video-cinematic/route.ts', (s) => s.replace('fala = falaCurtaSemEscala(fala, velocidadeFixada1911)', '')],
