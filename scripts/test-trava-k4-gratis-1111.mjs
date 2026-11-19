@@ -70,7 +70,7 @@ async function runServer(S, { userId, email, db = {}, now = Date.parse('2026-11-
   const L = modulo(S.lib)
   const Srv = modulo(S.server, {
     '@/lib/serverEvents': { writeServerEvent: async (e) => { events.push(e); return true } },
-    '@/lib/internalAccounts': { isInternalEmail },
+    '@/lib/internalAccounts': { isInternalEmail, contaDaCasaExata: isInternalEmail }, // KINEO-REGUA-CASA-1911 — a casa pela lista exata
     '@/lib/kling4GratisTrava': L,
   })
   const passa = await Srv.kling4GratisPassaNaTrava(fakeDb(db, reads), { userId, email, now })
@@ -156,7 +156,7 @@ const MUTANTS = [
   ['gmail sem tirar pontos', 'lib', "return `${semMais.replace(/\\./g, '')}@gmail.com`", 'return `${semMais}@gmail.com`'],
   ['googlemail diferente', 'lib', "const GMAIL_DOMAINS = ['gmail.com', 'googlemail.com']", "const GMAIL_DOMAINS = ['gmail.com']"],
   ['sem prova vira Kling 4', 'lib', "  if (p.outrasNaDigitalAntes === null || p.caixasQueJaReceberam === null) m.push('sem_prova')\n", ''],
-  ['casa desviada', 'server', '  if (isInternalEmail(email)) return true\n', ''],
+  ['casa desviada', 'server', '  if (contaDaCasaExata(email)) return true\n', ''],
   ['desvio sem evento', 'server', '  await writeServerEvent({', '  void ({'],
   ['digital conta quem veio depois', 'server', ".gte('created_at', desde).lt('created_at', row.created_at)", ".gte('created_at', desde)"],
   ['rota sem a trava', 'route', 'if (kling4TrialCandidate) kling4TrialCandidate = await kling4GratisPassaNaTrava(', 'if (false) kling4TrialCandidate = await kling4GratisPassaNaTrava('],

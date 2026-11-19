@@ -27,7 +27,7 @@ let pass = 0
 let fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail++; console.log('  FAIL ' + m) } }
 const HOUSE = 'casa@kineo.test'
-const internal = await mod(`export const isInternalEmail = (e) => String(e ?? '').toLowerCase() === '${HOUSE}'`)
+const internal = await mod(`export const isInternalEmail = (e) => String(e ?? '').toLowerCase() === '${HOUSE}'; export const contaDaCasaExata = (e) => String(e ?? '').toLowerCase() === '${HOUSE}'`) // KINEO-REGUA-CASA-1911 — a casa pela lista exata
 const lang = await mod(read('lib/textLanguage.ts'))
 const SRC = { budget: read('lib/kling4TrialBudget.ts'), trial: read('lib/kling4Trial.ts'), sql: read('docs/migracoes-pendentes/20261111_kling4_trial_release.sql') }
 

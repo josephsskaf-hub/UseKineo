@@ -69,7 +69,7 @@ function build(S) {
   const server = modulo(S.server, {
     '@/lib/kling4GratisTeto': lib,
     '@/lib/serverEvents': { writeServerEvent: async (e) => { events.push(e); return true } },
-    '@/lib/internalAccounts': { isInternalEmail },
+    '@/lib/internalAccounts': { isInternalEmail, contaDaCasaExata: isInternalEmail }, // KINEO-REGUA-CASA-1911 — a casa pela lista exata
   })
   return { lib, server, events }
 }

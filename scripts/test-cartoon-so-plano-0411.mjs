@@ -62,7 +62,7 @@ function banco({ plan = 'free', pedidos = [], erroPerfil = false, erroPedidos = 
 }
 const dublesRegra = (db) => ({
   '@supabase/supabase-js': { createClient: () => db },
-  '@/lib/internalAccounts': { isInternalEmail: (e) => e === 'casa@example.org' || String(e).startsWith('test'), INTERNAL_EXACT_EMAILS: ['casa@example.org'] },
+  '@/lib/internalAccounts': { isInternalEmail: (e) => e === 'casa@example.org' || String(e).startsWith('test'), contaDaCasaExata: (e) => e === 'casa@example.org', INTERNAL_EXACT_EMAILS: ['casa@example.org'] },
   '@/lib/serverEvents': { writeServerEvent: async () => true },
   '@/lib/ads/offer': { ADS_ACCESS_COLUMN: 'ads_access_until' },
   '@/lib/emailDisposable': {},
@@ -151,7 +151,7 @@ async function provaDasRotas(mutar = {}) {
   let gravou = 0
   const amostra = (email = 'gente@example.org') => carregador({ mutar, mocks: { ...next,
     '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: { id: 'u', email } } }) } }) },
-    '@/lib/internalAccounts': { isInternalEmail: (x) => x === 'casa@example.org' },
+    '@/lib/internalAccounts': { isInternalEmail: (x) => x === 'casa@example.org', contaDaCasaExata: (x) => x === 'casa@example.org' },
     '@/lib/serverEvents': { writeServerEvent: async () => true },
     '@/lib/kidsVenda/server': { createKidsOrder: async () => { gravou++; return { ok: true, orderId: 'o' } }, kidsSampleEligibility: async () => ({ ok: true }), kidsServiceClient: () => ({}) },
   } })(AMOSTRA)

@@ -131,7 +131,7 @@ checa('só assinaturas com preço de intervalo year', /price\?\.recurring\?\.int
 checa('cota do plano zera (sem rollover) e o comprado sobrevive: UPDATE grava o saldo da regra, nunca soma cega', /const renovacao = renewalBalance\(profile\.video_credits, credits\)/.test(cron) && /update\(\{ video_credits: renovacao\.balance, is_pro: true, plan: tier, cinematic_tokens: annualRefillCinematicTokens\(tier\) \}\)/.test(cron) && !/video_credits \+|video_credits: .*\+ credits/.test(cron))
 checa('razão em events ANTES do grant, com id determinístico da chave', cron.indexOf("from('events').insert(") < cron.indexOf('.update({ video_credits: renovacao.balance') && /eventIdFor\(annualRefillEventKey\(sub\.id, periodStart, month\)\)/.test(cron))
 checa('já concedido (granted) não concede de novo; grant que falhou fica granted:false para a próxima rodada', /if \(alreadyGranted\) continue/.test(cron) && /granted: false/.test(cron) && /granted: true, granted_at/.test(cron))
-checa('guardas do webhook: conta interna fora e assinatura superada não reseta a nova', /isInternalEmail\(profile\.email\)/.test(cron) && /profile\.stripe_subscription_id !== sub\.id/.test(cron))
+checa('guardas do webhook: conta interna fora e assinatura superada não reseta a nova', /contaDaCasaExata\(profile\.email\)/.test(cron) && /profile\.stripe_subscription_id !== sub\.id/.test(cron))
 checa('teto por rodada (sem laço infinito)', /MAX_GRANTS_PER_RUN = 50/.test(cron) && /grants >= MAX_GRANTS_PER_RUN/.test(cron))
 checa('user_id só em formato uuid (events.user_id é uuid)', /UUID\.test\(userId\)/.test(cron))
 
