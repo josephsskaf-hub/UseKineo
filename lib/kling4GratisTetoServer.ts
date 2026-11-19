@@ -4,7 +4,7 @@
 // motivo. Nunca lança: erro de leitura = motor barato.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { writeServerEvent } from '@/lib/serverEvents'
-import { isInternalEmail } from '@/lib/internalAccounts'
+import { contaDaCasaExata } from '@/lib/internalAccounts'
 import {
   KLING4_GRATIS_TETO_1111,
   KLING4_GRATIS_TETO_DESTINO,
@@ -50,7 +50,7 @@ export async function kling4GratisDentroDoTeto(db: SupabaseClient, a: {
 }): Promise<boolean> {
   if (KLING4_GRATIS_TETO_1111 === 'off') return true
   const robo = kling4TetoEhRobo({ modoServico: a.modoServico, generationId: a.generationId })
-  const casa = isInternalEmail(typeof a.email === 'string' ? a.email : null)
+  const casa = contaDaCasaExata(typeof a.email === 'string' ? a.email : null)
   let prova: Kling4TetoProva = { robo, casa, pago: a.pago === true, enviosConta: 0, enviosAparelho: 0 }
   if (!robo && !casa && a.pago !== true) {
     const desde = kling4TetoDesde(a.now ?? Date.now())

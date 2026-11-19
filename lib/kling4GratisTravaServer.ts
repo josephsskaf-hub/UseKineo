@@ -4,7 +4,7 @@
 // (kling4_trial_films → profiles.email, normalizadas). A cada desvio grava UM evento de servidor com os motivos. Nunca lança.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { writeServerEvent } from '@/lib/serverEvents'
-import { isInternalEmail } from '@/lib/internalAccounts'
+import { contaDaCasaExata } from '@/lib/internalAccounts'
 import {
   KLING4_GRATIS_DESVIO_EVENT,
   KLING4_GRATIS_DIGITAL_JANELA_DIAS,
@@ -56,7 +56,7 @@ async function lerProva(db: SupabaseClient, userId: string, email: string | null
 export async function kling4GratisPassaNaTrava(db: SupabaseClient, a: { userId: string; email: string | null | undefined; now?: number }): Promise<boolean> {
   if (KLING4_GRATIS_TRAVA_1111 === 'off') return true
   const email = typeof a.email === 'string' ? a.email : null
-  if (isInternalEmail(email)) return true
+  if (contaDaCasaExata(email)) return true
   const prova = await lerProva(db, a.userId, email, a.now ?? Date.now())
   const motivos = kling4GratisMotivos(prova)
   if (motivos.length === 0) return true

@@ -58,8 +58,8 @@ async function contaDaCasa(admin: SupabaseClient, userId: string): Promise<boole
     const { data } = await admin.auth.admin.getUserById(userId)
     const email = data?.user?.email ?? null
     if (!email) return false
-    const { isInternalEmail } = await import('@/lib/internalAccounts')
-    return isInternalEmail(email)
+    const { contaDaCasaExata } = await import('@/lib/internalAccounts')
+    return contaDaCasaExata(email)
   } catch { return false }
 }
 

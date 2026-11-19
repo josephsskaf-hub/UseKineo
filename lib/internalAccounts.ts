@@ -58,6 +58,14 @@ function likeToRegExp(pattern: string): RegExp {
 const EXACT_SET = new Set(INTERNAL_EXACT_EMAILS.map((e) => e.toLowerCase()))
 const PATTERN_REGEXPS = INTERNAL_LIKE_PATTERNS.map(likeToRegExp)
 
+/** KINEO-REGUA-CASA-1911 — a casa pela LISTA EXATA (INTERNAL_EXACT_EMAILS, todas com conta registrada), sem os padrões LIKE.
+ *  É a régua de tudo que envolve dinheiro, crédito, motor pago ou marca d'água: "test%", "%mailinator%", "joseph+%" casam com
+ *  estranhos que podem se cadastrar (o cadastro confirma o e-mail sozinho). isInternalEmail (larga) fica só para tirar conta de métrica. */
+export function contaDaCasaExata(email: string | null | undefined): boolean {
+  const e = (email ?? '').trim().toLowerCase()
+  return e !== '' && EXACT_SET.has(e)
+}
+
 /** True when the e-mail belongs to an internal (founder/test) account. */
 export function isInternalEmail(email: string | null | undefined): boolean {
   const e = (email ?? '').trim().toLowerCase()
