@@ -141,7 +141,20 @@ const download = readFileSync(path.join(raiz, 'lib/videoDownload.ts'), 'utf8')
 
 checa('importa anunciarVideoEntregue', /import\s*\{\s*anunciarVideoEntregue\s*\}\s*from\s*'@\/lib\/postVideoSignal'/.test(download))
 const chamadas = download.match(/anunciarVideoEntregue\(/g) ?? []
-checa('chama o anúncio exatamente 1 vez', chamadas.length === 1)
+// REANCORADO 19/11 (KINEO-DOWNLOAD-CELULAR-1911): a folha do iPhone é um 2º degrau que PROVA entrega (a folha devolveu sucesso). São 2 anúncios, cada um
+// com o SEU fire('video_downloaded') logo antes e o SEU return 'blob' logo depois; nenhum outro.
+checa('chama o anúncio exatamente 2 vezes (blob e folha do iPhone)', chamadas.length === 2)
+{
+  const pos = [...download.matchAll(/anunciarVideoEntregue\(\{/g)].map((m) => m.index)
+  let antes = 0
+  pos.forEach((i, k) => {
+    const prova = download.lastIndexOf("fire('video_downloaded'", i)
+    const fim = download.indexOf("return 'blob'", i)
+    checa(`anúncio ${k + 1}: a SUA prova de entrega vem logo antes`, prova > antes && download.slice(prova, i).split('\n').length < 30)
+    checa(`anúncio ${k + 1}: return 'blob' logo depois`, fim > i && (k + 1 >= pos.length || fim < pos[k + 1]) && download.slice(i, fim).split('\n').length < 6)
+    antes = i
+  })
+}
 checa('anuncia com method blob', /anunciarVideoEntregue\(\{\s*method:\s*'blob'/.test(download))
 
 // O anúncio tem que estar DEPOIS do fire('video_downloaded') — o único degrau
