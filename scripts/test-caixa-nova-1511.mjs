@@ -94,6 +94,12 @@ function casosC(o) {
   }
   const ex = exemploSoPreenche(o)
   out.push(['C5 o exemplo só PREENCHE a caixa (nunca gera)', ex.pushes === 0 && ex.preenchido])
+  const cards = [...novo.antes.matchAll(/<button[^>]*data-cx-exemplo[^>]*>([\s\S]*?)<\/button>/g)]
+  out.push(['C6 selo e título do palco ficam fora da área de vídeo',
+    /<aside class="cx-palco"[^>]*>\s*<header class="cx-palco-caption">[\s\S]*?Film example[\s\S]*?<\/header>\s*<div class="cx-palco-video"><video/.test(novo.antes)])
+  out.push(['C7 os quatro cartões guardam o título para acessibilidade sem repeti-lo visualmente',
+    cards.length === 4 && cards.every(([, card]) => /<span class="sr-only">[^<]+<\/span>/.test(card) &&
+      /<span class="cx-exemplo-nome">(?:[\s\S]*?<\/span>)?<\/span>\s*<span class="sr-only">/.test(card))])
   return out
 }
 
@@ -138,6 +144,8 @@ const MUTANTES = [
   ['M6 o pedido mudou no StudioSimples', mut('components/studio/StudioSimples.tsx', "router.push(pedidoDoStudioSimples({ motor, texto: t, duracao, formato, lingua, palavraPorPalavra, campanha }))", "router.push(pedidoDoStudioSimples({ motor, texto: t, duracao: 90, formato, lingua, palavraPorPalavra, campanha }))")],
   ['M7 estorno sumiu do filme', mut('app/api/generate-video-cinematic/route.ts', 'await refundRenderCredits(billingReference)', 'await Promise.resolve(0)')],
   ['M8 preço escrito fora do botão', mut('components/create/CaixaNovaDoFilme.tsx', "valor: `${c.duracao} s`,", "valor: `${c.duracao} s · ✦ 35`,")],
+  ['M9 selo volta para cima do vídeo', mut('components/create/CaixaNovaDoFilme.tsx', '<header className="cx-palco-caption">', '<div className="cx-palco-video"><header className="cx-palco-caption">')],
+  ['M10 título volta a aparecer abaixo da capa', mut('components/create/CaixaDeCriar.tsx', '<span className="sr-only">{e.title}</span>', '<span>{e.title}</span>')],
 ]
 for (const [nome, o] of MUTANTES) {
   let reprovou, porque = ''

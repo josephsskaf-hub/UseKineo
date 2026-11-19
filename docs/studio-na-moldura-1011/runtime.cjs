@@ -33,7 +33,7 @@ function aba(overrides = {}, { now = 1_800_000_000_000, cookie = '', credits = n
   const navigation = { useRouter: () => ({ push: u => log.pushes.push(u), replace: u => log.pushes.push(u), prefetch: () => {} }) }
   // KINEO-TELA-NOVA-CABECALHO-1011 — o saldo do cabeçalho também assina o realtime de profiles; aqui, um cliente que não tem usuário.
   const supabaseClient = { createClient: () => ({ auth: { getUser: async () => ({ data: { user: null } }) }, channel: () => ({ on() { return this }, subscribe() { return this } }), removeChannel: () => {} }) }
-  const m = loader({ react, 'next/link': link, 'next/navigation': navigation, '@/lib/analytics': analytics, '@/lib/supabase/client': supabaseClient }, overrides)
+  const m = loader({ react, 'next/link': link, 'next/navigation': navigation, '@/lib/analytics': analytics, '@/lib/supabase/client': supabaseClient, '@/components/SiteSettingsMenu': { __esModule: true, default: () => null } }, overrides)
   // Globais do navegador, só o que os componentes tocam.
   const g = globalThis
   g.sessionStorage = { getItem: k => log.storage.get(k) ?? null, setItem: (k, v) => log.storage.set(k, String(v)), removeItem: k => log.storage.delete(k) }

@@ -104,10 +104,12 @@ export default function CaixaNovaDoFilme({ c, preco, showRecreate, showClip }: {
         />
       </div>
       {palco ? <aside className="cx-palco" aria-label="Film example">
+        <header className="cx-palco-caption">
+          <span className="cx-palco-tag">Film example</span>
+          <h2 className="cx-palco-nome">{palco.title}</h2>
+        </header>
         <div className="cx-palco-video">
           <video key={palco.id} src={palco.video} poster={palco.poster} muted loop playsInline autoPlay preload="metadata" aria-label={palco.title} />
-          <span className="cx-palco-tag">Film example</span>
-          <p className="cx-palco-nome">{palco.title}</p>
         </div>
         <p className="cx-palco-legenda">Made with Kineo. Tap an example to use its idea.</p>
       </aside> : null}

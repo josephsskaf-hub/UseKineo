@@ -32,7 +32,20 @@ export function Icone({ nome }: { nome: 'trocar' | 'video' | 'seta' | 'voltar' |
 }
 /** KINEO-TELA-RECREATE-1611 [dono 16/11 23:00: "Slam dunk corta a cabeça… Pitch invader cortado"] — o foco da capa por molde, conferido na capa a 1920 px (cartão
  *  ~1,34 deitado) e a 390 px (~1,15): a cabeça inteira com respiro. Molde fora daqui: o foco de sempre (center 42%, studio-media.css). */
-export const FOCO_DA_CAPA: Readonly<Record<string, string>> = { basquete: '50% 30%', 'cachorro-craque-humano': '50% 8%', 'invasor-de-campo': '50% 25%', 'effect-kiss': '50% 20%', 'effect-pet-lion': '50% 0%' }
+export const FOCO_DA_CAPA: Readonly<Record<string, string>> = {
+  basquete: '50% 30%',
+  'cachorro-craque-humano': '50% 8%',
+  'invasor-de-campo': '50% 25%',
+  'sueter-aconchegante': '50% 12%',
+  'escolha-o-favorito': '50% 9%',
+  'selfie-confete': '50% 28%',
+  'effect-cinematic-slowmo': '50% 22%',
+  'effect-restore-old-photo': '50% 23%',
+  'effect-color-burst': '50% 16%',
+  'effect-wings': '50% 16%',
+  'effect-kiss': '50% 20%',
+  'effect-pet-lion': '50% 0%',
+}
 /** KINEO-TELA-RECREATE-1611 [dono: "tem dog goal you, dog goal, tá repetitivo"] — a mesma família de molde (o "· you" e o original) nunca a menos de 5 cartões
  *  (nem na mesma fileira de 4, nem logo embaixo; no celular, nem lado a lado nem em cima). O 1º cartão nunca sai do lugar: a novidade continua em evidência. */
 export function gradeSemParecidosJuntos<T extends { id: string }>(lista: readonly T[], distancia = 5): T[] {

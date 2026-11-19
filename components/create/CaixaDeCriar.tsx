@@ -155,7 +155,8 @@ function Exemplo({ e, ativo, aoEscolher }: { e: ExemploDaCaixa; ativo: boolean; 
     onPointerEnter={() => { const v = video.current; if (v) { v.muted = true; void v.play().catch(() => {}) } }}
     onPointerLeave={() => { const v = video.current; if (v) { v.pause(); v.currentTime = 0 } }}>
     <video ref={video} src={e.video} poster={e.poster} muted loop playsInline preload="none" aria-hidden="true" />
-    <span className="cx-exemplo-nome"><ContagemSocial video={e.video} />{/* KINEO-FILMES-VIRAIS-1511 — views e curtidas reais do post, embaixo, sobre a faixa escura (o topo dos filmes já tem o título gravado) */}{e.title}</span>
+    <span className="cx-exemplo-nome"><ContagemSocial video={e.video} /></span>
+    <span className="sr-only">{e.title}</span>
     <span className="cx-exemplo-usar" aria-hidden="true">{ativo ? 'Selected ✓' : 'Use idea'}</span>
   </button>
 }
