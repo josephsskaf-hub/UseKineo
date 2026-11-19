@@ -13,7 +13,8 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..')
 process.chdir(ROOT)
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8').replace(/\r\n/g, '\n')
 const QP = 'lib/kling4QuatroPlanos.ts', LIB = 'lib/kling4PlanoDaFala1911.ts', ROTA = 'app/api/generate-video-cinematic/route.ts'
-const dados = JSON.parse(read('docs/plano-da-fala-1911/replay-filmes-citados.json'))
+const citados = JSON.parse(read('docs/plano-da-fala-1911/replay-filmes-citados.json')), outros = JSON.parse(read('docs/plano-da-fala-1911/replay-lista-completa.json'))
+const dados = { filmes: [...citados.filmes, ...outros.filmes] } // os 10 Kling 4 grátis com o molde entre os 38 revisados com cena fora ou final fraco (14 dias)
 const STYLE = { look: 'photoreal', suffix: '', lookPhrase: 'photorealistic, ultra-detailed' }
 const MOLDE = 'Main subject of this shot:'
 const cp = (s) => Array.from(s).length
@@ -117,7 +118,7 @@ if (process.argv.includes('--escrever')) {
     'Antigo = o plano ENVIADO à fal (cinematic_dispatch_result). Novo = o montador do A1 sobre as mesmas cenas e o mesmo roteiro, SEM a descrição por seção (só código: o pior caso). Com o descritor por seção ligado, a ação de cada metade vem da descrição dele.', '']
   for (const f of dados.filmes) {
     const n = montar(load, f, { comDescricao: true })
-    linhas.push(`## ${f.gen} (vídeo ${f.video}) · ${f.defeito}`, '')
+    linhas.push(`## ${f.gen}${f.video ? ` (vídeo ${f.video})` : ''} · ${f.defeito}`, '')
     f.enviados.forEach((e, i) => linhas.push(`**Plano ${i + 1}**`, '', `- Antigo (${cp(e)}): ${e}`, `- Novo (${cp(n.enviados[i])}): ${n.enviados[i]}`, ''))
   }
   fs.writeFileSync(path.join(ROOT, 'docs/plano-da-fala-1911/LADO-A-LADO.md'), linhas.join('\n'))
