@@ -64,12 +64,13 @@ async function prova(over = {}) {
   const v = (o) => ({ status: 'JUDGED', falhas: ['d_sujeito'], cenas_reescreveria: [2], d_sujeito: 'a griffin', ...o })
   no(JSON.stringify(L.secoesAReescrever(v(), 4, 4)) !== '[1]', 'A2 plano 2 reprovado = seção 2 (índice 1)')
   no(L.secoesAReescrever(v({ status: 'UNVERIFIED' }), 4, 4).length || L.secoesAReescrever(null, 4, 4).length, 'A3 juiz sem veredito = nada')
-  no(L.secoesAReescrever(v({ falhas: ['a_ficha'] }), 4, 4).length, 'A4 a ficha não é deste passo (fichaAntesDoRender cuida)')
+  // [2º ensaio] a_ficha em PARTE dos planos reescreve só esses (3505835b, de85d652); em TODO plano é a ficha do elenco que está errada (1c770cb7): nada
+  no(L.secoesAReescrever(v({ falhas: ['a_ficha'], cenas_reescreveria: [1, 2, 3, 4] }), 4, 4).length || JSON.stringify(L.secoesAReescrever(v({ falhas: ['a_ficha'], cenas_reescreveria: [4] }), 4, 4)) !== '[3]', 'A4 a ficha: só os planos apontados, nunca todos')
   no(JSON.stringify(L.secoesAReescrever(v({ falhas: ['e_final'], cenas_reescreveria: [] }), 4, 4)) !== '[3]', 'A5 final que não entrega = a última seção')
   no(L.secoesAReescrever(v(), 3, 4).length, 'A6 planos ≠ seções = nada (nunca desloca)')
   no(JSON.stringify(L.secoesAReescrever(v({ cenas_reescreveria: [0, 2, 9, 2] }), 4, 4)) !== '[1]', 'A7 índice fora e repetido descartados')
   const nota = L.notaDaReescrita(v({ falhas: ['d_sujeito', 'e_final'] }))
-  no(!/central subject of the request was not clearly visible/.test(nota) || !/last shot did not deliver/.test(nota) || !/The central subject of the request is: a griffin\./.test(nota), 'A8 a nota diz o que reprovou e o sujeito')
+  no(!/central subject of the request was not clearly visible/.test(nota) || !/last shot did not deliver/.test(nota) || !/The central subject of the request is: a griffin/.test(nota), 'A8 a nota diz o que reprovou e o sujeito')
   // ── B · a cena de uma seção só nasce da descrição da sua seção (promptsDeCenaInteira); a fundida segue pelo A1 ──
   const C = load('@/lib/cinematic/cenaKling4.ts'), STYLE = { look: 'photoreal', suffix: '', lookPhrase: 'photorealistic, ultra-detailed' }
   for (const f of filmes.slice(0, 4)) {
@@ -106,7 +107,7 @@ async function prova(over = {}) {
   const iEnvio = rota.indexOf('const kling4EnvioDoFilme = () =>'), iJuiz = rota.indexOf('const rA2 = await revisarA2DoFilme(false, sujeitoA21911)'), iPago = rota.indexOf('kling4Trial = await orchestrateKling4Trial({')
   no(!(iEnvio > 0 && iJuiz > iEnvio && iPago > iJuiz), 'D5 o juiz do A2 roda depois de montar os planos e ANTES da reserva e do POST pago')
   const bloco = rota.slice(iJuiz, iPago)
-  no(!rota.includes('A2_TETO_DO_JUIZ_MS)\n    const reescreverA2') || !rota.includes('nSecoes: parsedScript.segments.length, rejulgar, julgar: julgarA2, nomes: (planos) => planosComNomeProprio(planos), reescrever: reescreverA2, sujeito: (pl) => (sujeitoA2 ?') || !rota.includes('`${topicoDoDescritorA2(body.original_idea, prompt)}\\n\\n${nota}`, classicVisualPolicy, { numeros: alvo.map((j) => j + 1), total: parsedScript.segments.length }'), 'D6 o juiz tem teto; revisão única (juiz + nome próprio); só as seções apontadas reescritas, pelo modelo forte, com a nota junto do Topic')
+  no(!rota.includes('A2_TETO_DO_JUIZ_MS)\n    const reescreverA2') || !rota.includes('nSecoes: parsedScript.segments.length, rejulgar, julgar: julgarA2, nomes: (planos) => planosComNomeProprio(planos, { hoje: [...kling4PromptsDasCenas1911, ...parsedScript.segments.map((x) => x.pexelsQuery)], pedido:') || !rota.includes('`${topicoDoDescritorA2(body.original_idea, prompt)}\\n\\n${nota}`, classicVisualPolicy, { numeros: alvo.map((j) => j + 1), total: parsedScript.segments.length }'), 'D6 o juiz tem teto; revisão única (juiz + nome próprio); só as seções apontadas reescritas, pelo modelo forte, com a nota junto do Topic')
   no(!/catch \(err\) \{ console\.warn\('\[cinematic\] KINEO-DESCRITOR-FORTE-1911/.test(bloco), 'D7 erro no juiz ou na reescrita não derruba o filme')
   // ── E · o ensaio pelo dry_run, nome próprio, Topic, custo e 'internal' só para a casa ──
   const iDry = rota.indexOf('const a2Ensaio1911 = kling4DescritorForte1911 && descricoesDasSecoesK4 && motor1411.kling4 ?'), iRef = rota.indexOf("const refunded = await releaseBirthClaim('dry_run_no_charge')")
@@ -134,8 +135,8 @@ async function prova(over = {}) {
   no(Math.abs(cu.usd - (2000 * 2.5e-6 + 200 * 10e-6 + 1000 * 0.15e-6 + 100 * 0.6e-6)) > 1e-9 || cu.sem_usage !== 1 || cu.tokens_entrada !== 3000, 'E9 o custo é tokens × preço conferido (sem usage = contado à parte)')
   { const fakeFetch = (achados) => async () => new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ achados }) } }] }), { status: 200, headers: { 'content-type': 'application/json' } })
     const Ln = createOfflineLoader({ globals: { Response, setTimeout, clearTimeout, AbortController }, source: (rel, src) => over[rel] ?? src })('@/' + LIB)
-    const pl = ['Metal Sonic rewrites history in a workshop.', 'A fast blue hedgehog runs through hills.', 'A cat leaps.']
-    const r1 = await Ln.planosComNomeProprio(pl, { apiKey: 'x', fetchImpl: fakeFetch([{ plano: 1, nome: 'Metal Sonic' }, { plano: 2, nome: 'Sonic' }, { plano: 3, nome: 'Garfield' }]) })
+    const pl = ['Photoreal film. Metal Sonic rewrites history in a workshop.', 'Photoreal film. A fast blue hedgehog runs through hills.', 'Photoreal film. A cat leaps.', 'Photoreal film. Identity: the boy, a blocky Roblox boy. The boy runs home.']
+    const r1 = await Ln.planosComNomeProprio(pl, { apiKey: 'x', fetchImpl: fakeFetch([{ plano: 1, nome: 'Metal Sonic', tipo: 'third_party_character' }, { plano: 2, nome: 'Sonic', tipo: 'third_party_character' }, { plano: 3, nome: 'Garfield', tipo: 'third_party_character' }, { plano: 4, nome: 'Roblox', tipo: 'third_party_brand' }]) })
     no(JSON.stringify(r1) !== '[0]', `E10 nome próprio só com a citação presente no texto do plano (inventado = descartado) (${JSON.stringify(r1)})`)
     no((await Ln.planosComNomeProprio(pl, { apiKey: 'x', fetchImpl: async () => { throw new Error('x') } })).length, 'E11 falha da pergunta = nada') }
   { const chamadas = []; let seg = ['a', 'b', 'c', 'd']
@@ -169,7 +170,7 @@ const MUT = [
   ['eco sem a voz medida', ROTA, (s) => s.replace('timingDoEco.pelaVoz = { segundosDaVoz: k4EnsaioRelato.fala_segundos }', 'void 0')],
   ['juiz do A2 sem teto no fetch', ROTA, (s) => s.replace("seconds: duration }, { tetoMs: A2_TETO_DO_JUIZ_MS }), A2_TETO_DO_JUIZ_MS)\n    const reescreverA2", "seconds: duration }), A2_TETO_DO_JUIZ_MS)\n    const reescreverA2")],
   ['juiz sem veredito reescreve', LIB, (s) => s.replace("  if (!v || v.status !== 'JUDGED') return [...alvo]", '  if (!v) return [...alvo]')],
-  ['qualquer falha reescreve', LIB, (s) => s.replace("const falhas = (v.falhas ?? []).filter((f) => FALHAS_QUE_REESCREVEM.includes(f) && !(f === 'd_sujeito' && sujeitoDoJuizEscrito(v, extra.planos)))", 'const falhas = [...(v.falhas ?? [])]')],
+  ['qualquer falha reescreve', LIB, (s) => s.replace("const falhas = (v.falhas ?? []).filter((f) => FALHAS_QUE_REESCREVEM.includes(f) && !(f === 'd_sujeito' && sujeitoDoJuizEscrito(v, extra.planos)) && !(f === 'a_ficha' && apontados.length >= nSecoes))", 'const falhas = [...(v.falhas ?? [])]')],
   ['final fraco não reescreve o fim', LIB, (s) => s.replace("if (falhas.includes('e_final')) alvo.add(nSecoes - 1)", '')],
   ['cena inteira sem a descrição', LIB, (s) => s.replace("g[i].length === 1 && typeof secoes[g[i][0]].descricao === 'string' ? promptDaSecao(p, secoes[g[i][0]]) : p", 'p')],
   ['cena fundida reescrita aqui', LIB, (s) => s.replace("g[i].length === 1 && typeof secoes[g[i][0]].descricao === 'string'", "typeof secoes[g[i][0]].descricao === 'string'")],
@@ -178,10 +179,10 @@ const MUT = [
   ['rota: sem o modelo forte', ROTA, (s) => s.replaceAll('true, true, kling4DescritorForte1911 ? MODELO_DO_DESCRITOR_FORTE : undefined, (u) =>', 'true, true, undefined, (u) =>')],
   ['rota: modelo forte sempre', ROTA, (s) => s.replace("model: modelo ?? 'gpt-4o-mini',", "model: 'gpt-4o',")],
   ['rota: reescrita sem a nota', ROTA, (s) => s.replace('`${topicoDoDescritorA2(body.original_idea, prompt)}\\n\\n${nota}`, classicVisualPolicy, { numeros: alvo.map((j) => j + 1), total: parsedScript.segments.length }', 'prompt, classicVisualPolicy, { numeros: alvo.map((j) => j + 1), total: parsedScript.segments.length }')],
-  ['rota: sem a checagem de nome próprio', ROTA, (s) => s.replace('nomes: (planos) => planosComNomeProprio(planos), reescrever: reescreverA2, sujeito:', 'nomes: async () => [], reescrever: reescreverA2, sujeito:')],
+  ['rota: sem a checagem de nome próprio', ROTA, (s) => s.replace('nomes: (planos) => planosComNomeProprio(planos, { hoje:', 'nomes: async () => [], _x: (planos) => planosComNomeProprio(planos, { hoje:')],
   ['rota: ensaio sem rejulgar', ROTA, (s) => s.replace('nSecoes: secoes.length, rejulgar: true, julgar,', 'nSecoes: secoes.length, rejulgar: false, julgar,')],
   ['rota: hoje com a descrição', ROTA, (s) => s.replace('const hoje = await montar(parsedScript.segments.map((x) => ({ voiceover: x.voiceover, pexelsQuery: x.pexelsQuery })))', 'const hoje = await montar(parsedScript.segments.map((x) => ({ voiceover: x.voiceover, pexelsQuery: x.pexelsQuery, descricao: x.pexelsQuery })))')],
-  ['lib: nome sem conferir a citação', LIB, (s) => s.replace(' && planos[a.plano - 1].toLowerCase().includes(nome.toLowerCase())) out.add(a.plano - 1)', ') out.add(a.plano - 1)')],
+  ['lib: nome sem conferir a citação', LIB, (s) => s.replace('  if (!re.test(acaoDoPlano(plano))) return false\n', '')],
   ['lib: revisão reescreve duas vezes', LIB, (s) => s.replace('if (a.rejulgar) vf = await cronometro', "if (a.rejulgar) await a.reescrever(alvo, ''); if (a.rejulgar) vf = await cronometro")],
   ['lib: nome sem a nota', LIB, (s) => s.replace('${comNome.length ? ` ${NOTA_DO_NOME_PROPRIO}` : \'\'}', '')],
   ['rota: ensaio aceita descrição incompleta', ROTA, (s) => s.replace('const d = completas1911.descricoes', 'const d = d0 as string[]')],

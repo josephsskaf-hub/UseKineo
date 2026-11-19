@@ -579,6 +579,16 @@ export function promptMostraOSujeito(prompt: string, s: SujeitoObrigatorio): boo
   return s.chaves.length > 0 && s.chaves.every((re) => re.test(t))
 }
 
+/** [ensaio A2 19/11, 2º] o sujeito é do FILME (não de um item de uma lista de fatos) quando a fala da 1ª ou da última seção o cita: b9ddb528 lia "sharks" num vídeo de
+ *  3 fatos e o injetor colou o tubarão no plano do polvo. */
+export function sujeitoDoFilme(falas: ReadonlyArray<string>, s: SujeitoObrigatorio | null | undefined): boolean {
+  return !!s && falas.length > 0 && (falaCita(falas[0] ?? '', s) || falaCita(falas[falas.length - 1] ?? '', s))
+}
+/** [2º ensaio, b4de7d59] o sujeito EXIGIDO no último plano: do filme e, se for coisa/bicho/veículo, só quando o último plano não traz a ficha de um personagem ("a golden door"
+ *  lido como sujeito tirava o menino e a casa do fim). Gente ("hikers") é exigida mesmo com ficha. */
+export function sujeitoExigidoNoUltimo(falas: ReadonlyArray<string>, s: SujeitoObrigatorio | null | undefined, ultimoPlano: string): boolean {
+  return !!s && sujeitoDoFilme(falas, s) && (s.tipo === 'pessoa' || !FICHA_NO_PLANO_RE.test(String(ultimoPlano ?? '')))
+}
 /** A fala cita o sujeito? A palavra do próprio pedido (qualquer língua), a ficha do modelo, ou a família em inglês. */
 function falaCita(fala: string, s: SujeitoObrigatorio): boolean {
   const t = String(fala ?? '')

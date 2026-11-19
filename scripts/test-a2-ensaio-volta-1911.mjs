@@ -137,9 +137,9 @@ async function prova(over = {}) {
       sujeito: (pl) => ({ frase: aviao.frase, noUltimo: S.promptMostraOSujeito(pl[pl.length - 1], aviao) }) })
     no(r2.ultimo_sem_sujeito || quem2.length, 'C2 com o sujeito no último plano, nada a reescrever') }
   { let garantir
-    const segs = [{ voiceover: 'a', pexelsQuery: 'a', descricao: 'Clouds.' }]
+    const segs = [{ voiceover: 'A small plane took off and vanished.', pexelsQuery: 'a', descricao: 'Clouds.' }]
     const flag = { ligado: false }
-    try { garantir = daRota(rota, '    const garantirSujeitoNoUltimo1911 = ', '}\n', 'garantirSujeitoNoUltimo1911', { ultimoComSujeito1911: flag, kling4Sujeito: { r: { obrigatorio: aviao } }, parsedScript: { segments: segs }, promptMostraOSujeito: S.promptMostraOSujeito, comSujeitoNaCena: S.comSujeitoNaCena }) } catch (e) { p.push(`C3 garantirSujeitoNoUltimo1911 não executa: ${e.message}`) }
+    try { garantir = daRota(rota, '    const garantirSujeitoNoUltimo1911 = ', '}\n', 'garantirSujeitoNoUltimo1911', { ultimoComSujeito1911: flag, kling4Sujeito: { r: { obrigatorio: aviao } }, parsedScript: { segments: segs }, promptMostraOSujeito: S.promptMostraOSujeito, comSujeitoNaCena: S.comSujeitoNaCena, sujeitoExigidoNoUltimo: S.sujeitoExigidoNoUltimo }) } catch (e) { p.push(`C3 garantirSujeitoNoUltimo1911 não executa: ${e.message}`) }
     if (garantir) {
       const um = { prompts: ['Photoreal film. Clouds roll.', 'Photoreal film. Ocean waves under a grey sky. no readable text, letters, numbers, labels or signage anywhere in the frame'] }
       garantir(um)
@@ -148,19 +148,19 @@ async function prova(over = {}) {
       no(!um.prompts[1].includes('Main subject clearly visible in frame: a small plane.') || um.prompts[0].includes('plane'), `C4 ligado depois da revisão: o sujeito entra SÓ no último plano (${um.prompts[1]})`)
       const hoje = { prompts: ['Photoreal film. Clouds.', 'Photoreal film. Ocean waves.'] }; delete segs[0].descricao; garantir(hoje)
       no(hoje.prompts[1].includes('plane'), 'C5 sem descrição por seção (o caminho de hoje) = nada muda') }
-    no(!rota.includes('    const ultimoComSujeito1911 = { ligado: false }') || !rota.includes('      garantirSujeitoNoUltimo1911(r3) // [ensaio A2 19/11]') || !rota.includes('        else ultimoComSujeito1911.ligado = true // [ensaio A2 19/11]') || !rota.includes('        ultimoComSujeito1911.ligado = !caiNoHoje1911\n        const vaiAFal = caiNoHoje1911 ? hoje : await montar(secoes)\n        ultimoComSujeito1911.ligado = false'), 'C6 a rota: o sujeito no último plano só liga depois da revisão (envio) e só na montagem final (eco)') }
+    no(!rota.includes('    const ultimoComSujeito1911 = { ligado: false }') || !rota.includes('      garantirSujeitoNoUltimo1911(r3) // [ensaio A2 19/11]') || !rota.includes('        else ultimoComSujeito1911.ligado = !!sujeitoA21911 // [ensaio A2 19/11]') || !rota.includes('        ultimoComSujeito1911.ligado = !caiNoHoje1911 && sujeitoDoFilme(parsedScript.segments.map((x) => x.voiceover), atual.obrigatorio)') || !rota.includes('        const vaiAFal = caiNoHoje1911 ? hoje : await montar(secoes)\n        ultimoComSujeito1911.ligado = false'), 'C6 a rota: o sujeito no último plano só liga depois da revisão (envio) e só na montagem final (eco)') }
 
   // ── D · a reescrita ──
   const sel = (gen, extra) => { const f = COM_A2.find((x) => x.gen === gen); return L.secoesAReescrever(f.juiz, f.novo.length, f.descricoes.length, { planos: f.novo, ...extra }).map((x) => x + 1) }
   no(JSON.stringify(sel('876487b4', { sujeitoConcreto: true })) !== '[3]' || JSON.stringify(sel('44d02f20', { sujeitoConcreto: true })) !== '[4]' || JSON.stringify(sel('c827ec0d', { sujeitoConcreto: true })) !== '[4]', 'D1 reprovação por sujeito sem plano apontado (eram 5 sem reescrita): a última seção, com sujeito concreto')
-  no(JSON.stringify(sel('44d02f20', { sujeitoConcreto: false })) !== '[]', 'D2 sem sujeito concreto lido do pedido ("mystery"): nada a desenhar, nada reescrito')
+  no(JSON.stringify(sel('44d02f20', {})) !== '[4]' || JSON.stringify(sel('1c770cb7', {})) !== '[]', 'D2 [2º ensaio] sem sujeito do leitor também reescreve a última seção (a nota pede o sujeito do juiz em forma concreta); a ficha reprovada em TODO plano (1c770cb7) não reescreve')
   no(JSON.stringify(sel('f133c184', { sujeitoConcreto: true })) !== '[]' || !L.sujeitoDoJuizEscrito(COM_A2.find((x) => x.gen === 'f133c184').juiz, COM_A2.find((x) => x.gen === 'f133c184').novo), 'D3 f133c184: o juiz diz "Mount Vesuvius" ausente com o Vesúvio escrito na ação: a falha não vale')
   // [revisor 19/11, 4ª passada] só a AÇÃO, com fronteira de palavra, sem negação; sujeito vazio nunca anula
   { const v = (d) => ({ status: 'JUDGED', falhas: ['d_sujeito'], cenas_reescreveria: [], d_sujeito: d }), j = L.sujeitoDoJuizEscrito
     no(j(v('plane'), ['Photoreal film. Clouds roll over the sea, with no plane anywhere. no readable text, letters']) || j(v('hikers'), ['Photoreal film. A dark forest without the hikers.']), 'D3b a menção negada não conta ("no plane", "without the hikers")')
     no(j(v('cat'), ['Photoreal film. An education center at dawn.']) || j(v('man'), ['Photoreal film. A woman walks home.']), 'D3c fronteira de palavra ("cat" ≠ "education", "man" ≠ "woman")')
     no(j(v('Sarah'), ['Photoreal film. Identity: Sarah, a woman with red hair. The last photo strip on a table. no readable text']) || j(v('Mount Vesuvius'), ['Photoreal film. Setting: Mount Vesuvius (the real landmark). An empty street at dawn.']), 'D3d o sujeito só na ficha (Identity:) ou no lugar (Setting:) é o sujeito escondido: o juiz vale')
-    no(j(v(''), ['Photoreal film. A plane.']) || j(v('  '), ['x']) || JSON.stringify(L.secoesAReescrever(v(''), 3, 3, { planos: ['a', 'b', 'c'], sujeitoConcreto: true })) !== '[2]', 'D3e sujeito vazio nunca anula o juiz (o mutante R14 do revisor)')
+    no(j(v(''), ['Photoreal film. A plane.']) || j(v('  '), ['x']) || JSON.stringify(L.secoesAReescrever({ ...v(''), cenas_reescreveria: [2] }, 3, 3, { planos: ['a', 'b', 'c'] })) !== '[1]', 'D3e sujeito vazio nunca anula o juiz (o mutante R14 do revisor)')
     no(!j(v('plane'), ['Photoreal film. Medium shot. A small plane skims the waves. no readable text']), 'D3f a menção na ação, sem negação, conta') }
   { const f = COM_A2.find((x) => x.gen === '804e9f0b'), nota = L.notaDaReescrita(f.juiz, {})
     no(!/Each shot keeps exactly who and what its own narration line says; add only what was missing/.test(nota) || /show that subject clearly, doing what each narration line says/.test(nota), 'D4 804e9f0b: a nota não manda pôr o sujeito do juiz em todo plano (a partida do pai virou o Victor no cockpit)') }
@@ -180,9 +180,9 @@ const MUT = [
   ['rota: sem espaço não é pedida de novo', ROTA, (s) => s.replace("        await pedir(fora.map((f) => f.secao), notaDoEspaco(fora.map((f) => ({ numero: f.secao + 1, espaco: f.espaco }))))\n", '')],
   ['rota: aceita a que não coube', ROTA, (s) => s.replace("        if (!c2 || secoesQueNaoCabem(promptsDasCenas, secoes.map((x, j) => ({ ...x, descricao: c2[j] })), falasDasCenas, kling4DescritorForte1911).length) return", '        if (!c2) return')],
   ['rota: injeção ligada na revisão', ROTA, (s) => s.replace('    const ultimoComSujeito1911 = { ligado: false }', '    const ultimoComSujeito1911 = { ligado: true }')],
-  ['rota: injeção no caminho de hoje', ROTA, (s) => s.replace(" && parsedScript.segments.some((x) => typeof (x as { descricao?: unknown }).descricao === 'string') && !promptMostraOSujeito(r.prompts[k], s1911))", ' && !promptMostraOSujeito(r.prompts[k], s1911))')],
+  ['rota: injeção no caminho de hoje', ROTA, (s) => s.replace(" && parsedScript.segments.some((x) => typeof (x as { descricao?: unknown }).descricao === 'string') && !promptMostraOSujeito(r.prompts[k], s1911)", ' && !promptMostraOSujeito(r.prompts[k], s1911)')],
   ['revisão sem o sujeito no último', LIB, (s) => s.replace('  if (extra.ultimoSemSujeito) alvo.add(nSecoes - 1)', '  if (false) alvo.add(nSecoes - 1)')],
-  ['sujeito sem plano não reescreve', LIB, (s) => s.replace("  if (falhas.includes('d_sujeito') && !(v.cenas_reescreveria ?? []).length && extra.sujeitoConcreto !== false) alvo.add(nSecoes - 1)", '')],
+  ['sujeito sem plano não reescreve', LIB, (s) => s.replace("  if (falhas.includes('d_sujeito') && !(v.cenas_reescreveria ?? []).length && norm(v.d_sujeito).length >= 3) alvo.add(nSecoes - 1)", '  if (false) alvo.add(nSecoes - 1)')],
   ['estilo repetido fica no plano com descrição', QP, (s) => s.replace('    const quemA1 = quemSemEstilo(quem)', '    const quemA1 = quem')],
   ['estilo sai também do plano de hoje', QP, (s) => s.replace("  return norm(`${meio} ${luz} ${periodo} ${origem} ${quem} ${lugar} ${acao}", "  return norm(`${meio} ${luz} ${periodo} ${origem} ${quemSemEstilo(quem)} ${lugar} ${acao}")],
   ['juiz: o plano inteiro', LIB, (s) => s.replace('const a = acaoDoPlano(p); for', 'const a = norm(p); for')],
@@ -191,8 +191,8 @@ const MUT = [
   ['juiz: sujeito vazio anula', LIB, (s) => s.replace("  if (!planos?.length || Array.from(d.replace(/[^\\p{L}\\p{N}]+/gu, '')).length < 3) return false\n", "  if (!planos?.length) return false\n")],
   ['rota: a mesma seção 2 vezes', ROTA, (s) => s.replace("        if (fora.some((f) => pedidas.includes(f.secao))) return { descricoes: null, pedidas, motivo: 'descricao_nao_cabe_depois_de_pedir_de_novo' }", '        if (false) return { descricoes: null, pedidas, motivo: \'x\' }')],
   ['rota: sem teto de tempo', ROTA, (s) => s.replace("const resta = DESCRICAO_DE_NOVO_TETO_MS - (Date.now() - t0); if (resta <= 0) return Promise.reject(new Error('prazo'));", 'return p;')],
-  ['juiz contraditório vale', LIB, (s) => s.replace("&& !(f === 'd_sujeito' && sujeitoDoJuizEscrito(v, extra.planos)))", ')')],
-  ['sujeito abstrato reescreve', LIB, (s) => s.replace(' && extra.sujeitoConcreto !== false) alvo.add(nSecoes - 1)', ') alvo.add(nSecoes - 1)')],
+  ['juiz contraditório vale', LIB, (s) => s.replace(" && !(f === 'd_sujeito' && sujeitoDoJuizEscrito(v, extra.planos))", '')],
+  ['a ficha em todo plano reescreve', LIB, (s) => s.replace(" && !(f === 'a_ficha' && apontados.length >= nSecoes))", ')')],
   ['nota antiga', LIB, (s) => s.replace(' Each shot keeps exactly who and what its own narration line says; add only what was missing.', ' Show that subject clearly, doing what each narration line says.')],
   ['nome não é conferido de novo', LIB, (s) => s.replace('    if (a.nomesDeNovo && comNome.length) {', '    if (false) {')],
   ['rota: nome que persiste segue', ROTA, (s) => s.replace("        if ((rA2.nomes_depois ?? []).length) { parsedScript.segments.forEach((x) => { delete (x as { descricao?: unknown }).descricao }); kling4PromptsDasCenas1911.forEach((p, i) => { kling4Prompts[i] = p }) }", '        if (false) {}')],
