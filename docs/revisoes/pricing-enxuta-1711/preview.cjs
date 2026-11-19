@@ -19,7 +19,7 @@ function render(before=false,signedIn=false,active=false,{billing='monthly',orde
  '@/components/InterfaceLanguage':{UiLabel:children,useInterfaceLanguage:()=> 'en'},
  '@/components/FreeTierOfferProvider':{useFreeTierOffer:()=>loader()('lib/freeTierOffer').getFreeTierOffer()},
  '@/components/Kling4PaidNotice':{__esModule:true,default:noop,useKling4PaidAvailability:()=>null},
- '@/components/AppearanceSettings':{AppearanceSettingsButton:noop},
+ '@/components/AppearanceSettings':{AppearanceSettingsButton:noop}, '@/components/SiteSettingsMenu':{__esModule:true,default:noop}, // KINEO-MENU-CONFIG-1811: o botão de configurações entrou no lugar do de aparência
  '@/components/pricing/AnnualOfferCountdown':{AnnualOfferCountdown:noop,useWelcomeOffers:()=>({annual:null,monthly:{deadlineMs:null,ended:false}})},
  '@/lib/growth/useWelcome20Deadline':{useWelcome20Deadline:()=>({label:null,active:false})},
  '@/lib/checkoutTelemetry':{useCheckoutLaunch:()=>({pending:null,launch:()=>{throw Error('checkout forbidden')}})},
