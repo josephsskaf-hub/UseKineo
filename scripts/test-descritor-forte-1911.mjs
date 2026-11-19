@@ -127,7 +127,7 @@ async function prova(over = {}) {
       const cues = ['A boy finds a map in the attic', 'He follows it into the forest', 'A red door waits between two oaks', 'Behind it, his grandfather smiles']
       const parsedScript = { segments: cues.map((c) => ({ voiceover: `${c}.`, pexelsQuery: c })) }
       const scope = { parsedScript, scenes: [{ description: 'a' }, { description: 'b' }, { description: 'c' }], verbatim: true, kling4PlanoPorSecao: true, kling4PlanoVariado: false, kling4PlanoFinal: false,
-        planosPorSecao: Q.planosPorSecao, sujeitoAparenciaLigada: () => false, kling4Sujeito: { r: null }, comSujeitoNasMetades: (x) => x, comSuperficieNoPlano: (x) => x }
+        planosPorSecao: Q.planosPorSecao, sujeitoAparenciaLigada: () => false, kling4Sujeito: { r: null }, comSujeitoNasMetades: (x) => x, comSuperficieNoPlano: (x) => x, garantirSujeitoNoUltimo1911: () => {} }
       const fn = Function(...Object.keys(scope), js)(...Object.values(scope))
       parsedScript.segments.forEach((s, j) => { Object.assign(s, { descricao: `DESCRICAO-DA-SECAO-${j + 1}: a boy with a lantern walks under tall oaks` }) })
       const r = fn({ prompts: ['First scene.', 'Second scene.', 'Last scene.'], approvedStills: [null, null, null], timing: { voiceovers: [`${cues[0]}.`, `${cues[1]}. ${cues[2]}.`, `${cues[3]}.`], wordsPerSecond: 2.5 } })
@@ -208,7 +208,7 @@ const MUT = [
   ['rota: ensaio aceita descrição incompleta', ROTA, (s) => s.replace('const d = completas1911.descricoes', 'const d = d0 as string[]')],
   ['rota: revisão com descrição incompleta', ROTA, (s) => s.replace(" && parsedScript.segments.every((s) => typeof (s as { descricao?: unknown }).descricao === 'string')) {", ') {')],
   ['eco sem o catch', ROTA, (s) => s.replace('})().catch((e) => ({ erro: String(e instanceof Error ? e.message : e).slice(0, 160) })) : null', '})() : null')],
-  ['eco grava evento com os planos', ROTA, (s) => s.replace('        const juizes = [vHoje, r.veredito, r.vereditoFinal] as Array<JuizPlanoVeredito | null>', '        void writeServerEvent({ name: A2_EVENTO, userId: user.id, path: \'/x\', sessionId: generationId, metadata: { planos: atual.planos } })\n        const juizes = [vHoje, r.veredito, r.vereditoFinal] as Array<JuizPlanoVeredito | null>')],
+  ['eco grava evento com os planos', ROTA, (s) => s.replace('        const juizes = [vHoje, r.veredito, r.vereditoFinal, vInjetado] as Array<JuizPlanoVeredito | null>', '        void writeServerEvent({ name: A2_EVENTO, userId: user.id, path: \'/x\', sessionId: generationId, metadata: { planos: atual.planos } })\n        const juizes = [vHoje, r.veredito, r.vereditoFinal, vInjetado] as Array<JuizPlanoVeredito | null>')],
   ['seções copiadas na definição', ROTA, (s) => s.replace('    const kling4PorSecao = (a: {', '    const secoesNaDefinicao1911 = parsedScript.segments.map((x) => ({ ...x })); const kling4PorSecao = (a: {').replace('secoes: parsedScript.segments, objetoConcreto: kling4PlanoVariado })', 'secoes: secoesNaDefinicao1911, objetoConcreto: kling4PlanoVariado })')],
   ['lib: preço errado', LIB, (s) => s.replace("'gpt-4o': { entrada: 2.5e-6, saida: 10e-6 }", "'gpt-4o': { entrada: 0.15e-6, saida: 0.6e-6 }")],
   ['lib: internal para todos', LIB, (s) => s.replace("return modo === 'public' || (modo === 'internal' && contaDaCasa === true)", "return modo === 'public' || modo === 'internal'")],
