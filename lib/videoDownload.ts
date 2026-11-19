@@ -90,7 +90,7 @@ import { trackEvent } from '@/lib/analytics'
 import { anunciarVideoEntregue } from '@/lib/postVideoSignal'
 import { caminhoDoArquivo, downloadHref } from '@/lib/downloadNosso'
 
-export type DownloadSurface = 'done_screen' | 'history' | 'my_videos' | 'ads' | 'clips' | 'spaces' | 'animate' | 'avatar' | 'studio_clip' | 'cartoon' | 'podcast' | 'recreate' // KINEO-DOWNLOAD-CLIPE-3010 — o Clipe baixava por fora e nunca emitia video_downloaded · KINEO-ESTREIA-3110 — as telas que ganharam a estreia baixam pelo mesmo helper
+export type DownloadSurface = 'done_screen' | 'history' | 'my_videos' | 'ads' | 'clips' | 'spaces' | 'animate' | 'avatar' | 'studio_clip' | 'cartoon' | 'podcast' | 'recreate' | 'library' /* KINEO-DOWNLOAD-CELULAR-1911 — + library (a estante baixava por fora, sem evento) */ // KINEO-DOWNLOAD-CLIPE-3010 — o Clipe baixava por fora e nunca emitia video_downloaded · KINEO-ESTREIA-3110 — as telas que ganharam a estreia baixam pelo mesmo helper
 
 /**
  * Desfecho do download. Só `blob` conta como `video_downloaded` — é o único em
@@ -112,6 +112,8 @@ export type DownloadOutcome =
    * toque deixando de ser dano. Ver KINEO-DOWNLOAD-SIMULTANEOUS-DEATH-2026-08-16.
    */
   | 'coalesced'
+  /** KINEO-DOWNLOAD-CELULAR-1911 — iPhone: a folha de compartilhar abriu com o arquivo e a pessoa fechou sem salvar. Não é entrega nem falha do servidor. */
+  | 'share_cancelled'
 
 export interface DownloadVideoOptions {
   url: string
@@ -147,6 +149,68 @@ function deviceClass(): 'mobile' | 'desktop' | 'unknown' {
     return 'desktop'
   } catch {
     return 'unknown'
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-DOWNLOAD-CELULAR-1911 [CEO 19/11: "o download do filme no celular"] — no iPhone o blob com
+// <a download> não põe o vídeo no rolo da câmera: o Safari manda para Arquivos
+// (quando manda) e o navegador de dentro do Instagram e do TikTok ignora. Medido
+// em 14 dias (contas da casa fora): celular 28 com filme pronto → 11 clicaram →
+// 9 com video_downloaded; computador 18 → 12 → 12. As falhas do celular são
+// "Load failed" (o erro do Safari) e o resgate termina em popup barrado.
+// Agora, no iPhone: os bytes chegam → a folha de compartilhar abre com o ARQUIVO
+// ("Salvar vídeo" vai para Fotos). Se o Safari exigir um toque novo (o fetch
+// levou o gesto embora: NotAllowedError), o painel mostra "Save video" e o
+// toque abre a folha. Sem folha (navegador antigo ou de app), o caminho de
+// sempre e um link que abre o MP4 com a linha "Share ▸ Save Video".
+// video_downloaded no iPhone só sai quando a folha devolve sucesso.
+// ═══════════════════════════════════════════════════════════════════════════
+export type DownloadOs = 'ios' | 'android' | 'other'
+export function sistemaDoAparelho(ua: string, touchPoints: number): DownloadOs {
+  if (/iPhone|iPad|iPod/i.test(ua)) return 'ios'
+  // iPadOS 13+ se apresenta como Mac; o toque desempata.
+  if (/Macintosh/i.test(ua) && touchPoints > 1) return 'ios'
+  if (/Android/i.test(ua)) return 'android'
+  return 'other'
+}
+function osClass(): DownloadOs {
+  try {
+    if (typeof navigator === 'undefined') return 'other'
+    return sistemaDoAparelho(navigator.userAgent || '', Number(navigator.maxTouchPoints) || 0)
+  } catch {
+    return 'other'
+  }
+}
+export type ResultadoDaFolha = 'shared' | 'cancelled' | 'needs_tap' | 'failed'
+/** O erro do navigator.share: fechou a folha (AbortError) · sem gesto do usuário (NotAllowedError) · o resto. */
+export function resultadoDaFolha(err: unknown): ResultadoDaFolha {
+  const name = (err as { name?: unknown } | null)?.name
+  if (name === 'AbortError') return 'cancelled'
+  if (name === 'NotAllowedError') return 'needs_tap'
+  return 'failed'
+}
+function arquivoParaAFolha(blob: Blob, filename: string): File | null {
+  try {
+    const type = typeof blob.type === 'string' && blob.type.startsWith('video/') ? blob.type : 'video/mp4'
+    return new File([blob], filename, { type })
+  } catch {
+    return null
+  }
+}
+function folhaAceitaArquivo(file: File): boolean {
+  try {
+    return typeof navigator !== 'undefined' && typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })
+  } catch {
+    return false
+  }
+}
+async function abrirFolha(file: File): Promise<ResultadoDaFolha> {
+  try {
+    await navigator.share({ files: [file] })
+    return 'shared'
+  } catch (err) {
+    return resultadoDaFolha(err)
   }
 }
 
@@ -292,7 +356,7 @@ function isSupabaseHost(url: string): boolean {
   }
 }
 
-type ManualLinkTrigger = 'slow' | 'blob_failed' | 'popup_blocked' | 'unavailable' | 'retry'
+type ManualLinkTrigger = 'slow' | 'blob_failed' | 'popup_blocked' | 'unavailable' | 'retry' | 'ios_check' // KINEO-DOWNLOAD-CELULAR-1911 — + ios_check: o iPhone sem folha baixou pelo blob, que não prova que salvou
 
 function manualLinkTitle(trigger: ManualLinkTrigger): string {
   // 'retry' = o usuário tocou de novo enquanto o primeiro download ainda corre.
@@ -300,6 +364,7 @@ function manualLinkTitle(trigger: ManualLinkTrigger): string {
   // é só quem trouxe o painel para a tela (o relógio ou o dedo).
   if (trigger === 'slow' || trigger === 'retry') return 'Still downloading…'
   if (trigger === 'unavailable') return 'This file is no longer available.'
+  if (trigger === 'ios_check') return 'Didn’t save to Photos?' // KINEO-DOWNLOAD-CELULAR-1911
   return 'Your download didn’t start.'
 }
 
@@ -436,7 +501,9 @@ function showManualDownloadLink(
 
     const hint = document.createElement('div')
     hint.textContent = href
-      ? 'Opens in a new tab. If it plays instead of saving, use your browser’s share or save button.'
+      ? base.os === 'ios' // KINEO-DOWNLOAD-CELULAR-1911 — a linha do iPhone diz o gesto exato
+        ? 'Opens the video in a new tab. Tap Share, then Save Video.'
+        : 'Opens in a new tab. If it plays instead of saving, use your browser’s share or save button.'
       : 'Nothing was charged for this. You can regenerate it from My Videos.'
     hint.style.cssText = 'margin-top:8px;font-size:12px;color:#9ca3af'
     box.appendChild(hint)
@@ -650,12 +717,14 @@ export async function downloadVideoFile(
 ): Promise<DownloadOutcome | null> {
   const { url, filename, exportType, surface, videoId, extra } = opts
   const device = deviceClass()
+  const os = osClass() // KINEO-DOWNLOAD-CELULAR-1911
 
   // Base compartilhada por TODOS os eventos desta função. `export_type` e
   // `video_id` mantêm os nomes históricos.
   const base: Record<string, unknown> = {
     surface,
     device,
+    os, // KINEO-DOWNLOAD-CELULAR-1911 — ios | android | other (aditivo: separa iPhone de Android no funil)
     export_type: exportType,
     filename,
     ...(videoId ? { video_id: videoId } : {}),
@@ -731,6 +800,83 @@ export async function downloadVideoFile(
     // proteção sumiria em silêncio justamente na sessão mais degradada.
     if (inFlightDownloads.get(url)?.token === myToken) inFlightDownloads.delete(url)
   }
+}
+
+/**
+ * KINEO-DOWNLOAD-CELULAR-1911 — o fetch levou o gesto embora e o Safari pede um toque novo para abrir a folha: o painel de sempre (mesmo nó, mesmo
+ * dono) com o botão "Save video", que chama navigator.share DENTRO do toque. Resolve quando a folha volta, quando a pessoa
+ * fecha o painel, troca de página ou passam 3 minutos (nunca fica pendurado).
+ */
+function esperarToqueParaSalvar(file: File, base: Record<string, unknown>, token: number): Promise<ResultadoDaFolha | 'dismissed'> {
+  return new Promise((resolve) => {
+    let fim = false
+    let limite: ReturnType<typeof setTimeout> | undefined
+    let rota: ReturnType<typeof setInterval> | undefined
+    const terminar = (r: ResultadoDaFolha | 'dismissed') => {
+      if (fim) return
+      fim = true
+      try { clearTimeout(limite) } catch { /* ignore */ }
+      try { clearInterval(rota) } catch { /* ignore */ }
+      hideManualDownloadLink(token)
+      resolve(r)
+    }
+    try {
+      if (typeof document === 'undefined' || !document.body || token !== manualLinkToken) return terminar('dismissed')
+      hideManualDownloadLink()
+      const box = document.createElement('div')
+      box.id = MANUAL_LINK_ID
+      box.dataset.token = String(token)
+      box.dataset.trigger = 'share_tap'
+      box.setAttribute('role', 'status')
+      box.style.cssText = 'position:fixed;left:12px;right:12px;bottom:150px;bottom:calc(150px + env(safe-area-inset-bottom));margin:0 auto;max-width:420px;z-index:1200;background:#111827;color:#f9fafb;border:1px solid #374151;border-radius:14px;padding:14px;font-size:14px;line-height:1.45;box-shadow:0 10px 30px rgba(0,0,0,.45)'
+      const title = document.createElement('div')
+      title.setAttribute('data-role', 'title')
+      title.textContent = 'Your video is ready'
+      title.style.cssText = 'font-weight:700;margin-bottom:8px;padding-right:44px'
+      box.appendChild(title)
+      const save = document.createElement('button')
+      save.setAttribute('type', 'button')
+      save.textContent = 'Save video'
+      save.style.cssText = 'display:block;width:100%;text-align:center;background:#f9fafb;color:#111827;font-weight:700;border:0;border-radius:10px;padding:12px 14px;font-size:15px;cursor:pointer'
+      save.addEventListener('click', () => {
+        fire('video_download_manual_link_clicked', { ...base, trigger: 'share_tap' })
+        // DENTRO do toque, sem await antes: é o que o Safari exige.
+        try {
+          navigator.share({ files: [file] }).then(() => terminar('shared'), (err) => {
+            const r = resultadoDaFolha(err)
+            terminar(r === 'cancelled' ? 'cancelled' : 'failed')
+          })
+        } catch {
+          terminar('failed')
+        }
+      })
+      box.appendChild(save)
+      const hint = document.createElement('div')
+      hint.textContent = 'Then choose Save Video to keep it in Photos.'
+      hint.style.cssText = 'margin-top:8px;font-size:12px;color:#9ca3af'
+      box.appendChild(hint)
+      const close = document.createElement('button')
+      close.setAttribute('type', 'button')
+      close.setAttribute('aria-label', 'Dismiss')
+      close.textContent = '×'
+      close.style.cssText = 'position:absolute;top:0;right:0;width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:transparent;border:0;color:#9ca3af;font-size:22px;line-height:1;cursor:pointer'
+      close.addEventListener('click', () => {
+        fire('video_download_manual_link_dismissed', { ...base, trigger: 'share_tap' })
+        terminar('dismissed')
+      })
+      box.appendChild(close)
+      document.body.appendChild(box)
+      fire('video_download_manual_link_shown', { ...base, trigger: 'share_tap' })
+      limite = setTimeout(() => terminar('dismissed'), MANUAL_LINK_AUTO_HIDE_MS)
+      const bornPath = window.location.pathname
+      rota = setInterval(() => {
+        // Outra tela ou outro download levou o painel: este toque não vem mais.
+        if (window.location.pathname !== bornPath || document.getElementById(MANUAL_LINK_ID) !== box) terminar('dismissed')
+      }, 1000)
+    } catch {
+      terminar('failed')
+    }
+  })
 }
 
 async function runDownload(
@@ -827,6 +973,36 @@ async function runDownload(
       // O arquivo continua sendo entregue mesmo se a superfície opcional de
       // compartilhamento não conseguir guardar a referência em memória.
     }
+    // KINEO-DOWNLOAD-CELULAR-1911 — iPhone: a folha de compartilhar com o ARQUIVO ("Salvar vídeo" → Fotos).
+    let folhaNoIphone: 'unsupported' | 'failed' | null = null
+    if (base.os === 'ios') {
+      const file = arquivoParaAFolha(blob, filename)
+      if (file && folhaAceitaArquivo(file)) {
+        clearSlowTimer()
+        stopWatchingVisibility()
+        hideManualDownloadLink(myToken)
+        let metodo: 'share_sheet' | 'share_sheet_tap' = 'share_sheet'
+        let r: ResultadoDaFolha | 'dismissed' = await abrirFolha(file)
+        if (r === 'needs_tap') {
+          metodo = 'share_sheet_tap'
+          r = await esperarToqueParaSalvar(file, base, myToken)
+        }
+        const comum = { ...base, method: metodo, bytes: blob.size, ms: Date.now() - startedAt, hidden_during: hiddenDuring, concurrent_downloads: concurrentAtStart }
+        if (r === 'shared') {
+          fire('video_downloaded', comum)
+          anunciarVideoEntregue({ method: metodo, ms: comum.ms })
+          return 'blob'
+        }
+        if (r === 'cancelled' || r === 'dismissed') {
+          fire('video_download_share_cancelled', { ...comum, how: r })
+          return 'share_cancelled'
+        }
+        fire('video_download_share_failed', comum)
+        folhaNoIphone = 'failed'
+      } else {
+        folhaNoIphone = 'unsupported'
+      }
+    }
     const blobUrl = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = blobUrl
@@ -860,7 +1036,10 @@ async function runDownload(
       // denominador que o gerou.
       hidden_during: hiddenDuring,
       concurrent_downloads: concurrentAtStart,
+      ...(folhaNoIphone ? { share_sheet: folhaNoIphone } : {}), // KINEO-DOWNLOAD-CELULAR-1911
     })
+    // KINEO-DOWNLOAD-CELULAR-1911 — iPhone sem folha: o blob não prova que o vídeo foi para Fotos; o link que abre o MP4 fica na tela com "Share ▸ Save Video".
+    if (folhaNoIphone) showManual('ios_check')
 
     // KINEO-SINAL-POS-ENTREGA-2026-08-31 (sprint-v1v4 #19) — o arquivo chegou.
     // Este e o UNICO ponto do produto que PROVA entrega, e por isso e o unico

@@ -19,7 +19,7 @@ import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { trackEvent } from '@/lib/analytics'
 import { buildStudioSeriesReviewHref } from '@/lib/navigation/studioSeriesReview'
 import { useSeriesDoorSeen } from '@/lib/seriesDoorImpressions'
-import { downloadHref } from '@/lib/downloadNosso' // KINEO-DOWNLOAD-NOSSO-1311 — baixar pelo nosso domínio, nunca o endereço do Supabase
+import { downloadVideoFile } from '@/lib/videoDownload' // KINEO-DOWNLOAD-CELULAR-1911 — era: downloadHref (o módulo único já baixa pelo nosso domínio)
 
 type Tab = 'all' | 'videos' | 'ads' | 'clips' | 'images' | 'audio' // KINEO-LIBRARY-TUDO-3110 — anúncios e clipes ganham aba própria
 
@@ -58,19 +58,9 @@ export default function LibraryClient({ videoCollection }: { videoCollection?: R
       .catch(() => {})
   }, [])
   // KINEO-NOITE2-2026-08-17 (#1) — download de verdade (blob) na estante.
+  // KINEO-DOWNLOAD-CELULAR-1911 — pelo módulo único (lib/videoDownload.ts): eventos, folha do iPhone e o link de resgate. Era: fetch + blob + window.open, sem evento.
   async function dl(url: string, filename: string) {
-    try {
-      const res = await fetch(url)
-      if (!res.ok) throw new Error('fetch failed')
-      const blob = await res.blob()
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      setTimeout(() => URL.revokeObjectURL(a.href), 5000)
-    } catch { window.open(downloadHref(url, filename, 'library'), '_blank', 'noopener') }
+    await downloadVideoFile({ url, filename, exportType: 'current_asset', surface: 'library' })
   }
 
   const loadAll = useCallback(() => {
