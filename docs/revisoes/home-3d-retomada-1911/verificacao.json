@@ -1,0 +1,150 @@
+[
+  {
+    "width": 1920,
+    "theme": "light",
+    "side": "antes",
+    "events": [
+      {
+        "active": true,
+        "ms": 5909.100000023842,
+        "backend": "WebGPU"
+      },
+      {
+        "active": false,
+        "ms": 9015.900000035763
+      }
+    ],
+    "hit": true,
+    "art": [
+      "/screening-room/home-film.css",
+      "/screening-room/home-projection.js",
+      "/screening-room/scene.js",
+      "/screening-room/lituya-h3.webp",
+      "/screening-room/lituya-h3.mp4"
+    ]
+  },
+  {
+    "width": 1920,
+    "theme": "light",
+    "side": "depois",
+    "events": [
+      {
+        "active": true,
+        "ms": 3635.5,
+        "backend": "WebGPU"
+      },
+      {
+        "active": false,
+        "ms": 6742.699999988079
+      },
+      {
+        "active": true,
+        "ms": 14937,
+        "backend": "WebGPU"
+      },
+      {
+        "active": false,
+        "ms": 18043.399999976158
+      }
+    ],
+    "hit": true,
+    "art": [
+      "/screening-room/home-film.css",
+      "/screening-room/home-projection.js",
+      "/screening-room/scene.js",
+      "/screening-room/lituya-h3.webp",
+      "/screening-room/lituya-h3.mp4",
+      "/screening-room/lituya-h3.mp4"
+    ]
+  },
+  {
+    "width": 1920,
+    "theme": "dark",
+    "side": "antes",
+    "events": [
+      {
+        "active": true,
+        "ms": 3989.599999964237,
+        "backend": "WebGPU"
+      },
+      {
+        "active": false,
+        "ms": 7098.199999988079
+      }
+    ],
+    "hit": true,
+    "art": [
+      "/screening-room/home-film.css",
+      "/screening-room/home-projection.js",
+      "/screening-room/scene.js",
+      "/screening-room/lituya-h3.webp",
+      "/screening-room/lituya-h3.mp4"
+    ]
+  },
+  {
+    "width": 1920,
+    "theme": "dark",
+    "side": "depois",
+    "events": [
+      {
+        "active": true,
+        "ms": 3099.800000011921,
+        "backend": "WebGPU"
+      },
+      {
+        "active": false,
+        "ms": 6204.800000011921
+      },
+      {
+        "active": true,
+        "ms": 14409,
+        "backend": "WebGPU"
+      },
+      {
+        "active": false,
+        "ms": 17519.69999998808
+      }
+    ],
+    "hit": true,
+    "art": [
+      "/screening-room/home-film.css",
+      "/screening-room/home-projection.js",
+      "/screening-room/scene.js",
+      "/screening-room/lituya-h3.webp",
+      "/screening-room/lituya-h3.mp4",
+      "/screening-room/lituya-h3.mp4"
+    ]
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "side": "antes",
+    "events": [],
+    "hit": true,
+    "art": []
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "side": "depois",
+    "events": [],
+    "hit": true,
+    "art": []
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "side": "antes",
+    "events": [],
+    "hit": true,
+    "art": []
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "side": "depois",
+    "events": [],
+    "hit": true,
+    "art": []
+  }
+]
