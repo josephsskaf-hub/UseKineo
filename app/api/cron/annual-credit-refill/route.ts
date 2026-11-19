@@ -25,7 +25,7 @@ import { renewalBalance } from '@/lib/credits/renewalBalance' // KINEO-RENOVACAO
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { createHash } from 'node:crypto'
 import { stripe } from '@/lib/stripe'
-import { isInternalEmail } from '@/lib/internalAccounts'
+import { contaDaCasaExata } from '@/lib/internalAccounts'
 import {
   ANNUAL_REFILL_EVENT,
   ANNUAL_REFILL_VERSION,
@@ -106,7 +106,7 @@ export async function GET(req: NextRequest) {
         .eq('id', userId)
         .maybeSingle()
       if (profileError || !profile) { skipped.push({ ...grant, why: 'no_profile' }); continue }
-      if (isInternalEmail(profile.email)) { skipped.push({ ...grant, why: 'internal_account' }); continue }
+      if (contaDaCasaExata(profile.email)) { skipped.push({ ...grant, why: 'internal_account' }); continue }
       if (profile.stripe_subscription_id && profile.stripe_subscription_id !== sub.id) { skipped.push({ ...grant, why: 'superseded_subscription' }); continue }
 
       const metadata = {
