@@ -30,7 +30,8 @@ function load(file, imports, extras = {}) {
   return exports
 }
 const composeClaim = load('lib/composeClaim.ts', { 'node:crypto': crypto })
-const claimLib = load('lib/cinematic/claim.ts', { 'node:crypto': crypto, '@/lib/composeClaim': composeClaim })
+const reservaComImagem = load('lib/cinematic/reservaComImagem2011.ts', {}) // KINEO-RESERVA-COM-IMAGEM-2011 — o claim importa a lib pura da reserva com imagem (só funções puras; desligada = o claim de sempre)
+const claimLib = load('lib/cinematic/claim.ts', { 'node:crypto': crypto, '@/lib/composeClaim': composeClaim, '@/lib/cinematic/reservaComImagem2011': reservaComImagem })
 const morte = load('lib/cinematic/staleSceneDeath.ts', { './claim': claimLib })
 
 // ── formato REAL do claim 0535d5e5 (ids, modelos e URLs copiados do banco, leitura de 03/11) ──
