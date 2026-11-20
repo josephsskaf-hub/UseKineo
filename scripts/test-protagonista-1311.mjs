@@ -51,7 +51,7 @@ async function problemas(mut = {}) {
   if (!rota.includes("if (protagonista1311?.sim) formatoVisual.modo = 'character_story'")) p.push('(b) a rota não troca o modo')
   if (!rota.includes("const storyMode = isStylizedLook(styleAnchor) || formatoVisual.modo === 'character_story' || classifyEngineFit(prompt).verdict === 'stock_cannot_tell'")) p.push('(b) a linha do modo mudou')
   if (rota.indexOf('const sinais1311 =') > rota.indexOf('const storyMode = isStylizedLook')) p.push('(b) os sinais vêm depois do modo')
-  if (!rota.includes('(sinais1311?.elencoBruto as Awaited<ReturnType<typeof pedirElencoSemantico>> | null | undefined) ?? await pedirElencoSemantico(prompt)')) p.push('(d) o elenco semântico lido antes do modo não é reaproveitado')
+  if (!rota.includes('(sinais1311?.elencoBruto as Awaited<ReturnType<typeof pedirElencoSemantico>> | null | undefined) ?? await pedirElencoSemantico(prompt, { contaDaCasa: isDryRunAccount(user.email) })')) /* KINEO-LEITOR-SEGURO-1411 [revisor 19/11]: reancorado — a leitura passa a conta exata do ensaio (modo internal) */ p.push('(d) o elenco semântico lido antes do modo não é reaproveitado')
   if ((rota.match(/leituraPronta1311\(\)\)/g) ?? []).length !== 2) p.push('(d) a leitura do sujeito não é reaproveitada na estrada clássica e no Kling 4')
   if (!rota.includes('if (protagonista1311?.sim && elencoDoPedido.length === 0) { const fichaViva1311 = fichaDoSujeitoVivo(sinais1311?.leitura, pedidoDoCliente); if (fichaViva1311) elencoDoPedido.push(fichaViva1311) }')) p.push('(c) a história sem elenco não ganha a ficha do sujeito vivo')
   // (c) a ficha do sujeito vivo

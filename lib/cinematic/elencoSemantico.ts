@@ -323,12 +323,118 @@ const chave = (p: PersonagemSemantico) => (p.name ?? p.role ?? '').toLowerCase()
 
 // ═══ A rede (uma chamada, 1 tentativa extra só para falha de rede/HTTP/prazo; nunca lança) ═══════════════════════
 export type StatusElencoSemantico = 'ok' | 'sem_chave' | 'falhou' | 'json_invalido' | 'vazio'
-export async function pedirElencoSemantico(texto: string, opts?: { timeoutMs?: number; orcamentoMs?: number; tentativas?: number; fetchImpl?: typeof fetch; apiKey?: string }): Promise<{ elenco: ElencoSemantico | null; status: StatusElencoSemantico; tentativas: number; ms: number; raw: string | null }> {
+/** O que o leitor devolve. KINEO-LEITOR-SEGURO-1411: + quantas foram em paralelo, qual venceu (1, 2, 3…) e o motivo de cada falha ("1:prazo", "2:json"). */
+export interface ResultadoDoLeitor { elenco: ElencoSemantico | null; status: StatusElencoSemantico; tentativas: number; ms: number; raw: string | null; paralelas?: number; venceu?: number | null; motivos?: string[]; venceu_tipo?: TipoDaChamada | null }
+// ═══ KINEO-LEITOR-SEGURO-1411 [CEO 14/11: o leitor faltou em 32 de 203 filmes em 30 dias (16%); em 7 dias, 25 de 168] ═════════════════════
+// cinematic_cast_checked: "falhou" leva 5,1 s em média (p90 6,0 s: o teto), "ok" leva 1,7 s (p90 3,2 s). 27 dos 32 bateram o teto de 6 s (a 1ª passa
+// de 4 s e a 2ª só tem ~2 s); 5 falharam rápido (rede/HTTP) mesmo com a repetição. Sem o leitor o filme cai na reserva sem modelo: o Paris do Logan
+// (d7817298), Navy e Juneau (77c923a8), "Text" e "Rover" como gente.
+// Agora: PEDIDO DE SEGURANÇA — a 1ª chamada sai na hora; se não respondeu em 3,5 s, sai uma 2ª IGUAL em paralelo e fica a primeira VÁLIDA. Teto de 7 s
+// por chamada e 9 s no total. Falha rápida (rede, HTTP) repete na hora, até 2 vezes, com 250 ms de respiro; 429, uma vez depois de 1 s. Nunca mais de 4 chamadas; o relógio de 9 s fecha a leitura mesmo com fetch que ignora o abort. A perdedora é ignorada em silêncio
+// (resposta atrasada, erro ou JSON ruim não troca nada; ao terminar, as que estão no ar são abortadas). A 1ª com JSON inválido espera a 2ª se ela
+// estiver no ar; sem outra no ar, UMA tentativa a mais dentro do orçamento (CEO 19/11, opção B). O resultado diz quantas foram em paralelo, qual venceu e o motivo de cada falha (prazo, rede, http, json).
+// Filme rápido: UMA chamada, o mesmo custo de antes. Interruptor LEITOR_SEGURO_1411: 'off' = a leitura de antes, byte a byte.
+export const LEITOR_SEGURO_1411: 'off' | 'internal' | 'all' = 'internal' // CEO 20/11: 'internal' na integração da prova C (só a conta exata do ensaio); antes 'off' no commit; 'internal' = só a conta exata do ensaio (isDryRunAccount), para a CEO provar antes do sim do dono; 'all' pega TODO filme da rota, pago também
+export const leitorSeguroLigado = (modo: 'off' | 'internal' | 'all', contaDaCasa: boolean): boolean => modo === 'all' || (modo === 'internal' && contaDaCasa === true)
+export const LEITOR_SEGURO_HEDGE_MS = 3_500
+export const LEITOR_SEGURO_PRAZO_MS = 7_000
+export const LEITOR_SEGURO_ORCAMENTO_MS = 9_000
+export const LEITOR_SEGURO_REPETICOES_RAPIDAS = 2
+export const LEITOR_SEGURO_RESPIRO_MS = 250
+/** [revisor 19/11] o pior filme tinha 5 chamadas (1ª lenta e inválida, 2ª e 3ª 503, 4ª inválida, e o B disparava a 5ª): agora nunca passa de 4. */
+export const LEITOR_SEGURO_MAX_CHAMADAS = 4
+/** [revisor 19/11] 429 (limite de taxa): UMA repetição, depois de 1 s — duas em 0,5 s batiam no mesmo limite. A main de hoje também repete uma vez. */
+export const LEITOR_SEGURO_ESPERA_429_MS = 1_000
+/** [revisor 19/11] a versão do cinematic_cast_checked quando o leitor seguro roda (desligado, o evento é o da main, com a versão de sempre). */
+export const CONFERENCIA_ELENCO_VERSAO_LEITOR_SEGURO = 'so_gente_na_ficha_0411_v1+leitor_seguro_1411_v2'
+export type MotivoDaFalha = 'prazo' | 'rede' | 'http' | '429' | 'json'
+/** Quem venceu, sem cruzar: a 1ª chamada, o pedido de segurança, a repetição (falha rápida ou 429) ou a tentativa a mais do JSON inválido (opção B). */
+export type TipoDaChamada = 'principal' | 'seguranca' | 'repeticao' | 'B'
+type Chamada = { ok: true; elenco: ElencoSemantico; raw: string } | { ok: false; motivo: MotivoDaFalha; raw: string | null }
+async function umaChamada(texto: string, key: string, doFetch: typeof fetch, timeoutMs: number, ctrl: AbortController): Promise<Chamada> {
+  let timer: ReturnType<typeof setTimeout> | null = null
+  // [revisor 19/11] o prazo da chamada não depende do fetch obedecer ao abort: a corrida com o timer solta mesmo assim
+  const prazo = new Promise<never>((_, rej) => { timer = setTimeout(() => { ctrl.abort(); rej(new Error('prazo')) }, Math.max(1, timeoutMs)) })
+  prazo.catch(() => { /* quem decide é a corrida abaixo; sem ouvinte, a rejeição tardia derrubaria o processo */ })
+  try {
+    const res = await Promise.race([doFetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      signal: ctrl.signal,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model: ELENCO_SEMANTICO_MODELO, temperature: 0, max_tokens: 700, response_format: { type: 'json_object' }, messages: mensagensDoElencoSemantico(texto) }),
+    }), prazo])
+    if (res.status === 429) return { ok: false, motivo: '429', raw: null }
+    if (!res.ok) return { ok: false, motivo: 'http', raw: null }
+    const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> } // o corpo que pendura é do relógio de 9 s da leitura
+    const raw = data.choices?.[0]?.message?.content ?? ''
+    const elenco = lerElencoSemantico(raw, texto)
+    return elenco ? { ok: true, elenco, raw } : { ok: false, motivo: 'json', raw }
+  } catch {
+    return { ok: false, motivo: ctrl.signal.aborted ? 'prazo' : 'rede', raw: null }
+  } finally {
+    if (timer) clearTimeout(timer)
+  }
+}
+/** A leitura com pedido de segurança. Nunca lança; a chamada que perde nunca muda o resultado depois de decidido. */
+async function pedirElencoSemanticoSeguro(texto: string, key: string, doFetch: typeof fetch, o: { prazoMs: number; orcamentoMs: number; hedgeMs: number; respiroMs: number; rapidas: number }): Promise<ResultadoDoLeitor> {
+  const t0 = Date.now()
+  const restante = () => o.orcamentoMs - (Date.now() - t0)
+  return await new Promise<ResultadoDoLeitor>((resolve) => {
+    let feito = false, ativas = 0, disparadas = 0, rapidas = 0, agendadas = 0, paralelas = 0, jsonDeNovo = false, repetiu429 = false
+    let raw: string | null = null, ultimo: MotivoDaFalha = 'prazo'
+    const motivos: string[] = []
+    const tipos: TipoDaChamada[] = []
+    const controles: AbortController[] = []
+    let hedge: ReturnType<typeof setTimeout> | null = null
+    let relogio: ReturnType<typeof setTimeout> | null = null
+    // o teto total: toda chamada só recebe o que resta dos 9 s (Math.min(o.prazoMs, restante())), inclusive as repetições
+    const fim = (elenco: ElencoSemantico | null, status: StatusElencoSemantico, venceu: number | null) => {
+      if (feito) return
+      feito = true
+      if (hedge) clearTimeout(hedge)
+      if (relogio) clearTimeout(relogio)
+      for (const c of controles) { try { c.abort() } catch { /* a perdedora some em silêncio */ } }
+      resolve({ elenco, status, tentativas: disparadas, ms: Date.now() - t0, raw, paralelas, venceu, motivos: [...motivos], venceu_tipo: venceu ? tipos[venceu - 1] : null })
+    }
+    const talvezAcabe = (m: MotivoDaFalha) => { if (!feito && ativas === 0 && agendadas === 0) fim(null, m === 'json' ? 'json_invalido' : 'falhou', null) }
+    const disparar = (tipo: TipoDaChamada) => {
+      if (feito) return
+      const tempo = Math.min(o.prazoMs, restante())
+      if (tempo < 1 || disparadas >= LEITOR_SEGURO_MAX_CHAMADAS) { talvezAcabe(ultimo); return }
+      disparadas++; ativas++
+      const id = disparadas
+      tipos.push(tipo)
+      const ctrl = new AbortController(); controles.push(ctrl)
+      void umaChamada(texto, key, doFetch, tempo, ctrl).then((r) => {
+        ativas--
+        if (feito) return // a perdedora: ignorada em silêncio
+        if (r.ok) { raw = r.raw; fim(r.elenco, 'ok', id); return }
+        motivos.push(`${id}:${r.motivo}`)
+        ultimo = r.motivo
+        if (r.raw !== null) raw = r.raw
+        const repetir = (ms: number) => { agendadas++; setTimeout(() => { agendadas--; if (!feito) disparar('repeticao'); else talvezAcabe(r.motivo) }, ms) }
+        if ((r.motivo === 'rede' || r.motivo === 'http') && rapidas < o.rapidas && restante() > o.respiroMs + 1) { rapidas++; repetir(o.respiroMs); return }
+        if (r.motivo === '429' && !repetiu429 && restante() > LEITOR_SEGURO_ESPERA_429_MS + 1) { repetiu429 = true; repetir(LEITOR_SEGURO_ESPERA_429_MS); return }
+        // [CEO 19/11, opção B] JSON inválido sem outra chamada no ar: UMA tentativa a mais, se sobra 1 s do orçamento (a temperature 0 pode repetir a mesma resposta)
+        if (r.motivo === 'json' && !jsonDeNovo && ativas === 0 && agendadas === 0 && restante() > 1_000) { jsonDeNovo = true; disparar('B'); return }
+        talvezAcabe(r.motivo)
+      })
+    }
+    // [revisor 19/11] o relógio próprio da leitura: aos 9 s ela acaba, mesmo com uma chamada (ou o corpo dela) pendurada que ignora o abort
+    relogio = setTimeout(() => { motivos.push('teto'); fim(null, 'falhou', null) }, Math.max(1, o.orcamentoMs) + 50) // +50 ms: o prazo de cada chamada (min(7 s, o que resta)) registra o motivo primeiro; o relógio é a rede de baixo
+    disparar('principal')
+    hedge = setTimeout(() => { if (!feito && ativas > 0 && paralelas === 0) { paralelas = 1; disparar('seguranca') } }, o.hedgeMs)
+  })
+}
+// ═══ fim KINEO-LEITOR-SEGURO-1411 (bloco) ═══
+
+export async function pedirElencoSemantico(texto: string, opts?: { timeoutMs?: number; orcamentoMs?: number; tentativas?: number; fetchImpl?: typeof fetch; apiKey?: string; hedgeMs?: number; respiroMs?: number; /** [revisor 19/11] a conta exata do ensaio (isDryRunAccount), para o modo internal */ contaDaCasa?: boolean }): Promise<ResultadoDoLeitor> {
   const t0 = Date.now()
   if (!semTags(texto)) return { elenco: null, status: 'vazio', tentativas: 0, ms: 0, raw: null }
   const key = opts?.apiKey ?? (typeof process !== 'undefined' ? process.env.OPENAI_API_KEY : undefined)
   if (!key) return { elenco: null, status: 'sem_chave', tentativas: 0, ms: 0, raw: null }
   const doFetch = opts?.fetchImpl ?? fetch
+  if (leitorSeguroLigado(LEITOR_SEGURO_1411, opts?.contaDaCasa === true)) return await pedirElencoSemanticoSeguro(texto, key, doFetch, { prazoMs: opts?.timeoutMs ?? LEITOR_SEGURO_PRAZO_MS, orcamentoMs: opts?.orcamentoMs ?? Math.max(LEITOR_SEGURO_ORCAMENTO_MS, opts?.timeoutMs ?? 0), hedgeMs: opts?.hedgeMs ?? LEITOR_SEGURO_HEDGE_MS, respiroMs: opts?.respiroMs ?? LEITOR_SEGURO_RESPIRO_MS, rapidas: opts?.tentativas !== undefined ? Math.max(0, Math.min(3, opts.tentativas) - 1) : LEITOR_SEGURO_REPETICOES_RAPIDAS }) // KINEO-LEITOR-SEGURO-1411
   const max = Math.max(1, Math.min(3, opts?.tentativas ?? ELENCO_SEMANTICO_TENTATIVAS))
   let status: StatusElencoSemantico = 'falhou'
   let raw: string | null = null
