@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { entradaSemConviteDeLetreiro } from '@/lib/semConviteDeLetreiro' // KINEO-H3-LETREIRO-0611
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { RESERVA_COM_IMAGEM_2011, RESERVA_COM_IMAGEM_EVENTO, RESERVA_IMAGEM_ESPERA_DO_DONO_MS, reservaComImagemLigada, cenasSemImagem, desenharImagensDaReserva, estiloDoStillDaReserva } from '@/lib/cinematic/reservaComImagem2011' // KINEO-RESERVA-COM-IMAGEM-2011
+import { RESERVA_COM_IMAGEM_2011, RESERVA_COM_IMAGEM_EVENTO, aindaEsperaODono, horaDoBanco, reservaComImagemLigada, cenasSemImagem, desenharImagensDaReserva, estiloDoStillDaReserva } from '@/lib/cinematic/reservaComImagem2011' // KINEO-RESERVA-COM-IMAGEM-2011
 import { writeServerEvent } from '@/lib/serverEvents' // KINEO-RESERVA-COM-IMAGEM-2011
 import { gravarImagensDaReserva } from '@/lib/cinematic/claim' // KINEO-RESERVA-COM-IMAGEM-2011 [revisor 20/11] — a 2ª CAS (o dono grava as imagens)
 import { RESERVA_H3_MODEL, RESERVA_SEEDANCE_MODEL, entradaDaReserva, loadVerifiedCinematicClaim, modeloDaReservaDoTeste, startKling4TrialFallback, switchKling4TrialToSeedanceFallback, type CinematicClaim } from '@/lib/cinematic/claim'
@@ -67,6 +67,7 @@ export async function ensureKling4TrialFallback(args: {
   reservaComImagem?: boolean
   agora?: () => number
   gravarImagens?: typeof gravarImagensDaReserva
+  horaDoBanco?: (papel: 'dono' | 'espera') => Promise<number | null>
 }): Promise<Kling4FallbackResult> {
   const pending = (claim = args.claim): Kling4FallbackResult => ({ ok: false, claim, pending: true, ambiguous: false, noAccepted: false })
   let loaded: Awaited<ReturnType<typeof loadVerifiedCinematicClaim>>
@@ -95,9 +96,15 @@ export async function ensureKling4TrialFallback(args: {
   const ligadoImagem = args.reservaComImagem ?? reservaComImagemLigada(RESERVA_COM_IMAGEM_2011)
   const dono = randomUUID()
   const agora = args.agora ?? (() => Date.now())
+  // [revisor 20/11, 2ª volta] a hora é a do BANCO (o relógio de cada servidor pode estar adiantado): sem ela, nenhuma reserva de desenho (o caminho de hoje)
+  const hora = args.horaDoBanco ?? ((papel: 'dono' | 'espera') => horaDoBanco(args.db, { userId: args.userId, generationId: args.generationId, papel }))
+  let reservaDoDesenho: { dono: string; desde: string } | null = null
+  if (ligadoImagem && marker.fallback_started !== true && cenasSemImagem(shots).length > 0) {
+    const t = await hora('dono')
+    reservaDoDesenho = t === null ? null : { dono, desde: new Date(t).toISOString() }
+  }
   try {
-    const started = await startKling4TrialFallback({ ...args, originalRequestId: original, reason: args.reason,
-      reservaDoDesenho: ligadoImagem && marker.fallback_started !== true && cenasSemImagem(shots).length > 0 ? { dono, desde: new Date(agora()).toISOString() } : null })
+    const started = await startKling4TrialFallback({ ...args, originalRequestId: original, reason: args.reason, reservaDoDesenho })
     if (!started.ok) return pending(claim)
     claim = started.claim
   } catch { return pending(claim) }
@@ -113,9 +120,9 @@ export async function ensureKling4TrialFallback(args: {
       if (!gravou?.ok) return pending(claim)
       claim = gravou.claim
     } else {
-      // outro dono desenhando: espera; sumido além do teto + folga = assume sem imagem (sem desenhar de novo)
+      // outro dono desenhando: espera; sumido além do teto + folga (na hora do BANCO) = assume sem imagem (sem desenhar de novo)
       const desde = typeof rci.desde === 'string' ? Date.parse(rci.desde) : NaN
-      if (Number.isFinite(desde) && agora() - desde < RESERVA_IMAGEM_ESPERA_DO_DONO_MS) return pending(claim)
+      if (await aindaEsperaODono(desde, agora(), () => hora('espera'))) return pending(claim)
       let assumiu: Awaited<ReturnType<typeof gravarImagensDaReserva>> | null = null
       try { assumiu = await (args.gravarImagens ?? gravarImagensDaReserva)({ ...args, dono: String(rci.dono), imagens: null, usd: 0 }) } catch { assumiu = null }
       if (!assumiu?.ok) return pending(claim)

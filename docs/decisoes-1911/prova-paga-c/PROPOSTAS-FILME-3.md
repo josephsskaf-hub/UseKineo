@@ -84,3 +84,101 @@ Folhas na mesma pasta: 4 quadros por clipe (0,5 · 1,8 · 3,1 · 4,4 s), uma lin
 ## 6. O relógio da reserva
 - Em 30 dias, **1 de 103** filmes de cliente com Kling 4 passou de 10 min entre o envio e a montagem.
 - 4 foram à reserva por tempo, depois de 8 min.
+
+## 7. [revisor 20/11, 2ª volta] O que falta para LIGAR a reserva com imagem
+Esta volta conserta os itens 1 a 3 no código e deixa os itens 4 e 5 só escritos. O interruptor continua `'off'`. Guardião: `scripts/test-reserva-com-imagem-2011.mjs`, 38 mutantes, todos vermelhos.
+
+### 7.1 O status do claim na 2ª CAS (consertado)
+- **O defeito:** `gravarImagensDaReserva` lia o claim e gravava 'pronta' sem conferir o status. Se o reembolso caía no meio do desenho, a 2ª CAS gravava 'pronta' num claim 'released' e o envio postava os 3 clipes do H3. A troca final recusava, e o filme ficava sem entrega.
+- **O conserto:** a transição virou pura, `transicaoDasImagensDaReserva` em `lib/cinematic/claim.ts`.
+  - Ela exige o status `done` ou `settled`, como a 1ª CAS e a troca final.
+  - Confere também a versão do teste, o motor, a reserva começada e o dono.
+  - A gravação real usa essa transição, e o mundo falso do guardião também.
+- **Por que só a leitura falhava:** o `authority` é a assinatura do claim inteiro. O reembolso muda o `authority`, então um reembolso entre a leitura e a escrita já perdia a CAS. Só faltava conferir o status lido.
+- **Provas:** U7, U8 e U9 testam a transição. R1 reembolsa durante o desenho: nenhum clipe vai à fal, e o gasto de US$ 0,06 fica no evento.
+- **Mutantes vermelhos:** sem a conferência; só o 'released' recusado (lista negativa); a gravação real sem a transição.
+
+### 7.2 A lista positiva só do nosso projeto e do bucket broll (consertado)
+- A regra agora aceita só `https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/broll/ai-still/<nome>.(png|jpg|jpeg|webp)`, com o fim ancorado.
+- É o projeto de produção. Lá o `persistFastStill` grava, e é lá que estão os objetos `broll/ai-still/` de hoje (conferido em `storage.objects`).
+- Noutro ambiente, a imagem é recusada e o filme segue o caminho de hoje.
+- **Provas:**
+  - U2b recusa outro projeto `*.supabase.co`.
+  - U2c recusa outro bucket (videos, avatars, brolls), outra pasta, URL assinada, `../` e cauda `?x=`.
+  - U2d confere que a regra nomeia o projeto.
+- **Mutantes vermelhos:** qualquer bucket no lugar do broll; qualquer projeto; qualquer pasta; sem o `$`.
+
+### 7.3 O relógio: a hora do banco (consertado, sem migration)
+- **Por que não dá now() na CAS:**
+  - O banco não tem função de hora exposta (conferido em `pg_proc`: nenhuma função em public devolve timestamp).
+  - A CAS do claim é um UPDATE do PostgREST, que não calcula now() nem no filtro nem no valor.
+  - A tabela `events` não tem `updated_at` nem gatilho de hora.
+  - Uma função `agora()` pediria migration, e migration pede a revisão do outro CEO.
+- **O que foi feito:**
+  - O `now()` do Postgres chega pelo `created_at` padrão de uma linha `kling4_reserva_relogio` em events. A linha não manda `created_at`, e o evento é só do servidor.
+  - O dono marca o `desde` com essa hora. Sem ela, o dono não reserva desenho e o filme segue o caminho de hoje, sem gasto.
+  - Quem espera usa o relógio local só para poupar a ida ao banco enquanto ele diz "ainda não".
+  - Quando o relógio local passa dos 55 s, quem espera confirma na hora do banco antes de assumir.
+  - Se o banco não responder, vale o relógio local com o dobro da espera (110 s). Assim o filme não fica preso e um servidor adiantado não toma o desenho.
+- **Volume:** 1 linha por filme na reserva (o dono), mais 1 por confirmação depois dos 55 s locais. Com 1 a 4 reservas por semana, são menos de 10 linhas por semana.
+- **Provas:**
+  - H1 a H7 testam `horaDoBanco` e `aindaEsperaODono`.
+  - R2: o `desde` sai do banco, com o servidor 30 s adiantado.
+  - R3: sem a hora do banco, nada é desenhado.
+  - R4: servidor 30 s adiantado com o dono desenhando; quem espera não assume.
+  - R5: o banco diz 60 s; quem espera assume.
+- **Mutantes vermelhos:** 9, entre eles o relógio local no dono, o relógio local em quem espera, o `Date.now()` no lugar do `created_at` e o `created_at` mandado pelo servidor.
+
+### 7.4 O Kling que fica pronto durante o desenho (só escrito)
+**O que acontece:**
+- A 1ª CAS começa a reserva. Daí em diante, o Kling que chegar não vale mais.
+- Desligado (hoje), a janela entre a 1ª CAS e o POST do H3 é de segundos.
+- Ligado, a janela cresce até 25 s de desenho, mais a 2ª CAS.
+- Nessa janela, o Kling que chega é jogado fora, como já é hoje na janela de segundos.
+
+**Quanto custa cada vez:**
+- O Kling já foi pago: US$ 0,157/s × 15 s = US$ 2,36. É custo afundado, igual nas duas opções.
+- Vão a mais o H3 da reserva (US$ 0,06/s × 18 a 22 s = US$ 1,08 a 1,32) e o desenho (US$ 0,03 a 0,09).
+- O cliente recebe o H3 no lugar do Kling.
+
+**Com que frequência, medido em 35 dias:**
+- 125 filmes grátis do Kling 4: 117 entregues pelo Kling e 8 reservas. Das 8, 5 foram por tempo e 3 por falha.
+- Pela hora da montagem, a entrega do Kling teve mediana de 4,5 min, 90% em até 6,3 min e máximo de 7,9 min.
+- Nenhum dos 117 Klings entregues passou de 8 min.
+- Quem chega ao prazo de 8 a 12 min está preso na fila. Nenhum dado mostra Kling chegando logo depois do prazo.
+- A reserva por falha nunca recebe o Kling.
+- Estimativa: até 1,25 reserva por tempo por semana × no máximo 10% de chance de cair em 25 s × US$ 1,4 = **até US$ 0,17 por semana**. Não está medido. Medir pede o status da fal das 5 reservas por tempo, que é grátis mas pede a chave da fal (fica com a CEO).
+
+**Opções:**
+- **A (recomendada): não aceitar.** Custo esperado de até US$ 0,17 por semana, zero código novo.
+- **B: o dono consulta o Kling uma vez (grátis) antes da 2ª CAS.**
+  - Se o Kling estiver pronto, a 2ª CAS grava 'kling' e o Kling é entregue. Perde-se só o desenho.
+  - Pede mexer na autorização da URL do Kling, que hoje não faz nada depois de `fallback_started` (`lib/cinematic/claim.ts:1018`), para aceitar enquanto o estado for 'desenhando' e só pelo dono. Isso cria o 1º caminho que volta atrás numa reserva começada: risco de entrega dupla.
+  - Só vale se a medição mostrar Kling chegando nessa janela.
+- **C: quem espera também consulta o Kling.** Mais idas à fal e mais transições, pelo mesmo ganho de B.
+
+### 7.5 O pré-desenho em paralelo com a espera do Kling (só o desenho)
+**A ideia:**
+- Desenhar as imagens que faltam antes de a reserva começar, enquanto o Kling ainda roda.
+- Quando a reserva começa, as imagens já estão no claim. Some a janela de 25 s, some a espera pelo dono, some o problema do relógio na espera, e nenhum Kling é jogado fora por causa do desenho.
+
+**Quanto custa, medido em 35 dias:**
+- Filmes grátis do Kling 4 com cena sem imagem: 10 de 39 (semana de 09/11) e 17 de 49 (semana de 16/11).
+- Cenas sem imagem: 16 e 25 por semana.
+- **Opção 1, desenhar todo filme no envio:** 25 cenas × US$ 0,03 = **US$ 0,75 por semana** (US$ 0,48 na semana anterior). Cresce com o volume: 100 filmes por semana dão cerca de US$ 1,5. Mais de 90% desse gasto vai a filmes que o Kling entrega.
+- **Opção 2 (recomendada): desenhar só no minuto 7.**
+  - Só o filme cujo Kling ainda não chegou com 7 min de idade ganha o desenho. 90% dos Klings chegam até 6,3 min, e o prazo é de 8 min.
+  - Em 35 dias passaram de 7 min 6 entregues e 8 reservas: 14 filmes, cerca de 3 por semana.
+  - 3 × 1,5 cena × US$ 0,03 = **cerca de US$ 0,14 por semana**. Cerca de US$ 0,06 por semana vai a filmes que o Kling acaba entregando.
+  - O desenho (até 25 s) termina antes do prazo de 8 min, e a reserva já nasce com as imagens.
+- Hoje (reserva com imagem só na hora da reserva): 1 a 4 reservas por semana × 1,5 cena × US$ 0,03 = **cerca de US$ 0,05 a 0,18 por semana**. O custo é parecido com o do minuto 7, mas tem a janela de 25 s e a espera pelo dono.
+
+**Como seria o minuto 7 (sem construir):**
+- Gatilho: o mesmo `advanceKling4TrialStatus`, que já roda a cada consulta do navegador e a cada minuto pelo cron. Ele dispara quando a idade do pedido passa de 7 min, a reserva não começou e falta imagem.
+- Um dono: uma CAS reserva o desenho para um dono, com a hora do banco, sem começar a reserva. Só o dono desenha.
+- Gravação: uma 2ª CAS grava as imagens em `kling4_trial.imagens_da_reserva`, um campo assinado e separado das cenas.
+- Uso: quando a reserva começa, a 1ª CAS de sempre copia essas imagens para as cenas que faltam, na mesma transição.
+- Kling chegou antes: entrega normal. O desenho (cerca de US$ 0,05) fica perdido e registrado no evento.
+- Dono sumido: a reserva começa sem as imagens, pelo caminho de hoje, nunca esperando.
+- O relógio da idade é o mesmo `submitted_at` do prazo de 8 min, que já usa o relógio do servidor. Um servidor adiantado só antecipa o desenho em segundos, sem tirar nada de ninguém.
+- Dá para construir em cima do que já existe: as mesmas funções puras de dono, transição e lista positiva, e o mesmo guardião de mundo falso.

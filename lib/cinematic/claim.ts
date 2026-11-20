@@ -976,6 +976,16 @@ export function marcadorComImagensDaReserva(marker: Record<string, unknown>, don
     ? { ...marker, fallback_scenes: comImagens, reserva_com_imagem: { ...r, estado: 'pronta', usd: custo } }
     : { ...marker, reserva_com_imagem: { ...r, estado: 'sem_imagem', usd: custo } }
 }
+/** KINEO-RESERVA-COM-IMAGEM-2011 [revisor 20/11, 2ª volta] — a transição da 2ª CAS (pura). Confere o STATUS do claim como a 1ª CAS e a troca final: um
+ *  claim reembolsado no meio do desenho ('released') não ganha 'pronta' e não manda nenhum clipe à fal. Também a versão do teste, o motor, a reserva
+ *  começada e o dono. null em `next` = recusa (com o motivo). */
+export function transicaoDasImagensDaReserva(current: CinematicClaim, dono: string, imagens: ReadonlyArray<string | null> | null, usd: number): { next: Record<string, unknown> } | { error: string; conflict?: true } {
+  if (current.status !== 'done' && current.status !== 'settled') return { error: `cannot draw for a ${current.status} claim`, conflict: true }
+  const marker = current.response?.kling4_trial as Record<string, unknown> | undefined
+  if (!marker || marker.version !== 'kling4_trial_2810' || marker.engine_used !== 'kling4' || marker.fallback_started !== true) return { error: 'not a started trial fallback' }
+  const next = marcadorComImagensDaReserva(marker, dono, imagens, usd)
+  return next ? { next } : { error: 'not the drawing owner', conflict: true }
+}
 /** KINEO-RESERVA-COM-IMAGEM-2011 [revisor 20/11] — a 2ª CAS: o dono do desenho grava as imagens (ou 'sem_imagem'). Antes de qualquer POST pago da reserva. */
 export async function gravarImagensDaReserva(args: {
   db: SupabaseClient; secret: string; userId: string; generationId: string; dono: string; imagens: ReadonlyArray<string | null> | null; usd: number
@@ -983,12 +993,9 @@ export async function gravarImagensDaReserva(args: {
   const loaded = await loadVerifiedCinematicClaim(args)
   if (!loaded.ok || !loaded.claim) return { ok: false, error: loaded.ok ? 'claim not found' : loaded.error }
   const current = loaded.claim
-  const response = current.response
-  const marker = response?.kling4_trial as Record<string, unknown> | undefined
-  if (!marker || marker.version !== 'kling4_trial_2810' || marker.engine_used !== 'kling4' || marker.fallback_started !== true) return { ok: false, error: 'not a started trial fallback' }
-  const next = marcadorComImagensDaReserva(marker, args.dono, args.imagens, args.usd)
-  if (!next) return { ok: false, error: 'not the drawing owner', conflict: true }
-  const nextResponse = { ...response, kling4_trial: next }
+  const t = transicaoDasImagensDaReserva(current, args.dono, args.imagens, args.usd)
+  if (!('next' in t)) return { ok: false, error: t.error, ...(t.conflict ? { conflict: true } : {}) }
+  const nextResponse = { ...current.response, kling4_trial: t.next }
   const candidate = withSignature(args.secret, { ...current, response: nextResponse, responseHash: cinematicValueHash(nextResponse) })
   return updateClaim({ db: args.db, secret: args.secret, previous: current, next: candidate })
 }

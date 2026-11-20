@@ -20,6 +20,7 @@ import { businessAdsStamp } from '@/lib/growth/businessAdsAttribution'
 export const dynamic = 'force-dynamic'
 
 const SERVER_ONLY_EVENTS = new Set([
+  'kling4_reserva_relogio', // KINEO-RESERVA-COM-IMAGEM-2011 [revisor 20/11, 2ª volta] — a hora do banco da espera pelo dono do desenho (sem URL nem texto)
   'kling4_reserva_com_imagem', // KINEO-RESERVA-COM-IMAGEM-2011 — quantas cenas da reserva ganharam imagem-chave (contagens; nunca URL nem texto)
   'cinematic_segunda_leitura', // KINEO-SEGUNDA-LEITURA-DA-GENTE-1911 (B1c) — quem a 2ª leitura trocou de tipo (nome do personagem, nunca texto do cliente; só o servidor grava)
   'kling4_ficha_reprovada', // KINEO-FICHA-REPROVADA-1911 — o que a ficha reprovada pelo juiz virou antes do motor (ação e vereditos; nunca texto)
