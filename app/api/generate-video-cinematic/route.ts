@@ -50,6 +50,7 @@ import { soSemFicha, cenaTemFicha, prazoDoA1A2, A1A2_ESPERA_DO_DESCRITOR_MS, A1A
 import { KLING4_DESCRITOR_FORTE_1911, MODELO_DO_DESCRITOR_FORTE, A2_TETO_DO_JUIZ_MS, A2_EVENTO, promptsDeCenaInteira, topicoDoDescritorA2, planosComNomeProprio, revisarPlanosA2, custoDoUso } from '@/lib/kling4PlanoDaFala1911' // KINEO-DESCRITOR-FORTE-1911 (A2)
 import { sistemaPorSecao, notaDoEspaco, secoesQueNaoCabem } from '@/lib/kling4PlanoDaFala1911' // [ensaio A2 19/11] sem câmera nomeada; a seção que não coube é pedida de novo
 import { promptMostraOSujeito, comSujeitoNaCena, sujeitoDoFilme, sujeitoExigidoNoUltimo } from '@/lib/cinematic/sujeitoObrigatorio' // [ensaio A2 19/11] o sujeito do pedido no último plano do A2 · [2º ensaio] só o sujeito do FILME (1ª ou última fala o cita)
+import { FICHA_REPROVADA_NO_HOJE_2011, fichaReprovada } from '@/lib/cinematic/fichaReprovada1911' // KINEO-FICHA-REPROVADA-NO-HOJE-2011
 import { fichaReprovadaLigada, FICHA_REPROVADA_1911, fichaQueVaiAoMotor, FICHA_REPROVADA_EVENTO, referenciaSemFicha, limiteDaImagem } from '@/lib/cinematic/fichaReprovada1911' // KINEO-FICHA-REPROVADA-1911 — ficha reprovada pelo juiz não vai ao motor
 import { KLING4_PLANO_POR_SECAO, KLING4_PLANO_POR_SECAO_VERSAO, planoPorSecaoLigado, planosPorSecao } from '@/lib/kling4QuatroPlanos' // KINEO-K4-PLANO-POR-SECAO-1111
 import { comSujeitoNasMetades } from '@/lib/kling4QuatroPlanos' // KINEO-SUJEITO-APARENCIA-1311 (b)
@@ -8351,6 +8352,7 @@ async function manipularPost(req: NextRequest) {
     // KINEO-DESCRITOR-FORTE-1911 (A2) — o juiz do plano lê os planos que IRIAM à fal, antes da reserva e do POST pago; plano reprovado por sujeito ausente,
     // criatura no lugar do protagonista ou final que não entrega tem SÓ a sua seção reescrita, uma vez, pelo modelo forte com a nota do juiz. Juiz em prazo,
     // erro ou sem veredito = segue como estava. O evento guarda o veredito, as seções reescritas e o tempo (nunca texto do cliente).
+    const fichaJaAgiu1911 = { v: false } // KINEO-FICHA-REPROVADA-NO-HOJE-2011 — o passo da ficha já rodou dentro da revisão do A2?
     if (kling4DescritorForte1911 && descricoesDasSecoesK4 && parsedScript.segments.every((s) => typeof (s as { descricao?: unknown }).descricao === 'string')) { // [revisor 19/11, item 4] só com a descrição de todas as seções
       try {
         const leituraDoA21911 = leituraPronta1311() // [ensaio A2 19/11] o sujeito do pedido (a leitura que o submit reaproveita) para exigir o último plano
@@ -8367,12 +8369,24 @@ async function manipularPost(req: NextRequest) {
           const aplicarCenas1911 = (ps: readonly string[]) => { ps.forEach((p, i) => { kling4PromptsDasCenas1911[i] = p }); const comDescricao = parsedScript.segments.some((x) => typeof (x as { descricao?: unknown }).descricao === 'string'); (comDescricao ? promptsDeCenaInteira(kling4PromptsDasCenas1911, parsedScript.segments, scenes.map((s) => s.voiceover ?? '')) : [...kling4PromptsDasCenas1911]).forEach((p, i) => { kling4Prompts[i] = p }) }
           const fr1911 = await fichaQueVaiAoMotor({ veredito: rA2.veredito as { status?: string; falhas?: readonly string[] } | null, prompts: [...kling4PromptsDasCenas1911], julgarDeNovo: async (ps) => { aplicarCenas1911(ps); const e = kling4EnvioDoFilme(); return julgarA2((buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input.multi_prompt as Array<{ prompt: string }>).map((m) => m.prompt), e.timing.voiceovers) } })
           aplicarCenas1911(fr1911.prompts)
+          fichaJaAgiu1911.v = true // KINEO-FICHA-REPROVADA-NO-HOJE-2011
           if (fr1911.relato.acao === 'sem_ficha') kling4Timing.fixedCharacter = referenciaSemFicha(kling4Timing.fixedCharacter) // [revisor 19/11, 9ª] sem a ficha, a referência do personagem fixo vai sem a frase de continuidade
           // o limite honesto: a ficha sai do TEXTO; a imagem-chave (e a referência) foram desenhadas com ela e vão ao motor — o evento conta quantas
           if (fr1911.relato.reprovada_antes) void writeServerEvent({ name: FICHA_REPROVADA_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, ...fr1911.relato, ...limiteDaImagem({ acao: fr1911.relato.acao, imagens: kling4ApprovedStills, referencia: !!kling4Timing.fixedCharacter }) } }).catch(() => false) // só a ação, os vereditos e as contagens, nunca texto
         }
         void writeServerEvent({ name: A2_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, juiz: (rA2.veredito as JuizPlanoVeredito | null)?.status ?? null, reprovado: (rA2.veredito as JuizPlanoVeredito | null)?.reprovado ?? null, falhas: (rA2.veredito as JuizPlanoVeredito | null)?.falhas ?? [], nomes: rA2.nomes.map((p) => p + 1), reescritas: rastro1911?.caminho === 'hoje' ? [] : rA2.reescritas, reescritas_descartadas: rastro1911?.caminho === 'hoje' ? rA2.reescritas : [], caminho: rastro1911?.caminho ?? null, ms: rA2.ms, /* [revisor 19/11, D4] no caminho de hoje, as reescritas não foram ao motor */ ultimo_sem_sujeito: rA2.ultimo_sem_sujeito ?? false, nomes_depois: rA2.nomes_depois ?? [] } }).catch(() => false)
       } catch (err) { voltaAoHoje1911(prazo1911.estourou ? 'prazo_da_revisao' : 'erro_da_revisao'); console.warn('[cinematic] KINEO-DESCRITOR-FORTE-1911 juiz/reescrita falhou, o filme volta ao caminho de hoje:', err instanceof Error ? err.message : String(err)) } // [revisor 19/11] antes: os planos seguiam meio revistos
+    }
+    // KINEO-FICHA-REPROVADA-NO-HOJE-2011 [CEO 20/11, prova C filme 3] — fora da revisão do A2 (o caminho de hoje, o A1, ou o A2 que caiu): a ficha que o juiz de
+    // ANTES das imagens reprovou (juiz_plano_ficha_antes, a_ficha) passa pelo mesmo passo: sem as âncoras da folha e a origem (o juiz lê de novo, prazo do A2);
+    // continua reprovada = a ficha sai dos planos. Nas cenas do Kling 4, antes da reserva e do POST pago. Juiz de antes sem a_ficha, prazo ou erro = nada muda.
+    if (kling4TrialCandidate && !fichaJaAgiu1911.v && fichaReprovadaLigada(FICHA_REPROVADA_NO_HOJE_2011, isDryRunAccount(user.email)) && fichaReprovada(vereditoAntes1311)) {
+      try {
+        const frHoje2011 = await fichaQueVaiAoMotor({ veredito: vereditoAntes1311, prompts: [...kling4Prompts], julgarDeNovo: async (ps) => { ps.forEach((p, i) => { kling4Prompts[i] = p }); const e = kling4EnvioDoFilme(); return julgarA2((buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input.multi_prompt as Array<{ prompt: string }>).map((m) => m.prompt), e.timing.voiceovers) } })
+        frHoje2011.prompts.forEach((p, i) => { kling4Prompts[i] = p })
+        if (frHoje2011.relato.acao === 'sem_ficha') kling4Timing.fixedCharacter = referenciaSemFicha(kling4Timing.fixedCharacter)
+        void writeServerEvent({ name: FICHA_REPROVADA_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, ...frHoje2011.relato, caminho: rastro1911?.caminho ?? 'hoje', veredito_de: 'juiz_plano_ficha_antes', ...limiteDaImagem({ acao: frHoje2011.relato.acao, imagens: kling4ApprovedStills, referencia: !!kling4Timing.fixedCharacter }) } }).catch(() => false) // só a ação, os vereditos e as contagens, nunca texto
+      } catch (err) { console.warn('[cinematic] KINEO-FICHA-REPROVADA-NO-HOJE-2011 falhou, os planos seguem:', err instanceof Error ? err.message : String(err)) }
     }
     let kling4Trial: Kling4TrialResult | null = null
     // KINEO-K4-SEMPRE-0511 [TRAVA 8.2 — fundador 05/11 "vai"] — Kling 4 para todo filme grátis, sempre em 15 s. Dentro deste bloco, medirFalaDoKling4Trial mede e, se precisar, encaixa:

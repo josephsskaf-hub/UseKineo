@@ -15,6 +15,10 @@
 export type ModoFichaReprovada1911 = 'off' | 'internal' | 'public'
 export const FICHA_REPROVADA_1911: ModoFichaReprovada1911 = 'internal' // CEO 19/11: 'internal' = só a conta exata do ensaio; 'public' só com revisor independente + prova paga + sim do dono
 export const fichaReprovadaLigada = (modo: ModoFichaReprovada1911, contaDoEnsaio: boolean): boolean => modo === 'public' || (modo === 'internal' && contaDoEnsaio)
+// KINEO-FICHA-REPROVADA-NO-HOJE-2011 [CEO 20/11, prova C filme 3 (1c770cb7)] — o passo só rodava dentro da revisão do A2: o filme que caía no caminho de
+// hoje (descrição que não coube) levava ao motor a ficha que o juiz de ANTES das imagens já tinha reprovado (juiz_plano_ficha_antes, a_ficha, nota 75).
+// Agora, fora do A2, o mesmo passo roda com o veredito desse juiz. Interruptor próprio: 'internal' = só a conta exata do ensaio.
+export const FICHA_REPROVADA_NO_HOJE_2011: ModoFichaReprovada1911 = 'internal' // CEO 20/11: 'internal'; 'public' só com revisor + prova paga + sim do dono
 export const FICHA_REPROVADA_VERSAO = 'ficha_reprovada_1911_v2' // v2 [revisor 19/11, 9ª passada]: corte só nos trechos da ficha, ORDEM cortada, feições, referência e limite da imagem
 export const FICHA_REPROVADA_EVENTO = 'kling4_ficha_reprovada'
 
