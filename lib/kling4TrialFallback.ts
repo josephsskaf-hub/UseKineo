@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto'
 import { entradaSemConviteDeLetreiro } from '@/lib/semConviteDeLetreiro' // KINEO-H3-LETREIRO-0611
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { RESERVA_COM_IMAGEM_2011, RESERVA_COM_IMAGEM_EVENTO, reservaComImagemLigada, cenasSemImagem, desenharImagensDaReserva, estiloDoStillDaReserva, type RelatoReservaComImagem } from '@/lib/cinematic/reservaComImagem2011' // KINEO-RESERVA-COM-IMAGEM-2011
-import { generateFastSceneStill, fastStillSeed } from '@/lib/fastAiScene' // KINEO-RESERVA-COM-IMAGEM-2011 — o mesmo still 9:16 da rota (flux/dev, no nosso bucket)
+import { RESERVA_COM_IMAGEM_2011, RESERVA_COM_IMAGEM_EVENTO, RESERVA_IMAGEM_ESPERA_DO_DONO_MS, reservaComImagemLigada, cenasSemImagem, desenharImagensDaReserva, estiloDoStillDaReserva } from '@/lib/cinematic/reservaComImagem2011' // KINEO-RESERVA-COM-IMAGEM-2011
 import { writeServerEvent } from '@/lib/serverEvents' // KINEO-RESERVA-COM-IMAGEM-2011
+import { gravarImagensDaReserva } from '@/lib/cinematic/claim' // KINEO-RESERVA-COM-IMAGEM-2011 [revisor 20/11] — a 2ª CAS (o dono grava as imagens)
 import { RESERVA_H3_MODEL, RESERVA_SEEDANCE_MODEL, entradaDaReserva, loadVerifiedCinematicClaim, modeloDaReservaDoTeste, startKling4TrialFallback, switchKling4TrialToSeedanceFallback, type CinematicClaim } from '@/lib/cinematic/claim'
 
 export const KLING4_TRIAL_FALLBACK_MODEL = RESERVA_SEEDANCE_MODEL // KINEO-SEEDANCE-SAI-1111 — H3 Max Turbo t2v; era 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
@@ -63,8 +63,10 @@ export async function ensureKling4TrialFallback(args: {
   submitH3?: (input: Record<string, unknown>) => Promise<string> // KINEO-RESERVA-H3-0611
   /** KINEO-RESERVA-COM-IMAGEM-2011 — o desenho da imagem-chave 9:16 da cena sem imagem (o guardião injeta um falso; o padrão é o still da rota). */
   desenharImagem?: (prompt: string, indice: number) => Promise<string | null>
-  /** KINEO-RESERVA-COM-IMAGEM-2011 — só para o guardião: força o interruptor. */
+  /** KINEO-RESERVA-COM-IMAGEM-2011 — só para o guardião: força o interruptor, o relógio e a 2ª CAS. */
   reservaComImagem?: boolean
+  agora?: () => number
+  gravarImagens?: typeof gravarImagensDaReserva
 }): Promise<Kling4FallbackResult> {
   const pending = (claim = args.claim): Kling4FallbackResult => ({ ok: false, claim, pending: true, ambiguous: false, noAccepted: false })
   let loaded: Awaited<ReturnType<typeof loadVerifiedCinematicClaim>>
@@ -86,26 +88,44 @@ export async function ensureKling4TrialFallback(args: {
   if (typeof original !== 'string' || !original || claim.falRequestIds.length !== 1 || claim.falRequestIds[0] !== original ||
       !Array.isArray(shots) || shots.length !== 3 || !fallback || !Array.isArray(fallback.scenes) || fallback.scenes.length !== 3 ||
       shots.some(s => !s || typeof s.prompt !== 'string' || !s.prompt.trim() || ![6,7,8].includes(Number(s.duration)))) return pending(claim)
-  // KINEO-RESERVA-COM-IMAGEM-2011 — antes de começar a reserva (e só se ela ainda não começou): a cena sem imagem aprovada ganha a imagem-chave 9:16;
-  // as URLs entram no claim na mesma CAS que começa a reserva. Desligado, sem cena faltando ou já começada = nada muda.
-  let relatoImagem: RelatoReservaComImagem | null = null
-  let imagensDaReserva: (string | null)[] | null = null
-  if ((args.reservaComImagem ?? reservaComImagemLigada(RESERVA_COM_IMAGEM_2011)) && marker.fallback_started !== true && cenasSemImagem(shots).length > 0) {
-    const desenhar = args.desenharImagem ?? ((prompt: string) => generateFastSceneStill({ prompt, seed: fastStillSeed(`${args.generationId}:${prompt}`), aspect: '9:16', look: estiloDoStillDaReserva(prompt) }))
-    const r = await desenharImagensDaReserva(shots, desenhar)
-    relatoImagem = r.relato
-    imagensDaReserva = r.relato.ok ? r.imagens : null
-  }
+  // KINEO-RESERVA-COM-IMAGEM-2011 [revisor 20/11] — UM desenho por filme, sob concorrência: a CAS que começa a reserva também reserva o direito de desenhar
+  // para UM dono (só se a reserva ainda não começou e falta imagem). Só o dono desenha (e paga); depois a 2ª CAS grava as imagens ou 'sem_imagem'. Quem
+  // chega enquanto o dono desenha espera (pending, nenhum POST); dono sumido além do teto + folga = assume 'sem_imagem' sem desenhar. Como a reserva já
+  // começou na 1ª CAS, o Kling que entregar durante o desenho não vale mais: nenhum desenho órfão. Desligado = a CAS de sempre, sem reserva de desenho.
+  const ligadoImagem = args.reservaComImagem ?? reservaComImagemLigada(RESERVA_COM_IMAGEM_2011)
+  const dono = randomUUID()
+  const agora = args.agora ?? (() => Date.now())
   try {
-    const started = await startKling4TrialFallback({ ...args, originalRequestId: original, reason: args.reason, imagensDaReserva })
+    const started = await startKling4TrialFallback({ ...args, originalRequestId: original, reason: args.reason,
+      reservaDoDesenho: ligadoImagem && marker.fallback_started !== true && cenasSemImagem(shots).length > 0 ? { dono, desde: new Date(agora()).toISOString() } : null })
     if (!started.ok) return pending(claim)
     claim = started.claim
   } catch { return pending(claim) }
-  // as cenas ASSINADAS depois da transição (com as imagens, se esta ou outra chamada as gravou): o modelo sai delas
+  const rci = (claim.response?.kling4_trial as Record<string, unknown> | undefined)?.reserva_com_imagem as Record<string, unknown> | undefined
+  if (rci?.estado === 'desenhando') {
+    if (rci.dono === dono) {
+      // o dono: desenha (paga), grava o gasto SEMPRE, e só então a 2ª CAS
+      const desenhar = args.desenharImagem ?? (async (prompt: string) => { const { generateFastSceneStill, fastStillSeed } = await import('@/lib/fastAiScene'); return generateFastSceneStill({ prompt, seed: fastStillSeed(`${args.generationId}:${prompt}`), aspect: '9:16', look: estiloDoStillDaReserva(prompt) }) }) // import tardio: o fastAiScene puxa o SDK da fal só quando desenha
+      const r = await desenharImagensDaReserva(shots, desenhar)
+      let gravou: Awaited<ReturnType<typeof gravarImagensDaReserva>> | null = null
+      try { gravou = await (args.gravarImagens ?? gravarImagensDaReserva)({ ...args, dono, imagens: r.relato.ok ? r.imagens : null, usd: r.relato.usd }) } catch { gravou = null }
+      void writeServerEvent({ name: RESERVA_COM_IMAGEM_EVENTO, userId: args.userId, path: '/api/kling4-trial-fallback', sessionId: args.generationId, metadata: { generation_id: args.generationId, ...r.relato, gravadas: !!gravou?.ok && r.relato.ok, reason: args.reason } }).catch(() => false) // o gasto do desenho fica registrado mesmo se a CAS perder; só contagens, nunca URL nem texto
+      if (!gravou?.ok) return pending(claim)
+      claim = gravou.claim
+    } else {
+      // outro dono desenhando: espera; sumido além do teto + folga = assume sem imagem (sem desenhar de novo)
+      const desde = typeof rci.desde === 'string' ? Date.parse(rci.desde) : NaN
+      if (Number.isFinite(desde) && agora() - desde < RESERVA_IMAGEM_ESPERA_DO_DONO_MS) return pending(claim)
+      let assumiu: Awaited<ReturnType<typeof gravarImagensDaReserva>> | null = null
+      try { assumiu = await (args.gravarImagens ?? gravarImagensDaReserva)({ ...args, dono: String(rci.dono), imagens: null, usd: 0 }) } catch { assumiu = null }
+      if (!assumiu?.ok) return pending(claim)
+      claim = assumiu.claim
+    }
+  }
+  // as cenas ASSINADAS depois das transições (com as imagens, se o dono as gravou): o modelo sai delas
   const assinadas = (claim.response?.kling4_trial as Record<string, unknown> | undefined)?.fallback_scenes
   if (Array.isArray(assinadas) && assinadas.length === 3) shots = assinadas as typeof shots
   if (!shots) return pending(claim)
-  if (relatoImagem) void writeServerEvent({ name: RESERVA_COM_IMAGEM_EVENTO, userId: args.userId, path: '/api/kling4-trial-fallback', sessionId: args.generationId, metadata: { generation_id: args.generationId, ...relatoImagem, gravadas: (claim.response?.kling4_trial as Record<string, unknown> | undefined)?.reserva_com_imagem != null, reason: args.reason } }).catch(() => false) // só contagens, nunca URL nem texto
   const submit = args.submit ?? submitKling4TrialSeedanceFallback
   const submitH3 = args.submitH3 ?? submitKling4TrialH3Fallback // KINEO-RESERVA-H3-0611
   const modeloDaReserva = modeloDaReservaDoTeste(shots) // KINEO-RESERVA-H3-0611 — decidido uma vez, para o filme inteiro

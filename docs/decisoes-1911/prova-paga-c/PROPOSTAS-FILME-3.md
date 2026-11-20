@@ -15,7 +15,20 @@ Branch `codex/div2-reserva-imagem-2011` (da origin/main 6f75a2028). Sem gasto, s
   No H3 vai o texto da cena, sem mudança, mais a `image_url` (a aprovada ou a desenhada). Sai o `aspect_ratio`, que o H3 com imagem tira da própria foto.
 - **Custo a mais:** ~US$ 0,03 por cena sem imagem, só nos filmes que caem na reserva sem imagem em todas as cenas. Média medida: 2 cenas por filme, ~US$ 0,06 por filme.
 - **Quantos filmes:** clientes na reserva só de texto foram **2 em 7 dias** (3 cenas sem imagem) e **5 em 30 dias** (10 cenas sem imagem; 3 deles antes de 11/11, ainda no Seedance de texto). Na reserva com imagem foram 4 em 7 dias e 20 em 30 dias. Isso dá ~US$ 0,06 a US$ 0,12 por semana.
-- **Tempo a mais:** até 25 s de teto para desenhar, em paralelo, uma vez por filme na reserva.
+- **Tempo a mais:** até 25 s de teto para desenhar, uma vez por filme na reserva.
+- **[revisor 20/11] UM desenho por filme, sob concorrência.** A CAS que começa a reserva também reserva o direito de desenhar para UM dono, com a hora. Só ele desenha e paga; depois uma 2ª CAS grava as imagens (`pronta`) ou `sem_imagem`.
+  - Quem chega nesse meio tempo (o poller do cliente e o cron) espera, sem desenhar e sem POST.
+  - Dono sumido por mais de 55 s: quem chega assume `sem_imagem`, sem desenhar de novo.
+  - Como a reserva já começou na 1ª CAS, o Kling que entregar durante o desenho não vale mais (a autorização da URL usa a mesma CAS): nenhum desenho órfão.
+  - No guardião: 3 chamadas ao mesmo tempo = 1 desenho (2 cenas), não 6.
+- **[revisor 20/11] Só imagem do nosso bucket.** Lista positiva: `https://<projeto>.supabase.co/storage/v1/object/public/broll/ai-still/<arquivo>.(png|jpg|webp)`. A da fal e `storage.googleapis.com/falserverless` não valem.
+- **[revisor 20/11] O gasto do desenho fica sempre registrado.** O evento `kling4_reserva_com_imagem` grava o custo e `gravadas` mesmo quando a 2ª CAS perde; o custo também vai ao claim (`reserva_com_imagem.usd`).
+  - O `free_film_engine_used` e a verba do dia são gravados por funções do banco (`transition_kling4_trial_fallback`). Somar o desenho ali pede migration, então NÃO construí.
+  - A verba do dia já desconta o teto reservado (US$ 2,355 por filme), e a reserva real (H3 3×6 s + até US$ 0,09 de imagens) fica abaixo dele.
+- **[revisor 20/11] O desenho travado: dá melhor?**
+  - **Baixar o teto:** o still do flux/dev leva 3 a 5 s, mas a janela da rota é 12 s mais a cópia ao bucket (até 8 s). Abaixo de ~20 s corta casos bons; não mexi sem a medida.
+  - **Desenhar em paralelo com a espera do Kling (recomendado, médio, não construído):** quando a consulta dos 8 min diz "rodando" (decisão `esperar`), um pré-desenho reservado na mesma CAS deixa as imagens prontas antes de a reserva começar. Atraso zero.
+  - Custo do pré-desenho: ~US$ 0,06 também nos filmes em que o Kling acaba entregando (os que chegam aos 8 min: 4 de 103 em 30 dias).
 - **Ligar para cliente** é gasto por filme: pede o sim do dono.
 
 ## 1-B. Plano B, só desenhado: o leitor de 1 quadro
@@ -27,6 +40,16 @@ Branch `codex/div2-reserva-imagem-2011` (da origin/main 6f75a2028). Sem gasto, s
 - Se a ficha não agiu dentro da revisão do A2, o mesmo passo roda depois dele, com o veredito do juiz de ANTES das imagens (`juiz_plano_ficha_antes`), nas cenas do Kling 4 e antes do POST pago.
 - No filme 3, planos 3 e 4: reprovada de novo, sai a identidade do Daniel e ficam a Emily e a Sarah; aprovada sem as âncoras, sai a folha e a origem e fica a ficha do autor.
 - Interruptor próprio `FICHA_REPROVADA_NO_HOJE_2011 = 'internal'`. Guardião com 9 mutantes.
+
+### 2.1 [revisor 20/11] O corte tira também a ficha das OUTRAS pessoas
+- O `semFicha` (lib existente) tira toda linha Identity:/Visible: do plano. No filme 3 sai também a descrição da Emily no plano 1 ("Visible: Emily, a woman in her thirties … 1990s clothing"), que o juiz não reprovou.
+- **É aceitável agora:** sem ficha é o caminho mais seguro, e o plano mantém a ação e a época. Mas a Emily perde a aparência e pode mudar de rosto entre os planos.
+- **Dá melhor, sem construir:** cortar por PLANO, não pelo filme. O veredito já diz qual plano contradiz (`planos[].a = contradiz`, no filme 3 os planos 3 e 4); a ficha sai só desses, e o plano 1 fica com a Emily.
+- Cortar por personagem não dá: o juiz não diz o nome.
+- Recomendo o corte por plano como próxima volta.
+
+### 2.2 [revisor 20/11] A marca
+`fichaJaAgiu1911.v = fr1911.relato.reprovada_antes`: quando o juiz do A2 fica sem veredito, o passo de fora ainda roda com o juiz de antes das imagens. O juiz relê as cenas novas e com as falas (mutantes no guardião).
 
 ## 3. A ficha antes da imagem (só o desenho)
 - **Onde:** no passo que já existe antes das imagens (`fichaAntesDoRender1311`, `route.ts` ~7555). Hoje ele lê o juiz e, com `a_ficha`, só refaz a ORDEM (`refeitos: sem_ordem | nada`).

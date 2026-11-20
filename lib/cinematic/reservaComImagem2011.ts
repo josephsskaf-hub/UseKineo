@@ -21,13 +21,17 @@ export const RESERVA_COM_IMAGEM_EVENTO = 'kling4_reserva_com_imagem'
 export const RESERVA_IMAGEM_USD = 0.03
 /** O teto da espera pelas imagens (desenhadas em paralelo, cada uma com a janela do still da rota, 12 s, + a cópia ao bucket). */
 export const RESERVA_IMAGEM_TETO_MS = 25_000
+/** [revisor 20/11] Quanto quem chega espera o dono do desenho antes de assumir 'sem imagem' (o teto + folga para a 2ª CAS). */
+export const RESERVA_IMAGEM_ESPERA_DO_DONO_MS = RESERVA_IMAGEM_TETO_MS + 30_000
 
 const temImagem = (s: ReservaShot | null | undefined): boolean => typeof s?.image_url === 'string' && /^https:\/\//.test(s.image_url)
 /** As cenas (0-based) da reserva sem imagem aprovada. */
 export const cenasSemImagem = (shots: ReadonlyArray<ReservaShot>): number[] => shots.map((s, i) => (temImagem(s) ? -1 : i)).filter((i) => i >= 0)
 
-/** A imagem desenhada só vale se for nossa (bucket), https e não da fal (a URL da fal expira). */
-export const imagemDaReservaValida = (u: unknown): u is string => typeof u === 'string' && /^https:\/\//.test(u) && !/(?:^|\/\/)[^/]*fal\.(?:media|run|ai)\//i.test(u)
+/** [revisor 20/11] A imagem desenhada só vale se for do NOSSO bucket (lista positiva: o caminho público do Supabase onde o still da rota é gravado,
+ *  broll/ai-still/…); qualquer outra (a da fal, storage.googleapis.com/falserverless…) expira ou não é nossa. */
+export const NOSSO_BUCKET_DA_IMAGEM_RE = /^https:\/\/[a-z0-9-]+\.supabase\.co\/storage\/v1\/object\/public\/broll\/ai-still\/[A-Za-z0-9._-]+\.(?:png|jpe?g|webp)$/
+export const imagemDaReservaValida = (u: unknown): u is string => typeof u === 'string' && NOSSO_BUCKET_DA_IMAGEM_RE.test(u)
 
 /** As cenas com as imagens desenhadas nas que faltavam. Só devolve quando TODAS as que faltavam ganharam imagem válida; senão null (o caminho de hoje). */
 export function cenasComImagens(shots: ReadonlyArray<ReservaShot>, imagens: ReadonlyArray<string | null | undefined>): ReservaShot[] | null {

@@ -29,13 +29,16 @@ async function provas(over = {}) {
   { const r = await F.fichaQueVaiAoMotor({ veredito: { status: 'JUDGED', falhas: [] }, prompts: [P1, P3, P4], julgarDeNovo: async () => { throw new Error('não devia') } })
     no(r.relato.acao !== 'nada' || r.prompts[1] !== P3, 'F3 juiz de antes sem a_ficha: byte a byte') }
   // a rota
-  const iFlag = rota.indexOf('    const fichaJaAgiu1911 = { v: false }'), iA2 = rota.indexOf("    if (kling4DescritorForte1911 && descricoesDasSecoesK4 && parsedScript.segments.every("), iMarca = rota.indexOf('          fichaJaAgiu1911.v = true'), iA2Ficha = rota.indexOf('          aplicarCenas1911(fr1911.prompts)\n')
+  const iFlag = rota.indexOf('    const fichaJaAgiu1911 = { v: false }'), iA2 = rota.indexOf("    if (kling4DescritorForte1911 && descricoesDasSecoesK4 && parsedScript.segments.every("), iMarca = rota.indexOf('          fichaJaAgiu1911.v = fr1911.relato.reprovada_antes'), iA2Ficha = rota.indexOf('          aplicarCenas1911(fr1911.prompts)\n')
   const iHoje = rota.indexOf('    if (kling4TrialCandidate && !fichaJaAgiu1911.v && fichaReprovadaLigada(FICHA_REPROVADA_NO_HOJE_2011, isDryRunAccount(user.email)) && fichaReprovada(vereditoAntes1311)) {'), iPago = rota.indexOf('kling4Trial = await orchestrateKling4Trial({')
   no(!(iFlag > 0 && iA2 > iFlag && iMarca > iA2Ficha && iA2Ficha > iA2 && iHoje > iMarca && iPago > iHoje), 'R1 a marca nasce antes do A2, vira true quando a ficha age lá dentro, e o passo de fora roda DEPOIS do A2 e ANTES do POST pago')
   no(!rota.includes('const frHoje2011 = await fichaQueVaiAoMotor({ veredito: vereditoAntes1311, prompts: [...kling4Prompts],') || !rota.includes('        frHoje2011.prompts.forEach((p, i) => { kling4Prompts[i] = p })\n'), 'R2 o veredito é o do juiz de ANTES das imagens; o resultado volta às cenas do Kling 4')
   no(!rota.includes("        if (frHoje2011.relato.acao === 'sem_ficha') kling4Timing.fixedCharacter = referenciaSemFicha(kling4Timing.fixedCharacter)"), 'R3 sem a ficha, a referência do personagem fixo perde o que vem da ficha')
   no(!rota.includes("metadata: { generation_id: generationId, ...frHoje2011.relato, caminho: rastro1911?.caminho ?? 'hoje', veredito_de: 'juiz_plano_ficha_antes', ...limiteDaImagem({ acao: frHoje2011.relato.acao, imagens: kling4ApprovedStills, referencia: !!kling4Timing.fixedCharacter }) } })"), 'R4 o evento diz de onde veio o veredito e o caminho, só contagens (nunca texto)')
   no(!rota.includes("import { FICHA_REPROVADA_NO_HOJE_2011, fichaReprovada } from '@/lib/cinematic/fichaReprovada1911'"), 'R5 o interruptor próprio')
+  // [revisor 20/11] o juiz relê os planos NOVOS (as cenas trocadas antes de montar), com as falas do filme; e a marca só vale com a ficha agindo de fato no A2
+  no(!rota.includes('julgarDeNovo: async (ps) => { ps.forEach((p, i) => { kling4Prompts[i] = p }); const e = kling4EnvioDoFilme(); return julgarA2((buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input.multi_prompt as Array<{ prompt: string }>).map((m) => m.prompt), e.timing.voiceovers) } })\n        frHoje2011'), 'R6 a 2ª leitura monta os planos com as cenas novas e passa as falas do filme')
+  no(!rota.includes('          fichaJaAgiu1911.v = fr1911.relato.reprovada_antes'), 'R7 a marca só vira verdade quando a ficha agiu de fato dentro do A2 (juiz do A2 sem veredito = o passo de fora ainda roda)')
   return e
 }
 
@@ -45,7 +48,10 @@ const MUT = [
   ['público', LIB, (s) => s.replace("export const FICHA_REPROVADA_NO_HOJE_2011: ModoFichaReprovada1911 = 'internal'", "export const FICHA_REPROVADA_NO_HOJE_2011: ModoFichaReprovada1911 = 'public'")],
   ['rota: régua larga', ROTA, (s) => s.replace('fichaReprovadaLigada(FICHA_REPROVADA_NO_HOJE_2011, isDryRunAccount(user.email))', 'fichaReprovadaLigada(FICHA_REPROVADA_NO_HOJE_2011, true)')],
   ['rota: roda duas vezes (sem a marca)', ROTA, (s) => s.replace('if (kling4TrialCandidate && !fichaJaAgiu1911.v && fichaReprovadaLigada(FICHA_REPROVADA_NO_HOJE_2011', 'if (kling4TrialCandidate && fichaReprovadaLigada(FICHA_REPROVADA_NO_HOJE_2011')],
-  ['rota: a marca nunca vira true', ROTA, (s) => s.replace('          fichaJaAgiu1911.v = true // KINEO-FICHA-REPROVADA-NO-HOJE-2011\n', '')],
+  ['rota: a marca nunca vira true', ROTA, (s) => s.replace('          fichaJaAgiu1911.v = fr1911.relato.reprovada_antes', '          fichaJaAgiu1911.v = false')],
+  ['rota: a marca vira true mesmo sem veredito do A2', ROTA, (s) => s.replace('          fichaJaAgiu1911.v = fr1911.relato.reprovada_antes', '          fichaJaAgiu1911.v = true')],
+  ['rota: rejulga os planos velhos', ROTA, (s) => s.replace('julgarDeNovo: async (ps) => { ps.forEach((p, i) => { kling4Prompts[i] = p }); const e = kling4EnvioDoFilme(); return julgarA2((buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input.multi_prompt as Array<{ prompt: string }>).map((m) => m.prompt), e.timing.voiceovers) } })\n        frHoje2011', 'julgarDeNovo: async (ps) => { const e = kling4EnvioDoFilme(); return julgarA2((buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input.multi_prompt as Array<{ prompt: string }>).map((m) => m.prompt), e.timing.voiceovers) } })\n        frHoje2011')],
+  ['rota: rejulga sem as falas', ROTA, (s) => s.replace('.map((m) => m.prompt), e.timing.voiceovers) } })\n        frHoje2011', '.map((m) => m.prompt), []) } })\n        frHoje2011')],
   ['rota: sem o juiz de antes (roda sempre)', ROTA, (s) => s.replace(' && fichaReprovada(vereditoAntes1311)) {', ') {')],
   ['rota: o resultado não volta às cenas', ROTA, (s) => s.replace('        frHoje2011.prompts.forEach((p, i) => { kling4Prompts[i] = p })\n', '')],
   ['rota: a referência mantém a ficha', ROTA, (s) => s.replace("        if (frHoje2011.relato.acao === 'sem_ficha') kling4Timing.fixedCharacter = referenciaSemFicha(kling4Timing.fixedCharacter)\n", '')],

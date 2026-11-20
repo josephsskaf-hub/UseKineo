@@ -957,18 +957,46 @@ export async function retargetCinematicRequestId(args: {
  */
 /** Select the fallback before any paid Seedance POST. URL authorization and this transition use the SAME authority CAS:
  * a completed Kling source wins without fallback spend, or fallback wins and later Kling receipts are excluded. */
-/** KINEO-RESERVA-COM-IMAGEM-2011 — o marcador do teste ao começar a reserva (pura): sem imagens válidas para TODAS as cenas que faltavam, o de sempre. */
-export function marcadorDaReservaIniciada(marker: Record<string, unknown>, reason: 'provider_failed' | 'timeout', imagens: ReadonlyArray<string | null> | null): Record<string, unknown> {
-  const comImagens = imagens && Array.isArray(marker.fallback_scenes) ? cenasComImagens(marker.fallback_scenes as ReservaShot[], imagens) : null
+/** KINEO-RESERVA-COM-IMAGEM-2011 [revisor 20/11] — o marcador ao começar a reserva (pura). Com `desenho`, a MESMA CAS reserva o direito de desenhar para UM
+ *  dono (estado 'desenhando', com a hora): só ele desenha; quem chega depois espera; e, como a reserva já começou, o Kling que entregar agora não vale mais
+ *  (a autorização da URL e esta transição usam a mesma CAS), então nenhum desenho fica órfão. Sem `desenho`, o de sempre. */
+export function marcadorDaReservaIniciada(marker: Record<string, unknown>, reason: 'provider_failed' | 'timeout', desenho: { dono: string; desde: string } | null): Record<string, unknown> {
+  const faltam = Array.isArray(marker.fallback_scenes) ? cenasSemImagem(marker.fallback_scenes as ReservaShot[]) : []
   return { ...marker, fallback_started: true, fallback_reason: reason,
-    ...(comImagens ? { fallback_scenes: comImagens, reserva_com_imagem: { versao: RESERVA_COM_IMAGEM_VERSAO, cenas_desenhadas: cenasSemImagem(marker.fallback_scenes as ReservaShot[]) } } : {}) }
+    ...(desenho && faltam.length ? { reserva_com_imagem: { versao: RESERVA_COM_IMAGEM_VERSAO, estado: 'desenhando', dono: desenho.dono, desde: desenho.desde, faltavam: faltam } } : {}) }
+}
+/** KINEO-RESERVA-COM-IMAGEM-2011 [revisor 20/11] — o dono do desenho grava o resultado (pura). Só o dono, só com o estado 'desenhando'; null = recusa.
+ *  Imagens válidas para TODAS as que faltavam = as cenas assinadas com elas (estado 'pronta'); senão 'sem_imagem' (o caminho de hoje). O custo vai junto. */
+export function marcadorComImagensDaReserva(marker: Record<string, unknown>, dono: string, imagens: ReadonlyArray<string | null> | null, usd: number): Record<string, unknown> | null {
+  const r = marker.reserva_com_imagem as Record<string, unknown> | undefined
+  if (!r || r.estado !== 'desenhando' || r.dono !== dono || !Array.isArray(marker.fallback_scenes)) return null
+  const comImagens = imagens ? cenasComImagens(marker.fallback_scenes as ReservaShot[], imagens) : null
+  const custo = Math.max(0, Math.round((Number(usd) || 0) * 1000) / 1000)
+  return comImagens
+    ? { ...marker, fallback_scenes: comImagens, reserva_com_imagem: { ...r, estado: 'pronta', usd: custo } }
+    : { ...marker, reserva_com_imagem: { ...r, estado: 'sem_imagem', usd: custo } }
+}
+/** KINEO-RESERVA-COM-IMAGEM-2011 [revisor 20/11] — a 2ª CAS: o dono do desenho grava as imagens (ou 'sem_imagem'). Antes de qualquer POST pago da reserva. */
+export async function gravarImagensDaReserva(args: {
+  db: SupabaseClient; secret: string; userId: string; generationId: string; dono: string; imagens: ReadonlyArray<string | null> | null; usd: number
+}): Promise<CinematicClaimMutation> {
+  const loaded = await loadVerifiedCinematicClaim(args)
+  if (!loaded.ok || !loaded.claim) return { ok: false, error: loaded.ok ? 'claim not found' : loaded.error }
+  const current = loaded.claim
+  const response = current.response
+  const marker = response?.kling4_trial as Record<string, unknown> | undefined
+  if (!marker || marker.version !== 'kling4_trial_2810' || marker.engine_used !== 'kling4' || marker.fallback_started !== true) return { ok: false, error: 'not a started trial fallback' }
+  const next = marcadorComImagensDaReserva(marker, args.dono, args.imagens, args.usd)
+  if (!next) return { ok: false, error: 'not the drawing owner', conflict: true }
+  const nextResponse = { ...response, kling4_trial: next }
+  const candidate = withSignature(args.secret, { ...current, response: nextResponse, responseHash: cinematicValueHash(nextResponse) })
+  return updateClaim({ db: args.db, secret: args.secret, previous: current, next: candidate })
 }
 export async function startKling4TrialFallback(args: {
   db: SupabaseClient; secret: string; userId: string; generationId: string; originalRequestId: string
   reason: 'provider_failed' | 'timeout'
-  /** KINEO-RESERVA-COM-IMAGEM-2011 — as imagens desenhadas para as cenas sem imagem (índice = cena). Só entram no claim nesta transição (a 1ª), e só
-   *  quando TODAS as que faltavam vieram; senão as cenas assinadas ficam como estão (o caminho de hoje). */
-  imagensDaReserva?: ReadonlyArray<string | null> | null
+  /** KINEO-RESERVA-COM-IMAGEM-2011 [revisor 20/11] — reserva o direito de desenhar, nesta CAS, para este dono (só se a reserva ainda não começou). */
+  reservaDoDesenho?: { dono: string; desde: string } | null
 }): Promise<CinematicClaimMutation> {
   const loaded = await loadVerifiedCinematicClaim(args)
   if (!loaded.ok || !loaded.claim) return { ok: false, error: loaded.ok ? 'claim not found' : loaded.error }
@@ -986,7 +1014,7 @@ export async function startKling4TrialFallback(args: {
     return { ok: false, error: 'original source changed or already authorized', conflict: true }
   }
   // KINEO-RESERVA-COM-IMAGEM-2011 — a reserva com imagem é decidida AQUI, na mesma CAS que começa a reserva: quem chegar depois lê as cenas assinadas
-  const nextResponse = { ...response, kling4_trial: marcadorDaReservaIniciada(marker, args.reason, args.imagensDaReserva ?? null) }
+  const nextResponse = { ...response, kling4_trial: marcadorDaReservaIniciada(marker, args.reason, args.reservaDoDesenho ?? null) }
   const candidate = withSignature(args.secret, { ...current, response: nextResponse, responseHash: cinematicValueHash(nextResponse) })
   return updateClaim({ db: args.db, secret: args.secret, previous: current, next: candidate })
 }
