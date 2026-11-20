@@ -19,13 +19,24 @@ const MARCOS: readonly Marco[] = [
   { re: /\b(?:the\s+)?CN\s+Tower\b/u, ano: 1976, troca: 'the Toronto waterfront' },
   { re: /\b(?:the\s+)?Hollywood\s+sign\b/iu, ano: 1923, troca: 'the bare Hollywood hills' },
   { re: /\b(?:the\s+)?Brooklyn\s+Bridge\b/u, ano: 1883, troca: 'the East River' },
+  // KINEO-EPOCA-TURCO-2011 [revisor 20/11, render bcecd459, Kling 4 grátis, TR] — a âncora do monumento (lib/cinematic/monumentoReal) escreve
+  // "Setting: the ruins of Pompeii, Italy (ancient Roman stone streets and ruined villas…)" na frente de TODA cena; num filme travado em 79 AD a
+  // imagem-chave nasceu como o sítio arqueológico de HOJE (casas sem teto, cidade moderna ao fundo) e com um CARRO preto na rua. A ruína é marco
+  // que só existe depois da época: até 79 AD Pompeia é a cidade viva; o Coliseu fica inteiro até o terremoto de 1349. Em positivo, como as outras.
+  { re: /\b(?:the\s+)?ruins\s+of\s+(?=Pompeii\b)/iu, ano: 80, troca: 'the living Roman town of ' },
+  { re: /\bruined\s+villas\b/iu, ano: 80, quando: /\bPompeii\b/i, troca: 'intact red-tiled villas, shops and taverns' },
+  { re: /\bpartly\s+ruined\s+outer\s+wall\b/u, ano: 1349, quando: /\bColosseum\b/i, troca: 'complete, intact outer wall' },
 ]
 
-/** O ano da época que a trava escreveu no prompt ("period piece set strictly in the year 1913" / "Period setting: 1913"); null = sem ano. */
+/** O ano da época que a trava escreveu no prompt ("period piece set strictly in the year 1913" / "Period setting: 1913"); null = sem ano.
+ * KINEO-EPOCA-TURCO-2011 — o ano antigo que a trava escreve desde KINEO-EPOCA-POSITIVA-1111 ("the year 79 AD", "the year 44 BC") também conta:
+ * antes só 3–4 dígitos, e "79 AD" voltava null — nenhuma troca rodava nos filmes antigos. BC vira ano negativo. */
 export function anoDaEpoca(prompt: string): number | null {
-  const m = /period piece set strictly in (?:the year )?(\d{3,4})\b|Period setting: (\d{3,4})\b/iu.exec(String(prompt ?? ''))
-  const ano = m ? Number(m[1] ?? m[2]) : NaN
-  return Number.isFinite(ano) ? ano : null
+  const m = /(?:period piece set strictly in (?:the year )?|Period setting: )(\d{1,4})(?:\s?(AD|CE|BC|BCE))?\b/iu.exec(String(prompt ?? ''))
+  if (!m) return null
+  const ano = Number(m[1])
+  if (!Number.isFinite(ano)) return null
+  return m[2] && /^bc/i.test(m[2]) ? -ano : ano
 }
 
 /** O prompt sem marco construído depois do ano da época. Sem ano ou sem marco anacrônico: o mesmo texto. */
