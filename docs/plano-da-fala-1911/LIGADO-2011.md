@@ -37,14 +37,15 @@ Branch `codex/div2-ligar-2011`, de origin/main 3e88eefe3. São 3 commits separad
 | Hoje | 9 | — | 0 |
 | Novo, sem conserto | 5 | 5 descrições (98063aa2, 32c93ee3, 804e9f0b…) | 24 |
 | B: sem rosto com pessoa = hoje | 9 | 1 descrição (nome próprio com olhar) | 18 |
-| **A com guarda (no código)** | **12** | **0** | **20** (4 voltam por rosto) |
+| A com guarda, 1ª versão (7586ebd23, no ar 09:15) | 12 | 0 | 20 (4 voltam por rosto) |
+| **A com guarda larga (rv20, este commit)** | **10** | **0** | **17** (7 voltam: rosto, ou papel e pronome sem silhueta) |
 
 **Por que a A com guarda e não a B:**
 - A B só vê o substantivo de pessoa e deixa passar nome próprio com olhar ("Gabriel … gazing").
 - A B mantém menos planos de costas que a A com guarda (9 contra 12).
 - A A com guarda põe a silhueta, que é a promessa do produto, e só desiste quando o rosto continua no texto.
 
-**Fica de fora (dito, não escondido):** papel ou nome fora da lista de pessoa da cena ("a builder", "officers", "Lucas") segue sem silhueta. É o mesmo que a cena de hoje já faz.
+**Guarda larga [revisor 20/11, rv20]:** a guarda também barra "staring", "glances", "winks", "frowns", "beams with", "lips", "selfie", "profile", "weathered features", câmera e sorriso em português, espanhol, francês e alemão, pronome como sujeito ("She glances") e papel fora da lista de pessoa da cena sem silhueta logo depois ("a builder", "officers", "a chef", "a teenager"). Ela poupa "clock face", "face of the cliff", "eye of the storm", "lighthouse beam", "camera crane" e "low-profile". As 33 frases do revisor estão no guardião: 25 barradas e 8 poupadas, com 0 erro. **Fica de fora:** o nome próprio sozinho ("Gabriel walks to work") segue sem silhueta, como na cena de hoje; se houver olhar ou rosto, a guarda barra.
 
 **Descritor gpt-4o nos filmes com ficha:** não cortado. A ficha nasce nas cenas, depois que o descritor já começou; o único sinal antes é o personagem fixo (34 dos 35 com ficha). Cortar pede mexer na porta do A1/A2, por cerca de US$ 0,007 por filme com personagem. Fica proposto, sem obra.
 
@@ -76,6 +77,6 @@ from c order by c.created_at desc;
 ```
 
 **Como ler o resultado:**
-- (1) No grátis Kling 4 sem ficha, `caminho` vem `a1` ou `a2`; com ficha, vem `hoje` com o motivo `com_ficha`; no filme sem rosto com rosto na descrição, `hoje` com `sem_rosto_com_rosto` (esperado: cerca de 1 em 8 dos sem rosto). Um `hoje` com o motivo `prazo_*` ou `descricao_nao_cabe…` é queda e vai à CEO.
+- (1) No grátis Kling 4 sem ficha, `caminho` vem `a1` ou `a2`; com ficha, vem `hoje` com o motivo `com_ficha`; no filme sem rosto com rosto na descrição, `hoje` com `sem_rosto_com_rosto` (esperado: cerca de 1 em 5 dos sem rosto, com a guarda larga). Um `hoje` com o motivo `prazo_*` ou `descricao_nao_cabe…` é queda e vai à CEO.
 - (2) Só aparece em filme que caiu na reserva: `reserva = pronta` com `reserva_usd` de até 0,09. `sem_imagem` = o caminho de hoje.
 - (3) Com o leitor seguro no ar, `quem_venceu` vem preenchido e `version` é a do leitor seguro. Um `-` depois do deploy do commit 3 = o leitor seguro não rodou.

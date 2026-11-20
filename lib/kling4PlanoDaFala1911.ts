@@ -299,8 +299,21 @@ export function custoDoUso(usos: ReadonlyArray<{ model: string; usage: unknown }
 import { sujeitoSemRosto } from '@/lib/cinematic/visualPromptPolicy'
 export const SEM_ROSTO_MOTIVO = 'sem_rosto_com_rosto'
 /** Rosto, olhar ou sorriso (ou "para a câmera") numa descrição: no modo sem rosto, o motor desenha o rosto. */
-export const ROSTO_NA_DESCRICAO_RE = /\b(?:smil(?:e|es|ed|ing)|grin(?:s|ned|ning)?|laugh(?:s|ed|ing)?|faces?|facial|eyes?|gaz(?:e|es|ed|ing)|star(?:e|es|ed|ing) (?:at|into)|expressions?|portraits?|(?:at|to|toward|towards|into) the (?:camera|viewer|lens))\b/i
-export const rostoNaDescricao = (d: unknown): boolean => ROSTO_NA_DESCRICAO_RE.test(String(d ?? ''))
+// [revisor 20/11, rv20: ressalva] a guarda mais larga. Passavam "staring" sem "at", "glances", "profile", "selfie", "winks", "frowns", "beams", "lips",
+// "weathered features", câmera e sorriso em outra língua, pronome como sujeito ("She glances") e papel fora da lista de pessoa da cena ("teenager",
+// "chef", "runner"), que a troca não põe de costas. Poupados sem abrir furo: "clock face", "face of the cliff", "eye of the storm" e "lighthouse beam"
+// ("beams" só com with/at/proudly…).
+export const ROSTO_NA_DESCRICAO_RE = /\b(?:smil(?:e|es|ed|ing)|grin(?:s|ned|ning)?|laugh(?:s|ed|ing)?|faces?|facial|eyes?|gaz(?:e|es|ed|ing)|star(?:e|es|ed|ing)|glanc(?:e|es|ed|ing)|wink(?:s|ed|ing)?|frown(?:s|ed|ing)?|beam(?:s|ed|ing)? (?:with|at|proudly|happily|brightly)|beaming|lips|selfies?|(?<!low-|high-)profiles?|(?:facial|weathered|delicate|sharp|soft|chiseled|rugged|gentle|striking|fine|youthful|wrinkled) features|freckles?|expressions?|portraits?|(?:at|to|toward|towards|into) the (?:camera|viewer|lens)|sorri(?:ndo|u)?|sonr[ií]e|l[äa]chelt|sourit|regarde|mira)\b|(?:câmera|cámara|caméra|kamera)(?![a-z])/i // câmera em outra língua ("camera" em inglês, só com at/to/into the)
+/** Não é rosto de gente (tirado antes da régua): o mostrador do relógio, a face do penhasco, o olho da tempestade. */
+export const NAO_E_ROSTO_RE = /\b(?:clock|watch|cliff|rock|mountain|building|coin|card|cube|dice)\s+faces?\b|\bfaces? of (?:the |a |an )?(?:cliff|clock|mountain|rock|building|wall|earth|moon|planet|glacier|dam|coin|card|cube|watch|pyramid|tower|canyon)\b|\beyes? of the (?:storm|needle|hurricane|cyclone|typhoon|tornado)\b/gi
+/** Pronome como sujeito: a troca da cena não põe "she"/"he" de costas. */
+export const PRONOME_SUJEITO_RE = /(?:^|[.;:!?,]\s*|\b(?:and|then|as|while|when|where|before|after|until|but)\s+)(?:she|he)\b/i
+/** Papel de gente fora da lista de pessoa da cena, sem a silhueta logo depois (a troca da cena não o toca). */
+export const PAPEL_SEM_SILHUETA_RE = /\b(?:teen(?:ager)?s?|chefs?|runners?|builders?|workers?|officers?|soldiers?|nurses?|doctors?|detectives?|farmers?|fisherm[ae]n|sailors?|kings?|queens?|astronauts?|athletes?|dancers?|singers?|mothers?|fathers?|grandmothers?|grandfathers?|grandparents?|bab(?:y|ies)|toddlers?|hikers?|tourists?|travell?ers?|teachers?|priests?|monks?|nuns?|warriors?|knights?|princes?|princess(?:es)?|brides?|grooms?|couples?|siblings?|sisters?|brothers?|daughters?|husbands?|wi(?:fe|ves)|actors?|actress(?:es)?|pilots?|police(?:m[ae]n|wom[ae]n)?|firefighters?|scientists?|explorers?|villagers?|passengers?|spectators?|monarchs?|emperors?|pharaohs?|surgeons?|patients?|students?)\b(?![-'’])(?!\s*,?\s*(?:seen (?:in silhouette |only as hands )?(?:from behind|in close-up)|seen only as hands|silhouett))/i
+export const rostoNaDescricao = (d: unknown): boolean => {
+  const s = String(d ?? '').replace(NAO_E_ROSTO_RE, ' ')
+  return ROSTO_NA_DESCRICAO_RE.test(s) || PRONOME_SUJEITO_RE.test(s) || PAPEL_SEM_SILHUETA_RE.test(s)
+}
 /** As descrições do filme pela troca da cena sem rosto (fora do modo sem rosto, as mesmas). */
 export function descricoesSemRosto(ds: string[] | null, semRosto: boolean): string[] | null {
   return ds && semRosto ? ds.map((d) => sujeitoSemRosto(d)) : ds

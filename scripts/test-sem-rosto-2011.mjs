@@ -67,7 +67,22 @@ async function prova(over = {}) {
   // ── U · a régua e as funções ──
   for (const t of ['A young blonde woman smiles enthusiastically at the camera.', 'her eyes sparkling in the light', 'Gabriel lying in bed, gazing thoughtfully at the ceiling', 'a man looks into the lens', 'a portrait of an old sailor', 'sunlight illuminates her face', 'a determined expression', 'she grinned', 'laughing children', 'a woman smiling warmly in the kitchen', 'the hiker stares at the stars', 'he turns toward the camera'])
     no(!L.rostoNaDescricao(t), `U1 rosto não visto: "${t}"`)
-  for (const t of ['Aerial shot of a rocket launching from a space center.', 'The family seen from behind as distant silhouettes sees past events.', 'a ginger cat silhouetted against the moon', 'Close-up of a kettlebell swung by a muscular hand', 'a builder marking the ground with stakes'])
+  // [revisor 20/11, rv20] as 33 frases dele: 25 que a guarda tem de barrar (depois da troca da cena, como na rota) e 8 que não
+  const RV20_BARRA = ['A young woman smiles warmly in her kitchen.', 'A boy grinning at his friends on the beach.', 'A man looks straight at the lens and speaks.', 'Her eyes fill with tears as the letter falls.',
+    'Close-up portrait of an old fisherman at dawn.', 'Her face lit by the glow of a phone screen.', 'His expression changes from fear to relief.', 'A teenager staring out of the bus window.',
+    'She glances over her shoulder in the alley.', "A man's profile against the sunset.", 'A girl takes a selfie in front of the tower.', 'A WOMAN SMILES AT THE CAMERA.',
+    'A mulher sorri para a câmera na praia.', 'Die Frau lächelt in die Kamera.', "L'homme regarde la caméra en silence.", 'La niña mira a la cámara y sonríe.', 'The faces of the crowd light up.',
+    'A chef winks while plating the dish.', 'A runner frowns in pain at the finish line.', 'Close-up of her lips whispering a secret.', 'A soldier’s tearful gaze toward home.',
+    'The grandmother beams with pride.', 'A man laughing with his friends at a bar.', 'A woman with freckles and bright green eyes.', 'Close-up of a man’s weathered features.']
+  const RV20_PASSA = ['The clock face reads midnight in the empty hall.', 'A cabin facing the mountain at dawn.', 'The eye of the storm over the open ocean.', 'Rain drips across the surface of the lake.',
+    'A camera crane rises over the stadium.', 'An eyewall of clouds spins over the sea.', 'Waves smash the face of the cliff.', 'A lighthouse beam sweeps the bay.']
+  for (const t of RV20_BARRA) no(!L.rostoNaDescricao(P.sujeitoSemRosto(t)), `U1c [rv20] passou: "${t}" → "${P.sujeitoSemRosto(t)}"`)
+  for (const t of RV20_PASSA) no(L.rostoNaDescricao(P.sujeitoSemRosto(t)), `U1d [rv20] barrou à toa: "${t}"`)
+  // as partes novas, cada uma com o seu caso: pronome como sujeito, papel sem silhueta, câmera só em outra língua, "low-profile", "beam" de luz
+  for (const t of ['A woman glances over her shoulder in the alley.', 'A man staring out of the train window.', 'a man looks into the lens', 'He walks slowly to the window at night.', 'The door opens and she steps into the rain.', 'a builder marking the ground with stakes', 'Officers inspect vehicles at a checkpoint.', 'O homem olha para a câmera.'])
+    no(!L.rostoNaDescricao(P.sujeitoSemRosto(t)), `U1e gente sem silhueta ou câmera estrangeira não vista: "${t}"`)
+  for (const t of ['Aerial shot of a rocket launching from a space center.', 'The family seen from behind as distant silhouettes sees past events.', 'a ginger cat silhouetted against the moon', 'Close-up of a kettlebell swung by a muscular hand',
+    'a soldier seen in silhouette from behind marching through the snow', 'a low-profile sports car parked by the dock', 'The shell of the theater, the stage lit by a single beam of light.', 'A camera drone glides over the canyon.'])
     no(L.rostoNaDescricao(t), `U1b falso rosto: "${t}"`)
   const comRosto = 'A young blonde woman in a pastel pink outfit smiles enthusiastically at the camera in a modern home setting.'
   const semRostoComGente = 'Wide shot of a woman walking along a foggy beach at dawn.'
@@ -104,9 +119,10 @@ async function prova(over = {}) {
   const novos = sr.filter((x) => x.r.caminho !== 'hoje')
   const comRostoNovo = novos.flatMap((x) => (x.r.d ?? []).filter((d) => ROSTO_FIXO.test(d)).map((d) => `${x.f.gen}: ${d.slice(0, 90)}`))
   no(comRostoNovo.length > 0, `R3 0 descrição com rosto, olhar ou sorriso no caminho novo do filme sem rosto: ${comRostoNovo.join(' · ')}`)
-  no(novos.length < 20, `R4 o caminho novo segue para a maioria dos sem rosto (${novos.length} de ${sr.length}; o conserto não vira "tudo no de hoje")`)
+  // [rv20] com a guarda larga, o papel sem silhueta ("builder", "officers") também volta: 20 → 17 no caminho novo, 4 → 7 voltas
+  no(novos.length < 15, `R4 o caminho novo segue para a maioria dos sem rosto (${novos.length} de ${sr.length}; o conserto não vira "tudo no de hoje")`)
   const voltas = sr.filter((x) => x.r.motivo === 'sem_rosto_com_rosto').length
-  no(voltas > 6, `R5 no máximo 6 filmes sem rosto voltam por rosto (${voltas})`)
+  no(voltas > 8, `R5 no máximo 8 filmes sem rosto voltam por rosto (${voltas})`)
   if (!Object.keys(over).length) STATS = { costasHoje, costasNovo, novos: novos.length, voltas, sr: sr.length }
   // fora do modo sem rosto: as descrições e o envio iguais aos de sem o conserto
   for (const x of R.filter((y) => !y.r.sr && y.r.caminho !== 'hoje')) {
@@ -125,8 +141,19 @@ async function prova(over = {}) {
 const MUT = [
   ['lib: a troca não roda', LIB, (s) => s.replace('  return ds && semRosto ? ds.map((d) => sujeitoSemRosto(d)) : ds', '  return ds')],
   ['lib: régua sem os olhos', LIB, (s) => s.replace('|facial|eyes?|gaz(?:e|es|ed|ing)|', '|facial|gaz(?:e|es|ed|ing)|')],
-  ['lib: régua sem "para a câmera"', LIB, (s) => s.replace('|portraits?|(?:at|to|toward|towards|into) the (?:camera|viewer|lens))', '|portraits?)')],
+  ['lib: régua sem "para a câmera"', LIB, (s) => s.replace('|(?:at|to|toward|towards|into) the (?:camera|viewer|lens)|', '|')], // [rv20] reancorado: a régua continua depois da lente
   ['lib: régua sem o sorriso', LIB, (s) => s.replace('(?:smil(?:e|es|ed|ing)|grin', '(?:grin')],
+  ['rv20: sem poupar o que não é rosto', LIB, (s) => s.replace("  const s = String(d ?? '').replace(NAO_E_ROSTO_RE, ' ')", "  const s = String(d ?? '')")],
+  ['rv20: sem o pronome como sujeito', LIB, (s) => s.replace('ROSTO_NA_DESCRICAO_RE.test(s) || PRONOME_SUJEITO_RE.test(s) || PAPEL_SEM_SILHUETA_RE.test(s)', 'ROSTO_NA_DESCRICAO_RE.test(s) || PAPEL_SEM_SILHUETA_RE.test(s)')],
+  ['rv20: sem o papel fora da lista', LIB, (s) => s.replace('ROSTO_NA_DESCRICAO_RE.test(s) || PRONOME_SUJEITO_RE.test(s) || PAPEL_SEM_SILHUETA_RE.test(s)', 'ROSTO_NA_DESCRICAO_RE.test(s) || PRONOME_SUJEITO_RE.test(s)')],
+  ['rv20: papel barrado mesmo de costas', LIB, (s) => s.replace("(?!\\s*,?\\s*(?:seen (?:in silhouette |only as hands )?(?:from behind|in close-up)|seen only as hands|silhouett))/i", '/i')],
+  ['rv20: sem glances', LIB, (s) => s.replace('|glanc(?:e|es|ed|ing)|', '|')],
+  ['rv20: staring só com "at"', LIB, (s) => s.replace('|star(?:e|es|ed|ing)|', '|star(?:e|es|ed|ing) (?:at|into)|')],
+  ['rv20: sem selfie e profile', LIB, (s) => s.replace('|lips|selfies?|(?<!low-|high-)profiles?|', '|lips|')],
+  ['rv20: low-profile barra', LIB, (s) => s.replace('(?<!low-|high-)profiles?', 'profiles?')],
+  ['rv20: beam de luz barra', LIB, (s) => s.replace('|beam(?:s|ed|ing)? (?:with|at|proudly|happily|brightly)|', '|beams?|')],
+  ['rv20: sem a câmera estrangeira', LIB, (s) => s.replace('|(?:câmera|cámara|caméra|kamera)(?![a-z])/i', '/i')],
+  ['rv20: "camera" inglês barra', LIB, (s) => s.replace('|(?:câmera|cámara|caméra|kamera)(?![a-z])/i', '|(?:camera|câmera|cámara|caméra|kamera)(?![a-z])/i')],
   ['lib: reescrita com rosto entra', LIB, (s) => s.replace('  return rostoNaDescricao(s) ? null : s\n', '  return s\n')],
   ['lib: reescrita sem a troca', LIB, (s) => s.replace('  const s = sujeitoSemRosto(d)\n  return rostoNaDescricao(s)', '  const s = d\n  return rostoNaDescricao(s)')],
   ['lib: troca também fora do modo sem rosto', LIB, (s) => s.replace('  if (!semRosto) return d\n', '')],
