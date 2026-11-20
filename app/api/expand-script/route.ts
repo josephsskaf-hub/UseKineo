@@ -1,3 +1,4 @@
+import { looksLikeModelRefusal } from '@/lib/modelRefusal' // KINEO-RECUSA-IA-2011 — a recusa do modelo nunca vira roteiro nem prompt de vídeo
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai, OPENAI_SCRIPT_TIMEOUT_MS } from '@/lib/openai'
@@ -283,7 +284,7 @@ ${original}`
     )
 
     let expandido = (res.choices[0]?.message?.content ?? '').trim()
-    if (!expandido) {
+    if (!expandido || looksLikeModelRefusal(expandido)) { // KINEO-RECUSA-IA-2011 — a recusa do modelo não substitui o roteiro do cliente: falha transitória, o texto dele fica
       return NextResponse.json(
         { outcome: 'transient_failure' as ExpandOutcome, error: 'Could not expand the script. Please try again.' },
         { status: 502 },

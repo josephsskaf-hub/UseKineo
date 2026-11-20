@@ -8,6 +8,7 @@
 //   • per-IP rolling limit (in-memory per lambda — imperfect on serverless,
 //     acceptable because the unit cost is tiny) + 12 demos/day per IP
 //   • output is the DEMO script only — no TTS, no footage, no render
+import { looksLikeModelRefusal } from '@/lib/modelRefusal' // KINEO-RECUSA-IA-2011 — a recusa do modelo nunca vira roteiro nem prompt de vídeo
 import { NextRequest, NextResponse } from 'next/server'
 import { openai } from '@/lib/openai'
 import { looksOpenAiQuotaDead, alertOpenAiExhausted, openAiAlertKind } from '@/lib/openaiAlert'
@@ -111,6 +112,7 @@ export async function POST(req: NextRequest) {
 
     try {
       const script = await generateLive(topic, mode, audience)
+      if (script && looksLikeModelRefusal(script)) return NextResponse.json({ script: mode === 'comment' ? fallbackCommentScript(topic) : mode === 'product' ? fallbackProductScript(topic) : fallbackDemoScript(topic), fallback: true }) // KINEO-RECUSA-IA-2011 — a recusa do modelo nunca vira a demo: o roteiro do banco fixo, como na queda da OpenAI
       if (script) return NextResponse.json({ script })
       return NextResponse.json({ error: 'Could not write the demo script. Try again.' }, { status: 502 })
     } catch (err) {

@@ -8,6 +8,7 @@
 // This intentionally reuses the existing pipeline: the script drops into the
 // Avatar Studio script box (scriptMode 'verbatim') or the Short flow. No new
 // render path — the template IS the feature.
+import { looksLikeModelRefusal } from '@/lib/modelRefusal' // KINEO-RECUSA-IA-2011 — a recusa do modelo nunca vira roteiro nem prompt de vídeo
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai'
@@ -84,7 +85,7 @@ export async function POST(req: NextRequest) {
       ],
     })
     const script = (completion.choices[0]?.message?.content ?? '').trim()
-    if (!script) {
+    if (!script || looksLikeModelRefusal(script)) { // KINEO-RECUSA-IA-2011 — recusa do modelo não é roteiro de anúncio
       return NextResponse.json({ error: 'Could not write the ad script. Please try again.' }, { status: 502 })
     }
 

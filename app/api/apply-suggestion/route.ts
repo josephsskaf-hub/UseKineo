@@ -1,3 +1,4 @@
+import { looksLikeModelRefusal } from '@/lib/modelRefusal' // KINEO-RECUSA-IA-2011 — a recusa do modelo nunca vira roteiro nem prompt de vídeo
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai'
@@ -80,7 +81,7 @@ HARD RULES:
     // Strip accidental markdown fences if the model wraps the answer.
     improved = improved.replace(/^```[a-z]*\s*/i, '').replace(/\s*```$/i, '').trim()
 
-    if (!improved) {
+    if (!improved || looksLikeModelRefusal(improved)) { // KINEO-RECUSA-IA-2011 — recusa do modelo = sugestão não aplicada; o roteiro do cliente fica
       return NextResponse.json({ error: 'Could not apply the suggestion. Please try again.' }, { status: 502 })
     }
 

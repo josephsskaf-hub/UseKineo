@@ -1,3 +1,4 @@
+import { looksLikeModelRefusal } from '@/lib/modelRefusal' // KINEO-RECUSA-IA-2011 — a recusa do modelo nunca vira roteiro nem prompt de vídeo
 import { NextRequest, NextResponse } from 'next/server'
 import { AI_TEXT_MODELS } from '@/lib/aiModels' // KINEO-MIGRACAO-OPENAI-F1-1410
 import { createClient } from '@/lib/supabase/server'
@@ -195,7 +196,7 @@ Return JSON with:
         // Fall back to our prompt builder if GPT returns empty
         const builtFallback = buildScenePrompt(narration, niche, globalStyle, shotType, visualMood)
 
-        newBrollPrompt = gptBrollPrompt.length > 20 ? gptBrollPrompt : builtFallback.brollPrompt
+        newBrollPrompt = gptBrollPrompt.length > 20 && !looksLikeModelRefusal(gptBrollPrompt) ? gptBrollPrompt : builtFallback.brollPrompt // KINEO-RECUSA-IA-2011 — recusa do modelo = o prompt do construtor, nunca a frase ao motor
 
         result = {
           brollPrompt: newBrollPrompt,

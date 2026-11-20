@@ -6,6 +6,7 @@
 // aceita foto da pasta do próprio usuário, e o nome fixo faz o MESMO bebê voltar numa série. Devolve o corpo pronto do
 // /api/generate-avatar (presenter, verbatim, sem B-roll, voz MiniMax da língua). O débito (70 cr do 'presenter') é do generate-avatar.
 // Interruptor: BABY_PODCAST_LIVE=false → só as contas da casa (isInternalEmail); o resto recebe 404.
+import { looksLikeModelRefusal } from '@/lib/modelRefusal' // KINEO-RECUSA-IA-2011 — a recusa do modelo nunca vira roteiro nem prompt de vídeo
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
@@ -75,6 +76,7 @@ export async function POST(req: NextRequest) {
           { timeout: OPENAI_SCRIPT_TIMEOUT_MS, maxRetries: 0 },
         )
         texto = completion.choices[0]?.message?.content?.trim() ?? ''
+        if (looksLikeModelRefusal(texto)) texto = '' // KINEO-RECUSA-IA-2011 — a recusa do escritor = roteiro vazio (o 502 de sempre, nada cobrado)
       } catch (err) {
         console.warn('[baby-podcast/prepare] escritor falhou:', err instanceof Error ? err.message : String(err))
         return recusa(503, request.language === 'pt' ? 'O escritor está ocupado agora. Nada foi cobrado — tente de novo em um minuto.' : 'The writer is busy right now. Nothing was charged — try again in a minute.', 'writer_unavailable')

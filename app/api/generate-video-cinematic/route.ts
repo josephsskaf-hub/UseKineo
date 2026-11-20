@@ -338,6 +338,7 @@ import { protagonistaLigado, temProtagonista, lerSinaisDoProtagonista, textoPara
 import { lerSujeitoDoPedido } from '@/lib/cinematic/sujeitoObrigatorio' // KINEO-PROTAGONISTA-1311
 import { elencoComFichaDoPedido } from '@/lib/cinematic/fichaDoPedido' // KINEO-FICHA-DO-PEDIDO-0911 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — o que o cliente escreveu sobre o personagem no PEDIDO ORIGINAL chega à ficha quando o roteiro automático resumiu o texto
 import { pedirOrigemDoElenco, montarOrigemDoFilme, origemLigadaNoFilme, elencoComOrigem, origemParaCenas, sheetComOrigem, relatoDaOrigem, EVENTO_ORIGEM_DO_ELENCO } from '@/lib/cinematic/origemDoElenco' // KINEO-ORIGEM-DO-ELENCO-0311 [TRAVA 8.2 — fundador 03/11: "Conserta a etnia agora, universal de todas as etnias"] — de onde é quem está em cena, provado pelas palavras do texto, em todos os motores
+import { looksLikeModelRefusal, algumaRecusaDoModelo, MODEL_REFUSAL_MESSAGE } from '@/lib/modelRefusal' // KINEO-RECUSA-IA-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — a recusa do modelo nunca vira filme
 import { visualMostraAlguem, visualMostraPessoa } from '@/lib/cinematic/personagemAjuste' // KINEO-PROTAGONISTA-SEEDANCE-0111 — o detector de gente no visual do 15 s (rodada 15) e o de pessoa (rodada 16: protagonista bicho não apaga a pessoa)
 
 // KINEO-POLL-FATAL-2026-08-17 — era 60. Na noite do fal travado a rota morreu
@@ -1667,6 +1668,16 @@ async function manipularPost(req: NextRequest) {
       if (ideiaDoEscritor) { body.original_idea = ideiaDoEscritor; void writeServerEvent({ name: 'original_idea_recovered', userId: user.id, path: '/api/generate-video-cinematic', metadata: { version: APARENCIA_1311_VERSAO, chars: ideiaDoEscritor.length, generation_id: typeof body.generationId === 'string' ? body.generationId : null } }) } // KINEO-APARENCIA-DO-PEDIDO-1311
     } // KINEO-APARENCIA-DO-PEDIDO-1311
     void writeServerEvent({ name: FILM_IDEA_STATUS_EVENT, userId: user.id, path: '/api/generate-video-cinematic', metadata: statusDaIdeiaDoFilme({ daTela: ideiaDaTela1311, final: body.original_idea, roteiro: body.prompt, generationId: body.generationId, dryRun: body.dry_run === true, servico: isServiceJob }) }) // KINEO-IDEIA-VIAJA-1311
+    // KINEO-RECUSA-IA-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — d700489f (19/11, filme grátis DE): o escritor recusou e a tela
+    // mandou "I'm sorry, I can't assist with that." como roteiro; virou título, fala em russo e filme. Antes de escritor, cobrança e motor: com a ideia do
+    // cliente (e sem "Use my script as is") o filme nasce da IDEIA, como se a tela a tivesse mandado sozinha; sem ela, 422 e nada é cobrado.
+    if (looksLikeModelRefusal(body.prompt)) {
+      const ideiaDoCliente2011 = typeof body.original_idea === 'string' && body.original_idea.trim() && !looksLikeModelRefusal(body.original_idea) ? body.original_idea.trim() : null
+      const usarIdeia2011 = !!ideiaDoCliente2011 && !(typeof body.script_mode === 'string' && body.script_mode.toLowerCase() === 'verbatim')
+      void writeServerEvent({ name: 'model_refusal_blocked', userId: user.id, path: '/api/generate-video-cinematic', metadata: { version: 'recusa_ia_2011', stage: 'intake', outcome: usarIdeia2011 ? 'idea_used' : 'refused', head: String(body.prompt).slice(0, 120), idea_chars: ideiaDoCliente2011?.length ?? 0, generation_id: typeof body.generationId === 'string' ? body.generationId : null, dry_run: body.dry_run === true } })
+      if (!usarIdeia2011 || !ideiaDoCliente2011) return NextResponse.json({ error: MODEL_REFUSAL_MESSAGE, reason: 'model_refused_topic', code: 'model_refused_topic', charged: false, retryable: false }, { status: 422 })
+      body.prompt = ideiaDoCliente2011
+    }
     // KINEO-PORTAO-DO-SUJEITO-1911 (B1a) — o roteiro literal foi escrito pelo NOSSO escritor? (o script_written casado pelo começo, as regras da ideia original).
     // Só lido com o portão ligado: decide se o sujeito obrigatório do Kling 4 grátis pode usar a ideia original. Desligado = nenhuma leitura a mais.
     const PORTAO_LEITURA_TETO_MS_1911 = 2_000 // [revisor 19/11, condição 6] a leitura da ideia do escritor no banco
@@ -3346,6 +3357,18 @@ async function manipularPost(req: NextRequest) {
       return true
     }
     releaseActiveBirthClaim = releaseBirthClaim
+    // KINEO-RECUSA-IA-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — o escritor de cenas (generateScenes) devolveu a recusa como
+    // fala de uma cena: o crédito volta pelo estorno de sempre (confirmCinematicRefund + releaseBirthClaim) e nenhuma cena vai ao motor.
+    const recusaDoEscritorDeCenas2011 = async (falas: ReadonlyArray<string | null | undefined>): Promise<NextResponse | null> => {
+      if (!algumaRecusaDoModelo(falas)) return null
+      const refunded = await confirmCinematicRefund()
+      const released = refunded && await releaseBirthClaim('model_refused_topic')
+      void writeServerEvent({ name: 'model_refusal_blocked', userId: user.id, path: '/api/generate-video-cinematic', metadata: { version: 'recusa_ia_2011', stage: 'scene_writer', outcome: refunded ? 'refunded' : 'refund_pending', head: String(falas.find((f) => typeof f === 'string' && looksLikeModelRefusal(f)) ?? '').slice(0, 120), generation_id: generationId, dry_run: body.dry_run === true } })
+      return NextResponse.json({
+        error: refunded ? 'The writer could not turn this idea into a script (the AI declined the topic). Your credits were returned — try rewording the idea, or paste your own script with "Use my script as is".' : 'The writer could not turn this idea into a script (the AI declined the topic). Your automatic credit refund is still being confirmed.',
+        reason: 'model_refused_topic', code: 'model_refused_topic', generationId, refunded, refundConfirmed: refunded, claimReleased: released, retryable: false,
+      }, { status: refunded ? 422 : 503 })
+    }
     // ═══ KINEO-FILA-QUEDA-FAL-2810 — ESTACIONAR em vez de perder (fal sem saldo / capacidade) ═══
     // Chamado nas DUAS saídas de "nenhuma cena aceita" (Hollywood FAILFAST e clássico zero aceitas), DEPOIS do estorno
     // confirmado. Só estaciona quando toda recusa explícita é saldo (balance_quota) ou capacidade (rate_limit/429) e nenhuma
@@ -4144,6 +4167,8 @@ async function manipularPost(req: NextRequest) {
         // engine instead of the keyword query.
         aiPrompt: s.description,
       }))
+      const recusaDasCenas2011 = await recusaDoEscritorDeCenas2011(scenes.map((s) => s.voiceover)) // KINEO-RECUSA-IA-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
+      if (recusaDasCenas2011) return recusaDasCenas2011 // KINEO-RECUSA-IA-2011
       // KINEO-FALA-CLASSICA-FIEL-2026-09-15 — Seedance 0d443007 narrou "The time is exactly 12:00 AM." (o pedido dizia
       // "midnight"): a mesma varredura de datas/horas e de lugares/nomes fora do pedido que protege o hollywood entra
       // aqui, na fala do escritor clássico, ANTES de o footage ser escolhido para ela. Contexto = só o pedido.
@@ -4371,6 +4396,8 @@ async function manipularPost(req: NextRequest) {
             stockSearchQuery: s.stockSearchQuery,
             aiPrompt: s.description,
           }))
+            const recusaDasRecuperadas2011 = await recusaDoEscritorDeCenas2011(recuperadas.map((s) => s.voiceover)) // KINEO-RECUSA-IA-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
+            if (recusaDasRecuperadas2011) return recusaDasRecuperadas2011 // KINEO-RECUSA-IA-2011
             via = 'ai_planner'
           }
         } else if (!pareceInstrucao) {
@@ -4447,7 +4474,7 @@ async function manipularPost(req: NextRequest) {
         console.warn('[cinematic] #441 description generation skipped:', e instanceof Error ? e.message : String(e))
       }
       const completas = completeSceneDescriptions({
-        descriptions: cobertura.descriptions.map((d, i) => d ?? scenes[i].aiPrompt ?? null), // prosa já existente (planner do zero-scenes) vale como descrição
+        descriptions: cobertura.descriptions.map((d, i) => (d && !looksLikeModelRefusal(d) ? d : null) ?? scenes[i].aiPrompt ?? null), // prosa já existente (planner do zero-scenes) vale como descrição · KINEO-RECUSA-IA-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]: descrição que é recusa do descritor = sem descrição (o complemento de sempre, nunca a frase ao motor)
         scenes: scenes.map((s) => ({ voiceover: s.voiceover, hint: s.stockSearchQuery || s.description })),
         topic: prompt,
       })

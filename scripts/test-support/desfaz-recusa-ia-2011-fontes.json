@@ -1,0 +1,170 @@
+{
+ "base": "7fda4c7d2d74367729d68fe6a68d355eecede890",
+ "scope": {
+  "app/api/generate-video-cinematic/route.ts": {
+   "beforeSha256": "9bdffc803489c2a1512ccd952640c0535f784a142ff5bdef9c22b8de0803d3c7",
+   "afterSha256": "73ca127942103f3e4614ca4829ff981995bce8f35d49dae3de271ed38369c9ef",
+   "hunks": [
+    {
+     "before": "import { pedirOrigemDoElenco, montarOrigemDoFilme, origemLigadaNoFilme, elencoComOrigem, origemParaCenas, sheetComOrigem, relatoDaOrigem, EVENTO_ORIGEM_DO_ELENCO } from '@/lib/cinematic/origemDoElenco' // KINEO-ORIGEM-DO-ELENCO-0311 [TRAVA 8.2 — fundador 03/11: \"Conserta a etnia agora, universal de todas as etnias\"] — de onde é quem está em cena, provado pelas palavras do texto, em todos os motores\nimport { visualMostraAlguem, visualMostraPessoa } from '@/lib/cinematic/personagemAjuste' // KINEO-PROTAGONISTA-SEEDANCE-0111 — o detector de gente no visual do 15 s (rodada 15) e o de pessoa (rodada 16: protagonista bicho não apaga a pessoa)",
+     "after": "import { pedirOrigemDoElenco, montarOrigemDoFilme, origemLigadaNoFilme, elencoComOrigem, origemParaCenas, sheetComOrigem, relatoDaOrigem, EVENTO_ORIGEM_DO_ELENCO } from '@/lib/cinematic/origemDoElenco' // KINEO-ORIGEM-DO-ELENCO-0311 [TRAVA 8.2 — fundador 03/11: \"Conserta a etnia agora, universal de todas as etnias\"] — de onde é quem está em cena, provado pelas palavras do texto, em todos os motores\nimport { looksLikeModelRefusal, algumaRecusaDoModelo, MODEL_REFUSAL_MESSAGE } from '@/lib/modelRefusal' // KINEO-RECUSA-IA-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — a recusa do modelo nunca vira filme\nimport { visualMostraAlguem, visualMostraPessoa } from '@/lib/cinematic/personagemAjuste' // KINEO-PROTAGONISTA-SEEDANCE-0111 — o detector de gente no visual do 15 s (rodada 15) e o de pessoa (rodada 16: protagonista bicho não apaga a pessoa)"
+    },
+    {
+     "before": "    void writeServerEvent({ name: FILM_IDEA_STATUS_EVENT, userId: user.id, path: '/api/generate-video-cinematic', metadata: statusDaIdeiaDoFilme({ daTela: ideiaDaTela1311, final: body.original_idea, roteiro: body.prompt, generationId: body.generationId, dryRun: body.dry_run === true, servico: isServiceJob }) }) // KINEO-IDEIA-VIAJA-1311\n    // KINEO-PORTAO-DO-SUJEITO-1911 (B1a) — o roteiro literal foi escrito pelo NOSSO escritor? (o script_written casado pelo começo, as regras da ideia original).",
+     "after": "    void writeServerEvent({ name: FILM_IDEA_STATUS_EVENT, userId: user.id, path: '/api/generate-video-cinematic', metadata: statusDaIdeiaDoFilme({ daTela: ideiaDaTela1311, final: body.original_idea, roteiro: body.prompt, generationId: body.generationId, dryRun: body.dry_run === true, servico: isServiceJob }) }) // KINEO-IDEIA-VIAJA-1311\n    // KINEO-RECUSA-IA-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — d700489f (19/11, filme grátis DE): o escritor recusou e a tela\n    // mandou \"I'm sorry, I can't assist with that.\" como roteiro; virou título, fala em russo e filme. Antes de escritor, cobrança e motor: com a ideia do\n    // cliente (e sem \"Use my script as is\") o filme nasce da IDEIA, como se a tela a tivesse mandado sozinha; sem ela, 422 e nada é cobrado.\n    if (looksLikeModelRefusal(body.prompt)) {\n      const ideiaDoCliente2011 = typeof body.original_idea === 'string' && body.original_idea.trim() && !looksLikeModelRefusal(body.original_idea) ? body.original_idea.trim() : null\n      const usarIdeia2011 = !!ideiaDoCliente2011 && !(typeof body.script_mode === 'string' && body.script_mode.toLowerCase() === 'verbatim')\n      void writeServerEvent({ name: 'model_refusal_blocked', userId: user.id, path: '/api/generate-video-cinematic', metadata: { version: 'recusa_ia_2011', stage: 'intake', outcome: usarIdeia2011 ? 'idea_used' : 'refused', head: String(body.prompt).slice(0, 120), idea_chars: ideiaDoCliente2011?.length ?? 0, generation_id: typeof body.generationId === 'string' ? body.generationId : null, dry_run: body.dry_run === true } })\n      if (!usarIdeia2011 || !ideiaDoCliente2011) return NextResponse.json({ error: MODEL_REFUSAL_MESSAGE, reason: 'model_refused_topic', code: 'model_refused_topic', charged: false, retryable: false }, { status: 422 })\n      body.prompt = ideiaDoCliente2011\n    }\n    // KINEO-PORTAO-DO-SUJEITO-1911 (B1a) — o roteiro literal foi escrito pelo NOSSO escritor? (o script_written casado pelo começo, as regras da ideia original)."
+    },
+    {
+     "before": "    releaseActiveBirthClaim = releaseBirthClaim\n    // ═══ KINEO-FILA-QUEDA-FAL-2810 — ESTACIONAR em vez de perder (fal sem saldo / capacidade) ═══",
+     "after": "    releaseActiveBirthClaim = releaseBirthClaim\n    // KINEO-RECUSA-IA-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — o escritor de cenas (generateScenes) devolveu a recusa como\n    // fala de uma cena: o crédito volta pelo estorno de sempre (confirmCinematicRefund + releaseBirthClaim) e nenhuma cena vai ao motor.\n    const recusaDoEscritorDeCenas2011 = async (falas: ReadonlyArray<string | null | undefined>): Promise<NextResponse | null> => {\n      if (!algumaRecusaDoModelo(falas)) return null\n      const refunded = await confirmCinematicRefund()\n      const released = refunded && await releaseBirthClaim('model_refused_topic')\n      void writeServerEvent({ name: 'model_refusal_blocked', userId: user.id, path: '/api/generate-video-cinematic', metadata: { version: 'recusa_ia_2011', stage: 'scene_writer', outcome: refunded ? 'refunded' : 'refund_pending', head: String(falas.find((f) => typeof f === 'string' && looksLikeModelRefusal(f)) ?? '').slice(0, 120), generation_id: generationId, dry_run: body.dry_run === true } })\n      return NextResponse.json({\n        error: refunded ? 'The writer could not turn this idea into a script (the AI declined the topic). Your credits were returned — try rewording the idea, or paste your own script with \"Use my script as is\".' : 'The writer could not turn this idea into a script (the AI declined the topic). Your automatic credit refund is still being confirmed.',\n        reason: 'model_refused_topic', code: 'model_refused_topic', generationId, refunded, refundConfirmed: refunded, claimReleased: released, retryable: false,\n      }, { status: refunded ? 422 : 503 })\n    }\n    // ═══ KINEO-FILA-QUEDA-FAL-2810 — ESTACIONAR em vez de perder (fal sem saldo / capacidade) ═══"
+    },
+    {
+     "before": "      }))\n      // KINEO-FALA-CLASSICA-FIEL-2026-09-15 — Seedance 0d443007 narrou \"The time is exactly 12:00 AM.\" (o pedido dizia",
+     "after": "      }))\n      const recusaDasCenas2011 = await recusaDoEscritorDeCenas2011(scenes.map((s) => s.voiceover)) // KINEO-RECUSA-IA-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]\n      if (recusaDasCenas2011) return recusaDasCenas2011 // KINEO-RECUSA-IA-2011\n      // KINEO-FALA-CLASSICA-FIEL-2026-09-15 — Seedance 0d443007 narrou \"The time is exactly 12:00 AM.\" (o pedido dizia"
+    },
+    {
+     "before": "          }))\n            via = 'ai_planner'",
+     "after": "          }))\n            const recusaDasRecuperadas2011 = await recusaDoEscritorDeCenas2011(recuperadas.map((s) => s.voiceover)) // KINEO-RECUSA-IA-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]\n            if (recusaDasRecuperadas2011) return recusaDasRecuperadas2011 // KINEO-RECUSA-IA-2011\n            via = 'ai_planner'"
+    },
+    {
+     "before": "      const completas = completeSceneDescriptions({\n        descriptions: cobertura.descriptions.map((d, i) => d ?? scenes[i].aiPrompt ?? null), // prosa já existente (planner do zero-scenes) vale como descrição\n        scenes: scenes.map((s) => ({ voiceover: s.voiceover, hint: s.stockSearchQuery || s.description })),",
+     "after": "      const completas = completeSceneDescriptions({\n        descriptions: cobertura.descriptions.map((d, i) => (d && !looksLikeModelRefusal(d) ? d : null) ?? scenes[i].aiPrompt ?? null), // prosa já existente (planner do zero-scenes) vale como descrição · KINEO-RECUSA-IA-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]: descrição que é recusa do descritor = sem descrição (o complemento de sempre, nunca a frase ao motor)\n        scenes: scenes.map((s) => ({ voiceover: s.voiceover, hint: s.stockSearchQuery || s.description })),"
+    }
+   ]
+  },
+  "lib/modelRefusal.ts": {
+   "beforeSha256": "45b9ce80134e10bce7800568895bdb488beb8549ca6e5ea7d1c10f378becbb8c",
+   "afterSha256": "c48175932a0310ff00741a9d1c2b315f9cd5a2cc7d722a069cdb5a8aa1116c24",
+   "hunks": [
+    {
+     "before": "// duas portas: o escritor (recusa antes do gasto) e o juiz (nota 0 sem GPT quando o filme antigo já nasceu assim).\nconst REFUSAL_PATTERNS: ReadonlyArray<RegExp> = [\n  /\\bI['’]?m sorry,? but I (?:can['’]?t|cannot|am unable to) (?:assist|help|comply|create|write|do that)/i,\n  /\\bI (?:can['’]?t|cannot|am unable to) (?:assist|help) with (?:that|this) request/i,\n  /\\bI (?:can['’]?t|cannot) (?:create|write|generate|produce) (?:that|this|content)/i,\n  /\\bas an AI(?: language model)?,? I (?:can['’]?t|cannot)/i,\n  /\\b(?:desculpe|sinto muito),? (?:mas )?n[ãa]o posso (?:ajudar|criar|escrever)/i,\n  /\\blo siento,? (?:pero )?no puedo (?:ayudar|crear|escribir)/i,\n]",
+     "after": "// duas portas: o escritor (recusa antes do gasto) e o juiz (nota 0 sem GPT quando o filme antigo já nasceu assim).\n//\n// KINEO-RECUSA-IA-2011 [CEO 20/11; filme grátis d700489f, DE, 19/11 21:40Z] — a 2ª tentativa do escritor devolveu\n// \"I'm sorry, I can't assist with that.\" (SEM o \"but\" e sem \"request\") e a régua antiga não reconheceu: a frase virou\n// o roteiro, a ideia do servidor, o prompt do motor e a narração em russo (\"Извините, но я не могу оказать помощь…\").\n// 30 dias no banco: a mesma frase em 3 pessoas (24/10, 28/10, 19/11) e \"I'm sorry, but I can only provide scripts in\n// US English…\" entregue como filme em 19/10 (c17d2e78). Agora a régua é a do TEXTO INTEIRO: recusa é quando o texto\n// COMEÇA por uma frase de recusa (EN, PT, ES, DE, FR, IT, RU, UK, PL, NL, TR, ZH, JA) e o resto é curto ou é conversa\n// do modelo com a pessoa (\"However…\", \"If you…\"). Fala de personagem (\"I'm sorry, Mom\", \"Desculpe pelo atraso\",\n// '\"I'm sorry, I can't help you,\" the doctor said') nunca dispara: o verbo precisa ser o de assistente (assist/help\n// WITH THAT, comply, fulfill, provide…), a frase não pode estar entre aspas nem ter vocativo, e a recusa no meio de\n// uma história não conta. Este arquivo continua sem import (os guardiões o carregam sozinho num vm).\n\nconst FIM = String.raw`(?=[\\s.,!?;:…。！？،]|$)`\n// o objeto de assistente depois do verbo: \"with that\", \"this request\", \"that.\", fim de frase. \"help you\" (fala de gente) não casa.\nconst OBJ_EN = String.raw`(?:\\s+(?:you\\s+)?(?:with|on|in|for)\\s+(?:that|this|your|such|these|any|the(?:\\s+\\S+)?\\s+request)\\b|\\s+(?:that|this|such|these)(?:\\s+(?:kind|type|sort)\\s+of\\s+\\S+|\\s+(?:request|content|script|video|story|topic|information|one))?\\s*(?:[.!…,]|$)|\\s+(?:requests?|content|assistance|information)\\b|\\s*(?:[.!…]|$))`\n// sem make/do/continue/support: \"I'm sorry, I can't make it tonight\" é fala de gente\nconst VERBO_EN = String.raw`(?:assist|help|comply|fulfil+|provide|create|generate|write|produce|engage)`\nconst NAO_POSSO_EN = String.raw`(?:can['’]?t|cannot|can not|am unable to|['’]m unable to|am not able to|['’]m not able to|won['’]?t be able to|will not be able to|must decline to|am not allowed to)`\nconst OBJ_PT = String.raw`(?:\\s+(?:voc[êe]\\s+)?(?:com\\s+(?:isso|esse|essa|este|esta|seu|sua|tal|o seu|a sua)|nisso|nesse|nessa|neste|nesta)${FIM}[^.!?]{0,40}|\\s+(?:isso|esse|essa|este|esta|seu|sua)${FIM}|\\s*(?:[.!…]|$))`\nconst OBJ_ES = String.raw`(?:\\s+(?:con|en)\\s+(?:eso|esto|esa|esta|ese|este|tu|su)${FIM}[^.!?]{0,40}|\\s+(?:eso|esto|esa|esta|tu|su)${FIM}|\\s*(?:[.!…]|$))`\nconst OBJ_IT = String.raw`(?:\\s+(?:con|in)\\s+(?:questo|questa|ciò|quello|quella|la tua|il tuo)${FIM}[^.!?]{0,40}|\\s+(?:questa|questo|la tua|il tuo)${FIM}|\\s*(?:[.!…]|$))`\nconst OBJ_RU = String.raw`(?:\\s+(?:с|в|по)\\s+(?:этим|этой|этом|данн\\S*|ваш\\S*|таким\\S*|подобн\\S*)[^.!?]{0,40}|\\s+(?:этот|эту|это|ваш\\S*|данн\\S*|такой|такое|такую|подобн\\S*)${FIM}|\\s*(?:[.!…]|$))`\n\n/** Frase (já sem aspas e espaço sobrando) que ABRE uma recusa de assistente. */\nconst RECUSA_DA_FRASE: ReadonlyArray<RegExp> = [\n  // EN — \"I'm sorry, (but) I can't assist with that.\" · \"Sorry, I cannot help with this request.\" · \"Unfortunately, I can't…\"\n  new RegExp(String.raw`^(?:(?:I['’]?m|I am)\\s+)?(?:so\\s+|very\\s+|really\\s+|truly\\s+)?(?:sorry|afraid|apologi[sz]e)[,!.]?\\s*(?:but\\s*,?\\s*)?(?:I|we)\\s*${NAO_POSSO_EN}\\s+(?:\\S+\\s+){0,2}?${VERBO_EN}${OBJ_EN}`, 'i'),\n  new RegExp(String.raw`^(?:Unfortunately|Regrettably|Apologies|My apologies)[,!.]?\\s*(?:but\\s+)?(?:I|we)\\s*${NAO_POSSO_EN}\\s+(?:\\S+\\s+){0,2}?${VERBO_EN}${OBJ_EN}`, 'i'),\n  new RegExp(String.raw`^I\\s*${NAO_POSSO_EN}\\s+(?:\\S+\\s+){0,1}?${VERBO_EN}${OBJ_EN}`, 'i'),\n  // \"I'm sorry, but I can only provide scripts in US English.\" (c17d2e78, 19/10)\n  /^(?:(?:I['’]?m|I am)\\s+)?sorry[,!.]?\\s*(?:but\\s+)?I\\s+(?:can|am able to)\\s+only\\s+(?:provide|write|create|help|assist|generate)\\b/i,\n  /^I\\s+(?:must|have to|need to|will have to)\\s+(?:respectfully\\s+)?(?:decline|refuse)\\b/i,\n  /^(?:Your|This|That)\\s+request\\s+(?:violates|goes against|is against|breaches)\\b/i,\n  /^As an AI(?:\\s+(?:language model|model|assistant))?[^.!?]{0,40}?,?\\s*I\\s+(?:can['’]?t|cannot|don['’]?t|do not|am (?:not able|unable)|won['’]?t|must not|am not allowed)\\b/i,\n  // PT\n  new RegExp(String.raw`^(?:Desculpe|Desculpa|Sinto muito|Lamento|Infelizmente|Perd[ãa]o|Me desculpe)[,!.]?\\s*(?:mas\\s+)?(?:eu\\s+)?n[ãa]o\\s+(?:posso|consigo|sou capaz de|tenho como|vou poder)\\s+(?:te\\s+|lhe\\s+)?(?:ajudar|atender|criar|escrever|gerar|fazer|cumprir|fornecer|produzir|prosseguir|auxiliar|colaborar|realizar)${OBJ_PT}`, 'iu'),\n  new RegExp(String.raw`^(?:Eu\\s+)?n[ãa]o\\s+(?:posso|consigo)\\s+(?:ajudar|atender|auxiliar)\\s+com\\s+(?:isso|esse|essa|este|esta|seu|sua)${FIM}`, 'iu'),\n  /^Como\\s+(?:uma\\s+|um\\s+)?(?:IA|intelig[êe]ncia artificial|modelo de linguagem|assistente(?: virtual)?)\\b[^.!?]{0,40}?,?\\s*(?:eu\\s+)?n[ãa]o\\s+(?:posso|consigo|tenho)/iu,\n  // ES\n  new RegExp(String.raw`^(?:Lo siento(?: mucho)?|Disculpa|Disculpe|Perd[óo]n|Lamentablemente|Lo lamento)[,!.]?\\s*(?:pero\\s+)?(?:yo\\s+)?no\\s+(?:puedo|soy capaz de|me es posible|podr[ée])\\s+(?:te\\s+|le\\s+)?(?:ayudar|asistir|crear|escribir|generar|hacer|cumplir|proporcionar|producir|atender|realizar|colaborar)${OBJ_ES}`, 'iu'),\n  new RegExp(String.raw`^No\\s+puedo\\s+(?:ayudar|asistir)(?:te|le)?\\s+con\\s+(?:eso|esto|esa|esta|ese|este|tu|su)${FIM}`, 'iu'),\n  /^Como\\s+(?:una?\\s+)?(?:IA|inteligencia artificial|modelo de lenguaje|asistente(?: virtual)?)\\b[^.!?]{0,40}?,?\\s*(?:yo\\s+)?no\\s+(?:puedo|tengo)/iu,\n  // DE — \"Es tut mir leid, aber ich kann dabei nicht helfen.\" · \"Leider kann ich bei dieser Anfrage nicht helfen.\"\n  /^(?:(?:Es\\s+)?tut\\s+mir\\s+leid|Entschuldigung|Entschuldige|Leider)[,!.]?\\s*(?:aber\\s+)?(?:ich\\s+kann|kann\\s+ich)\\s+(?:(?:Ihnen|dir|euch)\\s+)?(?:(?:dabei|damit|hierbei|hiermit|bei\\s+(?:dieser|deiner|Ihrer|einer\\s+solchen)\\s+Anfrage|diese(?:r|n)?\\s+Anfrage)\\s+)?(?:leider\\s+)?(?:nicht|keine\\s+Hilfe)\\s+(?:(?:weiter|be)?helfen|behilflich\\s+sein|unterst[üu]tzen|erf[üu]llen|nachkommen|erstellen|schreiben|leisten|anbieten|bearbeiten)\\s*(?:[.!…]|$)/iu,\n  /^Ich\\s+kann\\s+(?:(?:Ihnen|dir|euch)\\s+)?(?:dabei|damit|hierbei|bei\\s+(?:dieser|deiner|Ihrer)\\s+Anfrage)\\s+(?:leider\\s+)?nicht\\s+(?:helfen|behilflich\\s+sein|unterst[üu]tzen)/iu,\n  /^Als\\s+(?:eine?\\s+)?(?:KI|k[üu]nstliche\\s+Intelligenz|Sprachmodell|KI-Assistent)\\b[^.!?]{0,40}?,?\\s*(?:kann|darf)\\s+ich\\b[^.!?]{0,40}?\\bnicht\\b/iu,\n  // FR\n  /^(?:Je\\s+suis\\s+d[ée]sol[ée]e?|D[ée]sol[ée]e?|Malheureusement|Je\\s+regrette|Navr[ée]e?)[,!.]?\\s*(?:mais\\s+)?je\\s+ne\\s+(?:peux|puis|suis\\s+pas\\s+en\\s+mesure\\s+d['’e]|vais\\s+pas\\s+pouvoir)\\s*(?:pas\\s+)?(?:vous\\s+|t['’]\\s*|te\\s+)?(?:aider|assister|r[ée]pondre|cr[ée]er|[ée]crire|g[ée]n[ée]rer|fournir|satisfaire|donner\\s+suite|r[ée]aliser|accomplir|traiter)(?:\\s+(?:avec|à|a|pour|sur|dans)\\s+(?:cela|ça|ceci|cette|ce|votre|ta|ton|une\\s+telle)\\b[^.!?]{0,40}|\\s+(?:cette|votre|ta)\\s+demande|\\s*(?:[.!…]|$))/iu,\n  /^Je\\s+ne\\s+peux\\s+pas\\s+(?:vous\\s+|t['’]\\s*)?aider\\s+(?:avec|à|a|pour|sur)\\s+(?:cela|ça|ceci|cette|ce)\\b/iu,\n  /^En\\s+tant\\s+qu['’]\\s*(?:IA|intelligence\\s+artificielle|mod[èe]le\\s+de\\s+langage|assistant)\\b[^.!?]{0,40}?,?\\s*je\\s+ne\\s+(?:peux|suis)/iu,\n  // IT\n  new RegExp(String.raw`^(?:Mi\\s+dispiace|Mi\\s+spiace|Spiacente|Purtroppo|Scusa(?:mi)?|Mi\\s+scuso)[,!.]?\\s*(?:ma\\s+)?(?:io\\s+)?non\\s+(?:posso|sono\\s+in\\s+grado\\s+di|riesco\\s+a)\\s+(?:aiutar\\S*|assister\\S*|creare|scrivere|generare|soddisfare|fornire|esaudire|realizzare|procedere)${OBJ_IT}`, 'iu'),\n  /^Come\\s+(?:un['’]\\s*|una\\s+)?(?:IA|intelligenza\\s+artificiale|modello\\s+linguistico|assistente)\\b[^.!?]{0,40}?,?\\s*non\\s+(?:posso|sono)/iu,\n  // RU — \"Извините, но я не могу оказать помощь с данным конкретным запросом.\" (d700489f, 19/11)\n  new RegExp(String.raw`^(?:Извините|Простите|Прошу\\s+прощения|К\\s+сожалению|Мне\\s+(?:очень\\s+)?жаль|Сожалею)[,!.]?\\s*(?:но\\s+)?(?:я\\s+)?не\\s+(?:могу|в\\s+состоянии|имею\\s+возможности|смогу)\\s+(?:(?:с|в)\\s+этим\\s+)?(?:вам\\s+)?(?:помочь|оказать\\s+(?:вам\\s+)?помощь|выполнить|создать|написать|сгенерировать|предоставить|удовлетворить|содействовать|ответить)${OBJ_RU}`, 'iu'),\n  new RegExp(String.raw`^Я\\s+не\\s+могу\\s+(?:(?:с|в)\\s+этим\\s+)?(?:вам\\s+)?(?:помочь|оказать\\s+помощь|выполнить)${OBJ_RU}`, 'iu'),\n  /^Как\\s+(?:ИИ|искусственный\\s+интеллект|языковая\\s+модель|ассистент)\\S*[^.!?]{0,40}?,?\\s*я\\s+не\\s+(?:могу|имею)/iu,\n  // UK\n  /^(?:Вибачте|На\\s+жаль|Перепрошую|Мені\\s+шкода)[,!.]?\\s*(?:але\\s+)?(?:я\\s+)?не\\s+(?:можу|зможу)\\s+(?:вам\\s+)?(?:допомогти|виконати|створити|написати|надати)(?:\\s+(?:з|в|у)\\s+(?:цим|цією|цим\\s+запитом|таким)\\S*|\\s+(?:цей|цю|це|ваш\\S*)(?=[\\s.,!?]|$)|\\s*(?:[.!…]|$))/iu,\n  // PL\n  /^(?:Przepraszam|Niestety|Przykro\\s+mi)[,!.]?\\s*(?:ale\\s+)?nie\\s+(?:mogę|jestem\\s+w\\s+stanie)\\s+(?:w\\s+tym\\s+)?(?:pomóc|spełnić|stworzyć|napisać|wykonać|zrealizować)(?:\\s+(?:w\\s+tym|z\\s+tym|tej|tego|twojej|takiej)\\S*|\\s*(?:[.!…]|$))/iu,\n  // NL\n  /^(?:Het\\s+spijt\\s+me|Sorry|Helaas)[,!.]?\\s*(?:maar\\s+)?(?:ik\\s+kan|kan\\s+ik)\\s+(?:je\\s+|u\\s+)?(?:daar|hier|hiermee|daarmee|niet)\\s*(?:niet\\s+)?(?:mee\\s+)?(?:helpen|assisteren|voldoen|aan\\s+voldoen)\\b/iu,\n  // TR\n  /^(?:Üzgünüm|Maalesef|Özür\\s+dilerim)[,!.]?\\s*(?:ama\\s+)?(?:bu\\s+(?:konuda|isteğe|talebe|istekle|talebinize|isteğinize)\\s+)?(?:size\\s+)?(?:yardımcı\\s+olamam|yardım\\s+edemem|yerine\\s+getiremem|destek\\s+olamam)/iu,\n  // ZH / JA\n  /^(?:抱歉|对不起|很抱歉|非常抱歉|不好意思)[，,。！!]?\\s*(?:但(?:是)?)?\\s*我(?:无法|不能|没法|不可以)(?:协助|帮助|帮忙|提供|满足|完成|生成|创作|处理)/u,\n  /^(?:申し訳(?:ありません|ございません)(?:が)?|すみません(?:が)?)[、,。]?\\s*(?:その|この|ご)?[^。]{0,24}?(?:お手伝い|対応|お応え|作成|ご要望|ご依頼)[^。]{0,12}?(?:でき(?:ません|かねます)|いたしかねます)/u,\n]"
+    },
+    {
+     "before": "\n/** O texto é (ou começa com) uma recusa do modelo, não um roteiro. */\nexport function looksLikeModelRefusal(text: string | null | undefined): boolean {\n  const t = (text ?? '').replace(/\\s+/g, ' ').trim()\n  if (!t) return false\n  const head = t.slice(0, 400)\n  return REFUSAL_PATTERNS.some((re) => re.test(head))\n}",
+     "after": "\n// depois da frase de recusa, o modelo CONVERSA com a pessoa (\"However, I can…\", \"If you have…\", \"Se quiser…\")\nconst CONVERSA_DO_MODELO = /^(?:However|Instead|But I (?:can|could|would)|If you(?:['’]d| would| have| want| like|['’]re)|Please|Feel free|Let me know|Here(?:['’]s| is) (?:a|an|some)|I(?:['’]d| would) be happy|I can (?:help|offer|suggest|provide|write)|Is there|Would you|Can I|No entanto|Por[ée]m|Entretanto|Se (?:voc[êe]|quiser|preferir|tiver)|Posso (?:ajudar|sugerir|oferecer|escrever)|Fico feliz|Sin embargo|Si (?:quieres|deseas|tienes|lo prefieres)|Puedo (?:ayudar|sugerir|ofrecer|escribir)|Estar[ée] encantad|Allerdings|Stattdessen|Wenn (?:du|Sie)|Gerne (?:helfe|kann)|Ich kann (?:dir|Ihnen) (?:gerne|aber)|Cependant|Toutefois|Si vous|Je peux (?:vous )?(?:aider|proposer|sugg[ée]rer)|Tuttavia|Se (?:vuoi|desideri|hai)|Posso (?:aiutarti|suggerirti|offrirti)|Однако|Если (?:вы|у вас|хотите)|Я могу (?:помочь|предложить)|Буду рад)/iu\n\n// fala de personagem: aspas de abertura, \"…,\" disse ela, vocativo no fim da frase\nconst ASPA_DE_ABERTURA = /^[\"“”«»„'‘’「『]/u\nconst ETIQUETA_DE_FALA = /[\"”»'’」』]\\s*,?\\s*(?:\\S+\\s+){0,3}?(?:said|says|asked|whispered|replied|told|cried|shouted|muttered|sighed|disse|diz|respondeu|sussurrou|perguntou|gritou|dijo|respondi[óo]|susurr[óo]|pregunt[óo]|grit[óo]|sagte|fl[üu]sterte|antwortete|rief|dit|r[ée]pondit|murmura|cria|disse|rispose|sussurr[òo]|сказал\\S*|ответил\\S*|прошептал\\S*|спросил\\S*)(?=[\\s.,!?;:]|$)/iu\nconst VOCATIVO_NO_FIM = /,\\s*(?:mom|mum|mommy|dad|daddy|mother|father|son|kid|honey|sweetie|darling|buddy|sir|ma['’]am|m[ãa]e|m[ãa]ezinha|pai|filho|filha|querid[oa]|mam[áa]|pap[áa]|hijo|hija|cari[ñn]o|mama|papa|maman|chéri|chérie|мама|папа|сынок|дочка|[A-ZÀ-ÖØ-ÞА-ЯЁ][\\p{Ll}]+)\\s*[.!?…]*$/u\n\nfunction semEmbrulho(text: string): string {\n  let t = text.replace(/```[a-z]*\\s*/gi, ' ').replace(/```/g, ' ').replace(/\\s+/g, ' ').trim()\n  t = t.replace(/^(?:[*_#>\\-•\\s]+)/, '').replace(/[*_]+$/, '').trim()\n  // \"HOOK:\" / \"Narration:\" / \"[Pexels: …]\" na frente — o modelo às vezes embrulha a recusa no formato do roteiro\n  for (let i = 0; i < 3; i++) {\n    const antes = t\n    t = t.replace(/^\\[(?:Pexels|Pixabay|B-?roll)\\s*:[^\\]]*\\]\\s*/i, '')\n      .replace(/^(?:HOOK|SCRIPT|NARRATION|NARRATOR|VOICEOVER|VOICE-OVER|NARRA[ÇC][ÃA]O|ROTEIRO|GUION|NARRACI[ÓO]N)\\s*(?:\\([^)]{0,20}\\))?\\s*:\\s*/i, '')\n      .trim()\n    if (t === antes) break\n  }\n  // o texto INTEIRO entre aspas é a resposta embrulhada, não uma fala com etiqueta\n  const par = t.match(/^[\"“«„'‘「『]([\\s\\S]*)[\"”»'’」』]$/u)\n  if (par && !/[\"“”«»„]/u.test(par[1])) t = par[1].trim()\n  return t\n}"
+    },
+    {
+     "before": "\nexport const MODEL_REFUSAL_MESSAGE =",
+     "after": "\nfunction frases(t: string): string[] {\n  return t.split(/(?<=[.!?…。！？])\\s+|(?<=[。！？])/u).map((s) => s.trim()).filter(Boolean)\n}\n\nfunction palavras(t: string): number {\n  const p = t.split(/\\s+/).filter(Boolean).length\n  // chinês e japonês sem espaço: cada 2 caracteres contam como uma palavra\n  return /[぀-ヿ一-鿿]/u.test(t) ? Math.max(p, Math.ceil(t.replace(/\\s+/g, '').length / 2)) : p\n}\n\n/** A frase sozinha é uma recusa de assistente (não fala de personagem)? */\nexport function fraseDeRecusa(frase: string | null | undefined): boolean {\n  const f = String(frase ?? '').trim()\n  if (!f) return false\n  if (ASPA_DE_ABERTURA.test(f) || ETIQUETA_DE_FALA.test(f) || VOCATIVO_NO_FIM.test(f)) return false\n  return RECUSA_DA_FRASE.some((re) => re.test(f))\n}\n\n/**\n * O texto é uma recusa do modelo, não um roteiro: COMEÇA por uma frase de recusa e (a) é curto (até 60 palavras),\n * ou (b) metade ou mais das palavras são recusa/conversa do modelo, ou (c) a frase seguinte é o modelo falando\n * com a pessoa. Uma recusa no meio de uma história, ou dita por um personagem, não conta.\n */\nexport function looksLikeModelRefusal(text: string | null | undefined): boolean {\n  const t = semEmbrulho(String(text ?? ''))\n  if (!t) return false\n  const fs = frases(t)\n  if (!fs.length || !fraseDeRecusa(fs[0])) return false\n  const total = palavras(t)\n  if (total <= 60) return true\n  let doModelo = 0\n  for (const f of fs) { if (fraseDeRecusa(f) || CONVERSA_DO_MODELO.test(f)) doModelo += palavras(f); else break }\n  if (doModelo / total >= 0.5) return true\n  return fs.length > 1 && CONVERSA_DO_MODELO.test(fs[1])\n}\n\n/** Algum dos textos (as falas das cenas, os campos de um JSON) é uma recusa do modelo? */\nexport function algumaRecusaDoModelo(textos: ReadonlyArray<string | null | undefined>): boolean {\n  return textos.some((x) => typeof x === 'string' && looksLikeModelRefusal(x))\n}\n\nexport const MODEL_REFUSAL_MESSAGE ="
+    }
+   ]
+  },
+  "app/api/expand-script/route.ts": {
+   "beforeSha256": "e7323981f5ab19d07926ec406ab8050f6b9138ce90f02ddfb409aa17f16dd79f",
+   "afterSha256": "ee0e4117d552f054dd1c10f594cd1ebe1f5542bf4df64849ec02a25d6473f33e",
+   "hunks": [
+    {
+     "before": "import { NextRequest, NextResponse } from 'next/server'",
+     "after": "import { looksLikeModelRefusal } from '@/lib/modelRefusal' // KINEO-RECUSA-IA-2011 — a recusa do modelo nunca vira roteiro nem prompt de vídeo\nimport { NextRequest, NextResponse } from 'next/server'"
+    },
+    {
+     "before": "    let expandido = (res.choices[0]?.message?.content ?? '').trim()\n    if (!expandido) {\n      return NextResponse.json(",
+     "after": "    let expandido = (res.choices[0]?.message?.content ?? '').trim()\n    if (!expandido || looksLikeModelRefusal(expandido)) { // KINEO-RECUSA-IA-2011 — a recusa do modelo não substitui o roteiro do cliente: falha transitória, o texto dele fica\n      return NextResponse.json("
+    }
+   ]
+  },
+  "app/api/apply-suggestion/route.ts": {
+   "beforeSha256": "11ee2f21e7b597c5a236ada0c99868945d1b4179677ceedb6b4e1aa3a71dff74",
+   "afterSha256": "92f2a24bb6cb8020099e42487a4220d584e0faefa7c1e3b59ad83367db9bf1af",
+   "hunks": [
+    {
+     "before": "import { NextRequest, NextResponse } from 'next/server'",
+     "after": "import { looksLikeModelRefusal } from '@/lib/modelRefusal' // KINEO-RECUSA-IA-2011 — a recusa do modelo nunca vira roteiro nem prompt de vídeo\nimport { NextRequest, NextResponse } from 'next/server'"
+    },
+    {
+     "before": "\n    if (!improved) {\n      return NextResponse.json({ error: 'Could not apply the suggestion. Please try again.' }, { status: 502 })",
+     "after": "\n    if (!improved || looksLikeModelRefusal(improved)) { // KINEO-RECUSA-IA-2011 — recusa do modelo = sugestão não aplicada; o roteiro do cliente fica\n      return NextResponse.json({ error: 'Could not apply the suggestion. Please try again.' }, { status: 502 })"
+    }
+   ]
+  },
+  "app/api/regenerate-scene/route.ts": {
+   "beforeSha256": "fc4d6a4fe48c9826533824d1c76cdf3ad6b64a0026ec00fc4a57225ff8e60236",
+   "afterSha256": "cb81cfa91289ed20553a8363d726f7d1c65608134bd09fa9c3b8364a59cc3ca4",
+   "hunks": [
+    {
+     "before": "import { NextRequest, NextResponse } from 'next/server'",
+     "after": "import { looksLikeModelRefusal } from '@/lib/modelRefusal' // KINEO-RECUSA-IA-2011 — a recusa do modelo nunca vira roteiro nem prompt de vídeo\nimport { NextRequest, NextResponse } from 'next/server'"
+    },
+    {
+     "before": "\n        newBrollPrompt = gptBrollPrompt.length > 20 ? gptBrollPrompt : builtFallback.brollPrompt\n",
+     "after": "\n        newBrollPrompt = gptBrollPrompt.length > 20 && !looksLikeModelRefusal(gptBrollPrompt) ? gptBrollPrompt : builtFallback.brollPrompt // KINEO-RECUSA-IA-2011 — recusa do modelo = o prompt do construtor, nunca a frase ao motor\n"
+    }
+   ]
+  },
+  "app/api/ad-script/route.ts": {
+   "beforeSha256": "c5c7bfdb853c76863a9454dc9799fd5b39419ebcb9c8a0d40f4517d695d1244d",
+   "afterSha256": "03c823eae7a55ca8f19932edafd96c2996488b0f114820b449c5e23d19de67bc",
+   "hunks": [
+    {
+     "before": "// render path — the template IS the feature.\nimport { NextRequest, NextResponse } from 'next/server'",
+     "after": "// render path — the template IS the feature.\nimport { looksLikeModelRefusal } from '@/lib/modelRefusal' // KINEO-RECUSA-IA-2011 — a recusa do modelo nunca vira roteiro nem prompt de vídeo\nimport { NextRequest, NextResponse } from 'next/server'"
+    },
+    {
+     "before": "    const script = (completion.choices[0]?.message?.content ?? '').trim()\n    if (!script) {\n      return NextResponse.json({ error: 'Could not write the ad script. Please try again.' }, { status: 502 })",
+     "after": "    const script = (completion.choices[0]?.message?.content ?? '').trim()\n    if (!script || looksLikeModelRefusal(script)) { // KINEO-RECUSA-IA-2011 — recusa do modelo não é roteiro de anúncio\n      return NextResponse.json({ error: 'Could not write the ad script. Please try again.' }, { status: 502 })"
+    }
+   ]
+  },
+  "app/api/ads/script/route.ts": {
+   "beforeSha256": "0da2e2ab498d734ef93b4261d15cf166dbd2c2b80964756206a7bf1a6f76d818",
+   "afterSha256": "f0caf3d46d219ec844db189d57ecdaf3785b4d5aa5d28baec128f802a19e7f38",
+   "hunks": [
+    {
+     "before": "// Custo: gpt-4o-mini, ~US$ 0,002 por chamada.\nimport { NextRequest, NextResponse } from 'next/server'",
+     "after": "// Custo: gpt-4o-mini, ~US$ 0,002 por chamada.\nimport { looksLikeModelRefusal } from '@/lib/modelRefusal' // KINEO-RECUSA-IA-2011 — a recusa do modelo nunca vira roteiro nem prompt de vídeo\nimport { NextRequest, NextResponse } from 'next/server'"
+    },
+    {
+     "before": "    let raw = completion.choices[0]?.message?.content ?? ''\n    let versions = parseAdsScriptOutput(raw, model, brief.value)\n    // KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24 — segunda tentativa com o MOTIVO (teste da padaria: 0 de 6 versões",
+     "after": "    let raw = completion.choices[0]?.message?.content ?? ''\n    const semRecusa2011 = (v: ReturnType<typeof parseAdsScriptOutput>) => (v && v.some((x) => looksLikeModelRefusal(x.script)) ? null : v) // KINEO-RECUSA-IA-2011 — versão que é recusa do modelo = nenhuma versão (a correção de sempre, depois o 502)\n    let versions = semRecusa2011(parseAdsScriptOutput(raw, model, brief.value))\n    // KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24 — segunda tentativa com o MOTIVO (teste da padaria: 0 de 6 versões"
+    },
+    {
+     "before": "      raw = retry.choices[0]?.message?.content ?? ''\n      versions = parseAdsScriptOutput(raw, model, brief.value)\n      attempts += 1",
+     "after": "      raw = retry.choices[0]?.message?.content ?? ''\n      versions = semRecusa2011(parseAdsScriptOutput(raw, model, brief.value)) // KINEO-RECUSA-IA-2011\n      attempts += 1"
+    }
+   ]
+  },
+  "app/api/kids-cartoon/story/route.ts": {
+   "beforeSha256": "c7a98140b9abc6913d2099c1f8c0e4037ab2e93958cc122e0efd4d92ef139328",
+   "afterSha256": "af8d0e7f2fc83bb427452bdf648bd6ade45c91844cc4fea9c76bb1c393f1305a",
+   "hunks": [
+    {
+     "before": "import { narrationWordCount } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410",
+     "after": "import { looksLikeModelRefusal } from '@/lib/modelRefusal' // KINEO-RECUSA-IA-2011 — a recusa do modelo nunca vira roteiro nem prompt de vídeo\nimport { narrationWordCount } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410"
+    },
+    {
+     "before": "      texto = completion.choices[0]?.message?.content?.trim() ?? ''\n    } catch (err) {",
+     "after": "      texto = completion.choices[0]?.message?.content?.trim() ?? ''\n      if (looksLikeModelRefusal(texto)) texto = '' // KINEO-RECUSA-IA-2011 — a recusa do escritor = história vazia (o 502 de sempre, nada cobrado), nunca o desenho narrando a recusa\n    } catch (err) {"
+    }
+   ]
+  },
+  "app/api/baby-podcast/prepare/route.ts": {
+   "beforeSha256": "1faf816d13f5e0deca9abfc4a508a1a8d5503b7e8b1b9b22464f31a49d5722e5",
+   "afterSha256": "f0ce1273feedb341e6710fe7ed85cb9eb547a408b6e106a8c50da86e93c78070",
+   "hunks": [
+    {
+     "before": "// Interruptor: BABY_PODCAST_LIVE=false → só as contas da casa (isInternalEmail); o resto recebe 404.\nimport { NextRequest, NextResponse } from 'next/server'",
+     "after": "// Interruptor: BABY_PODCAST_LIVE=false → só as contas da casa (isInternalEmail); o resto recebe 404.\nimport { looksLikeModelRefusal } from '@/lib/modelRefusal' // KINEO-RECUSA-IA-2011 — a recusa do modelo nunca vira roteiro nem prompt de vídeo\nimport { NextRequest, NextResponse } from 'next/server'"
+    },
+    {
+     "before": "        texto = completion.choices[0]?.message?.content?.trim() ?? ''\n      } catch (err) {",
+     "after": "        texto = completion.choices[0]?.message?.content?.trim() ?? ''\n        if (looksLikeModelRefusal(texto)) texto = '' // KINEO-RECUSA-IA-2011 — a recusa do escritor = roteiro vazio (o 502 de sempre, nada cobrado)\n      } catch (err) {"
+    }
+   ]
+  },
+  "app/api/demo-script/route.ts": {
+   "beforeSha256": "0ff2faa836c71e54e20dad1d74b2358399c3e70f536830f64c8d57190b698636",
+   "afterSha256": "3b0fce87b066f493a92848bc6d300df9fb14642bdee54d9c2ad7be3110ba282a",
+   "hunks": [
+    {
+     "before": "//   • output is the DEMO script only — no TTS, no footage, no render\nimport { NextRequest, NextResponse } from 'next/server'",
+     "after": "//   • output is the DEMO script only — no TTS, no footage, no render\nimport { looksLikeModelRefusal } from '@/lib/modelRefusal' // KINEO-RECUSA-IA-2011 — a recusa do modelo nunca vira roteiro nem prompt de vídeo\nimport { NextRequest, NextResponse } from 'next/server'"
+    },
+    {
+     "before": "      const script = await generateLive(topic, mode, audience)\n      if (script) return NextResponse.json({ script })",
+     "after": "      const script = await generateLive(topic, mode, audience)\n      if (script && looksLikeModelRefusal(script)) return NextResponse.json({ script: mode === 'comment' ? fallbackCommentScript(topic) : mode === 'product' ? fallbackProductScript(topic) : fallbackDemoScript(topic), fallback: true }) // KINEO-RECUSA-IA-2011 — a recusa do modelo nunca vira a demo: o roteiro do banco fixo, como na queda da OpenAI\n      if (script) return NextResponse.json({ script })"
+    }
+   ]
+  }
+ },
+ "addedSources": {}
+}
