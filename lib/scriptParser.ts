@@ -402,6 +402,13 @@ const DELIVERABLE_INDEX_LINE =
 //     aspas (a regra 5 continua exigindo dois rótulos — contrato de 03/09).
 const INSTRUCTION_VERB =
   /^(crie|criar|fa[çc]a|fazer|gere|gerar|prepare|preparar|monte|montar|escreva|escrever|produza|produzir|quero|preciso|gostaria|create|make|generate|write|produce|prepare|build|give me|i want|i need|i'd like|please|crea|genera|prepara|escribe|produce|quiero|necesito|haz|hazla|haz[ıi]rla|olu[şs]tur|yap|yaz|üret)\b/i
+// KINEO-PEDIDO-DE-IDIOMAS-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — revisor 20/11 (DE, 1º filme,
+// Kling 4 grátis, nota 3): "Erstelle mir ein youtube short in dem … gezeigt werden" foi lido inteiro como roteiro. O verbo de
+// PEDIDO do looksLikeBrief só conhecia pt/en/es/tr: alemão, francês e italiano escapavam (e "vidéo" nem contava como entregável).
+// Só o looksLikeBrief usa esta lista (isInstructionLine, que o parser usa para TIRAR linha da fala, fica como estava).
+// Fronteira Unicode: "génère", "möchte" passam por letra acentuada, que o \b do JS não enxerga.
+const INSTRUCTION_VERB_DE_FR_IT =
+  /^(?:erstell(?:e|en|t)?|mach(?:e|t)?|generier(?:e|en)?|schreib(?:e|en)?|produzier(?:e|en)?|ich (?:m[öo]chte|will|brauche|h[äa]tte gern(?:e)?)|cr[ée](?:e|er|ez)|fais|faites|g[ée]n[èe]re(?:r|z)?|[ée]cri(?:s|vez|re)|produis|r[ée]alise(?:r|z)?|je veux|je voudrais|j['’]aimerais|creami|fammi|fai|scrivi|produci|realizza|voglio|vorrei)(?![\p{L}\p{N}])/iu // KINEO-PEDIDO-DE-IDIOMAS-2011
 const DELIVERABLE_NOUN =
   /\b(v[íi]deos?|videos?|shorts?|reels?|clips?|clipes?|anima[çc][ãa]o|animation|animasyon|cenas?|scenes?|sahne|hist[óo]ria|historinha|story|cuento|roteiro|script|senaryo|narra[çc][ãa]o|narration|seslendirme|voz|voice|ses|legendas?|subtitles?|altyaz[ıi]|personagens?|characters?|karakter|formato|format|estilo|style|tom|tone|dura[çc][ãa]o|duration|segundos?|seconds?|saniye|stil|g[öo]rsel)\b/i
 // Turco põe o verbo no FIM ("…YouTube Shorts hazırla.", "…görsel stil kullan.")
@@ -487,16 +494,18 @@ export function looksLikeBrief(raw: string): boolean {
   // that still survives at the start of the parser's narration.
   const hasExplicitSpeech = lines.some((u) => (SPEECH_LABEL_LINE.test(u) && !isVoiceSpecLine(u)) || BEAT_LABEL_HEAD.test(u) || dialogueSpeech(u, true) !== null || /\[Pexels\s*:/i.test(u))
   const opening = (lines[0] ?? '').split(/[.!?]\s+/)[0].replace(/^(?:please|por favor)[,\s]+/i, '')
-  const creation = /^(?:crie|criar|fa[çc]a|gere|prepare|monte|escreva|produza|quero|preciso|create|make|generate|write|produce|prepare|build|give me|i want|i need|crea|genera|prepara|escribe|quiero|necesito|haz)\b/i
-  const habitualAdvice = /\b(?:every day|each day|a day|por dia|diariamente|cada d[ií]a)\b/i.test(opening)
-  const startsWithRequest = !habitualAdvice && creation.test(opening) && isInstructionLine(opening.slice(0, 400)) && /\b(v[íi]deo|videos?|shorts?|reels?|filme|film|movie|clip|clipe|anima[çc][ãa]o|animation|animasyon)\b/i.test(opening)
+  const creationBase = /^(?:crie|criar|fa[çc]a|gere|prepare|monte|escreva|produza|quero|preciso|create|make|generate|write|produce|prepare|build|give me|i want|i need|crea|genera|prepara|escribe|quiero|necesito|haz)\b/i
+  const creation = { test: (s: string): boolean => creationBase.test(s) || INSTRUCTION_VERB_DE_FR_IT.test(s) } // KINEO-PEDIDO-DE-IDIOMAS-2011: + de/fr/it
+  const isRequestLine = (s: string): boolean => isInstructionLine(s) || (s.length <= 400 && (DELIVERABLE_NOUN.test(s) || /\bvid[ée]os?\b/i.test(s)) && INSTRUCTION_VERB_DE_FR_IT.test(s)) // KINEO-PEDIDO-DE-IDIOMAS-2011
+  const habitualAdvice = /\b(?:every day|each day|a day|por dia|diariamente|cada d[ií]a|jeden tag|t[äa]glich|chaque jour|par jour|ogni giorno|al giorno)\b/i.test(opening) // KINEO-PEDIDO-DE-IDIOMAS-2011: + de/fr/it
+  const startsWithRequest = !habitualAdvice && creation.test(opening) && isRequestLine(opening.slice(0, 400)) && /\b(v[íi]d[eé]o|videos?|shorts?|reels?|filme|film|movie|clip|clipe|anima[çc][ãa]o|animation|animasyon)\b/i.test(opening)
   if (hasExplicitSpeech) {
     if (!startsWithRequest) return false
     // Parsing is pure and does not call looksLikeBrief. Keep legitimate
     // labelled/quoted speech when the existing parser isolated it correctly.
     const spokenOpening = parseUserScript(raw).narration.replace(/^(?:please|por favor)[,\s]+/i, '')
     const spokenRequest = spokenOpening.split(/[.!?]\s+/)[0]
-    return creation.test(spokenRequest) && isInstructionLine(spokenRequest.slice(0, 400)) && /\b(v[íi]deo|videos?|shorts?|reels?|filme|film|movie|clip|clipe|anima[çc][ãa]o|animation|animasyon)\b/i.test(spokenRequest)
+    return creation.test(spokenRequest) && isRequestLine(spokenRequest.slice(0, 400)) && /\b(v[íi]d[eé]o|videos?|shorts?|reels?|filme|film|movie|clip|clipe|anima[çc][ãa]o|animation|animasyon)\b/i.test(spokenRequest)
   }
   if (startsWithRequest) return true
   let ficha = 0
