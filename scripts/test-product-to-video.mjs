@@ -38,6 +38,7 @@ function executeTs(file, mocks = {}, env = {}) {
 
 const growth = executeTs('lib/growth/productToVideo.ts')
 const fallback = executeTs('lib/demoFallback.ts')
+const modelRefusal2011 = executeTs('lib/modelRefusal.ts') // reancorado KINEO-RECUSA-IA-2011
 
 equal(growth.normalizeProductFacts('  Lamp   folds flat.  '), 'Lamp folds flat.', 'product facts normalize whitespace')
 equal(growth.normalizeProductFacts('x'.repeat(900)).length, 700, 'product facts have a hard 700-character ceiling')
@@ -104,6 +105,7 @@ function request(body, ip) {
 
 const calls = []
 const liveRoute = executeTs('app/api/demo-script/route.ts', {
+  '@/lib/modelRefusal': modelRefusal2011, // reancorado KINEO-RECUSA-IA-2011 — a rota da demo troca a recusa do modelo pelo roteiro do banco fixo (régua real, sem mock)
   'next/server': { NextResponse: responseMock() },
   '@/lib/openai': {
     openai: { chat: { completions: { async create(payload) { calls.push(payload); return { choices: [{ message: { content: rawScript } }] } } } } },
@@ -144,6 +146,7 @@ equal(calls.length, 2, 'thin product input makes no OpenAI call')
 
 const thinProviderCalls = []
 const thinProviderRoute = executeTs('app/api/demo-script/route.ts', {
+  '@/lib/modelRefusal': modelRefusal2011, // reancorado KINEO-RECUSA-IA-2011 — a rota da demo troca a recusa do modelo pelo roteiro do banco fixo (régua real, sem mock)
   'next/server': { NextResponse: responseMock() },
   '@/lib/openai': {
     openai: {
@@ -175,6 +178,7 @@ check(calls[2].messages[0].content.includes('Given a topic'), 'unknown mode pres
 equal(calls[2].messages[1].content, 'Topic: The island nobody can enter', 'legacy caller is unchanged')
 
 const quotaRoute = executeTs('app/api/demo-script/route.ts', {
+  '@/lib/modelRefusal': modelRefusal2011, // reancorado KINEO-RECUSA-IA-2011 — a rota da demo troca a recusa do modelo pelo roteiro do banco fixo (régua real, sem mock)
   'next/server': { NextResponse: responseMock() },
   '@/lib/openai': {
     openai: { chat: { completions: { async create() { throw new Error('quota') } } } },

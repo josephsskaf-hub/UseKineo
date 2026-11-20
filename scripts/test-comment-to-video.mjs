@@ -38,6 +38,7 @@ function executeTs(file, mocks = {}, env = {}) {
 
 const growth = executeTs('lib/growth/commentToVideo.ts')
 const fallback = executeTs('lib/demoFallback.ts')
+const modelRefusal2011 = executeTs('lib/modelRefusal.ts') // reancorado KINEO-RECUSA-IA-2011
 const productGrowth = executeTs('lib/growth/productToVideo.ts')
 
 equal(growth.normalizeAudienceComment('  Why   does this cost more?  '), 'Why does this cost more?', 'comment whitespace normalizes')
@@ -100,6 +101,7 @@ function request(body, ip) {
 
 const calls = []
 const liveRoute = executeTs('app/api/demo-script/route.ts', {
+  '@/lib/modelRefusal': modelRefusal2011, // reancorado KINEO-RECUSA-IA-2011 — a rota da demo troca a recusa do modelo pelo roteiro do banco fixo (régua real, sem mock)
   'next/server': { NextResponse: responseMock() },
   '@/lib/openai': {
     openai: { chat: { completions: { async create(payload) { calls.push(payload); return { choices: [{ message: { content: rawScript } }] } } } } },
@@ -133,6 +135,7 @@ equal(invalidResponse.status, 400, 'blank comment fails before provider use')
 equal(calls.length, 3, 'blank comment makes no OpenAI call')
 
 const quotaRoute = executeTs('app/api/demo-script/route.ts', {
+  '@/lib/modelRefusal': modelRefusal2011, // reancorado KINEO-RECUSA-IA-2011 — a rota da demo troca a recusa do modelo pelo roteiro do banco fixo (régua real, sem mock)
   'next/server': { NextResponse: responseMock() },
   '@/lib/openai': {
     openai: { chat: { completions: { async create() { throw new Error('quota') } } } },
