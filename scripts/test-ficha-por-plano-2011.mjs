@@ -26,13 +26,13 @@ const FICHA_RE = /consistent design:|in this shot: |(?:^|[\s.])(?:Identity|Visib
 
 function mundo(over = {}) {
   const load = createOfflineLoader({ evaluationTimeoutMs: 120000, source: (rel, text) => (over[rel] ?? text) })
-  return { A: load('@/' + ANTES), K: load('@/lib/cinematic/cenaKling4.ts'), P: load('@/lib/kling4PlanoDaFala1911.ts') }
+  return { A: load('@/' + ANTES), K: load('@/lib/cinematic/cenaKling4.ts'), P: load('@/lib/kling4PlanoDaFala1911.ts'), T: load('@/lib/cinematic/elencoTrava.ts') }
 }
 const velho = createOfflineLoader({ evaluationTimeoutMs: 120000, source: (rel, text) => ([ANTES, REPROV].includes(rel) ? lf(execFileSync('git', ['show', `${BASE}:${rel}`], { encoding: 'utf8', maxBuffer: 64 << 20 })) : text) })('@/' + ANTES)
 
 function prova(over = {}) {
   const e = []; const no = (c, m) => { if (c) e.push(m) }
-  const { A, K, P } = mundo(over)
+  const { A, K, P, T } = mundo(over)
   const rota = over[ROTA] ?? ler(ROTA)
   const casos = [{ gen: C.natal.gen, prompts: C.natal.planos, contradiz: C.natal.contradiz }, ...C.cenas.map((f) => ({ gen: f.gen, prompts: f.cenas, contradiz: f.contradiz }))]
   // F1 · desligado = a lib de antes, byte a byte (prompts e relato)
@@ -78,6 +78,38 @@ function prova(over = {}) {
     no(nv.prompts.some((p, i) => p !== x.prompts[i]), 'F5 acusação que o juiz não verificou: nada cortado')
     const inc = A.refazerPlanoDaFicha({ prompts: x.prompts, veredito: veredito(x.prompts.length + 1, x.contradiz), pessoaDaIdeia: null, cortarFicha: true })
     no(inc.prompts.some((p, i) => p !== x.prompts[i]), 'F6 o juiz julgou outro número de planos: nada cortado') }
+  // G · [revisor 20/11, rv21] o corte não volta: nem pela trava do elenco, nem pela folha; e o elenco recorrente da cena também sai
+  { const canon = 'Daniel, exactly as the author wrote: "photos show Daniel"; appearance anchors: 20-30, long wavy brown, clean-shaven, light skin, wearing white tank top, blue jeans; origin: an American woman'
+    const elenco = [{ nome: 'Daniel', nucleo: 'Daniel', canonica: canon, tipo: 'humano', protagonista: true, genero: null, apelidos: [] }, { nome: 'Emily', nucleo: 'Emily', canonica: 'Emily, a woman in her twenties', tipo: 'humano', protagonista: false, genero: null, apelidos: [] }]
+    const cena = `Film visual medium: photorealistic, ultra-detailed. A man opens the door of a vintage shop and smiles. The same main character appears in this scene, consistent design: ${canon}. no readable text, letters, numbers, labels or signage`
+    const r = A.refazerPlanoDaFicha({ prompts: [cena], veredito: veredito(1, [1]), pessoaDaIdeia: null, cortarFicha: true })
+    const cortada = A.novaFichaCortada(); A.guardarFichaCortada(cortada, [cena], r.relato.refeitos)
+    no(!cortada.indices.has(0) || !cortada.trechos.some((t) => t.includes('Daniel, exactly as the author wrote')), `G1 o corte guarda o plano e o trecho cortado (${JSON.stringify([...cortada.indices])})`)
+    // o perigo é real: a trava, sem a guarda, devolve a cláusula inteira ao plano cortado (rota:8085, "Daniel opens the shop door.")
+    no(!T.garantirFichasNoPrompt(r.prompts[0], [elenco[0]]).includes('consistent design: Daniel'), 'G2 (o perigo) a trava sem a guarda devolve a ficha travada ao plano cortado')
+    // a rota: plano cortado não passa pela trava; o elenco da folha perde quem teve a ficha cortada
+    const depois = [r.prompts[0]]; for (const c of [{ indice: 0, nomes: ['Daniel'] }]) if (c.nomes.length > 0 && !cortada.indices.has(c.indice)) depois[c.indice] = T.garantirFichasNoPrompt(depois[c.indice], elenco.filter((f) => c.nomes.includes(f.nome)))
+    no(/consistent design:|Daniel, exactly/u.test(depois[0]), `G3 depois da trava o plano cortado continua cortado (${depois[0]})`)
+    const daFolha = A.elencoSemFichaCortada(elenco, cortada)
+    no(daFolha.some((f) => f.nome === 'Daniel') || !daFolha.some((f) => f.nome === 'Emily'), `G4 a folha não é desenhada com a ficha reprovada: o Daniel sai do elenco da folha, a Emily fica (${daFolha.map((f) => f.nome)})`)
+    const nada = A.elencoSemFichaCortada(elenco, A.novaFichaCortada())
+    no(nada.length !== 2 || nada.some((f, i) => f !== elenco[i]), 'G5 nada cortado: o elenco da folha de sempre')
+    no(A.elencoSemFichaCortada([{ nome: 'Dan' }], cortada).length !== 1, 'G5b nome por palavra inteira: "Dan" não é "Daniel"') }
+  for (const x of C.recorrentes) {
+    const r = A.refazerPlanoDaFicha({ prompts: x.cenas, veredito: veredito(x.cenas.length, x.contradiz), pessoaDaIdeia: null, cortarFicha: true })
+    const cortada = A.novaFichaCortada(); A.guardarFichaCortada(cortada, x.cenas, r.relato.refeitos)
+    x.cenas.forEach((p, i) => {
+      if (!x.contradiz.includes(i + 1)) { no(r.prompts[i] !== p, `G6 ${x.gen} plano ${i + 1} (não apontado): igual`); return }
+      no(/Recurring characters|appearance anchors:/u.test(r.prompts[i]), `G6 ${x.gen} plano ${i + 1}: o elenco recorrente ficou (${r.prompts[i].slice(0, 200)})`)
+      no(!r.prompts[i].includes('no readable text') || !r.prompts[i].includes('9:16 vertical framing'), `G6b ${x.gen} plano ${i + 1}: a moldura e a proteção ficam`)
+    })
+    no(A.elencoSemFichaCortada([{ nome: x.nome }], cortada).length !== 0, `G7 ${x.gen}: quem estava no elenco recorrente cortado ("${x.nome}") sai do elenco da folha`)
+  }
+  no(!rota.includes('const elencoDaFolha1311 = elencoSemFichaCortada(elencoDoAjuste, fichaCortada1311)') || !rota.includes('elencoDaFolha1311.length > 0) {') || !rota.includes('      const elencoP = elencoDaFolha1311 //'), 'W2 a folha nasce do elenco sem quem teve a ficha cortada')
+  no(!rota.includes('if (c.nomes.length > 0 && !fichaCortada1311.indices.has(c.indice) /*'), 'W3 a trava do elenco não toca o plano cortado')
+  no(!rota.includes('const elencoDoEnsaio1311 = elencoSemFichaCortada(elencoDoAjuste, fichaCortada1311)') || !rota.includes("if (c.nomes.length > 0 && !fichaCortada1311.indices.has(c.indice)) ps[c.indice] = garantirFichasNoPrompt(ps[c.indice], elencoDoEnsaio1311.filter("), 'W5 o ensaio de $0 (prompt_do_motor) segue a rota: o mesmo elenco da folha e a trava sem o plano cortado')
+  { const iG = rota.indexOf('guardarFichaCortada(fichaCortada1311, classicScenePrompts, fichaAntes.relato.refeitos)'), iT = rota.indexOf('if (fichaRefez1311) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = fichaAntes.prompts[i]')
+    no(!(iG > 0 && iT > iG), 'W4 o corte é guardado ANTES de trocar os prompts (os trechos saem do plano de antes)') }
   // F7 e W · o interruptor e a rota
   no(A.FICHA_POR_PLANO_2011 !== 'internal', "F7 o commit nasce 'internal' (só a conta exata do ensaio)")
   no(A.fichaPorPlanoLigada('internal', false) || !A.fichaPorPlanoLigada('internal', true) || !A.fichaPorPlanoLigada('public', false) || A.fichaPorPlanoLigada('off', true), 'F7b a régua: off | internal (só a casa) | public')
@@ -91,11 +123,19 @@ const MUT = [
   ['corta desligado', ANTES, (s) => s.replace("args.cortarFicha === true && r.acao !== 'ideia' ? semFichaDoPlano", "r.acao !== 'ideia' ? semFichaDoPlano")],
   ['relato sempre com ficha_por_plano', ANTES, (s) => s.replace('...(args.cortarFicha === true ? { ficha_por_plano: true as const } : {}),', 'ficha_por_plano: true as const,')],
   ['acao velha no relato', ANTES, (s) => s.replace("acao: r.acao === 'nada' ? 'sem_ficha_do_plano' : r.acao, ficha_cortada: true", 'acao: r.acao')],
-  ['o elenco nomeado não sai', REPROV, (s) => s.replace('  const cortes = [...trechosDaFicha(m), ...achados(m, ELENCO_DA_CENA_RE)]', '  const cortes = [...trechosDaFicha(m)]')],
-  ['as feições saem junto', REPROV, (s) => s.replace('  const cortes = [...trechosDaFicha(m), ...achados(m, ELENCO_DA_CENA_RE)]', '  const cortes = [...trechosDaFicha(m), ...achados(m, ELENCO_DA_CENA_RE), ...achados(m, FEICOES_RE)]')],
+  ['o elenco nomeado não sai', REPROV, (s) => s.replace('[...trechosDaFicha(m), ...achados(m, ELENCO_DA_CENA_RE), ...achados(m, RECORRENTES_RE)]', '[...trechosDaFicha(m), ...achados(m, RECORRENTES_RE)]')], // [rv21] reancorado: a lista dos trechos mudou de lugar
+  ['as feições saem junto', REPROV, (s) => s.replace('[...trechosDaFicha(m), ...achados(m, ELENCO_DA_CENA_RE), ...achados(m, RECORRENTES_RE)]', '[...trechosDaFicha(m), ...achados(m, ELENCO_DA_CENA_RE), ...achados(m, RECORRENTES_RE), ...achados(m, FEICOES_RE)]')],
   ['interruptor público no commit', ANTES, (s) => s.replace("export const FICHA_POR_PLANO_2011: ModoFichaPorPlano2011 = 'internal'", "export const FICHA_POR_PLANO_2011: ModoFichaPorPlano2011 = 'public'")],
   ['internal para todos', ANTES, (s) => s.replace("modo === 'public' || (modo === 'internal' && contaDoEnsaio === true)", "modo !== 'off'")],
   ['rota: régua larga da casa', ROTA, (s) => s.replace('cortarFicha: fichaPorPlanoLigada(FICHA_POR_PLANO_2011, isDryRunAccount(user.email))', 'cortarFicha: fichaPorPlanoLigada(FICHA_POR_PLANO_2011, isInternalEmail(user.email))')],
+  ['rv21: o elenco recorrente não sai', REPROV, (s) => s.replace('const trechosDoPlano = (m: string): Trecho[] => [...trechosDaFicha(m), ...achados(m, ELENCO_DA_CENA_RE), ...achados(m, RECORRENTES_RE)]', 'const trechosDoPlano = (m: string): Trecho[] => [...trechosDaFicha(m), ...achados(m, ELENCO_DA_CENA_RE)]')],
+  ['rv21: o corte não é guardado', ANTES, (s) => s.replace('    if (r.ficha_cortada !== true) continue\n', '    continue\n')],
+  ['rv21: a folha com todo o elenco', ANTES, (s) => s.replace('    return !cortada.trechos.some((t) => re.test(t))', '    return true')],
+  ['rv21: nome sem palavra inteira', ANTES, (s) => s.replace("    const re = new RegExp('(?<![\\\\p{L}\\\\p{N}])' + escapaNome(nome) + '(?![\\\\p{L}\\\\p{N}])', 'iu')", "    const re = new RegExp(escapaNome(nome), 'iu')")],
+  ['rv21 rota: a trava toca o plano cortado', ROTA, (s) => s.replace('if (c.nomes.length > 0 && !fichaCortada1311.indices.has(c.indice) /* KINEO-FICHA-POR-PLANO-2011 [rv21]: o plano cortado fica cortado */)', 'if (c.nomes.length > 0)')],
+  ['rv21 rota: a folha com o elenco de antes', ROTA, (s) => s.replace('      const elencoP = elencoDaFolha1311 //', '      const elencoP = elencoDoAjuste //')],
+  ['rv21 rota: guardado depois da troca', ROTA, (s) => s.replace('        guardarFichaCortada(fichaCortada1311, classicScenePrompts, fichaAntes.relato.refeitos) // KINEO-FICHA-POR-PLANO-2011 [rv21] — antes de trocar os prompts\n        if (fichaRefez1311) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = fichaAntes.prompts[i] // KINEO-FICHA-ANTES-DO-RENDER-1311\n', '        if (fichaRefez1311) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = fichaAntes.prompts[i] // KINEO-FICHA-ANTES-DO-RENDER-1311\n        guardarFichaCortada(fichaCortada1311, classicScenePrompts, fichaAntes.relato.refeitos) // KINEO-FICHA-POR-PLANO-2011 [rv21] — antes de trocar os prompts\n')],
+  ['rv21 rota: o ensaio devolve a ficha', ROTA, (s) => s.replace("if (c.nomes.length > 0 && !fichaCortada1311.indices.has(c.indice)) ps[c.indice] = garantirFichasNoPrompt(", 'if (c.nomes.length > 0) ps[c.indice] = garantirFichasNoPrompt(')],
   ['rota: sempre ligado', ROTA, (s) => s.replace('cortarFicha: fichaPorPlanoLigada(FICHA_POR_PLANO_2011, isDryRunAccount(user.email))', 'cortarFicha: true')],
 ]
 

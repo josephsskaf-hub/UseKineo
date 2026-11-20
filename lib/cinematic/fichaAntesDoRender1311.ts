@@ -22,7 +22,7 @@
 // que foram à fal (juizLeuOMesmoTexto); qualquer diferença = a 2ª leitura de sempre. (2) só é refeito o plano cuja acusação de ficha o juiz
 // VERIFICOU (a citação está no texto: "plano N · ficha contradiz …" em defeitos); acusação descartada por ele não refaz nada.
 import type { JuizPlanoVeredito } from '@/lib/juizDoPlano'
-import { semFichaDoPlano } from '@/lib/cinematic/fichaReprovada1911' // KINEO-FICHA-POR-PLANO-2011
+import { semFichaDoPlano, trechosDaFichaDoPlano } from '@/lib/cinematic/fichaReprovada1911' // KINEO-FICHA-POR-PLANO-2011
 
 // ═══ KINEO-FICHA-POR-PLANO-2011 [CEO 20/11, (ii); decisão A da medição do descricao_nao_cabe] ════════════════════════════════════════════════════
 // O furo: o juiz de antes das imagens aponta o plano cuja ficha contradiz o pedido, mas aqui só a ORDEM "The only person in this shot…" era refeita.
@@ -34,6 +34,33 @@ import { semFichaDoPlano } from '@/lib/cinematic/fichaReprovada1911' // KINEO-FI
 export type ModoFichaPorPlano2011 = 'off' | 'internal' | 'public'
 export const FICHA_POR_PLANO_2011: ModoFichaPorPlano2011 = 'internal' // CEO 20/11: 'internal' no commit; 'public' só com revisor independente + prova + sim
 export const fichaPorPlanoLigada = (modo: ModoFichaPorPlano2011, contaDoEnsaio: boolean): boolean => modo === 'public' || (modo === 'internal' && contaDoEnsaio === true)
+// [revisor 20/11, rv21] o corte não pode voltar: a trava do elenco (garantirFichasNoPrompt, no bloco da folha) punha a cláusula com a ficha travada de volta
+// no plano cortado, e a folha do personagem era desenhada com a ficha reprovada (o Natal 8e83778f). A rota guarda o que foi cortado (o índice e os trechos)
+// e, no bloco da folha: o plano cortado não recebe ficha da trava; quem teve a ficha cortada sai do elenco da folha (sem folha nem still com folha: a cena
+// segue com o still de texto, do plano cortado). Nada cortado = o elenco e a trava de sempre.
+export interface FichaCortada { indices: Set<number>; trechos: string[] }
+export const novaFichaCortada = (): FichaCortada => ({ indices: new Set<number>(), trechos: [] })
+/** Guarda, ANTES de trocar os prompts, os planos cortados e os trechos de ficha que saíram deles. */
+export function guardarFichaCortada(alvo: FichaCortada, promptsAntes: ReadonlyArray<string>, refeitos: RelatoFichaAntes['refeitos']): void {
+  for (const r of refeitos) {
+    if (r.ficha_cortada !== true) continue
+    const i = r.plano - 1
+    if (i < 0 || i >= promptsAntes.length) continue
+    alvo.indices.add(i)
+    alvo.trechos.push(...trechosDaFichaDoPlano(promptsAntes[i]))
+  }
+}
+const escapaNome = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+/** O elenco sem quem teve a ficha cortada: o nome (palavra inteira, sem caixa) aparece num trecho cortado. */
+export function elencoSemFichaCortada<T extends { nome: string }>(elenco: ReadonlyArray<T>, cortada: FichaCortada): T[] {
+  if (!cortada.trechos.length) return [...elenco]
+  return elenco.filter((f) => {
+    const nome = String(f.nome ?? '').trim()
+    if (!nome) return true
+    const re = new RegExp('(?<![\\p{L}\\p{N}])' + escapaNome(nome) + '(?![\\p{L}\\p{N}])', 'iu')
+    return !cortada.trechos.some((t) => re.test(t))
+  })
+}
 
 export type ModoFichaAntes = 'off' | 'all'
 export const FICHA_ANTES_DO_RENDER_1311: ModoFichaAntes = 'all'

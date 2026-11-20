@@ -95,7 +95,7 @@ import { createHash } from 'crypto'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { fichaAntesDoRenderLigada, refazerPlanoDaFicha, juizLeuOMesmoTexto, FICHA_ANTES_EVENTO } from '@/lib/cinematic/fichaAntesDoRender1311' // KINEO-FICHA-ANTES-DO-RENDER-1311
-import { FICHA_POR_PLANO_2011, fichaPorPlanoLigada } from '@/lib/cinematic/fichaAntesDoRender1311' // KINEO-FICHA-POR-PLANO-2011
+import { FICHA_POR_PLANO_2011, fichaPorPlanoLigada, novaFichaCortada, guardarFichaCortada, elencoSemFichaCortada } from '@/lib/cinematic/fichaAntesDoRender1311' // KINEO-FICHA-POR-PLANO-2011 · [rv21] o corte não volta pela trava nem pela folha
 import { waitUntilDaRequisicao } from '@/lib/posResposta' // KINEO-FICHA-ANTES-DO-RENDER-1311 (C1)
 import { atributosLigados, atributosEmTodoPlano, ATRIBUTOS_EVENTO } from '@/lib/cinematic/atributosDoPedido1311' // KINEO-ATRIBUTOS-DO-PEDIDO-1311
 import { estadoNegadoLigado, estadoNegadoNoFilme, ESTADO_NEGADO_EVENTO } from '@/lib/cinematic/estadoNegado1311' // KINEO-ESTADO-NEGADO-1311
@@ -7556,6 +7556,7 @@ async function manipularPost(req: NextRequest) {
     // contradizendo o pedido (acusação VERIFICADA) tem a ordem do protagonista refeita com a pessoa da ideia (ou retirada).
     // Desligado, juiz 'off', prazo, erro ou sem a_ficha: o vetor fica byte a byte. lib/cinematic/fichaAntesDoRender1311.ts.
     let vereditoAntes1311: JuizPlanoVeredito | null = null, lidoPeloJuiz1311: Array<{ fala: string; prompt: string }> | null = null // KINEO-FICHA-ANTES-DO-RENDER-1311 (C3) — o veredito de antes das imagens e o texto EXATO que ele leu (null quando um plano foi refeito)
+    const fichaCortada1311 = novaFichaCortada() // KINEO-FICHA-POR-PLANO-2011 [rv21] — os planos cortados e os trechos que saíram (a trava e a folha não os devolvem)
     if (kling4TrialCandidate && fichaAntesDoRenderLigada() && !qualidadeHerdada) { // KINEO-FICHA-ANTES-DO-RENDER-1311
       try { // KINEO-FICHA-ANTES-DO-RENDER-1311
         const envioAntes1311 = planoDoEnvio({ kling4Candidato: true, kling4Input: () => (scenes.length === 3 && scenes.every(s => [6, 7, 8].includes(s.clipSeconds ?? 6)) ? buildKling4TrialInput(eixosDoFilmeGratis(classicScenePrompts, styleAnchor).map((p, i) => promptDaCenaKling4(p, styleAnchor, i, true)), [], { voiceovers: scenes.map(s => s.voiceover ?? ''), wordsPerSecond: narrationRate.wordsPerSecond }).input : null), falas: scenes.map((s) => s.voiceover ?? ''), inputs: classicScenePrompts.map((p) => ({ prompt: p })) }) // KINEO-FICHA-ANTES-DO-RENDER-1311 (C3) — o texto que o juiz lê
@@ -7563,6 +7564,7 @@ async function manipularPost(req: NextRequest) {
         const fichaAntes = refazerPlanoDaFicha({ prompts: classicScenePrompts, veredito: vFicha, pessoaDaIdeia: ideiaNaFicha?.pessoa ?? null, sujeitoDoPedido: sujeitoDoPedido1311, cortarFicha: fichaPorPlanoLigada(FICHA_POR_PLANO_2011, isDryRunAccount(user.email)) }) // KINEO-FICHA-ANTES-DO-RENDER-1311 · (C3) o sujeito lido do pedido quando não há pessoa da ideia
         const fichaRefez1311 = fichaAntes.relato.refeitos.some((r) => r.acao !== 'nada') // KINEO-FICHA-ANTES-DO-RENDER-1311
         vereditoAntes1311 = vFicha; lidoPeloJuiz1311 = fichaRefez1311 ? null : envioAntes1311.cenas // KINEO-FICHA-ANTES-DO-RENDER-1311 (C3) — plano refeito: o veredito é de outro texto, nunca reaproveita
+        guardarFichaCortada(fichaCortada1311, classicScenePrompts, fichaAntes.relato.refeitos) // KINEO-FICHA-POR-PLANO-2011 [rv21] — antes de trocar os prompts
         if (fichaRefez1311) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = fichaAntes.prompts[i] // KINEO-FICHA-ANTES-DO-RENDER-1311
         if (vFicha) void writeServerEvent({ name: FICHA_ANTES_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { ...fichaAntes.relato, dry_run: body.dry_run === true } }).catch(() => false) // KINEO-FICHA-ANTES-DO-RENDER-1311
       } catch (e) { console.warn('[cinematic] KINEO-FICHA-ANTES-DO-RENDER falhou, prompts seguem como estavam:', e instanceof Error ? e.message : String(e)) } // KINEO-FICHA-ANTES-DO-RENDER-1311
@@ -7665,8 +7667,9 @@ async function manipularPost(req: NextRequest) {
         const etapas: string[] = []
         if (kling4TrialCandidate) { ps = eixosDoFilmeGratis(ps, styleAnchor); etapas.push('eixos_do_filme_gratis') }
         const ancoraNoEnsaio = (wantsKling ? 'kling' : wantsVeo ? 'veo' : wantsSora ? null : 'seedance') !== null && CINEMATIC_ANCHOR_ENABLED
-        if (qualidadeFilme.gerarFolha && ancoraNoEnsaio && !estrelaAtiva && elencoDoAjuste.length > 0) {
-          for (const c of cenasDoElenco(ps, scenes.map((s) => s.voiceover ?? ''), elencoDoAjuste)) if (c.nomes.length > 0) ps[c.indice] = garantirFichasNoPrompt(ps[c.indice], elencoDoAjuste.filter((f) => c.nomes.includes(f.nome)))
+        const elencoDoEnsaio1311 = elencoSemFichaCortada(elencoDoAjuste, fichaCortada1311) // KINEO-FICHA-POR-PLANO-2011 [rv21] — o ensaio segue a rota: o mesmo elenco da folha
+        if (qualidadeFilme.gerarFolha && ancoraNoEnsaio && !estrelaAtiva && elencoDoEnsaio1311.length > 0) {
+          for (const c of cenasDoElenco(ps, scenes.map((s) => s.voiceover ?? ''), elencoDoEnsaio1311)) if (c.nomes.length > 0 && !fichaCortada1311.indices.has(c.indice)) ps[c.indice] = garantirFichasNoPrompt(ps[c.indice], elencoDoEnsaio1311.filter((f) => c.nomes.includes(f.nome)))
           etapas.push('trava_da_folha_sem_ancoras_lidas')
         }
         const kling4 = kling4TrialCandidate ? ps.map((p, i) => promptDaCenaKling4(p, styleAnchor, i, true)) : null
@@ -8061,11 +8064,12 @@ async function manipularPost(req: NextRequest) {
     // IDENTITY, em 'enforce' (1 foto nova por cena, teto de 3 por filme, 35 s); (4) o still aprovado SUBSTITUI o FLUX daquela cena. O FLUX fica de reserva: folha, still ou [KINEO-META95-PERSONAGEM-2010]
     // moderação que falha = a cena sai exatamente como hoje. Sem o interruptor: nada disto roda (o `if` abaixo é a única porta). Fica FORA das fatias que os guardiões executam. [KINEO-META95-PERSONAGEM-2010]
     // >>> KINEO-META95-PERSONAGEM-2010 bloco
-    if (qualidadeFilme.gerarFolha && anchorActive && !estrelaAtiva && elencoDoAjuste.length > 0) { // KINEO-META95-PERSONAGEM-2010 · KINEO-FILME15-ELENCO-2610 (era personagemElenco.elenco) // KINEO-QUALIDADE-TODOS-MOTORES-2910
+    const elencoDaFolha1311 = elencoSemFichaCortada(elencoDoAjuste, fichaCortada1311) // KINEO-FICHA-POR-PLANO-2011 [rv21] — quem teve a ficha cortada não ganha folha (nada cortado = o elenco de sempre)
+    if (qualidadeFilme.gerarFolha && anchorActive && !estrelaAtiva && elencoDaFolha1311.length > 0) { // KINEO-META95-PERSONAGEM-2010 · KINEO-FILME15-ELENCO-2610 (era personagemElenco.elenco) // KINEO-QUALIDADE-TODOS-MOTORES-2910
       const t0Personagem = Date.now() // KINEO-META95-PERSONAGEM-2010
       providerSubmissionMayExist = true // folha e stills com folha são trabalho pago da fal: o claim fica protegido, como no FLUX // KINEO-META95-PERSONAGEM-2010
       const personagemMotor = wantsKling ? 'kling' : wantsVeo ? 'veo' : 'seedance' // KINEO-META95-PERSONAGEM-2010
-      const elencoP = elencoDoAjuste // KINEO-META95-PERSONAGEM-2010 · KINEO-FILME15-ELENCO-2610 (era personagemElenco.elenco)
+      const elencoP = elencoDaFolha1311 // KINEO-FICHA-POR-PLANO-2011 [rv21] (era elencoDoAjuste) · KINEO-META95-PERSONAGEM-2010 · KINEO-FILME15-ELENCO-2610 (era personagemElenco.elenco)
       const visuaisP = scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description) // KINEO-META95-PERSONAGEM-2010 — a decisão "quem está na cena" lê o plano cru, como a Estrela
       const cenasP = cenasDoElenco(classicScenePrompts, scenes.map((s) => s.voiceover ?? ''), elencoP).filter((c) => c.nomes.length > 0).slice(0, PERSONAGEM_MAX_STILLS) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — quem está na cena: o visual diz se há alguém, a FALA diz quem; era: cenasComPersonagem(visuaisP, elencoP) // KINEO-QUALIDADE-TODOS-MOTORES-2910
       const motivosP: Partial<Record<MotivoStillComFolha, number>> = {} // KINEO-META95-PERSONAGEM-AJUSTE-2010
@@ -8082,7 +8086,7 @@ async function manipularPost(req: NextRequest) {
       if (ralasP.length > 0) { const lidas = await Promise.all(ralasP.map((f) => lerAncorasDaFolha(f, folhaDe.get(f.nome) as string).then((a) => fichaIdade1911 ? ancorasComIdadeDoTexto(a, idadeEscritaDoNome(idadesEscritas1911, f.nome)) : a))); /* KINEO-FICHA-IDADE-ESCRITA-1911 — B1(b) */ const paresAncora: Array<[string, string]> = []; ralasP.forEach((f, k) => { const nova = fichaComAncoras(f, lidas[k]); const i = elencoP.findIndex((e) => e.nome === f.nome); if (nova.canonica !== f.canonica && i >= 0) { paresAncora.push([f.canonica, nova.canonica]); elencoP[i] = nova; ancorasLidasP.push(f.nome) } }); if (paresAncora.length > 0) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = trocarFichaNoPrompt(classicScenePrompts[i], paresAncora) } // KINEO-ELENCO-TRAVA-0311
       // KINEO-ELENCO-TRAVA-0311 — (a) TODA cena com personagem leva a ficha travada no prompt do still E do clipe (a cena 2 da menina saiu sem ela: cenas_com_ficha_no_prompt [1,3])
       const cenasTravaP = cenasDoElenco(classicScenePrompts, scenes.map((s) => s.voiceover ?? ''), elencoP) // KINEO-ELENCO-TRAVA-0311 — todas as cenas (cenasP para no teto de stills)
-      for (const c of cenasTravaP) if (c.nomes.length > 0) classicScenePrompts[c.indice] = garantirFichasNoPrompt(classicScenePrompts[c.indice], elencoP.filter((f) => c.nomes.includes(f.nome))) // KINEO-ELENCO-TRAVA-0311
+      for (const c of cenasTravaP) if (c.nomes.length > 0 && !fichaCortada1311.indices.has(c.indice) /* KINEO-FICHA-POR-PLANO-2011 [rv21]: o plano cortado fica cortado */) classicScenePrompts[c.indice] = garantirFichasNoPrompt(classicScenePrompts[c.indice], elencoP.filter((f) => c.nomes.includes(f.nome))) // KINEO-ELENCO-TRAVA-0311
       const referenciaP: (DecisaoDaReferencia | null)[] = new Array(scenes.length).fill(null) // KINEO-ELENCO-TRAVA-0311 — ok | retry_ok | vizinha | texto_ficha, por cena
       const stillsP: (string | null)[] = new Array(scenes.length).fill(null) // KINEO-META95-PERSONAGEM-2010
       const filaP = cenasP.filter((c) => c.nomes.some((n) => folhaDe.has(n))) // KINEO-META95-PERSONAGEM-2010 — cena cujo personagem ficou sem folha: still de hoje

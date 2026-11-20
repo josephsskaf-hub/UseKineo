@@ -117,13 +117,23 @@ export function semFicha(plano: string): string {
 // KINEO-FICHA-POR-PLANO-2011 [CEO 20/11, (ii) "a ficha antes da imagem, com o corte por plano"] — o elenco nomeado da CENA ("Named character in this
 // shot: … — clearly visible in frame…"), que o compactador do Kling 4 vira "Visible:" (lib/cinematic/filmQuality.ts promptCurtoDoFilmeKling4).
 const ELENCO_DA_CENA_RE = /(?:Named )?[Cc]haracters? in this shot: .+? — clearly visible in frame(?:, seen from behind or in profile, face not readable)?\.?/gu
-/** O plano sem a SUA ficha (a ordem, a cláusula da ficha travada, Identity:/Visible: e o elenco nomeado da cena). Diferente de semFicha, as feições da
- *  origem ("Everyone shown has the natural features of X people.") FICAM: podem vir do pedido e não são a ficha que o juiz apontou neste plano. */
+// [revisor 20/11, rv21] + o elenco recorrente da cena (comElencoNaCena, sceneStyle.ts): "Recurring characters, identical face, hair and costume in every scene
+// where they appear: the boy is …; appearance anchors: …" (224c4659 planos 1-3, c06af33d plano 2). No Kling 4 ela some, mas a imagem-chave lê a cena crua.
+const RECORRENTES_RE = new RegExp('Recurring characters, identical face, hair and costume in every scene where they appear: .+?(?:' + PONTO_FINAL + '|(?=' + PROTECAO_DO_FIM + ')|$)', 'gu')
+const trechosDoPlano = (m: string): Trecho[] => [...trechosDaFicha(m), ...achados(m, ELENCO_DA_CENA_RE), ...achados(m, RECORRENTES_RE)]
+/** O plano sem a SUA ficha (a ordem, a cláusula da ficha travada, Identity:/Visible:, o elenco nomeado e o elenco recorrente da cena). Diferente de semFicha,
+ *  as feições da origem ("Everyone shown has the natural features of X people.") FICAM: podem vir do pedido e não são a ficha que o juiz apontou neste plano. */
 export function semFichaDoPlano(plano: string): string {
   const t = String(plano ?? '')
   const { m, volta } = mascarar(t)
-  const cortes = [...trechosDaFicha(m), ...achados(m, ELENCO_DA_CENA_RE)]
+  const cortes = trechosDoPlano(m)
   return cortes.length ? volta(cortar(m, cortes)) : t
+}
+/** [rv21] Os trechos de ficha que semFichaDoPlano tira do plano, como texto (para saber de QUEM era a ficha cortada). */
+export function trechosDaFichaDoPlano(plano: string): string[] {
+  const t = String(plano ?? '')
+  const { m, volta } = mascarar(t)
+  return trechosDoPlano(m).sort((x, y) => x[0] - y[0]).map(([a, b]) => volta(m.slice(a, b)))
 }
 /** Sem a ficha, a referência do personagem fixo (lib/kling4Trial.ts, a frase de continuidade de kling4PersonagemFixo) perde o que vem da ficha: "Keep the
  *  face and outfit of @Image1." e a roupa lida da canônica. Fica só a época e o cenário ("Use 1997 clothing…" ou "Match the clothing and setting of the

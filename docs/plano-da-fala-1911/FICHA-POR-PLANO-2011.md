@@ -40,3 +40,29 @@ Decisão da CEO em 20/11: opção A da medição do `descricao_nao_cabe` (PROPOS
   - `personagem.ativo` da rota é `!tagFaceless && !estrela`, quase todo filme;
   - o `personagem` do claim, que previu a ficha em 56 de 56, só nasce no bloco da folha, depois das cenas;
   - pôr o descritor em série depois das cenas soma de 3 a 6 s ao filme, para poupar cerca de US$ 0,18 por semana.
+
+## v2 [revisor 20/11, rv21: volta pequena]
+1. **A trava do elenco e a folha não devolvem o corte.** A rota guarda, antes de trocar os prompts, os planos cortados e os trechos que saíram (`guardarFichaCortada`). No bloco da folha:
+   - a trava (`garantirFichasNoPrompt`) não toca no plano cortado;
+   - quem teve a ficha cortada sai do elenco da folha (`elencoSemFichaCortada`, pelo nome em palavra inteira num trecho cortado). Ele fica sem folha e sem still com folha, e a cena segue com o still de texto do plano cortado;
+   - o ensaio de $0 (`prompt_do_motor`) faz o mesmo.
+
+   O cenário do revisor: o plano "A man opens the door of a vintage shop…", com a fala "Daniel opens the shop door.", continua cortado depois da trava.
+2. **O elenco recorrente da cena** ("Recurring characters, identical face, hair and costume in every scene where they appear: …") também sai. São os casos reais 224c4659 (planos 1 a 3) e c06af33d (plano 2).
+
+## Proposta, não construída: cortar só quem contradiz
+**O problema (replay do revisor):** dos 106 planos cortados, 13 tinham 2 ou mais pessoas no elenco e todas saíram. Em 8, o nome cortado está na própria fala da cena.
+
+**O que dá para inferir:** o juiz não devolve o nome, mas cada acusação cita a ficha ("plano N · ficha contradiz "<o que a história diz>": "<a ficha no texto>"").
+- No banco, em 30 dias, 80 das 91 acusações citam a ficha.
+- Em 69 delas, o nome vem antes da 1ª vírgula ("…consistent design: Texas, a wolf…", "Named character in this shot: Houston, a person…").
+
+**Opções:**
+- **A (recomendada):**
+  - tirar o nome da citação e cortar só o trecho daquela pessoa: a cláusula dela, o item dela na lista "Named characters: A; B" ou "the A is …; the B is …", ou a ordem, se for ela;
+  - se a pessoa cortada está na fala da cena, em vez do corte inteiro, usar `semAncorasDaFolha`: saem as âncoras lidas da folha e a origem, que nós acrescentamos, e ficam as palavras do autor. O juiz relê dentro do prazo do A2;
+  - citação sem nome, ou com nome que não casa com o elenco: o corte de todos, como na v2.
+- **B:** só o corte por pessoa, sem o caso da fala.
+- **C:** manter a v2 (todos saem), que é segura, mas apaga a pessoa certa nos filmes com 2 ou mais pessoas.
+
+**O risco da A:** a citação é cortada em cerca de 100 caracteres, e um nome composto ou com artigo ("the boy") pede casar pelo núcleo do elenco. A prova seria um replay das 91 acusações antes de construir.
