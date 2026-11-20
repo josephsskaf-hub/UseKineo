@@ -9,7 +9,7 @@ const raiz = join(import.meta.dirname, '..', '..')
 const lf = (t) => String(t).replace(/\r\n/g, '\n')
 const sha = (t) => createHash('sha256').update(t).digest('hex')
 const git = (...a) => execFileSync('git', a, { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 })
-const ESCOPO = ['app/api/generate-video-cinematic/route.ts', 'lib/modelRefusal.ts', 'app/api/expand-script/route.ts', 'app/api/apply-suggestion/route.ts', 'app/api/regenerate-scene/route.ts', 'app/api/ad-script/route.ts', 'app/api/ads/script/route.ts', 'app/api/kids-cartoon/story/route.ts', 'app/api/baby-podcast/prepare/route.ts', 'app/api/demo-script/route.ts', 'app/api/retry-hollywood-scene/route.ts'] // KINEO-RECUSA-IA-2011 — os caminhos que escrevem roteiro ou prompt de vídeo
+const ESCOPO = ['app/api/generate-video-cinematic/route.ts', 'lib/modelRefusal.ts', 'app/api/expand-script/route.ts', 'app/api/apply-suggestion/route.ts', 'app/api/regenerate-scene/route.ts', 'app/api/ad-script/route.ts', 'app/api/ads/script/route.ts', 'app/api/kids-cartoon/story/route.ts', 'app/api/baby-podcast/prepare/route.ts', 'app/api/demo-script/route.ts', 'app/api/retry-hollywood-scene/route.ts', 'lib/requestFidelity.ts'] // KINEO-RECUSA-IA-2011 — os caminhos que escrevem roteiro ou prompt de vídeo
 
 const scope = {}, addedSources = {}
 for (const file of ESCOPO) {
