@@ -27,7 +27,7 @@ async function prova(over = {}) {
 
   // ── condição 2 · o modo "só sem ficha" ──
   no(!['internal', 'sem_ficha'].includes(L.KLING4_PLANO_DA_FALA_1911) || !['internal', 'sem_ficha'].includes(L.KLING4_DESCRITOR_FORTE_1911), "M0 o commit: os dois em 'internal' (ou o modo novo); 'public' fica fora")
-  no(L.KLING4_PLANO_DA_FALA_1911 !== 'internal' || L.KLING4_DESCRITOR_FORTE_1911 !== 'internal', "M0b [CEO 19/11] os interruptores seguem 'internal' NO COMMIT (a CEO troca para 'sem_ficha' depois do revisor)")
+  no(L.KLING4_PLANO_DA_FALA_1911 !== 'sem_ficha' || L.KLING4_DESCRITOR_FORTE_1911 !== 'sem_ficha', "M0b [CEO 20/11, dono 'liga tudo que já está certo'] os dois em 'sem_ficha' no commit (desligar = 'internal')")
   no(!L.planoDaFalaLigado('sem_ficha', false) || !L.planoDaFalaLigado('sem_ficha', true) || !L.soSemFicha('sem_ficha', false) || L.soSemFicha('sem_ficha', true) || L.soSemFicha('internal', false) || L.soSemFicha('public', false), 'M1 sem_ficha abre para todos; a guarda vale só para o cliente (a casa segue como em internal)')
   for (const [nome, plano] of [['8e83778f Identity', NATAL], ['3df0553d ORDEM', EVA], ['deb1ec95 ORDEM cortada', DEB], ['21007cc3 Visible', VIS]]) no(!L.cenaTemFicha(plano), `M2 ${nome}: a cena tem ficha (caminho de hoje para o cliente)`)
   no(L.cenaTemFicha(POLVO) || L.cenaTemFicha('He is clearly visible: the octopus.') || L.cenaTemFicha(null), 'M3 sem ficha (o polvo; "visible" de outra frase) = o caminho novo')
@@ -58,7 +58,7 @@ async function prova(over = {}) {
     } catch (e) { err = e }
     const ms = Date.now() - t0
     no(!z.estourou || mexeu || ms > 400, `P5 reescrita pendurada: solta em ~60 ms, estourou=${z.estourou}, nada mexe nas seções depois (${ms} ms, ${err?.message ?? 'sem erro'})`) }
-  { const iR = rota.indexOf('const novas = descricoesPorSecao(await prazo1911.corrida(generateCinematicDescriptions('), iV = rota.indexOf("      if (rastro1911?.caminho === 'hoje') return // o filme já voltou ao caminho de hoje: nada mexe nas seções"), iM = rota.indexOf("      alvo.forEach((j, k) => { if (novas[k]) Object.assign(parsedScript.segments[j], { descricao: novas[k] }) })")
+  { const iR = rota.indexOf('const novas = descricoesPorSecao(await prazo1911.corrida(generateCinematicDescriptions('), iV = rota.indexOf("      if (rastro1911?.caminho === 'hoje') return // o filme já voltou ao caminho de hoje: nada mexe nas seções"), iM = rota.indexOf("      alvo.forEach((j, k) => { const nova = descricaoSemRosto(novas[k], semRosto1911()); if (nova) Object.assign(parsedScript.segments[j], { descricao: nova }) })") /* [Div. 2 20/11] reancorado: a reescrita passa pela troca do modo sem rosto */
     no(!(iR > 0 && iV > iR && iM > iV) || !rota.includes('MODELO_DO_DESCRITOR_FORTE, (u) => { usosDoDescritorA2.push(u) }), A1A2_REESCRITA_MS), alvo.length)'), 'P6 a reescrita tem prazo próprio e a perdedora tardia não mexe nas seções')
     no(!rota.includes('const rA2 = await prazo1911.corrida(revisarA2DoFilme(false, sujeitoA21911), prazo1911.resta())') || !rota.includes("        if (prazo1911.estourou) voltaAoHoje1911('prazo_da_revisao')"), 'P7 a revisão inteira (juiz, nome, reescrita) dentro do que resta; estourou = o caminho de hoje')
     no(!rota.includes("        if (!d0) voltaAoHoje1911('prazo_do_descritor')") || !rota.includes('const resta = Math.min(DESCRICAO_DE_NOVO_TETO_MS - (Date.now() - t0), total.resta());'), 'P8 a espera do descritor e os pedidos a mais respeitam o teto somado')
@@ -91,8 +91,8 @@ async function prova(over = {}) {
 }
 
 const MUT = [
-  ['A1 público no commit', LIB, (s) => s.replace("export const KLING4_PLANO_DA_FALA_1911: ModoPlanoDaFala = 'internal'", "export const KLING4_PLANO_DA_FALA_1911: ModoPlanoDaFala = 'public'")],
-  ['A2 sem_ficha no commit', LIB, (s) => s.replace("export const KLING4_DESCRITOR_FORTE_1911: ModoPlanoDaFala = 'internal'", "export const KLING4_DESCRITOR_FORTE_1911: ModoPlanoDaFala = 'sem_ficha'")],
+  ['A1 público no commit', LIB, (s) => s.replace("export const KLING4_PLANO_DA_FALA_1911: ModoPlanoDaFala = 'sem_ficha'", "export const KLING4_PLANO_DA_FALA_1911: ModoPlanoDaFala = 'public'")],
+  ['A2 de volta a internal no commit', LIB, (s) => s.replace("export const KLING4_DESCRITOR_FORTE_1911: ModoPlanoDaFala = 'sem_ficha'", "export const KLING4_DESCRITOR_FORTE_1911: ModoPlanoDaFala = 'internal'")],
   ['sem_ficha sem a guarda', LIB, (s) => s.replace("export const soSemFicha = (modo: ModoPlanoDaFala, contaDaCasa: boolean): boolean => modo === 'sem_ficha' && contaDaCasa !== true", 'export const soSemFicha = (modo: ModoPlanoDaFala, contaDaCasa: boolean): boolean => false')],
   ['a guarda vale para a casa', LIB, (s) => s.replace("modo === 'sem_ficha' && contaDaCasa !== true", "modo === 'sem_ficha'")],
   ['sem_ficha fecha para o cliente', LIB, (s) => s.replace("return modo === 'public' || modo === 'sem_ficha' || (modo === 'internal' && contaDaCasa === true)", "return modo === 'public' || (modo !== 'off' && contaDaCasa === true)")],

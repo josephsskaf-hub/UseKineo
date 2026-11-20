@@ -178,8 +178,8 @@ async function prova(over = {}) {
 }
 
 const MUT = [
-  ['A2 público', LIB, (s) => s.replace("KLING4_DESCRITOR_FORTE_1911: ModoPlanoDaFala = 'internal'", "KLING4_DESCRITOR_FORTE_1911: ModoPlanoDaFala = 'public'")],
-  ['A1 público', LIB, (s) => s.replace("KLING4_PLANO_DA_FALA_1911: ModoPlanoDaFala = 'internal'", "KLING4_PLANO_DA_FALA_1911: ModoPlanoDaFala = 'public'")],
+  ['A2 público', LIB, (s) => s.replace("KLING4_DESCRITOR_FORTE_1911: ModoPlanoDaFala = 'sem_ficha'", "KLING4_DESCRITOR_FORTE_1911: ModoPlanoDaFala = 'public'")], // [CEO 20/11] reancorado: o commit está em 'sem_ficha'
+  ['A1 público', LIB, (s) => s.replace("KLING4_PLANO_DA_FALA_1911: ModoPlanoDaFala = 'sem_ficha'", "KLING4_PLANO_DA_FALA_1911: ModoPlanoDaFala = 'public'")],
   ['rota: A2 para todos', ROTA, (s) => s.replace('planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isDryRunAccount(user.email))', 'planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, true)')],
   ['rota: A1 para todos', ROTA, (s) => s.replace('planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, isDryRunAccount(user.email))', 'planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, true)')],
   ['porta larga: A2 pela régua da casa', ROTA, (s) => s.replace('planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isDryRunAccount(user.email))', 'planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isInternalEmail(user.email))')],

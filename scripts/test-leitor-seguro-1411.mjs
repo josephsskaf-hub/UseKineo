@@ -107,7 +107,10 @@ async function provas(L) {
 const CAMPOS = ' ...(pedidoSemantico.paralelas !== undefined ? { tentativas: pedidoSemantico.tentativas, tentativas_paralelas: pedidoSemantico.paralelas, venceu: pedidoSemantico.venceu ?? null, quem_venceu: pedidoSemantico.venceu_tipo ?? null, motivos: pedidoSemantico.motivos ?? [] } : {}) /* KINEO-LEITOR-SEGURO-1411: off = o evento da main, byte a byte */,'
 const VERSAO = 'version: pedidoSemantico.paralelas !== undefined ? CONFERENCIA_ELENCO_VERSAO_LEITOR_SEGURO : CONFERENCIA_ELENCO_VERSAO,'
 const FROTA = (rota) => rota.includes(CAMPOS) && rota.includes(VERSAO)
-const MAIN_ES = lf(execFileSync('git', ['show', 'origin/main:' + ES], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }))
+// [CEO 20/11, revisor] a comparação era com a origin/main e passava a falhar na própria main depois de ligado ('all' na main ≠ 'off' do ramo).
+// Agora a base é FIXA: o commit de antes do leitor seguro entrar (3cb790656^, "a leitura de antes"): desligado = ela, byte a byte, em qualquer main.
+const ANTES_DO_LEITOR = '3cb790656^'
+const MAIN_ES = lf(execFileSync('git', ['show', ANTES_DO_LEITOR + ':' + ES], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }))
 let GDIF = []
 async function gOff(L, contaDaCasa = false) {
   const casos = [
@@ -131,9 +134,9 @@ const base = await provas(carrega())
 checa(`A a T verdes com a resposta real do "prod-max"${base.length ? ': ' + base.join(' · ') : ''}`, base.length === 0)
 { const rota = lf(fs.readFileSync(ROTA, 'utf8'))
   checa('F o evento grava quem venceu (principal, segurança, repetição ou B) e a versão nova SÓ quando o leitor seguro rodou', FROTA(rota))
-  const main = lf(execFileSync('git', ['show', 'origin/main:' + ROTA], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }))
+  const main = lf(execFileSync('git', ['show', ANTES_DO_LEITOR + ':' + ROTA], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 })) // [CEO 20/11] a linha de antes do leitor seguro, fixa
   const linha = (t) => t.split('\n').find((l) => l.includes('if (pedidoSemantico) void writeServerEvent({ name: EVENTO_CONFERENCIA_ELENCO')) ?? ''
-  checa('F2 desligado: a linha do evento é a da main + só o espalhamento e a versão condicionais', linha(rota).replace(CAMPOS, '').replace(VERSAO, 'version: CONFERENCIA_ELENCO_VERSAO,') === linha(main))
+  checa('F2 desligado: a linha do evento é a de antes do leitor seguro (3cb790656^) + só o espalhamento e a versão condicionais', linha(rota).replace(CAMPOS, '').replace(VERSAO, 'version: CONFERENCIA_ELENCO_VERSAO,') === linha(main))
   checa('F3 as duas leituras da rota passam a conta exata do ensaio (isDryRunAccount) para o modo internal', rota.includes('{ elenco: (t) => pedirElencoSemantico(t, { contaDaCasa: isDryRunAccount(user.email) }), sujeito:') && rota.includes('?? await pedirElencoSemantico(prompt, { contaDaCasa: isDryRunAccount(user.email) })) : null')) }
 checa(`G desligado ('off', o valor de volta) = a main byte a byte nos mesmos casos${GDIF.length ? ': ' + GDIF.join(' · ') : ''}`, (await gOff(carrega(DESLIGA, false))).length === 0)
 { const INTERNO = (s) => s.replace(DESLIGADO, "export const LEITOR_SEGURO_1411: 'off' | 'internal' | 'all' = 'internal'")

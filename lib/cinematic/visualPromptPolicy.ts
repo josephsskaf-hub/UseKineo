@@ -246,18 +246,23 @@ function pessoaSemRosto(grupo: string, pos: number, todo: string): string { // K
   return GRUPO_OU_PLURAL_RE.test(grupo.trim()) ? `${mantido} seen from behind as distant silhouettes` : `${mantido} seen in silhouette from behind` // KINEO-TRILHA-15S — silhueta de costas
 } // KINEO-TRILHA-15S
 // <<< KINEO-TRILHA-15S
+/** KINEO-SEM-ROSTO-2011 [revisor 20/11] A troca de pessoa por forma sem rosto do modo documentary_faceless, num lugar só: a montagem da cena
+ *  (abaixo) e a descrição por seção do Kling 4 grátis (A1/A2), que ia ao motor como o descritor escreveu e devolvia o rosto (98063aa2, 32c93ee3). */
+export function sujeitoSemRosto(visual: string): string {
+  return semPessoaSemFragmento((visual || '') // KINEO-ROMANCE-ADULTO-2026-10-13 — o apagão de pessoa não deixa "of and"
+    .replace(NAMED_FIGURE_RE, 'a distant silhouetted figure seen from behind')
+    .replace(NAMED_TITLE_RE, 'a distant silhouetted figure seen from behind')
+    .replace(GRUPO_DE_PESSOAS_TEXTO_RE, pessoaSemRosto) // KINEO-TRILHA-15S — protagonista sem rosto, substantivo mantido
+    .replace(PERSON_NOUN_RE, PESSOA_APAGADA)) // KINEO-ROMANCE-ADULTO-2026-10-13 — era .replace(PERSON_NOUN_RE, ' ')
+    .replace(/\s+/g, ' ').replace(/^[\s,.;:–-]+/, '').trim().split(ROSTO_PROTEGIDO).join('') // KINEO-TRILHA-15S — a marca das palavras mantidas sai aqui
+}
 export function buildClassicVisualPrompt(visual: string, policy: VisualPromptPolicy): string {
   let prompt: string
   if (policy.mode !== 'documentary_faceless') {
     prompt = buildStoryScenePrompt(visual, policy.style, policy.character ?? null)
     if (policy.elenco && policy.elenco.length > 0) prompt = comElencoNaCena(prompt, visual, policy.elenco) // KINEO-PARCEIRO-EYEBIBLE-2-1410 — o capitão é o mesmo homem em toda cena que o cita
   } else {
-    const subject = semPessoaSemFragmento((visual || '') // KINEO-ROMANCE-ADULTO-2026-10-13 — o apagão de pessoa não deixa "of and"
-      .replace(NAMED_FIGURE_RE, 'a distant silhouetted figure seen from behind')
-      .replace(NAMED_TITLE_RE, 'a distant silhouetted figure seen from behind')
-      .replace(GRUPO_DE_PESSOAS_TEXTO_RE, pessoaSemRosto) // KINEO-TRILHA-15S — protagonista sem rosto, substantivo mantido
-      .replace(PERSON_NOUN_RE, PESSOA_APAGADA)) // KINEO-ROMANCE-ADULTO-2026-10-13 — era .replace(PERSON_NOUN_RE, ' ')
-      .replace(/\s+/g, ' ').replace(/^[\s,.;:–-]+/, '').trim().split(ROSTO_PROTEGIDO).join('') // KINEO-TRILHA-15S — a marca das palavras mantidas sai aqui
+    const subject = sujeitoSemRosto(visual) // KINEO-SEM-ROSTO-2011 — a mesma troca, agora exportada (byte a byte)
     prompt = applyStyleAnchor(
       `${subject || 'the described story setting'}, faceless cinematic b-roll, ` +
       'focus on the described subject and its environment, no foreground human faces, ' +

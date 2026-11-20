@@ -48,6 +48,7 @@ import { comPeloFacialDoTexto } from '@/lib/cinematic/peloFacialDoTexto' // KINE
 import { KLING4_PLANO_DA_FALA_1911, planoDaFalaLigado, REGRA_DO_PLANO_DA_FALA, secoesParaODescritor, descricoesPorSecao, topicoComoDado, descricoesCompletas } from '@/lib/kling4PlanoDaFala1911' // KINEO-PLANO-DA-FALA-1911 (A1)
 import { soSemFicha, cenaTemFicha, prazoDoA1A2, A1A2_ESPERA_DO_DESCRITOR_MS, A1A2_REESCRITA_MS, PLANO_DA_FALA_EVENTO, KLING4_PLANO_DA_FALA_VERSAO, type PrazoDoA1A2 } from '@/lib/kling4PlanoDaFala1911' // [revisor 19/11, "pode com condição"] modo só sem ficha, prazo e rastro do A1/A2
 import { KLING4_DESCRITOR_FORTE_1911, MODELO_DO_DESCRITOR_FORTE, A2_TETO_DO_JUIZ_MS, A2_EVENTO, promptsDeCenaInteira, topicoDoDescritorA2, planosComNomeProprio, revisarPlanosA2, custoDoUso } from '@/lib/kling4PlanoDaFala1911' // KINEO-DESCRITOR-FORTE-1911 (A2)
+import { descricoesSemRosto, descricaoSemRosto, rostoNaDescricao, SEM_ROSTO_MOTIVO } from '@/lib/kling4PlanoDaFala1911' // KINEO-SEM-ROSTO-2011 — a descrição do A1/A2 no modo sem rosto passa pela troca da cena
 import { sistemaPorSecao, notaDoEspaco, secoesQueNaoCabem } from '@/lib/kling4PlanoDaFala1911' // [ensaio A2 19/11] sem câmera nomeada; a seção que não coube é pedida de novo
 import { promptMostraOSujeito, comSujeitoNaCena, sujeitoDoFilme, sujeitoExigidoNoUltimo } from '@/lib/cinematic/sujeitoObrigatorio' // [ensaio A2 19/11] o sujeito do pedido no último plano do A2 · [2º ensaio] só o sujeito do FILME (1ª ou última fala o cita)
 import { FICHA_REPROVADA_NO_HOJE_2011, fichaReprovada } from '@/lib/cinematic/fichaReprovada1911' // KINEO-FICHA-REPROVADA-NO-HOJE-2011
@@ -4025,6 +4026,7 @@ async function manipularPost(req: NextRequest) {
     const classicVisualPolicy: VisualPromptPolicy = {
       mode: classicVisualMode, style: styleAnchor, character: storyCharacter, aspect: aspectRequested,
     }
+    const semRosto1911 = (): boolean => classicVisualPolicy.mode === 'documentary_faceless' // KINEO-SEM-ROSTO-2011 — o modo sem rosto do filme (o mesmo que a cena usa)
     // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-ESTRELA-DO-FILME-2026-09-29 — com a estrela, o personagem de TODA cena é a pessoa
     // das fotos, com UM figurino escrito (a ficha do autor, a do cenário reconhecido ou uma genérica) — o still de cada cena é um [KINEO-ESTRELA-DO-FILME-2026-09-29]
     // pedido independente, então a continuidade de roupa/idade tem de estar no texto. Sem estrela: a ficha de sempre. [KINEO-ESTRELA-DO-FILME-2026-09-29]
@@ -7619,14 +7621,14 @@ async function manipularPost(req: NextRequest) {
         const pedir = async (alvo: number[], nota: string) => { const novas = descricoesPorSecao(await prazo(generateCinematicDescriptions(secoesParaODescritor(alvo.map((j) => secoes[j])), `${kling4DescritorForte1911 ? topicoDoDescritorA2(body.original_idea, prompt) : topicoComoDado(prompt)}${nota ? `\n\n${nota}` : ''}`, classicVisualPolicy, { numeros: alvo.map((j) => j + 1), total: n }, desenhoInfantil.ativo ? { name: desenhoInfantil.personagem.name, sheet: desenhoInfantil.personagem.sheet } : null, true, true, kling4DescritorForte1911 ? MODELO_DO_DESCRITOR_FORTE : undefined, (u) => { usosDoDescritorA2.push(u) })), alvo.length); alvo.forEach((j, k) => { if (novas[k]) d[j] = novas[k] }) }
         const nulas = d.map((x, j) => (typeof x === 'string' && x.trim().length >= 12 ? -1 : j)).filter((j) => j >= 0)
         if (nulas.length) { pedidas.push(...nulas); await pedir(nulas, '') }
-        const c1 = descricoesCompletas(d, n)
+        const c1 = descricoesSemRosto(descricoesCompletas(d, n), semRosto1911()) // KINEO-SEM-ROSTO-2011 — a troca da cena antes da conta do espaço
         if (!c1) return { descricoes: null, pedidas, motivo: 'descricao_nula_depois_de_pedir_de_novo' }
         const fora = secoesQueNaoCabem(promptsDasCenas, secoes.map((x, j) => ({ ...x, descricao: c1[j] })), falasDasCenas, kling4DescritorForte1911)
         if (!fora.length) return { descricoes: c1, pedidas, motivo: null }
         if (fora.some((f) => pedidas.includes(f.secao))) return { descricoes: null, pedidas, motivo: 'descricao_nao_cabe_depois_de_pedir_de_novo' } // uma vez por seção: a nula que voltou e não coube não é pedida outra vez
         pedidas.push(...fora.map((f) => f.secao))
         await pedir(fora.map((f) => f.secao), notaDoEspaco(fora.map((f) => ({ numero: f.secao + 1, espaco: f.espaco }))))
-        const c2 = descricoesCompletas(d, n)
+        const c2 = descricoesSemRosto(descricoesCompletas(d, n), semRosto1911()) // KINEO-SEM-ROSTO-2011
         if (!c2 || secoesQueNaoCabem(promptsDasCenas, secoes.map((x, j) => ({ ...x, descricao: c2[j] })), falasDasCenas, kling4DescritorForte1911).length) return { descricoes: null, pedidas, motivo: 'descricao_nao_cabe_depois_de_pedir_de_novo' }
         return { descricoes: c2, pedidas, motivo: null }
       } catch (e) { return { descricoes: null, pedidas, motivo: e instanceof Error && e.message === 'prazo' ? 'prazo_dos_pedidos_de_novo' : 'erro' } }
@@ -8330,7 +8332,8 @@ async function manipularPost(req: NextRequest) {
         if (!d0) voltaAoHoje1911('prazo_do_descritor')
         else {
           const c1911 = await completarDescricoes1911(d0, parsedScript.segments, kling4Prompts, scenes.map((s) => s.voiceover ?? ''), prazo1911); const d = c1911.descricoes
-          if (d) parsedScript.segments.forEach((s, j) => { Object.assign(s, { descricao: d[j] }) }) // KINEO-PLANO-DA-FALA-1911 (A1) — a descrição viaja na seção (promptDaSecao a usa e o molde da pista não roda)
+          if (d && semRosto1911() && d.some(rostoNaDescricao)) voltaAoHoje1911(SEM_ROSTO_MOTIVO) // KINEO-SEM-ROSTO-2011 — sobrou rosto, olhar ou sorriso na descrição do filme sem rosto: o caminho de hoje
+          else if (d) parsedScript.segments.forEach((s, j) => { Object.assign(s, { descricao: d[j] }) }) // KINEO-PLANO-DA-FALA-1911 (A1) — a descrição viaja na seção (promptDaSecao a usa e o molde da pista não roda)
           else voltaAoHoje1911(c1911.motivo ?? 'descricao_incompleta') // [ensaio A2 19/11] nula ou sem espaço = pedida de novo uma vez; ainda falta = caminho de hoje
         }
       }
@@ -8342,7 +8345,7 @@ async function manipularPost(req: NextRequest) {
     const reescreverA2 = async (alvo: number[], nota: string) => {
       const novas = descricoesPorSecao(await prazo1911.corrida(generateCinematicDescriptions(secoesParaODescritor(alvo.map((j) => parsedScript.segments[j])), `${topicoDoDescritorA2(body.original_idea, prompt)}\n\n${nota}`, classicVisualPolicy, { numeros: alvo.map((j) => j + 1), total: parsedScript.segments.length }, desenhoInfantil.ativo ? { name: desenhoInfantil.personagem.name, sheet: desenhoInfantil.personagem.sheet } : null, true, true, MODELO_DO_DESCRITOR_FORTE, (u) => { usosDoDescritorA2.push(u) }), A1A2_REESCRITA_MS), alvo.length) // [revisor 19/11, condição 1] a reescrita tem prazo (40 s, dentro do teto somado)
       if (rastro1911?.caminho === 'hoje') return // o filme já voltou ao caminho de hoje: nada mexe nas seções
-      alvo.forEach((j, k) => { if (novas[k]) Object.assign(parsedScript.segments[j], { descricao: novas[k] }) })
+      alvo.forEach((j, k) => { const nova = descricaoSemRosto(novas[k], semRosto1911()); if (nova) Object.assign(parsedScript.segments[j], { descricao: nova }) }) // KINEO-SEM-ROSTO-2011 — no modo sem rosto, a reescrita passa pela troca; com rosto, não entra (fica a de antes)
       promptsDeCenaInteira(kling4PromptsDasCenas1911, parsedScript.segments, scenes.map((s) => s.voiceover ?? '')).forEach((p, i) => { kling4Prompts[i] = p })
     }
     // [revisor 19/11, 6ª passada] o "texto de hoje" do portão de nome = os planos que HOJE iriam ao motor (as cenas e, nas cenas fundidas, as metades do molde de

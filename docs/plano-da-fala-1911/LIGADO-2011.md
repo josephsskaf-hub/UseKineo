@@ -16,7 +16,39 @@ Branch `codex/div2-ligar-2011`, de origin/main 3e88eefe3. São 3 commits separad
 - a segunda leitura (`SEGUNDA_LEITURA_DA_GENTE_1911`) e a idade escrita (`FICHA_IDADE_ESCRITA_1911`) em `'off'`;
 - o gente-no-final, que fica fora.
 
-**Reverter em um commit:** volte o valor da tabela no arquivo e reancore o guardião do mesmo commit. São M0b e os mutantes "A1 público" e "A2 de volta a internal" em `scripts/test-cena-publica-1911.mjs`, mais os mutantes de `scripts/test-descritor-forte-1911.mjs` e `scripts/test-plano-da-fala-1911.mjs`; o A0 de `scripts/test-reserva-com-imagem-2011.mjs`; e o M0 de `scripts/test-leitor-seguro-1411.mjs`. Uma alternativa é `git revert <SHA do commit>`.
+**Reverter em um commit:** volte o valor da tabela no arquivo e reancore o guardião do mesmo commit. São M0b e os mutantes "A1 público" e "A2 de volta a internal" em `scripts/test-cena-publica-1911.mjs`, mais os mutantes de `scripts/test-descritor-forte-1911.mjs` e `scripts/test-plano-da-fala-1911.mjs`; o A0 de `scripts/test-reserva-com-imagem-2011.mjs`; e o M0 de `scripts/test-leitor-seguro-1411.mjs`. Para o leitor seguro, há também as 2 contagens de chamadas em `scripts/test-protagonista-seedance-0111.mts`, que seguem o valor sozinhas. Uma alternativa é `git revert <SHA do commit>`.
+
+## (1) no modo sem rosto [revisor 20/11: "NÃO PODE ainda"; conserto KINEO-SEM-ROSTO-2011]
+
+**O defeito:** no filme sem rosto (`documentary_faceless`), a descrição por seção do A1/A2 ia ao motor como o descritor escreveu, e o rosto voltava. A cena de hoje troca a pessoa por silhueta de costas.
+- **98063aa2:** hoje "A young woman seen in silhouette from behind"; no caminho novo, "smiles enthusiastically at the camera".
+- **32c93ee3:** hoje "family seen from behind as distant silhouettes"; no caminho novo, "warmly greeting exactly five family members".
+
+**O conserto (opção A com guarda):**
+- No modo sem rosto, cada descrição passa pela **mesma** troca da cena (`sujeitoSemRosto`, extraída de `buildClassicVisualPrompt` byte a byte) antes da conta do espaço.
+- Se sobrar rosto, olhar ou sorriso na descrição, o filme fica no caminho de hoje, com o motivo `sem_rosto_com_rosto`.
+- Uma reescrita do A2 que ainda tenha rosto não entra; fica a descrição de antes.
+- Fora do modo sem rosto, nada muda.
+
+**Replay dos 37 claims sem ficha (32 no modo sem rosto), `scripts/test-sem-rosto-2011.mjs`:**
+
+| Caminho | Planos de costas nos 32 | Descrição com rosto no caminho novo | Sem rosto no caminho novo |
+|---|---|---|---|
+| Hoje | 9 | — | 0 |
+| Novo, sem conserto | 5 | 5 descrições (98063aa2, 32c93ee3, 804e9f0b…) | 24 |
+| B: sem rosto com pessoa = hoje | 9 | 1 descrição (nome próprio com olhar) | 18 |
+| **A com guarda (no código)** | **12** | **0** | **20** (4 voltam por rosto) |
+
+**Por que a A com guarda e não a B:**
+- A B só vê o substantivo de pessoa e deixa passar nome próprio com olhar ("Gabriel … gazing").
+- A B mantém menos planos de costas que a A com guarda (9 contra 12).
+- A A com guarda põe a silhueta, que é a promessa do produto, e só desiste quando o rosto continua no texto.
+
+**Fica de fora (dito, não escondido):** papel ou nome fora da lista de pessoa da cena ("a builder", "officers", "Lucas") segue sem silhueta. É o mesmo que a cena de hoje já faz.
+
+**Descritor gpt-4o nos filmes com ficha:** não cortado. A ficha nasce nas cenas, depois que o descritor já começou; o único sinal antes é o personagem fixo (34 dos 35 com ficha). Cortar pede mexer na porta do A1/A2, por cerca de US$ 0,007 por filme com personagem. Fica proposto, sem obra.
+
+**Onde fica o caminho no claim (conferido no banco em 20/11):** `response->'plano_da_fala'`. Estava nos 4 claims que têm o campo (13393ef8, 71452f37, 76c4c5c4 e 043eafc9); em nenhum fica dentro de `kling4_trial`. A consulta abaixo usa esse caminho.
 
 ## Medir os primeiros filmes de cliente no caminho novo
 
@@ -44,6 +76,6 @@ from c order by c.created_at desc;
 ```
 
 **Como ler o resultado:**
-- (1) No grátis Kling 4 sem ficha, `caminho` vem `a1` ou `a2`; com ficha, vem `hoje` com o motivo `com_ficha`. Um `hoje` com o motivo `prazo_*` ou `descricao_nao_cabe…` é queda e vai à CEO.
+- (1) No grátis Kling 4 sem ficha, `caminho` vem `a1` ou `a2`; com ficha, vem `hoje` com o motivo `com_ficha`; no filme sem rosto com rosto na descrição, `hoje` com `sem_rosto_com_rosto` (esperado: cerca de 1 em 8 dos sem rosto). Um `hoje` com o motivo `prazo_*` ou `descricao_nao_cabe…` é queda e vai à CEO.
 - (2) Só aparece em filme que caiu na reserva: `reserva = pronta` com `reserva_usd` de até 0,09. `sem_imagem` = o caminho de hoje.
 - (3) Com o leitor seguro no ar, `quem_venceu` vem preenchido e `version` é a do leitor seguro. Um `-` depois do deploy do commit 3 = o leitor seguro não rodou.

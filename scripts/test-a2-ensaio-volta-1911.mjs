@@ -87,6 +87,7 @@ async function prova(over = {}) {
     descricoesPorSecao: L.descricoesPorSecao, secoesParaODescritor: L.secoesParaODescritor, kling4DescritorForte1911: true, topicoDoDescritorA2: L.topicoDoDescritorA2, topicoComoDado: L.topicoComoDado,
     body: { original_idea: 'A plane vanishes' }, prompt: 'HOOK: x', classicVisualPolicy: {}, desenhoInfantil: { ativo: false }, MODELO_DO_DESCRITOR_FORTE: 'gpt-4o', usosDoDescritorA2: [],
     descricoesCompletas: L.descricoesCompletas, secoesQueNaoCabem: L.secoesQueNaoCabem, notaDoEspaco: L.notaDoEspaco, DESCRICAO_DE_NOVO_TETO_MS: 60_000,
+    descricoesSemRosto: L.descricoesSemRosto, semRosto1911: () => false, // [Div. 2 20/11] KINEO-SEM-ROSTO-2011: fora do modo sem rosto (a troca tem o seu guardião, scripts/test-sem-rosto-2011.mjs)
     generateCinematicDescriptions: async (secoes, topico, _p, lote) => { chamadas.push({ n: secoes.length, topico, lote }); return respostas.shift() ?? null },
   }
   let completar

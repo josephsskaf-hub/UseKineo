@@ -14,7 +14,7 @@
 // tem ficha (Identity:/Visible:, a ORDEM do protagonista, a cláusula da ficha travada); com ficha, o A2 piorou o Adão e Eva (3 figuras com o elenco só com
 // a Eve) e deixou o Natal igual ou pior ("Identity: Daniel" com a Emily agindo). A casa (isDryRunAccount) continua com tudo, como em 'internal'.
 export type ModoPlanoDaFala = 'off' | 'internal' | 'sem_ficha' | 'public'
-export const KLING4_PLANO_DA_FALA_1911: ModoPlanoDaFala = 'internal' // CEO 19/11: 'internal' = só contas da casa (o ensaio pelo dry_run); 'public' só com revisor independente + prova paga + sim do dono
+export const KLING4_PLANO_DA_FALA_1911: ModoPlanoDaFala = 'sem_ficha' // CEO 20/11 07:2x (dono: "liga tudo que já está certo"): 'sem_ficha' = o cliente segue o caminho novo só quando nenhuma cena tem ficha; a casa como em 'internal'. Desligar = 'internal'; 'public' só com revisor independente + prova paga + sim do dono
 export const KLING4_PLANO_DA_FALA_VERSAO = 'plano_da_fala_1911_v1'
 
 export function planoDaFalaLigado(modo: ModoPlanoDaFala, contaDaCasa: boolean): boolean {
@@ -100,7 +100,7 @@ export function descricoesCompletas(d: ReadonlyArray<string | null> | null | und
 // As cenas (stills, crítico, reserva H3) não mudam. 'off' = nada daqui roda.
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import { promptDaSecao, secoesDasCenas, secoesPorPalavras, type SecaoDoRoteiro, type RelatoDaMetade } from '@/lib/kling4QuatroPlanos'
-export const KLING4_DESCRITOR_FORTE_1911: ModoPlanoDaFala = 'internal' // CEO 19/11: 'internal' = só contas da casa (o ensaio pelo dry_run); 'public' só com revisor independente + prova paga + sim do dono
+export const KLING4_DESCRITOR_FORTE_1911: ModoPlanoDaFala = 'sem_ficha' // CEO 20/11 07:2x (dono: "liga tudo que já está certo"): 'sem_ficha' = o cliente segue o caminho novo só quando nenhuma cena tem ficha; a casa como em 'internal'. Desligar = 'internal'; 'public' só com revisor independente + prova paga + sim do dono
 export const MODELO_DO_DESCRITOR_FORTE: string = AI_TEXT_MODELS.planner
 export const A2_TETO_DO_JUIZ_MS = 12_000
 export const A2_EVENTO = 'kling4_descritor_forte'
@@ -286,4 +286,29 @@ export function custoDoUso(usos: ReadonlyArray<{ model: string; usage: unknown }
     entrada += us.prompt_tokens; saida += us.completion_tokens; usd += us.prompt_tokens * p.entrada + us.completion_tokens * p.saida
   }
   return { usd: Math.round(usd * 1e6) / 1e6, tokens_entrada: entrada, tokens_saida: saida, sem_usage: sem }
+}
+
+// ═══ KINEO-SEM-ROSTO-2011 [revisor independente 20/11: "(1) cena 'sem_ficha' NÃO PODE ainda"] ════════════════════════════════════════════════
+// No modo SEM ROSTO (documentary_faceless) a cena de hoje troca a pessoa por forma sem rosto (buildClassicVisualPrompt), mas a descrição por seção
+// do A1/A2 ia ao motor como o descritor escreveu e o rosto voltava: 98063aa2 "A young blonde woman … smiles enthusiastically at the camera" (hoje:
+// "A young woman seen in silhouette from behind"); 32c93ee3 "warmly greeting exactly five family members" (hoje: "family seen from behind as distant
+// silhouettes"). Nos 37 sem ficha (32 sem rosto), os planos de costas caíam de 9 para 5. Agora, no modo sem rosto: (1) cada descrição passa pela MESMA
+// troca da cena (sujeitoSemRosto), antes da conta do espaço; (2) sobrou rosto, olhar ou sorriso na descrição = o filme fica no caminho de hoje
+// (motivo 'sem_rosto_com_rosto'); a reescrita do A2 com rosto não entra (fica a descrição de antes). Replay dos 37: de costas 9 → 12, 0 descrição
+// com rosto no caminho novo, 24 filmes no caminho novo (eram 28; 4 com rosto ficam no de hoje). Fora do modo sem rosto: nada muda.
+import { sujeitoSemRosto } from '@/lib/cinematic/visualPromptPolicy'
+export const SEM_ROSTO_MOTIVO = 'sem_rosto_com_rosto'
+/** Rosto, olhar ou sorriso (ou "para a câmera") numa descrição: no modo sem rosto, o motor desenha o rosto. */
+export const ROSTO_NA_DESCRICAO_RE = /\b(?:smil(?:e|es|ed|ing)|grin(?:s|ned|ning)?|laugh(?:s|ed|ing)?|faces?|facial|eyes?|gaz(?:e|es|ed|ing)|star(?:e|es|ed|ing) (?:at|into)|expressions?|portraits?|(?:at|to|toward|towards|into) the (?:camera|viewer|lens))\b/i
+export const rostoNaDescricao = (d: unknown): boolean => ROSTO_NA_DESCRICAO_RE.test(String(d ?? ''))
+/** As descrições do filme pela troca da cena sem rosto (fora do modo sem rosto, as mesmas). */
+export function descricoesSemRosto(ds: string[] | null, semRosto: boolean): string[] | null {
+  return ds && semRosto ? ds.map((d) => sujeitoSemRosto(d)) : ds
+}
+/** Uma descrição (a reescrita do A2) no modo sem rosto: trocada; com rosto que sobrou = null (não entra). */
+export function descricaoSemRosto(d: string | null | undefined, semRosto: boolean): string | null {
+  if (typeof d !== 'string' || !d.trim()) return null
+  if (!semRosto) return d
+  const s = sujeitoSemRosto(d)
+  return rostoNaDescricao(s) ? null : s
 }
