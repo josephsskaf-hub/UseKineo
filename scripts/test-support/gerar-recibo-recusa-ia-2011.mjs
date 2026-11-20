@@ -33,10 +33,24 @@ for (const file of ESCOPO) {
     i = ii; j = jj
   }
   // confere: desfazer devolve a origin/main
-  let r = now
-  for (const h of hunks) { if (r.split(h.after).length !== 2) throw Error('trecho ambíguo em ' + file); r = r.replace(h.after, () => h.before) }
-  if (r !== before) throw Error('desfazer não devolve a origin/main em ' + file)
-  scope[file] = { beforeSha256: sha(before), afterSha256: sha(now), hunks }
+  const desfaz = (hs) => { let r = now; for (const h of hs) { if (r.split(h.after).length !== 2) return null; r = r.replace(h.after, () => h.before) } return r === before ? hs : null }
+  // VOLTA 6: bloco MOVIDO (a condição da C1 subiu para antes da guarda) deixa o diff guloso ambíguo — cai nos trechos do `git diff -U<n>`,
+  // com contexto crescente até cada trecho ser único (o recibo continua exato: desfazer devolve a origin/main byte a byte)
+  let certos = desfaz(hunks)
+  for (const n of [3, 8, 20, 60]) {
+    if (certos) break
+    const d = lf(git('diff', '--no-color', `-U${n}`, 'origin/main', '--', file)).split('\n')
+    const hs = []; let cur = null
+    for (const l of d) {
+      if (l.startsWith('@@')) { if (cur) hs.push(cur); cur = { b: [], a: [] }; continue }
+      if (!cur || l.startsWith('\\')) continue
+      if (l.startsWith(' ')) { cur.b.push(l.slice(1)); cur.a.push(l.slice(1)) } else if (l.startsWith('-')) cur.b.push(l.slice(1)); else if (l.startsWith('+')) cur.a.push(l.slice(1))
+    }
+    if (cur) hs.push(cur)
+    certos = desfaz(hs.map((h) => ({ before: h.b.join('\n'), after: h.a.join('\n') })))
+  }
+  if (!certos) throw Error('desfazer não devolve a origin/main em ' + file)
+  scope[file] = { beforeSha256: sha(before), afterSha256: sha(now), hunks: certos }
 }
 writeFileSync(join(raiz, 'scripts/test-support/desfaz-recusa-ia-2011-fontes.json'), JSON.stringify({ base: git('rev-parse', 'origin/main').trim(), scope, addedSources }, null, 1) + '\n')
 console.log('recibo:', Object.keys(scope).length, 'alterados,', Object.keys(addedSources).length, 'novos')
