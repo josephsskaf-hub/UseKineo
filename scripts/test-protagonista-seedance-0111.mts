@@ -25,7 +25,7 @@ import path from 'node:path'
 import os from 'node:os'
 import { execFileSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
-import { especieDePessoa, lerElencoSemantico, pedirElencoSemantico, aplicarElencoSemantico, fichaLiteralConferida, conferirFichaLiteral, aceitaPapelDasCenas, trechoPerto, trechoDaPessoa, nucleoDoPapel, ELENCO_SEMANTICO_ORCAMENTO_MS, ELENCO_SEMANTICO_USD, type ElencoSemantico } from '../lib/cinematic/elencoSemantico'
+import { especieDePessoa, lerElencoSemantico, pedirElencoSemantico, aplicarElencoSemantico, fichaLiteralConferida, conferirFichaLiteral, aceitaPapelDasCenas, trechoPerto, trechoDaPessoa, nucleoDoPapel, ELENCO_SEMANTICO_ORCAMENTO_MS, ELENCO_SEMANTICO_USD, LEITOR_SEGURO_1411, type ElencoSemantico } from '../lib/cinematic/elencoSemantico'
 import { elencoDoRoteiro, ajustarPromptsDoElenco, lerCastingAjuste, elencoComCastingAjuste, visualMostraAlguem, visualMostraPessoa } from '../lib/cinematic/personagemAjuste'
 import { elencoComFichaLiteral, trocarFichaNoPrompt } from '../lib/cinematic/juizFicha'
 import { elencoDoFilme15, protagonistaEmTodaCena, cenaCitaElenco, ORDEM_DO_PROTAGONISTA } from '../lib/filmes/filme15Elenco'
@@ -79,10 +79,12 @@ console.log('== 2. Falha segura: qualquer falha = elenco de sempre ==')
   ok(semChave.elenco === null && semChave.status === 'sem_chave' && chamadas === 0, 'sem chave: nenhuma chamada, null')
   chamadas = 0
   const rede = await pedirElencoSemantico(MAX.texto, { apiKey: 'k', fetchImpl: async () => { chamadas++; throw new Error('ECONNRESET') } })
-  ok(rede.elenco === null && rede.status === 'falhou' && chamadas === 2, `erro de rede: 1 tentativa extra (${chamadas} chamadas), null`)
+  // [CEO 20/11] reancorado: com LEITOR_SEGURO_1411 = 'all' vale a régua do leitor seguro (falha rápida repete até 2 vezes: 3 chamadas; JSON reprovado ganha a tentativa B: 2), provada em scripts/test-leitor-seguro-1411.mjs; desligado, a de antes
+  const seguro = LEITOR_SEGURO_1411 === 'all'
+  ok(rede.elenco === null && rede.status === 'falhou' && chamadas === (seguro ? 3 : 2), `erro de rede: ${seguro ? '2 repetições rápidas (leitor seguro)' : '1 tentativa extra'} (${chamadas} chamadas), null`)
   chamadas = 0
   const reprovada = await pedirElencoSemantico(MAX.texto, { apiKey: 'k', fetchImpl: async () => { chamadas++; return resposta({ choices: [{ message: { content: '{"protagonist":{"name":"Rex","kind":"human"},"supporting":[],"places_and_orgs":[]}' } }] }) } })
-  ok(reprovada.elenco === null && reprovada.status === 'json_invalido' && chamadas === 1, `resposta reprovada na conferência: sem 2ª chamada a temperature 0 (${chamadas} chamada)`)
+  ok(reprovada.elenco === null && reprovada.status === 'json_invalido' && chamadas === (seguro ? 2 : 1), `resposta reprovada na conferência: ${seguro ? 'só a tentativa B do leitor seguro' : 'sem 2ª chamada a temperature 0'} (${chamadas} chamada)`)
   const http = await pedirElencoSemantico(MAX.texto, { apiKey: 'k', fetchImpl: async () => resposta({ error: 'x' }, 500) })
   ok(http.elenco === null && http.status === 'falhou', 'HTTP 500 nas 2 tentativas: null')
   const lixo = await pedirElencoSemantico(MAX.texto, { apiKey: 'k', fetchImpl: async () => resposta({ choices: [{ message: { content: 'not json {' } }] }) })

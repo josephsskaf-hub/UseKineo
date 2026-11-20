@@ -334,7 +334,7 @@ export interface ResultadoDoLeitor { elenco: ElencoSemantico | null; status: Sta
 // (resposta atrasada, erro ou JSON ruim não troca nada; ao terminar, as que estão no ar são abortadas). A 1ª com JSON inválido espera a 2ª se ela
 // estiver no ar; sem outra no ar, UMA tentativa a mais dentro do orçamento (CEO 19/11, opção B). O resultado diz quantas foram em paralelo, qual venceu e o motivo de cada falha (prazo, rede, http, json).
 // Filme rápido: UMA chamada, o mesmo custo de antes. Interruptor LEITOR_SEGURO_1411: 'off' = a leitura de antes, byte a byte.
-export const LEITOR_SEGURO_1411: 'off' | 'internal' | 'all' = 'internal' // CEO 20/11: 'internal' na integração da prova C (só a conta exata do ensaio); antes 'off' no commit; 'internal' = só a conta exata do ensaio (isDryRunAccount), para a CEO provar antes do sim do dono; 'all' pega TODO filme da rota, pago também
+export const LEITOR_SEGURO_1411: 'off' | 'internal' | 'all' = 'all' // CEO 20/11 07:2x (dono: "liga tudo que já está certo"): 'all' = TODO filme da rota, pago também; publica só com o revisor dizendo pronto para todo filme. Desligar = 'internal' (ou 'off'). Antes: 'internal' na integração da prova C (só a conta exata do ensaio); antes 'off' no commit; 'internal' = só a conta exata do ensaio (isDryRunAccount), para a CEO provar antes do sim do dono; 'all' pega TODO filme da rota, pago também
 export const leitorSeguroLigado = (modo: 'off' | 'internal' | 'all', contaDaCasa: boolean): boolean => modo === 'all' || (modo === 'internal' && contaDaCasa === true)
 export const LEITOR_SEGURO_HEDGE_MS = 3_500
 export const LEITOR_SEGURO_PRAZO_MS = 7_000

@@ -16,9 +16,11 @@ const falhas = []
 const checa = (n, c) => { if (c) { ok++; console.log('  ok  ' + n) } else { falhas.push(n); console.log('  FALHA ' + n) } }
 const ES = 'lib/cinematic/elencoSemantico.ts', ROTA = 'app/api/generate-video-cinematic/route.ts'
 const lf = (t) => String(t).replace(/\r\n/g, '\n')
-// [CEO 20/11] o commit nasce 'off' ou 'internal' (a integração da prova C): as provas ligam a cópia em 'all'; cliente em 'internal' = a main
-const DESLIGADO = /export const LEITOR_SEGURO_1411: 'off' \| 'internal' \| 'all' = '(?:off|internal)'/
+// [CEO 20/11, dono "liga tudo que já está certo"] o commit está em 'all'; as provas de desligado trocam a cópia para 'off' (DESLIGA); cliente em 'internal' = a main
+const DESLIGADO = /export const LEITOR_SEGURO_1411: 'off' \| 'internal' \| 'all' = '(?:off|internal|all)'/ // [CEO 20/11] reancorado: casa qualquer valor (o nome ficou)
 const LIGA = (s) => s.replace(DESLIGADO, "export const LEITOR_SEGURO_1411: 'off' | 'internal' | 'all' = 'all'")
+const DESLIGA = (s) => s.replace(DESLIGADO, "export const LEITOR_SEGURO_1411: 'off' | 'internal' | 'all' = 'off'")
+const NO_COMMIT_ALL = (s) => s.includes("export const LEITOR_SEGURO_1411: 'off' | 'internal' | 'all' = 'all'")
 const carrega = (mutar = null, ligar = true) => createOfflineLoader({ globals: { AbortController, setTimeout, clearTimeout, Response }, source: (rel, text) => (rel === ES ? (mutar ?? ((x) => x))(ligar ? LIGA(lf(text)) : lf(text)) : text) })
 const calib = JSON.parse(fs.readFileSync('docs/calibracao/protagonista-seedance-0111.json', 'utf8'))
 const MAX = calib.casos.find((c) => c.id === 'prod-max')
@@ -124,7 +126,7 @@ async function gOff(L, contaDaCasa = false) {
   return d
 }
 
-checa("M0 o commit nasce 'off' ou 'internal' (nunca 'all': 'all' pega todo filme da rota, pago também)", DESLIGADO.test(lf(fs.readFileSync(ES, 'utf8'))))
+checa("M0 [CEO 20/11] o commit está em 'all' (todo filme da rota, pago também; desligar = 'internal' ou 'off')", NO_COMMIT_ALL(lf(fs.readFileSync(ES, 'utf8'))))
 const base = await provas(carrega())
 checa(`A a T verdes com a resposta real do "prod-max"${base.length ? ': ' + base.join(' · ') : ''}`, base.length === 0)
 { const rota = lf(fs.readFileSync(ROTA, 'utf8'))
@@ -133,7 +135,7 @@ checa(`A a T verdes com a resposta real do "prod-max"${base.length ? ': ' + base
   const linha = (t) => t.split('\n').find((l) => l.includes('if (pedidoSemantico) void writeServerEvent({ name: EVENTO_CONFERENCIA_ELENCO')) ?? ''
   checa('F2 desligado: a linha do evento é a da main + só o espalhamento e a versão condicionais', linha(rota).replace(CAMPOS, '').replace(VERSAO, 'version: CONFERENCIA_ELENCO_VERSAO,') === linha(main))
   checa('F3 as duas leituras da rota passam a conta exata do ensaio (isDryRunAccount) para o modo internal', rota.includes('{ elenco: (t) => pedirElencoSemantico(t, { contaDaCasa: isDryRunAccount(user.email) }), sujeito:') && rota.includes('?? await pedirElencoSemantico(prompt, { contaDaCasa: isDryRunAccount(user.email) })) : null')) }
-checa(`G desligado = a main byte a byte nos mesmos casos${GDIF.length ? ': ' + GDIF.join(' · ') : ''}`, (await gOff(carrega(null, false))).length === 0)
+checa(`G desligado ('off', o valor de volta) = a main byte a byte nos mesmos casos${GDIF.length ? ': ' + GDIF.join(' · ') : ''}`, (await gOff(carrega(DESLIGA, false))).length === 0)
 { const INTERNO = (s) => s.replace(DESLIGADO, "export const LEITOR_SEGURO_1411: 'off' | 'internal' | 'all' = 'internal'")
   const ci = await gOff(carrega(INTERNO, false), false)
   checa(`G2 'internal' com cliente = a main byte a byte${ci.length ? ': ' + ci.join(' · ') : ''}`, ci.length === 0)
@@ -181,7 +183,8 @@ for (const [nome, fn] of MUTANTES) {
   checa(`mutante "${nome}" fica vermelho (${mudou ? e.length + ' erro(s)' : 'NÃO APLICOU'})`, mudou && e.length > 0)
 }
 { const e = await gOff(carrega((s) => s.replace(DESLIGADO, "export const LEITOR_SEGURO_1411: 'off' | 'internal' | 'all' = 'all'"), false))
-  checa(`mutante "nasce ligado" fica vermelho no G (${e.length} diferença(s))`, e.length > 0)
+  checa(`o G vê o ligado: 'all' com cliente ≠ a main (${e.length} diferença(s))`, e.length > 0)
+  checa('mutante "nasce desligado" fica vermelho no M0', !NO_COMMIT_ALL(DESLIGA(lf(fs.readFileSync(ES, 'utf8')))) && !NO_COMMIT_ALL(lf(fs.readFileSync(ES, 'utf8')).replace(DESLIGADO, "export const LEITOR_SEGURO_1411: 'off' | 'internal' | 'all' = 'internal'")))
   const ei = await gOff(carrega((s) => s.replace(DESLIGADO, "export const LEITOR_SEGURO_1411: 'off' | 'internal' | 'all' = 'internal'").replace("modo === 'all' || (modo === 'internal' && contaDaCasa === true)", "modo !== 'off'"), false), false)
   checa(`mutante "internal para todos" fica vermelho no G2 (${ei.length} diferença(s))`, ei.length > 0)
   const rota = lf(fs.readFileSync(ROTA, 'utf8'))
