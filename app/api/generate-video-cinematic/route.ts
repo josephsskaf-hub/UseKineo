@@ -49,7 +49,7 @@ import { KLING4_PLANO_DA_FALA_1911, planoDaFalaLigado, REGRA_DO_PLANO_DA_FALA, s
 import { KLING4_DESCRITOR_FORTE_1911, MODELO_DO_DESCRITOR_FORTE, A2_TETO_DO_JUIZ_MS, A2_EVENTO, promptsDeCenaInteira, topicoDoDescritorA2, planosComNomeProprio, revisarPlanosA2, custoDoUso } from '@/lib/kling4PlanoDaFala1911' // KINEO-DESCRITOR-FORTE-1911 (A2)
 import { sistemaPorSecao, notaDoEspaco, secoesQueNaoCabem } from '@/lib/kling4PlanoDaFala1911' // [ensaio A2 19/11] sem câmera nomeada; a seção que não coube é pedida de novo
 import { promptMostraOSujeito, comSujeitoNaCena, sujeitoDoFilme, sujeitoExigidoNoUltimo } from '@/lib/cinematic/sujeitoObrigatorio' // [ensaio A2 19/11] o sujeito do pedido no último plano do A2 · [2º ensaio] só o sujeito do FILME (1ª ou última fala o cita)
-import { fichaReprovadaLigada, FICHA_REPROVADA_1911, fichaQueVaiAoMotor, FICHA_REPROVADA_EVENTO } from '@/lib/cinematic/fichaReprovada1911' // KINEO-FICHA-REPROVADA-1911 — ficha reprovada pelo juiz não vai ao motor
+import { fichaReprovadaLigada, FICHA_REPROVADA_1911, fichaQueVaiAoMotor, FICHA_REPROVADA_EVENTO, referenciaSemFicha, limiteDaImagem } from '@/lib/cinematic/fichaReprovada1911' // KINEO-FICHA-REPROVADA-1911 — ficha reprovada pelo juiz não vai ao motor
 import { KLING4_PLANO_POR_SECAO, KLING4_PLANO_POR_SECAO_VERSAO, planoPorSecaoLigado, planosPorSecao } from '@/lib/kling4QuatroPlanos' // KINEO-K4-PLANO-POR-SECAO-1111
 import { comSujeitoNasMetades } from '@/lib/kling4QuatroPlanos' // KINEO-SUJEITO-APARENCIA-1311 (b)
 import { KLING4_PLANO_VARIADO, KLING4_PLANO_VARIADO_VERSAO, planoVariadoLigado, planosComEscalaVariada } from '@/lib/kling4PlanoVariado' // KINEO-K4-PLANO-VARIADO-1111
@@ -7688,8 +7688,8 @@ async function manipularPost(req: NextRequest) {
         if (k4EnsaioRelato && 'fala_segundos' in k4EnsaioRelato && typeof k4EnsaioRelato.fala_segundos === 'number' && duracaoPelaVozLigada(KLING4_DURACAO_PELA_VOZ, isInternalEmail(user.email))) timingDoEco.pelaVoz = { segundosDaVoz: k4EnsaioRelato.fala_segundos }
         if (k4EnsaioRelato && 'clip_seconds' in k4EnsaioRelato && typeof k4EnsaioRelato.clip_seconds === 'number' && k4EnsaioRelato.clip_seconds > 15) timingDoEco.clipSeconds = k4EnsaioRelato.clip_seconds
         if (ensaioPersonagemFixo && kling4TrialCandidate && classicVisualMode === 'character_story') { const reference = fixedCharacterReference(qualitySnapshot, [pedidoDoCliente, prompt].filter(Boolean).join('\n')); if (reference) timingDoEco.fixedCharacter = reference }
-        const montar = async (secoes: Array<{ voiceover: string; pexelsQuery: string; descricao?: string | null }>) => {
-          let ps = secoes.some((x) => typeof x.descricao === 'string') ? promptsDeCenaInteira(k4, secoes, falasCena) : [...k4] // como o envio: só o A2 refaz a cena pela descrição
+        const montar = async (secoes: Array<{ voiceover: string; pexelsQuery: string; descricao?: string | null }>, cenas: readonly string[] = k4) => { // cenas: as cenas do Kling 4 (a ficha reprovada muda ELAS, como no envio)
+          let ps = secoes.some((x) => typeof x.descricao === 'string') ? promptsDeCenaInteira(cenas, secoes, falasCena) : [...cenas] // como o envio: só o A2 refaz a cena pela descrição
           let stills: (string | null)[] = ps.map(() => null)
           const leituraDoEco = leituraPronta1311() // a mesma leitura do sujeito que o submit reaproveita
           const rs = pedidoDoSujeitoEco ? await sujeitoNoKling4({ pedido: pedidoDoSujeitoEco, falas: falasCena, prompts: ps, stills, pessoaPermitida: !romanceAdulto.ativo }, leituraDoEco) : null // o mesmo injetor do submit
@@ -7723,13 +7723,22 @@ async function manipularPost(req: NextRequest) {
         const injetado1911 = !caiNoHoje1911 && vaiAFal.planos[vaiAFal.planos.length - 1] !== atual.planos[atual.planos.length - 1]
         const vInjetado = injetado1911 ? await julgar(vaiAFal.planos, vaiAFal.falas) : null
         // KINEO-FICHA-REPROVADA-1911 — o eco mostra a ficha que iria ao motor: antes e depois (o mesmo passo do envio, sobre os planos finais)
-        const fichaEco1911 = fichaReprovadaLigada(FICHA_REPROVADA_1911, isDryRunAccount(user.email)) ? await fichaQueVaiAoMotor({ veredito: (vInjetado ?? (caiNoHoje1911 ? vHoje : r.vereditoFinal ?? r.veredito)) as { status?: string; falhas?: readonly string[] } | null, prompts: vaiAFal.planos, julgarDeNovo: (ps) => julgar(ps, vaiAFal.falas) }) : null
+        // [revisor 19/11, 9ª passada] o eco faz o MESMO passo do envio: nas CENAS, e monta de novo (superfície, metades, sujeito e plano final nascem delas).
+        // Antes ele cortava os planos já montados e diferia do envio em 3 de 39 filmes com ficha (a superfície que cabe depois que a ficha sai).
+        const fichaEco1911 = fichaReprovadaLigada(FICHA_REPROVADA_1911, isDryRunAccount(user.email)) ? await (async () => {
+          const secoesDoFinal1911 = caiNoHoje1911 ? parsedScript.segments.map((x) => ({ voiceover: x.voiceover, pexelsQuery: x.pexelsQuery })) : secoes
+          const montarComCenas1911 = async (cenas: readonly string[]) => { ultimoComSujeito1911.ligado = !caiNoHoje1911 && sujeitoDoFilme(parsedScript.segments.map((x) => x.voiceover), atual.obrigatorio); try { return await montar(secoesDoFinal1911, cenas) } finally { ultimoComSujeito1911.ligado = false } }
+          const fr = await fichaQueVaiAoMotor({ veredito: (vInjetado ?? (caiNoHoje1911 ? vHoje : r.vereditoFinal ?? r.veredito)) as { status?: string; falhas?: readonly string[] } | null, prompts: k4, julgarDeNovo: async (ps) => { const m = await montarComCenas1911(ps); return julgar(m.planos, m.falas) } })
+          if (fr.relato.acao === 'sem_ficha') timingDoEco.fixedCharacter = referenciaSemFicha(timingDoEco.fixedCharacter)
+          const m = fr.relato.acao === 'nada' ? vaiAFal : await montarComCenas1911(fr.prompts)
+          return { prompts: m.planos, relato: fr.relato, limite: limiteDaImagem({ acao: fr.relato.acao, imagens: null, referencia: !!timingDoEco.fixedCharacter }) } // o dry_run não gera stills: imagens = null
+        })() : null
         const juizes = [vHoje, r.veredito, r.vereditoFinal, vInjetado] as Array<JuizPlanoVeredito | null>
         const descritor = custoDoUso(usosDoDescritorA2)
         const juizUsd = juizes.reduce((n, v) => n + (typeof v?.usd === 'number' ? v.usd : 0), 0)
         return { versao: 'a2_ensaio_1911_v2', caminho: caiNoHoje1911 ? 'hoje' : 'a2', pedidas_de_novo: completas1911.pedidas.map((j) => j + 1), ultimo_sem_sujeito: r.ultimo_sem_sujeito ?? false, nomes_depois: r.nomes_depois ?? [], sujeito_injetado_no_ultimo: injetado1911, pedido: typeof body.original_idea === 'string' ? body.original_idea.slice(0, 600) : null, falas: falasCena,
           hoje: { planos: hoje.planos, juiz: vHoje }, novo: { planos: novo.planos, juiz: r.veredito }, nomes_proprios: r.nomes.map((p) => p + 1), reescritas: r.reescritas,
-          final: { planos: fichaEco1911 ? fichaEco1911.prompts : vaiAFal.planos, juiz: vInjetado ?? (caiNoHoje1911 ? vHoje : r.vereditoFinal) }, ficha_reprovada: fichaEco1911 ? { ...fichaEco1911.relato, antes: vaiAFal.planos } : null, depois_da_reescrita: { planos: atual.planos }, descricoes: secoes.map((x) => x.descricao),
+          final: { planos: fichaEco1911 ? fichaEco1911.prompts : vaiAFal.planos, juiz: vInjetado ?? (caiNoHoje1911 ? vHoje : r.vereditoFinal) }, ficha_reprovada: fichaEco1911 ? { ...fichaEco1911.relato, ...fichaEco1911.limite, antes: vaiAFal.planos } : null, depois_da_reescrita: { planos: atual.planos }, descricoes: secoes.map((x) => x.descricao),
           montagem: { de: 'kling4PorSecao do envio + sujeito do submit', sujeito: { hoje: hoje.sujeito, novo: novo.sujeito, final: atual.sujeito }, sem: ['imagens-chave (o dry_run não gera stills)', 'encaixe da fala'] },
           ms: { espera_do_descritor: esperaMs, descritor: usosDoDescritorA2.map((u) => u.ms), ...r.ms },
           custo: { descritor, juiz_usd: Math.round(juizUsd * 1e6) / 1e6, total_usd: Math.round((descritor.usd + juizUsd) * 1e6) / 1e6, nome_proprio: 'gpt-4o-mini sem usage devolvido (estimado < US$ 0,0003 por chamada)', sujeito_do_eco: 'gpt-4o-mini, uma leitura por montagem, sem usage devolvido' } }
@@ -8327,7 +8336,9 @@ async function manipularPost(req: NextRequest) {
           const aplicarCenas1911 = (ps: readonly string[]) => { ps.forEach((p, i) => { kling4PromptsDasCenas1911[i] = p }); const comDescricao = parsedScript.segments.some((x) => typeof (x as { descricao?: unknown }).descricao === 'string'); (comDescricao ? promptsDeCenaInteira(kling4PromptsDasCenas1911, parsedScript.segments, scenes.map((s) => s.voiceover ?? '')) : [...kling4PromptsDasCenas1911]).forEach((p, i) => { kling4Prompts[i] = p }) }
           const fr1911 = await fichaQueVaiAoMotor({ veredito: rA2.veredito as { status?: string; falhas?: readonly string[] } | null, prompts: [...kling4PromptsDasCenas1911], julgarDeNovo: async (ps) => { aplicarCenas1911(ps); const e = kling4EnvioDoFilme(); return julgarA2((buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input.multi_prompt as Array<{ prompt: string }>).map((m) => m.prompt), e.timing.voiceovers) } })
           aplicarCenas1911(fr1911.prompts)
-          if (fr1911.relato.reprovada_antes) void writeServerEvent({ name: FICHA_REPROVADA_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, ...fr1911.relato } }).catch(() => false) // só a ação e os vereditos, nunca texto
+          if (fr1911.relato.acao === 'sem_ficha') kling4Timing.fixedCharacter = referenciaSemFicha(kling4Timing.fixedCharacter) // [revisor 19/11, 9ª] sem a ficha, a referência do personagem fixo vai sem a frase de continuidade
+          // o limite honesto: a ficha sai do TEXTO; a imagem-chave (e a referência) foram desenhadas com ela e vão ao motor — o evento conta quantas
+          if (fr1911.relato.reprovada_antes) void writeServerEvent({ name: FICHA_REPROVADA_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, ...fr1911.relato, ...limiteDaImagem({ acao: fr1911.relato.acao, imagens: kling4ApprovedStills, referencia: !!kling4Timing.fixedCharacter }) } }).catch(() => false) // só a ação, os vereditos e as contagens, nunca texto
         }
         void writeServerEvent({ name: A2_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, juiz: (rA2.veredito as JuizPlanoVeredito | null)?.status ?? null, reprovado: (rA2.veredito as JuizPlanoVeredito | null)?.reprovado ?? null, falhas: (rA2.veredito as JuizPlanoVeredito | null)?.falhas ?? [], nomes: rA2.nomes.map((p) => p + 1), reescritas: rA2.reescritas, ms: rA2.ms, ultimo_sem_sujeito: rA2.ultimo_sem_sujeito ?? false, nomes_depois: rA2.nomes_depois ?? [] } }).catch(() => false)
       } catch (err) { console.warn('[cinematic] KINEO-DESCRITOR-FORTE-1911 juiz/reescrita falhou, os planos seguem:', err instanceof Error ? err.message : String(err)) }
