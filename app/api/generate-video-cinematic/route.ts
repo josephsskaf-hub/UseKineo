@@ -5018,29 +5018,14 @@ async function manipularPost(req: NextRequest) {
         }
         console.log(`[cinematic] hollywood plan duration: ${total}s of ${target}s target (${plan.scenes.length} scenes)`)
       }
-      // KINEO-RECUSA-IA-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — VOLTA 2 (revisão 20/11): o planejador hollywood (e cada
-      // replano) escreve fala, diálogo e prompt que vão ao motor. Recusa em qualquer um deles = o estorno de sempre e 422, antes de qualquer POST.
-      // VOLTA 5: o verbatim EFETIVO (const verbatim, depois das trocas de modo do monumento e do plano de câmera) e a mesma condição da C1 abaixo;
-      // com o modo trocado para 'ai', a fala do planejador volta a ser julgada (a C1 não a trocaria).
-      // VOLTA 4 (a): em verbatim o planejador reaproveita o roteiro do CLIENTE na fala (lib/hollywood/router.ts) e a C1 só o repõe depois — a fala
-      // não é julgada ("I can't do that. Not for money…" do cliente passa); prompt e dialogueLine continuam julgados.
-      // VOLTA 3: a dialogueLine é FALA DE PERSONAGEM ("I'm afraid I can't do that." passa); só conta quando é, inteira, a recusa do modelo sobre o pedido ou o
-      // conteúdo (recusaNaFalaDePersonagem). Fala e prompt seguem com a régua completa; do prompt sai a própria dialogueLine citada, para não julgá-la duas vezes.
-      const recusaDoPlanejador2011 = await recusaDoEscritorDeCenas2011(plan.scenes.flatMap((sc) => [verbatim && !!hollywoodVoiceover && hollywoodVoiceover.trim().length > 0 ? null : sc.voiceover, sc.dialogueLine ? sc.prompt.split(sc.dialogueLine).join(' ') : sc.prompt, recusaNaFalaDePersonagem(sc.dialogueLine) ? sc.dialogueLine : null]), 'planejador') // KINEO-RECUSA-IA-2011
-      if (recusaDoPlanejador2011) return recusaDoPlanejador2011 // KINEO-RECUSA-IA-2011
-
-      // ═══ KINEO-CONTRATO-2026-08-18 — Cláusulas 1+2 (docs/CONTRATO-HOLLYWOOD.md)
-      // Render ef2d09bf provou: o planner condensou 160 palavras em 52 e
-      // submeteu 51s de 68s. C1: com script verbatim, o TEXTO FALADO do filme
-      // é o roteiro do usuário, redistribuído cena a cena EM CÓDIGO — o GPT
-      // dirige a câmera, nunca mais escreve/condensa/inventa fala. O relógio
-      // vira o roteiro (~2.3 palavras/s), então duração fecha por aritmética.
-      let verbatimOverflowWords = 0 // KINEO-FALA-MAIOR-QUE-A-CENA — sobra que não coube em cena nenhuma
-      if (verbatim && hollywoodVoiceover && hollywoodVoiceover.trim().length > 0) {
+      // KINEO-RECUSA-IA-2011 VOLTA 6 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor); revisão da volta 5] — a C1 só repõe a fala do cliente
+      // quando passa a condição de FORA (verbatim efetivo + roteiro) E a de DENTRO (40+ palavras em 3+ frases, ou c1Curto). Calculada UMA vez aqui e usada
+      // pela guarda do planejador e pela C1: se a C1 não vai repor, a fala do planejador é julgada (recusa = estorno e 422, nunca narração).
+      const c1Roteiro2011 = verbatim && hollywoodVoiceover && hollywoodVoiceover.trim().length > 0 ? hollywoodVoiceover : ''
         const wordsIn = (t: string) => t.trim().split(/\s+/).filter(Boolean).length
-        const totalWords = wordsIn(hollywoodVoiceover)
+        const totalWords = wordsIn(c1Roteiro2011)
         const sentencesRaw =
-          hollywoodVoiceover
+          c1Roteiro2011
             .replace(/\s+/g, ' ')
             .match(/[^.!?…]+[.!?…]+["”']?|[^.!?…]+$/g)
             ?.map((s) => s.trim())
@@ -5070,7 +5055,28 @@ async function manipularPost(req: NextRequest) {
         // [KINEO-DURACOES-CURTAS-2026-09-29] 40+ palavras em 3+ frases: um roteiro pronto de 15 s (33-42 palavras) caía FORA do contrato e o GPT escreveria a fala.
         // [KINEO-DURACOES-CURTAS-2026-09-29] Nos alvos curtos da estrada (15/30 s) o C1 vale a partir de 12 palavras e 1 frase (o teto-rede divide a frase longa).
         const c1Curto = duration < 35 && totalWords >= 12 && sentences.length >= 1 // KINEO-DURACOES-CURTAS-2026-09-29
-        if ((totalWords >= 40 && sentences.length >= 3) || c1Curto) { // KINEO-DURACOES-CURTAS-2026-09-29: + c1Curto
+      const c1RepoeAFala = !!c1Roteiro2011 && ((totalWords >= 40 && sentences.length >= 3) || c1Curto)
+      // a fala que é trecho do roteiro do CLIENTE (o planejador o reaproveita em verbatim) não é julgada mesmo quando a C1 não repõe; a que ele inventou, é
+      const falaDoCliente2011 = (fala: string | null | undefined): boolean => { const n = (t: string) => t.replace(/\s+/g, ' ').trim().toLowerCase(); return !!c1Roteiro2011 && !!fala && !!fala.trim() && n(c1Roteiro2011).includes(n(fala)) }
+      // KINEO-RECUSA-IA-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — VOLTA 2 (revisão 20/11): o planejador hollywood (e cada
+      // replano) escreve fala, diálogo e prompt que vão ao motor. Recusa em qualquer um deles = o estorno de sempre e 422, antes de qualquer POST.
+      // VOLTA 5: o verbatim EFETIVO (const verbatim, depois das trocas de modo do monumento e do plano de câmera) e a mesma condição da C1 abaixo;
+      // com o modo trocado para 'ai', a fala do planejador volta a ser julgada (a C1 não a trocaria).
+      // VOLTA 4 (a): em verbatim o planejador reaproveita o roteiro do CLIENTE na fala (lib/hollywood/router.ts) e a C1 só o repõe depois — a fala
+      // não é julgada ("I can't do that. Not for money…" do cliente passa); prompt e dialogueLine continuam julgados.
+      // VOLTA 3: a dialogueLine é FALA DE PERSONAGEM ("I'm afraid I can't do that." passa); só conta quando é, inteira, a recusa do modelo sobre o pedido ou o
+      // conteúdo (recusaNaFalaDePersonagem). Fala e prompt seguem com a régua completa; do prompt sai a própria dialogueLine citada, para não julgá-la duas vezes.
+      const recusaDoPlanejador2011 = await recusaDoEscritorDeCenas2011(plan.scenes.flatMap((sc) => [c1RepoeAFala || falaDoCliente2011(sc.voiceover) ? null : sc.voiceover, sc.dialogueLine ? sc.prompt.split(sc.dialogueLine).join(' ') : sc.prompt, recusaNaFalaDePersonagem(sc.dialogueLine) ? sc.dialogueLine : null]), 'planejador') // KINEO-RECUSA-IA-2011
+      if (recusaDoPlanejador2011) return recusaDoPlanejador2011 // KINEO-RECUSA-IA-2011
+
+      // ═══ KINEO-CONTRATO-2026-08-18 — Cláusulas 1+2 (docs/CONTRATO-HOLLYWOOD.md)
+      // Render ef2d09bf provou: o planner condensou 160 palavras em 52 e
+      // submeteu 51s de 68s. C1: com script verbatim, o TEXTO FALADO do filme
+      // é o roteiro do usuário, redistribuído cena a cena EM CÓDIGO — o GPT
+      // dirige a câmera, nunca mais escreve/condensa/inventa fala. O relógio
+      // vira o roteiro (~2.3 palavras/s), então duração fecha por aritmética.
+      let verbatimOverflowWords = 0 // KINEO-FALA-MAIOR-QUE-A-CENA — sobra que não coube em cena nenhuma
+      if (c1RepoeAFala) { // KINEO-RECUSA-IA-2011 VOLTA 6 — a MESMA condição que a guarda do planejador usa (fora: verbatim + roteiro; dentro: 40+ palavras em 3+ frases, ou c1Curto)
           type PlanScene = (typeof plan.scenes)[number]
           // KINEO-CENA-MUDA-2026-08-22 — índices das cenas que ficaram SEM
           // texto porque o roteiro acabou antes. Elas são PODADAS logo abaixo,
@@ -5282,7 +5288,6 @@ async function manipularPost(req: NextRequest) {
             `[contrato] C1 verbatim: ${totalWords} palavras do roteiro → ${plan.scenes.length} cenas, ${plan.scenes.reduce((a, sc) => a + (sc.seconds || 0), 0)}s falados (zero texto inventado)`,
           )
         }
-      }
 
       let duracaoReconciliada: { reconciliado: boolean; aparado_s: number; excedente_s: number; base: 'estimate' } | null = null
       // ═══ KINEO-REGUA-PROPORCIONAL-2026-09-23 — o teto de SILÊNCIO TOTAL acompanha o tamanho do filme ═══

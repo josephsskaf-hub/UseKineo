@@ -295,7 +295,8 @@ const CAMINHOS = {
     const usos = s.split('await recusaDoEscritorDeCenas2011(').length - 1
     if (usos !== 3) f.push(`cinematic: as 2 saídas do generateScenes e o plano hollywood chamam a guarda (achei ${usos})`)
     const ultimoReplano = s.lastIndexOf('const replanned = await planHollywoodScenes(')
-    const uh = s.indexOf("await recusaDoEscritorDeCenas2011(plan.scenes.flatMap((sc) => [verbatim && !!hollywoodVoiceover && hollywoodVoiceover.trim().length > 0 ? null : sc.voiceover, sc.dialogueLine ? sc.prompt.split(sc.dialogueLine).join(' ') : sc.prompt, recusaNaFalaDePersonagem(sc.dialogueLine) ? sc.dialogueLine : null]), 'planejador')")
+    if (!s.includes('      const c1RepoeAFala = !!c1Roteiro2011 && ((totalWords >= 40 && sentences.length >= 3) || c1Curto)') || !s.includes('      if (c1RepoeAFala) {') || s.split('totalWords >= 40 && sentences.length >= 3').length !== 2 || s.includes('if (verbatim && hollywoodVoiceover && hollywoodVoiceover.trim().length > 0) {')) f.push('cinematic: UMA constante c1RepoeAFala, usada pela guarda e pela C1, sem recálculo (VOLTA 6)')
+    const uh = s.indexOf("await recusaDoEscritorDeCenas2011(plan.scenes.flatMap((sc) => [c1RepoeAFala || falaDoCliente2011(sc.voiceover) ? null : sc.voiceover, sc.dialogueLine ? sc.prompt.split(sc.dialogueLine).join(' ') : sc.prompt, recusaNaFalaDePersonagem(sc.dialogueLine) ? sc.dialogueLine : null]), 'planejador')")
     if (s.split('await reescritaComGuarda2011(expandVoiceoversToTargets, ').length - 1 !== 2 || s.includes('await expandVoiceoversToTargets(')) f.push('cinematic: as 2 chamadas do expandVoiceoversToTargets passam pela guarda')
     if (s.split('await reescritaComGuarda2011(appendNarrationToTargets, ').length - 1 !== 4 || s.includes('await appendNarrationToTargets(')) f.push('cinematic: as 4 chamadas do appendNarrationToTargets passam pela guarda')
     if (s.split('alinhamentoSemRecusa2011(await alignShotsToSpeech(').length - 1 !== 3 || /(?<!alinhamentoSemRecusa2011\()await alignShotsToSpeech\(/.test(s)) f.push('cinematic: as 3 chamadas do alignShotsToSpeech passam pela guarda')
@@ -392,26 +393,42 @@ console.log('== (5) VOLTA 3: o verbatim do cliente passa como veio (sem 422 da g
 }
 
 console.log('== (6) VOLTA 4 (a): planejador hollywood — em verbatim a fala do CLIENTE passa; fora dele a recusa do modelo é barrada ==')
-const julgarPlanejador = (fonteDaRota, MR, modos, cenas) => {
+const blocoDaC1 = (rota) => { const a = rota.indexOf('      const c1Roteiro2011 = '); const z = rota.indexOf('      const falaDoCliente2011 = '); return a > 0 && z > a ? rota.slice(a, rota.indexOf('\n', z)) : null }
+const julgarPlanejador = (fonteDaRota, MR, modos, cenas, duration = 45) => {
   const m = fonteDaRota.match(/await recusaDoEscritorDeCenas2011\((plan\.scenes\.flatMap\(\(sc\) => \[[^\n]*?\]\)), 'planejador'\)/)
-  if (!m) return null
-  const itens = new Function('plan', 'verbatimDoCliente2011', 'verbatim', 'hollywoodVoiceover', 'recusaNaFalaDePersonagem', 'return ' + m[1])({ scenes: cenas }, modos.pedido, modos.efetivo, modos.roteiro, MR.recusaNaFalaDePersonagem)
-  return MR.algumaRecusaDoModelo(itens) // true = estorno + 422
+  const bloco = blocoDaC1(fonteDaRota)
+  if (!m || !bloco) return null
+  const fonte = 'function f(verbatimDoCliente2011, verbatim, hollywoodVoiceover, plan, duration, SCENE_CAP, recusaNaFalaDePersonagem) {\n' + bloco + '\nreturn { itens: ' + m[1] + ', c1: c1RepoeAFala, frases: sentences.length, palavras: totalWords }\n}'
+  const f = new Function(ts.transpileModule(fonte, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText + '; return f')()
+  const r = f(modos.pedido, modos.efetivo, modos.roteiro, { scenes: cenas }, duration, 12, MR.recusaNaFalaDePersonagem)
+  return { barrada: MR.algumaRecusaDoModelo(r.itens), c1: r.c1, frases: r.frases, palavras: r.palavras }
 }
 const PLANEJADOR_CASOS = (rota) => {
   const f = []
-  const cena = (voiceover) => [{ voiceover, prompt: 'Medium shot of a tired man at a rainy door at night, cinematic light.', dialogueLine: undefined }]
+  const cena = (voiceover) => [{ type: 'support', voiceover, prompt: 'Medium shot of a tired man at a rainy door at night, cinematic light.', dialogueLine: undefined }]
   const V1 = "NARRATION: I'm sorry, I can't assist with that.", V2 = "I can't do that. Not for money, not for anyone.", RECUSA = "I'm sorry, but I can't assist with that request."
   const VERBATIM_PURO = (roteiro) => ({ pedido: true, efetivo: true, roteiro })
-  // VOLTA 5: conta sem filme entregue, motor hollywood, verbatim + plano de câmera → a rota troca o modo para 'ai' (efetivo false, sem C1)
-  const VERBATIM_COM_PLANO_DE_CAMERA = { pedido: true, efetivo: false, roteiro: undefined }
-  if (julgarPlanejador(rota, M, VERBATIM_PURO(V1), cena(V1)) !== false) f.push('verbatim puro: "NARRATION: I\'m sorry…" do cliente deu estorno/422')
-  if (julgarPlanejador(rota, M, VERBATIM_PURO(V2), cena(V2)) !== false) f.push('verbatim puro: "I can\'t do that. Not for money…" do cliente deu estorno/422')
-  if (julgarPlanejador(rota, M, VERBATIM_COM_PLANO_DE_CAMERA, cena(RECUSA)) !== true) f.push('verbatim + plano de câmera (modo trocado para ai): a recusa do planejador passou e viraria narração')
-  if (julgarPlanejador(rota, M, { pedido: false, efetivo: false, roteiro: undefined }, cena(RECUSA)) !== true) f.push('fora do verbatim: a fala de recusa do modelo passou')
-  if (julgarPlanejador(rota, M, VERBATIM_PURO(V2), [{ voiceover: V2, prompt: RECUSA, dialogueLine: undefined }]) !== true) f.push('verbatim: o PROMPT que é recusa do modelo passou (só a fala sai do julgamento)')
+  const VERBATIM_COM_PLANO_DE_CAMERA = { pedido: true, efetivo: false, roteiro: undefined } // a rota troca o modo para 'ai' (VOLTA 5)
+  const j = (modos, cenas, d) => julgarPlanejador(rota, M, modos, cenas, d)
+  if (j(VERBATIM_PURO(V1), cena(V1))?.barrada !== false) f.push('verbatim puro: "NARRATION: I\'m sorry…" do cliente deu estorno/422')
+  if (j(VERBATIM_PURO(V2), cena(V2))?.barrada !== false) f.push('verbatim puro: "I can\'t do that. Not for money…" do cliente deu estorno/422')
+  if (j(VERBATIM_COM_PLANO_DE_CAMERA, cena(RECUSA))?.barrada !== true) f.push('verbatim + plano de câmera (modo trocado para ai): a recusa do planejador passou e viraria narração')
+  if (j({ pedido: false, efetivo: false, roteiro: undefined }, cena(RECUSA))?.barrada !== true) f.push('fora do verbatim: a fala de recusa do modelo passou')
+  if (j(VERBATIM_PURO(V2), [{ type: 'support', voiceover: V2, prompt: RECUSA, dialogueLine: undefined }])?.barrada !== true) f.push('verbatim: o PROMPT que é recusa do modelo passou (só a fala sai do julgamento)')
+  // VOLTA 6 [revisão da volta 5, rev-c1gap]: verbatim, hollywood, 45 s, 126 palavras sem ponto final; o planejador recusa → nenhuma recusa na narração:
+  // ou a C1 repõe a fala do cliente (a MESMA constante decide), ou a guarda barra (estorno e 422)
+  const SEM_PONTO = Array.from({ length: 14 }, () => 'the old lighthouse keeper climbs the stairs again tonight').join('\n')
+  const r126 = j(VERBATIM_PURO(SEM_PONTO), cena(RECUSA), 45)
+  if (!r126 || r126.palavras !== 126 || !(r126.c1 === true || r126.barrada === true)) f.push('126 palavras sem ponto, 45 s: a recusa do planejador viraria narração (' + JSON.stringify(r126) + ')')
+  CASO_126 = r126
+  // a condição de DENTRO falha (30 palavras, 1 frase, 45 s): a C1 não repõe → a fala inventada pelo planejador é julgada
+  const CURTO = 'the old lighthouse keeper climbs the stairs again tonight and the lamp is dark and the sea is loud and nobody answers the radio at the harbor'
+  const rC = j(VERBATIM_PURO(CURTO), cena(RECUSA), 45)
+  if (!rC || rC.c1 !== false || rC.barrada !== true) f.push('C1 não repõe (condição de dentro falha) e a recusa do planejador passou (' + JSON.stringify(rC) + ')')
   return f
 }
+let CASO_126 = null
+console.log('  · caso 126 palavras sem ponto (45 s): ' + JSON.stringify(CASO_126 ?? (PLANEJADOR_CASOS(lf('app/api/generate-video-cinematic/route.ts')), CASO_126)))
 checa('verbatim puro: as 2 entradas do cliente passam sem 422 nem estorno; verbatim + plano de câmera (modo trocado), fora do verbatim e no prompt: a recusa do modelo é barrada', PLANEJADOR_CASOS(lf('app/api/generate-video-cinematic/route.ts')))
 {
   const ev = []
@@ -473,11 +490,13 @@ mutFio('Studio Ads sem a guarda na correção', 'app/api/ads/script/route.ts', '
 mutFio('desenho sem a guarda', 'app/api/kids-cartoon/story/route.ts', "if (looksLikeModelRefusal(texto)) { registrarRecusaDoModelo(writeServerEvent, { guarda: 'desenho', rota: '/api/kids-cartoon/story', texto: texto, refunded: null, userId: user.id }); texto = '' }", '')
 mutFio('podcast do bebê sem a guarda', 'app/api/baby-podcast/prepare/route.ts', "if (looksLikeModelRefusal(texto)) { registrarRecusaDoModelo(writeServerEvent, { guarda: 'podcast_bebe', rota: '/api/baby-podcast/prepare', texto: texto, refunded: null, userId: user.id }); texto = '' }", '')
 mutFio('demo sem a guarda', 'app/api/demo-script/route.ts', 'if (script && looksLikeModelRefusal(script)) return', 'if (false) return')
-mutFio('cinematic sem a guarda do planejador hollywood', CIN, "await recusaDoEscritorDeCenas2011(plan.scenes.flatMap((sc) => [verbatim && !!hollywoodVoiceover && hollywoodVoiceover.trim().length > 0 ? null : sc.voiceover, sc.dialogueLine ? ", "null && (plan.scenes.flatMap((sc) => [verbatim && !!hollywoodVoiceover && hollywoodVoiceover.trim().length > 0 ? null : sc.voiceover, sc.dialogueLine ? ")
+mutFio('cinematic sem a guarda do planejador hollywood', CIN, "await recusaDoEscritorDeCenas2011(plan.scenes.flatMap((sc) => [c1RepoeAFala || falaDoCliente2011(sc.voiceover) ? null : sc.voiceover, sc.dialogueLine ? ", "null && (plan.scenes.flatMap((sc) => [c1RepoeAFala || falaDoCliente2011(sc.voiceover) ? null : sc.voiceover, sc.dialogueLine ? ")
 { // V4(a): o mutante tem de reprovar na PROVA EXECUTADA
-  const mutada = lf(CIN).replace('[verbatim && !!hollywoodVoiceover && hollywoodVoiceover.trim().length > 0 ? null : sc.voiceover, sc.dialogueLine ?', '[sc.voiceover, sc.dialogueLine ?')
+  const mutada = lf(CIN).replace('[c1RepoeAFala || falaDoCliente2011(sc.voiceover) ? null : sc.voiceover, sc.dialogueLine ?', '[sc.voiceover, sc.dialogueLine ?')
   mutantes.push(['V4(a)/V5 verbatim puro: a fala do cliente volta a ser julgada (estorno e 422)', mutada !== lf(CIN) && PLANEJADOR_CASOS(mutada).length > 0])
-  const mutada5 = lf(CIN).replace('[verbatim && !!hollywoodVoiceover && hollywoodVoiceover.trim().length > 0 ? null : sc.voiceover, sc.dialogueLine ?', '[verbatimDoCliente2011 ? null : sc.voiceover, sc.dialogueLine ?')
+  const mutada5 = lf(CIN).replace('[c1RepoeAFala || falaDoCliente2011(sc.voiceover) ? null : sc.voiceover, sc.dialogueLine ?', '[verbatimDoCliente2011 ? null : sc.voiceover, sc.dialogueLine ?')
+  const mutada6 = lf(CIN).replace('[c1RepoeAFala || falaDoCliente2011(sc.voiceover) ? null : sc.voiceover, sc.dialogueLine ?', '[verbatim && !!hollywoodVoiceover && hollywoodVoiceover.trim().length > 0 ? null : sc.voiceover, sc.dialogueLine ?')
+  mutantes.push(['V6 a guarda volta a usar só a condição de FORA da C1 (a recusa vira narração quando a C1 não repõe)', mutada6 !== lf(CIN) && PLANEJADOR_CASOS(mutada6).length > 0])
   mutantes.push(['V5 o planejador volta a usar o modo LIDO do pedido (verbatim + plano de câmera: a recusa vira narração)', mutada5 !== lf(CIN) && PLANEJADOR_CASOS(mutada5).length > 0])
 }
 mutFio('V5 o evento grava refunded:true em filme de custo 0', CIN, 'refunded && cost > 0, {', 'refunded, {')
