@@ -40,9 +40,7 @@ function verify(source) {
     'Ролик на тему планет. Жизнь галактики',
     'About that promise? I kept it.',
     'About a sailor standing on the pier at 3 am',
-    // reancorado KINEO-RECUSA-IA-2011 [CEO 20/11, filme d700489f]: "I'm sorry, I can't assist with that." é a recusa REAL do nosso escritor que
-    // virou filme grátis (e não fala do cliente) — saiu desta lista para a de baixo; a fala de diálogo com "sorry" continua protegida por esta:
-    "I'm sorry, Mom. I broke your favorite vase and hid the pieces under my bed.",
+    "I'm sorry, I can't assist with that.",
     'NARRATION: About a sailor standing on the pier at 3 am',
     '',
   ]) assert.equal(check(speech), null, 'Spoken text: ' + speech)
@@ -58,10 +56,6 @@ function verify(source) {
     assert.equal(result.charged, false)
     assert.equal(check(brief, 'ai'), null)
   }
-  // KINEO-RECUSA-IA-2011 — a recusa do modelo colada como "fala" vai à revisão, nada cobrado (a guarda da rota do cinematic também a barra antes)
-  const recusa = check("I'm sorry, I can't assist with that.")
-  assert.equal(recusa?.reason, 'brief_requires_review', 'model refusal as verbatim speech')
-  assert.equal(recusa.charged, false)
 }
 
 verify(original)

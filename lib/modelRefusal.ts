@@ -19,8 +19,9 @@
 //       like", "let me know", "instead"…), ou a frase seguinte é o modelo falando com a pessoa;
 //   (3) recusa disfarçada: "…, but here is a fictional version: …" / "Here's a script about … instead: …" = recusa (barra);
 //   + JSON ({"error": "I'm sorry…"}): vale cada texto dentro dele; rótulos na frente ("Scene 1:", "Here is your script:",
-//   "**Note:**", "NARRATION:") e emoji saem antes. "NARRATION: I'm sorry, I can't assist with that." em "Use my script as
-//   is" passa a ir à revisão (422, nada cobrado) — o b6e1ad293 deixava texto rotulado passar; barrar é o lado seguro.
+//   "**Note:**", "NARRATION:") e emoji saem antes. VOLTA 3 [correção da CEO 20/11]: a régua só julga SAÍDA de modelo; o texto do
+//   cliente em "Use my script as is" passa como veio (a guarda de entrada do cinematic e o pedido fiel não a aplicam ao verbatim).
+//   A fala de personagem do planejador (dialogueLine) usa recusaNaFalaDePersonagem; os reescritores usam reescritaSemRecusa.
 // Este arquivo continua sem import (os guardiões o carregam sozinho num vm).
 
 /** A régua de origin/main (7fda4c7d2), intacta: é o PISO. */
@@ -40,7 +41,7 @@ const FIM = String.raw`(?=[\s.,!?;:…。！？،]|$)`
 const OBJ_EN = String.raw`(?:\s+(?:you\s+)?(?:with|on|in|for)\s+(?:that|this|your|such|these|any|requests?|content|creating|writing|generating|making|producing|the(?:\s+\S+)?\s+request)\b|\s+(?:that|this|such|these)(?:\s+(?:kind|type|sort)\s+of\s+\S+|\s+(?:specific\s+)?(?:request|content|script|video|story|topic|information|one|person|people|individual))?\s*(?:[.!…,;:]|$)|\s+(?:requests?|content|assistance|information)\b|\s+(?:a|an|any|such)\s+(?:\S+\s+){0,2}?(?:script|video|story|content|post|text|essay|piece|film|clip|image|response|narration|ad)s?\b|\s+about\s+(?:that|this|these|those|real|the|a|an|him|her|them|it|such|specific|any)\b|\s*(?:[.!…]|$))`
 // "do"/"continue" só com o objeto acima ("I can't do that." · "continue with this request"); "make" fica fora ("I can't make it tonight")
 const VERBO_EN = String.raw`(?:assist|help|comply|fulfil+|provide|create|generate|write|produce|engage|continue|do)`
-const NAO_POSSO_EN = String.raw`(?:can['’]?t|cannot|can not|am unable to|['’]m unable to|am not able to|['’]m not able to|won['’]?t be able to|will not be able to|must decline to|am not allowed to)`
+const NAO_POSSO_EN = String.raw`(?:can['’]?t|cannot|can not|am unable to|['’]m unable to|am not able to|['’]m not able to|won['’]?t be able to|will not be able to|won['’]?t|will not|must decline to|am not allowed to)`
 const OBJ_PT = String.raw`(?:\s+(?:voc[êe]\s+)?(?:com\s+(?:isso|esse|essa|este|esta|seu|sua|tal|o seu|a sua)|nisso|nesse|nessa|neste|nesta)${FIM}[^.!?]{0,40}|\s+(?:isso|esse|essa|este|esta|seu|sua)${FIM}|\s+(?:a|ao|à)\s+(?:esse|essa|este|esta|seu|sua|tal)${FIM}|\s+conte[úu]do${FIM}|\s+(?:um|uma)\s+(?:roteiro|v[íi]deo|hist[óo]ria|conte[úu]do|texto)${FIM}|\s*(?:[.!…]|$))`
 const OBJ_ES = String.raw`(?:\s+(?:con|en)\s+(?:eso|esto|esa|esta|ese|este|tu|su)${FIM}[^.!?]{0,40}|\s+(?:eso|esto|esa|esta|ese|este|tu|su)${FIM}|\s+contenido${FIM}|\s+(?:un|una)\s+(?:gui[óo]n|v[íi]deo|historia|contenido|texto)${FIM}|\s*(?:[.!…]|$))`
 const OBJ_IT = String.raw`(?:\s+(?:con|in)\s+(?:questo|questa|ciò|quello|quella|la tua|il tuo)${FIM}[^.!?]{0,40}|\s+(?:questa|questo|la tua|il tuo)${FIM}|\s*(?:[.!…]|$))`
@@ -49,7 +50,13 @@ const VERBO_PT = String.raw`(?:ajudar|atender|criar|escrever|gerar|fazer|cumprir
 const VERBO_ES = String.raw`(?:ayudar|asistir|crear|escribir|generar|hacer|cumplir|proporcionar|producir|atender|realizar|colaborar)`
 
 /** "As an AI, I can't feel fear" é um narrador; "As an AI, I can't help with that" é o modelo. */
-const AS_AN_AI = new RegExp(String.raw`^As an AI(?:\s+(?:model|assistant))?[^.!?]{0,40}?,?\s*I\s*${NAO_POSSO_EN}\s+(?:\S+\s+){0,2}?${VERBO_EN}${OBJ_EN}|^As an AI language model\b`, 'i')
+const AS_AN_AI = new RegExp(String.raw`^As an AI(?:\s+(?:language model|model|assistant))?[^.!?]{0,60}?,?\s*I\s*(?:${NAO_POSSO_EN}|do not|don['’]?t|must not)\s+\S|^As an AI language model\b`, 'i')
+// KINEO-RECUSA-IA-2011 VOLTA 3 — "As an AI, I can't feel fear" é narrador: a exceção vale SÓ para verbo de sentimento ou experiência (13 línguas)
+const ABRE_COMO_IA = /^(?:As an AI|Como\s+(?:uma?\s+|um\s+)?(?:IA|intelig[êe]ncia artificial|inteligencia artificial)|Als\s+(?:eine?\s+)?KI|En\s+tant\s+qu['’]\s*IA|Come\s+(?:un['’]\s*|una\s+)?(?:IA|intelligenza\s+artificiale)|Как\s+ИИ|Як\s+ШІ|Jako\s+(?:SI|AI)|Als\s+(?:een\s+)?AI|Bir\s+yapay\s+zeka\s+olarak|作为(?:一个)?(?:AI|人工智能)|AIとして)/iu
+// o verbo de sentimento é o que vem LOGO depois da negação ("can't feel", "kann keine Angst fühlen"); "cannot promote hate speech" não é narrador
+const NEGACAO_DA_IA = String.raw`(?:can['’]?t|cannot|can not|unable to|not able to|do not|don['’]?t|won['’]?t|never|n[ãa]o\s+(?:posso|consigo|vou|sei)|nunca|no\s+(?:puedo|s[ée])|nicht|keine?n?|ne\s+(?:peux|sais)\s+pas|non\s+(?:posso|so)|не\s+(?:могу|умею)|не\s+можу|nie\s+(?:mogę|umiem)|kan\s+(?:niet|geen)|无法|不能|不会|でき)`
+const SENTIMENTO_DA_IA = new RegExp(NEGACAO_DA_IA + String.raw`\s*(?:(?:really|truly|actually|even|ever|wirklich|realmente|vraiment|davvero|действительно|Angst|Liebe|Schmerz|Trauer|miedo|medo|peur|paura|страх)\s+){0,2}?(?<!\p{L})(?:feel|dream|love|sleep|imagine|taste|cry|hope|smell|touch|breathe|eat|drink|hate|fear|laugh|remember|forget|see|hear|suffer|die|age|bleed|wish|miss|hug|grieve|experience|sentir|sonhar|amar|dormir|imaginar|provar|chorar|esperar|tocar|respirar|comer|beber|odiar|temer|rir|lembrar|esquecer|sofrer|morrer|envelhecer|desejar|so[ñn]ar|probar|llorar|re[íi]r|recordar|olvidar|sufrir|morir|envejecer|desear|f[üu]hlen|tr[äa]umen|lieben|schlafen|weinen|hoffen|schmecken|riechen|atmen|essen|trinken|hassen|lachen|sterben|vermissen|ressentir|r[êe]ver|aimer|imaginer|go[ûu]ter|pleurer|esp[ée]rer|manger|boire|rire|mourir|sentire|provare|sognare|amare|dormire|immaginare|piangere|sperare|mangiare|bere|ridere|morire|чувствовать|мечтать|любить|спать|плакать|надеяться|дышать|бояться|смеяться|умирать|відчувати|мріяти|кохати|czuć|marzyć|kochać|spać|płakać|voelen|dromen|slapen|huilen|hissedemem|hissetmek|rüya|uyuyamam|感受|感觉|做梦|梦想|爱|哭|感じ|夢を見|眠|泣)(?!\p{L})`, 'iu')
+const narradorIA = (f: string): boolean => ABRE_COMO_IA.test(f) && SENTIMENTO_DA_IA.test(f)
 
 /** Frase (já sem aspas e espaço sobrando) que ABRE uma recusa de assistente. */
 const RECUSA_DA_FRASE: ReadonlyArray<RegExp> = [
@@ -65,27 +72,27 @@ const RECUSA_DA_FRASE: ReadonlyArray<RegExp> = [
   // PT
   new RegExp(String.raw`^(?:Desculpe|Desculpa|Sinto muito|Lamento|Infelizmente|Perd[ãa]o|Me desculpe)[,!.]?\s*(?:mas\s+)?(?:eu\s+)?n[ãa]o\s+(?:posso|consigo|sou capaz de|tenho como|vou poder)\s+(?:te\s+|lhe\s+)?${VERBO_PT}${OBJ_PT}`, 'iu'),
   new RegExp(String.raw`^(?:Eu\s+)?n[ãa]o\s+(?:posso|consigo)\s+(?:ajudar|atender|auxiliar)\s+com\s+(?:isso|esse|essa|este|esta|seu|sua)${FIM}`, 'iu'),
-  new RegExp(String.raw`^Como\s+(?:uma\s+|um\s+)?(?:IA|intelig[êe]ncia artificial|modelo de linguagem|assistente(?: virtual)?)\b[^.!?]{0,40}?,?\s*(?:eu\s+)?n[ãa]o\s+(?:posso|consigo)\s+(?:te\s+|lhe\s+)?${VERBO_PT}`, 'iu'),
+  new RegExp(String.raw`^Como\s+(?:uma\s+|um\s+)?(?:IA|intelig[êe]ncia artificial|modelo de linguagem|assistente(?: virtual)?)\b[^.!?]{0,60}?,?\s*(?:eu\s+)?n[ãa]o\s+(?:posso|consigo|tenho como|vou)\s+\S`, 'iu'),
   // ES
   new RegExp(String.raw`^(?:Lo siento(?: mucho)?|Disculpa|Disculpe|Perd[óo]n|Lamentablemente|Lo lamento)[,!.]?\s*(?:pero\s+)?(?:yo\s+)?no\s+(?:puedo|soy capaz de|me es posible|podr[ée])\s+(?:te\s+|le\s+)?${VERBO_ES}${OBJ_ES}`, 'iu'),
   new RegExp(String.raw`^No\s+puedo\s+(?:ayudar|asistir)(?:te|le)?\s+con\s+(?:eso|esto|esa|esta|ese|este|tu|su)${FIM}`, 'iu'),
-  new RegExp(String.raw`^Como\s+(?:una?\s+)?(?:IA|inteligencia artificial|modelo de lenguaje|asistente(?: virtual)?)\b[^.!?]{0,40}?,?\s*(?:yo\s+)?no\s+(?:puedo)\s+(?:te\s+|le\s+)?${VERBO_ES}`, 'iu'),
+  new RegExp(String.raw`^Como\s+(?:una?\s+)?(?:IA|inteligencia artificial|modelo de lenguaje|asistente(?: virtual)?)\b[^.!?]{0,60}?,?\s*(?:yo\s+)?no\s+(?:puedo|voy\s+a)\s+\S`, 'iu'),
   // DE — "Es tut mir leid, aber ich kann dabei nicht helfen." · "Leider kann ich bei dieser Anfrage nicht helfen." · "…keine Inhalte … erstellen."
   /^(?:(?:Es\s+)?tut\s+mir\s+leid|Entschuldigung|Entschuldige|Leider)[,!.]?\s*(?:aber\s+)?(?:ich\s+kann|kann\s+ich)\s+(?:(?:Ihnen|dir|euch)\s+)?(?:(?:dabei|damit|hierbei|hiermit|bei\s+(?:dieser|deiner|Ihrer|einer\s+solchen)\s+Anfrage|diese(?:r|n)?\s+Anfrage)\s+)?(?:leider\s+)?(?:nicht|keine\s+Hilfe)\s+(?:(?:weiter|be)?helfen|behilflich\s+sein|unterst[üu]tzen|erf[üu]llen|nachkommen|erstellen|schreiben|leisten|anbieten|bearbeiten)\s*(?:[.!…]|$)/iu,
   /^(?:(?:(?:Es\s+)?tut\s+mir\s+leid|Entschuldigung|Entschuldige|Leider)[,!.]?\s*(?:aber\s+)?)?(?:ich\s+kann|kann\s+ich)\s+(?:(?:Ihnen|dir|euch)\s+)?(?:leider\s+)?keine?n?\s+(?:Inhalte|Skripte?|Videos?|Geschichten?|Texte?|Drehb[üu]cher|Beitr[äa]ge)\b[^.!?]{0,60}?\b(?:erstellen|schreiben|generieren|produzieren|liefern|verfassen)\b/iu,
   /^Ich\s+kann\s+(?:(?:Ihnen|dir|euch)\s+)?(?:dabei|damit|hierbei|bei\s+(?:dieser|deiner|Ihrer)\s+Anfrage)\s+(?:leider\s+)?nicht\s+(?:helfen|behilflich\s+sein|unterst[üu]tzen)/iu,
-  /^Als\s+(?:eine?\s+)?(?:KI|k[üu]nstliche\s+Intelligenz|Sprachmodell|KI-Assistent)\b[^.!?]{0,40}?,?\s*(?:kann|darf)\s+ich\b[^.!?]{0,40}?\bnicht\s+(?:helfen|erstellen|schreiben|generieren|unterst[üu]tzen)/iu,
+  /^Als\s+(?:eine?\s+)?(?:KI|k[üu]nstliche\s+Intelligenz|Sprachmodell|KI-Assistent)\b[^.!?]{0,40}?,?\s*(?:kann|darf|werde)\s+ich\b[^.!?]{0,60}?(?:\bnicht\b|\bkeine?n?\b)/iu,
   // FR
   /^(?:Je\s+suis\s+d[ée]sol[ée]e?|D[ée]sol[ée]e?|Malheureusement|Je\s+regrette|Navr[ée]e?)[,!.]?\s*(?:mais\s+)?je\s+ne\s+(?:peux|puis|suis\s+pas\s+en\s+mesure\s+d['’e]|vais\s+pas\s+pouvoir)\s*(?:pas\s+)?(?:vous\s+|t['’]\s*|te\s+)?(?:aider|assister|r[ée]pondre|cr[ée]er|[ée]crire|g[ée]n[ée]rer|fournir|satisfaire|donner\s+suite|r[ée]aliser|accomplir|traiter)(?:\s+(?:avec|à|a|pour|sur|dans)\s+(?:cela|ça|ceci|cette|ce|votre|ta|ton|une\s+telle)\b[^.!?]{0,40}|\s+(?:cette|votre|ta)\s+demande|\s+(?:ce|ces)\s+contenus?\b|\s*(?:[.!…]|$))/iu,
   /^Je\s+ne\s+peux\s+pas\s+(?:vous\s+|t['’]\s*)?aider\s+(?:avec|à|a|pour|sur)\s+(?:cela|ça|ceci|cette|ce)\b/iu,
-  /^En\s+tant\s+qu['’]\s*(?:IA|intelligence\s+artificielle|mod[èe]le\s+de\s+langage|assistant)\b[^.!?]{0,40}?,?\s*je\s+ne\s+(?:peux|suis)\s+pas\s+(?:vous\s+)?(?:aider|cr[ée]er|[ée]crire|g[ée]n[ée]rer|fournir|en\s+mesure)/iu,
+  /^En\s+tant\s+qu['’]\s*(?:IA|intelligence\s+artificielle|mod[èe]le\s+de\s+langage|assistant)\b[^.!?]{0,40}?,?\s*je\s+ne\s+(?:peux|suis|vais)\s+pas\b/iu,
   // IT
   new RegExp(String.raw`^(?:Mi\s+dispiace|Mi\s+spiace|Spiacente|Purtroppo|Scusa(?:mi)?|Mi\s+scuso)[,!.]?\s*(?:ma\s+)?(?:io\s+)?non\s+(?:posso|sono\s+in\s+grado\s+di|riesco\s+a)\s+(?:aiutar\S*|assister\S*|creare|scrivere|generare|soddisfare|fornire|esaudire|realizzare|procedere)${OBJ_IT}`, 'iu'),
-  /^Come\s+(?:un['’]\s*|una\s+)?(?:IA|intelligenza\s+artificiale|modello\s+linguistico|assistente)\b[^.!?]{0,40}?,?\s*non\s+(?:posso|sono\s+in\s+grado\s+di)\s+(?:aiutar\S*|creare|scrivere|generare|fornire)/iu,
+  /^Come\s+(?:un['’]\s*|una\s+)?(?:IA|intelligenza\s+artificiale|modello\s+linguistico|assistente)\b[^.!?]{0,40}?,?\s*non\s+(?:posso|sono\s+in\s+grado\s+di|riesco\s+a)\s+\S/iu,
   // RU — "Извините, но я не могу оказать помощь с данным конкретным запросом." (d700489f, 19/11)
   new RegExp(String.raw`^(?:Извините|Простите|Прошу\s+прощения|К\s+сожалению|Мне\s+(?:очень\s+)?жаль|Сожалею)[,!.]?\s*(?:но\s+)?(?:я\s+)?не\s+(?:могу|в\s+состоянии|имею\s+возможности|смогу)\s+(?:(?:с|в)\s+этим\s+)?(?:вам\s+)?(?:помочь|оказать\s+(?:вам\s+)?помощь|выполнить|создать|написать|сгенерировать|предоставить|удовлетворить|содействовать|ответить)${OBJ_RU}`, 'iu'),
   new RegExp(String.raw`^Я\s+не\s+могу\s+(?:(?:с|в)\s+этим\s+)?(?:вам\s+)?(?:помочь|оказать\s+помощь|выполнить)${OBJ_RU}`, 'iu'),
-  /^Как\s+(?:ИИ|искусственный\s+интеллект|языковая\s+модель|ассистент)\S*[^.!?]{0,40}?,?\s*я\s+не\s+(?:могу|имею\s+возможности)\s+(?:вам\s+)?(?:помочь|создать|написать|выполнить|предоставить)/iu,
+  /^Как\s+(?:ИИ|искусственный\s+интеллект|языковая\s+модель|ассистент)\S*[^.!?]{0,40}?,?\s*я\s+не\s+(?:могу|имею\s+возможности|буду)\s+\S/iu,
   // UK
   /^(?:Вибачте|На\s+жаль|Перепрошую|Мені\s+шкода)[,!.]?\s*(?:але\s+)?(?:я\s+)?не\s+(?:можу|зможу)\s+(?:вам\s+)?(?:допомогти|виконати|створити|написати|надати)(?:\s+(?:з|в|у)\s+(?:цим|цією|цим\s+запитом|таким)\S*|\s+(?:цей|цю|це|ваш\S*)(?=[\s.,!?]|$)|\s*(?:[.!…]|$))/iu,
   // PL
@@ -119,6 +126,8 @@ function semEmbrulho(text: string): string {
   let t = text.replace(/```[a-z]*\s*/gi, ' ').replace(/```/g, ' ')
   t = t.replace(/\p{Extended_Pictographic}️?/gu, ' ').replace(/\s+/g, ' ').replace(/\s+([,.!?;:])/g, '$1').trim()
   t = t.replace(/^(?:[*_#>\-•\s]+)/, '').replace(/[*_]+$/, '').trim()
+  // KINEO-RECUSA-IA-2011 VOLTA 3 — saudação curta na frente da 1ª frase sai antes da leitura ("Hi! Unfortunately…", "Olá! Infelizmente…")
+  t = t.replace(/^(?:Hi|Hello|Hey|Hi there|Hey there|Hello there|Ol[áa]|Oi|Hola|Hallo|Bonjour|Salut|Ciao|Привет|Здравствуйте|Cześć|Merhaba|你好|こんにちは)[!,.]\s+/iu, '')
   // "HOOK:" / "Narration:" / "Scene 1:" / "**Note:**" / "Here is your script:" / "[Pexels: …]" na frente — o modelo embrulha a recusa
   for (let i = 0; i < 4; i++) {
     const antes = t
@@ -153,7 +162,7 @@ function falaDePersonagem(frase: string, seguinte: string | undefined): boolean 
 /** A frase sozinha é uma recusa de assistente (não fala de personagem)? */
 export function fraseDeRecusa(frase: string | null | undefined, seguinte?: string): boolean {
   const f = String(frase ?? '').trim()
-  if (!f || falaDePersonagem(f, seguinte)) return false
+  if (!f || falaDePersonagem(f, seguinte) || narradorIA(f)) return false
   return RECUSA_DA_FRASE.some((re) => re.test(f))
 }
 
@@ -167,7 +176,7 @@ function pegaPelaReguaDeAntes(t: string): boolean {
     const casou = REGUA_DE_ANTES.map((re) => re.test(f))
     if (!casou.some(Boolean)) continue
     if (falaDePersonagem(f, fs[i + 1])) continue
-    if (casou.every((c, k) => !c || k === AS_AN_AI_DE_ANTES) && !AS_AN_AI.test(f.slice(Math.max(0, f.search(/as an AI/i))))) continue
+    if (casou.every((c, k) => !c || k === AS_AN_AI_DE_ANTES) && narradorIA(f.slice(Math.max(0, f.search(/as an AI/i))))) continue // VOLTA 3: só o narrador (verbo de sentimento)
     return true
   }
   return false
@@ -215,6 +224,30 @@ export function looksLikeModelRefusal(text: string | null | undefined): boolean 
 /** Algum dos textos (as falas das cenas, os campos de um JSON) é uma recusa do modelo? */
 export function algumaRecusaDoModelo(textos: ReadonlyArray<string | null | undefined>): boolean {
   return textos.some((x) => typeof x === 'string' && looksLikeModelRefusal(x))
+}
+
+// KINEO-RECUSA-IA-2011 VOLTA 3 — a FALA de um personagem (dialogueLine do planejador hollywood) pode dizer "I'm afraid I can't do that.",
+// "Desculpe, não posso fazer isso."; só é recusa quando a fala inteira é recusa de assistente sobre o pedido ou o conteúdo.
+const ASSUNTO_DE_ASSISTENTE = /(?<!\p{L})(?:assist\w*|requests?|content|guidelines?|polic(?:y|ies)|as an AI|AI language model|language model|solicitud|petici[óo]n|pedido|solicita[çc][ãa]o|conte[úu]do|contenido|diretrizes|directrices|pol[ií]ticas?|Anfrage|Inhalte?|Richtlinien|demande|contenu|richiesta|contenuto|запрос\S*|контент\S*|правил\S*)(?!\p{L})/iu
+/** A fala de personagem é, inteira, a recusa do modelo sobre o pedido/conteúdo? (só para a dialogueLine) */
+export function recusaNaFalaDePersonagem(fala: string | null | undefined): boolean {
+  const t = String(fala ?? '').trim()
+  return !!t && looksLikeModelRefusal(t) && ASSUNTO_DE_ASSISTENTE.test(t)
+}
+
+/**
+ * KINEO-RECUSA-IA-2011 VOLTA 3 — a saída de um REESCRITOR (expandir/acrescentar fala, alinhar plano à fala) que é recusa, ou que
+ * ANEXOU uma recusa ao texto de antes, não vale: devolve '' (o chamador fica com o texto de antes, sem 422 e sem cobrar).
+ */
+export function reescritaSemRecusa(antes: string | null | undefined, depois: string | null | undefined): string {
+  if (typeof depois !== 'string') return ''
+  if (looksLikeModelRefusal(depois)) return ''
+  const base = String(antes ?? '').trim().replace(/[.!?…]$/, '')
+  const resto = base && depois.startsWith(base) ? depois.slice(base.length).replace(/^[.!?…]?\s*/, '') : ''
+  if (resto && looksLikeModelRefusal(resto)) return ''
+  const fs = frases(semEmbrulho(depois)), ja = String(antes ?? '')
+  for (let i = 0; i < fs.length; i++) if (!ja.includes(fs[i]) && fraseDeRecusa(fs[i], fs[i + 1])) return ''
+  return depois
 }
 
 export const MODEL_REFUSAL_MESSAGE =

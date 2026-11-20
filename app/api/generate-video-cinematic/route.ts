@@ -338,7 +338,7 @@ import { protagonistaLigado, temProtagonista, lerSinaisDoProtagonista, textoPara
 import { lerSujeitoDoPedido } from '@/lib/cinematic/sujeitoObrigatorio' // KINEO-PROTAGONISTA-1311
 import { elencoComFichaDoPedido } from '@/lib/cinematic/fichaDoPedido' // KINEO-FICHA-DO-PEDIDO-0911 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — o que o cliente escreveu sobre o personagem no PEDIDO ORIGINAL chega à ficha quando o roteiro automático resumiu o texto
 import { pedirOrigemDoElenco, montarOrigemDoFilme, origemLigadaNoFilme, elencoComOrigem, origemParaCenas, sheetComOrigem, relatoDaOrigem, EVENTO_ORIGEM_DO_ELENCO } from '@/lib/cinematic/origemDoElenco' // KINEO-ORIGEM-DO-ELENCO-0311 [TRAVA 8.2 — fundador 03/11: "Conserta a etnia agora, universal de todas as etnias"] — de onde é quem está em cena, provado pelas palavras do texto, em todos os motores
-import { looksLikeModelRefusal, algumaRecusaDoModelo, MODEL_REFUSAL_MESSAGE } from '@/lib/modelRefusal' // KINEO-RECUSA-IA-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — a recusa do modelo nunca vira filme
+import { looksLikeModelRefusal, algumaRecusaDoModelo, recusaNaFalaDePersonagem, reescritaSemRecusa, MODEL_REFUSAL_MESSAGE } from '@/lib/modelRefusal' // KINEO-RECUSA-IA-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — a recusa do modelo nunca vira filme
 import { visualMostraAlguem, visualMostraPessoa } from '@/lib/cinematic/personagemAjuste' // KINEO-PROTAGONISTA-SEEDANCE-0111 — o detector de gente no visual do 15 s (rodada 15) e o de pessoa (rodada 16: protagonista bicho não apaga a pessoa)
 
 // KINEO-POLL-FATAL-2026-08-17 — era 60. Na noite do fal travado a rota morreu
@@ -1670,10 +1670,12 @@ async function manipularPost(req: NextRequest) {
     void writeServerEvent({ name: FILM_IDEA_STATUS_EVENT, userId: user.id, path: '/api/generate-video-cinematic', metadata: statusDaIdeiaDoFilme({ daTela: ideiaDaTela1311, final: body.original_idea, roteiro: body.prompt, generationId: body.generationId, dryRun: body.dry_run === true, servico: isServiceJob }) }) // KINEO-IDEIA-VIAJA-1311
     // KINEO-RECUSA-IA-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — d700489f (19/11, filme grátis DE): o escritor recusou e a tela
     // mandou "I'm sorry, I can't assist with that." como roteiro; virou título, fala em russo e filme. Antes de escritor, cobrança e motor: com a ideia do
-    // cliente (e sem "Use my script as is") o filme nasce da IDEIA, como se a tela a tivesse mandado sozinha; sem ela, 422 e nada é cobrado.
-    if (looksLikeModelRefusal(body.prompt)) {
+    // cliente o filme nasce da IDEIA, como se a tela a tivesse mandado sozinha; sem ela, 422 e nada é cobrado.
+    // VOLTA 3 [correção da CEO 20/11]: em "Use my script as is" (verbatim) o texto é do CLIENTE, não do modelo — passa como veio, sem esta guarda.
+    const verbatimDoCliente2011 = typeof body.script_mode === 'string' && body.script_mode.toLowerCase() === 'verbatim'
+    if (!verbatimDoCliente2011 && looksLikeModelRefusal(body.prompt)) {
       const ideiaDoCliente2011 = typeof body.original_idea === 'string' && body.original_idea.trim() && !looksLikeModelRefusal(body.original_idea) ? body.original_idea.trim() : null
-      const usarIdeia2011 = !!ideiaDoCliente2011 && !(typeof body.script_mode === 'string' && body.script_mode.toLowerCase() === 'verbatim')
+      const usarIdeia2011 = !!ideiaDoCliente2011
       void writeServerEvent({ name: 'model_refusal_blocked', userId: user.id, path: '/api/generate-video-cinematic', metadata: { version: 'recusa_ia_2011', stage: 'intake', outcome: usarIdeia2011 ? 'idea_used' : 'refused', head: String(body.prompt).slice(0, 120), idea_chars: ideiaDoCliente2011?.length ?? 0, generation_id: typeof body.generationId === 'string' ? body.generationId : null, dry_run: body.dry_run === true } })
       if (!usarIdeia2011 || !ideiaDoCliente2011) return NextResponse.json({ error: MODEL_REFUSAL_MESSAGE, reason: 'model_refused_topic', code: 'model_refused_topic', charged: false, retryable: false }, { status: 422 })
       body.prompt = ideiaDoCliente2011
@@ -3369,6 +3371,11 @@ async function manipularPost(req: NextRequest) {
         reason: 'model_refused_topic', code: 'model_refused_topic', generationId, refunded, refundConfirmed: refunded, claimReleased: released, retryable: false,
       }, { status: refunded ? 422 : 503 })
     }
+    // KINEO-RECUSA-IA-2011 VOLTA 3 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — os REESCRITORES de fala (expandVoiceoversToTargets,
+    // appendNarrationToTargets) e de plano (alignShotsToSpeech): saída que é recusa, ou que ANEXOU uma recusa, vira '' / sai da lista — o chamador fica com o
+    // texto de ANTES da reescrita, como em qualquer falha deles (sem 422 e sem cobrar).
+    const reescritaComGuarda2011 = async <A extends ReadonlyArray<{ text: string }>, R extends unknown[]>(reescrever: (itens: A, ...resto: R) => Promise<string[]>, itens: A, ...resto: R): Promise<string[]> => (await reescrever(itens, ...resto)).map((nova, k) => reescritaSemRecusa(itens[k]?.text ?? '', nova))
+    const alinhamentoSemRecusa2011 = <T extends { rewritten: Array<{ shot: string }> }>(alinhado: T | null): T | null => (alinhado ? { ...alinhado, rewritten: alinhado.rewritten.filter((c) => reescritaSemRecusa('', c.shot) !== '') } : alinhado)
     // ═══ KINEO-FILA-QUEDA-FAL-2810 — ESTACIONAR em vez de perder (fal sem saldo / capacidade) ═══
     // Chamado nas DUAS saídas de "nenhuma cena aceita" (Hollywood FAILFAST e clássico zero aceitas), DEPOIS do estorno
     // confirmado. Só estaciona quando toda recusa explícita é saldo (balance_quota) ou capacidade (rate_limit/429) e nenhuma
@@ -5007,7 +5014,9 @@ async function manipularPost(req: NextRequest) {
       }
       // KINEO-RECUSA-IA-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — VOLTA 2 (revisão 20/11): o planejador hollywood (e cada
       // replano) escreve fala, diálogo e prompt que vão ao motor. Recusa em qualquer um deles = o estorno de sempre e 422, antes de qualquer POST.
-      const recusaDoPlanejador2011 = await recusaDoEscritorDeCenas2011(plan.scenes.flatMap((sc) => [sc.voiceover, sc.dialogueLine, sc.prompt])) // KINEO-RECUSA-IA-2011
+      // VOLTA 3: a dialogueLine é FALA DE PERSONAGEM ("I'm afraid I can't do that." passa); só conta quando é, inteira, a recusa do modelo sobre o pedido ou o
+      // conteúdo (recusaNaFalaDePersonagem). Fala e prompt seguem com a régua completa; do prompt sai a própria dialogueLine citada, para não julgá-la duas vezes.
+      const recusaDoPlanejador2011 = await recusaDoEscritorDeCenas2011(plan.scenes.flatMap((sc) => [sc.voiceover, sc.dialogueLine ? sc.prompt.split(sc.dialogueLine).join(' ') : sc.prompt, recusaNaFalaDePersonagem(sc.dialogueLine) ? sc.dialogueLine : null])) // KINEO-RECUSA-IA-2011
       if (recusaDoPlanejador2011) return recusaDoPlanejador2011 // KINEO-RECUSA-IA-2011
 
       // ═══ KINEO-CONTRATO-2026-08-18 — Cláusulas 1+2 (docs/CONTRATO-HOLLYWOOD.md)
@@ -5339,7 +5348,7 @@ async function manipularPost(req: NextRequest) {
             // Passar do alvo é bom; ficar abaixo é defeito (fundador, 02/09).
             // R12 (ensaios do Omni, 15/09): o pedido travado no teto rendia ~19 de 22 e a régua reprovava por 0,3 s. O pedido e o aceite vão
             // até teto + 2: a subentrega cai na faixa; palavra a mais vira cauda na cena seguinte (teto-rede R4), nunca corte.
-            const novas = await expandVoiceoversToTargets(curtas.map((x) => ({ text: lineOf(x.sc), targetWords: Math.min(Math.max(x.target + 3, Math.ceil(x.target * 1.2)), x.maxWords + 2), maxWords: x.maxWords + 2 })), hollywoodLanguage, prompt.slice(0, 300))
+            const novas = await reescritaComGuarda2011(expandVoiceoversToTargets, curtas.map((x) => ({ text: lineOf(x.sc), targetWords: Math.min(Math.max(x.target + 3, Math.ceil(x.target * 1.2)), x.maxWords + 2), maxWords: x.maxWords + 2 })), hollywoodLanguage, prompt.slice(0, 300))
             curtas.forEach((x, k) => {
               const nova = novas[k]
               if (!nova || nova === lineOf(x.sc)) return
@@ -5419,7 +5428,7 @@ async function manipularPost(req: NextRequest) {
                   // R11 (ensaio do Omni no deploy 6940b5ff): mirando "atual + faltam" o modelo devolveu +3 palavras em 4 cenas (entrega ~85 % do pedido).
                   // O alvo passa a ser o TETO da cena: a subentrega cai dentro da faixa e a cena fica sem folga morta.
                   const alvos = porReescrita.map((pd) => ({ text: lineOf(pd.x.sc), targetWords: pd.maxWords + 4, maxWords: pd.maxWords + 2 })) // R12/R13: pede teto + 4 (entrega ~85 %), aceita até teto + 2
-                  const novas = await expandVoiceoversToTargets(alvos, hollywoodLanguage, prompt.slice(0, 300))
+                  const novas = await reescritaComGuarda2011(expandVoiceoversToTargets, alvos, hollywoodLanguage, prompt.slice(0, 300))
                   porReescrita.forEach((pd, k) => {
                     const nova = novas[k]
                     const base = lineOf(pd.x.sc)
@@ -5431,7 +5440,7 @@ async function manipularPost(req: NextRequest) {
                   })
                   console.log(`[hollywood] KINEO-SOBRA-CURTA-REESCREVE: ${porReescrita.length} cena(s) reescritas ao alvo (+${acrescentadas} palavras até aqui)`)
                 }
-                const continuacoes = porAcrescimo.length > 0 ? await appendNarrationToTargets(porAcrescimo.map((pd) => ({ text: lineOf(pd.x.sc), addWords: pd.addWords, maxWords: pd.maxWords })), hollywoodLanguage, prompt.slice(0, 300)) : []
+                const continuacoes = porAcrescimo.length > 0 ? await reescritaComGuarda2011(appendNarrationToTargets, porAcrescimo.map((pd) => ({ text: lineOf(pd.x.sc), addWords: pd.addWords, maxWords: pd.maxWords })), hollywoodLanguage, prompt.slice(0, 300)) : []
                 porAcrescimo.forEach((pd, k) => {
                   const nova = continuacoes[k]
                   const base = lineOf(pd.x.sc)
@@ -5581,7 +5590,7 @@ async function manipularPost(req: NextRequest) {
             const faltam = cabeCauda - wordsArr(tail).length
             if (faltam >= 3) {
               try {
-                const [cheia] = await appendNarrationToTargets([{ text: tail, addWords: faltam, maxWords: cabeCauda + 2 }], hollywoodLanguage, prompt.slice(0, 300))
+                const [cheia] = await reescritaComGuarda2011(appendNarrationToTargets, [{ text: tail, addWords: faltam, maxWords: cabeCauda + 2 }], hollywoodLanguage, prompt.slice(0, 300))
                 const w = wordsArr(cheia).length
                 if (cheia && cheia !== tail && w > wordsArr(tail).length && w <= cabeCauda + 2 && cheia.startsWith(tail.replace(/[.!?…]$/, ''))) {
                   cauda = cheia
@@ -5740,7 +5749,7 @@ async function manipularPost(req: NextRequest) {
           {
             // R4 (render real 31d0f1c2, 16/09): appendNarrationToTargets IGNORA em silêncio pedidos de menos de 3 palavras — os três
             // alvos pediam 2 e "0 cresceram" sem aviso. Pede pelo menos 3 (o teto + 2 dá a sobra) e a 2ª rodada roda mesmo com zero.
-            const novas = await appendNarrationToTargets(alvos.map((x) => ({ text: x.sc.voiceover ?? '', addWords: Math.max(3, x.cabe - x.w), maxWords: x.cabe + 2 })), hollywoodLanguage, prompt.slice(0, 300))
+            const novas = await reescritaComGuarda2011(appendNarrationToTargets, alvos.map((x) => ({ text: x.sc.voiceover ?? '', addWords: Math.max(3, x.cabe - x.w), maxWords: x.cabe + 2 })), hollywoodLanguage, prompt.slice(0, 300))
             let cresceram = 0
             alvos.forEach((x, k) => {
               const nova = typeof novas[k] === 'string' ? novas[k].trim() : ''
@@ -5875,7 +5884,7 @@ async function manipularPost(req: NextRequest) {
             const copia = plan.scenes.map((s) => ({ ...s })) // KINEO-S25-NOTA95-2026-10-06
             try { // KINEO-S25-NOTA95-2026-10-06
               const idxs = copia.map((_, i) => i).filter((i) => copia[i].type !== 'dialogue' && (copia[i].voiceover ?? '').trim().length > 0 && (copia[i].prompt ?? '').trim().length > 0) // KINEO-S25-NOTA95-2026-10-06
-              const alinhadoE = idxs.length > 0 ? await alignShotsToSpeech({ topic: prompt, scenes: idxs.map((i) => ({ voiceover: copia[i].voiceover ?? '', shot: copia[i].prompt })) }) : null // KINEO-S25-NOTA95-2026-10-06
+              const alinhadoE = idxs.length > 0 ? alinhamentoSemRecusa2011(await alignShotsToSpeech({ topic: prompt, scenes: idxs.map((i) => ({ voiceover: copia[i].voiceover ?? '', shot: copia[i].prompt })) })) : null // KINEO-S25-NOTA95-2026-10-06
               const historiaE = await contextoDoFiltro(`${prompt} ${copia.map((sc) => sc.voiceover ?? '').join(' ')}`) // KINEO-META95-ASSUNTO-1910 — + o assunto traduzido (era a string direta) [KINEO-S25-NOTA95-2026-10-06]
               if (alinhadoE) for (const c of alinhadoE.rewritten) copia[idxs[c.index]].prompt = historiaE === null ? c.shot : scrubInventedSetting(c.shot, historiaE).text // KINEO-META95-ASSUNTO-1910 — null = sem scrub (era scrubInventedSetting direto) [KINEO-S25-NOTA95-2026-10-06]
             } catch { /* falha aberta, como no render pago */ } // KINEO-S25-NOTA95-2026-10-06
@@ -6437,7 +6446,7 @@ async function manipularPost(req: NextRequest) {
       try {
         const idxs = plan.scenes.map((_, i) => i).filter((i) => plan.scenes[i].type !== 'dialogue' && (plan.scenes[i].voiceover ?? '').trim().length > 0 && (plan.scenes[i].prompt ?? '').trim().length > 0)
         if (idxs.length > 0) {
-          const alinhado = await alignShotsToSpeech({ topic: prompt, scenes: idxs.map((i) => ({ voiceover: plan.scenes[i].voiceover ?? '', shot: plan.scenes[i].prompt })) })
+          const alinhado = alinhamentoSemRecusa2011(await alignShotsToSpeech({ topic: prompt, scenes: idxs.map((i) => ({ voiceover: plan.scenes[i].voiceover ?? '', shot: plan.scenes[i].prompt })) }))
           if (alinhado) {
             const historiaH = await contextoDoFiltro(`${prompt} ${plan.scenes.map((sc) => sc.voiceover ?? '').join(' ')}`) // KINEO-META95-ASSUNTO-1910 — + o assunto traduzido (era a string direta)
             for (const c of alinhado.rewritten) plan.scenes[idxs[c.index]].prompt = historiaH === null ? c.shot : scrubInventedSetting(c.shot, historiaH).text // KINEO-META95-ASSUNTO-1910 — null = sem scrub (era scrubInventedSetting direto)
@@ -7289,7 +7298,7 @@ async function manipularPost(req: NextRequest) {
         const pedidos15 = planoDeAcrescimo15(scenes.map(s => s.voiceover ?? ''), narrationWordCount, narrationRate.wordsPerSecond)
         if (pedidos15.length) {
           try {
-            const novas15 = await appendNarrationToTargets(pedidos15, narrationLanguage.language, prompt.slice(0, 300), 1)
+            const novas15 = await reescritaComGuarda2011(appendNarrationToTargets, pedidos15, narrationLanguage.language, prompt.slice(0, 300), 1)
             for (let i = 0; i < pedidos15.length; i++) {
               const p = pedidos15[i]
               const candidata = aceitarAcrescimo15(p.text, novas15[i])
@@ -7388,10 +7397,10 @@ async function manipularPost(req: NextRequest) {
     // O relato vai ao evento (medição) e ao dry-run (validação a $0). Ver lib/cinematic/speechImageAlign.ts.
     let alinhamentoFalaImagem: AlignReport | null = null
     try {
-      const alinhado = await alignShotsToSpeech({
+      const alinhado = alinhamentoSemRecusa2011(await alignShotsToSpeech({
         topic: prompt,
         scenes: scenes.map((sc) => ({ voiceover: sc.voiceover ?? '', shot: sc.aiPrompt || sc.stockSearchQuery || sc.description || '' })),
-      }, wantsKling ? kling25AlignBudget(scenes.length) : undefined) // KINEO-KLING25-PLANOS-5S-2026-09-28: o dobro de cenas ganha teto de tokens e prazo proporcionais; Seedance/Veo: chamada idêntica
+      }, wantsKling ? kling25AlignBudget(scenes.length) : undefined)) // KINEO-KLING25-PLANOS-5S-2026-09-28: o dobro de cenas ganha teto de tokens e prazo proporcionais; Seedance/Veo: chamada idêntica
       if (alinhado) {
         const historiaAlinhada = await contextoDoFiltro(comVocabularioDoLugar(`${prompt} ${scenes.map((sc) => sc.voiceover ?? '').join(' ')}`)) // KINEO-META95-ASSUNTO-1910 — + o assunto traduzido; null = o plano reescrito sobe sem o scrub (era comVocabularioDoLugar(...) direto) [KINEO-MONUMENTO-2026-10-13]
         for (const c of alinhado.rewritten) {

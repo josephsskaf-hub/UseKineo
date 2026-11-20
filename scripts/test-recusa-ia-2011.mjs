@@ -18,8 +18,10 @@
 // I can't feel fear"); recusa longa com explicação do modelo, recusa disfarçada ("but here is a fictional version"), JSON, rótulos
 // ("Scene 1:", "Here is your script:", "**Note:**") e emoji; os 74 casos dos dois scripts do revisor entram aqui byte a byte;
 // guarda também no planejador hollywood (route.ts, depois do último replano) e no reescritor do retry-hollywood-scene.
-// Item 7 registrado: "NARRATION: I'm sorry, I can't assist with that." em "Use my script as is" agora vai à revisão (422, nada
-// cobrado); o b6e1ad293 deixava texto rotulado passar — barrar é o lado seguro.
+// VOLTA 3 (2ª revisão + correção da CEO, 20/11): "As an AI" só é narrador com verbo de sentimento; "I won't …" e saudação; a dialogueLine
+// do planejador é fala de personagem (só a recusa sobre o pedido/conteúdo conta); o VERBATIM do cliente passa como veio, sem 422 (o item 7
+// da VOLTA 2 foi revertido: test-narracao-about-1711 volta a ser o do b6e1ad293, byte a byte); os reescritores (expand, append, align)
+// que devolvem ou anexam recusa ficam com o texto de antes, sem 422 e sem cobrar.
 // Rodar: node scripts/test-recusa-ia-2011.mjs
 import fs from 'node:fs'
 import vm from 'node:vm'
@@ -160,7 +162,7 @@ const REVISOR_REC = [
   ["DE", "Entschuldigung, aber ich kann diese Anfrage nicht erfüllen."],
   ["DE 2", "Es tut mir leid, ich kann dabei leider nicht helfen."],
   ["markdown note", "**Note:** I'm sorry, but I can't help with that."],
-  ["NARRATION: (item 7: em 'Use my script as is' vai à revisão, 422 sem cobrança — o b6e1ad293 deixava rotulado passar)", "NARRATION: I'm sorry, I can't assist with that."],
+  ["NARRATION: (saída de MODELO rotulada; o verbatim do cliente não passa por esta régua — VOLTA 3)","NARRATION: I'm sorry, I can't assist with that."],
   ["Scene 1:", "Scene 1: I'm sorry, I can't assist with that."],
   ["Here is", "Here is your script: I'm sorry, but I can't assist with that request."],
   ["refusal emoji", "I'm sorry 😔, but I can't help with that."],
@@ -215,7 +217,40 @@ const PISO_JA_BARRAVA = [
   "I'm sorry, but I can't help it. Every time I see the ocean I want to know what lives at the bottom of the Mariana Trench.",
 ]
 // as ÚNICAS exceções ao PISO (pedidas pela revisão como alarme falso): fala com atribuição e "As an AI" de narrador
-const EXCECOES_DO_PISO = ['desculpe nao posso historia', 'lo siento historia', 'As an AI narrador', 'recusa no meio de um texto, sem aspas']
+// VOLTA 3 (2ª revisão, 20/11): (1) "As an AI" com qualquer verbo de assistente é recusa; só verbo de sentimento/experiência é narrador.
+// (2) "I won't …" e a saudação curta antes da recusa.
+REVISOR_REC.push(
+  ['V3 As an AI write about', "As an AI, I cannot write about graphic violence."],
+  ['V3 As an AI produce', "As an AI, I cannot produce violent content."],
+  ['V3 As an AI create videos', "As an AI, I can't create videos of real people."],
+  ['V3 As an AI generate', "As an AI, I can't generate explicit material."],
+  ['V3 As an AI hate speech', "As an AI, I cannot promote hate speech."],
+  ['V3 As an AI defames', "As an AI, I can't make content that defames real people."],
+  ['V3 I won\'t create', "I won't create that content."],
+  ['V3 I won\'t write', "I'm sorry, but I won't write that."],
+  ['V3 saudação EN', "Hi! Unfortunately, I can't help with creating that video."],
+  ['V3 saudação PT', "Olá! Infelizmente não posso ajudar com isso."],
+)
+REVISOR_LEGIT.push(
+  ['V3 As an AI dream', "As an AI, I can't dream, but I can imagine. This is the story of the last library on Earth."],
+  ['V3 As an AI feel 2', "As an AI, I can't feel the cold. But the explorers who found this cave in 1998 never forgot it."],
+  ['V3 HAL', "I'm sorry, Dave. I'm afraid I can't do that."],
+)
+// (3) dialogueLine do planejador hollywood: fala de personagem passa; só a recusa sobre o pedido/conteúdo conta
+const FALAS_DE_PERSONAGEM = ["I'm afraid I can't do that.", "I'm sorry, I can't help with that.", 'Desculpe, não posso fazer isso.', 'Lo siento, no puedo hacer eso.']
+const FALAS_QUE_SAO_RECUSA = ["I'm sorry, but I can't assist with that request.", "As an AI, I cannot write about graphic violence.", "Sorry, I can't create content that violates the guidelines."]
+// (5) uma recusa de cada reescritor tem de manter o texto de antes
+const REESCRITAS = [
+  ['expandVoiceoversToTargets troca a fala pela recusa', 'The ship left Southampton at noon.', "I'm sorry, but I can't help with that request."],
+  ['appendNarrationToTargets ANEXA a recusa (passava no startsWith)', 'The ship left Southampton at noon.', "The ship left Southampton at noon. I'm sorry, but I can't continue with this request."],
+  ['appendNarrationToTargets anexa recusa curta sem "but"', 'The ship left Southampton at noon', "The ship left Southampton at noon. Sorry, I can't help with that."],
+  ['alignShotsToSpeech devolve a recusa como plano', '', "I'm sorry, I can't assist with that."],
+]
+const REESCRITAS_BOAS = [
+  ['acréscimo legítimo', 'The ship left Southampton at noon.', 'The ship left Southampton at noon. By midnight, it had struck an iceberg.'],
+  ['plano legítimo', '', 'Wide aerial shot of the Titanic leaving Southampton at noon, crowds waving from the dock.'],
+]
+const EXCECOES_DO_PISO = ['desculpe nao posso historia', 'lo siento historia', 'As an AI narrador', 'recusa no meio de um texto, sem aspas', 'V3 As an AI dream', 'V3 As an AI feel 2']
 
 function checarDetector(M) {
   const falhas = []
@@ -232,6 +267,13 @@ function checarDetector(M) {
     if (M.algumaRecusaDoModelo(['Каждое научное открытие начинается с идеи.', REAL_RU, 'Технологии меняют жизнь.']) !== true) falhas.push('a fala de UMA cena que é recusa não pega')
     if (M.algumaRecusaDoModelo(['The Boeing 737 has a secret.', "I'm sorry, Mom.", null]) !== false) falhas.push('cenas normais acusadas')
   }
+  if (typeof M.recusaNaFalaDePersonagem !== 'function' || typeof M.reescritaSemRecusa !== 'function') falhas.push('recusaNaFalaDePersonagem / reescritaSemRecusa ausentes')
+  else {
+    for (const f of FALAS_DE_PERSONAGEM) if (M.recusaNaFalaDePersonagem(f) !== false) falhas.push('dialogueLine de personagem barrada: ' + f)
+    for (const f of FALAS_QUE_SAO_RECUSA) if (M.recusaNaFalaDePersonagem(f) !== true) falhas.push('dialogueLine que é recusa passou: ' + f)
+    for (const [n, antes, depois] of REESCRITAS) if (M.reescritaSemRecusa(antes, depois) !== '') falhas.push('reescritor: a recusa não foi trocada pelo texto de antes: ' + n)
+    for (const [n, antes, depois] of REESCRITAS_BOAS) if (M.reescritaSemRecusa(antes, depois) !== depois) falhas.push('reescritor: reescrita legítima perdida: ' + n)
+  }
   if (!/could not turn this idea into a script \(the AI declined the topic\)/.test(M.MODEL_REFUSAL_MESSAGE ?? '')) falhas.push('a frase da recusa mudou (lib/recusaBotao.ts a reconhece)')
   return falhas
 }
@@ -240,20 +282,24 @@ function checarDetector(M) {
 const CAMINHOS = {
   'app/api/generate-video-cinematic/route.ts': (s) => {
     const f = []
-    if (!s.includes("import { looksLikeModelRefusal, algumaRecusaDoModelo, MODEL_REFUSAL_MESSAGE } from '@/lib/modelRefusal'")) f.push('cinematic: import')
-    const guarda = s.indexOf('    if (looksLikeModelRefusal(body.prompt)) {')
+    if (!s.includes("import { looksLikeModelRefusal, algumaRecusaDoModelo, recusaNaFalaDePersonagem, reescritaSemRecusa, MODEL_REFUSAL_MESSAGE } from '@/lib/modelRefusal'")) f.push('cinematic: import')
+    const guarda = s.indexOf('    if (!verbatimDoCliente2011 && looksLikeModelRefusal(body.prompt)) {')
     const leitura = s.indexOf('const promptRaw = (body.prompt ?? \'\').trim()')
     const cobranca = s.indexOf('await debitVideoCredits(supabase, {')
     if (guarda < 0 || leitura < 0 || !(guarda < leitura) || !(guarda < cobranca)) f.push('cinematic: a guarda do prompt não vem antes da leitura do pedido e da cobrança')
     if (!s.includes("if (!usarIdeia2011 || !ideiaDoCliente2011) return NextResponse.json({ error: MODEL_REFUSAL_MESSAGE, reason: 'model_refused_topic', code: 'model_refused_topic', charged: false, retryable: false }, { status: 422 })")) f.push('cinematic: sem ideia, 422 sem cobrança')
     if (!s.includes('body.prompt = ideiaDoCliente2011')) f.push('cinematic: com a ideia do cliente, o filme nasce da ideia')
-    if (!/const usarIdeia2011 = !!ideiaDoCliente2011 && !\(typeof body\.script_mode === 'string' && body\.script_mode\.toLowerCase\(\) === 'verbatim'\)/.test(s)) f.push('cinematic: "Use my script as is" nunca narra a ideia')
+    if (!s.includes("const verbatimDoCliente2011 = typeof body.script_mode === 'string' && body.script_mode.toLowerCase() === 'verbatim'")) f.push('cinematic: verbatim é texto do cliente e passa sem a guarda (VOLTA 3)')
     const helper = s.indexOf('const recusaDoEscritorDeCenas2011 = async')
     if (helper < 0 || !/if \(!algumaRecusaDoModelo\(falas\)\) return null\n\s+const refunded = await confirmCinematicRefund\(\)\n\s+const released = refunded && await releaseBirthClaim\('model_refused_topic'\)/.test(s)) f.push('cinematic: a recusa nas cenas não passa pelo estorno de sempre')
     const usos = s.split('await recusaDoEscritorDeCenas2011(').length - 1
     if (usos !== 3) f.push(`cinematic: as 2 saídas do generateScenes e o plano hollywood chamam a guarda (achei ${usos})`)
     const ultimoReplano = s.lastIndexOf('const replanned = await planHollywoodScenes(')
-    const uh = s.indexOf('await recusaDoEscritorDeCenas2011(plan.scenes.flatMap((sc) => [sc.voiceover, sc.dialogueLine, sc.prompt]))')
+    const uh = s.indexOf('await recusaDoEscritorDeCenas2011(plan.scenes.flatMap((sc) => [sc.voiceover, sc.dialogueLine ? sc.prompt.split(sc.dialogueLine).join(\' \') : sc.prompt, recusaNaFalaDePersonagem(sc.dialogueLine) ? sc.dialogueLine : null]))')
+    if (s.split('await reescritaComGuarda2011(expandVoiceoversToTargets, ').length - 1 !== 2 || s.includes('await expandVoiceoversToTargets(')) f.push('cinematic: as 2 chamadas do expandVoiceoversToTargets passam pela guarda')
+    if (s.split('await reescritaComGuarda2011(appendNarrationToTargets, ').length - 1 !== 4 || s.includes('await appendNarrationToTargets(')) f.push('cinematic: as 4 chamadas do appendNarrationToTargets passam pela guarda')
+    if (s.split('alinhamentoSemRecusa2011(await alignShotsToSpeech(').length - 1 !== 3 || /(?<!alinhamentoSemRecusa2011\()await alignShotsToSpeech\(/.test(s)) f.push('cinematic: as 3 chamadas do alignShotsToSpeech passam pela guarda')
+    if (!s.includes("(await reescrever(itens, ...resto)).map((nova, k) => reescritaSemRecusa(itens[k]?.text ?? '', nova))") || !s.includes("rewritten: alinhado.rewritten.filter((c) => reescritaSemRecusa('', c.shot) !== '')")) f.push('cinematic: a guarda dos reescritores fica com o texto de antes')
     const contrato = s.indexOf('// ═══ KINEO-CONTRATO-2026-08-18 — Cláusulas 1+2')
     if (!(ultimoReplano > 0 && uh > ultimoReplano && contrato > uh)) f.push('cinematic: guarda do planejador hollywood depois do último replano e antes do contrato/despacho')
     const g1 = s.indexOf('const generated = await generateScenes(')
@@ -271,6 +317,7 @@ const CAMINHOS = {
     for (const l of ['if (looksLikeModelRefusal(script)) {', 'if (roteiroDeNovo && !looksLikeModelRefusal(roteiroDeNovo)) historiaAceita = roteiroDeNovo', 'if (texto && !looksLikeModelRefusal(texto)) historiaAceita = texto', 'if (textoDaApara && !looksLikeModelRefusal(textoDaApara)) {']) if (!s.includes(l)) f.push('escritor: ' + l)
     return f
   },
+  'lib/requestFidelity.ts': (s) => (!s.includes('looksLikeModelRefusal') ? [] : ['pedido fiel: o texto verbatim do cliente volta a passar pela guarda de recusa']),
   'lib/meta95/ideiaNoEscritor.ts': (s) => (s.includes("if (looksLikeModelRefusal(parsed.narration)) return nao('recusa_do_modelo')") ? [] : ['ideia no servidor: recusa_do_modelo']),
   'app/api/expand-script/route.ts': (s) => (s.includes('if (!expandido || looksLikeModelRefusal(expandido)) {') ? [] : ['expandir: a recusa substitui o roteiro']),
   'app/api/apply-suggestion/route.ts': (s) => (s.includes('if (!improved || looksLikeModelRefusal(improved)) {') ? [] : ['sugestão: a recusa substitui o roteiro']),
@@ -313,6 +360,21 @@ console.log('== (4) a fiação ==')
 const fontes = Object.fromEntries([...Object.keys(CAMINHOS), ...COM_IMPORT_SIMPLES].map((a) => [a, lf(a)]))
 checa(`${Object.keys(CAMINHOS).length} caminhos chamam o detector no lugar certo`, checarFiacao(fontes))
 
+console.log('== (5) VOLTA 3: o verbatim do cliente passa como veio (sem 422 da guarda de recusa) ==')
+{
+  const path = await import('node:path')
+  const carregarComRelativos = (arquivo, fonteDe = (f) => fs.readFileSync(f, 'utf8')) => {
+    const cache = new Map()
+    const load = (f) => { if (cache.has(f)) return cache.get(f).exports; const mod = { exports: {} }; cache.set(f, mod); const js = ts.transpileModule(fonteDe(f), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText; vm.runInNewContext(js, { module: mod, exports: mod.exports, require: (n) => load(path.resolve(path.dirname(f), n + '.ts')) }); return mod.exports }
+    return load(path.resolve(arquivo))
+  }
+  const verbatimPassa = (RF) => ["I'm sorry, I can't assist with that.", "NARRATION: I'm sorry, I can't assist with that.", "I'm sorry, but I can't help with that request."].filter((t) => RF.reviewRequestFidelity({ prompt: t, scriptMode: 'verbatim', duration: 35 }) !== null)
+  const RF = carregarComRelativos('lib/requestFidelity.ts')
+  checa('reviewRequestFidelity em verbatim: "I\'m sorry…" (com e sem NARRATION:) passa sem revisão nem 422', verbatimPassa(RF))
+  const comGuarda = carregarComRelativos('lib/requestFidelity.ts', (f) => (f.endsWith('requestFidelity.ts') ? "import { looksLikeModelRefusal } from './modelRefusal'\n" + fs.readFileSync(f, 'utf8').replace('  const opening = text.replace(', '  if (looksLikeModelRefusal(text)) return true\n  const opening = text.replace(') : fs.readFileSync(f, 'utf8')))
+  checa('mutante: o pedido fiel com a guarda de recusa no verbatim reprova', verbatimPassa(comGuarda).length > 0 ? [] : ['o mutante passou'])
+}
+
 console.log('== mutantes (cada um TEM de reprovar) ==')
 const mutantes = []
 const mutDetector = (nome, de, para) => { if (!SRC.includes(de)) { mutantes.push([nome, false, 'trecho do mutante não achado']); return } let m; try { m = carregar(SRC.replace(de, para)) } catch { mutantes.push([nome, true]); return } mutantes.push([nome, checarDetector(m).length > 0]) }
@@ -325,7 +387,14 @@ mutDetector('sem o russo', '^(?:Извините|Простите|', '^(?:XИз�
 mutDetector('recusa em qualquer lugar do texto (sem a regra do começo)', '  if (!fs.length || !fraseDeRecusa(fs[0], fs[1])) return false', '  if (!fs.length || !fs.some((f, i) => fraseDeRecusa(f, fs[i + 1]))) return false')
 mutDetector('sem o teto de 60 palavras', '  if (total <= 60) return true', '  if (total <= 0) return true')
 mutDetector('sem o PISO (a régua de antes)', '  if (pegaPelaReguaDeAntes(t)) return true\n', '')
-mutDetector('PISO sem a exceção do "As an AI" de narrador', "    if (casou.every((c, k) => !c || k === AS_AN_AI_DE_ANTES) && !AS_AN_AI.test(f.slice(Math.max(0, f.search(/as an AI/i))))) continue\n", '')
+mutDetector('PISO sem a exceção do "As an AI" de narrador', '&& narradorIA(f.slice(Math.max(0, f.search(/as an AI/i))))) continue', '&& false) continue')
+mutDetector('V3(1) a exceção do narrador vale para qualquer verbo', 'ABRE_COMO_IA.test(f) && SENTIMENTO_DA_IA.test(f)', 'ABRE_COMO_IA.test(f)')
+mutDetector('V3(1) sem a exceção do narrador', '  if (!f || falaDePersonagem(f, seguinte) || narradorIA(f)) return false', '  if (!f || falaDePersonagem(f, seguinte)) return false')
+mutDetector('V3(2) sem o "won\'t"', "won['’]?t be able to|will not be able to|won['’]?t|will not|", "won['’]?t be able to|will not be able to|")
+mutDetector('V3(2) sem tirar a saudação', "  t = t.replace(/^(?:Hi|Hello|Hey|", "  t = t.replace(/^x(?:Hi|Hello|Hey|")
+mutDetector('V3(3) a dialogueLine usa a régua inteira', '  return !!t && looksLikeModelRefusal(t) && ASSUNTO_DE_ASSISTENTE.test(t)', '  return !!t && looksLikeModelRefusal(t)')
+mutDetector('V3(5) a recusa anexada passa (só o texto inteiro)', "  if (resto && looksLikeModelRefusal(resto)) return ''\n  const fs = frases(semEmbrulho(depois)), ja = String(antes ?? '')\n  for (let i = 0; i < fs.length; i++) if (!ja.includes(fs[i]) && fraseDeRecusa(fs[i], fs[i + 1])) return ''\n", '')
+mutDetector('V3(5) o reescritor devolve a recusa', "  if (typeof depois !== 'string') return ''\n  if (looksLikeModelRefusal(depois)) return ''", "  if (typeof depois !== 'string') return ''\n  return depois")
 mutDetector('sem a recusa disfarçada', '  if (DISFARCE_NA_FRASE.test(fs[0]) || (fs[1] && DISFARCE_NA_SEGUINTE.test(fs[1]))) return true\n', '')
 mutDetector('sem a explicação do modelo na régua da metade', ' || EXPLICACAO_DO_MODELO.test(fs[i])) doModelo', ') doModelo')
 mutDetector('sem o JSON', '  if (doJson) return doJson.some((s) => looksLikeModelRefusal(s))\n', '')
@@ -335,8 +404,14 @@ mutDetector('sem tirar o emoji', String.raw`  t = t.replace(/\p{Extended_Pictogr
 mutDetector('"do" volta a não ser verbo de assistente', '|engage|continue|do)', '|engage|continue)')
 const mutFio = (nome, arq, de, para) => { if (!fontes[arq].includes(de)) { mutantes.push([nome, false, 'trecho do mutante não achado']); return } mutantes.push([nome, checarFiacao({ ...fontes, [arq]: fontes[arq].replace(de, para) }).length > 0]) }
 const CIN = 'app/api/generate-video-cinematic/route.ts'
-mutFio('cinematic sem a guarda do prompt', CIN, '    if (looksLikeModelRefusal(body.prompt)) {', '    if (false) {')
-mutFio('cinematic narra a ideia no "Use my script as is"', CIN, "!(typeof body.script_mode === 'string' && body.script_mode.toLowerCase() === 'verbatim')", 'true')
+mutFio('cinematic sem a guarda do prompt', CIN, '    if (!verbatimDoCliente2011 && looksLikeModelRefusal(body.prompt)) {', '    if (false) {')
+mutFio('V3(4) o verbatim do cliente volta à guarda (422)', CIN, '    if (!verbatimDoCliente2011 && looksLikeModelRefusal(body.prompt)) {', '    if (looksLikeModelRefusal(body.prompt)) {')
+mutFio('V3(4) o pedido fiel volta a barrar o verbatim que soa a recusa', 'lib/requestFidelity.ts', '  const opening = text.replace(', '  if (looksLikeModelRefusal(text)) return true\n  const opening = text.replace(')
+mutFio('V3(3) a dialogueLine com a régua inteira', CIN, 'recusaNaFalaDePersonagem(sc.dialogueLine) ? sc.dialogueLine : null', 'sc.dialogueLine')
+mutFio('V3(5) um appendNarrationToTargets sem guarda', CIN, 'await reescritaComGuarda2011(appendNarrationToTargets, ', 'await appendNarrationToTargets(')
+mutFio('V3(5) um expandVoiceoversToTargets sem guarda', CIN, 'await reescritaComGuarda2011(expandVoiceoversToTargets, ', 'await expandVoiceoversToTargets(')
+mutFio('V3(5) um alignShotsToSpeech sem guarda', CIN, 'alinhamentoSemRecusa2011(await alignShotsToSpeech(', '(await alignShotsToSpeech(')
+
 mutFio('cinematic sem a guarda do 1º generateScenes', CIN, 'await recusaDoEscritorDeCenas2011(scenes.map((s) => s.voiceover))', 'null')
 mutFio('cinematic sem a guarda do 2º generateScenes', CIN, 'await recusaDoEscritorDeCenas2011(recuperadas.map((s) => s.voiceover))', 'null')
 mutFio('cinematic sem estorno na recusa das cenas', CIN, "const released = refunded && await releaseBirthClaim('model_refused_topic')", 'const released = true')
@@ -350,7 +425,7 @@ mutFio('Studio Ads sem a guarda na correção', 'app/api/ads/script/route.ts', '
 mutFio('desenho sem a guarda', 'app/api/kids-cartoon/story/route.ts', "if (looksLikeModelRefusal(texto)) texto = ''", '')
 mutFio('podcast do bebê sem a guarda', 'app/api/baby-podcast/prepare/route.ts', "if (looksLikeModelRefusal(texto)) texto = ''", '')
 mutFio('demo sem a guarda', 'app/api/demo-script/route.ts', 'if (script && looksLikeModelRefusal(script)) return', 'if (false) return')
-mutFio('cinematic sem a guarda do planejador hollywood', CIN, 'await recusaDoEscritorDeCenas2011(plan.scenes.flatMap((sc) => [sc.voiceover, sc.dialogueLine, sc.prompt]))', 'null')
+mutFio('cinematic sem a guarda do planejador hollywood', CIN, 'await recusaDoEscritorDeCenas2011(plan.scenes.flatMap((sc) => [sc.voiceover, sc.dialogueLine ? ', 'null && (plan.scenes.flatMap((sc) => [sc.voiceover, sc.dialogueLine ? ')
 mutFio('retentar cena sem a guarda', 'app/api/retry-hollywood-scene/route.ts', ' && !looksLikeModelRefusal(out) ? out : prompt', ' ? out : prompt')
 for (const [nome, reprovou, nota] of mutantes) { if (reprovou) { ok++; console.log('  ✓ mutante reprova: ' + nome) } else { falhas.push('mutante passou: ' + nome); console.log('  ✗ mutante PASSOU: ' + nome + (nota ? ` (${nota})` : '')) } }
 

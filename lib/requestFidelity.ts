@@ -1,7 +1,6 @@
 // PEDIDO-FIEL-2610 — pure preflight, before any writer, claim or provider work.
 import { looksLikeBrief } from './scriptParser'
 import { readPastedDirectives } from './pastedDirectives'
-import { looksLikeModelRefusal } from './modelRefusal'
 
 export const REQUEST_FIDELITY_VERSION = 'pedido_fiel_20261026_v1'
 export function isInstructionBrief(prompt: string): boolean {
@@ -25,7 +24,8 @@ export function nonNarrationInput(prompt: string): boolean {
   if (/^(?:[\s\S]*\n)?\s*(?:narration|voiceover|narra[çc][ãa]o|fala|di[aá]logo|HOOK)\s*[:\n]/i.test(text)
     || /\[Pexels\s*:/i.test(text)) return false
   if (/^https?:\/\/\S+$/i.test(text)) return true
-  if (/^(?:I\b|as an AI\b|desculpe\b|sinto muito\b|lo siento\b)/i.test(text) && looksLikeModelRefusal(text)) return true
+  // KINEO-RECUSA-IA-2011 VOLTA 3 [correção da CEO 20/11]: em "Use my script as is" o texto é do CLIENTE, não do modelo — uma fala que soa a recusa
+  // ("I'm sorry, I can't assist with that.") passa como veio. A guarda da recusa vale só sobre a SAÍDA de modelo (lib/modelRefusal nos escritores).
   const opening = text.replace(/^(?:please|por favor)[,\s]+/i, '')
   // Bare noun phrases such as "video on demand" can be the subject of a sentence.
   if (isTopicField(opening)) return true
