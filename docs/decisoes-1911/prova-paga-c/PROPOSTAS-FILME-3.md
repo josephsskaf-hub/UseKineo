@@ -182,3 +182,22 @@ Esta volta conserta os itens 1 a 3 no código e deixa os itens 4 e 5 só escrito
 - Dono sumido: a reserva começa sem as imagens, pelo caminho de hoje, nunca esperando.
 - O relógio da idade é o mesmo `submitted_at` do prazo de 8 min, que já usa o relógio do servidor. Um servidor adiantado só antecipa o desenho em segundos, sem tirar nada de ninguém.
 - Dá para construir em cima do que já existe: as mesmas funções puras de dono, transição e lista positiva, e o mesmo guardião de mundo falso.
+
+## 8. Decisões da CEO (20/11, depois do SHA ef5984d0c)
+- (4) O Kling que fica pronto durante o desenho: **A, não aceitar.**
+- (5) O pré-desenho no minuto 7: guardar o desenho (§7.5), **não construir.**
+- ideia_original_discorda_da_fala:
+  - Em 30 dias foram 2 casos em 104 claims (13393ef8 e 44d02f20, o mesmo roteiro do Triângulo das Bermudas).
+  - Não justifica código agora. Fica anotado.
+  - Se voltar: gravar no `sujeito_obrigatorio` os radicais da ideia e da fala, nunca o texto, para julgar o veto.
+- Prova do Natal 1c770cb7, refeita na main 4dc5af382 (geração 043eafc9):
+  - Kling 4 sem reserva.
+  - A ficha no caminho de hoje agiu (`sem_ancoras`, veredito do `juiz_plano_ficha_antes`). Emily é mulher na loja, Daniel só aparece nas fotos e 0 quadros saíram deitados.
+  - Prova C soma US$ 11,31.
+- Ficou ruim no Natal novo (para olhar):
+  - a legenda diz "in a red coat" com o casaco creme na tela;
+  - a tira de fotos aparece numa mão sem a Emily.
+- Fila da manhã, nesta ordem:
+  1. Medir nos 77 quantos filmes COM ficha caem no caminho de hoje por `descricao_nao_cabe_depois_de_pedir_de_novo`, e propor: a ficha antes da imagem resolve? Quanto espaço sobra?
+  2. A ficha antes da imagem, com o corte por plano.
+  3. O gente-no-final rebaseado sobre a main, com a bateria só pelas libs.
