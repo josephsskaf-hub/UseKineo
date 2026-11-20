@@ -60,6 +60,13 @@ const PEDIDOS = {
   it4: 'Fai un video sul Colosseo.',
   it5: 'Vorrei un video sulle balene.',
   it6: 'Realizza un video su Leonardo da Vinci.',
+  // volta 4: anúncio de app em de/fr dá 422 como na base em en/it, e pedido de empresa que cita o próprio app é pedido
+  pub_de: 'Erstelle ein Video in Sekunden – mit unserer App geht das ganz einfach. Jetzt kostenlos testen.',
+  pub_fr: 'Crée une vidéo en trente secondes avec notre application. Essaie gratuitement.',
+  emp_de1: 'Erstelle ein Video, das zeigt, wie man mit unserer App Geld spart.',
+  emp_de2: 'Mach mir ein Video über die neuen Funktionen in unserer App.',
+  emp_fr: 'Crée une vidéo qui montre comment réserver un taxi avec notre application.',
+  emp_it: 'Fammi un video che mostra come usare la nostra app per prenotare un tavolo.',
 }
 for (const [k, t] of Object.entries(PEDIDOS)) { checa(`pedido ${k}: reconhecido`, P.looksLikeBrief(t) === true); checa(`pedido ${k}: "as is" dá 422 brief_requires_review`, F.reviewRequestFidelity({ prompt: t, scriptMode: 'verbatim', duration: 15, language: 'de' })?.reason === 'brief_requires_review') }
 
@@ -114,8 +121,6 @@ const ROTEIROS = {
   dia_fr_chaque: 'Fais une vidéo chaque jour, et dans un an ta vie aura changé.',
   dia_it_algiorno: 'Fai un video al giorno, e tra un anno sarai un\'altra persona.',
   dia_it_ogni: 'Fai un video ogni giorno, e tra un anno sarai un\'altra persona.',
-  pub_de: 'Erstelle ein Video in Sekunden – mit unserer App geht das ganz einfach. Jetzt kostenlos testen.',
-  pub_fr: 'Crée une vidéo en trente secondes avec notre application. Essaie gratuitement.',
   fr_pub:'Créez des vidéos incroyables en un seul clic avec notre application. Essayez gratuitement dès aujourd\'hui.',
   rev17:'Vorrei che tu guardassi questo video fino alla fine, perché il finale ti sorprenderà.',
 }
