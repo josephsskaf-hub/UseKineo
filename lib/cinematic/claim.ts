@@ -7,6 +7,7 @@ import {
   validComposeGenerationId,
   verifyComposeClaim,
 } from '@/lib/composeClaim'
+import { cenasComImagens, cenasSemImagem, RESERVA_COM_IMAGEM_VERSAO } from '@/lib/cinematic/reservaComImagem2011' // KINEO-RESERVA-COM-IMAGEM-2011
 
 // KINEO-RESERVA-H3-0611 [TRAVA 8.2 — fundador 06/11: "quero sim o H3... pode trocar"]: quando o Kling 4 do filme grátis não entrega, a reserva é o H3 Max Turbo.
 // O H3 só anda a partir de uma imagem: com as 3 cenas com imagem aprovada, vai H3; faltando alguma, o filme inteiro segue no Seedance de texto, sem misturar motor.
@@ -956,9 +957,18 @@ export async function retargetCinematicRequestId(args: {
  */
 /** Select the fallback before any paid Seedance POST. URL authorization and this transition use the SAME authority CAS:
  * a completed Kling source wins without fallback spend, or fallback wins and later Kling receipts are excluded. */
+/** KINEO-RESERVA-COM-IMAGEM-2011 — o marcador do teste ao começar a reserva (pura): sem imagens válidas para TODAS as cenas que faltavam, o de sempre. */
+export function marcadorDaReservaIniciada(marker: Record<string, unknown>, reason: 'provider_failed' | 'timeout', imagens: ReadonlyArray<string | null> | null): Record<string, unknown> {
+  const comImagens = imagens && Array.isArray(marker.fallback_scenes) ? cenasComImagens(marker.fallback_scenes as ReservaShot[], imagens) : null
+  return { ...marker, fallback_started: true, fallback_reason: reason,
+    ...(comImagens ? { fallback_scenes: comImagens, reserva_com_imagem: { versao: RESERVA_COM_IMAGEM_VERSAO, cenas_desenhadas: cenasSemImagem(marker.fallback_scenes as ReservaShot[]) } } : {}) }
+}
 export async function startKling4TrialFallback(args: {
   db: SupabaseClient; secret: string; userId: string; generationId: string; originalRequestId: string
   reason: 'provider_failed' | 'timeout'
+  /** KINEO-RESERVA-COM-IMAGEM-2011 — as imagens desenhadas para as cenas sem imagem (índice = cena). Só entram no claim nesta transição (a 1ª), e só
+   *  quando TODAS as que faltavam vieram; senão as cenas assinadas ficam como estão (o caminho de hoje). */
+  imagensDaReserva?: ReadonlyArray<string | null> | null
 }): Promise<CinematicClaimMutation> {
   const loaded = await loadVerifiedCinematicClaim(args)
   if (!loaded.ok || !loaded.claim) return { ok: false, error: loaded.ok ? 'claim not found' : loaded.error }
@@ -975,7 +985,8 @@ export async function startKling4TrialFallback(args: {
       !['kling/v4/text-to-video','kling/v4/image-to-video','kling/v4/reference-to-video'].includes(current.falModels[0]) || current.authorizedCompletedUrls.some(Boolean)) {
     return { ok: false, error: 'original source changed or already authorized', conflict: true }
   }
-  const nextResponse = { ...response, kling4_trial: { ...marker, fallback_started: true, fallback_reason: args.reason } }
+  // KINEO-RESERVA-COM-IMAGEM-2011 — a reserva com imagem é decidida AQUI, na mesma CAS que começa a reserva: quem chegar depois lê as cenas assinadas
+  const nextResponse = { ...response, kling4_trial: marcadorDaReservaIniciada(marker, args.reason, args.imagensDaReserva ?? null) }
   const candidate = withSignature(args.secret, { ...current, response: nextResponse, responseHash: cinematicValueHash(nextResponse) })
   return updateClaim({ db: args.db, secret: args.secret, previous: current, next: candidate })
 }

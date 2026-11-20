@@ -1,6 +1,9 @@
 import { randomUUID } from 'node:crypto'
 import { entradaSemConviteDeLetreiro } from '@/lib/semConviteDeLetreiro' // KINEO-H3-LETREIRO-0611
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { RESERVA_COM_IMAGEM_2011, RESERVA_COM_IMAGEM_EVENTO, reservaComImagemLigada, cenasSemImagem, desenharImagensDaReserva, estiloDoStillDaReserva, type RelatoReservaComImagem } from '@/lib/cinematic/reservaComImagem2011' // KINEO-RESERVA-COM-IMAGEM-2011
+import { generateFastSceneStill, fastStillSeed } from '@/lib/fastAiScene' // KINEO-RESERVA-COM-IMAGEM-2011 — o mesmo still 9:16 da rota (flux/dev, no nosso bucket)
+import { writeServerEvent } from '@/lib/serverEvents' // KINEO-RESERVA-COM-IMAGEM-2011
 import { RESERVA_H3_MODEL, RESERVA_SEEDANCE_MODEL, entradaDaReserva, loadVerifiedCinematicClaim, modeloDaReservaDoTeste, startKling4TrialFallback, switchKling4TrialToSeedanceFallback, type CinematicClaim } from '@/lib/cinematic/claim'
 
 export const KLING4_TRIAL_FALLBACK_MODEL = RESERVA_SEEDANCE_MODEL // KINEO-SEEDANCE-SAI-1111 — H3 Max Turbo t2v; era 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
@@ -58,6 +61,10 @@ export async function ensureKling4TrialFallback(args: {
   reason: 'provider_failed' | 'timeout'
   submit?: (input: Kling4FallbackInput) => Promise<string>
   submitH3?: (input: Record<string, unknown>) => Promise<string> // KINEO-RESERVA-H3-0611
+  /** KINEO-RESERVA-COM-IMAGEM-2011 — o desenho da imagem-chave 9:16 da cena sem imagem (o guardião injeta um falso; o padrão é o still da rota). */
+  desenharImagem?: (prompt: string, indice: number) => Promise<string | null>
+  /** KINEO-RESERVA-COM-IMAGEM-2011 — só para o guardião: força o interruptor. */
+  reservaComImagem?: boolean
 }): Promise<Kling4FallbackResult> {
   const pending = (claim = args.claim): Kling4FallbackResult => ({ ok: false, claim, pending: true, ambiguous: false, noAccepted: false })
   let loaded: Awaited<ReturnType<typeof loadVerifiedCinematicClaim>>
@@ -74,16 +81,31 @@ export async function ensureKling4TrialFallback(args: {
   }
   if (claim.authorizedCompletedUrls.some(Boolean)) return { ok: true, claim, pending: false, ambiguous: false, noAccepted: false }
   const original = marker.original_request_id
-  const shots = marker.fallback_scenes as Array<{ prompt?: unknown; duration?: unknown; image_url?: unknown }> | undefined
+  let shots = marker.fallback_scenes as Array<{ prompt?: unknown; duration?: unknown; image_url?: unknown }> | undefined
   const fallback = marker.fallback_response as Record<string, unknown> | undefined
   if (typeof original !== 'string' || !original || claim.falRequestIds.length !== 1 || claim.falRequestIds[0] !== original ||
       !Array.isArray(shots) || shots.length !== 3 || !fallback || !Array.isArray(fallback.scenes) || fallback.scenes.length !== 3 ||
       shots.some(s => !s || typeof s.prompt !== 'string' || !s.prompt.trim() || ![6,7,8].includes(Number(s.duration)))) return pending(claim)
+  // KINEO-RESERVA-COM-IMAGEM-2011 — antes de começar a reserva (e só se ela ainda não começou): a cena sem imagem aprovada ganha a imagem-chave 9:16;
+  // as URLs entram no claim na mesma CAS que começa a reserva. Desligado, sem cena faltando ou já começada = nada muda.
+  let relatoImagem: RelatoReservaComImagem | null = null
+  let imagensDaReserva: (string | null)[] | null = null
+  if ((args.reservaComImagem ?? reservaComImagemLigada(RESERVA_COM_IMAGEM_2011)) && marker.fallback_started !== true && cenasSemImagem(shots).length > 0) {
+    const desenhar = args.desenharImagem ?? ((prompt: string) => generateFastSceneStill({ prompt, seed: fastStillSeed(`${args.generationId}:${prompt}`), aspect: '9:16', look: estiloDoStillDaReserva(prompt) }))
+    const r = await desenharImagensDaReserva(shots, desenhar)
+    relatoImagem = r.relato
+    imagensDaReserva = r.relato.ok ? r.imagens : null
+  }
   try {
-    const started = await startKling4TrialFallback({ ...args, originalRequestId: original, reason: args.reason })
+    const started = await startKling4TrialFallback({ ...args, originalRequestId: original, reason: args.reason, imagensDaReserva })
     if (!started.ok) return pending(claim)
     claim = started.claim
   } catch { return pending(claim) }
+  // as cenas ASSINADAS depois da transição (com as imagens, se esta ou outra chamada as gravou): o modelo sai delas
+  const assinadas = (claim.response?.kling4_trial as Record<string, unknown> | undefined)?.fallback_scenes
+  if (Array.isArray(assinadas) && assinadas.length === 3) shots = assinadas as typeof shots
+  if (!shots) return pending(claim)
+  if (relatoImagem) void writeServerEvent({ name: RESERVA_COM_IMAGEM_EVENTO, userId: args.userId, path: '/api/kling4-trial-fallback', sessionId: args.generationId, metadata: { generation_id: args.generationId, ...relatoImagem, gravadas: (claim.response?.kling4_trial as Record<string, unknown> | undefined)?.reserva_com_imagem != null, reason: args.reason } }).catch(() => false) // só contagens, nunca URL nem texto
   const submit = args.submit ?? submitKling4TrialSeedanceFallback
   const submitH3 = args.submitH3 ?? submitKling4TrialH3Fallback // KINEO-RESERVA-H3-0611
   const modeloDaReserva = modeloDaReservaDoTeste(shots) // KINEO-RESERVA-H3-0611 — decidido uma vez, para o filme inteiro
