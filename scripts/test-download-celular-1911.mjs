@@ -18,7 +18,9 @@ const ts = require('typescript')
 const lf = (f) => fs.readFileSync(f, 'utf8').replace(/\r\n/g, '\n')
 const js = (src) => ts.transpileModule(src, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
 const VD = 'lib/videoDownload.ts', LIB = 'app/(dashboard)/library/LibraryClient.tsx'
-const URL_VIDEO = 'https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/videos/e92d81bf-0068-46c3-8de7-1f67e2006756/a.mp4'
+// KINEO-DOWNLOAD-DIRETO-2011 — reancorado: vídeo do bucket renders no celular agora sai pelo download direto (guardião test-download-direto-2011).
+// Este guardião segue provando o caminho do blob e da folha, que continua valendo para arquivo de fora do renders (broll, fornecedor) e fora do toque.
+const URL_VIDEO = 'https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/broll/videos/e92d81bf-0068-46c3-8de7-1f67e2006756/a.mp4'
 const UA = {
   iphone: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1',
   android: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Mobile Safari/537.36',

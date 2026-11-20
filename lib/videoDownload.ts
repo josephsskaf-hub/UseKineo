@@ -88,7 +88,7 @@
 
 import { trackEvent } from '@/lib/analytics'
 import { anunciarVideoEntregue } from '@/lib/postVideoSignal'
-import { caminhoDoArquivo, downloadHref } from '@/lib/downloadNosso'
+import { caminhoDoArquivo, downloadHref, nomeDoArquivo } from '@/lib/downloadNosso'
 
 export type DownloadSurface = 'done_screen' | 'history' | 'my_videos' | 'ads' | 'clips' | 'spaces' | 'animate' | 'avatar' | 'studio_clip' | 'cartoon' | 'podcast' | 'recreate' | 'library' /* KINEO-DOWNLOAD-CELULAR-1911 — + library (a estante baixava por fora, sem evento) */ // KINEO-DOWNLOAD-CLIPE-3010 — o Clipe baixava por fora e nunca emitia video_downloaded · KINEO-ESTREIA-3110 — as telas que ganharam a estreia baixam pelo mesmo helper
 
@@ -114,6 +114,7 @@ export type DownloadOutcome =
   | 'coalesced'
   /** KINEO-DOWNLOAD-CELULAR-1911 — iPhone: a folha de compartilhar abriu com o arquivo e a pessoa fechou sem salvar. Não é entrega nem falha do servidor. */
   | 'share_cancelled'
+  // KINEO-DOWNLOAD-DIRETO-2011 — o download direto do celular devolve 'fallback_opened' (o navegador recebeu o arquivo fora do blob): as telas já contam isso como entregue.
 
 export interface DownloadVideoOptions {
   url: string
@@ -367,7 +368,7 @@ function isSupabaseHost(url: string): boolean {
   }
 }
 
-type ManualLinkTrigger = 'slow' | 'blob_failed' | 'popup_blocked' | 'unavailable' | 'retry' | 'ios_check' // KINEO-DOWNLOAD-CELULAR-1911 — + ios_check: o iPhone sem folha baixou pelo blob, que não prova que salvou
+type ManualLinkTrigger = 'slow' | 'blob_failed' | 'popup_blocked' | 'unavailable' | 'retry' | 'ios_check' | 'direct' /* KINEO-DOWNLOAD-DIRETO-2011 — + direct: o celular baixou pelo gerenciador do navegador */ // KINEO-DOWNLOAD-CELULAR-1911 — + ios_check: o iPhone sem folha baixou pelo blob, que não prova que salvou
 
 function manualLinkTitle(trigger: ManualLinkTrigger): string {
   // 'retry' = o usuário tocou de novo enquanto o primeiro download ainda corre.
@@ -376,6 +377,7 @@ function manualLinkTitle(trigger: ManualLinkTrigger): string {
   if (trigger === 'slow' || trigger === 'retry') return 'Still downloading…'
   if (trigger === 'unavailable') return 'This file is no longer available.'
   if (trigger === 'ios_check') return 'Didn’t save to Photos?' // KINEO-DOWNLOAD-CELULAR-1911
+  if (trigger === 'direct') return 'Your video is downloading' // KINEO-DOWNLOAD-DIRETO-2011
   return 'Your download didn’t start.'
 }
 
@@ -511,7 +513,11 @@ function showManualDownloadLink(
     }
 
     const hint = document.createElement('div')
-    hint.textContent = href
+    hint.textContent = trigger === 'direct' // KINEO-DOWNLOAD-DIRETO-2011 — onde o arquivo aparece; o botão acima é a 2ª tentativa
+      ? base.os === 'ios'
+        ? 'It goes to Files › Downloads. For Photos: open it, tap Share, then Save Video. Nothing happened? Tap the button.'
+        : 'Check your notifications or the Downloads folder. Nothing happened? Tap the button.'
+      : href
       ? base.os === 'ios' // KINEO-DOWNLOAD-CELULAR-1911 — a linha do iPhone diz o gesto exato
         ? 'Opens the video in a new tab. Tap Share, then Save Video.'
         : 'Opens in a new tab. If it plays instead of saving, use your browser’s share or save button.'
@@ -554,7 +560,7 @@ function showManualDownloadLink(
     // Nunca fica órfão: nem no tempo, nem depois de trocar de página. O App
     // Router navega por pushState, que NÃO dispara popstate — daí a sondagem
     // do pathname em vez de um listener.
-    const hideTimer = setTimeout(() => hideManualDownloadLink(token), MANUAL_LINK_AUTO_HIDE_MS)
+    const hideTimer = setTimeout(() => hideManualDownloadLink(token), trigger === 'direct' ? DIRETO_PAINEL_MS : MANUAL_LINK_AUTO_HIDE_MS) // KINEO-DOWNLOAD-DIRETO-2011 — o aviso do download direto não fica 3 min em cima da tela
     box.dataset.hideTimer = String(hideTimer)
     try {
       const bornPath = window.location.pathname
@@ -792,6 +798,10 @@ export async function downloadVideoFile(
     return 'coalesced'
   }
 
+  // KINEO-DOWNLOAD-DIRETO-2011 — celular + vídeo do nosso bucket + ainda dentro do toque: o navegador baixa sozinho (ver o bloco acima de baixarDireto).
+  const direto = baixarDireto(opts, base, device)
+  if (direto) return direto
+
   // ── Rede de segurança (KINEO-DOWNLOAD-MOBILE-RESCUE) ─────────────────────
   // O token torna este download DONO do painel: duas chamadas simultâneas
   // (telas diferentes, arquivos diferentes) não podem apagar o painel uma da
@@ -810,6 +820,109 @@ export async function downloadVideoFile(
     // aqui removeria a entrada do download NOVO ao terminar o velho — e a
     // proteção sumiria em silêncio justamente na sessão mais degradada.
     if (inFlightDownloads.get(url)?.token === myToken) inFlightDownloads.delete(url)
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-DOWNLOAD-DIRETO-2011 [CEO 20/11: "prioridade nº 1 da sua manhã"; pagante 762c60a2 não baixou o filme 6544ea3b]
+//
+// MEDIDO no banco (7 dias até 20/11 07h, contas da casa fora): celular 11 cliques · 5 com video_downloaded · 2 "Load failed" ·
+// 1 sem desfecho nenhum (painel dos 20 s e mais nada) · 3 coalescidos; computador 20 cliques · 17 video_downloaded · 0 falha.
+// O pagante (Starter desde 19/11 01:18), no celular, 19/11 01:39:52: tocou 2 vezes (o 2º coalesceu), fechou o painel no ×, o painel
+// dos 20 s voltou às 01:40:13 — e o fetch ficou PENDURADO 7.629.391 ms (2 h 07 min), hidden_during: true, até morrer em "Load failed"
+// (o erro do WebKit) às 03:47:08 com a tela de volta; o window.open veio depois de 2 h de await e foi barrado. Nenhum toque no link.
+// O arquivo existe no bucket: video/mp4, 50.438.194 bytes (os outros downloads do celular na semana: 2 a 7 MB).
+//
+// A CAUSA, no código: o degrau 1 é fetch(url) → res.blob() → <a download> com blob:. O filme inteiro passa pela MEMÓRIA DA PÁGINA,
+// e no celular a página é congelada quando a tela apaga ou a pessoa troca de app (o iOS suspende o WebKit da aba em segundo plano).
+// Arquivo de 7 MB chega antes disso (209 ms, 191 ms, 3,7 s medidos); 50 MB pelo 4G não, e o fetch fica parado até a aba voltar e
+// morre. A folha do iPhone (19/11) NÃO muda isso: ela também precisa do blob na mão antes de abrir. E nenhum degrau depois do await
+// salva o caso, porque o toque já foi gasto (o window.open é barrado).
+//
+// O CONSERTO: no celular, quando o arquivo é vídeo do nosso bucket renders e o toque ainda vale, o módulo NÃO baixa pela página.
+// Ele dá o link do Storage com ?download=<nome> (Content-Disposition: attachment, conferido em 13/11) a um <a> clicado DENTRO do
+// toque: quem baixa é o gerenciador de downloads do navegador (Safari: Arquivos › Downloads; Chrome: notificação e pasta Downloads),
+// que não depende da aba ficar acesa nem da memória da página. A página fica onde está (attachment não troca a tela).
+//   · Endereço do Storage, e não /api/download: a rota exige sessão e dono e, sem isso, responderia login ou 404 NA MESMA ABA (a tela
+//     do filme virava uma página de erro). O arquivo é público (getPublicUrl) e o blob de hoje já o lê sem conferir nada: quem pode
+//     baixar não muda. Ninguém vê o endereço: é um download, não uma aba.
+//   · Só vídeo (caminho e nome .mp4/.mov/.webm/.m4v). Imagem e áudio seguem o caminho de sempre.
+//   · Só DENTRO do toque (navigator.userActivation.isActive; navegador sem a API conta como dentro, porque as telas chamam o módulo
+//     no clique): o lote do Ads v2 baixa em fila com await entre um e outro, e navegações seguidas na mesma aba se cancelam.
+//   · Computador não muda (0 falha em 20). Link de fora do bucket (fal, Backblaze) não muda.
+//   · Perde-se, no iPhone, a folha "Salvar vídeo" → Fotos do 19/11 para vídeo nosso: ela só funciona com arquivo pequeno e aba acesa.
+//     O aviso na tela diz o caminho (Arquivos › Downloads → Compartilhar → Salvar vídeo) e o botão dele é a 2ª tentativa.
+//   · video_downloaded sai com method 'direct_link' (o navegador recebeu o arquivo pelo gerenciador, como a folha do 19/11 já conta o
+//     AirDrop): funil e e-mails de resgate continuam contando o celular; quem quiser só bytes na mão filtra por method.
+//   · Toque repetido em menos de 4 s no mesmo arquivo: 'coalesced', sem 2º download.
+// ═══════════════════════════════════════════════════════════════════════════
+const DIRETO_JANELA_MS = 4_000
+/** O aviso do download direto: o tempo de ler e, se nada aconteceu, tocar de novo. */
+const DIRETO_PAINEL_MS = 25_000
+const EXT_VIDEO = /\.(mp4|mov|webm|m4v)$/i
+const diretoRecente = new Map<string, number>()
+
+/** O toque ainda vale? null = navegador sem a API (as telas chamam o módulo no clique: conta como dentro). */
+function toqueAtivo(): boolean | null {
+  try {
+    const ua = (navigator as unknown as { userActivation?: { isActive?: unknown } }).userActivation
+    return ua && typeof ua.isActive === 'boolean' ? ua.isActive : null
+  } catch {
+    return null
+  }
+}
+
+/** Decide o caminho direto (puro, para o guardião). */
+export function deveBaixarDireto(device: string, url: string, filename: string, toque: boolean | null): boolean {
+  if (device !== 'mobile' || toque === false) return false
+  const caminho = caminhoDoArquivo(url)
+  return !!caminho && EXT_VIDEO.test(caminho) && EXT_VIDEO.test(filename)
+}
+
+/** O link do Storage com o nome de baixar (Content-Disposition: attachment). null = não é arquivo nosso. */
+export function hrefDoDownloadDireto(url: string, filename: string): string | null {
+  try {
+    const caminho = caminhoDoArquivo(url)
+    if (!caminho) return null
+    const u = new URL(url)
+    u.searchParams.delete('download')
+    u.searchParams.set('download', nomeDoArquivo(filename, caminho))
+    return u.toString()
+  } catch {
+    return null
+  }
+}
+
+/** null = não é o caso (ou o <a> falhou): o chamador segue o caminho de sempre. Síncrono de ponta a ponta: roda dentro do toque. */
+function baixarDireto(opts: DownloadVideoOptions, base: Record<string, unknown>, device: 'mobile' | 'desktop' | 'unknown'): DownloadOutcome | null {
+  const { url, filename } = opts
+  try {
+    if (typeof document === 'undefined' || !document.body) return null
+    if (!deveBaixarDireto(device, url, filename, toqueAtivo())) return null
+    const agora = Date.now()
+    const antes = diretoRecente.get(url)
+    if (antes !== undefined && agora - antes < DIRETO_JANELA_MS) {
+      fire('video_download_coalesced', { ...base, method: 'direct_link', waiting_ms: agora - antes, panel_shown: false })
+      return 'coalesced'
+    }
+    const href = hrefDoDownloadDireto(url, filename)
+    if (!href) return null
+    hideManualDownloadLink()
+    const a = document.createElement('a')
+    a.setAttribute('href', href)
+    a.setAttribute('download', filename)
+    a.setAttribute('rel', 'noopener')
+    a.style.display = 'none'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    diretoRecente.set(url, agora)
+    fire('video_downloaded', { ...base, method: 'direct_link', ms: 0 })
+    anunciarVideoEntregue({ method: 'direct_link', ms: 0 })
+    showManualDownloadLink(url, filename, 'direct', base, ++manualLinkToken)
+    return 'fallback_opened'
+  } catch {
+    return null
   }
 }
 
