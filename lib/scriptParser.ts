@@ -417,7 +417,12 @@ const PEDIDO_DE_FR_IT = new RegExp( // KINEO-PEDIDO-DE-IDIOMAS-2011 (volta 2)
   '(?:(?:\\s+|-)(?:mir|uns|sie|moi|nous|mi))?' +
   '\\s+(?:(?:ein|eine|einen|un|une|uno|una)\\s+|un[\'’]\\s*)' +
   '(?:[\\p{L}\\p{N}\'’-]+\\s+){0,2}' +
-  '[\\p{L}-]*(?:video|vid[ée]o|short|clip|film|reel|animation|animazione)s?(?![\\p{L}\\p{N}])', 'iu')
+  '[\\p{L}-]*(?:video|vid[ée]o|short|clip|reel|animation|animazione)s?(?![\\p{L}\\p{N}])', 'iu')
+// Volta 3: "film" saiu do entregável (é o "filme na cabeça" da narração: "Fais-moi un film dans ta tête", "Ich will einen Film
+// drehen…"); o pedido de filme em de/fr/it vem como Video/vidéo/short. Anúncio de app ("Erstelle ein Video in Sekunden – mit
+// unserer App", "Crée une vidéo … avec notre application") também é fala, não pedido.
+const ANUNCIO_DE_APP_DE_FR_IT = /(?<![\p{L}\p{N}])(?:mit unserer app|in unserer app|avec notre (?:app|application)|con la nostra app)(?![\p{L}\p{N}])/iu // KINEO-PEDIDO-DE-IDIOMAS-2011 (volta 3)
+const pedidoDeFrIt = (s: string): boolean => PEDIDO_DE_FR_IT.test(s) && !ANUNCIO_DE_APP_DE_FR_IT.test(s) // KINEO-PEDIDO-DE-IDIOMAS-2011 (volta 3)
 /** Abertura de cortesia antes do pedido ("please", "Bitte", "S'il te plaît", "Per favore"). */
 const CORTESIA_INICIAL = /^(?:please|por favor|bitte|s['’]il (?:te|vous) pla[iî]t|per favore)[,\s]+/i // KINEO-PEDIDO-DE-IDIOMAS-2011 (volta 2)
 const DELIVERABLE_NOUN =
@@ -506,9 +511,9 @@ export function looksLikeBrief(raw: string): boolean {
   const hasExplicitSpeech = lines.some((u) => (SPEECH_LABEL_LINE.test(u) && !isVoiceSpecLine(u)) || BEAT_LABEL_HEAD.test(u) || dialogueSpeech(u, true) !== null || /\[Pexels\s*:/i.test(u))
   const opening = (lines[0] ?? '').split(/[.!?]\s+/)[0].replace(CORTESIA_INICIAL, '') // KINEO-PEDIDO-DE-IDIOMAS-2011 (volta 2): + Bitte / S'il te plaît / Per favore
   const creation = /^(?:crie|criar|fa[çc]a|gere|prepare|monte|escreva|produza|quero|preciso|create|make|generate|write|produce|prepare|build|give me|i want|i need|crea|genera|prepara|escribe|quiero|necesito|haz)\b/i
-  const habitualAdvice = /\b(?:every day|each day|a day|por dia|diariamente|cada d[ií]a)\b/i.test(opening)
+  const habitualAdvice = /\b(?:every day|each day|a day|por dia|diariamente|cada d[ií]a|t[äa]glich|jeden tag|pro tag|chaque jour|par jour|ogni giorno|al giorno)\b/i.test(opening) // KINEO-PEDIDO-DE-IDIOMAS-2011 (volta 3): conselho diário em de/fr/it é fala
   const startsWithRequest = !habitualAdvice && ((creation.test(opening) && isInstructionLine(opening.slice(0, 400)) && /\b(v[íi]deo|videos?|shorts?|reels?|filme|film|movie|clip|clipe|anima[çc][ãa]o|animation|animasyon)\b/i.test(opening))
-    || PEDIDO_DE_FR_IT.test(opening.slice(0, 400))) // KINEO-PEDIDO-DE-IDIOMAS-2011 (volta 2): pedido em de/fr/it com a forma verbo + artigo + entregável
+    || pedidoDeFrIt(opening.slice(0, 400))) // KINEO-PEDIDO-DE-IDIOMAS-2011 (volta 2): pedido em de/fr/it com a forma verbo + artigo + entregável
   if (hasExplicitSpeech) {
     if (!startsWithRequest) return false
     // Parsing is pure and does not call looksLikeBrief. Keep legitimate
@@ -516,7 +521,7 @@ export function looksLikeBrief(raw: string): boolean {
     const spokenOpening = parseUserScript(raw).narration.replace(CORTESIA_INICIAL, '') // KINEO-PEDIDO-DE-IDIOMAS-2011 (volta 2)
     const spokenRequest = spokenOpening.split(/[.!?]\s+/)[0]
     return (creation.test(spokenRequest) && isInstructionLine(spokenRequest.slice(0, 400)) && /\b(v[íi]deo|videos?|shorts?|reels?|filme|film|movie|clip|clipe|anima[çc][ãa]o|animation|animasyon)\b/i.test(spokenRequest))
-      || PEDIDO_DE_FR_IT.test(spokenRequest.slice(0, 400)) // KINEO-PEDIDO-DE-IDIOMAS-2011 (volta 2)
+      || pedidoDeFrIt(spokenRequest.slice(0, 400)) // KINEO-PEDIDO-DE-IDIOMAS-2011 (volta 2)
   }
   if (startsWithRequest) return true
   let ficha = 0

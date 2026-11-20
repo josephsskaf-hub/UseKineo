@@ -61,7 +61,7 @@ const PEDIDOS = {
   it5: 'Vorrei un video sulle balene.',
   it6: 'Realizza un video su Leonardo da Vinci.',
 }
-for (const [k, t] of Object.entries(PEDIDOS)) checa(`pedido ${k}: reconhecido`, P.looksLikeBrief(t) === true)
+for (const [k, t] of Object.entries(PEDIDOS)) { checa(`pedido ${k}: reconhecido`, P.looksLikeBrief(t) === true); checa(`pedido ${k}: "as is" dá 422 brief_requires_review`, F.reviewRequestFidelity({ prompt: t, scriptMode: 'verbatim', duration: 15, language: 'de' })?.reason === 'brief_requires_review') }
 
 console.log('== roteiros de verdade que NÃO podem virar pedido ==')
 const ROTEIROS = {
@@ -92,7 +92,31 @@ const ROTEIROS = {
   rev14: 'Voglio raccontarti in questo video la storia vera del Titanic. Era il 14 aprile 1912.',
   rev15: 'Fai attenzione, perché questo video potrebbe cambiarti la vita. Parliamo di risparmio.',
   rev16: 'Realizza i tuoi sogni con questo video: tre passi semplici per iniziare.',
-  fr_pub: 'Créez des vidéos incroyables en un seul clic avec notre application. Essayez gratuitement dès aujourd\'hui.',
+  // volta 3: os 14 "filme na narração" e os 3 conselhos diários da revisão da volta 2, e os anúncios de app
+  film1: 'Ich will einen Film drehen, der die Welt verändert. Das sagte Steven Spielberg mit zwölf Jahren.',
+  film2: 'Ich möchte einen Film sehen, sagte die kleine Mia, und alle lachten.',
+  film3: 'Ich brauche einen Horrorfilm für heute Abend, dachte Jonas. Was er dann fand, war schlimmer als jeder Film.',
+  film4: 'Schreib einen Kurzfilm, sagte die Lehrerin. Und so begann Annas Karriere.',
+  film5: 'Mach mir einen Film nicht kaputt, sagte Opa immer, wenn wir beim Fernsehen redeten.',
+  film6: 'Fais-moi un film dans ta tête : tu es sur une plage, le soleil se couche.',
+  film7: 'Fais un film de ta vie, et sois-en le héros. Personne ne le fera à ta place.',
+  film8: 'Je veux un film où les méchants gagnent, avait dit Marc. Et ce soir-là, il l\'a eu.',
+  film9: 'Je voudrais un film qui ne finit jamais, murmura la petite fille avant de s\'endormir.',
+  film10: 'Fammi un film nella tua testa: sei a Roma, è il 1960, e la Vespa ti aspetta.',
+  film11: 'Voglio un film che faccia piangere, disse la nonna. E così scegliemmo Nuovo Cinema Paradiso.',
+  film12: 'Vorrei un film come quelli di una volta, sospirò Giuseppe davanti al cinema chiuso.',
+  film13: 'Crea un film nella tua mente prima di dormire: è il segreto dei campioni.',
+  film14: 'Crea un film en tu mente antes de dormir: es el secreto de los campeones.',
+  dia_de_protag: 'Mach ein Video pro Tag, und in einem Jahr bist du ein anderer Mensch.',
+  dia_de_taeglich: 'Mach täglich ein Video, und in einem Jahr bist du ein anderer Mensch.',
+  dia_de_jeden: 'Mach jeden Tag ein Video, und in einem Jahr bist du ein anderer Mensch.',
+  dia_fr_parjour: 'Fais une vidéo par jour, et dans un an ta vie aura changé.',
+  dia_fr_chaque: 'Fais une vidéo chaque jour, et dans un an ta vie aura changé.',
+  dia_it_algiorno: 'Fai un video al giorno, e tra un anno sarai un\'altra persona.',
+  dia_it_ogni: 'Fai un video ogni giorno, e tra un anno sarai un\'altra persona.',
+  pub_de: 'Erstelle ein Video in Sekunden – mit unserer App geht das ganz einfach. Jetzt kostenlos testen.',
+  pub_fr: 'Crée une vidéo en trente secondes avec notre application. Essaie gratuitement.',
+  fr_pub:'Créez des vidéos incroyables en un seul clic avec notre application. Essayez gratuitement dès aujourd\'hui.',
   rev17:'Vorrei che tu guardassi questo video fino alla fine, perché il finale ti sorprenderà.',
 }
 for (const [k, t] of Object.entries(ROTEIROS)) {
