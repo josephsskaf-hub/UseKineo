@@ -42,8 +42,9 @@ async function prova(over = {}) {
   try { Q = load('@/' + QP); L = load('@/' + LIB) } catch (e) { return [`libs não carregam: ${e.message}`] }
 
   // ── A · a lib, executada ──
-  no(L.KLING4_PLANO_DA_FALA_1911 !== 'internal', 'A0 estado de publicação: internal (só a casa). public = só com revisor independente + prova paga + sim do dono')
+  no(!['internal', 'sem_ficha'].includes(L.KLING4_PLANO_DA_FALA_1911), 'A0 estado de publicação: internal (só a casa) ou sem_ficha (o cliente só sem ficha, revisor 19/11). public = só com revisor independente + prova paga + sim do dono')
   no(L.planoDaFalaLigado('off', true) || L.planoDaFalaLigado('internal', false) || !L.planoDaFalaLigado('internal', true) || !L.planoDaFalaLigado('public', false), 'A1 off | internal | public')
+  no(!L.planoDaFalaLigado('sem_ficha', false) || !L.soSemFicha('sem_ficha', false) || L.soSemFicha('sem_ficha', true) || L.soSemFicha('public', false) || L.soSemFicha('internal', false), 'A1b sem_ficha: abre para todos, com a guarda só para o cliente')
   no(!/LAST item shows how the story ends, with the central subject of the Topic clearly visible/.test(L.REGRA_DO_PLANO_DA_FALA) || !/never only the hint/.test(L.REGRA_DO_PLANO_DA_FALA), 'A2 a regra por seção: o último plano é o desfecho COM o sujeito; a pista nunca sozinha')
   no(JSON.stringify(L.descricoesPorSecao(['A griffin soars over Mount Meru at dawn', ''], 2)) !== JSON.stringify(['A griffin soars over Mount Meru at dawn', null]), 'A3 descrição vazia = null')
   no(L.descricoesPorSecao(['A griffin flies over the garden', 'A griffin lands on the mountain', 'A griffin reaches the stars'], 2).some((d) => d !== null) || L.descricoesPorSecao(null, 2).length !== 2, 'A4 contagem errada = todas null (nunca desloca)')
@@ -107,7 +108,7 @@ async function prova(over = {}) {
   no(!rota.includes("{ role: 'system', content: porSecao ? sistemaPorSecao(system) + REGRA_DO_PLANO_DA_FALA : system }"), 'C3 a regra por seção só na chamada por seção')
   const iDesc = rota.indexOf('const descricoesDasSecoesK4: Promise<(string | null)[]> | null'), iCenas = rota.indexOf('cobertura = await describeScenesCovered(scenes.length')
   no(!(iDesc > 0 && iCenas > iDesc), 'C4 a chamada por seção começa ANTES da das cenas (em paralelo, sem somar espera)')
-  const iUsa = rota.indexOf("if (descricoesDasSecoesK4) { const c1911 = await completarDescricoes1911(await descricoesDasSecoesK4, parsedScript.segments, kling4Prompts, scenes.map((s) => s.voiceover ?? '')); const d = c1911.descricoes; if (d) parsedScript.segments.forEach((s, j) => { Object.assign(s, { descricao: d[j] }) }) }"), iEnvio = rota.indexOf('const kling4EnvioDoFilme = () =>')
+  const iUsa = rota.indexOf('if (d) parsedScript.segments.forEach((s, j) => { Object.assign(s, { descricao: d[j] }) }) // KINEO-PLANO-DA-FALA-1911 (A1)') /* [revisor 19/11] reancorado: a descrição entra depois da guarda da ficha e do prazo do descritor */, iEnvio = rota.indexOf('const kling4EnvioDoFilme = () =>')
   { const chamadas = [...rota.matchAll(/kling4EnvioDoFilme\(\)|revisarA2DoFilme\(false[,)]|submitKling4TrialVideo\(kling4PorSecao\(/g)].map((m) => m.index)
     no(!(iUsa > 0 && iEnvio > 0 && chamadas.length >= 3 && chamadas.every((i) => i > iUsa)), 'C5 a descrição entra nas seções antes de toda chamada da montagem do envio (juiz, claim e POST leem a mesma)') }
   no(!rota.includes("const c1 = descricoesCompletas(d, n)\n        if (!c1) return { descricoes: null, pedidas, motivo: 'descricao_nula_depois_de_pedir_de_novo' }"), 'C5b [ensaio A2 19/11] descrição nula depois de pedir de novo = nenhuma descrição (o caminho de hoje)')

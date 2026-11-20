@@ -83,6 +83,7 @@ async function prova(over = {}) {
   const chamadas = []
   let respostas = []
   const escopo = {
+    prazoDoA1A2: L.prazoDoA1A2, // [revisor 19/11, condição 1] o teto somado do A1/A2 é o parâmetro padrão de completarDescricoes1911
     descricoesPorSecao: L.descricoesPorSecao, secoesParaODescritor: L.secoesParaODescritor, kling4DescritorForte1911: true, topicoDoDescritorA2: L.topicoDoDescritorA2, topicoComoDado: L.topicoComoDado,
     body: { original_idea: 'A plane vanishes' }, prompt: 'HOOK: x', classicVisualPolicy: {}, desenhoInfantil: { ativo: false }, MODELO_DO_DESCRITOR_FORTE: 'gpt-4o', usosDoDescritorA2: [],
     descricoesCompletas: L.descricoesCompletas, secoesQueNaoCabem: L.secoesQueNaoCabem, notaDoEspaco: L.notaDoEspaco, DESCRICAO_DE_NOVO_TETO_MS: 60_000,
@@ -120,7 +121,7 @@ async function prova(over = {}) {
       no(r6.descricoes !== null || r6.motivo !== 'prazo_dos_pedidos_de_novo' || Date.now() - t > 2000, `B13 o pedido a mais tem teto de tempo somado: passou, caminho de hoje (${JSON.stringify(r6)})`) }
     no(!rota.includes('    const DESCRICAO_DE_NOVO_TETO_MS = 60_000'), 'B14 o teto somado dos pedidos a mais é 60 s (148 s do pior filme + 60 < 300 do maxDuration)')
   }
-  no(!rota.includes("if (!d) return { versao: 'a2_ensaio_1911_v2', motivo: completas1911.motivo ?? 'descricoes_incompletas', caminho: 'hoje'") || !rota.includes("const c1911 = await completarDescricoes1911(await descricoesDasSecoesK4, parsedScript.segments, kling4Prompts, scenes.map((s) => s.voiceover ?? '')); const d = c1911.descricoes; if (d)"), 'B8 o envio e o eco usam a mesma conclusão; sem descrição completa = caminho de hoje, dito no eco')
+  no(!rota.includes("if (!d) return { versao: 'a2_ensaio_1911_v2', motivo: completas1911.motivo ?? 'descricoes_incompletas', caminho: 'hoje'") || !rota.includes("const c1911 = await completarDescricoes1911(d0, parsedScript.segments, kling4Prompts, scenes.map((s) => s.voiceover ?? ''), prazo1911); const d = c1911.descricoes") || !rota.includes("else voltaAoHoje1911(c1911.motivo ?? 'descricao_incompleta')"), /* [revisor 19/11] reancorado: a espera do descritor tem prazo e a queda grava o motivo */ 'B8 o envio e o eco usam a mesma conclusão; sem descrição completa = caminho de hoje, dito no eco')
   no(!rota.includes("motivo: parsedScript.segments.length < 2 ? 'sem_secoes' : parsedScript.segments.length < scenes.length ? 'secoes_menos_que_cenas'"), 'B9 os filmes que o A2 não cobre (982a6aeb: 2 seções; 32cbb2d4: roteiro corrido) dizem o motivo no eco')
 
   // ── C · o sujeito no último plano ──
@@ -166,7 +167,8 @@ async function prova(over = {}) {
     no(!/Each shot keeps exactly who and what its own narration line says; add only what was missing/.test(nota) || /show that subject clearly, doing what each narration line says/.test(nota), 'D4 804e9f0b: a nota não manda pôr o sujeito do juiz em todo plano (a partida do pai virou o Victor no cockpit)') }
   { const r = await L.revisarPlanosA2({ planos: () => ['Metal Sonic runs.', 'b', 'c'], falas: () => ['a', 'b', 'c'], nSecoes: 3, rejulgar: false, julgar: async () => ({ status: 'JUDGED', falhas: [] }), nomes: async () => [0], reescrever: async () => {}, nomesDeNovo: true })
     no(JSON.stringify(r.nomes_depois) !== '[1]', `D5 nome que persiste depois da reescrita é apontado (ac9bb8f8: "Metal Sonic", "Green Hills") (${JSON.stringify(r.nomes_depois)})`) }
-  no(!rota.includes("if ((rA2.nomes_depois ?? []).length) { parsedScript.segments.forEach((x) => { delete (x as { descricao?: unknown }).descricao }); kling4PromptsDasCenas1911.forEach((p, i) => { kling4Prompts[i] = p }) }") || !rota.includes("const caiNoHoje1911 = (r.nomes_depois ?? []).length > 0"), 'D6 nome que persiste = o filme volta ao caminho de hoje (envio e eco)')
+  // [revisor 19/11] reancorado: a volta ao caminho de hoje mora em voltaAoHoje1911 (sem descrição, as cenas originais, sem o sujeito no último plano, e o evento)
+  no(!rota.includes("else if ((rA2.nomes_depois ?? []).length) voltaAoHoje1911('nome_persistiu')") || !rota.includes("parsedScript.segments.forEach((x) => { delete (x as { descricao?: unknown }).descricao }); kling4PromptsDasCenas1911.forEach((p, i) => { kling4Prompts[i] = p })") || !rota.includes("const caiNoHoje1911 = (r.nomes_depois ?? []).length > 0"), 'D6 nome que persiste = o filme volta ao caminho de hoje (envio e eco)')
   return p
 }
 
@@ -190,12 +192,12 @@ const MUT = [
   ['juiz: negação conta', LIB, (s) => s.replace('if (!NEGADO_ANTES.test(a.slice(Math.max(0, (m.index ?? 0) - 40), m.index ?? 0))) return true', 'return true')],
   ['juiz: sujeito vazio anula', LIB, (s) => s.replace("  if (!planos?.length || Array.from(d.replace(/[^\\p{L}\\p{N}]+/gu, '')).length < 3) return false\n", "  if (!planos?.length) return false\n")],
   ['rota: a mesma seção 2 vezes', ROTA, (s) => s.replace("        if (fora.some((f) => pedidas.includes(f.secao))) return { descricoes: null, pedidas, motivo: 'descricao_nao_cabe_depois_de_pedir_de_novo' }", '        if (false) return { descricoes: null, pedidas, motivo: \'x\' }')],
-  ['rota: sem teto de tempo', ROTA, (s) => s.replace("const resta = DESCRICAO_DE_NOVO_TETO_MS - (Date.now() - t0); if (resta <= 0) return Promise.reject(new Error('prazo'));", 'return p;')],
+  ['rota: sem teto de tempo', ROTA, (s) => s.replace("if (resta <= 0) total.estourou = true; if (resta <= 0) return Promise.reject(new Error('prazo')); let tm: ReturnType<typeof setTimeout> | null = null; return Promise.race([p,", "return p; let tm: ReturnType<typeof setTimeout> | null = null; return Promise.race([p,")], // [revisor 19/11] reancorado: o prazo agora também respeita o teto somado do A1/A2
   ['juiz contraditório vale', LIB, (s) => s.replace(" && !(f === 'd_sujeito' && sujeitoDoJuizEscrito(v, extra.planos))", '')],
   ['a ficha em todo plano reescreve', LIB, (s) => s.replace(" && !(f === 'a_ficha' && apontados.length >= nSecoes))", ')')],
   ['nota antiga', LIB, (s) => s.replace(' Each shot keeps exactly who and what its own narration line says; add only what was missing.', ' Show that subject clearly, doing what each narration line says.')],
   ['nome não é conferido de novo', LIB, (s) => s.replace('    if (a.nomesDeNovo && comNome.length) {', '    if (false) {')],
-  ['rota: nome que persiste segue', ROTA, (s) => s.replace("        if ((rA2.nomes_depois ?? []).length) { parsedScript.segments.forEach((x) => { delete (x as { descricao?: unknown }).descricao }); kling4PromptsDasCenas1911.forEach((p, i) => { kling4Prompts[i] = p }) }", '        if (false) {}')],
+  ['rota: nome que persiste segue', ROTA, (s) => s.replace("        else if ((rA2.nomes_depois ?? []).length) voltaAoHoje1911('nome_persistiu')", '        else if (false) {}')], // [revisor 19/11] reancorado: a volta mora em voltaAoHoje1911
 ]
 const p0 = await prova()
 if (p0.length) { console.error('FAIL test-a2-ensaio-volta-1911:\n  ' + p0.join('\n  ')); process.exit(1) }

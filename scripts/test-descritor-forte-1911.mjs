@@ -43,14 +43,15 @@ async function prova(over = {}) {
   let L, Q
   try { L = load('@/' + LIB); Q = load('@/' + QP) } catch (e) { return [`libs não carregam: ${e.message}`] }
   // ── A · a lib ──
-  no(L.KLING4_DESCRITOR_FORTE_1911 !== 'internal' || L.KLING4_PLANO_DA_FALA_1911 !== 'internal', 'A0 estado de publicação: os dois em internal (só a casa). public = só com revisor independente + prova paga + sim do dono')
+  // [revisor 19/11, "pode com condição"] o modo novo 'sem_ficha' é aceito (o cliente só abre sem ficha nas cenas); 'public' continua só com revisor + prova paga + sim do dono
+  no(!['internal', 'sem_ficha'].includes(L.KLING4_DESCRITOR_FORTE_1911) || !['internal', 'sem_ficha'].includes(L.KLING4_PLANO_DA_FALA_1911), 'A0 estado de publicação: os dois em internal (só a casa) ou sem_ficha (o cliente só sem ficha). public = só com revisor independente + prova paga + sim do dono')
   // [CEO 19/11] com os dois em 'internal', o cliente de fora recebe EXATAMENTE o caminho de hoje: as duas portas fecham para e-mail que não é da casa e
   // toda peça nova da rota está atrás delas (a descrição por seção, o eco do dry_run e a revisão do A2)
-  no(L.planoDaFalaLigado(L.KLING4_PLANO_DA_FALA_1911, false) || L.planoDaFalaLigado(L.KLING4_DESCRITOR_FORTE_1911, false), 'F1 cliente de fora: as duas portas fecham (o caminho de hoje)')
+  no([L.KLING4_PLANO_DA_FALA_1911, L.KLING4_DESCRITOR_FORTE_1911].some((m) => (m === 'internal' ? L.planoDaFalaLigado(m, false) : !(L.planoDaFalaLigado(m, false) && L.soSemFicha(m, false)))), 'F1 cliente de fora: em internal as duas portas fecham (o caminho de hoje); em sem_ficha só abrem com a guarda da ficha')
   no(!L.planoDaFalaLigado(L.KLING4_PLANO_DA_FALA_1911, true) || !L.planoDaFalaLigado(L.KLING4_DESCRITOR_FORTE_1911, true), 'F2 conta da casa: as duas abrem (o ensaio)')
   { const rr = over[ROTA] ?? read(ROTA)
     no(!rr.includes('const kling4DescritorForte1911 = kling4TrialCandidate && verbatim && planoDaFalaLigado(KLING4_DESCRITOR_FORTE_1911, isDryRunAccount(user.email))') || !rr.includes('(kling4TrialCandidate && verbatim && planoDaFalaLigado(KLING4_PLANO_DA_FALA_1911, isDryRunAccount(user.email))'), 'F3 as portas da rota leem o e-mail da conta, pela régua EXATA do ensaio (isDryRunAccount)')
-    no(!rr.includes('const descricoesDasSecoesK4: Promise<(string | null)[]> | null = kling4PlanoDaFala1911\n      ?') || !rr.includes("const a2Ensaio1911 = kling4DescritorForte1911 && descricoesDasSecoesK4 && motor1411.kling4 ?") || !rr.includes('if (kling4DescritorForte1911 && descricoesDasSecoesK4) promptsDeCenaInteira(') || !rr.includes('if (descricoesDasSecoesK4) { const c1911 = await completarDescricoes1911('), 'F4 toda peça nova está atrás das portas (porta fechada = nenhuma chamada, nenhuma mudança)') }
+    no(!rr.includes('const descricoesDasSecoesK4: Promise<(string | null)[]> | null = kling4PlanoDaFala1911\n      ?') || !rr.includes("const a2Ensaio1911 = kling4DescritorForte1911 && descricoesDasSecoesK4 && motor1411.kling4 ?") || !rr.includes('if (kling4DescritorForte1911 && descricoesDasSecoesK4) promptsDeCenaInteira(') || !rr.includes('    if (descricoesDasSecoesK4) {\n      const soSemFicha1911 = soSemFicha('), /* [revisor 19/11] reancorado: o bloco da descrição começa pela guarda da ficha */ 'F4 toda peça nova está atrás das portas (porta fechada = nenhuma chamada, nenhuma mudança)') }
   // [revisor 19/11, 2ª volta, item 1] a régua larga da casa (isInternalEmail) abre para e-mail parecido: um render REAL de quem não é da casa entraria no A1/A2.
   // As portas usam isDryRunAccount (a lista exata do ensaio: hoje 1 e-mail, o do fundador): e-mail parecido NÃO abre.
   { let D, I
@@ -104,11 +105,11 @@ async function prova(over = {}) {
   no(!rota.includes('true, true, kling4DescritorForte1911 ? MODELO_DO_DESCRITOR_FORTE : undefined, (u) => { usosDoDescritorA2.push(u) })'), 'D2 a chamada por seção usa o modelo forte só com o A2 (e mede os tokens)')
   no(!rota.includes("if (kling4DescritorForte1911 && descricoesDasSecoesK4) promptsDeCenaInteira(kling4PromptsDasCenas1911, parsedScript.segments, scenes.map((s) => s.voiceover ?? '')).forEach((p, i) => { kling4Prompts[i] = p })"), 'D3 no A2 a cena de uma seção só nasce da sua descrição')
   no(!rota.includes('const kling4PromptsDasCenas1911 = [...kling4Prompts]') || (rota.match(/promptsDeCenaInteira\(kling4PromptsDasCenas1911,/g) ?? []).length !== 3, 'D4 a reescrita parte sempre dos prompts originais das cenas (e refaz depois da reescrita e da ficha reprovada, KINEO-FICHA-REPROVADA-1911)')
-  const iEnvio = rota.indexOf('const kling4EnvioDoFilme = () =>'), iJuiz = rota.indexOf('const rA2 = await revisarA2DoFilme(false, sujeitoA21911)'), iPago = rota.indexOf('kling4Trial = await orchestrateKling4Trial({')
+  const iEnvio = rota.indexOf('const kling4EnvioDoFilme = () =>'), iJuiz = rota.indexOf('revisarA2DoFilme(false, sujeitoA21911)') /* [revisor 19/11] reancorado: a revisão agora corre dentro do prazo */, iPago = rota.indexOf('kling4Trial = await orchestrateKling4Trial({')
   no(!(iEnvio > 0 && iJuiz > iEnvio && iPago > iJuiz), 'D5 o juiz do A2 roda depois de montar os planos e ANTES da reserva e do POST pago')
   const bloco = rota.slice(iJuiz, iPago)
   no(!rota.includes('A2_TETO_DO_JUIZ_MS)\n    const reescreverA2') || !rota.includes('nSecoes: parsedScript.segments.length, rejulgar, julgar: julgarA2, nomes: (planos) => planosComNomeProprio(planos, { hoje: hojeDoNome1911(), pedido:') || !rota.includes('`${topicoDoDescritorA2(body.original_idea, prompt)}\\n\\n${nota}`, classicVisualPolicy, { numeros: alvo.map((j) => j + 1), total: parsedScript.segments.length }'), 'D6 o juiz tem teto; revisão única (juiz + nome próprio); só as seções apontadas reescritas, pelo modelo forte, com a nota junto do Topic')
-  no(!/catch \(err\) \{ console\.warn\('\[cinematic\] KINEO-DESCRITOR-FORTE-1911/.test(bloco), 'D7 erro no juiz ou na reescrita não derruba o filme')
+  no(!/catch \(err\) \{ voltaAoHoje1911\([^;]*\); console\.warn\('\[cinematic\] KINEO-DESCRITOR-FORTE-1911/.test(bloco), 'D7 erro no juiz ou na reescrita não derruba o filme: volta ao caminho de hoje (revisor 19/11: antes seguia com os planos meio revistos)')
   // ── E · o ensaio pelo dry_run, nome próprio, Topic, custo e 'internal' só para a casa ──
   const iDry = rota.indexOf('const a2Ensaio1911 = kling4DescritorForte1911 && descricoesDasSecoesK4 && motor1411.kling4 ?'), iRef = rota.indexOf("const refunded = await releaseBirthClaim('dry_run_no_charge')")
   no(!(iDry > 0 && iRef > iDry && rota.includes('...(a2Ensaio1911 ? { a2_ensaio: a2Ensaio1911 } : {}),')), 'E1 o dry_run devolve o ensaio do A2 (antes de liberar o crédito, sem POST)')
@@ -158,7 +159,7 @@ async function prova(over = {}) {
     const pl = ['Photoreal film. Metal Sonic rewrites history in a workshop.', 'Photoreal film. A fast blue hedgehog runs through hills.', 'Photoreal film. A cat leaps.', 'Photoreal film. Identity: the boy, a blocky Roblox boy. The boy runs home.']
     const r1 = await Ln.planosComNomeProprio(pl, { apiKey: 'x', fetchImpl: fakeFetch([{ plano: 1, nome: 'Metal Sonic', tipo: 'third_party_character' }, { plano: 2, nome: 'Sonic', tipo: 'third_party_character' }, { plano: 3, nome: 'Garfield', tipo: 'third_party_character' }, { plano: 4, nome: 'Roblox', tipo: 'third_party_brand' }]) })
     no(JSON.stringify(r1) !== '[0]', `E10 nome próprio só com a citação presente no texto do plano (inventado = descartado) (${JSON.stringify(r1)})`)
-    no((await Ln.planosComNomeProprio(pl, { apiKey: 'x', fetchImpl: async () => { throw new Error('x') } })).length, 'E11 falha da pergunta = nada') }
+    no((await Ln.planosComNomeProprio(pl, { apiKey: 'x', fetchImpl: async () => { throw new Error('x') } })) !== null, 'E11 [revisor 19/11, condição 4] falha da pergunta = null (sem checagem: o plano volta ao texto de hoje), nunca "nenhum nome"') }
   { const chamadas = []; let seg = ['a', 'b', 'c', 'd']
     const r = await L.revisarPlanosA2({ planos: () => seg.map((x) => `plano ${x}`), falas: () => seg, nSecoes: 4, rejulgar: true,
       julgar: async (p) => { chamadas.push(['juiz', p.join('|')]); return chamadas.filter((c) => c[0] === 'juiz').length === 1 ? { status: 'JUDGED', falhas: ['d_sujeito'], cenas_reescreveria: [2], d_sujeito: 'x' } : { status: 'JUDGED', falhas: [], cenas_reescreveria: [] } },
@@ -211,7 +212,7 @@ const MUT = [
   ['eco grava evento com os planos', ROTA, (s) => s.replace('        const juizes = [vHoje, r.veredito, r.vereditoFinal, vInjetado] as Array<JuizPlanoVeredito | null>', '        void writeServerEvent({ name: A2_EVENTO, userId: user.id, path: \'/x\', sessionId: generationId, metadata: { planos: atual.planos } })\n        const juizes = [vHoje, r.veredito, r.vereditoFinal, vInjetado] as Array<JuizPlanoVeredito | null>')],
   ['seções copiadas na definição', ROTA, (s) => s.replace('    const kling4PorSecao = (a: {', '    const secoesNaDefinicao1911 = parsedScript.segments.map((x) => ({ ...x })); const kling4PorSecao = (a: {').replace('secoes: parsedScript.segments, objetoConcreto: kling4PlanoVariado })', 'secoes: secoesNaDefinicao1911, objetoConcreto: kling4PlanoVariado })')],
   ['lib: preço errado', LIB, (s) => s.replace("'gpt-4o': { entrada: 2.5e-6, saida: 10e-6 }", "'gpt-4o': { entrada: 0.15e-6, saida: 0.6e-6 }")],
-  ['lib: internal para todos', LIB, (s) => s.replace("return modo === 'public' || (modo === 'internal' && contaDaCasa === true)", "return modo === 'public' || modo === 'internal'")],
+  ['lib: internal para todos', LIB, (s) => s.replace("return modo === 'public' || modo === 'sem_ficha' || (modo === 'internal' && contaDaCasa === true)", "return modo === 'public' || modo === 'sem_ficha' || modo === 'internal'")],
 ]
 
 const r0 = await prova()

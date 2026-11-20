@@ -22,6 +22,7 @@ export const dynamic = 'force-dynamic'
 const SERVER_ONLY_EVENTS = new Set([
   'cinematic_segunda_leitura', // KINEO-SEGUNDA-LEITURA-DA-GENTE-1911 (B1c) — quem a 2ª leitura trocou de tipo (nome do personagem, nunca texto do cliente; só o servidor grava)
   'kling4_ficha_reprovada', // KINEO-FICHA-REPROVADA-1911 — o que a ficha reprovada pelo juiz virou antes do motor (ação e vereditos; nunca texto)
+  'kling4_plano_da_fala_hoje', // [revisor 19/11] KINEO-PLANO-DA-FALA-1911 — o A1/A2 caiu no caminho de hoje e o motivo (só o servidor grava)
   'kling4_descritor_forte', // KINEO-DESCRITOR-FORTE-1911 (A2) — o veredito do juiz antes do envio e as seções reescritas (só o servidor grava)
   // KINEO-RECREATE-MOVIMENTO-1411 — os dois passos do molde de movimento e a leitura da foto (só o servidor grava).
   'recreate_movimento_cena',
