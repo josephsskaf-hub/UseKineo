@@ -1,4 +1,4 @@
-import { looksLikeModelRefusal } from '@/lib/modelRefusal' // KINEO-RECUSA-IA-2011 — a recusa do modelo nunca vira roteiro nem prompt de vídeo
+import { looksLikeModelRefusal, registrarRecusaDoModelo } from '@/lib/modelRefusal' // KINEO-RECUSA-IA-2011 — a recusa do modelo nunca vira roteiro nem prompt de vídeo
 import { narrationWordCount } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATOS-2410
 // KINEO-BEBE-QUE-FALA-2010 — POST /api/kids-cartoon/story: escreve a HISTÓRIA do "AI Kids Cartoon Stories" (template de 1 clique).
 //
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
         { timeout: OPENAI_SCRIPT_TIMEOUT_MS, maxRetries: 0 },
       )
       texto = completion.choices[0]?.message?.content?.trim() ?? ''
-      if (looksLikeModelRefusal(texto)) texto = '' // KINEO-RECUSA-IA-2011 — a recusa do escritor = história vazia (o 502 de sempre, nada cobrado), nunca o desenho narrando a recusa
+      if (looksLikeModelRefusal(texto)) { registrarRecusaDoModelo(writeServerEvent, { guarda: 'desenho', rota: '/api/kids-cartoon/story', texto: texto, refunded: null, userId: user.id }); texto = '' } // KINEO-RECUSA-IA-2011 — a recusa do escritor = história vazia (o 502 de sempre, nada cobrado), nunca o desenho narrando a recusa
     } catch (err) {
       console.warn('[kids-cartoon/story] escritor falhou:', err instanceof Error ? err.message : String(err))
       return recusa(503, lang === 'pt' ? 'O escritor está ocupado agora. Nada foi cobrado — tente de novo em um minuto.' : 'The story writer is busy right now. Nothing was charged — try again in a minute.', 'writer_unavailable')

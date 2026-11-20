@@ -250,5 +250,20 @@ export function reescritaSemRecusa(antes: string | null | undefined, depois: str
   return depois
 }
 
+/** KINEO-RECUSA-IA-2011 VOLTA 4 (b) — o nome do evento de toda guarda de recusa. */
+export const MODEL_REFUSAL_EVENT = 'model_refusal_blocked'
+/**
+ * Grava o disparo de uma guarda pelo mecanismo de eventos da rota (writeServerEvent, injetado: este arquivo não importa nada).
+ * Leva a guarda, a rota, os primeiros 120 caracteres do texto barrado e se houve estorno. Gravar nunca quebra o fluxo.
+ */
+export function registrarRecusaDoModelo(
+  gravar: (e: { name: string; userId: string | null; path: string; metadata: Record<string, unknown> }) => Promise<unknown>,
+  args: { guarda: string; rota: string; texto: unknown; refunded: boolean | null; userId?: string | null },
+): void {
+  try {
+    void Promise.resolve(gravar({ name: MODEL_REFUSAL_EVENT, userId: args.userId ?? null, path: args.rota, metadata: { version: 'recusa_ia_2011', guarda: args.guarda, rota: args.rota, head: String(args.texto ?? '').slice(0, 120), refunded: args.refunded } })).catch(() => false)
+  } catch { /* nunca quebra o fluxo */ }
+}
+
 export const MODEL_REFUSAL_MESSAGE =
   'The writer could not turn this idea into a script (the AI declined the topic). Nothing was charged — try rewording the idea, or paste your own script with "Use my script as is".'

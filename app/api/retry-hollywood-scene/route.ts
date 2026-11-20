@@ -2,7 +2,7 @@
 // Provider ambiguity retains ownership: no blind re-POST or automatic refund.
 // KINEO-CENA-CLASSICA-2026-09-28 — EXCEÇÃO na família clássica (Seedance 1.5, Kling 2.5, Veo 3.1): a cena perdida é
 // sobrevivível, então a ambiguidade SOLTA o mutex e o filme segue com as cenas prontas (ver o bloco da família clássica).
-import { looksLikeModelRefusal } from '@/lib/modelRefusal' // KINEO-RECUSA-IA-2011 — a recusa do modelo nunca vira prompt de vídeo
+import { looksLikeModelRefusal, registrarRecusaDoModelo } from '@/lib/modelRefusal' // KINEO-RECUSA-IA-2011 — a recusa do modelo nunca vira prompt de vídeo
 import { createHash } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
@@ -39,6 +39,7 @@ async function softenPromptForModeration(prompt: string): Promise<string> {
       ],
     }, { timeout: SANITIZE_TIMEOUT_MS, maxRetries: 0 })
     const out = (r.choices[0]?.message?.content ?? '').trim()
+    if (out.length >= 20 && looksLikeModelRefusal(out)) registrarRecusaDoModelo(writeServerEvent, { guarda: 'retentar_cena', rota: '/api/retry-hollywood-scene', texto: out, refunded: null, userId: null }) // KINEO-RECUSA-IA-2011 VOLTA 4
     return out.length >= 20 && out.length <= Math.min(prompt.length * 1.5, 6000) && !looksLikeModelRefusal(out) ? out : prompt // KINEO-RECUSA-IA-2011 — a recusa do reescritor nunca vai ao motor: segue o prompt assinado, como em qualquer erro
   } catch { return prompt }
 }

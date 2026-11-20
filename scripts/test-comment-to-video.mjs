@@ -102,6 +102,7 @@ function request(body, ip) {
 const calls = []
 const liveRoute = executeTs('app/api/demo-script/route.ts', {
   '@/lib/modelRefusal': modelRefusal2011, // reancorado KINEO-RECUSA-IA-2011 — a rota da demo troca a recusa do modelo pelo roteiro do banco fixo (régua real, sem mock)
+  '@/lib/serverEvents': { writeServerEvent: async () => true }, // reancorado KINEO-RECUSA-IA-2011 VOLTA 4 — o registro da guarda (model_refusal_blocked)
   'next/server': { NextResponse: responseMock() },
   '@/lib/openai': {
     openai: { chat: { completions: { async create(payload) { calls.push(payload); return { choices: [{ message: { content: rawScript } }] } } } } },
@@ -136,6 +137,7 @@ equal(calls.length, 3, 'blank comment makes no OpenAI call')
 
 const quotaRoute = executeTs('app/api/demo-script/route.ts', {
   '@/lib/modelRefusal': modelRefusal2011, // reancorado KINEO-RECUSA-IA-2011 — a rota da demo troca a recusa do modelo pelo roteiro do banco fixo (régua real, sem mock)
+  '@/lib/serverEvents': { writeServerEvent: async () => true }, // reancorado KINEO-RECUSA-IA-2011 VOLTA 4 — o registro da guarda (model_refusal_blocked)
   'next/server': { NextResponse: responseMock() },
   '@/lib/openai': {
     openai: { chat: { completions: { async create() { throw new Error('quota') } } } },

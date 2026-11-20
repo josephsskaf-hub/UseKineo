@@ -1673,10 +1673,15 @@ async function manipularPost(req: NextRequest) {
     // cliente o filme nasce da IDEIA, como se a tela a tivesse mandado sozinha; sem ela, 422 e nada é cobrado.
     // VOLTA 3 [correção da CEO 20/11]: em "Use my script as is" (verbatim) o texto é do CLIENTE, não do modelo — passa como veio, sem esta guarda.
     const verbatimDoCliente2011 = typeof body.script_mode === 'string' && body.script_mode.toLowerCase() === 'verbatim'
+    // VOLTA 4 (b): todo disparo de guarda de recusa grava model_refusal_blocked (guarda, rota, 120 caracteres do texto barrado, se houve estorno);
+    // gravar nunca quebra o fluxo (writeServerEvent já engole erro; o try/catch e o .catch são a segunda rede).
+    const registrarRecusa2011 = (guarda: string, texto: unknown, refunded: boolean | null, extra: Record<string, unknown> = {}): void => {
+      try { void writeServerEvent({ name: 'model_refusal_blocked', userId: user.id, path: '/api/generate-video-cinematic', metadata: { version: 'recusa_ia_2011', guarda, rota: '/api/generate-video-cinematic', head: String(texto ?? '').slice(0, 120), refunded, generation_id: typeof body.generationId === 'string' ? body.generationId : null, dry_run: body.dry_run === true, ...extra } }).catch(() => false) } catch { /* nunca quebra o fluxo */ }
+    }
     if (!verbatimDoCliente2011 && looksLikeModelRefusal(body.prompt)) {
       const ideiaDoCliente2011 = typeof body.original_idea === 'string' && body.original_idea.trim() && !looksLikeModelRefusal(body.original_idea) ? body.original_idea.trim() : null
       const usarIdeia2011 = !!ideiaDoCliente2011
-      void writeServerEvent({ name: 'model_refusal_blocked', userId: user.id, path: '/api/generate-video-cinematic', metadata: { version: 'recusa_ia_2011', stage: 'intake', outcome: usarIdeia2011 ? 'idea_used' : 'refused', head: String(body.prompt).slice(0, 120), idea_chars: ideiaDoCliente2011?.length ?? 0, generation_id: typeof body.generationId === 'string' ? body.generationId : null, dry_run: body.dry_run === true } })
+      registrarRecusa2011('entrada', body.prompt, false, { outcome: usarIdeia2011 ? 'idea_used' : 'refused', idea_chars: ideiaDoCliente2011?.length ?? 0 })
       if (!usarIdeia2011 || !ideiaDoCliente2011) return NextResponse.json({ error: MODEL_REFUSAL_MESSAGE, reason: 'model_refused_topic', code: 'model_refused_topic', charged: false, retryable: false }, { status: 422 })
       body.prompt = ideiaDoCliente2011
     }
@@ -3361,11 +3366,11 @@ async function manipularPost(req: NextRequest) {
     releaseActiveBirthClaim = releaseBirthClaim
     // KINEO-RECUSA-IA-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — o escritor de cenas (generateScenes) devolveu a recusa como
     // fala de uma cena: o crédito volta pelo estorno de sempre (confirmCinematicRefund + releaseBirthClaim) e nenhuma cena vai ao motor.
-    const recusaDoEscritorDeCenas2011 = async (falas: ReadonlyArray<string | null | undefined>): Promise<NextResponse | null> => {
+    const recusaDoEscritorDeCenas2011 = async (falas: ReadonlyArray<string | null | undefined>, guarda: 'cenas' | 'planejador' = 'cenas'): Promise<NextResponse | null> => {
       if (!algumaRecusaDoModelo(falas)) return null
       const refunded = await confirmCinematicRefund()
       const released = refunded && await releaseBirthClaim('model_refused_topic')
-      void writeServerEvent({ name: 'model_refusal_blocked', userId: user.id, path: '/api/generate-video-cinematic', metadata: { version: 'recusa_ia_2011', stage: 'scene_writer', outcome: refunded ? 'refunded' : 'refund_pending', head: String(falas.find((f) => typeof f === 'string' && looksLikeModelRefusal(f)) ?? '').slice(0, 120), generation_id: generationId, dry_run: body.dry_run === true } })
+      registrarRecusa2011(guarda, falas.find((f) => typeof f === 'string' && looksLikeModelRefusal(f)), refunded, { outcome: refunded ? 'refunded' : 'refund_pending', generation_id: generationId })
       return NextResponse.json({
         error: refunded ? 'The writer could not turn this idea into a script (the AI declined the topic). Your credits were returned — try rewording the idea, or paste your own script with "Use my script as is".' : 'The writer could not turn this idea into a script (the AI declined the topic). Your automatic credit refund is still being confirmed.',
         reason: 'model_refused_topic', code: 'model_refused_topic', generationId, refunded, refundConfirmed: refunded, claimReleased: released, retryable: false,
@@ -3374,8 +3379,8 @@ async function manipularPost(req: NextRequest) {
     // KINEO-RECUSA-IA-2011 VOLTA 3 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — os REESCRITORES de fala (expandVoiceoversToTargets,
     // appendNarrationToTargets) e de plano (alignShotsToSpeech): saída que é recusa, ou que ANEXOU uma recusa, vira '' / sai da lista — o chamador fica com o
     // texto de ANTES da reescrita, como em qualquer falha deles (sem 422 e sem cobrar).
-    const reescritaComGuarda2011 = async <A extends ReadonlyArray<{ text: string }>, R extends unknown[]>(reescrever: (itens: A, ...resto: R) => Promise<string[]>, itens: A, ...resto: R): Promise<string[]> => (await reescrever(itens, ...resto)).map((nova, k) => reescritaSemRecusa(itens[k]?.text ?? '', nova))
-    const alinhamentoSemRecusa2011 = <T extends { rewritten: Array<{ shot: string }> }>(alinhado: T | null): T | null => (alinhado ? { ...alinhado, rewritten: alinhado.rewritten.filter((c) => reescritaSemRecusa('', c.shot) !== '') } : alinhado)
+    const reescritaComGuarda2011 = async <A extends ReadonlyArray<{ text: string }>, R extends unknown[]>(reescrever: (itens: A, ...resto: R) => Promise<string[]>, itens: A, ...resto: R): Promise<string[]> => (await reescrever(itens, ...resto)).map((nova, k) => { const fica = reescritaSemRecusa(itens[k]?.text ?? '', nova); if (!fica && typeof nova === 'string' && nova.trim()) registrarRecusa2011('reescritor_fala', nova, false); return fica })
+    const alinhamentoSemRecusa2011 = <T extends { rewritten: Array<{ shot: string }> }>(alinhado: T | null): T | null => (alinhado ? { ...alinhado, rewritten: alinhado.rewritten.filter((c) => { const fica = reescritaSemRecusa('', c.shot) !== ''; if (!fica) registrarRecusa2011('reescritor_plano', c.shot, false); return fica }) } : alinhado)
     // ═══ KINEO-FILA-QUEDA-FAL-2810 — ESTACIONAR em vez de perder (fal sem saldo / capacidade) ═══
     // Chamado nas DUAS saídas de "nenhuma cena aceita" (Hollywood FAILFAST e clássico zero aceitas), DEPOIS do estorno
     // confirmado. Só estaciona quando toda recusa explícita é saldo (balance_quota) ou capacidade (rate_limit/429) e nenhuma
@@ -4481,7 +4486,7 @@ async function manipularPost(req: NextRequest) {
         console.warn('[cinematic] #441 description generation skipped:', e instanceof Error ? e.message : String(e))
       }
       const completas = completeSceneDescriptions({
-        descriptions: cobertura.descriptions.map((d, i) => (d && !looksLikeModelRefusal(d) ? d : null) ?? scenes[i].aiPrompt ?? null), // prosa já existente (planner do zero-scenes) vale como descrição · KINEO-RECUSA-IA-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]: descrição que é recusa do descritor = sem descrição (o complemento de sempre, nunca a frase ao motor)
+        descriptions: cobertura.descriptions.map((d, i) => (d && looksLikeModelRefusal(d) ? (registrarRecusa2011('descritor', d, false), null) : d ?? null) ?? scenes[i].aiPrompt ?? null), // prosa já existente (planner do zero-scenes) vale como descrição · KINEO-RECUSA-IA-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]: descrição que é recusa do descritor = sem descrição (o complemento de sempre, nunca a frase ao motor)
         scenes: scenes.map((s) => ({ voiceover: s.voiceover, hint: s.stockSearchQuery || s.description })),
         topic: prompt,
       })
@@ -5014,9 +5019,11 @@ async function manipularPost(req: NextRequest) {
       }
       // KINEO-RECUSA-IA-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — VOLTA 2 (revisão 20/11): o planejador hollywood (e cada
       // replano) escreve fala, diálogo e prompt que vão ao motor. Recusa em qualquer um deles = o estorno de sempre e 422, antes de qualquer POST.
+      // VOLTA 4 (a): em verbatim o planejador reaproveita o roteiro do CLIENTE na fala (lib/hollywood/router.ts) e a C1 só o repõe depois — a fala
+      // não é julgada ("I can't do that. Not for money…" do cliente passa); prompt e dialogueLine continuam julgados.
       // VOLTA 3: a dialogueLine é FALA DE PERSONAGEM ("I'm afraid I can't do that." passa); só conta quando é, inteira, a recusa do modelo sobre o pedido ou o
       // conteúdo (recusaNaFalaDePersonagem). Fala e prompt seguem com a régua completa; do prompt sai a própria dialogueLine citada, para não julgá-la duas vezes.
-      const recusaDoPlanejador2011 = await recusaDoEscritorDeCenas2011(plan.scenes.flatMap((sc) => [sc.voiceover, sc.dialogueLine ? sc.prompt.split(sc.dialogueLine).join(' ') : sc.prompt, recusaNaFalaDePersonagem(sc.dialogueLine) ? sc.dialogueLine : null])) // KINEO-RECUSA-IA-2011
+      const recusaDoPlanejador2011 = await recusaDoEscritorDeCenas2011(plan.scenes.flatMap((sc) => [verbatimDoCliente2011 ? null : sc.voiceover, sc.dialogueLine ? sc.prompt.split(sc.dialogueLine).join(' ') : sc.prompt, recusaNaFalaDePersonagem(sc.dialogueLine) ? sc.dialogueLine : null]), 'planejador') // KINEO-RECUSA-IA-2011
       if (recusaDoPlanejador2011) return recusaDoPlanejador2011 // KINEO-RECUSA-IA-2011
 
       // ═══ KINEO-CONTRATO-2026-08-18 — Cláusulas 1+2 (docs/CONTRATO-HOLLYWOOD.md)

@@ -5,7 +5,7 @@
 // validador puro (lib/ads/scriptPrompt.ts: nenhum número fora do brief, contato exato na última batida, faixa de
 // palavras do modelo) e a versão que falha é descartada. A pessoa escolhe e grava pelo PATCH de /api/ads/orders.
 // Custo: gpt-4o-mini, ~US$ 0,002 por chamada.
-import { looksLikeModelRefusal } from '@/lib/modelRefusal' // KINEO-RECUSA-IA-2011 — a recusa do modelo nunca vira roteiro nem prompt de vídeo
+import { looksLikeModelRefusal, registrarRecusaDoModelo } from '@/lib/modelRefusal' // KINEO-RECUSA-IA-2011 — a recusa do modelo nunca vira roteiro nem prompt de vídeo
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai'
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
       { timeout: 22000, maxRetries: 0 },
     )
     let raw = completion.choices[0]?.message?.content ?? ''
-    const semRecusa2011 = (v: ReturnType<typeof parseAdsScriptOutput>) => (v && v.some((x) => looksLikeModelRefusal(x.script)) ? null : v) // KINEO-RECUSA-IA-2011 — versão que é recusa do modelo = nenhuma versão (a correção de sempre, depois o 502)
+    const semRecusa2011 = (v: ReturnType<typeof parseAdsScriptOutput>) => { const recusa = v?.find((x) => looksLikeModelRefusal(x.script)); if (!recusa) return v; registrarRecusaDoModelo(writeServerEvent, { guarda: 'anuncio_studio', rota: '/api/ads/script', texto: recusa.script, refunded: null, userId: user.id }); return null } // KINEO-RECUSA-IA-2011 — versão que é recusa do modelo = nenhuma versão (a correção de sempre, depois o 502)
     let versions = semRecusa2011(parseAdsScriptOutput(raw, model, brief.value))
     // KINEO-STUDIO-ADS-SELF-SERVE-2026-09-24 — segunda tentativa com o MOTIVO (teste da padaria: 0 de 6 versões
     // passavam na primeira). Mesma chamada, mesmo validador; conta como um pedido no teto diário.
