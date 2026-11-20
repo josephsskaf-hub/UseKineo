@@ -95,6 +95,28 @@ function prova(over = {}) {
     const nada = A.elencoSemFichaCortada(elenco, A.novaFichaCortada())
     no(nada.length !== 2 || nada.some((f, i) => f !== elenco[i]), 'G5 nada cortado: o elenco da folha de sempre')
     no(A.elencoSemFichaCortada([{ nome: 'Dan' }], cortada).length !== 1, 'G5b nome por palavra inteira: "Dan" não é "Daniel"') }
+  // [revisor 20/11, rv22] só o DONO da ficha cortada sai do elenco da folha (o nome que ABRE a ficha), nome mais longo primeiro, sem caixa
+  { const pers = (nome, canonica) => ({ nome, nucleo: nome, canonica, tipo: 'humano', protagonista: false, genero: null, apelidos: [] })
+    const CL = (c) => ` The same main character appears in this scene, consistent design: ${c}.`
+    const Fp = (t, c) => `Film visual medium: photorealistic. ${t}${c ?? ''} no readable text`
+    const folha = (cenas, elenco, quais) => { const fr = A.refazerPlanoDaFicha({ prompts: cenas, veredito: veredito(cenas.length, quais), pessoaDaIdeia: null, cortarFicha: true }); const fc = A.novaFichaCortada(); A.guardarFichaCortada(fc, cenas, fr.relato.refeitos); return { nomes: A.elencoSemFichaCortada(elenco, fc).map((f) => f.nome), fc } }
+    const casos22 = [
+      ['b1 Ana cortada: Ana Maria e Mariana ficam', [Fp('A woman waves.', CL('Ana, a woman in a red dress')), Fp('Two women talk.', CL('Ana Maria, an old woman')), Fp('A girl laughs.', CL('Mariana, a girl of 8'))], [pers('Ana', 'x'), pers('Ana Maria', 'y'), pers('Mariana', 'z')], [1], ['Ana Maria', 'Mariana']],
+      ['b2 Ana Maria cortada: a Ana fica (nome mais longo primeiro)', [Fp('A woman waves.', CL('Ana, a woman in a red dress')), Fp('Two women talk.', CL('Ana Maria, an old woman'))], [pers('Ana', 'x'), pers('Ana Maria', 'y')], [2], ['Ana']],
+      ['b3 Daniel cortado: o Dan fica', [Fp('A man walks.', CL('Daniel, a tall man')), Fp('A boy runs.', CL('Dan, a boy of 10'))], [pers('Daniel', 'x'), pers('Dan', 'y')], [1], ['Dan']],
+      ['b4 caixa e acento: "LÉON" na ficha é o Léon do elenco', [Fp('A man sits.', CL('LÉON, a man in a grey coat'))], [pers('Léon', 'x')], [1], []],
+      ["b5 só a Sarah cortada; a ficha dela cita \"Daniel's wife\": o Daniel fica", [Fp('A woman smiles.', CL("Sarah, Daniel's wife, a woman in her 30s")), Fp('A man walks.', CL('Daniel, a tall man in a coat'))], [pers('Sarah', 'x'), pers('Daniel', 'y')], [1], ['Daniel']],
+      ['b6 elenco nomeado "Aaron…; Ben…" cortado num plano: o Ben fica (a ficha dele estava certa no outro)', [Fp('Named character in this shot: Aaron, a soldier; Ben, a medic — clearly visible in frame. They run.'), Fp('A medic kneels.', CL('Ben, a medic'))], [pers('Aaron', 'x'), pers('Ben', 'y')], [1], ['Ben']],
+      ['b7 "the boy" no elenco recorrente: o dono com artigo', [Fp('A boy runs.', ' Recurring characters, identical face, hair and costume in every scene where they appear: the boy is exactly as the author wrote: "blocky boy"; appearance anchors: 8-12.')], [pers('boy', 'x'), pers('Emma', 'y')], [1], ['Emma']],
+    ]
+    for (const [nome, cenas, elenco, quais, fica] of casos22) { const r = folha(cenas, elenco, quais); no(JSON.stringify(r.nomes) !== JSON.stringify(fica), `G8 ${nome}: elenco da folha ${JSON.stringify(r.nomes)}, esperado ${JSON.stringify(fica)}`) }
+    // o plano refeito SEM corte de ficha (só a ordem saiu) não é guardado como cortado
+    const soOrdem = 'Film visual medium: photorealistic. The only person in this shot is the same main character (Daniel, a man in his thirties); any other person described below is replaced by this same character. Emily walks in the snow. no readable text'
+    const ro = A.refazerPlanoDaFicha({ prompts: [soOrdem], veredito: veredito(1, [1]), pessoaDaIdeia: null, cortarFicha: true })
+    const fo = A.novaFichaCortada(); A.guardarFichaCortada(fo, [soOrdem], [{ plano: 1, acao: 'sem_ordem' }, ...ro.relato.refeitos.filter((x) => x.ficha_cortada !== true)])
+    no(fo.indices.size !== 0 || fo.trechos.length !== 0, `G9 plano refeito sem corte de ficha (sem_ordem): não é guardado como cortado (${[...fo.indices]})`)
+    no(A.donoDaFicha('Identity: Mariana, a girl of 8', ['Ana', 'Mariana']) !== 'Mariana' || A.donoDaFicha('Identity: Sarah, Daniel\'s wife', ['Daniel']) !== null, 'G10 o dono é quem abre a ficha (palavra inteira), nunca quem aparece dentro') }
+  no(!rota.includes('.filter((c) => c.nomes.length > 0 && !fichaCortada1311.indices.has(c.indice) /* KINEO-FICHA-POR-PLANO-2011 [rv22]: plano cortado = still de texto, sem folha */).slice(0, PERSONAGEM_MAX_STILLS)'), 'W6 o plano cortado não ganha still com folha (a folha de quem ficou no elenco não vai ao plano cuja ficha foi cortada)')
   for (const x of C.recorrentes) {
     const r = A.refazerPlanoDaFicha({ prompts: x.cenas, veredito: veredito(x.cenas.length, x.contradiz), pessoaDaIdeia: null, cortarFicha: true })
     const cortada = A.novaFichaCortada(); A.guardarFichaCortada(cortada, x.cenas, r.relato.refeitos)
@@ -130,8 +152,14 @@ const MUT = [
   ['rota: régua larga da casa', ROTA, (s) => s.replace('cortarFicha: fichaPorPlanoLigada(FICHA_POR_PLANO_2011, isDryRunAccount(user.email))', 'cortarFicha: fichaPorPlanoLigada(FICHA_POR_PLANO_2011, isInternalEmail(user.email))')],
   ['rv21: o elenco recorrente não sai', REPROV, (s) => s.replace('const trechosDoPlano = (m: string): Trecho[] => [...trechosDaFicha(m), ...achados(m, ELENCO_DA_CENA_RE), ...achados(m, RECORRENTES_RE)]', 'const trechosDoPlano = (m: string): Trecho[] => [...trechosDaFicha(m), ...achados(m, ELENCO_DA_CENA_RE)]')],
   ['rv21: o corte não é guardado', ANTES, (s) => s.replace('    if (r.ficha_cortada !== true) continue\n', '    continue\n')],
-  ['rv21: a folha com todo o elenco', ANTES, (s) => s.replace('    return !cortada.trechos.some((t) => re.test(t))', '    return true')],
-  ['rv21: nome sem palavra inteira', ANTES, (s) => s.replace("    const re = new RegExp('(?<![\\\\p{L}\\\\p{N}])' + escapaNome(nome) + '(?![\\\\p{L}\\\\p{N}])', 'iu')", "    const re = new RegExp(escapaNome(nome), 'iu')")],
+  ['rv21: a folha com todo o elenco', ANTES, (s) => s.replace("  return elenco.filter((f) => !donos.has(String(f.nome ?? '')))", '  return [...elenco]')], // [rv22] reancorado: a regra do dono
+  ['rv22: nome sem palavra inteira', ANTES, (s) => s.replace("'^' + escapaNome(semArtigo(nome.trim())) + '(?![\\\\p{L}\\\\p{N}])', 'iu'", "'^' + escapaNome(semArtigo(nome.trim())), 'iu'")],
+  ['rv22: nome com caixa', ANTES, (s) => s.replace("'^' + escapaNome(semArtigo(nome.trim())) + '(?![\\\\p{L}\\\\p{N}])', 'iu'", "'^' + escapaNome(semArtigo(nome.trim())) + '(?![\\\\p{L}\\\\p{N}])', 'u'")],
+  ['rv22: o nome em qualquer lugar da ficha', ANTES, (s) => s.replace("new RegExp('^' + escapaNome(semArtigo(nome.trim()))", "new RegExp('(?<![\\\\p{L}\\\\p{N}])' + escapaNome(semArtigo(nome.trim()))")],
+  ['rv22: sem o nome mais longo primeiro', ANTES, (s) => s.replace('.sort((a, b) => semArtigo(b.trim()).length - semArtigo(a.trim()).length)', '')],
+  ['rv22: guarda também o plano refeito sem corte de ficha', ANTES, (s) => s.replace('    if (r.ficha_cortada !== true) continue\n', "    if (r.acao === 'nada') continue\n")],
+  ['rv22: sem tirar o rótulo da ficha', ANTES, (s) => s.replace("String(trecho ?? '').replace(ROTULO_DA_FICHA_RE, '').trimStart()", "String(trecho ?? '').trimStart()")],
+  ['rv22 rota: still com folha no plano cortado', ROTA, (s) => s.replace('.filter((c) => c.nomes.length > 0 && !fichaCortada1311.indices.has(c.indice) /* KINEO-FICHA-POR-PLANO-2011 [rv22]: plano cortado = still de texto, sem folha */).slice(0, PERSONAGEM_MAX_STILLS)', '.filter((c) => c.nomes.length > 0).slice(0, PERSONAGEM_MAX_STILLS)')],
   ['rv21 rota: a trava toca o plano cortado', ROTA, (s) => s.replace('if (c.nomes.length > 0 && !fichaCortada1311.indices.has(c.indice) /* KINEO-FICHA-POR-PLANO-2011 [rv21]: o plano cortado fica cortado */)', 'if (c.nomes.length > 0)')],
   ['rv21 rota: a folha com o elenco de antes', ROTA, (s) => s.replace('      const elencoP = elencoDaFolha1311 //', '      const elencoP = elencoDoAjuste //')],
   ['rv21 rota: guardado depois da troca', ROTA, (s) => s.replace('        guardarFichaCortada(fichaCortada1311, classicScenePrompts, fichaAntes.relato.refeitos) // KINEO-FICHA-POR-PLANO-2011 [rv21] — antes de trocar os prompts\n        if (fichaRefez1311) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = fichaAntes.prompts[i] // KINEO-FICHA-ANTES-DO-RENDER-1311\n', '        if (fichaRefez1311) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = fichaAntes.prompts[i] // KINEO-FICHA-ANTES-DO-RENDER-1311\n        guardarFichaCortada(fichaCortada1311, classicScenePrompts, fichaAntes.relato.refeitos) // KINEO-FICHA-POR-PLANO-2011 [rv21] — antes de trocar os prompts\n')],

@@ -66,3 +66,10 @@ Decisão da CEO em 20/11: opção A da medição do `descricao_nao_cabe` (PROPOS
 - **C:** manter a v2 (todos saem), que é segura, mas apaga a pessoa certa nos filmes com 2 ou mais pessoas.
 
 **O risco da A:** a citação é cortada em cerca de 100 caracteres, e um nome composto ou com artigo ("the boy") pede casar pelo núcleo do elenco. A prova seria um replay das 91 acusações antes de construir.
+
+## v3 [revisor 20/11, rv22: volta pequena]
+- **Só o dono da ficha cortada sai do elenco da folha:** é o nome que abre a ficha depois do rótulo ("consistent design: Sarah, …", "Identity: …", a ordem, "Named character in this shot: Aaron, …", "the boy is …"). O nome mais longo vem primeiro, sem caixa e em palavra inteira (`donoDaFicha`).
+- **Antes, qualquer nome dentro do trecho saía:** a "Ana" caía junto com a "Ana Maria"; o Daniel caía com "Sarah, Daniel's wife"; o Ben caía com "Aaron, a soldier; Ben, a medic".
+- **O plano cortado não ganha still com folha:** a folha de quem ficou no elenco (o Ben do b6) não vai ao plano cuja ficha foi cortada. Esse plano segue com o still de texto.
+
+**Limite (dito, não escondido):** o personagem cortado em um plano perde a folha no filme inteiro. Os outros planos dele seguem com a ficha de texto, a mesma que foi reprovada, no caso c: o Daniel cortado no plano 1 continua com a ficha dele, só em texto, no plano 2. É isso que justifica a proposta A acima (corte por pessoa, com o nome tirado da citação do juiz). O replay das 91 acusações fica para quando a CEO chamar.

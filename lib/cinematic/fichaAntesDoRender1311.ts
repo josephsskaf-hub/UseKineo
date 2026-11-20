@@ -51,15 +51,25 @@ export function guardarFichaCortada(alvo: FichaCortada, promptsAntes: ReadonlyAr
   }
 }
 const escapaNome = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-/** O elenco sem quem teve a ficha cortada: o nome (palavra inteira, sem caixa) aparece num trecho cortado. */
+/** [revisor 20/11, rv22] O rótulo que abre cada trecho de ficha; depois dele vem o DONO da ficha ("Daniel, …", "the boy is …"). */
+const ROTULO_DA_FICHA_RE = /^(?:The only person in this shot is the same main character \(|The same main character appears in this scene, consistent design:\s*|(?:Identity|Visible(?:, seen from behind)?):\s*|(?:Named )?[Cc]haracters? in this shot:\s*|Recurring characters, identical face, hair and costume in every scene where they appear:\s*)/u
+const semArtigo = (s: string) => s.replace(/^the\s+/iu, '')
+/** O dono de um trecho de ficha cortado: o nome do elenco que ABRE a ficha (nome mais longo primeiro, sem caixa, palavra inteira), ou null.
+ *  Quem só aparece DENTRO da ficha de outro ("Sarah, Daniel's wife", "Aaron, a soldier; Ben, a medic") não é o dono. */
+export function donoDaFicha(trecho: string, nomes: ReadonlyArray<string>): string | null {
+  const corpo = semArtigo(String(trecho ?? '').replace(ROTULO_DA_FICHA_RE, '').trimStart())
+  const porTamanho = [...nomes].filter((n) => semArtigo(String(n ?? '').trim()).length > 0).sort((a, b) => semArtigo(b.trim()).length - semArtigo(a.trim()).length)
+  for (const nome of porTamanho) {
+    if (new RegExp('^' + escapaNome(semArtigo(nome.trim())) + '(?![\\p{L}\\p{N}])', 'iu').test(corpo)) return nome
+  }
+  return null
+}
+/** O elenco sem quem teve a ficha cortada: só o DONO de cada ficha cortada sai (rv22: antes, qualquer nome dentro do trecho saía). */
 export function elencoSemFichaCortada<T extends { nome: string }>(elenco: ReadonlyArray<T>, cortada: FichaCortada): T[] {
   if (!cortada.trechos.length) return [...elenco]
-  return elenco.filter((f) => {
-    const nome = String(f.nome ?? '').trim()
-    if (!nome) return true
-    const re = new RegExp('(?<![\\p{L}\\p{N}])' + escapaNome(nome) + '(?![\\p{L}\\p{N}])', 'iu')
-    return !cortada.trechos.some((t) => re.test(t))
-  })
+  const nomes = elenco.map((f) => String(f.nome ?? ''))
+  const donos = new Set(cortada.trechos.map((t) => donoDaFicha(t, nomes)).filter((n): n is string => n !== null))
+  return elenco.filter((f) => !donos.has(String(f.nome ?? '')))
 }
 
 export type ModoFichaAntes = 'off' | 'all'
