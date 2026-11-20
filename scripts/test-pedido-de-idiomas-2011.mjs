@@ -47,6 +47,19 @@ const PEDIDOS = {
   pt: 'Crie um vídeo sobre a história do GTA 6 comparado com o GTA 5.',
   en: 'Make me a video about the new GTA 6 features compared to GTA 5.',
   es: 'Haz un video sobre las nuevas funciones de GTA 6 comparadas con GTA 5.',
+  // volta 2: os confirmados pelo revisor + cortesia no início
+  de5: 'Erstellen Sie ein Video über die Geschichte von Berlin.',
+  de6: 'Ich hätte gerne ein Video über Delfine.',
+  de7: 'Mache ein Video über den Eiffelturm.',
+  de8: 'Ich will ein Video über Haie.',
+  de9: 'Mach ein Short über Fußball.',
+  de10: 'Bitte erstelle ein Video über die Mondlandung.',
+  fr5: 'Fais une vidéo sur Napoléon.',
+  fr6: 'Créer une vidéo sur les volcans.',
+  fr7: 'J’aimerais une vidéo sur les chats.',
+  it4: 'Fai un video sul Colosseo.',
+  it5: 'Vorrei un video sulle balene.',
+  it6: 'Realizza un video su Leonardo da Vinci.',
 }
 for (const [k, t] of Object.entries(PEDIDOS)) checa(`pedido ${k}: reconhecido`, P.looksLikeBrief(t) === true)
 
@@ -62,6 +75,25 @@ const ROTEIROS = {
   it_storia: 'Nel 79 dopo Cristo, il Vesuvio esplose. Pompei fu sepolta in poche ore, e nessuno riuscì a fuggire.',
   pt_historia: 'Era uma vez Lumi e Pipo, dois amigos muito curiosos que decidiram aprender a contar até dez em inglês.',
   en_story: 'In 1950, a plane vanished over the Atlantic. Forty-four passengers were never found.',
+  // volta 2: os 17 alarmes falsos que a revisão adversarial achou no bdadebb7e (têm de seguir roteiro, como na base)
+  rev1: 'Macht euch bereit für das krasseste Video des Jahres! Heute testen wir den neuen Tesla.',
+  rev2: 'Macht euch bereit, denn dieses Video wird euer Leben verändern. Es geht um drei einfache Gewohnheiten.',
+  rev3: 'Ich möchte dir in diesem Video zeigen, wie du mit nur zehn Euro im Monat ein Vermögen aufbaust. Klingt verrückt? Ist es nicht.',
+  rev4: 'Ich will ehrlich sein: dieses Video ist anders als alle anderen. Ich habe alles verloren.',
+  rev5: 'Mach dein Geld zu deinem Mitarbeiter – in diesem Video zeige ich dir, wie das funktioniert.',
+  rev6: 'Macht, Gier und Verrat: dieses Video erzählt die wahre Geschichte von Al Capone.',
+  rev7: 'Schreib mir in die Kommentare, welches Video du als Nächstes sehen willst! Heute geht es um die Pyramiden.',
+  rev8: 'Ich möchte euch von Tom erzählen, einem Mann, der seinen Film nie beenden konnte.',
+  rev9: 'Je veux te montrer dans cette vidéo comment j\'ai économisé dix mille euros en un an.',
+  rev10: 'Fais-moi confiance : cette vidéo va changer ta façon de voir l\'argent.',
+  rev11: 'Je veux te parler de ses rêves et du film qui a tout changé pour lui.',
+  rev12: 'Réalise tes rêves : ce short va te montrer comment Elon Musk a commencé avec rien.',
+  rev13: 'Faites attention à ce clip : il contient un détail que personne n\'a remarqué.',
+  rev14: 'Voglio raccontarti in questo video la storia vera del Titanic. Era il 14 aprile 1912.',
+  rev15: 'Fai attenzione, perché questo video potrebbe cambiarti la vita. Parliamo di risparmio.',
+  rev16: 'Realizza i tuoi sogni con questo video: tre passi semplici per iniziare.',
+  fr_pub: 'Créez des vidéos incroyables en un seul clic avec notre application. Essayez gratuitement dès aujourd\'hui.',
+  rev17:'Vorrei che tu guardassi questo video fino alla fine, perché il finale ti sorprenderà.',
 }
 for (const [k, t] of Object.entries(ROTEIROS)) {
   checa(`roteiro ${k}: não é pedido`, P.looksLikeBrief(t) === false)

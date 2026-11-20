@@ -405,10 +405,21 @@ const INSTRUCTION_VERB =
 // KINEO-PEDIDO-DE-IDIOMAS-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — revisor 20/11 (DE, 1º filme,
 // Kling 4 grátis, nota 3): "Erstelle mir ein youtube short in dem … gezeigt werden" foi lido inteiro como roteiro. O verbo de
 // PEDIDO do looksLikeBrief só conhecia pt/en/es/tr: alemão, francês e italiano escapavam (e "vidéo" nem contava como entregável).
-// Só o looksLikeBrief usa esta lista (isInstructionLine, que o parser usa para TIRAR linha da fala, fica como estava).
-// Fronteira Unicode: "génère", "möchte" passam por letra acentuada, que o \b do JS não enxerga.
-const INSTRUCTION_VERB_DE_FR_IT =
-  /^(?:erstell(?:e|en|t)?|mach(?:e|t)?|generier(?:e|en)?|schreib(?:e|en)?|produzier(?:e|en)?|ich (?:m[öo]chte|will|brauche|h[äa]tte gern(?:e)?)|cr[ée](?:e|er|ez)|fais|faites|g[ée]n[èe]re(?:r|z)?|[ée]cri(?:s|vez|re)|produis|r[ée]alise(?:r|z)?|je veux|je voudrais|j['’]aimerais|creami|fammi|fai|scrivi|produci|realizza|voglio|vorrei)(?![\p{L}\p{N}])/iu // KINEO-PEDIDO-DE-IDIOMAS-2011
+// Só o looksLikeBrief usa esta regra (isInstructionLine, que o parser usa para TIRAR linha da fala, fica como estava).
+// Volta 2 (revisão adversarial): "verbo + vídeo em qualquer lugar" dava alarme falso em narração ("Macht euch bereit für das
+// krasseste Video", "Fais-moi confiance : cette vidéo…", "Voglio raccontarti in questo video…"). Agora a forma é a de um PEDIDO:
+// verbo no início, pronoun opcional (mir/uns/Sie, moi/nous, mi), ARTIGO indefinido e o entregável a até 2 palavras do artigo.
+// "Macht" (também "poder") saiu; "tom"/"ses"/"story" não entram. Fronteira Unicode: "génère", "möchte" passam por acento.
+const PEDIDO_DE_FR_IT = new RegExp( // KINEO-PEDIDO-DE-IDIOMAS-2011 (volta 2)
+  '^(?:erstell(?:e|en)?|mach(?:e)?|generier(?:e|en)?|schreib(?:e|en)?|produzier(?:e|en)?|ich (?:m[öo]chte|will|brauche|h[äa]tte gern(?:e)?)' +
+  '|cr[ée](?:e|er|ez)|fais|faites|g[ée]n[èe]re(?:r|z)?|[ée]cri(?:s|vez|re)|produis|r[ée]alise(?:r|z)?|je veux|je voudrais|j[\'’]aimerais' +
+  '|crea|creami|fammi|fai|genera|scrivi|produci|realizza|voglio|vorrei)' +
+  '(?:(?:\\s+|-)(?:mir|uns|sie|moi|nous|mi))?' +
+  '\\s+(?:(?:ein|eine|einen|un|une|uno|una)\\s+|un[\'’]\\s*)' +
+  '(?:[\\p{L}\\p{N}\'’-]+\\s+){0,2}' +
+  '[\\p{L}-]*(?:video|vid[ée]o|short|clip|film|reel|animation|animazione)s?(?![\\p{L}\\p{N}])', 'iu')
+/** Abertura de cortesia antes do pedido ("please", "Bitte", "S'il te plaît", "Per favore"). */
+const CORTESIA_INICIAL = /^(?:please|por favor|bitte|s['’]il (?:te|vous) pla[iî]t|per favore)[,\s]+/i // KINEO-PEDIDO-DE-IDIOMAS-2011 (volta 2)
 const DELIVERABLE_NOUN =
   /\b(v[íi]deos?|videos?|shorts?|reels?|clips?|clipes?|anima[çc][ãa]o|animation|animasyon|cenas?|scenes?|sahne|hist[óo]ria|historinha|story|cuento|roteiro|script|senaryo|narra[çc][ãa]o|narration|seslendirme|voz|voice|ses|legendas?|subtitles?|altyaz[ıi]|personagens?|characters?|karakter|formato|format|estilo|style|tom|tone|dura[çc][ãa]o|duration|segundos?|seconds?|saniye|stil|g[öo]rsel)\b/i
 // Turco põe o verbo no FIM ("…YouTube Shorts hazırla.", "…görsel stil kullan.")
@@ -493,19 +504,19 @@ export function looksLikeBrief(raw: string): boolean {
   // PEDIDO-FIEL-2610: labels protect actual speech, not a production request
   // that still survives at the start of the parser's narration.
   const hasExplicitSpeech = lines.some((u) => (SPEECH_LABEL_LINE.test(u) && !isVoiceSpecLine(u)) || BEAT_LABEL_HEAD.test(u) || dialogueSpeech(u, true) !== null || /\[Pexels\s*:/i.test(u))
-  const opening = (lines[0] ?? '').split(/[.!?]\s+/)[0].replace(/^(?:please|por favor)[,\s]+/i, '')
-  const creationBase = /^(?:crie|criar|fa[çc]a|gere|prepare|monte|escreva|produza|quero|preciso|create|make|generate|write|produce|prepare|build|give me|i want|i need|crea|genera|prepara|escribe|quiero|necesito|haz)\b/i
-  const creation = { test: (s: string): boolean => creationBase.test(s) || INSTRUCTION_VERB_DE_FR_IT.test(s) } // KINEO-PEDIDO-DE-IDIOMAS-2011: + de/fr/it
-  const isRequestLine = (s: string): boolean => isInstructionLine(s) || (s.length <= 400 && (DELIVERABLE_NOUN.test(s) || /\bvid[ée]os?\b/i.test(s)) && INSTRUCTION_VERB_DE_FR_IT.test(s)) // KINEO-PEDIDO-DE-IDIOMAS-2011
-  const habitualAdvice = /\b(?:every day|each day|a day|por dia|diariamente|cada d[ií]a|jeden tag|t[äa]glich|chaque jour|par jour|ogni giorno|al giorno)\b/i.test(opening) // KINEO-PEDIDO-DE-IDIOMAS-2011: + de/fr/it
-  const startsWithRequest = !habitualAdvice && creation.test(opening) && isRequestLine(opening.slice(0, 400)) && /\b(v[íi]d[eé]o|videos?|shorts?|reels?|filme|film|movie|clip|clipe|anima[çc][ãa]o|animation|animasyon)\b/i.test(opening)
+  const opening = (lines[0] ?? '').split(/[.!?]\s+/)[0].replace(CORTESIA_INICIAL, '') // KINEO-PEDIDO-DE-IDIOMAS-2011 (volta 2): + Bitte / S'il te plaît / Per favore
+  const creation = /^(?:crie|criar|fa[çc]a|gere|prepare|monte|escreva|produza|quero|preciso|create|make|generate|write|produce|prepare|build|give me|i want|i need|crea|genera|prepara|escribe|quiero|necesito|haz)\b/i
+  const habitualAdvice = /\b(?:every day|each day|a day|por dia|diariamente|cada d[ií]a)\b/i.test(opening)
+  const startsWithRequest = !habitualAdvice && ((creation.test(opening) && isInstructionLine(opening.slice(0, 400)) && /\b(v[íi]deo|videos?|shorts?|reels?|filme|film|movie|clip|clipe|anima[çc][ãa]o|animation|animasyon)\b/i.test(opening))
+    || PEDIDO_DE_FR_IT.test(opening.slice(0, 400))) // KINEO-PEDIDO-DE-IDIOMAS-2011 (volta 2): pedido em de/fr/it com a forma verbo + artigo + entregável
   if (hasExplicitSpeech) {
     if (!startsWithRequest) return false
     // Parsing is pure and does not call looksLikeBrief. Keep legitimate
     // labelled/quoted speech when the existing parser isolated it correctly.
-    const spokenOpening = parseUserScript(raw).narration.replace(/^(?:please|por favor)[,\s]+/i, '')
+    const spokenOpening = parseUserScript(raw).narration.replace(CORTESIA_INICIAL, '') // KINEO-PEDIDO-DE-IDIOMAS-2011 (volta 2)
     const spokenRequest = spokenOpening.split(/[.!?]\s+/)[0]
-    return creation.test(spokenRequest) && isRequestLine(spokenRequest.slice(0, 400)) && /\b(v[íi]d[eé]o|videos?|shorts?|reels?|filme|film|movie|clip|clipe|anima[çc][ãa]o|animation|animasyon)\b/i.test(spokenRequest)
+    return (creation.test(spokenRequest) && isInstructionLine(spokenRequest.slice(0, 400)) && /\b(v[íi]deo|videos?|shorts?|reels?|filme|film|movie|clip|clipe|anima[çc][ãa]o|animation|animasyon)\b/i.test(spokenRequest))
+      || PEDIDO_DE_FR_IT.test(spokenRequest.slice(0, 400)) // KINEO-PEDIDO-DE-IDIOMAS-2011 (volta 2)
   }
   if (startsWithRequest) return true
   let ficha = 0
