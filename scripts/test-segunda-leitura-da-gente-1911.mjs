@@ -120,6 +120,37 @@ async function prova(over = {}) {
     const r = await Promise.race([S.segundaLeituraDaGente({ elenco: LEITOR_AARON, pedido: null, secoes: AARON, texto: TEXTO_AARON }, { apiKey: 'x', fetchImpl: pendura }), new Promise((ok) => setTimeout(() => ok({ relato: { status: 'pendurou' } }), 9000))])
     const ms = Date.now() - t0
     no(r.relato.status !== 'falhou' || ms < 3500 || ms > 6000, `P1 a 2ª leitura tem prazo: ~4 s e uma só tentativa dentro de 6 s; passou = nada muda (${r.relato.status}, ${ms} ms)`) }
+  // ── [revisor 19/11, 8ª passada] os 4 furos, com o modelo ERRANDO de propósito (fetch falso): o freio é o código ──
+  const ataque = async (elenco, secoes, pedido, chars) => S.segundaLeituraDaGente({ elenco, pedido, secoes, texto: secoes.map((x) => x.voiceover).join(' ') }, { apiKey: 'x', fetchImpl: resposta(chars).f })
+  const animal = (name, especie, quote, o = {}) => ({ name, is: 'animal', species_en: especie, species_in_text: especie, quote, nickname_or_metaphor: false, look_en: null, look_in_text: null, ...o })
+  { const marcos = { protagonist: gente('Marcos', { role_text: 'nadador', role: 'swimmer' }), supporting: [], places_and_orgs: [] }
+    const r1 = await ataque(marcos, [{ voiceover: 'Marcos, nadador, enfrenta o mar.', pexelsQuery: 'great white shark attacking swimmer' }], null, [animal('Marcos', 'shark', 'great white shark')])
+    no(r1.elenco !== null || r1.relato.recusados[0]?.motivo !== 'pista_com_outro_ser', `F1a a pista mostra o nadador (o papel que o leitor leu) e o tubarão: o Marcos não vira tubarão (${JSON.stringify(r1.relato.recusados)})`)
+    const pedro = { protagonist: gente('Pedro'), supporting: [], places_and_orgs: [] }
+    const r2 = await ataque(pedro, [{ voiceover: 'Pedro e Rex correm no parque.', pexelsQuery: 'boy running with golden retriever' }], null, [animal('Pedro', 'golden retriever', 'golden retriever', { species_en: 'dog', species_in_text: 'retriever' })])
+    no(r2.elenco !== null || r2.relato.recusados[0]?.motivo !== 'pista_com_outro_ser', `F1b "boy running with golden retriever": o Pedro (o menino) não vira cão (${JSON.stringify(r2.relato.recusados)})`)
+    const r3 = await ataque({ protagonist: gente('Tom'), supporting: [], places_and_orgs: [] }, [{ voiceover: 'Tom vai à festa.', pexelsQuery: 'party guest in lion costume, not a lion' }], null, [animal('Tom', 'lion', 'not a lion')])
+    no(r3.elenco !== null || r3.relato.recusados[0]?.motivo !== 'pista_com_outro_ser', `F1c a pista NEGA a espécie ("not a lion"): o Tom não vira leão (${JSON.stringify(r3.relato.recusados)})`) }
+  { const ana = { protagonist: gente('Ana'), supporting: [gente('Ana Maria')], places_and_orgs: [] }
+    const m = S.materialDoNome('Ana', [{ voiceover: 'Ana Maria entra na loja.', pexelsQuery: 'tired lion entering' }, { voiceover: 'Ana canta na janela.', pexelsQuery: 'girl singing window' }], '', { outros: ['Ana', 'Ana Maria'] })
+    no(m.falas.length !== 1 || m.falas[0] !== 'Ana canta na janela.' || m.pistas.includes('tired lion entering'), `F2 a Ana não leva as seções da Ana Maria (${JSON.stringify(m)})`)
+    const r = await ataque(ana, [{ voiceover: 'Ana Maria entra na loja.', pexelsQuery: 'tired lion entering' }], null, [animal('Ana', 'lion', 'tired lion entering')])
+    no(r.elenco !== null, 'F2b a citação da seção da Ana Maria não troca a Ana') }
+  for (const [nome, especie] of [['boy face', 'lion'], ['human skin', 'lion']]) {
+    const r = await ataque({ ...LEITOR_AARON, supporting: [] }, AARON, null, [animal('Aaron', especie, 'tired lion entering', { species_en: nome })])
+    no(r.elenco !== null || r.relato.recusados[0]?.motivo !== 'especie_de_gente', `F3 "${nome}": qualquer palavra de gente na espécie recusa (${JSON.stringify(r.relato.recusados)})`)
+  }
+  { const pedidoCor = 'Aaron the white lion meets Léon the blue lion.'
+    const trocadas = [{ ...leao('Aaron', 'tired lion entering'), look_en: 'blue', look_in_text: 'blue lion' }, { ...leao('Léon', 'lion offering job'), look_en: 'white', look_in_text: 'white lion' }]
+    const r = await S.segundaLeituraDaGente({ elenco: LEITOR_AARON, pedido: pedidoCor, secoes: AARON.map((x) => ({ ...x, pexelsQuery: x.pexelsQuery === 'blue lion offering job' ? 'lion offering job' : x.pexelsQuery })), texto: TEXTO_AARON }, { apiKey: 'x', fetchImpl: resposta(trocadas).f })
+    no(r.elenco?.protagonist?.species !== 'lion' || r.elenco?.supporting?.[0]?.species !== 'lion', `F4 cores trocadas pelo modelo na frase que nomeia os dois: nenhuma entra (${r.elenco?.protagonist?.species} · ${r.elenco?.supporting?.[0]?.species})`)
+    const certas = [{ ...leao('Aaron', 'tired lion entering'), look_en: 'white', look_in_text: 'white lion' }, { ...leao('Léon', 'lion offering job'), look_en: 'blue', look_in_text: 'blue lion' }]
+    const r2 = await S.segundaLeituraDaGente({ elenco: LEITOR_AARON, pedido: pedidoCor, secoes: AARON.map((x) => ({ ...x, pexelsQuery: x.pexelsQuery === 'blue lion offering job' ? 'lion offering job' : x.pexelsQuery })), texto: TEXTO_AARON }, { apiKey: 'x', fetchImpl: resposta(certas).f })
+    no(r2.elenco?.protagonist?.species !== 'white lion' || r2.elenco?.supporting?.[0]?.species !== 'blue lion', `F4b as cores certas (mais perto de cada nome) entram (${r2.elenco?.protagonist?.species} · ${r2.elenco?.supporting?.[0]?.species})`) }
+  { const t0 = Date.now()
+    const surdo = () => new Promise(() => {}) // ignora o abort: só a corrida com timer solta
+    const r = await Promise.race([S.segundaLeituraDaGente({ elenco: LEITOR_AARON, pedido: null, secoes: AARON, texto: TEXTO_AARON }, { apiKey: 'x', fetchImpl: surdo }), new Promise((ok) => setTimeout(() => ok({ relato: { status: 'pendurou' } }), 12000))])
+    no(r.relato.status !== 'falhou' || Date.now() - t0 > 8000, `P2 fetch que ignora o abort: a corrida com timer solta em ~6,5 s, nada muda (${r.relato.status}, ${Date.now() - t0} ms)`) }
   // ── B · a idade da folha ──
   const ancAaron = { idade: '10-12', cabelo: 'short dark brown', barba: 'clean-shaven', pele: 'light skin', roupa: 'yellow t-shirt', pelagem: '', porte: '' }
   const sem = T.fraseDasAncoras('humano', T.ancorasComIdadeDoTexto(ancAaron, false))
@@ -139,21 +170,28 @@ const MUT = [
   ['rota: idade pela régua larga', ROTA, (s) => s.replace('fichaIdadeLigada(FICHA_IDADE_ESCRITA_1911, isDryRunAccount(user.email))', 'fichaIdadeLigada(FICHA_IDADE_ESCRITA_1911, isInternalEmail(user.email))')],
   ['rota: idade sem porta', ROTA, (s) => s.replace('.then((a) => fichaIdade1911 ? ancorasComIdadeDoTexto(a, idadeEscritaDoNome(idadesEscritas1911, f.nome)) : a)', '.then((a) => ancorasComIdadeDoTexto(a, idadeEscritaDoNome(idadesEscritas1911, f.nome)))')],
   ['rota: troca não aplicada', ROTA, (s) => s.replace('if (segundaLeitura1911?.elenco && pedidoSemantico) { pedidoSemantico.elenco = segundaLeitura1911.elenco;', 'if (segundaLeitura1911?.elenco && pedidoSemantico) {')],
-  ['citação da fala vale', LIB, (s) => s.replace('  if (!m.pistas.map(norm).some((v) => v.includes(q))) return', '  if (![...m.pistas, ...m.falas].map(norm).some((v) => v.includes(q))) return')],
-  ['citação do pedido vale', LIB, (s) => s.replace('  if (!m.pistas.map(norm).some((v) => v.includes(q))) return', '  if (![limpa(pedido), ...m.pistas].map(norm).some((v) => v.includes(q))) return')],
-  ['cor sem conferir', LIB, (s) => s.replace("  return [...m.pistas, ...frasesDoNome].map(norm).some((v) => v.includes(li)) ? `${lk} ${especie}` : especie", '  return `${lk} ${especie}`')],
-  ['cor do pedido inteiro', LIB, (s) => s.replace("  const frasesDoNome = String(pedido ?? '').split(/(?<=[.!?…])\\s+/u).filter((f) => nomeiaPersonagem(f, m.nome))", "  const frasesDoNome = [String(pedido ?? '')]")],
+  ['citação da fala vale', LIB, (s) => s.replace('const pistasComCitacao = m.pistas.filter((v) => norm(v).includes(q))', 'const pistasComCitacao = [...m.pistas, ...m.falas].filter((v) => norm(v).includes(q))')],
+  ['citação do pedido vale', LIB, (s) => s.replace('const pistasComCitacao = m.pistas.filter((v) => norm(v).includes(q))', 'const pistasComCitacao = [limpa(pedido), ...m.pistas].filter((v) => norm(v).includes(q))')],
+  ['cor sem conferir', LIB, (s) => s.replace('  return [...m.pistas, ...frasesDoNome].some(vale) ? `${lk} ${especie}` : especie', '  return `${lk} ${especie}`')],
+  ['cor do pedido inteiro', LIB, (s) => s.replace("  const frasesDoNome = String(pedido ?? '').split(/(?<=[.!?…])\\s+/u).filter((f) => nomeiaSoEle(f, m.nome, m.outros ?? []))", "  const frasesDoNome = [String(pedido ?? '')]")],
   ['cor ignorada', LIB, (s) => s.replace('species: comAparencia(se, r, pedido, m),', 'species: se,')],
   ['evento fora da lista só-servidor', EVT, (s) => s.replace("  'cinematic_segunda_leitura', // KINEO", "  // 'cinematic_segunda_leitura', // KINEO")],
   ['evento com texto do cliente', ROTA, (s) => s.replace('ms: segundaLeitura1911.relato.ms, usd: segundaLeitura1911.relato.usd } })', 'ms: segundaLeitura1911.relato.ms, usd: segundaLeitura1911.relato.usd, pedido: body.original_idea } })')],
   ['idade muda com o leitor falho', ROTA, (s) => s.replace(' && !!pedidoSemantico?.elenco // [revisor 19/11, 7ª passada]', ' // x')],
   ['sem o prazo de 4 s', LIB, (s) => s.replace('timeoutMs: opts.timeoutMs ?? 4_000, tentativasExtras: 1, prazoTotalMs: 6_000', 'timeoutMs: opts.timeoutMs ?? 10_000, tentativasExtras: 1, prazoTotalMs: 20_000')],
   ['apelido ignorado', LIB, (s) => s.replace("  if (r.nickname_or_metaphor) return { motivo: 'apelido_ou_metafora' }\n", '')],
-  ['sem conferir a citação', LIB, (s) => s.replace("  if (!m.pistas.map(norm).some((v) => v.includes(q))) return { motivo: 'citacao_fora_das_pistas' }", '')],
+  ['sem conferir a citação', LIB, (s) => s.replace("  if (!pistasComCitacao.length) return { motivo: 'citacao_fora_das_pistas' }\n", '')],
+  ['pista com outro ser vale (furo 1)', LIB, (s) => s.replace("  if (pistasComCitacao.every((v) => pistaComOutroSer(v, st, m.papel ?? []))) return { motivo: 'pista_com_outro_ser' }", '')],
+  ['papel do leitor ignorado (furo 1)', LIB, (s) => s.replace('  if (ws.some((w) => doPapel.has(w))) return true\n', '')],
+  ['negação da espécie ignorada (furo 1)', LIB, (s) => s.replace('  return !!e && new RegExp(', '  return false && new RegExp(')],
+  ['nome contido no outro (furo 2)', LIB, (s) => s.replace("const s = secoesOuFrases(secoes, texto).filter((x) => nomeiaSoEle(String(x.voiceover ?? ''), nome, outros))", "const s = secoesOuFrases(secoes, texto).filter((x) => nomeiaPersonagem(String(x.voiceover ?? ''), nome))")],
+  ['gente só na última palavra (furo 3)', LIB, (s) => s.replace('const temPalavraDeGente = (t: unknown) => palavras(t).some((w) => especieDePessoa(w))', 'const temPalavraDeGente = (t: unknown) => especieDePessoa(norm(t))')],
+  ['cor cruzada (furo 4)', LIB, (s) => s.replace(' || corMaisPertoDoNome(v, li, m.nome, m.outros ?? []))', ' || true)')],
+  ['sem a corrida com timer', LIB, (s) => s.replace('const r = await Promise.race([corrida, perguntaSemantica<', 'const r = await Promise.race([perguntaSemantica<')],
   ['espécie fora da citação vale', LIB, (s) => s.replace("if (!st || !q.includes(st)) return { motivo: 'especie_fora_da_citacao' }", "if (!st) return { motivo: 'especie_fora_da_citacao' }")],
-  ['espécie de gente vale', LIB, (s) => s.replace("  if (especieDePessoa(se) || especieDePessoa(st)) return { motivo: 'especie_de_gente' }\n", '')],
+  ['espécie de gente vale', LIB, (s) => s.replace("  if (temPalavraDeGente(se) || temPalavraDeGente(st)) return { motivo: 'especie_de_gente' }", '')],
   ['chama sem candidato', LIB, (s) => s.replace('    if (!materiais.length || !a.elenco) return { elenco: null, relato }\n', '    if (!a.elenco) return { elenco: null, relato }\n')],
-  ['todas as seções vão', LIB, (s) => s.replace("const s = secoesOuFrases(secoes, texto).filter((x) => nomeiaPersonagem(String(x.voiceover ?? ''), nome))", 'const s = secoesOuFrases(secoes, texto)')],
+  ['todas as seções vão', LIB, (s) => s.replace("const s = secoesOuFrases(secoes, texto).filter((x) => nomeiaSoEle(String(x.voiceover ?? ''), nome, outros))", 'const s = secoesOuFrases(secoes, texto)')],
   ['idade sempre fica', TRAVA, (s) => s.replace('  if (!a || idadeEscrita || !a.idade) return a\n', '  return a\n')],
   ['a roupa sai junto', TRAVA, (s) => s.replace("  const b: AncorasDeAparencia = { ...a, idade: '' }", "  const b: AncorasDeAparencia = { ...a, idade: '', roupa: '' }")],
   ['idade escrita ignorada', TRAVA, (s) => s.replace('export const idadeEscritaDoNome = (escritas: ReadonlySet<string>, nome: string): boolean => escritas.has(chaveDoNome(nome))', 'export const idadeEscritaDoNome = (escritas: ReadonlySet<string>, nome: string): boolean => false')],
