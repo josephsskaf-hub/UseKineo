@@ -143,15 +143,19 @@ checa('importa anunciarVideoEntregue', /import\s*\{\s*anunciarVideoEntregue\s*\}
 const chamadas = download.match(/anunciarVideoEntregue\(/g) ?? []
 // REANCORADO 19/11 (KINEO-DOWNLOAD-CELULAR-1911): a folha do iPhone é um 2º degrau que PROVA entrega (a folha devolveu sucesso). São 2 anúncios, cada um
 // com o SEU fire('video_downloaded') logo antes e o SEU return 'blob' logo depois; nenhum outro.
-checa('chama o anúncio exatamente 2 vezes (blob e folha do iPhone)', chamadas.length === 2)
+// REANCORADO 20/11 (KINEO-DOWNLOAD-DIRETO-2011): o download direto do celular (gerenciador do navegador, dentro do toque) é o 3º. Ele tem o SEU
+// fire('video_downloaded', { ...base, method: 'direct_link' ... }) logo antes, anuncia com method direct_link e devolve 'fallback_opened' logo depois.
+checa('chama o anúncio exatamente 3 vezes (direto do celular, blob e folha do iPhone)', chamadas.length === 3)
 {
   const pos = [...download.matchAll(/anunciarVideoEntregue\(\{/g)].map((m) => m.index)
   let antes = 0
   pos.forEach((i, k) => {
     const prova = download.lastIndexOf("fire('video_downloaded'", i)
-    const fim = download.indexOf("return 'blob'", i)
+    const direto = download.slice(i, i + 80).startsWith("anunciarVideoEntregue({ method: 'direct_link'")
+    if (direto) checa("anúncio direto: a prova é video_downloaded com method direct_link", download.slice(prova, i).includes("method: 'direct_link'"))
+    const fim = download.indexOf(direto ? "return 'fallback_opened'" : "return 'blob'", i)
     checa(`anúncio ${k + 1}: a SUA prova de entrega vem logo antes`, prova > antes && download.slice(prova, i).split('\n').length < 30)
-    checa(`anúncio ${k + 1}: return 'blob' logo depois`, fim > i && (k + 1 >= pos.length || fim < pos[k + 1]) && download.slice(i, fim).split('\n').length < 6)
+    checa(`anúncio ${k + 1}: ${direto ? "return 'fallback_opened'" : "return 'blob'"} logo depois`, fim > i && (k + 1 >= pos.length || fim < pos[k + 1]) && download.slice(i, fim).split('\n').length < 6)
     antes = i
   })
 }
