@@ -114,6 +114,17 @@ export function semFicha(plano: string): string {
   const cortes = [...trechosDaFicha(m), ...achados(m, FEICOES_RE)]
   return cortes.length ? volta(cortar(m, cortes)) : t
 }
+// KINEO-FICHA-POR-PLANO-2011 [CEO 20/11, (ii) "a ficha antes da imagem, com o corte por plano"] — o elenco nomeado da CENA ("Named character in this
+// shot: … — clearly visible in frame…"), que o compactador do Kling 4 vira "Visible:" (lib/cinematic/filmQuality.ts promptCurtoDoFilmeKling4).
+const ELENCO_DA_CENA_RE = /(?:Named )?[Cc]haracters? in this shot: .+? — clearly visible in frame(?:, seen from behind or in profile, face not readable)?\.?/gu
+/** O plano sem a SUA ficha (a ordem, a cláusula da ficha travada, Identity:/Visible: e o elenco nomeado da cena). Diferente de semFicha, as feições da
+ *  origem ("Everyone shown has the natural features of X people.") FICAM: podem vir do pedido e não são a ficha que o juiz apontou neste plano. */
+export function semFichaDoPlano(plano: string): string {
+  const t = String(plano ?? '')
+  const { m, volta } = mascarar(t)
+  const cortes = [...trechosDaFicha(m), ...achados(m, ELENCO_DA_CENA_RE)]
+  return cortes.length ? volta(cortar(m, cortes)) : t
+}
 /** Sem a ficha, a referência do personagem fixo (lib/kling4Trial.ts, a frase de continuidade de kling4PersonagemFixo) perde o que vem da ficha: "Keep the
  *  face and outfit of @Image1." e a roupa lida da canônica. Fica só a época e o cenário ("Use 1997 clothing…" ou "Match the clothing and setting of the
  *  story.", e o ambiente). A imagem fica (o limite). Nunca vazia: kling4Trial.ts (preso pelo recibo do test-k4-despacho-0211) não muda. */

@@ -95,6 +95,7 @@ import { createHash } from 'crypto'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { fichaAntesDoRenderLigada, refazerPlanoDaFicha, juizLeuOMesmoTexto, FICHA_ANTES_EVENTO } from '@/lib/cinematic/fichaAntesDoRender1311' // KINEO-FICHA-ANTES-DO-RENDER-1311
+import { FICHA_POR_PLANO_2011, fichaPorPlanoLigada } from '@/lib/cinematic/fichaAntesDoRender1311' // KINEO-FICHA-POR-PLANO-2011
 import { waitUntilDaRequisicao } from '@/lib/posResposta' // KINEO-FICHA-ANTES-DO-RENDER-1311 (C1)
 import { atributosLigados, atributosEmTodoPlano, ATRIBUTOS_EVENTO } from '@/lib/cinematic/atributosDoPedido1311' // KINEO-ATRIBUTOS-DO-PEDIDO-1311
 import { estadoNegadoLigado, estadoNegadoNoFilme, ESTADO_NEGADO_EVENTO } from '@/lib/cinematic/estadoNegado1311' // KINEO-ESTADO-NEGADO-1311
@@ -7559,7 +7560,7 @@ async function manipularPost(req: NextRequest) {
       try { // KINEO-FICHA-ANTES-DO-RENDER-1311
         const envioAntes1311 = planoDoEnvio({ kling4Candidato: true, kling4Input: () => (scenes.length === 3 && scenes.every(s => [6, 7, 8].includes(s.clipSeconds ?? 6)) ? buildKling4TrialInput(eixosDoFilmeGratis(classicScenePrompts, styleAnchor).map((p, i) => promptDaCenaKling4(p, styleAnchor, i, true)), [], { voiceovers: scenes.map(s => s.voiceover ?? ''), wordsPerSecond: narrationRate.wordsPerSecond }).input : null), falas: scenes.map((s) => s.voiceover ?? ''), inputs: classicScenePrompts.map((p) => ({ prompt: p })) }) // KINEO-FICHA-ANTES-DO-RENDER-1311 (C3) — o texto que o juiz lê
         const vFicha = await esperarJuizDoPlano(iniciarJuizDoPlano({ ...envioAntes1311, engine: 'kling4', pedido: prompt, verbatim, seconds: duration })) // KINEO-FICHA-ANTES-DO-RENDER-1311
-        const fichaAntes = refazerPlanoDaFicha({ prompts: classicScenePrompts, veredito: vFicha, pessoaDaIdeia: ideiaNaFicha?.pessoa ?? null, sujeitoDoPedido: sujeitoDoPedido1311 }) // KINEO-FICHA-ANTES-DO-RENDER-1311 · (C3) o sujeito lido do pedido quando não há pessoa da ideia
+        const fichaAntes = refazerPlanoDaFicha({ prompts: classicScenePrompts, veredito: vFicha, pessoaDaIdeia: ideiaNaFicha?.pessoa ?? null, sujeitoDoPedido: sujeitoDoPedido1311, cortarFicha: fichaPorPlanoLigada(FICHA_POR_PLANO_2011, isDryRunAccount(user.email)) }) // KINEO-FICHA-ANTES-DO-RENDER-1311 · (C3) o sujeito lido do pedido quando não há pessoa da ideia
         const fichaRefez1311 = fichaAntes.relato.refeitos.some((r) => r.acao !== 'nada') // KINEO-FICHA-ANTES-DO-RENDER-1311
         vereditoAntes1311 = vFicha; lidoPeloJuiz1311 = fichaRefez1311 ? null : envioAntes1311.cenas // KINEO-FICHA-ANTES-DO-RENDER-1311 (C3) — plano refeito: o veredito é de outro texto, nunca reaproveita
         if (fichaRefez1311) for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = fichaAntes.prompts[i] // KINEO-FICHA-ANTES-DO-RENDER-1311

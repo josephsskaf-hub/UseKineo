@@ -22,6 +22,18 @@
 // que foram à fal (juizLeuOMesmoTexto); qualquer diferença = a 2ª leitura de sempre. (2) só é refeito o plano cuja acusação de ficha o juiz
 // VERIFICOU (a citação está no texto: "plano N · ficha contradiz …" em defeitos); acusação descartada por ele não refaz nada.
 import type { JuizPlanoVeredito } from '@/lib/juizDoPlano'
+import { semFichaDoPlano } from '@/lib/cinematic/fichaReprovada1911' // KINEO-FICHA-POR-PLANO-2011
+
+// ═══ KINEO-FICHA-POR-PLANO-2011 [CEO 20/11, (ii); decisão A da medição do descricao_nao_cabe] ════════════════════════════════════════════════════
+// O furo: o juiz de antes das imagens aponta o plano cuja ficha contradiz o pedido, mas aqui só a ORDEM "The only person in this shot…" era refeita.
+// Plano com a ficha na cláusula travada ou no elenco nomeado (que viram "Identity:"/"Visible:" no Kling 4) ficava 'nada': em 30 dias, 18 de 188 filmes
+// julgados e 26 planos (8e83778f, o Natal: planos 2 e 3 com "Identity: Daniel … an American woman" e o Daniel só nas fotos). A ficha errada ia ao
+// still e ao motor, e comia de 134 a 165 dos 430 caracteres do plano (2 das quedas por descricao_nao_cabe). Com o interruptor: o plano apontado (e
+// VERIFICADO) perde a SUA ficha inteira, antes das imagens-chave; a ação, a época, as feições da origem e a proteção do fim ficam. A pessoa da ideia
+// (acao 'ideia') não é cortada: é a ficha certa. 'off' = byte a byte. 'internal' = só a conta exata do ensaio (isDryRunAccount).
+export type ModoFichaPorPlano2011 = 'off' | 'internal' | 'public'
+export const FICHA_POR_PLANO_2011: ModoFichaPorPlano2011 = 'internal' // CEO 20/11: 'internal' no commit; 'public' só com revisor independente + prova + sim
+export const fichaPorPlanoLigada = (modo: ModoFichaPorPlano2011, contaDoEnsaio: boolean): boolean => modo === 'public' || (modo === 'internal' && contaDoEnsaio === true)
 
 export type ModoFichaAntes = 'off' | 'all'
 export const FICHA_ANTES_DO_RENDER_1311: ModoFichaAntes = 'all'
@@ -71,7 +83,9 @@ export interface RelatoFichaAntes {
   falhas: string[]
   nota: number | null
   planos_contradiz: number[]
-  refeitos: Array<{ plano: number; acao: 'ideia' | 'sujeito' | 'sem_ordem' | 'nada' }>
+  refeitos: Array<{ plano: number; acao: 'ideia' | 'sujeito' | 'sem_ordem' | 'nada' | 'sem_ficha_do_plano'; ficha_cortada?: true }>
+  /** KINEO-FICHA-POR-PLANO-2011: o corte por plano estava ligado (só aparece ligado: desligado, o relato de sempre) */
+  ficha_por_plano?: true
   /** C5: o juiz julgou outro número de planos (a reserva descarta cena vazia): nada é refeito */
   indice_incerto: boolean
   com_pessoa_da_ideia: boolean
@@ -105,7 +119,7 @@ export function juizLeuOMesmoTexto(lido: ReadonlyArray<{ fala: string; prompt: s
 }
 
 /** O plano inteiro refeito pelo veredito (índices 1..N do juiz = planos do filme). Pura; o vetor de entrada não muda. */
-export function refazerPlanoDaFicha(args: { prompts: ReadonlyArray<string>; veredito: JuizPlanoVeredito | null; pessoaDaIdeia: string | null; sujeitoDoPedido?: SujeitoDoPedido }): { prompts: string[]; relato: RelatoFichaAntes } {
+export function refazerPlanoDaFicha(args: { prompts: ReadonlyArray<string>; veredito: JuizPlanoVeredito | null; pessoaDaIdeia: string | null; sujeitoDoPedido?: SujeitoDoPedido; cortarFicha?: boolean }): { prompts: string[]; relato: RelatoFichaAntes } {
   const v = args.veredito
   const prompts = (Array.isArray(args.prompts) ? args.prompts : []).map((p) => String(p ?? ''))
   const falhasDoJuiz = Array.isArray(v?.falhas) ? (v as JuizPlanoVeredito).falhas : [] // veredito torto nunca lança
@@ -119,13 +133,17 @@ export function refazerPlanoDaFicha(args: { prompts: ReadonlyArray<string>; vere
     if (i < 0 || i >= prompts.length) continue
     const r = semFichaReprovada(prompts[i], args.pessoaDaIdeia, args.sujeitoDoPedido ?? null)
     prompts[i] = r.prompt
-    refeitos.push({ plano: n, acao: r.acao })
+    // KINEO-FICHA-POR-PLANO-2011 — ligado: o plano apontado perde também a sua ficha (cláusula, Identity:/Visible:, elenco nomeado); a pessoa da ideia fica
+    const cortado = args.cortarFicha === true && r.acao !== 'ideia' ? semFichaDoPlano(prompts[i]) : prompts[i]
+    if (cortado !== prompts[i]) { prompts[i] = cortado; refeitos.push({ plano: n, acao: r.acao === 'nada' ? 'sem_ficha_do_plano' : r.acao, ficha_cortada: true }) }
+    else refeitos.push({ plano: n, acao: r.acao })
   }
   return {
     prompts,
     relato: {
       versao: FICHA_ANTES_VERSAO, status: v?.status ?? 'SEM_VEREDITO', reprovado: !!v?.reprovado, falhas: [...falhasDoJuiz], nota: v?.nota ?? null,
       planos_contradiz: contradiz, refeitos, com_pessoa_da_ideia: !!String(args.pessoaDaIdeia ?? '').trim(), ms: v?.ms ?? null, indice_incerto: indiceIncerto,
+      ...(args.cortarFicha === true ? { ficha_por_plano: true as const } : {}), // KINEO-FICHA-POR-PLANO-2011
     },
   }
 }
