@@ -46,7 +46,7 @@ checa('falha aberta: HTTP não-2xx → null; cena sem fala → null; sem chave �
 
 console.log('== (b) a rota clássica ==')
 const rt = rd('app/api/generate-video-cinematic/route.ts')
-const iAlign = rt.indexOf('const alinhado = await alignShotsToSpeech({')
+const iAlign = rt.indexOf('const alinhado = alinhamentoSemRecusa2011(await alignShotsToSpeech({') // reancorado KINEO-RECUSA-IA-2011 VOLTA 3: a mesma chamada, agora com a saída que é recusa fora da lista (o plano de antes segue)
 const iPrompts = rt.indexOf('const classicScenePrompts = scenes.map((scene, sceneIndex) => {')
 const iDry = rt.indexOf("if (body.dry_run === true && isDryRunAccount(user.email)) {\n      const classicReport = classicDryRunReport({")
 checa('o supervisor roda ANTES de montar os prompts clássicos, do dry-run e de qualquer still/POST pago', iAlign > 0 && iPrompts > iAlign && iDry > iPrompts && rt.indexOf('submitToFal(sPrompts[i]') !== -1)

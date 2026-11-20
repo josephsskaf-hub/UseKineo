@@ -48,7 +48,7 @@ checa('mouthPrefix fica fora do Kling 3 (family hollywood) e permanece nas outra
 checa('garantirAcaoCentral recebe posicao pela família: fim no Kling 3, inicio nas demais', rt.includes("garantirAcaoCentral(silenciarFalaNoPrompt(hs.prompt), hs.voiceover ?? '', plan.characterSheet ?? '', family === 'hollywood' ? 'fim' : 'inicio')"))
 checa('Kling 3 t2v: silêncio no negative_prompt só em cena SEM fala (`says: "` marca diálogo)', rt.includes("const semFala = !/says:\\s*\"/.test(prompt)") && rt.includes("negative_prompt: antiCgi + silencioNegativo + 'blur, distort"))
 checa('o sufixo curto de boca fechada continua em toda cena não-diálogo (rede dupla)', rt.includes("const mouthSuffix = hs.type !== 'dialogue' ? ' If any person is visible: mouth closed, not speaking, no lip movement, no talking.' : ''"))
-const iAlign = rt.indexOf("const alinhado = await alignShotsToSpeech({ topic: prompt, scenes: idxs.map((i) =>")
+const iAlign = rt.indexOf("const alinhado = alinhamentoSemRecusa2011(await alignShotsToSpeech({ topic: prompt, scenes: idxs.map((i) =>") // reancorado KINEO-RECUSA-IA-2011 VOLTA 3: a mesma chamada, com a saída que é recusa fora da lista
 const iLoop = rt.indexOf('for (const [idx, hs] of plan.scenes.entries()) {')
 const iStill = rt.indexOf('generateCinematicSceneStill(')
 checa('supervisor fala×imagem no caminho hollywood: antes do laço de submissão e de qualquer still/POST; só cena não-diálogo com fala', iAlign > 0 && iLoop > iAlign && (iStill < 0 || iStill > iAlign || rt.indexOf('generateCinematicSceneStill(', iAlign) > iAlign) && rt.includes("plan.scenes[i].type !== 'dialogue' && (plan.scenes[i].voiceover ?? '').trim().length > 0"))
