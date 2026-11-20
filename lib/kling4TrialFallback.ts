@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { entradaSemConviteDeLetreiro } from '@/lib/semConviteDeLetreiro' // KINEO-H3-LETREIRO-0611
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { RESERVA_COM_IMAGEM_2011, RESERVA_COM_IMAGEM_EVENTO, aindaEsperaODono, horaDoBanco, reservaComImagemLigada, cenasSemImagem, desenharImagensDaReserva, estiloDoStillDaReserva } from '@/lib/cinematic/reservaComImagem2011' // KINEO-RESERVA-COM-IMAGEM-2011
+import { RESERVA_COM_IMAGEM_2011, RESERVA_COM_IMAGEM_EVENTO, aindaEsperaODono, ambienteDoNossoProjeto, horaDoBanco, reservaComImagemLigada, cenasSemImagem, desenharImagensDaReserva, estiloDoStillDaReserva } from '@/lib/cinematic/reservaComImagem2011' // KINEO-RESERVA-COM-IMAGEM-2011
 import { writeServerEvent } from '@/lib/serverEvents' // KINEO-RESERVA-COM-IMAGEM-2011
 import { gravarImagensDaReserva } from '@/lib/cinematic/claim' // KINEO-RESERVA-COM-IMAGEM-2011 [revisor 20/11] — a 2ª CAS (o dono grava as imagens)
 import { RESERVA_H3_MODEL, RESERVA_SEEDANCE_MODEL, entradaDaReserva, loadVerifiedCinematicClaim, modeloDaReservaDoTeste, startKling4TrialFallback, switchKling4TrialToSeedanceFallback, type CinematicClaim } from '@/lib/cinematic/claim'
@@ -99,7 +99,8 @@ export async function ensureKling4TrialFallback(args: {
   // [revisor 20/11, 2ª volta] a hora é a do BANCO (o relógio de cada servidor pode estar adiantado): sem ela, nenhuma reserva de desenho (o caminho de hoje)
   const hora = args.horaDoBanco ?? ((papel: 'dono' | 'espera') => horaDoBanco(args.db, { userId: args.userId, generationId: args.generationId, papel }))
   let reservaDoDesenho: { dono: string; desde: string } | null = null
-  if (ligadoImagem && marker.fallback_started !== true && cenasSemImagem(shots).length > 0) {
+  // [revisor 20/11, 3ª volta] só desenha se o ambiente grava no NOSSO projeto (noutro, o desenho seria pago e recusado pela lista positiva)
+  if (ligadoImagem && ambienteDoNossoProjeto(process.env.NEXT_PUBLIC_SUPABASE_URL) && marker.fallback_started !== true && cenasSemImagem(shots).length > 0) {
     const t = await hora('dono')
     reservaDoDesenho = t === null ? null : { dono, desde: new Date(t).toISOString() }
   }

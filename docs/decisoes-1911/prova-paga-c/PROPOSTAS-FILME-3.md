@@ -201,3 +201,19 @@ Esta volta conserta os itens 1 a 3 no código e deixa os itens 4 e 5 só escrito
   1. Medir nos 77 quantos filmes COM ficha caem no caminho de hoje por `descricao_nao_cabe_depois_de_pedir_de_novo`, e propor: a ficha antes da imagem resolve? Quanto espaço sobra?
   2. A ficha antes da imagem, com o corte por plano.
   3. O gente-no-final rebaseado sobre a main, com a bateria só pelas libs.
+
+## 9. [revisor 20/11, 3ª volta] O conserto antes de ligar, e o que fica aceito
+- **Prazo da hora do banco (consertado):**
+  - `horaDoBanco` corta em 3 s (`RESERVA_RELOGIO_PRAZO_MS`) e devolve null.
+  - Com o insert travado, o dono não reserva o desenho e o filme segue o caminho de hoje. Quem espera usa o relógio local com o dobro da espera.
+  - Nada pendura até o limite da função (120 s no status, 300 s no cron).
+  - Guardião H8, com o insert pendurado, e H9, com o prazo padrão. Mutantes vermelhos: sem o prazo e com prazo de 300 s.
+- **O projeto do ambiente (consertado):**
+  - A lista positiva continua com o projeto fixo.
+  - O envio só desenha quando `NEXT_PUBLIC_SUPABASE_URL`, o mesmo valor que o `persistFastStill` usa para gravar o still, é o nosso projeto.
+  - Em preview ou local com outro projeto, ou sem o valor, nada é desenhado nem pago e nenhuma linha de relógio é gravada. O filme segue o caminho de hoje.
+  - Guardião P1 e P2. Mutantes vermelhos: desenha em qualquer projeto; qualquer `*.supabase.co` vale.
+- **Aceito como está (decisão da CEO, 20/11):** banco mudo e relógio local adiantado mais de 55 s (por exemplo 5 min), ao mesmo tempo, fazem quem espera assumir 'sem_imagem' com o dono ainda vivo.
+  - O efeito: o desenho do dono fica pago e órfão (até US$ 0,09) e o filme vai pelo caminho de hoje.
+  - Pede as duas falhas juntas. Com o banco mudo, a 2ª CAS do dono também falharia.
+- Os 3 mutantes do revisor que sobreviviam (rv18 A1, A2 e A6: vetor de tamanho errado, `http` contando como imagem, o meio sem a negação "not photo") agora morrem no guardião, nas provas U1b, U1c e U1d. Total: 45 mutantes.

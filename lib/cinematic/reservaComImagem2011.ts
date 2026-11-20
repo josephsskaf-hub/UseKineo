@@ -30,15 +30,24 @@ export const RESERVA_IMAGEM_ESPERA_DO_DONO_MS = RESERVA_IMAGEM_TETO_MS + 30_000
  *  calcula now() no filtro nem no valor. O dono marca `desde` com ela; quem espera confirma com ela antes de assumir. 1 linha por filme na reserva
  *  (o dono) + 1 por confirmação (só depois que o relógio local já passou dos 55 s). null = sem a hora do banco. Nunca lança. */
 export const RESERVA_RELOGIO_EVENTO = 'kling4_reserva_relogio'
-export async function horaDoBanco(db: SupabaseClient, a: { userId: string; generationId: string; papel: 'dono' | 'espera' }): Promise<number | null> {
+/** [revisor 20/11, 3ª volta] O prazo da ida ao banco: insert travado = null em ~3 s (o dono não reserva o desenho; quem espera usa o local com o dobro),
+ *  nunca pendurar a função até o limite dela (120 s no status, 300 s no cron). */
+export const RESERVA_RELOGIO_PRAZO_MS = 3_000
+export async function horaDoBanco(db: SupabaseClient, a: { userId: string; generationId: string; papel: 'dono' | 'espera' }, prazoMs: number = RESERVA_RELOGIO_PRAZO_MS): Promise<number | null> {
+  let tm: ReturnType<typeof setTimeout> | null = null
+  const ida = (async (): Promise<number | null> => {
+    try {
+      const { data, error } = await db.from('events')
+        .insert({ name: RESERVA_RELOGIO_EVENTO, user_id: a.userId, session_id: a.generationId, path: '/api/kling4-trial-fallback', metadata: { generation_id: a.generationId, papel: a.papel, versao: RESERVA_COM_IMAGEM_VERSAO } })
+        .select('created_at').single()
+      if (error || !data) return null
+      const t = Date.parse(String((data as { created_at?: unknown }).created_at ?? ''))
+      return Number.isFinite(t) ? t : null
+    } catch { return null }
+  })()
   try {
-    const { data, error } = await db.from('events')
-      .insert({ name: RESERVA_RELOGIO_EVENTO, user_id: a.userId, session_id: a.generationId, path: '/api/kling4-trial-fallback', metadata: { generation_id: a.generationId, papel: a.papel, versao: RESERVA_COM_IMAGEM_VERSAO } })
-      .select('created_at').single()
-    if (error || !data) return null
-    const t = Date.parse(String((data as { created_at?: unknown }).created_at ?? ''))
-    return Number.isFinite(t) ? t : null
-  } catch { return null }
+    return await Promise.race([ida, new Promise<null>((ok) => { tm = setTimeout(() => ok(null), Math.max(1, prazoMs)) })])
+  } catch { return null } finally { if (tm) clearTimeout(tm) }
 }
 /** [revisor 20/11, 2ª volta] Quem chega enquanto outro dono desenha: espera (true) ou assume 'sem imagem' (false). O relógio local só poupa a ida ao banco
  *  enquanto diz "ainda não"; a decisão de assumir sai da hora do banco. Sem ela (o banco não respondeu), o relógio local com o DOBRO da espera, para o
@@ -58,6 +67,9 @@ export const cenasSemImagem = (shots: ReadonlyArray<ReservaShot>): number[] => s
  *  grava em broll/ai-still/ e onde estão os objetos ai-still/ de hoje), o bucket broll e a pasta ai-still. Qualquer outra (a da fal, storage.googleapis.com/
  *  falserverless…, outro projeto Supabase, outro bucket) expira ou não é nossa. Noutro ambiente o still sai de outro projeto: recusa = o caminho de hoje. */
 export const NOSSO_PROJETO_SUPABASE = 'cqqukkvjjrguayiyjvhh'
+/** [revisor 20/11, 3ª volta] O ambiente grava os stills no NOSSO projeto? (o mesmo NEXT_PUBLIC_SUPABASE_URL que o persistFastStill usa). Outro projeto
+ *  (preview, local) ou sem valor = não desenha: o desenho seria pago e recusado em silêncio pela lista positiva. */
+export const ambienteDoNossoProjeto = (url: unknown): boolean => String(url ?? '').trim().replace(/\/+$/, '') === `https://${NOSSO_PROJETO_SUPABASE}.supabase.co`
 export const NOSSO_BUCKET_DA_IMAGEM_RE = /^https:\/\/cqqukkvjjrguayiyjvhh\.supabase\.co\/storage\/v1\/object\/public\/broll\/ai-still\/[A-Za-z0-9._-]+\.(?:png|jpe?g|webp)$/
 export const imagemDaReservaValida = (u: unknown): u is string => typeof u === 'string' && NOSSO_BUCKET_DA_IMAGEM_RE.test(u)
 

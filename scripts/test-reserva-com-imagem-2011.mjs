@@ -4,6 +4,7 @@
 // vagas, nos 3 casos reais (fixture com as cenas ASSINADAS da reserva; 5910c0e8 com os textos encurtados). Mostra o modelo e o corpo que iriam ao
 // motor ANTES × DEPOIS, e prova UM desenho por filme sob concorrência, o dono sumido, a CAS perdida e a lista positiva do bucket.
 // [revisor 20/11, 2ª volta] + o claim reembolsado no meio do desenho, a lista só do NOSSO projeto e do bucket broll, e a espera na hora do BANCO.
+// [revisor 20/11, 3ª volta] + o prazo de 3 s da hora do banco (insert travado) e nenhum desenho quando o ambiente grava noutro projeto Supabase.
 import fs from 'node:fs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
@@ -18,7 +19,8 @@ const GEN = '76c4c5c4-b954-419c-85c4-e4d90c7a83fc'
 let OVER_DA_PROVA = {} // o mutante da prova em curso (as provas rodam uma por vez)
 
 /** Um mundo: o envio real com o claim em memória e uma CAS falsa por cima das funções puras reais. */
-function mundo(over = OVER_DA_PROVA) {
+const NOSSO_AMBIENTE = { NEXT_PUBLIC_SUPABASE_URL: 'https://cqqukkvjjrguayiyjvhh.supabase.co' }
+function mundo(over = OVER_DA_PROVA, env = NOSSO_AMBIENTE) {
   const fonte = (rel, src) => over[rel] ?? src
   const C = createOfflineLoader({ source: fonte })('@/' + CLAIM)
   const eventos = [], estado = { claim: null, switches: [], gravacoes: 0, perdeGravacao: false, recusas: [], horas: [] }
@@ -51,7 +53,7 @@ function mundo(over = OVER_DA_PROVA) {
     '@/lib/cinematic/claim': claimFalso,
     '@/lib/serverEvents': { writeServerEvent: async (e) => { eventos.push(e); return true } },
     '@/lib/semConviteDeLetreiro': { entradaSemConviteDeLetreiro: (_m, x) => x },
-  }, globals: { setTimeout, clearTimeout } })('@/' + ENVIO)
+  }, env, globals: { setTimeout, clearTimeout } })('@/' + ENVIO)
   const L = createOfflineLoader({ source: fonte, globals: { setTimeout, clearTimeout } })('@/' + LIB)
   return { F, L, C, estado, eventos }
 }
@@ -67,8 +69,8 @@ function chamar(W, caso, { ligado = true, desenhar = null, agora = null, hora = 
     submit: async (input) => { posts.push(['t2v', input]); return 'r' + posts.length },
     submitH3: async (input) => { posts.push(['i2v', input]); return 'h' + posts.length } })
 }
-async function rodar(caso, { ligado, desenhar, extra = {}, perdeGravacao = false, agora = null, hora = null, aoDesenhar = null } = {}) {
-  const W = mundo()
+async function rodar(caso, { ligado, desenhar, extra = {}, perdeGravacao = false, agora = null, hora = null, aoDesenhar = null, env = NOSSO_AMBIENTE } = {}) {
+  const W = mundo(OVER_DA_PROVA, env)
   W.estado.claim = claimDe(caso, extra); W.estado.perdeGravacao = perdeGravacao
   const desenhos = [], posts = []
   const d2 = desenhar && aoDesenhar ? async (p, i) => { aoDesenhar(W); return desenhar(p, i) } : desenhar
@@ -88,6 +90,10 @@ async function provas(over = {}) {
     no(L.imagemDaReservaValida('https://v3b.fal.media/files/x/0.png') || L.imagemDaReservaValida('https://storage.googleapis.com/falserverless/x.png') || L.imagemDaReservaValida('https://evil.com/storage/v1/object/public/broll/ai-still/a.jpg') || L.imagemDaReservaValida('http://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/broll/ai-still/a.jpg') || !L.imagemDaReservaValida(NOSSA(0)), 'U2 lista POSITIVA: só o nosso bucket (broll/ai-still no Supabase); fal, googleapis e outro domínio não')
     no(L.imagemDaReservaValida('https://abcdefgh.supabase.co/storage/v1/object/public/broll/ai-still/a.jpg'), 'U2b outro projeto Supabase (qualquer *.supabase.co) não vale: só o NOSSO projeto')
     no(['videos', 'avatars', 'brolls', 'public-uploads'].some((b) => L.imagemDaReservaValida(`https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/${b}/ai-still/a.jpg`)) || L.imagemDaReservaValida('https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/broll/outra/a.jpg') || L.imagemDaReservaValida('https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/broll/ai-still/../x/a.jpg') || L.imagemDaReservaValida('https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/sign/broll/ai-still/a.jpg') || L.imagemDaReservaValida('https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/broll/ai-still/a.jpg/../../videos/b.mp4') || L.imagemDaReservaValida('https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/broll/ai-still/a.jpg?x=1'), 'U2c só o bucket broll, na pasta ai-still, pelo caminho público, a imagem e nada depois: outro bucket, outra pasta, URL assinada ou cauda não')
+    no(L.cenasComImagens(s76, [NOSSA(0), NOSSA(1)]) !== null || L.cenasComImagens(s76, [NOSSA(0), NOSSA(1), null, null]) !== null, 'U1b o vetor de imagens com tamanho diferente das cenas: null')
+    no(JSON.stringify(L.cenasSemImagem([{ prompt: 'a', duration: 6, image_url: 'http://cqqukkvjjrguayiyjvhh.supabase.co/x.jpg' }, { prompt: 'b', duration: 6, image_url: NOSSA(1) }])) !== '[0]', 'U1c imagem em http conta como sem imagem (a mesma régua do claim)')
+    no(L.estiloDoStillDaReserva('Film visual medium: clean graphic look, not photorealistic. A cat.')?.look !== 'animated3d', 'U1d o meio "not photorealistic" sem palavra de desenho também é desenho (a negação decide)')
+    no(!L.ambienteDoNossoProjeto('https://cqqukkvjjrguayiyjvhh.supabase.co') || !L.ambienteDoNossoProjeto('https://cqqukkvjjrguayiyjvhh.supabase.co/') || ['https://abcdefgh.supabase.co', 'http://cqqukkvjjrguayiyjvhh.supabase.co', 'https://cqqukkvjjrguayiyjvhh.supabase.co.evil.com', 'https://placeholder.supabase.co', '', undefined].some((u) => L.ambienteDoNossoProjeto(u)), 'P1 [3ª volta] o ambiente é o NOSSO projeto só com a URL dele (outro projeto, placeholder ou vazio = não)')
     no(L.NOSSO_PROJETO_SUPABASE !== 'cqqukkvjjrguayiyjvhh' || !String(L.NOSSO_BUCKET_DA_IMAGEM_RE.source).startsWith('^https:\\/\\/' + L.NOSSO_PROJETO_SUPABASE + '\\.supabase\\.co\\/'), 'U2d a lista nomeia o projeto de produção')
     const parcial = await L.desenharImagensDaReserva(s76, async (_p, i) => (i === 0 ? NOSSA(0) : null), 1_000)
     no(parcial.relato.ok || JSON.stringify(parcial.relato.desenhadas) !== '[0]' || parcial.relato.usd !== 0.03, `U3 desenho parcial: relato.ok falso, conta a desenhada e o custo dela (${JSON.stringify(parcial.relato)})`)
@@ -119,7 +125,11 @@ async function provas(over = {}) {
     no(!(await L.aindaEsperaODono(T, T + 70_000, banco(T + 40_000))), 'H4 [item 3] servidor adiantado 30 s: o local diz 70 s, o banco diz 40 s: ainda espera o dono')
     no(await L.aindaEsperaODono(T, T + 70_000, banco(T + 60_000)), 'H5 o banco diz 60 s (> 55 s): assume')
     no(!(await L.aindaEsperaODono(T, T + 70_000, banco(null))) || (await L.aindaEsperaODono(T, T + 120_000, banco(null))), 'H6 sem a hora do banco: o local com o DOBRO (70 s espera; 120 s assume, o filme não fica preso)')
-    no(await L.aindaEsperaODono(NaN, T, banco(T)), 'H7 sem desde: assume (o de antes)') }
+    no(await L.aindaEsperaODono(NaN, T, banco(T)), 'H7 sem desde: assume (o de antes)')
+    const preso = { from: () => ({ insert: () => ({ select: () => ({ single: () => new Promise(() => {}) }) }) }) }
+    const t0 = Date.now(), tp = await L.horaDoBanco(preso, { userId: 'u', generationId: GEN, papel: 'dono' }, 60)
+    no(tp !== null || Date.now() - t0 > 600, `H8 [3ª volta] insert travado: null no prazo, sem pendurar (${Date.now() - t0} ms)`)
+    no(L.RESERVA_RELOGIO_PRAZO_MS !== 3_000 || !(over[LIB] ?? ler(LIB)).includes('prazoMs: number = RESERVA_RELOGIO_PRAZO_MS)'), 'H9 o prazo padrão da hora do banco é 3 s') }
 
   for (const [g, caso] of Object.entries(CASOS).filter(([k]) => !k.startsWith('_'))) {
     const faltam = caso.shots.map((s, i) => (s.image_url ? -1 : i)).filter((i) => i >= 0)
@@ -176,6 +186,9 @@ async function provas(over = {}) {
     no(adiantado.desenhos.length || adiantado.posts.length || !adiantado.r.pending || adiantado.W.estado.claim.response.kling4_trial.reserva_com_imagem?.estado !== 'desenhando' || !adiantado.W.estado.horas.includes('espera'), 'R4 [item 3] servidor adiantado 30 s com o dono ainda desenhando (banco: 40 s): espera, não assume sem_imagem, nenhum POST')
     const sumiu = await rodar(n, { ligado: true, desenhar: async (_p, i) => NOSSA(i), agora: () => T + 70_000, hora: () => T + 60_000, extra: outro })
     no(sumiu.W.estado.claim.response.kling4_trial.reserva_com_imagem?.estado !== 'sem_imagem' || sumiu.desenhos.length, 'R5 o banco diz 60 s: assume sem imagem, sem desenhar') }
+  { const outro = await rodar(n, { ligado: true, desenhar: async (_p, i) => NOSSA(i), env: { NEXT_PUBLIC_SUPABASE_URL: 'https://abcdefgh.supabase.co' } })
+    const vazio = await rodar(n, { ligado: true, desenhar: async (_p, i) => NOSSA(i), env: {} })
+    no([outro, vazio].some((p) => p.desenhos.length || p.W.estado.horas.length || p.W.estado.claim.response.kling4_trial.reserva_com_imagem || p.W.estado.switches[0]?.model !== H3_T2V), 'P2 [3ª volta] ambiente noutro projeto Supabase (ou sem URL): nada desenhado nem pago, nenhuma linha de relógio, o caminho de hoje') }
   { no(L.estiloDoStillDaReserva(CASOS['5910c0e8'].shots[1].prompt)?.look !== 'animated3d' || L.estiloDoStillDaReserva(n.shots[0].prompt) !== null || L.estiloDoStillDaReserva('A cat.') !== null, 'E8 o still da reserva segue o meio que a cena escreve') }
   { const envio = over[ENVIO] ?? ler(ENVIO), claim = over[CLAIM] ?? ler(CLAIM), ev = over[EVT] ?? ler(EVT)
     no(!claim.includes('  const nextResponse = { ...response, kling4_trial: marcadorDaReservaIniciada(marker, args.reason, args.reservaDoDesenho ?? null) }') || !claim.includes('  const t = transicaoDasImagensDaReserva(current, args.dono, args.imagens, args.usd)\n  if (!(\'next\' in t)) return') || !claim.includes('  const next = marcadorComImagensDaReserva(marker, dono, imagens, usd)'), 'L1 as duas CAS reais usam as funções puras testadas')
@@ -221,6 +234,13 @@ const MUT = [
   ['hora: vai ao banco a cada consulta', LIB, (s) => s.replace('  if (agoraLocal - desde < RESERVA_IMAGEM_ESPERA_DO_DONO_MS) return true\n', '')],
   ['hora: o Date.now() do servidor no horaDoBanco', LIB, (s) => s.replace("    const t = Date.parse(String((data as { created_at?: unknown }).created_at ?? ''))", '    const t = Date.now()')],
   ['hora: manda o created_at do servidor', LIB, (s) => s.replace('.insert({ name: RESERVA_RELOGIO_EVENTO,', '.insert({ created_at: new Date().toISOString(), name: RESERVA_RELOGIO_EVENTO,')],
+  ['hora: sem o prazo (insert travado pendura)', LIB, (s) => s.replace('    return await Promise.race([ida, new Promise<null>((ok) => { tm = setTimeout(() => ok(null), Math.max(1, prazoMs)) })])', '    return await ida')],
+  ['hora: prazo padrão de 300 s', LIB, (s) => s.replace('export const RESERVA_RELOGIO_PRAZO_MS = 3_000', 'export const RESERVA_RELOGIO_PRAZO_MS = 300_000')],
+  ['ambiente: desenha em qualquer projeto', ENVIO, (s) => s.replace('  if (ligadoImagem && ambienteDoNossoProjeto(process.env.NEXT_PUBLIC_SUPABASE_URL) && marker.fallback_started', '  if (ligadoImagem && marker.fallback_started')],
+  ['ambiente: qualquer *.supabase.co vale', LIB, (s) => s.replace(".replace(/\\/+$/, '') === `https://${NOSSO_PROJETO_SUPABASE}.supabase.co`", ".endsWith('.supabase.co')")],
+  ['revisor A1: vetor de tamanho errado', LIB, (s) => s.replace('  if (!faltam.length || imagens.length !== shots.length) return null', '  if (!faltam.length) return null')],
+  ['revisor A2: temImagem aceita http', LIB, (s) => s.replace("const temImagem = (s: ReservaShot | null | undefined): boolean => typeof s?.image_url === 'string' && /^https:\\/\\//.test(s.image_url)", "const temImagem = (s: ReservaShot | null | undefined): boolean => typeof s?.image_url === 'string' && /^https?:\\/\\//.test(s.image_url)")],
+  ['revisor A6: estilo sem a negação', LIB, (s) => s.replace('!(/\\bnot photo/i.test(meio) || ', '!(')],
   ['evento do relógio fora da lista', EVT, (s) => s.replace("  'kling4_reserva_relogio', //", "  // 'kling4_reserva_relogio', //")],
   ['envio: segue sem a 2ª CAS', ENVIO, (s) => s.replace('      if (!gravou?.ok) return pending(claim)\n', '')],
   ['envio: gravadas sempre true', ENVIO, (s) => s.replace('gravadas: !!gravou?.ok && r.relato.ok,', 'gravadas: true,')],
