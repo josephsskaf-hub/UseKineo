@@ -295,7 +295,7 @@ const CAMINHOS = {
     const usos = s.split('await recusaDoEscritorDeCenas2011(').length - 1
     if (usos !== 3) f.push(`cinematic: as 2 saídas do generateScenes e o plano hollywood chamam a guarda (achei ${usos})`)
     const ultimoReplano = s.lastIndexOf('const replanned = await planHollywoodScenes(')
-    const uh = s.indexOf("await recusaDoEscritorDeCenas2011(plan.scenes.flatMap((sc) => [verbatimDoCliente2011 ? null : sc.voiceover, sc.dialogueLine ? sc.prompt.split(sc.dialogueLine).join(' ') : sc.prompt, recusaNaFalaDePersonagem(sc.dialogueLine) ? sc.dialogueLine : null]), 'planejador')")
+    const uh = s.indexOf("await recusaDoEscritorDeCenas2011(plan.scenes.flatMap((sc) => [verbatim && !!hollywoodVoiceover && hollywoodVoiceover.trim().length > 0 ? null : sc.voiceover, sc.dialogueLine ? sc.prompt.split(sc.dialogueLine).join(' ') : sc.prompt, recusaNaFalaDePersonagem(sc.dialogueLine) ? sc.dialogueLine : null]), 'planejador')")
     if (s.split('await reescritaComGuarda2011(expandVoiceoversToTargets, ').length - 1 !== 2 || s.includes('await expandVoiceoversToTargets(')) f.push('cinematic: as 2 chamadas do expandVoiceoversToTargets passam pela guarda')
     if (s.split('await reescritaComGuarda2011(appendNarrationToTargets, ').length - 1 !== 4 || s.includes('await appendNarrationToTargets(')) f.push('cinematic: as 4 chamadas do appendNarrationToTargets passam pela guarda')
     if (s.split('alinhamentoSemRecusa2011(await alignShotsToSpeech(').length - 1 !== 3 || /(?<!alinhamentoSemRecusa2011\()await alignShotsToSpeech\(/.test(s)) f.push('cinematic: as 3 chamadas do alignShotsToSpeech passam pela guarda')
@@ -332,7 +332,7 @@ const CAMINHOS = {
 const IMPORT_SIMPLES = "import { looksLikeModelRefusal, registrarRecusaDoModelo } from '@/lib/modelRefusal'" // VOLTA 4: + o registro
 // VOLTA 4 (b): cada guarda grava model_refusal_blocked
 const REGISTROS = {
-  'app/api/generate-video-cinematic/route.ts': ["registrarRecusa2011('entrada', body.prompt, false,", "registrarRecusa2011(guarda, falas.find(", "registrarRecusa2011('descritor', d, false)", "registrarRecusa2011('reescritor_fala', nova, false)", "registrarRecusa2011('reescritor_plano', c.shot, false)", "'planejador')", "try { void writeServerEvent({ name: 'model_refusal_blocked', userId: user.id, path: '/api/generate-video-cinematic', metadata: { version: 'recusa_ia_2011', guarda, rota: '/api/generate-video-cinematic', head: String(texto ?? '').slice(0, 120), refunded,"],
+  'app/api/generate-video-cinematic/route.ts': ["registrarRecusa2011('entrada', body.prompt, false,", "registrarRecusa2011(guarda, falas.find((f) => typeof f === 'string' && looksLikeModelRefusal(f)), refunded && cost > 0, {", "registrarRecusa2011('descritor', d, false)", "registrarRecusa2011('reescritor_fala', nova, false)", "registrarRecusa2011('reescritor_plano', c.shot, false)", "'planejador')", "try { void writeServerEvent({ name: 'model_refusal_blocked', userId: user.id, path: '/api/generate-video-cinematic', metadata: { version: 'recusa_ia_2011', guarda, rota: '/api/generate-video-cinematic', head: String(texto ?? '').slice(0, 120), refunded,"],
   'app/api/expand-script/route.ts': ["guarda: 'expandir', rota: '/api/expand-script', texto: expandido"],
   'app/api/apply-suggestion/route.ts': ["guarda: 'sugestao', rota: '/api/apply-suggestion', texto: improved"],
   'app/api/ad-script/route.ts': ["guarda: 'anuncio_avatar', rota: '/api/ad-script', texto: script"],
@@ -392,23 +392,27 @@ console.log('== (5) VOLTA 3: o verbatim do cliente passa como veio (sem 422 da g
 }
 
 console.log('== (6) VOLTA 4 (a): planejador hollywood — em verbatim a fala do CLIENTE passa; fora dele a recusa do modelo é barrada ==')
-const julgarPlanejador = (fonteDaRota, MR, verbatimDoCliente2011, cenas) => {
+const julgarPlanejador = (fonteDaRota, MR, modos, cenas) => {
   const m = fonteDaRota.match(/await recusaDoEscritorDeCenas2011\((plan\.scenes\.flatMap\(\(sc\) => \[[^\n]*?\]\)), 'planejador'\)/)
   if (!m) return null
-  const itens = new Function('plan', 'verbatimDoCliente2011', 'recusaNaFalaDePersonagem', 'return ' + m[1])({ scenes: cenas }, verbatimDoCliente2011, MR.recusaNaFalaDePersonagem)
+  const itens = new Function('plan', 'verbatimDoCliente2011', 'verbatim', 'hollywoodVoiceover', 'recusaNaFalaDePersonagem', 'return ' + m[1])({ scenes: cenas }, modos.pedido, modos.efetivo, modos.roteiro, MR.recusaNaFalaDePersonagem)
   return MR.algumaRecusaDoModelo(itens) // true = estorno + 422
 }
 const PLANEJADOR_CASOS = (rota) => {
   const f = []
   const cena = (voiceover) => [{ voiceover, prompt: 'Medium shot of a tired man at a rainy door at night, cinematic light.', dialogueLine: undefined }]
-  const V1 = "NARRATION: I'm sorry, I can't assist with that.", V2 = "I can't do that. Not for money, not for anyone."
-  if (julgarPlanejador(rota, M, true, cena(V1)) !== false) f.push('verbatim: "NARRATION: I\'m sorry…" do cliente deu estorno/422')
-  if (julgarPlanejador(rota, M, true, cena(V2)) !== false) f.push('verbatim: "I can\'t do that. Not for money…" do cliente deu estorno/422')
-  if (julgarPlanejador(rota, M, false, cena("I'm sorry, but I can't assist with that request.")) !== true) f.push('fora do verbatim: a fala de recusa do modelo passou')
-  if (julgarPlanejador(rota, M, true, [{ voiceover: V2, prompt: "I'm sorry, but I can't assist with that request.", dialogueLine: undefined }]) !== true) f.push('verbatim: o PROMPT que é recusa do modelo passou (só a fala sai do julgamento)')
+  const V1 = "NARRATION: I'm sorry, I can't assist with that.", V2 = "I can't do that. Not for money, not for anyone.", RECUSA = "I'm sorry, but I can't assist with that request."
+  const VERBATIM_PURO = (roteiro) => ({ pedido: true, efetivo: true, roteiro })
+  // VOLTA 5: conta sem filme entregue, motor hollywood, verbatim + plano de câmera → a rota troca o modo para 'ai' (efetivo false, sem C1)
+  const VERBATIM_COM_PLANO_DE_CAMERA = { pedido: true, efetivo: false, roteiro: undefined }
+  if (julgarPlanejador(rota, M, VERBATIM_PURO(V1), cena(V1)) !== false) f.push('verbatim puro: "NARRATION: I\'m sorry…" do cliente deu estorno/422')
+  if (julgarPlanejador(rota, M, VERBATIM_PURO(V2), cena(V2)) !== false) f.push('verbatim puro: "I can\'t do that. Not for money…" do cliente deu estorno/422')
+  if (julgarPlanejador(rota, M, VERBATIM_COM_PLANO_DE_CAMERA, cena(RECUSA)) !== true) f.push('verbatim + plano de câmera (modo trocado para ai): a recusa do planejador passou e viraria narração')
+  if (julgarPlanejador(rota, M, { pedido: false, efetivo: false, roteiro: undefined }, cena(RECUSA)) !== true) f.push('fora do verbatim: a fala de recusa do modelo passou')
+  if (julgarPlanejador(rota, M, VERBATIM_PURO(V2), [{ voiceover: V2, prompt: RECUSA, dialogueLine: undefined }]) !== true) f.push('verbatim: o PROMPT que é recusa do modelo passou (só a fala sai do julgamento)')
   return f
 }
-checa('verbatim: as 2 entradas do cliente passam sem 422 nem estorno; fora do verbatim e no prompt, a recusa do modelo é barrada', PLANEJADOR_CASOS(lf('app/api/generate-video-cinematic/route.ts')))
+checa('verbatim puro: as 2 entradas do cliente passam sem 422 nem estorno; verbatim + plano de câmera (modo trocado), fora do verbatim e no prompt: a recusa do modelo é barrada', PLANEJADOR_CASOS(lf('app/api/generate-video-cinematic/route.ts')))
 {
   const ev = []
   M.registrarRecusaDoModelo(async (e) => { ev.push(e) }, { guarda: 'teste', rota: '/api/x', texto: 'x'.repeat(300), refunded: true, userId: 'u' })
@@ -469,11 +473,14 @@ mutFio('Studio Ads sem a guarda na correção', 'app/api/ads/script/route.ts', '
 mutFio('desenho sem a guarda', 'app/api/kids-cartoon/story/route.ts', "if (looksLikeModelRefusal(texto)) { registrarRecusaDoModelo(writeServerEvent, { guarda: 'desenho', rota: '/api/kids-cartoon/story', texto: texto, refunded: null, userId: user.id }); texto = '' }", '')
 mutFio('podcast do bebê sem a guarda', 'app/api/baby-podcast/prepare/route.ts', "if (looksLikeModelRefusal(texto)) { registrarRecusaDoModelo(writeServerEvent, { guarda: 'podcast_bebe', rota: '/api/baby-podcast/prepare', texto: texto, refunded: null, userId: user.id }); texto = '' }", '')
 mutFio('demo sem a guarda', 'app/api/demo-script/route.ts', 'if (script && looksLikeModelRefusal(script)) return', 'if (false) return')
-mutFio('cinematic sem a guarda do planejador hollywood', CIN, "await recusaDoEscritorDeCenas2011(plan.scenes.flatMap((sc) => [verbatimDoCliente2011 ? null : sc.voiceover, sc.dialogueLine ? ", "null && (plan.scenes.flatMap((sc) => [verbatimDoCliente2011 ? null : sc.voiceover, sc.dialogueLine ? ")
+mutFio('cinematic sem a guarda do planejador hollywood', CIN, "await recusaDoEscritorDeCenas2011(plan.scenes.flatMap((sc) => [verbatim && !!hollywoodVoiceover && hollywoodVoiceover.trim().length > 0 ? null : sc.voiceover, sc.dialogueLine ? ", "null && (plan.scenes.flatMap((sc) => [verbatim && !!hollywoodVoiceover && hollywoodVoiceover.trim().length > 0 ? null : sc.voiceover, sc.dialogueLine ? ")
 { // V4(a): o mutante tem de reprovar na PROVA EXECUTADA
-  const mutada = lf(CIN).replace('[verbatimDoCliente2011 ? null : sc.voiceover, sc.dialogueLine ?', '[sc.voiceover, sc.dialogueLine ?')
-  mutantes.push(['V4(a) em verbatim a fala do cliente volta a ser julgada (estorno e 422)', mutada !== lf(CIN) && PLANEJADOR_CASOS(mutada).length > 0])
+  const mutada = lf(CIN).replace('[verbatim && !!hollywoodVoiceover && hollywoodVoiceover.trim().length > 0 ? null : sc.voiceover, sc.dialogueLine ?', '[sc.voiceover, sc.dialogueLine ?')
+  mutantes.push(['V4(a)/V5 verbatim puro: a fala do cliente volta a ser julgada (estorno e 422)', mutada !== lf(CIN) && PLANEJADOR_CASOS(mutada).length > 0])
+  const mutada5 = lf(CIN).replace('[verbatim && !!hollywoodVoiceover && hollywoodVoiceover.trim().length > 0 ? null : sc.voiceover, sc.dialogueLine ?', '[verbatimDoCliente2011 ? null : sc.voiceover, sc.dialogueLine ?')
+  mutantes.push(['V5 o planejador volta a usar o modo LIDO do pedido (verbatim + plano de câmera: a recusa vira narração)', mutada5 !== lf(CIN) && PLANEJADOR_CASOS(mutada5).length > 0])
 }
+mutFio('V5 o evento grava refunded:true em filme de custo 0', CIN, 'refunded && cost > 0, {', 'refunded, {')
 mutFio('V4(b) o descritor não registra', CIN, "(registrarRecusa2011('descritor', d, false), null)", 'null')
 mutFio('V4(b) o reescritor de fala não registra', CIN, "registrarRecusa2011('reescritor_fala', nova, false); ", '')
 mutFio('V4(b) a sugestão não registra', 'app/api/apply-suggestion/route.ts', "guarda: 'sugestao', rota: '/api/apply-suggestion', texto: improved", "guarda: 'x', rota: '', texto: ''")

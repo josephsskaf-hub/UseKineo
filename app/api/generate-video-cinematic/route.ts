@@ -1678,6 +1678,7 @@ async function manipularPost(req: NextRequest) {
     const registrarRecusa2011 = (guarda: string, texto: unknown, refunded: boolean | null, extra: Record<string, unknown> = {}): void => {
       try { void writeServerEvent({ name: 'model_refusal_blocked', userId: user.id, path: '/api/generate-video-cinematic', metadata: { version: 'recusa_ia_2011', guarda, rota: '/api/generate-video-cinematic', head: String(texto ?? '').slice(0, 120), refunded, generation_id: typeof body.generationId === 'string' ? body.generationId : null, dry_run: body.dry_run === true, ...extra } }).catch(() => false) } catch { /* nunca quebra o fluxo */ }
     }
+    // VOLTA 5: aqui o modo lido do pedido é o certo — a guarda de entrada roda ANTES de a rota trocar o modo para 'ai' (monumento, plano de câmera)
     if (!verbatimDoCliente2011 && looksLikeModelRefusal(body.prompt)) {
       const ideiaDoCliente2011 = typeof body.original_idea === 'string' && body.original_idea.trim() && !looksLikeModelRefusal(body.original_idea) ? body.original_idea.trim() : null
       const usarIdeia2011 = !!ideiaDoCliente2011
@@ -3370,7 +3371,7 @@ async function manipularPost(req: NextRequest) {
       if (!algumaRecusaDoModelo(falas)) return null
       const refunded = await confirmCinematicRefund()
       const released = refunded && await releaseBirthClaim('model_refused_topic')
-      registrarRecusa2011(guarda, falas.find((f) => typeof f === 'string' && looksLikeModelRefusal(f)), refunded, { outcome: refunded ? 'refunded' : 'refund_pending', generation_id: generationId })
+      registrarRecusa2011(guarda, falas.find((f) => typeof f === 'string' && looksLikeModelRefusal(f)), refunded && cost > 0, { outcome: refunded ? 'refunded' : 'refund_pending', generation_id: generationId })
       return NextResponse.json({
         error: refunded ? 'The writer could not turn this idea into a script (the AI declined the topic). Your credits were returned — try rewording the idea, or paste your own script with "Use my script as is".' : 'The writer could not turn this idea into a script (the AI declined the topic). Your automatic credit refund is still being confirmed.',
         reason: 'model_refused_topic', code: 'model_refused_topic', generationId, refunded, refundConfirmed: refunded, claimReleased: released, retryable: false,
@@ -5019,11 +5020,13 @@ async function manipularPost(req: NextRequest) {
       }
       // KINEO-RECUSA-IA-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — VOLTA 2 (revisão 20/11): o planejador hollywood (e cada
       // replano) escreve fala, diálogo e prompt que vão ao motor. Recusa em qualquer um deles = o estorno de sempre e 422, antes de qualquer POST.
+      // VOLTA 5: o verbatim EFETIVO (const verbatim, depois das trocas de modo do monumento e do plano de câmera) e a mesma condição da C1 abaixo;
+      // com o modo trocado para 'ai', a fala do planejador volta a ser julgada (a C1 não a trocaria).
       // VOLTA 4 (a): em verbatim o planejador reaproveita o roteiro do CLIENTE na fala (lib/hollywood/router.ts) e a C1 só o repõe depois — a fala
       // não é julgada ("I can't do that. Not for money…" do cliente passa); prompt e dialogueLine continuam julgados.
       // VOLTA 3: a dialogueLine é FALA DE PERSONAGEM ("I'm afraid I can't do that." passa); só conta quando é, inteira, a recusa do modelo sobre o pedido ou o
       // conteúdo (recusaNaFalaDePersonagem). Fala e prompt seguem com a régua completa; do prompt sai a própria dialogueLine citada, para não julgá-la duas vezes.
-      const recusaDoPlanejador2011 = await recusaDoEscritorDeCenas2011(plan.scenes.flatMap((sc) => [verbatimDoCliente2011 ? null : sc.voiceover, sc.dialogueLine ? sc.prompt.split(sc.dialogueLine).join(' ') : sc.prompt, recusaNaFalaDePersonagem(sc.dialogueLine) ? sc.dialogueLine : null]), 'planejador') // KINEO-RECUSA-IA-2011
+      const recusaDoPlanejador2011 = await recusaDoEscritorDeCenas2011(plan.scenes.flatMap((sc) => [verbatim && !!hollywoodVoiceover && hollywoodVoiceover.trim().length > 0 ? null : sc.voiceover, sc.dialogueLine ? sc.prompt.split(sc.dialogueLine).join(' ') : sc.prompt, recusaNaFalaDePersonagem(sc.dialogueLine) ? sc.dialogueLine : null]), 'planejador') // KINEO-RECUSA-IA-2011
       if (recusaDoPlanejador2011) return recusaDoPlanejador2011 // KINEO-RECUSA-IA-2011
 
       // ═══ KINEO-CONTRATO-2026-08-18 — Cláusulas 1+2 (docs/CONTRATO-HOLLYWOOD.md)
