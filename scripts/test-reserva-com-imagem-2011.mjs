@@ -83,7 +83,7 @@ async function provas(over = {}) {
   const no = (ruim, msg) => { if (ruim) erros.push(msg) }
   OVER_DA_PROVA = over
   const W0 = mundo(over), L = W0.L
-  no(L.RESERVA_COM_IMAGEM_2011 !== 'off' || L.reservaComImagemLigada('off') || !L.reservaComImagemLigada('all'), "A0 o commit nasce 'off' (ligar = gasto por filme na reserva: sim do dono)")
+  no(L.RESERVA_COM_IMAGEM_2011 !== 'all' || L.reservaComImagemLigada('off') || !L.reservaComImagemLigada('all'), "A0 [CEO 20/11, dono 'liga tudo que já está certo'] o commit está 'all' (desligar = 'off')")
   // a lib, direto
   { const s76 = CASOS['76c4c5c4'].shots
     no(L.cenasComImagens(s76, [NOSSA(0), null, null]) !== null || L.cenasComImagens(s76, [NOSSA(0), NOSSA(1), null])?.[1]?.image_url !== NOSSA(1) || L.cenasComImagens(s76, [NOSSA(0), NOSSA(1), null])?.[2]?.image_url !== s76[2].image_url, 'U1 cenasComImagens: só com TODAS as que faltavam; a aprovada fica')
@@ -203,7 +203,7 @@ async function provas(over = {}) {
 const base = await provas()
 ok(base.length === 0, `prova nos 3 casos reais${base.length ? ': ' + base.join(' · ') : ''}`)
 const MUT = [
-  ['ligado no commit', LIB, (s) => s.replace("export const RESERVA_COM_IMAGEM_2011: ModoReservaComImagem2011 = 'off'", "export const RESERVA_COM_IMAGEM_2011: ModoReservaComImagem2011 = 'all'")],
+  ['desligado no commit', LIB, (s) => s.replace("export const RESERVA_COM_IMAGEM_2011: ModoReservaComImagem2011 = 'all'", "export const RESERVA_COM_IMAGEM_2011: ModoReservaComImagem2011 = 'off'")], // [CEO 20/11] reancorado: o commit está 'all'
   ['desenha também a que já tem imagem', LIB, (s) => s.replace('shots.map((s, i) => (temImagem(s) ? -1 : i))', 'shots.map((s, i) => (false ? -1 : i))')],
   ['falha parcial mistura motor', LIB, (s) => s.replace('  if (faltam.some((i) => !imagemDaReservaValida(imagens[i]))) return null\n', '')],
   ['lista negativa (só tira a fal)', LIB, (s) => s.replace("export const imagemDaReservaValida = (u: unknown): u is string => typeof u === 'string' && NOSSO_BUCKET_DA_IMAGEM_RE.test(u)", "export const imagemDaReservaValida = (u: unknown): u is string => typeof u === 'string' && /^https:\\/\\//.test(u) && !/fal\\.media/.test(u)")],

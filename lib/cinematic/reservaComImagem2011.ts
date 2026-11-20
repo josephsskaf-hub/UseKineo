@@ -14,7 +14,7 @@ import type { StyleAnchor } from '@/lib/cinematic/sceneStyle'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export type ModoReservaComImagem2011 = 'off' | 'all'
-export const RESERVA_COM_IMAGEM_2011: ModoReservaComImagem2011 = 'off' // CEO 20/11: 'off' no commit; ligar para cliente = gasto por filme na reserva, pede o sim do dono
+export const RESERVA_COM_IMAGEM_2011: ModoReservaComImagem2011 = 'all' // CEO 20/11 07:2x (dono: "liga tudo que já está certo" = o sim do gasto por filme na reserva): 'all'. Desligar = 'off' (o caminho de hoje, byte a byte)
 export const reservaComImagemLigada = (modo: ModoReservaComImagem2011): boolean => modo === 'all'
 export const RESERVA_COM_IMAGEM_VERSAO = 'reserva_com_imagem_2011_v1'
 export const RESERVA_COM_IMAGEM_EVENTO = 'kling4_reserva_com_imagem'
