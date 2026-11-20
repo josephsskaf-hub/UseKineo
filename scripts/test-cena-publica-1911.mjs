@@ -69,7 +69,9 @@ async function prova(over = {}) {
     no(L.PLANO_DA_FALA_EVENTO !== 'kling4_plano_da_fala_hoje' || !/^\s*'kling4_plano_da_fala_hoje',/m.test(lista), 'R1 o evento do caminho de hoje é só do servidor')
     no(!rota.includes("metadata: { generation_id: generationId, versao: rastro1911.versao, motivo, a2: !!kling4DescritorForte1911 } }).catch(() => false) // só o motivo, nunca texto"), 'R2 o evento grava a versão, o motivo e se era o A2 (nunca texto)')
     for (const m of ["voltaAoHoje1911('com_ficha')", "voltaAoHoje1911('prazo_do_descritor')", "voltaAoHoje1911(c1911.motivo ?? 'descricao_incompleta')", "voltaAoHoje1911('prazo_da_revisao')", "voltaAoHoje1911('nome_sem_checagem')", "voltaAoHoje1911('nome_persistiu')", "voltaAoHoje1911(prazo1911.estourou ? 'prazo_da_revisao' : 'erro_da_revisao')"]) no(!rota.includes(m), `R3 cada queda grava o motivo: ${m}`)
-    no(!rota.includes('...(rastro1911 ? { plano_da_fala: rastro1911 } : {}),'), 'R4 a versão do A1/A2 e o caminho vão ao claim') }
+    no(!rota.includes('...(rastro1911 ? { plano_da_fala: rastro1911 } : {}),'), 'R4 a versão do A1/A2 e o caminho vão ao claim')
+    no(!rota.includes("reescritas: rastro1911?.caminho === 'hoje' ? [] : rA2.reescritas, reescritas_descartadas: rastro1911?.caminho === 'hoje' ? rA2.reescritas : [], caminho: rastro1911?.caminho ?? null,"), 'R5 [revisor 19/11, D4] o evento do A2 no caminho de hoje não diz que reescreveu: as reescritas vão como descartadas, com o caminho')
+    no(!rota.includes('prazo1911.corrida(sujeitoNoKling4({ pedido: kling4PedidoSujeito, falas: kling4Timing.voiceovers, prompts: kling4Prompts, stills: kling4ApprovedStills, pessoaPermitida: !romanceAdulto.ativo }, leituraDoA21911), prazo1911.resta())'), 'P10 [revisor 19/11, D1] a leitura do sujeito antes da revisão do A2 também cabe no teto somado') }
 
   // ── condição 4 · nome próprio: a checagem que falha volta ao texto de hoje ──
   { const quebra = async () => { throw new Error('rede') }
@@ -112,6 +114,8 @@ const MUT = [
   ['rota: voltar não desfaz as cenas', ROTA, (s) => s.replace('kling4PromptsDasCenas1911.forEach((p, i) => { kling4Prompts[i] = p }); ultimoComSujeito1911.ligado = false', 'ultimoComSujeito1911.ligado = false')],
   ['rota: motivo da descrição jogado fora', ROTA, (s) => s.replace("          else voltaAoHoje1911(c1911.motivo ?? 'descricao_incompleta')", '')],
   ['rota: evento com texto', ROTA, (s) => s.replace('versao: rastro1911.versao, motivo, a2: !!kling4DescritorForte1911 } })', 'versao: rastro1911.versao, motivo, a2: !!kling4DescritorForte1911, roteiro: prompt } })')],
+  ['rota D4: evento grava as reescritas do caminho de hoje', ROTA, (s) => s.replace("reescritas: rastro1911?.caminho === 'hoje' ? [] : rA2.reescritas,", 'reescritas: rA2.reescritas,')],
+  ['rota D1: sujeito fora do teto', ROTA, (s) => s.replace('prazo1911.corrida(sujeitoNoKling4({ pedido: kling4PedidoSujeito, falas: kling4Timing.voiceovers, prompts: kling4Prompts, stills: kling4ApprovedStills, pessoaPermitida: !romanceAdulto.ativo }, leituraDoA21911), prazo1911.resta())', '(sujeitoNoKling4({ pedido: kling4PedidoSujeito, falas: kling4Timing.voiceovers, prompts: kling4Prompts, stills: kling4ApprovedStills, pessoaPermitida: !romanceAdulto.ativo }, leituraDoA21911))')],
   ['rota: claim sem o caminho', ROTA, (s) => s.replace('          ...(rastro1911 ? { plano_da_fala: rastro1911 } : {}),', '')],
   ['evento fora da lista', EVT, (s) => s.replace("  'kling4_plano_da_fala_hoje', //", "  // 'kling4_plano_da_fala_hoje', //")],
   ['nome que falha = nenhum nome', LIB, (s) => s.replace("  }, { model: 'gpt-4o-mini', timeoutMs: 6_000, tentativasExtras: 0, ...opts })\n  if (!r.ok) return null", "  }, { model: 'gpt-4o-mini', timeoutMs: 6_000, tentativasExtras: 0, ...opts })\n  if (!r.ok) return []")],
