@@ -5005,6 +5005,10 @@ async function manipularPost(req: NextRequest) {
         }
         console.log(`[cinematic] hollywood plan duration: ${total}s of ${target}s target (${plan.scenes.length} scenes)`)
       }
+      // KINEO-RECUSA-IA-2011 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — VOLTA 2 (revisão 20/11): o planejador hollywood (e cada
+      // replano) escreve fala, diálogo e prompt que vão ao motor. Recusa em qualquer um deles = o estorno de sempre e 422, antes de qualquer POST.
+      const recusaDoPlanejador2011 = await recusaDoEscritorDeCenas2011(plan.scenes.flatMap((sc) => [sc.voiceover, sc.dialogueLine, sc.prompt])) // KINEO-RECUSA-IA-2011
+      if (recusaDoPlanejador2011) return recusaDoPlanejador2011 // KINEO-RECUSA-IA-2011
 
       // ═══ KINEO-CONTRATO-2026-08-18 — Cláusulas 1+2 (docs/CONTRATO-HOLLYWOOD.md)
       // Render ef2d09bf provou: o planner condensou 160 palavras em 52 e
