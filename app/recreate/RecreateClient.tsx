@@ -122,6 +122,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
   const identityPhotoLimit = selected && currentFlow && signedIn ? clipSpecs?.[selected.id]?.identityPhotoLimit : undefined
   const photoSlots = Math.max(requiredPhotoSlots, identityPhotoLimit ?? 0)
   const extraPhotoSlots = photoSlots - requiredPhotoSlots
+  const photoSummary = extraPhotoSlots > 0 ? `1–${photoSlots} photos` : `${requiredPhotoSlots} ${requiredPhotoSlots === 1 ? 'photo' : 'photos'}`
   const photosReady = requiredPhotoSlots > 0 && photos.slice(0, requiredPhotoSlots).filter(Boolean).length === requiredPhotoSlots
   const draftIdentityPhotoLimit = initialId && signedIn ? clipSpecs?.[initialId]?.identityPhotoLimit : undefined
   const [prompt, setPrompt] = useState(selected?.prompt ?? '')
@@ -594,7 +595,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
             linha do vídeo-base (miniatura, nome, um "Change") e "Use your video" como ação secundária embaixo; ações com corpo de botão e ícone SVG (o iOS troca "↗" por emoji). */}
         {(currentFlow || createTabs) && <div className="ct-base-choice rc-base-row" data-base-row="">
           <img src={selectedMedia!.poster} alt="" width={44} height={50} />
-          <div><small>{clipWorkspace ? referenceLabels[selected.type] : 'Base video'}</small><strong>{selected.title}</strong>{clipWorkspace && <small>{selected.seconds} s · {extraPhotoSlots > 0 ? `1–${photoSlots} photos` : `${requiredPhotoSlots} ${requiredPhotoSlots === 1 ? 'photo' : 'photos'}`}</small>}</div>
+          <div><small>{clipWorkspace ? referenceLabels[selected.type] : 'Base video'}</small><strong>{selected.title}</strong>{clipWorkspace && <small>{selected.seconds} s · {photoSummary}</small>}</div>
           <button type="button" className="rc-acao" onClick={showTemplates} disabled={editingDisabled} aria-label="Change base video">Change<Icone nome="trocar" /></button>
         </div>}
         {currentFlow && ownVideoVisible && !clipWorkspace && <Link className="rc-acao rc-acao-secundaria" href={`${flowBasePath}/your-video`} onClick={leaveFlow}><Icone nome="video" />Use your own video instead</Link>}
@@ -663,7 +664,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
           {clip?.status === 'done' && clip.audio === 'silent' && <p className="rc-muted">Silent video</p>}<Link href="/library">My videos ↗</Link>{statusPaused && <button type="button" className="rc-change" onClick={() => setStatusPaused(false)}>Refresh status</button>} {/* KINEO-RECREATE-MOVIMENTO-1411 — "Silent video" no pronto que saiu sem som */}
         </div> : <RecreatePlayer key={selected.id} src={selectedMedia!.video} poster={selectedMedia!.poster} preview label={`Base video: ${selected.title}`}
           stage={{ kind: 'Base video', title: selected.title,
-            detail: `${selected.type === 'swap' ? 'Face swap' : selected.type === 'motion' ? 'Motion' : 'Photo effect'} · ${selected.seconds} s · ${selected.photoSlots} ${selected.photoSlots === 1 ? 'photo' : 'photos'}`,
+            detail: `${selected.type === 'swap' ? 'Face swap' : selected.type === 'motion' ? 'Motion' : 'Photo effect'} · ${selected.seconds} s · ${photoSummary}`,
             action: !createTabs && <button className="rc-change" disabled={editingDisabled} onClick={showTemplates}>Change video ↗</button> }} />}</div>
   </>
   const cartao = (f: RecreateFormat, index: number) => <article key={f.id} className={`rc-card ${index % 4 === 1 ? 'rc-card-short' : ''} ${selected?.id === f.id ? 'rc-card-selected' : ''}`}>

@@ -135,6 +135,7 @@ function harness(o, { moldura = false, props = {} } = {}) {
     react: { ...React, useState, useRef, useEffect }, 'react/jsx-runtime': jsx, 'next/link': { __esModule: true, default: 'a' },
     '@/components/PublicSiteHeader': { __esModule: true, default: stub }, '@/components/KineoBolt': { KineoBrandIcon: stub }, '@/components/SiteSettingsMenu': { __esModule: true, default: () => null }, '@/lib/clips/clipCatalog': real('lib/clips/clipCatalog'), '@/lib/recreate/formats': real('lib/recreate/formats'), '@/lib/recreate/entry': real('lib/recreate/entry'), '@/lib/recreate/catalogPublic': real('lib/recreate/catalogPublic'),
     '@/lib/recreate/photos': { compressPhoto: prepare, cropFace: prepare, composePairPhoto: async () => new File(['par'], 'par.jpg', { type: 'image/jpeg' }) },
+    '@/lib/recreate/identityPhotos': L(o)('lib/recreate/identityPhotos'),
     '@/components/billing/BuyCreditsEntry': { TopupOuRecargaModal: () => null, BUY_CREDITS_OPENED_EVENT: 'buy_credits_entry_opened' }, '@/lib/analytics': { trackEvent: async () => {} }, // KINEO-TELA-RECREATE-1611
     './RecreatePlayer': { __esModule: true, default: 'fixture-player', ExampleCover: 'fixture-cover' },
     '@/components/create/CreateTabs': { __esModule: true, default: stub }, '@/components/create/CreateNavConta': { __esModule: true, default: stub },

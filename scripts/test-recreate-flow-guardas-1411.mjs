@@ -34,6 +34,7 @@ function client(over, options = {}) {
     react: { ...React, useState, useRef, useEffect }, 'react/jsx-runtime': jsx, 'next/link': { __esModule: true, default: 'a' },
     '@/components/PublicSiteHeader': { __esModule: true, default: stub }, '@/components/KineoBolt': { KineoBrandIcon: stub }, '@/components/SiteSettingsMenu': { __esModule: true, default: () => null }, '@/lib/clips/clipCatalog': over.load('lib/clips/clipCatalog'), '@/lib/recreate/formats': F, '@/lib/recreate/entry': E, '@/lib/recreate/catalogPublic': P,
     '@/lib/recreate/photos': { compressPhoto: prepare, cropFace: prepare, composePairPhoto: async () => photo('pair') },
+    '@/lib/recreate/identityPhotos': loader({}, over)('lib/recreate/identityPhotos'),
     '@/components/billing/BuyCreditsEntry':{TopupOuRecargaModal:()=>null,BUY_CREDITS_OPENED_EVENT:'buy_credits_entry_opened'},'@/lib/analytics':{trackEvent:async()=>{}}, // KINEO-TELA-RECREATE-1611
     './RecreatePlayer': { __esModule: true, default: 'fixture-player', ExampleCover: 'fixture-cover' },
     '@/components/create/CreateTabs': { __esModule: true, default: stub }, '@/components/create/CreateNavConta': { __esModule: true, default: stub },
