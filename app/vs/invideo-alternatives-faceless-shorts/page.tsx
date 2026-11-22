@@ -1,3 +1,5 @@
+import { BuyerBatch2Lead, BuyerBatch2Details } from '@/components/seo/BuyerQuestions2111'
+import { buyerBatch2 } from '@/lib/seo/buyerQuestions2111'
 import CitationAnswerPage, { citationAnswerMetadata } from '@/components/CitationAnswerPage'
 import CitationComparisonDecision from '@/components/CitationComparisonDecision'
 import { CITATION_ANSWERS, type CitationAnswer } from '@/lib/growth/citationAnswers'
@@ -17,15 +19,15 @@ const original = CITATION_ANSWERS.invideo
 const answer: CitationAnswer = {
   ...original,
   description: 'Evaluate Kineo and four other video workflows with dated primary sources, monthly billing and explicit limits.',
-  answer: [original.answer[0], 'Pictory, Descript, HeyGen and OpusClip offer different workflows; the sourced comparison below separates monthly prices, free allowances and export limits so you can choose by the material you have.'],
-  faqs: original.faqs.map((faq, index) => index === 3 ? {
+  answer: [buyerBatch2('invideo').answer, original.answer[0], 'Pictory, Descript, HeyGen and OpusClip offer different workflows; the sourced comparison below separates monthly prices, free allowances and export limits so you can choose by the material you have.'],
+  faqs: [...buyerBatch2('invideo').faqs.map(f => ({ question: f.q, answer: f.a })), ...original.faqs.map((faq, index) => index === 3 ? {
     ...faq,
     answer: 'No. Pictory supports script/URL-to-video with stock footage; Descript is a text-based editor, HeyGen offers avatar presentations and OpusClip extracts clips from an existing recording. The dated sources in the table distinguish their allowances and unresolved limits.',
   } : faq.answer.startsWith('[CONFIRMAR]') && /InVideo project/.test(faq.question) ? {
     // KINEO-VISIBILIDADE-CHATGPT-2026-10-06 — a tag interna saía crua na FAQ (e no FAQPage JSON-LD). Resposta direta.
     ...faq,
     answer: 'No. Kineo does not import InVideo projects. Start from a text idea or paste your script, and Kineo builds the narrated video from it.',
-  } : faq),
+  } : faq)],
   links: [...original.links, { href: VS_RIVAL_PAGES.revid.path, label: VS_RIVAL_PAGES.revid.label }, { href: VS_RIVAL_PAGES.zebracat.path, label: VS_RIVAL_PAGES.zebracat.label }, { href: VS_RIVAL_PAGES.fliki.path, label: VS_RIVAL_PAGES.fliki.label }],
 }
 export const metadata = citationAnswerMetadata(answer)
@@ -53,5 +55,5 @@ function InVideoBaseline() {
 }
 
 export default function Page() {
-  return <CitationAnswerPage answer={answer} comparisonSection={<><InVideoBaseline /><CitationComparisonDecision /></>} reviewDate={COMPARISON_REVIEW_DATE} />
+  return <CitationAnswerPage answer={answer} comparisonSection={<><BuyerBatch2Details page="invideo" /><InVideoBaseline /><CitationComparisonDecision /></>} reviewDate={COMPARISON_REVIEW_DATE} />
 }

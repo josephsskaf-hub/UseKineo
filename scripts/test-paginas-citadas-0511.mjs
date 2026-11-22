@@ -93,7 +93,7 @@ function prova(mutar = {}) {
   const mapa = [...P.PAGINAS_CITADAS_0511_PATHS, '/pricing', '/free-ai-shorts/mythology'].map((p) => ({ url: base + (p === '/' ? '' : p), lastModified: '2026-10-23T12:00:00.000Z' }))
   const saida = P.carimbaPaginasCitadas0511([...mapa, { url: base + '/text-to-video-shorts', lastModified: '2026-12-01T00:00:00.000Z' }])
   const dia = (x) => new Date(x.lastModified).toISOString().slice(0, 10)
-  exige(P.PAGINAS_CITADAS_0511_PATHS.length === 6 && saida.slice(0, 6).every((x) => dia(x) === (new URL(x.url).pathname === '/' ? '2026-11-05' : new URL(x.url).pathname === '/text-to-video-shorts' ? '2026-11-21' : ['/gerador-de-shorts-gratis','/ai-video-generator/for/urdu','/ai-video-generator/seedance'].includes(new URL(x.url).pathname) ? '2026-11-20' : '2026-11-17')), 'mapa: datas aprovadas das 6 páginas, incluindo revisão H3 de 11/11')
+  exige(P.PAGINAS_CITADAS_0511_PATHS.length === 6 && saida.slice(0, 6).every((x) => dia(x) === (new URL(x.url).pathname === '/' ? '2026-11-05' : ['/text-to-video-shorts','/gerador-de-shorts-gratis','/free-ai-shorts/horror'].includes(new URL(x.url).pathname) ? '2026-11-21' : ['/gerador-de-shorts-gratis','/ai-video-generator/for/urdu','/ai-video-generator/seedance'].includes(new URL(x.url).pathname) ? '2026-11-20' : '2026-11-17')), 'mapa: datas aprovadas das 6 páginas, incluindo revisão H3 de 11/11')
   exige(dia(saida[6]) === '2026-10-23' && dia(saida[7]) === '2026-10-23', 'mapa: nenhuma outra página muda de data')
   exige(dia(saida[8]) === '2026-12-01', 'mapa: data mais nova fica')
   const fonteMapa = (mutar[MAPA] ?? ((t) => t))(ler(MAPA))
@@ -124,7 +124,7 @@ const MUTANTES = [
   ['perguntas da home abertas', COMP, (t) => t.replace('<details key={item.q}>', '<details open key={item.q}>'), /5 perguntas fechadas/],
   ['tabela de planos da home aberta', COMP, (t) => t.replace('<details className="kc2310-plans">', '<details open className="kc2310-plans">'), /tabela de planos fechada/],
   ['página em português com texto em inglês', LIB, (t) => t.replace("const ou = pt ? 'ou' : 'or'", "pt = false\n  const ou = 'or'"), /língua da página/],
-  ['carimbo alarga para todo o mapa', LIB, (t) => t.replace('if (!alvo.has(path) && !localizedH3 && !buyerDate) return entry', ''), /nenhuma outra página/],
+  ['carimbo alarga para todo o mapa', LIB, (t) => t.replace('if (!alvo.has(path) && !localizedH3 && !buyerDate && !batchDate) return entry', ''), /nenhuma outra página/],
   ['carimbo anda para trás', LIB, (t) => t.replace('return atual >= carimbo ? entry : ', 'return '), /data mais nova fica/],
   ['carimbo desligado do mapa', MAPA, (t) => t.replace('carimbaPaginasCitadas0511(filtrarSitemapPorLingua(', '(filtrarSitemapPorLingua('), /ligado por fora/],
   ['anual escrito à mão', LIB, (t) => t.replaceAll('${ANNUAL_DISCOUNT_PERCENT}%', '50%'), /desconto do anual/],

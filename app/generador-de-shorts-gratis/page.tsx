@@ -1,3 +1,5 @@
+import { BuyerBatch2Lead, BuyerBatch2Details } from '@/components/seo/BuyerQuestions2111'
+import { buyerBatch2, batch2TrialEngine } from '@/lib/seo/buyerQuestions2111'
 // AQUISICAO 5 (14/08) — [KINEO-PORTAS-INTL-2026-08-14]
 // Versao ES da porta de 41%: "generador de shorts gratis" — LatAm/Espanha,
 // language=es atravessa signup → /generate.
@@ -39,6 +41,7 @@ export const metadata: Metadata = {
 }
 
 const FAQ = [
+  ...buyerBatch2('es').faqs,
   {
     q: '¿El video sale en español?',
     a: 'Sí. Guion, narración con voz neural y subtítulos salen en español — el idioma ya viene seleccionado desde esta página.',
@@ -75,6 +78,7 @@ export default function GeneradorDeShortsPage() {
         <h1 style={{ fontSize: 'clamp(1.9rem, 5vw, 2.9rem)', fontWeight: 900, lineHeight: 1.1, margin: '18px 0 0', fontFamily: 'var(--font-display), var(--font-inter), sans-serif' }}>
           Crea un Short sin aparecer — gratis
         </h1>
+        <BuyerBatch2Lead page="es" />
         <p style={{ fontSize: '1.08rem', color: '#86868b', lineHeight: 1.6, margin: '16px 0 0' }}>
           Escribe una idea y Kineo genera el Short vertical completo: guion, narración en español, escenas y subtítulos — listo para YouTube Shorts, TikTok o Reels. Sin tarjeta.
         </p>
@@ -94,7 +98,7 @@ export default function GeneradorDeShortsPage() {
             placeholder: 'Ej.: la isla prohibida que aparece en el mapa',
             submit: 'Crear mi Short gratis',
             examplesLabel: 'Ideas listas',
-            note: 'Tu idea atraviesa el registro — el primer video Fast empieza sin tarjeta.',
+            note: `Tu idea atraviesa el registro — el primer video ${batch2TrialEngine} empieza sin tarjeta.`,
           }}
         />
 
@@ -127,6 +131,7 @@ export default function GeneradorDeShortsPage() {
           </div>
         </section>
 
+        <BuyerBatch2Details page="es" />
         <section style={{ marginTop: 44 }}>
           <h2 style={{ fontSize: 'clamp(1.3rem, 3.5vw, 1.75rem)', fontWeight: 800, margin: '0 0 14px', fontFamily: 'var(--font-display), var(--font-inter), sans-serif' }}>
             Preguntas frecuentes

@@ -1,3 +1,5 @@
+import { BuyerBatch2Lead, BuyerBatch2Details } from '@/components/seo/BuyerQuestions2111'
+import { buyerBatch2 } from '@/lib/seo/buyerQuestions2111'
 import { BuyerLead2011, BuyerDecision2011 } from '@/components/seo/BuyerDecision2011'
 import { BUYER_2011, currentFilmLabel2011 } from '@/lib/seo/buyerAnswers2011'
 import type { Metadata } from 'next'
@@ -54,6 +56,7 @@ const STEPS = [
 ] as const
 
 const FAQ = [
+  ...buyerBatch2('script').faqs,
   { q: BUYER_2011.text.q, a: BUYER_2011.text.answer },
   { ...ANSWER_1510.faq, a: currentFilmLabel2011(ANSWER_1510.faq.a) }, // KINEO-BING-SEO-1510 — a pergunta exata da consulta (visível = JSON-LD)
   {
@@ -145,6 +148,7 @@ export default function TextToVideoShortsPage() {
         <h1 style={{ fontSize: 'clamp(1.9rem, 5vw, 2.85rem)', fontWeight: 650, lineHeight: 1.1, margin: '18px 0 0' }}>
           Turn Text Into a Finished YouTube Short
         </h1>
+        <BuyerBatch2Lead page="script" />
         <BuyerLead2011 kind="text" />
         <CitationDirectAnswer page="text" />
         <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
@@ -189,6 +193,7 @@ export default function TextToVideoShortsPage() {
 
         {/* KINEO-PAGINAS-IA-CLARAS-2110 — o player do exemplo velho saiu; a âncora #real-output (embedUrl do JSON-LD) fica na vitrine atual. */}
         <PaginaClaraVitrine id="real-output" eyebrow="Real Kineo output" titulo="Text in. Vertical video out." nota="These previews demonstrate output format, not views or revenue performance." align="left" />
+        <BuyerBatch2Details page="script" />
         <BuyerDecision2011 kind="text" />
         <CitationDetails page="text" />
 
