@@ -1,0 +1,62 @@
+.cw-workspace { min-height: 100svh; color: var(--text); background: var(--bg); }
+.cw-grid { display: grid; grid-template-columns: minmax(310px, 390px) minmax(0, 1fr); gap: clamp(24px, 3vw, 48px); max-width: 1760px; margin: auto; padding: 24px clamp(16px, 3vw, 48px) 56px; align-items: start; }
+.recreate.cw-workspace .cw-panel { height: auto; max-height: none; position: static; display: flex; flex-direction: column; gap: 14px; overflow: visible; padding: 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--card); }
+.cw-cover { position: relative; display: flex; align-items: end; min-height: 164px; isolation: isolate; overflow: hidden; border-radius: 12px; color: #fff; background: #111b2a; }
+.cw-cover::after { position: absolute; inset: 0; z-index: -1; content: ''; background: linear-gradient(0deg, #050a12dc, transparent 76%); }
+.cw-cover :is(video,img) { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 42%; z-index: -2; }
+.cw-cover h1 { margin: 14px 64px 14px 16px; font: 750 28px/1.1 var(--font-display, inherit); letter-spacing: -.025em; color: #fff; }
+.cw-cover > button { position: absolute; right: 8px; bottom: 8px; border: 1px solid #ffffff70; background: #050a12c9; border-radius: 10px; color: #fff; min-width: 44px; min-height: 44px; }
+.cw-modes,.cw-categories { display: flex; flex-wrap: wrap; gap: 6px; }
+.cw-modes button,.cw-categories button,.cw-library-head select { min-height: 44px; padding: 7px 12px; border: 1px solid var(--border); border-radius: 9px; background: var(--card); color: var(--text); font-size: 13px; font-weight: 700; }
+.cw-modes button[aria-pressed=true],.cw-categories button[aria-pressed=true] { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.cw-modes button:disabled { opacity: .65; }
+.cw-empty-field { display: grid; gap: 4px; min-height: 67px; align-content: center; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); }
+.cw-empty-field strong,.cw-prompt label { font-size: 14px; font-weight: 700; }
+.cw-empty-field span,.cw-prompt p,.cw-action p,.cw-no-template { color: var(--muted); font-size: 13px; }
+.cw-prompt label { display: flex; align-items: center; justify-content: space-between; min-height: 44px; gap: 12px; }
+.cw-prompt input[role=switch] { accent-color: var(--accent); width: 22px; height: 22px; margin: 0 10px; }
+.cw-prompt textarea { width: 100%; min-height: 112px; resize: vertical; padding: 10px; border: 1px solid var(--border); border-radius: 9px; color: var(--text); background: var(--bg); font: inherit; font-size: 16px; }
+.cw-spec { border-top: 1px solid var(--border); margin: 12px 0 0; padding: 7px 0 3px; }
+.cw-spec > div { display: flex; justify-content: space-between; gap: 10px; padding-block: 6px; }
+.cw-spec dt { color: var(--muted); font-size: 13px; }
+.cw-spec dd { margin: 0; font-size: 13px; font-weight: 700; text-align: end; color: var(--text); }
+.recreate.cw-workspace .cw-panel .rc-flow-fields { overflow: visible; padding: 0; }
+.cw-panel .rc-panel-intro,.cw-panel .rc-progress,.cw-panel .rc-step-number,.cw-panel .rc-step-status { display: none; }
+.recreate.cw-workspace .cw-panel .rc-photos-single .rc-upload { min-height: 110px; height: auto; }
+.cw-action p,.cw-panel .rc-next-note { margin: 6px 0 0; line-height: 1.4; }
+.cw-browse { min-width: 0; }
+.cw-library { scroll-margin-top: 90px; }
+.cw-library-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.cw-library-head h2 { margin: 0; font-size: clamp(22px, 2vw, 34px); color: var(--text); letter-spacing: -.025em; }
+.cw-library-head label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.cw-categories { margin-bottom: 18px; }
+.recreate.cw-workspace .cw-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 14px; width: 100%; }
+.recreate.cw-workspace .cw-cards .rc-card { min-height: 0; height: auto; aspect-ratio: 4 / 5; }
+.cw-cards .rc-card-bottom h3 { font-size: 15px; }
+.cw-preview { max-width: 460px; padding-bottom: 18px; }
+.recreate.cw-workspace .cw-preview .rc-stage { min-height: 0; height: auto; }
+.recreate.cw-workspace .cw-preview .rc-stage .rc-player { min-height: 0; max-height: 360px; aspect-ratio: 16 / 10; }
+.cw-extras { margin-top: 24px; border-block: 1px solid var(--border); }
+.cw-extras summary { padding-block: 14px; cursor: pointer; font-weight: 700; }
+.cw-own[hidden] { display: none; }
+.cw-panel .sv-clip-embedded.sv-current-flow { min-height: 0; padding: 0; background: transparent; }
+.cw-panel .sv-clip-embedded .sv-wrap { min-height: 0; width: auto; margin: 0; padding: 0; max-width: none; }
+.cw-panel .sv-clip-embedded .sv-grid { display: flex; flex-direction: column; gap: 12px; }
+.cw-panel .sv-clip-embedded .sv-card { width: 100%; padding: 10px; }
+.cw-panel .sv-clip-embedded .sv-frame { height: 160px; }
+.cw-panel .sv-clip-embedded .sv-step > b { display: none; }
+.cw-panel .sv-clip-embedded .sv-generate-area,.cw-panel .sv-clip-embedded .sv-job-dock { position: static; padding: 0; border: 0; box-shadow: none; }
+.cw-panel .sv-clip-embedded .sv-generate { width: 100%; }
+
+@media (max-width: 767px) {
+  .cw-grid { grid-template-columns: minmax(0, 1fr); gap: 22px; padding: 12px 12px calc(126px + env(safe-area-inset-bottom, 0px)); }
+  .recreate.cw-workspace .cw-panel { padding: 12px; gap: 11px; }
+  .cw-cover { min-height: 132px; }
+  .cw-cover h1 { font-size: 24px; }
+  .cw-modes button,.cw-categories button { flex: 0 0 auto; }
+  .recreate.cw-workspace .cw-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+  .cw-action,.recreate.cw-workspace .cw-panel .rc-generate-area,.cw-panel .sv-clip-embedded .sv-generate-area,.cw-panel .sv-clip-embedded .sv-job-dock { position: fixed; z-index: 45; inset: auto 0 0; padding: 8px 14px calc(8px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--border); background: var(--card); }
+  .cw-panel .rc-generate-area .rc-step-heading { display: none; }
+  .cw-panel .rc-generate-area .rc-generate { margin-top: 0; }
+  .cw-preview { max-width: none; }
+}

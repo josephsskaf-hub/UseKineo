@@ -13,7 +13,7 @@ import type { RecreateFlowBasePath } from '@/lib/recreate/flowRelease'
 import RecreateClient from './RecreateClient'
 import SeuVideoRecreateClient from '../recreate-preview/SeuVideoRecreateClient'
 import ClipRecreateJuntos, { type RecreateProps } from '@/components/create/ClipRecreateJuntos' // KINEO-CLIP-RECREATE-JUNTOS-1511
-import { clipRecreateJuntosVisivel } from '@/lib/create/clipRecreateJuntos' // KINEO-CLIP-RECREATE-JUNTOS-1511
+import { clipRecreateJuntosVisivel, clipWorkspaceVisible } from '@/lib/create/clipRecreateJuntos' // KINEO-CLIP-RECREATE-JUNTOS-1511
 
 type Query = Record<string, string | string[] | undefined>
 
@@ -56,6 +56,16 @@ export default async function RecreateFlowPage({ id, searchParams = {}, basePath
   // Visitante e conta fora do interruptor: a linha de baixo, como sempre. Só nas rotas do Recreate (a prévia /recreate-flow-preview fica como está).
   if (user && basePath === '/recreate' && clipRecreateJuntosVisivel(user.email)) {
     const recreate: RecreateProps = { currentFlow: true, flowBasePath: basePath, initialId: id, guestQuotes, signedIn: !!user, accountKey: user?.id ?? null, draftRef, ownVideoVisible, generationAllowed, internalTools: !!user && releaseVisible(user.email, 'internal'), formatos, formatIds, createTabs: !!user && createShellVisible(user.email) }
+    if (clipWorkspaceVisible(user.email)) {
+      const { default: ClipTemplateWorkspace } = await import('@/components/create/ClipTemplateWorkspace')
+      const { clipTemplateSpecs, clipOwnVideoModelLabel } = await import('@/lib/create/clipWorkspaceServer')
+      const presentation = ownVideoVisible ? seuVideoPresentation() : null
+      const ownVideo = presentation ? {
+        signedIn: true, generationAllowed, accountKey: user.id, currentFlow: true, flowBasePath: basePath,
+        presentation, clipModelLabel: clipOwnVideoModelLabel(),
+      } : undefined
+      return <ClipTemplateWorkspace measurementActor={user.id} recreate={recreate} specs={clipTemplateSpecs(formatos)} ownVideo={ownVideo} />
+    }
     return <ClipRecreateJuntos measurementActor={user.id} recreate={recreate} />
   }
   return <RecreateClient currentFlow flowBasePath={basePath} initialId={id}

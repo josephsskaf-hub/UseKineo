@@ -6,9 +6,15 @@ import { recreateVisible, releaseVisible } from '@/lib/recreate/access'
 import { clipNaMolduraVisivel } from './clipNaMoldura'
 import { CLIP_RECREATE_JUNTOS_RELEASE } from './release'
 
+export const CLIP_WORKSPACE_RELEASE: InternalRelease = 'off'
+
 /** A conta (logada) abre a tela única? Precisa já abrir as duas de hoje (/create/clip e /recreate) e estar no interruptor. */
 export function clipRecreateJuntosVisivel(email: string | null | undefined, release: InternalRelease = CLIP_RECREATE_JUNTOS_RELEASE): boolean {
   return !!email && release !== 'off' && releaseVisible(email, release) && clipNaMolduraVisivel(email) && recreateVisible(email)
+}
+
+export function clipWorkspaceVisible(email: string | null | undefined, release: InternalRelease = CLIP_WORKSPACE_RELEASE): boolean {
+  return clipRecreateJuntosVisivel(email) && releaseVisible(email, release)
 }
 
 /** A aba "Recreate" na barra: some só para quem tem a tela única (lá ela É a aba Clip). Fora do interruptor, a régua de sempre (recreateVisible). */
