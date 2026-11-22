@@ -183,9 +183,9 @@ ok(!/fetch\(|generate|autoanalyze/i.test(COMP_CODE.replace(/film_ready_60s|FILM6
 const GEN = semComentarios(GEN_SRC, true)
 const iTwin = GEN.indexOf('{!showPostVideoExportChoice && cleanDownloadTwinButton}')
 const iBloco = GEN.indexOf('film60UpsellEligible({')
-const iExits = GEN.indexOf('<FilmReadyExits ')
+const iTop = GEN.indexOf('data-testid="done-download-top"')
 ok(GEN.split('<FilmReady60sUpsell ').length === 2, '(a) o bloco monta UMA vez no filme pronto')
-ok(iTwin > 0 && iBloco > iTwin && iExits > iBloco, '(a) depois do download (deliver-first), antes das 3 saídas')
+ok(iTop > 0 && iTwin > iTop && iBloco > iTwin, '(a) depois do download do cabeçalho e do download principal (deliver-first)')
 const chamada = GEN.slice(iBloco, GEN.indexOf('<FilmReady60sUpsell ', iBloco))
 ok(/plan: commercialPlan/.test(chamada) && /hasPaid,/.test(chamada) && /engine: mode === 'cinematic_ai' \? aiEngine : null/.test(chamada)
   && /seconds: duration/.test(chamada) && /delivered: phase === 'done' && Boolean\(finalVideoUrl\)/.test(chamada),

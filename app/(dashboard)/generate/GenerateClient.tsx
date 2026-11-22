@@ -282,6 +282,7 @@ import SubscriberUpgradeNudge, { SUBSCRIBER_UPGRADE_ENABLED } from '@/components
 import MrrEpisodeValue from '@/components/growth/MrrEpisodeValue'
 import MrrShareFooter from '@/components/growth/MrrShareFooter'
 import FilmReadyExits from '@/components/FilmReadyExits' // KINEO-FLUXO-NOVO-2026-09-25 — as 3 saídas do filme pronto
+import SceneRedoPanel from '@/components/video/SceneRedoPanel'
 import FilmReadyFullVersionUpsell from '@/components/FilmReadyFullVersionUpsell'
 import { FILM_COMPLETE_TARGET_SECONDS, FILM_COMPLETE_VERSION } from '@/lib/growth/filmComplete'
 import { decidirDescidaFilmeGratis, lerDescidaDaUrl, notaDaDescida, DESCIDA_FILME_GRATIS_EVENT, DESCIDA_FILME_GRATIS_PARAM, DESCIDA_FILME_GRATIS_VERSION } from '@/lib/growth/descidaFilmeGratis' // KINEO-PRIMEIRO-FILME-2026-10-13
@@ -2207,14 +2208,6 @@ export default function GenerateClient({
   const [actualEngineLabel, setActualEngineLabel] = useState<string | null>(null)
   const [actualEngineNote, setActualEngineNote] = useState<string | null>(null) // KINEO-K4-NARRACAO-CABE-0111 — 'narration_over_15s': o grátis saiu no Seedance porque a fala passou de 15 s
   const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null)
-  const [compactReadyResult, setCompactReadyResult] = useState(false)
-  useEffect(() => {
-    const viewport = window.matchMedia('(max-width: 767px)')
-    const update = () => setCompactReadyResult(viewport.matches)
-    update()
-    viewport.addEventListener('change', update)
-    return () => viewport.removeEventListener('change', update)
-  }, [])
   const [linkParaTrocar, setLinkParaTrocar] = useState<string | null>(null) // KINEO-FILME-RAPIDO-1710 — render cujo link do Creatomate ainda vai virar o do bucket
   const retomarPlayerEmRef = useRef<{ t: number; muted: boolean } | null>(null) // KINEO-FILME-RAPIDO-1710 — onde o player estava na hora da troca do link
   // #283 — KINEO-DURACAO-NO-BOTAO (fundador 23/08): o botão de download dizia
@@ -14572,7 +14565,11 @@ export default function GenerateClient({
         .done-workspace .done-result { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 460px); grid-template-rows: auto auto 1fr; gap: 0 36px; align-items: start; padding: clamp(20px, 3vw, 40px); background: var(--card)!important; }
         .done-result-heading { grid-column: 2; grid-row: 1; text-align: start; margin-bottom: 24px; }
         .done-result-heading > svg { margin: 0 0 16px!important; }
-        .done-result-heading > p:last-child { margin-inline: 0!important; max-width: none!important; font-size: 20px; }
+        .done-result-heading > p:first-of-type { margin-inline: 0!important; max-width: none!important; }
+        .done-result-heading .done-download-primary { min-height: 44px; width: 100%; }
+        .done-ready-offer { margin-top: 12px; }
+        .done-ready-offer .done-first-film-offer { margin: 0; padding: 12px; }
+        .done-ready-offer .done-first-film-plans { min-height: 44px; }
         .done-result-preview { grid-column: 1; grid-row: 1 / 4; min-width: 0; min-height: clamp(360px, calc(100svh - 280px), 640px); display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 16px; padding: 20px; background: var(--bg); }
         .done-result-preview .gv-done-frame { margin: 0!important; max-width: 100%; max-height: none!important; width: min(100%, clamp(220px, calc((100svh - 320px) * .5625), 340px))!important; box-shadow: 0 16px 40px rgba(0,0,0,.3)!important; }
         .done-result-preview .gv-done-frame[data-kineo-frame-ratio="landscape"] { width: min(100%, 780px)!important; }
@@ -14595,11 +14592,6 @@ export default function GenerateClient({
           main.done-workspace { padding-block: 16px; }
           .done-workspace .done-result-heading { width: 100%; }
           .done-workspace .done-result-heading > svg { display: none!important; }
-          .done-result-heading .done-download-primary { min-height: 44px; width: 100%; }
-          .done-ready-offer { margin-top: 12px; }
-          .done-ready-offer .done-first-film-offer { margin: 0; padding: 12px; }
-          .done-ready-offer .done-first-film-label { display: none; }
-          .done-ready-offer .done-first-film-plans { min-height: 44px; }
         }
         @media (max-width: 1100px) { .done-workspace .done-result { display: flex; flex-direction: column; gap: 20px; padding: 18px; } .done-result-heading { order: 0; margin-bottom: 0; } .done-result-preview { order: 1; width: 100%; min-height: 0; padding: 12px; } .done-result-preview .gv-done-frame { width: min(100%, 300px)!important; } .done-result-export { order: 2; width: 100%; } .done-result-actions { order: 3; } .done-result-support { order: 4; margin-top: 0; } }
         .render-workspace-primary { min-height: calc(100svh - 240px); padding: clamp(20px, 3vw, 44px); display: flex; flex-direction: column; justify-content: center; gap: 22px; }
@@ -17898,7 +17890,6 @@ export default function GenerateClient({
             </section>
           )}
 
-          {phase === 'done' && finalVideoUrl && !compactReadyResult && firstFilmContinuation}
           {phase === 'done' && finalVideoUrl && (
             <section
               className="gv-card done-result rounded-2xl px-5 sm:px-8 py-8 sm:py-10 mb-6 flex flex-col items-center"
@@ -17929,7 +17920,7 @@ export default function GenerateClient({
                 {/* KINEO-STUDIO-FANTASMA-1510 (4) — download À VISTA, antes do player de 78vh: Tab (15/10) e AgentMail (20/09) não acharam
                     o botão (ele fica abaixo do player) e foram ao /history baixar. Mesmo arquivo (finalVideoUrl) e mesmo handleDownload
                     do botão grande lá embaixo (lib/videoDownload, o mesmo do /history); <a href download> com texto, que robô e leitor
-                    de tela entendem. Não é um div: o título (último <p>) continua sendo o último filho do cabeçalho. */}
+                    de tela entendem. */}
                 <a
                   href={finalVideoUrl}
                   onClick={(e) => { void trackEvent('done_download_top_clicked', { video_id: publicVideoId ?? null, watermarked: currentResultHasWatermark }); void handleDownload(e) }}
@@ -17939,15 +17930,14 @@ export default function GenerateClient({
                   data-testid="done-download-top"
                   aria-label="Download MP4"
                   className="done-download-primary inline-flex items-center justify-center gap-1.5 rounded-lg mt-3 py-2 px-4 text-sm font-bold"
-                  style={fullVersionOfferEligible && !compactReadyResult
-                    ? { background: 'transparent', color: 'var(--accent)', border: '1px solid var(--border)', textDecoration: 'none' }
-                    : { background: 'var(--accent)', color: 'var(--on-accent)', textDecoration: 'none' }}
+                  style={{ background: 'var(--accent)', color: 'var(--on-accent)', textDecoration: 'none' }}
                 >
                   <span aria-hidden="true">⬇</span> Download MP4
                 </a>
+                <FilmReadyExits videoId={publicVideoId} plan={commercialPlan} />
                 {/* KINEO-DOWNLOAD-OFERTA-2810 — a oferta nasce ao lado do botão apertado; filme limpo pago ganha o HD. */}
                 {renderDownloadUpsell('top')}
-                {compactReadyResult && (fullVersionOfferEligible || firstFilmContinuation) && (
+                {(fullVersionOfferEligible || firstFilmContinuation) && (
                   <div className="done-ready-offer">
                     {fullVersionOfferEligible ? <FilmReadyFullVersionUpsell videoId={publicVideoId} /> : firstFilmContinuation}
                   </div>
@@ -18682,12 +18672,6 @@ export default function GenerateClient({
                 {!showPostVideoExportChoice && cleanDownloadTwinButton}
                 {!showPostVideoExportChoice && renderDownloadUpsell('main')}
 
-                {/* KINEO-UPSELL-FILME15-2610 — same delivered free film, full 35 s version. This shared position follows
-                    both download branches. The authenticated checkout route persists the saved script before Stripe. */}
-                {!compactReadyResult && fullVersionOfferEligible && (
-                  <FilmReadyFullVersionUpsell videoId={publicVideoId} />
-                )}
-
                 {/* sprint-retencao #11 (2026-09-05) — A MESMA PORTA, NO RAMO
                     ONDE QUASE TODO MUNDO CAI.
                     O #18 pos a porta do episodio 2 no primeiro viewport, mas
@@ -18758,14 +18742,11 @@ export default function GenerateClient({
                   </button>
                 )}
 
-                {/* KINEO-FLUXO-NOVO-2026-09-25 — Peça A: as 3 saídas do filme pronto (próximo filme · mais créditos ·
-                    assinar). Depois do download e da porta do episódio 2, nunca antes: deliver-first intacto. Fora do
-                    <details> fechado para ficar no primeiro olhar. Decisões em lib/growth/filmReadyExits.ts. */}
                 {/* BEGIN COMPRA-CLAREZA-2610 result-review */}
                 <FirstFilmRedo videoId={publicVideoId} />{/* KINEO-REFAZER-1O-FILME-3010 — o 1º vídeo da conta ganha 1 refação grátis */}
                 <ResultScriptReview key={publicVideoId ?? finalVideoUrl ?? 'result'} initialScript={prompt} onReview={handleReviewResultScript} />
                 {/* END COMPRA-CLAREZA-2610 result-review */}
-                <FilmReadyExits videoId={publicVideoId} plan={commercialPlan} />
+                {publicVideoId ? <SceneRedoPanel videoId={publicVideoId} /> : null}
                 {commercialPlan === 'free' && planTier === 'free' && hasPaid === false && <MrrShareFooter />}
 
                 <details className="done-result-options">

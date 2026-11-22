@@ -224,33 +224,31 @@ function provasMontagem(src) {
   const anda = (n) => {
     if (ts.isImportDeclaration(n) && n.moduleSpecifier.text === '@/components/FilmReadyExits') imports += 1
     if (ts.isJsxSelfClosingElement(n) && n.tagName.getText(ast) === 'FilmReadyExits') montagens.push(n)
-    if (ts.isJsxElement(n) && !acoes && /className="done-result-actions[ "]/.test(n.openingElement.getText(ast))) acoes = n
+    if (ts.isJsxElement(n) && !acoes && n.openingElement.getText(ast).includes('className="done-result-heading"')) acoes = n
     ts.forEachChild(n, anda)
   }
   anda(ast)
   R.push(['(e) importa o componente uma vez', imports === 1])
   R.push(['(e) monta exatamente uma vez', montagens.length === 1])
-  R.push(['(e) done-result-actions encontrado', acoes !== null])
+  R.push(['(e) cabeçalho do resultado encontrado', acoes !== null])
   if (montagens.length !== 1 || !acoes) return R
   const m = montagens[0]
   const attrs = m.attributes.properties.map((p) => p.getText(ast)).sort()
   R.push(['(e) só videoId={publicVideoId} e plan={commercialPlan} (nenhum on*/href novo para a trava do done-workspace)',
     attrs.join('|') === 'plan={commercialPlan}|videoId={publicVideoId}'])
-  R.push(['(e) mora dentro de done-result-actions', m.getStart(ast) > acoes.getStart(ast) && m.getEnd() < acoes.getEnd()])
+  R.push(['(e) mora no cabeçalho do resultado', m.getStart(ast) > acoes.getStart(ast) && m.getEnd() < acoes.getEnd()])
   const downloads = []
-  let detalhes = null
-  let episodio2 = null
   const dentro = (n) => {
-    if (ts.isJsxAttribute(n) && n.name.getText(ast) === 'onClick' && n.initializer?.expression?.getText(ast) === 'handleDownload') downloads.push(n.getStart(ast))
-    if (ts.isJsxAttribute(n) && n.name.getText(ast) === 'ref' && n.initializer?.expression?.getText(ast) === 'nextEpisodeTopBtnRef') episodio2 = n.getStart(ast)
-    if (ts.isJsxElement(n) && !detalhes && n.openingElement.getText(ast).includes('className="done-result-options"')) detalhes = n
+    if (ts.isJsxAttribute(n) && n.name.getText(ast) === 'data-testid' && n.initializer?.text === 'done-download-top') {
+      const click = n.parent.properties.find((attr) => ts.isJsxAttribute(attr) && attr.name.getText(ast) === 'onClick')
+      if (click?.initializer?.getText(ast).includes('handleDownload(e)')) downloads.push(n.getStart(ast))
+    }
     ts.forEachChild(n, dentro)
   }
   dentro(acoes)
   const pos = m.getStart(ast)
   R.push(['(e) depois do botão de download (deliver-first)', downloads.length >= 1 && downloads.every((d) => d < pos)])
-  R.push(['(e) depois da porta do episódio 2', episodio2 !== null && episodio2 < pos])
-  R.push(['(e) antes do <details> fechado e fora dele', detalhes !== null && pos < detalhes.getStart(ast)])
+  R.push(['(e) antes do player e do <details> de ações', src.indexOf('<div className="done-result-preview">') > pos && src.indexOf('<details className="done-result-options">') > pos])
   let pai = m.parent
   let emDetails = false
   while (pai) { if (ts.isJsxElement(pai) && pai.openingElement.tagName.getText(ast) === 'details') emDetails = true; pai = pai.parent }
@@ -263,8 +261,8 @@ for (const [n, c] of provasMontagem(GEN_SRC)) ok(c, n)
   const semMontagem = GEN_SRC.split(linha).length === 2 ? GEN_SRC.replace(linha, '') : null
   ok(semMontagem !== null, 'mutante "montagem acima do download": linha única encontrada')
   if (semMontagem) {
-    const antes = '                {!showPostVideoExportChoice && (\n                  <a\n                    href={finalVideoUrl}\n                    onClick={handleDownload}'
-    mutante('montagem acima do download', semMontagem, antes, linha + antes, provasMontagem)
+    const antes = '              <div className="done-result-heading">\n'
+    mutante('montagem acima do download', semMontagem, antes, antes + linha, provasMontagem)
     mutante('montagem dentro do <details> fechado', semMontagem, '                  <summary>Sharing, publishing & more</summary>\n',
       '                  <summary>Sharing, publishing & more</summary>\n' + linha, provasMontagem)
   }

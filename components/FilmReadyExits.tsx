@@ -3,14 +3,13 @@
 // KINEO-FLUXO-NOVO-2026-09-25 — Peça A (fundador, 25/09): o filme pronto termina em EXATAMENTE 3 saídas —
 // próximo filme · mais créditos · assinar/trocar de plano. As decisões moram em lib/growth/filmReadyExits.ts (puras,
 // testadas); aqui só se executa. Marcação simples de propósito: o Codex veste no padrão v5 (film-ready.html).
-// Medição: film_ready_exits_shown quando o bloco ENTRA NA TELA (não na montagem — no celular ele fica abaixo do player)
+// Medição: film_ready_exits_shown quando o bloco ENTRA NA TELA (não na montagem)
 // e film_ready_exit_clicked por saída. A barra de créditos é a MESMA de sempre (CreditsTopupModal), não uma cópia.
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { TopupOuRecargaModal } from '@/components/billing/BuyCreditsEntry' // KINEO-RECARGA-TELAS-1211 — assinante sem saldo: a barra da recarga
 import { createPortal } from 'react-dom'
 import { trackEvent } from '@/lib/analytics'
-import SceneRedoPanel from '@/components/video/SceneRedoPanel' // KINEO-REFAZER-CENA-2710 [TRAVA 8.2 — vai do fundador 27/10 "refazer essa cena liberado"] — "Redo this scene — free" na tela do filme pronto (fora do grupo das 3 saídas)
 import {
   FILM_READY_TOPUP_SURFACE,
   filmReadyCreditsExit,
@@ -30,6 +29,7 @@ export default function FilmReadyExits({ videoId, plan }: { videoId: string | nu
   const shownForRef = useRef<string | null>(null)
   const creditsExit = filmReadyCreditsExit(plan)
   const plansHref = filmReadyPlansHref()
+  const actionClass = 'flex min-h-11 items-center justify-center rounded-lg px-2 py-2 text-center text-sm font-bold leading-tight'
 
   useEffect(() => {
     setNextFilmHref(filmReadyNextFilmHref(window.location.search))
@@ -66,20 +66,17 @@ export default function FilmReadyExits({ videoId, plan }: { videoId: string | nu
 
   return (
     <>
-    {/* KINEO-REFAZER-CENA-2710 — a garantia de qualidade ANTES das saídas: o filme já foi entregue (deliver-first intacto);
-        quem não gostou de uma cena refaz uma de graça aqui mesmo. O servidor decide se cabe; sem direito, nada é pintado. */}
-    {videoId ? <SceneRedoPanel videoId={videoId} /> : null}{/* KINEO-REFAZER-CENA-2710 */}
     <div
       ref={rootRef}
       data-kineo="film-ready-exits"
       role="group"
       aria-label="What next"
-      className="w-full grid grid-cols-1 gap-2 sm:grid-cols-3"
+      className="mt-2 grid w-full grid-cols-3 gap-2"
     >
       <Link
         href={nextFilmHref}
         onClick={() => track('next_film')}
-        className="rounded-xl px-4 py-3 text-center text-sm font-bold"
+        className={actionClass}
         style={{ border: '1px solid var(--border)', color: 'var(--text)', textDecoration: 'none' }}
       >
         Next film
@@ -91,7 +88,7 @@ export default function FilmReadyExits({ videoId, plan }: { videoId: string | nu
             track('more_credits')
             setTopupOpen(true)
           }}
-          className="rounded-xl px-4 py-3 text-center text-sm font-bold"
+          className={actionClass}
           style={{ border: '1px solid var(--border)', color: 'var(--text)', background: 'transparent', cursor: 'pointer' }}
         >
           More credits
@@ -100,7 +97,7 @@ export default function FilmReadyExits({ videoId, plan }: { videoId: string | nu
         <a
           href={plansHref}
           onClick={() => track('more_credits')}
-          className="rounded-xl px-4 py-3 text-center text-sm font-bold"
+          className={actionClass}
           style={{ border: '1px solid var(--border)', color: 'var(--text)', textDecoration: 'none' }}
         >
           More credits
@@ -109,7 +106,7 @@ export default function FilmReadyExits({ videoId, plan }: { videoId: string | nu
       <a
         href={plansHref}
         onClick={() => track('subscribe')}
-        className="rounded-xl px-4 py-3 text-center text-sm font-bold"
+        className={actionClass}
         style={{ border: '1px solid var(--border)', color: 'var(--text)', textDecoration: 'none' }}
       >
         {filmReadyPlanLabel(plan)}

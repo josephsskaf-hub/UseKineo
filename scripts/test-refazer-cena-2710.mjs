@@ -39,6 +39,7 @@ const F = {
   copy: 'lib/freeRedo/copy.ts',
   painel: 'components/video/SceneRedoPanel.tsx',
   exits: 'components/FilmReadyExits.tsx',
+  generate: 'app/(dashboard)/generate/GenerateClient.tsx',
   gancho: 'lib/useTrocaDoLink.ts',
   botao: 'components/video/FreeRedoFilmButton.tsx',
 }
@@ -265,11 +266,13 @@ async function provas(L) {
   })
 
   await tenta('C1', () => {
-    const painel = rd(F.painel), exits = rd(F.exits), gancho = rd(F.gancho), botao = rd(F.botao)
+    const painel = rd(F.painel), exits = rd(F.exits), generate = rd(F.generate), gancho = rd(F.gancho), botao = rd(F.botao)
     const codigo = painel.replace(/^\s*\/\/.*$/gm, '')
     const fetches = [...codigo.matchAll(/fetch\(([^,)]+)/g)].map((m) => m[1].trim())
-    const iPainel = exits.indexOf('<SceneRedoPanel videoId={videoId} />')
+    const iPainel = generate.indexOf('<SceneRedoPanel videoId={publicVideoId} />')
     const iGrupo = exits.indexOf('data-kineo="film-ready-exits"')
+    const iPlayer = generate.indexOf('<div className="done-result-preview">')
+    const iDetails = generate.indexOf('<details className="done-result-options">')
     // O gancho do Studio é carregado por scripts/test-filme-rapido-1710.mjs com imports FECHADOS: o nome do evento mora nele
     // por extenso (SCENE_REDO_SWAP_NAME) e aqui se prova que é o MESMO da lib — uma fonte de verdade, duas cópias conferidas.
     const nome = /const SCENE_REDO_SWAP_NAME = '([^']+)'/.exec(gancho)?.[1]
@@ -282,7 +285,8 @@ async function provas(L) {
       /body = corpoDoPedidoDeCena\(videoId, escolhida\)/.test(codigo) && /method: 'POST'[^\n]*body \}/.test(codigo) &&
       /window\.dispatchEvent\(new CustomEvent\(SCENE_REDO_SWAP_EVENT, \{ detail: montarDetalheDaTroca\(videoId, novaUrl\) \}\)\)/.test(codigo) &&
       /if \(fase === 'hidden'\) return null/.test(codigo) && !/\$\s?\d|R\$|credits?_|checkout|\/api\/stripe/i.test(codigo) &&
-      iPainel > 0 && iGrupo > 0 && iPainel < iGrupo && exits.split('<SceneRedoPanel ').length === 2 && /^import SceneRedoPanel from '@\/components\/video\/SceneRedoPanel'/m.test(exits) &&
+      iPlayer > 0 && iPainel > iPlayer && iDetails > iPainel && iGrupo > 0 &&
+      !exits.includes('<SceneRedoPanel ') && generate.split('<SceneRedoPanel ').length === 2 && /^import SceneRedoPanel from '@\/components\/video\/SceneRedoPanel'/m.test(generate) &&
       nome === X.SCENE_REDO_SWAP_EVENT && !/from '@\/lib\/cinematic\/refazerCena'/.test(gancho) &&
       trecho === 'ok' && /if \(!ativo \|\| typeof window === 'undefined'\) return/.test(efeito) && /if \(url\) a\.aoTrocar\(url\)/.test(gancho) &&
       /startsWith\('https:\/\/'\)/.test(gancho.slice(iAdd - 600, iAdd)) &&
