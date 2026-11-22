@@ -117,7 +117,8 @@ mutante('próximo filme volta ao /studio/create', LIB_SRC, 'return `/studio?${ou
 
 // ── (c) o componente, executado com um React de mentira (hooks gravam, cliques são chamados de verdade) ───────────────
 const LIB = roda(LIB_SRC, { '@/lib/growth/topupEligibility': TOPUP })
-function renderiza(src, props, topupAberto) {
+const LIB_ABERTO = roda(LIB_SRC, { '@/lib/growth/topupEligibility': TOPUP_ABERTO })
+function renderiza(src, props, topupAberto, lib) {
   const setters = []
   const eventos = []
   const Link = function Link() {}
@@ -142,7 +143,7 @@ function renderiza(src, props, topupAberto) {
     '@/components/video/SceneRedoPanel': { __esModule: true, default: function SceneRedoPanel() { return null } }, // KINEO-REFAZER-CENA-2710 — o painel "Redo this scene — free" mora FORA do grupo das 3 saídas (o guardião próprio: scripts/test-refazer-cena-2710.mjs)
     'react-dom': { createPortal: (el) => el }, // KINEO-FLUXO-NOVO-2026-09-25 — o modal vai por portal (revisão: transform prendia o fixed)
     '@/lib/analytics': { trackEvent: (name, meta) => { eventos.push({ name, meta }); return Promise.resolve(true) } },
-    '@/lib/growth/filmReadyExits': LIB,
+    '@/lib/growth/filmReadyExits': lib,
   }, true)
   const arvore = C.default(props)
   const todos = []
@@ -160,11 +161,12 @@ function renderiza(src, props, topupAberto) {
   return { todos, grupo, saidas: dentro.filter((n) => typeof n.props?.onClick === 'function'), setters, eventos, Link, Modal }
 }
 const texto = (n) => { if (n == null || typeof n === 'boolean') return ''; if (typeof n !== 'object') return String(n); if (Array.isArray(n)) return n.map(texto).join(''); return texto(n.props?.children) }
-function provasComp(src) {
+function provasComp(src, topup = TOPUP) {
   const R = []
+  const lib = topup === TOPUP ? LIB : LIB_ABERTO
   for (const plan of ['starter', 'pro_trial', 'basic', 'free', null, 'autopilot']) {
-    const r = renderiza(src, { videoId: 'vid-9', plan }, false)
-    const barra = TOPUP.canPurchaseCreditTopup(plan)
+    const r = renderiza(src, { videoId: 'vid-9', plan }, false, lib)
+    const barra = topup.canPurchaseCreditTopup(plan)
     R.push([`(c) [${plan}] exatamente 3 saídas no bloco`, r.grupo !== undefined && r.saidas.length === 3])
     if (r.saidas.length !== 3) continue
     const [prox, cred, plano] = r.saidas
@@ -181,20 +183,26 @@ function provasComp(src) {
     R.push([`(c) [${plan}] próximo filme e planos nunca abrem o modal`, !abriu()])
     cred.props.onClick({ preventDefault() {} })
     R.push([`(c) [${plan}] o modal abre SE E SÓ SE a recarga é permitida`, abriu() === barra])
+    const aposClique = renderiza(src, { videoId: 'vid-9', plan }, abriu(), lib)
+    const recarga = aposClique.todos.find(n => n.type === aposClique.Modal)
+    R.push([`(c) [${plan}] More credits monta a recarga da conta elegível`,
+      barra ? recarga?.props.surface === 'film_ready' : recarga === undefined])
     const cliques = r.eventos.filter((e) => e.name === 'film_ready_exit_clicked')
     R.push([`(c) [${plan}] cada clique grava a própria saída e o destino`, cliques.length === 3
       && cliques.map((e) => e.meta.exit).join() === 'next_film,subscribe,more_credits'
       && cliques[2].meta.destination === (barra ? 'topup_modal' : 'pricing') && cliques.every((e) => e.meta.video_id === 'vid-9')])
   }
-  const aberto = renderiza(src, { videoId: 'v', plan: 'starter' }, true)
+  const aberto = renderiza(src, { videoId: 'v', plan: 'starter' }, true, lib)
   const modal = aberto.todos.find((n) => n.type === aberto.Modal)
   R.push(['(c) modal aberto = a MESMA barra (CreditsTopupModal) com surface film_ready, fora do grupo das 3 saídas',
     Boolean(modal) && modal.props.surface === 'film_ready' && typeof modal.props.onClose === 'function'
     && aberto.saidas.every((n) => n.type !== aberto.Modal)])
-  R.push(['(c) modal fechado não é montado', !renderiza(src, { videoId: 'v', plan: 'starter' }, false).todos.some((n) => n.type === aberto.Modal)])
+  R.push(['(c) modal fechado não é montado', !renderiza(src, { videoId: 'v', plan: 'starter' }, false, lib).todos.some((n) => n.type === aberto.Modal)])
   return R
 }
-for (const [n, c] of provasComp(COMP_SRC)) ok(c, n)
+const provasCompComVendas = src => provasComp(src, TOPUP_ABERTO)
+for (const [n, c] of [...provasComp(COMP_SRC), ...provasCompComVendas(COMP_SRC)]) ok(c, n)
+mutante('More credits não abre a recarga para o assinante', COMP_SRC, 'setTopupOpen(true)', 'setTopupOpen(Boolean(0))', provasCompComVendas)
 mutante('botão abre a barra para todo mundo', COMP_SRC, "{creditsExit === 'topup' ? (", '{true ? (', provasComp)
 mutante('saída de planos some', COMP_SRC, "onClick={() => track('subscribe')}", "data-x=\"1\"", provasComp)
 
@@ -219,11 +227,13 @@ function provasMontagem(src) {
   const R = []
   const ast = ts.createSourceFile('GenerateClient.tsx', src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
   const montagens = []
+  const refacoes = []
   let acoes = null
   let imports = 0
   const anda = (n) => {
     if (ts.isImportDeclaration(n) && n.moduleSpecifier.text === '@/components/FilmReadyExits') imports += 1
     if (ts.isJsxSelfClosingElement(n) && n.tagName.getText(ast) === 'FilmReadyExits') montagens.push(n)
+    if (ts.isJsxSelfClosingElement(n) && n.tagName.getText(ast) === 'SceneRedoPanel') refacoes.push(n)
     if (ts.isJsxElement(n) && !acoes && n.openingElement.getText(ast).includes('className="done-result-heading"')) acoes = n
     ts.forEachChild(n, anda)
   }
@@ -253,9 +263,19 @@ function provasMontagem(src) {
   let emDetails = false
   while (pai) { if (ts.isJsxElement(pai) && pai.openingElement.tagName.getText(ast) === 'details') emDetails = true; pai = pai.parent }
   R.push(['(e) nenhum ancestral <details> (não fica escondido)', !emDetails])
+  const refacao = refacoes[0]
+  const condicao = refacao?.parent
+  R.push(['(e) filme pronto com ID monta SceneRedoPanel, com o ID do filme e antes das opções fechadas',
+    refacoes.length === 1 && ts.isConditionalExpression(condicao) && condicao.whenTrue === refacao
+      && condicao.condition.getText(ast) === 'publicVideoId' && condicao.whenFalse.kind === ts.SyntaxKind.NullKeyword
+      && refacao.attributes.properties.map(prop => prop.getText(ast)).join() === 'videoId={publicVideoId}'
+      && pos < refacao.getStart(ast) && refacao.getStart(ast) < src.indexOf('<details className="done-result-options">')])
   return R
 }
 for (const [n, c] of provasMontagem(GEN_SRC)) ok(c, n)
+mutante('refazer cena desaparece no filme elegível', GEN_SRC,
+  'publicVideoId ? <SceneRedoPanel videoId={publicVideoId} /> : null',
+  'false ? <SceneRedoPanel videoId={publicVideoId} /> : null', provasMontagem)
 {
   const linha = '                <FilmReadyExits videoId={publicVideoId} plan={commercialPlan} />\n'
   const semMontagem = GEN_SRC.split(linha).length === 2 ? GEN_SRC.replace(linha, '') : null
