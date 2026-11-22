@@ -29,7 +29,7 @@ export default function FilmReadyExits({ videoId, plan }: { videoId: string | nu
   const shownForRef = useRef<string | null>(null)
   const creditsExit = filmReadyCreditsExit(plan)
   const plansHref = filmReadyPlansHref()
-  const actionClass = 'flex min-h-11 items-center justify-center rounded-lg px-2 py-2 text-center text-sm font-bold leading-tight'
+  const actionClass = 'flex min-h-[44px] items-center justify-center rounded-lg px-2 py-2 text-center text-sm font-bold leading-tight'
 
   useEffect(() => {
     setNextFilmHref(filmReadyNextFilmHref(window.location.search))

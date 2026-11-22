@@ -14565,7 +14565,7 @@ export default function GenerateClient({
         .done-workspace .done-result { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 460px); grid-template-rows: auto auto 1fr; gap: 0 36px; align-items: start; padding: clamp(20px, 3vw, 40px); background: var(--card)!important; }
         .done-result-heading { grid-column: 2; grid-row: 1; text-align: start; margin-bottom: 24px; }
         .done-result-heading > svg { margin: 0 0 16px!important; }
-        .done-result-heading > p:first-of-type { margin-inline: 0!important; max-width: none!important; }
+        .done-result-heading > p:last-of-type { margin-inline: 0!important; max-width: none!important; font-size: 20px; }
         .done-result-heading .done-download-primary { min-height: 44px; width: 100%; }
         .done-ready-offer { margin-top: 12px; }
         .done-ready-offer .done-first-film-offer { margin: 0; padding: 12px; }
@@ -17934,9 +17934,9 @@ export default function GenerateClient({
                 >
                   <span aria-hidden="true">⬇</span> Download MP4
                 </a>
-                <FilmReadyExits videoId={publicVideoId} plan={commercialPlan} />
                 {/* KINEO-DOWNLOAD-OFERTA-2810 — a oferta nasce ao lado do botão apertado; filme limpo pago ganha o HD. */}
                 {renderDownloadUpsell('top')}
+                <FilmReadyExits videoId={publicVideoId} plan={commercialPlan} />
                 {(fullVersionOfferEligible || firstFilmContinuation) && (
                   <div className="done-ready-offer">
                     {fullVersionOfferEligible ? <FilmReadyFullVersionUpsell videoId={publicVideoId} /> : firstFilmContinuation}
