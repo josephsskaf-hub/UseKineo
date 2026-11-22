@@ -20,13 +20,16 @@ type Props = { measurementActor: string | null; recreate: RecreateProps; specs: 
 
 function ClipCover({ formats, media }: { formats: readonly RecreateFormat[]; media: PartesDoRecreate['midia'] }) {
   const [index, setIndex] = useState(0)
-  const [playing, setPlaying] = useState(false)
+  const [playOverride, setPlayOverride] = useState<boolean | null>(null)
+  const [environment, setEnvironment] = useState({ visible: false, reducedMotion: true })
+  const wantsPlayback = playOverride ?? !environment.reducedMotion
+  const playing = environment.visible && wantsPlayback
   const visible = formats.filter(f => publicRecreatePath(f.id) !== null).slice(0, 3)
   const count = visible.length
   const current = visible[index % count]
   useEffect(() => {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const update = () => setPlaying(!reducedMotion.matches && !document.hidden)
+    const update = () => setEnvironment({ visible: !document.hidden, reducedMotion: reducedMotion.matches })
     update()
     reducedMotion.addEventListener('change', update)
     document.addEventListener('visibilitychange', update)
@@ -44,7 +47,7 @@ function ClipCover({ formats, media }: { formats: readonly RecreateFormat[]; med
   return <div className="cw-cover">
     {asset && current && (playing ? <video key={current.id} src={asset.video} poster={asset.poster} muted autoPlay loop playsInline aria-hidden="true" /> : <img src={asset.poster} alt="" />)}
     <h1>Kineo Clips</h1>
-    {count > 0 && <button aria-label={playing ? 'Pause cover previews' : 'Play cover previews'} type="button" onClick={() => setPlaying(value => !value)}>{playing ? 'Ⅱ' : '▶'}</button>}
+    {count > 0 && <button aria-label={wantsPlayback ? 'Pause cover previews' : 'Play cover previews'} type="button" onClick={() => setPlayOverride(!wantsPlayback)}>{wantsPlayback ? 'Ⅱ' : '▶'}</button>}
   </div>
 }
 

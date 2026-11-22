@@ -8,8 +8,8 @@ export const CLIP_TEMPLATE_CATEGORIES: readonly ClipTemplateCategory[] = ['Lifes
 const TEMPLATE_TYPE_CATEGORY = { swap: null, motion: null, effect: 'Effects' } as const
 
 export function clipTemplateCategory(format: Pick<RecreateFormat, 'id' | 'title' | 'type'>): ClipTemplateCategory {
-  const subject = `${format.id} ${format.title}`.toLowerCase()
-  if (/pet|cat|dog|cachorro|gato|puppy|kitten/.test(subject)) return 'Pets'
+  const subject = `${format.id} ${format.title}`.toLowerCase().replace(/[_-]/g, ' ')
+  if (/\b(?:pets?|cats?|dogs?|cachorr[oa]s?|gat[oa]s?|pupp(?:y|ies)|kittens?)\b/.test(subject)) return 'Pets'
   if (/basket|basquete|football|futebol|sports|slam dunk|invasor|pitch invader/.test(subject)) return 'Sports'
   const category = TEMPLATE_TYPE_CATEGORY[format.type]
   if (category) return category

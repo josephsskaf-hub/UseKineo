@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { runInNewContext } from 'node:vm'
+import ts from 'typescript'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const load = createOfflineLoader({ mocks: { 'server-only': {} } })
@@ -26,6 +28,11 @@ assert.deepEqual(formats.map(item => item.id), original)
 assert.equal(gallery.clipTemplateCategory({ id: 'passarela', title: 'Runway walk', type: 'swap' }), 'Lifestyle')
 assert.equal(gallery.clipTemplateCategory({ id: 'basquete', title: 'Slam dunk', type: 'swap' }), 'Sports')
 assert.equal(gallery.clipTemplateCategory({ id: 'cachorro-craque', title: 'Dog goal', type: 'swap' }), 'Pets')
+const catrina = formats.find(format => format.id === 'effect-catrina')
+const petCatrina = formats.find(format => format.id === 'effect-catrina-pet')
+assert.equal(gallery.clipTemplateCategory(catrina), 'Effects')
+assert.equal(gallery.clipTemplateCategory(petCatrina), 'Pets')
+assert.equal(gallery.clipTemplateCategory({ id: 'puppy-costume', title: 'Costume', type: 'effect' }), 'Pets')
 const specs = clipTemplateSpecs(formats)
 assert.equal(specs.basquete.model, 'Kling 4.0 Edit')
 assert.equal(specs.basquete.quality, '720p')
@@ -38,6 +45,55 @@ const read = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8'
 const entry = read('app/recreate/RecreateFlowPage.tsx')
 const ui = read('components/create/ClipTemplateWorkspace.tsx')
 const legacy = read('app/recreate/RecreateClient.tsx')
+
+// Run the real cover through visibility and motion changes with controlled browser inputs.
+const parsed = ts.createSourceFile('ClipTemplateWorkspace.tsx', ui, ts.ScriptTarget.ES2022, true, ts.ScriptKind.TSX)
+const coverSource = parsed.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'ClipCover')
+assert.ok(coverSource)
+const { outputText } = ts.transpileModule(coverSource.getText(parsed) + '\nClipCover;', {
+  compilerOptions: { jsx: ts.JsxEmit.React, target: ts.ScriptTarget.ES2022 },
+})
+const document = Object.assign(new EventTarget(), { hidden: false })
+const reducedMotion = Object.assign(new EventTarget(), { matches: false })
+const pendingEffects = []
+const slots = []
+let cursor = 0
+let mounted = false
+const cover = runInNewContext(outputText, {
+  document, window: { matchMedia: () => reducedMotion, setInterval: () => 1, clearInterval() {} },
+  publicRecreatePath: id => `/recreate/${id}`,
+  useState(initial) {
+    const index = cursor++
+    if (!mounted) slots[index] = initial
+    return [slots[index], next => { slots[index] = next }]
+  },
+  useEffect(effect) { if (!mounted) pendingEffects.push(effect) },
+  React: { createElement: (type, props, ...children) => ({ type, props, children }) },
+})
+const renderCover = () => {
+  cursor = 0
+  const tree = cover({ formats: [{ id: 'clip' }], media: () => ({ video: '/clip.mp4', poster: '/clip.jpg' }) })
+  return { media: tree.children[0].type, button: tree.children[2] }
+}
+const hideCover = hidden => {
+  document.hidden = hidden
+  document.dispatchEvent(new Event('visibilitychange'))
+}
+assert.equal(renderCover().media, 'img', 'no video before the browser checks motion preference')
+mounted = true
+for (const effect of pendingEffects) effect()
+assert.equal(renderCover().media, 'video')
+renderCover().button.props.onClick()
+assert.equal(renderCover().media, 'img')
+hideCover(true)
+hideCover(false)
+assert.equal(renderCover().media, 'img', 'manual pause survives switching tabs')
+renderCover().button.props.onClick()
+assert.equal(renderCover().media, 'video')
+hideCover(true)
+assert.equal(renderCover().media, 'img')
+hideCover(false)
+assert.equal(renderCover().media, 'video')
 assert.match(entry, /if \(clipWorkspaceVisible\(user\.email\)\) \{[\s\S]*<ClipTemplateWorkspace[\s\S]*return <ClipRecreateJuntos/)
 assert.match(entry, /const presentation = ownVideoVisible \? seuVideoPresentation\(\) : null/)
 assert.doesNotMatch(ui, /fetch\(|\/api\/recreate|Objects swap|1080p/)
