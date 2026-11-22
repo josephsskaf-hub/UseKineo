@@ -25,6 +25,7 @@
 .cw-panel .rc-panel-intro,.cw-panel .rc-progress,.cw-panel .rc-step-number,.cw-panel .rc-step-status { display: none; }
 .recreate.cw-workspace .cw-panel .rc-photos-single .rc-upload { min-height: 110px; height: auto; }
 .cw-photo-tip,.cw-angles > p,.cw-photo-notice { margin: 0 0 8px; font-size: 13px; line-height: 1.45; }
+.recreate.cw-workspace .cw-panel [data-face-photo-guidance] .rc-upload { border-style: solid; }
 .cw-photo-tip,.cw-angles > p span { color: var(--muted); }
 .cw-angles { margin-top: 12px; }
 .cw-angles > p { font-weight: 650; }
@@ -35,7 +36,7 @@
 .cw-angle-slots .rc-upload-plus { display: none; }
 .cw-angle-slots .rc-upload-filled .rc-upload-label { padding: 14px 4px 4px; }
 .cw-angle-slots .rc-remove-photo { position: static; inset: auto; width: 100%; height: 44px; margin-top: 4px; border-radius: 8px; }
-.cw-photo-notice { margin: 8px 0 0; padding: 7px; color: var(--text); background: var(--bg); border-left: 2px solid var(--accent); border-radius: 4px; }
+.cw-panel .cw-photo-notice { margin: 8px 0; padding: 7px; color: var(--text); background: var(--bg); border-left: 2px solid var(--accent); border-radius: 4px; font-weight: 400; }
 .cw-action p,.cw-panel .rc-next-note { margin: 6px 0 0; line-height: 1.4; }
 .cw-browse { min-width: 0; }
 .cw-library { scroll-margin-top: 90px; }

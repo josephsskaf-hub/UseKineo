@@ -585,7 +585,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
       </button>
       {photo && <button className="rc-remove-photo" disabled={editingDisabled} aria-label={`Remove photo ${index + 1}`} onClick={() => removePhoto(index)}>×</button>}
       {error && <p className="rc-photo-error" id={`rc-photo-error-${index}`} role="alert">{error}</p>}
-      {noticeId && <p className="cw-photo-notice" id={noticeId} role="status">{photo?.notices?.join(' ')}</p>}
+      {!extra && noticeId && <p className="cw-photo-notice" id={noticeId} role="status">{photo?.notices?.join(' ')}</p>}
     </div>
   }
   const formFields = selected ? <>
@@ -599,15 +599,16 @@ export default function RecreateClient({ initialId, internalTools = false, forma
         </div>}
         {currentFlow && ownVideoVisible && !clipWorkspace && <Link className="rc-acao rc-acao-secundaria" href={`${flowBasePath}/your-video`} onClick={leaveFlow}><Icone nome="video" />Use your own video instead</Link>}
         <div className="rc-progress"><span>{states.includes('error') ? 'Check the highlighted step' : clip?.status === 'done' ? 'Your version is ready' : photosDone ? 'Your photos are ready' : 'Start with your photos'}</span><div role="progressbar" aria-label="Creation steps completed" aria-valuemin={0} aria-valuemax={3} aria-valuenow={states.filter(state => state === 'done').length}>{states.map((state, index) => <i key={index} className={`rc-progress-${state}`} />)}</div></div>
-        <section className={`rc-step rc-step-${states[0]}`} data-step-state={states[0]} aria-labelledby="rc-photo-heading">
+        <section className={`rc-step rc-step-${states[0]}`} data-step-state={states[0]} data-face-photo-guidance={identityPhotoLimit ? '' : undefined} aria-labelledby="rc-photo-heading">
           <div className="rc-step-heading">{marker(1)}<h2 id="rc-photo-heading">{selected.photoSlots > 1 ? 'Your photos' : 'Your photo'}</h2><span className="rc-step-status">{photosDone && photos[0] && <img src={photos[0].url} alt="" />}{stateLabel(states[0])}</span></div>
-          <p className="rc-muted">{extraPhotoSlots > 0 ? 'Use the same person in every photo. Start with a front view in good light, without sunglasses. Extra angles are optional.' : selected.photoSlots > 1 ? 'One photo for each person in the video.' : selected.swapSubject ? `Add a clear photo of your face. Only ${selected.swapSubject} in the video is replaced.` : 'Add a clear photo of your face.'}</p>
+          <p className="rc-muted">{extraPhotoSlots > 0 ? 'Same person in every photo. Start with a front view in good light, without sunglasses.' : selected.photoSlots > 1 ? 'One photo for each person in the video.' : selected.swapSubject ? `Add a clear photo of your face. Only ${selected.swapSubject} in the video is replaced.` : 'Add a clear photo of your face.'}</p>
           {identityPhotoLimit === 1 && <p className="cw-photo-tip">Use good light, face the camera and keep sunglasses off.</p>}
           <div className={`rc-photos ${selected.photoSlots === 1 ? 'rc-photos-single' : ''}`} aria-busy={photoBusy}>
             {Array.from({ length: requiredPhotoSlots }, (_, index) => renderPhotoSlot(index))}
           </div>
           {extraPhotoSlots > 0 && <div className="cw-angles" aria-busy={photoBusy}>
-            <p id="cw-angle-heading">Extra angles <span>Try a three-quarter view or side profile.</span></p>
+            <p id="cw-angle-heading">Extra angles <span>Optional · Try a three-quarter view or side profile.</span></p>
+            {photos.slice(requiredPhotoSlots).map((photo, index) => photo?.notices?.length ? <p className="cw-photo-notice" key={index} id={`rc-photo-notice-${requiredPhotoSlots + index}`} role="status"><strong>{`Angle ${index + 1}: `}</strong>{photo.notices.join(' ')}</p> : null)}
             <div className="cw-angle-slots" role="group" aria-labelledby="cw-angle-heading">
               {Array.from({ length: extraPhotoSlots }, (_, index) => renderPhotoSlot(requiredPhotoSlots + index))}
             </div>
