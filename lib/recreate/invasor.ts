@@ -21,6 +21,7 @@ import { KLING4_EDIT_MODEL, KLING4_USD_POR_SEGUNDO_720P } from './seuVideo'
 import { RECREATE_UNPRICED_ERROR } from './formats'
 import { decidirPorta, type EstadoDaPorta, type RecusaDaPorta } from './portaDoSeuVideo'
 import { INVASOR_FORMATO, INVASOR_ID, MOLDE_PITCH_INVADER, creditosDoMolde, moldeDeTrechos, type MoldeDeTrechos } from './invasorMolde'
+import { KLING_IDENTITY_PHOTO_LIMIT, validRecreatePhotoCount } from './identityPhotos'
 
 export const INVASOR_MARCA = 'KINEO-INVASOR-DE-CAMPO-1511'
 /** A etapa da montagem na coluna `model` (o id do render do Creatomate vai em fal_request_id). Não é um modelo da fal: só esta máquina o lê. Um só para todos os moldes. */
@@ -100,8 +101,11 @@ export function trechoDoMarcador(v: unknown, id: string = INVASOR_ID): number | 
   const r = lerMarcador(v)
   return r && r.molde.id === id ? r.i : null
 }
-export function entradaDoTrecho(a: { prompt: string; foto: string; trecho: number; molde?: Pick<MoldeDeTrechos, 'id'> }): Record<string, unknown> {
-  return { prompt: a.prompt, video_url: marcadorDoTrecho(a.trecho, a.molde?.id ?? INVASOR_ID), image_urls: [a.foto], resolution: '720p' }
+export function entradaDoTrecho(a: { prompt: string; foto: string; angulos?: readonly string[]; trecho: number; molde?: Pick<MoldeDeTrechos, 'id'> }): Record<string, unknown> {
+  const referencia = a.angulos?.length
+    ? { elements: [{ frontal_image_url: a.foto, reference_image_urls: [...a.angulos] }] }
+    : { image_urls: [a.foto] }
+  return { prompt: a.prompt, video_url: marcadorDoTrecho(a.trecho, a.molde?.id ?? INVASOR_ID), ...referencia, resolution: '720p' }
 }
 /** A entrada que vai à fal: o marcador do trecho vira a URL assinada (1 h) e as marcas da casa (kineo_*) saem. Assinatura que falha = null (o envio
  *  falha limpo, com estorno). Entrada sem marcador: a mesma, só sem as marcas. */
@@ -115,23 +119,33 @@ export async function resolverEntrada(input: Record<string, unknown>, assinar: (
 
 // ─── O plano (o que o POST /api/recreate passa ao submitClip) ───
 export type InvasorPlanResult = { ok: true; plan: RecreatePlan } | { ok: false; status: number; error: string }
-export function planInvasor(raw: Record<string, unknown>, ctx: { userId: string; supabaseUrl: string; dono: (url: string) => string | null }, leitura: { cabeloEBarba: string | null; semOculos: boolean | null } | null): InvasorPlanResult {
+export function planInvasor(raw: Record<string, unknown>, ctx: { userId: string; supabaseUrl: string; dono: (url: string) => string | null; aceitarAngulos?: boolean }, leitura: { cabeloEBarba: string | null; semOculos: boolean | null } | null): InvasorPlanResult {
   const bad = (error: string, status = 400): InvasorPlanResult => ({ ok: false, status, error })
   const molde = moldeDeTrechos(raw.format)
   if (!molde) return bad('Choose a video from the Kineo catalog.')
   const credits = creditosDoMolde(molde)
   if (credits === null) return bad(RECREATE_UNPRICED_ERROR, 409)
   if (raw.consent !== true) return bad('Confirm you have permission to use these photos.')
-  if (!Array.isArray(raw.photos) || raw.photos.length !== 1) return bad('Add a photo for each person in this format.')
-  const foto = typeof raw.photos[0] === 'string' ? ctx.dono(raw.photos[0]) : null
-  if (!foto) return bad('Upload photos to your own account before continuing.', 403)
+  const limite = ctx.aceitarAngulos && molde.alvo.tipo === 'pessoa' ? KLING_IDENTITY_PHOTO_LIMIT : 1
+  if (!Array.isArray(raw.photos) || !validRecreatePhotoCount(raw.photos.length, 1, limite)) {
+    return bad(limite === 1 ? 'Add a photo for each person in this format.' : `Add one front photo and up to ${limite - 1} photos of the same person.`)
+  }
+  const photos: string[] = []
+  for (const value of raw.photos) {
+    const url = typeof value === 'string' ? ctx.dono(value) : null
+    if (!url) return bad('Upload photos to your own account before continuing.', 403)
+    photos.push(url)
+  }
+  if (new Set(photos).size !== photos.length) return bad('Choose a different photo for each angle.')
+  const [foto, ...angulos] = photos
   const genero: InvasorGenero = raw.gender === 'woman' ? 'woman' : 'man'
   const bicho: InvasorBicho = raw.pet === 'cat' ? 'cat' : 'dog'
-  const prompt = textoDoMolde(molde, { genero, bicho, cabeloEBarba: leitura?.cabeloEBarba ?? null, semOculos: leitura?.semOculos ?? null })
+  const receita = textoDoMolde(molde, { genero, bicho, cabeloEBarba: leitura?.cabeloEBarba ?? null, semOculos: leitura?.semOculos ?? null })
+  const prompt = angulos.length ? receita.replace(/@Image1\b/g, '@Element1') : receita
   return { ok: true, plan: {
     body: { engine: 'h3', seconds: molde.segundos, aspect: null, prompt, imageUrl: foto },
-    model: KLING4_EDIT_MODEL, credits, falUsd: falUsdDoMolde(molde), photos: [foto],
-    input: { ...entradaDoTrecho({ prompt, foto, trecho: 0, molde }), kineo_molde: molde.id },
+    model: KLING4_EDIT_MODEL, credits, falUsd: falUsdDoMolde(molde), photos,
+    input: { ...entradaDoTrecho({ prompt, foto, angulos, trecho: 0, molde }), kineo_molde: molde.id },
   } }
 }
 
@@ -147,17 +161,28 @@ export function portaDoInvasor(e: EstadoDaPorta & { motorOk: boolean }): RecusaD
 
 // ─── A linha ───
 type LinhaDoInvasor = Pick<ClipRow, 'fingerprint' | 'engine' | 'mode' | 'model'>
+type DadosDoTrecho = { prompt: string; foto: string; angulos?: string[]; molde: MoldeDeTrechos }
+const urlDeFoto = (v: unknown): v is string => typeof v === 'string' && /^https:\/\//.test(v)
 /** A entrada do trecho 0 guardada pelo servidor na impressão digital ([pedido, modelo, entrada]) — é dela que os trechos seguintes saem. */
-export function dadosDaLinha(row: { fingerprint?: string | null }): { prompt: string; foto: string; molde: MoldeDeTrechos } | null {
+export function dadosDaLinha(row: { fingerprint?: string | null }): DadosDoTrecho | null {
   if (typeof row.fingerprint !== 'string' || !row.fingerprint.startsWith('[')) return null
   try {
     const fp = JSON.parse(row.fingerprint) as unknown
     if (!Array.isArray(fp) || fp.length !== 3 || fp[1] !== KLING4_EDIT_MODEL || !fp[2] || typeof fp[2] !== 'object') return null
     const e = fp[2] as Record<string, unknown>
     const molde = moldeDeTrechos(e.kineo_molde) // KINEO-REMODELAMENTO-MOLDES-1611 — era: só o Pitch invader
-    if (!molde || trechoDoMarcador(e.video_url, molde.id) !== 0) return null
-    const foto = Array.isArray(e.image_urls) && typeof e.image_urls[0] === 'string' ? e.image_urls[0] : ''
-    if (typeof e.prompt !== 'string' || !e.prompt || !/^https:\/\//.test(foto)) return null
+    if (!molde || trechoDoMarcador(e.video_url, molde.id) !== 0 || typeof e.prompt !== 'string' || !e.prompt) return null
+    if (e.elements !== undefined) {
+      if (molde.alvo.tipo !== 'pessoa' || e.image_urls !== undefined || !Array.isArray(e.elements) || e.elements.length !== 1) return null
+      const element = e.elements[0]
+      if (!element || typeof element !== 'object') return null
+      const { frontal_image_url: foto, reference_image_urls: angulos } = element
+      if (!urlDeFoto(foto) || !Array.isArray(angulos) || angulos.length < 1 || angulos.length >= KLING_IDENTITY_PHOTO_LIMIT || !angulos.every(urlDeFoto)) return null
+      if (new Set([foto, ...angulos]).size !== 1 + angulos.length) return null
+      return { prompt: e.prompt, foto, angulos, molde }
+    }
+    const foto = Array.isArray(e.image_urls) ? e.image_urls[0] : null
+    if (!urlDeFoto(foto)) return null
     return { prompt: e.prompt, foto, molde }
   } catch { return null }
 }
@@ -223,7 +248,7 @@ export interface InvasorIo {
   /** Solta a vaga SÓ se for desta linha. */
   soltarVaga(clipId: string): Promise<void>
   /** Manda o trecho i ao Kling (um POST, sem retry do POST pago). */
-  enviarTrecho(row: ClipRow, i: number, dados: { prompt: string; foto: string; molde: MoldeDeTrechos }): Promise<EnvioDoFornecedor>
+  enviarTrecho(row: ClipRow, i: number, dados: DadosDoTrecho): Promise<EnvioDoFornecedor>
   /** Manda a montagem. Devolve o id do render, ou erro. */
   montar(row: ClipRow, trechos: string[]): Promise<{ ok: true; renderId: string } | { ok: false; error: string }>
   consultarMontagem(renderId: string): Promise<EstadoDaMontagem>

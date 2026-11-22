@@ -12,6 +12,7 @@ import { recreatePublicMedia } from '@/lib/recreate/catalogPublic'
 import { cadastroComVolta } from '@/lib/growth/visitanteEscreveAntes'
 import { clearRecreateFlowDraft, expireRecreateFlowDrafts, loadRecreateFlowDraft, saveRecreateFlowDraft } from '@/lib/recreate/flowDraft'
 import { compressPhoto, cropFace, composePairPhoto } from '@/lib/recreate/photos'
+import { KLING_IDENTITY_PHOTO_LIMIT, validRecreatePhotoCount } from '@/lib/recreate/identityPhotos'
 import type { ClipTemplateSpec } from '@/lib/create/clipWorkspace'
 import RecreatePlayer, { ExampleCover } from './RecreatePlayer'
 import CreateTabs from '@/components/create/CreateTabs' // KINEO-TELA-NOVA-1011
@@ -63,10 +64,15 @@ export function gradeSemParecidosJuntos<T extends { id: string }>(lista: readonl
 }
 type Social = { count: number; liked: boolean }
 export type Quote = { id: string; credits: number | null; available: boolean; shortfall: number }
-type Photo = { file: File; url: string }
+type Photo = { file: File; url: string; notices?: string[] }
 type Clip = { id: string; status: string; video_url?: string | null; credits_refunded?: number; reason?: string; queued?: boolean; queue_position?: number; message?: string; needs_status?: boolean; stage?: 'scene' | 'motion'; scene_url?: string; audio?: 'original' | 'silent' } // KINEO-RECREATE-MOVIMENTO-1411 — + stage, scene_url, audio
 // KINEO-RECREATE-MOVIMENTO-1411 — troca e movimento mandam `photos` (uma por pessoa); o efeito manda `image_url`.
 const sendsPhotos = (type: string) => type === 'swap' || type === 'motion'
+async function prepareTemplatePhoto(normalized: File, selected: RecreateFormat, extraAngle: boolean): Promise<File | null> {
+  if (extraAngle) return normalized
+  const prepared = selected.type === 'swap' ? await cropFace(normalized) : normalized
+  return prepared
+}
 type FlowBasePath = '/recreate' | '/recreate-flow-preview'
 type Attempt = { key: string; model: string; payload: Record<string, unknown> }
 const attemptStorage = (account: string, model: string) => `kineo:recreate:flow:attempt:${account}:${model}`
@@ -78,7 +84,8 @@ function savedAttempt(value: unknown, account: string, model: string): Attempt |
   const allowed = ['format', 'mode', 'seconds', 'prompt', 'consent', 'simulate', sendsPhotos(format.type) ? 'photos' : 'image_url'] // KINEO-RECREATE-MOVIMENTO-1411 — era: format.type === 'swap' ? …
   if (Object.keys(payload).length !== allowed.length || Object.keys(payload).some(key => !allowed.includes(key)) || payload.format !== model || payload.mode !== 'swap' || payload.seconds !== format.seconds || payload.consent !== true || payload.simulate !== false || typeof payload.prompt !== 'string' || payload.prompt.length > 550) return null
   const urls = sendsPhotos(format.type) ? payload.photos : [payload.image_url] // KINEO-RECREATE-MOVIMENTO-1411 — era: format.type === 'swap' ? …
-  if (!Array.isArray(urls) || urls.length !== (sendsPhotos(format.type) ? format.photoSlots : 1) || urls.some(url => typeof url !== 'string' || !ownedClipImageUrl(url, account, process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''))) return null
+  // An earlier signed-in attempt can be retried unchanged after the feature closes; the server checks the stored request.
+  if (!Array.isArray(urls) || !validRecreatePhotoCount(urls.length, sendsPhotos(format.type) ? format.photoSlots : 1, sendsPhotos(format.type) ? KLING_IDENTITY_PHOTO_LIMIT : 1) || urls.some(url => typeof url !== 'string' || !ownedClipImageUrl(url, account, process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''))) return null
   return { key: saved.key, model, payload }
 }
 // M12 revisão (3): o POST /api/recreate vive até 60 s no servidor (maxDuration); quem espera 30 s declara "incerto" um pedido que ainda corre.
@@ -111,6 +118,12 @@ export default function RecreateClient({ initialId, internalTools = false, forma
   const catalog = currentFlow && !signedIn ? permitted.filter(f => publicRecreatePath(f.id) !== null) : permitted
   const [selected, setSelected] = useState(() => catalog.find(f => f.id === initialId) ?? null)
   const [photos, setPhotos] = useState<(Photo | null)[]>([])
+  const requiredPhotoSlots = selected?.photoSlots ?? 0
+  const identityPhotoLimit = selected && currentFlow && signedIn ? clipSpecs?.[selected.id]?.identityPhotoLimit : undefined
+  const photoSlots = Math.max(requiredPhotoSlots, identityPhotoLimit ?? 0)
+  const extraPhotoSlots = photoSlots - requiredPhotoSlots
+  const photosReady = requiredPhotoSlots > 0 && photos.slice(0, requiredPhotoSlots).filter(Boolean).length === requiredPhotoSlots
+  const draftIdentityPhotoLimit = initialId && signedIn ? clipSpecs?.[initialId]?.identityPhotoLimit : undefined
   const [prompt, setPrompt] = useState(selected?.prompt ?? '')
   // KINEO-RECREATE-ELEVADOR-1011 [fundador 10/11: "não quero esse termo de agree"] — no checkbox: pressing Generate with the notice below is the confirmation.
   const [consent] = useState(true)
@@ -188,7 +201,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
     let cancelled = false
     const restoreTask = photoTask.current
     setRestoring(true)
-    void loadRecreateFlowDraft(draftRef, initialId, accountKey).then(draft => {
+    void loadRecreateFlowDraft(draftRef, initialId, accountKey, draftIdentityPhotoLimit).then(draft => {
       if (cancelled || photoTask.current !== restoreTask) return
       if (!draft) { setMessage('This saved draft is unavailable or has expired. Choose your photos again.'); return }
       const next = draft.photos.map(file => ({ file, url: URL.createObjectURL(file) }))
@@ -198,7 +211,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
       setMessage('Your photos are back. Review your version, then press Generate.')
     }).catch(() => { if (!cancelled) setMessage('Could not restore your photos. Keep the originals and choose them again.') }).finally(() => { if (!cancelled) setRestoring(false) })
     return () => { cancelled = true }
-  }, [currentFlow, draftRef, initialId, accountKey])
+  }, [currentFlow, draftRef, initialId, accountKey, draftIdentityPhotoLimit])
   // KINEO-DOWNLOAD-NOSSO-1311 [dono 13/11 ~20:10: "a URL ainda tá parecendo Supabase lá em cima"] — Download BAIXA com o nome da Kineo pelo
   // baixador da casa (conta video_download_clicked / video_downloaded, surface 'recreate'); o href é a rota do nosso domínio (/api/download).
   const downloadName = `kineo-recreate-${selected?.id ?? 'video'}.mp4`
@@ -299,7 +312,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
     fileRef.current?.click()
   }
   async function addPhoto(file: File | undefined, index: number) {
-    if (!canEdit || !selected || !file || photoLock.current || busy || index < 0 || index >= selected.photoSlots) return
+    if (!canEdit || !selected || !file || photoLock.current || busy || index < 0 || index >= photoSlots) return
     photoLock.current = true
     handoffApproved.current = false
     const task = ++photoTask.current
@@ -308,14 +321,19 @@ export default function RecreateClient({ initialId, internalTools = false, forma
     try {
       if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size > 8 * 1024 * 1024) throw new Error('Choose a JPG, PNG or WebP photo up to 8 MB.')
       const normalized = await compressPhoto(file, true)
-      const prepared = selected.type === 'swap' ? await cropFace(normalized) : normalized
+      const prepared = await prepareTemplatePhoto(normalized, selected, index >= requiredPhotoSlots)
       if (task !== photoTask.current) return
       if (!prepared) throw new Error('Could not crop your face. Try a clear selfie.')
+      const notices = identityPhotoLimit ? await import('@/lib/recreate/facePhotoQuality').then(async module => {
+        const flags = await module.inspectRecreateFacePhoto(normalized).catch(() => ['face-unconfirmed'] as const)
+        return flags.map(flag => module.FACE_PHOTO_NOTICE[flag])
+      }).catch(() => ['Could not check the face size. Use a clear, close photo.']) : undefined
+      if (task !== photoTask.current) return
       const previous = photosRef.current[index]
       if (previous) URL.revokeObjectURL(previous.url)
-      const photo = { file: prepared, url: URL.createObjectURL(prepared) }
-      setPhotos(previous => Array.from({ length: selected.photoSlots }, (_, slot) => slot === index ? photo : previous[slot] ?? null)); requestKey.current = null
-    } catch (error) { if (task === photoTask.current) setPhotoErrors(previous => Array.from({ length: selected.photoSlots }, (_, slot) => slot === index ? error instanceof Error ? error.message : 'Could not read your photo.' : previous[slot] ?? '')) }
+      const photo = { file: prepared, url: URL.createObjectURL(prepared), notices }
+      setPhotos(previous => Array.from({ length: photoSlots }, (_, slot) => slot === index ? photo : previous[slot] ?? null)); requestKey.current = null
+    } catch (error) { if (task === photoTask.current) setPhotoErrors(previous => Array.from({ length: photoSlots }, (_, slot) => slot === index ? error instanceof Error ? error.message : 'Could not read your photo.' : previous[slot] ?? '')) }
     finally { photoLock.current = false; if (task === photoTask.current) setPhotoBusy(false) }
   }
   const uploaded = useRef(new WeakMap<File, string>())
@@ -339,7 +357,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
       return
     }
     const files = photos.filter((photo): photo is Photo => photo !== null).map(photo => photo.file)
-    const ref = await saveRecreateFlowDraft(selected.id, files, prompt, requestKey.current ?? undefined, accountKey)
+    const ref = await saveRecreateFlowDraft(selected.id, files, prompt, requestKey.current ?? undefined, accountKey, identityPhotoLimit)
     if (!flowAlive.current) return
     if (!ref) setWithoutSave(true)
     if (!ref) throw new Error(UNSAVED_MESSAGE)
@@ -360,7 +378,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
     if (uncertain && !attempt.current) { setMessage('Check My videos for the earlier request before starting another.'); return }
     const currentQuote = quotes.find(q => q.id === selected.id)
     const readyPhotos = photos.filter((photo): photo is Photo => photo !== null)
-    if (!uncertain && (!flowQuoteReady || !currentQuote?.available || currentQuote.credits === null || readyPhotos.length !== selected.photoSlots || photoErrors.some(Boolean))) return
+    if (!uncertain && (!flowQuoteReady || !currentQuote?.available || currentQuote.credits === null || !photosDone)) return
     const retrying = uncertain && attempt.current !== null
     flowBusy.current = true; setBusy(true); setMessage(''); setCreateError(false)
     try {
@@ -508,10 +526,8 @@ export default function RecreateClient({ initialId, internalTools = false, forma
   }
   const botaoDeCompra = faltam > 0 && quote ? <button className="rc-generate" data-recreate-buy-credits="" aria-describedby="rc-generate-reason" onClick={abrirCompra}>{`Get ${faltam} more credits`}<span>✦ {quote.credits}</span></button> : null
   const compra = compraAberta ? <TopupOuRecargaModal surface="recreate_generate" shortfall={faltam} onClose={() => setCompraAberta(false)} /> : null
-  const photoCount = photos.filter(Boolean).length
-  const photosReady = !!selected && photoCount === selected.photoSlots
   const editingDisabled = busy || photoBusy || active || (currentFlow && (restoring || uncertain))
-  const photoIssue = photoErrors.some(Boolean)
+  const photoIssue = photoErrors.slice(0, requiredPhotoSlots).some(Boolean)
   const photosDone = photosReady && consent && !photoIssue
   type StepState = 'todo' | 'active' | 'done' | 'error'
   const states: StepState[] = [photoIssue ? 'error' : photosDone ? 'done' : 'active', photosDone ? detailsOpen ? 'active' : 'done' : 'todo', createError || clip?.status === 'failed' ? 'error' : clip?.status === 'done' ? 'done' : active || photosDone && !detailsOpen ? 'active' : 'todo']
@@ -554,35 +570,48 @@ export default function RecreateClient({ initialId, internalTools = false, forma
   const clipSpec = selected && clipSpecs?.[selected.id]
   const referenceLabels = { swap: 'Reference video', motion: 'Reference video', effect: 'Effect preview' }
   const acceptsClipPrompt = { swap: true, motion: false, effect: false }
+  function renderPhotoSlot(index: number) {
+    const photo = photos[index]
+    const side = index === 0 ? 'Left' : 'Right'
+    const extra = index >= requiredPhotoSlots
+    const label = extra ? `Angle ${index - requiredPhotoSlots + 1}` : extraPhotoSlots ? 'Front photo' : requiredPhotoSlots > 1 ? `${side} person` : 'Add your photo'
+    const error = photoErrors[index]
+    const noticeId = photo?.notices?.length ? `rc-photo-notice-${index}` : undefined
+    const describedBy = [error ? `rc-photo-error-${index}` : undefined, noticeId].filter(Boolean).join(' ') || undefined
+    return <div className="rc-photo-slot" data-identity-angle={extra ? '' : undefined} key={index}>
+      <button className={`rc-upload ${photo ? 'rc-upload-filled' : ''} ${dragging === index ? 'rc-upload-dragging' : ''}`} disabled={editingDisabled} onClick={() => pickPhoto(index)} onPaste={currentFlow ? e => { const file = Array.from(e.clipboardData.items).find(item => item.kind === 'file')?.getAsFile(); if (file) { e.preventDefault(); if (!editingDisabled) void addPhoto(file, index) } } : undefined} onDragOver={e => { e.preventDefault(); if (!editingDisabled) { e.dataTransfer.dropEffect = 'copy'; setDragging(index) } }} onDragLeave={() => setDragging(null)} onDrop={e => { e.preventDefault(); setDragging(null); if (!editingDisabled) void addPhoto(e.dataTransfer.files[0], index) }} aria-invalid={!!error} aria-describedby={describedBy} aria-label={photo ? `Change photo ${index + 1}` : extra || extraPhotoSlots ? `Add ${label.toLowerCase()}` : requiredPhotoSlots > 1 ? `Add photo of person ${index + 1}` : 'Add your photo'}>
+        {photo ? <img src={photo.url} alt={`Prepared photo ${index + 1}`} /> : <><span className="rc-upload-plus" aria-hidden="true">+</span><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M12 18v-5a5 5 0 0 1 5-5h3m8 0h3a5 5 0 0 1 5 5v5M12 30v5a5 5 0 0 0 5 5h3m8 0h3a5 5 0 0 0 5-5v-5" /><circle cx="24" cy="21" r="7" /><path d="M15 34c1-7 17-7 18 0" /></svg></>}
+        <span className="rc-upload-label"><strong>{photoBusy && photoSlot.current === index ? 'Preparing…' : photo && !extra ? 'Change photo' : label}</strong>{!extra && <small>{photo && requiredPhotoSlots === 2 ? `${side} in the video` : 'Choose photo'}</small>}</span>
+      </button>
+      {photo && <button className="rc-remove-photo" disabled={editingDisabled} aria-label={`Remove photo ${index + 1}`} onClick={() => removePhoto(index)}>×</button>}
+      {error && <p className="rc-photo-error" id={`rc-photo-error-${index}`} role="alert">{error}</p>}
+      {noticeId && <p className="cw-photo-notice" id={noticeId} role="status">{photo?.notices?.join(' ')}</p>}
+    </div>
+  }
   const formFields = selected ? <>
         <div className="rc-panel-intro"><span className="rc-eyebrow">Recreate</span>{createTabs || currentFlow ? <h1>Your version</h1> : <h1>Your version, step by step.</h1>}</div>
         {/* KINEO-TELA-RECREATE-1611 [dono 16/11 23:00: "aparece duas vezes slam dunk, change video, use your video, slam dunk, change… tá meio igual"] — UMA
             linha do vídeo-base (miniatura, nome, um "Change") e "Use your video" como ação secundária embaixo; ações com corpo de botão e ícone SVG (o iOS troca "↗" por emoji). */}
         {(currentFlow || createTabs) && <div className="ct-base-choice rc-base-row" data-base-row="">
           <img src={selectedMedia!.poster} alt="" width={44} height={50} />
-          <div><small>{clipWorkspace ? referenceLabels[selected.type] : 'Base video'}</small><strong>{selected.title}</strong>{clipWorkspace && <small>{selected.seconds} s · {selected.photoSlots} {selected.photoSlots === 1 ? 'photo' : 'photos'}</small>}</div>
+          <div><small>{clipWorkspace ? referenceLabels[selected.type] : 'Base video'}</small><strong>{selected.title}</strong>{clipWorkspace && <small>{selected.seconds} s · {extraPhotoSlots > 0 ? `1–${photoSlots} photos` : `${requiredPhotoSlots} ${requiredPhotoSlots === 1 ? 'photo' : 'photos'}`}</small>}</div>
           <button type="button" className="rc-acao" onClick={showTemplates} disabled={editingDisabled} aria-label="Change base video">Change<Icone nome="trocar" /></button>
         </div>}
         {currentFlow && ownVideoVisible && !clipWorkspace && <Link className="rc-acao rc-acao-secundaria" href={`${flowBasePath}/your-video`} onClick={leaveFlow}><Icone nome="video" />Use your own video instead</Link>}
         <div className="rc-progress"><span>{states.includes('error') ? 'Check the highlighted step' : clip?.status === 'done' ? 'Your version is ready' : photosDone ? 'Your photos are ready' : 'Start with your photos'}</span><div role="progressbar" aria-label="Creation steps completed" aria-valuemin={0} aria-valuemax={3} aria-valuenow={states.filter(state => state === 'done').length}>{states.map((state, index) => <i key={index} className={`rc-progress-${state}`} />)}</div></div>
         <section className={`rc-step rc-step-${states[0]}`} data-step-state={states[0]} aria-labelledby="rc-photo-heading">
           <div className="rc-step-heading">{marker(1)}<h2 id="rc-photo-heading">{selected.photoSlots > 1 ? 'Your photos' : 'Your photo'}</h2><span className="rc-step-status">{photosDone && photos[0] && <img src={photos[0].url} alt="" />}{stateLabel(states[0])}</span></div>
-          <p className="rc-muted">{selected.photoSlots > 1 ? 'One photo for each person in the video.' : selected.swapSubject ? `Add a clear photo of your face. Only ${selected.swapSubject} in the video is replaced.` : 'Add a clear photo of your face.'}</p>
+          <p className="rc-muted">{extraPhotoSlots > 0 ? 'Use the same person in every photo. Start with a front view in good light, without sunglasses. Extra angles are optional.' : selected.photoSlots > 1 ? 'One photo for each person in the video.' : selected.swapSubject ? `Add a clear photo of your face. Only ${selected.swapSubject} in the video is replaced.` : 'Add a clear photo of your face.'}</p>
+          {identityPhotoLimit === 1 && <p className="cw-photo-tip">Use good light, face the camera and keep sunglasses off.</p>}
           <div className={`rc-photos ${selected.photoSlots === 1 ? 'rc-photos-single' : ''}`} aria-busy={photoBusy}>
-            {Array.from({ length: selected.photoSlots }, (_, index) => {
-              const photo = photos[index]
-              const side = index === 0 ? 'Left' : 'Right'
-              const label = selected.photoSlots > 1 ? `${side} person` : 'Add your photo'
-              return <div className="rc-photo-slot" key={index}>
-                <button className={`rc-upload ${photo ? 'rc-upload-filled' : ''} ${dragging === index ? 'rc-upload-dragging' : ''}`} disabled={editingDisabled} onClick={() => pickPhoto(index)} onPaste={currentFlow ? e => { const file = Array.from(e.clipboardData.items).find(item => item.kind === 'file')?.getAsFile(); if (file) { e.preventDefault(); if (!editingDisabled) void addPhoto(file, index) } } : undefined} onDragOver={e => { e.preventDefault(); if (!editingDisabled) { e.dataTransfer.dropEffect = 'copy'; setDragging(index) } }} onDragLeave={() => setDragging(null)} onDrop={e => { e.preventDefault(); setDragging(null); if (!editingDisabled) void addPhoto(e.dataTransfer.files[0], index) }} aria-invalid={!!photoErrors[index]} aria-describedby={photoErrors[index] ? `rc-photo-error-${index}` : undefined} aria-label={photo ? `Change photo ${index + 1}` : selected.photoSlots > 1 ? `Add photo of person ${index + 1}` : 'Add your photo'}>
-                  {photo ? <img src={photo.url} alt={`Prepared photo ${index + 1}`} /> : <><span className="rc-upload-plus" aria-hidden="true">+</span><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M12 18v-5a5 5 0 0 1 5-5h3m8 0h3a5 5 0 0 1 5 5v5M12 30v5a5 5 0 0 0 5 5h3m8 0h3a5 5 0 0 0 5-5v-5" /><circle cx="24" cy="21" r="7" /><path d="M15 34c1-7 17-7 18 0" /></svg></>}
-                  <span className="rc-upload-label"><strong>{photoBusy && photoSlot.current === index ? 'Preparing…' : photo ? 'Change photo' : label}</strong><small>{photo && selected.photoSlots === 2 ? `${side} in the video` : 'Choose photo'}</small></span>
-                </button>
-                {photo && <button className="rc-remove-photo" disabled={editingDisabled} aria-label={`Remove photo ${index + 1}`} onClick={() => removePhoto(index)}>×</button>}
-                {photoErrors[index] && <p className="rc-photo-error" id={`rc-photo-error-${index}`} role="alert">{photoErrors[index]}</p>}
-              </div>
-            })}
+            {Array.from({ length: requiredPhotoSlots }, (_, index) => renderPhotoSlot(index))}
           </div>
+          {extraPhotoSlots > 0 && <div className="cw-angles" aria-busy={photoBusy}>
+            <p id="cw-angle-heading">Extra angles <span>Try a three-quarter view or side profile.</span></p>
+            <div className="cw-angle-slots" role="group" aria-labelledby="cw-angle-heading">
+              {Array.from({ length: extraPhotoSlots }, (_, index) => renderPhotoSlot(requiredPhotoSlots + index))}
+            </div>
+          </div>}
           <input ref={fileRef} hidden type="file" accept="image/jpeg,image/png,image/webp" aria-label="Choose a reference photo" onChange={e => { void addPhoto(e.target.files?.[0], photoSlot.current); e.target.value = '' }} />
           <p className="rc-photo-guide">{currentFlow ? 'Tap, drop or paste · JPG, PNG or WebP · Up to 8 MB' : <>{selected.type === 'swap' ? 'Check the face crop after adding each photo.' : 'One clear face per photo.'}<br />Drop a JPG, PNG or WebP · Up to 8 MB</>}</p>
           <p className="rc-consent">Only upload photos you have the right to use.</p>

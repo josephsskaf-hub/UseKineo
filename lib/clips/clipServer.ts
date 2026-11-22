@@ -903,7 +903,7 @@ function invasorIoFor(admin: SupabaseClient, userId: string): InvasorIo {
     garantirVaga: (clipId) => garantirVagaDoClipe(admin, clipId),
     soltarVaga: (clipId) => filaIoFor(admin).apagarVaga(clipId),
     enviarTrecho: async (row, i, dados) => {
-      const entrada = await resolverEntrada(entradaDoTrecho({ prompt: dados.prompt, foto: dados.foto, trecho: i, molde: dados.molde }), (molde, t) => assinarTrechoDoInvasor(admin, molde, t))
+      const entrada = await resolverEntrada(entradaDoTrecho({ ...dados, trecho: i }), (molde, t) => assinarTrechoDoInvasor(admin, molde, t))
       if (!entrada) return { ok: false, ambiguous: false, error: 'Source unavailable' }
       return comEndUserDaFal(submitToFalOnce, row.user_id)(KLING4_EDIT_MODEL, entrada)
     },

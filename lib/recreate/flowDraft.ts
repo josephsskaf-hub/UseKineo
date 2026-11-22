@@ -3,6 +3,7 @@
 // Local catalog handoff only. No URL, upload, API or generation result is stored.
 import { recreateFormat } from './formats'
 import { publicRecreatePath } from './entry'
+import { KLING_IDENTITY_PHOTO_LIMIT, validRecreatePhotoCount } from './identityPhotos'
 
 type StoredPhoto = { blob: Blob; name: string; lastModified: number }
 type StoredDraft = { version: 1; id: string; owner: string; accountKey: string | null; at: number; model: string; photos: StoredPhoto[]; prompt: string; requestKey?: string }
@@ -28,11 +29,11 @@ function photoValid(photo: unknown): photo is StoredPhoto {
     && typeof photo.name === 'string' && photo.name.length > 0 && photo.name.length <= 200 && !/[\\/:?*|<>\u0000-\u001f]/.test(photo.name)
     && typeof photo.lastModified === 'number' && Number.isFinite(photo.lastModified) && photo.lastModified >= 0
 }
-function valid(record: unknown): record is StoredDraft {
+function valid(record: unknown, identityLimit = 1): record is StoredDraft {
   if (!object(record) || !only(record, ['version', 'id', 'owner', 'accountKey', 'at', 'model', 'photos', 'prompt', 'requestKey'])) return false
   const count = slots(record.model)
   return record.version === 1 && flowDraftRefValid(record.id) && flowDraftRefValid(record.owner) && accountValid(record.accountKey) && fresh(record.at) && count !== null
-    && Array.isArray(record.photos) && record.photos.length === count && Array.from(record.photos).every(photoValid) && typeof record.prompt === 'string' && record.prompt.length <= 550 && keyValid(record.requestKey)
+    && Array.isArray(record.photos) && validRecreatePhotoCount(record.photos.length, count, identityLimit) && Array.from(record.photos).every(photoValid) && typeof record.prompt === 'string' && record.prompt.length <= 550 && keyValid(record.requestKey)
 }
 function pack(file: File): StoredPhoto {
   return { blob: file.slice(0, file.size, file.type), name: (file.name.replace(/[\\/:?*|<>\u0000-\u001f]/g, '_') || 'photo').slice(0, 200), lastModified: Number.isFinite(file.lastModified) && file.lastModified >= 0 ? file.lastModified : 0 }
@@ -100,7 +101,7 @@ async function expire(): Promise<void> {
 export const expireRecreateFlowDrafts = (): Promise<void> => serial(expire)
 
 /** A guest return is bound atomically to its first signed-in account. */
-async function readOwned(ref: string, model: string, accountKey: string | null, expectedOwner?: string): Promise<StoredDraft | null> {
+async function readOwned(ref: string, model: string, accountKey: string | null, expectedOwner: string | undefined, identityLimit: number): Promise<StoredDraft | null> {
   const db = await open()
   return new Promise((resolve, reject) => {
     try {
@@ -108,7 +109,7 @@ async function readOwned(ref: string, model: string, accountKey: string | null, 
       let result: StoredDraft | null = null
       request.onsuccess = () => {
         const record: unknown = request.result
-        if (!valid(record) || record.id !== ref || record.model !== model || expectedOwner !== undefined && record.owner !== expectedOwner) return
+        if (!valid(record, identityLimit) || record.id !== ref || record.model !== model || expectedOwner !== undefined && record.owner !== expectedOwner) return
         if (record.accountKey !== null && record.accountKey !== accountKey) return
         result = record
         if (record.accountKey === null && accountKey !== null) { result = { ...record, accountKey }; store.put(result) }
@@ -118,21 +119,23 @@ async function readOwned(ref: string, model: string, accountKey: string | null, 
   })
 }
 /** Only a committed, verified record and opaque session reference may leave this page. */
-export function saveRecreateFlowDraft(model: string, photos: File[], prompt: string, requestKey?: string, accountKey: string | null = null): Promise<string | null> {
+export function saveRecreateFlowDraft(model: string, photos: File[], prompt: string, requestKey?: string, accountKey: string | null = null, identityPhotoLimit = 1): Promise<string | null> {
   let snapshot: StoredPhoto[]
+  const identityLimit = accountKey ? Math.min(KLING_IDENTITY_PHOTO_LIMIT, identityPhotoLimit) : 1
   try {
     if (!accountValid(accountKey) || !Array.isArray(photos) || !Array.from(photos).every(file => file instanceof File)) return Promise.resolve(null)
     snapshot = photos.map(pack)
-    if (slots(model) !== snapshot.length || !snapshot.every(photoValid) || typeof prompt !== 'string' || prompt.length > 550 || !keyValid(requestKey)) return Promise.resolve(null)
+    const count = slots(model)
+    if (count === null || !validRecreatePhotoCount(snapshot.length, count, identityLimit) || !snapshot.every(photoValid) || typeof prompt !== 'string' || prompt.length > 550 || !keyValid(requestKey)) return Promise.resolve(null)
   } catch { return Promise.resolve(null) }
   return serial(async () => {
     let written: string | null = null
     try {
       const record: StoredDraft = { version: 1, id: crypto.randomUUID(), owner: tab(true)!, accountKey, at: Date.now(), model, photos: snapshot, prompt, ...(requestKey === undefined ? {} : { requestKey }) }
-      if (!valid(record)) return null
+      if (!valid(record, identityLimit)) return null
       await expire(); await transaction('readwrite', store => store.put(record)); written = record.id
       const stored = await transaction<unknown>('readonly', store => store.get(record.id))
-      if (!valid(stored) || stored.id !== record.id || stored.owner !== record.owner || stored.accountKey !== accountKey || stored.at !== record.at || stored.model !== model || stored.prompt !== prompt || stored.requestKey !== requestKey
+      if (!valid(stored, identityLimit) || stored.id !== record.id || stored.owner !== record.owner || stored.accountKey !== accountKey || stored.at !== record.at || stored.model !== model || stored.prompt !== prompt || stored.requestKey !== requestKey
         || stored.photos.some((photo, i) => photo.name !== snapshot[i].name || photo.lastModified !== snapshot[i].lastModified || photo.blob.size !== snapshot[i].blob.size || photo.blob.type !== snapshot[i].blob.type)) throw new Error('Draft readback failed.')
       remember(record.id, record.owner)
       return record.id
@@ -143,13 +146,14 @@ export function saveRecreateFlowDraft(model: string, photos: File[], prompt: str
   })
 }
 /** Explicit ref is an opaque capability for email/OAuth return; load never consumes it. */
-export function loadRecreateFlowDraft(ref: string, model: string, accountKey: string | null = null): Promise<RecreateFlowDraft | null> {
+export function loadRecreateFlowDraft(ref: string, model: string, accountKey: string | null = null, identityPhotoLimit = 1): Promise<RecreateFlowDraft | null> {
   if (!flowDraftRefValid(ref) || slots(model) === null || !accountValid(accountKey)) return Promise.resolve(null)
+  const identityLimit = accountKey ? Math.min(KLING_IDENTITY_PHOTO_LIMIT, identityPhotoLimit) : 1
   return serial(async () => {
     try {
       const expectedOwner = pointers()?.refs[ref]
       await expire()
-      const record = await readOwned(ref, model, accountKey, expectedOwner)
+      const record = await readOwned(ref, model, accountKey, expectedOwner, identityLimit)
       if (!record) return null
       remember(ref, record.owner)
       return { photos: record.photos.map(photo => new File([photo.blob], photo.name, { type: photo.blob.type, lastModified: photo.lastModified })), prompt: record.prompt, ...(record.requestKey === undefined ? {} : { requestKey: record.requestKey }) }

@@ -15,6 +15,7 @@ import { depoisDeEntrar, leiturasQueFalharam, PORTA_LEITURA_FALHOU_EVENTO, PORTA
 import { TETO_CODIGO, TETO_EVENTO, TETO_MOTIVOS, TETO_NAO_TROCOU } from './tetoNaoTrocou'
 import { recreateEngineAccess } from '@/lib/recreate/server' // o mesmo caminho que a rota importa (os guardiões trocam este módulo pelo dublê)
 import { releaseVisible } from './access'
+import { recreateIdentityPhotosVisible } from './identityPhotosAccess'
 import { MOLDE_PITCH_INVADER, creditosDoMolde, moldeDeTrechos, type MoldeDeTrechos } from './invasorMolde' // KINEO-REMODELAMENTO-MOLDES-1611 — qualquer molde do registro
 import { INVASOR_EVENTOS, dadosDaLinha, entradaDoTrecho, falUsdDoMolde, invasorDaLinha, planInvasor, portaDoInvasor, resolverEntrada, semOculosDaDescricao, textoDoMolde } from './invasor'
 import { assinarTrechoDoInvasor, invasorArquivosPresentes } from './invasorServer'
@@ -38,7 +39,8 @@ export async function pedirInvasor(a: { admin: SupabaseClient; supabase: Supabas
   const { admin, supabase, user, account, raw, key } = a
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
   const ctx = { userId: user.id, supabaseUrl, dono: (u: string) => ownedClipImageUrl(u, user.id, supabaseUrl) }
-  const conferido = planInvasor(raw, ctx, null)
+  // A chave já gravada continua recuperável se o interruptor voltar a off.
+  const conferido = planInvasor(raw, { ...ctx, aceitarAngulos: true }, null)
   if (!conferido.ok) return { body: { error: conferido.error }, status: conferido.status }
   const molde = moldeDeTrechos(raw.format) as MoldeDeTrechos // o plano já conferiu que o molde existe
   const produto = molde.id === MOLDE_PITCH_INVADER.id ? 'invasor_de_campo' : molde.id // o nome de sempre nos eventos do Pitch invader
@@ -57,8 +59,17 @@ export async function pedirInvasor(a: { admin: SupabaseClient; supabase: Supabas
   // A repetição da MESMA chave devolve o pedido que já existe (a foto não é lida de novo: a leitura pode variar e mudaria a impressão digital).
   const existente = key ? await deps.findByKey(user.id, key).catch(() => null) : null
   if (existente) {
-    if (!invasorDaLinha(existente) || dadosDaLinha(existente)?.molde.id !== molde.id) return { body: { error: 'This request is already reserved. Check your clips before trying again.', code: 'idempotency_conflict' }, status: 409 }
+    const dados = dadosDaLinha(existente)
+    const anteriores = dados ? [dados.foto, ...(dados.angulos ?? [])] : []
+    const atuais = conferido.plan.photos
+    const mesmasFotos = anteriores.length === atuais.length && anteriores.every((foto, i) => foto === atuais[i])
+    const temAngulos = anteriores.length > 1 || atuais.length > 1
+    if (!invasorDaLinha(existente) || dados?.molde.id !== molde.id || (temAngulos && !mesmasFotos)) return { body: { error: 'This request is already reserved. Check your clips before trying again.', code: 'idempotency_conflict' }, status: 409 }
     return { body: { clip: { id: existente.id, status: existente.status }, replay: true }, status: 200 }
+  }
+  const aceitarAngulos = recreateIdentityPhotosVisible(user.email)
+  if (conferido.plan.photos.length > 1 && !aceitarAngulos) {
+    return { body: { error: 'Extra angles are unavailable. Keep the front photo and try again. Nothing was charged.', code: 'photo_angles_unavailable' }, status: 400 }
   }
   // KINEO-INVASOR-DE-CAMPO-1511 [2º revisor 15/11, item 2] — A PORTA, numa regra só e ANTES de qualquer custo (as mesmas travas do "seu vídeo" e da troca do catálogo):
   // motor em pausa; um pedido aberto do Kling edit por conta (o molde de vários trechos conta do 1º trecho ao fim da montagem); o teto de "não trocou" da conta
@@ -85,7 +96,7 @@ export async function pedirInvasor(a: { admin: SupabaseClient; supabase: Supabas
     leitura = lida.ok ? { cabeloEBarba: lida.cabeloEBarba, semOculos: semOculosDaDescricao(lida.texto) } : null
     await writeServerEvent({ name: INVASOR_EVENTOS.descricao, userId: user.id, path: '/api/recreate', metadata: { produto, ok: lida.ok, ...(lida.ok ? { usd: lida.usd, descricao: lida.texto } : { why: lida.why }) } }).catch(() => false)
   }
-  const resolvido = planInvasor(raw, ctx, leitura)
+  const resolvido = planInvasor(raw, { ...ctx, aceitarAngulos }, leitura)
   if (!resolvido.ok) return { body: { error: resolvido.error }, status: resolvido.status }
   const plan = resolvido.plan
   const result = await submitClip(deps, { userId: user.id, idempotencyKey: key, body: plan.body, recreatePlan: plan })

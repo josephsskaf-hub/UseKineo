@@ -1,6 +1,6 @@
 import type { RecreateFormat } from '@/lib/recreate/formats'
 
-export type ClipTemplateSpec = { model: string; quality: string | null }
+export type ClipTemplateSpec = { model: string; quality: string | null; identityPhotoLimit?: number }
 export type ClipTemplateOrder = 'latest' | 'trending'
 export type ClipTemplateCategory = 'Lifestyle' | 'Fun' | 'Pets' | 'Sports' | 'Effects' | 'Other'
 

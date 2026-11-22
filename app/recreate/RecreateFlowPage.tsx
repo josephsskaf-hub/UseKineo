@@ -64,7 +64,7 @@ export default async function RecreateFlowPage({ id, searchParams = {}, basePath
         signedIn: true, generationAllowed, accountKey: user.id, currentFlow: true, flowBasePath: basePath,
         presentation, clipModelLabel: clipOwnVideoModelLabel(),
       } : undefined
-      return <ClipTemplateWorkspace measurementActor={user.id} recreate={recreate} specs={clipTemplateSpecs(formatos)} ownVideo={ownVideo} />
+      return <ClipTemplateWorkspace measurementActor={user.id} recreate={recreate} specs={clipTemplateSpecs(formatos, user.email)} ownVideo={ownVideo} />
     }
     return <ClipRecreateJuntos measurementActor={user.id} recreate={recreate} />
   }
