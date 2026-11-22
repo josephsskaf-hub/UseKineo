@@ -72,7 +72,11 @@ export interface Lote1Niche {
   sections: Lote1Section[]
   faq: Lote1Faq[]
   film: Lote1FilmSeed
+  /** KINEO-CITACOES-FLUXO-D10 (22/11/2026): bloco de resposta citável (pergunta + 2 frases + tabela). Só acrescenta; opcional. */
+  answer?: Lote1Answer
 }
+
+export interface Lote1Answer { q: string; a: string; reviewed: string; rows: ReadonlyArray<readonly [string, string]> }
 
 // ═══ 7 NICHOS NOVOS em /free-ai-shorts/<slug> (a família que já traz visita, botão de compra e formulário) ═══
 export const LOTE1_NICHES: Readonly<Record<string, Lote1Niche>> = {
@@ -93,6 +97,20 @@ export const LOTE1_NICHES: Readonly<Record<string, Lote1Niche>> = {
       'A robot vacuum falls in love with the cat it keeps chasing',
     ],
     hubCard: { title: '3D Cartoon Shorts', example: 'A tiny dinosaur who cannot stop dancing' },
+    // KINEO-CITACOES-FLUXO-D10 — a página com mais pouso do ChatGPT (78 em 15–21/11) ganha a resposta citável. Valores lidos do código.
+    answer: {
+      q: 'Can AI make a 3D cartoon Short from a text prompt?',
+      a: 'Yes: you type a character and a tiny plot, and Kineo writes the scenes, narrates them and renders a vertical 9:16 cartoon with captions. Each scene is generated separately, so small details of the character can change between shots; a short description repeated in every scene and a small cast keep the look close.',
+      reviewed: 'November 22, 2026',
+      rows: [
+        ['What you type', 'A character and a 3–4 beat plot, or your own full narration'],
+        ['What you get', 'A narrated vertical (9:16) MP4 with captions'],
+        ['The cartoon look', 'Described in plain words in the prompt (for example: 3D animated, rounded shapes, bright colors); no studio or famous character names'],
+        ['First film', `One ${FREE_S}-second film with a watermark, no card${WHERE}`],
+        ['Paid plans', `Starter ${STARTER_PRICE}/month · Creator ${PRICE.full}/month · Studio ${STUDIO_PRICE}/month`],
+        ['Honest limit', 'The same character in every scene is not guaranteed'],
+      ],
+    },
     sections: [
       {
         h2: 'What makes an animated Short work in under a minute',
