@@ -1,9 +1,8 @@
-import { BuyerBatch2Lead, BuyerBatch2Details } from '@/components/seo/BuyerQuestions2111'
-import { buyerBatch2 } from '@/lib/seo/buyerQuestions2111'
+import { BuyerBatch2Details } from '@/components/seo/BuyerQuestions2111'
+import { buyerBatch2, BUYER_BATCH2_DATE } from '@/lib/seo/buyerQuestions2111'
 import CitationAnswerPage, { citationAnswerMetadata } from '@/components/CitationAnswerPage'
 import CitationComparisonDecision from '@/components/CitationComparisonDecision'
 import { CITATION_ANSWERS, type CitationAnswer } from '@/lib/growth/citationAnswers'
-import { COMPARISON_REVIEW_DATE } from '@/lib/growth/citationComparisonSnapshot'
 // KINEO-VISIBILIDADE-CHATGPT-2026-10-06 — a pergunta 11 da rodada 1 ("InVideo alternatives for YouTube Shorts") citou páginas
 // com preço por vídeo em tabela e data; esta página, que é a nossa resposta para ela, comparava quatro alternativas e não
 // mostrava o próprio InVideo. Entra a linha de base do InVideo (invideo.io/pricing, lido em 06/10) e o preço por Short da
@@ -16,6 +15,9 @@ import { VS_RIVAIS_CHECKED_ISO, VS_RIVAIS_CHECKED_LABEL, VS_RIVAIS_REREAD, VS_RI
 
 export const dynamic = 'force-static'
 const original = CITATION_ANSWERS.invideo
+const PAGE_URL = 'https://www.usekineo.com' + original.path
+const EDITORIAL_ID = `${PAGE_URL}#article`
+const PRICING_SNAPSHOT_ID = `${PAGE_URL}#invideo-pricing-snapshot`
 const answer: CitationAnswer = {
   ...original,
   description: 'Evaluate Kineo and four other video workflows with dated primary sources, monthly billing and explicit limits.',
@@ -39,8 +41,9 @@ function InVideoBaseline() {
   const iv = INVIDEO_FACTS
   return (
     <section className="kc-section" aria-labelledby="invideo-baseline-heading" data-kineo="invideo-baseline">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'WebPage', name: answer.question, inLanguage: 'en', dateModified: VS_RIVAIS_CHECKED_ISO, publisher: { '@type': 'Organization', name: 'Kineo' } }).replace(/</g, '\u003c') }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'CreativeWork', '@id': PRICING_SNAPSHOT_ID, name: 'InVideo pricing source snapshot', inLanguage: 'en', dateModified: VS_RIVAIS_CHECKED_ISO, isPartOf: { '@id': EDITORIAL_ID }, citation: VS_RIVAIS_REREAD.invideo.plans.url, publisher: { '@type': 'Organization', name: 'Kineo' } }).replace(/</g, '\u003c') }} />
       <h2 id="invideo-baseline-heading">InVideo AI and Kineo: price per Short</h2>
+      <p className="kc-source" data-kineo="invideo-review-scope">Editorial answer reviewed <time dateTime={BUYER_BATCH2_DATE}>{BUYER_BATCH2_DATE}</time>. InVideo pricing sources checked <time dateTime={VS_RIVAIS_CHECKED_ISO}>{VS_RIVAIS_CHECKED_ISO}</time>.</p>
       <p className="kc-source" data-vs-rival-checked="invideo">{VS_RIVAIS_CHECKED_LABEL}: {VS_RIVAIS_REREAD.invideo.plans.text} <a href={VS_RIVAIS_REREAD.invideo.plans.url} rel="nofollow noopener noreferrer">{VS_RIVAIS_REREAD.invideo.plans.label}</a> ({VS_RIVAIS_REREAD.invideo.plans.checkedOn}).</p>
       <p>
         {/* KINEO-GEO-RODADA3-2026-10-08 — os planos da InVideo relidos em 08/10 (Basic/Pro/Ultra, preço por assento no mensal). */}
@@ -55,5 +58,6 @@ function InVideoBaseline() {
 }
 
 export default function Page() {
-  return <CitationAnswerPage answer={answer} comparisonSection={<><BuyerBatch2Details page="invideo" /><InVideoBaseline /><CitationComparisonDecision /></>} reviewDate={COMPARISON_REVIEW_DATE} />
+  const article = { '@context': 'https://schema.org', '@type': 'Article', '@id': EDITORIAL_ID, headline: answer.question, dateModified: BUYER_BATCH2_DATE, mainEntityOfPage: { '@id': `${PAGE_URL}#buyer-answer` }, citation: { '@id': PRICING_SNAPSHOT_ID } }
+  return <CitationAnswerPage answer={answer} comparisonSection={<><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(article).replace(/</g, '\u003c') }} /><BuyerBatch2Details page="invideo" /><InVideoBaseline /><CitationComparisonDecision /></>} reviewDate={BUYER_BATCH2_DATE} />
 }
