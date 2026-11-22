@@ -1,3 +1,5 @@
+> **Correção de evidência (22/11):** a revisão independente achou R7 novo, encoberto no comparador antigo por timeout R5 na base. O conserto, as duas datas e a bateria final estão em R7-CORRECAO-2211.md / GUARDIOES-R7-2211.json. Não use a bateria histórica abaixo como aprovação isolada de R7.
+
 # Dez páginas existentes — item 2
 
 **IMPLEMENTADO / TESTADO LOCALMENTE — 21/11/2026.** Base f9e8e26bc, código 2e0630261157f22c7bda4ae686227d3843e80ee4. Não publicado; nenhuma página nova, conta, filme, gasto ou envio a IndexNow.
