@@ -552,13 +552,14 @@ export default function RecreateClient({ initialId, internalTools = false, forma
     requestKey.current = null
   }
   const clipSpec = selected && clipSpecs?.[selected.id]
+  const referenceLabels = { swap: 'Reference video', motion: 'Reference video', effect: 'Effect preview' }
   const formFields = selected ? <>
         <div className="rc-panel-intro"><span className="rc-eyebrow">Recreate</span>{createTabs || currentFlow ? <h1>Your version</h1> : <h1>Your version, step by step.</h1>}</div>
         {/* KINEO-TELA-RECREATE-1611 [dono 16/11 23:00: "aparece duas vezes slam dunk, change video, use your video, slam dunk, change… tá meio igual"] — UMA
             linha do vídeo-base (miniatura, nome, um "Change") e "Use your video" como ação secundária embaixo; ações com corpo de botão e ícone SVG (o iOS troca "↗" por emoji). */}
         {(currentFlow || createTabs) && <div className="ct-base-choice rc-base-row" data-base-row="">
           <img src={selectedMedia!.poster} alt="" width={44} height={50} />
-          <div><small>{clipWorkspace ? selected.type === 'effect' ? 'Effect preview' : 'Reference video' : 'Base video'}</small><strong>{selected.title}</strong>{clipWorkspace && <small>{selected.seconds} s · {selected.photoSlots} {selected.photoSlots === 1 ? 'photo' : 'photos'}</small>}</div>
+          <div><small>{clipWorkspace ? referenceLabels[selected.type] : 'Base video'}</small><strong>{selected.title}</strong>{clipWorkspace && <small>{selected.seconds} s · {selected.photoSlots} {selected.photoSlots === 1 ? 'photo' : 'photos'}</small>}</div>
           <button type="button" className="rc-acao" onClick={showTemplates} disabled={editingDisabled} aria-label="Change base video">Change<Icone nome="trocar" /></button>
         </div>}
         {currentFlow && ownVideoVisible && !clipWorkspace && <Link className="rc-acao rc-acao-secundaria" href={`${flowBasePath}/your-video`} onClick={leaveFlow}><Icone nome="video" />Use your own video instead</Link>}
