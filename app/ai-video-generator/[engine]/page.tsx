@@ -19,6 +19,7 @@
 // destrava. Esta página diz isso na cara, no chip do hero e no FAQ — nunca
 // "grátis" para um motor que o visitante não consegue rodar de graça. Toda copy
 // de free tier passa por ft(OFFER, …), como as outras ~45 frases do repositório.
+import { BuyerLead2011, BuyerDecision2011 } from '@/components/seo/BuyerDecision2011'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -179,7 +180,9 @@ export default async function EnginePage({ params }: { params: { engine: string 
           {/* KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — quem chega pelo 301 do Kineo 1 (?from=kineo-1) lê o que mudou; no Seedance o
               botão principal do hero passou a ser a compra direta do Creator (SeedanceHeroActions buyPage). */}
           {params.engine === 'seedance' && !standardH3 && <Kineo1RetiredNotice />}
+          {standardH3 && <BuyerLead2011 kind="h3" />}
           {standardH3 ? <p style={{ fontSize: '1.02rem', color: '#5A5F67', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 680 }}>{e.intro}</p> : params.engine === 'seedance' ? <CitationDirectAnswer page="seedance" /> : geo && <EngineAnswerLead geo={geo} />}
+          {standardH3 && <BuyerDecision2011 kind="h3" />}
           {vitrine && <ShowcaseStrip titulo={vitrine.titulo} linha={vitrine.linha} clipes={vitrine.clipes} href={signupUrl} source={campaign} tone="light" />}{/* KINEO-VITRINE-PAGINAS-1011 — os filmes da casa DESTE motor logo abaixo da resposta direta */}
           <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
           {!enginePaused(e.param) && <PaidEngineBudget slug={params.engine} />}

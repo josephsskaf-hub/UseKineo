@@ -42,7 +42,7 @@ const stamped = carimbaPaginasCitadas0511([
   { url: metadata.alternates.canonical, lastModified: '2026-11-05T12:00:00.000Z' },
   { url: 'https://www.usekineo.com/', lastModified: '2026-11-05T12:00:00.000Z' },
 ])
-assert.equal(stamped[0].lastModified, '2026-11-17T12:00:00.000Z')
+assert.equal(stamped[0].lastModified, '2026-11-20T12:00:00.000Z')
 assert.equal(stamped[1].lastModified, '2026-11-05T12:00:00.000Z')
 assert.equal(load('lib/growth/enginePageCatalog.ts').ENGINES.seedance.name, 'Seedance 1.5', 'Historical gallery catalog keeps its model label')
 

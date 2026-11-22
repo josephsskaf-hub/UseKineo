@@ -1,3 +1,4 @@
+import { BUYER_2011 } from '@/lib/seo/buyerAnswers2011'
 import type { Engine } from '@/lib/growth/enginePageCatalog'
 import { creditsPerReferenceVideo, STARTER_MONTH } from '@/lib/marketingPrice'
 
@@ -20,6 +21,7 @@ export const H3_TURBO_PAGE: Engine = {
   bestFor: 'Narrated stories, explainers and faceless Shorts made from an idea or a finished script.',
   tradeoff: 'Scene quality and character identity can vary. Text-to-video fallback scenes also use MiniMax H3 Max Turbo. Review the delivered film before posting.',
   faq: [
+    { q: BUYER_2011.h3.q, a: BUYER_2011.h3.answer },
     { q: 'Why does this page still have Seedance in its address?', a: 'This existing address now describes Kineo’s standard film workflow, sold as MiniMax H3 Turbo. Existing Seedance films keep the badge of the model that rendered them. Seedance clips are a separate workflow.' },
     { q: 'Which model renders the scenes?', a: 'Image-anchored scenes use MiniMax H3 Max Turbo, sold in Kineo as H3 Turbo. The standard workflow uses MiniMax H3 Max Turbo for text-to-video fallback scenes too. A film can contain scenes from the fallback.' },
     { q: 'Is H3 Turbo the same workflow as H3 Max?', a: 'H3 Max is a separate Studio choice with its own credit cost. Review the selected engine and duration before generating.' },

@@ -4,6 +4,8 @@ import { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine' // KINEO-LLMS-K4-29
 // gratis" e busca real no Brasil e o produto JA gera video em portugues
 // (language=pt atravessa signup → /generate). Mesmo TopicGeneratorForm, mesma
 // prova viva, mesmo exit-intent — so o idioma e o alvo de busca mudam.
+import { BuyerLead2011, BuyerDecision2011 } from '@/components/seo/BuyerDecision2011'
+import { BUYER_2011 } from '@/lib/seo/buyerAnswers2011'
 import type { Metadata } from 'next'
 import type { CSSProperties } from 'react'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
@@ -49,6 +51,7 @@ export const metadata: Metadata = {
 }
 
 const FAQ = [
+  { q: BUYER_2011.portuguese.q, a: BUYER_2011.portuguese.answer },
   {
     q: 'O vídeo sai em português?',
     a: 'Sim. Roteiro, narração com voz neural e legendas saem em português do Brasil — é só escolher o idioma, que já vai selecionado a partir desta página.',
@@ -86,7 +89,9 @@ export default function GeradorDeShortsPage() {
         <h1 style={{ fontSize: 'clamp(1.9rem, 5vw, 2.9rem)', fontWeight: 650, lineHeight: 1.1, margin: '18px 0 0', fontFamily: 'var(--font-display), var(--font-inter), sans-serif' }}>
           Crie um Short sem aparecer — grátis
         </h1>
+        <BuyerLead2011 kind="portuguese" />
         <CitationDirectAnswer page="portuguese" />
+        <BuyerDecision2011 kind="portuguese" />
         <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
 
         <BuyCreatorCta

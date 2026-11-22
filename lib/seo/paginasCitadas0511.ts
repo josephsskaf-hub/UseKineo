@@ -4,6 +4,7 @@
 // (lib/checkoutPricing.ts) e da régua de créditos (lib/credits/engineCost.ts). Não muda preço, checkout nem motor.
 // A data só anda quando o conteúdo anda: a mesma constante assina a linha "Updated" das páginas e o <lastmod> do mapa do site, e o cron de
 // IndexNow avisa o Bing na primeira hora depois do deploy. Guardião: scripts/test-paginas-citadas-0511.mjs.
+import { buyerReviewDate2011 } from './buyerAnswers2011'
 import { STANDARD_FILM_NAME, CITACOES_ROTINA_DATE, CITACOES_ROTINA_PATHS } from './citacoesRotina1711'
 import { ANNUAL_DISCOUNT_PERCENT, TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing'
 import { creditCostForDuration } from '@/lib/credits/engineCost'
@@ -71,13 +72,14 @@ export function carimbaPaginasCitadas0511<T extends { url: string; lastModified?
   return entries.map((entry) => {
     const path = new URL(entry.url).pathname
     const localizedH3 = H3_TURBO_PUBLIC && Object.keys(H3_TURBO_LOCALIZED).some(lang => path === `/ai-video-generator/seedance/${lang}`)
-    if (!alvo.has(path) && !localizedH3) return entry
+    const buyerDate = buyerReviewDate2011(path)
+    if (!alvo.has(path) && !localizedH3 && !buyerDate) return entry
     const lastModified = localizedH3 ? `${H3_TURBO_LOCALIZED_UPDATED}T12:00:00.000Z`
       : H3_TURBO_PUBLIC && path === '/ai-video-generator/seedance'
       ? `${H3_TURBO_PAGE_UPDATED}T12:00:00.000Z`
       : PAGINAS_CITADAS_0511_LASTMOD
     const reviewed = CITACOES_ROTINA_PATHS.includes(path) ? `${CITACOES_ROTINA_DATE}T12:00:00.000Z` : lastModified
-    const carimbo = Math.max(Date.parse(lastModified), Date.parse(reviewed))
+    const carimbo = Math.max(Date.parse(lastModified), Date.parse(reviewed), buyerDate ? Date.parse(`${buyerDate}T12:00:00.000Z`) : 0)
     const atual = entry.lastModified ? new Date(entry.lastModified).getTime() : 0
     return atual >= carimbo ? entry : { ...entry, lastModified: new Date(carimbo).toISOString() }
   })

@@ -25,7 +25,10 @@ function prove(replacements = {}) {
   const stamp = load('lib/seo/paginasCitadas0511.ts').carimbaPaginasCitadas0511
   const urls = [...paths,'/pricing','/']
   const result = stamp(urls.map(p=>({url:'https://www.usekineo.com'+p,lastModified:'2026-11-06T12:00:00.000Z'})))
-  assert.ok(result.slice(0,5).every(r=>r.lastModified.startsWith('2026-11-17')))
+  for (const r of result.slice(0,5)) {
+    const date = r.url.endsWith('/text-to-video-shorts') ? '2026-11-21' : ['/gerador-de-shorts-gratis','/ai-video-generator/for/urdu','/ai-video-generator/seedance'].some(p => r.url.endsWith(p)) ? '2026-11-20' : '2026-11-17'
+    assert.ok(r.lastModified.startsWith(date), 'only reviewed paths advance their stamp')
+  }
   assert.ok(result.slice(5).every(r=>r.lastModified.startsWith('2026-11-06')), 'unreviewed paths do not get fake freshness')
 }
 prove()

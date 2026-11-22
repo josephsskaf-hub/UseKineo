@@ -6,6 +6,8 @@
 // que sai, preço e trial lidos da fonte única (nunca literal) e um botão que abre o Studio com o
 // prompt daquele nicho já na caixa. Honestidade: nada de "grátis" para motor que o trial não cobre;
 // a família 'alternative' fala só da Kineo.
+import { BuyerLead2011, BuyerDecision2011 } from '@/components/seo/BuyerDecision2011'
+import { BUYER_2011 } from '@/lib/seo/buyerAnswers2011'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -95,10 +97,11 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
   const cta = studioHref(p.slug, p.examplePrompt, p.engine, p.language)
   const campaign = `intent_${p.slug}`
   const siblings = INTENT_PAGES.filter((x) => x.family === p.family && x.slug !== p.slug).slice(0, 8)
+  const pageFaqs = p.slug === 'urdu' ? [...p.faq, { q: BUYER_2011.urdu.q, a: BUYER_2011.urdu.answer }] : p.faq
   const faqs = story
     ? [...STORY_VIDEO_COPY.faq, { q: 'Which model creates the story scenes?', a: STORY_VIDEO_COPY.engineAnswer }, { q: 'How much does it cost?', a: STORY_VIDEO_COPY.costAnswer }]
-    : [...p.faq, { q: 'How much does it cost?', a: `The free trial gives ${TRIAL_CREDITS_SHOWN} credits with no card. ${p.slug === 'urdu' ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} costs ${engineCost} credits for a 60-second film${trialFilms > 0 ? `, so the trial covers ${trialFilms} film${trialFilms > 1 ? 's' : ''}` : `, which needs a plan${trialFreeFilm}`}. Plans start at ${STARTER_MONTH} for ${STARTER_CREDITS} credits.` }]
-  const visibleFaqs = story ? faqs : [...p.faq, { q: 'How much does it cost?', a: `The free trial gives ${TRIAL_CREDITS_SHOWN} credits with no card. ${p.slug === 'urdu' ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} costs ${engineCost} credits per 60-second film${trialFilms > 0 ? `, so the trial covers ${trialFilms} film${trialFilms > 1 ? 's' : ''}` : `, which needs a plan${trialFreeFilm}`}. Plans start at ${STARTER_MONTH} for ${STARTER_CREDITS} credits.` }]
+    : [...pageFaqs, { q: 'How much does it cost?', a: `The free trial gives ${TRIAL_CREDITS_SHOWN} credits with no card. ${p.slug === 'urdu' ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} costs ${engineCost} credits for a 60-second film${trialFilms > 0 ? `, so the trial covers ${trialFilms} film${trialFilms > 1 ? 's' : ''}` : `, which needs a plan${trialFreeFilm}`}. Plans start at ${STARTER_MONTH} for ${STARTER_CREDITS} credits.` }]
+  const visibleFaqs = story ? faqs : [...pageFaqs, { q: 'How much does it cost?', a: `The free trial gives ${TRIAL_CREDITS_SHOWN} credits with no card. ${p.slug === 'urdu' ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} costs ${engineCost} credits per 60-second film${trialFilms > 0 ? `, so the trial covers ${trialFilms} film${trialFilms > 1 ? 's' : ''}` : `, which needs a plan${trialFreeFilm}`}. Plans start at ${STARTER_MONTH} for ${STARTER_CREDITS} credits.` }]
 
   const faqJsonLd = {
     '@context': 'https://schema.org',
@@ -146,7 +149,9 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
             {offerName} · {engineCost} credits per 60-second film
           </div>
           <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.6rem)', fontWeight: 650, lineHeight: 1.15, margin: '16px 0 0' }}>{p.h1}</h1>
+          {params.slug === 'urdu' && <BuyerLead2011 kind="urdu" />}
           {params.slug === 'urdu' ? <CitationDirectAnswer page="urdu" /> : <p style={{ fontSize: '1.02rem', color: '#5A5F67', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 680 }}>{story ? STORY_VIDEO_COPY.intro : p.intro}</p>}
+          {params.slug === 'urdu' && <BuyerDecision2011 kind="urdu" />}
           <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 22 }}>
             <OrganicCtaLink href={cta} source={campaign} placement="hero" style={{ display: 'inline-block', background: '#0A5CFF', color: '#fff', fontWeight: 750, padding: '15px 32px', borderRadius: 980, textDecoration: 'none', fontSize: '1.05rem' }}>

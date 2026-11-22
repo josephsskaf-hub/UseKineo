@@ -1,3 +1,5 @@
+import { BuyerLead2011, BuyerDecision2011 } from '@/components/seo/BuyerDecision2011'
+import { BUYER_2011, currentFilmLabel2011 } from '@/lib/seo/buyerAnswers2011'
 import type { Metadata } from 'next'
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
@@ -52,7 +54,8 @@ const STEPS = [
 ] as const
 
 const FAQ = [
-  ANSWER_1510.faq, // KINEO-BING-SEO-1510 — a pergunta exata da consulta (visível = JSON-LD)
+  { q: BUYER_2011.text.q, a: BUYER_2011.text.answer },
+  { ...ANSWER_1510.faq, a: currentFilmLabel2011(ANSWER_1510.faq.a) }, // KINEO-BING-SEO-1510 — a pergunta exata da consulta (visível = JSON-LD)
   {
     q: 'Can AI turn text into a YouTube Short?',
     a: 'Yes. Kineo turns a topic, prompt, or script into a finished vertical Short with script, AI voiceover, visuals, captions, and an MP4 export.',
@@ -142,13 +145,14 @@ export default function TextToVideoShortsPage() {
         <h1 style={{ fontSize: 'clamp(1.9rem, 5vw, 2.85rem)', fontWeight: 650, lineHeight: 1.1, margin: '18px 0 0' }}>
           Turn Text Into a Finished YouTube Short
         </h1>
+        <BuyerLead2011 kind="text" />
         <CitationDirectAnswer page="text" />
         <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
         {/* KINEO-BING-SEO-1510 — a resposta direta à pergunta "qual a melhor IA para Shorts a partir de texto?" */}
         <section data-kineo="bing-seo-1510-answer" style={{ ...card, margin: '18px 0 0', borderColor: 'rgba(10,92,255,0.35)' }}>
           <h2 style={{ fontSize: '1.05rem', fontWeight: 650, margin: '0 0 8px' }}>What is the best AI tool for creating YouTube Shorts from text?</h2>
           {ANSWER_1510.summary.map((line) => (
-            <p key={line} style={{ ...p, color: '#2A2F37', fontSize: 15, margin: '0 0 6px' }}>{line}</p>
+            <p key={line} style={{ ...p, color: '#2A2F37', fontSize: 15, margin: '0 0 6px' }}>{currentFilmLabel2011(line)}</p>
           ))}
           <p style={{ ...p, fontSize: 14, margin: 0 }}>
             Compare by starting point in the <Link href="/best-ai-shorts-generators" style={{ color: '#0A5CFF' }}>13-tool roundup</Link>.
@@ -185,6 +189,7 @@ export default function TextToVideoShortsPage() {
 
         {/* KINEO-PAGINAS-IA-CLARAS-2110 — o player do exemplo velho saiu; a âncora #real-output (embedUrl do JSON-LD) fica na vitrine atual. */}
         <PaginaClaraVitrine id="real-output" eyebrow="Real Kineo output" titulo="Text in. Vertical video out." nota="These previews demonstrate output format, not views or revenue performance." align="left" />
+        <BuyerDecision2011 kind="text" />
         <CitationDetails page="text" />
 
         <AgencyVolumeBridge entry="text_to_video" />

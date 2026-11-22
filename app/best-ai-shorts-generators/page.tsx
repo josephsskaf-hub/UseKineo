@@ -1,3 +1,5 @@
+import { BuyerLead2011, BuyerDecision2011 } from '@/components/seo/BuyerDecision2011'
+import { BUYER_2011, currentFilmLabel2011 } from '@/lib/seo/buyerAnswers2011'
 // KINEO-SEO-ROUNDUP-2026-07-25 — /best-ai-shorts-generators: a roundup/hub
 // page targeting the commercial-investigation head term "best ai shorts
 // generator" / "best ai video generator for youtube shorts". Roundup pages win
@@ -268,8 +270,9 @@ export default function BestAiShortsGeneratorsPage() {
   const best = bestGeneratorAnswer() // KINEO-GEO-RODADA3-2026-10-08
   const automation = automationAnswer1510() // KINEO-BING-SEO-1510
   const automationTools = automationTools1510()
-  const kineoRow = kineoAutomationRow1510()
-  const faqs = [...(best ? best.faq : []), ...automation.faq, ...FAQ]
+  const historicKineoRow = kineoAutomationRow1510()
+  const kineoRow = { ...historicKineoRow, perShort: currentFilmLabel2011(historicKineoRow.perShort) }
+  const faqs = [{ q: BUYER_2011.cost.q, a: BUYER_2011.cost.answer }, ...[...(best ? best.faq : []), ...automation.faq, ...FAQ].map(item => ({ ...item, a: currentFilmLabel2011(item.a) }))]
   const faqJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -368,7 +371,8 @@ export default function BestAiShortsGeneratorsPage() {
         <h1 style={{ fontSize: '2.2rem', fontWeight: 650, lineHeight: 1.15, margin: '0 0 16px' }}>
           {PAGE_HEADING}
         </h1>
-        {best ? <p data-kineo="geo-r3-answer" style={{ color: '#0E1116', fontSize: '1.08rem', lineHeight: 1.6, margin: '0 0 14px' }}>{best.lead}</p> : null}
+        <BuyerLead2011 kind="cost" />
+        {best ? <p data-kineo="geo-r3-answer" style={{ color: '#0E1116', fontSize: '1.08rem', lineHeight: 1.6, margin: '0 0 14px' }}>{currentFilmLabel2011(best.lead)}</p> : null}
         <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
         <p style={{ color: MUTED, fontSize: '1.08rem', lineHeight: 1.6, margin: '0 0 8px' }}>
           The best AI tools for YouTube Shorts are not doing the same job. Some generate a
@@ -385,13 +389,14 @@ export default function BestAiShortsGeneratorsPage() {
           {competitorCheckedLabel()} and change, so verify them before you buy.
         </p>
 
+        <BuyerDecision2011 kind="cost" />
         {/* KINEO-BING-SEO-1510 — FlowShorts × AutoShorts × Revid × Kineo: resposta em 3 frases + preço público com fonte e data. */}
         <section data-kineo="bing-seo-1510-automation" style={{ ...CARD, padding: '20px', margin: '0 0 40px', borderColor: ACCENT }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 650, margin: '0 0 10px' }}>
             Fully automated AI Shorts tools: FlowShorts vs AutoShorts vs Revid pricing
           </h2>
           {automation.summary.map((line) => (
-            <p key={line} style={{ color: '#0E1116', fontSize: '0.98rem', lineHeight: 1.6, margin: '0 0 8px' }}>{line}</p>
+            <p key={line} style={{ color: '#0E1116', fontSize: '0.98rem', lineHeight: 1.6, margin: '0 0 8px' }}>{currentFilmLabel2011(line)}</p>
           ))}
           <div style={{ overflowX: 'auto', margin: '12px 0 0' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem', minWidth: 620 }}>
