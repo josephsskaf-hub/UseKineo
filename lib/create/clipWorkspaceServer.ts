@@ -15,13 +15,18 @@ export function clipTemplateSpecs(formats: readonly RecreateFormat[]): Record<st
 
 function templateSpec(format: RecreateFormat): ClipTemplateSpec {
   if (moldeDeTrechos(format.id)) return { model: 'Kling 4.0 Edit', quality: '720p' }
-  if (format.type === 'motion') return { model: 'Kling 2.6 Motion Control', quality: null }
-  if (format.type === 'swap') return catalogoNoSeedance25(format.id)
-    ? { model: 'Seedance 2.5', quality: '480p' }
-    : { model: 'MiniMax H3 Max Recast', quality: '768p' }
-
-  const effect = clipEffectByKey(format.effectKey)
-  if (!effect) return { model: 'Photo effect', quality: null }
-  const resolution = effect.template?.input('').resolution
-  return { model: effect.template?.label ?? CLIP_ENGINES[effect.engine].label, quality: typeof resolution === 'string' ? resolution : null }
+  switch (format.type) {
+    case 'motion':
+      return { model: 'Kling 2.6 Motion Control', quality: null }
+    case 'swap':
+      return catalogoNoSeedance25(format.id)
+        ? { model: 'Seedance 2.5', quality: '480p' }
+        : { model: 'MiniMax H3 Max Recast', quality: '768p' }
+    case 'effect': {
+      const effect = clipEffectByKey(format.effectKey)
+      if (!effect) return { model: 'Photo effect', quality: null }
+      const resolution = effect.template?.input('').resolution
+      return { model: effect.template?.label ?? CLIP_ENGINES[effect.engine].label, quality: typeof resolution === 'string' ? resolution : null }
+    }
+  }
 }
