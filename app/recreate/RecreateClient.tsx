@@ -553,6 +553,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
   }
   const clipSpec = selected && clipSpecs?.[selected.id]
   const referenceLabels = { swap: 'Reference video', motion: 'Reference video', effect: 'Effect preview' }
+  const acceptsClipPrompt = { swap: true, motion: false, effect: false }
   const formFields = selected ? <>
         <div className="rc-panel-intro"><span className="rc-eyebrow">Recreate</span>{createTabs || currentFlow ? <h1>Your version</h1> : <h1>Your version, step by step.</h1>}</div>
         {/* KINEO-TELA-RECREATE-1611 [dono 16/11 23:00: "aparece duas vezes slam dunk, change video, use your video, slam dunk, change… tá meio igual"] — UMA
@@ -587,7 +588,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
           <p className="rc-consent">Only upload photos you have the right to use.</p>
         </section>
         {clipWorkspace ? <div className="cw-prompt">
-          {selected.type === 'swap' && selected.prompt ? <>
+          {acceptsClipPrompt[selected.type] && selected.prompt ? <>
             <label><span>Prompt</span><input type="checkbox" role="switch" checked={detailsOpen} onChange={event => setDetailsOpen(event.target.checked)} disabled={editingDisabled} /></label>
             {detailsOpen && <textarea autoComplete="off" aria-label="Prompt" maxLength={550} value={prompt} disabled={editingDisabled} onChange={event => editClipPrompt(event.target.value)} />}
           </> : <p>Prompt follows this template’s preset.</p>}
