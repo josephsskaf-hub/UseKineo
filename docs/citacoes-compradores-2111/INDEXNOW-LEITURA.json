@@ -1,0 +1,35 @@
+{
+  "sql": [
+    "select now() as read_at, name, created_at, metadata->>'http' as http_status, metadata->>'submitted' as submitted, metadata->>'sitemap_urls' as sitemap_urls, metadata->>'first_run' as first_run from public.events where name = 'indexnow_submitted' and created_at >= now() - interval '7 days' order by created_at desc limit 12;",
+    "with latest as (select created_at, metadata->'snapshot' as snapshot from public.events where name = 'indexnow_snapshot' order by created_at desc limit 1) select now() as read_at, created_at as snapshot_at, snapshot->>'https://www.usekineo.com/gerador-de-shorts-gratis' as portuguese_lastmod_sent, snapshot->>'https://www.usekineo.com/ai-video-generator/for/urdu' as urdu_lastmod_sent, snapshot->>'https://www.usekineo.com/ai-video-generator/seedance' as seedance_lastmod_sent from latest;"
+  ],
+  "eventRows": [
+    {
+      "read_at": "2026-11-22 03:06:34.087777+00",
+      "name": "indexnow_submitted",
+      "created_at": "2026-11-18 02:35:14.066543+00",
+      "http_status": "200",
+      "submitted": "1",
+      "sitemap_urls": "1",
+      "first_run": "false"
+    },
+    {
+      "read_at": "2026-11-22 03:06:34.087777+00",
+      "name": "indexnow_submitted",
+      "created_at": "2026-11-17 20:35:13.58921+00",
+      "http_status": "200",
+      "submitted": "4",
+      "sitemap_urls": "4",
+      "first_run": "false"
+    }
+  ],
+  "snapshotRows": [
+    {
+      "read_at": "2026-11-22 03:06:48.242642+00",
+      "snapshot_at": "2026-11-18 02:35:14.066543+00",
+      "portuguese_lastmod_sent": "2026-11-17T12:00:00.000Z",
+      "urdu_lastmod_sent": null,
+      "seedance_lastmod_sent": "2026-11-17T12:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,216 @@
+{
+  "public": {
+    "readAt": "2026-11-22T03:07:51.424Z",
+    "pages": [
+      {
+        "path": "/gerador-de-shorts-gratis",
+        "status": 200,
+        "url": "https://www.usekineo.com/gerador-de-shorts-gratis",
+        "readAt": "2026-11-22T03:07:50.912Z",
+        "bytes": 263383,
+        "title": "Gerador de Shorts com IA Grátis (sem aparecer) — Kineo",
+        "headers": {
+          "date": "Sun, 22 Nov 2026 03:04:27 GMT",
+          "age": "1199",
+          "cache-control": "public, max-age=0, must-revalidate",
+          "x-vercel-cache": "HIT",
+          "x-robots-tag": null,
+          "last-modified": null
+        },
+        "newAnswer": true,
+        "newBatch": false,
+        "canonical": "https://www.usekineo.com/gerador-de-shorts-gratis",
+        "noindexMeta": false,
+        "noindexEffective": false
+      },
+      {
+        "path": "/ai-video-generator/for/urdu",
+        "status": 200,
+        "url": "https://www.usekineo.com/ai-video-generator/for/urdu",
+        "readAt": "2026-11-22T03:07:51.000Z",
+        "bytes": 252456,
+        "title": "AI Video Generator in Urdu | Kineo",
+        "headers": {
+          "date": "Sun, 22 Nov 2026 03:04:27 GMT",
+          "age": "1198",
+          "cache-control": "public, max-age=0, must-revalidate",
+          "x-vercel-cache": "HIT",
+          "x-robots-tag": "noindex, follow",
+          "last-modified": null
+        },
+        "newAnswer": true,
+        "newBatch": false,
+        "canonical": "https://www.usekineo.com/ai-video-generator/for/urdu",
+        "noindexMeta": false,
+        "noindexEffective": true
+      },
+      {
+        "path": "/ai-video-generator/seedance",
+        "status": 200,
+        "url": "https://www.usekineo.com/ai-video-generator/seedance",
+        "readAt": "2026-11-22T03:07:51.004Z",
+        "bytes": 295908,
+        "title": "MiniMax H3 Turbo AI Video Generator for YouTube Shorts | Kineo",
+        "headers": {
+          "date": "Sun, 22 Nov 2026 03:04:27 GMT",
+          "age": "1197",
+          "cache-control": "public, max-age=0, must-revalidate",
+          "x-vercel-cache": "HIT",
+          "x-robots-tag": null,
+          "last-modified": null
+        },
+        "newAnswer": true,
+        "newBatch": false,
+        "canonical": "https://www.usekineo.com/ai-video-generator/seedance",
+        "noindexMeta": false,
+        "noindexEffective": false
+      },
+      {
+        "path": "/sitemap.xml",
+        "status": 200,
+        "url": "https://www.usekineo.com/sitemap.xml",
+        "readAt": "2026-11-22T03:07:51.212Z",
+        "bytes": 176593,
+        "headers": {
+          "date": "Sun, 22 Nov 2026 03:04:27 GMT",
+          "age": "0",
+          "cache-control": "public, max-age=0, must-revalidate",
+          "x-vercel-cache": "PRERENDER",
+          "x-robots-tag": null,
+          "last-modified": null
+        },
+        "newAnswer": false,
+        "newBatch": false,
+        "noindexMeta": false,
+        "noindexEffective": false
+      },
+      {
+        "path": "/robots.txt",
+        "status": 200,
+        "url": "https://www.usekineo.com/robots.txt",
+        "readAt": "2026-11-22T03:07:51.036Z",
+        "bytes": 1374,
+        "headers": {
+          "date": "Sun, 22 Nov 2026 03:04:27 GMT",
+          "age": "1023",
+          "cache-control": "public, max-age=0, must-revalidate",
+          "x-vercel-cache": "HIT",
+          "x-robots-tag": null,
+          "last-modified": null
+        },
+        "newAnswer": false,
+        "newBatch": false,
+        "noindexMeta": false,
+        "noindexEffective": false
+      }
+    ],
+    "sitemap": [
+      {
+        "path": "/gerador-de-shorts-gratis",
+        "present": true,
+        "lastmod": "2026-11-20T12:00:00.000Z"
+      },
+      {
+        "path": "/ai-video-generator/for/urdu",
+        "present": false
+      },
+      {
+        "path": "/ai-video-generator/seedance",
+        "present": true,
+        "lastmod": "2026-11-20T12:00:00.000Z"
+      }
+    ],
+    "keyVerification": {
+      "status": 200,
+      "contentMatchesPublicDefault": true,
+      "keyValueOmitted": true
+    }
+  },
+  "nativeBing": [
+    {
+      "id": "pt-site",
+      "q": "site:www.usekineo.com/gerador-de-shorts-gratis",
+      "url": "https://www.bing.com/search?q=site%3Awww.usekineo.com%2Fgerador-de-shorts-gratis&count=10&setlang=pt-br",
+      "status": 200,
+      "readAt": "2026-11-22T03:07:45.638Z",
+      "resultCount": 10,
+      "kineoRecovered": false,
+      "observation": "Resultados alheios ao domínio; ausência nesta observação não comprova ausência do índice."
+    },
+    {
+      "id": "urdu-site",
+      "q": "site:www.usekineo.com/ai-video-generator/for/urdu",
+      "url": "https://www.bing.com/search?q=site%3Awww.usekineo.com%2Fai-video-generator%2Ffor%2Furdu&count=10&setlang=pt-br",
+      "status": 200,
+      "readAt": "2026-11-22T03:07:45.612Z",
+      "resultCount": 10,
+      "kineoRecovered": false,
+      "observation": "Resultados alheios ao domínio; ausência nesta observação não comprova ausência do índice."
+    },
+    {
+      "id": "h3-site",
+      "q": "site:www.usekineo.com/ai-video-generator/seedance",
+      "url": "https://www.bing.com/search?q=site%3Awww.usekineo.com%2Fai-video-generator%2Fseedance&count=10&setlang=pt-br",
+      "status": 200,
+      "readAt": "2026-11-22T03:07:45.631Z",
+      "resultCount": 10,
+      "kineoRecovered": false,
+      "observation": "Resultados alheios ao domínio; ausência nesta observação não comprova ausência do índice."
+    },
+    {
+      "id": "pt-new",
+      "q": "site:usekineo.com \"Qual IA cria Shorts a partir de texto em português\"",
+      "url": "https://www.bing.com/search?q=site%3Ausekineo.com%20%22Qual%20IA%20cria%20Shorts%20a%20partir%20de%20texto%20em%20portugu%C3%AAs%22&count=10&setlang=pt-br",
+      "status": 200,
+      "readAt": "2026-11-22T03:07:45.895Z",
+      "resultCount": 10,
+      "kineoRecovered": false,
+      "observation": "Resultados alheios ao domínio; ausência nesta observação não comprova ausência do índice."
+    },
+    {
+      "id": "urdu-new",
+      "q": "site:usekineo.com \"AI video generator for Urdu\"",
+      "url": "https://www.bing.com/search?q=site%3Ausekineo.com%20%22AI%20video%20generator%20for%20Urdu%22&count=10&setlang=pt-br",
+      "status": 200,
+      "readAt": "2026-11-22T03:07:45.915Z",
+      "resultCount": 10,
+      "kineoRecovered": false,
+      "observation": "Resultados alheios ao domínio; ausência nesta observação não comprova ausência do índice."
+    },
+    {
+      "id": "h3-new",
+      "q": "site:usekineo.com \"MiniMax H3 Turbo\" \"60\"",
+      "url": "https://www.bing.com/search?q=site%3Ausekineo.com%20%22MiniMax%20H3%20Turbo%22%20%2260%22&count=10&setlang=pt-br",
+      "status": 200,
+      "readAt": "2026-11-22T03:07:45.865Z",
+      "resultCount": 10,
+      "kineoRecovered": false,
+      "observation": "Resultados alheios ao domínio; ausência nesta observação não comprova ausência do índice."
+    },
+    {
+      "id": "brand",
+      "q": "Kineo usekineo Urdu video",
+      "url": "https://www.bing.com/search?q=Kineo%20usekineo%20Urdu%20video&count=10&setlang=pt-br",
+      "status": 200,
+      "readAt": "2026-11-22T03:07:46.160Z",
+      "resultCount": 10,
+      "kineoRecovered": false,
+      "observation": "Resultados alheios ao domínio; ausência nesta observação não comprova ausência do índice."
+    }
+  ],
+  "rss": [
+    {
+      "q": "site:usekineo.com",
+      "url": "https://www.bing.com/search?format=rss&q=site%3Ausekineo.com",
+      "status": 200,
+      "observation": "Resultados alheios ao domínio"
+    },
+    {
+      "q": "\"usekineo.com\" \"Urdu\"",
+      "url": "https://www.bing.com/search?format=rss&q=%22usekineo.com%22%20%22Urdu%22",
+      "status": 200,
+      "observation": "Resultados alheios ao domínio"
+    }
+  ],
+  "rawProofDirectory": "C:/kineo/docs/citacoes-compradores-2111/provas-locais/bing"
+}
