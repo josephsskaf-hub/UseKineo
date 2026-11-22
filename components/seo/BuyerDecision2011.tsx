@@ -3,7 +3,7 @@ import { BUYER_2011, BUYER_REVIEW_DATE_2011, type BuyerPage2011, type BuyerKind2
 const css = `
 .buyer2011{--b-bg:#fff;--b-text:#0e1116;--b-muted:#4d535c;--b-line:#d5d9e1;--b-head:#eef3ff;text-align:left;color:var(--b-text);font-size:16px;line-height:1.6}
 html[data-theme=dark] .buyer2011{--b-bg:#151a23;--b-text:#f2f4f7;--b-muted:#b7c0cf;--b-line:#394457;--b-head:#202c41}
-.buyer2011-lead{margin:18px auto 0;max-width:760px;padding:16px 18px;border-left:3px solid #5186ff;border-radius:8px;background:var(--b-bg)}
+.buyer2011-lead{margin:18px auto 0;max-width:760px;padding:16px 18px;border-left:3px solid #5186ff;border-radius:8px;background:var(--kpl-card,var(--b-bg));color:var(--kpl-text,var(--b-text))}
 .buyer2011-decision{margin:28px 0;padding:20px;background:var(--b-bg);border:1px solid var(--b-line);border-radius:16px}
 .buyer2011 h2{font-size:clamp(20px,3vw,26px);line-height:1.25;margin:0 0 14px}
 .buyer2011 table{width:100%;border-collapse:collapse;font-size:14px;text-align:left}
