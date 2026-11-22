@@ -1,0 +1,15 @@
+# Mais três perguntas · 21/11/2026
+
+**EVIDÊNCIA PÚBLICA:** pesquisa web nas três consultas abaixo em 21/11, sem inserir Kineo e sem restringir domínio. Duas recuperaram URLs da Kineo. Isso é recuperação de busca, não uma resposta real observada do ChatGPT; ordem retornada não é posição nativa nem probabilidade de citação.
+
+| Pergunta literal | Kineo na busca de hoje | Fonte primária alternativa, lida em 21/11 | Decisão para a página existente |
+|---|---|---|---|
+| AI Shorts generator cost per finished video? | Sim: /best-ai-shorts-generators, /pricing e /faceless-youtube-shorts-generator | [BakeVideos](https://bakevideos.com/blog/ai-video-generator-cost-per-video): seção “Credits vs per-video pricing”: distingue plano por vídeo, agenda de postagem e créditos. Alega seus próprios valores; números e uso não foram testados. | /best-ai-shorts-generators: responder custo do filme montado, duração e saldo; comparar a mesma unidade por plano. Não confundir alocação de assinatura com compra avulsa. |
+| turn ChatGPT script into YouTube Short? | Sim: /chatgpt | [ClipFlux](https://clipflux.ai/guides/youtube-shorts-with-chatgpt): “ChatGPT on its own writes the script”: separa roteiro, escolha, geração e exportação; anuncia integração e postagem. É descrição comercial, sem geração testada. | /chatgpt: explicar o caminho de colar narração → Studio preparado → conferir custo → Generate, mantendo a integração existente. Não acrescentar promessa de postagem automática. |
+| AI that turns text into a finished YouTube Short with voice captions music? | Não no conjunto retornado | [VidUp](https://vidup.ai/features/text-to-video): “finished short with an AI voiceover”: descreve no primeiro parágrafo texto → voz, legendas, footage e música. Não foi testado. | /text-to-video-shorts: resposta literal, ideia × roteiro × clipe; distinguir revisão de fatos/pronúncia da montagem automática. |
+
+**EVIDÊNCIA DE PRODUÇÃO ANTERIOR:** MEDIDA.md, coletada em 20/11 (janela completa 06–19/11 BRT), registra /text-to-video-shorts com 37 sessões explícitas ChatGPT, 20 novos perfis vinculados e 6 dessas pessoas com filme concluído na leitura. Isso sustenta priorizar uma página já usada, sem provar qual pergunta levou essas pessoas.
+
+**CONTRADIÇÃO:** o resultado de busca do comparativo ainda mostra Seedance 1.5 no custo do filme padrão; o código de geração e a fonte STANDARD_FILM_NAME o identificam como MiniMax H3 Turbo (`lib/seo/citacoesRotina1711.ts`). Corrigidos apenas os rótulos de custo atual nas duas páginas, preservando a redação restante e os dados de renders históricos. Não se atribuiu a diferença a um crawler ou causa de queda sem evidência.
+
+**HIPÓTESE / SUGESTÃO:** adotar a clareza de entrada → saída → limite que esses fornecedores mostram, com os limites reais da Kineo. A medição da CEO no quadro em 20/11 não confirmou ganho por uma tabela de preço isolada; esta rodada também trata a resposta inicial e o passo de usar o roteiro. Publicar é decisão da CEO; medir visitas explícitas, pessoas com cadastro e 1º filme nas mesmas definições após exposição. Nada nesta preparação prova aumento de tráfego ou venda.
