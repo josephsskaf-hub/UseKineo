@@ -171,7 +171,8 @@ export function dadosDaLinha(row: { fingerprint?: string | null }): DadosDoTrech
     if (!Array.isArray(fp) || fp.length !== 3 || fp[1] !== KLING4_EDIT_MODEL || !fp[2] || typeof fp[2] !== 'object') return null
     const e = fp[2] as Record<string, unknown>
     const molde = moldeDeTrechos(e.kineo_molde) // KINEO-REMODELAMENTO-MOLDES-1611 — era: só o Pitch invader
-    if (!molde || trechoDoMarcador(e.video_url, molde.id) !== 0 || typeof e.prompt !== 'string' || !e.prompt) return null
+    if (!molde || trechoDoMarcador(e.video_url, molde.id) !== 0) return null
+    if (typeof e.prompt !== 'string' || !e.prompt) return null
     if (e.elements !== undefined) {
       if (molde.alvo.tipo !== 'pessoa' || e.image_urls !== undefined || !Array.isArray(e.elements) || e.elements.length !== 1) return null
       const element = e.elements[0]
