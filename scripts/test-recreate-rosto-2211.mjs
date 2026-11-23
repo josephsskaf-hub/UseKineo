@@ -27,11 +27,11 @@ const ctx = { userId, supabaseUrl: SUPABASE, dono: url => ownedClipImageUrl(url,
 const body = (format, photos) => ({ format, photos, consent: true, prompt: 'Untrusted recipe override' })
 const basketball = 'basquete'
 
-assert.equal(RECREATE_IDENTITY_PHOTOS_RELEASE, 'internal', 'only the exact house list sees extra angles')
+assert.equal(RECREATE_IDENTITY_PHOTOS_RELEASE, 'public', 'owner 23/11: every signed-in account sees extra angles')
 const house = INTERNAL_EXACT_EMAILS[0]
 const customer = 'customer@example.invalid'
 assert.equal(recreateIdentityPhotosVisible(house), true)
-assert.equal(recreateIdentityPhotosVisible(customer), false, 'customers keep the one-photo flow')
+assert.equal(recreateIdentityPhotosVisible(customer), true, 'customers get the extra angles')
 assert.equal(recreateIdentityPhotosVisible(null), false, 'visitors keep the one-photo flow')
 assert.equal(recreateIdentityPhotosVisible(house, 'off'), false)
 assert.equal(recreateIdentityPhotosVisible(house, 'internal'), true)
@@ -39,7 +39,8 @@ assert.equal(recreateIdentityPhotosVisible(customer, 'internal'), false)
 assert.equal(recreateIdentityPhotosVisible(null, 'public'), false)
 const available = formatosParaOCliente(house)
 const disabledSpecs = clipTemplateSpecs(available, house, 'off')
-assert.ok(Object.values(clipTemplateSpecs(available, customer)).every(spec => spec.identityPhotoLimit === undefined), 'customer screen unchanged')
+assert.equal(clipTemplateSpecs(available, customer)[basketball].identityPhotoLimit, KLING_IDENTITY_PHOTO_LIMIT, 'customers see the angle slots on person templates')
+assert.equal(clipTemplateSpecs(available, customer).passarela.identityPhotoLimit, 1, 'customers keep one photo where the engine takes one')
 assert.ok(Object.values(clipTemplateSpecs(available, null)).every(spec => spec.identityPhotoLimit === undefined), 'visitor screen unchanged')
 assert.equal(clipTemplateSpecs(available, house)[basketball].identityPhotoLimit, KLING_IDENTITY_PHOTO_LIMIT, 'house sees the angle slots')
 const enabledSpecs = clipTemplateSpecs(available, house, 'internal')
@@ -106,20 +107,25 @@ assert.equal(I.dadosDaLinha(rowFrom({ ...multi, input: { ...multi.input, image_u
 
 let existing = null
 const noSpend = () => { throw new Error('The stopped request attempted to spend or write.') }
-const route = createOfflineLoader({ env: { NEXT_PUBLIC_SUPABASE_URL: SUPABASE }, mocks: {
-  '@/lib/clips/clipServer': { submitDepsFor: () => ({ findByKey: async () => existing, submit: noSpend }), filaKlingEditEstado: noSpend },
+const routeMocks = {
+  '@/lib/clips/clipServer': { submitDepsFor: () => ({ findByKey: async () => existing, submit: noSpend }), filaKlingEditEstado: noSpend, kling4AbertosDaConta: noSpend }, // o cliente passa do portão dos ângulos e chega às leituras da porta
   '@/lib/clips/clipFlow': { submitClip: noSpend },
   '@/app/api/admin/_shared/mrr': { isPayingPlan: noSpend },
   '@/lib/recreate/server': { recreateEngineAccess: noSpend },
   './descricaoDaPessoa': { lerDescricaoDaPessoa: noSpend },
   './invasorServer': { invasorArquivosPresentes: noSpend, assinarTrechoDoInvasor: noSpend },
   '@/lib/serverEvents': { writeServerEvent: noSpend },
-} })('lib/recreate/invasorRota.ts')
+}
+const route = createOfflineLoader({ env: { NEXT_PUBLIC_SUPABASE_URL: SUPABASE }, mocks: routeMocks })('lib/recreate/invasorRota.ts')
+// Interruptor fechado (volta): a rota recusa os ângulos antes de qualquer leitura ou gasto.
+const closedRoute = createOfflineLoader({ env: { NEXT_PUBLIC_SUPABASE_URL: SUPABASE }, mocks: { ...routeMocks, './identityPhotosAccess': { recreateIdentityPhotosVisible: () => false } } })('lib/recreate/invasorRota.ts')
 const args = (photos, email = customer) => ({ admin: {}, supabase: {}, user: { id: userId, email }, account: { userId, balance: 100 }, raw: body(basketball, photos), key: 'fixture-recreate-0001' })
-assert.equal((await route.pedirInvasor(args([front, left, right]))).body.code, 'photo_angles_unavailable', 'a customer cannot send extra angles; rejected before any spend')
+assert.equal((await closedRoute.pedirInvasor(args([front, left, right]))).body.code, 'photo_angles_unavailable', 'with the switch closed, extra angles are rejected before any spend')
+await assert.rejects(route.pedirInvasor(args([front, left, right])), /attempted to spend/, 'a customer passes the angle gate and reaches the usual checks')
 await assert.rejects(route.pedirInvasor(args([front, left, right], house)), /attempted to spend/, 'the house passes the angle gate and reaches the usual checks')
 existing = stored
-assert.equal((await route.pedirInvasor(args([front, left, right]))).body.replay, true, 'request remains recoverable after the switch closes')
+assert.equal((await closedRoute.pedirInvasor(args([front, left, right]))).body.replay, true, 'request remains recoverable after the switch closes')
+assert.equal((await route.pedirInvasor(args([front, left, right]))).body.replay, true)
 assert.equal((await route.pedirInvasor(args([front, right, left]))).status, 409)
 
 assert.deepEqual(plain(facePhotoNotices(1000, 1000, 180)), [])
