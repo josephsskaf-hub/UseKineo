@@ -8,7 +8,7 @@ import { CLIP_RECREATE_JUNTOS_RELEASE } from './release'
 
 // KINEO-CLIP-FLUXO-2111 [dono 22/11 23:2x, pela foto: "gostei muito das páginas novas, pode já dar merge"] — 'internal' = só a conta da casa vê a
 // tela nova enquanto a CEO confere logada; abrir a todos = 'public'; VOLTA = 'off' (todo mundo recebe a tela de antes).
-export const CLIP_WORKSPACE_RELEASE: InternalRelease = 'internal'
+export const CLIP_WORKSPACE_RELEASE: InternalRelease = 'public' // dono 23/11 00:4x: "abre a todos já"
 
 /** A conta (logada) abre a tela única? Precisa já abrir as duas de hoje (/create/clip e /recreate) e estar no interruptor. */
 export function clipRecreateJuntosVisivel(email: string | null | undefined, release: InternalRelease = CLIP_RECREATE_JUNTOS_RELEASE): boolean {
