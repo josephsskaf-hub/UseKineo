@@ -28,6 +28,7 @@ import {
 } from '@/lib/seo/paginasUgc2010'
 import { ShowcaseStrip } from '@/app/claude-connector/ShowcaseGrid' // KINEO-VITRINE-PAGINAS-1011
 import { vitrineDaPagina } from '@/lib/seo/vitrinePaginas1011' // KINEO-VITRINE-PAGINAS-1011
+import { FOTO_PRODUTO_CAMPAIGN, FOTO_PRODUTO_CTA_HREF, FOTO_PRODUTO_MARK, FOTO_PRODUTO_PATH, FOTO_PRODUTO_REVIEWED_ISO, fotoProdutoCopy, fotoProdutoFacts } from '@/lib/growth/paginaFotoProduto2311' // KINEO-CITACOES-FLUXO-D11
 
 const vitrineUgc = vitrineDaPagina('/ai-ugc-ads') // KINEO-VITRINE-PAGINAS-1011
 
@@ -531,6 +532,78 @@ export function UgcGeneratorPage() {
       </section>
       <Faq heading="Questions" faqs={c.faqs} />
       <Related heading="Related pages" links={[{ href: UGC_PILLAR_PATH, label: 'AI UGC Ads: the full guide' }, { href: '/faceless-video-generator', label: 'AI Faceless Videos' }, { href: '/ads', label: 'AI Product Ads' }, { href: '/vs/arcads-alternative', label: 'Kineo vs Arcads' }]} />
+    </Shell>
+  )
+}
+
+// ── KINEO-CITACOES-FLUXO-D11 — /ai-ugc-ads/product-photo-ads: anúncio pela foto do produto, com o custo por anúncio ─────────
+// Números de lib/growth/paginaFotoProduto2311.ts (das funções que cobram). Sem nome de motor, sem pessoa falando.
+export function productPhotoAdsMetadata(): Metadata {
+  const c = fotoProdutoCopy(fotoProdutoFacts())
+  return ugcMetadata(FOTO_PRODUTO_PATH, c.title, c.description)
+}
+
+export function ProductPhotoAdsPage() {
+  const f = fotoProdutoFacts()
+  const c = fotoProdutoCopy(f)
+  const crumbs = [{ name: 'Kineo', path: '/' }, { name: 'AI UGC Ads', path: UGC_PILLAR_PATH }, { name: 'Product photo ads', path: FOTO_PRODUTO_PATH }]
+  return (
+    <Shell lang="en" mark="product-photo-ads">
+      {ld(faqLd(c.faqs))}{ld(crumbsLd(crumbs))}
+      <div className="kug-wrap" data-citacoes-fluxo={FOTO_PRODUTO_MARK}>
+        <nav className="kug-crumbs" aria-label="Breadcrumb"><Link href="/">Kineo</Link><span aria-hidden="true">/</span><Link href={UGC_PILLAR_PATH}>AI UGC Ads</Link><span aria-hidden="true">/</span><span aria-current="page">Product photo ads</span></nav>
+        <header className="kug-hero" style={{ gridTemplateColumns: 'minmax(0,1fr)' }}>
+          <div>
+            <p className="kug-eyebrow">{c.eyebrow}</p>
+            <h1>{c.h1}</h1>
+            <p className="kug-lead" style={{ fontWeight: 700, color: 'var(--txt)' }}>{c.question}</p>
+            {c.answer.map((t) => <p className="kug-lead" key={t}>{t}</p>)}
+            <div className="kug-actions">
+              <OrganicCtaLink className="kug-cta" href={FOTO_PRODUTO_CTA_HREF} source={FOTO_PRODUTO_CAMPAIGN} placement="hero">{c.cta} <span aria-hidden="true">→</span></OrganicCtaLink>
+              <Link className="kug-link" href={UGC_PILLAR_PATH}>{c.pillarLink}</Link>
+            </div>
+            <p className="kug-reviewed">Reviewed <time dateTime={FOTO_PRODUTO_REVIEWED_ISO}>{FOTO_PRODUTO_REVIEWED_ISO}</time></p>
+          </div>
+        </header>
+      </div>
+      <section className="kug-sec" aria-labelledby="kug-cost">
+        <div className="kug-wrap">
+          <h2 id="kug-cost">{c.costHeading}</h2>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="kug-table" style={{ minWidth: 720 }}>
+              <thead><tr><th scope="col" style={{ width: 'auto' }}>Level</th><th scope="col" style={{ width: 'auto' }}>What is in the ad</th><th scope="col" style={{ width: 'auto' }}>Credits</th>{f.plans.map((pl) => <th scope="col" style={{ width: 'auto' }} key={pl.name}>{pl.name} ({pl.month})</th>)}</tr></thead>
+              <tbody>{f.levels.map((l, i) => <tr key={l.id}><th scope="row" style={{ width: 'auto' }}>{l.name}</th><td>{l.what}</td><td>{l.credits15}</td>{f.plans.map((pl) => <td key={pl.name}>{pl.perLevel[i].ads >= 1 ? `${pl.perLevel[i].usd} per ad · ${pl.perLevel[i].ads} ${pl.perLevel[i].ads === 1 ? 'ad' : 'ads'} per month` : `Needs ${l.credits15} credits; this plan gives ${pl.credits} a month`}</td>)}</tr>)}</tbody>
+            </table>
+          </div>
+          <p style={{ marginTop: 14 }}>{c.costNote}</p>
+        </div>
+      </section>
+      <section className="kug-sec" aria-labelledby="kug-length">
+        <div className="kug-wrap">
+          <h2 id="kug-length">{c.lengthHeading}</h2>
+          <p>{c.lengthNote}</p>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="kug-table">
+              <thead><tr><th scope="col" style={{ width: 'auto' }}>Level</th>{f.seconds.map((sec) => <th scope="col" style={{ width: 'auto' }} key={sec}>{sec} seconds</th>)}</tr></thead>
+              <tbody>{f.levels.map((l) => <tr key={l.id}><th scope="row" style={{ width: 'auto' }}>{l.name}</th>{l.credits.map((x) => <td key={x.seconds}>{x.credits} credits</td>)}</tr>)}</tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+      <section className="kug-sec" aria-labelledby="kug-io">
+        <div className="kug-wrap">
+          <h2 id="kug-io">{c.ioHeading}</h2>
+          <table className="kug-table"><tbody>{c.io.map((r) => <tr key={r.k}><th scope="row">{r.k}</th><td>{r.v}</td></tr>)}</tbody></table>
+        </div>
+      </section>
+      <section className="kug-sec" aria-labelledby="kug-limits">
+        <div className="kug-wrap">
+          <h2 id="kug-limits">{c.limitsHeading}</h2>
+          <ul className="kug-rules">{c.limits.map((r) => <li key={r}>{r}</li>)}</ul>
+        </div>
+      </section>
+      <Faq heading="Questions" faqs={c.faqs} />
+      <Related heading="Related pages" links={[{ href: UGC_PILLAR_PATH, label: 'AI UGC Ads: the full guide' }, { href: '/ads', label: 'AI Product Ads' }, { href: '/guides/product-photos-to-video', label: 'Guide: product photos to video' }, { href: '/pricing', label: 'Plans and credits' }]} />
     </Shell>
   )
 }

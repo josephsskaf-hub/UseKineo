@@ -1,0 +1,17 @@
+{
+  "date": "2026-11-23",
+  "states": 64,
+  "photos": 130,
+  "routes": [
+    "/ai-video-generator/for/cartoon-videos",
+    "/ai-video-generator/for/animated-story-videos",
+    "/ai-video-generator/for/animal-story-videos",
+    "/ai-ugc-ads/product-photo-ads"
+  ],
+  "publicWholePagePhotos": 82,
+  "exceptions": 0,
+  "overflow": 0,
+  "scope": "Local HTTP + server getUser fixture, no real auth, account, video or payment; production cache remains checklist",
+  "themes": "Both preferences; shared intent template stays light, inherited 404 stays dark",
+  "gallery": "C:/kineo/docs/decisoes-2311/CITACOES-PAGINAS-VOLTA1.html"
+}

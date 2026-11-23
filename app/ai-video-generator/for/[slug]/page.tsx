@@ -1,3 +1,5 @@
+import InternalCitationPreview from '@/components/seo/InternalCitationPreview'
+import { CITATION_PAGES_RELEASE, isCitationDraftSlug } from '@/lib/growth/citationPagesAccess'
 import { BuyerBatch2Lead, BuyerBatch2Details } from '@/components/seo/BuyerQuestions2111'
 import { buyerBatch2, buyerBatch2ForIntent } from '@/lib/seo/buyerQuestions2111'
 // PROJETO 1 — GOOGLE (docs/PROJETO-1-GOOGLE-2026-09-17.md) — a página de intenção.
@@ -19,7 +21,7 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { FREE_FILM_LABEL, getFreeTierOffer, swapFreeTierCopy as ft, trialFilmsForEngine, TRIAL_CREDITS_SHOWN, TRIAL_SEEDANCE15_FILMS } from '@/lib/freeTierOffer'
 import { STARTER_MONTH, STARTER_CREDITS, creditsPerReferenceVideo } from '@/lib/marketingPrice'
 import { PUBLIC_ENGINE_EXAMPLES } from '@/lib/publicExamples'
-import { getIntentPage, INTENT_FAMILY_LABEL, INTENT_HUB_PATH, INTENT_PAGES, INTENT_SLUGS, intentPagePath, type IntentEngine } from '@/lib/seo/intentPages'
+import { getDraftCitationIntentPage, getIntentPage, INTENT_FAMILY_LABEL, INTENT_HUB_PATH, INTENT_PAGES, INTENT_SLUGS, intentPagePath, type IntentEngine } from '@/lib/seo/intentPages'
 import { PaginaClaraCards, PaginaClaraTopo, PaginaClaraVitrine } from '@/components/seo/PaginaClara' // KINEO-PAGINAS-IA-CLARAS-2110 — o menu do topo, os 4 cards e a vitrine atual da home
 import { PAGINA_CLARA_CLASSE, PAGINA_CLARA_FUNDO } from '@/lib/seo/paginasIaClaras2110' // KINEO-PAGINAS-IA-CLARAS-2110
 import { STORY_VIDEO_COPY, STORY_VIDEO_ENGINE, STORY_VIDEO_UPDATED } from '@/lib/growth/storyVideoPage'
@@ -29,9 +31,12 @@ const OFFER = getFreeTierOffer()
 const BASE = 'https://www.usekineo.com'
 import { STANDARD_FILM_NAME } from '@/lib/seo/citacoesRotina1711'
 const ENGINE_NAME: Record<IntentEngine, string> = { fast: 'Kineo 1', cinematic_ai: 'Seedance 1.5' }
+// Only the three unpublished d09 formats adopt the current standard-film label. Historical examples stay intact.
+const DRAWING_INTENTS_2311 = new Set(['cartoon-videos', 'animated-story-videos', 'animal-story-videos'])
 
-export const dynamic = 'force-static'
-export const dynamicParams = false
+// Internal drafts need request cookies; published intent pages remain statically generated.
+export const dynamic = 'auto'
+export const dynamicParams = true
 
 export function generateStaticParams() {
   return INTENT_SLUGS.map((slug) => ({ slug }))
@@ -39,9 +44,9 @@ export function generateStaticParams() {
 
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const p = getIntentPage(params.slug)
-  if (!p) return {}
+  if (!p) return isCitationDraftSlug(params.slug) ? { robots: { index: false, follow: false } } : {}
   const url = `${BASE}${intentPagePath(p.slug)}`
-  const description = p.slug === 'story-videos' ? STORY_VIDEO_COPY.description : `${p.intro.slice(0, 150).replace(/\s+\S*$/, '')}… Real films, ${p.slug === 'urdu' || buyerBatch2ForIntent(p.slug) ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} and generative engines, free trial with no card.`
+  const description = p.slug === 'story-videos' ? STORY_VIDEO_COPY.description : `${p.intro.slice(0, 150).replace(/\s+\S*$/, '')}… Real films, ${p.slug === 'urdu' || buyerBatch2ForIntent(p.slug) || DRAWING_INTENTS_2311.has(p.slug) ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} and generative engines, free trial with no card.`
   return {
     metadataBase: new URL(BASE),
     title: p.title,
@@ -79,14 +84,22 @@ function studioHref(slug: string, prompt: string, engine: IntentEngine, language
 
 const CARD = { background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 16 } as const
 
-export default function IntentPage({ params }: { params: { slug: string } }) {
-  const p = getIntentPage(params.slug)
+export default function IntentPage(props: { params: { slug: string } }) {
+  if (isCitationDraftSlug(props.params.slug)) {
+    if (CITATION_PAGES_RELEASE === 'off') notFound()
+    if (CITATION_PAGES_RELEASE === 'internal') return <InternalCitationPreview>{IntentPageContent(props)}</InternalCitationPreview>
+  }
+  return IntentPageContent(props)
+}
+
+function IntentPageContent({ params }: { params: { slug: string } }) {
+  const p = getIntentPage(params.slug) ?? getDraftCitationIntentPage(params.slug)
   if (!p) notFound()
   const url = `${BASE}${intentPagePath(p.slug)}`
   const engineCost = creditsPerReferenceVideo(p.engine)
   const story = p.slug === 'story-videos'
   const batchPage = buyerBatch2ForIntent(params.slug)
-  const offerName = story ? STORY_VIDEO_ENGINE : p.slug === 'urdu' || batchPage ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]
+  const offerName = story ? STORY_VIDEO_ENGINE : p.slug === 'urdu' || batchPage || DRAWING_INTENTS_2311.has(p.slug) ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]
   // KINEO-FILME-GRATIS-15S-2026-09-29 — o Kineo 1 ('fast') não é mais oferecido a conta nova: a página não diz que o trial
   // cobre filmes dele (era "the trial covers 2 Kineo 1 films"). O que o trial paga é o Seedance 1.5 de 15 s.
   const trialFilms = p.engine === 'fast' ? 0 : trialFilmsForEngine(engineCost)
@@ -101,11 +114,11 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
   const campaign = `intent_${p.slug}`
   const siblings = INTENT_PAGES.filter((x) => x.family === p.family && x.slug !== p.slug).slice(0, 8)
   const sourcePageFaqs = p.slug === 'urdu' ? [...p.faq, { q: BUYER_2011.urdu.q, a: BUYER_2011.urdu.answer }] : p.faq
-  const pageFaqs = batchPage ? sourcePageFaqs.map(f => ({ ...f, a: f.a.replaceAll('Seedance 1.5', STANDARD_FILM_NAME) })) : sourcePageFaqs
+  const pageFaqs = batchPage || DRAWING_INTENTS_2311.has(p.slug) ? sourcePageFaqs.map(f => ({ ...f, a: f.a.replaceAll('Seedance 1.5', STANDARD_FILM_NAME) })) : sourcePageFaqs
   const originalFaqs = story
     ? [...STORY_VIDEO_COPY.faq, { q: 'Which model creates the story scenes?', a: STORY_VIDEO_COPY.engineAnswer }, { q: 'How much does it cost?', a: STORY_VIDEO_COPY.costAnswer }]
-    : [...pageFaqs, { q: 'How much does it cost?', a: `The free trial gives ${TRIAL_CREDITS_SHOWN} credits with no card. ${p.slug === 'urdu' || batchPage ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} costs ${engineCost} credits for a 60-second film${trialFilms > 0 ? `, so the trial covers ${trialFilms} film${trialFilms > 1 ? 's' : ''}` : `, which needs a plan${trialFreeFilm}`}. Plans start at ${STARTER_MONTH} for ${STARTER_CREDITS} credits.` }]
-  const originalVisibleFaqs = story ? originalFaqs : [...pageFaqs, { q: 'How much does it cost?', a: `The free trial gives ${TRIAL_CREDITS_SHOWN} credits with no card. ${p.slug === 'urdu' || batchPage ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} costs ${engineCost} credits per 60-second film${trialFilms > 0 ? `, so the trial covers ${trialFilms} film${trialFilms > 1 ? 's' : ''}` : `, which needs a plan${trialFreeFilm}`}. Plans start at ${STARTER_MONTH} for ${STARTER_CREDITS} credits.` }]
+    : [...pageFaqs, { q: 'How much does it cost?', a: `The free trial gives ${TRIAL_CREDITS_SHOWN} credits with no card. ${p.slug === 'urdu' || batchPage || DRAWING_INTENTS_2311.has(p.slug) ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} costs ${engineCost} credits for a 60-second film${trialFilms > 0 ? `, so the trial covers ${trialFilms} film${trialFilms > 1 ? 's' : ''}` : `, which needs a plan${trialFreeFilm}`}. Plans start at ${STARTER_MONTH} for ${STARTER_CREDITS} credits.` }]
+  const originalVisibleFaqs = story ? originalFaqs : [...pageFaqs, { q: 'How much does it cost?', a: `The free trial gives ${TRIAL_CREDITS_SHOWN} credits with no card. ${p.slug === 'urdu' || batchPage || DRAWING_INTENTS_2311.has(p.slug) ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} costs ${engineCost} credits per 60-second film${trialFilms > 0 ? `, so the trial covers ${trialFilms} film${trialFilms > 1 ? 's' : ''}` : `, which needs a plan${trialFreeFilm}`}. Plans start at ${STARTER_MONTH} for ${STARTER_CREDITS} credits.` }]
 
   const batchFaqs = batchPage ? buyerBatch2(batchPage).faqs : []
   const faqs = [...batchFaqs, ...originalFaqs]
@@ -172,7 +185,7 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
           <p style={{ fontSize: '0.82rem', color: '#5A5F67', margin: '12px 0 0' }}>
             {story ? 'Review the prepared story, selected model, duration and credit cost in Studio before generating.' : <>
               {ft(OFFER, `${TRIAL_CREDITS_SHOWN} free credits, no card`, OFFER.copy.chip)}
-              {trialFilms > 0 ? ` · the trial covers ${trialFilms} ${p.slug === 'urdu' || batchPage ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} film${trialFilms > 1 ? 's' : ''}` : `${TRIAL_SEEDANCE15_FILMS >= 1 ? ` · the trial pays for one ${FREE_FILM_LABEL}` : ''} · 60-second films on a plan (from ${STARTER_MONTH})`}
+              {trialFilms > 0 ? ` · the trial covers ${trialFilms} ${p.slug === 'urdu' || batchPage || DRAWING_INTENTS_2311.has(p.slug) ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} film${trialFilms > 1 ? 's' : ''}` : `${TRIAL_SEEDANCE15_FILMS >= 1 ? ` · the trial pays for one ${FREE_FILM_LABEL}` : ''} · 60-second films on a plan (from ${STARTER_MONTH})`}
             </>}
           </p>
         </section>

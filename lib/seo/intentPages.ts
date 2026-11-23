@@ -1,3 +1,4 @@
+import { CITATION_PAGES_RELEASE, isCitationDraftSlug } from '../growth/citationPagesAccess'
 import { FREE_FILM_ENGINE_NAME } from '../freeFilmEngine' // KINEO-LLMS-K4-2910
 // PROJETO 1 — GOOGLE (docs/PROJETO-1-GOOGLE-2026-09-17.md) — o catálogo das páginas de intenção.
 //
@@ -125,6 +126,12 @@ const FORMATS: FormatSeed[] = [
   { name: 'AI generated videos', what: 'every scene generated from your text, no stock footage', prompt: 'A lone lighthouse keeper watches a storm swallow the horizon', engine: 'cinematic_ai', why: 'This is the fully generated path: the scene is made from your words.' },
   { name: 'video series', what: 'one episode a day that remembers the previous one', prompt: 'Episode 1 of a series on unsolved internet mysteries: Cicada 3301' },
   { name: 'daily videos', what: 'a repeatable one-video-a-day workflow with a queue of ideas', prompt: 'Day 1: the reason most New Year resolutions die by January 19' },
+  // KINEO-CITACOES-FLUXO-D09 (21/11/2026) — 3 formatos novos na família que mais recebeu pouso do ChatGPT em 14–20/11
+  // (/free-ai-shorts/cartoon 74, /for/story-videos 18). Só acréscimo. O visual de desenho vem das palavras do pedido; a
+  // continuidade do personagem entre cenas NÃO é garantida, e a página diz isso (mesmo limite já escrito em story-videos).
+  { name: 'cartoon videos', what: 'a narrated vertical cartoon in a soft 3D animated look, generated scenes matched to your narration, with captions and music', prompt: 'A small green dinosaur with a red scarf tries to bake a birthday cake and floods the kitchen with batter', engine: 'cinematic_ai', why: 'Every cartoon scene is generated from your words, so describe the hero the same way each time. Small changes in clothing or proportions can still happen between scenes; review the finished film.' },
+  { name: 'animated story videos', what: 'a short animated story with a narrator, a hero, a problem and an ending, generated scene by scene from your text', prompt: 'A shy lighthouse robot learns to wave at passing ships, and one foggy night a ship waves back', engine: 'cinematic_ai', why: 'An animated story needs scenes that do not exist anywhere, so they are generated from the script. Keep the cast to one or two characters; they stay easier to recognize from scene to scene, though continuity is not guaranteed.' },
+  { name: 'animal story videos', what: 'a narrated story starring an animal character, in the realistic or cartoon look you describe in the prompt', prompt: 'A tired orange cat runs a tiny noodle stand at midnight and a hungry fox becomes the first customer', engine: 'cinematic_ai', why: 'The animal is generated from your description, not filmed. Name the animal, its color and one detail it always wears; continuity between scenes is close but not guaranteed.' },
 ]
 
 // ── IDIOMA: em que língua ────────────────────────────────────────────────────────────────────────
@@ -293,13 +300,18 @@ function altPage(a: AltSeed): IntentPage {
   }
 }
 
-export const INTENT_PAGES: readonly IntentPage[] = [
+const ALL_INTENT_PAGES: readonly IntentPage[] = [
   ...NICHES.map(nichePage),
   ...FORMATS.map(formatPage),
   ...LANGUAGES.map(languagePage),
   ...ALTERNATIVES.map(altPage),
 ]
 
+// Only public URLs enter hubs, related links, static params and the sitemap.
+export const INTENT_PAGES: readonly IntentPage[] = ALL_INTENT_PAGES.filter(p => !isCitationDraftSlug(p.slug) || CITATION_PAGES_RELEASE === 'public')
+export function getDraftCitationIntentPage(slug: string): IntentPage | undefined {
+  return isCitationDraftSlug(slug) ? ALL_INTENT_PAGES.find(p => p.slug === slug) : undefined
+}
 const BY_SLUG = new Map(INTENT_PAGES.map((p) => [p.slug, p]))
 export const INTENT_SLUGS: readonly string[] = INTENT_PAGES.map((p) => p.slug)
 export function getIntentPage(slug: string): IntentPage | undefined {

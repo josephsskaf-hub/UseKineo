@@ -1,3 +1,4 @@
+import { CITATION_PAGES_RELEASE, CITATION_DRAFT_SLUGS, CITATION_PAGES_REVIEWED_ISO } from '@/lib/growth/citationPagesAccess'
 import type { MetadataRoute } from 'next'
 import { NICHE_SLUGS } from './free-ai-shorts/[niche]/page'
 import { COMPETITOR_SLUGS } from './alternatives/[competitor]/page'
@@ -46,6 +47,7 @@ import { GUIAS_IA_PATHS, GUIAS_IA_REVIEWED_ISO } from '@/lib/seo/guiasIa1610Path
 import { VS_RIVAIS_CHECKED_ISO, VS_RIVAIS_REFRESHED_PATHS, VS_RIVAL_LINKS } from '@/lib/seo/vsRivais0311'
 // KINEO-PAGINAS-UGC-2010 — AI UGC Ads (pilar EN/PT, gerador, 12 nichos) e Kit Black Friday (EN/PT). Módulo PURO, sem import.
 import { PAGINAS_UGC_PATHS, PAGINAS_UGC_REVIEWED_ISO, PAGINAS_UGC_TOUCHED_PATHS } from '@/lib/seo/paginasUgc2010'
+import { FOTO_PRODUTO_PATH, FOTO_PRODUTO_REVIEWED_ISO } from '@/lib/growth/paginaFotoProduto2311' // KINEO-CITACOES-FLUXO-D11
 import { PAGINAS_KIDS_REVIEWED_ISO, paginasKidsSitemapPaths } from '@/lib/seo/paginasKidsCartoon2010' // KINEO-BEBE-QUE-FALA-2010 — as páginas do AI Kids Cartoon Stories (módulo puro)
 import { KIDS_CARTOON_PAGES_LIVE } from '@/lib/kidsCartoon/kidsCartoon' // KINEO-BEBE-QUE-FALA-2010 — o interruptor das páginas (desligado = nenhuma URL)
 import { BABY_PODCAST_PAGES_LIVE, babyPagesSitemapPaths } from '@/lib/kidsCartoon/babyPodcast' // KINEO-BEBE-QUE-FALA-2010 — as páginas do bebê-podcast (interruptor próprio)
@@ -354,6 +356,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // /pricing: e31d52c09 (06/11); Kling 4: 4aba8a177 (02/11). Não altera as seis páginas em teste.
     lastModified: r.path === '/pricing' ? new Date('2026-11-06T18:40:25.000Z')
       : r.path === '/ai-video-generator/kling-4' ? new Date('2026-11-02T15:25:13.000Z')
+      : CITATION_DRAFT_SLUGS.some(slug => r.path === intentPagePath(slug)) ? new Date(`${CITATION_PAGES_REVIEWED_ISO}T12:00:00.000Z`)
       : r.path.endsWith('/made-with-kineo') ? new Date('2026-10-26T00:00:00.000Z') : r.path === '/ads' ? ADS_DOOR_LAST_MODIFIED
       : ['/business-video-ads', '/sora-alternative'].includes(r.path)
       ? new Date('2026-09-24T13:51:19.000Z') : geoRodada2Revised.has(r.path) ? GEO_RODADA2_LAST_MODIFIED : geoRodada3Revised.has(r.path) ? GEO_RODADA3_LAST_MODIFIED : r.path === STATE_STUDY_PATH ? STATE_STUDY_LAST_MODIFIED : engineGeoRevised.has(r.path) ? ENGINE_GEO_LAST_MODIFIED : LAST_MODIFIED,
@@ -540,6 +543,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: 'weekly' as const,
       priority: 0.9,
     })),
+    ...(CITATION_PAGES_RELEASE === 'public' ? [{ url: `${BASE}${FOTO_PRODUTO_PATH}`, lastModified: FOTO_PRODUTO_REVIEWED_ISO, changeFrequency: 'weekly' as const, priority: 0.8 }] : []), // KINEO-CITACOES-FLUXO-D11 — anúncio pela foto do produto, custo por anúncio (URL nova = o cron do IndexNow envia)
     ...paginasKidsSitemapPaths(KIDS_CARTOON_PAGES_LIVE).map((path) => ({ url: `${BASE}${path}`, lastModified: PAGINAS_KIDS_REVIEWED_ISO, changeFrequency: 'weekly' as const, priority: 0.9 })), // KINEO-BEBE-QUE-FALA-2010 — /ai-kids-cartoon-videos e /desenho-infantil-3d-com-ia só com o interruptor ligado (URL nova = o cron do IndexNow envia)
     ...babyPagesSitemapPaths(BABY_PODCAST_PAGES_LIVE).map((path) => ({ url: `${BASE}${path}`, lastModified: PAGINAS_KIDS_REVIEWED_ISO, changeFrequency: 'weekly' as const, priority: 0.8 })), // KINEO-BEBE-QUE-FALA-2010 — /ai-baby-podcast-videos e /videos-bebe-podcast-ia só com o interruptor do bebê ligado
     // KINEO-DURACAO-REWARDS-2026-10-06 — ferramenta grátis (régua de narração × piso de 1 min do Creator Rewards);
