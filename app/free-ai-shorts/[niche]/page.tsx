@@ -736,6 +736,26 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
         {lote1 && (
           <section data-kineo="lote1-guide" style={{ marginTop: 48 }}>
             {lote1FaqJsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(lote1FaqJsonLd).replace(/</g, '\\u003c') }} />}
+            {/* KINEO-CITACOES-FLUXO-D10 — resposta citável (pergunta + 2 frases + tabela), só nos nichos que têm `answer`. */}
+            {lote1.answer && (
+              <div data-kineo="lote1-answer" style={{ ...CARD, borderRadius: 12, padding: '16px 18px', marginBottom: 32 }}>
+                <h2 style={{ fontSize: '1.2rem', fontWeight: 700, margin: '0 0 8px' }}>{lote1.answer.q}</h2>
+                <p style={{ color: '#2A2F37', fontSize: '0.98rem', lineHeight: 1.65, margin: '0 0 12px' }}>{lote1.answer.a}</p>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.92rem' }}>
+                    <tbody>
+                      {lote1.answer.rows.map(([k, v]) => (
+                        <tr key={k} style={{ borderTop: '1px solid rgba(14,17,22,0.08)' }}>
+                          <th scope="row" style={{ textAlign: 'left', padding: '8px 12px 8px 0', fontWeight: 700, verticalAlign: 'top' }}>{k}</th>
+                          <td style={{ padding: '8px 0', color: '#2A2F37', lineHeight: 1.5 }}>{v}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p style={{ color: '#5A6170', fontSize: '0.8rem', margin: '10px 0 0' }}>Reviewed {lote1.answer.reviewed}.</p>
+              </div>
+            )}
             {lote1.sections.map((s) => (
               <div key={s.h2} style={{ marginBottom: 28 }}>
                 <h2 style={{ fontSize: '1.3rem', fontWeight: 650, margin: '0 0 12px' }}>{s.h2}</h2>
