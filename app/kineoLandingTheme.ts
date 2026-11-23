@@ -164,6 +164,8 @@ html:not([data-theme=dark]) .klp .nav-disclosure>summary{color:#0E1116}
   .klp .nav-right>.btn { display:none; }
   .klp .nav-right .kineo-interface-language { width:86px!important; max-width:86px!important; padding-inline:7px!important; font-size:11px!important; }
   .klp .nav-cta { display:none; }
+  .klp .nav-cta[data-unified-account-nav] { display:flex; }
+  .klp .nav-cta[data-unified-account-nav] .nav-dashboard { display:none; }
   .klp .nav-mobile-menu { top:72px; max-height:calc(100dvh - 72px); padding-inline:18px; }
   .klp .home-title { font-size:40px; letter-spacing:-.045em; }
   .klp .home-intro { margin-bottom:28px; gap:19px; }

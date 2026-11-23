@@ -193,7 +193,7 @@ export default function ClipsFirstHome({
               <SiteSettingsMenu signedIn={signedIn} />
               {signedIn ? (
                 <>
-                  <NavCreditsBadge />
+                  <NavCreditsBadge opensAccount />
                   <Link className="bt" href="/studio"><UiLabel>Dashboard</UiLabel></Link>
                 </>
               ) : (

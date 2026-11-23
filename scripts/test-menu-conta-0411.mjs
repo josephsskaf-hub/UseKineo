@@ -21,6 +21,9 @@ const ler = (rel) => readFileSync(join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n'
 const PAINEL = 'components/AccountPanel.tsx'
 const REGRAS = 'lib/ui/accountMenu.ts'
 const SIDEBAR = 'components/Sidebar.tsx'
+const MENU = 'lib/ui/unifiedAccountMenu.ts'
+const TRIGGER = 'components/AccountMenuTrigger.tsx'
+const PRICING = 'components/pricing/PricingAccountCredits.tsx'
 
 // ─── carregador: executa o TS/TSX real; `fontes` troca o texto de um arquivo para os mutantes ──────────────────────
 globalThis.document = globalThis.document ?? {} // portal() só desenha quando document existe
@@ -51,7 +54,7 @@ function carregar(fontes) {
     new Function('module', 'exports', 'require', js)(mod, mod.exports, req)
     return mod.exports
   }
-  return { painel: exec(join(ROOT, PAINEL)).default, regras: exec(join(ROOT, REGRAS)) }
+  return { painel: exec(join(ROOT, PAINEL)).default, regras: exec(join(ROOT, REGRAS)), menu: exec(join(ROOT, MENU)) }
 }
 
 const base = { email: 'maria@example.com', displayName: 'Maria', plan: 'basic', credits: 34, onClose() {}, onSignOut() {} }
@@ -64,13 +67,28 @@ function verificar(fontes = {}) {
   const fonte = (rel) => (Object.hasOwn(fontes, rel) ? fontes[rel] : ler(rel)).replace(/\r\n/g, '\n')
   const falhas = []
   const checa = (c, m) => { if (!c) falhas.push(m) }
-  let painel, regras
-  try { ({ painel, regras } = carregar(fontes)) } catch (e) { return ['não carrega: ' + e.message] }
+  let painel, regras, menu
+  try { ({ painel, regras, menu } = carregar(fontes)) } catch (e) { return ['não carrega: ' + e.message] }
   const html = (props) => { try { return renderToStaticMarkup(React.createElement(painel, { ...base, ...props })) } catch (e) { falhas.push('não desenha: ' + e.message); return '' } }
   const corpo = (h) => h.replace(/<style[\s\S]*?<\/style>/, '')
   const pn = fonte(PAINEL), sb = fonte(SIDEBAR)
 
   // ── 1. largura e tela de celular ──
+  const position = menu.placeAccountMenu({ right: 378, top: 18, bottom: 62 }, { width: 390, height: 844 }, 420)
+  const guest = corpo(html({ guest: true, placement: position, onBuyCredits() {} }))
+  checa(guest.includes('Language') && guest.includes('Appearance') && guest.includes('Sign in') && guest.includes('See plans'), 'visitante: quatro ações no AccountPanel')
+  checa(!/kmc-credits|My videos|Buy credits|Sign out/.test(guest), 'visitante: nenhum saldo ou atalho de conta')
+  checa(guest.indexOf('Language') < guest.indexOf('Appearance') && guest.indexOf('Appearance') < guest.indexOf('Sign in'), 'visitante: preferências antes da conta')
+  checa(position.left >= 12 && position.left + position.width <= 378 && position.top === 70, 'menu móvel cabe com margem nos dois lados')
+  checa(menu.placeAccountMenu({ right: 160, top: 779, bottom: 823 }, { width: 390, height: 844 }, 420).bottom === 73, 'menu no rodapé abre para cima')
+  checa(menu.unifiedAccountSurface('/') === 'account_home'
+    && menu.unifiedAccountSurface('/studio') === 'account_studio'
+    && menu.unifiedAccountSurface('/pricing') === 'account_pricing'
+    && menu.unifiedAccountSurface('/recreate/private-reference') === 'account_recreate', 'superfícies distintas sem identificador privado')
+  checa(menu.ACCOUNT_MENU_RELEASE === 'off', 'interruptor desligado na entrega')
+  checa(fonte(TRIGGER).includes('identity && offer ? () =>') && fonte(TRIGGER).includes('trackEvent(BUY_CREDITS_OPENED_EVENT, { surface,'), 'oferta do servidor e evento de abertura no menu')
+  checa(fonte(PRICING).includes('useRecargaEntrada(PRICING_CREDITS_SURFACE, signedIn === true)')
+    && fonte(PRICING).includes('offer && open && <BuyCreditsModal'), 'pricing abre a barra só por oferta autenticada e clique')
   const creator = html({ plan: 'basic', credits: 34 })
   const larg = /width:min\((\d+)px,calc\(100vw - (\d+)px\)\)/.exec(creator)
   checa(larg && +larg[1] >= 320 && +larg[1] <= 360, 'largura entre 320 e 360 px: ' + (larg?.[1] ?? 'sem regra'))
@@ -214,7 +232,9 @@ mutante('Add members inventado', REGRAS, "] as const", `${LINK('members', '/team
 mutante('sem seletor de língua', PAINEL, '<InterfaceLanguageSelect />', '')
 mutante('sem aparência', PAINEL, `<AppearanceSettingsButton compact={false} className="kmc-row" />`, '')
 mutante('Sign out fecha o menu', PAINEL, 'onClick={() => { if (!signingOut) onSignOut() }}', 'onClick={() => { onClose(); onSignOut() }}')
-mutante('Sign out sem disabled', PAINEL, 'disabled={signingOut}', '')
+mutante('Sign out sem disabled', PAINEL, 'disabled={signingOut}\n          aria-busy={signingOut}', 'aria-busy={signingOut}')
+mutante('visitante recebe saldo da conta', PAINEL, '{guest ? <div className="kmc-head">', '{false ? <div className="kmc-head">')
+mutante('preços mostram recarga antes do clique', PRICING, 'offer && open && <BuyCreditsModal', 'offer && <BuyCreditsModal')
 mutante('sem "Signing out…"', PAINEL, "t(signingOut ? 'Signing out…' : 'Sign out')", "t('Sign out')")
 mutante('Esc fecha durante a saída', PAINEL, 'if (!signingOut) onClose()', 'onClose()')
 mutante('sem portal', PAINEL, 'return createPortal(node, document.body)', 'return node')

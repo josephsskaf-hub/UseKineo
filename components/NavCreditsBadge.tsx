@@ -1,6 +1,8 @@
 'use client'
 
 import KineoBolt from '@/components/KineoBolt'
+import AccountMenuTrigger from '@/components/AccountMenuTrigger'
+import { UNIFIED_ACCOUNT_MENU } from '@/lib/ui/unifiedAccountMenu'
 
 // Nav credits badge for the public Kineo landing (app/KineoLanding.tsx).
 // Mirrors the dashboard TopBar's CreditsBadge (components/TopBar.tsx) so
@@ -15,7 +17,7 @@ import { createClient } from '@/lib/supabase/client'
 import { trackEvent } from '@/lib/analytics'
 import { isCreditsReadFailure, READ_FAILED_EVENT } from '@/lib/creditsReadFailure'
 
-export default function NavCreditsBadge({ labelOnly = false }: { labelOnly?: boolean } = {}) {
+export default function NavCreditsBadge({ labelOnly = false, opensAccount = false }: { labelOnly?: boolean; opensAccount?: boolean } = {}) {
   const [credits, setCredits] = useState<number | null>(null)
 
   useEffect(() => {
@@ -83,6 +85,13 @@ export default function NavCreditsBadge({ labelOnly = false }: { labelOnly?: boo
       if (channel) supabase.removeChannel(channel)
     }
   }, [])
+
+  if (opensAccount && UNIFIED_ACCOUNT_MENU) return <AccountMenuTrigger label="Credits and account" signedIn
+    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, whiteSpace: 'nowrap',
+      borderRadius: 980, padding: '4px 10px', border: '1px solid var(--border)', background: 'var(--card)',
+      color: 'var(--text)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+    <KineoBolt /> {credits === null ? 'Credits' : `${credits} credit${credits === 1 ? '' : 's'}`}
+  </AccountMenuTrigger>
 
   if (labelOnly) return credits === null ? <>Credits</> : <span><KineoBolt /> {credits} credit{credits === 1 ? '' : 's'}</span>
   if (credits === null) return null

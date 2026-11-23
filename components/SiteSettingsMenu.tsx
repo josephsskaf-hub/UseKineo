@@ -7,8 +7,15 @@ import { AppearanceSettingsButton } from '@/components/AppearanceSettings'
 import { InterfaceLanguageSelect, useUiCopy } from '@/components/InterfaceLanguage'
 import { createClient } from '@/lib/supabase/client'
 import { sairDaConta } from '@/lib/auth/sairDaContaCliente'
+import AccountMenuTrigger from '@/components/AccountMenuTrigger'
+import { UNIFIED_ACCOUNT_MENU } from '@/lib/ui/unifiedAccountMenu'
 
 export default function SiteSettingsMenu({ signedIn }: { signedIn?: boolean }) {
+  if (UNIFIED_ACCOUNT_MENU) return <AccountMenuTrigger signedIn={signedIn} className="appearance-icon site-settings-trigger" />
+  return <LegacySiteSettingsMenu signedIn={signedIn} />
+}
+
+function LegacySiteSettingsMenu({ signedIn }: { signedIn?: boolean }) {
   const t = useUiCopy()
   const id = useId()
   const dialog = useRef<HTMLDialogElement>(null)

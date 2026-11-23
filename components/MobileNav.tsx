@@ -1,6 +1,7 @@
 'use client'
 
 import SiteSettingsMenu from '@/components/SiteSettingsMenu'
+import { UNIFIED_ACCOUNT_MENU } from '@/lib/ui/unifiedAccountMenu'
 import Link from 'next/link'
 import { NOMES_DE_PRODUTO } from '@/lib/ui/nomesDeProduto'
 import { MORE_NAV, MORE_TOOLS_NAV, CARTOON_NAV, RECREATE_NAV, WORKSPACE_NAV, navItemIdFor, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
@@ -190,6 +191,7 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
   useEffect(() => {
     const closeOutside = (event: PointerEvent) => {
       if (event.target instanceof Element && event.target.closest('dialog[open]')) return
+      if (UNIFIED_ACCOUNT_MENU && event.target instanceof Element && event.target.closest('[data-unified-account]')) return
       if (event.target instanceof Node && !navRef.current?.contains(event.target)) {
         closeDisclosures(navRef.current)
       }
@@ -240,7 +242,7 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
             }}>×</button>
         </div>
         <SiteSettingsMenu signedIn={isLoggedIn} />
-        {group.links.map((item) => (
+        {group.links.filter(item => !UNIFIED_ACCOUNT_MENU || item.href !== '/account').map((item) => (
           <Link key={item.href} href={createEntryForLegacyHref(item.href, isLoggedIn === true)} data-nav-item={navItemIdFor(item.href)}
             aria-current={isActive(pathname, item.href) ? (pathname === item.href ? 'page' : 'location') : undefined}
             onClick={() => closeDisclosures(navRef.current)}>
@@ -256,10 +258,12 @@ export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean 
       className="fixed bottom-0 left-0 right-0 z-50 md:hidden kineo-mobile-nav"
       onKeyDown={(event) => {
         if (event.key !== 'Escape') return
+        if (UNIFIED_ACCOUNT_MENU && event.target instanceof Element && event.target.closest('[data-unified-account]')) return
         const open = navRef.current?.querySelector<HTMLDetailsElement>('details[open]')
         if (open) { event.preventDefault(); open.open = false; open.querySelector('summary')?.focus() }
       }}
       onBlur={(event) => {
+        if (UNIFIED_ACCOUNT_MENU && event.relatedTarget instanceof Element && event.relatedTarget.closest('[data-unified-account], dialog[open]')) return
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
           closeDisclosures(navRef.current)
         }

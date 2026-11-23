@@ -1,4 +1,5 @@
 import SiteSettingsMenu from '@/components/SiteSettingsMenu'
+import { UNIFIED_ACCOUNT_MENU } from '@/lib/ui/unifiedAccountMenu'
 import Kling4TrialNotice from '@/components/Kling4TrialNotice'
 
 import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
@@ -940,7 +941,7 @@ export default function KineoLanding({
               cadastro, so para visitante; no celular ele mora no menu. */}
           {initialUser ? null : <Link className="nav-login" href="/login" data-nav-item="login" data-auth-modal="login"><UiLabel>Log in</UiLabel></Link>}
           {initialUser
-            ? <div className="nav-cta"><NavCreditsBadge /><Link className="btn btn-w nav-dashboard" style={{ padding: '12px 20px', fontSize: '14px' }} href={createEntryHref('film', '/studio', isSignedIn)}><UiLabel>Dashboard</UiLabel></Link></div>
+            ? <div className="nav-cta" data-unified-account-nav={UNIFIED_ACCOUNT_MENU || undefined}><NavCreditsBadge opensAccount /><Link className="btn btn-w nav-dashboard" style={{ padding: '12px 20px', fontSize: '14px' }} href={createEntryHref('film', '/studio', isSignedIn)}><UiLabel>Dashboard</UiLabel></Link></div>
             : <Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} data-auth-modal="signup" href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav'}><UiLabel>{CARD_ENTRY_COPY.ctaShort}</UiLabel></Link>}
           <div className="nav-toggle-wrap">
             <input type="checkbox" id="nav-toggle" className="nav-toggle-input" aria-label="Menu" aria-controls="mobile-nav-menu" />

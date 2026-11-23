@@ -11,6 +11,7 @@
 import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import Link from 'next/link'
 import NavCreditsBadge from '@/components/NavCreditsBadge'
+import { UNIFIED_ACCOUNT_MENU } from '@/lib/ui/unifiedAccountMenu'
 import './create.css'
 import './studio-panel.css'
 
@@ -19,7 +20,7 @@ export const CREATE_NAV_VIDEOS_HREF = '/library' // KINEO-ENTRADAS-SO-LOGADO-101
 
 export default function CreateNavConta() {
   return <div className="ct-nav-account" data-create-nav-account="">
-    <details className="ct-credit-menu" onKeyDown={event => {
+    {UNIFIED_ACCOUNT_MENU ? <NavCreditsBadge opensAccount /> : <details className="ct-credit-menu" onKeyDown={event => {
       if (event.key === 'Escape') {
         event.currentTarget.open = false
         event.currentTarget.querySelector('summary')?.focus()
@@ -29,7 +30,7 @@ export default function CreateNavConta() {
     }}>
       <summary title="Credits and pricing"><NavCreditsBadge labelOnly /><span aria-hidden="true">⌄</span></summary>
       <Link href={CREATE_NAV_PRICING_HREF} className="ct-nav-link" data-create-nav="pricing">Pricing</Link>
-    </details>
+    </details>}
     <Link href={CREATE_NAV_VIDEOS_HREF} className="ct-nav-link" data-create-nav="videos">My videos ↗</Link>
     <SiteSettingsMenu />
   </div>

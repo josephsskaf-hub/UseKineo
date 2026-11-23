@@ -1,6 +1,8 @@
 'use client'
 
 import SiteSettingsMenu from '@/components/SiteSettingsMenu'
+import AccountMenuTrigger from '@/components/AccountMenuTrigger'
+import { UNIFIED_ACCOUNT_MENU } from '@/lib/ui/unifiedAccountMenu'
 import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
 
 import Link from 'next/link'
@@ -801,9 +803,23 @@ export default function Sidebar({
             button) is the single purchase surface, and it stays BLUE at 0
             (red reads as an error; 0 credits is the normal free-tier state). */}
 
-        <SiteSettingsMenu signedIn={!!isLoggedIn} />
+        {!UNIFIED_ACCOUNT_MENU && <SiteSettingsMenu signedIn={!!isLoggedIn} />}
         {/* User row + settings menu + small logout */}
         <div style={{ borderTop: '1px solid var(--border)', padding: '10px 12px 12px', position: 'relative' }}>
+          {UNIFIED_ACCOUNT_MENU ? (
+            <AccountMenuTrigger label="Account" signedIn={!!isLoggedIn} onNavigate={onClose}
+              account={isLoggedIn ? { email: userEmail ?? '', displayName: displayName ?? '', plan: accountPlan, credits, creditsReadFailed } : undefined}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '4px 6px', border: 0,
+                borderRadius: 10, background: 'transparent', textAlign: 'start', color: 'var(--text)', cursor: 'pointer' }}>
+              <span aria-hidden="true" style={{ flex: 'none', width: 34, height: 34, display: 'grid', placeItems: 'center',
+                borderRadius: 10, background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 800 }}>
+                {(displayName || userEmail || 'U').charAt(0).toUpperCase()}
+              </span>
+              <span style={{ minWidth: 0, fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {isLoggedIn ? displayName || userEmail?.split('@')[0] || 'Account' : 'Guest User'}
+              </span>
+            </AccountMenuTrigger>
+          ) : <>
           {/* KINEO-MENU-CONTA-0411 — menu compacto com créditos, renovação e atalhos; o raciocínio está no cabeçalho de
               components/AccountPanel. */}
           {settingsOpen && (
@@ -904,6 +920,7 @@ export default function Sidebar({
               </button>
             )}
           </div>
+          </>}
         </div>
       </aside>
 

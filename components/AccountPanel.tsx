@@ -47,6 +47,7 @@ import {
   normalizeAccountPlan,
 } from '@/lib/ui/accountMenu'
 import type { MySubscription } from '@/app/api/me/subscription/route'
+import type { AccountMenuPlacement } from '@/lib/ui/unifiedAccountMenu'
 
 export interface AccountPanelProps {
   email: string
@@ -62,6 +63,10 @@ export interface AccountPanelProps {
   signingOut?: boolean
   /** Fecha a sidebar no mobile junto com o painel. */
   onNavigate?: () => void
+  id?: string
+  placement?: AccountMenuPlacement
+  guest?: boolean
+  loading?: boolean
 }
 
 /** Grant mensal do plano — denominador da barra de créditos. Trial não entra: o crédito dele não é o grant do plano. */
@@ -82,6 +87,7 @@ function RowIcon({ d }: { d: string }) {
 export default function AccountPanel({
   email, displayName, plan, credits, creditsReadFailed = false,
   onClose, onSignOut, onNavigate, signingOut = false, onBuyCredits = null,
+  id, placement, guest = false, loading = false,
 }: AccountPanelProps & { /** KINEO-ASSINANTE-COMPRA-SEMPRE-1211 — o servidor disse que é assinante pago: "Buy credits" abre a barra (quem abre é a barra lateral). */ onBuyCredits?: (() => void) | null }) {
   const t = useUiCopy()
   const language = useInterfaceLanguage()
@@ -91,13 +97,14 @@ export default function AccountPanel({
   // Só busca quando o painel abre — é uma chamada à Stripe, não vale gastar
   // em toda navegação.
   useEffect(() => {
+    if (guest) return
     let cancelled = false
     void fetch('/api/me/subscription', { cache: 'no-store' })
       .then((r) => (r.ok ? (r.json() as Promise<MySubscription>) : Promise.reject()))
       .then((d) => { if (!cancelled) setSub(d) })
       .catch(() => { if (!cancelled) setSub({ renewsAt: null, cancelsAtPeriodEnd: false, provider: null, amountMinor: null, status: null, payUrl: null }) })
     return () => { cancelled = true }
-  }, [])
+  }, [guest])
 
   // KINEO-SAIR-DA-CONTA-1510 — com a saída em curso nada fecha o menu: ele fica dizendo "Signing out…" até a navegação.
   const dismiss = useCallback(() => { if (!signingOut) onClose() }, [signingOut, onClose])
@@ -136,19 +143,25 @@ export default function AccountPanel({
   const renewal = accountRenewalLine(sub, accountPlanIsSubscribed(planKey))
   const dateOf = (at: Date) => at.toLocaleDateString(language, { month: 'short', day: 'numeric', year: 'numeric' })
 
+  const close = placement && <button type="button" className="kmc-close" aria-label={t('Close')}
+    disabled={signingOut} onClick={dismiss}>×</button>
+
   return portal(
     <>
       <style dangerouslySetInnerHTML={{ __html: MENU_CSS }} />
       {/* Fora do menu: esta camada transparente recebe o clique. Ela cobre também a engrenagem, então clicar nela fecha
           sem reabrir; e o <dialog> de aparência fica acima dela, então escolher um tema não fecha o menu. */}
       <div className="kmc-backdrop" onClick={dismiss} aria-hidden="true" />
-      <div ref={panelRef} role="dialog" aria-modal="true" aria-label={t('Account')} className="kmc">
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-label={t('Account')} className="kmc"
+        id={id} data-unified-account={placement ? '' : undefined} style={placement && { bottom: 'auto', ...placement }}>
+        {guest ? <div className="kmc-head"><b className="kmc-who">{t('Account')}</b>{close}</div> : <>
         <div className="kmc-head">
           <div className="kmc-avatar" aria-hidden="true">{(displayName || email || 'U')[0]?.toUpperCase()}</div>
           <div className="kmc-who">
             <div className="kmc-name" data-clarity-mask="true">{displayName || email}</div>
             {planName && <div className="kmc-plan" data-paid={accountPlanIsSubscribed(planKey) || undefined}>{planName}</div>}
           </div>
+          {close}
         </div>
 
         <div className="kmc-credits">
@@ -198,6 +211,8 @@ export default function AccountPanel({
           </Link>
         ))}
         <div className="kmc-sep" />
+        </>}
+        {loading ? <p className="kmc-status" role="status">{t('Loading…')}</p> : <>
         <label className="kmc-row kmc-row-control">
           <RowIcon d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3Z" />
           <span>{t('Language')}</span>
@@ -205,7 +220,16 @@ export default function AccountPanel({
         </label>
         <AppearanceSettingsButton compact={false} className="kmc-row" />
         <div className="kmc-sep" />
-        <button
+        {guest ? <>
+          <Link href="/login" onClick={go} className="kmc-row kmc-row-accent">
+            <RowIcon d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M4 12h11m-4-4 4 4-4 4" />
+            <span>{t('Sign in')}</span>
+          </Link>
+          <Link href="/pricing#plans" onClick={go} className="kmc-row">
+            <RowIcon d="M12 19V5M6 11l6-6 6 6" />
+            <span>{t('See plans')}</span>
+          </Link>
+        </> : <button
           // KINEO-SAIR-DA-CONTA-1510 — o painel NÃO fecha mais no clique: fechava antes de qualquer resposta e a
           // pessoa, sem ver nada acontecer, clicava de novo. Agora fica aberto, desligado, dizendo "Signing out…".
           type="button"
@@ -219,7 +243,8 @@ export default function AccountPanel({
             <path d="m15 16.5 4.5-4.5L15 7.5M19.5 12H9" />
           </svg>
           <span>{t(signingOut ? 'Signing out…' : 'Sign out')}</span>
-        </button>
+        </button>}
+        </>}
       </div>
     </>
   )
@@ -270,4 +295,11 @@ const MENU_CSS = `
 .kmc .kmc-row{min-height:44px}
 }
 @media(prefers-reduced-motion:reduce){.kmc{animation:none}.kmc-bar>span{transition:none}}
+.kmc[data-unified-account]{overflow-x:hidden}
+.kmc[data-unified-account] .kmc-row,.kmc[data-unified-account] .kineo-interface-language{min-height:44px}
+.kmc[data-unified-account] .kmc-billing{display:flex;align-items:center;justify-content:center;min-width:44px;min-height:44px}
+.kmc[data-unified-account] .kmc-row-control select{max-width:55%}
+.kmc-close{flex:none;width:44px;height:44px;border:0;border-radius:9px;background:transparent;color:var(--text);cursor:pointer;font:inherit;font-size:20px}
+.kmc-close:hover{background:var(--card2)}
+.kmc-status{padding-inline:10px;color:var(--muted);font-size:14px}
 `

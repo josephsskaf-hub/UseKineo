@@ -1,0 +1,63 @@
+export const ACCOUNT_MENU_RELEASE = 'off' as 'off' | 'on'
+export const UNIFIED_ACCOUNT_MENU = ACCOUNT_MENU_RELEASE === 'on'
+export const PRICING_CREDITS_SURFACE = 'pricing_credits'
+
+const PAGES = {
+  '/': 'home',
+  '/studio': 'studio',
+  '/studio/create': 'studio_create',
+  '/create/film': 'film',
+  '/create/cartoon': 'cartoon',
+  '/create/ads': 'create_ads',
+  '/create/clip': 'clip',
+  '/pricing': 'pricing',
+  '/recreate': 'recreate',
+  '/recreate-preview': 'recreate_preview',
+  '/ads': 'ads',
+  '/effects': 'effects',
+  '/examples': 'examples',
+  '/showcase': 'showcase',
+  '/made-with-kineo': 'made_with_kineo',
+  '/tools': 'tools',
+  '/tools/editor': 'video_editor',
+  '/account': 'profile',
+  '/library': 'library',
+  '/clips': 'clips',
+  '/images': 'images',
+  '/audio': 'audio',
+  '/animate': 'animate',
+  '/kids-cartoon': 'kids_cartoon',
+  '/templates': 'templates',
+  '/affiliate': 'affiliate',
+  '/ai-video-generator': 'ai_video_generator',
+  '/text-to-video-shorts': 'text_to_video_shorts',
+  '/chatgpt': 'chatgpt',
+} as const
+
+/** Measure known surfaces without sending route IDs, prompt text or query strings. */
+export function unifiedAccountSurface(pathname: string): string {
+  const paths = pathname.split('/').filter(Boolean)
+  for (const path of ['/' + paths.slice(0, 2).join('/'), '/' + paths.slice(0, 1).join('/')]) {
+    if (Object.hasOwn(PAGES, path)) return `account_${PAGES[path as keyof typeof PAGES]}`
+  }
+  return 'account_public'
+}
+
+export type AccountMenuPlacement = { left: number; width: number; top?: number; bottom?: number; maxHeight: number }
+
+export function placeAccountMenu(
+  anchor: { right: number; top: number; bottom: number }, viewport: { width: number; height: number }, panelWidth: number,
+): AccountMenuPlacement {
+  const inset = 12
+  const gap = 8
+  const width = Math.min(panelWidth, Math.max(0, viewport.width - 2 * inset))
+  const left = Math.max(inset, Math.min(anchor.right - width, viewport.width - width - inset))
+  const below = viewport.height - anchor.bottom
+  const above = anchor.top
+  const useTop = below >= above
+  return {
+    left, width,
+    ...(useTop ? { top: Math.max(inset, anchor.bottom + gap) } : { bottom: Math.max(inset, viewport.height - anchor.top + gap) }),
+    maxHeight: Math.max(0, (useTop ? below : above) - inset - gap),
+  }
+}
