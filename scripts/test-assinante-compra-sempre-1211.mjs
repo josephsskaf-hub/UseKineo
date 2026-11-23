@@ -63,7 +63,9 @@ function battery(src) {
   if (!/fontSize: 1[2-9]/u.test(e.slice(e.indexOf('data-kineo="buy-credits-entry"')))) p.push('"Buy credits" abaixo de 12 px')
   if (/\$\d|US\$|credits for/u.test(e.slice(e.indexOf('export default function BuyCreditsLink')))) p.push('preço na entrada (só na barra)')
   const s = src[SIDEBAR]
-  if (!s.includes("const recargaChip = useRecargaEntrada('sidebar_chip', Boolean(isLoggedIn) && planResolved)")) p.push('o chip da barra lateral não pergunta ao servidor')
+  const legacyChip = "const legacyRecarga = useRecargaEntrada('sidebar_chip', !unifiedMenu && Boolean(isLoggedIn) && planResolved)"
+  const visibleChip = "const visibleRecarga = useVisibleAccountOffer('sidebar_chip', unifiedMenu && Boolean(isLoggedIn) && planResolved, creditChipRef)"
+  if (!s.includes(legacyChip) || !s.includes(visibleChip) || !s.includes('const recargaChip = unifiedMenu ? visibleRecarga : legacyRecarga')) p.push('o chip da barra lateral não pergunta ao servidor')
   const clique = s.slice(s.indexOf('const handleCreditChipClick = () => {'), s.indexOf("router.push('/pricing')"))
   if (!/if \(recargaChip\) \{[\s\S]*setShowTopup\(true\)\n\s*return\n\s*\}\n\s*if \(topupEligible\)/u.test(clique)) p.push('o assinante do chip ainda vai para /pricing')
   if (!s.includes('? <BuyCreditsModal offer={recargaChip} surface={topupSurface} onClose={() => setShowTopup(false)} />')) p.push('o chip não abre a barra da recarga')
@@ -91,6 +93,7 @@ const MUTANTES = [
   ['rota volta a exigir zerado', muta(ROUTE, '  const button = qa || subscriber\n', '  const button = qa || zeroed\n')],
   ['checkout volta a exigir zerado no botão', muta(CHECKOUT, 'const eligible = recargaAssinanteSubscriber(profile)', "const eligible = kind === 'button' ? recargaAssinanteEligible(profile, 9) : recargaAssinanteSubscriber(profile)")],
   ['entrada pinta para todos', muta(ENTRY, "setOffer(o && o.show === true && typeof o.go === 'string'", "setOffer(o && typeof o.go === 'string'")],
+  ['chip unificado usa uma oferta local', muta(SIDEBAR, "useVisibleAccountOffer('sidebar_chip', unifiedMenu && Boolean(isLoggedIn) && planResolved, creditChipRef)", '{ show: true }')],
   ['chip do assinante vai à /pricing', muta(SIDEBAR, '    if (recargaChip) { // KINEO-ASSINANTE-COMPRA-SEMPRE-1211', '    if (false) { // KINEO-ASSINANTE-COMPRA-SEMPRE-1211')],
   ['chip abre a barra antiga', muta(SIDEBAR, '? <BuyCreditsModal offer={recargaChip} surface={topupSurface}', '? <CreditsTopupModal surface="sidebar_chip"')],
   ['painel sem Buy credits', muta(SIDEBAR, "onBuyCredits={recargaChip ? () => {", "onBuyCredits={false ? () => {")],

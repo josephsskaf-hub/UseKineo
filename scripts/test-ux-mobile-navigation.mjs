@@ -43,6 +43,7 @@ function loadComponent(file) {
     if (name === 'next/link') return { default: Link }
     if (name === 'next/navigation') return { usePathname: () => pathname }
     if (name.startsWith('@/lib/')) return loadPure(name)
+    if (name === '@/components/AccountMenuScope') return { useAccountMenuScope: () => null }
     if (name === '@/components/InterfaceLanguage') return { UiLabel: ({ children }) => children }
     if (name === '@/components/TopBar') return { default: TopBar }
     if (name.startsWith('@/components/')) return { default: () => null }

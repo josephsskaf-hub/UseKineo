@@ -76,6 +76,8 @@ export function renderPage(entry, before = false, fixture = {}, props = {}, comp
       if(['EngineVisualReference','BusinessVisualReferences','PublicNavDropdown','ControlIcon','LibraryOrganization','ImageResultPreview','MobileCreationShortcut','DeliveryControls','AdsPlanChanges','pricing/PlanValueStage','pricing/TwoProductsPricing'].some(name=>id==='@/components/'+name))return load(id.slice(2)+'.tsx')
       if(['./ControlIcon','./InterfaceLanguage'].includes(id))return load('components/'+id.slice(2)+'.tsx')
       if(id==='@/components/studioKit')return load('components/studioKit.tsx')
+      if(id==='@/components/AccountMenuScope')return {useAccountMenuScope:()=>null,useAccountCreditsScope:()=>null}
+      if(id==='@/components/billing/useVisibleAccountOffer')return {useVisibleAccountOffer:()=>null,useAccountOfferImpression:()=>{}}
       if(id==='@/components/InterfaceLanguage')return load('components/InterfaceLanguage.tsx')
       if(id==='@/components/KineoBolt')return load('components/KineoBolt.tsx')
       // Premiere exports a hook as well as components. A component-only stub

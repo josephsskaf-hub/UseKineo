@@ -64,10 +64,11 @@ function loader(S, stubs = {}, env = {}) {
     cache.set(file, mod.exports)
     const req = (id) => {
       if (Object.prototype.hasOwnProperty.call(stubs, id)) return stubs[id]
+      if (id === 'node:crypto') return require(id)
       if (id.startsWith('@/lib/')) return load('lib/' + id.slice(6) + '.ts')
       throw new Error('import inesperado: ' + id + ' em ' + file)
     }
-    vm.runInNewContext(js, { module: mod, exports: mod.exports, require: req, process: { env: { NODE_ENV: 'test', ...env } }, console: { warn: () => {}, log: () => {}, error: () => {} }, Math, Date, Number, String, Array, Object, JSON, Map, Set, Promise, Error, URL, URLSearchParams, RegExp, encodeURIComponent, Symbol, parseInt, parseFloat, isFinite, Infinity, NaN, setTimeout })
+    vm.runInNewContext(js, { module: mod, exports: mod.exports, require: req, process: { env: { NODE_ENV: 'test', ...env } }, console: { warn: () => {}, log: () => {}, error: () => {} }, Math, Date, Number, String, Array, Object, JSON, Map, Set, Promise, Error, URL, URLSearchParams, RegExp, encodeURIComponent, Symbol, parseInt, parseFloat, isFinite, Infinity, NaN, Buffer, setTimeout })
     cache.set(file, mod.exports)
     return mod.exports
   }
