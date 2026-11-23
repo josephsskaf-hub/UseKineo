@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { citationPageVisible } from '@/lib/growth/citationPagesAccess'
 
 // Server-only boundary: getUser verifies the cookie; client-provided e-mail is never accepted.
-export default async function InternalCitationPreview({ children }: { children: ReactNode }) {
+export default async function InternalCitationPreview({ children }: { children: JSX.Element }) {
   let user = null
   try {
     const { createClient } = await import('@/lib/supabase/server')
