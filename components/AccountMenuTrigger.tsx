@@ -31,6 +31,7 @@ export default function AccountMenuTrigger({ signedIn, account, className, style
   const pathname = usePathname()
   const surface = unifiedAccountSurface(pathname)
   const opener = useRef<HTMLButtonElement>(null)
+  const [mounted, setMounted] = useState(false)
   const [placement, setPlacement] = useState<AccountMenuPlacement | null>(null)
   const [purchase, setPurchase] = useState<RecargaAssinanteOffer | null>(null)
 
@@ -43,6 +44,7 @@ export default function AccountMenuTrigger({ signedIn, account, className, style
   }
 
   const open = placement !== null
+  useEffect(() => setMounted(true), [])
   useEffect(() => {
     if (!open) return
     window.addEventListener('resize', measure)
@@ -54,7 +56,7 @@ export default function AccountMenuTrigger({ signedIn, account, className, style
   return <>
     <button ref={opener} type="button" className={className}
       style={{ ...style, minHeight: 44, minWidth: 44 }} data-unified-account-trigger=""
-      aria-label={t(label)} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined}
+      aria-label={t(label)} disabled={!mounted} aria-haspopup="dialog" aria-expanded={open} aria-controls={open ? id : undefined}
       onClick={() => { if (open) setPlacement(null); else measure() }}>
       {children ?? <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinejoin="round" aria-hidden="true">
         <path d="m9.5 3-.7 2.2-2.1 1-2.1-.5-2 3.5 1.5 1.7v2.2l-1.5 1.7 2 3.5 2.1-.5 2.1 1 .7 2.2h5l.7-2.2 2.1-1 2.1.5 2-3.5-1.5-1.7v-2.2l1.5-1.7-2-3.5-2.1.5-2.1-1-.7-2.2z"/><circle cx="12" cy="12" r="3"/>

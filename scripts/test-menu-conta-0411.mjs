@@ -89,6 +89,9 @@ function verificar(fontes = {}) {
     && menu.unifiedAccountSurface('/private-reference') === 'account_public'
     && menu.unifiedAccountSurface('/recreate/private-reference') === 'account_recreate', 'superfícies distintas sem identificador privado')
   checa(menu.ACCOUNT_MENU_RELEASE === 'off', 'interruptor desligado na entrega')
+  const trigger = fonte(TRIGGER)
+  checa(trigger.includes('useEffect(() => setMounted(true), [])') && trigger.includes('disabled={!mounted}'), 'a entrada espera a hidratação antes de aceitar o clique')
+  checa(trigger.includes('setPlacement(null); setPurchase(null) }, [pathname])'), 'a resposta inicial da sessão não fecha o menu')
   checa(fonte(TRIGGER).includes('identity && offer ? () =>') && fonte(TRIGGER).includes('trackEvent(BUY_CREDITS_OPENED_EVENT, { surface,'), 'oferta do servidor e evento de abertura no menu')
   checa(fonte(PRICING).includes('useRecargaEntrada(PRICING_CREDITS_SURFACE, signedIn === true)')
     && fonte(PRICING).includes('offer && open && <BuyCreditsModal'), 'pricing abre a barra só por oferta autenticada e clique')
@@ -237,6 +240,8 @@ mutante('sem aparência', PAINEL, `<AppearanceSettingsButton compact={false} cla
 mutante('Sign out fecha o menu', PAINEL, 'onClick={() => { if (!signingOut) onSignOut() }}', 'onClick={() => { onClose(); onSignOut() }}')
 mutante('Sign out sem disabled', PAINEL, 'disabled={signingOut}\n          aria-busy={signingOut}', 'aria-busy={signingOut}')
 mutante('visitante recebe saldo da conta', PAINEL, '{guest ? <div className="kmc-head">', '{false ? <div className="kmc-head">')
+mutante('menu aceita clique antes da hidratação', TRIGGER, 'disabled={!mounted}', '')
+mutante('sessão fecha o menu', TRIGGER, 'setPurchase(null) }, [pathname])', 'setPurchase(null) }, [pathname, signedIn])')
 mutante('preços mostram recarga antes do clique', PRICING, 'offer && open && <BuyCreditsModal', 'offer && <BuyCreditsModal')
 mutante('sem "Signing out…"', PAINEL, "t(signingOut ? 'Signing out…' : 'Sign out')", "t('Sign out')")
 mutante('Esc fecha durante a saída', PAINEL, 'if (!signingOut) onClose()', 'onClose()')
