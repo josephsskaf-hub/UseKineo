@@ -131,7 +131,7 @@ const CARD = { background: 'var(--card)', border: '1px solid var(--border)' }
 // Click attribution does not depend on this query string: <OrganicCtaLink>
 // fires organic_cta_clicked with source="partners" (components/OrganicCtaLink.tsx:32-38).
 const APPLY = '/affiliate?utm_source=partners&utm_medium=organic&utm_campaign=push33_partner_program'
-const SUPPORT = 'mailto:hello@usekineo.com?subject=Kineo%20affiliate%20program%20question'
+const SUPPORT = `mailto:${VIEWS_OFFER_CONTACT_EMAIL}?subject=Kineo%20affiliate%20program%20question`
 
 // KINEO-PARTNERS-CRIADORES-1610 — o que postar: mídia REAL da casa, nunca de cliente. O filme vem da lista explícita de
 // exemplos do fundador (lib/publicExamples.ts, dono confirmado em 27/08); o anúncio é a prévia real do efeito do Studio Ads

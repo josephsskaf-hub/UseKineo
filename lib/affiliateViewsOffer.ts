@@ -25,7 +25,7 @@ export const VIEWS_OFFER_MIN_INTEGRATION_SECONDS = 30
 /** Por onde sai o pagamento (manual). */
 export const VIEWS_OFFER_PAYOUT_METHODS = 'PayPal or Wise'
 /** Onde o criador pede a aprovação: o e-mail de afiliados que /partners já usa. */
-export const VIEWS_OFFER_CONTACT_EMAIL = 'hello@usekineo.com'
+export const VIEWS_OFFER_CONTACT_EMAIL = 'support@usekineo.com'
 export const VIEWS_OFFER_APPLY_MAILTO =
   `mailto:${VIEWS_OFFER_CONTACT_EMAIL}?subject=${encodeURIComponent('Kineo paid per views — approval request')}`
 
