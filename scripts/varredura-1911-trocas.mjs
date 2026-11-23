@@ -62,8 +62,18 @@ const PRICING_NAV_ANTIGA = `      {/* ───────── Top Nav (simpl
 
 export function pricingPreservado1911(base, atual) {
   if (base === null) return false
-  if (base.includes(IMPORT_CABECALHO)) return atual === base
-  return atual === aplicar(base, [
+  // The Studio text may change only at these copy and display points.
+  // Every checkout, price calculation and ordering line remains protected.
+  const semTextoStudio = atual
+    .replace("import { studioIncludedPerks } from '@/lib/pricingStudioBenefits'\n", '')
+    .replace("import { PLAN_VALUE_STAGE_CSS, PlanValueCard, StudioFilmCounts, isPlanValuePalette, type PlanValuePalette, type PlanValueTier }", "import { PLAN_VALUE_STAGE_CSS, PlanValueCard, isPlanValuePalette, type PlanValuePalette, type PlanValueTier }")
+    .replace("function PricingClient({ initialBilling = 'annual', watchPreview = false, characterLimits }: {", "function PricingClient({ initialBilling = 'annual', watchPreview = false }: {")
+    .replace("  const watchPricing = WATCH_PRICING_PUBLIC || watchPreview\n  const studioPerks = studioIncludedPerks(characterLimits?.pro)", "  const watchPricing = WATCH_PRICING_PUBLIC || watchPreview")
+    .replace("      videosPerMonth: filmsAndScenes('pro'),", "      outcome: `Every available engine — Kling 3, MiniMax H3, MiniMax H3 Turbo${AVATAR_PUBLIC ? ', Avatar' : ''} — plus 2 free HD enhances a month.`, // KINEO-CONSENTIMENTO-1610: saiu a promessa de armazenamento eterno (sem garantia) · KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 · KINEO-FILME-GRATIS-15S-2026-09-29 (motor de stock fora do catálogo): Omni pausado não se vende · KINEO-H3-DE-VOLTA-2026-09-22\n      videosPerMonth: filmsAndScenes('pro'),\n      storageLine: 'Unlimited projects · files stay while your account is active', // KINEO-CONSENTIMENTO-1610")
+    .replace("                          ...(p.tier === 'pro' ? studioPerks : []),", "                          ...(p.tier === 'pro' ? ['2 free HD enhances a month'] : []),")
+    .replace("                {p.tier === 'pro' ? (\n                  <div className=\"mt-3 text-[13px] text-[var(--muted)]\">\n                    <p>{studioPerks.join(' · ')}</p>\n                    <StudioFilmCounts />\n                  </div>\n                ) : 'outcome' in p && p.outcome ? (", "                {'outcome' in p && p.outcome ? (")
+  if (base.includes(IMPORT_CABECALHO)) return semTextoStudio === base
+  return semTextoStudio === aplicar(base, [
     [IMPORT_MENU_ANTIGO, IMPORT_CABECALHO],
     ["import KineoBolt, { KineoBoltText, KineoBrandIcon } from '@/components/KineoBolt'", "import KineoBolt, { KineoBoltText } from '@/components/KineoBolt'"],
     [PRICING_NAV_ANTIGA, '      <PublicSiteHeader signedIn={signedIn ?? undefined} currentPath="/pricing" />'],

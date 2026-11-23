@@ -63,7 +63,8 @@ import { AUTOPILOT_PUBLIC } from '@/lib/autopilotPublic' // KINEO-AUTOPILOT-FORA
 // KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — o cartão que mostra o que o plano compra (imagens, clipes por motor, filmes).
 // KINEO-PRECOS-REFINO-2026-10-09 — o cartão calcula os próprios números (os harnesses de render trocam todo import de @/components por
 // stub e a conta não pode morar aqui); a página só escolhe a paleta.
-import { PLAN_VALUE_STAGE_CSS, PlanValueCard, isPlanValuePalette, type PlanValuePalette, type PlanValueTier } from '@/components/pricing/PlanValueStage'
+import { PLAN_VALUE_STAGE_CSS, PlanValueCard, StudioFilmCounts, isPlanValuePalette, type PlanValuePalette, type PlanValueTier } from '@/components/pricing/PlanValueStage'
+import { studioIncludedPerks } from '@/lib/pricingStudioBenefits'
 import { PRECOS_DOIS_PRODUTOS_PUBLIC } from '@/lib/pricingTwoProducts' // KINEO-PRECOS-DOIS-PRODUTOS-2026-10-05 (desligado)
 import PricingSavedCheckout from '@/components/PricingSavedCheckout'
 import PricingJourneyProof from '@/components/growth/PricingJourneyProof'
@@ -364,9 +365,7 @@ function buildPricing(currency: DisplayCurrency, region: PriceRegion) {
       // KINEO-PRICING-V5-2026-08-17 — 320cr: volume + Kling 3 todo mês +
       // 2 Enhance HD grátis (Topaz) + storage ilimitado.
       // KINEO-AVATAR-FORA-2026-09-28 — ', Avatar' saiu do resultado do Studio: o motor deixou o catálogo público em 27/09.
-      outcome: `Every available engine — Kling 3, MiniMax H3, MiniMax H3 Turbo${AVATAR_PUBLIC ? ', Avatar' : ''} — plus 2 free HD enhances a month.`, // KINEO-CONSENTIMENTO-1610: saiu a promessa de armazenamento eterno (sem garantia) · KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 · KINEO-FILME-GRATIS-15S-2026-09-29 (motor de stock fora do catálogo): Omni pausado não se vende · KINEO-H3-DE-VOLTA-2026-09-22
       videosPerMonth: filmsAndScenes('pro'),
-      storageLine: 'Unlimited projects · files stay while your account is active', // KINEO-CONSENTIMENTO-1610
       cta: { label: 'Get Started', href: '#checkout' },
     },
   ]
@@ -384,13 +383,14 @@ function trackPricingEvent(name: string, metadata?: Record<string, unknown>): vo
  */
 export type PricingCharacterLimits = { free: number; trial: number; starter: number; basic: number; pro: number }
 
-export default function PricingClient({ initialBilling = 'annual', watchPreview = false }: {
+export default function PricingClient({ initialBilling = 'annual', watchPreview = false, characterLimits }: {
   initialBilling?: PricingPlanChoiceBilling
   watchPreview?: boolean
   // KINEO-PRECOS-LIMPEZA-1510 — a tabela "Compare plans" saiu da página (fundador 15/10); a prop segue aceita para não mexer no servidor.
   characterLimits?: PricingCharacterLimits
 } = {}) {
   const watchPricing = WATCH_PRICING_PUBLIC || watchPreview
+  const studioPerks = studioIncludedPerks(characterLimits?.pro)
   // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
   const OFFER = useFreeTierOffer()
   const kling4Availability = useKling4PaidAvailability()
@@ -1669,7 +1669,7 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                           ...(!watchPricing ? incluidoEmTodoPlano() : []),
                           ...('storageLine' in p && p.storageLine ? [p.storageLine] : []),
                           // Studio: 2 Enhance HD grátis por mês (app/api/enhance/route.ts, plano 'pro', `(count ?? 0) < 2`).
-                          ...(p.tier === 'pro' ? ['2 free HD enhances a month'] : []),
+                          ...(p.tier === 'pro' ? studioPerks : []),
                         ]}
                       />
                     )
@@ -1800,7 +1800,12 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
                     {p.videosPerMonth}
                   </div>
                 ) : null}
-                {'outcome' in p && p.outcome ? (
+                {p.tier === 'pro' ? (
+                  <div className="mt-3 text-[13px] text-[var(--muted)]">
+                    <p>{studioPerks.join(' · ')}</p>
+                    <StudioFilmCounts />
+                  </div>
+                ) : 'outcome' in p && p.outcome ? (
                   <p className="mt-1.5 mb-3 text-[13px] leading-relaxed text-[var(--muted)]">
                     {p.outcome.replaceAll('Kling 3', klingPaidName)}
                   </p>

@@ -18,6 +18,7 @@
 import type { ReactNode } from 'react'
 import { twoProductsModelForPage } from '@/components/pricing/TwoProductsPricing'
 import { IMG_NANOBANANA_CR } from '@/lib/marketingPrice'
+import { TIER_CREDITS } from '@/lib/checkoutPricing'
 import { contaDeFilmes } from '@/lib/contaDeFilmes' // KINEO-CARTAO-DUAS-CONTAS-0511
 import { planValueCardLines, planValueFor, type PlanValue } from '@/lib/pricingPlanValue'
 // KINEO-CHECKOUT-CLAREZA-1610 — o custo por filme (mesma régua da linha de filmes do cartão) e a garantia única sob o botão.
@@ -208,6 +209,19 @@ export function partesDoPreco(amount: string): { simbolo: string; valor: string 
   return m ? { simbolo: m[1], valor: m[2] } : null
 }
 
+const FILM_CAPACITY_NOTE = 'Each count assumes you use all monthly credits on that engine.'
+
+export function StudioFilmCounts() {
+  const films = planValueForPage(TIER_CREDITS.pro).films
+  return <details data-kineo="studio-film-counts" className="mt-3">
+    <summary>See 60-second films by engine</summary>
+    <ul className="pl-3">
+      {films.map(film => <li key={film.engine}>{film.label} · up to {film.count}</li>)}
+    </ul>
+    <p>{FILM_CAPACITY_NOTE}</p>
+  </details>
+}
+
 export function PlanValueCard(props: PlanValueCardProps) {
   const preco = partesDoPreco(props.amount)
   const value = planValueForPage(props.credits)
@@ -225,6 +239,9 @@ export function PlanValueCard(props: PlanValueCardProps) {
   for (const f of value.films) if (!engines.some((e) => e.engine === f.engine && e.label === f.label)) engines.push({ engine: f.engine, label: f.label, clip: null, film: f.count })
   const clipSeconds = value.clips.length ? seconds(value.clips.map((c) => c.seconds)) : ''
   const filmSeconds = value.films.length ? seconds(value.films.map((f) => f.seconds)) : ''
+  const studio = props.tier === 'pro'
+  const engineSummary = studio ? 'See 60-second films by engine' : 'See credits by engine'
+  const capacityNote = studio ? FILM_CAPACITY_NOTE : 'A clip is one AI scene. A film is a finished Short with voice, captions and music.'
   const cell = (n: number | null) => (typeof n === 'number' && n >= 1 ? <b>{n}</b> : <span className="pv-none">—</span>)
   const engineDetails = <div className="pv-sec">
     <div className="pv-label">Each month, by engine</div>
@@ -232,7 +249,7 @@ export function PlanValueCard(props: PlanValueCardProps) {
       <thead><tr><th scope="col"><span className="sr-only">Engine</span></th><th scope="col">Clips · {clipSeconds}</th><th scope="col">Films · {filmSeconds}</th></tr></thead>
       <tbody>{engines.map(e => <tr key={`${e.engine}:${e.label}`}><td>{e.label}</td><td>{cell(e.clip)}</td><td>{cell(e.film)}</td></tr>)}</tbody>
     </table>
-    <p className="pv-caption">A clip is one AI scene. A film is a finished Short with voice, captions and music.</p>
+    <p className="pv-caption">{capacityNote}</p>
   </div>
   if (props.compact) return (
     <div className="pv-card pv-compact" data-tier={props.tier} data-popular={props.popular ? 'true' : undefined} data-selected={props.selected ? 'true' : undefined} data-requested={props.requested ? 'true' : undefined} id={props.cardId} onClick={() => { if (!props.selected) props.onSelect() }}>
@@ -346,7 +363,7 @@ export function PlanValueCard(props: PlanValueCardProps) {
         </ul>
       </div>
       <details className="pv-more">
-      <summary>See credits by engine</summary>
+      <summary>{engineSummary}</summary>
       <div className="pv-sec">
         <div className="pv-label">Each month, by engine</div>
         <table className="pv-table">
@@ -367,7 +384,7 @@ export function PlanValueCard(props: PlanValueCardProps) {
             ))}
           </tbody>
         </table>
-        <p className="pv-caption">A clip is one AI scene. A film is a finished Short with voice, captions and music.</p>
+        <p className="pv-caption">{capacityNote}</p>
       </div>
 
       </details>
