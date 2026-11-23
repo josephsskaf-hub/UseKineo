@@ -27,15 +27,21 @@ const ctx = { userId, supabaseUrl: SUPABASE, dono: url => ownedClipImageUrl(url,
 const body = (format, photos) => ({ format, photos, consent: true, prompt: 'Untrusted recipe override' })
 const basketball = 'basquete'
 
-assert.equal(RECREATE_IDENTITY_PHOTOS_RELEASE, 'off')
+assert.equal(RECREATE_IDENTITY_PHOTOS_RELEASE, 'internal', 'only the exact house list sees extra angles')
 const house = INTERNAL_EXACT_EMAILS[0]
 const customer = 'customer@example.invalid'
-assert.equal(recreateIdentityPhotosVisible(house), false)
+assert.equal(recreateIdentityPhotosVisible(house), true)
+assert.equal(recreateIdentityPhotosVisible(customer), false, 'customers keep the one-photo flow')
+assert.equal(recreateIdentityPhotosVisible(null), false, 'visitors keep the one-photo flow')
+assert.equal(recreateIdentityPhotosVisible(house, 'off'), false)
 assert.equal(recreateIdentityPhotosVisible(house, 'internal'), true)
 assert.equal(recreateIdentityPhotosVisible(customer, 'internal'), false)
 assert.equal(recreateIdentityPhotosVisible(null, 'public'), false)
 const available = formatosParaOCliente(house)
-const disabledSpecs = clipTemplateSpecs(available, house)
+const disabledSpecs = clipTemplateSpecs(available, house, 'off')
+assert.ok(Object.values(clipTemplateSpecs(available, customer)).every(spec => spec.identityPhotoLimit === undefined), 'customer screen unchanged')
+assert.ok(Object.values(clipTemplateSpecs(available, null)).every(spec => spec.identityPhotoLimit === undefined), 'visitor screen unchanged')
+assert.equal(clipTemplateSpecs(available, house)[basketball].identityPhotoLimit, KLING_IDENTITY_PHOTO_LIMIT, 'house sees the angle slots')
 const enabledSpecs = clipTemplateSpecs(available, house, 'internal')
 assert.ok(Object.values(disabledSpecs).every(spec => spec.identityPhotoLimit === undefined))
 assert.equal(clipTemplateSpecs(available, customer, 'internal')[basketball].identityPhotoLimit, undefined)
@@ -109,8 +115,9 @@ const route = createOfflineLoader({ env: { NEXT_PUBLIC_SUPABASE_URL: SUPABASE },
   './invasorServer': { invasorArquivosPresentes: noSpend, assinarTrechoDoInvasor: noSpend },
   '@/lib/serverEvents': { writeServerEvent: noSpend },
 } })('lib/recreate/invasorRota.ts')
-const args = photos => ({ admin: {}, supabase: {}, user: { id: userId, email: house }, account: { userId, balance: 100 }, raw: body(basketball, photos), key: 'fixture-recreate-0001' })
-assert.equal((await route.pedirInvasor(args([front, left, right]))).body.code, 'photo_angles_unavailable', 'off rejects new groups before any spend')
+const args = (photos, email = customer) => ({ admin: {}, supabase: {}, user: { id: userId, email }, account: { userId, balance: 100 }, raw: body(basketball, photos), key: 'fixture-recreate-0001' })
+assert.equal((await route.pedirInvasor(args([front, left, right]))).body.code, 'photo_angles_unavailable', 'a customer cannot send extra angles; rejected before any spend')
+await assert.rejects(route.pedirInvasor(args([front, left, right], house)), /attempted to spend/, 'the house passes the angle gate and reaches the usual checks')
 existing = stored
 assert.equal((await route.pedirInvasor(args([front, left, right]))).body.replay, true, 'request remains recoverable after the switch closes')
 assert.equal((await route.pedirInvasor(args([front, right, left]))).status, 409)
