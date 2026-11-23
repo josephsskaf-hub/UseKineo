@@ -308,7 +308,7 @@ for (const rel of ['lib/scenePreview.ts', 'lib/freeFilmPolicy.ts', 'lib/regionPa
   const m = main(rel)
   if (rel === 'app/pricing/PricingClient.tsx') {
     const pricing = read(rel)
-    ok(pricingPreservado1911(m, pricing), `${rel} idêntico à main, exceto os recortes do cabeçalho`)
+    ok(pricingPreservado1911(m, pricing), `${rel} preserva a main com as exceções exatas do cabeçalho e da entrada de recarga`)
     const billingAlterado = pricing.replace('/api/stripe/checkout?tier=${tier}${billingParam}', '/api/stripe/checkout?tier=${tier}&billing=yearly')
     ok(billingAlterado !== pricing && !pricingPreservado1911(m, billingAlterado), 'mudança no checkout fora do cabeçalho é rejeitada')
     continue

@@ -87,7 +87,7 @@ for (const rel of ['lib/checkoutPricing.ts', 'app/api/stripe/checkout/route.ts']
 ok(P.PREVIA_PER_ACCOUNT_TOTAL === 3 && P.PREVIA_PER_ACCOUNT_PER_DAY === 1 && P.PREVIA_GLOBAL_PER_DAY === 200, 'tetos da prévia: 3 por conta, 1 por dia, 200 por dia')
 const pricingBase = main('app/pricing/PricingClient.tsx')
 const pricing = read('app/pricing/PricingClient.tsx')
-ok(pricingPreservado1911(pricingBase, pricing), 'PricingClient idêntico à main, exceto os recortes do cabeçalho')
+ok(pricingPreservado1911(pricingBase, pricing), 'PricingClient preserva a main com as exceções exatas do cabeçalho e da entrada de recarga')
 const audienciaAlterada = pricing.replace('<PricingAudienceTabs audience={audience}', '<PricingAudienceTabs audience={"ads"}')
 ok(audienciaAlterada !== pricing && !pricingPreservado1911(pricingBase, audienciaAlterada), 'mudança fora do cabeçalho da tabela de preços é rejeitada')
 

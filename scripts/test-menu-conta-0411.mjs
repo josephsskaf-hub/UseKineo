@@ -84,6 +84,9 @@ function verificar(fontes = {}) {
   checa(menu.unifiedAccountSurface('/') === 'account_home'
     && menu.unifiedAccountSurface('/studio') === 'account_studio'
     && menu.unifiedAccountSurface('/pricing') === 'account_pricing'
+    && menu.unifiedAccountSurface('/for-creators') === 'account_for_creators'
+    && menu.unifiedAccountSurface('/ads/producao') === 'account_ads_production'
+    && menu.unifiedAccountSurface('/private-reference') === 'account_public'
     && menu.unifiedAccountSurface('/recreate/private-reference') === 'account_recreate', 'superfícies distintas sem identificador privado')
   checa(menu.ACCOUNT_MENU_RELEASE === 'off', 'interruptor desligado na entrega')
   checa(fonte(TRIGGER).includes('identity && offer ? () =>') && fonte(TRIGGER).includes('trackEvent(BUY_CREDITS_OPENED_EVENT, { surface,'), 'oferta do servidor e evento de abertura no menu')

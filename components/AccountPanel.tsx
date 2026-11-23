@@ -296,9 +296,9 @@ const MENU_CSS = `
 }
 @media(prefers-reduced-motion:reduce){.kmc{animation:none}.kmc-bar>span{transition:none}}
 .kmc[data-unified-account]{overflow-x:hidden}
-.kmc[data-unified-account] .kmc-row,.kmc[data-unified-account] .kineo-interface-language{min-height:44px}
+.kmc[data-unified-account] .kmc-row{min-height:44px}
 .kmc[data-unified-account] .kmc-billing{display:flex;align-items:center;justify-content:center;min-width:44px;min-height:44px}
-.kmc[data-unified-account] .kmc-row-control select{max-width:55%}
+.kmc[data-unified-account] .kmc-row-control select{height:44px;max-width:55%}
 .kmc-close{flex:none;width:44px;height:44px;border:0;border-radius:9px;background:transparent;color:var(--text);cursor:pointer;font:inherit;font-size:20px}
 .kmc-close:hover{background:var(--card2)}
 .kmc-status{padding-inline:10px;color:var(--muted);font-size:14px}

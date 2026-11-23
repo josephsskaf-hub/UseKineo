@@ -1101,9 +1101,9 @@ export default function PricingClient({ initialBilling = 'annual', watchPreview 
         <div className="mx-auto max-w-3xl">{billing === 'annual' ? <AnnualEarlyOfferBadge /> : null}</div>{/* KINEO-KIT-BF-VENDA-2010 — o selo do anual ("2 meses grátis" até 21/11: só pinta num plano em que baixa o preço; hoje nenhum, o anual de 30% já vence) e o Kit Black Friday embaixo do Business (o Business vê "incluído no seu plano"; venda fechada = nada) */}
         {/* KINEO-PRICING-LIMPO-0411 — fundador 04/11: "quero tirar também essas duas coisas": Kit BF e Kids saem do /pricing; os produtos seguem nas páginas deles. */}
         {PRICING_SHOW_ADS_BLOCK ? <PricingAdsBlock /> : null}
-        {TOPUPS_LIVE ? <PricingCreditsBlock /> : null}
-        {UNIFIED_ACCOUNT_MENU && <PricingAccountCredits signedIn={signedIn} />}{/* KINEO-PRECO-MERCADO-0411 — sem top-up à venda, /pricing não anuncia crédito avulso */}
+        {TOPUPS_LIVE ? <PricingCreditsBlock /> : null}{/* KINEO-PRECO-MERCADO-0411 — sem top-up à venda, /pricing não anuncia crédito avulso */}
         {PRECOS_DOIS_PRODUTOS_PUBLIC ? <details className="pricing-compare mx-auto mt-10 max-w-4xl"><summary className="cursor-pointer text-center text-[14px] font-semibold text-[var(--muted)]">Compare what each engine costs</summary><TwoProductsPricing /></details> : null}{/* KINEO-PRICING-LIMPO-0411 — 1.400 px de tabela a um clique */}
+        {UNIFIED_ACCOUNT_MENU && <PricingAccountCredits signedIn={signedIn} />}
         {/* ══════════════════════════════════════════════════════════════
             KINEO-AUTOPILOT-299-2026-07-26 — DONE-FOR-YOU TIER.
 

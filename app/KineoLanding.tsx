@@ -743,6 +743,10 @@ a.pl-badge:hover{color:var(--txt);border-color:rgba(41,151,255,.5)}
 .klp .qa:hover,.klp .qa:focus-visible,.klp .qa:focus-within{border-color:rgba(41,151,255,.3);box-shadow:var(--sh-card-h)}
 .klp .qa h3{font-size:1.04rem;font-weight:650;letter-spacing:-.018em;line-height:1.35}
 .klp .qa p{margin-top:10px;color:var(--muted);font-size:.96rem;line-height:1.65}
+@media(max-width:560px){
+.klp .nav-cta[data-unified-account-nav]{display:flex}
+.klp .nav-cta[data-unified-account-nav] .nav-dashboard{display:none}
+}
 /* MOBILE DO HERO — o publico chega no celular e o produto e vertical.
    O h1 ganha a maior parte do ganho: menos padding morto em cima, tracking
    mais fechado no tamanho grande, e a .sub travada em medida de leitura. */

@@ -118,7 +118,7 @@ const MUTANTES = {
   'Log in menor que Get started': troca(F.home, '.klp .nav-login{display:inline-flex;align-items:center;height:40px;font-size:14px;font-weight:650', '.klp .nav-login{display:inline-flex;align-items:center;height:32px;font-size:12px;font-weight:550'),
   'o seletor perde o foco do teclado': troca(F.tema, '.site-settings-dialog select:focus-visible', '.missing'),
   'o presente some da home': troca(F.home, '<CaixaDePresente0511 visitante={!initialUser} filmeGratisNoPais={freeFilmInCountry} />', ''),
-  'o presente entra no .nav-cta e some no celular': troca(F.home, '<div className="nav-cta"><NavCreditsBadge />', '<div className="nav-cta"><CaixaDePresente0511 /><NavCreditsBadge />'),
+  'o presente entra no .nav-cta e some no celular': troca(F.home, '<NavCreditsBadge opensAccount />', '<CaixaDePresente0511 /><NavCreditsBadge opensAccount />'),
   'visitante tratado como conta': troca(F.home, 'visitante={!initialUser}', 'visitante={false}'),
   'a linha perde a cláusula do país': troca(F.regra, 'Your first film is free${FREE_FILM_COUNTRY_CLAUSE}`', 'Your first film is free`'),
   'a linha volta a depender do país': troca(F.regra, "  const linhas: CaixaLinha[] = [{ id: 'filme',", "  const linhas: CaixaLinha[] = arguments[0] === false ? [] : [{ id: 'filme',"),
