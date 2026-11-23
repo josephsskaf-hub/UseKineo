@@ -1,5 +1,9 @@
-export const ACCOUNT_MENU_RELEASE = 'off' as 'off' | 'on'
-export const UNIFIED_ACCOUNT_MENU = ACCOUNT_MENU_RELEASE === 'on'
+import type { InternalRelease } from '@/lib/recreate/release'
+
+export const ACCOUNT_MENU_RELEASE = 'off' as InternalRelease
+export const ACCOUNT_MENU_MAY_RENDER = ACCOUNT_MENU_RELEASE !== 'off'
+export const ACCOUNT_MENU_VISIBILITY_API = '/api/account/menu-visibility'
+export const ACCOUNT_CREDITS_OFFER_SURFACE = 'account_offer'
 export const PRICING_CREDITS_SURFACE = 'pricing_credits'
 
 const PAGES = {
@@ -67,6 +71,13 @@ export function unifiedAccountSurface(pathname: string): string {
     if (Object.hasOwn(PAGES, path)) return `account_${PAGES[path as keyof typeof PAGES]}`
   }
   return 'account_public'
+}
+
+export function isAccountCreditsSurface(surface: unknown): surface is string {
+  return typeof surface === 'string' && (
+    surface === 'sidebar_chip' || surface === PRICING_CREDITS_SURFACE ||
+    surface === 'account_public' || Object.values(PAGES).some(page => surface === `account_${page}`)
+  )
 }
 
 export type AccountMenuPlacement = { left: number; width: number; top?: number; bottom?: number; maxHeight: number }

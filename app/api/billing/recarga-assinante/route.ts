@@ -12,6 +12,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { signCreditImpression, verifyCreditImpression } from '@/lib/billing/accountCreditImpressions'
+import { ACCOUNT_CREDITS_OFFER_SURFACE, ACCOUNT_MENU_RELEASE, isAccountCreditsSurface } from '@/lib/ui/unifiedAccountMenu'
 import { releaseVisible } from '@/lib/recreate/access'
 import { recargaAssinanteMinFilmCredits } from '@/lib/checkoutPricing'
 import { loadCreditBalanceNotice } from '@/lib/billing/loadCreditBalanceNotice'
@@ -53,6 +55,8 @@ export async function GET(req: NextRequest) {
 
   const { data: { user } } = await createClient().auth.getUser()
   if (!user) return go ? goBack() : HIDE()
+  const eligibilityOnly = !go && surface === ACCOUNT_CREDITS_OFFER_SURFACE
+  if (eligibilityOnly && !releaseVisible(user.email, ACCOUNT_MENU_RELEASE)) return HIDE()
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   if (!url || !key) return go ? goBack() : HIDE()
@@ -89,8 +93,8 @@ export async function GET(req: NextRequest) {
   const isNotice = surface === CREDIT_BALANCE_NOTICE_SURFACE
   const notice = isNotice && p ? await loadCreditBalanceNotice(db, user.id, p) : null
   if (isNotice && !notice) return HIDE()
-  if (!isNotice) await writeServerEvent({ name: RECARGA_ASSINANTE_EVENTS.shown, userId: user.id, path: RECARGA_ASSINANTE_API, metadata: meta })
-  const offer: RecargaAssinanteOffer = {
+  if (!isNotice && !eligibilityOnly) await writeServerEvent({ name: RECARGA_ASSINANTE_EVENTS.shown, userId: user.id, path: RECARGA_ASSINANTE_API, metadata: meta })
+  const offer: RecargaAssinanteOffer & { shownToken?: string } = {
     show: true,
     qa,
     price: usdWholeLabel(RECARGA_ASSINANTE_1111.usdMinor),
@@ -98,6 +102,25 @@ export async function GET(req: NextRequest) {
     go: `${RECARGA_ASSINANTE_API}?go=1&surface=${surface}`,
     button,
     ...(notice ? { notice } : {}),
+    ...(eligibilityOnly ? { shownToken: signCreditImpression(user.id, meta, key) } : {}),
   }
   return NextResponse.json(offer, { headers: NO_STORE })
+}
+
+// Visibility telemetry only. No second eligibility read and no checkout action.
+export async function POST(req: NextRequest) {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!key || RECARGA_ASSINANTE_1111_RELEASE === 'off') return new NextResponse(null, { status: 204, headers: NO_STORE })
+  const { token, surface } = await req.json().catch(() => ({})) ?? {}
+  if (!isAccountCreditsSurface(surface)) return new NextResponse(null, { status: 400, headers: NO_STORE })
+  const { data: { user } } = await createClient().auth.getUser()
+  const proof = user ? verifyCreditImpression(token, user.id, key) : null
+  if (!user || !proof || !releaseVisible(user.email, ACCOUNT_MENU_RELEASE)) {
+    return new NextResponse(null, { status: 403, headers: NO_STORE })
+  }
+  await writeServerEvent({
+    name: RECARGA_ASSINANTE_EVENTS.shown, userId: user.id, path: RECARGA_ASSINANTE_API,
+    metadata: { ...proof.meta, surface }, sessionId: proof.id.slice(0, 15) + ':' + surface, dedupeMinutes: 360,
+  })
+  return new NextResponse(null, { status: 204, headers: NO_STORE })
 }

@@ -23,6 +23,7 @@ const REGRAS = 'lib/ui/accountMenu.ts'
 const SIDEBAR = 'components/Sidebar.tsx'
 const MENU = 'lib/ui/unifiedAccountMenu.ts'
 const TRIGGER = 'components/AccountMenuTrigger.tsx'
+const CONTEUDO = 'components/AccountMenuContent.tsx'
 const PRICING = 'components/pricing/PricingAccountCredits.tsx'
 
 // ─── carregador: executa o TS/TSX real; `fontes` troca o texto de um arquivo para os mutantes ──────────────────────
@@ -92,8 +93,8 @@ function verificar(fontes = {}) {
   const trigger = fonte(TRIGGER)
   checa(trigger.includes('useEffect(() => setMounted(true), [])') && trigger.includes('disabled={!mounted}'), 'a entrada espera a hidratação antes de aceitar o clique')
   checa(trigger.includes('setPlacement(null); setPurchase(null) }, [pathname])'), 'a resposta inicial da sessão não fecha o menu')
-  checa(fonte(TRIGGER).includes('identity && offer ? () =>') && fonte(TRIGGER).includes('trackEvent(BUY_CREDITS_OPENED_EVENT, { surface,'), 'oferta do servidor e evento de abertura no menu')
-  checa(fonte(PRICING).includes('useRecargaEntrada(PRICING_CREDITS_SURFACE, signedIn === true)')
+  checa(fonte(CONTEUDO).includes('identity && offer ? () =>') && fonte(CONTEUDO).includes('trackEvent(BUY_CREDITS_OPENED_EVENT, { surface,'), 'oferta do servidor e evento de abertura no menu')
+  checa(fonte(PRICING).includes('useVisibleAccountOffer(PRICING_CREDITS_SURFACE, signedIn === true, region)')
     && fonte(PRICING).includes('offer && open && <BuyCreditsModal'), 'pricing abre a barra só por oferta autenticada e clique')
   const creator = html({ plan: 'basic', credits: 34 })
   const larg = /width:min\((\d+)px,calc\(100vw - (\d+)px\)\)/.exec(creator)

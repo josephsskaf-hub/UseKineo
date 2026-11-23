@@ -2,7 +2,8 @@
 
 import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import AccountMenuTrigger from '@/components/AccountMenuTrigger'
-import { UNIFIED_ACCOUNT_MENU } from '@/lib/ui/unifiedAccountMenu'
+import { useAccountMenuScope } from '@/components/AccountMenuScope'
+import { useAccountOfferImpression, useVisibleAccountOffer } from '@/components/billing/useVisibleAccountOffer'
 import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
 
 import Link from 'next/link'
@@ -358,6 +359,7 @@ export default function Sidebar({
   isOpen = true,
   onClose,
 }: SidebarProps) {
+  const unifiedMenu = Boolean(useAccountMenuScope())
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -482,7 +484,10 @@ export default function Sidebar({
 
   const topupEligible = canPurchaseCreditTopup(plan)
   // KINEO-ASSINANTE-COMPRA-SEMPRE-1211 — o servidor diz se esta conta é assinante pago (qualquer saldo): o chip vira "Buy credits" e abre a barra.
-  const recargaChip = useRecargaEntrada('sidebar_chip', Boolean(isLoggedIn) && planResolved)
+  const legacyRecarga = useRecargaEntrada('sidebar_chip', !unifiedMenu && Boolean(isLoggedIn) && planResolved)
+  const visibleRecarga = useVisibleAccountOffer('sidebar_chip', unifiedMenu && Boolean(isLoggedIn) && planResolved, creditChipRef)
+  useAccountOfferImpression('sidebar_chip', visibleRecarga, creditChipRef)
+  const recargaChip = unifiedMenu ? visibleRecarga : legacyRecarga
 
   useEffect(() => {
     const chip = creditChipRef.current
@@ -803,10 +808,10 @@ export default function Sidebar({
             button) is the single purchase surface, and it stays BLUE at 0
             (red reads as an error; 0 credits is the normal free-tier state). */}
 
-        {!UNIFIED_ACCOUNT_MENU && <SiteSettingsMenu signedIn={!!isLoggedIn} />}
+        {!unifiedMenu && <SiteSettingsMenu signedIn={!!isLoggedIn} />}
         {/* User row + settings menu + small logout */}
         <div style={{ borderTop: '1px solid var(--border)', padding: '10px 12px 12px', position: 'relative' }}>
-          {UNIFIED_ACCOUNT_MENU ? (
+          {unifiedMenu ? (
             <AccountMenuTrigger label="Account" signedIn={!!isLoggedIn} onNavigate={onClose}
               account={isLoggedIn ? { email: userEmail ?? '', displayName: displayName ?? '', plan: accountPlan, credits, creditsReadFailed } : undefined}
               style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '4px 6px', border: 0,

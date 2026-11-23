@@ -2,7 +2,7 @@
 
 import KineoBolt from '@/components/KineoBolt'
 import AccountMenuTrigger from '@/components/AccountMenuTrigger'
-import { UNIFIED_ACCOUNT_MENU } from '@/lib/ui/unifiedAccountMenu'
+import { readAccountMenuCredits, useAccountMenuScope } from '@/components/AccountMenuScope'
 
 // Nav credits badge for the public Kineo landing (app/KineoLanding.tsx).
 // Mirrors the dashboard TopBar's CreditsBadge (components/TopBar.tsx) so
@@ -18,13 +18,14 @@ import { trackEvent } from '@/lib/analytics'
 import { isCreditsReadFailure, READ_FAILED_EVENT } from '@/lib/creditsReadFailure'
 
 export default function NavCreditsBadge({ labelOnly = false, opensAccount = false }: { labelOnly?: boolean; opensAccount?: boolean } = {}) {
+  const menuScope = useAccountMenuScope()
   const [credits, setCredits] = useState<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    async function fetchCredits() {
+    async function fetchCredits(refresh = false) {
       try {
-        const res = await fetch('/api/credits', { cache: 'no-store' })
+        const res = menuScope ? await readAccountMenuCredits(menuScope, refresh) : await fetch('/api/credits', { cache: 'no-store' })
         if (res.status === 401) {
           if (!cancelled) setCredits(null)
           return
@@ -54,13 +55,14 @@ export default function NavCreditsBadge({ labelOnly = false, opensAccount = fals
         if (!cancelled) setCredits(null)
       }
     }
-    fetchCredits()
-    window.addEventListener('creditsChanged', fetchCredits)
+    void fetchCredits()
+    const refreshCredits = () => { void fetchCredits(true) }
+    window.addEventListener('creditsChanged', refreshCredits)
     return () => {
       cancelled = true
-      window.removeEventListener('creditsChanged', fetchCredits)
+      window.removeEventListener('creditsChanged', refreshCredits)
     }
-  }, [])
+  }, [menuScope])
 
   useEffect(() => {
     const supabase = createClient()
@@ -86,7 +88,7 @@ export default function NavCreditsBadge({ labelOnly = false, opensAccount = fals
     }
   }, [])
 
-  if (opensAccount && UNIFIED_ACCOUNT_MENU) return <AccountMenuTrigger label="Credits and account" signedIn
+  if (opensAccount && menuScope) return <AccountMenuTrigger label="Credits and account" signedIn
     style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, whiteSpace: 'nowrap',
       borderRadius: 980, padding: '4px 10px', border: '1px solid var(--border)', background: 'var(--card)',
       color: 'var(--text)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>

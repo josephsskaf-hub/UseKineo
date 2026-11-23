@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import { Noto_Sans_Devanagari } from 'next/font/google'
 import StructuredData from '@/components/StructuredData'
+import { AccountMenuScopeProvider } from '@/components/AccountMenuScope'
+import { ACCOUNT_MENU_MAY_RENDER } from '@/lib/ui/unifiedAccountMenu'
 import SourceCapture from '@/components/SourceCapture'
 // KINEO-FLUXO-NOVO-2026-09-25 — ouvinte único do nav_item_clicked (lê só data-nav-*; ver lib/navTelemetry.ts).
 import NavClickTelemetry from '@/components/NavClickTelemetry'
@@ -272,7 +274,7 @@ export default function RootLayout({
       {/* [KINEO-TRIAL-SWAP-2026-08-07] — FreeTierOfferProvider envolve TODO o
           conteúdo: é o único caminho pelo qual client components leem a oferta
           do free tier (a env da flag não existe no browser). */}
-      <body><StructuredData /><InterfaceLanguageProvider><AppearanceProvider><FreeTierOfferProvider offer={OFFER}><SourceCapture /><NavClickTelemetry /><CheckoutResumeBanner /><AutopilotPilotResumeBanner /><CheckoutStalledCta /><InstallAppBanner />{children}<CreditBalanceNotice /></FreeTierOfferProvider><ConsentManager marketing={withMicrosoftUet(marketingTags, MS_UET_TAG_ID)} clarity={CLARITY_ID ? <ClarityTag projectId={CLARITY_ID} /> : null} /></AppearanceProvider></InterfaceLanguageProvider><Analytics /></body>
+      <body><StructuredData /><InterfaceLanguageProvider><AppearanceProvider><FreeTierOfferProvider offer={OFFER}><SourceCapture /><NavClickTelemetry /><CheckoutResumeBanner /><AutopilotPilotResumeBanner /><CheckoutStalledCta /><InstallAppBanner />{ACCOUNT_MENU_MAY_RENDER ? <AccountMenuScopeProvider>{children}</AccountMenuScopeProvider> : children}<CreditBalanceNotice /></FreeTierOfferProvider><ConsentManager marketing={withMicrosoftUet(marketingTags, MS_UET_TAG_ID)} clarity={CLARITY_ID ? <ClarityTag projectId={CLARITY_ID} /> : null} /></AppearanceProvider></InterfaceLanguageProvider><Analytics /></body>
     </html>
   )
 }

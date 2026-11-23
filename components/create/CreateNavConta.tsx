@@ -1,3 +1,5 @@
+'use client'
+
 // KINEO-TELA-NOVA-CABECALHO-1011 [fundador 10/11: "Quero todas as telas com o design que fizemos no codex"] — o lado direito do cabeçalho da
 // tela nova (abas Film · Cartoon · Ads e o Recreate com abas): o que o menu do Studio dá hoje, sem promoção e sem relógio.
 //   · saldo: NavCreditsBadge — o espelho do CreditsBadge do cabeçalho do dashboard (components/TopBar.tsx), MESMA fonte: GET /api/credits
@@ -11,7 +13,7 @@
 import SiteSettingsMenu from '@/components/SiteSettingsMenu'
 import Link from 'next/link'
 import NavCreditsBadge from '@/components/NavCreditsBadge'
-import { UNIFIED_ACCOUNT_MENU } from '@/lib/ui/unifiedAccountMenu'
+import { useAccountMenuScope } from '@/components/AccountMenuScope'
 import './create.css'
 import './studio-panel.css'
 
@@ -19,8 +21,9 @@ export const CREATE_NAV_PRICING_HREF = '/pricing'
 export const CREATE_NAV_VIDEOS_HREF = '/library' // KINEO-ENTRADAS-SO-LOGADO-1011
 
 export default function CreateNavConta() {
+  const menuScope = useAccountMenuScope()
   return <div className="ct-nav-account" data-create-nav-account="">
-    {UNIFIED_ACCOUNT_MENU ? <NavCreditsBadge opensAccount /> : <details className="ct-credit-menu" onKeyDown={event => {
+    {menuScope ? <NavCreditsBadge opensAccount /> : <details className="ct-credit-menu" onKeyDown={event => {
       if (event.key === 'Escape') {
         event.currentTarget.open = false
         event.currentTarget.querySelector('summary')?.focus()

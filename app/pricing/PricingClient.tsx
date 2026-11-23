@@ -51,7 +51,7 @@ import CostCalculatorLink from '@/components/CostCalculatorLink'
 import PricingAdsBlock from '@/components/pricing/PricingAdsBlock' // KINEO-FLUXO-NOVO-2026-09-25 — blocos de compra única abaixo dos planos (peça D)
 import PricingCreditsBlock from '@/components/pricing/PricingCreditsBlock' // KINEO-FLUXO-NOVO-2026-09-25
 import PricingAccountCredits from '@/components/pricing/PricingAccountCredits'
-import { UNIFIED_ACCOUNT_MENU } from '@/lib/ui/unifiedAccountMenu'
+import { ACCOUNT_MENU_MAY_RENDER } from '@/lib/ui/unifiedAccountMenu'
 import TwoProductsPricing from '@/components/pricing/TwoProductsPricing' // KINEO-PRECOS-DOIS-PRODUTOS-2026-10-05
 import PricingBusinessBlock from '@/components/pricing/PricingBusinessBlock' // KINEO-BUSINESS-84-2026-10-09
 import { FIRST_FILM_GUARANTEE } from '@/lib/growth/firstFilmGuarantee' // KINEO-PRICING-LIMPO-0411
@@ -1103,7 +1103,7 @@ export default function PricingClient({ initialBilling = 'annual', watchPreview 
         {PRICING_SHOW_ADS_BLOCK ? <PricingAdsBlock /> : null}
         {TOPUPS_LIVE ? <PricingCreditsBlock /> : null}{/* KINEO-PRECO-MERCADO-0411 — sem top-up à venda, /pricing não anuncia crédito avulso */}
         {PRECOS_DOIS_PRODUTOS_PUBLIC ? <details className="pricing-compare mx-auto mt-10 max-w-4xl"><summary className="cursor-pointer text-center text-[14px] font-semibold text-[var(--muted)]">Compare what each engine costs</summary><TwoProductsPricing /></details> : null}{/* KINEO-PRICING-LIMPO-0411 — 1.400 px de tabela a um clique */}
-        {UNIFIED_ACCOUNT_MENU && <PricingAccountCredits signedIn={signedIn} />}
+        {ACCOUNT_MENU_MAY_RENDER && <PricingAccountCredits signedIn={signedIn} />}
         {/* ══════════════════════════════════════════════════════════════
             KINEO-AUTOPILOT-299-2026-07-26 — DONE-FOR-YOU TIER.
 

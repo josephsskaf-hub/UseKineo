@@ -8,10 +8,11 @@ import { InterfaceLanguageSelect, useUiCopy } from '@/components/InterfaceLangua
 import { createClient } from '@/lib/supabase/client'
 import { sairDaConta } from '@/lib/auth/sairDaContaCliente'
 import AccountMenuTrigger from '@/components/AccountMenuTrigger'
-import { UNIFIED_ACCOUNT_MENU } from '@/lib/ui/unifiedAccountMenu'
+import { useAccountMenuScope } from '@/components/AccountMenuScope'
 
 export default function SiteSettingsMenu({ signedIn }: { signedIn?: boolean }) {
-  if (UNIFIED_ACCOUNT_MENU) return <AccountMenuTrigger signedIn={signedIn} className="appearance-icon site-settings-trigger" />
+  const menuScope = useAccountMenuScope()
+  if (menuScope) return <AccountMenuTrigger signedIn={signedIn} className="appearance-icon site-settings-trigger" />
   return <LegacySiteSettingsMenu signedIn={signedIn} />
 }
 

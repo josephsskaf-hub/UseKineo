@@ -21,7 +21,7 @@
 // O QUE NÃO PODE VOLTAR:
 //   · KINEO-PAINEL-PORTAL-2026-10-05: o menu fica no <body>, senão o conteúdo do Studio de vidro passa na frente dele.
 //   · KINEO-SAIR-DA-CONTA-1510: o clique em Sign out não fecha o menu, ele fica aberto dizendo "Signing out…".
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 
@@ -67,6 +67,8 @@ export interface AccountPanelProps {
   placement?: AccountMenuPlacement
   guest?: boolean
   loading?: boolean
+  panelRegion?: RefObject<HTMLDivElement>
+  buyCreditsButton?: RefObject<HTMLButtonElement>
 }
 
 /** Grant mensal do plano — denominador da barra de créditos. Trial não entra: o crédito dele não é o grant do plano. */
@@ -87,12 +89,13 @@ function RowIcon({ d }: { d: string }) {
 export default function AccountPanel({
   email, displayName, plan, credits, creditsReadFailed = false,
   onClose, onSignOut, onNavigate, signingOut = false, onBuyCredits = null,
-  id, placement, guest = false, loading = false,
+  id, placement, guest = false, loading = false, panelRegion, buyCreditsButton,
 }: AccountPanelProps & { /** KINEO-ASSINANTE-COMPRA-SEMPRE-1211 — o servidor disse que é assinante pago: "Buy credits" abre a barra (quem abre é a barra lateral). */ onBuyCredits?: (() => void) | null }) {
   const t = useUiCopy()
   const language = useInterfaceLanguage()
   const [sub, setSub] = useState<MySubscription | null>(null)
-  const panelRef = useRef<HTMLDivElement>(null)
+  const ownPanel = useRef<HTMLDivElement>(null)
+  const panelRef = panelRegion ?? ownPanel
 
   // Só busca quando o painel abre — é uma chamada à Stripe, não vale gastar
   // em toda navegação.
@@ -116,6 +119,13 @@ export default function AccountPanel({
     panelRef.current?.querySelector<HTMLElement>('a[href],button:not([disabled]),select')?.focus({ preventScroll: true })
     return () => { if (opener && opener !== document.body && opener.isConnected) opener.focus({ preventScroll: true }) }
   }, [])
+
+  // The verified account can replace the focused guest header.
+  useEffect(() => {
+    if (document.activeElement === document.body) {
+      panelRef.current?.querySelector<HTMLElement>('a[href],button:not([disabled]),select')?.focus({ preventScroll: true })
+    }
+  }, [guest, panelRef])
 
   // Esc fecha e Tab dá a volta aqui dentro. O seletor de aparência é um <dialog> nativo por cima: com ele aberto, o
   // Esc e o Tab são dele, senão um Esc fecharia os dois de uma vez.
@@ -191,7 +201,7 @@ export default function AccountPanel({
         </div>
 
         {onBuyCredits ? ( /* KINEO-ASSINANTE-COMPRA-SEMPRE-1211 — assinante pago, qualquer saldo: a barra de créditos */
-          <button type="button" data-kineo="buy-credits-account" onClick={() => { onClose(); onBuyCredits() }} className="kmc-row kmc-row-accent" style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 0, font: 'inherit', cursor: 'pointer' }}>
+          <button type="button" data-kineo="buy-credits-account" ref={buyCreditsButton} onClick={() => { onClose(); onBuyCredits() }} className="kmc-row kmc-row-accent" style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 0, font: 'inherit', cursor: 'pointer' }}>
             <RowIcon d="M12 5v14M5 12h14" />
             <span>{t('Buy credits')}</span>
           </button>
