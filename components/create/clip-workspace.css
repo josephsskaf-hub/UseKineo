@@ -1,9 +1,10 @@
 .cw-workspace { min-height: 100svh; color: var(--text); background: var(--bg); }
 .cw-grid { display: grid; grid-template-columns: minmax(310px, 390px) minmax(0, 1fr); gap: clamp(24px, 3vw, 48px); max-width: 1760px; margin: auto; padding: 24px clamp(16px, 3vw, 48px) 56px; align-items: start; }
 .recreate.cw-workspace .cw-panel { height: auto; max-height: none; position: static; display: flex; flex-direction: column; gap: 14px; overflow: visible; padding: 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--card); }
-.cw-cover { position: relative; display: flex; align-items: end; min-height: 164px; isolation: isolate; overflow: hidden; border-radius: 12px; color: #fff; background: #111b2a; }
+/* KINEO-CLIP-CAPA-2311 [dono 23/11 01:28, print: a capa cortava o rosto] — o vídeo é vertical (9:16): a faixa de 164 px no meio mostrava só barba e peito. Capa mais alta e enquadrada no terço de cima, onde fica o rosto. */
+.cw-cover { position: relative; display: flex; align-items: end; min-height: 224px; isolation: isolate; overflow: hidden; border-radius: 12px; color: #fff; background: #111b2a; }
 .cw-cover::after { position: absolute; inset: 0; z-index: -1; content: ''; background: linear-gradient(0deg, #050a12dc, transparent 76%); }
-.cw-cover :is(video,img) { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 42%; z-index: -2; }
+.cw-cover :is(video,img) { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 30%; z-index: -2; }
 .cw-cover h1 { margin: 14px 64px 14px 16px; font: 750 28px/1.1 var(--font-display, inherit); letter-spacing: -.025em; color: #fff; }
 .cw-cover > button { position: absolute; right: 8px; bottom: 8px; border: 1px solid #ffffff70; background: #050a12c9; border-radius: 10px; color: #fff; min-width: 44px; min-height: 44px; }
 .cw-modes,.cw-categories { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -51,7 +52,8 @@
 @media (max-width: 767px) {
   .cw-grid { grid-template-columns: minmax(0, 1fr); gap: 22px; padding: 12px 12px calc(126px + env(safe-area-inset-bottom, 0px)); }
   .recreate.cw-workspace .cw-panel { padding: 12px; gap: 9px; }
-  .cw-cover { min-height: 108px; }
+  .cw-cover { min-height: 190px; }
+  .cw-cover :is(video,img) { object-position: center 34%; }
   .cw-cover h1 { font-size: 24px; }
   .cw-modes button,.cw-categories button { flex: 0 0 auto; }
   .cw-categories { flex-wrap: nowrap; overflow-x: auto; padding-block: 2px; }
