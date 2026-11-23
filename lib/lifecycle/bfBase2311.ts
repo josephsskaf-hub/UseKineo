@@ -10,19 +10,24 @@
 //     payment_success;
 //   · não pediu para sair (email_opted_out); não é da casa (INTERNAL_EXACT_EMAILS exata ou domínio usekineo.com);
 //   · não recebeu e-mail nosso nos últimos 7 dias (email_send_log ok e trial_emails_log; a rota soma a supressão da casa de 168 h);
-//   · não recebeu ESTA carta (selo bf_base_2311_sent, para sempre).
+//   · não recebeu ESTA carta (selo bf_base_2311_sent, para sempre);
+//   · não é afiliado (tabela affiliates, por user_id ou e-mail) e não está em teste ativo (plano *_trial com trial_status active ou
+//     courtesy, ou cortesia ativa em courtesy_grants com ends_at no futuro): "if you want to keep going" não serve a quem está de
+//     plano grátis ativo. Teste encerrado/rebaixado e cortesia vencida ENTRAM. Quem abriu e cancelou checkout FICA (decisão da CEO).
 //
 // DUAS METADES para medir qual oferta vende (divisão determinística pelo id da conta, hash estável — nada sorteado na hora):
 //   A → o Starter ANUAL pelo preço da Black Friday (página /black-friday; o preço entra pelo portão do checkout, bf2026CheckoutEligible).
 //       A janela acaba em 01/12 (BF2026_ENDS_AT). Fora da janela a metade A NÃO sai (a rota confere bf2026Open).
-//   B → metade do 1º mês do Creator MENSAL com o FIRST50 que JÁ existe (mesmo mecanismo da carta de checkout abandonado de país
-//       rico: /pricing?promo=FIRST50, que abre no mensal; o gate do checkout só aplica em Creator/Studio mensal). O código não tem
-//       prazo para o FIRST50, então a carta B não fala em prazo.
+//   B → metade do 1º mês do Creator MENSAL com o FIRST50 que JÁ existe. O botão vai DIRETO ao checkout do Creator mensal
+//       (/api/stripe/checkout?tier=basic&billing=monthly&promo=FIRST50, o mesmo formato de offerCheckoutHref em lib/offers/studio50.ts),
+//       nunca à /pricing: lá o FIRST50 iria junto para o Studio mensal, que o dono deixou sem desconto novo (revisão 23/11). O GET do
+//       checkout leva quem está sem sessão ao cadastro/login com a compra inteira na URL e retoma a mesma compra (resumed=1); conta que
+//       já assina é barrada lá ("You already have a Kineo subscription"). O código não tem prazo para o FIRST50: a carta B não fala em prazo.
 // Nenhum desconto novo, nenhum cupom criado, nenhum preço digitado: todo número sai de lib/checkoutPricing.ts e de bf2026PriceRows().
 //
 // Módulo PURO (sem env, sem banco, sem rede): a rota e o guardião scripts/test-bf-base-2311.mjs executam a mesma régua.
 import { BF2026_ENDS_AT, BF2026_PAGE_PATH, BF2026_TIME_ZONE, bf2026PriceRows, bf2026Usd } from '../billing/blackFriday2026'
-import { TIER_CREDITS, TIER_PRICES } from '../checkoutPricing'
+import { TIER_CREDITS, TIER_PRICES, type CheckoutTier } from '../checkoutPricing'
 import { CHECKOUT_RECOVERY_PROMO } from './checkoutRecoveryOffer'
 import { contaDaCasaExata } from '../internalAccounts'
 import { VOLTA_1211_FROM, VOLTA_1211_REPLY_TO, voltaTitulo } from '../growth/volta1211'
@@ -74,7 +79,7 @@ export function bfBaseDaCasa(email: string): boolean {
 }
 
 export type BfBaseTrava =
-  | 'sem_email' | 'casa' | 'pais_fora' | 'saiu' | 'pagou' | 'sem_filme' | 'ja_recebeu_esta' | 'email_7d'
+  | 'sem_email' | 'casa' | 'pais_fora' | 'saiu' | 'pagou' | 'afiliado' | 'em_teste' | 'sem_filme' | 'ja_recebeu_esta' | 'email_7d'
 
 /** Os fatos de UMA conta. A rota preenche; o guardião monta à mão. */
 export type BfBasePessoa = {
@@ -87,6 +92,13 @@ export type BfBasePessoa = {
   paypalSubscriptionId: unknown
   /** payment_success em events. */
   paymentEvent?: boolean
+  /** está na tabela affiliates (por user_id ou pelo e-mail). */
+  isAffiliate?: boolean
+  /** profiles.plan e profiles.trial_status. */
+  plan?: unknown
+  trialStatus?: unknown
+  /** linhas de courtesy_grants da conta (status e ends_at). */
+  courtesy?: ReadonlyArray<{ status: unknown; endsAt: unknown }>
   /** vídeos concluídos em `videos`. */
   films: number
   /** já tem o selo bf_base_2311_sent. */
@@ -116,11 +128,24 @@ export function bfBaseTrava(p: BfBasePessoa): BfBaseTrava | null {
   const perfil = bfBaseTravaPerfil(p)
   if (perfil) return perfil
   if (p.paymentEvent === true) return 'pagou'
+  if (p.isAffiliate === true) return 'afiliado'
+  if (bfBaseEmTeste(p)) return 'em_teste'
   if (!(Number.isFinite(p.films) && p.films >= 1)) return 'sem_filme'
   if (p.alreadyGotThis) return 'ja_recebeu_esta'
   const ultimo = typeof p.lastEmailMs === 'number' && Number.isFinite(p.lastEmailMs) ? p.lastEmailMs : 0
   if (ultimo > 0 && p.nowMs - ultimo < BF_BASE_2311_SUPPRESSION_DAYS * 86_400_000) return 'email_7d'
   return null
+}
+
+/** Em teste ativo: plano *_trial com trial_status active/courtesy, ou cortesia ativa (status active e ends_at no futuro). */
+export function bfBaseEmTeste(p: Pick<BfBasePessoa, 'plan' | 'trialStatus' | 'courtesy' | 'nowMs'>): boolean {
+  const plan = typeof p.plan === 'string' ? p.plan.trim().toLowerCase() : ''
+  const ts = typeof p.trialStatus === 'string' ? p.trialStatus.trim().toLowerCase() : ''
+  if (plan.endsWith('_trial') && (ts === 'active' || ts === 'courtesy')) return true
+  return (p.courtesy ?? []).some((g) => {
+    const fim = Date.parse(String(g.endsAt ?? ''))
+    return String(g.status ?? '').trim().toLowerCase() === 'active' && Number.isFinite(fim) && fim > p.nowMs
+  })
 }
 
 /** Hash estável (FNV-1a 32 bits + finalizador do murmur3) — sem relógio, sem sorteio, sem dependência. */
@@ -155,10 +180,14 @@ export function bfBaseLinkA(app: string): string {
   return `${semBarra(app)}${BF2026_PAGE_PATH}?${utm('a')}`
 }
 
-/** Link B: o MESMO mecanismo da carta de checkout abandonado (lib/lifecycle/checkoutRecoveryOffer.ts resgatePromoUrl): /pricing com o
- *  FIRST50, que abre no mensal; só a etiqueta da campanha muda. */
+/** O plano da metade B: só o Creator (o FIRST50 também valeria no Studio mensal, que fica sem desconto novo). */
+export const BF_BASE_2311_TIER_B: CheckoutTier = 'basic'
+
+/** Link B: DIRETO ao checkout do Creator mensal com o FIRST50, no formato dos links de oferta da casa (offerCheckoutHref,
+ *  bf2026CheckoutHref): tier, billing, promo e intent_campaign (que o checkout grava em checkout_started), mais os três utm. */
 export function bfBaseLinkB(app: string): string {
-  return `${semBarra(app)}/pricing?promo=${CHECKOUT_RECOVERY_PROMO}&${utm('b')}`
+  return `${semBarra(app)}/api/stripe/checkout?tier=${BF_BASE_2311_TIER_B}&billing=monthly&promo=${CHECKOUT_RECOVERY_PROMO}` +
+    `&intent_campaign=${BF_BASE_2311_CAMPAIGN}_arm_b&${utm('b')}`
 }
 
 /** O último dia da oferta A, na data de Nova York, lido de BF2026_ENDS_AT (fim exclusivo → 1 ms antes). Ex.: "Tuesday, Dec 1". */
@@ -176,7 +205,7 @@ export function bfBaseNumerosA() {
 
 /** Os números da oferta B, todos do código: Creator mensal e a metade do FIRST50. */
 export function bfBaseNumerosB() {
-  const cheio = TIER_PRICES.basic.usd
+  const cheio = TIER_PRICES[BF_BASE_2311_TIER_B].usd
   return { name: 'Creator', full: bf2026Usd(cheio), first: bf2026Usd(Math.round(cheio * BF_BASE_2311_FIRST50_FRACTION)), credits: TIER_CREDITS.basic }
 }
 

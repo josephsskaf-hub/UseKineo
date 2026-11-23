@@ -62,11 +62,11 @@ export async function GET(req: NextRequest) {
     // ── 1. perfis (todos; paginado) e as travas de perfil ──────────────────────────────────────────────────────────────────
     const { data: perfis, error: perfisErr } = await readAll(() => admin
       .from('profiles')
-      .select('id, email, has_paid, email_opted_out, signup_country, last_country, stripe_subscription_id, paypal_subscription_id, created_at')
+      .select('id, email, plan, trial_status, has_paid, email_opted_out, signup_country, last_country, stripe_subscription_id, paypal_subscription_id, created_at')
       .order('created_at', { ascending: true }), { route: ROUTE, table: 'profiles' })
     if (perfisErr) return NextResponse.json({ error: 'profiles unavailable; no email sent' }, { status: 503 })
     const fora: Record<BfBaseTrava | 'email_repetido', number> = {
-      sem_email: 0, casa: 0, pais_fora: 0, saiu: 0, pagou: 0, sem_filme: 0, ja_recebeu_esta: 0, email_7d: 0, email_repetido: 0,
+      sem_email: 0, casa: 0, pais_fora: 0, saiu: 0, pagou: 0, afiliado: 0, em_teste: 0, sem_filme: 0, ja_recebeu_esta: 0, email_7d: 0, email_repetido: 0,
     }
     type Vivo = { id: string; email: string; p: Record<string, unknown> }
     const vivos: Vivo[] = []
@@ -84,15 +84,24 @@ export async function GET(req: NextRequest) {
       vivos.push({ id: String(p.id), email, p })
     }
 
+    // Afiliados (tabela pequena, lida inteira): fora por user_id ou pelo e-mail, em qualquer status.
+    const { data: afiliados } = await readAll(() => admin.from('affiliates').select('id, user_id, email'), { route: ROUTE, table: 'affiliates' })
+    const afiliadoIds = new Set<string>(), afiliadoEmails = new Set<string>()
+    for (const af of afiliados ?? []) {
+      if (af.user_id) afiliadoIds.add(String(af.user_id))
+      if (typeof af.email === 'string' && af.email.trim()) afiliadoEmails.add(af.email.trim().toLowerCase())
+    }
+
     // ── 2. por fatia: filmes concluídos, pagamento, selo desta carta, último e-mail aceito em 7 dias ─────────────────────────
     const filmes = new Map<string, number>()
     const ultimoFilme = new Map<string, { title: unknown; topic: unknown; at: string }>()
     const pagou = new Set<string>(), recebeuEsta = new Set<string>()
     const ultimoEmail = new Map<string, number>()
+    const cortesias = new Map<string, Array<{ status: unknown; endsAt: unknown }>>()
     const bump = (uid: unknown, t: number) => { const k = String(uid); if (t > (ultimoEmail.get(k) ?? 0)) ultimoEmail.set(k, t) }
     for (let i = 0; i < vivos.length; i += CHUNK) {
       const ids = vivos.slice(i, i + CHUNK).map((v) => v.id)
-      const [vids, marcas, ledger, trial] = await Promise.all([
+      const [vids, marcas, ledger, trial, cortesia] = await Promise.all([
         readAll(() => admin.from('videos').select('id, user_id, title, topic, created_at')
           .eq('status', 'completed').in('user_id', ids).order('created_at', { ascending: false }), { route: ROUTE, table: 'videos' }),
         readAll(() => admin.from('events').select('id, user_id, name').in('user_id', ids)
@@ -101,8 +110,10 @@ export async function GET(req: NextRequest) {
           .eq('ok', true).not('yielded', 'is', true).order('id', { ascending: true }), { route: ROUTE, table: 'email_send_log' }),
         readAll(() => admin.from('trial_emails_log').select('user_id, email_kind, sent_at').in('user_id', ids).gte('sent_at', desde7d)
           .order('user_id', { ascending: true }), { route: ROUTE, table: 'trial_emails_log', key: ['user_id', 'email_kind'] }),
+        readAll(() => admin.from('courtesy_grants').select('id, user_id, status, ends_at').in('user_id', ids).eq('status', 'active'),
+          { route: ROUTE, table: 'courtesy_grants' }),
       ])
-      if (vids.error || marcas.error || ledger.error || trial.error) {
+      if (vids.error || marcas.error || ledger.error || trial.error || cortesia.error) {
         return NextResponse.json({ error: 'read failed (videos/events/email_send_log/trial_emails_log); no email sent' }, { status: 503 })
       }
       for (const v of vids.data ?? []) {
@@ -116,6 +127,10 @@ export async function GET(req: NextRequest) {
       }
       for (const r of ledger.data ?? []) bump(r.user_id, ms(r.sent_at))
       for (const r of trial.data ?? []) bump(r.user_id, ms(r.sent_at))
+      for (const g of cortesia.data ?? []) {
+        const k = String(g.user_id)
+        cortesias.set(k, [...(cortesias.get(k) ?? []), { status: g.status, endsAt: g.ends_at }])
+      }
     }
 
     const candidatos: Alvo[] = []
@@ -123,7 +138,8 @@ export async function GET(req: NextRequest) {
       const t = bfBaseTrava({
         email: v.p.email, signupCountry: v.p.signup_country, lastCountry: v.p.last_country, emailOptedOut: v.p.email_opted_out,
         hasPaid: v.p.has_paid, stripeSubscriptionId: v.p.stripe_subscription_id, paypalSubscriptionId: v.p.paypal_subscription_id,
-        paymentEvent: pagou.has(v.id), films: filmes.get(v.id) ?? 0, alreadyGotThis: recebeuEsta.has(v.id),
+        paymentEvent: pagou.has(v.id), isAffiliate: afiliadoIds.has(v.id) || afiliadoEmails.has(v.email),
+        plan: v.p.plan, trialStatus: v.p.trial_status, courtesy: cortesias.get(v.id) ?? [], films: filmes.get(v.id) ?? 0, alreadyGotThis: recebeuEsta.has(v.id),
         lastEmailMs: ultimoEmail.get(v.id) ?? null, nowMs: agora,
       })
       if (t) { fora[t]++; continue }

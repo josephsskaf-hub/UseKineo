@@ -2,7 +2,9 @@
 -- Rota: /api/admin/send-bf-base-2311 · regra pura: lib/lifecycle/bfBase2311.ts · selo: events.name = 'bf_base_2311_sent'
 -- (metadata: campaign, arm 'a'|'b', ok true|false|null, http_status, resend_id). ok = true é envio aceito pelo Resend.
 -- Chegada = qualquer evento da pessoa com metadata.utm_campaign = 'bf_base_2311' depois do envio (o site carimba a utm em todo
--- evento da visita). utm_content = arm_a | arm_b diz por qual link ela veio.
+-- evento da visita). utm_content = arm_a | arm_b diz por qual link ela veio. O link B vai DIRETO ao checkout (sem página do site no
+-- caminho), então a chegada da B é o checkout_started com metadata.intent_campaign = 'bf_base_2311_arm_b' (o checkout grava o
+-- intent_campaign da URL); a visita só aparece em página quando a pessoa passa pelo cadastro/login.
 
 -- ═══ 1. MEDIÇÃO POR METADE: enviados → visitas com a utm → checkouts abertos → pagamentos (cada pessoa conta 1 vez por coluna) ═══
 with enviados as (
@@ -14,7 +16,13 @@ with enviados as (
 visita as (
   select distinct e.user_id
   from events e join enviados s on s.user_id = e.user_id
-  where e.metadata->>'utm_campaign' = 'bf_base_2311' and e.created_at >= s.t
+  where (e.metadata->>'utm_campaign' = 'bf_base_2311' or e.metadata->>'intent_campaign' like 'bf_base_2311%')
+    and e.created_at >= s.t
+),
+pelo_link as (
+  select distinct e.user_id
+  from events e join enviados s on s.user_id = e.user_id
+  where e.name in ('checkout_started', 'checkout_auth_required') and e.metadata->>'intent_campaign' like 'bf_base_2311%' and e.created_at >= s.t
 ),
 checkout as (
   select distinct e.user_id
@@ -30,6 +38,7 @@ select s.arm,
   count(*)                                                              as enviados,
   count(v.user_id)                                                      as visitas_com_utm,
   round(100.0 * count(v.user_id) / nullif(count(*), 0), 1)              as pct_visita,
+  count(l.user_id)                                                      as checkout_pelo_link_da_carta,
   count(c.user_id)                                                      as checkouts_abertos,
   count(p.user_id)                                                      as pagamentos,
   round(100.0 * count(p.user_id) / nullif(count(*), 0), 2)              as pct_pagou,
@@ -37,6 +46,7 @@ select s.arm,
                                    and pr.email_opted_out_at > s.t))    as descadastrou
 from enviados s
 left join visita v on v.user_id = s.user_id
+left join pelo_link l on l.user_id = s.user_id
 left join checkout c on c.user_id = s.user_id
 left join pagou p on p.user_id = s.user_id
 group by rollup (s.arm)
@@ -58,7 +68,7 @@ order by 1 nulls last;
 -- só do JSON da rota. Este SQL confere o total e cada trava. A casa: lista EXATA de lib/internalAccounts.ts INTERNAL_EXACT_EMAILS
 -- (copiada abaixo; se a lista mudar, a rota segue o código e este SQL precisa ser atualizado) e o domínio usekineo.com.
 with base as (
-  select p.id, lower(trim(p.email)) email, p.email_opted_out, p.has_paid, p.stripe_subscription_id, p.paypal_subscription_id,
+  select p.id, lower(trim(p.email)) email, p.plan, p.trial_status, p.email_opted_out, p.has_paid, p.stripe_subscription_id, p.paypal_subscription_id,
          upper(trim(coalesce(nullif(trim(p.signup_country), ''), p.last_country))) pais
   from profiles p
 ),
@@ -74,6 +84,9 @@ marcado as (
       when b.has_paid is distinct from false or coalesce(trim(b.stripe_subscription_id), '') <> ''
            or coalesce(trim(b.paypal_subscription_id), '') <> ''
            or exists (select 1 from events e where e.user_id = b.id and e.name = 'payment_success') then 'pagou'
+      when exists (select 1 from affiliates a where a.user_id = b.id or lower(trim(a.email)) = b.email) then 'afiliado'
+      when (lower(coalesce(b.plan, '')) like '%\_trial' and lower(coalesce(b.trial_status, '')) in ('active', 'courtesy'))
+        or exists (select 1 from courtesy_grants g where g.user_id = b.id and g.status = 'active' and g.ends_at > now()) then 'em_teste'
       when not exists (select 1 from videos v where v.user_id = b.id and v.status = 'completed') then 'sem_filme'
       when exists (select 1 from events e where e.user_id = b.id and e.name = 'bf_base_2311_sent') then 'ja_recebeu_esta'
       when exists (select 1 from email_send_log l where l.user_id = b.id and l.ok and l.yielded is not true

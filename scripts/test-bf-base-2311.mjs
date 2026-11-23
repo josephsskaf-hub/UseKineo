@@ -73,6 +73,15 @@ function battery(src) {
   ok(tr({ films: 0 }) === 'sem_filme', 'sem filme fica fora')
   ok(tr({ alreadyGotThis: true }) === 'ja_recebeu_esta', 'esta carta uma vez na vida')
   ok(tr({ email: 'sem-arroba' }) === 'sem_email', 'sem e-mail válido fica fora')
+  ok(tr({ isAffiliate: true }) === 'afiliado' && tr({ isAffiliate: false }) === null, 'afiliado fica fora')
+  ok(tr({ plan: 'creator_trial', trialStatus: 'active' }) === 'em_teste' && tr({ plan: 'starter_trial', trialStatus: 'courtesy' }) === 'em_teste'
+    && tr({ courtesy: [{ status: 'active', endsAt: new Date(NOW + 3 * DIA).toISOString() }] }) === 'em_teste', 'em teste ativo fica fora')
+  ok(tr({ plan: 'creator_trial', trialStatus: 'expired' }) === null && tr({ plan: 'free', trialStatus: 'downgraded' }) === null
+    && tr({ plan: 'creator_trial', trialStatus: 'downgraded' }) === null && tr({ plan: 'free', trialStatus: 'active' }) === null, 'teste encerrado/rebaixado entra')
+  ok(tr({ courtesy: [{ status: 'active', endsAt: new Date(NOW - DIA).toISOString() }] }) === null
+    && tr({ courtesy: [{ status: 'ended', endsAt: new Date(NOW + DIA).toISOString() }] }) === null, 'cortesia vencida entra')
+  ok(src[ROTA].includes('isAffiliate: afiliadoIds.has(v.id) || afiliadoEmails.has(v.email)') && src[ROTA].includes(".from('affiliates')")
+    && src[ROTA].includes(".from('courtesy_grants')") && src[ROTA].includes('courtesy: cortesias.get(v.id) ?? []') && src[ROTA].includes('trialStatus: v.p.trial_status'), 'a rota entrega afiliado, teste e cortesia à régua')
 
   // 2. metades
   const ids = Array.from({ length: 1000 }, (_, i) => uuid(i))
@@ -94,7 +103,12 @@ function battery(src) {
   const meio = P.formatCheckoutMoney('usd', Math.round(P.TIER_PRICES.basic.usd / 2))
   ok(Bc.every((c) => /first month/i.test(c.text) && /only the first month/i.test(c.text) && c.text.includes(meio) && !/annual|year|starter|studio/i.test(tudo(c))
     && !/until|through dec|ends|last chance|expires|hurry/i.test(tudo(c))), 'texto B cita só o 1º mês, sem anual e sem prazo')
-  ok(Bc.every((c) => c.link.includes('/pricing?promo=FIRST50&utm_source=email&utm_campaign=bf_base_2311&utm_content=arm_b')), 'link B usa o mecanismo do FIRST50')
+  const linkB = (c) => { const u = new URL(c.link); return { u, q: Object.fromEntries(u.searchParams) } }
+  ok(Bc.every((c) => { const { u, q } = linkB(c); return u.origin === APP && u.pathname === '/api/stripe/checkout' && q.tier === 'basic' && q.billing === 'monthly'
+    && q.promo === 'FIRST50' && q.utm_source === 'email' && q.utm_campaign === 'bf_base_2311' && q.utm_content === 'arm_b'
+    && c.html.includes(`href="${c.link.replace(/&/g, '&amp;')}"`) }), 'link B vai direto ao checkout do Creator mensal com FIRST50 e os três utm')
+  ok(Bc.every((c) => { const { q } = linkB(c); return !/pricing/i.test(c.link) && q.tier === 'basic' && !Object.values(q).some((v) => ['pro', 'studio', 'annual'].includes(String(v).toLowerCase())) && !('pack' in q) && !('intro' in q) && !('trial' in q) }), 'link B nunca leva à /pricing nem ao Studio')
+
   ok([...A, ...Bc].every((c) => c.text.includes('[unsubscribe]') && c.html.includes('[unsubscribe]') && (c.html.match(/<a /g) || []).length === 1
     && c.text.replace(/https?:\S+/g, '').replace('[unsubscribe]', '').split(/\s+/).filter(Boolean).length <= 110 && !/<img/i.test(c.html)), 'curto, um botão, sem imagem, com descadastro')
   ok(A[0].subject.includes('The lost city of gold') && Bc[0].subject.includes('The lost city of gold'), 'assunto fala do filme')
@@ -148,6 +162,15 @@ const mutantes = [
   ['ensaio depois da escrita', muta(ROTA, "if (pedido.modo === 'DRY_RUN') {", "if (pedido.modo === 'NUNCA') {"), 'o ensaio sai antes de qualquer escrita ou envio'],
   ['A fora da janela sai', muta(ROTA, "(e.arm === 'b' || bfAberta)", '(true)'), 'metade A só com a Black Friday aberta'],
   ['selo forjável', muta(SRV, "  'bf_base_2311_sent',\n", ''), 'selo na supressão da casa e só o servidor grava'],
+  ['link B de volta à /pricing', muta(LIB, '/api/stripe/checkout?tier=${BF_BASE_2311_TIER_B}', '/pricing?tier=${BF_BASE_2311_TIER_B}'), 'link B vai direto ao checkout do Creator mensal com FIRST50 e os três utm'],
+  ['link B no Studio', muta(LIB, "BF_BASE_2311_TIER_B: CheckoutTier = 'basic'", "BF_BASE_2311_TIER_B: CheckoutTier = 'pro'"), 'link B nunca leva à /pricing nem ao Studio'],
+  ['link B sem utm', muta(LIB, "_arm_b&${utm('b')}`", '_arm_b`'), 'link B vai direto ao checkout do Creator mensal com FIRST50 e os três utm'],
+  ['link B no anual', muta(LIB, '}&billing=monthly&promo=${CHECKOUT_RECOVERY_PROMO}', '}&billing=annual&promo=${CHECKOUT_RECOVERY_PROMO}'), 'link B vai direto ao checkout do Creator mensal com FIRST50 e os três utm'],
+  ['afiliado entra', muta(LIB, "  if (p.isAffiliate === true) return 'afiliado'\n", ''), 'afiliado fica fora'],
+  ['afiliado só por id', muta(ROTA, ' || afiliadoEmails.has(v.email)', ''), 'a rota entrega afiliado, teste e cortesia à régua'],
+  ['teste ativo entra', muta(LIB, "  if (bfBaseEmTeste(p)) return 'em_teste'\n", ''), 'em teste ativo fica fora'],
+  ['teste encerrado barrado', muta(LIB, "(ts === 'active' || ts === 'courtesy')", '(true)'), 'teste encerrado/rebaixado entra'],
+  ['cortesia vencida barrada', muta(LIB, '&& Number.isFinite(fim) && fim > p.nowMs', ''), 'cortesia vencida entra'],
   ['selo depois do envio', muta(ROTA, 'if (reserva.error) { pulados++; continue }', ''), 'selo antes do envio, nunca duas vezes'],
 ]
 const linhas = []
