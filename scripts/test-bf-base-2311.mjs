@@ -76,12 +76,18 @@ function battery(src) {
   ok(tr({ isAffiliate: true }) === 'afiliado' && tr({ isAffiliate: false }) === null, 'afiliado fica fora')
   ok(tr({ plan: 'creator_trial', trialStatus: 'active' }) === 'em_teste' && tr({ plan: 'starter_trial', trialStatus: 'courtesy' }) === 'em_teste'
     && tr({ courtesy: [{ status: 'active', endsAt: new Date(NOW + 3 * DIA).toISOString() }] }) === 'em_teste', 'em teste ativo fica fora')
+  const em2030 = '2030-01-01T00:00:00.000Z', ontem = new Date(NOW - DIA).toISOString()
+  ok(tr({ plan: 'free', trialStatus: 'active', trialEndsAt: em2030 }) === 'em_teste' && tr({ plan: 'free', trialStatus: 'active', planExpiresAt: em2030 }) === 'em_teste'
+    && tr({ plan: 'free', trialStatus: 'courtesy', planExpiresAt: em2030 }) === 'em_teste', 'acesso grátis valendo em qualquer plano fica fora')
+  ok(tr({ plan: 'free', trialStatus: 'active', trialEndsAt: ontem, planExpiresAt: ontem }) === null && tr({ plan: 'free', trialStatus: null, trialEndsAt: em2030 }) === null
+    && tr({ plan: 'free', trialStatus: 'region_paid_only', trialEndsAt: em2030 }) === null && tr({ plan: 'free', trialStatus: 'downgraded', planExpiresAt: em2030 }) === null
+    && tr({ plan: 'free', trialStatus: 'converted', trialEndsAt: em2030 }) === null, 'acesso vencido, sem status, region_paid_only, downgraded e converted entram')
   ok(tr({ plan: 'creator_trial', trialStatus: 'expired' }) === null && tr({ plan: 'free', trialStatus: 'downgraded' }) === null
     && tr({ plan: 'creator_trial', trialStatus: 'downgraded' }) === null && tr({ plan: 'free', trialStatus: 'active' }) === null, 'teste encerrado/rebaixado entra')
   ok(tr({ courtesy: [{ status: 'active', endsAt: new Date(NOW - DIA).toISOString() }] }) === null
     && tr({ courtesy: [{ status: 'ended', endsAt: new Date(NOW + DIA).toISOString() }] }) === null, 'cortesia vencida entra')
   ok(src[ROTA].includes('isAffiliate: afiliadoIds.has(v.id) || afiliadoEmails.has(v.email)') && src[ROTA].includes(".from('affiliates')")
-    && src[ROTA].includes(".from('courtesy_grants')") && src[ROTA].includes('courtesy: cortesias.get(v.id) ?? []') && src[ROTA].includes('trialStatus: v.p.trial_status'), 'a rota entrega afiliado, teste e cortesia à régua')
+    && src[ROTA].includes(".from('courtesy_grants')") && src[ROTA].includes('courtesy: cortesias.get(v.id) ?? []') && src[ROTA].includes('trialStatus: v.p.trial_status, trialEndsAt: v.p.trial_ends_at, planExpiresAt: v.p.plan_expires_at') && src[ROTA].includes('trial_ends_at, plan_expires_at, has_paid'), 'a rota entrega afiliado, teste e cortesia à régua')
 
   // 2. metades
   const ids = Array.from({ length: 1000 }, (_, i) => uuid(i))
@@ -169,7 +175,9 @@ const mutantes = [
   ['afiliado entra', muta(LIB, "  if (p.isAffiliate === true) return 'afiliado'\n", ''), 'afiliado fica fora'],
   ['afiliado só por id', muta(ROTA, ' || afiliadoEmails.has(v.email)', ''), 'a rota entrega afiliado, teste e cortesia à régua'],
   ['teste ativo entra', muta(LIB, "  if (bfBaseEmTeste(p)) return 'em_teste'\n", ''), 'em teste ativo fica fora'],
-  ['teste encerrado barrado', muta(LIB, "(ts === 'active' || ts === 'courtesy')", '(true)'), 'teste encerrado/rebaixado entra'],
+  ['de novo só *_trial', muta(LIB, '  if (statusAtivo && (noFuturo(p.trialEndsAt) || noFuturo(p.planExpiresAt))) return true\n', ''), 'acesso grátis valendo em qualquer plano fica fora'],
+  ['data no passado barra', muta(LIB, 'return Number.isFinite(t) && t > p.nowMs }', 'return Number.isFinite(t) }'), 'acesso vencido, sem status, region_paid_only, downgraded e converted entram'],
+  ['teste encerrado barrado', muta(LIB, "if (plan.endsWith('_trial') && statusAtivo) return true", "if (plan.endsWith('_trial')) return true"), 'teste encerrado/rebaixado entra'],
   ['cortesia vencida barrada', muta(LIB, '&& Number.isFinite(fim) && fim > p.nowMs', ''), 'cortesia vencida entra'],
   ['selo depois do envio', muta(ROTA, 'if (reserva.error) { pulados++; continue }', ''), 'selo antes do envio, nunca duas vezes'],
 ]

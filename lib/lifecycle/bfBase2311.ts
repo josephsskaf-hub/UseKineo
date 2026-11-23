@@ -97,6 +97,9 @@ export type BfBasePessoa = {
   /** profiles.plan e profiles.trial_status. */
   plan?: unknown
   trialStatus?: unknown
+  /** profiles.trial_ends_at e profiles.plan_expires_at: acesso grátis valendo até essa data. */
+  trialEndsAt?: unknown
+  planExpiresAt?: unknown
   /** linhas de courtesy_grants da conta (status e ends_at). */
   courtesy?: ReadonlyArray<{ status: unknown; endsAt: unknown }>
   /** vídeos concluídos em `videos`. */
@@ -137,11 +140,16 @@ export function bfBaseTrava(p: BfBasePessoa): BfBaseTrava | null {
   return null
 }
 
-/** Em teste ativo: plano *_trial com trial_status active/courtesy, ou cortesia ativa (status active e ends_at no futuro). */
-export function bfBaseEmTeste(p: Pick<BfBasePessoa, 'plan' | 'trialStatus' | 'courtesy' | 'nowMs'>): boolean {
+/** Em teste ativo (2ª revisão 23/11): trial_status active/courtesy com trial_ends_at OU plan_expires_at no futuro, QUALQUER plano
+ *  (havia conta free + active com fim em 2030); OU plano *_trial com trial_status active/courtesy; OU cortesia ativa (status active e
+ *  ends_at no futuro). Encerrado, downgraded, converted, region_paid_only e active com data no passado em plano free ENTRAM. */
+export function bfBaseEmTeste(p: Pick<BfBasePessoa, 'plan' | 'trialStatus' | 'trialEndsAt' | 'planExpiresAt' | 'courtesy' | 'nowMs'>): boolean {
   const plan = typeof p.plan === 'string' ? p.plan.trim().toLowerCase() : ''
   const ts = typeof p.trialStatus === 'string' ? p.trialStatus.trim().toLowerCase() : ''
-  if (plan.endsWith('_trial') && (ts === 'active' || ts === 'courtesy')) return true
+  const statusAtivo = ts === 'active' || ts === 'courtesy'
+  const noFuturo = (v: unknown) => { const t = Date.parse(String(v ?? '')); return Number.isFinite(t) && t > p.nowMs }
+  if (statusAtivo && (noFuturo(p.trialEndsAt) || noFuturo(p.planExpiresAt))) return true
+  if (plan.endsWith('_trial') && statusAtivo) return true
   return (p.courtesy ?? []).some((g) => {
     const fim = Date.parse(String(g.endsAt ?? ''))
     return String(g.status ?? '').trim().toLowerCase() === 'active' && Number.isFinite(fim) && fim > p.nowMs

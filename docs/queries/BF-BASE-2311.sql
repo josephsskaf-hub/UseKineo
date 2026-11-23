@@ -68,7 +68,7 @@ order by 1 nulls last;
 -- só do JSON da rota. Este SQL confere o total e cada trava. A casa: lista EXATA de lib/internalAccounts.ts INTERNAL_EXACT_EMAILS
 -- (copiada abaixo; se a lista mudar, a rota segue o código e este SQL precisa ser atualizado) e o domínio usekineo.com.
 with base as (
-  select p.id, lower(trim(p.email)) email, p.plan, p.trial_status, p.email_opted_out, p.has_paid, p.stripe_subscription_id, p.paypal_subscription_id,
+  select p.id, lower(trim(p.email)) email, p.plan, p.trial_status, p.trial_ends_at, p.plan_expires_at, p.email_opted_out, p.has_paid, p.stripe_subscription_id, p.paypal_subscription_id,
          upper(trim(coalesce(nullif(trim(p.signup_country), ''), p.last_country))) pais
   from profiles p
 ),
@@ -85,7 +85,8 @@ marcado as (
            or coalesce(trim(b.paypal_subscription_id), '') <> ''
            or exists (select 1 from events e where e.user_id = b.id and e.name = 'payment_success') then 'pagou'
       when exists (select 1 from affiliates a where a.user_id = b.id or lower(trim(a.email)) = b.email) then 'afiliado'
-      when (lower(coalesce(b.plan, '')) like '%\_trial' and lower(coalesce(b.trial_status, '')) in ('active', 'courtesy'))
+      when (lower(coalesce(b.trial_status, '')) in ('active', 'courtesy') and (b.trial_ends_at > now() or b.plan_expires_at > now()))
+        or (lower(coalesce(b.plan, '')) like '%\_trial' and lower(coalesce(b.trial_status, '')) in ('active', 'courtesy'))
         or exists (select 1 from courtesy_grants g where g.user_id = b.id and g.status = 'active' and g.ends_at > now()) then 'em_teste'
       when not exists (select 1 from videos v where v.user_id = b.id and v.status = 'completed') then 'sem_filme'
       when exists (select 1 from events e where e.user_id = b.id and e.name = 'bf_base_2311_sent') then 'ja_recebeu_esta'

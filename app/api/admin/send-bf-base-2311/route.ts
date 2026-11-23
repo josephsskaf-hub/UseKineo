@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
     // ── 1. perfis (todos; paginado) e as travas de perfil ──────────────────────────────────────────────────────────────────
     const { data: perfis, error: perfisErr } = await readAll(() => admin
       .from('profiles')
-      .select('id, email, plan, trial_status, has_paid, email_opted_out, signup_country, last_country, stripe_subscription_id, paypal_subscription_id, created_at')
+      .select('id, email, plan, trial_status, trial_ends_at, plan_expires_at, has_paid, email_opted_out, signup_country, last_country, stripe_subscription_id, paypal_subscription_id, created_at')
       .order('created_at', { ascending: true }), { route: ROUTE, table: 'profiles' })
     if (perfisErr) return NextResponse.json({ error: 'profiles unavailable; no email sent' }, { status: 503 })
     const fora: Record<BfBaseTrava | 'email_repetido', number> = {
@@ -139,7 +139,7 @@ export async function GET(req: NextRequest) {
         email: v.p.email, signupCountry: v.p.signup_country, lastCountry: v.p.last_country, emailOptedOut: v.p.email_opted_out,
         hasPaid: v.p.has_paid, stripeSubscriptionId: v.p.stripe_subscription_id, paypalSubscriptionId: v.p.paypal_subscription_id,
         paymentEvent: pagou.has(v.id), isAffiliate: afiliadoIds.has(v.id) || afiliadoEmails.has(v.email),
-        plan: v.p.plan, trialStatus: v.p.trial_status, courtesy: cortesias.get(v.id) ?? [], films: filmes.get(v.id) ?? 0, alreadyGotThis: recebeuEsta.has(v.id),
+        plan: v.p.plan, trialStatus: v.p.trial_status, trialEndsAt: v.p.trial_ends_at, planExpiresAt: v.p.plan_expires_at, courtesy: cortesias.get(v.id) ?? [], films: filmes.get(v.id) ?? 0, alreadyGotThis: recebeuEsta.has(v.id),
         lastEmailMs: ultimoEmail.get(v.id) ?? null, nowMs: agora,
       })
       if (t) { fora[t]++; continue }
