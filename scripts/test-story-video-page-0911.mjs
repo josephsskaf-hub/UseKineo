@@ -11,6 +11,8 @@ const mocks = {
 const pagePath = 'app/ai-video-generator/for/[slug]/page.tsx'
 const dataPath = 'lib/seo/intentPages.ts'
 const beforeSources = Object.fromEntries([pagePath, dataPath].map(path => [path, execFileSync('git', ['show', `bb260242a:${path}`], { encoding: 'utf8' })]))
+// Controls follow the approved published version; bb260242a remains the historical VideoObject/CTA fixture.
+const controls = offlineModules({ mocks, replacements: Object.fromEntries([pagePath, dataPath].map(path => [path, execFileSync('git', ['show', `b2c24e671:${path}`], { encoding: 'utf8' })])) })
 const load = offlineModules({ mocks })
 const before = offlineModules({ mocks, replacements: beforeSources })
 const render = (loader, slug) => renderToStaticMarkup(React.createElement(loader(pagePath).default, { params: { slug } }))
@@ -26,7 +28,20 @@ assert.doesNotMatch(html, /Make this film free|A written next episode|same chara
 assert.equal((html.match(/Prepare this story/g) ?? []).length, 2)
 assert.match(html, /dateTime="2026-11-09"/i)
 const faq = schemas(html).find(item => item['@type'] === 'FAQPage')
-assert.equal(faq.mainEntity.length, 6)
+const expectedQuestions = [
+  'AI story video maker recurring character consistency?',
+  'Can I start from my own story script?',
+  'Will the same character look identical in every scene?',
+  'Do the example films prove the current model?',
+  'How long will my story take to generate?',
+  'Which model creates the story scenes?',
+  'How much does it cost?',
+]
+assert.equal(faq.mainEntity.length, 7)
+assert.deepEqual(new Set(faq.mainEntity.map(item => item.name)), new Set(expectedQuestions), 'six original questions plus the approved buyer question')
+const textOf = s => s.replace(/<[^>]+>/g,' ').replace(/&#(?:x([a-f\d]+)|(\d+));/ig,(_,h,d)=>String.fromCodePoint(parseInt(h||d,h?16:10))).replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/\s+/g,' ').trim()
+const visible = textOf(html.replace(/<script[\s\S]*?<\/script>/g,''))
+for (const item of faq.mainEntity) assert.ok(visible.includes(textOf(item.acceptedAnswer.text)), 'every structured answer is visible')
 for (const item of faq.mainEntity) assert.ok(html.includes(item.name), `Visible FAQ matches schema: ${item.name}`)
 const cost = load('lib/marketingPrice.ts').creditsPerReferenceVideo('cinematic_ai')
 assert.ok(faq.mainEntity.some(item => item.acceptedAnswer.text.includes(`${cost} credits`)))
@@ -40,10 +55,17 @@ assert.equal(signup.searchParams.get('utm_source'), null)
 const metadata = load(pagePath).generateMetadata({ params: { slug: 'story-videos' } })
 assert.equal(metadata.alternates.canonical, 'https://www.usekineo.com/ai-video-generator/for/story-videos')
 assert.match(metadata.description, /MiniMax H3 Turbo/)
-for (const slug of ['instagram-reels', 'urdu']) assert.equal(render(load, slug), render(before, slug), `${slug} keeps its existing output`)
+for (const slug of ['instagram-reels', 'urdu']) assert.equal(render(load, slug), render(controls, slug), `${slug} keeps its existing output`)
 const launch = 'lib/engineLaunch.ts'
 const rollback = offlineModules({ mocks, replacements: { [launch]: source(launch).replace('H3_TURBO_PUBLIC = true', 'H3_TURBO_PUBLIC = false') } })
 assert.match(rollback(pagePath).generateMetadata({ params: { slug: 'story-videos' } }).description, /Seedance 1\.5/)
-assert.doesNotMatch(render(rollback, 'story-videos'), /H3 Turbo/)
+// The free-film fallback is a separate switch; verify the standard story offer, not that independent label.
+const rolledStory = rollback('lib/growth/storyVideoPage.ts')
+assert.doesNotMatch(rolledStory.STORY_VIDEO_COPY.intro, /H3 Turbo/)
+assert.doesNotMatch(rolledStory.STORY_VIDEO_COPY.engineAnswer, /H3 Turbo/)
+const rolledFaq = schemas(render(rollback, 'story-videos')).find(item => item['@type'] === 'FAQPage')
+assert.match(rolledFaq.mainEntity.find(item => item.name === 'Which model creates the story scenes?').acceptedAnswer.text, /Seedance 1\.5/)
+assert.doesNotMatch(rolledFaq.mainEntity.find(item => item.name === 'Which model creates the story scenes?').acceptedAnswer.text, /H3 Turbo/)
+assert.ok(render(rollback, 'story-videos').includes(rollback('lib/freeFilmEngine.ts').FREE_FILM_ENGINE_NAME), 'free-film label follows its own policy')
 assert.match(render(rollback, 'story-videos'), /Seedance 1\.5 cost per finished story/)
 console.log('PASS story offer, cost, FAQ, historical schema, CTA attribution, unrelated pages and H3 rollback. Offline only.')

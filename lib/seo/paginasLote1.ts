@@ -1,3 +1,4 @@
+import { CARTOON_ANSWER_REVIEWED_ISO } from '@/lib/seo/paginasLote1Paths'
 // KINEO-PAGINAS-LOTE1-2026-10-12 — LOTE 1 das "10 páginas novas por semana no estilo das que já vendem" (fundador, 12/10/2026).
 //
 // POR QUE ESTAS 10 (medido em 12/10, 30 dias de landing_session_started sem bot + profiles 60 dias, só SELECT):
@@ -76,7 +77,7 @@ export interface Lote1Niche {
   answer?: Lote1Answer
 }
 
-export interface Lote1Answer { q: string; a: string; reviewed: string; rows: ReadonlyArray<readonly [string, string]> }
+export interface Lote1Answer { q: string; a: string; reviewed: string; reviewedIso: string; rows: ReadonlyArray<readonly [string, string]> }
 
 // ═══ 7 NICHOS NOVOS em /free-ai-shorts/<slug> (a família que já traz visita, botão de compra e formulário) ═══
 export const LOTE1_NICHES: Readonly<Record<string, Lote1Niche>> = {
@@ -101,7 +102,8 @@ export const LOTE1_NICHES: Readonly<Record<string, Lote1Niche>> = {
     answer: {
       q: 'Can AI make a 3D cartoon Short from a text prompt?',
       a: 'Yes: you type a character and a tiny plot, and Kineo writes the scenes, narrates them and renders a vertical 9:16 cartoon with captions. Each scene is generated separately, so small details of the character can change between shots; a short description repeated in every scene and a small cast keep the look close.',
-      reviewed: 'November 22, 2026',
+      reviewedIso: CARTOON_ANSWER_REVIEWED_ISO,
+      reviewed: new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${CARTOON_ANSWER_REVIEWED_ISO}T12:00:00Z`)),
       rows: [
         ['What you type', 'A character and a 3–4 beat plot, or your own full narration'],
         ['What you get', 'A narrated vertical (9:16) MP4 with captions'],

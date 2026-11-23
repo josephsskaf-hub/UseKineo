@@ -34,7 +34,7 @@ import { STATE_HEADLINE } from '@/lib/seo/stateOfAiShortsHeadline'
 // nas páginas de motor (14 línguas) e no /alternatives, e o timer de roteiro. Módulo sem import em tempo de execução.
 import { GEO_RODADA3_ALTERNATIVE_SLUGS, GEO_RODADA3_LAST_MODIFIED_ISO, GEO_RODADA3_STATIC_PATHS } from '@/lib/seo/geoRodada3'
 // KINEO-PAGINAS-LOTE1-2026-10-12 — lote 1 das 10 páginas novas (7 nichos + 3 de intenção). Módulo PURO, sem import.
-import { LOTE1_LANDING_PATH_LIST, LOTE1_NICHE_SLUG_LIST, LOTE1_REVIEWED_ISO } from '@/lib/seo/paginasLote1Paths'
+import { LOTE1_LANDING_PATH_LIST, LOTE1_NICHE_SLUG_LIST, LOTE1_REVIEWED_ISO, CARTOON_ANSWER_REVIEWED_ISO } from '@/lib/seo/paginasLote1Paths'
 // KINEO-VS-ALTERNATIVAS-1310 — as 4 páginas /vs "alternativa a X" (Pictory, Synthesia, CapCut, OpusClip). Módulo PURO, sem import.
 import { VS_ALTERNATIVE_LINKS, VS_ALT_REVIEWED_ISO } from '@/lib/seo/vsAlternatives1310'
 import { BING_SEO_1510_LASTMOD_ISO, BING_SEO_1510_PATHS } from '@/lib/seo/bingSeo1510Paths' // KINEO-BING-SEO-1510
@@ -385,7 +385,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // KINEO-PAGINAS-LOTE1-2026-10-12 — os 7 nichos do lote 1 nascem com a data do lote (a linha acima fica intacta para os 30
   // de antes); as 3 páginas de intenção entram logo abaixo.
   for (const e of nicheEntries) {
-    if (LOTE1_NICHE_SLUG_LIST.some((slug) => e.url === `${BASE}/free-ai-shorts/${slug}`)) e.lastModified = LOTE1_LAST_MODIFIED
+    if (LOTE1_NICHE_SLUG_LIST.some((slug) => e.url === `${BASE}/free-ai-shorts/${slug}`)) e.lastModified = e.url === `${BASE}/free-ai-shorts/cartoon` ? new Date(`${CARTOON_ANSWER_REVIEWED_ISO}T12:00:00.000Z`) : LOTE1_LAST_MODIFIED
   }
   const lote1Entries = LOTE1_LANDING_PATH_LIST.map((path) => ({
     url: `${BASE}${path}`,

@@ -5,6 +5,8 @@
 
 /** Data da revisão (o sitemap carimba esta data como lastmod das 10 páginas). */
 export const LOTE1_REVIEWED_ISO = '2026-10-12'
+/** Only the cartoon answer was substantively reviewed on this later day. */
+export const CARTOON_ANSWER_REVIEWED_ISO = '2026-11-22'
 
 /** Os 7 nichos novos em /free-ai-shorts/<slug>. */
 export const LOTE1_NICHE_SLUG_LIST: readonly string[] = ['cartoon', 'what-if', 'ocean', 'disasters', 'nature', 'ancient-mysteries', 'creepy-facts']

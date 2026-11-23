@@ -745,7 +745,7 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.92rem' }}>
                     <tbody>
                       {lote1.answer.rows.map(([k, v]) => (
-                        <tr key={k} style={{ borderTop: '1px solid rgba(14,17,22,0.08)' }}>
+                        <tr key={k} style={{ borderTop: '1px solid var(--kpl-muted,#5A5F67)' }}>
                           <th scope="row" style={{ textAlign: 'left', padding: '8px 12px 8px 0', fontWeight: 700, verticalAlign: 'top' }}>{k}</th>
                           <td style={{ padding: '8px 0', color: '#2A2F37', lineHeight: 1.5 }}>{v}</td>
                         </tr>
@@ -753,7 +753,7 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
                     </tbody>
                   </table>
                 </div>
-                <p style={{ color: '#5A6170', fontSize: '0.8rem', margin: '10px 0 0' }}>Reviewed {lote1.answer.reviewed}.</p>
+                <p style={{ color: 'var(--kpl-muted,#5A5F67)', fontSize: '0.8rem', margin: '10px 0 0' }}>Reviewed <time dateTime={lote1.answer.reviewedIso}>{lote1.answer.reviewed}</time>.</p>
               </div>
             )}
             {lote1.sections.map((s) => (
