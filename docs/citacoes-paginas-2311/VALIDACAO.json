@@ -1,0 +1,446 @@
+{
+  "tests": 78,
+  "passed": 41,
+  "oldFailures": 37,
+  "newFailures": [],
+  "timeouts": [],
+  "initialNewFailure": [
+    "test-citacoes-lastmod-0911.mjs"
+  ],
+  "additionalFailuresInsideOldRedTestsFixed": [
+    "test-paginas-ia-0111.mts",
+    "test-remix-paginas-3110.mjs"
+  ],
+  "fix": "Actual pure dependencies added to legacy lastmod expression context; old pricing/Kling dates and both mutants kept; new format dates checked",
+  "failures": [
+    {
+      "test": "test-agency-production-scope.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "Error: INTERNAL_EXACT_EMAILS must contain string literals only"
+      ]
+    },
+    {
+      "test": "test-avatar-fora-2026-09-28.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "Error: desfaz KINEO-PAGINAS-IA-CLARAS-2110 em app/best-ai-shorts-generators/page.tsx: fonte divergente"
+      ]
+    },
+    {
+      "test": "test-b2b-bulk-page.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "Error: lib/credits/engineCost.ts imported unexpected module: @/lib/kling4PaidPolicy"
+      ]
+    },
+    {
+      "test": "test-bebe-que-fala-2010.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "Error: desfaz-idiomas-formatos-2410: fonte divergente lib/kidsCartoon/kidsCartoon.ts",
+        "FALHA A1 desenho infantil LIGADO (produto, páginas, 4º card — ordem do fundador 20/10 noite), bebê-podcast DESLIGADO; quem vê = live || casa (exceção: desfaz-idiomas-formatos-2410: fonte divergente lib/kidsCartoon/kidsCartoon.ts)"
+      ]
+    },
+    {
+      "test": "test-bing-seo-1510.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "FAIL B5: plano de entrada = TIER_PRICES/TIER_CREDITS",
+        "FAIL B7: desfaz: KINEO-TRAFEGO-2310: app/text-to-video-shorts/page.tsx hunk 1: expected exactly 1 candidate match, found 0",
+        "FAIL app/KineoLanding.tsx: tem <img> para conferir",
+        "FAIL mutante \"description do text-to-video longa demais com a oferta ligada\" passou VERDE",
+        "FAIL mutante \"meta do Seedance some (volta a padrão de 248)\" não aplicado: mutante não aplicável em lib/growth/enginePageCatalog.ts: âncora ausente —     metaDescription: `Seedance 1.5 in Kineo:",
+        "FAIL mutante \"título da home longo\" não aplicado: mutante não aplicável em lib/seo/bingSeo1510.ts: âncora ausente — 'Kineo AI — Faceless YouTube Shorts: Veo 3.1, Kling, Seedanc",
+        "FAIL roundup: metadata: Offline harness refuses non-local dependency: react-dom",
+        "FAIL roundup: render: Cannot access 'paginasIaClaras2110_1' before initialization",
+        "FAIL seedance: a meta própria do catálogo é a que vai ao ar",
+        "FAIL seedance: crédito da description = creditCostForDuration (60 s)",
+        "FAIL seedance: render: Cannot access 'CSS' before initialization",
+        "FAIL seedance: título ≤ 60 (62)",
+        "FAIL text-to-video: a description responde e segue a oferta nas duas versões: Offline harness refuses non-local dependency: react-dom",
+        "FAIL text-to-video: render: Cannot access 'CSS' before initialization",
+        "FAIL árvore real: 11 falha(s)"
+      ]
+    },
+    {
+      "test": "test-copy-filme-gratis-15s-2026-09-29.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "✗ FREE_FILM_LABEL = \"free 15-second film (Kling 4.0 / MiniMax H3 Turbo)\"",
+        "✗ llms.txt e /api/facts dizem \"free 15-second film (Kling 4.0 / MiniMax H3 Turbo)\", derivado, sem cota recorrente — llms.txt sem a frase do filme grátis de 15 s | /api/facts sem a frase do filme grátis de 15 s | trialAccess.freeFilm diverge do motor e do 15 s derivados: {\"engine\":\"Kling 4.0 / MiniMax H3 Turbo\",\"seconds\":15,\"creditsPerFilm\":9,\"filmsCovered\":1,\"availableIn\":\"supported countries\"}",
+        "✗ selo e título da página vêm de ENGINE_NAME[p.engine] e o motor das páginas é \"Seedance 1.5\""
+      ]
+    },
+    {
+      "test": "test-demo-sob-medida-1510.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "FAIL D10 o desfaz devolve o PAI byte a byte em cada arquivo que já existia (vista da aprovação, tela da aprovação, vista pública, cron, menu do admin); estrito: trecho alterado = lança; lib/ads/v2PostDeliveryServer.ts INTOCADO",
+        "FAIL D2a a ROTA recusa admin que não é conta da casa (403 not_house_account) antes de ler o link"
+      ]
+    },
+    {
+      "test": "test-duracao-rewards-2026-10-06.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "Error: desfaz-h3-turbo-0511: trecho ausente ou repetido em app/(dashboard)/studio/StudioClient.tsx"
+      ]
+    },
+    {
+      "test": "test-five-improvements.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "AssertionError [ERR_ASSERTION]: critical CI cannot ignore failure"
+      ]
+    },
+    {
+      "test": "test-frente-0411.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "FALHA /ads/v2: visitante só pelo caminho estreito; o resto continua no login",
+        "FALHA /clips segue pelo cadastro",
+        "FALHA /kids-cartoon: visitante sem o painel de venda",
+        "FALHA a amostra grátis não mudou: a Escolha segue a mesma para quem pode"
+      ]
+    },
+    {
+      "test": "test-geo-rodada2-2026-10-08.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "Error: KINEO-TRAFEGO-2310: app/ai-video-generator/[engine]/page.tsx hunk 0: expected exactly 1 candidate match, found 0"
+      ]
+    },
+    {
+      "test": "test-geo-rodada3-2026-10-08.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "FAIL K1 a edição muda (JSON + espelho + GenerateClient juntos) → tempo e copy acompanham → verde → (controle lançou: semRecusaBotao3110: app/(dashboard)/generate/GenerateClient.tsx mudou fora da camada (0x))",
+        "FAIL K2 preço do Creator muda na fonte → os US$ das respostas acompanham (nada digitado) → verde → (controle lançou: desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts)",
+        "FAIL M1 a resposta sai do 1º parágrafo (página dos modelos) → vermelho pelo motivo certo (esperado /1º parágrafo depois do H1 não é a resposta/; veio: R1: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts))",
+        "FAIL M10 a faixa volta ao GenerateClient → vermelho pelo motivo certo (esperado /GenerateClient: \"3-7 minutes\"/; veio: (mutante lançou: semRecusaBotao3110: app/(dashboard)/generate/GenerateClient.tsx mudou fora da camada (0x)))",
+        "FAIL M11 número do GenerateClient diverge do índice → vermelho pelo motivo certo (esperado /GenerateClient: sem o número medido «Seedance 1\\.5 films take a measured median of 5\\.9 minutes»/; veio: (mutante lançou: semRecusaBotao3110: app/(dashboard)/generate/GenerateClient.tsx mudou fora da camada (0x)))",
+        "FAIL M12 o timer digita a régua hollywood → vermelho pelo motivo certo (esperado /número de régua digitado/; veio: R5: a regra lançou (desfaz-ficha-do-pedido-0911: trecho ausente ou repetido em app/api/generate-video-cinematic/route.ts))",
+        "FAIL M13 o timer ignora a persona (passo base 3,1) → vermelho pelo motivo certo (esperado /passo clássico .* ≠ o do ensaio do servidor/; veio: R5: a regra lançou (desfaz-ficha-do-pedido-0911: trecho ausente ou repetido em app/api/generate-video-cinematic/route.ts))",
+        "FAIL M14 a régua do servidor muda e o timer fica para trás → vermelho pelo motivo certo (esperado /a régua do servidor mudou/; veio: (mutante lançou: desfaz-ficha-do-pedido-0911: trecho ausente ou repetido em app/api/generate-video-cinematic/route.ts))",
+        "FAIL M15 o timer passa a chamar API → vermelho pelo motivo certo (esperado /o timer chama API/; veio: R5: a regra lançou (desfaz-ficha-do-pedido-0911: trecho ausente ou repetido em app/api/generate-video-cinematic/route.ts))",
+        "FAIL M16 \"Make one like this\" perde o utm_content → vermelho pelo motivo certo (esperado /sem utm_content=house_film_remix/; veio: R6: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts))",
+        "FAIL M17 \"Make one like this\" dispara render (create_intent) → vermelho pelo motivo certo (esperado /dispara render sozinho/; veio: R6: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts))",
+        "FAIL M18 o botão do Seedance mede com o placement errado → vermelho pelo motivo certo (esperado /seedance: 0 botões \"Make one like this\"/; veio: R6: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts))",
+        "FAIL M19 motor do filme errado no Studio (Veo → Kling) → vermelho pelo motivo certo (esperado /STUDIO_ENGINE_FOR_FILM\\[cinematic_veo\\]|motor ≠ o que renderizou/; veio: R6: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts))",
+        "FAIL M2 mediana digitada na resposta do InVideo → vermelho pelo motivo certo (esperado /invideo: sem a mediana medida/; veio: R1: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts))",
+        "FAIL M21 o sitemap esquece de re-datar as alternativas → vermelho pelo motivo certo (esperado /sitemap: \\/alternatives\\/opusclip com lastmod/; veio: (mutante lançou: semPaginasIa0111: app/sitemap.ts mudou fora da camada (0x)))",
+        "FAIL M22 a seção da rodada some do llms.txt → vermelho pelo motivo certo (esperado /llms\\.txt: sem a seção da rodada 3/; veio: (mutante lançou: KINEO-LLMS-K4-2910: app/llms.txt/route.ts hunk 1: expected one exact current-copy match, got 0))",
+        "FAIL M23 a lista das alternativas re-datadas esquece uma → vermelho pelo motivo certo (esperado /GEO_RODADA3_ALTERNATIVE_SLUGS ≠ os blocos/; veio: R7: a regra lançou (KINEO-TRAFEGO-2310: app/free-ai-shorts/[niche]/page.tsx hunk 1: expected exactly 1 candidate match, found 0))",
+        "FAIL M24 os preços da InVideo voltam à leitura velha → vermelho pelo motivo certo (esperado /R9: InVideo sem URL oficial ou sem \"checked on 2026-10-08\"/; veio: R9: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts))",
+        "FAIL M25 a rota direta do Kling 3 diverge da tabela de mercado → vermelho pelo motivo certo (esperado /Kling 3 na Runway ≠ MARKET_QUOTES/; veio: R9: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts))",
+        "FAIL M26 /facts volta a prometer todo motor no teste → vermelho pelo motivo certo (esperado /R10 \\/facts: ainda promete/; veio: R10: a regra lançou (KINEO-LLMS-K4-2910: app/llms.txt/route.ts hunk 1: expected one exact current-copy match, got 0))",
+        "FAIL M27 o llms.txt volta a prometer todo motor no teste → vermelho pelo motivo certo (esperado /R10 llms\\.txt: ainda promete/; veio: (mutante lançou: KINEO-LLMS-K4-2910: app/llms.txt/route.ts hunk 1: expected one exact current-copy match, got 0))",
+        "FAIL M28 o ping passa a escolher pelo DIA (pegaria URLs da rodada 2 fora do escopo) → vermelho pelo motivo certo",
+        "FAIL M3 a resposta do CapCut ganha uma 3ª frase → vermelho pelo motivo certo (esperado /capcut: a resposta tem 3 frases/; veio: R1: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts))",
+        "FAIL M4 o FAQPage das alternativas deixa de fazer parse → vermelho pelo motivo certo (esperado /JSON-LD não faz parse/; veio: R2: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts))",
+        "FAIL M5 a pergunta do timer some do FAQ → vermelho pelo motivo certo (esperado /timer: FAQPage sem «How many words is a 60-second YouTube Short\\?»/; veio: R2: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts))",
+        "FAIL M6 um vídeo de cliente entra na seção da rodada → vermelho pelo motivo certo (esperado /fora da lista permitida|fora da vitrine do fundador/; veio: R3: a regra lançou (desfaz KINEO-PAGINAS-IA-CLARAS-2110 em app/best-ai-shorts-generators/page.tsx: fonte divergente))",
+        "FAIL M7 a faixa de minutos volta à página de motor → vermelho pelo motivo certo (esperado /a faixa de minutos velha voltou à página de motor/; veio: R4a: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts))",
+        "FAIL M8 a faixa volta à página traduzida (alemão) → vermelho pelo motivo certo (esperado /\\/de: a faixa de minutos velha voltou/; veio: R4b: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts))",
+        "FAIL M9 a mediana velha do Kineo 1 volta ao /alternatives → vermelho pelo motivo certo (esperado /submagic: a mediana velha do Kineo 1 voltou/; veio: R4c: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts))",
+        "FAIL PING do IndexNow (ensaio offline) escolhe EXATAMENTE as 0 URLs novas e alteradas → ping: o sitemap não carregou (KINEO-TRAFEGO-2310: app/free-ai-shorts/[niche]/page.tsx hunk 1: expected exactly 1 candidate match, found 0)",
+        "FAIL R1 → R1: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts)",
+        "FAIL R10 → R10: a regra lançou (KINEO-LLMS-K4-2910: app/llms.txt/route.ts hunk 1: expected one exact current-copy match, got 0)",
+        "FAIL R2 → R2: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts)",
+        "FAIL R3 → R3: a regra lançou (desfaz KINEO-PAGINAS-IA-CLARAS-2110 em app/best-ai-shorts-generators/page.tsx: fonte divergente)",
+        "FAIL R4a → R4a: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts)",
+        "FAIL R4b → R4b: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts)",
+        "FAIL R4c → R4c: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts)",
+        "FAIL R4d → R4d: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts)",
+        "FAIL R5 → R5: a regra lançou (desfaz-ficha-do-pedido-0911: trecho ausente ou repetido em app/api/generate-video-cinematic/route.ts)",
+        "FAIL R6 → R6: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts)",
+        "FAIL R7 → R7: a regra lançou (KINEO-TRAFEGO-2310: app/free-ai-shorts/[niche]/page.tsx hunk 1: expected exactly 1 candidate match, found 0)",
+        "FAIL R9 → R9: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts)"
+      ]
+    },
+    {
+      "test": "test-growth-space-intent.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "AssertionError [ERR_ASSERTION]: exact script constant is extractable"
+      ]
+    },
+    {
+      "test": "test-idiomas-15-2026-09-17.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "Error: desfaz KINEO-VOZ-NATIVA-2610: resultado diverge da base em lib/textLanguage.ts"
+      ]
+    },
+    {
+      "test": "test-indice-video-ia-2026-10-06.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "✗ M12 sitemap sem a entrada — mutante aplicou (semPaginasIa0111: app/sitemap.ts mudou fora da camada (0x))",
+        "✗ M13 llms.txt sem a linha — mutante aplicou (KINEO-TRAFEGO-2310: app/llms.txt/route.ts hunk 0: expected exactly 1 candidate match, found 0)",
+        "✗ M14 llms.txt com a linha no topo (antes de \"## Citation\") — mutante aplicou (KINEO-TRAFEGO-2310: app/llms.txt/route.ts hunk 0: expected exactly 1 candidate match, found 0)",
+        "✗ M17 página de motor sem o link — mutante aplicou (KINEO-TRAFEGO-2310: app/ai-video-generator/[engine]/page.tsx hunk 0: expected exactly 1 candidate match, found 0)",
+        "✗ M25 llms.txt volta a importar a edição (JSON) — mutante aplicou (KINEO-TRAFEGO-2310: app/llms.txt/route.ts hunk 0: expected exactly 1 candidate match, found 0)",
+        "✗ controle C1: todas as regras seguem verdes com o JSON novo — exceção: semPaginasIa0111: app/sitemap.ts mudou fora da camada (0x)",
+        "✗ controle C3: todas as regras verdes — exceção: semPaginasIa0111: app/sitemap.ts mudou fora da camada (0x)",
+        "✗ controle C4: todas as regras verdes — exceção: semPaginasIa0111: app/sitemap.ts mudou fora da camada (0x)",
+        "✗ superficies: verde — exceção: semPaginasIa0111: app/sitemap.ts mudou fora da camada (0x)"
+      ]
+    },
+    {
+      "test": "test-llms-paginas-citadas.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": []
+    },
+    {
+      "test": "test-motores-16-linguas-2026-09-21.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "Error: desfaz-idiomas-formatos-2410: fonte divergente lib/seo/freeShortsGeneratorLangs.ts"
+      ]
+    },
+    {
+      "test": "test-motores-geo-2026-10-06.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "Error: KINEO-TRAFEGO-2310: app/ai-video-generator/[engine]/page.tsx hunk 0: expected exactly 1 candidate match, found 0"
+      ]
+    },
+    {
+      "test": "test-omni-fora-da-oferta-1210.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "AssertionError [ERR_ASSERTION]: violações:"
+      ]
+    },
+    {
+      "test": "test-paginas-citadas-ponte-2026-09-23.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "Error: desfaz KINEO-PAGINAS-IA-CLARAS-2110 em components/ScriptToSeedanceBridge.tsx: fonte divergente"
+      ]
+    },
+    {
+      "test": "test-paginas-ia-0111.mts",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "FAIL R17 nenhuma frase proibida nas 20 (motor pausado, promessa, crédito literal)"
+      ]
+    },
+    {
+      "test": "test-paginas-ia-claras-2110.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "Error: KINEO-TRAFEGO-2310: app/ai-video-generator/[engine]/page.tsx hunk 0: expected exactly 1 candidate match, found 0"
+      ]
+    },
+    {
+      "test": "test-paginas-lote1-1210.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "Error: KINEO-TRAFEGO-2310: app/ai-video-generator/[engine]/page.tsx hunk 0: expected exactly 1 candidate match, found 0"
+      ]
+    },
+    {
+      "test": "test-paginas-ugc-2010.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "AssertionError [ERR_ASSERTION]: guardião vermelho no código real:"
+      ]
+    },
+    {
+      "test": "test-portas-16-linguas-2026-09-20.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "Error: desfaz-idiomas-formatos-2410: fonte divergente lib/seo/freeShortsGeneratorLangs.ts"
+      ]
+    },
+    {
+      "test": "test-projeto-1-google-2026-09-17.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "Error: semPaginasIa0111: lib/seo/intentPages.ts mudou fora da camada (0x)"
+      ]
+    },
+    {
+      "test": "test-remix-paginas-3110.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "FAIL B7 llms.txt aponta para cada uma das 10"
+      ]
+    },
+    {
+      "test": "test-runway-alternative-1011.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "AssertionError [ERR_ASSERTION]: Other sitemap URLs and dates stay unchanged under identical unrelated-taxonomy fixtures"
+      ]
+    },
+    {
+      "test": "test-showcase-2026-10-02.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "TypeError: (0 , paginasCitaveis1011_1.faceSwapNoMapa) is not a function"
+      ]
+    },
+    {
+      "test": "test-tela-nova-1011.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "AssertionError [ERR_ASSERTION]: public: a aba Recreate segue o interruptor do Recreate (nunca leva a 404)"
+      ]
+    },
+    {
+      "test": "test-trafego-index-2310.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "AssertionError [ERR_ASSERTION]: review date: /text-to-video-shorts"
+      ]
+    },
+    {
+      "test": "test-trafego-pages-2310.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "AssertionError [ERR_ASSERTION]: false == true"
+      ]
+    },
+    {
+      "test": "test-trafego-undo-2310.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "Error: desfaz-compra-avulsa-2410: fonte divergente .github/workflows/guardiao.yml"
+      ]
+    },
+    {
+      "test": "test-trending-1310.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "FALHA (1) página com os 4 blocos, tamanhos das fontes (página sem trendingBlocks({ now, signedIn, today }); página sem <TrendingCard key={card.key} block={block.id} card={card} />; página sem data-trending-block={block.id}; página sem export const dynamic = 'force-dynamic')",
+        "FALHA (3) selos de motor do dado, nada digitado (efeito bring_to_life: selo MiniMax H3 Turbo ≠ nota da prévia (Seedance 1.5); efeito restore_old_photo: selo MiniMax H3 Turbo ≠ nota da prévia (Seedance 1.5))",
+        "FALHA (5) 🔥 Trending em todos os pares do menu (topo do site sem o 🔥 Trending; menu do celular do site sem o 🔥 Trending; /examples sem o 🔥 Trending; /trending sem o item marcado (aria-current))",
+        "FALHA (6) sitemap e llms.txt (sitemap sem /trending)",
+        "FALHA (8) honestidade: filme do tema, oferta, datas do New, today.json (efeito witch: data undefined ≠ 2026-10-05 (marcador); efeito zombie: data undefined ≠ 2026-10-05 (marcador); efeito dust_away: data undefined ≠ 2026-10-05 (marcador); efeito figurine_3d: data undefined ≠ 2026-10-05 (marcador))",
+        "FALHA (M10) 🔥 Trending sai do \"More\" do celular → vermelho (MUTANTE NÃO APLICOU)",
+        "FALHA (M11) 🔥 Trending sai da lateral (WORKSPACE_NAV) → vermelho (MUTANTE NÃO APLICOU)",
+        "FALHA (M12) /trending sai do sitemap → vermelho (MUTANTE NÃO APLICOU)",
+        "FALHA (M9) 🔥 Trending sai do topo do site → vermelho (MUTANTE NÃO APLICOU)"
+      ]
+    },
+    {
+      "test": "test-tres-jogadas-servidor-2026-09-23.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "FAIL Kling 3 'what' NÃO tem mais 'One fits each month on the Studio plan.' digitado; usa studioFitsPerMonthSentence('cinematic_hollywood')",
+        "FAIL LIGADO: dfyCardCopy() sem argumento pinta os DOIS botões, Express primeiro, com preço e prazo",
+        "FAIL llms: a página nova Seedance vs Veo vs Kling está listada nas comparações",
+        "FAIL llms: o preço do unlock regional sai de packPriceLabel, não digitado",
+        "FAIL llms: one-off operado separado de planos e top-ups",
+        "FAIL openapi engineHint: o custo do Kling 3 continua citado (150 credits at 60s — trava J8 do gpt-handoff)",
+        "FAIL openapi engineHint: seedance a 15 s = filme grátis, 35/60/90 = plano pago; fast nunca para conta nova",
+        "FAIL openapi: toda promessa de filme grátis vem com a condição (15 s + seedance); nada de \"fits the free trial\""
+      ]
+    },
+    {
+      "test": "test-trust-center.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "✗ operator identity is machine-readable"
+      ]
+    },
+    {
+      "test": "test-works-with-claude-2026-09-30.mjs",
+      "candidateCode": "1",
+      "mainCode": "1",
+      "sameFailureLines": true,
+      "assertions": [
+        "Error: desfaz-h3-turbo-0511: trecho ausente ou repetido em app/pricing/PricingClient.tsx"
+      ]
+    }
+  ],
+  "mismatches": [],
+  "base": "4ba8c750cbfc3b937c346e14a7bb28a6a3e6f73d",
+  "typecheck": {
+    "command": "npx tsc --noEmit -p . --incremental false",
+    "exit": 0
+  },
+  "mutants": 12,
+  "typeFix": {
+    "file": "components/seo/InternalCitationPreview.tsx",
+    "emittedJavaScriptIdentical": true,
+    "sha256": "d9e450c05cb5f1202c9b2313fa30ef78281c8bd6aa268262aa5116b8766032b2"
+  },
+  "notes": "Full initial 78 guards plus targeted rechecks of lastmod and two legacy loaders; original failed runs retained. No product runtime changed after photos."
+}
