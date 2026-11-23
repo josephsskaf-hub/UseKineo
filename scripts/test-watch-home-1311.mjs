@@ -386,6 +386,7 @@ const baseErrors = await problems()
 for (const e of baseErrors) console.error(`FALHA ${e}`)
 assert.deepEqual(baseErrors, [], 'árvore real precisa passar antes dos mutantes')
 const mutations = [
+  ['CSS do menu de conta sai com o interruptor desligado', () => replacement(LANDING, '${ACCOUNT_MENU_MAY_RENDER ? `@media', '${true ? `@media'), 'paridade visitante: flag OFF devolve HTML anterior'],
   ['geração interna recebe cliente público',()=>replacement('lib/home/watchEntry.ts',"SEU_VIDEO_RELEASE === 'public' && ",''),'política interna/off usa catálogo público sem convite de signup: selfie-confete'],
   ['WATCH alcança logado', () => replacement(LANDING, '{watchVisitor && !isSignedIn ? <WatchVisitorHome', '{watchVisitor ? <WatchVisitorHome'), 'paridade logado: WATCH nunca substitui home autenticada'],
   ['limpeza avança além dos recortes aprovados', () => replacement(LANDING, 'From idea to posted Short in 3 steps.', 'Make a Short'), 'paridade visitante: flag OFF devolve HTML anterior'],

@@ -14,10 +14,15 @@ export type AccountMenuScope = {
   seen: Set<string>
 }
 
-const Scope = createContext<AccountMenuScope | null>(null)
+const Scope = createContext<{ scope: AccountMenuScope; enabled: boolean } | null>(null)
 
 export function useAccountMenuScope() {
-  return useContext(Scope)
+  const context = useContext(Scope)
+  return context?.enabled ? context.scope : null
+}
+
+export function useAccountCreditsScope() {
+  return useContext(Scope)?.scope ?? null
 }
 
 export function AccountMenuScopeProvider({ children }: { children: ReactNode }) {
@@ -31,7 +36,10 @@ export function AccountMenuScopeProvider({ children }: { children: ReactNode }) 
     let last: string | null | undefined
     const { data: { subscription } } = createClient().auth.onAuthStateChange((_event, session) => {
       const id = session?.user.id ?? null
-      if (last !== undefined && id !== last) setAccountVersion(version => version + 1)
+      if (last !== undefined && id !== last) {
+        setAccountVersion(version => version + 1)
+        setConfirmedActor(null)
+      }
       last = id
       setActor(id)
     })
@@ -51,7 +59,7 @@ export function AccountMenuScopeProvider({ children }: { children: ReactNode }) 
   }, [actor])
 
   const enabled = ACCOUNT_MENU_RELEASE === 'public' || (ACCOUNT_MENU_RELEASE === 'internal' && actor !== null && confirmedActor === actor)
-  return <Scope.Provider value={enabled ? scope : null}>{children}</Scope.Provider>
+  return <Scope.Provider value={{ scope, enabled }}>{children}</Scope.Provider>
 }
 
 /** The badge and its open panel can independently consume the same read. */

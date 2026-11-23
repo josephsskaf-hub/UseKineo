@@ -2,7 +2,7 @@
 
 import KineoBolt from '@/components/KineoBolt'
 import AccountMenuTrigger from '@/components/AccountMenuTrigger'
-import { readAccountMenuCredits, useAccountMenuScope } from '@/components/AccountMenuScope'
+import { readAccountMenuCredits, useAccountCreditsScope, useAccountMenuScope } from '@/components/AccountMenuScope'
 
 // Nav credits badge for the public Kineo landing (app/KineoLanding.tsx).
 // Mirrors the dashboard TopBar's CreditsBadge (components/TopBar.tsx) so
@@ -19,13 +19,14 @@ import { isCreditsReadFailure, READ_FAILED_EVENT } from '@/lib/creditsReadFailur
 
 export default function NavCreditsBadge({ labelOnly = false, opensAccount = false }: { labelOnly?: boolean; opensAccount?: boolean } = {}) {
   const menuScope = useAccountMenuScope()
+  const creditsScope = useAccountCreditsScope()
   const [credits, setCredits] = useState<number | null>(null)
 
   useEffect(() => {
     let cancelled = false
     async function fetchCredits(refresh = false) {
       try {
-        const res = menuScope ? await readAccountMenuCredits(menuScope, refresh) : await fetch('/api/credits', { cache: 'no-store' })
+        const res = creditsScope ? await readAccountMenuCredits(creditsScope, refresh) : await fetch('/api/credits', { cache: 'no-store' })
         if (res.status === 401) {
           if (!cancelled) setCredits(null)
           return
@@ -62,7 +63,7 @@ export default function NavCreditsBadge({ labelOnly = false, opensAccount = fals
       cancelled = true
       window.removeEventListener('creditsChanged', refreshCredits)
     }
-  }, [menuScope])
+  }, [creditsScope])
 
   useEffect(() => {
     const supabase = createClient()
