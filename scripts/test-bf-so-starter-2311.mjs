@@ -1,11 +1,13 @@
 // KINEO-BF-SO-STARTER-2311 [fundador 16/11: "Creator fica no anual normal de 30%; os 50% valem só no Starter. A página e a carta dizem isso."]
 // Guardião sem rede, que EXECUTA os módulos reais (lib/billing/blackFriday2026.ts, lib/billing/annualWelcomeOffer.ts, lib/checkoutPricing.ts,
-// a rota /api/offers/annual-welcome e a página /black-friday renderizada) em vez de só conferir texto. Prova:
-//   (a) na janela, o Starter anual é elegível e cobra o preço de 50%;
-//   (b) Creator e Studio anuais NÃO são elegíveis e cobram o anual normal, logado, convidado e com ?promo=BF2026;
+// lib/settlementCurrency.ts, lib/stripe/guestCheckout.ts, a rota /api/offers/annual-welcome e a página /black-friday renderizada). Prova:
+//   (a) na janela, o Starter anual é elegível e cobra o preço de 50% (em dólar e em reais);
+//   (b) Creator e Studio anuais NÃO são elegíveis e cobram o anual normal, logado, convidado e com ?promo=BF2026 — em dólar e em REAIS;
 //   (c) fora da janela ninguém é elegível;
-//   (d) a página, a faixa, o selo e a carta não dizem "any annual plan" nem mostram o preço de 50% do Creator;
-//   (e) a oferta de 3 h da conta nova continua dando 50% a Starter e Creator (fora e dentro da Black Friday).
+//   (d) a página, a faixa, o selo e a carta não dizem "any annual plan", não dizem que o Creator está incluído e não mostram o 50% dele;
+//   (e) a oferta de 3 h da conta nova continua dando 50% a Starter e Creator (fora e dentro da Black Friday);
+//   (f) o /pricing (API + regra do cartão) mostra, em cada instante, o MESMO preço que o checkout cobra: na BF, o Starter vai até 01/12 e o
+//       Creator da conta nova tem o relógio das 3 h dele; fora da BF a API responde o mesmo que a origin/main.
 // Cada mutante plantado deixa ao menos uma verificação vermelha.
 import fs from 'node:fs'
 import path from 'node:path'
@@ -17,11 +19,14 @@ const lf = (rel) => fs.readFileSync(path.join(raiz, rel), 'utf8').replace(/\r\n/
 const F = {
   bf: 'lib/billing/blackFriday2026.ts',
   regra: 'lib/billing/annualWelcomeOffer.ts',
+  moeda: 'lib/settlementCurrency.ts',
+  convidado: 'lib/stripe/guestCheckout.ts',
   rota: 'app/api/stripe/checkout/route.ts',
   api: 'app/api/offers/annual-welcome/route.ts',
   pagina: 'app/black-friday/page.tsx',
   faixa: 'components/BlackFridayBanner.tsx',
   pricing: 'app/pricing/PricingClient.tsx',
+  hook: 'components/pricing/AnnualOfferCountdown.tsx',
 }
 const SRC = Object.fromEntries(Object.values(F).map((rel) => [rel, lf(rel)]))
 const T = (iso) => Date.parse(iso)
@@ -29,40 +34,55 @@ const NA_BF = T('2026-11-27T15:00:00Z')
 const ANTES = T('2026-11-23T12:00:00Z')
 const DEPOIS = T('2026-12-03T12:00:00Z')
 const H = 3_600_000
+const VELHA = '2020-01-01T00:00:00Z'
 
-function problemas(repl = {}) {
+async function problemas(repl = {}) {
   const p = []
   const checa = (nome, cond) => { if (!cond) p.push(nome) }
   const src = (rel) => repl[rel] ?? SRC[rel]
-  let B, O, Pr
+  let B, O, Pr, M, G
   try {
     const carrega = createOfflineLoader({ source: (rel, t) => repl[rel] ?? t })
-    B = carrega(F.bf); O = carrega(F.regra); Pr = carrega('lib/checkoutPricing.ts')
+    B = carrega(F.bf); O = carrega(F.regra); Pr = carrega('lib/checkoutPricing.ts'); M = carrega(F.moeda); G = carrega(F.convidado)
   } catch (e) { return ['carregar módulos: ' + String(e?.message)] }
 
   // ── O caminho de preço do checkout, com os módulos reais, na MESMA ordem da rota (as linhas da rota são conferidas abaixo). ──
-  const cobra = ({ tier, isAnnual = true, nowMs, signedIn, accountCreatedAt = '2020-01-01T00:00:00Z', hasPaid = false, promo }) => {
+  // Logado: unitAmount → resolveAnnualOffer(bfOpen: portão por plano) → planSettlementAmountMinor(..., annualOffer ? 'welcome' : 'regular').
+  // Convidado: unitAmount → guestSettlement({ annualOffer: bfAnnualOpen }) (annualOfferMetadata só existe com o portão aberto).
+  const cobra = ({ tier, isAnnual = true, nowMs, signedIn, accountCreatedAt = VELHA, hasPaid = false, promo, pais = 'US' }) => {
     let pedido = promo
     if (B.isBf2026PromoCode(pedido)) pedido = undefined
     const bfAnnualOpen = B.bf2026CheckoutEligible({ tier, isAnnual, nowMs })
     let unit = isAnnual ? Pr.getAnnualPrice(tier, 'usd') : Pr.TIER_PRICES[tier].usd
     if (bfAnnualOpen && (tier === 'starter' || tier === 'basic' || tier === 'pro')) unit = Pr.ANNUAL_WELCOME_PRICES[tier].usd
     let offer = null
+    let charge
     if (signedIn) {
       offer = O.resolveAnnualOffer({ tier, isAnnual, signedIn: true, accountCreatedAt, hasPaid, bfOpen: bfAnnualOpen, bfEndsAtMs: Date.parse(B.BF2026_ENDS_AT), nowMs })
       if (offer && (tier === 'starter' || tier === 'basic' || tier === 'pro')) unit = Pr.ANNUAL_WELCOME_PRICES[tier].usd
+      const cur = M.resolveSettlementCurrency({ ipCountry: pais, acceptLanguage: pais === 'BR' ? 'pt-BR' : 'en-US', forced: null, priorBrazilianCardFailure: false }).currency
+      charge = { cur, amount: M.planSettlementAmountMinor(tier, isAnnual ? 'annual' : 'monthly', cur, unit, offer ? 'welcome' : 'regular') }
+    } else {
+      const s = G.guestSettlement({ tier, isAnnual, unitAmount: unit, ipCountry: pais, acceptLanguage: pais === 'BR' ? 'pt-BR' : 'en-US', forcedCurrency: null, annualOffer: bfAnnualOpen })
+      charge = { cur: s.chargeCurrency, amount: s.chargeAmount }
     }
-    return { unit, bf: bfAnnualOpen, offer: offer?.kind ?? null, promoLeft: pedido }
+    return { unit, bf: bfAnnualOpen, offer: offer?.kind ?? null, promoLeft: pedido, charge }
   }
   const rota = src(F.rota)
   checa('rota: o portão da BF é bf2026CheckoutEligible por plano', /const bfAnnualOpen = !privatePackPromo && bf2026CheckoutEligible\(\{ tier, isAnnual \}\)/.test(rota))
   checa('rota: o preço da BF entra só com o portão', rota.includes("if (bfAnnualOpen && (tier === 'starter' || tier === 'basic' || tier === 'pro')) unitAmount = ANNUAL_WELCOME_PRICES[tier].usd"))
   checa('rota: as 3 h recebem o portão por plano, não o relógio solto', rota.includes('    bfOpen: bfAnnualOpen,\n    bfEndsAtMs: Date.parse(BF2026_ENDS_AT),'))
   checa('rota: ?promo=BF2026 sai na entrada', rota.includes('if (isBf2026PromoCode(promo)) promo = undefined'))
+  checa('rota: reais do logado pela tabela de boas-vindas só com a oferta', rota.includes("planSettlementAmountMinor(tier, isAnnual ? 'annual' : 'monthly', chargeCurrency, unitAmount, annualOffer ? 'welcome' : 'regular')"))
+  checa('rota: reais do convidado com a oferta só pelo portão', rota.includes('annualOfferMetadata: bfAnnualOpen ? bfAnnualStamp : null') && rota.includes('annualOffer: ctx.annualOfferMetadata !== null'))
 
   const anual = (t) => Pr.getAnnualPrice(t, 'usd')
   const metade = (t) => Pr.ANNUAL_WELCOME_PRICES[t].usd
   checa('premissa: 50% < anual normal em Starter e Creator', metade('starter') < anual('starter') && metade('basic') < anual('basic'))
+
+  // (M2) bf2026CoversTier: só o Starter, escrito como o código escreve
+  checa('(M2) bf2026CoversTier: starter sim', B.bf2026CoversTier('starter') === true)
+  for (const x of ['basic', 'pro', 'business', 'creator', '', 'Starter', 'STARTER', ' starter', 'BASIC', undefined, null]) checa(`(M2) bf2026CoversTier(${JSON.stringify(x)}) = false`, B.bf2026CoversTier(x) === false)
 
   // (a) Starter anual na janela
   checa('(a) Starter anual elegível na janela', B.bf2026CheckoutEligible({ tier: 'starter', isAnnual: true, nowMs: NA_BF }) === true)
@@ -70,16 +90,23 @@ function problemas(repl = {}) {
   checa('(a) Starter anual convidado cobra 50%', cobra({ tier: 'starter', nowMs: NA_BF, signedIn: false }).unit === metade('starter'))
   checa('(a) Starter anual com ?promo=BF2026 cobra 50%', cobra({ tier: 'starter', nowMs: NA_BF, signedIn: false, promo: 'BF2026' }).unit === metade('starter'))
   checa('(a) Starter mensal sem BF', !B.bf2026CheckoutEligible({ tier: 'starter', isAnnual: false, nowMs: NA_BF }))
+  for (const signedIn of [true, false]) {
+    const r = cobra({ tier: 'starter', nowMs: NA_BF, signedIn, pais: 'BR' })
+    checa(`(M3) Starter em reais na BF (${signedIn ? 'logado' : 'convidado'}) = tabela de boas-vindas`, r.charge.cur === 'brl' && r.charge.amount === M.BRL_ANNUAL_WELCOME_MINOR.starter)
+  }
 
-  // (b) Creator e Studio anuais na janela: anual normal, de qualquer origem
+  // (b) Creator e Studio anuais na janela: anual normal, de qualquer origem, em dólar e em reais
   for (const tier of ['basic', 'pro']) {
     checa(`(b) ${tier} anual NÃO elegível na janela`, B.bf2026CheckoutEligible({ tier, isAnnual: true, nowMs: NA_BF }) === false)
     checa(`(b) ${tier} fora de bf2026CoversTier`, B.bf2026CoversTier(tier) === false)
     for (const [origem, extra] of [['logado conta velha', { signedIn: true }], ['convidado', { signedIn: false }], ['logado com ?promo=BF2026', { signedIn: true, promo: 'BF2026' }], ['convidado com ?promo= bf2026 ', { signedIn: false, promo: ' bf2026 ' }], ['logado que já pagou', { signedIn: true, hasPaid: true }]]) {
       const r = cobra({ tier, nowMs: NA_BF, ...extra })
-      checa(`(b) ${tier} ${origem}: anual normal`, r.unit === anual(tier) && r.bf === false && r.offer === null)
+      checa(`(b) ${tier} ${origem}: anual normal`, r.unit === anual(tier) && r.bf === false && r.offer === null && r.charge.amount === anual(tier))
+      const brl = cobra({ tier, nowMs: NA_BF, ...extra, pais: 'BR' })
+      checa(`(M3) ${tier} ${origem} em REAIS na BF: anual normal da tabela`, brl.charge.cur === 'brl' && brl.charge.amount === M.BRL_PLAN_PRICES_MINOR[tier].annual && brl.charge.amount !== M.BRL_ANNUAL_WELCOME_MINOR[tier])
     }
   }
+  checa('(M3) Creator em reais: 79790 (nunca 56990) na BF, conta velha e convidado', [true, false].every((signedIn) => cobra({ tier: 'basic', nowMs: NA_BF, signedIn, pais: 'BR' }).charge.amount === 79790))
   checa('(b) a tabela da BF só tem o Starter', JSON.stringify(B.bf2026PriceRows().map((r) => r.tier)) === '["starter"]' && JSON.stringify(B.BF2026_TIERS) === '["starter"]')
   checa('(b) rótulo da oferta = "Starter"', B.BF2026_PLAN_LABEL === 'Starter')
 
@@ -102,8 +129,8 @@ function problemas(repl = {}) {
   }
   checa('(e) a regra das 3 h ainda cobre Starter e Creator', O.annualOfferCoversTier('starter') && O.annualOfferCoversTier('basic') && !O.annualOfferCoversTier('pro'))
 
-  // (e)+(d) /api/offers/annual-welcome, executada: o que o /pricing pinta segue o checkout
-  const apiOffer = (agora, createdAt, hasPaid = false) => {
+  // (f) /api/offers/annual-welcome, EXECUTADA com relógio e conta falsos
+  const apiOffer = async (agora, createdAt, hasPaid = false) => {
     const RealDate = Date
     class FakeDate extends RealDate { static now() { return agora } }
     const carregaApi = createOfflineLoader({
@@ -119,36 +146,88 @@ function problemas(repl = {}) {
         },
       },
     })
-    return carregaApi(F.api).GET().then((r) => r.body)
+    return (await carregaApi(F.api).GET()).body
   }
-  const pricing = src(F.pricing)
-  checa('/pricing: o cartão só pinta a BF nos planos da BF', pricing.includes("&& (annualOffer?.kind !== 'black_friday_2026' || bf2026CoversTier(tier))"))
-  // espelho executável do ofertaNoPlano (o texto acima garante que a linha é esta)
-  const ofertaNoPlano = (kind, tier) => kind !== null && O.annualOfferCoversTier(tier) && (kind !== 'black_friday_2026' || B.bf2026CoversTier(tier))
-  const asyncChecks = (async () => {
-    try {
-      const velhaNaBf = await apiOffer(NA_BF, '2020-01-01T00:00:00Z', true)
-      checa('(d) API na BF, conta velha: black_friday_2026', velhaNaBf.offer === 'black_friday_2026')
-      checa('(d) /pricing na BF, conta velha: Starter 50%, Creator e Studio normal', ofertaNoPlano(velhaNaBf.offer, 'starter') && !ofertaNoPlano(velhaNaBf.offer, 'basic') && !ofertaNoPlano(velhaNaBf.offer, 'pro'))
-      const visitanteNaBf = await apiOffer(NA_BF, null)
-      checa('(d) API na BF, visitante: black_friday_2026 (só Starter no cartão)', visitanteNaBf.offer === 'black_friday_2026' && !ofertaNoPlano(visitanteNaBf.offer, 'basic'))
-      const novaNaBf = await apiOffer(NA_BF, nova(NA_BF))
-      checa('(e) API na BF, conta nova: welcome_3h com o fim das 3 h', novaNaBf.offer === 'welcome_3h' && novaNaBf.endsAtMs === Date.parse(nova(NA_BF)) + 3 * H)
-      checa('(e) /pricing na BF, conta nova: Starter e Creator 50%', ofertaNoPlano(novaNaBf.offer, 'starter') && ofertaNoPlano(novaNaBf.offer, 'basic') && !ofertaNoPlano(novaNaBf.offer, 'pro'))
-      const novaFora = await apiOffer(ANTES, nova(ANTES))
-      checa('(e) API fora da BF, conta nova: welcome_3h', novaFora.offer === 'welcome_3h')
-      const velhaFora = await apiOffer(ANTES, '2020-01-01T00:00:00Z', true)
-      checa('(c) API fora da BF, conta velha: nada', velhaFora.offer === null)
-    } catch (e) { p.push('API annual-welcome: ' + String(e?.message)) }
-  })()
+  // O que a origin/main respondia em `offer` (Creator como representante e o relógio solto da BF) — fora da BF tem de ser igual.
+  const respostaMain = (agora, createdAt, hasPaid) => {
+    const o = O.resolveAnnualOffer({ tier: 'basic', isAnnual: true, signedIn: createdAt !== null, accountCreatedAt: createdAt, hasPaid: createdAt !== null ? hasPaid : true, bfOpen: B.bf2026Open(agora), bfEndsAtMs: Date.parse(B.BF2026_ENDS_AT), nowMs: agora })
+    return { offer: o?.kind ?? null, endsAtMs: o?.endsAtMs ?? null }
+  }
+
+  // A regra do cartão do /pricing (texto conferido abaixo), executada contra a resposta da API num instante `t` do navegador:
+  // o hook guarda cada oferta até o próprio fim (setTimeout → null) e o cartão mostra 50% onde ofertaNoPlano, o anual normal fora dela.
+  const pricing = src(F.pricing), hook = src(F.hook)
+  checa('/pricing: o cartão pinta a BF só nos planos da BF', pricing.includes("&& (annualOffer?.kind !== 'black_friday_2026' || bf2026CoversTier(tier)))"))
+  checa('/pricing: o Creator pelas 3 h na BF, com relógio próprio', pricing.includes('|| (welcomeInBfLive && annualOfferCoversTier(tier) && !bf2026CoversTier(tier))') && pricing.includes('const welcomeInBfLive = welcomeInBf !== null && !planSwitch.subscribed'))
+  checa('/pricing: o relógio das 3 h na BF diz "Creator"', pricing.includes("{billing === 'annual' && welcomeInBfLive && welcomeInBf ? <AnnualOfferCountdown deadlineMs={welcomeInBf.deadlineMs} percentOff={ANNUAL_WELCOME_DISCOUNT_PERCENT} what={`Creator ${ANNUAL_WELCOME_DISCOUNT_PERCENT}%`}"))
+  checa('/pricing: o relógio genérico "Your 50%" só com welcome_3h em `offer`', pricing.includes("{billing === 'annual' && annualOfferLive && annualOffer?.kind === 'welcome_3h' ? <AnnualOfferCountdown deadlineMs={annualOffer.deadlineMs}"))
+  checa('hook: lê welcomeOffer e o fim dele, e some ao zerar', hook.includes("if (j.welcomeOffer === 'welcome_3h' && typeof j.nowMs === 'number' && typeof j.welcomeEndsAtMs === 'number')") && hook.includes('const welcomeLeft = j.welcomeEndsAtMs - j.nowMs') && hook.includes('welcomeInBfTimer = setTimeout(() => { if (alive) setWelcomeInBf(null) }, Math.min(welcomeLeft, SET_TIMEOUT_MAX_MS))') && hook.includes('return { annual: offer, monthly, annualWelcomeInBf: welcomeInBf }'))
+  checa('hook: `offer` segue lido como antes (welcome_3h ou black_friday_2026, até endsAtMs)', hook.includes("if (j.offer !== 'welcome_3h' && j.offer !== 'black_friday_2026') return") && hook.includes('const msLeft = j.endsAtMs - j.nowMs'))
+  const cartao = (api, t, tier) => {
+    const annualLive = api.offer !== null && typeof api.endsAtMs === 'number' && t < api.endsAtMs
+    const welcomeLive = api.welcomeOffer === 'welcome_3h' && typeof api.welcomeEndsAtMs === 'number' && t < api.welcomeEndsAtMs
+    const oferta = (annualLive && O.annualOfferCoversTier(tier) && (api.offer !== 'black_friday_2026' || B.bf2026CoversTier(tier)))
+      || (welcomeLive && O.annualOfferCoversTier(tier) && !B.bf2026CoversTier(tier))
+    return oferta ? metade(tier) : anual(tier)
+  }
+
+  try {
+    const casos = [
+      ['conta nova, dentro da BF', NA_BF, nova(NA_BF), false],
+      ['conta velha, dentro da BF', NA_BF, VELHA, true],
+      ['conta nova, fora da BF', ANTES, nova(ANTES), false],
+      ['conta velha, fora da BF', ANTES, VELHA, true],
+      ['visitante, dentro da BF', NA_BF, null, false],
+      ['visitante, fora da BF', ANTES, null, false],
+    ]
+    const r = {}
+    for (const [nome, agora, criada, pagou] of casos) r[nome] = await apiOffer(agora, criada, pagou)
+    const nb = r['conta nova, dentro da BF'], vb = r['conta velha, dentro da BF'], nf = r['conta nova, fora da BF'], vf = r['conta velha, fora da BF']
+    checa('(f) nova na BF: Starter pela BF até BF2026_ENDS_AT', nb.offer === 'black_friday_2026' && nb.endsAtMs === Date.parse(B.BF2026_ENDS_AT))
+    checa('(f) nova na BF: Creator pelas 3 h, fim em created_at + 3 h', nb.welcomeOffer === 'welcome_3h' && nb.welcomeEndsAtMs === Date.parse(nova(NA_BF)) + 3 * H)
+    checa('(f) velha na BF: BF até 01/12, sem as 3 h', vb.offer === 'black_friday_2026' && vb.endsAtMs === Date.parse(B.BF2026_ENDS_AT) && vb.welcomeOffer === null && vb.welcomeEndsAtMs === null)
+    checa('(f) nova fora da BF: as 3 h em `offer`, campo novo vazio', nf.offer === 'welcome_3h' && nf.endsAtMs === Date.parse(nova(ANTES)) + 3 * H && nf.welcomeOffer === null)
+    checa('(f) velha fora da BF: nada', vf.offer === null && vf.endsAtMs === null && vf.welcomeOffer === null)
+    // conta nova na BF, 3 h 1 min depois de criada: Starter segue com a BF, Creator sem oferta
+    const criada = nova(NA_BF), depois3h = Date.parse(criada) + 3 * H + 60_000
+    const tarde = await apiOffer(depois3h, criada, false)
+    checa('(f) nova na BF depois das 3 h: Starter segue com a BF, Creator sem oferta', tarde.offer === 'black_friday_2026' && tarde.endsAtMs === Date.parse(B.BF2026_ENDS_AT) && tarde.welcomeOffer === null)
+    // fora da BF: `offer`/`endsAtMs` idênticos à origin/main; na BF, `offer` idêntico também (o campo novo é o único acréscimo)
+    for (const [nome, agora, criada2, pagou] of casos) {
+      const m = respostaMain(agora, criada2, pagou)
+      checa(`(f) ${nome}: offer/endsAtMs iguais à origin/main`, r[nome].offer === m.offer && r[nome].endsAtMs === m.endsAtMs)
+      if (agora === ANTES) checa(`(f) ${nome}: fora da BF o campo novo é null`, r[nome].welcomeOffer === null && r[nome].welcomeEndsAtMs === null)
+    }
+    // O CARTÃO = O CHECKOUT em cada instante: a aba aberta no momento da leitura e ao longo do tempo (relógios zerando sozinhos)
+    const linhas = [
+      ['conta nova, dentro da BF', NA_BF, criada, true],
+      ['conta velha, dentro da BF', NA_BF, VELHA, true],
+      ['conta nova, fora da BF', ANTES, nova(ANTES), true],
+      ['conta velha, fora da BF', ANTES, VELHA, true],
+      ['visitante, dentro da BF', NA_BF, null, false],
+    ]
+    for (const [nome, lida, conta, signedIn] of linhas) {
+      for (const passa of [0, 2 * H, 3 * H + 60_000, 5 * 24 * H]) {
+        const t = lida + passa
+        // aba aberta que CRUZA o início ou o fim da BF: o /pricing não relê a API nessa virada (igual à origin/main); fica fora desta prova.
+        if ((t >= Date.parse(B.BF2026_ENDS_AT) && lida < Date.parse(B.BF2026_ENDS_AT)) || (t >= Date.parse(B.BF2026_STARTS_AT) && lida < Date.parse(B.BF2026_STARTS_AT))) continue
+        for (const tier of ['starter', 'basic', 'pro']) {
+          const tela = cartao(r[nome], t, tier)
+          const cobrado = cobra({ tier, nowMs: t, signedIn, accountCreatedAt: conta ?? VELHA, hasPaid: conta === VELHA }).unit
+          checa(`(f) ${nome} +${passa / H} h, ${tier}: cartão ${tela} = checkout ${cobrado}`, tela === cobrado)
+        }
+      }
+    }
+  } catch (e) { p.push('API annual-welcome: ' + String(e?.message)) }
 
   // (d) a página renderizada, a faixa, o selo e a carta
   const precoCreator50 = B.bf2026Usd(Pr.ANNUAL_WELCOME_PRICES.basic.usd)
   const precoStudio50 = B.bf2026Usd(Pr.ANNUAL_WELCOME_PRICES.pro.usd)
   const semPromessa = (nome, texto) => {
-    // "Like every Kineo annual plan, your credits refill every month" (FAQ) é verdade geral e fica; a promessa de desconto em todo anual, não.
-    checa(`(d) ${nome}: sem "any annual plan"/"every annual plan is"/"% off annual plans" (a garantia "Annual plans are refundable" é geral e fica)`, !/any annual plan|every (kineo )?annual plan is|% off (kineo )?annual plans|% off every annual/i.test(texto))
+    // "Annual plans are refundable" (a garantia) é geral e fica; a promessa de desconto em todo anual, não.
+    checa(`(d) ${nome}: sem "any annual plan"/"every annual plan is"/"% off annual plans"/"annual plans only"`, !/any annual plan|every (kineo )?annual plan is|% off (kineo )?annual plans|% off every annual|for annual plans only|like every kineo annual plan/i.test(texto))
     checa(`(d) ${nome}: sem o preço de 50% do Creator/Studio`, !texto.includes(precoCreator50) && !texto.includes(precoStudio50))
+    checa(`(M4) ${nome}: não diz que o Creator está incluído`, !/(creator|studio)[^.<]{0,60}\b(is|are) (also )?included|includes? (the )?creator|creator (also )?(gets|at) \d+%|yes[^.<]{0,20}creator/i.test(texto))
   }
   for (const [estado, agora] of [['open', NA_BF], ['before', ANTES], ['after', DEPOIS]]) {
     try {
@@ -167,6 +246,9 @@ function problemas(repl = {}) {
       checa(`(d) página ${estado}: só o cartão do Starter`, (html.match(/data-bf-tier="/g) ?? []).length === 1 && html.includes('data-bf-tier="starter"') && !html.includes('data-bf-tier="basic"'))
       checa(`(d) página ${estado}: diz que Creator e Studio ficam no anual normal`, html.includes('Creator and Studio keep their regular annual price'))
       checa(`(d) página ${estado}: título e descrição dizem Starter`, /Starter Annual Plan/.test(mod.metadata.title.absolute) && mod.metadata.description.includes('the Starter annual plan'))
+      const faq = /Are Creator and Studio included\?<\/summary><p[^>]*>([^<]*)<\/p>/.exec(html)
+      checa(`(M4) página ${estado}: a pergunta do Creator responde "No."`, faq !== null && faq[1].startsWith('No. ') && faq[1].includes('Starter annual plan only'))
+      checa(`(d) página ${estado}: mensal e créditos falam do Starter, no singular`, html.includes('for the Starter annual plan only; monthly plans keep their regular price') && html.includes('As on the regular Starter annual plan, your credits refill'))
       if (estado === 'open') {
         checa('(d) página no ar: botão só do Starter, no preço escrito', html.includes(`Get Starter for ${B.bf2026Usd(Pr.ANNUAL_WELCOME_PRICES.starter.usd)}`) && !html.includes('data-bf-cta="basic"') && !html.includes('tier=basic'))
         checa('(d) página no ar: h1 do Starter', html.includes('50% off the Starter annual plan</h1>'))
@@ -187,7 +269,7 @@ function problemas(repl = {}) {
   const apiBf = lf('app/api/offers/bf2026/route.ts')
   checa('(d) /api/offers/bf2026 lista os planos por bf2026PriceRows', apiBf.includes('tiers: bf2026PriceRows().map('))
 
-  return asyncChecks.then(() => p)
+  return p
 }
 
 const muta = (rel, de, para) => {
@@ -198,22 +280,35 @@ const muta = (rel, de, para) => {
 const MUTANTES = [
   ['Creator volta à lista da BF', muta(F.bf, "export const BF2026_TIERS: readonly CheckoutTier[] = ['starter']", "export const BF2026_TIERS: readonly CheckoutTier[] = ['starter', 'basic']")],
   ['elegibilidade ignora o plano', muta(F.bf, '    bf2026CoversTier(input.tier) &&\n', '')],
+  ['(M2) bf2026CoversTier aceita maiúscula', muta(F.bf, '  return (BF2026_TIERS as readonly string[]).includes(tier)', '  return (BF2026_TIERS as readonly string[]).includes(String(tier).trim().toLowerCase())')],
+  ['(M2) bf2026CoversTier aceita vazio/desconhecido', muta(F.bf, '  return (BF2026_TIERS as readonly string[]).includes(tier)', "  return (BF2026_TIERS as readonly string[]).includes(tier) || !tier || !['basic', 'pro'].includes(tier)")],
   ['?promo=BF2026 fura a regra (rota)', muta(F.rota, 'const bfAnnualOpen = !privatePackPromo && bf2026CheckoutEligible({ tier, isAnnual })', "const bfAnnualOpen = !privatePackPromo && (bf2026CheckoutEligible({ tier, isAnnual }) || isBf2026PromoCode(req.nextUrl.searchParams.get('promo')))")],
   ['?promo=BF2026 deixa de ser descartado', muta(F.rota, 'if (isBf2026PromoCode(promo)) promo = undefined', '')],
+  ['(M3) Creator em reais pela tabela de boas-vindas', muta(F.moeda, "if (billing === 'annual' && annualTable === 'welcome') return BRL_ANNUAL_WELCOME_MINOR[tier]", "if (billing === 'annual' && (annualTable === 'welcome' || tier === 'basic')) return BRL_ANNUAL_WELCOME_MINOR[tier]")],
+  ['(M3) convidado em reais sempre na tabela de boas-vindas', muta(F.convidado, "input.annualOffer === true ? 'welcome' : 'regular'", "'welcome'")],
+  ['(M3) rota do logado em reais sempre na tabela de boas-vindas', muta(F.rota, "chargeCurrency, unitAmount, annualOffer ? 'welcome' : 'regular')", "chargeCurrency, unitAmount, isAnnual ? 'welcome' : 'regular')")],
   ['faixa volta a "any annual plan"', muta(F.faixa, '{BF2026_PERCENT_OFF}% off the {BF2026_PLAN_LABEL} annual plan · ends Dec 1 →', '{BF2026_PERCENT_OFF}% off any annual plan · ends Dec 1 →')],
   ['h1 da página volta a "any annual plan"', muta(F.pagina, '{BF2026_PERCENT_OFF}% off the {BF2026_PLAN_LABEL} annual plan</h1>', '{BF2026_PERCENT_OFF}% off any annual plan</h1>')],
+  ['página volta a "for annual plans only"', muta(F.pagina, 'The Black Friday offer is for the ${BF2026_PLAN_LABEL} annual plan only;', 'The Black Friday offer is for annual plans only;')],
+  ['(M4) FAQ diz que o Creator está incluído', muta(F.pagina, 'a: `No. The Black Friday price is for the ${BF2026_PLAN_LABEL} annual plan only. Creator and Studio annual plans keep their regular annual price, shown on the pricing page.`', 'a: `Yes. Creator is included at ${BF2026_PERCENT_OFF}% too; Studio keeps its regular annual price.`')],
   ['carta volta a "every Kineo annual plan"', muta(F.bf, 'For Black Friday, the Kineo ${BF2026_PLAN_LABEL} annual plan is', 'For Black Friday, every Kineo annual plan is')],
   ['página lista o Creator a 50%', muta(F.pagina, 'const rows = bf2026PriceRows()', "const rows = [...bf2026PriceRows(), { ...bf2026PriceRows()[0], tier: 'basic' as const, name: 'Creator', bfMinor: 11400 }]")],
   ['oferta de 3 h quebra (Creator fora)', muta(F.regra, "const TIERS_COM_ANUAL: readonly string[] = ['starter', 'basic']", "const TIERS_COM_ANUAL: readonly string[] = ['starter']")],
   ['oferta de 3 h quebra (janela de 0 h)', muta(F.regra, 'ANNUAL_WELCOME_WINDOW_MS = 3 * 60 * 60 * 1000', 'ANNUAL_WELCOME_WINDOW_MS = 0')],
-  ['API pinta a BF no Creator (relógio solto)', muta(F.api, "tier: 'basic', bfOpen: bf2026CheckoutEligible({ tier: 'basic', isAnnual: true, nowMs })", "tier: 'basic', bfOpen: bf2026CheckoutEligible({ tier: 'starter', isAnnual: true, nowMs })")],
-  ['/pricing pinta a BF em todo plano', muta(F.pricing, "&& (annualOffer?.kind !== 'black_friday_2026' || bf2026CoversTier(tier))", '')],
+  ['(item 1) API pergunta primeiro pelo Creator (versão de 86945d8b8)', muta(F.api, "  const offer = resolveAnnualOffer({ ...base, tier: 'starter', bfOpen: bf2026CheckoutEligible({ tier: 'starter', isAnnual: true, nowMs }) })", "  const offer = resolveAnnualOffer({ ...base, tier: 'basic', bfOpen: bf2026CheckoutEligible({ tier: 'basic', isAnnual: true, nowMs }) })\n    ?? resolveAnnualOffer({ ...base, tier: 'starter', bfOpen: bf2026CheckoutEligible({ tier: 'starter', isAnnual: true, nowMs }) })")],
+  ['(item 1) API sem as 3 h do Creator na BF', muta(F.api, "  const welcomeOffer = creator?.kind === 'welcome_3h' ? creator : null", '  const welcomeOffer = null as typeof creator')],
+  ['(item 1) API dá a BF ao Creator (relógio solto)', muta(F.api, "tier: 'basic', bfOpen: bf2026CheckoutEligible({ tier: 'basic', isAnnual: true, nowMs })", "tier: 'basic', bfOpen: bf2026CheckoutEligible({ tier: 'starter', isAnnual: true, nowMs })")],
+  ['(item 1) campo novo também fora da BF', muta(F.api, "  const creator = offer?.kind === 'black_friday_2026'\n    ? resolveAnnualOffer", "  const creator = true\n    ? resolveAnnualOffer")],
+  ['(item 1) /pricing pinta a BF em todo plano', muta(F.pricing, "&& (annualOffer?.kind !== 'black_friday_2026' || bf2026CoversTier(tier)))", ')')],
+  ['(item 1) /pricing esquece as 3 h do Creator na BF', muta(F.pricing, '|| (welcomeInBfLive && annualOfferCoversTier(tier) && !bf2026CoversTier(tier))', '|| false')],
+  ['(item 1) hook não zera o relógio do Creator', muta(F.hook, 'welcomeInBfTimer = setTimeout(() => { if (alive) setWelcomeInBf(null) }, Math.min(welcomeLeft, SET_TIMEOUT_MAX_MS))', 'welcomeInBfTimer = undefined')],
+  ['(item 1) relógio das 3 h na BF volta a "Your 50%"', muta(F.pricing, " what={`Creator ${ANNUAL_WELCOME_DISCOUNT_PERCENT}%`}", '')],
   ['rota volta a dar o relógio solto às 3 h', muta(F.rota, '    bfOpen: bfAnnualOpen,\n    bfEndsAtMs: Date.parse(BF2026_ENDS_AT),', '    bfOpen: bf2026Open(),\n    bfEndsAtMs: Date.parse(BF2026_ENDS_AT),')],
 ]
 
 let falhas = 0
 const b0 = await problemas()
-console.log(b0.length ? 'FALHA\n  ' + b0.join('\n  ') : 'PASS Black Friday só no Starter; Creator e Studio no anual normal; 3 h intactas')
+console.log(b0.length ? 'FALHA\n  ' + b0.join('\n  ') : 'PASS Black Friday só no Starter; Creator e Studio no anual normal (dólar e reais); 3 h intactas; cartão = checkout')
 if (b0.length) falhas++
 for (const [nome, repl] of MUTANTES) {
   const r = await problemas(repl)

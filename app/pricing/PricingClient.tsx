@@ -567,8 +567,12 @@ export default function PricingClient({ initialBilling = 'annual', watchPreview 
   const welcomeOffers = useWelcomeOffers()
   const annualOffer = welcomeOffers.annual
   const annualOfferLive = annualOffer !== null && !planSwitch.subscribed
-  const ofertaNoPlano = (tier: string): boolean => annualOfferLive && annualOfferCoversTier(tier) // KINEO-CREDITOS-B-0511 — os 50% não valem no Studio
-    && (annualOffer?.kind !== 'black_friday_2026' || bf2026CoversTier(tier)) // KINEO-BF-SO-STARTER-2311 — na Black Friday, só o Starter
+  // KINEO-BF-SO-STARTER-2311 — na Black Friday o Starter segue o relógio dela (até 01/12) e o Creator, só as 3 h da conta nova (relógio próprio).
+  const welcomeInBf = welcomeOffers.annualWelcomeInBf ?? null // sem o campo (leitor antigo, mock) = sem as 3 h na BF
+  const welcomeInBfLive = welcomeInBf !== null && !planSwitch.subscribed
+  const ofertaNoPlano = (tier: string): boolean => (annualOfferLive && annualOfferCoversTier(tier) // KINEO-CREDITOS-B-0511 — os 50% não valem no Studio
+    && (annualOffer?.kind !== 'black_friday_2026' || bf2026CoversTier(tier))) // KINEO-BF-SO-STARTER-2311 — na Black Friday, só o Starter
+    || (welcomeInBfLive && annualOfferCoversTier(tier) && !bf2026CoversTier(tier)) // KINEO-BF-SO-STARTER-2311 — o Creator pelas 3 h
   const annualMinorFor = (tier: PaidTier): number =>
     ofertaNoPlano(tier) ? ANNUAL_WELCOME_PRICES[tier][resolvedCurrency] : getAnnualPrice(tier, resolvedCurrency, resolvedRegion)
   const annualPrices = (['starter', 'basic', 'pro'] as PaidTier[]).reduce((result, tier) => {
@@ -1523,6 +1527,8 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         {billing === 'annual' ? <Bf2026PricingBadge /> : null}
         {/* KINEO-OFERTA-3H-0411 — uma linha discreta, com o fim que o servidor deu. A Black Friday tem o selo acima. */}
         {billing === 'annual' && annualOfferLive && annualOffer?.kind === 'welcome_3h' ? <AnnualOfferCountdown deadlineMs={annualOffer.deadlineMs} percentOff={ANNUAL_WELCOME_DISCOUNT_PERCENT} /> : null}
+        {/* KINEO-BF-SO-STARTER-2311 — na Black Friday, o relógio das 3 h fala só do Creator (o Starter vai até 01/12, pelo selo acima). */}
+        {billing === 'annual' && welcomeInBfLive && welcomeInBf ? <AnnualOfferCountdown deadlineMs={welcomeInBf.deadlineMs} percentOff={ANNUAL_WELCOME_DISCOUNT_PERCENT} what={`Creator ${ANNUAL_WELCOME_DISCOUNT_PERCENT}%`} testId="annual-welcome-creator-countdown" /> : null}
         {/* KINEO-MENSAL-3H-0911 — no mensal, a mesma linha com o MESMO relógio do servidor; ao fechar a janela com a página aberta, o aviso de que acabou. */}
         {monthlyOfferShown && monthlyOfferDeadline !== null ? <AnnualOfferCountdown deadlineMs={monthlyOfferDeadline} percentOff={MONTHLY_FIRST_MONTH_PERCENT_OFF} what={`Your ${MONTHLY_FIRST_MONTH_PERCENT_OFF}% off the first month`} testId="monthly-first-month-countdown" /> : null}
         {monthlyOfferEndedNotice ? (

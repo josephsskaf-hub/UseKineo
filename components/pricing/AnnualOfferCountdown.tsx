@@ -9,21 +9,32 @@ import { MONTHLY_FIRST_MONTH_OFFER_KIND } from '@/lib/billing/monthlyFirstMonthO
 export type AnnualOfferState = { kind: AnnualOfferKind; deadlineMs: number }
 /** KINEO-MENSAL-3H-0911 — os 30% do 1º mês: o fim no relógio deste navegador (reancorado no tempo do servidor). `ended` = a janela fechou com a página aberta. */
 export type MonthlyOfferState = { deadlineMs: number | null; ended: boolean }
-export type WelcomeOffersState = { annual: AnnualOfferState | null; monthly: MonthlyOfferState }
+/** KINEO-BF-SO-STARTER-2311 — `annualWelcomeInBf`: com a Black Friday aberta (só Starter), as 3 h da conta nova nos planos fora dela (o Creator), com o relógio delas. */
+export type WelcomeOffersState = { annual: AnnualOfferState | null; monthly: MonthlyOfferState; annualWelcomeInBf: AnnualOfferState | null }
 const SET_TIMEOUT_MAX_MS = 2_147_000_000
 
 /** UMA leitura de /api/offers/annual-welcome para as duas ofertas das 3 h: o anual (50%) e o 1º mês do mensal (30%). Mesmo relógio, mesma resposta. */
 export function useWelcomeOffers(): WelcomeOffersState {
   const [offer, setOffer] = useState<AnnualOfferState | null>(null)
   const [monthly, setMonthly] = useState<MonthlyOfferState>({ deadlineMs: null, ended: false })
+  const [welcomeInBf, setWelcomeInBf] = useState<AnnualOfferState | null>(null) // KINEO-BF-SO-STARTER-2311
   useEffect(() => {
     let alive = true
     let timer: ReturnType<typeof setTimeout> | undefined
     let monthlyTimer: ReturnType<typeof setTimeout> | undefined
+    let welcomeInBfTimer: ReturnType<typeof setTimeout> | undefined
     void fetch(ANNUAL_WELCOME_API, { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((j: { nowMs?: unknown; offer?: unknown; endsAtMs?: unknown; monthlyOffer?: unknown; monthlyEndsAtMs?: unknown } | null) => {
+      .then((j: { nowMs?: unknown; offer?: unknown; endsAtMs?: unknown; monthlyOffer?: unknown; monthlyEndsAtMs?: unknown; welcomeOffer?: unknown; welcomeEndsAtMs?: unknown } | null) => {
         if (!alive || !j) return
+        // KINEO-BF-SO-STARTER-2311 — as 3 h do Creator durante a Black Friday: relógio próprio; ao zerar, só elas saem da tela.
+        if (j.welcomeOffer === 'welcome_3h' && typeof j.nowMs === 'number' && typeof j.welcomeEndsAtMs === 'number') {
+          const welcomeLeft = j.welcomeEndsAtMs - j.nowMs
+          if (welcomeLeft > 0) {
+            setWelcomeInBf({ kind: 'welcome_3h', deadlineMs: Date.now() + welcomeLeft })
+            welcomeInBfTimer = setTimeout(() => { if (alive) setWelcomeInBf(null) }, Math.min(welcomeLeft, SET_TIMEOUT_MAX_MS))
+          }
+        }
         // KINEO-MENSAL-3H-0911 — o mensal lê o mesmo relógio do servidor; ao zerar, sai da tela e deixa o aviso de que acabou.
         if (j.monthlyOffer === MONTHLY_FIRST_MONTH_OFFER_KIND && typeof j.nowMs === 'number' && typeof j.monthlyEndsAtMs === 'number') {
           const monthlyLeft = j.monthlyEndsAtMs - j.nowMs
@@ -40,9 +51,9 @@ export function useWelcomeOffers(): WelcomeOffersState {
         timer = setTimeout(() => { if (alive) setOffer(null) }, Math.min(msLeft, SET_TIMEOUT_MAX_MS))
       })
       .catch(() => undefined)
-    return () => { alive = false; if (timer) clearTimeout(timer); if (monthlyTimer) clearTimeout(monthlyTimer) }
+    return () => { alive = false; if (timer) clearTimeout(timer); if (monthlyTimer) clearTimeout(monthlyTimer); if (welcomeInBfTimer) clearTimeout(welcomeInBfTimer) }
   }, [])
-  return { annual: offer, monthly }
+  return { annual: offer, monthly, annualWelcomeInBf: welcomeInBf }
 }
 
 export function useAnnualOffer(): AnnualOfferState | null {

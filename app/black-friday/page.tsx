@@ -44,10 +44,10 @@ export default function BlackFridayPage() {
   const rows = bf2026PriceRows()
   const faqs: Array<{ q: string; a: string }> = [
     { q: 'How am I billed?', a: `One payment covers 12 months, at ${BF2026_PERCENT_OFF}% off 12 monthly payments. The plan renews at the same price each year, unless you cancel before then from Account → Manage billing.` },
-    { q: 'Do I get all the credits at once?', a: 'No. Like every Kineo annual plan, your credits refill every month for the 12 months. Unused credits do not roll over to the next month.' },
+    { q: 'Do I get all the credits at once?', a: `No. As on the regular ${BF2026_PLAN_LABEL} annual plan, your credits refill every month for the 12 months. Unused credits do not roll over to the next month.` },
     { q: 'Can I get a refund?', a: ANNUAL_REFUND_POLICY },
     { q: 'Are Creator and Studio included?', a: `No. The Black Friday price is for the ${BF2026_PLAN_LABEL} annual plan only. Creator and Studio annual plans keep their regular annual price, shown on the pricing page.` },
-    { q: 'Is there a discount on monthly plans?', a: 'No. The Black Friday offer is for annual plans only; monthly plans keep their regular price.' },
+    { q: 'Is there a discount on monthly plans?', a: `No. The Black Friday offer is for the ${BF2026_PLAN_LABEL} annual plan only; monthly plans keep their regular price.` },
     { q: 'I already have a Kineo plan. Can I use it?', a: 'This offer is for starting a new annual plan. If you already subscribe, checkout will point you to the plan switch on the pricing page, and the Black Friday price does not apply to plan switches.' },
     { q: 'Which currency will I pay in?', a: CHECKOUT_CURRENCY_DISCLOSURE },
   ]

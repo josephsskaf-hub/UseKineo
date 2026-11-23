@@ -17,7 +17,7 @@ function prova(s) {
   if (!/basic: 150,/.test(intro.slice(0, intro.indexOf('\n}')))) e.push('A3 o 1º mês acompanha o grant')
   if (!s.oferta.includes("const TIERS_COM_ANUAL: readonly string[] = ['starter', 'basic']")) e.push('B1 oferta de 50% sem o Studio')
   if (!/BF2026_TIERS: readonly CheckoutTier\[\] = \['starter'\]/.test(s.bf)) e.push('B2 Black Friday sem o Studio (e, desde KINEO-BF-SO-STARTER-2311, sem o Creator)')
-  if (!/const ofertaNoPlano = \(tier: string\): boolean => annualOfferLive && annualOfferCoversTier\(tier\)/.test(s.pagina)) e.push('B3 a página decide por plano')
+  if (!/const ofertaNoPlano = \(tier: string\): boolean => \(annualOfferLive && annualOfferCoversTier\(tier\)/.test(s.pagina)) e.push('B3 a página decide por plano') // KINEO-BF-SO-STARTER-2311: o parêntese agrupa a BF; as 3 h do Creator vêm depois do ||
   if (!/annualMinorFor = \(tier: PaidTier\): number =>\n\s*ofertaNoPlano\(tier\) \? ANNUAL_WELCOME_PRICES/.test(s.pagina)) e.push('B4 o preço do cartão segue o plano')
   if (!/save \$\{ofertaNoPlano\(p\.tier\) \?/.test(s.pagina)) e.push('B5 o "save %" segue o plano')
   if (!/\{annualOfferLive \? <>Up to \{ANNUAL_WELCOME_DISCOUNT_PERCENT\}%<\/> : <>Save \{ANNUAL_DISCOUNT_PERCENT\}%<\/>\}/.test(s.pagina)) e.push('B6 o selo só promete 50% com a oferta aberta')
