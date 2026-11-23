@@ -48,7 +48,8 @@ export default function AccountMenuTrigger({ signedIn, account, className, style
     window.addEventListener('resize', measure)
     return () => window.removeEventListener('resize', measure)
   }, [open])
-  useEffect(() => { setPlacement(null); setPurchase(null) }, [pathname, signedIn])
+  useEffect(() => { setPlacement(null); setPurchase(null) }, [pathname])
+  useEffect(() => { if (signedIn === false) setPurchase(null) }, [signedIn])
 
   return <>
     <button ref={opener} type="button" className={className}
