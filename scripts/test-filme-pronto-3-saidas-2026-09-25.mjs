@@ -527,5 +527,25 @@ for (const [n, c] of provasFoco(STUDIO_SRC)) ok(c, n)
 mutante('foco sem exigir ponteiro fino', STUDIO_SRC, 'if (ponteiroFino && caixa && livre) caixa.focus', 'if (caixa && livre) caixa.focus', provasFoco)
 mutante('foco rouba outro campo', STUDIO_SRC, 'if (ponteiroFino && caixa && livre) caixa.focus', 'if (ponteiroFino && caixa) caixa.focus', provasFoco)
 
+// KINEO-RECARGA-FILME-PRONTO-2311 — a barra da recarga só abre pelo clique. O renderizador deste guardião troca useEffect por
+// função vazia, então um "abre sozinho quando a oferta chega" passava (mutante vivo na revisão independente de 23/11).
+// Prova pelo texto: setRecargaOpen(true) existe uma vez só e mora dentro do onClick do botão film-ready-recarga.
+function provasSoNoClique(src) {
+  const partes = src.split('setRecargaOpen(true)')
+  const antes = partes[0]
+  const botao = antes.lastIndexOf('data-kineo="film-ready-recarga"')
+  const clique = antes.lastIndexOf('onClick={() => {')
+  return [
+    ['(r-e) a barra da recarga abre em um ponto só do arquivo', partes.length === 2],
+    ['(r-e) esse ponto é o onClick do botão da recarga', partes.length === 2 && botao > 0 && clique > botao
+      && !antes.slice(clique).includes('}}') && !antes.slice(botao).includes('useEffect')],
+  ]
+}
+for (const [n, c] of provasSoNoClique(COMP_SRC)) ok(c, n)
+mutante('barra da recarga abre sozinha quando a oferta chega', COMP_SRC, '  const plansHref = filmReadyPlansHref()\n',
+  '  const plansHref = filmReadyPlansHref()\n  useEffect(() => { if (recarga) setRecargaOpen(true) }, [recarga])\n', provasSoNoClique)
+mutante('abertura da recarga sai do clique', COMP_SRC, '            setRecargaOpen(true)\n          }}',
+  '          }}\n          onMouseEnter={() => setRecargaOpen(true)}', provasSoNoClique)
+
 console.log(`test-filme-pronto-3-saidas-2026-09-25: ${passed} ok, ${falhas.length} falha(s)`)
 if (falhas.length) process.exit(1)
