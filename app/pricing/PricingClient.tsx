@@ -149,6 +149,7 @@ import {
   type PricingTierHandoffTier,
 } from '@/lib/growth/pricingTierHandoff'
 import { annualOfferCoversTier } from '@/lib/billing/annualWelcomeOffer' // KINEO-CREDITOS-B-0511
+import { bf2026CoversTier } from '@/lib/billing/blackFriday2026' // KINEO-BF-SO-STARTER-2311
 import { annualSavingMinor, annualSavingWords } from '@/lib/annualSavingCopy' // KINEO-PRECOS-ECONOMIA-0911
 import {
   checkoutSetupFailureStorageKey,
@@ -567,6 +568,7 @@ export default function PricingClient({ initialBilling = 'annual', watchPreview 
   const annualOffer = welcomeOffers.annual
   const annualOfferLive = annualOffer !== null && !planSwitch.subscribed
   const ofertaNoPlano = (tier: string): boolean => annualOfferLive && annualOfferCoversTier(tier) // KINEO-CREDITOS-B-0511 — os 50% não valem no Studio
+    && (annualOffer?.kind !== 'black_friday_2026' || bf2026CoversTier(tier)) // KINEO-BF-SO-STARTER-2311 — na Black Friday, só o Starter
   const annualMinorFor = (tier: PaidTier): number =>
     ofertaNoPlano(tier) ? ANNUAL_WELCOME_PRICES[tier][resolvedCurrency] : getAnnualPrice(tier, resolvedCurrency, resolvedRegion)
   const annualPrices = (['starter', 'basic', 'pro'] as PaidTier[]).reduce((result, tier) => {

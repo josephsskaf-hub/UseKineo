@@ -19,6 +19,7 @@ import {
   BF2026_EVENTS,
   BF2026_PAGE_PATH,
   BF2026_PERCENT_OFF,
+  BF2026_PLAN_LABEL,
   bf2026BannerHidden,
   bf2026OfferVisible,
   bf2026WorthAsking,
@@ -40,7 +41,7 @@ function fetchState(): Promise<Bf2026State | null> {
 }
 
 // QUEM JÁ ASSINA NÃO VÊ A OFERTA (revisão 01/11): o checkout recusa uma 2ª assinatura e a troca de plano não aplica o
-// preço, então "any annual plan" seria uma promessa que a compra dele não cumpre. A leitura é a MESMA rota do
+// preço, então a oferta seria uma promessa que a compra dele não cumpre. A leitura é a MESMA rota do
 // /pricing (GET /api/stripe/change-plan, a de fetchPlanSwitchState; visitante sem conta = { subscribed: false }). Só sai
 // depois que o servidor disse 'open' (fora da janela, nenhuma requisição a mais) e fica guardada 1 minuto por aba.
 const PLAN_SWITCH_STATE_URL = '/api/stripe/change-plan'
@@ -120,7 +121,7 @@ export default function BlackFridayBanner({ placement = 'site' }: { placement?: 
         className="underline-offset-2 hover:underline"
         onClick={() => { void trackEvent(BF2026_EVENTS.bannerClicked, { placement, surface: pathname }) }}
       >
-        Black Friday: {BF2026_PERCENT_OFF}% off any annual plan · ends Dec 1 →
+        Black Friday: {BF2026_PERCENT_OFF}% off the {BF2026_PLAN_LABEL} annual plan · ends Dec 1 →
       </Link>
       <button
         type="button"
@@ -137,7 +138,7 @@ export default function BlackFridayBanner({ placement = 'site' }: { placement?: 
   )
 }
 
-/** O selo da aba anual do /pricing. O preço entra sozinho em todo checkout anual da janela; o selo só conta isso. */
+/** O selo da aba anual do /pricing. O preço entra sozinho no checkout anual do Starter na janela (KINEO-BF-SO-STARTER-2311); o selo só conta isso. */
 export function Bf2026PricingBadge() {
   const open = useBf2026Open(true)
   const shownRef = useRef(false)
@@ -154,7 +155,7 @@ export function Bf2026PricingBadge() {
       style={{ borderColor: 'var(--indigo, #2997ff)', background: 'var(--accent-soft, rgba(41,151,255,.12))', color: 'var(--text)' }}
     >
       <span className="rounded-full px-2 py-0.5 text-[10px] font-black" style={{ background: 'var(--indigo, #2997ff)', color: 'var(--on-accent, #04122E)' }}>BLACK FRIDAY</span>
-      <span>{BF2026_PERCENT_OFF}% off every annual plan, no code needed. Ends Dec 1, 11:59 PM ET.</span>
+      <span>{BF2026_PERCENT_OFF}% off the {BF2026_PLAN_LABEL} annual plan, no code needed. Creator and Studio keep their regular annual price. Ends Dec 1, 11:59 PM ET.</span>
       <Link
         href={`${BF2026_PAGE_PATH}?from=pricing`}
         className="underline underline-offset-2"

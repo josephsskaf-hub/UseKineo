@@ -16,7 +16,7 @@ function prova(s) {
   const intro = s.preco.slice(s.preco.indexOf('export const INTRO_CREDITS'))
   if (!/basic: 150,/.test(intro.slice(0, intro.indexOf('\n}')))) e.push('A3 o 1º mês acompanha o grant')
   if (!s.oferta.includes("const TIERS_COM_ANUAL: readonly string[] = ['starter', 'basic']")) e.push('B1 oferta de 50% sem o Studio')
-  if (!/BF2026_TIERS: readonly CheckoutTier\[\] = \['starter', 'basic'\]/.test(s.bf)) e.push('B2 Black Friday sem o Studio')
+  if (!/BF2026_TIERS: readonly CheckoutTier\[\] = \['starter'\]/.test(s.bf)) e.push('B2 Black Friday sem o Studio (e, desde KINEO-BF-SO-STARTER-2311, sem o Creator)')
   if (!/const ofertaNoPlano = \(tier: string\): boolean => annualOfferLive && annualOfferCoversTier\(tier\)/.test(s.pagina)) e.push('B3 a página decide por plano')
   if (!/annualMinorFor = \(tier: PaidTier\): number =>\n\s*ofertaNoPlano\(tier\) \? ANNUAL_WELCOME_PRICES/.test(s.pagina)) e.push('B4 o preço do cartão segue o plano')
   if (!/save \$\{ofertaNoPlano\(p\.tier\) \?/.test(s.pagina)) e.push('B5 o "save %" segue o plano')
@@ -45,7 +45,7 @@ const MUT = [
   ['preço muda', /A2/, { preco: base.preco.replace('basic: { usd: 1900 }', 'basic: { usd: 2900 }') }],
   ['1º mês esquecido', /A3/, { preco: base.preco.replace('  basic: 150, // KINEO-CREDITOS-B-0511', '  basic: 85,') }],
   ['Studio volta aos 50%', /B1/, { oferta: base.oferta.replace("const TIERS_COM_ANUAL: readonly string[] = ['starter', 'basic']", "const TIERS_COM_ANUAL: readonly string[] = ['starter', 'basic', 'pro']") }],
-  ['Black Friday com Studio', /B2/, { bf: base.bf.replace("= ['starter', 'basic']", "= ['starter', 'basic', 'pro']") }],
+  ['Black Friday com Studio', /B2/, { bf: base.bf.replace("BF2026_TIERS: readonly CheckoutTier[] = ['starter']", "BF2026_TIERS: readonly CheckoutTier[] = ['starter', 'pro']") }],
   ['cartão ignora o plano', /B4/, { pagina: base.pagina.replace('ofertaNoPlano(tier) ? ANNUAL_WELCOME_PRICES', 'annualOfferLive ? ANNUAL_WELCOME_PRICES') }],
   ['selo promete 50% sempre', /B6/, { pagina: base.pagina.replace('{annualOfferLive ? <>Up to {ANNUAL_WELCOME_DISCOUNT_PERCENT}%</> : <>Save {ANNUAL_DISCOUNT_PERCENT}%</>}', 'Up to {ANNUAL_WELCOME_DISCOUNT_PERCENT}%') }],
   ['número digitado', /C[12]/, { conta: base.conta.replace("creditsPerReferenceVideo('cinematic_ai')", '35') }],

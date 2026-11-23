@@ -1,4 +1,5 @@
-// KINEO-BLACK-FRIDAY-2026 — Black Friday 2026: qualquer plano ANUAL pelo preço de boas-vindas (fundador 01/11, "vai black friday").
+// KINEO-BLACK-FRIDAY-2026 — Black Friday 2026: o plano ANUAL pelo preço de boas-vindas (fundador 01/11, "vai black friday"); desde
+// KINEO-BF-SO-STARTER-2311 (fundador 16/11) só o Starter — ver ONDE O DESCONTO VALE.
 // KINEO-OFERTA-3H-0411 [fundador 04/11: "os mesmos 50% para todos, sem o cupom de 40%"] — o cupom de 40% morreu. Na janela, o checkout cobra
 // ANNUAL_WELCOME_PRICES (price_data inline): quem compra mantém esse preço na renovação, e não há cupom para empilhar. Vale para convidado também.
 //
@@ -12,8 +13,10 @@
 // 05:00 UTC de 02/12 tudo desliga do mesmo jeito.
 //
 // ONDE O DESCONTO VALE (o portão é bf2026CheckoutEligible, e o checkout é o único lugar que aplica):
-//   · SÓ anual; SÓ Starter/Creator/Studio (os três que têm anual); SÓ planos que aceitam promoção (planAcceptsPromotions —
-//     o Business fica fora, e ele nem tem anual); nunca no teste com cartão.
+//   · SÓ anual; SÓ o Starter (KINEO-BF-SO-STARTER-2311, fundador 16/11: "Creator fica no anual normal de 30%; os 50% valem só no
+//     Starter" — no pior caso de uso o Creator anual a 50% dá margem negativa; o Studio já estava fora desde 05/11); SÓ planos que
+//     aceitam promoção (planAcceptsPromotions); nunca no teste com cartão. Creator e Studio pagam o anual normal na janela, venham
+//     de onde vierem (a oferta de 3 h da conta nova segue como sempre: ela é decidida em lib/billing/annualWelcomeOffer.ts).
 //   · TODO checkout anual elegível dentro da janela paga o preço da oferta, venha de onde vier: /black-friday, /pricing na aba
 //     anual ou um e-mail antigo. O ?promo=BF2026 de um link velho é descartado na entrada da rota (nunca vira cupom nem manda o
 //     convidado ao cadastro).
@@ -66,10 +69,18 @@ export function bf2026Open(nowMs: number = Date.now()): boolean {
   return bf2026State(nowMs) === 'open'
 }
 
-/** Os três planos com anual. Autopilot/Lite/Business não têm anual. */
-export const BF2026_TIERS: readonly CheckoutTier[] = ['starter', 'basic'] // KINEO-CREDITOS-B-0511 [fundador 05/11, "2 sim"] — Studio fora dos 50%: teto de 30%
+/** Os planos com o preço da Black Friday. KINEO-CREDITOS-B-0511 [05/11]: Studio fora. KINEO-BF-SO-STARTER-2311 [16/11]: Creator fora — só o Starter. */
+export const BF2026_TIERS: readonly CheckoutTier[] = ['starter']
 /** Espelho de VALOR_TIER_NAMES (lib/valorNoCheckout.ts); o guardião confere a igualdade. */
 export const BF2026_TIER_NAMES: Record<CheckoutTier, string> = { starter: 'Starter', basic: 'Creator', pro: 'Studio' }
+
+/** KINEO-BF-SO-STARTER-2311 — o nome dos planos da oferta, para a copy ("Starter"): a frase segue a lista, nunca promete além dela. */
+export const BF2026_PLAN_LABEL: string = BF2026_TIERS.map((t) => BF2026_TIER_NAMES[t]).join(' and ')
+
+/** Este plano leva o preço da Black Friday? (só o plano; a janela, o anual e o teste com cartão são do portão abaixo). */
+export function bf2026CoversTier(tier: string): boolean {
+  return (BF2026_TIERS as readonly string[]).includes(tier)
+}
 
 /** O portão do checkout: o preço da oferta entra SÓ aqui. */
 export function bf2026CheckoutEligible(input: {
@@ -79,7 +90,7 @@ export function bf2026CheckoutEligible(input: {
   wantsTrial?: boolean
 }): boolean {
   return input.isAnnual === true &&
-    (BF2026_TIERS as readonly string[]).includes(input.tier) &&
+    bf2026CoversTier(input.tier) &&
     planAcceptsPromotions(input.tier) &&
     input.wantsTrial !== true &&
     bf2026Open(input.nowMs ?? Date.now())
@@ -166,7 +177,7 @@ export function bf2026WorthAsking(nowMs: number): boolean {
 /**
  * A faixa e o selo pintam para ESTA pessoa? Só com o servidor dizendo 'open' E com a certeza de que ela não assina hoje
  * (subscribed === false). Quem assina não consegue pegar a oferta (o checkout recusa uma 2ª assinatura e a troca de plano
- * não aplica o preço) — mostrar "any annual plan" para ela seria prometer o que a compra não entrega (revisão
+ * não aplica o preço) — mostrar a oferta para ela seria prometer o que a compra não entrega (revisão
  * 01/11). Assinatura ainda desconhecida (null, resposta a caminho) = não pinta: nunca pisca a oferta para quem paga.
  */
 export function bf2026OfferVisible(input: { serverState: Bf2026State | null; subscribed: boolean | null }): boolean {
@@ -344,16 +355,16 @@ export function bf2026EmailUrl(wave: Bf2026Wave, app = 'https://www.usekineo.com
 
 export function bf2026Subject(wave: Bf2026Wave): string {
   return wave === 'bf'
-    ? `Black Friday: ${BF2026_PERCENT_OFF}% off Kineo annual plans`
-    : `Cyber Monday: ${BF2026_PERCENT_OFF}% off annual plans ends Dec 1`
+    ? `Black Friday: ${BF2026_PERCENT_OFF}% off the Kineo ${BF2026_PLAN_LABEL} annual plan`
+    : `Cyber Monday: ${BF2026_PERCENT_OFF}% off ${BF2026_PLAN_LABEL} annual ends Dec 1`
 }
 
 /** Corpo curto, em inglês. Preço nenhum digitado: as linhas vêm de bf2026PriceRows(). */
 export function bf2026EmailBody(wave: Bf2026Wave, rows: Bf2026PriceRow[], footer: { text: string; html: string }, app = 'https://www.usekineo.com'): { text: string; html: string } {
   const url = bf2026EmailUrl(wave, app)
   const opener = wave === 'bf'
-    ? `For Black Friday, every Kineo annual plan is ${BF2026_PERCENT_OFF}% off 12 monthly payments.`
-    : `Last call: the Black Friday deal on Kineo annual plans ends Tuesday, Dec 1 at 11:59 PM (New York time).`
+    ? `For Black Friday, the Kineo ${BF2026_PLAN_LABEL} annual plan is ${BF2026_PERCENT_OFF}% off 12 monthly payments.`
+    : `Last call: the Black Friday deal on the Kineo ${BF2026_PLAN_LABEL} annual plan ends Tuesday, Dec 1 at 11:59 PM (New York time).`
   const lines = rows.map((r) => `- ${r.name}: ${usd(r.bfMinor)} a year (${usd(r.twelveMonthlyMinor)} if paid monthly), ${r.credits} credits every month`)
   const htmlLines = rows.map((r) => `<li><strong>${esc(r.name)}: ${usd(r.bfMinor)}</strong> a year <span style="color:#6b7280">(<s>${usd(r.twelveMonthlyMinor)}</s> if paid monthly)</span> · ${r.credits} credits every month</li>`).join('')
   const fine = `One payment for the year, credits refill every month, and the annual plan is fully refundable within ${ANNUAL_REFUND_DAYS} days. It renews at the same price each year unless you cancel.`

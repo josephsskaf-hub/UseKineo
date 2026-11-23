@@ -78,7 +78,8 @@ function problemas(repl = {}) {
   // 2. Black Friday aberta para todos, sem cupom
   checa('BF aberta: convidado entra', O.resolveAnnualOffer({ ...base, signedIn: false, bfOpen: true })?.kind === 'black_friday_2026')
   checa('BF aberta: conta velha e já paga entram', O.resolveAnnualOffer({ ...base, accountCreatedAt: '2020-01-01T00:00:00Z', hasPaid: true, bfOpen: true })?.kind === 'black_friday_2026')
-  checa('portão da BF: anual dentro, mensal e fora da janela não', B.bf2026CheckoutEligible({ tier: 'basic', isAnnual: true, nowMs: NA_BF }) && !B.bf2026CheckoutEligible({ tier: 'pro', isAnnual: true, nowMs: NA_BF }) && !B.bf2026CheckoutEligible({ tier: 'basic', isAnnual: false, nowMs: NA_BF }) && !B.bf2026CheckoutEligible({ tier: 'basic', isAnnual: true, nowMs: T0 }))
+  // KINEO-BF-SO-STARTER-2311 [fundador 16/11] — a BF vale só no Starter; Creator e Studio ficam no anual normal (as 3 h acima seguem iguais).
+  checa('portão da BF: anual dentro, mensal e fora da janela não', B.bf2026CheckoutEligible({ tier: 'starter', isAnnual: true, nowMs: NA_BF }) && !B.bf2026CheckoutEligible({ tier: 'basic', isAnnual: true, nowMs: NA_BF }) && !B.bf2026CheckoutEligible({ tier: 'pro', isAnnual: true, nowMs: NA_BF }) && !B.bf2026CheckoutEligible({ tier: 'starter', isAnnual: false, nowMs: NA_BF }) && !B.bf2026CheckoutEligible({ tier: 'starter', isAnnual: true, nowMs: T0 }))
   checa('BF no preço de boas-vindas', B.bf2026PriceRows().every((r) => r.bfMinor === Pr.ANNUAL_WELCOME_PRICES[r.tier].usd && r.annualMinor === Pr.ANNUAL_PRICES[r.tier].usd && r.savedMinor + r.bfMinor === Pr.TIER_PRICES[r.tier].usd * 12))
   checa('BF lê o percentual da tabela', B.BF2026_PERCENT_OFF === Pr.ANNUAL_WELCOME_DISCOUNT_PERCENT)
   checa('link da BF sem ?promo=', !B.bf2026CheckoutHref('basic').includes('promo='))
