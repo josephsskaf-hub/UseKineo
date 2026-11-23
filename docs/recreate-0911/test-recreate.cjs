@@ -18,6 +18,7 @@ function loader(stubs = {}, overrides = {}) {
     const mod = { exports: {} }; cache.set(p, mod)
     const req = name => {
       if (Object.hasOwn(stubs, name)) return stubs[name]
+      if (name === 'server-only') return {} // módulo de servidor chegando por require (RecreateFlowPage → clipWorkspaceServer)
       if (name.startsWith('@/')) return load(name.slice(2))
       if (name.startsWith('.')) return load(path.posix.normalize(path.posix.join(path.posix.dirname(p), name)))
       return require(require.resolve(name, { paths: [ROOT] }))
