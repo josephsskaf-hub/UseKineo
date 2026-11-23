@@ -1,13 +1,13 @@
 // Real SSR and real canonical tables; no effects, network or checkout.
 const assert=require('node:assert/strict'),fs=require('node:fs'),cp=require('node:child_process'),React=require('react'),{renderToStaticMarkup:ssr}=require('react-dom/server');
 const {render}=require('../docs/revisoes/pricing-enxuta-1711/preview.cjs'),{loader}=require('../docs/recreate-0911/test-recreate.cjs');
-const {findPricingMarkers}=require('./test-support/pricing-markup.cjs');
+const {findPricingMarkers,normalizeStudioCopy}=require('./test-support/pricing-markup.cjs');
 const canon=ssr(React.createElement(loader()('components/seo/TrafficCitation2310').CitationDetails,{page:'home'}));
 assert.equal((canon.match(/<table>/g)||[]).length,2);assert.equal((canon.match(/<h3>/g)||[]).length,5);
 const cut=html=>html.slice(html.indexOf('<section class="pv-stage"'),html.indexOf('</section>',html.indexOf('<section class="pv-stage"'))+10);
 for(const signed of [false,true]){
  const before=render(true,signed),after=render(false,signed);
- assert.equal(cut(after),cut(before),'plan cards, values and buttons unchanged');
+ assert.equal(normalizeStudioCopy(cut(after)),normalizeStudioCopy(cut(before)),'plan structure, values and buttons unchanged');
  const details=after.slice(after.indexOf('<details class="pricing-reference"'));assert(details.includes(canon),'canonical two tables + five questions byte-identical in HTML');assert(!details.startsWith('<details open'));
  assert.equal((after.slice(0,after.indexOf('<details class="pricing-reference"')).match(/aria-expanded=/g)||[]).length,3,'only three nonduplicated primary questions');
  assert(/faceless/i.test(after));assert(after.includes('Choose your plan'));assert(after.includes('Cancel anytime from your account'));

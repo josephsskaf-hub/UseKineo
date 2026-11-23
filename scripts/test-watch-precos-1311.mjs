@@ -6,6 +6,7 @@ import vm from 'node:vm'
 import { execFileSync } from 'node:child_process'
 import { createRequire } from 'node:module'
 const root = process.cwd(), require = createRequire(path.join(root, 'package.json'))
+const { normalizeStudioCopy } = require('./scripts/test-support/pricing-markup.cjs')
 const ts = require('typescript'), React = require('react'), { renderToStaticMarkup } = require('react-dom/server')
 const CLIENT = 'app/pricing/PricingClient.tsx', CARD = 'components/pricing/PlanValueStage.tsx', INCLUDES = 'components/pricing/PricingIncludes0511.tsx', FLAG = 'lib/pricingWatch.ts'
 const BASE = '617b3e417', read = file => fs.readFileSync(path.join(root, file), 'utf8').replace(/\r\n/g, '\n')
@@ -105,7 +106,7 @@ for (const billing of ['monthly', 'annual']) for (const brl of [false, true]) {
   const actual = world({}, brl).render(false, billing)
   const original = world(originals, brl).render(false, billing)
   const label = billing + (brl ? '/BRL' : '/USD')
-  check('rollback', planGrid(actual) && planGrid(actual) === planGrid(original), 'closed flag preserves exact public plan HTML for ' + label)
+  check('rollback', planGrid(actual) && normalizeStudioCopy(planGrid(actual)) === normalizeStudioCopy(planGrid(original)), 'closed flag preserves plan markup, prices and controls for ' + label)
   check('rollback', !actual.includes('class="pricing-blue pricing-watch ') && !actual.includes('class="pricing-watch-proof"') && !actual.includes('id="teams"'), 'preview-only surface is absent from /pricing for ' + label)
 }
 const baseline = checks

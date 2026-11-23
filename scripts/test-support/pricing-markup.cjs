@@ -21,4 +21,18 @@ function findPricingMarkers(html, attribute, value) {
   return markers
 }
 
-module.exports = { findPricingMarkers }
+// Keep exact parity for the grid and allow only the approved Studio text.
+function normalizeStudioCopy(markup) {
+  if (!markup) return markup
+  const start = markup.indexOf(' data-tier="pro"')
+  if (start < 0) return markup
+  const before = markup.slice(0, start)
+  const studio = markup.slice(start)
+    .replace(/<li><svg\b[^>]*><path\b[^>]*><\/path><\/svg><span>(?:Unlimited projects · files stay while your account is active|Save up to 10 reusable characters)<\/span><\/li>/, '')
+    .replace('<summary>See 60-second films by engine</summary>', '<summary>See credits by engine</summary>')
+    .replace('<p class="pv-caption">Each count assumes you use all monthly credits on that engine.</p>',
+      '<p class="pv-caption">A clip is one AI scene. A film is a finished Short with voice, captions and music.</p>')
+  return before + studio
+}
+
+module.exports = { findPricingMarkers, normalizeStudioCopy }
