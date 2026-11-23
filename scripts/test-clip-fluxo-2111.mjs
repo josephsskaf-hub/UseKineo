@@ -12,8 +12,9 @@ const { formatosParaOCliente } = load('lib/recreate/catalogoServidor.ts')
 const { INTERNAL_EXACT_EMAILS } = load('lib/internalAccounts.ts')
 const owner = INTERNAL_EXACT_EMAILS[0]
 const subscriber = 'clip-fixture@example.net'
-assert.equal(layout.CLIP_WORKSPACE_RELEASE, 'off')
-assert.equal(layout.clipWorkspaceVisible(owner), false)
+assert.equal(layout.CLIP_WORKSPACE_RELEASE, 'internal') // dono 22/11: aprovada pela foto; casa primeiro, depois 'public'
+assert.equal(layout.clipWorkspaceVisible(owner), true)
+assert.equal(layout.clipWorkspaceVisible(subscriber), false) // com 'internal' o assinante segue na tela de antes
 assert.equal(layout.clipWorkspaceVisible(owner, 'internal'), true)
 assert.equal(layout.clipWorkspaceVisible(subscriber, 'internal'), false)
 assert.equal(layout.clipWorkspaceVisible(null, 'public'), false)
