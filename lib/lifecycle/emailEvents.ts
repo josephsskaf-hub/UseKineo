@@ -138,6 +138,9 @@ export const LIFECYCLE_EMAIL_EVENT_NAMES = [
   // KINEO-EP2-PAINEL-3110 — a carta do episódio 2, 20–28 h depois do 1º filme (cron/send-episode2). Entra no MESMO commit.
   // KINEO-VOLTA-1211 — a carta de volta para a base (admin/send-volta-1211; nasce no mesmo commit, envio trancado).
   'volta_1211_emailed',
+  // KINEO-BF-BASE-2311 — a carta da Black Friday para a base (admin/send-bf-base-2311). O selo é gravado antes do envio: se o
+  // Resend recusar, a pessoa fica calada 7 dias à toa (erro para o lado seguro). Entra no MESMO commit em que nasce.
+  'bf_base_2311_sent',
   'episode2_email_sent',
 ] as const
 

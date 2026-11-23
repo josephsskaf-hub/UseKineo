@@ -77,6 +77,8 @@ const SERVER_ONLY_EVENTS = new Set([
   // KINEO-VOLTA-1211 — envio e reserva da carta de volta: só o servidor grava.
   'volta_1211_emailed',
   'volta_1211_claimed',
+  // KINEO-BF-BASE-2311 — o selo da carta da Black Friday para a base (admin/send-bf-base-2311): só o servidor grava.
+  'bf_base_2311_sent',
   // KINEO-EMAILS-REGIAO-2026-10-13 — reserva e carimbo da carta do 1º filme das contas 'region_paid_only'
   // (admin/send-region-first-film): um carimbo forjado tiraria a pessoa da coorte para sempre.
   'region_first_film_claimed',
