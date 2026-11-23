@@ -1,0 +1,611 @@
+{
+  "date": "2026-11-21",
+  "base": "f9e8e26bc3692b010fa9acc980125654091143a1",
+  "method": "Recuperação por busca web, não respostas reais do ChatGPT nem SERP nativa do Bing.",
+  "queries": [
+    {
+      "id": 1,
+      "lang": "en",
+      "query": "best faceless video AI for a YouTube channel",
+      "kineo": [],
+      "alternatives": [
+        {
+          "url": "https://www.itechguides.com/8-best-ai-video-generators-for-faceless-youtube-channels-in-2026/",
+          "title": "8 Best AI Video Generators For Faceless YouTube Channels In 2026"
+        },
+        {
+          "url": "https://techyorker.com/best-ai-video-generators-for-faceless-youtube-channels-in-2026/",
+          "title": "Best AI Video Generators for Faceless YouTube Channels in 2026"
+        },
+        {
+          "url": "https://toolradar.com/guides/best-ai-video-generators-for-faceless-youtube",
+          "title": "Best AI Video Generators for Faceless YouTube 2026"
+        }
+      ],
+      "source": {
+        "name": "Fableclip",
+        "url": "https://fableclip.com/ai-youtube-shorts-generator",
+        "summary": "Página do fornecedor abre com tema → roteiro, voz, legendas e vídeo faceless; oferece série e publicação automática. Alegações comerciais, não testadas.",
+        "opened": true,
+        "type": "fonte do fornecedor/autor"
+      },
+      "candidate": "/ai-video-generator/for/faceless-videos",
+      "priority": 9
+    },
+    {
+      "id": 2,
+      "lang": "en",
+      "query": "AI video generator from my exact script narration captions",
+      "kineo": [],
+      "alternatives": [
+        {
+          "url": "https://www.framecompose.com/script-to-video-generator",
+          "title": "Script to Video Generator | FrameCompose"
+        },
+        {
+          "url": "https://fableclip.com/script-to-video",
+          "title": "Script to Video AI — Faceless Video Maker | Fableclip"
+        },
+        {
+          "url": "https://gomotion-ai.app/solution/script-to-video-ai",
+          "title": "Script to Video AI: Turn Any Script Into a Video | Go Motion"
+        }
+      ],
+      "source": {
+        "name": "FrameCompose",
+        "url": "https://www.framecompose.com/script-to-video-generator",
+        "summary": "Primeiro parágrafo e seção de contrato distinguem palavras faladas preservadas, divisão em cenas e editor. A promessa de edição/ordem é do fornecedor.",
+        "opened": true,
+        "type": "fonte do fornecedor/autor"
+      },
+      "candidate": "/text-to-video-shorts",
+      "priority": 8
+    },
+    {
+      "id": 3,
+      "lang": "en",
+      "query": "AI YouTube Shorts automation review before posting",
+      "kineo": [],
+      "alternatives": [
+        {
+          "url": "https://www.youtube.com/watch?v=qIEgWzarYA8",
+          "title": "Taja AI Review: How I Automate YouTube Shorts, Titles & Social Posts - YouTube"
+        },
+        {
+          "url": "https://www.youtube.com/watch?v=jkEEVYFzT1U",
+          "title": "This AI System Creates & Posts Faceless Shorts 24/7 (free n8n template) - YouTube"
+        },
+        {
+          "url": "https://ascynd.io/en/blog/youtube-shorts-automation",
+          "title": "YouTube Shorts Automation: The Full Pipeline | Ascynd"
+        }
+      ],
+      "source": {
+        "name": "Ascynd",
+        "url": "https://ascynd.io/en/blog/youtube-shorts-automation",
+        "summary": "Artigo do operador separa descoberta de clipes, legendas e agenda, e recomenda revisão humana. Afirmações de política devem ser conferidas no YouTube antes de reutilizar.",
+        "opened": true,
+        "type": "fonte do fornecedor/autor"
+      },
+      "candidate": "/youtube-automation",
+      "priority": 19
+    },
+    {
+      "id": 4,
+      "lang": "en",
+      "query": "InVideo alternative for faceless storytelling shorts",
+      "kineo": [],
+      "alternatives": [
+        {
+          "url": "https://agipicks.com/use-case/faceless-video-generator/",
+          "title": "Faceless Video Generator: 6 Tools Compared (2026) | AGIPicks"
+        },
+        {
+          "url": "https://ovideo.io/resources/invideo-alternatives",
+          "title": "Best InVideo Alternatives (2026): 6 Tools Compared"
+        },
+        {
+          "url": "https://www.vidgenn.com/alternatives/invideo-alternatives",
+          "title": "Best InVideo AI Alternatives (2026): 6 Tools Compared"
+        }
+      ],
+      "source": {
+        "name": "oVideo",
+        "url": "https://ovideo.io/resources/invideo-alternatives",
+        "summary": "Artigo do próprio oVideo separa alternativas por tarefa; em For Shorts and social video descreve vídeo vertical a partir de assunto. Não é ranking independente.",
+        "opened": true,
+        "type": "fonte do fornecedor/autor"
+      },
+      "candidate": "/vs/invideo-alternatives-faceless-shorts",
+      "priority": 7
+    },
+    {
+      "id": 5,
+      "lang": "en",
+      "query": "AI horror story video generator voice captions",
+      "kineo": [],
+      "alternatives": [
+        {
+          "url": "https://www.framecompose.com/horror-story-video-maker",
+          "title": "Free AI Horror Story Video Maker | FrameCompose"
+        },
+        {
+          "url": "https://plotclip.com/horror-story-video-generator",
+          "title": "AI Horror Story Video Generator — Free to Start | PlotClip"
+        },
+        {
+          "url": "https://getbandi.io/en/ai-horror-story-video-generator",
+          "title": "AI horror story video generator that posts a daily TikTok series automatically | Bandi"
+        }
+      ],
+      "source": {
+        "name": "FrameCompose",
+        "url": "https://www.framecompose.com/horror-story-video-maker",
+        "summary": "Hero descreve história de terror, cenas escuras, narrador e legendas. A seção How it works distingue preparar o Studio e pressionar Generate.",
+        "opened": true,
+        "type": "fonte do fornecedor/autor"
+      },
+      "candidate": "/free-ai-shorts/horror",
+      "priority": 5
+    },
+    {
+      "id": 6,
+      "lang": "en",
+      "query": "AI story video maker recurring character consistency",
+      "kineo": [],
+      "alternatives": [
+        {
+          "url": "https://slice.video/make/ai-video-series",
+          "title": "Make an AI Video Series with Consistent Characters — Slice"
+        },
+        {
+          "url": "https://refvid.com/ai-story-video",
+          "title": "AI Story Video Generator: Same Cast Every Scene · RefVid"
+        },
+        {
+          "url": "https://www.paintbrush.gg/",
+          "title": "Paintbrush: AI Story Video Maker with Consistent Characters and Lip Sync"
+        }
+      ],
+      "source": {
+        "name": "Slice",
+        "url": "https://slice.video/make/ai-video-series",
+        "summary": "Hero e exemplos promovem episódios com mesmos personagens. Não testamos consistência; essa garantia não pode ser copiada para Kineo.",
+        "opened": true,
+        "type": "fonte do fornecedor/autor"
+      },
+      "candidate": "/ai-video-generator/for/story-videos",
+      "priority": 10
+    },
+    {
+      "id": 7,
+      "lang": "en",
+      "query": "AI documentary shorts generator from script",
+      "kineo": [
+        {
+          "url": "https://www.usekineo.com/ai-video-generator/for/documentary-shorts",
+          "title": "AI Documentary shorts Generator | Kineo"
+        }
+      ],
+      "alternatives": [
+        {
+          "url": "https://rewatch.studio/tools/ai-documentary-creator",
+          "title": "AI Documentary Creator: Narrated Short Docs | Rewatch"
+        },
+        {
+          "url": "https://ovideo.io/resources/ai-documentary-video-generator",
+          "title": "AI Documentary Video Generator: Script, Visuals and Narrator in One | oVideo"
+        },
+        {
+          "url": "https://jetmotionai.com/",
+          "title": "JetMotion: AI video generator for faceless YouTube channels"
+        }
+      ],
+      "source": {
+        "name": "Rewatch",
+        "url": "https://rewatch.studio/tools/ai-documentary-creator",
+        "summary": "Hero explica assunto/mistério/história → documentário curto narrado; formulário permite ideia ou roteiro, idioma e duração.",
+        "opened": true,
+        "type": "fonte do fornecedor/autor"
+      },
+      "candidate": "/ai-video-generator/for/documentary-shorts",
+      "priority": 1
+    },
+    {
+      "id": 8,
+      "lang": "en",
+      "query": "faceless video generator price per finished 60 second video",
+      "kineo": [
+        {
+          "url": "https://www.usekineo.com/",
+          "title": "Kineo AI — Faceless YouTube Shorts: Kling, MiniMax, Seedance"
+        },
+        {
+          "url": "https://www.usekineo.com/faceless-youtube-shorts-generator",
+          "title": "AI Faceless YouTube Shorts Generator — Price per Short (October 2026) | Kineo (usekineo.com)"
+        }
+      ],
+      "alternatives": [
+        {
+          "url": "https://www.whattoupload.com/faceless-video-generator",
+          "title": "Faceless video generator for Shorts, Reels and TikTok"
+        },
+        {
+          "url": "https://cliptude.com/cheapest-ai-video-generator/",
+          "title": "The Cheapest AI Video Generator | Cliptude"
+        },
+        {
+          "url": "https://umbrela.dev/",
+          "title": "AI Faceless Video Generator from $2 | Umbrela"
+        }
+      ],
+      "source": {
+        "name": "WhatToUpload",
+        "url": "https://www.whattoupload.com/faceless-video-generator",
+        "summary": "Hero define vídeo faceless pronto e tabela posterior explicita unidade por duração/estilo. Os preços comerciais não foram validados.",
+        "opened": true,
+        "type": "fonte do fornecedor/autor"
+      },
+      "candidate": "/faceless-youtube-shorts-generator",
+      "priority": 3
+    },
+    {
+      "id": 9,
+      "lang": "es",
+      "query": "generador de videos sin mostrar la cara con voz y subtitulos",
+      "kineo": [],
+      "alternatives": [
+        {
+          "url": "https://www.shortfast.com/es/tools/faceless-video-generator",
+          "title": "Generador de videos sin rostro para YouTube, TikTok y Reels · ShortFast"
+        },
+        {
+          "url": "https://rewatch.studio/es/tools/faceless-video-generator",
+          "title": "Generador de videos faceless con IA: sin cámara | Rewatch"
+        },
+        {
+          "url": "https://short.now/es/tools/faceless-video-generator/",
+          "title": "Generador de vídeos faceless con IA para Shorts y TikTok"
+        }
+      ],
+      "source": {
+        "name": "ShortFast",
+        "url": "https://www.shortfast.com/es/tools/faceless-video-generator",
+        "summary": "Hero espanhol responde tema/guion → vídeo vertical com footage, voz e subtítulos; interface diferencia prompt e roteiro.",
+        "opened": true,
+        "type": "fonte do fornecedor/autor"
+      },
+      "candidate": "/generador-de-shorts-gratis",
+      "priority": 6
+    },
+    {
+      "id": 10,
+      "lang": "es",
+      "query": "crear Shorts de YouTube con IA a partir de un guion",
+      "kineo": [],
+      "alternatives": [
+        {
+          "url": "https://fliz.ai/es/crear-shorts-youtube",
+          "title": "Crear Shorts de YouTube con IA a partir de un texto"
+        },
+        {
+          "url": "https://support.google.com/youtube/answer/15260303?hl=es",
+          "title": "Crear contenido para Shorts con funciones de IA generativa - Ayuda de YouTube"
+        },
+        {
+          "url": "https://www.youtube.com/watch?v=yID6jeeY9-k",
+          "title": "Cómo crear Shorts animados con IA desde un guion (Tutorial Creatify.ai) - YouTube"
+        }
+      ],
+      "source": {
+        "name": "Fliz",
+        "url": "https://fliz.ai/es/crear-shorts-youtube",
+        "summary": "Primeiro parágrafo e Cómo hacer Shorts descrevem ideia/texto/URL → guion, ilustração, voz, música e subtítulos; envio ao YouTube é passo posterior.",
+        "opened": true,
+        "type": "fonte do fornecedor/autor"
+      },
+      "candidate": "/generador-de-shorts-gratis",
+      "priority": 11
+    },
+    {
+      "id": 11,
+      "lang": "es",
+      "query": "alternativa a InVideo para videos sin rostro",
+      "kineo": [],
+      "alternatives": [
+        {
+          "url": "https://www.clip-short.com/es/guias/mejores-generadores-de-videos-con-ia",
+          "title": "Mejores generadores de video con IA sin rostro 2026: ranking"
+        },
+        {
+          "url": "https://www.iacreadora.com/tareas/ia-para-hacer-videos-sin-mostrar-la-cara/",
+          "title": "Cómo hacer videos sin mostrar la cara con IA (2026): TikTok y YouTube | IACreadora"
+        },
+        {
+          "url": "https://www.8frame.co/blog/mejores-generadores-de-videos-sin-mostrar-la-cara-con-ia-gratis-2026",
+          "title": "Los mejores generadores de videos sin mostrar la cara con IA gratis en 2026: límites gratis, marcas de agua y las reglas de YouTube | 8frame"
+        }
+      ],
+      "source": {
+        "name": "Clip-Short",
+        "url": "https://www.clip-short.com/es/guias/mejores-generadores-de-videos-con-ia",
+        "summary": "Guia do fornecedor separa vídeos narrados, recortes, clipes gerados, avatares e editores. Seção específica trata alternativa ao InVideo por necessidade.",
+        "opened": true,
+        "type": "fonte do fornecedor/autor"
+      },
+      "candidate": "/generador-de-shorts-gratis",
+      "priority": 18
+    },
+    {
+      "id": 12,
+      "lang": "es",
+      "query": "automatizar Shorts de YouTube con IA sin publicar automaticamente",
+      "kineo": [],
+      "alternatives": [
+        {
+          "url": "https://staglight.ai/es/",
+          "title": "Automatización de Shorts de YouTube con IA sin suscripción | Staglight"
+        },
+        {
+          "url": "https://getbandi.io/auto-post-youtube-shorts",
+          "title": "App que crea y publica vídeos en YouTube Shorts automáticamente | Bandi"
+        },
+        {
+          "url": "https://control.pilot0.app/es/youtube",
+          "title": "Programar videos y Shorts de YouTube | PilotControl"
+        }
+      ],
+      "source": {
+        "name": "Staglight",
+        "url": "https://staglight.ai/es/",
+        "summary": "Página promove automatização de canal e mostra uma revisão de preço antes de gerar no chat. Não prova a exigência de revisão humana da consulta.",
+        "opened": true,
+        "type": "fonte do fornecedor/autor"
+      },
+      "candidate": "/youtube-automation",
+      "priority": 20
+    },
+    {
+      "id": 13,
+      "lang": "es",
+      "query": "cuanto cuesta crear un video de 60 segundos con IA",
+      "kineo": [],
+      "alternatives": [
+        {
+          "url": "https://getgencost.com/es/pages/cheapest-way-to-make-a-60-second-ai-video-2026.html",
+          "title": "¿Cuánto cuesta un vídeo de IA de 60 segundos? Comparación de 12 herramientas (2026) | GenCost"
+        },
+        {
+          "url": "https://pixaris.co/blog/cuanto-cuesta-video-ia",
+          "title": "¿Cuánto cuesta un vídeo de producto con IA en 2026? — Pixaris"
+        },
+        {
+          "url": "https://raytake.com/es/blog/cuanto-cuesta-un-anuncio-ugc-con-ia",
+          "title": "¿Cuánto cuesta un anuncio UGC con IA? Precios de 15, 30 y 60 s · Raytake"
+        }
+      ],
+      "source": {
+        "name": "GenCost",
+        "url": "https://getgencost.com/es/pages/cheapest-way-to-make-a-60-second-ai-video-2026.html",
+        "summary": "Hero e tabela de cálculo comparam créditos para 60 s de clipes em modelos/resoluções declarados; não é necessariamente um filme narrado completo.",
+        "opened": true,
+        "type": "fonte do fornecedor/autor"
+      },
+      "candidate": "/generador-de-shorts-gratis",
+      "priority": 12
+    },
+    {
+      "id": 14,
+      "lang": "es",
+      "query": "generador de historias de terror con IA en español",
+      "kineo": [
+        {
+          "url": "https://www.usekineo.com/generador-de-videos-de-terror",
+          "title": "Generador de videos de terror con IA (historias de miedo) — Kineo"
+        }
+      ],
+      "alternatives": [
+        {
+          "url": "https://musely.ai/es/tools/story-generator",
+          "title": "Generador de Historias IA: Relatos en 45s - Musely"
+        },
+        {
+          "url": "https://rewatch.studio/es/tools/creepy-horror-stories",
+          "title": "Generador de historias de terror con IA | Rewatch"
+        },
+        {
+          "url": "https://kaze.ai/es/ai-horror-story-generator",
+          "title": "Generador de Historias de Terror - Crea Videos de Terror AI Aterradores a partir de Texto | Kaze AI"
+        }
+      ],
+      "source": {
+        "name": "Rewatch",
+        "url": "https://rewatch.studio/es/tools/creepy-horror-stories",
+        "summary": "Hero e formulário em espanhol mostram ideia inquietante → história de terror, planos e voz. Narração em espanhol e roteiro são opções visíveis.",
+        "opened": true,
+        "type": "fonte do fornecedor/autor"
+      },
+      "candidate": "/generador-de-videos-de-terror",
+      "priority": 2
+    },
+    {
+      "id": 15,
+      "lang": "pt",
+      "query": "melhor IA para criar vídeos sem aparecer com narração e legenda",
+      "kineo": [],
+      "alternatives": [
+        {
+          "url": "https://eupresa.ia.br/ferramentas/ia-para-video/",
+          "title": "Melhor IA para Criar Vídeos: 6 Opções 2026 | Eupresa IA"
+        },
+        {
+          "url": "https://www.modobuild.com.br/blog/ia-para-videos-ferramentas-e-fluxo",
+          "title": "IA para vídeo: Runway, Kling, Pika, HeyGen — qual usar e como criar sem aparecer | Modo Build"
+        },
+        {
+          "url": "https://www.escolheria.com.br/melhores-ias-para-criar-videos/",
+          "title": "As 6 Melhores IAs para Criar Videos em 2026 | Escolheria"
+        }
+      ],
+      "source": {
+        "name": "Eupresa",
+        "url": "https://eupresa.ia.br/ferramentas/ia-para-video/",
+        "summary": "Artigo editorial compara CapCut, Opus Clip, HeyGen, Synthesia, Descript e Runway; é opinião da editora, não prova primária de cada produto.",
+        "opened": true,
+        "type": "editorial"
+      },
+      "candidate": "/gerador-de-shorts-gratis",
+      "priority": 13
+    },
+    {
+      "id": 16,
+      "lang": "pt",
+      "query": "transformar roteiro pronto em vídeo com IA sem mudar as palavras",
+      "kineo": [],
+      "alternatives": [
+        {
+          "url": "https://rewatch.studio/pt/tools/script-to-video",
+          "title": "Roteiro para vídeo com IA: cole o diálogo | Rewatch"
+        },
+        {
+          "url": "https://claipe.com/",
+          "title": "Claipe: transforme vídeos longos em shorts com IA"
+        },
+        {
+          "url": "https://www.revid.ai/pt/tools/texto-para-video",
+          "title": "Texto para vídeo com IA grátis: transformar texto em vídeo"
+        }
+      ],
+      "source": {
+        "name": "Rewatch",
+        "url": "https://rewatch.studio/pt/tools/script-to-video",
+        "summary": "Hero português descreve roteiro/diálogo → personagens, vozes e vídeo vertical legendado. A alegação de fala exata é do fornecedor.",
+        "opened": true,
+        "type": "fonte do fornecedor/autor"
+      },
+      "candidate": "/gerador-de-shorts-gratis",
+      "priority": 14
+    },
+    {
+      "id": 17,
+      "lang": "pt",
+      "query": "alternativa ao InVideo para Shorts sem rosto em português",
+      "kineo": [],
+      "alternatives": [
+        {
+          "url": "https://www.facelessgenie.ai/pt",
+          "title": "IA de Vídeos para YouTube, TikTok e Reels | FacelessGenie"
+        },
+        {
+          "url": "https://velysaro.com/pt-br/compare/invideo",
+          "title": "Alternativa ao InVideo AI para vídeos curtos | Velysaro"
+        },
+        {
+          "url": "https://tallyreel.com/best/best-ai-video-generator-in-portuguese",
+          "title": "Melhor gerador de vídeo com IA em português: 7 comparados"
+        }
+      ],
+      "source": {
+        "name": "Velysaro",
+        "url": "https://velysaro.com/pt-br/compare/invideo",
+        "summary": "A página retornou na busca com comparação de uso para curtos e português, mas a abertura deu timeout. Trecho só do índice, conteúdo não confirmado.",
+        "opened": false,
+        "type": "fonte do fornecedor/autor"
+      },
+      "candidate": "/gerador-de-shorts-gratis",
+      "priority": 15
+    },
+    {
+      "id": 18,
+      "lang": "pt",
+      "query": "criar vídeos de histórias com IA para canal sem rosto",
+      "kineo": [],
+      "alternatives": [
+        {
+          "url": "https://short.now/pt/tools/faceless-video-generator/",
+          "title": "Gerador de vídeos faceless com IA para Shorts e TikTok"
+        },
+        {
+          "url": "https://nullface.ai/pt",
+          "title": "Canal dark com IA: vídeos sem mostrar o rosto | Nullface"
+        },
+        {
+          "url": "https://rewatch.studio/pt/tools/faceless-video-generator",
+          "title": "Canal dark com IA: gerador de vídeos faceless | Rewatch"
+        }
+      ],
+      "source": {
+        "name": "Short.now",
+        "url": "https://short.now/pt/tools/faceless-video-generator/",
+        "summary": "Hero português enumera ideia/texto → roteiro por cena, imagens ou mídia, voz e legendas. A seção de revisão permite editar o roteiro antes do vídeo.",
+        "opened": true,
+        "type": "fonte do fornecedor/autor"
+      },
+      "candidate": "/gerador-de-shorts-gratis",
+      "priority": 16
+    },
+    {
+      "id": 19,
+      "lang": "pt",
+      "query": "quanto custa um vídeo de 60 segundos com IA com voz e legenda",
+      "kineo": [],
+      "alternatives": [
+        {
+          "url": "https://raytake.com/pt/blog/quanto-custa-anuncio-ugc-com-ia-15-30-60-segundos",
+          "title": "Quanto custa um anúncio UGC com IA? Preços de 15, 30 e 60 s · Raytake"
+        },
+        {
+          "url": "https://www.clip-short.com/pt/guias/geradores-de-video-com-ia-sem-assinatura",
+          "title": "Geradores de vídeo com IA sem assinatura: pague por vídeo"
+        },
+        {
+          "url": "https://creavideosconia.com/pt/guias/quanto-custa-um-video-com-ia",
+          "title": "Quanto custa fazer um vídeo com IA? Preços reais em 2026"
+        }
+      ],
+      "source": {
+        "name": "Clip-Short",
+        "url": "https://www.clip-short.com/pt/guias/geradores-de-video-com-ia-sem-assinatura",
+        "summary": "Introdução separa vídeo narrado pronto comprado avulso de clipes por segundo/crédito. Preços e inferências da comparação não foram revalidados.",
+        "opened": true,
+        "type": "fonte do fornecedor/autor"
+      },
+      "candidate": "/gerador-de-shorts-gratis",
+      "priority": 17
+    },
+    {
+      "id": 20,
+      "lang": "pt",
+      "query": "IA para criar Shorts de terror em português",
+      "kineo": [
+        {
+          "url": "https://www.usekineo.com/gerador-de-shorts-gratis",
+          "title": "Gerador de Shorts com IA Grátis (sem aparecer) — Kineo"
+        }
+      ],
+      "alternatives": [
+        {
+          "url": "https://www.clip-short.com/pt/tutoriais/como-fazer-video-dark-de-terror-com-ia",
+          "title": "Como fazer vídeo dark de terror com IA, passo a passo (com prints)"
+        },
+        {
+          "url": "https://hotmart.com/pt-br/marketplace/produtos/terror-com-ia-do-zero-ao-primeiro-video/L108363107A",
+          "title": "Terror com IA: do zero ao primeiro vídeo - Escolha do Medo | Hotmart"
+        },
+        {
+          "url": "https://www.clipwise.ai/tools/pt/ai-horror-story-video-generator/",
+          "title": "Gerador de Vídeos de Histórias de Terror com IA | Clipwise"
+        }
+      ],
+      "source": {
+        "name": "Clip-Short",
+        "url": "https://www.clip-short.com/pt/tutoriais/como-fazer-video-dark-de-terror-com-ia",
+        "summary": "Resposta curta datada e tutorial móvel mostram ideia, estilo, voz, gerar, revisar cenas e exportar 9:16; é demonstração comercial do fornecedor.",
+        "opened": true,
+        "type": "fonte do fornecedor/autor"
+      },
+      "candidate": "/gerador-de-shorts-gratis",
+      "priority": 4
+    }
+  ]
+}

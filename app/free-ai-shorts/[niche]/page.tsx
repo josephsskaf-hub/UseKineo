@@ -1,3 +1,4 @@
+import { BuyerBatch2Lead, BuyerBatch2Details } from '@/components/seo/BuyerQuestions2111'
 // #478 — Programmatic SEO landing pages per niche. Targets long-tail, high-intent
 // searches like "free AI [finance] shorts generator" / "faceless [history] video
 // maker". Statically generated + in the sitemap so Google indexes them. Each page
@@ -593,6 +594,7 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
           <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.6rem)', fontWeight: 650, lineHeight: 1.15, margin: 0 }}>
             {n.h1}
           </h1>
+          {params.niche === 'horror' && <BuyerBatch2Lead page="horror" />}
           {params.niche === 'horror' ? <CitationDirectAnswer page="horror" /> : <p style={{ fontSize: '1.02rem', color: '#2A2F37', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 620 }}>
             {n.intro}
           </p>}
@@ -713,6 +715,7 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
 
         {/* KINEO-PAGINAS-IA-CLARAS-2110 — o filme velho da casa (NicheHouseFilm) saiu da tela; entra a vitrine atual (a mesma da /claude-connector). */}
         <PaginaClaraVitrine />
+        {params.niche === 'horror' && <BuyerBatch2Details page="horror" standaloneFaq />}
         {params.niche === 'horror' ? <CitationDetails page="horror" /> : null}
 
         {/* How it works */}

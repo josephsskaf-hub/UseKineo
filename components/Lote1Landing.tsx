@@ -1,3 +1,5 @@
+import { BuyerBatch2Lead, BuyerBatch2Details } from '@/components/seo/BuyerQuestions2111'
+import { buyerBatch2 } from '@/lib/seo/buyerQuestions2111'
 // KINEO-PAGINAS-LOTE1-2026-10-12 — o molde das 3 páginas de intenção do lote 1 (/ai-shorts-generator-no-watermark,
 // /ai-short-film-generator, /generador-de-videos-de-terror). Mesmo padrão das vencedoras (/text-to-video-shorts,
 // /free-ai-shorts-generator): título que responde à busca, compra direta do Creator + botão grátis na primeira dobra,
@@ -43,6 +45,8 @@ export function lote1LandingMetadata(key: string): Metadata {
 
 export default function Lote1Landing({ pageKey }: { pageKey: string }) {
   const l = LOTE1_LANDINGS[pageKey]
+  const batchPage = pageKey === 'generador-de-videos-de-terror' ? 'terrorEs' as const : undefined
+  const faqs = [...(batchPage ? buyerBatch2(batchPage).faqs : []), ...l.faq]
   const film = lote1LandingFilm(pageKey)
   const formId = `lote1-form-${l.buyPage}`
   const creationIntent = OFFER.reverseTrial ? 'trial_best' : 'fast'
@@ -57,7 +61,7 @@ export default function Lote1Landing({ pageKey }: { pageKey: string }) {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
     inLanguage: l.lang,
-    mainEntity: l.faq.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+    mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
   }
   const videoJsonLd = film
     ? {
@@ -84,6 +88,7 @@ export default function Lote1Landing({ pageKey }: { pageKey: string }) {
           </span>
         </div>
         <h1 style={{ fontSize: 'clamp(1.9rem, 5vw, 2.7rem)', fontWeight: 900, lineHeight: 1.12, margin: '18px 0 0' }}>{l.h1}</h1>
+        {batchPage && <BuyerBatch2Lead page={batchPage} />}
         <p style={{ fontSize: '1.06rem', color: '#CBD5E1', lineHeight: 1.65, margin: '16px 0 0' }}>{l.lead}</p>
 
         {/* Primeira dobra: compra direta do Creator + o grátis ao lado (Seedance pausado = só o grátis, como nas vencedoras). */}
@@ -158,9 +163,10 @@ export default function Lote1Landing({ pageKey }: { pageKey: string }) {
           </section>
         ))}
 
+        {batchPage && <BuyerBatch2Details page={batchPage} />}
         <h2 style={h2}>{l.labels.faqTitle}</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {l.faq.map((f) => (
+          {faqs.map((f) => (
             <div key={f.q} style={card}>
               <h3 style={{ fontSize: '1rem', fontWeight: 800, margin: '0 0 6px' }}>{f.q}</h3>
               <p style={{ margin: 0, color: '#CBD5E1', fontSize: '0.93rem', lineHeight: 1.6 }}>{f.a}</p>

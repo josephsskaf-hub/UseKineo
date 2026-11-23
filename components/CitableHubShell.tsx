@@ -42,6 +42,7 @@ export default function CitableHubShell({
   badge,
   h1,
   lead,
+  beforeLead,
   faqs,
   children,
 }: {
@@ -51,6 +52,7 @@ export default function CitableHubShell({
   h1: string
   /** A PRIMEIRA frase depois do H1: a resposta citável. */
   lead: ReactNode
+  beforeLead?: ReactNode
   faqs: { q: string; a: string }[]
   children: ReactNode
 }) {
@@ -71,6 +73,7 @@ export default function CitableHubShell({
             {badge}
           </div>
           <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.5rem)', fontWeight: 900, lineHeight: 1.15, margin: '14px 0 0' }}>{h1}</h1>
+          {beforeLead}
           <div data-kineo="hub-answer" style={{ fontSize: '1.06rem', color: '#d2d2d7', lineHeight: 1.6, margin: '14px 0 0', maxWidth: 780 }}>{lead}</div>
         </header>
 

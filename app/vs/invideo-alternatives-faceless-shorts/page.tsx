@@ -1,7 +1,8 @@
+import { BuyerBatch2Details } from '@/components/seo/BuyerQuestions2111'
+import { buyerBatch2, BUYER_BATCH2_DATE } from '@/lib/seo/buyerQuestions2111'
 import CitationAnswerPage, { citationAnswerMetadata } from '@/components/CitationAnswerPage'
 import CitationComparisonDecision from '@/components/CitationComparisonDecision'
 import { CITATION_ANSWERS, type CitationAnswer } from '@/lib/growth/citationAnswers'
-import { COMPARISON_REVIEW_DATE } from '@/lib/growth/citationComparisonSnapshot'
 // KINEO-VISIBILIDADE-CHATGPT-2026-10-06 — a pergunta 11 da rodada 1 ("InVideo alternatives for YouTube Shorts") citou páginas
 // com preço por vídeo em tabela e data; esta página, que é a nossa resposta para ela, comparava quatro alternativas e não
 // mostrava o próprio InVideo. Entra a linha de base do InVideo (invideo.io/pricing, lido em 06/10) e o preço por Short da
@@ -14,18 +15,21 @@ import { VS_RIVAIS_CHECKED_ISO, VS_RIVAIS_CHECKED_LABEL, VS_RIVAIS_REREAD, VS_RI
 
 export const dynamic = 'force-static'
 const original = CITATION_ANSWERS.invideo
+const PAGE_URL = 'https://www.usekineo.com' + original.path
+const EDITORIAL_ID = `${PAGE_URL}#article`
+const PRICING_SNAPSHOT_ID = `${PAGE_URL}#invideo-pricing-snapshot`
 const answer: CitationAnswer = {
   ...original,
   description: 'Evaluate Kineo and four other video workflows with dated primary sources, monthly billing and explicit limits.',
-  answer: [original.answer[0], 'Pictory, Descript, HeyGen and OpusClip offer different workflows; the sourced comparison below separates monthly prices, free allowances and export limits so you can choose by the material you have.'],
-  faqs: original.faqs.map((faq, index) => index === 3 ? {
+  answer: [buyerBatch2('invideo').answer, original.answer[0], 'Pictory, Descript, HeyGen and OpusClip offer different workflows; the sourced comparison below separates monthly prices, free allowances and export limits so you can choose by the material you have.'],
+  faqs: [...buyerBatch2('invideo').faqs.map(f => ({ question: f.q, answer: f.a })), ...original.faqs.map((faq, index) => index === 3 ? {
     ...faq,
     answer: 'No. Pictory supports script/URL-to-video with stock footage; Descript is a text-based editor, HeyGen offers avatar presentations and OpusClip extracts clips from an existing recording. The dated sources in the table distinguish their allowances and unresolved limits.',
   } : faq.answer.startsWith('[CONFIRMAR]') && /InVideo project/.test(faq.question) ? {
     // KINEO-VISIBILIDADE-CHATGPT-2026-10-06 — a tag interna saía crua na FAQ (e no FAQPage JSON-LD). Resposta direta.
     ...faq,
     answer: 'No. Kineo does not import InVideo projects. Start from a text idea or paste your script, and Kineo builds the narrated video from it.',
-  } : faq),
+  } : faq)],
   links: [...original.links, { href: VS_RIVAL_PAGES.revid.path, label: VS_RIVAL_PAGES.revid.label }, { href: VS_RIVAL_PAGES.zebracat.path, label: VS_RIVAL_PAGES.zebracat.label }, { href: VS_RIVAL_PAGES.fliki.path, label: VS_RIVAL_PAGES.fliki.label }],
 }
 export const metadata = citationAnswerMetadata(answer)
@@ -37,8 +41,9 @@ function InVideoBaseline() {
   const iv = INVIDEO_FACTS
   return (
     <section className="kc-section" aria-labelledby="invideo-baseline-heading" data-kineo="invideo-baseline">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'WebPage', name: answer.question, inLanguage: 'en', dateModified: VS_RIVAIS_CHECKED_ISO, publisher: { '@type': 'Organization', name: 'Kineo' } }).replace(/</g, '\u003c') }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({ '@context': 'https://schema.org', '@type': 'CreativeWork', '@id': PRICING_SNAPSHOT_ID, name: 'InVideo pricing source snapshot', inLanguage: 'en', dateModified: VS_RIVAIS_CHECKED_ISO, isPartOf: { '@id': EDITORIAL_ID }, citation: VS_RIVAIS_REREAD.invideo.plans.url, publisher: { '@type': 'Organization', name: 'Kineo' } }).replace(/</g, '\u003c') }} />
       <h2 id="invideo-baseline-heading">InVideo AI and Kineo: price per Short</h2>
+      <p className="kc-source" data-kineo="invideo-review-scope">Editorial answer reviewed <time dateTime={BUYER_BATCH2_DATE}>{BUYER_BATCH2_DATE}</time>. InVideo pricing sources checked <time dateTime={VS_RIVAIS_CHECKED_ISO}>{VS_RIVAIS_CHECKED_ISO}</time>.</p>
       <p className="kc-source" data-vs-rival-checked="invideo">{VS_RIVAIS_CHECKED_LABEL}: {VS_RIVAIS_REREAD.invideo.plans.text} <a href={VS_RIVAIS_REREAD.invideo.plans.url} rel="nofollow noopener noreferrer">{VS_RIVAIS_REREAD.invideo.plans.label}</a> ({VS_RIVAIS_REREAD.invideo.plans.checkedOn}).</p>
       <p>
         {/* KINEO-GEO-RODADA3-2026-10-08 — os planos da InVideo relidos em 08/10 (Basic/Pro/Ultra, preço por assento no mensal). */}
@@ -53,5 +58,6 @@ function InVideoBaseline() {
 }
 
 export default function Page() {
-  return <CitationAnswerPage answer={answer} comparisonSection={<><InVideoBaseline /><CitationComparisonDecision /></>} reviewDate={COMPARISON_REVIEW_DATE} />
+  const article = { '@context': 'https://schema.org', '@type': 'Article', '@id': EDITORIAL_ID, headline: answer.question, dateModified: BUYER_BATCH2_DATE, mainEntityOfPage: { '@id': `${PAGE_URL}#buyer-answer` }, citation: { '@id': PRICING_SNAPSHOT_ID } }
+  return <CitationAnswerPage answer={answer} comparisonSection={<><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(article).replace(/</g, '\u003c') }} /><BuyerBatch2Details page="invideo" /><InVideoBaseline /><CitationComparisonDecision /></>} reviewDate={BUYER_BATCH2_DATE} />
 }

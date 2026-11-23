@@ -26,7 +26,10 @@ process.env.KINEO_REVERSE_TRIAL_ENABLED = 'true'
 globalThis.fetch = () => { throw Error('Network forbidden in vs-rivais-0311 test') }
 
 const BASE = 'https://www.usekineo.com'
-const DAY = '2026-11-03'
+const DAY = '2026-11-03' // Date the pricing source was checked, not every later editorial review.
+const INVIDEO_EDITORIAL_DAY = '2026-11-21'
+const INVIDEO_URL = `${BASE}/vs/invideo-alternatives-faceless-shorts`
+const CITATION_STAMP = 'lib/seo/paginasCitadas0511.ts'
 const LABEL = 'Checked November 2026'
 const FACTS = 'lib/seo/vsRivais0311.ts'
 const ANSWERS = 'lib/growth/vsRivaisAnswers.ts'
@@ -220,7 +223,7 @@ async function run(rep = {}) {
     for (const path of [...paths, ...facts.VS_RIVAIS_REFRESHED_PATHS]) {
       const hits = sm.filter((x) => x.url === `${BASE}${path}`)
       if (hits.length !== 1) fail('R5', `sitemap: ${path} aparece ${hits.length}×`)
-      else if (new Date(hits[0].lastModified).toISOString().slice(0, 10) !== DAY) fail(facts.VS_RIVAIS_REFRESHED_PATHS.includes(path) ? 'R7' : 'R5', `sitemap ${path} com lastmod ${hits[0].lastModified}`)
+      else if (new Date(hits[0].lastModified).toISOString().slice(0, 10) !== (path === '/vs/invideo-alternatives-faceless-shorts' ? INVIDEO_EDITORIAL_DAY : DAY)) fail(facts.VS_RIVAIS_REFRESHED_PATHS.includes(path) ? 'R7' : 'R5', `sitemap ${path} com lastmod ${hits[0].lastModified}`)
     }
   } catch (e) { fail('R5', `sitemap não executa: ${e.message}`) }
   try {
@@ -269,7 +272,14 @@ async function run(rep = {}) {
     const h = renderToStaticMarkup(React.createElement(load(INVIDEO_PAGE).default))
     const f = facts.VS_RIVAIS_REREAD.invideo.plans
     if (!h.includes(LABEL) || !h.includes(escapeHtml(f.text)) || !h.includes(`href="${f.url}"`)) fail('R7', 'invideo: sem carimbo/fato/fonte')
-    if (ldOf(h).find((x) => x['@type'] === 'WebPage')?.dateModified !== DAY) fail('R7', 'invideo: sem dateModified')
+    const nodes = ldOf(h)
+    const editorial = nodes.find(x => x['@type'] === 'WebPage' && x['@id'] === INVIDEO_URL + '#buyer-answer')
+    const article = nodes.find(x => x['@type'] === 'Article' && x['@id'] === INVIDEO_URL + '#article')
+    const pricing = nodes.find(x => x['@type'] === 'CreativeWork' && x['@id'] === INVIDEO_URL + '#invideo-pricing-snapshot')
+    if (editorial?.dateModified !== INVIDEO_EDITORIAL_DAY || article?.dateModified !== INVIDEO_EDITORIAL_DAY || !h.includes('Reviewed ' + INVIDEO_EDITORIAL_DAY)) fail('R7', 'invideo: data editorial não acompanha a revisão de 21/11')
+    if (pricing?.dateModified !== DAY || pricing?.citation !== f.url || f.checkedOn !== DAY) fail('R7', 'invideo: data/fonte de preço avançou sem nova leitura')
+    if (article?.mainEntityOfPage?.['@id'] !== editorial?.['@id'] || article?.citation?.['@id'] !== pricing?.['@id'] || pricing?.isPartOf?.['@id'] !== article?.['@id']) fail('R7', 'invideo: escopos editorial e fonte não estão ligados')
+    if (!h.toLowerCase().includes('datetime="' + INVIDEO_EDITORIAL_DAY + '"') || !h.toLowerCase().includes('datetime="' + DAY + '"')) fail('R7', 'invideo: duas datas não estão visíveis')
   } catch (e) { fail('R7', `invideo: não renderiza (${e.message})`) }
   try {
     const mod = load(HIGGS_PAGE)
@@ -328,6 +338,10 @@ const MUTANTS = [
   ['M23 Pictory volta a 13/10', 'R7', () => sub(PICTORY_PAGE, 'reviewDate={VS_RIVAIS_CHECKED_ISO}', "reviewDate={'2026-10-13'}")],
   ['M24 preço do Higgsfield digitado de novo', 'R7', () => sub(HIGGS_PAGE, "on Higgsfield's own pricing page (checked November 2026): ${HIGGS.text}", "Higgsfield's plans start at $15/month.")],
   ['M25 relida com lastmod velho', 'R7', () => sub(SITEMAP, '...[...VS_RIVAL_LINKS.map(({ path }) => path), ...VS_RIVAIS_REFRESHED_PATHS]', '...VS_RIVAL_LINKS.map(({ path }) => path)')],
+  ['M27 data editorial visível volta à data do preço', 'R7', () => sub(INVIDEO_PAGE, 'reviewDate={BUYER_BATCH2_DATE}', 'reviewDate={VS_RIVAIS_CHECKED_ISO}')],
+  ['M28 preço ganha frescor editorial sem releitura', 'R7', () => sub(INVIDEO_PAGE, 'dateModified: VS_RIVAIS_CHECKED_ISO, isPartOf:', 'dateModified: BUYER_BATCH2_DATE, isPartOf:')],
+  ['M29 Article volta à data antiga do preço', 'R7', () => sub(INVIDEO_PAGE, 'dateModified: BUYER_BATCH2_DATE, mainEntityOfPage:', 'dateModified: VS_RIVAIS_CHECKED_ISO, mainEntityOfPage:')],
+  ['M30 sitemap editorial volta a 03/11', 'R7', () => sub(CITATION_STAMP, 'const batchDate = buyerBatch2Review(path)', "const batchDate = path === '/vs/invideo-alternatives-faceless-shorts' ? '2026-11-03' : buyerBatch2Review(path)")],
   ['M26 redirect por país', 'R8', () => sub(PAGES.fliki, 'export default function Page() {\n', "export default function Page() {\n  if (headers().get('x-vercel-ip-country') === 'BR') redirect('/')\n")],
 ]
 for (const [name, rule, make] of MUTANTS) {

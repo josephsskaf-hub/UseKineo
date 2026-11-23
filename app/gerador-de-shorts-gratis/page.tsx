@@ -1,3 +1,5 @@
+import { BuyerBatch2Lead, BuyerBatch2Details } from '@/components/seo/BuyerQuestions2111'
+import { buyerBatch2 } from '@/lib/seo/buyerQuestions2111'
 import { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine' // KINEO-LLMS-K4-2910
 // AQUISICAO 5 (14/08) — [KINEO-PORTAS-INTL-2026-08-14]
 // A porta que converte 41% em ingles, agora em PT-BR: "gerador de shorts
@@ -51,6 +53,7 @@ export const metadata: Metadata = {
 }
 
 const FAQ = [
+  ...buyerBatch2('pt').faqs,
   { q: BUYER_2011.portuguese.q, a: BUYER_2011.portuguese.answer },
   {
     q: 'O vídeo sai em português?',
@@ -89,6 +92,7 @@ export default function GeradorDeShortsPage() {
         <h1 style={{ fontSize: 'clamp(1.9rem, 5vw, 2.9rem)', fontWeight: 650, lineHeight: 1.1, margin: '18px 0 0', fontFamily: 'var(--font-display), var(--font-inter), sans-serif' }}>
           Crie um Short sem aparecer — grátis
         </h1>
+        <BuyerBatch2Lead page="pt" />
         <BuyerLead2011 kind="portuguese" />
         <CitationDirectAnswer page="portuguese" />
         <BuyerDecision2011 kind="portuguese" />
@@ -139,6 +143,7 @@ export default function GeradorDeShortsPage() {
 
         {/* KINEO-PAGINAS-IA-CLARAS-2110 — os 3 exemplos velhos saíram; entra a vitrine atual (a mesma da /claude-connector). */}
         <PaginaClaraVitrine titulo="Feito de verdade com o Kineo" linha={VITRINE_LINHA_PT} align="left" />
+        <BuyerBatch2Details page="pt" />
         <CitationDetails page="portuguese" />
 
         <section style={{ marginTop: 44 }}>

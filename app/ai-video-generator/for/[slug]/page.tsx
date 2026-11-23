@@ -1,3 +1,5 @@
+import { BuyerBatch2Lead, BuyerBatch2Details } from '@/components/seo/BuyerQuestions2111'
+import { buyerBatch2, buyerBatch2ForIntent } from '@/lib/seo/buyerQuestions2111'
 // PROJETO 1 — GOOGLE (docs/PROJETO-1-GOOGLE-2026-09-17.md) — a página de intenção.
 //
 // Uma rota, 100 páginas (lib/seo/intentPages.ts): "AI video generator for X", "AI Y generator",
@@ -39,7 +41,7 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
   const p = getIntentPage(params.slug)
   if (!p) return {}
   const url = `${BASE}${intentPagePath(p.slug)}`
-  const description = p.slug === 'story-videos' ? STORY_VIDEO_COPY.description : `${p.intro.slice(0, 150).replace(/\s+\S*$/, '')}… Real films, ${p.slug === 'urdu' ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} and generative engines, free trial with no card.`
+  const description = p.slug === 'story-videos' ? STORY_VIDEO_COPY.description : `${p.intro.slice(0, 150).replace(/\s+\S*$/, '')}… Real films, ${p.slug === 'urdu' || buyerBatch2ForIntent(p.slug) ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} and generative engines, free trial with no card.`
   return {
     metadataBase: new URL(BASE),
     title: p.title,
@@ -83,7 +85,8 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
   const url = `${BASE}${intentPagePath(p.slug)}`
   const engineCost = creditsPerReferenceVideo(p.engine)
   const story = p.slug === 'story-videos'
-  const offerName = story ? STORY_VIDEO_ENGINE : p.slug === 'urdu' ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]
+  const batchPage = buyerBatch2ForIntent(params.slug)
+  const offerName = story ? STORY_VIDEO_ENGINE : p.slug === 'urdu' || batchPage ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]
   // KINEO-FILME-GRATIS-15S-2026-09-29 — o Kineo 1 ('fast') não é mais oferecido a conta nova: a página não diz que o trial
   // cobre filmes dele (era "the trial covers 2 Kineo 1 films"). O que o trial paga é o Seedance 1.5 de 15 s.
   const trialFilms = p.engine === 'fast' ? 0 : trialFilmsForEngine(engineCost)
@@ -97,12 +100,16 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
   const cta = studioHref(p.slug, p.examplePrompt, p.engine, p.language)
   const campaign = `intent_${p.slug}`
   const siblings = INTENT_PAGES.filter((x) => x.family === p.family && x.slug !== p.slug).slice(0, 8)
-  const pageFaqs = p.slug === 'urdu' ? [...p.faq, { q: BUYER_2011.urdu.q, a: BUYER_2011.urdu.answer }] : p.faq
-  const faqs = story
+  const sourcePageFaqs = p.slug === 'urdu' ? [...p.faq, { q: BUYER_2011.urdu.q, a: BUYER_2011.urdu.answer }] : p.faq
+  const pageFaqs = batchPage ? sourcePageFaqs.map(f => ({ ...f, a: f.a.replaceAll('Seedance 1.5', STANDARD_FILM_NAME) })) : sourcePageFaqs
+  const originalFaqs = story
     ? [...STORY_VIDEO_COPY.faq, { q: 'Which model creates the story scenes?', a: STORY_VIDEO_COPY.engineAnswer }, { q: 'How much does it cost?', a: STORY_VIDEO_COPY.costAnswer }]
-    : [...pageFaqs, { q: 'How much does it cost?', a: `The free trial gives ${TRIAL_CREDITS_SHOWN} credits with no card. ${p.slug === 'urdu' ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} costs ${engineCost} credits for a 60-second film${trialFilms > 0 ? `, so the trial covers ${trialFilms} film${trialFilms > 1 ? 's' : ''}` : `, which needs a plan${trialFreeFilm}`}. Plans start at ${STARTER_MONTH} for ${STARTER_CREDITS} credits.` }]
-  const visibleFaqs = story ? faqs : [...pageFaqs, { q: 'How much does it cost?', a: `The free trial gives ${TRIAL_CREDITS_SHOWN} credits with no card. ${p.slug === 'urdu' ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} costs ${engineCost} credits per 60-second film${trialFilms > 0 ? `, so the trial covers ${trialFilms} film${trialFilms > 1 ? 's' : ''}` : `, which needs a plan${trialFreeFilm}`}. Plans start at ${STARTER_MONTH} for ${STARTER_CREDITS} credits.` }]
+    : [...pageFaqs, { q: 'How much does it cost?', a: `The free trial gives ${TRIAL_CREDITS_SHOWN} credits with no card. ${p.slug === 'urdu' || batchPage ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} costs ${engineCost} credits for a 60-second film${trialFilms > 0 ? `, so the trial covers ${trialFilms} film${trialFilms > 1 ? 's' : ''}` : `, which needs a plan${trialFreeFilm}`}. Plans start at ${STARTER_MONTH} for ${STARTER_CREDITS} credits.` }]
+  const originalVisibleFaqs = story ? originalFaqs : [...pageFaqs, { q: 'How much does it cost?', a: `The free trial gives ${TRIAL_CREDITS_SHOWN} credits with no card. ${p.slug === 'urdu' || batchPage ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} costs ${engineCost} credits per 60-second film${trialFilms > 0 ? `, so the trial covers ${trialFilms} film${trialFilms > 1 ? 's' : ''}` : `, which needs a plan${trialFreeFilm}`}. Plans start at ${STARTER_MONTH} for ${STARTER_CREDITS} credits.` }]
 
+  const batchFaqs = batchPage ? buyerBatch2(batchPage).faqs : []
+  const faqs = [...batchFaqs, ...originalFaqs]
+  const visibleFaqs = [...batchFaqs, ...originalVisibleFaqs]
   const faqJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -149,6 +156,7 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
             {offerName} · {engineCost} credits per 60-second film
           </div>
           <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.6rem)', fontWeight: 650, lineHeight: 1.15, margin: '16px 0 0' }}>{p.h1}</h1>
+          {batchPage && <BuyerBatch2Lead page={batchPage} />}
           {params.slug === 'urdu' && <BuyerLead2011 kind="urdu" />}
           {params.slug === 'urdu' ? <CitationDirectAnswer page="urdu" /> : <p style={{ fontSize: '1.02rem', color: '#5A5F67', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 680 }}>{story ? STORY_VIDEO_COPY.intro : p.intro}</p>}
           {params.slug === 'urdu' && <BuyerDecision2011 kind="urdu" />}
@@ -164,7 +172,7 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
           <p style={{ fontSize: '0.82rem', color: '#5A5F67', margin: '12px 0 0' }}>
             {story ? 'Review the prepared story, selected model, duration and credit cost in Studio before generating.' : <>
               {ft(OFFER, `${TRIAL_CREDITS_SHOWN} free credits, no card`, OFFER.copy.chip)}
-              {trialFilms > 0 ? ` · the trial covers ${trialFilms} ${p.slug === 'urdu' ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} film${trialFilms > 1 ? 's' : ''}` : `${TRIAL_SEEDANCE15_FILMS >= 1 ? ` · the trial pays for one ${FREE_FILM_LABEL}` : ''} · 60-second films on a plan (from ${STARTER_MONTH})`}
+              {trialFilms > 0 ? ` · the trial covers ${trialFilms} ${p.slug === 'urdu' || batchPage ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} film${trialFilms > 1 ? 's' : ''}` : `${TRIAL_SEEDANCE15_FILMS >= 1 ? ` · the trial pays for one ${FREE_FILM_LABEL}` : ''} · 60-second films on a plan (from ${STARTER_MONTH})`}
             </>}
           </p>
         </section>
@@ -202,6 +210,7 @@ export default function IntentPage({ params }: { params: { slug: string } }) {
 
         {/* KINEO-PAGINAS-IA-CLARAS-2110 — a galeria velha (3 filmes da casa deste motor) saiu da tela; entra a vitrine atual (a mesma da /claude-connector).
             O VideoObject do JSON-LD segue como estava (regra: JSON-LD intocado) — ver docs/PAGINAS-IA-CLARAS-2026-10-21.md. */}
+        {batchPage && <BuyerBatch2Details page={batchPage} />}
         <PaginaClaraVitrine />
         {params.slug === 'urdu' ? <CitationDetails page="urdu" /> : null}
 

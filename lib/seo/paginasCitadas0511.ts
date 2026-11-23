@@ -1,3 +1,4 @@
+import { buyerBatch2Review } from './buyerQuestions2111'
 // KINEO-PAGINAS-CITADAS-0511 [fundador 05/11, "2 sim": atualizar as páginas mais citadas pelo ChatGPT com conteúdo novo de verdade e medir 7 dias]
 // O que mudou desde 23/10 e ainda não estava nas 6 páginas da camada KINEO-TRAFEGO-2310: os três planos de 04/11 (US$ 9 / 19 / 59, com 40 / 85 / 280
 // créditos) e o que os créditos de um mês cobrem em filme de 15, 35 e 60 s. Nenhum número é escrito à mão: tudo sai da tabela que cobra
@@ -73,13 +74,14 @@ export function carimbaPaginasCitadas0511<T extends { url: string; lastModified?
     const path = new URL(entry.url).pathname
     const localizedH3 = H3_TURBO_PUBLIC && Object.keys(H3_TURBO_LOCALIZED).some(lang => path === `/ai-video-generator/seedance/${lang}`)
     const buyerDate = buyerReviewDate2011(path)
-    if (!alvo.has(path) && !localizedH3 && !buyerDate) return entry
+    const batchDate = buyerBatch2Review(path)
+    if (!alvo.has(path) && !localizedH3 && !buyerDate && !batchDate) return entry
     const lastModified = localizedH3 ? `${H3_TURBO_LOCALIZED_UPDATED}T12:00:00.000Z`
       : H3_TURBO_PUBLIC && path === '/ai-video-generator/seedance'
       ? `${H3_TURBO_PAGE_UPDATED}T12:00:00.000Z`
       : PAGINAS_CITADAS_0511_LASTMOD
     const reviewed = CITACOES_ROTINA_PATHS.includes(path) ? `${CITACOES_ROTINA_DATE}T12:00:00.000Z` : lastModified
-    const carimbo = Math.max(Date.parse(lastModified), Date.parse(reviewed), buyerDate ? Date.parse(`${buyerDate}T12:00:00.000Z`) : 0)
+    const carimbo = Math.max(Date.parse(lastModified), Date.parse(reviewed), buyerDate ? Date.parse(`${buyerDate}T12:00:00.000Z`) : 0, batchDate ? Date.parse(`${batchDate}T12:00:00.000Z`) : 0)
     const atual = entry.lastModified ? new Date(entry.lastModified).getTime() : 0
     return atual >= carimbo ? entry : { ...entry, lastModified: new Date(carimbo).toISOString() }
   })

@@ -1,3 +1,5 @@
+import { BuyerBatch2Lead, BuyerBatch2Details } from '@/components/seo/BuyerQuestions2111'
+import { buyerBatch2 } from '@/lib/seo/buyerQuestions2111'
 // KINEO-VISIBILIDADE-CHATGPT-2026-10-06 — /faceless-youtube-shorts-generator: a resposta para a pergunta 1 da rodada 1
 // ("What is the best AI video generator for faceless YouTube Shorts in 2026?") e a 14 ("faceless videos ... cheap"). O
 // ChatGPT recomendou InVideo, CapCut e HeyGen e citou páginas com preço por vídeo e data — a Kineo não apareceu.
@@ -49,6 +51,7 @@ export default function FacelessYouTubeShortsGeneratorPage() {
     `A 60-second faceless Short costs ${film60.credits} credits on ${base.name} (about ${usd(film60.usdCents)}); plans start at ${money(starter.usdCents)}/month. Prices as of ${HUB_REVIEWED_DAY}.`
 
   const faqs = [
+    ...buyerBatch2('cost').faqs,
     {
       q: 'What is the best AI generator for faceless YouTube Shorts?',
       a: `It depends on what you start with. To go from a topic or a script to a finished narrated Short in one step, ${BRAND_WITH_DOMAIN} is built for exactly that. To cut moments out of a long recording, a re-clipper such as OpusClip fits better. For a presenter talking to camera, an avatar tool such as HeyGen. To edit footage by hand on a timeline, an editor such as CapCut. We make Kineo, so weigh this answer accordingly.`,
@@ -76,12 +79,13 @@ export default function FacelessYouTubeShortsGeneratorPage() {
   ]
 
   return (
-    <CitableHubShell path={PAGE.path} crumb="AI faceless YouTube Shorts generator" badge={`Faceless Shorts · ${HUB_REVIEWED_MONTH}`} h1="AI faceless YouTube Shorts generator" lead={<p style={{ margin: 0 }}>{lead}</p>} faqs={faqs}>
+    <CitableHubShell path={PAGE.path} crumb="AI faceless YouTube Shorts generator" badge={`Faceless Shorts · ${HUB_REVIEWED_MONTH}`} h1="AI faceless YouTube Shorts generator" beforeLead={<BuyerBatch2Lead page="cost" />} lead={<p style={{ margin: 0 }}>{lead}</p>} faqs={faqs}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 22 }}>
         <OrganicCtaLink href={signupHref} source={CAMPAIGN} placement="hero" style={HUB_PRIMARY}>Make a faceless Short →</OrganicCtaLink>
         <OrganicCtaLink href={`/pricing?intent_campaign=${CAMPAIGN}#plans`} source={CAMPAIGN} placement="hero_plans" style={HUB_SECONDARY}>See plans →</OrganicCtaLink>
       </div>
 
+      <BuyerBatch2Details page="cost" />
       <HubSection id="hub-price" title="Price per faceless Short, by model">
         <HubTable minWidth={720}>
           <thead>
