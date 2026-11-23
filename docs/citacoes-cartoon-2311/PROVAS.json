@@ -1,0 +1,118 @@
+{
+  "states": 44,
+  "photos": 150,
+  "runtimeErrors": 0,
+  "horizontalOverflow": 0,
+  "cartoonPreserved": [
+    "all main paragraphs",
+    "all main tables",
+    "all JSON-LD",
+    "scroll width"
+  ],
+  "styles": [
+    {
+      "phase": "before",
+      "theme": "light",
+      "width": 1920,
+      "background": "rgb(255, 255, 255)",
+      "dateColor": "rgb(90, 97, 112)",
+      "dateSize": "11.2px",
+      "borderColor": "rgba(14, 17, 22, 0.08)",
+      "borderWidth": "1px",
+      "date": "Reviewed November 22, 2026.",
+      "dateContrast": 6.2156291589574675,
+      "borderContrast": 1.1820340796340199
+    },
+    {
+      "phase": "after",
+      "theme": "light",
+      "width": 1920,
+      "background": "rgb(255, 255, 255)",
+      "dateColor": "rgb(90, 95, 103)",
+      "dateSize": "11.2px",
+      "borderColor": "rgb(90, 95, 103)",
+      "borderWidth": "1px",
+      "date": "Reviewed November 22, 2026.",
+      "dateContrast": 6.426990983613202,
+      "borderContrast": 6.426990983613202
+    },
+    {
+      "phase": "before",
+      "theme": "light",
+      "width": 390,
+      "background": "rgb(255, 255, 255)",
+      "dateColor": "rgb(90, 97, 112)",
+      "dateSize": "11.2px",
+      "borderColor": "rgba(14, 17, 22, 0.08)",
+      "borderWidth": "1px",
+      "date": "Reviewed November 22, 2026.",
+      "dateContrast": 6.2156291589574675,
+      "borderContrast": 1.1820340796340199
+    },
+    {
+      "phase": "after",
+      "theme": "light",
+      "width": 390,
+      "background": "rgb(255, 255, 255)",
+      "dateColor": "rgb(90, 95, 103)",
+      "dateSize": "11.2px",
+      "borderColor": "rgb(90, 95, 103)",
+      "borderWidth": "1px",
+      "date": "Reviewed November 22, 2026.",
+      "dateContrast": 6.426990983613202,
+      "borderContrast": 6.426990983613202
+    },
+    {
+      "phase": "before",
+      "theme": "dark",
+      "width": 1920,
+      "background": "rgb(255, 255, 255)",
+      "dateColor": "rgb(90, 97, 112)",
+      "dateSize": "11.2px",
+      "borderColor": "rgba(14, 17, 22, 0.08)",
+      "borderWidth": "1px",
+      "date": "Reviewed November 22, 2026.",
+      "dateContrast": 6.2156291589574675,
+      "borderContrast": 1.1820340796340199
+    },
+    {
+      "phase": "after",
+      "theme": "dark",
+      "width": 1920,
+      "background": "rgb(255, 255, 255)",
+      "dateColor": "rgb(90, 95, 103)",
+      "dateSize": "11.2px",
+      "borderColor": "rgb(90, 95, 103)",
+      "borderWidth": "1px",
+      "date": "Reviewed November 22, 2026.",
+      "dateContrast": 6.426990983613202,
+      "borderContrast": 6.426990983613202
+    },
+    {
+      "phase": "before",
+      "theme": "dark",
+      "width": 390,
+      "background": "rgb(16, 20, 27)",
+      "dateColor": "rgb(90, 97, 112)",
+      "dateSize": "11.2px",
+      "borderColor": "rgba(255, 255, 255, 0.1)",
+      "borderWidth": "1px",
+      "date": "Reviewed November 22, 2026.",
+      "dateContrast": 2.9690825028669554,
+      "borderContrast": 1.3080028446595544
+    },
+    {
+      "phase": "after",
+      "theme": "dark",
+      "width": 390,
+      "background": "rgb(16, 20, 27)",
+      "dateColor": "rgb(152, 162, 179)",
+      "dateSize": "11.2px",
+      "borderColor": "rgb(152, 162, 179)",
+      "borderWidth": "1px",
+      "date": "Reviewed November 22, 2026.",
+      "dateContrast": 7.16583155661446,
+      "borderContrast": 7.16583155661446
+    }
+  ]
+}

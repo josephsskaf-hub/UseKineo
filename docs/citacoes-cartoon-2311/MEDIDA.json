@@ -1,0 +1,609 @@
+{
+  "rows": [
+    {
+      "path": "/",
+      "period": "antes_mesmo_relogio",
+      "chatgpt_sessions": 3,
+      "all_origins_sessions": 3,
+      "unknown_origin_sessions": 0,
+      "identified_chatgpt_actors": 1
+    },
+    {
+      "path": "/ai-video-generator/for/story-videos",
+      "period": "antes_mesmo_relogio",
+      "chatgpt_sessions": 2,
+      "all_origins_sessions": 2,
+      "unknown_origin_sessions": 0,
+      "identified_chatgpt_actors": 1
+    },
+    {
+      "path": "/free-ai-shorts/cartoon",
+      "period": "antes_mesmo_relogio",
+      "chatgpt_sessions": 1,
+      "all_origins_sessions": 1,
+      "unknown_origin_sessions": 0,
+      "identified_chatgpt_actors": 0
+    },
+    {
+      "path": "/ai-video-generator/seedance",
+      "period": "antes_mesmo_relogio",
+      "chatgpt_sessions": 0,
+      "all_origins_sessions": 1,
+      "unknown_origin_sessions": 1,
+      "identified_chatgpt_actors": 0
+    },
+    {
+      "path": "/best-ai-shorts-generators",
+      "period": "antes_mesmo_relogio",
+      "chatgpt_sessions": 0,
+      "all_origins_sessions": 1,
+      "unknown_origin_sessions": 0,
+      "identified_chatgpt_actors": 0
+    },
+    {
+      "path": "/free-ai-shorts/horror",
+      "period": "antes_mesmo_relogio",
+      "chatgpt_sessions": 0,
+      "all_origins_sessions": 1,
+      "unknown_origin_sessions": 0,
+      "identified_chatgpt_actors": 0
+    },
+    {
+      "path": "/how-much-do-instagram-reels-pay",
+      "period": "depois_deploy",
+      "chatgpt_sessions": 1,
+      "all_origins_sessions": 1,
+      "unknown_origin_sessions": 0,
+      "identified_chatgpt_actors": 0
+    },
+    {
+      "path": "/",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 99,
+      "all_origins_sessions": 637,
+      "unknown_origin_sessions": 373,
+      "identified_chatgpt_actors": 33
+    },
+    {
+      "path": "/free-ai-shorts/cartoon",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 95,
+      "all_origins_sessions": 109,
+      "unknown_origin_sessions": 14,
+      "identified_chatgpt_actors": 37
+    },
+    {
+      "path": "/how-much-do-instagram-reels-pay",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 50,
+      "all_origins_sessions": 67,
+      "unknown_origin_sessions": 15,
+      "identified_chatgpt_actors": 0
+    },
+    {
+      "path": "/ai-video-generator/for/story-videos",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 33,
+      "all_origins_sessions": 35,
+      "unknown_origin_sessions": 2,
+      "identified_chatgpt_actors": 21
+    },
+    {
+      "path": "/text-to-video-shorts",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 28,
+      "all_origins_sessions": 98,
+      "unknown_origin_sessions": 3,
+      "identified_chatgpt_actors": 15
+    },
+    {
+      "path": "/ai-video-generator/for/urdu",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 23,
+      "all_origins_sessions": 27,
+      "unknown_origin_sessions": 4,
+      "identified_chatgpt_actors": 12
+    },
+    {
+      "path": "/free-ai-shorts/horror",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 23,
+      "all_origins_sessions": 30,
+      "unknown_origin_sessions": 5,
+      "identified_chatgpt_actors": 6
+    },
+    {
+      "path": "/pricing",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 14,
+      "all_origins_sessions": 109,
+      "unknown_origin_sessions": 83,
+      "identified_chatgpt_actors": 2
+    },
+    {
+      "path": "/gerador-de-shorts-gratis",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 12,
+      "all_origins_sessions": 12,
+      "unknown_origin_sessions": 0,
+      "identified_chatgpt_actors": 10
+    },
+    {
+      "path": "/state-of-ai-shorts-2026",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 10,
+      "all_origins_sessions": 34,
+      "unknown_origin_sessions": 24,
+      "identified_chatgpt_actors": 3
+    },
+    {
+      "path": "/ai-kids-cartoon-videos",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 8,
+      "all_origins_sessions": 22,
+      "unknown_origin_sessions": 13,
+      "identified_chatgpt_actors": 3
+    },
+    {
+      "path": "/ai-video-generator/kling-4",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 7,
+      "all_origins_sessions": 12,
+      "unknown_origin_sessions": 3,
+      "identified_chatgpt_actors": 5
+    },
+    {
+      "path": "/ai-ugc-ads",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 6,
+      "all_origins_sessions": 12,
+      "unknown_origin_sessions": 6,
+      "identified_chatgpt_actors": 3
+    },
+    {
+      "path": "/how-much-does-tiktok-pay",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 6,
+      "all_origins_sessions": 18,
+      "unknown_origin_sessions": 9,
+      "identified_chatgpt_actors": 0
+    },
+    {
+      "path": "/ai-video-generator/for/faceless-videos",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 5,
+      "all_origins_sessions": 7,
+      "unknown_origin_sessions": 2,
+      "identified_chatgpt_actors": 3
+    },
+    {
+      "path": "/ai-short-film-generator",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 4,
+      "all_origins_sessions": 14,
+      "unknown_origin_sessions": 8,
+      "identified_chatgpt_actors": 1
+    },
+    {
+      "path": "/ai-video-generator/for/instagram-reels",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 3,
+      "all_origins_sessions": 4,
+      "unknown_origin_sessions": 1,
+      "identified_chatgpt_actors": 2
+    },
+    {
+      "path": "/ai-video-generator/for/tiktok-videos",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 3,
+      "all_origins_sessions": 3,
+      "unknown_origin_sessions": 0,
+      "identified_chatgpt_actors": 0
+    },
+    {
+      "path": "/free-shorts-generator/de",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 3,
+      "all_origins_sessions": 4,
+      "unknown_origin_sessions": 1,
+      "identified_chatgpt_actors": 2
+    },
+    {
+      "path": "/library",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 3,
+      "all_origins_sessions": 3,
+      "unknown_origin_sessions": 0,
+      "identified_chatgpt_actors": 1
+    },
+    {
+      "path": "/ai-video-generator/for/documentary-shorts",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 2,
+      "all_origins_sessions": 3,
+      "unknown_origin_sessions": 1,
+      "identified_chatgpt_actors": 1
+    },
+    {
+      "path": "/ai-video-generator/for/youtube-shorts",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 2,
+      "all_origins_sessions": 5,
+      "unknown_origin_sessions": 2,
+      "identified_chatgpt_actors": 2
+    },
+    {
+      "path": "/best-ai-shorts-generators",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 2,
+      "all_origins_sessions": 28,
+      "unknown_origin_sessions": 6,
+      "identified_chatgpt_actors": 1
+    },
+    {
+      "path": "/partners",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 2,
+      "all_origins_sessions": 20,
+      "unknown_origin_sessions": 18,
+      "identified_chatgpt_actors": 0
+    },
+    {
+      "path": "/effects/pet-bee",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 1,
+      "all_origins_sessions": 2,
+      "unknown_origin_sessions": 1,
+      "identified_chatgpt_actors": 0
+    },
+    {
+      "path": "/free-ai-shorts",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 1,
+      "all_origins_sessions": 2,
+      "unknown_origin_sessions": 1,
+      "identified_chatgpt_actors": 1
+    },
+    {
+      "path": "/free-ai-shorts/fitness",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 1,
+      "all_origins_sessions": 3,
+      "unknown_origin_sessions": 2,
+      "identified_chatgpt_actors": 0
+    },
+    {
+      "path": "/scripts/animals",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 1,
+      "all_origins_sessions": 1,
+      "unknown_origin_sessions": 0,
+      "identified_chatgpt_actors": 1
+    },
+    {
+      "path": "/scripts/psychology",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 1,
+      "all_origins_sessions": 1,
+      "unknown_origin_sessions": 0,
+      "identified_chatgpt_actors": 1
+    },
+    {
+      "path": "/ai-video-generator/seedance",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 0,
+      "all_origins_sessions": 28,
+      "unknown_origin_sessions": 25,
+      "identified_chatgpt_actors": 0
+    },
+    {
+      "path": "/chatgpt",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 0,
+      "all_origins_sessions": 2,
+      "unknown_origin_sessions": 2,
+      "identified_chatgpt_actors": 0
+    },
+    {
+      "path": "/faceless-youtube-shorts-generator",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 0,
+      "all_origins_sessions": 1,
+      "unknown_origin_sessions": 1,
+      "identified_chatgpt_actors": 0
+    },
+    {
+      "path": "/generador-de-shorts-gratis",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 0,
+      "all_origins_sessions": 3,
+      "unknown_origin_sessions": 3,
+      "identified_chatgpt_actors": 0
+    },
+    {
+      "path": "/generador-de-videos-de-terror",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 0,
+      "all_origins_sessions": 2,
+      "unknown_origin_sessions": 2,
+      "identified_chatgpt_actors": 0
+    },
+    {
+      "path": "/vs/invideo-alternatives-faceless-shorts",
+      "period": "ultimos_14d_completos",
+      "chatgpt_sessions": 0,
+      "all_origins_sessions": 1,
+      "unknown_origin_sessions": 1,
+      "identified_chatgpt_actors": 0
+    },
+    {
+      "path": "/free-ai-shorts/cartoon",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 83,
+      "all_origins_sessions": 96,
+      "unknown_origin_sessions": 13,
+      "identified_chatgpt_actors": 32
+    },
+    {
+      "path": "/",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 65,
+      "all_origins_sessions": 321,
+      "unknown_origin_sessions": 180,
+      "identified_chatgpt_actors": 24
+    },
+    {
+      "path": "/how-much-do-instagram-reels-pay",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 33,
+      "all_origins_sessions": 47,
+      "unknown_origin_sessions": 12,
+      "identified_chatgpt_actors": 0
+    },
+    {
+      "path": "/ai-video-generator/for/story-videos",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 12,
+      "all_origins_sessions": 13,
+      "unknown_origin_sessions": 1,
+      "identified_chatgpt_actors": 7
+    },
+    {
+      "path": "/free-ai-shorts/horror",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 11,
+      "all_origins_sessions": 17,
+      "unknown_origin_sessions": 4,
+      "identified_chatgpt_actors": 0
+    },
+    {
+      "path": "/ai-video-generator/for/urdu",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 10,
+      "all_origins_sessions": 11,
+      "unknown_origin_sessions": 1,
+      "identified_chatgpt_actors": 5
+    },
+    {
+      "path": "/pricing",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 10,
+      "all_origins_sessions": 54,
+      "unknown_origin_sessions": 41,
+      "identified_chatgpt_actors": 1
+    },
+    {
+      "path": "/text-to-video-shorts",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 8,
+      "all_origins_sessions": 11,
+      "unknown_origin_sessions": 0,
+      "identified_chatgpt_actors": 4
+    },
+    {
+      "path": "/how-much-does-tiktok-pay",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 6,
+      "all_origins_sessions": 16,
+      "unknown_origin_sessions": 8,
+      "identified_chatgpt_actors": 0
+    },
+    {
+      "path": "/gerador-de-shorts-gratis",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 5,
+      "all_origins_sessions": 5,
+      "unknown_origin_sessions": 0,
+      "identified_chatgpt_actors": 5
+    },
+    {
+      "path": "/state-of-ai-shorts-2026",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 4,
+      "all_origins_sessions": 22,
+      "unknown_origin_sessions": 18,
+      "identified_chatgpt_actors": 2
+    },
+    {
+      "path": "/ai-short-film-generator",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 3,
+      "all_origins_sessions": 5,
+      "unknown_origin_sessions": 0,
+      "identified_chatgpt_actors": 1
+    },
+    {
+      "path": "/ai-video-generator/for/tiktok-videos",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 3,
+      "all_origins_sessions": 3,
+      "unknown_origin_sessions": 0,
+      "identified_chatgpt_actors": 0
+    },
+    {
+      "path": "/library",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 3,
+      "all_origins_sessions": 3,
+      "unknown_origin_sessions": 0,
+      "identified_chatgpt_actors": 1
+    },
+    {
+      "path": "/ai-kids-cartoon-videos",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 2,
+      "all_origins_sessions": 5,
+      "unknown_origin_sessions": 3,
+      "identified_chatgpt_actors": 1
+    },
+    {
+      "path": "/ai-video-generator/for/documentary-shorts",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 2,
+      "all_origins_sessions": 3,
+      "unknown_origin_sessions": 1,
+      "identified_chatgpt_actors": 1
+    },
+    {
+      "path": "/ai-video-generator/for/faceless-videos",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 2,
+      "all_origins_sessions": 3,
+      "unknown_origin_sessions": 1,
+      "identified_chatgpt_actors": 1
+    },
+    {
+      "path": "/ai-video-generator/for/instagram-reels",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 2,
+      "all_origins_sessions": 3,
+      "unknown_origin_sessions": 1,
+      "identified_chatgpt_actors": 1
+    },
+    {
+      "path": "/ai-video-generator/for/youtube-shorts",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 1,
+      "all_origins_sessions": 2,
+      "unknown_origin_sessions": 1,
+      "identified_chatgpt_actors": 1
+    },
+    {
+      "path": "/best-ai-shorts-generators",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 1,
+      "all_origins_sessions": 9,
+      "unknown_origin_sessions": 1,
+      "identified_chatgpt_actors": 1
+    },
+    {
+      "path": "/effects/pet-bee",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 1,
+      "all_origins_sessions": 2,
+      "unknown_origin_sessions": 1,
+      "identified_chatgpt_actors": 0
+    },
+    {
+      "path": "/free-ai-shorts",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 1,
+      "all_origins_sessions": 1,
+      "unknown_origin_sessions": 0,
+      "identified_chatgpt_actors": 1
+    },
+    {
+      "path": "/free-shorts-generator/de",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 1,
+      "all_origins_sessions": 2,
+      "unknown_origin_sessions": 1,
+      "identified_chatgpt_actors": 1
+    },
+    {
+      "path": "/scripts/psychology",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 1,
+      "all_origins_sessions": 1,
+      "unknown_origin_sessions": 0,
+      "identified_chatgpt_actors": 1
+    },
+    {
+      "path": "/ai-video-generator/seedance",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 0,
+      "all_origins_sessions": 10,
+      "unknown_origin_sessions": 10,
+      "identified_chatgpt_actors": 0
+    },
+    {
+      "path": "/generador-de-shorts-gratis",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 0,
+      "all_origins_sessions": 1,
+      "unknown_origin_sessions": 1,
+      "identified_chatgpt_actors": 0
+    },
+    {
+      "path": "/vs/invideo-alternatives-faceless-shorts",
+      "period": "ultimos_7d_completos",
+      "chatgpt_sessions": 0,
+      "all_origins_sessions": 1,
+      "unknown_origin_sessions": 1,
+      "identified_chatgpt_actors": 0
+    }
+  ],
+  "cut_utc": "2026-11-23T08:33:47+00:00",
+  "read_at": "2026-11-23T08:33:47.957555+00:00",
+  "controls": [
+    {
+      "period": "ultimos_14d_completos",
+      "ended_at": "2026-11-23T03:00:00+00:00",
+      "started_at": "2026-11-09T03:00:00+00:00",
+      "bot_sessions": 1625,
+      "chatgpt_sessions": 448,
+      "all_origins_sessions": 4567,
+      "dedup_landing_sessions": 6542,
+      "unknown_origin_sessions": 2494,
+      "identified_chatgpt_actors": 164,
+      "recognized_internal_sessions": 350
+    },
+    {
+      "period": "ultimos_7d_completos",
+      "ended_at": "2026-11-23T03:00:00+00:00",
+      "started_at": "2026-11-16T03:00:00+00:00",
+      "bot_sessions": 683,
+      "chatgpt_sessions": 270,
+      "all_origins_sessions": 1904,
+      "dedup_landing_sessions": 2734,
+      "unknown_origin_sessions": 1255,
+      "identified_chatgpt_actors": 89,
+      "recognized_internal_sessions": 147
+    },
+    {
+      "period": "antes_mesmo_relogio",
+      "ended_at": "2026-11-22T08:33:47+00:00",
+      "started_at": "2026-11-22T04:51:10+00:00",
+      "bot_sessions": 2,
+      "chatgpt_sessions": 6,
+      "all_origins_sessions": 46,
+      "dedup_landing_sessions": 49,
+      "unknown_origin_sessions": 35,
+      "identified_chatgpt_actors": 2,
+      "recognized_internal_sessions": 1
+    },
+    {
+      "period": "depois_deploy",
+      "ended_at": "2026-11-23T08:33:47+00:00",
+      "started_at": "2026-11-23T04:51:10+00:00",
+      "bot_sessions": 5,
+      "chatgpt_sessions": 1,
+      "all_origins_sessions": 43,
+      "dedup_landing_sessions": 53,
+      "unknown_origin_sessions": 31,
+      "identified_chatgpt_actors": 0,
+      "recognized_internal_sessions": 5
+    }
+  ],
+  "deployed_utc": "2026-11-23T04:51:10+00:00"
+}

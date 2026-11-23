@@ -1,0 +1,625 @@
+{
+  "codeCommit": "771d445ec5cfc3a3d7dd5179f90bf43cf55b0fd9",
+  "baseline": "b2c24e671dc50e44f318bcbc5c780153905b488c",
+  "selection": {
+    "paths": [
+      "app/free-ai-shorts/[niche]/page.tsx",
+      "app/sitemap.ts",
+      "lib/seo/paginasLote1.ts",
+      "lib/seo/paginasLote1Paths.ts"
+    ],
+    "tests": [
+      "test-5-linguas-0311.mjs",
+      "test-ads-comparacoes-2026-09-27.mjs",
+      "test-ads-for-segmentos-2026-09-27.mjs",
+      "test-agencias-1310.mjs",
+      "test-agency-production-scope.mjs",
+      "test-ai-shorts-series.mjs",
+      "test-avatar-fora-2026-09-28.mjs",
+      "test-b2b-bulk-page.mjs",
+      "test-bebe-que-fala-2010.mjs",
+      "test-bing-seo-1510.mjs",
+      "test-business-84-2026-10-09.mjs",
+      "test-business-content-plan.mjs",
+      "test-business-pilot-review.mjs",
+      "test-cartoon-answer-2311.mjs",
+      "test-cartoon-so-plano-0411.mjs",
+      "test-celular-modelo-a-0611.mjs",
+      "test-citacoes-compradores-2111.mjs",
+      "test-citacoes-lastmod-0911.mjs",
+      "test-client-short-brief.mjs",
+      "test-clips-effect-pages-2026-10-06.mjs",
+      "test-comment-to-video.mjs",
+      "test-copy-filme-gratis-15s-2026-09-29.mjs",
+      "test-demo-sob-medida-1510.mjs",
+      "test-duracao-rewards-2026-10-06.mjs",
+      "test-editor-no-mapa.mjs",
+      "test-emails-venda-2026-10-13.mjs",
+      "test-five-improvements.mjs",
+      "test-frente-0411.mjs",
+      "test-geo-rodada2-2026-10-08.mjs",
+      "test-geo-rodada3-2026-10-08.mjs",
+      "test-gpt-5h-a-2026-09-24.mjs",
+      "test-gpt-5h-b-2026-09-24.mjs",
+      "test-growth-roundup-search-intent.mjs",
+      "test-growth-space-intent.mjs",
+      "test-guias-ia-1610.mjs",
+      "test-indice-video-ia-2026-10-06.mjs",
+      "test-kineo-no-claude-0911.mjs",
+      "test-llms-paginas-citadas.mjs",
+      "test-local-business-ad-brief.mjs",
+      "test-local-business-tool-discovery.mjs",
+      "test-motores-16-linguas-2026-09-21.mjs",
+      "test-motores-geo-2026-10-06.mjs",
+      "test-omni-fora-da-oferta-1210.mjs",
+      "test-organic-premium-first.mjs",
+      "test-paginas-citadas-0511.mjs",
+      "test-paginas-citadas-ponte-2026-09-23.mjs",
+      "test-paginas-citaveis-1011.mjs",
+      "test-paginas-ia-0111.mts",
+      "test-paginas-ia-claras-2110.mjs",
+      "test-paginas-lote1-1210.mjs",
+      "test-paginas-que-vendem-1210.mjs",
+      "test-paginas-ugc-2010.mjs",
+      "test-portas-16-linguas-2026-09-20.mjs",
+      "test-preco-visivel-2026-09-02.mjs",
+      "test-product-to-video.mjs",
+      "test-projeto-1-google-2026-09-17.mjs",
+      "test-public-cost-planner-discovery.mjs",
+      "test-public-creation-intent.mjs",
+      "test-public-video-privacy.mjs",
+      "test-real-estate-video-maker.mjs",
+      "test-recreate-flow-guardas-1411.mjs",
+      "test-recreate-seu-video-ui-1311.mjs",
+      "test-recreate-trava-1011.mjs",
+      "test-remix-paginas-3110.mjs",
+      "test-runway-alternative-1011.mjs",
+      "test-shorts-vendor-evaluation.mjs",
+      "test-showcase-2026-10-02.mjs",
+      "test-story-video-page-0911.mjs",
+      "test-studio-preenchido-1211.mjs",
+      "test-tela-nova-1011.mjs",
+      "test-trafego-index-2310.mjs",
+      "test-trafego-pages-2310.mjs",
+      "test-trafego-undo-2310.mjs",
+      "test-trending-1310.mjs",
+      "test-trust-center.mjs",
+      "test-visibilidade-chatgpt-2026-10-06.mjs",
+      "test-vs-alternativas-1310.mjs",
+      "test-vs-novos-1610.mjs",
+      "test-vs-rivais-0311.mjs",
+      "test-watch-home-1311.mjs",
+      "test-watch-precos-1311.mjs",
+      "test-works-with-claude-2026-09-30.mjs"
+    ]
+  },
+  "total": 82,
+  "green": 45,
+  "previouslyRed": 37,
+  "newRed": [],
+  "timeouts": [],
+  "r7": "isolated, real case green, 30 mutants rejected",
+  "tests": [
+    {
+      "name": "test-5-linguas-0311.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-ads-comparacoes-2026-09-27.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-ads-for-segmentos-2026-09-27.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-agencias-1310.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-agency-production-scope.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "Error: INTERNAL_EXACT_EMAILS must contain string literals only",
+      "baselineFirstError": "Error: INTERNAL_EXACT_EMAILS must contain string literals only",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-ai-shorts-series.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-avatar-fora-2026-09-28.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "Error: desfaz KINEO-PAGINAS-IA-CLARAS-2110 em app/best-ai-shorts-generators/page.tsx: fonte divergente",
+      "baselineFirstError": "Error: desfaz KINEO-PAGINAS-IA-CLARAS-2110 em app/best-ai-shorts-generators/page.tsx: fonte divergente",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-b2b-bulk-page.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "Error: lib/credits/engineCost.ts imported unexpected module: @/lib/kling4PaidPolicy",
+      "baselineFirstError": "Error: lib/credits/engineCost.ts imported unexpected module: @/lib/kling4PaidPolicy",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-bebe-que-fala-2010.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "Error: desfaz-idiomas-formatos-2410: fonte divergente lib/kidsCartoon/kidsCartoon.ts",
+      "baselineFirstError": "Error: desfaz-idiomas-formatos-2410: fonte divergente lib/kidsCartoon/kidsCartoon.ts",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-bing-seo-1510.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "FAIL roundup: metadata: Offline harness refuses non-local dependency: react-dom",
+      "baselineFirstError": "FAIL roundup: metadata: Offline harness refuses non-local dependency: react-dom",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-business-84-2026-10-09.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-business-content-plan.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-business-pilot-review.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-cartoon-answer-2311.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-cartoon-so-plano-0411.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-celular-modelo-a-0611.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-citacoes-compradores-2111.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-citacoes-lastmod-0911.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-client-short-brief.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-clips-effect-pages-2026-10-06.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-comment-to-video.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-copy-filme-gratis-15s-2026-09-29.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "✗ llms.txt e /api/facts dizem \"free 15-second film (Kling 4.0 / MiniMax H3 Turbo)\", derivado, sem cota recorrente — llms.txt sem a frase do filme grátis de 15 s | /api/facts sem a frase do filme grátis de 15 s | trialAccess.freeFilm diverge do motor e do 15 s derivados: {\"engine\":\"Kling 4.0 / MiniMax H3 Turbo\",\"seconds\":15,\"creditsPerFilm\":9,\"filmsCovered\":1,\"availableIn\":\"supported countries\"}",
+      "baselineFirstError": "✗ llms.txt e /api/facts dizem \"free 15-second film (Kling 4.0 / MiniMax H3 Turbo)\", derivado, sem cota recorrente — llms.txt sem a frase do filme grátis de 15 s | /api/facts sem a frase do filme grátis de 15 s | trialAccess.freeFilm diverge do motor e do 15 s derivados: {\"engine\":\"Kling 4.0 / MiniMax H3 Turbo\",\"seconds\":15,\"creditsPerFilm\":9,\"filmsCovered\":1,\"availableIn\":\"supported countries\"}",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-demo-sob-medida-1510.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "FAIL D2a a ROTA recusa admin que não é conta da casa (403 not_house_account) antes de ler o link",
+      "baselineFirstError": "FAIL D2a a ROTA recusa admin que não é conta da casa (403 not_house_account) antes de ler o link",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-duracao-rewards-2026-10-06.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "Error: desfaz-h3-turbo-0511: trecho ausente ou repetido em app/(dashboard)/studio/StudioClient.tsx",
+      "baselineFirstError": "Error: desfaz-h3-turbo-0511: trecho ausente ou repetido em app/(dashboard)/studio/StudioClient.tsx",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-editor-no-mapa.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-emails-venda-2026-10-13.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-five-improvements.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "AssertionError [ERR_ASSERTION]: critical CI cannot ignore failure",
+      "baselineFirstError": "AssertionError [ERR_ASSERTION]: critical CI cannot ignore failure",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-frente-0411.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "99 ok, 4 falha(s)",
+      "baselineFirstError": "99 ok, 4 falha(s)",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-geo-rodada2-2026-10-08.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "Error: KINEO-TRAFEGO-2310: app/ai-video-generator/[engine]/page.tsx hunk 0: expected exactly 1 candidate match, found 0",
+      "baselineFirstError": "Error: KINEO-TRAFEGO-2310: app/ai-video-generator/[engine]/page.tsx hunk 0: expected exactly 1 candidate match, found 0",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-geo-rodada3-2026-10-08.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "FAIL R1 → R1: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts)",
+      "baselineFirstError": "FAIL R1 → R1: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts)",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-gpt-5h-a-2026-09-24.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-gpt-5h-b-2026-09-24.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-growth-roundup-search-intent.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-growth-space-intent.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "AssertionError [ERR_ASSERTION]: exact script constant is extractable",
+      "baselineFirstError": "AssertionError [ERR_ASSERTION]: exact script constant is extractable",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-guias-ia-1610.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-indice-video-ia-2026-10-06.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "✗ superficies: verde — exceção: semPaginasIa0111: app/sitemap.ts mudou fora da camada (0x)",
+      "baselineFirstError": "✗ superficies: verde — exceção: semPaginasIa0111: app/sitemap.ts mudou fora da camada (0x)",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-kineo-no-claude-0911.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-llms-paginas-citadas.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "❌ 1 REPROVAÇÃO(ÕES) em app/llms.txt/route.ts:",
+      "baselineFirstError": "❌ 1 REPROVAÇÃO(ÕES) em app/llms.txt/route.ts:",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-local-business-ad-brief.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "AssertionError [ERR_ASSERTION]: approved draft reaches the editor, not checkout or render",
+      "baselineFirstError": "AssertionError [ERR_ASSERTION]: approved draft reaches the editor, not checkout or render",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-local-business-tool-discovery.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-motores-16-linguas-2026-09-21.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "Error: desfaz-idiomas-formatos-2410: fonte divergente lib/seo/freeShortsGeneratorLangs.ts",
+      "baselineFirstError": "Error: desfaz-idiomas-formatos-2410: fonte divergente lib/seo/freeShortsGeneratorLangs.ts",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-motores-geo-2026-10-06.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "Error: KINEO-TRAFEGO-2310: app/ai-video-generator/[engine]/page.tsx hunk 0: expected exactly 1 candidate match, found 0",
+      "baselineFirstError": "Error: KINEO-TRAFEGO-2310: app/ai-video-generator/[engine]/page.tsx hunk 0: expected exactly 1 candidate match, found 0",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-omni-fora-da-oferta-1210.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "AssertionError [ERR_ASSERTION]: violações:",
+      "baselineFirstError": "AssertionError [ERR_ASSERTION]: violações:",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-organic-premium-first.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-paginas-citadas-0511.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-paginas-citadas-ponte-2026-09-23.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "Error: desfaz KINEO-PAGINAS-IA-CLARAS-2110 em components/ScriptToSeedanceBridge.tsx: fonte divergente",
+      "baselineFirstError": "Error: desfaz KINEO-PAGINAS-IA-CLARAS-2110 em components/ScriptToSeedanceBridge.tsx: fonte divergente",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-paginas-citaveis-1011.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-paginas-ia-0111.mts",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "FAIL R17 nenhuma frase proibida nas 20 (motor pausado, promessa, crédito literal)",
+      "baselineFirstError": "FAIL R17 nenhuma frase proibida nas 20 (motor pausado, promessa, crédito literal)",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-paginas-ia-claras-2110.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "Error: KINEO-TRAFEGO-2310: app/ai-video-generator/[engine]/page.tsx hunk 0: expected exactly 1 candidate match, found 0",
+      "baselineFirstError": "Error: KINEO-TRAFEGO-2310: app/ai-video-generator/[engine]/page.tsx hunk 0: expected exactly 1 candidate match, found 0",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-paginas-lote1-1210.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "Error: KINEO-TRAFEGO-2310: app/ai-video-generator/[engine]/page.tsx hunk 0: expected exactly 1 candidate match, found 0",
+      "baselineFirstError": "Error: KINEO-TRAFEGO-2310: app/ai-video-generator/[engine]/page.tsx hunk 0: expected exactly 1 candidate match, found 0",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-paginas-que-vendem-1210.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "✗ free generator: compra antes do formulário",
+      "baselineFirstError": "✗ free generator: compra antes do formulário",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-paginas-ugc-2010.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "AssertionError [ERR_ASSERTION]: guardião vermelho no código real:",
+      "baselineFirstError": "AssertionError [ERR_ASSERTION]: guardião vermelho no código real:",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-portas-16-linguas-2026-09-20.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "Error: desfaz-idiomas-formatos-2410: fonte divergente lib/seo/freeShortsGeneratorLangs.ts",
+      "baselineFirstError": "Error: desfaz-idiomas-formatos-2410: fonte divergente lib/seo/freeShortsGeneratorLangs.ts",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-preco-visivel-2026-09-02.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-product-to-video.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-projeto-1-google-2026-09-17.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "Error: semPaginasIa0111: lib/seo/intentPages.ts mudou fora da camada (0x)",
+      "baselineFirstError": "Error: semPaginasIa0111: lib/seo/intentPages.ts mudou fora da camada (0x)",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-public-cost-planner-discovery.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-public-creation-intent.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-public-video-privacy.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-real-estate-video-maker.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-recreate-flow-guardas-1411.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-recreate-seu-video-ui-1311.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-recreate-trava-1011.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-remix-paginas-3110.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "FAIL B7 llms.txt aponta para cada uma das 10",
+      "baselineFirstError": "FAIL B7 llms.txt aponta para cada uma das 10",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-runway-alternative-1011.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "AssertionError [ERR_ASSERTION]: Other sitemap URLs and dates stay unchanged under identical unrelated-taxonomy fixtures",
+      "baselineFirstError": "AssertionError [ERR_ASSERTION]: Other sitemap URLs and dates stay unchanged under identical unrelated-taxonomy fixtures",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-shorts-vendor-evaluation.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-showcase-2026-10-02.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "TypeError: (0 , paginasCitaveis1011_1.faceSwapNoMapa) is not a function",
+      "baselineFirstError": "TypeError: (0 , paginasCitaveis1011_1.faceSwapNoMapa) is not a function",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-story-video-page-0911.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-studio-preenchido-1211.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-tela-nova-1011.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "AssertionError [ERR_ASSERTION]: public: a aba Recreate segue o interruptor do Recreate (nunca leva a 404)",
+      "baselineFirstError": "AssertionError [ERR_ASSERTION]: public: a aba Recreate segue o interruptor do Recreate (nunca leva a 404)",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-trafego-index-2310.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "AssertionError [ERR_ASSERTION]: review date: /text-to-video-shorts",
+      "baselineFirstError": "AssertionError [ERR_ASSERTION]: review date: /text-to-video-shorts",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-trafego-pages-2310.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "AssertionError [ERR_ASSERTION]: false == true",
+      "baselineFirstError": "AssertionError [ERR_ASSERTION]: false == true",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-trafego-undo-2310.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "Error: desfaz-compra-avulsa-2410: fonte divergente .github/workflows/guardiao.yml",
+      "baselineFirstError": "Error: desfaz-compra-avulsa-2410: fonte divergente .github/workflows/guardiao.yml",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-trending-1310.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "25 verificações ok, 9 falhas",
+      "baselineFirstError": "25 verificações ok, 9 falhas",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-trust-center.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "✗ operator identity is machine-readable",
+      "baselineFirstError": "✗ operator identity is machine-readable",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-visibilidade-chatgpt-2026-10-06.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-vs-alternativas-1310.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-vs-novos-1610.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-watch-home-1311.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-watch-precos-1311.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    },
+    {
+      "name": "test-works-with-claude-2026-09-30.mjs",
+      "candidateExit": 1,
+      "baselineExit": 1,
+      "candidateFirstError": "Error: desfaz-h3-turbo-0511: trecho ausente ou repetido em app/pricing/PricingClient.tsx",
+      "baselineFirstError": "Error: desfaz-h3-turbo-0511: trecho ausente ou repetido em app/pricing/PricingClient.tsx",
+      "sameFirstError": true
+    },
+    {
+      "name": "test-vs-rivais-0311.mjs",
+      "candidateExit": 0,
+      "baselineExit": null
+    }
+  ]
+}
