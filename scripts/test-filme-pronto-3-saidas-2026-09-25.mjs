@@ -6,7 +6,10 @@
 //   (d) nenhum preço digitado na lib nem no componente (preço congelado; a barra lê a fonte única);
 //   (e) GenerateClient monta UMA vez, dentro de done-result-actions, DEPOIS do download e ANTES do <details> fechado;
 //   (f) nenhum evento novo está na lista server-only do /api/events (senão seria descartado em silêncio);
-//   (g) o /studio só põe o foco na caixa da ideia com ponteiro fino, sem roubar foco de outro campo, e mede a chegada.
+//   (g) o /studio só põe o foco na caixa da ideia com ponteiro fino, sem roubar foco de outro campo, e mede a chegada;
+//   (r) KINEO-FILME-PRONTO-RECARGA-2311 — assinante com oferta do SERVIDOR (GET da recarga, superfície film_ready): "More credits"
+//       abre a barra da recarga ali mesmo (BuyCreditsModal com a oferta já lida, sem 2ª leitura) e o evento grava topup_modal;
+//       sem oferta, lendo ou leitura que falhou: o link de hoje para /pricing e o evento grava pricing. A oferta nunca sai do plano.
 // Cada grupo roda também contra mutantes em memória (e o guardião exige que o mutante TENHA aplicado).
 // Roda: node scripts/test-filme-pronto-3-saidas-2026-09-25.mjs
 import { readFileSync } from 'node:fs'
@@ -105,6 +108,13 @@ function provasLib(src) {
   R.push(['impressão carrega versão, vídeo, saída de crédito e estado do plano',
     shown.version === 'film_ready_exits_v1' && shown.video_id === 'vid-1' && shown.credits_exit === 'plans' && shown.plan_state === 'not_subscriber'])
   const dest = (exit, plan) => L.filmReadyExitClickedMetadata({ exit, videoId: 'v', plan }).destination
+  const destTela = (exit, plan, destination) => L.filmReadyExitClickedMetadata({ exit, videoId: 'v', plan, destination }).destination
+  R.push(['(r) o destino que a tela executou vence o plano (recarga do servidor para quem o plano mandaria aos planos)',
+    destTela('more_credits', 'pro', 'topup_modal') === 'topup_modal' && destTela('more_credits', 'free', 'pricing') === 'pricing'
+    && LA.filmReadyExitClickedMetadata({ exit: 'more_credits', videoId: 'v', plan: 'pro', destination: 'pricing' }).destination === 'pricing'])
+  R.push(['(r) destino fora da lista ou ausente cai no destino pelo plano (nunca grava valor inventado)',
+    destTela('more_credits', 'pro', 'evil') === 'pricing' && destTela('more_credits', 'pro', null) === 'pricing'
+    && destTela('more_credits', 'pro', undefined) === 'pricing' && destTela('next_film', 'pro', 42) === 'studio'])
   R.push(['clique carrega o destino real', dest('next_film', 'pro') === 'studio' && dest('more_credits', 'pro') === 'pricing'
     && LA.filmReadyExitClickedMetadata({ exit: 'more_credits', videoId: 'v', plan: 'pro' }).destination === 'topup_modal'
     && dest('more_credits', 'free') === 'pricing' && dest('subscribe', 'pro') === 'pricing'])
@@ -113,21 +123,32 @@ function provasLib(src) {
 for (const [n, c] of provasLib(LIB_SRC)) ok(c, n)
 mutante('condição da barra vira true', LIB_SRC, "return canPurchaseCreditTopup(plan) ? 'topup' : 'plans'", "return true ? 'topup' : 'plans'", provasLib)
 mutante('próximo filme leva o texto', LIB_SRC, "const NEXT_FILM_CARRY_KEYS = ['engine',", "const NEXT_FILM_CARRY_KEYS = ['prompt', 'engine',", provasLib)
+mutante('destino da tela ignorado (evento mente topup_modal → pricing)', LIB_SRC,
+  "typeof input.destination === 'string' && FILM_READY_DESTINATIONS.includes(input.destination)", 'false', provasLib)
+mutante('destino inventado aceito', LIB_SRC,
+  "typeof input.destination === 'string' && FILM_READY_DESTINATIONS.includes(input.destination)", "typeof input.destination === 'string' && FILM_READY_DESTINATIONS.length > 0", provasLib)
 mutante('próximo filme volta ao /studio/create', LIB_SRC, 'return `/studio?${out.toString()}`', 'return `/studio/create?${out.toString()}`', provasLib)
 
 // ── (c) o componente, executado com um React de mentira (hooks gravam, cliques são chamados de verdade) ───────────────
 const LIB = roda(LIB_SRC, { '@/lib/growth/topupEligibility': TOPUP })
 const LIB_ABERTO = roda(LIB_SRC, { '@/lib/growth/topupEligibility': TOPUP_ABERTO })
-function renderiza(src, props, topupAberto, lib) {
+// opts.oferta = o que o servidor devolveu a useRecargaEntrada (null = nada, ainda lendo ou leitura que falhou — a peça real devolve null
+// nos três casos, provado abaixo em (r-c) executando o hook de verdade). opts.recargaAberta = o 2º estado booleano (a barra da recarga).
+function renderiza(src, props, topupAberto, lib, opts = {}) {
   const setters = []
   const eventos = []
+  const chamadasHook = []
   const Link = function Link() {}
   const Modal = function CreditsTopupModal() {}
+  const BuyModal = function BuyCreditsModal() {}
+  let booleanos = 0
   const React = {
     useState: (init) => {
       const v0 = typeof init === 'function' ? init() : init
-      const v = v0 === false ? topupAberto : v0
-      const set = (x) => setters.push({ init: v0, x })
+      let v = v0
+      let idx = null
+      if (v0 === false) { idx = booleanos++; v = idx === 0 ? topupAberto : Boolean(opts.recargaAberta) }
+      const set = (x) => setters.push({ init: v0, x, idx })
       return [v, set]
     },
     useRef: (v) => ({ current: v }),
@@ -139,7 +160,8 @@ function renderiza(src, props, topupAberto, lib) {
     'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'Fragment' },
     'next/link': { __esModule: true, default: Link },
     '@/components/CreditsTopupModal': { __esModule: true, default: Modal },
-    '@/components/billing/BuyCreditsEntry': { __esModule: true, TopupOuRecargaModal: Modal }, // KINEO-RECARGA-TELAS-1211 — a mesma barra; a escolha recarga × pop-up tem guardião próprio
+    '@/components/billing/BuyCreditsEntry': { __esModule: true, TopupOuRecargaModal: Modal, BuyCreditsModal: BuyModal, BUY_CREDITS_OPENED_EVENT: 'buy_credits_entry_opened',
+      useRecargaEntrada: (...args) => { chamadasHook.push(args); return opts.oferta ?? null } }, // KINEO-FILME-PRONTO-RECARGA-2311 // KINEO-RECARGA-TELAS-1211 — a mesma barra; a escolha recarga × pop-up tem guardião próprio
     '@/components/video/SceneRedoPanel': { __esModule: true, default: function SceneRedoPanel() { return null } }, // KINEO-REFAZER-CENA-2710 — o painel "Redo this scene — free" mora FORA do grupo das 3 saídas (o guardião próprio: scripts/test-refazer-cena-2710.mjs)
     'react-dom': { createPortal: (el) => el }, // KINEO-FLUXO-NOVO-2026-09-25 — o modal vai por portal (revisão: transform prendia o fixed)
     '@/lib/analytics': { trackEvent: (name, meta) => { eventos.push({ name, meta }); return Promise.resolve(true) } },
@@ -158,7 +180,7 @@ function renderiza(src, props, topupAberto, lib) {
   const dentro = []
   const anda2 = (n) => { if (!n || typeof n !== 'object') return; if (Array.isArray(n)) { n.forEach(anda2); return } if (n !== grupo) dentro.push(n); anda2(n.props?.children) }
   if (grupo) anda2(grupo)
-  return { todos, grupo, saidas: dentro.filter((n) => typeof n.props?.onClick === 'function'), setters, eventos, Link, Modal }
+  return { todos, grupo, saidas: dentro.filter((n) => typeof n.props?.onClick === 'function'), setters, eventos, chamadasHook, Link, Modal, BuyModal }
 }
 const texto = (n) => { if (n == null || typeof n === 'boolean') return ''; if (typeof n !== 'object') return String(n); if (Array.isArray(n)) return n.map(texto).join(''); return texto(n.props?.children) }
 function provasComp(src, topup = TOPUP) {
@@ -177,7 +199,7 @@ function provasComp(src, topup = TOPUP) {
     R.push([`(c) [${plan}] 2ª saída é botão da barra só com recarga; senão link aos planos`, barra
       ? cred.type === 'button' && cred.props.href === undefined
       : cred.type === 'a' && cred.props.href === LIB.filmReadyPlansHref()])
-    const abriu = () => r.setters.some((s) => s.init === false && s.x === true)
+    const abriu = () => r.setters.some((s) => s.idx === 0 && s.x === true)
     prox.props.onClick({ preventDefault() {} })
     plano.props.onClick({ preventDefault() {} })
     R.push([`(c) [${plan}] próximo filme e planos nunca abrem o modal`, !abriu()])
@@ -203,7 +225,7 @@ function provasComp(src, topup = TOPUP) {
 const provasCompComVendas = src => provasComp(src, TOPUP_ABERTO)
 for (const [n, c] of [...provasComp(COMP_SRC), ...provasCompComVendas(COMP_SRC)]) ok(c, n)
 mutante('More credits não abre a recarga para o assinante', COMP_SRC, 'setTopupOpen(true)', 'setTopupOpen(Boolean(0))', provasCompComVendas)
-mutante('botão abre a barra para todo mundo', COMP_SRC, "{creditsExit === 'topup' ? (", '{true ? (', provasComp)
+mutante('botão abre a barra para todo mundo', COMP_SRC, ": creditsExit === 'topup' ? (", ': true ? (', provasComp)
 mutante('saída de planos some', COMP_SRC, "onClick={() => track('subscribe')}", "data-x=\"1\"", provasComp)
 
 // ── (d) nenhum preço digitado ─────────────────────────────────────────────────────────────────────────────────────────
@@ -220,7 +242,139 @@ function provasPreco(lib, comp) {
   return R
 }
 for (const [n, c] of provasPreco(LIB_SRC, COMP_SRC)) ok(c, n)
-mutante('preço digitado no botão', COMP_SRC, '          More credits\n        </button>', '          More credits $9.90\n        </button>', (m) => provasPreco(LIB_SRC, m))
+mutante('preço digitado no botão', COMP_SRC, '          More credits\n        </button>\n      ) : (', '          More credits $9.90\n        </button>\n      ) : (', (m) => provasPreco(LIB_SRC, m))
+mutante('preço digitado no botão da recarga', COMP_SRC, '          More credits\n        </button>\n      ) : creditsExit', '          More credits $9.90\n        </button>\n      ) : creditsExit', (m) => provasPreco(LIB_SRC, m))
+
+// ── (r) KINEO-FILME-PRONTO-RECARGA-2311 — a recarga do assinante decidida pelo SERVIDOR ─────────────────────────────────────
+// Dono 12/11: "quero TODOS que são sub podendo comprar"; 23/11: recarga SÓ para assinante. Quem é assinante pago quem diz é a rota
+// GET /api/billing/recarga-assinante (useRecargaEntrada); o navegador nunca decide pelo plano.
+const OFERTA = Object.freeze({ show: true, qa: false, go: '/api/billing/recarga-assinante?go=1&surface=film_ready' })
+function provasRecarga(src) {
+  const R = []
+  const linkDeHoje = renderiza(src, { videoId: 'vid-9', plan: 'free' }, false, LIB).saidas[1]
+  for (const plan of ['starter', 'pro', 'basic', null]) {
+    const oferta = { ...OFERTA }
+    const r = renderiza(src, { videoId: 'vid-9', plan }, false, LIB, { oferta })
+    R.push([`(r-a) [${plan}] o servidor é lido UMA vez, na superfície do filme pronto (FILM_READY_TOPUP_SURFACE)`,
+      r.chamadasHook.length === 1 && r.chamadasHook[0][0] === LIB.FILM_READY_TOPUP_SURFACE && r.chamadasHook[0][0] === 'film_ready' && r.chamadasHook[0][1] !== false])
+    const cred = r.saidas[1]
+    R.push([`(r-a) [${plan}] com oferta do servidor, More credits é botão (sem href), mesmo rótulo e mesmo tamanho do link`,
+      r.saidas.length === 3 && cred?.type === 'button' && cred.props.href === undefined && texto(cred).trim() === 'More credits'
+      && typeof linkDeHoje?.props.className === 'string' && cred.props.className === linkDeHoje.props.className])
+    if (!cred || typeof cred.props.onClick !== 'function') continue
+    R.push([`(r-a) [${plan}] nada abre nem grava sem clique`, r.setters.length === 0 && r.eventos.length === 0 && !r.todos.some((n) => n.type === r.BuyModal)])
+    cred.props.onClick({ preventDefault() {} })
+    R.push([`(r-a) [${plan}] o clique abre a barra da RECARGA (não a barra antiga)`,
+      r.setters.some((s) => s.idx === 1 && s.x === true) && !r.setters.some((s) => s.idx === 0 && s.x === true)])
+    const cliques = r.eventos.filter((e) => e.name === 'film_ready_exit_clicked')
+    R.push([`(r-a) [${plan}] film_ready_exit_clicked grava destination=topup_modal`, cliques.length === 1 && cliques[0].meta.exit === 'more_credits'
+      && cliques[0].meta.destination === 'topup_modal' && cliques[0].meta.video_id === 'vid-9'])
+    R.push([`(r-a) [${plan}] grava buy_credits_entry_opened uma vez, com a superfície film_ready`,
+      r.eventos.filter((e) => e.name === 'buy_credits_entry_opened').length === 1 && r.eventos.some((e) => e.name === 'buy_credits_entry_opened' && e.meta?.surface === 'film_ready')])
+    const aberto = renderiza(src, { videoId: 'vid-9', plan }, false, LIB, { oferta, recargaAberta: true })
+    const modais = aberto.todos.filter((n) => n.type === aberto.BuyModal)
+    R.push([`(r-a) [${plan}] a barra montada é BuyCreditsModal com a oferta JÁ LIDA (mesmo objeto, sem 2ª leitura), superfície film_ready, fora das 3 saídas`,
+      modais.length === 1 && modais[0].props.offer === oferta && modais[0].props.surface === 'film_ready' && typeof modais[0].props.onClose === 'function'
+      && !aberto.todos.some((n) => n.type === aberto.Modal) && aberto.saidas.every((n) => n.type !== aberto.BuyModal)])
+  }
+  for (const plan of ['free', 'starter', 'pro', 'basic_trial', 'pro_trial', null]) {
+    const r = renderiza(src, { videoId: 'vid-9', plan }, false, LIB, { oferta: null })
+    const cred = r.saidas[1]
+    R.push([`(r-b/c/d) [${plan}] sem oferta do servidor (nula, lendo ou falhou) More credits é o link de hoje para /pricing — o plano não inventa oferta`,
+      r.saidas.length === 3 && cred?.type === 'a' && cred.props.href === '/pricing?intent_campaign=film_ready_v1#plans' && texto(cred).trim() === 'More credits'])
+    if (!cred || typeof cred.props.onClick !== 'function') continue
+    cred.props.onClick({ preventDefault() {} })
+    const cliques = r.eventos.filter((e) => e.name === 'film_ready_exit_clicked')
+    R.push([`(r-b) [${plan}] o clique grava destination=pricing e nada abre`, cliques.length === 1 && cliques[0].meta.destination === 'pricing'
+      && !r.setters.some((s) => s.x === true) && !r.eventos.some((e) => e.name === 'buy_credits_entry_opened')])
+    const forcado = renderiza(src, { videoId: 'vid-9', plan }, false, LIB, { oferta: null, recargaAberta: true })
+    R.push([`(r-d) [${plan}] sem oferta a barra da recarga nunca monta (nem com o estado aberto)`, !forcado.todos.some((n) => n.type === forcado.BuyModal)])
+  }
+  return R
+}
+for (const [n, c] of provasRecarga(COMP_SRC)) ok(c, n)
+const ANCORA_RAMO = '      {recarga ? (\n'
+const ANCORA_HOOK = 'const recarga = useRecargaEntrada(FILM_READY_TOPUP_SURFACE)'
+mutante('oferta do servidor ignorada (assinante cai em /pricing)', COMP_SRC, ANCORA_RAMO, '      {false ? (\n', provasRecarga)
+mutante('botão da recarga para quem não tem oferta', COMP_SRC, ANCORA_RAMO, '      {true ? (\n', provasRecarga)
+mutante('barra aberta para quem não tem oferta', COMP_SRC, '{recargaOpen && recarga ? <BuyCreditsModal', '{recargaOpen ? <BuyCreditsModal', provasRecarga)
+mutante('destino do evento mentindo (recarga grava pricing)', COMP_SRC, "track('more_credits', 'topup_modal')", "track('more_credits', String('pricing'))", provasRecarga)
+mutante('destino do evento mentindo (planos grava topup_modal)', COMP_SRC, "track('more_credits', 'pricing')", "track('more_credits', String('topup_modal'))", provasRecarga)
+mutante('oferta inventada pelo plano', COMP_SRC, ANCORA_HOOK,
+  "const recarga = useRecargaEntrada(FILM_READY_TOPUP_SURFACE) ?? (plan === 'pro' ? { show: true, go: '/x', qa: false } : null)", provasRecarga)
+mutante('superfície errada na leitura', COMP_SRC, ANCORA_HOOK, "const recarga = useRecargaEntrada('sidebar_chip')", provasRecarga)
+mutante('2ª leitura ao abrir (TopupOuRecargaModal no lugar da oferta lida)', COMP_SRC, '<BuyCreditsModal offer={recarga}', '<TopupOuRecargaModal offer={recarga}', provasRecarga)
+mutante('clique da recarga abre a barra antiga', COMP_SRC, '            setRecargaOpen(true)\n', '            setTopupOpen(Boolean(1))\n', provasRecarga)
+
+// (r-c) a peça REAL do servidor (components/billing/BuyCreditsEntry.tsx), executada: no SSR e enquanto a leitura não volta a oferta é
+// null (o link de hoje); só show:true com go e qa vira oferta; a barra aberta com a oferta lida não lê de novo e vai por portal no <body>.
+const ENTRY_SRC = rd('components/billing/BuyCreditsEntry.tsx')
+const RECARGA_LIB = roda(rd('lib/billing/recargaAssinante.ts'))
+async function provasHookReal(src) {
+  const R = []
+  const g = globalThis
+  const antes = { fetch: g.fetch, window: g.window, document: g.document }
+  const urls = []
+  let resposta = null
+  const body = { tag: 'body' }
+  const Modal = function CreditsTopupModal() {}
+  try {
+    g.fetch = (url) => { urls.push(String(url)); return resposta() }
+    g.window = { location: { pathname: '/generate', search: '?engine=fast' }, addEventListener() {}, removeEventListener() {} }
+    g.document = { body }
+    const jsx = (type, p, key) => ({ type, props: p ?? {}, key })
+    const carrega = (React) => roda(src, {
+      react: React,
+      'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'Fragment' },
+      'react-dom': { createPortal: (el, alvo) => ({ portal: true, el, alvo }) },
+      '@/components/CreditsTopupModal': { __esModule: true, default: Modal },
+      '@/lib/analytics': { trackEvent: () => Promise.resolve(true) },
+      '@/lib/billing/recargaAssinante': RECARGA_LIB,
+    }, true)
+    const caso = async (r) => {
+      const estados = []
+      const efeitos = []
+      const React = {
+        useState: (i) => { const st = { v: typeof i === 'function' ? i() : i }; estados.push(st); return [st.v, (x) => { st.v = typeof x === 'function' ? x(st.v) : x }] },
+        useEffect: (fn) => { efeitos.push(fn) },
+      }
+      const E = carrega(React)
+      let soltar
+      const pendente = new Promise((res) => { soltar = res })
+      resposta = () => pendente.then(() => r())
+      urls.length = 0
+      const inicial = E.useRecargaEntrada('film_ready')
+      efeitos.forEach((fn) => fn())
+      const lendo = estados[0].v
+      soltar()
+      await new Promise((res) => setTimeout(res, 0))
+      await new Promise((res) => setTimeout(res, 0))
+      return { E, inicial, lendo, final: estados[0].v, urls: [...urls] }
+    }
+    const okResp = (d) => () => Promise.resolve({ ok: true, json: () => Promise.resolve(d) })
+    const sim = await caso(okResp({ show: true, go: '/api/billing/recarga-assinante?go=1&surface=film_ready', qa: false }))
+    R.push(['(r-c) SSR e 1º desenho: a oferta é null (o link de hoje)', sim.inicial === null])
+    R.push(['(r-c) enquanto a leitura não volta: null', sim.lendo === null])
+    R.push(['(r-c) lê UMA vez a rota da recarga com surface=film_ready', sim.urls.length === 1 && sim.urls[0] === '/api/billing/recarga-assinante?surface=film_ready'])
+    R.push(['(r-c) show:true com go e qa vira a oferta', sim.final?.show === true && sim.final?.go === '/api/billing/recarga-assinante?go=1&surface=film_ready'])
+    R.push(['(r-c) show:false (free, trial, visitante) → null', (await caso(okResp({ show: false }))).final === null])
+    R.push(['(r-c) resposta não-ok → null', (await caso(() => Promise.resolve({ ok: false, json: () => Promise.resolve({ show: true, go: '/x', qa: false }) }))).final === null])
+    R.push(['(r-c) leitura que falhou → null', (await caso(() => Promise.reject(new Error('rede')))).final === null])
+    R.push(['(r-c) show:true sem go/qa → null', (await caso(okResp({ show: true }))).final === null])
+    urls.length = 0
+    const aberto = sim.final ? sim.E.BuyCreditsModal({ offer: sim.final, surface: 'film_ready', onClose() {} }) : null
+    R.push(['(r-c) a barra aberta com a oferta lida NÃO lê o servidor de novo (recarga_assinante_shown uma vez só)', aberto !== null && urls.length === 0])
+    R.push(['(r-c) a barra vai por portal no <body> (o cartão tem transform)', aberto?.portal === true && aberto.alvo === body])
+    R.push(['(r-c) é a MESMA barra (CreditsTopupModal) com o go do servidor e superfície buy_credits_film_ready',
+      aberto?.el?.type === Modal && aberto.el.props.recarga?.go === sim.final.go && aberto.el.props.surface === 'buy_credits_film_ready'])
+  } finally {
+    g.fetch = antes.fetch
+    if (antes.window === undefined) delete g.window; else g.window = antes.window
+    if (antes.document === undefined) delete g.document; else g.document = antes.document
+  }
+  return R
+}
+for (const [n, c] of await provasHookReal(ENTRY_SRC)) ok(c, n)
 
 // ── (e) a montagem no GenerateClient ─────────────────────────────────────────────────────────────────────────────────
 function provasMontagem(src) {

@@ -111,11 +111,16 @@ export function filmReadyExitsShownMetadata(input: { videoId: unknown; plan: unk
   }
 }
 
-export function filmReadyExitClickedMetadata(input: { exit: FilmReadyExit; videoId: unknown; plan: unknown }) {
+// KINEO-FILME-PRONTO-RECARGA-2311 — a tela passa o destino que ELA executou (a recarga vem do servidor, não do plano). Sem ele (outros
+// chamadores), o destino sai do plano como antes. Valor fora da lista é ignorado (nunca grava destino inventado).
+const FILM_READY_DESTINATIONS: readonly string[] = ['studio', 'topup_modal', 'pricing']
+export function filmReadyExitClickedMetadata(input: { exit: FilmReadyExit; videoId: unknown; plan: unknown; destination?: FilmReadyDestination | null }) {
   return {
     version: FILM_READY_EXITS_VERSION,
     exit: input.exit,
-    destination: filmReadyExitDestination(input.exit, input.plan),
+    destination: typeof input.destination === 'string' && FILM_READY_DESTINATIONS.includes(input.destination)
+      ? input.destination
+      : filmReadyExitDestination(input.exit, input.plan),
     video_id: videoIdOf(input.videoId),
     credits_exit: filmReadyCreditsExit(input.plan),
     plan_state: filmReadyPlanState(input.plan),

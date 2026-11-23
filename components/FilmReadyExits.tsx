@@ -7,7 +7,7 @@
 // e film_ready_exit_clicked por saída. A barra de créditos é a MESMA de sempre (CreditsTopupModal), não uma cópia.
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { TopupOuRecargaModal } from '@/components/billing/BuyCreditsEntry' // KINEO-RECARGA-TELAS-1211 — assinante sem saldo: a barra da recarga
+import { BuyCreditsModal, BUY_CREDITS_OPENED_EVENT, TopupOuRecargaModal, useRecargaEntrada } from '@/components/billing/BuyCreditsEntry' // KINEO-RECARGA-TELAS-1211 — assinante sem saldo: a barra da recarga
 import { createPortal } from 'react-dom'
 import { trackEvent } from '@/lib/analytics'
 import {
@@ -18,11 +18,17 @@ import {
   filmReadyNextFilmHref,
   filmReadyPlanLabel,
   filmReadyPlansHref,
+  type FilmReadyDestination,
   type FilmReadyExit,
 } from '@/lib/growth/filmReadyExits'
 
 export default function FilmReadyExits({ videoId, plan }: { videoId: string | null; plan: string | null }) {
   const [topupOpen, setTopupOpen] = useState(false)
+  // KINEO-FILME-PRONTO-RECARGA-2311 [dono 12/11: "quero TODOS que são sub podendo comprar"; 23/11: recarga SÓ para assinante] —
+  // quem decide é o SERVIDOR (GET da recarga, superfície film_ready; grava recarga_assinante_shown UMA vez, aqui). Com oferta, "More
+  // credits" abre a barra da recarga com a oferta já lida (sem 2ª leitura). Sem oferta, lendo, ou leitura que falhou: o link de sempre.
+  const recarga = useRecargaEntrada(FILM_READY_TOPUP_SURFACE)
+  const [recargaOpen, setRecargaOpen] = useState(false)
   // O href do SSR é o padrão sem escolhas; no navegador ganha motor/duração/modo da URL atual.
   const [nextFilmHref, setNextFilmHref] = useState(() => filmReadyNextFilmHref(''))
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -60,8 +66,8 @@ export default function FilmReadyExits({ videoId, plan }: { videoId: string | nu
     return () => observer.disconnect()
   }, [videoId, plan])
 
-  const track = (exit: FilmReadyExit) => {
-    void trackEvent('film_ready_exit_clicked', filmReadyExitClickedMetadata({ exit, videoId, plan }))
+  const track = (exit: FilmReadyExit, destination?: FilmReadyDestination) => {
+    void trackEvent('film_ready_exit_clicked', filmReadyExitClickedMetadata({ exit, videoId, plan, destination }))
   }
 
   return (
@@ -81,7 +87,21 @@ export default function FilmReadyExits({ videoId, plan }: { videoId: string | nu
       >
         Next film
       </Link>
-      {creditsExit === 'topup' ? (
+      {recarga ? (
+        <button
+          type="button"
+          data-kineo="film-ready-recarga"
+          onClick={() => {
+            track('more_credits', 'topup_modal')
+            void trackEvent(BUY_CREDITS_OPENED_EVENT, { surface: FILM_READY_TOPUP_SURFACE })
+            setRecargaOpen(true)
+          }}
+          className={actionClass}
+          style={{ border: '1px solid var(--border)', color: 'var(--text)', background: 'transparent', cursor: 'pointer' }}
+        >
+          More credits
+        </button>
+      ) : creditsExit === 'topup' ? (
         <button
           type="button"
           onClick={() => {
@@ -96,7 +116,7 @@ export default function FilmReadyExits({ videoId, plan }: { videoId: string | nu
       ) : (
         <a
           href={plansHref}
-          onClick={() => track('more_credits')}
+          onClick={() => track('more_credits', 'pricing')}
           className={actionClass}
           style={{ border: '1px solid var(--border)', color: 'var(--text)', textDecoration: 'none' }}
         >
@@ -117,6 +137,8 @@ export default function FilmReadyExits({ videoId, plan }: { videoId: string | nu
     {topupOpen && (typeof document !== 'undefined'
       ? createPortal(<TopupOuRecargaModal surface={FILM_READY_TOPUP_SURFACE} onClose={() => setTopupOpen(false)} />, document.body)
       : <TopupOuRecargaModal surface={FILM_READY_TOPUP_SURFACE} onClose={() => setTopupOpen(false)} />)}
+    {/* A barra da recarga: BuyCreditsModal já vai por portal no <body> sozinho (o mesmo motivo do transform acima). */}
+    {recargaOpen && recarga ? <BuyCreditsModal offer={recarga} surface={FILM_READY_TOPUP_SURFACE} onClose={() => setRecargaOpen(false)} /> : null}
     </>
   )
 }
