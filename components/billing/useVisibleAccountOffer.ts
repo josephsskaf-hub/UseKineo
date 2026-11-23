@@ -8,10 +8,18 @@ import { ACCOUNT_CREDITS_OFFER_SURFACE } from '@/lib/ui/unifiedAccountMenu'
 function readOffer(scope: AccountMenuScope) {
   if (!scope.offer) {
     scope.offer = fetch(`${RECARGA_ASSINANTE_API}?surface=${ACCOUNT_CREDITS_OFFER_SURFACE}`, { cache: 'no-store', credentials: 'same-origin' })
-      .then(response => response.ok ? response.json() : null)
-      .then((offer: AccountOffer | null) => offer?.show === true && typeof offer.qa === 'boolean' &&
-        offer.go === `${RECARGA_ASSINANTE_API}?go=1&surface=${ACCOUNT_CREDITS_OFFER_SURFACE}` ? offer : null)
-      .catch(() => null)
+      .then(async response => {
+        if (!response.ok) throw new Error('Credit offer request failed')
+        const offer = await response.json() as AccountOffer | { show: false } | null
+        if (offer?.show === false) return null
+        if (offer?.show === true && typeof offer.qa === 'boolean' &&
+          offer.go === `${RECARGA_ASSINANTE_API}?go=1&surface=${ACCOUNT_CREDITS_OFFER_SURFACE}`) return offer
+        throw new Error('Invalid credit offer response')
+      })
+      .catch(() => {
+        scope.offer = undefined
+        return null
+      })
   }
   return scope.offer
 }
@@ -31,7 +39,7 @@ function whenVisible(element: HTMLElement, notify: () => void, fallback = false)
   return () => observer.disconnect()
 }
 
-/** The first visible entry starts the read. Later entries on that page reuse its result. */
+/** Visible entries share an in-flight read and cache valid results. The next entry can retry after a failure. */
 export function useVisibleAccountOffer(surface: string, enabled: boolean, region: RefObject<HTMLElement>): AccountOffer | null {
   const scope = useAccountMenuScope()
   const [current, setCurrent] = useState<{ scope: AccountMenuScope; offer: AccountOffer | null }>()

@@ -30,7 +30,7 @@ const mutation = (file, before, after) => {
 }
 const actorFor = (email) => email ? { id: email, email, user_metadata: { full_name: 'Conta de prova' } } : null
 
-function world({ release = 'public', email = 'member@example.test', paid = false, changes = {}, waitForUser = false } = {}) {
+function world({ release = 'public', email = 'member@example.test', paid = false, changes = {}, waitForUser = false, firstOfferResponse } = {}) {
   const actor = actorFor(email)
   const requests = []
   const events = []
@@ -110,6 +110,11 @@ function world({ release = 'public', email = 'member@example.test', paid = false
     requests.push({ path: url.pathname, surface: url.searchParams.get('surface'), method: options.method ?? 'GET' })
     if (url.pathname === '/api/account/menu-visibility') return load('app/api/account/menu-visibility/route.ts').GET()
     if (url.pathname === api) {
+      if (firstOfferResponse && (options.method ?? 'GET') === 'GET') {
+        const respond = firstOfferResponse
+        firstOfferResponse = undefined
+        return respond()
+      }
       const route = load('app/api/billing/recarga-assinante/route.ts')
       const req = Object.assign(new Request(url, options), { nextUrl: url })
       return options.method === 'POST' ? route.POST(req) : route.GET(req)
@@ -218,11 +223,52 @@ async function offscreenDoesNotRead(changes) {
   } finally { await w.cleanup() }
 }
 
+async function offerAcrossSurfaces({ changes, paid, respond, concurrent = false, name }) {
+  const w = world({ changes, paid, firstOfferResponse: respond })
+  try {
+    const tree = await w.mount(h(React.Fragment, null, h(w.load(pricesFile).default, { signedIn: true }), h(w.load(settingsFile).default)))
+    const openSettings = () => act(async () => trigger(tree, 'Settings').props.onClick())
+    const menuRegion = props => Object.hasOwn(props, 'data-unified-account')
+
+    if (concurrent) {
+      await openSettings()
+      await w.show(props => pricingRegion(props) || menuRegion(props))
+      assert.equal(gets(w), 1, name)
+      assert.equal(labeled(tree, 'Buy credits').length, 2, name)
+      return
+    }
+
+    await w.show(pricingRegion)
+    assert.equal(labeled(tree, 'Buy credits').length, 0, 'a primeira leitura sem oferta não mostra recarga')
+    await openSettings()
+    await w.show(menuRegion)
+    assert.equal(gets(w), paid ? 2 : 1, name)
+    assert.equal(labeled(tree, 'Buy credits').length, paid ? 1 : 0, name)
+    assert.equal(labeled(tree, 'Sign out').length, 1)
+  } finally { await w.cleanup() }
+}
+
+const retry503 = changes => offerAcrossSurfaces({
+  changes, paid: true, respond: () => new Response(null, { status: 503 }), name: 'M7 · reconsulta ao abrir depois de 503',
+})
+const cacheIneligible = changes => offerAcrossSurfaces({
+  changes, paid: false, name: 'M8 · resposta inelegível segue em cache',
+})
+const deduplicate = changes => offerAcrossSurfaces({
+  changes, paid: true, concurrent: true, name: 'M9 · superfícies simultâneas fazem uma única leitura',
+})
+
+await offerAcrossSurfaces({ paid: true, respond: () => Promise.reject(new TypeError('offline')), name: 'recupera erro de rede' })
+await offerAcrossSurfaces({ paid: true, respond: () => Response.json({}), name: 'recupera resposta inválida' })
+
 for (const [id, verify, file, before, after, check] of [
   ['M1', freeDoesNotBuy, pricesFile, 'signedIn === true, region)', "signedIn === true, region) ?? { show: true, qa: false, go: '/invented' }", /M1 ·/],
   ['M2', offUsesLegacy, settingsFile, 'if (menuScope) return', 'if (true) return', /M2 ·/],
   ['M3', unknownAuthGetsAccount, contentFile, 'if (signedIn === false || account) return', 'if (signedIn !== true || account) return', /M3 ·/],
   ['M4', balanceComesFromServer, balanceFile, "{credits === null ? 'Credits' : `${credits} credit${credits === 1 ? '' : 's'}`}", "{'60 credits'}", /M4 ·/],
+  ['M7', retry503, observerFile, '        scope.offer = undefined', '        // keep the failed promise', /M7 ·/],
+  ['M8', cacheIneligible, observerFile, "        if (offer?.show === false) return null", "        if (offer?.show === false) throw new Error('ineligible')", /M8 ·/],
+  ['M9', deduplicate, observerFile, 'if (!scope.offer)', 'if (true)', /M9 ·/],
   ['M6', offscreenDoesNotRead, observerFile, 'const stop = whenVisible(region.current, () => {', 'const stop = ((_el: HTMLElement, run: () => void) => { run(); return () => {} })(region.current, () => {', /M6 ·/],
 ]) {
   await verify({})
