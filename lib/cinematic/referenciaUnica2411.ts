@@ -23,9 +23,20 @@ const https = (u: unknown): u is string => typeof u === 'string' && /^https:\/\/
 /** O protagonista do elenco aceito (pessoa, bicho ou criatura) e a sua referência: a ficha do elenco; senão a 1ª imagem-chave aprovada
  *  que mostra só ele. Sem protagonista, mais de um, ou sem URL https = null (o caminho de hoje). */
 export function referenciaUnicaDoFilme(snapshot: FilmQualitySnapshot | null | undefined): ReferenciaUnica2411 | null {
-  const leads = snapshot?.characters?.filter((c) => c.protagonista) ?? []
-  if (!snapshot || leads.length !== 1) return null
+  try { return escolherReferencia(snapshot) } catch { return null } // [revisor 24/11, volta 1] retrato torto = sem referência (o caminho de hoje), nunca erro
+}
+const objeto = (v: unknown): boolean => !!v && typeof v === 'object' && !Array.isArray(v)
+/** Retrato fora do formato (lista ausente, item que não é objeto, imagem-chave sem characterNames) = sem referência. */
+function retratoNoFormato(s: FilmQualitySnapshot | null | undefined): s is FilmQualitySnapshot {
+  return objeto(s) && Array.isArray(s!.characters) && Array.isArray(s!.characterReferences) && Array.isArray(s!.approvedStills) &&
+    s!.characters.every(objeto) && s!.characterReferences.every(objeto) && s!.approvedStills.every((x) => objeto(x) && Array.isArray(x.characterNames))
+}
+function escolherReferencia(snapshot: FilmQualitySnapshot | null | undefined): ReferenciaUnica2411 | null {
+  if (!retratoNoFormato(snapshot)) return null
+  const leads = snapshot.characters.filter((c) => c.protagonista === true)
+  if (leads.length !== 1) return null
   const lead = leads[0]
+  if (typeof lead.nome !== 'string' || !lead.nome.trim()) return null
   if (lead.tipo !== 'humano' && lead.tipo !== 'animal' && lead.tipo !== 'criatura') return null
   const ficha = snapshot.characterReferences.find((r) => r.nome === lead.nome)?.url
   const still = snapshot.approvedStills.find((s) => s.characterNames.length === 1 && s.characterNames[0] === lead.nome)?.url
@@ -34,6 +45,19 @@ export function referenciaUnicaDoFilme(snapshot: FilmQualitySnapshot | null | un
   const nomes = [lead.nome, lead.nucleo].filter((n, i, all): n is string => typeof n === 'string' && !!n.trim() && all.indexOf(n) === i)
   return { imageUrl, frase: lead.tipo === 'humano' ? FRASE_REFERENCIA_PESSOA : FRASE_REFERENCIA_DESENHO, nomes,
     origem: https(ficha) ? 'ficha' : 'imagem_chave', tipo: lead.tipo }
+}
+
+/** [revisor 24/11, volta 1] O que os JUÍZES leem: a frase de referência é instrução ao motor, não conteúdo da cena. Ela sai antes do juízo, para o
+ *  juiz de antes, o A2 e o juiz do plano lerem o MESMO texto (juizLeuOMesmoTexto continua valendo; sem 2ª leitura paga a mais). O que vai à fal e
+ *  ao claim continua o pedido real. Sem a referência única no envio = a MESMA entrada, intocada (desligado = byte a byte). */
+export function entradaDoJuiz2411(
+  timing: Parameters<typeof relatoReferenciaUnica>[0], wire: { model: string; input: Record<string, unknown> },
+): Record<string, unknown> {
+  const ref = timing?.referenciaUnica
+  if (!ref || !relatoReferenciaUnica(timing, wire) || !Array.isArray(wire.input.multi_prompt)) return wire.input
+  const frase = ' ' + ref.frase.trim()
+  return { ...wire.input, multi_prompt: (wire.input.multi_prompt as Array<Record<string, unknown>>).map((m) =>
+    typeof m?.prompt === 'string' && m.prompt.includes(frase) ? { ...m, prompt: m.prompt.replace(frase, '') } : m) }
 }
 
 /** Para medir depois: o que foi à fal saiu pela referência única? (só nomes de campo, índices e a origem; nunca texto do cliente) */

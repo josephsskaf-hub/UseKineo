@@ -76,7 +76,8 @@ function porSecao(route, modules, merged, referenciaUnica) {
 }
 
 async function suite(change) {
-  const source = (file, src) => change && file === change[0] ? src.split(change[1]).join(change[2]) : src
+  const pares = change ? (Array.isArray(change[1]) ? change[1] : [[change[1], change[2]]]) : []
+  const source = (file, src) => change && file === change[0] ? pares.reduce((t, [de, para]) => t.split(de).join(para), src) : src
   const modules = load(source), api = modules('@/' + transport), f = modules('@/' + feature), contas = modules('@/lib/internalAccounts')
   const route = source(routeFile, local(routeFile))
 
@@ -86,7 +87,7 @@ async function suite(change) {
     assert.equal(f.referenciaUnicaLigada('internal', e), true, e); assert.equal(f.referenciaUnicaLigada('internal', ' ' + e.toUpperCase() + ' '), true, e)
     assert.equal(f.referenciaUnicaLigada('off', e), false, e)
   }
-  for (const e of ['joseph+teste02@gmail.com', 'josephsskaf+x@gmail.com', 'test123@example.com', 'smoketest@x.io', 'qa@shortsforgeai.com', 'cliente@example.org', '', null, undefined]) {
+  for (const e of ['joseph+teste02@gmail.com', 'josephsskaf+x@gmail.com', 'test123@example.com', 'smoketest@x.io', 'qa@shortsforgeai.com', 'joseph@usekineo.com', 'hello@usekineo.com', 'qualquer@usekineo.com', 'cliente@example.org', '', null, undefined]) { // [revisor 24/11, R1] o domínio da casa fora da lista exata fica desligado
     assert.equal(f.referenciaUnicaLigada('internal', e), false, String(e)); assert.equal(f.referenciaUnicaLigada('off', e), false)
   }
   assert.equal(f.referenciaUnicaLigada('public', 'cliente@example.org'), true)
@@ -160,6 +161,62 @@ async function suite(change) {
   const vinte = { voiceovers: tm.voiceovers, wordsPerSecond: 2.5, clipSeconds: 20 }
   assert.equal((await post(api, { prompts: pr, approvedStills: st, timing: { ...vinte, referenciaUnica: ru } })).body, (await post(old, { prompts: pr, approvedStills: st, timing: vinte })).body, '20 s fica como hoje')
 
+  // [revisor 24/11, R5] com os DOIS campos, o personagem fixo do fundador ganha, byte a byte.
+  const fixo = { imageUrl: 'https://www.usekineo.com/ads/presenters/marcus.webp', continuity: 'Keep the face and outfit of @Image1. Match the clothing and setting of the story.' }
+  assert.equal((await post(api, { prompts: pr, approvedStills: st, timing: { ...tm, fixedCharacter: fixo, referenciaUnica: ru } })).body, (await post(old, { prompts: pr, approvedStills: st, timing: { ...tm, fixedCharacter: fixo } })).body)
+  // [revisor 24/11, R9] o teto de 6 planos: 7 planos = null (o caminho de hoje); 6 planos passam.
+  const planosDe = (n) => Array.from({ length: n }, (_, i) => ({ prompt: 'The young man walks, step ' + (i + 1) + '.', duration: i < 15 % n ? Math.floor(15 / n) + 1 : Math.floor(15 / n) }))
+  assert.equal(planosDe(7).reduce((t, p) => t + p.duration, 0), 15); assert.equal(planosDe(6).reduce((t, p) => t + p.duration, 0), 15)
+  assert.equal(api.buildKling4ReferenciaUnicaInput(planosDe(7), ru), null)
+  assert.equal(api.buildKling4ReferenciaUnicaInput(planosDe(6), ru).input.multi_prompt.length, 6)
+
+  // [revisor 24/11, volta 1, ponto 2] retrato torto, com a obra LIGADA ('internal' para o fundador e 'public'): nada lança, nada liga, o caminho de hoje.
+  const ruins = [null, undefined, { ...s0, characters: null }, (({ approvedStills, ...x }) => x)(s0), (({ characterReferences, ...x }) => x)(s0),
+    { ...s0, characterReferences: [], approvedStills: [{ url: 'https://x.org/k.png' }] }, { ...s0, characterReferences: [{ nome: lead.nome }], approvedStills: [] },
+    { ...s0, characters: [] }, { ...s0, characters: [lead, { ...lead, nome: 'the friend' }] }, { ...s0, characters: [{ ...lead, nome: undefined }] },
+    { ...s0, characterReferences: [{ nome: lead.nome, url: 'https://x.org/a b.jpg' }] }]
+  assert.equal(ruins.length, 11)
+  const publico = { ...f, REFERENCIA_UNICA_2411: 'public' }
+  for (const [i, snap] of ruins.entries()) {
+    let r
+    try { r = f.referenciaUnicaDoFilme(snap) } catch { assert.fail('referenciaUnicaDoFilme lançou no retrato ruim ' + i) }
+    assert.equal(r, null, 'retrato ruim ' + i)
+    for (const [mod, email] of [[ligado, casa], [publico, 'cliente@example.org'], [publico, casa]]) {
+      let t
+      try { t = admitir(route, mod, { email, snapshot: snap }) } catch { assert.fail('a admissão lançou no retrato ruim ' + i) }
+      assert.equal('referenciaUnica' in t, false)
+    }
+  }
+  // e se a escolha lançar mesmo assim: a rota cai no caminho de hoje, sem derrubar o filme
+  for (const mod of [ligado, publico]) {
+    let t
+    try { t = admitir(route, { ...mod, referenciaUnicaDoFilme: () => { throw new TypeError('offline') } }, { email: casa, snapshot: s0 }) } catch { assert.fail('a rota deixou o erro subir') }
+    assert.equal('referenciaUnica' in t, false)
+  }
+
+  // [revisor 24/11, volta 1, ponto 3] os juízes leem o MESMO texto: o juiz de antes (sem imagens, sem referência) e o juiz do plano / A2 (o envio,
+  // sem a frase de referência) → juizLeuOMesmoTexto verdadeiro nos 3 filmes; o pedido à fal continua com a frase.
+  const juiz = modules('@/lib/juizDoPlano'), ficha = modules('@/lib/cinematic/fichaAntesDoRender1311')
+  for (const [id, snap] of [['2fef3706', '2fef3706'], ['4691e265', '4691e265'], ['49448973', '49448973-com-elenco']]) {
+    const fl = filme(id), ps = fl.planos.map(p => p.prompt), falas = fl.planos.map(p => p.prompt.slice(0, 20)), t0 = timingDe(fl)
+    const tRef = { ...t0, referenciaUnica: f.referenciaUnicaDoFilme(snapshots[snap]) }
+    const antes = juiz.planoDoEnvio({ kling4Candidato: true, kling4Input: () => api.buildKling4TrialInput(ps, [], t0).input, falas, inputs: [] }).cenas
+    const wire = api.buildKling4TrialInput(ps, stillsDe(fl), tRef)
+    assert.equal(wire.model, 'kling/v4/reference-to-video')
+    const doJuiz = juiz.planoDoEnvio({ kling4Candidato: true, kling4Input: () => f.entradaDoJuiz2411(tRef, wire), falas, inputs: [] }).cenas
+    assert.equal(ficha.juizLeuOMesmoTexto(antes, doJuiz), true, id + ': o juiz leu o mesmo texto')
+    assert.equal(ficha.juizLeuOMesmoTexto(antes, juiz.planoDoEnvio({ kling4Candidato: true, kling4Input: () => wire.input, falas, inputs: [] }).cenas), false, id + ': com a frase, seria outra leitura')
+    assert.ok(wire.input.multi_prompt.some(m => m.prompt.includes('@Image1')), 'o pedido à fal continua com a frase')
+    const hojeWire = api.buildKling4TrialInput(ps, stillsDe(fl), t0)
+    assert.equal(f.entradaDoJuiz2411(t0, hojeWire), hojeWire.input, 'desligado: a mesma entrada, intocada')
+  }
+  // na rota, os lugares em que o juiz lê o envio (A2 ×3 + eco, juiz do plano ×2) passam por entradaDoJuiz2411; o envio e o claim, não
+  assert.equal(route.split('(buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input.multi_prompt as Array<{ prompt: string }>)').length - 1, 0)
+  assert.equal(route.split('(entradaDoJuiz2411(e.timing, buildKling4TrialInput(e.prompts, e.approvedStills, e.timing)).multi_prompt as Array<{ prompt: string }>)').length - 1, 4)
+  assert.equal(route.split('return entradaDoJuiz2411(e.timing, buildKling4TrialInput(e.prompts, e.approvedStills, e.timing)) /* KINEO-REFERENCIA-UNICA-2411: o juiz lê sem a frase */').length - 1, 2)
+  assert.ok(route.includes('scene_fal_inputs: [(() => { const e = kling4EnvioDoFilme(); return buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input })()]'))
+  assert.ok(route.includes('return submitKling4TrialVideo(kling4PorSecao({'))
+
   // O teto de 512 do plano: a frase e a proteção da boca ficam inteiras.
   const longo = 'Photoreal film. The young man ' + 'walks through the long corridor of mirrors, '.repeat(20) + 'Mouth closed, no speaking.'
   const pl = api.buildKling4ReferenciaUnicaInput([{ prompt: longo, duration: 15 }], ru).input.multi_prompt[0].prompt
@@ -193,10 +250,19 @@ const mutants = [
   [feature, 'timing?.fixedCharacter || wire.model !== KLING4_REFERENCE_MODEL', 'timing?.fixedCharacter'],
   [routeFile, 'if (!kling4Timing.fixedCharacter && kling4TrialCandidate && referenciaUnicaLigada(', 'if (kling4TrialCandidate && referenciaUnicaLigada('],
   [routeFile, '      if (q && a.timing.referenciaUnica) Object.assign(r.timing, { referenciaUnica: a.timing.referenciaUnica })', '      if (false) Object.assign(r.timing, {})'],
+  // [revisor 24/11, volta 1] os três que sobreviviam (R1, R5, R9) e os da robustez e do juiz
+  [feature, "modo === 'internal' && contaDaCasaExata(email)", "modo === 'internal' && (contaDaCasaExata(email) || /@usekineo\\.com$/i.test(String(email ?? '')))"],
+  [transport, '  if (timing?.fixedCharacter) return buildKling4ReferenceInput(', '  if (timing?.fixedCharacter && !timing?.referenciaUnica) return buildKling4ReferenceInput('],
+  [transport, 'shots.length > 6 ||', ''],
+  [feature, [['  try { return escolherReferencia(snapshot) } catch { return null }', '  return escolherReferencia(snapshot)'], ['Array.isArray(s!.approvedStills) &&', '']]],
+  [feature, [['  try { return escolherReferencia(snapshot) } catch { return null }', '  return escolherReferencia(snapshot)'], [' && Array.isArray(x.characterNames))', ')']]],
+  [routeFile, '} catch (erro) { delete kling4Timing.referenciaUnica;', '} catch (erro) { throw erro; delete kling4Timing.referenciaUnica;'],
+  [feature, "m.prompt.replace(frase, '')", 'm.prompt'],
+  [routeFile, 'kling4Input: () => { const e = kling4EnvioDoFilme(); return entradaDoJuiz2411(e.timing, buildKling4TrialInput(e.prompts, e.approvedStills, e.timing)) /* KINEO-REFERENCIA-UNICA-2411: o juiz lê sem a frase */ }, falas', 'kling4Input: () => { const e = kling4EnvioDoFilme(); return buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input }, falas'],
 ]
 let mortos = 0
 for (const mutant of mutants) {
-  assert.ok(local(mutant[0]).includes(mutant[1]), 'mutante não aplica: ' + mutant[1])
+  for (const [de] of Array.isArray(mutant[1]) ? mutant[1] : [[mutant[1]]]) assert.ok(local(mutant[0]).includes(de), 'mutante não aplica: ' + de)
   await assert.rejects(suite(mutant), err => err instanceof assert.AssertionError, 'SOBREVIVEU: ' + mutant[1])
   mortos++
 }
