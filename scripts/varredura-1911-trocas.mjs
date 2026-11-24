@@ -64,7 +64,7 @@ export function pricingPreservado1911(base, atual) {
   if (base === null) return false
   // The Studio text may change only at these copy and display points.
   // Every checkout, price calculation and ordering line remains protected.
-  const semTextoStudio = atual
+  const semTextoStudio = base.includes("import { studioIncludedPerks }") ? atual : atual
     .replace("import { studioIncludedPerks } from '@/lib/pricingStudioBenefits'\n", '')
     .replace("import { PLAN_VALUE_STAGE_CSS, PlanValueCard, StudioFilmCounts, isPlanValuePalette, type PlanValuePalette, type PlanValueTier }", "import { PLAN_VALUE_STAGE_CSS, PlanValueCard, isPlanValuePalette, type PlanValuePalette, type PlanValueTier }")
     .replace("function PricingClient({ initialBilling = 'annual', watchPreview = false, characterLimits }: {", "function PricingClient({ initialBilling = 'annual', watchPreview = false }: {")
