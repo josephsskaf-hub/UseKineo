@@ -38,6 +38,7 @@ import { KLING4_REFERENCE_MODEL, type Kling4CharacterReference } from '@/lib/kli
 import { ELENCO_E_FIGURINO_2411, FIGURINO_DO_PEDIDO_2411, elencoEFigurinoLigado, elencoComNomeCompleto, aceitaPapelSemPista, fichaComDescricaoDoPedido, relatoDoElenco2411, medidaDaLeitura2411, medidaDaRegra2411, type MedidaDaLeitura2411, ELENCO_E_FIGURINO_2411_VERSAO } from '@/lib/cinematic/elencoEFigurino2411' // KINEO-ELENCO-E-FIGURINO-2411
 import { FOLHA_DA_REFERENCIA_2411, folhaDaReferenciaLigada, folhaServeAReferencia2411, retratoDaReferencia2411 } from '@/lib/cinematic/folhaDaReferencia2411' // KINEO-FOLHA-DA-REFERENCIA-2411
 import { LEITOR_DO_ELENCO_2411, LEITOR_DO_ELENCO_2411_VERSAO, elencoDoLeitor2411 } from '@/lib/cinematic/elencoEFigurino2411' // KINEO-LEITOR-DO-ELENCO-2411
+import { JUIZ_DA_FOLHA_2411, JUIZ_DA_FOLHA_2411_VERSAO, juizDaFolhaLigado, julgarAFolha, lerAFolha, retratoSemFolhaReprovada2411, type RelatoDaFolha } from '@/lib/cinematic/juizDaFolha2411' // KINEO-JUIZ-DA-FOLHA-2411
 import { REFERENCIA_UNICA_2411, admitirReferenciaUnica2411, relatoReferenciaUnica, relatoClienteSemReferencia2411, entradaDoJuiz2411, type ReferenciaUnica2411, type MotivoClienteSemReferencia2411 } from '@/lib/cinematic/referenciaUnica2411' // KINEO-REFERENCIA-UNICA-2411 · KINEO-REFERENCIA-UNICA-HUMANO-2411
 import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy'
 import { kling4PaidCredits, kling4PaidFalExtrasMilliUsd, kling4PaidBudget } from '@/lib/kling4PaidPricing'
@@ -8136,6 +8137,8 @@ async function manipularPost(req: NextRequest) {
     // IDENTITY, em 'enforce' (1 foto nova por cena, teto de 3 por filme, 35 s); (4) o still aprovado SUBSTITUI o FLUX daquela cena. O FLUX fica de reserva: folha, still ou [KINEO-META95-PERSONAGEM-2010]
     // moderação que falha = a cena sai exatamente como hoje. Sem o interruptor: nada disto roda (o `if` abaixo é a única porta). Fica FORA das fatias que os guardiões executam. [KINEO-META95-PERSONAGEM-2010]
     // >>> KINEO-META95-PERSONAGEM-2010 bloco
+    const folhasReprovadas2411 = new Set<string>() // KINEO-JUIZ-DA-FOLHA-2411 — as folhas que o juiz reprovou duas vezes (ou não leu): a admissão não as lê
+    let juizDaFolhaRelato2411: RelatoDaFolha[] | null = null // KINEO-JUIZ-DA-FOLHA-2411 — para o claim (só a casa, com o interruptor)
     let folhasDaReferencia2411: Array<{ nome: string; url: string }> = [] // KINEO-FOLHA-DA-REFERENCIA-2411 — as folhas que a admissão da referência única pode ler mesmo descartadas (só com o interruptor)
     const elencoDaFolha1311 = elencoSemFichaCortada(elencoDoAjuste, fichaCortada1311) // KINEO-FICHA-POR-PLANO-2011 [rv21] — quem teve a ficha cortada não ganha folha (nada cortado = o elenco de sempre)
     if (qualidadeFilme.gerarFolha && anchorActive && !estrelaAtiva && elencoDaFolha1311.length > 0) { // KINEO-META95-PERSONAGEM-2010 · KINEO-FILME15-ELENCO-2610 (era personagemElenco.elenco) // KINEO-QUALIDADE-TODOS-MOTORES-2910
@@ -8149,6 +8152,15 @@ async function manipularPost(req: NextRequest) {
       let reconferidasP = 0 // KINEO-META95-PERSONAGEM-AJUSTE-2010
       const folhasP = await Promise.all(elencoP.map((f, i) => qualidadeHerdada ? Promise.resolve(referenciaDaCena(qualidadeHerdada, [f])?.url ?? null) : generateCinematicSceneStill({ scenePrompt: promptDaFolha(f, styleAnchor), styleSuffix: '', seed: (generationSeed + 7_919 * (101 + i)) % 2_147_483_647, pollWindowMs: 15_000, aspect: aspectRequested }))) // KINEO-QUALIDADE-TODOS-MOTORES-2910
       const folhaDe = new Map<string, string>(elencoP.flatMap((f, i): Array<[string, string]> => (folhasP[i] ? [[f.nome, folhasP[i] as string]] : []))) // KINEO-META95-PERSONAGEM-2010
+      // KINEO-JUIZ-DA-FOLHA-2411 [CEO 24/11, Bolt ab9a1d7a: a folha saiu cachorro-robô e o filme seguiu a folha] — a casa, no filme grátis do Kling 4, com folha nova (herdada não): cada folha é LIDA antes de
+      // qualquer imagem-chave. Reprovou: UMA folha nova com a instrução do que faltou, e ela passa a ser a folha do filme. Reprovou de novo ou sem leitura: a folha segue no caminho de hoje (imagens-chave),
+      // mas a admissão da referência única não a lê. Cliente e 'off': o `if` não entra (nenhuma chamada).
+      if (juizDaFolhaLigado(JUIZ_DA_FOLHA_2411, user.email) && kling4TrialCandidate && !qualidadeHerdada && folhaDe.size > 0) {
+        const julgadas = await Promise.all(elencoP.filter((f) => folhaDe.has(f.nome)).map((f, i) => julgarAFolha({ ficha: f, url: folhaDe.get(f.nome) as string, filmeFotorreal: !isStylizedLook(styleAnchor) && !desenhoInfantil.ativo, lookPhrase: styleAnchor.lookPhrase },
+          { ler: (descricao, url) => lerAFolha(descricao, url), gerar: (instrucao) => generateCinematicSceneStill({ scenePrompt: promptDaFolha(f, styleAnchor) + instrucao, styleSuffix: '', seed: (generationSeed + 7_919 * (201 + i)) % 2_147_483_647, pollWindowMs: 15_000, aspect: aspectRequested }) })))
+        for (const j of julgadas) { if (j.url) folhaDe.set(j.relato.nome, j.url); else folhasReprovadas2411.add(j.relato.nome) }
+        juizDaFolhaRelato2411 = julgadas.map((j) => j.relato)
+      }
       if (qualitySnapshot) qualitySnapshot.characterReferences = Array.from(folhaDe, ([nome, url]) => ({ nome, url })) // KINEO-QUALIDADE-TODOS-MOTORES-2910
       // KINEO-ELENCO-TRAVA-0311 — (d) humano/animal de ficha rala (a menina de 6 palavras do caso youbykh) ganha âncoras LIDAS da folha — a imagem que gera todo still — numa chamada de visão
       // KINEO-ELENCO-TRAVA-0311 — (6 s, em paralelo, uma vez por filme; nunca nome de gente real): idade, cabelo, pele, roupa / porte, pelagem. A ficha nova troca a antiga em todo prompt e viaja verbatim.
@@ -8382,7 +8394,7 @@ async function manipularPost(req: NextRequest) {
     // senão o pedido de hoje (byte a byte) e só o código do motivo no claim. Estilizado = o que a rota já sabe (isStylizedLook ou desenho infantil).
     if (!kling4Timing.fixedCharacter && kling4TrialCandidate && REFERENCIA_UNICA_2411 !== 'off') {
       try { // [revisor 24/11, volta 1] qualquer erro aqui = o caminho de hoje, com aviso; nunca derruba o filme
-        const ru2411 = admitirReferenciaUnica2411(REFERENCIA_UNICA_2411, user.email, retratoDaReferencia2411(qualitySnapshot, folhasDaReferencia2411, folhaDaReferenciaLigada(FOLHA_DA_REFERENCIA_2411, user.email)) /* KINEO-FOLHA-DA-REFERENCIA-2411 — desligado = o mesmo retrato */, { estilizado: isStylizedLook(styleAnchor) || desenhoInfantil.ativo })
+        const ru2411 = admitirReferenciaUnica2411(REFERENCIA_UNICA_2411, user.email, retratoSemFolhaReprovada2411(retratoDaReferencia2411(qualitySnapshot, folhasDaReferencia2411, folhaDaReferenciaLigada(FOLHA_DA_REFERENCIA_2411, user.email)), folhasReprovadas2411) /* KINEO-JUIZ-DA-FOLHA-2411 — nada reprovado = o mesmo retrato */ /* KINEO-FOLHA-DA-REFERENCIA-2411 — desligado = o mesmo retrato */, { estilizado: isStylizedLook(styleAnchor) || desenhoInfantil.ativo })
         if (ru2411 && 'referencia' in ru2411) { kling4Timing.referenciaUnica = ru2411.referencia; if (ru2411.cliente) kling4Timing.referenciaUnicaDoCliente = true }
         else if (ru2411) kling4Timing.referenciaUnicaRecusa = ru2411.motivo
       } catch (erro) { delete kling4Timing.referenciaUnica; delete kling4Timing.referenciaUnicaRecusa; delete kling4Timing.referenciaUnicaDoCliente; console.warn('[cinematic] KINEO-REFERENCIA-UNICA-2411: referência não montada, caminho de hoje', erro instanceof Error ? erro.name : typeof erro) }
@@ -8842,6 +8854,7 @@ async function manipularPost(req: NextRequest) {
           ...(kling4EnvioDoFilme().planos ? { kling4_planos: { versao: KLING4_PLANO_POR_SECAO_VERSAO, secoes_por_cena: kling4EnvioDoFilme().planos } } : {}), // KINEO-K4-PLANO-POR-SECAO-1111 — para medir
           ...(kling4PlanoVariado ? { kling4_plano_variado: KLING4_PLANO_VARIADO_VERSAO } : {}),
           ...(kling4PlanoFinal ? { kling4_plano_final: KLING4_PLANO_FINAL_VERSAO } : {}), // KINEO-K4-PLANO-FINAL-1111 — para medir // KINEO-K4-PLANO-VARIADO-1111 — para medir a nota antes/depois
+          ...(juizDaFolhaRelato2411 ? { kling4_juiz_da_folha: { versao: JUIZ_DA_FOLHA_2411_VERSAO, folhas: juizDaFolhaRelato2411 } } : {}), // KINEO-JUIZ-DA-FOLHA-2411 — só a casa, com o interruptor
           ...((() => { const e = kling4EnvioDoFilme(); const w = buildKling4TrialInput(e.prompts, e.approvedStills, e.timing); const ru = relatoReferenciaUnica(e.timing, w); const sem = ru ? null : relatoClienteSemReferencia2411(kling4Timing, w); return ru ? { kling4_referencia_unica: ru } : sem ? { kling4_referencia_unica_cliente: sem } : {} })()), // KINEO-REFERENCIA-UNICA-2411 — para medir (desligado = nenhum campo novo) · KINEO-REFERENCIA-UNICA-HUMANO-2411: cliente sem a referência = só o código do motivo
           clip_seconds: [kling4TrialClipTotal(kling4Timing.clipSeconds)], clip_word_starts: [0], // KINEO-K4-GRATIS-20S-1711 — [15] como sempre sem o caminho de até 20 s
         })

@@ -14,6 +14,7 @@ const transport = 'lib/kling4Trial.ts'
 const routeFile = 'app/api/generate-video-cinematic/route.ts'
 const local = file => readFileSync(file, 'utf8').replaceAll('\r\n', '\n')
 const load = source => createOfflineLoader({ source, globals: { AbortSignal } })
+const juizDaFolha = load((file, src) => src)('@/lib/cinematic/juizDaFolha2411.ts') // KINEO-JUIZ-DA-FOLHA-2411 (a admissão lê o retrato sem a folha reprovada)
 const igual = (a, b, m) => assert.equal(JSON.stringify(a), JSON.stringify(b), m) // objetos de outro realm (o carregador)
 const CASA = 'josephsskaf@gmail.com', CLIENTE = 'cliente@example.org'
 
@@ -67,9 +68,9 @@ function admitir(route, f, fr, vp, { email, snapshot, folhas, look = 'photoreal'
   assert.ok(ini > 0 && fim > ini && route.indexOf('let folhasDaReferencia2411') < ini, 'admissão não achada, ou antes das folhas')
   const kling4Timing = { voiceovers: [], wordsPerSecond: 2 }
   Function('kling4Timing', 'kling4TrialCandidate', 'REFERENCIA_UNICA_2411', 'user', 'admitirReferenciaUnica2411', 'qualitySnapshot', 'isStylizedLook', 'styleAnchor', 'desenhoInfantil',
-    'retratoDaReferencia2411', 'folhasDaReferencia2411', 'folhaDaReferenciaLigada', 'FOLHA_DA_REFERENCIA_2411',
+    'retratoDaReferencia2411', 'folhasDaReferencia2411', 'folhaDaReferenciaLigada', 'FOLHA_DA_REFERENCIA_2411', 'retratoSemFolhaReprovada2411', 'folhasReprovadas2411', // + KINEO-JUIZ-DA-FOLHA-2411 (nada reprovado)
     ts.transpile(route.slice(ini, fim)))(kling4Timing, true, f.REFERENCIA_UNICA_2411, { email }, f.admitirReferenciaUnica2411, snapshot, vp.isStylizedLook, { look }, { ativo: false },
-    fr.retratoDaReferencia2411, folhas, fr.folhaDaReferenciaLigada, fr.FOLHA_DA_REFERENCIA_2411)
+    fr.retratoDaReferencia2411, folhas, fr.folhaDaReferenciaLigada, fr.FOLHA_DA_REFERENCIA_2411, juizDaFolha.retratoSemFolhaReprovada2411, new Set())
   return kling4Timing
 }
 async function post(api, args) {
