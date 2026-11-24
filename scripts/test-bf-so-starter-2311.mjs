@@ -141,6 +141,17 @@ async function problemas(repl = {}) {
     }
   }
   checa('(b) o evento consultado é o que a carta da base grava', B.BF2026_BASE_LETTER_SENT_EVENT === 'bf_base_2311_sent' && src(F.cartaBase).includes("export const BF_BASE_2311_SENT = 'bf_base_2311_sent' as const"))
+  // KINEO-BF-CYBER-BASE-50-2411 — as duas cartas dizem a base dos 50% (12 mensalidades); a cyber mantém o prazo.
+  {
+    const base = `${B.BF2026_PERCENT_OFF}% off 12 monthly payments`
+    const rodape = { text: '', html: '' }
+    const cartaBf = B.bf2026EmailBody('bf', B.bf2026PriceRows(), rodape)
+    const cartaCyber = B.bf2026EmailBody('cyber', B.bf2026PriceRows(), rodape)
+    checa('(b) carta bf diz a base dos 50% no texto e no html', cartaBf.text.includes(base) && cartaBf.html.includes(base))
+    checa('(b) carta cyber diz a base dos 50% no texto e no html', cartaCyber.text.includes(base) && cartaCyber.html.includes(base))
+    checa('(b) carta cyber mantém o prazo de terça 1º/12 em Nova York', cartaCyber.text.includes('Last call: ') && cartaCyber.text.includes('ends Tuesday, Dec 1 at 11:59 PM (New York time)'))
+    checa('(b) carta cyber não digita preço à mão: a abertura não tem cifrão e a linha de preço vem da tabela', B.bf2026PriceRows().every((r) => cartaCyber.text.includes('- ' + r.name + ': ')) && !cartaCyber.text.split('- ')[0].includes('$'))
+  }
   const emailRoute = src(F.emailRoute)
   checa('(b) rota lê os selos para TRÁS (nowMs menos a janela) e passa a lista lida à supressão',
     emailRoute.includes('new Date(nowMs - BF2026_BASE_LETTER_SUPPRESSION_HOURS * 60 * 60 * 1000)') &&
@@ -328,6 +339,7 @@ const MUTANTES = [
     ['carta recente da base não suprime a onda BF', muta(F.emailRoute, 'if (bf2026ProfileMatchesBaseLetterSuppression({ id, email: p.email }, supressaoCartaBase)) { fora.recent_bf_base_2311++; continue }', 'if (false) { fora.recent_bf_base_2311++; continue }')],
   ['alias de e-mail não herda a supressão recente', muta(F.bf, "return (id !== '' && suppression.userIds.has(id)) || (email !== '' && suppression.normalizedEmails.has(email))", "return id !== '' && suppression.userIds.has(id)")],
   ['caixa de alias deixa de normalizar maiúsculas e espaços', muta(F.bf, "const email = typeof profile.email === 'string' ? profile.email.trim().toLowerCase() : ''", "const email = typeof profile.email === 'string' ? profile.email.trim() : ''")],
+  ['carta cyber sem a base dos 50%', muta(F.bf, ' It is ${BF2026_PERCENT_OFF}% off 12 monthly payments.`', '`')],
   ['janela da carta da base cai uma hora', muta(F.bf, 'export const BF2026_BASE_LETTER_SUPPRESSION_HOURS = 240', 'export const BF2026_BASE_LETTER_SUPPRESSION_HOURS = 239')],
   ['janela volta a sete dias (a metade B escapa na Cyber da noite)', muta(F.bf, 'export const BF2026_BASE_LETTER_SUPPRESSION_HOURS = 240', 'export const BF2026_BASE_LETTER_SUPPRESSION_HOURS = 168')],
   ['nome do evento da carta da base errado', muta(F.bf, "export const BF2026_BASE_LETTER_SENT_EVENT = 'bf_base_2311_sent' as const", "export const BF2026_BASE_LETTER_SENT_EVENT = 'bf_base_sent' as const")],

@@ -415,7 +415,9 @@ export function bf2026EmailBody(wave: Bf2026Wave, rows: Bf2026PriceRow[], footer
   const url = bf2026EmailUrl(wave, app)
   const opener = wave === 'bf'
     ? `For Black Friday, the Kineo ${BF2026_PLAN_LABEL} annual plan is ${BF2026_PERCENT_OFF}% off 12 monthly payments.`
-    : `Last call: the Black Friday deal on the Kineo ${BF2026_PLAN_LABEL} annual plan ends Tuesday, Dec 1 at 11:59 PM (New York time).`
+    // KINEO-BF-CYBER-BASE-50-2411 (dono 24/11: "Sim, acrescenta") — a carta de 30/11 diz a base do desconto com as mesmas palavras da carta de 27/11:
+    // os 50% são contra 12 mensalidades, não contra o anual normal.
+    : `Last call: the Black Friday deal on the Kineo ${BF2026_PLAN_LABEL} annual plan ends Tuesday, Dec 1 at 11:59 PM (New York time). It is ${BF2026_PERCENT_OFF}% off 12 monthly payments.`
   const lines = rows.map((r) => `- ${r.name}: ${usd(r.bfMinor)} a year (${usd(r.twelveMonthlyMinor)} if paid monthly), ${r.credits} credits every month`)
   const htmlLines = rows.map((r) => `<li><strong>${esc(r.name)}: ${usd(r.bfMinor)}</strong> a year <span style="color:#6b7280">(<s>${usd(r.twelveMonthlyMinor)}</s> if paid monthly)</span> · ${r.credits} credits every month</li>`).join('')
   const fine = `One payment for the year, credits refill every month, and the annual plan is fully refundable within ${ANNUAL_REFUND_DAYS} days. It renews at the same price each year unless you cancel.`
