@@ -63,11 +63,11 @@ for(const [i,film] of cases.entries()){
 }
 const revisit=read('recibo-hoje.json')
 assert.equal(revisit.candidate,next.sha)
-rows.push('## Ano da câmera e ano da cena','','**TESTADO LOCALMENTE.** Nesta tabela, a coluna Antes usa a revisão intermediária '+code+revisit.previous+code+', na qual o caso do museu ainda falhava. A coluna Depois usa '+code+next.sha+code+'. Cada linha corresponde ao último plano de uma variante. A coluna de imagem traz o texto exato do still, e os detalhes trazem os prompts recebidos pelo modelo de referência. O recibo guarda ainda o still com referência e os pedidos dos modelos de imagem e texto para vídeo.','','| Cena pedida | Narração preservada em ambas as versões | Still antes | Still depois |','| --- | --- | --- | --- |')
+rows.push('## Ano da câmera e ano da cena','','**TESTADO LOCALMENTE.** Cada linha identifica a revisão anterior testada. Nos cinco primeiros casos ela é '+code+revisit.previous+code+'. Nos demais é '+code+revisit.intermediate+code+', que ainda confundia a câmera de 1888 com o museu de 1920. A coluna Depois usa '+code+next.sha+code+'. Cada linha corresponde ao último plano de uma variante. A coluna de imagem traz o texto exato do still, e os detalhes trazem os prompts recebidos pelo modelo de referência. O recibo guarda ainda o still com referência e os pedidos dos modelos de imagem e texto para vídeo.','','| Revisão anterior | Cena pedida | Narração preservada em ambas as versões | Still antes | Still depois |','| --- | --- | --- | --- | --- |')
 for(const example of revisit.cases){
   assert.equal(example.voice,example.before.narration)
   assert.equal(example.voice,example.after.narration)
-  rows.push('| '+cell(example.visual)+' | '+cell(example.voice)+' | '+cell(example.before.still)+' | '+cell(example.after.still)+' |')
+  rows.push('| '+code+example.beforeSha.slice(0,9)+code+' | '+cell(example.visual)+' | '+cell(example.voice)+' | '+cell(example.before.still)+' | '+cell(example.after.still)+' |')
 }
 rows.push('','<details><summary>Planos efetivamente enviados ao transporte simulado com referência</summary>','','| Cena | Antes | Depois |','| --- | --- | --- |')
 for(const e of revisit.cases){
