@@ -15,7 +15,7 @@ function world({release='internal',user=actor,error=null,throws=false,clipPublic
  let reads=0
  const replace=(file,name,value)=>source(file).replace(new RegExp('('+name+':?[^=\\n]*=\\s*)[\\x27\\x22](off|internal|public)[\\x27\\x22]'),(_,a)=>a+JSON.stringify(value))
  const rep=Object.fromEntries([BOX,CLIP,NAV].map(f=>[f,source(f).replace("import { NextResponse } from 'next/server'",fakeNext)]))
- rep[CONFIG]=source(CONFIG).replace("CITATION_FILM_RELEASE: CitationFilmRelease = 'off'","CITATION_FILM_RELEASE: CitationFilmRelease = '"+release+"'")
+ rep[CONFIG]=source(CONFIG).replace("CITATION_FILM_RELEASE: CitationFilmRelease = 'internal'","CITATION_FILM_RELEASE: CitationFilmRelease = '"+release+"'")
  rep['lib/clips/clipLaunch.ts']=source('lib/clips/clipLaunch.ts').replace(/(export const CLIPS_PUBLIC\s*=\s*)(true|false)/,(_,a)=>a+String(clipPublic))
  rep['lib/create/clipNaMolduraRelease.ts']=replace('lib/create/clipNaMolduraRelease.ts','CREATE_CLIP_INPLACE',clipRelease)
  rep['lib/create/release.ts']=replace('lib/create/release.ts','CLIP_RECREATE_JUNTOS_RELEASE',joinedRelease);rep['lib/create/release.ts']=rep['lib/create/release.ts'].replace(/(CREATE_SHELL_RELEASE:[^=\n]*=\s*)['"](off|internal|public)['"]/,(_,a)=>a+JSON.stringify(shellRelease))

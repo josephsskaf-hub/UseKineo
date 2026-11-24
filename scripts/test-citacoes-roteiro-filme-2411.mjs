@@ -10,7 +10,7 @@ const plain=({children})=>React.createElement('div',null,children)
 const mocks={'lib/analytics.ts':{trackEvent(){},trackClosedEvent(){},rememberSignupCampaign(){}},'components/StickyFreeShortCTA.tsx':{__esModule:true,default:plain},'components/Footer.tsx':{__esModule:true,default:plain},'components/ExitIntentOffer.tsx':{__esModule:true,default:plain}}
 const dep={'lib/gptHandoff.ts':source('lib/gptHandoff.ts').replace("import { createHash } from 'node:crypto'","const createHash=()=>{throw Error('No hash in this proof')}")}
 const make=(rep={})=>offlineModules({mocks,replacements:{...dep,...rep}})
-const set=(rep,value)=>({...rep,[RELEASE]:(rep[RELEASE]??source(RELEASE)).replace("CITATION_FILM_RELEASE: CitationFilmRelease = 'off'","CITATION_FILM_RELEASE: CitationFilmRelease = '"+value+"'")})
+const set=(rep,value)=>({...rep,[RELEASE]:(rep[RELEASE]??source(RELEASE)).replace("CITATION_FILM_RELEASE: CitationFilmRelease = 'internal'","CITATION_FILM_RELEASE: CitationFilmRelease = '"+value+"'")})
 const render=(l,f,props={})=>renderToStaticMarkup(React.createElement(l(f).default,props))
 const view=(l,props)=>renderToStaticMarkup(React.createElement(l(PROVIDER).default,null,React.createElement(l(PROVIDER).CitationFilmDraftScope,null,React.createElement(l(CLIENT).default,props))))
 const decode=s=>s.replaceAll('&amp;','&').replaceAll('&quot;','"').replaceAll('&#x27;',"'")
