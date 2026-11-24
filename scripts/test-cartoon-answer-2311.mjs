@@ -30,7 +30,11 @@ function verify(rep={}){
  const map=sitemap(rep),url='https://www.usekineo.com/free-ai-shorts/cartoon'
  assert.equal(map.filter(x=>x.url===url).length,1,'one canonical cartoon entry')
  assert.equal(map.find(x=>x.url===url).lastModified,'2026-11-22T12:00:00.000Z','cartoon carries its review date')
- assert.deepEqual(map.filter(x=>x.url!==url),oldMap.filter(x=>x.url!==url),'no other URL or timestamp changed')
+ // KINEO-CITACOES-PUBLIC-2411: a virada para 'public' acrescenta exatamente as 4 URLs aprovadas (3 formatos + anúncio pela foto); nada some.
+ const approved=['/ai-video-generator/for/cartoon-videos','/ai-video-generator/for/animated-story-videos','/ai-video-generator/for/animal-story-videos','/ai-ugc-ads/product-photo-ads'].map(p=>'https://www.usekineo.com'+p)
+ assert.ok(approved.every(u=>map.filter(x=>x.url===u).length===1),'the four approved public citation URLs present once')
+ assert.ok(map.filter(x=>!oldMap.some(o=>o.url===x.url)).every(x=>approved.includes(x.url)),'only approved public citation URLs added')
+ assert.deepEqual(map.filter(x=>x.url!==url&&!approved.includes(x.url)),oldMap.filter(x=>x.url!==url&&!approved.includes(x.url)),'no other URL or timestamp changed')
 }
 verify()
 const sub=(file,from,to)=>{const s=source(file).replace(/\r\n/g,'\n');assert.equal(s.split(from).length,2,'exact mutation anchor');return{[file]:s.replace(from,to)}}
