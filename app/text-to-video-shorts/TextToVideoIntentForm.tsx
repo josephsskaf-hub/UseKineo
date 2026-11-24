@@ -1,7 +1,7 @@
 'use client'
 
 // KINEO-PAGINAS-IA-CLARAS-2110 — cores em var(--kpl-*, <cor de antes>): claras só dentro de <main className="kpl"> (as páginas de entrada do ChatGPT); nas outras páginas, a cor de antes.
-import { useState } from 'react'
+import { useState, type ComponentProps } from 'react'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import {
   getTextToVideoInputMode,
@@ -34,7 +34,7 @@ const FORM_COPY = {
   },
 } as const
 
-export default function TextToVideoIntentForm({ formId, campaign = TEXT_TO_VIDEO_CAMPAIGN, placement = 'hero_form', preserveHandoffForSignedIn = false }: { formId: string; campaign?: string; placement?: string; preserveHandoffForSignedIn?: boolean }) {
+export default function TextToVideoIntentForm({ formId, campaign = TEXT_TO_VIDEO_CAMPAIGN, placement = 'hero_form', preserveHandoffForSignedIn = false, topicOptions }: { formId: string; campaign?: string; placement?: string; preserveHandoffForSignedIn?: boolean; topicOptions?: ComponentProps<typeof TopicGeneratorForm> }) {
   const [inputMode, setInputMode] = useState<TextToVideoInputMode>('idea')
   const selected = getTextToVideoInputMode(inputMode)
   const isFinishedScript = selected.id === 'finished_script'
@@ -95,17 +95,18 @@ export default function TextToVideoIntentForm({ formId, campaign = TEXT_TO_VIDEO
       </div>
 
       <TopicGeneratorForm
+        {...topicOptions}
         campaign={campaign}
-        source={campaign}
+        source={topicOptions?.source ?? campaign}
         placement={placement}
         preserveHandoffForSignedIn={preserveHandoffForSignedIn}
         formId={formId}
-        examples={isFinishedScript ? [] : IDEA_EXAMPLES}
+        examples={isFinishedScript ? [] : topicOptions?.examples ?? IDEA_EXAMPLES}
         scriptMode={selected.scriptMode}
-        duration={selected.duration}
-        analyticsVariant={TEXT_TO_VIDEO_INTENT_VARIANT}
-        marginTop={10}
-        copy={FORM_COPY[selected.id]}
+        duration={topicOptions ? topicOptions.duration : selected.duration}
+        analyticsVariant={topicOptions?.analyticsVariant ?? TEXT_TO_VIDEO_INTENT_VARIANT}
+        marginTop={topicOptions?.marginTop ?? 10}
+        copy={isFinishedScript ? FORM_COPY.finished_script : topicOptions?.copy ?? FORM_COPY.idea}
       />
     </section>
   )

@@ -1,0 +1,654 @@
+{
+  "scope": "Actual SSR/native form contracts, synthetic initial states; no account/network/render/payment",
+  "cases": [
+    {
+      "page": "app/free-ai-shorts-generator/page.tsx",
+      "country": "US",
+      "partner": false,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "push60_free_ai_shorts_generator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/free-ai-shorts-generator/page.tsx",
+      "country": "US",
+      "partner": false,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "push60_free_ai_shorts_generator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "country": "US",
+      "partner": false,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "starter_shorts_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "country": "US",
+      "partner": false,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "starter_shorts_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/cheapest-ai-shorts-maker/page.tsx",
+      "country": "US",
+      "partner": false,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "push77_short_cost_calculator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/cheapest-ai-shorts-maker/page.tsx",
+      "country": "US",
+      "partner": false,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "push77_short_cost_calculator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/free-ai-shorts-generator/page.tsx",
+      "country": "US",
+      "partner": false,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "push60_free_ai_shorts_generator",
+      "intent": "fast"
+    },
+    {
+      "page": "app/free-ai-shorts-generator/page.tsx",
+      "country": "US",
+      "partner": false,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "push60_free_ai_shorts_generator",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "country": "US",
+      "partner": false,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "starter_shorts_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "country": "US",
+      "partner": false,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "starter_shorts_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/cheapest-ai-shorts-maker/page.tsx",
+      "country": "US",
+      "partner": false,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "push77_short_cost_calculator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/cheapest-ai-shorts-maker/page.tsx",
+      "country": "US",
+      "partner": false,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "push77_short_cost_calculator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/free-ai-shorts-generator/page.tsx",
+      "country": "US",
+      "partner": true,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "push60_free_ai_shorts_generator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/free-ai-shorts-generator/page.tsx",
+      "country": "US",
+      "partner": true,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "push60_free_ai_shorts_generator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "country": "US",
+      "partner": true,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "starter_shorts_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "country": "US",
+      "partner": true,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "starter_shorts_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/cheapest-ai-shorts-maker/page.tsx",
+      "country": "US",
+      "partner": true,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "push77_short_cost_calculator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/cheapest-ai-shorts-maker/page.tsx",
+      "country": "US",
+      "partner": true,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "push77_short_cost_calculator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/free-ai-shorts-generator/page.tsx",
+      "country": "US",
+      "partner": true,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "push60_free_ai_shorts_generator",
+      "intent": "fast"
+    },
+    {
+      "page": "app/free-ai-shorts-generator/page.tsx",
+      "country": "US",
+      "partner": true,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "push60_free_ai_shorts_generator",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "country": "US",
+      "partner": true,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "starter_shorts_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "country": "US",
+      "partner": true,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "starter_shorts_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/cheapest-ai-shorts-maker/page.tsx",
+      "country": "US",
+      "partner": true,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "push77_short_cost_calculator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/cheapest-ai-shorts-maker/page.tsx",
+      "country": "US",
+      "partner": true,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "push77_short_cost_calculator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/free-ai-shorts-generator/page.tsx",
+      "country": "IN",
+      "partner": false,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "push60_free_ai_shorts_generator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/free-ai-shorts-generator/page.tsx",
+      "country": "IN",
+      "partner": false,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "push60_free_ai_shorts_generator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "country": "IN",
+      "partner": false,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "starter_shorts_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "country": "IN",
+      "partner": false,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "starter_shorts_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/cheapest-ai-shorts-maker/page.tsx",
+      "country": "IN",
+      "partner": false,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "push77_short_cost_calculator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/cheapest-ai-shorts-maker/page.tsx",
+      "country": "IN",
+      "partner": false,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "push77_short_cost_calculator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/free-ai-shorts-generator/page.tsx",
+      "country": "IN",
+      "partner": false,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "push60_free_ai_shorts_generator",
+      "intent": "fast"
+    },
+    {
+      "page": "app/free-ai-shorts-generator/page.tsx",
+      "country": "IN",
+      "partner": false,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "push60_free_ai_shorts_generator",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "country": "IN",
+      "partner": false,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "starter_shorts_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "country": "IN",
+      "partner": false,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "starter_shorts_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/cheapest-ai-shorts-maker/page.tsx",
+      "country": "IN",
+      "partner": false,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "push77_short_cost_calculator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/cheapest-ai-shorts-maker/page.tsx",
+      "country": "IN",
+      "partner": false,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "push77_short_cost_calculator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/free-ai-shorts-generator/page.tsx",
+      "country": "IN",
+      "partner": true,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "push60_free_ai_shorts_generator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/free-ai-shorts-generator/page.tsx",
+      "country": "IN",
+      "partner": true,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "push60_free_ai_shorts_generator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "country": "IN",
+      "partner": true,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "starter_shorts_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "country": "IN",
+      "partner": true,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "starter_shorts_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/cheapest-ai-shorts-maker/page.tsx",
+      "country": "IN",
+      "partner": true,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "push77_short_cost_calculator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/cheapest-ai-shorts-maker/page.tsx",
+      "country": "IN",
+      "partner": true,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "push77_short_cost_calculator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/free-ai-shorts-generator/page.tsx",
+      "country": "IN",
+      "partner": true,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "push60_free_ai_shorts_generator",
+      "intent": "fast"
+    },
+    {
+      "page": "app/free-ai-shorts-generator/page.tsx",
+      "country": "IN",
+      "partner": true,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "push60_free_ai_shorts_generator",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "country": "IN",
+      "partner": true,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "starter_shorts_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "country": "IN",
+      "partner": true,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "starter_shorts_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/cheapest-ai-shorts-maker/page.tsx",
+      "country": "IN",
+      "partner": true,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "push77_short_cost_calculator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/cheapest-ai-shorts-maker/page.tsx",
+      "country": "IN",
+      "partner": true,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "push77_short_cost_calculator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/free-ai-shorts-generator/page.tsx",
+      "country": null,
+      "partner": false,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "push60_free_ai_shorts_generator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/free-ai-shorts-generator/page.tsx",
+      "country": null,
+      "partner": false,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "push60_free_ai_shorts_generator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "country": null,
+      "partner": false,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "starter_shorts_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "country": null,
+      "partner": false,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "starter_shorts_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/cheapest-ai-shorts-maker/page.tsx",
+      "country": null,
+      "partner": false,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "push77_short_cost_calculator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/cheapest-ai-shorts-maker/page.tsx",
+      "country": null,
+      "partner": false,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "push77_short_cost_calculator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/free-ai-shorts-generator/page.tsx",
+      "country": null,
+      "partner": false,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "push60_free_ai_shorts_generator",
+      "intent": "fast"
+    },
+    {
+      "page": "app/free-ai-shorts-generator/page.tsx",
+      "country": null,
+      "partner": false,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "push60_free_ai_shorts_generator",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "country": null,
+      "partner": false,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "starter_shorts_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "country": null,
+      "partner": false,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "starter_shorts_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/cheapest-ai-shorts-maker/page.tsx",
+      "country": null,
+      "partner": false,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "push77_short_cost_calculator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/cheapest-ai-shorts-maker/page.tsx",
+      "country": null,
+      "partner": false,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "push77_short_cost_calculator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/free-ai-shorts-generator/page.tsx",
+      "country": null,
+      "partner": true,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "push60_free_ai_shorts_generator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/free-ai-shorts-generator/page.tsx",
+      "country": null,
+      "partner": true,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "push60_free_ai_shorts_generator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "country": null,
+      "partner": true,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "starter_shorts_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "country": null,
+      "partner": true,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "starter_shorts_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/cheapest-ai-shorts-maker/page.tsx",
+      "country": null,
+      "partner": true,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "push77_short_cost_calculator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/cheapest-ai-shorts-maker/page.tsx",
+      "country": null,
+      "partner": true,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "push77_short_cost_calculator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/free-ai-shorts-generator/page.tsx",
+      "country": null,
+      "partner": true,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "push60_free_ai_shorts_generator",
+      "intent": "fast"
+    },
+    {
+      "page": "app/free-ai-shorts-generator/page.tsx",
+      "country": null,
+      "partner": true,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "push60_free_ai_shorts_generator",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "country": null,
+      "partner": true,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "starter_shorts_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "country": null,
+      "partner": true,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "starter_shorts_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/cheapest-ai-shorts-maker/page.tsx",
+      "country": null,
+      "partner": true,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "push77_short_cost_calculator",
+      "intent": "trial_best"
+    },
+    {
+      "page": "app/cheapest-ai-shorts-maker/page.tsx",
+      "country": null,
+      "partner": true,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "push77_short_cost_calculator",
+      "intent": "trial_best"
+    }
+  ],
+  "mutants": 7
+}

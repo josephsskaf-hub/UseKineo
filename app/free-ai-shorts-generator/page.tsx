@@ -1,3 +1,5 @@
+import CitationFilmExperiment, { CitationFilmSlot } from '@/components/seo/CitationFilmExperiment'
+import TextToVideoIntentForm from '@/app/text-to-video-shorts/TextToVideoIntentForm'
 import type { Metadata } from 'next'
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
@@ -137,7 +139,7 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
     note: 'Your idea stays attached through signup. Kineo writes the script and shows your scenes as images — free.',
   }
   const topicForm = (
-    <TopicGeneratorForm
+    <CitationFilmSlot active={false}><TopicGeneratorForm
       campaign={CAMPAIGN}
       source={CAMPAIGN}
       formId={FORM_ID}
@@ -149,8 +151,17 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
         'Why AI agents are replacing old software',
       ]}
       copy={partnerContext && !partnerFreeFilm ? partnerNoFilmCopy : formCopy}
-    />
+    /></CitationFilmSlot>
   )
+  const citationFilmForm = (<CitationFilmSlot active><TextToVideoIntentForm formId={FORM_ID} campaign={CAMPAIGN} placement={"article_intro_2411"} preserveHandoffForSignedIn topicOptions={{source: CAMPAIGN,
+creationIntent: OFFER.reverseTrial ? 'trial_best' : 'fast',
+marginTop: partnerContext ? 0 : undefined,
+examples: [
+        'The island nobody is allowed to visit',
+        'The money habit that quietly makes people broke',
+        'Why AI agents are replacing old software',
+      ],
+copy: partnerContext && !partnerFreeFilm ? partnerNoFilmCopy : formCopy}} /></CitationFilmSlot>)
   const h2: CSSProperties = { fontSize: 'clamp(1.3rem, 3.5vw, 1.75rem)', fontWeight: 650, margin: '44px 0 12px' }
   const p: CSSProperties = { color: '#5A5F67', fontSize: '1rem', lineHeight: 1.65, margin: '0 0 12px' }
   const card: CSSProperties = { background: '#FFFFFF', border: '1px solid #E4E4E0', borderRadius: 14, padding: '16px 18px' }
@@ -176,7 +187,7 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
   }
 
   return (
-    <main className={PAGINA_CLARA_CLASSE} style={{ minHeight: '100vh', background: PAGINA_CLARA_FUNDO, color: '#0E1116', fontFamily: 'var(--font-sans), Arial, sans-serif' }}>
+    <CitationFilmExperiment><main className={PAGINA_CLARA_CLASSE} style={{ minHeight: '100vh', background: PAGINA_CLARA_FUNDO, color: '#0E1116', fontFamily: 'var(--font-sans), Arial, sans-serif' }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, '\\u003c') }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(videoJsonLd).replace(/</g, '\\u003c') }} />
       <PaginaClaraTopo />{/* KINEO-PAGINAS-IA-CLARAS-2110 */}
@@ -188,7 +199,7 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
           offerLine={partnerOfferLine}
           preview={partnerContext ? PARTNER_PREVIEW : null}
         />
-        {partnerContext && <div style={{ margin: '0 0 30px' }}>{topicForm}</div>}
+        {partnerContext && <div style={{ margin: '0 0 30px' }}>{topicForm}{citationFilmForm}</div>}
         <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 750, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#0A5CFF', border: '1px solid rgba(10,92,255,0.35)', background: '#E8EFFF', borderRadius: 999, padding: '6px 12px' }}>
           Free AI Shorts Generator
         </span>
@@ -198,6 +209,7 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
         <p style={{ fontSize: '1.08rem', color: '#5A5F67', lineHeight: 1.6, margin: '16px 0 0' }}>
           Type one idea and Kineo generates a ready-to-post vertical Short: script, AI voiceover, visuals, captions, and MP4 export. {ft(OFFER, 'Try the Fast workflow with no credit card.', 'Your active trial starts with the best engine it can cover — Seedance when eligible.')}
         </p>
+        {!partnerContext && citationFilmForm}
         <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
         {/* KINEO-PAGINAS-QUE-VENDEM-2026-10-12 — compra direta do Creator na primeira dobra; o botão grátis vira o secundário. */}
         {!enginePaused(ENGINES.seedance.param) && (
@@ -283,6 +295,6 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
         </p>
       </div>
       <Footer />
-    </main>
+    </main></CitationFilmExperiment>
   )
 }

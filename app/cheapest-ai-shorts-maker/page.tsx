@@ -1,3 +1,5 @@
+import CitationFilmExperiment, { CitationFilmSlot } from '@/components/seo/CitationFilmExperiment'
+import TextToVideoIntentForm from '@/app/text-to-video-shorts/TextToVideoIntentForm'
 // KINEO-REBASE-2026-07-10 — 2:1 credit rebase: every "50 credits" → 20 (Seedance).
 // ROBO2-SEO-2026-06-28 — high-intent SEO page for the "cheapest AI shorts maker"
 // buyer cluster (cheapest AI YouTube Shorts generator / affordable faceless shorts AI /
@@ -109,7 +111,7 @@ export default function CheapestAiShortsMakerPage() {
   const h2: CSSProperties = { fontSize: 'clamp(1.3rem, 3.5vw, 1.7rem)', fontWeight: 800, margin: '44px 0 12px' }
   const p: CSSProperties = { fontSize: '1rem', color: '#86868b', lineHeight: 1.65, margin: '0 0 12px' }
   return (
-    <main style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'var(--font-sans), Arial, sans-serif' }}>
+    <CitationFilmExperiment><main style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'var(--font-sans), Arial, sans-serif' }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, '\\u003c') }} />
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '64px 20px 88px' }}>
         <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#2997ff', border: '1px solid rgba(41,151,255,0.4)', background: 'rgba(41,151,255,0.12)', borderRadius: 999, padding: '6px 12px' }}>
@@ -122,6 +124,16 @@ export default function CheapestAiShortsMakerPage() {
         <p style={{ fontSize: '1.02rem', color: '#86868b', lineHeight: 1.6, margin: '22px 0 0' }}>
           Kineo turns a single idea into a finished Short — the hook and script, an AI voiceover, generated scenes, captions and music — and charges credits by engine and length. Below: the same math for the free and paid tools people compare it with, and a calculator for your monthly volume.
         </p>
+        <CitationFilmSlot active><TextToVideoIntentForm formId={CALCULATOR_FORM_ID} campaign={CALCULATOR_CAMPAIGN} placement={"article_intro_2411"} preserveHandoffForSignedIn topicOptions={{source: CALCULATOR_CAMPAIGN,
+examples: CALCULATOR_EXAMPLES,
+creationIntent: "trial_best",
+copy: {
+            label: 'What should your first cost-tested Short be about?',
+            placeholder: 'Type one topic or paste your script',
+            submit: 'Create this Short →',
+            examplesLabel: 'Low-cost topic examples',
+            note: HAS_FREE_FILM ? `Your topic stays attached through signup. New accounts${GRANT_COUNTRY_CLAUSE} start with a ${FREE_FILM_LABEL}.` : 'Your topic stays attached through signup.',
+          }}} /></CitationFilmSlot>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '22px 0 0' }}>
           <OrganicCtaLink href={signupUrl} source="push22_cheapest" placement="hero" style={{ background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}>{HAS_FREE_FILM ? `Make my free ${TRIAL_FREE_FILM_SECONDS}-second film →` : 'Create my account →'}</OrganicCtaLink>
           <Link href="/pricing" style={{ border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 700, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>See pricing</Link>
@@ -132,7 +144,7 @@ export default function CheapestAiShortsMakerPage() {
 
         <ShortCostCalculator />
 
-        <TopicGeneratorForm
+        <CitationFilmSlot active={false}><TopicGeneratorForm
           campaign={CALCULATOR_CAMPAIGN}
           source={CALCULATOR_CAMPAIGN}
           examples={CALCULATOR_EXAMPLES}
@@ -145,7 +157,7 @@ export default function CheapestAiShortsMakerPage() {
             examplesLabel: 'Low-cost topic examples',
             note: HAS_FREE_FILM ? `Your topic stays attached through signup. New accounts${GRANT_COUNTRY_CLAUSE} start with a ${FREE_FILM_LABEL}.` : 'Your topic stays attached through signup.',
           }}
-        />
+        /></CitationFilmSlot>
 
         <AgencyVolumeBridge entry="cost_page" />
 
@@ -213,6 +225,6 @@ export default function CheapestAiShortsMakerPage() {
       </div>
       <StickyFreeShortCTA />
       <Footer />
-    </main>
+    </main></CitationFilmExperiment>
   )
 }

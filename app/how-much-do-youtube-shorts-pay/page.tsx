@@ -1,3 +1,5 @@
+import CitationFilmExperiment, { CitationFilmSlot } from '@/components/seo/CitationFilmExperiment'
+import TextToVideoIntentForm from '@/app/text-to-video-shorts/TextToVideoIntentForm'
 import CitationIdeaForm from '@/components/seo/CitationIdeaForm'
 // SEO — /how-much-do-youtube-shorts-pay: money-intent page targeting
 // "how much do youtube shorts pay" and long-tails ("per 1000 views",
@@ -221,7 +223,7 @@ export default function HowMuchDoYouTubeShortsPayPage() {
   }
 
   return (
-    <main
+    <CitationFilmExperiment><main
       style={{
         background: PAGE_BG,
         minHeight: '100vh',
@@ -275,7 +277,19 @@ export default function HowMuchDoYouTubeShortsPayPage() {
           audience lives. Here is exactly how the payout math works, and what moves it.
         </p>
 
-        <CitationIdeaForm article="pay" />
+        <CitationFilmSlot active><TextToVideoIntentForm formId={PAYOUT_STARTER_ID} campaign={STARTER_SOURCE} placement={"article_intro_2411"} preserveHandoffForSignedIn topicOptions={{source: STARTER_SOURCE,
+examples: [
+              'The compound interest mistake that costs 20 years of savings',
+              'How much a small YouTube channel really earns in year one',
+              'The one expense quietly eating a third of your paycheck',
+            ],
+copy: {
+              label: 'Start a high-RPM Short — free, no card',
+              placeholder: 'Type one topic — e.g. why your savings account is losing money',
+              submit: 'Turn this topic into a Short →',
+              examplesLabel: 'High-RPM topic starters',
+              note: 'Your topic stays attached through signup. Free to start: 10 credits, no card.',
+            }}} /></CitationFilmSlot><CitationFilmSlot active={false}><CitationIdeaForm article="pay" /></CitationFilmSlot>
 
         <p style={{ color: MUTED, fontSize: '0.9rem', lineHeight: 1.6, margin: '0 0 18px' }}>
           No figure on this page is a promise of earnings. Shorts RPM varies widely and
@@ -673,7 +687,7 @@ export default function HowMuchDoYouTubeShortsPayPage() {
               seguem os de sempre. A promessa de QUANTIDADE continua fora do
               botão de propósito: a troca do free tier (`lib/freeTierOffer`) não
               ganha mais uma superfície para lembrar de visitar. */}
-          <TopicGeneratorForm
+          <CitationFilmSlot active={false}><TopicGeneratorForm
             campaign={STARTER_SOURCE}
             source={STARTER_SOURCE}
             formId={PAYOUT_STARTER_ID}
@@ -689,7 +703,7 @@ export default function HowMuchDoYouTubeShortsPayPage() {
               examplesLabel: 'High-RPM topic starters',
               note: 'Your topic stays attached through signup. Free to start: 10 credits, no card.',
             }}
-          />
+          /></CitationFilmSlot>
         </div>
 
         <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 12px' }}>
@@ -778,6 +792,6 @@ export default function HowMuchDoYouTubeShortsPayPage() {
           revenue-sharing terms, which can change at any time.
         </p>
       </div>
-    </main>
+    </main></CitationFilmExperiment>
   )
 }
