@@ -7688,7 +7688,11 @@ async function manipularPost(req: NextRequest) {
       if (q && a.timing.referenciaUnica) Object.assign(r.timing, { referenciaUnica: { ...a.timing.referenciaUnica, metades: q.grupos.flatMap((g) => g.map(() => g.length > 1)) } }) // KINEO-REFERENCIA-UNICA-2411 — o plano por seção leva a referência (sem o campo = o de hoje) · KINEO-REFERENCIA-UNICA-PUBLIC-2411: + quais planos são metade de cena fundida (a ficha ali é herança)
       if (epocaVisual) {
         const indices = r.planos?.flat()
-        r.prompts = r.prompts.map((p, i) => aplicarEpocaVisual(p, indices ? epocaVisual.secoes[indices[i]] : epocaVisual.cenas[i]))
+        r.prompts = r.prompts.map((p, i) => {
+          const secao = indices?.[i] ?? epocaVisual.primeirasSecoes?.[i]
+          return aplicarEpocaVisual(p, indices ? epocaVisual.secoes[indices[i]] : epocaVisual.cenas[i], false,
+            secao === undefined ? undefined : parsedScript.segments[secao]?.pexelsQuery)
+        })
       }
       const r2 = { ...r, prompts: r.prompts.map((p) => comSuperficieNoPlano(p)) } // KINEO-BALAO-SEM-LETRA-1111 [CEO 11/11] — a metade da cena fundida nasce da pista da seção depois da proteção de superfície: balão/página/tela dela ganha a frase sem letra aqui
       const r3 = kling4PlanoVariado ? { ...r2, prompts: planosComEscalaVariada(r2.prompts, r2.approvedStills).prompts } : r2 // KINEO-K4-PLANO-VARIADO-1111 — escala diferente de plano a plano (nunca dois closes seguidos); plano com imagem-chave fica como está

@@ -37,10 +37,12 @@ export function prepararEpocaVisual({ internal, pedido, secoes, falas, modo = EP
   if (!geral) return null
   // A merged scene starts with its first section. When the dispatch splits it again,
   // each shot recovers its own date, including changes of year within a film.
-  const datas = secoes.map(s => dataDoTrecho(s.voiceover) || dataDoTrecho(s.pexelsQuery))
+  const agora = (t: string) => /\b(?:present[- ]day|modern[- ]day|nowadays|hoje em dia|nos dias (?:de hoje|atuais))\b|^(?:today|hoje|agora)\b/iu.test(t.trim())
+  const datas = secoes.map(s => dataDoTrecho(s.voiceover) || dataDoTrecho(s.pexelsQuery)
+    || (agora(s.voiceover) || agora(s.pexelsQuery) ? 'present day' : ''))
   const primeiro = datas.findIndex(Boolean)
   const antes = primeiro > 0 && datas[primeiro] === geral && /\b(?:again|once more|later|de novo|novamente|mais tarde)\b/iu.test(secoes[primeiro].voiceover)
-  let epoca = antes ? 'before ' + geral : geral
+  let epoca = datas[0] || (antes ? 'before ' + geral : geral)
   const ficha = epoca
   const sequencia = datas.map(data => { if (data) epoca = data; return epoca })
   const grupos = secoesDasCenas(secoes, falas) ?? secoesPorPalavras(secoes, falas)
@@ -50,9 +52,10 @@ export function prepararEpocaVisual({ internal, pedido, secoes, falas, modo = EP
     const dita = dataDoTrecho(fala)
     if (grupo?.length) anterior = sequencia[grupo[0]]
     else if (dita && (datas.includes(dita) || pedido.includes(dita))) anterior = dita
+    else if (agora(fala) && agora(pedido)) anterior = 'present day'
     return anterior
   })
-  return { ficha, cenas, secoes: sequencia }
+  return { ficha, cenas, secoes: sequencia, primeirasSecoes: grupos?.map(g => g[0]) }
 }
 
 const MARCA = /Period setting: [^.]+\.\s*/giu
@@ -60,7 +63,7 @@ const FIGURINO_ANTIGO = /People in the shot wear period-accurate [^.]+ with peri
 const FIXADOR_ANTIGO = /,?\s*period piece set strictly in [^:.]+:\s*(?:every person, building, street, vehicle and object belongs to that exact time[^.]*?as it really looked then|only the things this shot describes, each exactly as it looked at that time)/giu
 
 /** A sheet stays in its neutral studio. Scenes date only things that are already in frame. */
-export function aplicarEpocaVisual(prompt: string, epoca: string | undefined, folha = false): string {
+export function aplicarEpocaVisual(prompt: string, epoca: string | undefined, folha = false, pista?: string): string {
   if (!epoca) return prompt
   const ano = /^\d{4}$/.test(epoca) ? Number(epoca) : 0
   const terno = /\b(?:suit|tie|lapels?|terno|gravata)\b/iu.test(prompt)
@@ -76,5 +79,23 @@ export function aplicarEpocaVisual(prompt: string, epoca: string | undefined, fo
           /\b(?:street|building|house|room|window|city)\b/iu.test(prompt) ? 'period architecture and street details' : '',
         ].filter(Boolean).slice(0, 2).join(', ') || 'period materials and finishes on the objects shown'
   const corpo = prompt.replace(MARCA, '').replace(FIGURINO_ANTIGO, '').replace(FIXADOR_ANTIGO, '').trim()
-  return 'Period setting: ' + epoca + ', ' + design + '. ' + corpo
+  const periodo = 'Period setting: ' + epoca + ', ' + design + '.'
+  // Move an existing, already moderated action ahead of scenery. Never copy a raw
+  // stock query into the dispatch or detach a word from its sentence (including negations).
+  if (pista && corpo.length + periodo.length > 280) {
+    const termos = new Set(pista.toLowerCase().match(/[\p{L}]{4,}/gu) ?? [])
+    const frases = corpo.split(/(?<=[.!?])\s+/u)
+    let acao = -1
+    let maior = 1
+    for (let i = 0; i < frases.length; i++) {
+      const palavras = new Set(frases[i].toLowerCase().match(/[\p{L}]{4,}/gu) ?? [])
+      const comuns = [...termos].filter(p => palavras.has(p)).length
+      if (comuns > maior) { acao = i; maior = comuns }
+    }
+    if (acao >= 0) {
+      const frase = frases.splice(acao, 1)[0].trim()
+      return periodo + ' ' + frase + (/[.!?]$/u.test(frase) ? ' ' : '. ') + frases.join(' ').trim()
+    }
+  }
+  return periodo + ' ' + corpo
 }

@@ -20,6 +20,22 @@ const cases = {
       assert.equal(m.prepararEpocaVisual({...entrada,pedido:p}),null,p)
     }
   },
+  atual: m => {
+    const secoes = [
+      {voiceover:'In 1890 he boards.',pexelsQuery:'a wooden train'},
+      {voiceover:'Today visitors return.',pexelsQuery:'present-day museum'},
+    ]
+    const relato=m.prepararEpocaVisual({internal:true,pedido:'In 1890 he boards. Today visitors return.',secoes,falas:secoes.map(s=>s.voiceover)})
+    assert.deepEqual([...relato.secoes],['1890','present day'])
+  },
+  acao: m => {
+    const pista='A man in a suit holds the briefcase.'
+    const base='Interior view of the cabin. '.repeat(13) + pista + ' Mouth closed, no speaking.'
+    const p=m.aplicarEpocaVisual(base,'1971',false,pista)
+    assert.ok(p.indexOf('briefcase') < 200)
+    assert.ok(p.endsWith('Mouth closed, no speaking.'))
+    assert.doesNotMatch(m.aplicarEpocaVisual(base,'1971',false,'A forbidden name by a bank.'),/forbidden name/)
+  },
   calendario: m => assert.deepEqual([...m.prepararEpocaVisual(entrada).secoes],['1888','1890','1890']),
   fundida: m => assert.deepEqual([...m.prepararEpocaVisual(entrada).cenas],['1888','1890']),
   anterior: m => {
@@ -54,6 +70,8 @@ const mutantes=[
  ['anterior',"antes ? 'before ' + geral : geral",'geral'],
  ['seculo','return seculoValido ?','return false ?'],
  ['folha',"const design = folha ? tecido","const design = folha ? 'architecture'"],
+ ['atual',"? 'present day' : ''","? '' : ''"],
+ ['acao','if (acao >= 0)','if (false)'],
  ['limite',"prompt.replace(MARCA, '')","prompt.replace(/IMPOSSIVEL/u, '')"],
 ]
 for(const [alvo,de,para] of mutantes) {
