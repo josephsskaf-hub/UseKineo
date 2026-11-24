@@ -129,7 +129,9 @@ async function suite(change) {
       if (planosComFrase.includes(i)) assert.equal(s.prompt, A.input.multi_prompt[i].prompt, `${id} plano ${i + 1} = pedido A`)
       else { assert.equal(s.prompt, fl.planos[i].prompt, `${id} plano ${i + 1} sem o personagem: o texto de hoje, sem frase`); assert.ok(!s.prompt.includes('@Image1')) }
     })
-    const relato = f.relatoReferenciaUnica({ referenciaUnica: t.referenciaUnica }, { model: enviado.url.replace('https://queue.fal.run/', ''), input: enviado.input })
+    const wireB = api.buildKling4TrialInput(fl.planos.map(p => p.prompt), stillsDe(fl), { ...timingDe(fl), referenciaUnica: t.referenciaUnica })
+    assert.equal(JSON.stringify(wireB.input), enviado.body, 'a decisão do montador (planosComFrase) fica FORA do que vai à fal')
+    const relato = f.relatoReferenciaUnica({ referenciaUnica: t.referenciaUnica }, wireB)
     assert.deepEqual(JSON.parse(JSON.stringify(relato)), { versao: 'KINEO-REFERENCIA-UNICA-2411', origem, tipo: t.referenciaUnica.tipo, planos: A.input.multi_prompt.length, planos_com_frase: planosComFrase.map(i => i + 1) })
     assert.equal(f.relatoReferenciaUnica({ referenciaUnica: t.referenciaUnica, fixedCharacter: {} }, { model: A.endpoint, input: enviado.input }), null)
     assert.equal(f.relatoReferenciaUnica({ referenciaUnica: t.referenciaUnica }, { model: 'kling/v4/image-to-video', input: enviado.input }), null)
@@ -224,13 +226,49 @@ async function suite(change) {
       const roda = (l) => conferencia({ job: {} }, { status: 'JUDGED' }, l, juiz.planoDoEnvio, () => ({ prompts: ps, approvedStills: stillsDe(fl), timing }), f.entradaDoJuiz2411, api.buildKling4TrialInput, ficha.juizLeuOMesmoTexto, scenes, [])
       assert.equal(roda(lido), true, id + ': mesmo texto = reaproveita (' + (timing.referenciaUnica ? 'ligado' : 'desligado') + ')')
       assert.equal(roda(lido.map((c, i) => i === 0 ? { ...c, prompt: c.prompt + ' Extra.' } : c)), false, id + ': texto lido diferente = 2ª leitura')
+      // [revisor 24/11, volta 3, RM3] veredito que não é JUDGED nunca é reaproveitado
+      for (const status of ['FAILED', 'TIMEOUT', undefined]) assert.equal(conferencia({ job: {} }, { status }, lido, juiz.planoDoEnvio, () => ({ prompts: ps, approvedStills: stillsDe(fl), timing }), f.entradaDoJuiz2411, api.buildKling4TrialInput, ficha.juizLeuOMesmoTexto, scenes, []), false, id + ': veredito ' + status)
     }
   }
   // só a frase que nós pusemos sai para o juiz: a mesma frase escrita pelo cliente no meio do plano fica
   { const cli = 'The young man reads a note: Keep the face and outfit of @Image1. He smiles. Mouth closed, no speaking.'
     const w = api.buildKling4TrialInput([cli], [], { voiceovers: ['one two three'], wordsPerSecond: 1, referenciaUnica: ru })
     assert.equal(w.model, 'kling/v4/reference-to-video')
-    assert.equal(f.entradaDoJuiz2411({ referenciaUnica: ru }, w).multi_prompt[0].prompt, cli) }
+    assert.equal(w.input.multi_prompt[0].prompt.split('Keep the face and outfit of @Image1.').length - 1, 2, 'vizinho a: a do cliente e a nossa vão ao motor')
+    assert.equal(f.entradaDoJuiz2411({ referenciaUnica: ru }, w).multi_prompt[0].prompt, cli, 'vizinho a: o juiz perde só a nossa') }
+  // [revisor 24/11, volta 3] uma fonte só: a frase sai para o juiz SÓ nos planos em que o montador a pôs (planosComFrase). Texto exato do juiz.
+  { const R = ' Keep the face and outfit of @Image1.', M = ' Mouth closed, no speaking.'
+    const planos = [
+      { prompt: 'The young man waves at the camera.' + M, duration: 3 },             // 1 com o personagem, com a cauda
+      { prompt: 'A red car drives off.' + R, duration: 3 },                          // 2 SEM o personagem, frase do cliente no fim, sem cauda
+      { prompt: 'A red car drives off.' + R + M, duration: 3 },                      // 3 SEM o personagem, frase do cliente antes da cauda
+      { prompt: 'The young man runs away into the night.', duration: 3 },           // 4 com o personagem, SEM a cauda (FM1)
+      { prompt: 'The old woman smiles at the young man and waves.' + M, duration: 3 }, // 5 dois personagens: o principal está → frase
+    ]
+    const w = api.buildKling4ReferenciaUnicaInput(planos, ru)
+    assert.deepEqual([...w.planosComFrase], [true, false, false, true, true])
+    assert.deepEqual(w.input.multi_prompt.map(m => m.prompt), [
+      'The young man waves at the camera.' + R + M, 'A red car drives off.' + R, 'A red car drives off.' + R + M,
+      'The young man runs away into the night.' + R, 'The old woman smiles at the young man and waves.' + R + M])
+    assert.deepEqual(f.entradaDoJuiz2411({ referenciaUnica: ru }, w).multi_prompt.map(m => m.prompt), [
+      'The young man waves at the camera.' + M, 'A red car drives off.' + R, 'A red car drives off.' + R + M,
+      'The young man runs away into the night.', 'The old woman smiles at the young man and waves.' + M], 'o juiz lê o que foi ao motor menos a NOSSA frase')
+    assert.deepEqual(JSON.parse(JSON.stringify(f.relatoReferenciaUnica({ referenciaUnica: ru }, w))).planos_com_frase, [1, 4, 5], 'o claim conta a decisão do montador, não a frase do cliente')
+    // vizinho c: dois personagens, plano só com o outro = sem frase, e o juiz não perde nada
+    const so = api.buildKling4ReferenciaUnicaInput([{ prompt: 'The old woman waits at the door.' + M, duration: 7 }, { prompt: 'The young man arrives.' + M, duration: 8 }], ru)
+    assert.deepEqual([...so.planosComFrase], [false, true]); assert.equal(f.entradaDoJuiz2411({ referenciaUnica: ru }, so).multi_prompt[0].prompt, 'The old woman waits at the door.' + M)
+    // vizinho b: o nome só dentro de fala entre aspas também conta como "cita" (a regra não muda nesta volta); a frase entra e o juiz a tira, coerente
+    const aspas = api.buildKling4ReferenciaUnicaInput([{ prompt: 'A woman shouts "young man, come back!" across the street.' + M, duration: 15 }], ru)
+    assert.deepEqual([...aspas.planosComFrase], [true]); assert.equal(f.entradaDoJuiz2411({ referenciaUnica: ru }, aspas).multi_prompt[0].prompt, 'A woman shouts "young man, come back!" across the street.' + M)
+    // vizinho d: plano que cita o personagem e fica SEM a frase não existe — o montador põe em todo plano que cita, ou devolve null (caminho de hoje, sem referência nenhuma)
+    for (const lote of [planos, [{ prompt: 'The young man waits.', duration: 15 }]]) {
+      const x = api.buildKling4ReferenciaUnicaInput(lote, ru)
+      lote.forEach((p, i) => assert.equal(x.planosComFrase[i], api.planoMostraOPersonagem(p.prompt, ru.nomes)))
+      x.input.multi_prompt.forEach((m, i) => assert.equal(x.planosComFrase[i], m.prompt !== lote[i].prompt))
+    }
+    // sem a decisão do montador (envio montado por outro caminho): o juiz não perde nada
+    assert.deepEqual(f.entradaDoJuiz2411({ referenciaUnica: ru }, { model: w.model, input: w.input }).multi_prompt.map(m => m.prompt), w.input.multi_prompt.map(m => m.prompt))
+  }
 
   // na rota, os lugares em que o juiz lê o envio (A2 ×3 + eco, juiz do plano ×2) passam por entradaDoJuiz2411; o envio e o claim, não
   assert.equal(route.split('(buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input.multi_prompt as Array<{ prompt: string }>)').length - 1, 0)
@@ -282,6 +320,13 @@ const mutants = [
   [feature, 'p.slice(0, -(frase + CAUDA_DA_BOCA_2411).length) + CAUDA_DA_BOCA_2411', 'p'],
   [feature, [['p.endsWith(frase + CAUDA_DA_BOCA_2411) ? p.slice(0, -(frase + CAUDA_DA_BOCA_2411).length) + CAUDA_DA_BOCA_2411', 'p.includes(frase) ? p.replace(frase, \'\')']]],
   [routeFile, 'const reaproveitaJuiz1311 = !!envioFinal1311 && juizLeuOMesmoTexto(lidoPeloJuiz1311, envioFinal1311.cenas)', 'const reaproveitaJuiz1311 = !!envioFinal1311'],
+  // [revisor 24/11, volta 3] FM1, FM2, RM3 e a fonte única
+  [feature, ': p.endsWith(frase) ? p.slice(0, -frase.length) : p', ': p'], // FM1: a frase no fim de plano sem "Mouth closed" deixa de sair
+  [feature, [['const semANossa = (p: string): string => p.endsWith(frase + CAUDA_DA_BOCA_2411) ? p.slice(0, -(frase + CAUDA_DA_BOCA_2411).length) + CAUDA_DA_BOCA_2411\n    : p.endsWith(frase) ? p.slice(0, -frase.length) : p', 'const semANossa = (p: string): string => { const k = p.lastIndexOf(frase); return k < 0 ? p : p.slice(0, k) + p.slice(k + frase.length) }'], ['marcados[i] === true && ', '']]], // FM2: a última ocorrência em qualquer plano
+  [feature, 'marcados[i] === true && ', ''], // a decisão do montador ignorada (pela posição em todo plano: o furo da volta 3)
+  [feature, "(Array.isArray(wire.planosComFrase) ? wire.planosComFrase : []).flatMap((m, i) => m === true ? [i + 1] : [])", "planos.flatMap((p, i) => typeof p?.prompt === 'string' && p.prompt.includes(ref.frase) ? [i + 1] : [])"],
+  [transport, 'planosComFrase: comPersonagem as readonly boolean[]', 'planosComFrase: comPersonagem.map(() => true) as readonly boolean[]'],
+  [routeFile, "const envioFinal1311 = kling4Trial?.job && vereditoAntes1311?.status === 'JUDGED' && lidoPeloJuiz1311 ?", 'const envioFinal1311 = kling4Trial?.job && lidoPeloJuiz1311 ?'], // RM3
   [routeFile, 'kling4Input: () => { const e = kling4EnvioDoFilme(); return entradaDoJuiz2411(e.timing, buildKling4TrialInput(e.prompts, e.approvedStills, e.timing)) /* KINEO-REFERENCIA-UNICA-2411: o juiz lê sem a frase */ }, falas: scenes.map((s) => s.voiceover ?? \'\'), inputs: classicSceneInputs }) : null', 'kling4Input: () => { const e = kling4EnvioDoFilme(); return entradaDoJuiz2411({}, buildKling4TrialInput(e.prompts, e.approvedStills, e.timing)) /* KINEO-REFERENCIA-UNICA-2411: o juiz lê sem a frase */ }, falas: scenes.map((s) => s.voiceover ?? \'\'), inputs: classicSceneInputs }) : null'],
   [routeFile, 'kling4Input: () => { const e = kling4EnvioDoFilme(); return entradaDoJuiz2411(e.timing, buildKling4TrialInput(e.prompts, e.approvedStills, e.timing)) /* KINEO-REFERENCIA-UNICA-2411: o juiz lê sem a frase */ }, falas', 'kling4Input: () => { const e = kling4EnvioDoFilme(); return buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input }, falas'],
 ]

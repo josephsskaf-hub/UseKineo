@@ -96,7 +96,8 @@ export function buildKling4ReferenciaUnicaInput(shots: readonly { prompt: string
     const prompt = cabe.endsWith(CAUDA_DA_BOCA) ? cabe.slice(0, -CAUDA_DA_BOCA.length) + frase + CAUDA_DA_BOCA : cabe + frase
     return { prompt, duration: shot.duration }
   })
-  return { model: KLING4_REFERENCE_MODEL, input: { image_urls: [ref.imageUrl], multi_prompt, duration, resolution: '720p', aspect_ratio: '9:16' } as Record<string, unknown> }
+  // planosComFrase fica FORA do input (não vai à fal): é a decisão deste montador, a única fonte de onde a frase entrou (o juiz e o claim leem daqui)
+  return { model: KLING4_REFERENCE_MODEL, input: { image_urls: [ref.imageUrl], multi_prompt, duration, resolution: '720p', aspect_ratio: '9:16' } as Record<string, unknown>, planosComFrase: comPersonagem as readonly boolean[] }
 }
 
 // KINEO-K4-DURACAO-PELA-VOZ-1311 [CEO 13/11, "nota ≥ 8 no teste grátis — a próxima causa"] — filme 9e902872 (cliente, Kling 4, 15 s,

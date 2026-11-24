@@ -50,28 +50,30 @@ function escolherReferencia(snapshot: FilmQualitySnapshot | null | undefined): R
 /** [revisor 24/11, volta 1] O que os JUÍZES leem: a frase de referência é instrução ao motor, não conteúdo da cena. Ela sai antes do juízo, para o
  *  juiz de antes, o A2 e o juiz do plano lerem o MESMO texto (juizLeuOMesmoTexto continua valendo; sem 2ª leitura paga a mais). O que vai à fal e
  *  ao claim continua o pedido real. Sem a referência única no envio = a MESMA entrada, intocada (desligado = byte a byte). */
-export function entradaDoJuiz2411(
-  timing: Parameters<typeof relatoReferenciaUnica>[0], wire: { model: string; input: Record<string, unknown> },
-): Record<string, unknown> {
+export type EnvioKling4 = { model: string; input: Record<string, unknown>; planosComFrase?: readonly boolean[] }
+export function entradaDoJuiz2411(timing: Parameters<typeof relatoReferenciaUnica>[0], wire: EnvioKling4): Record<string, unknown> {
   const ref = timing?.referenciaUnica
   if (!ref || !relatoReferenciaUnica(timing, wire) || !Array.isArray(wire.input.multi_prompt)) return wire.input
+  // [revisor 24/11, volta 3] UMA fonte de verdade: a frase só sai dos planos em que o MONTADOR a pôs (wire.planosComFrase, a decisão de
+  // buildKling4ReferenciaUnicaInput). Plano sem a nossa frase fica como foi à fal, mesmo que o cliente tenha escrito uma frase igual. Sem a decisão = nada sai.
+  const marcados = Array.isArray(wire.planosComFrase) ? wire.planosComFrase : []
   const frase = ' ' + ref.frase.trim()
-  // [revisor 24/11, volta 2] só a frase que NÓS pusemos, pela posição (antes de "Mouth closed, no speaking." ou no fim); frase igual escrita pelo cliente fica
+  // dentro do plano marcado, só a ocorrência que nós pusemos: pela posição (antes de "Mouth closed, no speaking." ou no fim), nunca outra igual do cliente
   const semANossa = (p: string): string => p.endsWith(frase + CAUDA_DA_BOCA_2411) ? p.slice(0, -(frase + CAUDA_DA_BOCA_2411).length) + CAUDA_DA_BOCA_2411
     : p.endsWith(frase) ? p.slice(0, -frase.length) : p
-  return { ...wire.input, multi_prompt: (wire.input.multi_prompt as Array<Record<string, unknown>>).map((m) =>
-    typeof m?.prompt === 'string' && semANossa(m.prompt) !== m.prompt ? { ...m, prompt: semANossa(m.prompt) } : m) }
+  return { ...wire.input, multi_prompt: (wire.input.multi_prompt as Array<Record<string, unknown>>).map((m, i) =>
+    marcados[i] === true && typeof m?.prompt === 'string' && semANossa(m.prompt) !== m.prompt ? { ...m, prompt: semANossa(m.prompt) } : m) }
 }
 const CAUDA_DA_BOCA_2411 = ' Mouth closed, no speaking.' // a mesma cauda que buildKling4ReferenciaUnicaInput protege (lib/kling4Trial.ts)
 
 /** Para medir depois: o que foi à fal saiu pela referência única? (só nomes de campo, índices e a origem; nunca texto do cliente) */
 export function relatoReferenciaUnica(
   timing: { fixedCharacter?: unknown; referenciaUnica?: Kling4ReferenciaUnica & Partial<Pick<ReferenciaUnica2411, 'origem' | 'tipo'>> } | null | undefined,
-  wire: { model: string; input: Record<string, unknown> },
+  wire: EnvioKling4,
 ): { versao: string; origem: string | null; tipo: string | null; planos: number; planos_com_frase: number[] } | null {
   const ref = timing?.referenciaUnica
   if (!ref || timing?.fixedCharacter || wire.model !== KLING4_REFERENCE_MODEL) return null
   const planos = Array.isArray(wire.input.multi_prompt) ? wire.input.multi_prompt as Array<{ prompt?: unknown }> : []
   return { versao: REFERENCIA_UNICA_2411_VERSAO, origem: ref.origem ?? null, tipo: ref.tipo ?? null, planos: planos.length,
-    planos_com_frase: planos.flatMap((p, i) => typeof p?.prompt === 'string' && p.prompt.includes(ref.frase) ? [i + 1] : []) }
+    planos_com_frase: (Array.isArray(wire.planosComFrase) ? wire.planosComFrase : []).flatMap((m, i) => m === true ? [i + 1] : []) } // [volta 3] a decisão do montador, não a busca do texto (frase do cliente não conta)
 }
