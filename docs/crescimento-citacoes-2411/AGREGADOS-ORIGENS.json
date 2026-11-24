@@ -1,0 +1,816 @@
+{
+  "landing": {
+    "paths": [
+      {
+        "path": "/text-to-video-shorts",
+        "origin": "chatgpt_explicito",
+        "signups": 61,
+        "sessions": 128,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 27,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/ai-video-generator/for/urdu",
+        "origin": "chatgpt_explicito",
+        "signups": 57,
+        "sessions": 109,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 12,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/",
+        "origin": "chatgpt_explicito",
+        "signups": 56,
+        "sessions": 172,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 21,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/ai-video-generator/for/story-videos",
+        "origin": "chatgpt_explicito",
+        "signups": 40,
+        "sessions": 70,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 17,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/free-ai-shorts/cartoon",
+        "origin": "chatgpt_explicito",
+        "signups": 38,
+        "sessions": 99,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 8,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/gerador-de-shorts-gratis",
+        "origin": "chatgpt_explicito",
+        "signups": 37,
+        "sessions": 67,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 23,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/ai-ugc-ads",
+        "origin": "chatgpt_explicito",
+        "signups": 26,
+        "sessions": 54,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 10,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/free-ai-shorts/horror",
+        "origin": "chatgpt_explicito",
+        "signups": 25,
+        "sessions": 66,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 8,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/ai-kids-cartoon-videos",
+        "origin": "chatgpt_explicito",
+        "signups": 9,
+        "sessions": 21,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 4,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/state-of-ai-shorts-2026",
+        "origin": "chatgpt_explicito",
+        "signups": 8,
+        "sessions": 36,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 2,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/ai-video-generator/for/youtube-shorts",
+        "origin": "chatgpt_explicito",
+        "signups": 8,
+        "sessions": 14,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 5,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/text-to-video-shorts",
+        "origin": "bing.com",
+        "signups": 7,
+        "sessions": 41,
+        "utm_medium": "cpc",
+        "utm_source": "bing",
+        "completed_requests": 2,
+        "sessions_with_utm_term": 41
+      },
+      {
+        "path": "/how-much-do-youtube-shorts-pay",
+        "origin": "bing.com",
+        "signups": 6,
+        "sessions": 348,
+        "utm_medium": null,
+        "utm_source": null,
+        "completed_requests": 4,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/ai-video-generator/for/instagram-reels",
+        "origin": "chatgpt_explicito",
+        "signups": 6,
+        "sessions": 15,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 3,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/ai-video-generator/for/faceless-videos",
+        "origin": "chatgpt_explicito",
+        "signups": 6,
+        "sessions": 10,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 2,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/ai-video-generator/seedance",
+        "origin": "chatgpt_explicito",
+        "signups": 6,
+        "sessions": 10,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/",
+        "origin": "bing.com",
+        "signups": 5,
+        "sessions": 10,
+        "utm_medium": null,
+        "utm_source": null,
+        "completed_requests": 4,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/ai-video-generator/kling-4",
+        "origin": "chatgpt_explicito",
+        "signups": 5,
+        "sessions": 7,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/free-shorts-generator/de",
+        "origin": "chatgpt_explicito",
+        "signups": 4,
+        "sessions": 17,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 4,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/ai-video-generator/for/documentary-shorts",
+        "origin": "chatgpt_explicito",
+        "signups": 3,
+        "sessions": 9,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/ai-video-generator/for/widescreen-videos",
+        "origin": "chatgpt_explicito",
+        "signups": 3,
+        "sessions": 5,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 2,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/pricing",
+        "origin": "chatgpt_explicito",
+        "signups": 2,
+        "sessions": 41,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/ai-short-film-generator",
+        "origin": "chatgpt_explicito",
+        "signups": 2,
+        "sessions": 6,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 1,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/best-ai-shorts-generators",
+        "origin": "chatgpt_explicito",
+        "signups": 2,
+        "sessions": 5,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/make-money-clipping-with-ai",
+        "origin": "bing.com",
+        "signups": 1,
+        "sessions": 5,
+        "utm_medium": null,
+        "utm_source": null,
+        "completed_requests": 1,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/text-to-video-shorts",
+        "origin": "bing",
+        "signups": 1,
+        "sessions": 4,
+        "utm_medium": "cpc",
+        "utm_source": "bing",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 4
+      },
+      {
+        "path": "/free-ai-shorts-generator",
+        "origin": "chatgpt_explicito",
+        "signups": 1,
+        "sessions": 3,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 1,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/free-shorts-generator/fr",
+        "origin": "bing.com",
+        "signups": 1,
+        "sessions": 3,
+        "utm_medium": null,
+        "utm_source": null,
+        "completed_requests": 1,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/text-to-video-shorts",
+        "origin": "search.yahoo.com",
+        "signups": 1,
+        "sessions": 3,
+        "utm_medium": "cpc",
+        "utm_source": "bing",
+        "completed_requests": 1,
+        "sessions_with_utm_term": 3
+      },
+      {
+        "path": "/ai-video-generator",
+        "origin": "bing.com",
+        "signups": 1,
+        "sessions": 1,
+        "utm_medium": null,
+        "utm_source": null,
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/ai-video-generator/kling-4",
+        "origin": "bing.com",
+        "signups": 1,
+        "sessions": 1,
+        "utm_medium": "cpc",
+        "utm_source": "bing",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 1
+      },
+      {
+        "path": "/free-ai-shorts",
+        "origin": "chatgpt_explicito",
+        "signups": 1,
+        "sessions": 1,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/free-script-generator",
+        "origin": "bing.com",
+        "signups": 1,
+        "sessions": 1,
+        "utm_medium": null,
+        "utm_source": null,
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/scripts/animals",
+        "origin": "chatgpt_explicito",
+        "signups": 1,
+        "sessions": 1,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/scripts/psychology",
+        "origin": "chatgpt_explicito",
+        "signups": 1,
+        "sessions": 1,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/text-to-video-shorts",
+        "origin": "duckduckgo.com",
+        "signups": 1,
+        "sessions": 1,
+        "utm_medium": "cpc",
+        "utm_source": "bing",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 1
+      },
+      {
+        "path": "/how-much-do-instagram-reels-pay",
+        "origin": "chatgpt_explicito",
+        "signups": 0,
+        "sessions": 53,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/best-ai-shorts-generators",
+        "origin": "bing.com",
+        "signups": 0,
+        "sessions": 8,
+        "utm_medium": null,
+        "utm_source": null,
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/how-much-does-tiktok-pay",
+        "origin": "chatgpt_explicito",
+        "signups": 0,
+        "sessions": 6,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/text-to-video-shorts",
+        "origin": "r.search.yahoo.com",
+        "signups": 0,
+        "sessions": 6,
+        "utm_medium": "cpc",
+        "utm_source": "bing",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 6
+      },
+      {
+        "path": "/ai-video-generator/for/tiktok-videos",
+        "origin": "chatgpt_explicito",
+        "signups": 0,
+        "sessions": 4,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/free-ai-shorts/fitness",
+        "origin": "chatgpt_explicito",
+        "signups": 0,
+        "sessions": 4,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/library",
+        "origin": "chatgpt_explicito",
+        "signups": 0,
+        "sessions": 3,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/partners",
+        "origin": "chatgpt_explicito",
+        "signups": 0,
+        "sessions": 2,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/ai-shorts-without-filming",
+        "origin": "chatgpt_explicito",
+        "signups": 0,
+        "sessions": 1,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/ai-video-generator/kling-4",
+        "origin": "qwant.com",
+        "signups": 0,
+        "sessions": 1,
+        "utm_medium": "cpc",
+        "utm_source": "bing",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 1
+      },
+      {
+        "path": "/ai-video-generator/veo/tr",
+        "origin": "chatgpt_explicito",
+        "signups": 0,
+        "sessions": 1,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/can-you-monetize-ai-videos",
+        "origin": "bing.com",
+        "signups": 0,
+        "sessions": 1,
+        "utm_medium": null,
+        "utm_source": null,
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/chatgpt",
+        "origin": "chatgpt_explicito",
+        "signups": 0,
+        "sessions": 1,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/effects/pet-bee",
+        "origin": "chatgpt_explicito",
+        "signups": 0,
+        "sessions": 1,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/free-ai-shorts/horror",
+        "origin": "bing.com",
+        "signups": 0,
+        "sessions": 1,
+        "utm_medium": null,
+        "utm_source": null,
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/free-ai-shorts/sports",
+        "origin": "bing.com",
+        "signups": 0,
+        "sessions": 1,
+        "utm_medium": null,
+        "utm_source": null,
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/generador-de-shorts-gratis",
+        "origin": "bing.com",
+        "signups": 0,
+        "sessions": 1,
+        "utm_medium": null,
+        "utm_source": null,
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/generador-de-videos-de-terror",
+        "origin": "chatgpt_explicito",
+        "signups": 0,
+        "sessions": 1,
+        "utm_medium": null,
+        "utm_source": "chatgpt.com",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/how-much-do-instagram-reels-pay",
+        "origin": "bing.com",
+        "signups": 0,
+        "sessions": 1,
+        "utm_medium": null,
+        "utm_source": null,
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/login",
+        "origin": "chatgpt_explicito",
+        "signups": 0,
+        "sessions": 1,
+        "utm_medium": null,
+        "utm_source": null,
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/signup",
+        "origin": "bing.com",
+        "signups": 0,
+        "sessions": 1,
+        "utm_medium": "organic",
+        "utm_source": "seo",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      },
+      {
+        "path": "/text-to-video-shorts",
+        "origin": "uk.search.yahoo.com",
+        "signups": 0,
+        "sessions": 1,
+        "utm_medium": "cpc",
+        "utm_source": "bing",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 1
+      },
+      {
+        "path": "/text-to-video-shorts",
+        "origin": "related.swiftdiscoveries.com",
+        "signups": 0,
+        "sessions": 1,
+        "utm_medium": "cpc",
+        "utm_source": "bing",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 1
+      },
+      {
+        "path": "/text-to-video-shorts",
+        "origin": "rd.search.yahoo.com",
+        "signups": 0,
+        "sessions": 1,
+        "utm_medium": "cpc",
+        "utm_source": "bing",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 1
+      },
+      {
+        "path": "/text-to-video-shorts",
+        "origin": "related.scarletwave.net",
+        "signups": 0,
+        "sessions": 1,
+        "utm_medium": "cpc",
+        "utm_source": "bing",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 1
+      },
+      {
+        "path": "/text-to-video-shorts",
+        "origin": "related.theseekdiary.com",
+        "signups": 0,
+        "sessions": 1,
+        "utm_medium": "cpc",
+        "utm_source": "bing",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 1
+      },
+      {
+        "path": "/text-to-video-shorts",
+        "origin": "relatedsearches.net",
+        "signups": 0,
+        "sessions": 1,
+        "utm_medium": "cpc",
+        "utm_source": "bing",
+        "completed_requests": 0,
+        "sessions_with_utm_term": 1
+      },
+      {
+        "path": "/tiktok-vs-youtube-shorts-monetization",
+        "origin": "bing.com",
+        "signups": 0,
+        "sessions": 1,
+        "utm_medium": null,
+        "utm_source": null,
+        "completed_requests": 0,
+        "sessions_with_utm_term": 0
+      }
+    ],
+    "cut_utc": "2026-11-24T05:05:04.514356+00:00",
+    "start_utc": "2026-10-25T05:05:04.514356+00:00",
+    "query_term_coverage": [
+      {
+        "origin": "related.theseekdiary.com",
+        "utm_medium": "cpc",
+        "sessions_with_term": 1,
+        "distinct_term_groups": 1
+      },
+      {
+        "origin": "related.scarletwave.net",
+        "utm_medium": "cpc",
+        "sessions_with_term": 1,
+        "distinct_term_groups": 1
+      },
+      {
+        "origin": "uk.search.yahoo.com",
+        "utm_medium": "cpc",
+        "sessions_with_term": 1,
+        "distinct_term_groups": 1
+      },
+      {
+        "origin": "qwant.com",
+        "utm_medium": "cpc",
+        "sessions_with_term": 1,
+        "distinct_term_groups": 1
+      },
+      {
+        "origin": "rd.search.yahoo.com",
+        "utm_medium": "cpc",
+        "sessions_with_term": 1,
+        "distinct_term_groups": 1
+      },
+      {
+        "origin": "r.search.yahoo.com",
+        "utm_medium": "cpc",
+        "sessions_with_term": 6,
+        "distinct_term_groups": 3
+      },
+      {
+        "origin": "bing",
+        "utm_medium": "cpc",
+        "sessions_with_term": 4,
+        "distinct_term_groups": 4
+      },
+      {
+        "origin": "search.yahoo.com",
+        "utm_medium": "cpc",
+        "sessions_with_term": 3,
+        "distinct_term_groups": 3
+      },
+      {
+        "origin": "duckduckgo.com",
+        "utm_medium": "cpc",
+        "sessions_with_term": 1,
+        "distinct_term_groups": 1
+      },
+      {
+        "origin": "bing.com",
+        "utm_medium": "cpc",
+        "sessions_with_term": 42,
+        "distinct_term_groups": 16
+      },
+      {
+        "origin": "related.swiftdiscoveries.com",
+        "utm_medium": "cpc",
+        "sessions_with_term": 1,
+        "distinct_term_groups": 1
+      },
+      {
+        "origin": "relatedsearches.net",
+        "utm_medium": "cpc",
+        "sessions_with_term": 1,
+        "distinct_term_groups": 1
+      }
+    ],
+    "aggregate_question_terms_ge3": [
+      {
+        "term": "ai video maker",
+        "origin": "bing.com",
+        "sessions": 8,
+        "utm_medium": "cpc"
+      },
+      {
+        "term": "ai film generator",
+        "origin": "bing.com",
+        "sessions": 5,
+        "utm_medium": "cpc"
+      },
+      {
+        "term": "ai film generator",
+        "origin": "r.search.yahoo.com",
+        "sessions": 4,
+        "utm_medium": "cpc"
+      },
+      {
+        "term": "ai film maker",
+        "origin": "bing.com",
+        "sessions": 3,
+        "utm_medium": "cpc"
+      },
+      {
+        "term": "ai movie generator",
+        "origin": "bing.com",
+        "sessions": 3,
+        "utm_medium": "cpc"
+      },
+      {
+        "term": "ai video generator",
+        "origin": "bing.com",
+        "sessions": 3,
+        "utm_medium": "cpc"
+      },
+      {
+        "term": "text to video ai",
+        "origin": "bing.com",
+        "sessions": 3,
+        "utm_medium": "cpc"
+      }
+    ]
+  },
+  "profileReferrerCoverage": [
+    {
+      "origin": "bing_profile",
+      "medium": "cpc",
+      "profiles": 11,
+      "with_external_referrer": 10,
+      "with_referrer_query": 0,
+      "with_nonempty_question_parameter": 0
+    },
+    {
+      "origin": "bing_profile",
+      "medium": "organic",
+      "profiles": 5,
+      "with_external_referrer": 5,
+      "with_referrer_query": 0,
+      "with_nonempty_question_parameter": 0
+    },
+    {
+      "origin": "bing_profile",
+      "medium": "seo",
+      "profiles": 1,
+      "with_external_referrer": 1,
+      "with_referrer_query": 0,
+      "with_nonempty_question_parameter": 0
+    },
+    {
+      "origin": "bing_profile",
+      "medium": null,
+      "profiles": 9,
+      "with_external_referrer": 9,
+      "with_referrer_query": 0,
+      "with_nonempty_question_parameter": 0
+    },
+    {
+      "origin": "chatgpt_explicit_profile",
+      "medium": "email",
+      "profiles": 5,
+      "with_external_referrer": 1,
+      "with_referrer_query": 0,
+      "with_nonempty_question_parameter": 0
+    },
+    {
+      "origin": "chatgpt_explicit_profile",
+      "medium": null,
+      "profiles": 380,
+      "with_external_referrer": 2,
+      "with_referrer_query": 0,
+      "with_nonempty_question_parameter": 0
+    }
+  ]
+}
