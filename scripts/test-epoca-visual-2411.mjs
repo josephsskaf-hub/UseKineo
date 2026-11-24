@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
 const arquivo = 'lib/cinematic/epocaVisual2411.ts'
-const fonte = readFileSync(arquivo, 'utf8')
+const fonte = readFileSync(arquivo, 'utf8').replace(/\r\n/g, '\n')
 function carregar(texto) {
   return createOfflineLoader({ source: (rel, original) => rel === arquivo ? texto : original })(arquivo)
 }
