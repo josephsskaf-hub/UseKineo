@@ -20,11 +20,11 @@ const previous=Object.fromEntries([INTENT,CAT,MAP,'components/ugc/UgcPages.tsx']
 const old=make(previous),json=x=>JSON.parse(JSON.stringify(x)),oldMap=json(old(MAP).default()),oldSlugs=json(old(CAT).INTENT_SLUGS),oldParams=json(old(INTENT).generateStaticParams())
 const render=(l,f,p={})=>renderToStaticMarkup(React.createElement(l(f).default,p)),schemas=h=>[...h.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(x=>JSON.parse(x[1]))
 const controls=['urdu','story-videos','faceless-videos','documentary-shorts','instagram-reels'],oldHtml=new Map(controls.map(slug=>[slug,render(old,INTENT,{params:{slug}})]))
-const release=(rep,state)=>({...rep,[RELEASE]:(rep[RELEASE]??source(RELEASE)).replace("CITATION_PAGES_RELEASE: CitationPagesRelease = 'off'",`CITATION_PAGES_RELEASE: CitationPagesRelease = '${state}'`)})
+const release=(rep,state)=>({...rep,[RELEASE]:(rep[RELEASE]??source(RELEASE)).replace("CITATION_PAGES_RELEASE: CitationPagesRelease = 'internal'",`CITATION_PAGES_RELEASE: CitationPagesRelease = '${state}'`)})
 const denied=async fn=>{try{await fn();return false}catch(e){if(e.message==='NEXT_NOT_FOUND')return true;throw e}}
 async function verify(rep={}){
  const l=make(rep),a=l(ACCESS),house=l('lib/internalAccounts.ts').INTERNAL_EXACT_EMAILS,slugs=json(a.CITATION_DRAFT_SLUGS)
- assert.equal(a.CITATION_PAGES_RELEASE,'off','DEFAULT pages off')
+ assert.equal(a.CITATION_PAGES_RELEASE,'internal','DEFAULT pages internal')
  for(const email of [null,'buyer@example.com',...house]){
   const user=email?{email,email_confirmed_at:'yes'}:null
   assert.equal(a.citationPageVisible(user,'off'),false,'GATE off everyone')
@@ -87,7 +87,7 @@ async function verify(rep={}){
 await verify()
 const sub=(f,a,b)=>{const s=source(f);assert.equal(s.split(a).length,2,'mutation anchor '+a);return{[f]:s.replace(a,b)}}
 const mutants=[
- ['default public',()=>sub(RELEASE,"CITATION_PAGES_RELEASE: CitationPagesRelease = 'off'","CITATION_PAGES_RELEASE: CitationPagesRelease = 'public'"),'DEFAULT pages off'],
+ ['default public',()=>sub(RELEASE,"CITATION_PAGES_RELEASE: CitationPagesRelease = 'internal'","CITATION_PAGES_RELEASE: CitationPagesRelease = 'public'"),'DEFAULT pages internal'],
  ['rewrite in off',()=>sub(RELEASE,"if (CITATION_PAGES_RELEASE !== 'internal') return null",'if (false) return null'),'PREVIEW rewrite only in internal mode'],
  ['preview bypass state',()=>sub(PREVIEW,"CITATION_PAGES_RELEASE !== 'internal' || !isCitationDraftSlug(params.slug)",'!isCitationDraftSlug(params.slug)'),'PREVIEW direct route closed outside internal'],
  ['off bypass',()=>sub(ACCESS,"release === 'public'","release === 'off' || release === 'public'"),'GATE off everyone'],

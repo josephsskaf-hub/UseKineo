@@ -21,7 +21,7 @@ const baseline=JSON.parse(source('scripts/test-support/citacoes-formatos-referen
 assert.equal(createHash('sha256').update(JSON.stringify(baseline.sources)).digest('hex'),'6a78a933af2627240ce53a214a09bfb930aa97ff64e7e925d0946bca6f1f9c48','Exact frozen baseline, portable without unmerged git objects')
 const oldSource=baseline.sources[INTENT],oldAd=baseline.sources[AD]
 const render=(l,f,p={})=>renderToStaticMarkup(React.createElement(l(f).default,p))
-const publicRep=rep=>({...rep,[RELEASE]:(rep[RELEASE]??source(RELEASE)).replace("CITATION_PAGES_RELEASE: CitationPagesRelease = 'off'","CITATION_PAGES_RELEASE: CitationPagesRelease = 'public'")})
+const publicRep=rep=>({...rep,[RELEASE]:(rep[RELEASE]??source(RELEASE)).replace("CITATION_PAGES_RELEASE: CitationPagesRelease = 'internal'","CITATION_PAGES_RELEASE: CitationPagesRelease = 'public'")})
 const old=make(publicRep({[INTENT]:oldSource,[AD]:oldAd}))
 const controls=['urdu','story-videos','faceless-videos','documentary-shorts','instagram-reels']
 const schemas=h=>[...h.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(x=>JSON.parse(x[1]))
@@ -37,7 +37,7 @@ const expected={
 const strip=h=>h.replace(/<style data-citation-format-theme="2411">[\s\S]*?<\/style>/g,'').replace(/<section class="cfh-2411"[\s\S]*?<\/section>/g,'').replaceAll(' kpl-citation-format-2411','').replace(/ style="[^"]*"/g,'')
 function verify(rep={}){
  const r=publicRep(rep),l=make(r),data=l(DATA)
- assert.equal(make(rep)(ACCESS).CITATION_PAGES_RELEASE,'off','DEFAULT remains off')
+ assert.equal(make(rep)(ACCESS).CITATION_PAGES_RELEASE,'internal','DEFAULT remains internal')
  for(const slug of Object.keys(expected)){
   const props={params:{slug}},b=render(old,INTENT,props),h=render(l,INTENT,props)
   assert.equal((h.match(/id="citation-format-(?:cartoon-videos|animated-story-videos|animal-story-videos)"/g)||[]).length,1,'HERO one form')
