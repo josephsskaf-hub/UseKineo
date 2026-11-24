@@ -43,6 +43,7 @@ const F = {
   destinations: 'lib/affiliateDestinations.ts',
   linkRoute: 'app/a/[code]/route.ts',
   middleware: 'middleware.ts',
+  citationRelease: 'lib/growth/citationPagesRelease.ts',
   webhook: 'app/api/stripe/webhook/route.ts',
   me: 'app/api/affiliate/me/route.ts',
   apply: 'app/api/affiliate/apply/route.ts',
@@ -243,6 +244,7 @@ async function problems(over = {}) {
       '@/lib/referralLanding': { findReferrerIdByCode: async () => null, recordReferralLanding: async () => null, normalizeReferralCode: () => null, REFERRAL_COOKIE: 'sf_ref', REFERRAL_COOKIE_MAX_AGE: 1 },
     })
     mw = compile(S('middleware'), {
+      '@/lib/growth/citationPagesRelease': pure(S('citationRelease'), F.citationRelease),
       'next/server': { NextResponse: { redirect: mkRedirect } },
       '@/lib/growth/visitanteEscreveAntes': { destinoDoVisitanteQueEscreve: () => null }, // KINEO-ESCREVE-ANTES-DO-LOGIN-0411 — este guardião não passa por /signup
       '@/lib/supabase/middleware': { updateSession: async () => ({ passthrough: true, cookies: { set() {} } }) },
