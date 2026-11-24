@@ -1,0 +1,144 @@
+{
+  "fonte": "KINEO-ELENCO-E-FIGURINO-2411 — roteiros NOSSOS (docs/canais/2026-11-24/SHORTS-PERSONAGEM-UNICO.md) e os eventos reais de 24/11 (events: cinematic_cast_checked, cinematic_character_sheet, cinematic_submission_claim.response). Sem e-mail e sem id inteiro de usuário. Os campos 'leitura_*' com 'reconstruida': true são a resposta do leitor semântico reconstruída a partir do que o evento gravou (o JSON bruto do modelo não é gravado); o guardião confere que ela reproduz o resultado gravado.",
+  "casos": {
+    "cooper": {
+      "generation": "2b17bd7f",
+      "ensaio": "18f6d369",
+      "roteiro": "HOOK: [Pexels: man in dark suit and black tie boarding a passenger jet in 1971] Fifty-five years ago today, a man in a black tie boarded a plane.\n\nMICRO REWARD 1: [Pexels: man in dark suit and black tie sitting in an airplane seat with a briefcase] Calling himself Dan Cooper, he demanded cash and four parachutes.\n\nMICRO REWARD 2: [Pexels: man in dark suit wearing a parachute at the open rear door of a jet at night] That night, somewhere past Seattle, he jumped.\n\nPAYOFF: [Pexels: old dollar bills half buried in wet river sand] Some of the cash turned up. Cooper never did.",
+      "ideia": "On November 24, 1971, a man in a dark suit and black tie who called himself Dan Cooper demanded cash and four parachutes on a passenger jet, jumped into the night somewhere between Seattle and Reno, and was never found.",
+      "evento_cast_checked": {
+        "conferiu": false,
+        "lidos": null,
+        "removidos": []
+      },
+      "evento_character_sheet_elenco": [
+        {
+          "nome": "Dan Cooper",
+          "tipo": "humano",
+          "origem": "autor"
+        }
+      ],
+      "ficha_gravada_sem_ancoras": "Dan Cooper, a man in a black tie, exactly as the author wrote; origin: an American man, with the natural features of American people; a real person filmed in photorealistic live action, natural skin texture and real fabric clothing; period look: a person of 1971 with period-accurate 1970s hairstyle and clothing true to their own place and role",
+      "ancoras_gravadas_da_folha": "appearance anchors: 30-40, dark brown, medium length, facial hair: short full beard, light skin, wearing white shirt, black tie, black pants",
+      "leitura_semantica": {
+        "reconstruida": true,
+        "raw": {
+          "protagonist": {
+            "name": "Dan Cooper",
+            "role_text": "a man in a black tie",
+            "role_en": "man in a black tie",
+            "kind": "human",
+            "species": "man",
+            "species_en": "man",
+            "appearance_from_text": "black tie",
+            "appearance_en": "black tie",
+            "gender_if_stated": "male",
+            "age_text": null,
+            "on_screen": true
+          },
+          "supporting": [],
+          "places_and_orgs": [
+            "Seattle"
+          ]
+        }
+      },
+      "planos_enviados": [
+        "Photoreal film. Period setting: 1971 (1970s). Identity: Dan Cooper, a man in a black tie, exactly as the author wrote; appearance anchors: 30-40, dark brown, medium length, facial hair: short full beard, light skin, wearing white shirt, black tie. A man in a dark suit and black tie boards a passenger jet in 1971, with other passengers in line. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.",
+        "Photoreal film. Period setting: 1971 (1970s). Identity: Dan Cooper, a man in a black tie, exactly as the author wrote; appearance anchors: 30-40, dark brown, medium length, facial hair: short full beard, light skin, wearing white shirt, black tie. Inside the airplane, the man sits in an aisle seat, holding a briefcase tightly on his lap. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.",
+        "Photoreal film. Period setting: 1971 (1970s). Identity: Dan Cooper, a man in a black tie, exactly as the author wrote; appearance anchors: 30-40, dark brown, medium length, facial hair: short full beard, light skin, wearing white shirt, black tie. At night, the man stands at the open rear door of the jet, wearing a parachute, wind blowing in. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.",
+        "Photoreal film. Wide shot. Period setting: 1971 (1970s). Identity: Dan Cooper, a man in a black tie, exactly as the author wrote; appearance anchors: 30-40, dark brown, medium length, facial hair: short full beard, light skin, wearing white shirt, black tie. Old dollar bills are half-buried in wet river sand, their edges worn and muddy. no readable text, letters, numbers, labels or signage Mouth closed, no speaking."
+      ],
+      "planos_nota": "Os 4 planos de cinematic_dispatch_result.scene_plan SEM a frase \"Keep the face and outfit of @Image1.\" (o montador a põe de novo)."
+    },
+    "leprince": {
+      "generation": "e93dcd39",
+      "roteiro": "HOOK: [Pexels: bearded man in 1880s suit operating a wooden box camera in a garden] In 1888, Louis Le Prince shot the oldest film that still exists.\n\nMICRO REWARD 1: [Pexels: bearded man in a long 1890 coat boarding a steam train] Two years later, Le Prince boarded a train to Paris.\n\nMICRO REWARD 2: [Pexels: empty vintage train compartment] The train arrived. Le Prince did not.\n\nPAYOFF: [Pexels: bearded man in a long 1890 coat walking into steam on a station platform] No body. No luggage. Le Prince was never seen again.",
+      "ideia": "Louis Le Prince, a bearded inventor in an 1880s suit, filmed the oldest surviving motion picture in 1888, boarded a train to Paris in 1890 and was never seen again.",
+      "evento_cast_checked": {
+        "conferiu": true,
+        "lidos": [
+          "Louis Le Prince"
+        ],
+        "removidos": [
+          "Prince"
+        ]
+      },
+      "leitura_semantica": {
+        "reconstruida": true,
+        "raw": {
+          "protagonist": {
+            "name": "Louis Le Prince",
+            "role_text": null,
+            "role_en": null,
+            "kind": "human",
+            "species": "human",
+            "species_en": "human",
+            "appearance_from_text": "",
+            "appearance_en": "",
+            "gender_if_stated": null,
+            "age_text": null,
+            "on_screen": true
+          },
+          "supporting": [],
+          "places_and_orgs": [
+            "Paris"
+          ]
+        }
+      }
+    },
+    "slocum": {
+      "generation": "63cbd4d7",
+      "ensaio": "1c12baef",
+      "roteiro": "HOOK: [Pexels: old bearded sailor at the helm of a small wooden sailboat] Joshua Slocum was the first man to sail around the world alone.\n\nMICRO REWARD 1: [Pexels: old bearded sailor on a small wooden sailboat in a storm] It took Slocum three years in a small wooden boat.\n\nMICRO REWARD 2: [Pexels: old bearded sailor raising the sail and leaving a harbor in autumn] In 1909, at sixty-five, Slocum sailed out once more.\n\nPAYOFF: [Pexels: empty gray ocean horizon at dusk] Neither Slocum nor his boat was ever seen again.",
+      "ideia": "Joshua Slocum, an old bearded sailor, was the first man to sail around the world alone, in a small wooden boat; in 1909 he sailed out once more and was never seen again.",
+      "evento_cast_checked": {
+        "conferiu": false,
+        "lidos": null,
+        "removidos": []
+      },
+      "evento_character_sheet_elenco": [
+        {
+          "nome": "Joshua Slocum",
+          "tipo": "humano",
+          "origem": "autor"
+        },
+        {
+          "nome": "the old bearded sailor",
+          "tipo": "humano",
+          "origem": "autor"
+        }
+      ],
+      "leitura_semantica": {
+        "reconstruida": true,
+        "raw": {
+          "protagonist": {
+            "name": "Joshua Slocum",
+            "role_text": "man",
+            "role_en": "man",
+            "kind": "human",
+            "species": "man",
+            "species_en": "man",
+            "appearance_from_text": "",
+            "appearance_en": "",
+            "gender_if_stated": "male",
+            "age_text": null,
+            "on_screen": true
+          },
+          "supporting": [],
+          "places_and_orgs": []
+        }
+      },
+      "visuais_do_render": [
+        "An old bearded sailor confidently grips the helm of a small wooden sailboat, waves crashing against the hull under a clear blue sky.",
+        "The old bearded sailor battles fierce winds, rain pelting his face as he navigates the stormy sea in his small wooden boat.",
+        "The old bearded sailor, dressed in autumn layers, raises the sail with determination as he departs a serene harbor, the sky darkening to dusk."
+      ],
+      "planos_enviados": [
+        "Photoreal film. Medium shot, subject centered and clearly readable. period piece set strictly in the year 1909. Place: a small wooden boat. Everyone shown has the natural features of American people. An old bearded sailor; appearance anchors: 60-70, gray, medium length, facial hair: long gray beard, light skin, wearing navy sailor suit; origin: an American person, no readable text, letters, numbers, labels or signage Mouth closed, no speaking.",
+        "Photoreal film. period piece set strictly in the year 1909. Identity: the old bearded sailor, An old bearded sailor; appearance anchors: 60-70, gray, medium length, facial hair: long gray beard, light skin, wearing navy sailor suit; origin: an American person. The old bearded sailor battles fierce winds, rain pelting his face as he navigates the stormy sea, no readable text, letters, numbers, labels or signage Mouth closed, no speaking.",
+        "Photoreal film. Wide shot. Identity: the old bearded sailor, An old bearded sailor; appearance anchors: 60-70, gray, medium length, facial hair: long gray beard, light skin, wearing navy sailor suit; origin: an American person. Main subject of this shot: old bearded sailor raising the sail and leaving a harbor in autumn, shown in motion. The scene is a period piece set strictly in the year 1909. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.",
+        "Photoreal film. Medium shot. Identity: the old bearded sailor, An old bearded sailor; appearance anchors: 60-70, gray, medium length, facial hair: long gray beard, light skin, wearing navy sailor suit; origin: an American person. Main subject of this shot: empty gray ocean horizon at dusk, shown in motion. The scene is a period piece set strictly in the year 1909. no readable text, letters, numbers, labels or signage Mouth closed, no speaking."
+      ]
+    }
+  }
+}
