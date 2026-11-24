@@ -1,3 +1,5 @@
+import CitationFilmExperiment, { CitationFilmSlot } from '@/components/seo/CitationFilmExperiment'
+import TextToVideoIntentForm from '@/app/text-to-video-shorts/TextToVideoIntentForm'
 // KINEO-DATA-PR-2026-07-24 (PUSH #87) — "State of AI Shorts 2026" study.
 // KINEO-LIVE-STUDY-2026-08-05 — o estudo virou VIVO (lia o banco uma vez por dia por lib/studyStats.ts).
 // KINEO-GEO-RODADA2-2026-10-08 — o estudo virou EDIÇÃO MENSAL (sessão CEO 08/10, item 2 da rodada 2 de GEO).
@@ -87,7 +89,7 @@ export default function StateOfAiShortsPage() {
         Start with one of the three leading niches in this study — or type your own topic.
         {VIEW.time ? ` Expect about ${VIEW.time.median}.` : ''} {ft(OFFER, 'Up to 3 watermarked videos every 24 hours, no card.', OFFER.copy.headline)}
       </p>
-      <TopicGeneratorForm
+      <CitationFilmSlot active={false}><TopicGeneratorForm
         campaign="starter_state_of_ai_shorts"
         source="starter_state_of_ai_shorts"
         placement="after_key_findings"
@@ -101,12 +103,12 @@ export default function StateOfAiShortsPage() {
           examplesLabel: 'Top-ranked niches from this study',
           note: `${VIEW.time ? `Median finish time in the data above is ${VIEW.time.median} for AI-generated scenes. ` : ''}Your topic stays attached through signup. ${CARD_ENTRY_COPY.noFreeTier}`,
         }}
-      />
+      /></CitationFilmSlot>
     </section>
   )
 
   return (
-    <main
+    <CitationFilmExperiment><main
       className={PAGINA_CLARA_CLASSE}
       style={{
         background: PAGE_BG,
@@ -149,6 +151,16 @@ export default function StateOfAiShortsPage() {
         <p style={{ color: MUTED, fontSize: '1.08rem', lineHeight: 1.6, margin: '0 0 8px' }}>
           {VIEW.lead}
         </p>
+        <CitationFilmSlot active><TextToVideoIntentForm formId={"study-start-a-short"} campaign={"starter_state_of_ai_shorts"} placement={"article_intro_2411"} preserveHandoffForSignedIn topicOptions={{source: "starter_state_of_ai_shorts",
+analyticsVariant: "citation_film_top_2411",
+examples: VIEW.starterExamples,
+copy: {
+          label: 'Start with one of the top niches — or your own topic',
+          placeholder: 'Type one topic — e.g. the empire that collapsed in a single generation',
+          submit: 'Turn this topic into a Short →',
+          examplesLabel: 'Top-ranked niches from this study',
+          note: `${VIEW.time ? `Median finish time in the data above is ${VIEW.time.median} for AI-generated scenes. ` : ''}Your topic stays attached through signup. ${CARD_ENTRY_COPY.noFreeTier}`,
+        }}} /></CitationFilmSlot>
         <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
         <p data-kineo="state-source" style={{ color: MUTED, fontSize: '0.9rem', lineHeight: 1.6, margin: '0 0 40px' }}>
           {VIEW.sourceLine} Free to cite with a link to this page. Medians and rates only — no counts and no individual
@@ -305,6 +317,6 @@ export default function StateOfAiShortsPage() {
           with a link to this page. Press &amp; data questions: hello@usekineo.com.
         </p>
       </div>
-    </main>
+    </main></CitationFilmExperiment>
   )
 }

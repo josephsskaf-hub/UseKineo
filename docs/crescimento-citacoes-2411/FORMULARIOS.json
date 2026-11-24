@@ -56,6 +56,60 @@
       "intent": "trial_best"
     },
     {
+      "page": "app/best-ai-shorts-generators/page.tsx",
+      "country": "US",
+      "partner": false,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "starter_best_generators",
+      "intent": "fast"
+    },
+    {
+      "page": "app/best-ai-shorts-generators/page.tsx",
+      "country": "US",
+      "partner": false,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "starter_best_generators",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "country": "US",
+      "partner": false,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "starter_reels_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "country": "US",
+      "partner": false,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "starter_reels_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/state-of-ai-shorts-2026/page.tsx",
+      "country": "US",
+      "partner": false,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "starter_state_of_ai_shorts",
+      "intent": "fast"
+    },
+    {
+      "page": "app/state-of-ai-shorts-2026/page.tsx",
+      "country": "US",
+      "partner": false,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "starter_state_of_ai_shorts",
+      "intent": "fast"
+    },
+    {
       "page": "app/free-ai-shorts-generator/page.tsx",
       "country": "US",
       "partner": false,
@@ -110,6 +164,60 @@
       "intent": "trial_best"
     },
     {
+      "page": "app/best-ai-shorts-generators/page.tsx",
+      "country": "US",
+      "partner": false,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "starter_best_generators",
+      "intent": "fast"
+    },
+    {
+      "page": "app/best-ai-shorts-generators/page.tsx",
+      "country": "US",
+      "partner": false,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "starter_best_generators",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "country": "US",
+      "partner": false,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "starter_reels_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "country": "US",
+      "partner": false,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "starter_reels_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/state-of-ai-shorts-2026/page.tsx",
+      "country": "US",
+      "partner": false,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "starter_state_of_ai_shorts",
+      "intent": "fast"
+    },
+    {
+      "page": "app/state-of-ai-shorts-2026/page.tsx",
+      "country": "US",
+      "partner": false,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "starter_state_of_ai_shorts",
+      "intent": "fast"
+    },
+    {
       "page": "app/free-ai-shorts-generator/page.tsx",
       "country": "US",
       "partner": true,
@@ -164,6 +272,60 @@
       "intent": "trial_best"
     },
     {
+      "page": "app/best-ai-shorts-generators/page.tsx",
+      "country": "US",
+      "partner": true,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "starter_best_generators",
+      "intent": "fast"
+    },
+    {
+      "page": "app/best-ai-shorts-generators/page.tsx",
+      "country": "US",
+      "partner": true,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "starter_best_generators",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "country": "US",
+      "partner": true,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "starter_reels_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "country": "US",
+      "partner": true,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "starter_reels_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/state-of-ai-shorts-2026/page.tsx",
+      "country": "US",
+      "partner": true,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "starter_state_of_ai_shorts",
+      "intent": "fast"
+    },
+    {
+      "page": "app/state-of-ai-shorts-2026/page.tsx",
+      "country": "US",
+      "partner": true,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "starter_state_of_ai_shorts",
+      "intent": "fast"
+    },
+    {
       "page": "app/free-ai-shorts-generator/page.tsx",
       "country": "US",
       "partner": true,
@@ -218,6 +380,60 @@
       "intent": "trial_best"
     },
     {
+      "page": "app/best-ai-shorts-generators/page.tsx",
+      "country": "US",
+      "partner": true,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "starter_best_generators",
+      "intent": "fast"
+    },
+    {
+      "page": "app/best-ai-shorts-generators/page.tsx",
+      "country": "US",
+      "partner": true,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "starter_best_generators",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "country": "US",
+      "partner": true,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "starter_reels_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "country": "US",
+      "partner": true,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "starter_reels_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/state-of-ai-shorts-2026/page.tsx",
+      "country": "US",
+      "partner": true,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "starter_state_of_ai_shorts",
+      "intent": "fast"
+    },
+    {
+      "page": "app/state-of-ai-shorts-2026/page.tsx",
+      "country": "US",
+      "partner": true,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "starter_state_of_ai_shorts",
+      "intent": "fast"
+    },
+    {
       "page": "app/free-ai-shorts-generator/page.tsx",
       "country": "IN",
       "partner": false,
@@ -272,6 +488,60 @@
       "intent": "trial_best"
     },
     {
+      "page": "app/best-ai-shorts-generators/page.tsx",
+      "country": "IN",
+      "partner": false,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "starter_best_generators",
+      "intent": "fast"
+    },
+    {
+      "page": "app/best-ai-shorts-generators/page.tsx",
+      "country": "IN",
+      "partner": false,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "starter_best_generators",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "country": "IN",
+      "partner": false,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "starter_reels_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "country": "IN",
+      "partner": false,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "starter_reels_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/state-of-ai-shorts-2026/page.tsx",
+      "country": "IN",
+      "partner": false,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "starter_state_of_ai_shorts",
+      "intent": "fast"
+    },
+    {
+      "page": "app/state-of-ai-shorts-2026/page.tsx",
+      "country": "IN",
+      "partner": false,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "starter_state_of_ai_shorts",
+      "intent": "fast"
+    },
+    {
       "page": "app/free-ai-shorts-generator/page.tsx",
       "country": "IN",
       "partner": false,
@@ -326,6 +596,60 @@
       "intent": "trial_best"
     },
     {
+      "page": "app/best-ai-shorts-generators/page.tsx",
+      "country": "IN",
+      "partner": false,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "starter_best_generators",
+      "intent": "fast"
+    },
+    {
+      "page": "app/best-ai-shorts-generators/page.tsx",
+      "country": "IN",
+      "partner": false,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "starter_best_generators",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "country": "IN",
+      "partner": false,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "starter_reels_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "country": "IN",
+      "partner": false,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "starter_reels_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/state-of-ai-shorts-2026/page.tsx",
+      "country": "IN",
+      "partner": false,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "starter_state_of_ai_shorts",
+      "intent": "fast"
+    },
+    {
+      "page": "app/state-of-ai-shorts-2026/page.tsx",
+      "country": "IN",
+      "partner": false,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "starter_state_of_ai_shorts",
+      "intent": "fast"
+    },
+    {
       "page": "app/free-ai-shorts-generator/page.tsx",
       "country": "IN",
       "partner": true,
@@ -380,6 +704,60 @@
       "intent": "trial_best"
     },
     {
+      "page": "app/best-ai-shorts-generators/page.tsx",
+      "country": "IN",
+      "partner": true,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "starter_best_generators",
+      "intent": "fast"
+    },
+    {
+      "page": "app/best-ai-shorts-generators/page.tsx",
+      "country": "IN",
+      "partner": true,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "starter_best_generators",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "country": "IN",
+      "partner": true,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "starter_reels_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "country": "IN",
+      "partner": true,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "starter_reels_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/state-of-ai-shorts-2026/page.tsx",
+      "country": "IN",
+      "partner": true,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "starter_state_of_ai_shorts",
+      "intent": "fast"
+    },
+    {
+      "page": "app/state-of-ai-shorts-2026/page.tsx",
+      "country": "IN",
+      "partner": true,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "starter_state_of_ai_shorts",
+      "intent": "fast"
+    },
+    {
       "page": "app/free-ai-shorts-generator/page.tsx",
       "country": "IN",
       "partner": true,
@@ -432,6 +810,60 @@
       "mode": "finished_script",
       "campaign": "push77_short_cost_calculator",
       "intent": "trial_best"
+    },
+    {
+      "page": "app/best-ai-shorts-generators/page.tsx",
+      "country": "IN",
+      "partner": true,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "starter_best_generators",
+      "intent": "fast"
+    },
+    {
+      "page": "app/best-ai-shorts-generators/page.tsx",
+      "country": "IN",
+      "partner": true,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "starter_best_generators",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "country": "IN",
+      "partner": true,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "starter_reels_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "country": "IN",
+      "partner": true,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "starter_reels_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/state-of-ai-shorts-2026/page.tsx",
+      "country": "IN",
+      "partner": true,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "starter_state_of_ai_shorts",
+      "intent": "fast"
+    },
+    {
+      "page": "app/state-of-ai-shorts-2026/page.tsx",
+      "country": "IN",
+      "partner": true,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "starter_state_of_ai_shorts",
+      "intent": "fast"
     },
     {
       "page": "app/free-ai-shorts-generator/page.tsx",
@@ -488,6 +920,60 @@
       "intent": "trial_best"
     },
     {
+      "page": "app/best-ai-shorts-generators/page.tsx",
+      "country": null,
+      "partner": false,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "starter_best_generators",
+      "intent": "fast"
+    },
+    {
+      "page": "app/best-ai-shorts-generators/page.tsx",
+      "country": null,
+      "partner": false,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "starter_best_generators",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "country": null,
+      "partner": false,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "starter_reels_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "country": null,
+      "partner": false,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "starter_reels_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/state-of-ai-shorts-2026/page.tsx",
+      "country": null,
+      "partner": false,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "starter_state_of_ai_shorts",
+      "intent": "fast"
+    },
+    {
+      "page": "app/state-of-ai-shorts-2026/page.tsx",
+      "country": null,
+      "partner": false,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "starter_state_of_ai_shorts",
+      "intent": "fast"
+    },
+    {
       "page": "app/free-ai-shorts-generator/page.tsx",
       "country": null,
       "partner": false,
@@ -540,6 +1026,60 @@
       "mode": "finished_script",
       "campaign": "push77_short_cost_calculator",
       "intent": "trial_best"
+    },
+    {
+      "page": "app/best-ai-shorts-generators/page.tsx",
+      "country": null,
+      "partner": false,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "starter_best_generators",
+      "intent": "fast"
+    },
+    {
+      "page": "app/best-ai-shorts-generators/page.tsx",
+      "country": null,
+      "partner": false,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "starter_best_generators",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "country": null,
+      "partner": false,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "starter_reels_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "country": null,
+      "partner": false,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "starter_reels_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/state-of-ai-shorts-2026/page.tsx",
+      "country": null,
+      "partner": false,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "starter_state_of_ai_shorts",
+      "intent": "fast"
+    },
+    {
+      "page": "app/state-of-ai-shorts-2026/page.tsx",
+      "country": null,
+      "partner": false,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "starter_state_of_ai_shorts",
+      "intent": "fast"
     },
     {
       "page": "app/free-ai-shorts-generator/page.tsx",
@@ -596,6 +1136,60 @@
       "intent": "trial_best"
     },
     {
+      "page": "app/best-ai-shorts-generators/page.tsx",
+      "country": null,
+      "partner": true,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "starter_best_generators",
+      "intent": "fast"
+    },
+    {
+      "page": "app/best-ai-shorts-generators/page.tsx",
+      "country": null,
+      "partner": true,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "starter_best_generators",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "country": null,
+      "partner": true,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "starter_reels_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "country": null,
+      "partner": true,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "starter_reels_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/state-of-ai-shorts-2026/page.tsx",
+      "country": null,
+      "partner": true,
+      "reverse": true,
+      "mode": "idea",
+      "campaign": "starter_state_of_ai_shorts",
+      "intent": "fast"
+    },
+    {
+      "page": "app/state-of-ai-shorts-2026/page.tsx",
+      "country": null,
+      "partner": true,
+      "reverse": true,
+      "mode": "finished_script",
+      "campaign": "starter_state_of_ai_shorts",
+      "intent": "fast"
+    },
+    {
       "page": "app/free-ai-shorts-generator/page.tsx",
       "country": null,
       "partner": true,
@@ -648,6 +1242,60 @@
       "mode": "finished_script",
       "campaign": "push77_short_cost_calculator",
       "intent": "trial_best"
+    },
+    {
+      "page": "app/best-ai-shorts-generators/page.tsx",
+      "country": null,
+      "partner": true,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "starter_best_generators",
+      "intent": "fast"
+    },
+    {
+      "page": "app/best-ai-shorts-generators/page.tsx",
+      "country": null,
+      "partner": true,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "starter_best_generators",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "country": null,
+      "partner": true,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "starter_reels_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "country": null,
+      "partner": true,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "starter_reels_pay",
+      "intent": "fast"
+    },
+    {
+      "page": "app/state-of-ai-shorts-2026/page.tsx",
+      "country": null,
+      "partner": true,
+      "reverse": false,
+      "mode": "idea",
+      "campaign": "starter_state_of_ai_shorts",
+      "intent": "fast"
+    },
+    {
+      "page": "app/state-of-ai-shorts-2026/page.tsx",
+      "country": null,
+      "partner": true,
+      "reverse": false,
+      "mode": "finished_script",
+      "campaign": "starter_state_of_ai_shorts",
+      "intent": "fast"
     }
   ],
   "mutants": 7

@@ -20,9 +20,9 @@ async function mount(rep={},article='best',release='internal'){
  let callback,unsubscribed=0;const requests=[],accessRequests=[];let holdAccess=false,serverUser=null
  const auth={getUser:()=>new Promise((resolve,reject)=>requests.push({resolve:value=>{serverUser=value.error?null:value.data.user;resolve(value)},reject})),onAuthStateChange:f=>{callback=f;return{data:{subscription:{unsubscribe:()=>unsubscribed++}}}}}
  const gate=(rep[RELEASE]??source(RELEASE)).replace("CITATION_FILM_RELEASE: CitationFilmRelease = 'off'",`CITATION_FILM_RELEASE: CitationFilmRelease = '${release}'`)
- const l=offlineModules({replacements:{...dep,...rep,[RELEASE]:gate},mocks:{'lib/auth/readServerVisibility.ts':{readServerVisibility:async url=>{if(holdAccess)return new Promise(resolve=>accessRequests.push({resolve}));const id=new URL(url,'https://local.invalid').searchParams.get('user_id');return{visible:!!serverUser&&serverUser.id===id&&serverAllows(serverUser,'internal')}}},'lib/supabase/client.ts':{createClient:()=>({auth})},'lib/analytics.ts':{trackEvent(){},trackClosedEvent(){},rememberSignupCampaign(){}}}})
- const {default:Provider,CitationFilmSlot:Slot}=l(BOX),Text=l('app/text-to-video-shorts/TextToVideoIntentForm.tsx').default; const View=()=>React.createElement(Provider,null,React.createElement(Slot,{active:true},React.createElement(Text,{formId:'citation-film-'+article,campaign:'fixture_campaign',preserveHandoffForSignedIn:true,topicOptions:{creationIntent:'trial_best'}}))); let tree;await act(async()=>{tree=create(React.createElement(View),{unstable_isConcurrent:true})})
- const fields=()=>tree.root.findAllByType('textarea'),field=()=>fields()[0],modes=()=>tree.root.findAllByType('button').filter(x=>x.props['aria-pressed']!==undefined).map(x=>x.props['aria-pressed'])
+ const l=offlineModules({replacements:{...dep,...rep,[RELEASE]:gate},mocks:{'components/StickyFreeShortCTA.tsx':{__esModule:true,default:()=>null},'lib/auth/readServerVisibility.ts':{readServerVisibility:async url=>{if(holdAccess)return new Promise(resolve=>accessRequests.push({resolve}));const id=new URL(url,'https://local.invalid').searchParams.get('user_id');return{visible:!!serverUser&&serverUser.id===id&&serverAllows(serverUser,'internal')}}},'lib/supabase/client.ts':{createClient:()=>({auth})},'lib/analytics.ts':{trackEvent(){},trackClosedEvent(){},rememberSignupCampaign(){}}}})
+ const {default:Provider,CitationFilmSlot:Slot,CitationFilmDraftScope:DraftScope}=l(BOX),Text=l('app/text-to-video-shorts/TextToVideoIntentForm.tsx').default; const View=()=>article==='script'?React.createElement(Provider,null,React.createElement(DraftScope,null,React.createElement(l('app/free-script-generator/FreeScriptClient.tsx').default))):React.createElement(Provider,null,React.createElement(Slot,{active:true},React.createElement(Text,{formId:'citation-film-'+article,campaign:'fixture_campaign',preserveHandoffForSignedIn:true,topicOptions:{creationIntent:'trial_best'}}))); let tree;await act(async()=>{tree=create(React.createElement(View),{unstable_isConcurrent:true})})
+ const fields=()=>tree.root.findAllByType('textarea').filter(x=>article!=='script'||x.props['aria-label']==='Your film idea or narration'),field=()=>fields()[0],modes=()=>tree.root.findAllByType('button').filter(x=>x.props['aria-pressed']!==undefined).map(x=>x.props['aria-pressed'])
  const resolve=async(i,user,error=null)=>{assert.ok(requests[i],'auth request exists');await act(async()=>requests[i].resolve(payload(user,error)))}
  const emit=async(event,user)=>{await act(async()=>callback(event,user?{user}:null))}
  const fill=async(mode='finished_script',text=draft)=>{await act(async()=>{const buttons=tree.root.findAllByType('button').filter(x=>x.props['aria-pressed']!==undefined);buttons[mode==='idea'?0:1].props.onClick()});await act(async()=>field().props.onChange({target:{value:text}}))}
@@ -34,7 +34,7 @@ function empty(h,message){assert.equal(h.fields().length,0,message)}
 function fresh(h,message){retained(h,'','idea',message)}
 async function verify(rep={}){
  const proof=[]
- for(const article of ['free','pay','cheap'])for(const mode of ['idea','finished_script']){
+ for(const article of ['free','pay','cheap','script'])for(const mode of ['idea','finished_script']){
   const h=await mount(rep,article);try{
    empty(h,'initial access waits for getUser');await h.resolve(0,A);await h.fill(mode);proof.push(h.snapshot('before renewal'))
    await h.emit('TOKEN_REFRESHED',A);retained(h,draft,mode,'renewal keeps field while pending');proof.push(h.snapshot('renewal pending'))
@@ -95,11 +95,22 @@ async function verify(rep={}){
  // Existing public guest behavior stays public; off never requests auth. No new login requirement.
  for(const release of ['off','public']){const h=await mount(rep,'best',release);try{assert.equal(h.requests.length,0,'off/public do not request preview auth');if(release==='off')empty(h,'off remains closed');else{await h.fill();retained(h,draft,'finished_script','public guest input unchanged')}}finally{await h.close()}}
  {const h=await mount(rep);await h.close();assert.equal(h.unsubscribeCount(),1,'subscription is cleaned up');await act(async()=>{h.callback()('SIGNED_IN',{user:A});h.requests[0].resolve(payload(A))});assert.equal(h.requests.length,1,'unmounted listener cannot start more reads')}
+
+ {const h=await mount(rep,'script');try{
+  await h.resolve(0,A);await h.fill('finished_script');
+  await h.emit('SIGNED_IN',B);empty(h,'script account switch closes experimental field');
+  assert.equal(h.tree.root.findAllByType('textarea')[0]?.props.value,'','script draft scope clears public fallback');
+  await h.resolve(1,B);fresh(h,'script new account gets empty field');
+  await h.fill('idea',newDraft);h.holdServer();await h.emit('TOKEN_REFRESHED',B);await h.resolve(2,B);
+  await h.emit('SIGNED_OUT',null);empty(h,'script logout closes experimental field');
+  assert.equal(h.tree.root.findAllByType('textarea')[0]?.props.value,'','script logout clears fallback input');
+  await h.replyServer(0,{visible:true});empty(h,'script late server approval ignored');
+ }finally{await h.close()}}
  return proof
 }
 const oldSha=process.env.KINEO_CITATION_BASE_SHA
 const proof=await verify(oldSha?{[BOX]:execFileSync('git',['show',oldSha+':'+BOX],{encoding:'utf8'})}:{})
-console.log('PASS mounted real forms: 6 page/mode renewals, pending reads, logout, batched relogin, identity switches, revocations, out-of-order results and cleanup')
+console.log('PASS mounted real forms: 8 page/mode renewals, pending reads, logout, batched relogin, identity switches, revocations, out-of-order results and cleanup')
 if(process.env.KINEO_CITATION_LIFECYCLE_PROOF)fs.writeFileSync(process.env.KINEO_CITATION_LIFECYCLE_PROOF,JSON.stringify({scope:'React Test Renderer 18.3.1 concurrent root; no browser or viewport, real components with fake auth promises; no account/network/movie',proof},null,2))
 if(!oldSha){
  const sub=(a,b)=>{const s=source(BOX).replace(/\r\n/g,'\n');assert.equal(s.split(a).length,2,'exact mutation anchor '+a);return{[BOX]:s.replace(a,b)}}
@@ -113,6 +124,7 @@ if(!oldSha){
   ['wrong verified identity accepted',()=>sub('(expectedId && next.id !== expectedId)','false'),'identity mismatch stays closed'],
   ['identity switch keeps old field',()=>sub('if (verified.current?.id !== hint.id) forgetDraft()','if (false) forgetDraft()'),'identity switch hides old field while pending'],
  ]
+ mutants.push(['script draft scope key removed',()=>sub('return <Fragment key={draftKey}>{children}</Fragment>','return <Fragment>{children}</Fragment>'),'script draft scope clears public fallback'])
  mutants.push(['late server reply accepted',()=>sub('const allowed = await citationFilmServerVisible(next.id)\n          if (!active || current !== generation) return','const allowed = await citationFilmServerVisible(next.id)\n          if (!active) return'),'server reply after logout ignored'])
  for(const [name,mutate,message]of mutants){await assert.rejects(()=>verify(mutate()),e=>e?.code==='ERR_ASSERTION'&&e.name==='AssertionError'&&(e.message===message||e.message.startsWith(message+'\n')),name+' must fail at exact assertion '+message);console.log('PASS mutant '+name+' -> '+message)}
  console.log('PASS '+mutants.length+' lifecycle mutants killed by their exact assertion; no network or spend')

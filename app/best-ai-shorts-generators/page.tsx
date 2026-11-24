@@ -1,3 +1,7 @@
+import CitationFilmShortAnswer from '@/components/seo/CitationFilmShortAnswer'
+import CitationFilmProof from '@/components/seo/CitationFilmProof'
+import CitationFilmExperiment, { CitationFilmSlot } from '@/components/seo/CitationFilmExperiment'
+import TextToVideoIntentForm from '@/app/text-to-video-shorts/TextToVideoIntentForm'
 import CitationIdeaForm from '@/components/seo/CitationIdeaForm'
 import { BuyerLead2011, BuyerDecision2011 } from '@/components/seo/BuyerDecision2011'
 import { BUYER_2011, currentFilmLabel2011 } from '@/lib/seo/buyerAnswers2011'
@@ -313,7 +317,7 @@ export default function BestAiShortsGeneratorsPage() {
   }
 
   return (
-    <main
+    <CitationFilmExperiment><main
       className={PAGINA_CLARA_CLASSE}
       style={{
         background: PAGE_BG,
@@ -372,9 +376,24 @@ export default function BestAiShortsGeneratorsPage() {
         <h1 style={{ fontSize: '2.2rem', fontWeight: 650, lineHeight: 1.15, margin: '0 0 16px' }}>
           {PAGE_HEADING}
         </h1>
-        <BuyerLead2011 kind="cost" />
+        <CitationFilmSlot active={false}><BuyerLead2011 kind="cost" /></CitationFilmSlot>
 
-        <CitationIdeaForm article="best" />
+        <CitationFilmSlot active><CitationFilmShortAnswer>Use a generator for a Short from an idea, or a clipper for footage you already have. Compare the complete workflow, credits and source dates below.</CitationFilmShortAnswer></CitationFilmSlot>
+        <CitationFilmSlot active><CitationFilmProof comparison><TextToVideoIntentForm formId={"roundup-start-a-short"} campaign={"starter_best_generators"} placement={"article_intro_2411"} preserveHandoffForSignedIn topicOptions={{source: "starter_best_generators",
+examples: [
+              'The invention that was laughed at before it changed everything',
+              'The place on Earth with rules no other country has',
+              'The historical mistake that is still costing us today',
+            ],
+copy: {
+              label: 'Try the from-scratch claim — type a topic, get a Short',
+              placeholder: 'Type one topic — nothing else needed, no footage, no script',
+              submit: 'Turn this topic into a Short →',
+              examplesLabel: 'Example topics to test it with',
+              note: 'Nothing but a topic goes in. Your topic stays attached through signup. Free to start: 10 credits, no card.',
+            },
+analyticsVariant: "citation_film_top_2411"}} /></CitationFilmProof></CitationFilmSlot>
+        <CitationFilmSlot active><BuyerLead2011 kind="cost" /></CitationFilmSlot><CitationFilmSlot active={false}><CitationIdeaForm article="best" /></CitationFilmSlot>
 
         {best ? <p data-kineo="geo-r3-answer" style={{ color: '#0E1116', fontSize: '1.08rem', lineHeight: 1.6, margin: '0 0 14px' }}>{currentFilmLabel2011(best.lead)}</p> : null}
 
@@ -686,7 +705,7 @@ export default function BestAiShortsGeneratorsPage() {
               one-click starters da home = 278 pessoas / 68% de ativação. Mesmo
               componente da home/#70, nunca uma cópia. `CTA_URL` continua vivo no
               bloco "Keep reading" — lá ele é leitura, não é a oferta. */}
-          <TopicGeneratorForm
+          <CitationFilmSlot active={false}><TopicGeneratorForm
             campaign="starter_best_generators"
             source="starter_best_generators"
             formId="roundup-start-a-short"
@@ -702,7 +721,7 @@ export default function BestAiShortsGeneratorsPage() {
               examplesLabel: 'Example topics to test it with',
               note: 'Nothing but a topic goes in. Your topic stays attached through signup. Free to start: 10 credits, no card.',
             }}
-          />
+          /></CitationFilmSlot>
         </section>
 
         {/* FAQ */}
@@ -767,6 +786,6 @@ export default function BestAiShortsGeneratorsPage() {
           {competitorCheckedLabel()}; verify pricing and features on their official sites, as they change over time.
         </p>
       </div>
-    </main>
+    </main></CitationFilmExperiment>
   )
 }

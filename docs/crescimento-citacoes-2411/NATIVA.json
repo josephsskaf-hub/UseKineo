@@ -1,0 +1,270 @@
+{
+  "date": "2026-11-24",
+  "flows": 56,
+  "verifiedGetUserResponses": 56,
+  "editableStudio": 56,
+  "beforePhotos": 56,
+  "afterPhotos": 212,
+  "totalPhotos": 268,
+  "firstFold": [
+    {
+      "page": "free",
+      "theme": "light",
+      "width": 1920,
+      "input": {
+        "top": 528.796875,
+        "bottom": 628.359375
+      }
+    },
+    {
+      "page": "free",
+      "theme": "light",
+      "width": 390,
+      "input": {
+        "top": 568.796875,
+        "bottom": 668.359375
+      }
+    },
+    {
+      "page": "free",
+      "theme": "dark",
+      "width": 1920,
+      "input": {
+        "top": 528.796875,
+        "bottom": 628.359375
+      }
+    },
+    {
+      "page": "free",
+      "theme": "dark",
+      "width": 390,
+      "input": {
+        "top": 568.796875,
+        "bottom": 668.359375
+      }
+    },
+    {
+      "page": "pay",
+      "theme": "light",
+      "width": 1920,
+      "input": {
+        "top": 509.1875,
+        "bottom": 608.75
+      }
+    },
+    {
+      "page": "pay",
+      "theme": "light",
+      "width": 390,
+      "input": {
+        "top": 654.15625,
+        "bottom": 753.71875
+      }
+    },
+    {
+      "page": "pay",
+      "theme": "dark",
+      "width": 1920,
+      "input": {
+        "top": 509.1875,
+        "bottom": 608.75
+      }
+    },
+    {
+      "page": "pay",
+      "theme": "dark",
+      "width": 390,
+      "input": {
+        "top": 654.15625,
+        "bottom": 753.71875
+      }
+    },
+    {
+      "page": "cheap",
+      "theme": "light",
+      "width": 1920,
+      "input": {
+        "top": 506.59375,
+        "bottom": 606.15625
+      }
+    },
+    {
+      "page": "cheap",
+      "theme": "light",
+      "width": 390,
+      "input": {
+        "top": 495.921875,
+        "bottom": 595.484375
+      }
+    },
+    {
+      "page": "cheap",
+      "theme": "dark",
+      "width": 1920,
+      "input": {
+        "top": 506.59375,
+        "bottom": 606.15625
+      }
+    },
+    {
+      "page": "cheap",
+      "theme": "dark",
+      "width": 390,
+      "input": {
+        "top": 495.921875,
+        "bottom": 595.484375
+      }
+    },
+    {
+      "page": "reels",
+      "theme": "light",
+      "width": 1920,
+      "input": {
+        "top": 487.84375,
+        "bottom": 587.40625
+      }
+    },
+    {
+      "page": "reels",
+      "theme": "light",
+      "width": 390,
+      "input": {
+        "top": 595.28125,
+        "bottom": 694.84375
+      }
+    },
+    {
+      "page": "reels",
+      "theme": "dark",
+      "width": 1920,
+      "input": {
+        "top": 487.84375,
+        "bottom": 587.40625
+      }
+    },
+    {
+      "page": "reels",
+      "theme": "dark",
+      "width": 390,
+      "input": {
+        "top": 595.28125,
+        "bottom": 694.84375
+      }
+    },
+    {
+      "page": "best",
+      "theme": "light",
+      "width": 1920,
+      "input": {
+        "top": 483.046875,
+        "bottom": 582.609375
+      }
+    },
+    {
+      "page": "best",
+      "theme": "light",
+      "width": 390,
+      "input": {
+        "top": 590.484375,
+        "bottom": 690.046875
+      }
+    },
+    {
+      "page": "best",
+      "theme": "dark",
+      "width": 1920,
+      "input": {
+        "top": 483.046875,
+        "bottom": 582.609375
+      }
+    },
+    {
+      "page": "best",
+      "theme": "dark",
+      "width": 390,
+      "input": {
+        "top": 590.484375,
+        "bottom": 690.046875
+      }
+    },
+    {
+      "page": "state",
+      "theme": "light",
+      "width": 1920,
+      "input": {
+        "top": 507.609375,
+        "bottom": 607.171875
+      }
+    },
+    {
+      "page": "state",
+      "theme": "light",
+      "width": 390,
+      "input": {
+        "top": 549.75,
+        "bottom": 649.3125
+      }
+    },
+    {
+      "page": "state",
+      "theme": "dark",
+      "width": 1920,
+      "input": {
+        "top": 507.609375,
+        "bottom": 607.171875
+      }
+    },
+    {
+      "page": "state",
+      "theme": "dark",
+      "width": 390,
+      "input": {
+        "top": 549.75,
+        "bottom": 649.3125
+      }
+    },
+    {
+      "page": "script",
+      "theme": "light",
+      "width": 1920,
+      "input": {
+        "top": 424.84375,
+        "bottom": 495.625
+      }
+    },
+    {
+      "page": "script",
+      "theme": "light",
+      "width": 390,
+      "input": {
+        "top": 472.90625,
+        "bottom": 550.09375
+      }
+    },
+    {
+      "page": "script",
+      "theme": "dark",
+      "width": 1920,
+      "input": {
+        "top": 424.84375,
+        "bottom": 495.625
+      }
+    },
+    {
+      "page": "script",
+      "theme": "dark",
+      "width": 390,
+      "input": {
+        "top": 472.90625,
+        "bottom": 550.09375
+      }
+    }
+  ],
+  "runtimeErrors": 0,
+  "generationOrNewCheckoutRequests": 0,
+  "blockedCheckoutResumeReads": 224,
+  "scope": "TESTADO LOCALMENTE. Native input and click, saved signup card, actual destinoDaIdeia rule, real editable Studio. Auth cookie and getUser synthetic local fixtures; no real signup/OAuth/account/database/render/payment.",
+  "offer": "KINEO_REVERSE_TRIAL_ENABLED=true before and after; offline contracts cover false too.",
+  "themes": "Real preference set before boot. Existing fixed light palettes on Best/State and fixed dark palettes on some legacy articles remain; these preference screenshots do not claim a full theme redesign.",
+  "lineEndings": "Native GET outer query standard CRLF; nested redirect and Studio preserve words and LF-normalized text."
+}

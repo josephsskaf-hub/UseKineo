@@ -6,6 +6,9 @@
 // one short-lived same-tab value that is deleted on its first read.
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import TextToVideoIntentForm from '@/app/text-to-video-shorts/TextToVideoIntentForm'
+import { useCitationFilmExperiment } from '@/components/seo/CitationFilmExperiment'
+import { buildAuthenticatedCreationRedirect, CREATION_HANDOFF_PROMPT_MAX_CHARS } from '@/lib/creationHandoff'
 import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
 import AffiliateLandingContext from '@/components/AffiliateLandingContext'
 import { rememberSignupCampaign, trackClosedEvent, trackEvent } from '@/lib/analytics'
@@ -201,6 +204,63 @@ export default function FreeScriptClient({
     }
   }
 
+  const experiment = useCitationFilmExperiment()
+  // Existing remix, shared-text and affiliate tools keep their approved entry intact.
+  const filmEntry = experiment.enabled && !fromPublicVideo && !fromWebShareTarget && !affiliateContext
+  function citationFilmHref(scriptMode: 'ai' | 'verbatim'): string | null {
+    const prompt = topic.trim().slice(0, CREATION_HANDOFF_PROMPT_MAX_CHARS)
+    if (prompt.length < 3) return null
+    const redirect = buildAuthenticatedCreationRedirect({ prompt, campaign: 'push22_script_generator', createIntent: 'fast', scriptMode })
+    if (!redirect) return null
+    return '/signup?' + new URLSearchParams({ prompt, create_intent: 'fast', intent_campaign: 'push22_script_generator', script_mode: scriptMode, redirect }).toString()
+  }
+  const renderTool = (scriptMode?: 'ai' | 'verbatim') => (<section id="free-script-generator-tool" style={{ marginTop: 26, ...CARD, borderRadius: 16, padding: 18 }}>
+          <textarea
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder="e.g. The island humans are forbidden to enter"
+            rows={2}
+            maxLength={scriptMode ? CREATION_HANDOFF_PROMPT_MAX_CHARS : 200}
+            aria-label={scriptMode ? 'Your film idea or narration' : undefined}
+            style={{ width: '100%', boxSizing: 'border-box', background: '#000', color: '#f5f5f7', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '12px 14px', fontSize: '1rem', resize: 'vertical', fontFamily: 'inherit' }}
+          />
+          {scriptMode ? (
+            <>
+              <Link href={citationFilmHref(scriptMode) ?? '#free-script-generator-tool'} prefetch={false}
+                aria-disabled={!citationFilmHref(scriptMode)}
+                onClick={event => {
+                  if (!citationFilmHref(scriptMode)) { event.preventDefault(); return }
+                  rememberSignupCampaign('push22_script_generator')
+                  void trackEvent('organic_topic_submitted', { source: 'push22_script_generator', placement: 'hero_form_2411', variant: 'citation_film_top_2411', script_mode: scriptMode, topic_length: topic.length, creation_intent: 'fast' })
+                }}
+                style={{ display: 'block', textAlign: 'center', marginTop: 10, background: '#2997ff', color: '#000', fontWeight: 900, padding: 14, borderRadius: 12, textDecoration: 'none', opacity: citationFilmHref(scriptMode) ? 1 : 0.5 }}>
+                Continue to my film →
+              </Link>
+              <p style={{ color: '#CBD5E1', fontSize: 12, lineHeight: 1.5, margin: '10px 0 0' }}>
+                Your text and mode cross signup. Review your film in Studio. The free script writer below accepts a topic up to 200 characters.
+              </p>
+            </>
+          ) : null}
+
+          <button
+            onClick={() => generate()}
+            disabled={loading || !!scriptMode && (scriptMode === 'verbatim' || topic.length > 200)}
+            style={{ width: '100%', marginTop: 10, background: 'linear-gradient(135deg,#2997ff,#2997ff)', color: '#000', fontWeight: 900, padding: '14px', borderRadius: 12, border: 'none', fontSize: '1.02rem', cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.7 : 1 }}
+          >
+            {loading ? '✍️ Writing your script…' : 'Generate my script →'}
+          </button>
+          <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {EXAMPLES.map((ex) => (
+              <button key={ex} onClick={() => { setTopic(ex); generate(ex) }} disabled={loading}
+                style={{ background: 'rgba(255,255,255,0.05)', color: '#CBD5E1', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 999, padding: '7px 13px', fontSize: '0.8rem', cursor: 'pointer' }}>
+                {ex}
+              </button>
+            ))}
+          </div>
+          {handoffNotice && <p style={{ color: '#93C5FD', fontSize: '0.88rem', margin: '12px 0 0', lineHeight: 1.45 }}>{handoffNotice}</p>}
+          {error && <p style={{ color: '#FDA4AF', fontSize: '0.88rem', margin: '12px 0 0' }}>{error}</p>}
+        </section>)
+
   return (
     <main style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'var(--font-sans), Arial, sans-serif' }}>
       <div style={{ maxWidth: 760, margin: '0 auto', padding: '28px 18px 64px' }}>
@@ -229,33 +289,7 @@ export default function FreeScriptClient({
         </section>
 
         {/* Tool */}
-        <section id="free-script-generator-tool" style={{ marginTop: 26, ...CARD, borderRadius: 16, padding: 18 }}>
-          <textarea
-            value={topic}
-            onChange={(e) => setTopic(e.target.value)}
-            placeholder="e.g. The island humans are forbidden to enter"
-            rows={2}
-            maxLength={200}
-            style={{ width: '100%', boxSizing: 'border-box', background: '#000', color: '#f5f5f7', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '12px 14px', fontSize: '1rem', resize: 'vertical', fontFamily: 'inherit' }}
-          />
-          <button
-            onClick={() => generate()}
-            disabled={loading}
-            style={{ width: '100%', marginTop: 10, background: 'linear-gradient(135deg,#2997ff,#2997ff)', color: '#000', fontWeight: 900, padding: '14px', borderRadius: 12, border: 'none', fontSize: '1.02rem', cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.7 : 1 }}
-          >
-            {loading ? '✍️ Writing your script…' : 'Generate my script →'}
-          </button>
-          <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {EXAMPLES.map((ex) => (
-              <button key={ex} onClick={() => { setTopic(ex); generate(ex) }} disabled={loading}
-                style={{ background: 'rgba(255,255,255,0.05)', color: '#CBD5E1', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 999, padding: '7px 13px', fontSize: '0.8rem', cursor: 'pointer' }}>
-                {ex}
-              </button>
-            ))}
-          </div>
-          {handoffNotice && <p style={{ color: '#93C5FD', fontSize: '0.88rem', margin: '12px 0 0', lineHeight: 1.45 }}>{handoffNotice}</p>}
-          {error && <p style={{ color: '#FDA4AF', fontSize: '0.88rem', margin: '12px 0 0' }}>{error}</p>}
-        </section>
+        {filmEntry ? <TextToVideoIntentForm formId="free-script-generator-film" campaign="push22_script_generator" preserveHandoffForSignedIn renderInput={({ scriptMode }) => renderTool(scriptMode)} /> : renderTool()}
 
         {/* Result */}
         {lines.length > 0 && (

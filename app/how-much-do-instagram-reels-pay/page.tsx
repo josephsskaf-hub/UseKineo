@@ -1,3 +1,6 @@
+import CitationFilmShortAnswer from '@/components/seo/CitationFilmShortAnswer'
+import CitationFilmExperiment, { CitationFilmSlot } from '@/components/seo/CitationFilmExperiment'
+import TextToVideoIntentForm from '@/app/text-to-video-shorts/TextToVideoIntentForm'
 // SEO / citações: /how-much-do-instagram-reels-pay. Irmã de
 // /how-much-do-youtube-shorts-pay (mesmo molde: server component, force-static,
 // tema escuro, FAQPage + BreadcrumbList + Article JSON-LD espelhando o texto
@@ -313,7 +316,7 @@ export default function HowMuchDoInstagramReelsPayPage() {
   }
 
   return (
-    <main
+    <CitationFilmExperiment><main
       style={{
         background: PAGE_BG,
         minHeight: '100vh',
@@ -358,9 +361,27 @@ export default function HowMuchDoInstagramReelsPayPage() {
         <h1 style={{ fontSize: '2.2rem', fontWeight: 800, lineHeight: 1.15, margin: '0 0 16px' }}>
           How Much Do Instagram Reels Pay Per 1,000 Views? (2026)
         </h1>
-        <p style={{ color: '#d2d2d7', fontSize: '1.08rem', lineHeight: 1.6, margin: '0 0 8px' }}>
+        <CitationFilmSlot active={false}><p style={{ color: '#d2d2d7', fontSize: '1.08rem', lineHeight: 1.6, margin: '0 0 8px' }}>
           {SHORT_ANSWER}
-        </p>
+        </p></CitationFilmSlot>
+        <CitationFilmSlot active><CitationFilmShortAnswer>{SHORT_ANSWER.split('. ')[0] + '.'}</CitationFilmShortAnswer></CitationFilmSlot>
+        <CitationFilmSlot active><TextToVideoIntentForm formId={REELS_STARTER_ID} campaign={STARTER_SOURCE} placement={"article_intro_2411"} preserveHandoffForSignedIn topicOptions={{source: STARTER_SOURCE,
+examples: [
+              'Why the Statue of Liberty turned green',
+              'How lighthouses worked before electricity',
+              'Why some US states have no sales tax',
+            ],
+copy: {
+              label: 'Start a Short from one topic',
+              placeholder: 'Type one topic, for example why the US has no national language law',
+              submit: 'Turn this topic into a Short →',
+              examplesLabel: 'Topic starters',
+              note: 'Your topic stays attached through signup.',
+            },
+analyticsVariant: "citation_film_top_2411"}} /></CitationFilmSlot>
+        <CitationFilmSlot active><p style={{ color: '#d2d2d7', fontSize: '1.08rem', lineHeight: 1.6, margin: '0 0 8px' }}>
+          {SHORT_ANSWER}
+        </p></CitationFilmSlot>
         <p style={{ color: MUTED, fontSize: '0.9rem', lineHeight: 1.6, margin: '0 0 18px' }}>
           No figure on this page is a promise of earnings. Every number below links to
           the page it came from, checked on {CHECKED}.
@@ -798,7 +819,7 @@ export default function HowMuchDoInstagramReelsPayPage() {
             finished narrated vertical Short, so you can test ideas without filming.
             Type a topic to start.
           </p>
-          <TopicGeneratorForm
+          <CitationFilmSlot active={false}><TopicGeneratorForm
             campaign={STARTER_SOURCE}
             source={STARTER_SOURCE}
             formId={REELS_STARTER_ID}
@@ -814,7 +835,7 @@ export default function HowMuchDoInstagramReelsPayPage() {
               examplesLabel: 'Topic starters',
               note: 'Your topic stays attached through signup.',
             }}
-          />
+          /></CitationFilmSlot>
         </div>
 
         <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 12px' }}>
@@ -948,6 +969,6 @@ export default function HowMuchDoInstagramReelsPayPage() {
           and an invite to a bonus program is decided by Instagram.
         </p>
       </div>
-    </main>
+    </main></CitationFilmExperiment>
   )
 }

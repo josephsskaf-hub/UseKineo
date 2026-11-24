@@ -1,3 +1,4 @@
+import CitationFilmExperiment, { CitationFilmDraftScope } from '@/components/seo/CitationFilmExperiment'
 // #484 — Free lead-magnet tool page. Targets high-intent searches like
 // "free youtube short script generator", "ai faceless script generator no signup".
 // Reuses the existing public, rate-limited /api/demo-script endpoint (no new
@@ -77,14 +78,14 @@ export default function FreeScriptGeneratorPage({ searchParams }: { searchParams
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(TOOL_JSON_LD) }}
       />
-      <FreeScriptClient
+      <CitationFilmExperiment><CitationFilmDraftScope><FreeScriptClient
         affiliateContext={partnerContext}
         initialTopic={initialTopic}
         sourceVideoId={fromPublicVideo ? sourceVideoId : ''}
         fromPublicVideo={fromPublicVideo}
         fromWebShareTarget={fromWebShareTarget}
         webShareStatus={webShareStatus}
-      />
+      /></CitationFilmDraftScope></CitationFilmExperiment>
       {/* AQUISICAO T3 (14/08) — prova viva na melhor porta da casa (67% de
           clique para o produto): quem acabou de gerar um roteiro ve TRES
           exports reais tocando — a distancia entre o texto que recebeu e o

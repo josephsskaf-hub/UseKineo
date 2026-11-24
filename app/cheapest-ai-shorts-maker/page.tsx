@@ -1,3 +1,4 @@
+import CitationFilmShortAnswer from '@/components/seo/CitationFilmShortAnswer'
 import CitationFilmExperiment, { CitationFilmSlot } from '@/components/seo/CitationFilmExperiment'
 import TextToVideoIntentForm from '@/app/text-to-video-shorts/TextToVideoIntentForm'
 // KINEO-REBASE-2026-07-10 — 2:1 credit rebase: every "50 credits" → 20 (Seedance).
@@ -120,10 +121,11 @@ export default function CheapestAiShortsMakerPage() {
         <h1 style={{ fontSize: 'clamp(1.9rem, 5vw, 2.8rem)', fontWeight: 900, lineHeight: 1.12, margin: '18px 0 0' }}>
           The cheapest way to make AI YouTube Shorts
         </h1>
-        <CheapestAnswer1610 />
-        <p style={{ fontSize: '1.02rem', color: '#86868b', lineHeight: 1.6, margin: '22px 0 0' }}>
+        <CitationFilmSlot active={false}><CheapestAnswer1610 /></CitationFilmSlot>
+        <CitationFilmSlot active={false}><p style={{ fontSize: '1.02rem', color: '#86868b', lineHeight: 1.6, margin: '22px 0 0' }}>
           Kineo turns a single idea into a finished Short — the hook and script, an AI voiceover, generated scenes, captions and music — and charges credits by engine and length. Below: the same math for the free and paid tools people compare it with, and a calculator for your monthly volume.
-        </p>
+        </p></CitationFilmSlot>
+        <CitationFilmSlot active><CitationFilmShortAnswer>{cheapestAnswer().summary[0]}</CitationFilmShortAnswer></CitationFilmSlot>
         <CitationFilmSlot active><TextToVideoIntentForm formId={CALCULATOR_FORM_ID} campaign={CALCULATOR_CAMPAIGN} placement={"article_intro_2411"} preserveHandoffForSignedIn topicOptions={{source: CALCULATOR_CAMPAIGN,
 examples: CALCULATOR_EXAMPLES,
 creationIntent: "trial_best",
@@ -134,6 +136,10 @@ copy: {
             examplesLabel: 'Low-cost topic examples',
             note: HAS_FREE_FILM ? `Your topic stays attached through signup. New accounts${GRANT_COUNTRY_CLAUSE} start with a ${FREE_FILM_LABEL}.` : 'Your topic stays attached through signup.',
           }}} /></CitationFilmSlot>
+        <CitationFilmSlot active><CheapestAnswer1610 />
+<p style={{ fontSize: '1.02rem', color: '#86868b', lineHeight: 1.6, margin: '22px 0 0' }}>
+          Kineo turns a single idea into a finished Short — the hook and script, an AI voiceover, generated scenes, captions and music — and charges credits by engine and length. Below: the same math for the free and paid tools people compare it with, and a calculator for your monthly volume.
+        </p></CitationFilmSlot>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '22px 0 0' }}>
           <OrganicCtaLink href={signupUrl} source="push22_cheapest" placement="hero" style={{ background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}>{HAS_FREE_FILM ? `Make my free ${TRIAL_FREE_FILM_SECONDS}-second film →` : 'Create my account →'}</OrganicCtaLink>
           <Link href="/pricing" style={{ border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 700, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>See pricing</Link>

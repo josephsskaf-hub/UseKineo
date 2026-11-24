@@ -1,3 +1,4 @@
+import CitationFilmProof from '@/components/seo/CitationFilmProof'
 import CitationFilmExperiment, { CitationFilmSlot } from '@/components/seo/CitationFilmExperiment'
 import TextToVideoIntentForm from '@/app/text-to-video-shorts/TextToVideoIntentForm'
 import CitationIdeaForm from '@/components/seo/CitationIdeaForm'
@@ -277,7 +278,7 @@ export default function HowMuchDoYouTubeShortsPayPage() {
           audience lives. Here is exactly how the payout math works, and what moves it.
         </p>
 
-        <CitationFilmSlot active><TextToVideoIntentForm formId={PAYOUT_STARTER_ID} campaign={STARTER_SOURCE} placement={"article_intro_2411"} preserveHandoffForSignedIn topicOptions={{source: STARTER_SOURCE,
+        <CitationFilmSlot active><CitationFilmProof><TextToVideoIntentForm formId={PAYOUT_STARTER_ID} campaign={STARTER_SOURCE} placement={"article_intro_2411"} preserveHandoffForSignedIn topicOptions={{source: STARTER_SOURCE,
 examples: [
               'The compound interest mistake that costs 20 years of savings',
               'How much a small YouTube channel really earns in year one',
@@ -289,7 +290,7 @@ copy: {
               submit: 'Turn this topic into a Short →',
               examplesLabel: 'High-RPM topic starters',
               note: 'Your topic stays attached through signup. Free to start: 10 credits, no card.',
-            }}} /></CitationFilmSlot><CitationFilmSlot active={false}><CitationIdeaForm article="pay" /></CitationFilmSlot>
+            }}} /></CitationFilmProof></CitationFilmSlot><CitationFilmSlot active={false}><CitationIdeaForm article="pay" /></CitationFilmSlot>
 
         <p style={{ color: MUTED, fontSize: '0.9rem', lineHeight: 1.6, margin: '0 0 18px' }}>
           No figure on this page is a promise of earnings. Shorts RPM varies widely and

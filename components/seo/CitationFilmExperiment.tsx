@@ -1,11 +1,16 @@
 'use client'
 
 import { createContext, useContext, useEffect, useRef, useState, Fragment, type ReactNode } from 'react'
-import TextToVideoIntentForm from '@/app/text-to-video-shorts/TextToVideoIntentForm'
 import { CITATION_FILM_RELEASE } from '@/lib/growth/citationFilmRelease'
 import { citationFilmServerVisible } from '@/lib/growth/citationFilmVisibilityClient'
 
 type VerifiedUser = { id?: string; email?: string | null; email_confirmed_at?: string | null }
+
+const FILM_LAYOUT = `@media(max-width:640px){
+main:has([data-citation-film-controls-2411])[style*="padding:64px"]{padding-top:24px!important}
+main:has([data-citation-film-controls-2411])>div[style*="max-width"][style*="padding:64px"],
+main:has([data-citation-film-controls-2411])>div[style*="max-width"][style*="padding:48px"]{padding-top:24px!important}
+}`
 
 const Context = createContext({ enabled: false, draftKey: 'public:0' })
 
@@ -73,7 +78,7 @@ export default function CitationFilmExperiment({ children }: { children: ReactNo
   }, [])
 
   const enabled = CITATION_FILM_RELEASE === 'public' || (CITATION_FILM_RELEASE === 'internal' && accessGranted)
-  return <Context.Provider value={{ enabled, draftKey: `${user?.id ?? 'public'}:${draftVersion}` }}>{children}</Context.Provider>
+  return <Context.Provider value={{ enabled, draftKey: `${user?.id ?? 'public'}:${draftVersion}` }}>{enabled ? <style data-citation-film-layout-2411="" dangerouslySetInnerHTML={{ __html: FILM_LAYOUT }} /> : null}{children}</Context.Provider>
 }
 
 // Both positions share one decision: never two forms, including during auth revalidation.
@@ -81,4 +86,11 @@ export function CitationFilmSlot({ active, children }: { active: boolean; childr
   const state = useContext(Context)
   if (state.enabled !== active) return null
   return <Fragment key={state.draftKey}>{children}</Fragment>
+}
+
+export function useCitationFilmExperiment() { return useContext(Context) }
+
+export function CitationFilmDraftScope({ children }: { children: ReactNode }) {
+  const { draftKey } = useContext(Context)
+  return <Fragment key={draftKey}>{children}</Fragment>
 }

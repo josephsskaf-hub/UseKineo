@@ -1,7 +1,7 @@
 'use client'
 
 // KINEO-PAGINAS-IA-CLARAS-2110 — cores em var(--kpl-*, <cor de antes>): claras só dentro de <main className="kpl"> (as páginas de entrada do ChatGPT); nas outras páginas, a cor de antes.
-import { useState, type ComponentProps } from 'react'
+import { useState, type ComponentProps, type ReactNode } from 'react'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import {
   getTextToVideoInputMode,
@@ -34,7 +34,7 @@ const FORM_COPY = {
   },
 } as const
 
-export default function TextToVideoIntentForm({ formId, campaign = TEXT_TO_VIDEO_CAMPAIGN, placement = 'hero_form', preserveHandoffForSignedIn = false, topicOptions }: { formId: string; campaign?: string; placement?: string; preserveHandoffForSignedIn?: boolean; topicOptions?: ComponentProps<typeof TopicGeneratorForm> }) {
+export default function TextToVideoIntentForm({ formId, campaign = TEXT_TO_VIDEO_CAMPAIGN, placement = 'hero_form', preserveHandoffForSignedIn = false, topicOptions, renderInput }: { formId: string; campaign?: string; placement?: string; preserveHandoffForSignedIn?: boolean; topicOptions?: ComponentProps<typeof TopicGeneratorForm>; renderInput?: (mode: { scriptMode: 'ai' | 'verbatim' }) => ReactNode }) {
   const [inputMode, setInputMode] = useState<TextToVideoInputMode>('idea')
   const selected = getTextToVideoInputMode(inputMode)
   const isFinishedScript = selected.id === 'finished_script'
@@ -43,7 +43,8 @@ export default function TextToVideoIntentForm({ formId, campaign = TEXT_TO_VIDEO
     <section
       aria-labelledby={`${formId}-mode-heading`}
       data-variant={TEXT_TO_VIDEO_INTENT_VARIANT}
-      style={{ marginTop: 30 }}
+      data-citation-film-controls-2411={topicOptions || renderInput ? '' : undefined}
+      style={{ marginTop: topicOptions || renderInput ? 18 : 30 }}
     >
       <div
         style={{
@@ -62,7 +63,7 @@ export default function TextToVideoIntentForm({ formId, campaign = TEXT_TO_VIDEO
         <div
           role="group"
           aria-labelledby={`${formId}-mode-heading`}
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 230px), 1fr))', gap: 9 }}
+          style={{ display: 'grid', gridTemplateColumns: topicOptions || renderInput ? 'repeat(2, minmax(0, 1fr))' : 'repeat(auto-fit, minmax(min(100%, 230px), 1fr))', gap: 9 }}
         >
           {TEXT_TO_VIDEO_INPUT_MODES.map((mode) => {
             const active = mode.id === inputMode
@@ -84,9 +85,9 @@ export default function TextToVideoIntentForm({ formId, campaign = TEXT_TO_VIDEO
                   boxShadow: active ? '0 0 0 1px var(--kpl-accent-soft, rgba(103,232,249,.12)) inset' : 'none',
                 }}
               >
-                <span style={{ display: 'block', fontSize: 13, fontWeight: 900 }}>{mode.label}</span>
-                <span style={{ display: 'block', color: active ? 'var(--kpl-accent, #bae6fd)' : 'var(--kpl-muted, #86868b)', fontSize: 11.5, lineHeight: 1.45, marginTop: 4 }}>
-                  {mode.description}
+                <span style={{ display: 'block', fontSize: 13, fontWeight: 900 }}>{topicOptions || renderInput ? mode.id === 'idea' ? 'An idea or topic' : 'A finished script' : mode.label}</span>
+                <span style={{ display: 'block', color: active ? 'var(--kpl-accent, #bae6fd)' : 'var(--kpl-muted, #86868b)', fontSize: topicOptions || renderInput ? 12 : 11.5, lineHeight: 1.45, marginTop: 4 }}>
+                  {topicOptions || renderInput ? mode.id === 'idea' ? 'Let AI write the script.' : 'Keep my spoken words.' : mode.description}
                 </span>
               </button>
             )
@@ -94,6 +95,7 @@ export default function TextToVideoIntentForm({ formId, campaign = TEXT_TO_VIDEO
         </div>
       </div>
 
+      {renderInput ? renderInput({ scriptMode: selected.scriptMode }) : (
       <TopicGeneratorForm
         {...topicOptions}
         campaign={campaign}
@@ -106,8 +108,9 @@ export default function TextToVideoIntentForm({ formId, campaign = TEXT_TO_VIDEO
         duration={topicOptions ? topicOptions.duration : selected.duration}
         analyticsVariant={topicOptions?.analyticsVariant ?? TEXT_TO_VIDEO_INTENT_VARIANT}
         marginTop={topicOptions?.marginTop ?? 10}
-        copy={isFinishedScript ? FORM_COPY.finished_script : topicOptions?.copy ?? FORM_COPY.idea}
+        copy={isFinishedScript ? FORM_COPY.finished_script : topicOptions?.copy ? { ...topicOptions.copy, label: "What's your film about?" } : FORM_COPY.idea}
       />
+      )}
     </section>
   )
 }

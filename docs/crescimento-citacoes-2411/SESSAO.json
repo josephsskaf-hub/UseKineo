@@ -200,6 +200,72 @@
       "reads": 2
     },
     {
+      "article": "script",
+      "phase": "before renewal",
+      "fields": 1,
+      "text": "Meu relógio azul voltou três minutos quando a torre tocou.",
+      "modes": [
+        true,
+        false
+      ],
+      "reads": 1
+    },
+    {
+      "article": "script",
+      "phase": "renewal pending",
+      "fields": 1,
+      "text": "Meu relógio azul voltou três minutos quando a torre tocou.",
+      "modes": [
+        true,
+        false
+      ],
+      "reads": 2
+    },
+    {
+      "article": "script",
+      "phase": "renewal verified",
+      "fields": 1,
+      "text": "Meu relógio azul voltou três minutos quando a torre tocou.",
+      "modes": [
+        true,
+        false
+      ],
+      "reads": 2
+    },
+    {
+      "article": "script",
+      "phase": "before renewal",
+      "fields": 1,
+      "text": "Meu relógio azul voltou três minutos quando a torre tocou.",
+      "modes": [
+        false,
+        true
+      ],
+      "reads": 1
+    },
+    {
+      "article": "script",
+      "phase": "renewal pending",
+      "fields": 1,
+      "text": "Meu relógio azul voltou três minutos quando a torre tocou.",
+      "modes": [
+        false,
+        true
+      ],
+      "reads": 2
+    },
+    {
+      "article": "script",
+      "phase": "renewal verified",
+      "fields": 1,
+      "text": "Meu relógio azul voltou três minutos quando a torre tocou.",
+      "modes": [
+        false,
+        true
+      ],
+      "reads": 2
+    },
+    {
       "article": "best",
       "phase": "logout",
       "fields": 0,
