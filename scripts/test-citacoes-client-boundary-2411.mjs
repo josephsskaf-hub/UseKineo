@@ -6,7 +6,7 @@ import crypto from 'node:crypto'
 import {createRequire} from 'node:module'
 const req=createRequire(process.cwd()+'/package.json'),ts=req('typescript'),terser=req('next/dist/compiled/terser')
 const root=process.cwd(),TARGET='lib/internalAccounts.ts',RELEASE='lib/growth/citationIdeaRelease.ts'
-const ENTRIES=['app/best-ai-shorts-generators/page.tsx','app/how-much-do-youtube-shorts-pay/page.tsx','app/ai-video-generator/for/[slug]/page.tsx','app/ai-ugc-ads/product-photo-ads/page.tsx','app/(dashboard)/studio/page.tsx']
+const ENTRIES=["app/best-ai-shorts-generators/page.tsx","app/how-much-do-youtube-shorts-pay/page.tsx","app/ai-video-generator/for/[slug]/page.tsx","app/ai-ugc-ads/product-photo-ads/page.tsx","app/(dashboard)/studio/page.tsx","app/free-ai-shorts-generator/page.tsx","app/cheapest-ai-shorts-maker/page.tsx","app/how-much-do-instagram-reels-pay/page.tsx","app/state-of-ai-shorts-2026/page.tsx","app/free-script-generator/page.tsx"]
 const read=f=>fs.readFileSync(path.join(root,f),'utf8')
 const protectedMarkers=[...new Set([...read(TARGET).matchAll(/\b[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}\b/gi)].map(m=>m[0].toLowerCase()))]
 assert.ok(protectedMarkers.length>0,'server markers loaded privately')
