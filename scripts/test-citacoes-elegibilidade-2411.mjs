@@ -5,7 +5,7 @@ import crypto from 'node:crypto'
 import {execFileSync} from 'node:child_process'
 import {createRequire} from 'node:module'
 import {offlineModules,source} from './gpt24h-offline-support.mjs'
-const req=createRequire(process.cwd()+'/package.json'),ts=req('typescript'),BASE='58fa447d2'
+const req=createRequire(process.cwd()+'/package.json'),ts=req('typescript'),BASE='8a0dda3d4'
 const oldSource=f=>execFileSync('git',['show',BASE+':'+f],{encoding:'utf8'})
 const hash=s=>crypto.createHash('sha256').update(s.replace(/\r\n/g,'\n')).digest('hex')
 const ast=(f,s)=>ts.createSourceFile(f,s,ts.ScriptTarget.Latest,true)
