@@ -39,7 +39,7 @@ function cadeia(w, c, { raw = undefined, sujeito = null, leitor = true, pedido =
   if (sujeito && elencoDoPedido.length === 0) { const v = w.p13.fichaDoSujeitoVivo(sujeito, pedido); if (v) elencoDoPedido.push(v) }
   let mudancas = []
   if (leitor) {
-    const r = w.m.elencoDoLeitor2411({ elenco: elencoDoPedido, pedido, roteiro, lidos: leitura ? conf0?.nomes ?? [] : null, lugares: leitura?.places_and_orgs ?? [] })
+    const r = w.m.elencoDoLeitor2411({ elenco: elencoDoPedido, pedido, roteiro, lidos: leitura ? conf0?.nomes ?? [] : null, gente: leitura ? [leitura.protagonist, ...leitura.supporting].flatMap((p) => (p?.name && p.kind === 'human' ? [p.name] : [])) : null, lugares: leitura?.places_and_orgs ?? [] })
     mudancas = r.mudancas
     if (r.mudancas.length) elencoDoPedido.splice(0, elencoDoPedido.length, ...r.elenco)
   }
@@ -123,7 +123,7 @@ function contraprovas(w) {
   const L = (o) => w.m.elencoDoLeitor2411({ elenco: [], pedido: undefined, roteiro: '', lidos: null, lugares: [], ...o })
   const fic = (nome, extra = {}) => ({ nome, nucleo: nome.split(' ').pop(), tipo: 'humano', canonica: `${nome}, a person`, origem: 'deterministica', protagonista: true, genero: null, ...extra })
   // nome só, sem descrição, lido pela leitura ("Meet Emma."): a regra de 01/11 (rodada 9) fica — sem ficha inventada
-  const emma = L({ roteiro: 'Meet Emma. Emma opened the old door and stepped inside.', lidos: ['Emma'] })
+  const emma = L({ roteiro: 'Meet Emma. Emma opened the old door and stepped inside.', lidos: ['Emma'], gente: ['Emma'] })
   if (emma.elenco.length !== 0) e.push('K1 nome sem sobrenome e sem descrição entrou')
   // figura conhecida: regras de hoje (nada deduzido do nome)
   const han = L({ roteiro: 'Hanuman, a mighty monkey with a red cloth, leaped across the sea.', lidos: null })
@@ -135,7 +135,7 @@ function contraprovas(w) {
   const soPedido = L({ roteiro: 'The storm hit the coast at night. A small boat was lost.', pedido: 'Elias Ward, a gray-bearded lighthouse keeper in a navy coat, guides a boat.', lidos: null })
   if (soPedido.elenco.length !== 0) e.push('K4 nome que a narração não escreve entrou')
   // a leitura listou como lugar
-  const lugar = L({ roteiro: 'Stone Harbor, a quiet fishing village with red roofs, woke up. Stone Harbor had kept its secret.', lidos: ['Stone Harbor'], lugares: ['Stone Harbor'] })
+  const lugar = L({ roteiro: 'Stone Harbor, a quiet fishing village with red roofs, woke up. Stone Harbor had kept its secret.', lidos: ['Stone Harbor'], gente: ['Stone Harbor'], lugares: ['Stone Harbor'] })
   if (lugar.elenco.length !== 0) e.push('K5 lugar entrou')
   // dois nomes da mesma espécie para "the dog": dúvida = nada
   const dois = w.m.elencoDoLeitor2411({ elenco: [fic('the dog', { nucleo: 'dog', tipo: 'animal', origem: 'modelo' })], pedido: 'Rex, a big brown dog with a collar, and Max, a small white dog with a bell, wait at the door.', roteiro: 'Rex barked. Max ran to the gate.', lidos: null, lugares: [] })
@@ -149,7 +149,7 @@ function contraprovas(w) {
   const arabe = L({ roteiro: 'كان إلياس وارد يحرس المنارة وحده لمدة ثلاثين عاما', lidos: ['إلياس وارد'] })
   if (arabe.elenco.length !== 0) e.push('K8 escrita não latina')
   // sobrenome sem leitura que respondeu (o sobrenome só vale com a leitura): nada
-  const semLeitura = L({ roteiro: 'Elias Ward had kept the lighthouse alone for thirty years.', lidos: null })
+  const semLeitura = L({ roteiro: 'Elias Ward had kept the lighthouse alone for thirty years.', lidos: null, gente: ['Elias Ward'] })
   if (semLeitura.elenco.length !== 0) e.push('K9 nome e sobrenome sem leitura entrou')
   // nome curto do elenco e descrição com o sobrenome no pedido ("Elias" × "Elias Ward, a …"): a descrição é dele
   const curto = w.m.elencoDoLeitor2411({ elenco: [fic('Elias', { origem: 'autor', canonica: 'Elias, kept the old lighthouse alone, exactly as the author wrote' })], pedido: 'Elias Ward, a gray-bearded lighthouse keeper in a navy coat, guides a lost boat home.', roteiro: 'Elias had kept the old lighthouse alone. Elias lit the lamp.', lidos: ['Elias'], lugares: [] })
@@ -162,13 +162,21 @@ function contraprovas(w) {
   try { r = w.m.elencoDoLeitor2411({ elenco: ruim, pedido: 'Juno, a golden retriever with a red bandana, waits.', roteiro: { toString() { throw new Error('roteiro ilegível') } }, lidos: null, lugares: [] }) } catch { r = null }
   if (!r || r.elenco !== ruim || r.mudancas.length) e.push('K12 erro dentro do leitor lançou ou mudou o elenco')
   // escrita não latina COM maiúscula (cirílico): nada
-  const cir = L({ roteiro: 'Илья Уорд хранил маяк тридцать лет. Илья Уорд зажёг огонь.', lidos: ['Илья Уорд'] })
+  const cir = L({ roteiro: 'Илья Уорд хранил маяк тридцать лет. Илья Уорд зажёг огонь.', lidos: ['Илья Уорд'], gente: ['Илья Уорд'] })
   if (cir.elenco.length !== 0) e.push('K8b cirílico entrou ' + nomes(cir.elenco))
   // roteiro colado pelo cliente (sem pedido) que apresenta o bicho na narração: "Meet Juno, a …"
   const meet = w.m.elencoDoLeitor2411({ elenco: [fic('the retriever', { nucleo: 'retriever', tipo: 'animal', origem: 'modelo', canonica: 'the retriever, a golden retriever' })], pedido: null, roteiro: 'HOOK: [Pexels: dog at sea] Meet Juno, a golden retriever with a red bandana. Every evening, Juno walks to the lighthouse.', lidos: null, lugares: [] })
   if (meet.elenco[0]?.nome !== 'Juno' || !com(meet.elenco[0]?.canonica, 'golden retriever with a red bandana') || meet.mudancas[0]?.fonte !== 'roteiro') e.push('K14 "Meet Juno, a …" na narração ' + JSON.stringify(meet.elenco))
+  // replay de cliente 24/11: a leitura leu "Sonic" (não "Metal Sonic"), e o artigo alemão "Ein Junge" (um menino) lido como nome
+  const metal = L({ roteiro: 'Metal Sonic is altering the past for a mechanized future. Sonic teams up with a friend.', lidos: ['Sonic'], gente: [] })
+  if (metal.elenco.length !== 0) e.push('K15 "Metal Sonic" entrou por sufixo ' + nomes(metal.elenco))
+  const junge = L({ roteiro: 'Ein Junge fand eine goldene Tür mit einem Wunsch. Er sah Gold.', lidos: ['Ein Junge'], gente: ['Ein Junge'] })
+  if (junge.elenco.length !== 0) e.push('K16 artigo alemão virou nome ' + nomes(junge.elenco))
+  // a leitura leu o nome, mas como bicho/criatura (não gente): a via sem descrição não age
+  const bicho = L({ roteiro: 'Captain Whiskers had guarded the ship for years.', lidos: ['Captain Whiskers'], gente: [] })
+  if (bicho.elenco.length !== 0) e.push('K17 nome lido como bicho entrou como gente')
   // teto do elenco (PERSONAGEM_MAX_PERSONAGENS = 2)
-  const tres = L({ roteiro: 'Elias Ward had kept the light. Mara Quinn caught the call. Tom Reed rowed the boat.', lidos: ['Elias Ward', 'Mara Quinn', 'Tom Reed'] })
+  const tres = L({ roteiro: 'Elias Ward had kept the light. Mara Quinn caught the call. Tom Reed rowed the boat.', lidos: ['Elias Ward', 'Mara Quinn', 'Tom Reed'], gente: ['Elias Ward', 'Mara Quinn', 'Tom Reed'] })
   if (tres.elenco.length !== 2) e.push('K13 teto do elenco ' + nomes(tres.elenco))
   return e
 }
@@ -207,7 +215,7 @@ const reg = semRegressao(real)
 checa('Cooper, Le Prince e Slocum: o elenco final é o MESMO com e sem o leitor', reg.length === 0)
 for (const x of reg) console.log('    ' + x)
 const cp = contraprovas(real)
-checa('contraprovas (16): nome nu, figura, "This is", só no pedido, lugar, dois cães (2), verbo, árabe, cirílico, sem leitura, nome curto, identidade, erro, teto, "Meet Juno" na narração', cp.length === 0)
+checa('contraprovas (19): nome nu, figura, "This is", só no pedido, lugar, dois cães (2), verbo, árabe, cirílico, sem leitura, nome curto, identidade, erro, teto, "Meet Juno" na narração, Metal Sonic, Ein Junge, bicho lido', cp.length === 0)
 for (const x of cp) console.log('    ' + x)
 const ir = interruptorERota(real)
 checa('interruptor nasce internal; cliente desligado; UM bloco na rota entre o sujeito vivo e o casting', ir.length === 0)
@@ -231,6 +239,8 @@ const MUTANTES = [
   ['M13 a descrição não precisa passar na régua', (t) => t.replace('if (!trechoDescreve(t.trecho, t.artigo, { nome: n, nucleo: esperado.nucleo, tipo: esperado.tipo })) continue', '')],
   ['M4b sem a disputa na mesma frase', (t) => t.replace('if (achados.length !== 1 || disputam.length !== 1 || disputam[0] !== achados[0].n || usados.has(achados[0].n)) return f', 'if (achados.length !== 1 || usados.has(achados[0].n)) return f')],
   ['M4c o papel sem nome que ficou não barra o novo', (t) => t.replace('if (d && elenco.some((f) => !nomeProprio2411(f.nome) && temPalavra(d.trecho, f.nucleo))) continue', '')],
+  ['M3c a via sem descrição aceita a leitura por sufixo/sem gente', (t) => t.replace(' && (e.gente ?? []).some((g) => norm(limpa(g)) === norm(n))', '')],
+  ['M7b sem os artigos das outras línguas', (t) => t.replace('+ \'ein eine einen einem einer der die das den dem des le les une du el los las un una il lo gli uno um uma os as dos das do da del\'', '+ \'\'')],
   ['M14 lugar da leitura vira gente', (t) => t.replace('!lugares.includes(norm(n)) && ', '')],
   ['M15 a ficha nova inventa a aparência (gerador da casa no lugar da oração)', (t) => t.replace('canonica: fichaDoAutor(n, oracao)', "canonica: `${n}, a man in their early thirties with short brown hair, wearing a blue jacket`")],
   ['M16 o interruptor nasce public', (t) => t.replace("export const LEITOR_DO_ELENCO_2411: ModoElencoEFigurino2411 = 'internal'", "export const LEITOR_DO_ELENCO_2411: ModoElencoEFigurino2411 = 'public'")],

@@ -264,7 +264,7 @@ export function medidaDaRegra2411(base: MedidaDaLeitura2411 | null | undefined, 
 //      (o núcleo da ficha é palavra da descrição) — e só com UM nome assim (dois = dúvida = nada).
 //   3. NOVO: nome da narração que nenhuma ficha tem entra (até PERSONAGEM_MAX_PERSONAGENS) quando (i) tem descrição e a leitura semântica não o
 //      descartou (respondeu sem ele = julgado = fora; não respondeu = a descrição basta), ou (ii) é nome e SOBRENOME (2+ palavras com
-//      maiúscula), a leitura o leu como personagem e a narração o mostra agindo ("Elias Ward had kept"). Sem descrição, a ficha é só o que o
+//      maiúscula), a leitura o leu como GENTE com o nome completo exato e a narração o mostra agindo ("Elias Ward had kept"). Sem descrição, a ficha é só o que o
 //      autor escreveu dele (fichaDoAutor com a oração da narração): nada de cabelo, rosto ou roupa sorteados.
 //   Fora sempre: figura conhecida/mítica (as regras de hoje: nada deduzido do nome), nome que a leitura listou como lugar/empresa, palavra de
 //   função no começo de frase ("This is a…", "Meet"), escrita não latina. Interruptor PRÓPRIO, nasce 'internal' (só a lista exata da casa).
@@ -281,7 +281,9 @@ const SOBRENOMES_RE = /^(?: \p{Lu}[\p{Ll}'’-]+){0,2}/u
 const NUNCA_NOME_2411 = new Set(('the a an this that these those it its he she they we you i his her their our your my there here every each one someone everyone '
   + 'nobody nothing then when once but and so or meet imagine picture watch together now today tonight later soon after before suddenly finally still yet '
   + 'what who why how where which while until since because if as at in on of to for with from by into no not never always some all both many most '
-  + 'hook payoff micro reward cta intro outro scene act part chapter').split(' '))
+  + 'hook payoff micro reward cta intro outro scene act part chapter '
+  // artigos de alemão, francês, espanhol, italiano e português (replay 24/11: a leitura leu "Ein Junge" — "um menino" — como nome)
+  + 'ein eine einen einem einer der die das den dem des le les une du el los las un una il lo gli uno um uma os as dos das do da del').split(' '))
 const ESPECIE_ANIMAL_RE = new RegExp(`^(?:${ESPECIES_DA_FOLHA.animais})s?$`, 'iu')
 const ESPECIE_CRIATURA_RE = new RegExp(`^(?:${ESPECIES_DA_FOLHA.criaturas})s?$`, 'iu')
 const FUNCAO_NO_VERBO_RE = /^(?:of|and|or|the|a|an|in|on|at|to|with|from|for|by|as|is|was)$/iu
@@ -372,6 +374,9 @@ export interface EntradaDoLeitor2411 {
   roteiro: string
   /** os nomes que a leitura semântica leu como personagem; null = a leitura não respondeu */
   lidos: ReadonlyArray<string> | null
+  /** os nomes que a leitura leu como GENTE (kind human), na grafia dela. A via sem descrição (nome + sobrenome agindo) exige o nome COMPLETO aqui, exato:
+   *  replay 24/11, a leitura leu "Sonic" e a narração dizia "Metal Sonic is altering…" (robô) — por sufixo ele entrava como gente. Ausente = a via não age. */
+  gente?: ReadonlyArray<string> | null
   /** o que a leitura listou como lugar/empresa/título */
   lugares?: ReadonlyArray<string>
 }
@@ -432,7 +437,7 @@ export function elencoDoLeitor2411(e: EntradaDoLeitor2411): { elenco: FichaDePer
       if (d && leu !== false) {
         nova = { nome: n, nucleo: d.tipo === 'humano' ? n.split(' ').pop()! : d.nucleo, tipo: d.tipo, canonica: canonicaLiteral({ nome: n }, d.trecho, null, null), origem: 'autor', protagonista: false, genero: d.tipo === 'humano' ? (generoDoPapel(d.trecho.split(/\s+(?:with|wearing|in|dressed)\s/iu)[0]) === 'female' ? 'woman' : generoDoPapel(d.trecho.split(/\s+(?:with|wearing|in|dressed)\s/iu)[0]) === 'male' ? 'man' : null) : null }
         mudancas.push({ nome: n, acao: 'novo', fonte: d.fonte, forma: d.forma, tipo: d.tipo })
-      } else if (!d && leu === true && n.split(' ').length >= 2) {
+      } else if (!d && leu === true && n.split(' ').length >= 2 && (e.gente ?? []).some((g) => norm(limpa(g)) === norm(n))) {
         const oracao = oracaoDoNome2411(roteiro, n)
         if (oracao) { nova = { nome: n, nucleo: n.split(' ').pop()!, tipo: 'humano', canonica: fichaDoAutor(n, oracao), origem: 'autor', protagonista: false, genero: null }; mudancas.push({ nome: n, acao: 'novo', fonte: 'oracao', forma: 'oracao', tipo: 'humano' }) }
       }
