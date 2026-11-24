@@ -27,6 +27,7 @@ const F = {
   faixa: 'components/BlackFridayBanner.tsx',
   pricing: 'app/pricing/PricingClient.tsx',
   hook: 'components/pricing/AnnualOfferCountdown.tsx',
+  emailRoute: 'app/api/admin/send-black-friday-2026/route.ts',
 }
 const SRC = Object.fromEntries(Object.values(F).map((rel) => [rel, lf(rel)]))
 const T = (iso) => Date.parse(iso)
@@ -109,6 +110,19 @@ async function problemas(repl = {}) {
   checa('(M3) Creator em reais: 79790 (nunca 56990) na BF, conta velha e convidado', [true, false].every((signedIn) => cobra({ tier: 'basic', nowMs: NA_BF, signedIn, pais: 'BR' }).charge.amount === 79790))
   checa('(b) a tabela da BF só tem o Starter', JSON.stringify(B.bf2026PriceRows().map((r) => r.tier)) === '["starter"]' && JSON.stringify(B.BF2026_TIERS) === '["starter"]')
   checa('(b) rótulo da oferta = "Starter"', B.BF2026_PLAN_LABEL === 'Starter')
+  const seteDias = B.BF2026_BASE_LETTER_SUPPRESSION_HOURS * H
+  checa('(b) carta da base suprime 167h59, libera em 168h, rejeita data inválida/futura',
+    B.bf2026BaseLetterWithinSuppressionWindow(new Date(NA_BF - seteDias + 60_000).toISOString(), NA_BF) &&
+    !B.bf2026BaseLetterWithinSuppressionWindow(new Date(NA_BF - seteDias).toISOString(), NA_BF) &&
+    !B.bf2026BaseLetterWithinSuppressionWindow('invalid', NA_BF) &&
+    !B.bf2026BaseLetterWithinSuppressionWindow(new Date(NA_BF + 1).toISOString(), NA_BF))
+  const emailRoute = src(F.emailRoute)
+  checa('(b) rota consulta a carta bf_base_2311 em 168h e falha sem a leitura',
+    emailRoute.includes(".eq('name', BF2026_BASE_LETTER_SENT_EVENT)") &&
+    emailRoute.includes('BF2026_BASE_LETTER_SUPPRESSION_HOURS * 60 * 60 * 1000') &&
+    emailRoute.includes('if (cartasBaseErr) throw cartasBaseErr'))
+  checa('(b) rota retira a pessoa suprimida antes de montar a coorte',
+    emailRoute.includes('if (recebeuCartaBaseRecente.has(id)) { fora.recent_bf_base_2311++; continue }'))
 
   // (c) fora da janela
   for (const tier of ['starter', 'basic', 'pro']) {
@@ -278,6 +292,8 @@ const muta = (rel, de, para) => {
   return { [rel]: s.replace(de, para) }
 }
 const MUTANTES = [
+  ['carta recente da base não suprime a onda BF', muta(F.emailRoute, 'if (recebeuCartaBaseRecente.has(id)) { fora.recent_bf_base_2311++; continue }', 'if (false) { fora.recent_bf_base_2311++; continue }')],
+  ['janela da carta da base cai abaixo de sete dias', muta(F.bf, 'export const BF2026_BASE_LETTER_SUPPRESSION_HOURS = 168', 'export const BF2026_BASE_LETTER_SUPPRESSION_HOURS = 167')],
   ['Creator volta à lista da BF', muta(F.bf, "export const BF2026_TIERS: readonly CheckoutTier[] = ['starter']", "export const BF2026_TIERS: readonly CheckoutTier[] = ['starter', 'basic']")],
   ['elegibilidade ignora o plano', muta(F.bf, '    bf2026CoversTier(input.tier) &&\n', '')],
   ['(M2) bf2026CoversTier aceita maiúscula', muta(F.bf, '  return (BF2026_TIERS as readonly string[]).includes(tier)', '  return (BF2026_TIERS as readonly string[]).includes(String(tier).trim().toLowerCase())')],

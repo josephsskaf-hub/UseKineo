@@ -33,12 +33,15 @@ import {
   BF2026_EMAIL_BATCH_DEFAULT,
   BF2026_EMAIL_BATCH_MAX,
   BF2026_EMAIL_CLAIM,
+  BF2026_BASE_LETTER_SENT_EVENT,
+  BF2026_BASE_LETTER_SUPPRESSION_HOURS,
   BF2026_EMAIL_FROM,
   BF2026_EMAIL_REPLY_TO,
   BF2026_EMAIL_SENT,
   BF2026_ENDS_AT,
   BF2026_STARTS_AT,
   bf2026ClaimSeed,
+  bf2026BaseLetterWithinSuppressionWindow,
   bf2026EmailBody,
   bf2026EmailSkipReason,
   bf2026EmailUrl,
@@ -117,12 +120,14 @@ export async function GET(req: NextRequest) {
     if (perfisErr) throw perfisErr
 
     // 2) quem comprou um anual desde o início da janela e quem já recebeu ESTA onda
-    const [{ data: compras, error: comprasErr }, { data: reservas, error: reservasErr }] = await Promise.all([
+    const [{ data: compras, error: comprasErr }, { data: reservas, error: reservasErr }, { data: cartasBase, error: cartasBaseErr }] = await Promise.all([
       readAll(() => admin.from('events').select('user_id, metadata').eq('name', 'payment_success').gte('created_at', BF2026_STARTS_AT).not('user_id', 'is', null).order('created_at', { ascending: true }), { route: ROUTE, table: 'events' }),
       readAll(() => admin.from('events').select('user_id, metadata').eq('name', BF2026_EMAIL_CLAIM).not('user_id', 'is', null).order('created_at', { ascending: true }), { route: ROUTE, table: 'events' }),
+      readAll(() => admin.from('events').select('user_id, created_at').eq('name', BF2026_BASE_LETTER_SENT_EVENT).gte('created_at', new Date(nowMs - BF2026_BASE_LETTER_SUPPRESSION_HOURS * 60 * 60 * 1000).toISOString()).not('user_id', 'is', null).order('created_at', { ascending: true }), { route: ROUTE, table: 'events' }),
     ])
     if (comprasErr) throw comprasErr
     if (reservasErr) throw reservasErr
+    if (cartasBaseErr) throw cartasBaseErr
     const compradorAnual = new Set<string>()
     for (const r of compras ?? []) {
       const m = (r.metadata ?? {}) as Record<string, unknown>
@@ -133,12 +138,17 @@ export async function GET(req: NextRequest) {
       const m = (r.metadata ?? {}) as Record<string, unknown>
       if (m.wave === wave) jaRecebeu.add(String(r.user_id))
     }
+    const recebeuCartaBaseRecente = new Set<string>()
+    for (const r of cartasBase ?? []) {
+      if (bf2026BaseLetterWithinSuppressionWindow(r.created_at, nowMs)) recebeuCartaBaseRecente.add(String(r.user_id))
+    }
 
-    const fora: Record<Bf2026SkipReason | 'duplicate_email', number> = { bad_email: 0, opted_out: 0, internal: 0, blocked: 0, paying_plan: 0, annual_buyer: 0, already_got_wave: 0, duplicate_email: 0 }
+    const fora: Record<Bf2026SkipReason | 'duplicate_email' | 'recent_bf_base_2311', number> = { bad_email: 0, opted_out: 0, internal: 0, blocked: 0, paying_plan: 0, annual_buyer: 0, already_got_wave: 0, duplicate_email: 0, recent_bf_base_2311: 0 }
     const emails = new Set<string>()
     const candidatos: Array<{ id: string; email: string }> = []
     for (const p of perfis ?? []) {
       const id = String(p.id)
+      if (recebeuCartaBaseRecente.has(id)) { fora.recent_bf_base_2311++; continue }
       const motivo = bf2026EmailSkipReason(p, { isInternal: isInternalEmail, neverEmail: WINBACK_NEVER, annualBuyer: wave === 'cyber' && compradorAnual.has(id), alreadyGotWave: jaRecebeu.has(id) })
       if (motivo) { fora[motivo]++; continue }
       const email = String(p.email).trim().toLowerCase()

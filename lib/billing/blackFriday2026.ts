@@ -217,6 +217,9 @@ export const BF2026_WAVE_DATES: Record<Bf2026Wave, string> = { bf: BF2026_BLACK_
  */
 export const BF2026_EMAIL_SENT = 'bf2026_emailed' as const
 export const BF2026_EMAIL_CLAIM = 'bf2026_email_claimed' as const
+/** Evita recontactar por sete dias quem recebeu a carta BF da base em 23/11. */
+export const BF2026_BASE_LETTER_SUPPRESSION_HOURS = 168
+export const BF2026_BASE_LETTER_SENT_EVENT = 'bf_base_2311_sent' as const
 export const BF2026_EMAIL_FROM = 'Joseph at Kineo <joseph@usekineo.com>'
 export const BF2026_EMAIL_REPLY_TO = 'joseph@usekineo.com'
 export const BF2026_EMAIL_BATCH_DEFAULT = 150
@@ -280,6 +283,15 @@ export function bf2026WaveReachCeiling(input: { eligible: number; wave: Bf2026Wa
 export function bf2026WaveForDate(nowMs: number = Date.now()): Bf2026Wave | null {
   const d = bf2026NyDate(nowMs)
   return d === BF2026_WAVE_DATES.bf ? 'bf' : d === BF2026_WAVE_DATES.cyber ? 'cyber' : null
+}
+
+/** true quando a reserva/envio da carta da base foi há menos de 168 h. */
+export function bf2026BaseLetterWithinSuppressionWindow(sentAt: unknown, nowMs: number): boolean {
+  if (!Number.isFinite(nowMs)) return false
+  const sentMs = Date.parse(String(sentAt ?? ''))
+  if (!Number.isFinite(sentMs)) return false
+  const age = nowMs - sentMs
+  return age >= 0 && age < BF2026_BASE_LETTER_SUPPRESSION_HOURS * 60 * 60 * 1000
 }
 
 export function parseBf2026Wave(raw: unknown): Bf2026Wave | null {
