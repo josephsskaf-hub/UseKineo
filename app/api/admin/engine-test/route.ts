@@ -90,7 +90,9 @@ function planosFrom(raw: unknown): Array<{ prompt: string; duration: string }> |
 // Trava de dinheiro NO SERVIDOR: soma o custo estimado das sondas das últimas 24 h (evento admin_engine_probe em public.events) e recusa
 // se este pedido passar de PROBE_DAILY_CAP_USD. Leitura da soma falhou = recusa (fecha por padrão). Não toca em crédito de ninguém.
 const PROBE_EVENT = 'admin_engine_probe'
-const PROBE_DAILY_CAP_USD = 15
+// KINEO-SONDA-TETO-2311 — dono 23/11: aprovou US$ 15,00 (rodada 1) e depois mais US$ 5,75 (rodada 2 do Gemini, na mesma noite).
+// O teto das 24 h passa a ser a soma do que ele aprovou, nem um centavo a mais. Voltar a 15 depois de 24/11.
+const PROBE_DAILY_CAP_USD = 20.75
 const PROBE_WINDOW_MS = 24 * 60 * 60 * 1000 // "dia" = 24 h corridas antes do pedido (mais apertado que o dia do calendário)
 // Preço por segundo a 720p, lido em 23/11/2026 na página de cada modelo na fal (fal.ai/models/<endpoint>).
 const KLING4_REF_USD_PER_S_720P_2311 = 0.157

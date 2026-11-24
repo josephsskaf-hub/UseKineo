@@ -1,7 +1,7 @@
 // KINEO-SONDA-MOTORES-2311 — guardião OFFLINE do modo "sonda" de app/api/admin/engine-test/route.ts.
 // EXECUTA a rota (transpilada e rodada num vm) com a fal, o login e o banco trocados por dublês: nenhuma rede, chave, envio ou escrita real.
 // Prova: pedido válido dos 3 endpoints chega à fal idêntico; quem não é administrador não envia nada; entrada fora da regra é recusada sem
-// envio; o teto de US$ 15 nas 24 h recusa sem envio, inclusive quando a soma não pode ser lida; os modos antigos respondem como antes.
+// envio; o teto de US$ 20,75 nas 24 h (15,00 + 5,75 aprovados pelo dono em 23/11) recusa sem envio, inclusive quando a soma não pode ser lida; os modos antigos respondem como antes.
 // Depois roda a MESMA bateria contra mutantes da rota: cada mutante tem de derrubar pelo menos uma asserção.
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -186,15 +186,15 @@ test('plano com chave a mais ou prompt de 513: 400', async () => {
 })
 
 // ── Trava de dinheiro ──
-test('teto do dia: já há US$ 14,00 e chega um pedido de US$ 2,355 → 429 sem envio', async () => {
-  const h = harness(ROUTE, { db: fakeDb({ rows: [ev(10), ev(4)] }) })
+test('teto do dia: já há US$ 19,00 e chega um pedido de US$ 2,355 → 429 sem envio', async () => {
+  const h = harness(ROUTE, { db: fakeDb({ rows: [ev(15), ev(4)] }) })
   const r = await refusedWithoutSend(h, 'probe=1', probe(K4, kling()), 429, 'daily_cap')
-  assert.equal(r.body.day_total_usd, 14); assert.equal(r.body.est_usd, 2.355)
+  assert.equal(r.body.day_total_usd, 19); assert.equal(r.body.est_usd, 2.355); assert.equal(r.body.cap_usd, 20.75)
 })
-test('exatamente US$ 15,00 no total ainda passa (o teto é "passar de")', async () => {
-  const h = harness(ROUTE, { db: fakeDb({ rows: [ev(12.645)] }) })
+test('exatamente US$ 20,75 no total ainda passa (o teto é "passar de")', async () => {
+  const h = harness(ROUTE, { db: fakeDb({ rows: [ev(18.395)] }) })
   const r = await h.post('probe=1', probe(K4, kling()))
-  assert.equal(r.status, 200, JSON.stringify(r.body)); assert.equal(r.body.day_total_usd, 15); assert.equal(h.fal.submits.length, 1)
+  assert.equal(r.status, 200, JSON.stringify(r.body)); assert.equal(r.body.day_total_usd, 20.75); assert.equal(h.fal.submits.length, 1)
 })
 test('sonda de mais de 24 h não conta para o teto', async () => {
   const h = harness(ROUTE, { db: fakeDb({ rows: [ev(14, 24 * 60 + 5)] }) })
