@@ -36,6 +36,7 @@ import { ConversionPricingEntry, ConversionPlanCapacity } from '@/components/off
 import { MRR_CONVERSION_ENABLED, conversionCheckoutHref, conversionMetadata } from '@/lib/offers/mrrConversion'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { createClient } from '@/lib/supabase/client'
+import PricingPlanEntry from '@/components/pricing/PricingPlanEntry'
 import ExitIntentOffer from '@/components/ExitIntentOffer'
 import WelcomeOfferModal from '@/components/WelcomeOfferModal' // KINEO-WELCOME20-2026-08-25
 // KINEO-CLIPES-2026-08-19 — anunciar filme PRONTO e a cena que o compõe. O
@@ -1582,6 +1583,14 @@ html[data-theme=dark] .pricing-blue{--pricing-error:#ff9aa5;--pricing-error-soft
         {/* KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — com o cartão novo, os planos vêm logo depois do seletor mensal/anual (como
             a InVideo); a prova do filme desce para baixo do palco, sem sumir. */}
 
+        {!planSwitch.subscribed && (watchPricing || audience === 'individual') && (
+          <PricingPlanEntry billing={billing} currency={displayCurrency} region={resolvedRegion}
+            settlement={settlementCurrency} creatorFirst={watchPricing}
+            onChoose={tier => {
+              setSelectedTier(tier)
+              void trackEvent('pricing_plan_selected', { tier, billing, placement: 'plan_entry' })
+            }} />
+        )}
         {valueCards ? (() => {
           // KINEO-PRECOS-CARTAO-VALOR-2026-10-09 — o palco novo: mesmo plano, mesmo preço, mesmo handleBuy; muda o que o cartão
           // CONTA (o que os créditos compram, calculado dentro do cartão por lib/pricingPlanValue.ts) e a cara.

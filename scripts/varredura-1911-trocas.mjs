@@ -72,19 +72,25 @@ export function pricingPreservado1911(base, atual) {
     .replace("      videosPerMonth: filmsAndScenes('pro'),", "      outcome: `Every available engine — Kling 3, MiniMax H3, MiniMax H3 Turbo${AVATAR_PUBLIC ? ', Avatar' : ''} — plus 2 free HD enhances a month.`, // KINEO-CONSENTIMENTO-1610: saiu a promessa de armazenamento eterno (sem garantia) · KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 · KINEO-FILME-GRATIS-15S-2026-09-29 (motor de stock fora do catálogo): Omni pausado não se vende · KINEO-H3-DE-VOLTA-2026-09-22\n      videosPerMonth: filmsAndScenes('pro'),\n      storageLine: 'Unlimited projects · files stay while your account is active', // KINEO-CONSENTIMENTO-1610")
     .replace("                          ...(p.tier === 'pro' ? studioPerks : []),", "                          ...(p.tier === 'pro' ? ['2 free HD enhances a month'] : []),")
     .replace("                {p.tier === 'pro' ? (\n                  <div className=\"mt-3 text-[13px] text-[var(--muted)]\">\n                    <p>{studioPerks.join(' · ')}</p>\n                    <StudioFilmCounts />\n                  </div>\n                ) : 'outcome' in p && p.outcome ? (", "                {'outcome' in p && p.outcome ? (")
+  // The plan entry may add just this import and this complete, mounted block.
+  const importEntrada = "import PricingPlanEntry from '@/components/pricing/PricingPlanEntry'\n"
+  const blocoEntrada = "        {!planSwitch.subscribed && (watchPricing || audience === 'individual') && (\n          <PricingPlanEntry billing={billing} currency={displayCurrency} region={resolvedRegion}\n            settlement={settlementCurrency} creatorFirst={watchPricing}\n            onChoose={tier => {\n              setSelectedTier(tier)\n              void trackEvent('pricing_plan_selected', { tier, billing, placement: 'plan_entry' })\n            }} />\n        )}\n"
+  const entradaCompleta = !base.includes(importEntrada) && semTextoStudio.split(importEntrada).length === 2 &&
+    semTextoStudio.split(blocoEntrada).length === 2
+  const semEntrada = entradaCompleta ? semTextoStudio.replace(importEntrada, '').replace(blocoEntrada, '') : semTextoStudio
   const cabecalho = base.includes(IMPORT_CABECALHO) ? base : aplicar(base, [
     [IMPORT_MENU_ANTIGO, IMPORT_CABECALHO],
     ["import KineoBolt, { KineoBoltText, KineoBrandIcon } from '@/components/KineoBolt'", "import KineoBolt, { KineoBoltText } from '@/components/KineoBolt'"],
     [PRICING_NAV_ANTIGA, '      <PublicSiteHeader signedIn={signedIn ?? undefined} currentPath="/pricing" />'],
   ])
-  if (semTextoStudio === cabecalho) return true
+  if (semEntrada === cabecalho) return true
   // A montagem da recarga do assinante fica logo após a tabela de comparação.
   // Só estas linhas são permitidas. O restante ainda tem de bater byte a byte.
   const recarga = aplicar(cabecalho, [
     ["import TwoProductsPricing from '@/components/pricing/TwoProductsPricing' // KINEO-PRECOS-DOIS-PRODUTOS-2026-10-05", "import PricingAccountCredits from '@/components/pricing/PricingAccountCredits'\nimport { ACCOUNT_MENU_MAY_RENDER } from '@/lib/ui/unifiedAccountMenu'\nimport TwoProductsPricing from '@/components/pricing/TwoProductsPricing' // KINEO-PRECOS-DOIS-PRODUTOS-2026-10-05"],
     ["        {PRECOS_DOIS_PRODUTOS_PUBLIC ? <details className=\"pricing-compare mx-auto mt-10 max-w-4xl\"><summary className=\"cursor-pointer text-center text-[14px] font-semibold text-[var(--muted)]\">Compare what each engine costs</summary><TwoProductsPricing /></details> : null}{/* KINEO-PRICING-LIMPO-0411 — 1.400 px de tabela a um clique */}", "        {PRECOS_DOIS_PRODUTOS_PUBLIC ? <details className=\"pricing-compare mx-auto mt-10 max-w-4xl\"><summary className=\"cursor-pointer text-center text-[14px] font-semibold text-[var(--muted)]\">Compare what each engine costs</summary><TwoProductsPricing /></details> : null}{/* KINEO-PRICING-LIMPO-0411 — 1.400 px de tabela a um clique */}\n        {ACCOUNT_MENU_MAY_RENDER && <PricingAccountCredits signedIn={signedIn} />}"],
   ])
-  return semTextoStudio === recarga
+  return semEntrada === recarga
 }
 
 function aplicar(fonte, trocas) {
