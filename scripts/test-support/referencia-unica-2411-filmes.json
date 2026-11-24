@@ -1,0 +1,167 @@
+{
+ "_fonte": "docs/filme-nota-9/teste-motores-2311 (C:kineo, fora do git): controles.json (o texto exato que foi ao Kling 4, sem o prefixo) e pedidos/<id>-A.json (o pedido pago com UMA referencia, nota visual 4,0 -> 7,3). Filmes so pelos 8 primeiros caracteres; sem e-mail nem nome de cliente.",
+ "filmes": [
+  {
+   "id": "2fef3706",
+   "referencia_do_teste": "https://v3b.fal.media/files/b/0ab3a81d/bL7qTxarTi7N_5xSfOa8f.jpg",
+   "rotulo": "Keep the face and outfit of {REF}.",
+   "planos": [
+    {
+     "prefixo": "Scene 1: use the start image. ",
+     "prompt": "Photoreal film. Medium shot, subject centered and clearly readable. A young man in bed, sunlight streaming through the curtains, squinting at his phone, eyes widening in disbelief as he sees his bank balance; appearance anchors: 20-30, short wavy brown, facial hair: short beard, light skin, no readable text, letters, numbers, labels or signage. Every screen glows with soft abstract light and colour. Mouth closed, no speaking.",
+     "duration": 5
+    },
+    {
+     "prefixo": "Scene 2: use middle keyframe 1. ",
+     "prompt": "Photoreal film. Identity: the young man, A young man in bed, sunlight streaming through the curtains, squinting at his phone, eyes widening in disbelief as he sees his bank balance; appearance anchors: 20-30, short wavy brown. Main subject of this shot: luxury supercar on street, shown in motion. no readable text, letters, numbers, labels or signage. Every screen glows with soft abstract light and colour. Mouth closed, no speaking.",
+     "duration": 2
+    },
+    {
+     "prefixo": "Scene 3: text-directed shot, no new keyframe for this scene. ",
+     "prompt": "Photoreal film. Wide shot. Identity: the young man, A young man in bed, sunlight streaming through the curtains, squinting at his phone, eyes widening in disbelief as he sees his bank balance; appearance anchors: 20-30, short wavy brown. Main subject of this shot: luxury mansion exterior, shown in motion. no readable text, letters, numbers, labels or signage. Every screen glows with soft abstract light and colour. Mouth closed, no speaking.",
+     "duration": 3
+    },
+    {
+     "prefixo": "Scene 4: use middle keyframe 2. ",
+     "prompt": "Photoreal film. Identity: the young man, A young man in bed, sunlight streaming through the curtains, squinting at his phone, eyes widening in disbelief as he sees his bank balance; appearance anchors: 20-30, short wavy brown. A close-up of a man's shocked face, holding an empty wallet, with a few crumpled bills visible, no readable text, letters, numbers, labels or signage. Every screen glows with soft abstract light and colour. Mouth closed, no speaking.",
+     "duration": 5
+    }
+   ],
+   "pedido_A": {
+    "endpoint": "kling/v4/reference-to-video",
+    "input": {
+     "image_urls": [
+      "https://v3b.fal.media/files/b/0ab3a81d/bL7qTxarTi7N_5xSfOa8f.jpg"
+     ],
+     "multi_prompt": [
+      {
+       "prompt": "Photoreal film. Medium shot, subject centered and clearly readable. A young man in bed, sunlight streaming through the curtains, squinting at his phone, eyes widening in disbelief as he sees his bank balance; appearance anchors: 20-30, short wavy brown, facial hair: short beard, light skin, no readable text, letters, numbers, labels or signage. Every screen glows with soft abstract light and colour. Keep the face and outfit of @Image1. Mouth closed, no speaking.",
+       "duration": 5
+      },
+      {
+       "prompt": "Photoreal film. Identity: the young man, A young man in bed, sunlight streaming through the curtains, squinting at his phone, eyes widening in disbelief as he sees his bank balance; appearance anchors: 20-30, short wavy brown. Main subject of this shot: luxury supercar on street, shown in motion. no readable text, letters, numbers, labels or signage. Every screen glows with soft abstract light and colour. Keep the face and outfit of @Image1. Mouth closed, no speaking.",
+       "duration": 2
+      },
+      {
+       "prompt": "Photoreal film. Wide shot. Identity: the young man, A young man in bed, sunlight streaming through the curtains, squinting at his phone, eyes widening in disbelief as he sees his bank balance; appearance anchors: 20-30, short wavy brown. Main subject of this shot: luxury mansion exterior, shown in motion. no readable text, letters, numbers, labels or signage. Every screen glows with soft abstract light and colour. Keep the face and outfit of @Image1. Mouth closed, no speaking.",
+       "duration": 3
+      },
+      {
+       "prompt": "Photoreal film. Identity: the young man, A young man in bed, sunlight streaming through the curtains, squinting at his phone, eyes widening in disbelief as he sees his bank balance; appearance anchors: 20-30, short wavy brown. A close-up of a man's shocked face, holding an empty wallet, with a few crumpled bills visible, no readable text, letters, numbers, labels or signage. Every screen glows with soft abstract light and colour. Keep the face and outfit of @Image1. Mouth closed, no speaking.",
+       "duration": 5
+      }
+     ],
+     "duration": 15,
+     "resolution": "720p",
+     "aspect_ratio": "9:16"
+    }
+   },
+   "imagem_chave_1": "https://v3b.fal.media/files/b/0ab3a81e/bmHiJg-8hgyKBVvBRDeha_fmfTxVLh.png"
+  },
+  {
+   "id": "49448973",
+   "referencia_do_teste": "https://v3b.fal.media/files/b/0ab3a9cb/S42S0723YekRpuPAMyHM_.jpg",
+   "ficha_alternativa": null,
+   "rotulo": "Keep the exact character design of {REF}.",
+   "planos": [
+    {
+     "prefixo": "Scene 1: use the start image. ",
+     "prompt": "3D animated film. A fluffy mascot waves and smiles energetically, its eyes sparkling with joy, in a cozy playroom setting. no readable text, letters, numbers, labels or signage anywhere in the frame Mouth closed, no speaking.",
+     "duration": 3
+    },
+    {
+     "prefixo": "Scene 2: text-directed shot, no new keyframe for this scene. ",
+     "prompt": "3D animated film. Wide shot. The camera pulls back to reveal multiple characters jumping and spinning amid a shower of bubbles and confetti. no readable text, letters, numbers, labels or signage anywhere in the frame Mouth closed, no speaking.",
+     "duration": 4
+    },
+    {
+     "prefixo": "Scene 3: use middle keyframe 1. ",
+     "prompt": "3D animated film. Three characters engage in a lively ball game, one tossing the ball, another catching it, while the third claps and laughs. no readable text, letters, numbers, labels or signage anywhere in the frame Mouth closed, no speaking.",
+     "duration": 3
+    },
+    {
+     "prefixo": "Scene 4: use middle keyframe 2. ",
+     "prompt": "3D animated film. All characters form a circle, raising their paws in celebration, their faces filled with excitement and anticipation for new adventures. no readable text, letters, numbers, labels or signage anywhere in the frame Mouth closed, no speaking.",
+     "duration": 5
+    }
+   ],
+   "pedido_A": {
+    "endpoint": "kling/v4/reference-to-video",
+    "input": {
+     "image_urls": [
+      "https://v3b.fal.media/files/b/0ab3a9cb/S42S0723YekRpuPAMyHM_.jpg"
+     ],
+     "multi_prompt": [
+      {
+       "prompt": "3D animated film. A fluffy mascot waves and smiles energetically, its eyes sparkling with joy, in a cozy playroom setting. no readable text, letters, numbers, labels or signage anywhere in the frame Keep the exact character design of @Image1. Mouth closed, no speaking.",
+       "duration": 3
+      },
+      {
+       "prompt": "3D animated film. Wide shot. The camera pulls back to reveal multiple characters jumping and spinning amid a shower of bubbles and confetti. no readable text, letters, numbers, labels or signage anywhere in the frame Keep the exact character design of @Image1. Mouth closed, no speaking.",
+       "duration": 4
+      },
+      {
+       "prompt": "3D animated film. Three characters engage in a lively ball game, one tossing the ball, another catching it, while the third claps and laughs. no readable text, letters, numbers, labels or signage anywhere in the frame Keep the exact character design of @Image1. Mouth closed, no speaking.",
+       "duration": 3
+      },
+      {
+       "prompt": "3D animated film. All characters form a circle, raising their paws in celebration, their faces filled with excitement and anticipation for new adventures. no readable text, letters, numbers, labels or signage anywhere in the frame Keep the exact character design of @Image1. Mouth closed, no speaking.",
+       "duration": 5
+      }
+     ],
+     "duration": 15,
+     "resolution": "720p",
+     "aspect_ratio": "9:16"
+    }
+   }
+  },
+  {
+   "id": "4691e265",
+   "referencia_do_teste": "https://v3b.fal.media/files/b/0ab386de/R6xrWu6_aWCHPURxqE6eo_NuWlilD7.png",
+   "rotulo": "Keep the face and outfit of {REF}.",
+   "planos": [
+    {
+     "prefixo": "Scene 1: use the start image. ",
+     "prompt": "Photoreal film. Identity: the mysterious warrior, exactly as the author wrote: \"mysterious warrior\"; appearance anchors: 30-40, dark, medium length, facial hair: short full beard, medium skin. A lone warrior on horseback approaches a majestic African kingdom, golden sunlight casting long shadows over the vibrant landscape. no readable text, letters, numbers, labels or signage anywhere in the frame Mouth closed, no speaking.",
+     "duration": 6
+    },
+    {
+     "prefixo": "Scene 2: use middle keyframe 1. ",
+     "prompt": "Photoreal film. Identity: the mysterious warrior, exactly as the author wrote: \"mysterious warrior\"; appearance anchors: 30-40, dark, medium length, facial hair: short full beard, medium skin. The warrior rides through misty ruins, dark clouds gathering above, symbolizing lost years and revenge. no readable text, letters, numbers, labels or signage anywhere in the frame Mouth closed, no speaking.",
+     "duration": 3
+    },
+    {
+     "prefixo": "Scene 3: text-directed shot, no new keyframe for this scene. ",
+     "prompt": "Photoreal film. Wide shot. Everyone shown has the natural features of African people. Identity: the mysterious warrior, exactly as the author wrote: \"mysterious warrior\"; appearance anchors: 30-40, dark, medium length, facial hair: short full beard, medium skin. In a grand palace, an adviser leans close to the king, their expressions tense, no readable text, letters, numbers, labels or signage Mouth closed, no speaking.",
+     "duration": 6
+    }
+   ],
+   "pedido_A": {
+    "endpoint": "kling/v4/reference-to-video",
+    "input": {
+     "image_urls": [
+      "https://v3b.fal.media/files/b/0ab386de/R6xrWu6_aWCHPURxqE6eo_NuWlilD7.png"
+     ],
+     "multi_prompt": [
+      {
+       "prompt": "Photoreal film. Identity: the mysterious warrior, exactly as the author wrote: \"mysterious warrior\"; appearance anchors: 30-40, dark, medium length, facial hair: short full beard, medium skin. A lone warrior on horseback approaches a majestic African kingdom, golden sunlight casting long shadows over the vibrant landscape. no readable text, letters, numbers, labels or signage anywhere in the frame Keep the face and outfit of @Image1. Mouth closed, no speaking.",
+       "duration": 6
+      },
+      {
+       "prompt": "Photoreal film. Identity: the mysterious warrior, exactly as the author wrote: \"mysterious warrior\"; appearance anchors: 30-40, dark, medium length, facial hair: short full beard, medium skin. The warrior rides through misty ruins, dark clouds gathering above, symbolizing lost years and revenge. no readable text, letters, numbers, labels or signage anywhere in the frame Keep the face and outfit of @Image1. Mouth closed, no speaking.",
+       "duration": 3
+      },
+      {
+       "prompt": "Photoreal film. Wide shot. Everyone shown has the natural features of African people. Identity: the mysterious warrior, exactly as the author wrote: \"mysterious warrior\"; appearance anchors: 30-40, dark, medium length, facial hair: short full beard, medium skin. In a grand palace, an adviser leans close to the king, their expressions tense, no readable text, letters, numbers, labels or signage Keep the face and outfit of @Image1. Mouth closed, no speaking.",
+       "duration": 6
+      }
+     ],
+     "duration": 15,
+     "resolution": "720p",
+     "aspect_ratio": "9:16"
+    }
+   },
+   "ficha_do_elenco": "https://v3b.fal.media/files/b/0ab386de/5AGfFeWXIhldYlzzEO4pf.jpg"
+  }
+ ]
+}

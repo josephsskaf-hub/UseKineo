@@ -69,13 +69,43 @@ export function cabeNoTetoDoPlano(texto: string, teto = KLING4_TETO_DO_PLANO): s
   return cp(final) <= teto ? final : Array.from(base).slice(0, teto).join('').replace(/\s+\S*$/u, '')
 }
 
+// KINEO-REFERENCIA-UNICA-2411 [teste pago 23/11: nota visual 4,0 → 7,3 no mesmo motor e no mesmo preço] — UMA referência do personagem principal,
+// citada só nos planos em que ele aparece. Planos e durações são os de hoje; sai só o prefixo "Scene N: use the start image…" (aponta para imagens
+// que este pedido não manda) e entra a frase antes de "Mouth closed, no speaking.". Nenhum plano com o personagem ou entrada fora da régua = null
+// (quem chama segue o caminho de hoje). Quem decide se liga: lib/cinematic/referenciaUnica2411.ts.
+export type Kling4ReferenciaUnica = { imageUrl: string; frase: string; nomes: readonly string[] }
+const escapaRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+/** O plano cita o personagem: o nome ou o núcleo do elenco (sem artigo, 3+ letras), palavra inteira, sem caixa. */
+export function planoMostraOPersonagem(prompt: string, nomes: readonly string[]): boolean {
+  return nomes.some((n) => {
+    const k = String(n ?? '').trim().toLowerCase().replace(/^(?:the|a|an)\s+/, '')
+    return Array.from(k).length >= 3 && new RegExp(`(?<![\\p{L}\\p{N}])${escapaRe(k)}(?![\\p{L}\\p{N}])`, 'iu').test(prompt)
+  })
+}
+export function buildKling4ReferenciaUnicaInput(shots: readonly { prompt: string; duration: number }[], ref: Kling4ReferenciaUnica) {
+  const duration = shots.reduce((sum, shot) => sum + shot.duration, 0)
+  if (!/^https:\/\/[^\s]+$/i.test(ref.imageUrl) || !ref.frase.trim() || duration !== 15 || !shots.length || shots.length > 6 ||
+    shots.some((s) => !Number.isInteger(s.duration) || s.duration < 1 || !s.prompt.trim())) return null
+  const comPersonagem = shots.map((s) => planoMostraOPersonagem(s.prompt, ref.nomes))
+  if (!comPersonagem.some(Boolean)) return null
+  const frase = ' ' + ref.frase.trim()
+  const multi_prompt = shots.map((shot, i) => {
+    const texto = shot.prompt.trim()
+    if (!comPersonagem[i]) return { prompt: cabeNoTetoDoPlano(texto), duration: shot.duration }
+    const cabe = cabeNoTetoDoPlano(texto, KLING4_TETO_DO_PLANO - Array.from(frase).length) // a frase tem o seu espaço reservado
+    const prompt = cabe.endsWith(CAUDA_DA_BOCA) ? cabe.slice(0, -CAUDA_DA_BOCA.length) + frase + CAUDA_DA_BOCA : cabe + frase
+    return { prompt, duration: shot.duration }
+  })
+  return { model: KLING4_REFERENCE_MODEL, input: { image_urls: [ref.imageUrl], multi_prompt, duration, resolution: '720p', aspect_ratio: '9:16' } as Record<string, unknown> }
+}
+
 // KINEO-K4-DURACAO-PELA-VOZ-1311 [CEO 13/11, "nota ≥ 8 no teste grátis — a próxima causa"] — filme 9e902872 (cliente, Kling 4, 15 s,
 // 4 seções): a fala durou 12 s (seções em 0–4 / 4–7 / 7–12 s), mas a régua acima pôs piso de 3 s nas seções curtas e espalhou os 3 s
 // de sobra por todos os planos → [3,3,4,5]. A imagem ficou uma seção ATRÁS da voz ("Battle ropes engage your core" sobre o
 // kettlebell; o HIIT só aparece depois de a fala acabar). `pelaVoz` (só quando o despacho mede a voz e o interruptor está ligado):
 // cada fronteira de plano cai onde a fala da seção termina, na escala da voz MEDIDA; o silêncio depois da fala vai inteiro para o
 // último plano; piso de 2 s por plano (o schema da fal aceita 1–30). Sem `pelaVoz` = a régua de sempre, byte a byte.
-export type Kling4TrialTiming = { fixedCharacter?: Kling4CharacterReference; voiceovers: readonly string[]; wordsPerSecond: number; pelaVoz?: { segundosDaVoz: number } | null; clipSeconds?: number } // KINEO-K4-GRATIS-20S-1711: + clipSeconds (o clipe nasce do tamanho da voz; ausente = 15)
+export type Kling4TrialTiming = { fixedCharacter?: Kling4CharacterReference; referenciaUnica?: Kling4ReferenciaUnica /* KINEO-REFERENCIA-UNICA-2411 */; voiceovers: readonly string[]; wordsPerSecond: number; pelaVoz?: { segundosDaVoz: number } | null; clipSeconds?: number } // KINEO-K4-GRATIS-20S-1711: + clipSeconds (o clipe nasce do tamanho da voz; ausente = 15)
 export const KLING4_PISO_PELA_VOZ = 2
 /** Interruptor. 'all' desde 13/11 05:11: o dono viu o antes e depois com som (prova paga no pedido salvo do 9e902872: cortes 2,08/4,08/7,13 s
  *  contra a fala 4,0/7,0 s) e escolheu "A", ligar para todos. Reverter: 'off' devolve a régua antiga, byte a byte, a todo mundo;
@@ -152,6 +182,10 @@ export function buildKling4TrialInput(
   const pelaVoz = timing?.pelaVoz ? kling4TrialSceneDurationsPelaVoz(timing.voiceovers, timing.pelaVoz.segundosDaVoz, total) : null // KINEO-K4-DURACAO-PELA-VOZ-1311
   const seconds = pelaVoz ?? kling4TrialSceneDurations(timing?.voiceovers ?? shots.map(() => ''), timing?.wordsPerSecond ?? 1, total)
   if (timing?.fixedCharacter) return buildKling4ReferenceInput(shots.map((prompt, i) => ({ prompt, duration: seconds[i] })), timing.fixedCharacter)
+  if (timing?.referenciaUnica) { // KINEO-REFERENCIA-UNICA-2411 — o montador só aceita o clipe de 15 s; o personagem fixo do fundador (acima) ganha
+    const unica = buildKling4ReferenciaUnicaInput(shots.map((prompt, i) => ({ prompt, duration: seconds[i] })), timing.referenciaUnica)
+    if (unica) return unica
+  }
   const first = approvedStills[0] || null
   const middle: string[] = []
   const multiPrompt = shots.map((prompt, i) => {
