@@ -1,0 +1,62 @@
+{
+  "base": "e591827c5",
+  "source": "713612580c17cbaecbb5778c37bc8d4e9ab533dd",
+  "ownAreasUnchanged": true,
+  "rows": [
+    {
+      "file": "app/ai-ugc-ads/product-photo-ads/page.tsx",
+      "approved": "29d946511088c3057ad9dd7e9d60179c6a2bd8fb",
+      "current": "29d946511088c3057ad9dd7e9d60179c6a2bd8fb"
+    },
+    {
+      "file": "app/ai-video-generator/for/[slug]/page.tsx",
+      "approved": "03b4698d6c11daed92f7d8b035da76fa98e90fb0",
+      "current": "03b4698d6c11daed92f7d8b035da76fa98e90fb0"
+    },
+    {
+      "file": "app/sitemap.ts",
+      "approved": "6fa23c84f706e39397ef0d1a9233f4836ef0da26",
+      "current": "6fa23c84f706e39397ef0d1a9233f4836ef0da26"
+    },
+    {
+      "file": "components/seo/CitationFormatHero.tsx",
+      "approved": "578f0275ae0a8bb36e5a2cb7b7ca375407959cd2",
+      "current": "578f0275ae0a8bb36e5a2cb7b7ca375407959cd2"
+    },
+    {
+      "file": "components/seo/InternalCitationPreview.tsx",
+      "approved": "a7998529f89fbfac8422ffdfc1b4d06b120f1e64",
+      "current": "a7998529f89fbfac8422ffdfc1b4d06b120f1e64"
+    },
+    {
+      "file": "components/ugc/UgcPages.tsx",
+      "approved": "46c7c9c21a9c09dfecfeaf916d4e826f7516f90a",
+      "current": "46c7c9c21a9c09dfecfeaf916d4e826f7516f90a"
+    },
+    {
+      "file": "lib/growth/citationFormatHero2411.ts",
+      "approved": "edbab079d831b160466f21d4fbabccc33b0131da",
+      "current": "edbab079d831b160466f21d4fbabccc33b0131da"
+    },
+    {
+      "file": "lib/growth/citationPagesAccess.ts",
+      "approved": "4b2ea931992082b3b0c79ad877f1ad15e2eb4e50",
+      "current": "4b2ea931992082b3b0c79ad877f1ad15e2eb4e50"
+    },
+    {
+      "file": "lib/growth/citationPagesRelease.ts",
+      "approved": "5ee48af8d6605ef0e8a949ea9026cf79d633a114",
+      "current": "5ee48af8d6605ef0e8a949ea9026cf79d633a114"
+    },
+    {
+      "file": "lib/growth/paginaFotoProduto2311.ts",
+      "approved": "08ec52bc03a518186b8c0e17055607d6a579f912",
+      "current": "08ec52bc03a518186b8c0e17055607d6a579f912"
+    },
+    {
+      "file": "lib/seo/intentPages.ts",
+      "approved": "a796a3a0873694569c5c602f52fc2f02fb5d10bf",
+      "current": "a796a3a0873694569c5c602f52fc2f02fb5d10bf"
+    }
+  ]
+}

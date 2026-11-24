@@ -1,0 +1,908 @@
+{
+  "source": "713612580c17cbaecbb5778c37bc8d4e9ab533dd",
+  "base": "e591827c5",
+  "photos": 28,
+  "topPhotos": 16,
+  "signupPassages": [
+    {
+      "article": "cartoon",
+      "route": "/ai-video-generator/for/cartoon-videos",
+      "theme": "light",
+      "width": 1920,
+      "base": "e591827c5",
+      "formats": "713612580",
+      "exactPrompt": true,
+      "mode": "ai",
+      "benefit": "trial_best",
+      "scope": "guest signup only; no account or generation"
+    },
+    {
+      "article": "cartoon",
+      "route": "/ai-video-generator/for/cartoon-videos",
+      "theme": "light",
+      "width": 390,
+      "base": "e591827c5",
+      "formats": "713612580",
+      "exactPrompt": true,
+      "mode": "ai",
+      "benefit": "trial_best",
+      "scope": "guest signup only; no account or generation"
+    },
+    {
+      "article": "cartoon",
+      "route": "/ai-video-generator/for/cartoon-videos",
+      "theme": "dark",
+      "width": 1920,
+      "base": "e591827c5",
+      "formats": "713612580",
+      "exactPrompt": true,
+      "mode": "ai",
+      "benefit": "trial_best",
+      "scope": "guest signup only; no account or generation"
+    },
+    {
+      "article": "cartoon",
+      "route": "/ai-video-generator/for/cartoon-videos",
+      "theme": "dark",
+      "width": 390,
+      "base": "e591827c5",
+      "formats": "713612580",
+      "exactPrompt": true,
+      "mode": "ai",
+      "benefit": "trial_best",
+      "scope": "guest signup only; no account or generation"
+    },
+    {
+      "article": "animated",
+      "route": "/ai-video-generator/for/animated-story-videos",
+      "theme": "light",
+      "width": 1920,
+      "base": "e591827c5",
+      "formats": "713612580",
+      "exactPrompt": true,
+      "mode": "ai",
+      "benefit": "trial_best",
+      "scope": "guest signup only; no account or generation"
+    },
+    {
+      "article": "animated",
+      "route": "/ai-video-generator/for/animated-story-videos",
+      "theme": "light",
+      "width": 390,
+      "base": "e591827c5",
+      "formats": "713612580",
+      "exactPrompt": true,
+      "mode": "ai",
+      "benefit": "trial_best",
+      "scope": "guest signup only; no account or generation"
+    },
+    {
+      "article": "animated",
+      "route": "/ai-video-generator/for/animated-story-videos",
+      "theme": "dark",
+      "width": 1920,
+      "base": "e591827c5",
+      "formats": "713612580",
+      "exactPrompt": true,
+      "mode": "ai",
+      "benefit": "trial_best",
+      "scope": "guest signup only; no account or generation"
+    },
+    {
+      "article": "animated",
+      "route": "/ai-video-generator/for/animated-story-videos",
+      "theme": "dark",
+      "width": 390,
+      "base": "e591827c5",
+      "formats": "713612580",
+      "exactPrompt": true,
+      "mode": "ai",
+      "benefit": "trial_best",
+      "scope": "guest signup only; no account or generation"
+    },
+    {
+      "article": "animal",
+      "route": "/ai-video-generator/for/animal-story-videos",
+      "theme": "light",
+      "width": 1920,
+      "base": "e591827c5",
+      "formats": "713612580",
+      "exactPrompt": true,
+      "mode": "ai",
+      "benefit": "trial_best",
+      "scope": "guest signup only; no account or generation"
+    },
+    {
+      "article": "animal",
+      "route": "/ai-video-generator/for/animal-story-videos",
+      "theme": "light",
+      "width": 390,
+      "base": "e591827c5",
+      "formats": "713612580",
+      "exactPrompt": true,
+      "mode": "ai",
+      "benefit": "trial_best",
+      "scope": "guest signup only; no account or generation"
+    },
+    {
+      "article": "animal",
+      "route": "/ai-video-generator/for/animal-story-videos",
+      "theme": "dark",
+      "width": 1920,
+      "base": "e591827c5",
+      "formats": "713612580",
+      "exactPrompt": true,
+      "mode": "ai",
+      "benefit": "trial_best",
+      "scope": "guest signup only; no account or generation"
+    },
+    {
+      "article": "animal",
+      "route": "/ai-video-generator/for/animal-story-videos",
+      "theme": "dark",
+      "width": 390,
+      "base": "e591827c5",
+      "formats": "713612580",
+      "exactPrompt": true,
+      "mode": "ai",
+      "benefit": "trial_best",
+      "scope": "guest signup only; no account or generation"
+    }
+  ],
+  "runtimeErrors": 0,
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/api/offers/bf2026"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kling4-trial/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kling4-trial/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/offers/bf2026"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kling4-trial/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kling4-trial/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/offers/bf2026"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kling4-trial/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kling4-trial/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/offers/bf2026"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kling4-trial/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kling4-trial/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/offers/bf2026"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kling4-trial/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kling4-trial/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/offers/bf2026"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kling4-trial/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kling4-trial/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/offers/bf2026"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kling4-trial/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kling4-trial/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/offers/bf2026"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kling4-trial/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kling4-trial/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/offers/bf2026"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kling4-trial/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kling4-trial/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/offers/bf2026"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kling4-trial/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kling4-trial/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/offers/bf2026"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kling4-trial/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kling4-trial/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/offers/bf2026"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kling4-trial/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/kling4-trial/availability"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/offers/bf2026"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stats/public"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stats/public"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/offers/bf2026"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stats/public"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stats/public"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/offers/bf2026"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stats/public"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stats/public"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/offers/bf2026"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stats/public"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/checkout/resume"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stats/public"
+    },
+    {
+      "method": "GET",
+      "path": "/api/consent"
+    }
+  ],
+  "scope": "Native pointer/input, actual theme boot. Product-photo unchanged. No account/authentication/Studio/generation/payment tested for formats."
+}

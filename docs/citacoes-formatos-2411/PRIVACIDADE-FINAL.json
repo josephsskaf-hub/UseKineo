@@ -1,0 +1,64 @@
+{
+  "allClientRoots": 414,
+  "serverAllowlistReachable": false,
+  "method": "TypeScript local import/export/dynamic-import/require graph, page plus ancestor layouts, then actual transpilation and Next Terser minification with compression disabled to preserve every reachable string; no next build claim",
+  "pages": [
+    {
+      "entry": "app/best-ai-shorts-generators/page.tsx",
+      "ancestorLayouts": [
+        "app/layout.tsx"
+      ],
+      "clientRoots": 20,
+      "modules": 140,
+      "minifiedBytes": 1174447,
+      "sha256": "ed9e45f88bcbaf33ae5ea174cd4695faa49451614df57e5f47a6d099dfa10d51",
+      "protectedMarkersFound": 0
+    },
+    {
+      "entry": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "ancestorLayouts": [
+        "app/layout.tsx"
+      ],
+      "clientRoots": 18,
+      "modules": 92,
+      "minifiedBytes": 937670,
+      "sha256": "b6c62b04e176da555694ba73f660b075171872c9a2a3bed841253a7f1aed704c",
+      "protectedMarkersFound": 0
+    },
+    {
+      "entry": "app/ai-video-generator/for/[slug]/page.tsx",
+      "ancestorLayouts": [
+        "app/layout.tsx"
+      ],
+      "clientRoots": 23,
+      "modules": 141,
+      "minifiedBytes": 1199163,
+      "sha256": "b8e97368fde9975576291cfa301d316d377928205e4621be282eae6818ff2c73",
+      "protectedMarkersFound": 0
+    },
+    {
+      "entry": "app/ai-ugc-ads/product-photo-ads/page.tsx",
+      "ancestorLayouts": [
+        "app/layout.tsx"
+      ],
+      "clientRoots": 21,
+      "modules": 95,
+      "minifiedBytes": 1007445,
+      "sha256": "5fc30282c956b41e76ace3152a8652d44bfa3d15fa95e4a43555df4b002648f5",
+      "protectedMarkersFound": 0
+    },
+    {
+      "entry": "app/(dashboard)/studio/page.tsx",
+      "ancestorLayouts": [
+        "app/(dashboard)/layout.tsx",
+        "app/layout.tsx"
+      ],
+      "clientRoots": 34,
+      "modules": 305,
+      "minifiedBytes": 2009297,
+      "sha256": "8193da68845a1a6fbac0951b63053647c167051d6a4c7017a8465cc924c484c8",
+      "protectedMarkersFound": 0
+    }
+  ],
+  "mutants": 6
+}
