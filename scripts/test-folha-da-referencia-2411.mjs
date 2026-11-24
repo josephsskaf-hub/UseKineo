@@ -45,11 +45,20 @@ const folhasDe = id => ELENCO[id].characters.map((c, i) => ({ nome: c.nome, url:
 const timingDe = planos => ({ voiceovers: planos.map(() => 'one two three four five'), wordsPerSecond: 1, pelaVoz: { segundosDaVoz: 15 } })
 
 // O trecho REAL da rota que guarda as folhas (logo depois de folhaDescartada).
-function guardarFolhas(route, fr, relatosP, folhaDe) {
+function guardarFolhas(route, fr, relatosP, folhaDe, qualitySnapshot = null) {
   const ini = route.indexOf('      if (folhaServeAReferencia2411(relatosP)) folhasDaReferencia2411 =')
   assert.ok(ini > 0 && ini > route.indexOf('const folhaDescartada = folhaErrada('), 'o guardar das folhas tem de vir depois do descarte')
   const fim = route.indexOf('\n', ini)
-  return Function('folhaServeAReferencia2411', 'relatosP', 'folhaDe', 'let folhasDaReferencia2411 = []\n' + ts.transpile(route.slice(ini, fim)) + '\nreturn folhasDaReferencia2411')(fr.folhaServeAReferencia2411, relatosP, folhaDe)
+  return Function('folhaServeAReferencia2411', 'relatosP', 'folhaDe', 'qualitySnapshot', 'let folhasDaReferencia2411 = []\n' + ts.transpile(route.slice(ini, fim)) + '\nreturn folhasDaReferencia2411')(fr.folhaServeAReferencia2411, relatosP, folhaDe, qualitySnapshot)
+}
+// [revisor 24/11, M3] A linha REAL do retrato do FILME (o que a herança e o claim leem): com a folha descartada, ou sem imagem-chave aprovada, ele fica sem a
+// folha, com ou sem as folhas guardadas para a admissão. Executada com as folhas guardadas no escopo, como na rota.
+function retratoDoFilme(route, { qualitySnapshot, folhaDescartada, cenasP, relatosP, stillsP, stillFoiAprovado, folhasDaReferencia2411 }) {
+  const ini = route.indexOf('        qualitySnapshot.characterReferences = folhaDescartada ? [] :')
+  assert.ok(ini > route.indexOf('if (folhaServeAReferencia2411(relatosP)) folhasDaReferencia2411 ='), 'a linha do retrato do filme vem depois do guardar')
+  const fim = route.indexOf('\n', ini)
+  Function('qualitySnapshot', 'folhaDescartada', 'cenasP', 'relatosP', 'stillsP', 'stillFoiAprovado', 'folhasDaReferencia2411', ts.transpile(route.slice(ini, fim)))(qualitySnapshot, folhaDescartada, cenasP, relatosP, stillsP, stillFoiAprovado, folhasDaReferencia2411)
+  return qualitySnapshot.characterReferences
 }
 // A admissão REAL da rota (o mesmo trecho que scripts/test-referencia-unica-2411.mjs executa).
 function admitir(route, f, fr, vp, { email, snapshot, folhas, look = 'photoreal' }) {
@@ -107,14 +116,29 @@ async function suite(change) {
   // 4. os 3 filmes da casa pelo caminho inteiro: trecho que guarda → admissão real → montador real (POST com fetch falso)
   for (const id of Object.keys(CRITICO)) {
     const E = ELENCO[id], folhaDe = new Map(folhasDe(id).map(x => [x.nome, x.url]))
-    const folhas = guardarFolhas(route, fr, relatos(id), folhaDe)
+    const filmeAntes = { ...retratoDescartado(id), characterReferences: folhasDe(id) } // o retrato do filme antes do descarte (a rota o escreve na linha da folha)
+    const folhas = guardarFolhas(route, fr, relatos(id), folhaDe, filmeAntes)
     igual(folhas, folhasDe(id), id + ': as folhas guardadas')
+    igual(filmeAntes.characterReferences, folhasDe(id), id + ': guardar não escreve no retrato do filme')
+    // [M3] a linha real do retrato do filme: descartada → []; sem descarte e sem imagem-chave aprovada → []; as folhas guardadas não voltam a ele
+    const cenasP = ELENCO[id].characters.map((c, i) => ({ indice: i, nomes: [c.nome] }))
+    for (const [folhaDescartada, aprovada] of [[true, true], [true, false], [false, false]]) {
+      const qs = { ...retratoDescartado(id), characterReferences: folhasDe(id) }
+      const r = retratoDoFilme(route, { qualitySnapshot: qs, folhaDescartada, cenasP, relatosP: cenasP.map((c) => ({ cena: c.indice + 1 })), stillsP: cenasP.map((c) => 'https://example.org/offline/k' + c.indice + '.png'), stillFoiAprovado: () => aprovada, folhasDaReferencia2411: folhas })
+      igual(r, [], id + ': o retrato do filme fica sem a folha (descartada=' + folhaDescartada + ', aprovada=' + aprovada + ')')
+    }
     igual(guardarFolhas(route, fr, KRISHNA, folhaDe), [], id + ': folha de outro personagem não é guardada')
     const snap = retratoDescartado(id)
     const hoje = admitir(route, f, fr, vp, { email: CASA, snapshot: snap, folhas: [], look: E.look })
     assert.equal('referenciaUnica' in hoje, false, id + ': hoje (sem as folhas), a referência não liga')
     const t = admitir(route, f, fr, vp, { email: CASA, snapshot: snap, folhas, look: E.look })
     assert.ok(t.referenciaUnica, id + ': com o conserto, a casa liga')
+    igual(snap.characterReferences, [], id + ': a admissão não escreve no retrato do filme (herança e claim)')
+    // [revisor 24/11, M7] só o coadjuvante tem folha guardada: a referência do protagonista não sai dela
+    if (E.characters.length > 1) {
+      const soDele = admitir(route, f, fr, vp, { email: CASA, snapshot: snap, folhas: folhas.filter((x) => x.nome !== E.characters[0].nome), look: E.look })
+      assert.equal('referenciaUnica' in soDele, false, id + ': a folha do coadjuvante não vira a referência do protagonista')
+    }
     assert.equal(t.referenciaUnica.origem, 'folha_mantida'); assert.equal(t.referenciaUnica.imageUrl, folhas[0].url, id + ': a folha do protagonista')
     // as imagens-chave reprovadas não vão ao motor: o pedido leva só a folha (o pedido da referência única de sempre)
     const keyframes = E.planos.map((_, i) => 'https://example.org/offline/keyframe-reprovada-' + i + '.png')
@@ -159,6 +183,12 @@ const mutants = [
   [routeFile, 'folhasDaReferencia2411 = Array.from(folhaDe, ([nome, url]) => ({ nome, url }))', 'folhasDaReferencia2411 = []'], // a rota não guarda
   [routeFile, 'retratoDaReferencia2411(qualitySnapshot, folhasDaReferencia2411, folhaDaReferenciaLigada(FOLHA_DA_REFERENCIA_2411, user.email))', 'retratoDaReferencia2411(qualitySnapshot, folhasDaReferencia2411, true)'], // a rota liga para o cliente
   [routeFile, 'retratoDaReferencia2411(qualitySnapshot, folhasDaReferencia2411, folhaDaReferenciaLigada(FOLHA_DA_REFERENCIA_2411, user.email))', 'qualitySnapshot'], // a admissão não lê as folhas
+  // [revisor 24/11] M3: a folha volta ao retrato do FILME (herança e claim, inclusive do cliente), por três portas
+  [routeFile, 'qualitySnapshot.characterReferences = folhaDescartada ? [] :', 'qualitySnapshot.characterReferences = folhaDescartada ? folhasDaReferencia2411 :'],
+  [routeFile, 'folhasDaReferencia2411 = Array.from(folhaDe, ([nome, url]) => ({ nome, url }))', '{ folhasDaReferencia2411 = Array.from(folhaDe, ([nome, url]) => ({ nome, url })); if (qualitySnapshot) qualitySnapshot.characterReferences = folhasDaReferencia2411 }'],
+  [modulo, '  return { ...snapshot, characterReferences: [...snapshot.characterReferences, ...voltam.map(', '  snapshot.characterReferences.push(...voltam.map((f) => ({ nome: f.nome, url: f.url, mantida: true }))); return { ...snapshot, characterReferences: [...snapshot.characterReferences, ...voltam.map('],
+  // M7: a folha do coadjuvante entra com o nome do protagonista
+  [modulo, 'voltam.map((f) => ({ nome: f.nome, url: f.url, mantida: true }))', 'voltam.map((f) => ({ nome: snapshot.characters.find((c) => c.protagonista === true)?.nome ?? f.nome, url: f.url, mantida: true }))'],
 ]
 let mortos = 0
 for (const mutant of mutants) {
