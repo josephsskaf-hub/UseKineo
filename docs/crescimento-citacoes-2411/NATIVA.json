@@ -1,11 +1,16 @@
 {
   "date": "2026-11-24",
-  "flows": 56,
-  "verifiedGetUserResponses": 56,
-  "editableStudio": 56,
+  "productSource": "e8ba586cdf1f8e27544d19a3eacbe7d9f53e1bef",
+  "group2Base": "68043f00e",
+  "formatsProduct": "c0aaf4630",
+  "guestThroughActualLogin": 56,
+  "alreadyAuthenticated": 14,
+  "verifiedGetUserResponses": 70,
+  "editableStudio": 70,
   "beforePhotos": 56,
-  "afterPhotos": 212,
-  "totalPhotos": 268,
+  "guestPhotos": 212,
+  "authenticatedPhotos": 39,
+  "totalPhotos": 307,
   "firstFold": [
     {
       "page": "free",
@@ -261,10 +266,11 @@
     }
   ],
   "runtimeErrors": 0,
-  "generationOrNewCheckoutRequests": 0,
-  "blockedCheckoutResumeReads": 224,
-  "scope": "TESTADO LOCALMENTE. Native input and click, saved signup card, actual destinoDaIdeia rule, real editable Studio. Auth cookie and getUser synthetic local fixtures; no real signup/OAuth/account/database/render/payment.",
-  "offer": "KINEO_REVERSE_TRIAL_ENABLED=true before and after; offline contracts cover false too.",
-  "themes": "Real preference set before boot. Existing fixed light palettes on Best/State and fixed dark palettes on some legacy articles remain; these preference screenshots do not claim a full theme redesign.",
-  "lineEndings": "Native GET outer query standard CRLF; nested redirect and Studio preserve words and LF-normalized text."
+  "generationCheckoutDebitRenderPostAttempts": 0,
+  "allowedEntryGETs": 70,
+  "scope": "TESTADO LOCALMENTE. Native pointer/input. Guest clicks existing login and actual signInWithPassword SDK against a local in-memory token fixture; already-authenticated session uses prepared local fixture. Browser follows real application redirects; driver never maps or rewrites destination after clicking. Actual editable Studio receives text/mode. No real account, database, email, OAuth, generation or payment.",
+  "apiIsolation": "All app APIs blocked except GET film-entry. Event/attribution POSTs and checkout-resume reads blocked. Synthetic auth/profile only on local fixture.",
+  "themes": "Actual saved preference before boot. Legacy fixed palettes preserved, including Best/State light under either preference.",
+  "offer": "KINEO_REVERSE_TRIAL_ENABLED=true consistently before/after; offline contracts also cover false.",
+  "priorProof": "Previous gallery and NATIVA from citacoes-crescimento-2411 are superseded for auth navigation; preserved as history."
 }

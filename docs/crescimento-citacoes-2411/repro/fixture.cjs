@@ -1,0 +1,14 @@
+const http=require('http');let reads=0,rejectedWrites=0,authReads=0;
+const user={id:'33333333-3333-4333-8333-333333333333',email:'local-proof',email_confirmed_at:'2026-01-01T00:00:00Z',created_at:'2026-01-01T00:00:00Z',aud:'authenticated',role:'authenticated',app_metadata:{},user_metadata:{full_name:'Local proof'}};
+const profile={id:user.id,name:'Local proof',full_name:'Local proof',plan:'free',has_paid:false,video_credits:10,trial_status:'none',created_at:user.created_at,has_seen_welcome:true,signup_country:'US'};
+http.createServer((req,res)=>{const url=new URL(req.url,'http://local.invalid');const headers={'Content-Type':'application/json','Access-Control-Allow-Origin':'http://localhost:3235','Access-Control-Allow-Credentials':'true','Access-Control-Allow-Headers':req.headers['access-control-request-headers']||'authorization,apikey,x-client-info,content-type,x-supabase-api-version,prefer,range','Access-Control-Allow-Methods':'GET,POST,OPTIONS'};
+if(req.method==='OPTIONS'){res.writeHead(204,headers);return res.end()}
+if(req.method==='POST'&&url.pathname==='/auth/v1/token'&&url.searchParams.get('grant_type')==='password'){let body='';req.on('data',chunk=>{body+=chunk;if(body.length>4096)req.destroy()});req.on('end',()=>{const input=JSON.parse(body);if(!input.email||!input.password){res.writeHead(400,headers);return res.end('{}')}authReads++;const jwt=[Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT'})).toString('base64url'),Buffer.from(JSON.stringify({sub:user.id,email:user.email,aud:'authenticated',role:'authenticated',exp:Math.floor(Date.now()/1000)+7200})).toString('base64url'),'local-proof-signature'].join('.');res.writeHead(200,headers);res.end(JSON.stringify({access_token:jwt,refresh_token:'local-proof-only',token_type:'bearer',expires_in:7200,user}))});return}
+if(req.method!=='GET'){rejectedWrites++;res.writeHead(405,headers);return res.end(JSON.stringify({error:'read-only local fixture'}))}
+reads++;
+if(url.pathname==='/proof'){res.writeHead(200,headers);return res.end(JSON.stringify({reads,rejectedWrites,authReads,scope:'local synthetic auth and profile; no database'}))}
+if(url.pathname==='/auth/v1/user'){authReads++;res.writeHead(200,headers);return res.end(JSON.stringify(user))}
+if(url.pathname==='/rest/v1/profiles'){const object=(req.headers.accept||'').includes('object');res.writeHead(200,{...headers,'Content-Range':'0-0/1'});return res.end(JSON.stringify(object?profile:[profile]))}
+if(url.pathname.startsWith('/rest/v1/')){res.writeHead(200,{...headers,'Content-Range':'*/0'});return res.end('[]')}
+res.writeHead(404,headers);res.end('{}')
+}).listen(3236,'127.0.0.1',()=>console.log('Read-only local auth/profile fixture 3236; no database.'));
