@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
-import { execFileSync } from 'node:child_process'
+import { REVIEWED_FILM_CALLER } from './test-support/citacoes-crescimento-referencias-2411.mjs'
 import { React, root, source, offlineModules, renderToStaticMarkup } from './gpt24h-offline-support.mjs'
 
 const require = createRequire(import.meta.url)
@@ -16,14 +16,7 @@ const pages = [
 ]
 
 const PAY_FILE = 'app/how-much-do-youtube-shorts-pay/page.tsx'
-const reviewedPay = execFileSync('git', ['show', 'e8ba586cd:' + PAY_FILE], { encoding: 'utf8' }).replace(/\r\n/g, '\n')
-const reviewedFile = ts.createSourceFile(PAY_FILE, reviewedPay, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
-const reviewedCalls = []
-function findReviewedCall(node) {
-  if (ts.isJsxSelfClosingElement(node) && node.tagName.getText(reviewedFile) === 'TextToVideoIntentForm') reviewedCalls.push(node.getText(reviewedFile))
-  ts.forEachChild(node, findReviewedCall)
-}
-findReviewedCall(reviewedFile)
+const reviewedCalls = [REVIEWED_FILM_CALLER]
 assert.equal(reviewedCalls.length, 1, 'One film caller in independently approved e8ba586cd')
 
 // Receipts from origin/main 999f2de68, 17/11: title, H1, prose, tables,

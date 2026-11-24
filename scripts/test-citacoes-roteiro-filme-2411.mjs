@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import {execFileSync} from 'node:child_process'
+import {citationFilmBaseline} from './test-support/citacoes-crescimento-referencias-2411.mjs'
 import {createRequire} from 'node:module'
 import {offlineModules,React,renderToStaticMarkup,source} from './gpt24h-offline-support.mjs'
 const ts=createRequire(import.meta.url)('typescript')
 const CLIENT='app/free-script-generator/FreeScriptClient.tsx',PAGE='app/free-script-generator/page.tsx',PROVIDER='components/seo/CitationFilmExperiment.tsx',RELEASE='lib/growth/citationFilmRelease.ts',FORM='app/text-to-video-shorts/TextToVideoIntentForm.tsx',PROOF='components/seo/CitationFilmProof.tsx'
-const old=Object.fromEntries([PAGE,CLIENT,FORM].map(f=>[f,execFileSync('git',['show','bc5aec180:'+f],{encoding:'utf8'})]))
+const old=Object.fromEntries([PAGE,CLIENT,FORM].map(f=>[f,citationFilmBaseline(f)]))
 const plain=({children})=>React.createElement('div',null,children)
 const mocks={'lib/analytics.ts':{trackEvent(){},trackClosedEvent(){},rememberSignupCampaign(){}},'components/StickyFreeShortCTA.tsx':{__esModule:true,default:plain},'components/Footer.tsx':{__esModule:true,default:plain},'components/ExitIntentOffer.tsx':{__esModule:true,default:plain}}
 const dep={'lib/gptHandoff.ts':source('lib/gptHandoff.ts').replace("import { createHash } from 'node:crypto'","const createHash=()=>{throw Error('No hash in this proof')}")}

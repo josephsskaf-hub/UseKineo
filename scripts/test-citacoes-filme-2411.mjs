@@ -1,7 +1,7 @@
 // Real pages/forms; no network, account, render or payment.
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import {execFileSync} from 'node:child_process'
+import {citationFilmBaseline} from './test-support/citacoes-crescimento-referencias-2411.mjs'
 import {offlineModules,React,renderToStaticMarkup,source} from './gpt24h-offline-support.mjs'
 const FREE='app/free-ai-shorts-generator/page.tsx',PAY='app/how-much-do-youtube-shorts-pay/page.tsx',CHEAP='app/cheapest-ai-shorts-maker/page.tsx'
 const BEST='app/best-ai-shorts-generators/page.tsx',REELS='app/how-much-do-instagram-reels-pay/page.tsx',STATE='app/state-of-ai-shorts-2026/page.tsx'
@@ -12,7 +12,7 @@ mocks['lib/analytics.ts']={trackEvent(){},trackClosedEvent(){},rememberSignupCam
 mocks['lib/supabase/client.ts']={createClient(){throw Error('SSR must not request auth')}}
 mocks['components/OrganicCtaLink.tsx']={__esModule:true,default:({children,source,placement,...props})=>React.createElement('a',props,children)}
 mocks['components/seo/PaginaClara.tsx']={PaginaClaraTopo:plain,PaginaClaraCards:plain,PaginaClaraVitrine:plain}
-const originals=Object.fromEntries([FREE,PAY,CHEAP,BEST,REELS,STATE,FORM].map(f=>[f,execFileSync('git',['show','bc5aec180:'+f],{encoding:'utf8'})]))
+const originals=Object.fromEntries([FREE,PAY,CHEAP,BEST,REELS,STATE,FORM].map(f=>[f,citationFilmBaseline(f)]))
 const dep={'lib/gptHandoff.ts':source('lib/gptHandoff.ts').replace("import { createHash } from 'node:crypto'","const createHash=()=>{throw Error('Hash not used here')}")}
 function make(rep={},country='US',reverse=true,skeleton=false){
  const replacements={...dep,...rep}
