@@ -62,6 +62,8 @@ export async function GET(req: NextRequest) {
   if (!url || !key) return go ? goBack() : HIDE()
   const db = createAdminClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
   const { data: row, error } = await db.from('profiles').select('plan, stripe_subscription_id, video_credits').eq('id', user.id).maybeSingle()
+  // The shared offer cache treats show:false as confirmed ineligibility.
+  if (eligibilityOnly && error) return new NextResponse(null, { status: 503, headers: NO_STORE })
   const p = error ? null : (row as RecargaAssinanteProfile | null)
   const subscriber = recargaAssinanteSubscriber(p)
   const zeroed = recargaAssinanteEligible(p, recargaAssinanteMinFilmCredits())

@@ -21,6 +21,7 @@ const pricesFile = 'components/pricing/PricingAccountCredits.tsx'
 const balanceFile = 'components/NavCreditsBadge.tsx'
 const observerFile = 'components/billing/useVisibleAccountOffer.ts'
 const api = '/api/billing/recarga-assinante'
+const offerRouteFile = 'app/api/billing/recarga-assinante/route.ts'
 const transpiled = new Map()
 const sourceOf = file => fs.readFileSync(path.join(root, file), 'utf8').replace(/\r\n/g, '\n')
 const mutation = (file, before, after) => {
@@ -30,7 +31,7 @@ const mutation = (file, before, after) => {
 }
 const actorFor = (email) => email ? { id: email, email, user_metadata: { full_name: 'Conta de prova' } } : null
 
-function world({ release = 'public', email = 'member@example.test', paid = false, changes = {}, waitForUser = false, firstOfferResponse } = {}) {
+function world({ release = 'public', email = 'member@example.test', paid = false, changes = {}, waitForUser = false, firstOfferResponse, failFirstProfileRead = false } = {}) {
   const actor = actorFor(email)
   const requests = []
   const events = []
@@ -83,6 +84,7 @@ function world({ release = 'public', email = 'member@example.test', paid = false
         assert.equal(table, 'profiles')
         return { select: () => ({ eq: () => ({ maybeSingle: async () => {
           profileReads++
+          if (failFirstProfileRead && profileReads === 1) return { data: null, error: { message: 'fixture profile lookup unavailable' } }
           return { data: paid ? { plan: 'basic', video_credits: 137, stripe_subscription_id: 'sub_fixture' } :
             { plan: 'free', video_credits: 137 }, error: null }
         } }) }) }
@@ -115,7 +117,7 @@ function world({ release = 'public', email = 'member@example.test', paid = false
         firstOfferResponse = undefined
         return respond()
       }
-      const route = load('app/api/billing/recarga-assinante/route.ts')
+      const route = load(offerRouteFile)
       const req = Object.assign(new Request(url, options), { nextUrl: url })
       return options.method === 'POST' ? route.POST(req) : route.GET(req)
     }
@@ -223,8 +225,8 @@ async function offscreenDoesNotRead(changes) {
   } finally { await w.cleanup() }
 }
 
-async function offerAcrossSurfaces({ changes, paid, respond, concurrent = false, name }) {
-  const w = world({ changes, paid, firstOfferResponse: respond })
+async function offerAcrossSurfaces({ changes, paid, respond, failFirstProfileRead, concurrent = false, name }) {
+  const w = world({ changes, paid, firstOfferResponse: respond, failFirstProfileRead })
   try {
     const tree = await w.mount(h(React.Fragment, null, h(w.load(pricesFile).default, { signedIn: true }), h(w.load(settingsFile).default)))
     const openSettings = () => act(async () => trigger(tree, 'Settings').props.onClick())
@@ -244,6 +246,7 @@ async function offerAcrossSurfaces({ changes, paid, respond, concurrent = false,
     await w.show(menuRegion)
     assert.equal(gets(w), paid ? 2 : 1, name)
     assert.equal(labeled(tree, 'Buy credits').length, paid ? 1 : 0, name)
+    if (failFirstProfileRead) assert.equal(w.profileReads, 2, name)
     assert.equal(labeled(tree, 'Sign out').length, 1)
   } finally { await w.cleanup() }
 }
@@ -258,6 +261,42 @@ const deduplicate = changes => offerAcrossSurfaces({
   changes, paid: true, concurrent: true, name: 'M9 · superfícies simultâneas fazem uma única leitura',
 })
 
+function requestOffer(w, params = {}) {
+  const { ACCOUNT_CREDITS_OFFER_SURFACE: surface } = w.load(releaseFile)
+  const url = new URL(api, 'http://proof.invalid')
+  url.search = new URLSearchParams({ surface, ...params }).toString()
+  return w.load(offerRouteFile).GET(Object.assign(new Request(url), { nextUrl: url }))
+}
+
+async function databaseErrorIsRetryable(changes) {
+  const w = world({ paid: true, failFirstProfileRead: true, changes })
+  const failed = await requestOffer(w)
+  assert.equal(failed.status, 503, 'M10 · erro de perfil é indisponibilidade temporária')
+  assert.equal(failed.headers.get('cache-control'), 'no-store')
+  assert.equal(await failed.text(), '', 'a rota não expõe o erro do banco')
+  const recovered = await requestOffer(w)
+  assert.equal(recovered.status, 200)
+  assert.equal((await recovered.json()).show, true, 'a leitura seguinte confirma a oferta')
+  assert.equal(shown(w).length, 0, 'a consulta de elegibilidade não conta impressão')
+}
+
+async function confirmedFreeIsIneligible(changes) {
+  const response = await requestOffer(world({ changes }))
+  assert.equal(response.status, 200, 'M11 · perfil grátis válido recebe resposta definitiva')
+  assert.deepEqual(await response.json(), { show: false })
+}
+
+async function profileErrorOnPurchaseGoesBack(changes) {
+  const w = world({ paid: true, failFirstProfileRead: true, changes })
+  const failed = await requestOffer(w, { go: '1' })
+  assert.equal(failed.status, 303, 'M12 · falha no clique mantém o retorno ao site')
+  assert.equal(new URL(failed.headers.get('location')).pathname, '/studio')
+  assert.equal(w.events.length, 0, 'sem perfil confirmado, o clique não inicia compra')
+  const recovered = await requestOffer(w, { go: '1' })
+  assert.equal(recovered.status, 303)
+  assert.equal(new URL(recovered.headers.get('location')).pathname, '/api/stripe/checkout')
+}
+
 await offerAcrossSurfaces({ paid: true, respond: () => Promise.reject(new TypeError('offline')), name: 'recupera erro de rede' })
 await offerAcrossSurfaces({ paid: true, respond: () => Response.json({}), name: 'recupera resposta inválida' })
 
@@ -269,12 +308,21 @@ for (const [id, verify, file, before, after, check] of [
   ['M7', retry503, observerFile, '        scope.offer = undefined', '        // keep the failed promise', /M7 ·/],
   ['M8', cacheIneligible, observerFile, "        if (offer?.show === false) return null", "        if (offer?.show === false) throw new Error('ineligible')", /M8 ·/],
   ['M9', deduplicate, observerFile, 'if (!scope.offer)', 'if (true)', /M9 ·/],
+  ['M10', databaseErrorIsRetryable, offerRouteFile, 'if (eligibilityOnly && error) return new NextResponse(null, { status: 503, headers: NO_STORE })', 'if (eligibilityOnly && error) return HIDE()', /M10 ·/],
+  ['M11', confirmedFreeIsIneligible, offerRouteFile, 'eligibilityOnly && error', "eligibilityOnly && (error || row?.plan === 'free')", /M11 ·/],
+  ['M12', profileErrorOnPurchaseGoesBack, offerRouteFile, 'eligibilityOnly && error', 'error', /M12 ·/],
   ['M6', offscreenDoesNotRead, observerFile, 'const stop = whenVisible(region.current, () => {', 'const stop = ((_el: HTMLElement, run: () => void) => { run(); return () => {} })(region.current, () => {', /M6 ·/],
 ]) {
   await verify({})
   await assert.rejects(verify(mutation(file, before, after)), { name: 'AssertionError', message: check })
   console.log(id + ' morto pela asserção esperada')
 }
+
+await offerAcrossSurfaces({
+  paid: true,
+  failFirstProfileRead: true,
+  name: 'erro de perfil na rota real libera nova consulta no menu',
+})
 
 for (const [email, expected] of [[null, false], ['outsider@example.test', false], ['house@example.test.fake', false], ['house@example.test', true]]) {
   const w = world({ release: 'internal', email })
