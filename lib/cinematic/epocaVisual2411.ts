@@ -11,6 +11,9 @@ const ordinal = (n: number) => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : (['t
 /** Only read the author's dates. Measurements, prices, model numbers and pixel dimensions are not time. */
 function dataDoTrecho(texto: string): string {
   const t = comAnosPorExtenso(texto)
+    // Provenance dates describe an exhibit, photograph or quotation. Its age
+    // does not date the visitor, the set, or a shot made in another year.
+    .replace(/\b(?:made|manufactured|built|constructed|produced|created|restored|dated|fabricad[oa]|constru[ií]d[oa]|produzid[oa]|criad[oa])\s+(?:(?:in|em|en|de)\s+)?(?:the\s+year\s+)?(?:1\d|20)\d{2}\b/giu, ' ')
     .replace(/\b\d+\s*(?:[x×]|\bby\b|\bpor\b)\s*\d+\b|[$€£]\s*[\d,.]+|\b\d[\d,.]*\s*(?:px|p\b|fps|hz|km|kg|m|metres?|meters?|metros?|miles?|dollars?|euros?|reais|pesos|people|pessoas|years|anos|units?|copies|unidades|years?\s+old)\b/giu, ' ')
   const seculo = /\b(\d{1,2})(?:st|nd|rd|th)[ -]century\b|\bs[ée]culo\s+([ivx]+|\d{1,2})\b/iu.exec(t)
   const escrito = /\b([a-z]+(?:-[a-z]+)?)[ -]century\b/iu.exec(t)
@@ -48,8 +51,15 @@ export function prepararEpocaVisual({ internal, pedido, secoes, falas, modo = EP
   const datas = secoes.map(s => {
     if (agora(s.pexelsQuery)) return 'present day'
     const visual = dataDoTrecho(s.pexelsQuery)
-    if (agora(s.voiceover)) return visual || 'present day'
-    return dataDoTrecho(s.voiceover) || visual
+    const voz = dataDoTrecho(s.voiceover)
+    // An exact staging year overrides commentary about a different event.
+    // A dated costume, however, can agree with a more precise spoken year
+    // (an 1880s suit in the 1888 garden).
+    if (visual) {
+      if (/^\d{3}0s$/.test(visual) && /^\d{4}$/.test(voz) && visual.slice(0, 3) === voz.slice(0, 3)) return voz
+      return visual
+    }
+    return agora(s.voiceover) ? 'present day' : voz
   })
   const primeiro = datas.findIndex(Boolean)
   const antes = primeiro > 0 && datas[primeiro] === geral && /\b(?:again|once more|later|de novo|novamente|mais tarde)\b/iu.test(secoes[primeiro].voiceover)

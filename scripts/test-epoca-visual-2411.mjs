@@ -47,6 +47,17 @@ const cases = {
   },
   seculo: m => assert.equal(m.prepararEpocaVisual({...entrada,pedido:'A port in the 18th century.',secoes:[],falas:['A port.']})?.ficha,'18th century'),
   decada: m => assert.equal(m.prepararEpocaVisual({...entrada,pedido:'Uma estação nos anos 1970.',secoes:[],falas:['Um trem.']}).ficha,'1970s'),
+  objeto: m => {
+    const secoes = [
+      {voiceover:'In 1888 he turns the camera.',pexelsQuery:'a man in an 1880s suit'},
+      {voiceover:'The inventor made this camera in 1888.',pexelsQuery:'a visitor in a museum in 1920'},
+      {voiceover:'In 1935 a visitor inspects the exhibit.',pexelsQuery:'a restored camera made in 1888'},
+      {voiceover:'In 1888 the inventor opens the box.',pexelsQuery:'a visitor in the museum in 1920'},
+    ]
+    const relato=m.prepararEpocaVisual({internal:true,pedido:secoes.map(s=>s.voiceover+' '+s.pexelsQuery).join(' '),secoes,falas:secoes.map(s=>s.voiceover)})
+    assert.deepEqual([...relato.secoes],['1888','1920','1935','1920'])
+    assert.equal(m.prepararEpocaVisual({...entrada,pedido:'A visitor examines a camera manufactured in 1888.'}),null)
+  },
   variantes: m => {
     for (const [pedido, esperado] of [['London in the nineteenth century.','19th century'],['Uma rádio nos anos 70.','1970s'],["A radio in the '80s.",'1980s']]) {
       assert.equal(m.prepararEpocaVisual({...entrada,pedido,secoes:[],falas:['A radio.']})?.ficha,esperado)
@@ -78,6 +89,7 @@ const mutantes=[
  ['seculo','return seculoValido ?','return false ?'],
  ['folha',"const design = folha ? tecido","const design = folha ? 'architecture'"],
  ['atual',"if (agora(s.pexelsQuery)) return 'present day'","if (false) return 'present day'"],
+ ['objeto','      return visual\n','      return voz || visual\n'],
  ['variantes','WRITTEN_CENTURIES.indexOf(escrito[1].toLowerCase()) + 1','0'],
  ['acao','if (acao >= 0)','if (false)'],
  ['limite',"prompt.replace(MARCA, '')","prompt.replace(/IMPOSSIVEL/u, '')"],
