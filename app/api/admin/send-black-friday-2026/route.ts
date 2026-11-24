@@ -17,6 +17,12 @@
 // recebeu ESTA onda (reserva determinística por pessoa+onda: a 2ª corrida bate em 23505). Depois, a trava de 24 h da casa
 // (loadLifecycleSuppression) e a cota diária de e-mail (lib/email/quota, prioridade growth). Teto por execução:
 // BF2026_EMAIL_BATCH_MAX.
+//
+// PÚBLICO (KINEO-BF-ONDAS-PUBLICO-2411, decisão do dono de 16/11, regra pura em lib/billing/bf2026Audience.ts): além de tudo acima,
+// a conta só recebe se (a) baixou filme nos últimos 60 dias OU (b) tem filme com nota do revisor ≥ 8 nos últimos 60 dias
+// (fora = `fora_do_publico`), e se a CAIXA não recebeu e-mail nosso de marketing/ciclo de vida nas últimas 168 h (fora = `email_7d`;
+// o "seu vídeo está pronto" não conta; as próprias ondas contam, então quem levou a 'bf' em 27/11 não leva a 'cyber' em 30/11).
+// (c) "donos de canal presenteados" não tem marca no banco e não entra. Qualquer leitura nova que falhe = 500 e nada é enviado.
 import { createHash } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
@@ -24,7 +30,20 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { readAll } from '@/lib/supabase/readAll'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { isInternalEmail } from '@/lib/internalAccounts'
-import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
+import { loadLifecycleSuppression, PROFILE_TIMESTAMP_COLUMNS } from '@/lib/lifecycle/suppression'
+import {
+  BF2026_AUDIENCE_WINDOW_MS,
+  BF2026_AUDIENCE_MIN_NOTE,
+  BF2026_DOWNLOAD_EVENT,
+  BF2026_RECENT_EMAIL_EVENT_NAMES,
+  BF2026_RECENT_EMAIL_WINDOW_MS,
+  bf2026AudienceSkipReason,
+  bf2026FilmDownloaders,
+  bf2026HighNoteOwners,
+  bf2026LastMarketingEmail,
+  bf2026RecentEmailProfileColumns,
+  type Bf2026AudienceSkip,
+} from '@/lib/billing/bf2026Audience'
 import { registrarCorrida, corridaAbortada, type CorridaDeCampanha } from '@/lib/lifecycle/campaignRun'
 import { dailyCap, recordResendResponse } from '@/lib/email/quota'
 import { WINBACK_NEVER } from '@/lib/growth/winbackFilm60s'
@@ -83,6 +102,9 @@ function inteiro(raw: string | null, padrao: number, teto: number): number {
 }
 
 const sha256Hex = (s: string) => createHash('sha256').update(s).digest('hex')
+/** Links de nota por chamada (URLs longas na query string do PostgREST). */
+const LINK_CHUNK = 40
+const fatias = <T,>(xs: readonly T[], n: number): T[][] => { const out: T[][] = []; for (let i = 0; i < xs.length; i += n) out.push(xs.slice(i, i + n)); return out }
 
 export async function GET(req: NextRequest) {
   const nowMs = Date.now()
@@ -141,9 +163,32 @@ export async function GET(req: NextRequest) {
     }
     const supressaoCartaBase = bf2026BaseLetterSuppression(perfis ?? [], cartasBase ?? [], nowMs)
 
-    const fora: Record<Bf2026SkipReason | 'duplicate_email' | 'recent_bf_base_2311', number> = { bad_email: 0, opted_out: 0, internal: 0, blocked: 0, paying_plan: 0, annual_buyer: 0, already_got_wave: 0, duplicate_email: 0, recent_bf_base_2311: 0 }
+    // 3) KINEO-BF-ONDAS-PUBLICO-2411 — o público: (a) download de filme e (b) nota ≥ 8, nos últimos 60 dias. Leituras paginadas;
+    //    erro em qualquer uma LANÇA (readAll) e cai no catch: 500, nada enviado.
+    const desde60d = new Date(nowMs - BF2026_AUDIENCE_WINDOW_MS).toISOString()
+    const [{ data: downloads, error: downloadsErr }, { data: notas, error: notasErr }] = await Promise.all([
+      readAll(() => admin.from('events').select('id, user_id, name, created_at, metadata').eq('name', BF2026_DOWNLOAD_EVENT).gte('created_at', desde60d).not('user_id', 'is', null).order('created_at', { ascending: true }), { route: ROUTE, table: 'events' }),
+      readAll(() => admin.from('film_review_notes_com_motor').select('link, nota, quando').gte('nota', BF2026_AUDIENCE_MIN_NOTE).gte('quando', desde60d), { route: ROUTE, table: 'film_review_notes_com_motor', key: 'link' }),
+    ])
+    if (downloadsErr) throw downloadsErr
+    if (notasErr) throw notasErr
+    const linksDeNota = Array.from(new Set((notas ?? []).map((n) => n.link).filter((l): l is string => typeof l === 'string' && l.length > 0)))
+    const filmesDeNota: Array<{ user_id: unknown; video_url: unknown; final_video_url: unknown }> = []
+    for (const parte of fatias(linksDeNota, LINK_CHUNK)) {
+      const [porVideo, porFinal] = await Promise.all([
+        readAll(() => admin.from('videos').select('id, user_id, video_url, final_video_url').in('video_url', parte), { route: ROUTE, table: 'videos' }),
+        readAll(() => admin.from('videos').select('id, user_id, video_url, final_video_url').in('final_video_url', parte), { route: ROUTE, table: 'videos' }),
+      ])
+      if (porVideo.error) throw porVideo.error
+      if (porFinal.error) throw porFinal.error
+      filmesDeNota.push(...(porVideo.data ?? []), ...(porFinal.data ?? []))
+    }
+    const baixouFilme = bf2026FilmDownloaders(downloads ?? [], nowMs)
+    const notaAlta = bf2026HighNoteOwners(notas ?? [], filmesDeNota, nowMs)
+
+    const fora: Record<Bf2026SkipReason | Bf2026AudienceSkip | 'duplicate_email' | 'recent_bf_base_2311', number> = { bad_email: 0, opted_out: 0, internal: 0, blocked: 0, paying_plan: 0, annual_buyer: 0, already_got_wave: 0, duplicate_email: 0, recent_bf_base_2311: 0, fora_do_publico: 0, email_7d: 0 }
     const emails = new Set<string>()
-    const candidatos: Array<{ id: string; email: string }> = []
+    const noPublico: Array<{ id: string; email: string }> = []
     for (const p of perfis ?? []) {
       const id = String(p.id)
       const email = typeof p.email === 'string' ? p.email.trim().toLowerCase() : ''
@@ -151,9 +196,53 @@ export async function GET(req: NextRequest) {
       const motivo = bf2026EmailSkipReason(p, { isInternal: isInternalEmail, neverEmail: WINBACK_NEVER, annualBuyer: wave === 'cyber' && compradorAnual.has(id), alreadyGotWave: jaRecebeu.has(id) })
       if (motivo) { fora[motivo]++; continue }
       if (bf2026ProfileMatchesBaseLetterSuppression({ id, email: p.email }, supressaoCartaBase)) { fora.recent_bf_base_2311++; continue }
+      // O público vem ANTES do dedupe: a vaga da caixa vai para a conta que está no público, não para a 1ª pelo id.
+      const forado = bf2026AudienceSkipReason({ downloadedFilm: baixouFilme.has(id), highNoteFilm: notaAlta.has(id), lastMarketingEmailMs: null, nowMs })
+      if (forado) { fora[forado]++; continue }
       if (emails.has(email)) { fora.duplicate_email++; continue }
       emails.add(email)
-      candidatos.push({ id, email })
+      noPublico.push({ id, email })
+    }
+
+    // 4) 7 dias sem e-mail nosso de marketing/ciclo de vida, por CAIXA: lê todas as contas com o mesmo endereço, em fatias de 200.
+    const idsPorCaixa = new Map<string, string[]>()
+    for (const p of perfis ?? []) {
+      const email = typeof p.email === 'string' ? p.email.trim().toLowerCase() : ''
+      if (!email) continue
+      idsPorCaixa.set(email, [...(idsPorCaixa.get(email) ?? []), String(p.id)])
+    }
+    const idsParaLer = Array.from(new Set(noPublico.flatMap((c) => idsPorCaixa.get(c.email) ?? [c.id])))
+    const desde7d = new Date(nowMs - BF2026_RECENT_EMAIL_WINDOW_MS).toISOString()
+    const colunas = bf2026RecentEmailProfileColumns(PROFILE_TIMESTAMP_COLUMNS)
+    const linhas7d = { ledger: [] as Array<Record<string, unknown> & { user_id: unknown; sent_at: unknown }>, trial: [] as Array<{ user_id: unknown; sent_at: unknown }>, events: [] as Array<{ user_id: unknown; name: unknown; created_at: unknown }>, abandoned: [] as Array<{ user_id: unknown; recovery_sent_at: unknown }>, profiles: [] as Array<Record<string, unknown>>, profileColumns: colunas }
+    for (const ids of fatias(idsParaLer, CHUNK)) {
+      const [ledger, trial, carimbos, abandono, datas] = await Promise.all([
+        readAll(() => admin.from('email_send_log').select('id, user_id, sent_at, kind, ok, yielded').in('user_id', ids).gte('sent_at', desde7d).eq('ok', true).not('yielded', 'is', true), { route: ROUTE, table: 'email_send_log' }),
+        readAll(() => admin.from('trial_emails_log').select('user_id, email_kind, sent_at').in('user_id', ids).gte('sent_at', desde7d), { route: ROUTE, table: 'trial_emails_log', key: ['user_id', 'email_kind'] }),
+        readAll(() => admin.from('events').select('id, user_id, name, created_at').in('user_id', ids).in('name', BF2026_RECENT_EMAIL_EVENT_NAMES as string[]).gte('created_at', desde7d), { route: ROUTE, table: 'events' }),
+        readAll(() => admin.from('checkout_abandoned').select('id, user_id, recovery_sent_at').in('user_id', ids).gte('recovery_sent_at', desde7d), { route: ROUTE, table: 'checkout_abandoned' }),
+        readAll(() => admin.from('profiles').select(['id', ...colunas].join(', ')).in('id', ids), { route: ROUTE, table: 'profiles' }),
+      ])
+      if (ledger.error || trial.error || carimbos.error || abandono.error || datas.error) {
+        throw new Error('read failed (email_send_log/trial_emails_log/events/checkout_abandoned/profiles); no email sent')
+      }
+      linhas7d.ledger.push(...(ledger.data ?? []))
+      linhas7d.trial.push(...(trial.data ?? []))
+      linhas7d.events.push(...(carimbos.data ?? []))
+      linhas7d.abandoned.push(...(abandono.data ?? []))
+      linhas7d.profiles.push(...((datas.data ?? []) as unknown as Array<Record<string, unknown>>))
+    }
+    const ultimoEmail = bf2026LastMarketingEmail(linhas7d, nowMs)
+    const publico = { por_download: 0, por_nota_8: 0, pelos_dois: 0, por_presente_de_canal: 0 }
+    const candidatos: Array<{ id: string; email: string }> = []
+    for (const c of noPublico) {
+      const ultimoDaCaixa = Math.max(0, ...(idsPorCaixa.get(c.email) ?? [c.id]).map((i) => ultimoEmail.get(i) ?? 0))
+      const motivo = bf2026AudienceSkipReason({ downloadedFilm: baixouFilme.has(c.id), highNoteFilm: notaAlta.has(c.id), lastMarketingEmailMs: ultimoDaCaixa, nowMs })
+      if (motivo) { fora[motivo]++; continue }
+      if (baixouFilme.has(c.id)) publico.por_download++
+      if (notaAlta.has(c.id)) publico.por_nota_8++
+      if (baixouFilme.has(c.id) && notaAlta.has(c.id)) publico.pelos_dois++
+      candidatos.push(c)
     }
 
     const sup = await loadLifecycleSuppression(admin, candidatos.map((c) => c.id))
@@ -182,6 +271,8 @@ export async function GET(req: NextRequest) {
         window: { starts: BF2026_STARTS_AT, ends: BF2026_ENDS_AT, ny_date_now: bf2026NyDate(nowMs) },
         base: (perfis ?? []).length,
         excluded: fora,
+        // KINEO-BF-ONDAS-PUBLICO-2411 — quem entrou e por quê (uma conta pode entrar pelos dois; (c) não tem marca no banco).
+        audience: { ...publico, presente_de_canal: 'not_built: no readable marker for gifted channel owners', window_days: BF2026_AUDIENCE_WINDOW_MS / 86_400_000, min_note: BF2026_AUDIENCE_MIN_NOTE, recent_email_hours: BF2026_RECENT_EMAIL_WINDOW_MS / 3_600_000 },
         candidates_before_24h_suppression: candidatos.length,
         suppressed_24h: sup.suppressedCount,
         suppression_degraded: supressaoDegradada,

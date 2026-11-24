@@ -156,7 +156,7 @@ export const HOT_LEAD_SUPPRESSION_HOURS = 4
 const CHUNK_SIZE = 200
 
 /** Colunas datadas em `profiles` que registram um e-mail de ciclo de vida. */
-const PROFILE_TIMESTAMP_COLUMNS = [
+export const PROFILE_TIMESTAMP_COLUMNS = [
   'reminder_sent_at',
   'activation_nudge_sent_at',
   'video_rescue_sent_at',

@@ -149,6 +149,9 @@ async function problemas(repl = {}) {
     emailRoute.includes(".eq('name', BF2026_BASE_LETTER_SENT_EVENT)") &&
     emailRoute.includes('BF2026_BASE_LETTER_SUPPRESSION_HOURS * 60 * 60 * 1000') &&
     emailRoute.includes('if (cartasBaseErr) throw cartasBaseErr'))
+  // KINEO-BF-ONDAS-PUBLICO-2411 — a leitura dos selos é para TRÁS: .gte a partir de (nowMs − janela). Um .lte leria só selos velhos e a trava sumiria.
+  checa('(b) rota filtra os selos com .gte(created_at, nowMs − janela)',
+    emailRoute.includes(".eq('name', BF2026_BASE_LETTER_SENT_EVENT).gte('created_at', new Date(nowMs - "))
   checa('(b) coorte aplica supressão por ID e caixa normalizada antes de deduplicar',
     emailRoute.includes('supressaoCartaBase.userIds.has(id)') &&
     emailRoute.includes('bf2026ProfileMatchesBaseLetterSuppression({ id, email: p.email }, supressaoCartaBase)') &&
@@ -330,6 +333,7 @@ const MUTANTES = [
   ['nome do evento da carta da base errado', muta(F.bf, "export const BF2026_BASE_LETTER_SENT_EVENT = 'bf_base_2311_sent' as const", "export const BF2026_BASE_LETTER_SENT_EVENT = 'bf_base_sent' as const")],
   ['carta da base renomeia o selo e a trava fica cega', muta(F.cartaBase, "export const BF_BASE_2311_SENT = 'bf_base_2311_sent' as const", "export const BF_BASE_2311_SENT = 'bf_base_2411_sent' as const")],
   ['rota lê os selos para a FRENTE (nowMs mais a janela)', muta(F.emailRoute, 'new Date(nowMs - BF2026_BASE_LETTER_SUPPRESSION_HOURS * 60 * 60 * 1000)', 'new Date(nowMs + BF2026_BASE_LETTER_SUPPRESSION_HOURS * 60 * 60 * 1000)')],
+  ['rota lê os selos com .lte em vez de .gte (a trava some)', muta(F.emailRoute, ".eq('name', BF2026_BASE_LETTER_SENT_EVENT).gte('created_at'", ".eq('name', BF2026_BASE_LETTER_SENT_EVENT).lte('created_at'")],
   ['supressão recebe lista vazia em vez dos selos lidos', muta(F.emailRoute, 'bf2026BaseLetterSuppression(perfis ?? [], cartasBase ?? [], nowMs)', 'bf2026BaseLetterSuppression(perfis ?? [], [], nowMs)')],
   ['Creator volta à lista da BF', muta(F.bf, "export const BF2026_TIERS: readonly CheckoutTier[] = ['starter']", "export const BF2026_TIERS: readonly CheckoutTier[] = ['starter', 'basic']")],
   ['elegibilidade ignora o plano', muta(F.bf, '    bf2026CoversTier(input.tier) &&\n', '')],
