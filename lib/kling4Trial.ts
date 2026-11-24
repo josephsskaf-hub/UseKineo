@@ -77,7 +77,9 @@ export function cabeNoTetoDoPlano(texto: string, teto = KLING4_TETO_DO_PLANO): s
 // (quem chama segue o caminho de hoje). Quem decide se liga: lib/cinematic/referenciaUnica2411.ts.
 // KINEO-REFERENCIA-UNICA-PUBLIC-2411: + descricao (o protagonista como o autor/pedido o descreveu, lida da canônica do elenco) e metades (por plano: true =
 // metade de cena fundida, posta pelo plano por seção da rota; ausente ou de outro tamanho = todo plano é a cena inteira, como antes).
-export type Kling4ReferenciaUnica = { imageUrl: string; frase: string; nomes: readonly string[]; descricao?: string; metades?: readonly boolean[] }
+export type Kling4ReferenciaUnica = { imageUrl: string; frase: string; nomes: readonly string[]; descricao?: string; metades?: readonly boolean[]
+  /** KINEO-DUAS-REFERENCIAS-2411 — o 2º personagem com folha (@Image2), só quando a rota o põe (interruptor próprio, só a casa). Ausente = uma referência, byte a byte. */
+  segundo?: { imageUrl: string; frase: string; nomes: readonly string[]; descricao?: string } }
 const escapaRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 // KINEO-REFERENCIA-UNICA-PUBLIC-2411 [prova paga 24/11, docs/canais/2026-11-24/prova-2; volta da revisora, docs/revisoes-2311/CEO-REFERENCIA-UNICA-FINAL-2411.md]
 // A decisão era o NOME em qualquer lugar do texto do plano. Ele vinha (a) da ficha que o código põe ("Identity: Louis Le Prince, …") e que a METADE de cena
@@ -124,9 +126,9 @@ function citacaoDoPersonagem(texto: string, nomes: readonly string[]): 'sujeito'
   return posse ? 'posse' : null
 }
 /** A ficha/ordem/cláusula DELE que o código pôs no plano (a ordem do protagonista é dele por definição, mesmo sem o nome na canônica). */
-function temFichaDele(prompt: string, nomes: readonly string[]): boolean {
+function temFichaDele(prompt: string, nomes: readonly string[], protagonista = true): boolean {
   const t = String(prompt ?? '')
-  return (t.match(ORDEM_DO_PROTAGONISTA_RE)?.length ?? 0) > 0 || [CLAUSULA_DA_FICHA_RE, LINHA_DA_FICHA_RE].some((re) => (t.match(re) ?? []).some((m) => citacaoDoPersonagem(m, nomes) !== null))
+  return (protagonista && (t.match(ORDEM_DO_PROTAGONISTA_RE)?.length ?? 0) > 0) || [CLAUSULA_DA_FICHA_RE, LINHA_DA_FICHA_RE].some((re) => (t.match(re) ?? []).some((m) => citacaoDoPersonagem(m, nomes) !== null))
 }
 const palavrasDe = (t: string): Set<string> => new Set((String(t ?? '').toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []).filter((w) => Array.from(w).length >= 4))
 /** A ação repete a descrição DELE: `minimo` palavras (4+ letras) da descrição do autor/pedido ("bearded inventor in an 1880s suit"). Sem descrição = não. */
@@ -138,13 +140,13 @@ function repeteADescricao(acao: string, descricao: string | undefined, minimo = 
   return false
 }
 /** O personagem APARECE no plano (ver a regra acima). `metade` = o plano é metade de cena fundida (a ficha dele ali é herança). */
-export function planoMostraOPersonagem(prompt: string, nomes: readonly string[], quem: { descricao?: string; metade?: boolean } = {}): boolean {
+export function planoMostraOPersonagem(prompt: string, nomes: readonly string[], quem: { descricao?: string; metade?: boolean; protagonista?: boolean } = {}): boolean { // KINEO-DUAS-REFERENCIAS-2411: protagonista false = a ordem do protagonista não é ficha deste
   const acao = acaoDoPlano(prompt)
   const cita = citacaoDoPersonagem(acao, nomes)
   if (cita === 'sujeito') return true
   if (cita === 'posse' && visualMostraAlguem(acao)) return true
   if (repeteADescricao(acao, quem.descricao)) return true
-  if (!temFichaDele(prompt, nomes)) return false
+  if (!temFichaDele(prompt, nomes, quem.protagonista !== false)) return false
   return quem.metade === true ? visualMostraAlguem(acao) || repeteADescricao(acao, quem.descricao, 1) : !planoNegaGente(acao)
 }
 /** Plano em que o personagem não aparece: sai a ficha DELE que o código pôs (Identity:/Visible:/ordem/cláusula que o cita), para nada mais o pôr lá;
@@ -164,23 +166,28 @@ export function buildKling4ReferenciaUnicaInput(shots: readonly { prompt: string
   const comPersonagem = shots.map((s, i) => planoMostraOPersonagem(s.prompt, ref.nomes, { descricao: ref.descricao, metade: metades[i] === true }))
   if (!comPersonagem.some(Boolean)) return null
   const frase = ' ' + ref.frase.trim()
+  // KINEO-DUAS-REFERENCIAS-2411 — o 2º personagem: a mesma regra de presença da volta 2 (na dúvida fica; ausência provada sai), sem a ordem do protagonista
+  const seg = ref.segundo && /^https:\/\/[^\s]+$/i.test(ref.segundo.imageUrl) && ref.segundo.imageUrl !== ref.imageUrl && /@Image2\b/.test(ref.segundo.frase) && /@Image1\b/.test(ref.frase) ? ref.segundo : null
+  const comSegundo = shots.map((s, i) => !!seg && planoMostraOPersonagem(s.prompt, seg.nomes, { descricao: seg.descricao, metade: metades[i] === true, protagonista: false }))
+  const frasesDo = (i: number): string => (comPersonagem[i] ? frase : '') + (comSegundo[i] && seg ? ' ' + seg.frase.trim() : '')
   // KINEO-REFERENCIA-UNICA-PUBLIC-2411 — plano sem o personagem de onde a ficha dele saiu: o texto que ele teria sem a referência (o caminho de hoje).
   // Fica FORA do input, como planosComFrase: os juízes leem este texto (o mesmo do juiz de antes, sem 2ª leitura paga) e o claim conta os índices.
   const fichaRetirada: (string | null)[] = shots.map(() => null)
   const multi_prompt = shots.map((shot, i) => {
     const texto = shot.prompt.trim()
-    if (!comPersonagem[i]) {
-      const sem = semFichaDoPersonagem(texto, ref.nomes)
-      if (sem === limpa(texto)) return { prompt: cabeNoTetoDoPlano(texto), duration: shot.duration }
-      fichaRetirada[i] = cabeNoTetoDoPlano(texto)
-      return { prompt: cabeNoTetoDoPlano(sem), duration: shot.duration }
-    }
-    const cabe = cabeNoTetoDoPlano(texto, KLING4_TETO_DO_PLANO - Array.from(frase).length) // a frase tem o seu espaço reservado
-    const prompt = cabe.endsWith(CAUDA_DA_BOCA) ? cabe.slice(0, -CAUDA_DA_BOCA.length) + frase + CAUDA_DA_BOCA : cabe + frase
+    // plano sem o protagonista: sai a ficha dele (fichaRetirada guarda o texto de antes, para o juiz). KINEO-DUAS-REFERENCIAS-2411 — e, se o 2º está, entra só a frase do 2º
+    let base = texto
+    if (!comPersonagem[i]) { const sem = semFichaDoPersonagem(texto, ref.nomes); if (sem !== limpa(texto)) { fichaRetirada[i] = cabeNoTetoDoPlano(texto); base = sem } }
+    const frases = frasesDo(i)
+    const cabe = cabeNoTetoDoPlano(base, KLING4_TETO_DO_PLANO - Array.from(frases).length) // a frase tem o seu espaço reservado
+    const prompt = cabe.endsWith(CAUDA_DA_BOCA) ? cabe.slice(0, -CAUDA_DA_BOCA.length) + frases + CAUDA_DA_BOCA : cabe + frases
     return { prompt, duration: shot.duration }
   })
   // planosComFrase fica FORA do input (não vai à fal): é a decisão deste montador, a única fonte de onde a frase entrou (o juiz e o claim leem daqui)
-  return { model: KLING4_REFERENCE_MODEL, input: { image_urls: [ref.imageUrl], multi_prompt, duration, resolution: '720p', aspect_ratio: '9:16' } as Record<string, unknown>, planosComFrase: comPersonagem as readonly boolean[], fichaRetirada: fichaRetirada as readonly (string | null)[] }
+  // KINEO-DUAS-REFERENCIAS-2411 — com o 2º personagem citado em algum plano: image_urls [protagonista, 2º] e planosComSegunda (fora do input, como planosComFrase)
+  const usaSegundo = !!seg && comSegundo.some(Boolean)
+  return { model: KLING4_REFERENCE_MODEL, input: { image_urls: usaSegundo && seg ? [ref.imageUrl, seg.imageUrl] : [ref.imageUrl], multi_prompt, duration, resolution: '720p', aspect_ratio: '9:16' } as Record<string, unknown>, planosComFrase: comPersonagem as readonly boolean[], fichaRetirada: fichaRetirada as readonly (string | null)[],
+    ...(usaSegundo ? { planosComSegunda: comSegundo as readonly boolean[] } : {}) }
 }
 
 // KINEO-K4-DURACAO-PELA-VOZ-1311 [CEO 13/11, "nota ≥ 8 no teste grátis — a próxima causa"] — filme 9e902872 (cliente, Kling 4, 15 s,

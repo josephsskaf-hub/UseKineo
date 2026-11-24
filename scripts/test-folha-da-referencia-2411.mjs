@@ -120,7 +120,7 @@ async function suite(change) {
     const keyframes = E.planos.map((_, i) => 'https://example.org/offline/keyframe-reprovada-' + i + '.png')
     const envio = await post(api, { prompts: E.planos, approvedStills: keyframes, timing: { ...timingDe(E.planos), referenciaUnica: t.referenciaUnica } })
     assert.equal(envio.url, 'https://queue.fal.run/kling/v4/reference-to-video', id)
-    igual(envio.input.image_urls, [folhas[0].url]); assert.ok(!envio.body.includes('keyframe-reprovada'), id + ': nenhuma imagem-chave reprovada')
+    igual(envio.input.image_urls, id === 'cedd1250' ? folhas.map(x => x.url) : [folhas[0].url], id + ': a folha do protagonista (e, no cedd1250, a da Mara: KINEO-DUAS-REFERENCIAS-2411)'); assert.ok(!envio.body.includes('keyframe-reprovada'), id + ': nenhuma imagem-chave reprovada')
     igual(Object.keys(envio.input), ['image_urls', 'multi_prompt', 'duration', 'resolution', 'aspect_ratio'])
     // 'off': a casa volta a hoje
     const off = admitir(route, f, { ...fr, FOLHA_DA_REFERENCIA_2411: 'off' }, vp, { email: CASA, snapshot: snap, folhas, look: E.look })

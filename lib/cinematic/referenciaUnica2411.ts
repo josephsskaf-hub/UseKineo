@@ -48,7 +48,7 @@ export type AdmissaoReferenciaUnica2411 = { referencia: ReferenciaUnica2411; cli
  *  campo novo); cliente em 'public_humano' = a referência só se motivoClienteSemReferencia2411 der null, senão o motivo; 'public' = todos sem guarda. */
 export function admitirReferenciaUnica2411(modo: ModoReferenciaUnica2411, email: string | null | undefined, snapshot: FilmQualitySnapshot | null | undefined,
   filme: { estilizado: boolean }): AdmissaoReferenciaUnica2411 {
-  if (referenciaUnicaLigada(modo, email)) { const r = referenciaUnicaDoFilme(snapshot); return r ? { referencia: r } : null }
+  if (referenciaUnicaLigada(modo, email)) { const r = referenciaUnicaDoFilme(snapshot); return r ? { referencia: comSegundaReferencia2411(r, snapshot, duasReferenciasLigadas(DUAS_REFERENCIAS_2411, email)) } : null } // KINEO-DUAS-REFERENCIAS-2411
   if (modo !== 'public_humano') return null
   const motivo = motivoClienteSemReferencia2411(snapshot, filme)
   if (motivo) return { motivo }
@@ -71,6 +71,31 @@ export const REFERENCIA_UNICA_HUMANO_2411_VERSAO = 'KINEO-REFERENCIA-UNICA-HUMAN
 
 export const FRASE_REFERENCIA_PESSOA = 'Keep the face and outfit of @Image1.'
 export const FRASE_REFERENCIA_DESENHO = 'Keep the exact character design of @Image1.'
+
+// KINEO-DUAS-REFERENCIAS-2411 [CEO 24/11, etapa 4 · duas pessoas, uma foto por pessoa] — o schema público da fal (kling/v4/reference-to-video, lido em 24/11)
+// aceita até 10 imagens em image_urls (@Image1, @Image2…) sem custo por imagem (sem vídeo de referência: US$ 0,157/s a 720p). LIMITE ESCOLHIDO: 2. Nenhum
+// filme com 2 referências passou por render; com 3, as três frases comem ~120 dos 512 caracteres do plano e a regra de presença teria de separar três pessoas
+// sem nome por plano. Só quando o elenco tem EXATAMENTE 2 personagens com folha https (o protagonista e mais um); 3 ou mais = uma referência, como hoje.
+// 'internal' = só a lista EXATA da casa; cliente = o pedido de hoje, byte a byte (a guarda 'public_humano' não muda: ela nem chama isto).
+export type ModoDuasReferencias2411 = 'off' | 'internal' | 'public'
+export const DUAS_REFERENCIAS_2411: ModoDuasReferencias2411 = 'internal'
+export const duasReferenciasLigadas = (modo: ModoDuasReferencias2411, email: string | null | undefined): boolean =>
+  modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))
+export const FRASE_SEGUNDA_PESSOA = 'Keep the face and outfit of @Image2.'
+export const FRASE_SEGUNDA_DESENHO = 'Keep the exact character design of @Image2.'
+/** A referência com o 2º personagem: desligado, sem exatamente 2 folhas https no elenco ou 2º fora do formato = a MESMA referência. */
+export function comSegundaReferencia2411(ref: ReferenciaUnica2411, snapshot: FilmQualitySnapshot | null | undefined, ligada: boolean): ReferenciaUnica2411 {
+  if (!ligada || !retratoNoFormato(snapshot)) return ref
+  const comFolha = snapshot.characters.filter((c) => snapshot.characterReferences.some((r) => r.nome === c.nome && https(r.url)))
+  if (comFolha.length !== 2) return ref
+  const outro = comFolha.find((c) => c.protagonista !== true)
+  if (!outro || typeof outro.nome !== 'string' || !outro.nome.trim() || (outro.tipo !== 'humano' && outro.tipo !== 'animal' && outro.tipo !== 'criatura')) return ref
+  const url = snapshot.characterReferences.find((r) => r.nome === outro.nome)?.url
+  if (!https(url) || url === ref.imageUrl) return ref
+  const nomes = [outro.nome, outro.nucleo].filter((n, i, all): n is string => typeof n === 'string' && !!n.trim() && all.indexOf(n) === i)
+  const descricao = descricaoDoAutor(outro.canonica)
+  return { ...ref, segundo: { imageUrl: url, frase: outro.tipo === 'humano' ? FRASE_SEGUNDA_PESSOA : FRASE_SEGUNDA_DESENHO, nomes, ...(descricao ? { descricao } : {}) } }
+}
 export type ReferenciaUnica2411 = Kling4ReferenciaUnica & { origem: 'ficha' | 'imagem_chave' | 'folha_mantida' /* KINEO-FOLHA-DA-REFERENCIA-2411 */; tipo: 'humano' | 'animal' | 'criatura' }
 
 const https = (u: unknown): u is string => typeof u === 'string' && /^https:\/\/[^\s]+$/i.test(u)
@@ -114,7 +139,7 @@ export function descricaoDoAutor(canonica: unknown): string | undefined {
 /** [revisor 24/11, volta 1] O que os JUÍZES leem: a frase de referência é instrução ao motor, não conteúdo da cena. Ela sai antes do juízo, para o
  *  juiz de antes, o A2 e o juiz do plano lerem o MESMO texto (juizLeuOMesmoTexto continua valendo; sem 2ª leitura paga a mais). O que vai à fal e
  *  ao claim continua o pedido real. Sem a referência única no envio = a MESMA entrada, intocada (desligado = byte a byte). */
-export type EnvioKling4 = { model: string; input: Record<string, unknown>; planosComFrase?: readonly boolean[]; fichaRetirada?: readonly (string | null)[] /* KINEO-REFERENCIA-UNICA-PUBLIC-2411 */ }
+export type EnvioKling4 = { model: string; input: Record<string, unknown>; planosComFrase?: readonly boolean[]; planosComSegunda?: readonly boolean[] /* KINEO-DUAS-REFERENCIAS-2411 */; fichaRetirada?: readonly (string | null)[] /* KINEO-REFERENCIA-UNICA-PUBLIC-2411 */ }
 export function entradaDoJuiz2411(timing: Parameters<typeof relatoReferenciaUnica>[0], wire: EnvioKling4): Record<string, unknown> {
   const ref = timing?.referenciaUnica
   if (!ref || !relatoReferenciaUnica(timing, wire) || !Array.isArray(wire.input.multi_prompt)) return wire.input
@@ -122,15 +147,17 @@ export function entradaDoJuiz2411(timing: Parameters<typeof relatoReferenciaUnic
   // buildKling4ReferenciaUnicaInput). Plano sem a nossa frase fica como foi à fal, mesmo que o cliente tenha escrito uma frase igual. Sem a decisão = nada sai.
   const marcados = Array.isArray(wire.planosComFrase) ? wire.planosComFrase : []
   const frase = ' ' + ref.frase.trim()
+  const segundos = Array.isArray(wire.planosComSegunda) && ref.segundo ? wire.planosComSegunda : [] // KINEO-DUAS-REFERENCIAS-2411
+  const nossas = (i: number): string => (marcados[i] === true ? frase : '') + (segundos[i] === true && ref.segundo ? ' ' + ref.segundo.frase.trim() : '')
   // dentro do plano marcado, só a ocorrência que nós pusemos: pela posição (antes de "Mouth closed, no speaking." ou no fim), nunca outra igual do cliente
-  const semANossa = (p: string): string => p.endsWith(frase + CAUDA_DA_BOCA_2411) ? p.slice(0, -(frase + CAUDA_DA_BOCA_2411).length) + CAUDA_DA_BOCA_2411
-    : p.endsWith(frase) ? p.slice(0, -frase.length) : p
+  const semANossa = (p: string, f: string = frase): string => p.endsWith(f + CAUDA_DA_BOCA_2411) ? p.slice(0, -(f + CAUDA_DA_BOCA_2411).length) + CAUDA_DA_BOCA_2411
+    : p.endsWith(f) ? p.slice(0, -f.length) : p
   // KINEO-REFERENCIA-UNICA-PUBLIC-2411 — plano sem o personagem de onde o montador tirou a ficha dele: o juiz lê o texto que o montador recebeu (o mesmo
   // do juiz de antes; a retirada, como a frase, é decisão do montador para o motor). Só pelo registro do montador, nunca pela busca no texto.
   const retirada = Array.isArray(wire.fichaRetirada) ? wire.fichaRetirada : []
   return { ...wire.input, multi_prompt: (wire.input.multi_prompt as Array<Record<string, unknown>>).map((m, i) =>
     typeof retirada[i] === 'string' && marcados[i] !== true ? { ...m, prompt: retirada[i] }
-    : marcados[i] === true && typeof m?.prompt === 'string' && semANossa(m.prompt) !== m.prompt ? { ...m, prompt: semANossa(m.prompt) } : m) }
+    : (marcados[i] === true || segundos[i] === true) && typeof m?.prompt === 'string' && semANossa(m.prompt, nossas(i)) !== m.prompt ? { ...m, prompt: semANossa(m.prompt, nossas(i)) } : m) } // KINEO-DUAS-REFERENCIAS-2411: nossas(i) = só a do protagonista quando não há 2º (o de antes)
 }
 const CAUDA_DA_BOCA_2411 = ' Mouth closed, no speaking.' // a mesma cauda que buildKling4ReferenciaUnicaInput protege (lib/kling4Trial.ts)
 
@@ -138,12 +165,13 @@ const CAUDA_DA_BOCA_2411 = ' Mouth closed, no speaking.' // a mesma cauda que bu
 export function relatoReferenciaUnica(
   timing: { fixedCharacter?: unknown; referenciaUnica?: Kling4ReferenciaUnica & Partial<Pick<ReferenciaUnica2411, 'origem' | 'tipo'>> } | null | undefined,
   wire: EnvioKling4,
-): { versao: string; origem: string | null; tipo: string | null; planos: number; planos_com_frase: number[]; planos_sem_ficha: number[]; planos_metade: number[] } | null {
+): { versao: string; origem: string | null; tipo: string | null; planos: number; planos_com_frase: number[]; planos_sem_ficha: number[]; planos_metade: number[]; planos_com_segunda?: number[] } | null {
   const ref = timing?.referenciaUnica
   if (!ref || timing?.fixedCharacter || wire.model !== KLING4_REFERENCE_MODEL) return null
   const planos = Array.isArray(wire.input.multi_prompt) ? wire.input.multi_prompt as Array<{ prompt?: unknown }> : []
   return { versao: REFERENCIA_UNICA_2411_VERSAO, origem: ref.origem ?? null, tipo: ref.tipo ?? null, planos: planos.length,
     planos_com_frase: (Array.isArray(wire.planosComFrase) ? wire.planosComFrase : []).flatMap((m, i) => m === true ? [i + 1] : []),
     planos_sem_ficha: (Array.isArray(wire.fichaRetirada) ? wire.fichaRetirada : []).flatMap((t, i) => typeof t === 'string' ? [i + 1] : []),
-    planos_metade: (Array.isArray(ref.metades) && ref.metades.length === planos.length ? ref.metades : []).flatMap((m, i) => m === true ? [i + 1] : []) } // [volta 3] a decisão do montador, não a busca do texto (frase do cliente não conta) · KINEO-REFERENCIA-UNICA-PUBLIC-2411: + os planos sem o personagem de onde a ficha dele saiu
+    planos_metade: (Array.isArray(ref.metades) && ref.metades.length === planos.length ? ref.metades : []).flatMap((m, i) => m === true ? [i + 1] : []),
+    ...(Array.isArray(wire.planosComSegunda) ? { planos_com_segunda: wire.planosComSegunda.flatMap((m, i) => m === true ? [i + 1] : []) } : {}) } // KINEO-DUAS-REFERENCIAS-2411 // [volta 3] a decisão do montador, não a busca do texto (frase do cliente não conta) · KINEO-REFERENCIA-UNICA-PUBLIC-2411: + os planos sem o personagem de onde a ficha dele saiu
 }

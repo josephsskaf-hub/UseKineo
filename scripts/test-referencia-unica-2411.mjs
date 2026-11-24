@@ -611,11 +611,11 @@ async function suiteHumano2411({ api, f, route }) {
 const mutants = [
   [transport, "duration !== 15 || ", ''],
   [transport, '  if (!comPersonagem.some(Boolean)) return null\n', ''],
-  [transport, 'image_urls: [ref.imageUrl]', 'image_urls: []'],
-  [transport, 'cabe.slice(0, -CAUDA_DA_BOCA.length) + frase + CAUDA_DA_BOCA : cabe + frase', 'cabe + frase : cabe + frase'],
-  [transport, 'if (!comPersonagem[i]) {', 'if (false) {'],
+  [transport, ': [ref.imageUrl], multi_prompt', ': [], multi_prompt'], // KINEO-DUAS-REFERENCIAS-2411: o texto do envio de uma referência
+  [transport, 'cabe.slice(0, -CAUDA_DA_BOCA.length) + frases + CAUDA_DA_BOCA : cabe + frases', 'cabe + frases : cabe + frases'],
+  [transport, 'if (!comPersonagem[i]) { const sem = semFichaDoPersonagem(texto, ref.nomes);', 'if (false) { const sem = semFichaDoPersonagem(texto, ref.nomes);'], // a ficha dele fica no plano sem ele
   [transport, ".replace(/^(?:the|a|an)\\s+/, '')", ''],
-  [transport, 'KLING4_TETO_DO_PLANO - Array.from(frase).length', 'KLING4_TETO_DO_PLANO'],
+  [transport, 'KLING4_TETO_DO_PLANO - Array.from(frases).length', 'KLING4_TETO_DO_PLANO'],
   [feature, "(modo === 'internal' || modo === 'public_humano') && contaDaCasaExata(email)", "(modo === 'internal' || modo === 'public_humano')"],
   [feature, "REFERENCIA_UNICA_2411: ModoReferenciaUnica2411 = 'public_humano'", "REFERENCIA_UNICA_2411: ModoReferenciaUnica2411 = 'public'"], // [CEO 24/11] a chave escapa para todo cliente
   [feature, "REFERENCIA_UNICA_2411: ModoReferenciaUnica2411 = 'public_humano'", "REFERENCIA_UNICA_2411: ModoReferenciaUnica2411 = 'off'"], // a casa perde o caminho novo
@@ -672,13 +672,13 @@ const mutants = [
   [routeFile, '{ estilizado: isStylizedLook(styleAnchor) || desenhoInfantil.ativo }', '{ estilizado: false }'], // o estilo do filme ignorado
   [routeFile, '        else if (ru2411) kling4Timing.referenciaUnicaRecusa = ru2411.motivo\n', ''], // a rota não grava o motivo
   [routeFile, 'admitirReferenciaUnica2411(REFERENCIA_UNICA_2411, user.email, retratoDaReferencia2411(', "admitirReferenciaUnica2411(REFERENCIA_UNICA_2411, 'josephsskaf@gmail.com', retratoDaReferencia2411("], // todo mundo vira casa
-  [feature, 'p.slice(0, -(frase + CAUDA_DA_BOCA_2411).length) + CAUDA_DA_BOCA_2411', 'p'],
-  [feature, [['p.endsWith(frase + CAUDA_DA_BOCA_2411) ? p.slice(0, -(frase + CAUDA_DA_BOCA_2411).length) + CAUDA_DA_BOCA_2411', 'p.includes(frase) ? p.replace(frase, \'\')']]],
+  [feature, 'p.slice(0, -(f + CAUDA_DA_BOCA_2411).length) + CAUDA_DA_BOCA_2411', 'p'], // KINEO-DUAS-REFERENCIAS-2411: o semANossa recebe a frase em `f`
+  [feature, [['p.endsWith(f + CAUDA_DA_BOCA_2411) ? p.slice(0, -(f + CAUDA_DA_BOCA_2411).length) + CAUDA_DA_BOCA_2411', 'p.includes(f) ? p.replace(f, \'\')']]],
   [routeFile, 'const reaproveitaJuiz1311 = !!envioFinal1311 && juizLeuOMesmoTexto(lidoPeloJuiz1311, envioFinal1311.cenas)', 'const reaproveitaJuiz1311 = !!envioFinal1311'],
   // [revisor 24/11, volta 3] FM1, FM2, RM3 e a fonte única
-  [feature, ': p.endsWith(frase) ? p.slice(0, -frase.length) : p', ': p'], // FM1: a frase no fim de plano sem "Mouth closed" deixa de sair
-  [feature, [['const semANossa = (p: string): string => p.endsWith(frase + CAUDA_DA_BOCA_2411) ? p.slice(0, -(frase + CAUDA_DA_BOCA_2411).length) + CAUDA_DA_BOCA_2411\n    : p.endsWith(frase) ? p.slice(0, -frase.length) : p', 'const semANossa = (p: string): string => { const k = p.lastIndexOf(frase); return k < 0 ? p : p.slice(0, k) + p.slice(k + frase.length) }'], ['marcados[i] === true && ', '']]], // FM2: a última ocorrência em qualquer plano
-  [feature, 'marcados[i] === true && ', ''], // a decisão do montador ignorada (pela posição em todo plano: o furo da volta 3)
+  [feature, ': p.endsWith(f) ? p.slice(0, -f.length) : p', ': p'], // FM1: a frase no fim de plano sem "Mouth closed" deixa de sair
+  [feature, [['const semANossa = (p: string, f: string = frase): string => p.endsWith(f + CAUDA_DA_BOCA_2411) ? p.slice(0, -(f + CAUDA_DA_BOCA_2411).length) + CAUDA_DA_BOCA_2411\n    : p.endsWith(f) ? p.slice(0, -f.length) : p', 'const semANossa = (p: string, f: string = frase): string => { const k = p.lastIndexOf(frase); return k < 0 ? p : p.slice(0, k) + p.slice(k + frase.length) }'], ['(marcados[i] === true || segundos[i] === true) && ', '']]], // FM2: a última ocorrência em qualquer plano
+  [feature, '(marcados[i] === true || segundos[i] === true) && ', ''], // a decisão do montador ignorada (pela posição em todo plano: o furo da volta 3)
   [feature, "(Array.isArray(wire.planosComFrase) ? wire.planosComFrase : []).flatMap((m, i) => m === true ? [i + 1] : [])", "planos.flatMap((p, i) => typeof p?.prompt === 'string' && p.prompt.includes(ref.frase) ? [i + 1] : [])"],
   [transport, 'planosComFrase: comPersonagem as readonly boolean[]', 'planosComFrase: comPersonagem.map(() => true) as readonly boolean[]'],
   [routeFile, "const envioFinal1311 = kling4Trial?.job && vereditoAntes1311?.status === 'JUDGED' && lidoPeloJuiz1311 ?", 'const envioFinal1311 = kling4Trial?.job && lidoPeloJuiz1311 ?'], // RM3
@@ -690,7 +690,7 @@ mutants.push(
   [transport, 'if (cita === \'posse\' && visualMostraAlguem(acao)) return true', 'if (cita === \'posse\') return true'], // frase em plano de ausência (Slocum 4)
   [transport, '  if (repeteADescricao(acao, quem.descricao)) return true\n', ''], // a frase sai do plano que o mostra sem nome nem ficha (Le Prince 1)
   [transport, 'if (dele.has(w) && ++n >= minimo) return true', 'if (dele.has(w) && ++n >= 1) return true'], // estranho com 1 palavra em comum ganha a frase
-  [transport, '  if (!temFichaDele(prompt, nomes)) return false\n', '  if (!temFichaDele(prompt, nomes)) return visualMostraAlguem(acao)\n'], // pessoa sem nome que não é ele ganha a frase
+  [transport, '  if (!temFichaDele(prompt, nomes, quem.protagonista !== false)) return false\n', '  if (!temFichaDele(prompt, nomes, quem.protagonista !== false)) return visualMostraAlguem(acao)\n'], // pessoa sem nome que não é ele ganha a frase
   [transport, 'return quem.metade === true ? visualMostraAlguem(acao) || repeteADescricao(acao, quem.descricao, 1) : !planoNegaGente(acao)', 'return visualMostraAlguem(acao)'], // a regra da metade na cena inteira: "The hijacker leaps" perde ficha e frase
   [transport, 'return quem.metade === true ? visualMostraAlguem(acao) || repeteADescricao(acao, quem.descricao, 1) : !planoNegaGente(acao)', 'return quem.metade === true ? true : !planoNegaGente(acao)'],
   [transport, ' || repeteADescricao(acao, quem.descricao, 1) : ', ' : '], // na metade, "The strawberry"/"The scientist" perdem ficha e frase // metade nunca perde: o vagão vazio e as notas na areia levam a frase
