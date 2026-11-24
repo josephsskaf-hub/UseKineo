@@ -12,6 +12,7 @@ scripts\test-business-84-2026-10-09.mjs
 scripts\test-business-content-plan.mjs
 scripts\test-business-pilot-review.mjs
 scripts\test-cartoon-answer-2311.mjs
+scripts\test-citacoes-client-boundary-2411.mjs
 scripts\test-citacoes-compradores-2111.mjs
 scripts\test-citacoes-formatos-2411.mjs
 scripts\test-citacoes-lastmod-0911.mjs
