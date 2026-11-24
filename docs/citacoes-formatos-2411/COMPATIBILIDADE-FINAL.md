@@ -8,3 +8,5 @@
 **LIMITES DOS GATES.** A comparação histórica de 80 guardiões e as repetições focadas estão preservadas no diretório citacoes-formatos-2411 e no parecer independente. A comparação final ampliada dos guardiões das duas áreas ocorre na composição separada de crescimento; seus números não são apresentados aqui como execução standalone desta branch. Provas e logs desta base em citacoes-compat-base-final-2411. Chave off no commit; public foi usado só na cópia local para fotos, depois restaurado.
 
 **ORDEM.** e591827c5 → esta branch de formatos → branch separada codex/citacoes-crescimento-base-final-2411. O integrador leva apenas formatos ao lote da madrugada. Nada de crescimento nesse lote. Uso semanal compartilhado 16%. Sem push/publicação por esta sessão.
+
+**PORTABILIDADE DOS TESTES.** O baseline c1d265cf9 não é ancestral da main. Seus dois arquivos agora estão em fixture versionada com hash fixado no guardião; mesmo conteúdo, sem dependência de objetos Git locais. Oito mutantes preservados e execução focada de novos-vermelhos repetida. Produto, fotos e tipo não mudaram.

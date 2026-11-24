@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import {execFileSync} from 'node:child_process'
+import {createHash} from 'node:crypto'
 import {offlineModules,React,renderToStaticMarkup,source} from './gpt24h-offline-support.mjs'
 const RELEASE='lib/growth/citationPagesRelease.ts',ACCESS='lib/growth/citationPagesAccess.ts',INTENT='app/ai-video-generator/for/[slug]/page.tsx',CAT='lib/seo/intentPages.ts',AD='app/ai-ugc-ads/product-photo-ads/page.tsx',MAP='app/sitemap.ts',AUTH='components/seo/InternalCitationPreview.tsx'
 const plain=({children})=>React.createElement('div',null,children)
@@ -17,8 +17,9 @@ const gh=source('lib/gptHandoff.ts'),deps={'lib/gptHandoff.ts':gh.replace("impor
 const make=(rep={},auth={data:{user:null},error:null})=>offlineModules({mocks:{...mocks,'lib/supabase/server.ts':{createClient:()=>({auth:{getUser:async()=>auth}})}},replacements:{...deps,...rep}})
 
 const HERO='components/seo/CitationFormatHero.tsx',DATA='lib/growth/citationFormatHero2411.ts',TOPIC='app/youtube-shorts-from-topic/TopicGeneratorForm.tsx'
-const baseline='c1d265cf9',oldSource=execFileSync('git',['show',baseline+':'+INTENT],{encoding:'utf8'})
-const oldAd=execFileSync('git',['show',baseline+':'+AD],{encoding:'utf8'})
+const baseline=JSON.parse(source('scripts/test-support/citacoes-formatos-referencia-2411.json'))
+assert.equal(createHash('sha256').update(JSON.stringify(baseline.sources)).digest('hex'),'fc344623e371ccd4f475f260d7f84b1ad5f1547399b67731b14c64f5be8a8a21','Exact frozen baseline, portable without unmerged git objects')
+const oldSource=baseline.sources[INTENT],oldAd=baseline.sources[AD]
 const render=(l,f,p={})=>renderToStaticMarkup(React.createElement(l(f).default,p))
 const publicRep=rep=>({...rep,[RELEASE]:(rep[RELEASE]??source(RELEASE)).replace("CITATION_PAGES_RELEASE: CitationPagesRelease = 'off'","CITATION_PAGES_RELEASE: CitationPagesRelease = 'public'")})
 const old=make(publicRep({[INTENT]:oldSource,[AD]:oldAd}))
