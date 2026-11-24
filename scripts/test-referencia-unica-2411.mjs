@@ -81,8 +81,8 @@ async function suite(change) {
   const modules = load(source), api = modules('@/' + transport), f = modules('@/' + feature), contas = modules('@/lib/internalAccounts')
   const route = source(routeFile, local(routeFile))
 
-  // (d) o interruptor: 'off' no commit; 'internal' = só a lista EXATA da casa; 'public' = todos.
-  assert.equal(f.REFERENCIA_UNICA_2411, 'off')
+  // (d) o interruptor: 'internal' no commit desde 24/11 (CEO, depois da 4ª revisão limpa) = só a lista EXATA da casa; 'off' = ninguém; 'public' = todos.
+  assert.equal(f.REFERENCIA_UNICA_2411, 'internal')
   for (const e of contas.INTERNAL_EXACT_EMAILS) {
     assert.equal(f.referenciaUnicaLigada('internal', e), true, e); assert.equal(f.referenciaUnicaLigada('internal', ' ' + e.toUpperCase() + ' '), true, e)
     assert.equal(f.referenciaUnicaLigada('off', e), false, e)
@@ -94,13 +94,36 @@ async function suite(change) {
 
   for (const id of ['2fef3706', '4691e265', '49448973']) {
     const fl = filme(id), prompts = fl.planos.map(p => p.prompt), stills = stillsDe(fl), timing = timingDe(fl)
-    // (a) desligado: a admissão real da rota não põe nada (nem para o fundador) e o pedido é byte a byte o da main.
-    for (const email of ['josephsskaf@gmail.com', 'cliente@example.org']) assert.equal('referenciaUnica' in admitir(route, f, { email, snapshot: snapshots[id] }), false)
+    // (a) desligado ('off', a volta da chave): a admissão real da rota não põe nada (nem para o fundador) e o pedido é byte a byte o da main.
+    for (const email of ['josephsskaf@gmail.com', 'cliente@example.org']) assert.equal('referenciaUnica' in admitir(route, { ...f, REFERENCIA_UNICA_2411: 'off' }, { email, snapshot: snapshots[id] }), false)
     const hoje = await post(api, { prompts, approvedStills: stills, timing }), main = await post(old, { prompts, approvedStills: stills, timing })
     assert.equal(hoje.url, main.url); assert.equal(hoje.body, main.body)
     assert.equal(hoje.url, 'https://queue.fal.run/kling/v4/image-to-video')
     assert.deepEqual(hoje.input.multi_prompt.map(s => s.prompt), fl.planos.map(p => p.prefixo + p.prompt), id + ': o montador reproduz o texto que foi ao Kling 4')
     assert.deepEqual(hoje.input.multi_prompt.map(s => s.duration), fl.planos.map(p => p.duration))
+  }
+
+  // (e) [CEO 24/11] a chave COMO ESTÁ NO COMMIT ('internal'), executada pela admissão real da rota e pelo POST do montador (fetch falso):
+  // conta de cliente = o pedido de hoje, byte a byte o da main; conta da lista exata da casa = o caminho novo.
+  { const clientes = ['cliente@example.org', 'CLIENTE@EXAMPLE.ORG', '  cliente@example.org  ', 'josephsskaf@gmai.com', 'josephsskaf+teste@gmail.com', 'joseph+teste01@gmail.co',
+      'josephskaf@hotmail.com.br', 'victoriaskaf96@gmail.com.evil.io', 'xjosephsskaf@gmail.com', 'joseph@usekineo.com', 'teste01@shortsforgeai.com.br', '', null, undefined]
+    for (const id of ['2fef3706', '4691e265']) {
+      const fl = filme(id), prompts = fl.planos.map(p => p.prompt), stills = stillsDe(fl)
+      const main = await post(old, { prompts, approvedStills: stills, timing: timingDe(fl) })
+      for (const email of clientes) {
+        const t = admitir(route, f, { email, snapshot: snapshots[id] })
+        assert.equal('referenciaUnica' in t, false, 'cliente ' + String(email))
+        const envio = await post(api, { prompts, approvedStills: stills, timing: { ...timingDe(fl), ...("referenciaUnica" in t ? { referenciaUnica: t.referenciaUnica } : {}) } })
+        assert.equal(envio.url, main.url, 'cliente ' + String(email)); assert.equal(envio.body, main.body, 'cliente ' + String(email) + ': byte a byte o de hoje')
+      }
+      for (const email of [...contas.INTERNAL_EXACT_EMAILS, ' JosephSSkaf@Gmail.com ']) {
+        const t = admitir(route, f, { email, snapshot: snapshots[id] })
+        assert.ok(t.referenciaUnica, 'casa ' + email)
+        const envio = await post(api, { prompts, approvedStills: stills, timing: { ...timingDe(fl), ...("referenciaUnica" in t ? { referenciaUnica: t.referenciaUnica } : {}) } })
+        assert.equal(envio.url, 'https://queue.fal.run/kling/v4/reference-to-video', 'casa ' + email)
+        assert.deepEqual(envio.input.multi_prompt.map(m => m.prompt), fl.pedido_A.input.multi_prompt.map(m => m.prompt), 'casa ' + email + ': o pedido A')
+      }
+    }
   }
 
   // (b) ligado: o pedido bate com o pedido A no que importa.
@@ -302,7 +325,9 @@ const mutants = [
   [transport, ".replace(/^(?:the|a|an)\\s+/, '')", ''],
   [transport, 'KLING4_TETO_DO_PLANO - Array.from(frase).length', 'KLING4_TETO_DO_PLANO'],
   [feature, "modo === 'internal' && contaDaCasaExata(email)", "modo === 'internal'"],
-  [feature, "REFERENCIA_UNICA_2411: ModoReferenciaUnica2411 = 'off'", "REFERENCIA_UNICA_2411: ModoReferenciaUnica2411 = 'internal'"],
+  [feature, "REFERENCIA_UNICA_2411: ModoReferenciaUnica2411 = 'internal'", "REFERENCIA_UNICA_2411: ModoReferenciaUnica2411 = 'public'"], // [CEO 24/11] a chave escapa para clientes
+  [feature, "REFERENCIA_UNICA_2411: ModoReferenciaUnica2411 = 'internal'", "REFERENCIA_UNICA_2411: ModoReferenciaUnica2411 = 'off'"], // a casa perde o caminho novo
+  [feature, "(modo === 'internal' && contaDaCasaExata(email))", "(modo === 'internal' && contaDaCasaExata(String(email ?? '').replace(/^x/, '')))"], // parecido com a casa passa
   [feature, 'leads.length !== 1', 'leads.length < 1'],
   [feature, "lead.tipo === 'humano' ? FRASE_REFERENCIA_PESSOA : FRASE_REFERENCIA_DESENHO", "lead.tipo === 'humano' ? FRASE_REFERENCIA_DESENHO : FRASE_REFERENCIA_PESSOA"],
   [feature, 's.characterNames.length === 1 && ', ''],
@@ -336,4 +361,4 @@ for (const mutant of mutants) {
   await assert.rejects(suite(mutant), err => err instanceof assert.AssertionError, 'SOBREVIVEU: ' + mutant[1])
   mortos++
 }
-console.log(`PASS KINEO-REFERENCIA-UNICA-2411: off = main byte a byte nos 3 filmes; ligado = pedido A (endpoint, 1 imagem, planos, durações, sem start/middle, frase só no plano do personagem); fallback sem referência/sem personagem/20 s; 'internal' = lista exata; ${mortos}/${mutants.length} mutantes mortos.`)
+console.log(`PASS KINEO-REFERENCIA-UNICA-2411: chave no commit = 'internal' (cliente = main byte a byte; casa exata = caminho novo); off = main byte a byte nos 3 filmes; ligado = pedido A (endpoint, 1 imagem, planos, durações, sem start/middle, frase só no plano do personagem); fallback sem referência/sem personagem/20 s; 'internal' = lista exata; ${mortos}/${mutants.length} mutantes mortos.`)

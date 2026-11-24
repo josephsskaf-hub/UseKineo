@@ -9,8 +9,10 @@ import { KLING4_REFERENCE_MODEL, type Kling4ReferenciaUnica } from '@/lib/kling4
 export const REFERENCIA_UNICA_2411_VERSAO = 'KINEO-REFERENCIA-UNICA-2411'
 export type ModoReferenciaUnica2411 = 'off' | 'internal' | 'public'
 /** 'off' = o pedido à fal byte a byte o de hoje. 'internal' = só a lista EXATA da casa (contaDaCasaExata, e-mail do usuário autenticado).
- *  'public' só com revisor independente + prova paga + sim do dono. */
-export const REFERENCIA_UNICA_2411: ModoReferenciaUnica2411 = 'off'
+ *  'public' só com revisor independente + prova paga + sim do dono.
+ *  [CEO 24/11, depois da 4ª revisão LIMPA] 'internal': só a lista exata da casa, para ensaiar em filmes da casa; cliente = o pedido de hoje,
+ *  byte a byte. 'public' só com prova paga em filmes da casa pelo caminho inteiro e o sim do dono. Voltar: 'off'. */
+export const REFERENCIA_UNICA_2411: ModoReferenciaUnica2411 = 'internal'
 export const referenciaUnicaLigada = (modo: ModoReferenciaUnica2411, email: string | null | undefined): boolean =>
   modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))
 
