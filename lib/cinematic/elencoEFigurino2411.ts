@@ -262,7 +262,8 @@ export function medidaDaRegra2411(base: MedidaDaLeitura2411 | null | undefined, 
 //      o que o autor já escreveu). Ficha que já tem todas as palavras: nada.
 //   2. NOME: a ficha SEM nome ("the retriever") vira o nome próprio da narração quando a descrição colada a esse nome tem a mesma espécie
 //      (o núcleo da ficha é palavra da descrição) — e só com UM nome assim (dois = dúvida = nada).
-//   3. NOVO: nome da narração que nenhuma ficha tem entra (até PERSONAGEM_MAX_PERSONAGENS) quando (i) tem descrição e a leitura semântica não o
+//   3. NOVO (volta 3: só GENTE; "a mesma pessoa" = mesmoPersonagem ou um nome é o fim do outro, e a mesma descrição de uma ficha já presente):
+//      nome da narração que nenhuma ficha tem entra (até PERSONAGEM_MAX_PERSONAGENS) quando (i) tem descrição e a leitura semântica não o
 //      descartou (respondeu sem ele = julgado = fora; não respondeu = a descrição basta), ou (ii) é nome e SOBRENOME (2+ palavras com
 //      maiúscula), a leitura o leu como GENTE com o nome completo exato e a narração o mostra agindo ("Elias Ward had kept"). Sem descrição, a ficha é só o que o
 //      autor escreveu dele (fichaDoAutor com a oração da narração): nada de cabelo, rosto ou roupa sorteados.
@@ -276,7 +277,9 @@ const APOSTO_DO_NOME_RE = /^, (a|an|the) ([^,.;:!?…\n()"“”«»—–]{3,20
 const COPULA_DO_NOME_RE = /^ (?:is|was) (a|an) ([^,.;:!?…\n()"“”«»—–]{3,200}?) ?([,.;:!?…\n—–]|$)/iu
 const LISTA_DEPOIS_RE = /^,\s*(?:and|or)\s/iu
 const DUPLO_ANTES_RE = /(?<![\p{L}\p{N}])(?:another|other|second)\s+$/iu
-const SOBRENOMES_RE = /^(?: \p{Lu}[\p{Ll}'’-]+){0,2}/u
+/** [volta 3] partícula de nome ("Joan of Arc", "Vincent van Gogh"): dentro do nome, nunca o corta em dois (era "Arc", "Gogh"). Classe fechada. */
+const PARTICULA_2411 = '(?:of|van|von|de|da|di|du|del|della|der|den|le|la|bin|ibn|al|dos|das)'
+const SOBRENOMES_RE = new RegExp(`^(?: (?:${PARTICULA_2411} )?\\p{Lu}[\\p{Ll}'’-]+){0,2}`, 'u')
 /** Palavra com maiúscula que é função/abertura de frase, nunca nome: "This is a small dog", "Meet Juno", "Every evening". Classe fechada. */
 const NUNCA_NOME_2411 = new Set(('the a an this that these those it its he she they we you i his her their our your my there here every each one someone everyone '
   + 'nobody nothing then when once but and so or meet imagine picture watch together now today tonight later soon after before suddenly finally still yet '
@@ -344,7 +347,7 @@ export function descricaoDoNome2411(textos: ReadonlyArray<{ texto: string; fonte
 export function nomesDaNarracao2411(roteiro: string): string[] {
   const texto = semTags(roteiro).replace(/(?:^|\s)[A-Z][A-Z0-9 ]{2,30}:/g, ' ') // "HOOK:", "MICRO REWARD 1:"
   const vistos: string[] = []
-  for (const m of texto.matchAll(/(?<![\p{L}\p{N}'’-])\p{Lu}\p{Ll}+(?:'s|’s)?(?: \p{Lu}\p{Ll}+(?:'s|’s)?){0,2}(?![\p{L}\p{N}-])/gu)) {
+  for (const m of texto.matchAll(new RegExp(`(?<![\\p{L}\\p{N}'’-])\\p{Lu}\\p{Ll}+(?:'s|’s)?(?: (?:${PARTICULA_2411} )?\\p{Lu}\\p{Ll}+(?:'s|’s)?){0,3}(?![\\p{L}\\p{N}-])`, 'gu'))) { // [volta 3] "Joan of Arc" é UM nome
     let ws = m[0].replace(/(?:'s|’s)/gu, '').split(' ')
     while (ws.length && NUNCA_NOME_2411.has(norm(ws[0]))) ws = ws.slice(1)
     const nome = ws.join(' ')
@@ -383,7 +386,12 @@ export interface EntradaDoLeitor2411 {
 const ehFigura = (nome: string) => !!figuraConhecidaJuiz(nome) || !!figuraConhecida(nome)
 const frasesDe2411 = (texto: string) => String(texto ?? '').split(/(?<=[.!?…;])\s+|\n+/)
 const temNome = (texto: string, nome: string) => new RegExp(`(?<![\\p{L}\\p{N}-])${escapaRe(nome)}(?![\\p{L}\\p{N}-])`, 'u').test(texto)
-const nomeProprio2411 = (nome: string) => /^\p{Lu}[\p{L}'’.-]*(?: \p{Lu}[\p{L}'’.-]*){0,3}$/u.test(limpa(nome)) && !/^(?:the|a|an)\s/i.test(nome)
+/** [volta 3, VOLTA da revisora: Le Prince duplicado com a leitura falhando] a mesma pessoa: mesmoPersonagem OU um nome é o FIM do outro, palavra a
+ *  palavra ("Prince" × "Louis Le Prince": mesmoPersonagem dá false por causa da partícula; "Le Prince" × "Louis Le Prince" também). */
+const palavrasDaPessoa = (s: string) => norm(limpa(String(s ?? '').replace(/^(?:the|a|an)\s+/i, ''))).split(/[^\p{L}\p{N}'’-]+/u).filter(Boolean)
+const ehFimDe = (curto: string[], longo: string[]) => curto.length > 0 && curto.length <= longo.length && curto.every((w, i) => w === longo[longo.length - curto.length + i])
+export const mesmaPessoa2411 = (a: string, b: string): boolean => mesmoPersonagem(a, b) || ehFimDe(palavrasDaPessoa(a), palavrasDaPessoa(b)) || ehFimDe(palavrasDaPessoa(b), palavrasDaPessoa(a))
+const nomeProprio2411 =(nome: string) => /^\p{Lu}[\p{L}'’.-]*(?: \p{Lu}[\p{L}'’.-]*){0,3}$/u.test(limpa(nome)) && !/^(?:the|a|an)\s/i.test(nome)
 
 /** O elenco com quem o autor nomeou e descreveu (ver o cabeçalho da seção). Nada a fazer = o MESMO array (referência). Nunca lança: erro = o mesmo array. */
 export function elencoDoLeitor2411(e: EntradaDoLeitor2411): { elenco: FichaDePersonagem[]; mudancas: MudancaDoLeitor2411[] } {
@@ -411,7 +419,7 @@ export function elencoDoLeitor2411(e: EntradaDoLeitor2411): { elenco: FichaDePer
       if (f.origem === 'autor') { const [cabeca, ...resto] = f.canonica.split('; '); return { ...f, canonica: [cabeca, `${MARCA_DO_PEDIDO_2411} ${d.trecho}`, ...resto].join('; ') } }
       return { ...f, canonica: canonicaLiteral(f, d.trecho, null, null), origem: 'autor' as FichaDePersonagem['origem'] }
     })
-    const candidatos = nomesDaNarracao2411(roteiro).filter((n) => !lugares.includes(norm(n)) && !ehFigura(n) && !elenco.some((f) => mesmoPersonagem(f.nome, n)))
+    const candidatos = nomesDaNarracao2411(roteiro).filter((n) => !lugares.includes(norm(n)) && !ehFigura(n) && !elenco.some((f) => mesmaPessoa2411(f.nome, n)))
     const usados = new Set<string>()
     // 2. a ficha sem nome que é o bicho/pessoa que o autor nomeou ("the retriever" = "Juno, a golden retriever …")
     elenco = elenco.map((f) => {
@@ -428,12 +436,17 @@ export function elencoDoLeitor2411(e: EntradaDoLeitor2411): { elenco: FichaDePer
     // 3. quem o autor nomeou e nenhuma ficha tem
     for (const n of candidatos) {
       if (elenco.length >= PERSONAGEM_MAX_PERSONAGENS) break
-      if (usados.has(n) || elenco.some((f) => mesmoPersonagem(f.nome, n))) continue
+      if (usados.has(n) || elenco.some((f) => mesmaPessoa2411(f.nome, n))) continue
       const leu = e.lidos === null ? null : e.lidos.some((l) => mesmoPersonagem(l, n))
       const d = descricaoDoNome2411(textos, n, null, [...nomesDoElenco(), ...candidatos])
       let nova: FichaDePersonagem | null = null
       // a descrição cita o papel de uma ficha SEM nome que ficou (o passo 2 teve dúvida): é provavelmente a mesma pessoa/bicho — nada
       if (d && elenco.some((f) => !nomeProprio2411(f.nome) && temPalavra(d.trecho, f.nucleo))) continue
+      // [volta 3] a mesma descrição que uma ficha já leva é a mesma pessoa (Le Prince: "Prince" já ganhou "bearded inventor…" pelo aposto de 09/11)
+      if (d && elenco.some((f) => f.canonica.includes(d.trecho))) continue
+      // [volta 3] NOVO só cria GENTE. Bicho/criatura só entra renomeando a ficha que a cadeia já tem (passo 2, Juno). Por aqui entravam, com uma
+      // menção só, personagem de marca (Sonic, Pikachu, Mickey, Garfield — decisão de 14/11: o nome não vai ao motor) e empresa "giant" (Apple, Amazon)
+      if (d && d.tipo !== 'humano') continue
       if (d && leu !== false) {
         nova = { nome: n, nucleo: d.tipo === 'humano' ? n.split(' ').pop()! : d.nucleo, tipo: d.tipo, canonica: canonicaLiteral({ nome: n }, d.trecho, null, null), origem: 'autor', protagonista: false, genero: d.tipo === 'humano' ? (generoDoPapel(d.trecho.split(/\s+(?:with|wearing|in|dressed)\s/iu)[0]) === 'female' ? 'woman' : generoDoPapel(d.trecho.split(/\s+(?:with|wearing|in|dressed)\s/iu)[0]) === 'male' ? 'man' : null) : null }
         mudancas.push({ nome: n, acao: 'novo', fonte: d.fonte, forma: d.forma, tipo: d.tipo })

@@ -113,6 +113,11 @@ function semRegressao(w) {
     const b = cadeia(w, c, { raw })
     if (JSON.stringify(a.final) !== JSON.stringify(b.final)) e.push(`M ${k}: o elenco mudou ${JSON.stringify(a.final.map((f) => f.canonica))} → ${JSON.stringify(b.final.map((f) => f.canonica))}`)
     if (b.mudancas.length !== 0) e.push(`M ${k}: mudanças ${JSON.stringify(b.mudancas)}`)
+    // [volta 3 — VOLTA da revisora] a leitura semântica FALHANDO (~16% dos filmes): o Le Prince saía "Prince" + "Louis Le Prince", a mesma descrição
+    const a0 = cadeia(w, c, { raw: null, leitor: false })
+    const b0 = cadeia(w, c, { raw: null })
+    if (JSON.stringify(a0.final) !== JSON.stringify(b0.final)) e.push(`M0 ${k} sem leitura: o elenco mudou ${JSON.stringify(nomes(a0.final))} → ${JSON.stringify(nomes(b0.final))}`)
+    if (b0.mudancas.length !== 0) e.push(`M0 ${k} sem leitura: mudanças ${JSON.stringify(b0.mudancas)}`)
   }
   return e
 }
@@ -128,6 +133,11 @@ function contraprovas(w) {
   // figura conhecida: regras de hoje (nada deduzido do nome)
   const han = L({ roteiro: 'Hanuman, a mighty monkey with a red cloth, leaped across the sea.', lidos: null })
   if (han.elenco.length !== 0) e.push('K2 figura conhecida entrou pelo leitor')
+  const jesus = L({ roteiro: 'Jesus Christ, a bearded man in a white robe, walked by the sea.', pedido: 'Jesus Christ, a bearded man in a white robe, walks by the sea.', lidos: ['Jesus Christ'], gente: ['Jesus Christ'] })
+  if (jesus.elenco.length !== 0) e.push('K2b figura conhecida (gente) entrou pelo leitor ' + nomes(jesus.elenco))
+  // dois nomes da mesma função para o papel sem nome que ficou ("the keeper"): dúvida no passo 2 e nenhum entra como NOVO no passo 3
+  const doisGuardas = w.m.elencoDoLeitor2411({ elenco: [fic('the keeper', { nucleo: 'keeper' })], pedido: 'Tom Hale is an old gray-bearded keeper in a navy coat. Sam Hale is a young red-haired keeper in a red coat.', roteiro: 'Tom Hale waved. Sam Hale ran to the light.', lidos: null, lugares: [] })
+  if (nomes(doisGuardas.elenco).join() !== 'the keeper' || doisGuardas.mudancas.length) e.push('K6c dois guardas para "the keeper" ' + nomes(doisGuardas.elenco))
   // função no começo de frase não é nome
   const isto = L({ roteiro: 'This is a small brown dog with a collar. It waits by the gate.', lidos: null })
   if (isto.elenco.length !== 0) e.push('K3 "This is a …" virou personagem ' + nomes(isto.elenco))
@@ -175,6 +185,30 @@ function contraprovas(w) {
   // a leitura leu o nome, mas como bicho/criatura (não gente): a via sem descrição não age
   const bicho = L({ roteiro: 'Captain Whiskers had guarded the ship for years.', lidos: ['Captain Whiskers'], gente: [] })
   if (bicho.elenco.length !== 0) e.push('K17 nome lido como bicho entrou como gente')
+  // ═══ volta 3 (parecer da revisora, 24/11 noite)
+  // a mesma pessoa com o nome pela metade (partícula): "Prince" no elenco, "Louis Le Prince, a bearded inventor…" no pedido — nada de 2ª ficha
+  const prince = w.m.elencoDoLeitor2411({ elenco: [fic('Prince')], pedido: 'Louis Le Prince, a bearded inventor in an 1880s suit, boarded a train.', roteiro: 'In 1888, Louis Le Prince shot a film. Le Prince boarded a train.', lidos: null, lugares: [] })
+  if (nomes(prince.elenco).join() !== 'Prince' || prince.mudancas.some((m) => m.acao === 'novo')) e.push('K18 Le Prince duplicado ' + nomes(prince.elenco))
+  // a mesma descrição que uma ficha já leva, com outro nome: a mesma pessoa
+  const mesmaDesc = w.m.elencoDoLeitor2411({ elenco: [fic('Lena', { origem: 'autor', canonica: 'Lena, exactly as the author wrote: "tall woman in a red coat"' })], pedido: 'Helen Park, a tall woman in a red coat, waits at the station.', roteiro: 'Helen Park waits at the station. Lena checks the clock.', lidos: null, lugares: [] })
+  if (nomes(mesmaDesc.elenco).join() !== 'Lena') e.push('K19 a mesma descrição virou 2ª ficha ' + nomes(mesmaDesc.elenco))
+  // nome com partícula é UM nome (era "Arc", "Gogh")
+  const joana = L({ roteiro: 'Joan of Arc led the army to Orleans.', pedido: 'Joan of Arc, a young peasant girl in armor, leads an army.', lidos: null })
+  if (joana.elenco.length && nomes(joana.elenco).join() !== 'Joan of Arc') e.push('K20 nome com partícula partido ' + nomes(joana.elenco))
+  const gogh = L({ roteiro: 'Vincent van Gogh painted all night.', pedido: 'Vincent van Gogh, a red-bearded painter in a straw hat, paints sunflowers.', lidos: null })
+  if (gogh.elenco.length && nomes(gogh.elenco).join() !== 'Vincent van Gogh') e.push('K21 van Gogh partido ' + nomes(gogh.elenco))
+  if (!w.m.nomesDaNarracao2411('Joan of Arc led the army. Vincent van Gogh painted.').includes('Joan of Arc')) e.push('K22 nomesDaNarracao partiu "Joan of Arc"')
+  // personagem de marca e empresa "giant" com uma menção só: o passo NOVO só cria gente
+  for (const [rot, ped, rote] of [['Sonic', 'Sonic, a blue hedgehog in red sneakers, races through the city.', 'Sonic races through the city at dawn.'], ['Pikachu', 'Pikachu, a small yellow creature with red cheeks, sparks.', 'Pikachu sparks in the rain.'], ['Apple', 'Apple, a tech giant, unveils a phone.', 'Apple unveils a new phone today.']]) {
+    const r = L({ roteiro: rote, pedido: ped, lidos: null })
+    if (r.elenco.length !== 0) e.push(`K23 ${rot} entrou ${JSON.stringify(r.elenco.map((f) => f.nome + '/' + f.tipo))}`)
+  }
+  // a descrição que cita OUTRO do elenco não é desta pessoa (L8 da revisora)
+  const outro = w.m.elencoDoLeitor2411({ elenco: [fic('Mara'), fic('Rex', { tipo: 'animal', nucleo: 'dog', protagonista: false })], pedido: 'Mara is a young woman in a Rex sweater.', roteiro: 'Mara walked Rex. Mara laughed.', lidos: null, lugares: [] })
+  if (outro.elenco[0]?.canonica !== 'Mara, a person') e.push('K24 descrição que cita o Rex foi para a Mara ' + outro.elenco[0]?.canonica)
+  // ideia × narração em conflito: vence o PEDIDO (L10 da revisora)
+  const conflito = L({ roteiro: 'Elias Ward, a young man in a red jacket, kept the light. Elias Ward waited.', pedido: 'Elias Ward, a gray-bearded keeper in a navy coat, guides a boat.', lidos: null })
+  if (!com(conflito.elenco[0]?.canonica, 'gray-bearded keeper in a navy coat') || conflito.mudancas[0]?.fonte !== 'pedido') e.push('K25 a narração venceu o pedido ' + conflito.elenco[0]?.canonica)
   // teto do elenco (PERSONAGEM_MAX_PERSONAGENS = 2)
   const tres = L({ roteiro: 'Elias Ward had kept the light. Mara Quinn caught the call. Tom Reed rowed the boat.', lidos: ['Elias Ward', 'Mara Quinn', 'Tom Reed'], gente: ['Elias Ward', 'Mara Quinn', 'Tom Reed'] })
   if (tres.elenco.length !== 2) e.push('K13 teto do elenco ' + nomes(tres.elenco))
@@ -215,7 +249,7 @@ const reg = semRegressao(real)
 checa('Cooper, Le Prince e Slocum: o elenco final é o MESMO com e sem o leitor', reg.length === 0)
 for (const x of reg) console.log('    ' + x)
 const cp = contraprovas(real)
-checa('contraprovas (19): nome nu, figura, "This is", só no pedido, lugar, dois cães (2), verbo, árabe, cirílico, sem leitura, nome curto, identidade, erro, teto, "Meet Juno" na narração, Metal Sonic, Ein Junge, bicho lido', cp.length === 0)
+checa('contraprovas (29): nome nu, figura (2), Le Prince, mesma descrição, Joan of Arc, van Gogh, marca e "giant" (3), descrição de outro, pedido × narração, "This is", só no pedido, lugar, dois cães (2), verbo, árabe, cirílico, sem leitura, nome curto, identidade, erro, teto, "Meet Juno" na narração, Metal Sonic, Ein Junge, bicho lido', cp.length === 0)
 for (const x of cp) console.log('    ' + x)
 const ir = interruptorERota(real)
 checa('interruptor nasce internal; cliente desligado; UM bloco na rota entre o sujeito vivo e o casting', ir.length === 0)
@@ -224,6 +258,13 @@ console.log('  relato:', JSON.stringify(p.relato))
 
 // ═══ Mutantes: cada um tem de ficar vermelho
 const MUTANTES = [
+  ['V1 a mesma pessoa só por mesmoPersonagem (o VOLTA: Le Prince duplicado)', (t) => t.replace("export const mesmaPessoa2411 = (a: string, b: string): boolean => mesmoPersonagem(a, b) || ehFimDe(palavrasDaPessoa(a), palavrasDaPessoa(b)) || ehFimDe(palavrasDaPessoa(b), palavrasDaPessoa(a))", 'export const mesmaPessoa2411 = (a: string, b: string): boolean => mesmoPersonagem(a, b)')],
+  ['V1b o passo 3 sem checar quem já está no elenco (L9 da revisora)', (t) => t.replace('if (usados.has(n) || elenco.some((f) => mesmaPessoa2411(f.nome, n))) continue', 'if (usados.has(n)) continue').replace('!ehFigura(n) && !elenco.some((f) => mesmaPessoa2411(f.nome, n)))', '!ehFigura(n))')],
+  ['V2 sem a mesma descrição', (t) => t.replace('if (d && elenco.some((f) => f.canonica.includes(d.trecho))) continue', '')],
+  ['V3 o passo NOVO cria bicho/criatura (marca, "giant")', (t) => t.replace("if (d && d.tipo !== 'humano') continue", '')],
+  ['V4 sem partícula no nome', (t) => t.replace("(?: (?:${PARTICULA_2411} )?\\\\p{Lu}\\\\p{Ll}+(?:'s|’s)?){0,3}", "(?: \\\\p{Lu}\\\\p{Ll}+(?:'s|’s)?){0,2}")],
+  ['V5 a descrição que cita outro do elenco passa (L8)', (t) => t.replace('if (outros.some((o) => o && !mesmoPersonagem(o, n) && /^\\p{Lu}/u.test(o) && temPalavra(t.trecho, o))) continue // cita outro do elenco', '')],
+  ['V6 a narração antes do pedido (L10)', (t) => t.replace("const textos = [{ texto: pedido, fonte: 'pedido' as const }, { texto: narracao, fonte: 'roteiro' as const }]", "const textos = [{ texto: narracao, fonte: 'roteiro' as const }, { texto: pedido, fonte: 'pedido' as const }]")],
   ['M1 a leitura que respondeu sem o nome não barra', (t) => t.replace('if (d && leu !== false) {', 'if (d) {')],
   ['M2 nome sem sobrenome entra sem descrição', (t) => t.replace("leu === true && n.split(' ').length >= 2", "leu === true && n.split(' ').length >= 1")],
   ['M3 sobrenome entra sem a leitura', (t) => t.replace("} else if (!d && leu === true && n.split(' ')", "} else if (!d && leu !== false && n.split(' ')")],
