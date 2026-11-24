@@ -53,19 +53,23 @@ const start = route.indexOf('    // KINEO-FILME15-PERFEITO-2610: production capt
 const end = route.indexOf('    if (captionSelection.alignment)', start)
 assert.ok(start > 0 && end > start)
 const js = ts.transpileModule(route.slice(start, end), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
-const run = new (Object.getPrototypeOf(async function() {}).constructor)('source', 'quality', 'cinematicBirthClaim', 'legendaWords', 'captionSelection', 'scaledScript', 'realAudioDuration', 'isSeedanceShortClaim', 'require', js + '\nreturn source')
-const G = load('@/lib/free15Gate'), D = load('@/lib/durationByEngine')
+const run = new (Object.getPrototypeOf(async function() {}).constructor)('source', 'quality', 'cinematicBirthClaim', 'legendaWords', 'captionSelection', 'scaledScript', 'realAudioDuration', 'isSeedanceShortClaim', 'kling4TrialEngineFromClaim', 'require', 'idiomaDeSentido', js + '\nreturn source')
+const G = load('@/lib/free15Gate'), D = load('@/lib/durationByEngine'), K = load('@/lib/kling4TrialClaim')
 const requireLocal = name => name === '@/lib/free15CanonicalCaptions' ? C : name === '@/lib/free15Gate' ? G : assert.fail('Unexpected provider import: ' + name)
 const birth = { response: { duration: 15, fal_model: 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video' } }
 const script = 'Com orelhas flexíveis e reações hilárias!'
 for (const [words, alignment] of [[undefined, null], [[{ word: 'evidence' }], { source: 'canonical_tts_script' }]]) {
-  const result = await run(source, 'cinematic_ai', birth, words, { alignment }, script, 14.8, D.isSeedanceShortClaim, requireLocal)
+  const result = await run(source, 'cinematic_ai', birth, words, { alignment }, script, 14.8, D.isSeedanceShortClaim, K.kling4TrialEngineFromClaim, requireLocal)
   assert.deepEqual(JSON.parse(JSON.stringify(result.elements.filter(e => e.track !== 5))), source.elements.filter(e => e.track !== 5))
   const captions = result.elements.filter(e => e.track === 5)
   assert.equal(clean(captions.map(e => e.text).join(' ')), clean(script))
   assert.ok(!captions.slice(0, -1).some(e => /\be$/i.test(e.text)), 'real proportional fallback no longer ends on E')
 }
+// Internal segmentation must survive the actual canonical fallback in this route.
+const cooper = 'Fifty-five years ago today, a man in a black tie boarded a plane.'
+const result = await run(source, 'cinematic_ai', birth, undefined, { alignment: null }, cooper, 14.8, D.isSeedanceShortClaim, K.kling4TrialEngineFromClaim, requireLocal, 'en')
+assert.ok(result.elements.some(e => e.track === 5 && /BLACK TIE/.test(e.text)))
 for (const [quality, claim, words] of [['cinematic_ai', { response: { ...birth.response, duration: 35 } }, undefined], ['cinematic_kling', birth, undefined], ['cinematic_ai', birth, [{ word: 'intact ASR' }]]]) {
-  assert.equal(await run(source, quality, claim, words, { alignment: null }, script, 14.8, D.isSeedanceShortClaim, requireLocal), source, 'outside scoped fallback: exact original source')
+  assert.equal(await run(source, quality, claim, words, { alignment: null }, script, 14.8, D.isSeedanceShortClaim, K.kling4TrialEngineFromClaim, requireLocal), source, 'outside scoped fallback: exact original source')
 }
 console.log('PASS: canonical EN/PT/ES, no orphan/connector, contiguous approximate timing, styles, voice/cuts immutable, compact fallback.')

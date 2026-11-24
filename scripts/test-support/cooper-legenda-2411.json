@@ -1,0 +1,101 @@
+{
+  "film": "Cooper 2b17bd7f, vídeo de 15 s de 24/11/2026; docs/canais/2026-11-24/1-cooper.mp4",
+  "tracks": [
+    {
+      "lang": "en",
+      "text": "Fifty-five years ago today, a man in a black tie boarded a plane. Calling himself Dan Cooper, he demanded cash and four parachutes. That night, somewhere past Seattle, he jumped. Some of the cash turned up. Cooper never did.",
+      "starts": [
+        0,
+        0.45,
+        0.72,
+        1,
+        1.36,
+        1.49,
+        1.69,
+        1.85,
+        1.98,
+        2.21,
+        2.43,
+        2.94,
+        3.4,
+        3.95,
+        4.14,
+        4.4,
+        4.65,
+        5.15,
+        5.46,
+        5.71,
+        5.94,
+        6.22,
+        6.66,
+        8.16,
+        8.4,
+        8.7,
+        9.13,
+        9.43,
+        9.82,
+        10.02,
+        10.95,
+        11.06,
+        11.19,
+        11.31,
+        11.72,
+        12.11,
+        12.64,
+        13.02,
+        13.34
+      ],
+      "end": 13.75,
+      "originalCuts": [
+        4,
+        9,
+        13,
+        18,
+        23,
+        27,
+        30,
+        34,
+        36
+      ],
+      "bind": [
+        "fifty-five years",
+        "black tie",
+        "dan cooper",
+        "he demanded",
+        "four parachutes",
+        "past seattle",
+        "he jumped",
+        "turned up",
+        "never did"
+      ]
+    },
+    {
+      "lang": "pt",
+      "text": "Há cinquenta e cinco anos, um homem com uma gravata preta embarcou num avião. Usando o nome Dan Cooper, ele exigiu dinheiro e quatro paraquedas. Naquela noite, depois de Seattle, ele saltou. Parte do dinheiro reapareceu. Cooper nunca voltou.",
+      "bind": [
+        "cinco anos",
+        "gravata preta",
+        "dan cooper",
+        "ele exigiu",
+        "quatro paraquedas",
+        "de seattle",
+        "ele saltou",
+        "nunca voltou"
+      ]
+    },
+    {
+      "lang": "es",
+      "text": "Hace cincuenta y cinco años, un hombre con una corbata negra subió a un avión. Bajo el nombre de Dan Cooper, él exigió dinero y cuatro paracaídas. Esa noche, después de Seattle, él saltó. Parte del dinero reapareció. Cooper nunca volvió.",
+      "bind": [
+        "cinco años",
+        "corbata negra",
+        "dan cooper",
+        "él exigió",
+        "cuatro paracaídas",
+        "de seattle",
+        "él saltó",
+        "nunca volvió"
+      ]
+    }
+  ]
+}

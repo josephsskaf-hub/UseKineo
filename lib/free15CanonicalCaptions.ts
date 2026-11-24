@@ -3,6 +3,7 @@
 // measured audio duration. These internal positions are NEVER ASR/audio evidence.
 import { buildCaptionElements } from '@/lib/compose'
 import { agruparLegendaFaceless15 } from '@/lib/filmes/faceless15'
+import type { IdiomaDeSentido } from './filmes/legendaSentido'
 import { narrationTokens } from '@/lib/textLanguage'
 
 export const FREE15_CANONICAL_CAPTION_TIMING = 'approximate' as const
@@ -19,7 +20,7 @@ const STYLE_KEYS = ['x', 'y', 'x_anchor', 'y_anchor', 'width', 'height', 'x_alig
  * FREE15_CANONICAL_CAPTION_TIMING in its own quality metadata. Compact writing
  * systems keep the existing builder path: Latin grouping rules are uncalibrated.
  */
-export function buildFree15CanonicalCaptions(input: { script: string; audioSeconds: number; source: Record<string, unknown> }): unknown[] {
+export function buildFree15CanonicalCaptions(input: { script: string; audioSeconds: number; source: Record<string, unknown>; idiomaDeSentido?: IdiomaDeSentido }): unknown[] {
   const existing = Array.isArray(input.source.elements) ? input.source.elements.filter(caption) : []
   const seconds = input.audioSeconds
   if (!Number.isFinite(seconds) || seconds <= 0 || seconds > 90 || !input.script.trim()) return []
@@ -30,7 +31,7 @@ export function buildFree15CanonicalCaptions(input: { script: string; audioSecon
     word, start: r3(seconds * i / tokens.length), end: r3(seconds * (i + 1) / tokens.length),
     sentenceEnd: /[.!?…؟۔।。！？]["'”’»)\]」』]*$/.test(word), // KINEO-LEGENDA-PONTO-ALFABETOS
   }))
-  const blocks = agruparLegendaFaceless15(proportional, seconds)
+  const blocks = agruparLegendaFaceless15(proportional, seconds, undefined, input.idiomaDeSentido)
   const styles = existing.filter(e => Number(e.track) === 5 && typeof e.time === 'number' && Number.isFinite(e.time))
     .slice().sort((a, b) => Number(a.time) - Number(b.time))
   return blocks.flatMap((block, i) => {

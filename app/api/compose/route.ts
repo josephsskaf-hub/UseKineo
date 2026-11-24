@@ -19,7 +19,8 @@ import {
 import { normalizeAspect } from '@/lib/aspect'
 import { findBrandLogoUrl, withBrandLogo } from '@/lib/brandLogo' // KINEO-LOGO-DA-MARCA-2026-10-01
 import { withHookFirstFrame, hookNarration } from '@/lib/hookFirstFrame' // KINEO-GANCHO-1Q-2026-10-03
-import { isInternalEmail } from '@/lib/internalAccounts' // KINEO-GANCHO-1Q-2026-10-03
+import { contaDaCasaExata, isInternalEmail } from '@/lib/internalAccounts' // KINEO-GANCHO-1Q-2026-10-03
+import { idiomaDaLegendaDeSentido } from '@/lib/filmes/legendaSentido'
 import { resolverFaceless15, aplicarFaceless15, aplicarGanchoFaceless15 } from '@/lib/filmes/faceless15' // KINEO-FILMES-F1-F4-1910 [TRAVA 8.2 — vai do fundador 19/10 "vai, sim pra tudo"] — a receita "Faceless 15 s" (F1 legenda · F2 gancho · F3 som · F4 5 planos), fase a fase, atrás de interruptores
 import { captionFontFor } from '@/lib/textLanguage' // KINEO-GANCHO-1Q-2026-10-03
 import { decidirLegenda, tirarLegendaEGancho } from '@/lib/semLegenda' // KINEO-SEM-LEGENDA-2026-10-06
@@ -3607,13 +3608,19 @@ export async function POST(req: NextRequest) {
     }
     const faceless15 = resolverFaceless15({ interna: isInternalEmail(user.email), pedido: (body as { formatFlags?: unknown; format_flags?: unknown }).formatFlags ?? (body as { format_flags?: unknown }).format_flags, quality, duration, aspect: aspectRequested, avatar: avatarMode, studioAds: isServiceFinish && body.narration_source === 'tts' }) // KINEO-FILMES-F1-F4-1910 — só Seedance 1.5 de 15 s em 9:16; fase pública (FACELESS15_PUBLIC) ou pedida por conta interna (formatFlags); cliente que manda o campo é ignorado
     if (composeInputs.kling4TrialEngine === 'kling4') faceless15.fases = faceless15.fases.filter(f => f !== 'f4' && f !== 'cta')
-    const faceless15Relato = aplicarFaceless15(source, faceless15, { whisperWords: legendaWords ?? null, clipSeconds: composeClipUrls === clipUrls ? signedClipPlan?.seconds ?? null : null, font: captionFontFor(language) }) // KINEO-FILMES-F1-F4-1910 — F1/F3/F4 em cima do source montado (lib/compose intocada), SÍNCRONO, antes de qualquer espera assíncrona (quadro/fonte da mesma montagem); fase desligada = source intacto, byte a byte
+    const idiomaDeSentido = faceless15.formato
+      ? await idiomaDaLegendaDeSentido(language, contaDaCasaExata(user.email), isServiceFinish ? async () => {
+          const { data, error } = await composeAdmin.auth.admin.getUserById(authenticatedUserId)
+          return !error && contaDaCasaExata(data?.user?.email)
+        } : undefined)
+      : undefined
+    const faceless15Relato = aplicarFaceless15(source, faceless15, { idiomaDeSentido, whisperWords: legendaWords ?? null, clipSeconds: composeClipUrls === clipUrls ? signedClipPlan?.seconds ?? null : null, font: captionFontFor(language) }) // KINEO-FILMES-F1-F4-1910 — F1/F3/F4 em cima do source montado (lib/compose intocada), SÍNCRONO, antes de qualquer espera assíncrona (quadro/fonte da mesma montagem); fase desligada = source intacto, byte a byte
     // FREE15-CAPTION-TEXT-2610: rebuild only caption text with measured audio duration.
     // Preserve the original assembled film, including ASR-guided cuts, music and voice.
     const captionSelection = selectOwnTtsCaptionSource({
       source, compose: composeInputs, evidence: captionEvidence, build: buildCreatomateSource,
       decorate: canonical => {
-        const relato = aplicarFaceless15(canonical, faceless15, { whisperWords: null, clipSeconds: composeInputs.clipSeconds, font: captionFontFor(language) })
+        const relato = aplicarFaceless15(canonical, faceless15, { idiomaDeSentido, whisperWords: null, clipSeconds: composeInputs.clipSeconds, font: captionFontFor(language) })
         if (relato.f1) faceless15Relato.f1 = relato.f1
       },
     })
@@ -3625,7 +3632,7 @@ export async function POST(req: NextRequest) {
       (!legendaWords?.length || captionSelection.alignment?.source === 'canonical_tts_script')) {
       const { buildFree15CanonicalCaptions } = await import('@/lib/free15CanonicalCaptions')
       const { repairGateCaptions } = await import('@/lib/free15Gate')
-      const canonicalCaptions = buildFree15CanonicalCaptions({ script: scaledScript, audioSeconds: realAudioDuration, source })
+      const canonicalCaptions = buildFree15CanonicalCaptions({ script: scaledScript, audioSeconds: realAudioDuration, source, idiomaDeSentido })
       source = repairGateCaptions(source, canonicalCaptions) ?? source
     }
     if (captionSelection.alignment) console.log('[compose-caption-alignment]', captionSelection.alignment)
@@ -3795,7 +3802,7 @@ export async function POST(req: NextRequest) {
     if (quality === 'cinematic_ai' && (isSeedanceShortClaim(cinematicBirthClaim?.response) || kling4TrialEngineFromClaim(cinematicBirthClaim?.response) !== null) && cinematicBirthClaim?.response?.free15_gate_version === FREE15_GATE_VERSION) {
       const { storeFree15Gate } = await import('@/lib/free15GateServer')
       const { buildFree15CanonicalCaptions, FREE15_CANONICAL_CAPTION_TIMING } = await import('@/lib/free15CanonicalCaptions')
-      const captionElements = buildFree15CanonicalCaptions({ script: scaledScript, audioSeconds: realAudioDuration, source })
+      const captionElements = buildFree15CanonicalCaptions({ script: scaledScript, audioSeconds: realAudioDuration, source, idiomaDeSentido })
       const stored = await storeFree15Gate({ db: composeAdmin, secret: serviceRoleKey, userId: authenticatedUserId, renderId, state: {
         version: FREE15_GATE_VERSION, status: 'ready', source, captionElements, captionTiming: FREE15_CANONICAL_CAPTION_TIMING,
         ...(kling4TrialEngineFromClaim(cinematicBirthClaim?.response) !== null ? { minimumSeconds: 15 as const } : {}),

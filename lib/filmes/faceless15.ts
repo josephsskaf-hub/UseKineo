@@ -30,6 +30,7 @@
 //        keyframe nunca foi exercitado pela casa (nenhum uso no repo) — então a música volta a UM elemento só, do 0 ao
 //        fim do filme, a 14 % fixos, com os fades de sempre de lib/compose (0,8 / 1,2 s, provados em produção no F0);
 //        sem ducking. Riser/whoosh/pop ficam como estavam.
+import { fronteirasDeSentido, palavraFuncionalDeSentido, type IdiomaDeSentido } from './legendaSentido'
 import { buildCaptionElements, buildCaptionsFromWhisperWords, sentenceStartTimes, type WhisperWord } from '@/lib/compose'
 import { fonteDaLegendaQueCabe } from '@/lib/compose' // KINEO-LEGENDA-PALAVRA-LONGA-1111
 import { pickHighlightWord } from '@/lib/openai'
@@ -254,11 +255,16 @@ export function partirFraseFaceless15(n: number, naoFecha: ReadonlyArray<boolean
   return tams
 }
 
+function indicesDasQuebras(tamanhos: number[]): number[] {
+  let ultimo = -1
+  return tamanhos.slice(0, -1).map(tamanho => { ultimo += tamanho; return ultimo })
+}
+
 /**
  * Os blocos da legenda da F1, a partir do Whisper. Usa o mesmo normalizador de tokens de lib/compose (junta "A"+"M",
  * cola "5 AM", corta a janela) chamando-o com 1 palavra por bloco, e agrupa aqui com as regras da receita.
  */
-export function agruparLegendaFaceless15(whisperWords: ReadonlyArray<WhisperWord>, fimJanela: number, max = FACELESS15_LEGENDA_PALAVRAS): BlocoLegendaFaceless15[] {
+export function agruparLegendaFaceless15(whisperWords: ReadonlyArray<WhisperWord>, fimJanela: number, max = FACELESS15_LEGENDA_PALAVRAS, idiomaDeSentido?: IdiomaDeSentido): BlocoLegendaFaceless15[] {
   const originais = whisperWords as WhisperWord[]
   const brutos = buildCaptionsFromWhisperWords(originais, fimJanela, 0, 1)
     .map((c) => c.words[0])
@@ -314,8 +320,18 @@ export function agruparLegendaFaceless15(whisperWords: ReadonlyArray<WhisperWord
     ws.forEach((w, k) => { if (numeroPresoAPalavraRtl(w.word, ws[k + 1]?.word)) naoCorta[k] = true }) // KINEO-LEGENDA-NUMERO-RTL-0111 — RTL: nunca fecha bloco entre a palavra e o número que ela rege ("عام | ١٩٢٢", render 8d314182); LTR: nada muda
     const naoFecha = ws.map((w) => FACELESS15_PALAVRAS_QUE_NAO_FECHAM.has(normPalavra(w.word)))
     const virgula = ws.map((w, i) => (temVirgula(w) ? 6 : 0) + (gap(f.ini + i) >= PAUSA_FRASE_S ? 8 : gap(f.ini + i) >= PAUSA_VIRGULA_S ? 4 : 0))
+    let tamanhos = partirFraseFaceless15(ws.length, naoFecha, virgula, max, naoCorta)
+    if (idiomaDeSentido) {
+      const unidos = fronteirasDeSentido(ws.map(w => w.word), idiomaDeSentido)
+      const antes = indicesDasQuebras(tamanhos)
+      if (antes.some(i => unidos[i])) {
+        const protegidos = naoCorta.map((preso, i) => preso || unidos[i] || ((naoFecha[i] || palavraFuncionalDeSentido(ws[i].word, idiomaDeSentido)) && !antes.includes(i)))
+        const candidato = partirFraseFaceless15(ws.length, naoFecha, virgula, max, protegidos)
+        if (indicesDasQuebras(candidato).every(i => !protegidos[i])) tamanhos = candidato
+      }
+    }
     let i = 0
-    for (const tam of partirFraseFaceless15(ws.length, naoFecha, virgula, max, naoCorta)) { // KINEO-FILME15-PERFEITO-2610
+    for (const tam of tamanhos) { // KINEO-FILME15-PERFEITO-2610
       const usados = ws.slice(i, i + tam) // KINEO-FILME15-PERFEITO-2610 — a partição conserva todas as palavras faladas
       i += tam
       // KINEO-FILME15-PERFEITO-2610 — não deduplica depois da partição: "very / very beginning" virava "beginning" sozinho,
@@ -329,7 +345,7 @@ export function agruparLegendaFaceless15(whisperWords: ReadonlyArray<WhisperWord
 }
 
 /** A legenda da receita, em cima do source montado. Devolve os elementos novos (nunca muda os recebidos). */
-export function aplicarF1Faceless15(els: ReadonlyArray<El>, quadro: QuadroFaceless15, whisperWords?: ReadonlyArray<WhisperWord> | null): { els: El[]; relato: RelatoF1 } {
+export function aplicarF1Faceless15(els: ReadonlyArray<El>, quadro: QuadroFaceless15, whisperWords?: ReadonlyArray<WhisperWord> | null, idiomaDeSentido?: IdiomaDeSentido): { els: El[]; relato: RelatoF1 } {
   const idx = els.findIndex((e) => ehTexto(e, 5))
   const semLegenda = els.filter((e) => !ehTexto(e, 5))
   const antigas = els.filter((e) => ehTexto(e, 5))
@@ -349,7 +365,7 @@ export function aplicarF1Faceless15(els: ReadonlyArray<El>, quadro: QuadroFacele
   if (Array.isArray(whisperWords) && whisperWords.length > 0) {
     chunker = 'whisper'
     const fimJanela = r3(Math.min(quadro.falaFim, quadro.total))
-    const caps = agruparLegendaFaceless15(whisperWords, fimJanela) // KINEO-FILMES-F1F3-AJUSTE-1910 — era o corte cego de lib/compose (≤5 sem olhar a frase): órfãs
+    const caps = agruparLegendaFaceless15(whisperWords, fimJanela, undefined, idiomaDeSentido) // KINEO-FILMES-F1F3-AJUSTE-1910 — era o corte cego de lib/compose (≤5 sem olhar a frase): órfãs
     const primeiraFraseAcaba = (() => {
       const w = whisperWords.find((x) => x.sentenceEnd === true)
       return w && Number.isFinite(w.end) ? Math.min(6, Math.max(JANELA_GANCHO_S, w.end)) : JANELA_GANCHO_S
@@ -681,6 +697,7 @@ export function aplicarF4Faceless15(els: ReadonlyArray<El>, quadro: QuadroFacele
 
 // ── a aplicação (F1/F3/F4 em cima do source montado) ─────────────────────────────────────────────────────────────────
 export interface ContextoFaceless15 {
+  idiomaDeSentido?: IdiomaDeSentido
   whisperWords?: ReadonlyArray<WhisperWord> | null
   /** Segundos REAIS de cada clipe (claim assinado, via /api/compose), alinhados à ordem dos clipes. */
   clipSeconds?: ReadonlyArray<number> | null
@@ -728,7 +745,7 @@ export function aplicarFaceless15(source: Record<string, unknown>, decisao: Face
   }
   if (fases.has('f1')) {
     try {
-      const r = aplicarF1Faceless15(els, quadroDe(els), ctx.whisperWords)
+      const r = aplicarF1Faceless15(els, quadroDe(els), ctx.whisperWords, ctx.idiomaDeSentido)
       els = r.els
       relato.f1 = r.relato
     } catch (err) { erros.push(`f1:${err instanceof Error ? err.message : String(err)}`) }
