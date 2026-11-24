@@ -18,3 +18,9 @@
 
 ## Gate final concluído
 **TESTADO LOCALMENTE.** Na fonte 36bcf8ed6170b0f60f6ab6d64767b69ce9fdccee, scripts/ci/novos-vermelhos.sh terminou exit 0: 136 testes, 85 verdes, 51 também vermelhos na main 67bfb60fdd4fcdc32934ed08213099c0cdc409c2, zero novo, nenhum timeout. Todos os testes próprios de Citações e os dois reancorados passaram. GATES-FINAIS.json e logs integrais preservados. Mudanças posteriores a essa ponta são apenas documentação, com equivalência de app/components/lib/scripts/config conferida. Uso semanal final 17%. Source de formatos 2fd8db144 não contém crescimento; composição separada mantém sua dependência. Aprovação independente não é prova de resultado comercial nem publicação.
+
+
+## Encerramento das referências portáveis
+**TESTADO LOCALMENTE.** Após a rodada integral, verificou-se que três referências de fontes aprovadas não pertenciam à história publicada. Foram preservadas como fixtures versionadas com hash fixado, sem alterar os conteúdos de baseline, asserções ou mutantes. Repetidos pelo novos-vermelhos: formato (um) e crescimento (três), todos verdes/zero novo. O formulário repetiu 144 casos/oito mutantes, escritor cinco e Google oito. Produto/configuração continuam byte a byte iguais à fonte 36bcf8ed6 já aprovada; só testes, fixtures e documentação mudaram depois. GATES-FINAIS.json registra as quatro repetições separadamente, sem somá-las aos 136 guardiões únicos.
+
+**ORDEM DEFINITIVA.** e591827c5 → codex/citacoes-formatos-base-final-2411 (37c8193e389ff9705a6d27c434571ee4f49c1096) → codex/citacoes-crescimento-base-final-2411. Só formatos no lote da madrugada. O SHA final de crescimento é o do registro Entregue à CEO no quadro. Originais 94c15505f e rodada de 61 preservados. Chaves off; uso semanal 17%.

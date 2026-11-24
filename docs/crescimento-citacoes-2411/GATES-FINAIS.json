@@ -762,5 +762,25 @@
       "exit": 1
     }
   ],
-  "scope": "Offline contract gates, not production activation/revenue. Original 61 comparison preserved separately with its two reds; these were fixed by preserving old content receipt and actual default GET rendering."
+  "scope": "Offline contract gates, not production activation/revenue. Original 61 comparison preserved separately with its two reds; these were fixed by preserving old content receipt and actual default GET rendering.",
+  "deliveredFormats": "37c8193e389ff9705a6d27c434571ee4f49c1096",
+  "portableReferences": {
+    "formats": {
+      "count": 1,
+      "green": 1,
+      "newRed": 0,
+      "exit": 0,
+      "logDirectory": "C:/Users/josep/AppData/Local/Temp/citacoes-compat-base-final-2411/ci-formato-portavel"
+    },
+    "growth": {
+      "count": 3,
+      "green": 3,
+      "newRed": 0,
+      "exit": 0,
+      "logDirectory": "C:/Users/josep/AppData/Local/Temp/citacoes-compat-base-final-2411/ci-crescimento-portavel"
+    },
+    "testedGrowth": "6ebd5d723b6c777cbcb1c611ce87074f81c6090b",
+    "note": "Same assertions/mutants and exact historical sources, now versioned with pinned hashes; no unmerged Git dependency."
+  },
+  "finalProductEquivalentToTestedCandidate": true
 }
