@@ -2,7 +2,15 @@ import assert from 'node:assert/strict'
 import {renderBuyerProof2011} from './test-support/citacoes2011-render.mjs'
 import {offlineModules} from './gpt24h-offline-support.mjs'
 const load=offlineModules(),data=load('lib/seo/buyerAnswers2011.ts'),cost=load('lib/credits/engineCost.ts'),bill=load('lib/checkoutPricing.ts')
-const html=await renderBuyerProof2011() // current modules, no artifact writes
+// KINEO-CITACOES-PUBLIC-2411: a prova de 20/11 mede o layout do comprador com a caixa de filme em 'off'; a caixa (agora 'public')
+// sobe para o topo e empurra a resposta para logo depois dela — conferido abaixo que a resposta continua inteira, uma vez.
+const html=await renderBuyerProof2011({filmRelease:'off'}) // current modules, no artifact writes
+const live=await renderBuyerProof2011()
+for(const id of ['pt','urdu','h3','cost','script','text']){
+ const answer=html['after-'+id].match(/<p\b[^>]*data-buyer-answer[^>]*>[\s\S]*?<\/p>/)?.[0]
+ if(answer)assert.equal(live['after-'+id].split(answer).length,2,'PUBLIC film box keeps the buyer answer exactly once ('+id+')')
+ else assert.equal(live['after-'+id],html['after-'+id],'PUBLIC film box leaves pages without buyer answer unchanged ('+id+')')
+}
 for(const [id,kind] of [['pt','portuguese'],['urdu','urdu'],['h3','h3'],['cost','cost'],['script','script'],['text','text']]){
  const before=html['before-'+id],after=html['after-'+id],p=data.BUYER_2011[kind]
  assert.ok(after.indexOf('data-buyer-answer')>after.indexOf('<h1'))
