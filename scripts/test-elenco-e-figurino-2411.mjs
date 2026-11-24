@@ -356,6 +356,63 @@ function provaFiacaoExecutada(rota) {
   return e
 }
 
+// ═══ KINEO-LEITURA-2411 · a medida (só mede; o filme não muda) ═════════════════════════════════════════════════════════
+const LINGUA_RE = /^[a-z]{2,3}(?:-[a-z0-9]{2,4})?$/
+function medida(w, caso, raw, visuais, doPedido, extrairExtra = null) { caso = { ...caso, roteiro: caso.roteiro ?? caso.rot };
+  const lang = carrega('lib/textLanguage.ts')
+  const extrair = extrairExtra ?? ((tx) => w.conf.elencoConferido(w.aj.elencoDoRoteiro(tx), null).elenco)
+  const det = lang.detectNarrationLanguage(caso.roteiro.replace(/\[[^\]]*\]/g, ' ')).language
+  const base = w.m.medidaDaLeitura2411({ leituraBruta: raw, linguaResolvida: 'en', linguaDoDetector: det, linguaPedida: 'en' })
+  const antesFn = w.sem.aceitaPapelDasCenas(caso.roteiro)
+  const m15 = (completar) => w.f15.elencoDoFilme15({ elencoDoPedido: doPedido, visuals: visuais, extrair, completar }).elenco.length
+  return w.m.medidaDaRegra2411(base, { roteiro: caso.roteiro, visuais, extrair, elencoHoje: () => m15(antesFn), elencoSePublic: () => m15(w.m.aceitaPapelSemPista(caso.roteiro, antesFn, doPedido[0], { lingua: 'en', leituraBruta: raw })) })
+}
+const soTiposPermitidos = (b) => Object.entries(b).every(([k, v]) => v === null || typeof v === 'number' || typeof v === 'boolean' || (typeof v === 'string' && (k === 'versao' ? v === 'leitura_2411_v1' : LINGUA_RE.test(v))))
+function provaMedida(w) {
+  const e = []
+  const sloPed = fichaDaLeitura(w, SLO).aplicado.elenco
+  const s = medida(w, SLO, CTX_SLO.leituraBruta, SLO.visuais_do_render, sloPed)
+  if (!(s.respondeu === true && s.pessoas_lidas === 1 && s.coadjuvantes_so_citados === 0 && s.papeis_so_da_pista === 1 && s.elenco_antes === 2 && s.elenco_se_public === 1 && s.a_regra_agiria === true)) e.push('L1 Slocum ' + JSON.stringify(s))
+  const lpPed = lePrinceNos15(w).elenco
+  const l = medida(w, LEP, CTX_LEP.leituraBruta, LEP_VIS, lpPed)
+  if (!(l.pessoas_lidas === 1 && l.elenco_antes === 2 && l.elenco_se_public === 1 && l.a_regra_agiria === true && l.lingua_do_detector === null && l.lingua_resolvida === 'en')) e.push('L2 Le Prince ' + JSON.stringify(l))
+  const cooPed = fichaDaLeitura(w, COO).aplicado.elenco
+  const c = medida(w, COO, JSON.stringify(COO.leitura_semantica.raw), COO.planos_enviados, cooPed)
+  if (!(c.pessoas_lidas === 1 && c.a_regra_agiria === false && c.elenco_antes === c.elenco_se_public)) e.push('L3 Cooper ' + JSON.stringify(c))
+  // irmãs e estranho: com a leitura que vê a 2ª pessoa (só citada) a regra não agiria; com a leitura que a perde, agiria (é o que a medida vai mostrar)
+  const irmaPed = [ficV('Mara Hale', 'woman')], estPed = [ficV('Tom Hale', 'man')]
+  const i2 = medida(w, IRMAS, LEITURA_DUAS('Mara Hale', 'sister'), IRMAS.vis, irmaPed), i1 = medida(w, IRMAS, LEITURA_UMA('Mara Hale'), IRMAS.vis, irmaPed)
+  if (!(i2.pessoas_lidas === 2 && i2.coadjuvantes_so_citados === 1 && i2.a_regra_agiria === false && i1.pessoas_lidas === 1 && i1.a_regra_agiria === true)) e.push('L4 irmãs ' + JSON.stringify([i2, i1]))
+  const e2 = medida(w, ESTRANHO, LEITURA_DUAS('Tom Hale', 'stranger'), ESTRANHO.vis, estPed), e1 = medida(w, ESTRANHO, LEITURA_UMA('Tom Hale'), ESTRANHO.vis, estPed)
+  if (!(e2.a_regra_agiria === false && e1.a_regra_agiria === true && e1.papeis_so_da_pista === 1)) e.push('L5 estranho ' + JSON.stringify([e2, e1]))
+  // só números, booleanos e códigos de língua; nenhum nome
+  for (const b of [s, l, c, i2, i1, e2, e1]) if (!soTiposPermitidos(b) || /slocum|prince|cooper|mara|hale|sailor/i.test(JSON.stringify(b))) e.push('L6 bloco com texto/nome ' + JSON.stringify(b))
+  // sem leitura: respondeu false, contagem null
+  const sem = w.m.medidaDaLeitura2411({ leituraBruta: null, linguaResolvida: 'pt', linguaDoDetector: null, linguaPedida: undefined })
+  if (!(sem.respondeu === false && sem.pessoas_lidas === null && sem.lingua_resolvida === 'pt' && sem.lingua_pedida === null)) e.push('L7 sem leitura ' + JSON.stringify(sem))
+  // a medida NÃO muda o filme: entradas intactas e o elenco que o filme usa é o mesmo, com e sem a medida
+  const ped = fichaDaLeitura(w, SLO).aplicado.elenco, vis = [...SLO.visuais_do_render]
+  const fotoAntes = JSON.stringify({ ped, vis })
+  const doFilme = () => JSON.stringify(elenco15(w, SLO, ped, w.m.aceitaPapelSemPista(SLO.roteiro, w.sem.aceitaPapelDasCenas(SLO.roteiro), ped[0], CTX_SLO), vis).elenco)
+  const filmeSem = doFilme()
+  medida(w, SLO, CTX_SLO.leituraBruta, vis, ped)
+  if (JSON.stringify({ ped, vis }) !== fotoAntes || doFilme() !== filmeSem) e.push('L8 a medida mexeu no elenco/visuais do filme')
+  // exceção não derruba: extrair que lança = erro:true, campos da leitura mantidos
+  let x = null
+  try { x = medida(w, SLO, CTX_SLO.leituraBruta, vis, ped, () => { throw new Error('boom') }) } catch { x = 'lancou' }
+  if (x === 'lancou' || x.erro !== true || x.pessoas_lidas !== 1) e.push('L9 exceção derrubou a medida ' + JSON.stringify(x))
+  return e
+}
+function provaMedidaNaRota(rota) {
+  const e = []
+  const usos = rota.split(/\r?\n/).filter((l) => /leitura2411/.test(l))
+  if (usos.length !== 4) e.push('R-L1 leitura2411 aparece em ' + usos.length + ' linhas (esperado: tipo, evento, 2 medidas)')
+  if (!usos.every((l) => /leitura2411\?: MedidaDaLeitura2411 \| null/.test(l) || /leitura_2411: ctx\.leitura2411 \?\? null/.test(l) || (/try \{ /.test(l) && /catch \{/.test(l)))) e.push('R-L2 medida fora de try/catch ou lida para decidir algo')
+  if (!/if \(pedidoSemantico\) \{ try \{ ctxDespacho\(\)\.leitura2411 = medidaDaLeitura2411\(/.test(rota)) e.push('R-L3 a medida da leitura não roda para todas as contas com leitura')
+  if (/elencoEFigurino2411[^\n]*medidaDa(?:Leitura|Regra)2411/.test(rota)) e.push('R-L4 a medida ficou atrás do interruptor (tem de medir cliente)')
+  return e
+}
+
 // ═══ Execução real ═════════════════════════════════════════════════════════════════════════════════════════════════════
 const W = mundo()
 const RU = carrega('lib/cinematic/referenciaUnica2411.ts')
@@ -398,8 +455,20 @@ checa('referência única: Cooper continua ligando', rf.cooper.antes === true)
   checa('Le Prince nos 15 s (visuais da pista): um protagonista e 4 de 4 planos com a frase', lp15.depois.join() === 'Louis Le Prince' && JSON.stringify(rf.leprince.planos_com_frase_15s) === '[true,true,true,true]')
 }
 
+const md = provaMedida(W)
+checa('medida (KINEO-LEITURA-2411): Slocum, Le Prince, Cooper, irmãs e estranho com as duas leituras; só números; sem leitura; o filme não muda; exceção não derruba ' + md.join(' | '), md.length === 0)
+const mr = provaMedidaNaRota(ROTA_TXT)
+checa('medida na rota: todas as contas, dentro de try/catch, só gravada no evento ' + mr.join(' | '), mr.length === 0)
+
 // ═══ Mutantes (cada um tem de ficar VERMELHO) ══════════════════════════════════════════════════════════════════════════
 const mutantes = [
+  ['L-M1 bloco gravando texto/nome', MOD, (t) => t.replace("lingua_pedida: codigoDeLingua(a.linguaPedida) }", "lingua_pedida: String(a.leituraBruta).slice(0, 60) }"), (w) => provaMedida(w).length > 0],
+  ['L-M2 cálculo alterando o elenco do filme', MOD, (t) => t.replace("    const antes = a.elencoHoje()", "    ;(a.visuais as unknown as string[]).splice(0, 1)\n    const antes = a.elencoHoje()"), (w) => provaMedida(w).length > 0],
+  ['L-M3 exceção derruba a medida', MOD, (t) => t.replace("  } catch { return { ...inicio, erro: true } }", "  } finally { /* sem catch */ }"), (w) => provaMedida(w).length > 0],
+  ['L-M4 a_regra_agiria sempre false', MOD, (t) => t.replace("a_regra_agiria: sePublic < antes", "a_regra_agiria: false"), (w) => provaMedida(w).length > 0],
+  ['L-M5 contagem pela leitura filtrada (sem os só citados)', MOD, (t) => t.replace("    const pessoas = pessoasDaLeitura(a.leituraBruta)", "    const pessoas = pessoasDaLeitura(a.leituraBruta) === null ? null : pessoasDaLeitura(a.leituraBruta)! - (soCitadosDaLeitura(a.leituraBruta) ?? 0)"), (w) => provaMedida(w).length > 0],
+  ['L-M6 medida atrás do interruptor (rota)', ROTA, (t) => t.replace("    if (pedidoSemantico) { try { ctxDespacho().leitura2411 = medidaDaLeitura2411(", "    if (pedidoSemantico && elencoEFigurino2411) { try { ctxDespacho().leitura2411 = medidaDaLeitura2411("), (rota) => provaMedidaNaRota(rota).length > 0],
+  ['L-M7 medida sem try/catch (rota)', ROTA, (t) => t.replace("if (pedidoSemantico) { try { ctxDespacho().leitura2411 = medidaDaLeitura2411({ leituraBruta: pedidoSemantico.raw, linguaResolvida: narrationLanguage.language, linguaDoDetector: narrationLanguage.detected, linguaPedida: body.language }) } catch { /* KINEO-LEITURA-2411: medida nunca derruba o filme */ } }", "if (pedidoSemantico) { ctxDespacho().leitura2411 = medidaDaLeitura2411({ leituraBruta: pedidoSemantico.raw, linguaResolvida: narrationLanguage.language, linguaDoDetector: narrationLanguage.detected, linguaPedida: body.language }) }"), (rota) => provaMedidaNaRota(rota).length > 0],
   ['M1 interruptor em public', MOD, (t) => t.replace("ELENCO_E_FIGURINO_2411: ModoElencoEFigurino2411 = 'internal'", "ELENCO_E_FIGURINO_2411: ModoElencoEFigurino2411 = 'public'"), (w) => provaInterruptor(w.m, ROTA_TXT).e.length > 0],
   ['M2 internal sem a lista exata', MOD, (t) => t.replace("(modo === 'internal' && contaDaCasaExata(email))", "(modo === 'internal')"), (w) => provaInterruptor(w.m, ROTA_TXT).e.length > 0],
   ['M3 off muda algo', MOD, (t) => t.replace("modo === 'public' || (modo === 'internal'", "modo !== 'internal' || (modo === 'internal'"), (w) => provaInterruptor(w.m, ROTA_TXT).e.length > 0],

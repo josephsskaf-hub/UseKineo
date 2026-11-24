@@ -203,3 +203,39 @@ export function fichaComDescricaoDoPedido(ideiaOriginal: unknown, elenco: Readon
 /** Para o ensaio e o evento: só nomes, papéis e origem (nunca texto do cliente). */
 export const relatoDoElenco2411 = (elenco: ReadonlyArray<Pick<FichaDePersonagem, 'nome' | 'tipo' | 'origem' | 'protagonista'>>) =>
   elenco.map((f) => ({ nome: f.nome, tipo: f.tipo, origem: f.origem, protagonista: f.protagonista }))
+
+// ═══ KINEO-LEITURA-2411 [CEO 24/11, medida antes de abrir 'public'] — quanto a leitura semântica acerta a contagem de pessoas ═══════════════
+// Só MEDE, para TODAS as contas: nada do filme muda (elenco, ficha, cena, prompt, custo, ordem). Leitura pura sobre valores que a rota já tem;
+// nenhuma chamada nova. Vai no evento que já existe cinematic_dispatch_result (bloco leitura_2411), porque é o único evento escrito DEPOIS dos
+// visuais das cenas (a regra da pista precisa deles) e já é o lugar das medidas do despacho (monument, named_cast_era); cinematic_cast_checked
+// é escrito ~3400 linhas antes, sem visuais. Só números, booleanos e códigos de língua: nenhum nome, nenhum texto, nenhum e-mail.
+// Qualquer exceção = { versao, erro: true } e o filme segue igual.
+export const LEITURA_2411_VERSAO = 'leitura_2411_v1'
+export type MedidaDaLeitura2411 = Record<string, number | boolean | string | null>
+const codigoDeLingua = (v: unknown): string | null => (typeof v === 'string' && /^[a-z]{2,3}(?:-[a-z0-9]{2,4})?$/i.test(v.trim()) ? v.trim().toLowerCase() : null)
+/** Coadjuvantes que o leitor marcou "só citados" (on_screen false), pela resposta bruta. null = sem leitura. */
+export function soCitadosDaLeitura(raw: string | null | undefined): number | null {
+  if (pessoasDaLeitura(raw) === null) return null
+  const sup = (JSON.parse(String(raw)) as { supporting?: unknown }).supporting
+  return Array.isArray(sup) ? sup.filter((s) => s && typeof s === 'object' && (s as { on_screen?: unknown }).on_screen === false).length : 0
+}
+/** A parte da LEITURA (no ponto do elenco do pedido). */
+export function medidaDaLeitura2411(a: { leituraBruta: string | null | undefined; linguaResolvida: unknown; linguaDoDetector: unknown; linguaPedida: unknown }): MedidaDaLeitura2411 {
+  try {
+    const pessoas = pessoasDaLeitura(a.leituraBruta)
+    return { versao: LEITURA_2411_VERSAO, respondeu: pessoas !== null, pessoas_lidas: pessoas, coadjuvantes_so_citados: soCitadosDaLeitura(a.leituraBruta),
+      lingua_resolvida: codigoDeLingua(a.linguaResolvida), lingua_do_detector: codigoDeLingua(a.linguaDoDetector), lingua_pedida: codigoDeLingua(a.linguaPedida) }
+  } catch { return { versao: LEITURA_2411_VERSAO, erro: true } }
+}
+/** A parte da REGRA (no ponto do elenco do 15 s): quantos papéis só a pista escreve e o que a regra de 'public' faria, SEM aplicar.
+ *  `elencoHoje` e `elencoSePublic` são o elencoDoFilme15 de hoje e com a regra, calculados à parte (cópias: o filme usa o seu, já calculado). */
+export function medidaDaRegra2411(base: MedidaDaLeitura2411 | null | undefined, a: { roteiro: string; visuais: ReadonlyArray<string>; extrair: (texto: string) => ReadonlyArray<Pick<FichaDePersonagem, 'nome' | 'nucleo'>>; elencoHoje: () => number; elencoSePublic: () => number }): MedidaDaLeitura2411 {
+  const inicio: MedidaDaLeitura2411 = { ...(base ?? { versao: LEITURA_2411_VERSAO }) }
+  try {
+    const chaves = new Set<string>()
+    for (const v of a.visuais) for (const f of a.extrair(String(v ?? ''))) { const k = String(f.nucleo || f.nome.split(' ').pop() || '').trim().toLowerCase(); if (k && papelSoDaPista(a.roteiro, k)) chaves.add(k) }
+    const antes = a.elencoHoje()
+    const sePublic = a.elencoSePublic()
+    return { ...inicio, papeis_so_da_pista: chaves.size, elenco_antes: antes, elenco_se_public: sePublic, a_regra_agiria: sePublic < antes }
+  } catch { return { ...inicio, erro: true } }
+}
