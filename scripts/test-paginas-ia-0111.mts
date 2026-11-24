@@ -10,7 +10,7 @@ import { readFileSync, existsSync } from 'node:fs'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { offlineModules } from './gpt24h-offline-support.mjs'
-const citationDraftAccess = offlineModules()('lib/growth/citationPagesAccess.ts')
+const citationDraftRelease = offlineModules()('lib/growth/citationPagesRelease.ts')
 
 const read = (p: string): string => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n')
 const FILES: Record<string, string> = {
@@ -52,7 +52,7 @@ function load(S: Record<string, string>) {
     '@/lib/marketingPrice': { STARTER_PRICE: '$PRECO_STARTER', STUDIO_PRICE: '$PRECO_STUDIO' },
     '@/lib/seo/paginasIa0111Paths': P,
   })
-  const C = run(S.intent, { '../growth/citationPagesAccess': citationDraftAccess, '../freeFilmEngine': { FREE_FILM_ENGINE_NAME: 'Seedance 1.5' } })
+  const C = run(S.intent, { '../growth/citationPagesRelease': citationDraftRelease, '../freeFilmEngine': { FREE_FILM_ENGINE_NAME: 'Seedance 1.5' } })
   return { P, D, C }
 }
 

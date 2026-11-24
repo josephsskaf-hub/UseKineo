@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs'
 import vm from 'node:vm'
 import ts from 'typescript'
 import { offlineModules } from './gpt24h-offline-support.mjs'
-const citationDraftAccess = offlineModules()('lib/growth/citationPagesAccess.ts')
+const citationDraftRelease = offlineModules()('lib/growth/citationPagesRelease.ts')
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8').replace(/\r\n/g, '\n')
 const FILES = {
@@ -39,7 +39,7 @@ const run = (src, extra = {}) => {
   const js = ts.transpileModule(src, { compilerOptions: { module: 1, target: 9 } }).outputText
   const exports = {}
   const require = (id) => {
-    if (id === '../growth/citationPagesAccess') return citationDraftAccess
+    if (id === '../growth/citationPagesRelease') return citationDraftRelease
     if (id === './engineLabel') return run(read('lib/engineLabel.ts'))
     if (id === '../freeFilmEngine') return { FREE_FILM_ENGINE_NAME: 'Seedance 1.5' }
     throw new Error(`import inesperado: ${id}`)
