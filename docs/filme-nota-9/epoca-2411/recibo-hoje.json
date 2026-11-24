@@ -1,19 +1,226 @@
 {
-  "candidate": "da221631e5571db63c77b159fe14f1a605220df4",
-  "case": "Variante sintética de Le Prince, com último plano expressamente moderno",
-  "still": "Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum",
-  "dispatch": [
+  "candidate": "f420898505fa225b4381bc7772758c84d4f7fc7f",
+  "previous": "da221631e5571db63c77b159fe14f1a605220df4",
+  "cases": [
     {
-      "model": "kling/v4/text-to-video",
-      "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum"
+      "id": "controle-museu",
+      "visual": "present-day visitor looking at the restored camera in a modern museum",
+      "voice": "Today, visitors can see his camera in a museum.",
+      "expected": "present day",
+      "before": {
+        "narration": "Today, visitors can see his camera in a museum.",
+        "still": "Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum",
+        "editedStill": "Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum\n\nCharacter in this scene: Louis Le Prince is a bearded inventor wearing a dark coat.\nThe character(s) named above must be EXACTLY the character shown in the reference image: same species, same body shape and size, same colours, same face, same hair and same outfit. Do not copy the reference pose or background; place the character in the described scene doing the described action, framed as described. One single continuous composition filling the whole frame, no split screen, no collage, no picture-in-picture, no text, no letters, no watermark, no logo.\nOutput: ONE vertical 9:16 portrait image, taller than wide (9:16), the scene filling the whole canvas edge to edge, no bars, no borders, no empty or flat-colour bands. The reference image is only a character sheet: never paste it, frame it or show it as a panel; no side-by-side images, no diptych, no split screen, no collage.",
+        "dispatch": [
+          {
+            "model": "kling/v4/text-to-video",
+            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum"
+          },
+          {
+            "model": "kling/v4/image-to-video",
+            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum"
+          },
+          {
+            "model": "kling/v4/reference-to-video",
+            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum"
+          }
+        ]
+      },
+      "after": {
+        "narration": "Today, visitors can see his camera in a museum.",
+        "still": "Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum",
+        "editedStill": "Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum\n\nCharacter in this scene: Louis Le Prince is a bearded inventor wearing a dark coat.\nThe character(s) named above must be EXACTLY the character shown in the reference image: same species, same body shape and size, same colours, same face, same hair and same outfit. Do not copy the reference pose or background; place the character in the described scene doing the described action, framed as described. One single continuous composition filling the whole frame, no split screen, no collage, no picture-in-picture, no text, no letters, no watermark, no logo.\nOutput: ONE vertical 9:16 portrait image, taller than wide (9:16), the scene filling the whole canvas edge to edge, no bars, no borders, no empty or flat-colour bands. The reference image is only a character sheet: never paste it, frame it or show it as a panel; no side-by-side images, no diptych, no split screen, no collage.",
+        "dispatch": [
+          {
+            "model": "kling/v4/text-to-video",
+            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum"
+          },
+          {
+            "model": "kling/v4/image-to-video",
+            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum"
+          },
+          {
+            "model": "kling/v4/reference-to-video",
+            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum"
+          }
+        ]
+      }
     },
     {
-      "model": "kling/v4/image-to-video",
-      "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum"
+      "id": "museu-com-camera-1888",
+      "visual": "present-day visitor in a modern museum",
+      "voice": "Today visitors see the camera made in 1888.",
+      "expected": "present day",
+      "before": {
+        "narration": "Today visitors see the camera made in 1888.",
+        "still": "Period setting: 1888, period materials and finishes on the objects shown. present-day visitor in a modern museum",
+        "editedStill": "Period setting: 1888, period materials and finishes on the objects shown. present-day visitor in a modern museum\n\nCharacter in this scene: Louis Le Prince is a bearded inventor wearing a dark coat.\nThe character(s) named above must be EXACTLY the character shown in the reference image: same species, same body shape and size, same colours, same face, same hair and same outfit. Do not copy the reference pose or background; place the character in the described scene doing the described action, framed as described. One single continuous composition filling the whole frame, no split screen, no collage, no picture-in-picture, no text, no letters, no watermark, no logo.\nOutput: ONE vertical 9:16 portrait image, taller than wide (9:16), the scene filling the whole canvas edge to edge, no bars, no borders, no empty or flat-colour bands. The reference image is only a character sheet: never paste it, frame it or show it as a panel; no side-by-side images, no diptych, no split screen, no collage.",
+        "dispatch": [
+          {
+            "model": "kling/v4/text-to-video",
+            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. present-day visitor in a modern museum"
+          },
+          {
+            "model": "kling/v4/image-to-video",
+            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. present-day visitor in a modern museum"
+          },
+          {
+            "model": "kling/v4/reference-to-video",
+            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. present-day visitor in a modern museum"
+          }
+        ]
+      },
+      "after": {
+        "narration": "Today visitors see the camera made in 1888.",
+        "still": "Period setting: present day, period materials and finishes on the objects shown. present-day visitor in a modern museum",
+        "editedStill": "Period setting: present day, period materials and finishes on the objects shown. present-day visitor in a modern museum\n\nCharacter in this scene: Louis Le Prince is a bearded inventor wearing a dark coat.\nThe character(s) named above must be EXACTLY the character shown in the reference image: same species, same body shape and size, same colours, same face, same hair and same outfit. Do not copy the reference pose or background; place the character in the described scene doing the described action, framed as described. One single continuous composition filling the whole frame, no split screen, no collage, no picture-in-picture, no text, no letters, no watermark, no logo.\nOutput: ONE vertical 9:16 portrait image, taller than wide (9:16), the scene filling the whole canvas edge to edge, no bars, no borders, no empty or flat-colour bands. The reference image is only a character sheet: never paste it, frame it or show it as a panel; no side-by-side images, no diptych, no split screen, no collage.",
+        "dispatch": [
+          {
+            "model": "kling/v4/text-to-video",
+            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor in a modern museum"
+          },
+          {
+            "model": "kling/v4/image-to-video",
+            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor in a modern museum"
+          },
+          {
+            "model": "kling/v4/reference-to-video",
+            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor in a modern museum"
+          }
+        ]
+      }
     },
     {
-      "model": "kling/v4/reference-to-video",
-      "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum"
+      "id": "oficina-historica-relatada-hoje",
+      "visual": "a man operating the camera in 1888",
+      "voice": "Today we tell his story.",
+      "expected": "1888",
+      "before": {
+        "narration": "Today we tell his story.",
+        "still": "Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888",
+        "editedStill": "Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888\n\nCharacter in this scene: Louis Le Prince is a bearded inventor wearing a dark coat.\nThe character(s) named above must be EXACTLY the character shown in the reference image: same species, same body shape and size, same colours, same face, same hair and same outfit. Do not copy the reference pose or background; place the character in the described scene doing the described action, framed as described. One single continuous composition filling the whole frame, no split screen, no collage, no picture-in-picture, no text, no letters, no watermark, no logo.\nOutput: ONE vertical 9:16 portrait image, taller than wide (9:16), the scene filling the whole canvas edge to edge, no bars, no borders, no empty or flat-colour bands. The reference image is only a character sheet: never paste it, frame it or show it as a panel; no side-by-side images, no diptych, no split screen, no collage.",
+        "dispatch": [
+          {
+            "model": "kling/v4/text-to-video",
+            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888"
+          },
+          {
+            "model": "kling/v4/image-to-video",
+            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888"
+          },
+          {
+            "model": "kling/v4/reference-to-video",
+            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888"
+          }
+        ]
+      },
+      "after": {
+        "narration": "Today we tell his story.",
+        "still": "Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888",
+        "editedStill": "Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888\n\nCharacter in this scene: Louis Le Prince is a bearded inventor wearing a dark coat.\nThe character(s) named above must be EXACTLY the character shown in the reference image: same species, same body shape and size, same colours, same face, same hair and same outfit. Do not copy the reference pose or background; place the character in the described scene doing the described action, framed as described. One single continuous composition filling the whole frame, no split screen, no collage, no picture-in-picture, no text, no letters, no watermark, no logo.\nOutput: ONE vertical 9:16 portrait image, taller than wide (9:16), the scene filling the whole canvas edge to edge, no bars, no borders, no empty or flat-colour bands. The reference image is only a character sheet: never paste it, frame it or show it as a panel; no side-by-side images, no diptych, no split screen, no collage.",
+        "dispatch": [
+          {
+            "model": "kling/v4/text-to-video",
+            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888"
+          },
+          {
+            "model": "kling/v4/image-to-video",
+            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888"
+          },
+          {
+            "model": "kling/v4/reference-to-video",
+            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888"
+          }
+        ]
+      }
+    },
+    {
+      "id": "museu-com-fala-historica",
+      "visual": "present-day visitor in a modern museum",
+      "voice": "The inventor made the camera in 1888.",
+      "expected": "present day",
+      "before": {
+        "narration": "The inventor made the camera in 1888.",
+        "still": "Period setting: 1888, period materials and finishes on the objects shown. present-day visitor in a modern museum",
+        "editedStill": "Period setting: 1888, period materials and finishes on the objects shown. present-day visitor in a modern museum\n\nCharacter in this scene: Louis Le Prince is a bearded inventor wearing a dark coat.\nThe character(s) named above must be EXACTLY the character shown in the reference image: same species, same body shape and size, same colours, same face, same hair and same outfit. Do not copy the reference pose or background; place the character in the described scene doing the described action, framed as described. One single continuous composition filling the whole frame, no split screen, no collage, no picture-in-picture, no text, no letters, no watermark, no logo.\nOutput: ONE vertical 9:16 portrait image, taller than wide (9:16), the scene filling the whole canvas edge to edge, no bars, no borders, no empty or flat-colour bands. The reference image is only a character sheet: never paste it, frame it or show it as a panel; no side-by-side images, no diptych, no split screen, no collage.",
+        "dispatch": [
+          {
+            "model": "kling/v4/text-to-video",
+            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. present-day visitor in a modern museum"
+          },
+          {
+            "model": "kling/v4/image-to-video",
+            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. present-day visitor in a modern museum"
+          },
+          {
+            "model": "kling/v4/reference-to-video",
+            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. present-day visitor in a modern museum"
+          }
+        ]
+      },
+      "after": {
+        "narration": "The inventor made the camera in 1888.",
+        "still": "Period setting: present day, period materials and finishes on the objects shown. present-day visitor in a modern museum",
+        "editedStill": "Period setting: present day, period materials and finishes on the objects shown. present-day visitor in a modern museum\n\nCharacter in this scene: Louis Le Prince is a bearded inventor wearing a dark coat.\nThe character(s) named above must be EXACTLY the character shown in the reference image: same species, same body shape and size, same colours, same face, same hair and same outfit. Do not copy the reference pose or background; place the character in the described scene doing the described action, framed as described. One single continuous composition filling the whole frame, no split screen, no collage, no picture-in-picture, no text, no letters, no watermark, no logo.\nOutput: ONE vertical 9:16 portrait image, taller than wide (9:16), the scene filling the whole canvas edge to edge, no bars, no borders, no empty or flat-colour bands. The reference image is only a character sheet: never paste it, frame it or show it as a panel; no side-by-side images, no diptych, no split screen, no collage.",
+        "dispatch": [
+          {
+            "model": "kling/v4/text-to-video",
+            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor in a modern museum"
+          },
+          {
+            "model": "kling/v4/image-to-video",
+            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor in a modern museum"
+          },
+          {
+            "model": "kling/v4/reference-to-video",
+            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor in a modern museum"
+          }
+        ]
+      }
+    },
+    {
+      "id": "oficina-historica-com-data-na-fala",
+      "visual": "a man operating the camera in 1888",
+      "voice": "Today we show how he operated his camera in 1888.",
+      "expected": "1888",
+      "before": {
+        "narration": "Today we show how he operated his camera in 1888.",
+        "still": "Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888",
+        "editedStill": "Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888\n\nCharacter in this scene: Louis Le Prince is a bearded inventor wearing a dark coat.\nThe character(s) named above must be EXACTLY the character shown in the reference image: same species, same body shape and size, same colours, same face, same hair and same outfit. Do not copy the reference pose or background; place the character in the described scene doing the described action, framed as described. One single continuous composition filling the whole frame, no split screen, no collage, no picture-in-picture, no text, no letters, no watermark, no logo.\nOutput: ONE vertical 9:16 portrait image, taller than wide (9:16), the scene filling the whole canvas edge to edge, no bars, no borders, no empty or flat-colour bands. The reference image is only a character sheet: never paste it, frame it or show it as a panel; no side-by-side images, no diptych, no split screen, no collage.",
+        "dispatch": [
+          {
+            "model": "kling/v4/text-to-video",
+            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888"
+          },
+          {
+            "model": "kling/v4/image-to-video",
+            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888"
+          },
+          {
+            "model": "kling/v4/reference-to-video",
+            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888"
+          }
+        ]
+      },
+      "after": {
+        "narration": "Today we show how he operated his camera in 1888.",
+        "still": "Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888",
+        "editedStill": "Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888\n\nCharacter in this scene: Louis Le Prince is a bearded inventor wearing a dark coat.\nThe character(s) named above must be EXACTLY the character shown in the reference image: same species, same body shape and size, same colours, same face, same hair and same outfit. Do not copy the reference pose or background; place the character in the described scene doing the described action, framed as described. One single continuous composition filling the whole frame, no split screen, no collage, no picture-in-picture, no text, no letters, no watermark, no logo.\nOutput: ONE vertical 9:16 portrait image, taller than wide (9:16), the scene filling the whole canvas edge to edge, no bars, no borders, no empty or flat-colour bands. The reference image is only a character sheet: never paste it, frame it or show it as a panel; no side-by-side images, no diptych, no split screen, no collage.",
+        "dispatch": [
+          {
+            "model": "kling/v4/text-to-video",
+            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888"
+          },
+          {
+            "model": "kling/v4/image-to-video",
+            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888"
+          },
+          {
+            "model": "kling/v4/reference-to-video",
+            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888"
+          }
+        ]
+      }
     }
   ]
 }

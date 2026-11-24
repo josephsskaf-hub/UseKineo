@@ -1,15 +1,15 @@
 # Prova offline de época em ficha, imagem e clipe — 24/11/2026
 
-**TESTADO LOCALMENTE.** Base `c4fd957e65c2c9ec309d3acb562e35febb218c36`, candidata de código `da221631e5571db63c77b159fe14f1a605220df4`, carregador original em `codex/nota9-replay-2311` (`7af247b9d006517b91791bf5261f69a7d5219404`).
+**TESTADO LOCALMENTE.** Base `c4fd957e65c2c9ec309d3acb562e35febb218c36`, candidata de código `f420898505fa225b4381bc7772758c84d4f7fc7f`, carregador original em `codex/nota9-replay-2311` (`7af247b9d006517b91791bf5261f69a7d5219404`).
 
 ## Reproduzir
 
-Requer Node 22+ (execução local em 24.18.0), Git com os três commits e o TypeScript já instalado da Kineo. Execute de qualquer diretório. O primeiro argumento pode ser qualquer checkout deste repositório. Se a instalação de dependências estiver em outro, informe `KINEO_TS_ROOT`.
+Requer Node 22+ (execução local em 24.18.0), Git com a base, o carregador e as duas revisões de código e o TypeScript já instalado da Kineo. Execute de qualquer diretório. O primeiro argumento pode ser qualquer checkout deste repositório. Se a instalação de dependências estiver em outro, informe `KINEO_TS_ROOT`.
 
 ```powershell
 $repo = 'C:/kineo'
 $env:KINEO_TS_ROOT = $repo
-node ./run-suite.mjs $repo da221631e5571db63c77b159fe14f1a605220df4
+node ./run-suite.mjs $repo f420898505fa225b4381bc7772758c84d4f7fc7f
 ```
 
 A conferência de entrega lê somente blobs do Git. Para testar mudanças antes do commit, passe `working=C:/caminho/da/worktree` no segundo argumento. Nesse modo, somente a rota e o helper da época são lidos da cópia indicada, com as outras dependências obtidas de seu HEAD. As saídas são exibidas no terminal. `REPLAY_SAVE=1` atualiza os arquivos JSON desta pasta.
@@ -22,6 +22,6 @@ A conferência de entrega lê somente blobs do Git. Para testar mudanças antes 
 
 **TESTADO LOCALMENTE.** `conferir.mjs` executa oito roteiros em três contextos, casa/internal, casa/OFF e externo/internal. Cada combinação captura a folha, quatro prompts de still sem folha, quatro prompts com folha e três pedidos de vídeo em texto, com quadros e com referência única. Confere igualdade serializada com a base nos controles sem época e nos caminhos externos/OFF, preservação da fala, tempos e limite de 512. Nos históricos verifica o ano de cada plano e o objeto ou a ação visível. No Slocum, o identificador dos dois primeiros planos diz “before 1909”.
 
-**TESTADO LOCALMENTE.** `fusao.mjs` verifica nove distribuições de quatro seções em três cenas e 108 planos no transporte. `pressao.mjs` usa variações sintéticas de plano longo do Cooper para constatar quando a base preserva a maleta e a candidata a perde. Na primeira candidata isso ocorreu em 17 de 27 combinações de comprimento e modelo. Na ponta entregue, zero. `hoje.mjs` troca o fecho de Le Prince por um museu atual e verifica o still e os três modelos. A primeira candidata impunha 1890 ao museu. A ponta corrigida explicita o presente.
+**TESTADO LOCALMENTE.** `fusao.mjs` verifica nove distribuições de quatro seções em três cenas e 108 planos no transporte. `pressao.mjs` usa variações sintéticas de plano longo do Cooper para constatar quando a base preserva a maleta e a candidata a perde. Na primeira candidata isso ocorreu em 17 de 27 combinações de comprimento e modelo. Na ponta entregue, zero. `hoje.mjs` confronta cinco fechos de Le Prince com a revisão anterior `da221631e5571db63c77b159fe14f1a605220df4`. Numa visita atual ao museu, a fabricação da câmera em 1888 pertence à fala e o plano mostra o presente. Na oficina histórica, a fala começa em “Today” e a imagem mostra o homem operando a câmera em 1888. Executa os dois produtores de still e os três despachos de vídeo e confere a fala inteira. O caso formal do museu precisa reproduzir o erro na revisão anterior para o ensaio passar. O comparativo `PLANOS-ANTES-DEPOIS.md` mostra os textos.
 
 **QUESTÃO PENDENTE.** Este kit observa produtores de prompts e o corpo de vídeo, com o adaptador `acoplar.mjs` executando as expressões reais da rota e uma resposta simulada à verificação do público. Resolução real de conta pelo autenticador HTTP, saída do gerador de imagens, resposta da fal e resultado visual não são medidos. Os oito casos não constituem estimativa de ganho de nota de cliente.

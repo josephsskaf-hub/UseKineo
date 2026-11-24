@@ -61,6 +61,20 @@ for(const [i,film] of cases.entries()){
     rows.push('','Envelope comum a Antes e Depois para este controle: '+code+JSON.stringify(envelope)+code+'.','')
   }
 }
+const revisit=read('recibo-hoje.json')
+assert.equal(revisit.candidate,next.sha)
+rows.push('## Ano da câmera e ano da cena','','**TESTADO LOCALMENTE.** Nesta tabela, a coluna Antes usa a revisão intermediária '+code+revisit.previous+code+', na qual o caso do museu ainda falhava. A coluna Depois usa '+code+next.sha+code+'. Cada linha corresponde ao último plano de uma variante. A coluna de imagem traz o texto exato do still, e os detalhes trazem os prompts recebidos pelo modelo de referência. O recibo guarda ainda o still com referência e os pedidos dos modelos de imagem e texto para vídeo.','','| Cena pedida | Narração preservada em ambas as versões | Still antes | Still depois |','| --- | --- | --- | --- |')
+for(const example of revisit.cases){
+  assert.equal(example.voice,example.before.narration)
+  assert.equal(example.voice,example.after.narration)
+  rows.push('| '+cell(example.visual)+' | '+cell(example.voice)+' | '+cell(example.before.still)+' | '+cell(example.after.still)+' |')
+}
+rows.push('','<details><summary>Planos efetivamente enviados ao transporte simulado com referência</summary>','','| Cena | Antes | Depois |','| --- | --- | --- |')
+for(const e of revisit.cases){
+  const select=c=>c.dispatch.find(s=>s.model==='kling/v4/reference-to-video').prompt
+  rows.push('| '+cell(e.visual)+' | '+cell(select(e.before))+' | '+cell(select(e.after))+' |')
+}
+rows.push('','</details>','')
 rows.push('## Reproduzir','','A partir da pasta deste kit, com os commits e TypeScript disponíveis localmente:','',fence+'powershell','node ./apresentar.mjs C:/kineo ./PLANOS-ANTES-DEPOIS.md',fence,'','Sem o segundo argumento, o script imprime o texto e preserva os arquivos.','')
 const result=rows.join('\n')
 assert.ok(!result.includes('https://')&&!result.includes('fixture.invalid'))

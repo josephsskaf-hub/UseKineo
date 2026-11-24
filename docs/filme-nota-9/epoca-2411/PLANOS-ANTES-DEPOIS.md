@@ -1,6 +1,6 @@
 # Ficha e planos antes e depois da correção de época
 
-**TESTADO LOCALMENTE · 24/11/2026.** A coluna Antes usa `c4fd957e65c2c9ec309d3acb562e35febb218c36` e a coluna Depois usa `da221631e5571db63c77b159fe14f1a605220df4` com a chave interna ativa. Os textos em inglês são os bytes de texto capturados na chamada simulada ao produtor de vídeo com referência única (`kling/v4/reference-to-video`). A ficha é o prompt que a rota passa ao produtor de imagem do personagem. Todos os corpos foram confrontados com os hashes dos recibos anteriores.
+**TESTADO LOCALMENTE · 24/11/2026.** A coluna Antes usa `c4fd957e65c2c9ec309d3acb562e35febb218c36` e a coluna Depois usa `f420898505fa225b4381bc7772758c84d4f7fc7f` com a chave interna ativa. Os textos em inglês são os bytes de texto capturados na chamada simulada ao produtor de vídeo com referência única (`kling/v4/reference-to-video`). A ficha é o prompt que a rota passa ao produtor de imagem do personagem. Todos os corpos foram confrontados com os hashes dos recibos anteriores.
 
 Os roteiros históricos são os da casa. O casting e a referência são entradas de ensaio. A foto é representada por [REFERÊNCIA 1]. Os pedidos foram observados antes de responder localmente ao transporte. Esta prova não avalia imagens renderizadas.
 
@@ -312,6 +312,30 @@ Character reference sheet, exactly one character, nobody else: a mechanic in a r
 | 4 · 4 s | Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. the empty workbench |
 
 Envelope comum a Antes e Depois para este controle: `{"image_urls":["[REFERÊNCIA 1]"],"duration":15,"resolution":"720p","aspect_ratio":"9:16"}`.
+
+## Ano da câmera e ano da cena
+
+**TESTADO LOCALMENTE.** Nesta tabela, a coluna Antes usa a revisão intermediária `da221631e5571db63c77b159fe14f1a605220df4`, na qual o caso do museu ainda falhava. A coluna Depois usa `f420898505fa225b4381bc7772758c84d4f7fc7f`. Cada linha corresponde ao último plano de uma variante. A coluna de imagem traz o texto exato do still, e os detalhes trazem os prompts recebidos pelo modelo de referência. O recibo guarda ainda o still com referência e os pedidos dos modelos de imagem e texto para vídeo.
+
+| Cena pedida | Narração preservada em ambas as versões | Still antes | Still depois |
+| --- | --- | --- | --- |
+| present-day visitor looking at the restored camera in a modern museum | Today, visitors can see his camera in a museum. | Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum | Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum |
+| present-day visitor in a modern museum | Today visitors see the camera made in 1888. | Period setting: 1888, period materials and finishes on the objects shown. present-day visitor in a modern museum | Period setting: present day, period materials and finishes on the objects shown. present-day visitor in a modern museum |
+| a man operating the camera in 1888 | Today we tell his story. | Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888 | Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888 |
+| present-day visitor in a modern museum | The inventor made the camera in 1888. | Period setting: 1888, period materials and finishes on the objects shown. present-day visitor in a modern museum | Period setting: present day, period materials and finishes on the objects shown. present-day visitor in a modern museum |
+| a man operating the camera in 1888 | Today we show how he operated his camera in 1888. | Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888 | Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888 |
+
+<details><summary>Planos efetivamente enviados ao transporte simulado com referência</summary>
+
+| Cena | Antes | Depois |
+| --- | --- | --- |
+| present-day visitor looking at the restored camera in a modern museum | Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum | Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum |
+| present-day visitor in a modern museum | Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. present-day visitor in a modern museum | Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor in a modern museum |
+| a man operating the camera in 1888 | Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888 | Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888 |
+| present-day visitor in a modern museum | Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. present-day visitor in a modern museum | Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor in a modern museum |
+| a man operating the camera in 1888 | Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888 | Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888 |
+
+</details>
 
 ## Reproduzir
 
