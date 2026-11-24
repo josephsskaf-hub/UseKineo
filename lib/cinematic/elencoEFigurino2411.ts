@@ -16,11 +16,26 @@
 //    o erro nos 4 planos. Agora a descrição que o PEDIDO ORIGINAL cola ao nome do protagonista (aposto, "named/called", "who called himself") entra
 //    na ficha dele quando traz palavras que ela não tem. Sem descrição no pedido: nada muda. A narração e a pista não são lidas aqui (roupa de uma
 //    cena só, "wearing a parachute" no plano 3, nunca vira roupa fixa).
+// VOLTA 2 (revisor independente 24/11, 4 entradas que impediam 'public'):
+//   (1) a pista em inglês não apaga ninguém quando a narração NÃO é inglês (detectNarrationLanguage da casa; sem certeza de inglês = não retira);
+//   (2) o papel da pista só sai quando a pista DESCREVE O PROTAGONISTA: gênero do papel compatível com o dele e, em toda seção em que a pista o
+//       escreve, a narração cita o protagonista sem pronome do outro gênero nem plural ("She waited", "met him", "they"). Plural/singular da
+//       mesma palavra ("fishermen"/"fisherman") conta como a narração escrevendo o papel;
+//   (3) a descrição do pedido só entra quando é de UMA pessoa (sem outra pessoa coordenada, "a woman in a red dress and a man in…") e do mesmo
+//       gênero da ficha; figura conhecida fica como está;
+//   (4) traje de UM momento não vira fixo: complemento de roupa/equipamento ("wearing a parachute") que o roteiro cita, mas não na 1ª seção em
+//       que mostra a pessoa, sai da descrição. Critério e onde erra: ver tracoDaPessoaNoRoteiro.
+//   E a troca de nome só acontece onde hoje os nomes NÃO casam (mesmoPersonagem falso): "Smith" com "John Smith" já casava e fica como está.
 // Interruptor ELENCO_E_FIGURINO_2411: 'off' = a rota byte a byte; 'internal' = só a lista EXATA da casa; 'public' só com prova paga + sim do dono.
 // Módulo puro (sem rede): a rota decide quando chamar.
 import type { FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
 import { apostoDoPedido, nomeadoNoPedido, textoDoPedidoOriginal, trechoDescreve } from '@/lib/cinematic/fichaDoPedido'
 import { escritaLatina } from '@/lib/cinematic/conferenciaDoElenco'
+import { mesmoPersonagem } from '@/lib/cinematic/elencoEpoca'
+import { generoDoPapel } from '@/lib/cinematic/elencoSemantico'
+import { figuraConhecidaJuiz } from '@/lib/cinematic/juizFicha'
+import { figuraConhecida } from '@/lib/cinematic/personagemAjuste'
+import { detectNarrationLanguage } from '@/lib/textLanguage'
 import { contaDaCasaExata } from '@/lib/internalAccounts'
 
 export const ELENCO_E_FIGURINO_2411_VERSAO = 'KINEO-ELENCO-E-FIGURINO-2411'
@@ -76,7 +91,7 @@ export function elencoComNomeCompleto(base: ReadonlyArray<FichaDePersonagem>, li
   const renomeados: Array<[string, string]> = []
   const saida = base.map((f) => {
     const completo = nomeCompletoProvado(f.nome, lidos, roteiro)
-    if (!completo || base.some((g) => g !== f && palavrasDoNome(g.nome).join(' ') === palavrasDoNome(completo).join(' '))) return f
+    if (!completo || mesmoPersonagem(completo, f.nome) || base.some((g) => g !== f && palavrasDoNome(g.nome).join(' ') === palavrasDoNome(completo).join(' '))) return f
     renomeados.push([f.nome, completo])
     const canonica = f.canonica.startsWith(f.nome) ? completo + f.canonica.slice(f.nome.length) : f.canonica
     return { ...f, nome: completo, canonica } // o núcleo fica o nome curto: é como as cenas o citam ("Le Prince boarded")
@@ -87,7 +102,7 @@ export function elencoComNomeCompleto(base: ReadonlyArray<FichaDePersonagem>, li
 // ═══ 2. Papel que só a pista escreve não entra pelos visuais ═════════════════════════════════════════════════════════════
 /** As pistas [ … ] do roteiro, juntas. */
 const pistasDo = (roteiro: string): string => limpa((String(roteiro ?? '').match(/\[[^\]]*\]/g) ?? []).join(' '))
-const formas = (w: string) => { const n = norm(limpa(w)); return [n, `${n}s`, `${n}es`, n.replace(/s$/, ''), n.replace(/ies$/, 'y')].filter((x) => x.length >= 2) }
+const formas = (w: string) => { const n = norm(limpa(w)); return [n, `${n}s`, `${n}es`, n.replace(/s$/, ''), n.replace(/ies$/, 'y'), n.replace(/man$/, 'men'), n.replace(/men$/, 'man')].filter((x) => x.length >= 2) } // volta 2: "fisherman"/"fishermen"
 const temPalavra = (texto: string, w: string) => formas(w).some((f) => new RegExp(`(?<![\\p{L}\\p{N}])${escapaRe(f)}(?![\\p{L}\\p{N}])`, 'iu').test(norm(texto)))
 /** O papel (núcleo) está escrito numa pista [Pexels: …] e em nenhum ponto da narração: quem o criou foi a pista. */
 export function papelSoDaPista(roteiro: string, chave: string): boolean {
@@ -95,9 +110,29 @@ export function papelSoDaPista(roteiro: string, chave: string): boolean {
   if (!k) return false
   return temPalavra(pistasDo(roteiro), k) && !temPalavra(semTags(roteiro), k)
 }
-/** O filtro do 15 s: a regra de antes (quando existe) E o papel não nasceu da pista. */
-export function aceitaPapelSemPista<F>(roteiro: string, antes: ((ficha: F, chave: string) => boolean) | null): (ficha: F, chave: string) => boolean {
-  return (ficha, chave) => (antes ? antes(ficha, chave) : true) && !papelSoDaPista(roteiro, chave)
+/** Volta 2 (1): a regra compara a palavra da pista (inglês) com a narração; só vale quando a narração é inglês com certeza. */
+export const narracaoEmIngles = (roteiro: string): boolean => detectNarrationLanguage(semTags(roteiro)).language === 'en'
+/** As seções do roteiro (separadas por linha em branco): as pistas e a narração de cada uma. */
+const secoesDo = (roteiro: string) => String(roteiro ?? '').replace(/\r\n?/g, '\n').split(/\n\s*\n/).map((s) => ({ pistas: pistasDo(s), narracao: semTags(s) })).filter((s) => s.pistas || s.narracao)
+const PRONOME = { male: /(?<![\p{L}])(?:he|him|his|himself)(?![\p{L}])/iu, female: /(?<![\p{L}])(?:she|her|hers|herself)(?![\p{L}])/iu, plural: /(?<![\p{L}])(?:they|them|their|theirs|themselves)(?![\p{L}])/iu }
+export type ProtagonistaDaPista = Pick<FichaDePersonagem, 'nome' | 'nucleo' | 'genero'>
+const generoDaFicha = (g: unknown): 'male' | 'female' | null => (g === 'man' ? 'male' : g === 'woman' ? 'female' : null)
+/** Volta 2 (2): a pista que escreve o papel está DESCREVENDO O PROTAGONISTA (Slocum: "old bearded sailor" nas seções que só falam dele)?
+ *  Precisa de: narração em inglês; papel só na pista; gênero do protagonista conhecido e o do papel igual ou não dito; e, em TODA seção em que a
+ *  pista escreve o papel, a narração cita o protagonista e não tem pronome do outro gênero nem plural. Qualquer dúvida = não (o papel fica). */
+export function pistaDescreveOProtagonista(roteiro: string, chave: string, protagonista: ProtagonistaDaPista | null | undefined): boolean {
+  if (!protagonista || !papelSoDaPista(roteiro, chave) || !narracaoEmIngles(roteiro)) return false
+  const gP = generoDaFicha(protagonista.genero)
+  const gR = generoDoPapel(chave)
+  if (!gP || (gR && gR !== gP)) return false
+  const outro = gP === 'male' ? PRONOME.female : PRONOME.male
+  const doNome = [...palavrasDoNome(protagonista.nome), ...palavrasDoNome(protagonista.nucleo)].filter((w) => w.length >= 3)
+  const secoes = secoesDo(roteiro).filter((s) => temPalavra(s.pistas, chave))
+  return secoes.length > 0 && secoes.every((s) => doNome.some((w) => temPalavra(s.narracao, w)) && !outro.test(s.narracao) && !PRONOME.plural.test(s.narracao))
+}
+/** O filtro do 15 s: a regra de antes (quando existe) E o papel não é o protagonista descrito pela pista. */
+export function aceitaPapelSemPista<F>(roteiro: string, antes: ((ficha: F, chave: string) => boolean) | null, protagonista: ProtagonistaDaPista | null | undefined): (ficha: F, chave: string) => boolean {
+  return (ficha, chave) => (antes ? antes(ficha, chave) : true) && !pistaDescreveOProtagonista(roteiro, chave, protagonista)
 }
 
 // ═══ 3. A descrição do pedido original na ficha do protagonista ══════════════════════════════════════════════════════════
@@ -112,16 +147,59 @@ export function autodenominadoNoPedido(pedido: string, ficha: Pick<FichaDePerson
   }
   return null
 }
+/** Volta 2 (3): a descrição é de UMA pessoa só e do gênero da ficha. "woman in a red dress and a man in a dark suit": depois de "and/,"
+ *  vem outro sintagma que, sozinho, descreve gente = duas pessoas = dúvida = nada. */
+export function descricaoDeUmaPessoa(descricao: string, ficha: Pick<FichaDePersonagem, 'genero'>): boolean {
+  const cabecaDe = (s: string) => s.split(/\s+(?:in|wearing|with|dressed)\s/iu)[0]
+  const partes = descricao.split(/\s*(?:,|\band\b|\bor\b)\s+(?=(?:a|an|the|another|other|his|her|their)\s)/iu)
+  for (const parte of partes.slice(1)) {
+    const m = /^(?:a|an|the|another|other|his|her|their)\s+(.+)$/iu.exec(parte.trim())
+    if (m && generoDoPapel(cabecaDe(m[1]))) return false
+  }
+  const g = generoDoPapel(cabecaDe(partes[0]))
+  const gF = generoDaFicha(ficha.genero)
+  return !(g && gF && g !== gF)
+}
+/** Volta 2 (4): o critério que separa "traje da pessoa" de "traje de um momento". Cada complemento de roupa ("in a dark suit", "wearing a
+ *  parachute", "and black tie") é conferido no ROTEIRO (narração e pistas, só para conferir, nunca como fonte): se o roteiro não cita o
+ *  substantivo do complemento, ele fica (o pedido é a única fonte); se cita, ele só fica quando aparece já na 1ª seção que mostra a pessoa
+ *  (a que cita o nome, o núcleo ou o núcleo da descrição). O paraquedas do Cooper só aparece nas seções 2 e 3, o terno já na 1ª.
+ *  ONDE ERRA: (a) traje de um momento que o roteiro não cita (o pedido diz "a man wearing a parachute" e o roteiro nunca fala de paraquedas)
+ *  fica; (b) traje de um momento que começa na 1ª seção (a história abre no hospital: "hospital gown") fica; (c) roupa fixa que o roteiro só
+ *  cita a partir da 2ª seção sai. Equipamento na CABEÇA da descrição ("a parachutist") não é conferido. */
+export function tracoDaPessoaNoRoteiro(descricao: string, roteiro: string | null | undefined, ficha: Pick<FichaDePersonagem, 'nome' | 'nucleo'>): string | null {
+  const r = String(roteiro ?? '')
+  const [cabeca, ...comps] = descricao.split(/\s+(?=(?:in|wearing|dressed in|with)\s)/iu)
+  if (!r.trim() || comps.length === 0) return descricao
+  const secoes = secoesDo(r).map((s) => `${s.pistas} ${s.narracao}`)
+  const marcas = [...palavrasDoNome(ficha.nome), ...palavrasDoNome(ficha.nucleo), palavrasDoNome(cabeca).pop() ?? ''].filter((w) => w.length >= 3)
+  const primeira = secoes.findIndex((s) => marcas.some((w) => temPalavra(s, w)))
+  const fica = (pedaco: string): boolean => {
+    const nucleo = palavrasDoNome(pedaco).pop() ?? ''
+    if (nucleo.length < 3) return true
+    const onde = secoes.map((s, i) => (temPalavra(s, nucleo) ? i : -1)).filter((i) => i >= 0)
+    return onde.length === 0 || (primeira >= 0 && onde.includes(primeira))
+  }
+  const saida: string[] = []
+  for (const c of comps) {
+    const m = /^(dressed in|in|wearing|with)\s+(.*)$/iu.exec(c)
+    const elo = m ? m[1] : ''
+    const pedacos = (m ? m[2] : c).split(/\s+and\s+/iu).filter(fica)
+    if (pedacos.length) saida.push(`${elo} ${pedacos.join(' and ')}`.trim())
+  }
+  return [cabeca, ...saida].join(' ')
+}
 const palavrasConteudo = (s: string) => palavrasDoNome(s).filter((w) => w.length >= 3 && !/^(?:and|the|with|wearing|dressed)$/.test(w))
 export const MARCA_DO_PEDIDO_2411 = 'as the request describes:'
 /** A ficha do protagonista humano com a descrição que o PEDIDO cola ao nome dele, quando ela traz palavra que a ficha não tem. Sem isso: o mesmo array. */
-export function fichaComDescricaoDoPedido(ideiaOriginal: unknown, elenco: ReadonlyArray<FichaDePersonagem>): { elenco: FichaDePersonagem[]; trocas: Array<[string, string]>; descricao: string | null } {
+export function fichaComDescricaoDoPedido(ideiaOriginal: unknown, elenco: ReadonlyArray<FichaDePersonagem>, roteiro?: string | null): { elenco: FichaDePersonagem[]; trocas: Array<[string, string]>; descricao: string | null } {
   const pedido = textoDoPedidoOriginal(ideiaOriginal)
   const i = elenco.findIndex((f) => f.protagonista)
   const p = i >= 0 ? elenco[i] : null
-  if (!pedido || !p || p.tipo !== 'humano' || (p.origem as string) === 'mitica' || p.canonica.includes(MARCA_DO_PEDIDO_2411)) return { elenco: elenco as FichaDePersonagem[], trocas: [], descricao: null }
+  if (!pedido || !p || p.tipo !== 'humano' || (p.origem as string) === 'mitica' || figuraConhecidaJuiz(p.nome) || figuraConhecida(p.nome) || p.canonica.includes(MARCA_DO_PEDIDO_2411)) return { elenco: elenco as FichaDePersonagem[], trocas: [], descricao: null }
   const outros = elenco.map((f) => f.nome)
-  const descricao = apostoDoPedido(pedido, p, outros) ?? nomeadoNoPedido(pedido, p, outros) ?? autodenominadoNoPedido(pedido, p)
+  const lida = apostoDoPedido(pedido, p, outros) ?? nomeadoNoPedido(pedido, p, outros) ?? autodenominadoNoPedido(pedido, p)
+  const descricao = lida && descricaoDeUmaPessoa(lida, p) ? tracoDaPessoaNoRoteiro(lida, roteiro, p) : null // volta 2 (3) e (4)
   if (!descricao) return { elenco: elenco as FichaDePersonagem[], trocas: [], descricao: null }
   const ficha = palavrasConteudo(p.canonica)
   if (palavrasConteudo(descricao).every((w) => ficha.includes(w))) return { elenco: elenco as FichaDePersonagem[], trocas: [], descricao: null } // a ficha já diz tudo
