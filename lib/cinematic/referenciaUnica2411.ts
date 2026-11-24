@@ -56,9 +56,13 @@ export function entradaDoJuiz2411(
   const ref = timing?.referenciaUnica
   if (!ref || !relatoReferenciaUnica(timing, wire) || !Array.isArray(wire.input.multi_prompt)) return wire.input
   const frase = ' ' + ref.frase.trim()
+  // [revisor 24/11, volta 2] só a frase que NÓS pusemos, pela posição (antes de "Mouth closed, no speaking." ou no fim); frase igual escrita pelo cliente fica
+  const semANossa = (p: string): string => p.endsWith(frase + CAUDA_DA_BOCA_2411) ? p.slice(0, -(frase + CAUDA_DA_BOCA_2411).length) + CAUDA_DA_BOCA_2411
+    : p.endsWith(frase) ? p.slice(0, -frase.length) : p
   return { ...wire.input, multi_prompt: (wire.input.multi_prompt as Array<Record<string, unknown>>).map((m) =>
-    typeof m?.prompt === 'string' && m.prompt.includes(frase) ? { ...m, prompt: m.prompt.replace(frase, '') } : m) }
+    typeof m?.prompt === 'string' && semANossa(m.prompt) !== m.prompt ? { ...m, prompt: semANossa(m.prompt) } : m) }
 }
+const CAUDA_DA_BOCA_2411 = ' Mouth closed, no speaking.' // a mesma cauda que buildKling4ReferenciaUnicaInput protege (lib/kling4Trial.ts)
 
 /** Para medir depois: o que foi à fal saiu pela referência única? (só nomes de campo, índices e a origem; nunca texto do cliente) */
 export function relatoReferenciaUnica(

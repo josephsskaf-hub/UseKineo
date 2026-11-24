@@ -210,6 +210,28 @@ async function suite(change) {
     const hojeWire = api.buildKling4TrialInput(ps, stillsDe(fl), t0)
     assert.equal(f.entradaDoJuiz2411(t0, hojeWire), hojeWire.input, 'desligado: a mesma entrada, intocada')
   }
+  // [revisor 24/11, volta 2] a conferência do reaproveitamento REAL da rota (envioFinal1311 + reaproveitaJuiz1311), executada: ligada, o juiz de antes e o
+  // envio leem o mesmo texto → reaproveita; texto lido diferente → 2ª leitura. Pular a conferência ou fazer o juiz ler outro texto reprova aqui.
+  const iF = route.indexOf('const envioFinal1311 = '), iR = route.indexOf('const reaproveitaJuiz1311 = ', iF)
+  assert.ok(iF > 0 && iR > iF, 'conferência do reaproveitamento não achada')
+  const conferencia = Function('kling4Trial', 'vereditoAntes1311', 'lidoPeloJuiz1311', 'planoDoEnvio', 'kling4EnvioDoFilme', 'entradaDoJuiz2411', 'buildKling4TrialInput', 'juizLeuOMesmoTexto', 'scenes', 'classicSceneInputs',
+    ts.transpile(route.slice(iF, route.indexOf('\n', iR))) + '\nreturn reaproveitaJuiz1311')
+  for (const [id, snap] of [['2fef3706', '2fef3706'], ['4691e265', '4691e265'], ['49448973', '49448973-com-elenco']]) {
+    const fl = filme(id), ps = fl.planos.map(p => p.prompt), t0 = timingDe(fl), scenes = fl.planos.map(p => ({ voiceover: p.prompt.slice(0, 20) }))
+    const falas = scenes.map(s => s.voiceover)
+    const lido = juiz.planoDoEnvio({ kling4Candidato: true, kling4Input: () => api.buildKling4TrialInput(ps, [], t0).input, falas, inputs: [] }).cenas
+    for (const timing of [{ ...t0, referenciaUnica: f.referenciaUnicaDoFilme(snapshots[snap]) }, t0]) {
+      const roda = (l) => conferencia({ job: {} }, { status: 'JUDGED' }, l, juiz.planoDoEnvio, () => ({ prompts: ps, approvedStills: stillsDe(fl), timing }), f.entradaDoJuiz2411, api.buildKling4TrialInput, ficha.juizLeuOMesmoTexto, scenes, [])
+      assert.equal(roda(lido), true, id + ': mesmo texto = reaproveita (' + (timing.referenciaUnica ? 'ligado' : 'desligado') + ')')
+      assert.equal(roda(lido.map((c, i) => i === 0 ? { ...c, prompt: c.prompt + ' Extra.' } : c)), false, id + ': texto lido diferente = 2ª leitura')
+    }
+  }
+  // só a frase que nós pusemos sai para o juiz: a mesma frase escrita pelo cliente no meio do plano fica
+  { const cli = 'The young man reads a note: Keep the face and outfit of @Image1. He smiles. Mouth closed, no speaking.'
+    const w = api.buildKling4TrialInput([cli], [], { voiceovers: ['one two three'], wordsPerSecond: 1, referenciaUnica: ru })
+    assert.equal(w.model, 'kling/v4/reference-to-video')
+    assert.equal(f.entradaDoJuiz2411({ referenciaUnica: ru }, w).multi_prompt[0].prompt, cli) }
+
   // na rota, os lugares em que o juiz lê o envio (A2 ×3 + eco, juiz do plano ×2) passam por entradaDoJuiz2411; o envio e o claim, não
   assert.equal(route.split('(buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input.multi_prompt as Array<{ prompt: string }>)').length - 1, 0)
   assert.equal(route.split('(entradaDoJuiz2411(e.timing, buildKling4TrialInput(e.prompts, e.approvedStills, e.timing)).multi_prompt as Array<{ prompt: string }>)').length - 1, 4)
@@ -257,7 +279,10 @@ const mutants = [
   [feature, [['  try { return escolherReferencia(snapshot) } catch { return null }', '  return escolherReferencia(snapshot)'], ['Array.isArray(s!.approvedStills) &&', '']]],
   [feature, [['  try { return escolherReferencia(snapshot) } catch { return null }', '  return escolherReferencia(snapshot)'], [' && Array.isArray(x.characterNames))', ')']]],
   [routeFile, '} catch (erro) { delete kling4Timing.referenciaUnica;', '} catch (erro) { throw erro; delete kling4Timing.referenciaUnica;'],
-  [feature, "m.prompt.replace(frase, '')", 'm.prompt'],
+  [feature, 'p.slice(0, -(frase + CAUDA_DA_BOCA_2411).length) + CAUDA_DA_BOCA_2411', 'p'],
+  [feature, [['p.endsWith(frase + CAUDA_DA_BOCA_2411) ? p.slice(0, -(frase + CAUDA_DA_BOCA_2411).length) + CAUDA_DA_BOCA_2411', 'p.includes(frase) ? p.replace(frase, \'\')']]],
+  [routeFile, 'const reaproveitaJuiz1311 = !!envioFinal1311 && juizLeuOMesmoTexto(lidoPeloJuiz1311, envioFinal1311.cenas)', 'const reaproveitaJuiz1311 = !!envioFinal1311'],
+  [routeFile, 'kling4Input: () => { const e = kling4EnvioDoFilme(); return entradaDoJuiz2411(e.timing, buildKling4TrialInput(e.prompts, e.approvedStills, e.timing)) /* KINEO-REFERENCIA-UNICA-2411: o juiz lê sem a frase */ }, falas: scenes.map((s) => s.voiceover ?? \'\'), inputs: classicSceneInputs }) : null', 'kling4Input: () => { const e = kling4EnvioDoFilme(); return entradaDoJuiz2411({}, buildKling4TrialInput(e.prompts, e.approvedStills, e.timing)) /* KINEO-REFERENCIA-UNICA-2411: o juiz lê sem a frase */ }, falas: scenes.map((s) => s.voiceover ?? \'\'), inputs: classicSceneInputs }) : null'],
   [routeFile, 'kling4Input: () => { const e = kling4EnvioDoFilme(); return entradaDoJuiz2411(e.timing, buildKling4TrialInput(e.prompts, e.approvedStills, e.timing)) /* KINEO-REFERENCIA-UNICA-2411: o juiz lê sem a frase */ }, falas', 'kling4Input: () => { const e = kling4EnvioDoFilme(); return buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input }, falas'],
 ]
 let mortos = 0
