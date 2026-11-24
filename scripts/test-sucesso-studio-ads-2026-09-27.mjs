@@ -17,9 +17,18 @@ const count = (s, needle) => s.split(needle).length - 1
 let ok = 0
 const falhas = []
 const checa = (nome, cond) => { if (cond) { ok += 1; return } falhas.push(nome); console.error('  ✗ ' + nome) }
-const load = createOfflineLoader()
+const baseLoad = createOfflineLoader()
+const publicAccess = baseLoad('lib/ads/accessPublic.ts')
+const internalAccounts = baseLoad('lib/internalAccounts.ts')
+const adsOffer = baseLoad('lib/ads/offer.ts')
+const load = createOfflineLoader({ mocks: {
+  './accessPublic': publicAccess,
+  '@/lib/internalAccounts': internalAccounts,
+  '@/lib/ads/offer': adsOffer,
+} })
 
 const PAGE = rd('app/checkout/success/page.tsx')
+const ACCESS_PUBLIC = rd('lib/ads/accessPublic.ts')
 const WIZARD = rd('app/(dashboard)/ads/new/AdsWizardClient.tsx') // só leitura
 const RENDER = rd('app/api/ads/render/route.ts') // só leitura
 const COMPOSE = rd('app/api/compose/route.ts') // só leitura
@@ -27,6 +36,11 @@ const CREDITS = rd('app/api/credits/route.ts') // só leitura
 const CHECKOUT = rd('app/api/stripe/checkout/route.ts') // só leitura
 
 const COND = "const adsBlockShown = selfServeReady && !packPurchase && accountPlan !== null && ADS_SUBSCRIBER_PLANS.includes(accountPlan) && adsPassLive()"
+const EXPECTED_SUBSCRIBER_PLANS = ['starter', 'basic', 'creator', 'pro', 'studio', 'autopilot', 'autopilot_lite', 'business']
+const plansFromPublicSource = (src) => {
+  const raw = /export const ADS_SUBSCRIBER_PLANS: readonly string\[\] = \[([^\]]+)\]/.exec(src)?.[1]
+  return raw ? raw.split(',').map((p) => p.trim().replace(/^'|'$/g, '')) : []
+}
 const DERIV = 'const ADS_SHORTEST_SECONDS = Math.min(...ADS_MODELS.map((m) => m.seconds))'
 const COPY = 'Paste your website link or write one sentence; the AI writes, narrates and cuts a vertical ad with captions, music and your logo. A {ADS_SHORTEST_SECONDS}-second ad costs {KINEO1_35S_CREDITS} credits from the same balance.'
 const GATE = '{adsBlockShown && (\n            <div\n              data-kineo="checkout-success-studio-ads"'
@@ -35,10 +49,11 @@ const TYPED = /\b35-second\b|\b35 s\b|\b3 credits\b|costs 3\b|\b3 cr\b/
 const blockOf = (src) => { const i = src.indexOf(GATE); if (i < 0) return null; const j = src.indexOf('Make a business ad →', i); return j < 0 ? null : src.slice(i, j) }
 
 // ── 1. a página importa a fonte de cada fato (acesso, custo, interruptor, modelos) ──
-checa('1a. importa ADS_SUBSCRIBER_PLANS de @/lib/ads/access', PAGE.includes("import { ADS_SUBSCRIBER_PLANS } from '@/lib/ads/access'"))
+checa('1a. importa ADS_SUBSCRIBER_PLANS de @/lib/ads/accessPublic', PAGE.includes("import { ADS_SUBSCRIBER_PLANS } from '@/lib/ads/accessPublic'"))
 checa('1b. importa KINEO1_35S_CREDITS e adsPassLive de @/lib/ads/offer', PAGE.includes("import { KINEO1_35S_CREDITS, adsPassLive } from '@/lib/ads/offer'"))
 checa('1c. importa ADS_MODELS de @/lib/ads/models (fonte do "35")', PAGE.includes("import { ADS_MODELS } from '@/lib/ads/models'"))
-checa('1d. os três módulos são puros: nenhum import de servidor (supabase, next/headers, server-only, chave secreta) em access/offer/models/internalAccounts', ['lib/ads/access.ts', 'lib/ads/offer.ts', 'lib/ads/models.ts', 'lib/internalAccounts.ts'].every((p) => !/supabase|next\/headers|server-only|process\.env\.[A-Z_]*(KEY|SECRET)/.test(rd(p))))
+checa('1d. os módulos são puros: nenhum import de servidor (supabase, next/headers, server-only, chave secreta) em accessPublic/access/offer/models/internalAccounts', ['lib/ads/accessPublic.ts', 'lib/ads/access.ts', 'lib/ads/offer.ts', 'lib/ads/models.ts', 'lib/internalAccounts.ts'].every((p) => !/supabase|next\/headers|server-only|process\.env\.[A-Z_]*(KEY|SECRET)/.test(rd(p))))
+checa('1f. lista pública efetiva igual à lista aprovada para assinantes Ads', JSON.stringify(publicAccess.ADS_SUBSCRIBER_PLANS) === JSON.stringify(EXPECTED_SUBSCRIBER_PLANS) && JSON.stringify(plansFromPublicSource(ACCESS_PUBLIC)) === JSON.stringify(EXPECTED_SUBSCRIBER_PLANS))
 checa('1e. a página continua client component (o clique é medido com trackEvent no onClick)', PAGE.startsWith("'use client'"))
 
 // ── 2. nada digitado: o "35" e o custo nascem de lib/ ──
@@ -69,7 +84,7 @@ const ent = load('lib/growth/checkoutSuccessEntitlement.ts')
 const access = load('lib/ads/access.ts')
 checa("4d. EXECUTADO: sem hasPaid ou sem plano pago a política NÃO fica 'ready' (o bloco nunca aparece antes da confirmação)", ent.selfServeEntitlementState({ entitlementsResolved: true, hasPaid: true, plan: 'starter' }) === 'ready' && ent.selfServeEntitlementState({ entitlementsResolved: true, hasPaid: false, plan: 'starter' }) !== 'ready' && ent.selfServeEntitlementState({ entitlementsResolved: true, hasPaid: true, plan: 'free' }) !== 'ready' && ent.selfServeEntitlementState({ entitlementsResolved: false, hasPaid: true, plan: 'starter' }) !== 'ready')
 checa("4e. EXECUTADO: a checagem ADS_SUBSCRIBER_PLANS é NECESSÁRIA — 'starter_trial' fica 'ready' na política de sucesso mas dá 'none' no Studio Ads", ent.selfServeEntitlementState({ entitlementsResolved: true, hasPaid: true, plan: 'starter_trial' }) === 'ready' && !access.ADS_SUBSCRIBER_PLANS.includes('starter_trial') && access.adsAccessReason({ plan: 'starter_trial', ads_access_until: null }, 'someone@example.com') === 'none')
-checa("4f. FATO \"included in your plan\": todo plano de ADS_SUBSCRIBER_PLANS dá adsAccessReason === 'subscriber'", access.ADS_SUBSCRIBER_PLANS.length >= 5 && access.ADS_SUBSCRIBER_PLANS.every((p) => access.adsAccessReason({ plan: p, ads_access_until: null }, 'someone@example.com') === 'subscriber'))
+checa("4f. FATO \"included in your plan\": access.ts usa a mesma lista pública, todos os planos dão 'subscriber' e nenhum plano sumiu", JSON.stringify(access.ADS_SUBSCRIBER_PLANS) === JSON.stringify(publicAccess.ADS_SUBSCRIBER_PLANS) && JSON.stringify(access.ADS_SUBSCRIBER_PLANS) === JSON.stringify(EXPECTED_SUBSCRIBER_PLANS) && access.ADS_SUBSCRIBER_PLANS.every((p) => access.adsAccessReason({ plan: p, ads_access_until: null }, 'someone@example.com') === 'subscriber'))
 checa('4g. pack avulso fica fora: packPurchase lê ?pack= da URL no mount, e a success_url do pack (route.ts, só leitura) carrega pack=', PAGE.includes('const [packPurchase, setPackPurchase] = useState(false)') && PAGE.includes("setPackPurchase(new URLSearchParams(window.location.search).has('pack'))") && CHECKOUT.includes('/checkout/success?success=true&pack=starter&'))
 checa('4h. Autopilot fica fora: o bloco vem DEPOIS do fecho do ternário do CTA, que começa em {isAutopilot ? (', (() => { const gate = PAGE.indexOf(GATE); const tern = PAGE.lastIndexOf(') : null}', gate); const auto = PAGE.indexOf('{isAutopilot ? ('); return gate > tern && tern > auto && auto > 0 })())
 checa('4i. adsPassLive() é o interruptor único (NEXT_PUBLIC_ADS_PASS_LIVE=0 desliga) e está ligado em código hoje', offer.adsPassLive() === true && rd('lib/ads/offer.ts').includes("if (env === '0') return false"))
@@ -111,7 +126,7 @@ const audit = (src) => {
   const h = src.match(HREF_LINE)
   const params = h ? (h[1].split('?')[1] ?? '').split('&') : []
   if (!h || !h[1].startsWith('/ads/new?') || !params.includes('utm_campaign=sprint0927')) p.push('href')
-  if (!src.includes("import { ADS_SUBSCRIBER_PLANS } from '@/lib/ads/access'") || !src.includes("import { KINEO1_35S_CREDITS, adsPassLive } from '@/lib/ads/offer'")) p.push('imports')
+  if (!src.includes("import { ADS_SUBSCRIBER_PLANS } from '@/lib/ads/accessPublic'") || !src.includes("import { KINEO1_35S_CREDITS, adsPassLive } from '@/lib/ads/offer'")) p.push('imports')
   const rs = src.indexOf("void trackEvent('checkout_success_entitlement_ready', {")
   if (rs < 0 || !src.slice(rs, src.indexOf('})', rs)).includes('ads_block: adsBlockShown,')) p.push('impression')
   return p
@@ -133,8 +148,10 @@ const mutHref = PAGE.replace('&utm_campaign=sprint0927', '')
 checa('8h. MUTANTE href sem utm_campaign=sprint0927 fica vermelho', mutHref !== PAGE && audit(mutHref).includes('href'))
 const mutImp = PAGE.replace('      ads_block: adsBlockShown,\n', '')
 checa('8i. MUTANTE impressão sem ads_block fica vermelho', mutImp !== PAGE && audit(mutImp).includes('impression'))
-const mutImport = PAGE.replace("import { ADS_SUBSCRIBER_PLANS } from '@/lib/ads/access'", "const ADS_SUBSCRIBER_PLANS = ['starter', 'creator', 'pro', 'studio']")
-checa('8j. MUTANTE lista de planos redigitada na página (sem importar lib/ads/access) fica vermelho', mutImport !== PAGE && audit(mutImport).includes('imports'))
+const mutImport = PAGE.replace("import { ADS_SUBSCRIBER_PLANS } from '@/lib/ads/accessPublic'", "const ADS_SUBSCRIBER_PLANS = ['starter', 'creator', 'pro', 'studio']")
+checa('8j. MUTANTE lista de planos redigitada na página (sem importar lib/ads/accessPublic) fica vermelho', mutImport !== PAGE && audit(mutImport).includes('imports'))
+const mutPlanRemoval = ACCESS_PUBLIC.replace(", 'business']", "]")
+checa('8k. MUTANTE remove business da lista pública real: divergência de lista fica vermelha', mutPlanRemoval !== ACCESS_PUBLIC && JSON.stringify(plansFromPublicSource(mutPlanRemoval)) !== JSON.stringify(EXPECTED_SUBSCRIBER_PLANS))
 
 console.log(`test-sucesso-studio-ads-2026-09-27: ${ok} ok, ${falhas.length} falha(s)`)
 if (falhas.length) process.exit(1)

@@ -31,7 +31,10 @@ const hooks = {
 }
 const Link = ({ children, ...props }) => React.createElement('a', props, children)
 const TopBar = () => null
+const CreateMolduraTopo = () => null
 const loadPure = createOfflineLoader()
+// The shell's visibility hook runs with the same SSR hook shim as the shell itself.
+const loadNavigation = createOfflineLoader({ mocks: { react: hooks } })
 function loadComponent(file) {
   const source = fs.readFileSync(path.join(root, file), 'utf8')
   const output = ts.transpileModule(source, { compilerOptions: {
@@ -42,10 +45,12 @@ function loadComponent(file) {
     if (name === 'react') return hooks
     if (name === 'next/link') return { default: Link }
     if (name === 'next/navigation') return { usePathname: () => pathname }
+    if (name === '@/lib/create/useCreateNavigationVisibility') return loadNavigation(name)
     if (name.startsWith('@/lib/')) return loadPure(name)
     if (name === '@/components/AccountMenuScope') return { useAccountMenuScope: () => null }
     if (name === '@/components/InterfaceLanguage') return { UiLabel: ({ children }) => children }
     if (name === '@/components/TopBar') return { default: TopBar }
+    if (name === '@/components/create/CreateMolduraTopo') return { default: CreateMolduraTopo }
     if (name.startsWith('@/components/')) return { default: () => null }
     throw new Error('Unexpected import: ' + name)
   }
@@ -177,9 +182,18 @@ for (const [route, title] of Object.entries({ '/studio': 'Studio', '/images': 'I
 }
 check('/library opens in the new frame: no old top bar, no sidebar', () => { // KINEO-LIBRARY-MOLDURA-NOVA-1211
   pathname = '/library'
-  const shell = Shell({ children: null, userEmail: '', isPro: false, generationsUsed: 0, isLoggedIn: false })
-  assert.equal(nodes(shell).filter((n) => n.type === TopBar).length, 0)
-  assert.ok(nodes(shell).some((n) => n.props && n.props['data-dashboard-moldura'] === 'nova'))
+  const guest = { children: null, userEmail: '', isPro: false, generationsUsed: 0, isLoggedIn: false }
+  const member = { ...guest, userEmail: 'mobile-offline@example.test', isLoggedIn: true }
+  for (const [session, expected] of [
+    [guest, { showClip: false, showRecreate: true }],
+    [member, { showClip: true, showRecreate: false }],
+  ]) {
+    const shell = nodes(Shell(session))
+    assert.equal(shell.filter((n) => n.type === TopBar).length, 0)
+    assert.ok(shell.some((n) => n.props && n.props['data-dashboard-moldura'] === 'nova'))
+    const top = shell.find((n) => n.type === CreateMolduraTopo)
+    assert.deepEqual(top?.props, expected)
+  }
 })
 check('SSR outputs links and controls without network', () => {
   const html = renderToStaticMarkup(render())

@@ -16,6 +16,7 @@ const ok = (c, m) => { if (c) { pass++; console.log('  ok  ' + m) } else { fail+
 const MODEL = 'lib/pricingTwoProducts.ts'
 const COMP = 'components/pricing/TwoProductsPricing.tsx'
 const CLIENT = 'app/pricing/PricingClient.tsx'
+const CLIP_RELEASE = 'lib/clips/clipLaunch.ts'
 const MODEL_SRC = read(MODEL)
 const COMP_SRC = read(COMP)
 const CLIENT_SRC = read(CLIENT)
@@ -37,11 +38,10 @@ function problems(replacements = {}) {
   const listed = cat.CLIP_ENGINE_ORDER.filter((e) => launch.engineOffered(e) && !launch.enginePaused(e) && (e !== 's25' || launch.S25_PUBLIC)) // KINEO-MOTORES-SAEM-0511
   // REANCORADO KINEO-S25-ABRE-2026-10-06: o FILME do Seedance 2.5 está à venda (planos pagos) e o CLIPE dele não (segue só da
   // casa, s25ClipVisible) — a tabela de clipes do visitante segue a régua do clipe; a de filmes, a do motor.
-  // REANCORADO KINEO-S25-CLIPES-2026-10-06: a régua do clipe do 2.5 virou o interruptor ÚNICO dele (lib/clips/clipLaunch.ts
-  // clipS25Visible / CLIP_S25_PUBLIC), no lugar do s25ClipVisible de lib/engineLaunch.ts.
-  const clipLaunch = load('lib/clips/clipLaunch.ts')
+  // A tabela usa CLIP_S25_PUBLIC; a expectativa vem da regra real do servidor para um visitante.
+  const { clipS25Visible } = load('lib/clips/clipLaunchAccess.ts')
   if (typeof launch.s25ClipVisible === 'function') p.push('2ª régua do clipe do 2.5 voltou a lib/engineLaunch.ts')
-  const clipsListed = listed.filter((e) => e !== 's25' || clipLaunch.clipS25Visible(null))
+  const clipsListed = listed.filter((e) => e !== 's25' || clipS25Visible(null))
   if (JSON.stringify(m.clips.map((r) => r.engine)) !== JSON.stringify(clipsListed)) p.push(`motores dos clipes ${m.clips.map((r) => r.engine)} ≠ públicos ${clipsListed}`)
   if (JSON.stringify(m.films.map((r) => r.engine)) !== JSON.stringify(listed)) p.push('motores dos filmes ≠ públicos')
   const usdCents = (credits) => Math.round(credits * rate * 100)
@@ -116,9 +116,16 @@ ok(!row(real.m.clips, 'veo') && !row(real.m.clips, 'kling') && !row(real.m.films
 // REANCORADO KINEO-S25-CLIPES-2026-10-06: a linha do CLIPE do 2.5 segue o interruptor único do clipe (CLIP_S25_PUBLIC) — ligado,
 // entra com o preço decidido pelo fundador; desligado, fora (como no s25-abre).
 {
-  const clipOn = /^export const CLIP_S25_PUBLIC = true\b/m.test(read('lib/clips/clipLaunch.ts'))
-  ok(!real.m.clips.some((r) => r.engine === 'omni') && real.m.clips.some((r) => r.engine === 's25') === clipOn && !real.m.films.some((r) => r.engine === 'omni') && real.m.films.some((r) => r.engine === 's25'),
-    `Omni (pausado) fora das tabelas; Seedance 2.5 na de filmes e ${clipOn ? 'na' : 'fora da'} de clipes (CLIP_S25_PUBLIC = ${clipOn})`)
+  const source = read(CLIP_RELEASE)
+  const flag = source.match(/^export const CLIP_S25_PUBLIC = (true|false)\b/m)
+  if (!flag) throw new Error('âncora de CLIP_S25_PUBLIC não encontrada')
+  const clipOn = flag[1] === 'true'
+  const opposite = problems({ ...OFFP, [CLIP_RELEASE]: source.replace(flag[0], `export const CLIP_S25_PUBLIC = ${!clipOn}`) })
+  const hasEngine = (rows, engine) => rows.some((r) => r.engine === engine)
+  ok(!hasEngine(real.m.clips, 'omni') && !hasEngine(real.m.films, 'omni')
+    && hasEngine(real.m.clips, 's25') === clipOn && hasEngine(real.m.films, 's25')
+    && opposite.p.length === 0 && hasEngine(opposite.m.clips, 's25') === !clipOn && hasEngine(opposite.m.films, 's25'),
+    'Omni pausado fora da tabela; o clipe 2.5 acompanha os dois estados do interruptor público, com o filme presente')
 }
 
 console.log('3. acompanha as fontes')
@@ -150,9 +157,8 @@ const MUTANTS = [
   ['clipe com foto cobrado diferente', mut(MODEL, 'cell(seconds, clipCreditCost(engine, seconds, false), usdPerCredit)', 'cell(seconds, clipCreditCost(engine, seconds, false) - 1, usdPerCredit)')],
 ]
 for (const [name, over] of MUTANTS) {
-  let caught
-  try { caught = problems({ ...OFFP, ...over }).p.length > 0 } catch { caught = true }
-  ok(caught, `mutante pego: ${name}`)
+  const { p } = problems({ ...OFFP, ...over })
+  ok(p.length > 0, `mutante pego: ${name}`)
 }
 // KINEO-HIDRATACAO-0511 — KLING4_PAID_LIVE existe no servidor e não no navegador. A tabela tem de sair igual nos dois, senão o React
 // refaz a página (#425, Server "45" Client "38", 05/11). Quem protege hoje é o filmOffer constante de KINEO-MOTORES-SAEM-0511.

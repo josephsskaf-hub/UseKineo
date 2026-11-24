@@ -55,10 +55,44 @@ const nodes = (node, p, out = []) => { if (Array.isArray(node)) { node.forEach(n
 const text = node => Array.isArray(node) ? node.map(text).join('') : node && typeof node === 'object' ? text(node.props?.children) : node == null || typeof node === 'boolean' ? '' : String(node)
 
 // ─── A. Interruptor ──────────────────────────────────────────────────────────────────────────────────────────────────
-function casosA(o) {
+async function casosA(o) {
   const j = L(o)('lib/create/clipRecreateJuntos'), rel = L(o)('lib/create/release'), acc = L(o)('lib/recreate/access'), clip = L(o)('lib/create/clipNaMoldura'), create = L(o)('lib/create/access')
+  const dashboard = src(o, 'app/(dashboard)/DashboardShell.tsx')
+  const dashboardHook = src(o, 'lib/create/useCreateNavigationVisibility.ts')
+  const visibilityRoute = src(o, 'app/api/account/create-visibility/route.ts')
+  const adsWorkspace = src(o, 'app/(dashboard)/ads/v2/AdsV2Workspace.tsx')
   const v = (e, r) => j.clipRecreateJuntosVisivel(e, r)
   const ambasHoje = e => clip.clipNaMolduraVisivel(e) && acc.recreateVisible(e)
+  const hookState = []
+  let hookCursor = 0
+  const hookReact = {
+    useState(initial) {
+      const i = hookCursor++
+      if (!(i in hookState)) hookState[i] = typeof initial === 'function' ? initial() : initial
+      return [hookState[i], next => { hookState[i] = typeof next === 'function' ? next(hookState[i]) : next }]
+    },
+    useEffect(effect) { effect() },
+  }
+  const hookLoader = L(o, {
+    react: hookReact,
+    './release': { CREATE_SHELL_RELEASE: 'public', CLIP_RECREATE_JUNTOS_RELEASE: 'internal' },
+    '@/lib/auth/readServerVisibility': { readServerVisibility: async () => ({ showClip: false, showRecreate: true }) },
+  })
+  const navigationHook = hookLoader('lib/create/useCreateNavigationVisibility')
+  const readHookFlags = async () => {
+    hookCursor = 0
+    navigationHook.useCreateNavigationVisibility(CUSTOMER)
+    await Promise.resolve()
+    await Promise.resolve()
+    hookCursor = 0
+    return navigationHook.useCreateNavigationVisibility(CUSTOMER)
+  }
+  const libraryUsesSameRule =
+    (dashboard.includes('<CreateMolduraTopo showRecreate={abaRecreateVisivel(userEmail)} showClip={clipNaMolduraVisivel(userEmail)} />') ||
+      (dashboard.includes('useCreateNavigationVisibility(userEmail)') && dashboard.includes('<CreateMolduraTopo showRecreate={navigation.showRecreate} showClip={navigation.showClip} />') &&
+        dashboardHook.includes("readServerVisibility('/api/account/create-visibility')") && visibilityRoute.includes('abaRecreateVisivel(user?.email)')))
+  const adsUsesSameRule = adsWorkspace.includes('showRecreate: abaRecreateVisivel(user?.email)') && adsWorkspace.includes('{...navigation}')
+  const privateHookFlags = await readHookFlags()
   return [
     ["A1 interruptor aberto ao público em 15/11 (dono: \"pode liberar tudo para as pessoas\"); VOLTA = 'internal'", rel.CLIP_RECREATE_JUNTOS_RELEASE === 'public'],
     ['A2 padrão (público desde 15/11): a casa vê; a conta de fora vê se já abre /create/clip e /recreate; visitante nunca; de volta a "internal", a conta de fora não', v(HOUSE) === true && v(CUSTOMER) === ambasHoje(CUSTOMER) && v(null) === false && v(undefined) === false && v('') === false && v(CUSTOMER, 'internal') === false && v(HOUSE, 'internal') === true],
@@ -66,7 +100,7 @@ function casosA(o) {
     ["A4 'off': ninguém; 'public': só quem já abre /create/clip e /recreate; visitante nunca", [HOUSE, CUSTOMER, null].every(e => v(e, 'off') === false) && v(CUSTOMER, 'public') === ambasHoje(CUSTOMER) && v(null, 'public') === false],
     ['A5 a aba Recreate some só para quem tem a tela única; os outros: recreateVisible', j.abaRecreateVisivel(HOUSE) === false && j.abaRecreateVisivel(CUSTOMER) === (acc.recreateVisible(CUSTOMER) && !v(CUSTOMER)) && j.abaRecreateVisivel(CUSTOMER, 'internal') === acc.recreateVisible(CUSTOMER) && j.abaRecreateVisivel(HOUSE, 'off') === acc.recreateVisible(HOUSE)],
     ['A6 /create/<aba>: a casa recebe a barra sem Recreate; a conta de fora, a de sempre', ['film', 'cartoon', 'ads'].every(t => create.createShellDecision(t, { email: HOUSE }).showRecreate === false && create.createShellDecision(t, { email: CUSTOMER }).showRecreate === j.abaRecreateVisivel(CUSTOMER))],
-    ['A7 Library e Ads: a MESMA régua da barra', src(o, 'app/(dashboard)/DashboardShell.tsx').includes('<CreateMolduraTopo showRecreate={abaRecreateVisivel(userEmail)} showClip={clipNaMolduraVisivel(userEmail)} />') && src(o, 'app/(dashboard)/ads/v2/AdsV2Workspace.tsx').includes('showRecreate: abaRecreateVisivel(user?.email)') && src(o, CREATE).includes('showRecreate={abaRecreateVisivel(quem.email)')],
+    ['A7 Library e Ads: a MESMA régua da barra (Library lê showClip e showRecreate independentes)', libraryUsesSameRule && adsUsesSameRule && src(o, CREATE).includes('showRecreate={abaRecreateVisivel(quem.email)') && privateHookFlags.showClip === false && privateHookFlags.showRecreate === true],
   ]
 }
 
@@ -312,10 +346,11 @@ const MUTANTES = [
   ['M19 o efeito repetido volta (a grade e as fileiras do Clips mostram o mesmo)', mut(JUNTOS, 'semRepetir={semRepetir} moldura=', 'moldura=')],
   ['M20 o filtro some sem a lista (esconde efeito na /clips de sempre)', mut(CLIPS, '.filter((fx) => !semRepetir?.has(fx.title.trim().toLowerCase())).map((fx) => ( // KINEO-CLIP-RECREATE-JUNTOS-1511 sem repetir', '.filter((fx) => !semRepetir || !semRepetir.has(fx.title.trim().toLowerCase())).map((fx) => ( // KINEO-CLIP-RECREATE-JUNTOS-1511 sem repetir')],
   ['M17 preço escrito na casca', mut(JUNTOS, "recriar: 'Recreate this ↗'", "recriar: 'Recreate this · ✦ 40 ↗'")],
+  ['M21 A7 Library usa showClip como showRecreate', mut('lib/create/useCreateNavigationVisibility.ts', 'showRecreate: result?.showRecreate === true', 'showRecreate: result?.showClip === true'), 'A7'],
 ]
-for (const [nome, o] of MUTANTES) {
+for (const [nome, o, expectedCase] of MUTANTES) {
   let reprovou, porque = ''
-  try { const f = (await todos(o)).filter(([, ok]) => !ok); reprovou = f.length > 0; porque = f.map(([n]) => n.split(' ')[0]).join(', ') } catch (e) { reprovou = true; porque = 'erro: ' + String(e?.message ?? e).slice(0, 80) }
+  try { const f = (await todos(o)).filter(([, ok]) => !ok); reprovou = f.length > 0 && (!expectedCase || f.some(([n]) => n.startsWith(expectedCase))); porque = f.map(([n]) => n.split(' ')[0]).join(', ') } catch (e) { reprovou = true; porque = 'erro: ' + String(e?.message ?? e).slice(0, 80) }
   total++
   console.log(`  ${reprovou ? 'ok  ' : 'FAIL'} ${nome} → o guardião reprova (${porque})`)
   if (!reprovou) falhas++

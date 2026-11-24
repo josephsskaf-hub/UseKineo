@@ -1,7 +1,7 @@
 // KINEO-STUDIO-TILE-ADS-2026-09-27 — guardião do tile "Business ad" no /studio (sprint 16 h, ciclo D, item U).
 //
 // O QUE PROVA (readFileSync, sem alias @/, sem rede, sem OpenAI):
-//   A. StudioClient importa as fontes: ADS_SUBSCRIBER_PLANS (lib/ads/access.ts), KINEO1_35S_CREDITS + adsPassLive
+//   A. StudioClient importa as fontes: ADS_SUBSCRIBER_PLANS (lib/ads/accessPublic.ts), KINEO1_35S_CREDITS + adsPassLive
 //      (lib/ads/offer.ts), ADS_MODELS (lib/ads/models.ts), getTierPrice + formatCheckoutMoney (lib/checkoutPricing.ts).
 //   B. Literal antigo travado em ZERO: nenhum "9.90", "3 credits", "35-second" digitado — os três números nascem por derivação
 //      (getTierPrice('starter') → 990 → "$9.90"; KINEO1_35S_CREDITS → 3; min(ADS_MODELS.seconds) → 35). O guardião LÊ os três
@@ -25,6 +25,7 @@ const STUDIO = rd('app/(dashboard)/studio/StudioClient.tsx')
 const OFFER = rd('lib/ads/offer.ts')
 const MODELS = rd('lib/ads/models.ts')
 const ACCESS = rd('lib/ads/access.ts')
+const ACCESS_PUBLIC = rd('lib/ads/accessPublic.ts')
 const PRICING = rd('lib/checkoutPricing.ts')
 const EVENTS = rd('lib/ads/events.ts')
 const CREDITS_ROUTE = rd('app/api/me/credits/route.ts')
@@ -42,14 +43,16 @@ const starterMinor = Number(/starter: \{ usd: (\d+) \}/.exec(PRICING)?.[1])
 const kineo1_35 = Number(/export const KINEO1_35S_CREDITS = (\d+)/.exec(OFFER)?.[1])
 const modelSeconds = [...MODELS.matchAll(/^\s{4}seconds: (\d+),$/gm)].map((m) => Number(m[1]))
 const minSeconds = Math.min(...modelSeconds)
-const subscriberPlans = /export const ADS_SUBSCRIBER_PLANS: readonly string\[\] = \[([^\]]+)\]/.exec(ACCESS)?.[1] ?? ''
+const subscriberPlans = /export const ADS_SUBSCRIBER_PLANS: readonly string\[\] = \[([^\]]+)\]/.exec(ACCESS_PUBLIC)?.[1] ?? ''
+const expectedSubscriberPlans = ['starter', 'basic', 'creator', 'pro', 'studio', 'autopilot', 'autopilot_lite', 'business']
 const starterLabel = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(starterMinor / 100)
-check('fontes legíveis: starter em centavos, KINEO1_35S_CREDITS, segundos dos modelos, planos assinantes', Number.isInteger(starterMinor) && starterMinor > 0 && Number.isInteger(kineo1_35) && kineo1_35 > 0 && modelSeconds.length >= 2 && Number.isFinite(minSeconds) && subscriberPlans.includes("'starter'"))
+check('fontes legíveis: starter em centavos, KINEO1_35S_CREDITS, segundos dos modelos e a lista efetiva pública de planos', Number.isInteger(starterMinor) && starterMinor > 0 && Number.isInteger(kineo1_35) && kineo1_35 > 0 && modelSeconds.length >= 2 && Number.isFinite(minSeconds) && JSON.stringify(subscriberPlans.split(',').map((p) => p.trim().replace(/^'|'$/g, ''))) === JSON.stringify(expectedSubscriberPlans))
+check('lib/ads/access.ts consome a lista pública real importada de ./accessPublic', /import \{ ADS_SUBSCRIBER_PLANS \} from '\.\/accessPublic'/.test(ACCESS) && /ADS_SUBSCRIBER_PLANS\.includes\(plan\)/.test(ACCESS))
 
 // ─── as verificações como função da fonte (para os mutantes rodarem em memória) ────────────────────────────────────────
 function verificar(src) {
   const r = {}
-  r.importAccess = /import \{ ADS_SUBSCRIBER_PLANS \} from '@\/lib\/ads\/access'/.test(src)
+  r.importAccess = /import \{ ADS_SUBSCRIBER_PLANS \} from '@\/lib\/ads\/accessPublic'/.test(src)
   r.importOffer = /import \{ KINEO1_35S_CREDITS, adsPassLive \} from '@\/lib\/ads\/offer'/.test(src)
   r.importModels = /import \{ ADS_MODELS \} from '@\/lib\/ads\/models'/.test(src)
   r.importPricing = /import \{ formatCheckoutMoney, getTierPrice \} from '@\/lib\/checkoutPricing'/.test(src)

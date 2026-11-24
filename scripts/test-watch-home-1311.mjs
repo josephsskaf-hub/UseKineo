@@ -77,7 +77,35 @@ function pricingNoMenu(source) {
   }
   return source
 }
-const priorLanding = pricingNoMenu(comVarreduraHome1911(homeLimpa(menuDeConfiguracoes(semFaixaDoMeio(historicalLanding)))))
+// Reanchor only the frozen server reference: moved predicates execute from their real server module.
+// Production imports remain checked as written; no fallback exports are injected into the runtime.
+function frozenServerImports(source) {
+  const ast = ts.createSourceFile('historical.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+  const edits = []
+  for (const [publicModule, privateModule] of [
+    ['@/lib/engineLaunch', '@/lib/engineLaunchAccess'],
+    ['@/lib/clips/clipLaunch', '@/lib/clips/clipLaunchAccess'],
+  ]) {
+    const privateFile = privateModule.slice(2) + '.ts'
+    const privateAst = ts.createSourceFile(privateFile, read(privateFile), ts.ScriptTarget.Latest, true)
+    const names = new Set(privateAst.statements.filter(ts.isFunctionDeclaration).map(n => n.name?.text))
+    for (const item of ast.statements) {
+      if (!ts.isImportDeclaration(item) || item.moduleSpecifier.text !== publicModule) continue
+      const bindings = item.importClause?.namedBindings
+      if (!bindings || !ts.isNamedImports(bindings)) continue
+      const moved = bindings.elements.filter(n => names.has(n.propertyName?.text ?? n.name.text))
+      if (!moved.length) continue
+      const keep = bindings.elements.filter(n => !moved.includes(n))
+      const emit = (items, module) => items.length ? "import { " + items.map(n => n.getText(ast)).join(', ') + " } from '" + module + "'\n" : ''
+      edits.push({ start: item.getStart(ast), end: item.end, text: emit(keep, publicModule) + emit(moved, privateModule) })
+    }
+  }
+  assert.ok(edits.length > 0, 'BASE: moved private server imports found')
+  for (const edit of edits.sort((a,b) => b.start-a.start)) source = source.slice(0,edit.start) + edit.text + source.slice(edit.end)
+  return source
+}
+const priorLanding = frozenServerImports(pricingNoMenu(comVarreduraHome1911(homeLimpa(menuDeConfiguracoes(semFaixaDoMeio(historicalLanding))))))
+
 const decode = (s) => s.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>')
 const textOnly = (s) => decode(s.replace(/<(style|script)\b[^>]*>[\s\S]*?<\/\1>/gi, '').replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim()
 

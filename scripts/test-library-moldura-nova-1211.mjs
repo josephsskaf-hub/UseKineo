@@ -19,12 +19,14 @@ let passed = 0
 const ok = (c, m) => { assert(c, m); passed++ }
 const stubs = {
   'next/link': { __esModule: true, default: ({ href, children, prefetch, ...rest }) => React.createElement('a', { ...rest, href }, children) },
+  'react': React,
+  '@/lib/auth/readServerVisibility': { readServerVisibility: async () => null },
   '@/components/billing/BuyCreditsEntry': { __esModule: true, default: ({ surface }) => React.createElement('button', { 'data-kineo': 'buy-credits-entry', 'data-surface': surface }, 'Buy credits') },
   '@/components/NavCreditsBadge': { __esModule: true, default: () => React.createElement('span', null, '120 credits') },
   '@/app/recreate/recreate.css': {}, './create.css': {}, './studio-panel.css': {},
 }
 
-function all(o = {}) {
+async function all(o = {}) {
   const src = p => (o[p] ?? read(p)).replace(/\r\n/g, '\n')
   const T = loader(stubs, o)(TOPO.replace(/\.tsx$/, ''))
   const R = loader(stubs, o)(ROTAS.replace(/\.ts$/, ''))
@@ -46,7 +48,59 @@ function all(o = {}) {
   ok(!/<Sidebar|<MobileNav|<TopBar/.test(ramo[1]), 'na Library: sem lateral, sem barra de baixo, sem o topo antigo')
   ok(/<CreateMolduraTopo /.test(ramo[1]) && /<AnnualWelcomeBar /.test(ramo[1]) && /<BlackFridayBanner /.test(ramo[1]) && /<Creator30OfferModal \/>/.test(ramo[1]) && /<WelcomeOfferModal /.test(ramo[1]), 'na Library: cabeçalho novo + as ofertas da casca')
   // KINEO-CLIP-RECREATE-JUNTOS-1511 — reancorado: a régua da aba Recreate é a MESMA do /create (lib/create/access.ts createShellDecision → abaRecreateVisivel).
-  ok(/showRecreate=\{abaRecreateVisivel\(userEmail\)\} showClip=\{clipNaMolduraVisivel\(userEmail\)\}/.test(ramo[1]), 'as mesmas abas que a pessoa vê no /create')
+  const navLoader = loader(stubs, o)
+  const nav = navLoader('lib/create/useCreateNavigationVisibility')
+  const clipAccess = navLoader('lib/create/clipNaMoldura')
+  const recreateAccess = navLoader('lib/create/clipRecreateJuntos')
+  const visibilityRoute = src('app/api/account/create-visibility/route.ts')
+  const sameRule = s.includes('useCreateNavigationVisibility(userEmail)') &&
+    /<CreateMolduraTopo showRecreate=\{navigation\.showRecreate\} showClip=\{navigation\.showClip\} \/>/.test(ramo[1]) &&
+    src('lib/create/useCreateNavigationVisibility.ts').includes("readServerVisibility('/api/account/create-visibility')") &&
+    visibilityRoute.includes('abaRecreateVisivel(user?.email)') &&
+    src('app/(dashboard)/ads/v2/AdsV2Workspace.tsx').includes('showRecreate: abaRecreateVisivel(user?.email)') &&
+    src('app/(dashboard)/ads/v2/AdsV2Workspace.tsx').includes('{...navigation}') &&
+    src('app/create/[tab]/page.tsx').includes('showRecreate={abaRecreateVisivel(quem.email)')
+  const accounts = [
+    { email: 'josephsskaf@gmail.com', showClip: true, showRecreate: false }, // conta interna; os interruptores vigentes estão públicos
+    { email: 'creator@example.test', showClip: true, showRecreate: false }, // conta externa; planos free e pagos seguem a mesma regra de navegação
+    { email: null, showClip: false, showRecreate: true }, // visitante não ganha a aba Clip
+  ]
+  const tabsMatch = accounts.every(({ email, showClip, showRecreate }) => {
+    const flags = nav.publicCreateNavigation(email)
+    const serverFlags = { showClip: clipAccess.clipNaMolduraVisivel(email), showRecreate: recreateAccess.abaRecreateVisivel(email) }
+    const actualHtml = renderToStaticMarkup(React.createElement(T.default, flags))
+    const actualTabs = [...actualHtml.matchAll(/data-create-tab="([^"]+)"/g)].map(m => m[1])
+    const expectedTabs = ['film', ...(showClip ? ['clip'] : []), 'cartoon', 'ads', ...(showRecreate ? ['recreate'] : [])]
+    return flags.showClip === showClip && flags.showRecreate === showRecreate &&
+      serverFlags.showClip === showClip && serverFlags.showRecreate === showRecreate &&
+      JSON.stringify(actualTabs) === JSON.stringify(expectedTabs)
+  })
+  const hookState = []
+  let hookCursor = 0
+  const hookReact = {
+    useState(initial) {
+      const i = hookCursor++
+      if (!(i in hookState)) hookState[i] = typeof initial === 'function' ? initial() : initial
+      return [hookState[i], next => { hookState[i] = typeof next === 'function' ? next(hookState[i]) : next }]
+    },
+    useEffect(effect) { effect() },
+  }
+  const privateLoader = loader({
+    ...stubs,
+    react: hookReact,
+    './release': { CREATE_SHELL_RELEASE: 'public', CLIP_RECREATE_JUNTOS_RELEASE: 'internal' },
+    '@/lib/auth/readServerVisibility': { readServerVisibility: async () => ({ showClip: false, showRecreate: true }) },
+  }, o)
+  const hook = privateLoader('lib/create/useCreateNavigationVisibility')
+  const privateFlags = () => {
+    hookCursor = 0
+    return hook.useCreateNavigationVisibility('creator@example.test')
+  }
+  privateFlags()
+  await Promise.resolve()
+  await Promise.resolve()
+  const verifiedPrivateFlags = privateFlags()
+  ok(sameRule && tabsMatch && verifiedPrivateFlags.showClip === false && verifiedPrivateFlags.showRecreate === true, 'Library, Ads e /create usam a mesma régua; abas reais e leitura privada independente conferidas')
   // 4) Nenhum texto da Library abaixo de 12 px.
   const lib = src(LIB)
   const peq = [...lib.matchAll(/fontSize:\s*(\d+(?:\.\d+)?)(?=\s*[,}])|text-\[(\d+(?:\.\d+)?)px\]|font-size:\s*(\d+(?:\.\d+)?)px/g)].map(m => Number(m[1] ?? m[2] ?? m[3])).filter(v => v < 12)
@@ -54,7 +108,7 @@ function all(o = {}) {
   ok(/\.library-organization small\{font-size:12px;/.test(src(CSS)), '"Favorites are saved in this browser" a 12 px')
 }
 
-all()
+await all()
 const real = passed
 const r = p => read(p)
 const mutants = [
@@ -65,6 +119,7 @@ const mutants = [
   ['ramo monta a lateral', SHELL, r(SHELL).replace('<CreateMolduraTopo showRecreate', '<Sidebar /><CreateMolduraTopo showRecreate')],
   ['ofertas somem da Library', SHELL, r(SHELL).replace(/(if \(usaMolduraNova\(pathname\)\) return \([\s\S]*?)\s*<AnnualWelcomeBar initial=\{annualWelcomeBar\} placement="app" \/>/, '$1')],
   ['ramo depois da lateral (nunca roda)', SHELL, r(SHELL).replace('  if (usaMolduraNova(pathname)) return (', '  if (false && usaMolduraNova(pathname)) return (').replace('<Sidebar', '<Sidebar').replace('{/* Desktop sidebar spacer', '{/* Desktop sidebar spacer') + ''],
+  ['Library usa showClip no lugar de showRecreate', 'lib/create/useCreateNavigationVisibility.ts', r('lib/create/useCreateNavigationVisibility.ts').replace('showRecreate: result?.showRecreate === true', 'showRecreate: result?.showClip === true')],
   ['Favorites volta a 11 px', CSS, r(CSS).replace('.library-organization small{font-size:12px;', '.library-organization small{font-size:11px;')],
 ]
 let bitten = 0
@@ -72,7 +127,7 @@ for (const [name, f, v] of mutants) {
   if (v === r(f)) throw new Error(`mutante não aplicou: ${name}`)
   passed = 0
   let died = false
-  try { all({ [f]: v }) } catch { died = true }
+  try { await all({ [f]: v }) } catch { died = true }
   assert(died, `MUTANTE SOBREVIVEU: ${name}`)
   bitten++
 }

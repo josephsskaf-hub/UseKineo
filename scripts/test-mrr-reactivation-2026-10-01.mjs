@@ -20,7 +20,7 @@ async function contract(text=source,sendEnabled=true){
   else if(table==='profiles')result.data=[good];else if(table==='events')result.data=events;else if(table==='videos')result.data=[{id:'video-fixture',user_id:good.id,status:'completed',video_url:'https://example.test/film.mp4',title:'My film',created_at:good.created_at}];
   return Promise.resolve(result).then(resolve,reject)
  }};return q}}
- const load=createOfflineLoader({source:(p,s)=>p===file?text:p==='lib/growth/mrrReactivation.ts'&&sendEnabled?s.replace('MRR_REACTIVATION_SEND_ENABLED = false','MRR_REACTIVATION_SEND_ENABLED = true'):s,env:{NEXT_PUBLIC_SUPABASE_URL:'https://fixture.test',SUPABASE_SERVICE_ROLE_KEY:'offline-fixture-not-a-secret',RESEND_API_KEY:'offline-fixture'},globals:{AbortSignal:{timeout:()=>undefined},fetch:async(url,init)=>{sent.push({url,init});return{ok:true,status:200,json:async()=>({id:'provider-fixture'})}}},mocks:{
+ const load=createOfflineLoader({source:(p,s)=>p===file?text:p==='lib/growth/mrrReactivationRelease.ts'&&sendEnabled?s.replace('MRR_REACTIVATION_SEND_ENABLED = false','MRR_REACTIVATION_SEND_ENABLED = true'):s,env:{NEXT_PUBLIC_SUPABASE_URL:'https://fixture.test',SUPABASE_SERVICE_ROLE_KEY:'offline-fixture-not-a-secret',RESEND_API_KEY:'offline-fixture'},globals:{AbortSignal:{timeout:()=>undefined},fetch:async(url,init)=>{sent.push({url,init});return{ok:true,status:200,json:async()=>({id:'provider-fixture'})}}},mocks:{
   'next/server':{NextResponse:{json:(body,options)=>({body,status:options?.status??200})}},
   '@supabase/supabase-js':{createClient:()=>db},
   '@/lib/supabase/server':{createClient:()=>({auth:{getUser:async()=>({data:{user:{id:'founder-fixture',email:founder?'josephsskaf@gmail.com':'stranger@example.test'}}})}})},
