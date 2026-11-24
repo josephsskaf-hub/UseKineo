@@ -21,6 +21,10 @@ const mundo = (mutar = null, alvo = MOD) => ({
 })
 const FIX = JSON.parse(fs.readFileSync('scripts/fixtures/elenco-e-figurino-2411-casos.json', 'utf8')).casos
 const { cooper: COO, leprince: LEP, slocum: SLO } = FIX
+const LEITURA_UMA = (nome) => JSON.stringify({ protagonist: { name: nome, kind: 'human' }, supporting: [], places_and_orgs: [] })
+const LEITURA_DUAS = (nome, outro) => JSON.stringify({ protagonist: { name: nome, kind: 'human' }, supporting: [{ name: null, role_text: outro, kind: 'human', on_screen: false }], places_and_orgs: [] })
+const CTX_SLO = { lingua: 'en', leituraBruta: JSON.stringify(SLO.leitura_semantica.raw) }
+const CTX_LEP = { lingua: 'en', leituraBruta: JSON.stringify(LEP.leitura_semantica.raw) }
 const nomes = (e) => e.map((f) => f.nome)
 const fic = (nome, extra = {}) => ({ nome, nucleo: nome.split(' ').pop(), tipo: 'humano', canonica: `${nome}, a person`, origem: 'deterministica', protagonista: true, genero: null, ...extra })
 
@@ -105,7 +109,7 @@ function provaSlocum(w) {
   const antes = elenco15(w, SLO, doPedido, w.sem.aceitaPapelDasCenas(SLO.roteiro))
   const gravado = SLO.evento_character_sheet_elenco.map((x) => x.nome).join(' + ')
   if (nomes(antes.elenco).join(' + ') !== gravado) e.push(`2.1 antes não reproduz o despacho (${gravado}): ${nomes(antes.elenco)}`)
-  const depois = elenco15(w, SLO, doPedido, w.m.aceitaPapelSemPista(SLO.roteiro, w.sem.aceitaPapelDasCenas(SLO.roteiro), fichaDaLeitura(w, SLO).aplicado.elenco[0]))
+  const depois = elenco15(w, SLO, doPedido, w.m.aceitaPapelSemPista(SLO.roteiro, w.sem.aceitaPapelDasCenas(SLO.roteiro), fichaDaLeitura(w, SLO).aplicado.elenco[0], CTX_SLO))
   if (nomes(depois.elenco).join() !== 'Joshua Slocum' || depois.elenco[0].protagonista !== true) e.push('2.2 depois: ' + nomes(depois.elenco))
   // o protagonista vai a toda cena (a cena do "old bearded sailor" passa a ser a do Slocum)
   const forcadas = w.f15.protagonistaEmTodaCena({ visuals: SLO.visuais_do_render, elenco: depois.elenco, porNome: true }).forcadas
@@ -119,7 +123,7 @@ function contraprovasPista(w) {
   const DOIS = 'HOOK: [Pexels: old sailor and young girl on a dock] Captain Elias Ward taught his granddaughter Nora to sail.\n\nPAYOFF: [Pexels: two people on a small boat] Nora and Elias sailed out together and never came back.'
   const doisPedido = [fic('Elias Ward', { nucleo: 'Elias' }), fic('Nora', { protagonista: false })]
   const vis = ['An old sailor teaches a young girl to sail on a dock.', 'The old sailor and the girl on a small boat at dusk.']
-  const r = elenco15(w, { visuais_do_render: vis }, doisPedido, w.m.aceitaPapelSemPista(DOIS, w.sem.aceitaPapelDasCenas(DOIS), doisPedido[0]), vis)
+  const r = elenco15(w, { visuais_do_render: vis }, doisPedido, w.m.aceitaPapelSemPista(DOIS, w.sem.aceitaPapelDasCenas(DOIS), doisPedido[0], { lingua: 'en', leituraBruta: LEITURA_DUAS('Elias Ward', 'granddaughter') }), vis)
   if (nomes(r.elenco).join() !== 'Elias Ward,Nora') e.push('P1 dois protagonistas reais: ' + nomes(r.elenco))
   // (b) papel que a NARRAÇÃO escreve (e a pista repete) não é "só da pista"
   if (w.m.papelSoDaPista('HOOK: [Pexels: old sailor at the helm] An old sailor lost at sea in 1909.', 'sailor')) e.push('P2 papel da narração tratado como pista')
@@ -127,10 +131,10 @@ function contraprovasPista(w) {
   const PT = 'GANCHO: Uma menina encontrou uma chave azul no sótão.\n\nFINAL: O avô sorriu quando ela abriu a caixa.'
   const menina = [fic('the girl', { nucleo: 'girl' })]
   const visPT = ['A curly-haired girl holds a blue key in an attic.', 'The girl hands the key to the grandfather, who smiles.']
-  const pt = elenco15(w, {}, menina, w.m.aceitaPapelSemPista(PT, null, menina[0]), visPT)
+  const pt = elenco15(w, {}, menina, w.m.aceitaPapelSemPista(PT, null, menina[0], { lingua: 'pt', leituraBruta: LEITURA_UMA('the girl') }), visPT)
   if (!nomes(pt.elenco).some((x) => /grandfather/.test(x))) e.push('P3 o avô do pedido em PT sumiu: ' + nomes(pt.elenco))
   // (d) filme sem gente: sem elenco do pedido e sem gente nos visuais = vazio
-  const vazio = elenco15(w, {}, [], w.m.aceitaPapelSemPista('HOOK: [Pexels: ocean] The ocean is deep.', null, null), ['A wide shot of a deep blue ocean.'])
+  const vazio = elenco15(w, {}, [], w.m.aceitaPapelSemPista('HOOK: [Pexels: ocean] The ocean is deep.', null, null, { lingua: 'en', leituraBruta: null }), ['A wide shot of a deep blue ocean.'])
   if (vazio.elenco.length !== 0) e.push('P4 filme sem gente ganhou elenco')
   return e
 }
@@ -181,7 +185,7 @@ function provaReferencia(w, ru, k4) {
   const liga = (r, planos) => (r ? !!k4.buildKling4ReferenciaUnicaInput(planos.map((p, i) => ({ prompt: p, duration: [4, 4, 4, 3][i] ?? 3 })), r) : false)
   const cooperFicha = fichaDaLeitura(w, COO).aplicado.elenco
   const sloAntes = elenco15(w, SLO, fichaDaLeitura(w, SLO).aplicado.elenco, w.sem.aceitaPapelDasCenas(SLO.roteiro))
-  const sloDepois = elenco15(w, SLO, fichaDaLeitura(w, SLO).aplicado.elenco, w.m.aceitaPapelSemPista(SLO.roteiro, w.sem.aceitaPapelDasCenas(SLO.roteiro), fichaDaLeitura(w, SLO).aplicado.elenco[0]))
+  const sloDepois = elenco15(w, SLO, fichaDaLeitura(w, SLO).aplicado.elenco, w.m.aceitaPapelSemPista(SLO.roteiro, w.sem.aceitaPapelDasCenas(SLO.roteiro), fichaDaLeitura(w, SLO).aplicado.elenco[0], CTX_SLO))
   const base = w.aj.elencoDoRoteiro(LEP.roteiro, {})
   const lepAntes = w.conf.elencoConferido(base, { nomes: ['Louis Le Prince'], protagonista: 'Louis Le Prince' }).elenco
   const lepDepois = w.conf.elencoConferido(w.m.elencoComNomeCompleto(base, ['Louis Le Prince'], LEP.roteiro).elenco, { nomes: ['Louis Le Prince'], protagonista: 'Louis Le Prince' }).elenco
@@ -207,7 +211,7 @@ function provaInterruptor(m, rota) {
   if (!/const elencoEFigurino2411 = elencoEFigurinoLigado\(ELENCO_E_FIGURINO_2411, user\.email\)/.test(rota)) e.push('W1 o interruptor não lê o e-mail do usuário autenticado')
   if (!/const nomeCompleto2411 = elencoEFigurino2411 && pedidoSemantico\?\.elenco \?/.test(rota) || !/const elencoBase2411: FichaDePersonagem\[\] = nomeCompleto2411 \? nomeCompleto2411\.elenco : elencoBaseDoPedido/.test(rota)) e.push('W2 nome completo sem a porta')
   if (!/aplicarElencoSemantico\(elencoBase2411,/.test(rota) || !/elencoConferido\(elencoBase2411, conferenciaElenco\)/.test(rota)) e.push('W3 a leitura e a conferência não recebem a base 2411')
-  if (!/completar: elencoEFigurino2411 && pedidoSemantico\?\.elenco \? aceitaPapelSemPista\(prompt, elencoSemantico \? aceitaPapelDasCenas\(prompt\) : null, personagemElenco\.elenco\.find\(\(f\) => f\.protagonista\) \?\? personagemElenco\.elenco\[0\]\) \/\*.*?\*\/ : elencoSemantico \? aceitaPapelDasCenas\(prompt\) : true/.test(linha(/elencoFilme15 = /))) e.push('W4 o filtro da pista sem a porta, ou o caminho desligado mudou')
+  if (!/completar: elencoEFigurino2411 && pedidoSemantico\?\.elenco \? aceitaPapelSemPista\(prompt, elencoSemantico \? aceitaPapelDasCenas\(prompt\) : null, personagemElenco\.elenco\.find\(\(f\) => f\.protagonista\) \?\? personagemElenco\.elenco\[0\], \{ lingua: narrationLanguage\.language, leituraBruta: pedidoSemantico\.raw \}\) \/\*.*?\*\/ : elencoSemantico \? aceitaPapelDasCenas\(prompt\) : true/.test(linha(/elencoFilme15 = /))) e.push('W4 o filtro da pista sem a porta, ou o caminho desligado mudou')
   const fig = linha(/fichaComDescricaoDoPedido\(/)
   const arg = /fichaComDescricaoDoPedido\(([^,]+),/.exec(fig)?.[1]
   if (!/^if \(elencoEFigurino2411 && /.test(fig.trim()) || arg !== 'body.original_idea') e.push('W5 a descrição não vem só do pedido original (arg=' + arg + ')')
@@ -224,65 +228,87 @@ function simulaFiacao(m, aj, sem, arg) {
   const valor = arg === 'body.original_idea' ? ctx.body.original_idea : arg === 'prompt' ? ctx.prompt : null
   const leitura = sem.lerElencoSemantico(JSON.stringify(COO.leitura_semantica.raw), COO.roteiro)
   const f = sem.aplicarElencoSemantico(aj.elencoDoRoteiro(COO.roteiro, {}), leitura, COO.roteiro).elenco
-  return m.fichaComDescricaoDoPedido(valor, f, ctx.prompt).descricao
+  return m.fichaComDescricaoDoPedido(valor, f).descricao
 }
 
 
-// ═══ VOLTA 2 · as 4 entradas do revisor independente (executadas) ═══════════════════════════════════════════════════════
+// ═══ VOLTA 3 · as entradas do revisor (1ª e 2ª passadas), executadas ════════════════════════════════════════════════════
 const ficV = (nome, genero, extra = {}) => ({ nome, nucleo: nome.split(' ').pop(), tipo: 'humano', canonica: `${nome}, a person`, origem: 'autor', protagonista: true, genero, ...extra })
-const quinze = (w, rot, doPedido, vis, semantico = true) => {
+const quinze = (w, rot, doPedido, vis, ctx, semantico = true) => {
   const antes = elenco15(w, {}, doPedido, semantico ? w.sem.aceitaPapelDasCenas(rot) : true, vis)
-  const depois = elenco15(w, {}, doPedido, w.m.aceitaPapelSemPista(rot, semantico ? w.sem.aceitaPapelDasCenas(rot) : null, doPedido[0]), vis)
-  return { antes: nomes(antes.elenco), depois: nomes(depois.elenco), forcadas: w.f15.protagonistaEmTodaCena({ visuals: vis, elenco: depois.elenco, porNome: semantico }).forcadas }
+  const depois = elenco15(w, {}, doPedido, w.m.aceitaPapelSemPista(rot, semantico ? w.sem.aceitaPapelDasCenas(rot) : null, doPedido[0], ctx), vis)
+  return { antes: nomes(antes.elenco), depois: nomes(depois.elenco), forcadas: w.f15.protagonistaEmTodaCena({ visuals: vis, elenco: depois.elenco, porNome: semantico }).forcadas, elenco: depois.elenco }
 }
 const E1 = { rot: 'GANCHO: [Pexels: girl finds a blue key in an attic] Uma menina encontrou uma chave azul no sótão.\n\nFINAL: [Pexels: grandfather smiling at a girl] O avô sorriu quando ela abriu a caixa.', vis: ['A curly-haired girl holds a blue key in an attic.', 'The girl hands the key to the grandfather, who smiles.'] }
 const E1FR = { rot: 'ACCROCHE: [Pexels: strawberry and banana cartoon friends] Fraise et la banane sont les meilleures amies du monde.\n\nFIN: [Pexels: banana dancing] La banane danse pour Fraise tous les soirs.', vis: ['A cheerful strawberry named Fraise waves next to a smiling banana.', 'The banana dances while Fraise laughs.'] }
 const E2 = { rot: 'HOOK: [Pexels: man leaving a farmhouse at dawn] In 1950, Tom Hale left his wife and walked into the woods.\n\nPAYOFF: [Pexels: woman waiting at a window] She waited forty years. Hale never came back.', vis: ['Tom Hale leaves a farmhouse at dawn while a woman watches from the porch.', 'A woman waits at a window, looking at the woods.'] }
-const E2B = { rot: 'HOOK: [Pexels: young woman walking on a dock] Mara Lind came to the harbor in 1962.\n\nMICRO REWARD 1: [Pexels: old fisherman mending nets] Mara met him at the dock every morning.\n\nPAYOFF: [Pexels: old fisherman waving from a boat] One day his boat never came back.', vis: ['Mara walks along the dock.', 'An old fisherman mends nets while Mara watches.', 'The old fisherman waves from his boat.'] }
 const E2C = { rot: 'HOOK: [Pexels: old fisherman on a dock] Ben Ross sailed with the fishermen of Gloucester for forty years and knew every one of them by name.\n\nPAYOFF: [Pexels: old fisherman on a boat] One winter Ben Ross went out with the boat and never came home again.', vis: ['An old fisherman stands on a dock next to Ben Ross.', 'The old fisherman and Ben Ross on a boat.'] }
-function provaVolta2(w) {
+const IRMAS = { rot: 'HOOK: [Pexels: young woman reading a letter by a window] Mara Hale wrote to her sister every single week for forty years, and it was always the same letter.\n\nPAYOFF: [Pexels: young woman crying by a window] Mara Hale never learned why the letters stopped coming back to the old house.', vis: ['Mara Hale writes a letter while a young woman reads by a window.', 'A young woman cries alone by a window.'] }
+const ESTRANHO = { rot: 'HOOK: [Pexels: old fisherman handing a key to a man] In 1950, Tom Hale met a stranger at the old dock and gave the boat away for nothing.\n\nPAYOFF: [Pexels: old fisherman sailing away] Tom Hale never saw the stranger again, and nobody in the town ever knew the name.', vis: ['An old fisherman hands a key to Tom Hale at the old dock.', 'The old fisherman sails away alone into the fog.'] }
+const LEP_VIS = ['In 1888, a bearded man in an 1880s suit operates a wooden box camera in a garden.', 'Le Prince boards a steam train to Paris.', 'An empty vintage train compartment.', 'A bearded man in a long coat walks into steam on a station platform.']
+const SOLDADO = 'HOOK: [Pexels: soldier in uniform at a station] Dan Cooper came home from the war in 1946.\n\nPAYOFF: [Pexels: man in a dark suit boarding a plane] Twenty years later he boarded a plane in a dark suit.'
+function lePrinceNos15(w, ctx = CTX_LEP) {
+  const leitura = w.sem.lerElencoSemantico(LEP.leitura_semantica.raw ? JSON.stringify(LEP.leitura_semantica.raw) : '', LEP.roteiro)
+  const base = w.m.elencoComNomeCompleto(w.aj.elencoDoRoteiro(LEP.roteiro, {}), ['Louis Le Prince'], LEP.roteiro).elenco
+  const aplicado = w.sem.aplicarElencoSemantico(base, leitura, LEP.roteiro)
+  const doPedido = w.fp.elencoComFichaDoPedido(LEP.ideia, aplicado.elenco).elenco
+  return quinze(w, LEP.roteiro, doPedido, LEP_VIS, ctx)
+}
+function provaVolta3(w) {
   const e = []
-  const r1 = quinze(w, E1.rot, [ficV('the girl', 'woman', { nucleo: 'girl', origem: 'deterministica' })], E1.vis, false)
+  // (1) gente real fica: PT, FR, a esposa, "fishermen", as irmãs, o estranho
+  const r1 = quinze(w, E1.rot, [ficV('the girl', 'woman', { nucleo: 'girl', origem: 'deterministica' })], E1.vis, { lingua: 'pt', leituraBruta: LEITURA_UMA('the girl') }, false)
   if (!r1.depois.some((n) => /grandfather/.test(n))) e.push('V1 PT: o avô sumiu ' + r1.depois)
-  const r1b = quinze(w, E1.rot, [ficV('the girl', 'woman', { nucleo: 'girl', origem: 'deterministica' })], E1.vis, true)
-  if (r1b.depois.join() !== r1b.antes.join()) e.push('V1b PT com leitura: mudou ' + r1b.antes + ' -> ' + r1b.depois)
-  const fr = quinze(w, E1FR.rot, [{ ...ficV('Fraise', null, { tipo: 'criatura' }) }], E1FR.vis, false)
-  if (fr.depois.join() !== fr.antes.join()) e.push('V1c FR (db401da3): mudou ' + fr.antes + ' -> ' + fr.depois)
-  if (w.m.narracaoEmIngles(E1.rot) || !w.m.narracaoEmIngles(SLO.roteiro)) e.push('V1d detector de língua')
-  const PTP = 'GANCHO: [Pexels: old fisherman on a small boat] João Silva saiu para o mar com o velho pescador da vila todos os dias da sua vida.\n\nFINAL: [Pexels: empty sea at dusk] Um dia, João Silva saiu para o mar e nunca mais voltou para casa.'
-  if (w.m.pistaDescreveOProtagonista(PTP, 'fisherman', ficV('João Silva', 'man'))) e.push('V1e PT: o pescador ("pescador" na narração) saiu pela pista em inglês')
-  const r2 = quinze(w, E2.rot, [ficV('Tom Hale', 'man')], E2.vis)
-  if (r2.depois.join() !== 'Tom Hale,the woman' || r2.forcadas.length !== 0) e.push(`V2 esposa: ${r2.depois} forçadas=${r2.forcadas}`)
-  if (w.m.pistaDescreveOProtagonista(E2.rot, 'woman', ficV('Tom Hale', 'man'))) e.push('V2a woman × Tom')
-  const SOGEN = 'HOOK: [Pexels: woman standing at a farmhouse window] In the spring of 1950, Tom Hale left the family farm for good and walked north.\n\nPAYOFF: [Pexels: empty road in the woods] Nobody ever saw Tom Hale again, not once in forty long years.'
-  if (w.m.pistaDescreveOProtagonista(SOGEN, 'woman', ficV('Tom Hale', 'man'))) e.push('V2g papel de mulher descrevendo protagonista homem')
-  const r2b = quinze(w, E2B.rot, [ficV('Mara Lind', 'woman')], E2B.vis)
-  if (!r2b.depois.some((n) => /fisherman/.test(n))) e.push('V2b pescador citado por "him" sumiu ' + r2b.depois)
-  if (w.m.pistaDescreveOProtagonista(E2B.rot, 'fisherman', ficV('Mara Lind', 'woman'))) e.push('V2c him × Mara')
-  const SOPRON = 'HOOK: [Pexels: young woman on a quiet harbor] In the summer of 1962, a young teacher named Mara Lind came to the harbor town alone.\n\nPAYOFF: [Pexels: old fisherman mending nets] Every morning Mara Lind met him at the dock and waited by the boats.'
-  if (w.m.pistaDescreveOProtagonista(SOPRON, 'fisherman', ficV('Mara Lind', 'woman'))) e.push('V2h pescador citado só por "him" saiu')
-  if (w.m.papelSoDaPista(E2C.rot, 'fisherman')) e.push('V2d "fishermen" não conta como a narração escrevendo "fisherman"')
-  const r2c = quinze(w, E2C.rot, [ficV('Ben Ross', 'man')], E2C.vis)
-  if (!r2c.depois.some((n) => /fisherman/.test(n))) e.push('V2e pescador do plural sumiu ' + r2c.depois)
-  // o Slocum continua consertado (não regride)
-  if (!w.m.pistaDescreveOProtagonista(SLO.roteiro, 'sailor', fichaDaLeitura(w, SLO).aplicado.elenco[0])) e.push('V2f Slocum regrediu')
-  // (3) descrição de outra pessoa
+  const fr = quinze(w, E1FR.rot, [ficV('Fraise', null, { tipo: 'criatura' })], E1FR.vis, { lingua: 'en', leituraBruta: LEITURA_UMA('Fraise') }, false)
+  if (fr.depois.join() !== fr.antes.join()) e.push('V1c FR (db401da3), até com a língua pedida "en" e leitura de 1: mudou ' + fr.antes + ' -> ' + fr.depois)
+  const BICHO = 'HOOK: [Pexels: old dog sleeping by a fire] Every winter night, Rex waited by the fire for the farmer to come home again.\n\nPAYOFF: [Pexels: old dog by an empty chair] The farmer never came back, and Rex kept waiting by the fire for years.'
+  const bi = quinze(w, BICHO, [{ nome: 'Rex', nucleo: 'Rex', tipo: 'animal', canonica: 'Rex, a brown dog', origem: 'modelo', protagonista: true, genero: null }], ['The old dog sleeps by the fire.', 'The old dog lies next to an empty chair.'], { lingua: 'en', leituraBruta: LEITURA_UMA('Rex') }, false)
+  if (bi.depois.join() !== bi.antes.join()) e.push('V1f bicho: a regra (só de gente) agiu: ' + bi.antes + ' -> ' + bi.depois)
+  const r2 = quinze(w, E2.rot, [ficV('Tom Hale', 'man')], E2.vis, { lingua: 'en', leituraBruta: LEITURA_UMA('Tom Hale') })
+  if (r2.depois.join() !== 'Tom Hale,the woman' || r2.forcadas.length !== 0) e.push(`V2 esposa (mesmo com leitura de 1 pessoa: gênero oposto): ${r2.depois} forçadas=${r2.forcadas}`)
+  const r2c = quinze(w, E2C.rot, [ficV('Ben Ross', 'man')], E2C.vis, { lingua: 'en', leituraBruta: LEITURA_UMA('Ben Ross') })
+  if (!r2c.depois.some((n) => /fisherman/.test(n))) e.push('V2e "fishermen": o pescador sumiu ' + r2c.depois)
+  const ir = quinze(w, IRMAS.rot, [ficV('Mara Hale', 'woman')], IRMAS.vis, { lingua: 'en', leituraBruta: LEITURA_DUAS('Mara Hale', 'sister') })
+  if (!ir.depois.some((n) => /woman/.test(n)) || ir.forcadas.includes(1)) e.push(`V6 irmãs: a irmã sumiu ou a cena dela foi forçada ${ir.depois} ${ir.forcadas}`)
+  const es = quinze(w, ESTRANHO.rot, [ficV('Tom Hale', 'man')], ESTRANHO.vis, { lingua: 'en', leituraBruta: LEITURA_DUAS('Tom Hale', 'stranger') })
+  if (!es.depois.some((n) => /fisherman/.test(n)) || es.forcadas.includes(1)) e.push(`V7 estranho: o pescador sumiu ou a cena dele foi forçada ${es.depois} ${es.forcadas}`)
+  if (w.m.pessoasDaLeitura(LEITURA_DUAS('a', 'b')) !== 2 || w.m.pessoasDaLeitura(LEITURA_UMA('a')) !== 1 || w.m.pessoasDaLeitura('nada') !== null || w.m.pessoasDaLeitura(null) !== null) e.push('V8 pessoasDaLeitura (o "só citado" conta)')
+  // (3) a língua é a da voz: o Le Prince (detector dá null) com visuais que repetem a pista
+  const lang = carrega('lib/textLanguage.ts')
+  if (lang.detectNarrationLanguage(LEP.roteiro.replace(/\[[^\]]*\]/g, ' ')).language !== null || lang.resolveNarrationLanguage('en', LEP.roteiro).language !== 'en') e.push('V9 premissa: detector null e língua resolvida "en" no Le Prince')
+  const lp = lePrinceNos15(w)
+  if (lp.depois.join() !== 'Louis Le Prince') e.push('V10 Le Prince com visuais da pista: ' + lp.depois + ' (antes ' + lp.antes + ')')
+  // (Slocum, nos 15 s, já está em provaSlocum; aqui: sem leitura de 1 pessoa ou fora do inglês, nada muda)
+  const sloPed = fichaDaLeitura(w, SLO).aplicado.elenco
+  for (const [rot, ctx] of [['V11a 2 pessoas lidas', { lingua: 'en', leituraBruta: LEITURA_DUAS('Joshua Slocum', 'wife') }], ['V11b sem leitura', { lingua: 'en', leituraBruta: null }], ['V11c língua pt', { lingua: 'pt', leituraBruta: CTX_SLO.leituraBruta }]]) {
+    const r = elenco15(w, SLO, sloPed, w.m.aceitaPapelSemPista(SLO.roteiro, w.sem.aceitaPapelDasCenas(SLO.roteiro), sloPed[0], ctx))
+    if (r.elenco.length !== 2) e.push(rot + ': a regra agiu na dúvida')
+  }
+  // (2) descrição de outra pessoa
   const coo = fichaDaLeitura(w, COO).aplicado.elenco
-  const d = (idea, rot = COO.roteiro, el = coo) => w.m.fichaComDescricaoDoPedido(idea, el, rot).descricao
+  const d = (idea, el = coo) => w.m.fichaComDescricaoDoPedido(idea, el).descricao
   if (d('A woman in a red dress and a man in a dark suit who called himself Dan Cooper boarded.') !== null) e.push('V3 levou a descrição de outra pessoa')
-  if (d('A woman in a red coat who called herself Dan Cooper boarded.') !== null) e.push('V3b descrição de mulher numa ficha de homem')
-  if (d('A man in a red coat and a man in a dark suit who called himself Dan Cooper boarded.') !== null) e.push('V3d dois homens: levou a descrição do outro')
+  if (d('A woman in a red coat who called herself Dan Cooper boarded.') !== null) e.push('V3b mulher numa ficha de homem')
+  if (d('A woman in a red coat who called herself Dan Cooper boarded.', [{ ...coo[0], genero: null }]) !== null) e.push('V3e gênero nulo autorizou descrição de mulher')
+  if (d('A man in a red coat and a man in a dark suit who called himself Dan Cooper boarded.') !== null) e.push('V3d dois homens')
   if (d('Dan Cooper, a man in a dark suit and a black tie, boarded.') !== 'man in a dark suit and a black tie') e.push('V3c "and a black tie" (roupa) virou outra pessoa')
-  // (4) traje de um momento
-  if (d('Dan Cooper, a man wearing a parachute, jumped from the jet.') !== null) e.push('V4 paraquedas (aposto) virou fixo')
-  if (d('A man wearing a parachute who called himself Dan Cooper jumped.') !== null) e.push('V4b paraquedas (who called himself) virou fixo')
-  const HOSP = 'HOOK: [Pexels: man in a suit at a desk] Dan Cooper was a quiet accountant.\n\nPAYOFF: [Pexels: man in hospital gown running] Years later, Cooper escaped from a hospital in a gown.'
-  if (d('Dan Cooper, a man in a hospital gown, escaped.', HOSP) !== null) e.push('V4c hospital gown virou fixo')
-  if (d(COO.ideia) !== 'man in a dark suit and black tie') e.push('V4d o terno do Cooper (1ª seção) saiu: ' + d(COO.ideia))
-  if (w.m.fichaComDescricaoDoPedido(SLO.ideia, fichaDaLeitura(w, SLO).aplicado.elenco, SLO.roteiro).descricao !== 'old bearded sailor') e.push('V4e Slocum regrediu')
-  // menores: troca de nome só onde hoje NÃO casa; figura conhecida fica
+  if (d('Dan Cooper, a tall man with his daughter in a red coat, boarded.') !== 'tall man') e.push('V3f "with his daughter in a red coat": ' + d('Dan Cooper, a tall man with his daughter in a red coat, boarded.'))
+  if (d('A man in a dark suit with his wife who called himself Dan Cooper boarded.') !== 'man in a dark suit') e.push('V3g "with his wife": ' + d('A man in a dark suit with his wife who called himself Dan Cooper boarded.'))
+  if (d('Dan Cooper, a tall man with a dog, boarded.') !== 'tall man') e.push('V3h "with a dog"')
+  // (4) a forma da frase: "in"/"dressed in" fica; "wearing"/"with" sai
+  if (d('Dan Cooper, a man wearing a parachute, jumped from the jet.') !== null) e.push('V4 paraquedas (aposto)')
+  if (d('A man wearing a parachute who called himself Dan Cooper jumped.') !== null) e.push('V4b paraquedas (who called himself)')
+  if (d(COO.ideia) !== 'man in a dark suit and black tie') e.push('V4d o terno do Cooper saiu: ' + d(COO.ideia))
+  for (const [nome, idea, esperado] of [['Ana Ruiz', 'Ana Ruiz, a woman in blue scrubs, worked the night shift.', 'woman in blue scrubs'], ['Sam Ward', 'Sam Ward, a man in a long trench coat, walked in.', 'man in a long trench coat'], ['Joe Park', 'Joe Park, a man in a yellow helmet, ran inside.', 'man in a yellow helmet'], ['Luca Bruni', 'Luca Bruni, a man in a white apron, opened the kitchen.', 'man in a white apron']]) {
+    const g = /Ana/.test(nome) ? 'woman' : 'man'
+    const r = w.m.fichaComDescricaoDoPedido(idea, [ficV(nome, g, { canonica: `${nome}, exactly as the author wrote` })]).descricao
+    if (r !== esperado) e.push(`V4f roupa fixa (${esperado}) saiu: ${r}`)
+  }
+  if (w.m.fichaComDescricaoDoPedido(SLO.ideia, fichaDaLeitura(w, SLO).aplicado.elenco).descricao !== 'old bearded sailor') e.push('V4e Slocum regrediu')
+  // menores
   if (w.m.elencoComNomeCompleto([ficV('Smith', 'man', { origem: 'deterministica' })], ['John Smith'], 'John Smith vanished. Smith was never found.').renomeados.length !== 0) e.push('V5 "Smith" já casava e foi trocado')
-  if (w.m.elencoComNomeCompleto(w.aj.elencoDoRoteiro(LEP.roteiro, {}), ['Louis Le Prince'], LEP.roteiro).renomeados.length !== 1) e.push('V5b Le Prince regrediu')
+  const rama = [ficV('Rama', 'man', { nucleo: 'Rama', canonica: 'Rama, exactly as the author wrote' })]
+  if (w.m.fichaComDescricaoDoPedido('Rama, a tall man in a dark suit, waited by the river.', rama).trocas.length !== 0) e.push('V12 figura conhecida (Rama) mexida')
   return e
 }
 // os mutantes do revisor, por COMPORTAMENTO
@@ -291,13 +317,13 @@ function provaGuardas(w) {
   if (w.m.elencoEFigurinoLigado('internal', PADRAO_INTERNO) !== false) e.push('G1 interno por PADRÃO ligou (só a lista exata)')
   const coo = fichaDaLeitura(w, COO).aplicado.elenco
   const coad = { nome: 'Mara Lind', nucleo: 'Lind', tipo: 'humano', canonica: 'Mara Lind, a woman', origem: 'modelo', protagonista: false, genero: 'woman' }
-  const doisH = w.m.fichaComDescricaoDoPedido('Mara Lind, a tall woman in a green raincoat, waited. ' + COO.ideia, [coo[0], coad], COO.roteiro)
+  const doisH = w.m.fichaComDescricaoDoPedido('Mara Lind, a tall woman in a green raincoat, waited. ' + COO.ideia, [coo[0], coad])
   if (doisH.elenco[1].canonica !== coad.canonica) e.push('G2 coadjuvante humano ganhou descrição')
   if (w.m.nomeCompletoProvado('Prince', ['Louis Le Prince'], 'HOOK: [Pexels: Louis Le Prince with a camera] In 1888, Le Prince shot a film. Le Prince boarded a train.') !== null) e.push('G3 nome completo só na pista valeu')
   const mitica = [{ ...coo[0], origem: 'mitica' }]
-  if (w.m.fichaComDescricaoDoPedido(COO.ideia, mitica, COO.roteiro).trocas.length !== 0) e.push('G4 figura mítica mexida')
+  if (w.m.fichaComDescricaoDoPedido(COO.ideia, mitica).trocas.length !== 0) e.push('G4 figura mítica mexida')
   const criatura = [{ nome: 'Zorbo', nucleo: 'robot', tipo: 'criatura', canonica: 'Zorbo, a tiny robot', origem: 'modelo', protagonista: true, genero: null }]
-  if (w.m.fichaComDescricaoDoPedido('Zorbo, a tiny silver robot with a red scarf, waited.', criatura, null).trocas.length !== 0) e.push('G5 criatura recebeu descrição de gente')
+  if (w.m.fichaComDescricaoDoPedido('Zorbo, a tiny silver robot in a red scarf, waited.', criatura).trocas.length !== 0) e.push('G5 criatura recebeu descrição de gente')
   const um = w.m.elencoComNomeCompleto([ficV('Prince', 'man', { origem: 'deterministica' })], ['Prince'], 'Prince boarded a train. Prince vanished.')
   if (um.renomeados.length !== 0 || w.m.nomeCompletoProvado('Prince', ['Prince'], 'Prince boarded a train.') !== null) e.push('G6 nome de 1 token aceito como completo')
   return e
@@ -313,9 +339,9 @@ function provaFiacaoExecutada(rota) {
   const cond = condicaoDaRota(rota, /fichaComDescricaoDoPedido\(/)
   if (!cond) return ['F0 condição do figurino não achada']
   const avalia = (ctx) => new Function(...Object.keys(ctx), `return !!(${cond})`)(...Object.values(ctx))
-  const base = { elencoEFigurino2411: true, qualidadeHerdada: null, personagem: { ativo: true }, estrelaFicha: null, desenhoInfantil: { ativo: false }, personagemElenco: { elenco: [1] } }
+  const base = { elencoEFigurino2411: true, elencoEFigurinoLigado: (modo) => modo !== 'off', FIGURINO_DO_PEDIDO_2411: 'internal', user: { email: CASA }, qualidadeHerdada: null, personagem: { ativo: true }, estrelaFicha: null, desenhoInfantil: { ativo: false }, personagemElenco: { elenco: [1] } }
   if (!avalia(base)) e.push('F1 figurino não liga no caso comum')
-  for (const [k, v] of [['elencoEFigurino2411', false], ['desenhoInfantil', { ativo: true }], ['estrelaFicha', 'ficha'], ['qualidadeHerdada', {}], ['personagem', { ativo: false }]]) if (avalia({ ...base, [k]: v })) e.push('F2 figurino liga com ' + k)
+  for (const [k, v] of [['elencoEFigurino2411', false], ['desenhoInfantil', { ativo: true }], ['estrelaFicha', 'ficha'], ['qualidadeHerdada', {}], ['personagem', { ativo: false }], ['FIGURINO_DO_PEDIDO_2411', 'off']]) if (avalia({ ...base, [k]: v })) e.push('F2 figurino liga com ' + k)
   const l = rota.split(/\r?\n/).find((x) => /const nomeCompleto2411 = /.test(x)) ?? ''
   const c2 = /const nomeCompleto2411 = (.*?) \? elencoComNomeCompleto/.exec(l)?.[1]
   if (!c2) e.push('F3 condição do nome completo não achada')
@@ -351,8 +377,9 @@ checa('roupa: sem pedido, pedido sem roupa, paraquedas de uma cena, já na ficha
 const pi = provaInterruptor(W.m, ROTA_TXT)
 checa('interruptor internal (só a lista exata da casa) e fiação na rota ' + pi.e.join(' | '), pi.e.length === 0)
 checa('fiação executada: o argumento da rota dá o paletó e ignora o paraquedas do roteiro', simulaFiacao(W.m, W.aj, W.sem, pi.arg) === 'man in a dark suit and black tie')
-const v2 = provaVolta2(W)
-checa('volta 2: PT/FR não perdem gente; esposa e pescador (pronome, plural) ficam e não forçam o protagonista; descrição de outra pessoa e traje de um momento não entram; Slocum, Cooper e Le Prince não regridem ' + v2.join(' | '), v2.length === 0)
+const v3 = provaVolta3(W)
+checa('volta 3: PT, FR, esposa, fishermen, irmãs e estranho ficam; Le Prince com visuais da pista = 1 pessoa; dúvida não age; descrição para no with; só a roupa por in/dressed in; figura conhecida fica ' + v3.join(' | '), v3.length === 0)
+const lp15 = lePrinceNos15(W)
 const gd = provaGuardas(W)
 checa('guardas por comportamento: lista exata, só o protagonista, nome só na pista, mítica, criatura, nome de 1 token ' + gd.join(' | '), gd.length === 0)
 const fx = provaFiacaoExecutada(ROTA_TXT)
@@ -362,6 +389,14 @@ checa('referência única: casa liga, cliente não', rf.ligada.casa === true && 
 checa('referência única: Le Prince antes não ligaria (sem protagonista) e depois ligaria', rf.leprince.antes === false && rf.leprince.depois === true)
 checa('referência única: Slocum depois — o montador aceitaria SE houver folha aprovada (suposição: no render real o crítico reprovou os stills por identidade, estilo e origem)', rf.slocum.depois === true)
 checa('referência única: Cooper continua ligando', rf.cooper.antes === true)
+{ // Le Prince nos 15 s com os visuais que repetem a pista: 4 de 4 planos com a frase (a 1ª versão dava [true,true,true,true]; a volta 2, [false,true,true,false])
+  const URL = 'https://ensaio.test/ficha.jpg'
+  const ref = RU.referenciaUnicaDoFilme({ characters: lp15.elenco, characterReferences: lp15.elenco.map((c) => ({ nome: c.nome, url: URL })), approvedStills: [] })
+  const visForcados = W.f15.protagonistaEmTodaCena({ visuals: LEP_VIS, elenco: lp15.elenco, porNome: true }).visuals
+  const env = ref ? K4.buildKling4ReferenciaUnicaInput(visForcados.map((p, i) => ({ prompt: p, duration: [4, 4, 4, 3][i] })), ref) : null
+  rf.leprince.planos_com_frase_15s = env ? env.planosComFrase : null
+  checa('Le Prince nos 15 s (visuais da pista): um protagonista e 4 de 4 planos com a frase', lp15.depois.join() === 'Louis Le Prince' && JSON.stringify(rf.leprince.planos_com_frase_15s) === '[true,true,true,true]')
+}
 
 // ═══ Mutantes (cada um tem de ficar VERMELHO) ══════════════════════════════════════════════════════════════════════════
 const mutantes = [
@@ -375,23 +410,29 @@ const mutantes = [
   ['M8 escrita não latina muda', MOD, (t) => t.replace('if (!escritaLatina(texto)) return null', ''), (w) => contraprovasNome(w).length > 0],
   ['M9 o núcleo vira o nome completo', MOD, (t) => t.replace('return { ...f, nome: completo, canonica }', 'return { ...f, nome: completo, nucleo: completo, canonica }'), (w) => provaLePrince(w).e.length > 0],
   ['M10 sem prova devolve cópia (off deixa de ser byte a byte)', MOD, (t) => t.replace('elenco: renomeados.length ? saida : (base as FichaDePersonagem[])', 'elenco: saida'), (w) => contraprovasNome(w).length > 0],
-  ['M11 pista cria elenco', MOD, (t) => t.replace('&& !pistaDescreveOProtagonista(roteiro, chave, protagonista)', ''), (w) => provaSlocum(w).e.length > 0],
+  ['M11 pista cria elenco', MOD, (t) => t.replace('&& !pistaDescreveOProtagonista(roteiro, ficha, chave, protagonista, ctx)', ''), (w) => provaSlocum(w).e.length > 0],
   ['M12 papel da narração tratado como pista', MOD, (t) => t.replace('&& !temPalavra(semTags(roteiro), k)', ''), (w) => contraprovasPista(w).length > 0],
   ['M13 roupa de uma cena vira fixa (a rota passa o roteiro)', ROTA, null, () => simulaFiacao(W.m, W.aj, W.sem, 'prompt') !== 'man in a dark suit and black tie'],
   ['M14 descrição duplicada quando a ficha já tem', MOD, (t) => t.replace('if (palavrasConteudo(descricao).every((w) => ficha.includes(w)))', 'if (false)'), (w) => contraprovasRoupa(w).length > 0],
   ['M15 a descrição vai ao 1º do elenco, não ao protagonista', MOD, (t) => t.replace('const i = elenco.findIndex((f) => f.protagonista)', 'const i = 0'), (w) => contraprovasRoupa(w).length > 0],
   ['M16 bicho ganha a descrição de gente', MOD, (t) => t.replace("p.tipo !== 'humano' || ", ''), (w) => contraprovasRoupa(w).length > 0],
   ['M17 o "who called himself" sem trechoDescreve', MOD, (t) => t.replace('if (trechoDescreve(trecho, m[1], ficha)) return trecho', 'return trecho'), (w) => w.m.autodenominadoNoPedido('the plane landed and a man who called himself Dan Cooper left', { nome: 'Dan Cooper', nucleo: 'Cooper', tipo: 'humano' }) === null ? false : true],
-  ['V-M1 pista retira gente em narração não inglesa', MOD, (t) => t.replace("|| !narracaoEmIngles(roteiro)) return false", ") return false"), (w) => provaVolta2(w).length > 0],
-  ['V-M2 sem conferir o gênero do papel × protagonista', MOD, (t) => t.replace("if (!gP || (gR && gR !== gP)) return false", "if (!gP) return false"), (w) => provaVolta2(w).length > 0],
-  ['V-M3 sem conferir pronome do outro gênero na seção', MOD, (t) => t.replace("&& !outro.test(s.narracao) &&", "&&"), (w) => provaVolta2(w).length > 0],
-  ['V-M4 plural irregular (fishermen) não conta', MOD, (t) => t.replace(", n.replace(/man$/, 'men'), n.replace(/men$/, 'man')]", "]"), (w) => provaVolta2(w).length > 0],
-  ['V-M5 descrição de duas pessoas aceita', MOD, (t) => t.replace("if (m && generoDoPapel(cabecaDe(m[1]))) return false", ""), (w) => provaVolta2(w).length > 0],
-  ['V-M6 descrição de outro gênero aceita', MOD, (t) => t.replace("return !(g && gF && g !== gF)", "return true"), (w) => provaVolta2(w).length > 0],
-  ['V-M7 traje de um momento vira fixo (sem conferir o roteiro)', MOD, (t) => t.replace("return onde.length === 0 || (primeira >= 0 && onde.includes(primeira))", "return true"), (w) => provaVolta2(w).length > 0],
-  ['V-M8 troca nome que já casava', MOD, (t) => t.replace("if (!completo || mesmoPersonagem(completo, f.nome) || base.some(", "if (!completo || base.some("), (w) => provaVolta2(w).length > 0],
+  ['N1 qualquer língua conta como inglês', MOD, (t) => t.replace("if (!protagonista || ctx.lingua !== 'en' || pessoasDaLeitura(ctx.leituraBruta) !== 1) return false", "if (!protagonista || pessoasDaLeitura(ctx.leituraBruta) !== 1) return false"), (w) => provaVolta3(w).length > 0],
+  ['N2 sem conferir quantas pessoas a leitura leu', MOD, (t) => t.replace("|| pessoasDaLeitura(ctx.leituraBruta) !== 1) return false", ") return false"), (w) => provaVolta3(w).length > 0],
+  ['N3 conta só os coadjuvantes "em cena" (o só citado some)', MOD, (t) => t.replace("r.supporting.filter((s) => s && typeof s === 'object').length", "r.supporting.filter((s) => s && typeof s === 'object' && s.on_screen !== false).length"), (w) => provaVolta3(w).length > 0],
+  ['N4 sem conferir o gênero do papel × protagonista', MOD, (t) => t.replace("return !(gR && gP && gR !== gP)", "return true"), (w) => provaVolta3(w).length > 0],
+  ['N5 papel/protagonista não humano também sai', MOD, (t) => t.replace("if (ficha.tipo !== 'humano' || protagonista.tipo !== 'humano' || !papelSoDaPista(roteiro, chave)) return false", "if (!papelSoDaPista(roteiro, chave)) return false"), (w) => provaVolta3(w).length > 0],
+  ['N6 plural irregular (fishermen) não conta', MOD, (t) => t.replace(", n.replace(/man$/, 'men'), n.replace(/men$/, 'man')]", "]"), (w) => provaVolta3(w).length > 0],
+  ['N7 descrição não para no "with"', MOD, (t) => t.replace("const curta = limpa(descricao.replace(PARADA_RE, '').replace(VESTINDO_RE, ''))", "const curta = limpa(descricao.replace(VESTINDO_RE, ''))"), (w) => provaVolta3(w).length > 0],
+  ['N8 sem a trava de figura conhecida', MOD, (t) => t.replace("figuraConhecidaJuiz(p.nome) || figuraConhecida(p.nome) || ", ''), (w) => provaVolta3(w).length > 0],
+  ['N9 "wearing" (equipamento de um momento) entra', MOD, (t) => t.replace(".replace(VESTINDO_RE, '')", ''), (w) => provaVolta3(w).length > 0],
+  ['N10 gênero nulo da ficha autoriza gênero marcado', MOD, (t) => t.replace("if (g && g !== gF) return null", "if (g && gF && g !== gF) return null"), (w) => provaVolta3(w).length > 0],
+  ['N11 duas pessoas coordenadas aceitas', MOD, (t) => t.replace("if (m && generoDoPapel(cabecaDe(m[1]))) return null // outra pessoa coordenada", ''), (w) => provaVolta3(w).length > 0],
+  ['N12 troca nome que já casava', MOD, (t) => t.replace("if (!completo || mesmoPersonagem(completo, f.nome) || base.some(", "if (!completo || base.some("), (w) => provaVolta3(w).length > 0],
+  ['N13 a língua volta a ser o detector do texto', MOD, (t) => t.replace("if (!protagonista || ctx.lingua !== 'en' ||", "if (!protagonista || (ctx.lingua !== 'en' || roteiro.split(' ').length < 120) ||"), (w) => provaVolta3(w).length > 0],
+  ['N14 figurino sem o interruptor próprio (rota)', ROTA, (t) => t.replace("if (elencoEFigurino2411 && elencoEFigurinoLigado(FIGURINO_DO_PEDIDO_2411, user.email) && ", "if (elencoEFigurino2411 && "), (rota) => provaFiacaoExecutada(rota).length > 0],
   ['R3 figurino sem a trava do desenho infantil (rota)', ROTA, (t) => t.replace(" && !desenhoInfantil.ativo && personagemElenco.elenco.length > 0) { const doPedido2411", " && personagemElenco.elenco.length > 0) { const doPedido2411"), (rota) => provaFiacaoExecutada(rota).length > 0],
-  ['R1 figurino sem o interruptor (rota)', ROTA, (t) => t.replace("if (elencoEFigurino2411 && !qualidadeHerdada && personagem.ativo && !estrelaFicha && !desenhoInfantil.ativo", "if (!qualidadeHerdada && personagem.ativo && !estrelaFicha && !desenhoInfantil.ativo"), (rota) => provaFiacaoExecutada(rota).length > 0],
+  ['R1 figurino sem o interruptor (rota)', ROTA, (t) => t.replace("if (elencoEFigurino2411 && elencoEFigurinoLigado(FIGURINO_DO_PEDIDO_2411, user.email) && !qualidadeHerdada", "if (elencoEFigurinoLigado(FIGURINO_DO_PEDIDO_2411, user.email) && !qualidadeHerdada"), (rota) => provaFiacaoExecutada(rota).length > 0],
   ['R2 regra da pista sem exigir a leitura (rota)', ROTA, (t) => t.replace("completar: elencoEFigurino2411 && pedidoSemantico?.elenco ?", "completar: elencoEFigurino2411 ?"), (rota) => provaFiacaoExecutada(rota).length > 0],
   ['R4 isInternalEmail no lugar da lista exata', MOD, (t) => t.replace("import { contaDaCasaExata } from '@/lib/internalAccounts'", "import { isInternalEmail as contaDaCasaExata } from '@/lib/internalAccounts'"), (w) => provaGuardas(w).length > 0],
   ['R5 descrição para todo humano do elenco', MOD, (t) => t.replace("const saida = elenco.map((f, k) => (k === i ? { ...f, canonica } : f))", "const saida = elenco.map((f) => (f.tipo === 'humano' ? { ...f, canonica: [f.canonica.split('; ')[0], `${MARCA_DO_PEDIDO_2411} ${descricao}`].join('; ') } : f))"), (w) => provaGuardas(w).length > 0],
