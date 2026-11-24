@@ -30,7 +30,7 @@ function fakeAdmin(tables, { failTable = null, writes }) {
     const filters = []
     let head = false
     const q = {
-      select(_c, opts) { if (opts?.head) head = true; return q },
+      select(c, opts) { if (opts?.head) head = true; q._cols = typeof c === 'string' && c.trim() !== '*' ? c.split(',').map((x) => x.trim()) : null; return q },
       eq(c, v) { filters.push((r) => r[c] === v); return q },
       gte(c, v) { filters.push((r) => r[c] !== null && r[c] !== undefined && (typeof v === 'number' ? Number(r[c]) >= v : String(r[c]) >= String(v))); return q },
       lte(c, v) { filters.push((r) => r[c] !== null && r[c] !== undefined && String(r[c]) <= String(v)); return q },
@@ -45,6 +45,8 @@ function fakeAdmin(tables, { failTable = null, writes }) {
         let rows = (tables[table] ?? []).filter((r) => filters.every((f) => f(r)))
         if (head) return Promise.resolve({ data: null, error: null, count: rows.length }).then(res, rej)
         if (q._range) rows = rows.slice(q._range[0], q._range[1] + 1)
+        // Como o PostgREST: só as colunas pedidas voltam (coluna esquecida no select = campo ausente).
+        if (q._cols) rows = rows.map((r) => Object.fromEntries(q._cols.map((k) => [k, r[k]])))
         return Promise.resolve({ data: rows, error: null }).then(res, rej)
       },
     }
@@ -105,14 +107,67 @@ function mundo(now) {
   }
 }
 
-async function rodarRota(repl, { failTable = null } = {}) {
-  const now = Date.now()
-  const tables = mundo(now)
-  const writes = [], corridas = []
+// KINEO-BF-CYBER-ULTIMO-DIA-2411 — relógio FIXO (30/11 10:00 em Nova York, dia da cyber, dentro da janela): a rota e o banco falso usam o
+// mesmo instante, e o confirm=SEND continua testável depois que a janela real fechar.
+const FIXO = Date.parse('2026-11-30T15:00:00Z')
+class FakeDate extends Date {
+  constructor(...a) { if (a.length === 0) super(FIXO); else super(...a) }
+  static now() { return FIXO }
+}
+
+// O mundo da cyber: a exceção "último dia" (quem recebeu a bf em 27/11 recebe a cyber) e as travas que NÃO cedem.
+function mundoCyber(now) {
+  const iso = (ms) => new Date(ms).toISOString()
+  const p = (id, extra = {}) => ({ id, email: `${id}@cy.invalid`, plan: 'free', email_opted_out: false, ...extra })
+  const dl = (user_id) => ({ id: `dl-${user_id}`, user_id, name: 'video_downloaded', created_at: iso(now - 10 * D), metadata: { is_bot: false, surface: 'history' } })
+  const bfEv = (user_id, md = { campaign: 'bf2026', wave: 'bf' }) => ({ id: `bfe-${user_id}`, user_id, name: 'bf2026_emailed', created_at: iso(now - 3 * D), metadata: md })
+  const bfClaim = (user_id, wave) => ({ id: `cl-${user_id}-${wave}`, user_id, name: 'bf2026_email_claimed', created_at: iso(now - 3 * D), metadata: { campaign: 'bf2026', wave } })
+  const bfLedger = (user_id) => ({ id: `bfl-${user_id}`, user_id, sent_at: iso(now - 3 * D), kind: 'bf2026', ok: true, yielded: false })
+  const comBf = ['c01', 'c02', 'c03', 'c04', 'c05', 'c06', 'c07']
+  return {
+    profiles: [
+      p('c01'),                              // recebeu a bf em 27/11 (carimbo + reserva + ledger) → ENTRA na cyber (a exceção)
+      p('c02'),                              // recebeu a bf + hotlead há 2 dias → email_7d (outro e-mail continua travando)
+      p('c03'),                              // recebeu a bf + carta da BASE há 8 dias (dentro das 240 h) → recent_bf_base_2311
+      p('c04'),                              // recebeu a bf + JÁ tem a reserva da cyber (rodada do dia) → already_got_wave
+      p('c05', { email_opted_out: true }),   // recebeu a bf e se DESCADASTROU depois → opted_out
+      p('c06'),                              // recebeu a bf e comprou o ANUAL depois → annual_buyer
+      p('c07', { plan: 'starter' }),         // recebeu a bf e assinou o Starter MENSAL depois → paying_plan
+      p('c08'),                              // carimbo bf2026_emailed SEM wave → conta (falha fechada) → email_7d
+      p('c09'),                              // nada → entra (controle)
+      p('c10'),                              // nota 9 no próprio filme → entra
+      p('c11'),                              // vídeo com URL que só COMEÇA igual ao link da nota de c10 → fora_do_publico
+    ],
+    events: [
+      ...['c01', 'c02', 'c03', 'c04', 'c05', 'c06', 'c07', 'c08', 'c09'].map(dl),
+      ...comBf.map((u) => bfEv(u)), ...comBf.map((u) => bfClaim(u, 'bf')), bfEv('c08', {}),
+      bfClaim('c04', 'cyber'),
+      { id: 'base-c03', user_id: 'c03', name: 'bf_base_2311_sent', created_at: iso(now - 8 * D), metadata: { ok: true } },
+      { id: 'pay-c06', user_id: 'c06', name: 'payment_success', created_at: iso(now - D), metadata: { billing: 'annual' } },
+    ],
+    film_review_notes_com_motor: [{ link: 'https://x/c10.mp4', nota: 9, quando: iso(now - 5 * D) }],
+    videos: [
+      { id: 'v10', user_id: 'c10', video_url: 'https://x/c10.mp4', final_video_url: null },
+      { id: 'v11', user_id: 'c11', video_url: 'https://x/c10.mp4?v=2', final_video_url: 'https://x/c10.mp4.bak' },
+    ],
+    email_send_log: [...comBf.map(bfLedger), { id: 'h-c02', user_id: 'c02', sent_at: iso(now - 2 * D), kind: 'hotlead_stalled', ok: true, yielded: false }],
+    trial_emails_log: [], checkout_abandoned: [], courtesy_grants: [],
+  }
+}
+
+async function rodarRota(repl, { failTable = null, qs = 'wave=bf', world = mundo } = {}) {
+  const now = FIXO
+  const tables = world(now)
+  const writes = [], corridas = [], enviados = []
+  const fetchFalso = async (url, init) => {
+    if (!String(url).startsWith('https://api.resend.com/')) throw new Error('rede proibida: ' + url)
+    enviados.push(JSON.parse(init.body))
+    return { ok: true, status: 200, json: async () => ({ id: 'fake' }), headers: { get: () => null } }
+  }
   const carrega = createOfflineLoader({
     source: (rel, t) => repl[rel] ?? t,
-    env: { NEXT_PUBLIC_SUPABASE_URL: 'http://fake', SUPABASE_SERVICE_ROLE_KEY: 'fake', CRON_SECRET: 'cron-test' },
-    globals: { setTimeout: (f) => f(), Date },
+    env: { NEXT_PUBLIC_SUPABASE_URL: 'http://fake', SUPABASE_SERVICE_ROLE_KEY: 'fake', CRON_SECRET: 'cron-test', RESEND_API_KEY: 'fake-nao-real' },
+    globals: { setTimeout: (f) => f(), Date: FakeDate, fetch: fetchFalso },
     mocks: {
       'next/server': { NextResponse: { json: (body, init) => ({ body, status: init?.status ?? 200 }) } },
       '@/lib/supabase/server': { createClient: () => ({ auth: { getUser: async () => ({ data: { user: null } }) } }) },
@@ -124,9 +179,9 @@ async function rodarRota(repl, { failTable = null } = {}) {
     },
   })
   const R = carrega(F.rota)
-  const req = { nextUrl: { searchParams: new URLSearchParams('wave=bf') }, headers: { get: (h) => (h === 'authorization' ? 'Bearer cron-test' : null) } }
+  const req = { nextUrl: { searchParams: new URLSearchParams(qs) }, headers: { get: (h) => (h === 'authorization' ? 'Bearer cron-test' : null) } }
   const res = await R.GET(req)
-  return { res, writes, corridas }
+  return { res, writes, corridas, enviados }
 }
 
 async function problemas(repl = {}) {
@@ -225,6 +280,40 @@ async function problemas(repl = {}) {
     try { e = await rodarRota(repl, { failTable: tabela }) } catch (err) { p.push(`erro em ${tabela}: rota lançou para fora (${err?.message})`); continue }
     checa(`erro de leitura em ${tabela} = 500, nada gravado (deu ${e.res.status})`, e.res.status === 500 && e.writes.length === 0 && e.corridas.length === 0)
   }
+
+  // ── KINEO-BF-CYBER-ULTIMO-DIA-2411: a exceção "último dia" (pura) ──
+  checa('cyber: a exceção vale só para a cyber', A.bf2026IgnoresBfWaveTrail('cyber') === true && A.bf2026IgnoresBfWaveTrail('bf') === false && A.bf2026IgnoresBfWaveTrail(null) === false)
+  checa('cyber: rastro da bf = ledger bf2026 e carimbo bf2026_emailed com wave bf; sem wave ou wave cyber NÃO é',
+    A.bf2026IsBfWaveTrail({ source: 'ledger', kind: 'bf2026' }) && A.bf2026IsBfWaveTrail({ source: 'event', name: 'bf2026_emailed', metadata: { wave: 'bf' } }) &&
+    !A.bf2026IsBfWaveTrail({ source: 'event', name: 'bf2026_emailed', metadata: {} }) && !A.bf2026IsBfWaveTrail({ source: 'event', name: 'bf2026_emailed', metadata: { wave: 'cyber' } }) &&
+    !A.bf2026IsBfWaveTrail({ source: 'ledger', kind: 'hotlead_stalled' }) && !A.bf2026IsBfWaveTrail({ source: 'event', name: 'volta_1211_emailed', metadata: { wave: 'bf' } }))
+  const linhasCy = { ledger: [{ user_id: 'x', sent_at: t(3 * D), kind: 'bf2026', ok: true }, { user_id: 'y', sent_at: t(3 * D), kind: 'bf2026', ok: true }, { user_id: 'y', sent_at: t(2 * D), kind: 'hotlead_stalled', ok: true }],
+    trial: [], events: [{ user_id: 'x', name: 'bf2026_emailed', created_at: t(3 * D), metadata: { wave: 'bf' } }, { user_id: 'z', name: 'bf2026_emailed', created_at: t(3 * D), metadata: {} }], abandoned: [], profiles: [], profileColumns: [] }
+  checa('cyber: com a exceção só ficam y (hotlead) e z (carimbo sem onda)', [...A.bf2026LastMarketingEmail(linhasCy, now, { ignoreBfWaveTrail: true }).keys()].sort().join(',') === 'y,z')
+  checa('cyber: sem a exceção (onda bf) x, y e z ficam', [...A.bf2026LastMarketingEmail(linhasCy, now).keys()].sort().join(',') === 'x,y,z')
+  checa('nota: URL que só começa igual ao link NÃO é o mesmo filme', notas([{ link: 'L9', nota: 9, quando: new Date(now - D).toISOString() }],
+    [{ user_id: 'p1', video_url: 'L9?v=2', final_video_url: 'L9.bak' }, { user_id: 'p2', video_url: 'L9' }]) === 'p2')
+
+  // ── a rota na cyber: ensaio e envio de verdade (banco e Resend falsos) têm de bater ──
+  let cy, cySend, bfMesmoMundo
+  try {
+    cy = await rodarRota(repl, { qs: 'wave=cyber', world: mundoCyber })
+    cySend = await rodarRota(repl, { qs: 'wave=cyber&confirm=SEND&limit=150', world: mundoCyber })
+    bfMesmoMundo = await rodarRota(repl, { qs: 'wave=bf', world: mundoCyber })
+  } catch (e) { return [...p, 'rota da cyber lançou: ' + String(e?.message)] }
+  const cb = cy.res.body ?? {}, cex = cb.excluded ?? {}
+  const cyLista = (cb.sample ?? []).slice().sort().join(',')
+  checa(`cyber ensaio: entram exatamente c01 (pela exceção), c09 e c10 (deu ${cyLista} ${cy.res.status} ${cb.error ?? ''})`, cyLista === 'c01@cy.invalid,c09@cy.invalid,c10@cy.invalid')
+  checa(`cyber ensaio: email_7d 2 (c02 outro e-mail, c08 carimbo sem onda) (deu ${cex.email_7d})`, cex.email_7d === 2)
+  checa(`cyber ensaio: carta da base 1, já recebeu a cyber 1, opt-out 1, anual 1, pagante 1, fora do público 1 (deu ${JSON.stringify(cex)})`,
+    cex.recent_bf_base_2311 === 1 && cex.already_got_wave === 1 && cex.opted_out === 1 && cex.annual_buyer === 1 && cex.paying_plan === 1 && cex.fora_do_publico === 1)
+  checa(`cyber ensaio: audience.por_ja_ter_recebido_bf = 1 (deu ${cb.audience?.por_ja_ter_recebido_bf})`, cb.audience?.por_ja_ter_recebido_bf === 1)
+  const enviadosCy = cySend.enviados.map((e) => e.to[0]).sort().join(',')
+  checa(`cyber SEND == ensaio: os mesmos 3 recebem, uma vez cada (deu ${enviadosCy}; status ${cySend.res.status} ${cySend.res.body?.error ?? ''})`, enviadosCy === cyLista && cySend.res.body?.sent === 3 && cb.next_batch === 3)
+  checa('cyber SEND: assunto e reserva da cyber', cySend.enviados.every((e) => /^Cyber Monday:/.test(e.subject)) &&
+    cySend.writes.filter((w) => w.row?.name === 'bf2026_email_claimed').map((w) => `${w.row.user_id}:${w.row.metadata?.wave}`).sort().join(',') === 'c01:cyber,c09:cyber,c10:cyber')
+  const bfLista = (bfMesmoMundo.res.body?.sample ?? []).slice().sort().join(',')
+  checa(`onda bf não muda: no mesmo mundo, c01 continua travado pela própria carta bf (deu ${bfLista})`, bfLista === 'c09@cy.invalid,c10@cy.invalid' && bfMesmoMundo.res.body?.audience?.por_ja_ter_recebido_bf === 0)
   return p
 }
 
@@ -259,6 +348,17 @@ const MUTANTES = [
   ['clipe conta como filme', muta(F.regra, "    if (m.product === 'clip' || m.surface === 'clips') continue\n", '')],
   ['recusa do Resend conta como envio', muta(F.regra, '    if (r.ok === false || r.yielded === true) continue\n', '')],
   ['trava da carta da base removida', muta(F.rota, 'bf2026BaseLetterSuppression(perfis ?? [], cartasBase ?? [], nowMs)', 'bf2026BaseLetterSuppression(perfis ?? [], [], nowMs)')],
+  ['exceção vale também para a onda bf', muta(F.regra, "  return wave === 'cyber'\n", "  return wave === 'cyber' || wave === 'bf'\n")],
+  ['exceção ignora todo o ledger (outro e-mail de marketing passa)', muta(F.regra, "    if (ignora && bf2026IsBfWaveTrail({ source: 'ledger', kind: r.kind })) continue\n", '    if (ignora) continue\n')],
+  ['exceção ignora todo carimbo de evento', muta(F.regra, "    if (ignora && bf2026IsBfWaveTrail({ source: 'event', name: r.name, metadata: r.metadata })) continue\n", '    if (ignora) continue\n')],
+  ['carimbo sem onda tratado como bf (falha aberta)', muta(F.regra, "  return row.name === BF2026_EMAIL_SENT && m.wave === 'bf'", "  return row.name === BF2026_EMAIL_SENT && m.wave !== 'cyber'")],
+  ['rota não aplica a exceção', muta(F.rota, 'bf2026LastMarketingEmail(linhas7d, nowMs, { ignoreBfWaveTrail: excecaoBf })', 'bf2026LastMarketingEmail(linhas7d, nowMs)')],
+  ['rota não lê a onda do carimbo', muta(F.rota, "select('id, user_id, name, created_at, metadata').in('user_id', ids).in('name', BF2026_RECENT_EMAIL_EVENT_NAMES", "select('id, user_id, name, created_at').in('user_id', ids).in('name', BF2026_RECENT_EMAIL_EVENT_NAMES")],
+  ['carta da base entra na cyber', muta(F.rota, 'bf2026BaseLetterSuppression(perfis ?? [], cartasBase ?? [], nowMs)', "bf2026BaseLetterSuppression(perfis ?? [], wave === 'cyber' ? [] : (cartasBase ?? []), nowMs)")],
+  ['cyber duas vezes para a mesma pessoa', muta(F.rota, 'alreadyGotWave: jaRecebeu.has(id)', 'alreadyGotWave: false')],
+  ['opt-out depois da bf recebe a cyber', muta(F.bf, "  if (p.email_opted_out === true) return 'opted_out'\n", '')],
+  ['comprador anual recebe a cyber', muta(F.rota, "annualBuyer: wave === 'cyber' && compradorAnual.has(id)", 'annualBuyer: false')],
+  ['URL com prefixo comum vira o mesmo filme', muta(F.regra, "(typeof v.video_url === 'string' && links.has(v.video_url))", "(typeof v.video_url === 'string' && [...links].some((l) => String(v.video_url).startsWith(l)))")],
   ['ensaio deixa de mostrar o público', muta(F.rota, 'audience: { ...publico,', 'audience: { ...publico, por_download: -1,')],
 ]
 

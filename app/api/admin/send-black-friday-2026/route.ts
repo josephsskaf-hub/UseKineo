@@ -21,7 +21,7 @@
 // PÚBLICO (KINEO-BF-ONDAS-PUBLICO-2411, decisão do dono de 16/11, regra pura em lib/billing/bf2026Audience.ts): além de tudo acima,
 // a conta só recebe se (a) baixou filme nos últimos 60 dias OU (b) tem filme com nota do revisor ≥ 8 nos últimos 60 dias
 // (fora = `fora_do_publico`), e se a CAIXA não recebeu e-mail nosso de marketing/ciclo de vida nas últimas 168 h (fora = `email_7d`;
-// o "seu vídeo está pronto" não conta; as próprias ondas contam, então quem levou a 'bf' em 27/11 não leva a 'cyber' em 30/11).
+// o "seu vídeo está pronto" não conta; a onda conta para a outra, com UMA exceção: na 'cyber' a carta 'bf' desta campanha não trava — dono 24/11, 'último dia').
 // (c) "donos de canal presenteados" não tem marca no banco e não entra. Qualquer leitura nova que falhe = 500 e nada é enviado.
 import { createHash } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
@@ -39,6 +39,7 @@ import {
   BF2026_RECENT_EMAIL_WINDOW_MS,
   bf2026AudienceSkipReason,
   bf2026FilmDownloaders,
+  bf2026IgnoresBfWaveTrail,
   bf2026HighNoteOwners,
   bf2026LastMarketingEmail,
   bf2026RecentEmailProfileColumns,
@@ -215,12 +216,12 @@ export async function GET(req: NextRequest) {
     const idsParaLer = Array.from(new Set(noPublico.flatMap((c) => idsPorCaixa.get(c.email) ?? [c.id])))
     const desde7d = new Date(nowMs - BF2026_RECENT_EMAIL_WINDOW_MS).toISOString()
     const colunas = bf2026RecentEmailProfileColumns(PROFILE_TIMESTAMP_COLUMNS)
-    const linhas7d = { ledger: [] as Array<Record<string, unknown> & { user_id: unknown; sent_at: unknown }>, trial: [] as Array<{ user_id: unknown; sent_at: unknown }>, events: [] as Array<{ user_id: unknown; name: unknown; created_at: unknown }>, abandoned: [] as Array<{ user_id: unknown; recovery_sent_at: unknown }>, profiles: [] as Array<Record<string, unknown>>, profileColumns: colunas }
+    const linhas7d = { ledger: [] as Array<Record<string, unknown> & { user_id: unknown; sent_at: unknown }>, trial: [] as Array<{ user_id: unknown; sent_at: unknown }>, events: [] as Array<{ user_id: unknown; name: unknown; created_at: unknown; metadata?: unknown }>, abandoned: [] as Array<{ user_id: unknown; recovery_sent_at: unknown }>, profiles: [] as Array<Record<string, unknown>>, profileColumns: colunas }
     for (const ids of fatias(idsParaLer, CHUNK)) {
       const [ledger, trial, carimbos, abandono, datas] = await Promise.all([
         readAll(() => admin.from('email_send_log').select('id, user_id, sent_at, kind, ok, yielded').in('user_id', ids).gte('sent_at', desde7d).eq('ok', true).not('yielded', 'is', true), { route: ROUTE, table: 'email_send_log' }),
         readAll(() => admin.from('trial_emails_log').select('user_id, email_kind, sent_at').in('user_id', ids).gte('sent_at', desde7d), { route: ROUTE, table: 'trial_emails_log', key: ['user_id', 'email_kind'] }),
-        readAll(() => admin.from('events').select('id, user_id, name, created_at').in('user_id', ids).in('name', BF2026_RECENT_EMAIL_EVENT_NAMES as string[]).gte('created_at', desde7d), { route: ROUTE, table: 'events' }),
+        readAll(() => admin.from('events').select('id, user_id, name, created_at, metadata').in('user_id', ids).in('name', BF2026_RECENT_EMAIL_EVENT_NAMES as string[]).gte('created_at', desde7d), { route: ROUTE, table: 'events' }),
         readAll(() => admin.from('checkout_abandoned').select('id, user_id, recovery_sent_at').in('user_id', ids).gte('recovery_sent_at', desde7d), { route: ROUTE, table: 'checkout_abandoned' }),
         readAll(() => admin.from('profiles').select(['id', ...colunas].join(', ')).in('id', ids), { route: ROUTE, table: 'profiles' }),
       ])
@@ -233,13 +234,19 @@ export async function GET(req: NextRequest) {
       linhas7d.abandoned.push(...(abandono.data ?? []))
       linhas7d.profiles.push(...((datas.data ?? []) as unknown as Array<Record<string, unknown>>))
     }
-    const ultimoEmail = bf2026LastMarketingEmail(linhas7d, nowMs)
-    const publico = { por_download: 0, por_nota_8: 0, pelos_dois: 0, por_presente_de_canal: 0 }
+    // KINEO-BF-CYBER-ULTIMO-DIA-2411 — na 'cyber', o envio da 'bf' desta campanha não conta para os 7 dias (dono 24/11, "A").
+    const excecaoBf = bf2026IgnoresBfWaveTrail(wave)
+    const ultimoEmail = bf2026LastMarketingEmail(linhas7d, nowMs, { ignoreBfWaveTrail: excecaoBf })
+    const ultimoSemExcecao = excecaoBf ? bf2026LastMarketingEmail(linhas7d, nowMs) : ultimoEmail
+    const publico = { por_download: 0, por_nota_8: 0, pelos_dois: 0, por_presente_de_canal: 0, por_ja_ter_recebido_bf: 0 }
     const candidatos: Array<{ id: string; email: string }> = []
     for (const c of noPublico) {
       const ultimoDaCaixa = Math.max(0, ...(idsPorCaixa.get(c.email) ?? [c.id]).map((i) => ultimoEmail.get(i) ?? 0))
       const motivo = bf2026AudienceSkipReason({ downloadedFilm: baixouFilme.has(c.id), highNoteFilm: notaAlta.has(c.id), lastMarketingEmailMs: ultimoDaCaixa, nowMs })
       if (motivo) { fora[motivo]++; continue }
+      // Entrou só por causa da exceção: sem ela, a própria carta 'bf' a teria travado nos 7 dias.
+      const ultimoSemExcecaoDaCaixa = Math.max(0, ...(idsPorCaixa.get(c.email) ?? [c.id]).map((i) => ultimoSemExcecao.get(i) ?? 0))
+      if (excecaoBf && bf2026AudienceSkipReason({ downloadedFilm: true, highNoteFilm: false, lastMarketingEmailMs: ultimoSemExcecaoDaCaixa, nowMs }) === 'email_7d') publico.por_ja_ter_recebido_bf++
       if (baixouFilme.has(c.id)) publico.por_download++
       if (notaAlta.has(c.id)) publico.por_nota_8++
       if (baixouFilme.has(c.id) && notaAlta.has(c.id)) publico.pelos_dois++

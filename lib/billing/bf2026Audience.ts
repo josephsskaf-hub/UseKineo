@@ -13,13 +13,13 @@
 //   7 dias                       → último e-mail NOSSO de marketing ou de ciclo de vida nas últimas 168 h (a mesma janela da carta
 //       da base, BF_BASE_2311_SUPPRESSION_HOURS), pelas MESMAS fontes da supressão da casa (ledger email_send_log ok e não cedido,
 //       trial_emails_log, colunas datadas de profiles, checkout_abandoned.recovery_sent_at, carimbos de e-mail em events) mais o
-//       carimbo das próprias ondas (bf2026_emailed). NÃO conta o aviso transacional "seu vídeo está pronto" nem os avisos de entrega
+//       carimbo das próprias ondas (bf2026_emailed; na cyber, a bf não conta: KINEO-BF-CYBER-ULTIMO-DIA-2411). NÃO conta o aviso transacional "seu vídeo está pronto" nem os avisos de entrega
 //       (BF2026_TRANSACTIONAL_*). Carimbo de PULO (época Unix) não conta, como na supressão da casa.
 // Sem interruptor: a decisão vale para todo envio da rota (cron e link do fundador).
 import { BF_BASE_2311_SUPPRESSION_HOURS } from '../lifecycle/bfBase2311'
 import { LIFECYCLE_EMAIL_EVENT_NAMES } from '../lifecycle/emailEvents'
 import { isRealSendStamp } from '../lifecycle/skipStamp'
-import { BF2026_EMAIL_SENT } from './blackFriday2026'
+import { BF2026_CAMPAIGN, BF2026_EMAIL_SENT, type Bf2026Wave } from './blackFriday2026'
 
 export const BF2026_AUDIENCE_MARK = 'KINEO-BF-ONDAS-PUBLICO-2411' as const
 /** Janela do público: 60 dias. */
@@ -108,7 +108,7 @@ export function bf2026HighNoteOwners(
 export type Bf2026RecentEmailRows = {
   ledger: readonly { user_id: unknown; sent_at: unknown; kind?: unknown; ok?: unknown; yielded?: unknown }[]
   trial: readonly { user_id: unknown; sent_at: unknown }[]
-  events: readonly { user_id: unknown; name: unknown; created_at: unknown }[]
+  events: readonly { user_id: unknown; name: unknown; created_at: unknown; metadata?: unknown }[]
   abandoned: readonly { user_id: unknown; recovery_sent_at: unknown }[]
   profiles: readonly Record<string, unknown>[]
   /** As colunas de profiles a olhar (bf2026RecentEmailProfileColumns da lista da casa). */
@@ -116,7 +116,30 @@ export type Bf2026RecentEmailRows = {
 }
 
 /** Último e-mail de marketing/ciclo de vida por conta (ms), só o que cabe nas 168 h antes de nowMs. */
-export function bf2026LastMarketingEmail(rows: Bf2026RecentEmailRows, nowMs: number): Map<string, number> {
+// ═══ KINEO-BF-CYBER-ULTIMO-DIA-2411 — dono 24/11 (resposta "A"): quem recebeu a onda 'bf' em 27/11 recebe TAMBÉM a 'cyber' em 30/11,
+// como e-mail de último dia. É a ÚNICA exceção à regra dos 7 dias, e só no par bf → cyber desta campanha. Rastros que o envio da 'bf'
+// deixa (app/api/admin/send-black-friday-2026/route.ts + lib/email/quota.ts recordResendResponse):
+//   1. events `bf2026_email_claimed` com metadata.wave = 'bf' (reserva; NÃO é fonte dos 7 dias; o already_got_wave só olha a onda pedida);
+//   2. email_send_log kind = BF2026_CAMPAIGN ('bf2026'), priority growth, ok do Resend (a linha NÃO guarda a onda);
+//   3. events `bf2026_emailed` com metadata { campaign, wave: 'bf' };
+//   4. só em 429: events `email_quota_exhausted` (não é fonte dos 7 dias; ok=false no ledger também não conta).
+// Na 'cyber' a regra ignora (2) inteiro e (3) com wave='bf'. Ignorar (2) inteiro é seguro porque a linha 'bf2026' de uma cyber só existe
+// depois da reserva da cyber, e a reserva já tira a pessoa (already_got_wave). Carimbo (3) sem wave, ou com outra wave, CONTA (falha fechada).
+// Todo outro e-mail de marketing/ciclo de vida continua travando. A onda 'bf' não muda.
+/** A exceção vale para esta onda? Só a 'cyber'. */
+export function bf2026IgnoresBfWaveTrail(wave: Bf2026Wave | string | null | undefined): boolean {
+  return wave === 'cyber'
+}
+
+/** Este rastro é do envio da onda 'bf' desta campanha? (ledger kind 'bf2026' ou carimbo bf2026_emailed com wave 'bf'). */
+export function bf2026IsBfWaveTrail(row: { source: 'ledger' | 'event'; kind?: unknown; name?: unknown; metadata?: unknown }): boolean {
+  if (row.source === 'ledger') return row.kind === BF2026_CAMPAIGN
+  const m = (row.metadata && typeof row.metadata === 'object' ? row.metadata : {}) as Record<string, unknown>
+  return row.name === BF2026_EMAIL_SENT && m.wave === 'bf'
+}
+
+export function bf2026LastMarketingEmail(rows: Bf2026RecentEmailRows, nowMs: number, opts: { ignoreBfWaveTrail?: boolean } = {}): Map<string, number> {
+  const ignora = opts.ignoreBfWaveTrail === true
   const out = new Map<string, number>()
   const bump = (uid: unknown, raw: unknown) => {
     const id = String(uid ?? '').trim()
@@ -127,11 +150,13 @@ export function bf2026LastMarketingEmail(rows: Bf2026RecentEmailRows, nowMs: num
   for (const r of rows.ledger) {
     if (r.ok === false || r.yielded === true) continue
     if (typeof r.kind === 'string' && BF2026_TRANSACTIONAL_LEDGER_KINDS.includes(r.kind)) continue
+    if (ignora && bf2026IsBfWaveTrail({ source: 'ledger', kind: r.kind })) continue
     bump(r.user_id, r.sent_at)
   }
   for (const r of rows.trial) bump(r.user_id, r.sent_at)
   for (const r of rows.events) {
     if (typeof r.name !== 'string' || !BF2026_RECENT_EMAIL_EVENT_NAMES.includes(r.name)) continue
+    if (ignora && bf2026IsBfWaveTrail({ source: 'event', name: r.name, metadata: r.metadata })) continue
     bump(r.user_id, r.created_at)
   }
   for (const r of rows.abandoned) bump(r.user_id, r.recovery_sent_at)
