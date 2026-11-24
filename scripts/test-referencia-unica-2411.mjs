@@ -17,6 +17,7 @@ const original = file => execFileSync('git', ['show', base + ':' + file], { enco
 const dados = JSON.parse(readFileSync('scripts/test-support/referencia-unica-2411-filmes.json', 'utf8'))
 const load = source => createOfflineLoader({ source, globals: { AbortSignal } })
 const estilo = load((file, src) => src)('@/lib/cinematic/visualPromptPolicy.ts') // isStylizedLook real (o que a rota já sabe)
+const folhaDaRef = load((file, src) => src)('@/lib/cinematic/folhaDaReferencia2411.ts') // KINEO-FOLHA-DA-REFERENCIA-2411
 const old = load((file, src) => file === transport ? original(file) : src)('@/' + transport)
 const filme = id => dados.filmes.find(f => f.id === id)
 const SINTETICA = n => `https://example.org/offline/still-${n}.png` // imagem-chave do controle cuja URL não está nos dados (só a 1ª ou a ficha estão)
@@ -51,7 +52,8 @@ const snapshots = {
 
 // Executa o trecho REAL da admissão nova na rota.
 // KINEO-REFERENCIA-UNICA-HUMANO-2411: + o look do filme (styleAnchor real, isStylizedLook real) e o desenho infantil.
-function admitir(route, f, { email, candidato = true, fixo = null, snapshot, look = 'photoreal', infantil = false }) {
+// KINEO-FOLHA-DA-REFERENCIA-2411: + as folhas que a rota guardou para a admissão (o módulo real; o guardião dele é scripts/test-folha-da-referencia-2411.mjs)
+function admitir(route, f, { email, candidato = true, fixo = null, snapshot, look = 'photoreal', infantil = false, folhas = [], fr = folhaDaRef }) {
   const ini = route.indexOf("if (!kling4Timing.fixedCharacter && kling4TrialCandidate && REFERENCIA_UNICA_2411 !== 'off') {")
   const fim = route.indexOf('// KINEO-K4-SUJEITO-0111 — revisor 01/11', ini)
   assert.ok(ini > 0 && fim > ini, 'admissão nova não achada na rota')
@@ -59,7 +61,9 @@ function admitir(route, f, { email, candidato = true, fixo = null, snapshot, loo
   assert.ok(ini0 > 0 && ini0 < ini1 && ini1 < ini, 'a admissão nova tem de vir depois do personagem fixo')
   const kling4Timing = { voiceovers: [], wordsPerSecond: 2, ...(fixo ? { fixedCharacter: fixo } : {}) }
   Function('kling4Timing', 'kling4TrialCandidate', 'REFERENCIA_UNICA_2411', 'user', 'admitirReferenciaUnica2411', 'qualitySnapshot', 'isStylizedLook', 'styleAnchor', 'desenhoInfantil',
-    ts.transpile(route.slice(ini, fim)))(kling4Timing, candidato, f.REFERENCIA_UNICA_2411, { email }, f.admitirReferenciaUnica2411, snapshot, estilo.isStylizedLook, { look }, { ativo: infantil })
+    'retratoDaReferencia2411', 'folhasDaReferencia2411', 'folhaDaReferenciaLigada', 'FOLHA_DA_REFERENCIA_2411',
+    ts.transpile(route.slice(ini, fim)))(kling4Timing, candidato, f.REFERENCIA_UNICA_2411, { email }, f.admitirReferenciaUnica2411, snapshot, estilo.isStylizedLook, { look }, { ativo: infantil },
+    fr.retratoDaReferencia2411, folhas, fr.folhaDaReferenciaLigada, fr.FOLHA_DA_REFERENCIA_2411)
   return kling4Timing
 }
 
@@ -655,7 +659,7 @@ const mutants = [
   [routeFile, '{ estilizado: isStylizedLook(styleAnchor) || desenhoInfantil.ativo }', '{ estilizado: isStylizedLook(styleAnchor) }'], // o desenho infantil passa
   [routeFile, '{ estilizado: isStylizedLook(styleAnchor) || desenhoInfantil.ativo }', '{ estilizado: false }'], // o estilo do filme ignorado
   [routeFile, '        else if (ru2411) kling4Timing.referenciaUnicaRecusa = ru2411.motivo\n', ''], // a rota não grava o motivo
-  [routeFile, 'admitirReferenciaUnica2411(REFERENCIA_UNICA_2411, user.email, qualitySnapshot,', "admitirReferenciaUnica2411(REFERENCIA_UNICA_2411, 'josephsskaf@gmail.com', qualitySnapshot,"], // todo mundo vira casa
+  [routeFile, 'admitirReferenciaUnica2411(REFERENCIA_UNICA_2411, user.email, retratoDaReferencia2411(', "admitirReferenciaUnica2411(REFERENCIA_UNICA_2411, 'josephsskaf@gmail.com', retratoDaReferencia2411("], // todo mundo vira casa
   [feature, 'p.slice(0, -(frase + CAUDA_DA_BOCA_2411).length) + CAUDA_DA_BOCA_2411', 'p'],
   [feature, [['p.endsWith(frase + CAUDA_DA_BOCA_2411) ? p.slice(0, -(frase + CAUDA_DA_BOCA_2411).length) + CAUDA_DA_BOCA_2411', 'p.includes(frase) ? p.replace(frase, \'\')']]],
   [routeFile, 'const reaproveitaJuiz1311 = !!envioFinal1311 && juizLeuOMesmoTexto(lidoPeloJuiz1311, envioFinal1311.cenas)', 'const reaproveitaJuiz1311 = !!envioFinal1311'],

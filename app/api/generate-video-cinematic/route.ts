@@ -36,6 +36,7 @@ import { medirFalaDoKling4Trial, type FalaK4 } from '@/lib/kling4TrialScript' //
 import { fixedCharacterEnabled, fixedCharacterReference, referenceRehearsal } from '@/lib/cinematic/kling4PersonagemFixo'
 import { KLING4_REFERENCE_MODEL, type Kling4CharacterReference } from '@/lib/kling4Trial'
 import { ELENCO_E_FIGURINO_2411, FIGURINO_DO_PEDIDO_2411, elencoEFigurinoLigado, elencoComNomeCompleto, aceitaPapelSemPista, fichaComDescricaoDoPedido, relatoDoElenco2411, medidaDaLeitura2411, medidaDaRegra2411, type MedidaDaLeitura2411, ELENCO_E_FIGURINO_2411_VERSAO } from '@/lib/cinematic/elencoEFigurino2411' // KINEO-ELENCO-E-FIGURINO-2411
+import { FOLHA_DA_REFERENCIA_2411, folhaDaReferenciaLigada, folhaServeAReferencia2411, retratoDaReferencia2411 } from '@/lib/cinematic/folhaDaReferencia2411' // KINEO-FOLHA-DA-REFERENCIA-2411
 import { REFERENCIA_UNICA_2411, admitirReferenciaUnica2411, relatoReferenciaUnica, relatoClienteSemReferencia2411, entradaDoJuiz2411, type ReferenciaUnica2411, type MotivoClienteSemReferencia2411 } from '@/lib/cinematic/referenciaUnica2411' // KINEO-REFERENCIA-UNICA-2411 · KINEO-REFERENCIA-UNICA-HUMANO-2411
 import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy'
 import { kling4PaidCredits, kling4PaidFalExtrasMilliUsd, kling4PaidBudget } from '@/lib/kling4PaidPricing'
@@ -8133,6 +8134,7 @@ async function manipularPost(req: NextRequest) {
     // IDENTITY, em 'enforce' (1 foto nova por cena, teto de 3 por filme, 35 s); (4) o still aprovado SUBSTITUI o FLUX daquela cena. O FLUX fica de reserva: folha, still ou [KINEO-META95-PERSONAGEM-2010]
     // moderação que falha = a cena sai exatamente como hoje. Sem o interruptor: nada disto roda (o `if` abaixo é a única porta). Fica FORA das fatias que os guardiões executam. [KINEO-META95-PERSONAGEM-2010]
     // >>> KINEO-META95-PERSONAGEM-2010 bloco
+    let folhasDaReferencia2411: Array<{ nome: string; url: string }> = [] // KINEO-FOLHA-DA-REFERENCIA-2411 — as folhas que a admissão da referência única pode ler mesmo descartadas (só com o interruptor)
     const elencoDaFolha1311 = elencoSemFichaCortada(elencoDoAjuste, fichaCortada1311) // KINEO-FICHA-POR-PLANO-2011 [rv21] — quem teve a ficha cortada não ganha folha (nada cortado = o elenco de sempre)
     if (qualidadeFilme.gerarFolha && anchorActive && !estrelaAtiva && elencoDaFolha1311.length > 0) { // KINEO-META95-PERSONAGEM-2010 · KINEO-FILME15-ELENCO-2610 (era personagemElenco.elenco) // KINEO-QUALIDADE-TODOS-MOTORES-2910
       const t0Personagem = Date.now() // KINEO-META95-PERSONAGEM-2010
@@ -8193,6 +8195,7 @@ async function manipularPost(req: NextRequest) {
         void writeServerEvent({ name: STILL_CRITIC_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { generation_id: generationId, engine: personagemMotor, path_kind: 'personagem', ...julgado.relato } }) // KINEO-META95-PERSONAGEM-2010
       })) // KINEO-META95-PERSONAGEM-2010
       const folhaDescartada = folhaErrada(juizFichaEstado.resultados.map((r) => r.decisao)) // KINEO-JUIZ-FICHA-2710 — a mesma reprovação de identidade em 2+ cenas: a folha está errada
+      if (folhaServeAReferencia2411(relatosP)) folhasDaReferencia2411 = Array.from(folhaDe, ([nome, url]) => ({ nome, url })) // KINEO-FOLHA-DA-REFERENCIA-2411 — toda identidade reprovada veio com 'estilo' (a imagem-chave em outro meio, não outro personagem): a folha serve à referência, que não usa imagem-chave
       if (folhaDescartada) { const finais = stillsFinaisDaFolha({ comFolha: stillsP, semFolha: semFolhaP, flux: fluxAntesP, folhaDescartada }); for (let i = 0; i < scenes.length; i++) stillsP[i] = finais[i]; console.warn(`[juiz-ficha] gen=${generationId} FOLHA DESCARTADA: identidade reprovada em ${juizFichaEstado.resultados.filter((r) => r.decisao.precisa).length} cenas; o filme volta ao texto puro (sem folha: ${semFolhaP.filter(Boolean).length}, FLUX: ${fluxAntesP.filter(Boolean).length})`) } // KINEO-JUIZ-FICHA-2710 — texto puro quando existe, senão o FLUX original (null = o laço abaixo deixa o FLUX)
       for (let i = 0; i < scenes.length; i++) if (stillsP[i]) sceneStills[i] = stillsP[i] // KINEO-META95-PERSONAGEM-2010 — o still com folha vence o FLUX daquela cena
       // KINEO-ELENCO-TRAVA-0311 — (a) cena com personagem que ficou SEM still com folha (2 tentativas falharam, ou passou do prazo do lote) nunca segue calada no FLUX de texto: o still aprovado
@@ -8377,7 +8380,7 @@ async function manipularPost(req: NextRequest) {
     // senão o pedido de hoje (byte a byte) e só o código do motivo no claim. Estilizado = o que a rota já sabe (isStylizedLook ou desenho infantil).
     if (!kling4Timing.fixedCharacter && kling4TrialCandidate && REFERENCIA_UNICA_2411 !== 'off') {
       try { // [revisor 24/11, volta 1] qualquer erro aqui = o caminho de hoje, com aviso; nunca derruba o filme
-        const ru2411 = admitirReferenciaUnica2411(REFERENCIA_UNICA_2411, user.email, qualitySnapshot, { estilizado: isStylizedLook(styleAnchor) || desenhoInfantil.ativo })
+        const ru2411 = admitirReferenciaUnica2411(REFERENCIA_UNICA_2411, user.email, retratoDaReferencia2411(qualitySnapshot, folhasDaReferencia2411, folhaDaReferenciaLigada(FOLHA_DA_REFERENCIA_2411, user.email)) /* KINEO-FOLHA-DA-REFERENCIA-2411 — desligado = o mesmo retrato */, { estilizado: isStylizedLook(styleAnchor) || desenhoInfantil.ativo })
         if (ru2411 && 'referencia' in ru2411) { kling4Timing.referenciaUnica = ru2411.referencia; if (ru2411.cliente) kling4Timing.referenciaUnicaDoCliente = true }
         else if (ru2411) kling4Timing.referenciaUnicaRecusa = ru2411.motivo
       } catch (erro) { delete kling4Timing.referenciaUnica; delete kling4Timing.referenciaUnicaRecusa; delete kling4Timing.referenciaUnicaDoCliente; console.warn('[cinematic] KINEO-REFERENCIA-UNICA-2411: referência não montada, caminho de hoje', erro instanceof Error ? erro.name : typeof erro) }

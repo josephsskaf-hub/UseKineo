@@ -67,7 +67,7 @@ export const REFERENCIA_UNICA_HUMANO_2411_VERSAO = 'KINEO-REFERENCIA-UNICA-HUMAN
 
 export const FRASE_REFERENCIA_PESSOA = 'Keep the face and outfit of @Image1.'
 export const FRASE_REFERENCIA_DESENHO = 'Keep the exact character design of @Image1.'
-export type ReferenciaUnica2411 = Kling4ReferenciaUnica & { origem: 'ficha' | 'imagem_chave'; tipo: 'humano' | 'animal' | 'criatura' }
+export type ReferenciaUnica2411 = Kling4ReferenciaUnica & { origem: 'ficha' | 'imagem_chave' | 'folha_mantida' /* KINEO-FOLHA-DA-REFERENCIA-2411 */; tipo: 'humano' | 'animal' | 'criatura' }
 
 const https = (u: unknown): u is string => typeof u === 'string' && /^https:\/\/[^\s]+$/i.test(u)
 
@@ -89,14 +89,14 @@ function escolherReferencia(snapshot: FilmQualitySnapshot | null | undefined): R
   const lead = leads[0]
   if (typeof lead.nome !== 'string' || !lead.nome.trim()) return null
   if (lead.tipo !== 'humano' && lead.tipo !== 'animal' && lead.tipo !== 'criatura') return null
-  const ficha = snapshot.characterReferences.find((r) => r.nome === lead.nome)?.url
+  const fichaRef = snapshot.characterReferences.find((r) => r.nome === lead.nome), ficha = fichaRef?.url
   const still = snapshot.approvedStills.find((s) => s.characterNames.length === 1 && s.characterNames[0] === lead.nome)?.url
   const imageUrl = https(ficha) ? ficha : https(still) ? still : null
   if (!imageUrl) return null
   const nomes = [lead.nome, lead.nucleo].filter((n, i, all): n is string => typeof n === 'string' && !!n.trim() && all.indexOf(n) === i)
   const descricao = descricaoDoAutor(lead.canonica) // KINEO-REFERENCIA-UNICA-PUBLIC-2411 — a pessoa sem nome no plano só é ele quando repete esta descrição
   return { imageUrl, frase: lead.tipo === 'humano' ? FRASE_REFERENCIA_PESSOA : FRASE_REFERENCIA_DESENHO, nomes, ...(descricao ? { descricao } : {}),
-    origem: https(ficha) ? 'ficha' : 'imagem_chave', tipo: lead.tipo }
+    origem: https(ficha) ? ((fichaRef as { mantida?: unknown }).mantida === true ? 'folha_mantida' : 'ficha') : 'imagem_chave', tipo: lead.tipo } // KINEO-FOLHA-DA-REFERENCIA-2411: a folha que a rota tirou do retrato e a admissão da casa devolveu
 }
 /** KINEO-REFERENCIA-UNICA-PUBLIC-2411 — da canônica do elenco, só o que o AUTOR e o PEDIDO disseram dele (o trecho entre aspas de "exactly as the author
  *  wrote:" e o de "as the request describes:"); as âncoras, a origem e a linha de estilo são NOSSAS e repetem o resto do plano. Nada achado = undefined. */
