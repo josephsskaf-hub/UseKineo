@@ -23,6 +23,7 @@ import { comMenuConfig1811 } from './menu-config-1811-trocas.mjs' // KINEO-MENU-
 import { comVarreduraRecreate1911 } from './varredura-1911-trocas.mjs'
 import { comClipsVisivel1711 } from './clips-visivel-1711-trocas.mjs'
 import { comClipsProporcao1811 } from './clips-proporcao-1811-trocas.mjs'
+import { comAjustesClips2311 } from './clips-ajustes-2311-trocas.mjs'
 
 
 const require = createRequire(import.meta.url)
@@ -147,7 +148,7 @@ function casosB(o) {
     ['B3 /create/clip: a tela única só depois das portas de hoje (aba Clip, efeito → Recreate) e antes da aba Clip de sempre', iClip > 0 && iPorta > iClip && iEfeito > iPorta && iJ > iEfeito && iMold > iJ && create.slice(iJ, iMold).includes("return RecreateFlowPage({ basePath: '/recreate' })")],
     ['B4 /recreate/your-video: a barra só muda com a mesma régua', flow.includes("abaJuntos={!!user && basePath === '/recreate' && clipRecreateJuntosVisivel(user.email)}") && src(o, 'app/recreate-preview/SeuVideoRecreateClient.tsx').includes("<CreateTabs active={abaJuntos?'clip':'recreate'} {...{recreateHref:flowBasePath}} {...(abaJuntos?{showClip:true,showRecreate:false}:{})}/>")],
     ...casosHtml.map(([n, props]) => [`B5 RecreateClient sem moldura = HTML da main (${n})`, ssrRecreate(o, props) === ssrRecreate({ ...o, ...base }, props)]),
-    ['B6 ClipsClient byte a byte o da base + filtros aprovados, mídia visível e validação de proporção antes do upload', src(o, CLIPS) === comClipsProporcao1811(comClipsVisivel1711(comSemRepetir(lf(baseSrc(CLIPS)))))],
+    ['B6 ClipsClient byte a byte o da base + filtros aprovados, mídia visível e validação de proporção antes do upload', src(o, CLIPS) === comAjustesClips2311(comClipsProporcao1811(comClipsVisivel1711(comSemRepetir(lf(baseSrc(CLIPS))))))],
     ['B6b sem semRepetir nada some: todo filtro novo é `!semRepetir?.has(…)`', src(o, CLIPS).split('!semRepetir?.has(').length === 3 && !src(o, CLIPS).includes('semRepetir.has(')],
     ['B7 a aba Clip de sempre (ClipNaMoldura) intocada', src(o, 'components/create/ClipNaMoldura.tsx') === lf(baseSrc('components/create/ClipNaMoldura.tsx'))],
   ]

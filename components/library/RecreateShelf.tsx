@@ -5,10 +5,11 @@
 // no topo das outras duas telas também, com o atalho para a Library. Só leitura (/api/clips); nada de cobrança nem de geração.
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import SavedClipCard from '@/components/clips/SavedClipCard'
 import { comPrimeiroQuadro } from '@/lib/videoPrimeiroQuadro' // KINEO-VIDEO-COM-PRIMEIRO-QUADRO-1311
 import { downloadHref } from '@/lib/downloadNosso' // KINEO-DOWNLOAD-NOSSO-1311 — baixar pelo nosso domínio, nunca o endereço do Supabase
 
-type Clipe = { id: string; seconds: number; status: string; video_url: string | null }
+type Clipe = { id: string; seconds: number; status: string; video_url: string | null; aspect?: string }
 
 export default function RecreateShelf() {
   const [clipes, setClipes] = useState<Clipe[]>([])
@@ -29,10 +30,9 @@ export default function RecreateShelf() {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 12 }}>
         {clipes.map((c) => (
-          <div key={c.id} style={{ border: '1px solid var(--border, #d9dde5)', borderRadius: 14, padding: 8, background: 'var(--card, #fff)' }}>
-            <video src={comPrimeiroQuadro(c.video_url)} controls playsInline preload="metadata" style={{ width: '100%', borderRadius: 10, display: 'block', background: '#000' }} />
+          <SavedClipCard key={c.id} src={comPrimeiroQuadro(c.video_url)} aspect={c.aspect} style={{ border: '1px solid var(--border, #d9dde5)', borderRadius: 14, padding: 8, background: 'var(--card, #fff)' }}>
             <a href={c.video_url ? downloadHref(c.video_url, 'kineo-clip.mp4', 'library') : undefined} style={{ display: 'inline-block', marginTop: 8, fontSize: 14, fontWeight: 600, color: 'var(--text, #111)', textDecoration: 'underline' }}>Download ↓</a>
-          </div>
+          </SavedClipCard>
         ))}
       </div>
     </section>

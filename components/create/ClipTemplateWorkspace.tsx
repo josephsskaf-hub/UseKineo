@@ -59,7 +59,7 @@ export default function ClipTemplateWorkspace({ measurementActor, recreate, spec
   const orderId = useId()
   const semRepetir = titulosDaGrade(recreate.formatos)
 
-  return <ClipsClient measurementActor={measurementActor} semRepetir={semRepetir} moldura={clip => <RecreateClient {...recreate} clipSpecs={specs}
+  return <ClipsClient measurementActor={measurementActor} semRepetir={semRepetir} separateEffectPlayback moldura={clip => <RecreateClient {...recreate} clipSpecs={specs}
     onClipSelect={() => setMode(current => current === 'motion' ? current : 'templates')} moldura={rc => {
       const available = mode === 'motion' ? rc.catalogo.filter(format => format.type === 'motion') : rc.catalogo
       const categories = CLIP_TEMPLATE_CATEGORIES.filter(item => available.some(format => clipTemplateCategory(format) === item))
@@ -106,6 +106,8 @@ export default function ClipTemplateWorkspace({ measurementActor, recreate, spec
               {!gallery.length && <p className="cw-no-template">No templates in this category.</p>}
             </section>
             <details className="cw-extras"><summary>Clip effects and ideas</summary><div className="stu clips-workspace" onClickCapture={event => {
+              const choice = event.target instanceof Element && event.target.closest('button[data-clip-action^="select_"]')
+              if (!choice || !event.currentTarget.contains(choice)) return
               if (rc.selecionado && !rc.soltar('/create/clip')) { event.preventDefault(); event.stopPropagation(); return }
               setMode('idea')
             }}>{clip.tendencias}{clip.efeitos}</div></details>

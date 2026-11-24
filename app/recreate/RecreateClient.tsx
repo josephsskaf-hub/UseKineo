@@ -35,6 +35,13 @@ export function Icone({ nome }: { nome: 'trocar' | 'video' | 'seta' | 'voltar' |
 }
 /** KINEO-TELA-RECREATE-1611 [dono 16/11 23:00: "Slam dunk corta a cabeça… Pitch invader cortado"] — o foco da capa por molde, conferido na capa a 1920 px (cartão
  *  ~1,34 deitado) e a 390 px (~1,15): a cabeça inteira com respiro. Molde fora daqui: o foco de sempre (center 42%, studio-media.css). */
+export const CLIP_COVER_FOCUS: Readonly<Record<string, string>> = {
+  passarela: '50% 23%',
+  'effect-storm-behind': '50% 28%',
+  'effect-dollar-rain': '50% 16%',
+  elevador: '50% 22%',
+}
+
 export const FOCO_DA_CAPA: Readonly<Record<string, string>> = {
   basquete: '50% 30%',
   'cachorro-craque-humano': '50% 8%',
@@ -668,7 +675,7 @@ export default function RecreateClient({ initialId, internalTools = false, forma
             action: !createTabs && <button className="rc-change" disabled={editingDisabled} onClick={showTemplates}>Change video ↗</button> }} />}</div>
   </>
   const cartao = (f: RecreateFormat, index: number) => <article key={f.id} className={`rc-card ${index % 4 === 1 ? 'rc-card-short' : ''} ${selected?.id === f.id ? 'rc-card-selected' : ''}`}>
-          <ExampleCover src={mediaFor(f).video} poster={mediaFor(f).poster} label={`Choose ${f.title}`} disabled={editingDisabled} onSelect={() => choose(f)} foco={FOCO_DA_CAPA[f.id]} />
+          <ExampleCover src={mediaFor(f).video} poster={mediaFor(f).poster} label={`Choose ${f.title}`} disabled={editingDisabled} onSelect={() => choose(f)} foco={(clipSpecs && CLIP_COVER_FOCUS[f.id]) || FOCO_DA_CAPA[f.id]} />
           <div className="rc-card-top"><button disabled={currentFlow && !signedIn} onClick={() => { setReport(f); setExpanded(null) }} aria-label={`Report ${f.title}`}>⋯</button><button onClick={() => { setExpanded(f); setReport(null) }} aria-label={`Expand ${f.title}`}>⤢</button></div>
           <div className="rc-card-bottom"><h3>{f.title}</h3><div><button className={social[f.id]?.liked ? 'rc-liked' : ''} disabled={!social[f.id] || socialBusy} aria-label={`Like ${f.title}`} aria-pressed={social[f.id]?.liked ?? false} onClick={() => void like(f)}>♡{social[f.id]?.count > 0 ? ` ${social[f.id].count}` : ''}</button><button className="rc-template-action" disabled={editingDisabled} onClick={() => choose(f)} aria-label={`Use ${f.title}`}>{selected?.id === f.id ? 'Selected ✓' : <>Recreate<Icone nome="seta" /></>}</button></div></div>
         </article>

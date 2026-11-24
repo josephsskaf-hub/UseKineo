@@ -45,8 +45,19 @@
 .cw-library-head label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
 .cw-categories { margin-bottom: 18px; }
 .recreate.cw-workspace .cw-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 14px; width: 100%; }
-.recreate.cw-workspace .cw-cards .rc-card { min-height: 0; height: auto; aspect-ratio: 4 / 5; }
-.cw-cards .rc-card-bottom h3 { font-size: 15px; }
+.recreate.cw-workspace .cw-cards .rc-card { min-height: 0; height: auto; aspect-ratio: auto; background: var(--card); border-color: var(--border); }
+.recreate.cw-workspace .cw-cards .rc-card-selected { border-color: var(--accent); }
+.cw-cards .rc-card::after { display: none; }
+.cw-cards .rc-card-bottom { position: static; padding: 10px; color: var(--text); background: var(--card); }
+.cw-cards .rc-card-bottom h3 { color: var(--text); font-size: 15px; font-weight: 700; }
+.cw-cards .rc-card-bottom button { color: var(--text); min-height: 44px; }
+.cw-cards .rc-card-bottom button.rc-liked { color: var(--accent); }
+.cw-cards .rc-card-bottom button.rc-template-action { display: inline-flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; min-height: 44px; padding: 6px 10px; color: var(--text); background: var(--card2); border: 1px solid var(--border2); font-size: 13px; font-weight: 750; }
+.cw-workspace .cw-extras .fx-card-with-playback { cursor: default; }
+.cw-workspace .cw-extras .fx-selection { display: grid; gap: 6px; width: 100%; text-align: start; background: var(--card); color: var(--text); padding: 8px 4px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; }
+.cw-workspace .cw-extras .fx-selection:is(:hover,:focus-visible,[aria-pressed=true]) { border-color: var(--accent); }
+.cw-workspace .cw-extras .fx-selection-label { font-size: 13px; font-weight: 750; }
+.cw-workspace .cw-extras .fx-card-with-playback video { display: block; width: 100%; }
 .cw-preview { max-width: 460px; padding-bottom: 18px; }
 .recreate.cw-workspace .cw-preview .rc-stage { min-height: 0; height: auto; }
 .recreate.cw-workspace .cw-preview .rc-stage .rc-player { min-height: 0; max-height: 360px; aspect-ratio: 16 / 10; }
