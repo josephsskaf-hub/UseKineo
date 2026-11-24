@@ -112,6 +112,7 @@ async function problemas(repl = {}) {
   checa('(b) rótulo da oferta = "Starter"', B.BF2026_PLAN_LABEL === 'Starter')
   const seteDias = B.BF2026_BASE_LETTER_SUPPRESSION_HOURS * H
   checa('(b) carta da base suprime 167h59, libera em 168h, rejeita data inválida/futura',
+    B.BF2026_BASE_LETTER_SUPPRESSION_HOURS === 168 &&
     B.bf2026BaseLetterWithinSuppressionWindow(new Date(NA_BF - seteDias + 60_000).toISOString(), NA_BF) &&
     !B.bf2026BaseLetterWithinSuppressionWindow(new Date(NA_BF - seteDias).toISOString(), NA_BF) &&
     !B.bf2026BaseLetterWithinSuppressionWindow('invalid', NA_BF) &&
