@@ -232,9 +232,6 @@ export function visualMostraPessoa(visual: string): boolean {
   return (quemEstaNaCenaLigado() || !SEM_GENTE_RE.test(v)) && (PESSOA_RE.test(v) || GENTE_PT_ES_RE.test(v))
 }
 
-/** KINEO-REFERENCIA-UNICA-PUBLIC-2411 — o gênero da figura do visual contradiz o do personagem? (a mesma régua de generoContradiz, para o Kling 4 grátis) */
-export const visualContradizOGenero = (visual: string, genero: FichaDePersonagem['genero'] | undefined): boolean => generoContradiz(String(visual ?? ''), { genero } as FichaDePersonagem)
-
 /** Quem a FALA cita: o nome, o papel ("a boy", "the boy") ou, por pronome, quem a fala anterior citou (gênero tem de bater). */
 function quemNaFala(fala: string, elenco: ReadonlyArray<FichaDePersonagem>, anterior: readonly string[]): string[] {
   const f = String(fala ?? '')

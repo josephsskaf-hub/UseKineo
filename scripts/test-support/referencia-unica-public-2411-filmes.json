@@ -1,58 +1,177 @@
 {
-  "_sobre": "KINEO-REFERENCIA-UNICA-PUBLIC-2411 — os 3 filmes da casa da prova paga 2 de 24/11 (docs/canais/2026-11-24/prova-2/RESULTADO-2.md). shots = o que chegou ao montador da referência única (cinematic_submission_claim.response.k4_reference_plan.shots); enviado = o multi_prompt que foi à fal (scene_fal_inputs[0]); planos_com_frase_no_ar = kling4_referencia_unica.planos_com_frase gravado. Só conta da casa (e92d81bf).",
+  "_sobre": "KINEO-REFERENCIA-UNICA-PUBLIC-2411 — os 3 filmes da casa da prova paga 2 de 24/11 (docs/canais/2026-11-24/prova-2/RESULTADO-2.md). shots = o que chegou ao montador da referência única (cinematic_submission_claim.response.k4_reference_plan.shots); enviado = o multi_prompt que foi à fal (scene_fal_inputs[0]); planos_com_frase_no_ar = kling4_referencia_unica.planos_com_frase gravado. Só conta da casa (e92d81bf). metades = kling4_planos.secoes_por_cena do mesmo claim (true = metade de cena fundida); personagem.canonica = quality_snapshot.characters[0].canonica até antes da origem.",
   "filmes": [
     {
-      "id": "leprince", "generationId": "92ce1a8e", "ficha": "https://v3b.fal.media/files/b/0ab3c53f/y03P4tfw5zWvVG-4Cby-5.jpg",
-      "personagem": { "nome": "Louis Le Prince", "nucleo": "Prince", "tipo": "humano", "genero": "man", "protagonista": true },
-      "stills": [["Louis Le Prince"], ["Louis Le Prince"]],
-      "planos_com_frase_no_ar": [2, 3, 4],
+      "id": "leprince",
+      "generationId": "92ce1a8e",
+      "ficha": "https://v3b.fal.media/files/b/0ab3c53f/y03P4tfw5zWvVG-4Cby-5.jpg",
+      "personagem": {
+        "nome": "Louis Le Prince",
+        "nucleo": "Prince",
+        "tipo": "humano",
+        "genero": "man",
+        "protagonista": true,
+        "canonica": "Louis Le Prince, exactly as the author wrote: \"bearded inventor in an 1880s suit\"; appearance anchors: 30-40, wavy dark brown, facial hair: full beard, light skin, wearing formal suit with waistcoat"
+      },
+      "stills": [
+        [
+          "Louis Le Prince"
+        ],
+        [
+          "Louis Le Prince"
+        ]
+      ],
+      "planos_com_frase_no_ar": [
+        2,
+        3,
+        4
+      ],
       "shots": [
-        { "prompt": "Photoreal film. Everyone shown has the natural features of French people. A bearded man in an 1880s suit operates a wooden box camera in a sunlit garden, focusing intently. The scene is a period piece set strictly in the year 1888. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.", "duration": 4 },
-        { "prompt": "Photoreal film. Identity: Louis Le Prince, exactly as the author wrote: \"bearded inventor in an 1880s suit\"; appearance anchors: 30-40, wavy dark brown, facial hair: full beard, light skin. The same bearded man, now in a long 1890 coat, steps onto a steam train, glancing back briefly. The scene is a period piece set strictly in the year 1888. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.", "duration": 4 },
-        { "prompt": "Photoreal film. Wide shot. Identity: Louis Le Prince, exactly as the author wrote: \"bearded inventor in an 1880s suit\"; appearance anchors: 30-40, wavy dark brown, facial hair: full beard, light skin. An empty vintage train compartment, with plush seats and wooden paneling, gently sways as the train slows. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.", "duration": 2 },
-        { "prompt": "Photoreal film. Identity: Louis Le Prince, exactly as the author wrote: \"bearded inventor in an 1880s suit\"; appearance anchors: 30-40, wavy dark brown, facial hair: full beard, light skin. A bearded man in a long 1890 coat walks into thick steam on a dimly lit station platform, vanishing. The scene is a period piece set strictly in the year 1888. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.", "duration": 5 }
+        {
+          "prompt": "Photoreal film. Everyone shown has the natural features of French people. A bearded man in an 1880s suit operates a wooden box camera in a sunlit garden, focusing intently. The scene is a period piece set strictly in the year 1888. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.",
+          "duration": 4
+        },
+        {
+          "prompt": "Photoreal film. Identity: Louis Le Prince, exactly as the author wrote: \"bearded inventor in an 1880s suit\"; appearance anchors: 30-40, wavy dark brown, facial hair: full beard, light skin. The same bearded man, now in a long 1890 coat, steps onto a steam train, glancing back briefly. The scene is a period piece set strictly in the year 1888. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.",
+          "duration": 4
+        },
+        {
+          "prompt": "Photoreal film. Wide shot. Identity: Louis Le Prince, exactly as the author wrote: \"bearded inventor in an 1880s suit\"; appearance anchors: 30-40, wavy dark brown, facial hair: full beard, light skin. An empty vintage train compartment, with plush seats and wooden paneling, gently sways as the train slows. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.",
+          "duration": 2
+        },
+        {
+          "prompt": "Photoreal film. Identity: Louis Le Prince, exactly as the author wrote: \"bearded inventor in an 1880s suit\"; appearance anchors: 30-40, wavy dark brown, facial hair: full beard, light skin. A bearded man in a long 1890 coat walks into thick steam on a dimly lit station platform, vanishing. The scene is a period piece set strictly in the year 1888. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.",
+          "duration": 5
+        }
       ],
       "enviado": [
         "Photoreal film. Everyone shown has the natural features of French people. A bearded man in an 1880s suit operates a wooden box camera in a sunlit garden, focusing intently. The scene is a period piece set strictly in the year 1888. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.",
         "Photoreal film. Identity: Louis Le Prince, exactly as the author wrote: \"bearded inventor in an 1880s suit\"; appearance anchors: 30-40, wavy dark brown, facial hair: full beard, light skin. The same bearded man, now in a long 1890 coat, steps onto a steam train, glancing back briefly. The scene is a period piece set strictly in the year 1888. no readable text, letters, numbers, labels or signage Keep the face and outfit of @Image1. Mouth closed, no speaking.",
         "Photoreal film. Wide shot. Identity: Louis Le Prince, exactly as the author wrote: \"bearded inventor in an 1880s suit\"; appearance anchors: 30-40, wavy dark brown, facial hair: full beard, light skin. An empty vintage train compartment, with plush seats and wooden paneling, gently sways as the train slows. no readable text, letters, numbers, labels or signage Keep the face and outfit of @Image1. Mouth closed, no speaking.",
         "Photoreal film. Identity: Louis Le Prince, exactly as the author wrote: \"bearded inventor in an 1880s suit\"; appearance anchors: 30-40, wavy dark brown, facial hair: full beard, light skin. A bearded man in a long 1890 coat walks into thick steam on a dimly lit station platform, vanishing. The scene is a period piece set strictly in the year 1888. no readable text, letters, numbers, labels or signage Keep the face and outfit of @Image1. Mouth closed, no speaking."
+      ],
+      "metades": [
+        false,
+        true,
+        true,
+        false
       ]
     },
     {
-      "id": "slocum", "generationId": "ff5c515e", "ficha": "https://v3b.fal.media/files/b/0ab3c571/WgTIBYnBuEVFuoVS1Q-zE.jpg",
-      "personagem": { "nome": "Joshua Slocum", "nucleo": "Slocum", "tipo": "humano", "genero": "man", "protagonista": true },
-      "stills": [["Joshua Slocum"], ["Joshua Slocum"], ["Joshua Slocum"]],
-      "planos_com_frase_no_ar": [1, 2, 3, 4],
+      "id": "slocum",
+      "generationId": "ff5c515e",
+      "ficha": "https://v3b.fal.media/files/b/0ab3c571/WgTIBYnBuEVFuoVS1Q-zE.jpg",
+      "personagem": {
+        "nome": "Joshua Slocum",
+        "nucleo": "Slocum",
+        "tipo": "humano",
+        "genero": "man",
+        "protagonista": true,
+        "canonica": "Joshua Slocum, the first man to sail around the world alone, exactly as the author wrote; appearance anchors: 60-70, long gray hair, facial hair: long white beard, light skin, wearing brown work shirt and pants; as the request describes: old bearded sailor"
+      },
+      "stills": [
+        [
+          "Joshua Slocum"
+        ],
+        [
+          "Joshua Slocum"
+        ],
+        [
+          "Joshua Slocum"
+        ]
+      ],
+      "planos_com_frase_no_ar": [
+        1,
+        2,
+        3,
+        4
+      ],
       "shots": [
-        { "prompt": "Photoreal film. Everyone shown has the natural features of American people. An old bearded sailor, Joshua Slocum, stands at the helm of a small wooden sailboat, navigating open seas. The scene is a period piece set strictly in the year 1909. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.", "duration": 4 },
-        { "prompt": "Photoreal film. Everyone shown has the natural features of American people. Joshua Slocum struggles to steer his small wooden sailboat through a turbulent storm, waves crashing around him. The scene is a period piece set strictly in the year 1909. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.", "duration": 4 },
-        { "prompt": "Photoreal film. Everyone shown has the natural features of American people. In an autumn harbor, sixty-five-year-old Slocum hoists the sail of his boat, setting off on a new journey. The scene is a period piece set strictly in the year 1909. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.", "duration": 3 },
-        { "prompt": "Photoreal film. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Wide shot. Everyone shown has the natural features of American people. An empty gray ocean horizon stretches at dusk, a silent testament to Slocum's mysterious disappearance. The scene is a period piece set strictly in the year 1909. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.", "duration": 4 }
+        {
+          "prompt": "Photoreal film. Everyone shown has the natural features of American people. An old bearded sailor, Joshua Slocum, stands at the helm of a small wooden sailboat, navigating open seas. The scene is a period piece set strictly in the year 1909. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.",
+          "duration": 4
+        },
+        {
+          "prompt": "Photoreal film. Everyone shown has the natural features of American people. Joshua Slocum struggles to steer his small wooden sailboat through a turbulent storm, waves crashing around him. The scene is a period piece set strictly in the year 1909. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.",
+          "duration": 4
+        },
+        {
+          "prompt": "Photoreal film. Everyone shown has the natural features of American people. In an autumn harbor, sixty-five-year-old Slocum hoists the sail of his boat, setting off on a new journey. The scene is a period piece set strictly in the year 1909. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.",
+          "duration": 3
+        },
+        {
+          "prompt": "Photoreal film. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Wide shot. Everyone shown has the natural features of American people. An empty gray ocean horizon stretches at dusk, a silent testament to Slocum's mysterious disappearance. The scene is a period piece set strictly in the year 1909. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.",
+          "duration": 4
+        }
       ],
       "enviado": [
         "Photoreal film. Everyone shown has the natural features of American people. An old bearded sailor, Joshua Slocum, stands at the helm of a small wooden sailboat, navigating open seas. The scene is a period piece set strictly in the year 1909. no readable text, letters, numbers, labels or signage Keep the face and outfit of @Image1. Mouth closed, no speaking.",
         "Photoreal film. Everyone shown has the natural features of American people. Joshua Slocum struggles to steer his small wooden sailboat through a turbulent storm, waves crashing around him. The scene is a period piece set strictly in the year 1909. no readable text, letters, numbers, labels or signage Keep the face and outfit of @Image1. Mouth closed, no speaking.",
         "Photoreal film. Everyone shown has the natural features of American people. In an autumn harbor, sixty-five-year-old Slocum hoists the sail of his boat, setting off on a new journey. The scene is a period piece set strictly in the year 1909. no readable text, letters, numbers, labels or signage Keep the face and outfit of @Image1. Mouth closed, no speaking.",
         "Photoreal film. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Wide shot. Everyone shown has the natural features of American people. An empty gray ocean horizon stretches at dusk, a silent testament to Slocum's mysterious disappearance. The scene is a period piece set strictly in the year 1909. no readable text, letters, numbers, labels or signage Keep the face and outfit of @Image1. Mouth closed, no speaking."
+      ],
+      "metades": [
+        false,
+        false,
+        true,
+        true
       ]
     },
     {
-      "id": "cooper", "generationId": "582cead7", "ficha": "https://v3b.fal.media/files/b/0ab3c5a2/nqDgSp0Nw5knwatbctubJ.jpg",
-      "personagem": { "nome": "Dan Cooper", "nucleo": "Cooper", "tipo": "humano", "genero": "man", "protagonista": true },
-      "stills": [["Dan Cooper"], ["Dan Cooper"]],
-      "planos_com_frase_no_ar": [1, 2, 3, 4],
+      "id": "cooper",
+      "generationId": "582cead7",
+      "ficha": "https://v3b.fal.media/files/b/0ab3c5a2/nqDgSp0Nw5knwatbctubJ.jpg",
+      "personagem": {
+        "nome": "Dan Cooper",
+        "nucleo": "Cooper",
+        "tipo": "humano",
+        "genero": "man",
+        "protagonista": true,
+        "canonica": "Dan Cooper, a man, exactly as the author wrote; appearance anchors: 30-40, dark brown, medium length, clean-shaven, light skin, wearing dark suit and black tie; as the request describes: man in a dark suit and black tie"
+      },
+      "stills": [
+        [
+          "Dan Cooper"
+        ],
+        [
+          "Dan Cooper"
+        ]
+      ],
+      "planos_com_frase_no_ar": [
+        1,
+        2,
+        3,
+        4
+      ],
       "shots": [
-        { "prompt": "Photoreal film. Period setting: 1971 (1970s). Identity: Dan Cooper, a man, exactly as the author wrote; appearance anchors: 30-40, dark brown, medium length, clean-shaven, light skin, wearing dark suit and black tie; as the request describes: man in a dark suit and black. A man in a dark suit and black tie boards a 1971 passenger jet. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.", "duration": 5 },
-        { "prompt": "Photoreal film. Period setting: 1971 (1970s). Identity: Dan Cooper, a man, exactly as the author wrote; appearance anchors: 30-40, dark brown, medium length, clean-shaven, light skin, wearing dark suit and black tie; as the request describes: man in a dark suit and black. Dan Cooper, in his seat, holds a briefcase and looks determined. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.", "duration": 3 },
-        { "prompt": "Photoreal film. Wide shot. Period setting: 1971 (1970s). Identity: Dan Cooper, a man, exactly as the author wrote; appearance anchors: 30-40, dark brown, medium length, clean-shaven, light skin, wearing dark suit and black tie; as the request describes: man in a dark suit and black. At night, Dan Cooper jumps from a jet wearing a parachute. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.", "duration": 3 },
-        { "prompt": "Photoreal film. Medium shot. Period setting: 1971 (1970s). Identity: Dan Cooper, a man, exactly as the author wrote; appearance anchors: 30-40, dark brown, medium length, clean-shaven, light skin, wearing dark suit and black tie; as the request describes: man in a dark suit and black. Old dollar bills partially buried in wet river sand glisten under dim light. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.", "duration": 4 }
+        {
+          "prompt": "Photoreal film. Period setting: 1971 (1970s). Identity: Dan Cooper, a man, exactly as the author wrote; appearance anchors: 30-40, dark brown, medium length, clean-shaven, light skin, wearing dark suit and black tie; as the request describes: man in a dark suit and black. A man in a dark suit and black tie boards a 1971 passenger jet. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.",
+          "duration": 5
+        },
+        {
+          "prompt": "Photoreal film. Period setting: 1971 (1970s). Identity: Dan Cooper, a man, exactly as the author wrote; appearance anchors: 30-40, dark brown, medium length, clean-shaven, light skin, wearing dark suit and black tie; as the request describes: man in a dark suit and black. Dan Cooper, in his seat, holds a briefcase and looks determined. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.",
+          "duration": 3
+        },
+        {
+          "prompt": "Photoreal film. Wide shot. Period setting: 1971 (1970s). Identity: Dan Cooper, a man, exactly as the author wrote; appearance anchors: 30-40, dark brown, medium length, clean-shaven, light skin, wearing dark suit and black tie; as the request describes: man in a dark suit and black. At night, Dan Cooper jumps from a jet wearing a parachute. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.",
+          "duration": 3
+        },
+        {
+          "prompt": "Photoreal film. Medium shot. Period setting: 1971 (1970s). Identity: Dan Cooper, a man, exactly as the author wrote; appearance anchors: 30-40, dark brown, medium length, clean-shaven, light skin, wearing dark suit and black tie; as the request describes: man in a dark suit and black. Old dollar bills partially buried in wet river sand glisten under dim light. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.",
+          "duration": 4
+        }
       ],
       "enviado": [
         "Photoreal film. Period setting: 1971 (1970s). Identity: Dan Cooper, a man, exactly as the author wrote; appearance anchors: 30-40, dark brown, medium length, clean-shaven, light skin, wearing dark suit and black tie; as the request describes: man in a dark suit and black. A man in a dark suit and black tie boards a 1971 passenger jet. no readable text, letters, numbers, labels or signage Keep the face and outfit of @Image1. Mouth closed, no speaking.",
         "Photoreal film. Period setting: 1971 (1970s). Identity: Dan Cooper, a man, exactly as the author wrote; appearance anchors: 30-40, dark brown, medium length, clean-shaven, light skin, wearing dark suit and black tie; as the request describes: man in a dark suit and black. Dan Cooper, in his seat, holds a briefcase and looks determined. no readable text, letters, numbers, labels or signage Keep the face and outfit of @Image1. Mouth closed, no speaking.",
         "Photoreal film. Wide shot. Period setting: 1971 (1970s). Identity: Dan Cooper, a man, exactly as the author wrote; appearance anchors: 30-40, dark brown, medium length, clean-shaven, light skin, wearing dark suit and black tie; as the request describes: man in a dark suit and black. At night, Dan Cooper jumps from a jet wearing a parachute. no readable text, letters, numbers, labels or signage Keep the face and outfit of @Image1. Mouth closed, no speaking.",
         "Photoreal film. Medium shot. Period setting: 1971 (1970s). Identity: Dan Cooper, a man, exactly as the author wrote; appearance anchors: 30-40, dark brown, medium length, clean-shaven, light skin, wearing dark suit and black tie; as the request describes: man in a dark suit and black. Old dollar bills partially buried in wet river sand glisten under dim light. no readable text, letters, numbers, labels or signage Keep the face and outfit of @Image1. Mouth closed, no speaking."
+      ],
+      "metades": [
+        false,
+        false,
+        true,
+        true
       ]
     }
   ]

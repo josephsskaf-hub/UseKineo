@@ -45,11 +45,17 @@ function escolherReferencia(snapshot: FilmQualitySnapshot | null | undefined): R
   const imageUrl = https(ficha) ? ficha : https(still) ? still : null
   if (!imageUrl) return null
   const nomes = [lead.nome, lead.nucleo].filter((n, i, all): n is string => typeof n === 'string' && !!n.trim() && all.indexOf(n) === i)
-  // KINEO-REFERENCIA-UNICA-PUBLIC-2411 — o resto do elenco aceito: a pessoa sem nome no plano que cita um deles não é o protagonista
-  const outros = snapshot.characters.filter((c) => c !== lead).flatMap((c) => [c.nome, c.nucleo])
-    .filter((n, i, all): n is string => typeof n === 'string' && !!n.trim() && !nomes.includes(n) && all.indexOf(n) === i)
-  return { imageUrl, frase: lead.tipo === 'humano' ? FRASE_REFERENCIA_PESSOA : FRASE_REFERENCIA_DESENHO, nomes, outros,
-    genero: lead.genero === 'man' || lead.genero === 'woman' ? lead.genero : null, origem: https(ficha) ? 'ficha' : 'imagem_chave', tipo: lead.tipo }
+  const descricao = descricaoDoAutor(lead.canonica) // KINEO-REFERENCIA-UNICA-PUBLIC-2411 — a pessoa sem nome no plano só é ele quando repete esta descrição
+  return { imageUrl, frase: lead.tipo === 'humano' ? FRASE_REFERENCIA_PESSOA : FRASE_REFERENCIA_DESENHO, nomes, ...(descricao ? { descricao } : {}),
+    origem: https(ficha) ? 'ficha' : 'imagem_chave', tipo: lead.tipo }
+}
+/** KINEO-REFERENCIA-UNICA-PUBLIC-2411 — da canônica do elenco, só o que o AUTOR e o PEDIDO disseram dele (o trecho entre aspas de "exactly as the author
+ *  wrote:" e o de "as the request describes:"); as âncoras, a origem e a linha de estilo são NOSSAS e repetem o resto do plano. Nada achado = undefined. */
+export function descricaoDoAutor(canonica: unknown): string | undefined {
+  const c = typeof canonica === 'string' ? canonica : ''
+  const partes = [/exactly as the author wrote:\s*"([^"]+)"/u.exec(c)?.[1], /as the request describes:\s*([^;]+)/u.exec(c)?.[1]]
+    .filter((x): x is string => typeof x === 'string' && !!x.trim()).map((x) => x.trim())
+  return partes.length ? partes.join('; ') : undefined
 }
 
 /** [revisor 24/11, volta 1] O que os JUÍZES leem: a frase de referência é instrução ao motor, não conteúdo da cena. Ela sai antes do juízo, para o
@@ -79,11 +85,12 @@ const CAUDA_DA_BOCA_2411 = ' Mouth closed, no speaking.' // a mesma cauda que bu
 export function relatoReferenciaUnica(
   timing: { fixedCharacter?: unknown; referenciaUnica?: Kling4ReferenciaUnica & Partial<Pick<ReferenciaUnica2411, 'origem' | 'tipo'>> } | null | undefined,
   wire: EnvioKling4,
-): { versao: string; origem: string | null; tipo: string | null; planos: number; planos_com_frase: number[]; planos_sem_ficha: number[] } | null {
+): { versao: string; origem: string | null; tipo: string | null; planos: number; planos_com_frase: number[]; planos_sem_ficha: number[]; planos_metade: number[] } | null {
   const ref = timing?.referenciaUnica
   if (!ref || timing?.fixedCharacter || wire.model !== KLING4_REFERENCE_MODEL) return null
   const planos = Array.isArray(wire.input.multi_prompt) ? wire.input.multi_prompt as Array<{ prompt?: unknown }> : []
   return { versao: REFERENCIA_UNICA_2411_VERSAO, origem: ref.origem ?? null, tipo: ref.tipo ?? null, planos: planos.length,
     planos_com_frase: (Array.isArray(wire.planosComFrase) ? wire.planosComFrase : []).flatMap((m, i) => m === true ? [i + 1] : []),
-    planos_sem_ficha: (Array.isArray(wire.fichaRetirada) ? wire.fichaRetirada : []).flatMap((t, i) => typeof t === 'string' ? [i + 1] : []) } // [volta 3] a decisão do montador, não a busca do texto (frase do cliente não conta) · KINEO-REFERENCIA-UNICA-PUBLIC-2411: + os planos sem o personagem de onde a ficha dele saiu
+    planos_sem_ficha: (Array.isArray(wire.fichaRetirada) ? wire.fichaRetirada : []).flatMap((t, i) => typeof t === 'string' ? [i + 1] : []),
+    planos_metade: (Array.isArray(ref.metades) && ref.metades.length === planos.length ? ref.metades : []).flatMap((m, i) => m === true ? [i + 1] : []) } // [volta 3] a decisão do montador, não a busca do texto (frase do cliente não conta) · KINEO-REFERENCIA-UNICA-PUBLIC-2411: + os planos sem o personagem de onde a ficha dele saiu
 }

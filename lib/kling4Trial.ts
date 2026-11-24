@@ -1,7 +1,8 @@
 // Trial only. Submit once and return the queue receipt; status polls rendering, never birth.
 import { KLING4_TRIAL_COST_USD } from '@/lib/kling4TrialBudget'
 import { narrationWordCount } from '@/lib/textLanguage'
-import { visualContradizOGenero, visualMostraAlguem, visualMostraPessoa } from '@/lib/cinematic/personagemAjuste' // KINEO-REFERENCIA-UNICA-PUBLIC-2411 — os detectores de gente que a rota já usa no visual do plano
+import { visualMostraAlguem } from '@/lib/cinematic/personagemAjuste' // KINEO-REFERENCIA-UNICA-PUBLIC-2411 — o detector de alguém na cena que a rota já usa no visual do plano
+import { planoNegaGente } from '@/lib/cinematic/folhaDePersonagem' // KINEO-REFERENCIA-UNICA-PUBLIC-2411 — a ausência que a rota já marca ("No people, no human figures…", gente negada)
 
 export const KLING4_T2V_MODEL = 'kling/v4/text-to-video'
 export const KLING4_I2V_MODEL = 'kling/v4/image-to-video'
@@ -74,13 +75,24 @@ export function cabeNoTetoDoPlano(texto: string, teto = KLING4_TETO_DO_PLANO): s
 // citada só nos planos em que ele aparece. Planos e durações são os de hoje; sai só o prefixo "Scene N: use the start image…" (aponta para imagens
 // que este pedido não manda) e entra a frase antes de "Mouth closed, no speaking.". Nenhum plano com o personagem ou entrada fora da régua = null
 // (quem chama segue o caminho de hoje). Quem decide se liga: lib/cinematic/referenciaUnica2411.ts.
-export type Kling4ReferenciaUnica = { imageUrl: string; frase: string; nomes: readonly string[]; tipo?: 'humano' | 'animal' | 'criatura'; genero?: 'man' | 'woman' | null; outros?: readonly string[] /* KINEO-REFERENCIA-UNICA-PUBLIC-2411: tipo e gênero do protagonista e os nomes do resto do elenco */ }
+// KINEO-REFERENCIA-UNICA-PUBLIC-2411: + descricao (o protagonista como o autor/pedido o descreveu, lida da canônica do elenco) e metades (por plano: true =
+// metade de cena fundida, posta pelo plano por seção da rota; ausente ou de outro tamanho = todo plano é a cena inteira, como antes).
+export type Kling4ReferenciaUnica = { imageUrl: string; frase: string; nomes: readonly string[]; descricao?: string; metades?: readonly boolean[] }
 const escapaRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-// KINEO-REFERENCIA-UNICA-PUBLIC-2411 [prova paga 24/11, docs/canais/2026-11-24/prova-2] — a decisão era o NOME em qualquer lugar do texto do plano. O nome
-// vinha (a) da ficha que o código põe ("Identity: Louis Le Prince, …", herdada pelas duas metades da cena fundida: o vagão vazio do Le Prince e as notas na
-// areia do Cooper levaram a frase) e (b) da posse na ação ("a silent testament to Slocum's mysterious disappearance": o horizonte vazio levou a frase).
-// E o plano que MOSTRA o homem sem o nome ("A bearded man in an 1880s suit operates…", Le Prince plano 1) ficava sem ela.
-// Agora decide a AÇÃO do plano: o texto sem os rótulos que o código pôs e sem fala entre aspas (quem FALA o nome não está na imagem).
+// KINEO-REFERENCIA-UNICA-PUBLIC-2411 [prova paga 24/11, docs/canais/2026-11-24/prova-2; volta da revisora, docs/revisoes-2311/CEO-REFERENCIA-UNICA-FINAL-2411.md]
+// A decisão era o NOME em qualquer lugar do texto do plano. Ele vinha (a) da ficha que o código põe ("Identity: Louis Le Prince, …") e que a METADE de cena
+// fundida herda da cena sem decidir nada (KINEO-METADE-COM-FICHA-1111, lib/kling4QuatroPlanos promptDaSecao: o vagão vazio do Le Prince e as notas na areia
+// do Cooper levaram a frase) e (b) da posse ("a silent testament to Slocum's mysterious disappearance", também metade). O plano que MOSTRA o homem sem nome
+// nem ficha ("A bearded man in an 1880s suit operates…", Le Prince plano 1) ficava sem ela.
+// Regra (na dúvida, o plano FICA com a ficha e a frase: tirar custa a identidade no meio do filme, deixar custa no máximo um final fraco):
+//   · plano que é a cena inteira: a ficha/ordem do personagem que a rota pôs nele é a decisão da rota de que ele está ali — fica, como antes. Só sai com a
+//     ausência que a rota já marca (planoNegaGente: "No people, no human figures…", gente negada).
+//   · metade de cena fundida: a ficha é herança, não decisão. Ela e a frase saem só quando a AÇÃO da metade não mostra ninguém (os detectores da rota,
+//     com pronome, parte do corpo, silhueta, figura e bicho), não o cita como quem age e não repete nenhuma palavra da descrição dele ("The strawberry",
+//     "The old sailor", "The inventor"). Gente sem nome na metade = fica (como antes).
+//   · sem ficha dele no plano: entra a frase quando a ação o cita como quem age, pela posse com corpo, ou quando a pessoa sem nome repete a descrição DELE
+//     (2+ palavras da descrição do autor: "bearded … 1880s suit"); o estranho ("A young boy finds bundles…", "A fisherman on another boat") fica sem.
+// Nome só dentro de fala entre aspas não conta.
 const ORDEM_DO_PROTAGONISTA_RE = /The only person in this shot is the same main character \((?:[^()]|\((?:[^()]|\([^()]*\))*\))*\); any other person described below is replaced by this same character\.\s*/gu
 const CLAUSULA_DA_FICHA_RE = /The same main character appears in this scene, consistent design:[^\n]*?(?:\.(?=\s|$)|$)\s*/gu
 const LINHA_DA_FICHA_RE = /(?<![\p{L}])(?:Identity|Visible(?:, seen from behind)?):\s[\s\S]*?(?:\.(?=\s|$)|$)\s*/gu // promptCurtoDoFilmeKling4: "Identity: <ficha sem ". ">. "
@@ -111,23 +123,36 @@ function citacaoDoPersonagem(texto: string, nomes: readonly string[]): 'sujeito'
   }
   return posse ? 'posse' : null
 }
-/** O personagem APARECE na imagem que o plano pede: a ação o cita como quem age; ou só pela posse e a ação mostra corpo ou gente ("Slocum's hands grip
- *  the wheel" sim, "Slocum's mysterious disappearance" não); ou, protagonista humano (o único do elenco aceito), a ação mostra uma pessoa sem o nome
- *  ("A bearded man in an 1880s suit…"), desde que não cite mais ninguém do elenco ("an adviser leans close to the king" é do rei) e que o gênero da
- *  figura não contradiga o dele ("The old woman waits" não é o rapaz). Os detectores são os da rota (lib/cinematic/personagemAjuste), sem lista nova. */
-export function planoMostraOPersonagem(prompt: string, nomes: readonly string[], quem: Pick<Kling4ReferenciaUnica, 'tipo' | 'genero' | 'outros'> = {}): boolean {
+/** A ficha/ordem/cláusula DELE que o código pôs no plano (a ordem do protagonista é dele por definição, mesmo sem o nome na canônica). */
+function temFichaDele(prompt: string, nomes: readonly string[]): boolean {
+  const t = String(prompt ?? '')
+  return (t.match(ORDEM_DO_PROTAGONISTA_RE)?.length ?? 0) > 0 || [CLAUSULA_DA_FICHA_RE, LINHA_DA_FICHA_RE].some((re) => (t.match(re) ?? []).some((m) => citacaoDoPersonagem(m, nomes) !== null))
+}
+const palavrasDe = (t: string): Set<string> => new Set((String(t ?? '').toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []).filter((w) => Array.from(w).length >= 4))
+/** A ação repete a descrição DELE: `minimo` palavras (4+ letras) da descrição do autor/pedido ("bearded inventor in an 1880s suit"). Sem descrição = não. */
+function repeteADescricao(acao: string, descricao: string | undefined, minimo = 2): boolean {
+  if (!descricao || !String(descricao).trim()) return false
+  const dele = palavrasDe(descricao)
+  let n = 0
+  for (const w of palavrasDe(acao)) if (dele.has(w) && ++n >= minimo) return true
+  return false
+}
+/** O personagem APARECE no plano (ver a regra acima). `metade` = o plano é metade de cena fundida (a ficha dele ali é herança). */
+export function planoMostraOPersonagem(prompt: string, nomes: readonly string[], quem: { descricao?: string; metade?: boolean } = {}): boolean {
   const acao = acaoDoPlano(prompt)
   const cita = citacaoDoPersonagem(acao, nomes)
   if (cita === 'sujeito') return true
   if (cita === 'posse' && visualMostraAlguem(acao)) return true
-  return quem.tipo === 'humano' && citacaoDoPersonagem(acao, quem.outros ?? []) === null && !visualContradizOGenero(acao, quem.genero ?? null) && visualMostraPessoa(acao)
+  if (repeteADescricao(acao, quem.descricao)) return true
+  if (!temFichaDele(prompt, nomes)) return false
+  return quem.metade === true ? visualMostraAlguem(acao) || repeteADescricao(acao, quem.descricao, 1) : !planoNegaGente(acao)
 }
 /** Plano em que o personagem não aparece: sai a ficha DELE que o código pôs (Identity:/Visible:/ordem/cláusula que o cita), para nada mais o pôr lá;
  *  saindo a ficha dele, sai também a linha de estilo que sobrou dela ("He; a real person filmed in photorealistic live action, …"). */
 export function semFichaDoPersonagem(prompt: string, nomes: readonly string[]): string {
   let t = String(prompt ?? '')
   let saiu = false
-  for (const re of FICHAS_RE) t = t.replace(re, (m) => { if (citacaoDoPersonagem(m, nomes) === null) return m; saiu = true; return ' ' })
+  for (const re of FICHAS_RE) t = t.replace(re, (m) => { if (re !== ORDEM_DO_PROTAGONISTA_RE && citacaoDoPersonagem(m, nomes) === null) return m; saiu = true; return ' ' }) // a ordem é do protagonista por definição, mesmo sem o nome na canônica
   if (saiu) t = t.replace(ESTILO_DA_FICHA_RE, ' ')
   return limpa(t)
 }
@@ -135,7 +160,8 @@ export function buildKling4ReferenciaUnicaInput(shots: readonly { prompt: string
   const duration = shots.reduce((sum, shot) => sum + shot.duration, 0)
   if (!/^https:\/\/[^\s]+$/i.test(ref.imageUrl) || !ref.frase.trim() || duration !== 15 || !shots.length || shots.length > 6 ||
     shots.some((s) => !Number.isInteger(s.duration) || s.duration < 1 || !s.prompt.trim())) return null
-  const comPersonagem = shots.map((s) => planoMostraOPersonagem(s.prompt, ref.nomes, ref))
+  const metades = Array.isArray(ref.metades) && ref.metades.length === shots.length ? ref.metades : shots.map(() => false) // de outro tamanho = a cena inteira (como antes)
+  const comPersonagem = shots.map((s, i) => planoMostraOPersonagem(s.prompt, ref.nomes, { descricao: ref.descricao, metade: metades[i] === true }))
   if (!comPersonagem.some(Boolean)) return null
   const frase = ' ' + ref.frase.trim()
   // KINEO-REFERENCIA-UNICA-PUBLIC-2411 — plano sem o personagem de onde a ficha dele saiu: o texto que ele teria sem a referência (o caminho de hoje).
