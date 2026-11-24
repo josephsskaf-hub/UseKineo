@@ -1,0 +1,201 @@
+{
+ "fonte": "SELECT em events (cinematic_required_subject, último por geração), 24/11/2026. Só o relato final da leitura (sem o raciocínio do modelo, sem pedido nem roteiro). Ids = 8 primeiros caracteres do render do replay 7af247b9d.",
+ "replay": "7af247b9d",
+ "filmes": {
+  "3edd291a": {
+   "motivo_do_pedido": "ideia_original",
+   "motivo_sem_sujeito": "uso_none",
+   "sujeito": null,
+   "tipo": null,
+   "ja_presente": false,
+   "corrigido": false,
+   "leitura": {
+    "ok": true,
+    "erro": null,
+    "ms": 1138,
+    "model": "gpt-4o-mini",
+    "tentativas": 1,
+    "reasoning": null,
+    "word_use": "none",
+    "subject": null,
+    "head_noun": null,
+    "kind": "none",
+    "has_human": false,
+    "real_person": false,
+    "mention_words": [],
+    "request_language": "en",
+    "descartado": "uso_none",
+    "subject_visual": null,
+    "subject_visual_no_people": null
+   }
+  },
+  "87a09b8c": {
+   "motivo_do_pedido": "ideia_original",
+   "motivo_sem_sujeito": "uso_none",
+   "sujeito": null,
+   "tipo": null,
+   "ja_presente": false,
+   "corrigido": false,
+   "leitura": {
+    "ok": true,
+    "erro": null,
+    "ms": 1321,
+    "model": "gpt-4o-mini",
+    "tentativas": 1,
+    "reasoning": null,
+    "word_use": "none",
+    "subject": null,
+    "head_noun": null,
+    "kind": "none",
+    "has_human": false,
+    "real_person": false,
+    "mention_words": [],
+    "request_language": "en",
+    "descartado": "uso_none",
+    "subject_visual": null,
+    "subject_visual_no_people": null
+   }
+  },
+  "c9272ee9": {
+   "motivo_do_pedido": "fala_de_abertura",
+   "motivo_sem_sujeito": null,
+   "sujeito": "a mysterious warrior riding toward a kingdom",
+   "tipo": "pessoa",
+   "ja_presente": true,
+   "corrigido": false,
+   "leitura": {
+    "ok": true,
+    "erro": null,
+    "ms": 1360,
+    "model": "gpt-4o-mini",
+    "tentativas": 1,
+    "reasoning": null,
+    "word_use": "literal",
+    "subject": "a mysterious warrior riding toward an African kingdom",
+    "head_noun": "warrior",
+    "kind": "person_generic",
+    "has_human": true,
+    "real_person": false,
+    "mention_words": [
+     "warrior"
+    ],
+    "request_language": "en",
+    "descartado": null,
+    "subject_visual": "a mysterious warrior riding toward a kingdom",
+    "subject_visual_no_people": "a mysterious warrior riding toward a kingdom"
+   }
+  },
+  "5301ea22": {
+   "motivo_do_pedido": "fala_de_abertura",
+   "motivo_sem_sujeito": "visual_com_maiuscula",
+   "sujeito": null,
+   "tipo": null,
+   "ja_presente": false,
+   "corrigido": false,
+   "leitura": {
+    "ok": true,
+    "erro": null,
+    "ms": 1520,
+    "model": "gpt-4o-mini",
+    "tentativas": 1,
+    "reasoning": null,
+    "word_use": "literal",
+    "subject": null,
+    "head_noun": "animals",
+    "kind": "creature",
+    "has_human": false,
+    "real_person": false,
+    "mention_words": [
+     "animal"
+    ],
+    "request_language": "en",
+    "descartado": "visual_com_maiuscula",
+    "subject_visual": null,
+    "subject_visual_no_people": "two of every animal species on Noah's Ark"
+   }
+  },
+  "e3864c10": {
+   "motivo_do_pedido": "fala_de_abertura",
+   "motivo_sem_sujeito": null,
+   "sujeito": "a black luxury car entering a dense forest",
+   "tipo": "veiculo",
+   "ja_presente": true,
+   "corrigido": false,
+   "leitura": {
+    "ok": true,
+    "erro": null,
+    "ms": 1523,
+    "model": "gpt-4o-mini",
+    "tentativas": 1,
+    "reasoning": null,
+    "word_use": "literal",
+    "subject": "a black luxury car entering a dense forest",
+    "head_noun": "car",
+    "kind": "vehicle",
+    "has_human": false,
+    "real_person": false,
+    "mention_words": [
+     "گاڑی"
+    ],
+    "request_language": "ur",
+    "descartado": null,
+    "subject_visual": "a black luxury car entering a dense forest",
+    "subject_visual_no_people": "a black luxury car entering a dense forest"
+   }
+  },
+  "aad3977f": {
+   "motivo_do_pedido": "fala_de_abertura",
+   "motivo_sem_sujeito": "uso_none",
+   "sujeito": null,
+   "tipo": null,
+   "ja_presente": false,
+   "corrigido": false,
+   "leitura": {
+    "ok": true,
+    "erro": null,
+    "ms": 1537,
+    "model": "gpt-4o-mini",
+    "tentativas": 1,
+    "reasoning": null,
+    "word_use": "none",
+    "subject": null,
+    "head_noun": null,
+    "kind": "none",
+    "has_human": false,
+    "real_person": false,
+    "mention_words": [],
+    "request_language": "en",
+    "descartado": "uso_none",
+    "subject_visual": null,
+    "subject_visual_no_people": null
+   }
+  },
+  "6cce958f": {
+   "motivo_do_pedido": "fala_de_abertura",
+   "motivo_sem_sujeito": "uso_none",
+   "sujeito": null,
+   "tipo": null,
+   "ja_presente": false,
+   "corrigido": false,
+   "leitura": {
+    "ok": true,
+    "erro": null,
+    "ms": 1235,
+    "model": "gpt-4o-mini",
+    "tentativas": 1,
+    "reasoning": null,
+    "word_use": "none",
+    "subject": null,
+    "head_noun": null,
+    "kind": "none",
+    "has_human": false,
+    "real_person": false,
+    "mention_words": [],
+    "request_language": "de",
+    "descartado": "uso_none",
+    "subject_visual": null,
+    "subject_visual_no_people": null
+   }
+  }
+ }
+}

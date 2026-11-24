@@ -12,6 +12,7 @@
 // frase entra na FRENTE, inteira, sem cortar nada ("Main subject clearly visible in frame: <sujeito>."). Corrige, nunca bloqueia; a fala
 // nunca é tocada; sem pedido confiável (roteiro "as is", ideia longa, pistas) a chamada nem sai. Falha segura: qualquer erro = planos intactos.
 import { exigirSujeitoNoKling4, lerSujeitoDoPedido, type OpcoesSemanticas, type PedidoDoSujeito, type RelatoSujeitoK4 } from '@/lib/cinematic/sujeitoObrigatorio'
+import { novaMedidaDaCadeia2411, type CadeiaDoSujeito2411 } from '@/lib/cinematic/sujeitoCadeia2411' // KINEO-SUJEITO-CADEIA-2411 — só medida
 
 export const SUJEITO_TODOS_VERSAO = 'sujeito_todos_0311_v1' as const
 export const SUJEITO_TODOS_EVENTO = 'cinematic_required_subject' as const
@@ -43,19 +44,25 @@ export function exigirSujeitoEmTodos(args: {
   return { planos, relato }
 }
 
-/** O passo da rota (rede): lê o sujeito do pedido e aplica. Nunca lança — erro inesperado = planos intactos, motivo no relato. */
+/** O passo da rota (rede): lê o sujeito do pedido e aplica. Nunca lança — erro inesperado = planos intactos, motivo no relato.
+ *  KINEO-SUJEITO-CADEIA-2411: + cadeia_2411, o que cada degrau leu (só medida: as mesmas leituras, nenhuma a mais; planos e relato iguais). */
 export async function sujeitoEmTodosOsMotores(args: {
   pedido: PedidoDoSujeito | null; falas: ReadonlyArray<string>; planos: ReadonlyArray<string>; pessoaPermitida: boolean; estrada: EstradaDoSujeito
-}, opts: OpcoesSemanticas = {}): Promise<{ planos: string[]; relato: RelatoSujeitoTodos } | null> {
+}, opts: OpcoesSemanticas = {}): Promise<{ planos: string[]; relato: RelatoSujeitoTodos; cadeia_2411?: CadeiaDoSujeito2411 } | null> {
+  const medida = novaMedidaDaCadeia2411(args.pessoaPermitida) // KINEO-SUJEITO-CADEIA-2411
+  const r = await cadeiaDoSujeito(args, opts, medida.anota)
+  return r ? { planos: r.planos, relato: r.relato, cadeia_2411: medida.fecha() } : r // KINEO-SUJEITO-CADEIA-2411 — fecha nunca lança (erro = { erro: true })
+}
+async function cadeiaDoSujeito(args: Parameters<typeof sujeitoEmTodosOsMotores>[0], opts: OpcoesSemanticas, anota: ReturnType<typeof novaMedidaDaCadeia2411>['anota']): Promise<{ planos: string[]; relato: RelatoSujeitoTodos } | null> {
   if (args.planos.length === 0) return null
   try {
-    const doPedido = args.pedido?.pedido ? exigirSujeitoEmTodos({ ...args, pedido: args.pedido, leitura: await lerSujeitoDoPedido(args.pedido.pedido, opts) }) : null
+    const doPedido = args.pedido?.pedido ? exigirSujeitoEmTodos({ ...args, pedido: args.pedido, leitura: anota('pedido', await lerSujeitoDoPedido(args.pedido.pedido, opts)) }) : null
     if (doPedido?.relato.sujeito) return doPedido
     // KINEO-SUJEITO-DA-FALA-0311 [TRAVA 8.2 — fundador 03/11: "universalizar"] — pedido genérico ("mistério sem solução") ou roteiro colado não dizem o sujeito, mas a 1ª frase da narração
     // KINEO-SUJEITO-DA-FALA-0311 — diz: "A plane vanished—unsolved for 70 years!" (mahrafariha, 03/11) não mostrou avião nenhum. A MESMA leitura calibrada sobre essa frase (uso literal, âncora no texto).
     const frase = primeiraFraseDaFala(args.falas[0])
     if (!frase) return doPedido
-    const daFala = exigirSujeitoEmTodos({ ...args, pedido: { pedido: frase, fonte: 'ideia_solta', motivo: 'fala_de_abertura' }, leitura: await lerSujeitoDoPedido(frase, opts) })
+    const daFala = exigirSujeitoEmTodos({ ...args, pedido: { pedido: frase, fonte: 'ideia_solta', motivo: 'fala_de_abertura' }, leitura: anota('primeira_frase', await lerSujeitoDoPedido(frase, opts)) })
     if (daFala.relato.sujeito) return daFala
     // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — revisor 17/11 (filme 44d02f20, Kling 4 grátis, 1º filme, nota 5): a
     // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 — narração abriu com "A 70-year-old mystery... unsolved and chilling." e só a frase SEGUINTE disse "In 1950, a plane vanished.": a leitura
@@ -66,7 +73,7 @@ export async function sujeitoEmTodosOsMotores(args: {
     if (!primeiraFraseSemSujeito(daFala.relato)) return doPedido ?? daFala
     // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 (volta 2, revisão independente 17/11) — a 1ª leitura que FALHAR (prazo, rede, JSON) encerra o laço: nada de somar espera em cima de falha.
     for (const seguinte of frasesSeguintesDaFala(args.falas, frase)) {
-      const leitura = await lerSujeitoDoPedido(seguinte, { ...opts, tentativasExtras: 0 })
+      const leitura = anota('frase_seguinte', await lerSujeitoDoPedido(seguinte, { ...opts, tentativasExtras: 0 }))
       if (!leitura.ok) break
       const r = exigirSujeitoEmTodos({ ...args, pedido: { pedido: seguinte, fonte: 'ideia_solta', motivo: MOTIVO_FALA_SEGUINTE }, leitura })
       if (r.relato.sujeito) return r

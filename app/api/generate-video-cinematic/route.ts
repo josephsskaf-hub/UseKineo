@@ -6492,7 +6492,7 @@ async function manipularPost(req: NextRequest) {
         if (sujeitoH) {
           const cenaH = sujeitoH.relato.cena
           if (sujeitoH.relato.corrigido && cenaH !== null && idxSujeito[cenaH - 1] !== undefined) { plan.scenes[idxSujeito[cenaH - 1]].prompt = sujeitoH.planos[cenaH - 1]; console.log(`[cinematic] KINEO-SUJEITO-TODOS-0311: "${sujeitoH.relato.sujeito}" entrou na cena ${idxSujeito[cenaH - 1] + 1} (hollywood/${family})`) } // KINEO-SUJEITO-TODOS-0311
-          await writeServerEvent({ name: SUJEITO_TODOS_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', metadata: { generation_id: generationId, engine: family, dry_run: body.dry_run === true, ...sujeitoH.relato } }) // KINEO-SUJEITO-TODOS-0311
+          await writeServerEvent({ name: SUJEITO_TODOS_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', metadata: { generation_id: generationId, engine: family, dry_run: body.dry_run === true, ...sujeitoH.relato, cadeia_2411: sujeitoH.cadeia_2411 ?? null /* KINEO-SUJEITO-CADEIA-2411 — só medida */ } }) // KINEO-SUJEITO-TODOS-0311
         }
       }
       // ═══ KINEO-ESTRELA-DO-FILME-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] — a ESTRELA na estrada hollywood ═══
@@ -7461,7 +7461,7 @@ async function manipularPost(req: NextRequest) {
         sujeitoDoPedido1311 = sujeitoDoPedido1311 && sujeitoQueAlimentaAFicha(sujeitoClassico.relato) // KINEO-SUJEITO-DA-FALA-SEGUINTE-1711 (volta 2) [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)] — o sujeito lido de uma frase SEGUINTE da narração é local: não alimenta a camada da ficha (refazerPlanoDaFicha)
         const cenaSujeito = sujeitoClassico.relato.cena
         if (sujeitoClassico.relato.corrigido && cenaSujeito !== null && scenes[cenaSujeito - 1]) { scenes[cenaSujeito - 1].aiPrompt = sujeitoClassico.planos[cenaSujeito - 1]; console.log(`[cinematic] KINEO-SUJEITO-TODOS-0311: "${sujeitoClassico.relato.sujeito}" entrou na cena ${cenaSujeito} (estrada clássica)`) } // KINEO-SUJEITO-TODOS-0311
-        void writeServerEvent({ name: SUJEITO_TODOS_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', metadata: { generation_id: generationId, engine: wantsKling ? 'kling' : wantsVeo ? 'veo' : wantsSora ? 'sora' : 'seedance', dry_run: body.dry_run === true, ...sujeitoClassico.relato } }) // KINEO-SUJEITO-TODOS-0311
+        void writeServerEvent({ name: SUJEITO_TODOS_EVENTO, userId: user.id, path: '/api/generate-video-cinematic', metadata: { generation_id: generationId, engine: wantsKling ? 'kling' : wantsVeo ? 'veo' : wantsSora ? 'sora' : 'seedance', dry_run: body.dry_run === true, ...sujeitoClassico.relato, cadeia_2411: sujeitoClassico.cadeia_2411 ?? null /* KINEO-SUJEITO-CADEIA-2411 — só medida */ } }) // KINEO-SUJEITO-TODOS-0311
       }
     }
     // KINEO-MONUMENTO-2026-10-13 — o lugar real do pedido vai na frente do plano de CADA cena (nome + país + 1–2 descritores [KINEO-MONUMENTO-2026-10-13]
