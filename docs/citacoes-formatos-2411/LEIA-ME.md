@@ -1,0 +1,21 @@
+# Ajuste aprovado pela foto · 24/11/2026
+
+**DECISÃO DO DONO · quadro 24/11 00:32.** Sim às quatro páginas, com ajuste nas três de formato. A publicação continua com a CEO após PODE IR independente. Esta candidata permanece off.
+
+**IMPLEMENTADO / TESTADO LOCALMENTE.** Só /ai-video-generator/for/cartoon-videos, animated-story-videos e animal-story-videos recebem a primeira dobra específica. O primeiro vídeo é Leo, a pequena abóbora animada e o gatinho cavaleiro, respectivamente. A caixa “What's your film about?” vem antes da faixa genérica de produtos e fica acima da dobra no desktop. A faixa anterior continua na página. Referências: components/seo/CitationFormatHero.tsx; lib/growth/citationFormatHero2411.ts; app/ai-video-generator/for/[slug]/page.tsx.
+
+**FATO CONFIRMADO.** As mídias são previews próprios já usados em /ai-kids-cartoon-videos e na home; arquivos locais e HEAD dos três vídeos públicos conferidos em 24/11. Fonte e rastreio: lib/ui/homeKidsCard.ts:30 e lib/ui/homeThreeCards.ts:127; MIDIAS-PUBLICAS.json. Os selos identificam o motor histórico de cada exemplo; não prometem que ele seja o benefício gratuito atual. Nenhum render foi criado.
+
+**IMPLEMENTADO.** A paleta escura só alcança a classe das três novas rotas. O molde antigo e /product-photo-ads mantêm seu HTML. O teste de navegador lê a preferência salva desde o boot, os retângulos da caixa e as cores computadas; não força data-theme. O ensaio inicial encontrou CSS escapado e falha de hidratação; a tag passou a usar dangerouslySetInnerHTML como o topo já usa. A tentativa falha foi preservada como diagnóstico, fora da entrega aprovada. A rodada final tem zero exceção JavaScript.
+
+**TESTADO LOCALMENTE.** O guardião test-citacoes-formatos-2411.mjs executa os três componentes, preserva o corpo anterior (retirados apenas a nova primeira dobra e atributos visuais para a comparação), JSON-LD e metadados exatos, cinco intenções antigas byte a byte e o anúncio de produto byte a byte. Oito mutantes morrem nas suas asserções: caixa removida, exemplos trocados, duração forçada, oferta trocada, passagem removida, escopo escuro retirado e alteração de página antiga.
+
+**TESTADO LOCALMENTE.** 56 fotos: 16 antes + 40 depois; 16 pares de primeira dobra. Três formatos × 1920/390 × claro/escuro, mais controle do anúncio, conteúdo inferior e 12 passagens nativas ao cadastro. Digitação por teclado nativo; ideia exata, campanha intent_<slug>, trial_best e ausência de duração imposta conferidas na URL e no cartão salvo. Nenhum cadastro enviado ou Studio autenticado aberto; contratos reais de ativação exercitados offline.
+
+**FOTOS / LOCAL PERMITIDO.** C:/Users/josep/AppData/Local/Temp/citacoes-formatos-2411/CITACOES-FORMATOS-2411.html. HTML autocontido, CSS inline e originais no mesmo diretório; não foi gravado em C:/kineo nem em .codex/visualizations. Reprodutores e estados no mesmo local. Edge 158, Windows, 1920×1080 e 390×844; não é teste de iPhone/Safari. APIs do produto e rastreamento bloqueadas no navegador; Supabase fictício local, sem chave de serviço.
+
+**GATES EM FECHAMENTO.** O typecheck anterior à correção da tag passou. Reexecutar o typecheck final e novos-vermelhos pelos 79 guardiões selecionados em GUARDIOES-SELECIONADOS.txt antes de encaminhar a candidata. Não é uma liberação independente.
+
+**SUGESTÃO / CHECKLIST DA CASA.** Abrir as três rotas em internal, visitante e casa, verificando 404/noindex e cache sem reaproveitamento privado; public só pela CEO. Conferir o primeiro exemplo e o Play; trocar aparência em Settings, recarregar, desktop e celular; escrever uma ideia e verificar o primeiro campo editável do Studio após login, sem Generate automático. O anúncio de produto deve continuar igual. Medir pessoas externas por origem → cadastro vinculado → primeiro filme após exposição. Fotos e commits não comprovam conversão ou receita.
+
+**DEPENDÊNCIA EM OBRA.** A caixa de artigos recebeu uma volta de privacidade da CEO às 00:49, incluindo um caminho legado por módulos compartilhados. É uma correção separada; não atribuir a esta candidata a aprovação da privacidade da caixa nem publicar o lote bloqueado. Registrar a base final de privacidade antes da publicação quando disponível.

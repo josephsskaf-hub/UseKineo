@@ -1,3 +1,5 @@
+import CitationFormatHero from '@/components/seo/CitationFormatHero'
+import { citationFormatPaint, CITATION_FORMAT_CSS, type CitationFormatSlug } from '@/lib/growth/citationFormatHero2411'
 import InternalCitationPreview from '@/components/seo/InternalCitationPreview'
 import { CITATION_PAGES_RELEASE, isCitationDraftSlug } from '@/lib/growth/citationPagesAccess'
 import { BuyerBatch2Lead, BuyerBatch2Details } from '@/components/seo/BuyerQuestions2111'
@@ -112,6 +114,9 @@ function IntentPageContent({ params }: { params: { slug: string } }) {
   })
   const cta = studioHref(p.slug, p.examplePrompt, p.engine, p.language)
   const campaign = `intent_${p.slug}`
+  const formatHero = DRAWING_INTENTS_2311.has(p.slug)
+  const tint = (value: string) => formatHero ? citationFormatPaint(value) : value
+  const card = formatHero ? { background: tint('#FFFFFF'), border: tint('1px solid #E4E4E0'), borderRadius: 16 } : CARD
   const siblings = INTENT_PAGES.filter((x) => x.family === p.family && x.slug !== p.slug).slice(0, 8)
   const sourcePageFaqs = p.slug === 'urdu' ? [...p.faq, { q: BUYER_2011.urdu.q, a: BUYER_2011.urdu.answer }] : p.faq
   const pageFaqs = batchPage || DRAWING_INTENTS_2311.has(p.slug) ? sourcePageFaqs.map(f => ({ ...f, a: f.a.replaceAll('Seedance 1.5', STANDARD_FILM_NAME) })) : sourcePageFaqs
@@ -149,40 +154,41 @@ function IntentPageContent({ params }: { params: { slug: string } }) {
   }))
 
   return (
-    <main className={PAGINA_CLARA_CLASSE} style={{ minHeight: '100vh', background: PAGINA_CLARA_FUNDO, color: '#0E1116', fontFamily: 'var(--font-sans), Arial, sans-serif' }}>
+    <main className={formatHero ? PAGINA_CLARA_CLASSE + ' kpl-citation-format-2411' : PAGINA_CLARA_CLASSE} style={{ minHeight: '100vh', background: formatHero ? 'var(--cfh-bg)' : PAGINA_CLARA_FUNDO, color: tint('#0E1116'), fontFamily: 'var(--font-sans), Arial, sans-serif' }}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, '\\u003c') }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c') }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(videoJsonLd).replace(/</g, '\\u003c') }} />
-      <PaginaClaraTopo />{/* KINEO-PAGINAS-IA-CLARAS-2110 */}
+      <PaginaClaraTopo />{formatHero && <style data-citation-format-theme="2411" dangerouslySetInnerHTML={{ __html: CITATION_FORMAT_CSS }} />}{/* KINEO-PAGINAS-IA-CLARAS-2110 */}
 
       <div style={{ maxWidth: 960, margin: '0 auto', padding: '28px 18px 64px' }}>
-        <nav aria-label="Breadcrumb" style={{ color: '#5A5F67', fontSize: 13 }}>
-          <Link href="/" style={{ color: '#0A5CFF', fontWeight: 800, textDecoration: 'none' }}>Kineo</Link>
+        <nav aria-label="Breadcrumb" style={{ color: tint('#5A5F67'), fontSize: 13 }}>
+          <Link href="/" style={{ color: tint('#0A5CFF'), fontWeight: 800, textDecoration: 'none' }}>Kineo</Link>
           <span aria-hidden> / </span>
-          <Link href="/ai-video-generator" style={{ color: '#0A5CFF', textDecoration: 'none' }}>AI video generator</Link>
+          <Link href="/ai-video-generator" style={{ color: tint('#0A5CFF'), textDecoration: 'none' }}>AI video generator</Link>
           <span aria-hidden> / </span>
-          <Link href={INTENT_HUB_PATH} style={{ color: '#0A5CFF', textDecoration: 'none' }}>{INTENT_FAMILY_LABEL[p.family]}</Link>
+          <Link href={INTENT_HUB_PATH} style={{ color: tint('#0A5CFF'), textDecoration: 'none' }}>{INTENT_FAMILY_LABEL[p.family]}</Link>
         </nav>
 
         <section style={{ marginTop: 30, textAlign: 'center' }}>
-          <div style={{ display: 'inline-block', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#0A5CFF', background: '#E8EFFF', border: '1px solid rgba(10,92,255,0.35)', borderRadius: 980, padding: '6px 12px' }}>
+          <div style={{ display: 'inline-block', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: tint('#0A5CFF'), background: tint('#E8EFFF'), border: '1px solid rgba(10,92,255,0.35)', borderRadius: 980, padding: '6px 12px' }}>
             {offerName} · {engineCost} credits per 60-second film
           </div>
           <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.6rem)', fontWeight: 650, lineHeight: 1.15, margin: '16px 0 0' }}>{p.h1}</h1>
           {batchPage && <BuyerBatch2Lead page={batchPage} />}
           {params.slug === 'urdu' && <BuyerLead2011 kind="urdu" />}
-          {params.slug === 'urdu' ? <CitationDirectAnswer page="urdu" /> : <p style={{ fontSize: '1.02rem', color: '#5A5F67', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 680 }}>{story ? STORY_VIDEO_COPY.intro : p.intro}</p>}
+          {params.slug === 'urdu' ? <CitationDirectAnswer page="urdu" /> : <p style={{ fontSize: '1.02rem', color: tint('#5A5F67'), lineHeight: 1.6, margin: '16px auto 0', maxWidth: 680 }}>{story ? STORY_VIDEO_COPY.intro : p.intro}</p>}
           {params.slug === 'urdu' && <BuyerDecision2011 kind="urdu" />}
+          {formatHero && <CitationFormatHero slug={p.slug as CitationFormatSlug} examplePrompt={p.examplePrompt} />}
           <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 22 }}>
-            <OrganicCtaLink href={cta} source={campaign} placement="hero" style={{ display: 'inline-block', background: '#0A5CFF', color: '#fff', fontWeight: 750, padding: '15px 32px', borderRadius: 980, textDecoration: 'none', fontSize: '1.05rem' }}>
+            <OrganicCtaLink href={cta} source={campaign} placement="hero" style={{ display: 'inline-block', background: tint('#0A5CFF'), color: formatHero ? 'var(--kpl-on-accent, #fff)' : '#fff', fontWeight: 750, padding: '15px 32px', borderRadius: 980, textDecoration: 'none', fontSize: '1.05rem' }}>
               {story ? 'Prepare this story →' : 'Make this film free →'}
             </OrganicCtaLink>
-            <Link href="/pricing" style={{ display: 'inline-block', border: '1px solid #D2D2CD', color: '#0E1116', fontWeight: 800, padding: '14px 24px', borderRadius: 980, textDecoration: 'none' }}>
+            <Link href="/pricing" style={{ display: 'inline-block', border: tint('1px solid #D2D2CD'), color: tint('#0E1116'), fontWeight: 800, padding: '14px 24px', borderRadius: 980, textDecoration: 'none' }}>
               See plans &amp; credits
             </Link>
           </div>
-          <p style={{ fontSize: '0.82rem', color: '#5A5F67', margin: '12px 0 0' }}>
+          <p style={{ fontSize: '0.82rem', color: tint('#5A5F67'), margin: '12px 0 0' }}>
             {story ? 'Review the prepared story, selected model, duration and credit cost in Studio before generating.' : <>
               {ft(OFFER, `${TRIAL_CREDITS_SHOWN} free credits, no card`, OFFER.copy.chip)}
               {trialFilms > 0 ? ` · the trial covers ${trialFilms} ${p.slug === 'urdu' || batchPage || DRAWING_INTENTS_2311.has(p.slug) ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} film${trialFilms > 1 ? 's' : ''}` : `${TRIAL_SEEDANCE15_FILMS >= 1 ? ` · the trial pays for one ${FREE_FILM_LABEL}` : ''} · 60-second films on a plan (from ${STARTER_MONTH})`}
@@ -192,32 +198,32 @@ function IntentPageContent({ params }: { params: { slug: string } }) {
 
         {/* O que a pessoa escreve → o que sai */}
         <section style={{ marginTop: 44, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
-          <div style={{ ...CARD, padding: 18 }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#5A5F67' }}>What you write</div>
-            <p style={{ margin: '10px 0 0', fontSize: '1rem', lineHeight: 1.55, color: '#0E1116' }}>“{p.examplePrompt}”</p>
-            <p style={{ margin: '10px 0 0', fontSize: '0.82rem', color: '#5A5F67' }}>One idea is enough. A full script is narrated word for word.</p>
+          <div style={{ ...card, padding: 18 }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: tint('#5A5F67') }}>What you write</div>
+            <p style={{ margin: '10px 0 0', fontSize: '1rem', lineHeight: 1.55, color: tint('#0E1116') }}>“{p.examplePrompt}”</p>
+            <p style={{ margin: '10px 0 0', fontSize: '0.82rem', color: tint('#5A5F67') }}>One idea is enough. A full script is narrated word for word.</p>
           </div>
-          <div style={{ ...CARD, padding: 18 }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#5A5F67' }}>What you get</div>
-            <ul style={{ margin: '10px 0 0', paddingLeft: 18, lineHeight: 1.7, color: '#2A2F37', fontSize: '0.95rem' }}>
+          <div style={{ ...card, padding: 18 }}>
+            <div style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: tint('#5A5F67') }}>What you get</div>
+            <ul style={{ margin: '10px 0 0', paddingLeft: 18, lineHeight: 1.7, color: tint('#2A2F37'), fontSize: '0.95rem' }}>
               <li>A hook-first script and a natural AI voice</li>
               <li>{story ? 'AI-generated scenes planned around the narration' : <>A scene for every line, {p.engine === 'fast' ? 'from real footage and generated stills' : 'generated from the text'}</>}</li>
               <li>Captions timed to the voice, music, a vertical MP4</li>
               <li>{story ? 'Review the story, narration and character continuity before publishing' : 'A written next episode, so it becomes a series'}</li>
             </ul>
-            <p style={{ margin: '10px 0 0', fontSize: '0.82rem', color: '#5A5F67' }}>{p.engineWhy}</p>
+            <p style={{ margin: '10px 0 0', fontSize: '0.82rem', color: tint('#5A5F67') }}>{p.engineWhy}</p>
           </div>
         </section>
 
         {story && <H3TurboDetails reviewedOn={STORY_VIDEO_UPDATED} heading={`${offerName} cost per finished story`} />}
 
         {p.competitor && (
-          <section style={{ marginTop: 36, ...CARD, padding: 18 }}>
+          <section style={{ marginTop: 36, ...card, padding: 18 }}>
             <h2 style={{ fontSize: '1.15rem', fontWeight: 650, margin: 0 }}>What Kineo does differently</h2>
-            <ul style={{ margin: '10px 0 0', paddingLeft: 18, lineHeight: 1.7, color: '#2A2F37', fontSize: '0.95rem' }}>
+            <ul style={{ margin: '10px 0 0', paddingLeft: 18, lineHeight: 1.7, color: tint('#2A2F37'), fontSize: '0.95rem' }}>
               {p.competitor.differences.map((d, i) => <li key={i}>{d}</li>)}
             </ul>
-            <p style={{ margin: '10px 0 0', fontSize: '0.8rem', color: '#5A5F67' }}>We describe Kineo only. {p.competitor.name}'s features and prices are theirs to state and change.</p>
+            <p style={{ margin: '10px 0 0', fontSize: '0.8rem', color: tint('#5A5F67') }}>We describe Kineo only. {p.competitor.name}'s features and prices are theirs to state and change.</p>
           </section>
         )}
 
@@ -231,9 +237,9 @@ function IntentPageContent({ params }: { params: { slug: string } }) {
         <section style={{ marginTop: 44 }}>
           <h2 style={{ fontSize: '1.3rem', fontWeight: 650, margin: '0 0 12px' }}>Questions</h2>
           {visibleFaqs.map((f) => (
-            <details key={f.q} style={{ ...CARD, padding: '12px 16px', marginBottom: 8 }}>
+            <details key={f.q} style={{ ...card, padding: '12px 16px', marginBottom: 8 }}>
               <summary style={{ cursor: 'pointer', fontWeight: 800 }}>{f.q}</summary>
-              <p style={{ margin: '8px 0 0', color: '#2A2F37', lineHeight: 1.6 }}>{f.a}</p>
+              <p style={{ margin: '8px 0 0', color: tint('#2A2F37'), lineHeight: 1.6 }}>{f.a}</p>
             </details>
           ))}
         </section>
@@ -241,18 +247,18 @@ function IntentPageContent({ params }: { params: { slug: string } }) {
         {/* Irmãs: o caminho de rastreio interno */}
         {siblings.length > 0 && (
           <section style={{ marginTop: 40 }}>
-            <h2 style={{ fontSize: '1rem', fontWeight: 650, color: '#5A5F67', margin: '0 0 10px' }}>More · {INTENT_FAMILY_LABEL[p.family]}</h2>
+            <h2 style={{ fontSize: '1rem', fontWeight: 650, color: tint('#5A5F67'), margin: '0 0 10px' }}>More · {INTENT_FAMILY_LABEL[p.family]}</h2>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {siblings.map((s) => (
-                <Link key={s.slug} href={intentPagePath(s.slug)} style={{ fontSize: '0.85rem', color: '#0A5CFF', textDecoration: 'none', border: '1px solid #E4E4E0', borderRadius: 980, padding: '6px 12px' }}>{s.h1}</Link>
+                <Link key={s.slug} href={intentPagePath(s.slug)} style={{ fontSize: '0.85rem', color: tint('#0A5CFF'), textDecoration: 'none', border: tint('1px solid #E4E4E0'), borderRadius: 980, padding: '6px 12px' }}>{s.h1}</Link>
               ))}
-              <Link href={INTENT_HUB_PATH} style={{ fontSize: '0.85rem', color: '#0E1116', textDecoration: 'none', border: '1px solid #D2D2CD', borderRadius: 980, padding: '6px 12px' }}>All use cases →</Link>
+              <Link href={INTENT_HUB_PATH} style={{ fontSize: '0.85rem', color: tint('#0E1116'), textDecoration: 'none', border: tint('1px solid #D2D2CD'), borderRadius: 980, padding: '6px 12px' }}>All use cases →</Link>
             </div>
           </section>
         )}
 
         <section style={{ marginTop: 44, textAlign: 'center' }}>
-          <OrganicCtaLink href={cta} source={campaign} placement="footer" style={{ display: 'inline-block', background: '#0A5CFF', color: '#fff', fontWeight: 750, padding: '15px 32px', borderRadius: 980, textDecoration: 'none', fontSize: '1.05rem' }}>
+          <OrganicCtaLink href={cta} source={campaign} placement="footer" style={{ display: 'inline-block', background: tint('#0A5CFF'), color: formatHero ? 'var(--kpl-on-accent, #fff)' : '#fff', fontWeight: 750, padding: '15px 32px', borderRadius: 980, textDecoration: 'none', fontSize: '1.05rem' }}>
             {story ? 'Prepare this story →' : 'Make this film free →'}
           </OrganicCtaLink>
         </section>
