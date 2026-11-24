@@ -1,5 +1,5 @@
 {
-  "allClientRoots": 409,
+  "allClientRoots": 415,
   "serverAllowlistReachable": false,
   "method": "TypeScript local import/export/dynamic-import/require graph, page plus ancestor layouts, then actual transpilation and Next Terser minification with compression disabled to preserve every reachable string; no next build claim",
   "pages": [
@@ -8,10 +8,10 @@
       "ancestorLayouts": [
         "app/layout.tsx"
       ],
-      "clientRoots": 21,
-      "modules": 135,
-      "minifiedBytes": 1151272,
-      "sha256": "d1bfb76e106587d94c0d65b527df000abb8b9ddd72201b9d1f2e187fb1ab6283",
+      "clientRoots": 22,
+      "modules": 144,
+      "minifiedBytes": 1180575,
+      "sha256": "0216036290903a6ea560b6316490ca9f1bdbfe07548cbbe8935e1aaca70510e6",
       "protectedMarkersFound": 0
     },
     {
@@ -19,10 +19,10 @@
       "ancestorLayouts": [
         "app/layout.tsx"
       ],
-      "clientRoots": 19,
-      "modules": 93,
-      "minifiedBytes": 937493,
-      "sha256": "2802d5ef527b735a00cbd0642d29c685c9aff20e44ae280dfe262d2ce27bf2c0",
+      "clientRoots": 20,
+      "modules": 96,
+      "minifiedBytes": 943794,
+      "sha256": "99cfc7c2579a1c5ef6a38793e57719d9d68cf5744f4005a58c320850b2e6b03d",
       "protectedMarkersFound": 0
     },
     {
@@ -30,10 +30,10 @@
       "ancestorLayouts": [
         "app/layout.tsx"
       ],
-      "clientRoots": 22,
-      "modules": 133,
-      "minifiedBytes": 1171776,
-      "sha256": "41c9807cc1af4e2ddc6795e08d796a4447898d6b7b3bdc7063ca6a83cffda8b5",
+      "clientRoots": 23,
+      "modules": 142,
+      "minifiedBytes": 1201060,
+      "sha256": "24745ff69da443bd2c51701cf1e0d56c40a8003342713f0d5bdeb14c1416efc0",
       "protectedMarkersFound": 0
     },
     {
@@ -41,10 +41,10 @@
       "ancestorLayouts": [
         "app/layout.tsx"
       ],
-      "clientRoots": 20,
-      "modules": 93,
-      "minifiedBytes": 1003059,
-      "sha256": "b300e9c1862e03e85ab2247dff82f1352d9f9195b7b69a24d11d8ef4fa0487f0",
+      "clientRoots": 21,
+      "modules": 95,
+      "minifiedBytes": 1007447,
+      "sha256": "a8be1388d34d274eaba2c58ed7949d42510234638d48d9e49d6eb62b6a6a5d46",
       "protectedMarkersFound": 0
     },
     {
@@ -53,10 +53,10 @@
         "app/(dashboard)/layout.tsx",
         "app/layout.tsx"
       ],
-      "clientRoots": 33,
-      "modules": 300,
-      "minifiedBytes": 1992863,
-      "sha256": "f7d7658364a5fed7cc770bb98636bb6eb0f3ce51a348a8fdde9eb1bb1d06eb78",
+      "clientRoots": 34,
+      "modules": 305,
+      "minifiedBytes": 2009299,
+      "sha256": "3eba1218fe664a581665e8963f5cbcf309a7366a562bd898d2ed494a22c84272",
       "protectedMarkersFound": 0
     },
     {
@@ -64,10 +64,10 @@
       "ancestorLayouts": [
         "app/layout.tsx"
       ],
-      "clientRoots": 28,
-      "modules": 153,
-      "minifiedBytes": 1228296,
-      "sha256": "024348f36029cd29ec58777686f5dd1b59c790c4fa09eaa77582b24e8a47678c",
+      "clientRoots": 29,
+      "modules": 162,
+      "minifiedBytes": 1257599,
+      "sha256": "f57a6bee88e460be574ad2d6e42b52c12a9cb1b14aac558f18a72a778a522d6c",
       "protectedMarkersFound": 0
     },
     {
@@ -75,10 +75,10 @@
       "ancestorLayouts": [
         "app/layout.tsx"
       ],
-      "clientRoots": 23,
-      "modules": 101,
-      "minifiedBytes": 983228,
-      "sha256": "bb2cc4b33068e66c60d621e8bcb7ec4da659eddbc82d9eb63cbea6338bc1e08a",
+      "clientRoots": 24,
+      "modules": 104,
+      "minifiedBytes": 989532,
+      "sha256": "0deb5addcf1ef920392793597d8a229cd23ddbc47cc7dc037875f9dd6315298b",
       "protectedMarkersFound": 0
     },
     {
@@ -86,10 +86,10 @@
       "ancestorLayouts": [
         "app/layout.tsx"
       ],
-      "clientRoots": 16,
-      "modules": 86,
-      "minifiedBytes": 923744,
-      "sha256": "f4892c5cab16e0eb4eef1f5dbbde129309cada9fd52b1f0a95926c6d38be1e1b",
+      "clientRoots": 17,
+      "modules": 89,
+      "minifiedBytes": 930045,
+      "sha256": "45aed0dc8e9b4619f84b3a5fa566e69d733e1e5cb53e90db3badd89882879f08",
       "protectedMarkersFound": 0
     },
     {
@@ -97,10 +97,10 @@
       "ancestorLayouts": [
         "app/layout.tsx"
       ],
-      "clientRoots": 22,
-      "modules": 140,
-      "minifiedBytes": 1170446,
-      "sha256": "13909e762ac04e0d0c383323bb8d4e8621b7830df4650d74bddf15f9c85d2de1",
+      "clientRoots": 23,
+      "modules": 149,
+      "minifiedBytes": 1199749,
+      "sha256": "43a88257d979b8fad989d2f835518053e93865ad0e42e87e324a6c03ab2798cf",
       "protectedMarkersFound": 0
     },
     {
@@ -108,10 +108,10 @@
       "ancestorLayouts": [
         "app/layout.tsx"
       ],
-      "clientRoots": 20,
-      "modules": 105,
-      "minifiedBytes": 1003822,
-      "sha256": "1e122b71d86c02d6367c05fe1ef0f1f48a5a1a53347578323f0ed73ce30eda7d",
+      "clientRoots": 21,
+      "modules": 108,
+      "minifiedBytes": 1010154,
+      "sha256": "51a0bdd779dfbddc689edba0e1fd37634f987c069827be919dfc844d3d216bbc",
       "protectedMarkersFound": 0
     }
   ],
