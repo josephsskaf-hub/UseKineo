@@ -87,7 +87,7 @@ function porSecao(route, modules, merged, referenciaUnica) {
   const parsedScript = { segments: cues.map(p => ({ pexelsQuery: p, voiceover: p })) }
   const prompts = merged ? ['First scene', 'Second scene', 'Last scene'] : [cues[0]]
   const a = { prompts, approvedStills: prompts.map(() => null), timing: { wordsPerSecond: 2, voiceovers: merged ? [cues[0], cues.slice(1, 3).join(' '), cues[3]] : [cues[0]], ...(referenciaUnica ? { referenciaUnica } : {}) } }
-  const scope = { a, parsedScript, scenes: prompts.map(description => ({ description })), verbatim: merged, kling4PlanoPorSecao: true, kling4PlanoVariado: false, kling4PlanoFinal: false,
+  const scope = { epocaVisual: null, a, parsedScript, scenes: prompts.map(description => ({ description })), verbatim: merged, kling4PlanoPorSecao: true, kling4PlanoVariado: false, kling4PlanoFinal: false,
     planosPorSecao: modules('@/lib/kling4QuatroPlanos').planosPorSecao, sujeitoAparenciaLigada: () => false, comSuperficieNoPlano: p => p, garantirSujeitoNoUltimo1911: () => {} }
   return Function(...Object.keys(scope), js)(...Object.values(scope))
 }

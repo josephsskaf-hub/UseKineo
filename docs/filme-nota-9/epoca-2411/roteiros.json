@@ -1,0 +1,91 @@
+[
+  {
+    "id": "cooper",
+    "name": "Dan Cooper",
+    "appearance": "a man in a dark suit and black tie",
+    "period": [
+      [
+        "1971",
+        "1970s"
+      ]
+    ],
+    "source": "docs/canais/2026-11-24/SHORTS-PERSONAGEM-UNICO.md",
+    "script": "HOOK: [Pexels: man in dark suit and black tie boarding a passenger jet in 1971] Fifty-five years ago today, a man in a black tie boarded a plane.\n\nMICRO REWARD 1: [Pexels: man in dark suit and black tie sitting in an airplane seat with a briefcase] Calling himself Dan Cooper, he demanded cash and four parachutes.\n\nMICRO REWARD 2: [Pexels: man in dark suit wearing a parachute at the open rear door of a jet at night] That night, somewhere past Seattle, he jumped.\n\nPAYOFF: [Pexels: old dollar bills half buried in wet river sand] Some of the cash turned up. Cooper never did."
+  },
+  {
+    "id": "leprince",
+    "name": "Louis Le Prince",
+    "appearance": "a bearded inventor wearing a dark coat",
+    "period": [
+      [
+        "1888",
+        "1880s",
+        "19th century",
+        "nineteenth century"
+      ],
+      [
+        "1890",
+        "1890s",
+        "19th century",
+        "nineteenth century"
+      ]
+    ],
+    "source": "docs/canais/2026-11-24/SHORTS-PERSONAGEM-UNICO.md",
+    "script": "HOOK: [Pexels: bearded man in 1880s suit operating a wooden box camera in a garden] In 1888, Louis Le Prince shot the oldest film that still exists.\n\nMICRO REWARD 1: [Pexels: bearded man in a long 1890 coat boarding a steam train] Two years later, Le Prince boarded a train to Paris.\n\nMICRO REWARD 2: [Pexels: empty vintage train compartment] The train arrived. Le Prince did not.\n\nPAYOFF: [Pexels: bearded man in a long 1890 coat walking into steam on a station platform] No body. No luggage. Le Prince was never seen again."
+  },
+  {
+    "id": "slocum",
+    "name": "Joshua Slocum",
+    "appearance": "an old bearded sailor at sea",
+    "period": [
+      [
+        "1909",
+        "1900s",
+        "early 20th century",
+        "early twentieth century"
+      ]
+    ],
+    "source": "docs/canais/2026-11-24/SHORTS-PERSONAGEM-UNICO.md",
+    "script": "HOOK: [Pexels: old bearded sailor at the helm of a small wooden sailboat] Joshua Slocum was the first man to sail around the world alone.\n\nMICRO REWARD 1: [Pexels: old bearded sailor on a small wooden sailboat in a storm] It took Slocum three years in a small wooden boat.\n\nMICRO REWARD 2: [Pexels: old bearded sailor raising the sail and leaving a harbor in autumn] In 1909, at sixty-five, Slocum sailed out once more.\n\nPAYOFF: [Pexels: empty gray ocean horizon at dusk] Neither Slocum nor his boat was ever seen again."
+  },
+  {
+    "id": "ember",
+    "name": "Ember",
+    "appearance": "a small green dragon with orange wings",
+    "period": [],
+    "source": "claim da casa 99b64dde",
+    "script": "HOOK: [Pexels: a small green dragon with orange wings sitting on a snowy mountain ledge] Ember was the only dragon who could not breathe fire.\n\nMICRO REWARD 1: [Pexels: a small green dragon with orange wings trying to blow fire, only a puff of smoke comes out] Every time she tried, only a little smoke came out.\n\nMICRO REWARD 2: [Pexels: a snowy mountain village at night with dark frozen houses, nobody in sight] Then one winter night, the whole village froze.\n\nPAYOFF: [Pexels: a small green dragon with orange wings breathing a warm stream of fire over a stone hearth, golden light on the snow] She took one deep breath, and the mountain glowed."
+  },
+  {
+    "id": "bolt",
+    "name": "Bolt",
+    "appearance": "a small round orange robot with big blue eyes",
+    "period": [],
+    "source": "claim da casa 9d1255bb",
+    "script": "HOOK: [Pexels: 3D animated cartoon, a small round orange robot with big blue eyes rolling through a gray junkyard] Bolt was the smallest robot in the whole junkyard.\n\nMICRO REWARD 1: [Pexels: 3D animated cartoon, the small round orange robot holding a tiny glowing seed in its metal hands] One gray morning, he found a tiny seed nobody wanted.\n\nMICRO REWARD 2: [Pexels: 3D animated cartoon, the small round orange robot watering a little green sprout between rusty cars] So he watered it every single day, rain or rust.\n\nPAYOFF: [Pexels: 3D animated cartoon, a bright yellow flower blooming in the junkyard, the small round orange robot smiling beside it] And the junkyard grew its very first flower."
+  },
+  {
+    "id": "juno",
+    "name": "Juno",
+    "appearance": "a golden retriever with a red bandana",
+    "period": [],
+    "source": "claim da casa d3d1395c",
+    "script": "HOOK: [Pexels: golden retriever with a red bandana walking alone on a seaside path toward a lighthouse at sunset] Every single evening, Juno walked to the old lighthouse alone.\n\nMICRO REWARD 1: [Pexels: golden retriever with a red bandana sitting on dark rocks watching the sea] She sat on the rocks and watched the water.\n\nMICRO REWARD 2: [Pexels: golden retriever with a red bandana barking at the dark sea in thick fog] When the fog rolled in, she barked until dawn.\n\nPAYOFF: [Pexels: small fishing boats arriving at a harbor at sunrise, golden retriever with a red bandana wagging its tail on the dock] The fishermen say her voice still brings them home."
+  },
+  {
+    "id": "quantia",
+    "name": "Mara",
+    "appearance": "a chef in a white apron",
+    "period": [],
+    "source": "controle adversarial escrito para este ensaio",
+    "script": "HOOK: [Pexels: a chef carrying a tin] Mara saves a tin.\n\nMICRO REWARD 1: [Pexels: market table with a price tag] Her prize is 1900 euros.\n\nMICRO REWARD 2: [Pexels: chef counting coins] She counts every coin.\n\nPAYOFF: [Pexels: the tin on an empty shelf] The shelf is empty."
+  },
+  {
+    "id": "codigo",
+    "name": "Ari",
+    "appearance": "a mechanic in a red jacket",
+    "period": [],
+    "source": "controle adversarial escrito para este ensaio",
+    "script": "HOOK: [Pexels: a mechanic carrying a lamp] Ari carries a lamp.\n\nMICRO REWARD 1: [Pexels: a box labelled model 1971] It is model 1971.\n\nMICRO REWARD 2: [Pexels: a mechanic testing a lamp] The lamp flickers.\n\nPAYOFF: [Pexels: the empty workbench] The bench is empty."
+  }
+]

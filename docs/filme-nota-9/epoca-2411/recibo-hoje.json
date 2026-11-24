@@ -1,0 +1,19 @@
+{
+  "candidate": "da221631e5571db63c77b159fe14f1a605220df4",
+  "case": "Variante sintética de Le Prince, com último plano expressamente moderno",
+  "still": "Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum",
+  "dispatch": [
+    {
+      "model": "kling/v4/text-to-video",
+      "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum"
+    },
+    {
+      "model": "kling/v4/image-to-video",
+      "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum"
+    },
+    {
+      "model": "kling/v4/reference-to-video",
+      "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "base": "c4fd957e65c2c9ec309d3acb562e35febb218c36",
+  "candidate": "da221631e5571db63c77b159fe14f1a605220df4",
+  "meaning": "Synthetic boundary probes of Cooper scene 2. Only reports when the base retains briefcase and the candidate loses it.",
+  "fixtures": 9,
+  "simulatedPosts": 54,
+  "findings": []
+}

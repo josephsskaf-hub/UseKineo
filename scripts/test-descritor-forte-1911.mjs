@@ -127,7 +127,7 @@ async function prova(over = {}) {
       const js = ts.transpile(rr.slice(ini, fim) + '\nreturn kling4PorSecao', { target: ts.ScriptTarget.ES2022 })
       const cues = ['A boy finds a map in the attic', 'He follows it into the forest', 'A red door waits between two oaks', 'Behind it, his grandfather smiles']
       const parsedScript = { segments: cues.map((c) => ({ voiceover: `${c}.`, pexelsQuery: c })) }
-      const scope = { parsedScript, scenes: [{ description: 'a' }, { description: 'b' }, { description: 'c' }], verbatim: true, kling4PlanoPorSecao: true, kling4PlanoVariado: false, kling4PlanoFinal: false,
+      const scope = { epocaVisual: null, parsedScript, scenes: [{ description: 'a' }, { description: 'b' }, { description: 'c' }], verbatim: true, kling4PlanoPorSecao: true, kling4PlanoVariado: false, kling4PlanoFinal: false,
         planosPorSecao: Q.planosPorSecao, sujeitoAparenciaLigada: () => false, kling4Sujeito: { r: null }, comSujeitoNasMetades: (x) => x, comSuperficieNoPlano: (x) => x, garantirSujeitoNoUltimo1911: () => {} }
       const fn = Function(...Object.keys(scope), js)(...Object.values(scope))
       parsedScript.segments.forEach((s, j) => { Object.assign(s, { descricao: `DESCRICAO-DA-SECAO-${j + 1}: a boy with a lantern walks under tall oaks` }) })
