@@ -10,7 +10,8 @@ const plain=({children})=>React.createElement('div',null,children)
 const mocks={'lib/analytics.ts':{trackEvent(){},trackClosedEvent(){},rememberSignupCampaign(){}},'components/StickyFreeShortCTA.tsx':{__esModule:true,default:plain},'components/Footer.tsx':{__esModule:true,default:plain},'components/ExitIntentOffer.tsx':{__esModule:true,default:plain}}
 const dep={'lib/gptHandoff.ts':source('lib/gptHandoff.ts').replace("import { createHash } from 'node:crypto'","const createHash=()=>{throw Error('No hash in this proof')}")}
 const make=(rep={})=>offlineModules({mocks,replacements:{...dep,...rep}})
-const set=(rep,value)=>({...rep,[RELEASE]:(rep[RELEASE]??source(RELEASE)).replace("CITATION_FILM_RELEASE: CitationFilmRelease = 'internal'","CITATION_FILM_RELEASE: CitationFilmRelease = '"+value+"'")})
+// KINEO-CITACOES-PUBLIC-2411: o padrão agora é 'public'; a troca casa qualquer valor e confere a âncora (nunca no-op calado).
+const set=(rep,value)=>{const t=(rep[RELEASE]??source(RELEASE)).replace(/(CITATION_FILM_RELEASE: CitationFilmRelease = )'(?:off|internal|public)'/,"$1'"+value+"'");assert.ok(t.includes("CITATION_FILM_RELEASE: CitationFilmRelease = '"+value+"'"),'RELEASE override anchor');return{...rep,[RELEASE]:t}}
 const render=(l,f,props={})=>renderToStaticMarkup(React.createElement(l(f).default,props))
 const view=(l,props)=>renderToStaticMarkup(React.createElement(l(PROVIDER).default,null,React.createElement(l(PROVIDER).CitationFilmDraftScope,null,React.createElement(l(CLIENT).default,props))))
 const decode=s=>s.replaceAll('&amp;','&').replaceAll('&quot;','"').replaceAll('&#x27;',"'")
@@ -18,7 +19,9 @@ const sample='The lighthouse keeper found three keys.\nOnly the smallest key ope
 function body(code,name){const sf=ts.createSourceFile('fixture.tsx',code,ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);let found;const visit=n=>{if(ts.isFunctionDeclaration(n)&&n.name?.text===name)found=n.body.getText(sf).replace(/\r\n/g,'\n');ts.forEachChild(n,visit)};visit(sf);assert.ok(found,'function exists');return found}
 let checks=0
 function verify(rep={}){
- const l=make(rep),base=make(old)
+ const l=make(set(rep,'off')),base=make(old)
+ assert.equal(make(rep)(RELEASE).CITATION_FILM_RELEASE,'public','DEFAULT film release public')
+ assert.equal(render(make(rep),PAGE),render(make(set(rep,'public')),PAGE),'DEFAULT script page is the public page')
  assert.equal(body(rep[CLIENT]??source(CLIENT),'generate'),body(old[CLIENT],'generate'),'FREE writer request and handling unchanged')
  assert.equal(render(l,PAGE),render(base,PAGE),'OFF script page exact')
  assert.equal(render(make(set(rep,'internal')),PAGE),render(base,PAGE),'INTERNAL script page exact')
@@ -56,6 +59,8 @@ function verify(rep={}){
 verify()
 const sub=(f,a,b)=>{const s=source(f).replace(/\r\n/g,'\n');assert.equal(s.split(a).length,2,'unique mutant');return{[f]:s.replace(a,b)}}
 for(const[name,mutate,message]of[
+ ['default back to internal',()=>sub(RELEASE,"CITATION_FILM_RELEASE: CitationFilmRelease = 'public'","CITATION_FILM_RELEASE: CitationFilmRelease = 'internal'"),'DEFAULT film release public'],
+ ['default back to off',()=>sub(RELEASE,"CITATION_FILM_RELEASE: CitationFilmRelease = 'public'","CITATION_FILM_RELEASE: CitationFilmRelease = 'off'"),'DEFAULT film release public'],
  ['writer altered',()=>sub(CLIENT,"fetch('/api/demo-script'","fetch('/api/fixture-wrong'"),'FREE writer request and handling unchanged'],
  ['writer hidden',()=>sub(CLIENT,"'Generate my script →'","'Removed writer'"),'OFF script page exact'],
  ['share paths diverted',()=>sub(CLIENT,'&& !fromPublicVideo && !fromWebShareTarget && !affiliateContext','&& !affiliateContext'),'SHARE approved tool exact'],
@@ -64,4 +69,4 @@ for(const[name,mutate,message]of[
 ]){
  assert.throws(()=>verify(mutate()),e=>e?.code==='ERR_ASSERTION'&&e.message.startsWith(message),name+' exact assertion');console.log('PASS mutant '+name+' -> '+message)
 }
-console.log('PASS actual free script tool preserved, one input, two film modes, share paths exact, real auth destination rule and dated own example/method; 5 exact mutants; no network/account/render')
+console.log('PASS actual free script tool preserved, one input, two film modes, share paths exact, real auth destination rule and dated own example/method; 7 exact mutants; no network/account/render')

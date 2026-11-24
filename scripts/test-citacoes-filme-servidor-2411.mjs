@@ -11,11 +11,14 @@ const actor={id:'actor-house',email:house[0],email_confirmed_at:'fixture'}
 const external={id:'actor-buyer',email:'outside'+'@'+'buyer.invalid',email_confirmed_at:'fixture'}
 const legacyPattern={id:'actor-legacy',email:'test-visibility'+'@'+'buyer.invalid',email_confirmed_at:'fixture'}
 const fakeNext="const NextResponse={json:(body,init)=>({body,headers:init?.headers??{}})}"
-function world({release='internal',user=actor,error=null,throws=false,clipPublic=true,clipRelease='public',joinedRelease='public',recreateRelease='public',shellRelease='public'}={}){
+function world({release='internal',configSource,user=actor,error=null,throws=false,clipPublic=true,clipRelease='public',joinedRelease='public',recreateRelease='public',shellRelease='public'}={}){
  let reads=0
  const replace=(file,name,value)=>source(file).replace(new RegExp('('+name+':?[^=\\n]*=\\s*)[\\x27\\x22](off|internal|public)[\\x27\\x22]'),(_,a)=>a+JSON.stringify(value))
  const rep=Object.fromEntries([BOX,CLIP,NAV].map(f=>[f,source(f).replace("import { NextResponse } from 'next/server'",fakeNext)]))
- rep[CONFIG]=source(CONFIG).replace("CITATION_FILM_RELEASE: CitationFilmRelease = 'internal'","CITATION_FILM_RELEASE: CitationFilmRelease = '"+release+"'")
+ // KINEO-CITACOES-PUBLIC-2411: o padrão agora é 'public'; a troca casa qualquer valor e confere a âncora (nunca no-op calado).
+ rep[CONFIG]=(configSource??source(CONFIG)).replace(/(CITATION_FILM_RELEASE: CitationFilmRelease = )'(?:off|internal|public)'/,"$1'"+(release??'__keep__')+"'")
+ if(release===null)rep[CONFIG]=configSource??source(CONFIG)
+ else assert.ok(rep[CONFIG].includes("CITATION_FILM_RELEASE: CitationFilmRelease = '"+release+"'"),'RELEASE override anchor')
  rep['lib/clips/clipLaunch.ts']=source('lib/clips/clipLaunch.ts').replace(/(export const CLIPS_PUBLIC\s*=\s*)(true|false)/,(_,a)=>a+String(clipPublic))
  rep['lib/create/clipNaMolduraRelease.ts']=replace('lib/create/clipNaMolduraRelease.ts','CREATE_CLIP_INPLACE',clipRelease)
  rep['lib/create/release.ts']=replace('lib/create/release.ts','CLIP_RECREATE_JUNTOS_RELEASE',joinedRelease);rep['lib/create/release.ts']=rep['lib/create/release.ts'].replace(/(CREATE_SHELL_RELEASE:[^=\n]*=\s*)['"](off|internal|public)['"]/,(_,a)=>a+JSON.stringify(shellRelease))
@@ -30,6 +33,19 @@ function response(result,expected,message){
  assert.ok(result.headers.Vary.includes('Cookie'),'response varies by auth cookie')
 }
 let checks=0
+// DEFAULT (virada 24/11): sem cookie e sem user_id o GET real devolve visible:true e não lê auth. Mutantes do padrão têm de morrer aqui.
+async function defaultPublic(configSource){
+ const w=world({release:null,configSource,throws:true}),r=await w.l(BOX).GET({url:'https://local.invalid/api/citations/film-visibility'})
+ assert.equal(w.l(CONFIG).CITATION_FILM_RELEASE,'public','DEFAULT film release public')
+ response(r,{visible:true},'DEFAULT guest visible without cookie');assert.equal(w.reads(),0,'DEFAULT no auth read');checks++
+}
+await defaultPublic()
+const defaultMutants=[['default back to internal',"'internal'"],['default back to off',"'off'"]]
+for(const[name,value]of defaultMutants){
+ const s=source(CONFIG),a="CITATION_FILM_RELEASE: CitationFilmRelease = 'public'";assert.equal(s.split(a).length,2,'unique mutant anchor')
+ await assert.rejects(()=>defaultPublic(s.replace(a,"CITATION_FILM_RELEASE: CitationFilmRelease = "+value)),e=>e?.code==='ERR_ASSERTION'&&e.message.startsWith('DEFAULT film release public'),'mutant '+name)
+ console.log('PASS mutant '+name+' -> DEFAULT film release public')
+}
 for(const release of ['off','public']){
  const w=world({release,throws:true}),r=await w.l(BOX).GET({url:'https://local.invalid/api/citations/idea-visibility'})
  response(r,{visible:release==='public'},'public/off visibility from configuration');assert.equal(w.reads(),0,'public/off no auth read');checks++
@@ -88,4 +104,4 @@ for(const value of [{visible:true},{visible:false},{visible:'true'},{},null]){
  assert.equal(new URL(request,'https://local.invalid').searchParams.get('user_id'),'actor + / ?','identity encoded intact');checks++
 }
 if(process.env.KINEO_CITATION_SERVER_PROOF)fs.writeFileSync(process.env.KINEO_CITATION_SERVER_PROOF,JSON.stringify({checks,scope:'Real server GETs and client transport with fake getUser/fetch only; no network, account, rendering or payment; protected identifiers never written',box:BOX,clip:CLIP,navigation:NAV,transport:TRANSPORT},null,2))
-console.log('PASS '+checks+' real GET/transport cases: boolean-only responses, verified binding, exact idea membership, unchanged legacy decisions, no-store and strict payloads. No addresses logged.')
+console.log('PASS '+checks+' real GET/transport cases ('+defaultMutants.length+' default mutants killed): boolean-only responses, verified binding, exact idea membership, unchanged legacy decisions, no-store and strict payloads. No addresses logged.')

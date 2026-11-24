@@ -20,7 +20,8 @@ function make(rep={},country='US',reverse=true,skeleton=false){
  const stub={__esModule:true,default:()=>React.createElement('i',{'data-form-placeholder':'yes'})}
  return offlineModules({mocks:skeleton?{...mocks,[FORM]:stub,[TOPIC]:stub,'components/seo/CitationFilmProof.tsx':{__esModule:true,default:({children})=>children},'components/seo/CitationFilmShortAnswer.tsx':{__esModule:true,default:()=>null}}:mocks,replacements})
 }
-const release=(rep,v)=>({...rep,[RELEASE]:(rep[RELEASE]??source(RELEASE)).replace("CITATION_FILM_RELEASE: CitationFilmRelease = 'internal'","CITATION_FILM_RELEASE: CitationFilmRelease = '"+v+"'")})
+// KINEO-CITACOES-PUBLIC-2411: o padrão agora é 'public'; a troca de estado casa qualquer valor para nunca virar no-op calado.
+const release=(rep,v)=>{const t=(rep[RELEASE]??source(RELEASE)).replace(/(CITATION_FILM_RELEASE: CitationFilmRelease = )'(?:off|internal|public)'/,"$1'"+v+"'");assert.ok(t.includes("CITATION_FILM_RELEASE: CitationFilmRelease = '"+v+"'"),'RELEASE override anchor');return{...rep,[RELEASE]:t}}
 const render=(l,f,p={})=>renderToStaticMarkup(React.createElement(l(f).default,p))
 const strip=h=>h.replaceAll('<i data-form-placeholder="yes"></i>','').replace(/<style data-citation-film-layout-2411="">[\s\S]*?<\/style>/g,'')
 const schemas=h=>[...h.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(x=>JSON.parse(x[1]))
@@ -31,7 +32,7 @@ const partner={searchParams:{utm_source:'affiliate',utm_medium:'partner',utm_cam
 const oldCache=new Map(),proof=[]
 const oldFor=(country,reverse,skeleton=false)=>{const key=JSON.stringify([country,reverse,skeleton]);if(!oldCache.has(key))oldCache.set(key,make(originals,country,reverse,skeleton));return oldCache.get(key)}
 async function verify(rep={}){
- assert.equal(make(rep)(RELEASE).CITATION_FILM_RELEASE,'internal','DEFAULT switch internal')
+ assert.equal(make(rep)(RELEASE).CITATION_FILM_RELEASE,'public','DEFAULT switch public')
  const short=Object.keys(rep).length>0
  for(const country of(short?['US']:['US','IN',null]))for(const props of(short?[{}]:[{},partner]))for(const reverse of(short?[true]:[true,false])){
   const old=oldFor(country,reverse),off=make(release(rep,'off'),country,reverse),internal=make(release(rep,'internal'),country,reverse)
@@ -94,7 +95,8 @@ async function verify(rep={}){
 await verify()
 const sub=(file,a,b)=>{const s=source(file).replace(/\r\n/g,'\n');assert.equal(s.split(a).length,2,'unique mutant anchor');return{[file]:s.replace(a,b)}}
 const mutants=[
- ['default public',()=>sub(RELEASE,"CITATION_FILM_RELEASE: CitationFilmRelease = 'internal'","CITATION_FILM_RELEASE: CitationFilmRelease = 'public'"),'DEFAULT switch internal'],
+ ['default back to internal',()=>sub(RELEASE,"CITATION_FILM_RELEASE: CitationFilmRelease = 'public'","CITATION_FILM_RELEASE: CitationFilmRelease = 'internal'"),'DEFAULT switch public'],
+ ['default back to off',()=>sub(RELEASE,"CITATION_FILM_RELEASE: CitationFilmRelease = 'public'","CITATION_FILM_RELEASE: CitationFilmRelease = 'off'"),'DEFAULT switch public'],
  ['duplicate positions',()=>sub(PROVIDER,'if (state.enabled !== active) return null','if (false) return null'),'OFF original HTML exact'],
  ['internal guest granted',()=>sub(PROVIDER,"(CITATION_FILM_RELEASE === 'internal' && accessGranted)","(CITATION_FILM_RELEASE === 'internal')"),'INTERNAL pending original HTML exact'],
  ['forced length',()=>sub(FORM,'duration={topicOptions ? topicOptions.duration : selected.duration}','duration={selected.duration}'),'DURATION no forced length'],

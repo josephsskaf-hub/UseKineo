@@ -19,7 +19,9 @@ const payload=(user,error=null)=>({data:{user},error})
 async function mount(rep={},article='best',release='internal'){
  let callback,unsubscribed=0;const requests=[],accessRequests=[];let holdAccess=false,serverUser=null
  const auth={getUser:()=>new Promise((resolve,reject)=>requests.push({resolve:value=>{serverUser=value.error?null:value.data.user;resolve(value)},reject})),onAuthStateChange:f=>{callback=f;return{data:{subscription:{unsubscribe:()=>unsubscribed++}}}}}
- const gate=(rep[RELEASE]??source(RELEASE)).replace("CITATION_FILM_RELEASE: CitationFilmRelease = 'internal'",`CITATION_FILM_RELEASE: CitationFilmRelease = '${release}'`)
+ // KINEO-CITACOES-PUBLIC-2411: o padrão agora é 'public'; release=null mantém o arquivo como está; senão a troca casa qualquer valor e confere a âncora.
+ const gate=release===null?(rep[RELEASE]??source(RELEASE)):(rep[RELEASE]??source(RELEASE)).replace(/(CITATION_FILM_RELEASE: CitationFilmRelease = )'(?:off|internal|public)'/,"$1'"+release+"'")
+ if(release!==null)assert.ok(gate.includes("CITATION_FILM_RELEASE: CitationFilmRelease = '"+release+"'"),'RELEASE override anchor')
  const l=offlineModules({replacements:{...dep,...rep,[RELEASE]:gate},mocks:{'components/StickyFreeShortCTA.tsx':{__esModule:true,default:()=>null},'lib/auth/readServerVisibility.ts':{readServerVisibility:async url=>{if(holdAccess)return new Promise(resolve=>accessRequests.push({resolve}));const id=new URL(url,'https://local.invalid').searchParams.get('user_id');return{visible:!!serverUser&&serverUser.id===id&&serverAllows(serverUser,'internal')}}},'lib/supabase/client.ts':{createClient:()=>({auth})},'lib/analytics.ts':{trackEvent(){},trackClosedEvent(){},rememberSignupCampaign(){}}}})
  const {default:Provider,CitationFilmSlot:Slot,CitationFilmDraftScope:DraftScope}=l(BOX),Text=l('app/text-to-video-shorts/TextToVideoIntentForm.tsx').default; const View=()=>article==='script'?React.createElement(Provider,null,React.createElement(DraftScope,null,React.createElement(l('app/free-script-generator/FreeScriptClient.tsx').default))):React.createElement(Provider,null,React.createElement(Slot,{active:true},React.createElement(Text,{formId:'citation-film-'+article,campaign:'fixture_campaign',preserveHandoffForSignedIn:true,topicOptions:{creationIntent:'trial_best'}}))); let tree;await act(async()=>{tree=create(React.createElement(View),{unstable_isConcurrent:true})})
  const fields=()=>tree.root.findAllByType('textarea').filter(x=>article!=='script'||x.props['aria-label']==='Your film idea or narration'),field=()=>fields()[0],modes=()=>tree.root.findAllByType('button').filter(x=>x.props['aria-pressed']!==undefined).map(x=>x.props['aria-pressed'])
@@ -34,6 +36,8 @@ function empty(h,message){assert.equal(h.fields().length,0,message)}
 function fresh(h,message){retained(h,'','idea',message)}
 async function verify(rep={}){
  const proof=[]
+ // DEFAULT (virada 24/11): sem forçar estado, o visitante vê a caixa já no primeiro render e nenhuma leitura de auth é pedida.
+ {const h=await mount(rep,'best',null);try{assert.equal(h.requests.length,0,'DEFAULT guest form without auth read');assert.equal(h.fields().length,1,'DEFAULT guest form without auth read');await h.fill();retained(h,draft,'finished_script','DEFAULT guest form without auth read')}finally{await h.close()}}
  for(const article of ['free','pay','cheap','script'])for(const mode of ['idea','finished_script']){
   const h=await mount(rep,article);try{
    empty(h,'initial access waits for getUser');await h.resolve(0,A);await h.fill(mode);proof.push(h.snapshot('before renewal'))
@@ -115,6 +119,8 @@ if(process.env.KINEO_CITATION_LIFECYCLE_PROOF)fs.writeFileSync(process.env.KINEO
 if(!oldSha){
  const sub=(a,b)=>{const s=source(BOX).replace(/\r\n/g,'\n');assert.equal(s.split(a).length,2,'exact mutation anchor '+a);return{[BOX]:s.replace(a,b)}}
  const mutants=[
+  ['default back to internal',()=>({[RELEASE]:source(RELEASE).replace("CITATION_FILM_RELEASE: CitationFilmRelease = 'public'","CITATION_FILM_RELEASE: CitationFilmRelease = 'internal'")}),'DEFAULT guest form without auth read'],
+  ['default back to off',()=>({[RELEASE]:source(RELEASE).replace("CITATION_FILM_RELEASE: CitationFilmRelease = 'public'","CITATION_FILM_RELEASE: CitationFilmRelease = 'off'")}),'DEFAULT guest form without auth read'],
   ['clear on refresh',()=>sub('const current = ++generation','const current = ++generation\n        forgetDraft()'),'renewal keeps field while pending'],
   ['no state key',()=>sub('<Fragment key={state.draftKey}>','<Fragment>'),'verified account change discards old draft'],
   ['logout leaves draft',()=>sub('generation++\n          forgetDraft()','generation++\n          // mutation: draft not cleared'),'logout closes field immediately'],
