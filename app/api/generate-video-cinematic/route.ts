@@ -36,7 +36,7 @@ import { medirFalaDoKling4Trial, type FalaK4 } from '@/lib/kling4TrialScript' //
 import { fixedCharacterEnabled, fixedCharacterReference, referenceRehearsal } from '@/lib/cinematic/kling4PersonagemFixo'
 import { KLING4_REFERENCE_MODEL, type Kling4CharacterReference } from '@/lib/kling4Trial'
 import { ELENCO_E_FIGURINO_2411, FIGURINO_DO_PEDIDO_2411, elencoEFigurinoLigado, elencoComNomeCompleto, aceitaPapelSemPista, fichaComDescricaoDoPedido, relatoDoElenco2411, medidaDaLeitura2411, medidaDaRegra2411, type MedidaDaLeitura2411, ELENCO_E_FIGURINO_2411_VERSAO } from '@/lib/cinematic/elencoEFigurino2411' // KINEO-ELENCO-E-FIGURINO-2411
-import { REFERENCIA_UNICA_2411, referenciaUnicaLigada, referenciaUnicaDoFilme, relatoReferenciaUnica, entradaDoJuiz2411, type ReferenciaUnica2411 } from '@/lib/cinematic/referenciaUnica2411' // KINEO-REFERENCIA-UNICA-2411
+import { REFERENCIA_UNICA_2411, admitirReferenciaUnica2411, relatoReferenciaUnica, relatoClienteSemReferencia2411, entradaDoJuiz2411, type ReferenciaUnica2411, type MotivoClienteSemReferencia2411 } from '@/lib/cinematic/referenciaUnica2411' // KINEO-REFERENCIA-UNICA-2411 · KINEO-REFERENCIA-UNICA-HUMANO-2411
 import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy'
 import { kling4PaidCredits, kling4PaidFalExtrasMilliUsd, kling4PaidBudget } from '@/lib/kling4PaidPricing'
 import { isKling4PaidFilmSeconds, prepareKling4PaidFilm, kling4PaidFallbackPrompts } from '@/lib/kling4PaidFilm'
@@ -8366,18 +8366,21 @@ async function manipularPost(req: NextRequest) {
     const kling4Prompts = classicScenePrompts.map((p, i) => promptDaCenaKling4(p, styleAnchor, i)) // KINEO-QUALIDADE-TODOS-MOTORES-2910 — cast/action/style survive the final provider limit. · KINEO-CENA-PEDIDO-3010 — revisor 29/10: a moldura (abertura, 9:16, "characters act naturally") comia os 512 e a ação da fala sumia; sai antes do corte, e cada cena ganha um eixo de câmera
     if (kling4TrialCandidate) for (let i = 0; i < kling4Prompts.length; i++) kling4Prompts[i] = promptDaCenaKling4(classicScenePrompts[i], styleAnchor, i, true) // KINEO-REPETICAO-FREE15-1011 — filme grátis: o clipe pede só o plano da imagem-chave; cena com plano próprio fica sem eixo (nunca o rodízio antigo nem "subject small"). Pago: a linha acima, byte a byte
     // Final scene speech, after short-film repairs; this is the same voice/language/speed ruler signed for compose.
-    const kling4Timing: { fixedCharacter?: Kling4CharacterReference; referenciaUnica?: ReferenciaUnica2411 /* KINEO-REFERENCIA-UNICA-2411 */; voiceovers: string[]; wordsPerSecond: number; pelaVoz?: { segundosDaVoz: number } | null; clipSeconds?: number } = { voiceovers: scenes.map(s => s.voiceover ?? ''), wordsPerSecond: narrationRate.wordsPerSecond } // KINEO-K4-DURACAO-PELA-VOZ-1311: + pelaVoz (preenchido depois da medida da voz)
+    const kling4Timing: { fixedCharacter?: Kling4CharacterReference; referenciaUnica?: ReferenciaUnica2411 /* KINEO-REFERENCIA-UNICA-2411 */; referenciaUnicaRecusa?: MotivoClienteSemReferencia2411 /* KINEO-REFERENCIA-UNICA-HUMANO-2411 — só o código, para o claim */; voiceovers: string[]; wordsPerSecond: number; pelaVoz?: { segundosDaVoz: number } | null; clipSeconds?: number } = { voiceovers: scenes.map(s => s.voiceover ?? ''), wordsPerSecond: narrationRate.wordsPerSecond } // KINEO-K4-DURACAO-PELA-VOZ-1311: + pelaVoz (preenchido depois da medida da voz)
     if (ensaioPersonagemFixo && kling4TrialCandidate && classicVisualMode === 'character_story') {
       const reference = fixedCharacterReference(qualitySnapshot, [pedidoDoCliente, prompt].filter(Boolean).join('\n'))
       if (reference) kling4Timing.fixedCharacter = reference
     }
     // KINEO-REFERENCIA-UNICA-2411 — atrás de REFERENCIA_UNICA_2411 ('off' no commit = nada muda): o filme grátis do Kling 4 com protagonista e referência
     // vai com UMA referência citada nos planos dele (buildKling4TrialInput decide no envio: só 15 s e só com plano que o cite; senão, o de hoje).
-    if (!kling4Timing.fixedCharacter && kling4TrialCandidate && referenciaUnicaLigada(REFERENCIA_UNICA_2411, user.email)) {
+    // KINEO-REFERENCIA-UNICA-HUMANO-2411 [CEO 24/11] — 'public_humano': a casa como em 'internal'; o cliente só com pessoa fotorreal e um protagonista,
+    // senão o pedido de hoje (byte a byte) e só o código do motivo no claim. Estilizado = o que a rota já sabe (isStylizedLook ou desenho infantil).
+    if (!kling4Timing.fixedCharacter && kling4TrialCandidate && REFERENCIA_UNICA_2411 !== 'off') {
       try { // [revisor 24/11, volta 1] qualquer erro aqui = o caminho de hoje, com aviso; nunca derruba o filme
-        const ru2411 = referenciaUnicaDoFilme(qualitySnapshot)
-        if (ru2411) kling4Timing.referenciaUnica = ru2411
-      } catch (erro) { delete kling4Timing.referenciaUnica; console.warn('[cinematic] KINEO-REFERENCIA-UNICA-2411: referência não montada, caminho de hoje', erro instanceof Error ? erro.name : typeof erro) }
+        const ru2411 = admitirReferenciaUnica2411(REFERENCIA_UNICA_2411, user.email, qualitySnapshot, { estilizado: isStylizedLook(styleAnchor) || desenhoInfantil.ativo })
+        if (ru2411 && 'referencia' in ru2411) kling4Timing.referenciaUnica = ru2411.referencia
+        else if (ru2411) kling4Timing.referenciaUnicaRecusa = ru2411.motivo
+      } catch (erro) { delete kling4Timing.referenciaUnica; delete kling4Timing.referenciaUnicaRecusa; console.warn('[cinematic] KINEO-REFERENCIA-UNICA-2411: referência não montada, caminho de hoje', erro instanceof Error ? erro.name : typeof erro) }
     }
     // KINEO-K4-SUJEITO-0111 — revisor 01/11 (CENA_FORA_DO_PEDIDO): "o avião C-54 que sumiu" sem avião (2 homens de terno em 5 de 8 quadros), "criança com caneta 3D"
     // sem a criança, "vida sob o gelo" sem o desfecho. Antes do POST pago: o sujeito central do PEDIDO tem de estar em pelo menos 1 cena do multi_prompt; se não está, a
@@ -8834,7 +8837,7 @@ async function manipularPost(req: NextRequest) {
           ...(kling4EnvioDoFilme().planos ? { kling4_planos: { versao: KLING4_PLANO_POR_SECAO_VERSAO, secoes_por_cena: kling4EnvioDoFilme().planos } } : {}), // KINEO-K4-PLANO-POR-SECAO-1111 — para medir
           ...(kling4PlanoVariado ? { kling4_plano_variado: KLING4_PLANO_VARIADO_VERSAO } : {}),
           ...(kling4PlanoFinal ? { kling4_plano_final: KLING4_PLANO_FINAL_VERSAO } : {}), // KINEO-K4-PLANO-FINAL-1111 — para medir // KINEO-K4-PLANO-VARIADO-1111 — para medir a nota antes/depois
-          ...((() => { const e = kling4EnvioDoFilme(); const ru = relatoReferenciaUnica(e.timing, buildKling4TrialInput(e.prompts, e.approvedStills, e.timing)); return ru ? { kling4_referencia_unica: ru } : {} })()), // KINEO-REFERENCIA-UNICA-2411 — para medir (desligado = nenhum campo novo)
+          ...((() => { const e = kling4EnvioDoFilme(); const ru = relatoReferenciaUnica(e.timing, buildKling4TrialInput(e.prompts, e.approvedStills, e.timing)); const sem = ru ? null : relatoClienteSemReferencia2411(kling4Timing); return ru ? { kling4_referencia_unica: ru } : sem ? { kling4_referencia_unica_cliente: sem } : {} })()), // KINEO-REFERENCIA-UNICA-2411 — para medir (desligado = nenhum campo novo) · KINEO-REFERENCIA-UNICA-HUMANO-2411: cliente sem a referência = só o código do motivo
           clip_seconds: [kling4TrialClipTotal(kling4Timing.clipSeconds)], clip_word_starts: [0], // KINEO-K4-GRATIS-20S-1711 — [15] como sempre sem o caminho de até 20 s
         })
       }

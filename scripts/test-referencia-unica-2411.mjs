@@ -16,6 +16,7 @@ const local = file => readFileSync(file, 'utf8').replaceAll('\r\n', '\n')
 const original = file => execFileSync('git', ['show', base + ':' + file], { encoding: 'utf8', maxBuffer: 8_000_000 }).replaceAll('\r\n', '\n')
 const dados = JSON.parse(readFileSync('scripts/test-support/referencia-unica-2411-filmes.json', 'utf8'))
 const load = source => createOfflineLoader({ source, globals: { AbortSignal } })
+const estilo = load((file, src) => src)('@/lib/cinematic/visualPromptPolicy.ts') // isStylizedLook real (o que a rota já sabe)
 const old = load((file, src) => file === transport ? original(file) : src)('@/' + transport)
 const filme = id => dados.filmes.find(f => f.id === id)
 const SINTETICA = n => `https://example.org/offline/still-${n}.png` // imagem-chave do controle cuja URL não está nos dados (só a 1ª ou a ficha estão)
@@ -49,15 +50,16 @@ const snapshots = {
 }
 
 // Executa o trecho REAL da admissão nova na rota.
-function admitir(route, f, { email, candidato = true, fixo = null, snapshot }) {
-  const ini = route.indexOf('if (!kling4Timing.fixedCharacter && kling4TrialCandidate && referenciaUnicaLigada(')
+// KINEO-REFERENCIA-UNICA-HUMANO-2411: + o look do filme (styleAnchor real, isStylizedLook real) e o desenho infantil.
+function admitir(route, f, { email, candidato = true, fixo = null, snapshot, look = 'photoreal', infantil = false }) {
+  const ini = route.indexOf("if (!kling4Timing.fixedCharacter && kling4TrialCandidate && REFERENCIA_UNICA_2411 !== 'off') {")
   const fim = route.indexOf('// KINEO-K4-SUJEITO-0111 — revisor 01/11', ini)
   assert.ok(ini > 0 && fim > ini, 'admissão nova não achada na rota')
   const ini0 = route.indexOf('const kling4Timing:'), ini1 = route.indexOf('if (ensaioPersonagemFixo && kling4TrialCandidate && classicVisualMode', ini0)
   assert.ok(ini0 > 0 && ini0 < ini1 && ini1 < ini, 'a admissão nova tem de vir depois do personagem fixo')
   const kling4Timing = { voiceovers: [], wordsPerSecond: 2, ...(fixo ? { fixedCharacter: fixo } : {}) }
-  Function('kling4Timing', 'kling4TrialCandidate', 'referenciaUnicaLigada', 'REFERENCIA_UNICA_2411', 'user', 'referenciaUnicaDoFilme', 'qualitySnapshot',
-    ts.transpile(route.slice(ini, fim)))(kling4Timing, candidato, f.referenciaUnicaLigada, f.REFERENCIA_UNICA_2411, { email }, f.referenciaUnicaDoFilme, snapshot)
+  Function('kling4Timing', 'kling4TrialCandidate', 'REFERENCIA_UNICA_2411', 'user', 'admitirReferenciaUnica2411', 'qualitySnapshot', 'isStylizedLook', 'styleAnchor', 'desenhoInfantil',
+    ts.transpile(route.slice(ini, fim)))(kling4Timing, candidato, f.REFERENCIA_UNICA_2411, { email }, f.admitirReferenciaUnica2411, snapshot, estilo.isStylizedLook, { look }, { ativo: infantil })
   return kling4Timing
 }
 
@@ -82,13 +84,15 @@ async function suite(change) {
   const route = source(routeFile, local(routeFile))
 
   // (d) o interruptor: 'internal' no commit desde 24/11 (CEO, depois da 4ª revisão limpa) = só a lista EXATA da casa; 'off' = ninguém; 'public' = todos.
-  assert.equal(f.REFERENCIA_UNICA_2411, 'internal')
+  assert.equal(f.REFERENCIA_UNICA_2411, 'public_humano') // [CEO 24/11, KINEO-REFERENCIA-UNICA-HUMANO-2411] a casa como em 'internal'; cliente só pessoa fotorreal
   for (const e of contas.INTERNAL_EXACT_EMAILS) {
     assert.equal(f.referenciaUnicaLigada('internal', e), true, e); assert.equal(f.referenciaUnicaLigada('internal', ' ' + e.toUpperCase() + ' '), true, e)
+    assert.equal(f.referenciaUnicaLigada('public_humano', e), true, e); assert.equal(f.referenciaUnicaLigada('public_humano', ' ' + e.toUpperCase() + ' '), true, e)
     assert.equal(f.referenciaUnicaLigada('off', e), false, e)
   }
   for (const e of ['joseph+teste02@gmail.com', 'josephsskaf+x@gmail.com', 'test123@example.com', 'smoketest@x.io', 'qa@shortsforgeai.com', 'joseph@usekineo.com', 'hello@usekineo.com', 'qualquer@usekineo.com', 'cliente@example.org', '', null, undefined]) { // [revisor 24/11, R1] o domínio da casa fora da lista exata fica desligado
     assert.equal(f.referenciaUnicaLigada('internal', e), false, String(e)); assert.equal(f.referenciaUnicaLigada('off', e), false)
+    assert.equal(f.referenciaUnicaLigada('public_humano', e), false, String(e)) // sem a guarda, só a casa; o cliente passa por admitirReferenciaUnica2411
   }
   assert.equal(f.referenciaUnicaLigada('public', 'cliente@example.org'), true)
 
@@ -103,21 +107,23 @@ async function suite(change) {
     assert.deepEqual(hoje.input.multi_prompt.map(s => s.duration), fl.planos.map(p => p.duration))
   }
 
-  // (e) [CEO 24/11] a chave COMO ESTÁ NO COMMIT ('internal'), executada pela admissão real da rota e pelo POST do montador (fetch falso):
-  // conta de cliente = o pedido de hoje, byte a byte o da main; conta da lista exata da casa = o caminho novo.
-  { const clientes = ['cliente@example.org', 'CLIENTE@EXAMPLE.ORG', '  cliente@example.org  ', 'josephsskaf@gmai.com', 'josephsskaf+teste@gmail.com', 'joseph+teste01@gmail.co',
+  // (e) [CEO 24/11] a chave em 'internal' (a volta da chave), executada pela admissão real da rota e pelo POST do montador (fetch falso):
+  // conta de cliente = o pedido de hoje, byte a byte o da main, e nenhum campo novo; conta da lista exata da casa = o caminho novo.
+  // A chave COMO ESTÁ NO COMMIT ('public_humano') é a suiteHumano2411, abaixo.
+  { const interno = { ...f, REFERENCIA_UNICA_2411: 'internal' }
+    const clientes = ['cliente@example.org', 'CLIENTE@EXAMPLE.ORG', '  cliente@example.org  ', 'josephsskaf@gmai.com', 'josephsskaf+teste@gmail.com', 'joseph+teste01@gmail.co',
       'josephskaf@hotmail.com.br', 'victoriaskaf96@gmail.com.evil.io', 'xjosephsskaf@gmail.com', 'joseph@usekineo.com', 'teste01@shortsforgeai.com.br', '', null, undefined]
     for (const id of ['2fef3706', '4691e265']) {
       const fl = filme(id), prompts = fl.planos.map(p => p.prompt), stills = stillsDe(fl)
       const main = await post(old, { prompts, approvedStills: stills, timing: timingDe(fl) })
       for (const email of clientes) {
-        const t = admitir(route, f, { email, snapshot: snapshots[id] })
-        assert.equal('referenciaUnica' in t, false, 'cliente ' + String(email))
+        const t = admitir(route, interno, { email, snapshot: snapshots[id] })
+        assert.equal('referenciaUnica' in t, false, 'cliente ' + String(email)); assert.equal('referenciaUnicaRecusa' in t, false, 'cliente em internal: nenhum campo novo')
         const envio = await post(api, { prompts, approvedStills: stills, timing: { ...timingDe(fl), ...("referenciaUnica" in t ? { referenciaUnica: t.referenciaUnica } : {}) } })
         assert.equal(envio.url, main.url, 'cliente ' + String(email)); assert.equal(envio.body, main.body, 'cliente ' + String(email) + ': byte a byte o de hoje')
       }
       for (const email of [...contas.INTERNAL_EXACT_EMAILS, ' JosephSSkaf@Gmail.com ']) {
-        const t = admitir(route, f, { email, snapshot: snapshots[id] })
+        const t = admitir(route, interno, { email, snapshot: snapshots[id] })
         assert.ok(t.referenciaUnica, 'casa ' + email)
         const envio = await post(api, { prompts, approvedStills: stills, timing: { ...timingDe(fl), ...("referenciaUnica" in t ? { referenciaUnica: t.referenciaUnica } : {}) } })
         assert.equal(envio.url, 'https://queue.fal.run/kling/v4/reference-to-video', 'casa ' + email)
@@ -214,10 +220,12 @@ async function suite(change) {
     }
   }
   // e se a escolha lançar mesmo assim: a rota cai no caminho de hoje, sem derrubar o filme
-  for (const mod of [ligado, publico]) {
+  for (const mod of [ligado, publico, { ...f, REFERENCIA_UNICA_2411: 'public_humano' }]) {
     let t
-    try { t = admitir(route, { ...mod, referenciaUnicaDoFilme: () => { throw new TypeError('offline') } }, { email: casa, snapshot: s0 }) } catch { assert.fail('a rota deixou o erro subir') }
-    assert.equal('referenciaUnica' in t, false)
+    for (const email of [casa, 'cliente@example.org']) {
+      try { t = admitir(route, { ...mod, admitirReferenciaUnica2411: () => { throw new TypeError('offline') } }, { email, snapshot: s0 }) } catch { assert.fail('a rota deixou o erro subir') }
+      assert.equal('referenciaUnica' in t, false); assert.equal('referenciaUnicaRecusa' in t, false)
+    }
   }
 
   // [revisor 24/11, volta 1, ponto 3] os juízes leem o MESMO texto: o juiz de antes (sem imagens, sem referência) e o juiz do plano / A2 (o envio,
@@ -316,9 +324,10 @@ async function suite(change) {
     assert.equal('referenciaUnica' in porSecao(route, modules, merged, null).timing, false)
   }
   // O claim só ganha o campo quando a referência única foi usada.
-  assert.ok(route.includes("return ru ? { kling4_referencia_unica: ru } : {}"))
+  assert.ok(route.includes("const sem = ru ? null : relatoClienteSemReferencia2411(kling4Timing); return ru ? { kling4_referencia_unica: ru } : sem ? { kling4_referencia_unica_cliente: sem } : {}"))
 
   await suitePublic2411({ api, f, route })
+  await suiteHumano2411({ api, f, route })
 }
 
 // ═══ KINEO-REFERENCIA-UNICA-PUBLIC-2411 — os 3 filmes da prova paga 2 de 24/11 (Le Prince 92ce1a8e, Slocum ff5c515e, Cooper 582cead7) ═══════════════
@@ -402,8 +411,8 @@ async function suitePublic2411({ api, f, route }) {
       const hoje = await post(api, { prompts, approvedStills: stills, timing }), main = await post(antes, { prompts, approvedStills: stills, timing })
       assert.equal(hoje.url, main.url); assert.equal(hoje.body, main.body, fl.id + ': off = o de hoje')
     }
-    // 'internal' no commit: cliente não alcança, nem nestes filmes; a casa exata sim
-    for (const email of ['cliente@example.org', 'joseph@usekineo.com', null]) assert.equal('referenciaUnica' in admitir(route, f, { email, snapshot: snapDe(fl) }), false, String(email))
+    // em 'internal': cliente não alcança, nem nestes filmes; a casa exata sim ('public_humano', a chave do commit, liga o cliente aqui: suiteHumano2411)
+    for (const email of ['cliente@example.org', 'joseph@usekineo.com', null]) assert.equal('referenciaUnica' in admitir(route, { ...f, REFERENCIA_UNICA_2411: 'internal' }, { email, snapshot: snapDe(fl) }), false, String(email))
     assert.ok(admitir(route, f, { email: 'josephsskaf@gmail.com', snapshot: snapDe(fl) }).referenciaUnica)
   }
 
@@ -478,6 +487,86 @@ async function suitePublic2411({ api, f, route }) {
 }
 
 await suite()
+// ═══ KINEO-REFERENCIA-UNICA-HUMANO-2411 [CEO 24/11] — a chave COMO ESTÁ NO COMMIT ('public_humano'), pela admissão real da rota e pelo POST do montador ═══
+// Cliente recebe a referência única SÓ com pessoa fotorreal e um protagonista (o caminho provado: Le Prince, Slocum e Cooper, notas cegas 10, 8 e 9).
+// Bicho, criatura, desenho e mais de um protagonista = o pedido de hoje, byte a byte, e no claim só o código do motivo. A casa recebe tudo como em 'internal'.
+async function suiteHumano2411({ api, f, route }) {
+  const cliente = 'cliente@example.org', casa = 'josephsskaf@gmail.com'
+  assert.equal(f.REFERENCIA_UNICA_2411, 'public_humano')
+  // 1. cliente + humano fotorreal LIGA, com a mesma referência da casa; custo: o mesmo pedido (1 imagem em image_urls, nenhum vídeo, 15 s, 720p)
+  for (const fl of pub.filmes) {
+    const snap = snapDe(fl)
+    const tc = admitir(route, f, { email: cliente, snapshot: snap }), th = admitir(route, f, { email: casa, snapshot: snap })
+    assert.ok(tc.referenciaUnica, fl.id + ': cliente humano fotorreal liga'); assert.equal('referenciaUnicaRecusa' in tc, false)
+    assert.equal(JSON.stringify(tc.referenciaUnica), JSON.stringify(th.referenciaUnica), fl.id + ': a mesma referência da casa')
+    const prompts = fl.shots.map(x => x.prompt), timing = timingPub(fl, fl.personagem.nucleo)
+    const env = await post(api, { prompts, approvedStills: prompts.map(() => null), timing: { ...timing, referenciaUnica: { ...tc.referenciaUnica, metades: fl.metades } } })
+    assert.equal(env.url, 'https://queue.fal.run/kling/v4/reference-to-video', fl.id)
+    assert.deepEqual(Object.keys(env.input), ['image_urls', 'multi_prompt', 'duration', 'resolution', 'aspect_ratio'], fl.id + ': nenhum campo a mais (nenhum vídeo de referência)')
+    assert.deepEqual(env.input.image_urls, [fl.ficha]); assert.equal(String(env.input.duration), '15'); assert.equal(env.input.resolution, '720p')
+    assert.equal(env.input.multi_prompt.reduce((t, m) => t + Number(m.duration), 0), 15)
+    assert.deepEqual(indices(env.input.multi_prompt.map(m => m.prompt.includes('@Image1'))), DEPOIS[fl.id], fl.id + ': os planos da volta 2')
+    assert.equal(f.relatoClienteSemReferencia2411({ ...tc }), null, 'referência usada = nenhum motivo')
+    assert.equal(f.relatoClienteSemReferencia2411({ ...tc, referenciaUnicaRecusa: 'estilizado' }), null, 'referência usada = nenhum motivo, nem um que sobrou')
+  }
+  // 2. cliente fora do caminho provado: o pedido de hoje (byte a byte a main) e só o código do motivo; a casa liga em todos (como em 'internal')
+  const rapaz = filme('2fef3706'), pr = rapaz.planos.map(p => p.prompt), st = stillsDe(rapaz), tm = timingDe(rapaz)
+  const main = (await post(old, { prompts: pr, approvedStills: st, timing: tm })).body
+  const s0 = snapshots['2fef3706'], lead = s0.characters[0]
+  const outro = (nome, tipo, protagonista) => ({ nome, nucleo: nome.replace(/^the /, ''), tipo, protagonista, canonica: 'A ' + nome.replace(/^the /, '') })
+  const folha = nome => ({ nome, url: 'https://example.org/offline/' + nome.replace(/\W+/g, '-') + '.png' })
+  const casos = [
+    ['bicho', { ...s0, characters: [{ ...lead, tipo: 'animal' }] }, {}, 'nao_humano'],
+    ['criatura', { ...s0, characters: [{ ...lead, tipo: 'criatura' }] }, {}, 'nao_humano'],
+    ['cachorra lida pelo modelo, sem folha (prova de 24/11 tarde, sintético)', { ...s0, characters: [outro('the retriever', 'animal', true)], characterReferences: [], approvedStills: [{ url: 'https://example.org/offline/k.png', characterNames: ['the retriever'] }] }, {}, 'nao_humano'],
+    ['robô em desenho 3D (sintético)', { ...s0, characters: [outro('the robot', 'criatura', true)], characterReferences: [folha('the robot')] }, { look: 'animated3d' }, 'nao_humano'],
+    ['dragão (sintético)', { ...s0, characters: [outro('the dragon', 'criatura', true)], characterReferences: [folha('the dragon')] }, {}, 'nao_humano'],
+    ['pessoa + bicho COM folha', { ...s0, characters: [lead, outro('the dog', 'animal', false)], characterReferences: [...s0.characterReferences, folha('the dog')] }, {}, 'nao_humano'],
+    ['pessoa + criatura COM folha', { ...s0, characters: [lead, outro('the ghost', 'criatura', false)], characterReferences: [...s0.characterReferences, folha('the ghost')] }, {}, 'nao_humano'],
+    ['anime', s0, { look: 'anime' }, 'estilizado'],
+    ['3D animado', s0, { look: 'animated3d' }, 'estilizado'],
+    ['ilustração', s0, { look: 'illustration' }, 'estilizado'],
+    ['desenho infantil', s0, { infantil: true }, 'estilizado'],
+    ['dois protagonistas', { ...s0, characters: [lead, { ...lead, nome: 'the friend', nucleo: 'friend' }] }, {}, 'mais_de_um'],
+    ['sem protagonista', { ...s0, characters: [{ ...lead, protagonista: false }] }, {}, 'sem_referencia'],
+    ['sem imagem https', { ...s0, characterReferences: [{ nome: lead.nome, url: 'http://inseguro.example/a.jpg' }] }, {}, 'sem_referencia'],
+    ['retrato nulo', null, {}, 'sem_referencia'],
+  ]
+  for (const [nome, snap, opts, motivo] of casos) {
+    const t = admitir(route, f, { email: cliente, snapshot: snap, ...opts })
+    assert.equal('referenciaUnica' in t, false, 'cliente + ' + nome + ' não liga')
+    assert.equal(t.referenciaUnicaRecusa, motivo, 'cliente + ' + nome + ': motivo')
+    assert.equal((await post(api, { prompts: pr, approvedStills: st, timing: { ...tm, referenciaUnicaRecusa: t.referenciaUnicaRecusa } })).body, main, 'cliente + ' + nome + ': byte a byte o de hoje')
+    assert.deepEqual(JSON.parse(JSON.stringify(f.relatoClienteSemReferencia2411(t))), { versao: 'KINEO-REFERENCIA-UNICA-HUMANO-2411', motivo }, 'claim: só a versão e o código')
+    const h = admitir(route, f, { email: casa, snapshot: snap, ...opts })
+    assert.equal('referenciaUnicaRecusa' in h, false, 'casa nunca grava motivo')
+    assert.equal(!!h.referenciaUnica, !!f.referenciaUnicaDoFilme(snap), 'casa + ' + nome + ': como em internal')
+    const hi = admitir(route, { ...f, REFERENCIA_UNICA_2411: 'internal' }, { email: casa, snapshot: snap, ...opts })
+    assert.equal(JSON.stringify(h.referenciaUnica ?? null), JSON.stringify(hi.referenciaUnica ?? null), 'casa + ' + nome + ': igual a internal')
+  }
+  for (const nome of ['bicho', 'criatura', 'anime', 'desenho infantil', 'robô em desenho 3D (sintético)', 'dragão (sintético)']) {
+    const [, snap, opts] = casos.find(c => c[0] === nome)
+    assert.ok(admitir(route, f, { email: casa, snapshot: snap, ...opts }).referenciaUnica, 'casa + ' + nome + ' liga')
+  }
+  // 3. o que ainda liga para cliente: pessoa + bicho SEM folha (o bicho não tem referência a trocar), filme noir (fotorreal em preto e branco)
+  for (const [nome, snap, opts] of [['pessoa + bicho sem folha', { ...s0, characters: [lead, outro('the dog', 'animal', false)] }, {}], ['noir', s0, { look: 'noir' }], ['fotorreal', s0, {}]]) {
+    const t = admitir(route, f, { email: cliente, snapshot: snap, ...opts })
+    assert.ok(t.referenciaUnica && !('referenciaUnicaRecusa' in t), 'cliente + ' + nome + ' liga')
+  }
+  // 4. a guarda sozinha: estilo ausente ou torto = estilizado (na dúvida, o de hoje)
+  for (const filme of [{}, { estilizado: undefined }, { estilizado: 'false' }, { estilizado: 0 }]) assert.equal(f.motivoClienteSemReferencia2411(s0, filme), 'estilizado', JSON.stringify(filme))
+  assert.equal(f.motivoClienteSemReferencia2411(s0, { estilizado: false }), null)
+  // 5. 'off' = ninguém, sem campo; 'internal' = cliente sem campo novo (nem o motivo); 'public' = todos sem guarda
+  for (const [snap, opts] of [[s0, {}], [casos[0][1], {}], [s0, { look: 'anime' }]]) {
+    for (const email of [cliente, casa]) { const t = admitir(route, { ...f, REFERENCIA_UNICA_2411: 'off' }, { email, snapshot: snap, ...opts }); assert.ok(!('referenciaUnica' in t) && !('referenciaUnicaRecusa' in t), 'off') }
+    const ti = admitir(route, { ...f, REFERENCIA_UNICA_2411: 'internal' }, { email: cliente, snapshot: snap, ...opts }); assert.ok(!('referenciaUnica' in ti) && !('referenciaUnicaRecusa' in ti), 'internal: cliente sem campo')
+    assert.ok(admitir(route, { ...f, REFERENCIA_UNICA_2411: 'public' }, { email: cliente, snapshot: snap, ...opts }).referenciaUnica, 'public: sem guarda')
+  }
+  // 6. a rota não liga sem o filme grátis nem por cima do personagem fixo, também para cliente
+  assert.equal('referenciaUnica' in admitir(route, f, { email: cliente, candidato: false, snapshot: s0 }), false)
+  assert.equal('referenciaUnica' in admitir(route, f, { email: cliente, fixo: { imageUrl: 'https://x.org/a.png', continuity: 'c' }, snapshot: s0 }), false)
+}
+
 const mutants = [
   [transport, "duration !== 15 || ", ''],
   [transport, '  if (!comPersonagem.some(Boolean)) return null\n', ''],
@@ -486,24 +575,43 @@ const mutants = [
   [transport, 'if (!comPersonagem[i]) {', 'if (false) {'],
   [transport, ".replace(/^(?:the|a|an)\\s+/, '')", ''],
   [transport, 'KLING4_TETO_DO_PLANO - Array.from(frase).length', 'KLING4_TETO_DO_PLANO'],
-  [feature, "modo === 'internal' && contaDaCasaExata(email)", "modo === 'internal'"],
-  [feature, "REFERENCIA_UNICA_2411: ModoReferenciaUnica2411 = 'internal'", "REFERENCIA_UNICA_2411: ModoReferenciaUnica2411 = 'public'"], // [CEO 24/11] a chave escapa para clientes
-  [feature, "REFERENCIA_UNICA_2411: ModoReferenciaUnica2411 = 'internal'", "REFERENCIA_UNICA_2411: ModoReferenciaUnica2411 = 'off'"], // a casa perde o caminho novo
-  [feature, "(modo === 'internal' && contaDaCasaExata(email))", "(modo === 'internal' && contaDaCasaExata(String(email ?? '').replace(/^x/, '')))"], // parecido com a casa passa
+  [feature, "(modo === 'internal' || modo === 'public_humano') && contaDaCasaExata(email)", "(modo === 'internal' || modo === 'public_humano')"],
+  [feature, "REFERENCIA_UNICA_2411: ModoReferenciaUnica2411 = 'public_humano'", "REFERENCIA_UNICA_2411: ModoReferenciaUnica2411 = 'public'"], // [CEO 24/11] a chave escapa para todo cliente
+  [feature, "REFERENCIA_UNICA_2411: ModoReferenciaUnica2411 = 'public_humano'", "REFERENCIA_UNICA_2411: ModoReferenciaUnica2411 = 'off'"], // a casa perde o caminho novo
+  [feature, "REFERENCIA_UNICA_2411: ModoReferenciaUnica2411 = 'public_humano'", "REFERENCIA_UNICA_2411: ModoReferenciaUnica2411 = 'internal'"], // o cliente humano fotorreal não recebe
+  [feature, "(modo === 'internal' || modo === 'public_humano') && contaDaCasaExata(email))", "(modo === 'internal' || modo === 'public_humano') && contaDaCasaExata(String(email ?? '').replace(/^x/, '')))"], // parecido com a casa passa
   [feature, 'leads.length !== 1', 'leads.length < 1'],
   [feature, "lead.tipo === 'humano' ? FRASE_REFERENCIA_PESSOA : FRASE_REFERENCIA_DESENHO", "lead.tipo === 'humano' ? FRASE_REFERENCIA_DESENHO : FRASE_REFERENCIA_PESSOA"],
   [feature, 's.characterNames.length === 1 && ', ''],
   [feature, 'const imageUrl = https(ficha) ? ficha : https(still) ? still : null', 'const imageUrl = https(still) ? still : https(ficha) ? ficha : null'],
   [feature, 'timing?.fixedCharacter || wire.model !== KLING4_REFERENCE_MODEL', 'timing?.fixedCharacter'],
-  [routeFile, 'if (!kling4Timing.fixedCharacter && kling4TrialCandidate && referenciaUnicaLigada(', 'if (kling4TrialCandidate && referenciaUnicaLigada('],
+  [routeFile, "if (!kling4Timing.fixedCharacter && kling4TrialCandidate && REFERENCIA_UNICA_2411 !== 'off') {", "if (kling4TrialCandidate && REFERENCIA_UNICA_2411 !== 'off') {"],
   [routeFile, '      if (q && a.timing.referenciaUnica) Object.assign(r.timing, { referenciaUnica: {', '      if (false) Object.assign(r.timing, { referenciaUnica: {'],
   // [revisor 24/11, volta 1] os três que sobreviviam (R1, R5, R9) e os da robustez e do juiz
-  [feature, "modo === 'internal' && contaDaCasaExata(email)", "modo === 'internal' && (contaDaCasaExata(email) || /@usekineo\\.com$/i.test(String(email ?? '')))"],
+  [feature, "(modo === 'internal' || modo === 'public_humano') && contaDaCasaExata(email)", "(modo === 'internal' || modo === 'public_humano') && (contaDaCasaExata(email) || /@usekineo\\.com$/i.test(String(email ?? '')))"],
   [transport, '  if (timing?.fixedCharacter) return buildKling4ReferenceInput(', '  if (timing?.fixedCharacter && !timing?.referenciaUnica) return buildKling4ReferenceInput('],
   [transport, 'shots.length > 6 ||', ''],
   [feature, [['  try { return escolherReferencia(snapshot) } catch { return null }', '  return escolherReferencia(snapshot)'], ['Array.isArray(s!.approvedStills) &&', '']]],
   [feature, [['  try { return escolherReferencia(snapshot) } catch { return null }', '  return escolherReferencia(snapshot)'], [' && Array.isArray(x.characterNames))', ')']]],
   [routeFile, '} catch (erro) { delete kling4Timing.referenciaUnica;', '} catch (erro) { throw erro; delete kling4Timing.referenciaUnica;'],
+  // KINEO-REFERENCIA-UNICA-HUMANO-2411 — a guarda do cliente, por comportamento
+  [feature, "  if (comFolha.some((c) => c.tipo !== 'humano')) return 'nao_humano'\n", ''], // bicho e criatura passam
+  [feature, "comFolha.some((c) => c.tipo !== 'humano')", "comFolha.some((c) => c.tipo === 'criatura')"], // bicho passa
+  [feature, "comFolha.some((c) => c.tipo !== 'humano')", "comFolha.some((c) => c.tipo === 'animal')"], // criatura passa
+  [feature, "(c) => c.protagonista === true || snapshot.characterReferences.some((r) => r.nome === c.nome && https(r.url))", '(c) => c.protagonista === true'], // o bicho com folha ao lado da pessoa passa
+  [feature, "(c) => c.protagonista === true || snapshot.characterReferences.some((r) => r.nome === c.nome && https(r.url))", '(c) => true'], // o bicho SEM folha ao lado da pessoa barra
+  [feature, "  if (filme.estilizado !== false) return 'estilizado' // na dúvida (campo ausente ou torto), estilizado\n", ''], // estilizado passa
+  [feature, 'if (filme.estilizado !== false)', 'if (filme.estilizado === true)'], // na dúvida, liga
+  [feature, "  if (leads > 1) return 'mais_de_um'\n", ''], // o motivo some (vira sem_referencia)
+  [feature, "  if (modo !== 'public_humano') return null\n", ''], // em 'internal' o cliente passa a receber
+  [feature, "  const motivo = motivoClienteSemReferencia2411(snapshot, filme)\n  if (motivo) return { motivo }\n", ''], // cliente sem a guarda
+  [feature, '  if (referenciaUnicaLigada(modo, email)) { const r', "  if (modo === 'public' && referenciaUnicaLigada(modo, email)) { const r"], // a casa passa pela guarda
+  [feature, "typeof timing.referenciaUnicaRecusa === 'string' ?", 'false ?'], // o claim nunca diz o motivo
+  [feature, 'timing && !timing.referenciaUnica && typeof', 'timing && typeof'], // motivo ao lado da referência usada
+  [routeFile, '{ estilizado: isStylizedLook(styleAnchor) || desenhoInfantil.ativo }', '{ estilizado: isStylizedLook(styleAnchor) }'], // o desenho infantil passa
+  [routeFile, '{ estilizado: isStylizedLook(styleAnchor) || desenhoInfantil.ativo }', '{ estilizado: false }'], // o estilo do filme ignorado
+  [routeFile, '        else if (ru2411) kling4Timing.referenciaUnicaRecusa = ru2411.motivo\n', ''], // a rota não grava o motivo
+  [routeFile, 'admitirReferenciaUnica2411(REFERENCIA_UNICA_2411, user.email, qualitySnapshot,', "admitirReferenciaUnica2411(REFERENCIA_UNICA_2411, 'josephsskaf@gmail.com', qualitySnapshot,"], // todo mundo vira casa
   [feature, 'p.slice(0, -(frase + CAUDA_DA_BOCA_2411).length) + CAUDA_DA_BOCA_2411', 'p'],
   [feature, [['p.endsWith(frase + CAUDA_DA_BOCA_2411) ? p.slice(0, -(frase + CAUDA_DA_BOCA_2411).length) + CAUDA_DA_BOCA_2411', 'p.includes(frase) ? p.replace(frase, \'\')']]],
   [routeFile, 'const reaproveitaJuiz1311 = !!envioFinal1311 && juizLeuOMesmoTexto(lidoPeloJuiz1311, envioFinal1311.cenas)', 'const reaproveitaJuiz1311 = !!envioFinal1311'],
@@ -546,4 +654,4 @@ for (const mutant of mutants) {
   await assert.rejects(suite(mutant), err => err instanceof assert.AssertionError, 'SOBREVIVEU: ' + mutant[1])
   mortos++
 }
-console.log(`PASS KINEO-REFERENCIA-UNICA-2411: chave no commit = 'internal' (cliente = main byte a byte; casa exata = caminho novo); off = main byte a byte nos 3 filmes; ligado = pedido A (endpoint, 1 imagem, planos, durações, sem start/middle, frase só no plano do personagem); fallback sem referência/sem personagem/20 s; 'internal' = lista exata; ${mortos}/${mutants.length} mutantes mortos.`)
+console.log(`PASS KINEO-REFERENCIA-UNICA-2411: chave no commit = 'public_humano' (cliente só pessoa fotorreal com 1 protagonista; bicho, criatura, desenho e 2 protagonistas = main byte a byte + motivo; casa exata = caminho novo em tudo); off = main byte a byte nos 3 filmes; ligado = pedido A (endpoint, 1 imagem, planos, durações, sem start/middle, frase só no plano do personagem); fallback sem referência/sem personagem/20 s; 'internal' = lista exata; ${mortos}/${mutants.length} mutantes mortos.`)
