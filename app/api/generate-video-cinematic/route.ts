@@ -6,6 +6,7 @@ import { narrationWordCount } from '@/lib/textLanguage' // KINEO-IDIOMAS-FORMATO
 import { NextRequest, NextResponse } from 'next/server'
 // KINEO-QUALIDADE-TODOS-MOTORES-2910 — shared quality and owner-bound continuation.
 import { decidirQualidadeDoFilme, prepararQualidadeDoFilme, travarEstiloDoFilme, promptCurtoDoFilmeKling4, limitarPromptDoFilmeKling25, referenciaDaCena, FILM_QUALITY_VERSION } from '@/lib/cinematic/filmQuality'
+import { prepararEpocaVisual, aplicarEpocaVisual } from '@/lib/cinematic/epocaVisual2411'
 import { promptDaCenaKling4 } from '@/lib/cinematic/cenaKling4' // KINEO-CENA-PEDIDO-3010
 import { eixosDoFilmeGratis, semEixoDoFilmeGratis } from '@/lib/cinematic/cenaKling4' // KINEO-REPETICAO-FREE15-1011 (linha própria)
 import { comSuperficieSemTexto } from '@/lib/cinematic/superficieSemTexto' // KINEO-CENA-PEDIDO-3010
@@ -7549,6 +7550,13 @@ async function manipularPost(req: NextRequest) {
     // KINEO-ELENCO-EPOCA-2710 — e ANTES da moderação do romance (logo abaixo), do dry-run, do still FLUX e do clipe: quem a história NOMEIA e não está em prompt nenhum entra na cena cuja fala o cita
     // KINEO-ELENCO-EPOCA-2710 — (Amna, Baba Noor, Sofia, o passageiro do último trem); ano/década da história (1953) vira figurino/carros/objetos da década em toda cena; "geleia" não vira jellyfish.
     // KINEO-ELENCO-EPOCA-2710 — O texto em inglês é o original ou a tradução que contextoDoFiltro já memoiza (zero chamada nova quando o alinhamento fala×imagem já a pediu). Falha aberta: o vetor fica.
+    // The author supplies the dates. A merged shot and its split sections can depict different years.
+    const epocaVisual = prepararEpocaVisual({
+      internal: kling4TrialCandidate && !qualidadeHerdada && isDryRunAccount(user.email),
+      pedido: verbatim ? prompt : pedidoDoCliente ?? '',
+      secoes: verbatim ? parsedScript.segments : [],
+      falas: scenes.map(s => s.voiceover ?? ''),
+    })
     let elencoEpocaRelato: RelatoElencoEpoca | null = null // KINEO-ELENCO-EPOCA-2710
     try { // KINEO-ELENCO-EPOCA-2710
       const contextoElencoEpoca = `${prompt} ${scenes.map((s) => s.voiceover ?? '').join(' ')}` // KINEO-ELENCO-EPOCA-2710
@@ -7558,6 +7566,11 @@ async function manipularPost(req: NextRequest) {
       if (personagemCenas) personagemCenas.cenas = cenasDoElenco(classicScenePrompts, scenes.map(s => s.voiceover ?? ''), elencoDoAjuste) // KINEO-QUALIDADE-TODOS-MOTORES-2910 — final cast determines the sheet/critic targets.
       if (elencoEpoca.relato.elenco.some((e) => e.cenas_inseridas.length > 0) || elencoEpoca.relato.epoca || elencoEpoca.relato.falsos_amigos.length) console.log(`[cinematic] KINEO-ELENCO-EPOCA: texto=${elencoEpoca.relato.texto} elenco=${elencoEpoca.relato.elenco.map((e) => `${e.nome}→cenas ${e.cenas_inseridas.join(',') || (e.ja_presente ? 'já presente' : '-')}`).join(' · ') || '-'} época=${elencoEpoca.relato.epoca?.rotulo ?? '-'} (${elencoEpoca.relato.cenas_com_epoca.length} cena(s)) modernidades=${elencoEpoca.relato.modernidades.join(',') || '-'} falsos_amigos=${elencoEpoca.relato.falsos_amigos.join(',') || '-'} ordem_removida=${elencoEpoca.relato.ordem_removida.join(',') || '-'}`) // KINEO-ELENCO-EPOCA-2710
     } catch (e) { console.warn('[cinematic] KINEO-ELENCO-EPOCA falhou, prompts seguem como estavam:', e instanceof Error ? e.message : String(e)) } // KINEO-ELENCO-EPOCA-2710
+    if (epocaVisual) {
+      for (let i = 0; i < classicScenePrompts.length; i++) {
+        classicScenePrompts[i] = aplicarEpocaVisual(classicScenePrompts[i], epocaVisual.cenas[i])
+      }
+    }
     if (romanceAdulto.ativo) { // KINEO-ROMANCE-ADULTO-2026-10-13
       const moderacaoRomance = await moderateContent({ surface: 'clip', stage: 'input', userId: user.id, text: textoParaModeracao(classicScenePrompts), meta: { route: 'generate-video-cinematic', check: 'final_scene_text', romance: true, version: ROMANCE_ADULTO_VERSAO, scenes: classicScenePrompts.length } }) // KINEO-ROMANCE-ADULTO-2026-10-13
       void writeServerEvent({ name: 'romance_adult_guard', userId: user.id, path: '/api/generate-video-cinematic', sessionId: generationId, metadata: { version: ROMANCE_ADULTO_VERSAO, motivo: romanceAdulto.motivo, elenco: romanceAdulto.elenco, visual_mode: classicVisualMode, look: styleAnchor.look, scenes: classicScenePrompts.length, scenes_with_adult_suffix: classicScenePrompts.filter((p) => p.includes(ROMANCE_ADULT_SUFFIX)).length, moderation: moderacaoRomance.ok ? 'ok' : moderacaoRomance.reason, dry_run: body.dry_run === true } }) // KINEO-ROMANCE-ADULTO-2026-10-13
@@ -7673,6 +7686,10 @@ async function manipularPost(req: NextRequest) {
       }
       if (q && a.timing.clipSeconds) Object.assign(r.timing, { clipSeconds: a.timing.clipSeconds }) // KINEO-K4-GRATIS-20S-1711 — o plano por seção leva o total do clipe (sem o campo = 15)
       if (q && a.timing.referenciaUnica) Object.assign(r.timing, { referenciaUnica: { ...a.timing.referenciaUnica, metades: q.grupos.flatMap((g) => g.map(() => g.length > 1)) } }) // KINEO-REFERENCIA-UNICA-2411 — o plano por seção leva a referência (sem o campo = o de hoje) · KINEO-REFERENCIA-UNICA-PUBLIC-2411: + quais planos são metade de cena fundida (a ficha ali é herança)
+      if (epocaVisual) {
+        const indices = r.planos?.flat()
+        r.prompts = r.prompts.map((p, i) => aplicarEpocaVisual(p, indices ? epocaVisual.secoes[indices[i]] : epocaVisual.cenas[i]))
+      }
       const r2 = { ...r, prompts: r.prompts.map((p) => comSuperficieNoPlano(p)) } // KINEO-BALAO-SEM-LETRA-1111 [CEO 11/11] — a metade da cena fundida nasce da pista da seção depois da proteção de superfície: balão/página/tela dela ganha a frase sem letra aqui
       const r3 = kling4PlanoVariado ? { ...r2, prompts: planosComEscalaVariada(r2.prompts, r2.approvedStills).prompts } : r2 // KINEO-K4-PLANO-VARIADO-1111 — escala diferente de plano a plano (nunca dois closes seguidos); plano com imagem-chave fica como está
       // KINEO-K4-PLANO-FINAL-1111 [CEO 11/11, alavanca 1, atrás de KLING4_PLANO_FINAL] — o último plano em movimento: o momento acontece e se completa na tela,
@@ -8152,7 +8169,7 @@ async function manipularPost(req: NextRequest) {
       const cenasP = cenasDoElenco(classicScenePrompts, scenes.map((s) => s.voiceover ?? ''), elencoP).filter((c) => c.nomes.length > 0 && !fichaCortada1311.indices.has(c.indice) /* KINEO-FICHA-POR-PLANO-2011 [rv22]: plano cortado = still de texto, sem folha */).slice(0, PERSONAGEM_MAX_STILLS) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — quem está na cena: o visual diz se há alguém, a FALA diz quem; era: cenasComPersonagem(visuaisP, elencoP) // KINEO-QUALIDADE-TODOS-MOTORES-2910
       const motivosP: Partial<Record<MotivoStillComFolha, number>> = {} // KINEO-META95-PERSONAGEM-AJUSTE-2010
       let reconferidasP = 0 // KINEO-META95-PERSONAGEM-AJUSTE-2010
-      const folhasP = await Promise.all(elencoP.map((f, i) => qualidadeHerdada ? Promise.resolve(referenciaDaCena(qualidadeHerdada, [f])?.url ?? null) : generateCinematicSceneStill({ scenePrompt: promptDaFolha(f, styleAnchor, folhaSemNome2511), styleSuffix: '', seed: (generationSeed + 7_919 * (101 + i)) % 2_147_483_647, pollWindowMs: 15_000, aspect: aspectRequested }))) // KINEO-QUALIDADE-TODOS-MOTORES-2910
+      const folhasP = await Promise.all(elencoP.map((f, i) => qualidadeHerdada ? Promise.resolve(referenciaDaCena(qualidadeHerdada, [f])?.url ?? null) : generateCinematicSceneStill({ scenePrompt: aplicarEpocaVisual(promptDaFolha(f, styleAnchor, folhaSemNome2511), epocaVisual?.ficha, true), styleSuffix: '', seed: (generationSeed + 7_919 * (101 + i)) % 2_147_483_647, pollWindowMs: 15_000, aspect: aspectRequested }))) // KINEO-QUALIDADE-TODOS-MOTORES-2910
       const folhaDe = new Map<string, string>(elencoP.flatMap((f, i): Array<[string, string]> => (folhasP[i] ? [[f.nome, folhasP[i] as string]] : []))) // KINEO-META95-PERSONAGEM-2010
       // KINEO-JUIZ-DA-FOLHA-2411 [CEO 24/11, Bolt ab9a1d7a: a folha saiu cachorro-robô e o filme seguiu a folha] — a casa, no filme grátis do Kling 4, com folha nova (herdada não): cada folha é LIDA antes de
       // qualquer imagem-chave. Reprovou: UMA folha nova com a instrução do que faltou, e ela passa a ser a folha do filme. Reprovou de novo ou sem leitura: a folha segue no caminho de hoje (imagens-chave),
