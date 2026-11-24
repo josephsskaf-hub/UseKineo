@@ -20,11 +20,15 @@ const previous=Object.fromEntries([INTENT,CAT,MAP,'components/ugc/UgcPages.tsx']
 const old=make(previous),json=x=>JSON.parse(JSON.stringify(x)),oldMap=json(old(MAP).default()),oldSlugs=json(old(CAT).INTENT_SLUGS),oldParams=json(old(INTENT).generateStaticParams())
 const render=(l,f,p={})=>renderToStaticMarkup(React.createElement(l(f).default,p)),schemas=h=>[...h.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(x=>JSON.parse(x[1]))
 const controls=['urdu','story-videos','faceless-videos','documentary-shorts','instagram-reels'],oldHtml=new Map(controls.map(slug=>[slug,render(old,INTENT,{params:{slug}})]))
-const release=(rep,state)=>({...rep,[RELEASE]:(rep[RELEASE]??source(RELEASE)).replace("CITATION_PAGES_RELEASE: CitationPagesRelease = 'internal'",`CITATION_PAGES_RELEASE: CitationPagesRelease = '${state}'`)})
+// KINEO-CITACOES-PUBLIC-2411: o padrão agora é 'public'; a troca de estado casa qualquer valor para nunca virar no-op calado.
+const release=(rep,state)=>{const t=(rep[RELEASE]??source(RELEASE)).replace(/(CITATION_PAGES_RELEASE: CitationPagesRelease = )'(?:off|internal|public)'/,`$1'${state}'`);assert.ok(t.includes(`CITATION_PAGES_RELEASE: CitationPagesRelease = '${state}'`),'RELEASE override anchor');return{...rep,[RELEASE]:t}}
+// Hub UGC antes da virada (origin/main 55e4855f6): base exata para provar que public só acrescenta a âncora do anúncio pela foto.
+const PILLAR='components/ugc/UgcPages.tsx',hubBefore=execFileSync('git',['show','55e4855f6:'+PILLAR],{encoding:'utf8'})
+const hubAnchor=/<a href="\/ai-ugc-ads\/product-photo-ads">([\s\S]*?)<\/a>/g
 const denied=async fn=>{try{await fn();return false}catch(e){if(e.message==='NEXT_NOT_FOUND')return true;throw e}}
 async function verify(rep={}){
  const l=make(rep),a=l(ACCESS),house=l('lib/internalAccounts.ts').INTERNAL_EXACT_EMAILS,slugs=json(a.CITATION_DRAFT_SLUGS)
- assert.equal(a.CITATION_PAGES_RELEASE,'internal','DEFAULT pages internal')
+ assert.equal(a.CITATION_PAGES_RELEASE,'public','DEFAULT pages public')
  for(const email of [null,'buyer@example.com',...house]){
   const user=email?{email,email_confirmed_at:'yes'}:null
   assert.equal(a.citationPageVisible(user,'off'),false,'GATE off everyone')
@@ -33,9 +37,14 @@ async function verify(rep={}){
  for(const email of house)assert.equal(a.citationPageVisible({email:' '+email.toUpperCase()+' ',email_confirmed_at:'yes'},'internal'),true,'GATE exact house')
  for(const email of ['test-customer@example.com','joseph+unknown@gmail.com','josephsskaf@gmail.com.evil.example'])assert.equal(a.citationPageVisible({email,email_confirmed_at:'yes'},'internal'),false,'GATE lookalikes denied')
  assert.equal(a.citationPageVisible({email:house[0]},'internal'),false,'GATE unconfirmed denied')
- assert.deepEqual(json(l(CAT).INTENT_SLUGS),oldSlugs,'INDEX off exactly old slugs')
- assert.deepEqual(json(l(INTENT).generateStaticParams()),oldParams,'STATIC off exactly old params')
- assert.deepEqual(json(l(MAP).default()),oldMap,'SITEMAP off exactly old entries')
+ for(const state of ['off','internal']){const closed=make(release(rep,state))
+ assert.deepEqual(json(closed(CAT).INTENT_SLUGS),oldSlugs,'INDEX off exactly old slugs')
+ assert.deepEqual(json(closed(INTENT).generateStaticParams()),oldParams,'STATIC off exactly old params')
+ assert.deepEqual(json(closed(MAP).default()),oldMap,'SITEMAP off exactly old entries')}
+ const sorted=a=>[...a].sort()
+ assert.deepEqual(sorted(json(l(CAT).INTENT_SLUGS)),sorted([...oldSlugs,...slugs]),'INDEX public old slugs plus three drafts')
+ assert.deepEqual(sorted(json(l(INTENT).generateStaticParams()).map(x=>x.slug)),sorted([...oldParams.map(x=>x.slug),...slugs]),'STATIC public old params plus three drafts')
+ const hubBase=new Map(['en','pt'].map(lang=>[lang,renderToStaticMarkup(React.createElement(make({...rep,[PILLAR]:hubBefore})(PILLAR).UgcPillarPage,{lang}))]))
  const child=React.createElement('p',null,'Private preview')
  const user={email:house[0],email_confirmed_at:'yes'}
  assert.strictEqual(await make(rep,{data:{user},error:null})(AUTH).default({children:child}),child,'AUTH verified house allowed')
@@ -79,6 +88,13 @@ async function verify(rep={}){
   if(state==='public')for(const entry of fresh.filter(x=>!x.url.endsWith(adPath)))assert.equal(entry.lastModified,'2026-11-23T12:00:00.000Z','SITEMAP new format review date')
   if(state==='public')assert.equal(fresh.find(x=>x.url.endsWith(adPath)).lastModified,'2026-11-23','SITEMAP ad substantive date')
   for(const slug of controls)assert.equal(render(current,INTENT,{params:{slug}}),oldHtml.get(slug),'CONTROL old intent unchanged')
+  for(const lang of ['en','pt']){
+   const h=renderToStaticMarkup(React.createElement(current(PILLAR).UgcPillarPage,{lang})),found=[...h.matchAll(hubAnchor)]
+   if(state!=='public'){assert.equal(h,hubBase.get(lang),'HUB link only in public');continue}
+   assert.equal(found.length,1,'HUB link present in public')
+   assert.equal(found[0][1].replace(/<!-- -->/g,''),(lang==='pt'?'Anúncio pela foto do produto':'Product photo ads')+' →','HUB label in hub language')
+   assert.equal(h.replace(found[0][0],''),hubBase.get(lang),'HUB only the anchor added')
+  }
  }
  const publicLoader=make(release(rep,'public')),facts=publicLoader('lib/growth/paginaFotoProduto2311.ts').fotoProdutoFacts(),billing=publicLoader('lib/ads/v2Tiers.ts'),html=render(publicLoader,AD),tiers=['starter','basic','pro'],pricing=publicLoader('lib/marketingPrice.ts')
  for(const level of facts.levels){assert.equal(level.credits15,billing.adsV2Credits(level.id,15),'COST ad agrees with billing');for(const row of level.credits)assert.equal(row.credits,billing.adsV2Credits(level.id,row.seconds),'COST duration agrees with billing')}
@@ -87,7 +103,14 @@ async function verify(rep={}){
 await verify()
 const sub=(f,a,b)=>{const s=source(f);assert.equal(s.split(a).length,2,'mutation anchor '+a);return{[f]:s.replace(a,b)}}
 const mutants=[
- ['default public',()=>sub(RELEASE,"CITATION_PAGES_RELEASE: CitationPagesRelease = 'internal'","CITATION_PAGES_RELEASE: CitationPagesRelease = 'public'"),'DEFAULT pages internal'],
+ ['default back to internal',()=>sub(RELEASE,"CITATION_PAGES_RELEASE: CitationPagesRelease = 'public'","CITATION_PAGES_RELEASE: CitationPagesRelease = 'internal'"),'DEFAULT pages public'],
+ ['default back to off',()=>sub(RELEASE,"CITATION_PAGES_RELEASE: CitationPagesRelease = 'public'","CITATION_PAGES_RELEASE: CitationPagesRelease = 'off'"),'DEFAULT pages public'],
+ ['catalog drops drafts in public',()=>sub(CAT,"!isCitationDraftSlug(p.slug) || CITATION_PAGES_RELEASE === 'public'","!isCitationDraftSlug(p.slug)"),'INDEX public old slugs plus three drafts'],
+ ['hub link leaks in internal',()=>sub(PILLAR,"CITATION_PAGES_RELEASE === 'public' ? [...related,","CITATION_PAGES_RELEASE !== 'off' ? [...related,"),'HUB link only in public'],
+ ['hub link leaks in off',()=>sub(PILLAR,"CITATION_PAGES_RELEASE === 'public' ? [...related,","true ? [...related,"),'HUB link only in public'],
+ ['hub link missing in public',()=>sub(PILLAR,"CITATION_PAGES_RELEASE === 'public' ? [...related,","false ? [...related,"),'HUB link present in public'],
+ ['hub label wrong language',()=>sub(PILLAR,"label: pt ? 'Anúncio pela foto do produto' : 'Product photo ads'","label: 'Product photo ads'"),'HUB label in hub language'],
+ ['hub changes other text',()=>sub(PILLAR,"<Related heading={c.relatedHeading} links={CITATION_PAGES_RELEASE","<Related heading={c.relatedHeading + (CITATION_PAGES_RELEASE === 'public' ? ' ' : '')} links={CITATION_PAGES_RELEASE"),'HUB only the anchor added'],
  ['rewrite in off',()=>sub(RELEASE,"if (CITATION_PAGES_RELEASE !== 'internal') return null",'if (false) return null'),'PREVIEW rewrite only in internal mode'],
  ['preview bypass state',()=>sub(PREVIEW,"CITATION_PAGES_RELEASE !== 'internal' || !isCitationDraftSlug(params.slug)",'!isCitationDraftSlug(params.slug)'),'PREVIEW direct route closed outside internal'],
  ['off bypass',()=>sub(ACCESS,"release === 'public'","release === 'off' || release === 'public'"),'GATE off everyone'],

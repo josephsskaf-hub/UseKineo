@@ -21,7 +21,8 @@ const baseline=JSON.parse(source('scripts/test-support/citacoes-formatos-referen
 assert.equal(createHash('sha256').update(JSON.stringify(baseline.sources)).digest('hex'),'6a78a933af2627240ce53a214a09bfb930aa97ff64e7e925d0946bca6f1f9c48','Exact frozen baseline, portable without unmerged git objects')
 const oldSource=baseline.sources[INTENT],oldAd=baseline.sources[AD]
 const render=(l,f,p={})=>renderToStaticMarkup(React.createElement(l(f).default,p))
-const publicRep=rep=>({...rep,[RELEASE]:(rep[RELEASE]??source(RELEASE)).replace("CITATION_PAGES_RELEASE: CitationPagesRelease = 'internal'","CITATION_PAGES_RELEASE: CitationPagesRelease = 'public'")})
+// KINEO-CITACOES-PUBLIC-2411: o padrão agora é 'public'; a troca forçada casa qualquer estado para nunca virar no-op calado.
+const publicRep=rep=>{const t=(rep[RELEASE]??source(RELEASE)).replace(/(CITATION_PAGES_RELEASE: CitationPagesRelease = )'(?:off|internal|public)'/,"$1'public'");assert.ok(t.includes("CITATION_PAGES_RELEASE: CitationPagesRelease = 'public'"),'RELEASE override anchor');return{...rep,[RELEASE]:t}}
 const old=make(publicRep({[INTENT]:oldSource,[AD]:oldAd}))
 const controls=['urdu','story-videos','faceless-videos','documentary-shorts','instagram-reels']
 const schemas=h=>[...h.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(x=>JSON.parse(x[1]))
@@ -37,7 +38,7 @@ const expected={
 const strip=h=>h.replace(/<style data-citation-format-theme="2411">[\s\S]*?<\/style>/g,'').replace(/<section class="cfh-2411"[\s\S]*?<\/section>/g,'').replaceAll(' kpl-citation-format-2411','').replace(/ style="[^"]*"/g,'')
 function verify(rep={}){
  const r=publicRep(rep),l=make(r),data=l(DATA)
- assert.equal(make(rep)(ACCESS).CITATION_PAGES_RELEASE,'internal','DEFAULT remains internal')
+ assert.equal(make(rep)(ACCESS).CITATION_PAGES_RELEASE,'public','DEFAULT is public')
  for(const slug of Object.keys(expected)){
   const props={params:{slug}},b=render(old,INTENT,props),h=render(l,INTENT,props)
   assert.equal((h.match(/id="citation-format-(?:cartoon-videos|animated-story-videos|animal-story-videos)"/g)||[]).length,1,'HERO one form')
@@ -77,7 +78,9 @@ const mutants=[
  ['offer changed',()=>sub(HERO,'creationIntent="trial_best"','creationIntent="fast"'),'OFFER trial_best preserved'],
  ['handoff dropped',()=>sub(HERO,' preserveHandoffForSignedIn',''),'HANDOFF signed-in destination'],
  ['dark scope removed',()=>sub(DATA,'html[data-theme="dark"] .kpl-citation-format-2411{','html[data-theme="disabled"] .kpl-citation-format-2411{'),'THEME explicit dark scope'],
+ ['default back to internal',()=>sub(RELEASE,"CITATION_PAGES_RELEASE: CitationPagesRelease = 'public'","CITATION_PAGES_RELEASE: CitationPagesRelease = 'internal'"),'DEFAULT is public'],
+ ['default back to off',()=>sub(RELEASE,"CITATION_PAGES_RELEASE: CitationPagesRelease = 'public'","CITATION_PAGES_RELEASE: CitationPagesRelease = 'off'"),'DEFAULT is public'],
  ['old page modified',()=>sub(INTENT,": PAGINA_CLARA_CLASSE}",": PAGINA_CLARA_CLASSE + ' kpl-citation-format-2411'}"),'CONTROL old intent byte identical'],
 ]
 for(const[name,mutate,message]of mutants){assert.throws(()=>verify(mutate()),e=>e?.code==='ERR_ASSERTION'&&(e.message===message||e.message.startsWith(message+'\n')),name+' dies at exact assertion '+message);console.log('PASS mutant '+name+' -> '+message)}
-console.log('PASS actual 3 format heroes, distinct own examples, native form contract, theme scope, old text/schema/meta, 5 old intents + unchanged product ad, 8 mutants')
+console.log('PASS actual 3 format heroes, distinct own examples, native form contract, theme scope, old text/schema/meta, 5 old intents + unchanged product ad, '+mutants.length+' mutants')

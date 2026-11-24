@@ -29,6 +29,7 @@ import {
 import { ShowcaseStrip } from '@/app/claude-connector/ShowcaseGrid' // KINEO-VITRINE-PAGINAS-1011
 import { vitrineDaPagina } from '@/lib/seo/vitrinePaginas1011' // KINEO-VITRINE-PAGINAS-1011
 import { FOTO_PRODUTO_CAMPAIGN, FOTO_PRODUTO_CTA_HREF, FOTO_PRODUTO_MARK, FOTO_PRODUTO_PATH, FOTO_PRODUTO_REVIEWED_ISO, fotoProdutoCopy, fotoProdutoFacts } from '@/lib/growth/paginaFotoProduto2311' // KINEO-CITACOES-FLUXO-D11
+import { CITATION_PAGES_RELEASE } from '@/lib/growth/citationPagesRelease' // KINEO-CITACOES-PUBLIC-2411 — link do hub para o anúncio pela foto, só em public
 
 const vitrineUgc = vitrineDaPagina('/ai-ugc-ads') // KINEO-VITRINE-PAGINAS-1011
 
@@ -378,7 +379,7 @@ export function UgcPillarPage({ lang }: { lang: UgcLang }) {
         </div>
       </section>
       <Faq heading={c.faqHeading} faqs={c.faqs} />
-      <Related heading={c.relatedHeading} links={related} />
+      <Related heading={c.relatedHeading} links={CITATION_PAGES_RELEASE === 'public' ? [...related, { href: FOTO_PRODUTO_PATH, label: pt ? 'Anúncio pela foto do produto' : 'Product photo ads' }] : related} />
       <div className="kug-wrap">
         <div className="kug-closing">
           <div><h2>{c.closingHeading}</h2><p>{c.closingText}</p></div>
