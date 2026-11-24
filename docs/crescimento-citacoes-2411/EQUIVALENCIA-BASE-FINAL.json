@@ -1,0 +1,171 @@
+{
+  "base": "e591827c5",
+  "originalReviewed": "94c15505f",
+  "current": "b921f6bf622550c998f28271075b759479ea0124",
+  "sameOwn": [
+    {
+      "file": "app/ai-ugc-ads/product-photo-ads/page.tsx",
+      "reviewed": "29d946511088c3057ad9dd7e9d60179c6a2bd8fb",
+      "current": "29d946511088c3057ad9dd7e9d60179c6a2bd8fb"
+    },
+    {
+      "file": "app/ai-video-generator/for/[slug]/page.tsx",
+      "reviewed": "03b4698d6c11daed92f7d8b035da76fa98e90fb0",
+      "current": "03b4698d6c11daed92f7d8b035da76fa98e90fb0"
+    },
+    {
+      "file": "app/api/citations/film-entry/route.ts",
+      "reviewed": "0aa254e569d2589275689c0c6c94099066d1b2ef",
+      "current": "0aa254e569d2589275689c0c6c94099066d1b2ef"
+    },
+    {
+      "file": "app/api/citations/film-visibility/route.ts",
+      "reviewed": "0ff671c1eb61e9ce75674d53a7ae84a45b1b8c1b",
+      "current": "0ff671c1eb61e9ce75674d53a7ae84a45b1b8c1b"
+    },
+    {
+      "file": "app/best-ai-shorts-generators/page.tsx",
+      "reviewed": "ac2b749589d6bd6ebb980d61a06020cd598dadec",
+      "current": "ac2b749589d6bd6ebb980d61a06020cd598dadec"
+    },
+    {
+      "file": "app/cheapest-ai-shorts-maker/page.tsx",
+      "reviewed": "b194962f61591a8e9ba2af2c468f01dd315d62eb",
+      "current": "b194962f61591a8e9ba2af2c468f01dd315d62eb"
+    },
+    {
+      "file": "app/free-ai-shorts-generator/page.tsx",
+      "reviewed": "2712b1fd694db4509fbda682c2992a7e9a40e67f",
+      "current": "2712b1fd694db4509fbda682c2992a7e9a40e67f"
+    },
+    {
+      "file": "app/free-script-generator/FreeScriptClient.tsx",
+      "reviewed": "5869a6325aa0b59ac8477e45a0a1a14edb60197b",
+      "current": "5869a6325aa0b59ac8477e45a0a1a14edb60197b"
+    },
+    {
+      "file": "app/free-script-generator/page.tsx",
+      "reviewed": "802619d522b27c94e2260ba3cb0f624f7d2e1ba4",
+      "current": "802619d522b27c94e2260ba3cb0f624f7d2e1ba4"
+    },
+    {
+      "file": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "reviewed": "a5ebc9d3a54f694cc3c0e3f21fabd01f6280d41e",
+      "current": "a5ebc9d3a54f694cc3c0e3f21fabd01f6280d41e"
+    },
+    {
+      "file": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "reviewed": "21cb194ebfe27497e445c47963e77039355f61cf",
+      "current": "21cb194ebfe27497e445c47963e77039355f61cf"
+    },
+    {
+      "file": "app/sitemap.ts",
+      "reviewed": "6fa23c84f706e39397ef0d1a9233f4836ef0da26",
+      "current": "6fa23c84f706e39397ef0d1a9233f4836ef0da26"
+    },
+    {
+      "file": "app/state-of-ai-shorts-2026/page.tsx",
+      "reviewed": "973c1bb1535f84ef157aa1e3ef6549bfafa4e738",
+      "current": "973c1bb1535f84ef157aa1e3ef6549bfafa4e738"
+    },
+    {
+      "file": "app/text-to-video-shorts/TextToVideoIntentForm.tsx",
+      "reviewed": "b92b12b0d2f88b4d2855385f28e1fe60867f1a36",
+      "current": "b92b12b0d2f88b4d2855385f28e1fe60867f1a36"
+    },
+    {
+      "file": "app/youtube-shorts-from-topic/TopicGeneratorForm.tsx",
+      "reviewed": "dc09423746ded01e6b04cdeb7bccfac891b4173e",
+      "current": "dc09423746ded01e6b04cdeb7bccfac891b4173e"
+    },
+    {
+      "file": "components/seo/CitationFilmExperiment.tsx",
+      "reviewed": "cd2079cbc55d0283d1319f35ab5be4bf37fe1208",
+      "current": "cd2079cbc55d0283d1319f35ab5be4bf37fe1208"
+    },
+    {
+      "file": "components/seo/CitationFilmProof.tsx",
+      "reviewed": "5265f330e0c3e57c38d3ea6f7c3f9f027f2949c2",
+      "current": "5265f330e0c3e57c38d3ea6f7c3f9f027f2949c2"
+    },
+    {
+      "file": "components/seo/CitationFilmShortAnswer.tsx",
+      "reviewed": "57cbfed656705080e68abc77011da4e7841cfe29",
+      "current": "57cbfed656705080e68abc77011da4e7841cfe29"
+    },
+    {
+      "file": "components/seo/CitationFormatHero.tsx",
+      "reviewed": "578f0275ae0a8bb36e5a2cb7b7ca375407959cd2",
+      "current": "578f0275ae0a8bb36e5a2cb7b7ca375407959cd2"
+    },
+    {
+      "file": "components/seo/InternalCitationPreview.tsx",
+      "reviewed": "a7998529f89fbfac8422ffdfc1b4d06b120f1e64",
+      "current": "a7998529f89fbfac8422ffdfc1b4d06b120f1e64"
+    },
+    {
+      "file": "components/ugc/UgcPages.tsx",
+      "reviewed": "46c7c9c21a9c09dfecfeaf916d4e826f7516f90a",
+      "current": "46c7c9c21a9c09dfecfeaf916d4e826f7516f90a"
+    },
+    {
+      "file": "lib/growth/citationFilmRelease.ts",
+      "reviewed": "668d6750f88018bcb0addf5176249921472c4821",
+      "current": "668d6750f88018bcb0addf5176249921472c4821"
+    },
+    {
+      "file": "lib/growth/citationFilmVisibilityClient.ts",
+      "reviewed": "41b344881f1c3faea167b0f1c8b7124885144947",
+      "current": "41b344881f1c3faea167b0f1c8b7124885144947"
+    },
+    {
+      "file": "lib/growth/citationFormatHero2411.ts",
+      "reviewed": "edbab079d831b160466f21d4fbabccc33b0131da",
+      "current": "edbab079d831b160466f21d4fbabccc33b0131da"
+    },
+    {
+      "file": "lib/growth/citationPagesAccess.ts",
+      "reviewed": "4b2ea931992082b3b0c79ad877f1ad15e2eb4e50",
+      "current": "4b2ea931992082b3b0c79ad877f1ad15e2eb4e50"
+    },
+    {
+      "file": "lib/growth/citationPagesRelease.ts",
+      "reviewed": "5ee48af8d6605ef0e8a949ea9026cf79d633a114",
+      "current": "5ee48af8d6605ef0e8a949ea9026cf79d633a114"
+    },
+    {
+      "file": "lib/growth/paginaFotoProduto2311.ts",
+      "reviewed": "08ec52bc03a518186b8c0e17055607d6a579f912",
+      "current": "08ec52bc03a518186b8c0e17055607d6a579f912"
+    },
+    {
+      "file": "lib/seo/intentPages.ts",
+      "reviewed": "a796a3a0873694569c5c602f52fc2f02fb5d10bf",
+      "current": "a796a3a0873694569c5c602f52fc2f02fb5d10bf"
+    }
+  ],
+  "sameParent": [
+    {
+      "file": "app/api/generate-video-cinematic/route.ts",
+      "parent": "88979b5234134f646722cace43fabcb462adac6b",
+      "current": "88979b5234134f646722cace43fabcb462adac6b"
+    },
+    {
+      "file": "lib/cinematic/referenciaUnica2411.ts",
+      "parent": "ba3bd216c8b07ca46dd2f875adb5c995925bd8a8",
+      "current": "ba3bd216c8b07ca46dd2f875adb5c995925bd8a8"
+    },
+    {
+      "file": "lib/kling4Trial.ts",
+      "parent": "5adb42bd8acc9605d955a7faa3aa3d1455ea0428",
+      "current": "5adb42bd8acc9605d955a7faa3aa3d1455ea0428"
+    },
+    {
+      "file": "lib/ui/unifiedAccountMenu.ts",
+      "parent": "8a729a5502a65905ee96cf83db16e270a0beabb9",
+      "current": "8a729a5502a65905ee96cf83db16e270a0beabb9"
+    }
+  ],
+  "sourceEquivalence": true,
+  "notes": "Product areas byte-identical to independently approved source; four parent product files preserved exactly. Two guard reanchors are separate, no product edits."
+}

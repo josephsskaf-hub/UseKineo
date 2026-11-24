@@ -1,0 +1,119 @@
+{
+  "allClientRoots": 415,
+  "serverAllowlistReachable": false,
+  "method": "TypeScript local import/export/dynamic-import/require graph, page plus ancestor layouts, then actual transpilation and Next Terser minification with compression disabled to preserve every reachable string; no next build claim",
+  "pages": [
+    {
+      "entry": "app/best-ai-shorts-generators/page.tsx",
+      "ancestorLayouts": [
+        "app/layout.tsx"
+      ],
+      "clientRoots": 22,
+      "modules": 144,
+      "minifiedBytes": 1180573,
+      "sha256": "29fa4fd6b0234b3ccd8ec5d15768a5265eee9560e4d8312566ef4743f52841a9",
+      "protectedMarkersFound": 0
+    },
+    {
+      "entry": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "ancestorLayouts": [
+        "app/layout.tsx"
+      ],
+      "clientRoots": 20,
+      "modules": 96,
+      "minifiedBytes": 943792,
+      "sha256": "b92dc6afb89802d76c6fdd3590c728d4c061b618438ffd6b722809ce81a81e8a",
+      "protectedMarkersFound": 0
+    },
+    {
+      "entry": "app/ai-video-generator/for/[slug]/page.tsx",
+      "ancestorLayouts": [
+        "app/layout.tsx"
+      ],
+      "clientRoots": 23,
+      "modules": 142,
+      "minifiedBytes": 1201058,
+      "sha256": "733715271e482d22635d204ab37f2985fbf272dcb239b0ef28285dbf6f4e0ea7",
+      "protectedMarkersFound": 0
+    },
+    {
+      "entry": "app/ai-ugc-ads/product-photo-ads/page.tsx",
+      "ancestorLayouts": [
+        "app/layout.tsx"
+      ],
+      "clientRoots": 21,
+      "modules": 95,
+      "minifiedBytes": 1007445,
+      "sha256": "5fc30282c956b41e76ace3152a8652d44bfa3d15fa95e4a43555df4b002648f5",
+      "protectedMarkersFound": 0
+    },
+    {
+      "entry": "app/(dashboard)/studio/page.tsx",
+      "ancestorLayouts": [
+        "app/(dashboard)/layout.tsx",
+        "app/layout.tsx"
+      ],
+      "clientRoots": 34,
+      "modules": 305,
+      "minifiedBytes": 2009297,
+      "sha256": "8193da68845a1a6fbac0951b63053647c167051d6a4c7017a8465cc924c484c8",
+      "protectedMarkersFound": 0
+    },
+    {
+      "entry": "app/free-ai-shorts-generator/page.tsx",
+      "ancestorLayouts": [
+        "app/layout.tsx"
+      ],
+      "clientRoots": 29,
+      "modules": 162,
+      "minifiedBytes": 1257597,
+      "sha256": "79c3717aef9666b401eb93dbd95b2fdd487fe0554e80f1155e2c4b33509a38dd",
+      "protectedMarkersFound": 0
+    },
+    {
+      "entry": "app/cheapest-ai-shorts-maker/page.tsx",
+      "ancestorLayouts": [
+        "app/layout.tsx"
+      ],
+      "clientRoots": 24,
+      "modules": 104,
+      "minifiedBytes": 989530,
+      "sha256": "b6d845d22188620814fc187fa3849618b5694e34b8940ca02b3b71577399ae87",
+      "protectedMarkersFound": 0
+    },
+    {
+      "entry": "app/how-much-do-instagram-reels-pay/page.tsx",
+      "ancestorLayouts": [
+        "app/layout.tsx"
+      ],
+      "clientRoots": 17,
+      "modules": 89,
+      "minifiedBytes": 930043,
+      "sha256": "e5612401ceca7daaa08aa70edd09f946c6746fc089649f3b566d9c3f650ec357",
+      "protectedMarkersFound": 0
+    },
+    {
+      "entry": "app/state-of-ai-shorts-2026/page.tsx",
+      "ancestorLayouts": [
+        "app/layout.tsx"
+      ],
+      "clientRoots": 23,
+      "modules": 149,
+      "minifiedBytes": 1199747,
+      "sha256": "4678059249bb284154055b8557c35a939cb3811b9f3ebd4451801c170602eae3",
+      "protectedMarkersFound": 0
+    },
+    {
+      "entry": "app/free-script-generator/page.tsx",
+      "ancestorLayouts": [
+        "app/layout.tsx"
+      ],
+      "clientRoots": 21,
+      "modules": 108,
+      "minifiedBytes": 1010152,
+      "sha256": "282dc6ee89c6b24bb5a951ba522d85367e7b8fb0280edae516a838edac14d3ae",
+      "protectedMarkersFound": 0
+    }
+  ],
+  "mutants": 6
+}
