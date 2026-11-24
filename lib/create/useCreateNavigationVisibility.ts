@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { readServerVisibility } from '@/lib/auth/readServerVisibility'
 import { CLIPS_PUBLIC } from '@/lib/clips/clipLaunch'
 import { CREATE_SHELL_RELEASE, CLIP_RECREATE_JUNTOS_RELEASE } from './release'
 import { CREATE_CLIP_INPLACE } from './clipNaMolduraRelease'
@@ -22,8 +23,7 @@ export function useCreateNavigationVisibility(identity: string | null | undefine
   useEffect(() => {
     if (!needsPrivateRead || !identity) return
     let active = true
-    void fetch('/api/account/create-visibility', { cache: 'no-store', credentials: 'same-origin' })
-      .then(async response => response.ok ? response.json() : null)
+    void readServerVisibility('/api/account/create-visibility')
       .then(result => { if (active) setVerified({ identity, flags: { showClip: result?.showClip === true, showRecreate: result?.showRecreate === true } }) })
       .catch(() => { if (active) setVerified({ identity, flags: { showClip: false, showRecreate: false } }) })
     return () => { active = false }

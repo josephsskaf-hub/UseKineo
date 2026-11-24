@@ -1,0 +1,8 @@
+{
+  "checks": 54,
+  "scope": "Real server GETs and client transport with fake getUser/fetch only; no network, account, rendering or payment; protected identifiers never written",
+  "box": "app/api/citations/idea-visibility/route.ts",
+  "clip": "app/api/account/clip-visibility/route.ts",
+  "navigation": "app/api/account/create-visibility/route.ts",
+  "transport": "lib/auth/readServerVisibility.ts"
+}

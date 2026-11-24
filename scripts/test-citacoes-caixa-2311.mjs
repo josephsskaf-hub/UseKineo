@@ -1,3 +1,4 @@
+const RELEASE='lib/growth/citationIdeaRelease.ts'
 import assert from 'node:assert/strict'
 import {execFileSync} from 'node:child_process'
 import {offlineModules,React,renderToStaticMarkup,source} from './gpt24h-offline-support.mjs'
@@ -22,7 +23,7 @@ const tags=(h,t)=>[...h.matchAll(new RegExp(`<${t}\\b[\\s\\S]*?<\\/${t}>`,'g'))]
 const decode=s=>s.replaceAll('&amp;','&').replaceAll('&quot;','"').replaceAll('&#x27;',"'")
 const hidden=h=>new URLSearchParams([...h.matchAll(/<input type="hidden" name="([^"]+)" value="([^"]*)"/g)].map(x=>[decode(x[1]),decode(x[2])]))
 const form=(h,key)=>{const start=h.indexOf(`id="citation-idea-${key}-2311"`);assert.ok(start>=0,'BOX form id');return h.slice(start).match(/<form\b[\s\S]*?<\/form>/)?.[0]??''}
-const setRelease=(rep,release)=>({...rep,[ACCESS]:(rep[ACCESS]??source(ACCESS)).replace("CITATION_IDEA_RELEASE: CitationIdeaRelease = 'off'",`CITATION_IDEA_RELEASE: CitationIdeaRelease = '${release}'`)})
+const setRelease=(rep,release)=>({...rep,[RELEASE]:(rep[RELEASE]??source(RELEASE)).replace("CITATION_IDEA_RELEASE: CitationIdeaRelease = 'off'",`CITATION_IDEA_RELEASE: CitationIdeaRelease = '${release}'`)})
 const withUser=(rep,user)=>({...rep,[BOX]:(rep[BOX]??source(BOX)).replace('useState<VerifiedUser | null>(null)',`useState<VerifiedUser | null>(${JSON.stringify(user)})`)})
 const sample='The brass owl counted three lanterns. At dawn, only the smallest one was glowing.'
 function verify(rep={}){
@@ -53,7 +54,7 @@ function verify(rep={}){
   assert.ok(h.includes(key==='best'?'roundup-start-a-short':'payout-start-a-short'),'LOWER original form kept')
   // SSR with a supplied verified user exercises real component conditional, not a mock of it.
   const internal=setRelease(rep,'internal')
-  assert.equal(render(make(withUser(internal,{email:house[0],email_confirmed_at:'yes'})),f),h,'INTERNAL exact house sees same form')
+  assert.equal(render(make(withUser(internal,{email:house[0],email_confirmed_at:'yes'})),f),b,'INTERNAL identity alone waits for server')
   assert.equal(render(make(withUser(internal,{email:'test-buyer@example.com',email_confirmed_at:'yes'})),f),b,'INTERNAL metrics pattern never grants access')
  }
  assert.equal(render(l,FORM,{formId:'reference'}),render(old,FORM,{formId:'reference'}),'REFERENCE defaults exact')
@@ -75,7 +76,7 @@ function verify(rep={}){
 verify()
 const sub=(f,a,b)=>{const s=source(f);assert.equal(s.split(a).length,2,'mutation anchor '+a);return{[f]:s.replace(a,b)}}
 const mutants=[
- ['default public',()=>sub(ACCESS,"CITATION_IDEA_RELEASE: CitationIdeaRelease = 'off'","CITATION_IDEA_RELEASE: CitationIdeaRelease = 'public'"),'DEFAULT switch off'],
+ ['default public',()=>sub(RELEASE,"CITATION_IDEA_RELEASE: CitationIdeaRelease = 'off'","CITATION_IDEA_RELEASE: CitationIdeaRelease = 'public'"),'DEFAULT switch off'],
  ['off bypass',()=>sub(ACCESS,"release === 'public'","release === 'off' || release === 'public'"),'GATE off denies everyone'],
  ['public denied',()=>sub(ACCESS,"release === 'public'","false"),'GATE public allows everyone'],
  ['pattern-based internal',()=>({[ACCESS]:source(ACCESS).replaceAll('contaDaCasaExata','isInternalEmail')}),'GATE internal rejects lookalikes'],

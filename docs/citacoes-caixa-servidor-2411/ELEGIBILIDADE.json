@@ -1,0 +1,272 @@
+{
+  "base": "f58bcb31a",
+  "scope": "Pure modules and synthetic states; canonical identities loaded privately, never logged; no network/account/render/payment",
+  "functionBodies": [
+    {
+      "name": "h3TurboNoFilmePadrao",
+      "from": "lib/engineLaunch.ts",
+      "to": "lib/engineLaunchAccess.ts",
+      "sha256": "87e3598739afce1f47a59e86acee54377bfcb0331cd0ba1168788e99d76d570e"
+    },
+    {
+      "name": "h3maxVisible",
+      "from": "lib/engineLaunch.ts",
+      "to": "lib/engineLaunchAccess.ts",
+      "sha256": "752908285fd350d04043c49537d02cd37405ea94f7680e2dbe11536ac2d4d861"
+    },
+    {
+      "name": "s25Visible",
+      "from": "lib/engineLaunch.ts",
+      "to": "lib/engineLaunchAccess.ts",
+      "sha256": "e8bb27dd4a2f22c84c19d9cc8efb8986ea06cff6dbc1bd2553ebaa527228f3d6"
+    },
+    {
+      "name": "avatarVisible",
+      "from": "lib/engineLaunch.ts",
+      "to": "lib/engineLaunchAccess.ts",
+      "sha256": "1d9ad24ad6e4107f1c8046def8a157497e2669a1daca3f4144203707f061efd9"
+    },
+    {
+      "name": "kineo1Visible",
+      "from": "lib/engineLaunch.ts",
+      "to": "lib/engineLaunchAccess.ts",
+      "sha256": "024de7ca3509fb3b5c3d0346794f8ac54282dfc34eb8e3eb3dd77eff2bde327c"
+    },
+    {
+      "name": "resolveKineo1Flag",
+      "from": "lib/engineLaunch.ts",
+      "to": "lib/engineLaunchAccess.ts",
+      "sha256": "572d8c62c76d66763a7cd5d8f57af38a0a95aab124a31b606bddfdae07c07965"
+    },
+    {
+      "name": "seedance15sVisible",
+      "from": "lib/engineLaunch.ts",
+      "to": "lib/engineLaunchAccess.ts",
+      "sha256": "4c00417f82f179d9ecb2f5037222babf0ab839d042185cb24cff88c079195dd8"
+    },
+    {
+      "name": "duracoesCurtasVisible",
+      "from": "lib/engineLaunch.ts",
+      "to": "lib/engineLaunchAccess.ts",
+      "sha256": "499f0d0f13d74baeebbafb33b8c8aac94711abb14326b0f1480110036c6fb08c"
+    },
+    {
+      "name": "estrelaVisible",
+      "from": "lib/engineLaunch.ts",
+      "to": "lib/engineLaunchAccess.ts",
+      "sha256": "11d28b3f614d886800851c984a69f1d5ae31a9775ff5021edece9128beb07920"
+    },
+    {
+      "name": "clipsVisible",
+      "from": "lib/clips/clipLaunch.ts",
+      "to": "lib/clips/clipLaunchAccess.ts",
+      "sha256": "754aaa2f1baef6ecabf9198cb6bcda737fbbdf603da2a13a9a629c3d6a846a61"
+    },
+    {
+      "name": "clipS25Visible",
+      "from": "lib/clips/clipLaunch.ts",
+      "to": "lib/clips/clipLaunchAccess.ts",
+      "sha256": "46235f43dfad01c0c0d0dc870dcf510389f5a2e43e3776e85caeaf43ac6aa331"
+    },
+    {
+      "name": "clipEntryHref",
+      "from": "lib/create/entry.ts",
+      "to": "lib/create/clipEntryServer.ts",
+      "sha256": "d7f39a18486bc904199a8fa64b855d7bd36bd34f065d94c3f73a5dc64a1ba0d5"
+    },
+    {
+      "name": "enginePaused",
+      "from": "lib/engineLaunch.ts",
+      "to": "lib/engineLaunch.ts",
+      "sha256": "30e66da51764b59421744a853d4e12f03f07eb7efe5eb095b6b996a2eb71ee9e"
+    },
+    {
+      "name": "engineOffered",
+      "from": "lib/engineLaunch.ts",
+      "to": "lib/engineLaunch.ts",
+      "sha256": "9807554f0c8c64a4fc0ff823e175dffd6bc6695e41f1a409a8c8e4bb412847a5"
+    },
+    {
+      "name": "engineRetired",
+      "from": "lib/engineLaunch.ts",
+      "to": "lib/engineLaunch.ts",
+      "sha256": "17ea7ef9a476b0bd908155ff24f4d078973591e3245f41681b9fa8016126b30d"
+    },
+    {
+      "name": "engineRetiredForHouse",
+      "from": "lib/engineLaunch.ts",
+      "to": "lib/engineLaunch.ts",
+      "sha256": "cf06e5fa20e9f3dae8179e0095f7770d74b92748b8589f231bb6a1441c30335a"
+    },
+    {
+      "name": "qualityPaused",
+      "from": "lib/engineLaunch.ts",
+      "to": "lib/engineLaunch.ts",
+      "sha256": "a718f84a1bbf6e85cfc8c5645693cbb51e7ea9a07ab450e17a231e273ea7c119"
+    },
+    {
+      "name": "s25UpgradeHref",
+      "from": "lib/engineLaunch.ts",
+      "to": "lib/engineLaunch.ts",
+      "sha256": "825ece9b165d801b30bdc35782cdd92c9a2b211161ad32e14f46ca866887c276"
+    },
+    {
+      "name": "engineIsPaidPlansOnly",
+      "from": "lib/engineLaunch.ts",
+      "to": "lib/engineLaunch.ts",
+      "sha256": "cf6494187a1397d49e46227f23db590f9a88beac01add300c30910cbf10e97e2"
+    },
+    {
+      "name": "pauseDay",
+      "from": "lib/engineLaunch.ts",
+      "to": "lib/engineLaunch.ts",
+      "sha256": "b03fabe1f1d757957e32904d86edc14f7df06f8a7a25469645159ab1d692c1dd"
+    },
+    {
+      "name": "clipPaidUpgradeHref",
+      "from": "lib/clips/clipLaunch.ts",
+      "to": "lib/clips/clipLaunch.ts",
+      "sha256": "8d9cf776ded8fa7d09f0c4a4e5a18fc7b4f8e7fc41a394b2fd0f43605a8ce282"
+    },
+    {
+      "name": "isAdsInternalEmail",
+      "from": "lib/ads/access.ts",
+      "to": "lib/ads/access.ts",
+      "sha256": "3c88280f0dc835b3edbc1776f74dd861d8eb3f20bf2188a39ccc93a1178e7819"
+    },
+    {
+      "name": "passUntil",
+      "from": "lib/ads/access.ts",
+      "to": "lib/ads/access.ts",
+      "sha256": "d30f02ceba415eb6c122afcfacb245d1bb18fa9564099171ad496653e67dc7fc"
+    },
+    {
+      "name": "adsAccessReason",
+      "from": "lib/ads/access.ts",
+      "to": "lib/ads/access.ts",
+      "sha256": "459fe27f3ef9070867acafc5e5555c07aa04265fefeba39a3846e6fffe42ad03"
+    },
+    {
+      "name": "hasAdsAccess",
+      "from": "lib/ads/access.ts",
+      "to": "lib/ads/access.ts",
+      "sha256": "1335e9017371af14e063e1930843ba1b89d87c6d0396b9c3f81292d54df16b46"
+    },
+    {
+      "name": "eligibleReactivationProfile",
+      "from": "lib/growth/mrrReactivation.ts",
+      "to": "lib/growth/mrrReactivation.ts",
+      "sha256": "badc81919df3f009919ff38574948a938dd9abf97e6fb962cb5b53ea967220f0"
+    },
+    {
+      "name": "readyFilmDraft",
+      "from": "lib/growth/mrrReactivation.ts",
+      "to": "lib/growth/mrrReactivation.ts",
+      "sha256": "262a94ca24e0f9a5467ebedfb9258c7b022a983e527c4a5bae2bfa8f382a98b3"
+    },
+    {
+      "name": "readEveryPage",
+      "from": "lib/growth/mrrReactivation.ts",
+      "to": "lib/growth/mrrReactivation.ts",
+      "sha256": "f25d2500bb83d6d40381c19823cfdccc11cc597e53f54681d4cda0b28af8c4bb"
+    },
+    {
+      "name": "clipNaMolduraVisivel",
+      "from": "lib/create/clipNaMoldura.ts",
+      "to": "lib/create/clipNaMoldura.ts",
+      "sha256": "c4b2a9f41e7e8acd5444f4f31c30a42effb11accd526b1d148270b3c9cbc4157"
+    },
+    {
+      "name": "clipRecreateJuntosVisivel",
+      "from": "lib/create/clipRecreateJuntos.ts",
+      "to": "lib/create/clipRecreateJuntos.ts",
+      "sha256": "b3ed62972c5a9fd6046e9d25782c44193b1d89c1b8d10ef24d29b9caecb88fca"
+    },
+    {
+      "name": "clipWorkspaceVisible",
+      "from": "lib/create/clipRecreateJuntos.ts",
+      "to": "lib/create/clipRecreateJuntos.ts",
+      "sha256": "cf26bdd0bc3df9fcebe31d63bc1ef901ac08ce8a095fb915ef9255b6b8880718"
+    },
+    {
+      "name": "abaRecreateVisivel",
+      "from": "lib/create/clipRecreateJuntos.ts",
+      "to": "lib/create/clipRecreateJuntos.ts",
+      "sha256": "bfe274fa6a68f34d3f0837c0d14a4d5c0aed09ee0076083a30e785b7932131fd"
+    }
+  ],
+  "publicConstants": [
+    {
+      "name": "ADS_SUBSCRIBER_PLANS",
+      "from": "lib/ads/access.ts",
+      "to": "lib/ads/accessPublic.ts",
+      "sha256": "a90e67e07d7245d8d601a0889f93b0d59ead61b31fa621ce4500d9f049260e08"
+    },
+    {
+      "name": "MRR_REACTIVATION_ENABLED",
+      "from": "lib/growth/mrrReactivation.ts",
+      "to": "lib/growth/mrrReactivationRelease.ts",
+      "sha256": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b"
+    },
+    {
+      "name": "MRR_REACTIVATION_SEND_ENABLED",
+      "from": "lib/growth/mrrReactivation.ts",
+      "to": "lib/growth/mrrReactivationRelease.ts",
+      "sha256": "fcbcf165908dd18a9e49f7ff27810176db8e9f63b4352213741664245224f8aa"
+    },
+    {
+      "name": "MRR_REACTIVATION_VERSION",
+      "from": "lib/growth/mrrReactivation.ts",
+      "to": "lib/growth/mrrReactivationRelease.ts",
+      "sha256": "0cef48de93b8b545c7e60b9025728b266f3c3d309643c77626ad834bd67fbe50"
+    },
+    {
+      "name": "MRR_REACTIVATION_CLAIM",
+      "from": "lib/growth/mrrReactivation.ts",
+      "to": "lib/growth/mrrReactivationRelease.ts",
+      "sha256": "da259f7fddc76a53ec97c26261e90caba0862fed3b14b37eebe138294476e0c9"
+    },
+    {
+      "name": "MRR_REACTIVATION_SENT",
+      "from": "lib/growth/mrrReactivation.ts",
+      "to": "lib/growth/mrrReactivationRelease.ts",
+      "sha256": "d0eacc92df358c6b16722ff9b02a94c13c7eb92c458873cbd7ece8b19d2d37b7"
+    },
+    {
+      "name": "MRR_REACTIVATION_BATCH",
+      "from": "lib/growth/mrrReactivation.ts",
+      "to": "lib/growth/mrrReactivationRelease.ts",
+      "sha256": "4a44dc15364204a80fe80e9039455cc1608281820fe2b24f1e5233ade6af1dd5"
+    },
+    {
+      "name": "CREATE_CLIP_INPLACE",
+      "from": "lib/create/clipNaMoldura.ts",
+      "to": "lib/create/clipNaMolduraRelease.ts",
+      "sha256": "94d12d9ab5b04672c1c03cfc87fd92a6bcc80c470fec694ebec5daff2ff8d8e9"
+    },
+    {
+      "name": "CLIP_TAB_HREF",
+      "from": "lib/create/clipNaMoldura.ts",
+      "to": "lib/create/clipNaMolduraRelease.ts",
+      "sha256": "0c369e1eb481297a1f1e2b208a33e24ff26178db1938429eb8fc67ec78a757f0"
+    },
+    {
+      "name": "LEGACY_CLIPS_PATH",
+      "from": "lib/create/clipNaMoldura.ts",
+      "to": "lib/create/clipNaMolduraRelease.ts",
+      "sha256": "43a8b739f283ade1404ce3340ae26e978a85cb90782037e042195b02aae48bd1"
+    }
+  ],
+  "consumerImportsOnly": [
+    "app/(dashboard)/studio/create/page.tsx",
+    "app/api/generate-video-cinematic/route.ts",
+    "app/api/gpt/handoff/go/route.ts",
+    "app/api/me/credits/route.ts",
+    "app/api/next-action/route.ts",
+    "app/KineoLanding.tsx",
+    "lib/s25Access.ts"
+  ],
+  "engineFlagScenarios": 11,
+  "eligibilityCalls": 2145,
+  "resolutionCases": 1452
+}

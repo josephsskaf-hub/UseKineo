@@ -9,9 +9,9 @@
         "app/layout.tsx"
       ],
       "clientRoots": 19,
-      "modules": 131,
-      "minifiedBytes": 1146763,
-      "sha256": "a5a928c258fbffcacb170a281c697401d60bd01b73e3678fafdb0890124907e1",
+      "modules": 132,
+      "minifiedBytes": 1147060,
+      "sha256": "633d9bfb23c0a190f394cdfa6981d02c714a6d1c2584b7d1c7bb8ad942cda5b9",
       "protectedMarkersFound": 0
     },
     {
@@ -20,9 +20,9 @@
         "app/layout.tsx"
       ],
       "clientRoots": 17,
-      "modules": 89,
-      "minifiedBytes": 932988,
-      "sha256": "6d155bc74e13db146a7422503c1a92692e7d9a2a6a4866c4881dd11ed1b668cf",
+      "modules": 90,
+      "minifiedBytes": 933284,
+      "sha256": "649ba9028a847ce824717235a113d151c62cee57f22db9264e69297b30ca86eb",
       "protectedMarkersFound": 0
     }
   ],
