@@ -41,6 +41,7 @@ import {
 } from '@/lib/growth/trialBalanceBridge'
 import { decideCheckoutCancelledPrimary } from '@/lib/growth/checkoutCancelledRecovery'
 import CheckoutCancelObjectionTelemetry from './CheckoutCancelObjectionTelemetry'
+import SavedPlanActions, { shouldPrioritizeSavedPlan, useSavedPlanRelease } from '@/components/checkout/SavedPlanActions'
 import { CHECKOUT_CANCEL_OBJECTION_TARGET_ID } from '@/lib/growth/checkoutCancelObjectionVisibility'
 
 const PLAN_FIT_RETRY_PARAM_KEYS = [
@@ -85,6 +86,7 @@ function CheckoutCancelledContent() {
   const searchParams = useSearchParams()
   const autopilotReturn = readAutopilotCheckoutReturn(searchParams)
   const rawTier = searchParams.get('tier')
+  const savedPlanRelease = useSavedPlanRelease()
   const tier: CheckoutPlanTier = autopilotReturn
     ? 'autopilot'
     : rawTier === 'starter' || rawTier === 'pro'
@@ -233,6 +235,7 @@ function CheckoutCancelledContent() {
   })
   const downshiftAvailable =
     cancelledPrimary === 'checkout' && !cardTrial && !isAutopilotReturn && cheaperTier !== null
+  const prioritizeSavedPlan = shouldPrioritizeSavedPlan(savedPlanRelease, rawTier, downshiftAvailable)
   const objectionCheckoutProduct = isAutopilotPilot
     ? 'autopilot_pilot'
     : isAutopilotReturn
@@ -265,7 +268,7 @@ function CheckoutCancelledContent() {
     trackCheckoutClick(checkoutSelection)
   }
 
-  const startDownshiftCheckout = (placement: 'primary' | 'objection') => {
+  const startDownshiftCheckout = (placement: 'primary' | 'objection' | 'alternative') => {
     if (!cheaperTier) return
     const started = checkout.launch(cheaperTier, cheaperHref, {
       tier: cheaperTier,
@@ -368,7 +371,7 @@ function CheckoutCancelledContent() {
 
   return (
     <main style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)', fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 20px' }}>
-      <div style={{ width: '100%', maxWidth: 560, background: '#131316', border: '1px solid var(--border)', borderRadius: 22, padding: 'clamp(24px, 5vw, 36px)', boxShadow: '0 16px 60px rgba(0,0,0,.5)' }}>
+      <div style={{ width: '100%', maxWidth: 560, background: prioritizeSavedPlan ? 'var(--card)' : '#131316', border: '1px solid var(--border)', borderRadius: 22, padding: 'clamp(24px, 5vw, 36px)', boxShadow: '0 16px 60px rgba(0,0,0,.5)' }}>
         <div style={{ textAlign: 'center' }}>
           <h1 style={{ fontSize: 'clamp(1.5rem, 4.5vw, 1.9rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: 0 }}>
             {cancelledPrimary === 'first_delivery' ? 'You can try Kineo before deciding.' : 'Payment was not completed.'}
@@ -417,7 +420,11 @@ function CheckoutCancelledContent() {
             </>
           ) : (
             <>
-          {downshiftAvailable && cheaperTier ? (
+          {prioritizeSavedPlan ? (
+            <SavedPlanActions plan={planName} billing={billing} smallerPlan={cheaperName}
+              pending={checkout.pending !== null} error={checkout.error}
+              onContinue={startSavedCheckout} onSmallerPlan={() => startDownshiftCheckout('alternative')} />
+          ) : downshiftAvailable && cheaperTier ? (
             <div data-checkout-downshift-primary="true">
               <p style={{ margin: 0, color: '#62b3ff', fontSize: '0.7rem', fontWeight: 900, letterSpacing: '.09em', textTransform: 'uppercase' }}>
                 Start smaller · same clean exports

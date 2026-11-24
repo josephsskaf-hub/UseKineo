@@ -1,0 +1,11 @@
+
+.checkout-saved-plan{display:grid;gap:10px}
+.checkout-saved-plan h2,.checkout-saved-plan p{margin:0}
+.checkout-saved-plan h2{font-size:19px;color:var(--text);letter-spacing:-.02em}
+.checkout-saved-plan p{font-size:13px;color:var(--text2);line-height:1.4}
+.checkout-saved-plan button{display:block;min-height:44px;width:100%;padding:8px 11px;border-radius:10px;font:inherit;font-size:14px;font-weight:750;cursor:pointer}
+.checkout-saved-plan-primary{border:1px solid var(--accent);background:var(--accent-soft);color:var(--text)}
+.checkout-saved-plan-secondary{border:1px solid var(--border2);background:var(--card);color:var(--text)}
+.checkout-saved-plan button:disabled{opacity:.65;cursor:wait}
+.checkout-saved-plan button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.checkout-saved-plan .checkout-saved-plan-error{color:var(--danger,var(--text));font-weight:650}
