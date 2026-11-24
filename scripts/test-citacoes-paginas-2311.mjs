@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import {execFileSync} from 'node:child_process'
 import {offlineModules,React,renderToStaticMarkup,source} from './gpt24h-offline-support.mjs'
 const RELEASE='lib/growth/citationPagesRelease.ts',ACCESS='lib/growth/citationPagesAccess.ts',INTENT='app/ai-video-generator/for/[slug]/page.tsx',CAT='lib/seo/intentPages.ts',AD='app/ai-ugc-ads/product-photo-ads/page.tsx',MAP='app/sitemap.ts',AUTH='components/seo/InternalCitationPreview.tsx'
+const PREVIEW = 'app/internal/citation-formats/[slug]/page.tsx'
 const plain=({children})=>React.createElement('div',null,children)
 const mocks=Object.fromEntries(['Footer','AgencyVolumeBridge','ExitIntentOffer','LocalizedScriptHandoff','StickyFreeShortCTA','Kineo1RetiredNotice','PaidSeedanceBridge','ScriptToSeedanceBridge','BuyCreatorCta','NicheHouseFilm','GeoRodada3Sections'].map(n=>[`components/${n}.tsx`,{__esModule:true,default:plain}]))
 mocks['lib/analytics.ts']={trackEvent:()=>{},trackClosedEvent:()=>{},rememberSignupCampaign:()=>{}}
@@ -42,8 +43,20 @@ async function verify(rep={}){
  const adPath='/ai-ugc-ads/product-photo-ads',paths=[...slugs.map(s=>'/ai-video-generator/for/'+s),adPath],expectedUrls=paths.map(p=>'https://www.usekineo.com'+p)
  for(const state of ['off','internal','public']){
   const current=make(release(rep,state)),catalog=current(CAT),map=json(current(MAP).default())
+  const getPreviewPath = current(RELEASE).citationFormatPreviewPath
+  for (const control of [...controls, 'not-a-format', 'cartoon-videos/extra']) {
+   assert.equal(getPreviewPath('/ai-video-generator/for/'+control), null, 'PREVIEW rewrites only draft slugs')
+   assert.equal(await denied(()=>current(PREVIEW).default({params:{slug:control}})),true,'PREVIEW direct route denies non-drafts')
+  }
   for(const slug of slugs){
    const routeProps={params:{slug}},meta=current(INTENT).generateMetadata(routeProps)
+   assert.equal(getPreviewPath('/ai-video-generator/for/'+slug), state==='internal' ? '/internal/citation-formats/'+slug : null, 'PREVIEW rewrite only in internal mode')
+   if(state==='internal'){
+    const page=current(PREVIEW).default(routeProps)
+    assert.equal(page.type,current(INTENT).default,'PREVIEW renders actual page with server boundary')
+    assert.equal(page.type(page.props).type,current(AUTH).default,'PREVIEW preserves server auth')
+    assert.equal(current(PREVIEW).metadata.robots.index,false,'PREVIEW noindex')
+   } else assert.equal(await denied(()=>current(PREVIEW).default(routeProps)),true,'PREVIEW direct route closed outside internal')
    if(state==='off')assert.equal(await denied(()=>current(INTENT).default(routeProps)),true,'ROUTE off draft denied')
    else if(state==='internal')assert.equal(current(INTENT).default(routeProps).type,current(AUTH).default,'ROUTE internal server boundary')
    else {
@@ -75,6 +88,8 @@ await verify()
 const sub=(f,a,b)=>{const s=source(f);assert.equal(s.split(a).length,2,'mutation anchor '+a);return{[f]:s.replace(a,b)}}
 const mutants=[
  ['default public',()=>sub(RELEASE,"CITATION_PAGES_RELEASE: CitationPagesRelease = 'off'","CITATION_PAGES_RELEASE: CitationPagesRelease = 'public'"),'DEFAULT pages off'],
+ ['rewrite in off',()=>sub(RELEASE,"if (CITATION_PAGES_RELEASE !== 'internal') return null",'if (false) return null'),'PREVIEW rewrite only in internal mode'],
+ ['preview bypass state',()=>sub(PREVIEW,"CITATION_PAGES_RELEASE !== 'internal' || !isCitationDraftSlug(params.slug)",'!isCitationDraftSlug(params.slug)'),'PREVIEW direct route closed outside internal'],
  ['off bypass',()=>sub(ACCESS,"release === 'public'","release === 'off' || release === 'public'"),'GATE off everyone'],
  ['internal broad patterns',()=>({[ACCESS]:source(ACCESS).replaceAll('contaDaCasaExata','isInternalEmail')}),'GATE lookalikes denied'],
  ['unconfirmed allowed',()=>sub(ACCESS,'!!user?.email_confirmed_at && contaDaCasaExata(user.email)','contaDaCasaExata(user?.email)'),'GATE unconfirmed denied'],

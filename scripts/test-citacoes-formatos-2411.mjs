@@ -18,7 +18,7 @@ const make=(rep={},auth={data:{user:null},error:null})=>offlineModules({mocks:{.
 
 const HERO='components/seo/CitationFormatHero.tsx',DATA='lib/growth/citationFormatHero2411.ts',TOPIC='app/youtube-shorts-from-topic/TopicGeneratorForm.tsx'
 const baseline=JSON.parse(source('scripts/test-support/citacoes-formatos-referencia-2411.json'))
-assert.equal(createHash('sha256').update(JSON.stringify(baseline.sources)).digest('hex'),'fc344623e371ccd4f475f260d7f84b1ad5f1547399b67731b14c64f5be8a8a21','Exact frozen baseline, portable without unmerged git objects')
+assert.equal(createHash('sha256').update(JSON.stringify(baseline.sources)).digest('hex'),'6a78a933af2627240ce53a214a09bfb930aa97ff64e7e925d0946bca6f1f9c48','Exact frozen baseline, portable without unmerged git objects')
 const oldSource=baseline.sources[INTENT],oldAd=baseline.sources[AD]
 const render=(l,f,p={})=>renderToStaticMarkup(React.createElement(l(f).default,p))
 const publicRep=rep=>({...rep,[RELEASE]:(rep[RELEASE]??source(RELEASE)).replace("CITATION_PAGES_RELEASE: CitationPagesRelease = 'off'","CITATION_PAGES_RELEASE: CitationPagesRelease = 'public'")})

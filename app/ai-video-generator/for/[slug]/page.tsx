@@ -36,9 +36,9 @@ const ENGINE_NAME: Record<IntentEngine, string> = { fast: 'Kineo 1', cinematic_a
 // Only the three unpublished d09 formats adopt the current standard-film label. Historical examples stay intact.
 const DRAWING_INTENTS_2311 = new Set(['cartoon-videos', 'animated-story-videos', 'animal-story-videos'])
 
-// Internal drafts need request cookies; published intent pages remain statically generated.
-export const dynamic = 'auto'
-export const dynamicParams = true
+// Published routes are enumerated at build time. Private previews are rewritten to a separate server route.
+export const dynamic = 'force-static'
+export const dynamicParams = false
 
 export function generateStaticParams() {
   return INTENT_SLUGS.map((slug) => ({ slug }))

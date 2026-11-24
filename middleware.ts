@@ -1,3 +1,4 @@
+import { citationFormatPreviewPath } from '@/lib/growth/citationPagesRelease'
 import { NextResponse, type NextFetchEvent, type NextRequest } from 'next/server'
 import { registrarLeituraDeRoboIa } from '@/lib/seo/aiFetchLog' // KINEO-ROBO-IA-1011
 import { updateSession } from '@/lib/supabase/middleware'
@@ -69,6 +70,15 @@ export async function middleware(request: NextRequest, event: NextFetchEvent) {
     canonicalUrl.protocol = 'https:'
     canonicalUrl.host = 'www.usekineo.com'
     return NextResponse.redirect(canonicalUrl, 308)
+  }
+
+  const citationPreviewPath = citationFormatPreviewPath(request.nextUrl.pathname)
+  if (citationPreviewPath) {
+    const previewUrl = request.nextUrl.clone()
+    previewUrl.pathname = citationPreviewPath
+    return NextResponse.rewrite(previewUrl, {
+      headers: { 'Cache-Control': 'private, no-store', 'X-Robots-Tag': 'noindex, nofollow' },
+    })
   }
 
   // KINEO-SAIR-DA-CONTA-1510 — a rota de saída NÃO passa pelo updateSession: renovar a sessão aqui podia devolver um
