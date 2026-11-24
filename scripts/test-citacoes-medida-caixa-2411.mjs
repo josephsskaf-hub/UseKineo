@@ -4,9 +4,9 @@ import fs from 'node:fs'
 import {createHash} from 'node:crypto'
 import {prepareCaixaQuery,internalMeasurementCte} from './prepare-citacoes-caixa-2411.mjs'
 import {caixaFixtureQuery,caixaMutants} from './test-support/citacoes-caixa-fixture-2411.mjs'
-const root='docs/citacoes-medida-caixa-2411/',hash=x=>createHash('sha256').update(x).digest('hex')
+const root='docs/citacoes-medida-caixa-2411/',hash=x=>createHash('sha256').update(x.toString('utf8').replace(/\r\n/g,'\n')).digest('hex')
 const fingerprints=JSON.parse(fs.readFileSync(root+'FINGERPRINTS.json','utf8'))
-for(const [file,sha] of Object.entries(fingerprints))assert.equal(hash(fs.readFileSync(file)),sha,'Exact inputs and receipts used by real SELECT validation: '+file)
+for(const [file,sha] of Object.entries(fingerprints)){const bytes=fs.readFileSync(file);assert.equal(hash(bytes),sha,'Canonical LF inputs and receipts used by real SELECT validation: '+file);assert.equal(hash(bytes.toString('utf8').replace(/\r?\n/g,'\r\n')),sha,'Windows CRLF checkout preserves canonical fingerprint: '+file)}
 const template=fs.readFileSync('docs/queries/CITACOES-CAIXAS-ANTES-DEPOIS-2411.sql','utf8').replace(/^\uFEFF/,''),cut='2026-11-24T22:17:05.820285Z'
 const args={template,cut,exact:['house@fixture.invalid'],patterns:['%+house@fixture.invalid']}
 const query=prepareCaixaQuery(args)

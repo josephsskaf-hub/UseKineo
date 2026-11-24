@@ -1,0 +1,10 @@
+{
+  "docs/queries/CITACOES-CAIXAS-ANTES-DEPOIS-2411.sql": "fe289dd4d0a290fa0239658df30a1a0c73708f8d88bb5c33c9eec3ba9f974dce",
+  "scripts/prepare-citacoes-caixa-2411.mjs": "17b12f8dec4a2cecae2456fb6244209417b4dc477cdee4d2c2772ecb145f22a2",
+  "scripts/test-support/citacoes-caixa-fixture-2411.mjs": "53b7d315785e64102d8abad3259fa3513ec19c84c9930b9f7000c241a3f7acfd",
+  "docs/citacoes-medida-caixa-2411/BASELINE-14D.json": "1b0a0007eb2da6e845f51721409ee44abd27b4b20b1c9a858df9d9784a051b2c",
+  "docs/citacoes-medida-caixa-2411/BASELINE-14D-V2.json": "c217b8f577ae183f8e48d794482a62a42e75b0ce0f386cfc5ddee1ac5639ea37",
+  "docs/citacoes-medida-caixa-2411/MEDIDA.json": "7ccd11304a4e9493521ca1b0a5a17b127401281a4ffce0f9d7b85370b6c3589f",
+  "docs/citacoes-medida-caixa-2411/PROVA-SINTETICA.json": "a915cc3954962ce67935a40df41b0487d5868810f80ad8fff10370b886461391",
+  "docs/citacoes-medida-caixa-2411/REPLAY-EQUIVALENCIA.json": "22560852ce9912a657a264ab70a0daa7adf2f38f88fded027d9c6e59430fa4ed"
+}
