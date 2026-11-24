@@ -37,6 +37,7 @@ function verify(rep={}){
    assert.equal(target.searchParams.get('prompt'),sample,'FILM exact input')
    assert.equal(target.searchParams.get('script_mode'),mode==='idea'?'ai':'verbatim','FILM mode')
    for(const key of ['utm_source','utm_medium','utm_campaign','duration'])assert.equal(target.searchParams.has(key),false,'FILM no invented origin or duration')
+   assert.equal(target.pathname,'/api/citations/film-entry','ENTRY script uses actual server route')
    const after=loader('lib/growth/ideiaPousaNoStudio.ts').destinoDaIdeia(target.searchParams.get('redirect'))
    const studio=new URL(after,'https://www.usekineo.com')
    assert.equal(studio.pathname,'/studio','AUTH actual landing rule to Studio')

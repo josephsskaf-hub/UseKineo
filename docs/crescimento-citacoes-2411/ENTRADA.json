@@ -1,0 +1,5 @@
+{
+  "positiveCases": 42,
+  "mutants": 6,
+  "scope": "Real server GET and real signup preview; controlled auth I/O; no URL rewriting in browser proof; no network/account/generation/payment."
+}

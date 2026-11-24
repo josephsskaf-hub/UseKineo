@@ -210,9 +210,10 @@ export default function FreeScriptClient({
   function citationFilmHref(scriptMode: 'ai' | 'verbatim'): string | null {
     const prompt = topic.trim().slice(0, CREATION_HANDOFF_PROMPT_MAX_CHARS)
     if (prompt.length < 3) return null
-    const redirect = buildAuthenticatedCreationRedirect({ prompt, campaign: 'push22_script_generator', createIntent: 'fast', scriptMode })
+    const creationRedirect = buildAuthenticatedCreationRedirect({ prompt, campaign: 'push22_script_generator', createIntent: 'fast', scriptMode })
+    const redirect = creationRedirect
     if (!redirect) return null
-    return '/signup?' + new URLSearchParams({ prompt, create_intent: 'fast', intent_campaign: 'push22_script_generator', script_mode: scriptMode, redirect }).toString()
+    return '/api/citations/film-entry?' + new URLSearchParams({ prompt, create_intent: 'fast', intent_campaign: 'push22_script_generator', script_mode: scriptMode, redirect }).toString()
   }
   const renderTool = (scriptMode?: 'ai' | 'verbatim') => (<section id="free-script-generator-tool" style={{ marginTop: 26, ...CARD, borderRadius: 16, padding: 18 }}>
           <textarea

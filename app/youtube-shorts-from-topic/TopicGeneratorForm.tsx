@@ -2,6 +2,7 @@
 
 // KINEO-PAGINAS-IA-CLARAS-2110 — cores em var(--kpl-*, <cor de antes>): claras só dentro de <main className="kpl"> (as páginas de entrada do ChatGPT); nas outras páginas, a cor de antes.
 import { useState } from 'react'
+import { destinoDaIdeia } from '@/lib/growth/ideiaPousaNoStudio'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
 import {
   buildAuthenticatedCreationRedirect,
@@ -39,6 +40,7 @@ type TopicGeneratorFormProps = {
   duration?: 35 | 45 | 60 | 90
   creationIntent?: Exclude<CreationIntent, null>
   preserveHandoffForSignedIn?: boolean
+  reviewInStudio?: boolean
   analyticsVariant?: string
   marginTop?: number
   copy?: {
@@ -67,6 +69,7 @@ export default function TopicGeneratorForm({
   duration,
   creationIntent = 'fast',
   preserveHandoffForSignedIn = false,
+  reviewInStudio = false,
   analyticsVariant,
   marginTop = 30,
   copy = {
@@ -152,7 +155,7 @@ export default function TopicGeneratorForm({
     if (duration) params.set('duration', String(duration))
     const authRedirect = authRedirectFor(example)
     if (authRedirect) params.set('redirect', authRedirect)
-    window.location.assign(`/signup?${params.toString()}`)
+    window.location.assign((reviewInStudio ? '/api/citations/film-entry' : '/signup') + '?' + params.toString())
   }
 
   return (
@@ -168,7 +171,7 @@ export default function TopicGeneratorForm({
       }}
     >
       <form
-        action="/signup"
+        action={reviewInStudio ? '/api/citations/film-entry' : '/signup'}
         method="get"
         onSubmit={(event) => {
           if (!canSubmit) {

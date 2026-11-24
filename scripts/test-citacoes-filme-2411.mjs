@@ -61,6 +61,7 @@ async function verify(rep={}){
     r[TOPIC]=(r[TOPIC]??source(TOPIC)).replace("useState('')",'useState('+JSON.stringify(sample)+')')
     const l=make(r,country,reverse),h=render(l,f,props),params=hidden(h)
     assert.equal((h.match(/<form\b/g)||[]).length,1,'ONE form per page')
+    assert.ok(h.includes('action="/api/citations/film-entry"'),'ENTRY real server routing')
     assert.deepEqual(schemas(h),schemas(b),'SCHEMA exact')
     assert.deepEqual(JSON.parse(JSON.stringify(l(f).metadata ?? await l(f).generateMetadata())),JSON.parse(JSON.stringify(old(f).metadata ?? await old(f).generateMetadata())),'META exact')
     const expectedCampaign=hidden(b).get('intent_campaign')
@@ -70,9 +71,9 @@ async function verify(rep={}){
     assert.equal(params.has('duration'),false,'DURATION no forced length')
     for(const key of['utm_source','utm_medium','utm_campaign'])assert.equal(params.has(key),false,'ORIGIN no invented UTM')
     const target=new URL(params.get('redirect'),'https://www.usekineo.com')
-    assert.equal(target.pathname,'/studio/create','HANDOFF signed-in destination')
+    assert.equal(target.pathname,'/studio/create','HANDOFF canonical saved preview')
     assert.equal(target.searchParams.get('prompt'),sample,'HANDOFF exact prompt')
-    assert.equal(target.searchParams.get('create_intent'),params.get('create_intent'),'HANDOFF same offer')
+    assert.equal(target.searchParams.get('create_intent'),params.get('create_intent'),'HANDOFF canonical offer preview')
     assert.equal(target.searchParams.get('script_mode'),params.get('script_mode'),'HANDOFF same mode')
     const afterAuth=new URL(l('lib/growth/ideiaPousaNoStudio.ts').destinoDaIdeia(target.pathname+target.search),'https://www.usekineo.com')
     assert.equal(afterAuth.pathname,'/studio','AUTH actual destination rule')
@@ -98,7 +99,8 @@ const mutants=[
  ['internal guest granted',()=>sub(PROVIDER,"(CITATION_FILM_RELEASE === 'internal' && accessGranted)","(CITATION_FILM_RELEASE === 'internal')"),'INTERNAL pending original HTML exact'],
  ['forced length',()=>sub(FORM,'duration={topicOptions ? topicOptions.duration : selected.duration}','duration={selected.duration}'),'DURATION no forced length'],
  ['wrong campaign',()=>sub(FORM,'campaign={campaign}','campaign="wrong"'),'CAMPAIGN preserved'],
- ['dropped auth handoff',()=>sub(FORM,'preserveHandoffForSignedIn={preserveHandoffForSignedIn}','preserveHandoffForSignedIn={false}'),'HANDOFF signed-in destination'],
+ ['dropped auth handoff',()=>sub(FORM,'preserveHandoffForSignedIn={preserveHandoffForSignedIn}','preserveHandoffForSignedIn={false}'),'HANDOFF canonical saved preview'],
+ ['review bypassed',()=>sub(FORM,'reviewInStudio={!!topicOptions}','reviewInStudio={false}'),'ENTRY real server routing'],
  ['downgraded trial',()=>sub(FREE,"creationIntent: OFFER.reverseTrial ? 'trial_best' : 'fast'","creationIntent: 'fast'"),'OFFER preserved'],
 ]
 for(const[name,mutate,message]of mutants){

@@ -98,6 +98,7 @@ export default function TextToVideoIntentForm({ formId, campaign = TEXT_TO_VIDEO
       {renderInput ? renderInput({ scriptMode: selected.scriptMode }) : (
       <TopicGeneratorForm
         {...topicOptions}
+        reviewInStudio={!!topicOptions}
         campaign={campaign}
         source={topicOptions?.source ?? campaign}
         placement={placement}
