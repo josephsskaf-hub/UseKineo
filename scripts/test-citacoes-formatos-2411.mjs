@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import {execFileSync} from 'node:child_process'
 import {offlineModules,React,renderToStaticMarkup,source} from './gpt24h-offline-support.mjs'
-const ACCESS='lib/growth/citationPagesAccess.ts',INTENT='app/ai-video-generator/for/[slug]/page.tsx',CAT='lib/seo/intentPages.ts',AD='app/ai-ugc-ads/product-photo-ads/page.tsx',MAP='app/sitemap.ts',AUTH='components/seo/InternalCitationPreview.tsx'
+const RELEASE='lib/growth/citationPagesRelease.ts',ACCESS='lib/growth/citationPagesAccess.ts',INTENT='app/ai-video-generator/for/[slug]/page.tsx',CAT='lib/seo/intentPages.ts',AD='app/ai-ugc-ads/product-photo-ads/page.tsx',MAP='app/sitemap.ts',AUTH='components/seo/InternalCitationPreview.tsx'
 const plain=({children})=>React.createElement('div',null,children)
 const mocks=Object.fromEntries(['Footer','AgencyVolumeBridge','ExitIntentOffer','LocalizedScriptHandoff','StickyFreeShortCTA','Kineo1RetiredNotice','PaidSeedanceBridge','ScriptToSeedanceBridge','BuyCreatorCta','NicheHouseFilm','GeoRodada3Sections'].map(n=>[`components/${n}.tsx`,{__esModule:true,default:plain}]))
 mocks['lib/analytics.ts']={trackEvent:()=>{},trackClosedEvent:()=>{},rememberSignupCampaign:()=>{}}
@@ -20,7 +20,7 @@ const HERO='components/seo/CitationFormatHero.tsx',DATA='lib/growth/citationForm
 const baseline='c1d265cf9',oldSource=execFileSync('git',['show',baseline+':'+INTENT],{encoding:'utf8'})
 const oldAd=execFileSync('git',['show',baseline+':'+AD],{encoding:'utf8'})
 const render=(l,f,p={})=>renderToStaticMarkup(React.createElement(l(f).default,p))
-const publicRep=rep=>({...rep,[ACCESS]:(rep[ACCESS]??source(ACCESS)).replace("CITATION_PAGES_RELEASE: CitationPagesRelease = 'off'","CITATION_PAGES_RELEASE: CitationPagesRelease = 'public'")})
+const publicRep=rep=>({...rep,[RELEASE]:(rep[RELEASE]??source(RELEASE)).replace("CITATION_PAGES_RELEASE: CitationPagesRelease = 'off'","CITATION_PAGES_RELEASE: CitationPagesRelease = 'public'")})
 const old=make(publicRep({[INTENT]:oldSource,[AD]:oldAd}))
 const controls=['urdu','story-videos','faceless-videos','documentary-shorts','instagram-reels']
 const schemas=h=>[...h.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(x=>JSON.parse(x[1]))

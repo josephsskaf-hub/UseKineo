@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import {execFileSync} from 'node:child_process'
 import {offlineModules,React,renderToStaticMarkup,source} from './gpt24h-offline-support.mjs'
-const ACCESS='lib/growth/citationPagesAccess.ts',INTENT='app/ai-video-generator/for/[slug]/page.tsx',CAT='lib/seo/intentPages.ts',AD='app/ai-ugc-ads/product-photo-ads/page.tsx',MAP='app/sitemap.ts',AUTH='components/seo/InternalCitationPreview.tsx'
+const RELEASE='lib/growth/citationPagesRelease.ts',ACCESS='lib/growth/citationPagesAccess.ts',INTENT='app/ai-video-generator/for/[slug]/page.tsx',CAT='lib/seo/intentPages.ts',AD='app/ai-ugc-ads/product-photo-ads/page.tsx',MAP='app/sitemap.ts',AUTH='components/seo/InternalCitationPreview.tsx'
 const plain=({children})=>React.createElement('div',null,children)
 const mocks=Object.fromEntries(['Footer','AgencyVolumeBridge','ExitIntentOffer','LocalizedScriptHandoff','StickyFreeShortCTA','Kineo1RetiredNotice','PaidSeedanceBridge','ScriptToSeedanceBridge','BuyCreatorCta','NicheHouseFilm','GeoRodada3Sections'].map(n=>[`components/${n}.tsx`,{__esModule:true,default:plain}]))
 mocks['lib/analytics.ts']={trackEvent:()=>{},trackClosedEvent:()=>{},rememberSignupCampaign:()=>{}}
@@ -19,7 +19,7 @@ const previous=Object.fromEntries([INTENT,CAT,MAP,'components/ugc/UgcPages.tsx']
 const old=make(previous),json=x=>JSON.parse(JSON.stringify(x)),oldMap=json(old(MAP).default()),oldSlugs=json(old(CAT).INTENT_SLUGS),oldParams=json(old(INTENT).generateStaticParams())
 const render=(l,f,p={})=>renderToStaticMarkup(React.createElement(l(f).default,p)),schemas=h=>[...h.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(x=>JSON.parse(x[1]))
 const controls=['urdu','story-videos','faceless-videos','documentary-shorts','instagram-reels'],oldHtml=new Map(controls.map(slug=>[slug,render(old,INTENT,{params:{slug}})]))
-const release=(rep,state)=>({...rep,[ACCESS]:(rep[ACCESS]??source(ACCESS)).replace("CITATION_PAGES_RELEASE: CitationPagesRelease = 'off'",`CITATION_PAGES_RELEASE: CitationPagesRelease = '${state}'`)})
+const release=(rep,state)=>({...rep,[RELEASE]:(rep[RELEASE]??source(RELEASE)).replace("CITATION_PAGES_RELEASE: CitationPagesRelease = 'off'",`CITATION_PAGES_RELEASE: CitationPagesRelease = '${state}'`)})
 const denied=async fn=>{try{await fn();return false}catch(e){if(e.message==='NEXT_NOT_FOUND')return true;throw e}}
 async function verify(rep={}){
  const l=make(rep),a=l(ACCESS),house=l('lib/internalAccounts.ts').INTERNAL_EXACT_EMAILS,slugs=json(a.CITATION_DRAFT_SLUGS)
@@ -74,7 +74,7 @@ async function verify(rep={}){
 await verify()
 const sub=(f,a,b)=>{const s=source(f);assert.equal(s.split(a).length,2,'mutation anchor '+a);return{[f]:s.replace(a,b)}}
 const mutants=[
- ['default public',()=>sub(ACCESS,"CITATION_PAGES_RELEASE: CitationPagesRelease = 'off'","CITATION_PAGES_RELEASE: CitationPagesRelease = 'public'"),'DEFAULT pages off'],
+ ['default public',()=>sub(RELEASE,"CITATION_PAGES_RELEASE: CitationPagesRelease = 'off'","CITATION_PAGES_RELEASE: CitationPagesRelease = 'public'"),'DEFAULT pages off'],
  ['off bypass',()=>sub(ACCESS,"release === 'public'","release === 'off' || release === 'public'"),'GATE off everyone'],
  ['internal broad patterns',()=>({[ACCESS]:source(ACCESS).replaceAll('contaDaCasaExata','isInternalEmail')}),'GATE lookalikes denied'],
  ['unconfirmed allowed',()=>sub(ACCESS,'!!user?.email_confirmed_at && contaDaCasaExata(user.email)','contaDaCasaExata(user?.email)'),'GATE unconfirmed denied'],

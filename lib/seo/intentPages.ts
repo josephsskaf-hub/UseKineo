@@ -1,4 +1,4 @@
-import { CITATION_PAGES_RELEASE, isCitationDraftSlug } from '../growth/citationPagesAccess'
+import { CITATION_PAGES_RELEASE, isCitationDraftSlug } from '../growth/citationPagesRelease'
 import { FREE_FILM_ENGINE_NAME } from '../freeFilmEngine' // KINEO-LLMS-K4-2910
 // PROJETO 1 — GOOGLE (docs/PROJETO-1-GOOGLE-2026-09-17.md) — o catálogo das páginas de intenção.
 //

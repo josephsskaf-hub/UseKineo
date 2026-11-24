@@ -1,7 +1,7 @@
 import CitationFormatHero from '@/components/seo/CitationFormatHero'
 import { citationFormatPaint, CITATION_FORMAT_CSS, type CitationFormatSlug } from '@/lib/growth/citationFormatHero2411'
 import InternalCitationPreview from '@/components/seo/InternalCitationPreview'
-import { CITATION_PAGES_RELEASE, isCitationDraftSlug } from '@/lib/growth/citationPagesAccess'
+import { CITATION_PAGES_RELEASE, isCitationDraftSlug } from '@/lib/growth/citationPagesRelease'
 import { BuyerBatch2Lead, BuyerBatch2Details } from '@/components/seo/BuyerQuestions2111'
 import { buyerBatch2, buyerBatch2ForIntent } from '@/lib/seo/buyerQuestions2111'
 // PROJETO 1 — GOOGLE (docs/PROJETO-1-GOOGLE-2026-09-17.md) — a página de intenção.

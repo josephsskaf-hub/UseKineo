@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { ProductPhotoAdsPage, productPhotoAdsMetadata } from '@/components/ugc/UgcPages'
-import { CITATION_PAGES_RELEASE } from '@/lib/growth/citationPagesAccess'
+import { CITATION_PAGES_RELEASE } from '@/lib/growth/citationPagesRelease'
 import InternalCitationPreview from '@/components/seo/InternalCitationPreview'
 
 export const dynamic = 'auto'

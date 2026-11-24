@@ -2,7 +2,7 @@
 
 **DECISÃO DO DONO · quadro 24/11 00:32.** Sim às quatro páginas, com ajuste nas três de formato. A publicação continua com a CEO após PODE IR independente. Esta candidata permanece off.
 
-**IMPLEMENTADO / TESTADO LOCALMENTE.** Só /ai-video-generator/for/cartoon-videos, animated-story-videos e animal-story-videos recebem a primeira dobra específica. O primeiro vídeo é Leo, a pequena abóbora animada e o gatinho cavaleiro, respectivamente. A caixa “What's your film about?” vem antes da faixa genérica de produtos e fica acima da dobra no desktop. A faixa anterior continua na página. Referências: components/seo/CitationFormatHero.tsx; lib/growth/citationFormatHero2411.ts; app/ai-video-generator/for/[slug]/page.tsx.
+**IMPLEMENTADO / TESTADO LOCALMENTE.** Só /ai-video-generator/for/cartoon-videos, animated-story-videos e animal-story-videos recebem a primeira dobra específica. O primeiro vídeo é Leo, a pequena abóbora animada e o filhote de lobo, respectivamente. A caixa “What's your film about?” vem antes da faixa genérica de produtos e fica acima da dobra no desktop. A faixa anterior continua na página. Referências: components/seo/CitationFormatHero.tsx; lib/growth/citationFormatHero2411.ts; app/ai-video-generator/for/[slug]/page.tsx.
 
 **FATO CONFIRMADO.** As mídias são previews próprios já usados em /ai-kids-cartoon-videos e na home; arquivos locais e HEAD dos três vídeos públicos conferidos em 24/11. Fonte e rastreio: lib/ui/homeKidsCard.ts:30 e lib/ui/homeThreeCards.ts:127; MIDIAS-PUBLICAS.json. Os selos identificam o motor histórico de cada exemplo; não prometem que ele seja o benefício gratuito atual. Nenhum render foi criado.
 

@@ -1,4 +1,4 @@
-import { CITATION_PAGES_RELEASE, CITATION_DRAFT_SLUGS, CITATION_PAGES_REVIEWED_ISO } from '@/lib/growth/citationPagesAccess'
+import { CITATION_PAGES_RELEASE, CITATION_DRAFT_SLUGS, CITATION_PAGES_REVIEWED_ISO } from '@/lib/growth/citationPagesRelease'
 import type { MetadataRoute } from 'next'
 import { NICHE_SLUGS } from './free-ai-shorts/[niche]/page'
 import { COMPETITOR_SLUGS } from './alternatives/[competitor]/page'
