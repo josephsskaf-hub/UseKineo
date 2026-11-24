@@ -282,7 +282,8 @@ const origHarness = harness
 harness = (_src, opts) => origHarness(CURRENT, opts)
 
 const MUTANTS = [
-  ['tirar a guarda de administrador do POST', 'const admin = await adminUser()', "const admin = (await adminUser()) ?? { id: 'intruso' }"],
+  ['guarda aceita qualquer login (sem a lista de administradores)', 'ADMIN_EMAILS.has((user.email ?? \'\').toLowerCase()) ? user : null', 'user'],
+  ['sonda antes da guarda do POST e sem a guarda própria', "if (!(await adminUser())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })\n  if (req.nextUrl.searchParams.get('probe') === '1') return probePost(req)", "if (req.nextUrl.searchParams.get('probe') === '1') return probePost(req)\n  if (!(await adminUser())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })", ["const admin = await adminUser()\n  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })\n  const userId = admin.id", "const userId = 'intruso'"]],
   ['tirar a guarda de administrador do GET da sonda', "if (!(await adminUser())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })\n  if (req.nextUrl.searchParams.get('engine') === 'probe') return probeGet(req)", "if (req.nextUrl.searchParams.get('engine') === 'probe') return probeGet(req)\n  if (!(await adminUser())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })"],
   ['tirar a lista de endpoints', 'const endpoint = probeEndpointFrom(body?.endpoint)', 'const endpoint = probeEndpointFrom(body?.endpoint) ?? { usdPerSecond: 0.157, multiPrompt: true }'],
   ['repassar chave desconhecida', "if (Object.keys(input).some((k) => !PROBE_INPUT_KEYS.has(k))) return 'unknown_input_key'", ''],
@@ -299,7 +300,7 @@ const MUTANTS = [
   ['janela sem limite de tempo', ".gte('created_at', since)", ''],
   ['gravar o evento com outro nome', 'name: PROBE_EVENT, path', "name: 'admin_engine_test', path"],
   ['erro do fornecedor no GET vira 500', "return NextResponse.json({ status: 'failed', error: falDetail(e).slice(0, 300) })", "return NextResponse.json({ error: 'x' }, { status: 500 })"],
-  ['sonda engole o modo antigo', "if (req.nextUrl.searchParams.get('probe') === '1') return probePost(req, admin.id)", 'return probePost(req, admin.id)'],
+  ['sonda engole o modo antigo', "if (req.nextUrl.searchParams.get('probe') === '1') return probePost(req)", 'return probePost(req)'],
 ]
 
 const realFailures = await runSuite(ROUTE)
@@ -307,9 +308,10 @@ for (const c of cases) if (!realFailures.some((f) => f.startsWith(c.name + ':'))
 for (const f of realFailures) console.error('FALHOU ' + f)
 let dead = 0
 const alive = []
-for (const [name, from, to] of MUTANTS) {
-  if (!ROUTE.includes(from)) { alive.push(name + ' (trecho não encontrado na rota)'); continue }
-  CURRENT = ROUTE.split(from).join(to)
+for (const [name, from, to, extra] of MUTANTS) {
+  const edits = [[from, to], ...(extra ? [extra] : [])]
+  if (edits.some(([a]) => !ROUTE.includes(a))) { alive.push(name + ' (trecho não encontrado na rota)'); continue }
+  CURRENT = edits.reduce((src, [a, b]) => src.split(a).join(b), ROUTE)
   const f = await runSuite(CURRENT)
   if (f.length) { dead++; console.log(`MUTANTE MORTO · ${name} · ${f.length} asserção(ões), ex.: ${f[0].slice(0, 110)}`) } else alive.push(name)
 }

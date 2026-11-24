@@ -6,7 +6,15 @@ let pass = 0, fail = 0
 const ok = (c, m) => { if (c) { pass++; console.log('  ok  ', m) } else { fail++; console.log('  FALHA', m) } }
 const GATE = "if (!(await adminUser())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })"
 const soAdmin = (r) => ['POST', 'GET'].every((f) => { const i = r.indexOf(`export async function ${f}(`); return i > 0 && r.slice(i).split('\n')[1].trim() === GATE })
-const semBanco = (r) => !/\.from\(|\.rpc\(|createServiceClient|credit/i.test(r.replace(/^\/\/.*$/gm, ''))
+// KINEO-SONDA-MOTORES-2311 — reancorado: a sonda (dono 23/11, teste pago com teto) PRECISA ler e gravar o próprio gasto em public.events.
+// Continua proibido: crédito, rpc, cliente de serviço criado à mão, qualquer outra tabela, e banco nos modos antigos (POST/GET depois da sonda).
+const semBanco = (r) => {
+  const code = r.replace(/^\s*\/\/.*$/gm, '').replace(/\/\/ KINEO-[^\n]*/g, '')
+  if (/\.rpc\(|createServiceClient|credit/i.test(code)) return false
+  if (![...code.matchAll(/\.from\(([^)]*)\)/g)].every((m) => m[1] === "'events'")) return false
+  const antigos = code.slice(code.indexOf('export async function POST('))
+  return !/\.from\(|serviceClient\(/.test(antigos)
+}
 const so3 = (r) => { const b = r.slice(r.indexOf('const ENGINES'), r.indexOf('\n}\n', r.indexOf('const ENGINES'))); return [...b.matchAll(/^ {2}([a-z0-9_]+): \{ model: '([^']+)'/gm)].map((m) => m[1] + '=' + m[2]).join() === 'h3_max_turbo=minimax/h3-max-turbo/image-to-video,kling4_flash=kling/v4/flash/image-to-video,wan3=fal-ai/wan-3/image-to-video' }
 const quadroFechado = (r) => r.includes("u.hostname === 'fal.media' || u.hostname.endsWith('.fal.media')") && r.includes("if (!imageAllowed(body?.image_url,")
 ok(soAdmin(R), 'POST e GET recusam quem não é administrador antes de tudo')

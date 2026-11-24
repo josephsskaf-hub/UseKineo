@@ -165,7 +165,11 @@ async function probeSpentUnits(db: NonNullable<ReturnType<typeof serviceClient>>
   }
 }
 
-async function probePost(req: NextRequest, userId: string) {
+async function probePost(req: NextRequest) {
+  // Segunda guarda de propósito: a sonda gasta dinheiro e o evento precisa do id de quem pediu (a guarda do POST não o devolve).
+  const admin = await adminUser()
+  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const userId = admin.id
   const body = (await req.json().catch(() => null)) as { endpoint?: unknown; input?: unknown } | null
   const endpoint = probeEndpointFrom(body?.endpoint)
   if (!endpoint) return NextResponse.json({ error: 'unknown_endpoint', endpoints: Object.keys(PROBE_ENDPOINTS) }, { status: 400 })
@@ -214,9 +218,8 @@ async function probeGet(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const admin = await adminUser()
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  if (req.nextUrl.searchParams.get('probe') === '1') return probePost(req, admin.id) // KINEO-SONDA-MOTORES-2311
+  if (!(await adminUser())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (req.nextUrl.searchParams.get('probe') === '1') return probePost(req) // KINEO-SONDA-MOTORES-2311
   if (req.nextUrl.searchParams.get('motion') === '1') {
     const planos = planosFrom(((await req.json().catch(() => null)) as { shots?: unknown } | null)?.shots)
     if (!planos) return NextResponse.json({ error: 'bad_shots' }, { status: 400 })
