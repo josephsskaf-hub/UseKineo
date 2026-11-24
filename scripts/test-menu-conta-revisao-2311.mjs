@@ -130,7 +130,7 @@ function world({ release = 'public', email = 'member@example.test', paid = false
     const mod = { exports: {} }
     modules.set(file, mod)
     let source = changes[file] ?? sourceOf(file)
-    if (file === releaseFile) source = source.replace("'off' as InternalRelease", "'" + release + "' as InternalRelease")
+    if (file === releaseFile) source = source.replace(/'(?:off|internal|public)' as InternalRelease/, "'" + release + "' as InternalRelease")
     const cacheKey = file + '\0' + source
     if (!transpiled.has(cacheKey)) {
       transpiled.set(cacheKey, ts.transpileModule(source, { compilerOptions: {

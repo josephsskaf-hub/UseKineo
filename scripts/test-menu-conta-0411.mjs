@@ -89,7 +89,7 @@ function verificar(fontes = {}) {
     && menu.unifiedAccountSurface('/ads/producao') === 'account_ads_production'
     && menu.unifiedAccountSurface('/private-reference') === 'account_public'
     && menu.unifiedAccountSurface('/recreate/private-reference') === 'account_recreate', 'superfícies distintas sem identificador privado')
-  checa(menu.ACCOUNT_MENU_RELEASE === 'off', 'interruptor desligado na entrega')
+  checa(menu.ACCOUNT_MENU_RELEASE === 'internal', 'interruptor só para a casa na entrega (KINEO-MENU-CONTA-CASA-2411)')
   const trigger = fonte(TRIGGER)
   checa(trigger.includes('useEffect(() => setMounted(true), [])') && trigger.includes('disabled={!mounted}'), 'a entrada espera a hidratação antes de aceitar o clique')
   checa(trigger.includes('setPlacement(null); setPurchase(null) }, [pathname])'), 'a resposta inicial da sessão não fecha o menu')

@@ -262,8 +262,12 @@ async function problems(overrides = {}) {
   const implicitOff = await W.render(LANDING)
   const guest = await W.render(LANDING, { watchVisitor: true })
   const auth = await W.render(LANDING, { watchVisitor: true, initialUser: fixtureUser, initialEmail: fixtureUser.email })
-  check(off === baseGuest && implicitOff === off, 'paridade visitante: flag OFF devolve HTML anterior')
-  check(auth === baseAuth && !isWatch(auth), 'paridade logado: WATCH nunca substitui home autenticada')
+  // KINEO-MENU-CONTA-CASA-2411 — com o menu em 'internal' a home ganha só o bloco de CSS inerte do menu (exatamente uma vez); o resto é o HTML anterior.
+  const MENU_CSS = '@media(max-width:560px){\n.klp .nav-cta:has([data-unified-account-trigger]){display:flex}\n.klp .nav-cta:has([data-unified-account-trigger]) .nav-dashboard{display:none}\n}\n'
+  const menuOn = !read('lib/ui/unifiedAccountMenu.ts').includes("ACCOUNT_MENU_RELEASE = 'off'")
+  const visitorView = (h) => menuOn ? (h.split(MENU_CSS).length === 2 ? h.replace(MENU_CSS, '') : null) : h
+  check(visitorView(off) === baseGuest && implicitOff === off, 'paridade visitante: flag OFF devolve HTML anterior')
+  check(visitorView(auth) === baseAuth && !isWatch(auth), 'paridade logado: WATCH nunca substitui home autenticada')
   check(isWatch(guest) && !isWatch(off), 'ramo WATCH: somente visitante com flag')
   check(W.load(RELEASE).WATCH_HOME_ENABLED === false, 'lançamento: flag pública nasce desligada')
 
@@ -386,7 +390,7 @@ const baseErrors = await problems()
 for (const e of baseErrors) console.error(`FALHA ${e}`)
 assert.deepEqual(baseErrors, [], 'árvore real precisa passar antes dos mutantes')
 const mutations = [
-  ['CSS do menu de conta sai com o interruptor desligado', () => replacement(LANDING, '${ACCOUNT_MENU_MAY_RENDER ? `@media', '${true ? `@media'), 'paridade visitante: flag OFF devolve HTML anterior'],
+  ['CSS do menu de conta acompanha o interruptor', () => replacement(LANDING, '${ACCOUNT_MENU_MAY_RENDER ? `@media', '${false ? `@media'), 'paridade visitante: flag OFF devolve HTML anterior'],
   ['geração interna recebe cliente público',()=>replacement('lib/home/watchEntry.ts',"SEU_VIDEO_RELEASE === 'public' && ",''),'política interna/off usa catálogo público sem convite de signup: selfie-confete'],
   ['WATCH alcança logado', () => replacement(LANDING, '{watchVisitor && !isSignedIn ? <WatchVisitorHome', '{watchVisitor ? <WatchVisitorHome'), 'paridade logado: WATCH nunca substitui home autenticada'],
   ['limpeza avança além dos recortes aprovados', () => replacement(LANDING, 'From idea to posted Short in 3 steps.', 'Make a Short'), 'paridade visitante: flag OFF devolve HTML anterior'],

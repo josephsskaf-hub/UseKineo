@@ -1,6 +1,6 @@
 import type { InternalRelease } from '@/lib/recreate/release'
 
-export const ACCOUNT_MENU_RELEASE = 'off' as InternalRelease
+export const ACCOUNT_MENU_RELEASE = 'internal' as InternalRelease
 export const ACCOUNT_MENU_MAY_RENDER = ACCOUNT_MENU_RELEASE !== 'off'
 export const ACCOUNT_MENU_VISIBILITY_API = '/api/account/menu-visibility'
 export const ACCOUNT_CREDITS_OFFER_SURFACE = 'account_offer'
