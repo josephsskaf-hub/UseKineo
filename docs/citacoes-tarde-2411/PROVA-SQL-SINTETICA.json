@@ -1,0 +1,237 @@
+{
+  "synthetic": true,
+  "read_on": "2026-11-24",
+  "reference": {
+    "cut": "2026-11-24T16:01:33.742416+00:00",
+    "rows": [
+      {
+        "path": "/how-much-do-instagram-reels-pay",
+        "origin": "chatgpt_explicito",
+        "accounts": 1,
+        "sessions": 3,
+        "paid_people": 0,
+        "ambiguous_sessions": 1,
+        "first_completed_requests": 0
+      },
+      {
+        "path": "/how-much-do-youtube-shorts-pay",
+        "origin": "bing_explicito",
+        "accounts": 1,
+        "sessions": 2,
+        "paid_people": 1,
+        "ambiguous_sessions": 0,
+        "first_completed_requests": 1
+      },
+      {
+        "path": "/how-much-do-instagram-reels-pay",
+        "origin": "origem_nao_gravada",
+        "accounts": 0,
+        "sessions": 1,
+        "paid_people": 0,
+        "ambiguous_sessions": 0,
+        "first_completed_requests": 0
+      }
+    ],
+    "start": "2026-10-25T16:01:33.742416+00:00"
+  },
+  "mutants": [
+    {
+      "mutant": "recontar conta em sessão posterior",
+      "rejected": true,
+      "actual": [
+        {
+          "path": "/how-much-do-instagram-reels-pay",
+          "origin": "chatgpt_explicito",
+          "sessions": 3,
+          "accounts": 2,
+          "first_completed_requests": 1,
+          "paid_people": 1,
+          "ambiguous_sessions": 1
+        },
+        {
+          "path": "/how-much-do-instagram-reels-pay",
+          "origin": "origem_nao_gravada",
+          "sessions": 1,
+          "accounts": 0,
+          "first_completed_requests": 0,
+          "paid_people": 0,
+          "ambiguous_sessions": 0
+        },
+        {
+          "path": "/how-much-do-youtube-shorts-pay",
+          "origin": "bing_explicito",
+          "sessions": 2,
+          "accounts": 1,
+          "first_completed_requests": 1,
+          "paid_people": 1,
+          "ambiguous_sessions": 0
+        }
+      ]
+    },
+    {
+      "mutant": "bot incluído",
+      "rejected": true,
+      "actual": [
+        {
+          "path": "/how-much-do-instagram-reels-pay",
+          "origin": "chatgpt_explicito",
+          "sessions": 3,
+          "accounts": 1,
+          "first_completed_requests": 0,
+          "paid_people": 0,
+          "ambiguous_sessions": 1
+        },
+        {
+          "path": "/how-much-do-instagram-reels-pay",
+          "origin": "origem_nao_gravada",
+          "sessions": 1,
+          "accounts": 0,
+          "first_completed_requests": 0,
+          "paid_people": 0,
+          "ambiguous_sessions": 0
+        },
+        {
+          "path": "/how-much-do-youtube-shorts-pay",
+          "origin": "bing_explicito",
+          "sessions": 3,
+          "accounts": 2,
+          "first_completed_requests": 1,
+          "paid_people": 1,
+          "ambiguous_sessions": 0
+        }
+      ]
+    },
+    {
+      "mutant": "interno incluído",
+      "rejected": true,
+      "actual": [
+        {
+          "path": "/how-much-do-instagram-reels-pay",
+          "origin": "chatgpt_explicito",
+          "sessions": 3,
+          "accounts": 1,
+          "first_completed_requests": 0,
+          "paid_people": 0,
+          "ambiguous_sessions": 1
+        },
+        {
+          "path": "/how-much-do-instagram-reels-pay",
+          "origin": "origem_nao_gravada",
+          "sessions": 1,
+          "accounts": 0,
+          "first_completed_requests": 0,
+          "paid_people": 0,
+          "ambiguous_sessions": 0
+        },
+        {
+          "path": "/how-much-do-youtube-shorts-pay",
+          "origin": "bing_explicito",
+          "sessions": 3,
+          "accounts": 1,
+          "first_completed_requests": 1,
+          "paid_people": 1,
+          "ambiguous_sessions": 0
+        }
+      ]
+    },
+    {
+      "mutant": "último evento troca página de entrada",
+      "rejected": true,
+      "actual": [
+        {
+          "path": "/how-much-do-instagram-reels-pay",
+          "origin": "chatgpt_explicito",
+          "sessions": 3,
+          "accounts": 1,
+          "first_completed_requests": 0,
+          "paid_people": 0,
+          "ambiguous_sessions": 1
+        },
+        {
+          "path": "/how-much-do-instagram-reels-pay",
+          "origin": "origem_nao_gravada",
+          "sessions": 1,
+          "accounts": 0,
+          "first_completed_requests": 0,
+          "paid_people": 0,
+          "ambiguous_sessions": 0
+        },
+        {
+          "path": "/how-much-do-youtube-shorts-pay",
+          "origin": "bing_explicito",
+          "sessions": 1,
+          "accounts": 0,
+          "first_completed_requests": 0,
+          "paid_people": 0,
+          "ambiguous_sessions": 0
+        },
+        {
+          "path": "/ignored-duplicate",
+          "origin": "chatgpt_explicito",
+          "sessions": 1,
+          "accounts": 1,
+          "first_completed_requests": 1,
+          "paid_people": 1,
+          "ambiguous_sessions": 0
+        }
+      ]
+    },
+    {
+      "mutant": "pagamento do cliente vira compra",
+      "rejected": true,
+      "actual": [
+        {
+          "path": "/how-much-do-instagram-reels-pay",
+          "origin": "chatgpt_explicito",
+          "sessions": 3,
+          "accounts": 1,
+          "first_completed_requests": 0,
+          "paid_people": 1,
+          "ambiguous_sessions": 1
+        },
+        {
+          "path": "/how-much-do-instagram-reels-pay",
+          "origin": "origem_nao_gravada",
+          "sessions": 1,
+          "accounts": 0,
+          "first_completed_requests": 0,
+          "paid_people": 0,
+          "ambiguous_sessions": 0
+        },
+        {
+          "path": "/how-much-do-youtube-shorts-pay",
+          "origin": "bing_explicito",
+          "sessions": 2,
+          "accounts": 1,
+          "first_completed_requests": 1,
+          "paid_people": 1,
+          "ambiguous_sessions": 0
+        }
+      ]
+    },
+    {
+      "mutant": "origem ausente vira ChatGPT",
+      "rejected": true,
+      "actual": [
+        {
+          "path": "/how-much-do-instagram-reels-pay",
+          "origin": "chatgpt_explicito",
+          "sessions": 4,
+          "accounts": 1,
+          "first_completed_requests": 0,
+          "paid_people": 0,
+          "ambiguous_sessions": 1
+        },
+        {
+          "path": "/how-much-do-youtube-shorts-pay",
+          "origin": "bing_explicito",
+          "sessions": 2,
+          "accounts": 1,
+          "first_completed_requests": 1,
+          "paid_people": 1,
+          "ambiguous_sessions": 0
+        }
+      ]
+    }
+  ]
+}

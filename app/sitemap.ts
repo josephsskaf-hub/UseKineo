@@ -1,4 +1,4 @@
-import { CITATION_PAGES_RELEASE, CITATION_DRAFT_SLUGS, CITATION_PAGES_REVIEWED_ISO } from '@/lib/growth/citationPagesRelease'
+import { CITATION_TOOL_DRAFT_SLUGS, CITATION_PAGES_RELEASE, CITATION_DRAFT_SLUGS, CITATION_PAGES_REVIEWED_ISO } from '@/lib/growth/citationPagesRelease'
 import type { MetadataRoute } from 'next'
 import { NICHE_SLUGS } from './free-ai-shorts/[niche]/page'
 import { COMPETITOR_SLUGS } from './alternatives/[competitor]/page'
@@ -356,6 +356,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // /pricing: e31d52c09 (06/11); Kling 4: 4aba8a177 (02/11). Não altera as seis páginas em teste.
     lastModified: r.path === '/pricing' ? new Date('2026-11-06T18:40:25.000Z')
       : r.path === '/ai-video-generator/kling-4' ? new Date('2026-11-02T15:25:13.000Z')
+      : CITATION_TOOL_DRAFT_SLUGS.some(slug => r.path === intentPagePath(slug)) ? new Date('2026-11-24T12:00:00.000Z')
       : CITATION_DRAFT_SLUGS.some(slug => r.path === intentPagePath(slug)) ? new Date(`${CITATION_PAGES_REVIEWED_ISO}T12:00:00.000Z`)
       : r.path.endsWith('/made-with-kineo') ? new Date('2026-10-26T00:00:00.000Z') : r.path === '/ads' ? ADS_DOOR_LAST_MODIFIED
       : ['/business-video-ads', '/sora-alternative'].includes(r.path)

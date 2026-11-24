@@ -1,0 +1,124 @@
+{
+  "rows": [
+    {
+      "path": "/how-much-do-youtube-shorts-pay",
+      "phase": "baseline_sem_exposicao",
+      "origin": "bing_explicito",
+      "accounts": 2,
+      "sessions": 188,
+      "paid_people": 0,
+      "ambiguous_sessions": 0,
+      "first_film_delivered": 1
+    },
+    {
+      "path": "/how-much-do-youtube-shorts-pay",
+      "phase": "baseline_sem_exposicao",
+      "origin": "outra_origem_gravada",
+      "accounts": 1,
+      "sessions": 42,
+      "paid_people": 0,
+      "ambiguous_sessions": 0,
+      "first_film_delivered": 0
+    },
+    {
+      "path": "/how-much-do-youtube-shorts-pay",
+      "phase": "baseline_sem_exposicao",
+      "origin": "duckduckgo",
+      "accounts": 0,
+      "sessions": 82,
+      "paid_people": 0,
+      "ambiguous_sessions": 0,
+      "first_film_delivered": 0
+    },
+    {
+      "path": "/how-much-do-instagram-reels-pay",
+      "phase": "baseline_sem_exposicao",
+      "origin": "chatgpt_explicito",
+      "accounts": 0,
+      "sessions": 53,
+      "paid_people": 0,
+      "ambiguous_sessions": 0,
+      "first_film_delivered": 0
+    },
+    {
+      "path": "/how-much-do-youtube-shorts-pay",
+      "phase": "baseline_sem_exposicao",
+      "origin": "origem_nao_gravada",
+      "accounts": 0,
+      "sessions": 23,
+      "paid_people": 0,
+      "ambiguous_sessions": 0,
+      "first_film_delivered": 0
+    },
+    {
+      "path": "/how-much-do-instagram-reels-pay",
+      "phase": "baseline_sem_exposicao",
+      "origin": "origem_nao_gravada",
+      "accounts": 0,
+      "sessions": 17,
+      "paid_people": 0,
+      "ambiguous_sessions": 0,
+      "first_film_delivered": 0
+    },
+    {
+      "path": "/how-much-do-instagram-reels-pay",
+      "phase": "baseline_sem_exposicao",
+      "origin": "bing_explicito",
+      "accounts": 0,
+      "sessions": 1,
+      "paid_people": 0,
+      "ambiguous_sessions": 0,
+      "first_film_delivered": 0
+    },
+    {
+      "path": "/how-much-do-instagram-reels-pay",
+      "phase": "baseline_sem_exposicao",
+      "origin": "google",
+      "accounts": 0,
+      "sessions": 1,
+      "paid_people": 0,
+      "ambiguous_sessions": 0,
+      "first_film_delivered": 0
+    },
+    {
+      "path": "/how-much-do-instagram-reels-pay",
+      "phase": "baseline_sem_exposicao",
+      "origin": "outra_origem_gravada",
+      "accounts": 0,
+      "sessions": 1,
+      "paid_people": 0,
+      "ambiguous_sessions": 0,
+      "first_film_delivered": 0
+    },
+    {
+      "path": "/how-much-do-youtube-shorts-pay",
+      "phase": "baseline_sem_exposicao",
+      "origin": "google",
+      "accounts": 0,
+      "sessions": 1,
+      "paid_people": 0,
+      "ambiguous_sessions": 0,
+      "first_film_delivered": 0
+    }
+  ],
+  "windows": [
+    {
+      "phase": "baseline_sem_exposicao",
+      "phase_cut": "2026-11-24T16:01:33.742416+00:00",
+      "phase_start": "2026-11-10T16:01:33.742416+00:00"
+    }
+  ],
+  "coverage": [
+    {
+      "phase": "baseline_sem_exposicao",
+      "all_new_external_accounts": 292,
+      "accounts_with_eligible_session": 280,
+      "accounts_without_eligible_session": 12
+    }
+  ],
+  "criterion": "conversion inside each phase; independent phase cut for identity, signup, film history and paid event",
+  "live_from": null,
+  "observed_cut": "2026-11-24T16:01:33.742416+00:00",
+  "after_complete": false,
+  "after_not_observed": true
+}

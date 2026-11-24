@@ -1,3 +1,5 @@
+import CitationToolPage, { citationToolMetadata } from '@/components/seo/CitationToolPage2411'
+import { getCitationTool } from '@/lib/seo/citationTools2411'
 import CitationFormatHero from '@/components/seo/CitationFormatHero'
 import { citationFormatPaint, CITATION_FORMAT_CSS, type CitationFormatSlug } from '@/lib/growth/citationFormatHero2411'
 import InternalCitationPreview from '@/components/seo/InternalCitationPreview'
@@ -47,6 +49,8 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const p = getIntentPage(params.slug)
   if (!p) return isCitationDraftSlug(params.slug) ? { robots: { index: false, follow: false } } : {}
+  const tool = getCitationTool(params.slug)
+  if (tool) return citationToolMetadata(tool)
   const url = `${BASE}${intentPagePath(p.slug)}`
   const description = p.slug === 'story-videos' ? STORY_VIDEO_COPY.description : `${p.intro.slice(0, 150).replace(/\s+\S*$/, '')}… Real films, ${p.slug === 'urdu' || buyerBatch2ForIntent(p.slug) || DRAWING_INTENTS_2311.has(p.slug) ? STANDARD_FILM_NAME : ENGINE_NAME[p.engine]} and generative engines, free trial with no card.`
   return {
@@ -95,6 +99,8 @@ export default function IntentPage(props: { params: { slug: string } }) {
 }
 
 function IntentPageContent({ params }: { params: { slug: string } }) {
+  const tool = getCitationTool(params.slug)
+  if (tool) return <CitationToolPage tool={tool} />
   const p = getIntentPage(params.slug) ?? getDraftCitationIntentPage(params.slug)
   if (!p) notFound()
   const url = `${BASE}${intentPagePath(p.slug)}`

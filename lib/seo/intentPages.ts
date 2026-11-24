@@ -1,3 +1,4 @@
+import { CITATION_TOOLS } from './citationTools2411'
 import { CITATION_PAGES_RELEASE, isCitationDraftSlug } from '../growth/citationPagesRelease'
 import { FREE_FILM_ENGINE_NAME } from '../freeFilmEngine' // KINEO-LLMS-K4-2910
 // PROJETO 1 — GOOGLE (docs/PROJETO-1-GOOGLE-2026-09-17.md) — o catálogo das páginas de intenção.
@@ -305,6 +306,7 @@ const ALL_INTENT_PAGES: readonly IntentPage[] = [
   ...FORMATS.map(formatPage),
   ...LANGUAGES.map(languagePage),
   ...ALTERNATIVES.map(altPage),
+  ...CITATION_TOOLS,
 ]
 
 // Only public URLs enter hubs, related links, static params and the sitemap.
