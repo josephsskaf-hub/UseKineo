@@ -4,7 +4,7 @@
 // Puro: escolhe a referência a partir do snapshot de qualidade já pronto; o pedido é montado em lib/kling4Trial.ts (buildKling4ReferenciaUnicaInput).
 import type { FilmQualitySnapshot } from '@/lib/filmComplete/qualityInheritance'
 import { contaDaCasaExata } from '@/lib/internalAccounts'
-import { KLING4_REFERENCE_MODEL, type Kling4ReferenciaUnica } from '@/lib/kling4Trial'
+import { KLING4_REFERENCE_MODEL, kling4TrialClipTotal, type Kling4ReferenciaUnica } from '@/lib/kling4Trial'
 
 export const REFERENCIA_UNICA_2411_VERSAO = 'KINEO-REFERENCIA-UNICA-2411'
 export type ModoReferenciaUnica2411 = 'off' | 'internal' | 'public_humano' | 'public'
@@ -22,9 +22,12 @@ export const referenciaUnicaLigada = (modo: ModoReferenciaUnica2411, email: stri
 /** KINEO-REFERENCIA-UNICA-HUMANO-2411 [CEO 24/11] 'public_humano': o CLIENTE recebe a referência única só onde ela está provada (3 filmes da casa,
  *  pessoa fotorreal, notas cegas 10, 8 e 9). Em desenho, bicho e criatura a prova paga de 24/11 não ligou em nenhum (folha reprovada pelo crítico ou
  *  elenco sem folha): o cliente fica no pedido de hoje, byte a byte, e o claim grava só o código do motivo. */
-export type MotivoClienteSemReferencia2411 = 'mais_de_um' | 'nao_humano' | 'estilizado' | 'sem_referencia'
+export type MotivoClienteSemReferencia2411 = 'mais_de_um' | 'nao_humano' | 'mais_de_uma_folha' | 'estilizado' | 'sem_referencia'
+  | 'sem_plano' | 'clipe_longo' /* [revisora 24/11, volta 3] admitido, mas o montador devolveu null: nenhum plano o mostra (15 s) / clipe de 16 a 30 s */
 /** Por que o cliente NÃO recebe a referência (null = recebe, se o montador achar plano que o mostra): mais de um protagonista; o protagonista ou alguém
- *  do elenco com folha que não é 'humano'; o filme estilizado (isStylizedLook ou desenho infantil, o que a rota já sabe); ou nenhuma referência. */
+ *  do elenco com folha que não é 'humano'; [CEO 24/11, volta 3 da revisora] mais de UM personagem com referência (folha https, ou o protagonista):
+ *  dois humanos com folha nunca passaram por render, só o provado abre; o filme estilizado (isStylizedLook ou desenho infantil, o que a rota já
+ *  sabe); ou nenhuma referência. Coadjuvante sem folha https não conta (Le Prince, Slocum e Cooper tinham coadjuvante só citado). */
 export function motivoClienteSemReferencia2411(snapshot: FilmQualitySnapshot | null | undefined, filme: { estilizado: boolean }): MotivoClienteSemReferencia2411 | null {
   if (!retratoNoFormato(snapshot)) return 'sem_referencia'
   const leads = snapshot.characters.filter((c) => c.protagonista === true).length
@@ -32,10 +35,11 @@ export function motivoClienteSemReferencia2411(snapshot: FilmQualitySnapshot | n
   if (leads === 0) return 'sem_referencia'
   const comFolha = snapshot.characters.filter((c) => c.protagonista === true || snapshot.characterReferences.some((r) => r.nome === c.nome && https(r.url)))
   if (comFolha.some((c) => c.tipo !== 'humano')) return 'nao_humano'
+  if (comFolha.length > 1) return 'mais_de_uma_folha'
   if (filme.estilizado !== false) return 'estilizado' // na dúvida (campo ausente ou torto), estilizado
   return referenciaUnicaDoFilme(snapshot) ? null : 'sem_referencia'
 }
-export type AdmissaoReferenciaUnica2411 = { referencia: ReferenciaUnica2411 } | { motivo: MotivoClienteSemReferencia2411 } | null
+export type AdmissaoReferenciaUnica2411 = { referencia: ReferenciaUnica2411; cliente?: true } | { motivo: MotivoClienteSemReferencia2411 } | null
 /** A admissão inteira, num lugar: 'off' = null; a casa = a referência sem guarda (como em 'internal'); cliente em 'internal' = null (o de hoje, sem
  *  campo novo); cliente em 'public_humano' = a referência só se motivoClienteSemReferencia2411 der null, senão o motivo; 'public' = todos sem guarda. */
 export function admitirReferenciaUnica2411(modo: ModoReferenciaUnica2411, email: string | null | undefined, snapshot: FilmQualitySnapshot | null | undefined,
@@ -45,12 +49,19 @@ export function admitirReferenciaUnica2411(modo: ModoReferenciaUnica2411, email:
   const motivo = motivoClienteSemReferencia2411(snapshot, filme)
   if (motivo) return { motivo }
   const r = referenciaUnicaDoFilme(snapshot)
-  return r ? { referencia: r } : { motivo: 'sem_referencia' }
+  return r ? { referencia: r, cliente: true } : { motivo: 'sem_referencia' }
 }
-/** Para medir quando NÃO ligou para cliente: só a versão e o código do motivo (nunca texto do cliente). */
-export function relatoClienteSemReferencia2411(timing: { referenciaUnica?: unknown; referenciaUnicaRecusa?: MotivoClienteSemReferencia2411 } | null | undefined):
-  { versao: string; motivo: MotivoClienteSemReferencia2411 } | null {
-  return timing && !timing.referenciaUnica && typeof timing.referenciaUnicaRecusa === 'string' ? { versao: REFERENCIA_UNICA_HUMANO_2411_VERSAO, motivo: timing.referenciaUnicaRecusa } : null
+/** Para medir quando NÃO ligou para cliente: só a versão e o código do motivo (nunca texto do cliente). Barrado na guarda = o motivo da guarda;
+ *  [revisora 24/11, volta 3] admitido pela guarda (referenciaUnicaDoCliente) e o envio NÃO saiu pela referência = 'clipe_longo' (clipe de 16 a 30 s:
+ *  o montador só aceita 15) ou 'sem_plano' (15 s e nenhum plano o mostra). Referência usada, casa ou sem o envio = null. */
+export function relatoClienteSemReferencia2411(
+  timing: { referenciaUnica?: unknown; referenciaUnicaRecusa?: MotivoClienteSemReferencia2411; referenciaUnicaDoCliente?: boolean; clipSeconds?: number; fixedCharacter?: unknown } | null | undefined,
+  wire?: { model: string } | null,
+): { versao: string; motivo: MotivoClienteSemReferencia2411 } | null {
+  if (!timing) return null
+  if (!timing.referenciaUnica) return typeof timing.referenciaUnicaRecusa === 'string' ? { versao: REFERENCIA_UNICA_HUMANO_2411_VERSAO, motivo: timing.referenciaUnicaRecusa } : null
+  if (timing.referenciaUnicaDoCliente !== true || timing.fixedCharacter || !wire || wire.model === KLING4_REFERENCE_MODEL) return null
+  return { versao: REFERENCIA_UNICA_HUMANO_2411_VERSAO, motivo: kling4TrialClipTotal(timing.clipSeconds) !== 15 ? 'clipe_longo' : 'sem_plano' }
 }
 export const REFERENCIA_UNICA_HUMANO_2411_VERSAO = 'KINEO-REFERENCIA-UNICA-HUMANO-2411'
 

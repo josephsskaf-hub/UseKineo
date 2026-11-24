@@ -63,6 +63,16 @@ function admitir(route, f, { email, candidato = true, fixo = null, snapshot, loo
   return kling4Timing
 }
 
+// [revisora 24/11, volta 3] Executa o trecho REAL do claim da rota (kling4_referencia_unica / kling4_referencia_unica_cliente), com o montador real.
+function claimDaRota(route, f, api, { prompts, timing }) {
+  const ini = route.indexOf('(() => { const e = kling4EnvioDoFilme(); const w = buildKling4TrialInput(')
+  const fim = route.indexOf('})()', ini)
+  assert.ok(ini > 0 && fim > ini, 'claim da referência única não achado na rota')
+  const e = { prompts, approvedStills: prompts.map(() => null), timing }
+  return JSON.parse(JSON.stringify(Function('kling4EnvioDoFilme', 'buildKling4TrialInput', 'relatoReferenciaUnica', 'relatoClienteSemReferencia2411', 'kling4Timing',
+    'return ' + ts.transpile(route.slice(ini, fim + 4)))(() => e, api.buildKling4TrialInput, f.relatoReferenciaUnica, f.relatoClienteSemReferencia2411, timing)))
+}
+
 // Executa o kling4PorSecao REAL da rota (como scripts/test-k4-personagem-fixo-1811.mjs), com o plano por seção ligado.
 function porSecao(route, modules, merged, referenciaUnica) {
   const begin = route.indexOf('const kling4PorSecao ='), end = route.indexOf('const kling4EnvioDoFilme', begin)
@@ -324,7 +334,7 @@ async function suite(change) {
     assert.equal('referenciaUnica' in porSecao(route, modules, merged, null).timing, false)
   }
   // O claim só ganha o campo quando a referência única foi usada.
-  assert.ok(route.includes("const sem = ru ? null : relatoClienteSemReferencia2411(kling4Timing); return ru ? { kling4_referencia_unica: ru } : sem ? { kling4_referencia_unica_cliente: sem } : {}"))
+  assert.ok(route.includes("const w = buildKling4TrialInput(e.prompts, e.approvedStills, e.timing); const ru = relatoReferenciaUnica(e.timing, w); const sem = ru ? null : relatoClienteSemReferencia2411(kling4Timing, w); return ru ? { kling4_referencia_unica: ru } : sem ? { kling4_referencia_unica_cliente: sem } : {}"))
 
   await suitePublic2411({ api, f, route })
   await suiteHumano2411({ api, f, route })
@@ -498,6 +508,7 @@ async function suiteHumano2411({ api, f, route }) {
     const snap = snapDe(fl)
     const tc = admitir(route, f, { email: cliente, snapshot: snap }), th = admitir(route, f, { email: casa, snapshot: snap })
     assert.ok(tc.referenciaUnica, fl.id + ': cliente humano fotorreal liga'); assert.equal('referenciaUnicaRecusa' in tc, false)
+    assert.equal(tc.referenciaUnicaDoCliente, true, fl.id + ': cliente admitido marcado'); assert.equal('referenciaUnicaDoCliente' in th, false, fl.id + ': a casa não é medida como cliente')
     assert.equal(JSON.stringify(tc.referenciaUnica), JSON.stringify(th.referenciaUnica), fl.id + ': a mesma referência da casa')
     const prompts = fl.shots.map(x => x.prompt), timing = timingPub(fl, fl.personagem.nucleo)
     const env = await post(api, { prompts, approvedStills: prompts.map(() => null), timing: { ...timing, referenciaUnica: { ...tc.referenciaUnica, metades: fl.metades } } })
@@ -508,6 +519,20 @@ async function suiteHumano2411({ api, f, route }) {
     assert.deepEqual(indices(env.input.multi_prompt.map(m => m.prompt.includes('@Image1'))), DEPOIS[fl.id], fl.id + ': os planos da volta 2')
     assert.equal(f.relatoClienteSemReferencia2411({ ...tc }), null, 'referência usada = nenhum motivo')
     assert.equal(f.relatoClienteSemReferencia2411({ ...tc, referenciaUnicaRecusa: 'estilizado' }), null, 'referência usada = nenhum motivo, nem um que sobrou')
+    // [revisora 24/11, volta 3] o furo de medida: o claim REAL da rota (o trecho executado), com o montador real
+    const tcRef = { ...timing, referenciaUnicaDoCliente: tc.referenciaUnicaDoCliente, referenciaUnica: { ...tc.referenciaUnica, metades: fl.metades } }
+    assert.equal(JSON.stringify(claimDaRota(route, f, api, { prompts, timing: tcRef })), JSON.stringify({ kling4_referencia_unica: f.relatoReferenciaUnica(tcRef, api.buildKling4TrialInput(prompts, [], tcRef)) }), fl.id + ': ligou = o relato de sempre')
+    assert.equal(f.relatoClienteSemReferencia2411(tcRef, { model: 'kling/v4/reference-to-video' }), null, fl.id + ': envio pela referência = nenhum motivo (a função sozinha)')
+    const vazio = prompts.map(() => 'Photoreal film. An empty road at dawn, wet asphalt. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.')
+    assert.deepEqual(claimDaRota(route, f, api, { prompts: vazio, timing: tcRef }), { kling4_referencia_unica_cliente: { versao: 'KINEO-REFERENCIA-UNICA-HUMANO-2411', motivo: 'sem_plano' } }, fl.id + ': nenhum plano o mostra')
+    for (const clipSeconds of [16, 20]) {
+      const longo = { ...tcRef, clipSeconds }
+      assert.notEqual(api.buildKling4TrialInput(prompts, [], longo).model, 'kling/v4/reference-to-video', 'o montador recusa ' + clipSeconds + ' s')
+      assert.deepEqual(claimDaRota(route, f, api, { prompts, timing: longo }), { kling4_referencia_unica_cliente: { versao: 'KINEO-REFERENCIA-UNICA-HUMANO-2411', motivo: 'clipe_longo' } }, fl.id + ': clipe de ' + clipSeconds + ' s')
+    }
+    const thRef = { ...timing, referenciaUnica: { ...th.referenciaUnica, metades: fl.metades } }
+    assert.deepEqual(claimDaRota(route, f, api, { prompts: vazio, timing: thRef }), {}, fl.id + ': casa recusada pelo montador = nenhum campo (como antes)')
+    assert.deepEqual(claimDaRota(route, f, api, { prompts, timing: { ...timing, clipSeconds: 20 } }), {}, fl.id + ': sem admissão = nenhum campo')
   }
   // 2. cliente fora do caminho provado: o pedido de hoje (byte a byte a main) e só o código do motivo; a casa liga em todos (como em 'internal')
   const rapaz = filme('2fef3706'), pr = rapaz.planos.map(p => p.prompt), st = stillsDe(rapaz), tm = timingDe(rapaz)
@@ -523,6 +548,9 @@ async function suiteHumano2411({ api, f, route }) {
     ['dragão (sintético)', { ...s0, characters: [outro('the dragon', 'criatura', true)], characterReferences: [folha('the dragon')] }, {}, 'nao_humano'],
     ['pessoa + bicho COM folha', { ...s0, characters: [lead, outro('the dog', 'animal', false)], characterReferences: [...s0.characterReferences, folha('the dog')] }, {}, 'nao_humano'],
     ['pessoa + criatura COM folha', { ...s0, characters: [lead, outro('the ghost', 'criatura', false)], characterReferences: [...s0.characterReferences, folha('the ghost')] }, {}, 'nao_humano'],
+    ['duas pessoas COM folha (caed3456, c06af33d: nunca renderizado)', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [...s0.characterReferences, folha('the woman')] }, {}, 'mais_de_uma_folha'],
+    ['protagonista pela imagem-chave + outra pessoa COM folha', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [folha('the woman')], approvedStills: [{ url: 'https://example.org/offline/k.png', characterNames: [lead.nome] }] }, {}, 'mais_de_uma_folha'],
+    ['duas pessoas COM folha num filme 3D', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [...s0.characterReferences, folha('the woman')] }, { look: 'animated3d' }, 'mais_de_uma_folha'],
     ['anime', s0, { look: 'anime' }, 'estilizado'],
     ['3D animado', s0, { look: 'animated3d' }, 'estilizado'],
     ['ilustração', s0, { look: 'illustration' }, 'estilizado'],
@@ -549,7 +577,10 @@ async function suiteHumano2411({ api, f, route }) {
     assert.ok(admitir(route, f, { email: casa, snapshot: snap, ...opts }).referenciaUnica, 'casa + ' + nome + ' liga')
   }
   // 3. o que ainda liga para cliente: pessoa + bicho SEM folha (o bicho não tem referência a trocar), filme noir (fotorreal em preto e branco)
-  for (const [nome, snap, opts] of [['pessoa + bicho sem folha', { ...s0, characters: [lead, outro('the dog', 'animal', false)] }, {}], ['noir', s0, { look: 'noir' }], ['fotorreal', s0, {}]]) {
+  for (const [nome, snap, opts] of [['pessoa + bicho sem folha', { ...s0, characters: [lead, outro('the dog', 'animal', false)] }, {}], ['noir', s0, { look: 'noir' }], ['fotorreal', s0, {}],
+    ['pessoa + outra pessoa SEM folha (o caso provado)', { ...s0, characters: [lead, outro('the woman', 'humano', false)] }, {}],
+    ['pessoa + outra pessoa com folha NÃO https', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [...s0.characterReferences, { nome: 'the woman', url: 'http://inseguro.example/w.png' }] }, {}],
+    ['protagonista pela imagem-chave, sem outra folha', { ...s0, characterReferences: [], approvedStills: [{ url: 'https://example.org/offline/k.png', characterNames: [lead.nome] }] }, {}]]) {
     const t = admitir(route, f, { email: cliente, snapshot: snap, ...opts })
     assert.ok(t.referenciaUnica && !('referenciaUnicaRecusa' in t), 'cliente + ' + nome + ' liga')
   }
@@ -602,12 +633,25 @@ const mutants = [
   [feature, "(c) => c.protagonista === true || snapshot.characterReferences.some((r) => r.nome === c.nome && https(r.url))", '(c) => true'], // o bicho SEM folha ao lado da pessoa barra
   [feature, "  if (filme.estilizado !== false) return 'estilizado' // na dúvida (campo ausente ou torto), estilizado\n", ''], // estilizado passa
   [feature, 'if (filme.estilizado !== false)', 'if (filme.estilizado === true)'], // na dúvida, liga
+  // [CEO 24/11, volta 3 da revisora] uma folha só, e o furo de medida
+  [feature, "  if (comFolha.length > 1) return 'mais_de_uma_folha'\n", ''], // dois humanos com folha passam
+  [feature, "if (comFolha.length > 1) return 'mais_de_uma_folha'", "if (comFolha.length > 1) return 'mais_de_um'"], // motivo errado
+  [feature, "if (comFolha.length > 1) return 'mais_de_uma_folha'", "if (snapshot.characters.length > 1) return 'mais_de_uma_folha'"], // coadjuvante sem folha passa a barrar
+  [feature, "if (comFolha.length > 1) return 'mais_de_uma_folha'", "if (snapshot.characterReferences.length > 1) return 'mais_de_uma_folha'"], // folha não https conta
+  [feature, "return r ? { referencia: r, cliente: true } : { motivo: 'sem_referencia' }", "return r ? { referencia: r } : { motivo: 'sem_referencia' }"], // admitido sem a marca: furo mudo
+  [feature, "kling4TrialClipTotal(timing.clipSeconds) !== 15 ? 'clipe_longo' : 'sem_plano'", "'sem_plano'"], // clipe longo vira sem_plano
+  [feature, "kling4TrialClipTotal(timing.clipSeconds) !== 15 ? 'clipe_longo' : 'sem_plano'", "'clipe_longo'"], // sem_plano vira clipe_longo
+  [feature, '  if (timing.referenciaUnicaDoCliente !== true || timing.fixedCharacter || !wire || wire.model === KLING4_REFERENCE_MODEL) return null\n', '  return null\n'], // furo mudo
+  [feature, 'if (timing.referenciaUnicaDoCliente !== true || timing.fixedCharacter', 'if (timing.fixedCharacter'], // a casa vira medida de cliente
+  [feature, ' || !wire || wire.model === KLING4_REFERENCE_MODEL) return null', ' || !wire) return null'], // ligou e o claim diz sem_plano
+  [routeFile, '; if (ru2411.cliente) kling4Timing.referenciaUnicaDoCliente = true }', ' }'], // a rota não marca o cliente admitido
+  [routeFile, 'const sem = ru ? null : relatoClienteSemReferencia2411(kling4Timing, w);', 'const sem = ru ? null : relatoClienteSemReferencia2411(kling4Timing);'], // o claim sem o envio = mudo
   [feature, "  if (leads > 1) return 'mais_de_um'\n", ''], // o motivo some (vira sem_referencia)
   [feature, "  if (modo !== 'public_humano') return null\n", ''], // em 'internal' o cliente passa a receber
   [feature, "  const motivo = motivoClienteSemReferencia2411(snapshot, filme)\n  if (motivo) return { motivo }\n", ''], // cliente sem a guarda
   [feature, '  if (referenciaUnicaLigada(modo, email)) { const r', "  if (modo === 'public' && referenciaUnicaLigada(modo, email)) { const r"], // a casa passa pela guarda
   [feature, "typeof timing.referenciaUnicaRecusa === 'string' ?", 'false ?'], // o claim nunca diz o motivo
-  [feature, 'timing && !timing.referenciaUnica && typeof', 'timing && typeof'], // motivo ao lado da referência usada
+  [feature, '  if (!timing.referenciaUnica) return typeof', "  if (typeof timing.referenciaUnicaRecusa === 'string') return typeof"], // motivo ao lado da referência usada
   [routeFile, '{ estilizado: isStylizedLook(styleAnchor) || desenhoInfantil.ativo }', '{ estilizado: isStylizedLook(styleAnchor) }'], // o desenho infantil passa
   [routeFile, '{ estilizado: isStylizedLook(styleAnchor) || desenhoInfantil.ativo }', '{ estilizado: false }'], // o estilo do filme ignorado
   [routeFile, '        else if (ru2411) kling4Timing.referenciaUnicaRecusa = ru2411.motivo\n', ''], // a rota não grava o motivo
@@ -654,4 +698,4 @@ for (const mutant of mutants) {
   await assert.rejects(suite(mutant), err => err instanceof assert.AssertionError, 'SOBREVIVEU: ' + mutant[1])
   mortos++
 }
-console.log(`PASS KINEO-REFERENCIA-UNICA-2411: chave no commit = 'public_humano' (cliente só pessoa fotorreal com 1 protagonista; bicho, criatura, desenho e 2 protagonistas = main byte a byte + motivo; casa exata = caminho novo em tudo); off = main byte a byte nos 3 filmes; ligado = pedido A (endpoint, 1 imagem, planos, durações, sem start/middle, frase só no plano do personagem); fallback sem referência/sem personagem/20 s; 'internal' = lista exata; ${mortos}/${mutants.length} mutantes mortos.`)
+console.log(`PASS KINEO-REFERENCIA-UNICA-2411: chave no commit = 'public_humano' (cliente só pessoa fotorreal com 1 protagonista e 1 só folha; bicho, criatura, desenho, 2 protagonistas e 2 folhas = main byte a byte + motivo; casa exata = caminho novo em tudo); off = main byte a byte nos 3 filmes; ligado = pedido A (endpoint, 1 imagem, planos, durações, sem start/middle, frase só no plano do personagem); fallback sem referência/sem personagem/20 s; 'internal' = lista exata; ${mortos}/${mutants.length} mutantes mortos.`)
