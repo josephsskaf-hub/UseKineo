@@ -294,6 +294,40 @@ export function bf2026BaseLetterWithinSuppressionWindow(sentAt: unknown, nowMs: 
   return age >= 0 && age < BF2026_BASE_LETTER_SUPPRESSION_HOURS * 60 * 60 * 1000
 }
 
+export type Bf2026BaseLetterSuppression = {
+  userIds: ReadonlySet<string>
+  normalizedEmails: ReadonlySet<string>
+}
+
+/** IDs e caixas normalizadas que receberam a carta-base dentro das últimas 168 h. */
+export function bf2026BaseLetterSuppression(
+  profiles: readonly { id: unknown; email: unknown }[],
+  events: readonly { user_id: unknown; created_at: unknown }[],
+  nowMs: number,
+): Bf2026BaseLetterSuppression {
+  const userIds = new Set<string>()
+  for (const event of events) {
+    const id = String(event.user_id ?? '').trim()
+    if (id && bf2026BaseLetterWithinSuppressionWindow(event.created_at, nowMs)) userIds.add(id)
+  }
+  const normalizedEmails = new Set<string>()
+  for (const profile of profiles) {
+    const id = String(profile.id ?? '').trim()
+    const email = typeof profile.email === 'string' ? profile.email.trim().toLowerCase() : ''
+    if (id && userIds.has(id) && email) normalizedEmails.add(email)
+  }
+  return { userIds, normalizedEmails }
+}
+
+/** Mantém a supressão por ID e estende a regra a qualquer perfil da mesma caixa. */
+export function bf2026ProfileMatchesBaseLetterSuppression(
+  profile: { id: unknown; email: unknown },
+  suppression: Bf2026BaseLetterSuppression,
+): boolean {
+  const id = String(profile.id ?? '').trim()
+  const email = typeof profile.email === 'string' ? profile.email.trim().toLowerCase() : ''
+  return (id !== '' && suppression.userIds.has(id)) || (email !== '' && suppression.normalizedEmails.has(email))
+}
 export function parseBf2026Wave(raw: unknown): Bf2026Wave | null {
   return raw === 'bf' || raw === 'cyber' ? raw : null
 }

@@ -110,20 +110,38 @@ async function problemas(repl = {}) {
   checa('(M3) Creator em reais: 79790 (nunca 56990) na BF, conta velha e convidado', [true, false].every((signedIn) => cobra({ tier: 'basic', nowMs: NA_BF, signedIn, pais: 'BR' }).charge.amount === 79790))
   checa('(b) a tabela da BF só tem o Starter', JSON.stringify(B.bf2026PriceRows().map((r) => r.tier)) === '["starter"]' && JSON.stringify(B.BF2026_TIERS) === '["starter"]')
   checa('(b) rótulo da oferta = "Starter"', B.BF2026_PLAN_LABEL === 'Starter')
-  const seteDias = B.BF2026_BASE_LETTER_SUPPRESSION_HOURS * H
-  checa('(b) carta da base suprime 167h59, libera em 168h, rejeita data inválida/futura',
-    B.BF2026_BASE_LETTER_SUPPRESSION_HOURS === 168 &&
-    B.bf2026BaseLetterWithinSuppressionWindow(new Date(NA_BF - seteDias + 60_000).toISOString(), NA_BF) &&
-    !B.bf2026BaseLetterWithinSuppressionWindow(new Date(NA_BF - seteDias).toISOString(), NA_BF) &&
-    !B.bf2026BaseLetterWithinSuppressionWindow('invalid', NA_BF) &&
-    !B.bf2026BaseLetterWithinSuppressionWindow(new Date(NA_BF + 1).toISOString(), NA_BF))
+  const seteDias = 168 * H
+  checa('(b) janela configurada permanece em 168 horas', B.BF2026_BASE_LETTER_SUPPRESSION_HOURS === 168)
+  const within = (profileRows, eventRows) => {
+    const suppression = B.bf2026BaseLetterSuppression(profileRows, eventRows, NA_BF)
+    return profileRows.filter((profile) => !B.bf2026ProfileMatchesBaseLetterSuppression(profile, suppression)).map((profile) => String(profile.id)).sort()
+  }
+  const aliases = [
+    { id: 'a', email: ' Maker@Example.invalid ', plan: 'free', email_opted_out: false },
+    { id: 'b', email: 'maker@example.invalid', plan: 'free', email_opted_out: false },
+    { id: 'c', email: 'other@example.invalid', plan: 'free', email_opted_out: false },
+  ]
+  const baseSent24h = { user_id: 'a', created_at: new Date(NA_BF - 24 * H).toISOString() }
+  const baseExpired168h = { user_id: 'c', created_at: new Date(NA_BF - seteDias).toISOString() }
+  for (const [name, profiles] of [['A antes de B', aliases], ['B antes de A', [aliases[1], aliases[0], aliases[2]]]]) {
+    for (const events of [[baseSent24h, baseExpired168h], [baseExpired168h, baseSent24h]]) {
+      checa(`(b) mesma caixa normalizada suprimida na ordem ${name}, independente da ordem dos eventos`, JSON.stringify(within(profiles, events)) === '["c"]')
+    }
+  }
+  checa('(b) 167h59 ainda suprime perfis da mesma caixa', JSON.stringify(within(aliases, [{ user_id: 'a', created_at: new Date(NA_BF - seteDias + 60_000).toISOString() }])) === '["c"]')
+  checa('(b) em 168h exatas libera os dois aliases e mantém o destinatário distinto', JSON.stringify(within(aliases, [{ user_id: 'a', created_at: new Date(NA_BF - seteDias).toISOString() }])) === '["a","b","c"]')
+  checa('(b) data inválida ou futura não suprime caixa nem destinatário distinto',
+    JSON.stringify(within(aliases, [{ user_id: 'a', created_at: 'invalid' }])) === '["a","b","c"]' &&
+    JSON.stringify(within(aliases, [{ user_id: 'a', created_at: new Date(NA_BF + 1).toISOString() }])) === '["a","b","c"]')
   const emailRoute = src(F.emailRoute)
-  checa('(b) rota consulta a carta bf_base_2311 em 168h e falha sem a leitura',
+  checa('(b) rota consulta eventos de carta-base e falha fechada sem leitura',
     emailRoute.includes(".eq('name', BF2026_BASE_LETTER_SENT_EVENT)") &&
     emailRoute.includes('BF2026_BASE_LETTER_SUPPRESSION_HOURS * 60 * 60 * 1000') &&
     emailRoute.includes('if (cartasBaseErr) throw cartasBaseErr'))
-  checa('(b) rota retira a pessoa suprimida antes de montar a coorte',
-    emailRoute.includes('if (recebeuCartaBaseRecente.has(id)) { fora.recent_bf_base_2311++; continue }'))
+  checa('(b) coorte aplica supressão por ID e caixa normalizada antes de deduplicar',
+    emailRoute.includes('supressaoCartaBase.userIds.has(id)') &&
+    emailRoute.includes('bf2026ProfileMatchesBaseLetterSuppression({ id, email: p.email }, supressaoCartaBase)') &&
+    emailRoute.indexOf('if (motivo)') < emailRoute.indexOf('bf2026ProfileMatchesBaseLetterSuppression({ id, email: p.email }, supressaoCartaBase)'))
 
   // (c) fora da janela
   for (const tier of ['starter', 'basic', 'pro']) {
@@ -293,7 +311,9 @@ const muta = (rel, de, para) => {
   return { [rel]: s.replace(de, para) }
 }
 const MUTANTES = [
-  ['carta recente da base não suprime a onda BF', muta(F.emailRoute, 'if (recebeuCartaBaseRecente.has(id)) { fora.recent_bf_base_2311++; continue }', 'if (false) { fora.recent_bf_base_2311++; continue }')],
+    ['carta recente da base não suprime a onda BF', muta(F.emailRoute, 'if (bf2026ProfileMatchesBaseLetterSuppression({ id, email: p.email }, supressaoCartaBase)) { fora.recent_bf_base_2311++; continue }', 'if (false) { fora.recent_bf_base_2311++; continue }')],
+  ['alias de e-mail não herda a supressão recente', muta(F.bf, "return (id !== '' && suppression.userIds.has(id)) || (email !== '' && suppression.normalizedEmails.has(email))", "return id !== '' && suppression.userIds.has(id)")],
+  ['caixa de alias deixa de normalizar maiúsculas e espaços', muta(F.bf, "const email = typeof profile.email === 'string' ? profile.email.trim().toLowerCase() : ''", "const email = typeof profile.email === 'string' ? profile.email.trim() : ''")],
   ['janela da carta da base cai abaixo de sete dias', muta(F.bf, 'export const BF2026_BASE_LETTER_SUPPRESSION_HOURS = 168', 'export const BF2026_BASE_LETTER_SUPPRESSION_HOURS = 167')],
   ['Creator volta à lista da BF', muta(F.bf, "export const BF2026_TIERS: readonly CheckoutTier[] = ['starter']", "export const BF2026_TIERS: readonly CheckoutTier[] = ['starter', 'basic']")],
   ['elegibilidade ignora o plano', muta(F.bf, '    bf2026CoversTier(input.tier) &&\n', '')],

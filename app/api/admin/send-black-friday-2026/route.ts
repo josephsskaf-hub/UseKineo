@@ -41,7 +41,8 @@ import {
   BF2026_ENDS_AT,
   BF2026_STARTS_AT,
   bf2026ClaimSeed,
-  bf2026BaseLetterWithinSuppressionWindow,
+  bf2026BaseLetterSuppression,
+  bf2026ProfileMatchesBaseLetterSuppression,
   bf2026EmailBody,
   bf2026EmailSkipReason,
   bf2026EmailUrl,
@@ -138,20 +139,18 @@ export async function GET(req: NextRequest) {
       const m = (r.metadata ?? {}) as Record<string, unknown>
       if (m.wave === wave) jaRecebeu.add(String(r.user_id))
     }
-    const recebeuCartaBaseRecente = new Set<string>()
-    for (const r of cartasBase ?? []) {
-      if (bf2026BaseLetterWithinSuppressionWindow(r.created_at, nowMs)) recebeuCartaBaseRecente.add(String(r.user_id))
-    }
+    const supressaoCartaBase = bf2026BaseLetterSuppression(perfis ?? [], cartasBase ?? [], nowMs)
 
     const fora: Record<Bf2026SkipReason | 'duplicate_email' | 'recent_bf_base_2311', number> = { bad_email: 0, opted_out: 0, internal: 0, blocked: 0, paying_plan: 0, annual_buyer: 0, already_got_wave: 0, duplicate_email: 0, recent_bf_base_2311: 0 }
     const emails = new Set<string>()
     const candidatos: Array<{ id: string; email: string }> = []
     for (const p of perfis ?? []) {
       const id = String(p.id)
-      if (recebeuCartaBaseRecente.has(id)) { fora.recent_bf_base_2311++; continue }
+      const email = typeof p.email === 'string' ? p.email.trim().toLowerCase() : ''
+      if (supressaoCartaBase.userIds.has(id)) { fora.recent_bf_base_2311++; continue }
       const motivo = bf2026EmailSkipReason(p, { isInternal: isInternalEmail, neverEmail: WINBACK_NEVER, annualBuyer: wave === 'cyber' && compradorAnual.has(id), alreadyGotWave: jaRecebeu.has(id) })
       if (motivo) { fora[motivo]++; continue }
-      const email = String(p.email).trim().toLowerCase()
+      if (bf2026ProfileMatchesBaseLetterSuppression({ id, email: p.email }, supressaoCartaBase)) { fora.recent_bf_base_2311++; continue }
       if (emails.has(email)) { fora.duplicate_email++; continue }
       emails.add(email)
       candidatos.push({ id, email })
