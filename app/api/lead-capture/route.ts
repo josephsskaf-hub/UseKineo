@@ -168,7 +168,6 @@ export async function POST(req: NextRequest) {
         .from('leads')
         .update({ source, magnet })
         .eq('email', email)
-        .or('source.is.null,source.neq.' + COMPANY_OFFER_LEAD_SOURCE)
       if (updateError) {
         console.error('[lead-capture] business lead update error:', updateError.message)
         return NextResponse.json({ error: 'temporarily unavailable' }, { status: 503 })

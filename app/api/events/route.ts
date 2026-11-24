@@ -239,6 +239,7 @@ const SERVER_ONLY_EVENTS = new Set([
   // `founder_order_alerted` é a reserva 1×/sessão do alerta (lib/founderAlert.ts): é dedupe, e dedupe é do servidor.
   'dfy_order_paid',
   'dfy_brief_submitted',
+  'company_offer_proposal_requested', // Dedicated contact POST; browser events cannot create a proposal.
   'founder_order_alerted',
   'bulk_purchase_completed',
   'annual_welcome_offer_applied', // KINEO-OFERTA-3H-0411 — o preço das 3 h: só o servidor sabe que a sessão da Stripe existe

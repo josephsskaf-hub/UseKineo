@@ -630,7 +630,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           </h3>
           <div className="grid gap-2">
             {data.b2bLeadInbox?.leads.slice(0, 20).map((lead) => (
-              <div key={lead.email} className="rounded-lg px-3 py-2.5 flex flex-wrap items-center justify-between gap-2" style={{ background: 'rgba(11,17,32,.8)', border: '1px solid rgba(255,255,255,.07)' }}>
+              <div key={lead.email + ':' + lead.monthlyVolume} className="rounded-lg px-3 py-2.5 flex flex-wrap items-center justify-between gap-2" style={{ background: 'rgba(11,17,32,.8)', border: '1px solid rgba(255,255,255,.07)' }}>
                 <a href={`mailto:${lead.email}`} className="text-sm font-bold break-all" style={{ color: '#F2F4F7' }}>{lead.email}</a>
                 <div className="text-right">
                   <div className="text-xs font-bold" style={{ color: '#C4B5FD' }}>{lead.monthlyVolume}</div>

@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { normalizeLeadEmail } from '@/lib/growth/b2bLead'
 import { canViewCompanyOffer } from '@/lib/growth/companyOfferAccess'
-import { COMPANY_OFFER_INTENT, COMPANY_OFFER_LEAD_SOURCE, companyOfferRequestKey } from '@/lib/growth/companyOfferContact'
+import { COMPANY_OFFER_INTENT, COMPANY_OFFER_LEAD_SOURCE, COMPANY_OFFER_PATH } from '@/lib/growth/companyOfferContact'
+import { COMPANY_OFFER_REQUEST_EVENT, companyOfferRequestId, readCompanyOfferLeadId } from '@/lib/growth/companyOfferRequests'
 import { clientIp } from '@/lib/requestIdentity'
 
 export const dynamic = 'force-dynamic'
@@ -86,27 +87,37 @@ export async function POST(request: Request) {
 
   try {
     const db = createAdminClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
-    const source = COMPANY_OFFER_LEAD_SOURCE
-    const magnet = companyOfferRequestKey(new Date().toISOString())
-    const { error } = await db.from('leads').insert({ email, source, magnet })
-    if (!error) return reply(200, { saved: true })
-    if (error.code !== '23505') return reply(503, { saved: false })
+    const { data: inserted, error: leadError } = await db.from('leads')
+      .insert({ email, source: COMPANY_OFFER_LEAD_SOURCE })
+      .select('id')
+      .single()
+    if (leadError && leadError.code !== '23505') return reply(503, { saved: false })
 
-    // One active inbox request per contact. Preserve the first capture date and
-    // avoid resetting the proposal timestamp on repeated submissions.
-    const { data: updated, error: updateError } = await db
-      .from('leads')
-      .update({ source, magnet })
-      .eq('email', email)
-      .or('source.is.null,source.neq.' + source)
-      .select('source')
-      .maybeSingle()
-    if (updateError) return reply(503, { saved: false })
-    if (updated) return reply(200, { saved: true })
+    let leadId = readCompanyOfferLeadId(inserted?.id)
+    if (leadError?.code === '23505') {
+      const pattern = email.replace(/[\\%_*]/g, '\\$&')
+      const { data: existing, error: lookupError } = await db.from('leads')
+        .select('id,email').ilike('email', pattern).limit(2)
+      if (lookupError) return reply(503, { saved: false })
+      // A lead acquired elsewhere stays byte-for-byte intact.
+      leadId = readCompanyOfferLeadId(existing?.find((row) => normalizeLeadEmail(row.email) === email)?.id)
+    }
+    if (!leadId) return reply(503, { saved: false })
 
-    const { data: existing, error: lookupError } = await db.from('leads')
-      .select('source').eq('email', email).eq('source', source).maybeSingle()
-    return !lookupError && existing ? reply(200, { saved: true }) : reply(503, { saved: false })
+    const id = companyOfferRequestId(leadId)
+    const { error: requestError } = await db.from('events').insert({
+      id,
+      name: COMPANY_OFFER_REQUEST_EVENT,
+      path: COMPANY_OFFER_PATH,
+      metadata: { lead_id: leadId },
+    })
+    if (!requestError) return reply(200, { saved: true })
+    if (requestError.code !== '23505') return reply(503, { saved: false })
+
+    const { data: existing, error: lookupError } = await db.from('events').select('metadata')
+      .eq('id', id).eq('name', COMPANY_OFFER_REQUEST_EVENT).eq('path', COMPANY_OFFER_PATH).maybeSingle()
+    const saved = !lookupError && readCompanyOfferLeadId(existing?.metadata?.lead_id) === leadId
+    return saved ? reply(200, { saved: true }) : reply(503, { saved: false })
   } catch {
     return reply(503, { saved: false })
   }

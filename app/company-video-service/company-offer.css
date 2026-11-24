@@ -288,3 +288,11 @@
   .company-offer-intro { gap: 13px; }
   .company-offer-intro > .company-offer-cta { width: 100%; }
 }
+
+/* The global mobile overflow rule otherwise makes both html and body scroll. */
+@media (max-width: 640px) {
+  html:has(.company-offer) { height: auto; scroll-behavior: auto; }
+  html:has(.company-offer) body { height: auto; }
+  html:has(.company-offer) body { overflow: visible; }
+  .company-offer { overflow-x: clip; }
+}

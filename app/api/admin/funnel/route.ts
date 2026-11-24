@@ -630,9 +630,8 @@ export async function GET(req: Request) {
       ...externalProfiles.map((profile) => profile.id),
     ])
 
-    // A business brief is a unique e-mail row, not a client-side event. This
-    // inbox is the commercial source of truth; the events below only explain
-    // whether people saw and completed the form.
+    // One contact may have an agency brief and an independent offer request.
+    // Count the contact once and keep both intents visible in the same inbox.
     let b2bLeadInbox: NonNullable<FunnelData['b2bLeadInbox']> = { total: 0, leads: [] }
     try {
       const { data: leadRows, error: leadError } = leadsRead // KINEO-ADMIN-RAPIDO-1710 — lida na fase 1
@@ -640,7 +639,7 @@ export async function GET(req: Request) {
       if (Array.isArray(leadRows)) {
         const externalLeads = leadRows.filter((row) => !isInternalEmail(row.email))
         b2bLeadInbox = {
-          total: externalLeads.length + companyRequests.length,
+          total: new Set([...externalLeads, ...companyRequests].map((row) => row.email.trim().toLowerCase())).size,
           leads: [...companyRequests, ...externalLeads.map((row) => {
             const volumeId = readB2BVolumeStorageKey(row.magnet)
             return {
