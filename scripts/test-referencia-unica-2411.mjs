@@ -555,6 +555,13 @@ async function suiteHumano2411({ api, f, route }) {
     ['duas pessoas COM folha (caed3456, c06af33d: nunca renderizado)', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [...s0.characterReferences, folha('the woman')] }, {}, 'mais_de_uma_folha'],
     ['protagonista pela imagem-chave + outra pessoa COM folha', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [folha('the woman')], approvedStills: [{ url: 'https://example.org/offline/k.png', characterNames: [lead.nome] }] }, {}, 'mais_de_uma_folha'],
     ['duas pessoas COM folha num filme 3D', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [...s0.characterReferences, folha('the woman')] }, { look: 'animated3d' }, 'mais_de_uma_folha'],
+    // [revisora 24/11 · CEO, c06af33d] a forma provada tinha UMA pessoa no elenco da folha: duas pessoas no elenco, mesmo com uma só folha https, não liga
+    ['duas pessoas, só uma com folha (c06af33d, "dynamic duo")', { ...s0, characters: [lead, outro('the woman', 'humano', false)] }, {}, 'mais_de_um_humano'],
+    ['duas pessoas, a 2ª com folha NÃO https', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [...s0.characterReferences, { nome: 'the woman', url: 'http://inseguro.example/w.png' }] }, {}, 'mais_de_um_humano'],
+    ['duas pessoas, o protagonista pela imagem-chave', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [], approvedStills: [{ url: 'https://example.org/offline/k.png', characterNames: [lead.nome] }] }, {}, 'mais_de_um_humano'],
+    // [revisora 24/11, nota de rótulo] só o coadjuvante tem folha e o protagonista não tem referência nenhuma: sem_referencia (era mais_de_uma_folha)
+    ['só o coadjuvante tem folha', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [folha('the woman')] }, {}, 'sem_referencia'],
+    ['duas pessoas sem referência nenhuma', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [] }, {}, 'sem_referencia'],
     ['anime', s0, { look: 'anime' }, 'estilizado'],
     ['3D animado', s0, { look: 'animated3d' }, 'estilizado'],
     ['ilustração', s0, { look: 'illustration' }, 'estilizado'],
@@ -580,10 +587,9 @@ async function suiteHumano2411({ api, f, route }) {
     const [, snap, opts] = casos.find(c => c[0] === nome)
     assert.ok(admitir(route, f, { email: casa, snapshot: snap, ...opts }).referenciaUnica, 'casa + ' + nome + ' liga')
   }
-  // 3. o que ainda liga para cliente: pessoa + bicho SEM folha (o bicho não tem referência a trocar), filme noir (fotorreal em preto e branco)
-  for (const [nome, snap, opts] of [['pessoa + bicho sem folha', { ...s0, characters: [lead, outro('the dog', 'animal', false)] }, {}], ['noir', s0, { look: 'noir' }], ['fotorreal', s0, {}],
-    ['pessoa + outra pessoa SEM folha (o caso provado)', { ...s0, characters: [lead, outro('the woman', 'humano', false)] }, {}],
-    ['pessoa + outra pessoa com folha NÃO https', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [...s0.characterReferences, { nome: 'the woman', url: 'http://inseguro.example/w.png' }] }, {}],
+  // 3. o que ainda liga para cliente: pessoa + bicho SEM folha (o bicho não tem referência a trocar), filme noir (fotorreal em preto e branco); o coadjuvante
+  // só citado no texto (fora do elenco, como em Le Prince, Slocum e Cooper) = o elenco de UMA pessoa
+  for (const [nome, snap, opts] of [['pessoa + bicho sem folha', { ...s0, characters: [lead, outro('the dog', 'animal', false)] }, {}], ['noir', s0, { look: 'noir' }], ['fotorreal, coadjuvante só no texto', s0, {}],
     ['protagonista pela imagem-chave, sem outra folha', { ...s0, characterReferences: [], approvedStills: [{ url: 'https://example.org/offline/k.png', characterNames: [lead.nome] }] }, {}]]) {
     const t = admitir(route, f, { email: cliente, snapshot: snap, ...opts })
     assert.ok(t.referenciaUnica && !('referenciaUnicaRecusa' in t), 'cliente + ' + nome + ' liga')
@@ -638,10 +644,16 @@ const mutants = [
   [feature, "  if (filme.estilizado !== false) return 'estilizado' // na dúvida (campo ausente ou torto), estilizado\n", ''], // estilizado passa
   [feature, 'if (filme.estilizado !== false)', 'if (filme.estilizado === true)'], // na dúvida, liga
   // [CEO 24/11, volta 3 da revisora] uma folha só, e o furo de medida
-  [feature, "  if (comFolha.length > 1) return 'mais_de_uma_folha'\n", ''], // dois humanos com folha passam
-  [feature, "if (comFolha.length > 1) return 'mais_de_uma_folha'", "if (comFolha.length > 1) return 'mais_de_um'"], // motivo errado
-  [feature, "if (comFolha.length > 1) return 'mais_de_uma_folha'", "if (snapshot.characters.length > 1) return 'mais_de_uma_folha'"], // coadjuvante sem folha passa a barrar
-  [feature, "if (comFolha.length > 1) return 'mais_de_uma_folha'", "if (snapshot.characterReferences.length > 1) return 'mais_de_uma_folha'"], // folha não https conta
+  [feature, "  if (comFolha.length > 1) return referenciaUnicaDoFilme(snapshot) ? 'mais_de_uma_folha' : 'sem_referencia'\n", ''], // dois humanos com folha passam (viram mais_de_um_humano)
+  [feature, "referenciaUnicaDoFilme(snapshot) ? 'mais_de_uma_folha' : 'sem_referencia'", "referenciaUnicaDoFilme(snapshot) ? 'mais_de_um' : 'sem_referencia'"], // motivo errado
+  [feature, "if (comFolha.length > 1) return referenciaUnicaDoFilme", "if (snapshot.characters.length > 1) return referenciaUnicaDoFilme"], // o bicho sem folha passa a barrar
+  [feature, "if (comFolha.length > 1) return referenciaUnicaDoFilme", "if (snapshot.characterReferences.length > 1) return referenciaUnicaDoFilme"], // folha não https conta
+  // [revisora 24/11 · CEO] dois humanos no elenco da folha, e o rótulo da folha só do coadjuvante
+  [feature, "  if (snapshot.characters.filter((c) => c.tipo === 'humano').length > 1) return referenciaUnicaDoFilme(snapshot) ? 'mais_de_um_humano' : 'sem_referencia'\n", ''], // c06af33d liga
+  [feature, "snapshot.characters.filter((c) => c.tipo === 'humano').length > 1", 'snapshot.characters.length > 1'], // o bicho sem folha conta como 2º humano
+  [feature, "? 'mais_de_um_humano' : 'sem_referencia'", "? 'mais_de_uma_folha' : 'sem_referencia'"], // motivo errado
+  [feature, "? 'mais_de_um_humano' : 'sem_referencia'", "? 'mais_de_um_humano' : 'mais_de_um_humano'"], // sem referência vira mais_de_um_humano
+  [feature, "? 'mais_de_uma_folha' : 'sem_referencia'", "? 'mais_de_uma_folha' : 'mais_de_uma_folha'"], // o rótulo errado da revisora volta
   [feature, "return r ? { referencia: r, cliente: true } : { motivo: 'sem_referencia' }", "return r ? { referencia: r } : { motivo: 'sem_referencia' }"], // admitido sem a marca: furo mudo
   [feature, "kling4TrialClipTotal(timing.clipSeconds) !== 15 ? 'clipe_longo' : 'sem_plano'", "'sem_plano'"], // clipe longo vira sem_plano
   [feature, "kling4TrialClipTotal(timing.clipSeconds) !== 15 ? 'clipe_longo' : 'sem_plano'", "'clipe_longo'"], // sem_plano vira clipe_longo

@@ -22,7 +22,7 @@ export const referenciaUnicaLigada = (modo: ModoReferenciaUnica2411, email: stri
 /** KINEO-REFERENCIA-UNICA-HUMANO-2411 [CEO 24/11] 'public_humano': o CLIENTE recebe a referência única só onde ela está provada (3 filmes da casa,
  *  pessoa fotorreal, notas cegas 10, 8 e 9). Em desenho, bicho e criatura a prova paga de 24/11 não ligou em nenhum (folha reprovada pelo crítico ou
  *  elenco sem folha): o cliente fica no pedido de hoje, byte a byte, e o claim grava só o código do motivo. */
-export type MotivoClienteSemReferencia2411 = 'mais_de_um' | 'nao_humano' | 'mais_de_uma_folha' | 'estilizado' | 'sem_referencia'
+export type MotivoClienteSemReferencia2411 = 'mais_de_um' | 'nao_humano' | 'mais_de_uma_folha' | 'mais_de_um_humano' /* [revisora 24/11, c06af33d] */ | 'estilizado' | 'sem_referencia'
   | 'sem_plano' | 'clipe_longo' /* [revisora 24/11, volta 3] admitido, mas o montador devolveu null: nenhum plano o mostra (15 s) / clipe de 16 a 30 s */
 /** Por que o cliente NÃO recebe a referência (null = recebe, se o montador achar plano que o mostra): mais de um protagonista; o protagonista ou alguém
  *  do elenco com folha que não é 'humano'; [CEO 24/11, volta 3 da revisora] mais de UM personagem com referência (folha https, ou o protagonista):
@@ -35,7 +35,11 @@ export function motivoClienteSemReferencia2411(snapshot: FilmQualitySnapshot | n
   if (leads === 0) return 'sem_referencia'
   const comFolha = snapshot.characters.filter((c) => c.protagonista === true || snapshot.characterReferences.some((r) => r.nome === c.nome && https(r.url)))
   if (comFolha.some((c) => c.tipo !== 'humano')) return 'nao_humano'
-  if (comFolha.length > 1) return 'mais_de_uma_folha'
+  // [revisora 24/11, nota de rótulo] a folha de um coadjuvante com o protagonista sem referência nenhuma não é "mais de uma folha": é sem referência
+  if (comFolha.length > 1) return referenciaUnicaDoFilme(snapshot) ? 'mais_de_uma_folha' : 'sem_referencia'
+  // [revisora 24/11 · CEO, c06af33d] a forma provada (Le Prince, Slocum, Cooper) tinha UMA pessoa no elenco da folha. Dois humanos no elenco ("dynamic duo"),
+  // mesmo com só uma referência https, não é a forma provada. Coadjuvante só citado no texto, que a leitura do elenco não pôs no elenco, não conta.
+  if (snapshot.characters.filter((c) => c.tipo === 'humano').length > 1) return referenciaUnicaDoFilme(snapshot) ? 'mais_de_um_humano' : 'sem_referencia'
   if (filme.estilizado !== false) return 'estilizado' // na dúvida (campo ausente ou torto), estilizado
   return referenciaUnicaDoFilme(snapshot) ? null : 'sem_referencia'
 }
