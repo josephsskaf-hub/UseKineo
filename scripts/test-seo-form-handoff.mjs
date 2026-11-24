@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { offlineModules, React, renderToStaticMarkup } from './gpt24h-offline-support.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const requireFromRepo = createRequire(join(root, 'package.json'))
@@ -94,7 +95,11 @@ ok(topicForm.includes('name="create_intent" value={creationIntent}'), 'shared fo
 ok(topicForm.includes('create_intent: creationIntent'), 'example clicks couple the selected intent to that submission')
 ok(topicForm.includes('name="intent_campaign" value={campaign}'), 'shared form submits campaign attribution')
 ok(topicForm.includes('required') && topicForm.includes('minLength={3}'), 'empty or trivial topic cannot submit')
-ok(topicForm.includes('action="/signup"') && topicForm.includes('method="get"'), 'form uses the established resilient signup handoff')
+const realTopicForm = offlineModules({ mocks: { 'lib/analytics.ts': { rememberSignupCampaign() {}, trackEvent() {} } } })('app/youtube-shorts-from-topic/TopicGeneratorForm.tsx').default
+const defaultHtml = renderToStaticMarkup(React.createElement(realTopicForm))
+ok(defaultHtml.includes('action="/signup"') && defaultHtml.includes('method="get"'), 'form uses the established resilient signup handoff')
+const experimentHtml = renderToStaticMarkup(React.createElement(realTopicForm, { reviewInStudio: true }))
+ok(experimentHtml.includes('action="/api/citations/film-entry"') && experimentHtml.includes('method="get"'), 'only explicit review opt-in uses the server entry')
 ok(topicForm.indexOf('name="prompt"') < topicForm.indexOf('name="create_intent"'), 'visible work and creation intent share the same form')
 
 const cta = read('components/OrganicCtaLink.tsx')

@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
+import { execFileSync } from 'node:child_process'
 import { React, root, source, offlineModules, renderToStaticMarkup } from './gpt24h-offline-support.mjs'
 
 const require = createRequire(import.meta.url)
@@ -13,6 +14,17 @@ const pages = [
   ['how-much-do-youtube-shorts-pay', '91ddf6615623477906c9e7436e8aaa240585e9b0be71c1fc7f895e6fc1058c3b'],
   ['youtube-shorts-rpm-by-niche', 'be4ed2613d63b070dd32133f85c38926d338658d97607504a0f4b89f40135974'],
 ]
+
+const PAY_FILE = 'app/how-much-do-youtube-shorts-pay/page.tsx'
+const reviewedPay = execFileSync('git', ['show', 'e8ba586cd:' + PAY_FILE], { encoding: 'utf8' }).replace(/\r\n/g, '\n')
+const reviewedFile = ts.createSourceFile(PAY_FILE, reviewedPay, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX)
+const reviewedCalls = []
+function findReviewedCall(node) {
+  if (ts.isJsxSelfClosingElement(node) && node.tagName.getText(reviewedFile) === 'TextToVideoIntentForm') reviewedCalls.push(node.getText(reviewedFile))
+  ts.forEachChild(node, findReviewedCall)
+}
+findReviewedCall(reviewedFile)
+assert.equal(reviewedCalls.length, 1, 'One film caller in independently approved e8ba586cd')
 
 // Receipts from origin/main 999f2de68, 17/11: title, H1, prose, tables,
 // metadata and structured-data literals stay intact; ignore the added door.
@@ -26,6 +38,11 @@ function contentReceipt(name, text) {
       const attrs = node.attributes.properties
       assert.equal(attrs.length, 1, 'Citation form has one explicit attribute')
       assert.ok(ts.isJsxAttribute(attrs[0]) && attrs[0].name.getText(file) === 'article' && attrs[0].initializer && ts.isStringLiteral(attrs[0].initializer) && attrs[0].initializer.text === 'pay', 'Exact payout form caller')
+      return
+    }
+    if (ts.isJsxSelfClosingElement(node) && node.tagName.getText(file) === 'TextToVideoIntentForm') {
+      assert.equal(name, PAY_FILE, 'Film caller exception only on payout article')
+      assert.equal(node.getText(file), reviewedCalls[0], 'Exact independently approved film caller; no prose/table exception')
       return
     }
     if (ts.isJsxSelfClosingElement(node) && node.tagName.getText(file) === 'GoogleCreatorDoor') return
@@ -92,6 +109,7 @@ const mutants = [
   ['H1 rewritten', { [pay]: source(pay).replace('How Much Do YouTube Shorts Pay? (2026)', 'A different H1') }],
   ['intro rewritten', { [rpm]: source(rpm).replace('Not all Shorts views are worth the same money.', 'All Shorts pay the same.') }],
   ['table changed', { [rpm]: source(rpm).replace("rpm: '$0.15–$0.40+'", "rpm: '$9.00'") }],
+  ['approved film caller changed', { [pay]: source(pay).replace('placement={"article_intro_2411"} preserveHandoffForSignedIn', 'placement={"article_intro_2411"} preserveHandoffForSignedIn={false}') }],
   ['door omitted', { [pay]: source(pay).replace('<GoogleCreatorDoor sourcePage="/how-much-do-youtube-shorts-pay" />', '') }],
 ]
 for (const [name, mutation] of mutants) {
