@@ -36,6 +36,7 @@ import {
   B2B_VOLUME_OPTIONS,
   readB2BVolumeStorageKey,
 } from '@/lib/growth/b2bLead'
+import { readCompanyOfferInbox } from '@/lib/growth/companyOfferInbox'
 import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
@@ -557,6 +558,7 @@ export async function GET(req: Request) {
       rawAuthUsers,
       profilesRead,
       leadsRead,
+      companyRequests,
       videosRead,
       clicksRead,
       abandonedRead,
@@ -589,6 +591,7 @@ export async function GET(req: Request) {
         }
         return query
       }, { route: '/api/admin/funnel', table: 'leads' }),
+      readCompanyOfferInbox(admin, periodIsoForReads),
       readAll(() => admin
         .from('videos')
         .select('user_id,status,quality_mode,topic,niche,created_at'), { route: '/api/admin/funnel', table: 'videos' }),
@@ -633,18 +636,19 @@ export async function GET(req: Request) {
     let b2bLeadInbox: NonNullable<FunnelData['b2bLeadInbox']> = { total: 0, leads: [] }
     try {
       const { data: leadRows, error: leadError } = leadsRead // KINEO-ADMIN-RAPIDO-1710 — lida na fase 1
-      if (!leadError && Array.isArray(leadRows)) {
+      if (leadError) throw leadError
+      if (Array.isArray(leadRows)) {
         const externalLeads = leadRows.filter((row) => !isInternalEmail(row.email))
         b2bLeadInbox = {
-          total: externalLeads.length,
-          leads: externalLeads.map((row) => {
+          total: externalLeads.length + companyRequests.length,
+          leads: [...companyRequests, ...externalLeads.map((row) => {
             const volumeId = readB2BVolumeStorageKey(row.magnet)
             return {
               email: row.email,
               monthlyVolume: B2B_VOLUME_OPTIONS.find((option) => option.id === volumeId)?.label ?? 'Unknown volume',
               createdAt: row.created_at,
             }
-          }),
+          })].sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? '')),
         }
       }
     } catch (error) {

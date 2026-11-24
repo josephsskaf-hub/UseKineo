@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { COMPANY_OFFER_INTENT, COMPANY_OFFER_LEAD_SOURCE } from '@/lib/growth/companyOfferContact'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import {
   B2B_LEAD_INTENT,
@@ -115,6 +116,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
+    if (body.intent === COMPANY_OFFER_INTENT) return NextResponse.json({ saved: false }, { status: 404 })
     const isB2BBrief = body.intent === B2B_LEAD_INTENT
     const b2bInput = isB2BBrief ? parseB2BLeadInput(body) : null
     const email = b2bInput?.email ?? normalizeLeadEmail(body.email)
@@ -138,11 +140,10 @@ export async function POST(req: NextRequest) {
     const country = req.headers.get('x-vercel-ip-country') ?? null
     // Business intent is fixed by the server. A caller cannot smuggle an
     // arbitrary source or free-form brief into the lead inbox.
+    const requestedSource = typeof body.source === 'string' ? body.source.slice(0, 60) : 'unknown'
     const source = isB2BBrief
       ? B2B_LEAD_SOURCE
-      : typeof body.source === 'string'
-        ? body.source.slice(0, 60)
-        : 'unknown'
+      : requestedSource === COMPANY_OFFER_LEAD_SOURCE ? 'unknown' : requestedSource
     const magnet = isB2BBrief && b2bInput
       ? b2bVolumeStorageKey(b2bInput.volume)
       : typeof body.magnet === 'string'
@@ -167,6 +168,7 @@ export async function POST(req: NextRequest) {
         .from('leads')
         .update({ source, magnet })
         .eq('email', email)
+        .or('source.is.null,source.neq.' + COMPANY_OFFER_LEAD_SOURCE)
       if (updateError) {
         console.error('[lead-capture] business lead update error:', updateError.message)
         return NextResponse.json({ error: 'temporarily unavailable' }, { status: 503 })

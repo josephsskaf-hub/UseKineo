@@ -1,0 +1,290 @@
+.company-offer {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans), Arial, sans-serif;
+  line-height: 1.6;
+  min-height: 100vh;
+  padding: 0 22px clamp(52px, 7vw, 100px);
+}
+
+.company-offer-wrap {
+  width: min(100%, 1120px);
+  margin: 0 auto;
+}
+
+.company-offer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 66px;
+  border-bottom: 1px solid var(--border);
+}
+
+.company-offer-header a {
+  color: var(--text2);
+  text-decoration: none;
+  font-weight: 720;
+}
+
+.company-offer .company-offer-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  color: var(--text);
+  letter-spacing: -.025em;
+}
+
+.company-offer h1, .company-offer h2, .company-offer p, .company-offer figure, .company-offer dl, .company-offer dd {
+  margin: 0;
+}
+
+.company-offer p, .company-offer ol {
+  font-size: 15px;
+  color: var(--text2);
+}
+
+.company-offer h2 {
+  color: var(--text);
+  font-size: clamp(22px, 3vw, 34px);
+  line-height: 1.1;
+  letter-spacing: -.035em;
+  font-weight: 820;
+}
+
+.company-offer h1 {
+  font-size: clamp(42px, 6.7vw, 79px);
+  font-weight: 850;
+  letter-spacing: -.067em;
+  line-height: 1;
+  text-wrap: balance;
+}
+
+.company-offer-hero,
+.company-offer-examples,
+.company-offer-proposal {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(18px, 5vw, 72px);
+}
+
+.company-offer-hero {
+  padding: clamp(32px, 7vw, 95px) 0 clamp(34px, 6vw, 80px);
+}
+
+.company-offer-intro {
+  display: grid;
+  justify-items: start;
+  gap: 16px;
+}
+
+.company-offer .company-offer-kicker {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.company-offer .company-offer-lead {
+  color: var(--text);
+  max-width: 47ch;
+  font-size: clamp(17px, 2vw, 22px);
+  line-height: 1.45;
+  font-weight: 650;
+}
+
+.company-offer-cta {
+  display: inline-grid;
+  min-height: 50px;
+  place-items: center;
+  padding: 9px 19px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: var(--accent);
+  color: var(--on-accent);
+  text-align: center;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 850;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.company-offer-cta:disabled {
+  opacity: .65;
+  cursor: wait;
+}
+
+.company-offer :is(a, input, button, video):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.company-offer-package, .company-offer-proposal {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: clamp(20px, 4vw, 36px);
+}
+
+.company-offer-package {
+  display: grid;
+  gap: 14px;
+}
+
+.company-offer .company-offer-quantity {
+  display: grid;
+  padding: 14px;
+  background: color-mix(in srgb, var(--accent) 11%, var(--bg));
+  color: var(--text);
+  border-radius: 12px;
+  font-size: clamp(29px, 3.5vw, 44px);
+  line-height: 1;
+  letter-spacing: -.05em;
+}
+
+.company-offer-quantity span {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text2);
+  letter-spacing: 0;
+}
+
+.company-offer-package dl > div {
+  display: grid;
+  grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr);
+  align-items: baseline;
+  gap: 9px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.company-offer-package dt, .company-offer-package p {
+  font-size: 13px;
+  color: var(--text2);
+}
+
+.company-offer-package dd {
+  font-size: 14px;
+  font-weight: 720;
+}
+
+.company-offer .company-offer-price strong {
+  color: var(--text);
+  font-size: 23px;
+  font-weight: 830;
+}
+
+.company-offer-examples {
+  border-block: 1px solid var(--border);
+  padding: clamp(26px, 5vw, 52px) 0;
+}
+
+.company-offer-examples h2, .company-offer-details h2, .company-offer-proposal h2 {
+  margin-bottom: 12px;
+}
+
+.company-offer-reels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.company-offer-reels video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  object-fit: cover;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.company-offer-reels figcaption {
+  margin-top: 6px;
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 680;
+}
+
+.company-offer-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(14px, 4vw, 40px);
+  padding: clamp(28px, 5vw, 56px) 0;
+}
+
+.company-offer-details section {
+  border-top: 1px solid var(--border);
+  padding-top: 17px;
+}
+
+.company-offer-details p + p {
+  margin-top: 10px;
+}
+
+.company-offer-details ol {
+  padding-left: 20px;
+  list-style: decimal;
+  margin: 0;
+}
+
+.company-offer-details li + li {
+  margin-top: 8px;
+}
+
+.company-offer-form {
+  display: grid;
+  gap: 10px;
+}
+
+.company-offer-form label {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 760;
+}
+
+.company-offer-form input {
+  width: 100%;
+  min-height: 50px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 16px;
+}
+
+.company-offer-form p {
+  font-size: 13px;
+}
+
+.company-offer-honeypot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  clip-path: inset(50%);
+  overflow: hidden;
+}
+
+.company-offer .company-offer-error {
+  color: var(--danger);
+}
+
+.company-offer .company-offer-feedback {
+  padding: 14px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--success) 12%, var(--bg));
+  color: var(--text);
+}
+
+@media (max-width: 760px) {
+  .company-offer { padding-inline: 16px; }
+  .company-offer-hero, .company-offer-examples, .company-offer-proposal, .company-offer-details { grid-template-columns: minmax(0, 1fr); }
+  .company-offer-hero { gap: 24px; }
+  .company-offer-intro { gap: 13px; }
+  .company-offer-intro > .company-offer-cta { width: 100%; }
+}
