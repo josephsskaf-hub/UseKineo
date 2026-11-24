@@ -18,6 +18,10 @@ const dados = JSON.parse(readFileSync('scripts/test-support/referencia-unica-241
 const load = source => createOfflineLoader({ source, globals: { AbortSignal } })
 const old = load((file, src) => file === transport ? original(file) : src)('@/' + transport)
 const filme = id => dados.filmes.find(f => f.id === id)
+// KINEO-REFERENCIA-UNICA-PUBLIC-2411 — a frase entra só onde o personagem APARECE (a ação do plano): o carro e a mansão do 2fef3706 e o rei do 4691e265 ficam sem ela.
+const COM_FRASE_2311 = { '2fef3706': [0, 3], '4691e265': [0, 1], '49448973': [0] }
+const NOMES_2311 = { '2fef3706': ['the young man', 'young man'], '4691e265': ['the mysterious warrior', 'mysterious warrior'], '49448973': ['the fluffy mascot', 'fluffy mascot'] }
+const esperado2311 = (api, id) => filme(id).planos.map((p, i) => COM_FRASE_2311[id].includes(i) ? filme(id).pedido_A.input.multi_prompt[i].prompt : api.semFichaDoPersonagem(p.prompt, NOMES_2311[id]))
 const SINTETICA = n => `https://example.org/offline/still-${n}.png` // imagem-chave do controle cuja URL não está nos dados (só a 1ª ou a ficha estão)
 
 async function post(api, args) {
@@ -38,7 +42,7 @@ const stillsDe = f => f.planos.map((p, i) => /use the start image/.test(p.prefix
 
 // Elenco reconstruído do que o texto do plano mostra ("Identity: the young man…"); a ficha é a URL que o teste registrou como ficha do elenco.
 const snapshots = {
-  '2fef3706': { version: 'film_quality_2910_v1', sourceGenerationId: 'offline', characters: [{ nome: 'the young man', nucleo: 'young man', tipo: 'humano', protagonista: true, canonica: 'A young man' }],
+  '2fef3706': { version: 'film_quality_2910_v1', sourceGenerationId: 'offline', characters: [{ nome: 'the young man', nucleo: 'young man', tipo: 'humano', genero: 'man', protagonista: true, canonica: 'A young man' }],
     characterReferences: [{ nome: 'the young man', url: filme('2fef3706').referencia_do_teste }], approvedStills: [] },
   '4691e265': { version: 'film_quality_2910_v1', sourceGenerationId: 'offline', characters: [{ nome: 'the mysterious warrior', nucleo: 'mysterious warrior', tipo: 'humano', protagonista: true, canonica: 'A warrior' },
     { nome: 'the king', nucleo: 'king', tipo: 'humano', protagonista: false, canonica: 'A king' }],
@@ -121,7 +125,7 @@ async function suite(change) {
         assert.ok(t.referenciaUnica, 'casa ' + email)
         const envio = await post(api, { prompts, approvedStills: stills, timing: { ...timingDe(fl), ...("referenciaUnica" in t ? { referenciaUnica: t.referenciaUnica } : {}) } })
         assert.equal(envio.url, 'https://queue.fal.run/kling/v4/reference-to-video', 'casa ' + email)
-        assert.deepEqual(envio.input.multi_prompt.map(m => m.prompt), fl.pedido_A.input.multi_prompt.map(m => m.prompt), 'casa ' + email + ': o pedido A')
+        assert.deepEqual(envio.input.multi_prompt.map(m => m.prompt), esperado2311(api, id), 'casa ' + email + ': o pedido A nos planos com o personagem, sem a ficha dele nos outros')
       }
     }
   }
@@ -130,9 +134,9 @@ async function suite(change) {
   const casa = 'josephsskaf@gmail.com'
   const ligado = { ...f, REFERENCIA_UNICA_2411: 'internal' }
   for (const [id, snap, planosComFrase, urlEsperada, origem] of [
-    ['2fef3706', '2fef3706', [0, 1, 2, 3], filme('2fef3706').referencia_do_teste, 'ficha'],
-    ['4691e265', '4691e265', [0, 1, 2], filme('4691e265').ficha_do_elenco, 'ficha'], // o código escolhe a ficha (o teste usou a imagem-chave 1)
-    ['49448973', '49448973-com-elenco', [0], filme('49448973').referencia_do_teste, 'imagem_chave'],
+    ['2fef3706', '2fef3706', COM_FRASE_2311['2fef3706'], filme('2fef3706').referencia_do_teste, 'ficha'],
+    ['4691e265', '4691e265', COM_FRASE_2311['4691e265'], filme('4691e265').ficha_do_elenco, 'ficha'], // o código escolhe a ficha (o teste usou a imagem-chave 1)
+    ['49448973', '49448973-com-elenco', COM_FRASE_2311['49448973'], filme('49448973').referencia_do_teste, 'imagem_chave'],
   ]) {
     const fl = filme(id), A = fl.pedido_A
     const t = admitir(route, ligado, { email: casa, snapshot: snapshots[snap] })
@@ -150,12 +154,13 @@ async function suite(change) {
     enviado.input.multi_prompt.forEach((s, i) => {
       assert.ok(!/^Scene \d+:/.test(s.prompt), 'sem o prefixo')
       if (planosComFrase.includes(i)) assert.equal(s.prompt, A.input.multi_prompt[i].prompt, `${id} plano ${i + 1} = pedido A`)
-      else { assert.equal(s.prompt, fl.planos[i].prompt, `${id} plano ${i + 1} sem o personagem: o texto de hoje, sem frase`); assert.ok(!s.prompt.includes('@Image1')) }
+      else { assert.equal(s.prompt, api.semFichaDoPersonagem(fl.planos[i].prompt, NOMES_2311[id]), `${id} plano ${i + 1} sem o personagem: o texto de hoje sem a ficha dele, sem frase`); assert.ok(!s.prompt.includes('@Image1') && !/Identity:|Visible:/.test(s.prompt)) }
     })
     const wireB = api.buildKling4TrialInput(fl.planos.map(p => p.prompt), stillsDe(fl), { ...timingDe(fl), referenciaUnica: t.referenciaUnica })
     assert.equal(JSON.stringify(wireB.input), enviado.body, 'a decisão do montador (planosComFrase) fica FORA do que vai à fal')
     const relato = f.relatoReferenciaUnica({ referenciaUnica: t.referenciaUnica }, wireB)
-    assert.deepEqual(JSON.parse(JSON.stringify(relato)), { versao: 'KINEO-REFERENCIA-UNICA-2411', origem, tipo: t.referenciaUnica.tipo, planos: A.input.multi_prompt.length, planos_com_frase: planosComFrase.map(i => i + 1) })
+    assert.deepEqual(JSON.parse(JSON.stringify(relato)), { versao: 'KINEO-REFERENCIA-UNICA-2411', origem, tipo: t.referenciaUnica.tipo, planos: A.input.multi_prompt.length, planos_com_frase: planosComFrase.map(i => i + 1),
+      planos_sem_ficha: fl.planos.flatMap((p, i) => !planosComFrase.includes(i) && /Identity:|Visible:/.test(p.prompt) ? [i + 1] : []) })
     assert.equal(f.relatoReferenciaUnica({ referenciaUnica: t.referenciaUnica, fixedCharacter: {} }, { model: A.endpoint, input: enviado.input }), null)
     assert.equal(f.relatoReferenciaUnica({ referenciaUnica: t.referenciaUnica }, { model: 'kling/v4/image-to-video', input: enviado.input }), null)
     assert.equal(f.relatoReferenciaUnica({}, { model: A.endpoint, input: enviado.input }), null)
@@ -176,7 +181,7 @@ async function suite(change) {
     assert.equal('referenciaUnica' in admitir(route, ligado, { email: casa, snapshot: snap }), false)
   }
   const ru = f.referenciaUnicaDoFilme(s0)
-  assert.equal((await post(api, { prompts: pr, approvedStills: st, timing: { ...tm, referenciaUnica: { ...ru, nomes: ['the old lighthouse'] } } })).body, hojeRapaz, 'nenhum plano com o personagem')
+  assert.equal((await post(api, { prompts: pr, approvedStills: st, timing: { ...tm, referenciaUnica: { ...ru, nomes: ['the old lighthouse'], tipo: 'criatura' } } })).body, hojeRapaz, 'nenhum plano com o personagem')
   assert.equal((await post(api, { prompts: pr, approvedStills: st, timing: { ...tm, referenciaUnica: { ...ru, imageUrl: 'http://x.org/a.jpg' } } })).body, hojeRapaz, 'URL não https')
   // o nome do elenco com artigo ("the young man") acha o plano que diz "A young man"; nome curto demais ou pedaço de palavra não acha
   assert.equal((await post(api, { prompts: pr, approvedStills: st, timing: { ...tm, referenciaUnica: { ...ru, nomes: ['the young man'] } } })).input.multi_prompt[0].prompt, rapaz.pedido_A.input.multi_prompt[0].prompt)
@@ -280,13 +285,14 @@ async function suite(change) {
     // vizinho c: dois personagens, plano só com o outro = sem frase, e o juiz não perde nada
     const so = api.buildKling4ReferenciaUnicaInput([{ prompt: 'The old woman waits at the door.' + M, duration: 7 }, { prompt: 'The young man arrives.' + M, duration: 8 }], ru)
     assert.deepEqual([...so.planosComFrase], [false, true]); assert.equal(f.entradaDoJuiz2411({ referenciaUnica: ru }, so).multi_prompt[0].prompt, 'The old woman waits at the door.' + M)
-    // vizinho b: o nome só dentro de fala entre aspas também conta como "cita" (a regra não muda nesta volta); a frase entra e o juiz a tira, coerente
-    const aspas = api.buildKling4ReferenciaUnicaInput([{ prompt: 'A woman shouts "young man, come back!" across the street.' + M, duration: 15 }], ru)
-    assert.deepEqual([...aspas.planosComFrase], [true]); assert.equal(f.entradaDoJuiz2411({ referenciaUnica: ru }, aspas).multi_prompt[0].prompt, 'A woman shouts "young man, come back!" across the street.' + M)
+    // vizinho b [KINEO-REFERENCIA-UNICA-PUBLIC-2411, ponto 2]: o nome só dentro de fala entre aspas NÃO põe o personagem na imagem: sem frase (sozinho = null, o caminho de hoje)
+    assert.equal(api.buildKling4ReferenciaUnicaInput([{ prompt: 'A woman shouts "young man, come back!" across the street.' + M, duration: 15 }], ru), null)
+    const aspas = api.buildKling4ReferenciaUnicaInput([{ prompt: 'A woman shouts "young man, come back!" across the street.' + M, duration: 7 }, { prompt: 'The young man turns around.' + M, duration: 8 }], ru)
+    assert.deepEqual([...aspas.planosComFrase], [false, true]); assert.equal(aspas.input.multi_prompt[0].prompt, 'A woman shouts "young man, come back!" across the street.' + M)
     // vizinho d: plano que cita o personagem e fica SEM a frase não existe — o montador põe em todo plano que cita, ou devolve null (caminho de hoje, sem referência nenhuma)
     for (const lote of [planos, [{ prompt: 'The young man waits.', duration: 15 }]]) {
       const x = api.buildKling4ReferenciaUnicaInput(lote, ru)
-      lote.forEach((p, i) => assert.equal(x.planosComFrase[i], api.planoMostraOPersonagem(p.prompt, ru.nomes)))
+      lote.forEach((p, i) => assert.equal(x.planosComFrase[i], api.planoMostraOPersonagem(p.prompt, ru.nomes, ru)))
       x.input.multi_prompt.forEach((m, i) => assert.equal(x.planosComFrase[i], m.prompt !== lote[i].prompt))
     }
     // sem a decisão do montador (envio montado por outro caminho): o juiz não perde nada
@@ -313,6 +319,96 @@ async function suite(change) {
   }
   // O claim só ganha o campo quando a referência única foi usada.
   assert.ok(route.includes("return ru ? { kling4_referencia_unica: ru } : {}"))
+
+  await suitePublic2411({ api, f, route })
+}
+
+// ═══ KINEO-REFERENCIA-UNICA-PUBLIC-2411 — os 3 filmes da prova paga 2 de 24/11 (Le Prince 92ce1a8e, Slocum ff5c515e, Cooper 582cead7) ═══════════════
+// shots = o que chegou ao montador; enviado = o multi_prompt que foi à fal (conferido por SELECT em cinematic_submission_claim.response.scene_fal_inputs).
+const pub = JSON.parse(readFileSync('scripts/test-support/referencia-unica-public-2411-filmes.json', 'utf8'))
+const antesSrc = execFileSync('git', ['show', 'c854849c8:' + transport], { encoding: 'utf8', maxBuffer: 8_000_000 }).replaceAll('\r\n', '\n') // a main de 24/11 (o que rodou na prova)
+const antes = load((file, src) => file === transport ? antesSrc : src)('@/' + transport)
+const FRASE_P = 'Keep the face and outfit of @Image1.'
+const BOCA = ' Mouth closed, no speaking.'
+const comFrase = p => p.endsWith(BOCA) ? p.slice(0, -BOCA.length) + ' ' + FRASE_P + BOCA : p + ' ' + FRASE_P
+const DEPOIS = { leprince: [1, 2, 4], slocum: [1, 2, 3], cooper: [1, 2, 3] }
+const SEM_FICHA = { leprince: [3], slocum: [], cooper: [4] }
+const SEM_O_PERSONAGEM = { // o texto exato que vai à fal no plano sem ele
+  leprince: { 3: 'Photoreal film. Wide shot. An empty vintage train compartment, with plush seats and wooden paneling, gently sways as the train slows. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.' },
+  cooper: { 4: 'Photoreal film. Medium shot. Period setting: 1971 (1970s). Old dollar bills partially buried in wet river sand glisten under dim light. no readable text, letters, numbers, labels or signage Mouth closed, no speaking.' },
+}
+const FICHA_NO_TEXTO_RE = /Identity:|Visible:|The only person in this shot|The same main character appears in this scene/
+const snapDe = fl => ({ version: 'film_quality_2910_v1', sourceGenerationId: 'offline', characters: [{ ...fl.personagem, canonica: fl.personagem.nome }],
+  characterReferences: [{ nome: fl.personagem.nome, url: fl.ficha }], approvedStills: [] })
+// a fala de cada plano CITA o nome (a decisão não pode vir dela): mesma contagem de palavras = mesmas durações (régua pela voz)
+const timingPub = (fl, nome) => ({ voiceovers: fl.shots.map(s => [nome, ...Array.from({ length: s.duration - 1 }, () => 'word')].join(' ')), wordsPerSecond: 2.5, pelaVoz: { segundosDaVoz: 15 } })
+const indices = bs => bs.flatMap((m, i) => m ? [i + 1] : [])
+
+async function suitePublic2411({ api, f, route }) {
+  for (const fl of pub.filmes) {
+    const shots = fl.shots, prompts = shots.map(s => s.prompt), nucleo = fl.personagem.nucleo
+    const ref = f.referenciaUnicaDoFilme(snapDe(fl))
+    assert.ok(ref && ref.imageUrl === fl.ficha && ref.origem === 'ficha', fl.id)
+    // ANTES (a main que rodou na prova): o montador reproduz byte a byte o que foi à fal, e a frase entrou onde o NOME estava escrito
+    const velho = antes.buildKling4ReferenciaUnicaInput(shots, { imageUrl: fl.ficha, frase: FRASE_P, nomes: ref.nomes })
+    assert.deepEqual(velho.input.multi_prompt.map(m => m.prompt), fl.enviado, fl.id + ': o fixture é o que foi à fal')
+    assert.deepEqual(indices(velho.planosComFrase), fl.planos_com_frase_no_ar, fl.id + ': a causa (antes)')
+    // DEPOIS: a frase entra onde ele APARECE na imagem pedida
+    const w = api.buildKling4ReferenciaUnicaInput(shots, ref)
+    assert.deepEqual(indices(w.planosComFrase), DEPOIS[fl.id], fl.id + ': planos_com_frase depois')
+    w.input.multi_prompt.forEach((m, i) => {
+      assert.equal(m.duration, shots[i].duration)
+      if (w.planosComFrase[i]) {
+        assert.equal(m.prompt, fl.planos_com_frase_no_ar.includes(i + 1) ? fl.enviado[i] : comFrase(prompts[i]), `${fl.id} plano ${i + 1} com a frase`)
+      } else {
+        // o plano sem ele: sem a frase e sem ninguém que o ponha lá por outro caminho (ficha, ordem, cláusula, nome como quem age)
+        assert.ok(!m.prompt.includes('@Image1') && !FICHA_NO_TEXTO_RE.test(m.prompt), `${fl.id} plano ${i + 1}: ${m.prompt}`)
+        assert.equal(api.planoMostraOPersonagem(m.prompt, ref.nomes, ref), false)
+        assert.equal(m.prompt, SEM_O_PERSONAGEM[fl.id]?.[i + 1] ?? prompts[i], `${fl.id} plano ${i + 1} sem o personagem`)
+      }
+    })
+    assert.deepEqual(indices((w.fichaRetirada ?? []).map(t => typeof t === 'string')), SEM_FICHA[fl.id], fl.id + ': planos sem a ficha')
+    // o relato do claim e o juiz (que lê o texto que o montador recebeu, sem 2ª leitura paga)
+    const relato = JSON.parse(JSON.stringify(f.relatoReferenciaUnica({ referenciaUnica: ref }, w)))
+    assert.deepEqual([relato.planos_com_frase, relato.planos_sem_ficha], [DEPOIS[fl.id], SEM_FICHA[fl.id]])
+    assert.deepEqual(f.entradaDoJuiz2411({ referenciaUnica: ref }, w).multi_prompt.map(m => m.prompt), prompts, fl.id + ': o juiz lê o texto de antes da referência')
+    // a fala que cita o nome ("Neither Slocum nor his boat was ever seen again.") não decide: pelo envio inteiro (buildKling4TrialInput), o mesmo pedido
+    const timing = timingPub(fl, nucleo)
+    const viaEnvio = api.buildKling4TrialInput(prompts, [], { ...timing, referenciaUnica: ref })
+    assert.equal(JSON.stringify(viaEnvio.input), JSON.stringify(w.input), fl.id + ': a fala não muda nada'); assert.deepEqual(indices(viaEnvio.planosComFrase), DEPOIS[fl.id])
+    // 'off' (sem referência) = byte a byte a main da prova, com e sem imagens-chave
+    for (const stills of [[], [fl.ficha, null, 'https://example.org/offline/k2.png', null]]) {
+      const hoje = await post(api, { prompts, approvedStills: stills, timing }), main = await post(antes, { prompts, approvedStills: stills, timing })
+      assert.equal(hoje.url, main.url); assert.equal(hoje.body, main.body, fl.id + ': off = o de hoje')
+    }
+    // 'internal' no commit: cliente não alcança, nem nestes filmes; a casa exata sim
+    for (const email of ['cliente@example.org', 'joseph@usekineo.com', null]) assert.equal('referenciaUnica' in admitir(route, f, { email, snapshot: snapDe(fl) }), false, String(email))
+    assert.ok(admitir(route, f, { email: 'josephsskaf@gmail.com', snapshot: snapDe(fl) }).referenciaUnica)
+  }
+
+  // Ponto 2: o nome SÓ dentro de fala entre aspas não põe o personagem na imagem (antes punha: a mesma frase do Slocum)
+  const slocum = f.referenciaUnicaDoFilme(snapDe(pub.filmes.find(x => x.id === 'slocum')))
+  const aspas = 'Photoreal film. An old ship radio crackles "Slocum, come back!" over an empty harbor.' + BOCA, ele = 'Photoreal film. Joshua Slocum waves from the deck of his sloop.' + BOCA
+  assert.deepEqual([...antes.buildKling4ReferenciaUnicaInput([{ prompt: aspas, duration: 7 }, { prompt: ele, duration: 8 }], { imageUrl: slocum.imageUrl, frase: FRASE_P, nomes: slocum.nomes }).planosComFrase], [true, true], 'antes: o nome entre aspas punha a frase')
+  const p2 = api.buildKling4ReferenciaUnicaInput([{ prompt: aspas, duration: 7 }, { prompt: ele, duration: 8 }], slocum)
+  assert.deepEqual([...p2.planosComFrase], [false, true]); assert.equal(p2.input.multi_prompt[0].prompt, aspas)
+  assert.equal(api.buildKling4ReferenciaUnicaInput([{ prompt: aspas, duration: 15 }], slocum), null, 'só as aspas = o caminho de hoje')
+  // posse sem corpo não é ele; posse com corpo é
+  assert.equal(api.planoMostraOPersonagem("Photoreal film. Slocum's empty sloop drifts on a calm sea." + BOCA, slocum.nomes, slocum), false)
+  assert.equal(api.planoMostraOPersonagem("Photoreal film. Slocum's weathered hands grip the wheel." + BOCA, slocum.nomes, slocum), true)
+  // outro caminho: a ORDEM do protagonista (protagonistaEmTodaCena) e a cláusula da ficha num plano de ausência saem com ele; o sujeito obrigatório que
+  // o nomeia (garantirSujeitoNoUltimo1911) o mostra, então leva a frase: nenhum plano sem a frase fica com ele
+  const ordem = 'Photoreal film. The only person in this shot is the same main character (Joshua Slocum, an old bearded sailor (65)); any other person described below is replaced by this same character. An empty gray ocean horizon stretches at dusk.' + BOCA
+  const clausula = 'Photoreal film. The same main character appears in this scene, consistent design: Joshua Slocum, an old bearded sailor. An empty harbor at dawn, gulls over the water.' + BOCA
+  const sujeito = 'Photoreal film. Main subject clearly visible in frame: Joshua Slocum. A calm gray sea at dusk.' + BOCA
+  const outro = api.buildKling4ReferenciaUnicaInput([{ prompt: ordem, duration: 5 }, { prompt: clausula, duration: 5 }, { prompt: sujeito, duration: 5 }], slocum)
+  assert.deepEqual([...outro.planosComFrase], [false, false, true])
+  assert.deepEqual(outro.input.multi_prompt.slice(0, 2).map(m => m.prompt), ['Photoreal film. An empty gray ocean horizon stretches at dusk.' + BOCA, 'Photoreal film. An empty harbor at dawn, gulls over the water.' + BOCA])
+  // a linha de estilo que sobra da ficha com frase própria (texto NOSSO, lib/cinematic/elencoTrava) não é gente pedida, e sai com a ficha dele
+  const menino = { imageUrl: slocum.imageUrl, frase: FRASE_P, nomes: ['the boy', 'boy'], tipo: 'humano', genero: 'man', outros: [] }
+  const porta = 'Photoreal film. A colorful door swings open wide. Visible: the boy, a nine-year-old boy with short dark hair. He; a real person filmed in photorealistic live action, natural skin texture and real fabric.' + BOCA
+  const m2 = api.buildKling4ReferenciaUnicaInput([{ prompt: porta, duration: 7 }, { prompt: 'Photoreal film. The boy runs through the door.' + BOCA, duration: 8 }], menino)
+  assert.deepEqual([...m2.planosComFrase], [false, true]); assert.equal(m2.input.multi_prompt[0].prompt, 'Photoreal film. A colorful door swings open wide.' + BOCA)
 }
 
 await suite()
@@ -321,7 +417,7 @@ const mutants = [
   [transport, '  if (!comPersonagem.some(Boolean)) return null\n', ''],
   [transport, 'image_urls: [ref.imageUrl]', 'image_urls: []'],
   [transport, 'cabe.slice(0, -CAUDA_DA_BOCA.length) + frase + CAUDA_DA_BOCA : cabe + frase', 'cabe + frase : cabe + frase'],
-  [transport, 'if (!comPersonagem[i]) return', 'if (false) return'],
+  [transport, 'if (!comPersonagem[i]) {', 'if (false) {'],
   [transport, ".replace(/^(?:the|a|an)\\s+/, '')", ''],
   [transport, 'KLING4_TETO_DO_PLANO - Array.from(frase).length', 'KLING4_TETO_DO_PLANO'],
   [feature, "modo === 'internal' && contaDaCasaExata(email)", "modo === 'internal'"],
@@ -355,6 +451,20 @@ const mutants = [
   [routeFile, 'kling4Input: () => { const e = kling4EnvioDoFilme(); return entradaDoJuiz2411(e.timing, buildKling4TrialInput(e.prompts, e.approvedStills, e.timing)) /* KINEO-REFERENCIA-UNICA-2411: o juiz lê sem a frase */ }, falas: scenes.map((s) => s.voiceover ?? \'\'), inputs: classicSceneInputs }) : null', 'kling4Input: () => { const e = kling4EnvioDoFilme(); return entradaDoJuiz2411({}, buildKling4TrialInput(e.prompts, e.approvedStills, e.timing)) /* KINEO-REFERENCIA-UNICA-2411: o juiz lê sem a frase */ }, falas: scenes.map((s) => s.voiceover ?? \'\'), inputs: classicSceneInputs }) : null'],
   [routeFile, 'kling4Input: () => { const e = kling4EnvioDoFilme(); return entradaDoJuiz2411(e.timing, buildKling4TrialInput(e.prompts, e.approvedStills, e.timing)) /* KINEO-REFERENCIA-UNICA-2411: o juiz lê sem a frase */ }, falas', 'kling4Input: () => { const e = kling4EnvioDoFilme(); return buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input }, falas'],
 ]
+// KINEO-REFERENCIA-UNICA-PUBLIC-2411 — mutantes por COMPORTAMENTO (cada um tem de cair nos 3 filmes da prova ou nos casos do ponto 2)
+mutants.push(
+  [transport, 'if (cita === \'posse\' && visualMostraAlguem(acao)) return true', 'if (cita === \'posse\') return true'], // frase em plano de ausência (Slocum 4)
+  [transport, 'return quem.tipo === \'humano\' && citacaoDoPersonagem(', 'return false && citacaoDoPersonagem('], // a frase sai do plano que o mostra (Le Prince 1)
+  [transport, '  const acao = acaoDoPlano(prompt)\n', '  const acao = String(prompt ?? \'\')\n'], // decisão pelo nome em qualquer lugar do texto (a regra velha)
+  [transport, 'return limpa(t.replace(FALA_ENTRE_ASPAS_RE, \' \'))', 'return limpa(t)'], // o nome entre aspas volta a pôr a frase
+  [transport, 'if (citacaoDoPersonagem(m, nomes) === null) return m; saiu = true; return \' \'', 'return m'], // plano sem frase fica com a ficha dele (Cooper 4)
+  [transport, '  if (saiu) t = t.replace(ESTILO_DA_FICHA_RE, \' \')\n', ''], // a sobra da ficha dele fica no plano sem frase
+  [transport, '[...FICHAS_RE, ESTILO_DA_FICHA_RE, LINHA_DA_ORIGEM_RE]', '[...FICHAS_RE, LINHA_DA_ORIGEM_RE]'], // a linha de estilo vira gente na cena
+  [transport, 'buildKling4ReferenciaUnicaInput(shots.map((prompt, i) => ({ prompt, duration: seconds[i] })), timing.referenciaUnica)',
+    'buildKling4ReferenciaUnicaInput(shots.map((prompt, i) => ({ prompt: prompt + \' \' + (timing.voiceovers[i] ?? \'\'), duration: seconds[i] })), timing.referenciaUnica)'], // a fala decide
+  [transport, 'const bounded = cabeNoTetoDoPlano(reference + prompt)', 'const bounded = cabeNoTetoDoPlano(reference + semFichaDoPersonagem(prompt, [\'Cooper\', \'Prince\']))'], // 'off' muda
+  [feature, 'nomes, outros,', 'nomes, outros: [],'], // o resto do elenco esquecido (o rei do 4691e265 vira o protagonista)
+)
 let mortos = 0
 for (const mutant of mutants) {
   for (const [de] of Array.isArray(mutant[1]) ? mutant[1] : [[mutant[1]]]) assert.ok(local(mutant[0]).includes(de), 'mutante não aplica: ' + de)

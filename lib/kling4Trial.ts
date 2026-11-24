@@ -1,6 +1,7 @@
 // Trial only. Submit once and return the queue receipt; status polls rendering, never birth.
 import { KLING4_TRIAL_COST_USD } from '@/lib/kling4TrialBudget'
 import { narrationWordCount } from '@/lib/textLanguage'
+import { visualContradizOGenero, visualMostraAlguem, visualMostraPessoa } from '@/lib/cinematic/personagemAjuste' // KINEO-REFERENCIA-UNICA-PUBLIC-2411 — os detectores de gente que a rota já usa no visual do plano
 
 export const KLING4_T2V_MODEL = 'kling/v4/text-to-video'
 export const KLING4_I2V_MODEL = 'kling/v4/image-to-video'
@@ -73,31 +74,87 @@ export function cabeNoTetoDoPlano(texto: string, teto = KLING4_TETO_DO_PLANO): s
 // citada só nos planos em que ele aparece. Planos e durações são os de hoje; sai só o prefixo "Scene N: use the start image…" (aponta para imagens
 // que este pedido não manda) e entra a frase antes de "Mouth closed, no speaking.". Nenhum plano com o personagem ou entrada fora da régua = null
 // (quem chama segue o caminho de hoje). Quem decide se liga: lib/cinematic/referenciaUnica2411.ts.
-export type Kling4ReferenciaUnica = { imageUrl: string; frase: string; nomes: readonly string[] }
+export type Kling4ReferenciaUnica = { imageUrl: string; frase: string; nomes: readonly string[]; tipo?: 'humano' | 'animal' | 'criatura'; genero?: 'man' | 'woman' | null; outros?: readonly string[] /* KINEO-REFERENCIA-UNICA-PUBLIC-2411: tipo e gênero do protagonista e os nomes do resto do elenco */ }
 const escapaRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-/** O plano cita o personagem: o nome ou o núcleo do elenco (sem artigo, 3+ letras), palavra inteira, sem caixa. */
-export function planoMostraOPersonagem(prompt: string, nomes: readonly string[]): boolean {
-  return nomes.some((n) => {
+// KINEO-REFERENCIA-UNICA-PUBLIC-2411 [prova paga 24/11, docs/canais/2026-11-24/prova-2] — a decisão era o NOME em qualquer lugar do texto do plano. O nome
+// vinha (a) da ficha que o código põe ("Identity: Louis Le Prince, …", herdada pelas duas metades da cena fundida: o vagão vazio do Le Prince e as notas na
+// areia do Cooper levaram a frase) e (b) da posse na ação ("a silent testament to Slocum's mysterious disappearance": o horizonte vazio levou a frase).
+// E o plano que MOSTRA o homem sem o nome ("A bearded man in an 1880s suit operates…", Le Prince plano 1) ficava sem ela.
+// Agora decide a AÇÃO do plano: o texto sem os rótulos que o código pôs e sem fala entre aspas (quem FALA o nome não está na imagem).
+const ORDEM_DO_PROTAGONISTA_RE = /The only person in this shot is the same main character \((?:[^()]|\((?:[^()]|\([^()]*\))*\))*\); any other person described below is replaced by this same character\.\s*/gu
+const CLAUSULA_DA_FICHA_RE = /The same main character appears in this scene, consistent design:[^\n]*?(?:\.(?=\s|$)|$)\s*/gu
+const LINHA_DA_FICHA_RE = /(?<![\p{L}])(?:Identity|Visible(?:, seen from behind)?):\s[\s\S]*?(?:\.(?=\s|$)|$)\s*/gu // promptCurtoDoFilmeKling4: "Identity: <ficha sem ". ">. "
+const LINHA_DA_ORIGEM_RE = /Everyone shown has the natural features of [^.]+? people\.\s*|(?<![\p{L}])People: [^.]+\.\s*/gu // o "people" da origem não é gente na cena
+const FALA_ENTRE_ASPAS_RE = /"[^"\n]*"|“[^”\n]*”/gu
+// A linha de estilo da ficha (lib/cinematic/elencoTrava linhaDeEstilo, as 4 formas que quemSemEstilo de lib/kling4QuatroPlanos já reconhece) que sobra
+// quando a ficha tem frase própria e a linha Identity:/Visible: acaba no 1º ponto (811419a2: "…high cheekbones. He; a real person filmed in
+// photorealistic live action, …"): texto NOSSO sobre o personagem, nunca gente pedida para a cena. O pedaço da canônica antes do ";" vai junto.
+const ESTILO_DA_FICHA_RE = /(?:(?<![\p{L}])[\p{L}]{1,12};\s*)?(?:a real person|a real living [^;,.()]{1,40}|a living creature) filmed in photorealistic live action[^.;]*(?:[.;]|$)\s*|(?:(?<![\p{L}])[\p{L}]{1,12};\s*)?drawn in the film's own look \([^).;]*\)?[^.;]*(?:[.;]|$)\s*/gu
+const FICHAS_RE = [ORDEM_DO_PROTAGONISTA_RE, CLAUSULA_DA_FICHA_RE, LINHA_DA_FICHA_RE]
+const limpa = (t: string) => t.replace(/\s{2,}/g, ' ').trim()
+/** O que o plano pede para a IMAGEM: o texto sem a ficha que o código pôs (e a sua linha de estilo), sem a linha da origem e sem fala entre aspas. */
+export function acaoDoPlano(prompt: string): string {
+  let t = String(prompt ?? '')
+  for (const re of [...FICHAS_RE, ESTILO_DA_FICHA_RE, LINHA_DA_ORIGEM_RE]) t = t.replace(re, ' ')
+  return limpa(t.replace(FALA_ENTRE_ASPAS_RE, ' '))
+}
+/** Como o texto cita o personagem (nome ou núcleo, sem artigo, 3+ letras, palavra inteira): 'sujeito', só 'posse' ("Slocum's …") ou null. */
+function citacaoDoPersonagem(texto: string, nomes: readonly string[]): 'sujeito' | 'posse' | null {
+  let posse = false
+  for (const n of nomes) {
     const k = String(n ?? '').trim().toLowerCase().replace(/^(?:the|a|an)\s+/, '')
-    return Array.from(k).length >= 3 && new RegExp(`(?<![\\p{L}\\p{N}])${escapaRe(k)}(?![\\p{L}\\p{N}])`, 'iu').test(prompt)
-  })
+    if (Array.from(k).length < 3) continue
+    for (const m of texto.matchAll(new RegExp(`(?<![\\p{L}\\p{N}])${escapaRe(k)}(?![\\p{L}\\p{N}])`, 'giu'))) {
+      if (/^['’]s?(?![\p{L}])/u.test(texto.slice((m.index ?? 0) + m[0].length))) posse = true
+      else return 'sujeito'
+    }
+  }
+  return posse ? 'posse' : null
+}
+/** O personagem APARECE na imagem que o plano pede: a ação o cita como quem age; ou só pela posse e a ação mostra corpo ou gente ("Slocum's hands grip
+ *  the wheel" sim, "Slocum's mysterious disappearance" não); ou, protagonista humano (o único do elenco aceito), a ação mostra uma pessoa sem o nome
+ *  ("A bearded man in an 1880s suit…"), desde que não cite mais ninguém do elenco ("an adviser leans close to the king" é do rei) e que o gênero da
+ *  figura não contradiga o dele ("The old woman waits" não é o rapaz). Os detectores são os da rota (lib/cinematic/personagemAjuste), sem lista nova. */
+export function planoMostraOPersonagem(prompt: string, nomes: readonly string[], quem: Pick<Kling4ReferenciaUnica, 'tipo' | 'genero' | 'outros'> = {}): boolean {
+  const acao = acaoDoPlano(prompt)
+  const cita = citacaoDoPersonagem(acao, nomes)
+  if (cita === 'sujeito') return true
+  if (cita === 'posse' && visualMostraAlguem(acao)) return true
+  return quem.tipo === 'humano' && citacaoDoPersonagem(acao, quem.outros ?? []) === null && !visualContradizOGenero(acao, quem.genero ?? null) && visualMostraPessoa(acao)
+}
+/** Plano em que o personagem não aparece: sai a ficha DELE que o código pôs (Identity:/Visible:/ordem/cláusula que o cita), para nada mais o pôr lá;
+ *  saindo a ficha dele, sai também a linha de estilo que sobrou dela ("He; a real person filmed in photorealistic live action, …"). */
+export function semFichaDoPersonagem(prompt: string, nomes: readonly string[]): string {
+  let t = String(prompt ?? '')
+  let saiu = false
+  for (const re of FICHAS_RE) t = t.replace(re, (m) => { if (citacaoDoPersonagem(m, nomes) === null) return m; saiu = true; return ' ' })
+  if (saiu) t = t.replace(ESTILO_DA_FICHA_RE, ' ')
+  return limpa(t)
 }
 export function buildKling4ReferenciaUnicaInput(shots: readonly { prompt: string; duration: number }[], ref: Kling4ReferenciaUnica) {
   const duration = shots.reduce((sum, shot) => sum + shot.duration, 0)
   if (!/^https:\/\/[^\s]+$/i.test(ref.imageUrl) || !ref.frase.trim() || duration !== 15 || !shots.length || shots.length > 6 ||
     shots.some((s) => !Number.isInteger(s.duration) || s.duration < 1 || !s.prompt.trim())) return null
-  const comPersonagem = shots.map((s) => planoMostraOPersonagem(s.prompt, ref.nomes))
+  const comPersonagem = shots.map((s) => planoMostraOPersonagem(s.prompt, ref.nomes, ref))
   if (!comPersonagem.some(Boolean)) return null
   const frase = ' ' + ref.frase.trim()
+  // KINEO-REFERENCIA-UNICA-PUBLIC-2411 — plano sem o personagem de onde a ficha dele saiu: o texto que ele teria sem a referência (o caminho de hoje).
+  // Fica FORA do input, como planosComFrase: os juízes leem este texto (o mesmo do juiz de antes, sem 2ª leitura paga) e o claim conta os índices.
+  const fichaRetirada: (string | null)[] = shots.map(() => null)
   const multi_prompt = shots.map((shot, i) => {
     const texto = shot.prompt.trim()
-    if (!comPersonagem[i]) return { prompt: cabeNoTetoDoPlano(texto), duration: shot.duration }
+    if (!comPersonagem[i]) {
+      const sem = semFichaDoPersonagem(texto, ref.nomes)
+      if (sem === limpa(texto)) return { prompt: cabeNoTetoDoPlano(texto), duration: shot.duration }
+      fichaRetirada[i] = cabeNoTetoDoPlano(texto)
+      return { prompt: cabeNoTetoDoPlano(sem), duration: shot.duration }
+    }
     const cabe = cabeNoTetoDoPlano(texto, KLING4_TETO_DO_PLANO - Array.from(frase).length) // a frase tem o seu espaço reservado
     const prompt = cabe.endsWith(CAUDA_DA_BOCA) ? cabe.slice(0, -CAUDA_DA_BOCA.length) + frase + CAUDA_DA_BOCA : cabe + frase
     return { prompt, duration: shot.duration }
   })
   // planosComFrase fica FORA do input (não vai à fal): é a decisão deste montador, a única fonte de onde a frase entrou (o juiz e o claim leem daqui)
-  return { model: KLING4_REFERENCE_MODEL, input: { image_urls: [ref.imageUrl], multi_prompt, duration, resolution: '720p', aspect_ratio: '9:16' } as Record<string, unknown>, planosComFrase: comPersonagem as readonly boolean[] }
+  return { model: KLING4_REFERENCE_MODEL, input: { image_urls: [ref.imageUrl], multi_prompt, duration, resolution: '720p', aspect_ratio: '9:16' } as Record<string, unknown>, planosComFrase: comPersonagem as readonly boolean[], fichaRetirada: fichaRetirada as readonly (string | null)[] }
 }
 
 // KINEO-K4-DURACAO-PELA-VOZ-1311 [CEO 13/11, "nota ≥ 8 no teste grátis — a próxima causa"] — filme 9e902872 (cliente, Kling 4, 15 s,
