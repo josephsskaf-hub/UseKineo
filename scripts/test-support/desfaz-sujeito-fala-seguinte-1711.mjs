@@ -4,6 +4,7 @@
 // Recibo EXATO desta entrega no motor de vídeo: para cada arquivo existente, o hash de antes (origin/main), o de depois e os trechos
 // trocados. Um guardião histórico só ignora o arquivo se desfazer estes trechos devolver EXATAMENTE a origin/main — edição desconhecida,
 // parcial ou a mais continua reprovando. Nunca usar em lib/app.
+import { semSujeitoCadeia2411 } from './desfaz-sujeito-cadeia-2411.mjs' // KINEO-SUJEITO-CADEIA-2411
 import { readFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 
@@ -14,6 +15,7 @@ const rel = (f) => String(f ?? '').replace(/\\/g, '/')
 
 /** O texto de hoje sem esta entrega (exato) — ou o mesmo texto, se ele não é o "depois" desta entrega. */
 export function semSujeitoFalaSeguinte1711(source, file) {
+  source = semSujeitoCadeia2411(source, file) // KINEO-SUJEITO-CADEIA-2411 — a camada mais nova (24/11) sai primeiro
   const entry = SUJEITO_FALA_SEGUINTE_1711.scope[rel(file)]
   if (typeof source !== 'string' || !entry) return source
   const text = lf(source)

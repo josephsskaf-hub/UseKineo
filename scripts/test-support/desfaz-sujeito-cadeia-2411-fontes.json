@@ -1,0 +1,36 @@
+{
+ "base": "c854849c8",
+ "scope": {
+  "lib/cinematic/sujeitoTodosMotores.ts": {
+   "beforeSha256": "fb6bd26f2487dbe1c7670fadf4e92105f9e3efc664bb943cb474a9709bedea57",
+   "afterSha256": "42641ef5167ffedd231a60ff3ba38774874970c4f8202e5cf2ec7f46bb6eeab6",
+   "hunks": [
+    {
+     "before": "import { exigirSujeitoNoKling4, lerSujeitoDoPedido, type OpcoesSemanticas, type PedidoDoSujeito, type RelatoSujeitoK4 } from '@/lib/cinematic/sujeitoObrigatorio'\n",
+     "after": "import { exigirSujeitoNoKling4, lerSujeitoDoPedido, type OpcoesSemanticas, type PedidoDoSujeito, type RelatoSujeitoK4 } from '@/lib/cinematic/sujeitoObrigatorio'\nimport { novaMedidaDaCadeia2411, type CadeiaDoSujeito2411 } from '@/lib/cinematic/sujeitoCadeia2411' // KINEO-SUJEITO-CADEIA-2411 — só medida\n"
+    },
+    {
+     "before": "\n/** O passo da rota (rede): lê o sujeito do pedido e aplica. Nunca lança — erro inesperado = planos intactos, motivo no relato. */\n",
+     "after": "\n/** O passo da rota (rede): lê o sujeito do pedido e aplica. Nunca lança — erro inesperado = planos intactos, motivo no relato.\n *  KINEO-SUJEITO-CADEIA-2411: + cadeia_2411, o que cada degrau leu (só medida: as mesmas leituras, nenhuma a mais; planos e relato iguais). */\n"
+    },
+    {
+     "before": "  pedido: PedidoDoSujeito | null; falas: ReadonlyArray<string>; planos: ReadonlyArray<string>; pessoaPermitida: boolean; estrada: EstradaDoSujeito\n}, opts: OpcoesSemanticas = {}): Promise<{ planos: string[]; relato: RelatoSujeitoTodos } | null> {\n",
+     "after": "  pedido: PedidoDoSujeito | null; falas: ReadonlyArray<string>; planos: ReadonlyArray<string>; pessoaPermitida: boolean; estrada: EstradaDoSujeito\n}, opts: OpcoesSemanticas = {}): Promise<{ planos: string[]; relato: RelatoSujeitoTodos; cadeia_2411?: CadeiaDoSujeito2411 } | null> {\n  const medida = novaMedidaDaCadeia2411(args.pessoaPermitida) // KINEO-SUJEITO-CADEIA-2411\n  const r = await cadeiaDoSujeito(args, opts, medida.anota)\n  return r ? { planos: r.planos, relato: r.relato, cadeia_2411: medida.fecha() } : r // KINEO-SUJEITO-CADEIA-2411 — fecha nunca lança (erro = { erro: true })\n}\nasync function cadeiaDoSujeito(args: Parameters<typeof sujeitoEmTodosOsMotores>[0], opts: OpcoesSemanticas, anota: ReturnType<typeof novaMedidaDaCadeia2411>['anota']): Promise<{ planos: string[]; relato: RelatoSujeitoTodos } | null> {\n"
+    },
+    {
+     "before": "  try {\n    const doPedido = args.pedido?.pedido ? exigirSujeitoEmTodos({ ...args, pedido: args.pedido, leitura: await lerSujeitoDoPedido(args.pedido.pedido, opts) }) : null\n",
+     "after": "  try {\n    const doPedido = args.pedido?.pedido ? exigirSujeitoEmTodos({ ...args, pedido: args.pedido, leitura: anota('pedido', await lerSujeitoDoPedido(args.pedido.pedido, opts)) }) : null\n"
+    },
+    {
+     "before": "    if (!frase) return doPedido\n    const daFala = exigirSujeitoEmTodos({ ...args, pedido: { pedido: frase, fonte: 'ideia_solta', motivo: 'fala_de_abertura' }, leitura: await lerSujeitoDoPedido(frase, opts) })\n",
+     "after": "    if (!frase) return doPedido\n    const daFala = exigirSujeitoEmTodos({ ...args, pedido: { pedido: frase, fonte: 'ideia_solta', motivo: 'fala_de_abertura' }, leitura: anota('primeira_frase', await lerSujeitoDoPedido(frase, opts)) })\n"
+    },
+    {
+     "before": "    for (const seguinte of frasesSeguintesDaFala(args.falas, frase)) {\n      const leitura = await lerSujeitoDoPedido(seguinte, { ...opts, tentativasExtras: 0 })\n",
+     "after": "    for (const seguinte of frasesSeguintesDaFala(args.falas, frase)) {\n      const leitura = anota('frase_seguinte', await lerSujeitoDoPedido(seguinte, { ...opts, tentativasExtras: 0 }))\n"
+    }
+   ]
+  }
+ },
+ "addedSources": {}
+}
