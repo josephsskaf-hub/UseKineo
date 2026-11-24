@@ -9,6 +9,7 @@ import { deltaK4DuracaoPelaVoz1311Exato } from './test-support/desfaz-k4-duracao
 import { KLING4_DURACAO_PELA_VOZ, duracaoPelaVozLigada, buildKling4TrialInput, kling4TrialSceneDurations } from '../lib/kling4Trial' // KINEO-K4-DURACAO-PELA-VOZ-1311
 import { deltaK4Gratis20s1711Exato } from './test-support/desfaz-k4-gratis-20s-1711.mjs' // KINEO-K4-GRATIS-20S-1711 [dono 17/11, opção A] — recibo exato do clipe de até 20 s (interruptor em 15 = desligado)
 import { deltaReservaGratis1911Exato } from './test-support/desfaz-reserva-gratis-1911.mjs' // KINEO-RESERVA-GRATIS-1911 [CEO 19/11] — recibo exato da Frente 1
+import { deltaReferenciaUnica2411Exato } from './test-support/desfaz-referencia-unica-2411.mjs' // KINEO-REFERENCIA-UNICA-2411 — recibo exato do montador da referência única (interruptor 'off')
 import { deltaK4FaixaTeto0511Exato } from './test-support/desfaz-k4-faixa-teto-0511.mjs' // KINEO-K4-FAIXA-TETO-0511 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
@@ -89,6 +90,9 @@ ok(KLING4_TRIAL_FALLBACK_AFTER_MS === 8 * 60_000, '2 relógio do filme GRÁTIS i
   // KINEO-RESERVA-GRATIS-1911 [CEO 19/11, Frente 1] — reancorado: a consulta de status no prazo (lib/kling4TrialAsyncStatus.ts) e o motivo novo no tipo
   // (lib/kling4TrialScript.ts) passam só pelo recibo EXATO desta entrega; o comportamento novo é provado em scripts/test-reserva-gratis-1911.mjs
   for (const f of ['lib/kling4TrialAsyncStatus.ts', 'lib/kling4TrialScript.ts']) { try { if (deltaReservaGratis1911Exato(readFileSync(join(raiz, f), 'utf8'), execFileSync('git', ['show', `origin/main:${f}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }), f)) diffGratis = diffGratis.split(/\r?\n/).filter((x) => x.trim() && x.trim() !== f).join('\n') } catch { /* sem recibo = segue reprovando */ } }
+  // KINEO-REFERENCIA-UNICA-2411 — reancorado: o montador da referência única (lib/kling4Trial.ts, atrás de REFERENCIA_UNICA_2411 'off') passa só pelo recibo
+  // EXATO desta entrega; o comportamento ('off' = byte a byte, ligado = o pedido A) é provado em scripts/test-referencia-unica-2411.mjs
+  try { const f = 'lib/kling4Trial.ts'; if (deltaReferenciaUnica2411Exato(readFileSync(join(raiz, f), 'utf8'), execFileSync('git', ['show', `origin/main:${f}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }), f)) diffGratis = diffGratis.split(/\r?\n/).filter((x) => x.trim() && x.trim() !== f).join('\n') } catch { /* sem recibo = segue reprovando */ }
   for (const file of Object.keys(referenceReceipt)) {
     const before = execFileSync('git',['show','origin/main:' + file],{cwd:raiz,encoding:'utf8'})
     const after = readFileSync(join(raiz,file),'utf8')
@@ -126,7 +130,8 @@ console.log("== 5. KINEO-K4-DURACAO-PELA-VOZ-1311: régua pela voz para todos ('
   let main: string | null = null
   try { main = execFileSync('git', ['show', `origin/main:${f}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }) } catch { /* sem git = falha */ }
   const exato = (t: string) => main !== null && deltaK4DuracaoPelaVoz1311Exato(t, main, f)
-  ok(main !== null && (hoje.replace(/\r\n/g, '\n') === main.replace(/\r\n/g, '\n') || exato(hoje) || exactReferenceChange(f, main, hoje) || deltaK4Gratis20s1711Exato(hoje, main, f)), '5 lib/kling4Trial.ts = origin/main ou origin/main + o recibo exato desta entrega') // KINEO-K4-GRATIS-20S-1711: + o recibo do clipe de até 20 s
+  ok(main !== null && (hoje.replace(/\r\n/g, '\n') === main.replace(/\r\n/g, '\n') || exato(hoje) || exactReferenceChange(f, main, hoje) || deltaK4Gratis20s1711Exato(hoje, main, f) || deltaReferenciaUnica2411Exato(hoje, main, f)), '5 lib/kling4Trial.ts = origin/main ou origin/main + o recibo exato desta entrega') // KINEO-K4-GRATIS-20S-1711: + o recibo do clipe de até 20 s · KINEO-REFERENCIA-UNICA-2411: + o recibo da referência única
+  ok(!(main !== null && (deltaReferenciaUnica2411Exato(hoje + '\n// edição a mais\n', main, f) || deltaReferenciaUnica2411Exato(hoje.replace("if (timing?.referenciaUnica) {", "if (timing?.referenciaUnica || true) {"), main, f))), '5 mutante: edição a mais ou desvio sempre ligado sobre o recibo da referência única NÃO passa') // KINEO-REFERENCIA-UNICA-2411
   ok(!(main !== null && deltaK4Gratis20s1711Exato(hoje + '\n// edição a mais\n', main, f)), '5 mutante: edição a mais sobre o recibo do clipe de até 20 s NÃO passa') // KINEO-K4-GRATIS-20S-1711
   for (const outro of ['off', 'internal']) ok(!exato(hoje.replace("KLING4_DURACAO_PELA_VOZ: 'off' | 'internal' | 'all' = 'all'", `KLING4_DURACAO_PELA_VOZ: 'off' | 'internal' | 'all' = '${outro}'`)), `5 mutante: interruptor em '${outro}' sem gerar o recibo de novo NÃO passa pelo recibo, e a verificação 2 fica vermelha`)
   ok(!exato(hoje.replace("modo === 'all' || (modo === 'internal' && interno)", "modo === 'all' || modo === 'internal'")), '5 mutante: portão que ignora quem é a conta NÃO passa pelo recibo')
