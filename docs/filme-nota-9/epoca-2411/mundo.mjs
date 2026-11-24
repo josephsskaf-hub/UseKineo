@@ -1,3 +1,4 @@
+import {HARNESS} from './versoes.mjs'
 import fs from 'node:fs'
 import path from 'node:path'
 import assert from 'node:assert/strict'
@@ -29,7 +30,7 @@ export async function mundo(root, commit) {
     overrides.set(file,fs.readFileSync(path.join(commit.slice(8),file),'utf8'))
   }
   const sha=working?parent+'+working:'+createHash('sha256').update([...overrides.values()].join('\0')).digest('hex'):parent
-  const before = '7af247b9d006517b91791bf5261f69a7d5219404'
+  const before = HARNESS
   const loader = git('show',before+':scripts/test-support/offline-ts-loader.mjs')
   const names = new Set([...git('ls-tree','--name-only','-r',parent,'lib','app/api/generate-video-cinematic/route.ts').trim().split(/\r?\n/),...overrides.keys()])
   const byName = new Map()

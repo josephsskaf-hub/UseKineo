@@ -1,10 +1,21 @@
 {
-  "base": "c4fd957e65c2c9ec309d3acb562e35febb218c36",
+  "base": "7855f3a5243656414ec0a39d12d62f859756d582",
   "harness": "7af247b9d006517b91791bf5261f69a7d5219404",
-  "captures": 24,
+  "captures": 48,
   "results": [
     {
       "id": "cooper",
+      "account": true,
+      "admission": {
+        "origin": "ficha",
+        "type": "humano",
+        "client": false
+      },
+      "models": [
+        "kling/v4/text-to-video",
+        "kling/v4/image-to-video",
+        "kling/v4/reference-to-video"
+      ],
       "routeSource": [
         8146,
         7983,
@@ -13,12 +24,48 @@
       "bodySha": [
         "6700500b403ca4d42f5564035efbfb68178730d52fd5f9b73ddb58ed17507e6b",
         "8b65f554988cbf02f24539fcefe4d1e4fd3643b1424ba159f9289704dfc4005f",
-        "0c71392783c93fa0b97d81652ca6759ec5f4a8d7560d671608f5c346d8b9964c"
+        "4e50ff83b4a9a4291ef298aac5e76e51de5f48f98fbe80d4620da06279da6baa"
       ],
-      "allSha": "e9f961b7a3914b807246d35505aeb3442b4f0a99ec62a9b455903e2efb53ff78"
+      "allSha": "902270ba86a3db1cd5390df32b01587f7034244e22bf9db65f0c993482284c1d"
+    },
+    {
+      "id": "cooper",
+      "account": false,
+      "admission": {
+        "origin": "ficha",
+        "type": "humano",
+        "client": true
+      },
+      "models": [
+        "kling/v4/text-to-video",
+        "kling/v4/image-to-video",
+        "kling/v4/reference-to-video"
+      ],
+      "routeSource": [
+        8146,
+        7983,
+        8165
+      ],
+      "bodySha": [
+        "6700500b403ca4d42f5564035efbfb68178730d52fd5f9b73ddb58ed17507e6b",
+        "8b65f554988cbf02f24539fcefe4d1e4fd3643b1424ba159f9289704dfc4005f",
+        "4e50ff83b4a9a4291ef298aac5e76e51de5f48f98fbe80d4620da06279da6baa"
+      ],
+      "allSha": "75578241f904d81b96781e734dd5d21bd38f680c6f3837c0921ddff178065dcb"
     },
     {
       "id": "leprince",
+      "account": true,
+      "admission": {
+        "origin": "ficha",
+        "type": "humano",
+        "client": false
+      },
+      "models": [
+        "kling/v4/text-to-video",
+        "kling/v4/image-to-video",
+        "kling/v4/reference-to-video"
+      ],
       "routeSource": [
         8146,
         7983,
@@ -27,12 +74,48 @@
       "bodySha": [
         "06d6985414f0b6cfa290d169410ad1a0dde7b06e28d6d6b02519acf9350b4d67",
         "3d1355594a2227458b22044b1a4dc49c5b33658bc5b34a8c937f392fb4952ef9",
-        "686ccccf37942eac96720f35e1481b8e3b810dfbae7c633a6153ba223c4d1030"
+        "4d0a14292ca1cf635c461ae02b3d6130e8309b3dc6a6adc74a7329f5ec4d9a0e"
       ],
-      "allSha": "0cc23be91a4ad963af9bdf6902c8e099a90ff6959746ee5d23dcc725f9acbd6a"
+      "allSha": "e8abe44d281d75c3d5f8275b909680f7861bc7bfefc48cdda12e890a470347ba"
+    },
+    {
+      "id": "leprince",
+      "account": false,
+      "admission": {
+        "origin": "ficha",
+        "type": "humano",
+        "client": true
+      },
+      "models": [
+        "kling/v4/text-to-video",
+        "kling/v4/image-to-video",
+        "kling/v4/reference-to-video"
+      ],
+      "routeSource": [
+        8146,
+        7983,
+        8165
+      ],
+      "bodySha": [
+        "06d6985414f0b6cfa290d169410ad1a0dde7b06e28d6d6b02519acf9350b4d67",
+        "3d1355594a2227458b22044b1a4dc49c5b33658bc5b34a8c937f392fb4952ef9",
+        "4d0a14292ca1cf635c461ae02b3d6130e8309b3dc6a6adc74a7329f5ec4d9a0e"
+      ],
+      "allSha": "a7d69653c54516b4af37e1b7e46d88d2b1a5e1a8ffe29b1105dfe789f56f1136"
     },
     {
       "id": "slocum",
+      "account": true,
+      "admission": {
+        "origin": "ficha",
+        "type": "humano",
+        "client": false
+      },
+      "models": [
+        "kling/v4/text-to-video",
+        "kling/v4/image-to-video",
+        "kling/v4/reference-to-video"
+      ],
       "routeSource": [
         8146,
         7983,
@@ -41,12 +124,48 @@
       "bodySha": [
         "b5211199b7067f6b47b6a5586ec22707e75d707a6e722a7833a9d4f3f65cc167",
         "7dad5362c842aa298030eecb85c8e8b6351d3af3c483bdc83c27988a509fbf86",
-        "3767a0b6e5a0d74d5d449c1ec5c89ed1951c4e49f295b5b07e369e12548e99bf"
+        "4f853fb97efbdb443ff17479e103da9e7962dee2de630ed22f1141a907f54bac"
       ],
-      "allSha": "46038ccae743a8588466ed62493b6f22db99752814db84465c32970793754084"
+      "allSha": "eb6812083b2e783c49bd1cf4dbe8e83189b5c56b24362a4a9c3591658e08b243"
+    },
+    {
+      "id": "slocum",
+      "account": false,
+      "admission": {
+        "origin": "ficha",
+        "type": "humano",
+        "client": true
+      },
+      "models": [
+        "kling/v4/text-to-video",
+        "kling/v4/image-to-video",
+        "kling/v4/reference-to-video"
+      ],
+      "routeSource": [
+        8146,
+        7983,
+        8165
+      ],
+      "bodySha": [
+        "b5211199b7067f6b47b6a5586ec22707e75d707a6e722a7833a9d4f3f65cc167",
+        "7dad5362c842aa298030eecb85c8e8b6351d3af3c483bdc83c27988a509fbf86",
+        "4f853fb97efbdb443ff17479e103da9e7962dee2de630ed22f1141a907f54bac"
+      ],
+      "allSha": "bc3dd23339f1f538d2fdb837960a4d056bb373016790b1987acc26376a515105"
     },
     {
       "id": "ember",
+      "account": true,
+      "admission": {
+        "origin": "ficha",
+        "type": "criatura",
+        "client": false
+      },
+      "models": [
+        "kling/v4/text-to-video",
+        "kling/v4/image-to-video",
+        "kling/v4/reference-to-video"
+      ],
       "routeSource": [
         8146,
         7983,
@@ -55,12 +174,46 @@
       "bodySha": [
         "a7e213797814d58113e8634f21054ab4441cdae9063bdd5ccbb18773c3565440",
         "90d2866bffb005679ffd1e5588cd6fc74d309f03bcc837fbe9d30f15c2870351",
-        "5b84f0c8f95a983ac34bd58b22f4bd77a65ce288b99291b39e5c835abe41b400"
+        "a84131892ba0b75dc88f3714457dea854bf152fba22cc7d118953781e0b3c63a"
       ],
-      "allSha": "6857824ee8f2d5d337eafb2b10dd173db8348a0328e60a5a8aa8c3bead4d3400"
+      "allSha": "5800673e2497ca58f6062c6ebdbde5c2e221e30111fe634cbce9c101bb86fff6"
+    },
+    {
+      "id": "ember",
+      "account": false,
+      "admission": {
+        "refused": "nao_humano"
+      },
+      "models": [
+        "kling/v4/text-to-video",
+        "kling/v4/image-to-video",
+        "kling/v4/text-to-video"
+      ],
+      "routeSource": [
+        8146,
+        7983,
+        8165
+      ],
+      "bodySha": [
+        "a7e213797814d58113e8634f21054ab4441cdae9063bdd5ccbb18773c3565440",
+        "90d2866bffb005679ffd1e5588cd6fc74d309f03bcc837fbe9d30f15c2870351",
+        "a7e213797814d58113e8634f21054ab4441cdae9063bdd5ccbb18773c3565440"
+      ],
+      "allSha": "df3598f06312ec9064b336390f3d2c65c6b3925d9745a3c0669314181500e052"
     },
     {
       "id": "bolt",
+      "account": true,
+      "admission": {
+        "origin": "ficha",
+        "type": "criatura",
+        "client": false
+      },
+      "models": [
+        "kling/v4/text-to-video",
+        "kling/v4/image-to-video",
+        "kling/v4/reference-to-video"
+      ],
       "routeSource": [
         8146,
         7983,
@@ -69,12 +222,46 @@
       "bodySha": [
         "9c205adcbbd25412b2fbae53cd572f97b5e1389ffcd083b9bd175f058f072288",
         "b976c7484082acee72694645fbf485b7bf77dbb8588c6e27aa44b4ac2407807c",
-        "1722a48783ed49af2e1ca026d953fbb98ee84e0b0066d10b4fbee0aaab1f1906"
+        "ba49c2caa504b50228d8dab29371d81e0410247a9a32580c8ab5a0c9afc7667a"
       ],
-      "allSha": "038ace1a095fa1a66691673326f52ec03124a28e5c1d86c25f34c4b747e72633"
+      "allSha": "a3ff9b153f02c64d23c461628f15afbf4e14380c9c890d74dad6f2ac74486b49"
+    },
+    {
+      "id": "bolt",
+      "account": false,
+      "admission": {
+        "refused": "nao_humano"
+      },
+      "models": [
+        "kling/v4/text-to-video",
+        "kling/v4/image-to-video",
+        "kling/v4/text-to-video"
+      ],
+      "routeSource": [
+        8146,
+        7983,
+        8165
+      ],
+      "bodySha": [
+        "9c205adcbbd25412b2fbae53cd572f97b5e1389ffcd083b9bd175f058f072288",
+        "b976c7484082acee72694645fbf485b7bf77dbb8588c6e27aa44b4ac2407807c",
+        "9c205adcbbd25412b2fbae53cd572f97b5e1389ffcd083b9bd175f058f072288"
+      ],
+      "allSha": "991007e6d7096ba69bdcb647a3da8414b809ca415fd467e88b861c5638843094"
     },
     {
       "id": "juno",
+      "account": true,
+      "admission": {
+        "origin": "ficha",
+        "type": "animal",
+        "client": false
+      },
+      "models": [
+        "kling/v4/text-to-video",
+        "kling/v4/image-to-video",
+        "kling/v4/reference-to-video"
+      ],
       "routeSource": [
         8146,
         7983,
@@ -83,12 +270,46 @@
       "bodySha": [
         "7f1297b27db95e6c98ddb578173360faa2c3814956860bb510d328a2f3df6b82",
         "4e5bd7a65509d2867fb7fdc83366cd572b75c1c62bc2a8c03d6ec68cb8a96528",
-        "74ea40cf561e7ba8935a1641c87366dae0f157626ca17cde87f6dab231998dea"
+        "9ea1cddd49d6d9b9f5ff1cc899bef5bda044562e425da873cfb372215857057f"
       ],
-      "allSha": "6ecefa8f1ca0bff1c1cd5a03152b1df4abdc4152a5a9d70c383a6c14c874b6f0"
+      "allSha": "021df3606f5b31707db9a4e255ad6a9ae81e8b350e2c15631f4d205b393e2c69"
+    },
+    {
+      "id": "juno",
+      "account": false,
+      "admission": {
+        "refused": "nao_humano"
+      },
+      "models": [
+        "kling/v4/text-to-video",
+        "kling/v4/image-to-video",
+        "kling/v4/text-to-video"
+      ],
+      "routeSource": [
+        8146,
+        7983,
+        8165
+      ],
+      "bodySha": [
+        "7f1297b27db95e6c98ddb578173360faa2c3814956860bb510d328a2f3df6b82",
+        "4e5bd7a65509d2867fb7fdc83366cd572b75c1c62bc2a8c03d6ec68cb8a96528",
+        "7f1297b27db95e6c98ddb578173360faa2c3814956860bb510d328a2f3df6b82"
+      ],
+      "allSha": "531dd66884982916968cf34c5d3160e9e98ca0c2adfe5da378ceefbf34cb8419"
     },
     {
       "id": "quantia",
+      "account": true,
+      "admission": {
+        "origin": "ficha",
+        "type": "humano",
+        "client": false
+      },
+      "models": [
+        "kling/v4/text-to-video",
+        "kling/v4/image-to-video",
+        "kling/v4/reference-to-video"
+      ],
       "routeSource": [
         8146,
         7983,
@@ -97,12 +318,48 @@
       "bodySha": [
         "f522cf032b407273ead4af5b47f125147ca88152d9ce4f34993409f9664ea4b4",
         "4de029fe1f1e7663164018bbf7894511962351e3fef07df849317a4489bb0f5b",
-        "9ebeb57228fc54a52a555733b934821f48f577efd53759509396cf8b3a6dc387"
+        "9eb71b8e6e3f2374a2d22d205767141f00e7612996d12394b526db587ca603a9"
       ],
-      "allSha": "7396ad6fe9239f362d659d508b5548cba57678ac7d503ba2bd42dbd9ce367869"
+      "allSha": "8b1e3ab4b80938ba989b40e8bdafc340bab4fe09c079f84a3a9ec7c270a0a3ae"
+    },
+    {
+      "id": "quantia",
+      "account": false,
+      "admission": {
+        "origin": "ficha",
+        "type": "humano",
+        "client": true
+      },
+      "models": [
+        "kling/v4/text-to-video",
+        "kling/v4/image-to-video",
+        "kling/v4/reference-to-video"
+      ],
+      "routeSource": [
+        8146,
+        7983,
+        8165
+      ],
+      "bodySha": [
+        "f522cf032b407273ead4af5b47f125147ca88152d9ce4f34993409f9664ea4b4",
+        "4de029fe1f1e7663164018bbf7894511962351e3fef07df849317a4489bb0f5b",
+        "9eb71b8e6e3f2374a2d22d205767141f00e7612996d12394b526db587ca603a9"
+      ],
+      "allSha": "d5c23de0b461b459eb11273d6417de41ef349bb3362e1a619e5386c08f517fe7"
     },
     {
       "id": "codigo",
+      "account": true,
+      "admission": {
+        "origin": "ficha",
+        "type": "humano",
+        "client": false
+      },
+      "models": [
+        "kling/v4/text-to-video",
+        "kling/v4/image-to-video",
+        "kling/v4/reference-to-video"
+      ],
       "routeSource": [
         8146,
         7983,
@@ -111,9 +368,34 @@
       "bodySha": [
         "8367923936cba5cd4fd9a1e65a8da729620e556560941adb8fc9caf10dfb1552",
         "30836bd7385f33f84547b39884b17c0bf4a83846846b4ea389725b83cba3fe2b",
-        "9f9541839bdff6f4d15b7c5017a5f6fac347fb0473d3f3eb331b704ea55bb1c2"
+        "c8e96d59528cc9578ce1509e74ba96b0805b41c17c0d90f1b78387216c00aee0"
       ],
-      "allSha": "16697f72aa24e64b420237c94905ff53f06db9574c548bf4529aa3cc23f3d2b0"
+      "allSha": "1f3e40fdcd025c0e40cf44cbee5b8fce54886a1ec22bcceff8fcdc9355a78329"
+    },
+    {
+      "id": "codigo",
+      "account": false,
+      "admission": {
+        "origin": "ficha",
+        "type": "humano",
+        "client": true
+      },
+      "models": [
+        "kling/v4/text-to-video",
+        "kling/v4/image-to-video",
+        "kling/v4/reference-to-video"
+      ],
+      "routeSource": [
+        8146,
+        7983,
+        8165
+      ],
+      "bodySha": [
+        "8367923936cba5cd4fd9a1e65a8da729620e556560941adb8fc9caf10dfb1552",
+        "30836bd7385f33f84547b39884b17c0bf4a83846846b4ea389725b83cba3fe2b",
+        "c8e96d59528cc9578ce1509e74ba96b0805b41c17c0d90f1b78387216c00aee0"
+      ],
+      "allSha": "5ea765acdfefc37a355d6142625198eaa19346b5760795dea0c92a326d37f2ed"
     }
   ]
 }

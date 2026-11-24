@@ -1,6 +1,6 @@
 # Prova offline de época em ficha, imagem e clipe — 24/11/2026
 
-**TESTADO LOCALMENTE.** Base `c4fd957e65c2c9ec309d3acb562e35febb218c36`, candidata de código `97d562ea92df1cb2ea1851b57c3dc367aad523e6`, carregador original em `codex/nota9-replay-2311` (`7af247b9d006517b91791bf5261f69a7d5219404`).
+**TESTADO LOCALMENTE.** Base `7855f3a5243656414ec0a39d12d62f859756d582`, candidata de código `e410d8a16d3c9517a56b13babfb256a1d77fac27`, carregador original em `codex/nota9-replay-2311` (`7af247b9d006517b91791bf5261f69a7d5219404`).
 
 ## Reproduzir
 
@@ -9,16 +9,16 @@ Requer Node 22+ (execução local em 24.18.0), Git com a base, o carregador e as
 ```powershell
 $repo = 'C:/kineo'
 $env:KINEO_TS_ROOT = $repo
-node ./run-suite.mjs $repo 97d562ea92df1cb2ea1851b57c3dc367aad523e6
+node ./run-suite.mjs $repo
 ```
 
-A conferência de entrega lê somente blobs do Git. Para testar mudanças antes do commit, passe `working=C:/caminho/da/worktree` no segundo argumento. Nesse modo, somente a rota e o helper da época são lidos da cópia indicada, com as outras dependências obtidas de seu HEAD. As saídas são exibidas no terminal. `REPLAY_SAVE=1` atualiza os arquivos JSON desta pasta.
+`versoes.mjs` é a única fonte da base, da candidata padrão, do carregador e dos dois commits de contraprova. Todos os comparativos de produto usam a mesma base `7855f3a52`. Os dois commits históricos são usados apenas quando o teste exige reproduzir um defeito antigo. A ponta documental `3e4eabd5af24b3290e23c46120edd67f127f9adc` tem os mesmos arquivos de app, lib e scripts que a candidata de código. A conferência de entrega lê somente blobs do Git. Para testar mudanças antes do commit, passe `working=C:/caminho/da/worktree` no segundo argumento. Nesse modo, somente a rota e o helper da época são lidos da cópia indicada, com as outras dependências obtidas de seu HEAD. As saídas são exibidas no terminal. `REPLAY_SAVE=1` atualiza os arquivos JSON desta pasta.
 
 ## O que é real e o que é simulado
 
 **FATO CONFIRMADO.** A prova compila trechos da árvore sintática da rota candidata. A preparação e o gate estão em `app/api/generate-video-cinematic/route.ts:7549`, o ajuste dos stills em `:7566`, o ajuste após a separação de planos em `:7688` e o prompt entregue à geração da folha em `:8167`. Executa também o montador final e o envio de Kling usado pela rota em `:8535`. O carregador histórico tem apenas a resolução de TypeScript e as duas leituras de arquivos substituídas por dependências locais e blobs de Git. Preserva a vedação a rede, SDK e armazenamento. O `fetchImpl` passado ao envio captura o corpo e responde em memória.
 
-**TESTADO LOCALMENTE.** Cooper, Le Prince e Slocum usam os quatro trechos literais de `docs/canais/2026-11-24/SHORTS-PERSONAGEM-UNICO.md`. Três controles sem época usam roteiros de ensaio do fundador (Bolt, Juno, Ember). Os outros dois são controles escritos para o teste, com dinheiro e número de modelo. Casting, aprovação de imagem, identidade da conta e respostas de fornecedores são representados por entradas de teste. Nenhuma URL de cliente, banco de produção, modelo de linguagem ou render integra o processo. A simulação mede tempo histórico, presença da ação e forma dos pedidos. Qualidade da imagem e reconhecimento de identidade exigem outra prova.
+**TESTADO LOCALMENTE.** Cooper, Le Prince e Slocum usam os quatro trechos literais de `docs/canais/2026-11-24/SHORTS-PERSONAGEM-UNICO.md`. Três controles sem época usam roteiros de ensaio do fundador (Bolt, Juno, Ember). Os outros dois são controles escritos para o teste, com dinheiro e número de modelo. Casting, aprovação de imagem, identidade da conta e respostas de fornecedores são representados por entradas de teste. Nenhuma URL de cliente, banco de produção, modelo de linguagem ou render integra o processo. A revisão após o rebase passa uma ficha com um protagonista nomeado, sua descrição canônica e uma referência HTTPS sintética com o mesmo nome à expressão de admissão usada na rota. A admissão real determina a origem, a frase do personagem e a recusa quando aplicável. Com público externo, o modelo de referência admite os cinco humanos fotorreais dos controles e recusa os três animais/criaturas com `nao_humano`; nessa terceira sondagem o envio efetivo cai no modelo de texto. O modo de filme de época e a admissão da folha são decisões separadas. A base é executada para cada público. A simulação mede tempo histórico, presença da ação e forma dos pedidos. Qualidade da imagem e reconhecimento de identidade exigem outra prova.
 
 **TESTADO LOCALMENTE.** `conferir.mjs` executa oito roteiros em três contextos, casa/internal, casa/OFF e externo/internal. Cada combinação captura a folha, quatro prompts de still sem folha, quatro prompts com folha e três pedidos de vídeo em texto, com quadros e com referência única. Confere igualdade serializada com a base nos controles sem época e nos caminhos externos/OFF, preservação da fala, tempos e limite de 512. Nos históricos verifica o ano de cada plano e o objeto ou a ação visível. No Slocum, o identificador dos dois primeiros planos diz “before 1909”.
 

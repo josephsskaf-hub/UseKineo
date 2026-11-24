@@ -6,11 +6,12 @@ import {createHash} from 'node:crypto'
 import {mundo} from './mundo.mjs'
 import {frontieres,capture} from './captura.mjs'
 
+import {BASE,HARNESS} from './versoes.mjs'
 const [rootArg,ref,adapterArg] = process.argv.slice(2)
 if(!rootArg||!ref) throw Error('Uso: node conferir.mjs <repo com typescript> <SHA candidato> [adaptador.mjs]')
 const root=path.resolve(rootArg), here=path.dirname(fileURLToPath(import.meta.url))
 process.chdir(root)
-const base=await mundo(root,'c4fd957e65c2c9ec309d3acb562e35febb218c36')
+const base=await mundo(root,BASE)
 const next=await mundo(root,ref)
 const unchanged=s=>s
 const hook=adapterArg?(await import(pathToFileURL(path.resolve(adapterArg)).href)).aplicar:unchanged
@@ -30,8 +31,8 @@ const someYear = (film,txt,n) => {
   throw Error(film.id)
 }
 for(const film of cases) {
-  const baseline=await capture(base,baseBorders,film,unchanged,'off',false)
   for(const [mode,account,tag] of [['off',true,'casa/off'],['internal',false,'externo/internal'],['internal',true,'casa/internal']]) {
+    const baseline=await capture(base,baseBorders,film,unchanged,'off',account)
     const candidate=await capture(next,nextBorders,film,hook,mode,account)
     const bytesBase=JSON.stringify(baseline), bytesCandidate=JSON.stringify(candidate)
     const unchangedExpected=tag!=='casa/internal'||film.period.length===0
@@ -64,9 +65,9 @@ for(const film of cases) {
         })
       }
     }
-    steps.push({id:film.id,mode:tag,unchangedExpected,sheet:hash(candidate.sheet),photo:candidate.textStills.map(hash),dispatch:candidate.sends.map(x=>hash(x.body))})
+    steps.push({id:film.id,mode:tag,admission:candidate.admission,models:candidate.sends.map(t=>t.model),unchangedExpected,sheet:hash(candidate.sheet),photo:candidate.textStills.map(hash),dispatch:candidate.sends.map(x=>hash(x.body))})
   }
 }
-const result={base:base.sha,candidate:next.sha,harness:'7af247b9d006517b91791bf5261f69a7d5219404',cases:cases.length,controls:steps.length,simulatedPosts:steps.length*3,steps}
+const result={base:base.sha,candidate:next.sha,harness:HARNESS,cases:cases.length,controls:steps.length,simulatedPosts:steps.length*3,steps}
 if(process.env.REPLAY_SAVE==='1') fs.writeFileSync(path.join(here,'recibo-candidato.json'),JSON.stringify(result,null,2)+'\n')
 console.log(JSON.stringify({base:base.sha,candidate:next.sha,controls:steps.length,simulatedPosts:steps.length*3}))

@@ -6,11 +6,12 @@ import {mundo} from './mundo.mjs'
 import {frontieres,capture} from './captura.mjs'
 import {aplicar} from './acoplar.mjs'
 
+import {BASE,OLD_MUSEUM,OLD_OBJECT} from './versoes.mjs'
 const [rootArg,ref]=process.argv.slice(2)
 const root=path.resolve(rootArg), here=path.dirname(fileURLToPath(import.meta.url))
 process.chdir(root)
-const prior=await mundo(root,'da221631e5571db63c77b159fe14f1a605220df4')
-const intermediate=await mundo(root,'f420898505fa225b4381bc7772758c84d4f7fc7f')
+const prior=await mundo(root,OLD_MUSEUM)
+const intermediate=await mundo(root,OLD_OBJECT)
 const next=await mundo(root,ref)
 const oldBorders=frontieres(prior), intermediateBorders=frontieres(intermediate), newBorders=frontieres(next)
 const film=JSON.parse(fs.readFileSync(path.join(here,'roteiros.json'),'utf8'))[1]
@@ -31,7 +32,7 @@ function lastShot(c){
   return {narration:c.narration[3],still:c.textStills[3],editedStill:c.editedStills[3],
     dispatch:c.sends.map(s=>({model:s.model,prompt:JSON.parse(s.body).multi_prompt[3].prompt}))}
 }
-const receipt={candidate:next.sha,previous:prior.sha,intermediate:intermediate.sha,cases:[]}
+const receipt={base:BASE,candidate:next.sha,previous:prior.sha,intermediate:intermediate.sha,cases:[]}
 const neutral='HOOK: [Pexels: a museum visitor] A visitor enters.\n\nMICRO REWARD 1: [Pexels: a glass cabinet] The visitor stops.\n\nMICRO REWARD 2: [Pexels: a wooden box] The box opens.\n\n'
 for(const [i,[id,visual,voice,expected,object]] of cases.entries()){
   const beforeWorld=i<5?prior:intermediate, beforeBorders=i<5?oldBorders:intermediateBorders

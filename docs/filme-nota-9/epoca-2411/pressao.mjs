@@ -5,10 +5,11 @@ import {fileURLToPath} from 'node:url'
 import {mundo} from './mundo.mjs'
 import {frontieres,capture} from './captura.mjs'
 import {aplicar} from './acoplar.mjs'
+import {BASE} from './versoes.mjs'
 const root=path.resolve(process.argv[2])
 process.chdir(root)
 const here=path.dirname(fileURLToPath(import.meta.url))
-const base=await mundo(root,'c4fd957e65c2c9ec309d3acb562e35febb218c36')
+const base=await mundo(root,BASE)
 const next=await mundo(root,process.argv[3])
 const bo=frontieres(base), no=frontieres(next)
 const f=JSON.parse(fs.readFileSync(path.join(here,'roteiros.json'),'utf8')).find(x=>x.id==='cooper')
@@ -20,7 +21,7 @@ for(const limit of [230,270,300,320,335,345,360,375,390]) {
      if((prefix+sentence+' ').length<=limit) prefix+=sentence+' '
    }
    const film={...f,leading:['',prefix,'','']}
-   const a=await capture(base,bo,film,s=>s,'off',false)
+   const a=await capture(base,bo,film,s=>s,'off',true)
    const b=await capture(next,no,film,aplicar,'internal',true)
    for(let m=0;m<a.sends.length;m++) {
      const old=JSON.parse(a.sends[m].body).multi_prompt[1].prompt

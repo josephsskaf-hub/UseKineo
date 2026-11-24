@@ -54,7 +54,8 @@ export async function capture(world,borders,film,apply,mode,account) {
   const bits=load('@/lib/scriptParser').parseUserScript(film.script).segments
   assert.equal(bits.length,4)
   const fixtureAppearance=film.appearance
-  const baseCast={nome:film.name,canonica:fixtureAppearance,nucleo:film.name,genero:null,tipo:'humano',origem:'modelo',protagonista:true}
+  const castDescription=film.name+', exactly as the author wrote: "'+fixtureAppearance+'"'
+  const baseCast={nome:film.name,canonica:castDescription,nucleo:film.name,genero:null,tipo:'humano',origem:'modelo',protagonista:true}
   if (film.id==='ember'||film.id==='bolt') baseCast.tipo='criatura'
   if (film.id==='juno') baseCast.tipo='animal'
   const basePrompts=bits.map(s=>s.pexelsQuery)
@@ -74,11 +75,29 @@ export async function capture(world,borders,film,apply,mode,account) {
     editedStills.push(borders.editedStill.run(common))
   }
   const king=load('@/lib/kling4Trial')
+  const ruz=load('@/lib/cinematic/referenciaUnica2411')
+  const internal=load('@/lib/internalAccounts').INTERNAL_EXACT_EMAILS[0]
+  const snapshot={characters:[cast],characterReferences:[{nome:cast.nome,url:'https://fixture.invalid/house'}],approvedStills:[]}
+  const publicMode=ruz.REFERENCIA_UNICA_2411
+  const admission=borders.v('ru2411').run({
+    admitirReferenciaUnica2411:ruz.admitirReferenciaUnica2411,REFERENCIA_UNICA_2411:publicMode,
+    user:{email:account?internal:'outside@example.invalid'},qualitySnapshot:snapshot,
+    styleAnchor,isStylizedLook:s=>s.look!=='photoreal',desenhoInfantil:{ativo:false}
+  })
+  const reference=admission?.referencia
+  if(account||cast.tipo==='humano') {
+    assert.equal(reference?.origem,'ficha','A referência deve vir da ficha aprovada')
+    assert.equal(reference.imageUrl,snapshot.characterReferences[0].url)
+    assert.equal(reference.descricao,fixtureAppearance)
+  } else assert.equal(admission?.motivo,'nao_humano','Cliente sem protagonista humano deve seguir caminho anterior')
   const sends=[]
   // Fixed fixture: probe the same producer with zero, multiple or one reference, no card/real image.
   for(const shape of ['text','stills','reference']) {
     const timing={voiceovers:voices,wordsPerSecond:2.7}
-    if(shape==='reference') timing.referenciaUnica={imageUrl:'https://fixture.invalid/house',nomes:[film.name],frase:'Keep the same character from @Image1.',descricao:fixtureAppearance}
+    if(shape==='reference'&&reference) {
+      timing.referenciaUnica=reference
+      if(admission.cliente) timing.referenciaUnicaDoCliente=true
+    } else if(shape==='reference'&&admission?.motivo) timing.referenciaUnicaRecusa=admission.motivo
     const approvedStills=shape==='stills'?['fixture:0','fixture:1','fixture:2',null]:[]
     const route=borders.v('kling4PorSecao').run({...scope,kling4PlanoPorSecao:true,verbatim:true,parsedScript:{segments:bits},scenes:voices.map(voiceover=>({voiceover})),
       planosPorSecao:load('@/lib/kling4QuatroPlanos').planosPorSecao,sujeitoAparenciaLigada:()=>false,
@@ -94,6 +113,7 @@ export async function capture(world,borders,film,apply,mode,account) {
       return {ok:true,json:async()=>({request_id:'offline'})}
     }})
   }
-  assert.deepEqual(sends.map(s=>s.model),['kling/v4/text-to-video','kling/v4/image-to-video','kling/v4/reference-to-video'])
-  return {sheet,textStills,editedStills,sends,narration:Array.from(bits,x=>x.voiceover)}
+  assert.deepEqual(sends.map(s=>s.model),['kling/v4/text-to-video','kling/v4/image-to-video',reference?'kling/v4/reference-to-video':'kling/v4/text-to-video'])
+  const receipt=reference?{origin:reference.origem,type:reference.tipo,client:admission.cliente===true}:{refused:admission.motivo}
+  return {sheet,textStills,editedStills,sends,narration:Array.from(bits,x=>x.voiceover),admission:receipt}
 }

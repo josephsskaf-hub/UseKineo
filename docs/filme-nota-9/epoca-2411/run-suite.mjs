@@ -2,7 +2,8 @@ import {spawnSync} from 'node:child_process'
 import path from 'node:path'
 import {fileURLToPath} from 'node:url'
 const here=path.dirname(fileURLToPath(import.meta.url))
-const [repoArg,rev]=process.argv.slice(2)
+import {CANDIDATE} from './versoes.mjs'
+const [repoArg,rev=CANDIDATE]=process.argv.slice(2)
 if(!repoArg||!rev) throw Error('Uso: node run-suite.mjs <repo da Kineo> <SHA completo | working=pasta-da-worktree>')
 const repo=path.resolve(repoArg)
 for(const [file,args] of [

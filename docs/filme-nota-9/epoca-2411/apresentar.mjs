@@ -7,6 +7,7 @@ import {mundo} from './mundo.mjs'
 import {frontieres,capture} from './captura.mjs'
 import {aplicar} from './acoplar.mjs'
 
+import {BASE} from './versoes.mjs'
 const here=path.dirname(fileURLToPath(import.meta.url))
 const [repoArg,outputArg]=process.argv.slice(2)
 if(!repoArg) throw Error('Uso: node apresentar.mjs <repo> [arquivo.md]')
@@ -14,7 +15,9 @@ const repo=path.resolve(repoArg), output=outputArg?path.resolve(outputArg):null
 process.chdir(repo)
 const read=name=>JSON.parse(fs.readFileSync(path.join(here,name),'utf8'))
 const proof=read('recibo-candidato.json'), cases=read('roteiros.json'), oldProof=read('recibo-base.json')
-const base=await mundo(repo,proof.base), next=await mundo(repo,proof.candidate)
+assert.equal(proof.base,BASE)
+assert.equal(oldProof.base,BASE)
+const base=await mundo(repo,BASE), next=await mundo(repo,proof.candidate)
 const bo=frontieres(base), no=frontieres(next)
 const sha=s=>createHash('sha256').update(s).digest('hex')
 const cell=s=>s.replaceAll('|','\\|').replaceAll('\n','<br>')
@@ -25,11 +28,11 @@ const rows=['# Ficha e planos antes e depois da correção de época','',
   '## Três histórias com época','']
 const labels={cooper:'Dan Cooper',leprince:'Louis Le Prince',slocum:'Joshua Slocum',bolt:'Bolt',ember:'Ember',juno:'Juno',quantia:'Quantia em euros',codigo:'Código de modelo'}
 for(const [i,film] of cases.entries()){
-  const old=await capture(base,bo,film,s=>s,'off',false)
+  const old=await capture(base,bo,film,s=>s,'off',true)
   const now=await capture(next,no,film,aplicar,'internal',true)
   const steps=proof.steps.filter(s=>s.id===film.id), on=steps.find(s=>s.mode==='casa/internal')
   const o=old.sends.find(s=>s.model==='kling/v4/reference-to-video'), n=now.sends.find(s=>s.model===o.model)
-  assert.equal(sha(o.body),oldProof.results.find(s=>s.id===film.id).bodySha[2])
+  assert.equal(sha(o.body),oldProof.results.find(s=>s.id===film.id&&s.account).bodySha[2])
   assert.equal(sha(n.body),on.dispatch[2])
   assert.equal(sha(old.sheet),steps.find(s=>s.mode==='casa/off').sheet)
   assert.equal(sha(now.sheet),on.sheet)
@@ -42,7 +45,7 @@ for(const [i,film] of cases.entries()){
     clean.image_urls=['[REFERÊNCIA 1]']
     return clean
   }
-  if(i===3) rows.push('## Cinco controles sem época','','Cada texto é exibido uma vez. Para cada um destes controles, a ficha e os três pedidos de vídeo da candidata coincidiram com os respectivos da base em casa/internal, casa/OFF e externo/internal. Cada tipo de vídeo mantém seu próprio envelope. Os planos apresentados são os do pedido de referência única.','')
+  if(i===3) rows.push('## Cinco controles sem época','','Cada texto é exibido uma vez. Para cada um destes controles, a ficha e os três pedidos de vídeo da candidata coincidiram com os respectivos da base em casa/internal, casa/OFF e externo/internal. Cada tipo de vídeo mantém seu próprio envelope. Os planos apresentados são os do pedido de referência única da casa. Para animais e criaturas externos, a terceira sondagem verifica a recusa da folha pelo servidor e o retorno ao modelo de texto, também idêntico à base.','')
   rows.push('### '+labels[film.id],'')
   if(film.period.length) {
     rows.push('| Material | Antes | Depois |','| --- | --- | --- |','| Ficha | '+cell(old.sheet)+' | '+cell(now.sheet)+' |')
@@ -52,8 +55,12 @@ for(const [i,film] of cases.entries()){
     })
     rows.push('','<details><summary>Corpos completos e sanitizados do vídeo</summary>','','**Antes**','',fence+'json',JSON.stringify(sanitized(a),null,2),fence,'','**Depois**','',fence+'json',JSON.stringify(sanitized(b),null,2),fence,'','</details>','')
   } else {
-    const hashes=old.sends.map(s=>sha(s.body))
-    for(const step of steps) {assert.deepEqual(step.dispatch,hashes);assert.equal(step.sheet,sha(old.sheet))}
+    for(const step of steps) {
+      const oldAudience=oldProof.results.find(r=>r.id===film.id&&r.account===(step.mode!=='externo/internal'))
+      assert.deepEqual(step.dispatch,oldAudience.bodySha)
+      assert.deepEqual(step.models,oldAudience.models)
+      assert.equal(step.sheet,sha(old.sheet))
+    }
     assert.deepEqual(old,now)
     rows.push('**Ficha**','',''+old.sheet,'','| Plano | Texto antes e depois |','| --- | --- |')
     a.multi_prompt.forEach((p,j)=>rows.push('| '+(j+1)+' · '+p.duration+' s | '+cell(p.prompt)+' |'))
