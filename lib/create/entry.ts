@@ -57,7 +57,7 @@ export interface CreateEntryOpts {
   filmInplace?: InternalRelease
 }
 
-function parse(href: string): URL | null {
+export function parse(href: string): URL | null {
   if (typeof href !== 'string' || !href.startsWith('/') || href.startsWith('//')) return null
   try {
     const u = new URL(href, BASE)
@@ -202,10 +202,3 @@ export function createEntryForLegacyHref(legacyHref: string, signedIn: boolean, 
 // /create/clip com a MESMA query (engine, prompt, effect, remix, trend, intent_campaign, utm…), porque a aba É o ClipsClient de hoje e ele
 // lê a query do próprio endereço. Visitante, conta sem a aba, ou qualquer outro href = o href de hoje, byte a byte. Aplicado num lugar só:
 // app/(dashboard)/clips/page.tsx (todo cartão de clipe da home, o menu e qualquer link chegam lá primeiro).
-import { CLIP_TAB_HREF, LEGACY_CLIPS_PATH, clipNaMolduraVisivel } from './clipNaMoldura'
-export function clipEntryHref(legacyHref: string, email: string | null | undefined, release?: InternalRelease): string {
-  if (!clipNaMolduraVisivel(email, release)) return legacyHref
-  const u = parse(legacyHref)
-  if (!u || u.pathname !== LEGACY_CLIPS_PATH) return legacyHref
-  return CLIP_TAB_HREF + u.search
-}

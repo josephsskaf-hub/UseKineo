@@ -8,7 +8,6 @@
 // ligado; a casa usa /clips direto no celular durante o canário.
 // ANTES de virar true: aplicar supabase/migrations/20260929190000_clips.sql (sem a tabela, a tela diz "não deu para
 // carregar" e o pedido recusa sem cobrar — seguro, mas feio).
-import { isInternalEmail } from '@/lib/internalAccounts'
 
 export const CLIPS_PUBLIC = true // LIGADO 29/09 (fundador: tabela aprovada + "ok para os testes"; clipe Seedance 5 s real entregue e persistido)
 
@@ -16,10 +15,6 @@ export const CLIPS_PUBLIC = true // LIGADO 29/09 (fundador: tabela aprovada + "o
 // false restaura o catálogo anterior; autorização, saldo e débito do POST não mudam.
 export const CLIP_GUEST_AS_NEW_ACCOUNT = true
 
-/** O clipe aparece e funciona para este e-mail? Público depois do "vai"; antes, só a casa. */
-export function clipsVisible(email?: string | null): boolean {
-  return CLIPS_PUBLIC || isInternalEmail(email)
-}
 
 // ═══ KINEO-S25-CLIPES-2026-10-06 — o CLIPE do Seedance 2.5 (fundador 06/10: "vai clipe 2.5"; preço = opção C, chamariz) ═══
 // Interruptor PRÓPRIO, separado do filme (lib/engineLaunch.ts S25_PUBLIC): o clipe avulso tem preço e público próprios.
@@ -34,10 +29,6 @@ export function clipsVisible(email?: string | null): boolean {
 // CLIP_S25_PUBLIC = true"). Desligar = false nesta linha: volta a ser só da casa, nada mais muda.
 export const CLIP_S25_PUBLIC = true
 
-/** O card do 2.5 aparece no /clips para este e-mail? (Usar é outra pergunta — pagante —, respondida no servidor.) */
-export function clipS25Visible(email?: string | null): boolean {
-  return CLIP_S25_PUBLIC || isInternalEmail(email)
-}
 
 /** Para onde vai o card de um motor só de planos pagos: os planos do /pricing, com a campanha <motor>_paid_plans_clips
  *  (mesmo desenho do filme do 2.5: s25_paid_plans_<superfície>). */

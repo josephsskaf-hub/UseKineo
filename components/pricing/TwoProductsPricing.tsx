@@ -7,7 +7,7 @@
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { DURACOES_CURTAS_PUBLIC, PREMIUM_FILM_ENGINE_OFFER_NAME, S25_PUBLIC, SEEDANCE_15S_PUBLIC, engineOffered, enginePaused } from '@/lib/engineLaunch'
 import { KLING4_PAID_CREDITS } from '@/lib/kling4PaidPricing' // KINEO-MOTORES-SAEM-0511
-import { clipS25Visible } from '@/lib/clips/clipLaunch' // KINEO-S25-CLIPES-2026-10-06 — o interruptor único do clipe do 2.5
+import { CLIP_S25_PUBLIC } from '@/lib/clips/clipLaunch' // KINEO-S25-CLIPES-2026-10-06 — o interruptor único do clipe do 2.5
 import {
   TWO_PRODUCTS_CLIP_TARGETS,
   TWO_PRODUCTS_FILM_SECONDS,
@@ -38,7 +38,7 @@ export function twoProductsModelForPage(): TwoProductsModel {
       // KINEO-S25-ABRE-2026-10-06 — o filme do 2.5 está à venda (planos pagos). KINEO-S25-CLIPES-2026-10-06 — o CLIPE dele
       // entra na tabela do visitante só com o interruptor único do clipe (lib/clips/clipLaunch.ts CLIP_S25_PUBLIC), com o
       // preço decidido pelo fundador (clipCreditCost lê lib/clips/clipPricing.ts CLIP_S25_CREDITS).
-      clipListed: (engine) => engine !== 's25' || clipS25Visible(null),
+      clipListed: (engine) => engine !== 's25' || CLIP_S25_PUBLIC,
       shortDurations: DURACOES_CURTAS_PUBLIC,
       seedance15s: SEEDANCE_15S_PUBLIC,
     },

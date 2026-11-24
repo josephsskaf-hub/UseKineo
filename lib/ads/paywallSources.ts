@@ -10,7 +10,7 @@
 // O guardião scripts/test-ads-parede-2026-10-06.mjs executa este arquivo pelo carregador offline e compara com as fontes.
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney, getTierPrice, type CheckoutTier } from '@/lib/checkoutPricing'
 import { planName } from '@/lib/growth/planFit'
-import { ADS_SUBSCRIBER_PLANS } from '@/lib/ads/access'
+import { ADS_SUBSCRIBER_PLANS } from '@/lib/ads/accessPublic'
 import { ADS_V2_LEVEL_PRICES } from '@/lib/ads/v2Levels'
 import { ADS_V2_SCREEN_SECONDS } from '@/lib/ads/v2Screen'
 import { KINEO1_35S_CREDITS } from '@/lib/ads/offer'

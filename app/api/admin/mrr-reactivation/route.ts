@@ -5,7 +5,8 @@ import { createClient } from '@/lib/supabase/server'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { dailyCap, recordResendResponse } from '@/lib/email/quota'
-import { eligibleReactivationProfile, readyFilmDraft, readEveryPage, MRR_REACTIVATION_ENABLED, MRR_REACTIVATION_VERSION, MRR_REACTIVATION_SEND_ENABLED, MRR_REACTIVATION_BATCH, MRR_REACTIVATION_CLAIM, MRR_REACTIVATION_SENT } from '@/lib/growth/mrrReactivation'
+import { eligibleReactivationProfile, readyFilmDraft, readEveryPage } from '@/lib/growth/mrrReactivation'
+import { MRR_REACTIVATION_ENABLED, MRR_REACTIVATION_VERSION, MRR_REACTIVATION_SEND_ENABLED, MRR_REACTIVATION_BATCH, MRR_REACTIVATION_CLAIM, MRR_REACTIVATION_SENT } from '@/lib/growth/mrrReactivationRelease'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60

@@ -9,7 +9,7 @@ import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
 import Link from 'next/link'
 import { MORE_NAV, navItemIdFor, sidebarNavItems, workspaceNavActive } from '@/lib/ui/workspaceNavigation'
 import { createEntryForLegacyHref } from '@/lib/create/entry' // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"]
-import { clipsVisible } from '@/lib/clips/clipLaunch' // KINEO-CLIPES-2026-09-29 — item Clips só com o interruptor (ou conta da casa)
+import { useClipVisibility } from '@/lib/clips/useClipVisibility' // KINEO-CLIPES-2026-09-29 — item Clips só com o interruptor (ou conta da casa)
 import { UiLabel } from '@/components/InterfaceLanguage'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -379,6 +379,7 @@ export default function Sidebar({
   const [userEmail, setUserEmail] = useState(initialEmail)
   const [displayName, setDisplayName] = useState('')
   const [isLoggedIn, setIsLoggedIn] = useState(initialLoggedIn)
+  const clipsOn = useClipVisibility(isLoggedIn, userEmail)
   const [credits, setCredits] = useState<number | null>(null)
   const [creditsLoading, setCreditsLoading] = useState(true)
   // KINEO-TELA-QUE-NAO-MENTE-2026-09-08 (M10) — estado proprio para "nao
@@ -680,7 +681,7 @@ export default function Sidebar({
               "More tools" SEMPRE ABERTO (Imagem, Clipes, Espaços — 1 clique, como antes). Par: MobileNav.tsx e o topo do site. */}
           {/* KINEO-MENU-LATERAL-3110 — fundador 30/10: sem o grupo "More tools"; uma lista só de Make a film até Clips, Spaces sai da
               lateral (a página segue no ar e no topo do site) e Library + Pricing descem para o fim (são de conta/configuração). */}
-          {sidebarNavItems(clipsVisible(userEmail)).map(item => <NavItem key={item.href} {...item} icon={NAV_ICONS[item.icon]} exact={false} pathname={pathname} onClick={onClose} signedIn={isLoggedIn} />)}
+          {sidebarNavItems(clipsOn).map(item => <NavItem key={item.href} {...item} icon={NAV_ICONS[item.icon]} exact={false} pathname={pathname} onClick={onClose} signedIn={isLoggedIn} />)}
           {/* KINEO-MENU-ENXUTO-2026-10-09 — o "More" saiu (fundador, "1 sim"): Animate/Audio/Autopilot/Channel Builder fora do menu;
               Invite & Earn + Affiliate viraram um item só, "Earn 30%" (o programa de afiliados; 30% para quem entra desde 14/10 — KINEO-AFILIADO-30-NOVOS-2026-10-13). */}
           {isLoggedIn && (

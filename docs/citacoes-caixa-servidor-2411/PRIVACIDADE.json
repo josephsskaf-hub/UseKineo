@@ -1,0 +1,30 @@
+{
+  "allClientRoots": 408,
+  "serverAllowlistReachable": false,
+  "method": "TypeScript local import/export/dynamic-import/require graph, page plus ancestor layouts, then actual transpilation and Next Terser minification with compression disabled to preserve every reachable string; no next build claim",
+  "pages": [
+    {
+      "entry": "app/best-ai-shorts-generators/page.tsx",
+      "ancestorLayouts": [
+        "app/layout.tsx"
+      ],
+      "clientRoots": 19,
+      "modules": 131,
+      "minifiedBytes": 1146763,
+      "sha256": "a5a928c258fbffcacb170a281c697401d60bd01b73e3678fafdb0890124907e1",
+      "protectedMarkersFound": 0
+    },
+    {
+      "entry": "app/how-much-do-youtube-shorts-pay/page.tsx",
+      "ancestorLayouts": [
+        "app/layout.tsx"
+      ],
+      "clientRoots": 17,
+      "modules": 89,
+      "minifiedBytes": 932988,
+      "sha256": "6d155bc74e13db146a7422503c1a92692e7d9a2a6a4866c4881dd11ed1b668cf",
+      "protectedMarkersFound": 0
+    }
+  ],
+  "mutants": 6
+}

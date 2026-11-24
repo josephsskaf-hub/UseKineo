@@ -1,0 +1,19 @@
+{
+  "date": "2026-11-23",
+  "browser": "Edge headless on Windows",
+  "widths": [
+    1920,
+    390
+  ],
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "contexts": 8,
+  "phases": 2,
+  "photos": 80,
+  "exceptions": 0,
+  "overflow": 0,
+  "scope": "SDK BroadcastChannel + local fake auth; product APIs blocked; no real account or production auth",
+  "gallery": "C:/kineo/docs/decisoes-2311/CITACOES-CAIXA-VOLTA2.html"
+}

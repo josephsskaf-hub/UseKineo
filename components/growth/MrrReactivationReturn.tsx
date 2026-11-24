@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { MRR_REACTIVATION_ENABLED, MRR_REACTIVATION_VERSION } from '@/lib/growth/mrrReactivation'
+import { MRR_REACTIVATION_ENABLED, MRR_REACTIVATION_VERSION } from '@/lib/growth/mrrReactivationRelease'
 import { useMrrVisible } from '@/lib/growth/useMrrVisible'
 
 /** Measures arrival at the private library, never email opening or video playback. */

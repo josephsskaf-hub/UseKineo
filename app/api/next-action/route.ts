@@ -11,7 +11,8 @@ import { COMPOSE_CLAIM_EVENT, COMPOSE_CLAIM_PATH } from '@/lib/composeClaim'
 import { EVENT_SESSION_COOKIE } from '@/lib/growth/checkoutAuthSessionBridge'
 // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b) — com a entrada nova (seedance15sVisible), o Kineo 1 só é oferecido a quem tem
 // a flag kineo1 (a MESMA composição do /api/me/credits), e o Seedance de 15 s vira a saída barata que cabe no trial.
-import { resolveKineo1Flag, seedance15sVisible, engineOffered } from '@/lib/engineLaunch'
+import { engineOffered } from '@/lib/engineLaunch'
+import { resolveKineo1Flag, seedance15sVisible } from '@/lib/engineLaunchAccess'
 import { readKineo1Access } from '@/lib/kineo1Access'
 import { SEEDANCE_SHORT_SECONDS } from '@/lib/durationByEngine'
 

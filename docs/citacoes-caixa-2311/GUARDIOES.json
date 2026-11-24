@@ -1,0 +1,21 @@
+{
+  "paths": [
+    "app/best-ai-shorts-generators/page.tsx",
+    "app/how-much-do-youtube-shorts-pay/page.tsx",
+    "app/text-to-video-shorts/TextToVideoIntentForm.tsx",
+    "components/seo/CitationIdeaForm.tsx",
+    "lib/growth/citationIdeaAccess.ts"
+  ],
+  "tests": [
+    "test-avatar-fora-2026-09-28.mjs",
+    "test-bing-seo-1510.mjs",
+    "test-citacoes-caixa-2311.mjs",
+    "test-citacoes-compradores-2111.mjs",
+    "test-citation-entry-truth-2026-09-30.mjs",
+    "test-geo-rodada3-2026-10-08.mjs",
+    "test-google-porta-1711.mjs",
+    "test-growth-roundup-search-intent.mjs",
+    "test-paginas-ia-claras-2110.mjs",
+    "test-text-to-video-intent-router.mjs"
+  ]
+}

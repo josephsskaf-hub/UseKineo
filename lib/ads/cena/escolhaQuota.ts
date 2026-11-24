@@ -1,7 +1,7 @@
 // KINEO-ADS-ESCOLHA-PUBLICO-2410 — eligibility is not a debit; the database reserves photo orders atomically.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { AdsAccessLoad } from '../serverAccess'
-import { ADS_SUBSCRIBER_PLANS } from '../access'
+import { ADS_SUBSCRIBER_PLANS } from '../accessPublic'
 import { adsV2Credits } from '../v2Tiers'
 
 export const ESCOLHA_DAILY_PHOTO_ORDERS = 6

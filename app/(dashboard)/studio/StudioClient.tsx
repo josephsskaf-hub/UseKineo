@@ -88,7 +88,7 @@ import DfyOfferCard from '@/components/DfyOfferCard' // KINEO-EMPRESAS-COCKPIT-2
 // 30 d; o /studio é a tela que todo mundo abre (studio_tiles_shown). Nenhum número digitado: acesso por plano (lib/ads/
 // access.ts, o mesmo predicado do servidor), custo por anúncio e interruptor (lib/ads/offer.ts, pinado — só import), duração
 // mínima (lib/ads/models.ts), preço do Starter (lib/checkoutPricing.ts). Módulos puros: já entram em PricingClient/AdsWizardClient.
-import { ADS_SUBSCRIBER_PLANS } from '@/lib/ads/access'
+import { ADS_SUBSCRIBER_PLANS } from '@/lib/ads/accessPublic'
 import { KINEO1_35S_CREDITS, adsPassLive } from '@/lib/ads/offer'
 import { ADS_MODELS } from '@/lib/ads/models'
 import { formatCheckoutMoney, getTierPrice } from '@/lib/checkoutPricing'

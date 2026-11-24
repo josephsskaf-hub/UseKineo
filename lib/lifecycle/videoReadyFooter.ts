@@ -35,7 +35,7 @@ import { SEEDANCE_SHORT_FILM_CREDITS, videosForCredits } from '@/lib/marketingPr
 // sprint16h-e W (27/09/2026) — Studio Ads no rodape do assinante: a lista de
 // planos e a MESMA do portao (lib/ads/access.ts), o interruptor e o custo vem
 // de lib/ads/offer.ts e os segundos do menor modelo de lib/ads/models.ts.
-import { ADS_SUBSCRIBER_PLANS } from '@/lib/ads/access'
+import { ADS_SUBSCRIBER_PLANS } from '@/lib/ads/accessPublic'
 import { ADS_MODELS } from '@/lib/ads/models'
 import { KINEO1_35S_CREDITS, adsPassLive } from '@/lib/ads/offer'
 

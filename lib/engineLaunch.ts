@@ -15,7 +15,6 @@
 // (isPayingPlan de app/api/admin/_shared/mrr.ts — *_trial de cortesia e trial de cadastro NÃO passam) e recusa antes
 // de qualquer débito. Quem não paga vê o selo S25_PAID_BADGE e o clique leva ao upgrade, sem escolher o motor.
 // Para voltar ao canário: S25_PUBLIC=false (só a casa vê e usa, como em 01/09).
-import { isInternalEmail } from '@/lib/internalAccounts'
 
 export const S25_PUBLIC = true
 
@@ -105,19 +104,9 @@ export function qualityPaused(quality: string | null | undefined): EnginePause |
 export const H3MAX_PUBLIC = true // KINEO-H3MAX-2026-10-13
 // KINEO-H3-TURBO-0511 [TRAVA 8.2 — fundador 05/11, vendo a comparação de motores: "O H3 é o melhor... vamos colocar esses dois motores para funcionar"]: o filme padrão (35 cr) anima os quadros no H3 Max Turbo. false = só as contas da casa. KINEO-H3-TURBO-ABRE-0511 [fundador 05/11: "pode abrir para os clientes"]: true. Sem still na cena, a reserva de texto segue no Seedance; o filme grátis e o desenho infantil também ficam no Seedance.
 export const H3_TURBO_PUBLIC = true as boolean
-export function h3TurboNoFilmePadrao(email?: string | null): boolean {
-  return H3_TURBO_PUBLIC || isInternalEmail(email)
-}
-// KINEO-H3MAX-2026-10-13
-/** O H3 Max aparece (e o servidor aceita) para este e-mail? Público com H3MAX_PUBLIC; senão, só a casa. [KINEO-H3MAX-2026-10-13] */
-export function h3maxVisible(email?: string | null): boolean { // KINEO-H3MAX-2026-10-13
-  return H3MAX_PUBLIC || isInternalEmail(email) // KINEO-H3MAX-2026-10-13
-} // KINEO-H3MAX-2026-10-13
-// KINEO-H3MAX-2026-10-13
-/** O 2.5 aparece para este e-mail? Publico depois do lancamento; antes, so a casa. */
-export function s25Visible(email?: string | null): boolean {
-  return S25_PUBLIC || isInternalEmail(email)
-}
+
+
+
 
 // ═══ KINEO-S25-ABRE-2026-10-06 — o que a tela e a recusa dizem a quem NÃO paga. Puro e sem import novo (este arquivo vai
 // para o navegador): QUEM paga é decidido no servidor (lib/s25Access.ts) e chega à tela pela flag `s25Liberado` do
@@ -165,10 +154,6 @@ export function engineIsPaidPlansOnly(engine: string | null | undefined): boolea
 // index do /ai-avatar, as linhas do pricing e a copy dos comparativos (lista em docs/AVATAR-FORA-2026-09-28.md).
 export const AVATAR_PUBLIC = false
 
-/** O Avatar aparece para este e-mail? Com AVATAR_PUBLIC=false, só a casa (mesma régua do s25Visible). */
-export function avatarVisible(email?: string | null): boolean {
-  return AVATAR_PUBLIC || isInternalEmail(email)
-}
 
 // ═══ KINEO-KINEO1-FORA-2026-09-29 — decisão do fundador (29/09): "quero tirar o kineo 1 do jogo, ele estraga a
 // entrada". O filme grátis passa a ser o Seedance (15 s, E2a/E2b); o Kineo 1 sai da VITRINE PÚBLICA (home, mega-menu,
@@ -189,30 +174,7 @@ export interface Kineo1Legacy {
   boughtPack?: boolean | null
 }
 
-/** O Kineo 1 aparece para esta conta? Público só com KINEO1_PUBLIC; senão a casa, o pagante que já usa, ou quem comprou pacote. */
-export function kineo1Visible(email?: string | null, legado?: Kineo1Legacy | null): boolean {
-  if (KINEO1_PUBLIC || isInternalEmail(email)) return true
-  const l = legado ?? {}
-  return (l.hasPaid === true && l.usedFast === true) || l.boughtPack === true
-}
 
-// KINEO-KINEO1-FORA-2026-09-29 (conserto da revisão E1) — a COMPOSIÇÃO única que o servidor usa para entregar a flag
-// (/api/me/credits e /studio/create). Antes cada rota montava a régua à mão e o guardião só procurava texto: trocar a
-// leitura de has_paid por `true` passava verde. Agora as duas chamam esta função e o guardião a EXECUTA.
-// Só lê o legado (3 consultas, service key) quando has_paid === true: pacote avulso e passe de anúncios gravam
-// has_paid:true no mesmo UPDATE dos créditos (app/api/stripe/webhook/route.ts; lib/payments/grant.ts), então para
-// quem nunca pagou (a maioria, trials) o resultado já é false e as leituras seriam custo puro.
-// Falha de leitura propaga (quem chama decide); o e-mail da casa nunca chega a ler nada.
-export async function resolveKineo1Flag(
-  email: string | null | undefined,
-  lerHasPaid: () => boolean | null | undefined | Promise<boolean | null | undefined>,
-  lerLegado: () => Promise<Kineo1Legacy>,
-): Promise<boolean> {
-  if (kineo1Visible(email)) return true
-  if ((await lerHasPaid()) !== true) return false
-  const l = await lerLegado()
-  return kineo1Visible(email, { hasPaid: true, usedFast: l.usedFast === true, boughtPack: l.boughtPack === true })
-}
 
 // ═══ KINEO-SEEDANCE-15S-2026-09-29 — "vai" nominal do fundador para o filme de 15 s no Seedance 1.5 (7 cr).
 // Mesmo desenho do S25_PUBLIC: SEEDANCE_15S_PUBLIC=false → só as contas da casa (isInternalEmail) veem o BOTÃO de
@@ -225,10 +187,6 @@ export async function resolveKineo1Flag(
 // prometeria o que a conta nova não consegue apertar, ou esconderia o Kineo 1 sem dar filme ao trial.
 export const SEEDANCE_15S_PUBLIC = true
 
-/** O botão de 15 s do Seedance aparece para este e-mail? Mesma régua do s25Visible. */
-export function seedance15sVisible(email?: string | null): boolean {
-  return SEEDANCE_15S_PUBLIC || isInternalEmail(email)
-}
 
 // ═══ KINEO-DURACOES-CURTAS-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] ═══
 // Os BOTÕES novos de duração curta — 15 s no Kling 2.5 e no Veo 3.1, 15 s e 30 s no Kling 3 / MiniMax H3 / Omni / Seedance 2.5
@@ -238,10 +196,6 @@ export function seedance15sVisible(email?: string | null): boolean {
 // fundador (um commit de uma linha).
 export const DURACOES_CURTAS_PUBLIC = true
 
-/** Os botões curtos novos (Kling 2.5/Veo 15 s; hollywood 15/30 s) aparecem para este e-mail? */
-export function duracoesCurtasVisible(email?: string | null): boolean {
-  return DURACOES_CURTAS_PUBLIC || isInternalEmail(email)
-}
 
 // ═══ KINEO-ESTRELA-DO-FILME-2026-09-29 [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] ═══
 // "Estrela do filme": 1–3 fotos do rosto de uma pessoa (com autorização) viram o protagonista de toda cena com gente
@@ -254,10 +208,6 @@ export function duracoesCurtasVisible(email?: string | null): boolean {
 // créditos devolvidos" — e não devolveu. Volta a true só com a conferência do compose somando a sobretaxa assinada + canário.
 export const ESTRELA_PUBLIC = false
 
-/** O bloco "Estrela do filme" aparece (e o servidor aceita) para este e-mail? */
-export function estrelaVisible(email?: string | null): boolean {
-  return ESTRELA_PUBLIC || isInternalEmail(email)
-}
 
 /** Copy de contagem: 'Eight' hoje, 'Nine' no lancamento. Uma verdade, N telas. */
 // KINEO-MOTOR-EM-MANUTENCAO-2026-09-15 — a contagem e a lista públicas só falam dos motores que o público pode

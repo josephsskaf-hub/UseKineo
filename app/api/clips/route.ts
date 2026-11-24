@@ -18,7 +18,8 @@ import {
   submitDepsFor,
   toPublicClip,
 } from '@/lib/clips/clipServer'
-import { CLIP_GUEST_AS_NEW_ACCOUNT, clipsVisible } from '@/lib/clips/clipLaunch'
+import { CLIP_GUEST_AS_NEW_ACCOUNT } from '@/lib/clips/clipLaunch'
+import { clipsVisible } from '@/lib/clips/clipLaunchAccess'
 // KINEO-CLIP-EFEITOS-2026-10-05 — efeitos de 1 clique: o corpo traz só `effect` (chave) + a foto; o servidor resolve o
 // resto pelo catálogo (lib/clips/clipEffects.ts) e o pedido segue o MESMO submitClip (moderação, débito, estorno).
 import { isInternalEmail } from '@/lib/internalAccounts'

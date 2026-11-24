@@ -1,5 +1,7 @@
 'use client'
 
+import { useCreateNavigationVisibility } from '@/lib/create/useCreateNavigationVisibility'
+
 import { useState } from 'react'
 import Sidebar from '@/components/Sidebar'
 import TopBar from '@/components/TopBar'
@@ -22,8 +24,8 @@ import WelcomeOfferModal from '@/components/WelcomeOfferModal' // KINEO-WELCOME2
 import { usePathname } from 'next/navigation'
 import CreateMolduraTopo from '@/components/create/CreateMolduraTopo' // KINEO-LIBRARY-MOLDURA-NOVA-1211
 import { usaMolduraNova } from '@/lib/create/molduraNova' // KINEO-LIBRARY-MOLDURA-NOVA-1211
-import { clipNaMolduraVisivel } from '@/lib/create/clipNaMoldura' // KINEO-LIBRARY-MOLDURA-NOVA-1211
-import { abaRecreateVisivel } from '@/lib/create/clipRecreateJuntos' // KINEO-LIBRARY-MOLDURA-NOVA-1211 — as mesmas abas da tela nova · KINEO-CLIP-RECREATE-JUNTOS-1511: era recreateVisible (a aba Recreate some para quem tem a tela única)
+ // KINEO-LIBRARY-MOLDURA-NOVA-1211
+ // KINEO-LIBRARY-MOLDURA-NOVA-1211 — as mesmas abas da tela nova · KINEO-CLIP-RECREATE-JUNTOS-1511: era recreateVisible (a aba Recreate some para quem tem a tela única)
 
 interface DashboardShellProps {
   children: React.ReactNode
@@ -84,6 +86,7 @@ export default function DashboardShell({
   isLoggedIn,
   annualWelcomeBar,
 }: DashboardShellProps) {
+  const navigation = useCreateNavigationVisibility(userEmail)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
   const title = pageTitles[pathname] ?? 'Dashboard'
@@ -97,7 +100,7 @@ export default function DashboardShell({
   // foto div1-library-decisao-ABC.png; as outras telas logadas seguem na casca de sempre até a decisão do dono.
   if (usaMolduraNova(pathname)) return (
     <div data-dashboard-moldura="nova" style={{ background: 'var(--bg)', minHeight: '100svh' }}>
-      <CreateMolduraTopo showRecreate={abaRecreateVisivel(userEmail)} showClip={clipNaMolduraVisivel(userEmail)} />
+      <CreateMolduraTopo showRecreate={navigation.showRecreate} showClip={navigation.showClip} />
       <AnnualWelcomeBar initial={annualWelcomeBar} placement="app" />
       <BlackFridayBanner placement="app" />
       {isLoggedIn && <Creator30OfferModal />}

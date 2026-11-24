@@ -34,7 +34,7 @@ const FORM_COPY = {
   },
 } as const
 
-export default function TextToVideoIntentForm({ formId }: { formId: string }) {
+export default function TextToVideoIntentForm({ formId, campaign = TEXT_TO_VIDEO_CAMPAIGN, placement = 'hero_form', preserveHandoffForSignedIn = false }: { formId: string; campaign?: string; placement?: string; preserveHandoffForSignedIn?: boolean }) {
   const [inputMode, setInputMode] = useState<TextToVideoInputMode>('idea')
   const selected = getTextToVideoInputMode(inputMode)
   const isFinishedScript = selected.id === 'finished_script'
@@ -95,8 +95,10 @@ export default function TextToVideoIntentForm({ formId }: { formId: string }) {
       </div>
 
       <TopicGeneratorForm
-        campaign={TEXT_TO_VIDEO_CAMPAIGN}
-        source={TEXT_TO_VIDEO_CAMPAIGN}
+        campaign={campaign}
+        source={campaign}
+        placement={placement}
+        preserveHandoffForSignedIn={preserveHandoffForSignedIn}
         formId={formId}
         examples={isFinishedScript ? [] : IDEA_EXAMPLES}
         scriptMode={selected.scriptMode}

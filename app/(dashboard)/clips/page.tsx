@@ -2,11 +2,12 @@
 // Interruptor de lançamento (lib/clips/clipLaunch.ts): antes do "vai" do fundador sobre o preço, só a casa abre a página.
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { clipsVisible } from '@/lib/clips/clipLaunch'
+import { clipsVisible } from '@/lib/clips/clipLaunchAccess'
 import ClipsClient from './ClipsClient'
 import { recreateVisible } from '@/lib/recreate/access'
 import { recreateFormat } from '@/lib/recreate/formats'
-import { clipEntryHref, queryDaChegada } from '@/lib/create/entry' // KINEO-CLIP-NA-MOLDURA-1011
+import { queryDaChegada } from '@/lib/create/entry'
+import { clipEntryHref } from '@/lib/create/clipEntryServer' // KINEO-CLIP-NA-MOLDURA-1011
 
 export const metadata = { title: 'Clips — Kineo' }
 export const dynamic = 'force-dynamic'

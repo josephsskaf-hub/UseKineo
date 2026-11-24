@@ -6,7 +6,8 @@
 // past_due mantém o acesso enquanto a Stripe repete o cartão. Acabou, vira 'free' e fecha aqui.
 // O pedido do cron com run pendente presa ao generationId passa sempre: o que já está na fila termina e é entregue.
 // Sem kids_cartoon no pedido, esta regra não lê nada e não muda nada. Guardião: scripts/test-cartoon-so-plano-0411.mjs.
-import { ADS_SUBSCRIBER_PLANS, isAdsInternalEmail } from '@/lib/ads/access'
+import { isAdsInternalEmail } from '@/lib/ads/access'
+import { ADS_SUBSCRIBER_PLANS } from '@/lib/ads/accessPublic'
 import { isCourtesyActive, isCourtesyLevel } from '@/lib/courtesy' // KINEO-CARTOON-CORTESIA-0511
 import { KIDS_ORDERS_TABLE, kidsOrderAdmits, kidsServiceClient } from '@/lib/kidsVenda/server'
 

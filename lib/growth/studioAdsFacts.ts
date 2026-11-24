@@ -13,7 +13,7 @@
 
 import { ADS_PASS_ACCESS_DAYS, ADS_PASS_CREDITS, adsPassCopy, adsPassLive, adsPassOnSale } from '../ads/offer'
 import { ADS_MODELS } from '../ads/models'
-import { ADS_SUBSCRIBER_PLANS } from '../ads/access'
+import { ADS_SUBSCRIBER_PLANS } from '../ads/accessPublic'
 import { ADS_V2_PUBLIC, ADS_V2_TIER_IDS, adsV2Credits } from '../ads/v2Tiers'
 import { ADS_V2_SCREEN_SECONDS, ADS_V2_TIER_COPY } from '../ads/v2Screen'
 import { ADS_V2_CONTRACT_MIN_PHOTOS, ADS_V2_CONTRACT_MAX_PHOTOS } from '../ads/v2Contract'

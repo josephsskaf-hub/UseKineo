@@ -1,0 +1,234 @@
+{
+  "scope": "React Test Renderer 18.3.1 concurrent root; no browser or viewport, real components with fake auth promises; no account/network/movie",
+  "proof": [
+    {
+      "article": "best",
+      "phase": "before renewal",
+      "fields": 1,
+      "text": "Meu relógio azul voltou três minutos quando a torre tocou.",
+      "modes": [
+        true,
+        false
+      ],
+      "reads": 1
+    },
+    {
+      "article": "best",
+      "phase": "renewal pending",
+      "fields": 1,
+      "text": "Meu relógio azul voltou três minutos quando a torre tocou.",
+      "modes": [
+        true,
+        false
+      ],
+      "reads": 2
+    },
+    {
+      "article": "best",
+      "phase": "renewal verified",
+      "fields": 1,
+      "text": "Meu relógio azul voltou três minutos quando a torre tocou.",
+      "modes": [
+        true,
+        false
+      ],
+      "reads": 2
+    },
+    {
+      "article": "best",
+      "phase": "before renewal",
+      "fields": 1,
+      "text": "Meu relógio azul voltou três minutos quando a torre tocou.",
+      "modes": [
+        false,
+        true
+      ],
+      "reads": 1
+    },
+    {
+      "article": "best",
+      "phase": "renewal pending",
+      "fields": 1,
+      "text": "Meu relógio azul voltou três minutos quando a torre tocou.",
+      "modes": [
+        false,
+        true
+      ],
+      "reads": 2
+    },
+    {
+      "article": "best",
+      "phase": "renewal verified",
+      "fields": 1,
+      "text": "Meu relógio azul voltou três minutos quando a torre tocou.",
+      "modes": [
+        false,
+        true
+      ],
+      "reads": 2
+    },
+    {
+      "article": "pay",
+      "phase": "before renewal",
+      "fields": 1,
+      "text": "Meu relógio azul voltou três minutos quando a torre tocou.",
+      "modes": [
+        true,
+        false
+      ],
+      "reads": 1
+    },
+    {
+      "article": "pay",
+      "phase": "renewal pending",
+      "fields": 1,
+      "text": "Meu relógio azul voltou três minutos quando a torre tocou.",
+      "modes": [
+        true,
+        false
+      ],
+      "reads": 2
+    },
+    {
+      "article": "pay",
+      "phase": "renewal verified",
+      "fields": 1,
+      "text": "Meu relógio azul voltou três minutos quando a torre tocou.",
+      "modes": [
+        true,
+        false
+      ],
+      "reads": 2
+    },
+    {
+      "article": "pay",
+      "phase": "before renewal",
+      "fields": 1,
+      "text": "Meu relógio azul voltou três minutos quando a torre tocou.",
+      "modes": [
+        false,
+        true
+      ],
+      "reads": 1
+    },
+    {
+      "article": "pay",
+      "phase": "renewal pending",
+      "fields": 1,
+      "text": "Meu relógio azul voltou três minutos quando a torre tocou.",
+      "modes": [
+        false,
+        true
+      ],
+      "reads": 2
+    },
+    {
+      "article": "pay",
+      "phase": "renewal verified",
+      "fields": 1,
+      "text": "Meu relógio azul voltou três minutos quando a torre tocou.",
+      "modes": [
+        false,
+        true
+      ],
+      "reads": 2
+    },
+    {
+      "article": "best",
+      "phase": "logout",
+      "fields": 0,
+      "text": null,
+      "modes": [],
+      "reads": 2
+    },
+    {
+      "article": "best",
+      "phase": "batched relogin fresh",
+      "fields": 1,
+      "text": "",
+      "modes": [
+        true,
+        false
+      ],
+      "reads": 4
+    },
+    {
+      "article": "best",
+      "phase": "verified account context changed",
+      "fields": 1,
+      "text": "",
+      "modes": [
+        true,
+        false
+      ],
+      "reads": 2
+    },
+    {
+      "article": "best",
+      "phase": "identity switch pending house-b",
+      "fields": 0,
+      "text": null,
+      "modes": [],
+      "reads": 2
+    },
+    {
+      "article": "best",
+      "phase": "identity switch pending house-b",
+      "fields": 0,
+      "text": null,
+      "modes": [],
+      "reads": 2
+    },
+    {
+      "article": "best",
+      "phase": "identity switch pending buyer",
+      "fields": 0,
+      "text": null,
+      "modes": [],
+      "reads": 2
+    },
+    {
+      "article": "best",
+      "phase": "revoked null",
+      "fields": 0,
+      "text": null,
+      "modes": [],
+      "reads": 2
+    },
+    {
+      "article": "best",
+      "phase": "revoked error",
+      "fields": 0,
+      "text": null,
+      "modes": [],
+      "reads": 2
+    },
+    {
+      "article": "best",
+      "phase": "revoked throw",
+      "fields": 0,
+      "text": null,
+      "modes": [],
+      "reads": 2
+    },
+    {
+      "article": "best",
+      "phase": "revoked unconfirmed",
+      "fields": 0,
+      "text": null,
+      "modes": [],
+      "reads": 2
+    },
+    {
+      "article": "best",
+      "phase": "late other-account response ignored",
+      "fields": 1,
+      "text": "A coruja contou quatro lanternas antes do amanhecer.",
+      "modes": [
+        false,
+        true
+      ],
+      "reads": 3
+    }
+  ]
+}

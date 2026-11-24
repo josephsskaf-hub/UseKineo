@@ -13,7 +13,7 @@ import {
 import { findHandoff, isLikelyBot, markHandoffClicked } from '@/lib/gptHandoffStore'
 // KINEO-ENTRADA-SEEDANCE15-2026-09-29 (E2b, B2) — conta com saldo de trial que não paga a duração pedida abre no filme
 // de 15 s do Seedance (a mesma régua da entrada: lib/growth/entradaSeedance15.ts; custo da mesma função que cobra).
-import { seedance15sVisible } from '@/lib/engineLaunch'
+import { seedance15sVisible } from '@/lib/engineLaunchAccess'
 import { creditCostForDuration } from '@/lib/credits/engineCost'
 import { SEEDANCE_SHORT_SECONDS } from '@/lib/durationByEngine'
 import { roteiroCabeNoFilmeCurto } from '@/lib/growth/entradaSeedance15'

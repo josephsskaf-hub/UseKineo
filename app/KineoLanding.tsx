@@ -6,8 +6,9 @@ import KineoBolt, { KineoBrandIcon } from '@/components/KineoBolt'
 // Kineo landing — new Apple-dark redesign (replaces the old HomePageClient on the homepage).
 // Self-contained, styles scoped under .klp so they don't leak into the rest of the app.
 // Marker: KINEO-LANDING-V3-2026-06-30
-import { clipsVisible } from '@/lib/clips/clipLaunch'
-import { VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY, PAUSED_ENGINES_COPY, avatarVisible } from '@/lib/engineLaunch'
+import { clipsVisible } from '@/lib/clips/clipLaunchAccess'
+import { VIDEO_ENGINE_COUNT_WORD, VIDEO_ENGINE_LIST_COPY, PAUSED_ENGINES_COPY } from '@/lib/engineLaunch'
+import { avatarVisible } from '@/lib/engineLaunchAccess'
 import EngineNewsBar from '@/components/home/EngineNewsBar' // KINEO-FAIXA-S25-2026-10-09
 import { enginePlanBadge } from '@/lib/enginePlanGate'
 import Link from 'next/link'

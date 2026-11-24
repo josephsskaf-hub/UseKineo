@@ -1,3 +1,4 @@
+import CitationIdeaForm from '@/components/seo/CitationIdeaForm'
 import { BuyerLead2011, BuyerDecision2011 } from '@/components/seo/BuyerDecision2011'
 import { BUYER_2011, currentFilmLabel2011 } from '@/lib/seo/buyerAnswers2011'
 // KINEO-SEO-ROUNDUP-2026-07-25 — /best-ai-shorts-generators: a roundup/hub
@@ -372,7 +373,11 @@ export default function BestAiShortsGeneratorsPage() {
           {PAGE_HEADING}
         </h1>
         <BuyerLead2011 kind="cost" />
+
+        <CitationIdeaForm article="best" />
+
         {best ? <p data-kineo="geo-r3-answer" style={{ color: '#0E1116', fontSize: '1.08rem', lineHeight: 1.6, margin: '0 0 14px' }}>{currentFilmLabel2011(best.lead)}</p> : null}
+
         <PaginaClaraCards />{/* KINEO-PAGINAS-IA-CLARAS-2110 — os 4 cards da home logo abaixo do título e da 1ª frase (a resposta citável continua sendo o 1º parágrafo depois do H1) */}
         <p style={{ color: MUTED, fontSize: '1.08rem', lineHeight: 1.6, margin: '0 0 8px' }}>
           The best AI tools for YouTube Shorts are not doing the same job. Some generate a

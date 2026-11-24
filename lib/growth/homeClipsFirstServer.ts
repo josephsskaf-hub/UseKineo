@@ -3,7 +3,7 @@
 // ESTA função — as duas sempre concordam sobre a variante de uma pessoa.
 import { cookies, headers } from 'next/headers'
 import { isInternalEmail } from '@/lib/internalAccounts'
-import { clipsVisible } from '@/lib/clips/clipLaunch'
+import { clipsVisible } from '@/lib/clips/clipLaunchAccess'
 import { clipEffectsVisible } from '@/lib/clips/clipEffects'
 import {
   HOME_CLIPS_FIRST,

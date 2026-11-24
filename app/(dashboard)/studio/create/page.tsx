@@ -24,7 +24,7 @@ import { createClient } from '@/lib/supabase/server'
 import { maybeActivateReverseTrial } from '@/lib/reverseTrial'
 import { paisDoRequest } from '@/lib/freeFilmPolicy'
 import { readKineo1Access } from '@/lib/kineo1Access'
-import { resolveKineo1Flag, seedance15sVisible } from '@/lib/engineLaunch' // KINEO-ENTRADA-SEEDANCE15-2026-09-29: seedance15 = a entrada nova
+import { resolveKineo1Flag, seedance15sVisible } from '@/lib/engineLaunchAccess' // KINEO-ENTRADA-SEEDANCE15-2026-09-29: seedance15 = a entrada nova
 import { trialFingerprintFromHeaders } from '@/lib/trialFingerprint'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { getViralTopicById } from '@/lib/viralTopics'

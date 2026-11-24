@@ -59,16 +59,16 @@ import { KLING4_PLANO_POR_SECAO, KLING4_PLANO_POR_SECAO_VERSAO, planoPorSecaoLig
 import { comSujeitoNasMetades } from '@/lib/kling4QuatroPlanos' // KINEO-SUJEITO-APARENCIA-1311 (b)
 import { KLING4_PLANO_VARIADO, KLING4_PLANO_VARIADO_VERSAO, planoVariadoLigado, planosComEscalaVariada } from '@/lib/kling4PlanoVariado' // KINEO-K4-PLANO-VARIADO-1111
 import { S25_PUBLIC, enginePaused, engineRetired, engineRetiredForHouse, engineOffered, ENGINE_RETIRED_EVENT, ENGINE_RETIRED_REASON } from '@/lib/engineLaunch' // KINEO-VEO-DESLIGA-1711: engineRetiredForHouse
-import { seedance15sVisible } from '@/lib/engineLaunch' // KINEO-SEEDANCE-15S-2026-09-29
+import { seedance15sVisible } from '@/lib/engineLaunchAccess' // KINEO-SEEDANCE-15S-2026-09-29
 import { S25_PAID_ONLY_EVENT, S25_PAID_ONLY_MESSAGE, S25_PAID_ONLY_REASON, s25UpgradeHref } from '@/lib/engineLaunch' // KINEO-S25-ABRE-2026-10-06
 import { s25AccessFor } from '@/lib/s25Access' // KINEO-S25-ABRE-2026-10-06 — o 2.5 só para quem paga (isPayingPlan), recusa antes do débito
 import { isActivePartner } from '@/lib/partnerAccess' // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 — e para o parceiro ativo em cortesia (fundador, 09/10: "pode abrir tudo para ele fazer o que ele quiser dentro")
-import { duracoesCurtasVisible } from '@/lib/engineLaunch' // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29
+import { duracoesCurtasVisible } from '@/lib/engineLaunchAccess' // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29
 // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-ESTRELA-DO-FILME-2026-09-29 — as fotos do rosto viram o protagonista:
 // a régua pura (quem, motor, preço ANTES do débito, quais cenas, o pedido ao edit) e o servidor (assinar, gerar, moderar). [KINEO-ESTRELA-DO-FILME-2026-09-29]
-import { estrelaVisible } from '@/lib/engineLaunch' // KINEO-ESTRELA-DO-FILME-2026-09-29
-import { h3maxVisible } from '@/lib/engineLaunch' // KINEO-H3MAX-2026-10-13
-import { h3TurboNoFilmePadrao } from '@/lib/engineLaunch' // KINEO-H3-TURBO-0511
+import { estrelaVisible } from '@/lib/engineLaunchAccess' // KINEO-ESTRELA-DO-FILME-2026-09-29
+import { h3maxVisible } from '@/lib/engineLaunchAccess' // KINEO-H3MAX-2026-10-13
+import { h3TurboNoFilmePadrao } from '@/lib/engineLaunchAccess' // KINEO-H3-TURBO-0511
 import { H3_TURBO_I2V_MODEL, H3_TURBO_T2V_MODEL } from '@/lib/classicSceneRetry' // KINEO-H3-TURBO-0511 · KINEO-SEEDANCE-SAI-1111: H3_TURBO_T2V_MODEL
 import { decideEstrelaRequest, estrelaPedida, estrelaSobretaxa, estrelaFingerprintSuffix, formatoComEstrela, fichaDaEstrela, planoDaEstrela, promptRetratoEstrela, relatoDaEstrela, motorDaEstrela, ESTRELA_VERSION } from '@/lib/estrelaDoFilme' // KINEO-ESTRELA-DO-FILME-2026-09-29
 import { assinarFotosDaEstrela, gerarStillsDaEstrela, ESTRELA_STILL_USD } from '@/lib/estrelaServer' // KINEO-ESTRELA-DO-FILME-2026-09-29

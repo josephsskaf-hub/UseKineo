@@ -93,7 +93,8 @@ import {
 } from '@/lib/clips/freeClipWatermark'
 // KINEO-S25-CLIPES-2026-10-06 — o clipe do Seedance 2.5: interruptor único (clipLaunch) e "só para quem paga" pela MESMA
 // função do filme do 2.5 (lib/s25Access.ts — só servidor; isPayingPlan da régua única do admin, nunca lista redigitada).
-import { clipPaidUpgradeHref, clipS25Visible } from '@/lib/clips/clipLaunch'
+import { clipPaidUpgradeHref } from '@/lib/clips/clipLaunch'
+import { clipS25Visible } from '@/lib/clips/clipLaunchAccess'
 import { s25AccessFor } from '@/lib/s25Access'
 // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 — "pode abrir tudo para ele fazer o que ele quiser dentro" (fundador, 09/10): o parceiro
 // ativo (cortesia ativa + afiliado ativo) usa o clipe do 2.5 como o filme. Lido no servidor; só para plano de cortesia.

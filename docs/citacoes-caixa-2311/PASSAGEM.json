@@ -1,0 +1,110 @@
+{
+  "results": [
+    {
+      "route": "/best-ai-shorts-generators",
+      "width": 1920,
+      "theme": "light",
+      "mode": "idea",
+      "photo": "passagem-best-light-1920-idea.jpg",
+      "promptPreserved": true,
+      "modePreserved": true,
+      "campaign": "citation_idea_best_2311",
+      "signedInDestination": "/studio/create",
+      "signupRendered": true,
+      "signupTitle": "Kineo — AI YouTube Shorts Generator (Official Site)"
+    },
+    {
+      "route": "/best-ai-shorts-generators",
+      "width": 1920,
+      "theme": "light",
+      "mode": "finished_script",
+      "photo": "passagem-best-light-1920-finished_script.jpg",
+      "promptPreserved": true,
+      "modePreserved": true,
+      "campaign": "citation_idea_best_2311",
+      "signedInDestination": "/studio/create",
+      "signupRendered": true,
+      "signupTitle": "Kineo — AI YouTube Shorts Generator (Official Site)"
+    },
+    {
+      "route": "/best-ai-shorts-generators",
+      "width": 390,
+      "theme": "dark",
+      "mode": "idea",
+      "photo": "passagem-best-dark-390-idea.jpg",
+      "promptPreserved": true,
+      "modePreserved": true,
+      "campaign": "citation_idea_best_2311",
+      "signedInDestination": "/studio/create",
+      "signupRendered": true,
+      "signupTitle": "Kineo — AI YouTube Shorts Generator (Official Site)"
+    },
+    {
+      "route": "/best-ai-shorts-generators",
+      "width": 390,
+      "theme": "dark",
+      "mode": "finished_script",
+      "photo": "passagem-best-dark-390-finished_script.jpg",
+      "promptPreserved": true,
+      "modePreserved": true,
+      "campaign": "citation_idea_best_2311",
+      "signedInDestination": "/studio/create",
+      "signupRendered": true,
+      "signupTitle": "Kineo — AI YouTube Shorts Generator (Official Site)"
+    },
+    {
+      "route": "/how-much-do-youtube-shorts-pay",
+      "width": 1920,
+      "theme": "light",
+      "mode": "idea",
+      "photo": "passagem-pay-light-1920-idea.jpg",
+      "promptPreserved": true,
+      "modePreserved": true,
+      "campaign": "citation_idea_pay_2311",
+      "signedInDestination": "/studio/create",
+      "signupRendered": true,
+      "signupTitle": "Kineo — AI YouTube Shorts Generator (Official Site)"
+    },
+    {
+      "route": "/how-much-do-youtube-shorts-pay",
+      "width": 1920,
+      "theme": "light",
+      "mode": "finished_script",
+      "photo": "passagem-pay-light-1920-finished_script.jpg",
+      "promptPreserved": true,
+      "modePreserved": true,
+      "campaign": "citation_idea_pay_2311",
+      "signedInDestination": "/studio/create",
+      "signupRendered": true,
+      "signupTitle": "Kineo — AI YouTube Shorts Generator (Official Site)"
+    },
+    {
+      "route": "/how-much-do-youtube-shorts-pay",
+      "width": 390,
+      "theme": "dark",
+      "mode": "idea",
+      "photo": "passagem-pay-dark-390-idea.jpg",
+      "promptPreserved": true,
+      "modePreserved": true,
+      "campaign": "citation_idea_pay_2311",
+      "signedInDestination": "/studio/create",
+      "signupRendered": true,
+      "signupTitle": "Kineo — AI YouTube Shorts Generator (Official Site)"
+    },
+    {
+      "route": "/how-much-do-youtube-shorts-pay",
+      "width": 390,
+      "theme": "dark",
+      "mode": "finished_script",
+      "photo": "passagem-pay-dark-390-finished_script.jpg",
+      "promptPreserved": true,
+      "modePreserved": true,
+      "campaign": "citation_idea_pay_2311",
+      "signedInDestination": "/studio/create",
+      "signupRendered": true,
+      "signupTitle": "Kineo — AI YouTube Shorts Generator (Official Site)"
+    }
+  ],
+  "errors": [],
+  "scope": "Visitor source form to real local signup; nested signed-in destination inspected. No account created, no authenticated Studio visit or film generated."
+}

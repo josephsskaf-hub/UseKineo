@@ -1,0 +1,54 @@
+{
+  "selected": 10,
+  "passed": 5,
+  "preexistingFailures": 5,
+  "newFailures": [],
+  "base": "4ba8c750cbfc3b937c346e14a7bb28a6a3e6f73d",
+  "failures": [
+    {
+      "test": "test-avatar-fora-2026-09-28.mjs",
+      "candidate": "1",
+      "main": "1",
+      "candidateFirstError": "Error: desfaz KINEO-PAGINAS-IA-CLARAS-2110 em app/best-ai-shorts-generators/page.tsx: fonte divergente",
+      "mainFirstError": "Error: desfaz KINEO-PAGINAS-IA-CLARAS-2110 em app/best-ai-shorts-generators/page.tsx: fonte divergente",
+      "sameFirstError": true
+    },
+    {
+      "test": "test-bing-seo-1510.mjs",
+      "candidate": "1",
+      "main": "1",
+      "candidateFirstError": "FAIL roundup: metadata: Offline harness refuses non-local dependency: react-dom",
+      "mainFirstError": "FAIL roundup: metadata: Offline harness refuses non-local dependency: react-dom",
+      "sameFirstError": true
+    },
+    {
+      "test": "test-citation-entry-truth-2026-09-30.mjs",
+      "candidate": "1",
+      "main": "1",
+      "candidateFirstError": "Error: KINEO-TRAFEGO-2310: app/ai-video-generator/[engine]/page.tsx hunk 0: expected exactly 1 candidate match, found 0",
+      "mainFirstError": "Error: KINEO-TRAFEGO-2310: app/ai-video-generator/[engine]/page.tsx hunk 0: expected exactly 1 candidate match, found 0",
+      "sameFirstError": true
+    },
+    {
+      "test": "test-geo-rodada3-2026-10-08.mjs",
+      "candidate": "1",
+      "main": "1",
+      "candidateFirstError": "FAIL R1 → R1: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts)",
+      "mainFirstError": "FAIL R1 → R1: a regra lançou (desfaz-compra-avulsa-2410: fonte divergente lib/checkoutPricing.ts)",
+      "sameFirstError": true
+    },
+    {
+      "test": "test-paginas-ia-claras-2110.mjs",
+      "candidate": "1",
+      "main": "1",
+      "candidateFirstError": "Error: KINEO-TRAFEGO-2310: app/ai-video-generator/[engine]/page.tsx hunk 0: expected exactly 1 candidate match, found 0",
+      "mainFirstError": "Error: KINEO-TRAFEGO-2310: app/ai-video-generator/[engine]/page.tsx hunk 0: expected exactly 1 candidate match, found 0",
+      "sameFirstError": true
+    }
+  ],
+  "typecheck": {
+    "command": "npx tsc --noEmit -p . --incremental false",
+    "exit": 0
+  },
+  "behavioralMutants": 12
+}

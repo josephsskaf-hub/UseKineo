@@ -1,3 +1,4 @@
+import CitationIdeaForm from '@/components/seo/CitationIdeaForm'
 // SEO — /how-much-do-youtube-shorts-pay: money-intent page targeting
 // "how much do youtube shorts pay" and long-tails ("per 1000 views",
 // "for 1 million views", "shorts CPM/RPM"). Server component — o "zero client
@@ -273,6 +274,9 @@ export default function HowMuchDoYouTubeShortsPayPage() {
           not guarantees. Your real number depends heavily on your niche and where your
           audience lives. Here is exactly how the payout math works, and what moves it.
         </p>
+
+        <CitationIdeaForm article="pay" />
+
         <p style={{ color: MUTED, fontSize: '0.9rem', lineHeight: 1.6, margin: '0 0 18px' }}>
           No figure on this page is a promise of earnings. Shorts RPM varies widely and
           YouTube does not publish per-view rates.

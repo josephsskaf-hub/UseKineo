@@ -1,0 +1,25 @@
+{
+  "movedFunctions": [
+    "h3TurboNoFilmePadrao",
+    "h3maxVisible",
+    "s25Visible",
+    "avatarVisible",
+    "kineo1Visible",
+    "resolveKineo1Flag",
+    "seedance15sVisible",
+    "duracoesCurtasVisible",
+    "estrelaVisible"
+  ],
+  "bodiesCopiedWithoutChanges": true,
+  "touchedImports": [
+    "app/(dashboard)/studio/create/page.tsx",
+    "app/api/generate-video-cinematic/route.ts",
+    "app/api/gpt/handoff/go/route.ts",
+    "app/api/me/credits/route.ts",
+    "app/api/next-action/route.ts",
+    "app/KineoLanding.tsx",
+    "lib/s25Access.ts"
+  ],
+  "publicFlagSource": "lib/engineLaunch.ts",
+  "serverHelpers": "lib/engineLaunchAccess.ts"
+}

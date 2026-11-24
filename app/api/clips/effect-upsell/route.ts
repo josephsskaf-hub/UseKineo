@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { clipsAdmin, loadClip } from '@/lib/clips/clipServer'
-import { clipsVisible } from '@/lib/clips/clipLaunch'
+import { clipsVisible } from '@/lib/clips/clipLaunchAccess'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { clipEffectEventMetadata, clipEffectFilmHref, clipEffectForRow, clipEffectsVisible } from '@/lib/clips/clipEffects'

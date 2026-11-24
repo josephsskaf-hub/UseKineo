@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { MRR_REACTIVATION_SEND_ENABLED } from '@/lib/growth/mrrReactivation'
+import { MRR_REACTIVATION_SEND_ENABLED } from '@/lib/growth/mrrReactivationRelease'
 type Preview = { eligible: number; expires: number; reviewToken: string; recipients: Array<{ id: string; email: string; subject: string; text: string }> }
 
 export default function MrrReactivationReview() {

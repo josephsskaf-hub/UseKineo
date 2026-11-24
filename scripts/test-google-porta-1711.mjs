@@ -21,6 +21,13 @@ function contentReceipt(name, text) {
   const literals = []
   function visit(node) {
     if (ts.isImportDeclaration(node)) return
+    if (ts.isJsxSelfClosingElement(node) && node.tagName.getText(file) === 'CitationIdeaForm') {
+      assert.equal(name, 'app/how-much-do-youtube-shorts-pay/page.tsx', 'Form exception only on payout article')
+      const attrs = node.attributes.properties
+      assert.equal(attrs.length, 1, 'Citation form has one explicit attribute')
+      assert.ok(ts.isJsxAttribute(attrs[0]) && attrs[0].name.getText(file) === 'article' && attrs[0].initializer && ts.isStringLiteral(attrs[0].initializer) && attrs[0].initializer.text === 'pay', 'Exact payout form caller')
+      return
+    }
     if (ts.isJsxSelfClosingElement(node) && node.tagName.getText(file) === 'GoogleCreatorDoor') return
     if (ts.isStringLiteral(node) || ts.isNumericLiteral(node) || ts.isJsxText(node)) {
       if (node.text.trim()) literals.push(node.text.trim())

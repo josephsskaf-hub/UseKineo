@@ -39,7 +39,7 @@ import { FILM60_HANDOFF_KEY, film60StudioHref, readFilm60Handoff } from '@/lib/g
 // ADS_SUBSCRIBER_PLANS (trial e pack avulso ficam de fora — dão 'none'). O custo vem de lib/ads/offer.ts
 // (KINEO1_35S_CREDITS, o mesmo que /api/ads/render cobra via creditCostForDuration('fast', true, 35)) e o "35"
 // do modelo mais curto de lib/ads/models.ts. Os três módulos são puros (sem servidor): entram no bundle do cliente.
-import { ADS_SUBSCRIBER_PLANS } from '@/lib/ads/access'
+import { ADS_SUBSCRIBER_PLANS } from '@/lib/ads/accessPublic'
 import { ADS_MODELS } from '@/lib/ads/models'
 import { KINEO1_35S_CREDITS, adsPassLive } from '@/lib/ads/offer'
 

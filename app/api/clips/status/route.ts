@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { settleClip } from '@/lib/clips/clipFlow'
 import { clipsAdmin, loadClip, settleDepsFor, toPublicClip } from '@/lib/clips/clipServer'
-import { clipsVisible } from '@/lib/clips/clipLaunch'
+import { clipsVisible } from '@/lib/clips/clipLaunchAccess'
 
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'

@@ -3,10 +3,10 @@ import { createClient } from '@/lib/supabase/server'
 // KINEO-S25-CARD-2026-09-01 — a flag `internal` existe para o /studio poder
 // mostrar o card do Seedance 2.5 SO para contas da casa enquanto o motor
 // esta no periodo de canario (o gate de verdade continua no servidor).
-import { s25Visible, avatarVisible, resolveKineo1Flag, seedance15sVisible } from '@/lib/engineLaunch'
-import { h3maxVisible } from '@/lib/engineLaunch' // KINEO-H3MAX-2026-10-13
-import { duracoesCurtasVisible } from '@/lib/engineLaunch' // KINEO-DURACOES-CURTAS-2026-09-29
-import { estrelaVisible } from '@/lib/engineLaunch' // KINEO-ESTRELA-DO-FILME-2026-09-29
+import { s25Visible, avatarVisible, resolveKineo1Flag, seedance15sVisible } from '@/lib/engineLaunchAccess'
+import { h3maxVisible } from '@/lib/engineLaunchAccess' // KINEO-H3MAX-2026-10-13
+import { duracoesCurtasVisible } from '@/lib/engineLaunchAccess' // KINEO-DURACOES-CURTAS-2026-09-29
+import { estrelaVisible } from '@/lib/engineLaunchAccess' // KINEO-ESTRELA-DO-FILME-2026-09-29
 import { readKineo1Access } from '@/lib/kineo1Access'
 import { s25LiberadoNaTela } from '@/lib/s25Access' // KINEO-S25-ABRE-2026-10-06
 import { isActivePartner } from '@/lib/partnerAccess' // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09

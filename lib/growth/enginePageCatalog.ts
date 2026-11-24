@@ -4,7 +4,7 @@ import { S25_PUBLIC, AVATAR_PUBLIC, enginePaused } from '@/lib/engineLaunch'
 import { FREE_FILM_ENGINE_NAME } from '@/lib/freeFilmEngine' // KINEO-LLMS-K4-2910
 import { H3MAX_PUBLIC, engineOffered } from '@/lib/engineLaunch' // KINEO-H3MAX-2026-10-13 · KINEO-MOTORES-SAEM-0511
 import { engineIsPaidPlansOnly } from '@/lib/engineLaunch' // KINEO-S25-ABRE-2026-10-06
-import { clipS25Visible } from '@/lib/clips/clipLaunch' // KINEO-S25-CLIPES-2026-10-06 — o interruptor único do clipe do 2.5
+import { CLIP_S25_PUBLIC } from '@/lib/clips/clipLaunch' // KINEO-S25-CLIPES-2026-10-06 — o interruptor único do clipe do 2.5
 import { FREE_FILM_LABEL, getFreeTierOffer, swapFreeTierCopy as ft, trialFilmsForEngine, TRIAL_CREDITS_SHOWN, TRIAL_SEEDANCE15_FILMS, GRANT_COUNTRY_CLAUSE, TRIAL_FREE_FILM_CREDITS, TRIAL_FREE_FILM_SECONDS } from '@/lib/freeTierOffer'
 import { STARTER_MONTH, MARKETING_REFERENCE_SECONDS, creditsPerReferenceVideo, videosPerMonth } from '@/lib/marketingPrice'
 import { ENGINE_LANDING_LABELS, type EngineLandingParam } from '@/lib/growth/engineLandingIntent'
@@ -51,7 +51,7 @@ function geoVisible(param: EngineLandingParam): boolean {
 // quando o interruptor ÚNICO dele está ligado (lib/clips/clipLaunch.ts CLIP_S25_PUBLIC; quem usa = o mesmo portão pago do
 // filme), com o preço decidido pelo fundador (clipCreditCost → CLIP_S25_CREDITS). Os outros: OPEN_ACCESS.
 function accessFor(param: EngineLandingParam): CitationAccess {
-  return engineIsPaidPlansOnly(param) ? { paidPlansOnly: true, clipOnSale: param !== 's25' || clipS25Visible(null) } : OPEN_ACCESS
+  return engineIsPaidPlansOnly(param) ? { paidPlansOnly: true, clipOnSale: param !== 's25' || CLIP_S25_PUBLIC } : OPEN_ACCESS
 }
 function geoFor(slug: string, param: EngineLandingParam): EngineCitation | null {
   return geoVisible(param) ? buildEngineCitation({ slug, key: param, name: slug === 'kling-3' ? 'Kling 3' : ENGINE_LANDING_LABELS[param], plans: GEO_PLANS, trial: GEO_TRIAL, access: accessFor(param) }) : null

@@ -1,0 +1,18 @@
+{
+  "date": "2026-11-23",
+  "states": 32,
+  "photos": 64,
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "widths": [
+    1920,
+    390
+  ],
+  "exceptions": 0,
+  "overflow": 0,
+  "receipts": "Old paragraphs in order, all tables and JSON-LD identical across 32 states",
+  "scope": "auth synthetic; visitor form to signup real local; authenticated Studio/movie not tested",
+  "gallery": "C:/kineo/docs/decisoes-2311/CITACOES-CAIXA-VOLTA1.html"
+}

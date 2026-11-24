@@ -24,7 +24,8 @@
 // isPayingPlan, MRR e "pagantes" não mudam (a cortesia segue não pagante).
 import { isPayingPlan, isTrialPlan } from '@/app/api/admin/_shared/mrr'
 import { isDryRunAccount } from '@/lib/cinematic/classicDryRun'
-import { S25_PUBLIC, s25Visible } from '@/lib/engineLaunch'
+import { S25_PUBLIC } from '@/lib/engineLaunch'
+import { s25Visible } from '@/lib/engineLaunchAccess'
 import { isCourtesyLevel } from '@/lib/courtesy' // KINEO-PARCEIRO-ABRE-TUDO-2026-10-09 — módulo puro
 
 export type S25Access =

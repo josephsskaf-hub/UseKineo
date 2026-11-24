@@ -1,3 +1,5 @@
+import { ADS_SUBSCRIBER_PLANS } from './accessPublic'
+export { ADS_SUBSCRIBER_PLANS } from './accessPublic'
 // KINEO-STUDIO-ADS-2026-09-25 — quem pode entrar no Studio Ads (decisões 2 e 3 do fundador, 24/09).
 //
 // TRÊS PORTAS, NENHUMA A MAIS:
@@ -23,7 +25,7 @@ import { ADS_ACCESS_COLUMN } from '@/lib/ads/offer'
 
 /** Planos de ASSINATURA que abrem o Studio Ads sem passe (espelha os pagos de app/api/admin/_shared/mrr.ts, sem trial nem piloto). */
 // KINEO-BUSINESS-84-2026-10-09 — 'business' entra: o plano Business É o Studio Ads self-serve (anúncios de produto para empresas).
-export const ADS_SUBSCRIBER_PLANS: readonly string[] = ['starter', 'basic', 'creator', 'pro', 'studio', 'autopilot', 'autopilot_lite', 'business']
+
 
 export interface AdsAccessFields {
   plan?: unknown
