@@ -6,7 +6,7 @@
 
 **ROTINA EXISTENTE / PRESERVADA.** Inventário local consultado em 24/11: kineo-busca-checkpoint-semanal-60-dias ativo aos sábados 20h BRT, término em 05/12, na conversa de Busca; trata a meta histórica, sem renovação por esta entrega. Coordenação Citações e Afiliados antiga está pausada. Não foi localizada agenda ativa de segunda para esta tabela. Nenhuma agenda foi substituída ou duplicada.
 
-**REPRODUZÍVEL MANUALMENTE / PAUTA, NÃO AUTOMÁTICO OPERACIONAL.** A consulta será ligada por linha no quadro à pauta de Citações de segunda 30/11 e aos checkpoints dentro do encerramento vigente. A CEO/rotina executa o SELECT e anexa o CSV. Nenhum job de segunda foi criado nem próximo disparo automático comprovado. Não prometemos execução autônoma.
+**REPRODUZÍVEL MANUALMENTE / PAUTA, NÃO AUTOMÁTICO OPERACIONAL.** A consulta foi ligada por linha no quadro em 24/11 às 14h29 à pauta de Citações de segunda 30/11 e aos checkpoints dentro do encerramento vigente. A CEO/rotina executa o SELECT e anexa o CSV. Nenhum job de segunda foi criado nem próximo disparo automático comprovado. Não prometemos execução autônoma.
 
 **MÉTODO.** Primeira âncora por sessão; conta nova uma vez, na primeira sessão elegível em qualquer página/origem. Internos canônicos e bots marcados excluídos. Conta sem sessão não recebe página inventada. Primeiro filme no histórico e pagamento têm os limites do README. Fontes financeiras novas, pagamentos sem prova do servidor e reembolsos exigem reconciliação.
 
