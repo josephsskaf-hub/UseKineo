@@ -8158,7 +8158,7 @@ async function manipularPost(req: NextRequest) {
       if (juizDaFolhaLigado(JUIZ_DA_FOLHA_2411, user.email) && kling4TrialCandidate && !qualidadeHerdada && folhaDe.size > 0) {
         const julgadas = await Promise.all(elencoP.filter((f) => folhaDe.has(f.nome)).map((f, i) => julgarAFolha({ ficha: f, url: folhaDe.get(f.nome) as string, filmeFotorreal: !isStylizedLook(styleAnchor) && !desenhoInfantil.ativo, lookPhrase: styleAnchor.lookPhrase },
           { ler: (descricao, url) => lerAFolha(descricao, url), gerar: (instrucao) => generateCinematicSceneStill({ scenePrompt: promptDaFolha(f, styleAnchor) + instrucao, styleSuffix: '', seed: (generationSeed + 7_919 * (201 + i)) % 2_147_483_647, pollWindowMs: 15_000, aspect: aspectRequested }) })))
-        for (const j of julgadas) { if (j.url) folhaDe.set(j.relato.nome, j.url); else folhasReprovadas2411.add(j.relato.nome) }
+        for (const j of julgadas) { if (j.url) folhaDe.set(j.nome, j.url); else folhasReprovadas2411.add(j.nome) }
         juizDaFolhaRelato2411 = julgadas.map((j) => j.relato)
       }
       if (qualitySnapshot) qualitySnapshot.characterReferences = Array.from(folhaDe, ([nome, url]) => ({ nome, url })) // KINEO-QUALIDADE-TODOS-MOTORES-2910
