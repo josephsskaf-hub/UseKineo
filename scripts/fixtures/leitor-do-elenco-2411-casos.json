@@ -1,0 +1,167 @@
+{
+ "fonte": "docs/canais/2026-11-24/prova-3/RESULTADO-3.md — roteiros e ideias da CASA (conta do fundador), corpo verbatim + k4_roteiro_do_escritor, ensaios dry_run de 24/11. Nenhum texto de cliente.",
+ "casos": {
+  "farol": {
+   "ensaio": "bf823182",
+   "nome": "farol",
+   "ideia": "Elias Ward, a gray-bearded lighthouse keeper in a navy coat, hears a distress call in a storm and guides a lost fishing boat home with Mara Quinn, a young red-haired radio operator in a green sweater.",
+   "roteiro": "HOOK: [Pexels: gray-bearded lighthouse keeper in a navy coat climbing a spiral staircase at night in a storm] Elias Ward had kept the lighthouse alone for thirty years.\n\nMICRO REWARD 1: [Pexels: young red-haired woman in a green sweater wearing headphones at an old radio set, the gray-bearded keeper in a navy coat standing behind her] That night, Mara Quinn caught a faint call on the radio.\n\nMICRO REWARD 2: [Pexels: gray-bearded lighthouse keeper in a navy coat turning a huge lamp at the top of the lighthouse] A small fishing boat was lost in the storm.\n\nPAYOFF: [Pexels: the gray-bearded keeper in a navy coat and the red-haired woman in a green sweater watching a small boat reach the harbor at dawn] Together, they lit its way back home.",
+   "gravado": {
+    "cast_checked": {
+     "status": "ok",
+     "conferiu": true,
+     "lidos": [
+      "Elias Ward",
+      "Mara Quinn"
+     ],
+     "removidos": []
+    },
+    "casting": "sem_elenco"
+   },
+   "leitura_simulada": {
+    "protagonist": {
+     "name": "Elias Ward",
+     "role_text": null,
+     "role_en": "lighthouse keeper",
+     "kind": "human",
+     "species": "human",
+     "species_en": "human",
+     "appearance_from_text": "",
+     "appearance_en": "",
+     "gender_if_stated": null,
+     "age_text": null,
+     "on_screen": true
+    },
+    "supporting": [
+     {
+      "name": "Mara Quinn",
+      "role_text": null,
+      "role_en": "radio operator",
+      "kind": "human",
+      "species": "human",
+      "species_en": "human",
+      "appearance_from_text": "",
+      "appearance_en": "",
+      "gender_if_stated": null,
+      "age_text": null,
+      "on_screen": true
+     }
+    ],
+    "places_and_orgs": []
+   },
+   "nota": "leitura_simulada: a resposta bruta não é gravada; esta reproduz o gravado (lidos = os dois, aplicar = null, removidos = [])"
+  },
+  "farol2": {
+   "ensaio": "9ce9576c",
+   "nome": "farol2",
+   "ideia": "Meet Elias and Mara. Elias is an old gray-bearded lighthouse keeper in a navy coat. Mara is a young red-haired radio operator in a green sweater. In a storm they guide a lost fishing boat home.",
+   "roteiro": "HOOK: [Pexels: old gray-bearded lighthouse keeper in a navy coat climbing a spiral staircase at night in a storm] Elias had kept the old lighthouse alone for thirty years.\n\nMICRO REWARD 1: [Pexels: young red-haired woman in a green sweater wearing headphones at an old radio set, the old gray-bearded keeper in a navy coat standing behind her] That night, Mara caught a faint call on the radio.\n\nMICRO REWARD 2: [Pexels: old gray-bearded lighthouse keeper in a navy coat turning a huge lamp at the top of the lighthouse] A small fishing boat was lost in the storm.\n\nPAYOFF: [Pexels: the old gray-bearded keeper in a navy coat and the young red-haired woman in a green sweater watching a small boat reach the harbor at dawn] Together, Elias and Mara lit its way home.",
+   "gravado": {
+    "cast_checked": {
+     "status": "ok",
+     "conferiu": false,
+     "lidos": null
+    },
+    "elenco": [
+     "Elias (humano, protagonista)",
+     "Mara (humano)"
+    ],
+    "canonica_elias": "Elias, kept the old lighthouse alone for thirty years, exactly as the author wrote"
+   },
+   "leitura_simulada": {
+    "protagonist": {
+     "name": "Elias",
+     "role_text": "kept the old lighthouse alone for thirty years",
+     "role_en": "lighthouse keeper",
+     "kind": "human",
+     "species": "human",
+     "species_en": "human",
+     "appearance_from_text": "",
+     "appearance_en": "",
+     "gender_if_stated": null,
+     "age_text": null,
+     "on_screen": true
+    },
+    "supporting": [
+     {
+      "name": "Mara",
+      "role_text": "caught a faint call on the radio",
+      "role_en": "radio operator",
+      "kind": "human",
+      "species": "human",
+      "species_en": "human",
+      "appearance_from_text": "",
+      "appearance_en": "",
+      "gender_if_stated": null,
+      "age_text": null,
+      "on_screen": true
+     }
+    ],
+    "places_and_orgs": []
+   },
+   "nota": "leitura_simulada reproduz a canônica gravada do Elias"
+  },
+  "juno": {
+   "ensaio": "9467548b",
+   "nome": "juno",
+   "ideia": "A realistic story about Juno, a golden retriever with a red bandana, who walks alone to the lighthouse every evening to wait for the fishing boats.",
+   "roteiro": "HOOK: [Pexels: golden retriever with a red bandana walking alone on a seaside path toward a lighthouse at sunset] Every single evening, Juno walked to the old lighthouse alone.\n\nMICRO REWARD 1: [Pexels: golden retriever with a red bandana sitting on dark rocks watching the sea] She sat on the rocks and watched the water.\n\nMICRO REWARD 2: [Pexels: golden retriever with a red bandana barking at the dark sea in thick fog] When the fog rolled in, she barked until dawn.\n\nPAYOFF: [Pexels: small fishing boats arriving at a harbor at sunrise, golden retriever with a red bandana wagging its tail on the dock] The fishermen say her voice still brings them home.",
+   "gravado": {
+    "cast_checked": {
+     "status": "json_invalido",
+     "motivos": [
+      "1:json",
+      "2:json",
+      "3:json"
+     ]
+    },
+    "protagonist_mode": {
+     "sujeito": "a golden retriever with a red bandana",
+     "sujeito_kind": "creature"
+    },
+    "cast_origin": [
+     "the retriever"
+    ]
+   },
+   "leitura_simulada": {
+    "protagonist": {
+     "name": "Juno",
+     "role_text": null,
+     "role_en": null,
+     "kind": "animal",
+     "species": "golden retriever",
+     "species_en": "golden retriever",
+     "appearance_from_text": "",
+     "appearance_en": "",
+     "gender_if_stated": "female",
+     "age_text": null,
+     "on_screen": true
+    },
+    "supporting": [],
+    "places_and_orgs": []
+   },
+   "sujeito_gravado": {
+    "kind": "creature",
+    "head_noun": "retriever",
+    "subject_visual": "a golden retriever with a red bandana",
+    "appearance": null,
+    "real_person": false,
+    "word_use": "literal",
+    "has_human": false
+   },
+   "nota": "leitura_simulada: a resposta que a conferência recusa (espécie só no pedido e nas pistas) → lerElencoSemantico null = o \"json\" gravado"
+  },
+  "bolt": {
+   "ensaio": "bb57e2ea",
+   "nome": "bolt",
+   "ideia": "A 3D animated cartoon about Bolt, a small round orange robot with big blue eyes, who finds a lost seed in a junkyard and grows the first flower there.",
+   "roteiro": "HOOK: [Pexels: 3D animated cartoon, a small round orange robot with big blue eyes rolling through a gray junkyard] Bolt was the smallest robot in the whole junkyard.\n\nMICRO REWARD 1: [Pexels: 3D animated cartoon, the small round orange robot holding a tiny glowing seed in its metal hands] One gray morning, he found a tiny seed nobody wanted.\n\nMICRO REWARD 2: [Pexels: 3D animated cartoon, the small round orange robot watering a little green sprout between rusty cars] So he watered it every single day, rain or rust.\n\nPAYOFF: [Pexels: 3D animated cartoon, a bright yellow flower blooming in the junkyard, the small round orange robot smiling beside it] And the junkyard grew its very first flower."
+  },
+  "ember": {
+   "ensaio": "e9203ceb",
+   "nome": "ember",
+   "ideia": "A fantasy story about Ember, a small green dragon with orange wings, who cannot breathe fire until the night her mountain village freezes.",
+   "roteiro": "HOOK: [Pexels: a small green dragon with orange wings sitting on a snowy mountain ledge] Ember was the only dragon who could not breathe fire.\n\nMICRO REWARD 1: [Pexels: a small green dragon with orange wings trying to blow fire, only a puff of smoke comes out] Every time she tried, only a little smoke came out.\n\nMICRO REWARD 2: [Pexels: a snowy mountain village at night with dark frozen houses, nobody in sight] Then one winter night, the whole village froze.\n\nPAYOFF: [Pexels: a small green dragon with orange wings breathing a warm stream of fire over a stone hearth, golden light on the snow] She took one deep breath, and the mountain glowed."
+  }
+ }
+}

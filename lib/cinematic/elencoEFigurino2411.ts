@@ -40,6 +40,9 @@
 // Módulo puro (sem rede): a rota decide quando chamar.
 import type { FichaDePersonagem } from '@/lib/cinematic/folhaDePersonagem'
 import { apostoDoPedido, nomeadoNoPedido, textoDoPedidoOriginal, trechoDescreve } from '@/lib/cinematic/fichaDoPedido'
+import { ESPECIES_DA_FOLHA, PERSONAGEM_MAX_PERSONAGENS } from '@/lib/cinematic/folhaDePersonagem' // KINEO-LEITOR-DO-ELENCO-2411
+import { canonicaLiteral } from '@/lib/cinematic/juizFicha' // KINEO-LEITOR-DO-ELENCO-2411
+import { fichaDoAutor } from '@/lib/cinematic/elencoSemantico' // KINEO-LEITOR-DO-ELENCO-2411
 import { escritaLatina } from '@/lib/cinematic/conferenciaDoElenco'
 import { mesmoPersonagem } from '@/lib/cinematic/elencoEpoca'
 import { generoDoPapel } from '@/lib/cinematic/elencoSemantico'
@@ -238,4 +241,207 @@ export function medidaDaRegra2411(base: MedidaDaLeitura2411 | null | undefined, 
     const sePublic = a.elencoSePublic()
     return { ...inicio, papeis_so_da_pista: chaves.size, elenco_antes: antes, elenco_se_public: sePublic, a_regra_agiria: sePublic < antes }
   } catch { return { ...inicio, erro: true } }
+}
+// ═══ KINEO-LEITOR-DO-ELENCO-2411 [CEO 24/11, etapa 3 do "filme para todos"] — quem o autor NOMEOU e DESCREVEU entra no elenco com a descrição ═══
+// Mapa: docs/canais/2026-11-24/prova-3/RESULTADO-3.md (ensaios bf823182, 9ce9576c, 9467548b). Guardião: scripts/test-leitor-do-elenco-2411.mjs.
+// TRÊS PERDAS (diagnóstico com arquivo e linha no relatório da etapa 3):
+//   (a) "Elias Ward had kept…" + "Mara Quinn caught…": cada nome aparece UMA vez na narração; a lista de palavras pede 2 (folhaDePersonagem
+//       nomesDoRoteiro: `c.total >= 2`) e a leitura semântica, que leu os dois, é descartada inteira porque o protagonista nomeado não tem papel
+//       escrito na NARRAÇÃO e não está na lista (elencoSemantico aplicarElencoSemantico: `semFicha(sem.protagonist)` → null). Elenco vazio.
+//   (a') "Elias is an old gray-bearded lighthouse keeper in a navy coat" (cópula) no pedido: nenhum leitor do pedido lê essa forma (aposto
+//       "Nome, a …", "a … named Nome" e "a … who called himself Nome" só); a ficha ficou com a AÇÃO que o leitor copiou da narração.
+//   (b) "Juno, a golden retriever with a red bandana": a espécie só está no PEDIDO e nas pistas; a narração diz "Juno walked… She sat…". A
+//       leitura semântica exige a espécie do bicho nomeado na narração (lerPersonagem: `!species_text` → null) e o protagonista recusado
+//       derruba a resposta (3 tentativas "json"); a lista de palavras pede o nome 2 vezes. Sobrou a ficha do sujeito ("the retriever", origem
+//       modelo, protagonista1311 fichaDoSujeitoVivo) e o casting a reescreveu sem a bandana.
+// A REGRA (pura, sem rede; decide o código, nada vai ao prompt do leitor):
+//   1. DESCRIÇÃO: a ficha de nome próprio ganha as palavras que o autor colou ao nome — no PEDIDO original e, sem pedido, na NARRAÇÃO (sem as
+//      pistas) — em três formas: aposto "Nome[ Sobrenome], a …", cópula "Nome[ Sobrenome] is/was a …" e "a … named/called Nome". O trecho tem
+//      de passar inteiro em trechoDescreve (fichaDoPedido: tudo ou nada, a mesma régua do aposto de 09/11). Ficha que não é do autor vira a
+//      ficha literal (canonicaLiteral, origem 'autor': o casting não a reescreve); ficha do autor ganha o trecho depois da cabeça (não se apaga
+//      o que o autor já escreveu). Ficha que já tem todas as palavras: nada.
+//   2. NOME: a ficha SEM nome ("the retriever") vira o nome próprio da narração quando a descrição colada a esse nome tem a mesma espécie
+//      (o núcleo da ficha é palavra da descrição) — e só com UM nome assim (dois = dúvida = nada).
+//   3. NOVO: nome da narração que nenhuma ficha tem entra (até PERSONAGEM_MAX_PERSONAGENS) quando (i) tem descrição e a leitura semântica não o
+//      descartou (respondeu sem ele = julgado = fora; não respondeu = a descrição basta), ou (ii) é nome e SOBRENOME (2+ palavras com
+//      maiúscula), a leitura o leu como personagem e a narração o mostra agindo ("Elias Ward had kept"). Sem descrição, a ficha é só o que o
+//      autor escreveu dele (fichaDoAutor com a oração da narração): nada de cabelo, rosto ou roupa sorteados.
+//   Fora sempre: figura conhecida/mítica (as regras de hoje: nada deduzido do nome), nome que a leitura listou como lugar/empresa, palavra de
+//   função no começo de frase ("This is a…", "Meet"), escrita não latina. Interruptor PRÓPRIO, nasce 'internal' (só a lista exata da casa).
+export const LEITOR_DO_ELENCO_2411_VERSAO = 'KINEO-LEITOR-DO-ELENCO-2411'
+/** [autora 24/11] 'internal': só a lista exata da casa. 'public' só com revisor independente + ensaio da casa + sim da CEO. Voltar: 'off'. */
+export const LEITOR_DO_ELENCO_2411: ModoElencoEFigurino2411 = 'internal'
+
+const APOSTO_DO_NOME_RE = /^, (a|an|the) ([^,.;:!?…\n()"“”«»—–]{3,200}?) ?([,.;:!?…\n—–]|$)/iu
+const COPULA_DO_NOME_RE = /^ (?:is|was) (a|an) ([^,.;:!?…\n()"“”«»—–]{3,200}?) ?([,.;:!?…\n—–]|$)/iu
+const LISTA_DEPOIS_RE = /^,\s*(?:and|or)\s/iu
+const DUPLO_ANTES_RE = /(?<![\p{L}\p{N}])(?:another|other|second)\s+$/iu
+const SOBRENOMES_RE = /^(?: \p{Lu}[\p{Ll}'’-]+){0,2}/u
+/** Palavra com maiúscula que é função/abertura de frase, nunca nome: "This is a small dog", "Meet Juno", "Every evening". Classe fechada. */
+const NUNCA_NOME_2411 = new Set(('the a an this that these those it its he she they we you i his her their our your my there here every each one someone everyone '
+  + 'nobody nothing then when once but and so or meet imagine picture watch together now today tonight later soon after before suddenly finally still yet '
+  + 'what who why how where which while until since because if as at in on of to for with from by into no not never always some all both many most '
+  + 'hook payoff micro reward cta intro outro scene act part chapter').split(' '))
+const ESPECIE_ANIMAL_RE = new RegExp(`^(?:${ESPECIES_DA_FOLHA.animais})s?$`, 'iu')
+const ESPECIE_CRIATURA_RE = new RegExp(`^(?:${ESPECIES_DA_FOLHA.criaturas})s?$`, 'iu')
+const FUNCAO_NO_VERBO_RE = /^(?:of|and|or|the|a|an|in|on|at|to|with|from|for|by|as|is|was)$/iu
+
+export type FonteDaDescricao = 'pedido' | 'roteiro'
+export interface DescricaoDoNome2411 { trecho: string; artigo: string; forma: 'aposto' | 'copula' | 'nomeado'; fonte: FonteDaDescricao; tipo: FichaDePersonagem['tipo']; nucleo: string }
+
+/** A cabeça da descrição ("old gray-bearded lighthouse keeper" de "… in a navy coat") e o ser que ela diz: criatura/animal pela lista da folha, senão gente. */
+function serDaDescricao(trecho: string): { tipo: FichaDePersonagem['tipo']; nucleo: string } {
+  const cabeca = trecho.split(/\s+(?:with|wearing|in|and|dressed)\s/iu)[0].split(/\s+/).filter(Boolean)
+  const criatura = [...cabeca].reverse().find((w) => ESPECIE_CRIATURA_RE.test(w))
+  if (criatura) return { tipo: 'criatura', nucleo: norm(criatura).replace(/s$/, '') }
+  const animal = [...cabeca].reverse().find((w) => ESPECIE_ANIMAL_RE.test(w))
+  if (animal) return { tipo: 'animal', nucleo: norm(animal).replace(/s$/, '') }
+  return { tipo: 'humano', nucleo: norm(cabeca[cabeca.length - 1] ?? '') }
+}
+
+/** Os trechos colados ao nome no texto, nas três formas, antes de qualquer conferência. */
+function trechosColadosAoNome(texto: string, nome: string): Array<{ trecho: string; artigo: string; forma: DescricaoDoNome2411['forma'] }> {
+  const saida: Array<{ trecho: string; artigo: string; forma: DescricaoDoNome2411['forma'] }> = []
+  for (const m of texto.matchAll(new RegExp(`(?<![\\p{L}\\p{N}-])${escapaRe(nome)}(?![\\p{L}\\p{N}-])`, 'gu'))) {
+    const ini = m.index ?? 0
+    if (DUPLO_ANTES_RE.test(texto.slice(Math.max(0, ini - 12), ini))) continue
+    let fim = ini + m[0].length
+    fim += (SOBRENOMES_RE.exec(texto.slice(fim, fim + 60))?.[0] ?? '').length // "Elias" lê "Elias Ward, a …"
+    const resto = texto.slice(fim, fim + 240)
+    const a = APOSTO_DO_NOME_RE.exec(resto)
+    if (a && !(a[3] === ',' && LISTA_DEPOIS_RE.test(resto.slice(a[0].length - 1, a[0].length + 8)))) saida.push({ trecho: limpa(a[2]), artigo: a[1], forma: 'aposto' })
+    const c = COPULA_DO_NOME_RE.exec(resto)
+    if (c) saida.push({ trecho: limpa(c[2]), artigo: c[1], forma: 'copula' })
+  }
+  for (const m of texto.matchAll(new RegExp(`(?<![\\p{L}\\p{N}])(an?|the)\\s+([^.,;:!?()\\n"“”]{2,160}?)\\s+(?:named|called)\\s+${escapaRe(nome)}(?![\\p{L}\\p{N}-])`, 'giu')))
+    saida.push({ trecho: limpa(m[2]), artigo: m[1], forma: 'nomeado' })
+  return saida
+}
+
+/** A descrição que o autor colou a este nome: primeiro no pedido, depois na narração (sem pistas). `ficha` = o ser esperado (null = o que a descrição disser).
+ *  null = nenhuma forma, ou o trecho não passa INTEIRO na régua de descrição (dúvida = nada). */
+export function descricaoDoNome2411(textos: ReadonlyArray<{ texto: string; fonte: FonteDaDescricao }>, nome: string, ficha: Pick<FichaDePersonagem, 'tipo' | 'nucleo'> | null, outros: ReadonlyArray<string> = []): DescricaoDoNome2411 | null {
+  const n = limpa(nome)
+  if (!/^\p{Lu}/u.test(n) || NUNCA_NOME_2411.has(norm(n.split(' ')[0]))) return null
+  for (const { texto, fonte } of textos) {
+    if (!texto || !escritaLatina(texto)) continue
+    for (const t of trechosColadosAoNome(texto, n)) {
+      const ser = serDaDescricao(t.trecho)
+      // o ser esperado: o da ficha (bicho/criatura com o núcleo dela; "the retriever" × "golden retriever"); sem ficha, o que a descrição diz
+      const esperado = ficha ? { tipo: ficha.tipo, nucleo: ficha.tipo === 'humano' ? ser.nucleo : norm(ficha.nucleo) === norm(n) ? ser.nucleo : norm(ficha.nucleo) } : ser
+      if (ficha && ficha.tipo !== 'humano' && ser.tipo === 'humano' && !temPalavra(t.trecho, esperado.nucleo)) continue
+      if (!trechoDescreve(t.trecho, t.artigo, { nome: n, nucleo: esperado.nucleo, tipo: esperado.tipo })) continue
+      if (outros.some((o) => o && !mesmoPersonagem(o, n) && /^\p{Lu}/u.test(o) && temPalavra(t.trecho, o))) continue // cita outro do elenco
+      return { trecho: t.trecho, artigo: t.artigo, forma: t.forma, fonte, tipo: esperado.tipo, nucleo: esperado.nucleo }
+    }
+  }
+  return null
+}
+
+/** Nomes próprios da narração (sem pistas, sem rótulos de seção): sequências de 1 a 3 palavras com maiúscula, na ordem em que aparecem. */
+export function nomesDaNarracao2411(roteiro: string): string[] {
+  const texto = semTags(roteiro).replace(/(?:^|\s)[A-Z][A-Z0-9 ]{2,30}:/g, ' ') // "HOOK:", "MICRO REWARD 1:"
+  const vistos: string[] = []
+  for (const m of texto.matchAll(/(?<![\p{L}\p{N}'’-])\p{Lu}\p{Ll}+(?:'s|’s)?(?: \p{Lu}\p{Ll}+(?:'s|’s)?){0,2}(?![\p{L}\p{N}-])/gu)) {
+    let ws = m[0].replace(/(?:'s|’s)/gu, '').split(' ')
+    while (ws.length && NUNCA_NOME_2411.has(norm(ws[0]))) ws = ws.slice(1)
+    const nome = ws.join(' ')
+    if (nome.length >= 3 && !vistos.includes(nome)) vistos.push(nome)
+  }
+  return vistos
+}
+
+/** O nome completo AGE na narração: "Elias Ward had kept", "Mara Quinn caught" (palavra minúscula que não é função logo depois). A oração até a pontuação. */
+export function oracaoDoNome2411(roteiro: string, nome: string): string | null {
+  const texto = semTags(roteiro)
+  for (const m of texto.matchAll(new RegExp(`(?<![\\p{L}\\p{N}-])${escapaRe(nome)}\\s+([\\p{Ll}][^.,;:!?…\\n]{2,120})`, 'gu'))) {
+    const ws = limpa(m[1]).split(' ')
+    if (FUNCAO_NO_VERBO_RE.test(ws[0]) && !/^(?:is|was)$/iu.test(ws[0])) continue
+    if (ws.length > 12) continue
+    return ws.join(' ')
+  }
+  return null
+}
+
+export interface MudancaDoLeitor2411 { nome: string; acao: 'descricao' | 'nome' | 'novo'; fonte: FonteDaDescricao | 'oracao'; forma: DescricaoDoNome2411['forma'] | 'oracao'; tipo: FichaDePersonagem['tipo'] }
+export interface EntradaDoLeitor2411 {
+  elenco: ReadonlyArray<FichaDePersonagem>
+  /** body.original_idea (o pedido original; ausente = só a narração) */
+  pedido: unknown
+  /** o roteiro despachado (com pistas; elas não são lidas) */
+  roteiro: string
+  /** os nomes que a leitura semântica leu como personagem; null = a leitura não respondeu */
+  lidos: ReadonlyArray<string> | null
+  /** o que a leitura listou como lugar/empresa/título */
+  lugares?: ReadonlyArray<string>
+}
+const ehFigura = (nome: string) => !!figuraConhecidaJuiz(nome) || !!figuraConhecida(nome)
+const frasesDe2411 = (texto: string) => String(texto ?? '').split(/(?<=[.!?…;])\s+|\n+/)
+const temNome = (texto: string, nome: string) => new RegExp(`(?<![\\p{L}\\p{N}-])${escapaRe(nome)}(?![\\p{L}\\p{N}-])`, 'u').test(texto)
+const nomeProprio2411 = (nome: string) => /^\p{Lu}[\p{L}'’.-]*(?: \p{Lu}[\p{L}'’.-]*){0,3}$/u.test(limpa(nome)) && !/^(?:the|a|an)\s/i.test(nome)
+
+/** O elenco com quem o autor nomeou e descreveu (ver o cabeçalho da seção). Nada a fazer = o MESMO array (referência). Nunca lança: erro = o mesmo array. */
+export function elencoDoLeitor2411(e: EntradaDoLeitor2411): { elenco: FichaDePersonagem[]; mudancas: MudancaDoLeitor2411[] } {
+  const base = e.elenco as FichaDePersonagem[]
+  try {
+    const roteiro = String(e.roteiro ?? '')
+    const narracao = semTags(roteiro)
+    if (!narracao || !escritaLatina(narracao)) return { elenco: base, mudancas: [] }
+    const pedido = textoDoPedidoOriginal(e.pedido)
+    const textos = [{ texto: pedido, fonte: 'pedido' as const }, { texto: narracao, fonte: 'roteiro' as const }].filter((t) => !!t.texto)
+    const lugares = (e.lugares ?? []).map((l) => norm(limpa(l)))
+    const mudancas: MudancaDoLeitor2411[] = []
+    let elenco = base.map((f) => ({ ...f }))
+    const nomesDoElenco = () => elenco.map((f) => f.nome)
+    // 1. a descrição colada ao nome de quem já está no elenco
+    elenco = elenco.map((f) => {
+      if (!nomeProprio2411(f.nome) || (f.origem as string) === 'mitica' || ehFigura(f.nome)) return f
+      // o aposto e o "named" do PEDIDO já têm dono (KINEO-FICHA-DO-PEDIDO-0911 e KINEO-APARENCIA-DO-PEDIDO-1311, para todas as contas): ficam com ele, como hoje
+      if (pedido && (apostoDoPedido(pedido, f, nomesDoElenco()) || nomeadoNoPedido(pedido, f, nomesDoElenco()))) return f
+      const d = descricaoDoNome2411(textos, f.nome, f, nomesDoElenco())
+      if (!d) return f
+      const ficha = palavrasConteudo(f.canonica)
+      if (palavrasConteudo(d.trecho).every((w) => ficha.includes(w))) return f
+      mudancas.push({ nome: f.nome, acao: 'descricao', fonte: d.fonte, forma: d.forma, tipo: f.tipo })
+      if (f.origem === 'autor') { const [cabeca, ...resto] = f.canonica.split('; '); return { ...f, canonica: [cabeca, `${MARCA_DO_PEDIDO_2411} ${d.trecho}`, ...resto].join('; ') } }
+      return { ...f, canonica: canonicaLiteral(f, d.trecho, null, null), origem: 'autor' as FichaDePersonagem['origem'] }
+    })
+    const candidatos = nomesDaNarracao2411(roteiro).filter((n) => !lugares.includes(norm(n)) && !ehFigura(n) && !elenco.some((f) => mesmoPersonagem(f.nome, n)))
+    const usados = new Set<string>()
+    // 2. a ficha sem nome que é o bicho/pessoa que o autor nomeou ("the retriever" = "Juno, a golden retriever …")
+    elenco = elenco.map((f) => {
+      if (nomeProprio2411(f.nome) || !/^the\s/i.test(f.nome)) return f
+      const achados = candidatos.flatMap((n) => { const d = descricaoDoNome2411(textos, n, f, nomesDoElenco()); return d && temPalavra(d.trecho, f.nucleo) ? [{ n, d }] : [] })
+      // dúvida = nada: outro nome citado na MESMA frase que a espécie ("Rex, a big brown dog, and Max, a small white dog") também pode ser ela
+      const disputam = candidatos.filter((n) => textos.some(({ texto }) => frasesDe2411(texto).some((fr) => temNome(fr, n) && temPalavra(fr, f.nucleo))))
+      if (achados.length !== 1 || disputam.length !== 1 || disputam[0] !== achados[0].n || usados.has(achados[0].n)) return f
+      const { n, d } = achados[0]
+      usados.add(n)
+      mudancas.push({ nome: n, acao: 'nome', fonte: d.fonte, forma: d.forma, tipo: f.tipo })
+      return { ...f, nome: n, canonica: canonicaLiteral({ nome: n }, d.trecho, null, null), origem: 'autor' as FichaDePersonagem['origem'] }
+    })
+    // 3. quem o autor nomeou e nenhuma ficha tem
+    for (const n of candidatos) {
+      if (elenco.length >= PERSONAGEM_MAX_PERSONAGENS) break
+      if (usados.has(n) || elenco.some((f) => mesmoPersonagem(f.nome, n))) continue
+      const leu = e.lidos === null ? null : e.lidos.some((l) => mesmoPersonagem(l, n))
+      const d = descricaoDoNome2411(textos, n, null, [...nomesDoElenco(), ...candidatos])
+      let nova: FichaDePersonagem | null = null
+      // a descrição cita o papel de uma ficha SEM nome que ficou (o passo 2 teve dúvida): é provavelmente a mesma pessoa/bicho — nada
+      if (d && elenco.some((f) => !nomeProprio2411(f.nome) && temPalavra(d.trecho, f.nucleo))) continue
+      if (d && leu !== false) {
+        nova = { nome: n, nucleo: d.tipo === 'humano' ? n.split(' ').pop()! : d.nucleo, tipo: d.tipo, canonica: canonicaLiteral({ nome: n }, d.trecho, null, null), origem: 'autor', protagonista: false, genero: d.tipo === 'humano' ? (generoDoPapel(d.trecho.split(/\s+(?:with|wearing|in|dressed)\s/iu)[0]) === 'female' ? 'woman' : generoDoPapel(d.trecho.split(/\s+(?:with|wearing|in|dressed)\s/iu)[0]) === 'male' ? 'man' : null) : null }
+        mudancas.push({ nome: n, acao: 'novo', fonte: d.fonte, forma: d.forma, tipo: d.tipo })
+      } else if (!d && leu === true && n.split(' ').length >= 2) {
+        const oracao = oracaoDoNome2411(roteiro, n)
+        if (oracao) { nova = { nome: n, nucleo: n.split(' ').pop()!, tipo: 'humano', canonica: fichaDoAutor(n, oracao), origem: 'autor', protagonista: false, genero: null }; mudancas.push({ nome: n, acao: 'novo', fonte: 'oracao', forma: 'oracao', tipo: 'humano' }) }
+      }
+      if (!nova) continue
+      usados.add(n)
+      elenco.push(nova)
+    }
+    if (!mudancas.length) return { elenco: base, mudancas: [] }
+    if (!elenco.some((f) => f.protagonista) && elenco.length) elenco = elenco.map((f, i) => ({ ...f, protagonista: i === 0 }))
+    return { elenco, mudancas }
+  } catch { return { elenco: base, mudancas: [] } }
 }

@@ -114,6 +114,7 @@ export interface FichaDePersonagem {
 
 const ANIMAIS = 'bunny|rabbit|bear|fox|mouse|puppy|dog|kitten|cat|owl|turtle|elephant|lion|zebra|giraffe|penguin|duck|duckling|frog|monkey|tiger|wolf|deer|whale|dolphin|bee|butterfly|horse|pony|pig|cow|sheep|goat|chicken|hen|rooster|parrot|eagle|hawk|squirrel|hedgehog|raccoon|panda|koala|otter|seal|crab|octopus|snake|lizard|hamster|donkey|camel'
 const CRIATURAS = 'dinosaur|dino|dragon|robot|unicorn|monster|ghost|demon|alien|fairy|elf|dwarf|troll|goblin|zombie|vampire|werewolf|mermaid|giant|golem|witch|wizard|genie|angel|yeti|gnome|t-rex|trex|raptor'
+export const ESPECIES_DA_FOLHA = { animais: ANIMAIS, criaturas: CRIATURAS } as const // KINEO-LEITOR-DO-ELENCO-2411 — as mesmas listas, lidas pelo leitor do elenco (elencoEFigurino2411); nada aqui muda
 const PESSOAS = 'boy|girl|man|woman|kid|child|baby|toddler|teen|teenager|student|captain|soldier|knight|king|queen|prince|princess|farmer|fisherman|sailor|pilot|doctor|nurse|teacher|scientist|detective|explorer|astronaut|pirate|cowboy|monk|priest|keeper|traveler|traveller|stranger|hunter|climber|miner|engineer|chef|artist|painter|writer|singer|dancer|player|runner|mother|father|grandmother|grandfather|sister|brother|son|daughter|friend|neighbor|neighbour|villager|warrior|hero|heroine|librarian|guard|officer|driver|rider|nomad|shepherd|merchant|thief|widow|bride|groom|designer|storyteller'
 const ANIMAL_RE = new RegExp(`\\b(${ANIMAIS})s?\\b`, 'i')
 const CRIATURA_RE = new RegExp(`\\b(${CRIATURAS})s?\\b`, 'i')
