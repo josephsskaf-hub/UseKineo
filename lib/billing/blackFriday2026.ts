@@ -217,8 +217,13 @@ export const BF2026_WAVE_DATES: Record<Bf2026Wave, string> = { bf: BF2026_BLACK_
  */
 export const BF2026_EMAIL_SENT = 'bf2026_emailed' as const
 export const BF2026_EMAIL_CLAIM = 'bf2026_email_claimed' as const
-/** Evita recontactar por sete dias quem recebeu a carta BF da base em 23/11. */
-export const BF2026_BASE_LETTER_SUPPRESSION_HOURS = 168
+/**
+ * KINEO-BF-TRAVA-CAMPANHA-2411 — quem recebeu a carta BF da base (23 e 24/11) não recebe as ondas desta campanha.
+ * 240 h = 10 dias: do 1º selo (23/11 20:30Z) até 03/12 20:30Z, depois do fim da oferta (BF2026_ENDS_AT, 02/12 05:00Z).
+ * Com 168 h a metade B (242 contas) saía da trava em 30/11 17:30 BRT e cerca de 139 levavam a rodada da noite da Cyber
+ * (revisor independente, 24/11: docs/revisoes-2311/CEO-BF-ONLY-2411.md).
+ */
+export const BF2026_BASE_LETTER_SUPPRESSION_HOURS = 240
 export const BF2026_BASE_LETTER_SENT_EVENT = 'bf_base_2311_sent' as const
 export const BF2026_EMAIL_FROM = 'Joseph at Kineo <joseph@usekineo.com>'
 export const BF2026_EMAIL_REPLY_TO = 'joseph@usekineo.com'
@@ -285,7 +290,7 @@ export function bf2026WaveForDate(nowMs: number = Date.now()): Bf2026Wave | null
   return d === BF2026_WAVE_DATES.bf ? 'bf' : d === BF2026_WAVE_DATES.cyber ? 'cyber' : null
 }
 
-/** true quando a reserva/envio da carta da base foi há menos de 168 h. */
+/** true quando a reserva/envio da carta da base ainda está dentro da janela (BF2026_BASE_LETTER_SUPPRESSION_HOURS). */
 export function bf2026BaseLetterWithinSuppressionWindow(sentAt: unknown, nowMs: number): boolean {
   if (!Number.isFinite(nowMs)) return false
   const sentMs = Date.parse(String(sentAt ?? ''))
@@ -299,7 +304,7 @@ export type Bf2026BaseLetterSuppression = {
   normalizedEmails: ReadonlySet<string>
 }
 
-/** IDs e caixas normalizadas que receberam a carta-base dentro das últimas 168 h. */
+/** IDs e caixas normalizadas que receberam a carta-base dentro da janela. */
 export function bf2026BaseLetterSuppression(
   profiles: readonly { id: unknown; email: unknown }[],
   events: readonly { user_id: unknown; created_at: unknown }[],
