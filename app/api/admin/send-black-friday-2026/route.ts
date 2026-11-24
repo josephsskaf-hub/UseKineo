@@ -102,8 +102,9 @@ function inteiro(raw: string | null, padrao: number, teto: number): number {
 }
 
 const sha256Hex = (s: string) => createHash('sha256').update(s).digest('hex')
-/** Links de nota por chamada (URLs longas na query string do PostgREST). */
-const LINK_CHUNK = 40
+/** Links de nota por chamada (URLs longas na query string do PostgREST). 15, não 40: com 40 a fatia real passava de 6 mil caracteres
+ *  codificados (revisor 24/11) e, se o gateway recusar a URL, a onda inteira falha fechada e manda zero. */
+const LINK_CHUNK = 15
 const fatias = <T,>(xs: readonly T[], n: number): T[][] => { const out: T[][] = []; for (let i = 0; i < xs.length; i += n) out.push(xs.slice(i, i + n)); return out }
 
 export async function GET(req: NextRequest) {
