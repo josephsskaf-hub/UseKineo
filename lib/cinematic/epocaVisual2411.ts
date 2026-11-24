@@ -5,6 +5,7 @@ export type ModoEpocaVisual = 'off' | 'internal'
 export const EPOCA_VISUAL_2411: ModoEpocaVisual = 'internal'
 
 const ROMAN = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX','XXI']
+const WRITTEN_CENTURIES = 'first second third fourth fifth sixth seventh eighth ninth tenth eleventh twelfth thirteenth fourteenth fifteenth sixteenth seventeenth eighteenth nineteenth twentieth twenty-first'.split(' ')
 const ordinal = (n: number) => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : (['th','st','nd','rd'][n % 10] ?? 'th'))
 
 /** Only read the author's dates. Measurements, prices, model numbers and pixel dimensions are not time. */
@@ -12,7 +13,9 @@ function dataDoTrecho(texto: string): string {
   const t = comAnosPorExtenso(texto)
     .replace(/\b\d+\s*(?:[x×]|\bby\b|\bpor\b)\s*\d+\b|[$€£]\s*[\d,.]+|\b\d[\d,.]*\s*(?:px|p\b|fps|hz|km|kg|m|metres?|meters?|metros?|miles?|dollars?|euros?|reais|pesos|people|pessoas|years|anos|units?|copies|unidades|years?\s+old)\b/giu, ' ')
   const seculo = /\b(\d{1,2})(?:st|nd|rd|th)[ -]century\b|\bs[ée]culo\s+([ivx]+|\d{1,2})\b/iu.exec(t)
-  const numero = seculo ? Number(seculo[1] ?? seculo[2]) || ROMAN.indexOf(seculo[2].toUpperCase()) + 1 : 0
+  const escrito = /\b([a-z]+(?:-[a-z]+)?)[ -]century\b/iu.exec(t)
+  const numero = seculo ? Number(seculo[1] ?? seculo[2]) || ROMAN.indexOf(seculo[2].toUpperCase()) + 1
+    : escrito ? WRITTEN_CENTURIES.indexOf(escrito[1].toLowerCase()) + 1 : 0
   const seculoValido = numero >= 1 && numero <= 21
   const decada = /\b((?:1\d|20)\d0)(?:['’]?s)\b|\b(?:anos|d[ée]cada de)\s+((?:1\d|20)\d0)\b/iu.exec(t)
   const ano = /(?:^|(?:\b(?:in|by|since|circa|around|from|em|desde|de|ano|year|of|en)\s+)|(?:\b\d{1,2},\s*)|(?:\b(?:the|a|an|long|vintage)\s+))((?:1\d|20)\d{2})(?![\p{L}\d.,]\d|[\p{L}\d]|\s*[x×])/iu.exec(t)
@@ -20,6 +23,8 @@ function dataDoTrecho(texto: string): string {
   if (antigo) return antigo[1] + ' ' + antigo[2].toUpperCase()
   if (ano) return ano[1]
   if (decada) return (decada[1] ?? decada[2]) + 's'
+  const curta = /\b(?:the\s+['’]?(\d0)s|(?:anos|d[ée]cada (?:de|dos))\s+['’]?(\d0))\b/iu.exec(t)
+  if (curta) return String(1900 + Number(curta[1] ?? curta[2])) + 's'
   return seculoValido ? ordinal(numero) + ' century' : ''
 }
 
@@ -38,8 +43,14 @@ export function prepararEpocaVisual({ internal, pedido, secoes, falas, modo = EP
   // A merged scene starts with its first section. When the dispatch splits it again,
   // each shot recovers its own date, including changes of year within a film.
   const agora = (t: string) => /\b(?:present[- ]day|modern[- ]day|nowadays|hoje em dia|nos dias (?:de hoje|atuais))\b|^(?:today|hoje|agora)\b/iu.test(t.trim())
-  const datas = secoes.map(s => dataDoTrecho(s.voiceover) || dataDoTrecho(s.pexelsQuery)
-    || (agora(s.voiceover) || agora(s.pexelsQuery) ? 'present day' : ''))
+  // A present-day museum can display an antique camera. Conversely, a narrator
+  // speaking today can ask us to show the inventor's workshop in 1888.
+  const datas = secoes.map(s => {
+    if (agora(s.pexelsQuery)) return 'present day'
+    const visual = dataDoTrecho(s.pexelsQuery)
+    if (agora(s.voiceover)) return visual || 'present day'
+    return dataDoTrecho(s.voiceover) || visual
+  })
   const primeiro = datas.findIndex(Boolean)
   const antes = primeiro > 0 && datas[primeiro] === geral && /\b(?:again|once more|later|de novo|novamente|mais tarde)\b/iu.test(secoes[primeiro].voiceover)
   let epoca = datas[0] || (antes ? 'before ' + geral : geral)
@@ -51,8 +62,8 @@ export function prepararEpocaVisual({ internal, pedido, secoes, falas, modo = EP
     const grupo = grupos?.[i]
     const dita = dataDoTrecho(fala)
     if (grupo?.length) anterior = sequencia[grupo[0]]
+    else if (agora(fala) && (datas.includes('present day') || agora(pedido))) anterior = 'present day'
     else if (dita && (datas.includes(dita) || pedido.includes(dita))) anterior = dita
-    else if (agora(fala) && agora(pedido)) anterior = 'present day'
     return anterior
   })
   return { ficha, cenas, secoes: sequencia, primeirasSecoes: grupos?.map(g => g[0]) }

@@ -23,10 +23,12 @@ const cases = {
   atual: m => {
     const secoes = [
       {voiceover:'In 1890 he boards.',pexelsQuery:'a wooden train'},
-      {voiceover:'Today visitors return.',pexelsQuery:'present-day museum'},
+      {voiceover:'Today visitors see the camera made in 1888.',pexelsQuery:'present-day visitor in a modern museum'},
+      {voiceover:'Today we tell his story.',pexelsQuery:'a man operating the camera in 1888'},
+      {voiceover:'The inventor made the camera in 1888.',pexelsQuery:'present-day visitor in a modern museum'},
     ]
     const relato=m.prepararEpocaVisual({internal:true,pedido:'In 1890 he boards. Today visitors return.',secoes,falas:secoes.map(s=>s.voiceover)})
-    assert.deepEqual([...relato.secoes],['1890','present day'])
+    assert.deepEqual([...relato.secoes],['1890','present day','1888','present day'])
   },
   acao: m => {
     const pista='A man in a suit holds the briefcase.'
@@ -45,6 +47,11 @@ const cases = {
   },
   seculo: m => assert.equal(m.prepararEpocaVisual({...entrada,pedido:'A port in the 18th century.',secoes:[],falas:['A port.']})?.ficha,'18th century'),
   decada: m => assert.equal(m.prepararEpocaVisual({...entrada,pedido:'Uma estação nos anos 1970.',secoes:[],falas:['Um trem.']}).ficha,'1970s'),
+  variantes: m => {
+    for (const [pedido, esperado] of [['London in the nineteenth century.','19th century'],['Uma rádio nos anos 70.','1970s'],["A radio in the '80s.",'1980s']]) {
+      assert.equal(m.prepararEpocaVisual({...entrada,pedido,secoes:[],falas:['A radio.']})?.ficha,esperado)
+    }
+  },
   folha: m => {
     const r=m.aplicarEpocaVisual('Charcoal suit on a plain studio background.', '1971',true)
     assert.match(r,/1971.*lapel width/)
@@ -70,7 +77,8 @@ const mutantes=[
  ['anterior',"antes ? 'before ' + geral : geral",'geral'],
  ['seculo','return seculoValido ?','return false ?'],
  ['folha',"const design = folha ? tecido","const design = folha ? 'architecture'"],
- ['atual',"? 'present day' : ''","? '' : ''"],
+ ['atual',"if (agora(s.pexelsQuery)) return 'present day'","if (false) return 'present day'"],
+ ['variantes','WRITTEN_CENTURIES.indexOf(escrito[1].toLowerCase()) + 1','0'],
  ['acao','if (acao >= 0)','if (false)'],
  ['limite',"prompt.replace(MARCA, '')","prompt.replace(/IMPOSSIVEL/u, '')"],
 ]
