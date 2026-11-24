@@ -1,0 +1,386 @@
+{
+  "version": "citacoes-caixas-2411-v1",
+  "criterion": "conversion within each phase, fixed independent cuts; account once at first eligible session across all pages before target filter",
+  "read_on": "2026-11-24T22:25:08.546519+00:00",
+  "observed_cut": "2026-11-24T22:17:05.820285+00:00",
+  "live_from": "2026-11-24T20:28:00+00:00",
+  "windows": [
+    {
+      "phase": "antes",
+      "phase_cut": "2026-11-24T20:28:00+00:00",
+      "phase_start": "2026-11-10T20:28:00+00:00"
+    }
+  ],
+  "coverage": [
+    {
+      "phase": "antes",
+      "all_new_external_accounts": 290,
+      "accounts_with_eligible_session": 279,
+      "accounts_without_eligible_session": 11
+    }
+  ],
+  "quality": [
+    {
+      "phase": "antes",
+      "raw_sessions": 6549,
+      "eligible_sessions": 4429,
+      "marked_bot_sessions": 1766,
+      "missing_bot_flag_sessions": 0
+    }
+  ],
+  "page_totals": [
+    {
+      "gate": "pagina_nova_sem_gate_da_caixa",
+      "kind": "nova",
+      "path": "/ai-ugc-ads/product-photo-ads",
+      "phase": "antes",
+      "accounts": 0,
+      "sessions": 0,
+      "first_film": 0,
+      "conversion_pct": null,
+      "ambiguous_sessions": 0
+    },
+    {
+      "gate": "pagina_nova_sem_gate_da_caixa",
+      "kind": "nova",
+      "path": "/ai-video-generator/for/animal-story-videos",
+      "phase": "antes",
+      "accounts": 0,
+      "sessions": 0,
+      "first_film": 0,
+      "conversion_pct": null,
+      "ambiguous_sessions": 0
+    },
+    {
+      "gate": "pagina_nova_sem_gate_da_caixa",
+      "kind": "nova",
+      "path": "/ai-video-generator/for/animated-story-videos",
+      "phase": "antes",
+      "accounts": 0,
+      "sessions": 0,
+      "first_film": 0,
+      "conversion_pct": null,
+      "ambiguous_sessions": 0
+    },
+    {
+      "gate": "pagina_nova_sem_gate_da_caixa",
+      "kind": "nova",
+      "path": "/ai-video-generator/for/cartoon-videos",
+      "phase": "antes",
+      "accounts": 0,
+      "sessions": 0,
+      "first_film": 0,
+      "conversion_pct": null,
+      "ambiguous_sessions": 0
+    },
+    {
+      "gate": "referencia_antes",
+      "kind": "caixa",
+      "path": "/best-ai-shorts-generators",
+      "phase": "antes",
+      "accounts": 1,
+      "sessions": 26,
+      "first_film": 0,
+      "conversion_pct": 3.85,
+      "ambiguous_sessions": 0
+    },
+    {
+      "gate": "referencia_antes",
+      "kind": "caixa",
+      "path": "/cheapest-ai-shorts-maker",
+      "phase": "antes",
+      "accounts": 0,
+      "sessions": 205,
+      "first_film": 0,
+      "conversion_pct": 0,
+      "ambiguous_sessions": 0
+    },
+    {
+      "gate": "referencia_antes",
+      "kind": "caixa",
+      "path": "/free-ai-shorts-generator",
+      "phase": "antes",
+      "accounts": 5,
+      "sessions": 709,
+      "first_film": 2,
+      "conversion_pct": 0.71,
+      "ambiguous_sessions": 1
+    },
+    {
+      "gate": "referencia_antes",
+      "kind": "caixa",
+      "path": "/free-script-generator",
+      "phase": "antes",
+      "accounts": 0,
+      "sessions": 26,
+      "first_film": 0,
+      "conversion_pct": 0,
+      "ambiguous_sessions": 0
+    },
+    {
+      "gate": "referencia_antes",
+      "kind": "caixa",
+      "path": "/how-much-do-instagram-reels-pay",
+      "phase": "antes",
+      "accounts": 0,
+      "sessions": 74,
+      "first_film": 0,
+      "conversion_pct": 0,
+      "ambiguous_sessions": 0
+    },
+    {
+      "gate": "referencia_antes",
+      "kind": "caixa",
+      "path": "/how-much-do-youtube-shorts-pay",
+      "phase": "antes",
+      "accounts": 4,
+      "sessions": 337,
+      "first_film": 1,
+      "conversion_pct": 1.19,
+      "ambiguous_sessions": 0
+    },
+    {
+      "gate": "referencia_antes",
+      "kind": "caixa",
+      "path": "/state-of-ai-shorts-2026",
+      "phase": "antes",
+      "accounts": 3,
+      "sessions": 32,
+      "first_film": 0,
+      "conversion_pct": 9.38,
+      "ambiguous_sessions": 0
+    }
+  ],
+  "rows": [
+    {
+      "path": "/best-ai-shorts-generators",
+      "phase": "antes",
+      "origin": "bing_explicito",
+      "accounts": 0,
+      "sessions": 8,
+      "first_film": 0,
+      "conversion_pct": 0,
+      "ambiguous_sessions": 0
+    },
+    {
+      "path": "/best-ai-shorts-generators",
+      "phase": "antes",
+      "origin": "chatgpt_explicito",
+      "accounts": 1,
+      "sessions": 2,
+      "first_film": 0,
+      "conversion_pct": 50,
+      "ambiguous_sessions": 0
+    },
+    {
+      "path": "/best-ai-shorts-generators",
+      "phase": "antes",
+      "origin": "duckduckgo",
+      "accounts": 0,
+      "sessions": 1,
+      "first_film": 0,
+      "conversion_pct": 0,
+      "ambiguous_sessions": 0
+    },
+    {
+      "path": "/best-ai-shorts-generators",
+      "phase": "antes",
+      "origin": "google",
+      "accounts": 0,
+      "sessions": 11,
+      "first_film": 0,
+      "conversion_pct": 0,
+      "ambiguous_sessions": 0
+    },
+    {
+      "path": "/best-ai-shorts-generators",
+      "phase": "antes",
+      "origin": "origem_nao_gravada",
+      "accounts": 0,
+      "sessions": 4,
+      "first_film": 0,
+      "conversion_pct": 0,
+      "ambiguous_sessions": 0
+    },
+    {
+      "path": "/cheapest-ai-shorts-maker",
+      "phase": "antes",
+      "origin": "origem_nao_gravada",
+      "accounts": 0,
+      "sessions": 205,
+      "first_film": 0,
+      "conversion_pct": 0,
+      "ambiguous_sessions": 0
+    },
+    {
+      "path": "/free-ai-shorts-generator",
+      "phase": "antes",
+      "origin": "afiliado_rotulado",
+      "accounts": 3,
+      "sessions": 695,
+      "first_film": 1,
+      "conversion_pct": 0.43,
+      "ambiguous_sessions": 1
+    },
+    {
+      "path": "/free-ai-shorts-generator",
+      "phase": "antes",
+      "origin": "origem_nao_gravada",
+      "accounts": 2,
+      "sessions": 8,
+      "first_film": 1,
+      "conversion_pct": 25,
+      "ambiguous_sessions": 0
+    },
+    {
+      "path": "/free-ai-shorts-generator",
+      "phase": "antes",
+      "origin": "outra_origem_gravada",
+      "accounts": 0,
+      "sessions": 6,
+      "first_film": 0,
+      "conversion_pct": 0,
+      "ambiguous_sessions": 0
+    },
+    {
+      "path": "/free-script-generator",
+      "phase": "antes",
+      "origin": "origem_nao_gravada",
+      "accounts": 0,
+      "sessions": 7,
+      "first_film": 0,
+      "conversion_pct": 0,
+      "ambiguous_sessions": 0
+    },
+    {
+      "path": "/free-script-generator",
+      "phase": "antes",
+      "origin": "outra_origem_gravada",
+      "accounts": 0,
+      "sessions": 19,
+      "first_film": 0,
+      "conversion_pct": 0,
+      "ambiguous_sessions": 0
+    },
+    {
+      "path": "/how-much-do-instagram-reels-pay",
+      "phase": "antes",
+      "origin": "bing_explicito",
+      "accounts": 0,
+      "sessions": 1,
+      "first_film": 0,
+      "conversion_pct": 0,
+      "ambiguous_sessions": 0
+    },
+    {
+      "path": "/how-much-do-instagram-reels-pay",
+      "phase": "antes",
+      "origin": "chatgpt_explicito",
+      "accounts": 0,
+      "sessions": 54,
+      "first_film": 0,
+      "conversion_pct": 0,
+      "ambiguous_sessions": 0
+    },
+    {
+      "path": "/how-much-do-instagram-reels-pay",
+      "phase": "antes",
+      "origin": "google",
+      "accounts": 0,
+      "sessions": 1,
+      "first_film": 0,
+      "conversion_pct": 0,
+      "ambiguous_sessions": 0
+    },
+    {
+      "path": "/how-much-do-instagram-reels-pay",
+      "phase": "antes",
+      "origin": "origem_nao_gravada",
+      "accounts": 0,
+      "sessions": 17,
+      "first_film": 0,
+      "conversion_pct": 0,
+      "ambiguous_sessions": 0
+    },
+    {
+      "path": "/how-much-do-instagram-reels-pay",
+      "phase": "antes",
+      "origin": "outra_origem_gravada",
+      "accounts": 0,
+      "sessions": 1,
+      "first_film": 0,
+      "conversion_pct": 0,
+      "ambiguous_sessions": 0
+    },
+    {
+      "path": "/how-much-do-youtube-shorts-pay",
+      "phase": "antes",
+      "origin": "bing_explicito",
+      "accounts": 2,
+      "sessions": 188,
+      "first_film": 1,
+      "conversion_pct": 1.06,
+      "ambiguous_sessions": 0
+    },
+    {
+      "path": "/how-much-do-youtube-shorts-pay",
+      "phase": "antes",
+      "origin": "duckduckgo",
+      "accounts": 1,
+      "sessions": 84,
+      "first_film": 0,
+      "conversion_pct": 1.19,
+      "ambiguous_sessions": 0
+    },
+    {
+      "path": "/how-much-do-youtube-shorts-pay",
+      "phase": "antes",
+      "origin": "google",
+      "accounts": 0,
+      "sessions": 1,
+      "first_film": 0,
+      "conversion_pct": 0,
+      "ambiguous_sessions": 0
+    },
+    {
+      "path": "/how-much-do-youtube-shorts-pay",
+      "phase": "antes",
+      "origin": "origem_nao_gravada",
+      "accounts": 0,
+      "sessions": 22,
+      "first_film": 0,
+      "conversion_pct": 0,
+      "ambiguous_sessions": 0
+    },
+    {
+      "path": "/how-much-do-youtube-shorts-pay",
+      "phase": "antes",
+      "origin": "outra_origem_gravada",
+      "accounts": 1,
+      "sessions": 42,
+      "first_film": 0,
+      "conversion_pct": 2.38,
+      "ambiguous_sessions": 0
+    },
+    {
+      "path": "/state-of-ai-shorts-2026",
+      "phase": "antes",
+      "origin": "chatgpt_explicito",
+      "accounts": 3,
+      "sessions": 10,
+      "first_film": 0,
+      "conversion_pct": 30,
+      "ambiguous_sessions": 0
+    },
+    {
+      "path": "/state-of-ai-shorts-2026",
+      "phase": "antes",
+      "origin": "origem_nao_gravada",
+      "accounts": 0,
+      "sessions": 22,
+      "first_film": 0,
+      "conversion_pct": 0,
+      "ambiguous_sessions": 0
+    }
+  ]
+}

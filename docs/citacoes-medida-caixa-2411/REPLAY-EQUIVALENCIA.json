@@ -1,0 +1,72 @@
+[
+  {
+    "name": "control_early",
+    "unchanged": true,
+    "querySha256": "772379ea79ab9ace11449e507e1d5bf522f048ac9adc0752ad8bf6d1da38a70b"
+  },
+  {
+    "name": "control_later",
+    "unchanged": true,
+    "querySha256": "15fd16b7b088d9964bb0374d1c0965b56c62065f53a3e5d2ee09b864f1237b01"
+  },
+  {
+    "name": "identity-cut",
+    "unchanged": true,
+    "querySha256": "0f357f2037fcbefdb73614f381b88b11ba5b43054e2966eddef2f1064b0ba637"
+  },
+  {
+    "name": "signup-cut",
+    "unchanged": true,
+    "querySha256": "648e50f1669c2467e61844c419c70faecfadc45d03d2d7c5dd421baafa2c730b"
+  },
+  {
+    "name": "film-cut",
+    "unchanged": true,
+    "querySha256": "e43f4901e2683043fb7a6d8168f6e7727258434f626b2a284a95dd3a295ab234"
+  },
+  {
+    "name": "session-duplicates",
+    "unchanged": true,
+    "querySha256": "177fde0ac796335a075c6b1ae04ba3e02ec0e678722703942068bf4df7998ea6"
+  },
+  {
+    "name": "account-duplicates",
+    "unchanged": true,
+    "querySha256": "194f519e135d51fc329f80044b80b10c04570acc8557e391d9189a4293cf8e17"
+  },
+  {
+    "name": "bot-included",
+    "unchanged": true,
+    "querySha256": "9336ab4a5c50fa78f36d05ca73bcba0bfa89995d5eb805c749d25693b89ad036"
+  },
+  {
+    "name": "house-session-included",
+    "unchanged": true,
+    "querySha256": "7e2d6244dc6139777c894b31947d1aeded35e46a8bd72e28dead607400c2eaa1"
+  },
+  {
+    "name": "clip-as-film",
+    "unchanged": true,
+    "querySha256": "57dd6b8e07f9a4b7dbcd19e4525d3d98358cf4d5fe34963494263d4b5675e911"
+  },
+  {
+    "name": "missing-as-chatgpt",
+    "unchanged": true,
+    "querySha256": "bd9c573ae0f223ce3a2e40132bd37807281817ea16497a4b6db0bb87d2f3c654"
+  },
+  {
+    "name": "youtube-alias-dropped",
+    "unchanged": true,
+    "querySha256": "c5a8b8b9475616bade20509420b8a66b99e52000cfdd067c51ef267e60391357"
+  },
+  {
+    "name": "utm-overrides-attested-referrer",
+    "unchanged": true,
+    "querySha256": "51abb72509e8cb57742595dc67a9b08a5ca182d676ac19330dfabddc851a6b53"
+  },
+  {
+    "name": "target-filter-too-early",
+    "unchanged": true,
+    "querySha256": "a403252d88d2122a8c90d8a56dabc72917d10d4fdc0cbd91923d2d9e47bb1f15"
+  }
+]

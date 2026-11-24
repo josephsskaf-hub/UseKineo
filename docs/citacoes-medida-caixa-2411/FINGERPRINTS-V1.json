@@ -1,0 +1,7 @@
+{
+  "docs/queries/CITACOES-CAIXAS-ANTES-DEPOIS-2411.sql": "b86cef96353c9e86b504e6f4488c28824813169ba37f379b8ba63c84f5cde170",
+  "scripts/prepare-citacoes-caixa-2411.mjs": "17b12f8dec4a2cecae2456fb6244209417b4dc477cdee4d2c2772ecb145f22a2",
+  "scripts/test-support/citacoes-caixa-fixture-2411.mjs": "199dcf26554ef594d4ea636180062c7e5b35ed1c7d6bb3bc0c77d6abd02e117b",
+  "docs/citacoes-medida-caixa-2411/BASELINE-14D.json": "1b0a0007eb2da6e845f51721409ee44abd27b4b20b1c9a858df9d9784a051b2c",
+  "docs/citacoes-medida-caixa-2411/MEDIDA.json": "b080b3ad1ed2d16a35c79de467a67dfff8817e89f03408bb2c7b09e1d52ef272"
+}

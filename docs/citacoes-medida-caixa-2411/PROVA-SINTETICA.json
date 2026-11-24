@@ -1,0 +1,1459 @@
+{
+  "scope": "Synthetic VALUES only; zero real customer rows",
+  "outcome": {
+    "beforeStable": true,
+    "beforeTotals": {
+      "sessions": 10,
+      "accounts": 5,
+      "film": 1
+    },
+    "afterEarlyFilm": 0,
+    "afterLaterFilm": 1,
+    "exact4": {
+      "page": {
+        "gate": "nao_supera_4pct_CEO_rever_caixa",
+        "kind": "caixa",
+        "path": "/cheapest-ai-shorts-maker",
+        "phase": "depois",
+        "accounts": 1,
+        "sessions": 25,
+        "first_film": 0,
+        "conversion_pct": 4,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      "origin": {
+        "gate": "nao_supera_4pct_CEO_rever_caixa",
+        "kind": "caixa",
+        "path": "/cheapest-ai-shorts-maker",
+        "phase": "depois",
+        "origin": "bing_explicito",
+        "accounts": 1,
+        "sessions": 25,
+        "first_film": 0,
+        "conversion_pct": 4,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      "afterComplete": true
+    },
+    "mutants": [
+      {
+        "name": "identity-cut",
+        "rejected": true
+      },
+      {
+        "name": "signup-cut",
+        "rejected": true
+      },
+      {
+        "name": "film-cut",
+        "rejected": true
+      },
+      {
+        "name": "session-duplicates",
+        "rejected": true
+      },
+      {
+        "name": "account-duplicates",
+        "rejected": true
+      },
+      {
+        "name": "bot-included",
+        "rejected": true
+      },
+      {
+        "name": "house-session-included",
+        "rejected": true
+      },
+      {
+        "name": "clip-as-film",
+        "rejected": true
+      },
+      {
+        "name": "missing-as-chatgpt",
+        "rejected": true
+      },
+      {
+        "name": "youtube-alias-dropped",
+        "rejected": true
+      },
+      {
+        "name": "utm-overrides-attested-referrer",
+        "rejected": true
+      },
+      {
+        "name": "page-exact4-is-success",
+        "rejected": true
+      },
+      {
+        "name": "origin-exact4-is-success",
+        "rejected": true
+      },
+      {
+        "name": "target-filter-too-early",
+        "rejected": true
+      }
+    ]
+  },
+  "controlEarly": {
+    "rows": [
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/best-ai-shorts-generators",
+        "phase": "antes",
+        "origin": "bing_explicito",
+        "accounts": 0,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 0,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/free-ai-shorts-generator",
+        "phase": "antes",
+        "origin": "chatgpt_explicito",
+        "accounts": 1,
+        "sessions": 1,
+        "first_film": 1,
+        "conversion_pct": 100,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/free-ai-shorts-generator",
+        "phase": "antes",
+        "origin": "youtube",
+        "accounts": 0,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 0,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 1
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/free-script-generator",
+        "phase": "antes",
+        "origin": "bing_explicito",
+        "accounts": 0,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 0,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/how-much-do-instagram-reels-pay",
+        "phase": "antes",
+        "origin": "origem_nao_gravada",
+        "accounts": 1,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 100,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/how-much-do-youtube-shorts-pay",
+        "phase": "antes",
+        "origin": "bing_explicito",
+        "accounts": 1,
+        "sessions": 3,
+        "first_film": 0,
+        "conversion_pct": 33.33,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/how-much-do-youtube-shorts-pay",
+        "phase": "antes",
+        "origin": "google",
+        "accounts": 1,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 100,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/state-of-ai-shorts-2026",
+        "phase": "antes",
+        "origin": "bing_explicito",
+        "accounts": 1,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 100,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "aguardar_14_dias",
+        "kind": "caixa",
+        "path": "/free-ai-shorts-generator",
+        "phase": "depois",
+        "origin": "bing_explicito",
+        "accounts": 0,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 0,
+        "ambiguous_sessions": 1,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "aguardar_14_dias",
+        "kind": "caixa",
+        "path": "/how-much-do-youtube-shorts-pay",
+        "phase": "depois",
+        "origin": "chatgpt_explicito",
+        "accounts": 1,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 100,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      }
+    ],
+    "quality": [
+      {
+        "phase": "antes",
+        "raw_sessions": 13,
+        "eligible_sessions": 11,
+        "marked_bot_sessions": 1,
+        "missing_bot_flag_sessions": 0
+      },
+      {
+        "phase": "depois",
+        "raw_sessions": 2,
+        "eligible_sessions": 2,
+        "marked_bot_sessions": 0,
+        "missing_bot_flag_sessions": 0
+      }
+    ],
+    "read_on": "2026-11-24T22:44:18.478057+00:00",
+    "version": "citacoes-caixas-2411-v2",
+    "windows": [
+      {
+        "phase": "antes",
+        "phase_cut": "2026-11-10T20:28:00+00:00",
+        "phase_start": "2026-10-27T20:28:00+00:00"
+      },
+      {
+        "phase": "depois",
+        "phase_cut": "2026-11-10T21:28:00+00:00",
+        "phase_start": "2026-11-10T20:28:00+00:00"
+      }
+    ],
+    "coverage": [
+      {
+        "phase": "antes",
+        "all_new_external_accounts": 7,
+        "accounts_with_eligible_session": 6,
+        "accounts_without_eligible_session": 1
+      },
+      {
+        "phase": "depois",
+        "all_new_external_accounts": 6,
+        "accounts_with_eligible_session": 1,
+        "accounts_without_eligible_session": 5
+      }
+    ],
+    "criterion": "conversion within each phase, fixed independent cuts; account once at first eligible session across all pages before target filter",
+    "live_from": "2026-11-10T20:28:00+00:00",
+    "page_totals": [
+      {
+        "gate": "pagina_nova_sem_gate_da_caixa",
+        "kind": "nova",
+        "path": "/ai-ugc-ads/product-photo-ads",
+        "phase": "antes",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "pagina_nova_sem_gate_da_caixa",
+        "kind": "nova",
+        "path": "/ai-video-generator/for/animal-story-videos",
+        "phase": "antes",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "pagina_nova_sem_gate_da_caixa",
+        "kind": "nova",
+        "path": "/ai-video-generator/for/animated-story-videos",
+        "phase": "antes",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "pagina_nova_sem_gate_da_caixa",
+        "kind": "nova",
+        "path": "/ai-video-generator/for/cartoon-videos",
+        "phase": "antes",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/best-ai-shorts-generators",
+        "phase": "antes",
+        "accounts": 0,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 0,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/cheapest-ai-shorts-maker",
+        "phase": "antes",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/free-ai-shorts-generator",
+        "phase": "antes",
+        "accounts": 1,
+        "sessions": 2,
+        "first_film": 1,
+        "conversion_pct": 50,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 1
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/free-script-generator",
+        "phase": "antes",
+        "accounts": 0,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 0,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/how-much-do-instagram-reels-pay",
+        "phase": "antes",
+        "accounts": 1,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 100,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/how-much-do-youtube-shorts-pay",
+        "phase": "antes",
+        "accounts": 2,
+        "sessions": 4,
+        "first_film": 0,
+        "conversion_pct": 50,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/state-of-ai-shorts-2026",
+        "phase": "antes",
+        "accounts": 1,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 100,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "pagina_nova_sem_gate_da_caixa",
+        "kind": "nova",
+        "path": "/ai-ugc-ads/product-photo-ads",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "pagina_nova_sem_gate_da_caixa",
+        "kind": "nova",
+        "path": "/ai-video-generator/for/animal-story-videos",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "pagina_nova_sem_gate_da_caixa",
+        "kind": "nova",
+        "path": "/ai-video-generator/for/animated-story-videos",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "pagina_nova_sem_gate_da_caixa",
+        "kind": "nova",
+        "path": "/ai-video-generator/for/cartoon-videos",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "aguardar_14_dias",
+        "kind": "caixa",
+        "path": "/best-ai-shorts-generators",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "aguardar_14_dias",
+        "kind": "caixa",
+        "path": "/cheapest-ai-shorts-maker",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "aguardar_14_dias",
+        "kind": "caixa",
+        "path": "/free-ai-shorts-generator",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 0,
+        "ambiguous_sessions": 1,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "aguardar_14_dias",
+        "kind": "caixa",
+        "path": "/free-script-generator",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "aguardar_14_dias",
+        "kind": "caixa",
+        "path": "/how-much-do-instagram-reels-pay",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "aguardar_14_dias",
+        "kind": "caixa",
+        "path": "/how-much-do-youtube-shorts-pay",
+        "phase": "depois",
+        "accounts": 1,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 100,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "aguardar_14_dias",
+        "kind": "caixa",
+        "path": "/state-of-ai-shorts-2026",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      }
+    ],
+    "observed_cut": "2026-11-10T21:28:00+00:00",
+    "after_complete": false,
+    "after_not_observed": false
+  },
+  "controlLater": {
+    "rows": [
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/best-ai-shorts-generators",
+        "phase": "antes",
+        "origin": "bing_explicito",
+        "accounts": 0,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 0,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/free-ai-shorts-generator",
+        "phase": "antes",
+        "origin": "chatgpt_explicito",
+        "accounts": 1,
+        "sessions": 1,
+        "first_film": 1,
+        "conversion_pct": 100,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/free-ai-shorts-generator",
+        "phase": "antes",
+        "origin": "youtube",
+        "accounts": 0,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 0,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 1
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/free-script-generator",
+        "phase": "antes",
+        "origin": "bing_explicito",
+        "accounts": 0,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 0,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/how-much-do-instagram-reels-pay",
+        "phase": "antes",
+        "origin": "origem_nao_gravada",
+        "accounts": 1,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 100,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/how-much-do-youtube-shorts-pay",
+        "phase": "antes",
+        "origin": "bing_explicito",
+        "accounts": 1,
+        "sessions": 3,
+        "first_film": 0,
+        "conversion_pct": 33.33,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/how-much-do-youtube-shorts-pay",
+        "phase": "antes",
+        "origin": "google",
+        "accounts": 1,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 100,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/state-of-ai-shorts-2026",
+        "phase": "antes",
+        "origin": "bing_explicito",
+        "accounts": 1,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 100,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "aguardar_14_dias",
+        "kind": "caixa",
+        "path": "/free-ai-shorts-generator",
+        "phase": "depois",
+        "origin": "bing_explicito",
+        "accounts": 0,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 0,
+        "ambiguous_sessions": 1,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "aguardar_14_dias",
+        "kind": "caixa",
+        "path": "/how-much-do-youtube-shorts-pay",
+        "phase": "depois",
+        "origin": "chatgpt_explicito",
+        "accounts": 1,
+        "sessions": 1,
+        "first_film": 1,
+        "conversion_pct": 100,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      }
+    ],
+    "quality": [
+      {
+        "phase": "antes",
+        "raw_sessions": 13,
+        "eligible_sessions": 11,
+        "marked_bot_sessions": 1,
+        "missing_bot_flag_sessions": 0
+      },
+      {
+        "phase": "depois",
+        "raw_sessions": 2,
+        "eligible_sessions": 2,
+        "marked_bot_sessions": 0,
+        "missing_bot_flag_sessions": 0
+      }
+    ],
+    "read_on": "2026-11-24T22:44:21.827794+00:00",
+    "version": "citacoes-caixas-2411-v2",
+    "windows": [
+      {
+        "phase": "antes",
+        "phase_cut": "2026-11-10T20:28:00+00:00",
+        "phase_start": "2026-10-27T20:28:00+00:00"
+      },
+      {
+        "phase": "depois",
+        "phase_cut": "2026-11-11T20:28:00+00:00",
+        "phase_start": "2026-11-10T20:28:00+00:00"
+      }
+    ],
+    "coverage": [
+      {
+        "phase": "antes",
+        "all_new_external_accounts": 7,
+        "accounts_with_eligible_session": 6,
+        "accounts_without_eligible_session": 1
+      },
+      {
+        "phase": "depois",
+        "all_new_external_accounts": 6,
+        "accounts_with_eligible_session": 1,
+        "accounts_without_eligible_session": 5
+      }
+    ],
+    "criterion": "conversion within each phase, fixed independent cuts; account once at first eligible session across all pages before target filter",
+    "live_from": "2026-11-10T20:28:00+00:00",
+    "page_totals": [
+      {
+        "gate": "pagina_nova_sem_gate_da_caixa",
+        "kind": "nova",
+        "path": "/ai-ugc-ads/product-photo-ads",
+        "phase": "antes",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "pagina_nova_sem_gate_da_caixa",
+        "kind": "nova",
+        "path": "/ai-video-generator/for/animal-story-videos",
+        "phase": "antes",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "pagina_nova_sem_gate_da_caixa",
+        "kind": "nova",
+        "path": "/ai-video-generator/for/animated-story-videos",
+        "phase": "antes",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "pagina_nova_sem_gate_da_caixa",
+        "kind": "nova",
+        "path": "/ai-video-generator/for/cartoon-videos",
+        "phase": "antes",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/best-ai-shorts-generators",
+        "phase": "antes",
+        "accounts": 0,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 0,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/cheapest-ai-shorts-maker",
+        "phase": "antes",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/free-ai-shorts-generator",
+        "phase": "antes",
+        "accounts": 1,
+        "sessions": 2,
+        "first_film": 1,
+        "conversion_pct": 50,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 1
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/free-script-generator",
+        "phase": "antes",
+        "accounts": 0,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 0,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/how-much-do-instagram-reels-pay",
+        "phase": "antes",
+        "accounts": 1,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 100,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/how-much-do-youtube-shorts-pay",
+        "phase": "antes",
+        "accounts": 2,
+        "sessions": 4,
+        "first_film": 0,
+        "conversion_pct": 50,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/state-of-ai-shorts-2026",
+        "phase": "antes",
+        "accounts": 1,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 100,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "pagina_nova_sem_gate_da_caixa",
+        "kind": "nova",
+        "path": "/ai-ugc-ads/product-photo-ads",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "pagina_nova_sem_gate_da_caixa",
+        "kind": "nova",
+        "path": "/ai-video-generator/for/animal-story-videos",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "pagina_nova_sem_gate_da_caixa",
+        "kind": "nova",
+        "path": "/ai-video-generator/for/animated-story-videos",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "pagina_nova_sem_gate_da_caixa",
+        "kind": "nova",
+        "path": "/ai-video-generator/for/cartoon-videos",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "aguardar_14_dias",
+        "kind": "caixa",
+        "path": "/best-ai-shorts-generators",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "aguardar_14_dias",
+        "kind": "caixa",
+        "path": "/cheapest-ai-shorts-maker",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "aguardar_14_dias",
+        "kind": "caixa",
+        "path": "/free-ai-shorts-generator",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 0,
+        "ambiguous_sessions": 1,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "aguardar_14_dias",
+        "kind": "caixa",
+        "path": "/free-script-generator",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "aguardar_14_dias",
+        "kind": "caixa",
+        "path": "/how-much-do-instagram-reels-pay",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "aguardar_14_dias",
+        "kind": "caixa",
+        "path": "/how-much-do-youtube-shorts-pay",
+        "phase": "depois",
+        "accounts": 1,
+        "sessions": 1,
+        "first_film": 1,
+        "conversion_pct": 100,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "aguardar_14_dias",
+        "kind": "caixa",
+        "path": "/state-of-ai-shorts-2026",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      }
+    ],
+    "observed_cut": "2026-11-11T20:28:00+00:00",
+    "after_complete": false,
+    "after_not_observed": false
+  },
+  "controlGate": {
+    "rows": [
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/best-ai-shorts-generators",
+        "phase": "antes",
+        "origin": "bing_explicito",
+        "accounts": 0,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 0,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/free-ai-shorts-generator",
+        "phase": "antes",
+        "origin": "chatgpt_explicito",
+        "accounts": 1,
+        "sessions": 1,
+        "first_film": 1,
+        "conversion_pct": 100,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/free-ai-shorts-generator",
+        "phase": "antes",
+        "origin": "youtube",
+        "accounts": 0,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 0,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 1
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/free-script-generator",
+        "phase": "antes",
+        "origin": "bing_explicito",
+        "accounts": 0,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 0,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/how-much-do-instagram-reels-pay",
+        "phase": "antes",
+        "origin": "origem_nao_gravada",
+        "accounts": 1,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 100,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/how-much-do-youtube-shorts-pay",
+        "phase": "antes",
+        "origin": "bing_explicito",
+        "accounts": 1,
+        "sessions": 3,
+        "first_film": 0,
+        "conversion_pct": 33.33,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/how-much-do-youtube-shorts-pay",
+        "phase": "antes",
+        "origin": "google",
+        "accounts": 1,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 100,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/state-of-ai-shorts-2026",
+        "phase": "antes",
+        "origin": "bing_explicito",
+        "accounts": 1,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 100,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "nao_supera_4pct_CEO_rever_caixa",
+        "kind": "caixa",
+        "path": "/cheapest-ai-shorts-maker",
+        "phase": "depois",
+        "origin": "bing_explicito",
+        "accounts": 1,
+        "sessions": 25,
+        "first_film": 0,
+        "conversion_pct": 4,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "nao_supera_4pct_CEO_rever_caixa",
+        "kind": "caixa",
+        "path": "/free-ai-shorts-generator",
+        "phase": "depois",
+        "origin": "bing_explicito",
+        "accounts": 0,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 0,
+        "ambiguous_sessions": 1,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "acima_4pct",
+        "kind": "caixa",
+        "path": "/how-much-do-youtube-shorts-pay",
+        "phase": "depois",
+        "origin": "chatgpt_explicito",
+        "accounts": 1,
+        "sessions": 1,
+        "first_film": 1,
+        "conversion_pct": 100,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      }
+    ],
+    "quality": [
+      {
+        "phase": "antes",
+        "raw_sessions": 13,
+        "eligible_sessions": 11,
+        "marked_bot_sessions": 1,
+        "missing_bot_flag_sessions": 0
+      },
+      {
+        "phase": "depois",
+        "raw_sessions": 27,
+        "eligible_sessions": 27,
+        "marked_bot_sessions": 0,
+        "missing_bot_flag_sessions": 0
+      }
+    ],
+    "read_on": "2026-11-24T22:46:13.278967+00:00",
+    "version": "citacoes-caixas-2411-v2",
+    "windows": [
+      {
+        "phase": "antes",
+        "phase_cut": "2026-11-10T20:28:00+00:00",
+        "phase_start": "2026-10-27T20:28:00+00:00"
+      },
+      {
+        "phase": "depois",
+        "phase_cut": "2026-11-24T20:28:00+00:00",
+        "phase_start": "2026-11-10T20:28:00+00:00"
+      }
+    ],
+    "coverage": [
+      {
+        "phase": "antes",
+        "all_new_external_accounts": 7,
+        "accounts_with_eligible_session": 6,
+        "accounts_without_eligible_session": 1
+      },
+      {
+        "phase": "depois",
+        "all_new_external_accounts": 7,
+        "accounts_with_eligible_session": 2,
+        "accounts_without_eligible_session": 5
+      }
+    ],
+    "criterion": "conversion within each phase, fixed independent cuts; account once at first eligible session across all pages before target filter",
+    "live_from": "2026-11-10T20:28:00+00:00",
+    "page_totals": [
+      {
+        "gate": "pagina_nova_sem_gate_da_caixa",
+        "kind": "nova",
+        "path": "/ai-ugc-ads/product-photo-ads",
+        "phase": "antes",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "pagina_nova_sem_gate_da_caixa",
+        "kind": "nova",
+        "path": "/ai-video-generator/for/animal-story-videos",
+        "phase": "antes",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "pagina_nova_sem_gate_da_caixa",
+        "kind": "nova",
+        "path": "/ai-video-generator/for/animated-story-videos",
+        "phase": "antes",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "pagina_nova_sem_gate_da_caixa",
+        "kind": "nova",
+        "path": "/ai-video-generator/for/cartoon-videos",
+        "phase": "antes",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/best-ai-shorts-generators",
+        "phase": "antes",
+        "accounts": 0,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 0,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/cheapest-ai-shorts-maker",
+        "phase": "antes",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/free-ai-shorts-generator",
+        "phase": "antes",
+        "accounts": 1,
+        "sessions": 2,
+        "first_film": 1,
+        "conversion_pct": 50,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 1
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/free-script-generator",
+        "phase": "antes",
+        "accounts": 0,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 0,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/how-much-do-instagram-reels-pay",
+        "phase": "antes",
+        "accounts": 1,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 100,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/how-much-do-youtube-shorts-pay",
+        "phase": "antes",
+        "accounts": 2,
+        "sessions": 4,
+        "first_film": 0,
+        "conversion_pct": 50,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "referencia_antes",
+        "kind": "caixa",
+        "path": "/state-of-ai-shorts-2026",
+        "phase": "antes",
+        "accounts": 1,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 100,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "pagina_nova_sem_gate_da_caixa",
+        "kind": "nova",
+        "path": "/ai-ugc-ads/product-photo-ads",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "pagina_nova_sem_gate_da_caixa",
+        "kind": "nova",
+        "path": "/ai-video-generator/for/animal-story-videos",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "pagina_nova_sem_gate_da_caixa",
+        "kind": "nova",
+        "path": "/ai-video-generator/for/animated-story-videos",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "pagina_nova_sem_gate_da_caixa",
+        "kind": "nova",
+        "path": "/ai-video-generator/for/cartoon-videos",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "sem_denominador",
+        "kind": "caixa",
+        "path": "/best-ai-shorts-generators",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "nao_supera_4pct_CEO_rever_caixa",
+        "kind": "caixa",
+        "path": "/cheapest-ai-shorts-maker",
+        "phase": "depois",
+        "accounts": 1,
+        "sessions": 25,
+        "first_film": 0,
+        "conversion_pct": 4,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "nao_supera_4pct_CEO_rever_caixa",
+        "kind": "caixa",
+        "path": "/free-ai-shorts-generator",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 1,
+        "first_film": 0,
+        "conversion_pct": 0,
+        "ambiguous_sessions": 1,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "sem_denominador",
+        "kind": "caixa",
+        "path": "/free-script-generator",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "sem_denominador",
+        "kind": "caixa",
+        "path": "/how-much-do-instagram-reels-pay",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "acima_4pct",
+        "kind": "caixa",
+        "path": "/how-much-do-youtube-shorts-pay",
+        "phase": "depois",
+        "accounts": 1,
+        "sessions": 1,
+        "first_film": 1,
+        "conversion_pct": 100,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      },
+      {
+        "gate": "sem_denominador",
+        "kind": "caixa",
+        "path": "/state-of-ai-shorts-2026",
+        "phase": "depois",
+        "accounts": 0,
+        "sessions": 0,
+        "first_film": 0,
+        "conversion_pct": null,
+        "ambiguous_sessions": 0,
+        "affiliate_tagged_sessions": 0
+      }
+    ],
+    "observed_cut": "2026-11-24T20:28:00+00:00",
+    "after_complete": true,
+    "after_not_observed": false
+  }
+}
