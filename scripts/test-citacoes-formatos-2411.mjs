@@ -31,7 +31,7 @@ const sample='The orange kitten found a lighthouse key under the last blue lante
 const expected={
  'cartoon-videos':'/previews/home-card-kids-cartoon-leo.mp4',
  'animated-story-videos':'/previews/home-card-novo-pumpkin.mp4',
- 'animal-story-videos':'/previews/home-card-novo-knight_kitten.mp4',
+ 'animal-story-videos':'/previews/home-card-novo-werewolf_pup.mp4',
 }
 const strip=h=>h.replace(/<style data-citation-format-theme="2411">[\s\S]*?<\/style>/g,'').replace(/<section class="cfh-2411"[\s\S]*?<\/section>/g,'').replaceAll(' kpl-citation-format-2411','').replace(/ style="[^"]*"/g,'')
 function verify(rep={}){
@@ -71,7 +71,7 @@ const sub=(file,a,b)=>{const s=source(file).replace(/\r\n/g,'\n');assert.equal(s
 const mutants=[
  ['missing format hero',()=>sub(INTENT,'{formatHero && <CitationFormatHero','{false && <CitationFormatHero'),'HERO one form'],
  ['wrong cartoon example',()=>sub(DATA,'...HOME_KIDS_CARD_CLIP!','src: pumpkin.src, poster: pumpkin.poster'),'FIRST format example'],
- ['wrong animal example',()=>sub(DATA,'src: kitten.src, poster: kitten.poster','src: pumpkin.src, poster: pumpkin.poster'),'FIRST format example'],
+ ['wrong animal example',()=>sub(DATA,'src: pup.src, poster: pup.poster','src: pumpkin.src, poster: pumpkin.poster'),'FIRST format example'],
  ['forced length',()=>sub(HERO,'creationIntent="trial_best"','creationIntent="trial_best" duration={45}'),'DURATION no forced length'],
  ['offer changed',()=>sub(HERO,'creationIntent="trial_best"','creationIntent="fast"'),'OFFER trial_best preserved'],
  ['handoff dropped',()=>sub(HERO,' preserveHandoffForSignedIn',''),'HANDOFF signed-in destination'],

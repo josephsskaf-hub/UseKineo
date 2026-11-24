@@ -3,11 +3,11 @@ import { HOME_CARD_PLAYLISTS } from '@/lib/ui/homeThreeCards'
 
 // House previews already used by the public home/cartoon page. No new render.
 const pumpkin = HOME_CARD_PLAYLISTS.kids_cartoon.default.find(c => c.src.endsWith('home-card-novo-pumpkin.mp4'))!
-const kitten = HOME_CARD_PLAYLISTS.kids_cartoon.default.find(c => c.src.endsWith('home-card-novo-knight_kitten.mp4'))!
+const pup = HOME_CARD_PLAYLISTS.kids_cartoon.default.find(c => c.src.endsWith('home-card-novo-werewolf_pup.mp4'))!
 export const CITATION_FORMAT_HERO = {
   'cartoon-videos': { ...HOME_KIDS_CARD_CLIP!, title: 'Meet Leo', badge: HOME_KIDS_CARD_BADGE, sourcePage: '/ai-kids-cartoon-videos' },
   'animated-story-videos': { src: pumpkin.src, poster: pumpkin.poster, title: 'The little pumpkin', badge: 'Kling 3 · animated example', sourcePage: '/' },
-  'animal-story-videos': { src: kitten.src, poster: kitten.poster, title: 'The kitten knight', badge: 'Kling 3 · animal story example', sourcePage: '/' },
+  'animal-story-videos': { src: pup.src, poster: pup.poster, title: 'The little wolf', badge: 'Kling 3 · animal story example', sourcePage: '/' },
 } as const
 export type CitationFormatSlug = keyof typeof CITATION_FORMAT_HERO
 
