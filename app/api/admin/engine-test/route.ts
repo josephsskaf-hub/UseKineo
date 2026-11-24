@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fal } from '@fal-ai/client'
 import { createClient } from '@/lib/supabase/server'
+import { serviceClient } from '../_shared/db'
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -82,8 +83,140 @@ function planosFrom(raw: unknown): Array<{ prompt: string; duration: string }> |
   return planos.map((p) => ({ prompt: p.prompt as string, duration: String(p.seconds) }))
 }
 
+// KINEO-SONDA-MOTORES-2311 — dono 23/11 aprovou um teste pago de 3 motores de referência (teto US$ 15,00). A chave da fal só existe no
+// servidor, então a sonda roda daqui: o administrador manda o endpoint e a entrada JÁ montada; a rota só confere e repassa, idêntica.
+//   POST ?probe=1 { endpoint, input }                 → { model, request_id, est_usd, day_total_usd }
+//   GET  ?engine=probe&endpoint=…&request_id=…        → { status, video_url } | { status: 'failed', error }
+// Trava de dinheiro NO SERVIDOR: soma o custo estimado das sondas das últimas 24 h (evento admin_engine_probe em public.events) e recusa
+// se este pedido passar de PROBE_DAILY_CAP_USD. Leitura da soma falhou = recusa (fecha por padrão). Não toca em crédito de ninguém.
+const PROBE_EVENT = 'admin_engine_probe'
+const PROBE_DAILY_CAP_USD = 15
+const PROBE_WINDOW_MS = 24 * 60 * 60 * 1000 // "dia" = 24 h corridas antes do pedido (mais apertado que o dia do calendário)
+// Preço por segundo a 720p, lido em 23/11/2026 na página de cada modelo na fal (fal.ai/models/<endpoint>).
+const KLING4_REF_USD_PER_S_720P_2311 = 0.157
+const KLING4_FLASH_REF_USD_PER_S_720P_2311 = 0.094
+const GEMINI_OMNI_FLASH_REF_USD_PER_S_720P_2311 = 0.0819
+const PROBE_ENDPOINTS: Record<string, { usdPerSecond: number; multiPrompt: boolean }> = {
+  'kling/v4/reference-to-video': { usdPerSecond: KLING4_REF_USD_PER_S_720P_2311, multiPrompt: true },
+  'kling/v4/flash/reference-to-video': { usdPerSecond: KLING4_FLASH_REF_USD_PER_S_720P_2311, multiPrompt: false },
+  'google/gemini-omni-flash/v1.2/reference-to-video': { usdPerSecond: GEMINI_OMNI_FLASH_REF_USD_PER_S_720P_2311, multiPrompt: false },
+}
+const PROBE_INPUT_KEYS = new Set(['prompt', 'multi_prompt', 'duration', 'resolution', 'aspect_ratio', 'image_urls'])
+const PROBE_PROMPT_MAX = 4000
+const PROBE_SHOT_PROMPT_MAX = 512
+const PROBE_CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/
+// Dinheiro em décimos de milésimo de dólar (inteiro): 14 + 2,355 não pode virar 16,354999… e escapar da comparação.
+const toUnits = (usd: number) => Math.round(usd * 10000)
+const fromUnits = (units: number) => units / 10000
+
+function probeEndpointFrom(raw: unknown) {
+  return typeof raw === 'string' && Object.prototype.hasOwnProperty.call(PROBE_ENDPOINTS, raw) ? PROBE_ENDPOINTS[raw] : undefined
+}
+
+function isPlainObject(raw: unknown): raw is Record<string, unknown> {
+  return typeof raw === 'object' && raw !== null && !Array.isArray(raw)
+}
+
+function probeText(raw: unknown, max: number): boolean {
+  return typeof raw === 'string' && raw.trim().length > 0 && raw.length <= max && !PROBE_CONTROL.test(raw)
+}
+
+function probeInputError(endpoint: { multiPrompt: boolean }, input: unknown): string | null {
+  if (!isPlainObject(input)) return 'bad_input'
+  if (Object.keys(input).some((k) => !PROBE_INPUT_KEYS.has(k))) return 'unknown_input_key'
+  const d = input.duration
+  if (typeof d !== 'number' || !Number.isInteger(d) || d < 3 || d > 15) return 'bad_duration'
+  if (input.resolution !== '720p') return 'bad_resolution'
+  if (input.aspect_ratio !== '9:16') return 'bad_aspect_ratio'
+  const imgs = input.image_urls
+  const storageBase = `${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''}/storage/v1/object/public/`
+  if (!Array.isArray(imgs) || imgs.length < 1 || imgs.length > 3 || !imgs.every((u) => imageAllowed(u, storageBase))) return 'image_not_allowed'
+  const hasPrompt = Object.prototype.hasOwnProperty.call(input, 'prompt')
+  const hasMulti = Object.prototype.hasOwnProperty.call(input, 'multi_prompt')
+  if (hasPrompt === hasMulti) return 'prompt_xor_multi_prompt'
+  if (hasPrompt) return probeText(input.prompt, PROBE_PROMPT_MAX) ? null : 'bad_prompt'
+  if (!endpoint.multiPrompt) return 'multi_prompt_not_supported'
+  const shots = input.multi_prompt
+  if (!Array.isArray(shots) || shots.length < 1 || shots.length > 6) return 'bad_multi_prompt'
+  let sum = 0
+  for (const shot of shots) {
+    if (!isPlainObject(shot) || Object.keys(shot).some((k) => k !== 'prompt' && k !== 'duration')) return 'bad_multi_prompt'
+    if (!probeText(shot.prompt, PROBE_SHOT_PROMPT_MAX)) return 'bad_multi_prompt'
+    if (typeof shot.duration !== 'number' || !Number.isInteger(shot.duration) || shot.duration < 1) return 'bad_multi_prompt'
+    sum += shot.duration
+  }
+  return sum === d ? null : 'multi_prompt_duration_mismatch'
+}
+
+// Soma (em unidades) do custo estimado das sondas das últimas 24 h. null = não deu para saber → quem chama recusa.
+async function probeSpentUnits(db: NonNullable<ReturnType<typeof serviceClient>>, since: string): Promise<number | null> {
+  try {
+    const { data, error } = await db.from('events').select('metadata').eq('name', PROBE_EVENT).gte('created_at', since).limit(1000)
+    if (error || !Array.isArray(data) || data.length >= 1000) return null
+    let units = 0
+    for (const row of data as Array<{ metadata?: { est_usd?: unknown } | null }>) {
+      const v = row?.metadata?.est_usd
+      if (typeof v !== 'number' || !Number.isFinite(v) || v < 0) return null
+      units += toUnits(v)
+    }
+    return units
+  } catch {
+    return null
+  }
+}
+
+async function probePost(req: NextRequest, userId: string) {
+  const body = (await req.json().catch(() => null)) as { endpoint?: unknown; input?: unknown } | null
+  const endpoint = probeEndpointFrom(body?.endpoint)
+  if (!endpoint) return NextResponse.json({ error: 'unknown_endpoint', endpoints: Object.keys(PROBE_ENDPOINTS) }, { status: 400 })
+  const model = body?.endpoint as string
+  const bad = probeInputError(endpoint, body?.input)
+  if (bad) return NextResponse.json({ error: bad }, { status: 400 })
+  const input = body?.input as Record<string, unknown>
+  const seconds = input.duration as number
+  const estUnits = toUnits(seconds * endpoint.usdPerSecond)
+  const db = serviceClient()
+  if (!db) return NextResponse.json({ error: 'spend_unreadable' }, { status: 503 })
+  const spent = await probeSpentUnits(db, new Date(Date.now() - PROBE_WINDOW_MS).toISOString())
+  if (spent === null) return NextResponse.json({ error: 'spend_unreadable' }, { status: 503 })
+  if (spent + estUnits > toUnits(PROBE_DAILY_CAP_USD)) {
+    return NextResponse.json({ error: 'daily_cap', cap_usd: PROBE_DAILY_CAP_USD, day_total_usd: fromUnits(spent), est_usd: fromUnits(estUnits) }, { status: 429 })
+  }
+  if (!falReady()) return NextResponse.json({ error: 'fal_unavailable' }, { status: 503 })
+  let requestId: string
+  try {
+    requestId = (await fal.queue.submit(model, { input: input as never })).request_id
+  } catch (e) {
+    return NextResponse.json({ error: 'submit_failed', detail: falDetail(e) }, { status: 502 })
+  }
+  const est_usd = fromUnits(estUnits)
+  // A fila já aceitou: o pedido custa mesmo que o evento falhe. Por isso o aviso volta na resposta em vez de esconder.
+  const logged = await Promise.resolve(
+    db.from('events').insert({ user_id: userId, name: PROBE_EVENT, path: '/api/admin/engine-test', metadata: { endpoint: model, seconds, est_usd, request_id: requestId } }),
+  ).then((r) => !(r as { error?: unknown } | null)?.error, () => false)
+  if (!logged) console.error('[engine-test probe] evento não gravado; o teto do dia não vê este pedido:', requestId)
+  return NextResponse.json({ model, request_id: requestId, est_usd, day_total_usd: fromUnits(spent + estUnits), ...(logged ? {} : { warning: 'event_not_logged' }) })
+}
+
+async function probeGet(req: NextRequest) {
+  const model = req.nextUrl.searchParams.get('endpoint') ?? ''
+  const requestId = (req.nextUrl.searchParams.get('request_id') ?? '').trim()
+  if (!probeEndpointFrom(model) || !/^[0-9a-f-]{20,64}$/i.test(requestId)) return NextResponse.json({ error: 'bad_request' }, { status: 400 })
+  if (!falReady()) return NextResponse.json({ error: 'fal_unavailable' }, { status: 503 })
+  try {
+    const st = (await fal.queue.status(model, { requestId })) as { status?: string }
+    if (st.status !== 'COMPLETED') return NextResponse.json({ status: st.status ?? 'UNKNOWN', video_url: null })
+    const res = (await fal.queue.result(model, { requestId })) as { data?: { video?: { url?: string } } }
+    return NextResponse.json({ status: 'COMPLETED', model, video_url: res.data?.video?.url ?? null })
+  } catch (e) {
+    return NextResponse.json({ status: 'failed', error: falDetail(e).slice(0, 300) })
+  }
+}
+
 export async function POST(req: NextRequest) {
-  if (!(await adminUser())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const admin = await adminUser()
+  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (req.nextUrl.searchParams.get('probe') === '1') return probePost(req, admin.id) // KINEO-SONDA-MOTORES-2311
   if (req.nextUrl.searchParams.get('motion') === '1') {
     const planos = planosFrom(((await req.json().catch(() => null)) as { shots?: unknown } | null)?.shots)
     if (!planos) return NextResponse.json({ error: 'bad_shots' }, { status: 400 })
@@ -114,6 +247,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   if (!(await adminUser())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (req.nextUrl.searchParams.get('engine') === 'probe') return probeGet(req) // KINEO-SONDA-MOTORES-2311
   const motion = req.nextUrl.searchParams.get('engine') === 'motion' // KINEO-MOTION-SONDA-0611
   const engine = motion ? { model: MOTION_MODEL } : engineFrom(req.nextUrl.searchParams.get('engine'))
   const requestId = (req.nextUrl.searchParams.get('request_id') ?? '').trim()
