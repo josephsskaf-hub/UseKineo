@@ -48,9 +48,9 @@ function admitir(route, f, fr, vp, { email, snapshot }) {
   assert.ok(ini > 0 && fim > ini)
   const kling4Timing = { voiceovers: [], wordsPerSecond: 2 }
   Function('kling4Timing', 'kling4TrialCandidate', 'REFERENCIA_UNICA_2411', 'user', 'admitirReferenciaUnica2411', 'qualitySnapshot', 'isStylizedLook', 'styleAnchor', 'desenhoInfantil',
-    'retratoDaReferencia2411', 'folhasDaReferencia2411', 'folhaDaReferenciaLigada', 'FOLHA_DA_REFERENCIA_2411',
+    'retratoDaReferencia2411', 'folhasDaReferencia2411', 'folhaDaReferenciaLigada', 'FOLHA_DA_REFERENCIA_2411', 'retratoSemFolhaReprovada2411', 'folhasReprovadas2411', // + KINEO-JUIZ-DA-FOLHA-2411 (nada reprovado)
     ts.transpile(route.slice(ini, fim)))(kling4Timing, true, f.REFERENCIA_UNICA_2411, { email }, f.admitirReferenciaUnica2411, snapshot, vp.isStylizedLook, { look: 'photoreal' }, { ativo: false },
-    fr.retratoDaReferencia2411, [], fr.folhaDaReferenciaLigada, fr.FOLHA_DA_REFERENCIA_2411)
+    fr.retratoDaReferencia2411, [], fr.folhaDaReferenciaLigada, fr.FOLHA_DA_REFERENCIA_2411, fr.retratoSemFolhaReprovada2411, new Set())
   return kling4Timing
 }
 async function post(api, args) {
@@ -67,7 +67,7 @@ async function suite(change) {
   const pares = change ? (Array.isArray(change[1]) ? change[1] : [[change[1], change[2]]]) : []
   const source = (file, src) => change && file === change[0] ? pares.reduce((t, [de, para]) => t.split(de).join(para), src) : src
   const modules = load(source)
-  const f = modules('@/' + feature), api = modules('@/' + transport), fr = modules('@/lib/cinematic/folhaDaReferencia2411.ts'), vp = modules('@/lib/cinematic/visualPromptPolicy.ts')
+  const f = modules('@/' + feature), api = modules('@/' + transport), fr = { ...modules('@/lib/cinematic/folhaDaReferencia2411.ts'), retratoSemFolhaReprovada2411: modules('@/lib/cinematic/juizDaFolha2411.ts').retratoSemFolhaReprovada2411 }, vp = modules('@/lib/cinematic/visualPromptPolicy.ts')
   const route = source(routeFile, local(routeFile))
 
   // 1. o interruptor: 'internal' = só a lista exata da casa
