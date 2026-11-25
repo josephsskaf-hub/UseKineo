@@ -1,5 +1,5 @@
 {
-  "base": "7855f3a5243656414ec0a39d12d62f859756d582",
+  "base": "96299a66b523e2f5e03e2e26f27d5ca69cad7e91",
   "harness": "7af247b9d006517b91791bf5261f69a7d5219404",
   "captures": 48,
   "results": [
@@ -17,9 +17,9 @@
         "kling/v4/reference-to-video"
       ],
       "routeSource": [
-        8146,
-        7983,
-        8165
+        8148,
+        7984,
+        8167
       ],
       "bodySha": [
         "6700500b403ca4d42f5564035efbfb68178730d52fd5f9b73ddb58ed17507e6b",
@@ -42,9 +42,9 @@
         "kling/v4/reference-to-video"
       ],
       "routeSource": [
-        8146,
-        7983,
-        8165
+        8148,
+        7984,
+        8167
       ],
       "bodySha": [
         "6700500b403ca4d42f5564035efbfb68178730d52fd5f9b73ddb58ed17507e6b",
@@ -67,9 +67,9 @@
         "kling/v4/reference-to-video"
       ],
       "routeSource": [
-        8146,
-        7983,
-        8165
+        8148,
+        7984,
+        8167
       ],
       "bodySha": [
         "06d6985414f0b6cfa290d169410ad1a0dde7b06e28d6d6b02519acf9350b4d67",
@@ -92,9 +92,9 @@
         "kling/v4/reference-to-video"
       ],
       "routeSource": [
-        8146,
-        7983,
-        8165
+        8148,
+        7984,
+        8167
       ],
       "bodySha": [
         "06d6985414f0b6cfa290d169410ad1a0dde7b06e28d6d6b02519acf9350b4d67",
@@ -117,9 +117,9 @@
         "kling/v4/reference-to-video"
       ],
       "routeSource": [
-        8146,
-        7983,
-        8165
+        8148,
+        7984,
+        8167
       ],
       "bodySha": [
         "b5211199b7067f6b47b6a5586ec22707e75d707a6e722a7833a9d4f3f65cc167",
@@ -142,9 +142,9 @@
         "kling/v4/reference-to-video"
       ],
       "routeSource": [
-        8146,
-        7983,
-        8165
+        8148,
+        7984,
+        8167
       ],
       "bodySha": [
         "b5211199b7067f6b47b6a5586ec22707e75d707a6e722a7833a9d4f3f65cc167",
@@ -167,9 +167,9 @@
         "kling/v4/reference-to-video"
       ],
       "routeSource": [
-        8146,
-        7983,
-        8165
+        8148,
+        7984,
+        8167
       ],
       "bodySha": [
         "a7e213797814d58113e8634f21054ab4441cdae9063bdd5ccbb18773c3565440",
@@ -190,9 +190,9 @@
         "kling/v4/text-to-video"
       ],
       "routeSource": [
-        8146,
-        7983,
-        8165
+        8148,
+        7984,
+        8167
       ],
       "bodySha": [
         "a7e213797814d58113e8634f21054ab4441cdae9063bdd5ccbb18773c3565440",
@@ -215,9 +215,9 @@
         "kling/v4/reference-to-video"
       ],
       "routeSource": [
-        8146,
-        7983,
-        8165
+        8148,
+        7984,
+        8167
       ],
       "bodySha": [
         "9c205adcbbd25412b2fbae53cd572f97b5e1389ffcd083b9bd175f058f072288",
@@ -238,9 +238,9 @@
         "kling/v4/text-to-video"
       ],
       "routeSource": [
-        8146,
-        7983,
-        8165
+        8148,
+        7984,
+        8167
       ],
       "bodySha": [
         "9c205adcbbd25412b2fbae53cd572f97b5e1389ffcd083b9bd175f058f072288",
@@ -263,9 +263,9 @@
         "kling/v4/reference-to-video"
       ],
       "routeSource": [
-        8146,
-        7983,
-        8165
+        8148,
+        7984,
+        8167
       ],
       "bodySha": [
         "7f1297b27db95e6c98ddb578173360faa2c3814956860bb510d328a2f3df6b82",
@@ -286,9 +286,9 @@
         "kling/v4/text-to-video"
       ],
       "routeSource": [
-        8146,
-        7983,
-        8165
+        8148,
+        7984,
+        8167
       ],
       "bodySha": [
         "7f1297b27db95e6c98ddb578173360faa2c3814956860bb510d328a2f3df6b82",
@@ -311,9 +311,9 @@
         "kling/v4/reference-to-video"
       ],
       "routeSource": [
-        8146,
-        7983,
-        8165
+        8148,
+        7984,
+        8167
       ],
       "bodySha": [
         "f522cf032b407273ead4af5b47f125147ca88152d9ce4f34993409f9664ea4b4",
@@ -336,9 +336,9 @@
         "kling/v4/reference-to-video"
       ],
       "routeSource": [
-        8146,
-        7983,
-        8165
+        8148,
+        7984,
+        8167
       ],
       "bodySha": [
         "f522cf032b407273ead4af5b47f125147ca88152d9ce4f34993409f9664ea4b4",
@@ -361,9 +361,9 @@
         "kling/v4/reference-to-video"
       ],
       "routeSource": [
-        8146,
-        7983,
-        8165
+        8148,
+        7984,
+        8167
       ],
       "bodySha": [
         "8367923936cba5cd4fd9a1e65a8da729620e556560941adb8fc9caf10dfb1552",
@@ -386,9 +386,9 @@
         "kling/v4/reference-to-video"
       ],
       "routeSource": [
-        8146,
-        7983,
-        8165
+        8148,
+        7984,
+        8167
       ],
       "bodySha": [
         "8367923936cba5cd4fd9a1e65a8da729620e556560941adb8fc9caf10dfb1552",

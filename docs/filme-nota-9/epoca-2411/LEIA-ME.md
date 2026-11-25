@@ -1,6 +1,14 @@
 # Prova offline de época em ficha, imagem e clipe — 24/11/2026
 
-**TESTADO LOCALMENTE.** Base `7855f3a5243656414ec0a39d12d62f859756d582`, candidata de código `e410d8a16d3c9517a56b13babfb256a1d77fac27`, carregador original em `codex/nota9-replay-2311` (`7af247b9d006517b91791bf5261f69a7d5219404`).
+**TESTADO LOCALMENTE.** Base `96299a66b523e2f5e03e2e26f27d5ca69cad7e91`, candidata de código `be8e21e70b16430c21590fc11d71d8b9001112fd`, carregador original em `codex/nota9-replay-2311` (`7af247b9d006517b91791bf5261f69a7d5219404`).
+
+## Devolução da CEO de 20h48
+
+**TESTADO LOCALMENTE, 24/11.** A pista de Cooper com 408 caracteres perdeu a frase final dos motores na ponta rebaseada 317f81b9e. O novo guardião da rota reproduziu antes de corrigir. Agora a montagem completa superfície, escala e movimento da última cena antes de calcular espaço para a época. Preserva a frase de referência ou de continuidade que o provedor acrescentará. Quando o descritor completo ultrapassa o espaço, tenta só a data. Se nem a data couber, cede todo o espaço ao texto já montado. A contagem usa pontos de código Unicode.
+
+A função separa ano corrente e futuro, museu atual e data do objeto. Airplane e jet recebem a cabine do período. No ensaio offline, nenhum papel humano foi acrescentado a um quadro vazio. O guardião de função matou os 20 mutantes designados em 19 controles. O de rota matou os cinco mutantes de acesso, ficha e épocas por seção e comparou as frases enviadas nos três caminhos. O comparativo do CI teve 21 testes, 19 verdes e dois vermelhos herdados da main (meta95-personagem e meta95-personagem-ajuste), nenhum novo. A primeira rodada encontrou um vermelho novo no guardião da última cena. Restabelecemos a montagem original e os seus sete mutantes voltaram ao verde. TypeScript saiu zero na ponta be8e21e70.
+
+**QUESTÃO PENDENTE.** Cabine, terno e identidade são pedidos ao motor conferidos antes do transporte. O resultado visual segue para ensaio da CEO.
 
 ## Reproduzir
 
@@ -12,7 +20,7 @@ $env:KINEO_TS_ROOT = $repo
 node ./run-suite.mjs $repo
 ```
 
-`versoes.mjs` é a única fonte da base, da candidata padrão, do carregador e dos dois commits de contraprova. Todos os comparativos de produto usam a mesma base `7855f3a52`. Os dois commits históricos são usados apenas quando o teste exige reproduzir um defeito antigo. A ponta documental `3e4eabd5af24b3290e23c46120edd67f127f9adc` tem os mesmos arquivos de app, lib e scripts que a candidata de código. A conferência de entrega lê somente blobs do Git. Para testar mudanças antes do commit, passe `working=C:/caminho/da/worktree` no segundo argumento. Nesse modo, somente a rota e o helper da época são lidos da cópia indicada, com as outras dependências obtidas de seu HEAD. As saídas são exibidas no terminal. `REPLAY_SAVE=1` atualiza os arquivos JSON desta pasta.
+`versoes.mjs` é a única fonte da base, da candidata padrão, do carregador e dos dois commits de contraprova. Todos os comparativos de produto usam a mesma base `96299a66b`. Os dois commits históricos são usados apenas quando o teste exige reproduzir um defeito antigo. A conferência de entrega lê somente blobs do Git. Para testar mudanças antes do commit, passe `working=C:/caminho/da/worktree` no segundo argumento. Nesse modo, somente a rota e o helper da época são lidos da cópia indicada, com as outras dependências obtidas de seu HEAD. As saídas são exibidas no terminal. `REPLAY_SAVE=1` atualiza os arquivos JSON desta pasta.
 
 ## O que é real e o que é simulado
 

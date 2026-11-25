@@ -1,6 +1,6 @@
 {
-  "base": "7855f3a5243656414ec0a39d12d62f859756d582",
-  "candidate": "e410d8a16d3c9517a56b13babfb256a1d77fac27",
+  "base": "96299a66b523e2f5e03e2e26f27d5ca69cad7e91",
+  "candidate": "be8e21e70b16430c21590fc11d71d8b9001112fd",
   "previous": "da221631e5571db63c77b159fe14f1a605220df4",
   "intermediate": "f420898505fa225b4381bc7772758c84d4f7fc7f",
   "cases": [
@@ -36,15 +36,15 @@
         "dispatch": [
           {
             "model": "kling/v4/text-to-video",
-            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum"
+            "prompt": "Medium shot. Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen."
           },
           {
             "model": "kling/v4/image-to-video",
-            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum"
+            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen."
           },
           {
             "model": "kling/v4/reference-to-video",
-            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum"
+            "prompt": "Medium shot. Period setting: present day, period materials and finishes on the objects shown. present-day visitor looking at the restored camera in a modern museum. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen."
           }
         ]
       }
@@ -81,15 +81,15 @@
         "dispatch": [
           {
             "model": "kling/v4/text-to-video",
-            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor in a modern museum"
+            "prompt": "Medium shot. Period setting: present day, period materials and finishes on the objects shown. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. present-day visitor in a modern museum"
           },
           {
             "model": "kling/v4/image-to-video",
-            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor in a modern museum"
+            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Period setting: present day, period materials and finishes on the objects shown. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. present-day visitor in a modern museum"
           },
           {
             "model": "kling/v4/reference-to-video",
-            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor in a modern museum"
+            "prompt": "Medium shot. Period setting: present day, period materials and finishes on the objects shown. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. present-day visitor in a modern museum"
           }
         ]
       }
@@ -126,15 +126,15 @@
         "dispatch": [
           {
             "model": "kling/v4/text-to-video",
-            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888"
+            "prompt": "Medium shot. Period setting: 1888, period materials and finishes on the objects shown. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. a man operating the camera in 1888"
           },
           {
             "model": "kling/v4/image-to-video",
-            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888"
+            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Period setting: 1888, period materials and finishes on the objects shown. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. a man operating the camera in 1888"
           },
           {
             "model": "kling/v4/reference-to-video",
-            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888"
+            "prompt": "Medium shot. Period setting: 1888, period materials and finishes on the objects shown. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. a man operating the camera in 1888"
           }
         ]
       }
@@ -171,15 +171,15 @@
         "dispatch": [
           {
             "model": "kling/v4/text-to-video",
-            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor in a modern museum"
+            "prompt": "Medium shot. Period setting: present day, period materials and finishes on the objects shown. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. present-day visitor in a modern museum"
           },
           {
             "model": "kling/v4/image-to-video",
-            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor in a modern museum"
+            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Period setting: present day, period materials and finishes on the objects shown. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. present-day visitor in a modern museum"
           },
           {
             "model": "kling/v4/reference-to-video",
-            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: present day, period materials and finishes on the objects shown. present-day visitor in a modern museum"
+            "prompt": "Medium shot. Period setting: present day, period materials and finishes on the objects shown. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. present-day visitor in a modern museum"
           }
         ]
       }
@@ -216,15 +216,15 @@
         "dispatch": [
           {
             "model": "kling/v4/text-to-video",
-            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888"
+            "prompt": "Medium shot. Period setting: 1888, period materials and finishes on the objects shown. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. a man operating the camera in 1888"
           },
           {
             "model": "kling/v4/image-to-video",
-            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888"
+            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Period setting: 1888, period materials and finishes on the objects shown. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. a man operating the camera in 1888"
           },
           {
             "model": "kling/v4/reference-to-video",
-            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1888, period materials and finishes on the objects shown. a man operating the camera in 1888"
+            "prompt": "Medium shot. Period setting: 1888, period materials and finishes on the objects shown. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. a man operating the camera in 1888"
           }
         ]
       }
@@ -261,15 +261,15 @@
         "dispatch": [
           {
             "model": "kling/v4/text-to-video",
-            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1920, period materials and finishes on the objects shown. a visitor in a museum in 1920"
+            "prompt": "Medium shot. Period setting: 1920, period materials and finishes on the objects shown. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. a visitor in a museum in 1920"
           },
           {
             "model": "kling/v4/image-to-video",
-            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1920, period materials and finishes on the objects shown. a visitor in a museum in 1920"
+            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Period setting: 1920, period materials and finishes on the objects shown. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. a visitor in a museum in 1920"
           },
           {
             "model": "kling/v4/reference-to-video",
-            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1920, period materials and finishes on the objects shown. a visitor in a museum in 1920"
+            "prompt": "Medium shot. Period setting: 1920, period materials and finishes on the objects shown. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. a visitor in a museum in 1920"
           }
         ]
       }
@@ -306,15 +306,15 @@
         "dispatch": [
           {
             "model": "kling/v4/text-to-video",
-            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1920, period materials and finishes on the objects shown. a visitor in the museum in 1920"
+            "prompt": "Medium shot. Period setting: 1920, period materials and finishes on the objects shown. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. a visitor in the museum in 1920"
           },
           {
             "model": "kling/v4/image-to-video",
-            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1920, period materials and finishes on the objects shown. a visitor in the museum in 1920"
+            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Period setting: 1920, period materials and finishes on the objects shown. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. a visitor in the museum in 1920"
           },
           {
             "model": "kling/v4/reference-to-video",
-            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1920, period materials and finishes on the objects shown. a visitor in the museum in 1920"
+            "prompt": "Medium shot. Period setting: 1920, period materials and finishes on the objects shown. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. a visitor in the museum in 1920"
           }
         ]
       }
@@ -351,15 +351,15 @@
         "dispatch": [
           {
             "model": "kling/v4/text-to-video",
-            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1935, period materials and finishes on the objects shown. a restored camera made in 1888"
+            "prompt": "Medium shot. Period setting: 1935, period materials and finishes on the objects shown. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. a restored camera made in 1888"
           },
           {
             "model": "kling/v4/image-to-video",
-            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1935, period materials and finishes on the objects shown. a restored camera made in 1888"
+            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Period setting: 1935, period materials and finishes on the objects shown. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. a restored camera made in 1888"
           },
           {
             "model": "kling/v4/reference-to-video",
-            "prompt": "Medium shot. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Period setting: 1935, period materials and finishes on the objects shown. a restored camera made in 1888"
+            "prompt": "Medium shot. Period setting: 1935, period materials and finishes on the objects shown. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. a restored camera made in 1888"
           }
         ]
       }
@@ -396,15 +396,15 @@
         "dispatch": [
           {
             "model": "kling/v4/text-to-video",
-            "prompt": "Period setting: 1888, period cut, seams and fabric. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Medium shot. a man in an 1880s suit"
+            "prompt": "Medium shot. Period setting: 1888, period cut, seams and fabric. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. a man in an 1880s suit"
           },
           {
             "model": "kling/v4/image-to-video",
-            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Period setting: 1888, period cut, seams and fabric. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Wide shot. a man in an 1880s suit"
+            "prompt": "Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. Period setting: 1888, period cut, seams and fabric. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. a man in an 1880s suit"
           },
           {
             "model": "kling/v4/reference-to-video",
-            "prompt": "Period setting: 1888, period cut, seams and fabric. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. Medium shot. a man in an 1880s suit"
+            "prompt": "Medium shot. Period setting: 1888, period cut, seams and fabric. Final shot, in continuous motion: the camera moves through the scene while the light visibly changes, and the action completes on screen. a man in an 1880s suit"
           }
         ]
       }
