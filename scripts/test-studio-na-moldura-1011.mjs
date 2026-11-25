@@ -18,7 +18,7 @@ const R = require('../docs/studio-na-moldura-1011/runtime.cjs')
 const { studioRenderContract } = require('./test-support/studio-render-contract.cjs')
 const { aba, baseSrc, BASE, React, read, ROOT, visibleText } = R
 
-const BASE_PROTEGIDA = 'ec6348f4b7beafa640bc3fb5d9dc5da3b7ce7b0b'
+const BASE_PROTEGIDA = '6804eb7937e92fc10967ecc57b03b6537ac0ff25'
 // SHA-256 dos arquivos de estilo em 8a1fb2fa8, já nas provas visual e funcional.
 const ESTILO = {
   'app/(dashboard)/generate/GenerateClient.tsx': '74a8a712dce3769a8b89a22967e556d546616bb3a892d59155484743731e9ce3',
@@ -30,6 +30,11 @@ const ESTILO = {
   'app/api/generate-video-cinematic/route.ts': 'e65ab2beab1e0f0bbc504fab1aa2606d53137a83a1f3b45a77d6e17b3f57e9a9',
   'lib/growth/ideiaDaPagina.ts': '7c041ac352f37be2d5e6816bcee01966eb586f6f9eb05cb240b5285a83b212f1',
   'lib/growth/studioSimples.ts': 'f6653593438fd8514111eee8ee9687bbba902bc8aa95c7e6b622feda9d61f9a1',
+}
+const ARQUIVOS_REVISADOS = {
+  ...ESTILO,
+  // Sonda publicada pela CEO em d07ec1153. Somente este conteúdo exato é aceito.
+  'app/api/admin/sonda-presenca/route.ts': '942206c84b98131d456538c00c6aadc55fb18bc1bb13bba76e3b53c1e7a64f66',
 }
 const HOUSE = 'josephsskaf@gmail.com'
 const CUSTOMER = 'customer@example.org'
@@ -90,12 +95,12 @@ function offChecks(o) {
   // Comportamento sem moldura: o mesmo pedido e os mesmos eventos da main pelo caminho de hoje.
   ok(JSON.stringify(viaMain(o, {})) === JSON.stringify(viaMain({ ...o, ...MAIN }, {})), 'StudioSimples sem moldura: pedido + eventos = main')
   // HTML e cliques seguem comparados com a montagem histórica. Para a
-  // árvore protegida inteira, só aceitamos os blobs alterados pelo estilo
+  // árvore protegida inteira, só aceitamos os blobs do estilo e da sonda publicados
   // sobre a main fixada. O teste não depende do commit local após integrar.
   const protectedPaths = ['app/(dashboard)', 'lib/credits', 'lib/growth', 'app/api', 'lib/recreate', 'middleware.ts']
   const changed = execFileSync('git', ['diff', '--name-only', BASE_PROTEGIDA, '--', ...protectedPaths], { cwd: ROOT, encoding: 'utf8' }).trim().split('\n').filter(Boolean)
-  const divergencias = changed.filter(file => !Object.hasOwn(ESTILO, file))
-  for (const [file, hash] of Object.entries(ESTILO)) {
+  const divergencias = changed.filter(file => !Object.hasOwn(ARQUIVOS_REVISADOS, file))
+  for (const [file, hash] of Object.entries(ARQUIVOS_REVISADOS)) {
     if (!changed.includes(file) || createHash('sha256').update(lf(read(file))).digest('hex') !== hash) divergencias.push(file)
   }
   ok(divergencias.length === 0, `Studio, Generate, crédito, rotas e Recreate intocados (${divergencias.join(', ')})`)
