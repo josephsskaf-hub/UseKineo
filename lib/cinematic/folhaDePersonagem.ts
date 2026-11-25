@@ -412,10 +412,27 @@ export async function elencoComCasting(script: string, elenco: ReadonlyArray<Fic
 
 // ═══ 3. A FOLHA (o prompt da imagem de referência) ═══════════════════════════════════════════════════════════════
 /** O prompt da folha: corpo inteiro, de frente, pose neutra, fundo liso, no look do filme. Uma folha por personagem. */
-export function promptDaFolha(ficha: FichaDePersonagem, look: Pick<StyleAnchor, 'lookPhrase'> | null | undefined): string {
+// KINEO-FICHA-SEM-NOME-2511 [CEO 25/11, Bolt addef2b6 e ab9a1d7a: duas folhas com o nome "Bolt", duas com cabeça de cachorro; Ember, Juno, Elias Ward e
+// Mara Quinn saíram fiéis] — a classe da regra de 14/11 (nome de personagem de marca não vai ao motor). A folha pode ser pedida SEM o nome próprio: cada
+// ocorrência do nome (inteiro, e cada parte com maiúscula de 3+ letras) vira o ser que a própria ficha descreve ("a robot", depois "the robot"); sem ser
+// escrito, o tipo ("a person", "an animal", "a creature"). Nome que não é próprio ("the boy") fica: ele é o próprio ser. Só a folha muda: as cenas, o
+// crítico e o Kling seguem com o nome (é ele que diz quem está em cada plano). Sem o pedido (semNome falso) = byte a byte o de antes.
+export const PESSOAS_DA_FOLHA = PESSOAS // KINEO-FICHA-SEM-NOME-2511 — a lista de gente, lida pelo conferente da folha (o ser "person")
+export function canonicaSemNome(ficha: Pick<FichaDePersonagem, 'nome' | 'canonica' | 'tipo'>): string {
+  const nome = limpa(ficha.nome), c = String(ficha.canonica ?? '')
+  if (!/^\p{Lu}/u.test(nome) || /^the\s/i.test(nome)) return c
+  const partes = [nome, ...nome.split(' ').filter((p) => p.length >= 3 && /^\p{Lu}/u.test(p) && p !== nome)]
+  const fonte = `(?<![\\p{L}\\p{N}])(?:${partes.map(escapaRe).join('|')})(?![\\p{L}\\p{N}])`
+  if (!new RegExp(fonte, 'u').test(c)) return c
+  const resto = c.replace(new RegExp(fonte, 'gu'), ' ')
+  const ser = (CRIATURA_RE.exec(resto)?.[1] ?? ANIMAL_RE.exec(resto)?.[1] ?? (PESSOA_RE.test(resto) || ficha.tipo === 'humano' ? 'person' : ficha.tipo === 'animal' ? 'animal' : 'creature')).toLowerCase()
+  let primeira = true
+  return c.replace(new RegExp(fonte, 'gu'), () => { const t = primeira ? `${/^[aeiou]/.test(ser) ? 'an' : 'a'} ${ser}` : `the ${ser}`; primeira = false; return t })
+}
+export function promptDaFolha(ficha: FichaDePersonagem, look: Pick<StyleAnchor, 'lookPhrase'> | null | undefined, semNome = false /* KINEO-FICHA-SEM-NOME-2511 */): string {
   const lookPhrase = limpa(look?.lookPhrase ?? 'photorealistic, ultra-detailed')
   return (
-    `Character reference sheet, exactly one character, nobody else: ${ficha.canonica}. ` +
+    `Character reference sheet, exactly one character, nobody else: ${semNome ? canonicaSemNome(ficha) : ficha.canonica}. ` +
     `Full body visible from head to feet, standing, facing the camera, neutral relaxed pose, centered, plain light grey studio background, soft even lighting, ` +
     `${lookPhrase}, sharp focus, no text, no letters, no watermark, no logo, one single frame, no split screen, no collage`
   )

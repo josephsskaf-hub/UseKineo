@@ -42,7 +42,7 @@ function julgarNaRota(route, j, { email, folhaDe, elencoP, look = 'photoreal', i
   const fim = route.indexOf('\n      }\n', ini) + 9
   const escopo = { juizDaFolhaLigado: j.juizDaFolhaLigado, JUIZ_DA_FOLHA_2411: j.JUIZ_DA_FOLHA_2411, user: { email }, kling4TrialCandidate: candidato, qualidadeHerdada: herdada, ensaioPersonagemFixo: fixo, folhaDe, elencoP,
     julgarAFolha: j.julgarAFolha, isStylizedLook: s => s.look === 'animated3d' || s.look === 'anime' || s.look === 'illustration', styleAnchor: { look, lookPhrase: look === 'photoreal' ? 'photorealistic, ultra-detailed' : 'stylized 3D animated film look' },
-    desenhoInfantil: { ativo: infantil }, lerAFolha: ler, generateCinematicSceneStill: gerar, promptDaFolha: (f) => 'Character reference sheet: ' + f.canonica, generationSeed: 7, aspectRequested: '9:16', folhasReprovadas2411: new Set() }
+    desenhoInfantil: { ativo: infantil }, lerAFolha: ler, generateCinematicSceneStill: gerar, promptDaFolha: (f) => 'Character reference sheet: ' + f.canonica, generationSeed: 7, aspectRequested: '9:16', folhasReprovadas2411: new Set(), folhaSemNome2511: false /* KINEO-FICHA-SEM-NOME-2511 (o guardião dele: test-ficha-sem-nome-2511) */ }
   const corpo = ts.transpile('return (async () => {\n' + route.slice(ini, fim) + '\nreturn { folhasReprovadas2411, juizDaFolhaRelato2411 } })()', { target: ts.ScriptTarget.ES2022 })
   return Function(...Object.keys(escopo), 'let juizDaFolhaRelato2411 = null\n' + corpo)(...Object.values(escopo))
 }
@@ -77,18 +77,18 @@ async function suite(change) {
   // 4. a regra POR EIXO
   const ler = o => j.lerLeituraDaFolha(resposta(o))
   const DB = j.descricaoParaOJuiz(BOLT)
-  igual(j.decidirDaFolha(ler(LEITURA_BOLT), false, DB), { tracos: 'forma_especie', meio: 'ok', ausentes: ['small', 'round'], descartados: 0 }, 'Bolt: reprova em forma/espécie')
-  igual(j.decidirDaFolha(ler(EMBER_REALISTA), true, ''), { tracos: 'ok', meio: 'ok', ausentes: [], descartados: 2 }, 'Ember: sem descrição do autor, os traços não julgam')
-  igual(j.decidirDaFolha(ler(EMBER_CARTUM), true, ''), { tracos: 'ok', meio: 'meio', ausentes: [], descartados: 2 })
-  igual(j.decidirDaFolha(ler(EMBER_CARTUM), false, ''), { tracos: 'ok', meio: 'ok', ausentes: [], descartados: 2 }, 'a mesma folha num filme desenhado: passa')
+  igual(j.decidirDaFolha(ler(LEITURA_BOLT), false, DB), { tracos: 'forma_especie', meio: 'ok', ausentes: ['small', 'round'], descartados: 0, forma: 'nao_julgada', especie: 'robot' }, 'Bolt: reprova em forma/espécie')
+  igual(j.decidirDaFolha(ler(EMBER_REALISTA), true, ''), { tracos: 'ok', meio: 'ok', ausentes: [], descartados: 2, forma: 'nao_julgada', especie: null }, 'Ember: sem descrição do autor, os traços não julgam')
+  igual(j.decidirDaFolha(ler(EMBER_CARTUM), true, ''), { tracos: 'ok', meio: 'meio', ausentes: [], descartados: 2, forma: 'nao_julgada', especie: null })
+  igual(j.decidirDaFolha(ler(EMBER_CARTUM), false, ''), { tracos: 'ok', meio: 'ok', ausentes: [], descartados: 2, forma: 'nao_julgada', especie: null }, 'a mesma folha num filme desenhado: passa')
   igual(j.decidirDaFolha(ler({ ...BOLT_CERTO, characters: 2 }), false, DB).tracos, 'mais_de_um')
   igual(j.decidirDaFolha(ler({ ...BOLT_CERTO, characters: 0 }), false, DB).tracos, 'nenhum', '(3) folha sem personagem reprova')
-  igual(j.decidirDaFolha(ler({ ...BOLT_CERTO, traits: BOLT_CERTO.traits.map(t => t.trait === 'orange' ? { ...t, visible: 'no' } : t) }), false, DB), { tracos: 'traco', meio: 'ok', ausentes: ['orange'], descartados: 0 })
+  igual(j.decidirDaFolha(ler({ ...BOLT_CERTO, traits: BOLT_CERTO.traits.map(t => t.trait === 'orange' ? { ...t, visible: 'no' } : t) }), false, DB), { tracos: 'traco', meio: 'ok', ausentes: ['orange'], descartados: 0, forma: 'nao_julgada', especie: 'robot' })
   igual(j.decidirDaFolha(ler({ ...LEITURA_BOLT, traits: LEITURA_BOLT.traits.map(t => ({ ...t, visible: 'unclear' })) }), false, DB).tracos, 'ok', '"unclear" não reprova')
-  igual(j.decidirDaFolha(ler({ medium: 'photo_or_realistic_render', characters: 1, traits: [] }), false, DB), { tracos: 'ok', meio: 'meio', ausentes: [], descartados: 0 }, 'foto num filme desenhado')
+  igual(j.decidirDaFolha(ler({ medium: 'photo_or_realistic_render', characters: 1, traits: [] }), false, DB), { tracos: 'ok', meio: 'meio', ausentes: [], descartados: 0, forma: 'nao_julgada', especie: 'robot' }, 'foto num filme desenhado')
   // (1) o traço que o autor NÃO escreveu, a negação e a marca: descartados e contados, nunca reprovam nem vão à folha nova
   const inventados = [{ trait: 'dog ears', category: 'feature', visible: 'no' }, { trait: 'not a dog, no ears', category: 'species', visible: 'no' }, { trait: 'Nike logo', category: 'clothing', visible: 'no' }, { trait: 'no blue eyes', category: 'feature', visible: 'no' }]
-  igual(j.decidirDaFolha(ler({ ...BOLT_CERTO, traits: [...BOLT_CERTO.traits, ...inventados] }), false, DB), { tracos: 'ok', meio: 'ok', ausentes: [], descartados: 4 }, 'inventados: descartados')
+  igual(j.decidirDaFolha(ler({ ...BOLT_CERTO, traits: [...BOLT_CERTO.traits, ...inventados] }), false, DB), { tracos: 'ok', meio: 'ok', ausentes: [], descartados: 4, forma: 'nao_julgada', especie: 'robot' }, 'inventados: descartados')
   igual(j.decidirDaFolha(ler({ ...LEITURA_BOLT, traits: [...LEITURA_BOLT.traits, ...inventados] }), false, DB).ausentes, ['small', 'round'], 'a folha nova só leva palavras do autor')
   for (const [traco, deve] of [['small round', true], ['Big Blue Eyes', true], ['blue eye', false], ['round orange', true], ['robot with big', true], ['dog ears', false], ['not round', false], ['small', true], ['', false]]) assert.equal(j.tracoDoAutor(traco, DB), deve, traco)
   assert.equal(j.tracoDoAutor('small', ''), false, 'sem descrição: nenhum traço conta')
@@ -210,12 +210,12 @@ async function suite(change) {
   { // a folha CERTA de um autor que nega: "dog: no", "ears: no", "hat: no" e até "small: no" não reprovam; nada vai ao FLUX; meio e contagem seguem julgados
     const D = 'small round orange robot, not a dog, with no ears and without a hat'
     const negados = ['dog', 'ears', 'hat', 'a hat'].map(trait => ({ trait, category: 'species', visible: 'no' }))
-    igual(j.decidirDaFolha(ler({ ...BOLT_CERTO, traits: [...BOLT_CERTO.traits.slice(0, 4), ...negados] }), false, D), { tracos: 'ok', meio: 'ok', ausentes: [], descartados: 8 }, 'negação do autor: a folha certa serve')
-    igual(j.decidirDaFolha(ler({ ...LEITURA_BOLT, traits: [...LEITURA_BOLT.traits.slice(0, 4), ...negados] }), false, D), { tracos: 'ok', meio: 'ok', ausentes: [], descartados: 8 }, 'nenhum traço julgado: nem "small: no" reprova')
+    igual(j.decidirDaFolha(ler({ ...BOLT_CERTO, traits: [...BOLT_CERTO.traits.slice(0, 4), ...negados] }), false, D), { tracos: 'ok', meio: 'ok', ausentes: [], descartados: 8, forma: 'nao_julgada', especie: null }, 'negação do autor: a folha certa serve')
+    igual(j.decidirDaFolha(ler({ ...LEITURA_BOLT, traits: [...LEITURA_BOLT.traits.slice(0, 4), ...negados] }), false, D), { tracos: 'ok', meio: 'ok', ausentes: [], descartados: 8, forma: 'nao_julgada', especie: null }, 'nenhum traço julgado: nem "small: no" reprova')
     igual(j.decidirDaFolha(ler({ ...BOLT_CERTO, characters: 2 }), false, D).tracos, 'mais_de_um', 'a contagem segue julgada')
     igual(j.decidirDaFolha(ler({ ...BOLT_CERTO, characters: 0 }), false, D).tracos, 'nenhum')
     igual(j.decidirDaFolha(ler({ ...BOLT_CERTO, medium: 'photo_or_realistic_render' }), false, D).meio, 'meio', 'o meio segue julgado')
-    igual(j.decidirDaFolha(ler({ medium: 'photo_or_realistic_render', characters: 1, traits: [{ trait: 'beard', category: 'feature', visible: 'no' }, { trait: 'tall', category: 'size', visible: 'no' }] }), true, 'tall man with no beard'), { tracos: 'ok', meio: 'ok', ausentes: [], descartados: 2 }, '"with no beard": nem barba nem altura julgadas')
+    igual(j.decidirDaFolha(ler({ medium: 'photo_or_realistic_render', characters: 1, traits: [{ trait: 'beard', category: 'feature', visible: 'no' }, { trait: 'tall', category: 'size', visible: 'no' }] }), true, 'tall man with no beard'), { tracos: 'ok', meio: 'ok', ausentes: [], descartados: 2, forma: 'nao_julgada', especie: null }, '"with no beard": nem barba nem altura julgadas')
   }
   assert.equal(j.instrucaoDaFolhaNova(j.decidirDaFolha(ler({ ...LEITURA_BOLT, traits: [...LEITURA_BOLT.traits, ...inventados] }), false, DB), 'stylized 3D animated film look'), ' Exactly as the author wrote, clearly visible: small; round. Rendered in stylized 3D animated film look.')
   assert.equal(j.instrucaoDaFolhaNova(j.decidirDaFolha(ler({ ...BOLT_CERTO, characters: 0 }), false, DB), 'stylized 3D animated film look'), ' Exactly one character alone in the frame. Rendered in stylized 3D animated film look.')
@@ -231,7 +231,7 @@ async function suite(change) {
   const args = (ficha, fotorreal) => ({ ficha, url: 'https://x.org/folha-1.png', filmeFotorreal: fotorreal, lookPhrase: fotorreal ? 'photorealistic' : 'stylized 3D animated film look' })
   const NOVA = 'https://x.org/nova.png', C2 = Math.round((0.002 + FOLHA_USD) * 1e6) / 1e6, C1N = Math.round((0.001 + FOLHA_USD) * 1e6) / 1e6
   const caso = async (ficha, fotorreal, leituras, url = NOVA) => { const r = await j.julgarAFolha(args(ficha, fotorreal), { ler: fila(...leituras.map(chamada)), gerar: gerar(url) }); return [r.url, r.relato] }
-  const rel = (o) => ({ tipo: 'criatura', tracos: 'ok', meio: 'ok', serve: true, tentativa: 1, regerou: false, custo_usd: 0.001, tracos_1: 'ok', meio_1: 'ok', descartados: 0, tracos_nao_julgados: null, ...o })
+  const rel = (o) => ({ tipo: 'criatura', tracos: 'ok', meio: 'ok', serve: true, tentativa: 1, regerou: false, custo_usd: 0.001, tracos_1: 'ok', meio_1: 'ok', descartados: 0, tracos_nao_julgados: null, forma: 'nao_julgada', forma_1: 'nao_julgada', ...o })
   { // [volta 5] ficha com negação: serve de primeira mesmo com "small: no"; o relato grava tracos_nao_julgados: 'negacao'; meio errado ainda regera
     const NEGA = { ...BOLT, canonica: 'Bolt, exactly as the author wrote: "small round orange robot, not a dog"; drawn in the film\'s own look' }
     assert.equal(j.descricaoParaOJuiz(NEGA), 'small round orange robot, not a dog')
@@ -252,10 +252,10 @@ async function suite(change) {
   igual(await caso({ ...EMBER, tipo: 'animal' }, true, [EMBER_CARTUM, EMBER_CARTUM]), [NOVA, rel({ tipo: 'animal', meio: 'meio_tolerado', tentativa: 2, regerou: true, custo_usd: C2, meio_1: 'meio', descartados: 4 })])
   igual(await caso(ELIAS, true, [ELIAS_DESENHO, ELIAS_DESENHO]), [null, rel({ tipo: 'humano', meio: 'meio', serve: false, tentativa: null, regerou: true, custo_usd: C2, meio_1: 'meio' })], 'pessoa em desenho num filme de foto: não serve')
   igual(await caso(EMBER, false, [EMBER_REALISTA, EMBER_REALISTA]), [null, rel({ meio: 'meio', serve: false, tentativa: null, regerou: true, custo_usd: C2, meio_1: 'meio', descartados: 4 })], 'folha foto num filme desenhado: não serve, nunca')
-  igual(await caso(BOLT, false, [null]), [null, rel({ tracos: 'sem_leitura', meio: 'sem_leitura', serve: false, tentativa: null, tracos_1: 'sem_leitura', meio_1: 'sem_leitura' })], 'não julgada = não serve')
-  igual(await caso(BOLT, false, [LEITURA_BOLT, null]), [null, rel({ tracos: 'sem_leitura', meio: 'sem_leitura', serve: false, tentativa: null, regerou: true, custo_usd: C2, tracos_1: 'forma_especie' })], 'a 2ª sem leitura: não serve')
+  igual(await caso(BOLT, false, [null]), [null, rel({ tracos: 'sem_leitura', meio: 'sem_leitura', serve: false, tentativa: null, tracos_1: 'sem_leitura', meio_1: 'sem_leitura', forma: 'sem_leitura', forma_1: 'sem_leitura' })], 'não julgada = não serve')
+  igual(await caso(BOLT, false, [LEITURA_BOLT, null]), [null, rel({ tracos: 'sem_leitura', meio: 'sem_leitura', serve: false, tentativa: null, regerou: true, custo_usd: C2, tracos_1: 'forma_especie', forma: 'sem_leitura' })], 'a 2ª sem leitura: não serve')
   igual(await caso(BOLT, false, [LEITURA_BOLT], null), [null, rel({ tracos: 'forma_especie', serve: false, tentativa: null, custo_usd: C1N, tracos_1: 'forma_especie' })], 'a folha nova pedida e não saída: custo gravado')
-  igual(Object.keys((await j.julgarAFolha(args(BOLT, false), { ler: fila(chamada(BOLT_CERTO)), gerar: gerar(NOVA) })).relato), ['tipo', 'tracos', 'meio', 'serve', 'tentativa', 'regerou', 'custo_usd', 'tracos_1', 'meio_1', 'descartados', 'tracos_nao_julgados'], 'o claim: só código e número')
+  igual(Object.keys((await j.julgarAFolha(args(BOLT, false), { ler: fila(chamada(BOLT_CERTO)), gerar: gerar(NOVA) })).relato), ['tipo', 'tracos', 'meio', 'serve', 'tentativa', 'regerou', 'custo_usd', 'tracos_1', 'meio_1', 'descartados', 'tracos_nao_julgados', 'forma', 'forma_1'], 'o claim: só código e número')
   // (2) os 3 filmes provados da manhã continuam ligando: a folha fotorreal deles serve de primeira, mesmo com a biografia lida como "no"
   for (const prov of PROVADOS) {
     const d = j.descricaoParaOJuiz(prov)
@@ -320,10 +320,10 @@ const mutants = [
   [modulo, "  if (!r1.leitura) return fim(null, null, null, null, false)", "  if (!r1.leitura) return fim(args.url, null, null, 1, false)"], // a folha não julgada serve
   [modulo, "  if (!r2.leitura) return fim(null, null, null, null, true)\n", "  if (!r2.leitura) return fim(nova, null, null, 2, true)\n"],
   [modulo, "  return fim(null, v2, null, null, true)\n}", "  return fim(nova, v2, null, 2, true)\n}"], // a 2ª reprovada serve
-  [modulo, "v2.tracos === 'ok' && v2.meio === 'meio' && args.filmeFotorreal && (tipo === 'animal' || tipo === 'criatura')", "v2.meio === 'meio' && args.filmeFotorreal && (tipo === 'animal' || tipo === 'criatura')"],
-  [modulo, "v2.tracos === 'ok' && v2.meio === 'meio' && args.filmeFotorreal && (tipo === 'animal' || tipo === 'criatura')", "v2.tracos === 'ok' && v2.meio === 'meio' && (tipo === 'animal' || tipo === 'criatura')"],
-  [modulo, "v2.tracos === 'ok' && v2.meio === 'meio' && args.filmeFotorreal && (tipo === 'animal' || tipo === 'criatura')", "v2.tracos === 'ok' && v2.meio === 'meio' && args.filmeFotorreal"],
-  [modulo, "v2.tracos === 'ok' && v2.meio === 'meio' && args.filmeFotorreal && (tipo === 'animal' || tipo === 'criatura')", 'false'],
+  [modulo, "v2.tracos === 'ok' && formaPassa(v2)", "formaPassa(v2)"],
+  [modulo, "v2.meio === 'meio' && args.filmeFotorreal && (tipo === 'animal' || tipo === 'criatura')", "v2.meio === 'meio' && (tipo === 'animal' || tipo === 'criatura')"],
+  [modulo, "args.filmeFotorreal && (tipo === 'animal' || tipo === 'criatura')", "args.filmeFotorreal"],
+  [modulo, "if (v2.tracos === 'ok' && formaPassa(v2) /* KINEO-FORMA-DA-FOLHA-2511 */ && v2.meio === 'meio' && args.filmeFotorreal && (tipo === 'animal' || tipo === 'criatura'))", 'if (false)'],
   [modulo, "return fim(nova, v2, 'meio_tolerado', 2, true)", 'return fim(nova, v2, null, 2, true)'],
   [modulo, "Exactly as the author wrote, clearly visible: ${v.ausentes.join('; ')}.", 'Better character.'],
   [modulo, ".filter((r) => !reprovadas.has(r?.nome))", ''],

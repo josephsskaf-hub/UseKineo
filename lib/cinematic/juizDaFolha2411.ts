@@ -18,7 +18,13 @@ import { contaDaCasaExata } from '@/lib/internalAccounts'
 import { STILL_CRITIC_MODELO, custoDoCriticoUsd } from '@/lib/cinematic/criticoStill'
 import type { FilmQualitySnapshot } from '@/lib/filmComplete/qualityInheritance'
 import { descricaoDoAutor } from '@/lib/cinematic/referenciaUnica2411'
-import { PERSONAGEM_FOLHA_USD } from '@/lib/cinematic/folhaDePersonagem'
+import { ESPECIES_DA_FOLHA, PERSONAGEM_FOLHA_USD, PESSOAS_DA_FOLHA } from '@/lib/cinematic/folhaDePersonagem'
+// KINEO-FORMA-DA-FOLHA-2511 [CEO 25/11, Bolt addef2b6: o conferente APROVOU um robô laranja com cabeça de cachorro — tracos ok, descartados 1] — H2: o
+// conferente só perguntava pelo que o autor escreveu; o que a folha tem A MAIS ninguém perguntava. Agora, quando a descrição do AUTOR nomeia UM ser só
+// ("robot"; gente = "person"), o modelo responde duas perguntas fechadas de FORMA: o corpo e a cabeça são daquele ser? há parte de OUTRO ser? O código
+// decide: 'no' na 1ª = 'nao_e'; 'yes' na 2ª = 'outra_especie'; 'unclear' não reprova. Híbrido que o autor pediu ("a robot dog", "a cat-like robot",
+// "half man"), descrição com dois seres, com negação ou sem ser escrito = não julga ('nao_julgada'). Reprovou: a folha nova pede o corpo e a cabeça do ser.
+// Interruptor FORMA_DA_FOLHA_2511: 'off' = byte a byte o de antes (nada perguntado, nada decidido).
 // [revisora 24/11, VOLTA, docs/revisoes-2311/CEO-JUIZ-DA-FOLHA-2411.md §11] v3: (1) só conta, e só vai à folha nova, o traço do modelo que EXISTE palavra por palavra na
 // descrição do autor e não é negação; o resto é descartado e contado; (2) sem descrição do AUTOR (Slocum; o Elias do cedd1250: a canônica é biografia/ação),
 // o eixo traços não julga — só um personagem e o meio; (3) folha sem personagem reprova ('nenhum'); (4) o custo grava a folha nova e o relato grava a 1ª leitura;
@@ -33,11 +39,27 @@ export const JUIZ_DA_FOLHA_TIMEOUT_MS = 8_000
 
 export type MeioDaFolha = 'photo_or_realistic_render' | 'cartoon_3d' | 'cartoon_2d' | 'other'
 export type CategoriaDoTraco = 'species' | 'shape' | 'size' | 'color' | 'feature' | 'clothing'
-export type LeituraDaFolha = { meio: MeioDaFolha; personagens: number; tracos: Array<{ traco: string; categoria: CategoriaDoTraco; visivel: 'yes' | 'no' | 'unclear' }> }
+export type LeituraDaFolha = { meio: MeioDaFolha; personagens: number; tracos: Array<{ traco: string; categoria: CategoriaDoTraco; visivel: 'yes' | 'no' | 'unclear' }>
+  forma?: { corpo: 'yes' | 'no' | 'unclear'; outra: 'yes' | 'no' | 'unclear' } | null /* KINEO-FORMA-DA-FOLHA-2511 */ }
 export type MotivoDosTracos = 'mais_de_um' | 'nenhum' | 'forma_especie' | 'traco'
 /** O veredito POR EIXO: traços do autor e meio do filme. */
-export type VereditoDaFolha = { tracos: 'ok' | MotivoDosTracos; meio: 'ok' | 'meio'; ausentes: string[]; descartados: number }
-export const folhaPassa = (v: VereditoDaFolha): boolean => v.tracos === 'ok' && v.meio === 'ok'
+export type FormaDaFolha = 'ok' | 'nao_e' | 'outra_especie' | 'nao_julgada'
+export type VereditoDaFolha = { tracos: 'ok' | MotivoDosTracos; meio: 'ok' | 'meio'; ausentes: string[]; descartados: number; forma: FormaDaFolha; especie: string | null }
+export const formaPassa = (v: Pick<VereditoDaFolha, 'forma'>): boolean => v.forma === 'ok' || v.forma === 'nao_julgada'
+export const folhaPassa = (v: VereditoDaFolha): boolean => v.tracos === 'ok' && v.meio === 'ok' && formaPassa(v)
+export type ModoFormaDaFolha2511 = 'off' | 'on'
+export const FORMA_DA_FOLHA_2511: ModoFormaDaFolha2511 = 'on'
+const SER_RE = new RegExp(`(?<![\\p{L}\\p{N}])(${ESPECIES_DA_FOLHA.animais}|${ESPECIES_DA_FOLHA.criaturas})(?:s|es)?(?![\\p{L}\\p{N}])`, 'giu')
+const GENTE_RE = new RegExp(`(?<![\\p{L}\\p{N}])(?:${PESSOAS_DA_FOLHA})(?:s|es)?(?![\\p{L}\\p{N}])`, 'iu')
+const HIBRIDO_RE = /(?<![\p{L}\p{N}])(?:like|half|part|hybrid|mixed|mix|cross|crossbreed)(?![\p{L}\p{N}])/iu // "cat-like", "half man", "part dragon"
+/** O ÚNICO ser que a descrição do autor nomeia ("robot"; gente = "person"), ou null: sem descrição, com negação, híbrido, dois seres, nenhum ser. */
+export function especieDaDescricao(descricao: string, modo: ModoFormaDaFolha2511 = FORMA_DA_FOLHA_2511): string | null {
+  const d = String(descricao ?? '')
+  if (modo !== 'on' || !d.trim() || temNegacao(d) || HIBRIDO_RE.test(d)) return null
+  const seres = new Set(Array.from(d.matchAll(SER_RE), (m) => m[1].toLowerCase()))
+  if (GENTE_RE.test(d)) seres.add('person')
+  return seres.size === 1 ? [...seres][0] : null
+}
 
 const MEIOS: readonly MeioDaFolha[] = ['photo_or_realistic_render', 'cartoon_3d', 'cartoon_2d', 'other']
 const CATEGORIAS: readonly CategoriaDoTraco[] = ['species', 'shape', 'size', 'color', 'feature', 'clothing']
@@ -73,16 +95,17 @@ export function tracoDoAutor(traco: string, descricao: string): boolean {
 }
 
 /** O pedido ao modelo: só observação, em JSON. Nenhum exemplo; nenhuma ordem de reprovar. */
-export function pedidoAoJuizDaFolha(descricao: string, url: string): { messages: unknown[]; imagens: number; caracteres: number } {
+export function pedidoAoJuizDaFolha(descricao: string, url: string, especie: string | null = null /* KINEO-FORMA-DA-FOLHA-2511 */): { messages: unknown[]; imagens: number; caracteres: number } {
   const sistema = 'You describe one character reference image. Answer only with JSON: {"medium": one of ' + MEIOS.map((m) => `"${m}"`).join(', ') +
     ', "characters": number of distinct characters drawn, "traits": [{"trait": string, "category": one of ' + CATEGORIAS.map((c) => `"${c}"`).join(', ') +
-    ', "visible": "yes" | "no" | "unclear"}]}. For "traits", split the author description into its separate traits (each kind of being, body shape, size, colour, named feature and garment), copy each trait in the author\'s own words, and say whether the image shows it.'
+    ', "visible": "yes" | "no" | "unclear"}]}. For "traits", split the author description into its separate traits (each kind of being, body shape, size, colour, named feature and garment), copy each trait in the author\'s own words, and say whether the image shows it.' +
+    (especie ? ` Also answer "kind_check": {"body_and_head_match": "yes" | "no" | "unclear", "other_kind_parts": "yes" | "no" | "unclear"}. "body_and_head_match" says whether the character's body and head are those of a ${especie}. "other_kind_parts" says whether the character's own body (not clothing, not objects) has any part that belongs to a kind of being other than a ${especie}.` : '') // KINEO-FORMA-DA-FOLHA-2511
   const texto = `Author description of the character: ${descricao || '(none)'}`
   return { messages: [{ role: 'system', content: sistema }, { role: 'user', content: [{ type: 'text', text: texto }, { type: 'image_url', image_url: { url, detail: 'low' } }] }], imagens: 1, caracteres: sistema.length + texto.length }
 }
 
 /** A resposta do modelo, conferida campo a campo. Fora do formato = null (leitura falhou). */
-export function lerLeituraDaFolha(raw: string): LeituraDaFolha | null {
+export function lerLeituraDaFolha(raw: string, exigeForma = false /* KINEO-FORMA-DA-FOLHA-2511: perguntada e fora do formato = leitura falhou */): LeituraDaFolha | null {
   let o: Record<string, unknown>
   try { o = JSON.parse(raw) } catch { return null }
   if (!o || typeof o !== 'object') return null
@@ -95,7 +118,11 @@ export function lerLeituraDaFolha(raw: string): LeituraDaFolha | null {
     const visivel: LeituraDaFolha['tracos'][number]['visivel'] | null = r?.visible === 'yes' || r?.visible === 'no' || r?.visible === 'unclear' ? r.visible : null
     return r && categoria && visivel && limpa(r.trait) ? [{ traco: limpa(r.trait).slice(0, 80), categoria, visivel }] : []
   })
-  return { meio, personagens, tracos }
+  const k = o.kind_check && typeof o.kind_check === 'object' ? (o.kind_check as Record<string, unknown>) : null
+  const sn = (x: unknown): 'yes' | 'no' | 'unclear' | null => (x === 'yes' || x === 'no' || x === 'unclear' ? x : null)
+  const forma = k && sn(k.body_and_head_match) && sn(k.other_kind_parts) ? { corpo: sn(k.body_and_head_match)!, outra: sn(k.other_kind_parts)! } : null
+  if (exigeForma && !forma) return null
+  return exigeForma ? { meio, personagens, tracos, forma } : { meio, personagens, tracos }
 }
 
 /** A regra, no código, POR EIXO. Traços: contagem > espécie/forma/tamanho > outros traços. Meio: cartum em filme fotorreal, foto em filme desenhado. */
@@ -106,7 +133,9 @@ export function decidirDaFolha(l: LeituraDaFolha, filmeFotorreal: boolean, descr
   const tracos: VereditoDaFolha['tracos'] = l.personagens > 1 ? 'mais_de_um' : l.personagens < 1 ? 'nenhum' : forma.length ? 'forma_especie' : outros.length ? 'traco' : 'ok'
   const cartum = l.meio === 'cartoon_3d' || l.meio === 'cartoon_2d'
   const meio: VereditoDaFolha['meio'] = (filmeFotorreal ? cartum : l.meio === 'photo_or_realistic_render') ? 'meio' : 'ok'
-  return { tracos, meio, ausentes: tracos === 'forma_especie' ? forma : tracos === 'traco' ? outros : [], descartados: l.tracos.length - doAutor.length }
+  const especie = especieDaDescricao(descricao) // KINEO-FORMA-DA-FOLHA-2511
+  const formaV: FormaDaFolha = !especie || !l.forma ? 'nao_julgada' : l.forma.corpo === 'no' ? 'nao_e' : l.forma.outra === 'yes' ? 'outra_especie' : 'ok'
+  return { tracos, meio, ausentes: tracos === 'forma_especie' ? forma : tracos === 'traco' ? outros : [], descartados: l.tracos.length - doAutor.length, forma: formaV, especie }
 }
 
 /** A instrução da folha nova: POSITIVA (o motor desenha o que é nomeado), os traços que faltaram com as palavras do autor, e o meio do filme. */
@@ -114,7 +143,8 @@ export function instrucaoDaFolhaNova(v: VereditoDaFolha, lookPhrase: string): st
   if (folhaPassa(v)) return ''
   const um = v.tracos === 'mais_de_um' || v.tracos === 'nenhum' ? ' Exactly one character alone in the frame.' : ''
   const tracos = v.ausentes.length ? ` Exactly as the author wrote, clearly visible: ${v.ausentes.join('; ')}.` : ''
-  return `${um}${tracos} Rendered in ${limpa(lookPhrase) || 'the film\'s own look'}.`
+  const ser = !formaPassa(v) && v.especie ? ` Its body and head are entirely those of ${/^[aeiou]/.test(v.especie) ? 'an' : 'a'} ${v.especie}.` : '' // KINEO-FORMA-DA-FOLHA-2511
+  return `${um}${ser}${tracos} Rendered in ${limpa(lookPhrase) || 'the film\'s own look'}.`
 }
 
 export type ChamadaDaFolha = { leitura: LeituraDaFolha | null; custoUsd: number; erro: string | null }
@@ -122,7 +152,8 @@ export type ChamadaDaFolha = { leitura: LeituraDaFolha | null; custoUsd: number;
 export async function lerAFolha(descricao: string, url: string, opts: { timeoutMs?: number; fetchImpl?: typeof fetch; apiKey?: string } = {}): Promise<ChamadaDaFolha> {
   const key = opts.apiKey ?? (typeof process !== 'undefined' ? process.env.OPENAI_API_KEY : undefined)
   if (!key) return { leitura: null, custoUsd: 0, erro: 'sem_chave' }
-  const { messages, imagens, caracteres } = pedidoAoJuizDaFolha(descricao, url)
+  const especie = especieDaDescricao(descricao) // KINEO-FORMA-DA-FOLHA-2511
+  const { messages, imagens, caracteres } = pedidoAoJuizDaFolha(descricao, url, especie)
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), Math.max(1, opts.timeoutMs ?? JUIZ_DA_FOLHA_TIMEOUT_MS))
   try {
@@ -130,7 +161,7 @@ export async function lerAFolha(descricao: string, url: string, opts: { timeoutM
       body: JSON.stringify({ model: STILL_CRITIC_MODELO, temperature: 0, max_tokens: 400, response_format: { type: 'json_object' }, messages }) })
     if (!res.ok) return { leitura: null, custoUsd: 0, erro: `http_${res.status}` }
     const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } }
-    const leitura = lerLeituraDaFolha(data.choices?.[0]?.message?.content ?? '')
+    const leitura = lerLeituraDaFolha(data.choices?.[0]?.message?.content ?? '', especie !== null)
     return { leitura, custoUsd: custoDoCriticoUsd(data.usage, imagens, caracteres), erro: leitura ? null : 'resposta_ilegivel' }
   } catch {
     return { leitura: null, custoUsd: custoDoCriticoUsd(null, imagens, caracteres), erro: ctrl.signal.aborted ? 'timeout' : 'fetch' }
@@ -141,7 +172,8 @@ export async function lerAFolha(descricao: string, url: string, opts: { timeoutM
 export type RelatoDaFolha = { tipo: 'humano' | 'animal' | 'criatura' | null; tracos: 'ok' | MotivoDosTracos | 'sem_leitura'; meio: 'ok' | 'meio' | 'meio_tolerado' | 'sem_leitura'
   serve: boolean; tentativa: 1 | 2 | null; regerou: boolean; custo_usd: number
   tracos_1: 'ok' | MotivoDosTracos | 'sem_leitura'; meio_1: 'ok' | 'meio' | 'sem_leitura'; descartados: number /* [revisora, v3] a 1ª leitura e os traços do modelo que não eram do autor */
-  tracos_nao_julgados: 'negacao' | null /* [CEO, volta 5] a descrição do autor tem negação: nenhum traço julgado (só meio e contagem) */ }
+  tracos_nao_julgados: 'negacao' | null /* [CEO, volta 5] a descrição do autor tem negação: nenhum traço julgado (só meio e contagem) */
+  forma: FormaDaFolha | 'sem_leitura'; forma_1: FormaDaFolha | 'sem_leitura' /* KINEO-FORMA-DA-FOLHA-2511 */ }
 /** O juiz inteiro para UMA folha: lê; reprovou → UMA folha nova com a instrução → lê de novo; a tolerância do meio só na 2ª e só para bicho e criatura
  *  em filme fotorreal. Devolve a URL que serve (a nova, se foi ela) ou null. */
 export async function julgarAFolha(args: { ficha: { nome: string; canonica: string; tipo?: unknown }; url: string; filmeFotorreal: boolean; lookPhrase: string },
@@ -152,7 +184,7 @@ export async function julgarAFolha(args: { ficha: { nome: string; canonica: stri
   const fim = (url: string | null, v: VereditoDaFolha | null, meio: RelatoDaFolha['meio'] | null, tentativa: 1 | 2 | null, regerou: boolean) =>
     ({ url, nome: args.ficha.nome, relato: { tipo, tracos: v ? v.tracos : 'sem_leitura' as const, meio: meio ?? (v ? v.meio : 'sem_leitura' as const), serve: url !== null, tentativa, regerou, custo_usd: Math.round(custo * 1e6) / 1e6,
       tracos_1: v1 ? v1.tracos : 'sem_leitura' as const, meio_1: v1 ? v1.meio : 'sem_leitura' as const, descartados,
-      tracos_nao_julgados: temNegacao(descricao) ? 'negacao' as const : null } })
+      tracos_nao_julgados: temNegacao(descricao) ? 'negacao' as const : null, forma: v ? v.forma : 'sem_leitura' as const, forma_1: v1 ? v1.forma : 'sem_leitura' as const } })
   const r1 = await deps.ler(descricao, args.url)
   custo += r1.custoUsd
   if (!r1.leitura) return fim(null, null, null, null, false) // não julgada = não serve (é o furo que o juiz fecha)
@@ -169,7 +201,7 @@ export async function julgarAFolha(args: { ficha: { nome: string; canonica: stri
   descartados += v2.descartados
   if (folhaPassa(v2)) return fim(nova, v2, null, 2, true)
   // a tolerância: traços certos, só o meio errado, bicho ou criatura, filme fotorreal (folha de animação num filme de foto). Humano e filme desenhado: nunca.
-  if (v2.tracos === 'ok' && v2.meio === 'meio' && args.filmeFotorreal && (tipo === 'animal' || tipo === 'criatura')) return fim(nova, v2, 'meio_tolerado', 2, true)
+  if (v2.tracos === 'ok' && formaPassa(v2) /* KINEO-FORMA-DA-FOLHA-2511 */ && v2.meio === 'meio' && args.filmeFotorreal && (tipo === 'animal' || tipo === 'criatura')) return fim(nova, v2, 'meio_tolerado', 2, true)
   return fim(null, v2, null, null, true)
 }
 

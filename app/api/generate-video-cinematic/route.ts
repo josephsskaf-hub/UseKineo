@@ -38,6 +38,7 @@ import { KLING4_REFERENCE_MODEL, type Kling4CharacterReference } from '@/lib/kli
 import { ELENCO_E_FIGURINO_2411, FIGURINO_DO_PEDIDO_2411, elencoEFigurinoLigado, elencoComNomeCompleto, aceitaPapelSemPista, fichaComDescricaoDoPedido, relatoDoElenco2411, medidaDaLeitura2411, medidaDaRegra2411, type MedidaDaLeitura2411, ELENCO_E_FIGURINO_2411_VERSAO } from '@/lib/cinematic/elencoEFigurino2411' // KINEO-ELENCO-E-FIGURINO-2411
 import { FOLHA_DA_REFERENCIA_2411, folhaDaReferenciaLigada, folhaServeAReferencia2411, retratoDaReferencia2411 } from '@/lib/cinematic/folhaDaReferencia2411' // KINEO-FOLHA-DA-REFERENCIA-2411
 import { LEITOR_DO_ELENCO_2411, LEITOR_DO_ELENCO_2411_VERSAO, elencoDoLeitor2411 } from '@/lib/cinematic/elencoEFigurino2411' // KINEO-LEITOR-DO-ELENCO-2411
+import { FICHA_SEM_NOME_2511, fichaSemNomeLigada } from '@/lib/cinematic/fichaSemNome2511' // KINEO-FICHA-SEM-NOME-2511
 import { JUIZ_DA_FOLHA_2411, JUIZ_DA_FOLHA_2411_VERSAO, juizDaFolhaLigado, julgarAFolha, lerAFolha, retratoSemFolhaReprovada2411, type RelatoDaFolha } from '@/lib/cinematic/juizDaFolha2411' // KINEO-JUIZ-DA-FOLHA-2411
 import { REFERENCIA_UNICA_2411, admitirReferenciaUnica2411, relatoReferenciaUnica, relatoClienteSemReferencia2411, entradaDoJuiz2411, type ReferenciaUnica2411, type MotivoClienteSemReferencia2411 } from '@/lib/cinematic/referenciaUnica2411' // KINEO-REFERENCIA-UNICA-2411 · KINEO-REFERENCIA-UNICA-HUMANO-2411
 import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy'
@@ -8136,6 +8137,7 @@ async function manipularPost(req: NextRequest) {
     // image_urls (gerarStillDaEstrela: o POST único + a moderação de saída da Estrela), pool de 4, 60 s; (3) o crítico do still recebe a folha como 2ª imagem e o critério [KINEO-META95-PERSONAGEM-2010]
     // IDENTITY, em 'enforce' (1 foto nova por cena, teto de 3 por filme, 35 s); (4) o still aprovado SUBSTITUI o FLUX daquela cena. O FLUX fica de reserva: folha, still ou [KINEO-META95-PERSONAGEM-2010]
     // moderação que falha = a cena sai exatamente como hoje. Sem o interruptor: nada disto roda (o `if` abaixo é a única porta). Fica FORA das fatias que os guardiões executam. [KINEO-META95-PERSONAGEM-2010]
+    const folhaSemNome2511 = fichaSemNomeLigada(FICHA_SEM_NOME_2511, user.email) // KINEO-FICHA-SEM-NOME-2511 — a casa pede a folha sem o nome próprio (cliente e 'off': como hoje)
     // >>> KINEO-META95-PERSONAGEM-2010 bloco
     const folhasReprovadas2411 = new Set<string>() // KINEO-JUIZ-DA-FOLHA-2411 — as folhas que o juiz reprovou duas vezes (ou não leu): a admissão não as lê
     let juizDaFolhaRelato2411: RelatoDaFolha[] | null = null // KINEO-JUIZ-DA-FOLHA-2411 — para o claim (só a casa, com o interruptor)
@@ -8150,14 +8152,14 @@ async function manipularPost(req: NextRequest) {
       const cenasP = cenasDoElenco(classicScenePrompts, scenes.map((s) => s.voiceover ?? ''), elencoP).filter((c) => c.nomes.length > 0 && !fichaCortada1311.indices.has(c.indice) /* KINEO-FICHA-POR-PLANO-2011 [rv22]: plano cortado = still de texto, sem folha */).slice(0, PERSONAGEM_MAX_STILLS) // KINEO-META95-PERSONAGEM-AJUSTE-2010 — quem está na cena: o visual diz se há alguém, a FALA diz quem; era: cenasComPersonagem(visuaisP, elencoP) // KINEO-QUALIDADE-TODOS-MOTORES-2910
       const motivosP: Partial<Record<MotivoStillComFolha, number>> = {} // KINEO-META95-PERSONAGEM-AJUSTE-2010
       let reconferidasP = 0 // KINEO-META95-PERSONAGEM-AJUSTE-2010
-      const folhasP = await Promise.all(elencoP.map((f, i) => qualidadeHerdada ? Promise.resolve(referenciaDaCena(qualidadeHerdada, [f])?.url ?? null) : generateCinematicSceneStill({ scenePrompt: promptDaFolha(f, styleAnchor), styleSuffix: '', seed: (generationSeed + 7_919 * (101 + i)) % 2_147_483_647, pollWindowMs: 15_000, aspect: aspectRequested }))) // KINEO-QUALIDADE-TODOS-MOTORES-2910
+      const folhasP = await Promise.all(elencoP.map((f, i) => qualidadeHerdada ? Promise.resolve(referenciaDaCena(qualidadeHerdada, [f])?.url ?? null) : generateCinematicSceneStill({ scenePrompt: promptDaFolha(f, styleAnchor, folhaSemNome2511), styleSuffix: '', seed: (generationSeed + 7_919 * (101 + i)) % 2_147_483_647, pollWindowMs: 15_000, aspect: aspectRequested }))) // KINEO-QUALIDADE-TODOS-MOTORES-2910
       const folhaDe = new Map<string, string>(elencoP.flatMap((f, i): Array<[string, string]> => (folhasP[i] ? [[f.nome, folhasP[i] as string]] : []))) // KINEO-META95-PERSONAGEM-2010
       // KINEO-JUIZ-DA-FOLHA-2411 [CEO 24/11, Bolt ab9a1d7a: a folha saiu cachorro-robô e o filme seguiu a folha] — a casa, no filme grátis do Kling 4, com folha nova (herdada não): cada folha é LIDA antes de
       // qualquer imagem-chave. Reprovou: UMA folha nova com a instrução do que faltou, e ela passa a ser a folha do filme. Reprovou de novo ou sem leitura: a folha segue no caminho de hoje (imagens-chave),
       // mas a admissão da referência única não a lê. Cliente e 'off': o `if` não entra (nenhuma chamada).
       if (juizDaFolhaLigado(JUIZ_DA_FOLHA_2411, user.email) && kling4TrialCandidate && !qualidadeHerdada && !ensaioPersonagemFixo /* [revisora, v3] o ensaio do personagem fixo fica como hoje */ && folhaDe.size > 0) {
         const julgadas = await Promise.all(elencoP.filter((f) => folhaDe.has(f.nome)).map((f, i) => julgarAFolha({ ficha: f, url: folhaDe.get(f.nome) as string, filmeFotorreal: !isStylizedLook(styleAnchor) && !desenhoInfantil.ativo, lookPhrase: styleAnchor.lookPhrase },
-          { ler: (descricao, url) => lerAFolha(descricao, url), gerar: (instrucao) => generateCinematicSceneStill({ scenePrompt: promptDaFolha(f, styleAnchor) + instrucao, styleSuffix: '', seed: (generationSeed + 7_919 * (201 + i)) % 2_147_483_647, pollWindowMs: 15_000, aspect: aspectRequested }) })))
+          { ler: (descricao, url) => lerAFolha(descricao, url), gerar: (instrucao) => generateCinematicSceneStill({ scenePrompt: promptDaFolha(f, styleAnchor, folhaSemNome2511) + instrucao, styleSuffix: '', seed: (generationSeed + 7_919 * (201 + i)) % 2_147_483_647, pollWindowMs: 15_000, aspect: aspectRequested }) })))
         for (const j of julgadas) { if (j.url) folhaDe.set(j.nome, j.url); else folhasReprovadas2411.add(j.nome) }
         juizDaFolhaRelato2411 = julgadas.map((j) => j.relato)
       }
