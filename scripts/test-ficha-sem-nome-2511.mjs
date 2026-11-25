@@ -209,8 +209,8 @@ async function suite(change) {
   const pedirFolhas = async (folhaSemNome2511, elencoP) => {
     const pedidos = []
     const corpo = ts.transpile('return (async () => {\n' + folhaDoFilme + '\nreturn folhasP })()', { target: ts.ScriptTarget.ES2022 })
-    const folhas = await Function('elencoP', 'qualidadeHerdada', 'referenciaDaCena', 'generateCinematicSceneStill', 'promptDaFolha', 'styleAnchor', 'folhaSemNome2511', 'generationSeed', 'aspectRequested', 'aplicarEpocaVisual', 'epocaVisual', corpo)(
-      elencoP, null, () => assert.fail('herdada'), async (a) => { pedidos.push(a); return 'https://x.org/folha.png' }, L.promptDaFolha, LOOK, folhaSemNome2511, 7, '9:16', createOfflineLoader()('@/lib/cinematic/epocaVisual2411').aplicarEpocaVisual, null)
+    const folhas = await Function('elencoP', 'qualidadeHerdada', 'referenciaDaCena', 'generateCinematicSceneStill', 'promptDaFolha', 'styleAnchor', 'folhaSemNome2511', 'generationSeed', 'aspectRequested', 'aplicarEpocaVisual', 'epocaVisual', 'visualParaImagemOuReserva', corpo)(
+      elencoP, null, () => assert.fail('herdada'), async (a) => { pedidos.push(a); return 'https://x.org/folha.png' }, L.promptDaFolha, LOOK, folhaSemNome2511, 7, '9:16', createOfflineLoader()('@/lib/cinematic/epocaVisual2411').aplicarEpocaVisual, null, texto => texto)
     assert.equal(folhas.length, elencoP.length)
     return pedidos
   }
@@ -228,9 +228,9 @@ async function suite(change) {
     const ler = async (d, url) => ({ leitura: j.lerLeituraDaFolha(url.includes('nova') ? leituraJson(ROBO) : primeira), custoUsd: 0.001, erro: null })
     const corpo = ts.transpile('return (async () => {\n' + juizNaRota + '\n} return null })()', { target: ts.ScriptTarget.ES2022 })
     await Function('juizDaFolhaLigado', 'JUIZ_DA_FOLHA_2411', 'user', 'kling4TrialCandidate', 'qualidadeHerdada', 'ensaioPersonagemFixo', 'folhaDe', 'elencoP', 'julgarAFolha', 'isStylizedLook', 'styleAnchor', 'desenhoInfantil', 'lerAFolha',
-      'generateCinematicSceneStill', 'promptDaFolha', 'generationSeed', 'aspectRequested', 'folhasReprovadas2411', 'folhaSemNome2511', 'aplicarEpocaVisual', 'epocaVisual', 'formaNoFilme', 'FORMA_DA_FOLHA_2511', corpo)(
+      'generateCinematicSceneStill', 'promptDaFolha', 'generationSeed', 'aspectRequested', 'folhasReprovadas2411', 'folhaSemNome2511', 'aplicarEpocaVisual', 'epocaVisual', 'formaNoFilme', 'FORMA_DA_FOLHA_2511', 'visualParaImagemOuReserva', corpo)(
       j.juizDaFolhaLigado, j.JUIZ_DA_FOLHA_2411, { email: CASA }, true, null, false, new Map([['Bolt', 'https://x.org/folha.png']]), [BOLT], j.julgarAFolha, () => true, LOOK, { ativo: false }, ler,
-      async (a) => { gerados.push(a.scenePrompt); return 'https://x.org/nova.png' }, L.promptDaFolha, 7, '9:16', new Set(), folhaSemNome2511, createOfflineLoader()('@/lib/cinematic/epocaVisual2411').aplicarEpocaVisual, null, j.formaNoFilme, j.FORMA_DA_FOLHA_2511)
+      async (a) => { gerados.push(a.scenePrompt); return 'https://x.org/nova.png' }, L.promptDaFolha, 7, '9:16', new Set(), folhaSemNome2511, createOfflineLoader()('@/lib/cinematic/epocaVisual2411').aplicarEpocaVisual, null, j.formaNoFilme, j.FORMA_DA_FOLHA_2511, texto => texto)
     return gerados
   }
   const SEM_SMALL = JSON.stringify({ medium: 'cartoon_3d', characters: 1, traits: TRACOS_SIM.map(t => t.trait === 'small' ? { ...t, visible: 'no' } : t) })

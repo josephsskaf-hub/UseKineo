@@ -141,8 +141,8 @@ const section = 'indices ? epocaVisual.secoes[indices[i]] : epocaVisual.cenas[i]
 const mutants = [
   ['no account check', gate, 'kling4TrialCandidate && !qualidadeHerdada', external, 'external account received a period setting'],
   ['always internal', gate, 'true', external, 'external account received a period setting'],
-  ['undated sheet', 'scenePrompt: aplicarEpocaVisual(promptDaFolha(f, styleAnchor, folhaSemNome2511), epocaVisual?.ficha, true),', 'scenePrompt: aplicarEpocaVisual(promptDaFolha(f, styleAnchor, folhaSemNome2511), undefined, true),', sheetFirst, 'sheet must date the opening workshop'],
-  ['last epoch on sheet', 'scenePrompt: aplicarEpocaVisual(promptDaFolha(f, styleAnchor, folhaSemNome2511), epocaVisual?.ficha, true),', 'scenePrompt: aplicarEpocaVisual(promptDaFolha(f, styleAnchor, folhaSemNome2511), epocaVisual?.secoes.at(-1), true),', sheetFirst, 'sheet must date the opening workshop'],
+  ['undated sheet', 'scenePrompt: visualParaImagemOuReserva(aplicarEpocaVisual(promptDaFolha(f, styleAnchor, folhaSemNome2511), epocaVisual?.ficha, true)),', 'scenePrompt: visualParaImagemOuReserva(aplicarEpocaVisual(promptDaFolha(f, styleAnchor, folhaSemNome2511), undefined, true)),', sheetFirst, 'sheet must date the opening workshop'],
+  ['last epoch on sheet', 'scenePrompt: visualParaImagemOuReserva(aplicarEpocaVisual(promptDaFolha(f, styleAnchor, folhaSemNome2511), epocaVisual?.ficha, true)),', 'scenePrompt: visualParaImagemOuReserva(aplicarEpocaVisual(promptDaFolha(f, styleAnchor, folhaSemNome2511), epocaVisual?.secoes.at(-1), true)),', sheetFirst, 'sheet must date the opening workshop'],
   ['undated split shots', section, 'undefined', sectionDates, 'missing section date on dispatch'],
 ]
 for (const [name, before, after, probe, reason] of mutants) {

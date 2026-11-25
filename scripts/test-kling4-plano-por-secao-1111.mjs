@@ -68,7 +68,7 @@ async function problems(S) {
   // reaproveitamento leem a MESMA entrada do envio pela entradaDoJuiz2411 (sem a frase de referência; desligado = a mesma entrada). 1 + 2 = os 3 de sempre.
   no(r.split('const e = kling4EnvioDoFilme(); return buildKling4TrialInput(e.prompts, e.approvedStills, e.timing).input').length - 1 !== 1 || r.split('const e = kling4EnvioDoFilme(); return entradaDoJuiz2411(e.timing, buildKling4TrialInput(e.prompts, e.approvedStills, e.timing))').length - 1 !== 2, 'rota: juiz do plano, conferência do reaproveitamento do juiz (KINEO-FICHA-ANTES-DO-RENDER-1311, revisão 14/11) e claim não leem a mesma entrada do envio')
   no(!r.includes('const q = kling4PlanoPorSecao && verbatim && parsedScript.segments.length > scenes.length'), 'rota: os planos por seção valem sem seções a mais que cenas')
-  no(!r.includes("fallback_scenes = classicScenePrompts.map((prompt, i) => ({ prompt, duration: scenes[i].clipSeconds ?? 6"), 'rota: a reserva deixou de ser as 3 cenas de sempre')
+  no(!r.includes("const promptsDaReserva = papelVisual2411 ? classicScenePrompts.map(visualParaImagemOuReserva) : classicScenePrompts") || !r.includes("fallback_scenes = promptsDaReserva.map((prompt, i) => ({ prompt, duration: scenes[i].clipSeconds ?? 6"), 'rota: a reserva deixou de ser as 3 cenas de sempre')
   no(!r.includes('const scenePlan = scenes.map((s, i) => {'), 'rota: scene_plan deixou de ser por cena')
   return p
 }
