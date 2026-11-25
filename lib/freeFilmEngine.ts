@@ -1,12 +1,19 @@
 // KINEO-LLMS-K4-2910 — public first-film copy follows the same rollback switch as generation.
 import { KLING4_TRIAL_LIVE } from './kling4TrialPolicy'
+import { GEMINI_NA_ESTEIRA_2511, GEMINI_OMNI_NOME_PUBLICO_2511 } from './cinematic/geminiNaEsteiraChave2511' // KINEO-NOME-HONESTO-2511 — a chave sozinha (sem a lista da casa)
 
 // KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "vai 16"] — selo honesto: o filme grátis sai no Kling 4.0
 // quando a história cabe em 15 s; narração mais longa vai ao Seedance 1.5 (a rota mede a voz antes de pagar). O nome do motor
 // do filme grátis, usado em ~100 frases de 16 línguas, passa a nomear os DOIS — a forma mais curta que é verdade em toda língua.
 // KINEO-COMPRA-SEM-SEEDANCE-1111 [CEO 11/11, ronda do caminho de compra] — a fal tirou o Seedance 1.5 em 11/11 (ead4a920a): a reserva do grátis roda no
 // MiniMax H3 Turbo (KLING4_TRIAL_FALLBACK_MODEL = RESERVA_SEEDANCE_MODEL = minimax/h3-max-turbo/text-to-video). O nome segue o motor real.
-export const FREE_FILM_ENGINE_NAME = KLING4_TRIAL_LIVE ? 'Kling 4.0 / MiniMax H3 Turbo' : 'MiniMax H3 Turbo'
+// KINEO-NOME-HONESTO-2511 [CEO 25/11: "o motor mostrado é o motor real"] — com o Gemini aberto ao cliente (GEMINI_NA_ESTEIRA_2511 'public'), o filme grátis
+// PODE sair no Gemini Omni Flash 1.2 (com foto de referência admitida e 15 s), senão no Kling 4.0, senão no MiniMax H3 Turbo: o nome lista os três NA ORDEM
+// QUE O FILME TENTA, na mesma forma "A / B" de antes (um dos motores, nunca "todo filme no Gemini"). O Gemini só roda dentro do Kling 4 grátis: com o Kling 4
+// grátis desligado, ele também sai. Gemini fora de 'public' = o texto de antes, byte a byte. O selo por filme (o motor que entregou) não muda.
+/** O filme grátis PODE sair no Gemini Omni Flash 1.2 (a chave pública e o Kling 4 grátis ligados). */
+export const FREE_FILM_TRIES_GEMINI = KLING4_TRIAL_LIVE && GEMINI_NA_ESTEIRA_2511 === 'public'
+export const FREE_FILM_ENGINE_NAME = KLING4_TRIAL_LIVE ? `${FREE_FILM_TRIES_GEMINI ? `${GEMINI_OMNI_NOME_PUBLICO_2511} / ` : ''}Kling 4.0 / MiniMax H3 Turbo` : 'MiniMax H3 Turbo'
 /** O filme grátis PODE sair no Kling 4.0 (interruptor de reversão). Para decisões de copy — nunca comparar o nome acima. */
 export const FREE_FILM_IS_KLING4 = KLING4_TRIAL_LIVE
 /** A condição, onde a frase já promete o Kling 4.0 grátis ("free on Kling 4.0" + isto). Vazia com o Kling 4 grátis desligado. */

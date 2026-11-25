@@ -49,9 +49,11 @@ function loader(overrides = {}) {
 }
 
 // KINEO-LLMS-K4-2910 — expectations are independent of the canonical copy implementation.
-async function verify(live, overrides = {}) {
+async function verify(live, overrides = {}, gemini = true) {
   const load = loader(overrides)
-  const expected = live ? 'Kling 4.0 / MiniMax H3 Turbo' : 'MiniMax H3 Turbo' // KINEO-COMPRA-SEM-SEEDANCE-1111 — a reserva do grátis roda no H3 Turbo desde ead4a920a (a fal tirou o Seedance 1.5 em 11/11) · KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "vai 16"] — selo honesto: Kling 4.0 só quando a história cabe em 15 s
+  const expected1111 = live ? 'Kling 4.0 / MiniMax H3 Turbo' : 'MiniMax H3 Turbo' // KINEO-COMPRA-SEM-SEEDANCE-1111 — a reserva do grátis roda no H3 Turbo desde ead4a920a (a fal tirou o Seedance 1.5 em 11/11) · KINEO-K4-NARRACAO-CABE-0111 [TRAVA 8.2 — vai do fundador 02/11 "vai 16"] — selo honesto: Kling 4.0 só quando a história cabe em 15 s
+  const expected = (live && gemini ? 'Gemini Omni Flash 1.2 / ' : '') + expected1111 // KINEO-NOME-HONESTO-2511 — com o Gemini 'public' e o Kling 4 grátis ligado, o Gemini entra PRIMEIRO (a ordem que o filme tenta)
+  assert.equal(load('lib/cinematic/geminiNaEsteiraChave2511.ts').GEMINI_NA_ESTEIRA_2511 === 'public', gemini) // KINEO-NOME-HONESTO-2511
   const label = `free 15-second film (${expected})`
   assert.equal(load(policy).KLING4_TRIAL_LIVE, live)
   assert.equal(load('lib/freeFilmEngine.ts').FREE_FILM_ENGINE_NAME, expected)
@@ -72,7 +74,7 @@ async function verify(live, overrides = {}) {
   if (live) {
     assert.doesNotMatch(llms, /free 15-second film \(Seedance 1\.5\)|free (?:first )?film (?:uses|runs on) Seedance 1\.5|trial film uses Seedance 1\.5/i)
     assert.match(offer.FREE_FILM_LABEL, /Kling 4\.0 \/ MiniMax H3 Turbo/) // KINEO-K4-NARRACAO-CABE-0111 — o rótulo nomeia os dois motores (antes: proibia citar o Seedance) · KINEO-COMPRA-SEM-SEEDANCE-1111 — o segundo é o H3 Turbo
-    assert.ok(load('lib/entryPolicy.ts').FREE_ENTRY_COPY.sentence.includes('free 15-second film (Kling 4.0 / MiniMax H3 Turbo), on Kling 4.0 when the story fits 15 seconds — with no card')) // KINEO-K4-NARRACAO-CABE-0111
+    assert.ok(load('lib/entryPolicy.ts').FREE_ENTRY_COPY.sentence.includes(`free 15-second film (${expected}), on Kling 4.0 when the story fits 15 seconds — with no card`)) // KINEO-K4-NARRACAO-CABE-0111 · KINEO-NOME-HONESTO-2511 (o nome derivado)
   }
 }
 
@@ -82,6 +84,19 @@ const off = { [policy]: read(policy).replace('export const KLING4_TRIAL_LIVE = t
 await verify(true)
 console.log('PASS live: /llms.txt, /api/facts, kineoFacts, FREE_FILM_LABEL and entryPolicy say Kling 4.0')
 await verify(false, off)
+// KINEO-NOME-HONESTO-2511 — o Gemini fora de 'public' devolve o texto de antes, byte a byte; com o Kling 4 grátis desligado, o Gemini também sai do nome
+const CHAVE_G = 'lib/cinematic/geminiNaEsteiraChave2511.ts'
+assert.match(read(CHAVE_G), /export const GEMINI_NA_ESTEIRA_2511: ModoGeminiNaEsteira2511 = 'public'/)
+for (const modo of ['internal', 'off']) {
+  const gemFora = { [CHAVE_G]: read(CHAVE_G).replace("GEMINI_NA_ESTEIRA_2511: ModoGeminiNaEsteira2511 = 'public'", `GEMINI_NA_ESTEIRA_2511: ModoGeminiNaEsteira2511 = '${modo}'`) }
+  await verify(true, gemFora, false)
+  assert.equal(loader(gemFora)('lib/freeFilmEngine.ts').FREE_FILM_ENGINE_NAME, 'Kling 4.0 / MiniMax H3 Turbo', `Gemini ${modo}: o texto de antes, byte a byte`)
+}
+await verify(false, { ...off, [CHAVE_G]: read(CHAVE_G).replace("= 'public'", "= 'internal'") }, false) // Kling 4 grátis desligado: MiniMax H3 Turbo com qualquer chave
+// o nome que esquece o Gemini com a chave pública, ou o põe com a chave fora, fica vermelho
+await assert.rejects(() => verify(true, { 'lib/freeFilmEngine.ts': "export const FREE_FILM_ENGINE_NAME = 'Kling 4.0 / MiniMax H3 Turbo'" }), /Gemini Omni Flash 1\.2/)
+await assert.rejects(() => verify(true, { [CHAVE_G]: read(CHAVE_G).replace("= 'public'", "= 'internal'"), 'lib/freeFilmEngine.ts': "export const FREE_FILM_ENGINE_NAME = 'Gemini Omni Flash 1.2 / Kling 4.0 / MiniMax H3 Turbo'" }, false))
+console.log('PASS nome honesto: Gemini public = "Gemini Omni Flash 1.2 / Kling 4.0 / MiniMax H3 Turbo"; internal/off = o texto de antes; Kling 4 grátis desligado = MiniMax H3 Turbo')
 console.log('PASS rollback stub: the same public output returns to MiniMax H3 Turbo') // KINEO-COMPRA-SEM-SEEDANCE-1111
 
 // KINEO-LLMS-K4-2910 — stale engine labels and a broken rollback must still turn this guardian red.

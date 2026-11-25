@@ -16,11 +16,10 @@
 import { contaDaCasaExata } from '@/lib/internalAccounts'
 
 export const GEMINI_NA_ESTEIRA_2511_VERSAO = 'gemini_na_esteira_2511_v1'
-export type ModoGeminiNaEsteira2511 = 'off' | 'internal' | 'public'
-// [dono 25/11 15:27: nota 10 ao filme de prova 7c374f02 (CEO); o sim para abrir ao cliente] 'public' = todo filme grátis que chega ao Kling 4 reference com
-// clipe de 15 s exatos (a referência admitida: para cliente, UMA pessoa fotorreal, REFERENCIA_UNICA_2411 'public_humano'; duas referências continuam só da
-// casa, DUAS_REFERENCIAS_2411 'internal'). Voltar: 'internal' = só a casa; 'off' = o pedido de antes do Gemini, byte a byte.
-export const GEMINI_NA_ESTEIRA_2511: ModoGeminiNaEsteira2511 = 'public'
+// KINEO-NOME-HONESTO-2511 — a chave (e o seu tipo) mora em geminiNaEsteiraChave2511.ts, sem import, para o nome público do motor ler sem a lista da casa.
+// Mudar a chave = mudar LÁ ('public' = todo filme grátis com referência e 15 s; 'internal' = só a casa; 'off' = o pedido de antes do Gemini, byte a byte).
+import type { ModoGeminiNaEsteira2511 } from '@/lib/cinematic/geminiNaEsteiraChave2511'
+export { GEMINI_NA_ESTEIRA_2511, type ModoGeminiNaEsteira2511 } from '@/lib/cinematic/geminiNaEsteiraChave2511'
 export const geminiNaEsteiraLigado = (modo: ModoGeminiNaEsteira2511, email: string | null | undefined): boolean =>
   modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))
 export const GEMINI_OMNI_REF_MODEL = 'google/gemini-omni-flash/v1.2/reference-to-video'

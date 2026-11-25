@@ -19,6 +19,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nativeRequire = createRequire(import.meta.url)
 const read = (p) => readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n')
 const proibido = (o) => () => { throw new Error(`proibido no guardião: ${o}`) }
+const CHAVE_G = 'lib/cinematic/geminiNaEsteiraChave2511.ts' // KINEO-NOME-HONESTO-2511 — a chave mora aqui (M a reexporta)
 const M = 'lib/cinematic/geminiNaEsteira2511.ts', A = 'lib/cinematic/geminiNaEsteiraAsync2511.ts', S = 'lib/kling4TrialAsyncStatus.ts', C = 'lib/cinematic/claim.ts', B = 'lib/kling4TrialBudget.ts'
 const COMPOSE = 'app/api/compose/route.ts'
 const ROUTE = 'app/api/generate-video-cinematic/route.ts', STATUS = 'app/api/cinematic-clip-status/route.ts', SONDA = 'app/api/admin/engine-test/route.ts'
@@ -356,8 +357,8 @@ async function suite(over = {}) {
 const real = await suite()
 for (const x of real) console.error('FALHOU ' + x)
 const MUTANTES = [
-  [M, "export const GEMINI_NA_ESTEIRA_2511: ModoGeminiNaEsteira2511 = 'public'", "export const GEMINI_NA_ESTEIRA_2511: ModoGeminiNaEsteira2511 = 'internal'"], // [25/11] o cliente sem o Gemini
-  [M, "export const GEMINI_NA_ESTEIRA_2511: ModoGeminiNaEsteira2511 = 'public'", "export const GEMINI_NA_ESTEIRA_2511: ModoGeminiNaEsteira2511 = 'off'"],
+  [CHAVE_G, "export const GEMINI_NA_ESTEIRA_2511: ModoGeminiNaEsteira2511 = 'public'", "export const GEMINI_NA_ESTEIRA_2511: ModoGeminiNaEsteira2511 = 'internal'"], // [25/11] o cliente sem o Gemini
+  [CHAVE_G, "export const GEMINI_NA_ESTEIRA_2511: ModoGeminiNaEsteira2511 = 'public'", "export const GEMINI_NA_ESTEIRA_2511: ModoGeminiNaEsteira2511 = 'off'"],
   [M, "modo === 'public' || (modo === 'internal'", "(modo === 'internal'"], // 'public' deixa de ligar
   [M, "modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))", "modo !== 'off'"],
   [M, "`${t}-${t + d} s (shot ${k + 1}, hard cut): ", "`${t}-${t + d}s (shot ${k + 1}): "],

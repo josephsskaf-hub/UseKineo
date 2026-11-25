@@ -31,7 +31,9 @@ function all(o = {}) {
   ok(typeof fallbackModel === 'string' && fallbackModel.length > 0, 'modelo da reserva do grátis lido')
   if (/seedance\/v1\.5/.test(fallbackModel)) ok(FREE_FILM_ENGINE_NAME.includes('Seedance 1.5'), 'reserva no Seedance 1.5 → o nome diz Seedance 1.5')
   else ok(/h3-max-turbo/.test(fallbackModel) && FREE_FILM_ENGINE_NAME.includes('MiniMax H3 Turbo') && !/Seedance/.test(FREE_FILM_ENGINE_NAME), `reserva no H3 Turbo (${fallbackModel}) → o nome diz MiniMax H3 Turbo, nunca Seedance`)
-  ok(FREE_FILM_ENGINE_NAME === (FREE_FILM_IS_KLING4 ? 'Kling 4.0 / MiniMax H3 Turbo' : 'MiniMax H3 Turbo'), 'nome curto do grátis com e sem o Kling 4')
+  // KINEO-NOME-HONESTO-2511 — com o Gemini 'public' (e o Kling 4 grátis), o Gemini Omni Flash 1.2 entra primeiro; fora de 'public', o texto de antes
+  const gemPublico = load('lib/cinematic/geminiNaEsteiraChave2511').GEMINI_NA_ESTEIRA_2511 === 'public'
+  ok(FREE_FILM_ENGINE_NAME === (FREE_FILM_IS_KLING4 ? `${gemPublico ? 'Gemini Omni Flash 1.2 / ' : ''}Kling 4.0 / MiniMax H3 Turbo` : 'MiniMax H3 Turbo'), 'nome curto do grátis com e sem o Kling 4 (e o Gemini)')
   const { FREE_FILM_LABEL } = load('lib/freeTierOffer')
   ok(!/Seedance/.test(FREE_FILM_LABEL) && FREE_FILM_LABEL.includes(FREE_FILM_ENGINE_NAME), `rótulo do grátis (${FREE_FILM_LABEL}) sem Seedance`)
   // 2) /pricing, FAQ: créditos em "standard film" (como os cartões), sem o Fast (fora da oferta) e sem top-up quando não há top-up à venda.
@@ -59,7 +61,7 @@ const real = passed
 
 const s = p => read(p)
 const mutants = [
-  ['nome do grátis volta ao Seedance 1.5', { [ENGINE]: s(ENGINE).replace("'Kling 4.0 / MiniMax H3 Turbo' : 'MiniMax H3 Turbo'", "'Kling 4.0 / Seedance 1.5' : 'Seedance 1.5'") }],
+  ['nome do grátis volta ao Seedance 1.5', { [ENGINE]: s(ENGINE).replace("Kling 4.0 / MiniMax H3 Turbo` : 'MiniMax H3 Turbo'", "Kling 4.0 / Seedance 1.5` : 'Seedance 1.5'") /* KINEO-NOME-HONESTO-2511: a âncora nova */ }],
   ['reserva volta ao Seedance e o nome não acompanha', { [CLAIM]: s(CLAIM).replace("export const RESERVA_SEEDANCE_MODEL = 'minimax/h3-max-turbo/text-to-video'", "export const RESERVA_SEEDANCE_MODEL = 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'") }],
   ['FAQ volta a contar em Seedance', { [PRICING]: s(PRICING).replace("videosPerMonth('starter', 'cinematic_ai'), 'standard film')", "videosPerMonth('starter', 'cinematic_ai'), 'Seedance film')") }],
   ['FAQ promete top-up sem top-up', { [PRICING]: s(PRICING).replace("${TOPUPS_LIVE ? '; you can add extra credits when needed' : ''}", '; you can add extra credits when needed') }],
