@@ -15,7 +15,7 @@ const STUDIO = 'app/(dashboard)/studio/page.tsx'
 const ADVANCED = 'app/(dashboard)/studio/StudioClient.tsx'
 const CREATE_FILM = 'app/create/[tab]/page.tsx'
 const DISPATCH = 'app/(dashboard)/generate/GenerateClient.tsx'
-const BASE = 'c76e0badcc281aa910581d1d1433fadc25b25af4'
+const BASE = '9270f6e05'
 const BASE_UI = Object.fromEntries([SIMPLE, LINK].map(file => [file, fromGit(file)]))
 const load = createOfflineLoader()
 const gate = load('@/lib/cinematic/filmLook2511Server')
@@ -131,8 +131,8 @@ for (const surface of ['simple', 'steps', 'box']) {
   assert.equal(JSON.parse(interceptPost(runEntry(params, internal))).look, 'photoreal', 'POST real contém a escolha da caixa')
   const auto = mount(surface, true, {}, cartoon)
   assert.equal(marked(auto), 'Cartoon')
-  assert.equal(submit(auto).searchParams.get('look'), 'animated3d')
-  assert.deepEqual(styleEvents(auto), [{ initial_look: 'animated3d', chosen_look: 'animated3d', changed: false }])
+  assert.equal(submit(auto).searchParams.has('look'), false, 'a sugestão visível não autoriza look')
+  assert.deepEqual(styleEvents(auto), [{ initial_look: 'animated3d', chosen_look: null, changed: false }])
   const off = mount(surface, false, {}, ordinary)
   const existing = mount(surface, false, BASE_UI, ordinary)
   // Each harness shares the globals it installs. Compare markup before the click and keep the requests independent.
@@ -140,6 +140,33 @@ for (const surface of ['simple', 'steps', 'box']) {
   assert.equal(submit(off).href, submit(existing).href, 'OFF preserva o pedido da base byte a byte')
   assert.deepEqual(styleEvents(off), [])
 }
+
+const UNCOVERED_STYLES = [
+  'A film noir detective walks in the rain',
+  'Black and white story of a lonely sailor',
+  'A watercolor storybook fox finds a lantern',
+  'An illustrated fairy tale about a brave mouse',
+  'A bedtime story about the moon',
+  'A painterly journey through Kyoto',
+]
+function untouched(surface, overrides = {}) {
+  const tab = mount(surface, true, overrides)
+  const base = load(LINK)
+  for (const text of UNCOVERED_STYLES) {
+    type(tab, text)
+    if (surface === 'simple' && text === UNCOVERED_STYLES[0]) {
+      tab.click(p => p['data-testid'] === 'studio-simple-settings', 'Settings')
+      const more = tab.one(p => p['data-kineo'] === 'studio-simple-more', 'More options')
+      assert.equal(new URL(more.props.href, 'https://example.invalid').searchParams.has('look'), false, 'More options não transforma sugestão em escolha')
+    }
+    tab.log.pushes.length = 0
+    const url = submit(tab)
+    assert.equal(url.searchParams.has('look'), false, 'sem toque, a URL não leva look')
+    assert.equal(url.pathname + url.search, base.pedidoDoStudioSimples({ motor: mode, texto: text, duracao: 60, formato: '9:16', lingua: 'auto', palavraPorPalavra: false, campanha: 'studio_simple' }))
+    assert.equal(runEntry(url.searchParams, internal), undefined, 'sem toque, o POST continua sem estilo explícito')
+  }
+}
+for (const surface of ['simple', 'steps', 'box']) untouched(surface)
 
 const dispatched = JSON.parse(interceptPost(runEntry(new URLSearchParams('look=animated3d'), internal)))
 assert.equal(dispatched.look, 'animated3d')
@@ -269,10 +296,11 @@ function mutate(file, before, after) {
   assert.equal(source.split(before).length, 2, 'âncora inequívoca do mutante ' + file)
   return source.replace(before, after)
 }
-assert.throws(() => manual('simple', { [SIMPLE]: mutate(SIMPLE, 'styleChoice?.chosen ?? suggestedLook', 'suggestedLook') }), /edição posterior não desfaz/)
+assert.throws(() => manual('simple', { [SIMPLE]: mutate(SIMPLE, 'selectedLook ?? suggestedLook', 'suggestedLook') }), /edição posterior não desfaz/)
 assert.throws(() => manual('box', { [LINK]: mutate(LINK, "if (p.look) q.set('look', p.look)", 'void p.look') }), /URL preserva/)
+assert.throws(() => untouched('box', { [SIMPLE]: mutate(SIMPLE, '...(selectedLook ? { look: selectedLook } : {})', '...(look ? { look } : {})') }), /sem toque, a URL/)
 const mutant = mutate(DISPATCH, '...(filmLook ? { look: filmLook } : {})', '...{}')
 assert.throws(() => assert.equal(JSON.parse(interceptPost('anime', mutant)).look, 'anime', 'POST precisa do enum'), /POST precisa do enum/)
 const anonymous = mutate(ENTRY, 'authError ? null : user?.email', "'" + internal + "'")
 assert.throws(() => assert.equal(runEntry(new URLSearchParams('look=anime'), external, null, anonymous), undefined, 'conta externa não recebe enum'), /conta externa não recebe enum/)
-console.log('Film style UI: home logada, três molduras, acesso SSR, retomada da prévia, escolha persistente, telemetria, POST interceptado, OFF byte a byte e quatro mutantes.')
+console.log('Film style UI: home logada, três molduras, acesso SSR, retomada da prévia, escolha persistente, telemetria, POST interceptado, 18 casos sem toque, OFF byte a byte e cinco mutantes.')

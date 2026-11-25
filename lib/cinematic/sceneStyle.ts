@@ -129,6 +129,29 @@ export function forcePhotorealAnchor(anchor: StyleAnchor, explicitStyleSuffix?: 
   return { look: 'photoreal', lookPhrase: LOOKS.photoreal.phrase, suffix: `, ${LOOKS.photoreal.lock}${fica ? `, ${fica}` : ''}` } // KINEO-ROMANCE-ADULTO-2026-10-13
 } // KINEO-ROMANCE-ADULTO-2026-10-13
 
+const CUE_LOOKS: Array<[RegExp, StyleLook]> = [
+  [/\b(?:flat\s+)?2[- ]?d\s+(?:cartoons?|animation|animated)\b/i, 'animated3d'],
+  ...LOOK_RE,
+  [/\b(?:photo[- ]?real(?:ism|istic)?|live[- ]action)\b/i, 'photoreal'],
+]
+const CUE_LOOK_RE = new RegExp('(?:' + CUE_LOOKS.map(([pattern]) => '(?:' + pattern.source + ')').join('|') + ')(?:[- ]style\\b)?', 'giu')
+
+/** Keep subjects, actions and framing while removing affirmative cues for a different medium. */
+export function visualTextForFilmLook(text: string, look: StyleLook): string {
+  const negated = [...text.matchAll(JANELA_NEGADA_RE)]
+  let result = ''
+  let cursor = 0
+  for (const { 0: phrase, index } of text.matchAll(CUE_LOOK_RE)) {
+    const medium = CUE_LOOKS.find(([pattern]) => pattern.test(phrase))?.[1]
+    if (medium === look || negated.some(window => index >= window.index && index < window.index + window[0].length)) continue
+    result += text.slice(cursor, index)
+    cursor = index + phrase.length
+  }
+  if (!cursor) return text
+  return (result + text.slice(cursor)).replace(/[ \t]{2,}/g, ' ').replace(/[ \t]+([,.;:])/g, '$1')
+    .replace(/,\s*(?=,)/g, '').replace(/^[\s,;:.]+|[\s,;:]+$/g, '')
+}
+
 /** Decide UMA vez por filme, a partir do roteiro inteiro (nunca por cena). */
 export function deriveStyleAnchor(scriptAndVisuals: string, explicitStyleSuffix?: string, selected?: 'photoreal' | 'animated3d' | 'anime'): StyleAnchor {
   const t = semEstiloNegado((scriptAndVisuals || '').slice(0, 8000)) // KINEO-ROMANCE-ADULTO-2026-10-13 — "no logo animation" não pede animação
@@ -142,7 +165,7 @@ export function deriveStyleAnchor(scriptAndVisuals: string, explicitStyleSuffix?
   const base = LOOKS[look]
   // Estilo explícito do cliente (globalStyle) manda: entra depois da trava.
   const requestedExtra = explicitStyleSuffix && explicitStyleSuffix.trim() ? explicitStyleSuffix.trim().replace(/^,\s*/, '') : ''
-  const extra = selected ? requestedExtra.split(',').filter(part => !LOOK_RE.some(([pattern, kind]) => kind !== selected && pattern.test(semEstiloNegado(part)))).join(',').trim() : requestedExtra
+  const extra = selected ? visualTextForFilmLook(requestedExtra, selected) : requestedExtra
   if (look === 'animated3d' && pedeTomEscuro(`${t}\n${explicit}`)) { // KINEO-3D-ESCURO-0911
     const extraEscuro = extra.replace(MOOD_ALEGRE_3D_G, ' ').split(',').map((s) => s.trim()).filter(Boolean) // KINEO-3D-ESCURO-0911
     return { look, lookPhrase: LOOK_3D_ESCURO, suffix: `, ${base.lock}, suspenseful, moody${extraEscuro.length ? `, ${extraEscuro.join(', ')}` : ''}` } // KINEO-3D-ESCURO-0911

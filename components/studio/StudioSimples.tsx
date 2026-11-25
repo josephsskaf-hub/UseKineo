@@ -121,7 +121,8 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
     initialFilmLook ? { initial: initialFilmLook, chosen: initialFilmLook, changed: false } : null,
   )
   const suggestedLook = showFilmStyle ? suggestedFilmLook(texto) : null
-  const look = suggestedLook && (styleChoice?.chosen ?? suggestedLook)
+  const selectedLook = showFilmStyle ? styleChoice?.chosen : undefined
+  const look = selectedLook ?? suggestedLook
   const filmStylePicker = look && <FilmStylePicker look={look} text={texto} onSelect={next => {
     setStyleChoice(choice => ({
       initial: choice?.initial ?? look,
@@ -179,9 +180,9 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
   const maisOpcoes = useMemo(() => {
     const q = new URLSearchParams({ avancado: '1', engine: motor, intent_campaign: campanha })
     if (texto.trim() && texto.length < 1500) q.set('prompt', texto)
-    if (look) q.set('look', look)
+    if (selectedLook) q.set('look', selectedLook)
     return `/studio?${q.toString()}`
-  }, [motor, campanha, texto, look])
+  }, [motor, campanha, texto, selectedLook])
 
   function gerar() {
     const t = texto.trim()
@@ -198,10 +199,10 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
     registrar('mrr_generate_clicked')
     void trackEvent('studio_simple_generate_clicked', { engine: motor, duration: duracao, aspect: formato, language: lingua, verbatim: palavraPorPalavra, chars: t.length, page_idea_kept: ideiaInicial !== '' && t === ideiaInicial.trim() })
     if (look) {
-      void trackEvent('studio_film_style_submitted', { initial_look: styleChoice?.initial ?? look, chosen_look: look, changed: styleChoice?.changed ?? false })
+      void trackEvent('studio_film_style_submitted', { initial_look: styleChoice?.initial ?? look, chosen_look: selectedLook ?? null, changed: styleChoice?.changed ?? false })
     }
     try { sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine: motor, prompt: t, language: lingua === 'auto' ? 'en' : lingua })) } catch {}
-    router.push(pedidoDoStudioSimples({ motor, texto: t, duracao, formato, lingua, palavraPorPalavra, campanha, ...(look ? { look } : {}) }))
+    router.push(pedidoDoStudioSimples({ motor, texto: t, duracao, formato, lingua, palavraPorPalavra, campanha, ...(selectedLook ? { look: selectedLook } : {}) }))
   }
 
   // KINEO-STUDIO-NA-MOLDURA-1011 — com a moldura (só /create/film, interruptor CREATE_FILM_INPLACE), troca SÓ o desenho; sem ela, nada muda.

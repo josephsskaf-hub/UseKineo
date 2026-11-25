@@ -91,6 +91,7 @@ export type PedidoEstacionado = {
   vertical?: string
   characterId?: string
   kids_cartoon?: string
+  look?: string
   allow_shorter_duration?: boolean
   formatFlags?: unknown
   format_flags?: unknown
@@ -98,7 +99,7 @@ export type PedidoEstacionado = {
   brollScenes?: unknown
   globalStyle?: unknown
 }
-const PEDIDO_TEXTO = ['engine', 'language', 'aspect', 'script_mode', 'vertical', 'characterId', 'kids_cartoon'] as const
+const PEDIDO_TEXTO = ['engine', 'language', 'aspect', 'script_mode', 'vertical', 'characterId', 'kids_cartoon', 'look'] as const
 const PEDIDO_LIVRE = ['formatFlags', 'format_flags', 'estrela', 'brollScenes', 'globalStyle'] as const
 /** Teto do JSON guardado em `events.metadata` (o pedido inteiro com cenas de b-roll cabe folgado). */
 export const PARKED_REQUEST_MAX_JSON = 64 * 1024

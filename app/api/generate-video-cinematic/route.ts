@@ -290,7 +290,7 @@ import {
   historicoDeParedes,
   mensagemComEspiral,
 } from '@/lib/refusalSpiral'
-import { closingSceneVariation, deriveStoryCharacter, deriveExplicitCharacter, deriveStyleAnchor, textSafetySuffix, NO_TEXT_OBJECT_DIRECTION } from '@/lib/cinematic/sceneStyle'
+import { closingSceneVariation, deriveStoryCharacter, deriveExplicitCharacter, deriveStyleAnchor, visualTextForFilmLook, textSafetySuffix, NO_TEXT_OBJECT_DIRECTION } from '@/lib/cinematic/sceneStyle'
 import { buildClassicVisualPrompt, classicVisualNegativePrompt, isStylizedLook, scrubInventedSetting, visualDescriptionDirection, type VisualPromptPolicy } from '@/lib/cinematic/visualPromptPolicy'
 import { ancoraDoLugar, ancorarLugarNoPrompt, comVocabularioDoLugar, lugarPrincipal, pedidoDeTourNarrado, promptTemOLugar } from '@/lib/cinematic/monumentoReal' // KINEO-MONUMENTO-2026-10-13
 import { pedidoDeFilmeDoPlano, ehPrimeiroFilme } from '@/lib/cinematic/planoNoPrimeiroFilme' // KINEO-PLANO-PRIMEIRO-FILME-1111
@@ -1707,7 +1707,8 @@ async function manipularPost(req: NextRequest) {
     // com A1, A2 e o portão do sujeito, contra o filme do defeito. Revisor: é mudança de porta (só a conta exata; cliente continua sem o parâmetro).
     // [revisor 19/11, condição 6] em 'public' o portão leria `events` em TODO pedido da rota, sem prazo: 2 s, e passou = sem a ideia (o caminho de hoje)
     const roteiroDoEscritor1911 = portaoDoSujeito1911 ? (Boolean(await Promise.race([recuperarIdeiaDoEscritor(user.id, body.prompt), new Promise<null>((ok) => setTimeout(() => ok(null), PORTAO_LEITURA_TETO_MS_1911))])) || (isDryRunAccount(user.email) && body.k4_gratis_ensaio === true && (body as { k4_roteiro_do_escritor?: unknown }).k4_roteiro_do_escritor === true)) : false
-    const pedidoEstacionado = pedidoEstacionavel(body) // KINEO-FILA-QUEDA-FAL-2810 — a cópia fechada do pedido, ANTES de a rota mexer no body (script_mode do monumento etc.); null = não estaciona
+    const explicitFilmLook = selectedFilmLook(body.look, user.email)
+    const pedidoEstacionado = pedidoEstacionavel({ ...body, look: explicitFilmLook }) // KINEO-FILA-QUEDA-FAL-2810 — a cópia fechada do pedido, ANTES de a rota mexer no body (script_mode do monumento etc.); null = não estaciona
 
     // KINEO-FACELESS-2026-08-25 — tag [faceless] no script = filme SEM avatar:
     // desliga a conversão HOOK/PAYOFF-on-camera no planner. A tag é REMOVIDA
@@ -4052,11 +4053,15 @@ async function manipularPost(req: NextRequest) {
     const styleAnchor = deriveStyleAnchor(
       textoDoLook(prompt, body.original_idea), // KINEO-ELENCO-TRAVA-0311 — + a ideia de onde o roteiro nasceu ("Estilo animación cinematográfica 3D familiar" vivia só nela: o filme nascia fotorreal); era: prompt // KINEO-ROMANCE-ADULTO-2026-10-13 — o look vem SÓ do texto do cliente; o plano do GPT ("illustrated by their body language") não decide mais
       styleSuffix,
-      selectedFilmLook(body.look, user.email),
+      explicitFilmLook,
     )
     if (romanceAdulto.ativo) Object.assign(styleAnchor, forcePhotorealAnchor(styleAnchor, styleSuffix)) // KINEO-ROMANCE-ADULTO-2026-10-13 — romance é sempre fotorreal
     if (desenhoInfantil.ativo) Object.assign(styleAnchor, desenhoInfantil.estilo) // KINEO-BEBE-QUE-FALA-2010 — desenho infantil: o look 3D fixo (vence o texto) e, por ser desenhado, a estrada vira character_story
     if (qualidadeHerdada?.style) Object.assign(styleAnchor, qualidadeHerdada.style) // KINEO-QUALIDADE-TODOS-MOTORES-2910
+    const visualLookOverride = explicitFilmLook && !qualidadeHerdada?.style && !desenhoInfantil.ativo ? styleAnchor.look : undefined
+    if (visualLookOverride) {
+      for (const segment of parsedScript.segments) segment.pexelsQuery = visualTextForFilmLook(segment.pexelsQuery, visualLookOverride)
+    }
     // KINEO-PROTAGONISTA-1311 [CEO 13/11, "vai na regra do protagonista"] — o filme que ia SEM ROSTO lê, antes do modo, os dois sinais estruturados
     // (protagonista do elenco semântico; sujeito do pedido criatura/pessoa); com um deles vira character_story (ficha e folha). Só acrescenta:
     // história, apresentador, [faceless], desenho infantil e qualidade herdada ficam como estão. As leituras são reaproveitadas abaixo (elenco
@@ -4624,7 +4629,7 @@ async function manipularPost(req: NextRequest) {
         } catch { return null }
       })()
       const salvageFp = createHash('md5')
-        .update(`${user.id}|hollywood|${Math.round(duration || 60)}|${prompt.trim().toLowerCase()}`)
+        .update(`${user.id}|hollywood${explicitFilmLook ? `:${explicitFilmLook}` : ''}|${Math.round(duration || 60)}|${prompt.trim().toLowerCase()}`)
         .digest('hex')
       // ═══ KINEO-SALVAGE-DRYRUN-2026-08-25 — DRY-RUN NUNCA ENTRA NO SALVAGE ═══
       // O caso de 12:56Z: dois dry-runs do MESMO roteiro casaram o fingerprint
@@ -5992,6 +5997,9 @@ async function manipularPost(req: NextRequest) {
       // a plan already known to be shorter than the user's selected duration.
       // KINEO-QUALIDADE-TODOS-MOTORES-2910 — common contract before paid K4 and ordinary Hollywood dispatch.
       const aplicarQualidadeHollywood = async () => {
+        if (visualLookOverride) for (const scene of plan.scenes) {
+          scene.prompt = visualTextForFilmLook(scene.prompt, visualLookOverride)
+        }
         const falas = plan.scenes.map(s => s.type === 'dialogue' ? s.dialogueLine ?? s.voiceover ?? '' : s.voiceover ?? '')
         const contexto = prompt + ' ' + falas.join(' ')
         const quality = prepararQualidadeDoFilme({ prompts: plan.scenes.map(s => s.prompt), falas,
@@ -7479,6 +7487,11 @@ async function manipularPost(req: NextRequest) {
     // e o clipe. 608449fe: a cena 7 subiu "Wide establishing shot, reflecting the evening sky, with boats" e o Seedance inventou o lugar. [KINEO-MONUMENTO-2026-10-13]
     // Pedido sem lugar real (lugarDoPedido null): nada roda, os planos ficam byte a byte. [KINEO-MONUMENTO-2026-10-13]
     if (lugarDoPedido) for (let i = 0; i < scenes.length; i++) scenes[i].aiPrompt = ancorarLugarNoPrompt(scenes[i].aiPrompt || scenes[i].stockSearchQuery || scenes[i].description || '', lugarDoPedido) // KINEO-MONUMENTO-2026-10-13
+    if (visualLookOverride) for (const scene of scenes) {
+      scene.description = visualTextForFilmLook(scene.description, visualLookOverride)
+      if (scene.stockSearchQuery) scene.stockSearchQuery = visualTextForFilmLook(scene.stockSearchQuery, visualLookOverride)
+      if (scene.aiPrompt) scene.aiPrompt = visualTextForFilmLook(scene.aiPrompt, visualLookOverride)
+    }
     const classicScenePrompts = scenes.map((scene, sceneIndex) => {
       const visualPrompt = scene.aiPrompt || scene.stockSearchQuery || scene.description
       const cinematicBruto = buildClassicVisualPrompt(visualPrompt, {
