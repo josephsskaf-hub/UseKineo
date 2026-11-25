@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
+import { FILM_READY_CREATOR_VERSION } from '@/lib/growth/filmComplete'
 import { filmCompleteCopy } from '@/lib/growth/filmCompleteCopy'
 import { WELCOME20_SITE_OFFER_LIVE } from '@/lib/growth/publicPromoTruth'
 import { useWelcome20OfferLive } from '@/lib/growth/useWelcome20Deadline'
@@ -39,7 +40,9 @@ function FilmCompleteContent() {
   const copyLanguage = language === 'pt' || language === 'es' ? language : 'en'
   const copy = COPY[copyLanguage]
   const welcomeLive = useWelcome20OfferLive(WELCOME20_SITE_OFFER_LIVE)
-  const resumeCreator = cancelled && params.get('plan') === 'creator'
+  const resumeExperiment = cancelled && params.get('offer') === FILM_READY_CREATOR_VERSION
+  const resumeCreator = resumeExperiment && params.get('plan') === 'creator'
+  const resumeQuery = resumeExperiment ? `&surface=film_ready&offer=${FILM_READY_CREATOR_VERSION}&plan=${resumeCreator ? 'creator' : 'starter'}` : ''
   const offer = filmCompleteCopy(language, welcomeLive, resumeCreator ? 'off' : undefined)
   const [status, setStatus] = useState<Status | null>(null)
   const [needsLogin, setNeedsLogin] = useState(false)
@@ -154,7 +157,7 @@ function FilmCompleteContent() {
         {sourceUrl ? <video controls playsInline preload="none" src={sourceUrl} style={{ display: 'block', width: '100%', maxHeight: 340, borderRadius: 12, background: '#000', marginBottom: 16 }} /> : null}
         <a href={sourceUrl ? downloadHref(sourceUrl, 'kineo-free-film.mp4', 'film_complete') : '/history'} download={sourceUrl ? 'kineo-free-film.mp4' : undefined} style={buttonStyle}>{sourceUrl ? copy.source : copy.films}</a>
         <p lang={language} dir={interfaceLanguageIsRtl(language) ? 'rtl' : 'ltr'} style={{ margin: '18px 0 8px', color: 'var(--muted2)', fontSize: 13, lineHeight: 1.5 }}>{offer.billing}</p>
-        <a href={`/api/film-complete/checkout?intent=${encodeURIComponent(intentId!)}${resumeCreator ? '&plan=creator' : ''}`} style={{ display: 'block', padding: '10px 0', color: 'var(--accent)', fontWeight: 750, fontSize: 14 }}>{copy.resume.replace('{plan}', offer.tier === 'basic' ? 'Creator' : 'Starter') /* KINEO-VERSAO-COMPLETA-STARTER-1111 — o plano que o retorno abre */} →</a>
+        <a href={`/api/film-complete/checkout?intent=${encodeURIComponent(intentId!)}${resumeQuery}`} style={{ display: 'block', padding: '10px 0', color: 'var(--accent)', fontWeight: 750, fontSize: 14 }}>{copy.resume.replace('{plan}', offer.tier === 'basic' ? 'Creator' : 'Starter') /* KINEO-VERSAO-COMPLETA-STARTER-1111 — o plano que o retorno abre */} →</a>
       </> : null}
       {needsLogin ? <Link href={`/login?redirect=${encodeURIComponent(loginReturn)}`} style={buttonStyle}>{copy.login}</Link> : null}
       {networkError ? <p role="status" style={{ color: 'var(--muted2)', fontSize: 13, lineHeight: 1.5 }}>{copy.network}</p> : null}

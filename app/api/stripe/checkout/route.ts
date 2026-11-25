@@ -14,7 +14,7 @@ import { resolveAffiliateLinkOffer, resolveAffiliateDisplayOffer, readAffiliateO
 import { affiliateOfferCopy, affiliateOfferScopeCopy } from '@/lib/affiliateOfferCopy'
 import { filmCompleteAdmin, loadFilmCompleteIntent, filmCompleteCheckoutMetadata, type FilmCompleteIntent } from '@/lib/filmComplete/server'
 import { FILM_COMPLETE_CAMPAIGN, FILM_COMPLETE_UUID } from '@/lib/growth/filmComplete'
-import { FILM_READY_CREATOR_PRIMARY_2511, filmCompletePaidTier } from '@/lib/growth/filmComplete' // KINEO-VERSAO-COMPLETA-STARTER-1111
+import { FILM_READY_CREATOR_VERSION, filmCompletePaidTier } from '@/lib/growth/filmComplete' // KINEO-VERSAO-COMPLETA-STARTER-1111
 import { STUDIO50_CODE, STUDIO50_COUPON_ID, STUDIO50_DURATION, STUDIO50_PERCENT, STUDIO50_REPEATING_MONTHS, STUDIO50_TIER } from '@/lib/offers/studio50'
 import { OFFER_290_ENABLED, OFFER_290_RESGATE_ENABLED } from '@/lib/flags'
 import { offer290RescueEligibility } from '@/lib/offers/offer290Rescue' // KINEO-AVULSO-290-2CHECKOUT-0111 — a regra do resgate (a mesma da tela)
@@ -2989,8 +2989,8 @@ async function buildAndRedirect(
     Object.assign(checkoutMetadata, filmMetadata)
     sessionParams.success_url = `${appUrl}/film-complete?intent=${filmCompleteIntent.id}&session_id={CHECKOUT_SESSION_ID}`
     sessionParams.cancel_url = `${appUrl}/film-complete?intent=${filmCompleteIntent.id}&cancelled=1`
-    if (FILM_READY_CREATOR_PRIMARY_2511 === 'on' && tier === 'basic' && filmCompleteIntent.metadata.surface === 'film_ready') {
-      sessionParams.cancel_url += '&plan=creator'
+    if (req.nextUrl.searchParams.get('film_offer') === FILM_READY_CREATOR_VERSION) {
+      sessionParams.cancel_url += `&offer=${FILM_READY_CREATOR_VERSION}&plan=${tier === 'basic' ? 'creator' : 'starter'}`
     }
   }
 

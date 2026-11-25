@@ -51,7 +51,7 @@ export default function FilmReadyFullVersionUpsell({ videoId }: { videoId: strin
       style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent)', boxShadow: 'var(--sh-card)' }}>
       <p style={{ margin: 0, fontSize: '1.05rem', fontWeight: 850, color: 'var(--text)', lineHeight: 1.3 }}>{copy.title}</p>
       <p style={{ margin: '8px 0 10px', fontSize: '0.84rem', color: 'var(--muted2)', lineHeight: 1.5 }}>{copy.body}</p>
-      <a href={creatorPrimary ? filmCompleteCreatorHref(videoId, 'film_ready') : filmCompleteCheckoutHref(videoId, 'film_ready')}
+      <a href={creatorPrimary ? `${filmCompleteCreatorHref(videoId, 'film_ready')}&offer=${FILM_READY_CREATOR_VERSION}` : filmCompleteCheckoutHref(videoId, 'film_ready')}
         onClick={() => { void trackEvent('film15_full_offer_clicked', {
           version: FILM_COMPLETE_VERSION, source_video_id: videoId, video_id: videoId,
           surface: 'film_ready', target_seconds: FILM_COMPLETE_TARGET_SECONDS,
@@ -63,7 +63,7 @@ export default function FilmReadyFullVersionUpsell({ videoId }: { videoId: strin
       </a>
       <p style={{ margin: '10px 0 0', fontSize: '0.75rem', color: 'var(--muted2)', lineHeight: 1.5 }}>{copy.billing}</p>
       {showStarterAlternative && (
-        <a href={filmCompleteCheckoutHref(videoId, 'film_ready')} data-kineo="film15-full-version-starter"
+        <a href={`${filmCompleteCheckoutHref(videoId, 'film_ready')}&offer=${FILM_READY_CREATOR_VERSION}`} data-kineo="film15-full-version-starter"
           onClick={() => { void trackEvent('film15_full_offer_clicked', {
             version: FILM_COMPLETE_VERSION, source_video_id: videoId, video_id: videoId,
             surface: 'film_ready', target_seconds: FILM_COMPLETE_TARGET_SECONDS,

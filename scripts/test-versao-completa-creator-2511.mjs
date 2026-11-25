@@ -19,6 +19,7 @@ const read = name => fs.readFileSync(path.join(root, name), 'utf8').replace(/\r\
 function fixture(creator) {
   let locale = 'en', welcome = false
   const events = [], modules = new Map()
+  let checkout
   const intent = { id: filmId, sourceVideoId: filmId, metadata: {surface: 'film_ready'} }
   const mocks = {
     '@/components/InterfaceLanguage': {useInterfaceLanguage: () => locale},
@@ -58,13 +59,29 @@ function fixture(creator) {
   async function destination(href) {
     const url = new URL(href,'https://example.test')
     const response = await route.GET({url:url.href,nextUrl:url,headers:new Headers()})
-    const result = new URL(response.headers.get('location'))
+    const result = checkout = new URL(response.headers.get('location'))
     assert.equal(result.pathname,'/api/stripe/checkout')
     assert.equal(result.searchParams.get('film_complete'),filmId)
     assert.equal(result.searchParams.get('billing'),'monthly')
     return result.searchParams.get('tier')
   }
-  return {events,load,destination,render(id,lang,live){
+  function retryLink() {
+    const stripe = read('app/api/stripe/checkout/route.ts')
+    const cancel = stripe.slice(stripe.indexOf('    sessionParams.cancel_url = `${appUrl}/film-complete'),stripe.indexOf('  // #481'))
+    assert(cancel.includes("req.nextUrl.searchParams.get('film_offer')"))
+    const page = read('app/film-complete/page.tsx')
+    const resume = page.slice(page.indexOf('  const resumeExperiment'),page.indexOf('  const offer ='))
+    const anchor = page.match(/<a href=\{(`\/api\/film-complete\/checkout\?intent=[^`]+`)\}/)
+    assert(anchor && resume)
+    const params = vm.runInNewContext(cancel.trimEnd().replace(/\}\s*$/, '')+'\nsessionParams.cancel_url',{
+      req:{nextUrl:checkout},sessionParams:{},appUrl:'https://example.test',filmCompleteIntent:intent,
+      tier:checkout.searchParams.get('tier'),FILM_READY_CREATOR_VERSION:load(shared).FILM_READY_CREATOR_VERSION,
+    })
+    return vm.runInNewContext(resume+';\n'+anchor[1].replace('intentId!', 'intentId'),{
+      params:new URL(params).searchParams,cancelled:true,intentId:filmId,FILM_READY_CREATOR_VERSION:load(shared).FILM_READY_CREATOR_VERSION,
+    })
+  }
+  return {events,load,destination,retryLink,render(id,lang,live){
     locale=lang;welcome=live
     return renderToStaticMarkup(React.createElement(Offer,{videoId:id}))
   }}
@@ -93,6 +110,22 @@ for (const creator of [false,true]) {
   }
   assert.equal(await f.destination(filmCompleteEmailHref('https://example.test',filmId)), 'starter')
   assert.equal(f.events.at(-1).metadata.offer_version,fc.FILM_COMPLETE_OFFER_VERSION)
+  const visibleLinks=Array.from(f.render(filmId,'en',false).matchAll(/<a\s+href="([^"]+)"/g),m=>m[1].replaceAll('&amp;','&'))
+  for (const [index,link] of visibleLinks.entries()) {
+    const tier = await f.destination(link)
+    const retry = f.retryLink()
+    if(creator) {
+      assert.equal(await f.destination(retry),tier)
+      assert.equal(f.events.at(-1).metadata.offer_version,fc.FILM_READY_CREATOR_VERSION)
+    } else if(index===0) {
+      assert.equal(await f.destination(retry),'starter')
+      assert.equal(f.events.at(-1).metadata.offer_version,fc.FILM_COMPLETE_OFFER_VERSION)
+    }
+  }
+  for (const old of [`?v=${filmId}&surface=film_ready&plan=creator`, `?intent=${filmId}`, `?v=${filmId}&surface=email&plan=creator&offer=${fc.FILM_READY_CREATOR_VERSION}`]) {
+    await f.destination('/api/film-complete/checkout'+old)
+    assert.equal(f.events.at(-1).metadata.offer_version,fc.FILM_COMPLETE_OFFER_VERSION)
+  }
 }
 console.log('Passed: OFF/ON × 16 languages × 2 offer states; both checkout links, prices, attribution, email and missing film.')
 
