@@ -79,6 +79,7 @@ export function decidirPresenca(l: LeituraDePresenca, elenco: readonly PessoaDoE
     for (let k = 0; k < linha.length; k++) {
       const { naTela, como } = linha[k]
       if (naTela === 'unclear') return null
+      if (naTela === 'no' && (como === 'shown' || como === 'memory')) return null // [revisora, volta 1 §2] viu e não está: incoerente = a regra de hoje
       if (naTela === 'yes') { if (como !== 'shown' && como !== 'memory') return null; nomes.push(elenco[k].nome) }
     }
     return nomes
@@ -111,6 +112,33 @@ export async function lerQuemAparece(elenco: readonly PessoaDoElenco[], planos: 
   } finally { clearTimeout(timer) }
 }
 
+// [revisora, volta 1 §1/§2; CEO 25/11 10:20] O PISO: uma leitura burra dentro do esquema ("tudo no", "tudo yes") não manda no filme.
+//   · a leitura que tira o protagonista de TODOS os planos em que a main o põe = o filme inteiro na main (fonte 'piso', motivo 'protagonista_sumiu');
+//   · quem não é o protagonista só entra nos planos em que a main já o põe ou em que a fala ou o marcador do autor o citam pelo NOME; nos outros, fica
+//     como a main (ausente). O pronome do 2º personagem, sem o nome, fica com a regra de hoje (é o preço do piso).
+export type PisoDaPresenca = { presenca: PresencaDosPlanos | null; motivo: 'protagonista_sumiu' | null; segundo_contido: number }
+export function pisoDaPresenca(p: PresencaDosPlanos, a: { protagonista: string | null; hoje: ReadonlyArray<ReadonlyArray<string>>; citados: ReadonlyArray<ReadonlyArray<string>> }): PisoDaPresenca {
+  const prot = a.protagonista && p.elenco.some((n) => mesmaPessoa(n, a.protagonista as string)) ? a.protagonista : null
+  if (prot) {
+    const daMain = p.planos.map((_, i) => i).filter((i) => (a.hoje[i] ?? []).some((n) => mesmaPessoa(n, prot)))
+    if (daMain.length > 0 && daMain.every((i) => { const d = p.planos[i]; return !!d && !d.some((n) => mesmaPessoa(n, prot)) })) return { presenca: null, motivo: 'protagonista_sumiu', segundo_contido: 0 }
+  }
+  let contido = 0
+  const planos = p.planos.map((d, i) => d && d.filter((n) => {
+    if (prot && mesmaPessoa(n, prot)) return true
+    const pode = (a.hoje[i] ?? []).some((x) => mesmaPessoa(x, n)) || (a.citados[i] ?? []).some((x) => mesmaPessoa(x, n))
+    if (!pode) contido++
+    return pode
+  }))
+  return { presenca: { elenco: p.elenco, planos }, motivo: null, segundo_contido: contido }
+}
+/** Por plano, quem do elenco a fala ou o marcador do autor citam pelo NOME (uma palavra do nome com 3 letras ou mais, sem o "the"; sem caixa). */
+export function citadosPeloNome(nomes: readonly string[], planos: ReadonlyArray<{ fala: string; marcador: string }>): string[][] {
+  const palavras = (t: string) => new Set(Array.from(t.toLowerCase().matchAll(/[\p{L}\p{N}]+/gu), (m) => m[0]))
+  return planos.map((pl) => { const ws = palavras(`${pl.fala ?? ''} ${pl.marcador ?? ''}`)
+    return nomes.filter((n) => String(n).toLowerCase().replace(/^the\s+/, '').split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 3).some((w) => ws.has(w))) })
+}
+
 const base = (s: string) => String(s ?? '').toLowerCase().replace(/^the\s+/, '').trim()
 /** A mesma pessoa: o nome igual, sem caixa e sem o "the" da frente. */
 export const mesmaPessoa = (a: string, b: string): boolean => !!base(a) && base(a) === base(b)
@@ -129,9 +157,9 @@ export function presencaPorPlano(p: PresencaDosPlanos | null | undefined, nPlano
 // regra inline), porque essas camadas não importam este módulo.
 
 /** Para o claim: só número. `mudou` = os planos em que a leitura trocou quem está em relação à regra de hoje. */
-export type RelatoQuemAparece = { versao: string; fonte: 'leitura' | 'main'; motivo: string | null; ms: number; custo_usd: number; planos: Array<number[] | null>; unclear: number; mudou: number[]; sem_imagem_chave: number[] }
-export function relatoQuemAparece(c: ChamadaDePresenca, elenco: readonly PessoaDoElenco[], mudou: readonly number[] = [], semImagemChave: readonly number[] = []): RelatoQuemAparece {
-  return { versao: QUEM_APARECE_2511_VERSAO, fonte: c.presenca ? 'leitura' : 'main', motivo: c.erro, ms: c.ms, custo_usd: Math.round(c.custoUsd * 1e6) / 1e6,
+export type RelatoQuemAparece = { versao: string; fonte: 'leitura' | 'main' | 'piso'; motivo: string | null; ms: number; custo_usd: number; planos: Array<number[] | null>; unclear: number; mudou: number[]; sem_imagem_chave: number[]; segundo_contido: number }
+export function relatoQuemAparece(c: ChamadaDePresenca, elenco: readonly PessoaDoElenco[], mudou: readonly number[] = [], semImagemChave: readonly number[] = [], piso: PisoDaPresenca | null = null): RelatoQuemAparece {
+  return { versao: QUEM_APARECE_2511_VERSAO, fonte: !c.presenca ? 'main' : piso?.motivo ? 'piso' : 'leitura', motivo: c.erro ?? piso?.motivo ?? null, ms: c.ms, custo_usd: Math.round(c.custoUsd * 1e6) / 1e6, segundo_contido: piso?.segundo_contido ?? 0,
     planos: c.presenca ? c.presenca.planos.map((d) => (d ? d.map((n) => elenco.findIndex((e) => mesmaPessoa(e.nome, n)) + 1) : null)) : [], unclear: c.unclear,
     mudou: [...mudou], sem_imagem_chave: [...semImagemChave] }
 }

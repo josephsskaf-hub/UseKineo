@@ -27,7 +27,7 @@ const CASA = 'josephsskaf@gmail.com', CLIENTE = 'cliente@example.org'
 const BASE_SRC = Object.fromEntries([PA, F15, FQ, EE, K, routeFile].map((f) => [f, daBase(f)]))
 const mb = load((file, src) => BASE_SRC[file.replaceAll('\\', '/')] ?? src)
 const PAb = mb('@/' + PA), F15b = mb('@/' + F15), FQb = mb('@/' + FQ), EEb = mb('@/' + EE), Kb = mb('@/' + K)
-const ficha = (e, protagonista = true) => ({ nome: e.nome, nucleo: e.nome.replace(/^the\s+/i, ''), tipo: e.tipo ?? 'humano', genero: e.genero ?? null, protagonista, origem: 'autor', canonica: `${e.nome}, a character with short dark hair and a blue coat` })
+const ficha = (e, protagonista = true) => ({ nome: e.nome, nucleo: e.nome.replace(/^the\s+/i, ''), tipo: e.tipo ?? 'humano', genero: e.genero ?? null, protagonista, origem: 'autor', canonica: `${e.nome}, a character (${e.nome.toLowerCase()}) with short dark hair and a blue coat` })
 const LOOK = { look: 'animated3d', lookPhrase: 'stylized 3D animated film look' }
 const respostaDe = (conteudo, status = 200) => ({ ok: status === 200, status, json: async () => ({ choices: [{ message: { content: conteudo } }], usage: { prompt_tokens: 1400, completion_tokens: 200 } }) })
 const leituraParaInjetar = (c) => leituraCerta({ ...c, esperado: c.esperado.map((l) => l.map((v) => (v === null ? false : v))) }) // sem gabarito = 'no' (só para injetar)
@@ -38,17 +38,17 @@ async function rodarTrecho(route, mods, { email, filme, conteudo = null, status 
   const { pa, f15, q } = mods
   let chamadas = 0; const corpos = []
   const fetchImpl = async (_u, o) => { chamadas++; corpos.push(JSON.parse(o.body)); if (prazo) return new Promise((_r, rej) => o.signal.addEventListener('abort', () => rej(new Error('abort')))); return respostaDe(conteudo, status) }
-  const elenco = filme.elenco.map((e) => ficha(e))
+  const elenco = filme.elenco.map((e, i) => ficha(e, i === 0))
   const scenes = filme.planos.map((pl) => ({ aiPrompt: pl.visual, stockSearchQuery: pl.marcador, description: pl.marcador, voiceover: pl.fala }))
   const classicScenePrompts = filme.planos.map((pl) => `Film visual medium: stylized 3D animated film look. ${pl.visual}`)
   const escopo = { elencoFilme15: { elenco, origem: 'pedido' }, personagemElenco: { elenco }, visuaisDoPlano15: scenes.map((s) => s.aiPrompt), protagonistaEmTodaCena: f15.protagonistaEmTodaCena, elencoSemantico: null,
     visualMostraAlguem: pa.visualMostraAlguem, visualMostraPessoa: pa.visualMostraPessoa, personagem: { ativo: true }, estrelaFicha: null, classicVisualMode: 'character_story', ajustarPromptsDoElenco: pa.ajustarPromptsDoElenco,
     classicScenePrompts, scenes, console: { log() {}, warn() {} }, generationId: 'g', ORDEM_DO_PROTAGONISTA: f15.ORDEM_DO_PROTAGONISTA, cenasDoElenco: pa.cenasDoElenco,
     quemApareceLigado: q?.quemApareceLigado, QUEM_APARECE_2511: q?.QUEM_APARECE_2511, user: { email }, qualidadeHerdada: null, verbatim: true, parsedScript: { hasMarkers: true },
-    lerQuemAparece: q ? (e, pl) => q.lerQuemAparece(e, pl, { apiKey: 'k', fetchImpl, timeoutMs: 20 }) : undefined, presencaDe2511: q?.presencaDe }
+    lerQuemAparece: q ? (e, pl) => q.lerQuemAparece(e, pl, { apiKey: 'k', fetchImpl, timeoutMs: 20 }) : undefined, presencaDe2511: q?.presencaDe, pisoDaPresenca: q?.pisoDaPresenca, citadosPeloNome: q?.citadosPeloNome }
   const fatia = trecho(route, '    const elencoDoAjuste = elencoFilme15 && ', '    if (personagemCenas && protagonista15 && elencoFilme15)')
   const temLeitura = fatia.includes('chamadaQuemAparece2511')
-  const corpo = ts.transpile('return (async () => {\n' + fatia + `\nreturn { prompts: classicScenePrompts, forcadas: protagonista15 ? protagonista15.forcadas : null, cenas: personagemCenas ? personagemCenas.cenas : null, presenca: ${temLeitura ? 'presenca2511' : 'null'}, mudou: ${temLeitura ? 'mudou2511' : '[]'}, chamada: ${temLeitura ? 'chamadaQuemAparece2511' : 'null'} } })()`, { target: ts.ScriptTarget.ES2022 })
+  const corpo = ts.transpile('return (async () => {\n' + fatia + `\nreturn { prompts: classicScenePrompts, forcadas: protagonista15 ? protagonista15.forcadas : null, cenas: personagemCenas ? personagemCenas.cenas : null, presenca: ${temLeitura ? 'presenca2511' : 'null'}, mudou: ${temLeitura ? 'mudou2511' : '[]'}, chamada: ${temLeitura ? 'chamadaQuemAparece2511' : 'null'}, piso: ${temLeitura ? 'pisoQuemAparece2511' : 'null'} } })()`, { target: ts.ScriptTarget.ES2022 })
   const r = await Function(...Object.keys(escopo), corpo)(...Object.values(escopo))
   return { ...r, chamadas, corpos }
 }
@@ -102,6 +102,11 @@ async function suite(change) {
     igual(q.presencaPorPlano(P, 3, ['Mara', 'the guard']), [false, true, null]) }
 
   // ── 2. o trecho REAL da rota ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  // o farol (só do guardião): o visual do plano 2 cita o faroleiro (a cena de hoje o põe) e a leitura diz que ele não está; no 3, só o pronome (a leitura o põe)
+  const FAROL = { id: 'farol', elenco: [{ nome: 'the old keeper', tipo: 'humano', genero: 'man' }], planos: [
+    { fala: 'The old keeper climbs the spiral stairs.', marcador: 'spiral stairs', visual: 'An old keeper climbs spiral stairs.' },
+    { fala: 'His chair by the window stays empty tonight.', marcador: 'empty chair by the window', visual: "An empty chair by the window, the old keeper's coat hanging on it." },
+    { fala: 'He lights the great lamp.', marcador: 'great lamp lit', visual: 'A hand lights the great lamp at the top of the tower.' }], esperado: [[true], [false], [true]] }
   const tipMods = { pa, f15, q }, baseMods = { pa: PAb, f15: F15b, q: null }
   // a qualidade do filme (fora do trecho executado) recebe a leitura; os argumentos de sempre continuam na frente (as âncoras dos guardiões antigos)
   { const lq = route.split('\n').find((l) => l.includes('const elencoEpoca = prepararQualidadeDoFilme({ prompts: classicScenePrompts')) ?? ''
@@ -110,11 +115,6 @@ async function suite(change) {
       "personagemCenas.cenas = cenasDoElenco(classicScenePrompts, scenes.map(s => s.voiceover ?? ''), elencoDoAjuste, false, presenca2511", 'ajustarPromptsDoElenco({ prompts: classicScenePrompts']) assert.ok(route.includes(c), c.slice(0, 60)) }
   const fichaDe = (nome) => `consistent design: ${nome}, a character`
   const BASE_DOS = {}
-  // o farol (só do guardião): o visual do plano 2 cita o faroleiro (a cena de hoje o põe) e a leitura diz que ele não está; no 3, só o pronome (a leitura o põe)
-  const FAROL = { id: 'farol', elenco: [{ nome: 'the old keeper', tipo: 'humano', genero: 'man' }], planos: [
-    { fala: 'The old keeper climbs the spiral stairs.', marcador: 'spiral stairs', visual: 'An old keeper climbs spiral stairs.' },
-    { fala: 'His chair by the window stays empty tonight.', marcador: 'empty chair by the window', visual: "An empty chair by the window, the old keeper's coat hanging on it." },
-    { fala: 'He lights the great lamp.', marcador: 'great lamp lit', visual: 'A hand lights the great lamp at the top of the tower.' }], esperado: [[true], [false], [true]] }
   for (const filme of [...Object.values(FILMES), FAROL]) {
     const b = await rodarTrecho(BASE_SRC[routeFile], baseMods, { email: CASA, filme }); BASE_DOS[filme.id] = b
     const casa = await rodarTrecho(route, tipMods, { email: CASA, filme, conteudo: leituraParaInjetar(filme) })
@@ -136,6 +136,37 @@ async function suite(change) {
     const off = await rodarTrecho(route, { ...tipMods, q: tipCom((f, t2) => (f === Q ? t2.replace("export const QUEM_APARECE_2511: ModoQuemAparece2511 = 'internal'", "export const QUEM_APARECE_2511: ModoQuemAparece2511 = 'off'") : t2))('@/' + Q) }, { email: CASA, filme, conteudo: leituraParaInjetar(filme) })
     igual([off.prompts, off.forcadas, off.cenas, off.chamadas], [b.prompts, b.forcadas, b.cenas, 0], filme.id + " 'off': a main")
   }
+  // [revisora, volta 1] as leituras BURRAS dentro do esquema: o piso e o "no" incoerente seguram o filme
+  { const burra = (filme, f) => JSON.stringify({ shots: filme.planos.map((_, i) => ({ shot: i + 1, cast: filme.elenco.map((_, k) => ({ id: k + 1, ...f(i, k) })) })) })
+    const DUO = { id: 'duo', elenco: [{ nome: 'Elias Ward', tipo: 'humano', genero: 'man' }, { nome: 'Mara Quinn', tipo: 'humano', genero: 'woman' }], planos: [
+      { fala: 'Elias climbs the lighthouse stairs.', marcador: 'lighthouse stairs', visual: 'Elias Ward climbs spiral stairs.' },
+      { fala: 'Mara answers the radio in the harbor office.', marcador: 'harbor office radio', visual: 'Mara Quinn answers an old radio.' },
+      { fala: 'The storm hits the empty harbor.', marcador: 'storm over the empty harbor', visual: 'A storm over an empty harbor.' },
+      { fala: 'Tomas arrives alone at the pier.', marcador: 'a man arrives alone at the pier', visual: 'A man walks alone along the pier.' }] }
+    const NAO = { on_screen: 'no', how: 'not_mentioned' }, SIM = { on_screen: 'yes', how: 'shown' }
+    for (const filme of [FILMES.umudara, DUO]) {
+      const b = await rodarTrecho(BASE_SRC[routeFile], baseMods, { email: CASA, filme })
+      for (const [nome, f, esperado] of [['tudo no', () => NAO, 'main'], ['no com shown', () => ({ on_screen: 'no', how: 'shown' }), 'main'], ['no com lembrança', () => ({ on_screen: 'no', how: 'memory' }), 'main'],
+        ['tudo unclear', () => ({ on_screen: 'unclear', how: 'shown' }), 'main'], ['yes incoerente (voz)', () => ({ on_screen: 'yes', how: 'voice_only' }), 'main'], ['tudo yes', () => SIM, 'yes']]) {
+        const x = await rodarTrecho(route, tipMods, { email: CASA, filme, conteudo: burra(filme, f) })
+        if (esperado === 'main') igual([x.prompts, x.forcadas, x.cenas], [b.prompts, b.forcadas, b.cenas], `${filme.id} ${nome}: a main`)
+        if (nome === 'tudo no') igual([x.presenca, x.piso?.motivo], [null, 'protagonista_sumiu'], `${filme.id} tudo no: o piso derruba a leitura`)
+        if (nome === 'no com shown' || nome === 'tudo unclear') igual(x.presenca?.planos, filme.planos.map(() => null), `${filme.id} ${nome}: todo plano incerto`)
+        if (nome === 'tudo yes' && filme.id === 'duo') {
+          const mara = ficha(DUO.elenco[1], false).canonica
+          igual(x.prompts.map((p) => p.includes(mara)), [false, true, false, false], 'duo tudo yes: a Mara só no plano que a cita pelo nome (o piso contém o 2º)')
+          assert.ok(x.piso.segundo_contido >= 3, 'o relato conta os planos contidos: ' + x.piso.segundo_contido)
+        }
+      }
+    }
+    // o piso, direto: o protagonista some só de PARTE dos planos da main = a leitura vale
+    const P = { elenco: ['Elias Ward', 'Mara Quinn'], planos: [[], ['Mara Quinn'], [], null] }
+    igual(q.pisoDaPresenca(P, { protagonista: 'Elias Ward', hoje: [['Elias Ward'], [], ['Elias Ward'], ['Elias Ward']], citados: [[], ['Mara Quinn'], [], []] }).motivo, null, 'o plano 4 incerto segura o protagonista: a leitura vale')
+    igual(q.pisoDaPresenca(P, { protagonista: 'Elias Ward', hoje: [['Elias Ward'], [], ['Elias Ward'], []], citados: [[], [], [], []] }).motivo, 'protagonista_sumiu')
+    igual(q.pisoDaPresenca({ elenco: ['Elias Ward', 'Mara Quinn'], planos: [['Elias Ward', 'Mara Quinn'], ['Mara Quinn'], ['Mara Quinn']] }, { protagonista: 'Elias Ward', hoje: [['Elias Ward'], [], ['Mara Quinn']], citados: [[], ['Mara Quinn'], []] }).presenca.planos,
+      [['Elias Ward'], ['Mara Quinn'], ['Mara Quinn']], 'o 2º: onde a main o põe ou o nome é citado; o resto contido')
+    igual(q.pisoDaPresenca({ elenco: ['Elias Ward'], planos: [['Elias Ward'], ['Elias Ward']] }, { protagonista: 'Elias Ward', hoje: [['Elias Ward'], []], citados: [[], []] }).presenca.planos, [['Elias Ward'], ['Elias Ward']], 'o protagonista pelo pronome: o piso não o contém')
+    igual(q.citadosPeloNome(['Mara Quinn', 'the old keeper', 'Al'], [{ fala: 'MARA waves.', marcador: '' }, { fala: 'The keeper sleeps; Quinnsville.', marcador: '' }, { fala: 'Al and Alan', marcador: '' }]), [['Mara Quinn'], ['the old keeper'], []], 'citado pelo nome: palavra inteira, 3 letras ou mais') }
   // a main reproduz o defeito: o guarda nos planos 1 e 3 do Alcatraz; o guerreiro no plano do rei
   assert.ok(BASE_DOS.alcatraz.prompts[0].includes('the guard') && BASE_DOS.alcatraz.prompts[2].includes('the guard') && BASE_DOS.umudara.prompts[2].includes('the mysterious warrior'), 'o defeito, reproduzido na main')
   // o Identity: do Kling 4 nasce da ficha: some dos planos sem a pessoa; o plano do A2 (o marcador) traz o mar de volta, sem o guarda
@@ -207,28 +238,61 @@ async function suite(change) {
       igual(pa.cenasDoElenco(va, fa, ea, false, { elenco: ['someone else'], planos: [[], [], []] }), hojeA, 'o guarda fora do elenco lido: como hoje') }
   }
 
-  // ── 4. o A2 sem a imagem-chave do meio, o registro e o relato ────────────────────────────────────────────────────────────────────────────────────────
-  const linhasA2 = trecho(route, '    const semImagemChave2511: number[] = []', "    if (presenca2511 && rastro1911 && rastro1911.caminho !== 'hoje'")
-  const a2 = (escopo) => Function(...Object.keys(escopo), ts.transpile(linhasA2 + '\nreturn { semImagemChave2511, kling4ApprovedStills }', { target: ts.ScriptTarget.ES2022 }))(...Object.values(escopo))
-  const segA2 = [{ descricao: 'x' }, { descricao: 'y' }, { descricao: 'z' }], stills = () => ['https://s/1', 'https://s/2', 'https://s/3']
-  igual(a2({ presenca2511: {}, rastro1911: { caminho: 'a2' }, parsedScript: { segments: segA2 }, mudou2511: alc.mudou, kling4ApprovedStills: stills() }), { semImagemChave2511: [3], kling4ApprovedStills: ['https://s/1', 'https://s/2', null] }, 'Alcatraz no A2: só o plano 3 sem imagem-chave (o 1 nunca)')
+  // ── 4. o A2 sem a imagem-chave do meio (com o teto de metade), o registro e o relato ─────────────────────────────────────────────────────────────
+  const iA2 = route.indexOf('    const semImagemChave2511: number[] = []'), fA2 = route.indexOf('    let kling4Trial: Kling4TrialResult | null = null', iA2)
+  assert.ok(iA2 > 0 && fA2 > iA2, 'o trecho do A2')
+  const linhasA2 = route.slice(iA2, fA2)
+  const a2 = (escopo) => { const recuos = []; const r = Function(...Object.keys(escopo), 'voltaAoHoje1911', ts.transpile(linhasA2 + '\nreturn { semImagemChave2511, kling4ApprovedStills }', { target: ts.ScriptTarget.ES2022 }))(...Object.values(escopo), (m) => recuos.push(m)); return { ...r, recuos } }
+  const segs = (n) => Array.from({ length: n }, (_, i) => ({ descricao: 'd' + i })), fotos = (n) => Array.from({ length: n }, (_, i) => `https://s/${i + 1}`)
+  const A2 = (n, mudou, extra = {}) => a2({ presenca2511: {}, rastro1911: { caminho: 'a2' }, parsedScript: { segments: segs(n) }, mudou2511: mudou, kling4ApprovedStills: fotos(n), kling4Prompts: fotos(n), ...extra })
+  igual(A2(3, alc.mudou), { semImagemChave2511: [3], kling4ApprovedStills: ['https://s/1', 'https://s/2', null], recuos: [] }, 'Alcatraz no A2: só o plano 3 sem imagem-chave (o 1 nunca)')
   for (const [nome, e] of [['caminho de hoje', { rastro1911: { caminho: 'hoje' } }], ['sem rastro', { rastro1911: null }], ['sem leitura', { presenca2511: null }], ['sem descrição', { parsedScript: { segments: [{}, {}, {}] } }]])
-    igual(a2({ presenca2511: {}, rastro1911: { caminho: 'a2' }, parsedScript: { segments: segA2 }, mudou2511: [0, 1, 2], kling4ApprovedStills: stills(), ...e }).semImagemChave2511, [], nome)
+    igual([A2(3, [0, 1, 2], e).semImagemChave2511, A2(3, [0, 1, 2], e).recuos], [[], []], nome)
+  // o teto: no máximo floor(n/2) planos sem imagem-chave (contando os que já estavam sem); passou = o recuo de hoje, nenhuma imagem tirada
+  for (const [n, mudou, sem, recuo, nome] of [[4, [1, 2, 3], [], ['teto_imagem_chave'], '4 planos, 3 mudam: recuo'], [4, [1, 2], [2, 3], [], '4 planos, 2 mudam: tira 2'], [4, [0], [], [], 'só o 1º muda: nada'],
+    [6, [1, 2, 3, 4, 5], [], ['teto_imagem_chave'], '6 planos, 5 mudam: recuo'], [6, [1, 2, 3], [2, 3, 4], [], '6 planos, 3 mudam: tira 3'], [6, [1, 2, 3, 4], [], ['teto_imagem_chave'], '6 planos, 4 mudam: recuo']]) {
+    const r = A2(n, mudou); igual([r.semImagemChave2511, r.recuos], [sem, recuo], nome)
+    assert.ok(r.kling4ApprovedStills[0] && r.kling4ApprovedStills.filter((u) => !u).length <= Math.floor(n / 2), nome + ': nunca mais da metade, nunca o 1º')
+  }
+  { const r = a2({ presenca2511: {}, rastro1911: { caminho: 'a2' }, parsedScript: { segments: segs(4) }, mudou2511: [2, 3], kling4ApprovedStills: ['https://s/1', null, 'https://s/3', 'https://s/4'], kling4Prompts: fotos(4) })
+    igual([r.semImagemChave2511, r.recuos], [[], ['teto_imagem_chave']], 'o que já estava sem imagem-chave conta no teto') }
   const contagem = {}
-  for (const f of Object.values(FILMES)) { const x = await rodarTrecho(route, tipMods, { email: CASA, filme: f, conteudo: leituraParaInjetar(f) }); contagem[f.id] = a2({ presenca2511: {}, rastro1911: { caminho: 'a2' }, parsedScript: { segments: segA2 }, mudou2511: x.mudou, kling4ApprovedStills: stills() }).semImagemChave2511 }
+  for (const f of Object.values(FILMES)) { const x = await rodarTrecho(route, tipMods, { email: CASA, filme: f, conteudo: leituraParaInjetar(f) }); contagem[f.id] = A2(f.planos.length, x.mudou).semImagemChave2511 }
   globalThis.__semImagemChave = contagem
-  for (const [id, v] of Object.entries(contagem)) assert.ok(v.length * 2 <= FILMES[id].planos.length, id + ': no máximo metade do filme sem imagem-chave')
   const linhasReg = trecho(route, '    if (kling4Trial && !rastro1911 && kling4TrialCandidate && verbatim) response.plano_da_fala', '    if (chamadaQuemAparece2511) response.quem_aparece')
   const reg = (e) => { const response = {}; Function(...Object.keys(e), 'response', ts.transpile(linhasReg, { target: ts.ScriptTarget.ES2022 }))(...Object.values(e), response); return response }
-  const reg0 = { kling4Trial: { job: { id: 1 } }, rastro1911: null, kling4TrialCandidate: true, verbatim: true, KLING4_PLANO_DA_FALA_VERSAO: 'v', parsedScript: { segments: [] }, chamadaQuemAparece2511: null, relatoQuemAparece: q.relatoQuemAparece, elencoDoAjuste: [], mudou2511: [], semImagemChave2511: [] }
-  igual(reg(reg0), { plano_da_fala: { versao: 'v', caminho: 'hoje', motivo: 'sem_marcadores' } })
+  const reg0 = { kling4Trial: { job: { id: 1 } }, rastro1911: null, kling4TrialCandidate: true, verbatim: true, KLING4_PLANO_DA_FALA_VERSAO: 'v', parsedScript: { segments: [] }, chamadaQuemAparece2511: null, relatoQuemAparece: q.relatoQuemAparece, elencoDoAjuste: [], mudou2511: [], semImagemChave2511: [], pisoQuemAparece2511: null }
+  igual(reg(reg0), { plano_da_fala: { versao: 'v', caminho: 'hoje', motivo: 'sem_marcadores', so_no_claim: true } })
   igual(reg({ ...reg0, parsedScript: { segments: [{}, {}] } }).plano_da_fala.motivo, 'secoes_menos_que_cenas')
   igual(reg({ ...reg0, kling4Trial: { job: null, reason: 'narration_over_kling4_15s' } }).plano_da_fala.motivo, 'reserva_narration_over_kling4_15s')
   for (const e of [{ rastro1911: { caminho: 'a2' } }, { kling4Trial: null }, { kling4TrialCandidate: false }, { verbatim: false }]) igual(reg({ ...reg0, ...e }), {}, JSON.stringify(e))
   const ch = { presenca: { elenco: ['the guard'], planos: [[], ['the guard'], null] }, custoUsd: 0.0004123, ms: 1830, erro: null, unclear: 1 }
-  igual(reg({ ...reg0, rastro1911: { caminho: 'a2' }, chamadaQuemAparece2511: ch, elencoDoAjuste: [{ nome: 'the guard' }], mudou2511: [0, 2], semImagemChave2511: [3] }).quem_aparece,
-    { versao: 'quem_aparece_2511_v1', fonte: 'leitura', motivo: null, ms: 1830, custo_usd: 0.000412, planos: [[], [1], null], unclear: 1, mudou: [1, 3], sem_imagem_chave: [3] }, 'o relato: só número')
+  igual(reg({ ...reg0, rastro1911: { caminho: 'a2' }, chamadaQuemAparece2511: ch, elencoDoAjuste: [{ nome: 'the guard' }], mudou2511: [0, 2], semImagemChave2511: [3], pisoQuemAparece2511: { presenca: ch.presenca, motivo: null, segundo_contido: 2 } }).quem_aparece,
+    { versao: 'quem_aparece_2511_v1', fonte: 'leitura', motivo: null, ms: 1830, custo_usd: 0.000412, segundo_contido: 2, planos: [[], [1], null], unclear: 1, mudou: [1, 3], sem_imagem_chave: [3] }, 'o relato: só número')
   igual(reg({ ...reg0, rastro1911: { caminho: 'a2' }, chamadaQuemAparece2511: { presenca: null, custoUsd: 0, ms: 6000, erro: 'prazo', unclear: 0 } }).quem_aparece.fonte, 'main')
+  { const x = reg({ ...reg0, rastro1911: { caminho: 'a2' }, chamadaQuemAparece2511: ch, pisoQuemAparece2511: { presenca: null, motivo: 'protagonista_sumiu', segundo_contido: 0 } }).quem_aparece
+    igual([x.fonte, x.motivo], ['piso', 'protagonista_sumiu'], 'o piso no relato: fonte e motivo próprios') }
+  // o registro novo fica no claim; ao navegador só o que já ia (a linha de settleDebitAndRespond)
+  { const lin = route.split('\n').find((l) => l.includes('so_no_claim === true) { const { plano_da_fala: _soNoClaim2511')) ?? ''
+    assert.ok(lin && route.indexOf(lin) > route.indexOf('const settleDebitAndRespond = async (') && route.indexOf(lin) < route.indexOf("if (claim.status === 'settled') return NextResponse.json(response)"), 'antes de qualquer resposta ao navegador')
+    const nav = (response) => Function('response', ts.transpile(lin + '\nreturn response', { target: ts.ScriptTarget.ES2022 }))(response)
+    igual(nav({ a: 1, plano_da_fala: { caminho: 'hoje', motivo: 'sem_marcadores', so_no_claim: true } }), { a: 1 }, 'o registro novo não vai ao navegador')
+    igual(nav({ a: 1, plano_da_fala: { caminho: 'a2', motivo: null } }), { a: 1, plano_da_fala: { caminho: 'a2', motivo: null } }, 'o rastro de sempre continua indo')
+    igual(nav({ a: 1 }), { a: 1 }) }
+  // R11: a rota passa a leitura ao @Image1 e ao @Image2 (a linha da referência, executada)
+  { const iR = route.indexOf("        if (typeof presenca2511 !== 'undefined' && presenca2511 && kling4Timing.referenciaUnica"), fR = route.indexOf('\n', route.indexOf('          const ru = kling4Timing.referenciaUnica; kling4Timing.referenciaUnica = ', iR))
+    assert.ok(iR > 0 && fR > iR, 'a linha da referência')
+    const lr = route.slice(iR, fR)
+    const ref = (pr, n) => { const kling4Timing = { referenciaUnica: { nomes: ['Elias Ward'], segundo: { nomes: ['Mara Quinn'] } } }; Function('presenca2511', 'kling4Timing', 'kling4Prompts', 'scenes', 'presencaPorPlano', ts.transpile(lr, { target: ts.ScriptTarget.ES2022 }))(pr, kling4Timing, fotos(n), fotos(3), q.presencaPorPlano); return kling4Timing.referenciaUnica }
+    const P = { elenco: ['Elias Ward', 'Mara Quinn'], planos: [['Elias Ward'], ['Mara Quinn'], []] }
+    igual(ref(P, 3), { nomes: ['Elias Ward'], segundo: { nomes: ['Mara Quinn'], presenca: [false, true, false] }, presenca: [true, false, false] }, 'R11: @Image1 e @Image2 pela leitura')
+    igual(ref(P, 4), { nomes: ['Elias Ward'], segundo: { nomes: ['Mara Quinn'] } }, 'plano por seção (outro tamanho): a regra de hoje')
+    igual(ref(null, 3), { nomes: ['Elias Ward'], segundo: { nomes: ['Mara Quinn'] } }, 'sem leitura: a regra de hoje') }
+  // F1: a cláusula da ficha da qualidade do filme respeita a leitura (o faroleiro do plano da cadeira vazia)
+  { const el = FAROL.elenco.map((e) => ficha(e)), args = { prompts: FAROL.planos.map((pl) => `Film visual medium: stylized 3D animated film look. ${pl.visual}`), falas: FAROL.planos.map((pl) => pl.fala), contextoOriginal: FAROL.planos.map((pl) => pl.fala).join(' '), contextoFiltro: FAROL.planos.map((pl) => pl.fala).join(' '), modo: 'character_story', tagFaceless: false, style: LOOK, elenco: el, preservarElenco: true }
+    const hoje = FQb.prepararQualidadeDoFilme(args), sem = fq.prepararQualidadeDoFilme(args), com = fq.prepararQualidadeDoFilme({ ...args, presenca: { elenco: [el[0].nome], planos: [[el[0].nome], [], [el[0].nome]] } })
+    igual(sem.prompts, hoje.prompts, 'F1: sem a leitura = a main')
+    assert.ok(hoje.prompts[1].includes(el[0].canonica) && !com.prompts[1].includes(el[0].canonica), 'F1: a ficha sai do plano da cadeira vazia') }
 
   // ── 5. a sonda ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   assert.equal(CORPOS_DA_SONDA.length, 86); assert.equal(new Set(CORPOS_DA_SONDA.map((c) => c.id)).size, 86)
@@ -291,11 +355,23 @@ const mutants = [
   [routeFile, "elenco: elencoDoAjuste, presenca: presenca2511 /* KINEO-QUEM-APARECE-2511 */ }) : null // KINEO-META95-PERSONAGEM-AJUSTE-2010", "elenco: elencoDoAjuste, presenca: null }) : null // KINEO-META95-PERSONAGEM-AJUSTE-2010"],
   [routeFile, "byte a byte */, presenca: presenca2511 /* KINEO-QUEM-APARECE-2511 */ }) // KINEO-QUALIDADE-TODOS-MOTORES-2910", "byte a byte */ }) // KINEO-QUALIDADE-TODOS-MOTORES-2910"], // (só prova o texto: o trecho executado vai até a ordem do protagonista)
   [routeFile, "marcador: verbatim && parsedScript.hasMarkers ? s.stockSearchQuery ?? '' : ''", "marcador: ''"], // o marcador do autor não vai ao leitor (a régua da sonda mede; aqui, o pedido)
-  [routeFile, 'if (i > 0 && kling4ApprovedStills[i])', 'if (kling4ApprovedStills[i])'], // a imagem inicial cai
+  [routeFile, 'mudou2511.filter((i) => i > 0 && kling4ApprovedStills[i])', 'mudou2511.filter((i) => kling4ApprovedStills[i])'], // a imagem inicial cai
+  [routeFile, 'if (alvo.length > 0 && jaSem + alvo.length > Math.floor(n / 2))', 'if (false)'], // sem o teto
+  [routeFile, 'jaSem + alvo.length > Math.floor(n / 2)', 'alvo.length > Math.floor(n / 2)'], // o teto esquece as que já estavam sem
+  [routeFile, "if ((response.plano_da_fala as { so_no_claim?: unknown } | undefined)?.so_no_claim === true)", 'if (false)'], // o registro novo vai ao navegador
+  [routeFile, "secoes_menos_que_cenas', so_no_claim: true }", "secoes_menos_que_cenas' }"],
+  [routeFile, 'const presenca2511: PresencaDosPlanos | null = pisoQuemAparece2511?.presenca ?? null', 'const presenca2511: PresencaDosPlanos | null = chamadaQuemAparece2511?.presenca ?? null'], // sem o piso
+  [routeFile, 'segundo: { ...ru.segundo, presenca: presencaPorPlano(presenca2511, kling4Prompts.length, ru.segundo.nomes) }', 'segundo: { ...ru.segundo }'], // R11
+  [FQ, 'const cenas = cenasDoElenco(cast.prompts, args.falas, elenco, false, args.presenca ?? null)', 'const cenas = cenasDoElenco(cast.prompts, args.falas, elenco)'], // F1
+  [Q, "      if (naTela === 'no' && (como === 'shown' || como === 'memory')) return null", ''], // o no incoerente vira ausência
+  [Q, "    if (daMain.length > 0 && daMain.every(", '    if (false && daMain.every('], // o protagonista pode sumir do filme
+  [Q, ' || (a.citados[i] ?? []).some((x) => mesmaPessoa(x, n))', ''], // o nome citado não deixa o 2º entrar
+  [Q, 'const pode = (a.hoje[i] ?? []).some((x) => mesmaPessoa(x, n)) || ', 'const pode = '], // o 2º perde os planos que a main dá
+  [Q, '    if (prot && mesmaPessoa(n, prot)) return true\n', ''], // o protagonista contido como 2º
   [routeFile, "rastro1911 && rastro1911.caminho !== 'hoje' && parsedScript", 'rastro1911 && parsedScript'],
   [routeFile, "motivo: !kling4Trial.job && kling4Trial.reason ? `reserva_${kling4Trial.reason}` : parsedScript.segments.length === 0 ? 'sem_marcadores' : 'secoes_menos_que_cenas'", "motivo: 'sem_marcadores'"],
   [routeFile, 'if (kling4Trial && !rastro1911 && kling4TrialCandidate && verbatim) response.plano_da_fala', 'if (kling4Trial && kling4TrialCandidate && verbatim) response.plano_da_fala'],
-  [routeFile, "d !== ((hoje[i]?.nomes ?? []).includes(x.nome) || (x.nome === prot && forcadas.includes(i)))", "d !== (hoje[i]?.nomes ?? []).includes(x.nome)"], // o relato esquece o protagonista forçado
+  [routeFile, 'return d !== null && d !== hojeQuemAparece2511[i].includes(x.nome)', 'return d !== null'], // o relato conta plano que não mudou
   [sondaRoute, "  if (!user) return NextResponse.json({ erro: 'nao_e_da_casa' }, { status: 403 })\n", ''],
   [sondaRoute, '    liberarSondaDePresenca(estado, ms)\n', ''],
 ]

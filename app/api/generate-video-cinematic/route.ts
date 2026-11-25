@@ -41,7 +41,7 @@ import { FOLHA_DA_REFERENCIA_2411, folhaDaReferenciaLigada, folhaServeAReferenci
 import { LEITOR_DO_ELENCO_2411, LEITOR_DO_ELENCO_2411_VERSAO, elencoDoLeitor2411 } from '@/lib/cinematic/elencoEFigurino2411' // KINEO-LEITOR-DO-ELENCO-2411
 import { FICHA_SEM_NOME_2511, fichaSemNomeLigada } from '@/lib/cinematic/fichaSemNome2511' // KINEO-FICHA-SEM-NOME-2511
 import { JUIZ_DA_FOLHA_2411, JUIZ_DA_FOLHA_2411_VERSAO, juizDaFolhaLigado, julgarAFolha, lerAFolha, retratoSemFolhaReprovada2411, type RelatoDaFolha, FORMA_DA_FOLHA_2511, formaNoFilme } from '@/lib/cinematic/juizDaFolha2411' // KINEO-JUIZ-DA-FOLHA-2411 · KINEO-FORMA-NOS-FILMES-2511
-import { QUEM_APARECE_2511, quemApareceLigado, lerQuemAparece, presencaPorPlano, presencaDe as presencaDe2511, relatoQuemAparece, type ChamadaDePresenca, type PresencaDosPlanos } from '@/lib/cinematic/quemAparece2511' // KINEO-QUEM-APARECE-2511
+import { QUEM_APARECE_2511, quemApareceLigado, lerQuemAparece, presencaPorPlano, presencaDe as presencaDe2511, relatoQuemAparece, pisoDaPresenca, citadosPeloNome, type ChamadaDePresenca, type PresencaDosPlanos, type PisoDaPresenca } from '@/lib/cinematic/quemAparece2511' // KINEO-QUEM-APARECE-2511
 import { REFERENCIA_UNICA_2411, admitirReferenciaUnica2411, relatoReferenciaUnica, relatoClienteSemReferencia2411, entradaDoJuiz2411, type ReferenciaUnica2411, type MotivoClienteSemReferencia2411 } from '@/lib/cinematic/referenciaUnica2411' // KINEO-REFERENCIA-UNICA-2411 · KINEO-REFERENCIA-UNICA-HUMANO-2411
 import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy'
 import { kling4PaidCredits, kling4PaidFalExtrasMilliUsd, kling4PaidBudget } from '@/lib/kling4PaidPricing'
@@ -3150,6 +3150,7 @@ async function manipularPost(req: NextRequest) {
       response: Record<string, unknown>,
     ): Promise<NextResponse> => {
       // The signed response is durable before settlement. Replays repair an interrupted event write.
+      if ((response.plano_da_fala as { so_no_claim?: unknown } | undefined)?.so_no_claim === true) { const { plano_da_fala: _soNoClaim2511, ...semRegistro2511 } = response; response = semRegistro2511 } // KINEO-QUEM-APARECE-2511 [CEO 25/11 10:20] o registro novo fica no claim; ao navegador, só o que já ia
       const trialEngine = kling4TrialEngineFromClaim(response)
       if (trialEngine && (claim.status === 'done' || claim.status === 'settled')) {
         const marker = response.kling4_trial as { country?: string | null; cost_usd: number }
@@ -7543,11 +7544,17 @@ async function manipularPost(req: NextRequest) {
     const chamadaQuemAparece2511: ChamadaDePresenca | null = quemApareceLigado(QUEM_APARECE_2511, user.email) && !qualidadeHerdada && elencoDoAjuste.length > 0 && scenes.length > 0
       ? await lerQuemAparece(elencoDoAjuste, scenes.map((s) => ({ fala: s.voiceover ?? '', marcador: verbatim && parsedScript.hasMarkers ? s.stockSearchQuery ?? '' : '', visual: s.aiPrompt || s.description || '' })))
       : null
-    const presenca2511: PresencaDosPlanos | null = chamadaQuemAparece2511?.presenca ?? null
-    // os planos em que a leitura troca quem está em relação à regra de hoje (o protagonista forçado e quem a cena de hoje põe): o relato conta, e o A2 tira a imagem-chave do meio deles
-    const mudou2511: number[] = presenca2511 ? (() => { const forcadas = elencoFilme15 && elencoFilme15.elenco.length > 0 ? protagonistaEmTodaCena({ visuals: visuaisDoPlano15, elenco: elencoFilme15.elenco, porNome: !!elencoSemantico, mostraGente: visualMostraAlguem, mostraPessoa: visualMostraPessoa }).forcadas : []
-      const prot = (elencoFilme15?.elenco.find((x) => x.protagonista) ?? elencoFilme15?.elenco[0])?.nome ?? null; const hoje = cenasDoElenco(visuaisDoPlano15.map((v) => v ?? ''), scenes.map((x) => x.voiceover ?? ''), elencoDoAjuste)
-      return scenes.map((_, i) => i).filter((i) => presenca2511.planos[i] !== null && elencoDoAjuste.some((x) => { const d = presencaDe2511(presenca2511, i, x.nome); return d !== null && d !== ((hoje[i]?.nomes ?? []).includes(x.nome) || (x.nome === prot && forcadas.includes(i))) })) })() : []
+    // quem a main põe em cada plano (o protagonista forçado e quem a cena de hoje põe): o piso, o relato e o A2 leem daqui
+    const protQuemAparece2511 = (elencoFilme15?.elenco.find((x) => x.protagonista) ?? elencoFilme15?.elenco[0] ?? elencoDoAjuste.find((x) => x.protagonista) ?? elencoDoAjuste[0])?.nome ?? null
+    const hojeQuemAparece2511: string[][] | null = chamadaQuemAparece2511?.presenca ? (() => { const forcadas = elencoFilme15 && elencoFilme15.elenco.length > 0 ? protagonistaEmTodaCena({ visuals: visuaisDoPlano15, elenco: elencoFilme15.elenco, porNome: !!elencoSemantico, mostraGente: visualMostraAlguem, mostraPessoa: visualMostraPessoa }).forcadas : []
+      const hoje = cenasDoElenco(visuaisDoPlano15.map((v) => v ?? ''), scenes.map((x) => x.voiceover ?? ''), elencoDoAjuste)
+      return scenes.map((_, i) => [...new Set([...(hoje[i]?.nomes ?? []), ...(protQuemAparece2511 && forcadas.includes(i) ? [protQuemAparece2511] : [])])]) })() : null
+    // [revisora, volta 1] o PISO: a leitura que apaga o protagonista do filme = a main; o 2º personagem só onde a main o põe ou o autor o cita pelo nome
+    const pisoQuemAparece2511: PisoDaPresenca | null = chamadaQuemAparece2511?.presenca && hojeQuemAparece2511 ? pisoDaPresenca(chamadaQuemAparece2511.presenca, { protagonista: protQuemAparece2511, hoje: hojeQuemAparece2511,
+      citados: citadosPeloNome(elencoDoAjuste.map((x) => x.nome), scenes.map((s) => ({ fala: s.voiceover ?? '', marcador: verbatim && parsedScript.hasMarkers ? s.stockSearchQuery ?? '' : '' }))) }) : null
+    const presenca2511: PresencaDosPlanos | null = pisoQuemAparece2511?.presenca ?? null
+    // os planos em que a leitura troca quem está em relação à main: o relato conta, e o A2 tira a imagem-chave do meio deles (com teto)
+    const mudou2511: number[] = presenca2511 && hojeQuemAparece2511 ? scenes.map((_, i) => i).filter((i) => presenca2511.planos[i] !== null && elencoDoAjuste.some((x) => { const d = presencaDe2511(presenca2511, i, x.nome); return d !== null && d !== hojeQuemAparece2511[i].includes(x.nome) })) : []
     const protagonista15 = elencoFilme15 && elencoFilme15.elenco.length > 0 ? protagonistaEmTodaCena({ visuals: visuaisDoPlano15, elenco: elencoFilme15.elenco, porNome: !!elencoSemantico /* KINEO-PROTAGONISTA-SEEDANCE-0111 — só com o elenco semântico a cena também cita pelo nome próprio ("BRO dons…"); sem ele, o casador de sempre */, mostraGente: visualMostraAlguem /* KINEO-PROTAGONISTA-SEEDANCE-0111 — elenco semântico de duas pessoas: a cena que já mostra gente sem nome não é forçada */, mostraPessoa: visualMostraPessoa /* KINEO-PROTAGONISTA-SEEDANCE-0111 — protagonista bicho/criatura: a cena com pessoa nunca é forçada (rodada 16) */, presenca: presenca2511 /* KINEO-QUEM-APARECE-2511 */ }) : null // KINEO-FILME15-ELENCO-2610 — cena sem ninguém do elenco mostra o protagonista
     const personagemCenas = personagem.ativo && !estrelaFicha && classicVisualMode === 'character_story' && elencoDoAjuste.length > 0 ? ajustarPromptsDoElenco({ prompts: classicScenePrompts, visuals: protagonista15 ? protagonista15.visuals : scenes.map((s) => s.aiPrompt || s.stockSearchQuery || s.description), falas: scenes.map((s) => s.voiceover ?? ''), elenco: elencoDoAjuste, presenca: presenca2511 /* KINEO-QUEM-APARECE-2511 */ }) : null // KINEO-META95-PERSONAGEM-AJUSTE-2010
     if (personagemCenas) { for (let i = 0; i < classicScenePrompts.length; i++) classicScenePrompts[i] = personagemCenas.prompts[i]; console.log(`[personagem] gen=${generationId} cenas pela fala=${personagemCenas.cenas.filter((c) => c.pelaFala.length > 0).map((c) => c.indice + 1).join(',') || '-'} ficha no prompt=${personagemCenas.comFicha.join(',') || '-'} sem gente=${personagemCenas.semGente.join(',') || '-'}`) } // KINEO-META95-PERSONAGEM-AJUSTE-2010
@@ -8549,7 +8556,11 @@ async function manipularPost(req: NextRequest) {
       } catch (err) { console.warn('[cinematic] KINEO-FICHA-REPROVADA-NO-HOJE-2011 falhou, os planos seguem:', err instanceof Error ? err.message : String(err)) }
     }
     const semImagemChave2511: number[] = [] // KINEO-QUEM-APARECE-2511
-    if (presenca2511 && rastro1911 && rastro1911.caminho !== 'hoje' && parsedScript.segments.some((x) => typeof (x as { descricao?: unknown }).descricao === 'string')) for (const i of mudou2511) if (i > 0 && kling4ApprovedStills[i]) { kling4ApprovedStills[i] = null; semImagemChave2511.push(i + 1) } // KINEO-QUEM-APARECE-2511: nunca a 1ª (sem ela o Kling 4 perde todas)
+    if (presenca2511 && rastro1911 && rastro1911.caminho !== 'hoje' && parsedScript.segments.some((x) => typeof (x as { descricao?: unknown }).descricao === 'string')) { // KINEO-QUEM-APARECE-2511: nunca a 1ª (sem ela o Kling 4 perde todas)
+      const alvo = mudou2511.filter((i) => i > 0 && kling4ApprovedStills[i]), n = kling4Prompts.length, jaSem = kling4ApprovedStills.slice(0, n).filter((u) => !u).length
+      if (alvo.length > 0 && jaSem + alvo.length > Math.floor(n / 2)) voltaAoHoje1911('teto_imagem_chave') // [revisora, volta 1 §6] mais da metade do filme sem imagem-chave = o recuo de hoje
+      else for (const i of alvo) { kling4ApprovedStills[i] = null; semImagemChave2511.push(i + 1) }
+    }
     let kling4Trial: Kling4TrialResult | null = null
     // KINEO-K4-SEMPRE-0511 [TRAVA 8.2 — fundador 05/11 "vai"] — Kling 4 para todo filme grátis, sempre em 15 s. Dentro deste bloco, medirFalaDoKling4Trial mede e, se precisar, encaixa:
     // sem medida, uma nova tentativa; fala longa, encurta e mede de novo, antes do POST pago. Só o que a voz confirmou troca a fala; falhou, o texto fica inteiro e o filme vai à reserva, como antes.
@@ -8861,8 +8872,8 @@ async function manipularPost(req: NextRequest) {
     // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-DURACOES-CURTAS-2026-09-29 — o filme de 15 s do Kling 2.5 e do Veo 3.1 fala a MESMA voz
     // [KINEO-DURACOES-CURTAS-2026-09-29] do 15 s (lib/vozDoFilmeCurto — o portão acima mediu nela): vai assinada no claim do mesmo jeito, e o /api/compose a usa.
     if (vozCurta && (wantsKling || wantsVeo)) response.narration_voice = campoDaVozAssinada(vozCurta) // KINEO-DURACOES-CURTAS-2026-09-29
-    if (kling4Trial && !rastro1911 && kling4TrialCandidate && verbatim) response.plano_da_fala = { versao: KLING4_PLANO_DA_FALA_VERSAO, caminho: 'hoje', motivo: !kling4Trial.job && kling4Trial.reason ? `reserva_${kling4Trial.reason}` : parsedScript.segments.length === 0 ? 'sem_marcadores' : 'secoes_menos_que_cenas' } // KINEO-QUEM-APARECE-2511 (registro): o caminho sem seções também vai ao claim
-    if (chamadaQuemAparece2511) response.quem_aparece = relatoQuemAparece(chamadaQuemAparece2511, elencoDoAjuste, mudou2511.map((i) => i + 1), semImagemChave2511) // KINEO-QUEM-APARECE-2511 — só a casa; só número
+    if (kling4Trial && !rastro1911 && kling4TrialCandidate && verbatim) response.plano_da_fala = { versao: KLING4_PLANO_DA_FALA_VERSAO, caminho: 'hoje', motivo: !kling4Trial.job && kling4Trial.reason ? `reserva_${kling4Trial.reason}` : parsedScript.segments.length === 0 ? 'sem_marcadores' : 'secoes_menos_que_cenas', so_no_claim: true } // KINEO-QUEM-APARECE-2511 (registro): o caminho sem seções também vai ao claim
+    if (chamadaQuemAparece2511) response.quem_aparece = relatoQuemAparece(chamadaQuemAparece2511, elencoDoAjuste, mudou2511.map((i) => i + 1), semImagemChave2511, pisoQuemAparece2511) // KINEO-QUEM-APARECE-2511 — só a casa; só número
     if (kling4Trial) {
       response.kling4_trial = {
         version: 'kling4_trial_2810', engine_used: kling4Trial.engineUsed,
