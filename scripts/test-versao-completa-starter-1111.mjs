@@ -92,12 +92,12 @@ function battery(src) {
   if (!mail.text.includes(nums.starter)) p.push('o e-mail não diz o preço do Starter')
   const href = copy.filmCompleteCreatorHref('00000000-0000-4000-8000-000000000000', 'film_ready')
   if (new URL(href, 'https://x.test').searchParams.get('plan') !== 'creator') p.push('o link da 2ª opção não pede o Creator')
-  if (!src[PAGE].includes("copy.resume.replace('{plan}', filmCompleteOfferTier() === 'starter' ? 'Starter' : 'Creator')")) p.push('o botão "continuar" da página não nomeia o plano que abre')
+  if (!src[PAGE].includes("copy.resume.replace('{plan}', offer.tier === 'basic' ? 'Creator' : 'Starter')")) p.push('o botão "continuar" da página não nomeia o plano que abre')
   // (5) medida
   const meta = fc.filmCompleteOfferMetadata()
   if (meta.offer_tier !== 'starter' || meta.offer_version !== 'versao_completa_starter_1111') p.push('a medida não grava o plano mostrado + versão')
-  if ((src[UI].match(/\.\.\.filmCompleteOfferMetadata\(\)/g) ?? []).length < 3) p.push('impressão e cliques da tela não gravam o plano mostrado')
-  if (!src[ROUTE].includes('offer_tier: tier, offer_version: FILM_COMPLETE_OFFER_VERSION')) p.push('o clique do servidor não grava o plano')
+  if ((src[UI].match(/\.\.\.filmReadyOfferMetadata\(\)/g) ?? []).length < 3) p.push('impressão e cliques da tela não gravam o plano mostrado')
+  if (!src[ROUTE].includes('offer_tier: tier, offer_version: offerVersion')) p.push('o clique do servidor não grava o plano')
   // (6) Kling 4 intocado
   if (!src[SERVER].includes("const useKling4 = savedEngine ? savedEngine === FILM_COMPLETE_KLING4_ENGINE : !dispatchPrompt && io.kling4Free ? await io.kling4Free(db, intent.userId) : false")) p.push('o ramo do Kling 4 mudou')
   return p
@@ -129,8 +129,8 @@ const MUTANTES = [
   ['hi sem Creator', muta(COPY, "more: 'और फ़िल्में चाहिए? Creator {full}/माह'", "more: 'और फ़िल्में चाहिए?'")],
   ['tela sem 2ª opção', muta(UI, '{copy.more ? (', '{false ? (')],
   ['e-mail sem 2ª opção', muta(COPY, "${copy.more ? `${copy.more}: ${creatorHref}\\n` : ''}", "${''}")],
-  ['impressão sem plano', muta(UI, "        ...filmCompleteOfferMetadata(), // KINEO-VERSAO-COMPLETA-STARTER-1111 — o plano MOSTRADO\n", '')],
-  ['clique do servidor sem plano', muta(ROUTE, ", offer_tier: tier, offer_version: FILM_COMPLETE_OFFER_VERSION }", ' }')],
+  ['impressão sem plano', muta(UI, "        ...filmReadyOfferMetadata(), // KINEO-VERSAO-COMPLETA-STARTER-1111 — o plano MOSTRADO\n", '')],
+  ['clique do servidor sem plano', muta(ROUTE, ", offer_tier: tier, offer_version: offerVersion }", ' }')],
   ['Kling 4 mexido', muta(SERVER, '!dispatchPrompt && io.kling4Free ? await io.kling4Free(db, intent.userId) : false', 'false')],
 ]
 let killed = 0

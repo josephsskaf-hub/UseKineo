@@ -59,6 +59,8 @@ export function filmCompleteWriterRetryNote(i: { attempt: number; reason: unknow
 // Volta: KINEO_VERSAO_COMPLETA_STARTER_1111 = 'off' → o botão volta ao Creator e a 2ª opção some. Os DOIS planos seguem
 // aceitos no checkout, no pagamento e no início do filme, para nenhuma sessão já aberta (Starter ou Creator) quebrar.
 export const KINEO_VERSAO_COMPLETA_STARTER_1111 = 'on' as 'on' | 'off'
+export const FILM_READY_CREATOR_PRIMARY_2511 = 'off' as 'on' | 'off'
+export const FILM_READY_CREATOR_VERSION = 'film_ready_creator_primary_2511'
 export const FILM_COMPLETE_OFFER_VERSION = 'versao_completa_starter_1111'
 export type FilmCompleteOfferTier = 'starter' | 'basic'
 
@@ -83,6 +85,13 @@ export const FILM_COMPLETE_ENTITLED_PLANS: readonly string[] = ['starter', 'basi
 /** O que as impressões e o clique gravam: o plano MOSTRADO e a versão — o corte antes/depois, nunca o relógio. */
 export function filmCompleteOfferMetadata(chave: 'on' | 'off' = KINEO_VERSAO_COMPLETA_STARTER_1111): { offer_tier: FilmCompleteOfferTier; offer_version: string } {
   return { offer_tier: filmCompleteOfferTier(chave), offer_version: FILM_COMPLETE_OFFER_VERSION }
+}
+
+/** Attribution of the offer visible on the film-ready screen. Email uses its own existing offer. */
+export function filmReadyOfferMetadata() {
+  return FILM_READY_CREATOR_PRIMARY_2511 === 'on'
+    ? { offer_tier: 'basic' as const, offer_version: FILM_READY_CREATOR_VERSION }
+    : filmCompleteOfferMetadata()
 }
 
 export type FilmCompleteState ='awaiting_payment' | 'waiting_entitlement' | 'starting' | 'processing' | 'completed' | 'failed' | 'unavailable'
