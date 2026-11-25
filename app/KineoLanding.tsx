@@ -115,7 +115,7 @@ import CaixaDePresente0511 from '@/components/CaixaDePresente0511' // KINEO-HOME
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
 
-const HOME_FOCUSED_SHOWCASE_2511 = false
+const HOME_FOCUSED_SHOWCASE_2511 = true
 
 type Props = {
   initialUser?: { id: string } | null
