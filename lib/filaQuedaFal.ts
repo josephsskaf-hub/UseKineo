@@ -399,9 +399,13 @@ export const ESPERAS_FAL_FORA_2511_MS: readonly number[] = [5, 5, 10, 20, 20].ma
 export const ESPERA_DEPOIS_DA_ESCADA_2511_MS = 60 * MIN_2511
 /** Estacionado por saldo: a 1ª tentativa aos 15 min (o saldo não volta sozinho em 5 min). */
 export const PRIMEIRA_POR_SALDO_2511_MS = 15 * MIN_2511
-/** Erro nosso: no máximo 3 tentativas seguidas (esperas de 5 e 10 min entre elas); a 4ª vira o fechamento 'failed'. */
+/** Erro nosso: o fechamento 'failed' pede 3 tentativas seguidas (esperas de 5 e 10 min, depois 20) E 60 min desde a 1ª delas (ERRO_NOSSO_JANELA_2511_MS). */
 export const ERRO_NOSSO_MAX_2511 = 3
 export const ESPERAS_ERRO_NOSSO_2511_MS: readonly number[] = [5, 10].map((m) => m * MIN_2511)
+/** [revisora 25/11, §9] o fechamento por erro nosso pede 3 seguidos E 60 min desde o 1º deles: um conserto nosso leva mais que 20 min para entrar no ar
+ *  (03/11: o deploy do débito em modo serviço deu success às 20:05 UTC, e a main entregou o filme de ee22bac0 às 20:18). Até lá, de 20 em 20 min. */
+export const ERRO_NOSSO_JANELA_2511_MS = 60 * MIN_2511
+export const ESPERA_ERRO_NOSSO_DEPOIS_2511_MS = 20 * MIN_2511
 /** A cron roda de 5 em 5 min e o aluguel nasce alguns segundos depois do começo da passada: a espera tem 1 min de folga. */
 export const FOLGA_DA_ESCADA_2511_MS = MIN_2511
 /** Com o saldo lido: o estacionado por saldo só volta com pelo menos isto na fal (um filme grátis de 15 s custa até US$ 3,14). */
@@ -434,11 +438,11 @@ export function decidirEscada2511(i: { parkedAtMs: number; nowMs: number; motivo
   let seguidos = 0
   for (let k = t.length - 1; k >= 0 && t[k].classe === 'erro_nosso'; k--) seguidos++
   const ultima = t[t.length - 1] ?? null
-  if (seguidos >= ERRO_NOSSO_MAX_2511 && ultima) return { acao: 'fechar_erro_nosso', status: ultima.status, erro: ultima.erro }
+  if (seguidos >= ERRO_NOSSO_MAX_2511 && ultima && i.nowMs - t[t.length - seguidos].atMs >= ERRO_NOSSO_JANELA_2511_MS) return { acao: 'fechar_erro_nosso', status: ultima.status, erro: ultima.erro }
   const saldo = i.motivo === 'balance_quota'
   if (saldo && i.saldoUsd !== null && i.saldoUsd < SALDO_PARA_RETOMAR_USD_2511) return { acao: 'esperar', motivo: 'saldo_zerado', ateMs: null }
   let proxima: number, motivo: 'escada' | 'escada_erro_nosso' | 'escada_saldo'
-  if (ultima && ultima.classe === 'erro_nosso') { proxima = ultima.atMs + ESPERAS_ERRO_NOSSO_2511_MS[seguidos - 1]; motivo = 'escada_erro_nosso' }
+  if (ultima && ultima.classe === 'erro_nosso') { proxima = ultima.atMs + (ESPERAS_ERRO_NOSSO_2511_MS[seguidos - 1] ?? ESPERA_ERRO_NOSSO_DEPOIS_2511_MS); motivo = 'escada_erro_nosso' }
   // o saldo lido e de volta: a escada da fal fora a partir da última tentativa (a fal que recusa por outro motivo não vira rajada); depois de horas sem
   // saldo (nenhuma tentativa), a escada já venceu e a retomada sai na passada em que o saldo volta
   else if (saldo && i.saldoUsd !== null) { proxima = ultima ? ultima.atMs + (ESPERAS_FAL_FORA_2511_MS[t.length] ?? ESPERA_DEPOIS_DA_ESCADA_2511_MS) : i.parkedAtMs + ESPERAS_FAL_FORA_2511_MS[0]; motivo = 'escada' }

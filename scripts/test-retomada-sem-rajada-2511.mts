@@ -3,13 +3,16 @@
 // atual ('on'), a atual com 'off' e a da origin/main. Linhas do tempo reexecutadas (docs/semana-2/RETOMADA-DO-ESTACIONADO-2511.md):
 //   R1 31/10 · estacionado por saldo, toda retomada responde o 503 "Your credit charge could not be confirmed" (o débito em modo serviço quebrado):
 //      main = um POST a cada 10 min por 24 h (cada retry_later espera o assentamento de 10 min; em 31/10, sem essa trava, eram de 5 em 5) e o
-//      'expired' no fim; 'on' = 3 POSTs (aos 15, 25 e 35 min) e o 'failed' com o e-mail honesto aos 45 min.
+//      'expired' no fim; 'on' = 4 POSTs (aos 15, 25, 35 e 55 min) e o 'failed' com o e-mail honesto aos 75 min (3 erros nossos seguidos E 60 min desde o 1º).
 //   R2 08/11 · fal pausada por 5 h, estacionado por saldo, sem FAL_BILLING_KEY: de hora em hora; o filme sai no máximo 60 min depois da main, 1 débito.
 //   R3 08/11 · com a chave e o saldo lido zerado até a recarga das 5 h: 0 POST sem saldo; a retomada até 5 min depois da recarga; 1 aviso de saldo
 //      baixo por dia; o evento do dia; a chave nunca aparece em evento nem em log.
 //   R4 03/11 · capacidade, fal fora por 50 min: tentativas aos 5, 10, 20, 40 e 60 min; o filme sai aos 60.
 //   R5 · a fal que volta logo (7 min): o filme sai aos 10 min, igual à main.
-//   R6 · erro nosso com capacidade: 5, 15 e 25 min (a escada pede 5 e 10; o assentamento de 10 min já segura) e o fechamento aos 35.
+//   R6 · erro nosso com capacidade: 5, 15, 25 e 45 min e o fechamento aos 65 (60 min desde o 1º erro).
+//   R11 · 03/11 REAL (ee22bac0, 71abeb5f): estacionado às 19:26:54 UTC por saldo; o débito em modo serviço responde 503 até o deploy do conserto (success às
+//      20:05:00), a fal fica pausada até 20:13: a main entregou às 20:18; a ponta TEM de entregar (antes da volta 1 ela fechava 'failed' às 20:13).
+//   P · as regras puras de cada versão: a contagem do erro nosso para no 1º "outro"; 4xx e abort não são erro nosso; a janela de 60 min.
 //   R7 · a trava da cobrança com 'on': a tentativa que cobrou depois do abort é adotada (1 POST, 1 débito); o 503 de estorno pendente nunca abre a N+1.
 //   R8 · o evento do dia: um só por dia (duas passadas no mesmo minuto), a casa fora, outro no dia seguinte.
 //   R9 · o saldo sem estacionado: uma leitura por hora; sem a chave, nenhuma leitura e nenhum evento.
@@ -149,9 +152,11 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
 type Get = (req: InstanceType<typeof NextRequest>) => Promise<Response>
 const temporarios: string[] = []
 const troca = (src: string, de: string, para: string, nome: string) => { if (!src.includes(de)) throw new Error(`${nome}: trecho não encontrado: ${de.slice(0, 90)}`); return src.split(de).join(para) }
+const libs: Record<string, typeof L> = {}
 async function rotaDe(nome: string, rota: string, lib: string): Promise<Get> {
   const libArq = `lib/__mutante_rsr_${nome}.ts`
   fs.writeFileSync(libArq, lib); temporarios.push(libArq)
+  libs[nome] = await import(`../${libArq}`)
   const arq = `app/api/cron/resume-parked-renders/__mutante_rsr_${nome}.ts`
   fs.writeFileSync(arq, troca(rota, "from '@/lib/filaQuedaFal'", `from '@/lib/__mutante_rsr_${nome}'`, nome)); temporarios.push(arq)
   return (await import(`../${arq}`)).GET as Get
@@ -170,6 +175,10 @@ const MUTANTES: Array<[string, 'lib' | 'rota', string, string]> = [
   ['classe_nao_gravada', 'rota', ', ...(espacada2511 ? { classe: classeDaTentativa2511({ outcome, status }) } : {})', ''],
   ['erro_nosso_em_qualquer_5xx_sem_classe', 'lib', "  if (md.classe === 'fal_fora' || md.classe === 'capacidade' || md.classe === 'erro_nosso' || md.classe === 'outro') return md.classe\n", ''],
   ['sem_o_dia_do_saldo', 'rota', '    if (porSaldo.length > 0) await registrarDiaDoSaldo2511(admin, { porSaldo, nowMs: now, saldoUsd: saldo2511 })\n', ''],
+  ['sem_a_janela_de_60_min', 'lib', ' && i.nowMs - t[t.length - seguidos].atMs >= ERRO_NOSSO_JANELA_2511_MS) return', ') return'],
+  ['erro_nosso_sem_espera', 'lib', 'proxima = ultima.atMs + (ESPERAS_ERRO_NOSSO_2511_MS[seguidos - 1] ?? ESPERA_ERRO_NOSSO_DEPOIS_2511_MS)', 'proxima = ultima.atMs'],
+  ['erro_nosso_conta_tudo', 'lib', "for (let k = t.length - 1; k >= 0 && t[k].classe === 'erro_nosso'; k--) seguidos++", "for (const x of t) if (x.classe === 'erro_nosso') seguidos++"],
+  ['todo_retry_later_e_erro_nosso', 'lib', "if (md.outcome === 'retry_later' && Number.isFinite(st) && st >= 500) return 'erro_nosso'", "if (md.outcome === 'retry_later') return 'erro_nosso'"],
   ['fechamento_sem_email', 'rota', "        const email = f === 'novo' ? await enviarEmail(admin, userId, 'failed', pedido.prompt, confirm) : 'none'\n", "        const email = 'none'\n"],
 ]
 let atual: Get, off: Get, main: Get
@@ -209,14 +218,14 @@ const comp08 = (t: number): Comp => (t < 5 * H ? 'parked' : 'ok')
 const comp03 = (t: number): Comp => (t < 50 * MIN ? 'parked' : 'ok')
 const comp07 = (t: number): Comp => (t < 7 * MIN ? 'parked' : 'ok')
 
-async function suite(GET: Get): Promise<string[]> {
+async function suite(GET: Get, Lv: typeof L | null = null): Promise<string[]> {
   const f: string[] = []
   const no = (ruim: unknown, m: string) => { if (ruim) f.push(m) }
   // R1 31/10
   novoMundo('balance_quota', comp31)
   await rodar(GET, 26 * H)
-  no(JSON.stringify(minutos()) !== JSON.stringify([15, 25, 35]), `R1 31/10: 3 POSTs aos 15, 25 e 35 min (a escada pede 5 e 10 min; a trava de assentamento de 10 min, que já existe, segura a N+1 depois de um retry_later) (foram ${primeiros().length}: ${minutos().slice(0, 6).join(',')}…)`)
-  no(fechamento()?.outcome !== 'failed' || fechamento()?.motivo !== 'erro_nosso_3x' || Math.round((Date.parse(String(evs(L.PARKED_CLOSED_EVENT)[0]?.created_at)) - T0) / MIN) !== 45, 'R1 fecha "failed" (erro nosso 3x) aos 45 min')
+  no(JSON.stringify(minutos()) !== JSON.stringify([15, 25, 35, 55]), `R1 31/10: 4 POSTs aos 15, 25, 35 e 55 min (a escada pede 5, 10 e 20 min; o assentamento de 10 min, que já existe, segura a N+1 depois de um retry_later) (foram ${primeiros().length}: ${minutos().slice(0, 6).join(',')}…)`)
+  no(fechamento()?.outcome !== 'failed' || fechamento()?.motivo !== 'erro_nosso_3x' || Math.round((Date.parse(String(evs(L.PARKED_CLOSED_EVENT)[0]?.created_at)) - T0) / MIN) !== 75, 'R1 fecha "failed" (erro nosso 3x e 60 min) aos 75 min')
   no(mundo.emails.length !== 1 || vivos().length !== 0, 'R1 um e-mail honesto, nada cobrado')
   no(evs(L.PARKED_LEASE_EVENT).some((l) => (l.metadata as { outcome?: string; classe?: string }).outcome !== undefined && (l.metadata as { classe?: string }).classe !== 'erro_nosso'), 'R1 cada aluguel grava a classe erro_nosso')
   no(evs(S.EVENTO_ESTACIONADO_POR_SALDO_2511).length !== 1, 'R1 o evento do dia do saldo, um só')
@@ -254,7 +263,7 @@ async function suite(GET: Get): Promise<string[]> {
   // R6 erro nosso com capacidade
   novoMundo('capacity', comp31)
   await rodar(GET, 3 * H)
-  no(JSON.stringify(minutos()) !== JSON.stringify([5, 15, 25]) || fechamento()?.outcome !== 'failed' || Math.round((Date.parse(String(evs(L.PARKED_CLOSED_EVENT)[0]?.created_at)) - T0) / MIN) !== 35, `R6 erro nosso: 5, 15 e 25 min (com o assentamento), fecha aos 35 (foram ${minutos().join(',')})`)
+  no(JSON.stringify(minutos()) !== JSON.stringify([5, 15, 25, 45]) || fechamento()?.outcome !== 'failed' || Math.round((Date.parse(String(evs(L.PARKED_CLOSED_EVENT)[0]?.created_at)) - T0) / MIN) !== 65, `R6 erro nosso: 5, 15, 25 e 45 min, fecha aos 65 (foram ${minutos().join(',')})`)
   // R7 a trava da cobrança com 'on'
   novoMundo('capacity', () => 'abort-charged')
   await rodar(GET, 3 * H)
@@ -287,6 +296,24 @@ async function suite(GET: Get): Promise<string[]> {
     clock = Date.UTC(2026, 10, 3, 10, 0, 0); await passe(GET)
     no(evs(S.EVENTO_SALDO_BAIXO_2511).length !== 1 || mundo.leituras.length !== 1, 'R9 saldo alto: nenhum aviso novo')
   } finally { delete process.env.FAL_BILLING_KEY }
+  // R11 03/11 real: a cron roda às :x3:31/:x8:31; o débito em modo serviço quebrado até 20:05:00 (o deploy), a fal pausada até 20:13
+  { const parked = Date.UTC(2026, 10, 3, 19, 26, 54), deploy = Date.UTC(2026, 10, 3, 20, 5, 0), falVolta = Date.UTC(2026, 10, 3, 20, 13, 0)
+    mundo = new Mundo(); mundo.comp = () => (clock < deploy ? 'debito-503' : clock < falVolta ? 'parked' : 'ok')
+    mundo.tables.events.push({ id: 'parked-row-1', name: L.PARKED_EVENT, user_id: USER, session_id: GEN, created_at: iso(parked), metadata: { version: L.PARKED_VERSION, reason: 'balance_quota', refunded: true, request: { prompt: 'x', duration: 15 } } })
+    for (let k = 0; k < 40; k++) { clock = Date.UTC(2026, 10, 3, 19, 28, 31) + k * 5 * MIN + (k % 2 ? 900 : 0); await passe(GET) }
+    const saiu = primeiros().find((p) => claimDe(p.generationId) && (claimDe(p.generationId)!.metadata as { status?: string }).status === 'settled')
+    no(fechamento()?.outcome !== 'resumed' || !saiu || vivos().length !== 1 || mundo.emails.length !== 0, `R11 03/11 real: o filme de ee22bac0 é ENTREGUE (1 débito, nenhum e-mail de falha) — fechamento ${fechamento()?.outcome}`)
+    if (saiu) no(saiu.at > Date.UTC(2026, 10, 3, 20, 28, 31), `R11 sai até 20:28 UTC (a main: 20:18) — saiu às ${iso(saiu.at).slice(11, 16)}`) }
+  // P as regras puras DESTA versão (a lib que a rota carrega)
+  if (Lv) {
+    const t0 = T0, E = (dt: number, classe: string) => ({ atMs: t0 + dt * MIN, classe: classe as never, status: classe === 'erro_nosso' ? 503 : null, erro: null })
+    no(Lv.decidirEscada2511({ parkedAtMs: t0 - 5 * MIN, nowMs: t0 + 200 * MIN, motivo: 'capacity', tentativas: [E(0, 'erro_nosso'), E(10, 'erro_nosso'), E(20, 'fal_fora'), E(40, 'erro_nosso')], saldoUsd: null }).acao === 'fechar_erro_nosso', 'P a contagem do erro nosso para no 1º "outro" (E1)')
+    no(Lv.classeDaTentativa2511({ outcome: 'retry_later', status: 409 }) !== 'outro' || Lv.classeDaTentativa2511({ outcome: 'retry_later', status: 0 }) !== 'outro' || Lv.classeDaTentativa2511({ outcome: 'retry_later', status: 503 }) !== 'erro_nosso', 'P 4xx e abort não são erro nosso; 5xx é (E5)')
+    const tres = [E(0, 'erro_nosso'), E(10, 'erro_nosso'), E(20, 'erro_nosso')]
+    no(Lv.decidirEscada2511({ parkedAtMs: t0 - 5 * MIN, nowMs: t0 + 59 * MIN, motivo: 'capacity', tentativas: tres, saldoUsd: null }).acao === 'fechar_erro_nosso', 'P 3 erros nossos em 20 min: não fecha antes de 60 min do 1º')
+    no(Lv.decidirEscada2511({ parkedAtMs: t0 - 5 * MIN, nowMs: t0 + 60 * MIN, motivo: 'capacity', tentativas: tres, saldoUsd: null }).acao !== 'fechar_erro_nosso', 'P aos 60 min do 1º: fecha')
+    { const d = Lv.decidirEscada2511({ parkedAtMs: t0 - 5 * MIN, nowMs: t0 + 30 * MIN, motivo: 'capacity', tentativas: tres, saldoUsd: null }); no(d.acao !== 'esperar' || (d as { ateMs: number }).ateMs !== t0 + 40 * MIN, 'P depois da 3ª, a próxima em 20 min (E2)') }
+  }
   return f
 }
 
@@ -300,9 +327,9 @@ async function trilha(GET: Get, reason: 'balance_quota' | 'capacity', comp: (t: 
   }
 }
 // ── a rota atual ─────────────────────────────────────────────────────────────────────────────────────────────────
-{ const f = await suite(atual); for (const x of f) ok(false, x); ok(f.length === 0, `a rota atual ('on'): R1 a R9 verdes`) }
+{ const f = await suite(atual, libs.on); for (const x of f) ok(false, x); ok(f.length === 0, `a rota atual ('on'): R1 a R11 e as regras puras verdes`) }
 // ── os mutantes ──────────────────────────────────────────────────────────────────────────────────────────────────
-for (const [nome] of MUTANTES) { const f = await suite(mutantes[nome]); ok(f.length > 0, `mutante "${nome}" é pego${f.length ? ' (' + f[0].slice(0, 70) + ')' : ''}`) }
+for (const [nome] of MUTANTES) { const f = await suite(mutantes[nome], libs[nome]); ok(f.length > 0, `mutante "${nome}" é pego${f.length ? ' (' + f[0].slice(0, 70) + ')' : ''}`) }
 // ── as regras puras ──────────────────────────────────────────────────────────────────────────────────────────────
 ok(L.RETOMADA_ESPACADA_2511 === 'on' && L.SALDO_BAIXO_USD_2511 === 75 && L.ERRO_NOSSO_MAX_2511 === 3, "P a chave nasce 'on'; aviso a US$ 75; erro nosso 3 vezes")
 ok(L.classeDaTentativa2511({ outcome: 'provider_down', status: 503 }) === 'fal_fora' && L.classeDaTentativa2511({ outcome: 'retry_later', status: 429 }) === 'capacidade' && L.classeDaTentativa2511({ outcome: 'retry_later', status: 503 }) === 'erro_nosso'
