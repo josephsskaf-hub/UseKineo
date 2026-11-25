@@ -24,17 +24,20 @@ import { resumirPlano, invarianteFecha } from '../lib/cinematic/dispatchScenes'
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
 // Exact Git blobs (base and candidate); an unrelated edit in either half still fails.
-const referenceReceipt: Record<string, readonly [string,string]> = {
-  'lib/kling4Trial.ts': ['536498f38844fb849ce6b19d7d3355b4d1ce99ed','0baa15455fd692a521ec0f67ae6c50e40f15f284'],
-  'lib/kling4TrialAsyncStatus.ts': ['f438c0e28bb6fd678c671b848cd4096dbe41e9c3','28e8c7e08a574cf810752dcbd276b942bf691e72'],
+const referenceReceipt: Record<string, ReadonlyArray<readonly [string,string]>> = {
+  'lib/kling4Trial.ts': [
+    ['536498f38844fb849ce6b19d7d3355b4d1ce99ed','0baa15455fd692a521ec0f67ae6c50e40f15f284'],
+    ['b62c6e1fe63b1b54f086c10a67b89d322ba6f485','40b95d859b91c74805778a86b59a50d70af1dd6e'], // plano sem marca, casa
+  ],
+  'lib/kling4TrialAsyncStatus.ts': [['f438c0e28bb6fd678c671b848cd4096dbe41e9c3','28e8c7e08a574cf810752dcbd276b942bf691e72']],
 }
 function exactReferenceChange(file: string, before: string, after: string): boolean {
   const blob = (text: string) => {
     const bytes = Buffer.from(text.replace(/\r\n/g, '\n'))
     return createHash('sha1').update('blob ' + bytes.length + '\0').update(bytes).digest('hex')
   }
-  const receipt = referenceReceipt[file]
-  return Boolean(receipt && blob(before) === receipt[0] && blob(after) === receipt[1])
+  const from = blob(before), to = blob(after)
+  return referenceReceipt[file]?.some(([a,b]) => from === a && to === b) ?? false
 }
 let pass = 0, fail = 0
 const ok = (c: unknown, m: string) => { if (c) { pass++; console.log('  ok  ', m) } else { fail++; console.log('  FALHA', m) } }

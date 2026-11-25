@@ -42,7 +42,7 @@ function sectionPlan(source, modules, merged, fixedCharacter) {
   const scenes = prompts.map(description=>({description}))
   const voiceovers = merged ? [cues[0],cues.slice(1,3).join(' '),cues[3]] : [cues[0]]
   const a={prompts, approvedStills:prompts.map(()=>null),timing:{wordsPerSecond:2,voiceovers,clipSeconds:20,...(fixedCharacter ? {fixedCharacter}:{})}}
-  const scope={epocaVisual:null,a,parsedScript,scenes,verbatim:merged,kling4PlanoPorSecao:true,kling4PlanoVariado:false,kling4PlanoFinal:false,
+  const scope={papelVisual2411:null,epocaVisual:null,a,parsedScript,scenes,verbatim:merged,kling4PlanoPorSecao:true,kling4PlanoVariado:false,kling4PlanoFinal:false,
     planosPorSecao:modules('@/lib/kling4QuatroPlanos').planosPorSecao,sujeitoAparenciaLigada:()=>false,
     comSuperficieNoPlano:p=>p,garantirSujeitoNoUltimo1911:()=>{} /* [ensaio A2 19/11] o sujeito obrigatório no último plano: desligado fora do A2 (no-op) */}
   return Function(...Object.keys(scope),js)(...Object.values(scope))
