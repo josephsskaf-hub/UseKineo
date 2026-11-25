@@ -96,7 +96,10 @@ const PROBE_EVENT = 'admin_engine_probe'
 // Kling flash (aprovação da madrugada de 25/11; a sonda gravou 0,658 às 07:31–07:32 UTC) + US$ 4,00 do teste A de hoje (Gemini, Vidu, H3) = US$ 4,66.
 // A conta: na janela já estão 0,658 + 1,2285 (o Gemini) = 1,8865; o Vidu (0,9975) e o H3 (1,411) de 15 s com 2 fotos levam a 4,295 ≤ 4,66; um 3º pedido
 // de 15 s (o menor seria outro Gemini, 1,2285) passaria de 4,66 e é recusado. Os 20,75 eram da aprovação de 23/11, já fora da janela.
-const PROBE_DAILY_CAP_USD = 4.66
+// KINEO-SONDA-TETO-6-2511 [CEO 25/11, dentro do teto dela de US$ 10 por dia de teste, docs/estrategia/TETOS-PROPOSTA-DA-CEO-2511.md] — US$ 4,66 → US$ 6,10 para o
+// 2º bloco de 15 s do filme de 30 s no Gemini (a mesma referência; ≈ US$ 1,23 a 1,35). A conta: a janela de 24 h já somava 4,561; + um Gemini de 15 s (1,2285)
+// = 5,7895 ≤ 6,10; qualquer pedido seguinte (outro Gemini, Vidu, H3 ou o Kling flash de 5 s) passaria de 6,10 e é recusado. As outras travas não mudam.
+const PROBE_DAILY_CAP_USD = 6.1
 const PROBE_WINDOW_MS = 24 * 60 * 60 * 1000 // "dia" = 24 h corridas antes do pedido (mais apertado que o dia do calendário)
 // Preço por segundo a 720p, lido em 23/11/2026 na página de cada modelo na fal (fal.ai/models/<endpoint>).
 const KLING4_REF_USD_PER_S_720P_2311 = 0.157

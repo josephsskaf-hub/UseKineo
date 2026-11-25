@@ -1,7 +1,7 @@
 // KINEO-SONDA-MOTORES-2311 — guardião OFFLINE do modo "sonda" de app/api/admin/engine-test/route.ts.
 // EXECUTA a rota (transpilada e rodada num vm) com a fal, o login e o banco trocados por dublês: nenhuma rede, chave, envio ou escrita real.
 // Prova: pedido válido dos 5 endpoints (KINEO-SONDA-DOIS-MOTORES-2511: + Vidu Q4 e H3 Max Turbo com referência) chega à fal idêntico; quem não é administrador não envia nada; entrada fora da regra é recusada sem
-// envio; o teto de US$ 4,66 nas 24 h (0,66 do Kling flash + 4,00 do teste A, aprovados pelo dono em 25/11) recusa sem envio, inclusive quando a soma não pode ser lida; os modos antigos respondem como antes.
+// envio; o teto de US$ 6,10 nas 24 h (25/11: era 4,66 = 0,66 do Kling flash + 4,00 do teste A; a CEO subiu para o 2º bloco de 15 s do Gemini, dentro do teto dela de US$ 10) recusa sem envio, inclusive quando a soma não pode ser lida; os modos antigos respondem como antes.
 // Depois roda a MESMA bateria contra mutantes da rota: cada mutante tem de derrubar pelo menos uma asserção.
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -186,15 +186,27 @@ test('plano com chave a mais ou prompt de 513: 400', async () => {
 })
 
 // ── Trava de dinheiro ──
-test('teto do dia: já há US$ 2,50 e chega um pedido de US$ 2,355 → 429 sem envio', async () => {
-  const h = harness(ROUTE, { db: fakeDb({ rows: [ev(1.5), ev(1)] }) })
+test('teto do dia: já há US$ 3,80 e chega um pedido de US$ 2,355 → 429 sem envio', async () => {
+  const h = harness(ROUTE, { db: fakeDb({ rows: [ev(2.8), ev(1)] }) })
   const r = await refusedWithoutSend(h, 'probe=1', probe(K4, kling()), 429, 'daily_cap')
-  assert.equal(r.body.day_total_usd, 2.5); assert.equal(r.body.est_usd, 2.355); assert.equal(r.body.cap_usd, 4.66)
+  assert.equal(r.body.day_total_usd, 3.8); assert.equal(r.body.est_usd, 2.355); assert.equal(r.body.cap_usd, 6.1)
 })
-test('exatamente US$ 4,66 no total ainda passa (o teto é "passar de")', async () => {
-  const h = harness(ROUTE, { db: fakeDb({ rows: [ev(2.305)] }) })
+test('exatamente US$ 6,10 no total ainda passa (o teto é "passar de")', async () => {
+  const h = harness(ROUTE, { db: fakeDb({ rows: [ev(3.745)] }) })
   const r = await h.post('probe=1', probe(K4, kling()))
-  assert.equal(r.status, 200, JSON.stringify(r.body)); assert.equal(r.body.day_total_usd, 4.66); assert.equal(h.fal.submits.length, 1)
+  assert.equal(r.status, 200, JSON.stringify(r.body)); assert.equal(r.body.day_total_usd, 6.1); assert.equal(h.fal.submits.length, 1)
+})
+test('um centavo acima de US$ 6,10 no total é recusado sem envio', async () => {
+  const r = await refusedWithoutSend(harness(ROUTE, { db: fakeDb({ rows: [ev(3.755)] }) }), 'probe=1', probe(K4, kling()), 429, 'daily_cap')
+  assert.equal(r.body.day_total_usd, 3.755); assert.equal(r.body.cap_usd, 6.1)
+})
+test('a conta de 25/11 à tarde (KINEO-SONDA-TETO-6-2511): 4,561 na janela; o 2º bloco de 15 s do Gemini cabe; depois nenhum pedido cabe', async () => {
+  const rows = [ev(4.561, 120)]
+  const h = harness(ROUTE, { db: fakeDb({ rows }) })
+  const r = await h.post('probe=1', probe(GEM, kling({ duration: 15 })))
+  assert.equal(r.status, 200, JSON.stringify(r.body)); assert.ok(r.body.day_total_usd <= 6.1, String(r.body.day_total_usd)); assert.equal(h.fal.submits.length, 1)
+  rows.push(ev(r.body.est_usd, 1))
+  for (const [e, i] of [[GEM, kling({ duration: 15 })], [VIDU, vidu()], [H3, h3()], [K4F, kling({ duration: 5 })]]) await refusedWithoutSend(harness(ROUTE, { db: fakeDb({ rows }) }), 'probe=1', probe(e, i), 429, 'daily_cap')
 })
 test('sonda de mais de 24 h não conta para o teto', async () => {
   const h = harness(ROUTE, { db: fakeDb({ rows: [ev(14, 24 * 60 + 5)] }) })
@@ -301,7 +313,7 @@ test('Vidu depois do desconto (01/12): US$ 0,095/s', async () => {
   const r = await h.post('probe=1', probe(VIDU, vidu()))
   assert.equal(r.status, 200, JSON.stringify(r.body)); assert.equal(r.body.est_usd, 1.425)
 })
-test('a conta do teste A (revisora §9.2): 0,658 + 1,2285 na janela; o Vidu e o H3 de 15 s com 2 fotos cabem; um 3º pedido não', async () => {
+test('a conta do teste A (revisora §9.2): 0,658 + 1,2285 na janela; o Vidu e o H3 de 15 s com 2 fotos cabem (e, com o teto de 6,10, ainda um Gemini; depois nenhum de 15 s)', async () => {
   const rows = [ev(0.658, 300), ev(1.2285, 60)]
   let h = harness(ROUTE, { db: fakeDb({ rows }) })
   let r = await h.post('probe=1', probe(VIDU, vidu()))
@@ -309,11 +321,13 @@ test('a conta do teste A (revisora §9.2): 0,658 + 1,2285 na janela; o Vidu e o 
   rows.push(ev(r.body.est_usd, 10))
   h = harness(ROUTE, { db: fakeDb({ rows }) })
   r = await h.post('probe=1', probe(H3, h3()))
-  assert.equal(r.status, 200, JSON.stringify(r.body)); assert.equal(r.body.est_usd, 1.411); assert.ok(r.body.day_total_usd <= 4.66, String(r.body.day_total_usd))
+  assert.equal(r.status, 200, JSON.stringify(r.body)); assert.equal(r.body.est_usd, 1.411); assert.ok(r.body.day_total_usd <= 6.1, String(r.body.day_total_usd))
   rows.push(ev(1.411, 5))
-  for (const [e, i] of [[GEM, kling({ duration: 15 })], [VIDU, vidu()], [H3, h3()], [K4F, kling({ duration: 5 })]]) await refusedWithoutSend(harness(ROUTE, { db: fakeDb({ rows }) }), 'probe=1', probe(e, i), 429, 'daily_cap')
+  h = harness(ROUTE, { db: fakeDb({ rows }) }); r = await h.post('probe=1', probe(GEM, kling({ duration: 15 })))
+  assert.equal(r.status, 200, JSON.stringify(r.body)); assert.ok(r.body.day_total_usd <= 6.1, String(r.body.day_total_usd)); rows.push(ev(r.body.est_usd, 2))
+  for (const [e, i] of [[GEM, kling({ duration: 15 })], [VIDU, vidu()], [H3, h3()]]) await refusedWithoutSend(harness(ROUTE, { db: fakeDb({ rows }) }), 'probe=1', probe(e, i), 429, 'daily_cap')
 })
-test('os dois novos no MESMO teto do dia: passar de US$ 4,66 recusa sem envio', async () => {
+test('os dois novos no MESMO teto do dia: passar de US$ 6,10 recusa sem envio', async () => {
   await refusedWithoutSend(harness(ROUTE, { db: fakeDb({ rows: [ev(20)] }) }), 'probe=1', probe(VIDU, vidu()), 429, 'daily_cap')
   await refusedWithoutSend(harness(ROUTE, { db: fakeDb({ rows: [ev(19.5)] }) }), 'probe=1', probe(H3, h3()), 429, 'daily_cap')
 })
@@ -389,8 +403,10 @@ const MUTANTS = [
   ['Vidu sempre no preço cheio', 'agora < VIDU_Q4_PROMO_ATE_2511 ? VIDU_Q4_REF_USD_PER_S_720P_PROMO_2511 : VIDU_Q4_REF_USD_PER_S_720P_2511', 'VIDU_Q4_REF_USD_PER_S_720P_2511'],
   ['H3 sem a reserva das fotos', ' + (input.reference_image_urls as unknown[]).length * H3_REF_RESERVA_USD_POR_FOTO_2511', ''],
   ['H3 sem o 1 s a mais da saída (§9.1)', '(seconds + 1) * H3_MAX_TURBO_REF_USD_PER_S_768P_2511', 'seconds * H3_MAX_TURBO_REF_USD_PER_S_768P_2511'],
-  ['o teto antigo de 20,75 (§9.2)', 'const PROBE_DAILY_CAP_USD = 4.66', 'const PROBE_DAILY_CAP_USD = 20.75'],
-  ['o teto de 4,00 sem o flash (§9.2)', 'const PROBE_DAILY_CAP_USD = 4.66', 'const PROBE_DAILY_CAP_USD = 4'],
+  ['o teto antigo de 20,75 (§9.2)', 'const PROBE_DAILY_CAP_USD = 6.1', 'const PROBE_DAILY_CAP_USD = 20.75'],
+  ['o teto de 4,00 sem o flash (§9.2)', 'const PROBE_DAILY_CAP_USD = 6.1', 'const PROBE_DAILY_CAP_USD = 4'],
+  ['o teto de 4,66 de antes (25/11)', 'const PROBE_DAILY_CAP_USD = 6.1', 'const PROBE_DAILY_CAP_USD = 4.66'],
+  ['um centavo acima do aprovado', 'const PROBE_DAILY_CAP_USD = 6.1', 'const PROBE_DAILY_CAP_USD = 6.11'],
   ['o Vidu no preço do desconto até 01/12 (§9.3)', 'const VIDU_Q4_PROMO_ATE_2511 = Date.UTC(2026, 10, 30)', 'const VIDU_Q4_PROMO_ATE_2511 = Date.UTC(2026, 11, 1)'],
   ['H3 no preço de 1080P', 'const H3_MAX_TURBO_REF_USD_PER_S_768P_2511 = 0.08', 'const H3_MAX_TURBO_REF_USD_PER_S_768P_2511 = 0.16'],
   ['H3 deixa a expansão do texto', "fixas: { prompt_expansion_mode: 'disabled' }", "fixas: {}"],
