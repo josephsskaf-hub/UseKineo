@@ -28,6 +28,7 @@ const referenceReceipt: Record<string, ReadonlyArray<readonly [string,string]>> 
   'lib/kling4Trial.ts': [
     ['536498f38844fb849ce6b19d7d3355b4d1ce99ed','0baa15455fd692a521ec0f67ae6c50e40f15f284'],
     ['b62c6e1fe63b1b54f086c10a67b89d322ba6f485','40b95d859b91c74805778a86b59a50d70af1dd6e'], // plano sem marca, casa
+    ['7f97db3e3fc3090b482ffefacf0497aea6e2f160','aebb55ae409ae132692ceb05f46fac3f58667083'], // mesma alteração sobre a presença estruturada
   ],
   'lib/kling4TrialAsyncStatus.ts': [['f438c0e28bb6fd678c671b848cd4096dbe41e9c3','28e8c7e08a574cf810752dcbd276b942bf691e72']],
 }

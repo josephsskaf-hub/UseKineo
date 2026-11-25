@@ -35,7 +35,7 @@ if (archive) {
   }
 }
 
-async function submit(film, mode, account, shape, old=false) {
+async function submit(film, mode, account, shape, old=false, presenca=null) {
   const api = old ? baseLoad : load
   const borders = old ? previous : candidate
   const lib = api('@/lib/cinematic/elencoEFigurino2411')
@@ -54,6 +54,10 @@ async function submit(film, mode, account, shape, old=false) {
   if (shape==='reference') timing.referenciaUnica = {
     imageUrl:'https://fixture.invalid/um', nomes:['Sonic'], frase:'Keep the face and outfit of @Image1.',
     segundo:{imageUrl:'https://fixture.invalid/dois', nomes:['Amy Rose'], frase:'Keep the face and outfit of @Image2.'},
+  }
+  if (presenca && timing.referenciaUnica) {
+    timing.referenciaUnica.presenca = presenca[0]
+    timing.referenciaUnica.segundo.presenca = presenca[1]
   }
   const event = assemble({prompts:film.planos, approvedStills:shape==='stills'?['https://fixture.invalid/still']:[],timing})
   let out
@@ -92,6 +96,22 @@ for (const [id,film] of cases) {
   assert.equal(hash(film.falas.join('\n')),voice)
   console.log(JSON.stringify({id,narrationSha256:voice,stats}))
 }
+// A leitura contradiz os nomes no texto do primeiro e segundo planos. Ela decide as referências antes da anonimização.
+const presenca = [[false,true,false],[true,false,false]]
+const externo = 'outside@example.invalid'
+let indice = 0
+for(const [mode,account] of [['off',house],['internal',externo],['internal',house]]) {
+  const atual = await submit(synthetic,mode,account,'reference',false,presenca)
+  const planos = atual.body.multi_prompt.map(p => p.prompt)
+  assert.deepEqual(planos.map(p => p.match(/@Image[12]/g) || []),[['@Image2'],['@Image1'],[]])
+  if (base) {
+    const baseline = await submit(synthetic,'off',account,'reference',true,presenca)
+    if (indice < 2) assert.deepEqual(atual,baseline)
+    assert.deepEqual(atual.body.image_urls,baseline.body.image_urls)
+  }
+  if (indice++ === 2) assert.equal(planos.some(p=>[...p.matchAll(names)].length),false)
+}
+console.log('Presença estruturada e duas folhas, incluindo plano só de @Image2: 3/3.')
 const mod = load('@/lib/cinematic/elencoEFigurino2411')
 const roles = mod.prepararPapeisVisuais2411(synthetic.pedido,synthetic.falas.join(' '))
 assert.equal(roles('Rose watches. Amy Rose joins Sonic.').startsWith('Rose watches.'),true)
