@@ -14,17 +14,40 @@ const { renderToStaticMarkup } = require('react-dom/server')
 const filmId = '00000000-0000-4000-8000-000000000001'
 const locales = 'en pt es fr de it nl pl tr ru uk ar ur hi id vi'.split(' ')
 const shared = 'lib/growth/filmComplete.ts'
+const component = 'components/FilmReadyFullVersionUpsell.tsx'
 const read = name => fs.readFileSync(path.join(root, name), 'utf8').replace(/\r\n/g, '\n')
 
-function fixture(creator) {
+function fixture(creator, forceCreatorMetadata = false) {
   let locale = 'en', welcome = false
   const events = [], modules = new Map()
   let checkout
+  let mounted = null
+  const measuredHooks = {
+    ...React,
+    useEffect(effect, deps) {
+      if (mounted) mounted.effects.push(effect)
+      else React.useEffect(effect, deps)
+    },
+    useRef(value) { return mounted ? { current: value } : React.useRef(value) },
+  }
+  class TestIntersectionObserver {
+    constructor(callback, options) {
+      this.callback = callback
+      this.threshold = options.threshold
+      mounted.observer = this
+    }
+    observe(target) { this.target = target }
+    disconnect() { this.connected = false }
+    emit(ratio) { this.callback([{ isIntersecting: true, intersectionRatio: ratio }]) }
+  }
   const intent = { id: filmId, sourceVideoId: filmId, metadata: {surface: 'film_ready'} }
   const mocks = {
     '@/components/InterfaceLanguage': {useInterfaceLanguage: () => locale},
     '@/lib/growth/useWelcome20Deadline': { useWelcome20OfferLive: () => welcome },
-    '@/lib/analytics': { trackEvent() { throw Error('SSR must not track') } },
+    '@/lib/analytics': { trackEvent(name, metadata) {
+      assert(mounted, 'SSR must not track')
+      mounted.events.push({ name, metadata })
+    } },
     '@/lib/supabase/server': { createClient: () => ({auth: {getUser: async () => ({data:{user:{id:'owner'}}})}}) },
     '@/lib/filmComplete/server': {
       filmCompleteAdmin: () => ({from: () => ({insert: async event => events.push(event)})}),
@@ -40,10 +63,17 @@ function fixture(creator) {
       assert(source.includes("FILM_READY_CREATOR_PRIMARY_2511 = 'off'"))
       source = source.replace("FILM_READY_CREATOR_PRIMARY_2511 = 'off'", "FILM_READY_CREATOR_PRIMARY_2511 = 'on'")
     }
+    if (name === shared && forceCreatorMetadata) {
+      // F2: attribution always claims Creator, even with the release OFF.
+      const guard = "return FILM_READY_CREATOR_PRIMARY_2511 === 'on'"
+      assert.equal(source.split(guard).length, 2, 'F2 must edit exactly one gate')
+      source = source.replace(guard, 'return true')
+    }
     const js = ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText
     const exports = {}
     modules.set(name,exports)
     function importing(id) {
+      if (name === component && id === 'react') return measuredHooks
       if (id in mocks) return mocks[id]
       if (!id.startsWith('@/') && !id.startsWith('.')) return require(id)
       const base = id.startsWith('@/') ? id.slice(2) : path.join(path.dirname(name),id)
@@ -51,10 +81,10 @@ function fixture(creator) {
       assert(resolved, id)
       return load(resolved)
     }
-    vm.runInNewContext(js,{exports,require:importing,URL,URLSearchParams,Response,console,process:{env:{}}},{filename:name})
+    vm.runInNewContext(js,{exports,require:importing,URL,URLSearchParams,Response,console,IntersectionObserver:TestIntersectionObserver,process:{env:{}}},{filename:name})
     return exports
   }
-  const Offer = load('components/FilmReadyFullVersionUpsell.tsx').default
+  const Offer = load(component).default
   const route = load('app/api/film-complete/checkout/route.ts')
   async function destination(href) {
     const url = new URL(href,'https://example.test')
@@ -83,14 +113,65 @@ function fixture(creator) {
       params:new URL(params).searchParams,cancelled:true,intentId:filmId,FILM_READY_CREATOR_VERSION:load(shared).FILM_READY_CREATOR_VERSION,
     })
   }
-  return {events,load,destination,retryLink,render(id,lang,live){
+  function measurePrimaryOffer() {
+    locale = 'en'
+    welcome = false
+    const capture = { effects: [], events: [] }
+    mounted = capture
+    try {
+      const markup = Offer({ videoId: filmId })
+      const target = {}
+      markup.ref.current = target
+      const dispose = capture.effects.map(effect => effect())
+      try {
+        const observer = capture.observer
+        assert.equal(observer.threshold, 0.5)
+        assert.equal(observer.target, target)
+        assert.equal(capture.events.length, 0, 'mounting is not an impression')
+        observer.emit(0.49)
+        assert.equal(capture.events.length, 0, '49% visible is not an impression')
+        observer.emit(0.5)
+        observer.emit(0.75)
+        assert.equal(capture.events.length, 1, 'a visible film emits one impression')
+        React.Children.toArray(markup.props.children).find(child => child.type === 'a').props.onClick()
+        assert.equal(capture.events.length, 2, 'click emits its own event')
+        return capture.events
+      } finally {
+        for (const cleanup of dispose) cleanup?.()
+      }
+    } finally {
+      mounted = null
+    }
+  }
+  return {events,load,destination,retryLink,measurePrimaryOffer,render(id,lang,live){
     locale=lang;welcome=live
     return renderToStaticMarkup(React.createElement(Offer,{videoId:id}))
   }}
 }
 
+function checkMeasurements(f, creator) {
+  const fc = f.load(shared)
+  const expectedTier = creator ? 'basic' : 'starter'
+  const expectedVersion = creator ? fc.FILM_READY_CREATOR_VERSION : fc.FILM_COMPLETE_OFFER_VERSION
+  const [viewed, clicked] = f.measurePrimaryOffer()
+  assert.equal(viewed.name, 'film15_full_offer_viewed')
+  assert.equal(clicked.name, 'film15_full_offer_clicked')
+  for (const event of [viewed, clicked]) {
+    assert.equal(event.metadata.surface, 'film_ready')
+    assert.equal(event.metadata.video_id, filmId)
+    assert.equal(event.metadata.offer_tier, expectedTier, (creator ? 'ON' : 'OFF') + ' ' + event.name + ' tier')
+    assert.equal(event.metadata.offer_version, expectedVersion, (creator ? 'ON' : 'OFF') + ' ' + event.name + ' version')
+  }
+}
+assert.throws(() => checkMeasurements(fixture(false, true), false), {
+  code: 'ERR_ASSERTION',
+  message: /OFF film15_full_offer_viewed tier/,
+})
+console.log('F2 killed: with the release OFF, forcing Creator attribution fails the visible Starter impression.')
+
 for (const creator of [false,true]) {
   const f = fixture(creator)
+  checkMeasurements(f, creator)
   const fc=f.load(shared), pricing=f.load('lib/checkoutPricing.ts')
   const {filmCompleteCopy,filmCompleteEmailHref}=f.load('lib/growth/filmCompleteCopy.ts')
   assert.equal(f.render(null,'en',false),'')

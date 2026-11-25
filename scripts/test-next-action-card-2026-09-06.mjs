@@ -97,7 +97,7 @@ const superficies = (telaCodigo.match(/<NextActionCard surface="([a-z0-9_]+)"/g)
 check('toda montagem foi CAPTURADA pela regex de superficie', superficies.length === montagens.length)
 check('cada montagem tem superficie PROPRIA', new Set(superficies).size === montagens.length)
 check('montado atras da razao de falta de credito (modal)', /\{reasonHasCreditFit && <NextActionCard surface="generate_upgrade_modal" \/>\}/.test(telaCodigo))
-check('montado no fim da geracao (tela de filme pronto)', /\{phase === 'done' && <NextActionCard surface="generate_done_screen" \/>\}/.test(telaCodigo))
+check('montado no fim da geracao sem duplicar o slot de oferta', /\{!useUnifiedDeliveryOffer && phase === 'done' && <NextActionCard surface="generate_done_screen" \/>\}/.test(telaCodigo))
 check('importado por caminho de alias', /import NextActionCard from '@\/components\/NextActionCard'/.test(tela))
 // KINEO-PAREDE-V1-2026-09-23 — a caixa "FINISH THIS EXACT VIDEO" passou a ser
 // `{purchaseFit && !wallV1Eligible && (` (some quando a parede v1 pinta o mesmo
