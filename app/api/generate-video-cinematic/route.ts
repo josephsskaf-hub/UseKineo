@@ -27,6 +27,7 @@ import { KLING4_TRIAL_LIVE, kling4TrialEligible } from '@/lib/kling4TrialPolicy'
 import { KLING4_TRIAL_MAX_SECONDS, KLING4_TRIAL_MAX_SECONDS_ENSAIO, kling4TrialTetoDaFala, kling4TrialClipSeconds, kling4TrialClipCostUsd } from '@/lib/kling4TrialPolicy' // KINEO-K4-GRATIS-20S-1711
 import { submitKling4TrialVideo, orchestrateKling4Trial, buildKling4TrialInput, kling4TrialSceneDurations, kling4TrialClipTotal /* KINEO-K4-GRATIS-20S-1711 */, approvedKling4TrialStills, KLING4_DURACAO_PELA_VOZ, duracaoPelaVozLigada, type Kling4TrialResult } from '@/lib/kling4Trial' // KINEO-K4-DURACAO-PELA-VOZ-1311: + interruptor
 import { reserveKling4Trial, recordKling4TrialFilm } from '@/lib/kling4TrialBudget'
+import { gravarSeloDoFilmeGratis2511 } from '@/lib/kling4TrialBudget' // KINEO-GEMINI-NA-ESTEIRA-2511 [revisora 25/11, conserto 1]
 import { medirFalaDoKling4Trial as medirFalaK4Crua } from '@/lib/kling4TrialScript' // KINEO-K4-SEMPRE-0511 [TRAVA 8.2 — fundador 05/11 "vai"]
 import { K4_REGUA_DO_FECHO_1911, reguaDoFechoLigada } from '@/lib/kling4TrialEncaixe' // KINEO-REGUA-DO-FECHO-1911
 import { encaixarFalaNoKling4, ENCAIXE_FALHOU_EVENTO, type EncaixeK4 } from '@/lib/kling4TrialEncaixe' // KINEO-K4-SEMPRE-0511 · KINEO-K4-ENCAIXE-MOTIVO-1111: ENCAIXE_FALHOU_EVENTO
@@ -3159,6 +3160,7 @@ async function manipularPost(req: NextRequest) {
         const marker = response.kling4_trial as { country?: string | null; cost_usd: number }
         await recordKling4TrialFilm(cinematicAdmin, { jobId: generationId, userId: user.id,
           country: marker.country, engineUsed: trialEngine, costUsd: marker.cost_usd })
+        await gravarSeloDoFilmeGratis2511(cinematicAdmin, { jobId: generationId, userId: user.id, marker }) // KINEO-GEMINI-NA-ESTEIRA-2511 [revisora 25/11, conserto 1] — o evento diz o motor e o custo de quem entregou; sem Gemini, nada
       }
       if (claim.status === 'released') {
         return NextResponse.json(

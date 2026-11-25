@@ -19,7 +19,8 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const nativeRequire = createRequire(import.meta.url)
 const read = (p) => readFileSync(join(root, p), 'utf8').replace(/\r\n/g, '\n')
 const proibido = (o) => () => { throw new Error(`proibido no guardião: ${o}`) }
-const M = 'lib/cinematic/geminiNaEsteira2511.ts', A = 'lib/cinematic/geminiNaEsteiraAsync2511.ts', S = 'lib/kling4TrialAsyncStatus.ts', C = 'lib/cinematic/claim.ts'
+const M = 'lib/cinematic/geminiNaEsteira2511.ts', A = 'lib/cinematic/geminiNaEsteiraAsync2511.ts', S = 'lib/kling4TrialAsyncStatus.ts', C = 'lib/cinematic/claim.ts', B = 'lib/kling4TrialBudget.ts'
+const COMPOSE = 'app/api/compose/route.ts'
 const ROUTE = 'app/api/generate-video-cinematic/route.ts', STATUS = 'app/api/cinematic-clip-status/route.ts', SONDA = 'app/api/admin/engine-test/route.ts'
 const FIX = JSON.parse(read('scripts/test-support/gemini-499143ac.json'))
 const CASA = 'josephsskaf@gmail.com', CLIENTE = 'cliente@example.org'
@@ -196,11 +197,46 @@ async function prova(over = {}) {
     { const n = nascimento(c, { extra: { gemini_queda: { estado: 'sem_kling4', token: 't', desde: new Date(T0).toISOString(), motivo: 'recusa', erro: null, sem_kling4: 'kling4_recusado' } } })
       const r2 = await CL.startKling4TrialFallback({ db: n.db, secret: SEGREDO, userId: USER, generationId: GEN, originalRequestId: 'gem-1', reason: 'provider_failed' })
       no(!r2.ok || r2.claim?.response?.kling4_trial?.fallback_started !== true, '4s a reserva de hoje começa a partir do Gemini') }
+    // 4l2 [revisora 25/11, G8: dinheiro] o POST do Kling 4 da queda AMBÍGUO (503/prazo): um POST só, nunca outro — nem nesta consulta nem nas seguintes
+    { fb.length = 0; const n = nascimento(c); let k = 0
+      const ambiguo = async () => { k++; throw new m.EnvioDoKling4Incerto(true, 503) }
+      await avanca(n, { now: T0 + 90_000, deps: { pollGemini: recusa, submitKling: ambiguo } })
+      const lido = await CL.loadVerifiedCinematicClaim({ db: n.db, secret: SEGREDO, userId: USER, generationId: GEN })
+      for (const dt of [2 * MIN, 4 * MIN, 12 * MIN]) await avanca({ db: n.db, claim: lido.claim }, { now: T0 + dt, deps: { pollGemini: recusa, submitKling: ambiguo } })
+      igual(k, 1, '4l2 o Kling 4 ambíguo da queda: UM POST, nunca reenviado (G8)') }
     // 4o a troca exige o dono da vez; o filme de cliente (sem motor_do_clipe) não entra no ramo do Gemini
     { const n = nascimento(c, { extra: { gemini_queda: { estado: 'iniciada', token: 'dono', desde: new Date(T0).toISOString(), motivo: 'recusa', erro: null } } })
       const t = await CL.trocarGeminiPorKling4_2511({ db: n.db, secret: SEGREDO, userId: USER, generationId: GEN, geminiRequestId: 'gem-1', token: 'intruso', kling4RequestId: 'k', agoraIso: 'x' })
       no(t.ok !== false, '4o só o dono da vez troca o claim')
       no(c.a.filmeNoGemini2511({ ...n.claim, response: { ...n.claim.response, kling4_trial: { ...n.claim.response.kling4_trial, motor_do_clipe: undefined } } }) !== false, '4p sem o motor do clipe, o filme não é do Gemini') }
+    // ── 5. [revisora 25/11, conserto 1] o selo e o custo de QUEM ENTREGOU no evento free_film_engine_used (o /admin e o relato de custo o leem) ──
+    { const b = loader(over, { '@/lib/internalAccounts': { contaDaCasaExata: () => false } })(B)
+      const doRpc = { film_id: GEN, generation_id: GEN, engine_used: 'kling4', cost_usd: 2.355, cost_basis: 'reserved_upper_bound', country: 'BR', seconds: 15, trial_version: 'kling4-2810' }
+      const noAr = { version: 'kling4_trial_2810', engine_used: 'kling4', cost_usd: 2.355, motor_do_clipe: 'gemini_omni_flash', gemini_est_usd: 1.2285 }
+      const g = b.seloDoFilmeGratis2511(noAr, doRpc)
+      igual([g?.engine_used, g?.cost_usd, g?.cost_basis, g?.teto_reservado_usd, g?.motor_do_clipe, g?.country, g?.seconds], ['omni', 1.2285, 'estimado_gemini_sem_tokens', 2.355, 'gemini_omni_flash', 'BR', 15], '5a o Gemini entregou: Omni Flash, o custo estimado dele e o teto reservado ao lado')
+      const queda = { ...noAr, motor_do_clipe: 'kling4', reserva_de: 'gemini_omni_flash', gemini_queda: { estado: 'feita', motivo: 'recusa' } }
+      const q = b.seloDoFilmeGratis2511(queda, g)
+      igual([q?.engine_used, q?.cost_usd, q?.cost_basis, q?.motores, q?.gemini_est_usd, q?.gemini_cobrado, 'teto_reservado_usd' in (q ?? {}), 'motor_do_clipe' in (q ?? {})], ['kling4', 2.355, 'reserved_upper_bound', ['gemini_omni_flash', 'kling4'], 1.2285, 'possivel', false, false], '5b a queda: Kling 4.0 com o custo dele e os dois motores e o estimado do Gemini (mesmo depois do omni)')
+      igual(b.seloDoFilmeGratis2511(queda, doRpc), q, '5b2 a queda sobre o evento da RPC = o mesmo')
+      igual(b.seloDoFilmeGratis2511({ ...queda, gemini_queda: { estado: 'no_envio' } }, doRpc)?.gemini_cobrado, 'nao', '5c a recusa no envio: o Gemini não cobrou')
+      igual(b.seloDoFilmeGratis2511({ ...queda, engine_used: 'seedance15_fallback' }, { ...doRpc, engine_used: 'seedance15_fallback' })?.engine_used, 'seedance15_fallback', '5d a queda que foi à reserva de hoje: o motor da reserva')
+      for (const [nome, mk, at] of [['filme sem Gemini', { version: 'kling4_trial_2810', engine_used: 'kling4', cost_usd: 2.355 }, doRpc], ['sem o estimado', { ...noAr, gemini_est_usd: undefined }, doRpc],
+        ['Gemini no ar mas o razão já na reserva', noAr, { ...doRpc, engine_used: 'seedance15_fallback' }], ['marcador nulo', null, doRpc]]) no(b.seloDoFilmeGratis2511(mk, at) !== null, '5e nada muda: ' + nome)
+      // a gravação: o id da RPC (md5), lê e regrava SÓ esse evento; sem Gemini, nenhum acesso ao banco
+      const { createHash } = nativeRequire('node:crypto'); const h = createHash('md5').update(`free_film_engine_used:${USER}:${GEN}`).digest('hex')
+      const idRpc = `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`
+      igual(await b.idDoEventoDoFilmeGratis(USER, GEN), idRpc, '5f o mesmo id que a RPC grava')
+      const banco = (meta) => { const db = { meta, updates: [] }; db.from = (tab) => { const fl = []; let patch = null; const q = { select() { return q }, update(p) { patch = p; return q }, eq(k, v) { fl.push([k, v]); return q },
+          async maybeSingle() { const ok = tab === 'events' && fl.some(([k, v]) => k === 'id' && v === idRpc) && fl.some(([k, v]) => k === 'name' && v === 'free_film_engine_used') && fl.some(([k, v]) => k === 'user_id' && v === USER); return { data: ok && db.meta ? { metadata: JSON.parse(JSON.stringify(db.meta)) } : null, error: null } },
+          then(res) { if (patch) { const ok = tab === 'events' && fl.some(([k, v]) => k === 'id' && v === idRpc) && fl.some(([k, v]) => k === 'user_id' && v === USER); if (ok) { db.meta = patch.metadata; db.updates.push(patch) } } return Promise.resolve({ error: null }).then(res) } }; return q }; return db }
+      { const db = banco(doRpc); no(await b.gravarSeloDoFilmeGratis2511(db, { jobId: GEN, userId: USER, marker: noAr }) !== true || db.meta.engine_used !== 'omni' || db.meta.cost_usd !== 1.2285 || db.updates.length !== 1, '5g a gravação regrava o evento do filme')
+        no(await b.gravarSeloDoFilmeGratis2511(db, { jobId: GEN, userId: USER, marker: noAr }) !== true || db.updates.length !== 1, '5h de novo: nada muda (idempotente)') }
+      { let acessos = 0; const db = { from: () => { acessos++; throw new Error('banco sem Gemini') } }; const r = await b.gravarSeloDoFilmeGratis2511(db, { jobId: GEN, userId: USER, marker: { version: 'kling4_trial_2810', engine_used: 'kling4', cost_usd: 2.355 } }); no(r !== false || acessos !== 0, '5i sem Gemini: nenhum acesso ao banco') }
+      // o rótulo do /admin a partir do evento regravado
+      const me = loader(over)('lib/admin/motorEntregue.ts')
+      igual([me.rotuloMotorGrupo('cinematic_ai', [me.motorEntregueDe(g.engine_used, 'omni')], 'x', false), me.rotuloMotorGrupo('cinematic_ai', [me.motorEntregueDe(q.engine_used, 'kling4')], 'x', false)],
+        ['Omni Flash, filme grátis', 'Kling 4.0, filme grátis'], '5j o /admin: Omni Flash quando o Gemini entrega; Kling 4.0 na queda') }
   } catch (e) { falhas.push('lançou: ' + (e?.stack ?? e).toString().split('\n').slice(0, 3).join(' | ')) }
   return falhas
 }
@@ -215,16 +251,16 @@ function provaDoTexto(over = {}) {
   const trecho = rota.slice(ini, fim)
   // R1 executa a tentativa com dublês: fora da casa e 'off' = nenhum pedido; na casa com referência = o pedido do adaptador, e a entrada do Kling 4 guardada
   const load = loader(over); const m = load(M)
-  const rodar = async ({ email, modo = 'internal', model = K4R }) => {
+  const rodar = async ({ email, modo = 'internal', model = K4R, envio = null }) => {
     const envios = []
     const escopo = { geminiNaEsteiraLigado: m.geminiNaEsteiraLigado, GEMINI_NA_ESTEIRA_2511: modo, user: { email, id: USER }, kling4PorSecao: (x) => x, kling4Prompts: [], kling4ApprovedStills: [], kling4Timing: { referenciaUnica: { nomes: ['Elias Ward', 'Elias'], segundo: { nomes: ['Mara Quinn'] } } },
-      buildKling4TrialInput: () => ({ model, input: FIX.kling4_input }), KLING4_REFERENCE_MODEL: K4R, geminiDoKling4: m.geminiDoKling4, submitGeminiTrialVideo: async (e) => { envios.push(e); return { requestId: 'gem-1', model: GEM, submittedAt: 'x' } },
+      buildKling4TrialInput: () => ({ model, input: FIX.kling4_input }), KLING4_REFERENCE_MODEL: K4R, geminiDoKling4: m.geminiDoKling4, submitGeminiTrialVideo: async (e) => { envios.push(e); if (envio) return envio(); return { requestId: 'gem-1', model: GEM, submittedAt: 'x' } },
       GeminiRecusadoNoEnvio: m.GeminiRecusadoNoEnvio, writeServerEvent: async () => true, GEMINI_ENVIO_EVENTO: 'x', generationId: GEN, ctxDespacho: () => ({ totalPosts: 0 }), kling4Posts: 0, process: { env: {} } }
     const corpo = ts.transpile('let kling4Posts = 0\n' + trecho + '\nreturn (async () => ({ job: await tentarGemini2511(), gemini2511 }))()', { target: ts.ScriptTarget.ES2022 })
     const r = await Function(...Object.keys(escopo).filter((k) => k !== 'kling4Posts'), corpo)(...Object.entries(escopo).filter(([k]) => k !== 'kling4Posts').map(([, v]) => v))
     return { ...r, envios }
   }
-  return { f, no, rota, status, sonda, rodar }
+  return { f, no, rota, status, sonda, rodar, m }
 }
 
 async function suite(over = {}) {
@@ -237,6 +273,12 @@ async function suite(over = {}) {
     }
     const casa = await t.rodar({ email: CASA })
     t.no(casa.job?.requestId !== 'gem-1' || JSON.stringify(casa.envios) !== JSON.stringify([FIX.gemini_input_nota_10]) || JSON.stringify(casa.gemini2511.kling4) !== JSON.stringify({ model: K4R, input: FIX.kling4_input }), 'R2 a casa: o pedido do adaptador, e a entrada do Kling 4 guardada')
+    // G9 [revisora 25/11: dinheiro] a recusa 4xx no envio: nada aceito, o Kling 4 vai NA HORA (a tentativa devolve null e o envio segue); o envio ambíguo
+    // lança (a regra de hoje do envio incerto: nenhum Kling 4 por cima de um Gemini talvez aceito)
+    { const rec = await t.rodar({ email: CASA, envio: () => { throw new t.m.GeminiRecusadoNoEnvio(422) } })
+      t.no(rec.job !== null || rec.gemini2511.recusaNoEnvio !== 422 || rec.envios.length !== 1, 'G9 a recusa no envio: o Kling 4 na hora, sem a reserva') }
+    { let lancou = false; try { await t.rodar({ email: CASA, envio: () => { throw new Error('503 ambíguo') } }) } catch { lancou = true }
+      t.no(!lancou, 'G9b o envio ambíguo do Gemini lança (nenhum Kling 4 por cima)') }
     const semRef = await t.rodar({ email: CASA, model: 'kling/v4/image-to-video' })
     t.no(semRef.job !== null || semRef.envios.length !== 0, 'R3 sem referência: o Kling 4 de sempre')
   } catch (e) { t.f.push('R lançou: ' + String(e?.message ?? e)) }
@@ -248,6 +290,11 @@ async function suite(over = {}) {
   no(!status.includes("'google/gemini-omni-flash/v1.2/reference-to-video', // KINEO-GEMINI-NA-ESTEIRA-2511"), 'R8 a consulta do filme aceita o modelo do Gemini')
   no(!sonda.includes('resultado: res.data ?? null'), 'R9 a sonda devolve o resultado inteiro')
   no(/debitVideoCredits|debit\(/.test(read(A)) || /debitVideoCredits/.test(read(M)), 'R10 a queda não debita')
+  { const compose = over[COMPOSE] ?? read(COMPOSE), asy = over[A] ?? read(A)
+    const depois = (txt, antes, linha) => { const i = txt.indexOf(antes); return i >= 0 && txt.indexOf(linha, i) > i && txt.indexOf(linha, i) - i < antes.length + 40 }
+    no(!depois(rota, '          country: marker.country, engineUsed: trialEngine, costUsd: marker.cost_usd })\n', '        await gravarSeloDoFilmeGratis2511(cinematicAdmin, { jobId: generationId, userId: user.id, marker })'), 'R12 o nascimento regrava o selo logo depois do razão')
+    no(!depois(compose, '        country: marker.country, engineUsed: trialEngine, costUsd: marker.cost_usd })\n', '      await gravarSeloDoFilmeGratis2511(composeAdmin, { jobId: generationId, userId: authenticatedUserId, marker })'), 'R13 o compose regrava o selo logo depois do razão')
+    no(!asy.includes('    if (t?.ok) { await gravarSeloDoFilmeGratis2511(args.db, { jobId: args.generationId, userId: args.userId, marker: t.claim.response?.kling4_trial }); return { kind: \'pending\', claim: t.claim } }'), 'R14 a queda regrava o selo (Kling 4.0 com os dois custos)') }
   // o selo: o modelo que entregou
   try {
     const fe = loader({})('lib/filmEngineUsed.ts')
@@ -293,6 +340,22 @@ const MUTANTES = [
   [ROUTE, '        gemini2511.entrada = entrada; gemini2511.kling4 = { model: wire.model, input: wire.input }', '        gemini2511.entrada = entrada'],
   [ROUTE, "const entrada = geminiDoKling4(wire.input, [ru?.nomes?.[0], ru?.segundo?.nomes?.[0]])", "const entrada = geminiDoKling4(wire.input, [ru?.nomes?.[1], ru?.segundo?.nomes?.[0]])"],
   [STATUS, "  'google/gemini-omni-flash/v1.2/reference-to-video', // KINEO-GEMINI-NA-ESTEIRA-2511 (o filme grátis com foto, só a casa)\n", ''],
+  // [revisora 25/11] G8 e G9 (dinheiro) e o conserto 1 (o selo)
+  [A, '  catch (e) {\n    const porque', '  catch (e) {\n    if (e instanceof EnvioDoKling4Incerto && e.ambiguo) { try { await (deps.submitKling as (a: string, b: Record<string, unknown>) => Promise<string>)(guardada.model, guardada.input) } catch { /* G8 */ } }\n    const porque'],
+  [A, '    const r = await semKling4NaQuedaDoGemini2511({', '    const r = null && await semKling4NaQuedaDoGemini2511({'],
+  [ROUTE, "aceito: false, http: err.http } }).catch(() => false)\n        return null", "aceito: false, http: err.http } }).catch(() => false)\n        throw err"],
+  [A, "    if (t?.ok) { await gravarSeloDoFilmeGratis2511(args.db, { jobId: args.generationId, userId: args.userId, marker: t.claim.response?.kling4_trial }); return { kind: 'pending', claim: t.claim } }", "    if (t?.ok) return { kind: 'pending', claim: t.claim }"],
+  [ROUTE, '        await gravarSeloDoFilmeGratis2511(cinematicAdmin, { jobId: generationId, userId: user.id, marker })', ''],
+  [COMPOSE, '      await gravarSeloDoFilmeGratis2511(composeAdmin, { jobId: generationId, userId: authenticatedUserId, marker })', ''],
+  [B, "engine_used: 'omni', motor_do_clipe: 'gemini_omni_flash'", "engine_used: 'kling4', motor_do_clipe: 'gemini_omni_flash'"],
+  [B, "cost_usd: est, cost_basis: 'estimado_gemini_sem_tokens'", "cost_usd: m.cost_usd, cost_basis: 'estimado_gemini_sem_tokens'"],
+  [B, "gemini_cobrado: recusaNoEnvio ? 'nao' : 'possivel'", "gemini_cobrado: 'possivel'"],
+  [B, "    if (atual.engine_used !== 'kling4' && atual.engine_used !== 'omni') return null", ''],
+  [B, '    if (!novo || JSON.stringify(novo) === JSON.stringify(atual)) return !!novo\n', '    if (!novo) return false\n'],
+  [B, "(m.motor_do_clipe !== 'gemini_omni_flash' && m.reserva_de !== 'gemini_omni_flash') || ", ''],
+  [B, 'engine_used: motor, cost_usd: custoDoMotor,', 'engine_used: motor, cost_usd: atual.cost_usd ?? null,'],
+  [B, "motores: ['gemini_omni_flash', motor],", 'motores: [motor],'],
+  [B, 'const { teto_reservado_usd: _t, motor_do_clipe: _mc, ...resto } = atual', 'const resto = atual'],
 ]
 let mortos = 0; const vivos = []
 for (const [file, de, para] of MUTANTES) {

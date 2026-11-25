@@ -9,6 +9,7 @@ import type { CinematicClaim } from '@/lib/cinematic/claim'
 import { iniciarQuedaDoGemini2511, semKling4NaQuedaDoGemini2511, trocarGeminiPorKling4_2511 } from '@/lib/cinematic/claim'
 import { GEMINI_OMNI_REF_MODEL, GEMINI_QUEDA_EVENTO, GEMINI_QUEDA_ORFA_MS, EnvioDoKling4Incerto, decisaoDoGemini, pollGeminiTrialVideo, submitKling4DaQueda, type ConsultaDoGemini } from '@/lib/cinematic/geminiNaEsteira2511'
 import { ensureKling4TrialFallback } from '@/lib/kling4TrialFallback'
+import { gravarSeloDoFilmeGratis2511 } from '@/lib/kling4TrialBudget' // [revisora 25/11, conserto 1]
 import { writeServerEvent } from '@/lib/serverEvents'
 
 type Identity = { db: SupabaseClient; secret: string; userId: string; generationId: string; claim: CinematicClaim; now?: number }
@@ -80,7 +81,7 @@ export async function avancarGemini2511(args: Identity, deps: DepsDoGemini = {})
   // o recibo do Kling 4: repetir a GRAVAÇÃO é seguro; repetir o POST não
   for (let tentativa = 0; tentativa < 2; tentativa++) {
     const t = await trocarGeminiPorKling4_2511({ ...args, geminiRequestId: gid, token, kling4RequestId: kid, agoraIso }).catch(() => null)
-    if (t?.ok) return { kind: 'pending', claim: t.claim }
+    if (t?.ok) { await gravarSeloDoFilmeGratis2511(args.db, { jobId: args.generationId, userId: args.userId, marker: t.claim.response?.kling4_trial }); return { kind: 'pending', claim: t.claim } } // [revisora 25/11, conserto 1] a queda: "Kling 4.0" com os dois custos
   }
   return { kind: 'pending', claim: ini.claim }
 }

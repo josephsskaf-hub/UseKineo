@@ -8,6 +8,7 @@
 import { deltaK4DuracaoPelaVoz1311Exato } from './test-support/desfaz-k4-duracao-pela-voz-1311.mjs' // KINEO-K4-DURACAO-PELA-VOZ-1311 [CEO 13/11] — recibo exato da régua de durações pela voz (interruptor 'all' desde 13/11 05:11)
 import { KLING4_DURACAO_PELA_VOZ, duracaoPelaVozLigada, buildKling4TrialInput, kling4TrialSceneDurations } from '../lib/kling4Trial' // KINEO-K4-DURACAO-PELA-VOZ-1311
 import { deltaK4Gratis20s1711Exato } from './test-support/desfaz-k4-gratis-20s-1711.mjs' // KINEO-K4-GRATIS-20S-1711 [dono 17/11, opção A] — recibo exato do clipe de até 20 s (interruptor em 15 = desligado)
+import { deltaGeminiNaEsteira2511Exato } from './test-support/desfaz-gemini-na-esteira-2511.mjs' // KINEO-GEMINI-NA-ESTEIRA-2511 [revisora 25/11, conserto 3] — recibo exato
 import { deltaReservaGratis1911Exato } from './test-support/desfaz-reserva-gratis-1911.mjs' // KINEO-RESERVA-GRATIS-1911 [CEO 19/11] — recibo exato da Frente 1
 import { deltaReferenciaUnica2411Exato } from './test-support/desfaz-referencia-unica-2411.mjs' // KINEO-REFERENCIA-UNICA-2411 — recibo exato do montador da referência única (interruptor 'off')
 import { deltaK4FaixaTeto0511Exato } from './test-support/desfaz-k4-faixa-teto-0511.mjs' // KINEO-K4-FAIXA-TETO-0511 [TRAVA 8.2 — aval permanente do fundador 01/11 (laço do revisor)]
@@ -90,6 +91,10 @@ ok(KLING4_TRIAL_FALLBACK_AFTER_MS === 8 * 60_000, '2 relógio do filme GRÁTIS i
   // KINEO-RESERVA-GRATIS-1911 [CEO 19/11, Frente 1] — reancorado: a consulta de status no prazo (lib/kling4TrialAsyncStatus.ts) e o motivo novo no tipo
   // (lib/kling4TrialScript.ts) passam só pelo recibo EXATO desta entrega; o comportamento novo é provado em scripts/test-reserva-gratis-1911.mjs
   for (const f of ['lib/kling4TrialAsyncStatus.ts', 'lib/kling4TrialScript.ts']) { try { if (deltaReservaGratis1911Exato(readFileSync(join(raiz, f), 'utf8'), execFileSync('git', ['show', `origin/main:${f}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }), f)) diffGratis = diffGratis.split(/\r?\n/).filter((x) => x.trim() && x.trim() !== f).join('\n') } catch { /* sem recibo = segue reprovando */ } }
+  // KINEO-GEMINI-NA-ESTEIRA-2511 [CEO 25/11; revisora 25/11, conserto 3] — reancorado: o acompanhamento do filme grátis (lib/kling4TrialAsyncStatus.ts) ganha SÓ
+  // as 4 inserções do Gemini (import, o id antigo depois da queda, o dublê do guardião, o desvio do filme que está no Gemini) e passa só pelo recibo EXATO;
+  // o relógio de 8 min e o transporte seguem conferidos aqui; o comportamento novo é provado em scripts/test-gemini-na-esteira-2511.mjs
+  try { const f = 'lib/kling4TrialAsyncStatus.ts'; if (deltaGeminiNaEsteira2511Exato(readFileSync(join(raiz, f), 'utf8'), execFileSync('git', ['show', `origin/main:${f}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }), f)) diffGratis = diffGratis.split(/\r?\n/).filter((x) => x.trim() && x.trim() !== f).join('\n') } catch { /* sem recibo = segue reprovando */ }
   // KINEO-REFERENCIA-UNICA-2411 — reancorado: o montador da referência única (lib/kling4Trial.ts, atrás de REFERENCIA_UNICA_2411 'off') passa só pelo recibo
   // EXATO desta entrega; o comportamento ('off' = byte a byte, ligado = o pedido A) é provado em scripts/test-referencia-unica-2411.mjs
   try { const f = 'lib/kling4Trial.ts'; if (deltaReferenciaUnica2411Exato(readFileSync(join(raiz, f), 'utf8'), execFileSync('git', ['show', `origin/main:${f}`], { cwd: raiz, encoding: 'utf8', maxBuffer: 64 << 20 }), f)) diffGratis = diffGratis.split(/\r?\n/).filter((x) => x.trim() && x.trim() !== f).join('\n') } catch { /* sem recibo = segue reprovando */ }

@@ -1,0 +1,28 @@
+{
+  "entrega": "KINEO-GEMINI-NA-ESTEIRA-2511",
+  "base": "6804eb793",
+  "scope": {
+    "lib/kling4TrialAsyncStatus.ts": {
+      "beforeSha256": "9c7fe53ba1ceacf2583454de318a6cbef0ea7e0ecf20a3948f801090b8e384b1",
+      "afterSha256": "a650c6e78fabda189f68ea721c6fe202ed266429b34c749e5a3fabf53adcddeb",
+      "hunks": [
+        {
+          "after": "import { K4_ESPERA_QUEM_RODA_1911, decisaoNoPrazoDoKling4 } from '@/lib/kling4TrialReserva1911' // KINEO-RESERVA-GRATIS-1911 (c)\nimport { avancarGemini2511, filmeNoGemini2511, type DepsDoGemini } from '@/lib/cinematic/geminiNaEsteiraAsync2511' // KINEO-GEMINI-NA-ESTEIRA-2511\n",
+          "before": "import { K4_ESPERA_QUEM_RODA_1911, decisaoNoPrazoDoKling4 } from '@/lib/kling4TrialReserva1911' // KINEO-RESERVA-GRATIS-1911 (c)\n"
+        },
+        {
+          "after": "  if (ids.length === claim.falRequestIds.length && ids.every((id, i) => id === claim.falRequestIds[i])) return true\n  { const m = claim.response?.kling4_trial as Record<string, unknown> | undefined // KINEO-GEMINI-NA-ESTEIRA-2511: depois da queda, o id antigo do Gemini ainda acha o filme (o navegador recebe o claim novo em `replacement`)\n    if (m && m.reserva_de === 'gemini_omni_flash' && typeof m.gemini_request_id === 'string' && m.gemini_request_id.length > 0 && ids.length === 1 && ids[0] === m.gemini_request_id &&\n        kling4TrialEngineFromClaim(claim.response) !== null) return true }\n",
+          "before": "  if (ids.length === claim.falRequestIds.length && ids.every((id, i) => id === claim.falRequestIds[i])) return true\n"
+        },
+        {
+          "after": "    esperaQuemRoda?: boolean\n    gemini?: DepsDoGemini // KINEO-GEMINI-NA-ESTEIRA-2511 — só para o guardião\n",
+          "before": "    esperaQuemRoda?: boolean\n"
+        },
+        {
+          "after": "  if (engine !== 'kling4') return { kind: 'ordinary', claim: args.claim }\n  if (filmeNoGemini2511(args.claim)) return avancarGemini2511(args, { fallback: deps.fallback, ...(deps.gemini ?? {}) }) // KINEO-GEMINI-NA-ESTEIRA-2511: o Gemini; a queda leva ao Kling 4 e daí à lógica abaixo\n",
+          "before": "  if (engine !== 'kling4') return { kind: 'ordinary', claim: args.claim }\n"
+        }
+      ]
+    }
+  }
+}

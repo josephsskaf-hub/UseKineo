@@ -101,6 +101,7 @@ import { alignSignedClipPlanWith } from '@/lib/cinematic/klingShots' // [TRAVA 8
 import { isSeedanceShortClaim, SEEDANCE_SHORT_CLIP_STEPS } from '@/lib/durationByEngine' // [TRAVA 8.2 — "vai" do 3x6] claim do Seedance a 15 s assina 6|7|8
 import { kling4TrialEngineFromClaim, kling4TrialClipSecondsFromClaim } from '@/lib/kling4TrialClaim' // KINEO-K4-GRATIS-20S-1711: + kling4TrialClipSecondsFromClaim
 import { recordKling4TrialFilm } from '@/lib/kling4TrialBudget'
+import { gravarSeloDoFilmeGratis2511 } from '@/lib/kling4TrialBudget' // KINEO-GEMINI-NA-ESTEIRA-2511 [revisora 25/11, conserto 1]
 import { vozAssinadaDoClaim } from '@/lib/vozDoFilmeCurto' // [TRAVA 8.2 — "vai conserta" do fundador, 29/09] KINEO-VOZ-15S-MESMA-DA-MONTAGEM-2026-09-29
 import { collectSceneNarrations, verifyObservedSpeech } from '@/lib/cinematic/speechContract'
 // KINEO-COMPOSE-REJECT-NOREFUND-2026-08-10 — ver o cabeçalho do arquivo: numa
@@ -844,6 +845,7 @@ export async function POST(req: NextRequest) {
       const marker = cinematicBirthClaim!.response!.kling4_trial as { country?: string | null; cost_usd: number }
       await recordKling4TrialFilm(composeAdmin, { jobId: generationId, userId: authenticatedUserId,
         country: marker.country, engineUsed: trialEngine, costUsd: marker.cost_usd })
+      await gravarSeloDoFilmeGratis2511(composeAdmin, { jobId: generationId, userId: authenticatedUserId, marker }) // KINEO-GEMINI-NA-ESTEIRA-2511 [revisora 25/11, conserto 1]
     }
     { // KINEO-FILME15-FIEL-2610 — o idioma que a rota de geração resolveu viaja no claim assinado e VENCE o da interface (pena dourada 26/10: rota pt, compose 'en' → voz inglesa, Whisper sem idioma, legenda errada)
       const idiomaDoClaim = narrationLanguage((cinematicBirthClaim?.response as { language?: unknown } | undefined)?.language) // KINEO-FILME15-FIEL-2610

@@ -349,7 +349,9 @@ for (const [nome, e, input, erro] of [
 test('GET da sonda com o Vidu: o vídeo volta', async () => {
   const h = harness(ROUTE)
   const r = await h.get(`engine=probe&endpoint=${encodeURIComponent(VIDU)}&request_id=${REQ_ID}`)
-  assert.deepEqual(r, { status: 200, body: { status: 'COMPLETED', model: VIDU, video_url: 'https://v3.fal.media/files/out.mp4' } })
+  // KINEO-GEMINI-NA-ESTEIRA-2511 [revisora 25/11, conserto 2]: o GET da sonda devolve o resultado inteiro da fal para TODO endpoint (é como se vê se a fal traz o uso
+  // de tokens); o caso do Vidu entrou pela sonda dos dois motores (c0c3f8a31) antes disso e passa a esperar o mesmo corpo que o do Gemini
+  assert.deepEqual(r, { status: 200, body: { status: 'COMPLETED', model: VIDU, video_url: 'https://v3.fal.media/files/out.mp4', resultado: { video: { url: 'https://v3.fal.media/files/out.mp4' } } } })
 })
 const origHarness = harness
 // eslint-disable-next-line no-func-assign

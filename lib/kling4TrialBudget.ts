@@ -75,6 +75,56 @@ export async function releaseKling4Trial(admin: SupabaseClient, i: Identity): Pr
   } catch { return false }
 }
 
+// ═══ KINEO-GEMINI-NA-ESTEIRA-2511 · o selo honesto no /admin e no relato de custo [revisora 25/11, conserto 1] ═══
+// O razão do teto (kling4_trial_films, record_kling4_trial_film) só conhece 'kling4'/'seedance15_*' e custo de 2,355 a 3,14: ele CONTINUA reservando o pior
+// caso (2,355), sem migration. O que o /admin e o relato de custo leem é o evento free_film_engine_used ("o evento do filme grátis manda",
+// lib/admin/motorEntregue.ts): este passo, chamado logo depois de cada gravação, escreve nele o motor e o custo de QUEM ENTREGOU:
+//   · o Gemini no ar (motor_do_clipe 'gemini_omni_flash'): engine_used 'omni' ("Omni Flash, filme grátis"), cost_usd = o estimado do Gemini (sem os tokens,
+//     que a fal não informa), cost_basis 'estimado_gemini_sem_tokens' e teto_reservado_usd = o que o razão reservou;
+//   · a queda (reserva_de 'gemini_omni_flash'): engine_used = o motor do marcador ("Kling 4.0" ou a reserva de hoje), o custo dele como sempre, e ao lado os
+//     dois motores e o estimado do Gemini (gemini_cobrado 'nao' só na recusa do envio, quando nada foi aceito).
+// Filme que não passou pelo Gemini: nada é lido nem escrito (byte a byte). Nunca lança; falha = o evento de antes.
+export function seloDoFilmeGratis2511(marker: unknown, atual: Record<string, unknown>): Record<string, unknown> | null {
+  const m = marker && typeof marker === 'object' ? (marker as Record<string, unknown>) : null
+  if (!m) return null
+  const noGemini = m.motor_do_clipe === 'gemini_omni_flash', queda = m.reserva_de === 'gemini_omni_flash'
+  if (!noGemini && !queda) return null
+  const est = typeof m.gemini_est_usd === 'number' && Number.isFinite(m.gemini_est_usd) && m.gemini_est_usd > 0 ? m.gemini_est_usd : null
+  if (est === null) return null
+  if (noGemini) {
+    if (atual.engine_used !== 'kling4' && atual.engine_used !== 'omni') return null // o razão já foi para a reserva de hoje: o evento de sempre fica
+    return { ...atual, engine_used: 'omni', motor_do_clipe: 'gemini_omni_flash', cost_usd: est, cost_basis: 'estimado_gemini_sem_tokens',
+      teto_reservado_usd: typeof m.cost_usd === 'number' ? m.cost_usd : (atual.teto_reservado_usd ?? atual.cost_usd ?? null), seconds: 15 }
+  }
+  const motor = typeof m.engine_used === 'string' ? m.engine_used : null
+  if (motor !== 'kling4' && motor !== 'seedance15_fallback') return null
+  const recusaNoEnvio = (m.gemini_queda as { estado?: unknown } | undefined)?.estado === 'no_envio'
+  const custoDoMotor = atual.engine_used === 'omni' ? (typeof atual.teto_reservado_usd === 'number' ? atual.teto_reservado_usd : (typeof m.cost_usd === 'number' ? m.cost_usd : null)) : (atual.cost_usd ?? null)
+  const { teto_reservado_usd: _t, motor_do_clipe: _mc, ...resto } = atual
+  return { ...resto, engine_used: motor, cost_usd: custoDoMotor, cost_basis: 'reserved_upper_bound', motores: ['gemini_omni_flash', motor],
+    gemini_est_usd: est, gemini_cobrado: recusaNoEnvio ? 'nao' : 'possivel' }
+}
+/** O id do evento que a RPC grava: md5('free_film_engine_used:' || user || ':' || job)::uuid. */
+export async function idDoEventoDoFilmeGratis(userId: string, jobId: string): Promise<string> {
+  const { createHash } = await import('node:crypto')
+  const h = createHash('md5').update(`free_film_engine_used:${userId}:${jobId}`).digest('hex')
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`
+}
+export async function gravarSeloDoFilmeGratis2511(admin: SupabaseClient, i: { jobId: string; userId: string; marker: unknown }): Promise<boolean> {
+  try {
+    const m = i.marker && typeof i.marker === 'object' ? (i.marker as Record<string, unknown>) : null
+    if (!m || (m.motor_do_clipe !== 'gemini_omni_flash' && m.reserva_de !== 'gemini_omni_flash') || !UUID.test(i.userId)) return false
+    const id = await idDoEventoDoFilmeGratis(i.userId, i.jobId)
+    const r = await admin.from('events').select('metadata').eq('id', id).eq('name', 'free_film_engine_used').eq('user_id', i.userId).maybeSingle()
+    const atual = (r.data as { metadata?: Record<string, unknown> } | null)?.metadata
+    if (r.error || !atual || typeof atual !== 'object') return false
+    const novo = seloDoFilmeGratis2511(m, atual)
+    if (!novo || JSON.stringify(novo) === JSON.stringify(atual)) return !!novo
+    const u = await admin.from('events').update({ metadata: novo }).eq('id', id).eq('name', 'free_film_engine_used').eq('user_id', i.userId)
+    return !u.error
+  } catch { return false }
+}
+
 /** One result/event per film; only the terminal async Kling-to-Seedance transition may correct its engine. */
 export async function recordKling4TrialFilm(admin: SupabaseClient, i: Identity & { engineUsed: Kling4TrialEngineUsed; costUsd: number }): Promise<boolean> {
   if (!validIdentity(i) || !['kling4', 'seedance15_fallback', 'seedance15_cap'].includes(i.engineUsed)
