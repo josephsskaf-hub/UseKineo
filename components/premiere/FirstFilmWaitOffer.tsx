@@ -37,8 +37,8 @@ export default function FirstFilmWaitOffer({ currency, region }: { currency: Che
       </div>
       <a href={`/pricing?intent_campaign=${CAMPAIGN}#plans`}
         onClick={() => { void trackEvent('first_film_cta_click', { version: CAMPAIGN, target: 'pricing', surface: 'film_wait' }) }}
-        className="inline-flex min-h-11 w-full items-center justify-center rounded-xl px-4 text-sm font-semibold sm:w-auto"
-        style={{ background: 'var(--accent)', color: 'var(--on-accent)', textDecoration: 'none' }}>
+        className="inline-flex w-full items-center justify-center rounded-xl px-4 text-sm font-semibold sm:w-auto"
+        style={{ background: 'var(--accent)', color: 'var(--on-accent)', textDecoration: 'none', minHeight: 44 }}>
         See plans
       </a>
     </div>
