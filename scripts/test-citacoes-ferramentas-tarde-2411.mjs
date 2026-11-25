@@ -55,7 +55,7 @@ for(const mode of ['off','internal','public']){
 }
 // Formats already have public URLs. Rolling out tools must never toggle those URLs.
 assert.equal(live(RELEASE).CITATION_PAGES_RELEASE, 'public')
-assert.equal(live(RELEASE).CITATION_TOOLS_RELEASE, 'off')
+assert.equal(live(RELEASE).CITATION_TOOLS_RELEASE, 'public')
 for (const formatMode of ['off', 'internal', 'public']) {
   for (const toolMode of ['off', 'internal', 'public']) {
     const flags = state(toolMode)

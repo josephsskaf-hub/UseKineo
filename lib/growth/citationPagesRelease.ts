@@ -3,7 +3,7 @@ export type CitationPagesRelease = 'off' | 'internal' | 'public'
 export const CITATION_PAGES_RELEASE: CitationPagesRelease = 'public'
 export const CITATION_PAGES_REVIEWED_ISO = '2026-11-23'
 export const CITATION_DRAFT_SLUGS = ['cartoon-videos', 'animated-story-videos', 'animal-story-videos'] as const
-export const CITATION_TOOLS_RELEASE: CitationPagesRelease = 'off'
+export const CITATION_TOOLS_RELEASE: CitationPagesRelease = 'public'
 export const CITATION_TOOL_DRAFT_SLUGS = ["urdu-story-videos","urdu-moral-story-videos","german-faceless-shorts","portuguese-story-shorts","bedtime-story-videos","moral-story-shorts","scary-story-shorts","history-fact-shorts","animal-fable-videos","cartoon-youtube-shorts"] as const
 export function citationReleaseForSlug(slug: string): CitationPagesRelease {
   return (CITATION_TOOL_DRAFT_SLUGS as readonly string[]).includes(slug) ? CITATION_TOOLS_RELEASE : CITATION_PAGES_RELEASE
