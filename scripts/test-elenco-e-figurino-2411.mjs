@@ -441,6 +441,18 @@ const gd = provaGuardas(W)
 checa('guardas por comportamento: lista exata, só o protagonista, nome só na pista, mítica, criatura, nome de 1 token ' + gd.join(' | '), gd.length === 0)
 const fx = provaFiacaoExecutada(ROTA_TXT)
 checa('fiação executada (condições da rota avaliadas) ' + fx.join(' | '), fx.length === 0)
+// A referência fabricada com a ficha do papel mantém a identidade anônima até a folha e o corpo do motor.
+{
+  const alvo = 'Wednesday Addams'
+  const d = 'pale girl with black braids'
+  const r = W.m.elencoDoLeitor2411({ elenco: [], pedido: alvo + ', a ' + d + ', walked home.', roteiro: alvo + ' waited outside.', lidos: null })
+  const ficha = r.elenco[0]
+  const url = 'https://ensaio.test/original.png'
+  const folha = ficha ? W.folha.promptDaFolha(ficha, null, false) : ''
+  const ref = ficha ? RU.referenciaUnicaDoFilme({ characters:r.elenco, characterReferences:[{nome:ficha.nome, url}], approvedStills:[] }) : null
+  const corpo = ref ? K4.buildKling4ReferenciaUnicaInput([{ prompt: ficha.canonica + '. Opens the door.', duration:15 }], ref) : null
+  checa('ficha pelo papel, prompt real da folha e corpo de referência sem nome comercial', !!corpo && folha.includes(d) && JSON.stringify(corpo).includes(d) && ![ficha.nome,folha,JSON.stringify(corpo)].some(x => x.includes(alvo)))
+}
 const rf = provaReferencia(W, RU, K4)
 checa('referência única: casa liga, cliente não', rf.ligada.casa === true && rf.ligada.cliente === false)
 checa('referência única: Le Prince antes não ligaria (sem protagonista) e depois ligaria', rf.leprince.antes === false && rf.leprince.depois === true)

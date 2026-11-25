@@ -201,8 +201,10 @@ function contraprovas(w) {
   // personagem de marca e empresa "giant" com uma menção só: o passo NOVO só cria gente
   for (const [rot, ped, rote] of [['Sonic', 'Sonic, a blue hedgehog in red sneakers, races through the city.', 'Sonic races through the city at dawn.'], ['Pikachu', 'Pikachu, a small yellow creature with red cheeks, sparks.', 'Pikachu sparks in the rain.'], ['Apple', 'Apple, a tech giant, unveils a phone.', 'Apple unveils a new phone today.']]) {
     const r = L({ roteiro: rote, pedido: ped, lidos: null })
-    if (r.elenco.length !== 0) e.push(`K23 ${rot} entrou ${JSON.stringify(r.elenco.map((f) => f.nome + '/' + f.tipo))}`)
+    if (r.elenco.some(f => f.nome === rot) || (rot === 'Apple' && r.elenco.length)) e.push(`K23 ${rot} entrou ${JSON.stringify(r.elenco.map((f) => f.nome + '/' + f.tipo))}`)
   }
+  const animalSemFicha = L({ roteiro: 'Sparky waited.', pedido: 'Sparky, a blue hedgehog in red sneakers, waited.' })
+  if (animalSemFicha.elenco.length) e.push('K23b bicho desconhecido entrou sem ficha prévia')
   // a descrição que cita OUTRO do elenco não é desta pessoa (L8 da revisora)
   const outro = w.m.elencoDoLeitor2411({ elenco: [fic('Mara'), fic('Rex', { tipo: 'animal', nucleo: 'dog', protagonista: false })], pedido: 'Mara is a young woman in a Rex sweater.', roteiro: 'Mara walked Rex. Mara laughed.', lidos: null, lugares: [] })
   if (outro.elenco[0]?.canonica !== 'Mara, a person') e.push('K24 descrição que cita o Rex foi para a Mara ' + outro.elenco[0]?.canonica)
@@ -232,6 +234,62 @@ function interruptorERota(w) {
   return e
 }
 
+// Casos do parecer de 24/11 e controles de desambiguação. Os textos são sintéticos.
+function marcasEEmpresas(w) {
+  const erros = []
+  const check = (id, pass) => { if (!pass) erros.push(id) }
+  const ler = (roteiro, pedido = roteiro, elenco = [], opcoes = {}) =>
+    w.m.elencoDoLeitor2411({ elenco, pedido, roteiro, lidos: null, ...opcoes })
+  const base = (nome, tipo, nucleo) => ({ nome, nucleo, tipo, canonica: nome, origem: 'deterministica', protagonista: true, genero: null })
+  const identidades = [
+    ['Sonic', 'blue hedgehog in red sneakers', 'hedgehog'],
+    ['Pikachu', 'small yellow mouse with red cheeks', 'mouse'],
+    ['Mickey', 'cheerful mouse in red shorts', 'mouse'],
+    ['Garfield', 'lazy orange cat', 'cat'],
+    ['Harry Potter', 'young boy with round glasses and a scar', 'boy'],
+    ['Wednesday Addams', 'pale girl with black braids', 'girl'],
+  ]
+  for (const [nome, descricao, nucleo] of identidades) {
+    const unico = nome + ', a ' + descricao + ', returned home.'
+    for (const [origem, c] of [['roteiro', { ideia: '', roteiro: unico }], ['pedido', { ideia: unico, roteiro: nome + ' waited outside.' }]]) {
+      const out = cadeia(w, c)
+      const f = out.final[0]
+      check('papel-' + nome + '-' + origem, out.final.length === 1 && f.nucleo === nucleo && !JSON.stringify(f).includes(nome) && f.canonica.includes(descricao) && f.origem === 'autor')
+    }
+  }
+  for (const [nome,descricao] of [['Apple','tech giant'],['Amazon','online retail giant'],['Galeton','banking giant']]) {
+    const c = { ideia: '', roteiro: nome + ', a ' + descricao + ', announced an acquisition.' }
+    const out = cadeia(w, c)
+    check('empresa-' + nome, out.final.length === 0)
+    check('empresa-nome-' + nome, !ler(c.roteiro, c.roteiro, [base(nome,'criatura','giant')]).elenco.length)
+  }
+  for (const [nome, descricao] of [['Mario','short Italian plumber in a red cap'],['Elsa','young queen in a blue ice dress'],['Shrek','green ogre in a vest'],['Spider-Man','young hero in a red and blue suit'],['Lara Croft','young tomb raider in a green tank top'],['James Bond','British spy in a black tuxedo'],['Indiana Jones','archaeologist in a brown fedora'],['Sherlock Holmes','tall detective in a deerstalker hat']]) {
+    const t = nome + ', a ' + descricao + ', left the building.'
+    check('secundario-' + nome, !JSON.stringify(cadeia(w, { ideia:t, roteiro:t }).final).includes(nome))
+  }
+  const lic = ler('Velin Marlow waited outside.', 'Velin Marlow is a licensed mascot. Velin Marlow, a young boy with a red scarf, waits.')
+  check('licenca', lic.elenco[0]?.nome === 'the boy' && lic.elenco[0]?.canonica.includes('young boy with a red scarf'))
+  const romance = ler('Velin Marlow waited outside.', 'Velin Marlow from the novel Moon Bridge. Velin Marlow, a young boy in a yellow coat, waits.')
+  check('obra-nomeada', romance.elenco[0]?.nome === 'the boy')
+  const nu = ler('Harry Potter waited outside.', '', [base('Harry Potter','humano','Potter')], { lidos:['Harry Potter'], gente:['Harry Potter'] })
+  check('sem-deduzir', nu.elenco.length === 0)
+  const homonimo = ler('Henry Potter waited outside.', 'Henry Potter, a young boy with a red scarf, waits.')
+  check('homonimo', homonimo.elenco[0]?.nome === 'Henry Potter')
+  const semSobrenome = ler('Harry waited outside.', 'Harry Potter, a young boy with round glasses, waits.', [base('Harry','humano','Harry')])
+  check('alias', semSobrenome.elenco.length === 1 && semSobrenome.elenco[0].nome === 'the boy')
+  const semLeitura = ler('Harry Potter waited outside.', 'Harry Potter, a young boy with round glasses, waits.', [], { lidos:[] })
+  check('leitura-negativa', !semLeitura.elenco.length)
+  const misto = ler('Apple unveiled a phone. Brann lifted the bridge.', 'Apple, a tech giant, unveiled a phone. Brann, a towering giant with a green coat, lifted the bridge.', [base('the tech giant','criatura','giant'),base('the towering giant','criatura','giant')])
+  check('gigante-fisico', misto.elenco.length === 1 && misto.elenco[0].nome === 'Brann')
+  const filme = ler('Iris paused outside.', 'Iris, a young woman with a tech giant logo, waited outside.')
+  check('empresa-no-acessorio', filme.elenco.every(f => f.nome !== 'empresa') && !filme.mudancas.some(m => m.acao === 'empresa'))
+  const terceira = ler('Harry Potter waited.', 'Harry Potter, a young boy in a Sonic sweater, waited.')
+  check('marca-no-acessorio', !terceira.elenco.some(f => f.canonica.includes('Sonic')))
+  const voltou = ler('Sonic waited. Juno ran outside.', 'Sonic, a blue hedgehog, waited. Juno, a golden retriever with a red bandana, ran.', [base('the retriever','animal','retriever')])
+  check('juno-com-marca', voltou.elenco.some(f => f.nome === 'Juno') && !voltou.elenco.some(f => f.nome === 'Sonic'))
+  return erros
+}
+
 function roda(w) {
   const p = provas(w)
   return [...p.e, ...semRegressao(w), ...contraprovas(w), ...interruptorERota(w)]
@@ -248,6 +306,8 @@ for (const x of p.e) console.log('    ' + x)
 const reg = semRegressao(real)
 checa('Cooper, Le Prince e Slocum: o elenco final é o MESMO com e sem o leitor', reg.length === 0)
 for (const x of reg) console.log('    ' + x)
+const errosMarca = marcasEEmpresas(real)
+checa('papel original e empresa, cadeia completa e leitor ' + errosMarca.join(' | '), !errosMarca.length)
 const cp = contraprovas(real)
 checa('contraprovas (29): nome nu, figura (2), Le Prince, mesma descrição, Joan of Arc, van Gogh, marca e "giant" (3), descrição de outro, pedido × narração, "This is", só no pedido, lugar, dois cães (2), verbo, árabe, cirílico, sem leitura, nome curto, identidade, erro, teto, "Meet Juno" na narração, Metal Sonic, Ein Junge, bicho lido', cp.length === 0)
 for (const x of cp) console.log('    ' + x)
@@ -288,6 +348,24 @@ const MUTANTES = [
   ['M17 a ficha do autor perde o que já tinha (troca em vez de acrescentar)', (t) => t.replace("if (f.origem === 'autor') { const [cabeca, ...resto] = f.canonica.split('; '); return { ...f, canonica: [cabeca, `${MARCA_DO_PEDIDO_2411} ${d.trecho}`, ...resto].join('; ') } }", '')],
   ['M18 escrita não latina passa', (t) => t.replace('if (!narracao || !escritaLatina(narracao)) return { elenco: base, mudancas: [] }', 'if (!narracao) return { elenco: base, mudancas: [] }')],
 ]
+const mutantesDaMarca = [
+  ['sem reconhecimento de nome', 'if (NOME_DE_OBRA.has(norm(nome))) return true', '', 'papel-Harry Potter-pedido'],
+  ['sem origem comercial explícita', 'ORIGEM_COMERCIAL.test(texto.slice(m.index! + m[0].length))', 'false', 'licenca'],
+  ['não lê obra nomeada', 'OBRA_NOMEADA.test(texto.slice(m.index! + m[0].length))', 'false', 'obra-nomeada'],
+  ['não reconhece nome abreviado', "?? obrasCitadas.find(obra => obra.split(' ').length > 1 && obra.split(' ').some(parte => norm(parte) === norm(n)))", '', 'alias'],
+  ['ficha genérica conserva a descrição sorteada', "canonica: canonicaLiteral(f, d.trecho, null, null), origem: 'autor' as const", "canonica: f.canonica, origem: 'autor' as const", 'papel-Wednesday Addams-roteiro'],
+  ['ficha comercial anônima volta', " || (f.tipo === 'criatura' && empresaGigante(f.nome))", '', 'empresa-Apple'],
+  ['ficha comercial nomeada volta', 'empresas.includes(f.nome) ||', 'false ||', 'empresa-nome-Amazon'],
+  ['leitura sem o nome passa', ' || (e.lidos && !e.lidos.some(l => mesmaPessoa2411(l, n)))', '', 'leitura-negativa'],
+  ['marca copiada da roupa', 'if (d && ![...NOMES_DE_OBRA, ...obrasCitadas].some(m => temNome(d.trecho, m)))', 'if (d)', 'marca-no-acessorio'],
+]
+for (const [nome, antes, depois, esperado] of mutantesDaMarca) {
+  const fonte = fs.readFileSync(MOD, 'utf8').replace(/\r\n/g, '\n')
+  if (!fonte.includes(antes)) { checa(nome + ': âncora ausente', false); continue }
+  const erros = marcasEEmpresas(mundo(t => t.replace(antes, depois)))
+  checa(nome + ' → ' + esperado, erros.includes(esperado))
+}
+
 for (const [nome, mutar] of MUTANTES) {
   const fonte = fs.readFileSync(MOD, 'utf8').replace(/\r\n/g, '\n')
   if (mutar(fonte) === fonte) { checa(`${nome}: o mutante não se aplicou (texto mudou)`, false); continue }

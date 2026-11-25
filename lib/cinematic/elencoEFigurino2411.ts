@@ -368,7 +368,7 @@ export function oracaoDoNome2411(roteiro: string, nome: string): string | null {
   return null
 }
 
-export interface MudancaDoLeitor2411 { nome: string; acao: 'descricao' | 'nome' | 'novo'; fonte: FonteDaDescricao | 'oracao'; forma: DescricaoDoNome2411['forma'] | 'oracao'; tipo: FichaDePersonagem['tipo'] }
+export interface MudancaDoLeitor2411 { nome: string; acao: 'descricao' | 'nome' | 'novo' | 'papel' | 'empresa'; fonte: FonteDaDescricao | 'oracao' | 'ficha'; forma: DescricaoDoNome2411['forma'] | 'oracao' | 'ficha'; tipo: FichaDePersonagem['tipo'] }
 export interface EntradaDoLeitor2411 {
   elenco: ReadonlyArray<FichaDePersonagem>
   /** body.original_idea (o pedido original; ausente = só a narração) */
@@ -393,6 +393,39 @@ const ehFimDe = (curto: string[], longo: string[]) => curto.length > 0 && curto.
 export const mesmaPessoa2411 = (a: string, b: string): boolean => mesmoPersonagem(a, b) || ehFimDe(palavrasDaPessoa(a), palavrasDaPessoa(b)) || ehFimDe(palavrasDaPessoa(b), palavrasDaPessoa(a))
 const nomeProprio2411 =(nome: string) => /^\p{Lu}[\p{L}'’.-]*(?: \p{Lu}[\p{L}'’.-]*){0,3}$/u.test(limpa(nome)) && !/^(?:the|a|an)\s/i.test(nome)
 
+// A identidade comercial só impede usar o nome. Espécie, papel e aparência vêm da descrição escrita.
+const NOMES_DE_OBRA = [
+  'Sonic', 'Sonic the Hedgehog', 'Metal Sonic', 'Amy Rose', 'Pikachu', 'Mickey', 'Mickey Mouse', 'Garfield',
+  'Harry Potter', 'Wednesday Addams', 'Lara Croft', 'James Bond', 'Indiana Jones', 'Spider-Man', 'Voldemort',
+  'Sherlock Holmes', 'Super Mario', 'Shrek', 'Sasuke', 'Super Saiyan', 'Goku', 'Hermione Granger', 'Darth Vader',
+]
+const NOME_DE_OBRA = new Set(NOMES_DE_OBRA.map(norm))
+const EMPRESA_GIGANTE = /\b(?:(?:tech(?:nology)?|retail|software|industrial|industry|corporate|media|online|telecom(?:munications)?|banking|energy|oil|pharma(?:ceutical)?|manufacturing|streaming|automotive|publishing|e-commerce|electronics|semiconductor|financial|business|shipping|logistics|aerospace|entertainment|biotech|toy|gaming|insurance|fashion|advertising|social.media)\s+giants?|giants?\s+(?:company|corporation|conglomerate|retailer|manufacturer)|giants?\s+in\s+(?:technology|retail|banking|industry|software))\b/iu
+const OBRA_NOMEADA = /^(?:\s*,?\s+(?:a character |the mascot )?from (?:the |a )?(?:film|movie|series|show|comic|novel|game|book|franchise)\s+(?:called |named )?)["“']?\p{Lu}/u
+const ORIGEM_COMERCIAL = /^(?:\s*,\s*(?:a|an|the)\s+|\s+(?:is|was)\s+(?:(?:a|an|the)\s+)?|\s*,?\s+from\s+the\s+)(?:(?:licensed|branded|franchise|copyrighted|trademarked)\s+(?:character|mascot)|(?:film|movie|game|series|comic|novel|franchise)\s+(?:called|named|franchise)\b)/iu
+
+function empresaGigante(papel: string): boolean {
+  return EMPRESA_GIGANTE.test(papel.split(/\s+(?:with|wearing|dressed)\s/iu)[0])
+}
+
+function identidadeDeObra(nome: string, textos: ReadonlyArray<{ texto: string }>): boolean {
+  if (NOME_DE_OBRA.has(norm(nome))) return true
+  // Mario e Elsa também são nomes cotidianos. Reconhecer apenas quando o texto os situa na obra.
+  const papelAmbiguo = norm(nome) === 'mario' ? /\bplumber\b/iu : norm(nome) === 'elsa' ? /\bqueen\b.*\bice\b/iu : null
+  if (papelAmbiguo && textos.some(({ texto }) => trechosColadosAoNome(texto, nome).some(t => papelAmbiguo.test(t.trecho)))) return true
+  const termo = new RegExp('(?<![\\p{L}\\p{N}-])' + escapaRe(nome) + '(?![\\p{L}\\p{N}-])', 'giu')
+  return textos.some(({ texto }) => [...texto.matchAll(termo)].some(m =>
+    ORIGEM_COMERCIAL.test(texto.slice(m.index! + m[0].length)) ||
+    OBRA_NOMEADA.test(texto.slice(m.index! + m[0].length)) ||
+    /\b(?:licensed|branded|copyrighted|trademarked)\s+(?:character|mascot)\s+(?:(?:named|called)\s+)?$/iu.test(texto.slice(0, m.index))))
+}
+
+function fichaPeloPapel(d: DescricaoDoNome2411, protagonista: boolean): FichaDePersonagem {
+  const nome = 'the ' + d.nucleo
+  return { nome, nucleo: d.nucleo, tipo: d.tipo, canonica: canonicaLiteral({ nome }, d.trecho, null, null),
+    origem: 'autor', protagonista, genero: null }
+}
+
 /** O elenco com quem o autor nomeou e descreveu (ver o cabeçalho da seção). Nada a fazer = o MESMO array (referência). Nunca lança: erro = o mesmo array. */
 export function elencoDoLeitor2411(e: EntradaDoLeitor2411): { elenco: FichaDePersonagem[]; mudancas: MudancaDoLeitor2411[] } {
   const base = e.elenco as FichaDePersonagem[]
@@ -405,6 +438,61 @@ export function elencoDoLeitor2411(e: EntradaDoLeitor2411): { elenco: FichaDePer
     const lugares = (e.lugares ?? []).map((l) => norm(limpa(l)))
     const mudancas: MudancaDoLeitor2411[] = []
     let elenco = base.map((f) => ({ ...f }))
+    const nomes = nomesDaNarracao2411(roteiro)
+    const nomesComFicha = [...new Set([...nomes, ...base.map(f => f.nome).filter(nomeProprio2411)])]
+    const obrasCitadas = [...new Set([...nomesComFicha, ...nomesDaNarracao2411(pedido)])].filter(n => identidadeDeObra(n, textos))
+    // Um nome curto da leitura pode ser parte do nome comercial completo escrito no pedido.
+    const obraDoNome = (n: string) => obrasCitadas.find(obra => norm(n) === norm(obra))
+      ?? obrasCitadas.find(obra => obra.split(' ').length > 1 && obra.split(' ').some(parte => norm(parte) === norm(n)))
+    const marcas = nomesComFicha.filter(n => !!obraDoNome(n))
+    const empresas = nomesComFicha.filter(n => textos.some(({ texto }) =>
+      trechosColadosAoNome(texto, n).some(t => empresaGigante(t.trecho))))
+    const fichaComercial = (f: FichaDePersonagem) => empresas.includes(f.nome) || (f.tipo === 'criatura' && empresaGigante(f.nome))
+    const papeis = new Map<string, DescricaoDoNome2411>()
+    for (const n of marcas) {
+      const obra = obraDoNome(n)!
+      if (papeis.has(obra) || lugares.includes(norm(n)) || (e.lidos && !e.lidos.some(l => mesmaPessoa2411(l, n)))) continue
+      const d = descricaoDoNome2411(textos, obra, null, nomesComFicha) ?? descricaoDoNome2411(textos, n, null, nomesComFicha)
+      if (d && ![...NOMES_DE_OBRA, ...obrasCitadas].some(m => temNome(d.trecho, m))) papeis.set(obra, d)
+    }
+    const usadosComoPapel = new Set<string>()
+    elenco = elenco.flatMap(f => {
+      if (fichaComercial(f)) {
+        mudancas.push({ nome: 'empresa', acao: 'empresa', fonte: 'ficha', forma: 'ficha', tipo: f.tipo })
+        return []
+      }
+      const obra = obraDoNome(f.nome)
+      if (obra) {
+        const d = papeis.get(obra)
+        mudancas.push({ nome: 'personagem', acao: 'papel', fonte: d?.fonte ?? 'ficha', forma: d?.forma ?? 'ficha', tipo: f.tipo })
+        if (!d || usadosComoPapel.has(obra) || base.some(b => !nomeProprio2411(b.nome) && b.tipo === d.tipo && norm(b.nucleo) === d.nucleo)) return []
+        usadosComoPapel.add(obra)
+        return [fichaPeloPapel(d, f.protagonista)]
+      }
+      if (!nomeProprio2411(f.nome)) {
+        const opcoes = [...papeis].filter(([, d]) => d.tipo === f.tipo && d.nucleo === norm(f.nucleo))
+        if (opcoes.length === 1 && !usadosComoPapel.has(opcoes[0][0])) {
+          const [obra, d] = opcoes[0]
+          // A mesma espécie pode pertencer a outro personagem. Em dúvida, preservar a ficha anônima.
+          const disputa = nomesComFicha.some(n => !obraDoNome(n) && descricaoDoNome2411(textos, n, f)?.nucleo === d.nucleo)
+          if (!disputa) {
+            usadosComoPapel.add(obra)
+            const anonima = { ...f, canonica: canonicaLiteral(f, d.trecho, null, null), origem: 'autor' as const }
+            if (f.canonica !== anonima.canonica || f.origem !== anonima.origem)
+              mudancas.push({ nome: f.nome, acao: 'papel', fonte: d.fonte, forma: d.forma, tipo: f.tipo })
+            return [anonima]
+          }
+        }
+      }
+      return [f]
+    })
+    for (const [obra, d] of papeis) {
+      if (usadosComoPapel.has(obra) || elenco.length >= PERSONAGEM_MAX_PERSONAGENS ||
+        elenco.some(f => !nomeProprio2411(f.nome) && norm(f.nucleo) === d.nucleo)) continue
+      const f = fichaPeloPapel(d, false)
+      elenco.push(f)
+      mudancas.push({ nome: f.nome, acao: 'papel', fonte: d.fonte, forma: d.forma, tipo: f.tipo })
+    }
     const nomesDoElenco = () => elenco.map((f) => f.nome)
     // 1. a descrição colada ao nome de quem já está no elenco
     elenco = elenco.map((f) => {
@@ -419,14 +507,14 @@ export function elencoDoLeitor2411(e: EntradaDoLeitor2411): { elenco: FichaDePer
       if (f.origem === 'autor') { const [cabeca, ...resto] = f.canonica.split('; '); return { ...f, canonica: [cabeca, `${MARCA_DO_PEDIDO_2411} ${d.trecho}`, ...resto].join('; ') } }
       return { ...f, canonica: canonicaLiteral(f, d.trecho, null, null), origem: 'autor' as FichaDePersonagem['origem'] }
     })
-    const candidatos = nomesDaNarracao2411(roteiro).filter((n) => !lugares.includes(norm(n)) && !ehFigura(n) && !elenco.some((f) => mesmaPessoa2411(f.nome, n)))
+    const candidatos = nomes.filter((n) => !marcas.includes(n) && !empresas.includes(n) && !lugares.includes(norm(n)) && !ehFigura(n) && !elenco.some((f) => mesmaPessoa2411(f.nome, n)))
     const usados = new Set<string>()
     // 2. a ficha sem nome que é o bicho/pessoa que o autor nomeou ("the retriever" = "Juno, a golden retriever …")
     elenco = elenco.map((f) => {
       if (nomeProprio2411(f.nome) || !/^the\s/i.test(f.nome)) return f
       const achados = candidatos.flatMap((n) => { const d = descricaoDoNome2411(textos, n, f, nomesDoElenco()); return d && temPalavra(d.trecho, f.nucleo) ? [{ n, d }] : [] })
       // dúvida = nada: outro nome citado na MESMA frase que a espécie ("Rex, a big brown dog, and Max, a small white dog") também pode ser ela
-      const disputam = candidatos.filter((n) => textos.some(({ texto }) => frasesDe2411(texto).some((fr) => temNome(fr, n) && temPalavra(fr, f.nucleo))))
+      const disputam = [...candidatos, ...marcas].filter((n) => textos.some(({ texto }) => frasesDe2411(texto).some((fr) => temNome(fr, n) && temPalavra(fr, f.nucleo))))
       if (achados.length !== 1 || disputam.length !== 1 || disputam[0] !== achados[0].n || usados.has(achados[0].n)) return f
       const { n, d } = achados[0]
       usados.add(n)
