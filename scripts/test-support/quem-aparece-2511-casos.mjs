@@ -92,13 +92,25 @@ export const FILMES = {
     p('Shiro smiles: let us be friends! Behind him, a convoy of cars arrives.', 'convoy of cars', 'Shiro smiles confidently as a convoy of cars approaches behind him.')],
     esperado: [[true], [false], [true]] },
 }
-/** [volta 2] os planos do gabarito em que aparecem outras pessoas claramente distintas do elenco (o resto: 'none'). */
-export const OUTROS_DO_CASO = { alcatraz: ['distinct_people', 'none', 'none'], umudara: ['none', 'none', 'distinct_people'], b1: [null, null, null, 'distinct_people'] }
+/** [volta 2] os planos do gabarito em que aparecem outras pessoas claramente distintas do elenco (o resto: ninguém). [volta 3] = o assunto 'others_only'. */
+export const OUTROS_DO_CASO = { alcatraz: ['distinct_people', 'none', 'none'], umudara: ['none', 'none', 'distinct_people'], b1: [null, null, null, 'distinct_people'],
+  a3: ['distinct_people'], a4: ['distinct_people'], a5: ['distinct_people'], shiro: [null, 'distinct_people', null] }
 /** Os 5 casos em que a 1ª leitura TIROU quem estava (CEO 25/11 11:55): nenhum deles pode dar `no` na nova passada. */
 export const NUNCA_NO = ['f2', 'f4', 'f5', 'l3', 'l4']
-/** A leitura "certa" de um caso, no formato do modelo (para injetar na rede falsa): o gabarito; sem gabarito = 'unclear'. */
+/** [volta 3] o nome ESCRITO na fala ou no marcador do autor, como um leitor certo o veria: nome próprio = uma palavra dele (3 letras ou mais); papel ("the
+ *  old man", "a young man") = o papel inteiro. É só o gabarito do guardião; o código confere com citadosPeloNome. */
+export const nomeEscrito = (nome, plano) => { const texto = ` ${`${plano.fala ?? ''} ${plano.marcador ?? ''}`.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ')} `
+  const n = String(nome).trim(), papel = /^(the|a|an)\s/i.test(n) || n === n.toLowerCase()
+  if (papel) return texto.includes(` ${n.toLowerCase().replace(/^(the|a|an)\s+/, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim()} `)
+  return n.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((w) => w.length >= 3).some((w) => texto.includes(` ${w} `)) }
+/** [volta 3] A leitura "certa" de um caso, no formato do modelo (assunto e ids nomeados), tirada do gabarito: alguém visível = 'person_or_creature' com os
+ *  visíveis de nome escrito; ninguém visível = 'others_only' (OUTROS_DO_CASO) ou 'place_or_object'; plano sem gabarito para alguém e ninguém visível =
+ *  'person_or_creature' sem nomeado (a leitura honesta de quem não sabe: o plano fica com a regra de hoje). */
 export function leituraCerta(c) {
-  return JSON.stringify({ shots: c.esperado.map((linha, i) => ({ shot: i + 1, others: OUTROS_DO_CASO[c.id]?.[i] ?? 'none', cast: linha.map((v, k) => ({ id: k + 1, on_screen: v === true ? 'yes' : v === false ? 'no' : 'unclear', how: v === true ? 'shown' : v === false ? 'not_mentioned' : 'not_mentioned' })) })) })
+  return JSON.stringify({ shots: c.esperado.map((linha, i) => {
+    const assunto = linha.some((v) => v === true) || linha.some((v) => v === null) ? 'person_or_creature' : OUTROS_DO_CASO[c.id]?.[i] === 'distinct_people' ? 'others_only' : 'place_or_object'
+    const named = assunto === 'person_or_creature' ? linha.flatMap((v, k) => (v === true && nomeEscrito(c.elenco[k].nome, c.planos[i]) ? [k + 1] : [])) : []
+    return { shot: i + 1, subject: assunto, named } }) })
 }
 /** Os corpos da sonda (um POST por caso), na ordem: parte B, amostra, língua, filmes. */
 export const CORPOS_DA_SONDA = [...PARTE_B, ...AMOSTRA, ...LINGUA, ...Object.values(FILMES)].map((c) => ({ id: c.id, corpo: { elenco: c.elenco, planos: c.planos } }))

@@ -2,10 +2,12 @@
 // a mesma leitura não repete, teto por instância. Só texto (gpt-4o-mini, ≈ US$ 0,0004 por leitura). Não gera imagem nem filme, não grava no banco, não
 // cobra crédito. Devolve a leitura conferida, a decisão do código, o tempo da chamada e o p95 desta instância (contra o prazo de 6 s).
 //   POST { elenco: [{ nome, tipo?, genero?, descricao?, protagonista? }], planos: [{ fala?, marcador?, visual? }] } → { presenca, leitura, tokens, unclear, ms, p95_ms, prazo_ms, custo_usd, erro }
-//   [volta 2, CEO 25/11 11:55] a leitura bruta (por plano: others e, por pessoa, on_screen/how) e os tokens voltam para o diagnóstico do ensaio.
+//   [volta 2, CEO 25/11 11:55] a leitura conferida e os tokens voltam para o diagnóstico do ensaio.
+//   [volta 3, CEO 25/11 13:15] a leitura é o ASSUNTO de cada plano (subject) e os ids nomeados (named); por_pessoa = a decisão do código por plano e por
+//   pessoa (true, false, null = a regra de hoje); quando o esquema recusa, a resposta BRUTA (só números e enum sob o esquema estrito) e o motivo da recusa.
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { QUEM_APARECE_PRAZO_MS, admitirSondaDePresenca, chaveDaPresenca, lerPedidoDePresenca, lerQuemAparece, liberarSondaDePresenca, novoEstadoDaSondaDePresenca, p95 } from '@/lib/cinematic/quemAparece2511'
+import { QUEM_APARECE_PRAZO_MS, admitirSondaDePresenca, chaveDaPresenca, lerPedidoDePresenca, lerQuemAparece, liberarSondaDePresenca, novoEstadoDaSondaDePresenca, p95, presencaPorPessoa } from '@/lib/cinematic/quemAparece2511'
 
 export const dynamic = 'force-dynamic'
 export const fetchCache = 'force-no-store'
@@ -27,7 +29,7 @@ export async function POST(req: NextRequest) {
   try {
     const r = await lerQuemAparece(pedido.elenco, pedido.planos)
     ms = r.ms
-    return NextResponse.json({ presenca: r.presenca, leitura: r.leitura ? r.leitura.map((linha) => ({ others: linha.outros ?? null, cast: linha.map((c) => ({ on_screen: c.naTela, how: c.como })) })) : null, tokens: r.tokens ?? null, unclear: r.unclear, ms: r.ms, p95_ms: p95([...estado.tempos, r.ms]), prazo_ms: QUEM_APARECE_PRAZO_MS, custo_usd: r.custoUsd, erro: r.erro }, { status: r.erro ? 502 : 200 })
+    return NextResponse.json({ presenca: r.presenca, por_pessoa: r.presenca ? presencaPorPessoa(r.presenca) : null, leitura: r.leitura ? r.leitura.map((p) => ({ subject: p.assunto, named: p.nomeados.map((k) => k + 1) })) : null, bruta: r.bruta ?? null, motivo_do_esquema: r.motivoDoEsquema ?? null, fim: r.fim ?? null, recusa: r.recusa ?? false, tokens: r.tokens ?? null, unclear: r.unclear, ms: r.ms, p95_ms: p95([...estado.tempos, r.ms]), prazo_ms: QUEM_APARECE_PRAZO_MS, custo_usd: r.custoUsd, erro: r.erro }, { status: r.erro ? 502 : 200 })
   } finally {
     liberarSondaDePresenca(estado, ms)
   }
