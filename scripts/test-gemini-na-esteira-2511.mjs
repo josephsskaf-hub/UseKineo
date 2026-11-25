@@ -105,7 +105,8 @@ async function prova(over = {}) {
       ['texto que já cita <IMAGE_REF_0>', { ...FIX.kling4_input, multi_prompt: [{ prompt: 'x <IMAGE_REF_0>', duration: 15 }], image_urls: [FIX.kling4_input.image_urls[0]] }, ['A']], ['sem multi_prompt', { ...FIX.kling4_input, multi_prompt: undefined }, FIX.nomes]])
       no(m.geminiDoKling4(i, n) !== null, '1c fora do formato = null (o Kling 4 de sempre): ' + nome)
     // ── 2. a chave ──
-    no(m.GEMINI_NA_ESTEIRA_2511 !== 'internal', '2a a chave nasce internal')
+    no(m.GEMINI_NA_ESTEIRA_2511 !== 'public', "2a a chave é 'public' (dono 25/11 15:27)")
+    for (const e of [CLIENTE, CASA, 'joseph@usekineo.com', '', null, undefined]) no(m.geminiNaEsteiraLigado('public', e) !== true, "2e 'public': toda conta: " + e)
     no(m.geminiNaEsteiraLigado('internal', CASA) !== true, '2b a casa exata')
     for (const e of [CLIENTE, 'joseph@usekineo.com', 'xjosephsskaf@gmail.com', '', null, undefined]) no(m.geminiNaEsteiraLigado('internal', e) !== false, '2c fora da casa: ' + e)
     no(m.geminiNaEsteiraLigado('off', CASA) !== false, "2d 'off' desliga")
@@ -278,14 +279,14 @@ function provaDoTexto(over = {}) {
   const trecho = rota.slice(ini, fim)
   // R1 executa a tentativa com dublês: fora da casa e 'off' = nenhum pedido; na casa com referência = o pedido do adaptador, e a entrada do Kling 4 guardada
   const load = loader(over); const m = load(M)
-  const rodar = async ({ email, modo = 'internal', model = K4R, envio = null }) => {
-    const envios = []
-    const escopo = { geminiNaEsteiraLigado: m.geminiNaEsteiraLigado, GEMINI_NA_ESTEIRA_2511: modo, user: { email, id: USER }, kling4PorSecao: (x) => x, kling4Prompts: [], kling4ApprovedStills: [], kling4Timing: { referenciaUnica: { nomes: ['Elias Ward', 'Elias'], segundo: { nomes: ['Mara Quinn'] } } },
+  const rodar = async ({ email, modo = m.GEMINI_NA_ESTEIRA_2511, model = K4R, envio = null }) => {
+    const envios = []; let montagens = 0
+    const escopo = { geminiNaEsteiraLigado: m.geminiNaEsteiraLigado, GEMINI_NA_ESTEIRA_2511: modo, user: { email, id: USER }, kling4PorSecao: (x) => { montagens++; return x }, kling4Prompts: [], kling4ApprovedStills: [], kling4Timing: { referenciaUnica: { nomes: ['Elias Ward', 'Elias'], segundo: { nomes: ['Mara Quinn'] } } },
       buildKling4TrialInput: () => ({ model, input: FIX.kling4_input }), KLING4_REFERENCE_MODEL: K4R, geminiDoKling4: m.geminiDoKling4, submitGeminiTrialVideo: async (e) => { envios.push(e); if (envio) return envio(); return { requestId: 'gem-1', model: GEM, submittedAt: 'x' } },
       GeminiRecusadoNoEnvio: m.GeminiRecusadoNoEnvio, writeServerEvent: async () => true, GEMINI_ENVIO_EVENTO: 'x', generationId: GEN, ctxDespacho: () => ({ totalPosts: 0 }), kling4Posts: 0, process: { env: {} } }
     const corpo = ts.transpile('let kling4Posts = 0\n' + trecho + '\nreturn (async () => ({ job: await tentarGemini2511(), gemini2511 }))()', { target: ts.ScriptTarget.ES2022 })
     const r = await Function(...Object.keys(escopo).filter((k) => k !== 'kling4Posts'), corpo)(...Object.entries(escopo).filter(([k]) => k !== 'kling4Posts').map(([, v]) => v))
-    return { ...r, envios }
+    return { ...r, envios, montagens }
   }
   return { f, no, rota, status, sonda, rodar, m }
 }
@@ -296,9 +297,14 @@ async function suite(over = {}) {
   try {
     for (const [email, modo] of [[CLIENTE, 'internal'], [null, 'internal'], ['joseph@usekineo.com', 'internal'], [CASA, 'off']]) {
       const x = await t.rodar({ email, modo })
-      t.no(x.job !== null || x.envios.length !== 0 || x.gemini2511.entrada !== null, `R1 ${email} '${modo}': nenhum pedido ao Gemini`)
+      t.no(x.job !== null || x.envios.length !== 0 || x.gemini2511.entrada !== null || x.montagens !== 0, `R1 ${email} '${modo}': nenhum pedido ao Gemini e nada montado (a reversão: 'internal' = só a casa, 'off' = o de antes)`)
     }
-    const casa = await t.rodar({ email: CASA })
+    // [dono 25/11 15:27] com a chave REAL ('public'): o cliente recebe o MESMO pedido do Gemini que a casa (o adaptador da nota 10), e a entrada do Kling 4 fica guardada
+    for (const email of [CLIENTE, 'joseph@usekineo.com', CASA]) {
+      const x = await t.rodar({ email })
+      t.no(x.job?.requestId !== 'gem-1' || JSON.stringify(x.envios) !== JSON.stringify([FIX.gemini_input_nota_10]) || JSON.stringify(x.gemini2511.kling4) !== JSON.stringify({ model: K4R, input: FIX.kling4_input }), `R1p ${email} com a chave real: o pedido do Gemini e a entrada do Kling 4 guardada`)
+    }
+    const casa = await t.rodar({ email: CASA, modo: 'internal' })
     t.no(casa.job?.requestId !== 'gem-1' || JSON.stringify(casa.envios) !== JSON.stringify([FIX.gemini_input_nota_10]) || JSON.stringify(casa.gemini2511.kling4) !== JSON.stringify({ model: K4R, input: FIX.kling4_input }), 'R2 a casa: o pedido do adaptador, e a entrada do Kling 4 guardada')
     // G9 [revisora 25/11: dinheiro] a recusa 4xx no envio: nada aceito, o Kling 4 vai NA HORA (a tentativa devolve null e o envio segue); o envio ambíguo
     // lança (a regra de hoje do envio incerto: nenhum Kling 4 por cima de um Gemini talvez aceito)
@@ -317,6 +323,7 @@ async function suite(over = {}) {
   no(!status.includes("'google/gemini-omni-flash/v1.2/reference-to-video', // KINEO-GEMINI-NA-ESTEIRA-2511"), 'R8 a consulta do filme aceita o modelo do Gemini')
   no(!sonda.includes('resultado: res.data ?? null'), 'R9 a sonda devolve o resultado inteiro')
   no(/debitVideoCredits|debit\(/.test(read(A)) || /debitVideoCredits/.test(read(M)), 'R10 a queda não debita')
+  no(/contaDaCasaExata|geminiNaEsteiraLigado|isDryRunAccount|isInternalEmail|\.email\b/.test(over[A] ?? read(A)), 'R15 [25/11, para todos] o acompanhamento, a queda e o selo não olham quem é a conta: as travas de dinheiro valem igual para o cliente')
   { const compose = over[COMPOSE] ?? read(COMPOSE), asy = over[A] ?? read(A)
     const depois = (txt, antes, linha) => { const i = txt.indexOf(antes); return i >= 0 && txt.indexOf(linha, i) > i && txt.indexOf(linha, i) - i < antes.length + 40 }
     no(!depois(rota, '          country: marker.country, engineUsed: trialEngine, costUsd: marker.cost_usd })\n', "        if (typeof gravarSeloDoFilmeGratis2511 === 'function') await gravarSeloDoFilmeGratis2511(cinematicAdmin, { jobId: generationId, userId: user.id, marker })"), 'R12 o nascimento regrava o selo logo depois do razão')
@@ -334,7 +341,9 @@ async function suite(over = {}) {
 const real = await suite()
 for (const x of real) console.error('FALHOU ' + x)
 const MUTANTES = [
-  [M, "export const GEMINI_NA_ESTEIRA_2511: ModoGeminiNaEsteira2511 = 'internal'", "export const GEMINI_NA_ESTEIRA_2511: ModoGeminiNaEsteira2511 = 'public'"],
+  [M, "export const GEMINI_NA_ESTEIRA_2511: ModoGeminiNaEsteira2511 = 'public'", "export const GEMINI_NA_ESTEIRA_2511: ModoGeminiNaEsteira2511 = 'internal'"], // [25/11] o cliente sem o Gemini
+  [M, "export const GEMINI_NA_ESTEIRA_2511: ModoGeminiNaEsteira2511 = 'public'", "export const GEMINI_NA_ESTEIRA_2511: ModoGeminiNaEsteira2511 = 'off'"],
+  [M, "modo === 'public' || (modo === 'internal'", "(modo === 'internal'"], // 'public' deixa de ligar
   [M, "modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))", "modo !== 'off'"],
   [M, "`${t}-${t + d} s (shot ${k + 1}, hard cut): ", "`${t}-${t + d}s (shot ${k + 1}): "],
   [M, "(_m, n) => `<IMAGE_REF_${Number(n) - 1}>`", "(_m, n) => `<IMAGE_REF_${Number(n)}>`"],
