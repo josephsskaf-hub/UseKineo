@@ -414,10 +414,13 @@ function identidadeDeObra(nome: string, textos: ReadonlyArray<{ texto: string }>
   const papelAmbiguo = norm(nome) === 'mario' ? /\bplumber\b/iu : norm(nome) === 'elsa' ? /\bqueen\b.*\bice\b/iu : null
   if (papelAmbiguo && textos.some(({ texto }) => trechosColadosAoNome(texto, nome).some(t => papelAmbiguo.test(t.trecho)))) return true
   const termo = new RegExp('(?<![\\p{L}\\p{N}-])' + escapaRe(nome) + '(?![\\p{L}\\p{N}-])', 'giu')
-  return textos.some(({ texto }) => [...texto.matchAll(termo)].some(m =>
-    ORIGEM_COMERCIAL.test(texto.slice(m.index! + m[0].length)) ||
-    OBRA_NOMEADA.test(texto.slice(m.index! + m[0].length)) ||
-    /\b(?:licensed|branded|copyrighted|trademarked)\s+(?:character|mascot)\s+(?:(?:named|called)\s+)?$/iu.test(texto.slice(0, m.index))))
+  return textos.some(({ texto }) => [...texto.matchAll(termo)].some(m => {
+    const depois = texto.slice(m.index! + m[0].length)
+    const aposto = APOSTO_DO_NOME_RE.exec(depois)
+    // "Velin, a young boy, from the novel Moon Bridge": só a atribuição imediatamente adjacente ao aposto.
+    return ORIGEM_COMERCIAL.test(depois) || OBRA_NOMEADA.test(depois) || (aposto?.[3] === ',' && OBRA_NOMEADA.test(depois.slice(aposto[0].length - 1))) ||
+      /\b(?:licensed|branded|copyrighted|trademarked)\s+(?:character|mascot)\s+(?:(?:named|called)\s+)?$/iu.test(texto.slice(0, m.index))
+  }))
 }
 
 function correspondeAoPapel(f: FichaDePersonagem, d: DescricaoDoNome2411): boolean {

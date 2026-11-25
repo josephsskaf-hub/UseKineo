@@ -271,6 +271,10 @@ function marcasEEmpresas(w) {
   check('licenca', lic.elenco[0]?.nome === 'the boy' && lic.elenco[0]?.canonica.includes('young boy with a red scarf'))
   const romance = ler('Velin Marlow waited outside.', 'Velin Marlow from the novel Moon Bridge. Velin Marlow, a young boy in a yellow coat, waits.')
   check('obra-nomeada', romance.elenco[0]?.nome === 'the boy')
+  const apostoDaObra = ler('Velin Marlow waited outside.', 'Velin Marlow, a young boy with a red scarf, from the novel Moon Bridge, waits.')
+  check('obra-apos-aposto', apostoDaObra.elenco.length === 1 && apostoDaObra.elenco[0].nome === 'the boy' && apostoDaObra.elenco[0].canonica.includes('young boy with a red scarf'))
+  const obraDoOutro = ler('Velin Marlow waited outside.', 'Velin Marlow, a young boy with a red scarf, met Quinn from the novel Moon Bridge.')
+  check('obra-do-outro', obraDoOutro.elenco.length === 1 && obraDoOutro.elenco[0].nome === 'Velin Marlow')
   const nu = ler('Harry Potter waited outside.', '', [base('Harry Potter','humano','Potter')], { lidos:['Harry Potter'], gente:['Harry Potter'] })
   check('sem-deduzir', nu.elenco.length === 0)
   const homonimo = ler('Henry Potter waited outside.', 'Henry Potter, a young boy with a red scarf, waits.')
@@ -374,8 +378,9 @@ const MUTANTES = [
 ]
 const mutantesDaMarca = [
   ['sem reconhecimento de nome', 'if (NOME_DE_OBRA.has(norm(nome))) return true', '', 'papel-Harry Potter-pedido'],
-  ['sem origem comercial explícita', 'ORIGEM_COMERCIAL.test(texto.slice(m.index! + m[0].length))', 'false', 'licenca'],
-  ['não lê obra nomeada', 'OBRA_NOMEADA.test(texto.slice(m.index! + m[0].length))', 'false', 'obra-nomeada'],
+  ['sem origem comercial explícita', 'ORIGEM_COMERCIAL.test(depois)', 'false', 'licenca'],
+  ['não lê obra nomeada', 'OBRA_NOMEADA.test(depois)', 'false', 'obra-nomeada'],
+  ['obra após o aposto ignorada', " || (aposto?.[3] === ',' && OBRA_NOMEADA.test(depois.slice(aposto[0].length - 1)))", '', 'obra-apos-aposto'],
   ['ignora o apelido declarado', 'return textos.some(t => apelido.test(t.texto))', 'return false', 'alias'],
   ['palavra compartilhada vira identidade', "if (!nomeProprio2411(n) || textosOriginais.some(t => trechosColadosAoNome(t.texto, n).length)) return undefined", "if (nomeProprio2411(n)) return obrasCitadas.find(obra => obra.split(' ').includes(n))", 'homonimos-Rose0'],
   ['apelido suplanta descrição independente', ' || textosOriginais.some(t => trechosColadosAoNome(t.texto, n).length)', '', 'apelido-em-conflito'],
