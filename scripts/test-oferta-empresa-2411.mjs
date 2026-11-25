@@ -167,7 +167,9 @@ async function verifyPublic(edits) {
   assert.match(h, /4 finished ads/)
   assert.match(h, /3 business days/)
   assert.match(h, /2 business days/)
-  assert.doesNotMatch(h, /\$\s*\d|\/api\/stripe|\/checkout/, 'no unapproved price or purchase')
+  assert.match(h, /\$299/, 'approved package A price is visible')
+  assert.doesNotMatch(h, /\$499|\$749|\/api\/stripe|\/checkout/, 'no alternative package or purchase')
+  assert.match(h, /limited to 3 clients/, 'pilot admission limit is visible')
   assert.deepEqual([...h.matchAll(/poster="(\/ads-exemplos\/[^"]+)"/g)].map(m => m[1]), ['/ads-exemplos/relogio.webp', '/ads-exemplos/caneca.webp'], 'only the house examples approved for this package')
   assert.match(h, /fictional products/)
   assert.match(h, /action="\/api\/lead-capture\/company-offer"/)
@@ -177,6 +179,16 @@ async function verifyPublic(edits) {
   assert.notEqual(meta.title, '')
   assert.ok(!source('app/sitemap.ts').includes(w.load(CONTACT).COMPANY_OFFER_PATH), 'absent from the sitemap')
 }
+async function verifyPriceConstant(edits = {}) {
+  const key = 'lib/growth/companyOffer.ts'
+  const revised = (edits[key] ?? source(key)).replace('approvedMonthlyPriceMinor: 29_900', 'approvedMonthlyPriceMinor: 31_700')
+  assert.notEqual(revised, edits[key] ?? source(key), 'price fixture applies')
+  const w = world({ release: 'public', edits: { ...edits, [key]: revised } })
+  const h = await pageHtml(w)
+  assert.match(h, /\$317/, 'page follows the single price constant')
+  assert.doesNotMatch(h, /\$299/, 'page has no literal old price')
+}
+
 const priorBrief = {
   id: '00000000-0000-4000-a000-000000000001',
   email: fixture.toUpperCase(),
@@ -296,12 +308,11 @@ async function verifyForm(edits, success) {
 
 if (process.argv[2] === '--preview') {
   const dir = process.argv[3]
-  const price = Number(process.argv[4])
-  assert.ok(Number.isInteger(price) && price > 0)
+  assert.equal(process.argv[4], undefined, 'preview uses the approved product constant')
   const publicWorld = world({ release: 'public' })
   await verifyOff()
   mkdirSync(dir, { recursive: true })
-  const variant = render(React.createElement(publicWorld.load(VIEW).default, { monthlyPriceMinor: price }))
+  const variant = render(React.createElement(publicWorld.load(VIEW).default))
   writeFileSync(join(dir, 'proposta.html.fragment'), variant)
   const notFound = render(React.createElement(publicWorld.load('app/not-found.tsx').default))
   writeFileSync(join(dir, 'desligada.html.fragment'), notFound)
@@ -310,6 +321,7 @@ if (process.argv[2] === '--preview') {
   await verifyOff()
   await verifyInternal()
   await verifyPublic()
+  await verifyPriceConstant()
   await verifyStorage()
   await verifyErrors()
   await verifyProtocol()
@@ -317,6 +329,9 @@ if (process.argv[2] === '--preview') {
   await verifyForm({}, true)
   await verifyForm({}, false)
   const mutants = [
+    ['approved price changes', change('lib/growth/companyOffer.ts', 'approvedMonthlyPriceMinor: 29_900', 'approvedMonthlyPriceMinor: 49_900'), verifyPublic, /approved package A price/],
+    ['pilot limit disappears', change(VIEW, 'This pilot is limited to {offer.pilotClientLimit} clients.', 'This pilot is available.'), verifyPublic, /pilot admission limit/],
+    ['price bypasses constant', change(VIEW, 'formatCheckoutMoney(offer.currency, offer.approvedMonthlyPriceMinor)', 'formatCheckoutMoney(offer.currency, 29_900)'), verifyPriceConstant, /page follows the single price constant/],
     ['page opens while OFF', change(PAGE, 'if (!await canViewCompanyOffer()) notFound()', 'if (false) notFound()'), verifyOff, /OFF page fails closed/],
     ['POST opens while OFF', change(API, 'if (!await canViewCompanyOffer())', 'if (false)'), verifyOff, /OFF POST fails closed/],
     ['INTERNAL accepts outsiders', change(ACCESS, 'return !error && !!data.user?.email_confirmed_at && contaDaCasaExata(data.user.email)', 'return true'), verifyInternal, /INTERNAL denies outside confirmed house/],

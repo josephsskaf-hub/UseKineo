@@ -6,9 +6,7 @@ import CompanyOfferForm from './CompanyOfferForm'
 
 const examples = ADS_EXEMPLOS.filter((example) => example.aprovadoPeloDono && offer.exampleKeys.some((key) => key === example.key))
 
-export default function CompanyOfferPage({ monthlyPriceMinor = offer.approvedMonthlyPriceMinor }: {
-  monthlyPriceMinor?: number | null
-}) {
+export default function CompanyOfferPage() {
   return (
     <main className="company-offer">
       <div className="company-offer-wrap">
@@ -35,10 +33,11 @@ export default function CompanyOfferPage({ monthlyPriceMinor = offer.approvedMon
               <div><dt>Production</dt><dd>Scripts, editing and human review</dd></div>
               <div><dt>Revisions</dt><dd>{offer.revisionRounds} consolidated round per batch</dd></div>
             </dl>
-            {monthlyPriceMinor !== null && (
-              <p className="company-offer-price"><strong>{formatCheckoutMoney(offer.currency, monthlyPriceMinor)}</strong> / month</p>
+            {offer.approvedMonthlyPriceMinor !== null && (
+              <p className="company-offer-price"><strong>{formatCheckoutMoney(offer.currency, offer.approvedMonthlyPriceMinor)}</strong> / month</p>
             )}
             <p>Made from product photos you have permission to use.</p>
+            <p>This pilot is limited to {offer.pilotClientLimit} clients. We confirm availability before payment.</p>
           </div>
         </section>
 
