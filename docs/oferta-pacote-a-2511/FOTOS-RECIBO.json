@@ -1,0 +1,65 @@
+{
+  "date": "2026-11-25",
+  "captureBase": "6804eb7937e92fc10967ecc57b03b6537ac0ff25",
+  "deliveryBase": "28f7c53b8fd107b2e32e553a1b705d17c37b6bd7",
+  "method": "Chrome CUA, fullPage JPEG, viewport 1920x1080 / 390x844, local SSR real component, no JS or API",
+  "rebasedVisualInputs": "git diff entre bases vazio para globals.css, appearance.css, manrope.css, tailwind.config.js e checkoutPricing.ts; componente da oferta preservado",
+  "images": [
+    {
+      "file": "prova/antes-1920-light.jpg",
+      "sha256": "e66f1f348de75be8f40c0516a1c3f8464cf2c7c3e7707644a2eafeb0e3cfd612",
+      "bytes": 277166,
+      "viewportWidth": 1920,
+      "jpegWidth": 1916
+    },
+    {
+      "file": "prova/depois-1920-light.jpg",
+      "sha256": "437c54760242465a91df4285977e65dac0192dfbd0fc2b2f5852c9daffbbe323",
+      "bytes": 290010,
+      "viewportWidth": 1920,
+      "jpegWidth": 1916
+    },
+    {
+      "file": "prova/antes-1920-dark.jpg",
+      "sha256": "852228a20df2767470e19e2492702c2035b6700432951d1a65d9d08ea013258e",
+      "bytes": 280392,
+      "viewportWidth": 1920,
+      "jpegWidth": 1916
+    },
+    {
+      "file": "prova/depois-1920-dark.jpg",
+      "sha256": "8897b7efe1232cc0896fbfd36cb14f8c8aa32ec4d58801d32a97a4f7e31e9bd2",
+      "bytes": 291149,
+      "viewportWidth": 1920,
+      "jpegWidth": 1916
+    },
+    {
+      "file": "prova/antes-390-light.jpg",
+      "sha256": "e478aeb0618b3bd2e9d5f2d75138cef35ae291a8426c15dff35d419795efc17a",
+      "bytes": 207808,
+      "viewportWidth": 390,
+      "jpegWidth": 386
+    },
+    {
+      "file": "prova/depois-390-light.jpg",
+      "sha256": "bff5326756ef8e6f78a4062de2b51fe2ba7d9cfa5a3973f04883b673023def0b",
+      "bytes": 212289,
+      "viewportWidth": 390,
+      "jpegWidth": 386
+    },
+    {
+      "file": "prova/antes-390-dark.jpg",
+      "sha256": "90cf587377e15e9084ff7b5cb911e5dd54ed011b7b474e6ce065a245dea3760b",
+      "bytes": 210301,
+      "viewportWidth": 390,
+      "jpegWidth": 386
+    },
+    {
+      "file": "prova/depois-390-dark.jpg",
+      "sha256": "b57279722c5d078826252fe36ffb81e362fe8cdbbe22660e521136fad2f2ada6",
+      "bytes": 213022,
+      "viewportWidth": 390,
+      "jpegWidth": 386
+    }
+  ]
+}

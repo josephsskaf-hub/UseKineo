@@ -1,0 +1,69 @@
+TESTE KINEO-ADMIN-RAPIDO-1710 — /admin mais rápido (funil, coortes, visão geral, oportunidades, coerência, demo)
+  ✓ R1 funil: fase 1 é um Promise.all com auth, profiles, leads, videos, click_events, checkout_abandoned, sonda e Stripe
+  ✓ R1 funil: nenhum `await readAll(` nem `await stripe.` em série dentro do GET
+  ✓ R1 funil: a sonda count:exact sobre events inteira saiu
+  ✓ R1 funil: as 5 leituras de events correm juntas (contagem + 4 readAll em UM Promise.all)
+  ✓ R2 funil: o GET conta por countTrackedEvents (RPC agrupado), não por 78 count:exact soltos
+  ✓ R3 funil: sessions, subscriptions e invoices da Stripe passam por cachedAdminStripe
+  ✓ R3 cache: TTL de 10 min
+  ✓ R4 visão geral: profiles, videos, eventos de MRR, cortesia, checkout_started e sessions da Stripe numa onda só
+  ✓ R4 visão geral: sessions da Stripe com cache (cachedAdminStripe) e o teto MAX_SESSOES
+  ✓ R4 visão geral: conta interna sai ANTES dos contadores da Stripe
+  ✓ R4 MRR ao vivo: assinaturas lidas em lotes paralelos de 10 (não uma por uma)
+  ✓ R4 rota /api/admin/ceo (polling + /admin/leads) usa o memo computeCeoDataCached; o cálculo grava o memo
+  ✓ R5 régua do MRR: PLAN_PRICE_USD…mrrForPlan byte a byte igual ao pai
+  ✓ R5 régua do MRR: planBase…paidMrrSourceLabel (subscriberMrr, paidMonthlyUsdByUser, MRR_PAID_EVENT_NAMES) byte a byte igual ao pai
+  ✓ R5 conta por assinatura (viva, item, valor, anual÷12, centavos) idêntica
+  ✓ R5 compute.ts continua somando a régua de _shared/mrr (subscriberMrr + paidMonthlyUsdByUser + rótulo), sem conta própria
+  ✓ R6 coerência: a página só lê (maxCompute: 0) e não chama o juiz
+  ✓ R6 coerência: botão "Avaliar pendentes" na página → POST /api/admin/coerencia/avaliar
+  ✓ R6 coerência: a rota do botão tem gate de admin e julga no máximo 6
+  ✓ R6 coerência: o cron quality-radar continua no vercel.json (a cada 15 min)
+  ✓ R7 demo: o GET não roda o robô (advanceDemosSobMedida)
+  ✓ R7 demo: o PATCH (gate de admin) roda o mesmo passo do cron
+  ✓ R7 demo: a tela tem o botão "Avançar agora" (PATCH) e não espera o robô a cada 60 s
+  ✓ R7 demo: o cron ads-v2-advance continua chamando o robô, na mesma frequência (2-57/5)
+  ✓ R8 polling: Funil 5 min com pausa de aba
+  ✓ R8 polling: Visão geral 5 min com pausa de aba
+  ✓ R8 polling: Oportunidades 5 min com pausa de aba
+  ✓ R9 coortes: profiles filtrados no banco (ilike active) e o filtro em memória mantido
+  ✓ R9 coortes: videos e events em fatias paralelas de 15 ids
+  ✓ R10 migration dos índices: os 4 nomes de produção, CONCURRENTLY IF NOT EXISTS
+  ✓ R10 migration do RPC: mesma regra das contagens (nome, período, nulo ou fora dos internos) e só service_role
+  ✓ R3 cache rodado: 2ª chamada da mesma chave não chama a Stripe
+  ✓ R3 cache rodado: duas aberturas ao mesmo tempo = UMA leitura
+  ✓ R3 cache rodado: erro não fica guardado (a próxima abertura tenta de novo)
+  ✓ R3 cache rodado: TTL vencido relê
+  ✓ R3 funil rodado: reabrir o Funil no mesmo período NÃO relê sessions/subscriptions/invoices da Stripe
+  ✓ R2 contagem rodada: UMA chamada agrupada (RPC) com nomes, período e internos; nome sem linha = 0; nenhuma contagem solta
+  ✓ R2 contagem rodada: sem o RPC aplicado, volta às contagens exatas com o MESMO período e o MESMO filtro de internos
+
+── mutantes (cada um precisa ser aplicado e ficar vermelho)
+  ✓ mutante "funil volta a ler profiles em série" → vermelho em "R1 funil: nenhum `await readAll(`…"
+  ✓ mutante "funil volta a sonda count exact" → vermelho em "R1 funil: a sonda count:exact…"
+  ✓ mutante "funil lê identities fora do Promise.all" → vermelho em "R1 funil: nenhum `await readAll(`…"
+  ✓ mutante "contagem pula o RPC" → vermelho em "R2 contagem rodada: UMA chamada agrupada…"
+  ✓ mutante "contagem de fallback esquece os internos" → vermelho em "R2 contagem rodada: sem o RPC aplicado…"
+  ✓ mutante "cache guarda nada" → vermelho em "R3 cache rodado: 2ª chamada…"
+  ✓ mutante "cache guarda o erro" → vermelho em "R3 cache rodado: erro não fica guardado…"
+  ✓ mutante "cache sem dedupe de chamadas simultâneas" → vermelho em "R3 cache rodado: duas aberturas…"
+  ✓ mutante "funil chama a Stripe sem cache" → vermelho em "R3 funil rodado…"
+  ✓ mutante "visão geral lê checkout_started em série" → vermelho em "R4 visão geral: profiles, videos…"
+  ✓ mutante "MRR ao vivo volta a ler uma por uma" → vermelho em "R4 MRR ao vivo…"
+  ✓ mutante "rota CEO ignora o memo" → vermelho em "R4 rota /api/admin/ceo…"
+  ✓ mutante "régua: anual deixa de virar mensal" → vermelho em "R5 conta por assinatura…"
+  ✓ mutante "régua: subscriberMrr muda" → vermelho em "R5 régua do MRR: planBase…"
+  ✓ mutante "régua: preço de tabela muda" → vermelho em "R5 régua do MRR: PLAN_PRICE_USD…"
+  ✓ mutante "compute faz conta própria" → vermelho em "R5 compute.ts continua…"
+  ✓ mutante "coerência volta a julgar ao abrir" → vermelho em "R6 coerência: a página só lê…"
+  ✓ mutante "rota do botão sem gate" → vermelho em "R6 coerência: a rota do botão…"
+  ✓ mutante "demo: GET volta a rodar o robô" → vermelho em "R7 demo: o GET não roda…"
+  ✓ mutante "demo: PATCH sem gate" → vermelho em "R7 demo: o PATCH…"
+  ✓ mutante "demo: cron muda de frequência" → vermelho em "R7 demo: o cron ads-v2-advance…"
+  ✓ mutante "funil volta a 30 s" → vermelho em "R8 polling: Funil…"
+  ✓ mutante "visão geral sem pausa de aba" → vermelho em "R8 polling: Visão geral…"
+  ✓ mutante "coortes voltam a ler todos os profiles" → vermelho em "R9 coortes: profiles filtrados…"
+  ✓ mutante "índice com nome errado" → vermelho em "R10 migration dos índices…"
+  ✓ mutante "RPC sem o filtro de internos" → vermelho em "R10 migration do RPC…"
+
+═══ TUDO VERDE ═══

@@ -1,0 +1,23 @@
+{
+  "date": "2026-11-25",
+  "base": "28f7c53b8fd107b2e32e553a1b705d17c37b6bd7",
+  "codeHead": "3f9fff59686371613c5672e78d17604a95278fce",
+  "typecheck": {
+    "command": "node C:/kineo/node_modules/typescript/bin/tsc --noEmit -p . --incremental false",
+    "exit": 0,
+    "log": "TYPECHECK-FINAL.log"
+  },
+  "firstTypecheck": {
+    "base": "6804eb7937e92fc10967ecc57b03b6537ac0ff25",
+    "exit": 0
+  },
+  "baseRegression": {
+    "test": "test-five-improvements.mjs",
+    "candidateExit": 1,
+    "baseExit": 1,
+    "assertion": "critical CI cannot ignore failure",
+    "line": 99
+  },
+  "network": "none; offline fixtures",
+  "release": "off"
+}

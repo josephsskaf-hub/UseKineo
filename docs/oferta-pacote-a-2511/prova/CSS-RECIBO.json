@@ -1,0 +1,13 @@
+{
+  "base": "6804eb7937e92fc10967ecc57b03b6537ac0ff25",
+  "globals": "9fceec10b09daadc4b2b6b425151129db50764edde1467d10b7e967d21e3594f",
+  "scoped": "da247476bdd6482dd23fda7e4888609a30d39e9c037c3e69b9eb483986531983",
+  "compiled": "8cb38cad8a14eae18353ed1ebe0f32748fb8a7a723efa30085907678bda45442",
+  "fonts": "d4d4b988f5ca0395798421c73db2a68b78683d01429a3cd4fff423c649f4b403",
+  "method": "PostCSS/Tailwind instalados; CSS global e componente atuais, sem build Next",
+  "before": "c60fb174c com hipótese offline 29900",
+  "after": "componente atual, preço por constante, sem override",
+  "fontRequests": "somente locais",
+  "appearance": "53227e16a5baf54ff47900ce65c5411796bc1a049392606a28b187bc7c1eb467",
+  "order": "globals + manrope + appearance + scoped"
+}

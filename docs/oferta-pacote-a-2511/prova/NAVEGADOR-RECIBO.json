@@ -1,0 +1,50 @@
+[
+  {
+    "side": "depois",
+    "theme": "light",
+    "bg": "rgb(247, 247, 245)",
+    "formAction": "/api/lead-capture/company-offer",
+    "limit": true,
+    "pageHeight": 3129,
+    "price": "$299 / month",
+    "scrollWidth": 390,
+    "viewportHeight": 844,
+    "width": 390
+  },
+  {
+    "side": "depois",
+    "theme": "dark",
+    "bg": "rgb(7, 9, 13)",
+    "formAction": "/api/lead-capture/company-offer",
+    "limit": true,
+    "pageHeight": 3126,
+    "price": "$299 / month",
+    "scrollWidth": 386,
+    "viewportHeight": 844,
+    "width": 390
+  },
+  {
+    "side": "depois",
+    "theme": "light",
+    "bg": "rgb(247, 247, 245)",
+    "formAction": "/api/lead-capture/company-offer",
+    "limit": true,
+    "pageHeight": 2206,
+    "price": "$299 / month",
+    "scrollWidth": 1916,
+    "viewportHeight": 1080,
+    "width": 1920
+  },
+  {
+    "side": "depois",
+    "theme": "dark",
+    "bg": "rgb(7, 9, 13)",
+    "formAction": "/api/lead-capture/company-offer",
+    "limit": true,
+    "pageHeight": 2206,
+    "price": "$299 / month",
+    "scrollWidth": 1916,
+    "viewportHeight": 1080,
+    "width": 1920
+  }
+]

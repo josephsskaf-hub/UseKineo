@@ -1,0 +1,17 @@
+PASS mutant approved price changes
+PASS mutant pilot limit disappears
+PASS mutant price bypasses constant
+PASS mutant page opens while OFF
+PASS mutant POST opens while OFF
+PASS mutant INTERNAL accepts outsiders
+PASS mutant internal page becomes indexable
+PASS mutant storage reports fake success
+PASS mutant form posts to the legacy endpoint
+PASS mutant form celebrates a soft failure
+PASS mutant origin guard disappears
+PASS mutant an unrelated UGC example enters
+PASS mutant inbox loses the service request
+PASS mutant brief is replaced
+PASS mutant browser accepts reserved inbox event
+PASS mutant event insert reports fake success
+PASS real page, form, endpoint, and CEO inbox; OFF/internal/public; 16 behavior mutants
