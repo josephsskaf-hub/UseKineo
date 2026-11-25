@@ -113,7 +113,7 @@ async function prova(over = {}) {
     no(!(iUsa > 0 && iEnvio > 0 && chamadas.length >= 3 && chamadas.every((i) => i > iUsa)), 'C5 a descrição entra nas seções antes de toda chamada da montagem do envio (juiz, claim e POST leem a mesma)') }
   no(!rota.includes("const c1 = descricoesSemRosto(descricoesCompletas(d, n), semRosto1911()) // KINEO-SEM-ROSTO-2011 — a troca da cena antes da conta do espaço\n        if (!c1) return { descricoes: null, pedidas, motivo: 'descricao_nula_depois_de_pedir_de_novo' }"), /* [Div. 2 20/11] reancorado: a mesma conta, com a troca do modo sem rosto (scripts/test-sem-rosto-2011.mjs) */ 'C5b [ensaio A2 19/11] descrição nula depois de pedir de novo = nenhuma descrição (o caminho de hoje)')
   no(!rota.includes("objetoConcreto: kling4PlanoVariado }) // KINEO-K4-PLANO-POR-SECAO-1111 · KINEO-K4-PLANO-VARIADO-1111"), 'C6 a montagem de sempre continua igual (a descrição viaja na seção)')
-  no(!rota.includes("fallback_scenes: classicScenePrompts.map((prompt, i) => ({ prompt, duration: scenes[i].clipSeconds ?? 6 })),"), 'C7 a reserva H3 nasce das cenas de sempre (nada do A1 toca classicScenePrompts)')
+  no(!rota.includes("const promptsDaReserva = papelVisual2411 ? classicScenePrompts.map(visualParaImagemOuReserva) : classicScenePrompts") || !rota.includes("fallback_scenes: promptsDaReserva.map((prompt, i) => ({ prompt, duration: scenes[i].clipSeconds ?? 6 })),"), 'C7 a reserva H3 nasce das cenas de sempre (nada do A1 toca classicScenePrompts)')
   no(rota.split('\n').filter((l) => l.includes('KINEO-PLANO-DA-FALA-1911') || l.includes('descricoesDasSecoesK4')).some((l) => /classicScenePrompts|\.aiPrompt\s*=|scenes\[[^\]]*\]\.(?:voiceover|description)\s*=/.test(l)), 'C8 o A1 não escreve nas cenas')
   return p
 }

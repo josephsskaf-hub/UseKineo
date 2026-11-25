@@ -50,7 +50,7 @@ async function filmeNaRota(route, j, { email, elencoP, respostas, look = 'animat
   const corpos = [], gerados = [], folhaDe = new Map(elencoP.map((f) => [f.nome, `https://x.org/folha-${f.nome.split(' ')[0]}.png`]))
   const fetchImpl = async (_u, o) => { const b = JSON.parse(o.body); corpos.push(o.body); const url = b.messages[1].content[1].image_url.url
     const r = respostas[url]; assert.ok(r !== undefined, 'leitura sem resposta: ' + url); return { ok: true, json: async () => ({ choices: [{ message: { content: r } }], usage: { prompt_tokens: 3000, completion_tokens: 120 } }) } }
-  const escopo = { epocaVisual: null, aplicarEpocaVisual: (p) => p, juizDaFolhaLigado: j.juizDaFolhaLigado, JUIZ_DA_FOLHA_2411: j.JUIZ_DA_FOLHA_2411, user: { email }, kling4TrialCandidate: true, qualidadeHerdada: null, ensaioPersonagemFixo: false,
+  const escopo = { visualParaImagemOuReserva: texto => texto, epocaVisual: null, aplicarEpocaVisual: (p) => p, juizDaFolhaLigado: j.juizDaFolhaLigado, JUIZ_DA_FOLHA_2411: j.JUIZ_DA_FOLHA_2411, user: { email }, kling4TrialCandidate: true, qualidadeHerdada: null, ensaioPersonagemFixo: false,
     folhaDe, elencoP, julgarAFolha: j.julgarAFolha, isStylizedLook: (s) => s.look !== 'photoreal', styleAnchor: { look, lookPhrase: look === 'photoreal' ? 'photorealistic, ultra-detailed' : 'stylized 3D animated film look' },
     desenhoInfantil: { ativo: false }, lerAFolha: (d, u, o) => j.lerAFolha(d, u, { ...(o ?? {}), apiKey: 'k', fetchImpl }),
     generateCinematicSceneStill: async (a) => { gerados.push(a.scenePrompt); return `https://x.org/nova-${gerados.length}.png` }, promptDaFolha: (f) => 'Character reference sheet: ' + f.canonica,
