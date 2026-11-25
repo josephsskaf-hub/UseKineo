@@ -40,7 +40,7 @@ import { ELENCO_E_FIGURINO_2411, FIGURINO_DO_PEDIDO_2411, elencoEFigurinoLigado,
 import { FOLHA_DA_REFERENCIA_2411, folhaDaReferenciaLigada, folhaServeAReferencia2411, retratoDaReferencia2411 } from '@/lib/cinematic/folhaDaReferencia2411' // KINEO-FOLHA-DA-REFERENCIA-2411
 import { LEITOR_DO_ELENCO_2411, LEITOR_DO_ELENCO_2411_VERSAO, elencoDoLeitor2411 } from '@/lib/cinematic/elencoEFigurino2411' // KINEO-LEITOR-DO-ELENCO-2411
 import { FICHA_SEM_NOME_2511, fichaSemNomeLigada } from '@/lib/cinematic/fichaSemNome2511' // KINEO-FICHA-SEM-NOME-2511
-import { JUIZ_DA_FOLHA_2411, JUIZ_DA_FOLHA_2411_VERSAO, juizDaFolhaLigado, julgarAFolha, lerAFolha, retratoSemFolhaReprovada2411, type RelatoDaFolha } from '@/lib/cinematic/juizDaFolha2411' // KINEO-JUIZ-DA-FOLHA-2411
+import { JUIZ_DA_FOLHA_2411, JUIZ_DA_FOLHA_2411_VERSAO, juizDaFolhaLigado, julgarAFolha, lerAFolha, retratoSemFolhaReprovada2411, type RelatoDaFolha, FORMA_DA_FOLHA_2511, formaNoFilme } from '@/lib/cinematic/juizDaFolha2411' // KINEO-JUIZ-DA-FOLHA-2411 · KINEO-FORMA-NOS-FILMES-2511
 import { REFERENCIA_UNICA_2411, admitirReferenciaUnica2411, relatoReferenciaUnica, relatoClienteSemReferencia2411, entradaDoJuiz2411, type ReferenciaUnica2411, type MotivoClienteSemReferencia2411 } from '@/lib/cinematic/referenciaUnica2411' // KINEO-REFERENCIA-UNICA-2411 · KINEO-REFERENCIA-UNICA-HUMANO-2411
 import { KLING4_PAID_LIVE } from '@/lib/kling4PaidPolicy'
 import { kling4PaidCredits, kling4PaidFalExtrasMilliUsd, kling4PaidBudget } from '@/lib/kling4PaidPricing'
@@ -8197,8 +8197,9 @@ async function manipularPost(req: NextRequest) {
       // qualquer imagem-chave. Reprovou: UMA folha nova com a instrução do que faltou, e ela passa a ser a folha do filme. Reprovou de novo ou sem leitura: a folha segue no caminho de hoje (imagens-chave),
       // mas a admissão da referência única não a lê. Cliente e 'off': o `if` não entra (nenhuma chamada).
       if (juizDaFolhaLigado(JUIZ_DA_FOLHA_2411, user.email) && kling4TrialCandidate && !qualidadeHerdada && !ensaioPersonagemFixo /* [revisora, v3] o ensaio do personagem fixo fica como hoje */ && folhaDe.size > 0) {
-        const julgadas = await Promise.all(elencoP.filter((f) => folhaDe.has(f.nome)).map((f, i) => julgarAFolha({ ficha: f, url: folhaDe.get(f.nome) as string, filmeFotorreal: !isStylizedLook(styleAnchor) && !desenhoInfantil.ativo, lookPhrase: styleAnchor.lookPhrase },
-          { ler: (descricao, url) => lerAFolha(descricao, url), gerar: (instrucao) => generateCinematicSceneStill({ scenePrompt: aplicarEpocaVisual(promptDaFolha(f, styleAnchor, folhaSemNome2511), epocaVisual?.ficha, true) + instrucao, styleSuffix: '', seed: (generationSeed + 7_919 * (201 + i)) % 2_147_483_647, pollWindowMs: 15_000, aspect: aspectRequested }) })))
+        const formaDoFilme2511 = formaNoFilme(FORMA_DA_FOLHA_2511, user.email) // KINEO-FORMA-NOS-FILMES-2511: a casa com 'internal' = 'on' (o head_check vai ao leitor e decide); o resto = 'off', o de antes
+        const julgadas = await Promise.all(elencoP.filter((f) => folhaDe.has(f.nome)).map((f, i) => julgarAFolha({ ficha: f, url: folhaDe.get(f.nome) as string, filmeFotorreal: !isStylizedLook(styleAnchor) && !desenhoInfantil.ativo, lookPhrase: styleAnchor.lookPhrase, forma: formaDoFilme2511 },
+          { ler: (descricao, url) => lerAFolha(descricao, url, { forma: formaDoFilme2511 }), gerar: (instrucao) => generateCinematicSceneStill({ scenePrompt: aplicarEpocaVisual(promptDaFolha(f, styleAnchor, folhaSemNome2511), epocaVisual?.ficha, true) + instrucao, styleSuffix: '', seed: (generationSeed + 7_919 * (201 + i)) % 2_147_483_647, pollWindowMs: 15_000, aspect: aspectRequested }) })))
         for (const j of julgadas) { if (j.url) folhaDe.set(j.nome, j.url); else folhasReprovadas2411.add(j.nome) }
         juizDaFolhaRelato2411 = julgadas.map((j) => j.relato)
       }

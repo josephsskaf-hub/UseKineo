@@ -18,7 +18,10 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 const F = 'lib/cinematic/folhaDePersonagem.ts', SN = 'lib/cinematic/fichaSemNome2511.ts', J = 'lib/cinematic/juizDaFolha2411.ts', SO = 'lib/cinematic/sondaDaFolha2511.ts'
 const routeFile = 'app/api/generate-video-cinematic/route.ts', sondaRoute = 'app/api/admin/sonda-folha/route.ts'
 const local = file => readFileSync(file, 'utf8').replaceAll('\r\n', '\n')
-const daMain = file => execSync(`git show origin/main:${file}`, { encoding: 'utf8', maxBuffer: 64 << 20 }).replaceAll('\r\n', '\n')
+// KINEO-FORMA-NOS-FILMES-2511: a base deste guardião fica FIXA na af8af5c13 (a main de antes da volta 5). Com a volta 5 publicada (5b924b758) a origin/main já
+// tem a ficha por tipo e o conferente sem profissão, e cada "= a main" daqui passaria a comparar o código com ele mesmo (e o "defeito, reproduzido" quebraria).
+const BASE_DO_GUARDIAO = 'af8af5c13'
+const daMain = file => execSync(`git show ${BASE_DO_GUARDIAO}:${file}`, { encoding: 'utf8', maxBuffer: 64 << 20 }).replaceAll('\r\n', '\n')
 const GLOBALS = { AbortSignal, AbortController, setTimeout, clearTimeout }
 const load = (source) => createOfflineLoader({ source, globals: GLOBALS })
 const igual = (a, b, m) => assert.equal(JSON.stringify(a), JSON.stringify(b), m)
@@ -225,13 +228,13 @@ async function suite(change) {
     const ler = async (d, url) => ({ leitura: j.lerLeituraDaFolha(url.includes('nova') ? leituraJson(ROBO) : primeira), custoUsd: 0.001, erro: null })
     const corpo = ts.transpile('return (async () => {\n' + juizNaRota + '\n} return null })()', { target: ts.ScriptTarget.ES2022 })
     await Function('juizDaFolhaLigado', 'JUIZ_DA_FOLHA_2411', 'user', 'kling4TrialCandidate', 'qualidadeHerdada', 'ensaioPersonagemFixo', 'folhaDe', 'elencoP', 'julgarAFolha', 'isStylizedLook', 'styleAnchor', 'desenhoInfantil', 'lerAFolha',
-      'generateCinematicSceneStill', 'promptDaFolha', 'generationSeed', 'aspectRequested', 'folhasReprovadas2411', 'folhaSemNome2511', 'aplicarEpocaVisual', 'epocaVisual', corpo)(
+      'generateCinematicSceneStill', 'promptDaFolha', 'generationSeed', 'aspectRequested', 'folhasReprovadas2411', 'folhaSemNome2511', 'aplicarEpocaVisual', 'epocaVisual', 'formaNoFilme', 'FORMA_DA_FOLHA_2511', corpo)(
       j.juizDaFolhaLigado, j.JUIZ_DA_FOLHA_2411, { email: CASA }, true, null, false, new Map([['Bolt', 'https://x.org/folha.png']]), [BOLT], j.julgarAFolha, () => true, LOOK, { ativo: false }, ler,
-      async (a) => { gerados.push(a.scenePrompt); return 'https://x.org/nova.png' }, L.promptDaFolha, 7, '9:16', new Set(), folhaSemNome2511, createOfflineLoader()('@/lib/cinematic/epocaVisual2411').aplicarEpocaVisual, null)
+      async (a) => { gerados.push(a.scenePrompt); return 'https://x.org/nova.png' }, L.promptDaFolha, 7, '9:16', new Set(), folhaSemNome2511, createOfflineLoader()('@/lib/cinematic/epocaVisual2411').aplicarEpocaVisual, null, j.formaNoFilme, j.FORMA_DA_FOLHA_2511)
     return gerados
   }
   const SEM_SMALL = JSON.stringify({ medium: 'cartoon_3d', characters: 1, traits: TRACOS_SIM.map(t => t.trait === 'small' ? { ...t, visible: 'no' } : t) })
-  igual(await folhaNova(chave(CASA), leituraJson(C1_CAO)), [], "a forma continua fora do filme ('sonda'): a cabeça de cachorro não reprova no filme")
+  igual(await folhaNova(chave(CASA), leituraJson(C1_CAO)), [], 'a leitura sem head_check (a forma no filme é do test-forma-nos-filmes-2511): nada reprova pela forma')
   igual(await folhaNova(chave(CASA), SEM_SMALL), [L.promptDaFolha(BOLT, LOOK, true) + ' Exactly as the author wrote, clearly visible: small. Rendered in stylized 3D animated film look.'], 'a casa: a folha nova sem o nome')
   igual(await folhaNova(true, SEM_SMALL), [L.promptDaFolha(BOLT, LOOK, true) + ' Exactly as the author wrote, clearly visible: small. Rendered in stylized 3D animated film look.'], 'a chave ligada: a folha nova sem o nome')
   igual(await folhaNova(false, SEM_SMALL), [FM.promptDaFolha(BOLT, LOOK) + ' Exactly as the author wrote, clearly visible: small. Rendered in stylized 3D animated film look.'], "sem a chave: a folha nova da main")
@@ -272,14 +275,14 @@ async function suite(change) {
     igual([r.url, r.relato.tracos, r.relato.tentativa, novas.length, j.descricaoParaOJuiz(f)], ['https://x.org/f.png', 'ok', 1, 0, d], 'serve de primeira: ' + f.nome)
   }
 
-  // ── 2. a FORMA (fica 'sonda'): perguntas concretas da cabeça; robô e gente ──────────────────────────────────────────────────────────────
-  assert.equal(j.FORMA_DA_FOLHA_2511, 'sonda')
+  // ── 2. a FORMA ('internal' desde KINEO-FORMA-NOS-FILMES-2511): perguntas concretas da cabeça; robô e gente ──────────────────────────────────────────────────────────────
+  assert.equal(j.FORMA_DA_FOLHA_2511, 'internal')
   igual([j.formaNaSonda(), j.formaNaSonda('sonda'), j.formaNaSonda('on'), j.formaNaSonda('off')], ['on', 'on', 'on', 'off'])
   for (const [d, e] of [['small round orange robot with big blue eyes', 'robot'], ['small round orange robots', 'robot'], ['old bearded sailor', 'person'], ['man in a dark suit and black tie', 'person'],
     ['a red dragon with big wings', null], ['a golden dog with a red bandana', null], ['a robot dog', null], ['a cat-like robot', null], ['a robot-like toy', null], ['half man half wolf', null], ['a half-robot', null], ['a robot hybrid', null],
     ['a teddy bear', null], ['a toy robot', null], ['a humanoid robot', null], ['an android butler', null], ['a man in a bear costume', null], ['a tin man', null], ['a gingerbread man', null], ['a robot with human hands', null],
     ['a robot and a dragon', null], ['small round orange robot, not a dog', null], ['', null], ['a boy riding a horse', null]]) assert.equal(j.especieDaDescricao(d, 'on'), e, d)
-  for (const modo of [undefined, 'sonda', 'off']) assert.equal(j.especieDaDescricao('small round orange robot', modo), null, 'o filme não pergunta: ' + modo)
+  for (const modo of [undefined, 'sonda', 'internal', 'off']) assert.equal(j.especieDaDescricao('small round orange robot', modo), null, 'sem o modo do filme (formaNoFilme) não pergunta: ' + modo)
   const DB = 'small round orange robot with big blue eyes'
   // o pedido: sem dizer o ser esperado; sem exemplo; sem ser = a main
   const sistema = j.pedidoAoJuizDaFolha(DB, 'https://x.org/f.png', 'robot').messages[0].content
@@ -318,9 +321,9 @@ async function suite(change) {
   const filaM = (mod, exige, ...q) => { const r = [...q]; return async () => { const k = r.shift(); assert.ok(k !== undefined, 'leitura a mais'); return { leitura: mod.lerLeituraDaFolha(leituraJson(k), exige), custoUsd: 0.001, erro: null } } }
   const arg = (foto = false) => ({ ficha: BOLT, url: 'https://x.org/folha-1.png', filmeFotorreal: foto, lookPhrase: LOOK.lookPhrase })
   for (const ks of [[C1_CAO], [ROBO], [null]]) igual(await j.julgarAFolha(arg(), { ler: filaM(j, false, ...ks), gerar: async () => 'https://x.org/nova.png' }), await JM.julgarAFolha(arg(), { ler: filaM(JM, false, ...ks), gerar: async () => 'https://x.org/nova.png' }), 'o filme = a main')
-  const jOn = load((file, src) => { const t = source(file, src); return file.replaceAll('\\', '/') === J ? t.replace("FORMA_DA_FOLHA_2511: ModoFormaDaFolha2511 = 'sonda'", "FORMA_DA_FOLHA_2511: ModoFormaDaFolha2511 = 'on'") : t })('@/' + J)
+  const jOn = j // KINEO-FORMA-NOS-FILMES-2511: o laço recebe o modo do filme em args.forma
   const gerou = []
-  const julgar = (ks, foto) => jOn.julgarAFolha(arg(foto), { ler: filaM(jOn, true, ...ks), gerar: async (i) => { gerou.push(i); return 'https://x.org/nova.png' } })
+  const julgar = (ks, foto) => jOn.julgarAFolha({ ...arg(foto), forma: 'on' }, { ler: filaM(jOn, true, ...ks), gerar: async (i) => { gerou.push(i); return 'https://x.org/nova.png' } })
   let r = await julgar([C1_CAO, ROBO])
   igual([r.url, r.relato.forma, r.relato.forma_1, r.relato.tentativa], ['https://x.org/nova.png', 'ok', 'outra_especie', 2], 'cachorro na 1ª, robô na 2ª: serve a nova')
   igual(gerou, [' Its body and head are entirely those of a robot. Rendered in stylized 3D animated film look.'])
@@ -432,20 +435,19 @@ const mutants = [
   [F, "  if (ficha.tipo === 'humano' && ficha.genero !== 'man' && ficha.genero !== 'woman') return c", "  if (ficha.genero !== 'man' && ficha.genero !== 'woman') return c"], // bicho e criatura param de trocar
   // 1b. o conferente sem profissão
   [J, "t.aparencia === 'yes' && !(tipo", "!(tipo"], // sem o campo, julga (a leitura real reprova)
-  [J, "!(tipo === 'humano' && t.categoria === 'species') //", 'true //'], // \"species\" de gente julgada
+  [J, "t.aparencia === 'yes' && !(tipo === 'humano' && t.categoria === 'species')\n", "t.aparencia === 'yes' && true\n"], // \"species\" de gente julgada (tracoJulgavel, KINEO-FORMA-NOS-FILMES-2511)
   [J, "!(tipo === 'humano' && t.categoria === 'species')", "!(t.categoria === 'species')"], // \"species\" de criatura deixa de ser julgada
   [J, "r?.appearance === 'yes' || r?.appearance === 'no' ? r.appearance : 'unclear'", "r?.appearance === 'no' ? 'no' : 'yes'"], // sem o campo = aparência
   [J, "const CATEGORIAS: readonly CategoriaDoTraco[] = ['species', 'shape', 'size', 'color', 'feature', 'clothing', 'role']", "const CATEGORIAS: readonly CategoriaDoTraco[] = ['species', 'shape', 'size', 'color', 'feature', 'clothing']"],
   [J, '\"appearance\": \"yes\" | \"no\", ', ''], // o pedido sem o campo
-  [J, 'v1 = decidirDaFolha(r1.leitura, args.filmeFotorreal, descricao, FORMA_DA_FOLHA_2511, tipo)', 'v1 = decidirDaFolha(r1.leitura, args.filmeFotorreal, descricao, FORMA_DA_FOLHA_2511)'], // o laço sem o tipo
+  [J, 'v1 = decidirDaFolha(r1.leitura, args.filmeFotorreal, descricao, modoForma, tipo)', 'v1 = decidirDaFolha(r1.leitura, args.filmeFotorreal, descricao, modoForma)'], // o laço sem o tipo
   [SO, 'decidirDaFolha(r.leitura, p.filmeFotorreal, descricao, modoForma, p.tipo), custo_usd: custo, erro: null }\n}\n', 'decidirDaFolha(r.leitura, p.filmeFotorreal, descricao, modoForma), custo_usd: custo, erro: null }\n}\n'], // a leitura da sonda sem o tipo
   [SN, "modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))", "modo !== 'off'"],
   [routeFile, 'promptDaFolha(f, styleAnchor, folhaSemNome2511), epocaVisual?.ficha, true), styleSuffix: \'\', seed: (generationSeed + 7_919 * (101', 'promptDaFolha(f, styleAnchor), epocaVisual?.ficha, true), styleSuffix: \'\', seed: (generationSeed + 7_919 * (101'],
   [routeFile, 'promptDaFolha(f, styleAnchor, folhaSemNome2511), epocaVisual?.ficha, true) + instrucao', 'promptDaFolha(f, styleAnchor), epocaVisual?.ficha, true) + instrucao'],
   [routeFile, 'const folhaSemNome2511 = fichaSemNomeLigada(FICHA_SEM_NOME_2511, user.email)', 'const folhaSemNome2511 = true'],
   // 2. a forma
-  [J, "export const FORMA_DA_FOLHA_2511: ModoFormaDaFolha2511 = 'sonda'", "export const FORMA_DA_FOLHA_2511: ModoFormaDaFolha2511 = 'on'"], // o filme passa a perguntar
-  [J, "export const FORMA_DA_FOLHA_2511: ModoFormaDaFolha2511 = 'sonda'", "export const FORMA_DA_FOLHA_2511: ModoFormaDaFolha2511 = 'off'"], // a sonda deixa de perguntar
+  [J, "export const FORMA_DA_FOLHA_2511: ModoFormaDaFolha2511 = 'internal'", "export const FORMA_DA_FOLHA_2511: ModoFormaDaFolha2511 = 'off'"], // a sonda deixa de perguntar
   [J, "(modo === 'off' ? 'off' : 'on')", 'modo'],
   [J, ' || NAO_JULGA_FORMA_RE.test(d)) return null', ') return null'], // brinquedo e humanoide julgados
   [J, '  return ser && SERES_DA_FORMA.has(ser) ? ser : null', '  return ser'], // bicho e dragão julgados
@@ -466,7 +468,7 @@ const mutants = [
   [J, "    (especie ? ' Also answer \"head_check\"", "    (true ? ' Also answer \"head_check\""],
   [J, "lerLeituraDaFolha(data.choices?.[0]?.message?.content ?? '', especie !== null)", "lerLeituraDaFolha(data.choices?.[0]?.message?.content ?? '', false)"],
   [J, 'especieDaDescricao(descricao, opts.forma ?? FORMA_DA_FOLHA_2511)', 'especieDaDescricao(descricao, FORMA_DA_FOLHA_2511)'],
-  [J, "...(FORMA_DA_FOLHA_2511 === 'on' ? {", '...(true ? {'],
+  [J, "...(modoForma === 'on' ? {", '...(true ? {'],
   [J, 'formaPassa(v2) /* KINEO-FORMA-DA-FOLHA-2511 */ && ', ''],
   [J, '  const ser = !formaPassa(v) && v.especie ?', '  const ser = false ?'],
   // 3. a sonda
@@ -502,4 +504,4 @@ for (const mutant of mutants) {
   await assert.rejects(suite(mutant), err => err instanceof assert.AssertionError, 'SOBREVIVEU: ' + mutant[1])
   mortos++
 }
-console.log(`PASS KINEO-FICHA-SEM-NOME-2511 volta 5 + JUIZ-SEM-PROFISSAO-2511 + FORMA-DA-FOLHA-2511 + SONDA-DA-FOLHA-2511: chave 'internal' — criatura e bicho viram "this character", gente com gênero "this male/female character", gente SEM gênero mantém o nome (a ficha de hoje), em ${CASOS.length} fichas com as aspas byte a byte; cliente byte a byte a main; o conferente só julga aparência (as leituras reais da Mara e do Elias servem; o defeito reproduzido na main); a forma fora do filme; a sonda e o modo "só ler"; ${mortos}/${mutants.length} mutantes mortos.`)
+console.log(`PASS KINEO-FICHA-SEM-NOME-2511 volta 5 + JUIZ-SEM-PROFISSAO-2511 + FORMA-DA-FOLHA-2511 + SONDA-DA-FOLHA-2511: chave 'internal' — criatura e bicho viram "this character", gente com gênero "this male/female character", gente SEM gênero mantém o nome (a ficha de hoje), em ${CASOS.length} fichas com as aspas byte a byte; cliente byte a byte a main; o conferente só julga aparência (as leituras reais da Mara e do Elias servem; o defeito reproduzido na main); a forma no laço com o modo do filme (o filme da casa: test-forma-nos-filmes-2511); a sonda e o modo "só ler"; ${mortos}/${mutants.length} mutantes mortos.`)

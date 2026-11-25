@@ -44,7 +44,7 @@ function julgarNaRota(route, j, { email, folhaDe, elencoP, look = 'photoreal', i
   const fim = route.indexOf('\n      }\n', ini) + 9
   const escopo = { epocaVisual: null, aplicarEpocaVisual: load()('@/lib/cinematic/epocaVisual2411').aplicarEpocaVisual, juizDaFolhaLigado: j.juizDaFolhaLigado, JUIZ_DA_FOLHA_2411: j.JUIZ_DA_FOLHA_2411, user: { email }, kling4TrialCandidate: candidato, qualidadeHerdada: herdada, ensaioPersonagemFixo: fixo, folhaDe, elencoP,
     julgarAFolha: j.julgarAFolha, isStylizedLook: s => s.look === 'animated3d' || s.look === 'anime' || s.look === 'illustration', styleAnchor: { look, lookPhrase: look === 'photoreal' ? 'photorealistic, ultra-detailed' : 'stylized 3D animated film look' },
-    desenhoInfantil: { ativo: infantil }, lerAFolha: ler, generateCinematicSceneStill: gerar, promptDaFolha: (f) => 'Character reference sheet: ' + f.canonica, generationSeed: 7, aspectRequested: '9:16', folhasReprovadas2411: new Set(), folhaSemNome2511: false /* KINEO-FICHA-SEM-NOME-2511 (o guardião dele: test-ficha-sem-nome-2511) */ }
+    desenhoInfantil: { ativo: infantil }, lerAFolha: ler, generateCinematicSceneStill: gerar, promptDaFolha: (f) => 'Character reference sheet: ' + f.canonica, generationSeed: 7, aspectRequested: '9:16', folhasReprovadas2411: new Set(), folhaSemNome2511: false /* KINEO-FICHA-SEM-NOME-2511 (o guardião dele: test-ficha-sem-nome-2511) */, formaNoFilme: j.formaNoFilme, FORMA_DA_FOLHA_2511: j.FORMA_DA_FOLHA_2511 /* KINEO-FORMA-NOS-FILMES-2511 (o guardião dele: test-forma-nos-filmes-2511) */ }
   const corpo = ts.transpile('return (async () => {\n' + route.slice(ini, fim) + '\nreturn { folhasReprovadas2411, juizDaFolhaRelato2411 } })()', { target: ts.ScriptTarget.ES2022 })
   return Function(...Object.keys(escopo), 'let juizDaFolhaRelato2411 = null\n' + corpo)(...Object.values(escopo))
 }
@@ -249,11 +249,11 @@ async function suite(change) {
   igual(gerou, [' Exactly as the author wrote, clearly visible: small; round. Rendered in stylized 3D animated film look.'], '(1) a folha nova leva só palavras do autor')
   igual(await caso(BOLT, false, [LEITURA_BOLT, LEITURA_BOLT]), [null, rel({ tracos: 'forma_especie', serve: false, tentativa: null, regerou: true, custo_usd: C2, tracos_1: 'forma_especie' })], 'traços reprovados 2 vezes: não serve')
   igual(await caso(BOLT, false, [{ ...BOLT_CERTO, characters: 0 }, { ...BOLT_CERTO, characters: 0 }]), [null, rel({ tracos: 'nenhum', serve: false, tentativa: null, regerou: true, custo_usd: C2, tracos_1: 'nenhum' })], '(3) sem personagem 2 vezes: não serve')
-  igual(await caso(EMBER, true, [EMBER_CARTUM, EMBER_CARTUM]), [NOVA, rel({ meio: 'meio_tolerado', tentativa: 2, regerou: true, custo_usd: C2, meio_1: 'meio', descartados: 4 })], 'criatura em animação num filme de foto: meio_tolerado')
+  igual(await caso(EMBER, true, [EMBER_CARTUM, EMBER_CARTUM]), [NOVA, rel({ meio: 'meio_tolerado', tentativa: 2, regerou: true, custo_usd: C2, meio_1: 'meio', descartados: 4, tracos_nao_julgados: 'sem_descricao' })], 'criatura em animação num filme de foto: meio_tolerado')
   igual(await caso(BOLT, true, [BOLT_CERTO, { ...BOLT_CERTO, traits: BOLT_CERTO.traits.map(t => t.trait === 'orange' ? { ...t, visible: 'no' } : t) }]), [null, rel({ tracos: 'traco', meio: 'meio', serve: false, tentativa: null, regerou: true, custo_usd: C2, meio_1: 'meio' })], 'criatura com meio E traço errados na 2ª: sem tolerância')
-  igual(await caso({ ...EMBER, tipo: 'animal' }, true, [EMBER_CARTUM, EMBER_CARTUM]), [NOVA, rel({ tipo: 'animal', meio: 'meio_tolerado', tentativa: 2, regerou: true, custo_usd: C2, meio_1: 'meio', descartados: 4 })])
+  igual(await caso({ ...EMBER, tipo: 'animal' }, true, [EMBER_CARTUM, EMBER_CARTUM]), [NOVA, rel({ tipo: 'animal', meio: 'meio_tolerado', tentativa: 2, regerou: true, custo_usd: C2, meio_1: 'meio', descartados: 4, tracos_nao_julgados: 'sem_descricao' })])
   igual(await caso(ELIAS, true, [ELIAS_DESENHO, ELIAS_DESENHO]), [null, rel({ tipo: 'humano', meio: 'meio', serve: false, tentativa: null, regerou: true, custo_usd: C2, meio_1: 'meio' })], 'pessoa em desenho num filme de foto: não serve')
-  igual(await caso(EMBER, false, [EMBER_REALISTA, EMBER_REALISTA]), [null, rel({ meio: 'meio', serve: false, tentativa: null, regerou: true, custo_usd: C2, meio_1: 'meio', descartados: 4 })], 'folha foto num filme desenhado: não serve, nunca')
+  igual(await caso(EMBER, false, [EMBER_REALISTA, EMBER_REALISTA]), [null, rel({ meio: 'meio', serve: false, tentativa: null, regerou: true, custo_usd: C2, meio_1: 'meio', descartados: 4, tracos_nao_julgados: 'sem_descricao' })], 'folha foto num filme desenhado: não serve, nunca')
   igual(await caso(BOLT, false, [null]), [null, rel({ tracos: 'sem_leitura', meio: 'sem_leitura', serve: false, tentativa: null, tracos_1: 'sem_leitura', meio_1: 'sem_leitura' })], 'não julgada = não serve')
   igual(await caso(BOLT, false, [LEITURA_BOLT, null]), [null, rel({ tracos: 'sem_leitura', meio: 'sem_leitura', serve: false, tentativa: null, regerou: true, custo_usd: C2, tracos_1: 'forma_especie' })], 'a 2ª sem leitura: não serve')
   igual(await caso(BOLT, false, [LEITURA_BOLT], null), [null, rel({ tracos: 'forma_especie', serve: false, tentativa: null, custo_usd: C1N, tracos_1: 'forma_especie' })], 'a folha nova pedida e não saída: custo gravado')
@@ -321,12 +321,12 @@ const mutants = [
   [modulo, "t.visivel === 'no' && cats.includes(t.categoria)", "t.visivel !== 'yes' && cats.includes(t.categoria)"], // "unclear" reprova
   [modulo, "  if (!r1.leitura) return fim(null, null, null, null, false)", "  if (!r1.leitura) return fim(args.url, null, null, 1, false)"], // a folha não julgada serve
   [modulo, "  if (!r2.leitura) return fim(null, null, null, null, true)\n", "  if (!r2.leitura) return fim(nova, null, null, 2, true)\n"],
-  [modulo, "  return fim(null, v2, null, null, true)\n}", "  return fim(nova, v2, null, 2, true)\n}"], // a 2ª reprovada serve
+  [modulo, "  return fim(null, v2, null, null, true, r2.leitura)\n}", "  return fim(nova, v2, null, 2, true, r2.leitura)\n}"], // a 2ª reprovada serve
   [modulo, "v2.tracos === 'ok' && formaPassa(v2)", "formaPassa(v2)"],
   [modulo, "v2.meio === 'meio' && args.filmeFotorreal && (tipo === 'animal' || tipo === 'criatura')", "v2.meio === 'meio' && (tipo === 'animal' || tipo === 'criatura')"],
   [modulo, "args.filmeFotorreal && (tipo === 'animal' || tipo === 'criatura')", "args.filmeFotorreal"],
   [modulo, "if (v2.tracos === 'ok' && formaPassa(v2) /* KINEO-FORMA-DA-FOLHA-2511 */ && v2.meio === 'meio' && args.filmeFotorreal && (tipo === 'animal' || tipo === 'criatura'))", 'if (false)'],
-  [modulo, "return fim(nova, v2, 'meio_tolerado', 2, true)", 'return fim(nova, v2, null, 2, true)'],
+  [modulo, "return fim(nova, v2, 'meio_tolerado', 2, true, r2.leitura)", 'return fim(nova, v2, null, 2, true, r2.leitura)'],
   [modulo, "Exactly as the author wrote, clearly visible: ${v.ausentes.join('; ')}.", 'Better character.'],
   [modulo, ".filter((r) => !reprovadas.has(r?.nome))", ''],
   [modulo, ".filter((s) => !(Array.isArray(s?.characterNames) && s.characterNames.some((n) => reprovadas.has(n))))", ''],
@@ -355,7 +355,7 @@ const mutants = [
   [modulo, ".replace(/’/g, \"'\")", ''], // apóstrofo curvo
   [modulo, ' || k.every((w) => VAZIAS.has(w))', ''], // "with" sozinho vira traço
   [modulo, 'if (k.every((w, j) => autor[i + j] === w)) return true', 'if (k.some((w, j) => autor[i + j] === w)) return true'], // basta uma palavra do traço
-  [modulo, "tracos_nao_julgados: temNegacao(descricao) ? 'negacao' as const : null", 'tracos_nao_julgados: null'], // o relato não conta a negação
+  [modulo, "  if (temNegacao(descricao)) return 'negacao'\n  if (!l) return null", '  if (!l) return null'], // o relato não conta a negação
   [modulo, "  return limpa(descricaoDoAutor(ficha.canonica) ?? '')", "  return limpa(descricaoDoAutor(ficha.canonica) ?? String(ficha.canonica ?? '').split(';')[0])"], // (2) a biografia vira traço
   [modulo, "l.personagens < 1 ? 'nenhum' : ", ''], // (3) folha sem personagem passa
   [modulo, "v.tracos === 'mais_de_um' || v.tracos === 'nenhum' ?", "v.tracos === 'mais_de_um' ?"], // (3) a folha nova não pede o personagem
