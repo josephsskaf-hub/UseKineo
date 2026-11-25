@@ -119,10 +119,27 @@ async function suite(change) {
     igual(comLugar(F), Qb.planosPorSecao(F), 'B: filme de uma cena só = a main') }
   // o molde da fala (objetoConcreto desligado) também
   { const F = { ...F815, objetoConcreto: false }; const x = comLugar(F), h = Qb.planosPorSecao(F)
-    assert.ok(x.prompts[1].includes(q.LUGAR_DO_ANTERIOR_2511) && x.prompts[2].includes(q.LUGAR_DO_ANTERIOR_2511) && /Shot focus: /.test(x.prompts[2]), 'B: o molde "Shot focus" também ganha o lugar')
+    const cabe = (t) => Array.from(t).length + 1 + Array.from(q.LUGAR_DO_ANTERIOR_2511).length <= q.PLANO_DA_FALA_TETO // [§7] só onde cabe no teto da metade
+    for (const k of [1, 2]) assert.equal(x.prompts[k].includes(q.LUGAR_DO_ANTERIOR_2511), cabe(h.prompts[k]), 'B: o molde "Shot focus" ganha o lugar onde cabe: metade ' + (k + 1))
+    assert.ok(/Shot focus: /.test(x.prompts[2]) && x.prompts[1].includes(q.LUGAR_DO_ANTERIOR_2511), 'B: o molde "Shot focus" também ganha o lugar (a 1ª metade cabe)')
     igual(x.prompts.map((t) => t.replace(q.LUGAR_DO_ANTERIOR_2511 + ' ', '')), h.prompts) }
   // o teto da fal: o plano mais longo + a referência mais longa cabem em 512
   for (const t of on.prompts) assert.ok(Array.from('Scene 4: text-directed shot, no new keyframe for this scene. Wide shot. ' + t).length <= 512, 'cabe em 512: ' + t.length)
+  // [revisora 25/11, §7] a METADE LONGA: com a cláusula ela passaria do teto da metade (PLANO_DA_FALA_TETO) e o corte do montador levaria a proteção do fim.
+  // Agora ela fica a de hoje; a metade curta ganha a cláusula e cabe; e o envio (referência mais longa + escala + plano, pelo cabeNoTetoDoPlano REAL) mantém
+  // "no readable text" em toda metade.
+  { const kt = L('@/lib/kling4Trial.ts'), cp = (t) => Array.from(t).length
+    const LONGO = 'Identity: the woman, a woman in her thirties with wavy chestnut hair, thick eyebrows and a warm smile, wearing a dark blue jacket over a grey t-shirt; a real person filmed in photorealistic live action.'
+    const FL = { ...F815, prompts: F815.prompts.map((p) => p.replace(QUEM, LONGO)), secoes: F815.secoes.map((x, j) => (j === 2 ? { ...x, pexelsQuery: 'robotic arms assembling car parts' } : x)) }
+    const h = Qb.planosPorSecao(FL), x = comLugar(FL)
+    const longas = [1, 2].filter((k) => cp(h.prompts[k]) + 1 + cp(q.LUGAR_DO_ANTERIOR_2511) > q.PLANO_DA_FALA_TETO)
+    assert.ok(longas.length >= 1 && cp(h.prompts[longas[0]]) >= 434 - 78 && cp(h.prompts[longas[0]]) <= 434, '§7: o caso tem uma metade longa (' + [1, 2].map((k) => cp(h.prompts[k])).join(', ') + ')')
+    for (const k of [1, 2]) {
+      if (longas.includes(k)) assert.equal(x.prompts[k], h.prompts[k], `§7: a metade longa ${k + 1} fica a de hoje (sem a cláusula)`)
+      else assert.ok(x.prompts[k].includes(q.LUGAR_DO_ANTERIOR_2511) && cp(x.prompts[k]) <= q.PLANO_DA_FALA_TETO, `§7: a metade curta ${k + 1} ganha a cláusula e cabe no teto`)
+      const envio = kt.cabeNoTetoDoPlano('Scene 12: text-directed shot, no new keyframe for this scene. Wide shot. ' + x.prompts[k])
+      assert.ok(/no readable text, letters, numbers, labels or signage/.test(envio), `§7: o envio da metade ${k + 1} mantém a proteção do fim`) }
+    for (const k of [1, 2]) assert.ok(/no readable text/.test(kt.cabeNoTetoDoPlano('Scene 12: text-directed shot, no new keyframe for this scene. Wide shot. ' + h.prompts[k])), 'na main a proteção ficava') }
   // a função direto
   igual([q.cenaComLugar2511('Photoreal film. Setting: a pier. A man waits.', 1, 3), q.cenaComLugar2511('Photoreal film. A man waits.', 1, 1)], ['Photoreal film. Setting: a pier. A man waits.', 'Photoreal film. A man waits.'])
   assert.equal(q.cenaComLugar2511('3D animated film. A duck waits.', 2, 3), '3D animated film. Setting: where this shot names no place, the same place as the previous shot. A duck waits.')
@@ -135,6 +152,7 @@ const mutants = [
   [Q, '    for (let pos = 0; pos < g.length; pos++, k++) if (molde && k < saida.length) saida[k] = cenaComLugar2511(saida[k], i, grupos.length)', '    for (let pos = 0; pos < g.length; pos++, k++) {}'],
   [Q, ' && g.every((j) => (secoes[j] as { descricao?: unknown } | undefined)?.descricao === undefined)', ''],
   [Q, 'const molde = g.length > 1 && ', 'const molde = '],
+  [Q, '  return cp1911(novo) <= PLANO_DA_FALA_TETO ? novo : promptDaCena\n', '  return novo\n'], // §7: sem o teto
   [Q, 'cenaComLugar2511(saida[k], i, grupos.length)', 'cenaComLugar2511(saida[k], k, saida.length)'],
   [R, `    if (typeof planoSemLugar2511 !== 'undefined' && planoSemLugar2511) PISTA_DE_CLIMA_2511.add(classicVisualPolicy)`, '    PISTA_DE_CLIMA_2511.add(classicVisualPolicy)'],
   [R, "  const pistaDeClima2511 = typeof PISTA_DE_CLIMA_2511 !== 'undefined' && PISTA_DE_CLIMA_2511.has(visualPolicy)", '  const pistaDeClima2511 = true'],

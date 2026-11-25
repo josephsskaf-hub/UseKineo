@@ -229,7 +229,10 @@ export function cenaComLugar2511(promptDaCena: string, i: number, total: number)
   const p = norm(promptDaCena)
   if (/Setting: /.test(p) || total < 2) return promptDaCena
   const meio = /^[^.]{2,60}\./.exec(p)?.[0] ?? ''
-  return norm(`${meio} ${i === 0 ? LUGAR_DO_SEGUINTE_2511 : LUGAR_DO_ANTERIOR_2511} ${p.slice(meio.length)}`)
+  const novo = norm(`${meio} ${i === 0 ? LUGAR_DO_SEGUINTE_2511 : LUGAR_DO_ANTERIOR_2511} ${p.slice(meio.length)}`)
+  // [revisora 25/11, §7] a cláusula (~78 caracteres) só entra se a metade continuar no teto da metade (PLANO_DA_FALA_TETO: a folga para a referência
+  // 'Scene N: …' e a escala antes dos 512). Passou = a metade de hoje: o corte do montador nunca leva a proteção 'no readable text' do fim.
+  return cp1911(novo) <= PLANO_DA_FALA_TETO ? novo : promptDaCena
 }
 /** Depois de planosPorSecao: cada metade de cena fundida do MOLDE (seções sem descrição) sem "Setting:" ganha a cláusula do vizinho, logo depois do meio.
  *  `grupos` = as seções de cada cena (o que planosPorSecao devolve). Grupo de uma seção, metade com descrição ou com "Setting:" = o mesmo texto. */
