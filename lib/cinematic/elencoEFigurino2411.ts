@@ -405,7 +405,7 @@ const OBRA_NOMEADA = /^(?:\s*,?\s+(?:a character |the mascot )?from (?:the |a )?
 const ORIGEM_COMERCIAL = /^(?:\s*,\s*(?:a|an|the)\s+|\s+(?:is|was)\s+(?:(?:a|an|the)\s+)?|\s*,?\s+from\s+the\s+)(?:(?:licensed|branded|franchise|copyrighted|trademarked)\s+(?:character|mascot)|(?:film|movie|game|series|comic|novel|franchise)\s+(?:called|named|franchise)\b)/iu
 
 function empresaGigante(papel: string): boolean {
-  return EMPRESA_GIGANTE.test(papel.split(/\s+(?:with|wearing|dressed)\s/iu)[0])
+  return EMPRESA_GIGANTE.test(papel.split(/\s+(?:with|wearing|dressed|at|of|for|who works)\s/iu)[0])
 }
 
 function identidadeDeObra(nome: string, textos: ReadonlyArray<{ texto: string }>): boolean {
@@ -421,6 +421,39 @@ function identidadeDeObra(nome: string, textos: ReadonlyArray<{ texto: string }>
     return ORIGEM_COMERCIAL.test(depois) || OBRA_NOMEADA.test(depois) || (aposto?.[3] === ',' && OBRA_NOMEADA.test(depois.slice(aposto[0].length - 1))) ||
       /\b(?:licensed|branded|copyrighted|trademarked)\s+(?:character|mascot)\s+(?:(?:named|called)\s+)?$/iu.test(texto.slice(0, m.index))
   }))
+}
+
+/** Resolve fictional names once per film. Only visual text is passed to the returned function. */
+export function prepararPapeisVisuais2411(pedidoOriginal: unknown, roteiro: string): ((plano: string) => string) | null {
+  const pedido = textoDoPedidoOriginal(pedidoOriginal)
+  const textos = [{ texto: pedido, fonte: 'pedido' as const }, { texto: semTags(roteiro), fonte: 'roteiro' as const }]
+  const nomes = new Set([...nomesDaNarracao2411(pedido), ...nomesDaNarracao2411(roteiro)])
+  for (const nome of NOMES_DE_OBRA) if (textos.some(t => temNome(t.texto, nome))) nomes.add(nome)
+  const obras = [...nomes].filter(n => identidadeDeObra(n, textos)).sort((a, b) => b.length - a.length)
+  if (!obras.length) return null
+  const papeis = new Map<string, string>()
+  const curtos = new Map<string, string>()
+  for (const nome of obras) {
+    const d = descricaoDoNome2411(textos, nome, null, obras)
+    const descricao = d?.trecho.split(/\s+(?:with|wearing|in|dressed)\s/iu)[0].trim()
+    const papel = descricao && !obras.some(o => temNome(descricao, o)) ? 'the ' + descricao : 'figure ' + (papeis.size + 1)
+    const ordem = papeis.size
+    curtos.set(norm(nome), ordem < 26 ? String.fromCharCode(65 + ordem) : String(ordem + 1))
+    papeis.set(norm(nome), papel)
+  }
+  // A single pass keeps Metal Sonic and Sonic distinct in the same shot.
+  const padrao = new RegExp('(?<![\\p{L}\\p{N}-])(?:' + obras.map(escapaRe).join('|') + ')(?![\\p{L}\\p{N}-])', 'giu')
+  const substituir = (plano: string, termos: Map<string, string>) => plano.replace(padrao, (nome, inicio: number) => {
+    const chave = norm(nome)
+    if (chave === 'sonic' && /^\s+(?:booms?|waves?|barriers?|pulses?|frequenc(?:y|ies))\b/iu.test(plano.slice(inicio + nome.length))) return nome
+    return termos.get(chave)!
+  })
+  return plano => {
+    const visual = substituir(plano, papeis)
+    if (visual === plano || Array.from(visual).length <= 512) return visual
+    // Keep the action and the @Image instructions already fitted by the builder.
+    return substituir(plano, curtos)
+  }
 }
 
 function correspondeAoPapel(f: FichaDePersonagem, d: DescricaoDoNome2411): boolean {

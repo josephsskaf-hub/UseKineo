@@ -204,7 +204,7 @@ export function buildKling4ReferenciaUnicaInput(shots: readonly { prompt: string
 // kettlebell; o HIIT só aparece depois de a fala acabar). `pelaVoz` (só quando o despacho mede a voz e o interruptor está ligado):
 // cada fronteira de plano cai onde a fala da seção termina, na escala da voz MEDIDA; o silêncio depois da fala vai inteiro para o
 // último plano; piso de 2 s por plano (o schema da fal aceita 1–30). Sem `pelaVoz` = a régua de sempre, byte a byte.
-export type Kling4TrialTiming = { fixedCharacter?: Kling4CharacterReference; referenciaUnica?: Kling4ReferenciaUnica /* KINEO-REFERENCIA-UNICA-2411 */; voiceovers: readonly string[]; wordsPerSecond: number; pelaVoz?: { segundosDaVoz: number } | null; clipSeconds?: number } // KINEO-K4-GRATIS-20S-1711: + clipSeconds (o clipe nasce do tamanho da voz; ausente = 15)
+export type Kling4TrialTiming = { papelVisual2411?: (plano: string) => string; fixedCharacter?: Kling4CharacterReference; referenciaUnica?: Kling4ReferenciaUnica /* KINEO-REFERENCIA-UNICA-2411 */; voiceovers: readonly string[]; wordsPerSecond: number; pelaVoz?: { segundosDaVoz: number } | null; clipSeconds?: number } // KINEO-K4-GRATIS-20S-1711: + clipSeconds (o clipe nasce do tamanho da voz; ausente = 15)
 export const KLING4_PISO_PELA_VOZ = 2
 /** Interruptor. 'all' desde 13/11 05:11: o dono viu o antes e depois com som (prova paga no pedido salvo do 9e902872: cortes 2,08/4,08/7,13 s
  *  contra a fala 4,0/7,0 s) e escolheu "A", ligar para todos. Reverter: 'off' devolve a régua antiga, byte a byte, a todo mundo;
@@ -273,6 +273,15 @@ export function kling4TrialClipTotal(clipSeconds: unknown): number {
 export function buildKling4TrialInput(
   prompts: readonly string[], approvedStills: readonly (string | null)[] = [], timing?: Kling4TrialTiming,
 ) {
+  const envio = montarKling4TrialInput(prompts, approvedStills, timing)
+  if (timing?.papelVisual2411) {
+    // Presence and reference selection require the original names. Only edit text in the final payload.
+    for (const plano of envio.input.multi_prompt as Array<{ prompt: string }>) plano.prompt = timing.papelVisual2411(plano.prompt)
+  }
+  return envio
+}
+
+function montarKling4TrialInput(prompts: readonly string[], approvedStills: readonly (string | null)[], timing?: Kling4TrialTiming) {
   const shots = prompts.map(p => p.trim())
   if (!shots.length || shots.some(p => !p)) throw new Kling4TrialPreflightError('kling4_empty_plan')
   if (timing && timing.voiceovers.length !== shots.length) throw new Kling4TrialPreflightError('kling4_mismatched_timing')

@@ -89,7 +89,7 @@ async function referenceBoundary(source, count) {
     const voices = Array(4).fill('They enter the cabin.')
     const context = {
       aplicarEpocaVisual:load('@/lib/cinematic/epocaVisual2411').aplicarEpocaVisual,
-      kling4PlanoPorSecao:true,verbatim:true,parsedScript:{segments:voices.map(voiceover=>({voiceover,pexelsQuery:hint}))},
+      papelVisual2411:null,kling4PlanoPorSecao:true,verbatim:true,parsedScript:{segments:voices.map(voiceover=>({voiceover,pexelsQuery:hint}))},
       scenes:voices.map(voiceover=>({voiceover})), planosPorSecao:load('@/lib/kling4QuatroPlanos').planosPorSecao,
       sujeitoAparenciaLigada:()=>false, comSuperficieNoPlano:load('@/lib/cinematic/superficieSemTexto').comSuperficieNoPlano,
       kling4PlanoVariado:true, ...load('@/lib/kling4PlanoVariado'), kling4PlanoFinal:true,

@@ -40,7 +40,7 @@ import { KLING4_REFERENCE_MODEL, type Kling4CharacterReference } from '@/lib/kli
 import { GEMINI_NA_ESTEIRA_2511, GEMINI_NA_ESTEIRA_2511_VERSAO, GEMINI_ENVIO_EVENTO, GEMINI_OMNI_REF_MODEL, GEMINI_OMNI_REF_USD_PER_S_720P, GeminiRecusadoNoEnvio, geminiDoKling4, geminiNaEsteiraLigado, submitGeminiTrialVideo, type EntradaDoGemini } from '@/lib/cinematic/geminiNaEsteira2511' // KINEO-GEMINI-NA-ESTEIRA-2511
 import { ELENCO_E_FIGURINO_2411, FIGURINO_DO_PEDIDO_2411, elencoEFigurinoLigado, elencoComNomeCompleto, aceitaPapelSemPista, fichaComDescricaoDoPedido, relatoDoElenco2411, medidaDaLeitura2411, medidaDaRegra2411, type MedidaDaLeitura2411, ELENCO_E_FIGURINO_2411_VERSAO } from '@/lib/cinematic/elencoEFigurino2411' // KINEO-ELENCO-E-FIGURINO-2411
 import { FOLHA_DA_REFERENCIA_2411, folhaDaReferenciaLigada, folhaServeAReferencia2411, retratoDaReferencia2411 } from '@/lib/cinematic/folhaDaReferencia2411' // KINEO-FOLHA-DA-REFERENCIA-2411
-import { LEITOR_DO_ELENCO_2411, LEITOR_DO_ELENCO_2411_VERSAO, elencoDoLeitor2411 } from '@/lib/cinematic/elencoEFigurino2411' // KINEO-LEITOR-DO-ELENCO-2411
+import { LEITOR_DO_ELENCO_2411, LEITOR_DO_ELENCO_2411_VERSAO, elencoDoLeitor2411, prepararPapeisVisuais2411 } from '@/lib/cinematic/elencoEFigurino2411' // KINEO-LEITOR-DO-ELENCO-2411
 import { FICHA_SEM_NOME_2511, fichaSemNomeLigada } from '@/lib/cinematic/fichaSemNome2511' // KINEO-FICHA-SEM-NOME-2511
 import { JUIZ_DA_FOLHA_2411, JUIZ_DA_FOLHA_2411_VERSAO, juizDaFolhaLigado, julgarAFolha, lerAFolha, retratoSemFolhaReprovada2411, type RelatoDaFolha, FORMA_DA_FOLHA_2511, formaNoFilme } from '@/lib/cinematic/juizDaFolha2411' // KINEO-JUIZ-DA-FOLHA-2411 · KINEO-FORMA-NOS-FILMES-2511
 import { QUEM_APARECE_2511, quemApareceLigado, lerQuemAparece, presencaPorPlano, presencaDe as presencaDe2511, relatoQuemAparece, pisoDaPresenca, citadosPeloNome, type ChamadaDePresenca, type PresencaDosPlanos, type PisoDaPresenca } from '@/lib/cinematic/quemAparece2511' // KINEO-QUEM-APARECE-2511
@@ -7709,6 +7709,8 @@ async function manipularPost(req: NextRequest) {
     } // KINEO-FICHA-ANTES-DO-RENDER-1311
     // [revisor 19/11, 2ª volta do A2] a montagem do envio do Kling 4 grátis é definida AQUI, antes do dry_run, com o mesmo texto de sempre: o eco do
     // ensaio (a2_ensaio) monta pelo MESMO kling4PorSecao do envio. Só definições (nada roda aqui); o envio continua chamando depois da reserva.
+    const papelVisual2411 = kling4TrialCandidate && elencoEFigurinoLigado(LEITOR_DO_ELENCO_2411, user.email)
+      ? prepararPapeisVisuais2411(body.original_idea, prompt) : null
     const kling4Sujeito: { r: Awaited<ReturnType<typeof sujeitoNoKling4>> | null } = { r: null } // KINEO-K4-SUJEITO-0111 — preenchido dentro do submit (depois da reserva); nunca lança
     // KINEO-K4-PLANO-POR-SECAO-1111 — o pedido ao Kling 4 grátis com UM plano por seção do roteiro (lib/kling4QuatroPlanos.ts), atrás do interruptor
     // KLING4_PLANO_POR_SECAO ('internal' = só a casa). Lido na hora do envio (depois do sujeito e da fala encaixada): o que vai à fal, o
@@ -7752,6 +7754,7 @@ async function manipularPost(req: NextRequest) {
         return { ...r3, prompts: r3.prompts.map((p, i) => i === ultimo ? planoFinalEmMovimento(p, { comImagemChave: Boolean(r3.approvedStills[ultimo]), escalaAnterior }) : p) }
       }
       const pronto = comPlanoFinal()
+      if (papelVisual2411) pronto.timing = Object.assign({}, pronto.timing, { papelVisual2411 })
       if (epocaVisual) {
         const indices = pronto.planos?.flat()
         const continuidade = a.timing.fixedCharacter?.continuity

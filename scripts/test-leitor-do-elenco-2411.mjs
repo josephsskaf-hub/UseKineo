@@ -315,6 +315,21 @@ function marcasEEmpresas(w) {
   check('marca-no-acessorio', !terceira.elenco.some(f => f.canonica.includes('Sonic')))
   const voltou = ler('Sonic waited. Juno ran outside.', 'Sonic, a blue hedgehog, waited. Juno, a golden retriever with a red bandana, ran.', [base('the retriever','animal','retriever')])
   check('juno-com-marca', voltou.elenco.some(f => f.nome === 'Juno') && !voltou.elenco.some(f => f.nome === 'Sonic'))
+  const anonima = base('the hedgehog','animal','hedgehog')
+  const disputa = ler('Sonic waited. Juno waited.', 'Sonic, a blue hedgehog, waited. Juno, a brown hedgehog, slept.', [anonima])
+  check('A10-especie-compartilhada', JSON.stringify(disputa.elenco[0]) === JSON.stringify(anonima))
+  check('A16-marca-disputa-renomeacao', !disputa.elenco.some(f => f.nome === 'Juno'))
+  const duplicada = ler('Pikachu waited.', 'Pikachu, a yellow mouse, waited.', [base('Pikachu','animal','mouse'),base('Pikachu','animal','mouse')])
+  check('A13-papel-uma-vez', duplicada.elenco.length === 1 && duplicada.elenco[0].nome === 'the mouse')
+  const coadjuvante = ler('Pikachu waited.', 'Pikachu, a yellow mouse, waited.', [base('Mara','humano','Mara'),{...base('Pikachu','animal','mouse'),protagonista:false}])
+  check('A14-papel-secundario', coadjuvante.elenco.length === 2 && coadjuvante.elenco[1].protagonista === false)
+  const marioComum = ler('Mario waited.', 'Mario, a young baker in a white apron, waited.', [base('Mario','humano','Mario')])
+  const marioObra = ler('Mario waited.', 'Mario, a short Italian plumber in a red cap, waited.', [base('Mario','humano','Mario')])
+  check('A17-mario-contexto', marioComum.elenco[0]?.nome === 'Mario' && marioObra.elenco.every(f => f.nome !== 'Mario'))
+  for (const relacao of ['at', 'of', 'for', 'who works for']) {
+    const pessoa = ler('Iris waited.', 'Iris, an engineer ' + relacao + ' a tech giant, waited.', [base('Iris','humano','Iris')])
+    check('empregada-' + relacao, pessoa.elenco[0]?.nome === 'Iris' && !pessoa.mudancas.some(m => m.acao === 'empresa'))
+  }
   return erros
 }
 
@@ -377,6 +392,11 @@ const MUTANTES = [
   ['M18 escrita não latina passa', (t) => t.replace('if (!narracao || !escritaLatina(narracao)) return { elenco: base, mudancas: [] }', 'if (!narracao) return { elenco: base, mudancas: [] }')],
 ]
 const mutantesDaMarca = [
+  ['A10 sem disputa da espécie', 'if (!disputa) {', 'if (true) {', 'A10-especie-compartilhada'],
+  ['A13 reutiliza papel', 'if (!d || usadosComoPapel.has(obra) ||', 'if (!d ||', 'A13-papel-uma-vez'],
+  ['A14 força protagonista', 'fichaPeloPapel(d, f.protagonista)', 'fichaPeloPapel(d, true)', 'A14-papel-secundario'],
+  ['A16 ignora obra na disputa do nome', 'const disputam = [...candidatos, ...marcas]', 'const disputam = candidatos', 'A16-marca-disputa-renomeacao'],
+  ['A17 Mario sem a pista', "norm(nome) === 'mario' ? /\\bplumber\\b/iu", "norm(nome) === 'mario' ? /./u", 'A17-mario-contexto'],
   ['sem reconhecimento de nome', 'if (NOME_DE_OBRA.has(norm(nome))) return true', '', 'papel-Harry Potter-pedido'],
   ['sem origem comercial explícita', 'ORIGEM_COMERCIAL.test(depois)', 'false', 'licenca'],
   ['não lê obra nomeada', 'OBRA_NOMEADA.test(depois)', 'false', 'obra-nomeada'],

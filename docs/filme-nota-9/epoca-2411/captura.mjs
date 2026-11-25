@@ -110,7 +110,7 @@ export async function capture(world,borders,film,apply,mode,account) {
       if(admission.cliente) timing.referenciaUnicaDoCliente=true
     } else if(shape==='reference'&&admission?.motivo) timing.referenciaUnicaRecusa=admission.motivo
     const approvedStills=shape==='stills'?['fixture:0','fixture:1','fixture:2',null]:[]
-    const route=borders.v('kling4PorSecao').run({...scope,kling4PlanoPorSecao:true,verbatim:true,parsedScript:{segments:bits},scenes:voices.map(voiceover=>({voiceover})),
+    const route=borders.v('kling4PorSecao').run({papelVisual2411:null,...scope,kling4PlanoPorSecao:true,verbatim:true,parsedScript:{segments:bits},scenes:voices.map(voiceover=>({voiceover})),
       planosPorSecao:load('@/lib/kling4QuatroPlanos').planosPorSecao,sujeitoAparenciaLigada:()=>false,
       comSuperficieNoPlano:load('@/lib/cinematic/superficieSemTexto').comSuperficieNoPlano,
       kling4PlanoVariado:true,planosComEscalaVariada:load('@/lib/kling4PlanoVariado').planosComEscalaVariada,
