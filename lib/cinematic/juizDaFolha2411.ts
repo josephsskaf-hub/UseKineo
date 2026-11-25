@@ -48,49 +48,27 @@ const limpa = (s: unknown) => String(s ?? '').replace(/\s+/g, ' ').trim()
 export function descricaoParaOJuiz(ficha: { nome: string; canonica: string }): string {
   return limpa(descricaoDoAutor(ficha.canonica) ?? '')
 }
-// [revisora 25/11, VOLTA 2, §4 e §9] a negação é lida no TEXTO DO AUTOR, por oração: "not a dog, with no ears" não deixa "dog" nem "ears" virarem pedido.
-// Palavras e orações: a oração acaba em ; . : ! ? parênteses, colchetes, quebra de linha e em "but"/"mas"/"pero"/"sino"/"porém" ("not a dog but a robot");
-// "and" e "or" NÃO acabam ("without a hat and scarf", "no glasses or hat"). Uma negação em OUTRA oração não conta.
-// [revisora 25/11, VOLTA 3, §2/§3] a VÍRGULA continua a lista negada ("without a hat, scarf or gloves", "sem chapéu, óculos ou cachecol"): ela só abre oração
-// nova quando a palavra seguinte abre uma ("with", "wearing", "in", "who", "com", "usa", "con", "lleva"…, ou "and a"/"e um"/"y un"). Na dúvida, a lista continua
-// (lado seguro: o traço sai do julgamento).
+// [CEO 25/11 01:42, docs/semana-2/DECISAO-CONFERENTE-NEGACAO-2511.md] volta 5, regra ÚNICA: se a descrição do autor tem QUALQUER negação, nenhum traço
+// daquela ficha é julgado (nada vai a "clearly visible"); meio e contagem seguem julgados. Sem negação, o traço conta se aparece palavra por palavra.
+// Substitui a leitura de alcance por oração e vírgula das voltas 3 e 4: cada frase nova abria um furo ("without ears, a tail, and an antenna").
 const NEGACOES = new Set(['no', 'not', 'without', 'never', 'non', 'nor', 'none', 'neither', 'nothing', 'sans', 'missing', 'lacking', 'lacks', 'lack',
   'dont', 'doesnt', 'isnt', 'arent', 'wasnt', 'werent', 'cant', 'cannot', 'wont', 'didnt', 'hasnt', 'havent',
-  'sem', 'não', 'nao', 'nem', 'nunca', 'jamais', 'nenhum', 'nenhuma', 'sin', 'ni', 'jamás', 'ningún', 'ninguno', 'ninguna'])
-type Palavra = { w: string; oracao: number }
-// "free of tattoos" nega; "beard-free" nega a palavra antes dele
-const ehNegacao = (ws: readonly Palavra[], i: number) => NEGACOES.has(ws[i].w) || /n't$/.test(ws[i].w) || (ws[i].w === 'free' && ws[i + 1]?.w === 'of')
-const FRONTEIRAS = new Set(['but', 'mas', 'pero', 'sino', 'porém', 'porem'])
-const ABREM_DEPOIS_DA_VIRGULA = new Set(['with', 'wearing', 'wears', 'has', 'have', 'holding', 'holds', 'carrying', 'carries', 'in', 'who', 'which', 'that',
-  'com', 'usa', 'usando', 'veste', 'vestindo', 'tem', 'que', 'em', 'con', 'lleva', 'llevando', 'tiene'])
-const E_COM_ARTIGO = new Set(['and', 'e', 'y'])
-const ARTIGOS = new Set(['a', 'an', 'the', 'his', 'her', 'their', 'its', 'um', 'uma', 'o', 'un', 'una', 'el', 'la'])
+  'sem', 'não', 'nao', 'nem', 'nunca', 'jamais', 'nenhum', 'nenhuma',
+  'sin', 'ni', 'jamás', 'ningún', 'ninguno', 'ninguna'])
 const VAZIAS = new Set(['a', 'an', 'the', 'with', 'and', 'or', 'of', 'in', 'on', 'at', 'to', 'by', 'for', 'his', 'her', 'its', 'their', 'is', 'are'])
-const palavrasEOracoes = (s: unknown): Palavra[] => {
-  const brutos = Array.from(String(s ?? '').toLowerCase().replace(/’/g, "'").matchAll(/[\p{L}\p{N}]+(?:'[\p{L}]+)*|[,;.:!?()[\]{}\n]/gu), (m) => m[0])
-  const ws: Palavra[] = []
-  let oracao = 0, virgula = false
-  brutos.forEach((t, i) => {
-    if (t === ',') { virgula = true; return }
-    if (!/^[\p{L}\p{N}]/u.test(t)) { oracao++; virgula = false; return }
-    if (virgula && (ABREM_DEPOIS_DA_VIRGULA.has(t) || (E_COM_ARTIGO.has(t) && ARTIGOS.has(brutos[i + 1] ?? '')))) oracao++
-    virgula = false
-    if (FRONTEIRAS.has(t)) oracao++; else ws.push({ w: t, oracao })
-  })
-  return ws
+const minusculo = (s: unknown) => String(s ?? '').toLowerCase().replace(/’/g, "'")
+const palavras = (s: unknown): string[] => Array.from(minusculo(s).matchAll(/[\p{L}\p{N}]+(?:'[\p{L}]+)*/gu), (m) => m[0])
+/** Há negação no texto: uma palavra da lista, "n't" (doesn't), "free of" ou "-free" (beard-free). */
+export function temNegacao(texto: string): boolean {
+  const ws = palavras(texto)
+  return ws.some((w, i) => NEGACOES.has(w) || /n't$/.test(w) || (w === 'free' && ws[i + 1] === 'of')) || /[\p{L}\p{N}]-free(?![\p{L}\p{N}])/u.test(minusculo(texto))
 }
-/** O traço do modelo é do AUTOR: as palavras dele existem, em sequência, na descrição do autor, numa oração em que NENHUMA negação vem antes delas
- *  (nem "-free" logo depois); o traço não é negação nem só palavra vazia ("with"). Negação longe, na mesma oração, também conta ("does not wear any kind
- *  of hat"): é o lado seguro, o traço sai do julgamento. Dupla negação ("never without his red scarf") também sai. */
+/** O traço do modelo é do AUTOR: a descrição do autor não tem negação nenhuma, e as palavras do traço existem nela, em sequência (então o traço
+ *  também não tem negação); o traço não é só palavra vazia ("with"). */
 export function tracoDoAutor(traco: string, descricao: string): boolean {
-  const kw = palavrasEOracoes(traco), k = kw.map((x) => x.w), autor = palavrasEOracoes(descricao)
-  if (k.length === 0 || kw.some((_, i) => ehNegacao(kw, i)) || k.every((w) => VAZIAS.has(w))) return false
-  for (let i = 0; i + k.length <= autor.length; i++) {
-    if (!k.every((w, j) => autor[i + j].w === w)) continue
-    let negada = autor[i + k.length]?.w === 'free' && autor[i + k.length + 1]?.w !== 'of' && autor[i + k.length].oracao === autor[i + k.length - 1].oracao
-    for (let j = i - 1; !negada && j >= 0 && autor[j].oracao === autor[i].oracao; j--) if (ehNegacao(autor, j)) negada = true
-    if (!negada) return true
-  }
+  const k = palavras(traco), autor = palavras(descricao)
+  if (k.length === 0 || k.every((w) => VAZIAS.has(w)) || temNegacao(descricao)) return false
+  for (let i = 0; i + k.length <= autor.length; i++) if (k.every((w, j) => autor[i + j] === w)) return true
   return false
 }
 
@@ -162,7 +140,8 @@ export async function lerAFolha(descricao: string, url: string, opts: { timeoutM
 /** Para o claim: só código e número. `tentativa` = a folha que serviu (1 = a de hoje, 2 = a nova; null = nenhuma serviu). */
 export type RelatoDaFolha = { tipo: 'humano' | 'animal' | 'criatura' | null; tracos: 'ok' | MotivoDosTracos | 'sem_leitura'; meio: 'ok' | 'meio' | 'meio_tolerado' | 'sem_leitura'
   serve: boolean; tentativa: 1 | 2 | null; regerou: boolean; custo_usd: number
-  tracos_1: 'ok' | MotivoDosTracos | 'sem_leitura'; meio_1: 'ok' | 'meio' | 'sem_leitura'; descartados: number /* [revisora, v3] a 1ª leitura e os traços do modelo que não eram do autor */ }
+  tracos_1: 'ok' | MotivoDosTracos | 'sem_leitura'; meio_1: 'ok' | 'meio' | 'sem_leitura'; descartados: number /* [revisora, v3] a 1ª leitura e os traços do modelo que não eram do autor */
+  tracos_nao_julgados: 'negacao' | null /* [CEO, volta 5] a descrição do autor tem negação: nenhum traço julgado (só meio e contagem) */ }
 /** O juiz inteiro para UMA folha: lê; reprovou → UMA folha nova com a instrução → lê de novo; a tolerância do meio só na 2ª e só para bicho e criatura
  *  em filme fotorreal. Devolve a URL que serve (a nova, se foi ela) ou null. */
 export async function julgarAFolha(args: { ficha: { nome: string; canonica: string; tipo?: unknown }; url: string; filmeFotorreal: boolean; lookPhrase: string },
@@ -172,7 +151,8 @@ export async function julgarAFolha(args: { ficha: { nome: string; canonica: stri
   let custo = 0, descartados = 0, v1: VereditoDaFolha | null = null
   const fim = (url: string | null, v: VereditoDaFolha | null, meio: RelatoDaFolha['meio'] | null, tentativa: 1 | 2 | null, regerou: boolean) =>
     ({ url, nome: args.ficha.nome, relato: { tipo, tracos: v ? v.tracos : 'sem_leitura' as const, meio: meio ?? (v ? v.meio : 'sem_leitura' as const), serve: url !== null, tentativa, regerou, custo_usd: Math.round(custo * 1e6) / 1e6,
-      tracos_1: v1 ? v1.tracos : 'sem_leitura' as const, meio_1: v1 ? v1.meio : 'sem_leitura' as const, descartados } })
+      tracos_1: v1 ? v1.tracos : 'sem_leitura' as const, meio_1: v1 ? v1.meio : 'sem_leitura' as const, descartados,
+      tracos_nao_julgados: temNegacao(descricao) ? 'negacao' as const : null } })
   const r1 = await deps.ler(descricao, args.url)
   custo += r1.custoUsd
   if (!r1.leitura) return fim(null, null, null, null, false) // não julgada = não serve (é o furo que o juiz fecha)

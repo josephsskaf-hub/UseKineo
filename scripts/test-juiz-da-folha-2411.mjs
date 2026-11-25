@@ -93,87 +93,129 @@ async function suite(change) {
   for (const [traco, deve] of [['small round', true], ['Big Blue Eyes', true], ['blue eye', false], ['round orange', true], ['robot with big', true], ['dog ears', false], ['not round', false], ['small', true], ['', false]]) assert.equal(j.tracoDoAutor(traco, DB), deve, traco)
   assert.equal(j.tracoDoAutor('small', ''), false, 'sem descrição: nenhum traço conta')
   assert.equal(j.tracoDoAutor('no hat', 'a tall man with no hat and a red coat'), false, 'negação, mesmo escrita pelo autor, nunca vai ao FLUX')
-  // [revisora 25/11, VOLTA 2, §4/§9] a negação do AUTOR: a palavra recortada depois dela ("dog", "ears", "beard") não é traço; por oração
-  const NEG = [
-    ['small round orange robot, not a dog, with no ears and without a hat', [['dog', false], ['a dog', false], ['ears', false], ['hat', false], ['a hat', false], ['small round', true], ['orange robot', true], ['robot', true]]], // a entrada exata dela
-    ['tall man with no beard', [['beard', false], ['tall man', true], ['man', true]]],
-    ['a tall man without glasses', [['glasses', false], ['tall', true]]], // without
-    ['an old sailor who never wears a hat', [['hat', false], ['a hat', false], ['old sailor', true]]], // never, 2 palavras no meio
-    ['a woman with no glasses or hat', [['glasses', false], ['hat', false], ['woman', true]]], // no X or Y
-    ['a girl without a hat and scarf', [['scarf', false], ['hat', false], ['girl', true]]], // "and" não abre oração
-    ['a man who does not wear any kind of hat', [['hat', false], ['man', true]]], // negação longe, na mesma oração
-    ['a man who doesn’t wear glasses', [['glasses', false], ['man', true]]], // n't (apóstrofo curvo)
-    ['a tall man with no hat and a red coat', [['red coat', false], ['tall man', true]]], // mesma oração depois de "no": sai do julgamento (lado seguro)
-    ['No hat. Orange robot with big blue eyes', [['orange robot', true], ['big blue eyes', true], ['hat', false]]], // negação em OUTRA frase: não conta
-    ['no hat; red scarf', [['red scarf', true], ['hat', false]]], // outra oração (ponto e vírgula)
-    ['a tall man with no hat, and a red coat', [['red coat', true], ['hat', false]]], // outra oração (vírgula)
-    ['not a dog, a small round robot', [['small round robot', false], ['dog', false]]], // [volta 4] a vírgula sem palavra que abra oração continua a negação (lado seguro)
-    ['not a dog but a robot', [['robot', true], ['dog', false]]], // "but" abre oração
-    ['never without his red scarf', [['red scarf', false]]], // dupla negação: sai do julgamento (lado seguro)
-    ['homem alto, sem barba', [['barba', false], ['homem alto', true]]], // português
-    ['no hat at first; then a red hat', [['hat', true], ['red hat', true]]], // a 1ª ocorrência negada, a 2ª não: uma sem negação basta
-    ['no hat at first, then a red hat', [['hat', false], ['red hat', false]]], // [volta 4] "then" depois da vírgula não abre: lado seguro
-    ['small robot with blue eyes', [['with', false], ['a', false], ['with blue', true], ['no', false], ['not small', false]]],
-    ['a robot without ears', [['robot without ears', false], ['robot', true]]], // palavra vazia sozinha; negação no traço (em qualquer posição)
-    // [revisora 25/11, VOLTA 3, §2] os PERIGOSOS: lista negada com vírgula
-    ['no hat, glasses, scarf', [['hat', false], ['glasses', false], ['scarf', false]]],
-    ['a man without a hat, scarf or gloves', [['scarf', false], ['gloves', false], ['man', true]]],
-    ['a woman with no glasses, earrings, or hat', [['earrings', false], ['hat', false], ['woman', true]]],
-    ['never wears a hat, a scarf, or gloves', [['scarf', false], ['a scarf', false], ['gloves', false]]],
-    ['homem alto, sem chapéu, óculos ou cachecol', [['óculos', false], ['cachecol', false], ['chapéu', false], ['homem alto', true]]],
-    ['un hombre sin sombrero, gafas ni bufanda', [['gafas', false], ['bufanda', false], ['hombre', true]]],
-    // os PERIGOSOS: negações que faltavam
-    ['robô que jamais usa chapéu', [['chapéu', false], ['robô', true]]],
-    ['un hombre que jamás lleva sombrero', [['sombrero', false], ['hombre', true]]],
-    ['a man who doesnt wear glasses', [['glasses', false], ['man', true]]],
-    ['a pirate missing one eye', [['one eye', false], ['eye', false], ['pirate', true]]],
-    ['a robot lacking ears', [['ears', false], ['robot', true]]],
-    ['a man free of tattoos', [['tattoos', false], ['man', true]]], // o 1 que sobrava no conserto mínimo dela
-    ['a beard-free face with blue eyes', [['beard', false], ['blue eyes', true]]], // "-free" depois da palavra
-    // os CERTOS dela continuam certos
-    ['a beard, not long', [['beard', true], ['long', false], ['long beard', false]]],
-    ['a robot that is not big', [['robot', true], ['big', false]]],
-    ['an orange robot. Not round.', [['round', false], ['orange robot', true]]],
-    ['neither hat nor scarf', [['hat', false], ['scarf', false]]], // P1 dela
-    ['a robot (no ears) with blue eyes', [['ears', false], ['blue eyes', true]]],
-    ['wearing nothing but a red scarf', [['red scarf', true]]],
-    ['a captain, none other than the hero, in a blue coat', [['blue coat', true], ['hero', false]]], // ", in" abre oração
-    ['não é um cachorro, sem orelhas', [['cachorro', false], ['orelhas', false]]],
-    ['não usa nenhum chapéu', [['chapéu', false]]],
-    ['sem nenhum chapéu nem óculos', [['chapéu', false], ['óculos', false]]],
-    ['no es un perro sino un robot, sin orejas', [['robot', true], ['perro', false], ['orejas', false]]], // "sino" abre; "sin" nega (P11 dela)
-    ['não é um cachorro mas um robô', [['robô', true], ['cachorro', false]]], // "mas" abre (P2 dela)
-    ['um velho que nunca usa chapéu', [['chapéu', false], ['velho', true]]], // "nunca" (P12 dela)
-    ['a man who doesn’t wear glasses, don’t ask', [['glasses', false]]],
-    ['A MAN WITH NO HAT', [['Hat', false], ['man', true]]],
-    ['Orange Robot', [['orange robot', true]]],
-    ['big, blue eyes', [['big blue eyes', true]]], // o traço atravessa a vírgula
-    ['a big, blue-eyed robot', [['big blue eyed robot', true]]],
-    ['a hatless man', [['hat', false], ['hatless man', true]]],
-    ['   ', [['hat', false]]],
-    // a vírgula que ABRE oração nova (a regra da CEO): verbo, "with", "and a", "com", "con"
-    ['a man with no hat, wearing a red coat', [['red coat', true], ['hat', false]]],
-    ['a man with no hat, with a red scarf', [['red scarf', true]]],
-    ['a man without a hat, who has a red scarf', [['red scarf', true]]],
-    ['homem sem chapéu, com um casaco vermelho', [['casaco vermelho', true], ['chapéu', false]]],
-    ['homem sem chapéu, e um casaco vermelho', [['casaco vermelho', true]]],
-    ['un hombre sin sombrero, con una bufanda roja', [['bufanda roja', true], ['sombrero', false]]],
-    ['un hombre sin sombrero, y una bufanda roja', [['bufanda roja', true]]],
-    ['no hat, and gloves', [['gloves', false]]], // "and" sem artigo não abre
-    ['a man without a hat with a feather', [['feather', false]]], // sem vírgula, "with" não abre
-    // os seguros dela continuam seguros
-    ['not only a red scarf but also a hat', [['red scarf', false]]],
-    ['a no-nonsense librarian with round glasses', [['round glasses', false]]],
-    ['a man, no hat - just a red coat', [['red coat', false]]],
-    ['wearing none other than his blue coat', [['blue coat', false]]],
+  // [CEO 25/11 01:42, docs/semana-2/DECISAO-CONFERENTE-NEGACAO-2511.md] volta 5, regra ÚNICA: QUALQUER negação na descrição do autor = nenhum traço
+  // dela conta (nada vai a "clearly visible"); sem negação = palavra por palavra, como antes. Os casos das voltas 2 a 4 (revisora e meus) com a expectativa nova.
+  const COM_NEGACAO = [
+    // os meus das voltas 3 e 4
+    ['small round orange robot, not a dog, with no ears and without a hat', ['dog', 'a dog', 'ears', 'hat', 'a hat', 'small round', 'orange robot', 'robot']],
+    ['tall man with no beard', ['beard', 'tall man', 'man']],
+    ['a tall man without glasses', ['glasses', 'tall']],
+    ['an old sailor who never wears a hat', ['hat', 'a hat', 'old sailor']],
+    ['a woman with no glasses or hat', ['glasses', 'hat', 'woman']],
+    ['a girl without a hat and scarf', ['scarf', 'hat', 'girl']],
+    ['a man who does not wear any kind of hat', ['hat', 'man']],
+    ['a man who doesn’t wear glasses', ['glasses', 'man']],
+    ['a tall man with no hat and a red coat', ['red coat', 'tall man']],
+    ['No hat. Orange robot with big blue eyes', ['orange robot', 'big blue eyes']], // negação em outra frase: agora também não julga
+    ['no hat; red scarf', ['red scarf']],
+    ['a tall man with no hat, and a red coat', ['red coat']],
+    ['not a dog, a small round robot', ['small round robot']],
+    ['not a dog but a robot', ['robot']],
+    ['never without his red scarf', ['red scarf']],
+    ['homem alto, sem barba', ['barba', 'homem alto']],
+    ['no hat at first; then a red hat', ['hat', 'red hat']],
+    ['no hat at first, then a red hat', ['red hat']],
+    ['a robot without ears', ['robot without ears', 'robot']],
+    ['a man with no hat, wearing a red coat', ['red coat']],
+    ['a man with no hat, with a red scarf', ['red scarf']],
+    ['a man without a hat, who has a red scarf', ['red scarf']],
+    ['homem sem chapéu, com um casaco vermelho', ['casaco vermelho']],
+    ['homem sem chapéu, e um casaco vermelho', ['casaco vermelho']],
+    ['un hombre sin sombrero, con una bufanda roja', ['bufanda roja']],
+    ['un hombre sin sombrero, y una bufanda roja', ['bufanda roja']],
+    ['no hat, and gloves', ['gloves']],
+    ['a man without a hat with a feather', ['feather']],
+    // os PERIGOSOS da revisora (volta 3, §2)
+    ['no hat, glasses, scarf', ['glasses', 'scarf']],
+    ['a man without a hat, scarf or gloves', ['scarf', 'gloves', 'man']],
+    ['a woman with no glasses, earrings, or hat', ['earrings', 'hat']],
+    ['never wears a hat, a scarf, or gloves', ['scarf', 'gloves']],
+    ['homem alto, sem chapéu, óculos ou cachecol', ['óculos', 'cachecol', 'homem alto']],
+    ['un hombre sin sombrero, gafas ni bufanda', ['gafas', 'bufanda']],
+    ['robô que jamais usa chapéu', ['chapéu', 'robô']],
+    ['un hombre que jamás lleva sombrero', ['sombrero', 'hombre']],
+    ['a man who doesnt wear glasses', ['glasses', 'man']],
+    ['a pirate missing one eye', ['one eye', 'pirate']],
+    ['a robot lacking ears', ['ears', 'robot']],
+    ['a man free of tattoos', ['tattoos', 'man']],
+    ['a beard-free face with blue eyes', ['beard', 'blue eyes']],
+    // os certos e os seguros dela (volta 3)
+    ['a beard, not long', ['beard', 'long']],
+    ['a robot that is not big', ['robot', 'big']],
+    ['an orange robot. Not round.', ['orange robot', 'round']],
+    ['neither hat nor scarf', ['hat', 'scarf']],
+    ['a robot (no ears) with blue eyes', ['blue eyes']],
+    ['wearing nothing but a red scarf', ['red scarf']],
+    ['a captain, none other than the hero, in a blue coat', ['blue coat']],
+    ['não é um cachorro, sem orelhas', ['orelhas']],
+    ['não usa nenhum chapéu', ['chapéu']],
+    ['sem nenhum chapéu nem óculos', ['óculos']],
+    ['no es un perro sino un robot, sin orejas', ['robot']],
+    ['não é um cachorro mas um robô', ['robô']],
+    ['um velho que nunca usa chapéu', ['velho', 'chapéu']],
+    ['a man who doesn’t wear glasses, don’t ask', ['glasses']],
+    ['A MAN WITH NO HAT', ['man', 'Hat']],
+    ['not only a red scarf but also a hat', ['red scarf']],
+    ['a no-nonsense librarian with round glasses', ['round glasses']],
+    ['a man, no hat - just a red coat', ['red coat']],
+    ['wearing none other than his blue coat', ['blue coat']],
+    // os da volta 4 dela (os 3 do topo e as variações)
+    ['a robot without ears, a tail, and an antenna', ['antenna', 'tail']],
+    ['a man without a hat, a scarf, and a coat', ['coat']],
+    ['un hombre sin sombrero, gafas, y una bufanda', ['bufanda']],
+    ['never wears a hat, a scarf, and a tie', ['tie']],
+    ['a woman with no glasses, earrings, and a hat', ['hat']],
+    ['without his hat, in the rain, gloves', ['gloves']],
+    ['not a toy, small round orange robot with big blue eyes', ['small round orange robot', 'big blue eyes']],
+    ['small round orange robot with big blue eyes, no hat', ['small round', 'big blue eyes']], // negação no fim: também não julga
+    ['cannot hide his red beard', ['red beard']],
+    ['missing nothing, a red hat', ['red hat']],
+    ['a knight with no fear and silver armor', ['silver armor']],
+    ['NOT A DOG, A ROBOT WITH BLUE EYES', ['robot with blue eyes']],
+    ['sem coleira, com lenço vermelho', ['lenço vermelho']],
+    ['sin collar, con pañuelo rojo', ['pañuelo rojo']],
+    ['a robot, no ears, blue eyes', ['blue eyes']],
+    ['lack of hair, a red cap', ['red cap']],
+    ['sugar-free candy robot, orange', ['orange']],
+    ['a hands-free robot, blue', ['blue']],
+    ['sem chapéu, sem óculos, e um cachecol', ['cachecol']],
   ]
-  for (const [autor, cs] of NEG) for (const [traco, deve] of cs) assert.equal(j.tracoDoAutor(traco, autor), deve, traco + ' em "' + autor + '"')
-  { // a folha CERTA do robô de um autor que nega: "dog: no", "ears: no", "hat: no" não reprovam e nada disso vai ao FLUX
+  for (const [autor, tracos] of COM_NEGACAO) {
+    assert.equal(j.temNegacao(autor), true, 'negação em "' + autor + '"')
+    for (const traco of tracos) assert.equal(j.tracoDoAutor(traco, autor), false, traco + ' em "' + autor + '"')
+  }
+  const SEM_NEGACAO = [
+    ['small round orange robot with big blue eyes', [['small round', true], ['Big Blue Eyes', true], ['blue eye', false], ['robot with big', true], ['dog ears', false], ['not round', false]]], // Bolt
+    ['small robot with blue eyes', [['with', false], ['a', false], ['with blue', true], ['no', false], ['not small', false]]], // palavra vazia sozinha
+    ['a hatless man', [['hat', false], ['hatless man', true]]],
+    ['a free spirit with red hair', [['red hair', true]]], // "free" sem "of" e sem hífen
+    ['a carefree girl in a yellow dress', [['yellow dress', true]]],
+    ['big, blue eyes', [['big blue eyes', true]]],
+    ['a big, blue-eyed robot', [['big blue eyed robot', true]]],
+    ['Orange Robot', [['orange robot', true]]],
+    ['a small, round, orange robot', [['small round orange robot', true], ['round', true]]],
+    ['tall man, gray beard, navy coat', [['gray beard', true], ['navy coat', true]]],
+    ['menina de 8 anos, cabelo cacheado, vestido amarelo', [['cabelo cacheado', true], ['vestido amarelo', true]]],
+    ['bearded inventor in an 1880s suit', [['bearded inventor', true], ['1880s suit', true]]], // Le Prince
+    ['old bearded sailor', [['old bearded sailor', true]]], // Slocum
+    ['man in a dark suit and black tie', [['dark suit', true], ['black tie', true]]], // Cooper
+    ['golden retriever with a red bandana', [['golden retriever', true], ['red bandana', true]]], // Juno
+    ['gray-bearded old keeper in a navy coat', [['gray bearded', true], ['navy coat', true]]], // Elias com aspas
+    ['   ', [['hat', false]]],
+  ]
+  for (const [autor, cs] of SEM_NEGACAO) {
+    assert.equal(j.temNegacao(autor), false, 'sem negação em "' + autor + '"')
+    for (const [traco, deve] of cs) assert.equal(j.tracoDoAutor(traco, autor), deve, traco + ' em "' + autor + '"')
+  }
+  { // a folha CERTA de um autor que nega: "dog: no", "ears: no", "hat: no" e até "small: no" não reprovam; nada vai ao FLUX; meio e contagem seguem julgados
     const D = 'small round orange robot, not a dog, with no ears and without a hat'
     const negados = ['dog', 'ears', 'hat', 'a hat'].map(trait => ({ trait, category: 'species', visible: 'no' }))
-    igual(j.decidirDaFolha(ler({ ...BOLT_CERTO, traits: [...BOLT_CERTO.traits.slice(0, 4), ...negados] }), false, D), { tracos: 'ok', meio: 'ok', ausentes: [], descartados: 4 }, 'negação do autor: a folha certa serve')
-    igual(j.decidirDaFolha(ler({ ...LEITURA_BOLT, traits: [...LEITURA_BOLT.traits.slice(0, 4), ...negados] }), false, D).ausentes, ['small', 'round'], 'o pedido da folha nova nunca leva "dog"')
-    igual(j.decidirDaFolha(ler({ medium: 'photo_or_realistic_render', characters: 1, traits: [{ trait: 'beard', category: 'feature', visible: 'no' }, { trait: 'tall', category: 'size', visible: 'yes' }] }), true, 'tall man with no beard'), { tracos: 'ok', meio: 'ok', ausentes: [], descartados: 1 }, '"with no beard": beard: no não pede barba')
+    igual(j.decidirDaFolha(ler({ ...BOLT_CERTO, traits: [...BOLT_CERTO.traits.slice(0, 4), ...negados] }), false, D), { tracos: 'ok', meio: 'ok', ausentes: [], descartados: 8 }, 'negação do autor: a folha certa serve')
+    igual(j.decidirDaFolha(ler({ ...LEITURA_BOLT, traits: [...LEITURA_BOLT.traits.slice(0, 4), ...negados] }), false, D), { tracos: 'ok', meio: 'ok', ausentes: [], descartados: 8 }, 'nenhum traço julgado: nem "small: no" reprova')
+    igual(j.decidirDaFolha(ler({ ...BOLT_CERTO, characters: 2 }), false, D).tracos, 'mais_de_um', 'a contagem segue julgada')
+    igual(j.decidirDaFolha(ler({ ...BOLT_CERTO, characters: 0 }), false, D).tracos, 'nenhum')
+    igual(j.decidirDaFolha(ler({ ...BOLT_CERTO, medium: 'photo_or_realistic_render' }), false, D).meio, 'meio', 'o meio segue julgado')
+    igual(j.decidirDaFolha(ler({ medium: 'photo_or_realistic_render', characters: 1, traits: [{ trait: 'beard', category: 'feature', visible: 'no' }, { trait: 'tall', category: 'size', visible: 'no' }] }), true, 'tall man with no beard'), { tracos: 'ok', meio: 'ok', ausentes: [], descartados: 2 }, '"with no beard": nem barba nem altura julgadas')
   }
   assert.equal(j.instrucaoDaFolhaNova(j.decidirDaFolha(ler({ ...LEITURA_BOLT, traits: [...LEITURA_BOLT.traits, ...inventados] }), false, DB), 'stylized 3D animated film look'), ' Exactly as the author wrote, clearly visible: small; round. Rendered in stylized 3D animated film look.')
   assert.equal(j.instrucaoDaFolhaNova(j.decidirDaFolha(ler({ ...BOLT_CERTO, characters: 0 }), false, DB), 'stylized 3D animated film look'), ' Exactly one character alone in the frame. Rendered in stylized 3D animated film look.')
@@ -189,7 +231,16 @@ async function suite(change) {
   const args = (ficha, fotorreal) => ({ ficha, url: 'https://x.org/folha-1.png', filmeFotorreal: fotorreal, lookPhrase: fotorreal ? 'photorealistic' : 'stylized 3D animated film look' })
   const NOVA = 'https://x.org/nova.png', C2 = Math.round((0.002 + FOLHA_USD) * 1e6) / 1e6, C1N = Math.round((0.001 + FOLHA_USD) * 1e6) / 1e6
   const caso = async (ficha, fotorreal, leituras, url = NOVA) => { const r = await j.julgarAFolha(args(ficha, fotorreal), { ler: fila(...leituras.map(chamada)), gerar: gerar(url) }); return [r.url, r.relato] }
-  const rel = (o) => ({ tipo: 'criatura', tracos: 'ok', meio: 'ok', serve: true, tentativa: 1, regerou: false, custo_usd: 0.001, tracos_1: 'ok', meio_1: 'ok', descartados: 0, ...o })
+  const rel = (o) => ({ tipo: 'criatura', tracos: 'ok', meio: 'ok', serve: true, tentativa: 1, regerou: false, custo_usd: 0.001, tracos_1: 'ok', meio_1: 'ok', descartados: 0, tracos_nao_julgados: null, ...o })
+  { // [volta 5] ficha com negação: serve de primeira mesmo com "small: no"; o relato grava tracos_nao_julgados: 'negacao'; meio errado ainda regera
+    const NEGA = { ...BOLT, canonica: 'Bolt, exactly as the author wrote: "small round orange robot, not a dog"; drawn in the film\'s own look' }
+    assert.equal(j.descricaoParaOJuiz(NEGA), 'small round orange robot, not a dog')
+    igual(await caso(NEGA, false, [LEITURA_BOLT]), ['https://x.org/folha-1.png', rel({ descartados: 5, tracos_nao_julgados: 'negacao' })], 'negação: nenhum traço julgado, a folha serve')
+    gerou.length = 0
+    igual(await caso(NEGA, false, [{ ...LEITURA_BOLT, medium: 'photo_or_realistic_render' }, LEITURA_BOLT]), [NOVA, rel({ tentativa: 2, regerou: true, custo_usd: C2, meio_1: 'meio', descartados: 10, tracos_nao_julgados: 'negacao' })], 'o meio segue julgado')
+    igual(gerou, [' Rendered in stylized 3D animated film look.'], 'nada de "clearly visible" com negação')
+    gerou.length = 0
+  }
   igual(await caso(BOLT, false, [BOLT_CERTO]), ['https://x.org/folha-1.png', rel({})], 'passa de primeira')
   gerou.length = 0
   igual(await caso(BOLT, false, [{ ...LEITURA_BOLT, traits: [...LEITURA_BOLT.traits, ...inventados] }, BOLT_CERTO]), [NOVA, rel({ tentativa: 2, regerou: true, custo_usd: C2, tracos_1: 'forma_especie', descartados: 4 })], 'Bolt: a folha nova serve; a 1ª leitura e os descartes ficam no relato')
@@ -204,7 +255,7 @@ async function suite(change) {
   igual(await caso(BOLT, false, [null]), [null, rel({ tracos: 'sem_leitura', meio: 'sem_leitura', serve: false, tentativa: null, tracos_1: 'sem_leitura', meio_1: 'sem_leitura' })], 'não julgada = não serve')
   igual(await caso(BOLT, false, [LEITURA_BOLT, null]), [null, rel({ tracos: 'sem_leitura', meio: 'sem_leitura', serve: false, tentativa: null, regerou: true, custo_usd: C2, tracos_1: 'forma_especie' })], 'a 2ª sem leitura: não serve')
   igual(await caso(BOLT, false, [LEITURA_BOLT], null), [null, rel({ tracos: 'forma_especie', serve: false, tentativa: null, custo_usd: C1N, tracos_1: 'forma_especie' })], 'a folha nova pedida e não saída: custo gravado')
-  igual(Object.keys((await j.julgarAFolha(args(BOLT, false), { ler: fila(chamada(BOLT_CERTO)), gerar: gerar(NOVA) })).relato), ['tipo', 'tracos', 'meio', 'serve', 'tentativa', 'regerou', 'custo_usd', 'tracos_1', 'meio_1', 'descartados'], 'o claim: só código e número')
+  igual(Object.keys((await j.julgarAFolha(args(BOLT, false), { ler: fila(chamada(BOLT_CERTO)), gerar: gerar(NOVA) })).relato), ['tipo', 'tracos', 'meio', 'serve', 'tentativa', 'regerou', 'custo_usd', 'tracos_1', 'meio_1', 'descartados', 'tracos_nao_julgados'], 'o claim: só código e número')
   // (2) os 3 filmes provados da manhã continuam ligando: a folha fotorreal deles serve de primeira, mesmo com a biografia lida como "no"
   for (const prov of PROVADOS) {
     const d = j.descricaoParaOJuiz(prov)
@@ -279,37 +330,30 @@ const mutants = [
   [modulo, ".filter((s) => !(Array.isArray(s?.characterNames) && s.characterNames.some((n) => reprovadas.has(n))))", ''],
   // v3 — os bloqueios e os vivos da revisora
   [modulo, 'const doAutor = l.tracos.filter((t) => tracoDoAutor(t.traco, descricao))', 'const doAutor = l.tracos'], // (1) o texto livre do modelo decide e vai à folha nova
-  [modulo, ' || kw.some((_, i) => ehNegacao(kw, i))', ''], // (1) a negação no traço conta como do autor
-  [modulo, 'kw.some((_, i) => ehNegacao(kw, i))', 'ehNegacao(kw, 0)'], // [volta 4] (P6 dela) só a 1ª palavra do traço conferida
-  [modulo, 'if (ehNegacao(autor, j)) negada = true', ''], // [volta 3] a negação do autor antes da palavra não conta
-  [modulo, 'j >= 0 && autor[j].oracao === autor[i].oracao', 'j >= 0'], // [volta 3] negação de OUTRA oração conta
-  [modulo, 'j >= 0 && autor[j].oracao === autor[i].oracao', 'j >= i - 1 && j >= 0'], // [volta 3] só a palavra logo antes (negação longe escapa)
-  [modulo, '|[,;.:!?()[\\]{}\\n]/gu', '/gu'], // [volta 3] pontuação não separa oração
-  [modulo, "const FRONTEIRAS = new Set(['but', 'mas', 'pero', 'sino', 'porém', 'porem'])", 'const FRONTEIRAS = new Set<string>()'], // [volta 3] "but" não abre oração
-  [modulo, "'mas', ", ''], // [volta 4] (P2 dela) "mas" não abre
-  [modulo, "'sino', ", ''], // [volta 4] "sino" não abre
-  [modulo, "'without', ", ''], // [volta 3] (N11 da revisora) "without" deixa de ser negação
-  [modulo, "'neither', ", ''], // [volta 4] (P1 dela)
-  [modulo, ", 'sin', ", ', '], // [volta 4] (P11 dela)
-  [modulo, ", 'nunca', ", ', '], // [volta 4] (P12 dela)
-  [modulo, ", 'jamais', ", ', '], // [volta 4] jamais
-  [modulo, ", 'jamás', ", ', '], // [volta 4] jamás
-  [modulo, "'doesnt', ", ''], // [volta 4] doesnt sem apóstrofo
-  [modulo, "'missing', ", ''], // [volta 4] missing
-  [modulo, "'lacking', ", ''], // [volta 4] lacking
-  [modulo, " || (ws[i].w === 'free' && ws[i + 1]?.w === 'of')", ''], // [volta 4] free of
-  [modulo, "autor[i + k.length]?.w === 'free' && autor[i + k.length + 1]?.w !== 'of' && autor[i + k.length].oracao === autor[i + k.length - 1].oracao", 'false'],
-  [modulo, " && autor[i + k.length + 1]?.w !== 'of'", ''], // [volta 4] -free
-  [modulo, " || /n't$/.test(ws[i].w)", ''], // [volta 3] doesn't não nega
-  [modulo, ".replace(/’/g, \"'\")", ''], // [volta 3] apóstrofo curvo
-  [modulo, "'sem', ", ''], // [volta 3] português
-  [modulo, ' || k.every((w) => VAZIAS.has(w))', ''], // [volta 3] "with" sozinho vira traço
-  [modulo, "if (t === ',') { virgula = true; return }", "if (t === ',') { oracao++; return }"], // [volta 4] a vírgula fecha a lista negada (o furo da volta 3)
-  [modulo, 'if (virgula && (ABREM_DEPOIS_DA_VIRGULA.has(t) ||', 'if (false && (ABREM_DEPOIS_DA_VIRGULA.has(t) ||'], // [volta 4] a vírgula nunca abre oração
-  [modulo, 'if (virgula && (', 'if (('], // [volta 4] "with"/"in"/"que" abrem oração mesmo sem vírgula
-  [modulo, " || (E_COM_ARTIGO.has(t) && ARTIGOS.has(brutos[i + 1] ?? '')))", ')'], // [volta 4] "and a" depois da vírgula não abre
-  [modulo, " && ARTIGOS.has(brutos[i + 1] ?? '')", ''], // [volta 4] "and" sem artigo abre
-  [modulo, 'if (!negada) return true', 'return !negada'], // [volta 3] só a 1ª ocorrência conta
+  // [volta 5] a regra única e cada família da lista
+  [modulo, ' || temNegacao(descricao)) return false', ') return false'], // a regra ignorada
+  [modulo, 'return ws.some((w, i) =>', 'return ws.slice(0, 1).some((w, i) =>'], // só a 1ª palavra conferida
+  [modulo, "'no', 'not', 'without', 'never', 'non', 'nor', 'none', 'neither', 'nothing', 'sans', 'missing', 'lacking', 'lacks', 'lack',", ''], // família: inglês
+  [modulo, "'dont', 'doesnt', 'isnt', 'arent', 'wasnt', 'werent', 'cant', 'cannot', 'wont', 'didnt', 'hasnt', 'havent',", ''], // família: n't sem apóstrofo
+  [modulo, " || /n't$/.test(w)", ''], // família: n't com apóstrofo
+  [modulo, "'sem', 'não', 'nao', 'nem', 'nunca', 'jamais', 'nenhum', 'nenhuma',", ''], // família: português
+  [modulo, "'sin', 'ni', 'jamás', 'ningún', 'ninguno', 'ninguna'", ''], // família: espanhol
+  [modulo, " || (w === 'free' && ws[i + 1] === 'of')", ''], // família: free of
+  [modulo, " || /[\\p{L}\\p{N}]-free(?![\\p{L}\\p{N}])/u.test(minusculo(texto))", ''], // família: -free
+  [modulo, "/[\\p{L}\\p{N}]-free(", "/free("], // -free sem hífen ("a free spirit", "carefree" negariam)
+  [modulo, "'without', ", ''], // palavra a palavra: without
+  [modulo, "'missing', ", ''], // missing
+  [modulo, "'lacking', ", ''], // lacking
+  [modulo, "'doesnt', ", ''], // doesnt
+  [modulo, "'sem', ", ''], // sem
+  [modulo, ", 'nunca', ", ', '], // nunca
+  [modulo, ", 'jamais', ", ', '], // jamais
+  [modulo, "'sin', ", ''], // sin
+  [modulo, ", 'jamás', ", ', '], // jamás
+  [modulo, ".replace(/’/g, \"'\")", ''], // apóstrofo curvo
+  [modulo, ' || k.every((w) => VAZIAS.has(w))', ''], // "with" sozinho vira traço
+  [modulo, 'if (k.every((w, j) => autor[i + j] === w)) return true', 'if (k.some((w, j) => autor[i + j] === w)) return true'], // basta uma palavra do traço
+  [modulo, "tracos_nao_julgados: temNegacao(descricao) ? 'negacao' as const : null", 'tracos_nao_julgados: null'], // o relato não conta a negação
   [modulo, "  return limpa(descricaoDoAutor(ficha.canonica) ?? '')", "  return limpa(descricaoDoAutor(ficha.canonica) ?? String(ficha.canonica ?? '').split(';')[0])"], // (2) a biografia vira traço
   [modulo, "l.personagens < 1 ? 'nenhum' : ", ''], // (3) folha sem personagem passa
   [modulo, "v.tracos === 'mais_de_um' || v.tracos === 'nenhum' ?", "v.tracos === 'mais_de_um' ?"], // (3) a folha nova não pede o personagem
@@ -329,4 +373,4 @@ for (const mutant of mutants) {
   await assert.rejects(suite(mutant), err => err instanceof assert.AssertionError, 'SOBREVIVEU: ' + mutant[1])
   mortos++
 }
-console.log(`PASS KINEO-JUIZ-DA-FOLHA-2411 v3: 'internal' (só a casa exata); por eixo; só traço do AUTOR conta e vai à folha nova (inventado e negação descartados); sem descrição do autor os traços não julgam (Le Prince, Slocum e Cooper servem); folha sem personagem reprova; custo com a folha nova; 1ª leitura no relato; veredito pronto ignorado; prazo 8 s; personagem fixo, cliente, 'off', herdada e fora do grátis = nenhuma chamada; ${mortos}/${mutants.length} mutantes mortos.`)
+console.log(`PASS KINEO-JUIZ-DA-FOLHA-2411 v5: descrição do autor com QUALQUER negação = nenhum traço julgado (tracos_nao_julgados: 'negacao'), meio e contagem seguem; 'internal' (só a casa exata); por eixo; só traço do AUTOR conta e vai à folha nova (inventado e negação descartados); sem descrição do autor os traços não julgam (Le Prince, Slocum e Cooper servem); folha sem personagem reprova; custo com a folha nova; 1ª leitura no relato; veredito pronto ignorado; prazo 8 s; personagem fixo, cliente, 'off', herdada e fora do grátis = nenhuma chamada; ${mortos}/${mutants.length} mutantes mortos.`)
