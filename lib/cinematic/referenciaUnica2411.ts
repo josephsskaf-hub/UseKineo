@@ -135,9 +135,6 @@ const ADULTO_PALAVRA_2511 = new RegExp(SEM_LETRA_ANTES + '(?:man|men|woman|women
   'sargento|tenente|coronel|detetive|delegado|delegada|capitão|capitã|comandante|astronauta|piloto|professora|cozinheiro|cozinheira|marinheiro|pescador|fazendeiro|fazendeira|' +
   'cientista|engenheiro|engenheira|advogado|advogada|juiz|juíza|padre|freira|monge|aposentado|aposentada|empresário|empresária|prefeito|prefeita|jornalista|bombeiro|bombeira|mecânico|mineiro)' + SEM_LETRA_DEPOIS, 'iu')
 const IDADE_ADULTA = '(?:1[89]|[2-9][0-9])'
-const ADULTO_IDADE_2511 = new RegExp(SEM_LETRA_ANTES + IDADE_ADULTA + '(?:\\s*(?:-|–|to|a)\\s*[0-9]{2,3}s?' + SEM_LETRA_DEPOIS + '|[\\s-]*(?:years?|yrs?)[\\s-]*old|\\s*anos' + SEM_LETRA_DEPOIS + ')' +
-  '|' + SEM_LETRA_ANTES + '(?:aged?|age)\\s+' + IDADE_ADULTA + SEM_LETRA_DEPOIS +
-  '|' + SEM_LETRA_ANTES + 'in\\s+(?:his|her|their)\\s+(?:late\\s+|early\\s+|mid[\\s-]*)?(?:twenties|thirties|forties|fifties|sixties|seventies|eighties|nineties|[2-9]0s)' + SEM_LETRA_DEPOIS, 'iu')
 // ── 5b. o sinal de MENOR (segunda trava; em todo texto lido) ──
 const POUCOS = 'one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|um|uma|dois|duas|três|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|catorze|quatorze|quinze|dezesseis|dezessete|uno|dos|cuatro|siete|ocho|nueve|diez|once|doce|trece|catorce|quince|dieciséis|dieciseis|diecisiete'
 const MENOS_DE_18 = '(?:1[0-7]|[0-9]|' + POUCOS + ')'
@@ -153,17 +150,53 @@ const MENOR_IDADE_2511 = new RegExp(SEM_LETRA_ANTES + MENOS_DE_18 + '(?:[\\s-]*(
   '|' + SEM_LETRA_ANTES + '(?:aged?|age|idade(?:\\s+de)?)\\s*:?\\s*' + MENOS_DE_18 + SEM_LETRA_DEPOIS +
   '|' + SEM_LETRA_ANTES + '(?:1[0-7]|[0-9])\\s*(?:-|–|to|a)\\s*[0-9]{1,2}' + SEM_LETRA_DEPOIS, 'iu')
 /** Algum texto diz criança, adolescente ou idade abaixo de 18 (qualquer língua que a lista conhece)? É a SEGUNDA trava: a régua é o adulto provado. */
+// [VOLTA 2 da revisora 52b12696, V4] as formas de idade que a 2ª trava não lia: "a man of 17", "a woman of seventeen", "Ana, 16, …" (o número sozinho entre
+// vírgulas), "looks about 15", "sweet sixteen", "15 anni / lat / yaşında / saal / jaar", e as palavras de criança em hindi, turco, italiano, polonês e holandês.
+// Falha fechada: "a mother of five" também barra (o filme sai sem referência, como ontem).
+const MAIS_NOVO_2511 = '(?:1[0-7]|[0-9]|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen)'
+const MENOR_FORMAS_2511 = new RegExp(SEM_LETRA_ANTES + 'of\\s+' + MAIS_NOVO_2511 + SEM_LETRA_DEPOIS +
+  '|' + SEM_LETRA_ANTES + 'looks?\\s+(?:(?:about|around|like|maybe|roughly|barely|only)\\s+)?' + MENOS_DE_18 + SEM_LETRA_DEPOIS +
+  '|' + SEM_LETRA_ANTES + '(?:sweet\\s+sixteen|quincea[ñn]era)' + SEM_LETRA_DEPOIS +
+  '|(?:^|,)\\s*(?:1[0-7]|[0-9])\\s*(?=[,.;]|$)' +
+  '|' + SEM_LETRA_ANTES + MENOS_DE_18 + '\\s*(?:anni|anno|lat|lata|yaşında|yasinda|saal|jaar)' + SEM_LETRA_DEPOIS +
+  '|' + SEM_LETRA_ANTES + '(?:ladki|ladka|ladkiyan|ladke|çocuk\\p{L}*|cocuk\\p{L}*|bambin\\p{L}*|ragazzin\\p{L}*|fanciull\\p{L}*|dziewczyn\\p{L}*|chłop(?:iec|ca|cy)|chlop(?:iec|ca|cy)|dzieck\\p{L}*|dzieci|meisje|jongetje|kindje)' + SEM_LETRA_DEPOIS, 'iu')
 export function textoDizMenor2511(texto: unknown): boolean {
   const t = typeof texto === 'string' ? texto : ''
-  return MENOR_PALAVRA_2511.test(t) || MENOR_ALEMAO_2511.test(t) || MENOR_IDADE_2511.test(t)
+  return MENOR_PALAVRA_2511.test(t) || MENOR_ALEMAO_2511.test(t) || MENOR_IDADE_2511.test(t) || MENOR_FORMAS_2511.test(t)
 }
 /** O que é DO personagem (nome, núcleo, canônica), junto. */
 const textoDoPersonagem2511 = (c: { nome?: unknown; nucleo?: unknown; canonica?: unknown }): string =>
   [c.nome, c.nucleo, c.canonica].filter((t): t is string => typeof t === 'string').join(' \n ')
-/** O personagem tem sinal POSITIVO de adulto no que é dele (idade de 18 ou mais escrita, ou palavra de adulto da lista fechada)? */
+// [VOLTA 2 da revisora 52b12696, V3] o sinal de adulto tem de ser DO personagem, não de quem está ao lado dele no texto ("carried by a woman", "holding his
+// father's hand") nem de um número que não é idade ("jersey 23-24"). Vale só: (a) o nome ou o núcleo SER uma palavra de adulto ("the woman", "the old
+// fisherman"); (b) a 1ª âncora do leitor do elenco ("appearance anchors: 50-60", "adult", "middle-aged"); (c) a 1ª oração da canônica depois do nome
+// ("Mara, a 30-year-old radio operator", "Ana, a woman who…"), cortada antes de of/by/with/beside/next to/his/her/their: a palavra de adulto da lista, ou a
+// idade escrita ("N-year-old", "aged N", "in her 30s", "N anos"), nunca a faixa solta "N-M" (essa só vale na âncora).
+const ADULTO_IDADE_PROPRIA_2511 = new RegExp(SEM_LETRA_ANTES + IDADE_ADULTA + '(?:[\\s-]*(?:years?|yrs?)[\\s-]*old|\\s*anos' + SEM_LETRA_DEPOIS + ')' +
+  '|' + SEM_LETRA_ANTES + '(?:aged?|age)\\s+' + IDADE_ADULTA + SEM_LETRA_DEPOIS +
+  '|' + SEM_LETRA_ANTES + 'in\\s+(?:his|her|their)\\s+(?:late\\s+|early\\s+|mid[\\s-]*)?(?:twenties|thirties|forties|fifties|sixties|seventies|eighties|nineties|[2-9]0(?:\\s*-\\s*[0-9]{2})?s)' + SEM_LETRA_DEPOIS, 'iu')
+const IDADE_EM_DECADA_2511 = new RegExp(SEM_LETRA_ANTES + 'in\\s+(?:his|her|their)\\s+(?:late\\s+|early\\s+|mid[\\s-]*)?(?:twenties|thirties|forties|fifties|sixties|seventies|eighties|nineties|[2-9]0(?:\\s*-\\s*[0-9]{2})?s)' + SEM_LETRA_DEPOIS, 'giu')
+const ANCORA_ADULTA_2511 = /appearance anchors?\s*:\s*([^,;\n]+)/iu
+const PRIMEIRA_ANCORA_ADULTA_2511 = /^(?:(?:1[89]|[2-9][0-9])\s*(?:-|–|to)\s*[0-9]{2,3}s?|(?:1[89]|[2-9][0-9])s?|adult|young adult|middle-aged|elderly|senior|older|old|mature)(?![\p{L}\p{N}])/iu
+const ANTES_DE_OUTRA_PESSOA_2511 = /(?<![\p{L}\p{N}])(?:of|by|with|beside|besides|next\s+to|alongside|near|his|her|their|its)(?![\p{L}\p{N}])|['’]s(?![\p{L}\p{N}])/iu
+const SO_ADULTO_NO_NOME_2511 = new RegExp('^(?:(?:the|a|an)\\s+)?(?:(?:old|older|young|elderly|middle-aged|tall|short|gray-haired|grey-haired|bearded|retired)\\s+)*' + ADULTO_PALAVRA_2511.source.slice(SEM_LETRA_ANTES.length), 'iu')
+const escapaRe2511 = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+/** A 1ª oração da canônica, depois do nome ("Mara, a 30-year-old radio operator, …" → "a 30-year-old radio operator"), cortada antes de outra pessoa. */
+function primeiraOracao2511(c: { nome?: unknown; nucleo?: unknown; canonica?: unknown }): string {
+  let t = typeof c.canonica === 'string' ? c.canonica.trim() : ''
+  for (const n of [c.nome, c.nucleo]) if (typeof n === 'string' && n.trim()) t = t.replace(new RegExp('^' + escapaRe2511(n.trim()) + '(?:\\s*[,:—–-]\\s*|\\s+(?:is|was)\\s+)', 'iu'), '')
+  // "in her 30s" é a idade DELA: marcada antes do corte em "her" (senão o corte decepa a própria idade)
+  const oracao = (t.split(/[,;.\n]/u)[0] ?? '').replace(IDADE_EM_DECADA_2511, ' aged 30 ')
+  const corte = ANTES_DE_OUTRA_PESSOA_2511.exec(oracao)
+  return corte ? oracao.slice(0, corte.index) : oracao
+}
+/** O personagem tem sinal POSITIVO de adulto que é DELE (o nome/núcleo, a 1ª âncora do leitor do elenco, ou a 1ª oração depois do nome)? */
 export function adultoProvado2511(c: { nome?: unknown; nucleo?: unknown; canonica?: unknown }): boolean {
-  const t = textoDoPersonagem2511(c)
-  return ADULTO_IDADE_2511.test(t) || ADULTO_PALAVRA_2511.test(t)
+  if ([c.nome, c.nucleo].some((n) => typeof n === 'string' && SO_ADULTO_NO_NOME_2511.test(n.trim()) && new RegExp(ADULTO_PALAVRA_2511.source + '$', 'iu').test(n.trim()))) return true
+  const ancora = typeof c.canonica === 'string' ? ANCORA_ADULTA_2511.exec(c.canonica) : null
+  if (ancora && PRIMEIRA_ANCORA_ADULTA_2511.test(ancora[1].trim())) return true
+  const oracao = primeiraOracao2511(c)
+  return ADULTO_IDADE_PROPRIA_2511.test(oracao) || ADULTO_PALAVRA_2511.test(oracao)
 }
 /** [mantido para a leitura do guardião antigo] o personagem diz menor? */
 export function pareceMenor2511(c: { nome?: unknown; nucleo?: unknown; canonica?: unknown }): boolean {
