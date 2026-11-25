@@ -24,6 +24,7 @@ export const referenciaUnicaLigada = (modo: ModoReferenciaUnica2411, email: stri
  *  elenco sem folha): o cliente fica no pedido de hoje, byte a byte, e o claim grava só o código do motivo. */
 export type MotivoClienteSemReferencia2411 = 'mais_de_um' | 'nao_humano' | 'mais_de_uma_folha' | 'mais_de_um_humano' /* [revisora 24/11, c06af33d] */ | 'estilizado' | 'sem_referencia'
   | 'sem_plano' | 'clipe_longo' /* [revisora 24/11, volta 3] admitido, mas o montador devolveu null: nenhum plano o mostra (15 s) / clipe de 16 a 30 s */
+  | MotivoClienteSemDuasPessoas2511 /* KINEO-DUAS-PESSOAS-CLIENTE-2511: o filme com duas folhas que a régua das duas pessoas barrou */
 /** Por que o cliente NÃO recebe a referência (null = recebe, se o montador achar plano que o mostra): mais de um protagonista; o protagonista ou alguém
  *  do elenco com folha que não é 'humano'; [CEO 24/11, volta 3 da revisora] mais de UM personagem com referência (folha https, ou o protagonista):
  *  dois humanos com folha nunca passaram por render, só o provado abre; o filme estilizado (isStylizedLook ou desenho infantil, o que a rota já
@@ -47,10 +48,16 @@ export type AdmissaoReferenciaUnica2411 = { referencia: ReferenciaUnica2411; cli
 /** A admissão inteira, num lugar: 'off' = null; a casa = a referência sem guarda (como em 'internal'); cliente em 'internal' = null (o de hoje, sem
  *  campo novo); cliente em 'public_humano' = a referência só se motivoClienteSemReferencia2411 der null, senão o motivo; 'public' = todos sem guarda. */
 export function admitirReferenciaUnica2411(modo: ModoReferenciaUnica2411, email: string | null | undefined, snapshot: FilmQualitySnapshot | null | undefined,
-  filme: { estilizado: boolean }): AdmissaoReferenciaUnica2411 {
+  filme: { estilizado: boolean }, duasDoCliente: ModoDuasPessoasDoCliente2511 = DUAS_PESSOAS_DO_CLIENTE_2511): AdmissaoReferenciaUnica2411 {
   if (referenciaUnicaLigada(modo, email)) { const r = referenciaUnicaDoFilme(snapshot); return r ? { referencia: comSegundaReferencia2411(r, snapshot, duasReferenciasLigadas(DUAS_REFERENCIAS_2411, email)) } : null } // KINEO-DUAS-REFERENCIAS-2411
   if (modo !== 'public_humano') return null
   const motivo = motivoClienteSemReferencia2411(snapshot, filme)
+  // KINEO-DUAS-PESSOAS-CLIENTE-2511 [CEO 25/11 16:25] o cliente com DUAS folhas (o único motivo que a régua das duas pessoas pode abrir) passa pela régua; em
+  // 'internal' (só a casa), o de ontem: o motivo da guarda de uma pessoa, byte a byte
+  if (motivo === 'mais_de_uma_folha' && duasDoCliente === 'public_humano') {
+    const duas = admitirDuasPessoasDoCliente2511(snapshot, filme)
+    return 'referencia' in duas ? { referencia: duas.referencia, cliente: true } : { motivo: duas.motivo }
+  }
   if (motivo) return { motivo }
   const r = referenciaUnicaDoFilme(snapshot)
   return r ? { referencia: r, cliente: true } : { motivo: 'sem_referencia' }
@@ -82,6 +89,45 @@ export const DUAS_REFERENCIAS_2411: ModoDuasReferencias2411 = 'internal'
 export const duasReferenciasLigadas = (modo: ModoDuasReferencias2411, email: string | null | undefined): boolean =>
   modo === 'public' || (modo === 'internal' && contaDaCasaExata(email))
 export const FRASE_SEGUNDA_PESSOA = 'Keep the face and outfit of @Image2.'
+
+// KINEO-DUAS-PESSOAS-CLIENTE-2511 [CEO 25/11 16:25: "abrir a referência de DUAS pessoas (humano fotorreal) para o cliente … o que fica de fora (desenho,
+// criatura, menor, três ou mais). Não abrir desenho nem criatura: não têm prova."] Prova: o dono deu ~10 ao filme de duas fichas no Kling 4 e 10 ao Gemini
+// com duas fichas (25/11). RÉGUA DE ADMISSÃO do cliente (todas juntas; uma falha = o motivo, e o filme fica no pedido de hoje, sem referência):
+//   1. o elenco tem EXATAMENTE 2 personagens (3 ou mais = 'duas_tres_ou_mais'), um só protagonista;
+//   2. os DOIS são 'humano' (bicho, criatura ou outro = 'duas_nao_humano');
+//   3. os DOIS têm folha https no retrato, o protagonista pela folha (não pela imagem-chave) = 'duas_sem_folha';
+//   4. o filme é fotorreal (estilizado === false; desenho, anime, 3D, desenho infantil ou campo torto = 'duas_estilizado');
+//   5. nenhum dos dois é menor: o elenco não tem campo de idade, então lê nome, núcleo e canônica (o que o autor escreveu) e barra palavra de
+//      criança ou adolescente (inglês e português), idade escrita abaixo de 18 e faixa de idade que começa abaixo de 18 = 'duas_menor'. Falha fechada:
+//      na dúvida, barra ("girl" ou "son" de um adulto também barra; o filme sai sem referência, como ontem);
+//   6. o 2º sai de comSegundaReferencia2411 (a mesma da casa: nomes que não se contêm, folhas diferentes); sem o 2º = 'duas_nomes'.
+// Chave: 'internal' = só a casa (o de ontem); 'public_humano' = o cliente pela régua acima. Voltar: 'internal'.
+export type ModoDuasPessoasDoCliente2511 = 'internal' | 'public_humano'
+export const DUAS_PESSOAS_DO_CLIENTE_2511: ModoDuasPessoasDoCliente2511 = 'public_humano'
+export type MotivoClienteSemDuasPessoas2511 = 'duas_tres_ou_mais' | 'duas_nao_humano' | 'duas_sem_folha' | 'duas_estilizado' | 'duas_menor' | 'duas_nomes'
+const MENOR_PALAVRA_2511 = /(?<![\p{L}\p{N}])(?:child|children|kid|kids|boy|boys|girl|girls|baby|babies|toddler|toddlers|infant|infants|newborn|teen|teens|teenager|teenagers|teenage|adolescent|adolescents|minor|minors|schoolboy|schoolgirl|schoolchild|schoolkid|preteen|tween|youngster|son|daughter|criança|crianças|menino|meninos|menina|meninas|bebê|bebês|bebe|adolescente|adolescentes|garoto|garotos|garota|garotas|filho|filha|neto|neta)(?![\p{L}\p{N}])/iu
+const MENOR_IDADE_2511 = /(?<![\p{L}\p{N}])(?:1[0-7]|[0-9])\s*-?\s*(?:(?:years?|yrs?)[\s-]*old|y\.?o\.?(?![\p{L}])|anos\s+de\s+idade)|(?<![\p{L}])(?:de|com|tem)\s+(?:1[0-7]|[0-9])\s+anos(?![\p{L}])|(?<![\p{L}])aged?\s+(?:1[0-7]|[0-9])(?![\p{N}])|(?<![\p{L}\p{N}])(?:1[0-7]|[0-9])\s*(?:-|–|to)\s*\d{1,2}(?![\p{N}])/iu
+/** Algum texto do personagem diz criança, adolescente ou idade abaixo de 18? (falha fechada: texto que não é string não absolve) */
+export function pareceMenor2511(c: { nome?: unknown; nucleo?: unknown; canonica?: unknown }): boolean {
+  const textos = [c.nome, c.nucleo, c.canonica].filter((t): t is string => typeof t === 'string')
+  return textos.some((t) => MENOR_PALAVRA_2511.test(t) || MENOR_IDADE_2511.test(t))
+}
+/** A régua das duas pessoas para o CLIENTE (o bloco acima): a referência com o 2º, ou o motivo. */
+export function admitirDuasPessoasDoCliente2511(snapshot: FilmQualitySnapshot | null | undefined, filme: { estilizado: boolean }):
+  { referencia: ReferenciaUnica2411 } | { motivo: MotivoClienteSemDuasPessoas2511 } {
+  if (!retratoNoFormato(snapshot)) return { motivo: 'duas_sem_folha' }
+  if (snapshot.characters.length !== 2) return { motivo: 'duas_tres_ou_mais' }
+  if (snapshot.characters.filter((c) => c.protagonista === true).length !== 1) return { motivo: 'duas_sem_folha' }
+  if (!snapshot.characters.every((c) => c.tipo === 'humano')) return { motivo: 'duas_nao_humano' }
+  if (!snapshot.characters.every((c) => snapshot.characterReferences.some((r) => r.nome === c.nome && https(r.url)))) return { motivo: 'duas_sem_folha' }
+  if (filme.estilizado !== false) return { motivo: 'duas_estilizado' } // na dúvida (campo ausente ou torto), estilizado
+  if (snapshot.characters.some((c) => pareceMenor2511(c))) return { motivo: 'duas_menor' }
+  const r = referenciaUnicaDoFilme(snapshot)
+  if (!r || r.origem === 'imagem_chave' || r.tipo !== 'humano') return { motivo: 'duas_sem_folha' }
+  const duas = comSegundaReferencia2411(r, snapshot, true)
+  if (!duas.segundo || duas.segundo.frase !== FRASE_SEGUNDA_PESSOA) return { motivo: 'duas_nomes' }
+  return { referencia: duas }
+}
 export const FRASE_SEGUNDA_DESENHO = 'Keep the exact character design of @Image2.'
 /** A referência com o 2º personagem: desligado, sem exatamente 2 folhas https no elenco ou 2º fora do formato = a MESMA referência. */
 export function comSegundaReferencia2411(ref: ReferenciaUnica2411, snapshot: FilmQualitySnapshot | null | undefined, ligada: boolean): ReferenciaUnica2411 {

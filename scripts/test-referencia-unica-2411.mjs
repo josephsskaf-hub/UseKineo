@@ -553,9 +553,10 @@ async function suiteHumano2411({ api, f, route }) {
     ['dragão (sintético)', { ...s0, characters: [outro('the dragon', 'criatura', true)], characterReferences: [folha('the dragon')] }, {}, 'nao_humano'],
     ['pessoa + bicho COM folha', { ...s0, characters: [lead, outro('the dog', 'animal', false)], characterReferences: [...s0.characterReferences, folha('the dog')] }, {}, 'nao_humano'],
     ['pessoa + criatura COM folha', { ...s0, characters: [lead, outro('the ghost', 'criatura', false)], characterReferences: [...s0.characterReferences, folha('the ghost')] }, {}, 'nao_humano'],
-    ['duas pessoas COM folha (caed3456, c06af33d: nunca renderizado)', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [...s0.characterReferences, folha('the woman')] }, {}, 'mais_de_uma_folha'],
-    ['protagonista pela imagem-chave + outra pessoa COM folha', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [folha('the woman')], approvedStills: [{ url: 'https://example.org/offline/k.png', characterNames: [lead.nome] }] }, {}, 'mais_de_uma_folha'],
-    ['duas pessoas COM folha num filme 3D', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [...s0.characterReferences, folha('the woman')] }, { look: 'animated3d' }, 'mais_de_uma_folha'],
+    // KINEO-DUAS-PESSOAS-CLIENTE-2511 [CEO 25/11] duas pessoas fotorreais COM folha agora ligam para o cliente com o 2º (caso 3 abaixo); com a chave em
+    // 'internal' o motivo volta a ser 'mais_de_uma_folha' (scripts/test-duas-pessoas-cliente-2511.mjs). Fora da régua, o motivo da régua das duas:
+    ['protagonista pela imagem-chave + outra pessoa COM folha', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [folha('the woman')], approvedStills: [{ url: 'https://example.org/offline/k.png', characterNames: [lead.nome] }] }, {}, 'duas_sem_folha'],
+    ['duas pessoas COM folha num filme 3D', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [...s0.characterReferences, folha('the woman')] }, { look: 'animated3d' }, 'duas_estilizado'],
     // [revisora 24/11 · CEO, c06af33d] a forma provada tinha UMA pessoa no elenco da folha: duas pessoas no elenco, mesmo com uma só folha https, não liga
     ['duas pessoas, só uma com folha (c06af33d, "dynamic duo")', { ...s0, characters: [lead, outro('the woman', 'humano', false)] }, {}, 'mais_de_um_humano'],
     ['duas pessoas, a 2ª com folha NÃO https', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [...s0.characterReferences, { nome: 'the woman', url: 'http://inseguro.example/w.png' }] }, {}, 'mais_de_um_humano'],
@@ -591,9 +592,11 @@ async function suiteHumano2411({ api, f, route }) {
   // 3. o que ainda liga para cliente: pessoa + bicho SEM folha (o bicho não tem referência a trocar), filme noir (fotorreal em preto e branco); o coadjuvante
   // só citado no texto (fora do elenco, como em Le Prince, Slocum e Cooper) = o elenco de UMA pessoa
   for (const [nome, snap, opts] of [['pessoa + bicho sem folha', { ...s0, characters: [lead, outro('the dog', 'animal', false)] }, {}], ['noir', s0, { look: 'noir' }], ['fotorreal, coadjuvante só no texto', s0, {}],
-    ['protagonista pela imagem-chave, sem outra folha', { ...s0, characterReferences: [], approvedStills: [{ url: 'https://example.org/offline/k.png', characterNames: [lead.nome] }] }, {}]]) {
+    ['protagonista pela imagem-chave, sem outra folha', { ...s0, characterReferences: [], approvedStills: [{ url: 'https://example.org/offline/k.png', characterNames: [lead.nome] }] }, {}],
+    ['duas pessoas COM folha (caed3456, c06af33d) — KINEO-DUAS-PESSOAS-CLIENTE-2511', { ...s0, characters: [lead, outro('the woman', 'humano', false)], characterReferences: [...s0.characterReferences, folha('the woman')] }, {}]]) {
     const t = admitir(route, f, { email: cliente, snapshot: snap, ...opts })
     assert.ok(t.referenciaUnica && !('referenciaUnicaRecusa' in t), 'cliente + ' + nome + ' liga')
+    assert.equal(!!t.referenciaUnica.segundo, nome.startsWith('duas pessoas'), 'cliente + ' + nome + ': o 2º só com duas folhas')
   }
   // 4. a guarda sozinha: estilo ausente ou torto = estilizado (na dúvida, o de hoje)
   for (const filme of [{}, { estilizado: undefined }, { estilizado: 'false' }, { estilizado: 0 }]) assert.equal(f.motivoClienteSemReferencia2411(s0, filme), 'estilizado', JSON.stringify(filme))
@@ -665,7 +668,7 @@ const mutants = [
   [routeFile, 'const sem = ru ? null : relatoClienteSemReferencia2411(kling4Timing, w);', 'const sem = ru ? null : relatoClienteSemReferencia2411(kling4Timing);'], // o claim sem o envio = mudo
   [feature, "  if (leads > 1) return 'mais_de_um'\n", ''], // o motivo some (vira sem_referencia)
   [feature, "  if (modo !== 'public_humano') return null\n", ''], // em 'internal' o cliente passa a receber
-  [feature, "  const motivo = motivoClienteSemReferencia2411(snapshot, filme)\n  if (motivo) return { motivo }\n", ''], // cliente sem a guarda
+  [feature, "  const motivo = motivoClienteSemReferencia2411(snapshot, filme)\n  // KINEO-DUAS-PESSOAS-CLIENTE-2511 [CEO 25/11 16:25] o cliente com DUAS folhas (o único motivo que a régua das duas pessoas pode abrir) passa pela régua; em\n  // 'internal' (só a casa), o de ontem: o motivo da guarda de uma pessoa, byte a byte\n  if (motivo === 'mais_de_uma_folha' && duasDoCliente === 'public_humano') {\n    const duas = admitirDuasPessoasDoCliente2511(snapshot, filme)\n    return 'referencia' in duas ? { referencia: duas.referencia, cliente: true } : { motivo: duas.motivo }\n  }\n  if (motivo) return { motivo }\n", ''], // cliente sem a guarda (a de uma pessoa e a das duas, juntas)
   [feature, '  if (referenciaUnicaLigada(modo, email)) { const r', "  if (modo === 'public' && referenciaUnicaLigada(modo, email)) { const r"], // a casa passa pela guarda
   [feature, "typeof timing.referenciaUnicaRecusa === 'string' ?", 'false ?'], // o claim nunca diz o motivo
   [feature, '  if (!timing.referenciaUnica) return typeof', "  if (typeof timing.referenciaUnicaRecusa === 'string') return typeof"], // motivo ao lado da referência usada

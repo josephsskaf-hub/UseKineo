@@ -134,8 +134,14 @@ async function suite(change) {
     const c = admitir(route, { ...f, REFERENCIA_UNICA_2411: modo }, fr, vp, { email: CLIENTE, snapshot: retrato([{ nome: 'Elias', url: FOLHA_E }], [CEDD.elenco[0]]) })
     assert.ok(!c.referenciaUnica || !('segundo' in c.referenciaUnica), 'cliente: nunca o 2º (' + modo + ')')
   }
-  { const c = admitir(route, f, fr, vp, { email: CLIENTE, snapshot: retrato() })
-    assert.ok(!c.referenciaUnica || !('segundo' in c.referenciaUnica), 'cliente com duas folhas: nunca o 2º')
+  { // KINEO-DUAS-PESSOAS-CLIENTE-2511 [CEO 25/11] cedd1250 (duas pessoas fotorreais com folha) para o CLIENTE: em 'public_humano' o MESMO 2º da casa; com a
+    // chave das duas pessoas em 'internal' (só a casa), nunca o 2º (o de ontem)
+    const c = admitir(route, f, fr, vp, { email: CLIENTE, snapshot: retrato() })
+    assert.equal(f.DUAS_PESSOAS_DO_CLIENTE_2511, 'public_humano')
+    assert.ok(c.referenciaUnica && c.referenciaUnicaDoCliente === true, 'cliente com duas folhas fotorreais: liga')
+    igual(c.referenciaUnica, t.referenciaUnica, 'cliente = a referência da casa, com o 2º')
+    const ci = admitir(route, { ...f, admitirReferenciaUnica2411: (m, e, s, fl) => f.admitirReferenciaUnica2411(m, e, s, fl, 'internal') }, fr, vp, { email: CLIENTE, snapshot: retrato() })
+    assert.ok(!ci.referenciaUnica && ci.referenciaUnicaRecusa === 'mais_de_uma_folha', "duas pessoas em 'internal': cliente nunca o 2º, o motivo de ontem")
     // mesmo com a referência única em 'public' (o cliente entra pelo caminho da casa), o 2º é só da casa: o interruptor próprio decide
     const p = admitir(route, { ...f, REFERENCIA_UNICA_2411: 'public' }, fr, vp, { email: CLIENTE, snapshot: retrato() })
     assert.ok(p.referenciaUnica && !('segundo' in p.referenciaUnica), "referência 'public' + cliente: uma referência") }
