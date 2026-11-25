@@ -92,7 +92,11 @@ function planosFrom(raw: unknown): Array<{ prompt: string; duration: string }> |
 const PROBE_EVENT = 'admin_engine_probe'
 // KINEO-SONDA-TETO-2311 — dono 23/11: aprovou US$ 15,00 (rodada 1) e depois mais US$ 5,75 (rodada 2 do Gemini, na mesma noite).
 // O teto das 24 h passa a ser a soma do que ele aprovou, nem um centavo a mais. Voltar a 15 depois de 24/11.
-const PROBE_DAILY_CAP_USD = 20.75
+// KINEO-SONDA-DOIS-MOTORES-2511 [revisora 25/11 §9.2; CEO 25/11 11:05] — o teto passa a ser o que o dono aprovou e ainda cai nas 24 h corridas: US$ 0,66 do
+// Kling flash (aprovação da madrugada de 25/11; a sonda gravou 0,658 às 07:31–07:32 UTC) + US$ 4,00 do teste A de hoje (Gemini, Vidu, H3) = US$ 4,66.
+// A conta: na janela já estão 0,658 + 1,2285 (o Gemini) = 1,8865; o Vidu (0,9975) e o H3 (1,411) de 15 s com 2 fotos levam a 4,295 ≤ 4,66; um 3º pedido
+// de 15 s (o menor seria outro Gemini, 1,2285) passaria de 4,66 e é recusado. Os 20,75 eram da aprovação de 23/11, já fora da janela.
+const PROBE_DAILY_CAP_USD = 4.66
 const PROBE_WINDOW_MS = 24 * 60 * 60 * 1000 // "dia" = 24 h corridas antes do pedido (mais apertado que o dia do calendário)
 // Preço por segundo a 720p, lido em 23/11/2026 na página de cada modelo na fal (fal.ai/models/<endpoint>).
 const KLING4_REF_USD_PER_S_720P_2311 = 0.157
@@ -109,7 +113,7 @@ const GEMINI_OMNI_FLASH_REF_USD_PER_S_720P_2311 = 0.0819
 // Entram no MESMO teto diário (PROBE_DAILY_CAP_USD) e com as mesmas travas: só administrador, foto só do nosso storage ou da fal, até 3 fotos, 3 a 15 s.
 const VIDU_Q4_REF_USD_PER_S_720P_PROMO_2511 = 0.0665
 const VIDU_Q4_REF_USD_PER_S_720P_2511 = 0.095
-const VIDU_Q4_PROMO_ATE_2511 = Date.UTC(2026, 11, 1) // o desconto vale "até 30/11/2026"; a partir de 01/12 (UTC), o preço cheio
+const VIDU_Q4_PROMO_ATE_2511 = Date.UTC(2026, 10, 30) // [revisora §9.3] o desconto vale "até 30/11/2026" num fuso que a ficha não diz: o preço cheio já a partir de 30/11 00:00 UTC (nunca abaixo do real)
 const H3_MAX_TURBO_REF_USD_PER_S_768P_2511 = 0.08
 const H3_REF_RESERVA_USD_POR_FOTO_2511 = 0.0655 // 4.096 tokens × US$ 0,016/mil, por foto: a ficha não dá os tokens por foto
 type PerfilDaSonda2511 = 'vidu_q4' | 'h3_max_turbo'
@@ -146,7 +150,8 @@ function probePerfilInputError(perfil: PerfilDaSonda2511, input: Record<string, 
 function probeEstUsd(model: string, endpoint: { usdPerSecond: number; perfil?: PerfilDaSonda2511 }, input: Record<string, unknown>, agora: number): number {
   const seconds = input.duration as number
   if (endpoint.perfil === 'vidu_q4') return seconds * (agora < VIDU_Q4_PROMO_ATE_2511 ? VIDU_Q4_REF_USD_PER_S_720P_PROMO_2511 : VIDU_Q4_REF_USD_PER_S_720P_2511)
-  if (endpoint.perfil === 'h3_max_turbo') return seconds * H3_MAX_TURBO_REF_USD_PER_S_768P_2511 + (input.reference_image_urls as unknown[]).length * H3_REF_RESERVA_USD_POR_FOTO_2511
+  // [revisora §9.1] a ficha: "output can run up to about 0.7 s longer than requested" — a estimativa cobre 1 s a mais (nunca abaixo do real)
+  if (endpoint.perfil === 'h3_max_turbo') return (seconds + 1) * H3_MAX_TURBO_REF_USD_PER_S_768P_2511 + (input.reference_image_urls as unknown[]).length * H3_REF_RESERVA_USD_POR_FOTO_2511
   return seconds * endpoint.usdPerSecond
 }
 const PROBE_INPUT_KEYS = new Set(['prompt', 'multi_prompt', 'duration', 'resolution', 'aspect_ratio', 'image_urls'])
