@@ -17,6 +17,8 @@ const require = createRequire(import.meta.url)
 const ROOT = path.resolve(import.meta.dirname, '..')
 const ts = require(path.join(ROOT, 'node_modules', 'typescript'))
 const MARCA = 'KINEO-FILA-QUEDA-FAL-2810'
+const COPIA_PEDIDO = 'const pedidoEstacionado = pedidoEstacionavel({ ...body, look: explicitFilmLook })'
+const ERRO_ORDEM = 'a cópia do pedido precisa usar o estilo validado antes de normalizar o roteiro'
 const read = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n')
 let pass = 0
 let fail = 0
@@ -138,9 +140,14 @@ function checa(over = {}) {
   if (!rota.includes("req.headers.get('x-kineo-service-user')") || !rota.includes('`Bearer ${process.env.CRON_SECRET}`') || !rota.includes('supabase.auth.admin.getUserById(serviceUserHeader)')) e.push('modo serviço sem o contrato Bearer CRON_SECRET + x-kineo-service-user + e-mail do auth')
   if (/user = \{ id: serviceUserHeader, email: svcProfile/.test(rota)) e.push('modo serviço leu o e-mail de profiles (editável) em vez do auth')
   const iJson = rota.indexOf('body = await req.json()')
-  const iCopia = rota.indexOf('const pedidoEstacionado = pedidoEstacionavel(body)')
+  const linhaLook = 'const explicitFilmLook = selectedFilmLook(body.look, user.email)'
+  const iLook = rota.indexOf(linhaLook, iJson)
+  const iCopia = rota.indexOf(COPIA_PEDIDO)
   const iMut = rota.indexOf("body.script_mode = 'ai'")
-  if (!(iJson > 0 && iCopia > iJson && iCopia - iJson < 400 && iMut > iCopia)) e.push('a cópia do pedido não vem logo depois do req.json() e antes da 1ª mutação do body')
+  const iEntrada = rota.indexOf("const promptRaw = (body.prompt ?? '').trim()", iJson)
+  // A guarda de recusa já pode recuperar o prompt da ideia. A fila guarda esse pedido
+  // antes do parse da entrada e de qualquer troca de script_mode, junto à validação do estilo.
+  if (!(iJson > 0 && iLook > iJson && iCopia > iLook && rota.slice(iLook + linhaLook.length, iCopia).trim() === '' && iEntrada > iCopia && iMut > iEntrada)) e.push(ERRO_ORDEM)
   const iFn = rota.indexOf('const estacionarSePossivel = async (): Promise<NextResponse | null> =>')
   const iRelease = rota.indexOf('releaseActiveBirthClaim = releaseBirthClaim')
   if (!(iFn > iRelease && iRelease > 0)) e.push('estacionarSePossivel não nasce depois do releaseBirthClaim')
@@ -246,10 +253,9 @@ const rota = read(F.route)
 const cron = read(F.cron)
 const rec = read(F.recovery)
 const srv = read(F.server)
-const mut = (nome, over) => {
-  const antes = Object.values(over).every((v) => typeof v === 'string')
-  const erros = antes ? checa(over) : ['mutante mal formado']
-  ok(erros.length > 0, 'mutante vermelho: ' + nome + (erros.length ? ' — ' + erros[0] : ''))
+const mut = (nome, over, erroEsperado) => {
+  const erros = checa(over)
+  ok(erroEsperado ? erros.includes(erroEsperado) : erros.length > 0, 'mutante vermelho: ' + nome + (erros.length ? ' — ' + erros.join('; ') : ''))
 }
 const troca = (src, de, para, nome) => { if (!src.includes(de)) throw new Error('mutante ' + nome + ': trecho não encontrado: ' + de.slice(0, 80)); return src.replace(de, para) }
 console.log('\n' + MARCA + ' — mutantes')
@@ -275,7 +281,9 @@ mut('rota estaciona antes do estorno (Hollywood)', { [F.route]: troca(troca(rota
 mut('rota estaciona com cena aceita (Hollywood)', { [F.route]: troca(rota, 'const estacionado = hValid.length === 0 ? await estacionarSePossivel() : null', 'const estacionado = await estacionarSePossivel()', 'm11b') })
 mut('rota estaciona sem exigir claim liberado', { [F.route]: troca(rota, "released: c.claimAction === 'released' && c.refundConfirmed === true", 'released: true', 'm12') })
 mut('rota promete mesmo sem gravar a linha', { [F.route]: troca(rota, "if (parkErr) { console.error('[cinematic] KINEO-FILA-QUEDA-FAL-2810: render_parked não gravado (resposta de sempre):', parkErr.message); return null }", "if (parkErr) { console.error('[cinematic] KINEO-FILA-QUEDA-FAL-2810: render_parked não gravado (resposta de sempre):', parkErr.message) }", 'm13') })
-mut('cópia do pedido depois da mutação do body', { [F.route]: troca(troca(rota, '    const pedidoEstacionado = pedidoEstacionavel(body) // KINEO-FILA-QUEDA-FAL-2810 — a cópia fechada do pedido, ANTES de a rota mexer no body (script_mode do monumento etc.); null = não estaciona\n', '', 'm14'), "      body.script_mode = 'ai' // KINEO-MONUMENTO-2026-10-13", "      body.script_mode = 'ai' // KINEO-MONUMENTO-2026-10-13\n      var pedidoEstacionado = pedidoEstacionavel(body)", 'm14') })
+const copiaOriginal = rota.split('\n').find(linha => linha.includes(COPIA_PEDIDO))
+const primeiraMutacao = "      body.script_mode = 'ai' // KINEO-MONUMENTO-2026-10-13"
+mut('cópia do pedido depois da mutação do body', { [F.route]: troca(troca(rota, copiaOriginal + '\n', '', 'm14'), primeiraMutacao, primeiraMutacao + '\n      ' + COPIA_PEDIDO, 'm14') }, ERRO_ORDEM)
 mut('modo serviço lê e-mail de profiles', { [F.route]: troca(rota, "const { data: svcUser } = await supabase.auth.admin.getUserById(serviceUserHeader) // KINEO-FILA-QUEDA-FAL-2810\n      user = svcUser?.user ? { id: svcUser.user.id, email: svcUser.user.email ?? null } : null // KINEO-FILA-QUEDA-FAL-2810", "const { data: svcProfile } = await supabase.from('profiles').select('email').eq('id', serviceUserHeader).maybeSingle()\n      user = { id: serviceUserHeader, email: svcProfile?.email ?? null }", 'm15') })
 mut('alarme horário entra no finalizarDespacho', { [F.route]: troca(troca(rota, '    if (ctx.balanceExhausted) await alertarFundadorFalSemSaldo({ engine: ctx.engine }) // KINEO-FILA-QUEDA-FAL-2810 — 1 e-mail/hora em PT com o placar (teto 3 s, nunca lança); o de 6 h do falAlert segue no finalizador\n', '', 'm16'), '  if (ctx.balanceExhausted) {\n    await alertFalExhausted({', '  if (ctx.balanceExhausted) {\n    await alertarFundadorFalSemSaldo({ engine: ctx.engine })\n    await alertFalExhausted({', 'm16') })
 mut('cron não para na recusa da fal', { [F.cron]: troca(cron, "else if (outcome === 'provider_down') providerDown = true", '', 'm17') })

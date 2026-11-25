@@ -8,18 +8,29 @@
 //   D. o preço é o da função que cobra e aparece SÓ no botão; nenhum nome de motor; nada começa sozinho;
 //   E. celular: uma coluna (o CSS do Recreate) e nenhuma largura fixa nova.
 // Mutantes no fim provam que o teste morde.
+import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import * as elevCrypto from 'node:crypto'
-import * as elevFs from 'node:fs'
-import * as elevPath from 'node:path'
 
 const require = createRequire(import.meta.url)
 const R = require('../docs/studio-na-moldura-1011/runtime.cjs')
 const { studioRenderContract } = require('./test-support/studio-render-contract.cjs')
 const { aba, baseSrc, BASE, React, read, ROOT, visibleText } = R
 
+const BASE_PROTEGIDA = 'ec6348f4b7beafa640bc3fb5d9dc5da3b7ce7b0b'
+// SHA-256 dos arquivos de estilo em 8a1fb2fa8, já nas provas visual e funcional.
+const ESTILO = {
+  'app/(dashboard)/generate/GenerateClient.tsx': '74a8a712dce3769a8b89a22967e556d546616bb3a892d59155484743731e9ce3',
+  'app/(dashboard)/studio/StudioClient.tsx': 'd2be8cd727317139e9816646a3ff9e1ffdd26538c4898c698246f75eebe3c0e6',
+  'app/(dashboard)/studio/create/page.tsx': 'eb6aaaa0a019015dc0ecabb2e1d7087fcb6648d3178f65f1cd7915be3ca225d1',
+  'app/(dashboard)/studio/page.tsx': '56df41194e8a110b219e63bd84c59706b2f0f199fb7d11c3d003e66452ab060e',
+  'app/(dashboard)/studio/previa/ScenePreviewClient.tsx': '21564cec5727f89db9f89e7c735f594fbe4f2d5df360ba4cb2713db30e3974db',
+  'app/(dashboard)/studio/previa/page.tsx': '88f46f9010ad8df1f1e210e149c603c8fef69385be6eda7a647ce816fecc2d7f',
+  'app/api/generate-video-cinematic/route.ts': 'e65ab2beab1e0f0bbc504fab1aa2606d53137a83a1f3b45a77d6e17b3f57e9a9',
+  'lib/growth/ideiaDaPagina.ts': '7c041ac352f37be2d5e6816bcee01966eb586f6f9eb05cb240b5285a83b212f1',
+  'lib/growth/studioSimples.ts': 'f6653593438fd8514111eee8ee9687bbba902bc8aa95c7e6b622feda9d61f9a1',
+}
 const HOUSE = 'josephsskaf@gmail.com'
 const CUSTOMER = 'customer@example.org'
 const ENGINE_NAMES = /\b(kling|seedance|veo|minimax|h3|omni|nano banana|sora|runway|wan|hailuo|pixverse|luma|flux|lyria|kineo 1)\b/i
@@ -50,7 +61,8 @@ function switchChecks(o) {
   const page = lf(o['app/create/[tab]/page.tsx'] ?? read('app/create/[tab]/page.tsx'))
   // KINEO-ENTRADAS-TELA-NOVA-1011 [fundador 10/11: "1 sim, todas as telas vão pro modelo novo"] — a aba passa a ler a campanha e a ideia do link
   // como o /studio lê (campanhaDaCaixa · ideiaDoLink); SEM intent_campaign a campanha segue a do Continue (CREATE_FILM_CAMPAIGN); motor: o padrão.
-  const iDecision = page.indexOf("if (decision.kind !== 'show') notFound()"), iCamp = page.indexOf('const campanha = searchParams.intent_campaign === undefined ? CREATE_FILM_CAMPAIGN : campanhaDaCaixa(searchParams.intent_campaign)'), iFrame = page.indexOf('if (filmNaMoldura(params.tab, user?.email)) return <><StudioIdeaArrival /><StudioNaMoldura showRecreate={decision.showRecreate} showClip={showClip} motor={motorDaCaixa(undefined)} campanha={campanha} ideiaInicial={ideiaDoLink(searchParams.ideia)} /></>')
+  const filmPage = page.replaceAll(' showFilmStyle={showFilmStyle}', '')
+  const iDecision = filmPage.indexOf("if (decision.kind !== 'show') notFound()"), iCamp = filmPage.indexOf('const campanha = searchParams.intent_campaign === undefined ? CREATE_FILM_CAMPAIGN : campanhaDaCaixa(searchParams.intent_campaign)'), iFrame = filmPage.indexOf('if (filmNaMoldura(params.tab, user?.email)) return <><StudioIdeaArrival /><StudioNaMoldura showRecreate={decision.showRecreate} showClip={showClip} motor={motorDaCaixa(undefined)} campanha={campanha} ideiaInicial={ideiaDoLink(searchParams.ideia)} /></>')
   ok(iDecision > 0 && iCamp > iDecision && iFrame > iCamp, 'a página só troca DEPOIS da porta da tela nova (404/cadastro de sempre), com o motor e a campanha do Continue')
   ok(page.includes('return <CreateShell tab={params.tab as CreateTab} signedIn showRecreate={decision.showRecreate} showClip={showClip} />') /* KINEO-CLIP-NA-MOLDURA-1111: + a aba Clip (interruptor próprio) */, 'fora do interruptor: a mesma CreateShell de hoje')
   const tabs = aba(o).m('lib/create/tabs'), caixa = aba(o).m('lib/growth/studioSimples')
@@ -77,22 +89,16 @@ function offChecks(o) {
   }
   // Comportamento sem moldura: o mesmo pedido e os mesmos eventos da main pelo caminho de hoje.
   ok(JSON.stringify(viaMain(o, {})) === JSON.stringify(viaMain({ ...o, ...MAIN }, {})), 'StudioSimples sem moldura: pedido + eventos = main')
-  // KINEO-REGIAO-PAGA-1011 [CEO 10/11, publicado em fb3235afb] — a faixa da prévia recusada mexeu, de propósito, nestes 4 arquivos protegidos.
-  // A referência deles passa a ser o arquivo COMO ESTÁ na origin/main fb3235afb (byte a byte); qualquer outra mudança neles, ou em
-  // qualquer outro arquivo protegido desde o BASE, segue vermelha.
-  const RECREATE_ELEVADOR = JSON.parse(elevFs.readFileSync(elevPath.join(ROOT, 'scripts/test-support/camada-recreate-elevador-arquivos-1011.json'), 'utf8'))
-  const REGIAO_PAGA_REF = 'fb3235afb'
-  const REGIAO_PAGA = ['app/(dashboard)/studio/previa/ScenePreviewClient.tsx', 'app/api/events/route.ts', 'app/api/scene-preview/pricing-strip/route.ts', 'lib/growth/regiaoPaga1011.ts']
-  const desdeRef = f => execFileSync('git', ['diff', '--name-only', REGIAO_PAGA_REF, '--', f], { cwd: ROOT, encoding: 'utf8' }).trim()
-  const changed = execFileSync('git', ['diff', '--name-only', BASE, '--', 'app/(dashboard)', 'lib/credits', 'lib/growth', 'app/api', 'lib/recreate', 'middleware.ts'], { cwd: ROOT, encoding: 'utf8' }).trim().split('\n').filter(Boolean)
-    .filter(f => !(REGIAO_PAGA.includes(f) && desdeRef(f) === ''))
-    // KINEO-RECREATE-ELEVADOR-1011 + KINEO-RECREATE-CARTAO-BRANCO-1011 [fundador 10/11: "só precisa ter a opção de um homem" · "Por que tá branco?"] —
-    // estes arquivos do Recreate mudaram de propósito. Cada um só passa com o conteúdo EXATO revisado (sha256, texto sem CR) gravado em
-    // scripts/test-support/camada-recreate-elevador-arquivos-1011.json; 'removed' = o arquivo tem de não existir. Outra mudança = vermelho.
-    .filter(f => { const want = RECREATE_ELEVADOR[f]; if (!want) return true; const abs = elevPath.join(ROOT, f); if (want === 'removed') return elevFs.existsSync(abs); if (!elevFs.existsSync(abs)) return true; const raw = elevFs.readFileSync(abs); const body = /.(ts|tsx|mjs|cjs|json|css)$/.test(f) ? Buffer.from(raw.toString('utf8').split(String.fromCharCode(13)).join('')) : raw; return elevCrypto.createHash('sha256').update(body).digest('hex') !== want })
-    .filter(f => !(f === 'middleware.ts' && lf(read(f)) === lf(baseSrc(f)).replace('_next/image|favicon.ico', '_next/image|fonts/manrope-v23/|favicon.ico')))
-    .join(', ')
-  ok(changed === '', `Studio, Generate, crédito, rotas e Recreate intocados (${changed})`)
+  // HTML e cliques seguem comparados com a montagem histórica. Para a
+  // árvore protegida inteira, só aceitamos os blobs alterados pelo estilo
+  // sobre a main fixada. O teste não depende do commit local após integrar.
+  const protectedPaths = ['app/(dashboard)', 'lib/credits', 'lib/growth', 'app/api', 'lib/recreate', 'middleware.ts']
+  const changed = execFileSync('git', ['diff', '--name-only', BASE_PROTEGIDA, '--', ...protectedPaths], { cwd: ROOT, encoding: 'utf8' }).trim().split('\n').filter(Boolean)
+  const divergencias = changed.filter(file => !Object.hasOwn(ESTILO, file))
+  for (const [file, hash] of Object.entries(ESTILO)) {
+    if (!changed.includes(file) || createHash('sha256').update(lf(read(file))).digest('hex') !== hash) divergencias.push(file)
+  }
+  ok(divergencias.length === 0, `Studio, Generate, crédito, rotas e Recreate intocados (${divergencias.join(', ')})`)
 }
 
 // ─── C. Ligado = o mesmo pedido, os mesmos eventos, as mesmas recusas ─────────────────────────────────────────────────
@@ -280,9 +286,9 @@ async function headerChecks(o) {
   ok(menu.includes("href: '/pricing'") && aba(o).m('components/create/CreateNavConta').CREATE_NAV_PRICING_HREF === '/pricing', 'Pricing = o destino que o menu já usa')
   const panelCss = lf(o['components/create/studio-panel.css'] ?? read('components/create/studio-panel.css'))
   ok(panelCss.includes('flex-wrap: wrap') && panelCss.includes('order: 3; flex-basis: 100%'), 'celular: saldo e marca em cima, abas na segunda linha')
-  // Recreate sem abas: cabeçalho de antes (byte a byte já provado por scripts/test-tela-nova-1011.mjs).
-  const rc = lf(read('app/recreate/RecreateClient.tsx'))
-  ok(rc.includes("{createTabs ? <CreateNavConta /> : <Link href=\"/clips\">My videos ↗</Link>}") && rc.includes("className={createTabs ? 'rc-nav ct-nav' : 'rc-nav'}"), 'Recreate: cabeçalho novo só junto com as abas')
+  // Recreate sem abas mantém o cabeçalho próprio publicado. Só a montagem com abas chama CreateNavConta.
+  const rc = lf(o['app/recreate/RecreateClient.tsx'] ?? read('app/recreate/RecreateClient.tsx'))
+  ok(rc.includes("{createTabs ? <CreateNavConta /> : <SiteSettingsMenu signedIn={signedIn} />}") && rc.includes("className={createTabs ? 'rc-nav ct-nav' : 'rc-nav'}"), 'Recreate: cabeçalho novo só junto com as abas')
 }
 
 // ─── G. KINEO-TELA-NOVA-ACABAMENTO-1011 [fundador 10/11: "em More Options você vai para a tela antiga… acho que está errado"] ─────────
@@ -333,7 +339,7 @@ const mutants = [
   ['pagante inventado (hasPaid truthy)', { 'lib/create/filmNaMoldura.ts': src('lib/create/filmNaMoldura.ts').replace('hasPaid: d.hasPaid === true', 'hasPaid: !!d.hasPaid') }],
   ['número ignora palavra por palavra', { 'lib/create/filmNaMoldura.ts': src('lib/create/filmNaMoldura.ts').replace('if (!f.contaPaga || f.palavraPorPalavra ||', 'if (!f.contaPaga ||') }],
   ['número ignora a duração escrita', { 'lib/create/filmNaMoldura.ts': src('lib/create/filmNaMoldura.ts').replace('if (pedida !== null && pedida !== f.duracao) return null', '') }],
-  ['moldura não recebe o pagante', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('contaPaga: c.contaPaga', 'contaPaga: false') }],
+  ['moldura não recebe o pagante', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('painel={<PassosDoStudio c={c} preco={precoDoGenerate({ motor: c.motor, duracao: c.duracao, contaPaga: c.contaPaga', 'painel={<PassosDoStudio c={c} preco={precoDoGenerate({ motor: c.motor, duracao: c.duracao, contaPaga: false') }],
   ['linha do filme grátis some', { 'components/create/StudioNaMoldura.tsx': src('components/create/StudioNaMoldura.tsx').replace('{c.temFilmeGratis ? <p', '{false ? <p') }],
   ['porta ignora a allowlist', { 'lib/create/access.ts': src('lib/create/access.ts').replace("return tab === 'film' && !!email && releaseVisible(email, release)", "return tab === 'film' && !!email") }],
   ['Cartoon também troca', { 'lib/create/access.ts': src('lib/create/access.ts').replace("return tab === 'film' && ", 'return ') }],
@@ -359,10 +365,18 @@ const mutants = [
 ]
 let bitten = 0
 for (const [name, o] of mutants) {
+  if (!Object.entries(o).some(([file, source]) => source !== read(file))) {
+    console.error(`MUTANTE SEM EDIÇÃO: ${name}`)
+    continue
+  }
   passed = 0
-  let died = false
-  try { await all(o) } catch (e) { died = true; if (process.env.VERBOSE) console.log(`  ${name} → ${String(e.message).split('\n')[0]}`) }
-  assert(died, `MUTANTE SOBREVIVEU: ${name}`)
-  bitten++
+  try {
+    await all(o)
+    console.error(`MUTANTE SOBREVIVEU: ${name}`)
+  } catch (e) {
+    bitten++
+    if (process.env.VERBOSE) console.log(`  ${name} → ${String(e.message).split('\n')[0]}`)
+  }
 }
+assert.equal(bitten, mutants.length, 'todos os mutantes devem editar o fonte e reprovar o guardião')
 console.log(`test-studio-na-moldura-1011: ${real} verificações verdes · ${bitten}/${mutants.length} mutantes mortos`)

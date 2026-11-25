@@ -313,13 +313,26 @@ async function verificacoes(over = {}) {
     if (corpoQualidade) {
       const load = createOfflineLoader()
       const Q = load('@/lib/cinematic/filmQuality')
-      const styleAnchor = load('@/lib/cinematic/sceneStyle').deriveStyleAnchor('photoreal documentary')
+      const { deriveStyleAnchor, visualTextForFilmLook } = load('@/lib/cinematic/sceneStyle')
+      const { luzDoPedido, lugarDoPedido, comLugarDoPedido, comLuzDoPedido } = load('@/lib/cinematic/pessoaDoPedido')
+      const { comSuperficieSemTexto } = load('@/lib/cinematic/superficieSemTexto')
+      const { relogioComPonteiros } = load('@/lib/cinematic/relogioComPonteiros')
+      const { comIdeiaNaCena } = load('@/lib/cinematic/ideiaNaFicha')
+      const { semMarcoAnacronico } = load('@/lib/cinematic/marcoAnacronico')
+      const { sheetComOrigem } = load('@/lib/cinematic/origemDoElenco')
+      const styleAnchor = deriveStyleAnchor('photoreal documentary')
       const { isStylizedLook } = load('@/lib/cinematic/visualPromptPolicy')
-      const aplicarFinal = carrega(`export async function aplicarFinal(ctx: any) {\n  const { plan, prompt, prepararQualidadeDoFilme, contextoDoFiltro, classicVisualMode, tagFacelessPresente, desenhoInfantil, styleAnchor, personagemElenco, qualidadeHerdada, qualitySnapshot, isStylizedLook, origemNasCenas = null, origemDoFilme = null, sheetComOrigem = (s: unknown) => s /* KINEO-ORIGEM-DO-ELENCO-0311 — sem leitura de origem nesta fatia: byte a byte */ } = ctx\n${corpoQualidade}\n  return aplicarQualidadeHollywood()\n}`).aplicarFinal
+      const aplicarFinal = carrega(`export async function aplicarFinal(ctx: any) {\n  const { plan, prompt, prepararQualidadeDoFilme, contextoDoFiltro, classicVisualMode, tagFacelessPresente, desenhoInfantil, styleAnchor, personagemElenco, qualidadeHerdada, qualitySnapshot, isStylizedLook, origemNasCenas, origemDoFilme, sheetComOrigem, visualTextForFilmLook, visualLookOverride, provaDeGente, conferenciaElenco, pedidoDoCliente, luzDoPedido, lugarDoPedidoDoCliente, comLugarDoPedido, comLuzDoPedido, comSuperficieSemTexto, relogioComPonteiros, ideiaNaFicha, comIdeiaNaCena, semMarcoAnacronico } = ctx\n${corpoQualidade}\n  return aplicarQualidadeHollywood()\n}`).aplicarFinal
       const falaETempo = JSON.stringify(plan.scenes.map(({ voiceover, seconds }) => ({ voiceover, seconds })))
       await aplicarFinal({ plan, prompt: ROTEIRO_T, prepararQualidadeDoFilme: Q.prepararQualidadeDoFilme,
         contextoDoFiltro: async (contexto) => contexto, classicVisualMode: 'documentary_faceless', tagFacelessPresente: false,
-        desenhoInfantil: { ativo: false }, styleAnchor, personagemElenco: { elenco: [] }, qualidadeHerdada: null, qualitySnapshot: null, isStylizedLook })
+        desenhoInfantil: { ativo: false }, styleAnchor, personagemElenco: { elenco: [] }, qualidadeHerdada: null, qualitySnapshot: null, isStylizedLook,
+        // Pedido documentário sem estilo explícito, origem ou ficha da ideia. A VM
+        // recebe as funções reais para executar a fase comum inteira.
+        visualTextForFilmLook, visualLookOverride: undefined, provaDeGente: false, conferenciaElenco: null,
+        origemNasCenas: null, origemDoFilme: null, sheetComOrigem, pedidoDoCliente: ROTEIRO_T,
+        luzDoPedido, lugarDoPedidoDoCliente: lugarDoPedido, comLugarDoPedido, comLuzDoPedido,
+        comSuperficieSemTexto, relogioComPonteiros, ideiaNaFicha: null, comIdeiaNaCena, semMarcoAnacronico })
       const final = plan.scenes[0].prompt
       v('S25 + qualidade comum real: Tambora continua vulcão em erupção, sem historiador/escritório/olhar para a lente', () => final.includes('Wide shot of Mount Tambora in Indonesia erupting') && !/historian|bookshel/i.test(final) && !OLHAR_LENTE_RE.test(final))
       v('S25 + qualidade comum real: mantém fala e segundos, e aplica a trava do estilo', () => JSON.stringify(plan.scenes.map(({ voiceover, seconds }) => ({ voiceover, seconds }))) === falaETempo && final.startsWith(`Film visual medium: ${styleAnchor.lookPhrase}. `))

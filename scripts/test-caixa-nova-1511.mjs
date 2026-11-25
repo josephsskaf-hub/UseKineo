@@ -2,43 +2,42 @@
 // KINEO-CAIXA-NOVA-1511 — guardião da CAIXA NOVA da aba Film (dono 15/11: "deixar um lugar mais confortável… repetir igual os líderes").
 //   A · interruptor CAIXA_NOVA_RELEASE (lib/create/release.ts): 'internal' = só a allowlist exata da casa; conta de fora e visitante nunca;
 //       a página só troca a casca com filmNaMoldura E caixaNovaVisivel, e a linha de sempre (3 passos) continua lá, intacta.
-//   B · o gerador NÃO mudou: StudioSimples.tsx, lib/growth/studioSimples.ts (o pedido) e lib/create/filmNaMoldura.ts (o número do botão)
-//       são byte a byte os da main de antes desta obra (BASE).
+//   B · o gerador, o transporte e a régua de custo batem byte a byte com as referências imutáveis revisadas.
 //   C · desligado = os 3 passos de hoje (sem caixa nova); ligado = o MESMO pedido, o MESMO sessionStorage e os MESMOS eventos do Generate
 //       que os 3 passos produzem para a mesma ideia/duração/formato; nada navega antes do clique; o exemplo só PREENCHE.
 //   D · o número do botão é o que recebe (precoDoGenerate) e some quando ele é null; cada frase da linha de confiança tem a prova no código.
 //   M · mutantes: interruptor 'public' por padrão, página sem a régua, Generate que não é o gerar(), exemplo que gera, estorno sumido.
 // Offline (docs/studio-na-moldura-1011/runtime.cjs: módulos reais transpilados, hooks emulados, rede/roteador como dublês). Rodar: node scripts/test-caixa-nova-1511.mjs
+import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { execFileSync } from 'node:child_process'
 
 const require = createRequire(import.meta.url)
 const R = require('../docs/studio-na-moldura-1011/runtime.cjs')
 const { aba, React, read, ROOT } = R
-const BASE = 'b71e96569' // origin/main antes desta obra (15/11 05:24)
-const baseSrc = p => execFileSync('git', ['show', `${BASE}:${p}`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 })
+const BASE = 'ec6348f4b7beafa640bc3fb5d9dc5da3b7ce7b0b'
+// SHA-256 dos arquivos de estilo em 8a1fb2fa8, já nas provas visual e funcional.
+const ESTILO = {
+  'components/studio/StudioSimples.tsx': '8babb630db69ba0f2375d5263f63d0e4f66ad76c0821f3f3e30b5b46c7446c6b',
+  'lib/growth/studioSimples.ts': 'f6653593438fd8514111eee8ee9687bbba902bc8aa95c7e6b622feda9d61f9a1',
+}
+const baseSrc = (ref, p) => execFileSync('git', ['show', `${ref}:${p}`], { cwd: ROOT, encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 })
 const lf = s => s.replace(/\r\n/g, '\n')
 const HOUSE = 'josephsskaf@gmail.com'
 const CUSTOMER = 'customer@example.org'
 const IDEA = 'The ghost ship Mary Celeste'
 const isGen = p => p['data-testid'] === 'studio-simple-generate'
 const PAGE = 'app/create/[tab]/page.tsx'
+const STYLE_PROP = ' showFilmStyle={showFilmStyle}'
 const LINHA_NOVA = 'if (filmNaMoldura(params.tab, user?.email) && caixaNovaVisivel(user?.email)) return <><StudioIdeaArrival /><StudioNaMoldura caixaNova showRecreate={decision.showRecreate} showClip={showClip} motor={motorDaCaixa(undefined)} campanha={campanha} ideiaInicial={ideiaDoLink(searchParams.ideia)} /></>'
 const LINHA_DE_SEMPRE = 'if (filmNaMoldura(params.tab, user?.email)) return <><StudioIdeaArrival /><StudioNaMoldura showRecreate={decision.showRecreate} showClip={showClip} motor={motorDaCaixa(undefined)} campanha={campanha} ideiaInicial={ideiaDoLink(searchParams.ideia)} /></>'
 
 const src = (o, p) => lf(o[p] ?? read(p))
-// KINEO-STUDIO-3D-B-1811 [CEO Claude] — a caixa ganhou UMA chamada atrás de chave desligada (prévia 3D do dono). O gerador continua
-// comparado byte a byte com a main de antes: só estas duas inserções exatas são descontadas; qualquer outra letra diferente reprova.
-const PROJECAO_IMPORT = "import { requestFilmProjection } from './requestFilmProjection'\n"
-const PROJECAO_ONCHANGE = "onChange={(e) => {\n            setTexto(e.target.value); setAviso(null); if (e.target.value.trim()) registrar('mrr_idea_entered')\n            if (process.env.NEXT_PUBLIC_KINEO_STUDIO_FILM_3D === 'true') requestFilmProjection(e.currentTarget)\n          }}"
-const ONCHANGE_DE_ANTES = "onChange={(e) => { setTexto(e.target.value); setAviso(null); if (e.target.value.trim()) registrar('mrr_idea_entered') }}"
-const semProjecao3D = s => s.replace(PROJECAO_IMPORT, '').replace(PROJECAO_ONCHANGE, ONCHANGE_DE_ANTES)
-
 // ─── A. Interruptor e porta ────────────────────────────────────────────────────────────────────────────────────────────
 function casosA(o) {
   const access = aba(o).m('lib/create/access'), release = aba(o).m('lib/create/release')
   const v = (e, r) => access.caixaNovaVisivel(e, r)
-  const page = src(o, PAGE)
+  const page = src(o, PAGE).replaceAll(STYLE_PROP, '')
   const iNova = page.indexOf(LINHA_NOVA), iSempre = page.indexOf(LINHA_DE_SEMPRE)
   return [
     ["A1 interruptor aberto ao público em 15/11 (dono: \"pode liberar tudo para as pessoas\"); VOLTA = 'internal'", release.CAIXA_NOVA_RELEASE === 'public'],
@@ -53,8 +52,10 @@ function casosA(o) {
 
 // ─── B. O gerador é o de antes ─────────────────────────────────────────────────────────────────────────────────────────
 function casosB(o) {
-  return ['components/studio/StudioSimples.tsx', 'lib/growth/studioSimples.ts', 'lib/create/filmNaMoldura.ts', 'lib/credits/engineCost.ts']
-    .map((p, i) => [`B${i + 1} ${p} igual à main de antes (${BASE})`, semProjecao3D(src(o, p)) === lf(baseSrc(p))])
+  return [
+    ...Object.entries(ESTILO).map(([file, hash], i) => [`B${i + 1} ${file} igual à versão de estilo revisada`, createHash('sha256').update(src(o, file)).digest('hex') === hash]),
+    ...['lib/create/filmNaMoldura.ts', 'lib/credits/engineCost.ts'].map((file, i) => [`B${i + 3} ${file} igual à main ${BASE.slice(0, 9)}`, src(o, file) === lf(baseSrc(BASE, file))]),
+  ]
 }
 
 // ─── C. Mesmo pedido pelos dois caminhos ───────────────────────────────────────────────────────────────────────────────
@@ -91,6 +92,10 @@ function casosC(o) {
     const a = caminho(o, false, op), b = caminho(o, true, op)
     out.push([`C3 ${n}: o MESMO pedido, sessionStorage e eventos do Generate`, a.pushes.length === 1 && JSON.stringify(a.pushes) === JSON.stringify(b.pushes) && JSON.stringify(a.storage) === JSON.stringify(b.storage) && JSON.stringify(a.gen) === JSON.stringify(b.gen)])
     out.push([`C4 ${n}: nada navega antes do clique em Generate`, b.navegouAntes === 0])
+    if (op.duracao) {
+      const duration = pedido => pedido && new URL(pedido, 'https://fixture.invalid').searchParams.get('duration')
+      out.push([`C8 ${n}: o pedido de cada caixa leva a duração escolhida`, [a, b].every(v => duration(v.pushes[0]) === String(op.duracao))])
+    }
   }
   const ex = exemploSoPreenche(o)
   out.push(['C5 o exemplo só PREENCHE a caixa (nunca gera)', ex.pushes === 0 && ex.preenchido])
@@ -141,15 +146,15 @@ const MUTANTES = [
   ['M3 página sem a régua da caixa nova', mut(PAGE, ' && caixaNovaVisivel(user?.email)) return', ') return')],
   ['M4 Generate que não é o gerar() do Studio', mut('components/create/CaixaNovaDoFilme.tsx', 'aoClicar: c.gerar,', 'aoClicar: () => c.setDuracao(60),')],
   ['M5 o exemplo gera sozinho', mut('components/create/CaixaNovaDoFilme.tsx', '// só PREENCHE: o filme nunca começa sozinho', '; c.gerar()')],
-  ['M6 o pedido mudou no StudioSimples', mut('components/studio/StudioSimples.tsx', "router.push(pedidoDoStudioSimples({ motor, texto: t, duracao, formato, lingua, palavraPorPalavra, campanha }))", "router.push(pedidoDoStudioSimples({ motor, texto: t, duracao: 90, formato, lingua, palavraPorPalavra, campanha }))")],
+  ['M6 o pedido mudou no StudioSimples', mut('components/studio/StudioSimples.tsx', 'router.push(pedidoDoStudioSimples({ motor, texto: t, duracao, formato, lingua, palavraPorPalavra, campanha', 'router.push(pedidoDoStudioSimples({ motor, texto: t, duracao: 90, formato, lingua, palavraPorPalavra, campanha'), 'C8 35 s'],
   ['M7 estorno sumiu do filme', mut('app/api/generate-video-cinematic/route.ts', 'await refundRenderCredits(billingReference)', 'await Promise.resolve(0)')],
   ['M8 preço escrito fora do botão', mut('components/create/CaixaNovaDoFilme.tsx', "valor: `${c.duracao} s`,", "valor: `${c.duracao} s · ✦ 35`,")],
   ['M9 selo volta para cima do vídeo', mut('components/create/CaixaNovaDoFilme.tsx', '<header className="cx-palco-caption">', '<div className="cx-palco-video"><header className="cx-palco-caption">')],
   ['M10 título volta a aparecer abaixo da capa', mut('components/create/CaixaDeCriar.tsx', '<span className="sr-only">{e.title}</span>', '<span>{e.title}</span>')],
 ]
-for (const [nome, o] of MUTANTES) {
+for (const [nome, o, testeEsperado] of MUTANTES) {
   let reprovou, porque = ''
-  try { const f = todos(o).filter(([, ok]) => !ok); reprovou = f.length > 0; porque = f.map(([n]) => n.split(' ')[0]).join(', ') } catch (e) { reprovou = true; porque = 'erro: ' + String(e?.message ?? e).slice(0, 60) }
+  try { const f = todos(o).filter(([, ok]) => !ok); reprovou = testeEsperado ? f.some(([n]) => n.startsWith(testeEsperado)) : f.length > 0; porque = f.map(([n]) => n.split(' ')[0]).join(', ') } catch (e) { reprovou = !testeEsperado; porque = 'erro: ' + String(e?.message ?? e).slice(0, 60) }
   total++
   console.log(`  ${reprovou ? 'ok  ' : 'FAIL'} ${nome} → o guardião reprova (${porque})`)
   if (!reprovou) falhas++
