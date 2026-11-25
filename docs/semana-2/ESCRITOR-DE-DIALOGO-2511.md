@@ -128,6 +128,26 @@ O cliente passa a ter **chave própria**, `CLIENTE_FALA_NO_ROTEIRO`, que nasce `
 - **A linha `falantes_no_elenco` pesa mais aqui.** O leitor do 3bbf48a0 e o elenco do filme precisam ler o rótulo de papel ("Radio Operator", "Mom") como personagem.
 - A coluna "sem título" do conferidor marca "Captain" e "Doctor" como título, mesmo quando o rótulo vem do papel: na régua do cliente, ela é só informativa.
 
+### Volta 5, parte 2: o ensaio da casa deu 0 de 10 (349efcff5, 25/11 19:43)
+Os motivos foram curto ×7, falante_fora_da_marca ×2, nome ×1 e menor ×1 (o f3, de propósito). As mudanças abaixo valem para a casa e para o cliente.
+
+- **"curto"**
+  - **O que muda no pedido:** ele pede **7 a 8 palavras por seção** (28 a 32 no filme), acima do piso de 25 com folga. Antes pedia "até 8, de preferência 4 a 7", o que leva para baixo do piso.
+  - **O esquema:** cada seção traz `words`, a contagem que o próprio modelo faz.
+  - **A 2ª chamada:** se o tamanho sair da régua (`curto`, `longo`, `secao_longa`), sai **UMA 2ª chamada no mesmo prazo**. Ela leva a resposta e os números de cada seção ("HOOK 2, MICRO REWARD 1 2… Every shot needs 7 to 8 words").
+  - **O tempo:** a 2ª só usa o que sobrou dos 12 s, e só com 3 s ou mais de sobra, então o T3 não muda. A 1ª chamada mediu 1,2 a 2,3 s.
+  - **Outro motivo não ganha a 2ª.**
+- **"falante_fora_da_marca"** (d1 e d3): o **código** monta a marca. Quem fala e não está na `[Pexels: …]` entra na frente dela, com a marca cortada em 80 caracteres. O relato conta `marcas_montadas`.
+- **"nome"** (d4, os pinguins e a morsa):
+  - o texto recusado não ficou gravado, então a causa exata não tem prova;
+  - a hipótese é um rótulo em minúscula ou com artigo ("the walrus"), que a régua recusa;
+  - agora o código tira o artigo e põe a maiúscula ("the walrus" vira "Walrus"). Narrador e título continuam fora depois disso.
+- **O rastro da casa:** `dialogue_script_written` grava `rejected_text`, o texto de cada tentativa recusada (até 3.000 caracteres). **Só na conta da casa.** O cliente nunca. Grava também `tentativas` e `motivo_1a`.
+- **O piso do falado:**
+  - **O número que eu defendo para o portão do 3bbf48a0:** **24 palavras de fala** (6 por plano). A 2,2 palavras por segundo, isso enche ~2,7 s de cada plano de 3,75 s e deixa a reação e a pausa.
+  - Hoje o escritor fica em 25, porque o portão do servidor pede 29 contando os nomes.
+  - Se o portão baixar, é uma linha (`PALAVRAS_DO_FILME.min`).
+
 ## O risco do caminho do servidor (conferido, executado)
 O roteiro de diálogo passa intacto pelo que o caminho da ideia solta faz depois do escritor (`lib/meta95/ideiaNoEscritor.ts`):
 - `roteiroSemMetaTexto` (l. 224) não remove nenhuma linha `Nome: fala`;

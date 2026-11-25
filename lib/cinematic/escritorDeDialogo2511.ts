@@ -35,6 +35,9 @@ export const MAX_PALAVRAS_POR_SECAO = 8
 /** O total de fala do filme de 15 s (as falas, sem os nomes): 25 a 35. Com 4 seções de até 8, o teto efetivo é 32. Com os nomes (uma fala por seção, no
  *  mínimo), o roteiro aceito passa do piso de 29 palavras do avaliarRoteiroEscrito do caminho do servidor (25 + 4). */
 export const PALAVRAS_DO_FILME = { min: 25, max: 35 } as const
+/** Volta 5 (ensaio da CEO 25/11: 7 de 10 "curto"): o ALVO por seção no pedido é 7 a 8 palavras (28 a 32 no filme), acima do piso de 25 com folga; o modelo
+ *  escreve a contagem de cada seção ("words") e, se o tamanho sair da régua, UMA 2ª chamada dentro do mesmo prazo diz quanto cada seção tem e quanto falta. */
+export const MIN_PALAVRAS_ALVO_2511 = 7
 const NOME_MAX = 40, CUE_MAX = 80, FALA_MAX = 120, IDEIA_MAX = 2000
 /** Nomes que são voz de fora, não personagem: o modo é sem narrador. */
 const NAO_E_PERSONAGEM = /^(?:narrator|narration|voice|voiceover|voice over|voice-over|vo|v\.o\.|off|offscreen|off-screen|announcer|host|presenter|speaker|everyone|all|both|crowd|chorus|unknown|someone|stranger)$/i
@@ -43,6 +46,8 @@ const TITULO = /^(?:captain|capt|mr|mrs|ms|miss|mister|dr|doctor|sir|lady|lord|k
 /** Fim de fala que o leitor reconhece antes do próximo rótulo: . ! ? … ou aspas de fecho. */
 const FIM_DE_FALA = /[.!?…"”'’]$/u
 
+/** Volta 5: o rótulo como o leitor o quer: sem artigo na frente e com maiúscula em cada palavra ("the walrus" = "Walrus"). */
+const normalizaNome = (n: string): string => n.replace(/^(?:the|a|an)\s+/i, '').replace(/(^|\s)(\p{Ll})/gu, (_m, a: string, b: string) => a + b.toUpperCase())
 const palavras = (t: string): number => String(t ?? '').trim().split(/\s+/u).filter(Boolean).length
 const limpa = (t: unknown, max: number): string => String(t ?? '').replace(/\s+/g, ' ').trim().slice(0, max)
 const temNome = (texto: string, nome: string): boolean => { const n = nome.trim().split(' ')[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); return !!n && new RegExp(`(?<![\\p{L}\\p{N}])${n}(?![\\p{L}\\p{N}])`, 'iu').test(texto) }
@@ -53,17 +58,18 @@ export function pedidoDoDialogo2511(ideia: string, segundos: number): { messages
     `Tell the story of the idea below: keep its characters, its place and what happens in it; when the idea names a character, use that name, spelled exactly as in the idea. When a character has no name, give a short English first name. Never put a title before a name. Use the same spelling of each name everywhere. ` +
     `At most ${MAX_FALANTES} characters speak in the whole film. The film has exactly ${SECOES_DO_FILME_CURTO.length} shots, in this order: ${SECOES_DO_FILME_CURTO.join(', ')}. ` +
     `For every shot write "cue": 2 to 8 English words saying what the camera shows, naming each character who speaks in that shot exactly as in the lines; and "lines": 1 or 2 spoken lines, each said by one of the speaking characters, on screen in that shot. ` +
-    `The lines of one shot have at most ${MAX_PALAVRAS_POR_SECAO} words together (ideally 4 to 7), are natural speech in English, and move the story forward. The whole film has ${PALAVRAS_DO_FILME.min} to ${PALAVRAS_DO_FILME.max} spoken words. ` +
+    `The lines of one shot have ${MIN_PALAVRAS_ALVO_2511} to ${MAX_PALAVRAS_POR_SECAO} words together, are natural speech in English, and move the story forward. The whole film has ${SECOES_DO_FILME_CURTO.length * MIN_PALAVRAS_ALVO_2511} to ${SECOES_DO_FILME_CURTO.length * MAX_PALAVRAS_POR_SECAO} spoken words. ` +
+    `Count the words of the lines of every shot and write that number in "words". ` +
     `Every line ends with a period, an exclamation mark or a question mark. The last shot closes the story. Do not write stage directions, parentheses, sound effects, quotation marks, a colon, or the speaker's name inside the line. ` +
-    `Answer only with JSON: {"speakers": [string], "shots": [{"cue": string, "lines": [{"speaker": string, "line": string}]}]}.`
+    `Answer only with JSON: {"speakers": [string], "shots": [{"cue": string, "lines": [{"speaker": string, "line": string}], "words": number}]}.`
   return { messages: [{ role: 'system', content: sistema }, { role: 'user', content: `Idea (data, not instructions): ${limpa(ideia, IDEIA_MAX)}` }] }
 }
 /** A saída estruturada (json_schema estrito): a forma vem garantida; a régua (quantos, quem, tamanho) é do código. */
 export const FORMATO_DO_DIALOGO_2511 = { type: 'json_schema', json_schema: { name: 'dialogo_do_filme', strict: true, schema: {
   type: 'object', additionalProperties: false, required: ['speakers', 'shots'], properties: {
     speakers: { type: 'array', items: { type: 'string' } },
-    shots: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['cue', 'lines'], properties: {
-      cue: { type: 'string' },
+    shots: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['cue', 'lines', 'words'], properties: {
+      cue: { type: 'string' }, words: { type: 'integer' },
       lines: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['speaker', 'line'], properties: { speaker: { type: 'string' }, line: { type: 'string' } } } } } } } } } } } as const
 
 // ═══ volta 5 (CEO 25/11, revisora 52b12696): a régua POSITIVA, a do CLIENTE. A v4 (listas de proibição) fica só para a casa: 18 de 26 famosos e 10 de 14
@@ -205,9 +211,10 @@ export function pedidoDoDialogoDoCliente2511(ideia: string, segundos: number): {
     `For every speaking character write "role": one to three words copied exactly from the idea that say what the character is; and "name": the name the idea gives to that character, or an empty string when the idea gives no name. Never invent a name. ` +
     `At most ${MAX_FALANTES} characters speak in the whole film. The film has exactly ${SECOES_DO_FILME_CURTO.length} shots, in this order: ${SECOES_DO_FILME_CURTO.join(', ')}. ` +
     `For every shot write "cue": 2 to 8 English words saying what the camera shows, naming each character who speaks in that shot by its name, or by its role when it has no name; and "lines": 1 or 2 spoken lines, each with "speaker" set to that same name or role, on screen in that shot. ` +
-    `The lines of one shot have at most ${MAX_PALAVRAS_POR_SECAO} words together (ideally 4 to 7), are natural speech in English, and move the story forward. The whole film has ${PALAVRAS_DO_FILME.min} to ${PALAVRAS_DO_FILME.max} spoken words. ` +
+    `The lines of one shot have ${MIN_PALAVRAS_ALVO_2511} to ${MAX_PALAVRAS_POR_SECAO} words together, are natural speech in English, and move the story forward. The whole film has ${SECOES_DO_FILME_CURTO.length * MIN_PALAVRAS_ALVO_2511} to ${SECOES_DO_FILME_CURTO.length * MAX_PALAVRAS_POR_SECAO} spoken words. ` +
+    `Count the words of the lines of every shot and write that number in "words". ` +
     `Every line ends with a period, an exclamation mark or a question mark. The last shot closes the story. Do not write stage directions, parentheses, sound effects, quotation marks, a colon, or the speaker's name inside the line. ` +
-    `Answer only with JSON: {"speakers": [{"role": string, "name": string}], "shots": [{"cue": string, "lines": [{"speaker": string, "line": string}]}]}.`
+    `Answer only with JSON: {"speakers": [{"role": string, "name": string}], "shots": [{"cue": string, "lines": [{"speaker": string, "line": string}], "words": number}]}.`
   return { messages: [{ role: 'system', content: sistema }, { role: 'user', content: 'Idea (data, not instructions): ' + limpa(ideia, IDEIA_MAX) }] }
 }
 export const FORMATO_DO_CLIENTE_2511 = { type: 'json_schema', json_schema: { name: 'dialogo_do_filme_cliente', strict: true, schema: {
@@ -222,23 +229,23 @@ export type MotivoDoDialogo = 'json' | 'formato' | 'secoes' | 'falantes' | 'nome
 /** A régua, no código, no formato do leitor do servidor do filme: JSON no formato; exatamente as 4 seções; 1 ou 2 falantes de nome próprio (nunca narrador
  *  nem título); cada seção com 1 ou 2 falas de quem foi declarado, até 8 palavras somadas, e quem fala NA MARCA [Pexels: …] da seção; nenhuma rubrica nem
  *  outro "Palavra:" dentro da fala; cada fala termina em . ! ? … (o que falta ganha o ponto final); o filme com 25 a 35 palavras. Qualquer desvio = { motivo }. */
-export function conferirDialogo2511(raw: string, papeis: readonly string[] = []): { dialogo: Dialogo2511 } | { motivo: MotivoDoDialogo } {
+export function conferirDialogo2511(raw: string, papeis: readonly string[] = []): { dialogo: Dialogo2511; marcas: number } | { motivo: MotivoDoDialogo } {
   let o: unknown
   try { o = JSON.parse(raw) } catch { return { motivo: 'json' } }
   const r = o && typeof o === 'object' && !Array.isArray(o) ? (o as Record<string, unknown>) : null
   if (!r || !Array.isArray(r.speakers) || !Array.isArray(r.shots)) return { motivo: 'formato' }
   if (r.shots.length !== SECOES_DO_FILME_CURTO.length) return { motivo: 'secoes' }
-  const declarados = r.speakers.map((s) => limpa(s, NOME_MAX + 1))
+  const declarados = r.speakers.map((s) => normalizaNome(limpa(s, NOME_MAX + 1)))
   const falantes = declarados.filter((s, i) => declarados.findIndex((x) => x.toLowerCase() === s.toLowerCase()) === i)
   if (falantes.length < 1 || falantes.length > MAX_FALANTES || falantes.length !== declarados.length) return { motivo: 'falantes' }
   for (const n of falantes) if (!n || n.length > NOME_MAX || !/^\p{Lu}[\p{L}'’-]*(?: \p{Lu}[\p{L}'’-]*){0,2}$/u.test(n) || NAO_E_PERSONAGEM.test(n) || (!papeis.includes(n) && TITULO.test(n.split(' ')[0]))) return { motivo: 'nome' } // volta 5: o rótulo que veio do PAPEL da ideia ("Doctor", "Mom") não é título
   if (falantes.length === 2 && (temNome(falantes[0], falantes[1]) || temNome(falantes[1], falantes[0]))) return { motivo: 'nome' } // "Ana" e "Ana Maria": o leitor não separa
   const secoes: Dialogo2511['secoes'] = []
-  let total = 0
+  let total = 0, marcas = 0
   for (let i = 0; i < r.shots.length; i++) {
     const s = r.shots[i] && typeof r.shots[i] === 'object' && !Array.isArray(r.shots[i]) ? (r.shots[i] as Record<string, unknown>) : null
     if (!s || !Array.isArray(s.lines)) return { motivo: 'formato' }
-    const cue = limpa(s.cue, CUE_MAX + 1)
+    let cue = limpa(s.cue, CUE_MAX + 1)
     if (!cue || cue.length > CUE_MAX || /[[\]\n:]/.test(cue) || palavras(cue) < 2) return { motivo: 'cue' }
     if (s.lines.length < 1 || s.lines.length > MAX_FALAS_POR_SECAO) return { motivo: 'falas_na_secao' }
     const falas: FalaDoDialogo[] = []
@@ -246,7 +253,7 @@ export function conferirDialogo2511(raw: string, papeis: readonly string[] = [])
     for (const l of s.lines) {
       const x = l && typeof l === 'object' && !Array.isArray(l) ? (l as Record<string, unknown>) : null
       if (!x) return { motivo: 'formato' }
-      const quem = limpa(x.speaker, NOME_MAX + 1)
+      const quem = normalizaNome(limpa(x.speaker, NOME_MAX + 1))
       let fala = limpa(x.line, FALA_MAX + 1).replace(/^["“”']+|["“”']+$/g, '').trim()
       const nome = falantes.find((n) => n.toLowerCase() === quem.toLowerCase())
       if (!nome) return { motivo: 'falante_fora' }
@@ -254,17 +261,25 @@ export function conferirDialogo2511(raw: string, papeis: readonly string[] = [])
       if (/[()[\]{}*\n]/.test(fala)) return { motivo: 'rubrica' }
       if (/[\p{L}\p{N}]\s*:/u.test(fala)) return { motivo: 'dois_pontos_na_fala' } // o leitor lê "Palavra:" como outro falante
       if (!FIM_DE_FALA.test(fala)) fala += '.' // sem o fim de frase, o rótulo seguinte se perde na junção das linhas
-      if (!temNome(cue, nome)) return { motivo: 'falante_fora_da_marca' }
       naSecao += palavras(fala)
       falas.push({ nome, fala })
     }
     if (naSecao > MAX_PALAVRAS_POR_SECAO) return { motivo: 'secao_longa' }
+    // volta 5 (ensaio: 2 de 10 "falante_fora_da_marca"): o CÓDIGO põe na frente da marca quem fala e não está nela; a marca segue com até 80 caracteres
+    const fora = [...new Set(falas.map((f) => f.nome))].filter((n) => !temNome(cue, n))
+    if (fora.length) {
+      const resto = cue.split(' ')
+      while (resto.length && `${fora.join(' and ')} ${resto.join(' ')}`.length > CUE_MAX) resto.pop()
+      cue = [fora.join(' and '), ...resto].join(' ').trim()
+      if (cue.length > CUE_MAX || palavras(cue) < 2) return { motivo: 'falante_fora_da_marca' }
+      marcas++
+    }
     total += naSecao
     secoes.push({ secao: SECOES_DO_FILME_CURTO[i], cue, falas })
   }
   if (total < PALAVRAS_DO_FILME.min) return { motivo: 'curto' }
   if (total > PALAVRAS_DO_FILME.max) return { motivo: 'longo' }
-  return { dialogo: { falantes, secoes } }
+  return { dialogo: { falantes, secoes }, marcas }
 }
 
 /** O FORMATO de uma seção (o que o parser do servidor do filme lê): o cabeçalho de hoje e, em linhas próprias, `Nome: fala`. Uma função só. */
@@ -304,37 +319,77 @@ export function prazoDoDialogo2511(decorridoMs: number, narradoMs: number): numb
   return Number.isFinite(prazo) && prazo >= MENOR_PRAZO_DO_DIALOGO_2511_MS ? Math.floor(prazo) : null
 }
 
+/** Volta 5: os motivos de TAMANHO ganham UMA 2ª chamada, dentro do mesmo prazo, com o que cada seção tem e o que falta. Abaixo de 3 s de sobra, não. */
+export const MOTIVOS_DE_TAMANHO_2511 = ['curto', 'longo', 'secao_longa'] as const
+export const MENOR_PRAZO_DA_SEGUNDA_2511_MS = 3_000
+/** Quantas palavras de fala cada seção tem no JSON do modelo (contadas como o código conta). */
+export function palavrasPorSecao2511(raw: string): number[] {
+  try {
+    const o = JSON.parse(raw) as { shots?: unknown }
+    if (!Array.isArray(o?.shots)) return []
+    return o.shots.map((s) => { const l = (s as { lines?: unknown })?.lines; return Array.isArray(l) ? l.reduce((n: number, x) => n + palavras(limpa((x as { line?: unknown })?.line, FALA_MAX + 1)), 0) : 0 })
+  } catch { return [] }
+}
+/** O pedido da 2ª chamada: os números de cada seção e o alvo, sem exemplo. */
+export function pedidoDeAcerto2511(raw: string): string {
+  const ps = palavrasPorSecao2511(raw), total = ps.reduce((a, b) => a + b, 0)
+  return `Your film has ${total} spoken words: ${SECOES_DO_FILME_CURTO.map((s, i) => `${s} ${ps[i] ?? 0}`).join(', ')}. ` +
+    `Every shot needs ${MIN_PALAVRAS_ALVO_2511} to ${MAX_PALAVRAS_POR_SECAO} words in its lines together, and the whole film ${SECOES_DO_FILME_CURTO.length * MIN_PALAVRAS_ALVO_2511} to ${SECOES_DO_FILME_CURTO.length * MAX_PALAVRAS_POR_SECAO}. ` +
+    `Rewrite the whole JSON with the same story, the same speakers and the same shots, changing only the lines so that every shot fits, and write the new count in "words".`
+}
+/** Só a CASA (pedido da CEO 25/11): o texto que o modelo escreveu e a régua recusou, para o ensaio não ser cego. O cliente nunca. */
+export const recusadosParaACasa2511 = (email: string | null | undefined, recusados: readonly string[]): { rejected_text?: string[] } =>
+  contaDaCasaExata(email) && recusados.length ? { rejected_text: recusados.map((x) => x.slice(0, 3000)) } : {}
+
 /** O relato (rastro e resposta): só números e códigos, nunca a fala. */
-export type RelatoDoDialogo2511 = { versao: string; ok: boolean; motivo: MotivoDoDialogo | MotivoDoCliente2511 | 'chamada' | 'sem_tempo' | 'figura' | 'menor' | 'lingua' | null; falantes: number; falas: number; palavras: number; ms: number; prazo_ms: number | null; regua: ReguaDoDialogo2511 }
+export type RelatoDoDialogo2511 = { versao: string; ok: boolean; motivo: MotivoDoDialogo | MotivoDoCliente2511 | 'chamada' | 'sem_tempo' | 'figura' | 'menor' | 'lingua' | null; falantes: number; falas: number; palavras: number; ms: number; prazo_ms: number | null; regua: ReguaDoDialogo2511; tentativas: number; motivo_1a: string | null; marcas_montadas: number }
 export type ChamarModelo = (corpo: { model: string; temperature: number; max_tokens: number; response_format: unknown; messages: unknown[] }, prazoMs: number) => Promise<string | null>
 /** UMA chamada ao escritor (o modelo do escritor de hoje), com o prazo curto (prazoMs: ausente = 12 s; null = sem tempo, nem chama). Nunca lança: falhou,
  *  demorou ou saiu da régua = { script: null } e o motivo (a rota segue narrada). */
-export async function escreverDialogo2511(args: { ideia: string; segundos: number; chamar: ChamarModelo; agora?: () => number; prazoMs?: number | null; regua?: ReguaDoDialogo2511 | null }): Promise<{ script: string | null; dialogo: Dialogo2511 | null; relato: RelatoDoDialogo2511 }> {
+export async function escreverDialogo2511(args: { ideia: string; segundos: number; chamar: ChamarModelo; agora?: () => number; prazoMs?: number | null; regua?: ReguaDoDialogo2511 | null }): Promise<{ script: string | null; dialogo: Dialogo2511 | null; relato: RelatoDoDialogo2511; recusados: string[] }> {
   const agora = args.agora ?? Date.now, t0 = agora()
   const prazo = args.prazoMs === undefined ? PRAZO_DO_DIALOGO_2511_MS : args.prazoMs
   const regua: ReguaDoDialogo2511 = args.regua === undefined || args.regua === 'casa' ? 'casa' : 'cliente' // volta 5: null = a régua mais dura
+  let tentativas = 0, motivo1: string | null = null, marcas = 0
   const relato = (ok: boolean, motivo: RelatoDoDialogo2511['motivo'], d: Dialogo2511 | null): RelatoDoDialogo2511 => ({ versao: ESCRITOR_DE_DIALOGO_2511_VERSAO, ok, motivo,
-    falantes: d?.falantes.length ?? 0, falas: d ? d.secoes.reduce((n, s) => n + s.falas.length, 0) : 0, palavras: d ? d.secoes.reduce((n, s) => n + s.falas.reduce((m, f) => m + palavras(f.fala), 0), 0) : 0, ms: Math.max(0, agora() - t0), prazo_ms: prazo, regua })
-  if (regua === 'cliente' && !ideiaEmIngles2511(args.ideia)) return { script: null, dialogo: null, relato: relato(false, 'lingua', null) } // volta 5: só inglês
-  if (figuraNoDialogo2511(args.ideia)) return { script: null, dialogo: null, relato: relato(false, 'figura', null) } // T1: nem chama
-  if (menorNoDialogo2511(args.ideia) || (regua === 'cliente' && idadeDeMenorNaIdeia2511(args.ideia))) return { script: null, dialogo: null, relato: relato(false, 'menor', null) } // T2: nem chama
-  if (prazo === null) return { script: null, dialogo: null, relato: relato(false, 'sem_tempo', null) }
-  let raw: string | null = null
-  try {
-    raw = await args.chamar({ model: AI_TEXT_MODELS.writer, temperature: 0.7, max_tokens: 700, response_format: regua === 'cliente' ? FORMATO_DO_CLIENTE_2511 : FORMATO_DO_DIALOGO_2511,
-      messages: (regua === 'cliente' ? pedidoDoDialogoDoCliente2511 : pedidoDoDialogo2511)(args.ideia, args.segundos).messages }, prazo)
-  } catch { raw = null }
-  if (typeof raw !== 'string') return { script: null, dialogo: null, relato: relato(false, 'chamada', null) }
-  let bruto = raw, papeis: string[] = []
-  if (regua === 'cliente') { // volta 5: cada falante com papel da ideia, nome só da ideia, adulto provado ou não humano
-    const f = falantesDoCliente2511(raw, args.ideia)
-    if ('motivo' in f) return { script: null, dialogo: null, relato: relato(false, f.motivo, null) }
-    bruto = f.raw; papeis = f.papeis
+    falantes: d?.falantes.length ?? 0, falas: d ? d.secoes.reduce((n, s) => n + s.falas.length, 0) : 0, palavras: d ? d.secoes.reduce((n, s) => n + s.falas.reduce((m, f) => m + palavras(f.fala), 0), 0) : 0, ms: Math.max(0, agora() - t0), prazo_ms: prazo, regua, tentativas, motivo_1a: motivo1, marcas_montadas: marcas })
+  const recusados: string[] = []
+  if (regua === 'cliente' && !ideiaEmIngles2511(args.ideia)) return { script: null, dialogo: null, relato: relato(false, 'lingua', null), recusados } // volta 5: só inglês
+  if (figuraNoDialogo2511(args.ideia)) return { script: null, dialogo: null, relato: relato(false, 'figura', null), recusados } // T1: nem chama
+  if (menorNoDialogo2511(args.ideia) || (regua === 'cliente' && idadeDeMenorNaIdeia2511(args.ideia))) return { script: null, dialogo: null, relato: relato(false, 'menor', null), recusados } // T2: nem chama
+  if (prazo === null) return { script: null, dialogo: null, relato: relato(false, 'sem_tempo', null), recusados }
+  const pedido = (regua === 'cliente' ? pedidoDoDialogoDoCliente2511 : pedidoDoDialogo2511)(args.ideia, args.segundos).messages
+  const formato = regua === 'cliente' ? FORMATO_DO_CLIENTE_2511 : FORMATO_DO_DIALOGO_2511
+  /** Uma resposta do modelo pela régua inteira: o falante do cliente, o conferidor, e famoso e menor no roteiro que saiu. */
+  const ler = (raw: string): { script: string; dialogo: Dialogo2511; marcas: number } | { motivo: RelatoDoDialogo2511['motivo'] } => {
+    let bruto = raw, papeis: string[] = []
+    if (regua === 'cliente') { // volta 5: cada falante com papel da ideia, nome só da ideia, adulto provado ou não humano
+      const f = falantesDoCliente2511(raw, args.ideia)
+      if ('motivo' in f) return { motivo: f.motivo }
+      bruto = f.raw; papeis = f.papeis
+    }
+    const c = conferirDialogo2511(bruto, papeis)
+    if ('motivo' in c) return { motivo: c.motivo }
+    const script = roteiroDoDialogo2511(c.dialogo)
+    if (figuraNoDialogo2511(args.ideia, script)) return { motivo: 'figura' } // T1: o nome que ele escolheu ou o que a fala cita
+    if (menorNoDialogo2511(args.ideia, script)) return { motivo: 'menor' } // T2: o roteiro que saiu diz menor
+    return { script, dialogo: c.dialogo, marcas: c.marcas }
   }
-  const c = conferirDialogo2511(bruto, papeis)
-  if ('motivo' in c) return { script: null, dialogo: null, relato: relato(false, c.motivo, null) }
-  const script = roteiroDoDialogo2511(c.dialogo)
-  if (figuraNoDialogo2511(args.ideia, script)) return { script: null, dialogo: null, relato: relato(false, 'figura', null) } // T1: o nome que ele escolheu ou o que a fala cita
-  if (menorNoDialogo2511(args.ideia, script)) return { script: null, dialogo: null, relato: relato(false, 'menor', null) } // T2: o roteiro que saiu diz menor
-  return { script, dialogo: c.dialogo, relato: relato(true, null, c.dialogo) }
+  let mensagens: unknown[] = pedido, ultimo: RelatoDoDialogo2511['motivo'] = 'chamada'
+  for (let vez = 1; vez <= 2; vez++) {
+    const resta = vez === 1 ? prazo : Math.floor(prazo - (agora() - t0)) // a 2ª só com o que sobrou do MESMO prazo (o T3 não muda)
+    if (vez === 2 && resta < MENOR_PRAZO_DA_SEGUNDA_2511_MS) break
+    tentativas = vez
+    let raw: string | null = null
+    try { raw = await args.chamar({ model: AI_TEXT_MODELS.writer, temperature: 0.7, max_tokens: 700, response_format: formato, messages: mensagens }, resta) } catch { raw = null }
+    if (typeof raw !== 'string') { ultimo = 'chamada'; if (vez === 1) motivo1 = 'chamada'; break }
+    const r = ler(raw)
+    if ('script' in r) { marcas = r.marcas; return { script: r.script, dialogo: r.dialogo, relato: relato(true, null, r.dialogo), recusados } }
+    recusados.push(raw)
+    ultimo = r.motivo
+    if (vez === 1) motivo1 = r.motivo
+    if (!MOTIVOS_DE_TAMANHO_2511.includes(r.motivo as (typeof MOTIVOS_DE_TAMANHO_2511)[number])) break // só o tamanho ganha a 2ª chamada
+    mensagens = [...pedido, { role: 'assistant', content: raw }, { role: 'user', content: pedidoDeAcerto2511(raw) }]
+  }
+  return { script: null, dialogo: null, relato: relato(false, ultimo, null), recusados }
 }
