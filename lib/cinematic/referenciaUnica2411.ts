@@ -122,7 +122,9 @@ export const FRASE_SEGUNDA_PESSOA = 'Keep the face and outfit of @Image2.'
 //   7. o 2º sai de comSegundaReferencia2411 (a mesma da casa: nomes que não se contêm, folhas diferentes); sem o 2º = 'duas_nomes'.
 // Chave: 'internal' = só a casa (o de ontem); 'public_humano' = o cliente pela régua acima. Voltar: 'internal'.
 export type ModoDuasPessoasDoCliente2511 = 'internal' | 'public_humano'
-export const DUAS_PESSOAS_DO_CLIENTE_2511: ModoDuasPessoasDoCliente2511 = 'public_humano'
+// [CEO 25/11 noite] a régua das duas pessoas deu VOLTA de novo na revisão: publicada em 'internal' (o cliente com duas folhas = o pedido de hoje,
+// 'mais_de_uma_folha'); a régua fica pronta no código e nos guardiões (montada em 'public_humano' no teste). O famoso de UMA pessoa fica ligado.
+export const DUAS_PESSOAS_DO_CLIENTE_2511: ModoDuasPessoasDoCliente2511 = 'internal'
 export type MotivoClienteSemDuasPessoas2511 = 'duas_tres_ou_mais' | 'duas_nao_humano' | 'duas_sem_folha' | 'duas_estilizado' | 'duas_menor' | 'duas_figura_conhecida' | 'duas_nomes'
 const SEM_LETRA_ANTES = '(?<![\\p{L}\\p{N}])', SEM_LETRA_DEPOIS = '(?![\\p{L}\\p{N}])'
 // ── 5a. o SINAL de adulto (lista FECHADA; só o que é do personagem) ──
