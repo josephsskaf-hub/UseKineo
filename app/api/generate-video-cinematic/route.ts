@@ -7691,23 +7691,25 @@ async function manipularPost(req: NextRequest) {
       // KINEO-K4-PLANO-FINAL-1111 [CEO 11/11, alavanca 1, atrás de KLING4_PLANO_FINAL] — o último plano em movimento: o momento acontece e se completa na tela,
       // sem oração que só descreve nem câmera parada, e não termina num close (salvo com imagem-chave)
       garantirSujeitoNoUltimo1911(r3) // [ensaio A2 19/11] o sujeito no último plano (só A2, depois da revisão)
-      if (kling4PlanoFinal && r3.prompts.length) {
+      const comPlanoFinal = () => {
+        if (!kling4PlanoFinal || !r3.prompts.length) return r3
         const ultimo = r3.prompts.length - 1
         const escalaAnterior = ultimo > 0 ? (escalaDoPlano(r3.prompts[ultimo - 1])?.escala ?? null) : null
-        r3.prompts = r3.prompts.map((p, i) => i === ultimo ? planoFinalEmMovimento(p, { comImagemChave: Boolean(r3.approvedStills[ultimo]), escalaAnterior }) : p)
+        return { ...r3, prompts: r3.prompts.map((p, i) => i === ultimo ? planoFinalEmMovimento(p, { comImagemChave: Boolean(r3.approvedStills[ultimo]), escalaAnterior }) : p) }
       }
+      const pronto = comPlanoFinal()
       if (epocaVisual) {
-        const indices = r3.planos?.flat()
+        const indices = pronto.planos?.flat()
         const continuidade = a.timing.fixedCharacter?.continuity
         const frase = a.timing.referenciaUnica?.frase.trim()
         let intermediarias = 0
-        r3.prompts = r3.prompts.map((p, i) => {
+        pronto.prompts = pronto.prompts.map((p, i) => {
           // Surface, shot size and final action are already present. Reserve the
           // dispatcher's exact reference text before spending any space on period.
           let referencia = ''
-          if (r3.approvedStills[0]) {
+          if (pronto.approvedStills[0]) {
             if (!i) referencia = 'Scene 1: use the start image. '
-            else if (r3.approvedStills[i] && intermediarias < 8) referencia = `Scene ${i + 1}: use middle keyframe ${++intermediarias}. `
+            else if (pronto.approvedStills[i] && intermediarias < 8) referencia = `Scene ${i + 1}: use middle keyframe ${++intermediarias}. `
             else referencia = `Scene ${i + 1}: text-directed shot, no new keyframe for this scene. `
           }
           const reserva = continuidade ? Array.from(' ' + continuidade + ' Mouth closed, no speaking.').length
@@ -7717,7 +7719,7 @@ async function manipularPost(req: NextRequest) {
             secao === undefined ? undefined : parsedScript.segments[secao]?.pexelsQuery, 512 - reserva)
         })
       }
-      return r3
+      return pronto
     } // KINEO-K4-PLANO-POR-SECAO-1111
     const kling4EnvioDoFilme = () => kling4PorSecao({ prompts: kling4Prompts, approvedStills: kling4ApprovedStills, timing: kling4Timing }) // KINEO-K4-PLANO-POR-SECAO-1111 — a MESMA entrada para o juiz do plano e o claim
     // [ensaio A2 19/11] as descrições por seção completas e que CABEM: seção nula (42bcd59f, caed3456) ou que não coube em frase inteira no seu plano (o plano caía
