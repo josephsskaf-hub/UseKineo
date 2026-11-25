@@ -60,6 +60,8 @@ import { KLING4_PLANO_DA_FALA_1911, planoDaFalaLigado, REGRA_DO_PLANO_DA_FALA, s
 import { soSemFicha, cenaTemFicha, prazoDoA1A2, A1A2_ESPERA_DO_DESCRITOR_MS, A1A2_REESCRITA_MS, PLANO_DA_FALA_EVENTO, KLING4_PLANO_DA_FALA_VERSAO, type PrazoDoA1A2 } from '@/lib/kling4PlanoDaFala1911' // [revisor 19/11, "pode com condição"] modo só sem ficha, prazo e rastro do A1/A2
 import { KLING4_DESCRITOR_FORTE_1911, MODELO_DO_DESCRITOR_FORTE, A2_TETO_DO_JUIZ_MS, A2_EVENTO, promptsDeCenaInteira, topicoDoDescritorA2, planosComNomeProprio, revisarPlanosA2, custoDoUso } from '@/lib/kling4PlanoDaFala1911' // KINEO-DESCRITOR-FORTE-1911 (A2)
 import { descricoesSemRosto, descricaoSemRosto, rostoNaDescricao, SEM_ROSTO_MOTIVO } from '@/lib/kling4PlanoDaFala1911' // KINEO-SEM-ROSTO-2011 — a descrição do A1/A2 no modo sem rosto passa pela troca da cena
+import { CAMERA_NO_DESLOCAMENTO_2511, cameraNoDeslocamentoLigado, REGRA_DA_CAMERA_2511 } from '@/lib/kling4PlanoDaFala1911' // KINEO-CAMERA-NO-DESLOCAMENTO-2511
+import { contaDaCasaExata as contaDaCasaExataCamera2511 } from '@/lib/internalAccounts' // KINEO-CAMERA-NO-DESLOCAMENTO-2511 — a casa EXATA
 import { sistemaPorSecao, notaDoEspaco, secoesQueNaoCabem } from '@/lib/kling4PlanoDaFala1911' // [ensaio A2 19/11] sem câmera nomeada; a seção que não coube é pedida de novo
 import { promptMostraOSujeito, comSujeitoNaCena, sujeitoDoFilme, sujeitoExigidoNoUltimo } from '@/lib/cinematic/sujeitoObrigatorio' // [ensaio A2 19/11] o sujeito do pedido no último plano do A2 · [2º ensaio] só o sujeito do FILME (1ª ou última fala o cita)
 import { FICHA_REPROVADA_NO_HOJE_2011, fichaReprovada } from '@/lib/cinematic/fichaReprovada1911' // KINEO-FICHA-REPROVADA-NO-HOJE-2011
@@ -1083,6 +1085,8 @@ function eraLockSuffix(context: string): string {
 // os números REAIS das cenas (1-based) e o total do filme — sem ele, a chamada é a de sempre, byte a byte.
 // KINEO-PLANO-SEM-LUGAR-2511 (A) — as políticas visuais (uma por pedido, objeto novo a cada pedido) cujo pedido tem a chave ligada. WeakSet: some com o pedido.
 const PISTA_DE_CLIMA_2511 = new WeakSet<object>()
+// KINEO-CAMERA-NO-DESLOCAMENTO-2511 — as políticas visuais (uma por pedido, objeto novo a cada pedido) cujo pedido tem a chave ligada. WeakSet: some com o pedido.
+const CAMERA_NO_DESLOCAMENTO_POLITICAS_2511 = new WeakSet<object>()
 async function generateCinematicDescriptions(
   scenes: { voiceover: string; stockSearchQuery?: string; description: string }[],
   topic: string,
@@ -1095,6 +1099,7 @@ async function generateCinematicDescriptions(
   aoUsar?: (u: { model: string; usage: unknown; ms: number }) => void, // KINEO-DESCRITOR-FORTE-1911 (A2) — o ensaio do dry_run mede os tokens de cada chamada
 ): Promise<string[]> {
   const pistaDeClima2511 = typeof PISTA_DE_CLIMA_2511 !== 'undefined' && PISTA_DE_CLIMA_2511.has(visualPolicy) // KINEO-PLANO-SEM-LUGAR-2511 (A) — só com a chave (só a casa): a pista que é só entorno nunca vira o plano inteiro
+  const cameraNoDeslocamento2511 = typeof CAMERA_NO_DESLOCAMENTO_POLITICAS_2511 !== 'undefined' && CAMERA_NO_DESLOCAMENTO_POLITICAS_2511.has(visualPolicy) // KINEO-CAMERA-NO-DESLOCAMENTO-2511 — só com a chave (só a casa)
   const list = scenes
     .map((s, i) => {
       const vo = (s.voiceover || '').trim()
@@ -1119,7 +1124,7 @@ ${temMarcaDeBusca(topic) && typeof pistaDeClima2511 !== 'undefined' && pistaDeCl
 - KINEO-DESENHO-LEO-0111: ${desenhoProtagonista.name} (${desenhoProtagonista.sheet}) is the main subject of EVERY shot, clearly visible and doing the action; any animal or other character the narration mentions appears only beside ${desenhoProtagonista.name}, smaller, never alone and never instead of ${desenhoProtagonista.name}. Keep the same key object (same colour and pattern) and the same place, season and weather in every shot unless the narration changes them.` : ''}
 - Include a camera move (aerial, slow push-in, tracking, pan, or macro), plus lighting and mood.
 - VARY the camera move and framing across scenes — do not repeat the same shot type; rotate aerial / tracking / slow push-in / macro / wide / low-angle.
-- Keep the approved look, mood, color palette and lighting across all scenes, as if from the same film.
+${typeof cameraNoDeslocamento2511 !== 'undefined' && cameraNoDeslocamento2511 === true ? `- ${REGRA_DA_CAMERA_2511}\n` : ''}- Keep the approved look, mood, color palette and lighting across all scenes, as if from the same film.
 - Frame the subject in the upper two-thirds; keep the lower third uncluttered for on-screen captions.
 - ${aspectSpec(visualPolicy.aspect).promptFraming}. No on-screen text, captions, or logos.
 - ${NO_TEXT_OBJECT_DIRECTION}
@@ -1710,6 +1715,7 @@ async function manipularPost(req: NextRequest) {
     // Só lido com o portão ligado: decide se o sujeito obrigatório do Kling 4 grátis pode usar a ideia original. Desligado = nenhuma leitura a mais.
     const PORTAO_LEITURA_TETO_MS_1911 = 2_000 // [revisor 19/11, condição 6] a leitura da ideia do escritor no banco
     const planoSemLugar2511 = planoSemLugarLigado(PLANO_SEM_LUGAR_2511, contaDaCasaExata2511(user.email)) // KINEO-PLANO-SEM-LUGAR-2511 — A (descritor e supervisor) e B (metade sem lugar), só a casa exata
+    const cameraNoDeslocamento2511 = cameraNoDeslocamentoLigado(CAMERA_NO_DESLOCAMENTO_2511, contaDaCasaExataCamera2511(user.email)) // KINEO-CAMERA-NO-DESLOCAMENTO-2511 — só a casa exata
     const portaoDoSujeito1911 = portaoDoSujeitoLigado(PORTAO_DO_SUJEITO_1911, isDryRunAccount(user.email)) // 'internal' = só os 3 e-mails exatos do ensaio (a régua larga abria para e-mail parecido, revisor 19/11)
     // [CEO 19/11, 2º ensaio do A2] o ensaio roda na conta do fundador com o roteiro de um cliente: o script_written é do cliente, não do fundador. Só o dry_run da
     // conta do ensaio pode declarar "roteiro do nosso escritor" (a lista do ensaio prova: a ideia veio do script_written casado); cliente nunca.
@@ -4093,6 +4099,7 @@ async function manipularPost(req: NextRequest) {
       mode: classicVisualMode, style: styleAnchor, character: storyCharacter, aspect: aspectRequested,
     }
     if (typeof planoSemLugar2511 !== 'undefined' && planoSemLugar2511) PISTA_DE_CLIMA_2511.add(classicVisualPolicy) // KINEO-PLANO-SEM-LUGAR-2511 (A) — o descritor deste pedido lê a regra da pista de entorno
+    if (typeof cameraNoDeslocamento2511 !== 'undefined' && cameraNoDeslocamento2511) CAMERA_NO_DESLOCAMENTO_POLITICAS_2511.add(classicVisualPolicy) // KINEO-CAMERA-NO-DESLOCAMENTO-2511 — o descritor deste pedido lê a regra da câmera
     const semRosto1911 = (): boolean => classicVisualPolicy.mode === 'documentary_faceless' // KINEO-SEM-ROSTO-2011 — o modo sem rosto do filme (o mesmo que a cena usa)
     // [TRAVA 8.2 — vai do fundador 29/09 'vai pra todas as 4'] KINEO-ESTRELA-DO-FILME-2026-09-29 — com a estrela, o personagem de TODA cena é a pessoa
     // das fotos, com UM figurino escrito (a ficha do autor, a do cenário reconhecido ou uma genérica) — o still de cada cena é um [KINEO-ESTRELA-DO-FILME-2026-09-29]

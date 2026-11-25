@@ -51,6 +51,21 @@ export function prazoDoA1A2(totalMs: number = A1A2_TETO_TOTAL_MS, agora: () => n
   return p
 }
 
+// ═══ KINEO-CAMERA-NO-DESLOCAMENTO-2511 [CEO 25/11; dono viu o Vidu Q4: "o senhor sobe de costas na escada"; no Gemini ele DESCE] ═══
+// O plano pedia "climbs the staircase" e "Keep the face" sem dizer onde a câmera está: o motor escolheu o rosto e inverteu o movimento. Refeito no Vidu
+// com a câmera dita no texto, saiu certo e o dono aprovou. A regra vai ao sistema do descritor (o das cenas e o por seção: a mesma linha da rota, que o
+// sistemaPorSecao não tira). Quem decide se há deslocamento é o modelo que lê o sentido: NENHUMA lista de verbos. "Nunca de costas" só vale quando as
+// palavras do autor para aquele plano não dizem que a pessoa vai embora; as palavras do autor (a fala e a marca do plano) mandam. Sem exemplo. Só a casa.
+export type ModoCameraNoDeslocamento2511 = 'off' | 'internal' | 'public'
+export const CAMERA_NO_DESLOCAMENTO_2511: ModoCameraNoDeslocamento2511 = 'internal'
+export const CAMERA_NO_DESLOCAMENTO_2511_VERSAO = 'camera_no_deslocamento_2511_v1'
+export const cameraNoDeslocamentoLigado = (modo: ModoCameraNoDeslocamento2511, contaDaCasa: boolean): boolean => modo === 'public' || (modo === 'internal' && contaDaCasa === true)
+export const REGRA_DA_CAMERA_2511 =
+  'KINEO-CAMERA-NO-DESLOCAMENTO-2511: when the subject travels from one place to another in the shot, say where the camera stands relative to that path ' +
+  'and which way the subject moves relative to the camera (where the camera stands, not a camera move). When the subject is a named or recurring character, ' +
+  'the subject moves toward or across the camera with the face visible, never away from it, unless the author\'s words for that shot say the subject is leaving; ' +
+  'the author\'s words for the shot always decide.'
+
 /** Acrescentado ao sistema do descritor SÓ na chamada por seção (cada item = uma seção do roteiro). */
 export const REGRA_DO_PLANO_DA_FALA = '\n- KINEO-PLANO-DA-FALA-1911: each item is ONE short shot (about 3 to 5 seconds) of a 15-second film, one per narration line, in order. Write it from the Topic (the person\'s request) and that line\'s narration: show the subject that narration is about, doing what it says. The visual hint is only a stock-footage search term: it may add surroundings but a shot is never only the hint. The LAST item shows how the story ends, with the central subject of the Topic clearly visible in that final moment, never an empty landscape, sky or mood shot.' +
   // [ensaio A2 19/11] "Aerial shot" abria o plano 1 em 34 de 47 filmes (a regra de câmera da rota lista "aerial" primeiro); frases cortadas na vírgula; a cor do
