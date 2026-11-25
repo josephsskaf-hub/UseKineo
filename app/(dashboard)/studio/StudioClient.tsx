@@ -1,5 +1,8 @@
 'use client'
 
+import type { FilmLook } from '@/lib/cinematic/filmLook2511'
+import FilmStylePicker from '@/components/studio/FilmStylePicker'
+
 import Kling4PaidNotice, { useKling4PaidAvailability } from '@/components/Kling4PaidNotice'
 import { kling4PaidCredits } from '@/lib/kling4PaidPricing'
 import { KLING4_PAID_COPY, kling4PaidName, kling4PromoZeroCredits } from '@/lib/kling4PaidPresentation'
@@ -286,7 +289,7 @@ function EngineHero({ name, desc, meta, videos, fallback }: { name: string; desc
   )
 }
 
-export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { engineHeroes?: Record<string, StudioHeroVideo[]>; bestFilms?: StudioBestFilm[] } = {}) {
+export default function StudioClient({ engineHeroes = {}, bestFilms = [], initialFilmLook }: { engineHeroes?: Record<string, StudioHeroVideo[]>; bestFilms?: StudioBestFilm[]; initialFilmLook?: FilmLook } = {}) {
   const t = useUiCopy()
   // KINEO-STUDIO-MELHORES-2026-09-30 — o filme da vitrine clicado abre no palco do motor dele.
   const [heroPick, setHeroPick] = useState<StudioBestFilm | null>(null)
@@ -427,6 +430,8 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
   const adsTileHref = adsTileAccess ? ADS_TILE_WIZARD_HREF : ADS_TILE_DOOR_HREF
   const [preset, setPreset] = useState<string | null>(null)
   const [prompt, setPrompt] = useState('')
+  const [filmLook, setFilmLook] = useState(initialFilmLook)
+  const [filmLookChanged, setFilmLookChanged] = useState(false)
   const [originalIdea, setOriginalIdea] = useState<string | null>(null) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
   const linkOnlyInput = isStandaloneHttpUrl(prompt) // KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22
   const recordMrr = useMrrStudioFunnel()
@@ -998,6 +1003,10 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
       sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine, prompt: finalPrompt, language }))
     } catch {}
     const q = new URLSearchParams({ engine, prompt: finalPrompt, duration: String(duration), script_mode: scriptMode, autoanalyze: '1', studio: '1', intent_campaign: campaignRef.current })
+    if (filmLook) {
+      q.set('look', filmLook)
+      void trackEvent('studio_film_style_submitted', { initial_look: initialFilmLook, chosen_look: filmLook, changed: filmLookChanged })
+    }
     // [TRAVA 8.2 — vai do fundador 13/10 'tudo sim nos 3 consertos'] (CONSERTO 1) — o Gerar com uma duração que o // KINEO-PRIMEIRO-FILME-2026-10-13
     // saldo do teste não paga (mas paga o filme grátis de 15 s do Seedance 1.5) despacha os 15 s, com a duração pedida // KINEO-PRIMEIRO-FILME-2026-10-13
     // em free_film_from (a nota honesta do /studio/create lê daqui). Mesma regra pura do servidor // KINEO-PRIMEIRO-FILME-2026-10-13
@@ -1236,6 +1245,10 @@ export default function StudioClient({ engineHeroes = {}, bestFilms = [] }: { en
                 : chatGptQuickstart === 'idea'
                   ? (t('Paste the idea from ChatGPT here…', 'Pega aquí la idea de ChatGPT…'))
                   : (t('What’s your video about? One idea in — a finished film out: voiced, scored and captioned.', '¿De qué trata tu vídeo? Una idea se convierte en un vídeo con voz, música y subtítulos.'))} />
+            {filmLook && scriptMode !== 'clip' && <FilmStylePicker look={filmLook} text={finalPrompt} onSelect={next => {
+              setFilmLook(next)
+              if (next !== filmLook) setFilmLookChanged(true)
+            }} />}
             {/* KINEO-ROTEIRO-CURTO-SEM-FALHA-2026-10-22 — only an explicit click restores the arrival idea; it never starts rendering. */}
             {linkOnlyInput && (
               <div role="status" data-kineo="script-link-blocked" style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, border: '1px solid rgba(103,232,249,.36)', color: 'var(--text2)', fontSize: 13, lineHeight: 1.5 }}>

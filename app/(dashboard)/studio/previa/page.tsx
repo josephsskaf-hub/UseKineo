@@ -3,6 +3,7 @@
 // Studio de sempre — esta tela nunca aparece para quem pode fazer o filme.
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { selectedFilmLook } from '@/lib/cinematic/filmLook2511Server'
 import { PREVIA_CENAS_PUBLIC, previaEligible, type PreviaProfile } from '@/lib/scenePreview'
 import { trialPedidoVisivel } from '@/lib/trialPedido' // KINEO-FLUXO2-G-0411
 import ScenePreviewClient from './ScenePreviewClient'
@@ -15,9 +16,10 @@ const first = (v: string | string[] | undefined) => (typeof v === 'string' ? v :
 
 export default async function ScenePreviewPage({ searchParams }: Props) {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (!user) redirect(`/login?redirect=${encodeURIComponent('/studio/previa')}`)
   const { data } = await supabase.from('profiles').select('trial_status, has_paid, plan, video_credits').eq('id', user.id).maybeSingle()
   if (!PREVIA_CENAS_PUBLIC || !previaEligible(data as PreviaProfile | null)) redirect('/studio')
-  return <ScenePreviewClient initialIdea={first(searchParams?.prompt).slice(0, 2000)} from={first(searchParams?.from).slice(0, 24)} aPedido={trialPedidoVisivel(data as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null } | null)} />
+  const filmLook = selectedFilmLook(searchParams?.look, authError ? null : user.email)
+  return <ScenePreviewClient filmLook={filmLook} initialIdea={first(searchParams?.prompt).slice(0, 2000)} from={first(searchParams?.from).slice(0, 24)} aPedido={trialPedidoVisivel(data as { trial_status?: string | null; has_paid?: boolean | null; plan?: string | null } | null)} />
 }

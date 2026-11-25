@@ -1,5 +1,7 @@
 'use client'
 
+import type { FilmLook } from '@/lib/cinematic/filmLook2511'
+
 import Kling4PaidNotice, { useKling4PaidAvailability } from '@/components/Kling4PaidNotice'
 import { kling4PaidReplacement } from '@/lib/kling4PaidClaim'
 import { engineLabelFor } from '@/lib/engineLabel'
@@ -1193,6 +1195,7 @@ export default function GenerateClient({
   refusalNotice = null,
   kineo1Visible,
   seedance15: seedance15Prop,
+  filmLook,
 }: {
   initialViralPrompt?: string
   initialUserId: string
@@ -1213,6 +1216,7 @@ export default function GenerateClient({
    * primeiro consumidor de `kineo1Visible`: null/ausente = 'não sei' (kineo1NaTela).
    */
   seedance15?: boolean
+  filmLook?: FilmLook
 }) {
   // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
   const OFFER = useFreeTierOffer()
@@ -10215,6 +10219,7 @@ export default function GenerateClient({
         const cineFootage = footageItems.filter((f) => selectedFootageIds.includes(f.id) && f.kind !== 'audio')
         const cineBrollScenes = cineUsable ? cinePlan!.scenes.map((s, sceneIdx) => ({ sceneNumber: s.sceneNumber, brollPrompt: s.brollPrompt, shotType: s.shotType, negativePrompt: s.negativePrompt, ...(cineFootage[sceneIdx] ? { userFootageUrl: cineFootage[sceneIdx].url } : {}) })) : undefined
         const cinematicPayload = {
+          ...(filmLook ? { look: filmLook } : {}),
           generationId: cinematicGenerationId,
           prompt: trimmed,
           duration,

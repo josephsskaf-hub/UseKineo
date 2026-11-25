@@ -4,6 +4,7 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { filmLookAccount } from '@/lib/cinematic/filmLook2511Server'
 import { caixaNovaVisivel, createShellDecision, filmNaMoldura } from '@/lib/create/access' // KINEO-CAIXA-NOVA-1511: caixaNovaVisivel
 import { CREATE_FILM_CAMPAIGN, type CreateTab } from '@/lib/create/tabs'
 import CreateShell from '@/components/create/CreateShell'
@@ -61,7 +62,7 @@ export default async function Page({ params, searchParams = {} }: { params: { ta
 
   if (query && params.tab === 'cartoon' && !cartoonArrivalSupported(searchParams)) redirect(`/kids-cartoon?${query}`)
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
   const decision = createShellDecision(params.tab, user, undefined, query) // KINEO-ENTRADAS-TELA-NOVA-1011 — o visitante volta para a aba COM a query
   if (decision.kind === 'signup') redirect(decision.href)
   if (decision.kind !== 'show') notFound()
@@ -73,8 +74,9 @@ export default async function Page({ params, searchParams = {} }: { params: { ta
   const showClip = clipNaMolduraVisivel(user?.email) // KINEO-CLIP-NA-MOLDURA-1011 — a aba Clip só para quem a abre
   // KINEO-CAIXA-NOVA-1511 [dono 15/11: "deixar um lugar mais confortável… repetir igual os líderes"] — a caixa nova (CAIXA_NOVA_RELEASE, hoje só a casa).
   // O MESMO StudioNaMoldura com os MESMOS dados; só a casca troca. Quem não está no interruptor segue na linha de baixo, como sempre.
-  if (filmNaMoldura(params.tab, user?.email) && caixaNovaVisivel(user?.email)) return <><StudioIdeaArrival /><StudioNaMoldura caixaNova showRecreate={decision.showRecreate} showClip={showClip} motor={motorDaCaixa(undefined)} campanha={campanha} ideiaInicial={ideiaDoLink(searchParams.ideia)} /></>
-  if (filmNaMoldura(params.tab, user?.email)) return <><StudioIdeaArrival /><StudioNaMoldura showRecreate={decision.showRecreate} showClip={showClip} motor={motorDaCaixa(undefined)} campanha={campanha} ideiaInicial={ideiaDoLink(searchParams.ideia)} /></>
+  const showFilmStyle = !authError && filmLookAccount(user?.email)
+  if (filmNaMoldura(params.tab, user?.email) && caixaNovaVisivel(user?.email)) return <><StudioIdeaArrival /><StudioNaMoldura caixaNova showFilmStyle={showFilmStyle} showRecreate={decision.showRecreate} showClip={showClip} motor={motorDaCaixa(undefined)} campanha={campanha} ideiaInicial={ideiaDoLink(searchParams.ideia)} /></>
+  if (filmNaMoldura(params.tab, user?.email)) return <><StudioIdeaArrival /><StudioNaMoldura showFilmStyle={showFilmStyle} showRecreate={decision.showRecreate} showClip={showClip} motor={motorDaCaixa(undefined)} campanha={campanha} ideiaInicial={ideiaDoLink(searchParams.ideia)} /></>
   const destino = params.tab === 'ads' || params.tab === 'cartoon' ? destinoDaChegada(params.tab, query) : null // KINEO-ENTRADAS-CARTOES-1011
   if (destino && (params.tab === 'ads' || params.tab === 'cartoon')) return <><StudioIdeaArrival /><AbaComChegada tab={params.tab} showRecreate={decision.showRecreate} showClip={showClip} destino={destino} /></> // KINEO-ENTRADAS-VISITANTE-1111 — a conta nova chega com ?signup=1 (callback): a conversão e a origem do cadastro contam aqui, como no Film
   return <CreateShell tab={params.tab as CreateTab} signedIn showRecreate={decision.showRecreate} showClip={showClip} />

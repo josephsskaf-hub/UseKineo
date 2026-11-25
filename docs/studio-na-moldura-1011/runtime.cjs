@@ -24,6 +24,13 @@ function aba(overrides = {}, { now = 1_800_000_000_000, cookie = '', credits = n
     useRef: init => { const k = key(); if (!store.has(k)) store.set(k, { current: init }); return store.get(k) },
     useMemo: f => { key(); return f() },
     useCallback: f => { key(); return f },
+    // This fixture mounts standalone controls without a provider. Read the real React default.
+    useContext: context => {
+      let value
+      function ReadContext() { value = React.useContext(context); return null }
+      renderToStaticMarkup(React.createElement(ReadContext))
+      return value
+    },
     useEffect: f => { const k = key(); if (!store.has(k)) { store.set(k, true); effects.push(f) } },
   }
   const analytics = {

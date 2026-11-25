@@ -17,6 +17,9 @@ import StudioIdeaArrival from '@/components/StudioIdeaArrival'
 import { SEEDANCE_15S_PUBLIC } from '@/lib/engineLaunch' // KINEO-STUDIO-CLS-2026-10-13 — o motor que a tela abre (o mesmo useState do StudioClient)
 
 import { signedInFounder } from '@/lib/auth/signedInFounder'
+import { createClient } from '@/lib/supabase/server'
+import { filmLookEnabled, type FilmLook } from '@/lib/cinematic/filmLook2511'
+import { filmLookAccount, selectedFilmLook } from '@/lib/cinematic/filmLook2511Server'
 
 export const metadata = { title: 'Studio — Kineo' }
 
@@ -53,6 +56,15 @@ async function founderFilmEntry(entry: JSX.Element) {
   return entry
 }
 
+async function filmStyleEmail() {
+  try {
+    const { data: { user }, error } = await createClient().auth.getUser()
+    return error ? null : user?.email ?? null
+  } catch {
+    return null
+  }
+}
+
 export default function StudioPage({ searchParams = {} }: { searchParams?: Record<string, string | string[] | undefined> }) {
   const engineHeroes: Record<string, StudioHeroVideo[]> = {}
   for (const [key, engine] of Object.entries(HERO_ENGINE)) {
@@ -73,20 +85,29 @@ export default function StudioPage({ searchParams = {} }: { searchParams?: Recor
   // entrada na fila alta já no começo do documento. Só o 1º filme do motor de abertura (o que a tela mostra sem clique).
   const lcpPoster = engineHeroes[SEEDANCE_15S_PUBLIC ? 'seedance' : 'fast']?.[0]?.poster
   // KINEO-CAIXA-UNICA-0411 [fundador 04/11: "1a"] — quem só chegou vê a caixa única; quem traz trabalho (texto, retomada, episódio) ou pede "More options" segue no Studio completo.
-  if (usarCaixaUnica(searchParams)) {
-    const entry = (
+  const simpleEntry = (showFilmStyle: boolean, initialFilmLook?: FilmLook) => {
+    const content = (
       <>
         <StudioIdeaArrival />
-        <StudioSimples filmes={filmesDaPorta0511()} motor={motorDaCaixa(searchParams.engine)} campanha={campanhaDaCaixa(searchParams.intent_campaign)} ideiaInicial={watchExampleText(ideiaDoLink(searchParams.ideia), searchParams.example, 'film')} />
+        <StudioSimples key={initialFilmLook} showFilmStyle={showFilmStyle} initialFilmLook={initialFilmLook} filmes={filmesDaPorta0511()} motor={motorDaCaixa(searchParams.engine)} campanha={campanhaDaCaixa(searchParams.intent_campaign)} ideiaInicial={watchExampleText(ideiaDoLink(searchParams.ideia), searchParams.example, 'film')} />
       </>
     )
-    return process.env.NEXT_PUBLIC_KINEO_STUDIO_FILM_3D === 'true' ? founderFilmEntry(entry) : entry
+    return process.env.NEXT_PUBLIC_KINEO_STUDIO_FILM_3D === 'true' ? founderFilmEntry(content) : content
   }
-  return (
+  if (usarCaixaUnica(searchParams)) {
+    return filmLookEnabled(true) ? filmStyleEmail().then(email => simpleEntry(filmLookAccount(email))) : simpleEntry(false)
+  }
+  const advancedEntry = (initialFilmLook?: FilmLook) => (
     <>
       {lcpPoster ? <link rel="preload" as="image" href={lcpPoster} fetchPriority="high" /> : null}
       <StudioIdeaArrival />
-      <StudioClient engineHeroes={engineHeroes} bestFilms={bestFilms} />
+      <StudioClient key={initialFilmLook} engineHeroes={engineHeroes} bestFilms={bestFilms} initialFilmLook={initialFilmLook} />
     </>
   )
+  const { look, ...entryWithoutLook } = searchParams
+  if (!filmLookEnabled(true) || typeof look !== 'string') return advancedEntry()
+  return filmStyleEmail().then(email => {
+    const initialFilmLook = selectedFilmLook(look, email)
+    return initialFilmLook && usarCaixaUnica(entryWithoutLook) ? simpleEntry(true, initialFilmLook) : advancedEntry(initialFilmLook)
+  })
 }

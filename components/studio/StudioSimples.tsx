@@ -22,6 +22,8 @@ import { duracoesDoMotor, flagsDoCorpo, kling4AoVivo, motoresOpcionais, type Fla
 import { rebaseKling4Lease } from '@/lib/kling4PaidPresentation' // KINEO-MOTOR-OPCIONAL-1011 — a mesma leitura do Kling 4.0 que o Studio antigo faz
 import { KineoBrandIcon } from '@/components/KineoBolt' // KINEO-CELULAR-A-0611
 import { requestFilmProjection } from './requestFilmProjection'
+import { suggestedFilmLook, type FilmLook } from '@/lib/cinematic/filmLook2511'
+import FilmStylePicker from './FilmStylePicker'
 
 const CSS = `
 .ksx{max-width:760px;margin:0 auto;padding:clamp(20px,6vh,64px) 16px 48px;color:var(--text)}
@@ -107,13 +109,26 @@ export interface CaixaNaMoldura {
   motores: OpcaoDeMotor[] | null; motoresEstado: 'fechado' | 'lendo' | 'pronto' | 'falhou'; abrirMotores: () => void; escolherMotor: (k: string) => void
   /** KINEO-MOTOR-OPCIONAL-1011 — a leitura do Kling 4.0 pago (GET /api/kling4-paid/availability), feita junto com as flags; null = não lida. */
   kling4: unknown
+  filmStylePicker?: ReactNode
 }
 
-export default function StudioSimples({ filmes, motor: motorDoLink, campanha, ideiaInicial = '', moldura }: { filmes: ReadonlyArray<FilmeDaCaixa>; motor: string; campanha: string; ideiaInicial?: string; moldura?: (c: CaixaNaMoldura) => ReactNode }) {
+export default function StudioSimples({ filmes, motor: motorDoLink, campanha, ideiaInicial = '', moldura, showFilmStyle = false, initialFilmLook }: { filmes: ReadonlyArray<FilmeDaCaixa>; motor: string; campanha: string; ideiaInicial?: string; moldura?: (c: CaixaNaMoldura) => ReactNode; showFilmStyle?: boolean; initialFilmLook?: FilmLook }) {
   const router = useRouter()
   const registrar = useMrrStudioFunnel()
   const caixa = useRef<HTMLTextAreaElement>(null)
   const [texto, setTexto] = useState(ideiaInicial) // KINEO-CAIXA-COM-IDEIA-0611 — só preenche; o filme nunca começa sozinho
+  const [styleChoice, setStyleChoice] = useState<{ initial: FilmLook; chosen: FilmLook; changed: boolean } | null>(() =>
+    initialFilmLook ? { initial: initialFilmLook, chosen: initialFilmLook, changed: false } : null,
+  )
+  const suggestedLook = showFilmStyle ? suggestedFilmLook(texto) : null
+  const look = suggestedLook && (styleChoice?.chosen ?? suggestedLook)
+  const filmStylePicker = look && <FilmStylePicker look={look} text={texto} onSelect={next => {
+    setStyleChoice(choice => ({
+      initial: choice?.initial ?? look,
+      chosen: next,
+      changed: choice?.changed === true || next !== (choice?.chosen ?? look),
+    }))
+  }} />
   const [duracao, setDuracao] = useState<number>(60)
   const [formato, setFormato] = useState<string>('9:16')
   const [lingua, setLingua] = useState<string>('auto') /* KINEO-ROTEIRO-NA-LINGUA-0411 — sem escolha, o filme fala a língua do texto */
@@ -164,8 +179,9 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
   const maisOpcoes = useMemo(() => {
     const q = new URLSearchParams({ avancado: '1', engine: motor, intent_campaign: campanha })
     if (texto.trim() && texto.length < 1500) q.set('prompt', texto)
+    if (look) q.set('look', look)
     return `/studio?${q.toString()}`
-  }, [motor, campanha, texto])
+  }, [motor, campanha, texto, look])
 
   function gerar() {
     const t = texto.trim()
@@ -181,8 +197,11 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
     setAviso(null)
     registrar('mrr_generate_clicked')
     void trackEvent('studio_simple_generate_clicked', { engine: motor, duration: duracao, aspect: formato, language: lingua, verbatim: palavraPorPalavra, chars: t.length, page_idea_kept: ideiaInicial !== '' && t === ideiaInicial.trim() })
+    if (look) {
+      void trackEvent('studio_film_style_submitted', { initial_look: styleChoice?.initial ?? look, chosen_look: look, changed: styleChoice?.changed ?? false })
+    }
     try { sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine: motor, prompt: t, language: lingua === 'auto' ? 'en' : lingua })) } catch {}
-    router.push(pedidoDoStudioSimples({ motor, texto: t, duracao, formato, lingua, palavraPorPalavra, campanha }))
+    router.push(pedidoDoStudioSimples({ motor, texto: t, duracao, formato, lingua, palavraPorPalavra, campanha, ...(look ? { look } : {}) }))
   }
 
   // KINEO-STUDIO-NA-MOLDURA-1011 — com a moldura (só /create/film, interruptor CREATE_FILM_INPLACE), troca SÓ o desenho; sem ela, nada muda.
@@ -211,7 +230,7 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
       if (!opcoes.includes(duracao)) setDuracao(opcoes.find((d) => d >= duracao) ?? opcoes[opcoes.length - 1])
       void trackEvent('create_engine_chosen', { engine: k, from: motor })
     }
-    return <>{moldura({ motor, texto, escrever, caixa, aviso, limiteMax: limite.max, duracao, opcoesDuracao, setDuracao, formato, formatos: FORMATOS, setFormato, lingua, setLingua, palavraPorPalavra, setPalavraPorPalavra, maisOpcoes, temFilmeGratis, gerar, contaPaga, motores, motoresEstado, abrirMotores, escolherMotor, kling4 })}</>
+    return <>{moldura({ motor, texto, escrever, caixa, aviso, limiteMax: limite.max, duracao, opcoesDuracao, setDuracao, formato, formatos: FORMATOS, setFormato, lingua, setLingua, palavraPorPalavra, setPalavraPorPalavra, maisOpcoes, temFilmeGratis, gerar, contaPaga, motores, motoresEstado, abrirMotores, escolherMotor, kling4, filmStylePicker })}</>
   }
 
   return (
@@ -236,6 +255,7 @@ export default function StudioSimples({ filmes, motor: motorDoLink, campanha, id
             if (process.env.NEXT_PUBLIC_KINEO_STUDIO_FILM_3D === 'true') requestFilmProjection(e.currentTarget)
           }}
         />
+        {filmStylePicker}
         {aviso ? <p className="ksx-msg" role="alert">{aviso}</p> : null}
         <div className="ksx-row">
           <button type="button" className="ksx-set" data-testid="studio-simple-settings" aria-haspopup="dialog" onClick={() => setFolha(true)}><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" strokeLinecap="round" aria-hidden="true"><path d="M2 4h7M13 4h1M2 12h1M7 12h7"></path><circle cx="11" cy="4" r="2"></circle><circle cx="5" cy="12" r="2"></circle></svg>Settings<span className="ksx-set-v">{duracao} s · {formato}</span></button>

@@ -28,6 +28,7 @@ export function PassosDoStudio({ c, preco }: { c: CaixaNaMoldura; preco: number 
       <textarea id="sm-idea" ref={c.caixa} className="ct-idea" data-testid="studio-moldura-idea" value={c.texto} placeholder="One idea is enough. A finished film comes out: voiced, scored and captioned." onChange={e => c.escrever(e.target.value)} />
       {c.aviso ? <p className="ct-alert" role="alert">{c.aviso}</p> : null}
       <span className="ct-count" aria-live="off">{c.texto.trim().length} / {c.limiteMax}</span>
+      {c.filmStylePicker}
       <p className="ct-step-text">Or choose an example, then make it yours.</p>
     </section>
     <section className={`rc-step rc-step-${states[1]}`} data-step-state={states[1]} aria-label="Details"><details className="rc-adjustments">
@@ -74,8 +75,8 @@ export function PassosDoStudio({ c, preco }: { c: CaixaNaMoldura; preco: number 
 }
 
 // KINEO-ENTRADAS-TELA-NOVA-1011 — ideiaInicial: a ideia do link (?ideia=), o MESMO prop que o /studio passa à caixa (só preenche; nada começa sozinho).
-export default function StudioNaMoldura({ showRecreate, showClip = false, motor, campanha, ideiaInicial = '', caixaNova = false }: { showRecreate: boolean; /** KINEO-CLIP-NA-MOLDURA-1011 */ showClip?: boolean; motor: string; campanha: string; ideiaInicial?: string; /** KINEO-CAIXA-NOVA-1511 — a caixa no padrão dos líderes (interruptor CAIXA_NOVA_RELEASE); sem ele, os 3 passos de hoje */ caixaNova?: boolean }) {
+export default function StudioNaMoldura({ showRecreate, showClip = false, motor, campanha, ideiaInicial = '', caixaNova = false, showFilmStyle = false }: { showRecreate: boolean; /** KINEO-CLIP-NA-MOLDURA-1011 */ showClip?: boolean; motor: string; campanha: string; ideiaInicial?: string; /** KINEO-CAIXA-NOVA-1511 — a caixa no padrão dos líderes (interruptor CAIXA_NOVA_RELEASE); sem ele, os 3 passos de hoje */ caixaNova?: boolean; showFilmStyle?: boolean }) {
   // KINEO-CAIXA-NOVA-1511 — o MESMO StudioSimples (estado, recusas, gerar(), pedido) e o MESMO precoDoGenerate; só a casca troca.
-  if (caixaNova) return <StudioSimples filmes={[]} motor={motor} campanha={campanha} ideiaInicial={ideiaInicial} moldura={c => <CaixaNovaDoFilme c={c} showRecreate={showRecreate} showClip={showClip} preco={precoDoGenerate({ motor: c.motor, duracao: c.duracao, contaPaga: c.contaPaga, palavraPorPalavra: c.palavraPorPalavra, texto: c.texto, opcoesDuracao: c.opcoesDuracao, kling4: c.kling4 })} />} />
-  return <StudioSimples filmes={[]} motor={motor} campanha={campanha} ideiaInicial={ideiaInicial} moldura={c => <CreateShell tab="film" showRecreate={showRecreate} showClip={showClip} aoEscolher={c.escrever} painel={<PassosDoStudio c={c} preco={precoDoGenerate({ motor: c.motor, duracao: c.duracao, contaPaga: c.contaPaga, palavraPorPalavra: c.palavraPorPalavra, texto: c.texto, opcoesDuracao: c.opcoesDuracao, kling4: c.kling4 })} />} />} />
+  if (caixaNova) return <StudioSimples showFilmStyle={showFilmStyle} filmes={[]} motor={motor} campanha={campanha} ideiaInicial={ideiaInicial} moldura={c => <CaixaNovaDoFilme c={c} showRecreate={showRecreate} showClip={showClip} preco={precoDoGenerate({ motor: c.motor, duracao: c.duracao, contaPaga: c.contaPaga, palavraPorPalavra: c.palavraPorPalavra, texto: c.texto, opcoesDuracao: c.opcoesDuracao, kling4: c.kling4 })} />} />
+  return <StudioSimples showFilmStyle={showFilmStyle} filmes={[]} motor={motor} campanha={campanha} ideiaInicial={ideiaInicial} moldura={c => <CreateShell tab="film" showRecreate={showRecreate} showClip={showClip} aoEscolher={c.escrever} painel={<PassosDoStudio c={c} preco={precoDoGenerate({ motor: c.motor, duracao: c.duracao, contaPaga: c.contaPaga, palavraPorPalavra: c.palavraPorPalavra, texto: c.texto, opcoesDuracao: c.opcoesDuracao, kling4: c.kling4 })} />} />} />
 }

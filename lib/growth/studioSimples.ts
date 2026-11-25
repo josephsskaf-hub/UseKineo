@@ -1,6 +1,8 @@
 // KINEO-CAIXA-UNICA-0411 [fundador 04/11: "1a"] — as regras puras da caixa única: quem a vê, qual motor e o pedido que ela monta.
 import { linguaDoRoteiro } from '@/lib/linguaDoRoteiro' // KINEO-ROTEIRO-NA-LINGUA-0411
 
+import type { FilmLook } from '@/lib/cinematic/filmLook2511'
+
 export interface FilmeDaCaixa { id: string; title: string; engine: string; poster: string; /** KINEO-HOME-TOPO-0511 — o texto que o cartão põe na caixa; sem ele, o título. */ ideia?: string }
 
 /** Parâmetros de quem só chegou. Qualquer outro (texto do ChatGPT, retomada, episódio, volta do pagamento) segue para o Studio completo, que sabe tratá-lo. */
@@ -27,10 +29,11 @@ export function campanhaDaCaixa(intent: string | string[] | undefined): string {
 }
 
 /** O MESMO pedido do Generate do Studio completo (motor, texto, duração, modo, autoanalyze e studio; formato e língua só fora do padrão). */
-export function pedidoDoStudioSimples(p: { motor: string; texto: string; duracao: number; formato: string; lingua: string; palavraPorPalavra: boolean; campanha: string }): string {
+export function pedidoDoStudioSimples(p: { motor: string; texto: string; duracao: number; formato: string; lingua: string; palavraPorPalavra: boolean; campanha: string; look?: FilmLook }): string {
   const q = new URLSearchParams({ engine: p.motor, prompt: p.texto, duration: String(p.duracao), script_mode: p.palavraPorPalavra ? 'verbatim' : 'ai', autoanalyze: '1', studio: '1', intent_campaign: p.campanha })
   if (p.formato !== '9:16') q.set('aspect', p.formato)
   const lingua = p.lingua === 'auto' ? linguaDoRoteiro({ hint: 'en', texto: p.texto, motor: p.motor }).language : p.lingua // KINEO-ROTEIRO-NA-LINGUA-0411 — sem escolha, a língua do texto
   if (lingua !== 'en') q.set('language', lingua)
+  if (p.look) q.set('look', p.look)
   return `/studio/create?${q.toString()}`
 }

@@ -13,6 +13,8 @@
 // Gerar (/studio/create) e o guardião (scripts/test-previa-cenas-2026-10-03.mjs) leem as MESMAS regras.
 
 /** Interruptor em código (env da Vercel nos dá 403). Nasce ligado por ordem do fundador (03/10). */
+import type { FilmLook } from '@/lib/cinematic/filmLook2511'
+
 export const PREVIA_CENAS_PUBLIC = true
 
 // ── travas (todas conferidas no servidor ANTES de qualquer fornecedor) ──────────────────────────────────────────────
@@ -94,11 +96,12 @@ export function shouldRouteGenerateToPreview(args: {
 }
 
 /** Destino do desvio: a tela da prévia com a ideia (e o que a pessoa escolheu) — nunca gera nada sozinha. */
-export function previaPath(params: { prompt: string; engine?: string | null; duration?: string | null; language?: string | null }): string {
+export function previaPath(params: { prompt: string; engine?: string | null; duration?: string | null; language?: string | null; look?: FilmLook }): string {
   const q = new URLSearchParams({ prompt: params.prompt.slice(0, PREVIA_IDEA_MAX), from: 'generate' })
   if (params.engine && /^[a-z0-9_]{1,24}$/.test(params.engine)) q.set('engine', params.engine)
   if (params.duration && /^\d{1,3}$/.test(params.duration)) q.set('duration', params.duration)
   if (params.language && /^[a-z]{2}$/.test(params.language)) q.set('language', params.language)
+  if (params.look) q.set('look', params.look)
   return `/studio/previa?${q.toString()}`
 }
 
@@ -298,7 +301,7 @@ export const PREVIA_COPY: { en: PreviaCopy; pt: PreviaCopy; es: PreviaCopy } = {
 /** Chave do navegador que guarda ideia + roteiro para a volta depois de pagar (14 dias). */
 export const PREVIA_RESUME_STORAGE_KEY = 'kineo:previa:v1'
 export const PREVIA_RESUME_MAX_AGE_MS = 14 * PREVIA_DAY_MS
-export interface PreviaResume { t: number; idea: string; script: string; language: string }
+export interface PreviaResume { t: number; idea: string; script: string; language: string; look?: FilmLook }
 /** Link do Studio com o roteiro da prévia, verbatim, no motor da prévia — a pessoa só aperta Gerar. */
 export function previaResumeStudioHref(r: PreviaResume): string {
   const q = new URLSearchParams({
@@ -309,6 +312,7 @@ export function previaResumeStudioHref(r: PreviaResume): string {
     intent_campaign: 'scene_preview',
   })
   if (/^[a-z]{2}$/.test(r.language) && r.language !== 'en') q.set('language', r.language)
+  if (r.look === 'photoreal' || r.look === 'animated3d' || r.look === 'anime') q.set('look', r.look)
   return `/studio?${q.toString()}`
 }
 export function previaResumeValid(r: unknown, now: number): r is PreviaResume {

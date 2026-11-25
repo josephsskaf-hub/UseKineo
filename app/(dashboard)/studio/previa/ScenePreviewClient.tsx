@@ -5,6 +5,7 @@
 // guarda ideia + roteiro no navegador (lib/scenePreview PREVIA_RESUME_STORAGE_KEY) e leva aos planos. Depois de pagar, o
 // aviso ScenePreviewResumeBanner (layout) devolve a pessoa ao Studio com o roteiro, a 1 clique de Gerar.
 import { useCallback, useEffect, useState } from 'react'
+import type { FilmLook } from '@/lib/cinematic/filmLook2511'
 import { useInterfaceLanguage } from '@/components/InterfaceLanguage'
 import { pickInterfaceCopy } from '@/lib/ui/interfaceLanguage'
 import { PREVIA_COPY, PREVIA_IDEA_MAX, PREVIA_IDEA_MIN, PREVIA_RESUME_STORAGE_KEY, type PreviaResume } from '@/lib/scenePreview'
@@ -27,7 +28,7 @@ import { voltaParaCaixa } from '@/lib/growth/ideiaDaPagina' // KINEO-PREVIA-LIMI
 import PreviewPricingStrip from '@/components/PreviewPricingStrip' // KINEO-REGIAO-PAGA-1011 (3)
 import { REGIAO_PAGA_1011_RELEASE } from '@/lib/growth/regiaoPaga1011' // KINEO-REGIAO-PAGA-1011 (3)
 
-export default function ScenePreviewClient({ initialIdea, from, aPedido = false }: { initialIdea: string; from: string; aPedido?: boolean }) {
+export default function ScenePreviewClient({ initialIdea, from, aPedido = false, filmLook }: { initialIdea: string; from: string; aPedido?: boolean; filmLook?: FilmLook }) {
   const language = useInterfaceLanguage()
   const copy = pickInterfaceCopy(PREVIA_COPY, language)
   const scriptLanguage = language === 'pt' || language === 'es' ? language : 'en'
@@ -71,7 +72,7 @@ export default function ScenePreviewClient({ initialIdea, from, aPedido = false 
   function toFilm(placement: string) {
     if (preview) {
       try {
-        const saved: PreviaResume = { t: Date.now(), idea: preview.idea || idea, script: preview.script, language: preview.language }
+        const saved: PreviaResume = { t: Date.now(), idea: preview.idea || idea, script: preview.script, language: preview.language, ...(filmLook ? { look: filmLook } : {}) }
         localStorage.setItem(PREVIA_RESUME_STORAGE_KEY, JSON.stringify(saved))
       } catch { /* sem armazenamento: o roteiro continua no servidor (GET /api/scene-preview) */ }
     }
@@ -89,8 +90,8 @@ export default function ScenePreviewClient({ initialIdea, from, aPedido = false 
       if (!res.ok) throw new Error(String(res.status))
       window.dispatchEvent(new Event('creditsChanged'))
       // KINEO-PREVIA-LIMITE-FILME-0611 — sem prévia na tela, a pessoa volta à caixa com a ideia escrita; o filme só começa no Generate dela.
-      if (!preview) { window.location.assign(voltaParaCaixa(idea) ?? '/studio'); return }
-      window.location.assign(previaResumeStudioHref({ t: Date.now(), idea: preview.idea || idea, script: preview.script, language: preview.language }))
+      if (!preview) { window.location.assign(voltaParaCaixa(idea, filmLook) ?? '/studio'); return }
+      window.location.assign(previaResumeStudioHref({ t: Date.now(), idea: preview.idea || idea, script: preview.script, language: preview.language, look: filmLook }))
     } catch {
       setPedido('falhou')
     }
