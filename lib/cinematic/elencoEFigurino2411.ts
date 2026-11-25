@@ -424,7 +424,7 @@ function identidadeDeObra(nome: string, textos: ReadonlyArray<{ texto: string }>
 }
 
 /** Resolve fictional names once per film. Only visual text is passed to the returned function. */
-export function prepararPapeisVisuais2411(pedidoOriginal: unknown, roteiro: string): ((plano: string) => string) | null {
+export function prepararPapeisVisuais2411(pedidoOriginal: unknown, roteiro: string): ((plano: string, teto?: number) => string) | null {
   const pedido = textoDoPedidoOriginal(pedidoOriginal)
   const textos = [{ texto: pedido, fonte: 'pedido' as const }, { texto: semTags(roteiro), fonte: 'roteiro' as const }]
   const nomes = new Set([...nomesDaNarracao2411(pedido), ...nomesDaNarracao2411(roteiro)])
@@ -433,8 +433,16 @@ export function prepararPapeisVisuais2411(pedidoOriginal: unknown, roteiro: stri
   if (!obras.length) return null
   const papeis = new Map<string, string>()
   const curtos = new Map<string, string>()
+  // A second named appositive starts a new description, even when the author joins them with “and”.
+  const coordenado = new RegExp(',\\s+and\\s+(?=(?:' + obras.map(escapaRe).join('|') + '),\\s+(?:a|an|the)\\s)', 'giu')
   for (const nome of obras) {
-    const d = descricaoDoNome2411(textos, nome, null, obras)
+    const compostos = obras.filter(outra => outra !== nome && temNome(outra, nome))
+    const maisLongo = compostos.length ? new RegExp('(?<![\\p{L}\\p{N}-])(?:' + compostos.map(escapaRe).join('|') + ')(?![\\p{L}\\p{N}-])', 'giu') : null
+    const fontes = textos.map(t => {
+      const separado = t.texto.replace(coordenado, '. ')
+      return { ...t, texto: maisLongo ? separado.replace(maisLongo, '—') : separado }
+    })
+    const d = descricaoDoNome2411(fontes, nome, null, obras)
     const descricao = d?.trecho.split(/\s+(?:with|wearing|in|dressed)\s/iu)[0].trim()
     const papel = descricao && !obras.some(o => temNome(descricao, o)) ? 'the ' + descricao : 'figure ' + (papeis.size + 1)
     const ordem = papeis.size
@@ -448,9 +456,9 @@ export function prepararPapeisVisuais2411(pedidoOriginal: unknown, roteiro: stri
     if (chave === 'sonic' && /^\s+(?:booms?|waves?|barriers?|pulses?|frequenc(?:y|ies))\b/iu.test(plano.slice(inicio + nome.length))) return nome
     return termos.get(chave)!
   })
-  return plano => {
+  return (plano, teto = 512) => {
     const visual = substituir(plano, papeis)
-    if (visual === plano || Array.from(visual).length <= 512) return visual
+    if (visual === plano || Array.from(visual).length <= teto) return visual
     // Keep the action and the @Image instructions already fitted by the builder.
     return substituir(plano, curtos)
   }

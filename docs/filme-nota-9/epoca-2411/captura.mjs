@@ -67,10 +67,10 @@ export async function capture(world,borders,film,apply,mode,account) {
   const folha=load('@/lib/cinematic/folhaDePersonagem')
   const adjusted=load('@/lib/cinematic/personagemAjuste')
   const styleAnchor={look:'photoreal',lookPhrase:'photorealistic cinematic'}
-  const sheet=borders.sheet.run({...scope,promptDaFolha:folha.promptDaFolha,f:cast,styleAnchor,folhaSemNome2511:false})
+  const sheet=borders.sheet.run({visualParaImagemOuReserva:p=>p,...scope,promptDaFolha:folha.promptDaFolha,f:cast,styleAnchor,folhaSemNome2511:false})
   const textStills=[],editedStills=[]
   for(let i=0;i<groups.length;i++) {
-    const common={...scope,idx:i,scenePrompt:scenes[i],classicScenePrompts:scenes,c:{indice:i},aspectRequested:'9:16',fichasDaCena:()=>[cast],promptDoStillComFolhaAjuste:adjusted.promptDoStillComFolhaAjuste}
+    const common={visualParaImagemOuReserva:p=>p,...scope,idx:i,scenePrompt:scenes[i],classicScenePrompts:scenes,c:{indice:i},aspectRequested:'9:16',fichasDaCena:()=>[cast],promptDoStillComFolhaAjuste:adjusted.promptDoStillComFolhaAjuste}
     textStills.push(borders.textStill.run(common))
     editedStills.push(borders.editedStill.run(common))
   }
