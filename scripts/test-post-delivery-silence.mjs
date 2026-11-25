@@ -118,7 +118,7 @@ check('GenerateClient emits the silence', client.includes("void trackEvent('post
 check('the emission is keyed per video, not per render',
   client.includes('postDeliverySilenceKeyRef.current === key'))
 check('the emission carries the reason', client.includes('reason: postDeliveryAudit.reason,'))
-check('the audit is fed the real ask flag', client.includes('askShown: showTrialPostVideoOffer,'))
+check('the audit is fed the real ask flag', client.includes('askShown: useUnifiedDeliveryOffer || showTrialPostVideoOffer,'))
 check('the audit is fed the real slot owner', client.includes('planFitOwnsSlot: planFitOwnsRecurringSlot,'))
 
 console.log('')

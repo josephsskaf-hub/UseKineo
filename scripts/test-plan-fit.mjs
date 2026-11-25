@@ -604,7 +604,7 @@ check('Plan Fit follows the delivered download', deliveredFirstMarkerIndex >= 0 
 check('Plan Fit precedes the referral reward', referralRewardRenderIndex >= 0 && planFitRenderIndex < referralRewardRenderIndex)
 check('Plan Fit precedes NextShorts retention', nextShortsRenderIndex >= 0 && planFitRenderIndex < nextShortsRenderIndex)
 check('Plan Fit precedes the generic recurring upsell', generate.indexOf('<PlanFitCard') < generate.indexOf('<UpsellSection'))
-check('non-bridge trial recurring render is replaced by Plan Fit', generate.includes('const showTrialPostVideoOffer = trialPostVideoPhase !== null && !planFitOwnsRecurringSlot'))
+check('non-bridge trial recurring render is replaced by Plan Fit', generate.includes('const showTrialPostVideoOffer = !useUnifiedDeliveryOffer && trialPostVideoPhase !== null && !planFitOwnsRecurringSlot'))
 check('trial recurring impression is replaced too', generate.includes('const eligible = trialOfferPhaseForImpression !== null && !planFitOwnsRecurringSlot'))
 check('generic recurring upsell is replaced by Plan Fit', generate.includes("!planFitOwnsRecurringSlot && planTier === 'free' && (hasPaid || !lastFastRenderRef.current)"))
 check('Plan Fit prevents a false no-offer event', generate.includes('if (planFitOwnsRecurringSlot) return'))

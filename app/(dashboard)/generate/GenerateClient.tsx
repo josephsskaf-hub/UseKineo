@@ -356,6 +356,7 @@ import {
 import useReadyBeacon from '@/components/video/useReadyBeacon'
 import { PremiereStage, type PremiereItem } from '@/components/premiere/Premiere' // KINEO-ESTREIA-3110
 import FirstFilmWaitOffer, { firstFilmWaitOfferVisible } from '@/components/premiere/FirstFilmWaitOffer'
+import FilmDeliveryPlanOffer, { decideFilmDeliveryOffer } from '@/components/premiere/FilmDeliveryPlanOffer'
 import PublishEarnCta from '@/components/PublishEarnCta' // KINEO-PUBLICAR-GANHAR-3110 — "Publish your film — get 10 credits each time someone makes their own version"
 import useWaitAbandon from '@/components/video/useWaitAbandon'
 // KINEO-COMPLETAR-ROTEIRO-2026-08-22 — a mesma constante que o servidor usa
@@ -5944,12 +5945,21 @@ export default function GenerateClient({
       : planTier === 'free' && !hasPaid && quality === 'fast' &&
         !falUsedRef.current && Boolean(lastFastRenderRef.current)
   // KINEO-UPSELL-FILME15-2610 — one personalized primary offer replaces generic clean-export checkouts for this cohort.
-  const fullVersionOfferEligible = Boolean(publicVideoId) && film60UpsellEligible({
+  const legacyFullVersionOfferEligible = Boolean(publicVideoId) && film60UpsellEligible({
     plan: commercialPlan, hasPaid, quality: falUsedRef.current ? falQualityRef.current : null,
     seconds: finalVideoSeconds ?? duration, delivered: phase === 'done' && Boolean(finalVideoUrl),
   })
+  const deliveryOfferSlot = decideFilmDeliveryOffer({
+    delivered: phase === 'done' && Boolean(finalVideoUrl),
+    confirmedFree: activationAccountStatus === 'free' && notPaidProven,
+    activePlan: hasPaid || isStarter || isCreator || isStudio || (planTier !== null && planTier !== 'free'),
+    finishedSeconds: finalVideoSeconds,
+    fullVersionEligible: legacyFullVersionOfferEligible,
+  })
+  const useUnifiedDeliveryOffer = deliveryOfferSlot !== 'legacy'
+  const fullVersionOfferEligible = useUnifiedDeliveryOffer ? deliveryOfferSlot === 'full_version' : legacyFullVersionOfferEligible
   const showPostVideoExportChoice =
-    phase === 'done' && Boolean(finalVideoUrl) && currentResultHasWatermark &&
+    !useUnifiedDeliveryOffer && phase === 'done' && Boolean(finalVideoUrl) && currentResultHasWatermark &&
     !trialActive && !wmUnlocking && trialPostVideoPhase === null && !fullVersionOfferEligible
   // KINEO-VENDER-NO-DOWNLOAD-2026-09-18 (jogada 7, fundador: "pode ir") — ver
   // lib/growth/cleanDownloadTwin.ts. Diferente da caixa acima, NÃO exclui o
@@ -13296,7 +13306,7 @@ export default function GenerateClient({
   // pessoa só volta por navegação nova, e aí o modal monta e faz o pedido.
   // Incluir 'downgraded' aqui poria duas superfícies pedindo cartão na mesma
   // tela, que é o defeito que esta mudança está consertando, invertido.
-  const showTrialPostVideoOffer = trialPostVideoPhase !== null && !planFitOwnsRecurringSlot
+  const showTrialPostVideoOffer = !useUnifiedDeliveryOffer && trialPostVideoPhase !== null && !planFitOwnsRecurringSlot
   // KINEO-SLOT-PEDE-DINHEIRO-2026-09-07 — QUEM OCUPA O SLOT. Ver o bloco longo
   // de lib/growth/postDeliverySlot.ts: a pergunta comercial era a ULTIMA de
   // tres, e as duas gratis na frente dela nasceram entre 27/08 e 06/09. Desde
@@ -13343,7 +13353,7 @@ export default function GenerateClient({
   // decide nada e nao muda a tela: so descreve o que ela fez.
   const postDeliveryAudit = auditPostDeliveryOffer({
     delivered: phase === 'done' && Boolean(finalVideoUrl),
-    askShown: showTrialPostVideoOffer,
+    askShown: useUnifiedDeliveryOffer || showTrialPostVideoOffer,
     planFitShown: planFitOfferEligible,
     bridgeShown: trialBalanceBridge.eligible,
     repeatShown: trialRepeatDecision.action === 'episode',
@@ -13362,7 +13372,7 @@ export default function GenerateClient({
   // a garantia e um botão que abre a Stripe direto. Quem decide é a função
   // pura (lib/growth/thirdFilmDoor.ts); aqui só se lê a decisão.
   const thirdFilmDoor = decideThirdFilmDoor({
-    delivered: phase === 'done' && Boolean(finalVideoUrl),
+    delivered: !useUnifiedDeliveryOffer && phase === 'done' && Boolean(finalVideoUrl),
     completedCount: completedVideoCount,
     historyReliable: videoHistoryReliable,
     notPaidProven,
@@ -13672,7 +13682,7 @@ export default function GenerateClient({
     oneTimeCredits: PACK_CREDITS.starter,
   })
   const renderDownloadUpsell = (anchor: 'top' | 'main') =>
-    downloadUpsell.visible && downloadUpsellClick?.anchor === anchor ? (
+    !useUnifiedDeliveryOffer && downloadUpsell.visible && downloadUpsellClick?.anchor === anchor ? (
       <DownloadUpsellCard
         copy={downloadUpsellCopyNow}
         surface={anchor === 'top' ? 'done_screen_top' : 'done_screen_main'}
@@ -13687,7 +13697,7 @@ export default function GenerateClient({
         extra={{ trial_phase: trialPostVideoPhase, full_version_offer: fullVersionOfferEligible, ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}) }}
       />
     ) : null
-  const cleanDownloadTwinButton = cleanDownloadTwin.visible && !fullVersionOfferEligible && !downloadUpsell.visible ? (
+  const cleanDownloadTwinButton = !useUnifiedDeliveryOffer && cleanDownloadTwin.visible && !fullVersionOfferEligible && !downloadUpsell.visible ? (
     <button
       ref={cleanDownloadTwinRef}
       type="button"
@@ -17949,9 +17959,13 @@ export default function GenerateClient({
                 {/* KINEO-DOWNLOAD-OFERTA-2810 — a oferta nasce ao lado do botão apertado; filme limpo pago ganha o HD. */}
                 {renderDownloadUpsell('top')}
                 <FilmReadyExits videoId={publicVideoId} plan={commercialPlan} />
-                {(fullVersionOfferEligible || firstFilmContinuation) && (
+                {(fullVersionOfferEligible || deliveryOfferSlot === 'next_film' || firstFilmContinuation) && (
                   <div className="done-ready-offer">
-                    {fullVersionOfferEligible ? <FilmReadyFullVersionUpsell videoId={publicVideoId} /> : firstFilmContinuation}
+                    {fullVersionOfferEligible
+                      ? <FilmReadyFullVersionUpsell videoId={publicVideoId} />
+                      : deliveryOfferSlot === 'next_film'
+                        ? <FilmDeliveryPlanOffer key={publicVideoId || finalVideoUrl} currency={postVideoCurrency} region={postVideoRegion} canContinue={Boolean(episode2Seed)} />
+                        : firstFilmContinuation}
                   </div>
                 )}
                 {showMakeItHd && publicVideoId && <MakeItHdButton videoId={publicVideoId} surface="done_screen_top" />}
@@ -18675,7 +18689,7 @@ export default function GenerateClient({
                 )}
                 {!showPostVideoExportChoice && currentResultHasWatermark && (
                   <p className="text-center" style={{ color: 'var(--muted2)', fontSize: '0.7rem', lineHeight: 1.45, marginTop: -4 }}>
-                    {trialPostVideoPhase !== null
+                    {trialPostVideoPhase !== null && !useUnifiedDeliveryOffer
                       ? 'Trial copy — includes a small Kineo watermark. The clean version is available below.'
                       : 'Free copy — carries a small Kineo watermark. Yours to post anywhere.'}
                   </p>
@@ -18799,7 +18813,7 @@ export default function GenerateClient({
                   a oferta substituía o card do trial e, ao mesmo tempo, ficava
                   abaixo de todas as ações secundárias. A entrega continua em
                   primeiro lugar; a decisão comercial vem logo depois dela. */}
-              {planFitOfferEligible && publicVideoId && planFitFirstDelivery &&
+              {!useUnifiedDeliveryOffer && planFitOfferEligible && publicVideoId && planFitFirstDelivery &&
                 planFitQuality && planFitSellableCohort && (
                   <PlanFitCard
                     key={publicVideoId}
@@ -18845,7 +18859,7 @@ export default function GenerateClient({
                   mediu 107 pessoas que foram embora SEM O ARQUIVO).
                   Não há card novo para quem tem saldo: fora do estado `dry` o
                   componente não pinta nada. */}
-              {phase === 'done' && <NextActionCard surface="generate_done_screen" />}
+              {!useUnifiedDeliveryOffer && phase === 'done' && <NextActionCard surface="generate_done_screen" />}
 
               {/* KINEO-PRIMEIRA-COMPRA-POR-REGIAO-2026-09-07 (#4) — A SEGUNDA
                   SUPERFÍCIE, e ela existe porque a primeira alcança metade.
@@ -18867,13 +18881,13 @@ export default function GenerateClient({
                   nasceu 'region_paid_only'. O servidor confere a régua e o preço; para essa conta o cartão toma o lugar do
                   pack regional de sempre (mesmo SKU) e, para quem não é da régua, o pack de sempre volta como `fallback` —
                   nunca dois passes, nunca nenhum. Fora do interruptor REGION_PASS_OFFER_LIVE, esta tela é a de hoje. */}
-              {REGION_PASS_OFFER_LIVE && phase === 'done' && notPaidProven && trialActive !== true ? (
+              {!useUnifiedDeliveryOffer && (REGION_PASS_OFFER_LIVE && phase === 'done' && notPaidProven && trialActive !== true ? (
                 <RegionPassOffer surface="after_film" fallback={<RegionalFirstPack surface="post_video" />} />
               ) : (
               <>
               {phase === 'done' && <RegionalFirstPack surface="post_video" />}
               </>
-              )}
+              ))}
 
               {/* KINEO-CREDITO-POR-POSTAR-2026-08-21 — só para o free tier, que
                   é quem carrega a marca d'água. Oferecer isto a um assinante
@@ -18947,7 +18961,7 @@ export default function GenerateClient({
                   download e do paywall de propósito: primeiro a pessoa resolve
                   o vídeo que ela veio fazer, aí a gente oferece o seguinte. */}
               {(!showTrialPostVideoOffer || showTrialRepeatEpisode) && (nextEpisode || nextEpisodeLoading) && (
-                <MrrEpisodeValue eligible={planFitFirstDelivery && commercialPlan === 'free' && Boolean(nextEpisode) && !thirdFilmDoor.visible} quality={planFitNormalizedQuality} seconds={duration}>
+                <MrrEpisodeValue eligible={!useUnifiedDeliveryOffer && planFitFirstDelivery && commercialPlan === 'free' && Boolean(nextEpisode) && !thirdFilmDoor.visible} quality={planFitNormalizedQuality} seconds={duration}>
                 <div
                   ref={showTrialRepeatEpisode ? trialPostVideoOfferRef : undefined}
                   data-trial-repeat={showTrialRepeatEpisode ? trialRepeatDecision.version : undefined}
@@ -19078,7 +19092,7 @@ export default function GenerateClient({
                             Uses {trialRepeatDecision.cost} of your {trialRepeatDecision.creditsBefore} remaining credits.
                             Nothing is spent until you review it and press Generate.
                           </p>
-                          <button
+                          {!useUnifiedDeliveryOffer && <button
                             type="button"
                             onClick={() => {
                               void trackEvent('trial_repeat_subscription_clicked', {
@@ -19103,7 +19117,7 @@ export default function GenerateClient({
                             {STARTER_PLAN_FACTS
                               ? <>Prefer clean exports now? Plans start at {STARTER_PLAN_FACTS.priceLabel}/month for {STARTER_PLAN_FACTS.credits} credits. See plans →</>
                               : 'Prefer clean exports now? See paid plans →'}
-                          </button>
+                          </button>}
                         </>
                       )}
                     </>
@@ -19164,7 +19178,7 @@ export default function GenerateClient({
                         preço. Secundário de propósito: o botão de cima segue
                         sendo a ponte. Só rende se o preço vier da fonte única,
                         então some quando PLAN_LIST não tiver Starter. */}
-                    {STARTER_PLAN_FACTS && (
+                    {!useUnifiedDeliveryOffer && STARTER_PLAN_FACTS && (
                       <button
                         type="button"
                         onClick={() => {
@@ -20549,7 +20563,7 @@ export default function GenerateClient({
             // pitches Pro by name and shows a credit-urgency line when
             // they're at ≤1. Paid users keep the lighter
             // NextActionSection (their main action is "make another one").
-            !planFitOwnsRecurringSlot && planTier === 'free' && (hasPaid || !lastFastRenderRef.current) ? (
+            !useUnifiedDeliveryOffer && !planFitOwnsRecurringSlot && planTier === 'free' && (hasPaid || !lastFastRenderRef.current) ? (
               // KINEO-SPRINT-OFFER-2026-07-14 — BUG FIX: the button said
               // "Upgrade to Creator — $24.90/mo" but passed tier 'pro'
               // (Studio $37.90) to the obsolete POST checkout path, dumping
@@ -20570,7 +20584,7 @@ export default function GenerateClient({
                 checkoutError={upsellSectionCheckout.error}
                 creditsLeft={credits ?? 0}
               />
-            ) : planTier !== 'free' ? (
+            ) : !useUnifiedDeliveryOffer && planTier !== 'free' ? (
               <NextActionSection onAnother={handleAnotherShort} onUpgrade={() => router.push(withIntentCampaign('/pricing'))} />
             ) : (
               // ═══ KINEO-SPRINT-V1V4-2026-08-31 (#3) — O RODAPÉ QUE NÃO EXISTIA ═══
