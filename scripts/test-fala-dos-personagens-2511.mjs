@@ -234,8 +234,8 @@ const mutantes = [
   [MOD, "    if (!falanteAdulto2511(f, falas.flat().map((l) => l.texto))) return 'falante_menor'", "    if (!falanteAdulto2511(f, [])) return 'falante_menor'"],
   [MOD, "  const quem = [...new Set(falas.flat().map((l) => l.ref))]", "  const quem = [0, 1].filter((r) => r < fichas.length)"],
   [ROUTE, "        else if (falantes2511) fm2511.motivo = falantes2511\n", ''],
-  ['lib/cinematic/reguaDaPessoaNaFala2511.ts', "  return adultoProvado2511(c) && !pareceMenorNaFala2511(c) && !falas.some((t) => textoDizMenor2511(t))", "  return !pareceMenorNaFala2511(c) && !falas.some((t) => textoDizMenor2511(t))"],
-  ['lib/cinematic/reguaDaPessoaNaFala2511.ts', "  return mentionsRealPerson(canonica) || [...nomes, canonica].some((t) => FICCAO_DE_MARCA_2511.test(t))", "  return mentionsRealPerson(canonica)"],
+  ['lib/cinematic/reguaDaPessoaNaFala2511.ts', "  return adultoProvado2511(c) && !pareceMenor2511(c) && !falas.some((t) => textoDizMenor2511(t))", "  return !pareceMenor2511(c) && !falas.some((t) => textoDizMenor2511(t))"], // a fala lê a régua única (referenciaUnica2411)
+  ['lib/cinematic/reguaDaPessoaNaFala2511.ts', "  return !!c && figuraNaReferencia2511(c, '')", "  return false"],
   [MOD, "  if (!falas.some((l) => l.length)) return { motivo: 'roteiro_sem_falas' }\n", ''],
   [MOD, "with synchronized spoken dialogue in English. ", ''],
   [MOD, "Only the lines written below are spoken, exactly as written, with the lips in sync; no narrator, no other speech, no singing.", ''],
