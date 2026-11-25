@@ -35,6 +35,47 @@
 - `cue` de 2 palavras ou mais, sem colchete nem dois-pontos;
 - o filme com **25 a 35 palavras** de fala; com 4 seções de até 8, o teto efetivo é 32. Com os nomes (uma fala por seção, no mínimo), o roteiro aceito sempre passa do piso de 29 palavras do `avaliarRoteiroEscrito`, que conta os nomes.
 
+## Volta 4 (25/11): famoso, criança e tempo
+Pedido da CEO depois da revisora 392f0a52 (`docs/revisoes-2311/CEO-ESCRITOR-DE-DIALOGO-2511.md`). Dois commits.
+- **Commit A, independente:** T3, os campos do evento e os textos velhos.
+- **Commit B, EMPILHADO sobre a `codex/famoso-sem-referencia-2511` @ `f9850c3b5`:** T1 e T2.
+  - As funções da régua (`figuraNaReferencia2511`, `textoDizMenor2511`) **não estavam** na base `22aa694f4` nem na main `bae90ade5`.
+  - Por isso o merge da `f9850c3b5`, e nenhuma lista copiada.
+  - **O B só sobe junto com a famoso, ou depois dela.**
+
+### T1 · Famoso, pessoa real, marca e obra não falam
+- **O que barra:** a MESMA régua da admissão do filme, `mentionsRealPerson` mais `figuraNaReferencia2511` (a tabela de figuras, a de marca e a de obra).
+- **Onde ela é aplicada:** no texto inteiro e em cada nome próprio que ele traz.
+  - Na ideia: antes da chamada, que nem sai.
+  - No roteiro que saiu: o nome que o escritor escolheu e o que a fala cita.
+- **Resultado:** bateu = o narrado de hoje, motivo `figura` no rastro.
+- **Os ataques da revisora:** "Elon Musk", "Musk", "elon musk" (minúscula), "Spider-Man", "spider-man", "Lara Croft" e "Napoleon" caem todos.
+  - "Lara" sozinha não cai: é nome comum, e a régua da casa também não a pega.
+
+### T2 · Criança e adolescente não falam
+- **A régua:** a de menor das duas pessoas (`textoDizMenor2511`: palavra ou idade abaixo de 18), na ideia e no roteiro que saiu. Bateu = narrado, motivo `menor`.
+- **Um passo mais dura que "sem sinal de adulto E com menor":** o sinal de adulto **não libera**, porque não diz QUEM fala.
+  - "A seven-year-old girl talks to her grandmother" tem os dois sinais. Com o "E", a menina falaria.
+  - Voltar ao "E" literal é uma linha (`menorNoDialogo2511`).
+- **O custo medido nos 10 casos do ensaio:** só o f3 cai ("call his daughter", a filha do paciente). Os outros 9, incluindo bicho, robô, dragão e cacto, seguem falando.
+
+### T3 · Tempo
+- **Antes:** o diálogo (35 s) mais a 1ª chamada do narrado (35 s fixos) passavam do `maxDuration` 60.
+- **Agora:** o diálogo leva só o que sobra de 60 − 3 de folga − 35 do narrado − o já gasto, **até 12 s**. Abaixo de 5 s, nem chama (motivo `sem_tempo`).
+  - O narrado de hoje guarda os 35 s dele INTEIROS.
+  - Nenhuma linha do narrado mudou: a rota continua só ganhando linhas.
+- **Por que 12 s:** a saída é um JSON de 150 a 250 tokens.
+  - As chamadas curtas do gpt-4o desta rota (`script_condense_retry`, 30 dias, 8 casos) deram 1,3 s na mediana, 3,7 s no p95 e 4,6 s no máximo.
+  - Rever com o p95 de `ms` dos primeiros `dialogue_script_written` (o rastro grava `ms` e `prazo_ms`).
+
+### Também
+- **O `script_written` do falado** grava `pessoa_inventada`, `family`, `voice` e `words_per_second`, como o narrado.
+- **O conferidor do ensaio conta `fala_longa`.** T4 é do 3bbf48a0.
+  - O teto do leitor é `floor(2,2 × segundos do plano)`.
+  - **A 3,75 s por plano:** 0 de 10 por construção (8 por seção).
+  - **A 3 s:** 10 de 10 por construção, porque 25 > 4 × 6 e todo roteiro aceito tem uma seção de 7 ou 8.
+  - O ensaio imprime a linha `FALA_LONGA`.
+
 ## O risco do caminho do servidor (conferido, executado)
 O roteiro de diálogo passa intacto pelo que o caminho da ideia solta faz depois do escritor (`lib/meta95/ideiaNoEscritor.ts`):
 - `roteiroSemMetaTexto` (l. 224) não remove nenhuma linha `Nome: fala`;
@@ -79,7 +120,7 @@ O único cuidado é o piso, que conta os nomes. Daí o mínimo aceito de 26 pala
   - o parser de hoje lê 4 seções;
   - os falantes no elenco, quando o dry-run do filme der o elenco.
   - "A história é a do pedido" é olho humano.
-- **Proposta para abrir a chave:** 9 de 10 falados dentro da régua, e nenhuma história trocada.
+- **Proposta para abrir a chave:** 9 de 9 falados dentro da régua (o f3 sai narrado pelo T2, de propósito), e nenhuma história trocada.
 - **Custo:** 10 chamadas ao gpt-4o de texto, cerca de US$ 0,01 a 0,02 no total.
 
 ## Limites

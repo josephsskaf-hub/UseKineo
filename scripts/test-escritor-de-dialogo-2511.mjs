@@ -3,6 +3,8 @@
 //   2. o pedido (sem exemplo, a ideia só como dado) e o esquema estrito;
 //   3. a régua no código (4 seções, 1–2 falantes de nome próprio e nunca narrador, 1–2 falas por seção, até 8 palavras somadas por seção, 25 a 35 no filme, quem fala foi declarado);
 //   3b. volta 4 (T3): o prazo curto do diálogo guarda os 35 s da 1ª chamada do narrado dentro do maxDuration 60; sem tempo = nem chama;
+//   3c. volta 4 (T1/T2): famoso, pessoa real, marca ou obra (a régua da admissão, f9850c3b5) e criança ou adolescente = o narrado de hoje, na ideia
+//       (nem chama) e no roteiro que saiu; bicho, robô, dragão e desenho sem idade seguem falando;
 //   4. o formato (cada seção "SEÇÃO: [Pexels: cue]" + linhas `Nome: fala`) e o que o parser de hoje faz com ele (4 seções, o nome fica na fala);
 //   5. o TRECHO REAL do /api/generate-script, executado: casa + 'characters' + filme curto + inglês + ideia = o roteiro falado e os dois rastros; qualquer
 //      outra combinação (cliente, 'narrator', ausente, outra língua, 35 s, texto com marcadores) não chama nada e cai no caminho de hoje; régua furada
@@ -134,7 +136,26 @@ async function suite(change) {
     for (let d = 0; d <= 40000; d += 250) { const p = E.prazoDoDialogo2511(d, 35000); assert.ok(p === null || d + p + 35000 <= 57000, 'diálogo + narrado cabem em 60 − 3: ' + d) }
     { const prazos = []; const x = await E.escreverDialogo2511({ ideia: 'x', segundos: 15, prazoMs: 7000, chamar: async (c, p) => { prazos.push(p); return JSON.stringify(BOM()) } }); igual([prazos, x.relato.prazo_ms, x.relato.ok], [[7000], 7000, true], 'o prazo chega à chamada') }
     { const prazos = []; await E.escreverDialogo2511({ ideia: 'x', segundos: 15, chamar: async (c, p) => { prazos.push(p); return JSON.stringify(BOM()) } }); igual(prazos, [12000], 'sem prazo dado = 12 s') }
-    { let n = 0; const x = await E.escreverDialogo2511({ ideia: 'x', segundos: 15, prazoMs: null, chamar: async () => { n++; return JSON.stringify(BOM()) } }); igual([n, x.script, x.relato.motivo, x.relato.prazo_ms], [0, null, 'sem_tempo', null], 'sem tempo = nem chama') } }
+    { let n = 0; const x = await E.escreverDialogo2511({ ideia: 'x', segundos: 15, prazoMs: null, chamar: async () => { n++; return JSON.stringify(BOM()) } }); igual([n, x.script, x.relato.motivo, x.relato.prazo_ms], [0, null, 'sem_tempo', null], 'sem tempo = nem chama') }
+    // volta 4 · T1 e T2: na IDEIA = nem chama (os ataques da revisora, em maiúscula e em minúscula); a régua é a da admissão, sem lista nova
+    const tenta = async (ideia, resposta = JSON.stringify(BOM())) => { let n = 0; const x = await E.escreverDialogo2511({ ideia, segundos: 15, chamar: async () => { n++; return resposta } }); return { n, script: x.script, motivo: x.relato.motivo } }
+    for (const ideia of ['Elon Musk and Taylor Swift argue about a rocket launch on a windy pad.', 'Musk argues with a reporter about rockets.', 'elon musk argues about rockets with a reporter', 'Spider-Man and Mickey Mouse meet on a rooftop at night.', 'spider-man swings over the city at night',
+      'Lara Croft finds a golden idol in a jungle temple.', 'Napoleon plans a battle with his general in a tent.'])
+      igual(await tenta(ideia), { n: 0, script: null, motivo: 'figura' }, 'T1 na ideia: ' + ideia)
+    for (const ideia of ['A seven-year-old girl talks to her grandmother about the moon.', 'Two kids build a treehouse.', 'A 15-year-old skater lands his first trick.', 'A teenager and his dad fix an old car.', 'A father and his daughter fix a bike.'])
+      igual(await tenta(ideia), { n: 0, script: null, motivo: 'menor' }, 'T2 na ideia (o sinal de adulto não libera): ' + ideia)
+    // no ROTEIRO que saiu: o nome que o escritor escolheu, a pessoa real citada na fala, a idade de menor na fala
+    const neutra = 'Two friends argue about a rocket launch on a windy pad.'
+    igual(await tenta(neutra, com((d) => { d.speakers = ['Napoleon', 'Mara']; for (const s of d.shots) { s.cue = s.cue.replace(/Elias/g, 'Napoleon'); for (const l of s.lines) { l.speaker = l.speaker.replace('Elias', 'Napoleon'); l.line = l.line.replace('Elias', 'Napoleon') } } })), { n: 1, script: null, motivo: 'figura' }, 'T1 no nome escolhido')
+    igual(await tenta(neutra, com((d) => { d.shots[0].lines[0].line = 'Taylor Swift sings here tonight.' })), { n: 1, script: null, motivo: 'figura' }, 'T1 na fala')
+    igual(await tenta(neutra, com((d) => { d.shots[0].lines[0].line = 'I am only seven years old.' })), { n: 1, script: null, motivo: 'menor' }, 'T2 na fala')
+    igual(await tenta(neutra, com((d) => { d.shots[0].cue = 'Elias the little boy climbing stairs' })), { n: 1, script: null, motivo: 'menor' }, 'T2 na marca')
+    // seguem falando: bicho, robô, dragão, desenho sem idade, nomes comuns (Taylor sozinho não é a cantora)
+    for (const ideia of [neutra, 'A grumpy old cat and a young puppy argue over a sunny spot.', 'Two robots fall in love in a junkyard.', 'A dragon teaches a knight to fly.', 'Taylor and Mara open a bakery in Paris.'])
+      igual(await tenta(ideia), { n: 1, script, motivo: null }, 'segue falando: ' + ideia)
+    // os 10 casos do ensaio: nenhum famoso; só o f3 ("his daughter", a filha do paciente) cai no narrado pela falha fechada
+    { const C = JSON.parse(readFileSync('scripts/fixtures/escritor-de-dialogo-2511-casos.json', 'utf8')).casos
+      igual([C.filter((c) => E.figuraNoDialogo2511(c.corpo.topic)).map((c) => c.id), C.filter((c) => E.menorNoDialogo2511(c.corpo.topic)).map((c) => c.id)], [[], ['f3']], 'os 10 casos do ensaio') } }
 
   // ── 6. o trecho REAL do /api/generate-script, executado ───────────────────────────────────────────────────────────────────────────────
   const ini = rota.indexOf("    if (lerVoiceMode(body.voice_mode) === 'characters' && filmeCurto"), fim = rota.indexOf('    if (!forceAuthoring && hasViralMarkers(topic)) {', ini)
@@ -167,6 +188,8 @@ async function suite(change) {
     igual(y.eventos[1]?.metadata?.pessoa_inventada, { genero: 'masculino', palavras: ['he'] }, 'pessoa_inventada medida de verdade no roteiro falado') }
   // volta 4 · T3 na rota: 15 s já gastos = o diálogo só leva ~7 s; 18 s gastos = nem chama (o narrado guarda os 35 s), com o rastro sem_tempo
   { const x = await rodar({ decorrido: 15000 }); assert.ok(x.chamadas.length === 1 && x.chamadas[0].opts?.timeout > 6500 && x.chamadas[0].opts?.timeout <= 7000 && x.chamadas[0].opts?.maxRetries === 0, 'o prazo encolhe com o já gasto: ' + JSON.stringify(x.chamadas[0]?.opts)) }
+  { const x = await rodar({ topic: 'Elon Musk and Taylor Swift argue about a rocket launch on a windy pad.' }); igual([x.r, x.chamadas.length, x.eventos.map((e) => e.name), x.eventos[0]?.metadata?.motivo], [null, 0, ['dialogue_script_written'], 'figura'], 'T1 na rota: nem chama, o narrado de hoje segue') }
+  { const x = await rodar({ topic: 'Two kids build a treehouse in the rain.' }); igual([x.r, x.chamadas.length, x.eventos[0]?.metadata?.motivo], [null, 0, 'menor'], 'T2 na rota: nem chama') }
   { const x = await rodar({ decorrido: 18000 }); igual([x.r, x.chamadas.length, x.eventos.map((e) => e.name), x.eventos[0]?.metadata?.motivo], [null, 0, ['dialogue_script_written'], 'sem_tempo'], 'sem tempo: nem chama, o narrado de hoje segue') }
   for (const [nome, opts] of [['cliente', { email: CLIENTE }], ['sem login de casa', { email: null }], ['narrator', { voice: 'narrator' }], ['voice_mode ausente', { voice: undefined }], ['Characters', { voice: 'Characters' }],
     ['português', { language: 'pt' }], ['35 s', { alvo: 35 }], ['texto com marcadores', { topic: 'HOOK: [Pexels: sea] The sea. MICRO REWARD 1: [Pexels: x] A. ESCALATION: [Pexels: y] B. RHYTHM: [Pexels: z] C. PAYOFF: [Pexels: ship] The ship.' }]]) {
@@ -239,6 +262,16 @@ const mutants = [
   [MOD, 'export const PRAZO_DO_DIALOGO_2511_MS = 12_000', 'export const PRAZO_DO_DIALOGO_2511_MS = 35_000'],
   [MOD, "  if (prazo === null) return { script: null, dialogo: null, relato: relato(false, 'sem_tempo', null) }\n", ''],
   [MOD, 'prazo >= MENOR_PRAZO_DO_DIALOGO_2511_MS ?', 'prazo > 0 ?'],
+  [MOD, '  if (figuraNoDialogo2511(args.ideia)) return', '  if (false) return'],
+  [MOD, '  if (menorNoDialogo2511(args.ideia)) return', '  if (false) return'],
+  [MOD, "  if (figuraNoDialogo2511(args.ideia, script)) return", '  if (false) return'],
+  [MOD, "  if (menorNoDialogo2511(args.ideia, script)) return", '  if (false) return'],
+  [MOD, '  if (mentionsRealPerson(texto) || figuraNaReferencia2511({}, texto)) return true', '  if (figuraNaReferencia2511({}, texto)) return true'],
+  [MOD, '  if (mentionsRealPerson(texto) || figuraNaReferencia2511({}, texto)) return true', '  if (mentionsRealPerson(texto)) return true'],
+  [MOD, '  return [...new Set(texto.match(NOMES_NO_TEXTO) ?? [])].some(', '  return [].some('],
+  [MOD, '  return textoDizMenor2511(ideia) || textoDizMenor2511(roteiro)', '  return textoDizMenor2511(roteiro)'],
+  [MOD, '  return textoDizMenor2511(ideia) || textoDizMenor2511(roteiro)', '  return textoDizMenor2511(ideia)'],
+  [MOD, "  const texto = [ideia, roteiro].filter(Boolean).join('\\n')", '  const texto = ideia'],
   [MOD, 'messages: pedidoDoDialogo2511(args.ideia, args.segundos).messages }, prazo)', 'messages: pedidoDoDialogo2511(args.ideia, args.segundos).messages }, PRAZO_DO_DIALOGO_2511_MS)'],
 ]
 let mortos = 0
@@ -247,4 +280,4 @@ for (const m of mutants) {
   await assert.rejects(suite(m), (err) => err instanceof assert.AssertionError, 'SOBREVIVEU: ' + m[1].slice(0, 120))
   mortos++
 }
-console.log(`PASS KINEO-ESCRITOR-DE-DIALOGO-2511: chave 'internal' (a casa exata); voice_mode só 'characters' exato; pedido sem exemplo, ideia só como dado, json_schema estrito; régua no código (4 seções, 1–2 falantes de nome próprio e nunca narrador, 1–2 falas por seção, ≤ 8 palavras somadas por seção, quem fala foi declarado, 25–35 palavras no filme, quem fala na marca, fala termina em pontuação); volta 4: o diálogo com prazo curto (até 12 s, guarda os 35 s do narrado no maxDuration 60; sem tempo = nem chama) e o script_written com pessoa_inventada, family, voice e words_per_second; formato SEÇÃO: [Pexels: cue] + linhas Nome: fala (o parser de hoje lê 4 seções e o nome fica na fala); o trecho real do /api/generate-script: casa + characters + filme curto + inglês + ideia = o roteiro falado e os dois rastros (sem a fala), cliente/narrator/ausente/outra língua/35 s/texto com marcadores = nenhuma chamada, régua furada ou falha = o narrado de hoje com rastro; a rota só ganha linhas; ${mortos}/${mutants.length} mutantes mortos.`)
+console.log(`PASS KINEO-ESCRITOR-DE-DIALOGO-2511: chave 'internal' (a casa exata); voice_mode só 'characters' exato; pedido sem exemplo, ideia só como dado, json_schema estrito; régua no código (4 seções, 1–2 falantes de nome próprio e nunca narrador, 1–2 falas por seção, ≤ 8 palavras somadas por seção, quem fala foi declarado, 25–35 palavras no filme, quem fala na marca, fala termina em pontuação); volta 4: o diálogo com prazo curto (até 12 s, guarda os 35 s do narrado no maxDuration 60; sem tempo = nem chama) e o script_written com pessoa_inventada, family, voice e words_per_second; famoso, pessoa real, marca e obra (a régua da admissão) e criança ou adolescente = o narrado de hoje, na ideia (nem chama) e no roteiro que saiu, bicho e desenho sem idade seguem falando; formato SEÇÃO: [Pexels: cue] + linhas Nome: fala (o parser de hoje lê 4 seções e o nome fica na fala); o trecho real do /api/generate-script: casa + characters + filme curto + inglês + ideia = o roteiro falado e os dois rastros (sem a fala), cliente/narrator/ausente/outra língua/35 s/texto com marcadores = nenhuma chamada, régua furada ou falha = o narrado de hoje com rastro; a rota só ganha linhas; ${mortos}/${mutants.length} mutantes mortos.`)

@@ -9,6 +9,8 @@
 import { contaDaCasaExata } from '@/lib/internalAccounts'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
 import { PRAZO_DA_ROTA_DO_ESCRITOR_MS, FOLGA_DA_ROTA_DO_ESCRITOR_MS } from '@/lib/cinematic/finalResposta' // volta 4 (T3): o maxDuration 60 da rota e a folga de 3 s
+import { figuraNaReferencia2511, textoDizMenor2511 } from '@/lib/cinematic/referenciaUnica2411' // volta 4 (T1/T2): a MESMA régua da admissão (KINEO-FAMOSO-SEM-REFERENCIA-2511, f9850c3b5)
+import { mentionsRealPerson } from '@/lib/hollywood/realPeople' // volta 4 (T1): a lista de pessoas reais da casa
 
 export const ESCRITOR_DE_DIALOGO_2511_VERSAO = 'escritor_de_dialogo_2511_v1'
 /** Os rastros: o do escritor de diálogo (só números) e o MESMO script_written de sempre (a ideia original, para o juiz de coerência), com voice_mode. */
@@ -123,6 +125,24 @@ export function secaoDoDialogo2511(s: Dialogo2511['secoes'][number]): string {
 }
 export const roteiroDoDialogo2511 = (d: Dialogo2511): string => d.secoes.map(secaoDoDialogo2511).join('\n\n')
 
+// ── volta 4 · T1 · FAMOSO, MARCA E OBRA NÃO FALAM (revisora 25/11): "Elon Musk", "Spider-Man", "Lara Croft" e "Napoleon" passavam com fala. Agora a
+// ideia (antes da chamada) e o roteiro que saiu (os nomes que o escritor escolheu, as marcas e as falas) passam pela MESMA régua da admissão do filme:
+// mentionsRealPerson (pessoas reais da casa) e figuraNaReferencia2511 (a tabela de figuras, a de marca e a de obra), no texto inteiro e em cada nome
+// próprio que ele traz. Nenhuma lista nova aqui. Bateu = o narrado de hoje, motivo 'figura'.
+const NOMES_NO_TEXTO = /\p{Lu}[\p{L}'’]*(?:[ -]\p{Lu}[\p{L}'’]*)*/gu
+export function figuraNoDialogo2511(ideia: string, roteiro = ''): boolean {
+  const texto = [ideia, roteiro].filter(Boolean).join('\n')
+  if (mentionsRealPerson(texto) || figuraNaReferencia2511({}, texto)) return true
+  return [...new Set(texto.match(NOMES_NO_TEXTO) ?? [])].some((nome) => figuraNaReferencia2511({ nome }, texto))
+}
+// ── volta 4 · T2 · CRIANÇA NÃO FALA: ideia com menor = o narrado de hoje, motivo 'menor'. A régua de menor das duas pessoas (textoDizMenor2511: palavra
+// ou idade abaixo de 18, nas línguas que ela conhece), na ideia e no roteiro que saiu. FALHA FECHADA e um passo mais dura que "sem sinal de adulto E
+// com menor": aqui o sinal de adulto NÃO libera, porque ele não diz QUEM fala. "A seven-year-old girl talks to her grandmother" tem os dois sinais
+// (a avó é o adulto) e a menina falaria. Bicho, robô, dragão e desenho sem idade não têm palavra de menor e seguem falando.
+export function menorNoDialogo2511(ideia: string, roteiro = ''): boolean {
+  return textoDizMenor2511(ideia) || textoDizMenor2511(roteiro)
+}
+
 // ── volta 4 · T3 · TEMPO (revisora 25/11): o diálogo (35 s) mais a 1ª chamada do narrado (35 s fixos) passavam do maxDuration 60. Agora o diálogo tem
 // prazo CURTO e o narrado de hoje guarda os 35 s dele INTEIROS: o diálogo só leva o que sobra de 60 − 3 (folga) − 35 (narrado) − o já gasto, até 12 s.
 // Por que 12 s: a saída é um JSON de ~150 a 250 tokens; as chamadas curtas do gpt-4o desta rota medidas no banco (script_condense_retry, 30 dias, 8)
@@ -137,7 +157,7 @@ export function prazoDoDialogo2511(decorridoMs: number, narradoMs: number): numb
 }
 
 /** O relato (rastro e resposta): só números e códigos, nunca a fala. */
-export type RelatoDoDialogo2511 = { versao: string; ok: boolean; motivo: MotivoDoDialogo | 'chamada' | 'sem_tempo' | null; falantes: number; falas: number; palavras: number; ms: number; prazo_ms: number | null }
+export type RelatoDoDialogo2511 = { versao: string; ok: boolean; motivo: MotivoDoDialogo | 'chamada' | 'sem_tempo' | 'figura' | 'menor' | null; falantes: number; falas: number; palavras: number; ms: number; prazo_ms: number | null }
 export type ChamarModelo = (corpo: { model: string; temperature: number; max_tokens: number; response_format: unknown; messages: unknown[] }, prazoMs: number) => Promise<string | null>
 /** UMA chamada ao escritor (o modelo do escritor de hoje), com o prazo curto (prazoMs: ausente = 12 s; null = sem tempo, nem chama). Nunca lança: falhou,
  *  demorou ou saiu da régua = { script: null } e o motivo (a rota segue narrada). */
@@ -146,6 +166,8 @@ export async function escreverDialogo2511(args: { ideia: string; segundos: numbe
   const prazo = args.prazoMs === undefined ? PRAZO_DO_DIALOGO_2511_MS : args.prazoMs
   const relato = (ok: boolean, motivo: RelatoDoDialogo2511['motivo'], d: Dialogo2511 | null): RelatoDoDialogo2511 => ({ versao: ESCRITOR_DE_DIALOGO_2511_VERSAO, ok, motivo,
     falantes: d?.falantes.length ?? 0, falas: d ? d.secoes.reduce((n, s) => n + s.falas.length, 0) : 0, palavras: d ? d.secoes.reduce((n, s) => n + s.falas.reduce((m, f) => m + palavras(f.fala), 0), 0) : 0, ms: Math.max(0, agora() - t0), prazo_ms: prazo })
+  if (figuraNoDialogo2511(args.ideia)) return { script: null, dialogo: null, relato: relato(false, 'figura', null) } // T1: nem chama
+  if (menorNoDialogo2511(args.ideia)) return { script: null, dialogo: null, relato: relato(false, 'menor', null) } // T2: nem chama
   if (prazo === null) return { script: null, dialogo: null, relato: relato(false, 'sem_tempo', null) }
   let raw: string | null = null
   try {
@@ -154,5 +176,8 @@ export async function escreverDialogo2511(args: { ideia: string; segundos: numbe
   if (typeof raw !== 'string') return { script: null, dialogo: null, relato: relato(false, 'chamada', null) }
   const c = conferirDialogo2511(raw)
   if ('motivo' in c) return { script: null, dialogo: null, relato: relato(false, c.motivo, null) }
-  return { script: roteiroDoDialogo2511(c.dialogo), dialogo: c.dialogo, relato: relato(true, null, c.dialogo) }
+  const script = roteiroDoDialogo2511(c.dialogo)
+  if (figuraNoDialogo2511(args.ideia, script)) return { script: null, dialogo: null, relato: relato(false, 'figura', null) } // T1: o nome que ele escolheu ou o que a fala cita
+  if (menorNoDialogo2511(args.ideia, script)) return { script: null, dialogo: null, relato: relato(false, 'menor', null) } // T2: o roteiro que saiu diz menor
+  return { script, dialogo: c.dialogo, relato: relato(true, null, c.dialogo) }
 }
