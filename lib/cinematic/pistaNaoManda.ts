@@ -22,3 +22,12 @@ export const REGRA_DA_PISTA =
   'When the line names a concrete subject, the shot shows that subject doing that action, with the term at most as its surroundings ("A plane vanished" + "foggy forest" = the plane disappearing above the forest, never the forest alone). ' +
   'When the line is vague or only a pronoun or a name, the term says what it refers to, so use it ("She sank fast" + "old ship sinking" = the ship; "I am Tod!" + "fox cub waving" = Tod is a fox cub; "Something terrible happened!" + "broken toy" = the broken toy). ' +
   'Leave the term out only where it contradicts the line.'
+
+// KINEO-PLANO-SEM-LUGAR-2511 (A) [CEO 25/11, diagnóstico da floresta: 4 filmes de avião sumido abriram numa trilha na floresta] — o roteirista põe
+// [Pexels: foggy forest path] no gancho de mistério e a fala do gancho é vaga ("A 70-year-old mystery… unsolved"): a regra acima manda usar a pista, e
+// o plano 1 vira só a floresta. QUEM DECIDE o que é "só entorno" é o modelo que lê o sentido (o mesmo descritor e o mesmo supervisor), pela definição
+// abaixo: a pista não nomeia nada (gente, bicho, objeto) de que o Topic trata. Nenhuma lista de palavras no código. Só com a chave (só a casa).
+// Cópia LITERAL em lib/cinematic/speechImageAlign.ts; o guardião confere.
+export const REGRA_DA_PISTA_CLIMA_2511 =
+  'KINEO-PISTA-DE-CLIMA-2511: when the term only describes surroundings (weather, light, mood or a place) and names no person, creature or object that the Topic is about, it is never the whole shot; ' +
+  'when the line is vague, the shot shows the central subject of the Topic inside those surroundings.'

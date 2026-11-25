@@ -66,7 +66,11 @@ export const SPEECH_IMAGE_ALIGN_ENABLED = !['0', 'false', 'no', 'off'].includes(
 )
 
 /** Mensagens do supervisor. Exportado para o guardião provar o que o modelo lê. */
-export function buildAlignMessages(input: { topic: string; scenes: AlignScene[] }) {
+// KINEO-PLANO-SEM-LUGAR-2511 (A) — cópia LITERAL de pistaNaoManda.REGRA_DA_PISTA_CLIMA_2511 (este módulo é puro, sem imports). Só com pistaDeClima (a chave, só a casa).
+const REGRA_DA_PISTA_CLIMA_2511 =
+  'KINEO-PISTA-DE-CLIMA-2511: when the term only describes surroundings (weather, light, mood or a place) and names no person, creature or object that the Topic is about, it is never the whole shot; ' +
+  'when the line is vague, the shot shows the central subject of the Topic inside those surroundings.'
+export function buildAlignMessages(input: { topic: string; scenes: AlignScene[]; pistaDeClima?: boolean }) {
   const system =
     'You are the continuity supervisor of a short narrated film made shot by shot by an AI video generator. ' +
     'For each scene you get the SPOKEN LINE (the narration the viewer hears during that shot) and the current SHOT description (the prompt the generator will render). ' +
@@ -84,6 +88,7 @@ export function buildAlignMessages(input: { topic: string; scenes: AlignScene[] 
     // KINEO-SEM-LETRAS-2026-09-21 — o supervisor reescrevia cenas pedindo mapa/artigo/jornal (Atlantis) → letras inventadas.
     NO_TEXT_OBJECT_DIRECTION + ' A shot whose subject is a text-bearing object counts as a REWRITE. ' +
     (/\[\s*pexels/i.test(input.topic) ? REGRA_DA_PISTA + ' ' : '') + // KINEO-PISTA-NAO-MANDA-0411 (bcd18c51: reprovou a floresta e a reescreveu floresta)
+    (input.pistaDeClima === true && /\[\s*pexels/i.test(input.topic) ? REGRA_DA_PISTA_CLIMA_2511 + ' ' : '') + // KINEO-PLANO-SEM-LUGAR-2511 (A)
     'When rewriting: one clear subject doing the action of the line, concrete and literal, in the era and place the line implies, max 55 words, English, no on-screen text, keep any existing "faceless / no real face / silhouette / from behind" constraint and keep it for named real people. Keep the film\'s established look if the current shot states one (e.g. "photorealistic", "3D animated"). ' +
     'Reply ONLY with JSON: {"scenes":[{"i":<scene number>,"action":"keep"|"rewrite","shot":"<new shot when rewrite, else empty>","why":"<max 12 words>","state":"<visible state of each recurring character/object at this line, e.g. big sock: blue; small sock: red — empty when the story has none>"}]} with exactly one entry per scene.'
   const lines = input.scenes
@@ -131,7 +136,7 @@ export function parseAlignReplyFull(raw: string, scenes: AlignScene[]): { rewrit
  * originais seguem). Nunca lança.
  */
 export async function alignShotsToSpeech(
-  input: { topic: string; scenes: AlignScene[] },
+  input: { topic: string; scenes: AlignScene[]; pistaDeClima?: boolean }, // KINEO-PLANO-SEM-LUGAR-2511 (A): pistaDeClima só com a chave (só a casa)
   // KINEO-KLING25-PLANOS-5S-2026-09-28 — `maxTokens`: o Kling 2.5 manda o dobro de cenas (até 12) e cada reescrita custa
   // ~150 tokens; com o teto fixo de 1.400 o JSON sairia cortado e o supervisor inteiro cairia (falha aberta). Ausente = 1.400.
   opts?: { timeoutMs?: number; fetchImpl?: typeof fetch; model?: string; maxTokens?: number },
@@ -156,7 +161,7 @@ export async function alignShotsToSpeech(
         temperature: 0.2,
         max_tokens: typeof opts?.maxTokens === 'number' && opts.maxTokens > 0 ? Math.round(opts.maxTokens) : 1400,
         response_format: { type: 'json_object' },
-        messages: buildAlignMessages({ topic: input.topic, scenes }),
+        messages: buildAlignMessages({ topic: input.topic, scenes, ...(input.pistaDeClima === true ? { pistaDeClima: true } : {}) }), // KINEO-PLANO-SEM-LUGAR-2511 (A)
       }),
     })
     if (!res.ok) return null

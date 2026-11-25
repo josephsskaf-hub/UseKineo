@@ -210,9 +210,32 @@ const pista = (x: SecaoDoRoteiro) => {
   return (p || Array.from(norm(x.voiceover)).slice(0, 140).join('')).replace(/[\s.!?…;,:]+$/u, '')
 }
 
+// ═══ KINEO-PLANO-SEM-LUGAR-2511 (B) [CEO 25/11, diagnóstico da floresta: 5b5afe5b/815dbef7] ═══
+// A metade de uma cena fundida pega o lugar SÓ da cláusula "Setting: …" da cena-mãe. Sem ela, a metade ia ao motor sem lugar nenhum ("Main subject of this
+// shot: robotic arms assembling, shown in motion.") e o plano sem imagem-chave saiu numa floresta. Volta do desenho (25/11): a frase de ação da cena-mãe NÃO
+// serve — no 815dbef7 ela não tinha lugar nenhum e trazia de volta a ação que as metades deixaram de fora. O lugar que vale é o do filme: os planos do Kling 4
+// saem num pedido só (multi_prompt), então a metade sem lugar diz que fica no MESMO lugar do plano vizinho (o anterior; na 1ª cena, o seguinte). Nenhuma
+// ação, nome ou texto do cliente entra. Só a metade do MOLDE da pista (seção sem a descrição do descritor por seção: o descritor já escreve 'who, doing what,
+// where'). Cena de uma seção só, metade com descrição, cena-mãe com "Setting:", filme de uma cena e chave desligada = byte a byte.
+export type ModoPlanoSemLugar2511 = 'off' | 'internal' | 'public'
+export const PLANO_SEM_LUGAR_2511: ModoPlanoSemLugar2511 = 'internal'
+export const PLANO_SEM_LUGAR_2511_VERSAO = 'plano_sem_lugar_2511_v2'
+export const planoSemLugarLigado = (modo: ModoPlanoSemLugar2511, contaDaCasa: boolean): boolean => modo === 'public' || (modo === 'internal' && contaDaCasa === true)
+// a cláusula é condicional: a pista da seção às vezes já traz o seu lugar ('luxury supercar on street' depois da cama), e esse lugar vence
+export const LUGAR_DO_ANTERIOR_2511 = 'Setting: where this shot names no place, the same place as the previous shot.'
+export const LUGAR_DO_SEGUINTE_2511 = 'Setting: where this shot names no place, the same place as the next shot.'
+/** A cena-mãe `i` (de `total`) com a cláusula do lugar do vizinho logo depois do meio. Já com "Setting:" ou filme de uma cena só = a mesma. */
+export function cenaComLugar2511(promptDaCena: string, i: number, total: number): string {
+  const p = norm(promptDaCena)
+  if (/Setting: /.test(p) || total < 2) return promptDaCena
+  const meio = /^[^.]{2,60}\./.exec(p)?.[0] ?? ''
+  return norm(`${meio} ${i === 0 ? LUGAR_DO_SEGUINTE_2511 : LUGAR_DO_ANTERIOR_2511} ${p.slice(meio.length)}`)
+}
+
 /** Os planos do Kling 4 por seção. null = nada a dividir ou não dá para provar → o envio de sempre (3 planos). */
 export function planosPorSecao(a: {
   prompts: readonly string[]; stills: readonly (string | null)[]; falas: readonly string[]; secoes: readonly SecaoDoRoteiro[]; objetoConcreto?: boolean
+  /** KINEO-PLANO-SEM-LUGAR-2511 (B) — com a chave: a metade de cena fundida sem "Setting:" fica no mesmo lugar do plano vizinho. */ lugarDaCenaMae?: boolean
 }): { prompts: string[]; stills: (string | null)[]; falas: string[]; grupos: number[][] } | null {
   if (a.prompts.length !== a.falas.length) return null
   const exatos = secoesDasCenas(a.secoes, a.falas)
@@ -220,6 +243,7 @@ export function planosPorSecao(a: {
   if (!grupos || grupos.every((g) => g.length === 1)) return null
   const total = grupos.reduce((n, g) => n + g.length, 0)
   if (total > KLING4_MAX_PLANOS) return null
+  if (a.lugarDaCenaMae === true) a = { ...a, prompts: a.prompts.map((p, i) => ((grupos[i]?.length ?? 1) > 1 && grupos[i].every((j) => a.secoes[j]?.descricao === undefined) ? cenaComLugar2511(p, i, a.prompts.length) : p)) } // KINEO-PLANO-SEM-LUGAR-2511 (B): só as cenas fundidas
   // a fala de antes do 1º marcador (só a 1ª cena pode ter) fica no 1º plano, como na cena
   const alvo0 = norm(a.falas[0]), junto0 = norm(grupos[0].map((x) => a.secoes[x].voiceover).join(' '))
   const prefixo = exatos && alvo0 !== junto0 && alvo0.endsWith(` ${junto0}`) ? alvo0.slice(0, alvo0.length - junto0.length).trim() : ''
