@@ -233,6 +233,33 @@ async function prova(over = {}) {
       { const db = banco(doRpc); no(await b.gravarSeloDoFilmeGratis2511(db, { jobId: GEN, userId: USER, marker: noAr }) !== true || db.meta.engine_used !== 'omni' || db.meta.cost_usd !== 1.2285 || db.updates.length !== 1, '5g a gravação regrava o evento do filme')
         no(await b.gravarSeloDoFilmeGratis2511(db, { jobId: GEN, userId: USER, marker: noAr }) !== true || db.updates.length !== 1, '5h de novo: nada muda (idempotente)') }
       { let acessos = 0; const db = { from: () => { acessos++; throw new Error('banco sem Gemini') } }; const r = await b.gravarSeloDoFilmeGratis2511(db, { jobId: GEN, userId: USER, marker: { version: 'kling4_trial_2810', engine_used: 'kling4', cost_usd: 2.355 } }); no(r !== false || acessos !== 0, '5i sem Gemini: nenhum acesso ao banco') }
+      // [revisora 25/11, volta 2] os 5 desfechos com a sequência REAL das três escritas no evento: a RPC record_kling4_trial_film (insere uma vez, on conflict
+      // do nothing), a RPC transition_kling4_trial_fallback (só troca o motor se o evento estiver em kling4 ou seedance15_fallback) e o selo
+      { const me2 = loader(over)('lib/admin/motorEntregue.ts')
+        const desfecho = (passos) => { let ev = null
+          for (const [tipo, x] of passos) {
+            if (tipo === 'rpc') { if (!ev) ev = { ...doRpc, engine_used: x, cost_usd: x === 'kling4' || x === 'seedance15_fallback' ? 2.355 : 0 } }
+            else if (tipo === 'transicao') { if (ev && (ev.engine_used === 'kling4' || ev.engine_used === 'seedance15_fallback')) ev = { ...ev, engine_used: 'seedance15_fallback' } }
+            else if (tipo === 'selo') { const n = b.seloDoFilmeGratis2511(x, ev); if (n) ev = n } }
+          return { ev, rotulo: me2.rotuloMotorGrupo('cinematic_ai', [me2.motorEntregueDe(ev.engine_used, null)], 'x', false) } }
+        const quedaK4 = (motivo) => ({ ...noAr, motor_do_clipe: 'kling4', reserva_de: 'gemini_omni_flash', gemini_queda: { estado: 'feita', motivo } })
+        const semK4 = { ...noAr, gemini_queda: { estado: 'sem_kling4', motivo: 'recusa', sem_kling4: 'kling4_incerto' } }
+        const D = desfecho([['rpc', 'kling4'], ['selo', noAr], ['selo', semK4], ['transicao'], ['selo', { ...semK4, fallback_started: true }], ['rpc', 'seedance15_fallback'], ['transicao'], ['selo', { ...semK4, fallback_started: true, engine_used: 'seedance15_fallback', fallback_finalized: true }]])
+        const E = desfecho([['rpc', 'kling4'], ['selo', noAr], ['selo', quedaK4('recusa')], ['transicao'], ['rpc', 'seedance15_fallback'], ['selo', { ...quedaK4('recusa'), fallback_started: true, engine_used: 'seedance15_fallback', fallback_finalized: true }]])
+        const tabela = {
+          A: desfecho([['rpc', 'kling4'], ['selo', noAr], ['rpc', 'kling4'], ['selo', noAr]]),
+          B: desfecho([['rpc', 'kling4'], ['selo', noAr], ['selo', quedaK4('recusa')], ['rpc', 'kling4'], ['selo', quedaK4('recusa')]]),
+          C: desfecho([['rpc', 'kling4'], ['selo', noAr], ['selo', quedaK4('prazo')], ['rpc', 'kling4'], ['selo', quedaK4('prazo')]]), D, E }
+        const linha = (x) => [x.rotulo, x.ev.engine_used, x.ev.cost_usd, x.ev.motores ?? null, x.ev.gemini_est_usd ?? null]
+        igual(Object.fromEntries(Object.entries(tabela).map(([k, x]) => [k, linha(x)])), {
+          A: ['Omni Flash, filme grátis', 'omni', 1.2285, null, null],
+          B: ['Kling 4.0, filme grátis', 'kling4', 2.355, ['gemini_omni_flash', 'kling4'], 1.2285],
+          C: ['Kling 4.0, filme grátis', 'kling4', 2.355, ['gemini_omni_flash', 'kling4'], 1.2285],
+          D: ['Seedance 1.5, reserva do filme grátis', 'seedance15_fallback', 2.355, ['gemini_omni_flash', 'seedance15_fallback'], 1.2285],
+          E: ['Seedance 1.5, reserva do filme grátis', 'seedance15_fallback', 2.355, ['gemini_omni_flash', 'seedance15_fallback'], 1.2285] },
+          '5k os 5 desfechos: o selo e o custo são os do motor que entregou (A Gemini, B/C queda para o Kling 4, D sem Kling 4 → a reserva, E o Kling 4 da queda estoura → a reserva)')
+        no('teto_reservado_usd' in D.ev || 'motor_do_clipe' in D.ev, '5k D: sem os campos do Gemini no ar')
+        igual(desfecho([['rpc', 'kling4'], ['selo', noAr], ['selo', semK4]]).ev.engine_used, 'seedance15_fallback', '5k D já na hora do sem_kling4 (antes da reserva terminar): a reserva') }
       // o rótulo do /admin a partir do evento regravado
       const me = loader(over)('lib/admin/motorEntregue.ts')
       igual([me.rotuloMotorGrupo('cinematic_ai', [me.motorEntregueDe(g.engine_used, 'omni')], 'x', false), me.rotuloMotorGrupo('cinematic_ai', [me.motorEntregueDe(q.engine_used, 'kling4')], 'x', false)],
@@ -356,6 +383,9 @@ const MUTANTES = [
   [B, 'engine_used: motor, cost_usd: custoDoMotor,', 'engine_used: motor, cost_usd: atual.cost_usd ?? null,'],
   [B, "motores: ['gemini_omni_flash', motor],", 'motores: [motor],'],
   [B, 'const { teto_reservado_usd: _t, motor_do_clipe: _mc, ...resto } = atual', 'const resto = atual'],
+  [B, "  if (reservaDoGemini) {\n", '  if (false) {\n'], // [volta 2] o desfecho D volta a dizer Omni Flash
+  [B, " || (m.gemini_queda as { estado?: unknown } | undefined)?.estado === 'sem_kling4')", ')'], // [volta 2] o sem_kling4 antes da reserva começar
+  [B, "motores: ['gemini_omni_flash', 'seedance15_fallback'],", "motores: ['seedance15_fallback'],"], // [volta 2]
 ]
 let mortos = 0; const vivos = []
 for (const [file, de, para] of MUTANTES) {

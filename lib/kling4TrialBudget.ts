@@ -113,6 +113,15 @@ export function seloDoFilmeGratis2511(marker: unknown, atual: Record<string, unk
   if (!noGemini && !queda) return null
   const est = typeof m.gemini_est_usd === 'number' && Number.isFinite(m.gemini_est_usd) && m.gemini_est_usd > 0 ? m.gemini_est_usd : null
   if (est === null) return null
+  // [revisora 25/11, volta 2] o desfecho D: o Gemini caiu, o Kling 4 NÃO saiu e a reserva de hoje entrega. O marcador continua com motor_do_clipe 'gemini_omni_flash'
+  // (o sem_kling4 não o tira) e a RPC de transição não troca um evento em 'omni': o selo e o custo passam a ser os da RESERVA, com os dois motores ao lado.
+  const reservaDoGemini = noGemini && (m.engine_used === 'seedance15_fallback' || m.fallback_started === true || (m.gemini_queda as { estado?: unknown } | undefined)?.estado === 'sem_kling4')
+  if (reservaDoGemini) {
+    const teto = typeof atual.teto_reservado_usd === 'number' ? atual.teto_reservado_usd : (typeof m.cost_usd === 'number' ? m.cost_usd : (atual.cost_usd ?? null))
+    const { teto_reservado_usd: _t0, motor_do_clipe: _m0, ...resto0 } = atual
+    return { ...resto0, engine_used: 'seedance15_fallback', cost_usd: teto, cost_basis: 'reserved_upper_bound', motores: ['gemini_omni_flash', 'seedance15_fallback'],
+      gemini_est_usd: est, gemini_cobrado: (m.gemini_queda as { estado?: unknown } | undefined)?.estado === 'no_envio' ? 'nao' : 'possivel' }
+  }
   if (noGemini) {
     if (atual.engine_used !== 'kling4' && atual.engine_used !== 'omni') return null // o razão já foi para a reserva de hoje: o evento de sempre fica
     return { ...atual, engine_used: 'omni', motor_do_clipe: 'gemini_omni_flash', cost_usd: est, cost_basis: 'estimado_gemini_sem_tokens',
