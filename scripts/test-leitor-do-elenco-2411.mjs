@@ -275,8 +275,32 @@ function marcasEEmpresas(w) {
   check('sem-deduzir', nu.elenco.length === 0)
   const homonimo = ler('Henry Potter waited outside.', 'Henry Potter, a young boy with a red scarf, waits.')
   check('homonimo', homonimo.elenco[0]?.nome === 'Henry Potter')
-  const semSobrenome = ler('Harry waited outside.', 'Harry Potter, a young boy with round glasses, waits.', [base('Harry','humano','Harry')])
+  const semSobrenome = ler('Harry waited outside.', 'Harry Potter, a young boy with round glasses, waits. Harry Potter (also called Harry).', [base('Harry','humano','Harry')])
   check('alias', semSobrenome.elenco.length === 1 && semSobrenome.elenco[0].nome === 'the boy')
+  const biografias = [
+    ['Rose', 'a tall woman in a yellow coat', 'Amy Rose', 'a pink hedgehog in a red dress', 'hedgehog'],
+    ['Harry', 'an old lighthouse keeper in a navy coat', 'Harry Potter', 'a young boy with round glasses and a scar', 'boy'],
+    ['Addams', 'a tall man in a gray suit', 'Wednesday Addams', 'a pale girl with black braids', 'girl'],
+  ]
+  for (const [nome, propria, obra, outra, nucleo] of biografias) {
+    const autor = { ...base(nome,'humano',nome), origem:'autor', canonica:nome + ', exactly as the author wrote: "' + propria + '"' }
+    for (const ordem of [0,1]) {
+      const partes = [obra + ', ' + outra + '.', nome + ', ' + propria + '.']
+      const pedido = (ordem ? partes.reverse() : partes).join(' ')
+      const out = ler(nome + ' watches the lighthouse. ' + obra + ' walks through the garden.', pedido, [autor])
+      check('homonimos-' + nome + ordem, out.elenco.length === 2 && JSON.stringify(out.elenco[0]) === JSON.stringify(autor)
+        && out.elenco[1].nucleo === nucleo && out.elenco[1].canonica.includes(outra.replace(/^(an?|the) /i,'')) && !out.elenco[1].protagonista)
+    }
+  }
+  const leituraSoDaHumana = ler('Rose watched. Amy Rose waited.', 'Amy Rose, a pink hedgehog in a red dress. Rose, a tall woman in a yellow coat.', [base('Rose','humano','Rose')], { lidos:['Rose'], gente:['Rose'] })
+  check('leitura-qualifica-a-outra', leituraSoDaHumana.elenco.length === 1 && leituraSoDaHumana.elenco[0].nome === 'Rose')
+  const moreno = base('the brown hedgehog','animal','hedgehog')
+  const corDiferente = ler('Sonic waited.', 'Sonic, a blue hedgehog in red sneakers, waited.', [moreno])
+  check('outra-cor', JSON.stringify(corDiferente.elenco[0]) === JSON.stringify(moreno) && corDiferente.elenco[1]?.canonica.includes('blue hedgehog'))
+  const aliasEmConflito = ler('Rose watched. Amy Rose waited.',
+    'Amy Rose, a pink hedgehog in a red dress. Amy Rose, also called Rose. Rose, a tall woman in a yellow coat.',
+    [{ ...base('Rose','humano','Rose'), origem:'autor', canonica:'Rose, a tall woman in a yellow coat' }])
+  check('apelido-em-conflito', aliasEmConflito.elenco[0]?.nome === 'Rose' && aliasEmConflito.elenco[1]?.nucleo === 'hedgehog')
   const semLeitura = ler('Harry Potter waited outside.', 'Harry Potter, a young boy with round glasses, waits.', [], { lidos:[] })
   check('leitura-negativa', !semLeitura.elenco.length)
   const misto = ler('Apple unveiled a phone. Brann lifted the bridge.', 'Apple, a tech giant, unveiled a phone. Brann, a towering giant with a green coat, lifted the bridge.', [base('the tech giant','criatura','giant'),base('the towering giant','criatura','giant')])
@@ -352,11 +376,13 @@ const mutantesDaMarca = [
   ['sem reconhecimento de nome', 'if (NOME_DE_OBRA.has(norm(nome))) return true', '', 'papel-Harry Potter-pedido'],
   ['sem origem comercial explícita', 'ORIGEM_COMERCIAL.test(texto.slice(m.index! + m[0].length))', 'false', 'licenca'],
   ['não lê obra nomeada', 'OBRA_NOMEADA.test(texto.slice(m.index! + m[0].length))', 'false', 'obra-nomeada'],
-  ['não reconhece nome abreviado', "?? obrasCitadas.find(obra => obra.split(' ').length > 1 && obra.split(' ').some(parte => norm(parte) === norm(n)))", '', 'alias'],
+  ['ignora o apelido declarado', 'return textos.some(t => apelido.test(t.texto))', 'return false', 'alias'],
+  ['palavra compartilhada vira identidade', "if (!nomeProprio2411(n) || textosOriginais.some(t => trechosColadosAoNome(t.texto, n).length)) return undefined", "if (nomeProprio2411(n)) return obrasCitadas.find(obra => obra.split(' ').includes(n))", 'homonimos-Rose0'],
+  ['apelido suplanta descrição independente', ' || textosOriginais.some(t => trechosColadosAoNome(t.texto, n).length)', '', 'apelido-em-conflito'],
   ['ficha genérica conserva a descrição sorteada', "canonica: canonicaLiteral(f, d.trecho, null, null), origem: 'autor' as const", "canonica: f.canonica, origem: 'autor' as const", 'papel-Wednesday Addams-roteiro'],
   ['ficha comercial anônima volta', " || (f.tipo === 'criatura' && empresaGigante(f.nome))", '', 'empresa-Apple'],
   ['ficha comercial nomeada volta', 'empresas.includes(f.nome) ||', 'false ||', 'empresa-nome-Amazon'],
-  ['leitura sem o nome passa', ' || (e.lidos && !e.lidos.some(l => mesmaPessoa2411(l, n)))', '', 'leitura-negativa'],
+  ['leitura sem o nome passa', ' || (e.lidos && !e.lidos.some(l => obraDoNome(l) === obra))', '', 'leitura-negativa'],
   ['marca copiada da roupa', 'if (d && ![...NOMES_DE_OBRA, ...obrasCitadas].some(m => temNome(d.trecho, m)))', 'if (d)', 'marca-no-acessorio'],
 ]
 for (const [nome, antes, depois, esperado] of mutantesDaMarca) {

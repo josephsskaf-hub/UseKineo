@@ -420,6 +420,11 @@ function identidadeDeObra(nome: string, textos: ReadonlyArray<{ texto: string }>
     /\b(?:licensed|branded|copyrighted|trademarked)\s+(?:character|mascot)\s+(?:(?:named|called)\s+)?$/iu.test(texto.slice(0, m.index))))
 }
 
+function correspondeAoPapel(f: FichaDePersonagem, d: DescricaoDoNome2411): boolean {
+  return !nomeProprio2411(f.nome) && f.tipo === d.tipo && norm(f.nucleo) === d.nucleo &&
+    palavrasConteudo(f.nome).every(p => temPalavra(d.trecho, p))
+}
+
 function fichaPeloPapel(d: DescricaoDoNome2411, protagonista: boolean): FichaDePersonagem {
   const nome = 'the ' + d.nucleo
   return { nome, nucleo: d.nucleo, tipo: d.tipo, canonica: canonicaLiteral({ nome }, d.trecho, null, null),
@@ -441,9 +446,20 @@ export function elencoDoLeitor2411(e: EntradaDoLeitor2411): { elenco: FichaDePer
     const nomes = nomesDaNarracao2411(roteiro)
     const nomesComFicha = [...new Set([...nomes, ...base.map(f => f.nome).filter(nomeProprio2411)])]
     const obrasCitadas = [...new Set([...nomesComFicha, ...nomesDaNarracao2411(pedido)])].filter(n => identidadeDeObra(n, textos))
-    // Um nome curto da leitura pode ser parte do nome comercial completo escrito no pedido.
-    const obraDoNome = (n: string) => obrasCitadas.find(obra => norm(n) === norm(obra))
-      ?? obrasCitadas.find(obra => obra.split(' ').length > 1 && obra.split(' ').some(parte => norm(parte) === norm(n)))
+    // Compartilhar "Harry" ou "Rose" não prova um apelido. O texto precisa declarar a relação.
+    const semNomeDaObra = (texto: string, nome: string) => texto.replace(new RegExp(
+      '(?<![\\p{L}\\p{N}-])' + escapaRe(nome) + '(?![\\p{L}\\p{N}-])', 'giu'), '.')
+    const textosOriginais = textos.map(t => ({ ...t, texto: obrasCitadas.reduce(semNomeDaObra, t.texto) }))
+    const obraDoNome = (n: string) => {
+      const exata = obrasCitadas.find(obra => norm(n) === norm(obra))
+      if (exata) return exata
+      if (!nomeProprio2411(n) || textosOriginais.some(t => trechosColadosAoNome(t.texto, n).length)) return undefined
+      return obrasCitadas.find(obra => {
+        const apelido = new RegExp('(?<![\\p{L}\\p{N}-])' + escapaRe(obra) +
+          '\\s*[(,]?\\s*(?:also (?:called|known as)|nicknamed)\\s+["“‘]?' + escapaRe(n) + '(?![\\p{L}\\p{N}-])', 'iu')
+        return textos.some(t => apelido.test(t.texto))
+      })
+    }
     const marcas = nomesComFicha.filter(n => !!obraDoNome(n))
     const empresas = nomesComFicha.filter(n => textos.some(({ texto }) =>
       trechosColadosAoNome(texto, n).some(t => empresaGigante(t.trecho))))
@@ -451,7 +467,7 @@ export function elencoDoLeitor2411(e: EntradaDoLeitor2411): { elenco: FichaDePer
     const papeis = new Map<string, DescricaoDoNome2411>()
     for (const n of marcas) {
       const obra = obraDoNome(n)!
-      if (papeis.has(obra) || lugares.includes(norm(n)) || (e.lidos && !e.lidos.some(l => mesmaPessoa2411(l, n)))) continue
+      if (papeis.has(obra) || lugares.includes(norm(n)) || (e.lidos && !e.lidos.some(l => obraDoNome(l) === obra))) continue
       const d = descricaoDoNome2411(textos, obra, null, nomesComFicha) ?? descricaoDoNome2411(textos, n, null, nomesComFicha)
       if (d && ![...NOMES_DE_OBRA, ...obrasCitadas].some(m => temNome(d.trecho, m))) papeis.set(obra, d)
     }
@@ -465,16 +481,16 @@ export function elencoDoLeitor2411(e: EntradaDoLeitor2411): { elenco: FichaDePer
       if (obra) {
         const d = papeis.get(obra)
         mudancas.push({ nome: 'personagem', acao: 'papel', fonte: d?.fonte ?? 'ficha', forma: d?.forma ?? 'ficha', tipo: f.tipo })
-        if (!d || usadosComoPapel.has(obra) || base.some(b => !nomeProprio2411(b.nome) && b.tipo === d.tipo && norm(b.nucleo) === d.nucleo)) return []
+        if (!d || usadosComoPapel.has(obra) || base.some(b => correspondeAoPapel(b, d))) return []
         usadosComoPapel.add(obra)
         return [fichaPeloPapel(d, f.protagonista)]
       }
       if (!nomeProprio2411(f.nome)) {
-        const opcoes = [...papeis].filter(([, d]) => d.tipo === f.tipo && d.nucleo === norm(f.nucleo))
+        const opcoes = [...papeis].filter(([, d]) => correspondeAoPapel(f, d))
         if (opcoes.length === 1 && !usadosComoPapel.has(opcoes[0][0])) {
           const [obra, d] = opcoes[0]
           // A mesma espécie pode pertencer a outro personagem. Em dúvida, preservar a ficha anônima.
-          const disputa = nomesComFicha.some(n => !obraDoNome(n) && descricaoDoNome2411(textos, n, f)?.nucleo === d.nucleo)
+          const disputa = nomesComFicha.some(n => !obraDoNome(n) && descricaoDoNome2411(textosOriginais, n, f)?.nucleo === d.nucleo)
           if (!disputa) {
             usadosComoPapel.add(obra)
             const anonima = { ...f, canonica: canonicaLiteral(f, d.trecho, null, null), origem: 'autor' as const }
@@ -488,7 +504,7 @@ export function elencoDoLeitor2411(e: EntradaDoLeitor2411): { elenco: FichaDePer
     })
     for (const [obra, d] of papeis) {
       if (usadosComoPapel.has(obra) || elenco.length >= PERSONAGEM_MAX_PERSONAGENS ||
-        elenco.some(f => !nomeProprio2411(f.nome) && norm(f.nucleo) === d.nucleo)) continue
+        elenco.some(f => correspondeAoPapel(f, d))) continue
       const f = fichaPeloPapel(d, false)
       elenco.push(f)
       mudancas.push({ nome: f.nome, acao: 'papel', fonte: d.fonte, forma: d.forma, tipo: f.tipo })
@@ -499,7 +515,7 @@ export function elencoDoLeitor2411(e: EntradaDoLeitor2411): { elenco: FichaDePer
       if (!nomeProprio2411(f.nome) || (f.origem as string) === 'mitica' || ehFigura(f.nome)) return f
       // o aposto e o "named" do PEDIDO já têm dono (KINEO-FICHA-DO-PEDIDO-0911 e KINEO-APARENCIA-DO-PEDIDO-1311, para todas as contas): ficam com ele, como hoje
       if (pedido && (apostoDoPedido(pedido, f, nomesDoElenco()) || nomeadoNoPedido(pedido, f, nomesDoElenco()))) return f
-      const d = descricaoDoNome2411(textos, f.nome, f, nomesDoElenco())
+      const d = descricaoDoNome2411(textosOriginais, f.nome, f, nomesDoElenco())
       if (!d) return f
       const ficha = palavrasConteudo(f.canonica)
       if (palavrasConteudo(d.trecho).every((w) => ficha.includes(w))) return f
@@ -512,7 +528,7 @@ export function elencoDoLeitor2411(e: EntradaDoLeitor2411): { elenco: FichaDePer
     // 2. a ficha sem nome que é o bicho/pessoa que o autor nomeou ("the retriever" = "Juno, a golden retriever …")
     elenco = elenco.map((f) => {
       if (nomeProprio2411(f.nome) || !/^the\s/i.test(f.nome)) return f
-      const achados = candidatos.flatMap((n) => { const d = descricaoDoNome2411(textos, n, f, nomesDoElenco()); return d && temPalavra(d.trecho, f.nucleo) ? [{ n, d }] : [] })
+      const achados = candidatos.flatMap((n) => { const d = descricaoDoNome2411(textosOriginais, n, f, nomesDoElenco()); return d && temPalavra(d.trecho, f.nucleo) ? [{ n, d }] : [] })
       // dúvida = nada: outro nome citado na MESMA frase que a espécie ("Rex, a big brown dog, and Max, a small white dog") também pode ser ela
       const disputam = [...candidatos, ...marcas].filter((n) => textos.some(({ texto }) => frasesDe2411(texto).some((fr) => temNome(fr, n) && temPalavra(fr, f.nucleo))))
       if (achados.length !== 1 || disputam.length !== 1 || disputam[0] !== achados[0].n || usados.has(achados[0].n)) return f
@@ -526,7 +542,7 @@ export function elencoDoLeitor2411(e: EntradaDoLeitor2411): { elenco: FichaDePer
       if (elenco.length >= PERSONAGEM_MAX_PERSONAGENS) break
       if (usados.has(n) || elenco.some((f) => mesmaPessoa2411(f.nome, n))) continue
       const leu = e.lidos === null ? null : e.lidos.some((l) => mesmoPersonagem(l, n))
-      const d = descricaoDoNome2411(textos, n, null, [...nomesDoElenco(), ...candidatos])
+      const d = descricaoDoNome2411(textosOriginais, n, null, [...nomesDoElenco(), ...candidatos])
       let nova: FichaDePersonagem | null = null
       // a descrição cita o papel de uma ficha SEM nome que ficou (o passo 2 teve dúvida): é provavelmente a mesma pessoa/bicho — nada
       if (d && elenco.some((f) => !nomeProprio2411(f.nome) && temPalavra(d.trecho, f.nucleo))) continue
