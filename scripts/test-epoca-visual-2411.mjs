@@ -69,6 +69,46 @@ const cases = {
       assert.equal(m.prepararEpocaVisual({...entrada, pedido, secoes:[], falas:[pedido]}), null)
     }
   },
+  proveniencia: m => {
+    // No "today" or modern-museum cue. Only the item is dated, not the scene.
+    const objetos = [
+      'A curator examines the 1888 camera in a museum.',
+      'A visitor studies a camera manufactured back in 1888.',
+      'A scholar sees a camera first used in 1888.',
+      'A guide holds a photograph taken in 1888.',
+      'A visitor looks at a lens that dates from 1888.',
+      'A conservator examines a violin that is from 1888.',
+      'A vintage 1888 camera rests on the desk.',
+      'The camera from the year 1888 is displayed behind glass.',
+      'A student examines a coin minted in 1888.',
+      'A visitor studies a manuscript illuminated in 1888.',
+      'The sculpture carved in 1888 stands on the table.',
+      'A porcelain vase, fired in 1888, is on display.',
+      'A portrait dating from the early 1880s hangs on the wall.',
+      'She visits the exhibition with a sketch from circa 1888.',
+      'O visitante observa um instrumento de 1888.',
+      'A collector admires a nineteenth-century telescope.',
+    ]
+    for (const voiceover of objetos) {
+      const entrada = {internal:true, pedido:voiceover, secoes:[{voiceover,pexelsQuery:'a visitor looking at the exhibit'}],falas:[voiceover]}
+      assert.equal(m.prepararEpocaVisual(entrada), null, voiceover)
+      for (const pedido of [voiceover + ' In 1920 the museum opens.', 'In 1920 the museum opens. ' + voiceover]) {
+        const epoca = m.prepararEpocaVisual({...entrada, pedido, secoes:[{voiceover,pexelsQuery:'the museum in 1920'}]})
+        assert.deepEqual([epoca?.ficha,...(epoca?.cenas ?? [])], ['1920','1920'], pedido)
+      }
+    }
+    for (const pedido of ['In 1888 a photographer opens his workshop.', 'A man operating the camera in 1888.', 'He picked the lock and escaped in 1888.']) {
+      assert.equal(m.prepararEpocaVisual({internal:true,pedido, secoes:[],falas:[pedido]})?.ficha,'1888',pedido)
+    }
+  },
+  periodosAtuais: m => {
+    const ano = new Date().getUTCFullYear()
+    const decada = Math.floor(ano/10)*10
+    const seculo = Math.ceil(ano/100)
+    for (const pedido of ['In the ' + decada + 's a visitor arrives.', 'Uma visita no século ' + seculo + '.', 'The 0th century.', 'The 00th century.']) {
+      assert.equal(m.prepararEpocaVisual({internal:true,pedido,secoes:[],falas:[pedido]}), null, pedido)
+    }
+  },
   vazio: m => {
     assert.equal(m.aplicarEpocaVisual('', '1888'), '')
     assert.doesNotMatch(m.aplicarEpocaVisual('An empty room without people.', '1888'), /people in period-accurate clothing/i)
@@ -83,6 +123,18 @@ const cases = {
     assert.equal(m.aplicarEpocaVisual(autor,'1971',false,undefined,tamanho),curtoa)
     assert.equal(m.aplicarEpocaVisual(autor,'1971',false,undefined,tamanho-1),autor)
     assert.match(m.aplicarEpocaVisual(autor,'1971',false,undefined,512),/period airframe and cabin fittings/)
+  },
+  pontoDaAcao: m => {
+    const pista = 'The visitor unfolds the ancient letter'
+    const base = '🌊 '.repeat(180) + 'Wind moves outside. ' + pista
+    const curto = 'Period setting: 1888. ' + base
+    const teto = [...curto].length
+    // With room for the date alone, moving the unpunctuated last sentence
+    // adds punctuation. Keep the original order rather than displace a word.
+    assert.equal(m.aplicarEpocaVisual(base,'1888',false,pista,teto),curto)
+    const maisEspaco = m.aplicarEpocaVisual(base,'1888',false,pista,teto+1)
+    assert.ok(maisEspaco.indexOf(pista)<50)
+    assert.equal([...maisEspaco].length,teto+1)
   },
   variantes: m => {
     for (const [pedido, esperado] of [['London in the nineteenth century.','19th century'],['Uma rádio nos anos 70.','1970s'],["A radio in the '80s.",'1980s']]) {
@@ -106,6 +158,13 @@ const cases = {
 const normal=carregar(fonte)
 for(const run of Object.values(cases)) run(normal)
 const mutantes=[
+ ['proveniencia','semDatasDeObjeto(comAnosPorExtenso(texto))','comAnosPorExtenso(texto)'],
+ ['proveniencia','if (origem &&','if (false &&'],
+ ['proveniencia','if (participio || complemento || sujeito)','if (participio || sujeito)'],
+ ['proveniencia','if (participio || complemento || sujeito)','if (participio || complemento)'],
+ ['periodosAtuais','Number(inicio) + 9 < anoAtual','Number(inicio) < anoAtual'],
+ ['periodosAtuais','numero < Math.ceil(anoAtual / 100)','numero <= Math.ceil(anoAtual / 100)'],
+ ['pontoDaAcao','Array.from(movido).length <= teto','true'],
  ['relogio','Number(ano[1]) < anoAtual', 'true'],
  ['museu',"agora(pedido) && !datas.some", "false && !datas.some"],
  ['vazio',"!epoca || !prompt.trim()", "!epoca"],

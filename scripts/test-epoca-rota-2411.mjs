@@ -73,6 +73,53 @@ async function longAuthorHint(run) {
   }
 }
 
+// Exercise the real route closure and provider body. Each baseline includes the
+// full identity suffix(es), the author’s action and punctuation near the cap.
+async function referenceBoundary(source, count) {
+  const world = { ts, load, read: () => source }
+  const closure = frontieres(world).v('kling4PorSecao')
+  const epoch = { cenas: Array(4).fill('1971'), secoes: Array(4).fill('1971'), primeirasSecoes: [0,1,2,3] }
+  const ref = {imageUrl:'https://fixture.invalid/dan', nomes:['Dan Cooper'], frase:'Keep the face and outfit of @Image1.'}
+  if (count === 2) ref.segundo = {imageUrl:'https://fixture.invalid/flo', nomes:['Flo Schaffner'], frase:'Keep the face and outfit of @Image2.'}
+  const actor = 'Dan Cooper and Flo Schaffner sit in an airplane cabin. '
+  const words = ('Warm lamps light the seats and the wet windows. ').repeat(12).trim().split(' ')
+  let nearLimit = false
+  for (let i = 20; i <= 80; i++) {
+    const hint = actor + words.slice(0,i).join(' ') + '. They close the map 🧳.'
+    const voices = Array(4).fill('They enter the cabin.')
+    const context = {
+      aplicarEpocaVisual:load('@/lib/cinematic/epocaVisual2411').aplicarEpocaVisual,
+      kling4PlanoPorSecao:true,verbatim:true,parsedScript:{segments:voices.map(voiceover=>({voiceover,pexelsQuery:hint}))},
+      scenes:voices.map(voiceover=>({voiceover})), planosPorSecao:load('@/lib/kling4QuatroPlanos').planosPorSecao,
+      sujeitoAparenciaLigada:()=>false, comSuperficieNoPlano:load('@/lib/cinematic/superficieSemTexto').comSuperficieNoPlano,
+      kling4PlanoVariado:true, ...load('@/lib/kling4PlanoVariado'), kling4PlanoFinal:true,
+      planoFinalEmMovimento:load('@/lib/kling4PlanoFinal').planoFinalEmMovimento, garantirSujeitoNoUltimo1911(){},
+    }
+    async function prompts(epocaVisual) {
+      const args = {prompts:voices.map(()=>hint),approvedStills:[],timing:{referenciaUnica:ref,voiceovers:voices,wordsPerSecond:2.7}}
+      const result = closure.run({...context,epocaVisual})(args)
+      let body
+      await load('@/lib/kling4Trial').submitKling4TrialVideo(result,{apiKey:'offline',now:()=>0,fetchImpl:async(url,options)=>{
+        assert.ok(url.endsWith('/reference-to-video'))
+        body=JSON.parse(options.body)
+        return {ok:true,json:async()=>({request_id:'offline'})}
+      }})
+      return body.multi_prompt.map(s=>s.prompt)
+    }
+    const off = await prompts(null), on = await prompts(epoch)
+    for (const [j,before] of off.entries()) {
+      const after = on[j]
+      assert.ok(before.includes('@Image1') && (before.includes('@Image2') === (count === 2)))
+      assert.ok([...after].length <= 512)
+      if ([...before].length >= 485) nearLimit = true
+      for (const sentence of before.match(/[^.!?]+[.!?](?=\s|$)/gu) || []) {
+        assert.ok(after.includes(sentence.trim()), 'reference budget ' + count + ' lost original text: ' + sentence.trim())
+      }
+    }
+  }
+  assert.ok(nearLimit,'reference fixture must exercise near-512 code points')
+}
+
 const run = runner(route)
 const off = await run(lePrince, 'off', true)
 for (const text of [off.sheet, ...off.textStills, ...off.editedStills, ...dispatches(off).flat()]) {
@@ -82,14 +129,20 @@ await external(run)
 await sheetFirst(run)
 await sectionDates(run)
 await longAuthorHint(run)
+const budget = 'Math.max(Array.from(referencia).length, reservaDasReferencias)'
+for (const count of [1,2]) {
+  await referenceBoundary(route,count)
+  await assert.rejects(() => referenceBoundary(changeOnce(budget,'Array.from(referencia).length'), count), err => err.code === 'ERR_ASSERTION' && err.message.startsWith('reference budget ' + count + ' lost'), 'M5, reference count ' + count)
+}
+await assert.rejects(() => referenceBoundary(changeOnce('a.timing.referenciaUnica?.segundo?.frase]', 'undefined]'),2), err => err.code === 'ERR_ASSERTION' && err.message.startsWith('reference budget 2 lost'), 'missing second reference')
 
 const gate = 'kling4TrialCandidate && !qualidadeHerdada && isDryRunAccount(user.email)'
 const section = 'indices ? epocaVisual.secoes[indices[i]] : epocaVisual.cenas[i]'
 const mutants = [
   ['no account check', gate, 'kling4TrialCandidate && !qualidadeHerdada', external, 'external account received a period setting'],
   ['always internal', gate, 'true', external, 'external account received a period setting'],
-  ['undated sheet', 'epocaVisual?.ficha, true', 'undefined, true', sheetFirst, 'sheet must date the opening workshop'],
-  ['last epoch on sheet', 'epocaVisual?.ficha, true', 'epocaVisual?.secoes.at(-1), true', sheetFirst, 'sheet must date the opening workshop'],
+  ['undated sheet', 'scenePrompt: aplicarEpocaVisual(promptDaFolha(f, styleAnchor, folhaSemNome2511), epocaVisual?.ficha, true),', 'scenePrompt: aplicarEpocaVisual(promptDaFolha(f, styleAnchor, folhaSemNome2511), undefined, true),', sheetFirst, 'sheet must date the opening workshop'],
+  ['last epoch on sheet', 'scenePrompt: aplicarEpocaVisual(promptDaFolha(f, styleAnchor, folhaSemNome2511), epocaVisual?.ficha, true),', 'scenePrompt: aplicarEpocaVisual(promptDaFolha(f, styleAnchor, folhaSemNome2511), epocaVisual?.secoes.at(-1), true),', sheetFirst, 'sheet must date the opening workshop'],
   ['undated split shots', section, 'undefined', sectionDates, 'missing section date on dispatch'],
 ]
 for (const [name, before, after, probe, reason] of mutants) {

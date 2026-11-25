@@ -7701,7 +7701,8 @@ async function manipularPost(req: NextRequest) {
       if (epocaVisual) {
         const indices = pronto.planos?.flat()
         const continuidade = a.timing.fixedCharacter?.continuity
-        const frase = a.timing.referenciaUnica?.frase.trim()
+        const reservaDasReferencias = [a.timing.referenciaUnica?.frase, a.timing.referenciaUnica?.segundo?.frase]
+          .reduce((total, frase) => total + (frase?.trim() ? Array.from(' ' + frase.trim()).length : 0), 0)
         let intermediarias = 0
         pronto.prompts = pronto.prompts.map((p, i) => {
           // Surface, shot size and final action are already present. Reserve the
@@ -7713,7 +7714,7 @@ async function manipularPost(req: NextRequest) {
             else referencia = `Scene ${i + 1}: text-directed shot, no new keyframe for this scene. `
           }
           const reserva = continuidade ? Array.from(' ' + continuidade + ' Mouth closed, no speaking.').length
-            : Math.max(Array.from(referencia).length, frase ? Array.from(' ' + frase).length : 0)
+            : Math.max(Array.from(referencia).length, reservaDasReferencias)
           const secao = indices?.[i] ?? epocaVisual.primeirasSecoes?.[i]
           return aplicarEpocaVisual(p, indices ? epocaVisual.secoes[indices[i]] : epocaVisual.cenas[i], false,
             secao === undefined ? undefined : parsedScript.segments[secao]?.pexelsQuery, 512 - reserva)
@@ -8197,7 +8198,7 @@ async function manipularPost(req: NextRequest) {
       // mas a admissão da referência única não a lê. Cliente e 'off': o `if` não entra (nenhuma chamada).
       if (juizDaFolhaLigado(JUIZ_DA_FOLHA_2411, user.email) && kling4TrialCandidate && !qualidadeHerdada && !ensaioPersonagemFixo /* [revisora, v3] o ensaio do personagem fixo fica como hoje */ && folhaDe.size > 0) {
         const julgadas = await Promise.all(elencoP.filter((f) => folhaDe.has(f.nome)).map((f, i) => julgarAFolha({ ficha: f, url: folhaDe.get(f.nome) as string, filmeFotorreal: !isStylizedLook(styleAnchor) && !desenhoInfantil.ativo, lookPhrase: styleAnchor.lookPhrase },
-          { ler: (descricao, url) => lerAFolha(descricao, url), gerar: (instrucao) => generateCinematicSceneStill({ scenePrompt: promptDaFolha(f, styleAnchor, folhaSemNome2511) + instrucao, styleSuffix: '', seed: (generationSeed + 7_919 * (201 + i)) % 2_147_483_647, pollWindowMs: 15_000, aspect: aspectRequested }) })))
+          { ler: (descricao, url) => lerAFolha(descricao, url), gerar: (instrucao) => generateCinematicSceneStill({ scenePrompt: aplicarEpocaVisual(promptDaFolha(f, styleAnchor, folhaSemNome2511), epocaVisual?.ficha, true) + instrucao, styleSuffix: '', seed: (generationSeed + 7_919 * (201 + i)) % 2_147_483_647, pollWindowMs: 15_000, aspect: aspectRequested }) })))
         for (const j of julgadas) { if (j.url) folhaDe.set(j.nome, j.url); else folhasReprovadas2411.add(j.nome) }
         juizDaFolhaRelato2411 = julgadas.map((j) => j.relato)
       }

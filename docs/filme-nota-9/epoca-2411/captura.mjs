@@ -67,7 +67,7 @@ export async function capture(world,borders,film,apply,mode,account) {
   const folha=load('@/lib/cinematic/folhaDePersonagem')
   const adjusted=load('@/lib/cinematic/personagemAjuste')
   const styleAnchor={look:'photoreal',lookPhrase:'photorealistic cinematic'}
-  const sheet=borders.sheet.run({...scope,promptDaFolha:folha.promptDaFolha,f:cast,styleAnchor})
+  const sheet=borders.sheet.run({...scope,promptDaFolha:folha.promptDaFolha,f:cast,styleAnchor,folhaSemNome2511:false})
   const textStills=[],editedStills=[]
   for(let i=0;i<groups.length;i++) {
     const common={...scope,idx:i,scenePrompt:scenes[i],classicScenePrompts:scenes,c:{indice:i},aspectRequested:'9:16',fichasDaCena:()=>[cast],promptDoStillComFolhaAjuste:adjusted.promptDoStillComFolhaAjuste}
@@ -87,6 +87,7 @@ export async function capture(world,borders,film,apply,mode,account) {
     : {}
   const admission=admit.run({
     ...recovered,
+    retratoSemFolhaReprovada2411: load("@/lib/cinematic/juizDaFolha2411").retratoSemFolhaReprovada2411, folhasReprovadas2411: new Set(),
     admitirReferenciaUnica2411:ruz.admitirReferenciaUnica2411,REFERENCIA_UNICA_2411:publicMode,
     user:{email:account?internal:'outside@example.invalid'},qualitySnapshot:snapshot,
     styleAnchor,isStylizedLook:s=>s.look!=='photoreal',desenhoInfantil:{ativo:false}
