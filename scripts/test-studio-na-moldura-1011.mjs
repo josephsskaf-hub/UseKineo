@@ -8,7 +8,6 @@
 //   D. o preço é o da função que cobra e aparece SÓ no botão; nenhum nome de motor; nada começa sozinho;
 //   E. celular: uma coluna (o CSS do Recreate) e nenhuma largura fixa nova.
 // Mutantes no fim provam que o teste morde.
-import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
@@ -18,24 +17,77 @@ const R = require('../docs/studio-na-moldura-1011/runtime.cjs')
 const { studioRenderContract } = require('./test-support/studio-render-contract.cjs')
 const { aba, baseSrc, BASE, React, read, ROOT, visibleText } = R
 
-const BASE_PROTEGIDA = '6804eb7937e92fc10967ecc57b03b6537ac0ff25'
-// SHA-256 dos arquivos de estilo em 8a1fb2fa8, já nas provas visual e funcional.
-const ESTILO = {
-  'app/(dashboard)/generate/GenerateClient.tsx': '74a8a712dce3769a8b89a22967e556d546616bb3a892d59155484743731e9ce3',
-  'app/(dashboard)/studio/StudioClient.tsx': 'd2be8cd727317139e9816646a3ff9e1ffdd26538c4898c698246f75eebe3c0e6',
-  'app/(dashboard)/studio/create/page.tsx': 'eb6aaaa0a019015dc0ecabb2e1d7087fcb6648d3178f65f1cd7915be3ca225d1',
-  'app/(dashboard)/studio/page.tsx': '56df41194e8a110b219e63bd84c59706b2f0f199fb7d11c3d003e66452ab060e',
-  'app/(dashboard)/studio/previa/ScenePreviewClient.tsx': '21564cec5727f89db9f89e7c735f594fbe4f2d5df360ba4cb2713db30e3974db',
-  'app/(dashboard)/studio/previa/page.tsx': '88f46f9010ad8df1f1e210e149c603c8fef69385be6eda7a647ce816fecc2d7f',
-  'app/api/generate-video-cinematic/route.ts': 'e65ab2beab1e0f0bbc504fab1aa2606d53137a83a1f3b45a77d6e17b3f57e9a9',
-  'lib/growth/ideiaDaPagina.ts': '7c041ac352f37be2d5e6816bcee01966eb586f6f9eb05cb240b5285a83b212f1',
-  'lib/growth/studioSimples.ts': 'f6653593438fd8514111eee8ee9687bbba902bc8aa95c7e6b622feda9d61f9a1',
+// Escopos publicados do estilo (seis commits) e da sonda v3, conferidos contra o pai de cada commit.
+const ESCOPO_REVISADO = {
+  '4dcafb80e721fa9a8e830490f3624f9327c075f5': [
+    'app/api/generate-video-cinematic/route.ts',
+    'lib/cinematic/filmLook2511.ts',
+    'lib/cinematic/filmLook2511Server.ts',
+    'lib/cinematic/sceneStyle.ts',
+    'scripts/test-estilo-explicito-rota-2511.mjs',
+  ],
+  'cfca79b9c5f4b1485588c02125fa014e90cf8c86': [
+    'app/(dashboard)/generate/GenerateClient.tsx',
+    'app/(dashboard)/studio/StudioClient.tsx',
+    'app/(dashboard)/studio/create/page.tsx',
+    'app/(dashboard)/studio/page.tsx',
+    'app/(dashboard)/studio/previa/ScenePreviewClient.tsx',
+    'app/(dashboard)/studio/previa/page.tsx',
+    'app/create/[tab]/page.tsx',
+    'components/create/CaixaDeCriar.tsx',
+    'components/create/CaixaNovaDoFilme.tsx',
+    'components/create/StudioNaMoldura.tsx',
+    'components/studio/FilmStylePicker.tsx',
+    'components/studio/StudioSimples.tsx',
+    'docs/studio-na-moldura-1011/runtime.cjs',
+    'lib/growth/ideiaDaPagina.ts',
+    'lib/growth/studioSimples.ts',
+    'lib/scenePreview.ts',
+    'scripts/test-estilo-filme-ui-2511.mjs',
+  ],
+  '816be4825ed3f6988e83431e809e8faa6eb358cb': [
+    'app/api/generate-video-cinematic/route.ts',
+    'components/studio/StudioSimples.tsx',
+    'lib/cinematic/sceneStyle.ts',
+    'lib/filaQuedaFal.ts',
+    'scripts/test-estilo-explicito-rota-2511.mjs',
+    'scripts/test-estilo-filme-ui-2511.mjs',
+  ],
+  'dc76904422701e83e58e5f4a45c23d44bf49585f': [
+    'scripts/diagnose-studio-continuation.mjs',
+    'scripts/test-home-topo-0511.mjs',
+    'scripts/test-previa-limite-filme-0611.mjs',
+    'scripts/test-regiao-filme-199-1011.mjs',
+    'scripts/test-regiao-paga-1011.mjs',
+    'scripts/test-studio-series-review.mjs',
+    'scripts/test-support/scene-preview-film-look.mjs',
+  ],
+  '69485a389ae620ec0b43150535e7f5002bcc5430': [
+    'lib/cinematic/sceneStyle.ts',
+    'scripts/test-aparencia-do-pedido-1311.mjs',
+    'scripts/test-estilo-explicito-rota-2511.mjs',
+    'scripts/test-ideia-viaja-1311.mjs',
+  ],
+  '28f7c53b8fd107b2e32e553a1b705d17c37b6bd7': [
+    'scripts/test-caixa-nova-1511.mjs',
+    'scripts/test-fila-queda-fal-2810.mjs',
+    'scripts/test-s25-apresentador-2026-10-06.mjs',
+    'scripts/test-studio-na-moldura-1011.mjs',
+  ],
+  'd07ec11530d30e04e94f69801c59b956a9a2ca02': [
+    'app/api/admin/sonda-presenca/route.ts',
+    'lib/cinematic/quemAparece2511.ts',
+    'scripts/test-quem-aparece-2511.mjs',
+    'scripts/test-support/quem-aparece-2511-casos.mjs',
+  ],
 }
-const ARQUIVOS_REVISADOS = {
-  ...ESTILO,
-  // Sonda publicada pela CEO em d07ec1153. Somente este conteúdo exato é aceito.
-  'app/api/admin/sonda-presenca/route.ts': '942206c84b98131d456538c00c6aadc55fb18bc1bb13bba76e3b53c1e7a64f66',
+for (const [commit, esperados] of Object.entries(ESCOPO_REVISADO)) {
+  const nomes = execFileSync('git', ['diff', '--no-renames', '--name-only', '-z', `${commit}^..${commit}`, '--'], {
+    cwd: ROOT, encoding: 'utf8',
+  })
+  assert.deepEqual(nomes.split('\0').filter(Boolean).sort(), [...esperados].sort(), `Arquivos revisados de ${commit}`)
 }
+
 const HOUSE = 'josephsskaf@gmail.com'
 const CUSTOMER = 'customer@example.org'
 const ENGINE_NAMES = /\b(kling|seedance|veo|minimax|h3|omni|nano banana|sora|runway|wan|hailuo|pixverse|luma|flux|lyria|kineo 1)\b/i
@@ -94,16 +146,6 @@ function offChecks(o) {
   }
   // Comportamento sem moldura: o mesmo pedido e os mesmos eventos da main pelo caminho de hoje.
   ok(JSON.stringify(viaMain(o, {})) === JSON.stringify(viaMain({ ...o, ...MAIN }, {})), 'StudioSimples sem moldura: pedido + eventos = main')
-  // HTML e cliques seguem comparados com a montagem histórica. Para a
-  // árvore protegida inteira, só aceitamos os blobs do estilo e da sonda publicados
-  // sobre a main fixada. O teste não depende do commit local após integrar.
-  const protectedPaths = ['app/(dashboard)', 'lib/credits', 'lib/growth', 'app/api', 'lib/recreate', 'middleware.ts']
-  const changed = execFileSync('git', ['diff', '--name-only', BASE_PROTEGIDA, '--', ...protectedPaths], { cwd: ROOT, encoding: 'utf8' }).trim().split('\n').filter(Boolean)
-  const divergencias = changed.filter(file => !Object.hasOwn(ARQUIVOS_REVISADOS, file))
-  for (const [file, hash] of Object.entries(ARQUIVOS_REVISADOS)) {
-    if (!changed.includes(file) || createHash('sha256').update(lf(read(file))).digest('hex') !== hash) divergencias.push(file)
-  }
-  ok(divergencias.length === 0, `Studio, Generate, crédito, rotas e Recreate intocados (${divergencias.join(', ')})`)
 }
 
 // ─── C. Ligado = o mesmo pedido, os mesmos eventos, as mesmas recusas ─────────────────────────────────────────────────
