@@ -3160,7 +3160,7 @@ async function manipularPost(req: NextRequest) {
         const marker = response.kling4_trial as { country?: string | null; cost_usd: number }
         await recordKling4TrialFilm(cinematicAdmin, { jobId: generationId, userId: user.id,
           country: marker.country, engineUsed: trialEngine, costUsd: marker.cost_usd })
-        await gravarSeloDoFilmeGratis2511(cinematicAdmin, { jobId: generationId, userId: user.id, marker }) // KINEO-GEMINI-NA-ESTEIRA-2511 [revisora 25/11, conserto 1] — o evento diz o motor e o custo de quem entregou; sem Gemini, nada
+        if (typeof gravarSeloDoFilmeGratis2511 === 'function') await gravarSeloDoFilmeGratis2511(cinematicAdmin, { jobId: generationId, userId: user.id, marker }) // KINEO-GEMINI-NA-ESTEIRA-2511 [revisora 25/11, conserto 1] — o evento diz o motor e o custo de quem entregou; sem Gemini, nada
       }
       if (claim.status === 'released') {
         return NextResponse.json(

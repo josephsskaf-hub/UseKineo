@@ -845,7 +845,7 @@ export async function POST(req: NextRequest) {
       const marker = cinematicBirthClaim!.response!.kling4_trial as { country?: string | null; cost_usd: number }
       await recordKling4TrialFilm(composeAdmin, { jobId: generationId, userId: authenticatedUserId,
         country: marker.country, engineUsed: trialEngine, costUsd: marker.cost_usd })
-      await gravarSeloDoFilmeGratis2511(composeAdmin, { jobId: generationId, userId: authenticatedUserId, marker }) // KINEO-GEMINI-NA-ESTEIRA-2511 [revisora 25/11, conserto 1]
+      if (typeof gravarSeloDoFilmeGratis2511 === 'function') await gravarSeloDoFilmeGratis2511(composeAdmin, { jobId: generationId, userId: authenticatedUserId, marker }) // KINEO-GEMINI-NA-ESTEIRA-2511 [revisora 25/11, conserto 1]
     }
     { // KINEO-FILME15-FIEL-2610 — o idioma que a rota de geração resolveu viaja no claim assinado e VENCE o da interface (pena dourada 26/10: rota pt, compose 'en' → voz inglesa, Whisper sem idioma, legenda errada)
       const idiomaDoClaim = narrationLanguage((cinematicBirthClaim?.response as { language?: unknown } | undefined)?.language) // KINEO-FILME15-FIEL-2610

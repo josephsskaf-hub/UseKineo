@@ -292,8 +292,8 @@ async function suite(over = {}) {
   no(/debitVideoCredits|debit\(/.test(read(A)) || /debitVideoCredits/.test(read(M)), 'R10 a queda não debita')
   { const compose = over[COMPOSE] ?? read(COMPOSE), asy = over[A] ?? read(A)
     const depois = (txt, antes, linha) => { const i = txt.indexOf(antes); return i >= 0 && txt.indexOf(linha, i) > i && txt.indexOf(linha, i) - i < antes.length + 40 }
-    no(!depois(rota, '          country: marker.country, engineUsed: trialEngine, costUsd: marker.cost_usd })\n', '        await gravarSeloDoFilmeGratis2511(cinematicAdmin, { jobId: generationId, userId: user.id, marker })'), 'R12 o nascimento regrava o selo logo depois do razão')
-    no(!depois(compose, '        country: marker.country, engineUsed: trialEngine, costUsd: marker.cost_usd })\n', '      await gravarSeloDoFilmeGratis2511(composeAdmin, { jobId: generationId, userId: authenticatedUserId, marker })'), 'R13 o compose regrava o selo logo depois do razão')
+    no(!depois(rota, '          country: marker.country, engineUsed: trialEngine, costUsd: marker.cost_usd })\n', "        if (typeof gravarSeloDoFilmeGratis2511 === 'function') await gravarSeloDoFilmeGratis2511(cinematicAdmin, { jobId: generationId, userId: user.id, marker })"), 'R12 o nascimento regrava o selo logo depois do razão')
+    no(!depois(compose, '        country: marker.country, engineUsed: trialEngine, costUsd: marker.cost_usd })\n', "      if (typeof gravarSeloDoFilmeGratis2511 === 'function') await gravarSeloDoFilmeGratis2511(composeAdmin, { jobId: generationId, userId: authenticatedUserId, marker })"), 'R13 o compose regrava o selo logo depois do razão')
     no(!asy.includes('    if (t?.ok) { await gravarSeloDoFilmeGratis2511(args.db, { jobId: args.generationId, userId: args.userId, marker: t.claim.response?.kling4_trial }); return { kind: \'pending\', claim: t.claim } }'), 'R14 a queda regrava o selo (Kling 4.0 com os dois custos)') }
   // o selo: o modelo que entregou
   try {
@@ -345,8 +345,8 @@ const MUTANTES = [
   [A, '    const r = await semKling4NaQuedaDoGemini2511({', '    const r = null && await semKling4NaQuedaDoGemini2511({'],
   [ROUTE, "aceito: false, http: err.http } }).catch(() => false)\n        return null", "aceito: false, http: err.http } }).catch(() => false)\n        throw err"],
   [A, "    if (t?.ok) { await gravarSeloDoFilmeGratis2511(args.db, { jobId: args.generationId, userId: args.userId, marker: t.claim.response?.kling4_trial }); return { kind: 'pending', claim: t.claim } }", "    if (t?.ok) return { kind: 'pending', claim: t.claim }"],
-  [ROUTE, '        await gravarSeloDoFilmeGratis2511(cinematicAdmin, { jobId: generationId, userId: user.id, marker })', ''],
-  [COMPOSE, '      await gravarSeloDoFilmeGratis2511(composeAdmin, { jobId: generationId, userId: authenticatedUserId, marker })', ''],
+  [ROUTE, "        if (typeof gravarSeloDoFilmeGratis2511 === 'function') await gravarSeloDoFilmeGratis2511(cinematicAdmin, { jobId: generationId, userId: user.id, marker })", ''],
+  [COMPOSE, "      if (typeof gravarSeloDoFilmeGratis2511 === 'function') await gravarSeloDoFilmeGratis2511(composeAdmin, { jobId: generationId, userId: authenticatedUserId, marker })", ''],
   [B, "engine_used: 'omni', motor_do_clipe: 'gemini_omni_flash'", "engine_used: 'kling4', motor_do_clipe: 'gemini_omni_flash'"],
   [B, "cost_usd: est, cost_basis: 'estimado_gemini_sem_tokens'", "cost_usd: m.cost_usd, cost_basis: 'estimado_gemini_sem_tokens'"],
   [B, "gemini_cobrado: recusaNoEnvio ? 'nao' : 'possivel'", "gemini_cobrado: 'possivel'"],
