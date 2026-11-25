@@ -53,7 +53,7 @@ O único cuidado é o piso, que conta os nomes. Daí o mínimo aceito de 26 pala
   - o portão de tamanho do filme curto precisa aceitar a fala: são de 25 a 35 palavras, contadas sem os nomes.
 
 ## Executado (sem rede)
-- **Guardião `scripts/test-escritor-de-dialogo-2511.mjs`:** PASS, com 30 de 30 mutantes mortos.
+- **Guardião `scripts/test-escritor-de-dialogo-2511.mjs`:** PASS, com todos os mutantes mortos (o número exato sai na última linha do guardião).
   - Testa a chave e o `voice_mode`, o pedido (sem exemplo, a ideia só como dado), o esquema, 27 casos de régua furada e o formato exato.
   - Confere o que o parser de hoje faz com o roteiro e a chamada com a rede falsa.
   - Executa o trecho REAL da rota: casa, filme curto, inglês e ideia dão o roteiro falado e os dois rastros. Cliente, `narrator`, `voice_mode` ausente, `Characters`, português, 35 s e texto com marcadores não fazem chamada nenhuma. Régua furada e falha da chamada dão o narrado de hoje, com rastro.

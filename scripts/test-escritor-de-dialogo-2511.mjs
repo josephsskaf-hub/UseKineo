@@ -1,7 +1,8 @@
 // KINEO-ESCRITOR-DE-DIALOGO-2511 — guardião OFFLINE (rede falsa, nenhuma chamada paga) do escritor do modo "personagens falam":
 //   1. a chave (nasce 'internal' = a casa exata) e o voice_mode (só a string exata 'characters' liga);
 //   2. o pedido (sem exemplo, a ideia só como dado) e o esquema estrito;
-//   3. a régua no código (4 seções, 1–2 falantes de nome próprio e nunca narrador, 1–2 falas por seção, até 10 palavras, quem fala foi declarado, o total);
+//   3. a régua no código (4 seções, 1–2 falantes de nome próprio e nunca narrador, 1–2 falas por seção, até 8 palavras somadas por seção, 25 a 35 no filme, quem fala foi declarado);
+//   3b. volta 4 (T3): o prazo curto do diálogo guarda os 35 s da 1ª chamada do narrado dentro do maxDuration 60; sem tempo = nem chama;
 //   4. o formato (cada seção "SEÇÃO: [Pexels: cue]" + linhas `Nome: fala`) e o que o parser de hoje faz com ele (4 seções, o nome fica na fala);
 //   5. o TRECHO REAL do /api/generate-script, executado: casa + 'characters' + filme curto + inglês + ideia = o roteiro falado e os dois rastros; qualquer
 //      outra combinação (cliente, 'narrator', ausente, outra língua, 35 s, texto com marcadores) não chama nada e cai no caminho de hoje; régua furada
@@ -17,6 +18,7 @@ import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 const MOD = 'lib/cinematic/escritorDeDialogo2511.ts', ROTA = 'app/api/generate-script/route.ts', BASE = 'eb07dbd73'
 const local = (f) => readFileSync(f, 'utf8').replaceAll('\r\n', '\n')
 const igual = (a, b, m) => assert.equal(JSON.stringify(a), JSON.stringify(b), m)
+const SECOES_N = 4
 const CASA = 'josephsskaf@gmail.com', CLIENTE = 'cliente@example.org'
 // um diálogo MEU (nenhum texto de cliente)
 const SHOT = (cue, ...lines) => ({ cue, lines: lines.map(([speaker, line]) => ({ speaker, line })) })
@@ -30,7 +32,7 @@ const ROTEIRO_BOM = 'HOOK: [Pexels: Elias climbing the lighthouse stairs]\nElias
 async function suite(change) {
   const muda = (file, src) => (change && file.replaceAll('\\', '/') === change[0] ? src.split(change[1]).join(change[2]) : src)
   const load = createOfflineLoader({ source: (file, src) => muda(file, src) })
-  const E = load('@/' + MOD), P = load('@/lib/scriptParser.ts')
+  const E = load('@/' + MOD), P = load('@/lib/scriptParser.ts'), PI = load('@/lib/pessoaInventadaNoRoteiro.ts')
   const rota = muda(ROTA, local(ROTA))
 
   // ── 1. a chave e o voice_mode ─────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -90,7 +92,13 @@ async function suite(change) {
   assert.equal(script, ROTEIRO_BOM, 'o formato exato')
   // o conferidor do ensaio (a régua escrita antes, no formato do leitor do 3bbf48a0) aprova o que o escritor monta, item a item
   { const { conferirEnsaio } = await import('./ensaio-escritor-de-dialogo-2511.mjs'), c = conferirEnsaio(script, ['Elias Ward', 'Mara Quinn'])
-    for (const [k, v] of Object.entries(c)) if (!['falantes', 'palavras', 'historia_do_pedido'].includes(k)) assert.equal(v, true, 'o conferidor: ' + k)
+    for (const [k, v] of Object.entries(c)) if (!['falantes', 'palavras', 'historia_do_pedido', 'fala_longa'].includes(k)) assert.equal(v, true, 'o conferidor: ' + k)
+    // volta 4: a conta da fala_longa do leitor (T4 é do 3bbf48a0). O BOM tem seções de 6, 7, 7 e 7: nenhuma passa de 8 (3,75 s), três passam de 6 (3 s)
+    igual(c.fala_longa, { a_3_75s: 0, a_3s: 3 }, 'a conta da fala_longa')
+    const { TETO_DO_LEITOR } = await import('./ensaio-escritor-de-dialogo-2511.mjs')
+    igual([TETO_DO_LEITOR(3.75), TETO_DO_LEITOR(3), TETO_DO_LEITOR(4)], [8, 6, 8], 'o teto do leitor')
+    // por construção: a 3,75 s nenhum aceito dá fala_longa (8 por seção); a 3 s TODO aceito dá (25 > 4 × 6, ao menos uma seção de 7)
+    assert.ok(E.MAX_PALAVRAS_POR_SECAO <= TETO_DO_LEITOR(3.75) && E.PALAVRAS_DO_FILME.min > SECOES_N * TETO_DO_LEITOR(3), 'a conta por construção')
     for (const [ruim, item] of [[script.replace('Elias: The lamp', 'Narrator: The lamp'), 'nada_de_narrador'], [script.replace('Elias climbing', 'Someone climbing'), 'quem_fala_esta_na_marca'], [script.replace('tonight.', 'tonight'), 'fala_termina_em_pontuacao'], [script.replace('The lamp went dark again tonight.', 'The old lamp went dark again late tonight, sadly.'), 'ate_8_palavras_por_secao']])
       assert.equal(conferirEnsaio(ruim, null)[item], false, 'o conferidor pega: ' + item) }
   { const p = P.parseUserScript(script)
@@ -116,10 +124,17 @@ async function suite(change) {
   // ── 5. a chamada (rede falsa) ─────────────────────────────────────────────────────────────────────────────────────────────────────────
   { const corpos = []; let t = 0
     const r = await E.escreverDialogo2511({ ideia: 'A keeper and a radio operator save a ship.', segundos: 15, agora: () => (t += 50), chamar: async (c) => { corpos.push(c); return JSON.stringify(BOM()) } })
-    igual([r.script, r.relato], [script, { versao: 'escritor_de_dialogo_2511_v1', ok: true, motivo: null, falantes: 2, falas: 5, palavras: 27, ms: 50 }], 'ok: o roteiro e o relato só com número')
+    igual([r.script, r.relato], [script, { versao: 'escritor_de_dialogo_2511_v1', ok: true, motivo: null, falantes: 2, falas: 5, palavras: 27, ms: 50, prazo_ms: 12000 }], 'ok: o roteiro e o relato só com número')
     igual([corpos[0].model, corpos[0].temperature, corpos[0].max_tokens, corpos[0].response_format?.json_schema?.name], ['gpt-4o', 0.7, 700, 'dialogo_do_filme'], 'o modelo do escritor de hoje, saída estrita')
     for (const [nome, chamar, motivo] of [['lança', async () => { throw new Error('rede') }, 'chamada'], ['nulo', async () => null, 'chamada'], ['fora da régua', async () => com((d) => d.shots.pop()), 'secoes']]) {
-      const x = await E.escreverDialogo2511({ ideia: 'x', segundos: 15, chamar }); igual([x.script, x.dialogo, x.relato.ok, x.relato.motivo], [null, null, false, motivo], nome) } }
+      const x = await E.escreverDialogo2511({ ideia: 'x', segundos: 15, chamar }); igual([x.script, x.dialogo, x.relato.ok, x.relato.motivo], [null, null, false, motivo], nome) }
+    // volta 4 · T3: o prazo curto. 60 − 3 de folga − 35 do narrado − o já gasto, até 12 s; abaixo de 5 s nem chama
+    igual([E.PRAZO_DO_DIALOGO_2511_MS, E.prazoDoDialogo2511(0, 35000), E.prazoDoDialogo2511(12000, 35000), E.prazoDoDialogo2511(17000, 35000), E.prazoDoDialogo2511(17001, 35000), E.prazoDoDialogo2511(-5, 35000), E.prazoDoDialogo2511(NaN, 35000), E.prazoDoDialogo2511(0, 60000)],
+      [12000, 12000, 10000, 5000, null, 12000, null, null], 'o prazo do diálogo guarda os 35 s do narrado')
+    for (let d = 0; d <= 40000; d += 250) { const p = E.prazoDoDialogo2511(d, 35000); assert.ok(p === null || d + p + 35000 <= 57000, 'diálogo + narrado cabem em 60 − 3: ' + d) }
+    { const prazos = []; const x = await E.escreverDialogo2511({ ideia: 'x', segundos: 15, prazoMs: 7000, chamar: async (c, p) => { prazos.push(p); return JSON.stringify(BOM()) } }); igual([prazos, x.relato.prazo_ms, x.relato.ok], [[7000], 7000, true], 'o prazo chega à chamada') }
+    { const prazos = []; await E.escreverDialogo2511({ ideia: 'x', segundos: 15, chamar: async (c, p) => { prazos.push(p); return JSON.stringify(BOM()) } }); igual(prazos, [12000], 'sem prazo dado = 12 s') }
+    { let n = 0; const x = await E.escreverDialogo2511({ ideia: 'x', segundos: 15, prazoMs: null, chamar: async () => { n++; return JSON.stringify(BOM()) } }); igual([n, x.script, x.relato.motivo, x.relato.prazo_ms], [0, null, 'sem_tempo', null], 'sem tempo = nem chama') } }
 
   // ── 6. o trecho REAL do /api/generate-script, executado ───────────────────────────────────────────────────────────────────────────────
   const ini = rota.indexOf("    if (lerVoiceMode(body.voice_mode) === 'characters' && filmeCurto"), fim = rota.indexOf('    if (!forceAuthoring && hasViralMarkers(topic)) {', ini)
@@ -129,10 +144,11 @@ async function suite(change) {
   const fn = (nome) => rota.slice(rota.indexOf(`function ${nome}(`), rota.indexOf('\n}\n', rota.indexOf(`function ${nome}(`)) + 3)
   const hv = fn('missingElements') + fn('hasViralMarkers')
   const rodar = async (o = {}) => rodar0({ ...o, voice: 'voice' in o ? o.voice : 'characters' })
-  const rodar0 = async ({ email = CASA, voice, language = 'en', alvo = 15, topic = 'A keeper and a radio operator save a ship in a storm.', resposta = JSON.stringify(BOM()), lanca = false } = {}) => {
+  const rodar0 = async ({ email = CASA, voice, language = 'en', alvo = 15, topic = 'A keeper and a radio operator save a ship in a storm.', resposta = JSON.stringify(BOM()), lanca = false, decorrido = 0 } = {}) => {
     const chamadas = [], eventos = []
     const escopo = { body: { voice_mode: voice, engine: 'kling4' }, filmeCurto: alvo <= 20, language, topic, alvoSegundos: alvo, user: { id: 'u', email },
       lerVoiceMode: E.lerVoiceMode, DIALOGO_ESCRITO_EVENTO: E.DIALOGO_ESCRITO_EVENTO, ROTEIRO_ESCRITO_EVENTO: E.ROTEIRO_ESCRITO_EVENTO, escritorDeDialogoLigado: E.escritorDeDialogoLigado, QUEM_FALA_NO_ROTEIRO: E.QUEM_FALA_NO_ROTEIRO, escreverDialogo2511: E.escreverDialogo2511,
+      prazoDoDialogo2511: E.prazoDoDialogo2511, inicioDaRota: Date.now() - decorrido, regua: { family: 'kling4', voice: 'onyx', wordsPerSecond: 2.4 }, pessoaInventadaNoRoteiro: PI.pessoaInventadaNoRoteiro,
       OPENAI_SCRIPT_TIMEOUT_MS: 35000, openai: { chat: { completions: { create: async (corpo, opts) => { chamadas.push({ corpo, opts }); if (lanca) throw new Error('rede'); return { choices: [{ message: { content: resposta } }] } } } } },
       writeServerEvent: async (e) => { eventos.push(e); return true }, NextResponse: { json: (b) => ({ __resposta: b }) } }
     const corpo = ts.transpile(`${hv}\nreturn (async () => {\n${bloco}\nreturn null })()`, { target: ts.ScriptTarget.ES2022 })
@@ -140,16 +156,24 @@ async function suite(change) {
     return { r: r?.__resposta ?? null, chamadas, eventos }
   }
   { const x = await rodar()
-    igual([x.chamadas.length, x.chamadas[0].opts, x.r], [1, { timeout: 35000, maxRetries: 0 }, { script, alreadyStructured: false, voiceMode: 'characters', targetSeconds: 15, words: 27, speakers: 2 }], 'a casa com characters: o roteiro falado')
+    igual([x.chamadas.length, x.chamadas[0].opts, x.r], [1, { timeout: 12000, maxRetries: 0 }, { script, alreadyStructured: false, voiceMode: 'characters', targetSeconds: 15, words: 27, speakers: 2 }], 'a casa com characters: o roteiro falado')
     igual(x.eventos.map((e) => e.name), ['dialogue_script_written', 'script_written'], 'os dois rastros')
     igual([x.eventos[1].metadata.voice_mode, x.eventos[1].metadata.original_idea, x.eventos[0].metadata.ok], ['characters', 'A keeper and a radio operator save a ship in a storm.', true])
-    assert.ok(!JSON.stringify(x.eventos[0].metadata).includes('lamp'), 'o rastro do diálogo não leva a fala') }
+    assert.ok(!JSON.stringify(x.eventos[0].metadata).includes('lamp'), 'o rastro do diálogo não leva a fala')
+    // volta 4: o script_written do falado traz os campos do narrado que as medidas leem (pessoa_inventada, family, voice, words_per_second)
+    const m = x.eventos[1].metadata
+    igual([Object.hasOwn(m, 'pessoa_inventada'), m.pessoa_inventada, m.family, m.voice, m.words_per_second, x.eventos[0].metadata.prazo_ms], [true, PI.pessoaInventadaNoRoteiro('A keeper and a radio operator save a ship in a storm.', script), 'kling4', 'onyx', 2.4, 12000], 'os campos do evento')
+    const y = await rodar({ topic: 'A woman and the keeper of the lighthouse save a ship in the storm at sea.', resposta: com((d) => { d.shots[1].lines[0].line = 'Elias, he is near the rocks!' }) })
+    igual(y.eventos[1]?.metadata?.pessoa_inventada, { genero: 'masculino', palavras: ['he'] }, 'pessoa_inventada medida de verdade no roteiro falado') }
+  // volta 4 · T3 na rota: 15 s já gastos = o diálogo só leva ~7 s; 18 s gastos = nem chama (o narrado guarda os 35 s), com o rastro sem_tempo
+  { const x = await rodar({ decorrido: 15000 }); assert.ok(x.chamadas.length === 1 && x.chamadas[0].opts?.timeout > 6500 && x.chamadas[0].opts?.timeout <= 7000 && x.chamadas[0].opts?.maxRetries === 0, 'o prazo encolhe com o já gasto: ' + JSON.stringify(x.chamadas[0]?.opts)) }
+  { const x = await rodar({ decorrido: 18000 }); igual([x.r, x.chamadas.length, x.eventos.map((e) => e.name), x.eventos[0]?.metadata?.motivo], [null, 0, ['dialogue_script_written'], 'sem_tempo'], 'sem tempo: nem chama, o narrado de hoje segue') }
   for (const [nome, opts] of [['cliente', { email: CLIENTE }], ['sem login de casa', { email: null }], ['narrator', { voice: 'narrator' }], ['voice_mode ausente', { voice: undefined }], ['Characters', { voice: 'Characters' }],
     ['português', { language: 'pt' }], ['35 s', { alvo: 35 }], ['texto com marcadores', { topic: 'HOOK: [Pexels: sea] The sea. MICRO REWARD 1: [Pexels: x] A. ESCALATION: [Pexels: y] B. RHYTHM: [Pexels: z] C. PAYOFF: [Pexels: ship] The ship.' }]]) {
     const x = await rodar(opts); igual([x.r, x.chamadas.length, x.eventos.length], [null, 0, 0], nome + ': nenhuma chamada, segue o caminho de hoje') }
   for (const [nome, opts] of [['fora da régua', { resposta: com((d) => { d.speakers.push('Tomas') }) }], ['a chamada falha', { lanca: true }], ['json torto', { resposta: '{' }]]) {
     const x = await rodar(opts); igual([x.r, x.chamadas.length, x.eventos.map((e) => e.name), x.eventos[0].metadata.ok], [null, 1, ['dialogue_script_written'], false], nome + ': segue narrado, com o rastro') }
-  assert.ok(rota.includes("import { QUEM_FALA_NO_ROTEIRO, escritorDeDialogoLigado, escreverDialogo2511, lerVoiceMode, DIALOGO_ESCRITO_EVENTO, ROTEIRO_ESCRITO_EVENTO } from '@/lib/cinematic/escritorDeDialogo2511'"), 'o import')
+  assert.ok(rota.includes("import { QUEM_FALA_NO_ROTEIRO, escritorDeDialogoLigado, escreverDialogo2511, lerVoiceMode, prazoDoDialogo2511, DIALOGO_ESCRITO_EVENTO, ROTEIRO_ESCRITO_EVENTO } from '@/lib/cinematic/escritorDeDialogo2511'"), 'o import')
 
   // ── 7. byte a byte: a rota só GANHA linhas (o import e o bloco); nenhuma linha de hoje muda ──────────────────────────────────────────
   if (!change) { const diff = execSync(`git diff --no-color -U0 ${BASE} -- ${ROTA}`, { encoding: 'utf8', maxBuffer: 1 << 26 }).replaceAll('\r\n', '\n').split('\n')
@@ -204,8 +228,18 @@ const mutants = [
   [ROTA, ' && escritorDeDialogoLigado(QUEM_FALA_NO_ROTEIRO, user.email)) {', ') {'],
   [ROTA, "if (lerVoiceMode(body.voice_mode) === 'characters' && filmeCurto", "if (body.voice_mode !== 'narrator' && filmeCurto"],
   [ROTA, '        return NextResponse.json({ script: dialogo2511.script,', '        void NextResponse.json({ script: dialogo2511.script,'], // o roteiro falado não volta
-  [ROTA, "voice_mode: 'characters', engine: typeof body.engine", "engine: typeof body.engine"],
-  [ROTA, "{ timeout: OPENAI_SCRIPT_TIMEOUT_MS, maxRetries: 0 }) as { choices", "{ timeout: 60_000 }) as { choices"],
+  [ROTA, "voice_mode: 'characters', family: regua.family", "family: regua.family"],
+  [ROTA, "{ timeout: prazoDialogo2511, maxRetries: 0 }) as { choices", "{ timeout: OPENAI_SCRIPT_TIMEOUT_MS, maxRetries: 0 }) as { choices"], // T3: o prazo cheio de volta
+  [ROTA, 'prazoMs: prazoDoDialogo2511(Date.now() - inicioDaRota, OPENAI_SCRIPT_TIMEOUT_MS), ', ''],
+  [ROTA, 'prazoDoDialogo2511(Date.now() - inicioDaRota, OPENAI_SCRIPT_TIMEOUT_MS)', 'prazoDoDialogo2511(0, OPENAI_SCRIPT_TIMEOUT_MS)'], // não desconta o já gasto
+  [ROTA, 'pessoa_inventada: pessoaInventadaNoRoteiro(topic, dialogo2511.script), ', ''],
+  [ROTA, "voice_mode: 'characters', family: regua.family, voice: regua.voice, words_per_second", "voice_mode: 'characters', words_per_second"],
+  [MOD, '  const prazo = Math.min(PRAZO_DO_DIALOGO_2511_MS, sobra)', '  const prazo = PRAZO_DO_DIALOGO_2511_MS'],
+  [MOD, ' - narradoMs - Math.max(0, decorridoMs)', ' - Math.max(0, decorridoMs)'],
+  [MOD, 'export const PRAZO_DO_DIALOGO_2511_MS = 12_000', 'export const PRAZO_DO_DIALOGO_2511_MS = 35_000'],
+  [MOD, "  if (prazo === null) return { script: null, dialogo: null, relato: relato(false, 'sem_tempo', null) }\n", ''],
+  [MOD, 'prazo >= MENOR_PRAZO_DO_DIALOGO_2511_MS ?', 'prazo > 0 ?'],
+  [MOD, 'messages: pedidoDoDialogo2511(args.ideia, args.segundos).messages }, prazo)', 'messages: pedidoDoDialogo2511(args.ideia, args.segundos).messages }, PRAZO_DO_DIALOGO_2511_MS)'],
 ]
 let mortos = 0
 for (const m of mutants) {
@@ -213,4 +247,4 @@ for (const m of mutants) {
   await assert.rejects(suite(m), (err) => err instanceof assert.AssertionError, 'SOBREVIVEU: ' + m[1].slice(0, 120))
   mortos++
 }
-console.log(`PASS KINEO-ESCRITOR-DE-DIALOGO-2511: chave 'internal' (a casa exata); voice_mode só 'characters' exato; pedido sem exemplo, ideia só como dado, json_schema estrito; régua no código (4 seções, 1–2 falantes de nome próprio e nunca narrador, 1–2 falas por seção, ≤ 10 palavras, quem fala foi declarado, 26–60 palavras no filme); formato SEÇÃO: [Pexels: cue] + linhas Nome: fala (o parser de hoje lê 4 seções e o nome fica na fala); o trecho real do /api/generate-script: casa + characters + filme curto + inglês + ideia = o roteiro falado e os dois rastros (sem a fala), cliente/narrator/ausente/outra língua/35 s/texto com marcadores = nenhuma chamada, régua furada ou falha = o narrado de hoje com rastro; a rota só ganha linhas; ${mortos}/${mutants.length} mutantes mortos.`)
+console.log(`PASS KINEO-ESCRITOR-DE-DIALOGO-2511: chave 'internal' (a casa exata); voice_mode só 'characters' exato; pedido sem exemplo, ideia só como dado, json_schema estrito; régua no código (4 seções, 1–2 falantes de nome próprio e nunca narrador, 1–2 falas por seção, ≤ 8 palavras somadas por seção, quem fala foi declarado, 25–35 palavras no filme, quem fala na marca, fala termina em pontuação); volta 4: o diálogo com prazo curto (até 12 s, guarda os 35 s do narrado no maxDuration 60; sem tempo = nem chama) e o script_written com pessoa_inventada, family, voice e words_per_second; formato SEÇÃO: [Pexels: cue] + linhas Nome: fala (o parser de hoje lê 4 seções e o nome fica na fala); o trecho real do /api/generate-script: casa + characters + filme curto + inglês + ideia = o roteiro falado e os dois rastros (sem a fala), cliente/narrator/ausente/outra língua/35 s/texto com marcadores = nenhuma chamada, régua furada ou falha = o narrado de hoje com rastro; a rota só ganha linhas; ${mortos}/${mutants.length} mutantes mortos.`)

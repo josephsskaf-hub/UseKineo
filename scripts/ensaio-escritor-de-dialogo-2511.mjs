@@ -4,6 +4,8 @@
 //   node scripts/ensaio-escritor-de-dialogo-2511.mjs <respostas.json>
 // <respostas.json> = [{ "id": "f1", "resposta": { ...o JSON da rota... }, "elenco": ["Elias Ward", ...] (opcional: o elenco do dry-run do filme) }]
 // Imprime, por ideia, cada item da régua (true/false) e o placar. "A história é a do pedido" é a única linha de olho humano: vai como null.
+// Volta 4 (T4 é do 3bbf48a0; aqui só a CONTA): fala_longa = quantas seções passam do teto do leitor, floor(2,2 × segundos do plano), a 3,75 s (8 palavras)
+// e a 3 s (6 palavras). O leitor devolve fala_longa para o filme INTEIRO, que sai narrado. Informativo: não entra no 'passa'.
 import { readFileSync } from 'node:fs'
 import { createOfflineLoader } from './test-support/offline-ts-loader.mjs'
 
@@ -12,6 +14,7 @@ const SECOES = ['HOOK', 'MICRO REWARD 1', 'MICRO REWARD 2', 'PAYOFF']
 const NARRADOR = /^(?:narrator|narration|voice|voiceover|voice over|voice-over|vo|announcer|host)$/i
 const TITULO = /^(?:captain|capt|mr|mrs|ms|miss|mister|dr|doctor|sir|lady|lord|king|queen|prince|princess|officer|detective|agent|professor|prof|uncle|aunt)\.?$/i
 const palavras = (t) => String(t ?? '').trim().split(/\s+/u).filter(Boolean).length // como o leitor conta
+export const TETO_DO_LEITOR = (segundos) => Math.floor(2.2 * segundos) // lerFalas2511: 2,2 palavras por segundo do plano
 const temNome = (texto, nome) => { const n = String(nome).trim().split(' ')[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); return !!n && new RegExp(`(?<![\\p{L}\\p{N}])${n}(?![\\p{L}\\p{N}])`, 'iu').test(texto) }
 
 /** A régua de um roteiro, no formato do leitor do servidor do filme. */
@@ -38,18 +41,21 @@ export function conferirEnsaio(script, elenco = null) {
     falantes_no_elenco: Array.isArray(elenco) ? falantes.every((n) => elenco.some((e) => e.toLowerCase().split(/\s+/).includes(n.toLowerCase()) || e.toLowerCase() === n.toLowerCase())) : null,
     historia_do_pedido: null, // olho humano
   }
-  return { ...r, falantes, palavras: total }
+  const fala_longa = { a_3_75s: porSecao.filter((n) => n > TETO_DO_LEITOR(3.75)).length, a_3s: porSecao.filter((n) => n > TETO_DO_LEITOR(3)).length }
+  return { ...r, falantes, palavras: total, fala_longa }
 }
 
 if (process.argv[2]) {
   const linhas = JSON.parse(readFileSync(process.argv[2], 'utf8'))
-  let passou = 0
+  let passou = 0, longa375 = 0, longa3 = 0, falados = 0
   for (const l of linhas) {
     const voz = l.resposta?.voiceMode === 'characters'
     const c = voz ? conferirEnsaio(l.resposta.script, l.elenco ?? null) : null
-    const ok = !!c && Object.entries(c).filter(([k]) => !['falantes', 'palavras', 'historia_do_pedido', 'falantes_no_elenco'].includes(k)).every(([, v]) => v === true) && c.falantes_no_elenco !== false
+    const ok = !!c && Object.entries(c).filter(([k]) => !['falantes', 'palavras', 'historia_do_pedido', 'falantes_no_elenco', 'fala_longa'].includes(k)).every(([, v]) => v === true) && c.falantes_no_elenco !== false
     if (ok) passou++
+    if (c) { falados++; if (c.fala_longa.a_3_75s > 0) longa375++; if (c.fala_longa.a_3s > 0) longa3++ }
     console.log(JSON.stringify({ id: l.id, saiu_falado: voz, ...(c ?? {}), passa: ok }))
   }
   console.log(`PLACAR: ${passou}/${linhas.length} roteiros falados dentro da régua (a história do pedido: conferir à mão)`)
+  console.log(`FALA_LONGA (o filme inteiro sairia narrado no leitor): ${longa375}/${falados} a 3,75 s por plano; ${longa3}/${falados} a 3 s por plano`)
 }

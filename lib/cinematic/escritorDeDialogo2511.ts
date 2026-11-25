@@ -8,6 +8,7 @@
 // (secaoDoDialogo2511), para acompanhar o parser dele.
 import { contaDaCasaExata } from '@/lib/internalAccounts'
 import { AI_TEXT_MODELS } from '@/lib/aiModels'
+import { PRAZO_DA_ROTA_DO_ESCRITOR_MS, FOLGA_DA_ROTA_DO_ESCRITOR_MS } from '@/lib/cinematic/finalResposta' // volta 4 (T3): o maxDuration 60 da rota e a folga de 3 s
 
 export const ESCRITOR_DE_DIALOGO_2511_VERSAO = 'escritor_de_dialogo_2511_v1'
 /** Os rastros: o do escritor de diálogo (só números) e o MESMO script_written de sempre (a ideia original, para o juiz de coerência), com voice_mode. */
@@ -122,17 +123,33 @@ export function secaoDoDialogo2511(s: Dialogo2511['secoes'][number]): string {
 }
 export const roteiroDoDialogo2511 = (d: Dialogo2511): string => d.secoes.map(secaoDoDialogo2511).join('\n\n')
 
+// ── volta 4 · T3 · TEMPO (revisora 25/11): o diálogo (35 s) mais a 1ª chamada do narrado (35 s fixos) passavam do maxDuration 60. Agora o diálogo tem
+// prazo CURTO e o narrado de hoje guarda os 35 s dele INTEIROS: o diálogo só leva o que sobra de 60 − 3 (folga) − 35 (narrado) − o já gasto, até 12 s.
+// Por que 12 s: a saída é um JSON de ~150 a 250 tokens; as chamadas curtas do gpt-4o desta rota medidas no banco (script_condense_retry, 30 dias, 8)
+// deram 1,3 s na mediana, 3,7 s no p95 e 4,6 s no máximo. 12 s é 2,6 vezes o máximo. O relato grava ms e prazo_ms: rever o número com o p95 dos
+// primeiros filmes falados (dialogue_script_written). Sem 5 s de prazo = nem chama (motivo 'sem_tempo'), o narrado de hoje segue.
+export const PRAZO_DO_DIALOGO_2511_MS = 12_000
+export const MENOR_PRAZO_DO_DIALOGO_2511_MS = 5_000
+export function prazoDoDialogo2511(decorridoMs: number, narradoMs: number): number | null {
+  const sobra = PRAZO_DA_ROTA_DO_ESCRITOR_MS - FOLGA_DA_ROTA_DO_ESCRITOR_MS - narradoMs - Math.max(0, decorridoMs)
+  const prazo = Math.min(PRAZO_DO_DIALOGO_2511_MS, sobra)
+  return Number.isFinite(prazo) && prazo >= MENOR_PRAZO_DO_DIALOGO_2511_MS ? Math.floor(prazo) : null
+}
+
 /** O relato (rastro e resposta): só números e códigos, nunca a fala. */
-export type RelatoDoDialogo2511 = { versao: string; ok: boolean; motivo: MotivoDoDialogo | 'chamada' | null; falantes: number; falas: number; palavras: number; ms: number }
-export type ChamarModelo = (corpo: { model: string; temperature: number; max_tokens: number; response_format: unknown; messages: unknown[] }) => Promise<string | null>
-/** UMA chamada ao escritor (o modelo do escritor de hoje). Nunca lança: falhou, demorou ou saiu da régua = { script: null } e o motivo (a rota segue narrada). */
-export async function escreverDialogo2511(args: { ideia: string; segundos: number; chamar: ChamarModelo; agora?: () => number }): Promise<{ script: string | null; dialogo: Dialogo2511 | null; relato: RelatoDoDialogo2511 }> {
+export type RelatoDoDialogo2511 = { versao: string; ok: boolean; motivo: MotivoDoDialogo | 'chamada' | 'sem_tempo' | null; falantes: number; falas: number; palavras: number; ms: number; prazo_ms: number | null }
+export type ChamarModelo = (corpo: { model: string; temperature: number; max_tokens: number; response_format: unknown; messages: unknown[] }, prazoMs: number) => Promise<string | null>
+/** UMA chamada ao escritor (o modelo do escritor de hoje), com o prazo curto (prazoMs: ausente = 12 s; null = sem tempo, nem chama). Nunca lança: falhou,
+ *  demorou ou saiu da régua = { script: null } e o motivo (a rota segue narrada). */
+export async function escreverDialogo2511(args: { ideia: string; segundos: number; chamar: ChamarModelo; agora?: () => number; prazoMs?: number | null }): Promise<{ script: string | null; dialogo: Dialogo2511 | null; relato: RelatoDoDialogo2511 }> {
   const agora = args.agora ?? Date.now, t0 = agora()
+  const prazo = args.prazoMs === undefined ? PRAZO_DO_DIALOGO_2511_MS : args.prazoMs
   const relato = (ok: boolean, motivo: RelatoDoDialogo2511['motivo'], d: Dialogo2511 | null): RelatoDoDialogo2511 => ({ versao: ESCRITOR_DE_DIALOGO_2511_VERSAO, ok, motivo,
-    falantes: d?.falantes.length ?? 0, falas: d ? d.secoes.reduce((n, s) => n + s.falas.length, 0) : 0, palavras: d ? d.secoes.reduce((n, s) => n + s.falas.reduce((m, f) => m + palavras(f.fala), 0), 0) : 0, ms: Math.max(0, agora() - t0) })
+    falantes: d?.falantes.length ?? 0, falas: d ? d.secoes.reduce((n, s) => n + s.falas.length, 0) : 0, palavras: d ? d.secoes.reduce((n, s) => n + s.falas.reduce((m, f) => m + palavras(f.fala), 0), 0) : 0, ms: Math.max(0, agora() - t0), prazo_ms: prazo })
+  if (prazo === null) return { script: null, dialogo: null, relato: relato(false, 'sem_tempo', null) }
   let raw: string | null = null
   try {
-    raw = await args.chamar({ model: AI_TEXT_MODELS.writer, temperature: 0.7, max_tokens: 700, response_format: FORMATO_DO_DIALOGO_2511, messages: pedidoDoDialogo2511(args.ideia, args.segundos).messages })
+    raw = await args.chamar({ model: AI_TEXT_MODELS.writer, temperature: 0.7, max_tokens: 700, response_format: FORMATO_DO_DIALOGO_2511, messages: pedidoDoDialogo2511(args.ideia, args.segundos).messages }, prazo)
   } catch { raw = null }
   if (typeof raw !== 'string') return { script: null, dialogo: null, relato: relato(false, 'chamada', null) }
   const c = conferirDialogo2511(raw)
