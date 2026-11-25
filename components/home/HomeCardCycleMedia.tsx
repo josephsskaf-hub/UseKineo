@@ -65,14 +65,14 @@ const UGC_SCENES: HomeCardPlaylist = [{
   objectFit: 'cover',
 }]
 
-export default function HomeCardCycleMedia({ card, language, playlist }: { card: HomeCycleCardId; language: string; playlist?: HomeCardPlaylist }) { // KINEO-CARDS-TRAILER-0411 — playlist opcional: sem ela, as listas de sempre
+export default function HomeCardCycleMedia({ card, language, playlist, featuredPlaylist }: { card: HomeCycleCardId; language: string; playlist?: HomeCardPlaylist; featuredPlaylist?: HomeCardPlaylist }) { // KINEO-CARDS-TRAILER-0411 — playlist opcional: sem ela, as listas de sempre
   const root = useRef<HTMLSpanElement>(null)
   const clips = playlist ?? homeCardClips(card, language) // KINEO-CARDS-TRAILER-0411
   const showWall = !!playlist && card === 'product_ads'
   const showUgcScenes = !!playlist && card === 'ugc_ads'
-  const showCartoon = !!playlist && card === 'kids_cartoon'
+  const showCartoon = !!playlist && card === 'kids_cartoon' && !featuredPlaylist
   const desktopClips = showWall ? PRODUCT_WALL_DESKTOP : undefined
-  const activeClips = showWall ? PRODUCT_WALL_MOBILE : showUgcScenes ? UGC_SCENES : showCartoon ? CARTOON_COVER : clips
+  const activeClips = featuredPlaylist ?? (showWall ? PRODUCT_WALL_MOBILE : showUgcScenes ? UGC_SCENES : showCartoon ? CARTOON_COVER : clips)
   useEffect(() => {
     const el = root.current
     if (!el) return
